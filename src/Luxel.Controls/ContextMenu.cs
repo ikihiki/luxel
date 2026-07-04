@@ -59,6 +59,16 @@ public static class ContextMenu
             ("すべて選択", () => { f.OnKey?.Invoke(new KeyEvent(Key.A, false, true)); }));
     }
 
+    /// <summary>読み取り専用テキストの標準メニュー (コピー/すべて選択)。
+    /// 動作はキーボード配線 (Ctrl+C/A) を再利用する — ReadOnly の docs 等が使う。</summary>
+    public static void OpenForReadOnlyText(UiBuildContext ctx, UiNode node, float lx, float ly, FocusTarget f)
+    {
+        System.Numerics.Vector2 w = node.ComputeWorldNow().Apply(new System.Numerics.Vector2(lx, ly));
+        Open(ctx, w.X, w.Y,
+            ("コピー", () => { f.OnKey?.Invoke(new KeyEvent(Key.C, false, true)); }),
+            ("すべて選択", () => { f.OnKey?.Invoke(new KeyEvent(Key.A, false, true)); }));
+    }
+
     /// <summary>開いているメニューを閉じる (無ければ no-op)。</summary>
     public static void Close(UiBuildContext ctx)
     {

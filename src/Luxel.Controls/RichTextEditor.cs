@@ -55,8 +55,9 @@ public sealed partial class RichTextEditor : Widget, ITextInput
     /// <summary>入力オートフォーマット: 行頭 "# "/"- "/"1. "/"> " + 空白で型変換、"```lang" + Enter でコードブロック化。</summary>
     public bool AutoFormat { get; set; } = true;
 
-    /// <summary>読み取り専用表示 (MDX docs ページ用)。フォーカス/キャレット/選択/編集/コンテキストメニューを
-    /// 無効化し、スクロール・埋め込み widget・**リンククリック**だけ残す — 描画資産 (見出し/リスト/コード/
+    /// <summary>読み取り専用表示 (MDX docs ページ用)。編集/IME/キャレットを無効化し、
+    /// **選択 + コピー** (ドラッグ/ダブル/トリプル、Ctrl+C/A、右クリックのコピー/すべて選択)・
+    /// スクロール・埋め込み widget・**リンククリック**は残す — 描画資産 (見出し/リスト/コード/
     /// テーブル/embed) をそのまま表示専用で使う。実体化前に設定すること。</summary>
     public bool ReadOnly { get; set; }
 
@@ -240,7 +241,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
         _caretNode = ctx.Canvas.AddChild(_content);
         _caretNode.Z = 3;
         ctx.Effect(() => _caretNode.Color = _theme.Value.Primary);
-        ctx.Effect(() => _caretNode.Opacity = Focused.Value && _caretOn.Value ? 1f : 0f);
+        ctx.Effect(() => _caretNode.Opacity = !ReadOnly && Focused.Value && _caretOn.Value ? 1f : 0f);
 
         // スクロールバー thumb: クリップの外 (_root 直下)。形は Refresh (内容高の変化)、
         // 位置はスクロール effect が更新する。内容が収まるときは透明
@@ -262,14 +263,20 @@ public sealed partial class RichTextEditor : Widget, ITextInput
 
         // 入力はブロック描画 (Refresh) より**前に**登録する — 埋め込み widget のヒットは
         // Refresh 中に登録され、後勝ち (前面) でエディタのドラッグ選択より優先される。
-        // ReadOnly (MDX docs) はフォーカス/キャレット/選択/編集を丸ごと登録しない — スクロールと
-        // 埋め込み widget の操作だけ残る。
+        // ReadOnly (MDX docs) は編集/IME/キャレットを配線しない — **選択 + コピー**
+        // (ドラッグ/ダブル/トリプル、Ctrl+C/A、右クリックメニュー) とスクロール、
+        // 埋め込み widget の操作は残る。
         if (!ReadOnly)
         {
             float t2 = 0;
             ctx.AddAnimation(dt => { t2 += dt; if (t2 >= 0.53f) { t2 = 0; _caretOn.Value = !_caretOn.Value; } return false; });
+        }
 
-            FocusTarget f = ctx.AddFocusable(
+        FocusTarget f = ReadOnly
+            ? ctx.AddFocusable(
+                onFocus: on => Focused.Value = on,
+                onKey: OnKeyReadOnly)
+            : ctx.AddFocusable(
                 onFocus: on => { Focused.Value = on; if (on) _caretOn.Value = true; },
                 onKey: OnKey,
                 onText: s => { _ed.Insert(s); MaybeAutoFormat(s); _goalX = null; Sync(); },
@@ -277,27 +284,30 @@ public sealed partial class RichTextEditor : Widget, ITextInput
                 onCommit: s => { _ed.CommitComposition(s); _goalX = null; Sync(); },
                 textInput: this);
 
-            void PlaceFromPoint(float lx, float ly, bool extend)
+        void PlaceFromPoint(float lx, float ly, bool extend)
+        {
+            if (_ed.Composition.Length > 0) return;
+            DocPos p = HitDoc(lx, ly + Clamped());
+            _ed.Select(extend ? _ed.Anchor : p, p);
+            _goalX = null;
+            if (!ReadOnly) _caretOn.Value = true;
+            Refresh();
+            // hybrid: 進入でソース展開されると同じ座標が別 offset になる — 展開後にもう一度ヒット (正確な配置)
+            if (!ReadOnly && HybridSource)
             {
-                if (_ed.Composition.Length > 0) return;
-                DocPos p = HitDoc(lx, ly + Clamped());
-                _ed.Select(extend ? _ed.Anchor : p, p);
-                _goalX = null;
-                _caretOn.Value = true;
-                Refresh();
-                // hybrid: 進入でソース展開されると同じ座標が別 offset になる — 展開後にもう一度ヒット (正確な配置)
-                if (HybridSource)
-                {
-                    DocPos p2 = HitDoc(lx, ly + Clamped());
-                    if (p2 != _ed.Caret) { _ed.Select(extend ? _ed.Anchor : p2, p2); Refresh(); }
-                }
+                DocPos p2 = HitDoc(lx, ly + Clamped());
+                if (p2 != _ed.Caret) { _ed.Select(extend ? _ed.Anchor : p2, p2); Refresh(); }
             }
-            ctx.AddHit(_root, new Rect(0, 0, W, H), focus: f,
-                onDragStart: (lx, ly) => { PlaceFromPoint(lx, ly, extend: false); MultiClick(lx, ly); },
-                onDrag: (lx, ly) => PlaceFromPoint(lx, ly, extend: true),
-                cursor: CursorKind.IBeam,
-                onContext: (lx, ly) => ContextMenu.OpenForEditor(ctx, _root, lx, ly, f));
         }
+        ctx.AddHit(_root, new Rect(0, 0, W, H), focus: f,
+            onDragStart: (lx, ly) => { PlaceFromPoint(lx, ly, extend: false); MultiClick(lx, ly); },
+            onDrag: (lx, ly) => PlaceFromPoint(lx, ly, extend: true),
+            cursor: CursorKind.IBeam,
+            onContext: (lx, ly) =>
+            {
+                if (ReadOnly) ContextMenu.OpenForReadOnlyText(ctx, _root, lx, ly, f);
+                else ContextMenu.OpenForEditor(ctx, _root, lx, ly, f);
+            });
         ctx.AddScroll(_root, new Rect(0, 0, W, H),
             d => _scroll.Value = Math.Clamp(Clamped() - d, 0, MaxScroll));
 
@@ -700,6 +710,17 @@ public sealed partial class RichTextEditor : Widget, ITextInput
         var blocks = new List<Block>(_ed.Doc.Blocks);
         blocks[_srcBlock] = Format.ParseLine(blocks[_srcBlock].Text);
         return Format.Serialize(RichDocument.FromBlocks(blocks));
+    }
+
+    /// <summary>ReadOnly の最小キーマップ — 選択とコピーだけ (編集/スタイル/undo は配線しない)。</summary>
+    private bool OnKeyReadOnly(KeyEvent ev)
+    {
+        switch (ev.Key)
+        {
+            case Key.A when ev.Ctrl: _ed.SelectAll(); Refresh(); return true;
+            case Key.C when ev.Ctrl: return CopySelection();
+            default: return false;
+        }
     }
 
     /// <summary>選択範囲をフォーマットのソース (記法込み) としてコピー — 貼り付け先でも意味が保たれる。</summary>
