@@ -875,8 +875,9 @@ public sealed partial class RichTextEditor : Widget, ITextInput
             BlockKind.Divider => 24,
             BlockKind.Embed when v.Embed is Widget w => w.Size.Height + 8,     // widget 由来の高さ
             BlockKind.CodeBlock => MathF.Max(v.Layout.Height, v.Layout.LineAdvance) + 12,   // 上下 pad 6
-            // 空行 (空段落) は文字高さ程度 — 行送り + 隙間だと段落間が間延びする
-            BlockKind.Paragraph when b.Length == 0 => PxOf(b),
+            // 空行 (空段落) は半文字 — ブロック自身の行送り余白と合わせて「一呼吸」の区切りに見える
+            // (行送り + 隙間だと段落間・見出し直後が間延びする)
+            BlockKind.Paragraph when b.Length == 0 => PxOf(b) * 0.5f,
             // リスト項目間は行送りのみ (余分な隙間なし ≈ 半文字) — 項目は詰めて見せる
             BlockKind.ListItem => MathF.Max(v.Layout.Height, v.Layout.LineAdvance),
             _ => MathF.Max(v.Layout.Height, v.Layout.LineAdvance) + 4,          // ブロック間隙間
