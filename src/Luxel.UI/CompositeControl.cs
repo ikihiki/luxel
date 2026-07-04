@@ -3,7 +3,7 @@ using Luxel.TwoD;
 namespace Luxel.UI;
 
 /// <summary>
-/// 既存コントロールを**宣言的に組み合わせる**複合コントロールの基底 (docs/COMPOSITE_PLAN.md)。
+/// 既存コントロールを**宣言的に組み合わせる**複合コントロールの基底。
 /// <see cref="Build"/> が返したサブツリーへレイアウト/実体化を委譲する —
 /// PerformLayout/RealizeCore は書かない (完全自前描画が要るときは従来どおり <see cref="Widget"/> 直接派生)。
 ///
