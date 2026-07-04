@@ -6,7 +6,7 @@ namespace Luxel.Gallery;
 /// canvas 更新コストのマイクロベンチ (`-- vk|dx bench <story> [frames] [--type] [--click x y] [--wheel d]`)。
 /// snap と同じ offscreen 駆動でストーリーを固定 dt で回し、<see cref="Luxel.TwoD.RetainedCanvas"/> の
 /// 累積統計 (フル再構築回数/時間、アップロードバイト) を区間計測して出力する。
-/// IC 計画 (docs/CANVAS_INCREMENTAL_PLAN.md) のベースライン計測と回帰ゲートに使う。
+/// canvas 増分更新の回帰ゲートに使う (使い方と期待値は Gallery の Docs/Contributing 参照)。
 /// - `--type`: 毎フレーム 1 文字タイプ (エディタのタイプ連打シナリオ)。`--click x y` でフォーカス先を指定。
 /// - `--wheel d`: 毎フレーム delta d のホイール (仮想化リストのスクロール再バインドシナリオ)。
 /// </summary>
