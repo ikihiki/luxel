@@ -68,7 +68,7 @@ public static class DocsRuntime
 
         ## ウィンドウとマルチウィンドウ
 
-        `Win32Window` (CreateWindowEx + WndProc + PeekMessage) を `WindowSystem` / `WindowManager` が束ねます。ウィンドウは複数持て、インスタンスは GWLP_USERDATA で引く正攻法 — 静的マップがないので**別スレッドの別ウィンドウ** (ネイティブ DevTools) とも共存します。マウス/ホイール/キー/WM_CHAR/リサイズは `UiHost` へ配線されます。
+        `Win32Window` (CreateWindowEx + WndProc + PeekMessage) を `WindowSystem` / `WindowManager` が束ねます。ウィンドウは複数持て、インスタンスは GWLP_USERDATA で引く正攻法 — 静的マップがないので**別スレッドの別ウィンドウ** (ネイティブ DevTools) とも共存します。マウス/ホイール/キー/WM_CHAR/リサイズは `UiHost` へ配線されます。第 2 ウィンドウを実際に開くデモは [Platform/SecondWindow](story:Platform/SecondWindow) (実窓専用) へ。
 
         ## スワップチェーン提示
 
@@ -89,7 +89,7 @@ public static class DocsRuntime
     public static Widget Input(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # 入力
 
-        入力は 2 系統あります — **UI 入力** (UiHost がポインタ/キー/IME をコントロールへ配送) と、**ゲーム入力** (Luxel.Input — アクションマップとリバインド)。
+        入力は 2 系統あります — **UI 入力** (UiHost がポインタ/キー/IME をコントロールへ配送) と、**ゲーム入力** (Luxel.Input — アクションマップとリバインド)。ゲーム入力の動くデモは [Input/Gamepad](story:Input/Gamepad) (実窓専用) へ。
 
         ## UiHost の配送順
 

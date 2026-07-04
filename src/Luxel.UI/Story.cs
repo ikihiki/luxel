@@ -53,6 +53,25 @@ public sealed class StoryContext
     /// <summary><see cref="Resources"/> の nullable 版 — 画像配線など「あれば使う」任意機能用。</summary>
     public Luxel.Resources.ResourceSystem? ResourcesOrNull => _resources;
 
+    private Luxel.GpuDevice? _device;
+    private Luxel.Typography.VectorFont? _font;
+
+    /// <summary>ホスト所有の GPU デバイスとフォントを結線する (Resources と同じ「借りる」窓口)。
+    /// 実窓ホストだけが呼ぶ — 実窓専用ストーリー (AppWindow の生成等) が使う。</summary>
+    public void SetGpuHost(Luxel.GpuDevice device, Luxel.Typography.VectorFont font)
+    {
+        _device = device;
+        _font = font;
+    }
+
+    /// <summary>ホスト所有の GpuDevice (実窓専用ストーリー用 — 第 2 ウィンドウの生成等)。</summary>
+    public Luxel.GpuDevice Device
+        => _device ?? throw new InvalidOperationException("ホストが GpuDevice を結線していません (SetGpuHost)");
+
+    /// <summary>ホスト所有の VectorFont (実窓専用ストーリー用)。</summary>
+    public Luxel.Typography.VectorFont Font
+        => _font ?? throw new InvalidOperationException("ホストが VectorFont を結線していません (SetGpuHost)");
+
     private Action<string>? _navigator;
 
     /// <summary>ストーリー遷移サービスをホストが結線する (docs の <c>story:</c> リンク等が使う)。

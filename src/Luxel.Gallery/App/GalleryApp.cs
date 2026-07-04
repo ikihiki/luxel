@@ -449,6 +449,9 @@ public sealed class GalleryApp : IDisposable
         }
     }
 
+    /// <summary>実窓ホストの GPU 設備 (Program が結線)。実窓専用ストーリーが ctx.Device/Font で借りる。</summary>
+    public (GpuDevice Device, Luxel.Typography.VectorFont Font)? HostGpu { get; set; }
+
     public void Select(StoryInfo story)
     {
         _currentStory = story;
@@ -458,6 +461,7 @@ public sealed class GalleryApp : IDisposable
         _ctx = new StoryContext(_resources);
         // 遷移は次フレームへキュー — 子ホストの入力ディスパッチ中に SetContent (旧ルート破棄) しない
         _ctx.SetNavigator(p => _pendingNav = p);
+        if (HostGpu is { } gpu) _ctx.SetGpuHost(gpu.Device, gpu.Font);
         (int pw, int ph) = PreviewSize(story);
         try
         {
