@@ -8,6 +8,7 @@ public interface IAssetLoader
 {
     /// <summary>パス (拡張子) を受け付けるか。</summary>
     bool CanLoad(string path);
+    /// <summary>ファイルを読み込んで <see cref="AssetDocument"/> を構築。</summary>
     Task<AssetDocument> LoadAsync(string path);
 }
 
@@ -16,9 +17,12 @@ public static class AssetLoaders
 {
     private static readonly List<IAssetLoader> _loaders = new();
 
+    /// <summary>loader を登録 (登録順に CanLoad を試す)。</summary>
     public static void Register(IAssetLoader loader) => _loaders.Add(loader);
+    /// <summary>登録済み loader を全て解除。</summary>
     public static void Clear() => _loaders.Clear();
 
+    /// <summary>path を受け付ける最初の loader でロード。該当なしなら <see cref="NotSupportedException"/>。</summary>
     public static Task<AssetDocument> LoadAsync(string path)
     {
         foreach (var l in _loaders)

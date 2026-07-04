@@ -6,7 +6,7 @@ using Luxel.UI;
 namespace Luxel.Controls;
 
 /// <summary>
-/// MDX 風 docs ページの補完文字列 (<see cref="Kit.Docs"/> の引数)。
+/// MDX 風 docs ページの補完文字列 (<see cref="Kit.Docs(DocString, bool, IReadOnlyList{IFenceResolver})"/> の引数)。
 /// **リテラル部分 = markdown、hole = ライブ UI / テキスト補完**。
 ///
 /// <code>

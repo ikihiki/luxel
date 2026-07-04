@@ -5,6 +5,7 @@ namespace Luxel.Diagram;
 /// <summary>配置済みノード (左上座標 + サイズ)。</summary>
 public sealed record DiagramNodeLayout(DiagramNode Node, float X, float Y, float W, float H)
 {
+    /// <summary>ノードの中心座標。</summary>
     public Vector2 Center => new(X + W / 2, Y + H / 2);
 }
 
@@ -26,6 +27,7 @@ public static class DiagramLayout
     private const float RankGap = 64, NodeGap = 18;
     private const float DiamondSlack = 1.6f;       // ひし形はラベルより広く取る
 
+    /// <summary>spec を配置して全体サイズと座標を返す。<paramref name="measure"/> はラベル 1 行の (幅, 高さ)。</summary>
     public static DiagramLayoutResult Arrange(DiagramSpec spec, Func<string, (float W, float H)> measure)
     {
         IReadOnlyList<DiagramNode> ns = spec.Nodes;

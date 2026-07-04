@@ -3,7 +3,7 @@ using Luxel.UI;
 namespace Luxel.Gallery;
 
 /// <summary>
-/// canvas 更新コストのマイクロベンチ (`-- vk|dx bench <story> [frames] [--type] [--click x y] [--wheel d]`)。
+/// canvas 更新コストのマイクロベンチ (`-- vk|dx bench &lt;story&gt; [frames] [--type] [--click x y] [--wheel d]`)。
 /// snap と同じ offscreen 駆動でストーリーを固定 dt で回し、<see cref="Luxel.TwoD.RetainedCanvas"/> の
 /// 累積統計 (フル再構築回数/時間、アップロードバイト) を区間計測して出力する。
 /// canvas 増分更新の回帰ゲートに使う (使い方と期待値は Gallery の Docs/Contributing 参照)。

@@ -10,10 +10,12 @@ namespace Luxel.Gltf;
 /// </summary>
 public sealed class GltfLoader : IAssetLoader
 {
+    /// <summary>拡張子 .gltf / .glb を受け付ける。</summary>
     public bool CanLoad(string path) =>
         path.EndsWith(".gltf", StringComparison.OrdinalIgnoreCase) ||
         path.EndsWith(".glb", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>ファイルを読み込み <see cref="AssetDocument"/> に変換。外部 .bin / 画像 / data:URI も解決する。</summary>
     public async Task<AssetDocument> LoadAsync(string path)
     {
         bool isGlb = path.EndsWith(".glb", StringComparison.OrdinalIgnoreCase);

@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 namespace Luxel.Diagnostics;
 
 /// <summary>
-/// 操作レジストリ + 受信キュー。エンジン/アプリが <see cref="Register"/> で操作を「登録だけ」し、
+/// 操作レジストリ + 受信キュー。エンジン/アプリが <see cref="Register(string, Func{object, object})"/> で操作を「登録だけ」し、
 /// リスナー(別プロジェクト)が任意スレッドから <see cref="Enqueue"/> で要求、app スレッドが
 /// 毎フレーム <see cref="Drain"/> で実行する (UI 状態の単一書込者を保つ)。
 /// 一方向の DiagnosticListener を補完する入力(browser→engine)経路。

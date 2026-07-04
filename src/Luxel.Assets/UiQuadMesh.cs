@@ -9,19 +9,27 @@ namespace Luxel.Assets;
 /// </summary>
 public static class UiQuadMesh
 {
+    /// <summary>UI quad の頂点レイアウト (position + uv + pad、24B)。</summary>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct Vertex
     {
+        /// <summary>頂点位置。</summary>
         public Vector3 Position;
+        /// <summary>UV 座標 (0..1)。</summary>
         public Vector2 Uv;
+        /// <summary>16B 境界合わせ用パディング。</summary>
         public float Pad;
+        /// <summary>位置と UV を指定して作成。</summary>
         public Vertex(Vector3 p, Vector2 uv) { Position = p; Uv = uv; Pad = 0; }
     }
 
+    /// <summary>頂点数 (2 三角 × 3 頂点 = 6)。</summary>
     public const int VertexCount = 6;
+    /// <summary>頂点 1 個のバイト数 (pos 12B + uv 8B + pad 4B = 24B)。</summary>
     public const int VertexStride = 24;
 
     private static readonly Vertex[] _verts = Build();
+    /// <summary>non-indexed の頂点列 (triangle list)。</summary>
     public static ReadOnlySpan<Vertex> Vertices => _verts;
 
     private static Vertex[] Build()

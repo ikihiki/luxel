@@ -9,13 +9,16 @@ namespace Luxel.Gltf;
 /// <summary>
 /// <see cref="Luxel.Resources.ResourceSystem"/> 統合用 step。
 /// .gltf/.glb ファイルの byte[] を受け取り、<see cref="AssetDocument"/> に変換。
-/// 外部 .bin / 画像は <see cref="LoadContext.Load{U}"/> で自動キャッシュ取得 (Resources の dependency graph に組込まれる)。
+/// 外部 .bin / 画像は <see cref="LoadContext.Load{U}(string)"/> で自動キャッシュ取得 (Resources の dependency graph に組込まれる)。
 /// </summary>
 public sealed class GltfStep : IResourceStep<byte[], AssetDocument>
 {
+    /// <summary>CPU executor で実行 (パースのみ)。</summary>
     public Executor Executor => Executor.Cpu;
+    /// <summary>処理対象の拡張子。</summary>
     public IEnumerable<string> Extensions => new[] { ".gltf", ".glb" };
 
+    /// <summary>byte[] をパースし <see cref="AssetDocument"/> に変換。外部参照は <c>ctx.Load</c> で解決。</summary>
     public async Task<AssetDocument> RunAsync(byte[] input, ResourceUri uri, LoadContext ctx)
     {
         string path = uri.Path;
@@ -112,8 +115,10 @@ public sealed class SceneAssetsStep(GpuDevice device, Luxel.Ecs.World world) : I
 {
     private readonly GpuDevice _device = device;
     private readonly Luxel.Ecs.World _world = world;
+    /// <summary>GPU executor で実行 (buffer/texture 確保のため)。</summary>
     public Executor Executor => Executor.Gpu;
 
+    /// <summary>SceneBuilder で <see cref="AssetDocument"/> から <see cref="SceneAssets"/> を構築。</summary>
     public Task<SceneAssets> RunAsync(AssetDocument input, ResourceUri uri, LoadContext ctx)
     {
         var assets = SceneBuilder.Build(_world, input, _device);

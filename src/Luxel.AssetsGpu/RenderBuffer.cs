@@ -4,7 +4,7 @@ namespace Luxel.AssetsGpu;
 
 /// <summary>
 /// CPU 側 staging (T[]) + GPU 側 GpuBuffer (HostMapped) のペア。
-/// <see cref="Data"/> を書き換えて <see cref="MarkDirty"/> すると次の <see cref="ResourceSystem.Pump"/> で GPU に反映される。
+/// <see cref="Data"/> を書き換えて <see cref="MarkDirty"/> すると次の <see cref="Luxel.Resources.ResourceSystem.Pump"/> で GPU に反映される。
 /// Resources 経由で publish されると、cross-pass で同じ buffer を共有できる (RGRE-M2a)。
 ///
 /// 値そのもの (RenderBuffer 参照) は不変 ─ 消費側は <see cref="Buffer"/> を <c>rg.ImportBuffer</c> で毎フレーム取り込む。

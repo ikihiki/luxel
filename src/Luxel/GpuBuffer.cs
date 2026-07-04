@@ -5,7 +5,7 @@ namespace Luxel;
 
 /// <summary>
 /// <c>gpuMalloc</c> が返す GPU メモリ確保。シェーダから参照する 64bit アドレス
-/// (<see cref="DeviceAddress"/>) と、可能なら CPU マップ領域 (<see cref="Span{T}"/>) を持つ。
+/// (<see cref="DeviceAddress"/>) と、可能なら CPU マップ領域 (<see cref="Span{T}()"/>) を持つ。
 /// </summary>
 public sealed class GpuBuffer : IDisposable
 {
@@ -29,7 +29,7 @@ public sealed class GpuBuffer : IDisposable
     /// <summary>CPU マップ先頭ポインタ (マップ不可なら null)。</summary>
     public unsafe void* Pointer => _buffer.MappedPointer;
 
-    /// <summary>マップ領域全体を <typeparamref name="T"/> の <see cref="Span{T}"/> として見る。</summary>
+    /// <summary>マップ領域全体を <typeparamref name="T"/> の <see cref="System.Span{T}"/> として見る。</summary>
     public unsafe Span<T> Span<T>() where T : unmanaged
     {
         void* p = _buffer.MappedPointer;
@@ -39,7 +39,7 @@ public sealed class GpuBuffer : IDisposable
         return new Span<T>(p, count);
     }
 
-    /// <summary>マップ領域を指定要素数の <see cref="Span{T}"/> として見る。</summary>
+    /// <summary>マップ領域を指定要素数の <see cref="System.Span{T}"/> として見る。</summary>
     public unsafe Span<T> Span<T>(int count) where T : unmanaged
     {
         void* p = _buffer.MappedPointer;

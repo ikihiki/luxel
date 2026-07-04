@@ -10,7 +10,7 @@ namespace Luxel.Gallery;
 
 /// <summary>
 /// ネイティブ版ギャラリー (Storybook 風) の UI。**Luxel.Controls 自身で構築する** (ドッグフーディング) —
-/// gallery.html の置き換え。プレビューは <see cref="SurfaceView"/> (iframe 相当):
+/// gallery.html の置き換え。プレビューは <see cref="Luxel.Controls.SurfaceView"/> (iframe 相当):
 ///  - ストーリー切替 = 子 SetRoot + 論理サイズ変更 (StoryAttribute の W/H で実寸表示)
 ///  - knobs パネル等はストーリー毎に変わるため、選択時のみ chrome を SetRoot 再構築する
 ///    (SurfaceView は同一インスタンスを再利用するのでストーリー側の状態は生存)

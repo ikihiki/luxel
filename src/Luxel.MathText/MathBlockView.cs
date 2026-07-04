@@ -26,6 +26,7 @@ public sealed partial class MathBlockView : Widget
         _maxW = maxWidth;
     }
 
+    /// <summary>デバッグ表示の補足 (ソース先頭 24 文字)。</summary>
     public override string? DebugDetail => _source.Length <= 24 ? _source : _source[..24] + "…";
 
     private MathLayoutEngine Engine(LayoutContext ctx) =>
@@ -40,6 +41,7 @@ public sealed partial class MathBlockView : Widget
         Size = c.Constrain(new Size(_box.W * _scale, _box.H * _scale));
     }
 
+    /// <summary>縮小前の自然幅 (組版結果の幅)。</summary>
     public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => _box.W;
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)

@@ -4,7 +4,7 @@ namespace Luxel.Input;
 /// InputContext のスタック。<see cref="Update"/> 時に上位から順に action を解決し、
 /// 上位 context の action が使ったキーは下位に伝わらない (default consume)。
 ///
-/// <see cref="Suspended"/> が true の context は Update されない (UI focus 中の gameplay context を suspend する等)。
+/// <c>Suspended</c> が true の context は Update されない (UI focus 中の gameplay context を suspend する等)。
 /// </summary>
 public sealed class InputStack
 {

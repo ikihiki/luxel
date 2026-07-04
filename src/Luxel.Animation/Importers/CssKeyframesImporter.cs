@@ -22,7 +22,7 @@ namespace Luxel.Animation;
 ///   - <c>color</c>/<c>background-color</c> → rgba(R,G,B,A) または rgb(R,G,B) または #RGBA/#RGB
 ///
 /// 出力 path: "{targetPrefix}/{property}"。`prefix` は <see cref="Parse"/> の引数で指定。
-/// 未対応プロパティは <see cref="ImportSeverity"/>=Warn でログ (将来は DiagWarning 発行)。
+/// 未対応プロパティは <c>ImportSeverity</c>=Warn でログ (将来は DiagWarning 発行)。
 /// </summary>
 public static class CssKeyframesImporter
 {

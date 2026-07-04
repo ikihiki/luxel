@@ -2,7 +2,7 @@ namespace Luxel.Audio;
 
 /// <summary>
 /// 何も再生しない実装。単体テスト / audio device 無し環境向け。
-/// <see cref="Play"/>/<see cref="Stop"/> の状態遷移だけ管理し、実際の音声出力は行わない。
+/// <see cref="IAudioVoice.Play"/>/<see cref="IAudioVoice.Stop"/> の状態遷移だけ管理し、実際の音声出力は行わない。
 /// </summary>
 public sealed class NullAudioBackend : IAudioBackend
 {

@@ -9,6 +9,7 @@ public sealed class AssetCache
     private readonly Dictionary<string, Task<AssetDocument>> _inflight = new();
     private readonly object _lock = new();
 
+    /// <summary>キャッシュ済みならそれを返し、未ロードなら <see cref="AssetLoaders.LoadAsync"/> でロードして格納。</summary>
     public Task<AssetDocument> GetOrLoadAsync(string path)
     {
         lock (_lock)
@@ -36,10 +37,12 @@ public sealed class AssetCache
         }
     }
 
+    /// <summary>キャッシュと in-flight 記録を全てクリア。</summary>
     public void Clear()
     {
         lock (_lock) { _cache.Clear(); _inflight.Clear(); }
     }
 
+    /// <summary>キャッシュ済み document 数 (in-flight は含まない)。</summary>
     public int CacheCount { get { lock (_lock) return _cache.Count; } }
 }

@@ -29,6 +29,7 @@ public static class MermaidParser
         @"^(?<from>.+?)\s*-{2,}>\s*(?:\|(?<label>[^|]*)\|\s*)?(?<to>.+)$",
         RegexOptions.Compiled);
 
+    /// <summary>mermaid ソースをパースする。対応外の行は無視するので例外は投げない。</summary>
     public static DiagramSpec Parse(string src)
     {
         bool horizontal = true;

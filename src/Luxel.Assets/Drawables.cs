@@ -12,7 +12,9 @@ namespace Luxel.Assets;
 /// や <c>RenderBuffer.Buffer</c> をそのまま格納する。</summary>
 public struct DrawMesh : IComponent
 {
+    /// <summary>頂点バッファ (borrowed)。</summary>
     public GpuBuffer Vertex;
+    /// <summary>インデックスバッファ (borrowed)。</summary>
     public GpuBuffer Index;
     /// <summary>DrawIndexed 相当の index 数 (shader は SV_VertexID を index buffer で lookup)。</summary>
     public int IndexCount;
@@ -21,9 +23,10 @@ public struct DrawMesh : IComponent
 }
 
 /// <summary>per-instance 定数 (world matrix + material index 等) を格納する GPU buffer 参照。
-/// 実体は <see cref="Luxel.Resources.RenderBuffer{T}"/> (Sample 側が per-frame CPU write する)。</summary>
+/// 実体は <c>RenderBuffer&lt;T&gt;</c> (Sample 側が per-frame CPU write する)。</summary>
 public struct DrawInstance : IComponent
 {
+    /// <summary>instance 定数バッファ (borrowed)。</summary>
     public GpuBuffer Buffer;
     /// <summary>この entity が使う instance の buffer 内オフセット (通常 0、multi-instance 集約時に使用)。</summary>
     public int InstanceOffset;
@@ -35,14 +38,18 @@ public struct DrawInstance : IComponent
 /// shader は <c>materialArray.Load&lt;Material&gt;(matIdx * 32)</c> で読み出す。</summary>
 public struct DrawMaterial : IComponent
 {
+    /// <summary>material array の GPU buffer (borrowed)。</summary>
     public GpuBuffer MaterialArray;
+    /// <summary>この entity が使う material の array 内 index。</summary>
     public int MaterialIndex;
 }
 
 /// <summary>skinning 用の joint matrix 配列。entity が持つとき shader は skinning path を辿る。
-/// 実体は <see cref="Luxel.Resources.RenderBuffer{Matrix4x4}"/> で per-frame CPU write。</summary>
+/// 実体は <c>RenderBuffer&lt;Matrix4x4&gt;</c> で per-frame CPU write。</summary>
 public struct DrawSkinning : IComponent
 {
+    /// <summary>joint matrix 配列の GPU buffer (borrowed)。</summary>
     public GpuBuffer JointBuffer;
+    /// <summary>joint 数 (= skin.Joints.Count)。</summary>
     public int JointCount;
 }

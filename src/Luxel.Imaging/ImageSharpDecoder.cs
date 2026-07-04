@@ -10,9 +10,12 @@ namespace Luxel.Imaging;
 /// </summary>
 public sealed class ImageSharpDecoder : IResourceStep<byte[], CpuImage>
 {
+    /// <summary>CPU executor で実行 (デコードのみ)。</summary>
     public Executor Executor => Executor.Cpu;
+    /// <summary>処理対象の拡張子。</summary>
     public IEnumerable<string> Extensions => [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tga"];
 
+    /// <summary>byte[] を ImageSharp でデコードし RGBA8 の <see cref="CpuImage"/> を返す。</summary>
     public Task<CpuImage> RunAsync(byte[] input, ResourceUri uri, LoadContext ctx)
     {
         using Image<Rgba32> img = Image.Load<Rgba32>(input);

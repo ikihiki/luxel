@@ -4,7 +4,7 @@ namespace Luxel.Scene.UI;
 
 /// <summary>
 /// AnimationController から制御される再生状態 (Signal ベース、reactive)。
-/// 1 つの <see cref="AssetAnimation"/> 単位、または複数 clip を切替えても再利用可能。
+/// 1 つの <see cref="Luxel.Assets.AssetAnimation"/> 単位、または複数 clip を切替えても再利用可能。
 /// </summary>
 public sealed class PlaybackState
 {

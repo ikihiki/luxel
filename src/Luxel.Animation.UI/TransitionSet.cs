@@ -5,7 +5,7 @@ namespace Luxel.Animation.UI;
 
 /// <summary>
 /// 状態切替時のプロパティ別 Transition 仕様を束ねる record。
-/// <see cref="StateStyle"/> と並行構造で、対応プロパティが値変化したら自動補間する。
+/// <c>StateStyle</c> と並行構造で、対応プロパティが値変化したら自動補間する。
 ///
 /// <para>tuple 暗黙変換 (<see cref="TransitionSpec"/>) を使って:</para>
 /// <code>

@@ -30,7 +30,7 @@ public abstract class TrackEntryBase
     /// <summary>このトラックの全体時間 (秒)。</summary>
     public abstract float Duration { get; }
 
-    /// <summary>一時停止中フラグ。<see cref="Pause"/> と <see cref="Resume"/> で切替。</summary>
+    /// <summary>一時停止中フラグ。<see cref="Pause(float)"/> と <see cref="Resume(float)"/> で切替。</summary>
     public bool Paused { get; private set; }
 
     private float _pausedAt;

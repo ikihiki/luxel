@@ -341,4 +341,62 @@ public static class DocsGpu
 
         型 API の一覧は [Docs/Api3D](story:Docs/Api3D) へ。
         """, toc: true, fences: DocsFences));
+
+    [Story("Docs/Ecs", Order = 15)]
+    public static Widget Ecs(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+        # ECS (Luxel.Ecs)
+
+        Friflo Engine ECS の薄いラッパです。3D シーン ([Docs/ThreeD](story:Docs/ThreeD)) とアセット展開 ([Docs/Assets](story:Docs/Assets)) の土台ですが、単体でも使えます。高度な操作は `world.Store` (生の Friflo `EntityStore`) を直接触ってかまいません。
+
+        ## Entity とクエリ
+
+        ```csharp
+        using var world = new Luxel.Ecs.World();
+        var e = world.CreateEntity(new LocalTransform(matrix), new Color3D(color), new MeshRef(MeshRef.Cube));
+
+        world.Query<LocalTransform, Color3D>()
+             .ForEachEntity((ref LocalTransform t, ref Color3D c, Entity entity) => { /* archetype 直走査 */ });
+        foreach (var (entity, t) in world.QueryEnumerable<LocalTransform>()) { /* LINQ 風の遅い版 */ }
+        ```
+
+        `Set/Get/Has/TryGet` の単発アクセサもあります。struct component + archetype 走査という Friflo の性質はそのまま — **ref で書き換える**のが基本です。
+
+        ## 標準コンポーネントとタグ
+
+        - `LocalTransform` / `GlobalTransform` — ローカル/ワールド行列。親子は `Parent` コンポーネント
+        - `Color3D` / `MeshRef` / `Visible` — 描画用 (抽出側が読む)
+        - タグ: `Enabled` / `Selected` / `Dirty` (データなしのマーカ)
+
+        `GlobalTransform` は自動では更新されません — `TransformPropagateSystem.Run(world)` (Luxel.AssetRuntime) が `Parent` をたどって伝播します。
+
+        ## システムと Phase
+
+        フレーム位相は規約名 `Phase.PreUpdate / Update / PostUpdate / PreRender / Render` で分けます:
+
+        ```csharp
+        world.AddSystem(Phase.Update, () => { /* DelegateSystem — lambda で足せる */ });
+        world.RunPhase(Phase.Update, new UpdateTick { deltaTime = 1f / 60 });
+        ```
+
+        `ScheduleRoot.Create(world)` は 5 phase の SystemGroup を内蔵した Friflo `SystemRoot` を作ります。PreRender = 抽出 (IRenderExtractor)、Render = RenderGraph 実行、という接続が規約です。`EnableSystemPerfMonitor()` + `CollectSystemTimings(phase)` で system 単位の実行時間も取れます (DevTools の表示元)。
+
+        ## Signal 連携 (Luxel.Ecs.Signal)
+
+        UI の Signal と ECS の橋渡しは本体から分離されています (Luxel.Ecs は Friflo 以外に依存しない):
+
+        ```csharp
+        using Luxel.Ecs.Signal;
+        Signal<Color3D> sig = world.Signal<Color3D>(entity);   // 同じ (entity, T) は同一インスタンス
+        sig.Value = new Color3D(newColor);   // Friflo の変更通知で UI 側の監視者にも伝わる
+        ```
+
+        UI から entity を編集する例は [Animation/EcsClip](story:Animation/EcsClip) にあります。
+
+        ## 設計ノート
+
+        - **UI には ECS を使いません** — UI は signals + 保持型ツリー ([Docs/UI](story:Docs/UI))。3D 側だけ ECS です (理由は [Docs/ThreeD](story:Docs/ThreeD) の設計ノート)
+        - ラッパを薄く保つのは、Friflo の archetype API (`ArchetypeQuery` / `ForEachEntity`) がそのまま最速経路だからです。Luxel が足すのは Phase 規約・DelegateSystem・Signal ブリッジ・perf 収集だけ
+
+        型 API の一覧は [Docs/Api3D](story:Docs/Api3D) へ。
+        """, toc: true, fences: DocsFences));
 }

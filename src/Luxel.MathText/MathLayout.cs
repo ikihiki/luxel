@@ -3,6 +3,7 @@ namespace Luxel.MathText;
 /// <summary>数式ボックス: 幅/高さ/ベースライン (上端からの距離)。</summary>
 public readonly record struct MathBox(float W, float H, float Base)
 {
+    /// <summary>ベースラインより下の高さ。</summary>
     public float Desc => H - Base;   // ベースラインより下
 }
 
@@ -20,6 +21,7 @@ public sealed class MathLayoutEngine(
     private const float Axis = 0.30f;                        // 数式軸 (分数線/行列中心) のベースライン上比
     private const float Rule = 1.4f;
 
+    /// <summary>ノードのボックス (幅/高さ/ベースライン) を再帰的に計測する。</summary>
     public MathBox Measure(MathNode n, float px) => n switch
     {
         MathSymbol s => MeasureSymbol(s, px),
@@ -116,6 +118,8 @@ public sealed class MathLayoutEngine(
 
     // ---- 描画 (x = 左端、baseY = ベースライン)。text/line は widget が注入 ----
 
+    /// <summary>ノードを描画する (x = 左端、baseY = ベースライン)。
+    /// text は (文字列, x, baseY, px)、line は (x1, y1, x2, y2, 線幅) を受ける注入プリミティブ。</summary>
     public void Draw(MathNode n, float x, float baseY, float px,
         Action<string, float, float, float> text, Action<float, float, float, float, float> line)
     {

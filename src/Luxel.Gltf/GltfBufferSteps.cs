@@ -11,9 +11,12 @@ namespace Luxel.Gltf;
 public sealed class GltfBufferStep(GpuDevice device) : IResourceStep<SceneAssets, GpuBuffer>
 {
     private readonly GpuDevice _device = device;
+    /// <summary>GPU executor で実行 (buffer 確保のため)。</summary>
     public Executor Executor => Executor.Gpu;
+    /// <summary>処理対象の fragment パターン。</summary>
     public IEnumerable<string> FragmentPatterns => new[] { "mesh/*", "materials" };
 
+    /// <summary>fragment に応じて vertex/index buffer (borrowed) または materials buffer (owned) を返す。</summary>
     public Task<GpuBuffer> RunAsync(SceneAssets assets, ResourceUri uri, LoadContext ctx)
     {
         string frag = uri.Fragment;
@@ -78,9 +81,12 @@ public sealed class GltfBufferStep(GpuDevice device) : IResourceStep<SceneAssets
 /// </summary>
 public sealed class MaterialTextureStep : IResourceStep<SceneAssets, GpuTexture>
 {
+    /// <summary>CPU executor で実行 (参照を返すだけで GPU 操作なし)。</summary>
     public Executor Executor => Executor.Cpu;
+    /// <summary>処理対象の fragment パターン。</summary>
     public IEnumerable<string> FragmentPatterns => new[] { "material/*" };
 
+    /// <summary>fragment で指定された material の baseColor texture を borrowed で返す。</summary>
     public Task<GpuTexture> RunAsync(SceneAssets assets, ResourceUri uri, LoadContext ctx)
     {
         string frag = uri.Fragment;

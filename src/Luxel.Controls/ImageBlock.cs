@@ -7,7 +7,7 @@ namespace Luxel.Controls;
 
 /// <summary>
 /// 画像埋め込みブロックの標準 widget。**画像の取得/デコード/キャッシュ/寿命は Resource システム**
-/// (<see cref="ResourceSystem.Load{T}"/> — RefCount 管理、同一 URI は共有) に委ね、この widget は
+/// (<see cref="ResourceSystem.Load{T}(string)"/> — RefCount 管理、同一 URI は共有) に委ね、この widget は
 /// ハンドルの表示だけを持つ。ロード完了は毎 Tick のポーリングで検知し (継続はプールスレッドのため)、
 /// <see cref="Widget.MarkNeedsRealize"/> で実寸へ再実体化する — サイズが変わるので親 (エディタ) が
 /// **同一インスタンスのまま**再ホストし、factory 再生成もハンドル再取得も起きない。

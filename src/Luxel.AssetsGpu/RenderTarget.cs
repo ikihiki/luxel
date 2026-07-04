@@ -5,7 +5,7 @@ namespace Luxel.AssetsGpu;
 /// Resources 経由で他コンポーネント (別 RG / UI / thumbnail) が最新テクスチャを引ける (RGRE-M2a)。
 ///
 /// テクスチャ本体 (<see cref="Texture"/>) は解像度変更が必要な場合のみ差し替わる。
-/// 描画完了通知は <see cref="ResourceHandle{T}.Reloaded"/> を通じて Pump で伝播する。
+/// 描画完了通知は <see cref="Luxel.Resources.ResourceHandle{T}.Reloaded"/> を通じて Pump で伝播する。
 /// </summary>
 public sealed class RenderTarget : IDisposable
 {

@@ -14,7 +14,7 @@ public sealed record Phase(string Name, int Priority)
     public static readonly Phase LateUpdate = new(nameof(LateUpdate), 300);
     /// <summary>Render 直前の準備 (TransformPropagate, Extractor 系)。</summary>
     public static readonly Phase PreRender = new(nameof(PreRender), 400);
-    /// <summary>RenderGraph に pass を追加する phase。<see cref="FrameContext.RenderGraph"/> が非 null。</summary>
+    /// <summary>RenderGraph に pass を追加する phase。<c>FrameContext.RenderGraph</c> が非 null。</summary>
     public static readonly Phase Render = new(nameof(Render), 500);
     /// <summary>engine 側後処理 (AudioMixer.Tick, present 等)。</summary>
     public static readonly Phase PostRender = new(nameof(PostRender), 600);

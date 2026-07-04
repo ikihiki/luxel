@@ -11,8 +11,8 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>
 /// 2D/3D システムの描画結果をストーリーにする実例 (GS)。
-/// - 2D: <see cref="Canvas2D"/> — Scene2D を直接描く (UI と同じ保持型キャンバスの 1 ノード)
-/// - 3D: <see cref="GpuView"/> + <see cref="IGpuScene"/> — offscreen へ自前レンダ →
+/// - 2D: <see cref="Luxel.Controls.Canvas2D"/> — Scene2D を直接描く (UI と同じ保持型キャンバスの 1 ノード)
+/// - 3D: <see cref="Luxel.Controls.GpuView"/> + <see cref="IGpuScene"/> — offscreen へ自前レンダ →
 ///   image プリミティブでゼロコピー合成。リソースは <c>ctx.Resources</c> (ホスト所有) から
 /// 時間はすべて Tick の累積秒 — snap の固定ステップ (8 × 1/60s) で決定的。
 /// </summary>

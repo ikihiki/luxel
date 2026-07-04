@@ -6,7 +6,7 @@ namespace Luxel.Animation;
 /// <see cref="TransitionTable"/> (from / to / from→to × プロパティ) の設定でプロパティ毎に独立 tween する。
 ///
 /// 意味論 (UI の不変条件を機械に内蔵):
-/// - <see cref="Start"/> は瞬時適用 (Realize 直後は静止値 — snap golden を揺らさない)
+/// - <see cref="Start(string)"/> は瞬時適用 (Realize 直後は静止値 — snap golden を揺らさない)
 /// - 遷移途中の <see cref="Goto(string, IClock)"/> は各プロパティを**現在のアニメ値起点**で
 ///   再スタート (smooth interrupt) — 連打しても値はジャンプしない
 /// - **動的状態**: <see cref="Goto(string, IClock, IReadOnlyDictionary{string, object})"/> は

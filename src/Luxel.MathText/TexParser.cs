@@ -33,6 +33,7 @@ public sealed record MathMatrix(IReadOnlyList<IReadOnlyList<MathNode>> Rows, cha
 /// </summary>
 public static class TexParser
 {
+    /// <summary>TeX 文字列をパースして数式ノードを返す (要素 1 つなら <see cref="MathRow"/> に包まない)。</summary>
     public static MathNode Parse(string tex)
     {
         int pos = 0;

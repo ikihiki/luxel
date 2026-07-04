@@ -28,6 +28,7 @@ public sealed partial class DiagramBlock : Widget
         _maxW = maxWidth;
     }
 
+    /// <summary>デバッグ表示の補足 (配置済みノード数)。</summary>
     public override string? DebugDetail => $"{_layout?.Nodes.Count ?? 0} nodes";
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
@@ -40,6 +41,7 @@ public sealed partial class DiagramBlock : Widget
         Size = c.Constrain(new Size(_layout.Width * _scale, _layout.Height * _scale));
     }
 
+    /// <summary>縮小前の自然幅 (レイアウト未実行なら 0)。</summary>
     public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => _layout?.Width ?? 0;
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
@@ -133,7 +135,10 @@ public sealed partial class DiagramBlock : Widget
 /// (BlockWidgetRegistry は Controls 層 — このアセンブリは Controls 非依存に保つ)。</summary>
 public sealed class MermaidFenceResolver : IFenceResolver
 {
+    /// <summary>共有インスタンス (状態を持たない)。</summary>
     public static readonly MermaidFenceResolver Instance = new();
+
+    /// <summary>info 先頭語が <c>mermaid</c> のフェンスだけ <see cref="FencePayload"/> に昇格する (他は null)。</summary>
     public IBlockPayload? Resolve(string info, string body)
         => info.Split(' ', 2)[0] is "mermaid" ? new FencePayload(info, body) : null;
 }

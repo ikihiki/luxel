@@ -426,7 +426,7 @@ public abstract class GameScene : IScene
     }
 
     /// <summary>UiRegistry に登録された全 UiHost の tree snapshot を配列で emit する。
-    /// 各 host の <see cref="Luxel.UI.UiSurfaceKind"/>/placement は host 側では持たないので "Screen" 固定。
+    /// 各 host の <see cref="UiSurfaceKind"/>/placement は host 側では持たないので "Screen" 固定。
     /// (Scene が抱える UiSurface と結び付けたい場合は user が name 命名で区別する。)</summary>
     private void EmitUiTreesSnapshot()
     {
