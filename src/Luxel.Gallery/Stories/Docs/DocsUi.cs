@@ -17,21 +17,23 @@ public static class DocsUi
 
         ## DSL — ベアファクトリ + indexer
 
-        構築は `Button(...)` / `VStack(...)` などの**ベアファクトリ** (ソースジェネレーターが `[UiComponent]`/`[UiParam]` から生成)、子は get-only インデクサ `[...]`、見た目はすべて省略可能引数、添付プロパティだけ `P.Grid.Column(1)` を `parts:` に渡します:
+        構築は `Button(...)` / `VStack(...)` などの**ベアファクトリ** (ソースジェネレーターが `[UiComponent]`/`[UiParam]` から生成)、子は get-only インデクサ `[...]`、見た目はすべて省略可能引数。状態レイヤやグリッド配置などの追加宣言は **fluent 拡張** (`.When(...)` / `.Transition(...)` / `.GridColumn(1)`) をチェーンします:
 
         ```csharp
         var count = new Signal<int>(0);
         Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))
         [
             Grid(columns: [1, 2])[
-                Text($"Count: {count}", 30, parts: [P.Grid.Row(0), P.Grid.ColumnSpan(2)]),
-                Button(_ => count.Value--, "- 1", parts: P.Grid.Column(0)),
-                Button(_ => count.Value++, "+ 1", parts: P.Grid.Column(1))]
+                Text($"Count: {count}", 30).GridRow(0).GridColumnSpan(2),
+                Button(_ => count.Value--, "- 1").GridColumn(0),
+                Button(_ => count.Value++, "+ 1").GridColumn(1)]
         ]
         ```
 
         > [!NOTE]
-        > `Foo(...)` 呼び出しと `Foo.Bar` メンバアクセスを同名で両立できない C# の制約のため、構築はベア関数、添付は `P.Grid.*` に分離しています。コールバックの第一引数は **発火元コントロール** (sender-first 規約) です。
+        > fluent 拡張はジェネリック this で**具象型を返す**ため、`When` / `Transition` /
+        > `GridColumn` を任意の順でチェーンできます。コールバックの第一引数は
+        > **発火元コントロール** (sender-first 規約) です。
 
         ## Signals — 細粒度リアクティブ
 
@@ -110,24 +112,24 @@ public static class DocsUi
     public static Widget Styling(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # スタイリングと Tailwind
 
-        コントロールの見た目は 3 つの層で決まります: **① テーマ既定** (Variant × Intent) → **② ファクトリ引数** (background 等の個別指定) → **③ Tailwind utility** (`parts:` に渡す override)。後の層ほど強く、CSS の specificity と同じ感覚です。
+        コントロールの見た目は 3 つの層で決まります: **① テーマ既定** (Variant × Intent) → **② ファクトリ引数** (background 等の個別指定) → **③ 状態レイヤ** (fluent `.When(state, ...)` の override)。後の層ほど強く、CSS の specificity と同じ感覚です。
 
         ## 状態レイヤ (hover / pressed / checked …)
 
-        状態別の見た目は `S.On(WidgetState.Hover, ...)` で utility を状態に紐づけるか、生成された `.When(state, ...)` 拡張で引数と同名のプロパティを上書きします。該当状態のスタイルが既定へ**後勝ちマージ**されます:
+        状態別の見た目は生成された `.When(state, ...)` 拡張で宣言します — 引数はファクトリと同名で、該当状態のスタイルが既定へ**後勝ちマージ**されます:
 
         ```csharp
         Button(_ => { }, "Hover me",
-            background: Tw.Blue500, foreground: Tw.White, rounded: 10, width: 180, height: 64,
-            parts: [S.On(WidgetState.Hover, S.Bg(Tw.Red500), S.Scale(1.08f)),
-                    S.On(WidgetState.Pressed, S.Scale(0.94f))]);
+                background: Tw.Blue500, foreground: Tw.White, rounded: 10, width: 180, height: 64)
+            .When(WidgetState.Hover, background: Tw.Red500, scale: 1.08f)
+            .When(WidgetState.Pressed, scale: 0.94f);
         ```
 
         {{StoryRef(ctx, "Button/Tailwind")}}
 
-        ## Tailwind utility (Luxel.UI.Tailwind)
+        ## カラーパレット (Luxel.UI.Tailwind)
 
-        `Tw.Blue500` などのパレット定数と `S.Bg / S.Fg / S.Rounded / S.Scale / S.On(state, ...)` の utility を別アセンブリで提供します。HTML の class 属性との対応で読めます — `class="bg-blue-500 hover:bg-red-500"` ≒ `parts: [S.Bg(Tw.Blue500), S.On(WidgetState.Hover, S.Bg(Tw.Red500))]`。CheckBox の Checked などコントロール固有状態にも同じ形で効きます ([CheckBox/CheckedStyle](story:CheckBox/CheckedStyle))。
+        `Tw.Blue500` など Tailwind のカラーパレット定数を別アセンブリで提供します。HTML の class 属性との対応で読めます — `class="bg-blue-500 hover:bg-red-500"` ≒ `background: Tw.Blue500` + `.When(WidgetState.Hover, background: Tw.Red500)`。CheckBox の Checked などコントロール固有状態にも同じ形で効きます ([CheckBox/CheckedStyle](story:CheckBox/CheckedStyle))。
 
         ## ユーザー定義テーマ
 
@@ -151,7 +153,7 @@ public static class DocsUi
 
         {{StoryRef(ctx, "Transitions/States")}}
 
-        設計ノート: 状態別スタイルを「引数で全部渡せる」形にしたのは Tailwind / MUI sx / Flutter WidgetState と同じ発想です。テーマを経由しない一発指定と、テーマ経由の既定解決が同居し、どちらもトランジションに乗ります。
+        設計ノート: 状態別スタイルを「引数と同名の型付き宣言」にしたのは Tailwind の hover: / MUI sx / Flutter WidgetState と同じ発想です。テーマを経由しない一発指定と、テーマ経由の既定解決が同居し、どちらもトランジションに乗ります。
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/Button", Order = 22)]

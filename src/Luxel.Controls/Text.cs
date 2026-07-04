@@ -12,7 +12,7 @@ namespace Luxel.Controls;
 /// 内容に \n を含むと <see cref="TextLayout"/> による複数行レイアウト (折り返し/禁則/整列/Justify) になる。
 /// 内容は <see cref="Func{String}"/> で束縛でき、signal 変化で更新される。
 /// <para>色/不透明度/サイズは [UiParam] な <see cref="Bindable{T}"/> フィールド。
-/// 状態別の上書きは <c>S.On(WidgetState.Hover, Fg(...))</c> 等が状態レイヤで積む。</para>
+/// 状態別の上書きは生成された <c>.When(WidgetState.Hover, color: ...)</c> が状態レイヤで積む。</para>
 /// </summary>
 [UiComponent]
 public sealed partial class Text : Widget
@@ -22,7 +22,7 @@ public sealed partial class Text : Widget
 
     [UiParam] public readonly Bindable<float> FontSize = 16f;
     /// <summary>文字色。未設定 → 既定 (濃灰)。テーマ追従は <c>Bind.From(() => UiTheme.T.Text)</c>。</summary>
-    [UiParam] public readonly Bindable<uint> Color = new();
+    [UiParam(Stateable = true)] public readonly Bindable<uint> Color = new();
     [UiParam] public readonly Bindable<float> Opacity = new();
 
     /// <summary>折り返し (既定 None = 1 行互換)。Word=語境界優先、Char=文字単位 (禁則は両方有効)。</summary>

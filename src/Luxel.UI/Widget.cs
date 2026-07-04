@@ -9,36 +9,6 @@ namespace Luxel.UI;
 /// </summary>
 public readonly record struct Attached(string Key, object? Value);
 
-/// <summary>宣言ツリーの構成要素 (子ウィジェット / 設定 / 添付プロパティ)。</summary>
-public interface INodePart { }
-
-/// <summary>親が生成したウィジェットへ適用される設定/添付パート。</summary>
-public interface IConfigPart : INodePart
-{
-    void Apply(Widget target);
-}
-
-/// <summary>添付プロパティのパート (子の配置情報を子自身に記録)。</summary>
-public sealed class AttachedPart(Attached value) : IConfigPart
-{
-    public void Apply(Widget target) => target.SetAttached(value);
-}
-
-/// <summary>複数の子をまとめて親へ展開するパート (配列レンダリング <c>Each(...)</c> 用)。</summary>
-public sealed class Fragment(IEnumerable<Widget> children) : INodePart
-{
-    public Widget[] Children { get; } = children.ToArray();
-}
-
-/// <summary>何もしないパート (<c>When(false, ...)</c> 用)。</summary>
-public sealed class EmptyPart : INodePart { public static readonly EmptyPart Instance = new(); }
-
-/// <summary>型付きウィジェットへの設定パート。対象型が違えば無視される。</summary>
-public sealed class ConfigPart<T>(Action<T> apply) : IConfigPart where T : Widget
-{
-    public void Apply(Widget target) { if (target is T t) apply(t); }
-}
-
 /// <summary>レイアウト中に必要な文脈 (テキスト計測のフォント等)。</summary>
 public sealed class LayoutContext
 {
@@ -306,7 +276,7 @@ public sealed class UiBuildContext
 /// と、保持型ツリーへの実体化 (<see cref="Realize"/>) を持つ。**別アセンブリで継承して独自コントロールを
 /// 追加できる** (Realize/PerformLayout を override、AddChildWidget でコンテナ化)。
 /// </summary>
-public abstract class Widget : INodePart
+public abstract class Widget
 {
     private Dictionary<string, object?>? _attached;
     private Dictionary<string, object>? _setterWraps;
@@ -417,7 +387,7 @@ public abstract class Widget : INodePart
 
     /// <summary>root ノードへ transform 成分 (Offset + TranslateX/Y・ScaleX/Y・Rotate、中心基準) を
     /// 配線する — `node.Transform = Translate(Offset)` の置き換え。setter は <see cref="WrapSetter{T}"/>
-    /// を通るので状態遷移のトランジション (P.Transition/fluent Transition) が効く。
+    /// を通るので状態遷移のトランジション (fluent Transition 系) が効く。
     /// 戻り値の handle でコントロール固有の一様スケール (Button.Scale 等) を合成できる。</summary>
     public TransformHandle WireTransform(UiBuildContext ctx, UiNode node)
     {

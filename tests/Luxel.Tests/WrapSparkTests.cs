@@ -4,7 +4,6 @@ using Luxel.UI;
 using Luxel.Controls;
 using Xunit;
 using static Luxel.Controls.Kit;
-using static Luxel.UI.Decl;
 
 namespace Luxel.Tests;
 

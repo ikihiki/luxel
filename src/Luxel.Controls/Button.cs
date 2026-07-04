@@ -10,7 +10,7 @@ namespace Luxel.Controls;
 /// 角丸背景 + 中央テキスト + クリック。配色は Theme × Variant × Intent × 状態(hover/press/disabled) から
 /// 解決し、hover/テーマ変更は recolor のみで部分更新。
 /// <para>スタイルはすべて [UiParam] な <see cref="Bindable{T}"/> フィールド。状態別の上書きは
-/// <c>S.On(WidgetState.Hover, Bg(...))</c> 等のパーツが <see cref="Bindable{T}.SetState"/> で積む。
+/// 生成された <c>.When(WidgetState.Hover, background: ...)</c> が <see cref="Bindable{T}.SetState"/> で積む。
 /// 未設定のプロパティはテーマ解決値 (Variant/Intent) にフォールバックする。</para>
 /// </summary>
 [UiComponent]

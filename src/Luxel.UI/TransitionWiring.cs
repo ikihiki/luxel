@@ -6,7 +6,7 @@ namespace Luxel.UI;
 /// <summary>
 /// 状態スタイル (Bindable の状態レイヤ / Styles.Resolve) の**値変化**を、widget の支配状態の
 /// from→to で <see cref="TransitionTable"/> を解決して自動補間する配線 (AS-M3)。
-/// - parts (`P.Transition.On/To/From/Between`) が widget に TransitionTable を添付する
+/// - fluent Transition 系 (Transition/TransitionTo/From/Between) が widget に TransitionTable を添付する
 /// - <see cref="Widget.Realize"/> が添付を見て <see cref="Widget.SetSetterWrapFallback"/> を登録する
 /// - 各プロパティは独立した <see cref="PropertyStateMachine"/> (from = そのプロパティが最後に
 ///   向かっていた支配状態) — 途中の状態変化も現在値起点で滑らかに繋がる
@@ -17,7 +17,7 @@ public static class TransitionWiring
     public const string TableKey = "Transition.Table";
 
     /// <summary>widget 添付の TransitionTable へルールを積む (無ければ作って添付)。
-    /// parts (P.Transition.*) と fluent (<see cref="TransitionExtensions"/>) の共通経路。</summary>
+    /// fluent (<see cref="TransitionExtensions"/>) が使う共通経路。</summary>
     public static void AddRule(Widget w, string? from, string? to, string? prop, TransitionSpec spec)
     {
         var table = w.GetAttached<TransitionTable>(TableKey);

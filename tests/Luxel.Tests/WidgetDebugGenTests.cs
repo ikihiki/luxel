@@ -77,9 +77,11 @@ public class WidgetDebugGenTests
     }
 
     [Fact]
-    public void Factory_AppliesParts()
+    public void SetAttached_RoundTrips()
     {
-        TestBadge b = TestKit.TestBadge(parts: new AttachedPart(new Attached("Grid.Column", 2)));
+        // fluent 添付 (GridColumn 等) の下回り — SetAttached/GetAttached の往復
+        TestBadge b = TestKit.TestBadge();
+        b.SetAttached(new Attached("Grid.Column", 2));
         Assert.Equal(2, b.GetAttached<int>("Grid.Column"));
     }
 

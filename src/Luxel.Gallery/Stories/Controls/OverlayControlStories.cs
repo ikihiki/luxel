@@ -1,7 +1,6 @@
 using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.UI.Decl;
 using static Luxel.Gallery.Stories.StoryKit;
 
 namespace Luxel.Gallery.Stories;

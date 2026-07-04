@@ -4,7 +4,6 @@ using Luxel.UI;
 using Luxel.Controls;
 using Xunit;
 using static Luxel.Controls.Kit;
-using static Luxel.UI.Decl;
 
 namespace Luxel.Tests;
 
@@ -36,9 +35,9 @@ public class UiLayoutTests
     public void Grid_StarColumns_SplitProportionally()
     {
         LayoutContext ctx = Ctx();
-        Text a = Text("A", parts: P.Grid.Column(0));   // 添付のみ → parts: 名前付き (fontSize/color は既定)
-        Text b = Text("B", parts: P.Grid.Column(1));
-        Grid grid = Grid(columns: [1, 2])[a, b];    // 構築=P無し, 添付=P.Grid.*  (1:2 配分)
+        Text a = Text("A").GridColumn(0);           // セル指定は fluent 添付
+        Text b = Text("B").GridColumn(1);
+        Grid grid = Grid(columns: [1, 2])[a, b];    // 1:2 配分
         grid.Layout(Constraints.Tight(new Size(300, 100)), ctx);
         Close(300, grid.Size.Width);
         Close(0, a.Offset.X);                       // col0 は 0 から
@@ -49,7 +48,7 @@ public class UiLayoutTests
     public void Grid_FixedThenStar()
     {
         LayoutContext ctx = Ctx();
-        Text a = Text("A", parts: P.Grid.Column(1));
+        Text a = Text("A").GridColumn(1);
         Grid grid = Grid(columns: [GridLength.Px(50), GridLength.Star(1)])[a];
         grid.Layout(Constraints.Tight(new Size(200, 100)), ctx);
         Close(50, a.Offset.X);                      // 固定 50px の後ろから star 列

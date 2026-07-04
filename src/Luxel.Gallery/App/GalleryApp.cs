@@ -163,11 +163,11 @@ public sealed class GalleryApp : IDisposable
             Heading("Stories"),
             searchBar,
             Scroll(winH - 58, width: _sidebarW)[tree]];
-        sidebar.SetAttached(new Attached("Grid.Column", 0));
+        sidebar.GridColumn(0);
 
         var splitSidebar = Splitter(vertical: true,
             onResized: (_, d) => { _sidebarW = Math.Clamp(_sidebarW + d, 120, 420); RefreshPreviewSize(); _dirty = true; });
-        splitSidebar.SetAttached(new Attached("Grid.Column", 1));
+        splitSidebar.GridColumn(1);
 
         // ---- メイン (col 2): ツールバー / プレビュー / Splitter / Log ----
         Widget toolbar = HStack(8)[
@@ -178,11 +178,11 @@ public sealed class GalleryApp : IDisposable
             Check(_fPressed, "pressed"),
             Check(_fFocused, "focused"),
             Check(_fDisabled, "disabled")];
-        toolbar.SetAttached(new Attached("Grid.Row", 0));
-        _preview.SetAttached(new Attached("Grid.Row", 1));
+        toolbar.GridRow(0);
+        _preview.GridRow(1);
         var splitLog = Splitter(vertical: false,
             onResized: (_, d) => { _logH = Math.Clamp(_logH - d, 60, 440); RefreshPreviewSize(); _dirty = true; });   // 上へドラッグ = Log 拡大
-        splitLog.SetAttached(new Attached("Grid.Row", 2));
+        splitLog.GridRow(2);
         _logItems.Value = LogLines();
         ListView logList = ListView(MathF.Max(24, _logH - 36), 16f, items: _logItems, width: PreviewW - 24);
         Widget logPanel = Border(background: Bind.From(() => UiTheme.T.Surface), rounded: UiTheme.T.Radius,
@@ -190,7 +190,7 @@ public sealed class GalleryApp : IDisposable
             VStack(2)[
                 Text($"Log ({_logCountSig})", 14, color: Bind.From(() => UiTheme.T.Text)),
                 logList]];
-        logPanel.SetAttached(new Attached("Grid.Row", 3));
+        logPanel.GridRow(3);
 
         // 全画面 (zen): ツールバー + プレビューのみ (Log/右パネルを隠して docs をメイン全面に)
         Widget main = _zen
@@ -199,11 +199,11 @@ public sealed class GalleryApp : IDisposable
                 [GridLength.Star(1)],
                 [GridLength.Px(28), GridLength.Star(1), GridLength.Px(Split.Thickness), GridLength.Px(_logH)])[
                 toolbar, _preview, splitLog, logPanel];
-        main.SetAttached(new Attached("Grid.Column", 2));
+        main.GridColumn(2);
 
         var splitPanel = Splitter(vertical: true,
             onResized: (_, d) => { _rightW = Math.Clamp(_rightW - d, 200, 460); RefreshPreviewSize(); _dirty = true; });
-        splitPanel.SetAttached(new Attached("Grid.Column", 3));
+        splitPanel.GridColumn(3);
 
         // ---- 右パネル (col 4): Knobs (autodoc 風テーブル) + Props (個別スクロール) ----
         // 編集は StoryContext のキューへ (Update の PumpKnobEdits が effect 文脈外で適用)。
@@ -234,7 +234,7 @@ public sealed class GalleryApp : IDisposable
             Scroll(260f, width: _rightW)[knobsTable],   // テーブル ~7 行分 (それ以上はスクロール)
             Heading("Props"),
             Scroll(winH - 330, width: _rightW)[VStack(3)[props.ToArray()]]];
-        panel.SetAttached(new Attached("Grid.Column", 4));
+        panel.GridColumn(4);
 
         Widget root = _zen
             ? Grid([GridLength.Px(_sidebarW), GridLength.Px(Split.Thickness), GridLength.Star(1)])[

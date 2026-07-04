@@ -673,21 +673,22 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         if (w.DocSummary.Length > 0)
             sb.Append(pad).Append("/// <summary>").Append(new System.Xml.Linq.XText(w.DocSummary).ToString()).AppendLine("</summary>");
         sb.Append(pad).Append(w.IsInternal ? "internal" : "public").Append(" static ").Append(w.TypeFq)
-          .Append(' ').Append(w.FactoryName).AppendLine("(");
+          .Append(' ').Append(w.FactoryName).Append('(');
 
+        // 引数リストを収集して結合する (設定はすべて名前付き引数 + fluent 拡張 — parts は無い)
+        var paramDecls = new List<string>();
         // (1) ctor 引数 (そのまま写す)
         foreach (CtorParam p in ctor)
         {
-            sb.Append(pad).Append("    ").Append(p.TypeFq).Append(' ').Append(SafeName(p.Name));
-            if (p.DefaultLiteral is not null) sb.Append(" = ").Append(p.DefaultLiteral);
-            sb.AppendLine(",");
+            string decl = p.TypeFq + " " + SafeName(p.Name);
+            if (p.DefaultLiteral is not null) decl += " = " + p.DefaultLiteral;
+            paramDecls.Add(decl);
         }
         // (1.5) [UiEvent] フィールド (Action? の省略可能引数 — ctor 直後に置き位置引数互換を保つ)
         foreach (EventModel e in w.Events)
         {
             if (ctorNames.Contains(ParamName(e.Name))) continue;
-            sb.Append(pad).Append("    ").Append(ActionType(e)).Append("? ")
-              .Append(SafeName(ParamName(e.Name))).AppendLine(" = null,");
+            paramDecls.Add(ActionType(e) + "? " + SafeName(ParamName(e.Name)) + " = null");
         }
         // (2) [UiParam] フィールド (readonly / ctor 引数と名前衝突は除外)
         // Length は値型のまま受ける (int/float/string からの暗黙変換を 1 段に保つため
@@ -701,11 +702,16 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
                 : f.TypeFq == LengthType
                 ? LengthType
                 : "global::Luxel.UI.Bindable<" + f.TypeFq + ">?";
-            sb.Append(pad).Append("    ").Append(paramType).Append(' ')
-              .Append(SafeName(ParamName(f.Name)))
-              .AppendLine(f.TypeFq == LengthType ? " = default," : " = null,");
+            paramDecls.Add(paramType + " " + SafeName(ParamName(f.Name))
+                + (f.TypeFq == LengthType ? " = default" : " = null"));
         }
-        sb.Append(pad).AppendLine("    params global::Luxel.UI.IConfigPart[] parts)");
+        for (int i = 0; i < paramDecls.Count; i++)
+        {
+            sb.AppendLine();
+            sb.Append(pad).Append("    ").Append(paramDecls[i]);
+            if (i < paramDecls.Count - 1) sb.Append(',');
+        }
+        sb.AppendLine(")");
         sb.Append(pad).AppendLine("{");
 
         sb.Append(pad).Append("    var w = new ").Append(w.TypeFq).Append('(');
@@ -732,7 +738,6 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
             sb.Append(pad).Append("    if (").Append(guard).Append(") w.")
               .Append(f.Name).Append(".SetBase(").Append(pn).AppendLine(");");
         }
-        sb.Append(pad).AppendLine("    foreach (global::Luxel.UI.IConfigPart p in parts) p.Apply(w);");
         sb.Append(pad).AppendLine("    return w;");
         sb.Append(pad).AppendLine("}");
     }

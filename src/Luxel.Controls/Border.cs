@@ -8,8 +8,8 @@ namespace Luxel.Controls;
 /// <summary>
 /// 背景色 + padding + (任意で) クリップを持つ単一子コンテナ。
 /// <para>スタイルはすべて [UiParam] な <see cref="Bindable{T}"/> フィールド。状態別の上書きは
-/// <c>S.On(WidgetState.Hover, Bg(...))</c> 等が <see cref="Bindable{T}.SetState"/> で積み、
-/// <c>TransitionFactory.Background(...)</c> を parts で渡すと状態変化で自動補間される。</para>
+/// 生成された <c>.When(WidgetState.Hover, background: ...)</c> が <see cref="Bindable{T}.SetState"/> で積み、
+/// fluent <c>.Transition(...)</c> を宣言すると状態変化で自動補間される。</para>
 /// </summary>
 [UiComponent]
 public sealed partial class Border : Widget

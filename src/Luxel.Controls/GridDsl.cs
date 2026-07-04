@@ -2,21 +2,48 @@ using Luxel.UI;
 
 namespace Luxel.Controls;
 
-/// <summary>グリッド添付プロパティ (子に付ける)。<c>P.Grid.Column(1)</c> 等で <see cref="INodePart"/> を返す。</summary>
-public readonly struct GridDecl
+/// <summary>
+/// グリッド添付プロパティの fluent 宣言 (子 Widget に付ける)。
+/// <code>
+/// Grid(columns: [1, 2])[
+///     Text("A").GridColumn(0),
+///     Button(_ => { }, "B").GridColumn(1).GridRow(0)]
+/// </code>
+/// ジェネリック this で具象型を返すため、When/Transition 等と自由にチェーンできる。
+/// </summary>
+public static class GridAttachedExtensions
 {
-    public IConfigPart Column(int v) => new AttachedPart(new(GridKeys.Column, v));
-    public IConfigPart Row(int v) => new AttachedPart(new(GridKeys.Row, v));
-    public IConfigPart ColumnSpan(int v) => new AttachedPart(new(GridKeys.ColumnSpan, v));
-    public IConfigPart RowSpan(int v) => new AttachedPart(new(GridKeys.RowSpan, v));
-}
-
-/// <summary><c>P</c> へ Grid 添付プロパティのファサードを生やす拡張プロパティ (C# 14 拡張メンバー)。
-/// 使用側は <c>using static Luxel.UI.Decl;</c> + <c>using Luxel.Controls;</c>。</summary>
-public static class PExtensions
-{
-    extension(PRoot p)
+    public static T GridColumn<T>(this T w, int column) where T : Widget
     {
-        public GridDecl Grid => default;
+        w.SetAttached(new Attached(GridKeys.Column, column));
+        return w;
+    }
+
+    public static T GridRow<T>(this T w, int row) where T : Widget
+    {
+        w.SetAttached(new Attached(GridKeys.Row, row));
+        return w;
+    }
+
+    public static T GridColumnSpan<T>(this T w, int span) where T : Widget
+    {
+        w.SetAttached(new Attached(GridKeys.ColumnSpan, span));
+        return w;
+    }
+
+    public static T GridRowSpan<T>(this T w, int span) where T : Widget
+    {
+        w.SetAttached(new Attached(GridKeys.RowSpan, span));
+        return w;
+    }
+
+    /// <summary>セル指定のまとめ書き (列, 行, スパン)。</summary>
+    public static T GridCell<T>(this T w, int column, int row, int columnSpan = 1, int rowSpan = 1) where T : Widget
+    {
+        w.SetAttached(new Attached(GridKeys.Column, column));
+        w.SetAttached(new Attached(GridKeys.Row, row));
+        if (columnSpan != 1) w.SetAttached(new Attached(GridKeys.ColumnSpan, columnSpan));
+        if (rowSpan != 1) w.SetAttached(new Attached(GridKeys.RowSpan, rowSpan));
+        return w;
     }
 }

@@ -1180,170 +1180,66 @@ public class TransitionSetTests
     }
 }
 
-public class PTransitionTests
+public class FluentTransitionTests
 {
-    [Fact]
-    public void PTransition_Color_CreatesAttachment()
+    private static TransitionTable TableOf(Luxel.UI.Widget w)
     {
-        var part = Luxel.UI.Decl.P.Transition.Color(0.3f, CubicBezierCurve.EaseInOut, delay: 0.1f);
-        var ta = Assert.IsType<Luxel.Animation.UI.TransitionAttachment>(part);
-        Assert.Equal(Luxel.Animation.UI.TransitionKeys.Color, ta.Key);
-        Assert.Equal(0.3f, ta.Spec.Duration);
-        Assert.Equal(0.1f, ta.Spec.Delay);
-        Assert.NotNull(ta.Spec.Curve);
+        var table = w.GetAttached<TransitionTable>(Luxel.UI.TransitionWiring.TableKey);
+        Assert.NotNull(table);
+        return table!;
     }
 
     [Fact]
-    public void WidgetTransitions_FindSpec_ReturnsSpec()
+    public void Transition_AddsPropertyDefaultRule()
     {
-        INodePart[] parts = [
-            Luxel.UI.Decl.P.Transition.Color(0.25f),
-            Luxel.UI.Decl.P.Transition.Scale(0.15f),
-        ];
-        var color = Luxel.Animation.UI.WidgetTransitions.FindSpec(parts, Luxel.Animation.UI.TransitionKeys.Color);
-        Assert.NotNull(color);
-        Assert.Equal(0.25f, color.Value.Duration);
-        var scale = Luxel.Animation.UI.WidgetTransitions.FindSpec(parts, Luxel.Animation.UI.TransitionKeys.Scale);
-        Assert.NotNull(scale);
-        Assert.Equal(0.15f, scale.Value.Duration);
-        var missing = Luxel.Animation.UI.WidgetTransitions.FindSpec(parts, Luxel.Animation.UI.TransitionKeys.Opacity);
-        Assert.Null(missing);
+        var btn = Luxel.Controls.Kit.Button(_ => { }, "X")
+            .Transition(0.25f, CubicBezierCurve.EaseInOut, delay: 0.1f, "Background");
+        var spec = TableOf(btn).Resolve("Default", "Hover", "Background");
+        Assert.NotNull(spec);
+        Assert.Equal(0.25f, spec!.Value.Duration);
+        Assert.Equal(0.1f, spec.Value.Delay);
+        Assert.NotNull(spec.Value.Curve);
     }
 
     [Fact]
-    public void WidgetTransitions_Wrap_NoSpec_ReturnsRawSetter()
+    public void Transition_WithoutProps_IsWildcard()
     {
-        INodePart[] parts = [
-            Luxel.UI.Decl.P.Transition.Color(0.25f),   // 別キー
-        ];
-        var clock = new ManualClock();
-        var player = new AnimationPlayer();
-        float observed = -1f;
-
-        // Opacity の spec は無いので raw setter がそのまま返る
-        var setter = Luxel.Animation.UI.WidgetTransitions.Wrap<float>(
-            parts, Luxel.Animation.UI.TransitionKeys.Opacity, v => observed = v, player, clock);
-        setter(1f);
-        setter(0f);
-        Assert.Equal(0f, observed);   // 補間なし即時
-        Assert.Equal(0, player.ActiveCount);
+        var btn = Luxel.Controls.Kit.Button(_ => { }, "X").Transition(0.3f);
+        Assert.Equal(0.3f, TableOf(btn).Resolve("Default", "Hover", "Scale")!.Value.Duration);
+        Assert.Equal(0.3f, TableOf(btn).Resolve("Hover", "Default", "Background")!.Value.Duration);
     }
 
     [Fact]
-    public void WidgetTransitions_Wrap_WithSpec_WrapsAsTransition()
+    public void TransitionTo_BeatsPropertyDefault()
     {
-        INodePart[] parts = [
-            Luxel.UI.Decl.P.Transition.Color(0.5f, LinearCurve.Instance),
-        ];
-        var clock = new ManualClock();
-        var player = new AnimationPlayer();
-        uint observed = 0xFFFFFFFFu;
+        var btn = Luxel.Controls.Kit.Button(_ => { }, "X")
+            .Transition(0.4f, "Background")
+            .TransitionTo(Luxel.UI.WidgetState.Hover, 0.08f);
+        // enter (to=Hover) が prop 既定より具体的なので勝つ
+        Assert.Equal(0.08f, TableOf(btn).Resolve("Default", "Hover", "Background")!.Value.Duration);
+        // hover から抜ける側は prop 既定のまま
+        Assert.Equal(0.4f, TableOf(btn).Resolve("Hover", "Default", "Background")!.Value.Duration);
+    }
 
-        var setter = Luxel.Animation.UI.WidgetTransitions.Wrap<uint>(
-            parts, Luxel.Animation.UI.TransitionKeys.Color, v => observed = v, player, clock);
-        setter(0u);
-        setter(0xFFFFFFFFu);
-        // 補間あり: 0.5s で完了
-        Assert.Equal(1, player.ActiveCount);
-        clock.SetTime(0.25f);
-        player.Update(clock);
-        // 中間値 (色補間)
-        uint r = observed & 0xff;
-        Assert.InRange(r, 100u, 160u);
+    [Fact]
+    public void TransitionBetween_BeatsToAndFrom()
+    {
+        var btn = Luxel.Controls.Kit.Button(_ => { }, "X")
+            .Transition(0.4f)
+            .TransitionTo(Luxel.UI.WidgetState.Hover, 0.08f)
+            .TransitionBetween(Luxel.UI.WidgetState.Pressed, Luxel.UI.WidgetState.Hover, 0f);
+        Assert.Equal(0f, TableOf(btn).Resolve("Pressed", "Hover", "Background")!.Value.Duration);
+        Assert.Equal(0.08f, TableOf(btn).Resolve("Default", "Hover", "Background")!.Value.Duration);
     }
 }
 
-public class TransitionFactoryTests
+public class FluentStateLayerTests
 {
     [Fact]
-    public void Background_RegistersSetterWrap()
+    public void When_Hover_SetsStateLayer()
     {
-        var btn = Luxel.Controls.Kit.Button(_ => { }, "X");
-        var fx = new Luxel.Animation.UI.TransitionFactory(new AnimationPlayer(), new ManualClock());
-        fx.Background(0.3f, LinearCurve.Instance).Apply(btn);
-
-        Action<uint> raw = _ => { };
-        Assert.NotSame(raw, btn.WrapSetter<uint>("Background", raw));   // ラップされた
-        Action<float> rawScale = _ => { };
-        Assert.Same(rawScale, btn.WrapSetter<float>("Scale", rawScale));   // 未登録はそのまま
-    }
-
-    [Fact]
-    public void WrappedSetter_Interpolates()
-    {
-        var clock = new ManualClock();
-        var player = new AnimationPlayer();
-        var btn = Luxel.Controls.Kit.Button(_ => { }, "X");
-        new Luxel.Animation.UI.TransitionFactory(player, clock).Background(0.5f, LinearCurve.Instance).Apply(btn);
-
-        uint observed = 0;
-        Action<uint> wrapped = btn.WrapSetter<uint>("Background", v => observed = v);
-        wrapped(0u);                    // 初回は即時
-        wrapped(0xFF0000FFu);           // 2 回目から補間開始
-        Assert.Equal(1, player.ActiveCount);
-        clock.SetTime(0.25f);
-        player.Update(clock);
-        uint r = observed & 0xff;
-        Assert.InRange(r, 100u, 160u);  // 中間値
-    }
-
-    [Fact]
-    public void FromSet_RegistersWrapsForSpecifiedPropsOnly()
-    {
-        var fx = new Luxel.Animation.UI.TransitionFactory(new AnimationPlayer(), new ManualClock());
-        var set = new Luxel.Animation.UI.TransitionSet
-        {
-            Background = (0.3f, LinearCurve.Instance),
-            Opacity = 0.2f,
-        };
-        var parts = fx.FromSet(set).ToList();
-        Assert.Equal(2, parts.Count);
-
-        var btn = Luxel.Controls.Kit.Button(_ => { }, "X");
-        foreach (var p in parts) p.Apply(btn);
-        Action<uint> rawU = _ => { };
-        Action<float> rawF = _ => { };
-        Assert.NotSame(rawU, btn.WrapSetter<uint>("Background", rawU));
-        Assert.NotSame(rawF, btn.WrapSetter<float>("Opacity", rawF));
-        Assert.Same(rawU, btn.WrapSetter<uint>("Foreground", rawU));
-        Assert.Same(rawF, btn.WrapSetter<float>("Scale", rawF));
-    }
-
-    [Fact]
-    public void FromSet_ZeroDuration_Excluded()
-    {
-        var fx = new Luxel.Animation.UI.TransitionFactory(new AnimationPlayer(), new ManualClock());
-        var set = new Luxel.Animation.UI.TransitionSet { Background = 0f };
-        Assert.Empty(fx.FromSet(set));
-    }
-
-    [Fact]
-    public void Constructor_NullArgs_Throws()
-    {
-        Assert.Throws<ArgumentNullException>(() => new Luxel.Animation.UI.TransitionFactory(null!, new ManualClock()));
-        Assert.Throws<ArgumentNullException>(() => new Luxel.Animation.UI.TransitionFactory(new AnimationPlayer(), null!));
-    }
-}
-
-public class TailwindUtilityTests
-{
-    [Fact]
-    public void S_Bg_SetsButtonBackground()
-    {
-        var btn = Luxel.Controls.Kit.Button(_ => { }, "X");
-        Luxel.UI.Tailwind.S.Bg(Luxel.UI.Tailwind.Tw.Blue500).Apply(btn);
-        Assert.Equal(Luxel.UI.Tailwind.Tw.Blue500, btn.Background.Get());
-    }
-
-    [Fact]
-    public void S_On_Hover_SetsStateLayer()
-    {
-        var btn = Luxel.Controls.Kit.Button(_ => { }, "X");
-        var part = Luxel.UI.Tailwind.S.On(
-            Luxel.UI.WidgetState.Hover,
-            Luxel.UI.Tailwind.S.Bg(0xFF112233u),
-            Luxel.UI.Tailwind.S.Scale(1.2f));
-        part.Apply(btn);
+        var btn = Luxel.Controls.Kit.Button(_ => { }, "X")
+            .When(Luxel.UI.WidgetState.Hover, background: 0xFF112233u, scale: 1.2f);
         // 基底は触らない
         Assert.False(btn.Background.HasValue);
         Assert.Equal(1f, btn.Scale.Or(1f));
@@ -1354,35 +1250,84 @@ public class TailwindUtilityTests
     }
 
     [Fact]
-    public void S_On_Pressed_SetsStateLayer()
+    public void When_Pressed_SetsStateLayer()
     {
-        var btn = Luxel.Controls.Kit.Button(_ => { }, "X");
-        Luxel.UI.Tailwind.S.On(Luxel.UI.WidgetState.Pressed,
-            Luxel.UI.Tailwind.S.Scale(0.95f)).Apply(btn);
+        var btn = Luxel.Controls.Kit.Button(_ => { }, "X")
+            .When(Luxel.UI.WidgetState.Pressed, scale: 0.95f);
         btn.Pressed.Value = true;
         Assert.Equal(0.95f, btn.Scale.Or(1f));
     }
 
     [Fact]
-    public void S_ChainedUtilities_SetIndependentProps()
+    public void When_Default_SetsBase()
     {
-        var btn = Luxel.Controls.Kit.Button(_ => { }, "X");
-        var parts = new Luxel.UI.IConfigPart[]
-        {
-            Luxel.UI.Tailwind.S.Bg(0xFF111111u),
-            Luxel.UI.Tailwind.S.Rounded(8f),
-        };
-        foreach (var p in parts) p.Apply(btn);
+        var btn = Luxel.Controls.Kit.Button(_ => { }, "X")
+            .When(Luxel.UI.WidgetState.Default, background: 0xFF111111u, foreground: 0xFFEEEEEEu);
         Assert.Equal(0xFF111111u, btn.Background.Get());
-        Assert.Equal(8f, btn.Rounded.Get());
+        Assert.Equal(0xFFEEEEEEu, btn.Foreground.Get());
     }
 
     [Fact]
-    public void S_AppliesToBorder()
+    public void When_Checked_OnCheckBox()
     {
-        var bd = Luxel.Controls.Kit.Border();
-        Luxel.UI.Tailwind.S.Bg(Luxel.UI.Tailwind.Tw.Slate100).Apply(bd);
+        var sig = new Signal<bool>(false);
+        var cb = Luxel.Controls.Kit.Check(sig, "X")
+            .When(Luxel.UI.WidgetState.Checked, background: Luxel.UI.Tailwind.Tw.Blue500);
+        Assert.False(cb.Background.HasValue);   // 基底は未設定のまま
+        sig.Value = true;                        // checked → IsStateActive(Checked) が true
+        Assert.Equal(Luxel.UI.Tailwind.Tw.Blue500, cb.Background.Or(0u));
+    }
+
+    [Fact]
+    public void When_Checked_OnSwitch()
+    {
+        var sig = new Signal<bool>(false);
+        var sw = Luxel.Controls.Kit.Switch(sig)
+            .When(Luxel.UI.WidgetState.Checked, background: Luxel.UI.Tailwind.Tw.Green500);
+        sig.Value = true;
+        Assert.Equal(Luxel.UI.Tailwind.Tw.Green500, sw.Background.Or(0u));
+    }
+
+    [Fact]
+    public void When_Hover_AppliesToText()
+    {
+        var tx = Luxel.Controls.Kit.Text("X")
+            .When(Luxel.UI.WidgetState.Hover, color: 0xFF112233u);
+        Assert.False(tx.Color.HasValue);
+        tx.Hovered.Value = true;
+        Assert.Equal(0xFF112233u, tx.Color.Or(0u));
+    }
+
+    [Fact]
+    public void FactoryArgs_SetVisualProps_AcrossControls()
+    {
+        // parts 廃止後は基底スタイル = ファクトリ引数のみ。代表コントロールで疎通確認
+        var bd = Luxel.Controls.Kit.Border(background: Luxel.UI.Tailwind.Tw.Slate100);
         Assert.Equal(Luxel.UI.Tailwind.Tw.Slate100, bd.Background.Get());
+
+        var tf = Luxel.Controls.Kit.TextField(new Signal<string>(""), background: Luxel.UI.Tailwind.Tw.Slate200);
+        Assert.Equal(Luxel.UI.Tailwind.Tw.Slate200, tf.Background.Get());
+
+        var se = Luxel.Controls.Kit.Select(new[] { "a", "b" }, new Signal<int>(0), background: Luxel.UI.Tailwind.Tw.Slate200);
+        Assert.Equal(Luxel.UI.Tailwind.Tw.Slate200, se.Background.Get());
+
+        var sc = Luxel.Controls.Kit.Segmented(new[] { "a", "b" }, new Signal<int>(0), background: Luxel.UI.Tailwind.Tw.Slate200);
+        Assert.Equal(Luxel.UI.Tailwind.Tw.Slate200, sc.Background.Get());
+
+        var rg = Luxel.Controls.Kit.Radios(new[] { "a", "b" }, new Signal<int>(0), foreground: Luxel.UI.Tailwind.Tw.Blue500);
+        Assert.Equal(Luxel.UI.Tailwind.Tw.Blue500, rg.Foreground.Get());
+
+        var tb = Luxel.Controls.Kit.Tabs(new[] { "A" }, new Luxel.UI.Widget[] { Luxel.Controls.Kit.Text("x") }, new Signal<int>(0),
+            foreground: Luxel.UI.Tailwind.Tw.Red500);
+        Assert.Equal(Luxel.UI.Tailwind.Tw.Red500, tb.Foreground.Get());
+    }
+
+    [Fact]
+    public void Slider_GeneratedFactory_TrackColorArgument()
+    {
+        var sl = Luxel.Controls.Kit.Slider(new Signal<float>(0.5f),
+            trackColor: Luxel.UI.Tailwind.Tw.Slate200);
+        Assert.Equal(Luxel.UI.Tailwind.Tw.Slate200, sl.TrackColor.Get());
     }
 
     [Fact]
@@ -1397,131 +1342,6 @@ public class TailwindUtilityTests
     {
         // Tailwind v3 red-500 = #EF4444
         Assert.Equal(Luxel.TwoD.Color2D.Rgba(239, 68, 68), Luxel.UI.Tailwind.Tw.Red500);
-    }
-
-    [Fact]
-    public void S_Fg_AppliesToText_ViaColorCandidate()
-    {
-        // Fg は候補名 ["Foreground", "Color"] — Text は Color に解決される
-        var tx = Luxel.Controls.Kit.Text("X");
-        Luxel.UI.Tailwind.S.Fg(Luxel.UI.Tailwind.Tw.Slate900).Apply(tx);
-        Assert.Equal(Luxel.UI.Tailwind.Tw.Slate900, tx.Color.Get());
-    }
-
-    [Fact]
-    public void S_FontSize_AppliesToText()
-    {
-        var tx = Luxel.Controls.Kit.Text("X");
-        Luxel.UI.Tailwind.S.FontSize(24f).Apply(tx);
-        Assert.Equal(24f, tx.FontSize.Get());
-    }
-
-    [Fact]
-    public void S_OnHover_AppliesToText()
-    {
-        var tx = Luxel.Controls.Kit.Text("X");
-        Luxel.UI.Tailwind.S.On(Luxel.UI.WidgetState.Hover,
-            Luxel.UI.Tailwind.S.Fg(0xFF112233u)).Apply(tx);
-        Assert.False(tx.Color.HasValue);
-        tx.Hovered.Value = true;
-        Assert.Equal(0xFF112233u, tx.Color.Or(0u));
-    }
-
-    [Fact]
-    public void TransitionFactory_Foreground_AppliesToText_ViaColorKey()
-    {
-        var tx = Luxel.Controls.Kit.Text("X");
-        var fx = new Luxel.Animation.UI.TransitionFactory(new AnimationPlayer(), new ManualClock());
-        fx.Foreground(0.3f, LinearCurve.Instance).Apply(tx);
-        Action<uint> raw = _ => { };
-        Assert.NotSame(raw, tx.WrapSetter<uint>("Color", raw));      // Text の色キー
-        Action<float> rawF = _ => { };
-        Assert.Same(rawF, tx.WrapSetter<float>("Opacity", rawF));
-    }
-
-    [Fact]
-    public void S_Bg_AppliesToCheckBox()
-    {
-        var sig = new Signal<bool>(false);
-        var cb = Luxel.Controls.Kit.Check(sig, "X");
-        Luxel.UI.Tailwind.S.Bg(Luxel.UI.Tailwind.Tw.Slate300).Apply(cb);
-        Assert.Equal(Luxel.UI.Tailwind.Tw.Slate300, cb.Background.Get());
-    }
-
-    [Fact]
-    public void S_OnChecked_SetsCheckBoxStateLayer()
-    {
-        var sig = new Signal<bool>(false);
-        var cb = Luxel.Controls.Kit.Check(sig, "X");
-        Luxel.UI.Tailwind.S.On(Luxel.UI.WidgetState.Checked,
-            Luxel.UI.Tailwind.S.Bg(Luxel.UI.Tailwind.Tw.Blue500)).Apply(cb);
-        Assert.False(cb.Background.HasValue);   // 基底は未設定のまま
-        sig.Value = true;                        // checked → IsStateActive(Checked) が true
-        Assert.Equal(Luxel.UI.Tailwind.Tw.Blue500, cb.Background.Or(0u));
-    }
-
-    [Fact]
-    public void S_Bg_AppliesToSwitch()
-    {
-        var sig = new Signal<bool>(false);
-        var sw = Luxel.Controls.Kit.Switch(sig);
-        Luxel.UI.Tailwind.S.Bg(Luxel.UI.Tailwind.Tw.Slate300).Apply(sw);
-        Assert.Equal(Luxel.UI.Tailwind.Tw.Slate300, sw.Background.Get());
-    }
-
-    [Fact]
-    public void S_OnChecked_AppliesToSwitch()
-    {
-        var sig = new Signal<bool>(false);
-        var sw = Luxel.Controls.Kit.Switch(sig);
-        Luxel.UI.Tailwind.S.On(Luxel.UI.WidgetState.Checked,
-            Luxel.UI.Tailwind.S.Bg(Luxel.UI.Tailwind.Tw.Green500)).Apply(sw);
-        sig.Value = true;
-        Assert.Equal(Luxel.UI.Tailwind.Tw.Green500, sw.Background.Or(0u));
-    }
-
-    [Fact]
-    public void Slider_GeneratedFactory_TrackColorArgument()
-    {
-        var sl = Luxel.Controls.Kit.Slider(new Signal<float>(0.5f),
-            trackColor: Luxel.UI.Tailwind.Tw.Slate200);
-        Assert.Equal(Luxel.UI.Tailwind.Tw.Slate200, sl.TrackColor.Get());
-    }
-
-    [Fact]
-    public void S_Bg_AppliesToTextField()
-    {
-        var tf = Luxel.Controls.Kit.TextField(new Signal<string>(""));
-        Luxel.UI.Tailwind.S.Bg(Luxel.UI.Tailwind.Tw.Slate200).Apply(tf);
-        Assert.Equal(Luxel.UI.Tailwind.Tw.Slate200, tf.Background.Get());
-    }
-
-    [Fact]
-    public void S_Bg_AppliesToSelect()
-    {
-        var se = Luxel.Controls.Kit.Select(new[] { "a", "b" }, new Signal<int>(0));
-        Luxel.UI.Tailwind.S.Bg(Luxel.UI.Tailwind.Tw.Slate200).Apply(se);
-        Assert.Equal(Luxel.UI.Tailwind.Tw.Slate200, se.Background.Get());
-    }
-
-    [Fact]
-    public void S_Bg_AppliesToSegmentedControl()
-    {
-        var sc = Luxel.Controls.Kit.Segmented(new[] { "a", "b" }, new Signal<int>(0));
-        Luxel.UI.Tailwind.S.Bg(Luxel.UI.Tailwind.Tw.Slate200).Apply(sc);
-        Assert.Equal(Luxel.UI.Tailwind.Tw.Slate200, sc.Background.Get());
-    }
-
-    [Fact]
-    public void S_Fg_AppliesToRadioGroupAndTabs()
-    {
-        var rg = Luxel.Controls.Kit.Radios(new[] { "a", "b" }, new Signal<int>(0));
-        Luxel.UI.Tailwind.S.Fg(Luxel.UI.Tailwind.Tw.Blue500).Apply(rg);
-        Assert.Equal(Luxel.UI.Tailwind.Tw.Blue500, rg.Foreground.Get());
-
-        var tb = Luxel.Controls.Kit.Tabs(new[] { "A" }, new Luxel.UI.Widget[] { Luxel.Controls.Kit.Text("x") }, new Signal<int>(0));
-        Luxel.UI.Tailwind.S.Fg(Luxel.UI.Tailwind.Tw.Red500).Apply(tb);
-        Assert.Equal(Luxel.UI.Tailwind.Tw.Red500, tb.Foreground.Get());
     }
 }
 

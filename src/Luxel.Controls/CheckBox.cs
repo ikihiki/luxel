@@ -28,9 +28,9 @@ public sealed partial class CheckBox : Widget
         _fs = FontSize.Or(t.Font - 1);
     }
     /// <summary>箱の色。未設定 → checked ? Primary : SurfaceAlt。</summary>
-    [UiParam] public readonly Bindable<uint> Background = new();
+    [UiParam(Stateable = true)] public readonly Bindable<uint> Background = new();
     /// <summary>ラベル色。未設定 → テーマ Text。</summary>
-    [UiParam] public readonly Bindable<uint> Foreground = new();
+    [UiParam(Stateable = true)] public readonly Bindable<uint> Foreground = new();
     /// <summary>チェック印の色。未設定 → テーマ OnAccent。</summary>
     [UiParam] public readonly Bindable<uint> CheckColor = new();
     [UiParam] public readonly Bindable<float> Opacity = new();

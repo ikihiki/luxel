@@ -2,7 +2,6 @@ using Luxel.Controls;
 using Luxel.UI;
 using Luxel.UI.Tailwind;
 using static Luxel.Controls.Kit;
-using static Luxel.UI.Decl;
 using static Luxel.Gallery.Stories.StoryKit;
 
 namespace Luxel.Gallery.Stories;
@@ -23,9 +22,9 @@ public static class LayoutControlStories
     public static Widget GridColumns() =>
         Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))
         [Grid(columns: [1, 2, 1])[
-            Box(background: Tw.Blue500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4), parts: P.Grid.Column(0)),
-            Box(background: Tw.Amber500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4), parts: P.Grid.Column(1)),
-            Box(background: Tw.Green500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4), parts: P.Grid.Column(2))]];
+            Box(background: Tw.Blue500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4)).GridColumn(0),
+            Box(background: Tw.Amber500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4)).GridColumn(1),
+            Box(background: Tw.Green500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4)).GridColumn(2)]];
 
     [Story("ScrollViewer/Basic", Height = 240)]
     public static Widget ScrollBasic()

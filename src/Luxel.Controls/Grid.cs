@@ -4,7 +4,7 @@ using Luxel.UI;
 
 namespace Luxel.Controls;
 
-/// <summary>Grid の添付プロパティのキー (Grid.cs と Dsl.cs で共有)。</summary>
+/// <summary>Grid の添付プロパティのキー (Grid.cs と GridDsl.cs で共有)。</summary>
 internal static class GridKeys
 {
     public const string Column = "Grid.Column";
@@ -14,8 +14,8 @@ internal static class GridKeys
 }
 
 /// <summary>
-/// 行列グリッド。列/行は Fixed(px)/Auto(内容)/Star(比率)。子は <c>P.Grid.Column(n)</c> 等の
-/// アタッチプロパティでセルを指定。Flutter 風単一パス (auto 列のみ局所的に intrinsic を測る)。
+/// 行列グリッド。列/行は Fixed(px)/Auto(内容)/Star(比率)。子は <c>.GridColumn(n)</c> 等の
+/// fluent 添付プロパティでセルを指定。Flutter 風単一パス (auto 列のみ局所的に intrinsic を測る)。
 /// </summary>
 [UiComponent]
 public sealed partial class Grid : Widget
@@ -40,7 +40,7 @@ public sealed partial class Grid : Widget
     public override string? DebugDetail => $"{Columns.Length}x{Rows.Length}";
 
     /// <summary>子要素の宣言: <c>Grid(columns:[1,2])[ a, b ]</c>。子 Widget のみ受け取る。
-    /// 添付プロパティ (<c>P.Grid.Column(0)</c> 等) は子 Widget 自身の <c>parts:</c> 引数で渡す。</summary>
+    /// セル指定は子 Widget 自身の fluent 添付 (<c>.GridColumn(0)</c> 等) で行う。</summary>
     public Grid this[params Widget[] children]
     {
         get { foreach (Widget c in children) AddChild(c); return this; }

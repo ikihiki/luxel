@@ -21,15 +21,13 @@ public static partial class Kit
     // ---- スタック sugar ----
     /// <summary>縦スタック sugar (<c>Stack(vertical: true, ...)</c> の別名)。</summary>
     public static StackPanel VStack(float spacing = 0f,
-        Length width = default, Length height = default,
-        params IConfigPart[] parts)
-        => Stack(true, spacing, width: width, height: height, parts: parts);
+        Length width = default, Length height = default)
+        => Stack(true, spacing, width: width, height: height);
 
     /// <summary>横スタック sugar。</summary>
     public static StackPanel HStack(float spacing = 0f,
-        Length width = default, Length height = default,
-        params IConfigPart[] parts)
-        => Stack(false, spacing, width: width, height: height, parts: parts);
+        Length width = default, Length height = default)
+        => Stack(false, spacing, width: width, height: height);
 
     // ---- タイポグラフィ ----
     public static Text Heading(string text, int level = 1)
