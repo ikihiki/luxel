@@ -5,57 +5,12 @@ using static Luxel.Gallery.Stories.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
-/// <summary>docs — モーション章 (Animation / Transitions)。</summary>
+/// <summary>docs — モーション章 (Animation / Transitions)。
+/// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsMotion
 {
-    private static readonly DocMarkdown DslExample = new("""
-        ```csharp
-        var clock = new FixedFrameClock { FrameRate = 60f };
-        var player = new AnimationPlayer();
-        player.Update(clock);
-
-        Animate.Sequence(
-            Animate.Parallel(
-                Animate.Tween(SignalAnimationTarget.For(x), -150f, 30f, 0.4f)
-                       .WithCurve(CubicBezierCurve.EaseOut),
-                Animate.Tween(SignalAnimationTarget.For(opacity), 0f, 1f, 0.4f)),
-            Animate.Tween(SignalAnimationTarget.For(x2), 300f, 130f, 0.4f)
-        ).Play(player, clock);
-
-        // 毎フレーム: clock を進めて player.Update(clock) — 絶対時刻モデル
-        ```
-        """);
-
-    private static readonly DocMarkdown TransitionExample = new("""
-        ```csharp
-        // setter ラッパー: 値を「変えるだけで」古い値から自動補間される
-        Action<uint> animated = Transition.Animate<uint>(
-            v => node.Color = v, player, clock,
-            duration: 0.3f, curve: CubicBezierCurve.EaseInOut);
-
-        animated(Color2D.Red);    // 初回は即時適用
-        animated(Color2D.Blue);   // 0.3s で Red→Blue
-
-        // Signal と組み合わせるなら Effect で
-        using var e = new ReactiveEffect(() =>
-            animated(hovered.Value ? Color2D.Red : Color2D.Blue));
-        ```
-        """);
-
-    private static readonly DocMarkdown TransitionPartsExample = new("""
-        ```csharp
-        Button(onClick, "Save",
-                background: Tw.Blue500)
-            .When(WidgetState.Hover, background: Tw.Red500, scaleX: 1.1f)
-            .When(WidgetState.Pressed, background: Tw.Green500)
-            .Transition(0.4f, CubicBezierCurve.EaseInOut, ButtonProps.Background)  // プロパティ既定
-            .TransitionTo(WidgetState.Hover, 0.08f)                                // enter は素早く
-            .TransitionBetween(WidgetState.Pressed, WidgetState.Hover, 0f);        // 離した瞬間は即時
-        ```
-        """);
-
     [Story("Docs/Animation", Width = 800, Height = 480, Order = 30)]
-    public static Widget Animation(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+    public static Widget Animation(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # アニメーション (Luxel.Animation)
 
         glTF / CSS / コード DSL など様々な形式を統一的に扱うアニメーションシステムです。
@@ -88,9 +43,23 @@ public static class DocsMotion
 
         ## コード DSL — Sequence / Parallel
 
-        {DslExample}
+        ```csharp
+        var clock = new FixedFrameClock { FrameRate = 60f };
+        var player = new AnimationPlayer();
+        player.Update(clock);
 
-        実物 (2 枚のカードが slide-in + fade-in): {StoryRef(ctx, "Animation/Tween")}
+        Animate.Sequence(
+            Animate.Parallel(
+                Animate.Tween(SignalAnimationTarget.For(x), -150f, 30f, 0.4f)
+                       .WithCurve(CubicBezierCurve.EaseOut),
+                Animate.Tween(SignalAnimationTarget.For(opacity), 0f, 1f, 0.4f)),
+            Animate.Tween(SignalAnimationTarget.For(x2), 300f, 130f, 0.4f)
+        ).Play(player, clock);
+
+        // 毎フレーム: clock を進めて player.Update(clock) — 絶対時刻モデル
+        ```
+
+        実物 (2 枚のカードが slide-in + fade-in): {{StoryRef(ctx, "Animation/Tween")}}
 
         ## AnimationClip と Importer
 
@@ -130,7 +99,7 @@ public static class DocsMotion
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/Transitions", Width = 800, Height = 480, Order = 31)]
-    public static Widget Transitions(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+    public static Widget Transitions(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # UI トランジション
 
         CSS の `transition` 相当 — **プロパティ値を変えるだけで**古い値から新しい値へ
@@ -147,7 +116,19 @@ public static class DocsMotion
         最小のプリミティブは「setter を包む」ことです。Signal / UiNode / 任意の書き込み先に
         等しく適用できます (scene-agnostic):
 
-        {TransitionExample}
+        ```csharp
+        // setter ラッパー: 値を「変えるだけで」古い値から自動補間される
+        Action<uint> animated = Transition.Animate<uint>(
+            v => node.Color = v, player, clock,
+            duration: 0.3f, curve: CubicBezierCurve.EaseInOut);
+
+        animated(Color2D.Red);    // 初回は即時適用
+        animated(Color2D.Blue);   // 0.3s で Red→Blue
+
+        // Signal と組み合わせるなら Effect で
+        using var e = new ReactiveEffect(() =>
+            animated(hovered.Value ? Color2D.Red : Color2D.Blue));
+        ```
 
         ## 設計ノート: smooth interrupt
 
@@ -161,7 +142,15 @@ public static class DocsMotion
 
         コントロールでは状態別の値 (`When`) と遷移の速さ (`Transition` 系) を分けて宣言します:
 
-        {TransitionPartsExample}
+        ```csharp
+        Button(onClick, "Save",
+                background: Tw.Blue500)
+            .When(WidgetState.Hover, background: Tw.Red500, scaleX: 1.1f)
+            .When(WidgetState.Pressed, background: Tw.Green500)
+            .Transition(0.4f, CubicBezierCurve.EaseInOut, ButtonProps.Background)  // プロパティ既定
+            .TransitionTo(WidgetState.Hover, 0.08f)                                // enter は素早く
+            .TransitionBetween(WidgetState.Pressed, WidgetState.Hover, 0f);        // 離した瞬間は即時
+        ```
 
         解決は TransitionTable の (from, to, prop) ルールで、**具体的な指定が勝ちます**
         (pair > to > from > プロパティ既定 > 全体既定。to = enter が from = leave より優先 —

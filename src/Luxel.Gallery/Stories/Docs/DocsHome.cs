@@ -5,19 +5,10 @@ using static Luxel.Gallery.Stories.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
-/// <summary>docs — 入門章 (GettingStarted / Architecture)。</summary>
+/// <summary>docs — 入門章 (GettingStarted / Architecture)。
+/// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsHome
 {
-    private static readonly DocMarkdown FirstUiCode = new("""
-        ```csharp
-        Signal<int> count = ctx.Signal("count", 0);   // knob にもなる状態
-        Widget ui = HStack(8)[
-            Button(_ => count.Value--, "-"),
-            Text($" {count} ", 20, vAlign: Align.Center),
-            Button(_ => count.Value++, "+")];
-        ```
-        """);
-
     [Story("Docs/GettingStarted", Width = 800, Height = 480, Order = 0)]   // 章立て: Docs を先頭、入門を最初に
     public static Widget GettingStarted(StoryContext ctx)
     {
@@ -27,7 +18,7 @@ public static class DocsHome
             Text($" {count} ", 20, vAlign: Align.Center),
             Button(_ => { count.Value++; ctx.Log("counter: +1"); }, "+")];
 
-        RichTextEditor doc = Docs(ctx, $"""
+        RichTextEditor doc = Docs(ctx, $$"""
             # Luxel を始める
 
             Luxel は [Sebastian Aaltonen の *No Graphics API*](https://www.sebastianaaltonen.com/blog/no-graphics-api)
@@ -67,9 +58,15 @@ public static class DocsHome
             宣言的 UI はベアファクトリ + indexer の DSL で書きます。下のカウンタは本物です —
             クリックすると右の Log パネルに出て、値も動きます:
 
-            {counter}
+            {{counter}}
 
-            {FirstUiCode}
+            ```csharp
+            Signal<int> count = ctx.Signal("count", 0);   // knob にもなる状態
+            Widget ui = HStack(8)[
+                Button(_ => count.Value--, "-"),
+                Text($" {count} ", 20, vAlign: Align.Center),
+                Button(_ => count.Value++, "+")];
+            ```
 
             `Signal<T>` が状態、`Button(...)` などのファクトリが widget、子は `[...]` で
             入れ子にします。Signal を読むテキストは変更時に自動で部分更新されます。
@@ -90,7 +87,7 @@ public static class DocsHome
     }
 
     [Story("Docs/Architecture", Width = 800, Height = 480, Order = 1)]
-    public static Widget Architecture(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+    public static Widget Architecture(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # アーキテクチャ
 
         Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは

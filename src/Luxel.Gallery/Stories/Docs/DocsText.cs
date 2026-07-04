@@ -5,28 +5,12 @@ using static Luxel.Gallery.Stories.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
-/// <summary>docs — テキスト章 (Typography / Editor)。</summary>
+/// <summary>docs — テキスト章 (Typography / Editor)。
+/// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsText
 {
-    private static readonly DocMarkdown LayoutExample = new("""
-        ```csharp
-        var layout = new TextLayout(source, new TextLayoutOptions
-        {
-            MaxWidth = 300,            // ∞ = 折り返しなし
-            Wrap = TextWrap.Word,      // None / Word / Char
-            Align = TextAlign.Center,  // Left / Center / Right / Justify
-            LineHeight = 1.2f,
-        });
-        Size size = layout.Size;                  // 計測
-        layout.Draw(scene, x, y);                 // 描画 (色ごとの列挙も提供)
-        int idx = layout.HitTest(px, py);         // 座標 → テキスト位置 (クラスタ吸着)
-        Rect caret = layout.CaretRect(idx);       // キャレット矩形
-        Rect[] sel = layout.SelectionRects(a, b); // 選択範囲の行別矩形
-        ```
-        """);
-
     [Story("Docs/Typography", Width = 800, Height = 480, Order = 40)]
-    public static Widget Typography(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+    public static Widget Typography(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # テキスト (Luxel.Typography)
 
         HarfBuzz シェーピング + 自前レイアウトのテキスト基盤です。2D レイヤ (Luxel.TwoD)
@@ -49,7 +33,20 @@ public static class DocsText
 
         ## TextLayout API
 
-        {LayoutExample}
+        ```csharp
+        var layout = new TextLayout(source, new TextLayoutOptions
+        {
+            MaxWidth = 300,            // ∞ = 折り返しなし
+            Wrap = TextWrap.Word,      // None / Word / Char
+            Align = TextAlign.Center,  // Left / Center / Right / Justify
+            LineHeight = 1.2f,
+        });
+        Size size = layout.Size;                  // 計測
+        layout.Draw(scene, x, y);                 // 描画 (色ごとの列挙も提供)
+        int idx = layout.HitTest(px, py);         // 座標 → テキスト位置 (クラスタ吸着)
+        Rect caret = layout.CaretRect(idx);       // キャレット矩形
+        Rect[] sel = layout.SelectionRects(a, b); // 選択範囲の行別矩形
+        ```
 
         実物: [Text/Multiline](story:Text/Multiline) (wrap / 禁則 / Justify) /
         [Text/EllipsisVAlign](story:Text/EllipsisVAlign) (maxLines + 省略記号)。
@@ -72,7 +69,7 @@ public static class DocsText
         フォントの run に切り出します (UI フォント → 日本語 → カラー絵文字 COLR)。
         行内のベースラインは run の最大 ascent に揃います:
 
-        {StoryRef(ctx, "RichText/Basic")}
+        {{StoryRef(ctx, "RichText/Basic")}}
 
         保持型キャンバスは 1 ノード 1 色のため、色ごとに GlyphRun をグループ化して
         1 色 1 ノードで実体化します — テーマ連動色はノード単位の Effect でそのまま効きます。
@@ -86,22 +83,8 @@ public static class DocsText
         次: [Docs/Editor](story:Docs/Editor) — この上に載る文書モデルとエディタへ。
         """, toc: true, fences: DocsFences));
 
-    private static readonly DocMarkdown FormatInterface = new("""
-        ```csharp
-        public interface IDocumentFormat
-        {
-            RichDocument Parse(string source);
-            string Serialize(RichDocument doc);
-            bool SupportsHybrid { get; }                    // 行指向フォーマットのみ true
-            Block ParseLine(string line);                   // hybrid の局所再パース
-            bool TryAutoFormat(DocumentEditor ed, string inserted);   // 行頭 "- " 等の確定
-            bool TryBlockCommit(DocumentEditor ed);         // Enter 時のブロック確定
-        }
-        ```
-        """);
-
     [Story("Docs/Editor", Width = 800, Height = 480, Order = 41)]
-    public static Widget Editor(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+    public static Widget Editor(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # ドキュメントとエディタ (Luxel.Document)
 
         リッチテキスト編集は 3 層に分かれます。Document 層は UI/GPU 非依存の純ロジックで、
@@ -153,7 +136,17 @@ public static class DocsText
         エディタ本体は「ブロック列の編集と表示」だけを持ち、テキスト往復・記法・embed 判定は
         **文書フォーマット実装の責務**です。Markdown は一実装にすぎません:
 
-        {FormatInterface}
+        ```csharp
+        public interface IDocumentFormat
+        {
+            RichDocument Parse(string source);
+            string Serialize(RichDocument doc);
+            bool SupportsHybrid { get; }                    // 行指向フォーマットのみ true
+            Block ParseLine(string line);                   // hybrid の局所再パース
+            bool TryAutoFormat(DocumentEditor ed, string inserted);   // 行頭 "- " 等の確定
+            bool TryBlockCommit(DocumentEditor ed);         // Enter 時のブロック確定
+        }
+        ```
 
         ## 埋め込みブロック (Embed)
 

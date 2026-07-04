@@ -5,66 +5,12 @@ using static Luxel.Gallery.Stories.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
-/// <summary>docs — UI/コントロール章。</summary>
+/// <summary>docs — UI/コントロール章。
+/// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsUi
 {
-    private static readonly DocMarkdown DslExample = new("""
-        ```csharp
-        var count = new Signal<int>(0);
-        Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))
-        [
-            Grid(columns: [1, 2])[
-                Text($"Count: {count}", 30, parts: [P.Grid.Row(0), P.Grid.ColumnSpan(2)]),
-                Button(_ => count.Value--, "- 1", parts: P.Grid.Column(0)),
-                Button(_ => count.Value++, "+ 1", parts: P.Grid.Column(1))]
-        ]
-        ```
-        """);
-
-    private static readonly DocMarkdown CompositeExample = new("""
-        ```csharp
-        [UiComponent]
-        public sealed partial class MyPanel : CompositeControl
-        {
-            private readonly Signal<string> _query = new("");   // 値状態 (細粒度反映)
-            private readonly TextArea _editor;                  // 状態を保つ子はフィールド保持
-
-            protected override Widget Build()                   // 構造だけを宣言
-                => VStack(spacing: 4)[
-                       HStack(spacing: 6)[Button(_ => Run(), "Run")],
-                       _editor];
-
-            protected override void OnRealize(UiBuildContext ctx)
-                => ctx.AddAnimation(dt => { Tick(dt); return false; });
-        }
-        ```
-        """);
-
-    private static readonly DocMarkdown StateStyleExample = new("""
-        ```csharp
-        Button(_ => { }, "Hover me",
-            background: Tw.Blue500, foreground: Tw.White, rounded: 10, width: 180, height: 64,
-            parts: [S.On(WidgetState.Hover, S.Bg(Tw.Red500), S.Scale(1.08f)),
-                    S.On(WidgetState.Pressed, S.Scale(0.94f))]);
-        ```
-        """);
-
-    private static readonly DocMarkdown AppThemeExample = new("""
-        ```csharp
-        // 自分のアプリで自由命名 — Luxel.UI 本体は Theme 型を強制しない
-        public sealed record AppTheme
-        {
-            public required uint Primary { get; init; }
-            public required uint Surface { get; init; }
-            public required float RoundedMd { get; init; }
-        }
-        var theme = new AppTheme { Primary = Tw.Blue500, Surface = Tw.Slate50, RoundedMd = 6f };
-        Button(_ => { }, "OK", background: theme.Primary, rounded: theme.RoundedMd);
-        ```
-        """);
-
     [Story("Docs/UI", Width = 800, Height = 480, Order = 20)]
-    public static Widget Ui(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+    public static Widget Ui(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # 宣言的 UI (Luxel.UI)
 
         保持型 2D 層 (RetainedCanvas) の上に、**宣言的 C# DSL + signals (細粒度リアクティブ) +
@@ -77,7 +23,16 @@ public static class DocsUi
         `[UiComponent]`/`[UiParam]` から生成)、子は get-only インデクサ `[...]`、見た目は
         すべて省略可能引数、添付プロパティだけ `P.Grid.Column(1)` を `parts:` に渡します:
 
-        {DslExample}
+        ```csharp
+        var count = new Signal<int>(0);
+        Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))
+        [
+            Grid(columns: [1, 2])[
+                Text($"Count: {count}", 30, parts: [P.Grid.Row(0), P.Grid.ColumnSpan(2)]),
+                Button(_ => count.Value--, "- 1", parts: P.Grid.Column(0)),
+                Button(_ => count.Value++, "+ 1", parts: P.Grid.Column(1))]
+        ]
+        ```
 
         > [!NOTE]
         > `Foo(...)` 呼び出しと `Foo.Bar` メンバアクセスを同名で両立できない C# の制約のため、
@@ -100,8 +55,8 @@ public static class DocsUi
 
         ## 入力とエラー境界
 
-        `UiHost` がポインタ/キー/IME を前面優先でディスパッチします (Esc → Tab フォーカス
-        巡回 → フォーカス中コントロール → アプリ全域ショートカットの順)。ユーザーコード
+        `UiHost` がポインタ/キー/IME を前面優先でディスパッチします (Esc → Tab → フォーカス
+        → フォーカス中コントロール → アプリ全域ショートカットの順)。ユーザーコード
         (Build / Effect / 入力ハンドラ) の例外は**エラー境界**が捕捉し、該当サブツリーを
         赤枠の ErrorWidget に縮退させます — アプリ全体は落ちません。
 
@@ -110,7 +65,7 @@ public static class DocsUi
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/Controls", Width = 800, Height = 480, Order = 21)]
-    public static Widget Controls(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+    public static Widget Controls(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # コントロール (Luxel.Controls)
 
         Button から RichTextEditor まで 40 超のコントロール群です。**実物はサイドバーの
@@ -148,7 +103,22 @@ public static class DocsUi
         既存コントロールを**宣言的に組み合わせる**基底です。`Build()` がサブツリーを返し、
         レイアウト/実体化は委譲 — 手書きの PerformLayout/RealizeCore は書きません:
 
-        {CompositeExample}
+        ```csharp
+        [UiComponent]
+        public sealed partial class MyPanel : CompositeControl
+        {
+            private readonly Signal<string> _query = new("");   // 値状態 (細粒度反映)
+            private readonly TextArea _editor;                  // 状態を保つ子はフィールド保持
+
+            protected override Widget Build()                   // 構造だけを宣言
+                => VStack(spacing: 4)[
+                       HStack(spacing: 6)[Button(_ => Run(), "Run")],
+                       _editor];
+
+            protected override void OnRealize(UiBuildContext ctx)
+                => ctx.AddAnimation(dt => { Tick(dt); return false; });
+        }
+        ```
 
         状態は 3 層の規約で持ちます:
 
@@ -162,7 +132,7 @@ public static class DocsUi
         Rebuild はコンテナだけ作り直し、TextArea 等のインスタンスは生き残ります。
         実例が SearchField (タイプ → 候補絞り込み = 構造状態 → Rebuild):
 
-        {StoryRef(ctx, "SearchField/Basic")}
+        {{StoryRef(ctx, "SearchField/Basic")}}
 
         > [!TIP]
         > 完全自前描画が要るときだけ従来どおり `Widget` を直接派生します。
@@ -170,7 +140,7 @@ public static class DocsUi
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/Styling", Width = 800, Height = 480, Order = 23)]
-    public static Widget Styling(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+    public static Widget Styling(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # スタイリングと Tailwind
 
         コントロールの見た目は 3 つの層で決まります: **① テーマ既定** (Variant × Intent) →
@@ -183,9 +153,14 @@ public static class DocsUi
         生成された `.When(state, ...)` 拡張で引数と同名のプロパティを上書きします。
         該当状態のスタイルが既定へ**後勝ちマージ**されます:
 
-        {StateStyleExample}
+        ```csharp
+        Button(_ => { }, "Hover me",
+            background: Tw.Blue500, foreground: Tw.White, rounded: 10, width: 180, height: 64,
+            parts: [S.On(WidgetState.Hover, S.Bg(Tw.Red500), S.Scale(1.08f)),
+                    S.On(WidgetState.Pressed, S.Scale(0.94f))]);
+        ```
 
-        {StoryRef(ctx, "Button/Tailwind")}
+        {{StoryRef(ctx, "Button/Tailwind")}}
 
         ## Tailwind utility (Luxel.UI.Tailwind)
 
@@ -201,7 +176,17 @@ public static class DocsUi
         ファクトリ引数へ流し込みます。組み込みコントロールの既定配色だけは
         `Luxel.Controls` の `UiTheme` (Light/Dark) が持ちます:
 
-        {AppThemeExample}
+        ```csharp
+        // 自分のアプリで自由命名 — Luxel.UI 本体は Theme 型を強制しない
+        public sealed record AppTheme
+        {
+            public required uint Primary { get; init; }
+            public required uint Surface { get; init; }
+            public required float RoundedMd { get; init; }
+        }
+        var theme = new AppTheme { Primary = Tw.Blue500, Surface = Tw.Slate50, RoundedMd = 6f };
+        Button(_ => { }, "OK", background: theme.Primary, rounded: theme.RoundedMd);
+        ```
 
         ## 状態遷移の補間 (Transition)
 
@@ -209,7 +194,7 @@ public static class DocsUi
         プロパティだけが補間されます。方向別 (`TransitionTo` / `TransitionBetween`) の
         指定もできます — 実物で確かめてください:
 
-        {StoryRef(ctx, "Transitions/States")}
+        {{StoryRef(ctx, "Transitions/States")}}
 
         設計ノート: 状態別スタイルを「引数で全部渡せる」形にしたのは Tailwind / MUI sx /
         Flutter WidgetState と同じ発想です。テーマを経由しない一発指定と、テーマ経由の
@@ -217,7 +202,7 @@ public static class DocsUi
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/Button", Width = 800, Height = 480, Order = 22)]
-    public static Widget ButtonDocs(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+    public static Widget ButtonDocs(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # Button
 
         ボタンは **Variant × Intent × 状態** から配色を解決します。未指定のプロパティは
@@ -229,13 +214,13 @@ public static class DocsUi
         > 下の実例のすぐ下に `StorySource` で**実際のストーリーソース**を出しています
         > (ジェネレーターが焼き込むため、手書きコピーの乖離が起きません)。
 
-        {StoryRef(ctx, "Button/Variants")}
+        {{StoryRef(ctx, "Button/Variants")}}
 
-        {StorySource("Button/Variants")}
+        {{StorySource("Button/Variants")}}
 
         ## Intent (意味色)
 
-        {StoryRef(ctx, "Button/Intents")}
+        {{StoryRef(ctx, "Button/Intents")}}
 
         ## 使い方
 
@@ -249,6 +234,6 @@ public static class DocsUi
 
         ## API
 
-        {ApiTable("Button")}
+        {{ApiTable("Button")}}
         """, toc: true, fences: DocsFences));
 }

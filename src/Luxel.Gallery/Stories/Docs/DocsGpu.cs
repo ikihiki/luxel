@@ -5,33 +5,12 @@ using static Luxel.Gallery.Stories.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
-/// <summary>docs — GPU 土台の章 (GpuDevice / TwoD / RenderGraph / ThreeD)。</summary>
+/// <summary>docs — GPU 土台の章 (GpuDevice / TwoD / RenderGraph / ThreeD)。
+/// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsGpu
 {
-    // C# コード例は { } が hole と衝突するため生 markdown hole (DocMarkdown) で差し込む
-
-    private static readonly DocMarkdown ComputeExample = new("""
-        ```csharp
-        using var device = new GpuDevice(VulkanBackend.Create());   // dx も可
-        using var input  = device.Malloc(n * sizeof(float), GpuMemoryKind.HostMapped);
-        using var output = device.Malloc(n * sizeof(float), GpuMemoryKind.HostMapped);
-
-        input.Span<float>(n)[i] = ...;                    // CPU マップへ直接書き込み
-
-        using var pipeline = device.CreateComputePipeline(GpuShaderCode.Load("compute01"));
-        using var cmd = device.MainQueue.StartCommandRecording();
-        cmd.SetComputePipeline(pipeline)
-           .SetRootArguments(new Args { Input = input.BindlessIndex, Output = output.BindlessIndex, Count = n })
-           .Dispatch((n + 63) / 64)
-           .Barrier(GpuStage.ComputeShader, GpuStage.All);
-        cmd.Finish();
-        device.MainQueue.SubmitAndWait(cmd);
-        // output.Span<float>(n) を読み戻して検証
-        ```
-        """);
-
     [Story("Docs/GpuDevice", Width = 800, Height = 480, Order = 10)]
-    public static Widget GpuDevice(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+    public static Widget GpuDevice(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # GPU 抽象 (GpuDevice)
 
         `Luxel` (コア) は *No Graphics API* の哲学どおり、最新のバインドレス GPU を前提に
@@ -57,7 +36,23 @@ public static class DocsGpu
         CPU から `Span<T>` で直接読み書きでき (staging 不要)、`DeviceLocal` は GPU 専用、
         `Readback` は GPU→CPU 読み戻し用です。
 
-        {ComputeExample}
+        ```csharp
+        using var device = new GpuDevice(VulkanBackend.Create());   // dx も可
+        using var input  = device.Malloc(n * sizeof(float), GpuMemoryKind.HostMapped);
+        using var output = device.Malloc(n * sizeof(float), GpuMemoryKind.HostMapped);
+
+        input.Span<float>(n)[i] = ...;                    // CPU マップへ直接書き込み
+
+        using var pipeline = device.CreateComputePipeline(GpuShaderCode.Load("compute01"));
+        using var cmd = device.MainQueue.StartCommandRecording();
+        cmd.SetComputePipeline(pipeline)
+           .SetRootArguments(new Args { Input = input.BindlessIndex, Output = output.BindlessIndex, Count = n })
+           .Dispatch((n + 63) / 64)
+           .Barrier(GpuStage.ComputeShader, GpuStage.All);
+        cmd.Finish();
+        device.MainQueue.SubmitAndWait(cmd);
+        // output.Span<float>(n) を読み戻して検証
+        ```
 
         ## Slang 統一シェーダ
 
@@ -85,13 +80,13 @@ public static class DocsGpu
         で RT/Depth を直接指定、頂点は**頂点プル** (頂点レイアウト宣言なし — シェーダが
         bindless バッファから読む) です。
 
-        {StoryRef(ctx, "GPU/Depth")}
+        {{StoryRef(ctx, "GPU/Depth")}}
 
-        {StoryRef(ctx, "GPU/Blend")}
+        {{StoryRef(ctx, "GPU/Blend")}}
 
         `StorySource` でこのデモの実装をそのまま引用できます:
 
-        {StorySource("GPU/Depth")}
+        {{StorySource("GPU/Depth")}}
 
         ## テクスチャとレンダーターゲット
 
@@ -107,35 +102,8 @@ public static class DocsGpu
         次: [Docs/TwoD](story:Docs/TwoD) — この GPU 抽象の上に 2D ベクターを載せます。
         """, toc: true, fences: DocsFences));
 
-    private static readonly DocMarkdown Scene2DExample = new("""
-        ```csharp
-        var scene = new Scene2D();
-        scene.FillRoundedRect(Color2D.Blue, 40, 40, 120, 80, 12);
-        using (var jp = VectorFont.LoadSystemJapanese())
-            jp.AppendText(scene, "こんにちは", 50, 120, 28, Color2D.Black);
-
-        using var raster = new Rasterizer2D(device);
-        using var encoded = raster.Encode(scene);                 // GPU へ 1 回
-        raster.Render(cmd, encoded, Camera2D.Pixels, w, h, fb);   // ズームは Camera2D.Create(...)
-        ```
-        """);
-
-    private static readonly DocMarkdown RetainedExample = new("""
-        ```csharp
-        using var canvas = new RetainedCanvas(raster);
-        UiNode panel = canvas.AddChild(canvas.Root);
-        panel.Transform = Affine2D.Translate(40, 40);
-        panel.Content = new Scene2D().FillRoundedRect(Color2D.White, 0, 0, 400, 240, 16);
-
-        canvas.Render(cmd, Camera2D.Pixels, w, h, fb);    // 初回はフル構築
-        panel.Color = red;                                // 部分更新: スタイルのみ
-        panel.Transform = Affine2D.Translate(40, 80);     // 部分更新: 変換のみ
-        canvas.Render(cmd, Camera2D.Pixels, w, h, fb);    // Segment 書込 0
-        ```
-        """);
-
     [Story("Docs/TwoD", Width = 800, Height = 480, Order = 11)]
-    public static Widget TwoD(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+    public static Widget TwoD(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # 2D ベクター (Luxel.TwoD)
 
         GPU **コンピュートラスタライザ** (Vello 風) による 2D ベクター描画です。パスを
@@ -147,11 +115,20 @@ public static class DocsGpu
         塗り (NonZero/EvenOdd — 穴あき対応)、複数パス合成、ストローク (距離ベース・
         画面一定幅)、**ベクターテキスト** (TTF 輪郭 → パス → 塗り、日本語対応)、角丸:
 
-        {StoryRef(ctx, "2D/VectorPaths")}
+        {{StoryRef(ctx, "2D/VectorPaths")}}
 
         ## Scene2D とパス構築
 
-        {Scene2DExample}
+        ```csharp
+        var scene = new Scene2D();
+        scene.FillRoundedRect(Color2D.Blue, 40, 40, 120, 80, 12);
+        using (var jp = VectorFont.LoadSystemJapanese())
+            jp.AppendText(scene, "こんにちは", 50, 120, 28, Color2D.Black);
+
+        using var raster = new Rasterizer2D(device);
+        using var encoded = raster.Encode(scene);                 // GPU へ 1 回
+        raster.Render(cmd, encoded, Camera2D.Pixels, w, h, fb);   // ズームは Camera2D.Create(...)
+        ```
 
         ## Camera2D — スムーズズーム
 
@@ -159,7 +136,7 @@ public static class DocsGpu
         再エンコードも再三角形分割もありません。ベクターなので拡大してもエッジが
         崩れないことを knob で確かめられます:
 
-        {StoryRef(ctx, "2D/Map", knobs: true)}
+        {{StoryRef(ctx, "2D/Map", knobs: true)}}
 
         ## RetainedCanvas — 保持型ツリーと部分更新
 
@@ -168,7 +145,17 @@ public static class DocsGpu
         per-path 変換を適用するため **移動 = 変換だけ書込、色変更 = スタイルだけ書込**
         (ジオメトリ不変) になります。
 
-        {RetainedExample}
+        ```csharp
+        using var canvas = new RetainedCanvas(raster);
+        UiNode panel = canvas.AddChild(canvas.Root);
+        panel.Transform = Affine2D.Translate(40, 40);
+        panel.Content = new Scene2D().FillRoundedRect(Color2D.White, 0, 0, 400, 240, 16);
+
+        canvas.Render(cmd, Camera2D.Pixels, w, h, fb);    // 初回はフル構築
+        panel.Color = red;                                // 部分更新: スタイルのみ
+        panel.Transform = Affine2D.Translate(40, 80);     // 部分更新: 変換のみ
+        canvas.Render(cmd, Camera2D.Pixels, w, h, fb);    // Segment 書込 0
+        ```
 
         - `UiNode`: ローカル変換 / 色 / 不透明度 / 矩形クリップ / Z / 子 / Content。
           setter が dirty を伝播
@@ -197,25 +184,8 @@ public static class DocsGpu
         次: [Docs/RenderGraph](story:Docs/RenderGraph) — 多段パスの合成へ。
         """, toc: true, fences: DocsFences));
 
-    private static readonly DocMarkdown RgExample = new("""
-        ```csharp
-        using var rg = new RenderGraph(device);                       // 1 フレーム使い切り
-        BufferHandle hUi    = rg.ImportBuffer(ui, "ui");              // External
-        BufferHandle hTmp   = rg.CreateBuffer(new BufferDesc(bytes), "blurH");   // Transient
-        BufferHandle hFinal = rg.ImportBuffer(final, "final");
-
-        rg.AddPass("BlurH", PassQueue.Compute)
-          .Read(hUi).Write(hTmp)
-          .Execute(ctx => ctx.Cmd.SetComputePipeline(blur)
-              .SetRootArguments(new Args { Src = ctx.BindlessIndex(hUi), Dst = ctx.BindlessIndex(hTmp) })
-              .Dispatch((w + 7) / 8, (h + 7) / 8));
-        // …BlurV, Composite も同様…
-        rg.Execute(cmd);   // Compile + Execute (寿命解析 + 自動バリア + lambda 駆動)
-        ```
-        """);
-
     [Story("Docs/RenderGraph", Width = 800, Height = 480, Order = 12)]
-    public static Widget RenderGraphDocs(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+    public static Widget RenderGraphDocs(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # レンダーグラフ (Luxel.RenderGraph)
 
         UI のレンダリング結果を別パスで参照したり、compute/graphics 混在の多段パスを
@@ -249,7 +219,20 @@ public static class DocsGpu
         トポロジカルソート → 各リソースの first-write / last-read 計算 → transient の
         物理割当 (aliasing) → パス境界のバリア計算。
 
-        {RgExample}
+        ```csharp
+        using var rg = new RenderGraph(device);                       // 1 フレーム使い切り
+        BufferHandle hUi    = rg.ImportBuffer(ui, "ui");              // External
+        BufferHandle hTmp   = rg.CreateBuffer(new BufferDesc(bytes), "blurH");   // Transient
+        BufferHandle hFinal = rg.ImportBuffer(final, "final");
+
+        rg.AddPass("BlurH", PassQueue.Compute)
+          .Read(hUi).Write(hTmp)
+          .Execute(ctx => ctx.Cmd.SetComputePipeline(blur)
+              .SetRootArguments(new Args { Src = ctx.BindlessIndex(hUi), Dst = ctx.BindlessIndex(hTmp) })
+              .Dispatch((w + 7) / 8, (h + 7) / 8));
+        // …BlurV, Composite も同様…
+        rg.Execute(cmd);   // Compile + Execute (寿命解析 + 自動バリア + lambda 駆動)
+        ```
 
         ## リソースモデル: External と Transient
 
@@ -261,13 +244,13 @@ public static class DocsGpu
         Transient は同形 (バッファはサイズ、テクスチャは幅・高さ・フォーマット・種別) で
         寿命が重ならなければ **物理リソースを共有** (interval scheduling) します。実物:
 
-        {StoryRef(ctx, "RenderGraph/Blur")}
+        {{StoryRef(ctx, "RenderGraph/Blur")}}
 
         下のデモは反復ブラー 4 段 + 誰も読まないパス — 論理 5 transient が物理 2 本に
         alias され、DeadPass がカリングされる様子が **Log パネル**に出ます
         (`PhysicalTransientBufferCount` / `IsAliased` / `IsPassCulled` で観測):
 
-        {StoryRef(ctx, "RenderGraph/Aliasing")}
+        {{StoryRef(ctx, "RenderGraph/Aliasing")}}
 
         ## 自動バリアと ResourceUsage
 
@@ -296,7 +279,7 @@ public static class DocsGpu
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/ThreeD", Width = 800, Height = 480, Order = 13)]
-    public static Widget ThreeD(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+    public static Widget ThreeD(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # 3D と ECS
 
         3D は **ECS (Friflo Engine ECS のラッパ = Luxel.Ecs) + 抽出 + レンダーグラフ**の
@@ -316,7 +299,7 @@ public static class DocsGpu
         bindless バッファへ書きます。シーン層とレンダーグラフ層の橋渡しはこの
         **Extract 層だけ** — グラフ側は書き上がったバッファを Import するのみです。
 
-        {StoryRef(ctx, "3D/EcsCubes")}
+        {{StoryRef(ctx, "3D/EcsCubes")}}
 
         ## 描画パターン
 

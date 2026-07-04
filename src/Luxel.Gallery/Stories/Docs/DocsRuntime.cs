@@ -5,10 +5,19 @@ using static Luxel.Gallery.Stories.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
-/// <summary>docs — ランタイム章 (Resources / Platform / Input / Audio / Framework / DevTools)。</summary>
+/// <summary>docs — ランタイム章 (Resources / Platform / Input / Audio / Framework / DevTools)。
+/// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsRuntime
 {
-    private static readonly DocMarkdown ResourcesExample = new("""
+    [Story("Docs/Resources", Width = 800, Height = 480, Order = 50)]
+    public static Widget Resources(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+        # リソース (Luxel.Resources)
+
+        アセットのロードは **(型, uri) をキーとするノードキャッシュ**の上で動きます。
+        同じ (型, uri) は常に同じノードを共有し、参照カウントとリロードをシステムが管理します。
+
+        ## Load と ResourceHandle
+
         ```csharp
         using var resources = new ResourceSystem(
             ResourceSystemDefaults.BuiltinSources(assetRoot: "./assets"),
@@ -22,18 +31,6 @@ public static class DocsRuntime
         resources.Watch();                  // ファイル変更 → 自動リロード (Reloaded イベント)
         resources.Pump();                   // 毎フレーム: リロード反映と破棄の消化
         ```
-        """);
-
-    [Story("Docs/Resources", Width = 800, Height = 480, Order = 50)]
-    public static Widget Resources(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
-        # リソース (Luxel.Resources)
-
-        アセットのロードは **(型, uri) をキーとするノードキャッシュ**の上で動きます。
-        同じ (型, uri) は常に同じノードを共有し、参照カウントとリロードをシステムが管理します。
-
-        ## Load と ResourceHandle
-
-        {ResourcesExample}
 
         `Publish(uri, value)` で外部所有のオブジェクトも登録でき、`Republish` すると
         依存先へリロードが伝播します。GPU デバイスロストは `NotifyDeviceLost()` で全再ロード。
@@ -75,7 +72,7 @@ public static class DocsRuntime
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/Platform", Width = 800, Height = 480, Order = 51)]
-    public static Widget Platform(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+    public static Widget Platform(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # プラットフォーム (Luxel.Platform, Windows)
 
         実 OS ウィンドウ・スワップチェーン提示・IME を提供します (CsWin32 で Win32/TSF を生成)。
@@ -112,7 +109,7 @@ public static class DocsRuntime
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/Input", Width = 800, Height = 480, Order = 52)]
-    public static Widget Input(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+    public static Widget Input(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # 入力
 
         入力は 2 系統あります — **UI 入力** (UiHost がポインタ/キー/IME をコントロールへ配送)
@@ -149,7 +146,16 @@ public static class DocsRuntime
         直接呼べます — ユニットテストや snap 前の状態強制はこの経路です。
         """, toc: true, fences: DocsFences));
 
-    private static readonly DocMarkdown AudioExample = new("""
+    [Story("Docs/Audio", Width = 800, Height = 480, Order = 53)]
+    public static Widget Audio(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+        # オーディオ (Luxel.Audio)
+
+        `IAudioBackend` (Windows は XAudio2) の上に、SFX ミキサ / BGM ソース / 3D 音源 /
+        バスによる音量カスケードを提供します。**Volume / Pitch / Pan が Signal** なので、
+        UI ともアニメーション (Transition) とも自然につながります。
+
+        ## 使い方
+
         ```csharp
         using var backend = new XAudio2Backend();   // IAudioBackend (テストは NullAudioBackend)
         backend.Initialize();
@@ -165,19 +171,6 @@ public static class DocsRuntime
 
         // 毎フレーム: mixer.Tick() / source.Tick() (Signal 値を voice へ転写)
         ```
-        """);
-
-    [Story("Docs/Audio", Width = 800, Height = 480, Order = 53)]
-    public static Widget Audio(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
-        # オーディオ (Luxel.Audio)
-
-        `IAudioBackend` (Windows は XAudio2) の上に、SFX ミキサ / BGM ソース / 3D 音源 /
-        バスによる音量カスケードを提供します。**Volume / Pitch / Pan が Signal** なので、
-        UI ともアニメーション (Transition) とも自然につながります。
-
-        ## 使い方
-
-        {AudioExample}
 
         ## 3D 音源
 
@@ -201,7 +194,15 @@ public static class DocsRuntime
         > Tick/Update を呼ばないと Signal の変更が voice に反映されません。
         """, toc: true, fences: DocsFences));
 
-    private static readonly DocMarkdown FrameworkExample = new("""
+    [Story("Docs/Framework", Width = 800, Height = 480, Order = 54)]
+    public static Widget Framework(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+        # フレームワーク (Luxel.Framework)
+
+        アプリの骨格です。Microsoft.Extensions.Hosting の DI に GPU / Resources / Audio /
+        Input を統合し、シーンの生成・切り替えとフレームループを一括管理します。
+
+        ## LuxelHostBuilder と GameScene
+
         ```csharp
         var host = LuxelHostBuilder.Create(args)
             .UseVulkan()                    // or UseD3D12()
@@ -218,18 +219,6 @@ public static class DocsRuntime
             protected override void OnRender(RenderContext ctx) { /* ctx.RenderGraph へパス追加 */ }
         }
         ```
-        """);
-
-    [Story("Docs/Framework", Width = 800, Height = 480, Order = 54)]
-    public static Widget Framework(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
-        # フレームワーク (Luxel.Framework)
-
-        アプリの骨格です。Microsoft.Extensions.Hosting の DI に GPU / Resources / Audio /
-        Input を統合し、シーンの生成・切り替えとフレームループを一括管理します。
-
-        ## LuxelHostBuilder と GameScene
-
-        {FrameworkExample}
 
         ## 6 フェーズのフレームループ
 
@@ -263,7 +252,7 @@ public static class DocsRuntime
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/DevTools", Width = 800, Height = 480, Order = 55)]
-    public static Widget DevTools(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+    public static Widget DevTools(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # DevTools (Luxel.DevTools)
 
         エンジンとの結合は 2 本だけです — **DiagnosticListener (読み) + EngineCommands (書き)**。
