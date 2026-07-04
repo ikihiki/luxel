@@ -23,6 +23,7 @@
     <Project Path="src/Luxel.Imaging/Luxel.Imaging.csproj" />
     <Project Path="src/Luxel.Input/Luxel.Input.csproj" />
     <Project Path="src/Luxel.MathText/Luxel.MathText.csproj" />
+    <Project Path="src/Luxel.Physics/Luxel.Physics.csproj" />
     <Project Path="src/Luxel.Platform/Luxel.Platform.csproj" />
     <Project Path="src/Luxel.RenderGraph/Luxel.RenderGraph.csproj" />
     <Project Path="src/Luxel.Resources/Luxel.Resources.csproj" />
