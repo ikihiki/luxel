@@ -21,16 +21,11 @@ public static class DocsHome
         RichTextEditor doc = Docs(ctx, $$"""
             # Luxel を始める
 
-            Luxel は [Sebastian Aaltonen の *No Graphics API*](https://www.sebastianaaltonen.com/blog/no-graphics-api)
-            の設計を C# で実装した薄いグラフィックエンジンです。最新のバインドレス GPU が備える
-            機能 (64bit ポインタ / bindless / dynamic rendering / stage バリア) の上に、
-            ディスクリプタセットや PSO 爆発のない薄い API を構築し、その上に 2D ベクター・
-            宣言的 UI・アニメーション・レンダーグラフを積み上げています。
+            Luxel は [Sebastian Aaltonen の *No Graphics API*](https://www.sebastianaaltonen.com/blog/no-graphics-api) の設計を C# で実装した薄いグラフィックエンジンです。最新のバインドレス GPU が備える機能 (64bit ポインタ / bindless / dynamic rendering / stage バリア) の上に、ディスクリプタセットや PSO 爆発のない薄い API を構築し、その上に 2D ベクター・宣言的 UI・アニメーション・レンダーグラフを積み上げています。
 
             - **バックエンド**: Vulkan 1.3 (一次) + DirectX 12 (二次)。`IGpuBackend` 抽象で切替
             - **シェーダ**: Slang で記述し、SPIR-V (Vulkan) と DXIL (D3D12) に併存コンパイル
-            - **核心**: 全パイプライン共通の固定レイアウト = 8B push 定数 (ルート引数の GPU
-              アドレス) + bindless heap。シェーダはルート引数構造体への単一ポインタを受け取る
+            - **核心**: 全パイプライン共通の固定レイアウト = 8B push 定数 (ルート引数の GPU アドレス) + bindless heap。シェーダはルート引数構造体への単一ポインタを受け取る
 
             ## 必要環境
 
@@ -50,13 +45,11 @@ public static class DocsHome
             dotnet test                                            # ユニットテスト
             ```
 
-            `vk` を `dx` に変えると DirectX 12 で動きます。両バックエンドは**ピクセル一致**が
-            開発規律です (golden はバックエンド別に保持)。
+            `vk` を `dx` に変えると DirectX 12 で動きます。両バックエンドは**ピクセル一致**が開発規律です (golden はバックエンド別に保持)。
 
             ## 最初の UI
 
-            宣言的 UI はベアファクトリ + indexer の DSL で書きます。下のカウンタは本物です —
-            クリックすると右の Log パネルに出て、値も動きます:
+            宣言的 UI はベアファクトリ + indexer の DSL で書きます。下のカウンタは本物です — クリックすると右の Log パネルに出て、値も動きます:
 
             {{counter}}
 
@@ -68,20 +61,17 @@ public static class DocsHome
                 Button(_ => count.Value++, "+")];
             ```
 
-            `Signal<T>` が状態、`Button(...)` などのファクトリが widget、子は `[...]` で
-            入れ子にします。Signal を読むテキストは変更時に自動で部分更新されます。
+            `Signal<T>` が状態、`Button(...)` などのファクトリが widget、子は `[...]` で入れ子にします。Signal を読むテキストは変更時に自動で部分更新されます。
 
             ## ドキュメントの歩き方
 
             - 全体像とレイヤ構成 → [Docs/Architecture](story:Docs/Architecture)
             - コントロールの型見本 (Variant/Intent/API 表) → [Docs/Button](story:Docs/Button)
             - この docs ページ自体の書き方 → [Docs/Authoring](story:Docs/Authoring)
-            - サイドバーの **GPU / 2D / 3D / RenderGraph / Animation** 章に、各サブシステムの
-              動くデモが並んでいます。左上の検索欄は docs 本文の全文検索です
+            - サイドバーの **GPU / 2D / 3D / RenderGraph / Animation** 章に、各サブシステムの動くデモが並んでいます。左上の検索欄は docs 本文の全文検索です
 
             > [!TIP]
-            > `Ctrl+D` でライト/ダークテーマを切り替えられます。右パネルの Knobs は
-            > ストーリーが公開している調整パラメータです — このページのカウンタも編集できます。
+            > `Ctrl+D` でライト/ダークテーマを切り替えられます。右パネルの Knobs はストーリーが公開している調整パラメータです — このページのカウンタも編集できます。
             """, toc: true, fences: DocsFences);
         return WithDocFonts(doc);   // 日本語/絵文字フォールバック + ハイライト + mermaid widget
     }
@@ -90,8 +80,7 @@ public static class DocsHome
     public static Widget Architecture(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # アーキテクチャ
 
-        Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは
-        下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。
+        Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。
 
         ```mermaid
         flowchart TB
@@ -111,45 +100,27 @@ public static class DocsHome
 
         ## GPU 土台
 
-        `Luxel` (コア) が GpuDevice / バッファ / テクスチャ / パイプライン / コマンドの
-        薄い抽象を提供し、`Luxel.Vulkan` と `Luxel.D3D12` が実装します。全パイプラインが
-        **固定レイアウト** (8B push 定数 + bindless heap) を共有するため、ディスクリプタ
-        セットの管理も PSO のバリアントも存在しません。シェーダは Slang で 1 回書き、
-        SPIR-V / DXIL の両方へコンパイルされます。
+        `Luxel` (コア) が GpuDevice / バッファ / テクスチャ / パイプライン / コマンドの薄い抽象を提供し、`Luxel.Vulkan` と `Luxel.D3D12` が実装します。全パイプラインが **固定レイアウト** (8B push 定数 + bindless heap) を共有するため、ディスクリプタセットの管理も PSO のバリアントも存在しません。シェーダは Slang で 1 回書き、SPIR-V / DXIL の両方へコンパイルされます。
 
         ## 2D とテキスト
 
-        `Luxel.TwoD` は compute ベースのベクターラスタライザ (三角形分割なし) と
-        保持型キャンバス (RetainedCanvas)。`Luxel.Typography` は HarfBuzz シェーピング +
-        自前 TextLayout、`Luxel.Typography.Icu` が ICU セグメンタを差し込みます。
+        `Luxel.TwoD` は compute ベースのベクターラスタライザ (三角形分割なし) と保持型キャンバス (RetainedCanvas)。`Luxel.Typography` は HarfBuzz シェーピング + 自前 TextLayout、`Luxel.Typography.Icu` が ICU セグメンタを差し込みます。
 
         ## UI とコントロール
 
-        `Luxel.UI` が宣言的 DSL (ベアファクトリ + indexer)、Signal/Effect の反応系、
-        単一パスレイアウト。`Luxel.Controls` が Button から RichTextEditor までの
-        コントロール群、`Luxel.UI.Tailwind` がユーティリティスタイル、
-        `Luxel.Document` + `Luxel.Highlight.TextMate` + `Luxel.Diagram` + `Luxel.MathText`
-        がこの docs ページを支えるドキュメントスタックです。
+        `Luxel.UI` が宣言的 DSL (ベアファクトリ + indexer)、Signal/Effect の反応系、単一パスレイアウト。`Luxel.Controls` が Button から RichTextEditor までのコントロール群、`Luxel.UI.Tailwind` がユーティリティスタイル、`Luxel.Document` + `Luxel.Highlight.TextMate` + `Luxel.Diagram` + `Luxel.MathText` がこの docs ページを支えるドキュメントスタックです。
 
         ## モーション
 
-        `Luxel.Animation` が Curve × Tween の 2 段分解による中核 IR。ターゲットアダプタ
-        (`.UI` = Signal、`.TwoD` = RetainedCanvas、`.ThreeD` = ECS) が書き込み先を分離します。
-        実例はサイドバーの Animation 章へ ([Animation/Tween](story:Animation/Tween) など)。
+        `Luxel.Animation` が Curve × Tween の 2 段分解による中核 IR。ターゲットアダプタ (`.UI` = Signal、`.TwoD` = RetainedCanvas、`.ThreeD` = ECS) が書き込み先を分離します。実例はサイドバーの Animation 章へ ([Animation/Tween](story:Animation/Tween) など)。
 
         ## 3D / レンダーグラフ / リソース
 
-        `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、
-        `Luxel.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成
-        ([RenderGraph/Blur](story:RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` +
-        `Luxel.Gltf` が (型, uri) キーのリソース DAG を提供します。
+        `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、`Luxel.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成 ([RenderGraph/Blur](story:RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` + `Luxel.Gltf` が (型, uri) キーのリソース DAG を提供します。
 
         ## ランタイムとツール
 
-        `Luxel.Platform` (Win32 窓 / スワップチェーン / TSF IME / XAudio2)、`Luxel.Input`、
-        `Luxel.Audio`、`Luxel.Framework` (ホストビルダー + シーン遷移)、そして
-        `Luxel.DevTools` (別窓デバッガ + HTTP DebugServer)。この Gallery (`Luxel.Gallery`)
-        自体が Luxel UI で書かれたドッグフーディングアプリです。
+        `Luxel.Platform` (Win32 窓 / スワップチェーン / TSF IME / XAudio2)、`Luxel.Input`、`Luxel.Audio`、`Luxel.Framework` (ホストビルダー + シーン遷移)、そして `Luxel.DevTools` (別窓デバッガ + HTTP DebugServer)。この Gallery (`Luxel.Gallery`) 自体が Luxel UI で書かれたドッグフーディングアプリです。
 
         ## プロジェクト一覧
 
@@ -172,9 +143,6 @@ public static class DocsHome
 
         ## vk / dx ピクセル一致という規律
 
-        すべての描画機能は Vulkan と DirectX 12 の両方で動き、snap 回帰は**バックエンド別の
-        golden** と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。
-        新機能はどちらか一方で「たまたま動く」ことを許さない — これが薄い抽象を薄いまま
-        保つための開発規律です。
+        すべての描画機能は Vulkan と DirectX 12 の両方で動き、snap 回帰は**バックエンド別の golden** と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。新機能はどちらか一方で「たまたま動く」ことを許さない — これが薄い抽象を薄いまま保つための開発規律です。
         """, toc: true, fences: DocsFences));
 }

@@ -23,9 +23,12 @@ public sealed partial class RichTextEditor : Widget, ITextInput
     private readonly DocumentEditor _ed = new();
     private readonly Signal<bool> _caretOn = new(true);
     private readonly Signal<float> _scroll = new(0);
+    private UiNode? _barNode;    // スクロールバー thumb (内容が収まるときは透明)
+    private float _thumbH = -1;
 
     private const float DefaultWidth = 480f;
     private const float Pad = 12f;
+    private const float ThumbW = 6f, ThumbPad = 2f;   // スクロールバー (ScrollViewer と同寸)
     private float W = DefaultWidth;
     private readonly float _height;
     private float H;   // 実効高 (VAlign=Stretch なら領域いっぱい、それ以外は ctor の height)
@@ -239,6 +242,15 @@ public sealed partial class RichTextEditor : Widget, ITextInput
         ctx.Effect(() => _caretNode.Color = _theme.Value.Primary);
         ctx.Effect(() => _caretNode.Opacity = Focused.Value && _caretOn.Value ? 1f : 0f);
 
+        // スクロールバー thumb: クリップの外 (_root 直下)。形は Refresh (内容高の変化)、
+        // 位置はスクロール effect が更新する。内容が収まるときは透明
+        _thumbH = -1;
+        _barNode = ctx.Canvas.AddChild(_root);
+        _barNode.Z = 2;
+        _barNode.Opacity = 0f;
+        ctx.Effect(() => _barNode.Color = _theme.Value.BorderColor);
+        ctx.Effect(() => { _ = _scroll.Value; UpdateScrollbar(); });
+
         // 色はキー経由の単一 Effect (ブロック毎に Effect を作らない)
         ctx.Effect(() =>
         {
@@ -306,6 +318,25 @@ public sealed partial class RichTextEditor : Widget, ITextInput
 
         Refresh();
         if (ReadOnly) RegisterLinkHits(ctx);   // 静的文書前提 (Refresh 1 回) — リンク run の矩形をヒット化
+
+        // スクロールバーのドラッグ (ScrollViewer と同じ流儀 — サム掴み / トラック押下はジャンプして
+        // そのまま掴む)。Refresh (埋め込み/リンクのヒット登録) より後に登録 = 右端の帯は前面勝ち
+        {
+            const float grabW = ThumbW + ThumbPad * 2 + 6;
+            float grabOffset = 0;
+            void SetFromThumbTop(float top)
+                => _scroll.Value = Math.Clamp(top / MathF.Max(1, H - _thumbH), 0, 1) * MaxScroll;
+            ctx.AddHit(_root, new Rect(W - grabW, 0, grabW, H),
+                onDragStart: (_, ly) =>
+                {
+                    if (MaxScroll <= 0 || _thumbH <= 0) return;
+                    float thumbTop = Clamped() / MaxScroll * (H - _thumbH);
+                    bool onThumb = ly >= thumbTop && ly <= thumbTop + _thumbH;
+                    grabOffset = onThumb ? ly - thumbTop : _thumbH / 2;
+                    SetFromThumbTop(ly - grabOffset);
+                },
+                onDrag: (_, ly) => { if (MaxScroll > 0 && _thumbH > 0) SetFromThumbTop(ly - grabOffset); });
+        }
         ctx.Effect(() =>
         {
             string v = _value.Value;
@@ -894,6 +925,30 @@ public sealed partial class RichTextEditor : Widget, ITextInput
             if (_searchScrollPending) { _searchScrollPending = false; ScrollToCurrentMatch(); }
         }
         _scroll.Value = Clamped();
+        UpdateScrollbar();   // 内容高が変わった可能性 — thumb の形/位置を合わせる
+    }
+
+    /// <summary>スクロールバー thumb の形と位置を現在の内容高に合わせる (Refresh とスクロールから)。
+    /// 内容がビューに収まるときは透明にする。</summary>
+    private void UpdateScrollbar()
+    {
+        if (_barNode is null) return;
+        float max = MaxScroll;
+        if (max <= 0)
+        {
+            _barNode.Opacity = 0f;
+            return;
+        }
+        _barNode.Opacity = 1f;
+        float th = MathF.Max(28, H * H / ContentH);
+        if (th != _thumbH)
+        {
+            _thumbH = th;
+            var s = new Scene2D();
+            s.FillRoundedRect(Color2D.White, W - ThumbW - ThumbPad, 0, ThumbW, th, ThumbW / 2);
+            _barNode.Content = s;
+        }
+        _barNode.Transform = Affine2D.Translate(0, Clamped() / max * (H - _thumbH));
     }
 
     private static int NextOrdinal(Dictionary<int, int> ordinals, Block b)

@@ -13,8 +13,7 @@ public static class DocsMotion
     public static Widget Animation(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # アニメーション (Luxel.Animation)
 
-        glTF / CSS / コード DSL など様々な形式を統一的に扱うアニメーションシステムです。
-        中核は **3 層の IR** で、書き込み先 (UI / 2D / 3D) はアダプタに分離されています。
+        glTF / CSS / コード DSL など様々な形式を統一的に扱うアニメーションシステムです。中核は **3 層の IR** で、書き込み先 (UI / 2D / 3D) はアダプタに分離されています。
 
         ## 設計ノート: 3 層 IR は共通、ターゲットは 3 アダプタ
 
@@ -24,11 +23,7 @@ public static class DocsMotion
         - **L2: Track + Sampler** — stateless な純粋関数 (キーフレーム補間)
         - **L3: AnimationPlayer / TrackEntry** — stateful (time / loop / mix)
 
-        ターゲットを共通化しないのも業界共通です — 共通化すると「最小公倍数」になり、
-        signals のリアクティブ起動、RetainedCanvas の SoA 部分更新、ECS の component query
-        という各ドメインの最適化が壊れます。Luxel のアダプタは 3 つ:
-        `SignalAnimationTarget` (UI) / `RetainedCanvasAnimationTarget` (2D) /
-        `EcsAnimationTarget` (3D)。
+        ターゲットを共通化しないのも業界共通です — 共通化すると「最小公倍数」になり、signals のリアクティブ起動、RetainedCanvas の SoA 部分更新、ECS の component query という各ドメインの最適化が壊れます。Luxel のアダプタは 3 つ: `SignalAnimationTarget` (UI) / `RetainedCanvasAnimationTarget` (2D) / `EcsAnimationTarget` (3D)。
 
         ## Curve × Tween の 2 段分解
 
@@ -38,8 +33,7 @@ public static class DocsMotion
         時間 t → Curve.Eval(t01) → progress → Tween.Lerp(p) → 値 T → Setter
         ```
 
-        Curve は Linear / CubicBezier / Steps / Spring、Tween は Float / Vector2/3 /
-        Rgba / Quaternion (slerp)。時間の合成 (イージング) と値の合成 (型) が直交します。
+        Curve は Linear / CubicBezier / Steps / Spring、Tween は Float / Vector2/3 / Rgba / Quaternion (slerp)。時間の合成 (イージング) と値の合成 (型) が直交します。
 
         ## コード DSL — Sequence / Parallel
 
@@ -63,14 +57,11 @@ public static class DocsMotion
 
         ## AnimationClip と Importer
 
-        キーフレームの束は `AnimationClip` に正規化されます。コードで組む
-        (`Tracks.Vector3(path, kind, keyframes)`) ほか、**Importer** が外部形式を落とし込みます:
+        キーフレームの束は `AnimationClip` に正規化されます。コードで組む (`Tracks.Vector3(path, kind, keyframes)`) ほか、**Importer** が外部形式を落とし込みます:
 
-        - **CSS @keyframes** — `CssKeyframesImporter.Parse(css)` → opacity / translate / color の
-          Track 群 ([Animation/CssKeyframes](story:Animation/CssKeyframes))
+        - **CSS @keyframes** — `CssKeyframesImporter.Parse(css)` → opacity / translate / color の Track 群 ([Animation/CssKeyframes](story:Animation/CssKeyframes))
         - **glTF** — animations[] → translation/rotation/scale の Track (skin/morph は将来)
-        - 拡張点は `IAnimationImporter` — Lottie subset 等はここに載せます。
-          パース警告は既定 Warn (Strict / Lenient に切替可)
+        - 拡張点は `IAnimationImporter` — Lottie subset 等はここに載せます。パース警告は既定 Warn (Strict / Lenient に切替可)
 
         Track の `TargetPath` ("card/opacity" 等) をアダプタの `Bind(name, 対象)` が解決します。
 
@@ -78,22 +69,16 @@ public static class DocsMotion
 
         Clip の上には合成レイヤが載ります:
 
-        - **AnimationGraph** — Clip / Blend / Add の DAG。`BlendNode.Weight` で 2 クリップを
-          混合 ([Animation/Graph](story:Animation/Graph) — weight は knob)
-        - **StateMachine** — Trigger 名で状態切替、crossfade 秒指定
-          ([Animation/StateMachine](story:Animation/StateMachine) — ボタンで Trigger)
-        - ECS への適用は [Animation/EcsClip](story:Animation/EcsClip) —
-          Clip → LocalTransform → propagate → extract → 描画
+        - **AnimationGraph** — Clip / Blend / Add の DAG。`BlendNode.Weight` で 2 クリップを混合 ([Animation/Graph](story:Animation/Graph) — weight は knob)
+        - **StateMachine** — Trigger 名で状態切替、crossfade 秒指定 ([Animation/StateMachine](story:Animation/StateMachine) — ボタンで Trigger)
+        - ECS への適用は [Animation/EcsClip](story:Animation/EcsClip) — Clip → LocalTransform → propagate → extract → 描画
 
         ## 絶対時刻モデル (frame-driven)
 
-        実行は完全 frame-driven です。`IClock` (絶対時刻) を進めて `player.Update(clock)` を
-        呼ぶ — `FixedFrameClock` は frame × (1/fps) を毎回計算するので累積誤差ゼロ、
-        snap / bench の固定ステップでピクセルまで決定的になります。
+        実行は完全 frame-driven です。`IClock` (絶対時刻) を進めて `player.Update(clock)` を呼ぶ — `FixedFrameClock` は frame × (1/fps) を毎回計算するので累積誤差ゼロ、snap / bench の固定ステップでピクセルまで決定的になります。
 
         > [!TIP]
-        > wall-clock は使いません。ストーリーやアプリのフレームループが持つ累積秒から
-        > clock を組み立てるのが規約です (Gallery のデモは全てこの形)。
+        > wall-clock は使いません。ストーリーやアプリのフレームループが持つ累積秒から clock を組み立てるのが規約です (Gallery のデモは全てこの形)。
 
         次: [Docs/Transitions](story:Docs/Transitions) — 「値を変えるだけで補間される」層へ。
         """, toc: true, fences: DocsFences));
@@ -102,8 +87,7 @@ public static class DocsMotion
     public static Widget Transitions(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # UI トランジション
 
-        CSS の `transition` 相当 — **プロパティ値を変えるだけで**古い値から新しい値へ
-        自動補間される層です。明示的アニメ (Clip) や状態機械とは起動のしかたが違います:
+        CSS の `transition` 相当 — **プロパティ値を変えるだけで**古い値から新しい値へ自動補間される層です。明示的アニメ (Clip) や状態機械とは起動のしかたが違います:
 
         | モード | 起動 | 用途 |
         | --- | --- | --- |
@@ -113,8 +97,7 @@ public static class DocsMotion
 
         ## Transition.Animate — setter ラッパー
 
-        最小のプリミティブは「setter を包む」ことです。Signal / UiNode / 任意の書き込み先に
-        等しく適用できます (scene-agnostic):
+        最小のプリミティブは「setter を包む」ことです。Signal / UiNode / 任意の書き込み先に等しく適用できます (scene-agnostic):
 
         ```csharp
         // setter ラッパー: 値を「変えるだけで」古い値から自動補間される
@@ -132,11 +115,7 @@ public static class DocsMotion
 
         ## 設計ノート: smooth interrupt
 
-        A→B の補間中に C へ変更されたら、**現在の表示値 X を起点に X→C をフル duration で**
-        進めます (Framer Motion / React Spring の fromCurrent と同じ)。値がジャンプせず、
-        hover→pressed→normal と連打しても連続です。この意味論は状態機械
-        (PropertyStateMachine) にも組み込まれています — プロパティ毎に独立進行するので、
-        色 300ms / Scale 120ms が並走できます。
+        A→B の補間中に C へ変更されたら、**現在の表示値 X を起点に X→C をフル duration で** 進めます (Framer Motion / React Spring の fromCurrent と同じ)。値がジャンプせず、hover→pressed→normal と連打しても連続です。この意味論は状態機械 (PropertyStateMachine) にも組み込まれています — プロパティ毎に独立進行するので、色 300ms / Scale 120ms が並走できます。
 
         ## 宣言 API — When + Transition
 
@@ -152,17 +131,11 @@ public static class DocsMotion
             .TransitionBetween(WidgetState.Pressed, WidgetState.Hover, 0f);        // 離した瞬間は即時
         ```
 
-        解決は TransitionTable の (from, to, prop) ルールで、**具体的な指定が勝ちます**
-        (pair > to > from > プロパティ既定 > 全体既定。to = enter が from = leave より優先 —
-        CSS の「遷移先のルールが適用される」慣習と同じ)。実物は
-        [Transitions/States](story:Transitions/States) へ。
+        解決は TransitionTable の (from, to, prop) ルールで、**具体的な指定が勝ちます** (pair > to > from > プロパティ既定 > 全体既定。to = enter が from = leave より優先 — CSS の「遷移先のルールが適用される」慣習と同じ)。実物は [Transitions/States](story:Transitions/States) へ。
 
         ## 動的状態 — スクロールも選択移動も同じ機械で
 
-        ListView の選択行 (10 万行) やスクロールオフセット (任意 float) のような**非有界の
-        状態空間**は、`Goto("selected", clock, 値)` の動的状態で表します。状態名が
-        TransitionTable の解決キー、値は都度の目標 — 「ホイールは滑走 / サムドラッグは即時」も
-        "wheel" / "drag" という状態名と table ルールだけで表現できます。
+        ListView の選択行 (10 万行) やスクロールオフセット (任意 float) のような**非有界の状態空間**は、`Goto("selected", clock, 値)` の動的状態で表します。状態名が TransitionTable の解決キー、値は都度の目標 — 「ホイールは滑走 / サムドラッグは即時」も "wheel" / "drag" という状態名と table ルールだけで表現できます。
 
         ## コントロール標準モーション
 
@@ -174,8 +147,6 @@ public static class DocsMotion
         | Dialog / Drawer / Toast | フェード + スライド/スケール (180〜220ms) + scrim |
         | Button / MenuRow | hover 色フェード (80ms) |
 
-        設計原則: **アニメは変化時のみ、初期状態は瞬時** (Realize 直後は静止値 — snap の
-        golden が揺れない)。静定後は signal 書き込みゼロ (アイドルで再描画 0)。動きは全て
-        transform / opacity / color の部分更新に乗ります。
+        設計原則: **アニメは変化時のみ、初期状態は瞬時** (Realize 直後は静止値 — snap の golden が揺れない)。静定後は signal 書き込みゼロ (アイドルで再描画 0)。動きは全て transform / opacity / color の部分更新に乗ります。
         """, toc: true, fences: DocsFences));
 }
