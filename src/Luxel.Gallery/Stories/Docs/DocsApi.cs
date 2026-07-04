@@ -32,4 +32,24 @@ public static class DocsApi
         }
         return WithDocFonts(Docs(ctx, s, toc: true, fences: DocsFences));
     }
+
+    [Story("Docs/Api2D", Order = 14)]
+    public static Widget Api2D(StoryContext ctx)
+    {
+        var types = TypeApiRegistry.InNamespace("Luxel.TwoD");
+        var s = new DocString(512, types.Count * 2);
+        s.AppendLiteral("# 2D API リファレンス (Luxel.TwoD)\n\n");
+        s.AppendLiteral(
+            "`Luxel.TwoD` の公開型の **コンストラクタ / メソッド / プロパティ / フィールド** の一覧です。" +
+            "ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (`[assembly: GenerateAssemblyApi]` → `TypeApiRegistry`) ため、コードと乖離しません。" +
+            "概念と使い方は [Docs/TwoD](story:Docs/TwoD)、動くデモはサイドバーの 2D 章へ。\n");
+
+        foreach (TypeApi t in types)
+        {
+            s.AppendLiteral($"\n## {t.Name}\n\n");
+            s.AppendFormatted(TypeApiTable(t.Name));
+            s.AppendLiteral("\n");
+        }
+        return WithDocFonts(Docs(ctx, s, toc: true, fences: DocsFences));
+    }
 }
