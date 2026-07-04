@@ -17,13 +17,14 @@ namespace Luxel.UI.Generators;
 /// UI コンポーネントの「組み立て側」と「デバッグ/スタイル書込側」を焼き込むジェネレーター。
 /// <list type="bullet">
 /// <item><b>SetProp 焼き込み</b>: <c>[UiParam]</c> 付き public <c>Bindable&lt;T&gt;</c> フィールド
-/// (継承分含む) を持つ partial な Widget 派生クラスへ <c>SetProp&lt;T&gt;</c> の override を生成。
-/// Tailwind utility (名前ベース PropPart) が任意プロパティを状態付きで書ける。</item>
+/// (継承分含む) を持つ partial な Widget 派生クラスへ <c>SetProp&lt;T&gt;</c> の override を生成
+/// (名前ベースで任意プロパティを状態付きで書ける — knobs/DevTools が使う)。</item>
 /// <item><b>デバッグ焼き込み</b>: 同クラスへ <c>DebugProps</c>/<c>SetDebugProp</c> の override を生成
 /// (switch + <c>WidgetDebugCodec.Write&lt;T&gt;</c> / <c>WriteParsable&lt;T&gt;</c> / <c>Enum.TryParse</c>)。</item>
 /// <item><b>ファクトリ生成</b>: <c>[UiComponent(Factory = "Kit")]</c> 付きクラスに対し、
-/// 最長 public コンストラクタの引数 + [UiParam] フィールド (すべて <c>Bindable&lt;T&gt;</c>) +
-/// <c>params IConfigPart[]</c> を受けるベアファクトリ関数を static partial class に生成。</item>
+/// 最長 public コンストラクタの引数 + [UiParam] フィールド (すべて <c>Bindable&lt;T&gt;</c>) を
+/// 名前付き引数で受けるベアファクトリ関数を static partial class に生成
+/// (状態レイヤ等の追加宣言は fluent 拡張 — When/Transition/GridColumn)。</item>
 /// </list>
 /// </summary>
 [Generator(LanguageNames.CSharp)]
