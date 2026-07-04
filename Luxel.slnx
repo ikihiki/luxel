@@ -1,7 +1,42 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Luxel.Animation.ThreeD/Luxel.Animation.ThreeD.csproj" />
     <Project Path="src/Luxel.Animation.TwoD/Luxel.Animation.TwoD.csproj" />
+    <Project Path="src/Luxel.Animation.UI/Luxel.Animation.UI.csproj" />
+    <Project Path="src/Luxel.Animation/Luxel.Animation.csproj" />
+    <Project Path="src/Luxel.AssetRuntime/Luxel.AssetRuntime.csproj" />
+    <Project Path="src/Luxel.Assets/Luxel.Assets.csproj" />
+    <Project Path="src/Luxel.AssetsGpu/Luxel.AssetsGpu.csproj" />
+    <Project Path="src/Luxel.Audio/Luxel.Audio.csproj" />
+    <Project Path="src/Luxel.Controls/Luxel.Controls.csproj" />
+    <Project Path="src/Luxel.D3D12/Luxel.D3D12.csproj" />
+    <Project Path="src/Luxel.DevTools.App/Luxel.DevTools.App.csproj" />
+    <Project Path="src/Luxel.DevTools/Luxel.DevTools.csproj" />
+    <Project Path="src/Luxel.Diagram/Luxel.Diagram.csproj" />
+    <Project Path="src/Luxel.Document/Luxel.Document.csproj" />
+    <Project Path="src/Luxel.Ecs.Signal/Luxel.Ecs.Signal.csproj" />
+    <Project Path="src/Luxel.Ecs/Luxel.Ecs.csproj" />
+    <Project Path="src/Luxel.Framework/Luxel.Framework.csproj" />
+    <Project Path="src/Luxel.Gallery/Luxel.Gallery.csproj" />
+    <Project Path="src/Luxel.Gltf/Luxel.Gltf.csproj" />
+    <Project Path="src/Luxel.Highlight.TextMate/Luxel.Highlight.TextMate.csproj" />
+    <Project Path="src/Luxel.Imaging/Luxel.Imaging.csproj" />
+    <Project Path="src/Luxel.Input/Luxel.Input.csproj" />
+    <Project Path="src/Luxel.MathText/Luxel.MathText.csproj" />
+    <Project Path="src/Luxel.Platform/Luxel.Platform.csproj" />
+    <Project Path="src/Luxel.RenderGraph/Luxel.RenderGraph.csproj" />
+    <Project Path="src/Luxel.Resources/Luxel.Resources.csproj" />
+    <Project Path="src/Luxel.Scene.UI/Luxel.Scene.UI.csproj" />
+    <Project Path="src/Luxel.TwoD/Luxel.TwoD.csproj" />
+    <Project Path="src/Luxel.Typography.Icu/Luxel.Typography.Icu.csproj" />
+    <Project Path="src/Luxel.Typography/Luxel.Typography.csproj" />
+    <Project Path="src/Luxel.UI.Generators/Luxel.UI.Generators.csproj" />
     <Project Path="src/Luxel.UI.Tailwind/Luxel.UI.Tailwind.csproj" />
+    <Project Path="src/Luxel.UI/Luxel.UI.csproj" />
+    <Project Path="src/Luxel.Vulkan/Luxel.Vulkan.csproj" />
+    <Project Path="src/Luxel/Luxel.csproj" />
   </Folder>
-  <Folder Name="/tests/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/Luxel.Tests/Luxel.Tests.csproj" />
+  </Folder>
 </Solution>
