@@ -458,11 +458,54 @@ public static class DocsGpu
             ctx.Log($"t={hit.T} normal={hit.Normal} static={hit.IsStatic}");
         ```
 
-        ## 設計ノート / スコープ外
+        ## 設計ノート
 
         - **リセットは丸ごと再構築** — entity 削除に連動した body 掃除は持たず、World + PhysicsWorld を作り直すのが決定的な初期状態へ戻る正攻法です (Playground の reset knob がこの形)
-        - `Parent` 階層下の RigidBody は未定義動作 (物理はワールド空間)
-        - 将来枠: メッシュ/凸包コライダー (AssetPrimitive → Bepu Mesh/ConvexHull)、compound shape、joint/constraint の公開 API、接触イベント (trigger)、キャラクターコントローラ、CCD、2D 物理
+        - 生の Bepu API は `PhysicsWorld.Simulation` から常に触れます — ラッパに無い機能 (constraint 等) はそこから使えます
+
+        ## ロードマップ (v1 スコープ外)
+
+        v1 で見送った項目と、その理由・実装の要点です。おおまかな優先度は **CCD → 接触イベント → 静的メッシュコライダー → キャラクターコントローラ** (費用対効果順)。
+
+        ### CCD (連続衝突検出)
+
+        高速な物体が薄い壁をすり抜ける「トンネリング」対策。Bepu 側には既にあり (`ContinuousDetection.Continuous`)、`Collider`/`RigidBody` に指定する口を作っていないだけです — Attach 時の `BodyDescription.Collidable` へ渡す数行で載る、いちばん安い項目。
+
+        ### 接触イベント (trigger)
+
+        「触れた瞬間の通知」(ダメージ/ゴール判定) と「応答せず通過検知だけ」(トリガーボリューム)。Bepu の接触は callbacks (`ConfigureContactManifold`) の中で拾う設計で、マルチスレッド時は任意のワーカースレッドから呼ばれます — キューに積んで Step 後にドレインし ECS イベントへ変換する配管が必要。トリガーは manifold を返さないフラグを `Collider` に足す形。
+
+        ### メッシュ / 凸包コライダー
+
+        glTF の実メッシュ形状で衝突させる項目。静的な地形は Bepu の `Mesh` (三角形スープ) が先 — `Collider.Mesh(AssetPrimitive)` を足し、Attach 時に頂点/インデックスを BufferPool の `Buffer<Triangle>` へ詰め替えます。動的ボディ向けの `ConvexHull` はその後 (凹メッシュは凸分解が要る)。
+
+        ### キャラクターコントローラ
+
+        純粋な剛体だと坂で滑り・段差で引っかかり・押されて転がるため、カプセル + 姿勢固定 + 足元レイキャスト (実装済み) + 目標速度への速度サーボという専用制御が定石です。物理の上に載るアプリ層の機能で設計判断が多く (ジャンプ/階段/斜面角)、Bepu の Demos にリファレンス実装があります。[Input/Gamepad](story:Input/Gamepad) とつなぐと良いショーケースに。
+
+        ### Compound shape (複合形状)
+
+        複数プリミティブを 1 剛体に束ねる形状 (机 = 天板 + 脚 4 本)。「1 entity = 1 Collider = 1 body」の対応が崩れ、子形状のローカル pose をどう表現するかのコンポーネント設計が必要 — Parent 階層の扱いと一緒に決めるべき項目です。
+
+        ### Joint / constraint の公開 API
+
+        ヒンジ/ボールジョイント/距離拘束など。生 API は今日でも `physics.Simulation.Solver.Add(a, b, new BallSocket ...)` で使えます — スコープ外なのは「ECS コンポーネントで宣言的に書ける層」。使用頻度の高い 3〜4 種 (BallSocket/Hinge/Distance/Weld) のコンポーネント化と、body 消滅時のハンドル無効化が本体。
+
+        ### Entity 削除に連動した body 掃除
+
+        entity を消しても body が Simulation に残ります (見えない衝突体)。ハンドル辞書 + 生存チェックで `Bodies.Remove` する形が素直で、弾丸や破片を大量に出し入れする段になったら必須。それまでは「リセット = 丸ごと再構築」で足ります。
+
+        ### Parent 階層下の RigidBody
+
+        物理はワールド空間、`LocalTransform` は親空間 — 素朴に書き戻すと親の変換が二重適用されるため v1 は未定義動作です。正しくは親の GlobalTransform の逆行列でローカル化しますが、「親子の物理」の実需要はたいてい joint で表現するのが正しく、優先度低。
+
+        ### 2D 物理
+
+        Canvas2D 系統 (プラットフォーマー等) 向け。Bepu は 3D 専用なので、別エンジン (Box2D 系の C# 移植) を選ぶか Z 固定 + 回転 1 軸拘束の 2.5D にするかの選択から。作るなら `Luxel.Physics.TwoD` を別プロジェクトで — ECS を使わず UiNode transform へ直接書き戻す、本ページと同じ World ラッパ + Step + 書き戻しの写しになります。
+
+        ### マルチスレッド実行での決定性
+
+        `ThreadCount > 0` は浮動小数の加算順がスレッドスケジューリングで変わり、実行ごとに結果が揺れます (Bepu 2.4 の仕様)。だから既定は単スレッド = 決定的で、マルチスレッドは速度と引き換えの opt-in。Bepu 2.5 系は決定性オプションが改善されているため、バージョン更新時に「固定スレッド数なら決定的」へ緩められる可能性があります。
 
         型 API の一覧は [Docs/Api3D](story:Docs/Api3D) へ。
         """, toc: true, fences: DocsFences));
