@@ -22,6 +22,7 @@ public sealed class GalleryApp : IDisposable
     // サーフェス (framebuffer) は全画面モードの最大サイズで確保 — SetContent の論理サイズは
     // サーフェス以下にしか広げられない (余白は透過なので通常時の見た目は不変)
     private const float SurfW = 1092, SurfH = 760;
+    private const float WinH = 789f;   // クライアント 801 - Border padding 12
 
     private readonly SurfaceView _preview = SurfaceView(SurfW, SurfH);
     // ストーリーへ StoryContext.Resources として配布 (キャッシュ共有、Pump は Update が叩く)
@@ -114,7 +115,7 @@ public sealed class GalleryApp : IDisposable
     /// メインは行 [ツールバー | プレビュー(Star) | Splitter | Log]。Splitter のドラッグ確定で寸法を更新して再構築する。</summary>
     public Widget BuildRoot()
     {
-        const float winH = 789f;   // クライアント 801 - Border padding 12
+        const float winH = WinH;
 
         // ---- サイドバー (col 0): Component > Story > 見出し の 3 階層ツリー + 検索 ----
         // 展開状態 (_treeExpanded) は GalleryApp が所有 — chrome 再構築をまたいで保持。
@@ -165,7 +166,7 @@ public sealed class GalleryApp : IDisposable
         sidebar.SetAttached(new Attached("Grid.Column", 0));
 
         var splitSidebar = Splitter(vertical: true,
-            onResized: (_, d) => { _sidebarW = Math.Clamp(_sidebarW + d, 120, 420); _dirty = true; });
+            onResized: (_, d) => { _sidebarW = Math.Clamp(_sidebarW + d, 120, 420); RefreshPreviewSize(); _dirty = true; });
         splitSidebar.SetAttached(new Attached("Grid.Column", 1));
 
         // ---- メイン (col 2): ツールバー / プレビュー / Splitter / Log ----
@@ -180,7 +181,7 @@ public sealed class GalleryApp : IDisposable
         toolbar.SetAttached(new Attached("Grid.Row", 0));
         _preview.SetAttached(new Attached("Grid.Row", 1));
         var splitLog = Splitter(vertical: false,
-            onResized: (_, d) => { _logH = Math.Clamp(_logH - d, 60, 440); _dirty = true; });   // 上へドラッグ = Log 拡大
+            onResized: (_, d) => { _logH = Math.Clamp(_logH - d, 60, 440); RefreshPreviewSize(); _dirty = true; });   // 上へドラッグ = Log 拡大
         splitLog.SetAttached(new Attached("Grid.Row", 2));
         _logItems.Value = LogLines();
         ListView logList = ListView(MathF.Max(24, _logH - 36), 16f, items: _logItems, width: PreviewW - 24);
@@ -201,7 +202,7 @@ public sealed class GalleryApp : IDisposable
         main.SetAttached(new Attached("Grid.Column", 2));
 
         var splitPanel = Splitter(vertical: true,
-            onResized: (_, d) => { _rightW = Math.Clamp(_rightW - d, 200, 460); _dirty = true; });
+            onResized: (_, d) => { _rightW = Math.Clamp(_rightW - d, 200, 460); RefreshPreviewSize(); _dirty = true; });
         splitPanel.SetAttached(new Attached("Grid.Column", 3));
 
         // ---- 右パネル (col 4): Knobs (autodoc 風テーブル) + Props (個別スクロール) ----
@@ -422,12 +423,31 @@ public sealed class GalleryApp : IDisposable
         _matchTotal.Value = doc.SearchMatchCount;
     }
 
-    /// <summary>ストーリーを選択: 子 SetRoot (実寸) + chrome 再構築フラグ。</summary>
-    /// <summary>プレビューの内容サイズ: 通常はストーリー宣言サイズ、全画面はメイン領域いっぱい
-    /// (サーフェスサイズが上限 — SetContent 側でも clamp される)。</summary>
+    /// <summary>プレビューの内容サイズ: 通常はストーリー宣言サイズ、fill ストーリー (W/H 未指定 = 0,0
+    /// — docs ページ等) はメイン領域いっぱい、全画面はメイン全面
+    /// (いずれもサーフェスサイズが上限 — SetContent 側でも clamp される)。</summary>
     private (int W, int H) PreviewSize(StoryInfo story)
-        => _zen ? ((int)MathF.Min(SurfW, 1280 - 12 - _sidebarW - Split.Thickness), (int)SurfH)
-                : (story.Width, story.Height);
+    {
+        if (_zen)
+            return ((int)MathF.Min(SurfW, 1280 - 12 - _sidebarW - Split.Thickness), (int)SurfH);
+        if (story.Width > 0)
+            return (story.Width, story.Height);
+        // fill: 通常モードのメイン領域 (サイドバー/右パネル/Log を除いた実寸)
+        float w = 1280 - 12 - _sidebarW - Split.Thickness * 2 - _rightW;
+        float h = WinH - 28 - Split.Thickness - _logH;
+        return ((int)MathF.Min(SurfW, w), (int)MathF.Min(SurfH, h));
+    }
+
+    /// <summary>fill ストーリーの表示中にペイン寸法が変わったら、プレビューを新しい領域サイズで
+    /// 実体化し直す (Splitter ドラッグ確定時)。固定サイズのストーリーは何もしない。</summary>
+    private void RefreshPreviewSize()
+    {
+        if (_currentStory is { Width: <= 0 } s && _storyRoot is not null)
+        {
+            (int pw, int ph) = PreviewSize(s);
+            _preview.SetContent(_storyRoot, pw, ph);
+        }
+    }
 
     public void Select(StoryInfo story)
     {

@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsMotion
 {
-    [Story("Docs/Animation", Width = 800, Height = 480, Order = 30)]
+    [Story("Docs/Animation", Order = 30)]
     public static Widget Animation(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # アニメーション (Luxel.Animation)
 
@@ -98,7 +98,7 @@ public static class DocsMotion
         次: [Docs/Transitions](story:Docs/Transitions) — 「値を変えるだけで補間される」層へ。
         """, toc: true, fences: DocsFences));
 
-    [Story("Docs/Transitions", Width = 800, Height = 480, Order = 31)]
+    [Story("Docs/Transitions", Order = 31)]
     public static Widget Transitions(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # UI トランジション
 

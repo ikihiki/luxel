@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsUi
 {
-    [Story("Docs/UI", Width = 800, Height = 480, Order = 20)]
+    [Story("Docs/UI", Order = 20)]
     public static Widget Ui(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # 宣言的 UI (Luxel.UI)
 
@@ -64,7 +64,7 @@ public static class DocsUi
         [Docs/Styling](story:Docs/Styling) (状態別スタイルと Tailwind)。
         """, toc: true, fences: DocsFences));
 
-    [Story("Docs/Controls", Width = 800, Height = 480, Order = 21)]
+    [Story("Docs/Controls", Order = 21)]
     public static Widget Controls(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # コントロール (Luxel.Controls)
 
@@ -139,7 +139,7 @@ public static class DocsUi
         > `[UiComponent] partial` を付ければ生成ファクトリ / DebugProps / knobs が自動で付きます。
         """, toc: true, fences: DocsFences));
 
-    [Story("Docs/Styling", Width = 800, Height = 480, Order = 23)]
+    [Story("Docs/Styling", Order = 23)]
     public static Widget Styling(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # スタイリングと Tailwind
 
@@ -201,7 +201,7 @@ public static class DocsUi
         既定解決が同居し、どちらもトランジションに乗ります。
         """, toc: true, fences: DocsFences));
 
-    [Story("Docs/Button", Width = 800, Height = 480, Order = 22)]
+    [Story("Docs/Button", Order = 22)]
     public static Widget ButtonDocs(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # Button
 

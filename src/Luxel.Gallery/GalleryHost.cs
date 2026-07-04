@@ -83,7 +83,9 @@ public sealed class GalleryHost : IDisposable
         var sw = System.Diagnostics.Stopwatch.StartNew();
         TearDown();
         _story = story;
-        _w = story.Width; _h = story.Height;
+        // fill (W/H 未指定 = 0,0) は snap/bench の決定性のため 800×480 固定で描く
+        _w = story.Width > 0 ? story.Width : (int)GalleryApp.PreviewW;
+        _h = story.Height > 0 ? story.Height : (int)GalleryApp.PreviewH;
         if (story.Theme is not null) _dark = story.Theme == "dark";
         ApplyTheme();
         BuildCurrent();

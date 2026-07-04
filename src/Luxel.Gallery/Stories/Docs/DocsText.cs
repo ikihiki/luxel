@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsText
 {
-    [Story("Docs/Typography", Width = 800, Height = 480, Order = 40)]
+    [Story("Docs/Typography", Order = 40)]
     public static Widget Typography(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # テキスト (Luxel.Typography)
 
@@ -83,7 +83,7 @@ public static class DocsText
         次: [Docs/Editor](story:Docs/Editor) — この上に載る文書モデルとエディタへ。
         """, toc: true, fences: DocsFences));
 
-    [Story("Docs/Editor", Width = 800, Height = 480, Order = 41)]
+    [Story("Docs/Editor", Order = 41)]
     public static Widget Editor(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # ドキュメントとエディタ (Luxel.Document)
 

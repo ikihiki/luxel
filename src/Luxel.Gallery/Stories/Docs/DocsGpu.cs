@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsGpu
 {
-    [Story("Docs/GpuDevice", Width = 800, Height = 480, Order = 10)]
+    [Story("Docs/GpuDevice", Order = 10)]
     public static Widget GpuDevice(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # GPU 抽象 (GpuDevice)
 
@@ -102,7 +102,7 @@ public static class DocsGpu
         次: [Docs/TwoD](story:Docs/TwoD) — この GPU 抽象の上に 2D ベクターを載せます。
         """, toc: true, fences: DocsFences));
 
-    [Story("Docs/TwoD", Width = 800, Height = 480, Order = 11)]
+    [Story("Docs/TwoD", Order = 11)]
     public static Widget TwoD(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # 2D ベクター (Luxel.TwoD)
 
@@ -184,7 +184,7 @@ public static class DocsGpu
         次: [Docs/RenderGraph](story:Docs/RenderGraph) — 多段パスの合成へ。
         """, toc: true, fences: DocsFences));
 
-    [Story("Docs/RenderGraph", Width = 800, Height = 480, Order = 12)]
+    [Story("Docs/RenderGraph", Order = 12)]
     public static Widget RenderGraphDocs(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # レンダーグラフ (Luxel.RenderGraph)
 
@@ -278,7 +278,7 @@ public static class DocsGpu
         次: [Docs/ThreeD](story:Docs/ThreeD) — ECS と組み合わせて 3D を描きます。
         """, toc: true, fences: DocsFences));
 
-    [Story("Docs/ThreeD", Width = 800, Height = 480, Order = 13)]
+    [Story("Docs/ThreeD", Order = 13)]
     public static Widget ThreeD(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # 3D と ECS
 

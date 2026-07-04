@@ -14,7 +14,7 @@ public static class DocsMeta
 
     private static Luxel.Resources.ResourceHandle<Luxel.Resources.CpuImage>? _imagePreload;
 
-    [Story("Docs/Authoring", Width = 800, Height = 480, Order = 91)]
+    [Story("Docs/Authoring", Order = 91)]
     public static Widget Authoring(StoryContext ctx)
     {
         // snap (静定 1 フレーム) の決定性のため画像を同期 preload — 実アプリでは不要
@@ -44,7 +44,7 @@ public static class DocsMeta
             なります:
 
             ```csharp
-            [Story("Docs/MyPage", Width = 800, Height = 480, Order = 50)]
+            [Story("Docs/MyPage", Order = 50)]
             public static Widget MyPage(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
                 # 見出し
 
@@ -131,7 +131,7 @@ public static class DocsMeta
         return WithDocFonts(doc);
     }
 
-    [Story("Docs/Gallery", Width = 800, Height = 480, Order = 90)]
+    [Story("Docs/Gallery", Order = 90)]
     public static Widget Gallery(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # Gallery — ストーリーの書き方
 
@@ -154,9 +154,11 @@ public static class DocsMeta
         }
         ```
 
-        - パスは `"コンポーネント/ストーリー名"` の 2 階層。`Width`/`Height` (既定 480×320)、
-          `Theme` ("light"/"dark")、`Order` (サイドバーの章立て — Docs 0〜 / デモ章 100〜 /
-          コントロール既定 1000 / 機能デモ 2000〜)
+        - パスは `"コンポーネント/ストーリー名"` の 2 階層。`Width`/`Height` (既定 480×320 —
+          **両方省略するとプレビュー領域いっぱい (fill)**。docs ページはこれで、全画面モードでは
+          メイン全面に、snap では 800×480 固定で描かれます)、`Theme` ("light"/"dark")、
+          `Order` (サイドバーの章立て — Docs 0〜 / デモ章 100〜 / コントロール既定 1000 /
+          機能デモ 2000〜)
         - 署名は `static Widget M()` か `static Widget M(StoryContext ctx)`
         - 収集は**ソースジェネレーター** (reflection なし) — `[Story]` を走査して
           module initializer で `StoryRegistry.Register` を焼き込み、**メソッドの C# ソース**も
@@ -199,7 +201,7 @@ public static class DocsMeta
         [Docs/Authoring](story:Docs/Authoring) へ。
         """, toc: true, fences: DocsFences));
 
-    [Story("Docs/Contributing", Width = 800, Height = 480, Order = 92)]
+    [Story("Docs/Contributing", Order = 92)]
     public static Widget Contributing(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # 貢献者向け — ビルド・テスト・回帰ゲート
 

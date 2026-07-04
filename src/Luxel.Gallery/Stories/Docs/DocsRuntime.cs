@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsRuntime
 {
-    [Story("Docs/Resources", Width = 800, Height = 480, Order = 50)]
+    [Story("Docs/Resources", Order = 50)]
     public static Widget Resources(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # リソース (Luxel.Resources)
 
@@ -71,7 +71,7 @@ public static class DocsRuntime
         ([Docs/RenderGraph](story:Docs/RenderGraph) の対比表も参照)。
         """, toc: true, fences: DocsFences));
 
-    [Story("Docs/Platform", Width = 800, Height = 480, Order = 51)]
+    [Story("Docs/Platform", Order = 51)]
     public static Widget Platform(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # プラットフォーム (Luxel.Platform, Windows)
 
@@ -108,7 +108,7 @@ public static class DocsRuntime
           リッチテキストは plain + markdown の両形式で書き込みます
         """, toc: true, fences: DocsFences));
 
-    [Story("Docs/Input", Width = 800, Height = 480, Order = 52)]
+    [Story("Docs/Input", Order = 52)]
     public static Widget Input(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # 入力
 
@@ -146,7 +146,7 @@ public static class DocsRuntime
         直接呼べます — ユニットテストや snap 前の状態強制はこの経路です。
         """, toc: true, fences: DocsFences));
 
-    [Story("Docs/Audio", Width = 800, Height = 480, Order = 53)]
+    [Story("Docs/Audio", Order = 53)]
     public static Widget Audio(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # オーディオ (Luxel.Audio)
 
@@ -194,7 +194,7 @@ public static class DocsRuntime
         > Tick/Update を呼ばないと Signal の変更が voice に反映されません。
         """, toc: true, fences: DocsFences));
 
-    [Story("Docs/Framework", Width = 800, Height = 480, Order = 54)]
+    [Story("Docs/Framework", Order = 54)]
     public static Widget Framework(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # フレームワーク (Luxel.Framework)
 
@@ -251,7 +251,7 @@ public static class DocsRuntime
         UiHost の同じ部品でできています。
         """, toc: true, fences: DocsFences));
 
-    [Story("Docs/DevTools", Width = 800, Height = 480, Order = 55)]
+    [Story("Docs/DevTools", Order = 55)]
     public static Widget DevTools(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # DevTools (Luxel.DevTools)
 

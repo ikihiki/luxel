@@ -54,13 +54,20 @@ public sealed class StoryGenerator : IIncrementalGenerator
                     if (attr is null) return null;
 
                     string path = attr.ConstructorArguments.Length == 1 && attr.ConstructorArguments[0].Value is string p ? p : m.Name;
-                    int w = 480, h = 320, order = 1000; string? theme = null;
+                    int w = 0, h = 0, order = 1000; string? theme = null;
                     foreach (KeyValuePair<string, TypedConstant> na in attr.NamedArguments)
                     {
                         if (na.Key == "Width" && na.Value.Value is int wi) w = wi;
                         if (na.Key == "Height" && na.Value.Value is int hi) h = hi;
                         if (na.Key == "Order" && na.Value.Value is int oi) order = oi;
                         if (na.Key == "Theme" && na.Value.Value is string th) theme = th;
+                    }
+                    // Width/Height を両方省略 = fill (0,0 — ホストがプレビュー領域いっぱいに表示)。
+                    // 片方だけの指定は従来既定 (480×320) で補完する。
+                    if (w != 0 || h != 0)
+                    {
+                        if (w == 0) w = 480;
+                        if (h == 0) h = 320;
                     }
 
                     bool returnsWidget = IsWidget(m.ReturnType);

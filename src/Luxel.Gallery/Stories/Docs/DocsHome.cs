@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsHome
 {
-    [Story("Docs/GettingStarted", Width = 800, Height = 480, Order = 0)]   // 章立て: Docs を先頭、入門を最初に
+    [Story("Docs/GettingStarted", Order = 0)]   // 章立て: Docs を先頭、入門を最初に
     public static Widget GettingStarted(StoryContext ctx)
     {
         Signal<int> count = ctx.Signal("count", 0, "カウンタの現在値 (± ボタンと連動)");
@@ -86,7 +86,7 @@ public static class DocsHome
         return WithDocFonts(doc);   // 日本語/絵文字フォールバック + ハイライト + mermaid widget
     }
 
-    [Story("Docs/Architecture", Width = 800, Height = 480, Order = 1)]
+    [Story("Docs/Architecture", Order = 1)]
     public static Widget Architecture(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # アーキテクチャ
 

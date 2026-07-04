@@ -13,6 +13,9 @@ public sealed class StoryAttribute(string path) : Attribute
 {
     /// <summary>"コンポーネント/ストーリー名" の 2 階層パス。</summary>
     public string Path { get; } = path;
+    /// <summary>プレビューの論理サイズ。片方だけの指定はもう片方が既定 (480×320) で補完される。
+    /// **両方省略するとプレビュー領域いっぱい (fill)** — docs ページ等の全面表示用
+    /// (全画面モードではメイン全面、snap では 800×480 固定で決定的)。</summary>
     public int Width { get; set; } = 480;
     public int Height { get; set; } = 320;
     /// <summary>"light" / "dark" (省略時はギャラリーの現在値)。</summary>
@@ -194,6 +197,8 @@ public sealed class StoryKnob
 }
 
 /// <summary>登録済みストーリー 1 件。<see cref="Build"/> は選択のたびに新しい widget ツリーを作る。
+/// <paramref name="Width"/>/<paramref name="Height"/> が 0,0 = fill (ホストがプレビュー領域
+/// いっぱいに表示する — 属性で両方省略したストーリー)。
 /// <paramref name="Order"/> は表示順 (小さいほど先頭、既定 1000 = アルファベット順)。
 /// <paramref name="Source"/> は [Story] メソッドの C# ソース (storysource — docs の「コードを見る」用、
 /// ジェネレーターが焼き込む)。</summary>
