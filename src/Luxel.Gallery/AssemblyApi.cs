@@ -30,6 +30,7 @@ using Luxel.UI;
 [assembly: GenerateAssemblyApi("Luxel.RenderGraph")]
 [assembly: GenerateAssemblyApi("Luxel.Ecs")]
 [assembly: GenerateAssemblyApi("Luxel.Ecs.Signal")]
+[assembly: GenerateAssemblyApi("Luxel.Physics")]
 [assembly: GenerateAssemblyApi("Luxel.Assets")]
 [assembly: GenerateAssemblyApi("Luxel.AssetsGpu")]
 [assembly: GenerateAssemblyApi("Luxel.AssetRuntime")]

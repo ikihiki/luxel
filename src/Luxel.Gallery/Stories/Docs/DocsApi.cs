@@ -68,7 +68,7 @@ public static class DocsApi
     public static Widget Api3D(StoryContext ctx) => NamespacesPage(ctx,
         "3D / レンダーグラフ API リファレンス",
         "レンダーグラフ・ECS・アセット・glTF の公開型です。概念は [Docs/RenderGraph](story:Docs/RenderGraph) / [Docs/ThreeD](story:Docs/ThreeD) へ。",
-        "Luxel.RenderGraph", "Luxel.Ecs", "Luxel.Ecs.Signal", "Luxel.Assets", "Luxel.AssetsGpu", "Luxel.AssetRuntime", "Luxel.Gltf");
+        "Luxel.RenderGraph", "Luxel.Ecs", "Luxel.Ecs.Signal", "Luxel.Physics", "Luxel.Assets", "Luxel.AssetsGpu", "Luxel.AssetRuntime", "Luxel.Gltf");
 
     [Story("Docs/ApiRuntime", Order = 67)]
     public static Widget ApiRuntime(StoryContext ctx) => NamespacesPage(ctx,

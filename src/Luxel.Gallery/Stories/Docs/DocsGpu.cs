@@ -397,6 +397,73 @@ public static class DocsGpu
         - **UI には ECS を使いません** — UI は signals + 保持型ツリー ([Docs/UI](story:Docs/UI))。3D 側だけ ECS です (理由は [Docs/ThreeD](story:Docs/ThreeD) の設計ノート)
         - ラッパを薄く保つのは、Friflo の archetype API (`ArchetypeQuery` / `ForEachEntity`) がそのまま最速経路だからです。Luxel が足すのは Phase 規約・DelegateSystem・Signal ブリッジ・perf 収集だけ
 
+        物理 (剛体/衝突) を entity に付けるには [Docs/Physics](story:Docs/Physics) へ。型 API の一覧は [Docs/Api3D](story:Docs/Api3D) へ。
+        """, toc: true, fences: DocsFences));
+
+    [Story("Docs/Physics", Order = 16)]
+    public static Widget Physics(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+        # 物理 (Luxel.Physics)
+
+        BepuPhysics v2 (pure C#) を薄く包んだ 3D 剛体物理です。Bepu の boilerplate (Simulation.Create の callbacks 構造体、BufferPool 管理) は `PhysicsWorld` が隠蔽し、ECS 側はコンポーネントを付けるだけで動きます。
+
+        ## PhysicsWorld と固定タイムステップ
+
+        ```csharp
+        using var physics = new PhysicsWorld();          // 既定: 重力 -9.81、1/60s、単スレッド
+        physics.Step(dt);                                // 経過秒を accumulator が固定ステップへ分割
+        ```
+
+        `Step(elapsed)` は内部の accumulator に積み、**固定 1/60 秒**で刻めるだけ刻みます (巨大な elapsed は 0.25s に clamp — 停止からの復帰でスパイラルしない)。
+
+        > [!WARNING]
+        > 既定 (`ThreadCount = 0` = 単スレッド) は**決定的**です — 同じ初期状態 + 同じステップ列は常に同じ結果になり、snap 回帰 (golden) と両立します。`PhysicsSettings.ThreadCount` でマルチスレッドに切り替えられますが、**決定性を失います** (opt-in)。
+
+        ## ECS コンポーネントと流れ
+
+        entity に `Collider` (形状) + `RigidBody` (動的) または `StaticBody` (床/壁) を付け、`PhysicsStepSystem` を毎フレーム回します:
+
+        ```csharp
+        world.Store.CreateEntity(
+            new LocalTransform(Matrix4x4.CreateTranslation(0, 3, 0)),   // 初期 pose はここから
+            new Color3D(color), new MeshRef(MeshRef.Cube),
+            Collider.Box(0.5f, 0.5f, 0.5f), RigidBody.Dynamic());
+
+        var step = new PhysicsStepSystem(world, physics);
+        step.Run(dt);                             // Attach → Step → pose を LocalTransform へ書き戻し
+        TransformPropagateSystem.Run(world);      // 以降は 3D 描画の既存経路がそのまま描く
+        ```
+
+        流れ: **Attach** (未発行 entity に body を発行 — 初期 pose は LocalTransform の分解) → **Step** → **Write-back** (`LocalTransform = Scale(RenderScale) × Rotation × Translation`)。描画側 (TransformPropagate → Render3DExtract → cube_forward) は物理を知りません。
+
+        {{StoryRef(ctx, "3D/PhysicsFalling")}}
+
+        > [!TIP]
+        > 形状は `Collider.Box / Sphere / Capsule`。v1 の描画は MeshRef.Cube の近似表示 (Box = Size、Sphere = 外接 2r、Capsule = (2r, len+2r, 2r)) です。`ScheduleRoot` に載せる場合の規約位置は `Phase.Update`。
+
+        ## 接触マテリアルと「跳ね」
+
+        Bepu v2 に古典的な restitution (反発係数) は**ありません** — 「跳ね」はめり込み回復速度の上限 `MaximumRecoveryVelocity` (`PhysicsWorld.Bounciness`) と接触ばね `SpringSettings` で表現します。重力とあわせて実行時に変更できます (callbacks は Simulation 内へコピーされるため、setter がコピー先をキャスト経由で書きます):
+
+        ```csharp
+        physics.Gravity = new Vector3(0, -1.6f, 0);   // 月面
+        physics.Bounciness = 5f;                      // よく跳ねる
+        ```
+
+        {{StoryRef(ctx, "3D/PhysicsPlayground")}}
+
+        ## レイキャスト
+
+        ```csharp
+        if (physics.RayCast(origin, direction, maxT, out PhysicsRayHit hit))
+            ctx.Log($"t={hit.T} normal={hit.Normal} static={hit.IsStatic}");
+        ```
+
+        ## 設計ノート / スコープ外
+
+        - **リセットは丸ごと再構築** — entity 削除に連動した body 掃除は持たず、World + PhysicsWorld を作り直すのが決定的な初期状態へ戻る正攻法です (Playground の reset knob がこの形)
+        - `Parent` 階層下の RigidBody は未定義動作 (物理はワールド空間)
+        - 将来枠: メッシュ/凸包コライダー (AssetPrimitive → Bepu Mesh/ConvexHull)、compound shape、joint/constraint の公開 API、接触イベント (trigger)、キャラクターコントローラ、CCD、2D 物理
+
         型 API の一覧は [Docs/Api3D](story:Docs/Api3D) へ。
         """, toc: true, fences: DocsFences));
 }
