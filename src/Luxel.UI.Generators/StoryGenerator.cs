@@ -31,14 +31,15 @@ public sealed class StoryGenerator : IIncrementalGenerator
         public readonly string Source;      // メソッドの C# ソース (storysource)
         public readonly bool HasCtx;
         public readonly bool Valid;
-        public StoryModel(string path, int w, int h, int order, string? theme, string methodFq, string source, bool hasCtx, bool valid)
-        { Path = path; Width = w; Height = h; Order = order; Theme = theme; MethodFq = methodFq; Source = source; HasCtx = hasCtx; Valid = valid; }
+        public readonly bool RealWindowOnly;
+        public StoryModel(string path, int w, int h, int order, string? theme, string methodFq, string source, bool hasCtx, bool valid, bool realWindowOnly)
+        { Path = path; Width = w; Height = h; Order = order; Theme = theme; MethodFq = methodFq; Source = source; HasCtx = hasCtx; Valid = valid; RealWindowOnly = realWindowOnly; }
         public bool Equals(StoryModel? o) => o is not null && Path == o.Path && Width == o.Width && Height == o.Height
             && Order == o.Order && Theme == o.Theme && MethodFq == o.MethodFq && Source == o.Source
-            && HasCtx == o.HasCtx && Valid == o.Valid;
+            && HasCtx == o.HasCtx && Valid == o.Valid && RealWindowOnly == o.RealWindowOnly;
         public override bool Equals(object? obj) => Equals(obj as StoryModel);
         public override int GetHashCode()
-        { unchecked { return ((((Path.GetHashCode() * 397 ^ MethodFq.GetHashCode()) * 397 ^ Width * 31 + Height) * 397 ^ Order) * 397 ^ Source.GetHashCode()) * 2 + (HasCtx ? 1 : 0); } }
+        { unchecked { return (((((Path.GetHashCode() * 397 ^ MethodFq.GetHashCode()) * 397 ^ Width * 31 + Height) * 397 ^ Order) * 397 ^ Source.GetHashCode()) * 4 + (HasCtx ? 2 : 0)) + (RealWindowOnly ? 1 : 0); } }
     }
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -54,13 +55,14 @@ public sealed class StoryGenerator : IIncrementalGenerator
                     if (attr is null) return null;
 
                     string path = attr.ConstructorArguments.Length == 1 && attr.ConstructorArguments[0].Value is string p ? p : m.Name;
-                    int w = 0, h = 0, order = 1000; string? theme = null;
+                    int w = 0, h = 0, order = 1000; string? theme = null; bool realWindowOnly = false;
                     foreach (KeyValuePair<string, TypedConstant> na in attr.NamedArguments)
                     {
                         if (na.Key == "Width" && na.Value.Value is int wi) w = wi;
                         if (na.Key == "Height" && na.Value.Value is int hi) h = hi;
                         if (na.Key == "Order" && na.Value.Value is int oi) order = oi;
                         if (na.Key == "Theme" && na.Value.Value is string th) theme = th;
+                        if (na.Key == "RealWindowOnly" && na.Value.Value is bool rw) realWindowOnly = rw;
                     }
                     // Width/Height を両方省略 = fill (0,0 — ホストがプレビュー領域いっぱいに表示)。
                     // 片方だけの指定は従来既定 (480×320) で補完する。
@@ -79,7 +81,7 @@ public sealed class StoryGenerator : IIncrementalGenerator
                     string fq = m.ContainingType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + m.Name;
                     // storysource: メソッド宣言のソースをそのまま焼き込む (先頭の共通インデントは剥がす)
                     string source = Dedent(((MethodDeclarationSyntax)ctx.Node).ToString());
-                    return new StoryModel(path, w, h, order, theme, fq, source, hasCtx, valid);
+                    return new StoryModel(path, w, h, order, theme, fq, source, hasCtx, valid, realWindowOnly);
                 })
             .Where(static s => s is not null)
             .Collect();
@@ -126,6 +128,7 @@ public sealed class StoryGenerator : IIncrementalGenerator
               .Append(s.HasCtx ? "static ctx => " + s.MethodFq + "(ctx)" : "static _ => " + s.MethodFq + "()")
               .Append(", ").Append(s.Order)
               .Append(", ").Append(Literal(s.Source))
+              .Append(s.RealWindowOnly ? ", true" : "")
               .AppendLine("));");
         }
         sb.AppendLine("        }");

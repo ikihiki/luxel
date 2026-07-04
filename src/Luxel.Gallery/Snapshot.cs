@@ -19,9 +19,15 @@ public static class Snapshot
         Directory.CreateDirectory(dir);
         Console.WriteLine($"goldens: {dir} ({(update ? "update" : "verify")})");
 
-        int failed = 0, updated = 0, passed = 0;
+        int failed = 0, updated = 0, passed = 0, skipped = 0;
         foreach (StoryInfo story in stories)
         {
+            if (story.RealWindowOnly)
+            {
+                Console.WriteLine($"  SKIP {story.Path} (実窓専用 — golden 対象外)");
+                skipped++;
+                continue;
+            }
             host.Select(story.Path);
             for (int i = 0; i < WarmupSteps; i++) host.Step(FixedDt);
             // ハイライト (別スレッド解析) の静定待ち → 到着ドレイン分を dt=0 で追加 Step
@@ -59,9 +65,10 @@ public static class Snapshot
             Console.Error.WriteLine($"  DIFF {story.Path} → {Path.GetFileName(actual)}");
         }
 
+        string skipNote = skipped > 0 ? $" (実窓専用 skip={skipped})" : "";
         Console.WriteLine(update
-            ? $"snap: {updated} 件の golden を更新"
-            : $"snap: passed={passed} failed={failed} / {stories.Count}");
+            ? $"snap: {updated} 件の golden を更新{skipNote}"
+            : $"snap: passed={passed} failed={failed} / {stories.Count - skipped}{skipNote}");
         return update || failed == 0 ? 0 : 1;
     }
 

@@ -116,7 +116,7 @@ public static class DocsRuntime
     public static Widget Audio(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # オーディオ (Luxel.Audio)
 
-        `IAudioBackend` (Windows は XAudio2) の上に、SFX ミキサ / BGM ソース / 3D 音源 / バスによる音量カスケードを提供します。**Volume / Pitch / Pan が Signal** なので、UI ともアニメーション (Transition) とも自然につながります。
+        `IAudioBackend` (Windows は XAudio2) の上に、SFX ミキサ / BGM ソース / 3D 音源 / バスによる音量カスケードを提供します。**Volume / Pitch / Pan が Signal** なので、UI ともアニメーション (Transition) とも自然につながります。実際に音が鳴るデモは [Audio/Tone](story:Audio/Tone) (実窓専用) へ。
 
         ## 使い方
 

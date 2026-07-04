@@ -152,6 +152,10 @@ public static class DocsMeta
         > [!WARNING]
         > IGpuScene の規約: **ctor は引数保持のみ** (確保は全部 Init — 起動時に全ストーリーが Build される + Dispose 後の再 Init に耐える)。**時間は Render 引数の累積秒のみ** (wall-clock 禁止 — snap の決定性)。ターゲット幅は 64 の倍数 (D3D12 の 256B 整列)。knob を絵に反映するシーンは `animated: true` (Render が毎フレーム呼ばれる)。RenderGraph は 1 フレーム使い切り — animated シーンでは Render 内で毎回作る。
 
+        ## 実窓専用ストーリー
+
+        音声再生や実デバイス入力のように offscreen の決定的描画にならない機能は `[Story("Audio/Tone", RealWindowOnly = true)]` にします — snap 回帰は SKIP され (golden を作らない)、Gallery アプリでは通常どおり表示されます。実例は [Audio/Tone](story:Audio/Tone)。
+
         ## 実行モード
 
         ```powershell

@@ -23,6 +23,9 @@ public sealed class StoryAttribute(string path) : Attribute
     /// <summary>表示順 (小さいほど先頭、既定 1000 = アルファベット順)。コンポーネント (グループ) は
     /// 所属ストーリーの最小 Order で並ぶ — 章立て (はじめに → アーキテクチャ → …) 用。</summary>
     public int Order { get; set; } = 1000;
+    /// <summary>true = 実ウィンドウ専用 (音声再生・実デバイス入力など)。snap 回帰は SKIP し、
+    /// Gallery アプリでは通常どおり表示される。golden は作らない。</summary>
+    public bool RealWindowOnly { get; set; }
 }
 
 /// <summary>
@@ -201,9 +204,9 @@ public sealed class StoryKnob
 /// いっぱいに表示する — 属性で両方省略したストーリー)。
 /// <paramref name="Order"/> は表示順 (小さいほど先頭、既定 1000 = アルファベット順)。
 /// <paramref name="Source"/> は [Story] メソッドの C# ソース (storysource — docs の「コードを見る」用、
-/// ジェネレーターが焼き込む)。</summary>
+/// ジェネレーターが焼き込む)。<paramref name="RealWindowOnly"/> は snap 回帰の対象外 (実窓専用)。</summary>
 public sealed record StoryInfo(string Path, int Width, int Height, string? Theme, Func<StoryContext, Widget> Build,
-                               int Order = 1000, string? Source = null)
+                               int Order = 1000, string? Source = null, bool RealWindowOnly = false)
 {
     /// <summary>パスの前半 (コンポーネント名)。</summary>
     public string Component => Path.IndexOf('/') is >= 0 and var i ? Path[..i] : Path;

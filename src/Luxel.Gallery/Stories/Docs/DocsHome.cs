@@ -66,6 +66,7 @@ public static class DocsHome
             ## ドキュメントの歩き方
 
             - 全体像とレイヤ構成 → [Docs/Architecture](story:Docs/Architecture)
+            - GPU 描画の最初の一歩 (写経用) → [Docs/FirstTriangle](story:Docs/FirstTriangle)
             - コントロールの型見本 (Variant/Intent/API 表) → [Docs/Button](story:Docs/Button)
             - この docs ページ自体の書き方 → [Docs/Authoring](story:Docs/Authoring)
             - サイドバーの **GPU / 2D / 3D / RenderGraph / Animation** 章に、各サブシステムの動くデモが並んでいます。左上の検索欄は docs 本文の全文検索です
@@ -75,6 +76,64 @@ public static class DocsHome
             """, toc: true, fences: DocsFences);
         return WithDocFonts(doc);   // 日本語/絵文字フォールバック + ハイライト + mermaid widget
     }
+
+    [Story("Docs/FirstTriangle", Order = 2)]
+    public static Widget FirstTriangle(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+        # はじめての GPU 描画
+
+        UI ([Docs/GettingStarted](story:Docs/GettingStarted)) の次は GPU です。Luxel の描画は常に同じ 4 手 — **確保 (Malloc/CreateRenderTarget) → パイプライン (Slang) → コマンド記録 → Submit** — で、ディスクリプタもレイアウトオブジェクトもありません。回る三角形 1 枚でその全部が出てきます。
+
+        {{StoryRef(ctx, "3D/Triangle")}}
+
+        ## 1. 頂点バッファ = ただのメモリ
+
+        `device.Malloc(bytes, GpuMemoryKind.HostMapped)` で確保したバッファは `Span<T>` で直接書けます。頂点フォーマット宣言はありません — シェーダが bindless バッファを `SV_VertexID` で読むだけです:
+
+        ```csharp
+        GpuBuffer vb = device.Malloc(3 * 32, GpuMemoryKind.HostMapped);   // 3 頂点 × 32B
+        Span<Vertex> v = vb.Span<Vertex>(3);
+        v[0] = new Vertex { Px = 0, Py = 0.7f, R = 1, A = 1 };   // CPU から直接書く
+        ```
+
+        ## 2. シェーダとパイプライン
+
+        シェーダは Slang (`shaders/triangle.slang`) で書き、ビルドが SPIR-V と DXIL の両方へコンパイルします。ルート引数はバッファの **bindless index を積むだけ**の 8B push constants:
+
+        ```csharp
+        GpuPipeline pipeline = device.CreateGraphicsPipeline(
+            GpuShaderCode.Load("triangle"), GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+        ```
+
+        ## 3. 記録して投げる
+
+        コマンドバッファはメソッドチェーンで記録し、`SubmitAndWait` で完結します。バリアは「ステージ → ステージ」の 1 種類だけです:
+
+        ```csharp
+        using GpuCommandBuffer cmd = device.MainQueue.StartCommandRecording();
+        cmd.BeginRendering(target, null, 0.09f, 0.1f, 0.12f, 1)   // RT 直指定 (render pass オブジェクト無し)
+           .SetGraphicsPipeline(pipeline)
+           .SetRootArguments(new DrawArgs { VertexBufferIndex = vb.BindlessIndex })
+           .Draw(3)
+           .EndRendering()
+           .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+           .CopyTextureToBuffer(target, readback);
+        cmd.Finish();
+        device.MainQueue.SubmitAndWait(cmd);
+        ```
+
+        ## 全体を写経する
+
+        上のデモの実ソースがこれです (Gallery の `IGpuScene` 規約 — ctor は保持のみ、確保は Init):
+
+        {{StorySource("3D/Triangle")}}
+
+        ## 次の一歩
+
+        - 2D を 1 行で描きたい → `Canvas2D(w, h, draw: s => s.FillCircle(...))` ([2D/Shapes](story:2D/Shapes))
+        - 深度/ブレンドの状態 → [GPU/Depth](story:GPU/Depth) / [GPU/Blend](story:GPU/Blend)
+        - GpuDevice の全体像 (bindless/バリア/Slang の設計) → [Docs/GpuDevice](story:Docs/GpuDevice)
+        - パスが増えてきたら → [Docs/RenderGraph](story:Docs/RenderGraph)
+        """, toc: true, fences: DocsFences));
 
     [Story("Docs/Architecture", Order = 1)]
     public static Widget Architecture(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
