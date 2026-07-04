@@ -1,6 +1,8 @@
-// Scene-generic PBR-lite shader (Sample 76/77 用)。
+// Scene-generic PBR-lite shader (SceneRenderExtractor と対、3D/GltfBox・3D/GltfAnimated 用)。
 // Vertex 32B (pos 12 + normal 12 + uv 8、SceneBuilder.Vertex)。
-// Instance 80B (world 64 + baseColor 16)。
+// Instance 80B (world 64 + baseColor 16 — SceneInstanceData)。
+// indexBufIndex = 0xFFFFFFFF で non-indexed。instanceStart は DrawList の InstanceStart
+// (Draw に firstInstance が無いため root 定数でずらす)。
 // 簡易拡散ライティング (固定方向光 + 環境光) + base color。
 
 [[vk::binding(0, 0)]]
@@ -10,9 +12,9 @@ struct RootArgs
 {
     float4x4 viewProj;     // 64B
     uint vertexBufIndex;
+    uint indexBufIndex;    // 0xFFFFFFFF なら non-indexed
     uint instanceBufIndex;
-    uint _pad0;
-    uint _pad1;
+    uint instanceStart;
 };
 [[vk::push_constant]] RootArgs args;
 
@@ -27,14 +29,19 @@ struct VsOut
 [shader("vertex")]
 VsOut vsMain(uint vid : SV_VertexID, uint iid : SV_InstanceID)
 {
+    // indexed なら index buffer 経由で頂点を引く (DrawIndexed は無い — bindless 読みで代替)
+    uint actualVid = (args.indexBufIndex == 0xFFFFFFFFu)
+        ? vid
+        : g_buffers[args.indexBufIndex].Load<uint>(vid * 4);
+
     // SceneBuilder.Vertex (32B): pos(12) + normal(12) + uv(8)
-    uint vAddr = vid * 32;
+    uint vAddr = actualVid * 32;
     float3 vPos    = asfloat(g_buffers[args.vertexBufIndex].Load3(vAddr + 0));
     float3 vNormal = asfloat(g_buffers[args.vertexBufIndex].Load3(vAddr + 12));
     float2 vUv     = asfloat(g_buffers[args.vertexBufIndex].Load2(vAddr + 24));
 
     // Instance (80B): world(64) + color(16) ← cube_forward と同じ
-    uint iAddr = iid * 80;
+    uint iAddr = (args.instanceStart + iid) * 80;
     float4 r0 = asfloat(g_buffers[args.instanceBufIndex].Load4(iAddr +  0));
     float4 r1 = asfloat(g_buffers[args.instanceBufIndex].Load4(iAddr + 16));
     float4 r2 = asfloat(g_buffers[args.instanceBufIndex].Load4(iAddr + 32));

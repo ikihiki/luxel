@@ -262,4 +262,83 @@ public static class DocsGpu
 
         アニメーションを ECS へ流す例は [Animation/EcsClip](story:Animation/EcsClip) と [Animation/Graph](story:Animation/Graph) へ。
         """, toc: true, fences: DocsFences));
+
+    [Story("Docs/Assets", Order = 14)]
+    public static Widget Assets(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+        # アセットパイプライン (glTF)
+
+        glTF 2.0 (.gltf/.glb) を読み込み、ECS + GPU バッファへ展開して描くまでのパイプラインです。4 つのプロジェクトが層を分担します:
+
+        ```mermaid
+        graph LR
+        G[Luxel.Gltf<br/>glTF 2.0 ローダ] --> A[Luxel.Assets<br/>CPU アセット表現]
+        A --> R[Luxel.AssetRuntime<br/>ECS 展開 + アニメ/スキニング]
+        A --> P[Luxel.AssetsGpu<br/>GPU アップロード + Resources 統合]
+        R --> RG[RenderGraph 描画]
+        P --> RG
+        ```
+
+        - `Luxel.Assets` — 形式に依存しない CPU 表現 (`AssetDocument` / `AssetMesh` / `AssetMaterial` / `AssetAnimation` / `AssetSkin`)。**Resources に依存しない**純データ層
+        - `Luxel.Gltf` — `GltfLoader` が glTF/glb を `AssetDocument` へ。外部 .bin/画像は Resources 経由でも単体でも読める
+        - `Luxel.AssetRuntime` — `SceneBuilder` が AssetDocument を **ECS entity + GPU バッファ**へ展開。`SceneAnimationPlayer` / `TransformPropagateSystem` / `SkinningSystem` が毎フレーム駆動
+        - `Luxel.AssetsGpu` — `RenderBuffer<T>` / `AssetGpuRegistry` / Resources Step 群 (URI ロード + キャッシュ + 依存解決)
+
+        ## 最小経路: ロードして描く
+
+        ```csharp
+        AssetDocument doc = new GltfLoader().LoadAsync("Box.gltf").GetAwaiter().GetResult();
+        var world = new Luxel.Ecs.World();
+        using SceneAssets assets = SceneBuilder.Build(world, doc, device);   // ECS + GPU バッファ
+        TransformPropagateSystem.Run(world);
+
+        using var extractor = new SceneRenderExtractor(world, assets);
+        extractor.Extract(new ExtractContext(device, frameIndex: 0));
+        // extractor.DrawList の (Primitive, InstanceStart, InstanceCount) ごとに
+        // assets.Primitives[prim] の vertex/index バッファを bindless で Draw する
+        ```
+
+        シェーダは `scene_pbr_lite` (頂点 32B: pos+normal+uv、インスタンス 80B: world+baseColor)。`DrawIndexed` は無いので **index バッファもシェーダが bindless で読み**、`indexBufIndex = 0xFFFFFFFF` で non-indexed に切り替えます。
+
+        {{StoryRef(ctx, "3D/GltfBox")}}
+
+        ## アニメーション
+
+        ノード TRS アニメーションは `SceneAnimationPlayer` が時刻 t の値を sample して entity の `LocalTransform` に書き、`TransformPropagateSystem` で伝播 → 再 Extract で instance バッファが更新されます:
+
+        ```csharp
+        var player = new SceneAnimationPlayer(world, assets, doc.Animations[0]);
+        // 毎フレーム: 周期は t % Duration (snap の決定性のため wall-clock は使わない)
+        player.Sample(time % doc.Animations[0].Duration);
+        TransformPropagateSystem.Run(world);
+        extractor.Extract(new ExtractContext(device, frameIndex: frame++));
+        ```
+
+        {{StoryRef(ctx, "3D/GltfAnimated")}}
+
+        > [!WARNING]
+        > morph target (Weights チャンネル) は未対応です — `SceneAnimationPlayer` は skip します。スキニングは `SkinningSystem` + `scene_pbr_skinned` シェーダ (頂点 56B: joints/weights 付き) が担います。
+
+        ## ResourceSystem 統合
+
+        実アプリでは URI ロード + キャッシュ + 依存解決を Resources に任せます。AssetsGpu の Step 群を登録すると `Load<T>` の型で変換チェーンが解決されます:
+
+        ```csharp
+        var handle = resources.Load<SceneAssets>("file:///model.glb");        // glb → doc → ECS+GPU
+        var vbuf = resources.Load<GpuBuffer>("file:///model.glb#mesh/0/vertex");   // fragment URI で部分ロード
+        ```
+
+        `#mesh/N/vertex` / `#materials` のような **fragment URI** で primitive 単位の遅延ロードができます。Resources 自体の概念 (RefCount / Republish / Pump) は [Docs/Resources](story:Docs/Resources) へ。
+
+        ## DRAW-M3: コンポーネント駆動の描画
+
+        entity に `DrawMesh` + `DrawInstance` + `DrawMaterial` (+ `DrawSkinning`) を付けると、`DrawableCollector.Collect(world, rg)` が RenderGraph への import 済みハンドル束 (`DrawItem`) を返し、呼び出し側は for-loop で push constant を組んで Draw するだけになります。テクスチャ付きは `scene_pbr_tex` (material 32B 配列 + bindless texture)、スキニングは `scene_pbr_skinned` が対になります。
+
+        ## 設計ノート
+
+        - **CPU アセット層は Resources 非依存** — ツール/テストが GPU なしで AssetDocument を扱えます。GPU 化と URI 解決は AssetsGpu 側の Step が担う分離です
+        - **direct-ref モデル** — index ベースの DOM ではなく `AssetMeshRef.Mesh` のような直接参照で ECS から引きます (中間テーブル無し)
+        - サンプルモデルはリポジトリの `tools/khronos-samples/` (Khronos 公式 glTF テストスイート) にあります
+
+        型 API の一覧は [Docs/Api3D](story:Docs/Api3D) へ。
+        """, toc: true, fences: DocsFences));
 }
