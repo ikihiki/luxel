@@ -34,6 +34,7 @@
     <ProjectReference Include="..\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
     <ProjectReference Include="..\Luxel.Animation.ThreeD\Luxel.Animation.ThreeD.csproj" />
     <ProjectReference Include="..\Luxel.Animation.TwoD\Luxel.Animation.TwoD.csproj" />
+    <ProjectReference Include="..\Luxel.Physics\Luxel.Physics.csproj" />
     <!-- 型 API リファレンス (Docs/Api*) の対象 — Gallery はドキュメントハブとして全域を参照する -->
     <ProjectReference Include="..\Luxel.Framework\Luxel.Framework.csproj" />
     <ProjectReference Include="..\Luxel.Scene.UI\Luxel.Scene.UI.csproj" />
