@@ -5,31 +5,22 @@ using static Luxel.Gallery.Stories.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
-/// <summary>
-/// MDX 風 docs ページ (Storybook Docs 相当) — 入門章。<see cref="Kit.Docs"/> +
-/// 補完文字列で markdown の文章にライブ UI / 他ストーリーの埋め込みを混ぜる。
-/// サイズは領域いっぱい (プレビュー全面 = 800×480)。
-/// </summary>
+/// <summary>docs — 入門章 (GettingStarted / Architecture)。</summary>
 public static class DocsHome
 {
-    private const string SampleImage = "src/Luxel.Gallery/goldens/Sparkline_Basic.vk.png";
-
-    // TeX の { } は $""" の補間と衝突するため、$$ ブロックのデモは生 markdown hole で差し込む
-    private static readonly DocMarkdown MathDemo = new("""
-        $$
-        M = \begin{bmatrix} m_{00} & m_{01} \\ m_{10} & m_{11} \end{bmatrix} ,
-        w = \frac{\alpha + \beta}{\sqrt{x^2 + y^2}}
-        $$
+    private static readonly DocMarkdown FirstUiCode = new("""
+        ```csharp
+        Signal<int> count = ctx.Signal("count", 0);   // knob にもなる状態
+        Widget ui = HStack(8)[
+            Button(_ => count.Value--, "-"),
+            Text($" {count} ", 20, vAlign: Align.Center),
+            Button(_ => count.Value++, "+")];
+        ```
         """);
-    private static Luxel.Resources.ResourceHandle<Luxel.Resources.CpuImage>? _imagePreload;
 
     [Story("Docs/GettingStarted", Width = 800, Height = 480, Order = 0)]   // 章立て: Docs を先頭、入門を最初に
     public static Widget GettingStarted(StoryContext ctx)
     {
-        // snap (静定 1 フレーム) の決定性のため画像を同期 preload — 実アプリでは不要
-        _imagePreload ??= ctx.Resources.Load<Luxel.Resources.CpuImage>(SampleImage);
-        try { _imagePreload.Ready.Wait(3000); } catch { /* 失敗時はプレースホルダのまま */ }
-
         Signal<int> count = ctx.Signal("count", 0, "カウンタの現在値 (± ボタンと連動)");
         Widget counter = HStack(8)[
             Button(_ => { count.Value--; ctx.Log("counter: -1"); }, "-"),
@@ -37,57 +28,156 @@ public static class DocsHome
             Button(_ => { count.Value++; ctx.Log("counter: +1"); }, "+")];
 
         RichTextEditor doc = Docs(ctx, $"""
-            # MDX 風 docs ページ
+            # Luxel を始める
 
-            これは **補完文字列 + markdown** で書くドキュメントです。リテラル部分は markdown として
-            整形され、hole に `Widget` を置くとその場に**ライブ UI** が埋め込まれます。
-            カラー絵文字 :smile: :rocket: :+1: と "smart quotes" -- SmartyPants も効きます。
-            リンクも張れます: [Docs/Button を開く](story:Docs/Button) / [書けるもの へ](#書けるもの) /
-            [No Graphics API (外部)](https://www.sebastianaaltonen.com/blog/no-graphics-api)
+            Luxel は [Sebastian Aaltonen の *No Graphics API*](https://www.sebastianaaltonen.com/blog/no-graphics-api)
+            の設計を C# で実装した薄いグラフィックエンジンです。最新のバインドレス GPU が備える
+            機能 (64bit ポインタ / bindless / dynamic rendering / stage バリア) の上に、
+            ディスクリプタセットや PSO 爆発のない薄い API を構築し、その上に 2D ベクター・
+            宣言的 UI・アニメーション・レンダーグラフを積み上げています。
 
-            ## ライブ UI
+            - **バックエンド**: Vulkan 1.3 (一次) + DirectX 12 (二次)。`IGpuBackend` 抽象で切替
+            - **シェーダ**: Slang で記述し、SPIR-V (Vulkan) と DXIL (D3D12) に併存コンパイル
+            - **核心**: 全パイプライン共通の固定レイアウト = 8B push 定数 (ルート引数の GPU
+              アドレス) + bindless heap。シェーダはルート引数構造体への単一ポインタを受け取る
 
-            下のカウンタは本物です — クリックすると Log パネルに出て、値も動きます:
+            ## 必要環境
+
+            - .NET SDK (net10.0)
+            - Vulkan 対応 GPU/ドライバ (`vulkan-1.dll`)
+            - `slangc` — 本リポジトリは `tools/slang/` に standalone Slang を配置して使用
+
+            ## ビルドと Gallery の起動
+
+            機能の実例・ドキュメント・回帰テストはすべてこの **Gallery** に集約されています:
+
+            ```powershell
+            dotnet build
+            dotnet run --project src/Luxel.Gallery -- vk           # この Gallery (実ウィンドウ)
+            dotnet run --project src/Luxel.Gallery -- vk snap      # スナップショット回帰 (--update で golden 更新)
+            dotnet run --project src/Luxel.Gallery -- vk bench "Button/Counter" 300 --type
+            dotnet test                                            # ユニットテスト
+            ```
+
+            `vk` を `dx` に変えると DirectX 12 で動きます。両バックエンドは**ピクセル一致**が
+            開発規律です (golden はバックエンド別に保持)。
+
+            ## 最初の UI
+
+            宣言的 UI はベアファクトリ + indexer の DSL で書きます。下のカウンタは本物です —
+            クリックすると右の Log パネルに出て、値も動きます:
 
             {counter}
 
-            文中への差し込みもできます: 状態 {Badge("Ready", Intent.Success):inline} や
-            ボタン {Button(_ => ctx.Log("inline click"), "押す", fontSize: 12f):inline} が行内に混ざります。
+            {FirstUiCode}
 
-            ## 埋め込み + Knobs
+            `Signal<T>` が状態、`Button(...)` などのファクトリが widget、子は `[...]` で
+            入れ子にします。Signal を読むテキストは変更時に自動で部分更新されます。
 
-            `StoryRef(ctx, path, knobs: true)` でストーリーの下に **Knobs テーブル**
-            (autodoc の Controls 相当) が付きます。操作列を編集すると上の描画が変わります:
+            ## ドキュメントの歩き方
 
-            {StoryRef(ctx, "2D/Orbit", knobs: true)}
+            - 全体像とレイヤ構成 → [Docs/Architecture](story:Docs/Architecture)
+            - コントロールの型見本 (Variant/Intent/API 表) → [Docs/Button](story:Docs/Button)
+            - この docs ページ自体の書き方 → [Docs/Authoring](story:Docs/Authoring)
+            - サイドバーの **GPU / 2D / 3D / RenderGraph / Animation** 章に、各サブシステムの
+              動くデモが並んでいます。左上の検索欄は docs 本文の全文検索です
 
-            ## 書けるもの
-
-            - 見出し / **強調** / *斜体* / `インラインコード`
-            - リスト・引用・コードブロック・テーブル (markdown のまま)
-            - hole によるライブ UI と他ストーリーの埋め込み (`StoryRef`、`knobs: true` で操作テーブル)
-            - `story:` リンクでストーリー遷移、`#見出し` でページ内スクロール、TOC は `toc: true`
-            - 画像 (Resource システム経由、URI キャッシュ + RefCount):
-
-            ![サンプル画像 (Sparkline golden)]({SampleImage})
-
-            数式はインライン $E = mc^2$ / $\pi r^2$ (Unicode 正規化) と、$$ ブロック (自前組版):
-
-            {MathDemo}
-
-            ダイアグラムは ```mermaid フェンス (flowchart サブセット) — エンジン自身の Scene2D で描画されます:
-
-            ```mermaid
-            flowchart LR
-            app[GalleryApp] --> host[UiHost]
-            host --> canvas[RetainedCanvas]
-            host -->|Load| res(Resources)
-            canvas -->|dispatch| gpu(GPU)
-            ```
-
-            > hole はブロックレベル。空行も含め、書いた改行がそのまま表示されます。
-            > テキスト hole (Signal や値) は構築時の値が焼き込まれます。
+            > [!TIP]
+            > `Ctrl+D` でライト/ダークテーマを切り替えられます。右パネルの Knobs は
+            > ストーリーが公開している調整パラメータです — このページのカウンタも編集できます。
             """, toc: true, fences: DocsFences);
         return WithDocFonts(doc);   // 日本語/絵文字フォールバック + ハイライト + mermaid widget
     }
+
+    [Story("Docs/Architecture", Width = 800, Height = 480, Order = 1)]
+    public static Widget Architecture(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
+        # アーキテクチャ
+
+        Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは
+        下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。
+
+        ```mermaid
+        flowchart TB
+        app[アプリ / Gallery / Framework] --> controls[Luxel.Controls]
+        app --> rg[Luxel.RenderGraph]
+        app --> ecs[Luxel.Ecs + AssetRuntime]
+        controls --> ui[Luxel.UI]
+        ui --> anim[Luxel.Animation]
+        ui --> typo[Luxel.Typography]
+        ui --> twod[Luxel.TwoD]
+        rg --> gpu[Luxel — GpuDevice]
+        ecs --> rg
+        twod --> gpu
+        gpu --> vk(Luxel.Vulkan)
+        gpu --> dx(Luxel.D3D12)
+        ```
+
+        ## GPU 土台
+
+        `Luxel` (コア) が GpuDevice / バッファ / テクスチャ / パイプライン / コマンドの
+        薄い抽象を提供し、`Luxel.Vulkan` と `Luxel.D3D12` が実装します。全パイプラインが
+        **固定レイアウト** (8B push 定数 + bindless heap) を共有するため、ディスクリプタ
+        セットの管理も PSO のバリアントも存在しません。シェーダは Slang で 1 回書き、
+        SPIR-V / DXIL の両方へコンパイルされます。
+
+        ## 2D とテキスト
+
+        `Luxel.TwoD` は compute ベースのベクターラスタライザ (三角形分割なし) と
+        保持型キャンバス (RetainedCanvas)。`Luxel.Typography` は HarfBuzz シェーピング +
+        自前 TextLayout、`Luxel.Typography.Icu` が ICU セグメンタを差し込みます。
+
+        ## UI とコントロール
+
+        `Luxel.UI` が宣言的 DSL (ベアファクトリ + indexer)、Signal/Effect の反応系、
+        単一パスレイアウト。`Luxel.Controls` が Button から RichTextEditor までの
+        コントロール群、`Luxel.UI.Tailwind` がユーティリティスタイル、
+        `Luxel.Document` + `Luxel.Highlight.TextMate` + `Luxel.Diagram` + `Luxel.MathText`
+        がこの docs ページを支えるドキュメントスタックです。
+
+        ## モーション
+
+        `Luxel.Animation` が Curve × Tween の 2 段分解による中核 IR。ターゲットアダプタ
+        (`.UI` = Signal、`.TwoD` = RetainedCanvas、`.ThreeD` = ECS) が書き込み先を分離します。
+        実例はサイドバーの Animation 章へ ([Animation/Tween](story:Animation/Tween) など)。
+
+        ## 3D / レンダーグラフ / リソース
+
+        `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、
+        `Luxel.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成
+        ([RenderGraph/Blur](story:RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` +
+        `Luxel.Gltf` が (型, uri) キーのリソース DAG を提供します。
+
+        ## ランタイムとツール
+
+        `Luxel.Platform` (Win32 窓 / スワップチェーン / TSF IME / XAudio2)、`Luxel.Input`、
+        `Luxel.Audio`、`Luxel.Framework` (ホストビルダー + シーン遷移)、そして
+        `Luxel.DevTools` (別窓デバッガ + HTTP DebugServer)。この Gallery (`Luxel.Gallery`)
+        自体が Luxel UI で書かれたドッグフーディングアプリです。
+
+        ## プロジェクト一覧
+
+        | プロジェクト | 役割 |
+        | --- | --- |
+        | Luxel / Luxel.Vulkan / Luxel.D3D12 | GPU 抽象とバックエンド |
+        | Luxel.TwoD | 2D ベクターラスタライザ + 保持型キャンバス |
+        | Luxel.Typography (+ .Icu) | テキストレイアウト / シェーピング / ICU |
+        | Luxel.UI (+ .Generators, .Tailwind) | 宣言的 UI / signals / ソースジェネレーター |
+        | Luxel.Controls | コントロール群 + docs 基盤 (Kit) |
+        | Luxel.Document (+ Highlight.TextMate, Diagram, MathText) | ドキュメントモデル / ハイライト / 図 / 数式 |
+        | Luxel.Animation (+ .UI, .TwoD, .ThreeD) | アニメーション IR + ターゲットアダプタ |
+        | Luxel.Ecs (+ .Signal) | ECS (Friflo) + signal 連携 |
+        | Luxel.RenderGraph | パス合成 / transient aliasing / 自動バリア |
+        | Luxel.Resources (+ Imaging, Assets, AssetsGpu, AssetRuntime, Gltf) | リソース DAG / 画像 / glTF / 3D 抽出 |
+        | Luxel.Platform / Luxel.Input / Luxel.Audio | Win32 / 入力 / 音声 |
+        | Luxel.Framework (+ Scene.UI) | アプリ骨格 / シーン遷移 |
+        | Luxel.DevTools (+ .App) | デバッガ / HTTP DebugServer |
+        | Luxel.Gallery | この Gallery (docs + デモ + snap/bench) |
+
+        ## vk / dx ピクセル一致という規律
+
+        すべての描画機能は Vulkan と DirectX 12 の両方で動き、snap 回帰は**バックエンド別の
+        golden** と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。
+        新機能はどちらか一方で「たまたま動く」ことを許さない — これが薄い抽象を薄いまま
+        保つための開発規律です。
+        """, toc: true, fences: DocsFences));
 }

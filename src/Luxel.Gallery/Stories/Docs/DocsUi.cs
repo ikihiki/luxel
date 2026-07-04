@@ -8,7 +8,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>docs — UI/コントロール章。</summary>
 public static class DocsUi
 {
-    [Story("Docs/Button", Width = 800, Height = 480, Order = 1)]
+    [Story("Docs/Button", Width = 800, Height = 480, Order = 22)]
     public static Widget ButtonDocs(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
         # Button
 
