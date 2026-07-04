@@ -54,7 +54,7 @@ public static class DocsUi
     public static Widget Controls(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # コントロール (Luxel.Controls)
 
-        Button から RichTextEditor まで 40 超のコントロール群です。**実物はサイドバーの各章にあります** — このページは地図と、独自コントロールの書き方です。
+        Button から RichTextEditor まで 40 超のコントロール群です。**実物はサイドバーの各章にあります** — このページは地図と、独自コントロールの書き方です。全コントロールの引数/イベント/パラメータの一覧は [Docs/Api](story:Docs/Api) へ。
 
         ## カタログ
 
