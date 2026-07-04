@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Typography\Luxel.Typography.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="icu.net" Version="3.0.2" />
+    <PackageReference Include="Icu4c.Win.Full.Bin" Version="59.1.15" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

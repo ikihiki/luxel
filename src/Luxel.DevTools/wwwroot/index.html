@@ -1,0 +1,1632 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Luxel DevTools</title>
+<style>
+:root {
+  --bg: #14181d; --bg2: #1c2128; --bg3: #262d36; --fg: #d6dae0; --fg-muted: #8892a2;
+  --accent: #4b9eff; --accent-dim: #2b5f9c; --border: #2c333c;
+  --ok: #4ade80; --warn: #fbbf24; --err: #f87171;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--fg);
+  font: 13px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+.mono { font-family: Consolas, "Cascadia Code", monospace; font-size: 12px; }
+
+/* ==== 全体レイアウト: [tab bar] / [left | main | right] / [status] ==== */
+#app { display: grid; grid-template-rows: 32px 1fr 22px; height: 100vh; }
+#tabbar { display: flex; background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 0 6px; align-items: stretch; }
+#tabbar .tab { padding: 6px 14px; cursor: pointer; border-right: 1px solid var(--border);
+  display: flex; align-items: center; color: var(--fg-muted); user-select: none; font-size: 12px; }
+#tabbar .tab:hover { background: var(--bg3); color: var(--fg); }
+#tabbar .tab.active { background: var(--bg); color: var(--accent);
+  border-bottom: 2px solid var(--accent); margin-bottom: -1px; }
+#tabbar .spacer { flex: 1; }
+#tabbar .toolbar { display: flex; align-items: center; gap: 8px; padding-right: 8px; }
+#tabbar .toolbar button { background: transparent; border: 1px solid var(--border); color: var(--fg);
+  padding: 3px 8px; cursor: pointer; font-size: 11px; border-radius: 3px; }
+#tabbar .toolbar button:hover { background: var(--bg3); }
+#tabbar .toolbar button.active { background: var(--accent-dim); color: #fff; border-color: var(--accent); }
+
+#body { display: grid; grid-template-columns: 260px 1fr 320px; min-height: 0; }
+#left, #right { background: var(--bg2); overflow: auto; }
+#left { border-right: 1px solid var(--border); padding: 8px; }
+#right { border-left: 1px solid var(--border); padding: 8px; }
+#main { overflow: auto; padding: 10px; }
+
+#status { background: var(--bg2); border-top: 1px solid var(--border); display: flex;
+  align-items: center; gap: 14px; padding: 0 10px; color: var(--fg-muted); font-size: 11px; }
+#status .item { display: flex; align-items: center; gap: 4px; }
+#status .item .label { color: var(--fg-muted); }
+#status .item .val { color: var(--fg); }
+#status .warn { color: var(--warn); }
+#status .err { color: var(--err); }
+
+/* ==== 共通 UI ==== */
+h3 { margin: 0 0 6px 0; font-size: 12px; font-weight: 600; color: var(--fg-muted); text-transform: uppercase; letter-spacing: .5px; }
+button { cursor: pointer; }
+input[type=text], input[type=search] { background: var(--bg); color: var(--fg); border: 1px solid var(--border);
+  padding: 3px 6px; border-radius: 3px; font: inherit; width: 100%; }
+
+/* ==== Left rail ==== */
+#framePane { border: 1px solid var(--border); border-radius: 4px; background: #000;
+  aspect-ratio: 16 / 9; overflow: hidden; margin-bottom: 8px; position: relative; }
+#framePane canvas { width: 100%; height: 100%; image-rendering: pixelated; display: block; }
+#framePane .empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--fg-muted); font-size: 11px; }
+.info-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12px; }
+.info-row .k { color: var(--fg-muted); }
+.info-row .v { color: var(--fg); font-family: Consolas, monospace; }
+.actions button { background: var(--bg3); border: 1px solid var(--border); color: var(--fg);
+  padding: 4px 10px; border-radius: 3px; margin: 2px 2px 2px 0; font-size: 11px; }
+.actions button:hover { border-color: var(--accent); }
+
+/* ==== Tab pane 共通 ==== */
+.pane { display: none; }
+.pane.active { display: block; }
+.pane h2 { font-size: 13px; margin: 0 0 8px 0; color: var(--accent); font-weight: 600; }
+
+/* ==== Perf ==== */
+#perfChart { border: 1px solid var(--border); background: var(--bg2); border-radius: 4px; }
+.phase-bar { display: flex; height: 22px; border-radius: 3px; overflow: hidden; margin: 4px 0;
+  background: var(--bg3); border: 1px solid var(--border); }
+.phase-bar > div { display: flex; align-items: center; justify-content: center; font-size: 10px;
+  color: #000; text-shadow: 0 0 2px rgba(255,255,255,.5); overflow: hidden; }
+.phase-color-0 { background: #60a5fa; }
+.phase-color-1 { background: #4ade80; }
+.phase-color-2 { background: #a3e635; }
+.phase-color-3 { background: #fbbf24; }
+.phase-color-4 { background: #f87171; }
+.phase-color-5 { background: #c084fc; }
+.phase-label { display: flex; align-items: center; margin: 2px 0; font-size: 11px; gap: 6px; }
+.phase-swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+/* ==== Systems ==== */
+#systemList { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.sys-phase { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; }
+.sys-phase h4 { margin: 0 0 4px 0; font-size: 11px; color: var(--fg-muted); text-transform: uppercase; letter-spacing: .5px; }
+.sys-row { display: grid; grid-template-columns: 1fr auto; padding: 2px 0; font-family: Consolas, monospace; font-size: 11px; align-items: center; gap: 6px; }
+.sys-row .name { color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sys-row .ms { color: var(--accent); }
+.sys-row .barbg { grid-column: 1 / -1; height: 3px; background: var(--bg3); border-radius: 2px; overflow: hidden; margin-top: 1px; }
+.sys-row .barbg > div { height: 100%; background: var(--accent); }
+
+/* ==== Audio ==== */
+.audio-bus { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+  padding: 6px 10px; margin: 3px 0; display: grid; grid-template-columns: 1fr 90px 100px 90px;
+  gap: 10px; align-items: center; font-family: Consolas, monospace; font-size: 11px; }
+.audio-bus .name { color: var(--accent); font-weight: 600; }
+.audio-bus .parent { color: var(--fg-muted); font-size: 10px; }
+.audio-bus .vol-bar { height: 8px; background: var(--bg3); border-radius: 2px; overflow: hidden; position: relative; }
+.audio-bus .vol-bar > div { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 2px; }
+.audio-bus .vol-bar > .eff { background: var(--ok); opacity: 0.6; }
+.audio-src { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+  padding: 6px 10px; margin: 3px 0; display: grid; grid-template-columns: 1fr 60px 60px 60px 60px 80px;
+  gap: 10px; align-items: center; font-family: Consolas, monospace; font-size: 11px; }
+.audio-src .name { color: var(--accent); }
+.audio-src .k { color: var(--fg-muted); font-size: 10px; }
+.audio-src .state.on { color: var(--ok); }
+.audio-src .state.off { color: var(--fg-muted); }
+
+/* ==== Input ==== */
+.input-ctx { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+  padding: 8px 10px; margin-bottom: 8px; }
+.input-ctx .ctx-hdr { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.input-ctx .ctx-hdr .name { font-size: 13px; color: var(--accent); font-weight: 600; }
+.input-ctx .ctx-hdr .depth { font-size: 10px; color: var(--fg-muted); background: var(--bg3); padding: 1px 5px; border-radius: 2px; }
+.input-ctx .ctx-hdr .top { background: var(--accent-dim); color: #fff; }
+.input-ctx .action-row { display: grid; grid-template-columns: 90px 60px 1fr 60px; gap: 8px; align-items: center;
+  padding: 3px 4px; border-radius: 3px; font-family: Consolas, monospace; font-size: 11px; }
+.input-ctx .action-row.active { background: rgba(75, 158, 255, 0.12); }
+.input-ctx .action-row .k { color: var(--fg); }
+.input-ctx .action-row .kind { color: var(--fg-muted); font-size: 10px; }
+.input-ctx .action-row .val { color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.input-ctx .action-row .state { text-align: right; font-size: 10px; }
+.input-ctx .action-row .state.on { color: var(--ok); }
+.input-ctx .action-row .state.off { color: var(--fg-muted); }
+
+/* Axis2D 円形インジケータ */
+.axis2d-viz { display: inline-block; width: 26px; height: 26px; border: 1px solid var(--border);
+  border-radius: 50%; position: relative; background: var(--bg3); vertical-align: middle; margin-right: 6px; }
+.axis2d-viz .dot { position: absolute; width: 6px; height: 6px; background: var(--accent);
+  border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.axis2d-viz .axes { position: absolute; inset: 0; }
+.axis2d-viz .axes::before, .axis2d-viz .axes::after { content: ''; position: absolute; background: var(--border); }
+.axis2d-viz .axes::before { top: 50%; left: 0; right: 0; height: 1px; }
+.axis2d-viz .axes::after { left: 50%; top: 0; bottom: 0; width: 1px; }
+
+/* Axis1D 横バー */
+.axis1d-viz { display: inline-block; width: 60px; height: 6px; background: var(--bg3);
+  border-radius: 3px; position: relative; vertical-align: middle; margin-right: 6px; }
+.axis1d-viz .center { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--border); }
+.axis1d-viz .fill { position: absolute; top: 0; bottom: 0; background: var(--accent); border-radius: 2px; }
+
+/* ==== Command palette ==== */
+#palette { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none;
+  z-index: 100; align-items: flex-start; justify-content: center; padding-top: 100px; }
+#palette.open { display: flex; }
+#palette .pw { width: 520px; background: var(--bg2); border: 1px solid var(--border); border-radius: 6px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6); overflow: hidden; }
+#palette input { width: 100%; background: var(--bg); color: var(--fg); border: 0;
+  border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 14px; }
+#palette input:focus { outline: none; }
+#palette .list { max-height: 360px; overflow: auto; }
+#palette .item { padding: 8px 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+#palette .item:hover, #palette .item.sel { background: var(--bg3); }
+#palette .item .label { color: var(--fg); font-size: 13px; }
+#palette .item .hint { color: var(--fg-muted); font-size: 11px; font-family: Consolas, monospace; }
+#palette .empty { padding: 16px; color: var(--fg-muted); font-size: 12px; text-align: center; }
+
+/* ==== RenderGraph 構造ビュー ==== */
+.rg-section { margin-bottom: 12px; }
+.rg-section h3 { margin: 0 0 4px 0; }
+.rg-passes { display: grid; grid-template-columns: 30px 1fr 60px 1fr 1fr; gap: 4px 8px;
+  font-family: Consolas, monospace; font-size: 11px; align-items: center; }
+.rg-passes .head { color: var(--fg-muted); font-size: 10px; text-transform: uppercase;
+  border-bottom: 1px solid var(--border); padding-bottom: 2px; }
+.rg-passes .cell { padding: 2px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rg-passes .culled { opacity: 0.35; text-decoration: line-through; }
+.rg-passes .queue-Graphics { color: #60a5fa; }
+.rg-passes .queue-Compute  { color: #a3e635; }
+.rg-passes .queue-Copy     { color: #fbbf24; }
+.rg-passes .badge { display: inline-block; padding: 0 5px; border-radius: 2px; font-size: 10px;
+  background: var(--bg3); color: var(--fg-muted); margin-right: 3px; }
+.rg-passes .badge.cull { background: rgba(248,113,113,0.2); color: var(--err); }
+.rg-lifetime { width: 100%; overflow-x: auto; }
+.rg-lifetime svg { display: block; background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; }
+.rg-lifetime .bar { rx: 2; }
+.rg-lifetime .bar-external  { fill: #4b9eff; }
+.rg-lifetime .bar-imported   { fill: #4b9eff; }
+.rg-lifetime .bar-transient { fill: #fbbf24; opacity: 0.75; }
+.rg-lifetime .bar-aliased   { stroke: #f87171; stroke-width: 1; stroke-dasharray: 2 2; }
+.rg-lifetime .label { fill: var(--fg); font-family: Consolas, monospace; font-size: 10px; dominant-baseline: middle; }
+.rg-lifetime .colhead { fill: var(--fg-muted); font-family: Consolas, monospace; font-size: 10px; text-anchor: middle; }
+.rg-lifetime .colhead.culled-h { fill: var(--err); opacity: 0.6; }
+.rg-lifetime .gridline { stroke: var(--border); }
+.rg-lifetime .slot-tag { fill: var(--fg-muted); font-family: Consolas, monospace; font-size: 9px; text-anchor: middle; }
+
+/* ==== Resources ==== */
+.res-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 3px; }
+.res-card .hdr { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.res-card .type { font-size: 12px; color: var(--accent); font-weight: 600; font-family: Consolas, monospace;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.res-card .status { font-size: 10px; padding: 1px 6px; border-radius: 3px; }
+.res-card .status.ready { background: rgba(74,222,128,0.15); color: var(--ok); }
+.res-card .status.loading { background: rgba(251,191,36,0.15); color: var(--warn); }
+.res-card .status.failed { background: rgba(248,113,113,0.15); color: var(--err); }
+.res-card .uri { font-size: 11px; color: var(--fg); font-family: Consolas, monospace;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.res-card .meta { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px;
+  font-size: 10px; font-family: Consolas, monospace; margin-top: 2px; }
+.res-card .meta .k { color: var(--fg-muted); }
+.res-card .meta .v { color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ==== Surfaces ==== */
+.surf-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 10px; }
+.surf-card .title { font-size: 13px; color: var(--accent); font-weight: 600; margin-bottom: 6px;
+  display: flex; justify-content: space-between; align-items: center; }
+.surf-card .badge { background: var(--bg3); color: var(--fg-muted); border-radius: 3px;
+  padding: 1px 6px; font-size: 10px; font-weight: normal; }
+.surf-card .surf-info { list-style: none; padding: 0; margin: 0; }
+.surf-card .surf-info li { display: grid; grid-template-columns: 100px 1fr; padding: 2px 0;
+  font-family: Consolas, monospace; font-size: 11px; }
+.surf-card .k { color: var(--fg-muted); }
+.surf-card .v { color: var(--fg); }
+.surf-card .redraw { color: var(--warn); }
+
+/* ==== ECS ==== */
+#ecsWorlds, #ecsEntities { border: 1px solid var(--border); background: var(--bg2); border-radius: 4px; padding: 6px; }
+.entity-row { padding: 4px 6px; border-radius: 3px; cursor: pointer; font-family: Consolas, monospace; font-size: 11px; }
+.entity-row:hover { background: var(--bg3); }
+.entity-row.selected { background: var(--accent-dim); color: #fff; }
+.entity-row .tag { display: inline-block; background: var(--bg3); padding: 1px 5px; border-radius: 2px;
+  font-size: 10px; margin-left: 4px; color: var(--fg-muted); }
+.comp-list { list-style: none; padding: 0; margin: 0; }
+.comp-list li { padding: 3px 6px; border-left: 2px solid var(--border); margin: 2px 0;
+  font-family: Consolas, monospace; font-size: 11px; }
+.comp-list li.tag { border-left-color: var(--accent); }
+.comp-head { color: var(--accent); cursor: pointer; user-select: none; display: flex; align-items: center; gap: 4px; }
+.comp-head::before { content: '▸'; font-size: 9px; color: var(--fg-muted); transition: transform .1s; display: inline-block; }
+.comp-item.open .comp-head::before { transform: rotate(90deg); }
+.comp-body { display: none; white-space: pre-wrap; margin: 3px 0 3px 10px; padding: 4px 6px;
+  background: #0e1116; border-radius: 3px; color: var(--fg); font-size: 10.5px; overflow-x: auto; }
+.comp-item.open .comp-body { display: block; }
+.comp-body.edit { white-space: normal; padding: 5px 6px; }
+.field-row { display: grid; grid-template-columns: 80px 1fr; gap: 6px; align-items: center; padding: 2px 0; }
+.field-row .field-k { color: var(--fg-muted); font-size: 10.5px; font-family: Consolas, monospace; }
+.field-row .field-v { color: var(--fg); font-family: Consolas, monospace; font-size: 10.5px; }
+.field-row input { background: var(--bg); color: var(--fg); border: 1px solid var(--border);
+  padding: 1px 4px; border-radius: 2px; font: 10.5px Consolas, monospace; width: 100%; }
+.field-row input[type=checkbox] { width: auto; }
+.field-row input:focus { outline: none; border-color: var(--accent); }
+.field-row input.flash { border-color: var(--ok); box-shadow: 0 0 3px rgba(74,222,128,0.5); }
+.field-group { margin: 2px 0; }
+.field-groupname { color: var(--fg-muted); font-size: 10px; font-family: Consolas, monospace; margin-top: 3px; }
+.field-groupbody { margin-left: 8px; border-left: 1px solid var(--border); padding-left: 6px; }
+
+/* ==== Console ==== */
+#consoleLog { background: #0e1116; border: 1px solid var(--border); border-radius: 4px; padding: 8px;
+  height: calc(100vh - 220px); overflow: auto; font: 12px/1.4 Consolas, monospace; }
+.log-entry { display: grid; grid-template-columns: 55px 80px 1fr; gap: 8px; padding: 1px 0; }
+.log-entry .ts { color: var(--fg-muted); }
+.log-entry .kind { color: var(--accent); }
+.log-entry .text { color: var(--fg); word-break: break-all; }
+.console-filter { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+
+/* ==== UI Widget Props エディタ ==== */
+.ui-props { display: flex; flex-direction: column; gap: 3px; padding: 4px 0; }
+.ui-prop { display: grid; grid-template-columns: 90px 46px 1fr; gap: 6px; align-items: center;
+  padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; font-size: 11px; }
+.ui-prop:hover { background: var(--bg3); }
+.ui-prop-name { color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-prop-type { color: var(--fg-muted); font-size: 10px; }
+.ui-prop input { background: var(--bg); color: var(--fg); border: 1px solid var(--border);
+  padding: 1px 4px; border-radius: 2px; font: 11px Consolas, monospace; width: 100%; }
+.ui-prop input[type=checkbox] { width: auto; }
+.ui-prop input[type=color] { padding: 0; height: 20px; cursor: pointer; }
+.ui-prop input:focus { outline: none; border-color: var(--accent); }
+.ui-prop input.flash { border-color: var(--ok); box-shadow: 0 0 3px rgba(74,222,128,0.5); }
+
+/* ==== UI Tree (Angular DevTools 風) ==== */
+.tree-view { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+  padding: 8px; max-height: calc(100vh - 200px); overflow: auto;
+  font-family: Consolas, monospace; font-size: 11.5px; }
+.tree-node { padding: 1px 0; }
+.tree-row { display: flex; align-items: center; gap: 4px; padding: 2px 4px; border-radius: 3px;
+  cursor: pointer; user-select: none; }
+.tree-row:hover { background: var(--bg3); }
+.tree-row.selected { background: var(--accent-dim); color: #fff; }
+.tree-row .caret { color: var(--fg-muted); width: 10px; text-align: center; font-size: 9px; }
+.tree-row .caret.leaf { visibility: hidden; }
+.tree-row .type { color: var(--accent); font-weight: 600; }
+.tree-row.selected .type { color: #fff; }
+.tree-row .dims { color: var(--fg-muted); font-size: 10px; }
+.tree-row.selected .dims { color: rgba(255,255,255,0.7); }
+.tree-row .detail { color: var(--fg-muted); font-size: 10.5px; font-style: italic; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; max-width: 240px; }
+.tree-row.hidden { display: none; }
+.tree-row.match-highlight { background: rgba(251,191,36,0.15); }
+.tree-children { border-left: 1px dotted var(--border); margin-left: 10px; padding-left: 8px; }
+.tree-children.collapsed { display: none; }
+
+#framePane .hl-overlay { position: absolute; inset: 0; pointer-events: none; }
+#framePane .hl-overlay rect { fill: rgba(75,158,255,0.18); stroke: var(--accent); stroke-width: 1.5;
+  stroke-dasharray: 3 2; }
+#framePane .hl-overlay text { fill: var(--accent); font-family: Consolas, monospace; font-size: 8px;
+  paint-order: stroke; stroke: rgba(0,0,0,0.6); stroke-width: 3; stroke-linejoin: round; }
+
+/* ==== Home ==== */
+.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dash-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 10px; position: relative; overflow: hidden; }
+.dash-card .hdr { font-size: 11px; color: var(--fg-muted); text-transform: uppercase; margin-bottom: 6px; }
+.dash-card .big { font-size: 32px; font-weight: 300; font-family: Consolas, monospace; }
+.dash-card .unit { font-size: 12px; color: var(--fg-muted); }
+.dash-card .sparkline { width: 100%; height: 30px; margin-top: 4px; display: block; }
+
+.alert-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; min-height: 22px; }
+.alert-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 3px;
+  font-size: 11px; font-family: Consolas, monospace; border: 1px solid; }
+.alert-badge.ok      { background: rgba(74,222,128,0.10);  color: var(--ok);    border-color: rgba(74,222,128,0.35); }
+.alert-badge.warn    { background: rgba(251,191,36,0.12);  color: var(--warn);  border-color: rgba(251,191,36,0.35); }
+.alert-badge.err     { background: rgba(248,113,113,0.12); color: var(--err);   border-color: rgba(248,113,113,0.35); }
+.alert-badge.info    { background: var(--bg2); color: var(--fg-muted); border-color: var(--border); }
+.alert-badge.paused  { background: rgba(75,158,255,0.12);  color: var(--accent); border-color: rgba(75,158,255,0.4); }
+
+.activity { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; min-height: 40px; }
+.activity .empty { color: var(--fg-muted); font-size: 11px; padding: 6px 0; }
+.activity .row { display: grid; grid-template-columns: 55px 90px 1fr; gap: 8px; padding: 2px 0;
+  font-family: Consolas, monospace; font-size: 11px; }
+.activity .ts { color: var(--fg-muted); }
+.activity .kind { color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.activity .text { color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ==== Right panel ==== */
+.detail-empty { color: var(--fg-muted); font-size: 12px; padding: 10px; text-align: center; }
+.detail-title { font-size: 12px; color: var(--accent); font-weight: 600; margin-bottom: 6px; }
+</style>
+
+<div id="app">
+  <div id="tabbar">
+    <div class="tab active" data-tab="home">Home</div>
+    <div class="tab" data-tab="perf">Perf</div>
+    <div class="tab" data-tab="ecs">ECS</div>
+    <div class="tab" data-tab="surfaces">Surfaces</div>
+    <div class="tab" data-tab="input">Input</div>
+    <div class="tab" data-tab="audio">Audio</div>
+    <div class="tab" data-tab="tree">UI Tree</div>
+    <div class="tab" data-tab="rg">RenderGraph</div>
+    <div class="tab" data-tab="resources">Resources</div>
+    <div class="tab" data-tab="console">Console</div>
+    <div class="spacer"></div>
+    <div class="toolbar">
+      <button id="btnPause" title="engine.pause / engine.resume">⏸ Pause</button>
+      <button id="btnStep" title="engine.step (1 frame)">⏭ Step</button>
+    </div>
+  </div>
+
+  <div id="body">
+    <div id="left">
+      <div id="framePane">
+        <canvas id="frameCanvas" width="256" height="144"></canvas>
+        <svg id="frameHl" class="hl-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+        <div class="empty" id="frameEmpty">No frame yet</div>
+      </div>
+      <h3>Info</h3>
+      <div class="info-row"><span class="k">FPS</span><span class="v" id="infoFps">–</span></div>
+      <div class="info-row"><span class="k">Frame</span><span class="v" id="infoFrame">–</span></div>
+      <div class="info-row"><span class="k">Frame ms</span><span class="v" id="infoMs">–</span></div>
+      <div class="info-row"><span class="k">Worlds</span><span class="v" id="infoWorlds">–</span></div>
+      <div class="info-row"><span class="k">Entities</span><span class="v" id="infoEntities">–</span></div>
+      <div class="info-row"><span class="k">Size</span><span class="v" id="infoSize">–</span></div>
+      <h3 style="margin-top: 12px;">Actions</h3>
+      <div class="actions">
+        <button id="btnScreenshot">📸 Screenshot</button>
+      </div>
+    </div>
+
+    <div id="main">
+      <div class="pane active" data-pane="home">
+        <h2>Dashboard</h2>
+        <div id="homeAlerts" class="alert-row"></div>
+        <div class="dash-grid">
+          <div class="dash-card">
+            <div class="hdr">FPS</div>
+            <div><span class="big" id="homeFps">–</span> <span class="unit">fps</span></div>
+            <svg id="homeFpsSpark" class="sparkline" viewBox="0 0 200 34" preserveAspectRatio="none"></svg>
+          </div>
+          <div class="dash-card">
+            <div class="hdr">Frame time</div>
+            <div><span class="big" id="homeMs">–</span> <span class="unit">ms</span></div>
+            <svg id="homeMsSpark" class="sparkline" viewBox="0 0 200 34" preserveAspectRatio="none"></svg>
+          </div>
+          <div class="dash-card"><div class="hdr">Entities</div><div><span class="big" id="homeEntities">–</span></div></div>
+          <div class="dash-card"><div class="hdr">Logs</div><div><span class="big" id="homeLogs">–</span></div></div>
+          <div class="dash-card">
+            <div class="hdr">Managed heap</div>
+            <div><span class="big" id="homeMem">–</span> <span class="unit">MB</span></div>
+            <div class="unit" id="homeMemMeta">–</div>
+          </div>
+          <div class="dash-card">
+            <div class="hdr">GC (gen 0/1/2)</div>
+            <div><span class="big" id="homeGc">–</span></div>
+            <div class="unit" id="homeGcMeta">threads: –</div>
+          </div>
+        </div>
+        <div style="margin-top: 12px;">
+          <h3>Recent activity</h3>
+          <div id="homeActivity" class="activity"></div>
+        </div>
+      </div>
+
+      <div class="pane" data-pane="perf">
+        <h2>Performance</h2>
+        <div style="margin-bottom: 10px;">
+          <canvas id="perfChart" width="800" height="140"></canvas>
+        </div>
+        <h3>Latest frame breakdown (phases)</h3>
+        <div id="phaseBar" class="phase-bar"></div>
+        <div id="phaseLegend"></div>
+        <h3 style="margin-top: 12px;">Systems (per phase)</h3>
+        <div id="systemList"></div>
+      </div>
+
+      <div class="pane" data-pane="ecs">
+        <h2>ECS Inspector</h2>
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
+          <div>
+            <h3>Worlds</h3>
+            <div id="ecsWorlds"></div>
+            <h3 style="margin-top: 10px;">Filter</h3>
+            <input type="search" id="ecsFilter" placeholder="Component name…" />
+          </div>
+          <div>
+            <h3>Entities <span id="ecsEntCount" style="color:var(--fg-muted);"></span></h3>
+            <div id="ecsEntities" style="max-height: calc(100vh - 220px); overflow: auto;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pane" data-pane="surfaces">
+        <h2>UI Surfaces</h2>
+        <div id="surfaceList" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
+      </div>
+
+      <div class="pane" data-pane="input">
+        <h2>Input</h2>
+        <div id="inputContexts"></div>
+      </div>
+
+      <div class="pane" data-pane="audio">
+        <h2>Audio</h2>
+        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 10px; font-size: 12px;">
+          <span id="audioActiveVoices" style="color: var(--fg-muted);">Active voices: –</span>
+        </div>
+        <h3>Bus hierarchy</h3>
+        <div id="audioBuses"></div>
+        <h3 style="margin-top: 12px;">Sources</h3>
+        <div id="audioSources"></div>
+      </div>
+
+      <div class="pane" data-pane="tree">
+        <h2>UI Tree</h2>
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap;">
+          <select id="treeSelector" style="background: var(--bg); color: var(--fg); border: 1px solid var(--border); padding: 3px 6px; border-radius: 3px; font: inherit; min-width: 200px;"></select>
+          <input type="search" id="treeFilter" placeholder="Filter by widget type…" style="flex: 1; max-width: 220px;">
+          <button id="treeExpandAll">Expand all</button>
+          <button id="treeCollapseAll">Collapse all</button>
+          <label style="font-size: 11px; color: var(--fg-muted); display: flex; align-items: center; gap: 3px;">
+            <input type="checkbox" id="treeHighlight" checked style="width: auto;"> Highlight
+          </label>
+          <label style="font-size: 11px; color: var(--fg-muted); display: flex; align-items: center; gap: 3px;">
+            <input type="checkbox" id="treePreview" checked style="width: auto;"> Preview
+          </label>
+          <span id="treeSummary" style="color: var(--fg-muted); font-size: 12px;"></span>
+        </div>
+        <div id="treePreviewBox" style="margin-bottom: 8px; border: 1px solid var(--border); border-radius: 4px;
+             background: repeating-conic-gradient(#181c22 0 25%, #22272f 0 50%) 0 0 / 12px 12px;
+             padding: 6px; text-align: center; position: relative;">
+          <canvas id="treePreviewCanvas" style="max-width: 100%; image-rendering: pixelated; display: inline-block; background: #000;"></canvas>
+          <div id="treePreviewLabel" style="position: absolute; bottom: 2px; right: 6px;
+               color: var(--fg-muted); font-family: Consolas, monospace; font-size: 10px;
+               text-shadow: 0 0 3px rgba(0,0,0,0.9);"></div>
+        </div>
+        <div id="treeView" class="tree-view"></div>
+      </div>
+
+      <div class="pane" data-pane="rg">
+        <h2>RenderGraph</h2>
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+          <button id="btnLoadRg">Refresh</button>
+          <span id="rgSummary" style="color: var(--fg-muted); font-size: 12px;"></span>
+          <button id="btnLoadRgRaw" style="margin-left: auto;">Raw JSON</button>
+        </div>
+        <div id="rgViz"></div>
+        <pre id="rgView" class="mono" style="display: none; background: var(--bg2); border: 1px solid var(--border); padding: 10px; overflow: auto; max-height: calc(100vh - 200px); font-size: 11px;"></pre>
+      </div>
+
+      <div class="pane" data-pane="resources">
+        <h2>Resources</h2>
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+          <button id="btnLoadRes">Refresh</button>
+          <input type="search" id="resFilter" placeholder="Filter by type / uri…" style="flex: 1; max-width: 300px;">
+          <span id="resSummary" style="color: var(--fg-muted); font-size: 12px;"></span>
+        </div>
+        <div id="resList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px;"></div>
+      </div>
+
+      <div class="pane" data-pane="console">
+        <h2>Console / Logs</h2>
+        <div class="console-filter">
+          <input type="search" id="logFilter" placeholder="Filter logs…" style="flex: 1;" />
+          <button id="btnClearLog">Clear</button>
+        </div>
+        <div id="consoleLog"></div>
+      </div>
+    </div>
+
+    <div id="right">
+      <h3>Details</h3>
+      <div id="detailPane">
+        <div class="detail-empty">Select an item to inspect</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="palette">
+    <div class="pw">
+      <input id="paletteInput" type="text" placeholder="Command / tab を検索…" autocomplete="off">
+      <div id="paletteList" class="list"></div>
+    </div>
+  </div>
+
+  <div id="status">
+    <div class="item"><span class="label">●</span> <span class="val" id="statConn">Connecting…</span></div>
+    <div class="item"><span class="label">FPS:</span> <span class="val" id="statFps">–</span></div>
+    <div class="item"><span class="label">Frame:</span> <span class="val" id="statFrame">–</span></div>
+    <div class="item"><span class="label">Entities:</span> <span class="val" id="statEnts">–</span></div>
+    <div class="item" style="margin-left: auto;"><span class="val mono" id="statUrl"></span></div>
+  </div>
+</div>
+
+<script>
+const state = {
+  frameRev: -1, treeRev: -1, perfRev: -1, ecsRev: -1, surfacesRev: -1, inputRev: -1, logCursor: 0,
+  msSeries: new Array(120).fill(0),
+  fpsSeries: new Array(60).fill(0),
+  perf: null, ecs: null, surfaces: null, inputState: null, runtime: null, tree: null, stat: null,
+  logs: [], logFilter: '',
+  selectedWorld: 0, selectedEntity: null, ecsFilter: '',
+  activeTab: 'home',
+  paused: false,
+};
+
+async function sendCmd(op, extra = {}) {
+  try {
+    await fetch('/cmd', { method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({op, ...extra}) });
+  } catch { /* ignore */ }
+}
+
+document.querySelectorAll('#tabbar .tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('#tabbar .tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    state.activeTab = t.dataset.tab;
+    document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+    document.querySelector(`.pane[data-pane="${state.activeTab}"]`)?.classList.add('active');
+    onTabActivated(state.activeTab);
+  };
+});
+
+function onTabActivated(tab) {
+  if (tab === 'resources') loadResources();
+  else if (tab === 'rg') loadRg();
+  else if (tab === 'audio') loadAudio();
+  else if (tab === 'tree' && state.treeRev >= 0) fetchTree();
+}
+
+let audioLast = null;
+async function loadAudio() {
+  const j = await (await fetch('/audio')).json();
+  audioLast = j;
+  renderAudio();
+}
+function renderAudio() {
+  const bEl = document.getElementById('audioBuses');
+  const sEl = document.getElementById('audioSources');
+  const a  = document.getElementById('audioActiveVoices');
+  if (!audioLast || (!audioLast.buses && !audioLast.sources)) {
+    a.textContent = 'no audio data (AudioRegistry not populated)';
+    bEl.innerHTML = ''; sEl.innerHTML = '';
+    return;
+  }
+  a.textContent = `Active voices: ${audioLast.activeVoiceCount ?? 0}`;
+  const buses = audioLast.buses || [];
+  const srcs = audioLast.sources || [];
+  bEl.innerHTML = buses.length ? buses.map(b => `
+    <div class="audio-bus">
+      <div><span class="name">${escapeHtml(b.name)}</span>${b.parent ? ` <span class="parent">↰ ${escapeHtml(b.parent)}</span>` : ''}</div>
+      <div>vol ${b.volume.toFixed(2)}<div class="vol-bar"><div style="width:${Math.min(100, b.volume * 100)}%"></div></div></div>
+      <div>eff ${b.effectiveVolume.toFixed(2)}<div class="vol-bar"><div class="eff" style="width:${Math.min(100, b.effectiveVolume * 100)}%"></div></div></div>
+      <div class="parent">${b.parent ? 'child' : 'root'}</div>
+    </div>`).join('') : '<div style="color: var(--fg-muted); font-size: 11px;">no buses registered</div>';
+  sEl.innerHTML = srcs.length ? srcs.map(s => `
+    <div class="audio-src">
+      <div><span class="name">${escapeHtml(s.name)}</span>${s.bus ? ` <span class="k">/${escapeHtml(s.bus)}</span>` : ''}</div>
+      <div class="state ${s.isPlaying ? 'on' : 'off'}">${s.isPlaying ? '▶ playing' : '■'}</div>
+      <div><span class="k">vol</span> ${s.volume.toFixed(2)}</div>
+      <div><span class="k">pitch</span> ${s.pitch.toFixed(2)}</div>
+      <div><span class="k">pan</span> ${s.pan.toFixed(2)}</div>
+      <div></div>
+    </div>`).join('') : '<div style="color: var(--fg-muted); font-size: 11px;">no sources registered</div>';
+}
+
+async function poll() {
+  try {
+    const r = await fetch(`/poll?logSince=${state.logCursor}`);
+    const j = await r.json();
+    setStatus('connected');
+    state.stat = j.stat;
+    state.paused = !!j.paused;
+    state.logs.push(...j.logs);
+    if (state.logs.length > 2000) state.logs.splice(0, state.logs.length - 2000);
+    state.logCursor = j.logCursor;
+
+    if (j.frameRev !== state.frameRev) { state.frameRev = j.frameRev; fetchFrame(); }
+    if (j.treeRev !== state.treeRev) { state.treeRev = j.treeRev; if (state.activeTab === 'tree') fetchTree(); }
+    if (j.perfRev !== state.perfRev) { state.perfRev = j.perfRev; fetchPerf(); }
+    if (j.ecsRev !== state.ecsRev) { state.ecsRev = j.ecsRev; fetchEcs(); }
+    if (j.surfacesRev !== state.surfacesRev) { state.surfacesRev = j.surfacesRev; fetchSurfaces(); }
+    if (j.inputRev !== state.inputRev) { state.inputRev = j.inputRev; fetchInput(); }
+
+    renderLeft(); renderHome(); renderConsole(); renderStatus(); renderPauseUi();
+  } catch (e) {
+    setStatus('disconnected');
+  }
+  setTimeout(poll, 200);
+}
+
+function setStatus(kind) {
+  const el = document.getElementById('statConn');
+  if (kind === 'connected') { el.textContent = 'connected'; el.style.color = 'var(--ok)'; }
+  else { el.textContent = 'disconnected'; el.style.color = 'var(--err)'; }
+  document.getElementById('statUrl').textContent = location.host;
+}
+
+async function fetchFrame() {
+  const r = await fetch(`/frame?rev=${state.frameRev}`);
+  if (r.status !== 200) return;
+  const buf = new Uint8Array(await r.arrayBuffer());
+  const w = buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24);
+  const h = buf[4] | (buf[5] << 8) | (buf[6] << 16) | (buf[7] << 24);
+  const rgba = new Uint8ClampedArray(buf.buffer, buf.byteOffset + 8, w * h * 4);
+  const c = document.getElementById('frameCanvas');
+  c.width = w; c.height = h;
+  c.getContext('2d').putImageData(new ImageData(rgba, w, h), 0, 0);
+  document.getElementById('frameEmpty').style.display = 'none';
+}
+
+// ============== UI Tree (Angular DevTools 風、複数 UI 対応) ==============
+const treeState = {
+  expanded: new Set(['0']),   // path (dotted indices, "0" = root)
+  selectedPath: null,
+  filter: '',
+  trees: [],                  // [{name, placement, root, width, height}, ...]
+  activeTreeIdx: 0,
+};
+
+async function fetchTree() {
+  // /trees (複数 UiHost) を優先し、無ければ legacy /tree にフォールバック
+  const treesRes = await fetch('/trees');
+  let usedTrees = false;
+  if (treesRes.ok) {
+    const j = await treesRes.json();
+    if (j && Array.isArray(j.trees) && j.trees.length > 0) {
+      treeState.trees = j.trees;
+      if (treeState.activeTreeIdx >= treeState.trees.length) treeState.activeTreeIdx = 0;
+      state.tree = treeState.trees[treeState.activeTreeIdx]?.root ?? null;
+      usedTrees = true;
+    }
+  }
+  if (!usedTrees) {
+    const url = state.tree === null ? '/tree' : `/tree?rev=${state.treeRev}`;
+    const r = await fetch(url);
+    if (r.status !== 200) return;
+    state.tree = await r.json();
+    treeState.trees = [{ name: 'root', placement: 'Screen', root: state.tree, width: 0, height: 0 }];
+    treeState.activeTreeIdx = 0;
+  }
+  renderTreeSelector();
+  renderTree();
+  fetchUiPreview();
+}
+
+function renderTreeSelector() {
+  const sel = document.getElementById('treeSelector');
+  if (!sel) return;
+  if (!treeState.trees.length) { sel.innerHTML = '<option>(no UI)</option>'; return; }
+  sel.innerHTML = treeState.trees.map((t, i) => {
+    const dims = t.width && t.height ? ` — ${t.width}×${t.height}` : '';
+    const kind = t.placement && t.placement !== 'Screen' ? ` [${t.placement}]` : '';
+    return `<option value="${i}" ${i === treeState.activeTreeIdx ? 'selected' : ''}>${escapeHtml(t.name)}${dims}${escapeHtml(kind)}</option>`;
+  }).join('');
+  sel.onchange = () => {
+    treeState.activeTreeIdx = parseInt(sel.value, 10);
+    treeState.selectedPath = null;
+    treeState.expanded = new Set(['0']);
+    state.tree = treeState.trees[treeState.activeTreeIdx]?.root ?? null;
+    renderTree();
+    fetchUiPreview();
+  };
+}
+
+async function fetchUiPreview() {
+  const box = document.getElementById('treePreviewBox');
+  const canvas = document.getElementById('treePreviewCanvas');
+  const label = document.getElementById('treePreviewLabel');
+  const enabled = document.getElementById('treePreview')?.checked ?? true;
+  if (!enabled || !treeState.trees.length) { box.style.display = 'none'; return; }
+  const i = treeState.activeTreeIdx;
+  try {
+    const r = await fetch(`/uiframe?i=${i}`);
+    if (r.status !== 200) { box.style.display = 'none'; return; }
+    const buf = new Uint8Array(await r.arrayBuffer());
+    if (buf.byteLength < 8) { box.style.display = 'none'; return; }
+    const w = buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24);
+    const h = buf[4] | (buf[5] << 8) | (buf[6] << 16) | (buf[7] << 24);
+    if (w <= 0 || h <= 0 || buf.byteLength < 8 + w * h * 4) { box.style.display = 'none'; return; }
+    const rgba = new Uint8ClampedArray(buf.buffer, buf.byteOffset + 8, w * h * 4);
+    canvas.width = w; canvas.height = h;
+    // 表示は 2× まで scale up、fit 内
+    const maxW = Math.min(w * 2, 640);
+    canvas.style.width = maxW + 'px';
+    canvas.style.height = (maxW * h / w) + 'px';
+    canvas.getContext('2d').putImageData(new ImageData(rgba, w, h), 0, 0);
+    const t = treeState.trees[i];
+    label.textContent = `${t.name} ${w}×${h}`;
+    box.style.display = '';
+    // preview 上の highlight overlay を tree の座標系に合わせる
+    updatePreviewHighlight(w, h);
+  } catch { box.style.display = 'none'; }
+}
+
+function updatePreviewHighlight(canvasW, canvasH) {
+  // 既存の frameHl (=左レール用) と別に、preview 用 SVG を canvas 上に重ねる
+  const box = document.getElementById('treePreviewBox');
+  let svg = box.querySelector('svg.hl-overlay');
+  if (!svg) {
+    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'hl-overlay');
+    svg.style.position = 'absolute';
+    svg.style.pointerEvents = 'none';
+    box.appendChild(svg);
+  }
+  const canvas = document.getElementById('treePreviewCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const boxRect = box.getBoundingClientRect();
+  svg.style.left = (rect.left - boxRect.left) + 'px';
+  svg.style.top  = (rect.top  - boxRect.top)  + 'px';
+  svg.style.width = rect.width + 'px';
+  svg.style.height = rect.height + 'px';
+  svg.setAttribute('viewBox', `0 0 ${canvasW} ${canvasH}`);
+  svg.setAttribute('preserveAspectRatio', 'none');
+  const showHl = document.getElementById('treeHighlight')?.checked ?? true;
+  if (showHl && treeState.selectedPath && state.tree) {
+    const node = getNodeByPath(state.tree, treeState.selectedPath);
+    if (node) {
+      svg.innerHTML = `<rect x="${node.x}" y="${node.y}" width="${Math.max(1, node.w)}" height="${Math.max(1, node.h)}"/>
+        <text x="${node.x + 2}" y="${node.y + 10}">${escapeHtml(node.type)}</text>`;
+      return;
+    }
+  }
+  svg.innerHTML = '';
+}
+
+function renderTree() {
+  const view = document.getElementById('treeView');
+  const summary = document.getElementById('treeSummary');
+  if (!state.tree) { view.innerHTML = '<div style="color:var(--fg-muted);font-size:11px;">no UI tree yet</div>'; summary.textContent = ''; return; }
+  const stats = { total: 0, matched: 0 };
+  const html = renderTreeNode(state.tree, '0', 0, treeState.filter.trim().toLowerCase(), stats);
+  view.innerHTML = html;
+  summary.textContent = `${stats.total} widgets${treeState.filter ? ` — ${stats.matched} match "${treeState.filter}"` : ''}`;
+  // bind row clicks
+  view.querySelectorAll('.tree-row').forEach(row => {
+    row.onclick = ev => {
+      if (ev.target.classList.contains('caret')) {
+        toggleExpand(row.dataset.path);
+      } else {
+        selectTreeNode(row.dataset.path);
+      }
+    };
+  });
+  drawHighlight();
+}
+
+function renderTreeNode(node, path, depth, filter, stats) {
+  stats.total++;
+  const hasChildren = node.children && node.children.length > 0;
+  const expanded = treeState.expanded.has(path);
+  const selected = treeState.selectedPath === path;
+  const matched = filter && node.type.toLowerCase().includes(filter);
+  if (matched) stats.matched++;
+  const rowCls = [
+    'tree-row',
+    selected ? 'selected' : '',
+    matched ? 'match-highlight' : '',
+  ].filter(Boolean).join(' ');
+  const caret = hasChildren
+    ? `<span class="caret">${expanded ? '▼' : '▶'}</span>`
+    : `<span class="caret leaf">·</span>`;
+  const dims = `${node.w.toFixed(0)}×${node.h.toFixed(0)}@(${node.x.toFixed(0)},${node.y.toFixed(0)})`;
+  const detail = node.detail ? `<span class="detail">${escapeHtml(node.detail)}</span>` : '';
+  const row = `<div class="${rowCls}" data-path="${path}">
+    ${caret}<span class="type">${escapeHtml(node.type)}</span>
+    <span class="dims">${dims}</span>${detail}
+  </div>`;
+  const children = hasChildren
+    ? `<div class="tree-children ${expanded ? '' : 'collapsed'}">${node.children.map((c, i) => renderTreeNode(c, path + '.' + i, depth + 1, filter, stats)).join('')}</div>`
+    : '';
+  return `<div class="tree-node">${row}${children}</div>`;
+}
+
+function toggleExpand(path) {
+  if (treeState.expanded.has(path)) treeState.expanded.delete(path);
+  else treeState.expanded.add(path);
+  renderTree();
+}
+
+function selectTreeNode(path) {
+  treeState.selectedPath = path;
+  // 親を全部 expand しておく
+  const parts = path.split('.');
+  for (let i = 1; i <= parts.length; i++) treeState.expanded.add(parts.slice(0, i).join('.'));
+  renderTree();
+  const node = getNodeByPath(state.tree, path);
+  if (node) renderTreeDetail(node, path);
+  // preview 上の overlay も更新
+  const canvas = document.getElementById('treePreviewCanvas');
+  if (canvas.width > 0) updatePreviewHighlight(canvas.width, canvas.height);
+}
+
+function getNodeByPath(root, path) {
+  const parts = path.split('.').slice(1);   // "0" is root, drop it
+  let cur = root;
+  for (const p of parts) { cur = cur?.children?.[parseInt(p, 10)]; if (!cur) return null; }
+  return cur;
+}
+
+function renderTreeDetail(node, path) {
+  const p = document.getElementById('detailPane');
+  const propsHtml = (node.props && node.props.length)
+    ? `<h3 style="margin-top: 8px;">Properties (${node.props.length})</h3>
+       <div class="ui-props">${node.props.map(pr => renderUiPropRow(pr, path)).join('')}</div>`
+    : '';
+  const childrenRows = (node.children || []).map((c, i) => `
+    <li style="padding: 2px 0; font-family: Consolas, monospace; font-size: 11px;">
+      <a href="#" data-child-path="${path}.${i}" style="color: var(--accent); text-decoration: none;">${escapeHtml(c.type)}</a>
+      <span style="color: var(--fg-muted); margin-left: 6px;">${c.w.toFixed(0)}×${c.h.toFixed(0)}</span>
+    </li>`).join('');
+  p.innerHTML = `<div class="detail-title">${escapeHtml(node.type)}</div>
+    <ul class="kv-list">
+      <li><span class="k">path</span><span>${escapeHtml(path)}</span></li>
+      <li><span class="k">x, y</span><span>${node.x.toFixed(2)}, ${node.y.toFixed(2)}</span></li>
+      <li><span class="k">w, h</span><span>${node.w.toFixed(2)} × ${node.h.toFixed(2)}</span></li>
+      <li><span class="k">z</span><span>${node.z.toFixed(2)}</span></li>
+      ${node.detail ? `<li><span class="k">detail</span><span title="${escapeHtml(node.detail)}">${escapeHtml(node.detail)}</span></li>` : ''}
+      <li><span class="k">children</span><span>${node.children?.length ?? 0}</span></li>
+    </ul>
+    ${propsHtml}
+    ${childrenRows ? `<h3 style="margin-top: 8px;">Children</h3><ul style="list-style: none; padding: 0; margin: 0;">${childrenRows}</ul>` : ''}`;
+  p.querySelectorAll('a[data-child-path]').forEach(a => {
+    a.onclick = ev => { ev.preventDefault(); selectTreeNode(a.dataset.childPath); };
+  });
+  p.querySelectorAll('.ui-prop input, .ui-prop select').forEach(inp => {
+    inp.addEventListener('change', () => submitUiEdit(inp));
+  });
+}
+
+function renderUiPropRow(pr, path) {
+  const name = pr.name, type = pr.type, val = pr.value;
+  let inputEl = '';
+  const dataAttrs = `data-tree-path="${escapeHtml(path)}" data-prop-name="${escapeHtml(name)}" data-prop-type="${escapeHtml(type)}"`;
+  if (type === 'bool') {
+    const chk = (val === 'true' || val === '1') ? 'checked' : '';
+    inputEl = `<input type="checkbox" ${chk} ${dataAttrs}>`;
+  } else if (type === 'int' || type === 'float') {
+    const step = type === 'int' ? '1' : '0.01';
+    inputEl = `<input type="number" step="${step}" value="${escapeHtml(val)}" ${dataAttrs}>`;
+  } else if (type === 'color') {
+    inputEl = `<input type="color" value="${escapeHtml(val)}" ${dataAttrs}>`;
+  } else if (type.startsWith('enum:')) {
+    // "enum:Start|Center|End|Stretch" → ドロップダウン (生成コードがメンバー一覧を焼き込む)
+    const opts = type.slice(5).split('|').map(o =>
+      `<option value="${escapeHtml(o)}" ${o === val ? 'selected' : ''}>${escapeHtml(o)}</option>`).join('');
+    inputEl = `<select ${dataAttrs}>${opts}</select>`;
+  } else {
+    inputEl = `<input type="text" value="${escapeHtml(val)}" ${dataAttrs}>`;
+  }
+  return `<div class="ui-prop">
+    <span class="ui-prop-name">${escapeHtml(name)}</span>
+    <span class="ui-prop-type">${escapeHtml(type)}</span>
+    ${inputEl}
+  </div>`;
+}
+
+async function submitUiEdit(inp) {
+  const path = inp.dataset.treePath;
+  const name = inp.dataset.propName;
+  const type = inp.dataset.propType;
+  const raw = inp.type === 'checkbox' ? inp.checked
+            : inp.type === 'number'   ? parseFloat(inp.value)
+            : inp.value;
+  if (Number.isNaN(raw) && inp.type === 'number') return;
+  inp.classList.add('flash');
+  await sendCmd('ui.set', { path, name, propType: type, value: raw });
+  setTimeout(() => inp.classList.remove('flash'), 400);
+}
+
+function drawHighlight() {
+  const svg = document.getElementById('frameHl');
+  if (!svg) return;
+  const enabled = document.getElementById('treeHighlight')?.checked ?? true;
+  if (!enabled || !treeState.selectedPath || !state.tree) { svg.innerHTML = ''; return; }
+  const node = getNodeByPath(state.tree, treeState.selectedPath);
+  if (!node) { svg.innerHTML = ''; return; }
+  // tree の座標系は canvas 単位。frame preview は state.stat の W/H で正規化。
+  const W = state.stat?.w || 100, H = state.stat?.h || 100;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const px = node.x, py = node.y, pw = Math.max(1, node.w), ph = Math.max(1, node.h);
+  svg.innerHTML = `
+    <rect x="${px}" y="${py}" width="${pw}" height="${ph}"/>
+    <text x="${px + 2}" y="${py + 8}">${escapeHtml(node.type)}</text>`;
+}
+
+document.getElementById('treeFilter').addEventListener('input', ev => { treeState.filter = ev.target.value; renderTree(); });
+document.getElementById('treeExpandAll').onclick = () => {
+  function collect(n, path) { treeState.expanded.add(path); (n.children || []).forEach((c, i) => collect(c, path + '.' + i)); }
+  if (state.tree) collect(state.tree, '0');
+  renderTree();
+};
+document.getElementById('treeCollapseAll').onclick = () => {
+  treeState.expanded.clear();
+  treeState.expanded.add('0');
+  renderTree();
+};
+document.getElementById('treeHighlight').addEventListener('change', () => {
+  drawHighlight();
+  const canvas = document.getElementById('treePreviewCanvas');
+  if (canvas.width > 0) updatePreviewHighlight(canvas.width, canvas.height);
+});
+document.getElementById('treePreview').addEventListener('change', fetchUiPreview);
+
+// tree タブが active な間、UI preview を 500ms 毎に更新
+setInterval(() => {
+  if (state.activeTab === 'tree' && treeState.trees.length > 0) fetchUiPreview();
+}, 500);
+
+async function fetchPerf() {
+  const j = await (await fetch('/perf')).json();
+  if (!j || !j.phases) return;
+  state.perf = j;
+  state.msSeries.push(j.frameMs); state.msSeries.shift();
+  state.fpsSeries.push(j.fpsAvg); state.fpsSeries.shift();
+  renderPerfChart(); renderPhaseBar(); renderSystemList();
+}
+
+function renderSystemList() {
+  const el = document.getElementById('systemList');
+  if (!state.perf || !state.perf.systems) { el.innerHTML = '<div style="color:var(--fg-muted);font-size:11px;">no system data (subscribe or first frame)</div>'; return; }
+  // Group by phase, keep original phase order from Phases array
+  const phaseOrder = state.perf.phases.map(p => p.name);
+  const byPhase = new Map(phaseOrder.map(n => [n, []]));
+  for (const s of state.perf.systems) {
+    if (!byPhase.has(s.phase)) byPhase.set(s.phase, []);
+    byPhase.get(s.phase).push(s);
+  }
+  // Max ms across all systems (for bar normalization)
+  const maxMs = Math.max(0.001, ...state.perf.systems.map(s => s.ms));
+  const cards = [];
+  for (const [phase, systems] of byPhase) {
+    if (!systems.length) continue;
+    const rows = systems.map(s => `
+      <div class="sys-row">
+        <span class="name" title="${escapeHtml(s.name)}">${escapeHtml(s.name)}</span>
+        <span class="ms">${s.ms.toFixed(3)} ms</span>
+        <div class="barbg"><div style="width:${(s.ms / maxMs * 100).toFixed(1)}%"></div></div>
+      </div>`).join('');
+    cards.push(`<div class="sys-phase"><h4>${escapeHtml(phase)}</h4>${rows}</div>`);
+  }
+  el.innerHTML = cards.length ? cards.join('') : '<div style="color:var(--fg-muted);font-size:11px;">no systems registered</div>';
+}
+
+function renderPerfChart() {
+  const c = document.getElementById('perfChart');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = getVar('--bg2'); ctx.fillRect(0, 0, c.width, c.height);
+  const scale = c.height / 33;
+  ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 1.5; ctx.beginPath();
+  for (let i = 0; i < state.msSeries.length; i++) {
+    const v = state.msSeries[i] || 0;
+    const x = i * (c.width / state.msSeries.length);
+    const y = c.height - Math.min(c.height, v * scale);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.setLineDash([3, 3]); ctx.lineWidth = 1;
+  [16.67, 33.33].forEach(v => {
+    const y = c.height - Math.min(c.height, v * scale);
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(c.width, y); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '10px Consolas';
+  ctx.fillText('16.7 ms (60fps)', 4, c.height - 16.67 * scale - 3);
+  ctx.fillText('33.3 ms (30fps)', 4, c.height - 33.33 * scale - 3);
+}
+
+function renderPhaseBar() {
+  const bar = document.getElementById('phaseBar');
+  const legend = document.getElementById('phaseLegend');
+  if (!state.perf) return;
+  const total = state.perf.phases.reduce((a, p) => a + p.ms, 0.001);
+  bar.innerHTML = ''; legend.innerHTML = '';
+  state.perf.phases.forEach((p, i) => {
+    const seg = document.createElement('div');
+    seg.className = 'phase-color-' + i;
+    seg.style.width = (p.ms / total * 100).toFixed(1) + '%';
+    seg.title = `${p.name}: ${p.ms.toFixed(2)} ms`;
+    if (p.ms / total > 0.15) seg.textContent = p.name;
+    bar.appendChild(seg);
+    const lab = document.createElement('div');
+    lab.className = 'phase-label';
+    lab.innerHTML = `<span class="phase-swatch phase-color-${i}"></span> ${p.name}: <span class="mono">${p.ms.toFixed(2)} ms</span>`;
+    legend.appendChild(lab);
+  });
+}
+
+async function fetchInput() {
+  const j = await (await fetch('/input')).json();
+  if (!j || !j.contexts) return;
+  state.inputState = j;
+  renderInput();
+}
+
+function renderInput() {
+  const el = document.getElementById('inputContexts');
+  if (!el) return;
+  if (!state.inputState || !state.inputState.contexts.length) {
+    el.innerHTML = '<div style="color:var(--fg-muted);font-size:12px;">no InputStack (Scene did not wire one)</div>';
+    return;
+  }
+  el.innerHTML = state.inputState.contexts.map((c, ci) => {
+    const rows = c.actions.map(a => renderActionRow(a)).join('');
+    return `<div class="input-ctx">
+      <div class="ctx-hdr">
+        <span class="name">${escapeHtml(c.name)}</span>
+        <span class="depth ${ci === 0 ? 'top' : ''}">${ci === 0 ? 'TOP' : 'depth ' + ci}</span>
+        ${c.suspended ? '<span class="depth" style="color:var(--warn)">SUSPENDED</span>' : ''}
+      </div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+function renderActionRow(a) {
+  const activeCls = a.isActive ? ' active' : '';
+  let viz = '';
+  try {
+    if (a.kind === 'Axis2D') {
+      const v = JSON.parse(a.value);
+      const x = Math.max(-1, Math.min(1, v.X)) * 12;
+      const y = -Math.max(-1, Math.min(1, v.Y)) * 12;   // Y 反転 (画面 +Y は下)
+      viz = `<span class="axis2d-viz"><span class="axes"></span><span class="dot" style="transform: translate(calc(-50% + ${x}px), calc(-50% + ${y}px))"></span></span>`;
+    } else if (a.kind === 'Axis1D') {
+      const v = Math.max(-1, Math.min(1, parseFloat(a.value)));
+      const width = Math.abs(v) * 30;   // 30px = half bar
+      const left = v >= 0 ? '50%' : (50 - Math.abs(v) * 50) + '%';
+      viz = `<span class="axis1d-viz"><span class="center"></span><span class="fill" style="left:${left};width:${width}px"></span></span>`;
+    }
+  } catch { }
+  return `<div class="action-row${activeCls}">
+    <span class="k">${escapeHtml(a.name)}</span>
+    <span class="kind">${escapeHtml(a.kind)}</span>
+    <span class="val">${viz}${escapeHtml(a.value)}</span>
+    <span class="state ${a.isActive ? 'on' : 'off'}">${a.isActive ? '● ON' : '○'}</span>
+  </div>`;
+}
+
+async function fetchSurfaces() {
+  const j = await (await fetch('/surfaces')).json();
+  if (!j || !j.surfaces) return;
+  state.surfaces = j;
+  renderSurfaces();
+}
+
+function renderSurfaces() {
+  const el = document.getElementById('surfaceList');
+  if (!el) return;
+  if (!state.surfaces || !state.surfaces.surfaces.length) {
+    el.innerHTML = '<div style="color:var(--fg-muted);font-size:12px;">no UiSurface registered</div>';
+    return;
+  }
+  el.innerHTML = state.surfaces.surfaces.map(s => `
+    <div class="surf-card">
+      <div class="title">
+        <span>${escapeHtml(s.name)}</span>
+        <span class="badge">${escapeHtml(s.kind)}</span>
+      </div>
+      <ul class="surf-info">
+        <li><span class="k">Size</span><span class="v">${s.width}×${s.height} ${escapeHtml(s.format)}</span></li>
+        <li><span class="k">RateHz</span><span class="v">${s.rateHz}${s.rateHz < 0 ? ' (dirty only)' : s.rateHz === 0 ? ' (every frame)' : ''}</span></li>
+        <li><span class="k">Rendered</span><span class="v">${s.renderedFrames} frames</span></li>
+        <li><span class="k">Last</span><span class="v">${s.lastRenderedTime < 0 ? '—' : s.lastRenderedTime.toFixed(3) + ' s'}</span></li>
+        <li><span class="k">NeedsRedraw</span><span class="v ${s.needsRedraw ? 'redraw' : ''}">${s.needsRedraw ? '● dirty' : '○ clean'}</span></li>
+      </ul>
+    </div>`).join('');
+}
+
+async function fetchEcs() {
+  const j = await (await fetch('/ecs')).json();
+  if (!j || !j.worlds) return;
+  state.ecs = j;
+  renderEcs();
+}
+
+function renderEcs() {
+  if (!state.ecs) return;
+  const wpane = document.getElementById('ecsWorlds');
+  wpane.innerHTML = '';
+  state.ecs.worlds.forEach((w, i) => {
+    const row = document.createElement('div');
+    row.className = 'entity-row' + (i === state.selectedWorld ? ' selected' : '');
+    row.textContent = `${w.name} `;
+    const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = `${w.entityCount} ent`;
+    row.appendChild(tag);
+    row.onclick = () => { state.selectedWorld = i; state.selectedEntity = null; renderEcs(); };
+    wpane.appendChild(row);
+  });
+  const world = state.ecs.worlds[state.selectedWorld];
+  if (!world) return;
+  const epane = document.getElementById('ecsEntities');
+  const filter = state.ecsFilter.trim().toLowerCase();
+  const filtered = filter
+    ? world.entities.filter(e => e.components.some(c => c.type.toLowerCase().includes(filter))
+                              || e.tagTypes.some(t => t.toLowerCase().includes(filter)))
+    : world.entities;
+  document.getElementById('ecsEntCount').textContent = ` (${filtered.length}/${world.entities.length})`;
+  epane.innerHTML = '';
+  filtered.slice(0, 500).forEach(e => {
+    const row = document.createElement('div');
+    row.className = 'entity-row' + (state.selectedEntity === e.id ? ' selected' : '');
+    row.textContent = `#${e.id}`;
+    const compCount = document.createElement('span');
+    compCount.className = 'tag';
+    compCount.textContent = `${e.components.length}c${e.tagTypes.length ? ' ' + e.tagTypes.length + 't' : ''}`;
+    row.appendChild(compCount);
+    row.onclick = () => { state.selectedEntity = e.id; renderEcs(); renderEntityDetail(e); };
+    epane.appendChild(row);
+  });
+}
+
+function renderEntityDetail(e) {
+  const p = document.getElementById('detailPane');
+  const compsHtml = e.components.map(c => {
+    let obj = null;
+    try { obj = JSON.parse(c.json); } catch { obj = null; }
+    const body = obj !== null && typeof obj === 'object'
+      ? renderEditableFields(obj, c.type, [], e.id)
+      : `<div class="comp-body">${escapeHtml(c.json)}</div>`;
+    return `<li class="comp-item">
+      <div class="comp-head">${escapeHtml(c.type)}</div>
+      ${body}
+    </li>`;
+  }).join('');
+  p.innerHTML = `<div class="detail-title">Entity #${e.id}</div>
+    <h3>Components (${e.components.length})</h3>
+    <ul class="comp-list">${compsHtml}</ul>
+    ${e.tagTypes.length ? `<h3 style="margin-top:8px;">Tags (${e.tagTypes.length})</h3>
+      <ul class="comp-list">${e.tagTypes.map(t => `<li class="tag">${escapeHtml(t)}</li>`).join('')}</ul>` : ''}`;
+  // 折りたたみトグル (initial: 最初の 3 個は開く)
+  p.querySelectorAll('.comp-item').forEach((it, i) => {
+    if (i < 3) it.classList.add('open');
+    it.querySelector('.comp-head').onclick = ev => {
+      if (ev.target.closest('.field-editor')) return;   // input クリックはトグル抑制
+      it.classList.toggle('open');
+    };
+  });
+  // 編集イベント
+  p.querySelectorAll('.field-editor input').forEach(inp => {
+    inp.addEventListener('change', () => submitEcsEdit(inp));
+  });
+}
+
+// obj を再帰的に <input> ツリーとして描画。path は "Matrix.M11" のような . 連結。
+function renderEditableFields(obj, compType, pathParts, entityId) {
+  const rows = [];
+  for (const [k, v] of Object.entries(obj)) {
+    // IsIdentity 等の計算プロパティは編集不可の情報のみ (System.Numerics 由来)
+    if (k === 'IsIdentity') continue;
+    const nextPath = [...pathParts, k];
+    if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+      // nested struct
+      rows.push(`<div class="field-group">
+        <div class="field-groupname">${escapeHtml(k)}</div>
+        <div class="field-groupbody">${renderEditableFields(v, compType, nextPath, entityId)}</div>
+      </div>`);
+    } else if (Array.isArray(v)) {
+      // 配列は編集非対応、概要のみ
+      rows.push(`<div class="field-row"><span class="field-k">${escapeHtml(k)}</span><span class="field-v">[${v.length}]</span></div>`);
+    } else {
+      const type = typeof v === 'number' ? 'number' : (typeof v === 'boolean' ? 'checkbox' : 'text');
+      const attrs = type === 'number' ? 'step="0.01"' : '';
+      const val = type === 'checkbox' ? (v ? 'checked' : '') : `value="${escapeHtml(String(v))}"`;
+      const chk = type === 'checkbox' ? val : '';
+      const vAttr = type === 'checkbox' ? '' : val;
+      rows.push(`<div class="field-row field-editor">
+        <span class="field-k">${escapeHtml(k)}</span>
+        <input type="${type}" ${attrs} ${vAttr} ${chk}
+          data-entity="${entityId}" data-comp="${escapeHtml(compType)}" data-path="${escapeHtml(nextPath.join('.'))}" />
+      </div>`);
+    }
+  }
+  return `<div class="comp-body edit">${rows.join('')}</div>`;
+}
+
+async function submitEcsEdit(inp) {
+  const raw = inp.type === 'checkbox' ? inp.checked
+            : inp.type === 'number'   ? parseFloat(inp.value)
+            : inp.value;
+  const entityId = parseInt(inp.dataset.entity, 10);
+  const componentType = inp.dataset.comp;
+  const path = inp.dataset.path;
+  if (Number.isNaN(raw) && inp.type === 'number') return;
+  inp.classList.add('flash');
+  await sendCmd('ecs.set', { world: state.selectedWorld, entityId, componentType, path, value: raw });
+  setTimeout(() => inp.classList.remove('flash'), 400);
+}
+
+document.getElementById('ecsFilter').addEventListener('input', ev => {
+  state.ecsFilter = ev.target.value; renderEcs();
+});
+
+function renderLeft() {
+  if (state.perf) {
+    document.getElementById('infoFps').textContent = state.perf.fpsAvg.toFixed(1);
+    document.getElementById('infoFrame').textContent = state.perf.frame;
+    document.getElementById('infoMs').textContent = state.perf.frameMs.toFixed(2);
+  }
+  if (state.ecs) {
+    document.getElementById('infoWorlds').textContent = state.ecs.worlds.length;
+    document.getElementById('infoEntities').textContent = state.ecs.worlds.reduce((a, w) => a + w.entityCount, 0);
+  }
+  if (state.stat) {
+    document.getElementById('infoSize').textContent = `${state.stat.w}×${state.stat.h}`;
+  }
+}
+function renderHome() {
+  if (state.perf) {
+    document.getElementById('homeFps').textContent = state.perf.fpsAvg.toFixed(1);
+    document.getElementById('homeMs').textContent = state.perf.frameMs.toFixed(2);
+    drawSpark('homeFpsSpark', state.fpsSeries, { color: '#4ade80', minY: 0, targetY: 60 });
+    drawSpark('homeMsSpark',  state.msSeries.slice(-60), { color: '#fbbf24', minY: 0, targetY: 16.67, warnY: 33.33 });
+  }
+  if (state.ecs) {
+    document.getElementById('homeEntities').textContent = state.ecs.worlds.reduce((a, w) => a + w.entityCount, 0);
+  }
+  document.getElementById('homeLogs').textContent = state.logs.length;
+  if (state.runtime) {
+    const mb = (state.runtime.totalMemoryBytes / (1024 * 1024)).toFixed(1);
+    document.getElementById('homeMem').textContent = mb;
+    document.getElementById('homeMemMeta').textContent = `working set: ${state.runtime.workingSetMB} MB`;
+    const rt = state.runtime;
+    document.getElementById('homeGc').textContent = `${rt.gen0Collections}/${rt.gen1Collections}/${rt.gen2Collections}`;
+    document.getElementById('homeGcMeta').textContent = `threads: ${rt.threadCount}`;
+  }
+  renderHomeAlerts();
+  renderHomeActivity();
+}
+
+function drawSpark(id, series, opts) {
+  const svg = document.getElementById(id);
+  if (!svg || !series.length) return;
+  const w = 200, h = 34;
+  let max = opts.targetY ?? 0;
+  for (const v of series) if (v > max) max = v;
+  max = Math.max(max, 0.001);
+  const step = w / (series.length - 1);
+  let d = '';
+  for (let i = 0; i < series.length; i++) {
+    const x = i * step;
+    const y = h - Math.min(h, (series[i] / max) * h);
+    d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+  }
+  const guide = opts.targetY ? `<line x1="0" x2="${w}" y1="${h - h * opts.targetY / max}" y2="${h - h * opts.targetY / max}" stroke="rgba(255,255,255,0.15)" stroke-dasharray="2 2"/>` : '';
+  const warn = opts.warnY ? `<line x1="0" x2="${w}" y1="${h - h * opts.warnY / max}" y2="${h - h * opts.warnY / max}" stroke="rgba(248,113,113,0.25)" stroke-dasharray="2 2"/>` : '';
+  svg.innerHTML = `${guide}${warn}<path d="${d}" fill="none" stroke="${opts.color}" stroke-width="1.4"/>`;
+}
+
+function renderHomeAlerts() {
+  const el = document.getElementById('homeAlerts');
+  const badges = [];
+  // 接続状態
+  const connected = document.getElementById('statConn').textContent !== 'disconnected';
+  badges.push(connected
+    ? { cls: 'ok', text: '● connected' }
+    : { cls: 'err', text: '● disconnected' });
+  // paused
+  if (state.paused) badges.push({ cls: 'paused', text: '⏸ PAUSED' });
+  // Failed resources
+  const failed = resNodes.filter(n => n.status === 'Failed').length;
+  const loading = resNodes.filter(n => n.status === 'Loading').length;
+  if (failed) badges.push({ cls: 'err',  text: `${failed} resource(s) failed` });
+  if (loading) badges.push({ cls: 'warn', text: `${loading} loading` });
+  // FPS 低下
+  if (state.perf && state.perf.fpsAvg > 0 && state.perf.fpsAvg < 30)
+    badges.push({ cls: 'warn', text: `low FPS: ${state.perf.fpsAvg.toFixed(0)}` });
+  if (state.perf && state.perf.frameMs > 33.33)
+    badges.push({ cls: 'warn', text: `slow frame: ${state.perf.frameMs.toFixed(1)}ms` });
+  if (state.runtime) {
+    const memMB = state.runtime.totalMemoryBytes / (1024 * 1024);
+    if (memMB > 512) badges.push({ cls: 'warn', text: `high heap: ${memMB.toFixed(0)} MB` });
+    if (state.runtime.gen2Collections > 5) badges.push({ cls: 'info', text: `Gen2 GC: ${state.runtime.gen2Collections}` });
+  }
+  el.innerHTML = badges.map(b => `<span class="alert-badge ${b.cls}">${escapeHtml(b.text)}</span>`).join('');
+}
+
+function renderHomeActivity() {
+  const el = document.getElementById('homeActivity');
+  const recent = state.logs.slice(-5).reverse();
+  if (!recent.length) { el.innerHTML = '<div class="empty">no activity yet</div>'; return; }
+  el.innerHTML = recent.map(l =>
+    `<div class="row"><span class="ts">${(l.ts/1000).toFixed(2)}s</span><span class="kind" title="${escapeHtml(l.kind)}">${escapeHtml(l.kind)}</span><span class="text" title="${escapeHtml(l.text)}">${escapeHtml(l.text)}</span></div>`
+  ).join('');
+}
+function renderStatus() {
+  if (state.perf) {
+    document.getElementById('statFps').textContent = state.perf.fpsAvg.toFixed(1);
+    document.getElementById('statFrame').textContent = state.perf.frame;
+  }
+  if (state.ecs) {
+    document.getElementById('statEnts').textContent = state.ecs.worlds.reduce((a, w) => a + w.entityCount, 0);
+  }
+}
+
+function renderConsole() {
+  const el = document.getElementById('consoleLog');
+  const filter = state.logFilter.trim().toLowerCase();
+  const list = filter ? state.logs.filter(l => l.kind.toLowerCase().includes(filter) || l.text.toLowerCase().includes(filter))
+                      : state.logs;
+  el.innerHTML = list.slice(-200).map(l =>
+    `<div class="log-entry"><span class="ts">${(l.ts/1000).toFixed(2)}s</span><span class="kind">${escapeHtml(l.kind)}</span><span class="text">${escapeHtml(l.text)}</span></div>`
+  ).join('');
+  el.scrollTop = el.scrollHeight;
+}
+document.getElementById('logFilter').addEventListener('input', ev => { state.logFilter = ev.target.value; renderConsole(); });
+document.getElementById('btnClearLog').onclick = () => { state.logs = []; renderConsole(); };
+
+let rgLast = null;
+async function loadRg() {
+  const j = await (await fetch('/rendergraph')).json();
+  rgLast = j;
+  renderRg();
+}
+document.getElementById('btnLoadRg').onclick = loadRg;
+document.getElementById('btnLoadRgRaw').onclick = () => {
+  const raw = document.getElementById('rgView');
+  const viz = document.getElementById('rgViz');
+  const show = raw.style.display === 'none';
+  raw.style.display = show ? 'block' : 'none';
+  viz.style.display = show ? 'none' : 'block';
+  if (show && rgLast) raw.textContent = JSON.stringify(rgLast, null, 2);
+};
+
+function renderRg() {
+  const viz = document.getElementById('rgViz');
+  const sum = document.getElementById('rgSummary');
+  if (!rgLast || !rgLast.passes) {
+    viz.innerHTML = '<div style="color:var(--fg-muted);font-size:12px;">no RenderGraph data (click Refresh after a frame is rendered)</div>';
+    sum.textContent = '';
+    return;
+  }
+  const passes = rgLast.passes;
+  const resources = rgLast.resources || [];
+  const total = passes.length, culled = passes.filter(p => p.culled).length;
+  sum.textContent = `${total} passes (${culled} culled, ${rgLast.executedPassCount ?? total - culled} exec) ─ ${resources.length} resources, ${rgLast.physicalTransientCount ?? 0} physical transient slots`;
+  viz.innerHTML = renderRgPasses(passes, resources) + renderRgLifetime(passes, resources);
+}
+
+function renderRgPasses(passes, resources) {
+  const resById = new Map(resources.map(r => [r.id, r]));
+  const nameOf = ids => (ids || []).map(id => resById.get(id)?.name || `#${id}`).join(', ');
+  const rows = passes.map(p => {
+    const cls = p.culled ? 'culled' : '';
+    return `
+      <div class="cell ${cls}">${p.index}</div>
+      <div class="cell ${cls}"><span class="badge queue-${escapeHtml(p.queue)}">${escapeHtml(p.queue)}</span>${escapeHtml(p.name)}${p.culled ? ' <span class="badge cull">CULLED</span>' : ''}</div>
+      <div class="cell ${cls}">R×${p.reads?.length || 0}<br>W×${p.writes?.length || 0}</div>
+      <div class="cell ${cls}" title="${escapeHtml(nameOf(p.reads))}">${escapeHtml(nameOf(p.reads)) || '—'}</div>
+      <div class="cell ${cls}" title="${escapeHtml(nameOf(p.writes))}">${escapeHtml(nameOf(p.writes)) || '—'}</div>`;
+  }).join('');
+  return `<div class="rg-section">
+    <h3>Passes (exec order)</h3>
+    <div class="rg-passes">
+      <div class="head">#</div><div class="head">Pass</div><div class="head">R/W</div><div class="head">Reads</div><div class="head">Writes</div>
+      ${rows}
+    </div>
+  </div>`;
+}
+
+function renderRgLifetime(passes, resources) {
+  if (!resources.length || !passes.length) return '';
+  const colW = 60, rowH = 22, leftPad = 160, topPad = 26, bottomPad = 6;
+  const width = leftPad + passes.length * colW + 20;
+  const height = topPad + resources.length * rowH + bottomPad;
+  const bars = resources.map((r, ri) => {
+    const y = topPad + ri * rowH + 4;
+    const first = r.firstWritePass ?? 0;
+    const last = r.lastReadPass ?? first;
+    const xs = leftPad + first * colW + 2;
+    const xe = leftPad + (last + 1) * colW - 2;
+    const w = Math.max(colW - 4, xe - xs);
+    const kindCls = r.kind === 'Transient' ? 'bar-transient' : (r.kind === 'Imported' ? 'bar-imported' : 'bar-external');
+    const aliasCls = r.isAliased ? ' bar-aliased' : '';
+    const slotTag = r.physicalSlot >= 0 ? `<text class="slot-tag" x="${xs + w/2}" y="${y + rowH - 12}">slot ${r.physicalSlot}</text>` : '';
+    return `
+      <text class="label" x="6" y="${y + (rowH - 8) / 2}">${escapeHtml(r.name)} <tspan style="fill:var(--fg-muted)">(${escapeHtml(r.kind)})</tspan></text>
+      <rect class="bar ${kindCls}${aliasCls}" x="${xs}" y="${y}" width="${w}" height="${rowH - 10}" rx="2"/>
+      ${slotTag}`;
+  }).join('');
+  const cols = passes.map((p, i) => {
+    const x = leftPad + i * colW;
+    return `
+      <line class="gridline" x1="${x + colW}" y1="${topPad - 4}" x2="${x + colW}" y2="${height - 2}" />
+      <text class="colhead ${p.culled ? 'culled-h' : ''}" x="${x + colW/2}" y="${topPad - 8}">${escapeHtml(p.name)}${p.culled ? ' ✕' : ''}</text>`;
+  }).join('');
+  const leftLine = `<line class="gridline" x1="${leftPad}" y1="${topPad - 4}" x2="${leftPad}" y2="${height - 2}"/>`;
+  return `<div class="rg-section">
+    <h3>Resource lifetime</h3>
+    <div class="rg-lifetime">
+      <svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
+        ${leftLine}${cols}${bars}
+      </svg>
+      <div style="margin-top: 6px; font-size: 10px; color: var(--fg-muted); font-family: Consolas, monospace;">
+        <span style="display:inline-block;width:12px;height:8px;background:#4b9eff;vertical-align:middle;margin-right:3px;"></span>External/Imported
+        &nbsp;&nbsp;<span style="display:inline-block;width:12px;height:8px;background:#fbbf24;opacity:.75;vertical-align:middle;margin-right:3px;"></span>Transient
+        &nbsp;&nbsp;<span style="display:inline-block;width:12px;height:8px;border:1px dashed #f87171;vertical-align:middle;margin-right:3px;"></span>Aliased (共有 physicalSlot)
+      </div>
+    </div>
+  </div>`;
+}
+let resNodes = [];
+let resFilter = '';
+async function loadResources() {
+  const j = await (await fetch('/resources')).json();
+  resNodes = j.nodes || [];
+  renderResources();
+}
+function renderResources() {
+  const el = document.getElementById('resList');
+  const summary = document.getElementById('resSummary');
+  const q = resFilter.trim().toLowerCase();
+  const filtered = q
+    ? resNodes.filter(n => (n.type + ' ' + n.uri).toLowerCase().includes(q))
+    : resNodes;
+  const counts = { Ready: 0, Loading: 0, Failed: 0 };
+  for (const n of resNodes) if (n.status in counts) counts[n.status]++;
+  summary.textContent = `${resNodes.length} total ─ ${counts.Ready} ready / ${counts.Loading} loading / ${counts.Failed} failed  (showing ${filtered.length})`;
+  if (!filtered.length) {
+    el.innerHTML = '<div style="grid-column: 1/-1; color: var(--fg-muted); font-size: 12px;">no matching resources</div>';
+    return;
+  }
+  el.innerHTML = filtered.map(n => `
+    <div class="res-card">
+      <div class="hdr">
+        <span class="type" title="${escapeHtml(n.type)}">${escapeHtml(shortType(n.type))}</span>
+        <span class="status ${statusCls(n.status)}">${escapeHtml(n.status)}</span>
+      </div>
+      <div class="uri" title="${escapeHtml(n.uri)}">${escapeHtml(n.uri || '(no uri)')}</div>
+      <div class="meta">
+        <span class="k">step</span><span class="v" title="${escapeHtml(n.step)}">${escapeHtml(n.step || '—')}</span>
+        <span class="k">exec</span><span class="v">${escapeHtml(n.executor || '—')}</span>
+        <span class="k">rev</span><span class="v">v${n.version}</span>
+        ${n.inputs && n.inputs.length ? `<span class="k">deps</span><span class="v">${n.inputs.length}</span>` : ''}
+      </div>
+    </div>`).join('');
+}
+function statusCls(s) { return (s || '').toLowerCase(); }
+function shortType(t) { const i = t.lastIndexOf('.'); return i > 0 ? t.substring(i + 1) : t; }
+document.getElementById('btnLoadRes').onclick = loadResources;
+document.getElementById('resFilter').addEventListener('input', ev => { resFilter = ev.target.value; renderResources(); });
+document.getElementById('btnPause').onclick = () => sendCmd(state.paused ? 'engine.resume' : 'engine.pause');
+document.getElementById('btnStep').onclick = () => sendCmd('engine.step');
+
+function renderPauseUi() {
+  const btn = document.getElementById('btnPause');
+  btn.textContent = state.paused ? '▶ Resume' : '⏸ Pause';
+  btn.classList.toggle('active', state.paused);
+  const s = document.getElementById('statConn');
+  if (state.paused) s.textContent = 'PAUSED';
+}
+
+document.getElementById('btnScreenshot').onclick = () => {
+  const c = document.getElementById('frameCanvas');
+  const link = document.createElement('a'); link.download = 'frame.png'; link.href = c.toDataURL(); link.click();
+};
+
+async function exportSession() {
+  // 各エンドポイントを並列に叩いて 1 つの JSON にまとめる。エラーが出た項目は null で置く。
+  const fetchJson = async url => {
+    try { const r = await fetch(url); return r.ok ? await r.json() : null; }
+    catch { return null; }
+  };
+  const [perf, ecs, surfaces, input, rg, resources, tree] = await Promise.all([
+    fetchJson('/perf'),
+    fetchJson('/ecs'),
+    fetchJson('/surfaces'),
+    fetchJson('/input'),
+    fetchJson('/rendergraph'),
+    fetchJson('/resources'),
+    fetchJson('/tree'),
+  ]);
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    origin: location.origin,
+    poll: { paused: state.paused, stat: state.stat, frameRev: state.frameRev, treeRev: state.treeRev,
+            perfRev: state.perfRev, ecsRev: state.ecsRev, surfacesRev: state.surfacesRev, inputRev: state.inputRev },
+    perf, ecs, surfaces, input, rendergraph: rg, resources, tree,
+    logs: state.logs,
+  };
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  a.href = url; a.download = `luxel-session-${ts}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function getVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function escapeHtml(s) { return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+// ============== Command palette ==============
+const paletteCommands = [
+  { label: 'Go to: Home',        hint: 'Home dashboard',    run: () => switchTab('home') },
+  { label: 'Go to: Perf',        hint: 'FPS + phases + systems', run: () => switchTab('perf') },
+  { label: 'Go to: ECS',         hint: 'World/Entity inspector', run: () => switchTab('ecs') },
+  { label: 'Go to: Surfaces',    hint: 'UiSurface panel',   run: () => switchTab('surfaces') },
+  { label: 'Go to: Input',       hint: 'InputStack panel',  run: () => switchTab('input') },
+  { label: 'Go to: Audio',       hint: 'AudioBus / Source',  run: () => switchTab('audio') },
+  { label: 'Go to: UI Tree',     hint: 'Widget tree JSON',  run: () => switchTab('tree') },
+  { label: 'Go to: RenderGraph', hint: 'Frame graph JSON',  run: () => switchTab('rg') },
+  { label: 'Go to: Resources',   hint: 'Resource load JSON', run: () => switchTab('resources') },
+  { label: 'Go to: Console',     hint: 'Log ring',          run: () => switchTab('console') },
+  { label: 'Engine: Pause',      hint: 'engine.pause',      run: () => sendCmd('engine.pause') },
+  { label: 'Engine: Resume',     hint: 'engine.resume',     run: () => sendCmd('engine.resume') },
+  { label: 'Engine: Step frame', hint: 'engine.step (F10)', run: () => sendCmd('engine.step') },
+  { label: 'Clear logs',         hint: 'reset console log', run: () => { state.logs = []; renderConsole(); } },
+  { label: 'Save screenshot',    hint: 'Download current frame as PNG', run: () => document.getElementById('btnScreenshot').click() },
+  { label: 'Export session',     hint: 'Download all diag as JSON', run: () => exportSession() },
+  { label: 'Fetch RenderGraph',  hint: 'Refresh /rendergraph', run: () => document.getElementById('btnLoadRg').click() },
+  { label: 'Fetch Resources',    hint: 'Refresh /resources', run: () => document.getElementById('btnLoadRes').click() },
+];
+
+let paletteFiltered = [];
+let paletteSel = 0;
+
+function switchTab(name) {
+  const t = document.querySelector(`#tabbar .tab[data-tab="${name}"]`);
+  if (t) t.click();
+}
+
+function openPalette() {
+  const p = document.getElementById('palette');
+  p.classList.add('open');
+  const inp = document.getElementById('paletteInput');
+  inp.value = '';
+  updatePalette('');
+  setTimeout(() => inp.focus(), 0);
+}
+function closePalette() {
+  document.getElementById('palette').classList.remove('open');
+}
+function updatePalette(q) {
+  const ql = q.trim().toLowerCase();
+  paletteFiltered = ql
+    ? paletteCommands.filter(c => c.label.toLowerCase().includes(ql) || c.hint.toLowerCase().includes(ql))
+    : paletteCommands;
+  paletteSel = 0;
+  renderPaletteList();
+}
+function renderPaletteList() {
+  const list = document.getElementById('paletteList');
+  if (!paletteFiltered.length) { list.innerHTML = '<div class="empty">no match</div>'; return; }
+  list.innerHTML = paletteFiltered.map((c, i) =>
+    `<div class="item${i === paletteSel ? ' sel' : ''}" data-i="${i}">
+      <span class="label">${escapeHtml(c.label)}</span>
+      <span class="hint">${escapeHtml(c.hint)}</span>
+    </div>`).join('');
+  list.querySelectorAll('.item').forEach(el => {
+    el.onmouseenter = () => { paletteSel = +el.dataset.i; renderPaletteList(); };
+    el.onclick = () => runPaletteSel();
+  });
+}
+function runPaletteSel() {
+  const c = paletteFiltered[paletteSel];
+  if (!c) return;
+  closePalette();
+  c.run();
+}
+
+document.addEventListener('keydown', ev => {
+  const isMac = navigator.platform.toLowerCase().includes('mac');
+  if ((isMac ? ev.metaKey : ev.ctrlKey) && ev.key.toLowerCase() === 'k') {
+    ev.preventDefault(); openPalette(); return;
+  }
+  // F10 = step frame (palette 外で有効; input 要素にフォーカス中は除く)
+  const inField = ['INPUT','TEXTAREA'].includes(document.activeElement?.tagName);
+  if (!inField && ev.key === 'F10') { ev.preventDefault(); sendCmd('engine.step'); return; }
+  if (!document.getElementById('palette').classList.contains('open')) return;
+  if (ev.key === 'Escape') { ev.preventDefault(); closePalette(); }
+  else if (ev.key === 'ArrowDown') { ev.preventDefault(); paletteSel = Math.min(paletteFiltered.length - 1, paletteSel + 1); renderPaletteList(); }
+  else if (ev.key === 'ArrowUp') { ev.preventDefault(); paletteSel = Math.max(0, paletteSel - 1); renderPaletteList(); }
+  else if (ev.key === 'Enter') { ev.preventDefault(); runPaletteSel(); }
+});
+document.getElementById('paletteInput').addEventListener('input', ev => updatePalette(ev.target.value));
+document.getElementById('palette').addEventListener('click', ev => { if (ev.target.id === 'palette') closePalette(); });
+
+poll();
+// Home alerts が失敗/読込中の集計を出せるよう起動時に 1 回リソースをフェッチ
+setTimeout(loadResources, 500);
+
+// Runtime metrics を 1 秒ごとにフェッチ (30 frame 間隔で emit されるので同程度でよい)
+async function pollRuntime() {
+  try {
+    const j = await (await fetch('/runtime')).json();
+    if (j && typeof j.totalMemoryBytes === 'number') state.runtime = j;
+  } catch { }
+  setTimeout(pollRuntime, 1000);
+}
+setTimeout(pollRuntime, 700);
+</script>

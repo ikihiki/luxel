@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel\Luxel.csproj" />
+    <ProjectReference Include="..\Luxel.Vulkan\Luxel.Vulkan.csproj" />
+    <ProjectReference Include="..\Luxel.D3D12\Luxel.D3D12.csproj" />
+    <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj" />
+    <ProjectReference Include="..\Luxel.Ecs.Signal\Luxel.Ecs.Signal.csproj" />
+    <ProjectReference Include="..\Luxel.Assets\Luxel.Assets.csproj" />
+    <ProjectReference Include="..\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\Luxel.Gltf\Luxel.Gltf.csproj" />
+    <ProjectReference Include="..\Luxel.Scene.UI\Luxel.Scene.UI.csproj" />
+    <ProjectReference Include="..\Luxel.TwoD\Luxel.TwoD.csproj" />
+    <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
+    <ProjectReference Include="..\Luxel.Controls\Luxel.Controls.csproj" />
+    <ProjectReference Include="..\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\Luxel.DevTools\Luxel.DevTools.csproj" />
+    <ProjectReference Include="..\Luxel.DevTools.App\Luxel.DevTools.App.csproj" />
+    <ProjectReference Include="..\Luxel.Animation\Luxel.Animation.csproj" />
+    <ProjectReference Include="..\Luxel.Animation.UI\Luxel.Animation.UI.csproj" />
+    <ProjectReference Include="..\Luxel.Animation.ThreeD\Luxel.Animation.ThreeD.csproj" />
+    <ProjectReference Include="..\Luxel.Animation.TwoD\Luxel.Animation.TwoD.csproj" />
+    <ProjectReference Include="..\Luxel.RenderGraph\Luxel.RenderGraph.csproj" />
+    <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\Luxel.Input\Luxel.Input.csproj" />
+    <ProjectReference Include="..\Luxel.Audio\Luxel.Audio.csproj" />
+    <ProjectReference Include="..\Luxel.Framework\Luxel.Framework.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>   <!-- Platform(net9.0-windows) 参照のため -->
+  </PropertyGroup>
+
+  <!-- glTF 系 Sample 70-86 は Asset*/AssetRuntime 再構成 (direct-ref 化) 途上のため一時除外。個別に移行後 Remove を外す。 -->
+  <ItemGroup>
+    <Compile Remove="Sample70SceneDocument.cs" />
+    <Compile Remove="Sample71GltfBox.cs" />
+    <Compile Remove="Sample72GltfAnimated.cs" />
+    <Compile Remove="Sample73SceneSkinning.cs" />
+    <Compile Remove="Sample75BoneEditor.cs" />
+    <Compile Remove="Sample76GltfBoxRender.cs" />
+    <Compile Remove="Sample77GltfAnimatedRender.cs" />
+    <Compile Remove="Sample78AnimationUI.cs" />
+    <Compile Remove="Sample79BoneUI.cs" />
+    <Compile Remove="Sample80ResourceSystem.cs" />
+    <Compile Remove="Sample81AnimationControllerUI.cs" />
+    <Compile Remove="Sample82Composite3DAndUI.cs" />
+    <Compile Remove="Sample83GltfTextured.cs" />
+    <Compile Remove="Sample84MaterialEdit.cs" />
+    <Compile Remove="Sample85SkinnedAnimation.cs" />
+    <Compile Remove="Sample86SkinnedDrawable.cs" />
+  </ItemGroup>
+
+  <!-- Slang シェーダを SPIR-V にコンパイルして出力ディレクトリへ -->
+  <Import Project="..\..\shaders\Luxel.Shaders.targets" />
+
+</Project>

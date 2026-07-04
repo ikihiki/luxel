@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="10.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Luxel\Luxel.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.TwoD\Luxel.TwoD.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Controls\Luxel.Controls.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.DevTools\Luxel.DevTools.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Imaging\Luxel.Imaging.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Animation\Luxel.Animation.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Animation.UI\Luxel.Animation.UI.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Animation.ThreeD\Luxel.Animation.ThreeD.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Animation.TwoD\Luxel.Animation.TwoD.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Diagram\Luxel.Diagram.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.MathText\Luxel.MathText.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.RenderGraph\Luxel.RenderGraph.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Ecs\Luxel.Ecs.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Ecs.Signal\Luxel.Ecs.Signal.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Assets\Luxel.Assets.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Gltf\Luxel.Gltf.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Scene.UI\Luxel.Scene.UI.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Input\Luxel.Input.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Audio\Luxel.Audio.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Typography.Icu\Luxel.Typography.Icu.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Document\Luxel.Document.csproj" />
+    <!-- テスト用コンポーネント (TestBadge) にファクトリ/デバッグコードを焼き込む -->
+    <ProjectReference Include="..\..\src\Luxel.UI.Generators\Luxel.UI.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU" />
+  </ItemGroup>
+
+</Project>

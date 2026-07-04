@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <!-- 画像デコード (ImageSharp) を Resource システムの step として提供する。
+         ImageSharp 依存はこのプロジェクトに隔離 (Controls/Document には持ち込まない)。 -->
+    <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,20 @@
+{
+  "profiles": {
+    "Gallery (vk)": {
+      "commandName": "Project",
+      "commandLineArgs": "vk 5180"
+    },
+    "Gallery (dx)": {
+      "commandName": "Project",
+      "commandLineArgs": "dx 5180"
+    },
+    "Snapshot verify (vk)": {
+      "commandName": "Project",
+      "commandLineArgs": "vk snap"
+    },
+    "Snapshot update (vk)": {
+      "commandName": "Project",
+      "commandLineArgs": "vk snap --update"
+    }
+  }
+}

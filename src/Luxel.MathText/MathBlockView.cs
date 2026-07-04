@@ -1,0 +1,60 @@
+using Luxel.TwoD;
+using Luxel.UI;
+
+namespace Luxel.MathText;
+
+/// <summary>
+/// ブロック数式 (<c>$$...$$</c>) の描画 widget。<see cref="TexParser"/> → <see cref="MathLayoutEngine"/>
+/// で組版し、グリフ (VectorFont) + ストローク (分数線/根号/括弧) を 1 つの Scene2D に描く。
+/// 色はテーマ Text の recolor のみ。使える幅に収まらないときは等比縮小。
+/// </summary>
+[UiComponent]
+public sealed partial class MathBlockView : Widget
+{
+    private readonly string _source;
+    private readonly float _px;
+    private readonly float _maxW;
+    private MathNode? _node;
+    private MathBox _box;
+    private float _scale = 1f;
+
+    [UiCtor]
+    internal MathBlockView(string source, float fontSize = 20f, float maxWidth = 0)
+    {
+        _source = source ?? "";
+        _px = fontSize;
+        _maxW = maxWidth;
+    }
+
+    public override string? DebugDetail => _source.Length <= 24 ? _source : _source[..24] + "…";
+
+    private MathLayoutEngine Engine(LayoutContext ctx) =>
+        new((t, px) => ctx.Font.Measure(t, px), px => ctx.Font.Ascent(px));
+
+    protected override void PerformLayout(Constraints c, LayoutContext ctx)
+    {
+        _node ??= TexParser.Parse(_source.Replace("\n", " ").Trim());
+        _box = Engine(ctx).Measure(_node, _px);
+        float availW = _maxW > 0 ? _maxW : c.MaxW;
+        _scale = !float.IsInfinity(availW) && availW > 0 && _box.W > availW ? availW / _box.W : 1f;
+        Size = c.Constrain(new Size(_box.W * _scale, _box.H * _scale));
+    }
+
+    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => _box.W;
+
+    protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
+    {
+        UiNode root = CreateRoot(ctx, parent, worldOrigin);
+        if (_node is null) return;
+        float s = _scale;
+        var scene = new Scene2D();
+        var engine = new MathLayoutEngine(
+            (t, px) => ctx.Font.Measure(t, px),
+            px => ctx.Font.Ascent(px));
+        engine.Draw(_node, 0, _box.Base * s, _px * s,
+            text: (t, x, baseY, px) => ctx.Font.AppendText(scene, t, x, baseY, px, Color2D.White),
+            line: (x1, y1, x2, y2, w) => scene.StrokeLine(Color2D.White, w * s, x1, y1, x2, y2));
+        root.Content = scene;
+        ctx.Effect(() => root.Color = ctx.Theme.Value.Text);
+    }
+}

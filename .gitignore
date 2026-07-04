@@ -1,0 +1,11 @@
+# ビルド成果物
+bin/
+obj/
+.vs/
+*.user
+
+# Slang/DXC ツールチェーン (slang-llvm.dll が 110MB — GitHub の 100MB 制限超) — README のセットアップ参照
+tools/
+
+# snap 回帰の一時出力 (golden 本体はコミットする)
+*.actual.png

@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="wwwroot\**" />
+    <EmbeddedResource Remove="wwwroot\**" />
+    <None Remove="wwwroot\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.DevTools\Luxel.DevTools.csproj" />
+    <ProjectReference Include="..\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\Luxel\Luxel.csproj" />
+    <ProjectReference Include="..\Luxel.Vulkan\Luxel.Vulkan.csproj" />
+    <ProjectReference Include="..\Luxel.D3D12\Luxel.D3D12.csproj" />
+    <ProjectReference Include="..\Luxel.TwoD\Luxel.TwoD.csproj" />
+    <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
+    <ProjectReference Include="..\Luxel.Controls\Luxel.Controls.csproj" />
+    <ProjectReference Include="..\Luxel.Imaging\Luxel.Imaging.csproj" />
+    <ProjectReference Include="..\Luxel.Animation\Luxel.Animation.csproj" />
+    <ProjectReference Include="..\Luxel.Animation.UI\Luxel.Animation.UI.csproj" />
+    <ProjectReference Include="..\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
+    <ProjectReference Include="..\Luxel.Diagram\Luxel.Diagram.csproj" />
+    <ProjectReference Include="..\Luxel.MathText\Luxel.MathText.csproj" />
+    <!-- [Story] 収集 + コントロールの生成ファクトリ/デバッグ焼き込み -->
+    <ProjectReference Include="..\Luxel.UI.Generators\Luxel.UI.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Luxel.Samples\PngWriter.cs" Link="PngWriter.cs" />
+  </ItemGroup>
+
+  <!-- Slang シェーダ (Rasterizer2D 用) -->
+  <Import Project="..\..\shaders\Luxel.Shaders.targets" />
+
+</Project>

@@ -1,0 +1,56 @@
+<Project>
+  <!--
+    Slang シェーダを SPIR-V (Vulkan) と DXIL (D3D12) の両方にオフラインコンパイルし、
+    出力ディレクトリの shaders/ にコピーする。1 ソースから両形式を直接出力する。
+    DXIL 出力には dxcompiler.dll / dxil.dll が slangc.exe の隣に必要。
+    注意: $(OutDir) は静的評価時には空なので、Target 属性/Exec 内でのみ参照する。
+  -->
+  <PropertyGroup>
+    <SlangcPath Condition="'$(SlangcPath)' == ''">$(MSBuildThisFileDirectory)..\tools\slang\bin\slangc.exe</SlangcPath>
+    <SlangSpirvProfile Condition="'$(SlangSpirvProfile)' == ''">spirv_1_6</SlangSpirvProfile>
+    <SlangDxilProfile Condition="'$(SlangDxilProfile)' == ''">sm_6_6</SlangDxilProfile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- SPIR-V は全シェーダ。DXIL は compute と graphics で分けてコンパイルする。
+         compute シェーダ = compute*.slang と raster2d_*.slang。それ以外は graphics(vs/ps)。 -->
+    <SlangShader Include="$(MSBuildThisFileDirectory)*.slang" />
+    <SlangDxilShader Include="$(MSBuildThisFileDirectory)compute*.slang" />
+    <SlangDxilShader Include="$(MSBuildThisFileDirectory)raster2d_*.slang" />
+    <SlangGraphicsShader Include="$(MSBuildThisFileDirectory)*.slang"
+        Exclude="$(MSBuildThisFileDirectory)compute*.slang;$(MSBuildThisFileDirectory)raster2d_*.slang" />
+  </ItemGroup>
+
+  <Target Name="CompileSlangSpirv"
+          BeforeTargets="Build"
+          Inputs="@(SlangShader)"
+          Outputs="@(SlangShader->'$(OutDir)shaders\%(Filename).spv')">
+    <Error Condition="!Exists('$(SlangcPath)')" Text="slangc が見つかりません: $(SlangcPath)" />
+    <MakeDir Directories="$(OutDir)shaders" />
+    <Message Importance="high" Text="Slang -> SPIR-V: %(SlangShader.Filename).slang" />
+    <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangShader.FullPath)&quot; -target spirv -emit-spirv-directly -profile $(SlangSpirvProfile) -force-glsl-scalar-layout -fvk-use-entrypoint-name -o &quot;$(OutDir)shaders\%(SlangShader.Filename).spv&quot;" />
+  </Target>
+
+  <Target Name="CompileSlangDxil"
+          BeforeTargets="Build"
+          Inputs="@(SlangDxilShader)"
+          Outputs="@(SlangDxilShader->'$(OutDir)shaders\%(Filename).dxil')">
+    <Error Condition="!Exists('$(SlangcPath)')" Text="slangc が見つかりません: $(SlangcPath)" />
+    <MakeDir Directories="$(OutDir)shaders" />
+    <Message Importance="high" Text="Slang -> DXIL: %(SlangDxilShader.Filename).slang" />
+    <!-- validator-version 1.7: DXC 既定の検証版は OS ランタイムより新しく PSO 生成で拒否されるため下げる。
+         -Xdxc は -entry/-stage を明示しないと適用されない。現状 D3D12 シェーダは compute/main のみ。 -->
+    <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangDxilShader.FullPath)&quot; -target dxil -profile $(SlangDxilProfile) -fvk-use-entrypoint-name -entry main -stage compute -Xdxc -validator-version -Xdxc 1.7 -o &quot;$(OutDir)shaders\%(SlangDxilShader.Filename).dxil&quot;" />
+  </Target>
+
+  <Target Name="CompileSlangGraphicsDxil"
+          BeforeTargets="Build"
+          Inputs="@(SlangGraphicsShader)"
+          Outputs="@(SlangGraphicsShader->'$(OutDir)shaders\%(Filename).vs.dxil')">
+    <Error Condition="!Exists('$(SlangcPath)')" Text="slangc が見つかりません: $(SlangcPath)" />
+    <MakeDir Directories="$(OutDir)shaders" />
+    <Message Importance="high" Text="Slang -> DXIL(vs/ps): %(SlangGraphicsShader.Filename).slang" />
+    <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangGraphicsShader.FullPath)&quot; -target dxil -profile $(SlangDxilProfile) -fvk-use-entrypoint-name -entry vsMain -stage vertex -Xdxc -validator-version -Xdxc 1.7 -o &quot;$(OutDir)shaders\%(SlangGraphicsShader.Filename).vs.dxil&quot;" />
+    <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangGraphicsShader.FullPath)&quot; -target dxil -profile $(SlangDxilProfile) -fvk-use-entrypoint-name -entry psMain -stage pixel -Xdxc -validator-version -Xdxc 1.7 -o &quot;$(OutDir)shaders\%(SlangGraphicsShader.Filename).ps.dxil&quot;" />
+  </Target>
+</Project>

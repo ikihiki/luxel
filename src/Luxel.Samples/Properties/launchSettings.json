@@ -1,0 +1,24 @@
+{
+  "profiles": {
+    "Sample (vk)": {
+      "commandName": "Project",
+      "commandLineArgs": "vk 01"
+    },
+    "Sample (dx)": {
+      "commandName": "Project",
+      "commandLineArgs": "dx 01"
+    },
+    "DevTools preview (vk 94)": {
+      "commandName": "Project",
+      "commandLineArgs": "vk 94 5173 600"
+    },
+    "MultiWindow remote (vk 95)": {
+      "commandName": "Project",
+      "commandLineArgs": "vk 95 5175 600"
+    },
+    "MultiWindow TSF test (vk 95 tsf)": {
+      "commandName": "Project",
+      "commandLineArgs": "vk 95 tsf"
+    }
+  }
+}

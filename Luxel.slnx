@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Luxel.Animation.TwoD/Luxel.Animation.TwoD.csproj" />
+    <Project Path="src/Luxel.UI.Tailwind/Luxel.UI.Tailwind.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+</Solution>

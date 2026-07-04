@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "devtools",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/Luxel.Samples", "-c", "Debug", "--", "vk", "20", "live"],
+      "port": 5173
+    },
+    {
+      "name": "gallery",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/Luxel.Gallery", "--no-build", "--", "vk", "5181"],
+      "port": 5181
+    }
+  ]
+}

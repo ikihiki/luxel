@@ -1,0 +1,294 @@
+using Luxel.Animation;
+using Luxel.TwoD;
+using Luxel.UI;
+
+namespace Luxel.Controls;
+
+/// <summary>
+/// 文字列行のリスト (固定行高、ホイール + サムでスクロール、クリック選択)。**仮想化 (AP-M3)**:
+/// 実体化するノードは可視行数 + 1 の固定プールだけで、スクロール/<see cref="Items"/> 差し替えは
+/// プールへの**再バインド** (Content 再代入 = canvas の in-place 部分更新) — ノード数は行数にも
+/// スクロールにも依存せず、構造 dirty は発生しない (10 万行でもノードは数十個)。
+/// スクロール位置はフィールドなので再実体化をまたいで生き残る。
+/// 行ごとに Effect は作らない — 色は Realize 時の単一 Effect が全行へ流す。
+/// </summary>
+[UiComponent]
+public sealed partial class ListView : Widget
+{
+    private readonly float _height, _rowH;
+    private IReadOnlyList<string> _items = [];
+    private readonly Signal<float> _offset = new(0);
+    private readonly Signal<int> _selected = new(-1);
+    private readonly Signal<int> _version = new(0);   // items 差し替え毎に進める (サム等の再評価用)
+
+    /// <summary>行データ。<see cref="Signal{T}"/> を渡せば値の差し替えがそのまま反映される
+    /// (参照が変わった時だけ再バインド — 選択解除 + スクロールはクランプ)。</summary>
+    [UiParam] public readonly Bindable<IReadOnlyList<string>> Items = new();
+
+    /// <summary>行クリックで呼ばれる (index)。(EV: 第一引数は発火元の ListView 自身)</summary>
+    [UiEvent] public UiEvent<ListView, int> OnSelect;
+
+    /// <summary>行の D&D 並べ替えを許可する (QP-M4)。ドロップで <see cref="OnReorder"/> が呼ばれる —
+    /// 呼び出し側が並べ替えた列を <see cref="Items"/> の signal へ入れ直す (このコントロールはデータを所有しない)。</summary>
+    public bool AllowReorder { get; set; }
+    /// <summary>並べ替えドロップ (from 行, 挿入先 index — from 除去**前**の位置)。</summary>
+    [UiEvent] public UiEvent<ListView, int, int> OnReorder;
+
+    /// <summary>並べ替えドラッグのペイロード (ドロップ先の自己判定用)。</summary>
+    public sealed record ReorderDrag(ListView Owner, int Index, string Text);
+
+    /// <summary>行テキスト色。未設定 → テーマ TextMuted。</summary>
+    [UiParam(Stateable = true)] public readonly Bindable<uint> TextColor = new();
+    /// <summary>選択行の地色。未設定 → テーマ SurfaceAlt。</summary>
+    [UiParam(Stateable = true)] public readonly Bindable<uint> SelectedColor = new();
+    /// <summary>行テキストサイズ。未設定 → テーマ FontSm。</summary>
+    [UiParam] public readonly Bindable<float> FontSize = new();
+
+    private const float DefaultWidth = 240f;
+    private float W = DefaultWidth;   // PerformLayout で解決 (% / em / vw 対応)
+    private float Fs => FontSize.Or(_ctx!.Theme.Value.FontSm);
+
+    // 実体化状態 (SetRoot 再実体化で作り直される)
+    private UiBuildContext? _ctx;
+    private UiNode? _clip, _content, _highlight, _thumb;
+    private readonly List<UiNode> _rowNodes = new();   // 固定プール (可視行数 + 1)
+    private int[] _boundIdx = [];                       // プール各ノードが表示中の行 index (-2 = 未バインド)
+    private string?[] _boundText = [];                  // 同、表示中のテキスト (参照比較)
+    private uint _rowColor = Color2D.White;
+    private float _fs, _textY;                          // Realize で解決 (items 差し替え時の再予約に使う)
+
+    [UiCtor]
+    internal ListView(float height, float rowHeight = 18f)
+    {
+        _height = MathF.Max(1, height);
+        _rowH = MathF.Max(8, rowHeight);
+    }
+
+    public int SelectedIndex => _selected.Value;
+    public override string? DebugDetail => $"{Items.Or(_items).Count} 行";
+
+    private float ContentH => _items.Count * _rowH;
+    private float MaxScroll => MathF.Max(0, ContentH - _height);
+    private float Clamped() => Math.Clamp(_offset.Value, 0, MaxScroll);
+
+    /// <summary>最長行のエンコードサイズをプール全ノードの最低予約にする — 行毎の glyph 数の揺れを
+    /// in-place で受け、スクロール中のフル再構築を防ぐ (予約は次のフル再構築で反映される)。</summary>
+    private void ReservePool()
+    {
+        if (_ctx is null || _rowNodes.Count == 0 || _items.Count == 0) return;
+        string longest = "";
+        foreach (string s in _items) if (s.Length > longest.Length) longest = s;
+        var sc = new Scene2D();
+        _ctx.Font.AppendText(sc, longest, 0, _textY, _fs, Color2D.White);
+        (int segs, int paths) = sc.CountEncoded();
+        // 文字数が同じでも字形により線分/パス数は揺れるため 25% 上乗せ
+        foreach (UiNode r in _rowNodes) r.ReserveContent(segs * 5 / 4, paths * 5 / 4);
+    }
+
+    protected override void PerformLayout(Constraints c, LayoutContext ctx)
+    {
+        W = ResolveW(c, ctx, DefaultWidth);
+        Size = c.Constrain(new Size(W, _height));
+    }
+
+    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => ResolveWIntrinsic(ctx, DefaultWidth);
+
+    protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
+    {
+        _ctx = ctx;
+        _rowNodes.Clear();   // 再実体化 (旧ノードは SetRoot が破棄済み)
+
+        UiNode node = CreateRoot(ctx, parent, worldOrigin);
+
+        _clip = node;
+        node.Clip = new RectClip(0, 0, W, _height);
+
+        // 選択ハイライト (行の背面)
+        _highlight = ctx.Canvas.AddChild(node);
+        var hs = new Scene2D();
+        hs.FillRoundedRect(Color2D.White, 0, 0, W - 10, _rowH, 2);
+        _highlight.Content = hs;
+        ctx.Effect(() => _highlight!.Color = SelectedColor.Or(ctx.Theme.Value.SurfaceAlt));
+
+        // 行コンテナ (スクロールは transform) + 仮想化プール (可視行数 + 1 の固定ノード)
+        _content = ctx.Canvas.AddChild(node);
+        _content.Z = 1;
+        int pool = (int)MathF.Ceiling(_height / _rowH) + 1;
+        _boundIdx = new int[pool];
+        _boundText = new string?[pool];
+        for (int j = 0; j < pool; j++)
+        {
+            _boundIdx[j] = -2;
+            _rowNodes.Add(ctx.Canvas.AddChild(_content));
+        }
+        // スムーズスクロール (AS-M3): _offset は目標、表示は動的状態 "wheel"/"drag" で追従
+        // (drag は table で 0ms = 直接操作は即時)
+        UiStates scroll = ctx.States(new TransitionTable()
+            .On("offset", new TransitionSpec(0.12f))
+            .To("drag", new TransitionSpec(0f)));
+        scroll.Start("idle", ("offset", Clamped()));
+        string src = "wheel";
+        ctx.Effect(() => scroll.Goto(src, ("offset", Clamped())));
+        ctx.Effect(() => _content!.Transform = Affine2D.Translate(0, -scroll.Float("offset")));
+        // 選択強調 (AS-M3): 行間の移動は動的状態 "selected" のスライド、消灯は "none"。
+        // スクロール追従は表示オフセット同期 (アニメ項と分離)
+        UiStates sel = ctx.States(new TransitionTable().Default(new TransitionSpec(0.12f)));
+        float lastY = MathF.Max(0, _selected.Peek()) * _rowH;
+        sel.Start(_selected.Peek() >= 0 ? "selected" : "none", ("y", lastY), ("on", _selected.Peek() >= 0 ? 1f : 0f));
+        ctx.Effect(() =>
+        {
+            int s = _selected.Value;
+            if (s >= 0) { lastY = s * _rowH; sel.Goto("selected", ("y", lastY), ("on", 1f)); }
+            else sel.Goto("none", ("y", lastY), ("on", 0f));   // 位置は保ったまま消灯
+        });
+        ctx.Effect(() =>   // 選択強調の位置 (content と同じ座標系に置くため子にする方が素直だが、Z 順のため transform 合成)
+        {
+            _highlight!.Opacity = sel.Float("on");
+            _highlight.Transform = Affine2D.Translate(4, sel.Float("y") - scroll.Float("offset") + 1);
+        });
+
+        // 行テキスト色は単一 Effect で全行へ (行ごとに Effect を作らない)
+        ctx.Effect(() =>
+        {
+            _rowColor = TextColor.Or(ctx.Theme.Value.TextMuted);
+            foreach (UiNode r in _rowNodes) r.Color = _rowColor;
+        });
+
+        // 再バインド: スクロール (_offset) / データ差し替え (_version) で可視範囲をプールへ流し込む。
+        // 表示中の (index, テキスト) が同じノードは触らない — 1 行スクロールなら差し替えは 1 ノード。
+        float fs = _fs = Fs;
+        float textY = _textY = (_rowH - ctx.Font.Measure("Mg", fs).height) / 2 + ctx.Font.Ascent(fs);
+        // items 同期: Items (signal 可) の参照が変わったら選択解除 + 再予約 + 再バインド
+        ctx.Effect(() =>
+        {
+            IReadOnlyList<string> items = Items.Or([]);
+            if (ReferenceEquals(items, _items)) return;
+            _items = items;
+            _selected.Value = -1;
+            ReservePool();
+            _offset.Value = Math.Clamp(_offset.Value, 0, MaxScroll);
+            _version.Value++;   // 再バインド + サム再評価
+        });
+        ReservePool();
+        ctx.Effect(() =>
+        {
+            _ = _version.Value;
+            int first = (int)(scroll.Float("offset") / _rowH);   // 表示オフセット基準 — 滑走中も可視範囲を欠かさない
+            for (int j = 0; j < _rowNodes.Count; j++)
+            {
+                int idx = first + j;
+                string? text = idx < _items.Count ? _items[idx] : null;
+                UiNode r = _rowNodes[j];
+                r.Transform = Affine2D.Translate(8, idx * _rowH);
+                if (_boundIdx[j] == idx && ReferenceEquals(_boundText[j], text)) continue;
+                _boundIdx[j] = idx;
+                _boundText[j] = text;
+                var s = new Scene2D();
+                if (text is not null) ctx.Font.AppendText(s, text, 0, textY, fs, Color2D.White);
+                r.Content = s;
+                r.Color = _rowColor;
+            }
+        });
+
+        // サム (ScrollViewer と同じ流儀)。高さは内容量依存なので _version でジオメトリも作り直す
+        _thumb = ctx.Canvas.AddChild(node);
+        _thumb.Z = 2;
+        ctx.Effect(() => _thumb!.Color = ctx.Theme.Value.BorderColor);
+        ctx.Effect(() => { _ = _version.Value; UpdateThumbGeometry(); });
+        ctx.Effect(() =>
+        {
+            _ = _version.Value;
+            float frac = MaxScroll > 0 ? scroll.Float("offset") / MaxScroll : 0;
+            _thumb!.Opacity = MaxScroll > 0 ? 1f : 0f;
+            _thumb.Transform = Affine2D.Translate(0, frac * (_height - ThumbH()));
+        });
+
+        // 入力: 行クリック=選択、ホイール、サムのドラッグ (トラック帯を前面で拾う)
+        const float trackW = 6, pad = 2, grabW = trackW + pad * 2 + 6;
+        void SelectAt(float ly)
+        {
+            int i = (int)((ly + scroll.Float("offset")) / _rowH);   // 見えている位置でヒット (滑走中も一致)
+            if (i >= 0 && i < _items.Count) { _selected.Value = i; OnSelect.Invoke(this, i); }
+        }
+        if (!AllowReorder)
+        {
+            ctx.AddHit(node, new Rect(0, 0, W - grabW, _height), onClickPos: (_, ly) => SelectAt(ly));
+        }
+        else
+        {
+            // D&D 並べ替え (QP-M4): 4px 動いたらドラッグへ昇格、動かなければクリック (選択)。
+            // 挿入位置インジケータは行境界に置く 2px ライン (ドラッグ中のみ表示)。
+            UiNode indicator = ctx.Canvas.AddChild(node);
+            indicator.Z = 3;
+            var ind = new Scene2D();
+            ind.FillRect(Color2D.White, 4, -1, W - grabW - 8, 2);
+            indicator.Content = ind;
+            indicator.Opacity = 0f;
+            ctx.Effect(() => indicator.Color = ctx.Theme.Value.Primary);
+            int InsertIndexAt(float ly) => Math.Clamp((int)MathF.Round((ly + scroll.Float("offset")) / _rowH), 0, _items.Count);
+
+            float pressX = 0, pressY = 0; int pressIdx = -1; bool started = false;
+            ctx.AddHit(node, new Rect(0, 0, W - grabW, _height),
+                onDragStart: (lx, ly) =>
+                {
+                    pressX = lx; pressY = ly; started = false;
+                    int i = (int)((ly + scroll.Float("offset")) / _rowH);
+                    pressIdx = i >= 0 && i < _items.Count ? i : -1;
+                },
+                onDrag: (lx, ly) =>
+                {
+                    if (started || pressIdx < 0 || _ctx?.Host is null) return;
+                    if (MathF.Abs(lx - pressX) + MathF.Abs(ly - pressY) <= 4) return;
+                    started = true;
+                    string text = _items[pressIdx];
+                    var ghost = new Scene2D();
+                    ghost.FillRoundedRect(_ctx.Theme.Peek().SurfaceAlt, 0, 0, W - grabW, _rowH + 4, 4);
+                    _ctx.Font.AppendText(ghost, text, 8, _textY + 2, _fs, _ctx.Theme.Peek().Text);
+                    _ctx.Host.BeginDrag(new ReorderDrag(this, pressIdx, text), ghost, grabX: pressX, grabY: _rowH / 2);
+                },
+                onDragEnd: (_, ly) => { if (!started && pressIdx >= 0) SelectAt(ly); },
+                acceptsDrop: p => p is ReorderDrag d && d.Owner == this,
+                onDropHover: h => { if (!h) indicator.Opacity = 0f; },
+                onDropMove: (_, _, ly) =>
+                {
+                    indicator.Opacity = 1f;
+                    indicator.Transform = Affine2D.Translate(0, InsertIndexAt(ly) * _rowH - scroll.Float("offset"));
+                },
+                onDrop: (p, _, ly) =>
+                {
+                    indicator.Opacity = 0f;
+                    if (p is ReorderDrag d && d.Owner == this) OnReorder.Invoke(this, d.Index, InsertIndexAt(ly));
+                });
+        }
+        float grabOffset = 0;
+        void SetFromThumbTop(float top)
+        {
+            src = "drag";   // 直接操作 — table の To("drag") = 0ms で即時
+            _offset.Value = Math.Clamp(top / MathF.Max(1, _height - ThumbH()), 0, 1) * MaxScroll;
+        }
+        ctx.AddHit(node, new Rect(W - grabW, 0, grabW, _height),
+            onDragStart: (_, ly) =>
+            {
+                if (MaxScroll <= 0) return;
+                float thumbTop = Clamped() / MaxScroll * (_height - ThumbH());
+                bool onThumb = ly >= thumbTop && ly <= thumbTop + ThumbH();
+                grabOffset = onThumb ? ly - thumbTop : ThumbH() / 2;
+                SetFromThumbTop(ly - grabOffset);
+            },
+            onDrag: (_, ly) => { if (MaxScroll > 0) SetFromThumbTop(ly - grabOffset); });
+        ctx.AddScroll(node, new Rect(0, 0, W, _height),
+            d => _offset.Value = Math.Clamp(_offset.Value - d, 0, MaxScroll));
+    }
+
+    private float ThumbH() => MathF.Max(24, ContentH > 0 ? _height * _height / MathF.Max(_height, ContentH) : _height);
+
+    /// <summary>サムの形状 (高さは内容量依存 = ジオメトリなので items 差し替え毎に作り直す)。</summary>
+    private void UpdateThumbGeometry()
+    {
+        if (_thumb is null) return;
+        const float trackW = 6, pad = 2;
+        var ts = new Scene2D();
+        ts.FillRoundedRect(Color2D.White, W - trackW - pad, 0, trackW, ThumbH(), trackW / 2);
+        _thumb.Content = ts;
+    }
+}
