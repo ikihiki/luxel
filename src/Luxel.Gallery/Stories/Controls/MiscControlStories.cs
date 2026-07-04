@@ -46,6 +46,12 @@ public static class MiscControlStories
     [Story("Spinner/Basic", Height = 160)]
     public static Widget SpinnerBasic() => Frame(Spinner(36f));
 
+    [Story("LinkText/Basic", Height = 180)]
+    public static Widget LinkTextBasic(StoryContext ctx) => Frame(VStack(8)[
+        LinkText(_ => ctx.Log("link click"), "クリックできるリンク"),
+        LinkText(_ => { }, "アクティブ状態 (active: true)", active: true),
+        LinkText(_ => { }, "色とホバー色の指定", color: Tw.Red500, hoverColor: Tw.Amber500)]);
+
     [Story("Icon/Kinds", Height = 160)]
     public static Widget IconKinds() => Frame(HStack(10)[
         Icon(IconKind.Check), Icon(IconKind.Close), Icon(IconKind.ChevronDown), Icon(IconKind.ChevronRight),

@@ -26,6 +26,40 @@ public static class LayoutControlStories
             Box(background: Tw.Amber500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4)).GridColumn(1),
             Box(background: Tw.Green500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4)).GridColumn(2)]];
 
+    [Story("Splitter/Basic", Height = 240)]
+    public static Widget SplitterBasic(StoryContext ctx) =>
+        // 実アプリではドラッグ量 d でレイアウト変数を更新して chrome を再構築する
+        // (GalleryApp のサイドバー/Log/右パネルがこの形)。ここでは delta を Log に流すのみ
+        Frame(HStack(0)[
+            Box(background: Tw.Blue500, rounded: 6, width: 170, height: 160),
+            Splitter(vertical: true, onResized: (_, d) => ctx.Log($"drag {d:+0.0;-0.0}px")),
+            Box(background: Tw.Amber500, rounded: 6, width: 170, height: 160)]);
+
+    [Story("TreeView/Basic", Height = 320)]
+    public static Widget TreeViewBasic(StoryContext ctx)
+    {
+        // Key は展開/選択の永続キー (再構築をまたいで一意なパス文字列)。
+        // Tag != null の子持ちノードはラベルクリック = 選択 + 展開、開閉はシェブロン
+        List<TreeNode> roots =
+        [
+            new("docs", "Docs",
+            [
+                new("docs/gpu", "GPU",
+                [
+                    new("docs/gpu/device", "GpuDevice", Tag: "page"),
+                    new("docs/gpu/2d", "TwoD", Tag: "page"),
+                ]),
+                new("docs/ui", "UI", [new("docs/ui/controls", "Controls", Tag: "page")]),
+            ]),
+            new("samples", "Samples", [new("samples/gltf", "GltfBox", Tag: "page")]),
+        ];
+        Signal<string> selected = new("docs/gpu/device");
+        var expanded = new HashSet<string> { "docs", "docs/gpu" };
+        return Frame(TreeView(roots, expanded: expanded,
+            onSelect: (_, n) => { selected.Value = n.Key; ctx.Log($"select {n.Key}"); },
+            selected: selected, width: 280));
+    }
+
     [Story("ScrollViewer/Basic", Height = 240)]
     public static Widget ScrollBasic()
     {

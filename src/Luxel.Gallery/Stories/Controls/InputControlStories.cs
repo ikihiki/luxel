@@ -14,6 +14,19 @@ public static class InputControlStories
     [Story("Button/Primary", Height = 160)]
     public static Widget ButtonPrimary() => Frame(Button(_ => { }, "Click me"));
 
+    // ---- ColorPicker ----
+
+    [Story("ColorPicker/Basic", Height = 280)]
+    public static Widget ColorPickerBasic(StoryContext ctx)
+    {
+        Signal<uint> color = new(Tw.Blue500);
+        return Frame(VStack(12)[
+            ColorPicker(color),
+            HStack(10)[
+                Box(background: color, rounded: 8, width: 44, height: 44),
+                Label("選択色は Signal<uint> に反映される")]]);
+    }
+
     [Story("Button/Variants", Height = 160)]
     public static Widget ButtonVariants() => Frame(HStack(8)[
         Button(_ => { }, "Filled"),
