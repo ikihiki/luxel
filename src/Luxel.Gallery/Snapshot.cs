@@ -1,4 +1,4 @@
-using Luxel.Samples;
+using Luxel.DevTools;
 using Luxel.UI;
 
 namespace Luxel.Gallery;
@@ -34,11 +34,10 @@ public static class Snapshot
 
             // golden はバックエンド別 (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)
             string file = Path.Combine(dir, Sanitize(story.Path) + $".{backend}.png");
-            byte[] png = EncodePng(snap.Value.w, snap.Value.h, snap.Value.rgba);
 
             if (update)
             {
-                File.WriteAllBytes(file, png);
+                Png.Write(file, snap.Value.w, snap.Value.h, snap.Value.rgba);
                 updated++;
                 Console.WriteLine($"  UPDATE {story.Path}");
                 continue;
@@ -51,12 +50,12 @@ public static class Snapshot
                 continue;
             }
 
-            byte[] golden = File.ReadAllBytes(file);
-            if (golden.AsSpan().SequenceEqual(png)) { passed++; continue; }
+            // 比較はピクセル (デコード済み RGBA) — PNG エンコーダが変わっても描画不変なら pass
+            if (PixelsEqual(File.ReadAllBytes(file), snap.Value)) { passed++; continue; }
 
             failed++;
             string actual = Path.Combine(dir, Sanitize(story.Path) + $".{backend}.actual.png");
-            File.WriteAllBytes(actual, png);
+            Png.Write(actual, snap.Value.w, snap.Value.h, snap.Value.rgba);
             Console.Error.WriteLine($"  DIFF {story.Path} → {Path.GetFileName(actual)}");
         }
 
@@ -66,15 +65,18 @@ public static class Snapshot
         return update || failed == 0 ? 0 : 1;
     }
 
-    private static byte[] EncodePng(int w, int h, byte[] rgba)
+    private static bool PixelsEqual(byte[] goldenPng, (byte[] rgba, int w, int h) snap)
     {
-        string tmp = Path.GetTempFileName();
         try
         {
-            PngWriter.WriteRgba(tmp, w, h, rgba);
-            return File.ReadAllBytes(tmp);
+            (byte[] rgba, int w, int h) = Png.Decode(goldenPng);
+            return w == snap.w && h == snap.h && rgba.AsSpan().SequenceEqual(snap.rgba);
         }
-        finally { File.Delete(tmp); }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine($"  WARN golden デコード失敗: {e.Message}");
+            return false;
+        }
     }
 
     private static string Sanitize(string path)

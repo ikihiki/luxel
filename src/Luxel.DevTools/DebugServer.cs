@@ -95,7 +95,7 @@ public sealed class DebugServer : IDisposable
         if (png)
         {
             int w = BitConverter.ToInt32(body, 0), h = BitConverter.ToInt32(body, 4);
-            byte[] data = Luxel.Samples.PngWriter.ToBytes(w, h, body.AsSpan(8));
+            byte[] data = Png.Encode(w, h, body.AsSpan(8));
             ctx.Response.ContentType = "image/png";
             ctx.Response.OutputStream.Write(data, 0, data.Length);
         }

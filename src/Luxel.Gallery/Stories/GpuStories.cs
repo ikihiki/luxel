@@ -5,6 +5,7 @@ using Luxel.TwoD;
 using Luxel.UI;
 using Luxel.UI.Tailwind;
 using static Luxel.Controls.Kit;
+using static Luxel.Gallery.Stories.StoryKit;
 
 namespace Luxel.Gallery.Stories;
 
@@ -17,13 +18,9 @@ namespace Luxel.Gallery.Stories;
 /// </summary>
 public static class GpuStories
 {
-    private static Border Frame(Widget child) =>
-        Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(24))
-            [Center()[child]];
-
     // ---- 2D: Scene2D 直描き ----
 
-    [Story("2D/Shapes", Height = 300)]
+    [Story("2D/Shapes", Height = 300, Order = 100)]
     public static Widget Shapes() => Frame(Canvas2D(384, 220, draw: s =>
     {
         s.FillRoundedRect(Tw.Blue500, 16, 16, 140, 90, 14);
@@ -35,7 +32,7 @@ public static class GpuStories
             new System.Numerics.Vector2(280, 190), new System.Numerics.Vector2(370, 130));
     }));
 
-    [Story("2D/Orbit", Height = 300)]
+    [Story("2D/Orbit", Height = 300, Order = 101)]
     public static Widget Orbit(StoryContext ctx)
     {
         Signal<float> speed = ctx.Signal("speed", 1f, "軌道アニメの速度倍率");
@@ -53,10 +50,10 @@ public static class GpuStories
 
     // ---- 3D: offscreen 自前レンダ → image 合成 ----
 
-    [Story("3D/Triangle", Height = 320)]
+    [Story("3D/Triangle", Height = 320, Order = 110)]
     public static Widget Triangle() => Frame(GpuView(320, 240, new TriangleScene()));
 
-    [Story("3D/TexturedQuad", Height = 320)]
+    [Story("3D/TexturedQuad", Height = 320, Order = 111)]
     public static Widget TexturedQuad(StoryContext ctx)
         => Frame(GpuView(320, 240, new TexturedScene(ctx.Resources), animated: false));
 

@@ -137,7 +137,7 @@ public static class LiveCodeStory
         public void Dispose() => _playing = false;   // ブロック削除/差し替え/ツリー破棄で停止
     }
 
-    [Story("LiveCode/StrudelLike", Height = 520)]
+    [Story("LiveCode/StrudelLike", Height = 520, Order = 2030)]
     public static Widget StrudelLike(StoryContext ctx)
     {
         // フォーマット + widget 解釈を対で構成 — 専用フォーマットは解釈を固定して配布する形の実例
@@ -154,12 +154,8 @@ public static class LiveCodeStory
             "-- ここに数列を打って Enter:\n");
 
         RichTextEditor ed = RichTextEditor(src, height: 420, format: format, widgets: widgets);
-        ed.Fonts = JpFallbackShared;
+        ed.Fonts = StoryKit.JpFallback.Value;
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(24))
             [Center()[ed]];
     }
-
-    /// <summary>ControlStories の JpFallback を共有 (別クラスからは internal アクセスできないため再構築)。</summary>
-    private static readonly Luxel.Typography.FontCollection JpFallbackShared =
-        new(Luxel.Typography.VectorFont.LoadSystem(), Luxel.Typography.VectorFont.LoadSystemJapanese());
 }

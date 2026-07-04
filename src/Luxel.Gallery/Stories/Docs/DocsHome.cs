@@ -1,54 +1,17 @@
 using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
+using static Luxel.Gallery.Stories.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
 /// <summary>
-/// MDX 風 docs ページ (Storybook Docs 相当) のストーリー。<see cref="Kit.Docs"/> +
+/// MDX 風 docs ページ (Storybook Docs 相当) — 入門章。<see cref="Kit.Docs"/> +
 /// 補完文字列で markdown の文章にライブ UI / 他ストーリーの埋め込みを混ぜる。
 /// サイズは領域いっぱい (プレビュー全面 = 800×480)。
 /// </summary>
-public static class DocsStories
+public static class DocsHome
 {
-    /// <summary>他ストーリーの埋め込み (Storybook の <c>&lt;Story of=... /&gt;</c> 相当)。
-    /// docs ページの <paramref name="ctx"/> で実体化するので Log/knob は docs ページに合流する。
-    /// <paramref name="knobs"/> = true でストーリーの下に Knobs テーブル (autodoc の Controls 相当) を
-    /// 出す — **この Build が登録した knob だけ** (登録数の前後差分で切り出す)。
-    /// ソース表示は <see cref="StorySource"/> (生 markdown hole) を隣に置く。
-    /// パス不明はエラーカード (ページ全体は落とさない)。</summary>
-    private static Widget StoryRef(StoryContext ctx, string path, bool knobs = false)
-    {
-        StoryInfo? s = StoryRegistry.Find(path);
-        if (s is null)
-            return VStack(6)[
-                Text(path, 12, color: Bind.From(() => UiTheme.T.TextMuted)),
-                Alert($"ストーリーが見つかりません: {path}", Intent.Danger)];
-
-        int before = ctx.Knobs.Count;
-        Widget body = s.Build(ctx);
-        var parts = new List<Widget>
-        {
-            Text(path, 12, color: Bind.From(() => UiTheme.T.TextMuted)),
-            body,
-        };
-        if (knobs)
-        {
-            StoryKnob[] mine = ctx.Knobs.Skip(before).ToArray();
-            parts.Add(Divider());
-            parts.Add(KnobsTable(mine, width: 640,
-                onEdit: (_, k, v) => ctx.QueueKnobEdit(k, v)));
-        }
-        return VStack(6)[parts.ToArray()];
-    }
-
-    /// <summary>ストーリーの C# ソース (storysource — ジェネレーターが焼き込み) をコードフェンスとして
-    /// 差し込む生 markdown hole。ページ本体のシンタックスハイライトがそのまま効く。</summary>
-    private static DocMarkdown StorySource(string path)
-        => StoryRegistry.Find(path) is { Source.Length: > 0 } s
-            ? new DocMarkdown($"```csharp\n{s.Source}\n```")
-            : new DocMarkdown($"```\n(ソースなし: {path})\n```");
-
     private const string SampleImage = "src/Luxel.Gallery/goldens/Sparkline_Basic.vk.png";
 
     // TeX の { } は $""" の補間と衝突するため、$$ ブロックのデモは生 markdown hole で差し込む
@@ -126,55 +89,5 @@ public static class DocsStories
             > テキスト hole (Signal や値) は構築時の値が焼き込まれます。
             """, toc: true, fences: DocsFences);
         return WithDocFonts(doc);   // 日本語/絵文字フォールバック + ハイライト + mermaid widget
-    }
-
-    [Story("Docs/Button", Width = 800, Height = 480, Order = 1)]
-    public static Widget ButtonDocs(StoryContext ctx) => WithDocFonts(Docs(ctx, $"""
-        # Button
-
-        ボタンは **Variant × Intent × 状態** から配色を解決します。未指定のプロパティは
-        テーマ値へフォールバックし、hover/press はトランジション (状態機械) で補間されます。
-
-        ## Variant (形)
-
-        > [!TIP]
-        > 下の実例のすぐ下に `StorySource` で**実際のストーリーソース**を出しています
-        > (ジェネレーターが焼き込むため、手書きコピーの乖離が起きません)。
-
-        {StoryRef(ctx, "Button/Variants")}
-
-        {StorySource("Button/Variants")}
-
-        ## Intent (意味色)
-
-        {StoryRef(ctx, "Button/Intents")}
-
-        ## 使い方
-
-        ```csharp
-        Button(_ => ctx.Log("clicked"), "OK", variant: Variant.Tonal, intent: Intent.Success)
-        ```
-
-        コールバックの第一引数は**発火元の Button 自身** (sender-first 規約) です。
-        入門は [GettingStarted](story:Docs/GettingStarted) へ。
-
-        ## API
-
-        {ApiTable("Button")}
-        """, toc: true, fences: DocsFences));
-
-    /// <summary>docs ページ共通のフェンス拡張 (```mermaid → Luxel.Diagram)。</summary>
-    internal static readonly Luxel.Document.IFenceResolver[] DocsFences =
-        [Luxel.Diagram.MermaidFenceResolver.Instance];
-
-    private static RichTextEditor WithDocFonts(RichTextEditor doc)
-    {
-        doc.Fonts = ControlStories.JpFallback.Value;
-        doc.Highlighter = Luxel.Highlight.TextMateHighlighter.Instance;
-        doc.Widgets.Register("mermaid", bc => Luxel.Diagram.Factories.DiagramBlock(
-            ((Luxel.Document.FencePayload)bc.Payload).Body, bc.MaxWidth));
-        doc.Widgets.Register("math", bc => Luxel.MathText.Factories.MathBlockView(
-            ((Luxel.Document.MathPayload)bc.Payload).Source, maxWidth: bc.MaxWidth));
-        return doc;
     }
 }

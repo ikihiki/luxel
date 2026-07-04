@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>Luxel.MathText (ブロック数式の組版) のストーリー — 描画回帰用。</summary>
 public static class MathStories
 {
-    [Story("Math/Basic", Height = 300)]
+    [Story("Math/Basic", Height = 300, Order = 2010)]
     public static Widget Basic() =>
         Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(24))[
             VStack(20)[

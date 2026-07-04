@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 /// 右パネルの Knobs テーブルから編集すると即座に反映される (KT/KT2 の実演 + E2E 用)。</summary>
 public static class KnobStories
 {
-    [Story("Knobs/Kinds", Height = 240)]
+    [Story("Knobs/Kinds", Height = 240, Order = 2000)]
     public static Widget Kinds(StoryContext ctx)
     {
         Signal<bool> visible = ctx.Signal("visible", true, "チップの表示 (false で淡色化)");
