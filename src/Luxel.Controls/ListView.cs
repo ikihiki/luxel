@@ -17,9 +17,9 @@ public sealed partial class ListView : Widget
 {
     private readonly float _height, _rowH;
     private IReadOnlyList<string> _items = [];
-    private readonly Signal<float> _offset = new(0);
+    private readonly ScrollModel _scroll = new();     // 位置はフィールド — 再実体化をまたいで生き残る
     private readonly Signal<int> _selected = new(-1);
-    private readonly Signal<int> _version = new(0);   // items 差し替え毎に進める (サム等の再評価用)
+    private readonly Signal<int> _version = new(0);   // items 差し替え毎に進める (再バインドの再評価用)
 
     /// <summary>行データ。<see cref="Signal{T}"/> を渡せば値の差し替えがそのまま反映される
     /// (参照が変わった時だけ再バインド — 選択解除 + スクロールはクランプ)。</summary>
@@ -50,7 +50,7 @@ public sealed partial class ListView : Widget
 
     // 実体化状態 (SetRoot 再実体化で作り直される)
     private UiBuildContext? _ctx;
-    private UiNode? _clip, _content, _highlight, _thumb;
+    private UiNode? _clip, _content, _highlight;
     private readonly List<UiNode> _rowNodes = new();   // 固定プール (可視行数 + 1)
     private int[] _boundIdx = [];                       // プール各ノードが表示中の行 index (-2 = 未バインド)
     private string?[] _boundText = [];                  // 同、表示中のテキスト (参照比較)
@@ -68,8 +68,6 @@ public sealed partial class ListView : Widget
     public override string? DebugDetail => $"{Items.Or(_items).Count} 行";
 
     private float ContentH => _items.Count * _rowH;
-    private float MaxScroll => MathF.Max(0, ContentH - _height);
-    private float Clamped() => Math.Clamp(_offset.Value, 0, MaxScroll);
 
     /// <summary>最長行のエンコードサイズをプール全ノードの最低予約にする — 行毎の glyph 数の揺れを
     /// in-place で受け、スクロール中のフル再構築を防ぐ (予約は次のフル再構築で反映される)。</summary>
@@ -121,14 +119,14 @@ public sealed partial class ListView : Widget
             _boundIdx[j] = -2;
             _rowNodes.Add(ctx.Canvas.AddChild(_content));
         }
-        // スムーズスクロール (AS-M3): _offset は目標、表示は動的状態 "wheel"/"drag" で追従
+        // スムーズスクロール (AS-M3): _scroll.Offset は目標、表示は動的状態 "wheel"/"drag" で追従
         // (drag は table で 0ms = 直接操作は即時)
         UiStates scroll = ctx.States(new TransitionTable()
             .On("offset", new TransitionSpec(0.12f))
             .To("drag", new TransitionSpec(0f)));
-        scroll.Start("idle", ("offset", Clamped()));
+        scroll.Start("idle", ("offset", _scroll.ClampedPeek));
         string src = "wheel";
-        ctx.Effect(() => scroll.Goto(src, ("offset", Clamped())));
+        ctx.Effect(() => scroll.Goto(src, ("offset", _scroll.Clamped)));
         ctx.Effect(() => _content!.Transform = Affine2D.Translate(0, -scroll.Float("offset")));
         // 選択強調 (AS-M3): 行間の移動は動的状態 "selected" のスライド、消灯は "none"。
         // スクロール追従は表示オフセット同期 (アニメ項と分離)
@@ -166,8 +164,8 @@ public sealed partial class ListView : Widget
             _items = items;
             _selected.Value = -1;
             ReservePool();
-            _offset.Value = Math.Clamp(_offset.Value, 0, MaxScroll);
-            _version.Value++;   // 再バインド + サム再評価
+            _scroll.SetLengths(ContentH, _height);   // 位置はクランプで追従、サムは signal 経由で再評価
+            _version.Value++;   // 再バインド
         });
         ReservePool();
         ctx.Effect(() =>
@@ -190,21 +188,8 @@ public sealed partial class ListView : Widget
             }
         });
 
-        // サム (ScrollViewer と同じ流儀)。高さは内容量依存なので _version でジオメトリも作り直す
-        _thumb = ctx.Canvas.AddChild(node);
-        _thumb.Z = 2;
-        ctx.Effect(() => _thumb!.Color = ctx.Theme.Value.BorderColor);
-        ctx.Effect(() => { _ = _version.Value; UpdateThumbGeometry(); });
-        ctx.Effect(() =>
-        {
-            _ = _version.Value;
-            float frac = MaxScroll > 0 ? scroll.Float("offset") / MaxScroll : 0;
-            _thumb!.Opacity = MaxScroll > 0 ? 1f : 0f;
-            _thumb.Transform = Affine2D.Translate(0, frac * (_height - ThumbH()));
-        });
-
         // 入力: 行クリック=選択、ホイール、サムのドラッグ (トラック帯を前面で拾う)
-        const float trackW = 6, pad = 2, grabW = trackW + pad * 2 + 6;
+        const float grabW = ScrollBars.GrabW;
         void SelectAt(float ly)
         {
             int i = (int)((ly + scroll.Float("offset")) / _rowH);   // 見えている位置でヒット (滑走中も一致)
@@ -260,35 +245,12 @@ public sealed partial class ListView : Widget
                     if (p is ReorderDrag d && d.Owner == this) OnReorder.Invoke(this, d.Index, InsertIndexAt(ly));
                 });
         }
-        float grabOffset = 0;
-        void SetFromThumbTop(float top)
-        {
-            src = "drag";   // 直接操作 — table の To("drag") = 0ms で即時
-            _offset.Value = Math.Clamp(top / MathF.Max(1, _height - ThumbH()), 0, 1) * MaxScroll;
-        }
-        ctx.AddHit(node, new Rect(W - grabW, 0, grabW, _height),
-            onDragStart: (_, ly) =>
-            {
-                if (MaxScroll <= 0) return;
-                float thumbTop = Clamped() / MaxScroll * (_height - ThumbH());
-                bool onThumb = ly >= thumbTop && ly <= thumbTop + ThumbH();
-                grabOffset = onThumb ? ly - thumbTop : ThumbH() / 2;
-                SetFromThumbTop(ly - grabOffset);
-            },
-            onDrag: (_, ly) => { if (MaxScroll > 0) SetFromThumbTop(ly - grabOffset); });
+        // サム (共通実装 — 表示はスムーズスクロールの動的値に追従、ドラッグは即時チャネル)
+        ScrollBars.AttachVertical(ctx, node, _scroll, W, _height,
+            displayOffset: () => scroll.Float("offset"),
+            onDirectChange: () => src = "drag",
+            minThumb: 24);
         ctx.AddScroll(node, new Rect(0, 0, W, _height),
-            d => _offset.Value = Math.Clamp(_offset.Value - d, 0, MaxScroll));
-    }
-
-    private float ThumbH() => MathF.Max(24, ContentH > 0 ? _height * _height / MathF.Max(_height, ContentH) : _height);
-
-    /// <summary>サムの形状 (高さは内容量依存 = ジオメトリなので items 差し替え毎に作り直す)。</summary>
-    private void UpdateThumbGeometry()
-    {
-        if (_thumb is null) return;
-        const float trackW = 6, pad = 2;
-        var ts = new Scene2D();
-        ts.FillRoundedRect(Color2D.White, W - trackW - pad, 0, trackW, ThumbH(), trackW / 2);
-        _thumb.Content = ts;
+            d => { src = "wheel"; _scroll.ScrollBy(-d); });
     }
 }

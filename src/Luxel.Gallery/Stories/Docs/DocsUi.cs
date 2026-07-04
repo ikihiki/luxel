@@ -106,6 +106,14 @@ public static class DocsUi
 
         > [!TIP]
         > 完全自前描画が要るときだけ従来どおり `Widget` を直接派生します。`[UiComponent] partial` を付ければ生成ファクトリ / DebugProps / knobs が自動で付きます。
+
+        ## スクロールの共通機構 (ScrollModel / ScrollBars)
+
+        スクロールを自前実装するコントロールは `ScrollModel` (クランプ・サム幾何・ドラッグ写像の計算) と `ScrollBars.AttachVertical` (サム描画 + ドラッグ配線) を使います — ScrollViewer / ListView / RichTextEditor は全部この機構の上にあります。
+
+        - **オフセットだけでなく内容長/ビューポート長も Signal** — `SetLengths(contentH, viewH)` を Refresh/レイアウトから毎回呼ぶ (同値なら発火しない)。幅変更で内容高が変わっても、`model.Clamped` を読む effect (content transform) が再実行され、**スクロール位置は保たれたまま**新しい範囲へクランプされる
+        - model を **フィールドで持てば再実体化をまたいで位置が生き残る**
+        - 平滑スクロール (UiStates) と併用するときは `displayOffset` に動的値、`onDirectChange` でドラッグの即時チャネルへ切り替える (ScrollViewer/ListView の形)
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/Styling", Order = 23)]

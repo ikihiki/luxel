@@ -22,13 +22,10 @@ public sealed partial class RichTextEditor : Widget, ITextInput
     private readonly Signal<string> _value;   // markdown
     private readonly DocumentEditor _ed = new();
     private readonly Signal<bool> _caretOn = new(true);
-    private readonly Signal<float> _scroll = new(0);
-    private UiNode? _barNode;    // スクロールバー thumb (内容が収まるときは透明)
-    private float _thumbH = -1;
+    private readonly ScrollModel _scroll = new();   // 位置はフィールド — 再実体化/幅変更をまたいで生き残る
 
     private const float DefaultWidth = 480f;
     private const float Pad = 12f;
-    private const float ThumbW = 6f, ThumbPad = 2f;   // スクロールバー (ScrollViewer と同寸)
     private float W = DefaultWidth;
     private readonly float _height;
     private float H;   // 実効高 (VAlign=Stretch なら領域いっぱい、それ以外は ctor の height)
@@ -176,8 +173,8 @@ public sealed partial class RichTextEditor : Widget, ITextInput
     public override string? DebugDetail => $"{_ed.Doc.Blocks.Count} ブロック";
 
     private float ContentH => (_views.Count > 0 ? _views[^1].Top + _views[^1].H : 0) + Pad;
-    private float MaxScroll => MathF.Max(0, ContentH - H);
-    private float Clamped() => Math.Clamp(_scroll.Value, 0, MaxScroll);
+    private float MaxScroll => _scroll.MaxScroll;
+    private float Clamped() => _scroll.Clamped;   // リアクティブ読み — 寸法変更でも effect が追従する
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
@@ -243,15 +240,6 @@ public sealed partial class RichTextEditor : Widget, ITextInput
         ctx.Effect(() => _caretNode.Color = _theme.Value.Primary);
         ctx.Effect(() => _caretNode.Opacity = !ReadOnly && Focused.Value && _caretOn.Value ? 1f : 0f);
 
-        // スクロールバー thumb: クリップの外 (_root 直下)。形は Refresh (内容高の変化)、
-        // 位置はスクロール effect が更新する。内容が収まるときは透明
-        _thumbH = -1;
-        _barNode = ctx.Canvas.AddChild(_root);
-        _barNode.Z = 2;
-        _barNode.Opacity = 0f;
-        ctx.Effect(() => _barNode.Color = _theme.Value.BorderColor);
-        ctx.Effect(() => { _ = _scroll.Value; UpdateScrollbar(); });
-
         // 色はキー経由の単一 Effect (ブロック毎に Effect を作らない)
         ctx.Effect(() =>
         {
@@ -308,8 +296,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
                 if (ReadOnly) ContextMenu.OpenForReadOnlyText(ctx, _root, lx, ly, f);
                 else ContextMenu.OpenForEditor(ctx, _root, lx, ly, f);
             });
-        ctx.AddScroll(_root, new Rect(0, 0, W, H),
-            d => _scroll.Value = Math.Clamp(Clamped() - d, 0, MaxScroll));
+        ctx.AddScroll(_root, new Rect(0, 0, W, H), d => _scroll.ScrollBy(-d));
 
         // ハイライト結果の到着ドレイン (SH): ワーカーの結果をキャッシュへ移し、該当ブロックだけ
         // 作り直す (KeyOf の |H が変わる)。ReadOnly でも動くよう caret 点滅とは別に登録する
@@ -329,24 +316,8 @@ public sealed partial class RichTextEditor : Widget, ITextInput
         Refresh();
         if (ReadOnly) RegisterLinkHits(ctx);   // 静的文書前提 (Refresh 1 回) — リンク run の矩形をヒット化
 
-        // スクロールバーのドラッグ (ScrollViewer と同じ流儀 — サム掴み / トラック押下はジャンプして
-        // そのまま掴む)。Refresh (埋め込み/リンクのヒット登録) より後に登録 = 右端の帯は前面勝ち
-        {
-            const float grabW = ThumbW + ThumbPad * 2 + 6;
-            float grabOffset = 0;
-            void SetFromThumbTop(float top)
-                => _scroll.Value = Math.Clamp(top / MathF.Max(1, H - _thumbH), 0, 1) * MaxScroll;
-            ctx.AddHit(_root, new Rect(W - grabW, 0, grabW, H),
-                onDragStart: (_, ly) =>
-                {
-                    if (MaxScroll <= 0 || _thumbH <= 0) return;
-                    float thumbTop = Clamped() / MaxScroll * (H - _thumbH);
-                    bool onThumb = ly >= thumbTop && ly <= thumbTop + _thumbH;
-                    grabOffset = onThumb ? ly - thumbTop : _thumbH / 2;
-                    SetFromThumbTop(ly - grabOffset);
-                },
-                onDrag: (_, ly) => { if (MaxScroll > 0 && _thumbH > 0) SetFromThumbTop(ly - grabOffset); });
-        }
+        // スクロールバー (共通実装)。Refresh (埋め込み/リンクのヒット登録) より後に登録 = 右端の帯は前面勝ち
+        ScrollBars.AttachVertical(ctx, _root, _scroll, W, H);
         ctx.Effect(() =>
         {
             string v = _value.Value;
@@ -359,7 +330,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
                 _synced = v;
                 _ed.SetBlocks(Format.Parse(v).Blocks);
                 _srcBlock = -1;   // 旧展開状態は無効 (新文書は整形状態) — Refresh の SyncHybrid が展開し直す
-                _scroll.Value = 0;
+                _scroll.ScrollTo(0);
                 Refresh();
             }
         });
@@ -419,7 +390,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
     public void ScrollTo(int block)
     {
         if (block < 0 || block >= _views.Count) return;
-        _scroll.Value = Math.Clamp(_views[block].Top, 0, MaxScroll);
+        _scroll.ScrollTo(_views[block].Top);
     }
 
     // ---- 検索ハイライト (SR) ----
@@ -513,7 +484,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
         // 既に見えているなら動かさない (上下端に少し余白を見て判定)
         float sc = Clamped();
         if (y - sc >= Pad && y + r.Height - sc <= H - Pad) return;
-        _scroll.Value = Math.Clamp(y - H / 3, 0, MaxScroll);
+        _scroll.ScrollTo(y - H / 3);
     }
 
     private static uint ColorFor(Theme t, int key) => key switch
@@ -950,31 +921,9 @@ public sealed partial class RichTextEditor : Widget, ITextInput
             RefreshSearch();
             if (_searchScrollPending) { _searchScrollPending = false; ScrollToCurrentMatch(); }
         }
-        _scroll.Value = Clamped();
-        UpdateScrollbar();   // 内容高が変わった可能性 — thumb の形/位置を合わせる
-    }
-
-    /// <summary>スクロールバー thumb の形と位置を現在の内容高に合わせる (Refresh とスクロールから)。
-    /// 内容がビューに収まるときは透明にする。</summary>
-    private void UpdateScrollbar()
-    {
-        if (_barNode is null) return;
-        float max = MaxScroll;
-        if (max <= 0)
-        {
-            _barNode.Opacity = 0f;
-            return;
-        }
-        _barNode.Opacity = 1f;
-        float th = MathF.Max(28, H * H / ContentH);
-        if (th != _thumbH)
-        {
-            _thumbH = th;
-            var s = new Scene2D();
-            s.FillRoundedRect(Color2D.White, W - ThumbW - ThumbPad, 0, ThumbW, th, ThumbW / 2);
-            _barNode.Content = s;
-        }
-        _barNode.Transform = Affine2D.Translate(0, Clamped() / max * (H - _thumbH));
+        // 寸法を model へ同期 — 内容高/実効高が変わっていれば、content transform と
+        // サム (ScrollBars) の effect が signal 経由で追い直す (幅変更でも位置が保たれる)
+        _scroll.SetLengths(ContentH, H);
     }
 
     private static int NextOrdinal(Dictionary<int, int> ordinals, Block b)
@@ -1034,7 +983,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
                 top += vj.H;
             }
             RefreshDecorations();
-            _scroll.Value = Clamped();
+            _scroll.SetLengths(ContentH, H);   // 埋め込みの高さ変化 — 位置はクランプで追従
             return true;
         }
         return false;   // 自分の embed ではない → さらに親へ
@@ -1268,13 +1217,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
     private int _hlStart, _hlLen, _hlTargetStart, _hlTargetLen;   // TSF display attribute 由来の装飾
 
     private void EnsureCaretVisible()
-    {
-        float top = _caretLocal.Y, bottom = _caretLocal.Y + _caretLocal.Height;
-        float s = Clamped();
-        if (top - s < Pad) s = MathF.Max(0, top - Pad);
-        else if (bottom - s > H - Pad) s = bottom - H + Pad;
-        _scroll.Value = Math.Clamp(s, 0, MaxScroll);
-    }
+        => _scroll.EnsureVisible(_caretLocal.Y, _caretLocal.Y + _caretLocal.Height, Pad);
 
     // ---- ITextInput (TSF/IME ブリッジ — 文書 = 現在ブロック) ----
     string ITextInput.Text => _ed.CurrentBlockText;
