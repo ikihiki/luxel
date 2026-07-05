@@ -4,6 +4,7 @@ using Luxel.TwoD;
 using Luxel.UI;
 using Luxel.UI.Tailwind;
 using static Luxel.Controls.Kit;
+using static Luxel.Gallery.Stories.StoryKit;
 
 namespace Luxel.Gallery.Stories;
 
@@ -51,56 +52,33 @@ public static class ScriptingStory
         private readonly Signal<string> _code;
         private readonly Signal<string> _status = new("");
         private readonly Signal<int> _ver = new(0);   // 出力/診断の構造変化 → TrackBuild が Rebuild
-        private readonly TextArea _editor;
+        private readonly CodeEditor _editor;          // E4: TextArea → CodeEditor (ガター/補完/診断/ハイライト)
         private readonly float _maxW;
 
-        private string _diags = "";       // 構造状態 (Rebuild で反映)
+        private string _diags = "";       // Run 由来のメッセージ (構造状態)
         private Widget? _output;
-        private IReadOnlyList<Luxel.Scripting.CompletionItem> _completions = [];   // 補完候補 (構造状態)
-        private string _hover = "";       // 選択候補のホバー (型/シグネチャ)
 
-        /// <summary>コードエディタ (play からクリックしてフォーカス/キャレット移動する)。</summary>
-        internal TextArea Editor => _editor;
+        /// <summary>コードエディタ (play からクリック/フォーカス/Ctrl+Space する)。</summary>
+        internal CodeEditor Editor => _editor;
         /// <summary>Run ボタン (play からクリックするために公開)。</summary>
         internal Button RunButton { get; }
-        /// <summary>補完ボタン (キャレット位置の候補を出す)。</summary>
-        internal Button CompleteButton { get; }
         /// <summary>直近 Run が成功して Widget を出したか (play の Expect 用)。</summary>
         internal bool LastRunOk { get; private set; }
-        /// <summary>直近の補完候補数 (play の Expect 用)。</summary>
-        internal int CompletionCount => _completions.Count;
 
         public CsxBlock(string initialCode, float maxWidth, StoryContext ctx)
         {
             _ctx = ctx;
             _maxW = MathF.Max(240, maxWidth);
             _code = new Signal<string>(initialCode);
-            _editor = TextArea(_code, height: 150f, width: _maxW - 96);
-            _editor.Fonts = StoryKit.JpFallback.Value;
+            _editor = CodeEditor(_code, editorHeight: 170f, editorWidth: _maxW - 96);
+            (_, _, _, _editor.MonoFont) = EditorFaces.Value;
+            _editor.Highlighter = Luxel.Highlight.TextMateHighlighter.Instance;
+            _editor.LanguageService = new CsharpCodeLanguage(Ws.Value);   // Ctrl+Space 補完 + 診断波線 + ホバー
             RunButton = Button(_ => Run(), "Run");
-            CompleteButton = Button(_ => Complete(), "補完", variant: Variant.Ghost, fontSize: 12f);
         }
 
         /// <summary>コードを差し替える (play からエラー例の検証に使う)。</summary>
         internal void SetCode(string code) => _code.Value = code;
-
-        /// <summary>キャレット位置で補完候補を取る (P2 言語サービス)。上位を候補リストに出す。</summary>
-        private void Complete()
-        {
-            _completions = Ws.Value.Complete(_code.Value, _editor.CaretOffset)
-                .Take(12).ToList();
-            _hover = "";
-            _ver.Value++;
-        }
-
-        /// <summary>候補を確定 (キャレットへ挿入) + その型情報をホバー表示。</summary>
-        private void Pick(Luxel.Scripting.CompletionItem item)
-        {
-            _editor.InsertAtCaret(item.InsertText);
-            _hover = Ws.Value.Hover(_code.Value, _editor.CaretOffset)?.Text ?? $"{item.Kind}: {item.Label}";
-            _completions = [];
-            _ver.Value++;
-        }
 
         private void Run()
         {
@@ -129,7 +107,7 @@ public static class ScriptingStory
 
         protected override Widget Build()
         {
-            _ = _ver.Value;   // TrackBuild — Run/補完 毎に作り直す
+            _ = _ver.Value;   // TrackBuild — Run 毎に作り直す
             Func<string> status = () => _status.Value;
             var kids = new List<Widget>
             {
@@ -137,24 +115,9 @@ public static class ScriptingStory
                     _editor,
                     VStack(4)[
                         RunButton,
-                        CompleteButton,
-                        Text(status, 12, color: Bind.From(() => UiTheme.T.TextMuted))]],
+                        Text(status, 12, color: Bind.From(() => UiTheme.T.TextMuted)),
+                        Text("Ctrl+Space 補完", 10, color: Bind.From(() => UiTheme.T.TextMuted))]],
             };
-            // 補完候補リスト (キャレット位置の候補 — クリックで挿入)
-            if (_completions.Count > 0)
-            {
-                var rows = new List<Widget>();
-                foreach (Luxel.Scripting.CompletionItem it in _completions)
-                {
-                    Luxel.Scripting.CompletionItem captured = it;
-                    rows.Add(Button(_ => Pick(captured), $"{it.Label}  ·  {it.Kind}",
-                        variant: Variant.Ghost, fontSize: 12f, hAlign: Align.Stretch));
-                }
-                kids.Add(Border(background: Bind.From(() => UiTheme.T.SurfaceAlt), rounded: 6,
-                                padding: new Thickness(4), width: _maxW)[VStack(1)[rows.ToArray()]]);
-            }
-            if (_hover.Length > 0)
-                kids.Add(Text(_hover, 11, color: Bind.From(() => UiTheme.T.TextMuted)));
             if (_diags.Length > 0)
                 kids.Add(Text(_diags, 11, color: Tw.Red600));
             if (_output is not null)
@@ -197,20 +160,21 @@ public static class ScriptingStory
         });
         ctx.Play("complete", async d =>
         {
-            // 文字列メンバーの補完 — キャレットを "hi". の直後に置いて「補完」
+            // CodeEditor 内蔵の Ctrl+Space 補完 — キャレットを "hi". の直後に置いて開く
             block.SetCode("\"hi\".");
             await d.Step(1);
-            await d.Click(block.Editor);             // クリックでフォーカス + キャレット末尾
-            await d.Click(block.CompleteButton);
+            await d.Click(block.Editor);             // フォーカス
+            await d.Key(Key.End);
+            await d.Key(Key.Space, ctrl: true);      // 補完ポップアップ
             await d.Step(2);
-            await d.Snap("list");                    // 候補リストが出た絵
-            await d.Expect(() => block.CompletionCount > 0, "キャレット位置の補完候補が出る");
+            await d.Snap("list");                    // フローティング候補の絵
+            await d.Expect(() => block.Editor.CompletionOpen, "キャレット位置の補完ポップアップが開く");
         });
 
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             VStack(10)[
                 Heading("C# ライブスクリプト (csx)"),
-                Muted("エディタで編集して Run — Roslyn がコンパイルし、最後の式の Widget を下に実体化。エラーは行番号付き。"),
+                Muted("CodeEditor でガター/ハイライト/Ctrl+Space 補完/診断波線。Run で最後の式の Widget を実体化。"),
                 block]];
     }
 
