@@ -1,0 +1,236 @@
+using Luxel.Audio;
+using Luxel.Audio.Sequencing;
+using Luxel.Controls;
+using Luxel.Document;
+using Luxel.Platform;
+using Luxel.Strudel;
+using Luxel.TwoD;
+using Luxel.UI;
+using static Luxel.Controls.Kit;
+
+namespace Luxel.Gallery.Stories;
+
+/// <summary>
+/// Strudel REPL — パターン言語 (Luxel.Strudel) + 汎用シーケンシング層 (Luxel.Audio.Sequencing) の実演。
+/// 文書はパターン行主体の独自フォーマット: `--` 行 = コメント、それ以外の行で Enter → ライブブロック化。
+/// 各ブロックが独立スロット (d1/d2… 相当) を持ち、Run = 評価 + ホットスワップ (クロックは止まらない)。
+/// 音は初回 Run で XAudio2 を遅延初期化 (失敗時 NullBackend) — 初期表示は無音で snap 決定的。
+/// </summary>
+public static class StrudelStory
+{
+    // ---- セッション (プロセスで 1 個 — XAudio2 マスタリングボイスと同じ寿命) ----
+    private static class Session
+    {
+        public static readonly StrudelScheduler Sched = new(chunkSeconds: 0.1);
+        private static StreamMixerSink? _mixer;
+        private static readonly Dictionary<int, object> _owners = new();   // slot → 現在のブロック
+        private static int _nextSlot;
+        private static readonly float[] _peaks = new float[96];
+
+        public static bool AudioReady => _mixer is not null;
+
+        public static int ClaimSlot(int? requested, object owner)
+        {
+            int slot = requested ?? ++_nextSlot;
+            _nextSlot = Math.Max(_nextSlot, slot);
+            _owners[slot] = owner;   // 再構築された新ブロックが所有権を引き継ぐ
+            return slot;
+        }
+
+        /// <summary>所有者のときだけ停止 (Run のコミット → 再構築で旧ブロックの Dispose が
+        /// 新ブロックのスロットを殺さないためのガード)。</summary>
+        public static void Release(int slot, object owner)
+        {
+            if (_owners.TryGetValue(slot, out object? cur) && ReferenceEquals(cur, owner))
+            {
+                _owners.Remove(slot);
+                Sched.SetPattern(slot, null);
+            }
+        }
+
+        /// <summary>評価してスロットへ反映する。戻り値はエラーメッセージ (null = 成功)。</summary>
+        public static string? Eval(int slot, string code)
+        {
+            try
+            {
+                EvalResult r = StrudelEval.Evaluate(code);
+                if (r.Cps is double c) Sched.Cps = c;
+                if (r.Pattern is not null)
+                {
+                    EnsureAudio();
+                    Sched.SetPattern(slot, r.Pattern);
+                }
+                return null;
+            }
+            catch (StrudelEvalError e) { return e.Message; }
+        }
+
+        public static void Stop(int slot) => Sched.SetPattern(slot, null);
+        public static void Hush() => Sched.Hush();
+
+        private static void EnsureAudio()
+        {
+            if (_mixer is not null) return;
+            IAudioBackend backend;
+            try { var x = new XAudio2Backend(); x.Initialize(); backend = x; }
+            catch { backend = new NullAudioBackend(); }   // headless (E2E) は無音で動く
+            _mixer = new StreamMixerSink(StrudelKit.CreateBank(), backend);
+            Sched.AddSink(_mixer);
+        }
+
+        /// <summary>毎 Tick: ミキサのキューを 3 チャンク (300ms) 先まで満たす。</summary>
+        public static void Pump()
+        {
+            if (_mixer is null) return;
+            int guard = 0;
+            while (_mixer.BuffersQueued < 3 && guard++ < 8) Sched.RenderWindow();
+        }
+
+        public static ReadOnlySpan<float> Peaks()
+        {
+            if (_mixer is null) return _peaks;   // 無音 (ゼロ) — snap 決定的
+            _mixer.CopyPeaks(_peaks);
+            return _peaks;
+        }
+    }
+
+    // ---- 文書フォーマット: `--` コメント / 空行 / パターン行 (Enter でブロック化) ----
+    private sealed class StrudelScriptFormat : IDocumentFormat
+    {
+        public RichDocument Parse(string source)
+        {
+            var blocks = new List<Block>();
+            foreach (string line in (source ?? "").Replace("\r", "").Split('\n'))
+            {
+                if (line.StartsWith("--")) blocks.Add(new Block(BlockKind.Paragraph, line[2..].TrimStart()));
+                else if (line.Length == 0) blocks.Add(new Block(BlockKind.Paragraph));
+                else blocks.Add(new Block(BlockKind.Embed) { Payload = new FencePayload("strudel", line) });
+            }
+            return RichDocument.FromBlocks(blocks);
+        }
+
+        public string Serialize(RichDocument doc)
+            => string.Join("\n", doc.Blocks.Select(b => SerializeLine(b, 0)));
+
+        public string SerializeRange(RichDocument doc, DocPos min, DocPos max)
+            => new DocumentEditor(doc).GetText(min, max);
+
+        public bool SupportsHybrid => false;
+        public Block ParseLine(string line) => Parse(line).Blocks[0];
+
+        public string SerializeLine(Block b, int line) => b switch
+        {
+            { Kind: BlockKind.Embed, Payload: FencePayload f } => f.Body,
+            { Kind: BlockKind.Paragraph, Length: 0 } => "",
+            _ => "-- " + b.Lines[line].Text,
+        };
+
+        public int LinePrefixLen(Block b, int line) => b.Kind == BlockKind.Paragraph && b.Length > 0 ? 3 : 0;
+        public bool TryAutoFormat(DocumentEditor ed, string inserted) => false;
+
+        public bool TryBlockCommit(DocumentEditor ed)
+        {
+            Block b = ed.CaretBlock;
+            if (b.Kind != BlockKind.Paragraph || b.Length == 0 || b.Text.StartsWith("--")) return false;
+            ed.ConvertToEmbed(new FencePayload("strudel", b.Text));
+            return true;
+        }
+    }
+
+    // ---- ライブブロック: エディタ + Run/Stop + インラインエラー ----
+    private sealed class StrudelBlock : CompositeControl, IDisposable
+    {
+        private readonly Signal<string> _code;
+        private readonly Signal<string> _status = new("");
+        private readonly Action<IBlockPayload> _commit;
+        private readonly TextArea _editor;
+        private readonly Button _run, _stop;
+        private readonly int _slot;
+        private readonly float _maxW;
+
+        public StrudelBlock(FencePayload payload, float maxWidth, Action<IBlockPayload> commit)
+        {
+            _maxW = MathF.Max(160, maxWidth);
+            _commit = commit;
+            _code = new Signal<string>(payload.Body);
+            // info "strudel <slot>" — Run のコミット再構築でスロットを引き継ぐ (音が途切れない)
+            string[] parts = payload.Info.Split(' ', 2);
+            int? requested = parts.Length == 2 && int.TryParse(parts[1], out int s) ? s : null;
+            _slot = Session.ClaimSlot(requested, this);
+            _editor = TextArea(_code, height: 46f, width: _maxW - 130);
+            _run = Button(_ => Run(), "Run");
+            _stop = Button(_ => { Session.Stop(_slot); _status.Value = "stopped"; }, "Stop", variant: Variant.Ghost);
+        }
+
+        protected override Widget Build()
+        {
+            Func<string> status = () => _status.Value;
+            return HStack(spacing: 6)[
+                _editor,
+                VStack(spacing: 4)[
+                    HStack(spacing: 4)[_run, _stop],
+                    Text(status, 11f, color: Bind.From(() => UiTheme.T.TextMuted))]];
+        }
+
+        private void Run()
+        {
+            string? err = Session.Eval(_slot, _code.Value);
+            _status.Value = err ?? $"d{_slot} ♪";
+            if (err is null)
+                _commit(new FencePayload($"strudel {_slot}", _code.Value));   // 文書へ確定 (undo 可)
+        }
+
+        public override string? DebugDetail => $"strudel d{_slot}";
+
+        public void Dispose() => Session.Release(_slot, this);
+    }
+
+    [Story("Strudel/Repl", Height = 560, Order = 2031)]
+    public static Widget Repl(StoryContext ctx)
+    {
+        var format = new StrudelScriptFormat();
+        var widgets = new BlockWidgetRegistry()
+            .Register("strudel", bc => new StrudelBlock((FencePayload)bc.Payload, bc.MaxWidth, bc.Commit));
+
+        Signal<string> src = ctx.Signal("source",
+            "-- Strudel REPL: パターン行で Enter → ライブブロック化、Run で評価 (再 Run = ホットスワップ)\n" +
+            "s(\"bd*2 [~ sd] hh*4\").gain(0.9)\n" +
+            "-- 別ブロックは独立スロット — 重ねて鳴る。silence を Run するとそのスロットだけ止まる\n" +
+            "note(\"c3 eb3 g3 <bb3 c4>\").s(\"saw\").slow(2)\n" +
+            "-- 例: .every(2, rev) / .jux(fast(2)) / .degrade() / cps(0.6) でテンポ\n");
+
+        Signal<float> cps = ctx.Signal("cps", 0.5f);
+        var wave = Sparkline(300f, 30f, bars: true);
+
+        RichTextEditor ed = RichTextEditor(src, editorHeight: 430, format: format, widgets: widgets);
+        ed.Fonts = StoryKit.JpFallback.Value;
+
+        var root = new ReplRoot(ed, wave, cps);
+        Func<string> cpsLabel = () => $"cps {cps.Value:0.00}";
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(spacing: 8)[
+                HStack(spacing: 10)[
+                    Slider(cps, min: 0.2f, max: 1.5f, width: 140f),
+                    Text(cpsLabel, color: Bind.From(() => UiTheme.T.Text)),
+                    Button(_ => { Session.Hush(); ctx.Log("hush"); }, "hush", variant: Variant.Ghost),
+                    wave],
+                root]];
+    }
+
+    /// <summary>ルート: エディタを包み、Tick でセッションを駆動する (ポンプ + 波形 + cps 同期)。</summary>
+    private sealed class ReplRoot(RichTextEditor editor, Sparkline wave, Signal<float> cps) : CompositeControl
+    {
+        protected override Widget Build() => editor;
+
+        protected override void OnRealize(UiBuildContext ctx)
+        {
+            ctx.AddAnimation(_ =>
+            {
+                Session.Sched.Cps = cps.Value;
+                Session.Pump();
+                if (Session.AudioReady) wave.SetValues(Session.Peaks(), min: 0f, max: 1f);
+                return false;
+            });
+        }
+    }
+}

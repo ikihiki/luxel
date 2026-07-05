@@ -27,6 +27,7 @@
     <ProjectReference Include="..\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
     <ProjectReference Include="..\Luxel.Diagram\Luxel.Diagram.csproj" />
     <ProjectReference Include="..\Luxel.MathText\Luxel.MathText.csproj" />
+    <ProjectReference Include="..\Luxel.Strudel\Luxel.Strudel.csproj" />
     <!-- デモストーリー (RenderGraph/ECS 3D/Animation) の下回り -->
     <ProjectReference Include="..\Luxel.RenderGraph\Luxel.RenderGraph.csproj" />
     <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj" />
