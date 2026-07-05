@@ -18,8 +18,8 @@ public static class Vector2DStories
 
     /// <summary>EvenOdd の穴あきリング + 塗り/ストローク/ベクターテキスト。
     /// パスは三角形分割されず、GPU compute がそのまま塗る。</summary>
-    [Story("2D/VectorPaths", Height = 320, Order = 112)]
-    public static Widget VectorPaths() => Frame(Canvas2D(256, 256, draw: s =>
+    [Story("Demos/2D/VectorPaths", Height = 320, Order = 112)]
+    public static Widget VectorPaths(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(256, 256, draw: s =>
     {
         s.FillRect(Color2D.Rgba(245, 245, 248), 0, 0, 256, 256);   // 背景
         s.FillRect(Color2D.Green, 40, 40, 120, 80);                // 緑の矩形
@@ -30,14 +30,15 @@ public static class Vector2DStories
         s.EndFill();
         s.StrokeLine(Color2D.Rgba(240, 140, 30), 8, 20, 230, 110, 150);   // オレンジの線
         EnFont.Value.AppendText(s, "Luxel 2D", 12, 30, 26, Color2D.Rgba(20, 20, 40));
-    }));
+    })));
 
     /// <summary>地図風シーン (日本語ラベル) + ズーム knob。ベクターなので拡大しても
     /// エッジが崩れない (実アプリでは Camera2D — 再エンコードなしのスムーズズーム)。</summary>
-    [Story("2D/Map", Width = 560, Height = 460, Order = 113)]
+    [Story("Demos/2D/Map", Width = 560, Height = 460, Order = 113)]
     public static Widget Map(StoryContext ctx)
     {
         Signal<float> zoom = ctx.Signal("zoom", 1f, "拡大率 (1 = 等倍、(300,150) 中心)");
+        ctx.Play(static d => d.Snap());
         return Frame(Canvas2D(512, 384, animate: (s, _) =>
         {
             float z = MathF.Max(0.2f, zoom.Value);

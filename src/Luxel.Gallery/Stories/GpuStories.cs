@@ -20,8 +20,8 @@ public static class GpuStories
 {
     // ---- 2D: Scene2D 直描き ----
 
-    [Story("2D/Shapes", Height = 300, Order = 110)]
-    public static Widget Shapes() => Frame(Canvas2D(384, 220, draw: s =>
+    [Story("Demos/2D/Shapes", Height = 300, Order = 110)]
+    public static Widget Shapes(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(384, 220, draw: s =>
     {
         s.FillRoundedRect(Tw.Blue500, 16, 16, 140, 90, 14);
         s.FillCircle(Tw.Amber500, 230, 60, 44);
@@ -30,12 +30,13 @@ public static class GpuStories
         s.StrokePolyline(Tw.Slate500, 2,
             new System.Numerics.Vector2(180, 200), new System.Numerics.Vector2(230, 140),
             new System.Numerics.Vector2(280, 190), new System.Numerics.Vector2(370, 130));
-    }));
+    })));
 
-    [Story("2D/Orbit", Height = 300, Order = 111)]
+    [Story("Demos/2D/Orbit", Height = 300, Order = 111)]
     public static Widget Orbit(StoryContext ctx)
     {
         Signal<float> speed = ctx.Signal("speed", 1f, "軌道アニメの速度倍率");
+        ctx.Play(static d => d.Snap());
         return Frame(Canvas2D(384, 220, animate: (s, t) =>
         {
             const float cx = 192, cy = 110;
@@ -50,12 +51,12 @@ public static class GpuStories
 
     // ---- 3D: offscreen 自前レンダ → image 合成 ----
 
-    [Story("3D/Triangle", Height = 320, Order = 120)]
-    public static Widget Triangle() => Frame(GpuView(320, 240, new TriangleScene()));
+    [Story("Demos/3D/Triangle", Height = 320, Order = 120)]
+    public static Widget Triangle(StoryContext ctx) => ctx.Snap(Frame(GpuView(320, 240, new TriangleScene())));
 
-    [Story("3D/TexturedQuad", Height = 320, Order = 121)]
+    [Story("Demos/3D/TexturedQuad", Height = 320, Order = 121)]
     public static Widget TexturedQuad(StoryContext ctx)
-        => Frame(GpuView(320, 240, new TexturedScene(ctx.Resources), animated: false));
+        => ctx.Snap(Frame(GpuView(320, 240, new TexturedScene(ctx.Resources), animated: false)));
 
     /// <summary>回転する三角形 (サンプル 02 の移植 + 時間で頂点回転)。graphics PSO + dynamic rendering。</summary>
     private sealed class TriangleScene : IGpuScene
@@ -127,7 +128,7 @@ public static class GpuStories
     /// <c>ctx.Resources</c> から PNG をロード (初回ロードの publish は Pump 不要なので Init で待てる)。</summary>
     private sealed class TexturedScene(ResourceSystem resources) : IGpuScene
     {
-        private const string ImageUri = "src/Luxel.Gallery/goldens/Sparkline_Basic.vk.png";
+        private const string ImageUri = "src/Luxel.Gallery/assets/sample-sparkline.png";
 
         [StructLayout(LayoutKind.Sequential)]
         private struct DrawArgs { public uint TextureIndex; public uint SamplerIndex; }

@@ -30,11 +30,11 @@ public static class PhysicsStories
     }
 
     /// <summary>箱タワーが崩れて積み上がる — 物理パイプラインの最小構成。</summary>
-    [Story("3D/PhysicsFalling", Height = 320, Order = 127)]
-    public static Widget PhysicsFalling() => Frame(GpuView(256, 256, new PhysicsScene()));
+    [Story("Demos/3D/PhysicsFalling", Height = 320, Order = 127)]
+    public static Widget PhysicsFalling(StoryContext ctx) => ctx.Snap(Frame(GpuView(256, 256, new PhysicsScene())));
 
     /// <summary>knob で重力/跳ね返りを実行時に変更、reset トグルで決定的な初期状態へ再構築。</summary>
-    [Story("3D/PhysicsPlayground", Height = 320, Order = 128)]
+    [Story("Demos/3D/PhysicsPlayground", Height = 320, Order = 128)]
     public static Widget PhysicsPlayground(StoryContext ctx)
     {
         Luxel.UI.Signal<float> gravity = ctx.Signal("gravity", 9.8f, "下向き重力の強さ (m/s²)");

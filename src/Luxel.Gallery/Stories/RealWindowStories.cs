@@ -16,7 +16,7 @@ public static class RealWindowStories
 {
     private static AudioMixer? _mixer;   // プロセスで 1 個 (XAudio2 マスタリングボイス)
 
-    [Story("Audio/Tone", Height = 220, RealWindowOnly = true)]
+    [Story("RealWindow/Audio/Tone", Height = 220, RealWindowOnly = true)]
     public static Widget AudioTone(StoryContext ctx)
     {
         void Play(float freq, string name)
@@ -40,7 +40,7 @@ public static class RealWindowStories
                 Button(_ => Play(659.26f, "E5"), "E5")]]);
     }
 
-    [Story("Input/Gamepad", Height = 400, RealWindowOnly = true)]
+    [Story("RealWindow/Input/Gamepad", Height = 400, RealWindowOnly = true)]
     public static Widget Gamepad(StoryContext ctx)
     {
         // 物理層: XInput を毎フレーム Poll して差分イベントを bus へ
@@ -105,7 +105,7 @@ public static class RealWindowStories
 
     private static AppWindow? _second;   // プロセスで 1 個 (ストーリー再入時は再利用)
 
-    [Story("Platform/SecondWindow", Height = 280, RealWindowOnly = true)]
+    [Story("RealWindow/Platform/SecondWindow", Height = 280, RealWindowOnly = true)]
     public static Widget SecondWindow(StoryContext ctx)
     {
         Signal<string> state = new(_second is null ? "未作成" : "表示中");

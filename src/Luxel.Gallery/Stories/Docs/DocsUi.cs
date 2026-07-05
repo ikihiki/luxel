@@ -41,7 +41,7 @@ public static class DocsUi
 
         ## レイアウト — Flutter 風の単一パス
 
-        `Layout(Constraints, parentUsesSize) → Size` を 1 回呼び、同じ呼び出しの中で子の Offset を書きます (Measure/Arrange の 2 パスなし)。Grid は Fixed/Star/Auto、寸法は `Length` (px / % / em / vw) が使えます ([Layout/Units](story:Layout/Units) / [Grid/Columns](story:Grid/Columns))。
+        `Layout(Constraints, parentUsesSize) → Size` を 1 回呼び、同じ呼び出しの中で子の Offset を書きます (Measure/Arrange の 2 パスなし)。Grid は Fixed/Star/Auto、寸法は `Length` (px / % / em / vw) が使えます ([Controls/Layout/Units](story:Controls/Layout/Units) / [Controls/Grid/Columns](story:Controls/Grid/Columns))。
 
         ## 入力とエラー境界
 
@@ -54,22 +54,22 @@ public static class DocsUi
     public static Widget Controls(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # コントロール (Luxel.Controls)
 
-        Button から RichTextEditor まで 40 超のコントロール群です。**実物はサイドバーの各章にあります** — このページは地図と、独自コントロールの書き方です。全コントロールの引数/イベント/パラメータの一覧は [Docs/Api](story:Docs/Api) へ。
+        Button から RichTextEditor まで 40 超のコントロール群です。**実物はサイドバーの各章にあります** — このページは地図と、独自コントロールの書き方です。全コントロールの引数/イベント/パラメータの一覧は [Reference/Overview](story:Reference/Overview) へ。
 
         ## カタログ
 
-        - **入力/選択**: [Button](story:Docs/Button) / [CheckBox](story:CheckBox/Basic) / [Switch](story:Switch/Basic) / [Slider](story:Slider/Basic) / [Segmented](story:Segmented/Basic) / [Radios](story:Radios/Basic) / [Select](story:Select/Basic) / [LengthField](story:LengthField/Basic)
-        - **テキスト**: [TextField](story:TextField/Basic) / [TextArea](story:TextArea/Basic) / [SearchField](story:SearchField/Basic) / [RichTextEditor](story:RichTextEditor/Basic) / [MarkdownEditor (hybrid)](story:MarkdownEditor/Hybrid) / [RichText 表示](story:RichText/Basic)
-        - **コンテナ**: [Border](story:Border/Card) / [Grid](story:Grid/Columns) / [ScrollViewer](story:ScrollViewer/Basic) / [WrapPanel](story:WrapPanel/Basic) / [ListView (仮想化)](story:ListView/Huge)
-        - **オーバーレイ**: [Dialog](story:Dialog/Basic) / [Toast](story:Toast/Basic) / [Drawer](story:Drawer/Basic) / [Tooltip](story:Tooltip/Basic) / [Dropdown](story:Dropdown/Basic) / [Tabs](story:Tabs/Basic) / [Accordion](story:Accordion/Basic)
-        - **表示**: [Badge/Chip](story:Kit/Badges) / [Alert](story:Kit/Alert) / [Spinner](story:Spinner/Basic) / [Icon](story:Icon/Kinds) / [Sparkline](story:Sparkline/Basic)
+        - **入力/選択**: [Button](story:Docs/Button) / [CheckBox](story:Controls/CheckBox/Basic) / [Switch](story:Controls/Switch/Basic) / [Slider](story:Controls/Slider/Basic) / [Segmented](story:Controls/Segmented/Basic) / [Radios](story:Controls/Radios/Basic) / [Select](story:Controls/Select/Basic) / [LengthField](story:Controls/LengthField/Basic)
+        - **テキスト**: [TextField](story:Controls/TextField/Basic) / [TextArea](story:Controls/TextArea/Basic) / [SearchField](story:Controls/SearchField/Basic) / [RichTextEditor](story:Controls/RichTextEditor/Basic) / [MarkdownEditor (hybrid)](story:Controls/MarkdownEditor/Hybrid) / [RichText 表示](story:Controls/RichText/Basic)
+        - **コンテナ**: [Border](story:Controls/Border/Card) / [Grid](story:Controls/Grid/Columns) / [ScrollViewer](story:Controls/ScrollViewer/Basic) / [WrapPanel](story:Controls/WrapPanel/Basic) / [ListView (仮想化)](story:Controls/ListView/Huge)
+        - **オーバーレイ**: [Dialog](story:Controls/Dialog/Basic) / [Toast](story:Controls/Toast/Basic) / [Drawer](story:Controls/Drawer/Basic) / [Tooltip](story:Controls/Tooltip/Basic) / [Dropdown](story:Controls/Dropdown/Basic) / [Tabs](story:Controls/Tabs/Basic) / [Accordion](story:Controls/Accordion/Basic)
+        - **表示**: [Badge/Chip](story:Controls/Kit/Badges) / [Alert](story:Controls/Kit/Alert) / [Spinner](story:Controls/Spinner/Basic) / [Icon](story:Controls/Icon/Kinds) / [Sparkline](story:Controls/Sparkline/Basic)
 
         ## 横断基盤
 
         - **テーマ**: `UiTheme.T` (Light/Dark) — Variant × Intent × 状態から配色を解決。`Ctrl+D` で切替
         - **フォーカス**: Tab 巡回 + FocusRing、キー入力はフォーカス優先で配送
         - **オーバーレイ**: Dialog/Toast/Drawer は overlay レイヤに実体化 (Esc / 外側クリック)
-        - **仮想化**: ListView は可視行プールだけを実体化 — 10 万行でもスクロール/選択が破綻しません ([ListView/Huge](story:ListView/Huge))
+        - **仮想化**: ListView は可視行プールだけを実体化 — 10 万行でもスクロール/選択が破綻しません ([Controls/ListView/Huge](story:Controls/ListView/Huge))
 
         ## CompositeControl — 独自コントロールを書く
 
@@ -102,7 +102,7 @@ public static class DocsUi
 
         **状態を保つ子はフィールドに保持して Build() で参照を組み込む**のが鍵です — Rebuild はコンテナだけ作り直し、TextArea 等のインスタンスは生き残ります。実例が SearchField (タイプ → 候補絞り込み = 構造状態 → Rebuild):
 
-        {{StoryRef(ctx, "SearchField/Basic")}}
+        {{StoryRef(ctx, "Controls/SearchField/Basic")}}
 
         > [!TIP]
         > 完全自前描画が要るときだけ従来どおり `Widget` を直接派生します。`[UiComponent] partial` を付ければ生成ファクトリ / DebugProps / knobs が自動で付きます。
@@ -133,11 +133,11 @@ public static class DocsUi
             .When(WidgetState.Pressed, scale: 0.94f);
         ```
 
-        {{StoryRef(ctx, "Button/Tailwind")}}
+        {{StoryRef(ctx, "Controls/Button/Tailwind")}}
 
         ## カラーパレット (Luxel.UI.Tailwind)
 
-        `Tw.Blue500` など Tailwind のカラーパレット定数を別アセンブリで提供します。HTML の class 属性との対応で読めます — `class="bg-blue-500 hover:bg-red-500"` ≒ `background: Tw.Blue500` + `.When(WidgetState.Hover, background: Tw.Red500)`。CheckBox の Checked などコントロール固有状態にも同じ形で効きます ([CheckBox/CheckedStyle](story:CheckBox/CheckedStyle))。
+        `Tw.Blue500` など Tailwind のカラーパレット定数を別アセンブリで提供します。HTML の class 属性との対応で読めます — `class="bg-blue-500 hover:bg-red-500"` ≒ `background: Tw.Blue500` + `.When(WidgetState.Hover, background: Tw.Red500)`。CheckBox の Checked などコントロール固有状態にも同じ形で効きます ([Controls/CheckBox/CheckedStyle](story:Controls/CheckBox/CheckedStyle))。
 
         ## ユーザー定義テーマ
 
@@ -159,7 +159,7 @@ public static class DocsUi
 
         状態切替は瞬時が既定で、`.Transition(duration, curve, プロパティ群)` を宣言したプロパティだけが補間されます。方向別 (`TransitionTo` / `TransitionBetween`) の指定もできます — 実物で確かめてください:
 
-        {{StoryRef(ctx, "Transitions/States")}}
+        {{StoryRef(ctx, "Demos/Animation/Transitions")}}
 
         設計ノート: 状態別スタイルを「引数と同名の型付き宣言」にしたのは Tailwind の hover: / MUI sx / Flutter WidgetState と同じ発想です。テーマを経由しない一発指定と、テーマ経由の既定解決が同居し、どちらもトランジションに乗ります。
         """, toc: true, fences: DocsFences));
@@ -175,13 +175,13 @@ public static class DocsUi
         > [!TIP]
         > 下の実例のすぐ下に `StorySource` で**実際のストーリーソース**を出しています (ジェネレーターが焼き込むため、手書きコピーの乖離が起きません)。
 
-        {{StoryRef(ctx, "Button/Variants")}}
+        {{StoryRef(ctx, "Controls/Button/Variants")}}
 
-        {{StorySource("Button/Variants")}}
+        {{StorySource("Controls/Button/Variants")}}
 
         ## Intent (意味色)
 
-        {{StoryRef(ctx, "Button/Intents")}}
+        {{StoryRef(ctx, "Controls/Button/Intents")}}
 
         ## 使い方
 

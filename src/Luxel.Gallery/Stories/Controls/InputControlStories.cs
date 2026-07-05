@@ -11,12 +11,12 @@ public static class InputControlStories
 {
     // ---- Button ----
 
-    [Story("Button/Primary", Height = 160)]
+    [Story("Controls/Button/Primary", Height = 160)]
     public static Widget ButtonPrimary() => Frame(Button(_ => { }, "Click me"));
 
     // ---- ColorPicker ----
 
-    [Story("ColorPicker/Basic", Height = 280)]
+    [Story("Controls/ColorPicker/Basic", Height = 280)]
     public static Widget ColorPickerBasic(StoryContext ctx)
     {
         Signal<uint> color = new(Tw.Blue500);
@@ -27,74 +27,83 @@ public static class InputControlStories
                 Label("選択色は Signal<uint> に反映される")]]);
     }
 
-    [Story("Button/Variants", Height = 160)]
+    [Story("Controls/Button/Variants", Height = 160)]
     public static Widget ButtonVariants() => Frame(HStack(8)[
         Button(_ => { }, "Filled"),
         Button(_ => { }, "Tonal", variant: Variant.Tonal),
         Button(_ => { }, "Outline", variant: Variant.Outline),
         Button(_ => { }, "Ghost", variant: Variant.Ghost)]);
 
-    [Story("Button/Intents", Height = 160)]
-    public static Widget ButtonIntents() => Frame(HStack(8)[
+    [Story("Controls/Button/Intents", Height = 160)]
+    public static Widget ButtonIntents(StoryContext ctx) => ctx.Snap(Frame(HStack(8)[
         Button(_ => { }, "Primary"),
         Button(_ => { }, "Success", intent: Intent.Success),
         Button(_ => { }, "Danger", intent: Intent.Danger),
-        Button(_ => { }, "Neutral", intent: Intent.Neutral)]);
+        Button(_ => { }, "Neutral", intent: Intent.Neutral)]));
 
-    [Story("Button/Tailwind", Height = 160)]
+    [Story("Controls/Button/Tailwind", Height = 160)]
     public static Widget ButtonTailwind() => Frame(
         Button(_ => { }, "Hover me",
                 background: Tw.Blue500, foreground: Tw.White, rounded: 10, width: 180, height: 64)
             .When(WidgetState.Hover, background: Tw.Red500, scale: 1.08f)
             .When(WidgetState.Pressed, scale: 0.94f));
 
-    [Story("Button/Counter", Height = 160)]
+    [Story("Controls/Button/Counter", Height = 160)]
     public static Widget ButtonCounter(StoryContext ctx)
     {
         Signal<int> count = ctx.Signal("count", 0);
+        Button plus = Button(_ => count.Value++, "+");
+        // play: クリック → signal 反映 → クリック後の絵 (E2E の対話ショーケース)
+        ctx.Play(async d =>
+        {
+            await d.Snap();
+            await d.Click(plus);
+            await d.Expect(() => count.Value == 1, "クリックでカウンタが増える");
+            await d.Snap("clicked");
+        });
         return Frame(HStack(8)[
             Button(_ => count.Value--, "-"),
             Text($" {count} ", 22, color: Bind.From(() => UiTheme.T.Text), vAlign: Align.Center),
-            Button(_ => count.Value++, "+")]);
+            plus]);
     }
 
     // ---- 入力/選択 ----
 
-    [Story("CheckBox/Basic", Height = 160)]
+    [Story("Controls/CheckBox/Basic", Height = 160)]
     public static Widget CheckBasic(StoryContext ctx)
         => Frame(Check(ctx.Signal("checked", false), "Subscribe to newsletter"));
 
-    [Story("CheckBox/CheckedStyle", Height = 160)]
+    [Story("Controls/CheckBox/CheckedStyle", Height = 160)]
     public static Widget CheckStyled(StoryContext ctx)
         => Frame(Check(ctx.Signal("checked", true), "Custom checked color")
             .When(WidgetState.Checked, background: Tw.Green500));
 
-    [Story("Switch/Basic", Height = 160)]
+    [Story("Controls/Switch/Basic", Height = 160)]
     public static Widget SwitchBasic(StoryContext ctx)
         => Frame(Switch(ctx.Signal("on", true)));
 
-    [Story("Slider/Basic", Height = 160)]
+    [Story("Controls/Slider/Basic", Height = 160)]
     public static Widget SliderBasic(StoryContext ctx)
-        => Frame(Slider(ctx.Signal("value", 0.35f)));
+        => ctx.Snap(Frame(Slider(ctx.Signal("value", 0.35f))));
 
-    [Story("Slider/CustomColors", Height = 160)]
+    [Story("Controls/Slider/CustomColors", Height = 160)]
     public static Widget SliderColors(StoryContext ctx)
         => Frame(Slider(ctx.Signal("value", 0.6f),
             trackColor: Tw.Slate200, fillColor: Tw.Amber500, knobColor: Tw.Amber500));
 
-    [Story("Segmented/Basic", Height = 160)]
+    [Story("Controls/Segmented/Basic", Height = 160)]
     public static Widget SegmentedBasic(StoryContext ctx)
         => Frame(Segmented(["Day", "Week", "Month"], ctx.Signal("selected", 0)));
 
-    [Story("Radios/Basic", Height = 200)]
+    [Story("Controls/Radios/Basic", Height = 200)]
     public static Widget RadiosBasic(StoryContext ctx)
         => Frame(Radios(["Small", "Medium", "Large"], ctx.Signal("selected", 1)));
 
-    [Story("Select/Basic", Height = 240)]
+    [Story("Controls/Select/Basic", Height = 240)]
     public static Widget SelectBasic(StoryContext ctx)
-        => Frame(Select(["Apple", "Banana", "Cherry"], ctx.Signal("selected", 0)));
+        => ctx.Snap(Frame(Select(["Apple", "Banana", "Cherry"], ctx.Signal("selected", 0))));
 
-    [Story("LengthField/Basic", Height = 200)]
+    [Story("Controls/LengthField/Basic", Height = 200)]
     public static Widget LengthFieldBasic(StoryContext ctx)
     {
         var len = new Signal<Length>((Length)"50%");

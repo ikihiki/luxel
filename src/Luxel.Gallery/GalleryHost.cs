@@ -74,6 +74,8 @@ public sealed class GalleryHost : IDisposable
     /// <summary>選択中ストーリーの canvas/host (bench の統計読み取り/直接入力用)。</summary>
     internal RetainedCanvas? Canvas => _canvas;
     internal UiHost? Host => _host;
+    /// <summary>選択中ストーリーの StoryContext (E2E ランナーが play を読む)。</summary>
+    internal StoryContext? Context => _ctx;
 
     /// <summary>ストーリーを選択して実体化する (既存は破棄)。ギャラリースレッドから呼ぶ。</summary>
     public void Select(string path)

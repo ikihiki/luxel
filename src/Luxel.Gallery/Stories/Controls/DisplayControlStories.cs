@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>表示/埋め込み系コントロール (ImageView / ImageBlock / TableBlock / SurfaceView) のストーリー。</summary>
 public static class DisplayControlStories
 {
-    [Story("ImageView/Basic", Height = 260)]
+    [Story("Controls/ImageView/Basic", Height = 260)]
     public static Widget ImageViewBasic()
     {
         // CPU の RGBA を SetPixels — 実体化前でも可 (pending 保持)。表示は widget サイズへ nearest 拡縮
@@ -31,20 +31,21 @@ public static class DisplayControlStories
         return Frame(view);
     }
 
-    private const string SampleImage = "src/Luxel.Gallery/goldens/Sparkline_Basic.vk.png";
+    private const string SampleImage = "src/Luxel.Gallery/assets/sample-sparkline.png";
     private static Luxel.Resources.ResourceHandle<Luxel.Resources.CpuImage>? _imagePreload;
 
-    [Story("ImageBlock/Basic", Height = 300)]
+    [Story("Controls/ImageBlock/Basic", Height = 300)]
     public static Widget ImageBlockBasic(StoryContext ctx)
     {
         // snap (1 フレーム描画) の決定性のため画像を同期 preload — 実アプリでは不要
         // (ImageBlock はロード完了をポーリングし実寸へ再実体化する)
         _imagePreload ??= ctx.Resources.Load<Luxel.Resources.CpuImage>(SampleImage);
         try { _imagePreload.Ready.Wait(3000); } catch { /* 失敗時はプレースホルダ表示のまま */ }
+        ctx.Play(static d => d.Snap());
         return Frame(ImageBlock(new ImagePayload(SampleImage, "サンプル画像"), ctx.Resources, 360));
     }
 
-    [Story("TableBlock/Basic", Height = 260)]
+    [Story("Controls/TableBlock/Basic", Height = 260)]
     public static Widget TableBlockBasic(StoryContext ctx)
     {
         // GFM pipe table のブロック widget。セルをクリックして直接編集、Tab/Enter で移動、
@@ -61,7 +62,7 @@ public static class DisplayControlStories
             p => ctx.Log($"commit: {((TablePayload)p).Rows.Count} 行")));
     }
 
-    [Story("SurfaceView/Basic", Height = 300)]
+    [Story("Controls/SurfaceView/Basic", Height = 300)]
     public static Widget SurfaceViewBasic(StoryContext ctx)
     {
         // iframe 相当の埋め込みサーフェス — 子 RetainedCanvas + 子 UiHost + 専用 framebuffer。

@@ -185,7 +185,7 @@ public static class StrudelStory
         public void Dispose() => Session.Release(_slot, this);
     }
 
-    [Story("Strudel/Repl", Height = 560, Order = 2031)]
+    [Story("Demos/Strudel/Repl", Height = 560, Order = 2031)]
     public static Widget Repl(StoryContext ctx)
     {
         var format = new StrudelScriptFormat();
@@ -207,6 +207,7 @@ public static class StrudelStory
 
         var root = new ReplRoot(ed, wave, cps);
         Func<string> cpsLabel = () => $"cps {cps.Value:0.00}";
+        ctx.Play(static d => d.Snap());
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             VStack(spacing: 8)[
                 HStack(spacing: 10)[

@@ -64,13 +64,13 @@ public static class DocsGpu
 
         graphics も同じ流儀です。`CreateGraphicsPipeline(shader, GpuRasterDesc)` で深度テストやブレンドを宣言し、dynamic rendering (`BeginRendering`/`EndRendering`) で RT/Depth を直接指定、頂点は**頂点プル** (頂点レイアウト宣言なし — シェーダが bindless バッファから読む) です。
 
-        {{StoryRef(ctx, "GPU/Depth")}}
+        {{StoryRef(ctx, "Demos/3D/Depth")}}
 
-        {{StoryRef(ctx, "GPU/Blend")}}
+        {{StoryRef(ctx, "Demos/3D/Blend")}}
 
         `StorySource` でこのデモの実装をそのまま引用できます:
 
-        {{StorySource("GPU/Depth")}}
+        {{StorySource("Demos/3D/Depth")}}
 
         ## テクスチャとレンダーターゲット
 
@@ -92,7 +92,7 @@ public static class DocsGpu
 
         塗り (NonZero/EvenOdd — 穴あき対応)、複数パス合成、ストローク (距離ベース・画面一定幅)、**ベクターテキスト** (TTF 輪郭 → パス → 塗り、日本語対応)、角丸:
 
-        {{StoryRef(ctx, "2D/VectorPaths")}}
+        {{StoryRef(ctx, "Demos/2D/VectorPaths")}}
 
         ## Scene2D とパス構築
 
@@ -111,7 +111,7 @@ public static class DocsGpu
 
         ワールド座標で 1 回 `Encode` したら、`Camera2D` を変えるだけで連続拡縮できます — 再エンコードも再三角形分割もありません。ベクターなので拡大してもエッジが崩れないことを knob で確かめられます:
 
-        {{StoryRef(ctx, "2D/Map", knobs: true)}}
+        {{StoryRef(ctx, "Demos/2D/Map", knobs: true)}}
 
         ## RetainedCanvas — 保持型ツリーと部分更新
 
@@ -195,11 +195,11 @@ public static class DocsGpu
 
         Transient は同形 (バッファはサイズ、テクスチャは幅・高さ・フォーマット・種別) で寿命が重ならなければ **物理リソースを共有** (interval scheduling) します。実物:
 
-        {{StoryRef(ctx, "RenderGraph/Blur")}}
+        {{StoryRef(ctx, "Demos/RenderGraph/Blur")}}
 
         下のデモは反復ブラー 4 段 + 誰も読まないパス — 論理 5 transient が物理 2 本に alias され、DeadPass がカリングされる様子が **Log パネル**に出ます (`PhysicalTransientBufferCount` / `IsAliased` / `IsPassCulled` で観測):
 
-        {{StoryRef(ctx, "RenderGraph/Aliasing")}}
+        {{StoryRef(ctx, "Demos/RenderGraph/Aliasing")}}
 
         ## 自動バリアと ResourceUsage
 
@@ -237,15 +237,15 @@ public static class DocsGpu
 
         `Render3DExtractSystem` が ECS をクエリし、`InstanceData[]` (mat4 + color の SoA) を bindless バッファへ書きます。シーン層とレンダーグラフ層の橋渡しはこの **Extract 層だけ** — グラフ側は書き上がったバッファを Import するのみです。
 
-        {{StoryRef(ctx, "3D/EcsCubes")}}
+        {{StoryRef(ctx, "Demos/3D/EcsCubes")}}
 
         ## 描画パターン
 
         graphics パスの lambda が `BeginRendering(rt, depth, ...)` で RT/Depth を直接管理し、instance 数ぶん `Draw` します。この形のまま合成が伸びます:
 
-        - post-process 連鎖 (forward → blur → 加算合成) → [RenderGraph/Bloom3D](story:RenderGraph/Bloom3D)
-        - world-space UI (2D UI を 3D 内の板にサンプリング) → [3D/WorldSpaceUI](story:3D/WorldSpaceUI)
-        - shadow map (ライト視点 R32Float → bindless バッファ → 比較) → [3D/ShadowMap](story:3D/ShadowMap)
+        - post-process 連鎖 (forward → blur → 加算合成) → [Demos/RenderGraph/Bloom3D](story:Demos/RenderGraph/Bloom3D)
+        - world-space UI (2D UI を 3D 内の板にサンプリング) → [Demos/3D/WorldSpaceUI](story:Demos/3D/WorldSpaceUI)
+        - shadow map (ライト視点 R32Float → bindless バッファ → 比較) → [Demos/3D/ShadowMap](story:Demos/3D/ShadowMap)
 
         shadow map も「R32F カラー RT + bindless バッファ経由の Load」— 専用のサンプラ比較ハードウェアに頼らない compute-first の流儀です。
 
@@ -260,7 +260,7 @@ public static class DocsGpu
         > [!WARNING]
         > Slang/HLSL の既定行列レイアウトは column-major、`System.Numerics.Matrix4x4` は row-major です。ルート引数で行列を渡すときは **CPU 側で `Matrix4x4.Transpose`** を入れて整えます (per-instance 行列はシェーダ側で Load4 ×4 の行構築なので転置不要)。
 
-        アニメーションを ECS へ流す例は [Animation/EcsClip](story:Animation/EcsClip) と [Animation/Graph](story:Animation/Graph) へ。
+        アニメーションを ECS へ流す例は [Demos/Animation/EcsClip](story:Demos/Animation/EcsClip) と [Demos/Animation/Graph](story:Demos/Animation/Graph) へ。
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/Assets", Order = 14)]
@@ -299,7 +299,7 @@ public static class DocsGpu
 
         シェーダは `scene_pbr_lite` (頂点 32B: pos+normal+uv、インスタンス 80B: world+baseColor)。`DrawIndexed` は無いので **index バッファもシェーダが bindless で読み**、`indexBufIndex = 0xFFFFFFFF` で non-indexed に切り替えます。
 
-        {{StoryRef(ctx, "3D/GltfBox")}}
+        {{StoryRef(ctx, "Demos/3D/GltfBox")}}
 
         ## アニメーション
 
@@ -313,7 +313,7 @@ public static class DocsGpu
         extractor.Extract(new ExtractContext(device, frameIndex: frame++));
         ```
 
-        {{StoryRef(ctx, "3D/GltfAnimated")}}
+        {{StoryRef(ctx, "Demos/3D/GltfAnimated")}}
 
         > [!WARNING]
         > morph target (Weights チャンネル) は未対応です — `SceneAnimationPlayer` は skip します。スキニングは `SkinningSystem` + `scene_pbr_skinned` シェーダ (頂点 56B: joints/weights 付き) が担います。
@@ -339,7 +339,7 @@ public static class DocsGpu
         - **direct-ref モデル** — index ベースの DOM ではなく `AssetMeshRef.Mesh` のような直接参照で ECS から引きます (中間テーブル無し)
         - サンプルモデルはリポジトリの `tools/khronos-samples/` (Khronos 公式 glTF テストスイート) にあります
 
-        型 API の一覧は [Docs/Api3D](story:Docs/Api3D) へ。
+        型 API の一覧は [Reference/ThreeD](story:Reference/ThreeD) へ。
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/Ecs", Order = 15)]
@@ -390,14 +390,14 @@ public static class DocsGpu
         sig.Value = new Color3D(newColor);   // Friflo の変更通知で UI 側の監視者にも伝わる
         ```
 
-        UI から entity を編集する例は [Animation/EcsClip](story:Animation/EcsClip) にあります。
+        UI から entity を編集する例は [Demos/Animation/EcsClip](story:Demos/Animation/EcsClip) にあります。
 
         ## 設計ノート
 
         - **UI には ECS を使いません** — UI は signals + 保持型ツリー ([Docs/UI](story:Docs/UI))。3D 側だけ ECS です (理由は [Docs/ThreeD](story:Docs/ThreeD) の設計ノート)
         - ラッパを薄く保つのは、Friflo の archetype API (`ArchetypeQuery` / `ForEachEntity`) がそのまま最速経路だからです。Luxel が足すのは Phase 規約・DelegateSystem・Signal ブリッジ・perf 収集だけ
 
-        物理 (剛体/衝突) を entity に付けるには [Docs/Physics](story:Docs/Physics) へ。型 API の一覧は [Docs/Api3D](story:Docs/Api3D) へ。
+        物理 (剛体/衝突) を entity に付けるには [Docs/Physics](story:Docs/Physics) へ。型 API の一覧は [Reference/ThreeD](story:Reference/ThreeD) へ。
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/Physics", Order = 16)]
@@ -435,7 +435,7 @@ public static class DocsGpu
 
         流れ: **Attach** (未発行 entity に body を発行 — 初期 pose は LocalTransform の分解) → **Step** → **Write-back** (`LocalTransform = Scale(RenderScale) × Rotation × Translation`)。描画側 (TransformPropagate → Render3DExtract → cube_forward) は物理を知りません。
 
-        {{StoryRef(ctx, "3D/PhysicsFalling")}}
+        {{StoryRef(ctx, "Demos/3D/PhysicsFalling")}}
 
         > [!TIP]
         > 形状は `Collider.Box / Sphere / Capsule`。v1 の描画は MeshRef.Cube の近似表示 (Box = Size、Sphere = 外接 2r、Capsule = (2r, len+2r, 2r)) です。`ScheduleRoot` に載せる場合の規約位置は `Phase.Update`。
@@ -449,7 +449,7 @@ public static class DocsGpu
         physics.Bounciness = 5f;                      // よく跳ねる
         ```
 
-        {{StoryRef(ctx, "3D/PhysicsPlayground")}}
+        {{StoryRef(ctx, "Demos/3D/PhysicsPlayground")}}
 
         ## レイキャスト
 
@@ -481,7 +481,7 @@ public static class DocsGpu
 
         ### キャラクターコントローラ
 
-        純粋な剛体だと坂で滑り・段差で引っかかり・押されて転がるため、カプセル + 姿勢固定 + 足元レイキャスト (実装済み) + 目標速度への速度サーボという専用制御が定石です。物理の上に載るアプリ層の機能で設計判断が多く (ジャンプ/階段/斜面角)、Bepu の Demos にリファレンス実装があります。[Input/Gamepad](story:Input/Gamepad) とつなぐと良いショーケースに。
+        純粋な剛体だと坂で滑り・段差で引っかかり・押されて転がるため、カプセル + 姿勢固定 + 足元レイキャスト (実装済み) + 目標速度への速度サーボという専用制御が定石です。物理の上に載るアプリ層の機能で設計判断が多く (ジャンプ/階段/斜面角)、Bepu の Demos にリファレンス実装があります。[RealWindow/Input/Gamepad](story:RealWindow/Input/Gamepad) とつなぐと良いショーケースに。
 
         ### Compound shape (複合形状)
 
@@ -507,6 +507,6 @@ public static class DocsGpu
 
         `ThreadCount > 0` は浮動小数の加算順がスレッドスケジューリングで変わり、実行ごとに結果が揺れます (Bepu 2.4 の仕様)。だから既定は単スレッド = 決定的で、マルチスレッドは速度と引き換えの opt-in。Bepu 2.5 系は決定性オプションが改善されているため、バージョン更新時に「固定スレッド数なら決定的」へ緩められる可能性があります。
 
-        型 API の一覧は [Docs/Api3D](story:Docs/Api3D) へ。
+        型 API の一覧は [Reference/ThreeD](story:Reference/ThreeD) へ。
         """, toc: true, fences: DocsFences));
 }

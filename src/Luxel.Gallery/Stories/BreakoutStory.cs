@@ -23,16 +23,16 @@ namespace Luxel.Gallery.Stories;
 /// </summary>
 public static class BreakoutStories
 {
-    [Story("Game/Breakout", Width = 520, Height = 430, Order = 147)]
+    [Story("Apps/Game/Breakout", Width = 520, Height = 430, Order = 147)]
     public static Widget Breakout(StoryContext ctx)
-        => VStack(8)[
+        => ctx.Snap(VStack(8)[
             new StoryAppView<BreakoutScene>(BreakoutScene.FieldW, BreakoutScene.FieldH, (s, bctx) =>
             {
                 s.AddSingleton(bctx.Font);
                 s.AddSingleton<Action<string>>(ctx.Log);
             }),
             Muted("Mouse: paddle / Click: start & launch — real Framework app (ECS + retained 2D + phases)")
-        ];
+        ]);
 
     // ---- ECS コンポーネント (ゲーム状態はエンティティが持つ) ----
 

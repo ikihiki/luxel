@@ -45,7 +45,7 @@ public static class DocsText
         Rect[] sel = layout.SelectionRects(a, b); // 選択範囲の行別矩形
         ```
 
-        実物: [Text/Multiline](story:Text/Multiline) (wrap / 禁則 / Justify) / [Text/EllipsisVAlign](story:Text/EllipsisVAlign) (maxLines + 省略記号)。
+        実物: [Controls/Text/Multiline](story:Controls/Text/Multiline) (wrap / 禁則 / Justify) / [Controls/Text/EllipsisVAlign](story:Controls/Text/EllipsisVAlign) (maxLines + 省略記号)。
 
         ## セグメンタ (ITextSegmenter)
 
@@ -60,7 +60,7 @@ public static class DocsText
 
         `FontCollection` は優先順のフォント列です。run 分割時に未収載文字の連続を次候補フォントの run に切り出します (UI フォント → 日本語 → カラー絵文字 COLR)。行内のベースラインは run の最大 ascent に揃います:
 
-        {{StoryRef(ctx, "RichText/Basic")}}
+        {{StoryRef(ctx, "Controls/RichText/Basic")}}
 
         保持型キャンバスは 1 ノード 1 色のため、色ごとに GlyphRun をグループ化して 1 色 1 ノードで実体化します — テーマ連動色はノード単位の Effect でそのまま効きます。
 
@@ -93,7 +93,7 @@ public static class DocsText
 
         挿入/削除、**Enter = ブロック分割** (リスト内は次項目、空項目で解除)、**行頭 Backspace = 前ブロックと結合** (リスト/引用はまず型解除)、スタイルトグル (Ctrl+B/I/E)、ブロック型変換、ブロック跨ぎ選択。undo/redo は逆操作ジャーナルで、連続タイプは 1 op に合体します。IME 合成はキャレットのあるブロック内に限定 — TSF の文書 = 現在ブロックです。
 
-        実物: [RichTextEditor/Basic](story:RichTextEditor/Basic) (ツールバー付き) / [TextArea/Basic](story:TextArea/Basic) (プレーン複数行)。
+        実物: [Controls/RichTextEditor/Basic](story:Controls/RichTextEditor/Basic) (ツールバー付き) / [Controls/TextArea/Basic](story:Controls/TextArea/Basic) (プレーン複数行)。
 
         > [!NOTE]
         > エディタ系ストーリーは docs ページへの埋め込みに対応していません (embed 内 RichTextEditor の入れ子は既知の制限) — リンクで実物ページへ飛んでください。
@@ -102,7 +102,7 @@ public static class DocsText
 
         パースは **Markdig** (フル CommonMark + コールアウト + CJK 強調 + 絵文字 + SmartyPants)、シリアライザは正規形を出す自前実装で、**round-trip が安定**します (md → doc → md が収束)。1 ソース行 = 1 表示行の行指向モデルで、空行も保存されます。
 
-        hybrid 表示 = Typora 風: キャレットの入ったブロックだけ**ソース表示**に切り替わり、離れると再パースして整形表示へ戻ります。行頭 `- ` や `# ` のオートフォーマットもフォーマット側の責務です。実物: [MarkdownEditor/Hybrid](story:MarkdownEditor/Hybrid) / [MarkdownEditor/VisualSource](story:MarkdownEditor/VisualSource) (双方向バインド)。
+        hybrid 表示 = Typora 風: キャレットの入ったブロックだけ**ソース表示**に切り替わり、離れると再パースして整形表示へ戻ります。行頭 `- ` や `# ` のオートフォーマットもフォーマット側の責務です。実物: [Controls/MarkdownEditor/Hybrid](story:Controls/MarkdownEditor/Hybrid) / [Controls/MarkdownEditor/VisualSource](story:Controls/MarkdownEditor/VisualSource) (双方向バインド)。
 
         ## IDocumentFormat — パーサーが文章をすべて管理する
 
@@ -122,6 +122,6 @@ public static class DocsText
 
         ## 埋め込みブロック (Embed)
 
-        `BlockKind.Embed` + `IBlockPayload` がデータ、widget 化は表示側の `BlockWidgetRegistry` が行います。canonical 形は `FencePayload(Info, Body)` — リゾルバのいない環境では**ただのコードブロックとして完全に保全**されます。画像・テーブル・チャート ([MarkdownEditor/Embeds](story:MarkdownEditor/Embeds))、そして独自フォーマット + ライブ実行の [LiveCode/StrudelLike](story:LiveCode/StrudelLike) もこの機構です。**この docs ページ自体**の mermaid / 数式 / ライブ UI も同じ経路 (IFenceResolver + BlockWidgetRegistry) で動いています。
+        `BlockKind.Embed` + `IBlockPayload` がデータ、widget 化は表示側の `BlockWidgetRegistry` が行います。canonical 形は `FencePayload(Info, Body)` — リゾルバのいない環境では**ただのコードブロックとして完全に保全**されます。画像・テーブル・チャート ([Controls/MarkdownEditor/Embeds](story:Controls/MarkdownEditor/Embeds))、そして独自フォーマット + ライブ実行の [Demos/Strudel/LiveScript](story:Demos/Strudel/LiveScript) もこの機構です。**この docs ページ自体**の mermaid / 数式 / ライブ UI も同じ経路 (IFenceResolver + BlockWidgetRegistry) で動いています。
         """, toc: true, fences: DocsFences));
 }

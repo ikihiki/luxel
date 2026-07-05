@@ -40,6 +40,7 @@
     <Project Path="src/Luxel/Luxel.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Luxel.E2e.Tests/Luxel.E2e.Tests.csproj" />
     <Project Path="tests/Luxel.Tests/Luxel.Tests.csproj" />
   </Folder>
 </Solution>

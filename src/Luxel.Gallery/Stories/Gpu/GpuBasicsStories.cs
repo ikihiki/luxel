@@ -30,10 +30,10 @@ public static class GpuBasicsStories
         return vb;
     }
 
-    [Story("GPU/Depth", Height = 320, Order = 100)]
+    [Story("Demos/3D/Depth", Height = 320, Order = 100)]
     public static Widget Depth() => Frame(GpuView(256, 256, new DepthScene(), animated: false));
 
-    [Story("GPU/Blend", Height = 320, Order = 101)]
+    [Story("Demos/3D/Blend", Height = 320, Order = 101)]
     public static Widget Blend() => Frame(GpuView(256, 256, new BlendScene(), animated: false));
 
     /// <summary>深度テスト: 手前 (緑, z=0.3) → 奥 (赤, z=0.7) の順に描く。描画順だけなら

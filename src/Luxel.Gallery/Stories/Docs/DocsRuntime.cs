@@ -68,7 +68,7 @@ public static class DocsRuntime
 
         ## ウィンドウとマルチウィンドウ
 
-        `Win32Window` (CreateWindowEx + WndProc + PeekMessage) を `WindowSystem` / `WindowManager` が束ねます。ウィンドウは複数持て、インスタンスは GWLP_USERDATA で引く正攻法 — 静的マップがないので**別スレッドの別ウィンドウ** (ネイティブ DevTools) とも共存します。マウス/ホイール/キー/WM_CHAR/リサイズは `UiHost` へ配線されます。第 2 ウィンドウを実際に開くデモは [Platform/SecondWindow](story:Platform/SecondWindow) (実窓専用) へ。
+        `Win32Window` (CreateWindowEx + WndProc + PeekMessage) を `WindowSystem` / `WindowManager` が束ねます。ウィンドウは複数持て、インスタンスは GWLP_USERDATA で引く正攻法 — 静的マップがないので**別スレッドの別ウィンドウ** (ネイティブ DevTools) とも共存します。マウス/ホイール/キー/WM_CHAR/リサイズは `UiHost` へ配線されます。第 2 ウィンドウを実際に開くデモは [RealWindow/Platform/SecondWindow](story:RealWindow/Platform/SecondWindow) (実窓専用) へ。
 
         ## スワップチェーン提示
 
@@ -89,7 +89,7 @@ public static class DocsRuntime
     public static Widget Input(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # 入力
 
-        入力は 2 系統あります — **UI 入力** (UiHost がポインタ/キー/IME をコントロールへ配送) と、**ゲーム入力** (Luxel.Input — アクションマップとリバインド)。ゲーム入力の動くデモは [Input/Gamepad](story:Input/Gamepad) (実窓専用) へ。
+        入力は 2 系統あります — **UI 入力** (UiHost がポインタ/キー/IME をコントロールへ配送) と、**ゲーム入力** (Luxel.Input — アクションマップとリバインド)。ゲーム入力の動くデモは [RealWindow/Input/Gamepad](story:RealWindow/Input/Gamepad) (実窓専用) へ。
 
         ## UiHost の配送順
 
@@ -101,7 +101,7 @@ public static class DocsRuntime
 
         ## ドラッグ & ドロップ
 
-        `UiHost.BeginDrag(payload, ghost)` + `HitTarget.OnDragOver/OnDrop` — ゴーストがポインタに追従し、ドロップ位置インジケータを受け手が描きます。実物は [ListView/Reorder](story:ListView/Reorder) (行の並べ替え) へ。
+        `UiHost.BeginDrag(payload, ghost)` + `HitTarget.OnDragOver/OnDrop` — ゴーストがポインタに追従し、ドロップ位置インジケータを受け手が描きます。実物は [Controls/ListView/Reorder](story:Controls/ListView/Reorder) (行の並べ替え) へ。
 
         ## ゲーム入力 (Luxel.Input)
 
@@ -116,7 +116,7 @@ public static class DocsRuntime
     public static Widget Audio(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
         # オーディオ (Luxel.Audio)
 
-        `IAudioBackend` (Windows は XAudio2) の上に、SFX ミキサ / BGM ソース / 3D 音源 / バスによる音量カスケードを提供します。**Volume / Pitch / Pan が Signal** なので、UI ともアニメーション (Transition) とも自然につながります。実際に音が鳴るデモは [Audio/Tone](story:Audio/Tone) (実窓専用) へ。
+        `IAudioBackend` (Windows は XAudio2) の上に、SFX ミキサ / BGM ソース / 3D 音源 / バスによる音量カスケードを提供します。**Volume / Pitch / Pan が Signal** なので、UI ともアニメーション (Transition) とも自然につながります。実際に音が鳴るデモは [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone) (実窓専用) へ。
 
         ## 使い方
 

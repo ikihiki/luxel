@@ -11,7 +11,9 @@ namespace Luxel.UI;
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class StoryAttribute(string path) : Attribute
 {
-    /// <summary>"コンポーネント/ストーリー名" の 2 階層パス。</summary>
+    /// <summary>スラッシュ区切りの階層パス (本家 Storybook の title 相当 — 深さ任意)。
+    /// 例: "Controls/Button/Primary" — 末尾がストーリー名、手前が章/フォルダ。
+    /// パスは ID (golden ファイル名 / story: リンク / E2E 参照) — サイドバーはこれをそのまま木にする。</summary>
     public string Path { get; } = path;
     /// <summary>プレビューの論理サイズ。片方だけの指定はもう片方が既定 (480×320) で補完される。
     /// **両方省略するとプレビュー領域いっぱい (fill)** — docs ページ等の全面表示用
@@ -88,6 +90,39 @@ public sealed class StoryContext
 
     /// <summary>登録された knob (ギャラリーが列挙・編集する)。</summary>
     public IReadOnlyList<StoryKnob> Knobs => _knobs;
+
+    private readonly List<StoryPlay> _plays = new();
+
+    /// <summary>登録された play (E2E ランナー/Gallery が実行する)。</summary>
+    public IReadOnlyList<StoryPlay> Plays => _plays;
+
+    /// <summary>true の間は Play 登録を無視する — docs の StoryRef 等、**別ストーリーを同じ ctx で
+    /// 埋め込み構築する**ときに、埋め込まれた側の play がページへ漏れないようにする。</summary>
+    public bool SuppressPlays { get; set; }
+
+    /// <summary>play (対話テスト) を登録する — 本家 Storybook の play 関数相当。
+    /// ストーリー本体と同居させ、クロージャで signal/widget を直接掴んで良い。
+    /// **golden はここの <c>d.Snap()</c> だけが生む** — 初期絵の回帰だけ欲しければ
+    /// <c>ctx.Play(d =&gt; d.Snap())</c> の 1 行。複数登録可 (名前付き) — **play ごとに
+    /// ストーリーは作り直される** (独立実行、前の play の状態は引き継がない)。</summary>
+    public void Play(Func<PlayDriver, Task> body)
+    {
+        if (!SuppressPlays) _plays.Add(new StoryPlay("", body));
+    }
+
+    /// <summary>名前付き play (1 ストーリーに複数のテストを紐づける)。テスト名は "パス#名前"。</summary>
+    public void Play(string name, Func<PlayDriver, Task> body)
+    {
+        if (!SuppressPlays) _plays.Add(new StoryPlay(name, body));
+    }
+
+    /// <summary>「初期絵の golden を 1 枚」のトリビアル play を登録する糖衣 — 式形式のストーリー向け:
+    /// <c>public static Widget X(StoryContext ctx) =&gt; ctx.Snap(Frame(...));</c></summary>
+    public Widget Snap(Widget w)
+    {
+        Play(static d => d.Snap());
+        return w;
+    }
 
     /// <summary>signal を作成し knob として公開する。bool/int/float/string/uint(色) が編集対応。
     /// <paramref name="description"/> は Knobs テーブルの説明列 (autodoc 相当) に表示される。</summary>
@@ -227,10 +262,10 @@ public sealed class StoryKnob
 public sealed record StoryInfo(string Path, int Width, int Height, string? Theme, Func<StoryContext, Widget> Build,
                                int Order = 1000, string? Source = null, bool RealWindowOnly = false)
 {
-    /// <summary>パスの前半 (コンポーネント名)。</summary>
+    /// <summary>パスの先頭セグメント (章 — サイドバーのトップレベル)。</summary>
     public string Component => Path.IndexOf('/') is >= 0 and var i ? Path[..i] : Path;
-    /// <summary>パスの後半 (ストーリー名)。</summary>
-    public string Name => Path.IndexOf('/') is >= 0 and var i ? Path[(i + 1)..] : "Default";
+    /// <summary>パスの末尾セグメント (ストーリー名)。</summary>
+    public string Name => Path.LastIndexOf('/') is >= 0 and var i ? Path[(i + 1)..] : "Default";
 }
 
 /// <summary>全アセンブリのストーリー登録先。ソースジェネレーターが module initializer から Register する。</summary>

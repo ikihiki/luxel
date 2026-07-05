@@ -53,13 +53,13 @@ public static class DocsMotion
         // 毎フレーム: clock を進めて player.Update(clock) — 絶対時刻モデル
         ```
 
-        実物 (2 枚のカードが slide-in + fade-in): {{StoryRef(ctx, "Animation/Tween")}}
+        実物 (2 枚のカードが slide-in + fade-in): {{StoryRef(ctx, "Demos/Animation/Tween")}}
 
         ## AnimationClip と Importer
 
         キーフレームの束は `AnimationClip` に正規化されます。コードで組む (`Tracks.Vector3(path, kind, keyframes)`) ほか、**Importer** が外部形式を落とし込みます:
 
-        - **CSS @keyframes** — `CssKeyframesImporter.Parse(css)` → opacity / translate / color の Track 群 ([Animation/CssKeyframes](story:Animation/CssKeyframes))
+        - **CSS @keyframes** — `CssKeyframesImporter.Parse(css)` → opacity / translate / color の Track 群 ([Demos/Animation/CssKeyframes](story:Demos/Animation/CssKeyframes))
         - **glTF** — animations[] → translation/rotation/scale の Track (skin/morph は将来)
         - 拡張点は `IAnimationImporter` — Lottie subset 等はここに載せます。パース警告は既定 Warn (Strict / Lenient に切替可)
 
@@ -69,9 +69,9 @@ public static class DocsMotion
 
         Clip の上には合成レイヤが載ります:
 
-        - **AnimationGraph** — Clip / Blend / Add の DAG。`BlendNode.Weight` で 2 クリップを混合 ([Animation/Graph](story:Animation/Graph) — weight は knob)
-        - **StateMachine** — Trigger 名で状態切替、crossfade 秒指定 ([Animation/StateMachine](story:Animation/StateMachine) — ボタンで Trigger)
-        - ECS への適用は [Animation/EcsClip](story:Animation/EcsClip) — Clip → LocalTransform → propagate → extract → 描画
+        - **AnimationGraph** — Clip / Blend / Add の DAG。`BlendNode.Weight` で 2 クリップを混合 ([Demos/Animation/Graph](story:Demos/Animation/Graph) — weight は knob)
+        - **StateMachine** — Trigger 名で状態切替、crossfade 秒指定 ([Demos/Animation/StateMachine](story:Demos/Animation/StateMachine) — ボタンで Trigger)
+        - ECS への適用は [Demos/Animation/EcsClip](story:Demos/Animation/EcsClip) — Clip → LocalTransform → propagate → extract → 描画
 
         ## 絶対時刻モデル (frame-driven)
 
@@ -131,7 +131,7 @@ public static class DocsMotion
             .TransitionBetween(WidgetState.Pressed, WidgetState.Hover, 0f);        // 離した瞬間は即時
         ```
 
-        解決は TransitionTable の (from, to, prop) ルールで、**具体的な指定が勝ちます** (pair > to > from > プロパティ既定 > 全体既定。to = enter が from = leave より優先 — CSS の「遷移先のルールが適用される」慣習と同じ)。実物は [Transitions/States](story:Transitions/States) へ。
+        解決は TransitionTable の (from, to, prop) ルールで、**具体的な指定が勝ちます** (pair > to > from > プロパティ既定 > 全体既定。to = enter が from = leave より優先 — CSS の「遷移先のルールが適用される」慣習と同じ)。実物は [Demos/Animation/Transitions](story:Demos/Animation/Transitions) へ。
 
         ## 動的状態 — スクロールも選択移動も同じ機械で
 

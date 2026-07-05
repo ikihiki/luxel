@@ -22,13 +22,17 @@ GpuDevice CreateDevice() => backend switch
     _ => throw new ArgumentException($"未知のバックエンド: {backend} (vk / dx)"),
 };
 
-if (args.Length > 1 && args[1] == "snap")
+if (args.Length > 1 && args[1] is "e2e" or "snap")
 {
+    if (args[1] == "snap")
+        Console.WriteLine("snap は廃止されました — e2e (ctx.Play + d.Snap) として実行します。");
     using GpuDevice device = CreateDevice();
-    Console.WriteLine($"=== Luxel.Gallery snap on '{backend}' (device: {device.Name}) ===");
+    Console.WriteLine($"=== Luxel.Gallery e2e on '{backend}' (device: {device.Name}) ===");
     using VectorFont font = VectorFont.LoadSystem();
     using var host = new GalleryHost(device, font);
-    return Snapshot.Run(host, StoryRegistry.All, backend, args.Contains("--update"));
+    // フラグ以外の残り引数 = テスト名フィルタ (部分一致、"パス#play名")
+    string? filter = args.Skip(2).FirstOrDefault(a => !a.StartsWith("--"));
+    return E2e.Run(host, StoryRegistry.All, backend, args.Contains("--update"), filter, args.Contains("--times"));
 }
 
 // canvas 更新コストのマイクロベンチ: -- vk bench <story> [frames] [--type] [--click x y] [--wheel d]

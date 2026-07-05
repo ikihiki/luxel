@@ -8,13 +8,13 @@ namespace Luxel.Gallery.Stories;
 /// <summary>オーバーレイ/開閉系コントロールのストーリー。</summary>
 public static class OverlayControlStories
 {
-    [Story("Tabs/Basic", Height = 260)]
+    [Story("Controls/Tabs/Basic", Height = 260)]
     public static Widget TabsBasic(StoryContext ctx)
-        => Frame(Tabs(["One", "Two", "Three"],
+        => ctx.Snap(Frame(Tabs(["One", "Two", "Three"],
             [Label("Content of tab one"), Label("Content of tab two"), Label("Content of tab three")],
-            ctx.Signal("selected", 0), width: 380, height: 160));
+            ctx.Signal("selected", 0), width: 380, height: 160)));
 
-    [Story("Tabs/Event", Height = 260)]
+    [Story("Controls/Tabs/Event", Height = 260)]
     public static Widget TabsEvnet(StoryContext ctx)
     => Frame(Tabs(["One", "Two", "Three"],
         [
@@ -24,22 +24,22 @@ public static class OverlayControlStories
         ],
         ctx.Signal("selected", 0), width: 380, height: 160));
 
-    [Story("Accordion/Basic", Height = 280)]
+    [Story("Controls/Accordion/Basic", Height = 280)]
     public static Widget AccordionBasic(StoryContext ctx) =>
         Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(24))
             [Accordion("Details", VStack(4)[Label("Hidden line 1"), Label("Hidden line 2")],
                        ctx.Signal("expanded", true))];
 
-    [Story("Dropdown/Basic", Height = 280)]
+    [Story("Controls/Dropdown/Basic", Height = 280)]
     public static Widget DropdownBasic() =>
         Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(24))
             [Dropdown("Open menu", [("Alpha", () => { }), ("Beta", () => { }), ("Gamma", () => { })])];
 
-    [Story("Tooltip/Basic", Height = 220)]
+    [Story("Controls/Tooltip/Basic", Height = 220)]
     public static Widget TooltipBasic() => Frame(
         Tooltip(Button(_ => { }, "Hover me"), "Helpful hint"));
 
-    [Story("MenuRow/Basic", Height = 200)]
+    [Story("Controls/MenuRow/Basic", Height = 200)]
     public static Widget MenuRowBasic() => Frame(
         Border(background: Bind.From(() => UiTheme.T.Surface), rounded: 8, padding: new Thickness(6))
             [VStack(2)[
@@ -47,20 +47,32 @@ public static class OverlayControlStories
                 MenuRow("Save", _ => { }, hAlign: Align.Stretch),
                 MenuRow("Exit", _ => { }, hAlign: Align.Stretch)]]);
 
-    [Story("Dialog/Basic", Height = 320)]
+    [Story("Controls/Dialog/Basic", Height = 320)]
     public static Widget DialogBasic(StoryContext ctx)
     {
         Signal<bool> open = ctx.Signal("open", true);
+        Button opener = Button(_ => open.Value = true, "Open dialog");
+        // play: 初期 (開) → Esc で閉じる → 再度開く (E2E の対話ショーケース)
+        ctx.Play(async d =>
+        {
+            await d.Snap();                                    // 開いた状態 (初期)
+            await d.Key(Key.Escape);
+            await d.Step(30);   // 閉フェード (~0.2s) の静定待ち
+            await d.Expect(() => !open.Value, "Esc でダイアログが閉じる");
+            await d.Snap("closed");
+            await d.Click(opener);
+            await d.Expect(() => open.Value, "ボタンで再度開く");
+        });
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(24))
             [VStack(8)[
-                Button(_ => open.Value = true, "Open dialog"),
+                opener,
                 Dialog(open, Card(VStack(8)[
                     Heading("Dialog title", 2),
                     Muted("Esc か外側クリックで閉じる"),
                     Button(_ => open.Value = false, "Close")]))]];
     }
 
-    [Story("Toast/Basic", Height = 320)]
+    [Story("Controls/Toast/Basic", Height = 320)]
     public static Widget ToastBasic(StoryContext ctx)
     {
         Signal<bool> open = ctx.Signal("open", true);
@@ -70,7 +82,7 @@ public static class OverlayControlStories
                 Toast(open, Card(Label("Saved successfully")))]];
     }
 
-    [Story("Drawer/Basic", Height = 320)]
+    [Story("Controls/Drawer/Basic", Height = 320)]
     public static Widget DrawerBasic(StoryContext ctx)
     {
         Signal<bool> open = ctx.Signal("open", true);

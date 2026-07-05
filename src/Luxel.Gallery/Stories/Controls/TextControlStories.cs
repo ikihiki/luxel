@@ -10,11 +10,24 @@ namespace Luxel.Gallery.Stories;
 /// <summary>テキスト表示/編集系コントロールのストーリー。</summary>
 public static class TextControlStories
 {
-    [Story("TextField/Basic", Height = 160)]
+    [Story("Controls/TextField/Basic", Height = 160)]
     public static Widget TextFieldBasic(StoryContext ctx)
-        => Frame(TextField(ctx.Signal("text", "Hello"), placeholder: "Type here..."));
+    {
+        Signal<string> text = ctx.Signal("text", "Hello");
+        TextField tf = TextField(text, placeholder: "Type here...");
+        // play: クリックでフォーカス → 入力 → signal 反映 → 入力後の絵 (E2E の対話ショーケース)
+        ctx.Play(async d =>
+        {
+            await d.Snap();
+            await d.Click(tf);                 // 中心クリック — テキスト末尾より右なのでキャレットは末尾
+            await d.Type(" Luxel");
+            await d.Expect(() => text.Value == "Hello Luxel", "入力が signal へ反映される");
+            await d.Snap("typed");
+        });
+        return Frame(tf);
+    }
 
-    [Story("RichTextEditor/Basic", Height = 460)]
+    [Story("Controls/RichTextEditor/Basic", Height = 460)]
     public static Widget RichTextEditorBasic(StoryContext ctx)
     {
         Signal<string> md = ctx.Signal("markdown",
@@ -25,6 +38,7 @@ public static class TextControlStories
         ed.Fonts = JpFallback.Value;
         ed.Highlighter = Luxel.Highlight.TextMateHighlighter.Instance;
         (ed.BoldFont, ed.ItalicFont, ed.BoldItalicFont, ed.MonoFont) = EditorFaces.Value;
+        ctx.Play(static d => d.Snap());
 
         Widget Tool(string label, Action<Luxel.Document.DocumentEditor> act)
             => Button(_ => ed.Apply(act), label, variant: Variant.Ghost);
@@ -45,7 +59,7 @@ public static class TextControlStories
             ed]);
     }
 
-    [Story("MarkdownEditor/Hybrid", Height = 420)]
+    [Story("Controls/MarkdownEditor/Hybrid", Height = 420)]
     public static Widget MarkdownEditorHybrid(StoryContext ctx)
     {
         Signal<string> md = ctx.Signal("markdown",
@@ -58,7 +72,7 @@ public static class TextControlStories
         return Frame(ed);
     }
 
-    [Story("MarkdownEditor/VisualSource", Height = 560)]
+    [Story("Controls/MarkdownEditor/VisualSource", Height = 560)]
     public static Widget MarkdownEditorVisualSource(StoryContext ctx)
     {
         // 同一 signal を Visual (hybrid) と Source (TextArea) が共有 — 双方向バインドの実証。
@@ -106,16 +120,17 @@ public static class TextControlStories
         return (fmt, widgets);
     }
 
-    private const string SampleImage = "src/Luxel.Gallery/goldens/Sparkline_Basic.vk.png";
+    private const string SampleImage = "src/Luxel.Gallery/assets/sample-sparkline.png";
     private static Luxel.Resources.ResourceHandle<Luxel.Resources.CpuImage>? _imagePreload;
 
-    [Story("MarkdownEditor/Embeds", Height = 460)]
+    [Story("Controls/MarkdownEditor/Embeds", Height = 460)]
     public static Widget MarkdownEditorEmbeds(StoryContext ctx)
     {
         // snap (1 フレーム描画) の決定性のため画像を同期 preload — 実アプリでは不要
         // (ImageBlock はロード完了をポーリングし Invalidate で実寸に切り替わる)
         _imagePreload ??= ctx.Resources.Load<Luxel.Resources.CpuImage>(SampleImage);
         try { _imagePreload.Ready.Wait(3000); } catch { /* 失敗時はプレースホルダ表示のまま */ }
+        ctx.Play(static d => d.Snap());
 
         (Luxel.Document.MarkdownFormat fmt, BlockWidgetRegistry widgets) = CreateChartMarkdown(ctx.Resources);
 
@@ -134,7 +149,7 @@ public static class TextControlStories
         return Frame(ed);
     }
 
-    [Story("SearchField/Basic", Height = 320)]
+    [Story("Controls/SearchField/Basic", Height = 320)]
     public static Widget SearchFieldBasic(StoryContext ctx)
     {
         // CompositeControl の見本: タイプで候補が絞り込まれ (構造状態 → Rebuild)、行クリックで確定
@@ -142,7 +157,7 @@ public static class TextControlStories
         return Frame(SearchField(ctx.Signal("query", ""), langs));
     }
 
-    [Story("TextArea/Basic", Height = 280)]
+    [Story("Controls/TextArea/Basic", Height = 280)]
     public static Widget TextAreaBasic(StoryContext ctx)
     {
         TextArea ta = TextArea(ctx.Signal("text",
@@ -153,17 +168,17 @@ public static class TextControlStories
         return Frame(ta);
     }
 
-    [Story("TextArea/Scroll", Height = 280)]
+    [Story("Controls/TextArea/Scroll", Height = 280)]
     public static Widget TextAreaScroll(StoryContext ctx)
     {
         TextArea ta = TextArea(ctx.Signal("text",
             string.Join('\n', Enumerable.Range(1, 24).Select(i => $"line {i:00} — キャレット追従スクロールの確認"))),
             height: 180);
         ta.Fonts = JpFallback.Value;
-        return Frame(ta);
+        return ctx.Snap(Frame(ta));
     }
 
-    [Story("Text/EllipsisVAlign", Height = 360)]
+    [Story("Controls/Text/EllipsisVAlign", Height = 360)]
     public static Widget TextEllipsisVAlign()
     {
         const string lng = "The quick brown fox jumps over the lazy dog near the quiet river bank in autumn evenings.";
@@ -179,7 +194,7 @@ public static class TextControlStories
                 verticalAlign: TextVAlign.Bottom, textAlign: Luxel.Typography.TextAlign.Right))]);
     }
 
-    [Story("RichText/Basic", Height = 280)]
+    [Story("Controls/RichText/Basic", Height = 280)]
     public static Widget RichTextBasic()
     {
         var spans = new[]
@@ -197,7 +212,7 @@ public static class TextControlStories
                             padding: new Thickness(10), width: 380)[rtv]);
     }
 
-    [Story("Text/Multiline", Height = 480)]
+    [Story("Controls/Text/Multiline", Height = 480)]
     public static Widget TextMultiline()
     {
         const string en = "The quick brown fox jumps over the lazy dog near the quiet river bank in autumn.";
@@ -211,11 +226,11 @@ public static class TextControlStories
             Case("Justify (末行は左)", Text(en + " " + en, 13, wrap: Luxel.Typography.TextWrap.Word, textAlign: Luxel.Typography.TextAlign.Justify))]);
     }
 
-    [Story("Text/Styles", Height = 220)]
-    public static Widget TextStyles() => Frame(VStack(6)[
+    [Story("Controls/Text/Styles", Height = 220)]
+    public static Widget TextStyles(StoryContext ctx) => ctx.Snap(Frame(VStack(6)[
         Text("Large 28px", 28, color: Bind.From(() => UiTheme.T.Text)),
         Text("Body 16px", 16, color: Bind.From(() => UiTheme.T.Text)),
         Text("Muted 13px", 13, color: Bind.From(() => UiTheme.T.TextMuted)),
         Text("Tailwind colored", 16, color: Tw.Blue500),
-        Text("Half opacity", 16, color: Bind.From(() => UiTheme.T.Text), opacity: 0.5f)]);
+        Text("Half opacity", 16, color: Bind.From(() => UiTheme.T.Text), opacity: 0.5f)]));
 }

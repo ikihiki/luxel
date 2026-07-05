@@ -26,7 +26,12 @@ internal static class DocsKit
                 Alert($"ストーリーが見つかりません: {path}", Intent.Danger)];
 
         int before = ctx.Knobs.Count;
-        Widget body = s.Build(ctx);
+        // 埋め込みは ctx を共有するが、play はページへ漏らさない (golden はページ自身の play が撮る)
+        bool suppressed = ctx.SuppressPlays;
+        ctx.SuppressPlays = true;
+        Widget body;
+        try { body = s.Build(ctx); }
+        finally { ctx.SuppressPlays = suppressed; }
         var parts = new List<Widget>
         {
             Text(path, 12, color: Bind.From(() => UiTheme.T.TextMuted)),

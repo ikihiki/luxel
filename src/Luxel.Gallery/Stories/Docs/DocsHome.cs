@@ -13,6 +13,7 @@ public static class DocsHome
     public static Widget GettingStarted(StoryContext ctx)
     {
         Signal<int> count = ctx.Signal("count", 0, "カウンタの現在値 (± ボタンと連動)");
+        ctx.Play(static d => d.Snap());
         Widget counter = HStack(8)[
             Button(_ => { count.Value--; ctx.Log("counter: -1"); }, "-"),
             Text($" {count} ", 20, vAlign: Align.Center),
@@ -41,7 +42,7 @@ public static class DocsHome
             dotnet build
             dotnet run --project src/Luxel.Gallery -- vk           # この Gallery (実ウィンドウ)
             dotnet run --project src/Luxel.Gallery -- vk snap      # スナップショット回帰 (--update で golden 更新)
-            dotnet run --project src/Luxel.Gallery -- vk bench "Button/Counter" 300 --type
+            dotnet run --project src/Luxel.Gallery -- vk bench "Controls/Button/Counter" 300 --type
             dotnet test                                            # ユニットテスト
             ```
 
@@ -83,7 +84,7 @@ public static class DocsHome
 
         UI ([Docs/GettingStarted](story:Docs/GettingStarted)) の次は GPU です。Luxel の描画は常に同じ 4 手 — **確保 (Malloc/CreateRenderTarget) → パイプライン (Slang) → コマンド記録 → Submit** — で、ディスクリプタもレイアウトオブジェクトもありません。回る三角形 1 枚でその全部が出てきます。
 
-        {{StoryRef(ctx, "3D/Triangle")}}
+        {{StoryRef(ctx, "Demos/3D/Triangle")}}
 
         ## 1. 頂点バッファ = ただのメモリ
 
@@ -125,12 +126,12 @@ public static class DocsHome
 
         上のデモの実ソースがこれです (Gallery の `IGpuScene` 規約 — ctor は保持のみ、確保は Init):
 
-        {{StorySource("3D/Triangle")}}
+        {{StorySource("Demos/3D/Triangle")}}
 
         ## 次の一歩
 
-        - 2D を 1 行で描きたい → `Canvas2D(w, h, draw: s => s.FillCircle(...))` ([2D/Shapes](story:2D/Shapes))
-        - 深度/ブレンドの状態 → [GPU/Depth](story:GPU/Depth) / [GPU/Blend](story:GPU/Blend)
+        - 2D を 1 行で描きたい → `Canvas2D(w, h, draw: s => s.FillCircle(...))` ([Demos/2D/Shapes](story:Demos/2D/Shapes))
+        - 深度/ブレンドの状態 → [Demos/3D/Depth](story:Demos/3D/Depth) / [Demos/3D/Blend](story:Demos/3D/Blend)
         - GpuDevice の全体像 (bindless/バリア/Slang の設計) → [Docs/GpuDevice](story:Docs/GpuDevice)
         - パスが増えてきたら → [Docs/RenderGraph](story:Docs/RenderGraph)
         """, toc: true, fences: DocsFences));
@@ -171,11 +172,11 @@ public static class DocsHome
 
         ## モーション
 
-        `Luxel.Animation` が Curve × Tween の 2 段分解による中核 IR。ターゲットアダプタ (`.UI` = Signal、`.TwoD` = RetainedCanvas、`.ThreeD` = ECS) が書き込み先を分離します。実例はサイドバーの Animation 章へ ([Animation/Tween](story:Animation/Tween) など)。
+        `Luxel.Animation` が Curve × Tween の 2 段分解による中核 IR。ターゲットアダプタ (`.UI` = Signal、`.TwoD` = RetainedCanvas、`.ThreeD` = ECS) が書き込み先を分離します。実例はサイドバーの Animation 章へ ([Demos/Animation/Tween](story:Demos/Animation/Tween) など)。
 
         ## 3D / レンダーグラフ / リソース
 
-        `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、`Luxel.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成 ([RenderGraph/Blur](story:RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` + `Luxel.Gltf` が (型, uri) キーのリソース DAG を提供します。
+        `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、`Luxel.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成 ([Demos/RenderGraph/Blur](story:Demos/RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` + `Luxel.Gltf` が (型, uri) キーのリソース DAG を提供します。
 
         ## ランタイムとツール
 

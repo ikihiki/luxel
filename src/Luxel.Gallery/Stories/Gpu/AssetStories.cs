@@ -28,13 +28,13 @@ public static class AssetStories
     }
 
     /// <summary>Box.gltf → AssetDocument → ECS → 1 draw。アセットパイプラインの最小経路。</summary>
-    [Story("3D/GltfBox", Height = 320, Order = 125)]
+    [Story("Demos/3D/GltfBox", Height = 320, Order = 125)]
     public static Widget GltfBox() => Frame(GpuView(256, 256, new GltfScene("Box.gltf"), animated: false));
 
     /// <summary>BoxAnimated.glb — ノード TRS アニメーションを SceneAnimationPlayer が毎フレーム
     /// sample → TransformPropagate → 再 Extract して描く (スキニングなしのアニメーション経路)。</summary>
-    [Story("3D/GltfAnimated", Height = 320, Order = 126)]
-    public static Widget GltfAnimated() => Frame(GpuView(256, 256, new GltfScene("BoxAnimated.glb", animate: true)));
+    [Story("Demos/3D/GltfAnimated", Height = 320, Order = 126)]
+    public static Widget GltfAnimated(StoryContext ctx) => ctx.Snap(Frame(GpuView(256, 256, new GltfScene("BoxAnimated.glb", animate: true))));
 
     /// <summary>khronos-samples の glTF を読み、SceneBuilder → SceneRenderExtractor → 描画。
     /// animate 時は毎フレーム anim[0] を周期 sample して instance を書き直す。</summary>

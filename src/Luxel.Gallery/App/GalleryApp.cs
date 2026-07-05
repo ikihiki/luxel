@@ -67,6 +67,7 @@ public sealed class GalleryApp : IDisposable
 
     public GalleryApp() => WireStateForcing();   // Effect は生涯 1 組 (BuildRoot 毎に張ると累積する)
 
+
     public StoryContext? Context => _ctx;
     public string? CurrentPath => _currentPath;
     /// <summary>プレビューの子 UiHost (ストーリー側)。リモート検証用に UiRegistry へ登録する。</summary>
@@ -92,10 +93,70 @@ public sealed class GalleryApp : IDisposable
         return d;
     }
 
+    // ---- Interactions (play の Gallery 内再生 — 本家 Storybook の Interactions パネル相当) ----
+    private readonly Signal<int> _bottomTab = new(0);   // 下ペインのタブ (Log/Knobs/Interactions) — 再構築を跨いで保持
+    private readonly List<string> _playSteps = new();
+    private readonly Signal<int> _playVer = new(0);   // ステップ/状態の再描画トリガ
+    private string _playStatus = "";
+    private bool _playRunning;
+    private TaskCompletionSource? _playWait;
+    private int _playFramesLeft;
+
+    /// <summary>play を実行中のフレーム待ち Task を返す (継続は Update の SetResult で
+    /// ギャラリースレッド上に同期再開 — StoryFramePacer と同じ手法)。</summary>
+    private Task WaitFrames(int n)
+    {
+        _playFramesLeft = Math.Max(1, n);
+        _playWait = new TaskCompletionSource();
+        return _playWait.Task;
+    }
+
+    private void NoteStep(string s)
+    {
+        _playSteps.Add(s);
+        _playVer.Value++;
+    }
+
+    /// <summary>▶: play をプレビューの実ストーリーに対してリアルタイム再生する。
+    /// hermetic 契約どおり、実行前にストーリーを作り直す (E2E ランナーと同じ意味論)。</summary>
+    private async void StartPlay(int index)
+    {
+        if (_playRunning || _currentStory is null) return;
+        Select(_currentStory);                       // 作り直し — play のクロージャも新インスタンスを掴む
+        IReadOnlyList<StoryPlay> plays = _ctx?.Plays ?? [];
+        if (index >= plays.Count || StoryHost is not { } sh) return;
+        _playRunning = true;
+        _playSteps.Clear();
+        _playStatus = "実行中…";
+        _playVer.Value++;
+        var driver = new PlayDriver(sh,
+            step: n => WaitFrames(n * 3),            // 実フレーム × 3 — 目で追える速度
+            snap: name => NoteStep($"Snap \"{(name.Length > 0 ? name : "default")}\""),
+            onOp: NoteStep);
+        try
+        {
+            await plays[index].Body(driver);
+            _playStatus = "✓ 完了";
+        }
+        catch (PlayError e) { _playStatus = $"✗ {e.Message}"; }
+        catch (Exception e) { _playStatus = $"✗ {e.GetType().Name}: {e.Message}"; }
+        finally
+        {
+            _playRunning = false;
+            _playVer.Value++;
+        }
+    }
+
     /// <summary>毎フレームの軽い同期: 状態強制の適用 (effect 文脈の外で signal を書く) + 検索適用 + Log の反映 (15f 毎)。</summary>
     public void Update()
     {
         _resources.Pump();
+        // play のフレーム待ちを進める (SetResult の継続 = play 本体がこのスレッドで再開する)
+        if (_playWait is { } pw && --_playFramesLeft <= 0)
+        {
+            _playWait = null;
+            pw.SetResult();
+        }
         _ctx?.PumpKnobEdits();   // Knobs テーブルの編集適用 (effect 文脈外)
         if (_pendingNav is string nav) { _pendingNav = null; SelectByPath(nav); }
         SyncSearch();
@@ -141,22 +202,34 @@ public sealed class GalleryApp : IDisposable
         // 初回は全 Component を展開 (従来の全件表示と同じ見え方から始める)。
         // 見出し (TOC) は DocsIndex から全ページ分を常設 (Tag = (StoryInfo, ブロック index))
         _docsIndex ??= DocsIndex.Build(StoryRegistry.All, _resources);
+        // 本家 Storybook と同じく、**パスのスラッシュ区切りがそのまま階層** (title 相当)。
+        // 末尾セグメント = ストーリー、手前 = フォルダ (章/コンポーネント/…、深さ任意)。
+        // 表示層のマップは持たない — 章替え/整理はパス改名 (+ golden の git mv) で行う。
         var roots = new List<TreeNode>();
-        foreach (var group in StoryRegistry.All.GroupBy(s => s.Component))
+        var folders = new Dictionary<string, List<TreeNode>>();   // "Demos/2D" → 子リスト
+        foreach (StoryInfo s in StoryRegistry.All)
         {
-            string groupKey = $"g:{group.Key}";
-            if (_treeInit) _treeExpanded.Add(groupKey);
-            var stories = new List<TreeNode>();
-            foreach (StoryInfo s in group)
+            string[] seg = s.Path.Split('/');
+            List<TreeNode> level = roots;
+            string prefix = "";
+            for (int i = 0; i < seg.Length - 1; i++)
             {
-                DocsPage? page = _docsIndex.GetValueOrDefault(s.Path);
-                List<TreeNode>? heads = page is { Headings.Count: > 0 }
-                    ? page.Headings.Select(h => new TreeNode($"{s.Path}#{h.Block}", h.Text,
-                        Tag: (s, h.Block))).ToList()
-                    : null;
-                stories.Add(new TreeNode(s.Path, s.Name, heads, Tag: s, SearchText: page?.Text));
+                prefix = i == 0 ? seg[0] : $"{prefix}/{seg[i]}";
+                if (!folders.TryGetValue(prefix, out List<TreeNode>? children))
+                {
+                    children = new List<TreeNode>();
+                    folders[prefix] = children;
+                    level.Add(new TreeNode($"g:{prefix}", seg[i], children));
+                    if (_treeInit && i == 0) _treeExpanded.Add($"g:{prefix}");   // 章 (トップ) だけ開く
+                }
+                level = children;
             }
-            roots.Add(new TreeNode(groupKey, group.Key, stories));
+            DocsPage? page = _docsIndex.GetValueOrDefault(s.Path);
+            List<TreeNode>? heads = page is { Headings.Count: > 0 }
+                ? page.Headings.Select(h => new TreeNode($"{s.Path}#{h.Block}", h.Text,
+                    Tag: (s, h.Block))).ToList()
+                : null;
+            level.Add(new TreeNode(s.Path, s.Name, heads, Tag: s, SearchText: page?.Text));
         }
         _treeInit = false;
         TreeView tree = TreeView(roots, _treeExpanded,
@@ -204,16 +277,58 @@ public sealed class GalleryApp : IDisposable
         toolbar.GridRow(0);
         _preview.GridRow(1);
         var splitLog = Splitter(vertical: false,
-            onResized: (_, d) => { _logH = Math.Clamp(_logH - d, 60, 440); RefreshPreviewSize(); _dirty = true; });   // 上へドラッグ = Log 拡大
+            onResized: (_, d) => { _logH = Math.Clamp(_logH - d, 60, 440); RefreshPreviewSize(); _dirty = true; });   // 上へドラッグ = 下ペイン拡大
         splitLog.GridRow(2);
+
+        // ---- 下ペイン: Log / Knobs / Interactions のタブ切替 (選択はフィールド — 再構築を跨いで保持) ----
+        float paneW = MathF.Max(140, mainW);
+        float innerH = MathF.Max(24, _logH - 64);   // タブバー + 見出し分を引いた内容高
+
         _logItems.Value = LogLines();
-        ListView logList = ListView(MathF.Max(24, _logH - 36), 16f, items: _logItems, width: MathF.Max(120, mainW - 24));
-        Widget logPanel = Border(background: Bind.From(() => UiTheme.T.Surface), rounded: UiTheme.T.Radius,
-                                 padding: new Thickness(8, 4), width: MathF.Max(140, mainW))[
-            VStack(2)[
-                Text($"Log ({_logCountSig})", 14, color: Bind.From(() => UiTheme.T.Text)),
-                logList]];
-        logPanel.GridRow(3);
+        Widget logPane = VStack(2)[
+            Text($"({_logCountSig})", 11, color: Bind.From(() => UiTheme.T.TextMuted)),
+            ListView(MathF.Max(24, innerH - 16), 16f, items: _logItems, width: MathF.Max(120, paneW - 40))];
+
+        // Knobs (autodoc 風テーブル)。編集は StoryContext のキューへ (Update の PumpKnobEdits が適用)
+        Widget knobsPane = Scroll(innerH, width: paneW - 32)[
+            KnobsTable(_ctx?.Knobs ?? [], width: paneW - 48,
+                onEdit: (_, k, v) => _ctx?.QueueKnobEdit(k, v))];
+
+        // Interactions: play 一覧 + ▶ 再生 + ステップログ (Storybook の Interactions 相当)
+        IReadOnlyList<StoryPlay> storyPlays = _ctx?.Plays ?? [];
+        Widget interactionsPane;
+        if (storyPlays.Count == 0)
+        {
+            interactionsPane = Text("このストーリーに play はありません — ctx.Play(d => d.Snap()) で登録します",
+                12, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8, 8, 0, 0));
+        }
+        else
+        {
+            var rows = new List<Widget>();
+            for (int i = 0; i < storyPlays.Count; i++)
+            {
+                int idx = i;
+                string label = storyPlays[i].Name.Length > 0 ? storyPlays[i].Name : "default";
+                rows.Add(Button(_ => StartPlay(idx), $"▶ {label}",
+                    variant: Luxel.UI.Variant.Ghost, fontSize: 12f, width: 180f));
+            }
+            Func<string> playLog = () =>
+            {
+                _ = _playVer.Value;   // 依存 — ステップ追加/完了で再評価
+                string log = string.Join("\n", _playSteps);
+                return _playStatus.Length == 0 ? (log.Length == 0 ? "—" : log) : $"{log}\n{_playStatus}";
+            };
+            interactionsPane = HStack(10)[
+                Scroll(innerH, width: 200f)[VStack(1)[rows.ToArray()]],
+                Scroll(innerH, width: MathF.Max(120, paneW - 260))[
+                    Text(playLog, 11, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(4, 2, 0, 0))]];
+        }
+
+        Widget bottomPane = Border(background: Bind.From(() => UiTheme.T.Surface), rounded: UiTheme.T.Radius,
+                                   padding: new Thickness(8, 4), width: paneW)[
+            Tabs(["Log", "Knobs", "Interactions"], [logPane, knobsPane, interactionsPane],
+                 _bottomTab, width: paneW - 16, height: _logH - 16)];
+        bottomPane.GridRow(3);
 
         // 全画面 (zen): ツールバー + プレビューのみ (Log/右パネルを隠して docs をメイン全面に)
         Widget main = _zen
@@ -221,19 +336,14 @@ public sealed class GalleryApp : IDisposable
             : Grid(
                 [GridLength.Star(1)],
                 [GridLength.Px(28), GridLength.Star(1), GridLength.Px(Split.Thickness), GridLength.Px(_logH)])[
-                toolbar, _preview, splitLog, logPanel];
+                toolbar, _preview, splitLog, bottomPane];
         main.GridColumn(2);
 
         var splitPanel = Splitter(vertical: true,
             onResized: (_, d) => { _rightW = Math.Clamp(_rightW - d, 200, 460); RefreshPreviewSize(); _dirty = true; });
         splitPanel.GridColumn(3);
 
-        // ---- 右パネル (col 4): Knobs (autodoc 風テーブル) + Props (個別スクロール) ----
-        // 編集は StoryContext のキューへ (Update の PumpKnobEdits が effect 文脈外で適用)。
-        // 説明列はパネルが狭いと詰まる — Splitter で広げられる
-        Widget knobsTable = KnobsTable(_ctx?.Knobs ?? [], width: _rightW - 8,
-            onEdit: (_, k, v) => _ctx?.QueueKnobEdit(k, v));
-
+        // ---- 右パネル (col 4): Props (ツリー + 選択ノードのプロパティ編集) ----
         var props = new List<Widget>();
         if (_storyRoot is not null)
         {
@@ -253,10 +363,8 @@ public sealed class GalleryApp : IDisposable
         }
 
         Widget panel = VStack(2)[
-            Heading("Knobs"),
-            Scroll(260f, width: _rightW)[knobsTable],   // テーブル ~7 行分 (それ以上はスクロール)
             Heading("Props"),
-            Scroll(MathF.Max(80, winH - 330), width: _rightW)[VStack(3)[props.ToArray()]]];
+            Scroll(MathF.Max(80, winH - 70), width: _rightW)[VStack(3)[props.ToArray()]]];
         panel.GridColumn(4);
 
         Widget root = _zen

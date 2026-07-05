@@ -24,13 +24,13 @@ namespace Luxel.Gallery.Stories;
 /// </summary>
 public static class KnockdownStories
 {
-    [Story("Game/Knockdown3D", Width = 520, Height = 420, Order = 148)]
+    [Story("Apps/Game/Knockdown3D", Width = 520, Height = 420, Order = 148)]
     public static Widget Knockdown(StoryContext ctx)
-        => VStack(8)[
+        => ctx.Snap(VStack(8)[
             new StoryAppView<KnockdownScene>(KnockdownScene.W, KnockdownScene.H, (s, bctx) =>
                 s.AddSingleton<Action<string>>(ctx.Log)),
             Muted("Drag: orbit camera / Click: shoot — Physics (Bepu) + ECS 3D + RenderGraph")
-        ];
+        ]);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct DrawArgs

@@ -15,16 +15,16 @@ namespace Luxel.Gallery.Stories;
 /// </summary>
 public static class FrameworkAppStories
 {
-    [Story("Framework/App", Width = 520, Height = 400, Order = 146)]
+    [Story("Apps/Framework/App", Width = 520, Height = 400, Order = 146)]
     public static Widget App(StoryContext ctx)
-        => VStack(10)[
+        => ctx.Snap(VStack(10)[
             new StoryAppView<StoryAppScene>(StoryAppScene.W, StoryAppScene.H, (s, bctx) =>
             {
                 s.AddSingleton(bctx.Font);                  // アプリ UI 用フォント (ホスト共有)
                 s.AddSingleton<Action<string>>(ctx.Log);    // ストーリーの Log パネルへ
             }),
             Muted("LuxelHostBuilder + GameLoop + GameScene (real app) / GPU: host, Platform: Storybook")
-        ];
+        ]);
 
     /// <summary>デモアプリの Scene。GPU 資源 (Rasterizer2D/RetainedCanvas/framebuffer) は
     /// **最初のフレーム内で遅延生成** — フレームは埋め込みホストのスレッドで走るため、

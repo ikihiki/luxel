@@ -9,10 +9,10 @@ namespace Luxel.Gallery.Stories;
 public static class DocsStrudel
 {
     [Story("Docs/Strudel", Order = 55)]
-    public static Widget Strudel(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Strudel(StoryContext ctx) => ctx.Snap(WithDocFonts(Docs(ctx, $$"""
         # ライブコーディング (Luxel.Strudel)
 
-        [Strudel](https://strudel.cc) (TidalCycles の JS 版) のパターン言語を C# で実装したものです。実演は {{StoryRef(ctx, "Strudel/Repl")}} へ。2 層に分かれます:
+        [Strudel](https://strudel.cc) (TidalCycles の JS 版) のパターン言語を C# で実装したものです。実演は {{StoryRef(ctx, "Demos/Strudel/Repl")}} へ。2 層に分かれます:
 
         - **Luxel.Strudel** — パターン言語 (有理数時間のクエリモデル + ミニ記法 + チェーン式評価)
         - **Luxel.Audio.Sequencing** — 汎用シーケンシング層 (イベント表現 + サンプル精度ミキサ)。Strudel を知らず、ゲームの効果音シーケンスにも使えます
@@ -72,5 +72,5 @@ public static class DocsStrudel
 
         > [!NOTE]
         > v1 スコープ外: MIDI out sink・サンプル (wav) 音色・`!` 繰り返しや `.` グループ等の残り記法・scale/chord・エフェクト (filter/delay)・Ctrl+Enter 評価。イベント表現が汎用なので、MIDI out は `IEventSink` 実装 1 つで足せます。
-        """));
+        """)));
 }
