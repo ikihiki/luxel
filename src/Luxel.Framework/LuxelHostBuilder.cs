@@ -31,6 +31,8 @@ public sealed class LuxelHostBuilder
 {
     private readonly HostApplicationBuilder _inner;
     private Func<GpuDevice>? _deviceFactory;
+    private GpuDevice? _borrowedDevice;
+    private Func<CancellationToken, Task>? _frameWaiter;
     private Type? _startupScene;
     private string? _assetRoot;
     private bool _useAudio;
@@ -57,8 +59,18 @@ public sealed class LuxelHostBuilder
         return this;
     }
 
-    /// <summary>直接 factory を注入する (テストでモックしたいとき等)。</summary>
+    /// <summary>直接 factory を注入する (テストでモックしたいとき等)。factory が作った device は
+    /// host の破棄で Dispose される (所有はコンテナ)。</summary>
     public LuxelHostBuilder UseGpu(Func<GpuDevice> factory) { _deviceFactory = factory; return this; }
+
+    /// <summary>**借用** device を使う (Storybook 等、ホストの GPU に相乗りする埋め込み実行用)。
+    /// インスタンス登録なのでコンテナは Dispose しない — 所有はホスト側のまま。</summary>
+    public LuxelHostBuilder UseGpuDevice(GpuDevice device) { _borrowedDevice = device; return this; }
+
+    /// <summary>フレームペーシングを差し替える (Platform 部分の抽象 — 既定は固定ディレイ)。
+    /// Storybook 等の埋め込みホストが自分の描画ティックに同期させるのに使う。
+    /// 詳細は <see cref="SceneLoopServices.WaitFrame"/>。</summary>
+    public LuxelHostBuilder UseFrameWaiter(Func<CancellationToken, Task> waiter) { _frameWaiter = waiter; return this; }
 
     /// <summary>Audio (XAudio2Backend) を DI に登録する。未指定なら audio system は起動しない。</summary>
     public LuxelHostBuilder UseAudio() { _useAudio = true; return this; }
@@ -83,10 +95,12 @@ public sealed class LuxelHostBuilder
 
     public IHost Build()
     {
-        if (_deviceFactory is null) throw new InvalidOperationException("UseVulkan / UseD3D12 / UseGpu のいずれかを指定してください。");
+        if (_deviceFactory is null && _borrowedDevice is null)
+            throw new InvalidOperationException("UseVulkan / UseD3D12 / UseGpu / UseGpuDevice のいずれかを指定してください。");
 
-        // GPU device (singleton)
-        _inner.Services.AddSingleton(sp => _deviceFactory());
+        // GPU device (singleton)。借用 (UseGpuDevice) はインスタンス登録 = コンテナが Dispose しない
+        if (_borrowedDevice is not null) _inner.Services.AddSingleton(_borrowedDevice);
+        else _inner.Services.AddSingleton(sp => _deviceFactory!());
 
         // ECS world
         _inner.Services.AddSingleton<Luxel.Ecs.World>();
@@ -142,7 +156,8 @@ public sealed class LuxelHostBuilder
             InputSources: sp.GetServices<IInputSource>().ToArray(),
             Commands: sp.GetService<Luxel.Diagnostics.EngineCommands>(),
             AudioRegistry: sp.GetService<AudioRegistry>(),
-            UiRegistry: sp.GetService<UiRegistry>()));
+            UiRegistry: sp.GetService<UiRegistry>(),
+            WaitFrame: _frameWaiter));
 
         // SceneManager (singleton)
         _inner.Services.AddSingleton<SceneManager>();

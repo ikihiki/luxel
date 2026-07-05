@@ -39,6 +39,10 @@ public readonly record struct PostRenderContext(FrameTime Time);
 /// <summary>
 /// <see cref="GameScene"/> のゲームループが必要とする外部サービスの束。
 /// Framework が DI で組み立て、Scene の ctor に渡す。
+/// <para><paramref name="WaitFrame"/> は**フレームペーシングの差し込み点** (Platform 部分の抽象)。
+/// null = 既定の固定ディレイ (<paramref name="FrameDelayMs"/>)。Storybook 等の埋め込みホストは
+/// 自分の描画ティックに同期する waiter を渡す — TCS の同期継続で完了させると、
+/// アプリの 1 フレームがホストのスレッド上で同期実行される (GPU キュー共有が安全になる)。</para>
 /// </summary>
 public sealed record SceneLoopServices(
     GpuDevice Device,
@@ -50,7 +54,8 @@ public sealed record SceneLoopServices(
     Luxel.Diagnostics.EngineCommands? Commands = null,
     AudioRegistry? AudioRegistry = null,
     Luxel.UI.UiRegistry? UiRegistry = null,
-    int FrameDelayMs = 16);
+    int FrameDelayMs = 16,
+    Func<CancellationToken, Task>? WaitFrame = null);
 
 // ==================== GameScene (標準抽象) ====================
 
@@ -132,14 +137,19 @@ public abstract class GameScene : IScene
 
         while (!token.IsCancellationRequested)
         {
-            // pause 中は step 要求が来るまで busy-wait せず短いスリープでコマンドを Drain し続ける
+            // フレームペーシング (Platform 部分の差し込み点) — ループ先頭で待つ:
+            // 埋め込みホスト (Storybook 等) の waiter を同期継続で完了させると、フレーム本体が
+            // ホストのスレッド上で実行される (初回フレームも待ってから = 起動直後のスレッド競合なし)
+            try { await (_loop.WaitFrame?.Invoke(token) ?? Task.Delay(_loop.FrameDelayMs, token)); }
+            catch (OperationCanceledException) { break; }
+
+            // pause 中は step 要求が来るまでフレームをスキップしてコマンドを Drain し続ける
             _loop.Commands?.Drain();
             if (_paused && _stepRequests <= 0)
             {
                 // pause でも state emit は続けて DevTools UI を最新に保つ
                 if (EngineDiagnostics.IsEnabled(EngineDiagnostics.EngineState))
                     EngineDiagnostics.Emit(EngineDiagnostics.EngineState, new DiagEngineState(true));
-                try { await Task.Delay(20, token); } catch (OperationCanceledException) { break; }
                 continue;
             }
             if (_stepRequests > 0) _stepRequests--;
@@ -241,10 +251,6 @@ public abstract class GameScene : IScene
                 EmitInputStateSnapshot();
             if (EngineDiagnostics.IsEnabled(EngineDiagnostics.EngineState))
                 EngineDiagnostics.Emit(EngineDiagnostics.EngineState, new DiagEngineState(_paused));
-
-            // フレーム上限
-            try { await Task.Delay(_loop.FrameDelayMs, token); }
-            catch (OperationCanceledException) { break; }
         }
     }
 
