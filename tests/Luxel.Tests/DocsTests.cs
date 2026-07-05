@@ -130,10 +130,10 @@ public class DocsTests
 
         // TOC = アンカーリンク付きリスト (H1 直後、H2/H3 の 3 件)
         Block[] toc = blocks.Where(b => b.Kind == BlockKind.ListItem
-            && b.Runs.Any(r => r.Style.Link is string l && l.StartsWith('#'))).ToArray();
+            && b.Lines[0].Runs.Any(r => r.Style.Link is string l && l.StartsWith('#'))).ToArray();
         Assert.Equal(3, toc.Length);
         Assert.Equal("Alpha", toc[0].Text);
-        Assert.Contains(toc[0].Runs, r => r.Style.Link == "#alpha");
+        Assert.Contains(toc[0].Lines[0].Runs, r => r.Style.Link == "#alpha");
         Assert.Equal(1, toc[2].Depth);   // ### Gamma はネスト
         // TOC はイントロより前 (H1 直後)
         int tocIdx = blocks.ToList().IndexOf(toc[0]);

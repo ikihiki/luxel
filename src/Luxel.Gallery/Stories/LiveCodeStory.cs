@@ -42,12 +42,15 @@ public static class LiveCodeStory
 
         public bool SupportsHybrid => false;   // 記法がない (ソース = 表示) — hybrid 不要
         public Block ParseLine(string line) => Parse(line).Blocks[0];
-        public string SerializeBlock(Block b) => b switch
+        public string SerializeLine(Block b, int line) => b switch
         {
             { Kind: BlockKind.Embed, Payload: FencePayload f } => f.Body,
             { Kind: BlockKind.Paragraph, Length: 0 } => "",
-            _ => "-- " + b.Text,
+            _ => "-- " + b.Lines[line].Text,
         };
+        public int LinePrefixLen(Block b, int line) => b.Kind == BlockKind.Paragraph && b.Length > 0 ? 3 : 0;
+
+        private string SerializeBlock(Block b) => SerializeLine(b, 0);
 
         public bool TryAutoFormat(DocumentEditor ed, string inserted) => false;
 

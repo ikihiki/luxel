@@ -171,7 +171,7 @@ public class EmbedModelTests
         ed.SelectAll();
         ed.ToggleBold();
         Assert.Equal(BlockKind.Embed, ed.Doc.Blocks[1].Kind);
-        Assert.Empty(ed.Doc.Blocks[1].Runs);
+        Assert.Empty(ed.Doc.Blocks[1].Lines[0].Runs);
 
         ed.SelectAll();
         ed.SetBlockKind(BlockKind.Quote);

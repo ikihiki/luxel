@@ -7,21 +7,21 @@ namespace Luxel.Tests;
 /// <summary>SR: docs 検索 — マッチ列挙 (RichTextEditor.FindMatches) とツリー絞り込み (FilterTree)。</summary>
 public class SearchTests
 {
-    private static List<(int Block, int Start, int Len)> Find(string md, string query)
+    private static List<(int Line, int Start, int Len)> Find(string md, string query)
     {
         var into = new List<(int, int, int)>();
-        RichTextEditor.FindMatches(Markdown.Parse(md).Blocks, query, into);
+        RichTextEditor.FindMatches(Markdown.Parse(md), query, into);
         return into;
     }
 
     [Fact]
-    public void FindMatches_CaseInsensitive_AcrossBlocks()
+    public void FindMatches_CaseInsensitive_AcrossLines()
     {
         var m = Find("# Alpha\n\nalpha beta ALPHA\n\nbeta", "alpha");
         // 見出し 1 + 段落内 2 (空行の空段落はマッチなし)
         Assert.Equal(3, m.Count);
-        Assert.Equal(0, m[0].Block);
-        Assert.Equal(2, m[1].Block);      // 空段落 (index 1) を挟む
+        Assert.Equal(0, m[0].Line);
+        Assert.Equal(2, m[1].Line);      // 空段落 (行 1) を挟む
         Assert.Equal(0, m[1].Start);
         Assert.Equal(11, m[2].Start);     // "alpha beta " の後
     }
@@ -45,6 +45,15 @@ public class SearchTests
     {
         var m = Find("```cs\nvar counter = 1;\n```", "counter");
         Assert.Single(m);
+    }
+
+    [Fact]
+    public void FindMatches_MultiLineCode_ReportsPerLine()
+    {
+        var m = Find("```cs\nvar a = 1;\nvar b = a;\n```", "var");
+        Assert.Equal(2, m.Count);
+        Assert.Equal(0, m[0].Line);
+        Assert.Equal(1, m[1].Line);   // コード 2 行目 = 行 index 1
     }
 
     // ---- FilterTree ----

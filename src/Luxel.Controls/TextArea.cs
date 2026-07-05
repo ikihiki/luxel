@@ -211,7 +211,7 @@ public sealed partial class TextArea : Widget, ITextInput
     /// <summary>↑↓: goal-x を保存して行間移動 (折返し行 → 同ブロック内、端 → 隣ブロック)。</summary>
     private void MoveVertical(int dir, bool select)
     {
-        int bi = _ed.Caret.Block;
+        int bi = _ed.Caret.Line;
         BlockView v = _views[bi];
         TextRect cr = v.Layout.CaretRect(_ed.DisplayCaretOffset);
         float x = _goalX ?? cr.X;
@@ -247,7 +247,7 @@ public sealed partial class TextArea : Widget, ITextInput
     /// <summary>Home/End は表示行 (折返し) 単位。</summary>
     private void LineHomeEnd(bool home, bool select)
     {
-        int bi = _ed.Caret.Block;
+        int bi = _ed.Caret.Line;
         TextLayout l = _views[bi].Layout;
         int line = LineIndexOf(l, l.CaretRect(_ed.DisplayCaretOffset).Y);
         (int start, int end) = l.LineCharRange(line);
@@ -299,7 +299,7 @@ public sealed partial class TextArea : Widget, ITextInput
         _lastDownX = lx;
         _lastDownY = ly;
         if (_clickCount < 2) return;
-        int bi = _ed.Caret.Block;
+        int bi = _ed.Caret.Line;
         string text = _ed.Doc.Blocks[bi].Text;
         if (_clickCount == 2 && text.Length > 0)
         {
@@ -385,7 +385,7 @@ public sealed partial class TextArea : Widget, ITextInput
     /// <summary>キャレット/選択/IME 下線 (専用ノードの Content/transform のみ)。</summary>
     private void RefreshDecorations()
     {
-        int cb = _ed.Caret.Block;
+        int cb = _ed.Caret.Line;
         BlockView cv = _views[cb];
         TextRect cr = cv.Layout.CaretRect(_ed.DisplayCaretOffset);
         _caretLocal = new Rect(Pad + cr.X, cv.Top + cr.Y, 2, cr.Height);
@@ -399,14 +399,14 @@ public sealed partial class TextArea : Widget, ITextInput
         if (_ed.HasSelection && _ed.Composition.Length == 0)
         {
             DocPos a = _ed.SelMin, b = _ed.SelMax;
-            for (int i = a.Block; i <= b.Block; i++)
+            for (int i = a.Line; i <= b.Line; i++)
             {
                 BlockView v = _views[i];
-                int s0 = i == a.Block ? a.Offset : 0;
-                int s1 = i == b.Block ? b.Offset : _ed.Doc.Blocks[i].Length;
+                int s0 = i == a.Line ? a.Offset : 0;
+                int s1 = i == b.Line ? b.Offset : _ed.Doc.Blocks[i].Length;
                 foreach (TextRect r in v.Layout.SelectionRects(s0, s1))
                     sel.FillRect(Color2D.White, Pad + r.X, v.Top + r.Y, r.Width, r.Height);
-                if (i < b.Block)   // 改行の選択を可視化 (行末に小さな延長)
+                if (i < b.Line)   // 改行の選択を可視化 (行末に小さな延長)
                 {
                     TextRect e = v.Layout.CaretRect(_ed.Doc.Blocks[i].Length);
                     sel.FillRect(Color2D.White, Pad + e.X, v.Top + e.Y, _fs * 0.4f, e.Height);

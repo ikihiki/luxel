@@ -68,11 +68,28 @@ public static class Markdown
         foreach (Markdig.Syntax.Block child in ast)
         {
             EmitBlanks(child.Line);
-            MapBlock(child, blocks, quote: false, listDepth: -1, ordered: false, ctx);
+            MapBlock(child, blocks, quoteDepth: 0, listDepth: -1, ordered: false, ctx);
             cursor = Math.Max(cursor, LineOf(src, child.Span.End) + 1);
         }
         EmitBlanks(lastLine);
+        GroupQuotes(blocks);
         return RichDocument.FromBlocks(blocks);
+    }
+
+    /// <summary>隣接する Quote ブロック (同一 Callout・**同一深さ**、後続がマーカー行でない) を
+    /// 1 ブロックへ束ねる — 写像は行単位で Quote を作るので、ここでブロック (装飾/管理の単位) に畳む。
+    /// コールアウトはマーカー行 + 本文行が 1 ブロックになる。</summary>
+    internal static void GroupQuotes(List<Block> blocks)
+    {
+        for (int i = blocks.Count - 1; i > 0; i--)
+        {
+            Block prev = blocks[i - 1], cur = blocks[i];
+            if (prev.Kind != BlockKind.Quote || cur.Kind != BlockKind.Quote) continue;
+            if (prev.Callout != cur.Callout || cur.CalloutMarker) continue;
+            if (prev.QuoteDepth != cur.QuoteDepth) continue;
+            prev.Lines.AddRange(cur.Lines);
+            blocks.RemoveAt(i);
+        }
     }
 
     /// <summary>オフセット位置の行番号 (0 起点)。</summary>
@@ -89,23 +106,23 @@ public static class Markdown
     /// <summary>1 行分のソース → ブロック (hybrid 表示のアクティブブロック再パース用)。</summary>
     public static Block ParseLine(string line) => Parse(line).Blocks[0];
 
-    private static void MapContainer(ContainerBlock container, List<Block> into, bool quote, int listDepth, bool ordered, ParseCtx ctx)
+    private static void MapContainer(ContainerBlock container, List<Block> into, int quoteDepth, int listDepth, bool ordered, ParseCtx ctx)
     {
         foreach (Markdig.Syntax.Block child in container)
-            MapBlock(child, into, quote, listDepth, ordered, ctx);
+            MapBlock(child, into, quoteDepth, listDepth, ordered, ctx);
     }
 
-    private static void MapBlock(Markdig.Syntax.Block child, List<Block> into, bool quote, int listDepth, bool ordered, ParseCtx ctx)
+    private static void MapBlock(Markdig.Syntax.Block child, List<Block> into, int quoteDepth, int listDepth, bool ordered, ParseCtx ctx)
     {
         {
             switch (child)
             {
                 case HeadingBlock h:
                     EmitInlineBlocks(h.Inline, into,
-                        () => new Block(BlockKind.Heading) { HeadingLevel = Math.Clamp(h.Level, 1, 3) });
+                        () => new Block(BlockKind.Heading) { HeadingLevel = Math.Clamp(h.Level, 1, 3), QuoteDepth = quoteDepth });
                     break;
                 case ParagraphBlock p:
-                    EmitInlineBlocks(p.Inline, into, NewTextBlock, allowImage: listDepth < 0 && !quote);
+                    EmitInlineBlocks(p.Inline, into, NewTextBlock, allowImage: listDepth < 0 && quoteDepth == 0);
                     break;
                 case Markdig.Extensions.Mathematics.MathBlock mb:
                 {
@@ -121,24 +138,24 @@ public static class Markdown
                 case Markdig.Extensions.Alerts.AlertBlock a:
                 {
                     // コールアウト: マーカー行 (ラベル表示 + シリアライズで `> [!KIND]` に戻る) +
-                    // 本文行 (Callout 印付きの引用) — round-trip 安定
+                    // 本文 (Callout 印付き、深さ +1) — round-trip 安定
                     string kind = a.Kind.ToString().ToUpperInvariant();
-                    var marker = new Block(BlockKind.Quote) { Callout = kind, CalloutMarker = true };
-                    marker.Runs.Add(new InlineRun(kind, new InlineStyle { Bold = true }));
+                    var marker = new Block(BlockKind.Quote) { Callout = kind, CalloutMarker = true, QuoteDepth = quoteDepth + 1 };
+                    marker.Lines[0].Runs.Add(new InlineRun(kind, new InlineStyle { Bold = true }));
                     into.Add(marker);
                     int start = into.Count;
-                    MapContainer(a, into, quote: true, listDepth, ordered, ctx);
+                    MapContainer(a, into, quoteDepth + 1, listDepth, ordered, ctx);
                     for (int bi = start; bi < into.Count; bi++)
-                        if (into[bi].Kind == BlockKind.Quote) into[bi].Callout = kind;
+                        if (into[bi].QuoteDepth > quoteDepth) into[bi].Callout = kind;
                     break;
                 }
                 case QuoteBlock q:
-                    MapContainer(q, into, quote: true, listDepth, ordered, ctx);
+                    MapContainer(q, into, quoteDepth + 1, listDepth, ordered, ctx);
                     break;
                 case ListBlock l:
                     foreach (Markdig.Syntax.Block item in l)
                         if (item is ListItemBlock li)
-                            MapContainer(li, into, quote, listDepth + 1, l.IsOrdered, ctx);
+                            MapContainer(li, into, quoteDepth, listDepth + 1, l.IsOrdered, ctx);
                     break;
                 case Markdig.Extensions.Tables.Table t:
                     into.Add(new Block(BlockKind.Embed) { Payload = MapTable(t, ctx.Source) });
@@ -148,35 +165,34 @@ public static class Markdown
                     string info = f.Info?.Trim() ?? "";
                     string body = f.Lines.ToString().Replace("\r", "").TrimEnd('\n');
                     IBlockPayload? payload = ResolveFence(ctx.Resolvers, info, body);
-                    into.Add(payload is not null ? new Block(BlockKind.Embed) { Payload = payload } : MakeCode(body, info));
+                    into.Add(payload is not null ? new Block(BlockKind.Embed) { Payload = payload } : MakeCode(body, info, quoteDepth));
                     break;
                 }
                 case CodeBlock c:   // インデントコード
-                    into.Add(MakeCode(c.Lines.ToString().Replace("\r", "").TrimEnd('\n'), ""));
+                    into.Add(MakeCode(c.Lines.ToString().Replace("\r", "").TrimEnd('\n'), "", quoteDepth));
                     break;
                 case ThematicBreakBlock:
-                    into.Add(new Block(BlockKind.Divider));
+                    into.Add(new Block(BlockKind.Divider) { QuoteDepth = quoteDepth });
                     break;
-                case LeafBlock leaf:   // HtmlBlock 等 — リテラルの段落へ落とす (データを失わない)
-                    into.Add(new Block(BlockKind.Paragraph, leaf.Lines.ToString()));
+                case LeafBlock leaf:   // HtmlBlock 等 — リテラルの段落へ落とす (データを失わない。段落は 1 行)
+                    foreach (string line in leaf.Lines.ToString().Replace("\r", "").Split('\n'))
+                        into.Add(quoteDepth > 0
+                            ? new Block(BlockKind.Quote, line) { QuoteDepth = quoteDepth }
+                            : new Block(BlockKind.Paragraph, line));
                     break;
                 case ContainerBlock cb:
-                    MapContainer(cb, into, quote, listDepth, ordered, ctx);
+                    MapContainer(cb, into, quoteDepth, listDepth, ordered, ctx);
                     break;
             }
         }
 
         Block NewTextBlock() =>
-            listDepth >= 0 ? new Block { Kind = BlockKind.ListItem, Depth = listDepth, Ordered = ordered }
-            : quote ? new Block(BlockKind.Quote)
+            listDepth >= 0 ? new Block { Kind = BlockKind.ListItem, Depth = listDepth, Ordered = ordered, QuoteDepth = quoteDepth }
+            : quoteDepth > 0 ? new Block(BlockKind.Quote) { QuoteDepth = quoteDepth }
             : new Block(BlockKind.Paragraph);
 
-        static Block MakeCode(string body, string lang)
-        {
-            var code = new Block(BlockKind.CodeBlock) { CodeLang = lang };
-            if (body.Length > 0) code.Runs.Add(new InlineRun(body));
-            return code;
-        }
+        static Block MakeCode(string body, string lang, int quoteDepth)
+            => new(BlockKind.CodeBlock, body) { CodeLang = lang, QuoteDepth = quoteDepth };   // \n は Block ctor が行に分解
     }
 
     private static IBlockPayload? ResolveFence(IReadOnlyList<IFenceResolver>? resolvers, string info, string body)
@@ -233,7 +249,7 @@ public static class Markdown
             {
                 if (lineImage is not null) runs.Insert(0, new InlineRun(lineImage.Alt));   // 画像 + 文 → alt に退化
                 Block b = newBlock();
-                b.Runs.AddRange(MergeAdjacent(runs));
+                b.Lines[0].Runs.AddRange(MergeAdjacent(runs));
                 into.Add(b);
             }
             lineImage = null;
@@ -360,34 +376,85 @@ public static class Markdown
         return sb.ToString();
     }
 
-    /// <summary>1 ブロックのソース (hybrid 表示のアクティブブロック用)。</summary>
-    public static string SerializeBlock(Block b) => SerializeBlock(b, new Dictionary<int, int>());
+    /// <summary>引用深さの行頭プレフィックス ("&gt; " × depth)。</summary>
+    private static string QuotePrefix(int depth)
+        => depth switch { <= 0 => "", 1 => "> ", 2 => "> > ", _ => string.Concat(Enumerable.Repeat("> ", depth)) };
 
-    /// <summary>選択範囲 [min, max) を markdown として書き出す (コピー用)。端のブロックは
-    /// 選択部分の run だけを切り出し、ブロック型の記法は保つ。</summary>
+    /// <summary>1 行のソース (hybrid 表示のアクティブ行用)。引用深さ/所属ブロックの記法を行に付ける。</summary>
+    public static string SerializeLine(Block b, int line)
+        => b.Kind switch
+        {
+            // コード行は hybrid 対象外だが、範囲コピー等のためリテラルを返す
+            BlockKind.CodeBlock => b.Lines[line].Text,
+            BlockKind.Quote when b.CalloutMarker && line == 0 => $"{QuotePrefix(b.QuoteDepth)}[!{b.Callout}]",
+            BlockKind.Quote => QuotePrefix(Math.Max(1, b.QuoteDepth)) + SerializeInline(b.Lines[line].Runs),
+            _ => SerializeLineCore(b, b.Lines[line], new Dictionary<int, int>()),
+        };
+
+    /// <summary>行頭記法の長さ (hybrid のソース展開時の offset 近似写像)。引用深さぶんを含む。</summary>
+    public static int LinePrefixLen(Block b, int line)
+    {
+        int quote = 2 * (b.Kind == BlockKind.Quote ? Math.Max(1, b.QuoteDepth) : b.QuoteDepth);
+        return quote + b.Kind switch
+        {
+            BlockKind.Heading => Math.Clamp(b.HeadingLevel, 1, 3) + 1,
+            BlockKind.ListItem => b.Depth * 2 + (b.Ordered ? 3 : 2),
+            _ => 0,
+        };
+    }
+
+    /// <summary>選択範囲 [min, max) を markdown として書き出す (コピー用)。端の行は
+    /// 選択部分の run だけを切り出し、ブロック型の記法は保つ。コードブロックはフェンスで囲む。</summary>
     public static string SerializeRange(RichDocument doc, DocPos min, DocPos max)
     {
         if (max < min) (min, max) = (max, min);
         var sb = new StringBuilder();
         var ordinal = new Dictionary<int, int>();
-        for (int i = min.Block; i <= max.Block && i < doc.Blocks.Count; i++)
+        bool inFence = false;
+        for (int i = min.Line; i <= max.Line && i < doc.LineCount; i++)
         {
-            Block b = doc.Blocks[i];
-            int s0 = i == min.Block ? min.Offset : 0;
-            int s1 = i == max.Block ? max.Offset : b.Length;
+            (int bi, int li) = doc.Locate(i);
+            Block b = doc.Blocks[bi];
             if (b.Kind != BlockKind.ListItem || !b.Ordered) ordinal.Clear();
-            if (i > min.Block) sb.Append('\n');
-            sb.Append(SerializeBlock(Slice(b, s0, s1), ordinal));
+            if (i > min.Line) sb.Append('\n');
+
+            if (b.Kind is BlockKind.Embed or BlockKind.Divider)
+            {
+                sb.Append(SerializeBlock(b, ordinal));   // 原子 — 行は空でも全体を書き出す
+                continue;
+            }
+
+            // コードブロック: 行の前後にフェンスを補う (グループの端 or 選択の端で開閉)
+            if (b.Kind == BlockKind.CodeBlock && !inFence)
+            {
+                sb.Append(QuotePrefix(b.QuoteDepth)).Append("```").Append(b.CodeLang).Append('\n');
+                inFence = true;
+            }
+
+            Line ln = doc.LineAt(i);
+            int s0 = i == min.Line ? min.Offset : 0;
+            int s1 = i == max.Line ? max.Offset : ln.Length;
+            if (b.Kind == BlockKind.CodeBlock)
+                sb.Append(QuotePrefix(b.QuoteDepth)).Append(ln.Text[Math.Min(s0, ln.Length)..Math.Min(s1, ln.Length)]);
+            else if (b.CalloutMarker && li == 0 && b.Callout is not null)
+                sb.Append($"{QuotePrefix(Math.Max(1, b.QuoteDepth))}[!{b.Callout}]");
+            else if (b.Kind == BlockKind.Quote)
+                sb.Append(QuotePrefix(Math.Max(1, b.QuoteDepth))).Append(SerializeInline(SliceLine(ln, s0, s1).Runs));
+            else
+                sb.Append(SerializeLineCore(b, SliceLine(ln, s0, s1), ordinal));
+
+            bool lastCodeLine = b.Kind == BlockKind.CodeBlock
+                && (i == max.Line || i == doc.FirstLineOf(bi + 1) - 1);
+            if (inFence && lastCodeLine) { sb.Append('\n').Append(QuotePrefix(b.QuoteDepth)).Append("```"); inFence = false; }
         }
         return sb.ToString();
 
-        static Block Slice(Block b, int s0, int s1)
+        static Line SliceLine(Line l, int s0, int s1)
         {
-            if (s0 == 0 && s1 == b.Length) return b;
-            Block c = b.Clone();
-            c.Runs.Clear();
+            if (s0 == 0 && s1 == l.Length) return l;
+            var c = new Line();
             int pos = 0;
-            foreach (InlineRun r in b.Runs)
+            foreach (InlineRun r in l.Runs)
             {
                 int rs = pos, re = pos + r.Text.Length;
                 pos = re;
@@ -398,11 +465,13 @@ public static class Markdown
         }
     }
 
+    /// <summary>1 ブロックのソース (複数行ブロックは行ごとに記法を付けて \n 連結)。引用深さは全行の頭に付く。</summary>
     private static string SerializeBlock(Block b, Dictionary<int, int> ordinal)
     {
+        string q = QuotePrefix(b.QuoteDepth);
         switch (b.Kind)
         {
-            case BlockKind.Divider: return "---";
+            case BlockKind.Divider: return q + "---";
             case BlockKind.Embed:
                 switch (b.Payload)
                 {
@@ -416,20 +485,46 @@ public static class Markdown
                     }
                     default: return "";
                 }
-            case BlockKind.CodeBlock: return $"```{b.CodeLang}\n{b.Text}\n```";
-            case BlockKind.Heading: return new string('#', Math.Clamp(b.HeadingLevel, 1, 3)) + " " + SerializeInline(b.Runs);
+            case BlockKind.CodeBlock:
+            {
+                var sb = new StringBuilder();
+                sb.Append(q).Append("```").Append(b.CodeLang);
+                foreach (Line l in b.Lines) sb.Append('\n').Append(q).Append(l.Text);
+                sb.Append('\n').Append(q).Append("```");
+                return sb.ToString();
+            }
             case BlockKind.Quote:
-                return b is { CalloutMarker: true, Callout: not null }
-                    ? $"> [!{b.Callout}]"
-                    : "> " + SerializeInline(b.Runs);
+            {
+                string qq = QuotePrefix(Math.Max(1, b.QuoteDepth));
+                var sb = new StringBuilder();
+                for (int i = 0; i < b.Lines.Count; i++)
+                {
+                    if (i > 0) sb.Append('\n');
+                    if (i == 0 && b is { CalloutMarker: true, Callout: not null }) sb.Append($"{qq}[!{b.Callout}]");
+                    else sb.Append(qq).Append(SerializeInline(b.Lines[i].Runs));
+                }
+                return sb.ToString();
+            }
+            default: return SerializeLineCore(b, b.Lines[0], ordinal);
+        }
+    }
+
+    /// <summary>1 行ブロック型 (見出し/リスト/段落) の行ソース。引用深さのプレフィックスを含む。</summary>
+    private static string SerializeLineCore(Block b, Line l, Dictionary<int, int> ordinal)
+    {
+        string q = QuotePrefix(b.QuoteDepth);
+        switch (b.Kind)
+        {
+            case BlockKind.Divider: return q + "---";
+            case BlockKind.Heading: return q + new string('#', Math.Clamp(b.HeadingLevel, 1, 3)) + " " + SerializeInline(l.Runs);
             case BlockKind.ListItem:
             {
                 string ind = new(' ', b.Depth * 2);
-                if (!b.Ordered) return ind + "- " + SerializeInline(b.Runs);
+                if (!b.Ordered) return q + ind + "- " + SerializeInline(l.Runs);
                 ordinal[b.Depth] = ordinal.TryGetValue(b.Depth, out int n) ? n + 1 : 1;
-                return $"{ind}{ordinal[b.Depth]}. " + SerializeInline(b.Runs);
+                return $"{q}{ind}{ordinal[b.Depth]}. " + SerializeInline(l.Runs);
             }
-            default: return SerializeInline(b.Runs);
+            default: return q + SerializeInline(l.Runs);
         }
     }
 

@@ -102,31 +102,32 @@ public class DocumentEditorTests
     public void Insert_InheritsPrecedingRunStyle()
     {
         var b = new Block(BlockKind.Paragraph);
-        b.Runs.Add(new InlineRun("ab", new InlineStyle(Bold: true)));
-        b.Runs.Add(new InlineRun("cd"));
+        Line l = b.Lines[0];
+        l.Runs.Add(new InlineRun("ab", new InlineStyle(Bold: true)));
+        l.Runs.Add(new InlineRun("cd"));
         var ed = new DocumentEditor(RichDocument.FromBlocks([b]));
 
         ed.PlaceCaret(new DocPos(0, 2));   // bold run 末尾
         ed.Insert("X");
-        Assert.Equal(2, b.Runs.Count);
-        Assert.Equal("abX", b.Runs[0].Text);
-        Assert.True(b.Runs[0].Style.Bold);
+        Assert.Equal(2, l.Runs.Count);
+        Assert.Equal("abX", l.Runs[0].Text);
+        Assert.True(l.Runs[0].Style.Bold);
 
         ed.PlaceCaret(new DocPos(0, 1));   // bold run 内
         ed.Insert("Y");
-        Assert.Equal("aYbX", b.Runs[0].Text);
+        Assert.Equal("aYbX", l.Runs[0].Text);
     }
 
     [Fact]
     public void DeleteRange_MergesAdjacentSameStyleRuns()
     {
-        var b = new Block(BlockKind.Paragraph);
-        b.Runs.Add(new InlineRun("ab"));
-        b.Runs.Add(new InlineRun("XY", new InlineStyle(Bold: true)));
-        b.Runs.Add(new InlineRun("cd"));
-        DocumentEditor.DeleteRange(b, 2, 4);   // bold run 全体を削除
-        Assert.Single(b.Runs);
-        Assert.Equal("abcd", b.Runs[0].Text);
+        var l = new Line();
+        l.Runs.Add(new InlineRun("ab"));
+        l.Runs.Add(new InlineRun("XY", new InlineStyle(Bold: true)));
+        l.Runs.Add(new InlineRun("cd"));
+        DocumentEditor.DeleteRange(l, 2, 4);   // bold run 全体を削除
+        Assert.Single(l.Runs);
+        Assert.Equal("abcd", l.Runs[0].Text);
     }
 
     [Fact]

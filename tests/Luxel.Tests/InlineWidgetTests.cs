@@ -40,7 +40,7 @@ public class InlineWidgetTests
         RichTextEditor doc = Docs($"前 {b:inline} 後");
         // インライン hole はリンク記法 → run (Link = luxel-ui:0) になり、resolver が widget を返す
         Luxel.Document.Block block = doc.Editor.Doc.Blocks[0];
-        Luxel.Document.InlineRun run = block.Runs.First(r => r.Style.Link is not null);
+        Luxel.Document.InlineRun run = block.Lines[0].Runs.First(r => r.Style.Link is not null);
         Assert.Equal("luxel-ui:0", run.Style.Link);
         Assert.Same(b, doc.InlineWidgetResolver!(run.Style.Link!));
         Assert.Null(doc.InlineWidgetResolver!("luxel-ui:99"));   // 範囲外は null (通常リンク扱い)

@@ -14,13 +14,15 @@ public interface IDocumentFormat
     /// <summary>選択範囲 [min, max) をこのフォーマットで書き出す (コピー用)。</summary>
     string SerializeRange(RichDocument doc, DocPos min, DocPos max);
 
-    /// <summary>hybrid (アクティブブロックのソース編集) に対応するか。
-    /// 「1 ブロック = ソース 1 行」の行指向で往復できるフォーマットのみ true。</summary>
+    /// <summary>hybrid (アクティブ行のソース編集) に対応するか。
+    /// 「1 表示行 = ソース 1 行」の行指向で往復できるフォーマットのみ true。</summary>
     bool SupportsHybrid { get; }
-    /// <summary>1 行のソース → ブロック (hybrid の離脱時再パース)。</summary>
+    /// <summary>1 行のソース → ブロック (hybrid の離脱時再パース。結果は 1 行ブロック)。</summary>
     Block ParseLine(string line);
-    /// <summary>1 ブロックのソース (hybrid の進入時展開)。</summary>
-    string SerializeBlock(Block b);
+    /// <summary>ブロック内 1 行のソース (hybrid の進入時展開 — 引用等は行に記法を付ける)。</summary>
+    string SerializeLine(Block b, int line);
+    /// <summary>行頭記法の長さ (hybrid のソース展開時の offset 近似写像)。</summary>
+    int LinePrefixLen(Block b, int line);
 
     /// <summary>入力オートフォーマット (行頭記法の確定など)。<paramref name="inserted"/> は直前に
     /// 挿入された文字列。変換したら true。不要なフォーマットは常に false。</summary>
@@ -47,14 +49,14 @@ public sealed class MarkdownFormat : IDocumentFormat
 
     public bool SupportsHybrid => true;
     public Block ParseLine(string line) => Parse(line).Blocks[0];
-    public string SerializeBlock(Block b) => Markdown.SerializeBlock(b);
+    public string SerializeLine(Block b, int line) => Markdown.SerializeLine(b, line);
+    public int LinePrefixLen(Block b, int line) => Markdown.LinePrefixLen(b, line);
 
     public bool TryAutoFormat(DocumentEditor ed, string inserted)
     {
         if (inserted != " ") return false;
-        Block b = ed.CaretBlock;
-        if (b.Kind != BlockKind.Paragraph) return false;
-        string head = b.Text[..ed.Caret.Offset];   // 行頭〜キャレット (打ったばかりの空白を含む)
+        if (ed.CaretBlock.Kind != BlockKind.Paragraph) return false;
+        string head = ed.CaretLine.Text[..ed.Caret.Offset];   // 行頭〜キャレット (打ったばかりの空白を含む)
         switch (head)
         {
             case "# ": ed.ApplyAutoFormat(BlockKind.Heading, 2, headingLevel: 1); return true;
@@ -71,9 +73,8 @@ public sealed class MarkdownFormat : IDocumentFormat
 
     public bool TryBlockCommit(DocumentEditor ed)
     {
-        Block b = ed.CaretBlock;
-        if (b.Kind != BlockKind.Paragraph || ed.Caret.Offset != b.Length) return false;
-        var m = System.Text.RegularExpressions.Regex.Match(b.Text, @"^```([A-Za-z0-9+#.-]*)$");
+        if (ed.CaretBlock.Kind != BlockKind.Paragraph || ed.Caret.Offset != ed.CaretLine.Length) return false;
+        var m = System.Text.RegularExpressions.Regex.Match(ed.CaretLine.Text, @"^```([A-Za-z0-9+#.-]*)$");
         if (!m.Success) return false;
         ed.ConvertToCodeFence(m.Groups[1].Value);
         return true;
@@ -101,7 +102,8 @@ public sealed class PlainTextFormat : IDocumentFormat
 
     public bool SupportsHybrid => true;   // ソース = 表示 (展開しても変わらない)
     public Block ParseLine(string line) => new(BlockKind.Paragraph, line);
-    public string SerializeBlock(Block b) => b.Text;
+    public string SerializeLine(Block b, int line) => b.Lines[line].Text;
+    public int LinePrefixLen(Block b, int line) => 0;
 
     public bool TryAutoFormat(DocumentEditor ed, string inserted) => false;
     public bool TryBlockCommit(DocumentEditor ed) => false;

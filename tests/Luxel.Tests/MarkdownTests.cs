@@ -98,7 +98,7 @@ public class MarkdownTests
     [Fact]
     public void Parse_Inline()
     {
-        var runs = B(Markdown.Parse("a **b *c*** and `x*y` [link](https://x)"), 0).Runs;
+        var runs = B(Markdown.Parse("a **b *c*** and `x*y` [link](https://x)"), 0).Lines[0].Runs;
         Assert.Equal(new InlineRun("a "), runs[0]);
         Assert.Equal(new InlineRun("b ", new InlineStyle(Bold: true)), runs[1]);
         Assert.Equal(new InlineRun("c", new InlineStyle(Bold: true, Italic: true)), runs[2]);
@@ -112,7 +112,7 @@ public class MarkdownTests
     public void Parse_UnclosedMarkersStayLiteral()
     {
         Assert.Equal("a **b", B(Markdown.Parse("a **b"), 0).Text);
-        Assert.Equal(InlineStyle.Plain, B(Markdown.Parse("a **b"), 0).Runs[0].Style);
+        Assert.Equal(InlineStyle.Plain, B(Markdown.Parse("a **b"), 0).Lines[0].Runs[0].Style);
         Assert.Equal("a `b", B(Markdown.Parse("a `b"), 0).Text);
     }
 
@@ -120,7 +120,7 @@ public class MarkdownTests
     public void Parse_EscapesAreLiteral()
     {
         Block b = B(Markdown.Parse(@"a \*not italic\* b"), 0);
-        Assert.Single(b.Runs);
+        Assert.Single(b.Lines[0].Runs);
         Assert.Equal("a *not italic* b", b.Text);
     }
 
@@ -154,19 +154,23 @@ public class MarkdownTests
         {
             Assert.Equal(doc.Blocks[i].Kind, back.Blocks[i].Kind);
             Assert.Equal(doc.Blocks[i].Text, back.Blocks[i].Text);
-            Assert.Equal(doc.Blocks[i].Runs.Count, back.Blocks[i].Runs.Count);
-            for (int r = 0; r < doc.Blocks[i].Runs.Count; r++)
-                Assert.Equal(doc.Blocks[i].Runs[r], back.Blocks[i].Runs[r]);
+            Assert.Equal(doc.Blocks[i].Lines.Count, back.Blocks[i].Lines.Count);
+            for (int li = 0; li < doc.Blocks[i].Lines.Count; li++)
+            {
+                Assert.Equal(doc.Blocks[i].Lines[li].Runs.Count, back.Blocks[i].Lines[li].Runs.Count);
+                for (int r = 0; r < doc.Blocks[i].Lines[li].Runs.Count; r++)
+                    Assert.Equal(doc.Blocks[i].Lines[li].Runs[r], back.Blocks[i].Lines[li].Runs[r]);
+            }
         }
 
         static Block MakeStyled()
         {
             var b = new Block(BlockKind.Paragraph);
-            b.Runs.Add(new InlineRun("plain "));
-            b.Runs.Add(new InlineRun("bold", new InlineStyle(Bold: true)));
-            b.Runs.Add(new InlineRun(" *literal asterisk* "));
-            b.Runs.Add(new InlineRun("code", new InlineStyle(Code: true)));
-            b.Runs.Add(new InlineRun("link", new InlineStyle(Link: "https://example.com")));
+            b.Lines[0].Runs.Add(new InlineRun("plain "));
+            b.Lines[0].Runs.Add(new InlineRun("bold", new InlineStyle(Bold: true)));
+            b.Lines[0].Runs.Add(new InlineRun(" *literal asterisk* "));
+            b.Lines[0].Runs.Add(new InlineRun("code", new InlineStyle(Code: true)));
+            b.Lines[0].Runs.Add(new InlineRun("link", new InlineStyle(Link: "https://example.com")));
             return b;
         }
     }

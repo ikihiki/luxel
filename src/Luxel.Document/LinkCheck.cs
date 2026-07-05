@@ -21,7 +21,7 @@ public static class LinkCheck
 
         var broken = new List<string>();
         foreach (Block b in blocks)
-            foreach (InlineRun r in b.Runs)
+            foreach (InlineRun r in b.Lines.SelectMany(l => l.Runs))
             {
                 if (r.Style.Link is not string url || url.Length == 0) continue;
                 if (url.StartsWith('#'))

@@ -16,7 +16,8 @@ public class DocumentFormatTests
         Assert.Equal(Markdown.Serialize(Markdown.Parse(md)), f.Serialize(f.Parse(md)));
         Assert.True(f.SupportsHybrid);
         Assert.Equal(BlockKind.Heading, f.ParseLine("# x").Kind);
-        Assert.Equal("- item", f.SerializeBlock(new Block(BlockKind.ListItem, "item")));
+        Assert.Equal("- item", f.SerializeLine(new Block(BlockKind.ListItem, "item"), 0));
+        Assert.Equal(2, f.LinePrefixLen(new Block(BlockKind.ListItem, "item"), 0));
     }
 
     [Fact]
@@ -63,7 +64,7 @@ public class DocumentFormatTests
         Assert.Equal(src, f.Serialize(d));                                      // 完全往復
 
         Assert.True(f.SupportsHybrid);
-        Assert.Equal("# not a heading", f.SerializeBlock(d.Blocks[0]));         // ソース = 表示
+        Assert.Equal("# not a heading", f.SerializeLine(d.Blocks[0], 0));       // ソース = 表示
 
         var ed = new DocumentEditor(d);
         Assert.False(f.TryAutoFormat(ed, " "));

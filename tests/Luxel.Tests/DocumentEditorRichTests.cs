@@ -21,16 +21,16 @@ public class DocumentEditorRichTests
         var ed = Ed("hello world");
         ed.Select(new DocPos(0, 2), new DocPos(0, 7));
         ed.ToggleBold();
-        Block b = ed.Doc.Blocks[0];
-        Assert.Equal(3, b.Runs.Count);
-        Assert.Equal("he", b.Runs[0].Text);
-        Assert.Equal("llo w", b.Runs[1].Text);
-        Assert.True(b.Runs[1].Style.Bold);
-        Assert.Equal("orld", b.Runs[2].Text);
+        Line l = ed.Doc.Blocks[0].Lines[0];
+        Assert.Equal(3, l.Runs.Count);
+        Assert.Equal("he", l.Runs[0].Text);
+        Assert.Equal("llo w", l.Runs[1].Text);
+        Assert.True(l.Runs[1].Style.Bold);
+        Assert.Equal("orld", l.Runs[2].Text);
 
         ed.ToggleBold();   // 選択は保持されている → 解除で 1 run に戻る
-        Assert.Single(b.Runs);
-        Assert.Equal("hello world", b.Runs[0].Text);
+        Assert.Single(l.Runs);
+        Assert.Equal("hello world", l.Runs[0].Text);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class DocumentEditorRichTests
         ed.Select(new DocPos(0, 0), new DocPos(0, 6));
         ed.ToggleBold();   // 混在 → 全体 bold
         Assert.True(ed.SelectionHasStyle(s => s.Bold));
-        Assert.Single(ed.Doc.Blocks[0].Runs);
+        Assert.Single(ed.Doc.Blocks[0].Lines[0].Runs);
     }
 
     [Fact]
@@ -53,8 +53,8 @@ public class DocumentEditorRichTests
         ed.SetBlockKind(BlockKind.CodeBlock);
         ed.Select(new DocPos(0, 0), new DocPos(1, 2));
         ed.ToggleItalic();
-        Assert.True(ed.Doc.Blocks[0].Runs[0].Style.Italic);
-        Assert.False(ed.Doc.Blocks[1].Runs[0].Style.Italic);   // コードブロックは対象外
+        Assert.True(ed.Doc.Blocks[0].Lines[0].Runs[0].Style.Italic);
+        Assert.False(ed.Doc.Blocks[1].Lines[0].Runs[0].Style.Italic);   // コードブロックは対象外
     }
 
     // ---- ブロック型変換 ----
@@ -160,8 +160,8 @@ public class DocumentEditorRichTests
         ed.ToggleBold();
         ed.PlaceCaret(new DocPos(0, 2));
         ed.InsertNewline();
-        Assert.True(ed.Doc.Blocks[0].Runs[0].Style.Bold);
-        Assert.True(ed.Doc.Blocks[1].Runs[0].Style.Bold);   // リッチ分割 (プレーン化しない)
+        Assert.True(ed.Doc.Blocks[0].Lines[0].Runs[0].Style.Bold);
+        Assert.True(ed.Doc.Blocks[1].Lines[0].Runs[0].Style.Bold);   // リッチ分割 (プレーン化しない)
         Assert.Equal("ab", ed.Doc.Blocks[0].Text);
         Assert.Equal("cd", ed.Doc.Blocks[1].Text);
     }
@@ -238,10 +238,10 @@ public class DocumentEditorRichTests
         var ed = Ed("hello");
         ed.Select(new DocPos(0, 1), new DocPos(0, 4));
         ed.ToggleBold();
-        Assert.Equal(3, ed.Doc.Blocks[0].Runs.Count);
+        Assert.Equal(3, ed.Doc.Blocks[0].Lines[0].Runs.Count);
         ed.Undo();
-        Assert.Single(ed.Doc.Blocks[0].Runs);
-        Assert.False(ed.Doc.Blocks[0].Runs[0].Style.Bold);
+        Assert.Single(ed.Doc.Blocks[0].Lines[0].Runs);
+        Assert.False(ed.Doc.Blocks[0].Lines[0].Runs[0].Style.Bold);
     }
 
     [Fact]
@@ -260,18 +260,18 @@ public class DocumentEditorRichTests
     // ---- hybrid / オートフォーマット支援 ----
 
     [Fact]
-    public void SwapBlock_IsNotJournaled_AndKeepsUndoConsistent()
+    public void HybridRestore_IsNotJournaled_AndKeepsUndoConsistent()
     {
         var ed = Ed("# not yet heading");
         ed.End(false);
         ed.Insert("!");
         // hybrid 相当: ソース段落 → 整形ブロックへジャーナル外置換
         var parsed = Markdown.ParseLine(ed.Doc.Blocks[0].Text);
-        ed.SwapBlock(0, parsed);
+        ed.HybridRestoreLine(0, parsed);
         Assert.Equal(BlockKind.Heading, ed.Doc.Blocks[0].Kind);
         Assert.Equal("not yet heading!", ed.Doc.Blocks[0].Text);
 
-        // Insert("!") だけが undo される (Swap は記録されない)。エントリはソース段落時代の
+        // Insert("!") だけが undo される (畳み込みは記録されない)。エントリはソース段落時代の
         // スナップショットなので、ブロックはソース形へ戻る (畳み込みは表示側 SyncHybrid の責務)。
         ed.Undo();
         Assert.Equal("# not yet heading", ed.Doc.Blocks[0].Text);
@@ -280,12 +280,34 @@ public class DocumentEditorRichTests
     }
 
     [Fact]
-    public void SwapBlock_MovesCaretWhenRequested()
+    public void HybridSwapLine_MovesCaretWhenRequested()
     {
         var ed = Ed("item");
         ed.PlaceCaret(new DocPos(0, 2));
-        ed.SwapBlock(0, new Block(BlockKind.Paragraph, "- item"), caretOffset: 4);
+        ed.HybridSwapLine(0, new Block(BlockKind.Paragraph, "- item"), caretOffset: 4);
         Assert.Equal(new DocPos(0, 4), ed.Caret);
+    }
+
+    [Fact]
+    public void HybridSwapLine_SplitsMultiLineQuote_AndRestoreMergesBack()
+    {
+        // 3 行の引用 (1 ブロック) の中間行をソース展開 → ブロックが 3 分割される
+        var ed = new DocumentEditor(Markdown.Parse("> a\n> b\n> c"));
+        Assert.Single(ed.Doc.Blocks);
+        Assert.Equal(3, ed.Doc.Blocks[0].Lines.Count);
+
+        ed.PlaceCaret(new DocPos(1, 0));
+        ed.HybridSwapLine(1, new Block(BlockKind.Paragraph, "> b"), caretOffset: 2);
+        Assert.Equal(3, ed.Doc.Blocks.Count);
+        Assert.Equal(BlockKind.Paragraph, ed.Doc.Blocks[1].Kind);
+        Assert.Equal("> b", ed.Doc.Blocks[1].Lines[0].Text);
+        Assert.Equal(new DocPos(1, 2), ed.Caret);
+
+        // 畳み込み → 再パース + 正規化マージで 1 ブロックへ戻る
+        ed.HybridRestoreLine(1, Markdown.ParseLine("> b"));
+        Assert.Single(ed.Doc.Blocks);
+        Assert.Equal(3, ed.Doc.Blocks[0].Lines.Count);
+        Assert.Equal("b", ed.Doc.Blocks[0].Lines[1].Text);
     }
 
     [Fact]
@@ -322,12 +344,12 @@ public class DocumentEditorRichTests
     public void Typing_BumpsOnlyEditedBlockVersion()
     {
         var ed = Ed("aaa\nbbb\nccc");
-        int v0 = ed.Doc.Blocks[0].Version, v2 = ed.Doc.Blocks[2].Version, sv = ed.StructureVersion;
+        int v0 = ed.Doc.LineAt(0).Version, v2 = ed.Doc.LineAt(2).Version, sv = ed.StructureVersion;
         ed.PlaceCaret(new DocPos(1, 1));
         ed.Insert("x");
         ed.Insert("y");
-        Assert.Equal(v0, ed.Doc.Blocks[0].Version);
-        Assert.Equal(v2, ed.Doc.Blocks[2].Version);
+        Assert.Equal(v0, ed.Doc.LineAt(0).Version);
+        Assert.Equal(v2, ed.Doc.LineAt(2).Version);
         Assert.Equal(sv, ed.StructureVersion);   // 構造 (ノード列) 再構築も起きない
     }
 

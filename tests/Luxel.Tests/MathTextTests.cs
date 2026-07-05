@@ -21,7 +21,7 @@ public class MathTextTests
     public void InlineMath_MappedToMathRun_AndRoundTrips()
     {
         RichDocument doc = Markdown.Parse(@"エネルギーは $E = mc^2$ です");
-        InlineRun run = doc.Blocks[0].Runs.First(r => r.Style.Math);
+        InlineRun run = doc.Blocks[0].Lines[0].Runs.First(r => r.Style.Math);
         Assert.Equal("E = mc²", run.Text);   // Unicode 正規化済み
 
         string md = Markdown.Serialize(doc);
