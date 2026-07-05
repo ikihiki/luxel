@@ -48,23 +48,34 @@ public sealed partial class StackPanel : Widget
                 : new Constraints(0, float.PositiveInfinity, crossMin, crossAvail);
             Size cs = ch.Layout(cc, ctx, parentUsesSize: true);
 
-            float crossSize = vertical ? cs.Width : cs.Height;
-            float ca = crossBounded ? LayoutHelper.AlignOffset(crossAlign, crossAvail, crossSize) : 0;
             if (vertical)
             {
-                ch.Offset = new Point(m.Left + ca, main + m.Top);
+                ch.Offset = new Point(m.Left, main + m.Top);
                 main += cs.Height + m.Vertical + spacing;
                 cross = MathF.Max(cross, cs.Width + m.Horizontal);
             }
             else
             {
-                ch.Offset = new Point(main + m.Left, m.Top + ca);
+                ch.Offset = new Point(main + m.Left, m.Top);
                 main += cs.Width + m.Horizontal + spacing;
                 cross = MathF.Max(cross, cs.Height + m.Vertical);
             }
         }
         if (Children.Count > 0) main -= spacing;
         Size = c.Constrain(vertical ? new Size(cross, main) : new Size(main, cross));
+
+        // 交差軸の整列 (2 パス目): 基準は**自分の最終 cross サイズ** — 親の空き (crossAvail) 基準だと
+        // shrink-wrap 時に子がスタックの矩形外へ整列されてしまう (HStack 内の vAlign:Center が行の下に出る等)。
+        float crossSelf = vertical ? Size.Width : Size.Height;
+        foreach (Widget ch in Children)
+        {
+            Align crossAlign = vertical ? ch.HAlign.Get() : ch.VAlign.Get();
+            if (crossAlign is Align.Start or Align.Stretch) continue;   // ca = 0
+            Thickness m = ch.Margin.Get();
+            float avail = MathF.Max(0, crossSelf - (vertical ? m.Horizontal : m.Vertical));
+            float ca = LayoutHelper.AlignOffset(crossAlign, avail, vertical ? ch.Size.Width : ch.Size.Height);
+            ch.Offset = vertical ? new Point(m.Left + ca, ch.Offset.Y) : new Point(ch.Offset.X, m.Top + ca);
+        }
     }
 
     public override float MaxIntrinsicWidth(float height, LayoutContext ctx)

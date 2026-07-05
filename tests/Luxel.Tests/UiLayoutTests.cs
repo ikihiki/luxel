@@ -67,6 +67,55 @@ public class UiLayoutTests
     }
 
     [Fact]
+    public void HStack_VAlignCenter_CentersWithinRow_NotWithinAvailableHeight()
+    {
+        // 回帰: Button/Counter ストーリー — HStack 内の vAlign:Center Text が、親の空き高さ
+        // (crossAvail) 基準で整列されて行 (ボタンの並び) の下へはみ出していた。
+        // 整列基準はスタック自身の cross サイズ (= 最大子高さ) であること。
+        LayoutContext ctx = Ctx();
+        Button minus = Button(_ => { }, "-");
+        Text label = Text(" 0 ", 22, vAlign: Align.Center);
+        Button plus = Button(_ => { }, "+");
+        StackPanel st = HStack(8)[minus, label, plus];
+
+        st.Layout(new Constraints(0, 432, 0, 112), ctx);   // Frame(padding:24) 相当の loose 制約
+
+        Close(st.Size.Height, MathF.Max(minus.Size.Height, label.Size.Height));   // 行高 = 最大子高
+        Close((st.Size.Height - label.Size.Height) / 2, label.Offset.Y);          // 行内センタリング
+        Assert.True(label.Offset.Y + label.Size.Height <= st.Size.Height + 0.6f,
+            $"text ({label.Offset.Y}+{label.Size.Height}) がスタック ({st.Size.Height}) の外にある");
+        Close(minus.Size.Width + 8, label.Offset.X);                              // 主軸は従来どおり
+    }
+
+    [Fact]
+    public void HStack_VAlignCenter_WorksWithUnboundedCross()
+    {
+        // 旧実装は cross が ∞ のとき整列を諦めて ca=0 だった — 自分サイズ基準なら常に整列できる
+        LayoutContext ctx = Ctx();
+        Button a = Button(_ => { }, "A");
+        Text t = Text("x", 10, vAlign: Align.Center);
+        StackPanel st = HStack()[a, t];
+
+        st.Layout(new Constraints(0, 400, 0, float.PositiveInfinity), ctx);
+
+        Close((st.Size.Height - t.Size.Height) / 2, t.Offset.Y);
+    }
+
+    [Fact]
+    public void VStack_HAlignEnd_AlignsToStackWidth()
+    {
+        LayoutContext ctx = Ctx();
+        Button wide = Button(_ => { }, "Wide button");
+        Button narrow = Button(_ => { }, "N", hAlign: Align.End);
+        StackPanel st = VStack()[wide, narrow];
+
+        st.Layout(new Constraints(0, 500, 0, 300), ctx);
+
+        Close(st.Size.Width, wide.Size.Width);                       // 幅 = 最大子幅 (shrink-wrap)
+        Close(st.Size.Width - narrow.Size.Width, narrow.Offset.X);   // End は自分の右端基準
+    }
+
+    [Fact]
     public void Border_Padding_OffsetsChildAndGrows()
     {
         LayoutContext ctx = Ctx();
