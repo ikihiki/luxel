@@ -48,6 +48,7 @@ internal static class E2eCatalog
         {
             if (s.RealWindowOnly) continue;
             var ctx = new StoryContext(resources);
+            ctx.SetServices(GalleryServices.Provider);   // DI ストーリー (Scripting 等) も play を列挙できるように
             ctx.SetNavigator(static _ => { });
             try { _ = s.Build(ctx); }
             catch { continue; }   // 構築に GPU/実窓が要るストーリーは対象外

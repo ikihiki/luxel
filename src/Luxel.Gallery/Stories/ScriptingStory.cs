@@ -16,39 +16,14 @@ namespace Luxel.Gallery.Stories;
 /// </summary>
 public static class ScriptingStory
 {
-    /// <summary>スクリプトから裸で見える API 面 (csx の globals)。</summary>
-    public sealed class CsxGlobals
-    {
-        public required StoryContext Ctx { get; init; }
-        /// <summary>Log パネルへ (デバッグの第一手段)。</summary>
-        public void Log(string message) => Ctx.Log(message);
-    }
-
-    // ScriptHost / ScriptWorkspace で共有する参照・using (スクリプトから見える API 面)
-    private static readonly System.Reflection.Assembly[] Refs =
-    [
-        typeof(object).Assembly, typeof(Enumerable).Assembly,
-        typeof(GpuDevice).Assembly, typeof(Scene2D).Assembly,
-        typeof(Widget).Assembly, typeof(Kit).Assembly,
-        typeof(Luxel.UI.Tailwind.Tw).Assembly, typeof(CsxGlobals).Assembly,
-    ];
-    private static readonly string[] Usings =
-    [
-        "System", "System.Linq", "System.Collections.Generic",
-        "Luxel.UI", "Luxel.TwoD", "Luxel.Controls",
-        "Luxel.Controls.Kit",       // 静的 import — Button/VStack/… が裸で書ける
-        "Luxel.UI.Tailwind",
-    ];
-
-    /// <summary>プロセス共有の ScriptHost (初回コンパイルは 1-2 秒)。</summary>
-    private static readonly Lazy<ScriptHost> Host = new(() => new ScriptHost(Refs, Usings, typeof(CsxGlobals)));
-    /// <summary>プロセス共有の言語サービス (補完/ホバー — in-proc Roslyn)。</summary>
-    private static readonly Lazy<ScriptWorkspace> Ws = new(() => new ScriptWorkspace(Refs, Usings));
+    // ScriptHost / ScriptWorkspace / 言語サービスは **DI で共有** (GalleryServices が登録)。
+    // ストーリー関数の引数で受け取る (minimal API 風) — static Lazy は撤去済み。
 
     /// <summary>csx プレイグラウンド: コードエディタ + Run + インライン診断 + 出力 (返した Widget)。</summary>
     private sealed class CsxBlock : CompositeControl, IDisposable
     {
         private readonly StoryContext _ctx;
+        private readonly ScriptHost _host;            // DI 注入 (GalleryServices の共有シングルトン)
         private readonly Signal<string> _code;
         private readonly Signal<string> _status = new("");
         private readonly Signal<int> _ver = new(0);   // 出力/診断の構造変化 → TrackBuild が Rebuild
@@ -65,15 +40,16 @@ public static class ScriptingStory
         /// <summary>直近 Run が成功して Widget を出したか (play の Expect 用)。</summary>
         internal bool LastRunOk { get; private set; }
 
-        public CsxBlock(string initialCode, float maxWidth, StoryContext ctx)
+        public CsxBlock(string initialCode, float maxWidth, StoryContext ctx, ScriptHost host, ICodeLanguage lang)
         {
             _ctx = ctx;
+            _host = host;
             _maxW = MathF.Max(240, maxWidth);
             _code = new Signal<string>(initialCode);
             _editor = CodeEditor(_code, editorHeight: 170f, editorWidth: _maxW - 96);
             (_, _, _, _editor.MonoFont) = EditorFaces.Value;
             _editor.Highlighter = Luxel.Highlight.TextMateHighlighter.Instance;
-            _editor.LanguageService = new CsharpCodeLanguage(Ws.Value);   // Ctrl+Space 補完 + 診断波線 + ホバー
+            _editor.LanguageService = lang;   // Ctrl+Space 補完 + 診断波線 + ホバー (DI 注入)
             RunButton = Button(_ => Run(), "Run");
         }
 
@@ -82,7 +58,7 @@ public static class ScriptingStory
 
         private void Run()
         {
-            ScriptResult r = Host.Value.Run(_code.Value, new CsxGlobals { Ctx = _ctx });
+            ScriptResult r = _host.Run(_code.Value, new ScriptGlobals { Ctx = _ctx });
             LastRunOk = false;
             if (!r.Success)
             {
@@ -132,7 +108,7 @@ public static class ScriptingStory
     }
 
     [Story("Demos/Scripting/LiveCsx", Height = 520, Order = 2032)]
-    public static Widget LiveCsx(StoryContext ctx)
+    public static Widget LiveCsx(StoryContext ctx, ScriptHost host, ICodeLanguage lang)
     {
         var block = new CsxBlock(
             "// 最後の式の Widget が下に実体化される。Log(...) は Log タブへ\n" +
@@ -140,7 +116,7 @@ public static class ScriptingStory
             "VStack(6)[\n" +
             "    Label($\"こんにちは {string.Join(\" + \", names)}\"),\n" +
             "    Button(_ => Log(\"クリックされた!\"), \"Click me\")]",
-            maxWidth: 440, ctx);
+            maxWidth: 440, ctx, host, lang);
 
         ctx.Play("run", async d =>
         {
@@ -193,13 +169,13 @@ public static class ScriptingStory
         internal int HistoryCount => _history.Count;
         internal string LastOutput => _history.Count > 0 ? _history[^1].Out : "";
 
-        public ReplConsole(float maxWidth, StoryContext ctx)
+        public ReplConsole(float maxWidth, StoryContext ctx, ScriptHost host)
         {
             _maxW = MathF.Max(240, maxWidth);
             _input = new Signal<string>("var greeting = \"Luxel\";");
             _editor = TextArea(_input, height: 40f, width: _maxW - 96);
             _editor.Fonts = StoryKit.JpFallback.Value;
-            _session = Host.Value.OpenSession(new CsxGlobals { Ctx = ctx });
+            _session = host.OpenSession(new ScriptGlobals { Ctx = ctx });
             SubmitButton = Button(_ => Submit(), "▷");
         }
 
@@ -237,9 +213,9 @@ public static class ScriptingStory
     }
 
     [Story("Demos/Scripting/Repl", Height = 460, Order = 2033)]
-    public static Widget Repl(StoryContext ctx)
+    public static Widget Repl(StoryContext ctx, ScriptHost host)
     {
-        var repl = new ReplConsole(460, ctx);
+        var repl = new ReplConsole(460, ctx, host);
         ctx.Play(async d =>
         {
             await d.Snap();
@@ -274,6 +250,7 @@ public static class ScriptingStory
     private sealed class NotebookCell : CompositeControl, IDisposable
     {
         private readonly StoryContext _ctx;
+        private readonly ScriptHost _host;            // DI 注入 (共有シングルトン)
         private readonly Signal<string> _code;
         private readonly Signal<int> _ver = new(0);
         private readonly CodeEditor _editor;
@@ -285,21 +262,22 @@ public static class ScriptingStory
         internal Button RunButton { get; }
         internal bool HasOutput => _output is not null || _outText.Length > 0;
 
-        public NotebookCell(Luxel.Document.FencePayload payload, float maxWidth, StoryContext ctx)
+        public NotebookCell(Luxel.Document.FencePayload payload, float maxWidth, StoryContext ctx, ScriptHost host, ICodeLanguage lang)
         {
             _ctx = ctx;
+            _host = host;
             _maxW = MathF.Max(240, maxWidth);
             _code = new Signal<string>(payload.Body);
             _editor = CodeEditor(_code, editorHeight: 96f, editorWidth: _maxW - 60);
             (_, _, _, _editor.MonoFont) = EditorFaces.Value;
             _editor.Highlighter = Luxel.Highlight.TextMateHighlighter.Instance;
-            _editor.LanguageService = new CsharpCodeLanguage(Ws.Value);
+            _editor.LanguageService = lang;
             RunButton = Button(_ => Run(), "▷", variant: Variant.Ghost);
         }
 
         private void Run()
         {
-            ScriptResult r = Host.Value.Run(_code.Value, new CsxGlobals { Ctx = _ctx });
+            ScriptResult r = _host.Run(_code.Value, new ScriptGlobals { Ctx = _ctx });
             (_output as IDisposable)?.Dispose();
             _output = null; _outText = ""; _ok = r.Success;
             if (!r.Success)
@@ -333,7 +311,7 @@ public static class ScriptingStory
     }
 
     [Story("Demos/Scripting/Notebook", Height = 620, Order = 2034)]
-    public static Widget Notebook(StoryContext ctx)
+    public static Widget Notebook(StoryContext ctx, ScriptHost host, ICodeLanguage lang)
     {
         var fmt = new Luxel.Document.MarkdownFormat();
         fmt.FenceResolvers.Add(new CsxCellResolver());
@@ -347,7 +325,7 @@ public static class ScriptingStory
                 string body = ((Luxel.Document.FencePayload)bc.Payload).Body;
                 if (!cellByBody.TryGetValue(body, out NotebookCell? cell))
                 {
-                    cell = new NotebookCell((Luxel.Document.FencePayload)bc.Payload, bc.MaxWidth, ctx);
+                    cell = new NotebookCell((Luxel.Document.FencePayload)bc.Payload, bc.MaxWidth, ctx, host, lang);
                     cellByBody[body] = cell;
                     cells.Add(cell);
                 }

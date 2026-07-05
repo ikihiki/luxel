@@ -45,6 +45,26 @@ public sealed class StoryContext
 
     public StoryContext(Luxel.Resources.ResourceSystem? resources = null) => _resources = resources;
 
+    private IServiceProvider? _services;
+
+    /// <summary>ホストが結線する DI コンテナ (共有サービス — ScriptHost / 言語サービス等の重い
+    /// シングルトンをストーリー横断で使い回す口)。ASP.NET minimal API と同じく、ストーリー関数の
+    /// 引数に置いた非 <see cref="StoryContext"/> 型はここから <see cref="Require{T}"/> で注入される。</summary>
+    public IServiceProvider? Services => _services;
+
+    /// <summary>DI コンテナを結線する (ホスト/テストハーネスが呼ぶ)。</summary>
+    public void SetServices(IServiceProvider services) => _services = services;
+
+    /// <summary>サービスを解決する (未登録/未結線は例外)。ストーリー引数注入の実体。</summary>
+    public T Require<T>() where T : notnull
+        => _services is null
+            ? throw new InvalidOperationException($"DI 未結線です (SetServices) — {typeof(T).Name} を注入できません")
+            : (T?)_services.GetService(typeof(T))
+                ?? throw new InvalidOperationException($"サービス {typeof(T).Name} が未登録です");
+
+    /// <summary>サービスを解決する (無ければ default)。</summary>
+    public T? Get<T>() => _services is null ? default : (T?)_services.GetService(typeof(T));
+
     /// <summary>ホスト所有の ResourceSystem (画像/テクスチャ等のロード窓口 — knob/Log と同じく
     /// 「ストーリーがホスト設備を借りる」窓口)。キャッシュはストーリー横断で共有され、
     /// ハンドルは取得側 (シーン等) が Dispose する (refcount)。Pump はホストの毎フレームループが叩く。

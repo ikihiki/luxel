@@ -29,17 +29,19 @@ public sealed class StoryGenerator : IIncrementalGenerator
         public readonly string? Theme;
         public readonly string MethodFq;    // global::Ns.Type.Method
         public readonly string Source;      // メソッドの C# ソース (storysource)
-        public readonly bool HasCtx;
+        /// <summary>引数の並び。各要素は "ctx" (= StoryContext) か、DI 解決するグローバル修飾型名。</summary>
+        public readonly string[] Params;
         public readonly bool Valid;
         public readonly bool RealWindowOnly;
-        public StoryModel(string path, int w, int h, int order, string? theme, string methodFq, string source, bool hasCtx, bool valid, bool realWindowOnly)
-        { Path = path; Width = w; Height = h; Order = order; Theme = theme; MethodFq = methodFq; Source = source; HasCtx = hasCtx; Valid = valid; RealWindowOnly = realWindowOnly; }
+        public StoryModel(string path, int w, int h, int order, string? theme, string methodFq, string source, string[] paramz, bool valid, bool realWindowOnly)
+        { Path = path; Width = w; Height = h; Order = order; Theme = theme; MethodFq = methodFq; Source = source; Params = paramz; Valid = valid; RealWindowOnly = realWindowOnly; }
         public bool Equals(StoryModel? o) => o is not null && Path == o.Path && Width == o.Width && Height == o.Height
             && Order == o.Order && Theme == o.Theme && MethodFq == o.MethodFq && Source == o.Source
-            && HasCtx == o.HasCtx && Valid == o.Valid && RealWindowOnly == o.RealWindowOnly;
+            && Params.Length == o.Params.Length && ParamsEqual(o) && Valid == o.Valid && RealWindowOnly == o.RealWindowOnly;
+        private bool ParamsEqual(StoryModel o) { for (int i = 0; i < Params.Length; i++) if (Params[i] != o.Params[i]) return false; return true; }
         public override bool Equals(object? obj) => Equals(obj as StoryModel);
         public override int GetHashCode()
-        { unchecked { return (((((Path.GetHashCode() * 397 ^ MethodFq.GetHashCode()) * 397 ^ Width * 31 + Height) * 397 ^ Order) * 397 ^ Source.GetHashCode()) * 4 + (HasCtx ? 2 : 0)) + (RealWindowOnly ? 1 : 0); } }
+        { unchecked { return (((((Path.GetHashCode() * 397 ^ MethodFq.GetHashCode()) * 397 ^ Width * 31 + Height) * 397 ^ Order) * 397 ^ Source.GetHashCode()) * 4 + (Params.Length << 1)) + (RealWindowOnly ? 1 : 0); } }
     }
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -73,15 +75,21 @@ public sealed class StoryGenerator : IIncrementalGenerator
                     }
 
                     bool returnsWidget = IsWidget(m.ReturnType);
-                    bool hasCtx = m.Parameters.Length == 1
-                        && m.Parameters[0].Type.ToDisplayString() == "Luxel.UI.StoryContext";
-                    bool valid = m.IsStatic && returnsWidget && (m.Parameters.Length == 0 || hasCtx)
-                        && m.ContainingType is not null;
+                    // 引数: StoryContext は "ctx"、その他は DI 解決するグローバル修飾型名 (minimal API 風)
+                    var paramz = new string[m.Parameters.Length];
+                    for (int pi = 0; pi < m.Parameters.Length; pi++)
+                    {
+                        ITypeSymbol pt = m.Parameters[pi].Type;
+                        paramz[pi] = pt.ToDisplayString() == "Luxel.UI.StoryContext"
+                            ? "ctx"
+                            : pt.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                    }
+                    bool valid = m.IsStatic && returnsWidget && m.ContainingType is not null;
 
                     string fq = m.ContainingType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + m.Name;
                     // storysource: メソッド宣言のソースをそのまま焼き込む (先頭の共通インデントは剥がす)
                     string source = Dedent(((MethodDeclarationSyntax)ctx.Node).ToString());
-                    return new StoryModel(path, w, h, order, theme, fq, source, hasCtx, valid, realWindowOnly);
+                    return new StoryModel(path, w, h, order, theme, fq, source, paramz, valid, realWindowOnly);
                 })
             .Where(static s => s is not null)
             .Collect();
@@ -122,10 +130,22 @@ public sealed class StoryGenerator : IIncrementalGenerator
         sb.AppendLine("        {");
         foreach (StoryModel s in list)
         {
+            // 引数を組み立てる: "ctx" はそのまま、その他は ctx.Require<T>() で DI 解決 (minimal API 風)。
+            // 引数を使わない (0 個) なら `static _ =>`、使うなら `static ctx =>`。
+            string builder;
+            if (s.Params.Length == 0)
+                builder = "static _ => " + s.MethodFq + "()";
+            else
+            {
+                var args = new string[s.Params.Length];
+                for (int i = 0; i < s.Params.Length; i++)
+                    args[i] = s.Params[i] == "ctx" ? "ctx" : "ctx.Require<" + s.Params[i] + ">()";
+                builder = "static ctx => " + s.MethodFq + "(" + string.Join(", ", args) + ")";
+            }
             sb.Append("            global::Luxel.UI.StoryRegistry.Register(new global::Luxel.UI.StoryInfo(")
               .Append(Literal(s.Path)).Append(", ").Append(s.Width).Append(", ").Append(s.Height).Append(", ")
               .Append(s.Theme is null ? "null" : Literal(s.Theme)).Append(", ")
-              .Append(s.HasCtx ? "static ctx => " + s.MethodFq + "(ctx)" : "static _ => " + s.MethodFq + "()")
+              .Append(builder)
               .Append(", ").Append(s.Order)
               .Append(", ").Append(Literal(s.Source))
               .Append(s.RealWindowOnly ? ", true" : "")

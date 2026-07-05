@@ -1,5 +1,4 @@
 using Luxel.Controls;
-using Luxel.Scripting;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
@@ -9,11 +8,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>CodeEditor — 行番号ガター + トークン色 (E1) + 補完/診断/ホバー (E2、言語サービス連携)。</summary>
 public static class CodeEditorStory
 {
-    // 補完/診断/ホバーの言語サービス (プロセス共有、初回は 1-2 秒)
-    private static readonly Lazy<CsharpCodeLanguage> Lang = new(() => new CsharpCodeLanguage(
-        new ScriptWorkspace(
-            references: [typeof(object).Assembly, typeof(Enumerable).Assembly, typeof(System.Text.StringBuilder).Assembly],
-            usings: ["System", "System.Linq", "System.Text", "System.Collections.Generic"])));
+    // 補完/診断/ホバーの言語サービス (ICodeLanguage) は DI 注入 — GalleryServices の共有シングルトン。
 
     private static CodeEditor MakeEditor(Signal<string> code)
     {
@@ -115,11 +110,11 @@ public static class CodeEditorStory
     }
 
     [Story("Controls/CodeEditor/Completion", Height = 320, Order = 1)]
-    public static Widget Completion(StoryContext ctx)
+    public static Widget Completion(StoryContext ctx, ICodeLanguage lang)
     {
         Signal<string> code = ctx.Signal("code", "var s = \"hi\";\ns.");
         CodeEditor ed = MakeEditor(code);
-        ed.LanguageService = Lang.Value;   // 補完/診断/ホバー
+        ed.LanguageService = lang;   // 補完/診断/ホバー (DI 注入)
 
         ctx.Play("complete", async d =>
         {

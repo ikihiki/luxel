@@ -595,6 +595,7 @@ public sealed class GalleryApp : IDisposable
         _treeExpanded.Add(story.Path);   // 選択したページの TOC をツリーで開いて見せる
         _title.Value = story.Path;
         _ctx = new StoryContext(_resources);
+        _ctx.SetServices(GalleryServices.Provider);   // DI: ScriptHost / ICodeLanguage をストーリー引数へ注入
         // 遷移は次フレームへキュー — 子ホストの入力ディスパッチ中に SetContent (旧ルート破棄) しない
         _ctx.SetNavigator(p => _pendingNav = p);
         if (HostGpu is { } gpu) _ctx.SetGpuHost(gpu.Device, gpu.Font);

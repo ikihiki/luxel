@@ -101,6 +101,7 @@ public sealed class GalleryHost : IDisposable
         _host = new UiHost(_canvas, _font, _w, _h);
         UiHostCommands.RegisterDefaults(Commands, _host);   // click/pointermove/key/char/... (同名上書き)
         _ctx = new StoryContext(_resources);
+        _ctx.SetServices(GalleryServices.Provider);   // DI: ScriptHost / ICodeLanguage をストーリー引数へ注入
         // 遷移はコマンドキュー経由 — 入力ディスパッチ中の即時 TearDown を避ける (次の Drain で適用)
         _ctx.SetNavigator(p => Commands.Enqueue("story.select", JsonSerializer.SerializeToElement(new { id = p })));
         _root = _story.Build(_ctx);
