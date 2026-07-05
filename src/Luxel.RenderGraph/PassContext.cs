@@ -1,4 +1,4 @@
-namespace Luxel.RenderGraph;
+﻿namespace Luxel.RenderGraph;
 
 /// <summary>
 /// パスの execute lambda に渡される実行コンテキスト。物理 GPU リソースの解決と、

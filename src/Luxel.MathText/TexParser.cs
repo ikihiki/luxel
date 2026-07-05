@@ -1,4 +1,4 @@
-namespace Luxel.MathText;
+﻿namespace Luxel.MathText;
 
 /// <summary>数式ノード (TeX サブセットのパース結果)。</summary>
 public abstract record MathNode;

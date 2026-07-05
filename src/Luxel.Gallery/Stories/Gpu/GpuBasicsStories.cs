@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
@@ -25,8 +25,17 @@ public static class GpuBasicsStories
         var vb = d.Malloc(3 * 32, GpuMemoryKind.HostMapped);
         Span<Vertex> v = vb.Span<Vertex>(3);
         for (int i = 0; i < 3; i++)
-            v[i] = new Vertex { Px = xy[i].X, Py = xy[i].Y, Pz = z, Pw = 1,
-                                R = c.R, G = c.G, B = c.B, A = c.A };
+            v[i] = new Vertex
+            {
+                Px = xy[i].X,
+                Py = xy[i].Y,
+                Pz = z,
+                Pw = 1,
+                R = c.R,
+                G = c.G,
+                B = c.B,
+                A = c.A
+            };
         return vb;
     }
 

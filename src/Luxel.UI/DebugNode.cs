@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>
 /// UI ツリーのデバッグ snapshot ノード (DevTools のツリー可視化用)。

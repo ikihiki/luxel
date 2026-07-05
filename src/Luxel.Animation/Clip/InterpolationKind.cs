@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>glTF 2.0 の `interpolation` と同じ。Track ごとに 1 つ。</summary>
 public enum InterpolationKind

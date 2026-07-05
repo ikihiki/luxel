@@ -1,4 +1,4 @@
-using Luxel.Abstraction;
+﻿using Luxel.Abstraction;
 using Vortice.Direct3D;
 using Vortice.Direct3D12;
 using Vortice.Direct3D12.Debug;
@@ -17,7 +17,7 @@ public sealed unsafe class D3D12Backend : IGpuBackend
 {
     private const int HeapCapacity = 100_000;
     private const uint PushConstantDwords = 48; // 192 バイト (shadow map で mat4×2 を渡すため拡張)。
-                                                  // D3D12 root signature 上限は 64 DWord = 256B、48 DWord で余裕あり。
+                                                // D3D12 root signature 上限は 64 DWord = 256B、48 DWord で余裕あり。
 
     private IDXGIFactory4 _factory = null!;
     private ID3D12Device _device = null!;

@@ -1,4 +1,4 @@
-namespace Luxel.Animation.UI;
+﻿namespace Luxel.Animation.UI;
 
 using Luxel.UI;
 

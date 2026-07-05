@@ -1,4 +1,4 @@
-using Friflo.Engine.ECS;
+﻿using Friflo.Engine.ECS;
 
 namespace Luxel.Ecs;
 
@@ -11,15 +11,15 @@ namespace Luxel.Ecs;
 public static class Phase
 {
     /// <summary>Update 前の準備 phase (入力処理など)。</summary>
-    public const string PreUpdate  = "PreUpdate";
+    public const string PreUpdate = "PreUpdate";
     /// <summary>ゲームロジック本体の phase。</summary>
-    public const string Update     = "Update";
+    public const string Update = "Update";
     /// <summary>Update 後の後処理 phase (Transform 伝搬など)。</summary>
     public const string PostUpdate = "PostUpdate";
     /// <summary>描画前の抽出 phase (ECS → RenderGraph の Extract)。</summary>
-    public const string PreRender  = "PreRender";
+    public const string PreRender = "PreRender";
     /// <summary>描画 phase (RenderGraph 実行)。</summary>
-    public const string Render     = "Render";
+    public const string Render = "Render";
 }
 
 /// <summary>

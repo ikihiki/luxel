@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using Luxel.Audio.Sequencing;
 
@@ -132,13 +132,13 @@ public static class StrudelEval
                 case "n": return new PatV(Controls.N(MiniArg(name, args, pos)));
 
                 case "stack" or "cat":
-                {
-                    var pats = new List<Pattern<ControlMap>>();
-                    foreach (Val a in args ?? [])
-                        pats.Add(a is PatV pv ? pv.P
-                            : throw new StrudelEvalError($"{name}() の引数はパターンです", pos));
-                    return new PatV(name == "stack" ? Pat.Stack(pats) : Pat.Cat(pats));
-                }
+                    {
+                        var pats = new List<Pattern<ControlMap>>();
+                        foreach (Val a in args ?? [])
+                            pats.Add(a is PatV pv ? pv.P
+                                : throw new StrudelEvalError($"{name}() の引数はパターンです", pos));
+                        return new PatV(name == "stack" ? Pat.Stack(pats) : Pat.Cat(pats));
+                    }
 
                 case "cps":
                     return args is [NumV n2]

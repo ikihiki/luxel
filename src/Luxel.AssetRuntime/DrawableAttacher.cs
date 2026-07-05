@@ -1,5 +1,5 @@
+﻿using Luxel.Assets;
 using Luxel.Ecs;
-using Luxel.Assets;
 using Luxel.Resources;
 
 namespace Luxel.AssetRuntime;
@@ -57,12 +57,15 @@ public static class DrawableAttacher
         {
             q.Entity.AddComponent(new DrawMesh
             {
-                Vertex = q.Vh.Value, Index = q.Ih.Value,
-                IndexCount = q.IndexCount, VertexStride = q.VertexStride,
+                Vertex = q.Vh.Value,
+                Index = q.Ih.Value,
+                IndexCount = q.IndexCount,
+                VertexStride = q.VertexStride,
             });
             q.Entity.AddComponent(new DrawMaterial
             {
-                MaterialArray = q.Mh.Value, MaterialIndex = q.MaterialIndex,
+                MaterialArray = q.Mh.Value,
+                MaterialIndex = q.MaterialIndex,
             });
         }
     }

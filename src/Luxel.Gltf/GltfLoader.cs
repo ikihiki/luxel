@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using System.Text.Json;
 using Luxel.Assets;
 
@@ -247,9 +247,9 @@ public sealed class GltfLoader : IAssetLoader
                         var pathEnum = ch.target.path switch
                         {
                             "translation" => AssetAnimationPath.Translation,
-                            "rotation"    => AssetAnimationPath.Rotation,
-                            "scale"       => AssetAnimationPath.Scale,
-                            "weights"     => AssetAnimationPath.Weights,
+                            "rotation" => AssetAnimationPath.Rotation,
+                            "scale" => AssetAnimationPath.Scale,
+                            "weights" => AssetAnimationPath.Weights,
                             _ => AssetAnimationPath.Translation,
                         };
                         var samp = a.samplers[ch.sampler];
@@ -390,12 +390,20 @@ public sealed class GltfLoader : IAssetLoader
         int offset = (view.byteOffset ?? 0) + (acc.byteOffset ?? 0);
         int compSize = acc.componentType switch
         {
-            5120 or 5121 => 1, 5122 or 5123 => 2, 5125 or 5126 => 4, _ => 4,
+            5120 or 5121 => 1,
+            5122 or 5123 => 2,
+            5125 or 5126 => 4,
+            _ => 4,
         };
         int numComp = acc.type switch
         {
-            "SCALAR" => 1, "VEC2" => 2, "VEC3" => 3, "VEC4" or "MAT2" => 4,
-            "MAT3" => 9, "MAT4" => 16, _ => 1,
+            "SCALAR" => 1,
+            "VEC2" => 2,
+            "VEC3" => 3,
+            "VEC4" or "MAT2" => 4,
+            "MAT3" => 9,
+            "MAT4" => 16,
+            _ => 1,
         };
         int stride = view.byteStride ?? (compSize * numComp);
         return (buf, offset, acc.count, compSize, numComp, stride);

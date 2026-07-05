@@ -1,4 +1,4 @@
-namespace Luxel.Framework;
+﻿namespace Luxel.Framework;
 
 /// <summary>
 /// per-frame パイプラインの実行区分。System は phase に登録され、engine が priority 順に実行する。

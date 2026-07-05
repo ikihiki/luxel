@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// 2 つの子の値を <see cref="Weight"/> で線形補間する。weight=0 は A の値、weight=1 は B の値。

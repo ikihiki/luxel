@@ -1,4 +1,4 @@
-using Luxel.Framework;
+﻿using Luxel.Framework;
 using Luxel.TwoD;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,11 +1,11 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
+﻿using Luxel.AssetsGpu;
 using Luxel.Audio;
-using Luxel.AssetsGpu;
 using Luxel.Input;
 using Luxel.Resources;
 using Luxel.UI;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 
 namespace Luxel.Framework;
 
@@ -120,7 +120,7 @@ public sealed class LuxelHostBuilder
                 var device = sp.GetRequiredService<GpuDevice>();
                 var res = new ResourceSystem(
                     sources: ResourceSystemDefaults.BuiltinSources(assetRoot: _assetRoot),
-                    steps:   ResourceSystemDefaults.BuiltinSteps());
+                    steps: ResourceSystemDefaults.BuiltinSteps());
                 res.InstallAssetGpu(device);  // GPU Step 一式を追加登録
                 return res;
             });

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Luxel.Controls;
 using Luxel.Diagnostics;
 using Luxel.TwoD;
@@ -292,16 +292,16 @@ internal sealed class DevToolsUi
                         Flatten(p.Value, p.Name, key.Length > 0 ? depth + 1 : depth, into);
                     break;
                 case JsonValueKind.Array:
-                {
-                    into.Add($"{ind}{key}[{e.GetArrayLength()}]");
-                    int i = 0;
-                    foreach (JsonElement item in e.EnumerateArray())
                     {
-                        Flatten(item, $"[{i++}]", depth + 1, into);
-                        if (i >= 200) { into.Add($"{ind}  … (以降省略)"); break; }
+                        into.Add($"{ind}{key}[{e.GetArrayLength()}]");
+                        int i = 0;
+                        foreach (JsonElement item in e.EnumerateArray())
+                        {
+                            Flatten(item, $"[{i++}]", depth + 1, into);
+                            if (i >= 200) { into.Add($"{ind}  … (以降省略)"); break; }
+                        }
+                        break;
                     }
-                    break;
-                }
                 default:
                     into.Add($"{ind}{key}: {e}");
                     break;

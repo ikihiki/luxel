@@ -1,4 +1,4 @@
-namespace Luxel;
+﻿namespace Luxel;
 
 /// <summary>テクスチャ/レンダーターゲットのピクセル形式。</summary>
 public enum GpuFormat

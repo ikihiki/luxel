@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Friflo.Engine.ECS;
 using Luxel.Animation;
 using Luxel.Ecs;

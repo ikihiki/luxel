@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// StateMachine の状態。1 つの <see cref="GraphNode"/> (普通は ClipNode、複雑なら BlendNode/AddNode の DAG) を持つ。

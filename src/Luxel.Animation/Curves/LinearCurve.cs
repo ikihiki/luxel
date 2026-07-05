@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>線形 easing (identity 関数)。デフォルト curve。</summary>
 public sealed class LinearCurve : ICurve

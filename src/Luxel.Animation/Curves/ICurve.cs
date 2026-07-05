@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// Easing 関数。正規化時刻 t ∈ [0, 1] を progress ∈ [0, 1] に写す。

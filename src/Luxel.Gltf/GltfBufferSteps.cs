@@ -1,6 +1,6 @@
-using Luxel.Resources;
+﻿using Luxel.AssetRuntime;
 using Luxel.Assets;
-using Luxel.AssetRuntime;
+using Luxel.Resources;
 
 namespace Luxel.Gltf;
 
@@ -37,7 +37,7 @@ public sealed class GltfBufferStep(GpuDevice device) : IResourceStep<SceneAssets
             return Task.FromResult(parts[2] switch
             {
                 "vertex" => gpu.VertexBuffer,
-                "index"  => gpu.IndexBuffer,
+                "index" => gpu.IndexBuffer,
                 _ => throw new InvalidOperationException($"GltfBufferStep: 不明な mesh part '{parts[2]}' (vertex|index)。"),
             });
         }

@@ -1,4 +1,4 @@
-namespace Luxel;
+﻿namespace Luxel;
 
 /// <summary>
 /// グラフィックスパイプラインのラスタ状態。ブログの GpuRasterDesc に相当。

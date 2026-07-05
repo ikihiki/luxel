@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
@@ -64,8 +64,10 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         public readonly int Seq;          // 宣言順 (ファクトリ引数の順序 — [UiEvent] と混在で保存)
         public FieldModel(string name, BindKind kind, bool isReadOnly, string typeFq, string enumHint, bool stateable,
                           bool own = false, string summary = "", string sourceField = "", int seq = 0)
-        { Name = name; Kind = kind; IsReadOnly = isReadOnly; TypeFq = typeFq; EnumHint = enumHint; Stateable = stateable;
-          Own = own; Summary = summary; SourceField = sourceField; Seq = seq; }
+        {
+            Name = name; Kind = kind; IsReadOnly = isReadOnly; TypeFq = typeFq; EnumHint = enumHint; Stateable = stateable;
+            Own = own; Summary = summary; SourceField = sourceField; Seq = seq;
+        }
         public bool Equals(FieldModel? o) => o is not null && Name == o.Name && Kind == o.Kind
             && IsReadOnly == o.IsReadOnly && TypeFq == o.TypeFq && EnumHint == o.EnumHint && Stateable == o.Stateable
             && Own == o.Own && Summary == o.Summary && SourceField == o.SourceField && Seq == o.Seq;
@@ -571,17 +573,17 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
             string access = f.Name + ".Get()";
             (string hint, string expr) = f.Kind switch
             {
-                BindKind.Color    => ("color", Codec + ".FormatColor(" + access + ")"),
-                BindKind.Int      => ("int", access + ".ToString()"),
-                BindKind.Float    => ("float", access + ".ToString()"),
-                BindKind.Double   => ("float", access + ".ToString()"),
-                BindKind.Bool     => ("bool", access + " ? \"true\" : \"false\""),
-                BindKind.String   => ("string", access + " ?? \"\""),
-                BindKind.Text     => ("string", access),   // BindableString.Get() は非 null
-                BindKind.Enum     => (f.EnumHint, access + ".ToString()"),
+                BindKind.Color => ("color", Codec + ".FormatColor(" + access + ")"),
+                BindKind.Int => ("int", access + ".ToString()"),
+                BindKind.Float => ("float", access + ".ToString()"),
+                BindKind.Double => ("float", access + ".ToString()"),
+                BindKind.Bool => ("bool", access + " ? \"true\" : \"false\""),
+                BindKind.String => ("string", access + " ?? \"\""),
+                BindKind.Text => ("string", access),   // BindableString.Get() は非 null
+                BindKind.Enum => (f.EnumHint, access + ".ToString()"),
                 // Length は専用ヒント (Gallery が数値+単位コンボの LengthField を出す)
                 BindKind.Parsable => (f.TypeFq == LengthType ? "length" : "string", access + ".ToString() ?? \"\""),
-                _                 => ("string", Codec + ".FormatBoxed(" + access + ")"),
+                _ => ("string", Codec + ".FormatBoxed(" + access + ")"),
             };
             sb.Append(pad).Append("            new(\"").Append(f.Name).Append("\", \"").Append(hint)
               .Append("\", ").Append(expr).AppendLine("),");

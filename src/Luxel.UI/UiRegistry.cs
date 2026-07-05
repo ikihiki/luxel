@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>
 /// 複数の <see cref="UiHost"/> を保持し DevTools に一括で見せるための登録簿。

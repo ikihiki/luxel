@@ -1,4 +1,4 @@
-namespace Luxel.Diagnostics;
+﻿namespace Luxel.Diagnostics;
 
 /// <summary>入力/操作イベント (離散ログ用)。<paramref name="Op"/>=click/keydown/char/compose/commit/focus/resize 等。</summary>
 public readonly record struct DiagInput(string Op, string Info);

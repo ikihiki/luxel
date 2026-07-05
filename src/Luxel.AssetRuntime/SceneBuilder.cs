@@ -1,7 +1,7 @@
-using Luxel.Assets;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;
+using Luxel.Assets;
 using Luxel.Ecs;
 
 namespace Luxel.AssetRuntime;
@@ -170,10 +170,13 @@ public static class SceneBuilder
             if (indices.Length > 0) indices.AsSpan().CopyTo(ibuf.Span<uint>(indices.Length));
             return new ScenePrimitiveGpu
             {
-                VertexBuffer = vbuf, IndexBuffer = ibuf,
-                VertexCount = n, IndexCount = indices.Length,
+                VertexBuffer = vbuf,
+                IndexBuffer = ibuf,
+                VertexCount = n,
+                IndexCount = indices.Length,
                 VertexStride = Vertex.Stride,
-                MaterialIndex = materialIndex, HasSkinning = false,
+                MaterialIndex = materialIndex,
+                HasSkinning = false,
             };
         }
         else
@@ -202,10 +205,13 @@ public static class SceneBuilder
             if (indices.Length > 0) indices.AsSpan().CopyTo(ibuf.Span<uint>(indices.Length));
             return new ScenePrimitiveGpu
             {
-                VertexBuffer = vbuf, IndexBuffer = ibuf,
-                VertexCount = n, IndexCount = indices.Length,
+                VertexBuffer = vbuf,
+                IndexBuffer = ibuf,
+                VertexCount = n,
+                IndexCount = indices.Length,
                 VertexStride = SkinnedVertex.Stride,
-                MaterialIndex = materialIndex, HasSkinning = true,
+                MaterialIndex = materialIndex,
+                HasSkinning = true,
             };
         }
     }

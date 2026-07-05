@@ -1,7 +1,7 @@
-using System.Text.Json;
+﻿using System.Text.Json;
+using Luxel.Controls;
 using Luxel.TwoD;
 using Luxel.UI;
-using Luxel.Controls;
 
 namespace Luxel.Tests;
 

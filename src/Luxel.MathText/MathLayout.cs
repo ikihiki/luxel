@@ -1,4 +1,4 @@
-namespace Luxel.MathText;
+﻿namespace Luxel.MathText;
 
 /// <summary>数式ボックス: 幅/高さ/ベースライン (上端からの距離)。</summary>
 public readonly record struct MathBox(float W, float H, float Base)
@@ -129,91 +129,91 @@ public sealed class MathLayoutEngine(
                 if (s.Text.Length > 0) text(s.Text, x, baseY, px);
                 break;
             case MathRow r:
-            {
-                float cx = x;
-                foreach (MathNode c in r.Items)
                 {
-                    Draw(c, cx, baseY, px, text, line);
-                    cx += Measure(c, px).W;
-                }
-                break;
-            }
-            case MathScript sc:
-            {
-                MathBox b = Measure(sc.Base, px);
-                Draw(sc.Base, x, baseY, px, text, line);
-                float spx = px * ScriptScale, sx = x + b.W + px * 0.05f;
-                if (sc.Sup is not null) Draw(sc.Sup, sx, baseY - SupRaise * px, spx, text, line);
-                if (sc.Sub is not null) Draw(sc.Sub, sx, baseY + SubDrop * px, spx, text, line);
-                break;
-            }
-            case MathFrac f:
-            {
-                MathBox box = Measure(f, px);
-                MathBox num = Measure(f.Num, px), den = Measure(f.Den, px);
-                float gap = px * 0.12f, axisY = baseY - Axis * px;
-                Draw(f.Num, x + (box.W - num.W) / 2, axisY - Rule / 2 - gap - num.Desc, px, text, line);
-                Draw(f.Den, x + (box.W - den.W) / 2, axisY + Rule / 2 + gap + den.Base, px, text, line);
-                line(x, axisY, x + box.W, axisY, Rule);
-                break;
-            }
-            case MathSqrt q:
-            {
-                MathBox b = Measure(q.Body, px);
-                MathBox box = Measure(q, px);
-                float hook = px * 0.55f;
-                float top = baseY - box.Base;
-                // 根号: フック (√ 形) + 上線
-                line(x, top + box.H * 0.6f, x + hook * 0.45f, top + box.H - 1, Rule);
-                line(x + hook * 0.45f, top + box.H - 1, x + hook, top + 1, Rule);
-                line(x + hook, top + 1, x + box.W, top + 1, Rule);
-                Draw(q.Body, x + hook + px * 0.1f, baseY, px, text, line);
-                break;
-            }
-            case MathVec v:
-            {
-                MathBox b = Measure(v.Body, px);
-                Draw(v.Body, x, baseY, px, text, line);
-                float y = baseY - b.Base - px * 0.08f;
-                line(x, y, x + b.W, y, Rule * 0.9f);
-                line(x + b.W - px * 0.16f, y - px * 0.09f, x + b.W, y, Rule * 0.9f);
-                line(x + b.W - px * 0.16f, y + px * 0.09f, x + b.W, y, Rule * 0.9f);
-                break;
-            }
-            case MathMatrix m:
-            {
-                MathBox box = Measure(m, px);
-                (float[] colW, float[] rowUp, float[] rowDown) = MatrixCells(m, px);
-                float colGap = px * 0.7f, rowGap = px * 0.35f, bracketW = m.Bracket is null ? 0 : px * 0.35f;
-                float top = baseY - box.Base;
-                float cy = top;
-                for (int r = 0; r < m.Rows.Count; r++)
-                {
-                    float rowBase = cy + rowUp[r];
-                    float cx = x + bracketW;
-                    for (int c = 0; c < m.Rows[r].Count; c++)
+                    float cx = x;
+                    foreach (MathNode c in r.Items)
                     {
-                        MathBox cell = Measure(m.Rows[r][c], px);
-                        Draw(m.Rows[r][c], cx + (colW[c] - cell.W) / 2, rowBase, px, text, line);
-                        cx += colW[c] + colGap;
+                        Draw(c, cx, baseY, px, text, line);
+                        cx += Measure(c, px).W;
                     }
-                    cy += rowUp[r] + rowDown[r] + rowGap;
+                    break;
                 }
-                if (m.Bracket is char br)
+            case MathScript sc:
                 {
-                    float h = box.H, serif = px * 0.22f;
-                    // '[' は直線 + セリフ、'(' も v1 は同形 (わずかに内傾) で近似
-                    float lean = br == '(' ? px * 0.08f : 0;
-                    line(x + lean, top, x, top + h / 2, Rule);
-                    line(x, top + h / 2, x + lean, top + h, Rule);
-                    if (br == '[') { line(x, top, x + serif, top, Rule); line(x, top + h, x + serif, top + h, Rule); }
-                    float rx = x + box.W;
-                    line(rx - lean, top, rx, top + h / 2, Rule);
-                    line(rx, top + h / 2, rx - lean, top + h, Rule);
-                    if (br == '[') { line(rx, top, rx - serif, top, Rule); line(rx, top + h, rx - serif, top + h, Rule); }
+                    MathBox b = Measure(sc.Base, px);
+                    Draw(sc.Base, x, baseY, px, text, line);
+                    float spx = px * ScriptScale, sx = x + b.W + px * 0.05f;
+                    if (sc.Sup is not null) Draw(sc.Sup, sx, baseY - SupRaise * px, spx, text, line);
+                    if (sc.Sub is not null) Draw(sc.Sub, sx, baseY + SubDrop * px, spx, text, line);
+                    break;
                 }
-                break;
-            }
+            case MathFrac f:
+                {
+                    MathBox box = Measure(f, px);
+                    MathBox num = Measure(f.Num, px), den = Measure(f.Den, px);
+                    float gap = px * 0.12f, axisY = baseY - Axis * px;
+                    Draw(f.Num, x + (box.W - num.W) / 2, axisY - Rule / 2 - gap - num.Desc, px, text, line);
+                    Draw(f.Den, x + (box.W - den.W) / 2, axisY + Rule / 2 + gap + den.Base, px, text, line);
+                    line(x, axisY, x + box.W, axisY, Rule);
+                    break;
+                }
+            case MathSqrt q:
+                {
+                    MathBox b = Measure(q.Body, px);
+                    MathBox box = Measure(q, px);
+                    float hook = px * 0.55f;
+                    float top = baseY - box.Base;
+                    // 根号: フック (√ 形) + 上線
+                    line(x, top + box.H * 0.6f, x + hook * 0.45f, top + box.H - 1, Rule);
+                    line(x + hook * 0.45f, top + box.H - 1, x + hook, top + 1, Rule);
+                    line(x + hook, top + 1, x + box.W, top + 1, Rule);
+                    Draw(q.Body, x + hook + px * 0.1f, baseY, px, text, line);
+                    break;
+                }
+            case MathVec v:
+                {
+                    MathBox b = Measure(v.Body, px);
+                    Draw(v.Body, x, baseY, px, text, line);
+                    float y = baseY - b.Base - px * 0.08f;
+                    line(x, y, x + b.W, y, Rule * 0.9f);
+                    line(x + b.W - px * 0.16f, y - px * 0.09f, x + b.W, y, Rule * 0.9f);
+                    line(x + b.W - px * 0.16f, y + px * 0.09f, x + b.W, y, Rule * 0.9f);
+                    break;
+                }
+            case MathMatrix m:
+                {
+                    MathBox box = Measure(m, px);
+                    (float[] colW, float[] rowUp, float[] rowDown) = MatrixCells(m, px);
+                    float colGap = px * 0.7f, rowGap = px * 0.35f, bracketW = m.Bracket is null ? 0 : px * 0.35f;
+                    float top = baseY - box.Base;
+                    float cy = top;
+                    for (int r = 0; r < m.Rows.Count; r++)
+                    {
+                        float rowBase = cy + rowUp[r];
+                        float cx = x + bracketW;
+                        for (int c = 0; c < m.Rows[r].Count; c++)
+                        {
+                            MathBox cell = Measure(m.Rows[r][c], px);
+                            Draw(m.Rows[r][c], cx + (colW[c] - cell.W) / 2, rowBase, px, text, line);
+                            cx += colW[c] + colGap;
+                        }
+                        cy += rowUp[r] + rowDown[r] + rowGap;
+                    }
+                    if (m.Bracket is char br)
+                    {
+                        float h = box.H, serif = px * 0.22f;
+                        // '[' は直線 + セリフ、'(' も v1 は同形 (わずかに内傾) で近似
+                        float lean = br == '(' ? px * 0.08f : 0;
+                        line(x + lean, top, x, top + h / 2, Rule);
+                        line(x, top + h / 2, x + lean, top + h, Rule);
+                        if (br == '[') { line(x, top, x + serif, top, Rule); line(x, top + h, x + serif, top + h, Rule); }
+                        float rx = x + box.W;
+                        line(rx - lean, top, rx, top + h / 2, Rule);
+                        line(rx, top + h / 2, rx - lean, top + h, Rule);
+                        if (br == '[') { line(rx, top, rx - serif, top, Rule); line(rx, top + h, rx - serif, top + h, Rule); }
+                    }
+                    break;
+                }
         }
     }
 }

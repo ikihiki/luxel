@@ -1,4 +1,4 @@
-namespace Luxel;
+﻿namespace Luxel;
 
 /// <summary>
 /// バリアの特殊ハザードフラグ。ブログの <c>HAZARD_DESCRIPTORS</c> 等に相当。

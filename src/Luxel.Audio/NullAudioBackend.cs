@@ -1,4 +1,4 @@
-namespace Luxel.Audio;
+﻿namespace Luxel.Audio;
 
 /// <summary>
 /// 何も再生しない実装。単体テスト / audio device 無し環境向け。

@@ -1,4 +1,4 @@
-namespace Luxel.Document;
+﻿namespace Luxel.Document;
 
 /// <summary>シンタックスハイライトのトークン分類 — VS Code (Dark+/Light+) が実際に**色分けしている粒度**に
 /// 合わせた 15 種 (色はテーマが決める)。VS Code で同色のもの (parameter/property = variable 等) は統合。</summary>

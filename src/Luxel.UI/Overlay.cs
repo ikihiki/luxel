@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>オーバーレイの配置方法。</summary>
 public enum OverlayPlacement

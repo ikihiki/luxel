@@ -1,4 +1,4 @@
-namespace Luxel.RenderGraph;
+﻿namespace Luxel.RenderGraph;
 
 /// <summary>
 /// レンダーグラフ内の論理バッファハンドル。Compile 相で物理 <see cref="GpuBuffer"/> に解決される。

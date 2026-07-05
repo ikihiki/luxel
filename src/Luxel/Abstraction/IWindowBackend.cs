@@ -1,4 +1,4 @@
-namespace Luxel.Abstraction;
+﻿namespace Luxel.Abstraction;
 
 /// <summary>
 /// ウィンドウシステムのバックエンド (Win32 / 将来の他 OS) が実装する低レベル抽象。

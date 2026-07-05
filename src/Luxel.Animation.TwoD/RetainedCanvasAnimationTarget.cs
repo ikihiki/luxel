@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Luxel.Animation;
 using Luxel.TwoD;
 

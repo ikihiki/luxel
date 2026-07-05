@@ -1,4 +1,4 @@
-namespace Luxel.Input;
+﻿namespace Luxel.Input;
 
 /// <summary>
 /// 1 フレームぶんの物理入力イベントを集める queue。<see cref="IInputSource.Poll"/> で enqueue、

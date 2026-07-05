@@ -1,8 +1,8 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Friflo.Engine.ECS;
-using Luxel.Ecs;
-using Luxel.Assets;
 using Luxel.AssetRuntime;
+using Luxel.Assets;
+using Luxel.Ecs;
 using Luxel.Scene.UI;
 using Luxel.UI;
 
@@ -157,7 +157,8 @@ public class SceneUiTests
         var anim = new AssetAnimation { Name = "t", Duration = 2f };
         anim.Channels.Add(new AssetAnimationChannel
         {
-            TargetNode = targetNode, Path = AssetAnimationPath.Translation,
+            TargetNode = targetNode,
+            Path = AssetAnimationPath.Translation,
             Sampler = new AssetAnimationSampler
             {
                 Times = new[] { 0f, 2f },

@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>ease-out cubic (1 - (1-t)^3)。UI トランジションの標準 (減速して着地)。
 /// CSS の cubic-bezier 近似ではなく多項式そのもの — 旧 Luxel.UI Easing.OutCubic と同式 (AS-M1 移設)。</summary>

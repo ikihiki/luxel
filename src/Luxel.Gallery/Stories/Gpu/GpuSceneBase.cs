@@ -1,4 +1,4 @@
-using Luxel.Controls;
+﻿using Luxel.Controls;
 
 namespace Luxel.Gallery.Stories;
 

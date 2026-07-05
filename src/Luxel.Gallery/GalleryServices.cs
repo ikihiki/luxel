@@ -1,4 +1,4 @@
-using Luxel.Controls;
+﻿using Luxel.Controls;
 using Luxel.Gallery.Stories;
 using Luxel.Scripting;
 using Luxel.TwoD;

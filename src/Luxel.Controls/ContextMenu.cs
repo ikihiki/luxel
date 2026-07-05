@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using Luxel.TwoD;
 using Luxel.UI;
 
@@ -53,10 +53,14 @@ public static class ContextMenu
     {
         System.Numerics.Vector2 w = node.ComputeWorldNow().Apply(new System.Numerics.Vector2(lx, ly));
         Open(ctx, w.X, w.Y,
-            ("切り取り", () => { f.OnKey?.Invoke(new KeyEvent(Key.X, false, true)); }),
-            ("コピー", () => { f.OnKey?.Invoke(new KeyEvent(Key.C, false, true)); }),
-            ("貼り付け", () => { f.OnKey?.Invoke(new KeyEvent(Key.V, false, true)); }),
-            ("すべて選択", () => { f.OnKey?.Invoke(new KeyEvent(Key.A, false, true)); }));
+            ("切り取り", () => { f.OnKey?.Invoke(new KeyEvent(Key.X, false, true)); }
+        ),
+            ("コピー", () => { f.OnKey?.Invoke(new KeyEvent(Key.C, false, true)); }
+        ),
+            ("貼り付け", () => { f.OnKey?.Invoke(new KeyEvent(Key.V, false, true)); }
+        ),
+            ("すべて選択", () => { f.OnKey?.Invoke(new KeyEvent(Key.A, false, true)); }
+        ));
     }
 
     /// <summary>読み取り専用テキストの標準メニュー (コピー/すべて選択)。
@@ -65,8 +69,10 @@ public static class ContextMenu
     {
         System.Numerics.Vector2 w = node.ComputeWorldNow().Apply(new System.Numerics.Vector2(lx, ly));
         Open(ctx, w.X, w.Y,
-            ("コピー", () => { f.OnKey?.Invoke(new KeyEvent(Key.C, false, true)); }),
-            ("すべて選択", () => { f.OnKey?.Invoke(new KeyEvent(Key.A, false, true)); }));
+            ("コピー", () => { f.OnKey?.Invoke(new KeyEvent(Key.C, false, true)); }
+        ),
+            ("すべて選択", () => { f.OnKey?.Invoke(new KeyEvent(Key.A, false, true)); }
+        ));
     }
 
     /// <summary>開いているメニューを閉じる (無ければ no-op)。</summary>

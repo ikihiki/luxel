@@ -1,4 +1,4 @@
-namespace Luxel.Audio.Sequencing;
+﻿namespace Luxel.Audio.Sequencing;
 
 /// <summary>
 /// イベントの演奏パラメータ一式 (MIDI のメッセージに相当する汎用表現)。

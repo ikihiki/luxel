@@ -1,4 +1,4 @@
-namespace Luxel.Assets;
+﻿namespace Luxel.Assets;
 
 /// <summary>
 /// テクスチャ (image 統合)。ピクセルデータ + フォーマット + サンプラを一箇所に集約。

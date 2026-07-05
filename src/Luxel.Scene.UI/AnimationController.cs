@@ -1,4 +1,4 @@
-namespace Luxel.Scene.UI;
+﻿namespace Luxel.Scene.UI;
 
 /// <summary>
 /// Animation 制御の reactive state ヘルパ (PlaybackState を参照)。

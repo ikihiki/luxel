@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Luxel.Document;
 using Luxel.TwoD;
 using Luxel.UI;
@@ -60,13 +60,13 @@ public sealed partial class DiagramBlock : Widget
             switch (n.Node.Shape)
             {
                 case DiagramShape.Diamond:
-                {
-                    float cx = x + w / 2, cy = y + h / 2;
-                    fill.BeginFill(Color2D.White).MoveTo(cx, y).LineTo(x + w, cy).LineTo(cx, y + h).LineTo(x, cy).Close().End();
-                    stroke.StrokePolyline(Color2D.White, 1.4f,
-                        new Vector2(cx, y), new Vector2(x + w, cy), new Vector2(cx, y + h), new Vector2(x, cy), new Vector2(cx, y));
-                    break;
-                }
+                    {
+                        float cx = x + w / 2, cy = y + h / 2;
+                        fill.BeginFill(Color2D.White).MoveTo(cx, y).LineTo(x + w, cy).LineTo(cx, y + h).LineTo(x, cy).Close().End();
+                        stroke.StrokePolyline(Color2D.White, 1.4f,
+                            new Vector2(cx, y), new Vector2(x + w, cy), new Vector2(cx, y + h), new Vector2(x, cy), new Vector2(cx, y));
+                        break;
+                    }
                 case DiagramShape.Rounded:
                     fill.FillRoundedRect(Color2D.White, x, y, w, h, h / 2);
                     stroke.StrokeRoundedRect(Color2D.White, 1.4f, x, y, w, h, h / 2);

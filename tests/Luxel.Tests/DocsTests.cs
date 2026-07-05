@@ -1,4 +1,4 @@
-using Luxel.Controls;
+﻿using Luxel.Controls;
 using Luxel.Document;
 using Luxel.UI;
 using Xunit;
@@ -79,8 +79,11 @@ public class DocsTests
         BlockWidgetFactory factory = doc.WidgetRegistry.Find(DocString.UiTypeId)!;
         Widget W(Block e) => factory(new BlockWidgetContext
         {
-            Payload = e.Payload!, MaxWidth = 400, Theme = UiTheme.Current,
-            Commit = _ => { }, Invalidate = () => { },
+            Payload = e.Payload!,
+            MaxWidth = 400,
+            Theme = UiTheme.Current,
+            Commit = _ => { },
+            Invalidate = () => { },
         });
         Assert.True(ContainsWidget(W(embeds[0]), a));
         Assert.True(ContainsWidget(W(embeds[1]), b));

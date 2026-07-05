@@ -1,4 +1,4 @@
-using Luxel.Audio;
+﻿using Luxel.Audio;
 using Vortice.Multimedia;
 using Vortice.XAudio2;
 

@@ -1,4 +1,4 @@
-namespace Luxel.RenderGraph;
+﻿namespace Luxel.RenderGraph;
 
 /// <summary>Transient バッファの記述。Compile 相で同形 (Size, Kind) なリソースをプールから再利用する。</summary>
 public readonly record struct BufferDesc(ulong SizeBytes, GpuMemoryKind Kind = GpuMemoryKind.HostMapped);

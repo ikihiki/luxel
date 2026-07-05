@@ -1,4 +1,4 @@
-namespace Luxel.DevTools;
+﻿namespace Luxel.DevTools;
 
 /// <summary>
 /// 「最新のみ保持」スロット (coalesce)。高頻度イベント (frame/tree/stat) で上書きし、

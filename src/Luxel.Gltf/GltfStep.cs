@@ -1,8 +1,8 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
-using Luxel.Resources;
-using Luxel.Assets;
 using Luxel.AssetRuntime;
+using Luxel.Assets;
+using Luxel.Resources;
 
 namespace Luxel.Gltf;
 

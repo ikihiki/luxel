@@ -1,4 +1,4 @@
-using Luxel.TwoD;
+﻿using Luxel.TwoD;
 
 namespace Luxel.UI;
 
@@ -42,30 +42,68 @@ public sealed class Theme
 
     public static Theme Light => new()
     {
-        Background = C(247, 248, 250), Surface = Color2D.White, SurfaceAlt = C(238, 240, 245),
-        BorderColor = C(214, 218, 226), Text = C(28, 30, 36), TextMuted = C(112, 118, 130), OnAccent = Color2D.White,
-        Primary = C(56, 118, 224), PrimaryHover = C(80, 140, 240), PrimaryActive = C(40, 96, 196),
-        Success = C(46, 160, 90), Warning = C(214, 158, 46), Danger = C(220, 72, 72), Info = C(60, 150, 220),
+        Background = C(247, 248, 250),
+        Surface = Color2D.White,
+        SurfaceAlt = C(238, 240, 245),
+        BorderColor = C(214, 218, 226),
+        Text = C(28, 30, 36),
+        TextMuted = C(112, 118, 130),
+        OnAccent = Color2D.White,
+        Primary = C(56, 118, 224),
+        PrimaryHover = C(80, 140, 240),
+        PrimaryActive = C(40, 96, 196),
+        Success = C(46, 160, 90),
+        Warning = C(214, 158, 46),
+        Danger = C(220, 72, 72),
+        Info = C(60, 150, 220),
         // VS Code Light+ のトークン色
-        TokComment = C(0, 128, 0), TokString = C(163, 21, 21), TokEscape = C(238, 0, 0),
-        TokRegexp = C(129, 31, 63), TokNumber = C(9, 134, 88), TokConstant = C(0, 112, 193),
-        TokKeyword = C(0, 0, 255), TokKeywordControl = C(175, 0, 219), TokOperator = C(60, 60, 60),
-        TokFunction = C(121, 94, 38), TokType = C(38, 127, 153), TokVariable = C(0, 16, 128),
-        TokTag = C(128, 0, 0), TokAttribute = C(229, 0, 0),
+        TokComment = C(0, 128, 0),
+        TokString = C(163, 21, 21),
+        TokEscape = C(238, 0, 0),
+        TokRegexp = C(129, 31, 63),
+        TokNumber = C(9, 134, 88),
+        TokConstant = C(0, 112, 193),
+        TokKeyword = C(0, 0, 255),
+        TokKeywordControl = C(175, 0, 219),
+        TokOperator = C(60, 60, 60),
+        TokFunction = C(121, 94, 38),
+        TokType = C(38, 127, 153),
+        TokVariable = C(0, 16, 128),
+        TokTag = C(128, 0, 0),
+        TokAttribute = C(229, 0, 0),
     };
 
     public static Theme Dark => new()
     {
-        Background = C(20, 22, 28), Surface = C(30, 33, 40), SurfaceAlt = C(40, 44, 52),
-        BorderColor = C(56, 60, 70), Text = C(232, 235, 240), TextMuted = C(150, 156, 168), OnAccent = Color2D.White,
-        Primary = C(86, 150, 250), PrimaryHover = C(112, 172, 255), PrimaryActive = C(66, 128, 226),
-        Success = C(70, 184, 116), Warning = C(230, 178, 70), Danger = C(236, 100, 100), Info = C(96, 176, 240),
+        Background = C(20, 22, 28),
+        Surface = C(30, 33, 40),
+        SurfaceAlt = C(40, 44, 52),
+        BorderColor = C(56, 60, 70),
+        Text = C(232, 235, 240),
+        TextMuted = C(150, 156, 168),
+        OnAccent = Color2D.White,
+        Primary = C(86, 150, 250),
+        PrimaryHover = C(112, 172, 255),
+        PrimaryActive = C(66, 128, 226),
+        Success = C(70, 184, 116),
+        Warning = C(230, 178, 70),
+        Danger = C(236, 100, 100),
+        Info = C(96, 176, 240),
         // VS Code Dark+ のトークン色
-        TokComment = C(106, 153, 85), TokString = C(206, 145, 120), TokEscape = C(215, 186, 125),
-        TokRegexp = C(209, 105, 105), TokNumber = C(181, 206, 168), TokConstant = C(79, 193, 255),
-        TokKeyword = C(86, 156, 214), TokKeywordControl = C(197, 134, 192), TokOperator = C(212, 212, 212),
-        TokFunction = C(220, 220, 170), TokType = C(78, 201, 176), TokVariable = C(156, 220, 254),
-        TokTag = C(86, 156, 214), TokAttribute = C(156, 220, 254),
+        TokComment = C(106, 153, 85),
+        TokString = C(206, 145, 120),
+        TokEscape = C(215, 186, 125),
+        TokRegexp = C(209, 105, 105),
+        TokNumber = C(181, 206, 168),
+        TokConstant = C(79, 193, 255),
+        TokKeyword = C(86, 156, 214),
+        TokKeywordControl = C(197, 134, 192),
+        TokOperator = C(212, 212, 212),
+        TokFunction = C(220, 220, 170),
+        TokType = C(78, 201, 176),
+        TokVariable = C(156, 220, 254),
+        TokTag = C(86, 156, 214),
+        TokAttribute = C(156, 220, 254),
     };
 }
 

@@ -1,4 +1,4 @@
-using Luxel.Audio.Sequencing;
+﻿using Luxel.Audio.Sequencing;
 
 namespace Luxel.Strudel;
 
@@ -62,7 +62,13 @@ public static class Controls
         if (s.Length < 2) throw new FormatException($"ノートが読めません: '{tok}'");
         int semitone = s[0] switch
         {
-            'c' => 0, 'd' => 2, 'e' => 4, 'f' => 5, 'g' => 7, 'a' => 9, 'b' => 11,
+            'c' => 0,
+            'd' => 2,
+            'e' => 4,
+            'f' => 5,
+            'g' => 7,
+            'a' => 9,
+            'b' => 11,
             _ => throw new FormatException($"ノートが読めません: '{tok}'"),
         };
         int i = 1;

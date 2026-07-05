@@ -1,4 +1,4 @@
-using Friflo.Engine.ECS;
+﻿using Friflo.Engine.ECS;
 using Luxel.Ecs;
 using Luxel.Framework;
 using Luxel.TwoD;
@@ -6,8 +6,8 @@ using Luxel.Typography;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;
 using static Luxel.Controls.Kit;
-using World = Luxel.Ecs.World;
 using Phase = Luxel.Framework.Phase;
+using World = Luxel.Ecs.World;
 
 namespace Luxel.Gallery.Stories;
 
@@ -380,9 +380,12 @@ public static class BreakoutStories
                 float sp = 40 + (float)_rng.NextDouble() * 90;
                 _particles.Add(new Particle
                 {
-                    X = x, Y = y,
-                    VX = MathF.Cos(a) * sp, VY = MathF.Sin(a) * sp - 30,
-                    Life = 0.5f, Color = color,
+                    X = x,
+                    Y = y,
+                    VX = MathF.Cos(a) * sp,
+                    VY = MathF.Sin(a) * sp - 30,
+                    Life = 0.5f,
+                    Color = color,
                 });
             }
         }

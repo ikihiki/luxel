@@ -1,4 +1,4 @@
-namespace Luxel.Input;
+﻿namespace Luxel.Input;
 
 /// <summary>
 /// テスト/シミュレーション用の入力ソース。<see cref="PressKey"/> 等を呼んで event を予約し、

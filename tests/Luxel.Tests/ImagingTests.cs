@@ -1,4 +1,4 @@
-using Luxel.Imaging;
+﻿using Luxel.Imaging;
 using Luxel.Resources;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;

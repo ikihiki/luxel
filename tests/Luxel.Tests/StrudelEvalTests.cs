@@ -1,4 +1,4 @@
-using Luxel.Audio.Sequencing;
+﻿using Luxel.Audio.Sequencing;
 using Luxel.Strudel;
 
 namespace Luxel.Tests;

@@ -1,9 +1,9 @@
-using System.Text.Json;
-using Luxel.Diagnostics;
+﻿using System.Text.Json;
+using Luxel.Controls;
 using Luxel.DevTools;
+using Luxel.Diagnostics;
 using Luxel.TwoD;
 using Luxel.UI;
-using Luxel.Controls;
 
 namespace Luxel.Tests;
 
@@ -146,7 +146,7 @@ public class DevToolsTests
             switch (name)
             {
                 case "count": Value = value.GetInt32(); break;
-                case "flag":  Flag = value.ValueKind == JsonValueKind.True; break;
+                case "flag": Flag = value.ValueKind == JsonValueKind.True; break;
                 case "label": Text = value.GetString() ?? ""; break;
             }
         }

@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// 状態遷移付きアニメーション再生器。Rive State Machine / Unity Mecanim と同じ「states + transitions」モデル。

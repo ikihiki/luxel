@@ -1,4 +1,4 @@
-using Luxel.Abstraction;
+﻿using Luxel.Abstraction;
 using Luxel.Vulkan.Interop;
 using Silk.NET.Core;
 using Silk.NET.Core.Native;
@@ -19,7 +19,7 @@ public sealed unsafe class VulkanBackend : IGpuBackend
 {
     private const uint BindlessCapacity = 65536;
     private const uint PushConstantSize = 192;  // shadow map など mat4×2 を渡す用途で 128B では不足。
-                                                   // Vulkan の spec min は 128B、最新 GPU は 256B 対応 (RTX 4080 SUPER 等で確認済)。
+                                                // Vulkan の spec min は 128B、最新 GPU は 256B 対応 (RTX 4080 SUPER 等で確認済)。
 
     private readonly Vk _vk;
     private Instance _instance;

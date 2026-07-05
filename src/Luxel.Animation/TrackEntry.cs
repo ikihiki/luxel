@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// AnimationPlayer が管理する 1 つの再生中アニメ。stateful (開始絶対時刻 + 速度 + ループ + 完了状態)。

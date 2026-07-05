@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using Luxel.RenderGraph;
 using Luxel.TwoD;
 using Luxel.UI;
@@ -96,14 +96,22 @@ public static class RenderGraphStories
                 rg.AddPass($"BlurH{i + 1}", PassQueue.Compute).Read(s0).Write(tmp)
                   .Execute(c => Dispatch(c, _blur, new BlurArgs
                   {
-                      SrcIndex = c.BindlessIndex(s0), DstIndex = c.BindlessIndex(tmp),
-                      Width = W, Height = H, DirX = 1, DirY = 0,
+                      SrcIndex = c.BindlessIndex(s0),
+                      DstIndex = c.BindlessIndex(tmp),
+                      Width = W,
+                      Height = H,
+                      DirX = 1,
+                      DirY = 0,
                   }));
                 rg.AddPass($"BlurV{i + 1}", PassQueue.Compute).Read(tmp).Write(blr)
                   .Execute(c => Dispatch(c, _blur, new BlurArgs
                   {
-                      SrcIndex = c.BindlessIndex(tmp), DstIndex = c.BindlessIndex(blr),
-                      Width = W, Height = H, DirX = 0, DirY = 1,
+                      SrcIndex = c.BindlessIndex(tmp),
+                      DstIndex = c.BindlessIndex(blr),
+                      Width = W,
+                      Height = H,
+                      DirX = 0,
+                      DirY = 1,
                   }));
                 src = blr;
             }
@@ -112,8 +120,12 @@ public static class RenderGraphStories
             rg.AddPass("Composite", PassQueue.Compute).Read(hUi).Read(hBlurred).Write(hFinal)
               .Execute(c => Dispatch(c, _composite, new CompositeArgs
               {
-                  UiIndex = c.BindlessIndex(hUi), BlurIndex = c.BindlessIndex(hBlurred),
-                  DstIndex = c.BindlessIndex(hFinal), Width = W, Height = H, SplitX = W / 2,
+                  UiIndex = c.BindlessIndex(hUi),
+                  BlurIndex = c.BindlessIndex(hBlurred),
+                  DstIndex = c.BindlessIndex(hFinal),
+                  Width = W,
+                  Height = H,
+                  SplitX = W / 2,
               }));
 
             if (addDeadPass)

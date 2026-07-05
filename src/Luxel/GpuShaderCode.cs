@@ -1,4 +1,4 @@
-namespace Luxel;
+﻿namespace Luxel;
 
 /// <summary>
 /// 併存コンパイルされたシェーダ IR を保持する。Vulkan は SPIR-V、D3D12 は DXIL を使う。

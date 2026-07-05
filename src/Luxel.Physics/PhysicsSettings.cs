@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using BepuPhysics.Constraints;
 
 namespace Luxel.Physics;

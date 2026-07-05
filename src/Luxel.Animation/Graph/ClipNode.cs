@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>1 つの <see cref="AnimationClip"/> をラップするリーフノード。各 Track を sample して output に書く。</summary>
 public sealed class ClipNode : GraphNode

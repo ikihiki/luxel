@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>
 /// 1 行テキスト編集モデル (純粋ロジック・テスト可能)。caret/選択/挿入削除/単語移動/IME 合成を扱う。

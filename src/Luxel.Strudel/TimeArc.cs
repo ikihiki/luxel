@@ -1,4 +1,4 @@
-namespace Luxel.Strudel;
+﻿namespace Luxel.Strudel;
 
 /// <summary>
 /// 時間区間 [Begin, End) (Tidal の Arc / Strudel の TimeSpan)。単位はサイクル。

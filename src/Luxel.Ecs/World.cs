@@ -1,4 +1,4 @@
-using Friflo.Engine.ECS;
+﻿using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 
 namespace Luxel.Ecs;

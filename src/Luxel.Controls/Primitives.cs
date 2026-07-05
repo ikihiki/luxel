@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Luxel.TwoD;
 using Luxel.UI;
 
@@ -83,13 +83,15 @@ public sealed partial class Icon : Widget
         switch (k)
         {
             case IconKind.Check: s.StrokePolyline(Color2D.White, w, P(0.20f, 0.55f), P(0.43f, 0.78f), P(0.80f, 0.26f)); break;
-            case IconKind.Close: s.StrokeLine(Color2D.White, w, 0.24f * z, 0.24f * z, 0.76f * z, 0.76f * z);
-                                 s.StrokeLine(Color2D.White, w, 0.76f * z, 0.24f * z, 0.24f * z, 0.76f * z); break;
+            case IconKind.Close:
+                s.StrokeLine(Color2D.White, w, 0.24f * z, 0.24f * z, 0.76f * z, 0.76f * z);
+                s.StrokeLine(Color2D.White, w, 0.76f * z, 0.24f * z, 0.24f * z, 0.76f * z); break;
             case IconKind.ChevronDown: s.StrokePolyline(Color2D.White, w, P(0.25f, 0.38f), P(0.5f, 0.64f), P(0.75f, 0.38f)); break;
             case IconKind.ChevronRight: s.StrokePolyline(Color2D.White, w, P(0.40f, 0.25f), P(0.66f, 0.5f), P(0.40f, 0.75f)); break;
             case IconKind.ChevronLeft: s.StrokePolyline(Color2D.White, w, P(0.60f, 0.25f), P(0.34f, 0.5f), P(0.60f, 0.75f)); break;
-            case IconKind.Plus: s.StrokeLine(Color2D.White, w, 0.5f * z, 0.22f * z, 0.5f * z, 0.78f * z);
-                                s.StrokeLine(Color2D.White, w, 0.22f * z, 0.5f * z, 0.78f * z, 0.5f * z); break;
+            case IconKind.Plus:
+                s.StrokeLine(Color2D.White, w, 0.5f * z, 0.22f * z, 0.5f * z, 0.78f * z);
+                s.StrokeLine(Color2D.White, w, 0.22f * z, 0.5f * z, 0.78f * z, 0.5f * z); break;
             case IconKind.Minus: s.StrokeLine(Color2D.White, w, 0.22f * z, 0.5f * z, 0.78f * z, 0.5f * z); break;
             case IconKind.Dot: s.FillCircle(Color2D.White, 0.5f * z, 0.5f * z, 0.18f * z); break;
             case IconKind.Circle: s.FillCircle(Color2D.White, 0.5f * z, 0.5f * z, 0.42f * z); break;

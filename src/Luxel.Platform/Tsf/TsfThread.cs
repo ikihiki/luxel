@@ -1,4 +1,4 @@
-using Luxel.UI;
+﻿using Luxel.UI;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.System.Com;

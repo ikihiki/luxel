@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>
 /// コールバックの UI パラメータ (EV)。<c>[UiEvent]</c> 付き public フィールドとして宣言すると、

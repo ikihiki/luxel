@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>
 /// ポインタイベントのコンテキスト — ハンドラへ渡る情報一式。座標は 2 系統:

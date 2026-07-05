@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>
 /// ソースジェネレーター (Luxel.UI.Generators) にファクトリ関数を生成させる widget。

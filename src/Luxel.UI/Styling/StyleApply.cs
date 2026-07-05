@@ -1,4 +1,4 @@
-namespace Luxel.UI.Styling;
+﻿namespace Luxel.UI.Styling;
 
 /// <summary>
 /// StateStyle ベース Widget が共通で使う適用ヘルパ (Button/Border などで共有)。

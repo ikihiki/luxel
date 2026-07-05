@@ -1,5 +1,5 @@
+﻿using Luxel.TwoD;
 using Luxel.Typography;
-using Luxel.TwoD;
 
 namespace Luxel.UI;
 
@@ -224,10 +224,23 @@ public sealed class UiBuildContext
     {
         var h = new HitTarget
         {
-            Node = node, Rect = rect, OnClick = onClick, OnHover = onHover, Focus = focus, OnClickPos = onClickPos,
-            OnDragStart = onDragStart, OnDrag = onDrag, OnDragEnd = onDragEnd, OnMovePos = onMovePos,
-            Cursor = cursor, CursorFunc = cursorFunc, OnContext = onContext,
-            OnDrop = onDrop, OnDropMove = onDropMove, OnDropHover = onDropHover, AcceptsDrop = acceptsDrop,
+            Node = node,
+            Rect = rect,
+            OnClick = onClick,
+            OnHover = onHover,
+            Focus = focus,
+            OnClickPos = onClickPos,
+            OnDragStart = onDragStart,
+            OnDrag = onDrag,
+            OnDragEnd = onDragEnd,
+            OnMovePos = onMovePos,
+            Cursor = cursor,
+            CursorFunc = cursorFunc,
+            OnContext = onContext,
+            OnDrop = onDrop,
+            OnDropMove = onDropMove,
+            OnDropHover = onDropHover,
+            AcceptsDrop = acceptsDrop,
         };
         Hits.Add(h);
         CurrentScope.Hits.Add(h);
@@ -241,8 +254,13 @@ public sealed class UiBuildContext
     {
         var f = new FocusTarget
         {
-            OnFocus = onFocus, OnKey = onKey, OnText = onText, OnCompose = onCompose,
-            OnCommit = onCommit, OnComposeEx = onComposeEx, TextInput = textInput,
+            OnFocus = onFocus,
+            OnKey = onKey,
+            OnText = onText,
+            OnCompose = onCompose,
+            OnCommit = onCommit,
+            OnComposeEx = onComposeEx,
+            TextInput = textInput,
         };
         Focusables.Add(f);
         CurrentScope.Focusables.Add(f);

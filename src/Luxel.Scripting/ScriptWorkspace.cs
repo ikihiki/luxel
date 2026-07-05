@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.Host.Mef;
@@ -99,7 +99,8 @@ public sealed class ScriptWorkspace : IDisposable
             int len = Math.Max(1, span.EndLinePosition.Character - span.StartLinePosition.Character);
             list.Add(new ScriptDiagnostic(
                 span.StartLinePosition.Line + 1, span.StartLinePosition.Character + 1,
-                d.GetMessage(), d.Severity == DiagnosticSeverity.Error) { Length = len });
+                d.GetMessage(), d.Severity == DiagnosticSeverity.Error)
+            { Length = len });
         }
         return list;
     }

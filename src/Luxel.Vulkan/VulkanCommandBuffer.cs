@@ -1,4 +1,4 @@
-using Luxel.Abstraction;
+﻿using Luxel.Abstraction;
 using Luxel.Vulkan.Interop;
 using Silk.NET.Vulkan;
 

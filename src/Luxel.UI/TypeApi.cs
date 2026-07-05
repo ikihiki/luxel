@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>参照アセンブリの公開型 API をドキュメント化する opt-in。アセンブリに
 /// <c>[assembly: GenerateAssemblyApi("Luxel.TwoD")]</c> と書くと、ソースジェネレーター

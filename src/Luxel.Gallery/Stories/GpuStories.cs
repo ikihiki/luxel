@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using Luxel.Controls;
 using Luxel.Resources;
 using Luxel.TwoD;
@@ -96,8 +96,14 @@ public static class GpuStories
                 float a = time + i * (MathF.Tau / 3);
                 v[i] = new Vertex
                 {
-                    Px = MathF.Cos(a) * 0.7f, Py = MathF.Sin(a) * 0.7f, Pz = 0, Pw = 1,
-                    R = i == 0 ? 1 : 0, G = i == 1 ? 1 : 0, B = i == 2 ? 1 : 0, A = 1,
+                    Px = MathF.Cos(a) * 0.7f,
+                    Py = MathF.Sin(a) * 0.7f,
+                    Pz = 0,
+                    Pw = 1,
+                    R = i == 0 ? 1 : 0,
+                    G = i == 1 ? 1 : 0,
+                    B = i == 2 ? 1 : 0,
+                    A = 1,
                 };
             }
 

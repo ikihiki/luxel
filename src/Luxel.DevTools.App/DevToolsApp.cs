@@ -1,7 +1,7 @@
-using Luxel.Diagnostics;
+﻿using Luxel.Diagnostics;
 using Luxel.Platform;
-using Luxel.Typography;
 using Luxel.TwoD;
+using Luxel.Typography;
 using Luxel.UI;
 
 namespace Luxel.DevTools;

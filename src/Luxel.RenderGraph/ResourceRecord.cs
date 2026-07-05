@@ -1,4 +1,4 @@
-namespace Luxel.RenderGraph;
+﻿namespace Luxel.RenderGraph;
 
 internal enum ResourceKind { ExternalBuffer, TransientBuffer, ExternalTexture, TransientTexture }
 

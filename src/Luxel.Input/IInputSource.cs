@@ -1,4 +1,4 @@
-namespace Luxel.Input;
+﻿namespace Luxel.Input;
 
 /// <summary>物理入力イベント種別。</summary>
 public enum InputEventKind

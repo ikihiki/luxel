@@ -1,9 +1,9 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Friflo.Engine.ECS;
+using Luxel.AssetRuntime;
+using Luxel.Assets;
 using Luxel.Ecs;
 using Luxel.Ecs.Signal;
-using Luxel.Assets;
-using Luxel.AssetRuntime;
 using Luxel.UI;
 
 namespace Luxel.Tests;
@@ -71,7 +71,7 @@ public class FrifloEcsTests
     {
         var world = new Luxel.Ecs.World();
         var root = world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(1, 0, 0)));
-        var mid  = world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, 2, 0)));
+        var mid = world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, 2, 0)));
         var leaf = world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, 0, 3)));
         mid.AddComponent(new Parent(root));
         leaf.AddComponent(new Parent(mid));

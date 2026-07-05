@@ -1,8 +1,7 @@
-using Luxel.Animation;
+﻿using Luxel.Animation;
 using Luxel.TwoD;
-using Luxel.UI.Styling;
-
 using Luxel.UI;
+using Luxel.UI.Styling;
 
 namespace Luxel.Controls;
 
@@ -106,8 +105,11 @@ public sealed partial class Button : Widget
             if (st == ControlState.Normal && k > 0f)
             {
                 VisualStyle hv = Styles.Resolve(t, Variant.Get(), Intent.Get(), ControlState.Hover);
-                vs = vs with { Bg = new RgbaTween(vs.Bg, hv.Bg).Lerp(k),
-                               Fg = new RgbaTween(vs.Fg, hv.Fg).Lerp(k) };
+                vs = vs with
+                {
+                    Bg = new RgbaTween(vs.Bg, hv.Bg).Lerp(k),
+                    Fg = new RgbaTween(vs.Fg, hv.Fg).Lerp(k)
+                };
             }
             bgSet(Background.Or(vs.Bg));
             fgSet(Foreground.Or(vs.Fg));

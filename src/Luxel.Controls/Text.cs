@@ -1,8 +1,7 @@
-using Luxel.TwoD;
+﻿using Luxel.TwoD;
 using Luxel.Typography;
-using Luxel.UI.Styling;
-
 using Luxel.UI;
+using Luxel.UI.Styling;
 using TAlign = Luxel.Typography.TextAlign;
 
 namespace Luxel.Controls;
@@ -72,8 +71,12 @@ public sealed partial class Text : Widget
                    : float.IsInfinity(c.MaxW) ? float.PositiveInfinity : c.MaxW;
         _layoutOpts = new TextLayoutOptions
         {
-            MaxWidth = maxW, Wrap = wrap, Align = align, LineHeight = LineHeight.Get(),
-            MaxLines = maxLines, VAlign = valign,
+            MaxWidth = maxW,
+            Wrap = wrap,
+            Align = align,
+            LineHeight = LineHeight.Get(),
+            MaxLines = maxLines,
+            VAlign = valign,
             MaxHeight = lh.IsSet ? lh.Resolve(c.MaxH, ctx, float.PositiveInfinity) : float.PositiveInfinity,
         };
         _layoutText = content;

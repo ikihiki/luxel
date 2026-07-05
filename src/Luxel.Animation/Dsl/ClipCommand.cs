@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// <see cref="AnimationClip"/> を再生する Command。複数 Track を各々 TrackEntry として Player に Schedule する。

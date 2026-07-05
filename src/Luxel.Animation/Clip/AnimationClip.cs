@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// 複数 Track の束 = 1 つの「アニメーション」全体。Luxel.Resources の (型, uri) でロード対象。

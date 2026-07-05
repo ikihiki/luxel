@@ -1,4 +1,4 @@
-namespace Luxel.Audio;
+﻿namespace Luxel.Audio;
 
 /// <summary>
 /// PCM 音声の形式 (サンプルレート・チャンネル数・ビット深度)。

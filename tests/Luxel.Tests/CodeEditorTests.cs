@@ -1,8 +1,8 @@
-using Luxel.Controls;
+﻿using Luxel.Controls;
 using Luxel.Document;
-using Luxel.Typography;
 using Luxel.TwoD;
 using Luxel.TwoD.Skia;
+using Luxel.Typography;
 using Luxel.UI;
 using Xunit;
 using static Luxel.Controls.Kit;

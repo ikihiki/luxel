@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>CSS steps(n, jumpTerm) と同じ階段関数。</summary>
 public sealed class StepsCurve : ICurve

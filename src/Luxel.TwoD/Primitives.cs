@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace Luxel.TwoD;
@@ -95,7 +95,10 @@ public struct Camera2D
     /// <summary>スケール + 中心指定。worldCenter が画面中心に来る。</summary>
     public static Camera2D Create(float scale, Vector2 worldCenter, uint screenW, uint screenH) => new()
     {
-        A = scale, B = 0, C = 0, D = scale,
+        A = scale,
+        B = 0,
+        C = 0,
+        D = scale,
         E = screenW * 0.5f - worldCenter.X * scale,
         F = screenH * 0.5f - worldCenter.Y * scale,
     };

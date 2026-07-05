@@ -1,8 +1,8 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Friflo.Engine.ECS;
-using Luxel.Ecs;
-using Luxel.Assets;
 using Luxel.AssetRuntime;
+using Luxel.Assets;
+using Luxel.Ecs;
 
 namespace Luxel.Tests;
 

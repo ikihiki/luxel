@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>クリップボード抽象 (OS API は Platform 層が実装、テストはフェイクを差す)。</summary>
 public interface IClipboard

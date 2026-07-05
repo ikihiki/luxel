@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// Animation コマンド = 「Player に 1 つ以上の TrackEntry を時間オフセット付きで投入する」操作。

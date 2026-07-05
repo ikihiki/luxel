@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Luxel.TwoD;
 using Luxel.UI;
 

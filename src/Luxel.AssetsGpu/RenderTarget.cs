@@ -1,4 +1,4 @@
-namespace Luxel.AssetsGpu;
+﻿namespace Luxel.AssetsGpu;
 
 /// <summary>
 /// 差替可能な GPU テクスチャ。RG が毎フレーム描画結果を書き込む先として使い、

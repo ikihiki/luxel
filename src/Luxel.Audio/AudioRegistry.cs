@@ -1,4 +1,4 @@
-namespace Luxel.Audio;
+﻿namespace Luxel.Audio;
 
 /// <summary>
 /// ゲーム内で使用中の <see cref="AudioBus"/> / <see cref="AudioSource"/> を DevTools 等が可視化できるよう

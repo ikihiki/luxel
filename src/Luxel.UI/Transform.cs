@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>transform 成分プロパティ名 (fluent Transition の対象指定用 — TF)。
 /// <code>.Transition(new(0.15f), Transform.ScaleX, Transform.ScaleY)</code></summary>

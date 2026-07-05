@@ -1,4 +1,4 @@
-namespace Luxel.Audio;
+﻿namespace Luxel.Audio;
 
 /// <summary>
 /// メモリ上のデコード済み PCM 音声。<see cref="Format"/> に従って <see cref="PcmData"/> を解釈する。

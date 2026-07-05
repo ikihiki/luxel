@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>論理キー (programmatic 入力)。</summary>
 public enum Key { None, Tab, Enter, Space, Escape, Left, Right, Up, Down, Home, End, Backspace, Delete, PageUp, PageDown, A, B, C, D, E, F, G, H, I, R, V, X, Y, Z, Slash }

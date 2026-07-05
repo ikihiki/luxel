@@ -1,4 +1,4 @@
-namespace Luxel.Assets;
+﻿namespace Luxel.Assets;
 
 /// <summary>
 /// 3D asset ファイル loader の規約。glTF / .glb / MMD / FBX 等の各形式が実装、

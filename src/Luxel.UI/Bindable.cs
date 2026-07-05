@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>
 /// 値直接 (<c>T</c>) / <see cref="Signal{T}"/> / <see cref="Func{T}"/> の 3 経路を 1 引数で受ける reactive 束縛。
@@ -41,8 +41,8 @@ public sealed class Bindable<T> : IBindable
 
     /// <summary>未設定 (factory default 相当)。フィールド宣言 <c>= new()</c> で使う。</summary>
     public Bindable() { }
-    public Bindable(T value)          { _value = value; _set = true; }
-    public Bindable(Func<T> getter)   { _getter = getter; _set = true; }
+    public Bindable(T value) { _value = value; _set = true; }
+    public Bindable(Func<T> getter) { _getter = getter; _set = true; }
     public Bindable(Signal<T> signal) { _getter = () => signal.Value; _set = true; }
 
     /// <summary>「未設定」(factory default) かどうか。状態レイヤ/override は含まない。</summary>
@@ -119,8 +119,8 @@ public sealed class Bindable<T> : IBindable
     bool IBindable.HasOverride => HasOverride;
     void IBindable.ClearOverrideBoxed() => ClearOverride();
 
-    public static implicit operator Bindable<T>(T value)          => new(value);
-    public static implicit operator Bindable<T>(Func<T> getter)   => new(getter);
+    public static implicit operator Bindable<T>(T value) => new(value);
+    public static implicit operator Bindable<T>(Func<T> getter) => new(getter);
     public static implicit operator Bindable<T>(Signal<T> signal) => new(signal);
 }
 

@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// AnimationGraph (Bevy 風 DAG) のトップレベル。Root ノードを毎フレーム評価し、結果を <see cref="IAnimationTarget"/> へ

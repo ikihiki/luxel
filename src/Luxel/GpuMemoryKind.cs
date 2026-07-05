@@ -1,4 +1,4 @@
-namespace Luxel;
+﻿namespace Luxel;
 
 /// <summary>
 /// ブログの 3 つのメモリ種別。<c>gpuMalloc</c> が返すメモリの性質を選ぶ。

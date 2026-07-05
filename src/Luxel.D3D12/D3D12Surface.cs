@@ -1,4 +1,4 @@
-using Luxel.Abstraction;
+﻿using Luxel.Abstraction;
 using Vortice.Direct3D12;
 using Vortice.DXGI;
 
@@ -30,11 +30,17 @@ internal sealed unsafe class D3D12Surface : IGpuBackendSurface
 
         var desc = new SwapChainDescription1
         {
-            Width = w, Height = h, Format = Fmt, Stereo = false,
+            Width = w,
+            Height = h,
+            Format = Fmt,
+            Stereo = false,
             SampleDescription = new SampleDescription(1, 0),
-            BufferUsage = Usage.RenderTargetOutput, BufferCount = BufferCount,
-            Scaling = Scaling.Stretch, SwapEffect = SwapEffect.FlipDiscard,
-            AlphaMode = AlphaMode.Ignore, Flags = SwapChainFlags.None,
+            BufferUsage = Usage.RenderTargetOutput,
+            BufferCount = BufferCount,
+            Scaling = Scaling.Stretch,
+            SwapEffect = SwapEffect.FlipDiscard,
+            AlphaMode = AlphaMode.Ignore,
+            Flags = SwapChainFlags.None,
         };
         using IDXGISwapChain1 sc1 = factory.CreateSwapChainForHwnd(_queue, hwnd, desc);
         _swap = sc1.QueryInterface<IDXGISwapChain3>();

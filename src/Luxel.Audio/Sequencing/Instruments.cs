@@ -1,4 +1,4 @@
-namespace Luxel.Audio.Sequencing;
+﻿namespace Luxel.Audio.Sequencing;
 
 /// <summary>
 /// 音色 — <see cref="ControlMap"/> をモノラル波形へ解決する。

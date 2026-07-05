@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>子をボックス内に margin + 整列で配置する共通処理。</summary>
 public static class LayoutHelper

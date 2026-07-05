@@ -1,4 +1,4 @@
-namespace Luxel.Document;
+﻿namespace Luxel.Document;
 
 /// <summary>
 /// 埋め込みブロック (BlockKind.Embed) のデータ。Document 層はデータのみ (widget を持たない) —

@@ -1,4 +1,4 @@
-namespace Luxel;
+﻿namespace Luxel;
 
 /// <summary>
 /// ステージベースのバリア用のパイプラインステージ。

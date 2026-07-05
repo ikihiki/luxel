@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>
 /// Tailwind / CSS の擬似クラス相当。<see cref="Bindable{T}"/> の状態レイヤ

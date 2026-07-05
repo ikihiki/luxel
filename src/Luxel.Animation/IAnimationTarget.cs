@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// アニメーション値の書き込み先抽象。Track / Clip 側はこのインタフェース越しに値を渡し、

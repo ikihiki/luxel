@@ -1,4 +1,4 @@
-namespace Luxel.Assets;
+﻿namespace Luxel.Assets;
 
 /// <summary>カメラ (perspective / orthographic の union)。</summary>
 public sealed class AssetCamera

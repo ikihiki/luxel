@@ -1,4 +1,4 @@
-using Luxel.Audio;
+﻿using Luxel.Audio;
 using Luxel.Audio.Sequencing;
 using Luxel.Strudel;
 

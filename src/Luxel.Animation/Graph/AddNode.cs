@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// <see cref="Base"/> の値に <see cref="Additive"/> の値を加算する (Quaternion は base * additive で合成)。

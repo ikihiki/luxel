@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>
 /// IME の変換中(preedit)状態。<see cref="Text"/>=未確定文字列、<see cref="TargetStart"/>/<see cref="TargetLen"/>

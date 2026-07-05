@@ -1,4 +1,4 @@
-using Luxel.Input;
+﻿using Luxel.Input;
 using Windows.Win32.UI.Input.KeyboardAndMouse;
 
 namespace Luxel.Platform;

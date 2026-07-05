@@ -1,7 +1,7 @@
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using Luxel.Assets;
 using Luxel.AssetRuntime;
+using Luxel.Assets;
 using Luxel.Ecs;
 using Luxel.RenderGraph;
 using Luxel.UI;
@@ -265,21 +265,32 @@ public static class Ecs3DStories
             rg.AddPass("BlurH", PassQueue.Compute).Read(hBase).Write(hTmp)
               .Execute(c => c.Cmd.SetComputePipeline(_plBlur).SetRootArguments(new BlurArgs
               {
-                  SrcIndex = c.BindlessIndex(hBase), DstIndex = c.BindlessIndex(hTmp),
-                  Width = W, Height = H, DirX = 1, DirY = 0,
+                  SrcIndex = c.BindlessIndex(hBase),
+                  DstIndex = c.BindlessIndex(hTmp),
+                  Width = W,
+                  Height = H,
+                  DirX = 1,
+                  DirY = 0,
               }).Dispatch((W + 7) / 8, (H + 7) / 8));
             rg.AddPass("BlurV", PassQueue.Compute).Read(hTmp).Write(hBlur)
               .Execute(c => c.Cmd.SetComputePipeline(_plBlur).SetRootArguments(new BlurArgs
               {
-                  SrcIndex = c.BindlessIndex(hTmp), DstIndex = c.BindlessIndex(hBlur),
-                  Width = W, Height = H, DirX = 0, DirY = 1,
+                  SrcIndex = c.BindlessIndex(hTmp),
+                  DstIndex = c.BindlessIndex(hBlur),
+                  Width = W,
+                  Height = H,
+                  DirX = 0,
+                  DirY = 1,
               }).Dispatch((W + 7) / 8, (H + 7) / 8));
             rg.AddPass("BloomCombine", PassQueue.Compute)
               .Read(hBase).Read(hBlur).Write(hFinal)
               .Execute(c => c.Cmd.SetComputePipeline(_plBloom).SetRootArguments(new BloomArgs
               {
-                  BaseIndex = c.BindlessIndex(hBase), BlurIndex = c.BindlessIndex(hBlur),
-                  DstIndex = c.BindlessIndex(hFinal), Width = W, Height = H,
+                  BaseIndex = c.BindlessIndex(hBase),
+                  BlurIndex = c.BindlessIndex(hBlur),
+                  DstIndex = c.BindlessIndex(hFinal),
+                  Width = W,
+                  Height = H,
                   Intensity = MathF.Max(0f, intensity.Value),
               }).Dispatch((W + 7) / 8, (H + 7) / 8));
 
@@ -385,7 +396,8 @@ public static class Ecs3DStories
                       Mvp = Matrix4x4.Transpose(uiMvp),
                       VertexBufIndex = ctx.BindlessIndex(hQuadVb),
                       UiBufferIndex = ctx.BindlessIndex(hUi),
-                      UiWidth = UiW, UiHeight = UiH,
+                      UiWidth = UiW,
+                      UiHeight = UiH,
                   };
                   ctx.Cmd.BeginRendering(Target, _depth, 0.05f, 0.06f, 0.09f, 1f, 1f)
                          // UI quad 先 (背景)、深度書込で後ろに沈める
@@ -510,7 +522,8 @@ public static class Ecs3DStories
                       VertexBufIndex = ctx.BindlessIndex(hVerts),
                       InstanceBufIndex = ctx.BindlessIndex(hInsts),
                       ShadowBufIndex = ctx.BindlessIndex(hShadow),
-                      ShadowW = ShadowW, ShadowH = ShadowH,
+                      ShadowW = ShadowW,
+                      ShadowH = ShadowH,
                   };
                   ctx.Cmd.BeginRendering(Target, _mainDepth, 0.10f, 0.12f, 0.18f, 1f, 1f)
                          .SetGraphicsPipeline(_plMain)

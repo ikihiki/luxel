@@ -1,7 +1,6 @@
-using Luxel.TwoD;
-using Luxel.UI.Styling;
-
+﻿using Luxel.TwoD;
 using Luxel.UI;
+using Luxel.UI.Styling;
 
 namespace Luxel.Controls;
 

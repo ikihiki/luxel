@@ -1,4 +1,4 @@
-using Luxel.Diagnostics;
+﻿using Luxel.Diagnostics;
 
 namespace Luxel.RenderGraph;
 

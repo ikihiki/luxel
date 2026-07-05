@@ -1,4 +1,4 @@
-using Luxel;
+﻿using Luxel;
 using Luxel.RenderGraph;
 using Xunit;
 // 名前空間 Luxel.RenderGraph と型 RenderGraph が同名なので、テスト内ではエイリアスで区別する。
@@ -36,7 +36,7 @@ public class RenderGraphTests
     public void Lifetime_FirstWrite_AndLastRead_AreCorrect()
     {
         var rg = new Rg();
-        var ui  = rg.ImportBufferForTest("ui");
+        var ui = rg.ImportBufferForTest("ui");
         var tmp = rg.CreateBufferForTest(Desc(), "tmp");
         var blr = rg.CreateBufferForTest(Desc(), "blr");
         var fin = rg.ImportBufferForTest("final");
@@ -103,7 +103,7 @@ public class RenderGraphTests
         // テストモードでは GpuCommandBuffer も用意できないので Execute は呼ばない。
         // 代わりに Compile が走り、Setup→Compile の繋ぎが破綻しないことを確認する。
         var rg = new Rg();
-        var ui  = rg.ImportBufferForTest("ui");
+        var ui = rg.ImportBufferForTest("ui");
         var tmp = rg.CreateBufferForTest(Desc(), "tmp");
         rg.AddPass("P0", PassQueue.Compute).Read(ui).Write(tmp).Execute(_ => { });
 

@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>子コマンドを同時に再生する。TotalDuration は子の最大。</summary>
 public sealed class ParallelCommand : IAnimationCommand

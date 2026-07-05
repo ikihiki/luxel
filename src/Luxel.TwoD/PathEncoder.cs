@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 namespace Luxel.TwoD;
 
@@ -46,10 +46,16 @@ internal static class PathEncoder
                 StyleSlot = (uint)pi,
                 ClipSlot = GpuPath.NoClip,
                 FillRule = (uint)shape.Rule,
-                BMinX = minX, BMinY = minY, BMaxX = maxX, BMaxY = maxY,
+                BMinX = minX,
+                BMinY = minY,
+                BMaxX = maxX,
+                BMaxY = maxY,
                 Kind = shape.Kind switch { PaintKind.Stroke => 1u, PaintKind.Image => 2u, _ => 0u },
                 StrokeHalfWidth = shape.StrokeWidth * 0.5f,
-                SrcIndex = shape.SrcIndex, SrcStride = shape.SrcStride, SrcW = shape.SrcW, SrcH = shape.SrcH,
+                SrcIndex = shape.SrcIndex,
+                SrcStride = shape.SrcStride,
+                SrcW = shape.SrcW,
+                SrcH = shape.SrcH,
             };
             styles[pi] = new GpuStyle { ColorRgba = shape.Color, Opacity = 1f };
         }

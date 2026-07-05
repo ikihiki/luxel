@@ -1,4 +1,4 @@
-namespace Luxel.Resources;
+﻿namespace Luxel.Resources;
 
 /// <summary>
 /// バーチャルファイルシステム。組込み FileSource はこれ経由で読む (DI で差替: pak/overlay/メモリ等)。

@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using Luxel.Abstraction;
 using Luxel.Vulkan.Interop;
 using Silk.NET.Core.Native;
@@ -59,7 +59,9 @@ internal sealed unsafe class VulkanSurface : IGpuBackendSurface
         var ai = new CommandBufferAllocateInfo
         {
             SType = StructureType.CommandBufferAllocateInfo,
-            CommandPool = _pool, Level = CommandBufferLevel.Primary, CommandBufferCount = 1,
+            CommandPool = _pool,
+            Level = CommandBufferLevel.Primary,
+            CommandBufferCount = 1,
         };
         VkCheck.Ok(_vk.AllocateCommandBuffers(_device, in ai, out _cmd), "vkAllocateCommandBuffers(surface)");
 
@@ -145,9 +147,13 @@ internal sealed unsafe class VulkanSurface : IGpuBackendSurface
         var submit = new SubmitInfo
         {
             SType = StructureType.SubmitInfo,
-            WaitSemaphoreCount = 1, PWaitSemaphores = &waitSem, PWaitDstStageMask = &waitStage,
-            CommandBufferCount = 1, PCommandBuffers = &cmd,
-            SignalSemaphoreCount = 1, PSignalSemaphores = &sigSem,
+            WaitSemaphoreCount = 1,
+            PWaitSemaphores = &waitSem,
+            PWaitDstStageMask = &waitStage,
+            CommandBufferCount = 1,
+            PCommandBuffers = &cmd,
+            SignalSemaphoreCount = 1,
+            PSignalSemaphores = &sigSem,
         };
         _vk.QueueSubmit(_queue, 1, in submit, _fence);
 
@@ -155,8 +161,11 @@ internal sealed unsafe class VulkanSurface : IGpuBackendSurface
         var present = new PresentInfoKHR
         {
             SType = StructureType.PresentInfoKhr,
-            WaitSemaphoreCount = 1, PWaitSemaphores = &sigSem,
-            SwapchainCount = 1, PSwapchains = &sc, PImageIndices = &imgIdx,
+            WaitSemaphoreCount = 1,
+            PWaitSemaphores = &sigSem,
+            SwapchainCount = 1,
+            PSwapchains = &sc,
+            PImageIndices = &imgIdx,
         };
         Result pr = _khrSwap.QueuePresent(_queue, in present);
         if (pr is Result.ErrorOutOfDateKhr or Result.SuboptimalKhr) RecreateSwapchain();
@@ -178,10 +187,14 @@ internal sealed unsafe class VulkanSurface : IGpuBackendSurface
         var barrier = new ImageMemoryBarrier2
         {
             SType = StructureType.ImageMemoryBarrier2,
-            SrcStageMask = srcStage, SrcAccessMask = srcAccess,
-            DstStageMask = dstStage, DstAccessMask = dstAccess,
-            OldLayout = oldLayout, NewLayout = newLayout,
-            SrcQueueFamilyIndex = Vk.QueueFamilyIgnored, DstQueueFamilyIndex = Vk.QueueFamilyIgnored,
+            SrcStageMask = srcStage,
+            SrcAccessMask = srcAccess,
+            DstStageMask = dstStage,
+            DstAccessMask = dstAccess,
+            OldLayout = oldLayout,
+            NewLayout = newLayout,
+            SrcQueueFamilyIndex = Vk.QueueFamilyIgnored,
+            DstQueueFamilyIndex = Vk.QueueFamilyIgnored,
             Image = image,
             SubresourceRange = new ImageSubresourceRange(ImageAspectFlags.ColorBit, 0, 1, 0, 1),
         };

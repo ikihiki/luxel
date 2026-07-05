@@ -1,4 +1,4 @@
-using Luxel.Abstraction;
+﻿using Luxel.Abstraction;
 using Vortice;
 using Vortice.Direct3D;
 using Vortice.Direct3D12;

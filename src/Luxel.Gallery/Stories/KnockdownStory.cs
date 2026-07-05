@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;   // Store.CreateEntity の 4 成分以上のオーバーロード
 using Luxel.AssetRuntime;

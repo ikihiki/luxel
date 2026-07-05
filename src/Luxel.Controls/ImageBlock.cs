@@ -1,4 +1,4 @@
-using Luxel.Document;
+﻿using Luxel.Document;
 using Luxel.Resources;
 using Luxel.TwoD;
 using Luxel.UI;

@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// バネ物理ベースの easing。t は本来「秒」だが、Curve インタフェースに合わせて t01 を「duration × t01 秒」と解釈する。

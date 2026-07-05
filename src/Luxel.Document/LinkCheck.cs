@@ -1,4 +1,4 @@
-namespace Luxel.Document;
+﻿namespace Luxel.Document;
 
 /// <summary>
 /// docs 内リンクのデッドリンク検証 (純ロジック)。対象は <c>#アンカー</c> (同一文書の見出し) と

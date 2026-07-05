@@ -1,4 +1,4 @@
-namespace Luxel.TwoD;
+﻿namespace Luxel.TwoD;
 
 /// <summary>エンコード済みシーン (GPU 常駐の SoA バッファ群)。</summary>
 public sealed class EncodedScene : IDisposable
@@ -104,8 +104,14 @@ public sealed class Rasterizer2D : IDisposable
 
         var args = new RasterArgs
         {
-            A = camera.A, B = camera.B, C = camera.C, D = camera.D, E = camera.E, F = camera.F,
-            Width = width, Height = height,
+            A = camera.A,
+            B = camera.B,
+            C = camera.C,
+            D = camera.D,
+            E = camera.E,
+            F = camera.F,
+            Width = width,
+            Height = height,
             SegIndex = seg.BindlessIndex,
             PathIndex = path.BindlessIndex,
             TransformIndex = tf.BindlessIndex,
@@ -115,7 +121,8 @@ public sealed class Rasterizer2D : IDisposable
             OrderCount = orderCount,
             FbIndex = framebuffer.BindlessIndex,
             BgMode = transparent ? 1u : 0u,
-            TilesX = tilesX, TileCap = TileCap,
+            TilesX = tilesX,
+            TileCap = TileCap,
             BoundsIndex = _boundsBuf!.BindlessIndex,
             TileListIndex = _tileList!.BindlessIndex,
             TileCountIndex = _tileCountBuf!.BindlessIndex,

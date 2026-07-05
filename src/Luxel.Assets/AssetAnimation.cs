@@ -1,4 +1,4 @@
-namespace Luxel.Assets;
+﻿namespace Luxel.Assets;
 
 /// <summary>1 アニメーション。複数チャンネルからなる (node × path で 1 チャンネル)。</summary>
 public sealed class AssetAnimation

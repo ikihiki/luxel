@@ -1,7 +1,7 @@
-using Luxel.Ecs;
-using Luxel.Assets;
-using System.Numerics;
+﻿using System.Numerics;
 using Friflo.Engine.ECS;
+using Luxel.Assets;
+using Luxel.Ecs;
 
 namespace Luxel.AssetRuntime;
 

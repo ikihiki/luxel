@@ -1,4 +1,4 @@
-namespace Luxel.Audio;
+﻿namespace Luxel.Audio;
 
 /// <summary>
 /// SFX 用のオンショット再生ミキサ。<see cref="PlayOneShot"/> で発火して忘れられる。

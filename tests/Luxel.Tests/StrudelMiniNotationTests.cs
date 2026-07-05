@@ -1,4 +1,4 @@
-using Luxel.Strudel;
+﻿using Luxel.Strudel;
 
 namespace Luxel.Tests;
 

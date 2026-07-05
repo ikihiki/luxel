@@ -1,4 +1,4 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 
 namespace Luxel.Gltf;
 
@@ -110,14 +110,14 @@ internal static class PngDecoder
                     for (int k = 0; k < 4; k++) rgba[i * 4 + k] = pixels[i * 4 + k];
                     break;
                 case 3:  // Palette
-                {
-                    int idx = pixels[i];
-                    rgba[i * 4 + 0] = palette![idx * 3 + 0];
-                    rgba[i * 4 + 1] = palette![idx * 3 + 1];
-                    rgba[i * 4 + 2] = palette![idx * 3 + 2];
-                    rgba[i * 4 + 3] = (paletteAlpha is not null && idx < paletteAlpha.Length) ? paletteAlpha[idx] : (byte)255;
-                    break;
-                }
+                    {
+                        int idx = pixels[i];
+                        rgba[i * 4 + 0] = palette![idx * 3 + 0];
+                        rgba[i * 4 + 1] = palette![idx * 3 + 1];
+                        rgba[i * 4 + 2] = palette![idx * 3 + 2];
+                        rgba[i * 4 + 3] = (paletteAlpha is not null && idx < paletteAlpha.Length) ? paletteAlpha[idx] : (byte)255;
+                        break;
+                    }
             }
         }
         return (w, h, rgba);

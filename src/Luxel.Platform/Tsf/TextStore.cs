@@ -1,8 +1,8 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using Luxel.UI;
-using Windows.Win32.System.Com;
 using Windows.Win32;
 using Windows.Win32.Foundation;
+using Windows.Win32.System.Com;
 using Windows.Win32.UI.TextServices;
 using DrawPoint = System.Drawing.Point;
 

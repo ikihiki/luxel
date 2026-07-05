@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 namespace Luxel.UI;
@@ -42,11 +42,11 @@ public static class WidgetDebugCodec
     /// <c>Enum.TryParse&lt;具体型&gt;</c> を直接埋め込むためここには来ない。</summary>
     public static T Coerce<T>(JsonElement el)
     {
-        if (typeof(T) == typeof(uint))   { uint   v = CoerceColor(el);  return Unsafe.As<uint,   T>(ref v); }
-        if (typeof(T) == typeof(int))    { int    v = CoerceInt(el);    return Unsafe.As<int,    T>(ref v); }
-        if (typeof(T) == typeof(float))  { float  v = CoerceFloat(el);  return Unsafe.As<float,  T>(ref v); }
+        if (typeof(T) == typeof(uint)) { uint v = CoerceColor(el); return Unsafe.As<uint, T>(ref v); }
+        if (typeof(T) == typeof(int)) { int v = CoerceInt(el); return Unsafe.As<int, T>(ref v); }
+        if (typeof(T) == typeof(float)) { float v = CoerceFloat(el); return Unsafe.As<float, T>(ref v); }
         if (typeof(T) == typeof(double)) { double v = CoerceDouble(el); return Unsafe.As<double, T>(ref v); }
-        if (typeof(T) == typeof(bool))   { bool   v = CoerceBool(el);   return Unsafe.As<bool,   T>(ref v); }
+        if (typeof(T) == typeof(bool)) { bool v = CoerceBool(el); return Unsafe.As<bool, T>(ref v); }
         if (typeof(T) == typeof(string)) { return (T)(object)CoerceString(el); }   // 参照型はキャストのみ (box なし)
         return default!;
     }

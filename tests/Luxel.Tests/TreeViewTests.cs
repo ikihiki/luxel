@@ -1,4 +1,4 @@
-using Luxel.Controls;
+﻿using Luxel.Controls;
 using Xunit;
 
 namespace Luxel.Tests;

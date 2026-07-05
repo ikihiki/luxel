@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// プロパティ値の状態機械 (AS-M2、variants 型 — Framer Motion 相当)。クリップグラフ用

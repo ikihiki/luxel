@@ -1,4 +1,4 @@
-namespace Luxel.Input;
+﻿namespace Luxel.Input;
 
 /// <summary>
 /// 物理キーコード。プラットフォームの vk/scan code とは独立 ─ 各 <see cref="IInputSource"/> 実装が

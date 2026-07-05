@@ -1,4 +1,4 @@
-using Icu;
+﻿using Icu;
 
 namespace Luxel.Typography;
 

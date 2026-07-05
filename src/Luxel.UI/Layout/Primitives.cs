@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 public readonly record struct Size(float Width, float Height)
 {

@@ -1,11 +1,11 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Luxel.Animation;
 using Luxel.Animation.UI;
-using Luxel.Ecs;
-using Luxel.Assets;
 using Luxel.AssetRuntime;
-using Luxel.UI;
+using Luxel.Assets;
 using Luxel.Controls;
+using Luxel.Ecs;
+using Luxel.UI;
 using Xunit;
 
 namespace Luxel.Tests;
@@ -82,7 +82,7 @@ public class TweenTests
     {
         // 0xFF0000FF (R=255,A=255) → 0xFF00FF00 (G=255,A=255) at t=0.5 → mid grey-ish
         uint begin = 0xFF0000FFu;  // a=ff, b=00, g=00, r=ff
-        uint end   = 0xFF00FF00u;  // a=ff, b=00, g=ff, r=00
+        uint end = 0xFF00FF00u;  // a=ff, b=00, g=ff, r=00
         var t = new RgbaTween(begin, end);
         uint mid = t.Lerp(0.5f);
         uint r = mid & 0xff;

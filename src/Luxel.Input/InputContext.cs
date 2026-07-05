@@ -1,4 +1,4 @@
-namespace Luxel.Input;
+﻿namespace Luxel.Input;
 
 /// <summary>
 /// 一群のアクションをまとめる論理的な入力マップ (例: "Menu", "Gameplay")。

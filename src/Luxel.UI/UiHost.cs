@@ -1,8 +1,8 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Luxel.Animation;
-using Luxel.Typography;
-using Luxel.TwoD;
 using Luxel.Diagnostics;
+using Luxel.TwoD;
+using Luxel.Typography;
 
 namespace Luxel.UI;
 
@@ -758,21 +758,21 @@ public sealed class UiHost : IDisposable
         switch (e.Placement)
         {
             case OverlayPlacement.Below:
-            {
-                Rect a = e.Anchor!();
-                float x = Clamp(a.X, 0, MathF.Max(0, W - cw));
-                float y = a.Y + a.Height + g;
-                if (y + ch > H) y = a.Y - ch - g;
-                return new Point(x, y);
-            }
+                {
+                    Rect a = e.Anchor!();
+                    float x = Clamp(a.X, 0, MathF.Max(0, W - cw));
+                    float y = a.Y + a.Height + g;
+                    if (y + ch > H) y = a.Y - ch - g;
+                    return new Point(x, y);
+                }
             case OverlayPlacement.Above:
-            {
-                Rect a = e.Anchor!();
-                float x = Clamp(a.X, 0, MathF.Max(0, W - cw));
-                float y = a.Y - ch - g;
-                if (y < 0) y = a.Y + a.Height + g;
-                return new Point(x, y);
-            }
+                {
+                    Rect a = e.Anchor!();
+                    float x = Clamp(a.X, 0, MathF.Max(0, W - cw));
+                    float y = a.Y - ch - g;
+                    if (y < 0) y = a.Y + a.Height + g;
+                    return new Point(x, y);
+                }
             case OverlayPlacement.RightEdge: return new Point(W - cw, 0);
             case OverlayPlacement.LeftEdge: return new Point(0, 0);
             case OverlayPlacement.BottomEdge: return new Point(0, H - ch);

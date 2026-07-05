@@ -1,8 +1,8 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Luxel;
 using Luxel.Diagnostics;
-using Luxel.Typography;
 using Luxel.TwoD;
+using Luxel.Typography;
 using Luxel.UI;
 
 namespace Luxel.Gallery;

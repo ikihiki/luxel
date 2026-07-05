@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>コントロール API の 1 メンバー (autodocs の ArgTypes 相当)。
 /// <see cref="Kind"/> = "ctor" (ファクトリ/コンストラクタ引数) | "event" ([UiEvent]) | "param" ([UiParam])。</summary>

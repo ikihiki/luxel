@@ -1,4 +1,4 @@
-namespace Luxel.RenderGraph;
+﻿namespace Luxel.RenderGraph;
 
 /// <summary>
 /// シーン側 (2D/UI/3D ECS など) を毎フレーム GPU バッファへ抽出する抽象。

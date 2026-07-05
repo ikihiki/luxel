@@ -1,4 +1,4 @@
-namespace Luxel.UI.Styling;
+﻿namespace Luxel.UI.Styling;
 
 /// <summary>
 /// Slot 上書きの宣言。<c>Slider()[SliderSlot.Knob(() => Circle())]</c> のように

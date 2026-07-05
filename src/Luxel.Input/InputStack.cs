@@ -1,4 +1,4 @@
-namespace Luxel.Input;
+﻿namespace Luxel.Input;
 
 /// <summary>
 /// InputContext のスタック。<see cref="Update"/> 時に上位から順に action を解決し、
@@ -55,7 +55,7 @@ public sealed class InputStack
             switch (e.Kind)
             {
                 case InputEventKind.KeyDown: _persistHeld.Add(e.Key); break;
-                case InputEventKind.KeyUp:   _persistHeld.Remove(e.Key); break;
+                case InputEventKind.KeyUp: _persistHeld.Remove(e.Key); break;
                 case InputEventKind.AxisChanged: _persistAxes[e.Axis] = e.Value; break;
             }
         }
@@ -95,7 +95,7 @@ public sealed class InputStack
                             break;
                         case Axis2DAction a2:
                             foreach (var (u, d, l, r) in a2.ButtonQuads)
-                                { consumedKeys.Add(u); consumedKeys.Add(d); consumedKeys.Add(l); consumedKeys.Add(r); }
+                            { consumedKeys.Add(u); consumedKeys.Add(d); consumedKeys.Add(l); consumedKeys.Add(r); }
                             foreach (var (ax, ay) in a2.AxisPairs) { consumedAxes.Add(ax); consumedAxes.Add(ay); }
                             break;
                     }

@@ -1,4 +1,4 @@
-namespace Luxel.Typography;
+﻿namespace Luxel.Typography;
 
 /// <summary>リッチテキストの 1 スパン (連続した同一スタイルのテキスト)。\n を含んでよい。</summary>
 public readonly record struct TextSpan(string Text, SpanStyle Style)

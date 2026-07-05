@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Luxel.Assets;
 
 namespace Luxel.AssetsGpu;

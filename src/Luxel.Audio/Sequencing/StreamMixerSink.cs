@@ -1,4 +1,4 @@
-namespace Luxel.Audio.Sequencing;
+﻿namespace Luxel.Audio.Sequencing;
 
 /// <summary>
 /// サンプル精度のソフトウェアシーケンサミキサ。<see cref="IEventSink"/> として受けたイベントを

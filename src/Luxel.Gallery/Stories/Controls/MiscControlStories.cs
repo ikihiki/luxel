@@ -1,4 +1,4 @@
-using Luxel.Animation;
+﻿using Luxel.Animation;
 using Luxel.Animation.UI;
 using Luxel.Controls;
 using Luxel.UI;

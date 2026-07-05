@@ -1,4 +1,4 @@
-namespace Luxel.Assets;
+﻿namespace Luxel.Assets;
 
 /// <summary>
 /// 一括ロード (glTF/.glb/MMD 等) の結果を保持するコレクション。

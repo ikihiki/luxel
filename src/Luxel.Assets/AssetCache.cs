@@ -1,4 +1,4 @@
-namespace Luxel.Assets;
+﻿namespace Luxel.Assets;
 
 /// <summary>
 /// path → <see cref="AssetDocument"/> のキャッシュ (重複 Io を防ぐ)。並行 load 要求は同じ Task に join。

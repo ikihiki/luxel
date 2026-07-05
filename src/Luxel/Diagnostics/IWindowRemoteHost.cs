@@ -1,4 +1,4 @@
-namespace Luxel.Diagnostics;
+﻿namespace Luxel.Diagnostics;
 
 /// <summary>
 /// ウィンドウ一覧とウィンドウピクセルの読み取り契約 (DevTools の DebugServer が /windows, /winframe で配信)。

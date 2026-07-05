@@ -1,4 +1,4 @@
-namespace Luxel.Resources;
+﻿namespace Luxel.Resources;
 
 /// <summary>
 /// <see cref="ResourceSystem"/> のコンストラクタに渡す組込み Source/Step の defaults を提供するヘルパ。

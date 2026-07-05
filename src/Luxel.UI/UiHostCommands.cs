@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Luxel.Diagnostics;
 
 namespace Luxel.UI;

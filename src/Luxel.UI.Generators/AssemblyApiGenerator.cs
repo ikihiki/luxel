@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -63,16 +63,16 @@ public sealed class AssemblyApiGenerator : IIncrementalGenerator
         sb.AppendLine("        {");
 
         foreach (string ns in targets)
-        foreach (IAssemblySymbol asm in compilation.SourceModule.ReferencedAssemblySymbols)
-        {
-            ct.ThrowIfCancellationRequested();
-            INamespaceSymbol? nsSym = FindNamespace(asm.GlobalNamespace, ns);
-            if (nsSym is null) continue;
-            foreach (INamedTypeSymbol t in nsSym.GetTypeMembers()
-                         .Where(t => t.DeclaredAccessibility == Accessibility.Public && t.TypeKind != TypeKind.Delegate)
-                         .OrderBy(t => t.Name, StringComparer.Ordinal))
-                EmitType(sb, ns, t, docs);
-        }
+            foreach (IAssemblySymbol asm in compilation.SourceModule.ReferencedAssemblySymbols)
+            {
+                ct.ThrowIfCancellationRequested();
+                INamespaceSymbol? nsSym = FindNamespace(asm.GlobalNamespace, ns);
+                if (nsSym is null) continue;
+                foreach (INamedTypeSymbol t in nsSym.GetTypeMembers()
+                             .Where(t => t.DeclaredAccessibility == Accessibility.Public && t.TypeKind != TypeKind.Delegate)
+                             .OrderBy(t => t.Name, StringComparer.Ordinal))
+                    EmitType(sb, ns, t, docs);
+            }
 
         sb.AppendLine("        }");
         sb.AppendLine("    }");

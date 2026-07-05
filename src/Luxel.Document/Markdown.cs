@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using Markdig;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
@@ -125,30 +125,30 @@ public static class Markdown
                     EmitInlineBlocks(p.Inline, into, NewTextBlock, allowImage: listDepth < 0 && quoteDepth == 0);
                     break;
                 case Markdig.Extensions.Mathematics.MathBlock mb:
-                {
-                    var src = new StringBuilder();
-                    for (int li = 0; li < mb.Lines.Count; li++)
                     {
-                        if (li > 0) src.Append('\n');
-                        src.Append(mb.Lines.Lines[li].Slice.ToString());
+                        var src = new StringBuilder();
+                        for (int li = 0; li < mb.Lines.Count; li++)
+                        {
+                            if (li > 0) src.Append('\n');
+                            src.Append(mb.Lines.Lines[li].Slice.ToString());
+                        }
+                        into.Add(new Block(BlockKind.Embed) { Payload = new MathPayload(src.ToString()) });
+                        break;
                     }
-                    into.Add(new Block(BlockKind.Embed) { Payload = new MathPayload(src.ToString()) });
-                    break;
-                }
                 case Markdig.Extensions.Alerts.AlertBlock a:
-                {
-                    // コールアウト: マーカー行 (ラベル表示 + シリアライズで `> [!KIND]` に戻る) +
-                    // 本文 (Callout 印付き、深さ +1) — round-trip 安定
-                    string kind = a.Kind.ToString().ToUpperInvariant();
-                    var marker = new Block(BlockKind.Quote) { Callout = kind, CalloutMarker = true, QuoteDepth = quoteDepth + 1 };
-                    marker.Lines[0].Runs.Add(new InlineRun(kind, new InlineStyle { Bold = true }));
-                    into.Add(marker);
-                    int start = into.Count;
-                    MapContainer(a, into, quoteDepth + 1, listDepth, ordered, ctx);
-                    for (int bi = start; bi < into.Count; bi++)
-                        if (into[bi].QuoteDepth > quoteDepth) into[bi].Callout = kind;
-                    break;
-                }
+                    {
+                        // コールアウト: マーカー行 (ラベル表示 + シリアライズで `> [!KIND]` に戻る) +
+                        // 本文 (Callout 印付き、深さ +1) — round-trip 安定
+                        string kind = a.Kind.ToString().ToUpperInvariant();
+                        var marker = new Block(BlockKind.Quote) { Callout = kind, CalloutMarker = true, QuoteDepth = quoteDepth + 1 };
+                        marker.Lines[0].Runs.Add(new InlineRun(kind, new InlineStyle { Bold = true }));
+                        into.Add(marker);
+                        int start = into.Count;
+                        MapContainer(a, into, quoteDepth + 1, listDepth, ordered, ctx);
+                        for (int bi = start; bi < into.Count; bi++)
+                            if (into[bi].QuoteDepth > quoteDepth) into[bi].Callout = kind;
+                        break;
+                    }
                 case QuoteBlock q:
                     MapContainer(q, into, quoteDepth + 1, listDepth, ordered, ctx);
                     break;
@@ -161,13 +161,13 @@ public static class Markdown
                     into.Add(new Block(BlockKind.Embed) { Payload = MapTable(t, ctx.Source) });
                     break;
                 case FencedCodeBlock f:
-                {
-                    string info = f.Info?.Trim() ?? "";
-                    string body = f.Lines.ToString().Replace("\r", "").TrimEnd('\n');
-                    IBlockPayload? payload = ResolveFence(ctx.Resolvers, info, body);
-                    into.Add(payload is not null ? new Block(BlockKind.Embed) { Payload = payload } : MakeCode(body, info, quoteDepth));
-                    break;
-                }
+                    {
+                        string info = f.Info?.Trim() ?? "";
+                        string body = f.Lines.ToString().Replace("\r", "").TrimEnd('\n');
+                        IBlockPayload? payload = ResolveFence(ctx.Resolvers, info, body);
+                        into.Add(payload is not null ? new Block(BlockKind.Embed) { Payload = payload } : MakeCode(body, info, quoteDepth));
+                        break;
+                    }
                 case CodeBlock c:   // インデントコード
                     into.Add(MakeCode(c.Lines.ToString().Replace("\r", "").TrimEnd('\n'), "", quoteDepth));
                     break;
@@ -479,32 +479,32 @@ public static class Markdown
                     case TablePayload table: return table.SerializePipe();
                     case MathPayload math: return $"$$\n{math.Source}\n$$";
                     case IBlockPayload p:
-                    {
-                        (string info, string body) = p.ToFence();
-                        return body.Length > 0 ? $"```{info}\n{body}\n```" : $"```{info}\n```";
-                    }
+                        {
+                            (string info, string body) = p.ToFence();
+                            return body.Length > 0 ? $"```{info}\n{body}\n```" : $"```{info}\n```";
+                        }
                     default: return "";
                 }
             case BlockKind.CodeBlock:
-            {
-                var sb = new StringBuilder();
-                sb.Append(q).Append("```").Append(b.CodeLang);
-                foreach (Line l in b.Lines) sb.Append('\n').Append(q).Append(l.Text);
-                sb.Append('\n').Append(q).Append("```");
-                return sb.ToString();
-            }
-            case BlockKind.Quote:
-            {
-                string qq = QuotePrefix(Math.Max(1, b.QuoteDepth));
-                var sb = new StringBuilder();
-                for (int i = 0; i < b.Lines.Count; i++)
                 {
-                    if (i > 0) sb.Append('\n');
-                    if (i == 0 && b is { CalloutMarker: true, Callout: not null }) sb.Append($"{qq}[!{b.Callout}]");
-                    else sb.Append(qq).Append(SerializeInline(b.Lines[i].Runs));
+                    var sb = new StringBuilder();
+                    sb.Append(q).Append("```").Append(b.CodeLang);
+                    foreach (Line l in b.Lines) sb.Append('\n').Append(q).Append(l.Text);
+                    sb.Append('\n').Append(q).Append("```");
+                    return sb.ToString();
                 }
-                return sb.ToString();
-            }
+            case BlockKind.Quote:
+                {
+                    string qq = QuotePrefix(Math.Max(1, b.QuoteDepth));
+                    var sb = new StringBuilder();
+                    for (int i = 0; i < b.Lines.Count; i++)
+                    {
+                        if (i > 0) sb.Append('\n');
+                        if (i == 0 && b is { CalloutMarker: true, Callout: not null }) sb.Append($"{qq}[!{b.Callout}]");
+                        else sb.Append(qq).Append(SerializeInline(b.Lines[i].Runs));
+                    }
+                    return sb.ToString();
+                }
             default: return SerializeLineCore(b, b.Lines[0], ordinal);
         }
     }
@@ -518,12 +518,12 @@ public static class Markdown
             case BlockKind.Divider: return q + "---";
             case BlockKind.Heading: return q + new string('#', Math.Clamp(b.HeadingLevel, 1, 3)) + " " + SerializeInline(l.Runs);
             case BlockKind.ListItem:
-            {
-                string ind = new(' ', b.Depth * 2);
-                if (!b.Ordered) return q + ind + "- " + SerializeInline(l.Runs);
-                ordinal[b.Depth] = ordinal.TryGetValue(b.Depth, out int n) ? n + 1 : 1;
-                return $"{q}{ind}{ordinal[b.Depth]}. " + SerializeInline(l.Runs);
-            }
+                {
+                    string ind = new(' ', b.Depth * 2);
+                    if (!b.Ordered) return q + ind + "- " + SerializeInline(l.Runs);
+                    ordinal[b.Depth] = ordinal.TryGetValue(b.Depth, out int n) ? n + 1 : 1;
+                    return $"{q}{ind}{ordinal[b.Depth]}. " + SerializeInline(l.Runs);
+                }
             default: return q + SerializeInline(l.Runs);
         }
     }

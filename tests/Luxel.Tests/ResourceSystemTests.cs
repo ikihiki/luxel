@@ -1,6 +1,6 @@
-using Luxel.Controls;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text;
+using Luxel.Controls;
 using Luxel.Resources;
 
 namespace Luxel.Tests;

@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>時間 (秒) → 値 T の純粋関数。stateless。</summary>
 public interface IAnimatable<T>

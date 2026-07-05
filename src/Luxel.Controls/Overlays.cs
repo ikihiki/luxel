@@ -1,4 +1,4 @@
-using Luxel.Animation;
+﻿using Luxel.Animation;
 using Luxel.TwoD;
 using Luxel.UI;
 using static Luxel.Controls.Kit;

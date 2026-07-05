@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// 1 つの遷移の仕様 (duration / curve / delay)。Duration=0 は「瞬時」。

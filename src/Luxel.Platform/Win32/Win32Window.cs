@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using Luxel.Abstraction;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -196,15 +196,15 @@ internal sealed unsafe class Win32Window : IWindowBackendWindow
                 Moved?.Invoke(X, Y);
                 return new LRESULT(0);
             case PInvoke.WM_DPICHANGED:
-            {
-                // モニタ間移動等で DPI が変わった: 新 DPI を取り込み、OS 提案の矩形へ追従
-                // (SetWindowPos → WM_SIZE → Resized が流れ、ホスト側が新 Scale で論理サイズを再計算する)
-                _dpi = (uint)(wParam.Value & 0xFFFF);
-                var r = *(RECT*)lParam.Value;
-                PInvoke.SetWindowPos(hwnd, default, r.left, r.top, r.right - r.left, r.bottom - r.top,
-                    SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
-                return new LRESULT(0);
-            }
+                {
+                    // モニタ間移動等で DPI が変わった: 新 DPI を取り込み、OS 提案の矩形へ追従
+                    // (SetWindowPos → WM_SIZE → Resized が流れ、ホスト側が新 Scale で論理サイズを再計算する)
+                    _dpi = (uint)(wParam.Value & 0xFFFF);
+                    var r = *(RECT*)lParam.Value;
+                    PInvoke.SetWindowPos(hwnd, default, r.left, r.top, r.right - r.left, r.bottom - r.top,
+                        SET_WINDOW_POS_FLAGS.SWP_NOZORDER | SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
+                    return new LRESULT(0);
+                }
             case PInvoke.WM_SETFOCUS:
                 FocusChanged?.Invoke(true); break;    // IME/TSF の既定処理があるので DefWindowProc へ流す
             case PInvoke.WM_KILLFOCUS:
@@ -235,26 +235,26 @@ internal sealed unsafe class Win32Window : IWindowBackendWindow
             case PInvoke.WM_RBUTTONUP:
                 MouseUp?.Invoke((short)(lp & 0xFFFF), (short)(lp >> 16), 1); return new LRESULT(0);
             case PInvoke.WM_MOUSEWHEEL:
-            {
-                short delta = (short)(wParam.Value >> 16);
-                var p = new System.Drawing.Point((short)(lp & 0xFFFF), (short)(lp >> 16));   // wheel は screen 座標
-                PInvoke.ScreenToClient(hwnd, ref p);
-                Wheeled?.Invoke(p.X, p.Y, delta / 120f); return new LRESULT(0);
-            }
+                {
+                    short delta = (short)(wParam.Value >> 16);
+                    var p = new System.Drawing.Point((short)(lp & 0xFFFF), (short)(lp >> 16));   // wheel は screen 座標
+                    PInvoke.ScreenToClient(hwnd, ref p);
+                    Wheeled?.Invoke(p.X, p.Y, delta / 120f); return new LRESULT(0);
+                }
             case PInvoke.WM_KEYDOWN:
-            {
-                ushort vk = (ushort)wParam.Value;
-                if (KeyPreFilter?.Invoke(vk, (nint)lParam.Value) == true) return new LRESULT(0);   // TIP が消費
-                KeyDown?.Invoke(vk); return new LRESULT(0);
-            }
+                {
+                    ushort vk = (ushort)wParam.Value;
+                    if (KeyPreFilter?.Invoke(vk, (nint)lParam.Value) == true) return new LRESULT(0);   // TIP が消費
+                    KeyDown?.Invoke(vk); return new LRESULT(0);
+                }
             case PInvoke.WM_KEYUP:
                 KeyUp?.Invoke((ushort)wParam.Value); return new LRESULT(0);
             case PInvoke.WM_CHAR:
-            {
-                char c = (char)(ushort)wParam.Value;
-                if (c >= ' ') CharTyped?.Invoke(c);
-                return new LRESULT(0);
-            }
+                {
+                    char c = (char)(ushort)wParam.Value;
+                    if (c >= ' ') CharTyped?.Invoke(c);
+                    return new LRESULT(0);
+                }
             case PInvoke.WM_CLOSE:
                 PInvoke.DestroyWindow(hwnd); return new LRESULT(0);
             case PInvoke.WM_DESTROY:

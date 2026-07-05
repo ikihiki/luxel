@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// 単一 Tween を表す Command。<see cref="Animate.Tween{T}"/> から生成される。

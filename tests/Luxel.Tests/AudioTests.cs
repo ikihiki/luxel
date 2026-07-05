@@ -1,5 +1,5 @@
+﻿using Luxel.Audio;
 using NAudio.Wave;
-using Luxel.Audio;
 
 namespace Luxel.Tests;
 

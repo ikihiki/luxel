@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 namespace Luxel.Animation;
 
@@ -108,12 +108,12 @@ public static class Transition
     internal static ITween<T> CreateTween<T>(T from, T to)
     {
         // 主要型を網羅。未対応型は StepTween (Step 動作) でフォールバック。
-        if (typeof(T) == typeof(float))      return (ITween<T>)(object)new FloatTween((float)(object)from!, (float)(object)to!);
-        if (typeof(T) == typeof(Vector2))    return (ITween<T>)(object)new Vector2Tween((Vector2)(object)from!, (Vector2)(object)to!);
-        if (typeof(T) == typeof(Vector3))    return (ITween<T>)(object)new Vector3Tween((Vector3)(object)from!, (Vector3)(object)to!);
-        if (typeof(T) == typeof(Vector4))    return (ITween<T>)(object)new Vector4Tween((Vector4)(object)from!, (Vector4)(object)to!);
+        if (typeof(T) == typeof(float)) return (ITween<T>)(object)new FloatTween((float)(object)from!, (float)(object)to!);
+        if (typeof(T) == typeof(Vector2)) return (ITween<T>)(object)new Vector2Tween((Vector2)(object)from!, (Vector2)(object)to!);
+        if (typeof(T) == typeof(Vector3)) return (ITween<T>)(object)new Vector3Tween((Vector3)(object)from!, (Vector3)(object)to!);
+        if (typeof(T) == typeof(Vector4)) return (ITween<T>)(object)new Vector4Tween((Vector4)(object)from!, (Vector4)(object)to!);
         if (typeof(T) == typeof(Quaternion)) return (ITween<T>)(object)new QuaternionTween((Quaternion)(object)from!, (Quaternion)(object)to!);
-        if (typeof(T) == typeof(uint))       return (ITween<T>)(object)new RgbaTween((uint)(object)from!, (uint)(object)to!);
+        if (typeof(T) == typeof(uint)) return (ITween<T>)(object)new RgbaTween((uint)(object)from!, (uint)(object)to!);
         return new StepTween<T>(from, to);   // 不明型は Step (0.5 未満で from、以上で to)
     }
 

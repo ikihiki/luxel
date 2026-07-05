@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 namespace Luxel.TwoD;
 
@@ -143,8 +143,12 @@ public sealed class Scene2D
         FlushContour();
         _shape = new Shape
         {
-            Kind = PaintKind.Image, Color = Color2D.White,
-            SrcIndex = srcIndex, SrcStride = srcStride, SrcW = srcW, SrcH = srcH,
+            Kind = PaintKind.Image,
+            Color = Color2D.White,
+            SrcIndex = srcIndex,
+            SrcStride = srcStride,
+            SrcW = srcW,
+            SrcH = srcH,
         };
         MoveTo(x, y); LineTo(x + w, y); LineTo(x + w, y + h); LineTo(x, y + h); Close();
         return End();

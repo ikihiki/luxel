@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>
 /// ソース生成された <see cref="Widget.SetProp{T}"/> の switch case から呼ばれる書込ヘルパ。

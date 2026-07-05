@@ -1,4 +1,4 @@
-namespace Luxel.Controls;
+﻿namespace Luxel.Controls;
 
 /// <summary>補完候補 1 件 (CodeEditor のポップアップ用 — 言語サービス非依存の DTO)。</summary>
 public readonly record struct CodeCompletion(string Label, string InsertText, string Kind);

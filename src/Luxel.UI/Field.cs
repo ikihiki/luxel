@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>
 /// フォームフィールド (signals)。値 signal + バリデータ → エラー computed。値変更で自動再評価。

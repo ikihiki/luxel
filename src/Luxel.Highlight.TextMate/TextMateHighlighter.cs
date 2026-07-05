@@ -1,4 +1,4 @@
-using Luxel.Document;
+﻿using Luxel.Document;
 using TextMateSharp.Grammars;
 using TextMateSharp.Registry;
 
@@ -22,14 +22,30 @@ public sealed class TextMateHighlighter : ISyntaxHighlighter
     /// <summary>```lang のエイリアス → TextMate 言語 id。</summary>
     private static readonly Dictionary<string, string> Alias = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["cs"] = "csharp", ["csharp"] = "csharp",
-        ["js"] = "javascript", ["javascript"] = "javascript",
-        ["ts"] = "typescript", ["typescript"] = "typescript",
-        ["json"] = "json", ["xml"] = "xml", ["html"] = "html", ["css"] = "css",
-        ["py"] = "python", ["python"] = "python",
-        ["rs"] = "rust", ["rust"] = "rust", ["cpp"] = "cpp", ["c"] = "c",
-        ["hlsl"] = "hlsl", ["sh"] = "shellscript", ["bash"] = "shellscript", ["shell"] = "shellscript",
-        ["md"] = "markdown", ["markdown"] = "markdown", ["yaml"] = "yaml", ["yml"] = "yaml",
+        ["cs"] = "csharp",
+        ["csharp"] = "csharp",
+        ["js"] = "javascript",
+        ["javascript"] = "javascript",
+        ["ts"] = "typescript",
+        ["typescript"] = "typescript",
+        ["json"] = "json",
+        ["xml"] = "xml",
+        ["html"] = "html",
+        ["css"] = "css",
+        ["py"] = "python",
+        ["python"] = "python",
+        ["rs"] = "rust",
+        ["rust"] = "rust",
+        ["cpp"] = "cpp",
+        ["c"] = "c",
+        ["hlsl"] = "hlsl",
+        ["sh"] = "shellscript",
+        ["bash"] = "shellscript",
+        ["shell"] = "shellscript",
+        ["md"] = "markdown",
+        ["markdown"] = "markdown",
+        ["yaml"] = "yaml",
+        ["yml"] = "yaml",
     };
 
     public bool Supports(string lang) => Alias.ContainsKey(lang);

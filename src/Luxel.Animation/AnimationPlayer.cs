@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// 複数 TrackEntry を frame-driven で進める scheduler。<see cref="Update(IClock)"/> または

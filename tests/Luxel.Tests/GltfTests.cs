@@ -1,6 +1,6 @@
-using System.Numerics;
-using Luxel.Gltf;
+﻿using System.Numerics;
 using Luxel.Assets;
+using Luxel.Gltf;
 
 namespace Luxel.Tests;
 

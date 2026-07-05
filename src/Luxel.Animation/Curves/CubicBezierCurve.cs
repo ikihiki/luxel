@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// CSS cubic-bezier(x1, y1, x2, y2) と同じ挙動。
@@ -18,9 +18,9 @@ public sealed class CubicBezierCurve : ICurve
     }
 
     // CSS の標準的 easing 名
-    public static CubicBezierCurve Ease     => new(0.25f, 0.1f, 0.25f, 1.0f);
-    public static CubicBezierCurve EaseIn   => new(0.42f, 0.0f, 1.0f,  1.0f);
-    public static CubicBezierCurve EaseOut  => new(0.0f,  0.0f, 0.58f, 1.0f);
+    public static CubicBezierCurve Ease => new(0.25f, 0.1f, 0.25f, 1.0f);
+    public static CubicBezierCurve EaseIn => new(0.42f, 0.0f, 1.0f, 1.0f);
+    public static CubicBezierCurve EaseOut => new(0.0f, 0.0f, 0.58f, 1.0f);
     public static CubicBezierCurve EaseInOut => new(0.42f, 0.0f, 0.58f, 1.0f);
 
     public float Eval(float t01)

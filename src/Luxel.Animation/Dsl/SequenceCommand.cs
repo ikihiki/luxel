@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// 子コマンドを順番に再生する。前の子の TotalDuration が経過したら次の子が開始。

@@ -1,4 +1,4 @@
-namespace Luxel.Abstraction;
+﻿namespace Luxel.Abstraction;
 
 /// <summary>
 /// バックエンド (Vulkan / D3D12) が実装する低レベル抽象。

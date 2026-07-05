@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 
 namespace Luxel.Document;
 
@@ -153,8 +153,10 @@ public sealed class DocumentEditor
         {
             Start = start,
             Blocks = Doc.Blocks.Skip(start).Take(countBefore).Select(b => b.Clone()).ToArray(),
-            Caret = Caret, Anchor = Anchor,
-            Typing = typing, At = DateTime.UtcNow,
+            Caret = Caret,
+            Anchor = Anchor,
+            Typing = typing,
+            At = DateTime.UtcNow,
         };
         int total = Doc.Blocks.Count;
         mutate();
@@ -204,7 +206,8 @@ public sealed class DocumentEditor
             Start = e.Start,
             Blocks = Doc.Blocks.Skip(e.Start).Take(e.LiveCount).Select(b => b.Clone()).ToArray(),
             LiveCount = e.Blocks.Length,
-            Caret = Caret, Anchor = Anchor,
+            Caret = Caret,
+            Anchor = Anchor,
         };
         Doc.Blocks.RemoveRange(e.Start, e.LiveCount);
         Doc.Blocks.InsertRange(e.Start, e.Blocks.Select(b => b.Clone()));

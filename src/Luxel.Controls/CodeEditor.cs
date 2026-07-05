@@ -1,6 +1,6 @@
-using Luxel.Document;
-using Luxel.Typography;
+﻿using Luxel.Document;
 using Luxel.TwoD;
+using Luxel.Typography;
 using Luxel.UI;
 using Luxel.UI.Styling;
 

@@ -1,4 +1,4 @@
-namespace Luxel.Document;
+﻿namespace Luxel.Document;
 
 /// <summary>ブロックの種別。将来枠 (Image/Table 等) はここへ追加する。</summary>
 public enum BlockKind
@@ -125,8 +125,15 @@ public sealed class Block
     {
         var b = new Block
         {
-            Kind = Kind, HeadingLevel = HeadingLevel, Ordered = Ordered, Depth = Depth, CodeLang = CodeLang,
-            Payload = Payload?.Clone(), QuoteDepth = QuoteDepth, Callout = Callout, CalloutMarker = CalloutMarker,
+            Kind = Kind,
+            HeadingLevel = HeadingLevel,
+            Ordered = Ordered,
+            Depth = Depth,
+            CodeLang = CodeLang,
+            Payload = Payload?.Clone(),
+            QuoteDepth = QuoteDepth,
+            Callout = Callout,
+            CalloutMarker = CalloutMarker,
         };
         b.Lines.Clear();
         b.Lines.AddRange(Lines.Select(l => l.Clone()));

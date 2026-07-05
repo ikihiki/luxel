@@ -1,4 +1,4 @@
-namespace Luxel.UI;
+﻿namespace Luxel.UI;
 
 /// <summary>依存追跡される signal/computed が実装する。</summary>
 internal interface ISignalSource

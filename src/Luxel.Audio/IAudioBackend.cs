@@ -1,4 +1,4 @@
-namespace Luxel.Audio;
+﻿namespace Luxel.Audio;
 
 /// <summary>
 /// オーディオ出力バックエンドの抽象。Windows は <c>Luxel.Platform.XAudio2Backend</c>、

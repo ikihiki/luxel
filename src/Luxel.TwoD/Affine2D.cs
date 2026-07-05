@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 namespace Luxel.TwoD;
 
@@ -39,7 +39,10 @@ public struct Affine2D
         float id = 1f / det;
         inv = new Affine2D
         {
-            A = D * id, B = -B * id, C = -C * id, D = A * id,
+            A = D * id,
+            B = -B * id,
+            C = -C * id,
+            D = A * id,
             E = (C * F - D * E) * id,
             F = (B * E - A * F) * id,
         };

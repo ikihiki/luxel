@@ -1,4 +1,4 @@
-namespace Luxel.Strudel;
+﻿namespace Luxel.Strudel;
 
 /// <summary>
 /// パターン = **時間区間 → イベント列の純関数** (Tidal/Strudel のクエリモデル)。

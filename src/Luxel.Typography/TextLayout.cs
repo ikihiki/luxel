@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using Luxel.TwoD;
 
@@ -202,8 +202,12 @@ public sealed class TextLayout
                     float bh = MathF.Max(style.BoxH, 1);
                     para.Runs.Add(new Run
                     {
-                        Font = _fonts.Primary, Px = bh, Color = style.Color, CharStart = charStart,
-                        AscentPx = bh, IsBox = true,
+                        Font = _fonts.Primary,
+                        Px = bh,
+                        Color = style.Color,
+                        CharStart = charStart,
+                        AscentPx = bh,
+                        IsBox = true,
                         Glyphs = [new ShapedGlyph(0, 0, style.BoxW, 0, 0)],
                     });
                     charStart += piece.Length;
@@ -214,8 +218,12 @@ public sealed class TextLayout
                     float px = style.Size ?? _px;
                     var run = new Run
                     {
-                        Font = font, Px = px, Color = style.Color, CharStart = charStart,
-                        Glyphs = font.ShapeRun(sub, px), AscentPx = font.Ascent(px),
+                        Font = font,
+                        Px = px,
+                        Color = style.Color,
+                        CharStart = charStart,
+                        Glyphs = font.ShapeRun(sub, px),
+                        AscentPx = font.Ascent(px),
                     };
                     para.Runs.Add(run);
                     charStart += sub.Length;
@@ -564,8 +572,14 @@ public sealed class TextLayout
         for (int i = rs; i < reVis; i++) width += Adv(para, para.Refs[i]);
         _lines.Add(new Line
         {
-            Para = paraIdx, RefStart = rs, RefEnd = re, RefVisEnd = reVis,
-            CharStart = cs, CharEnd = ce, Width = width, LastOfParagraph = lastOfParagraph,
+            Para = paraIdx,
+            RefStart = rs,
+            RefEnd = re,
+            RefVisEnd = reVis,
+            CharStart = cs,
+            CharEnd = ce,
+            Width = width,
+            LastOfParagraph = lastOfParagraph,
         });
     }
 
@@ -625,34 +639,34 @@ public sealed class TextLayout
                 case TextAlign.Center: l.AlignX = MathF.Max(0, (box - l.Width) / 2); break;
                 case TextAlign.Right: l.AlignX = MathF.Max(0, box - l.Width); break;
                 case TextAlign.Justify when !l.LastOfParagraph && l.Width < box:
-                {
-                    Para para = _paras[l.Para];
-                    int spaceGaps = 0;
-                    for (int g = l.RefStart; g < l.RefVisEnd; g++)
-                        if (IsSpaceChar(para, ClusterOf(para, para.Refs[g]))) spaceGaps++;
-                    float shortfall = box - l.Width;
-                    if (spaceGaps > 0 && shortfall / spaceGaps <= _px * 2)
                     {
-                        l.JustifyExtra = shortfall / spaceGaps;
-                        l.JustifyBySpace = true;
-                    }
-                    else
-                    {
-                        int clusters = 0, prev = -1;
+                        Para para = _paras[l.Para];
+                        int spaceGaps = 0;
                         for (int g = l.RefStart; g < l.RefVisEnd; g++)
+                            if (IsSpaceChar(para, ClusterOf(para, para.Refs[g]))) spaceGaps++;
+                        float shortfall = box - l.Width;
+                        if (spaceGaps > 0 && shortfall / spaceGaps <= _px * 2)
                         {
-                            int c = ClusterOf(para, para.Refs[g]);
-                            if (c != prev) { clusters++; prev = c; }
+                            l.JustifyExtra = shortfall / spaceGaps;
+                            l.JustifyBySpace = true;
                         }
-                        int gaps = clusters - 1;
-                        if (gaps > 0 && shortfall / gaps <= _px * 0.5f)
+                        else
                         {
-                            l.JustifyExtra = shortfall / gaps;
-                            l.JustifyBySpace = false;
+                            int clusters = 0, prev = -1;
+                            for (int g = l.RefStart; g < l.RefVisEnd; g++)
+                            {
+                                int c = ClusterOf(para, para.Refs[g]);
+                                if (c != prev) { clusters++; prev = c; }
+                            }
+                            int gaps = clusters - 1;
+                            if (gaps > 0 && shortfall / gaps <= _px * 0.5f)
+                            {
+                                l.JustifyExtra = shortfall / gaps;
+                                l.JustifyBySpace = false;
+                            }
                         }
+                        break;
                     }
-                    break;
-                }
             }
             _lines[i] = l;
         }

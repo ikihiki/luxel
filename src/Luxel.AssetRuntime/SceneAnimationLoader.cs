@@ -1,7 +1,7 @@
-using Luxel.Ecs;
-using Luxel.Assets;
-using System.Numerics;
+﻿using System.Numerics;
 using Friflo.Engine.ECS;
+using Luxel.Assets;
+using Luxel.Ecs;
 
 namespace Luxel.AssetRuntime;
 
@@ -40,9 +40,9 @@ public sealed class SceneAnimationPlayer
             switch (ch.Path)
             {
                 case AssetAnimationPath.Translation: trans = SampleVec3(ch.Sampler, t); break;
-                case AssetAnimationPath.Rotation:    rot   = SampleQuat(ch.Sampler, t); break;
-                case AssetAnimationPath.Scale:       scale = SampleVec3(ch.Sampler, t); break;
-                case AssetAnimationPath.Weights:     continue; // morph target 未対応
+                case AssetAnimationPath.Rotation: rot = SampleQuat(ch.Sampler, t); break;
+                case AssetAnimationPath.Scale: scale = SampleVec3(ch.Sampler, t); break;
+                case AssetAnimationPath.Weights: continue; // morph target 未対応
             }
 
             var newMat = Matrix4x4.CreateScale(scale)

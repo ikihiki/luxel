@@ -1,4 +1,4 @@
-namespace Luxel.TwoD;
+﻿namespace Luxel.TwoD;
 
 /// <summary>クリップ矩形 (ワールド座標)。</summary>
 public readonly record struct RectClip(float X, float Y, float W, float H);

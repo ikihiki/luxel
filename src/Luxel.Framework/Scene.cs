@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Luxel.Audio;
@@ -269,10 +269,10 @@ public abstract class GameScene : IScene
                 {
                     string json;
                     // c.Value は Debugger 表示用に obsolete 指定されているが、DevTools でも同じ用途
-                    #pragma warning disable CS0618
+#pragma warning disable CS0618
                     try { json = System.Text.Json.JsonSerializer.Serialize(c.Value, EcsJsonOptions); }
                     catch (Exception ex) { json = $"\"<serialize failed: {ex.GetType().Name}>\""; }
-                    #pragma warning restore CS0618
+#pragma warning restore CS0618
                     comps.Add(new DiagComponent(c.Type.Type.Name, json));
                 }
                 var tagTypes = new List<string>();
@@ -294,11 +294,11 @@ public abstract class GameScene : IScene
     {
         var cmds = _loop.Commands;
         if (cmds is null) return;
-        cmds.Register("engine.pause",  _ => _paused = true);
+        cmds.Register("engine.pause", _ => _paused = true);
         cmds.Register("engine.resume", _ => _paused = false);
-        cmds.Register("engine.step",   _ => { _paused = true; _stepRequests++; });
-        cmds.Register("ecs.set",       arg => HandleEcsSet(arg));
-        cmds.Register("ui.set",        arg => HandleUiSet(arg));
+        cmds.Register("engine.step", _ => { _paused = true; _stepRequests++; });
+        cmds.Register("ecs.set", arg => HandleEcsSet(arg));
+        cmds.Register("ui.set", arg => HandleUiSet(arg));
     }
 
     /// <summary>
@@ -311,10 +311,10 @@ public abstract class GameScene : IScene
         if (arg is not System.Text.Json.JsonElement el) return;
         try
         {
-            int worldIdx  = el.GetProperty("world").GetInt32();
-            int entityId  = el.GetProperty("entityId").GetInt32();
+            int worldIdx = el.GetProperty("world").GetInt32();
+            int entityId = el.GetProperty("entityId").GetInt32();
             string typeNm = el.GetProperty("componentType").GetString() ?? "";
-            string path   = el.GetProperty("path").GetString() ?? "";
+            string path = el.GetProperty("path").GetString() ?? "";
             System.Text.Json.JsonElement valEl = el.GetProperty("value");
 
             if (worldIdx < 0 || worldIdx >= _worlds.Count) return;
@@ -391,12 +391,12 @@ public abstract class GameScene : IScene
 
     private static object? CoerceValue(System.Text.Json.JsonElement el, System.Type target)
     {
-        if (target == typeof(float))  return el.ValueKind == System.Text.Json.JsonValueKind.Number ? el.GetSingle() : float.TryParse(el.GetString(), out var v) ? v : 0f;
+        if (target == typeof(float)) return el.ValueKind == System.Text.Json.JsonValueKind.Number ? el.GetSingle() : float.TryParse(el.GetString(), out var v) ? v : 0f;
         if (target == typeof(double)) return el.ValueKind == System.Text.Json.JsonValueKind.Number ? el.GetDouble() : 0.0;
-        if (target == typeof(int))    return el.ValueKind == System.Text.Json.JsonValueKind.Number ? el.GetInt32()  : 0;
-        if (target == typeof(uint))   return el.ValueKind == System.Text.Json.JsonValueKind.Number ? el.GetUInt32() : 0u;
-        if (target == typeof(long))   return el.ValueKind == System.Text.Json.JsonValueKind.Number ? el.GetInt64()  : 0L;
-        if (target == typeof(bool))   return el.ValueKind == System.Text.Json.JsonValueKind.True || (el.ValueKind == System.Text.Json.JsonValueKind.False ? false : el.ValueKind == System.Text.Json.JsonValueKind.String && bool.TryParse(el.GetString(), out var b) && b);
+        if (target == typeof(int)) return el.ValueKind == System.Text.Json.JsonValueKind.Number ? el.GetInt32() : 0;
+        if (target == typeof(uint)) return el.ValueKind == System.Text.Json.JsonValueKind.Number ? el.GetUInt32() : 0u;
+        if (target == typeof(long)) return el.ValueKind == System.Text.Json.JsonValueKind.Number ? el.GetInt64() : 0L;
+        if (target == typeof(bool)) return el.ValueKind == System.Text.Json.JsonValueKind.True || (el.ValueKind == System.Text.Json.JsonValueKind.False ? false : el.ValueKind == System.Text.Json.JsonValueKind.String && bool.TryParse(el.GetString(), out var b) && b);
         if (target == typeof(string)) return el.ValueKind == System.Text.Json.JsonValueKind.String ? el.GetString() : el.ToString();
         return null;   // 非対応型 (Matrix4x4 全体を差し替える等は path 経由で M11 単位に細分するべき)
     }
@@ -454,12 +454,12 @@ public abstract class GameScene : IScene
         long mem = GC.GetTotalMemory(forceFullCollection: false);
         int workingMB = (int)(Environment.WorkingSet / (1024 * 1024));
         EngineDiagnostics.Emit(EngineDiagnostics.Runtime, new DiagRuntime(
-            TotalMemoryBytes:  mem,
-            Gen0Collections:   GC.CollectionCount(0),
-            Gen1Collections:   GC.CollectionCount(1),
-            Gen2Collections:   GC.CollectionCount(2),
-            ThreadCount:       System.Diagnostics.Process.GetCurrentProcess().Threads.Count,
-            WorkingSetMB:      workingMB));
+            TotalMemoryBytes: mem,
+            Gen0Collections: GC.CollectionCount(0),
+            Gen1Collections: GC.CollectionCount(1),
+            Gen2Collections: GC.CollectionCount(2),
+            ThreadCount: System.Diagnostics.Process.GetCurrentProcess().Threads.Count,
+            WorkingSetMB: workingMB));
     }
 
     /// <summary>登録 AudioBus / AudioSource + Mixer 状態のスナップショットを Diagnostics に emit する。</summary>

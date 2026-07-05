@@ -1,4 +1,4 @@
-using Silk.NET.Vulkan;
+﻿using Silk.NET.Vulkan;
 
 namespace Luxel.Vulkan.Interop;
 

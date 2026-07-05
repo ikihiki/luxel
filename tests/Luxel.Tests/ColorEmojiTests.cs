@@ -1,4 +1,4 @@
-using Luxel.TwoD;
+﻿using Luxel.TwoD;
 using Luxel.Typography;
 using Xunit;
 

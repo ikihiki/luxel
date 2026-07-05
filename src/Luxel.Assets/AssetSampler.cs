@@ -1,4 +1,4 @@
-namespace Luxel.Assets;
+﻿namespace Luxel.Assets;
 
 /// <summary>テクスチャサンプラ (フィルタ + wrap mode)。</summary>
 public sealed class AssetSampler

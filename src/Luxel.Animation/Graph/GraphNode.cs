@@ -1,4 +1,4 @@
-namespace Luxel.Animation;
+﻿namespace Luxel.Animation;
 
 /// <summary>
 /// AnimationGraph の DAG ノード基底。Bevy 風の 3 種 (Clip / Blend / Add) を <see cref="ClipNode"/>,

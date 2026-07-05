@@ -1,10 +1,10 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Luxel;
-using Luxel.Typography;
-using Luxel.TwoD;
-using Luxel.UI;
 using Luxel.Diagnostics;
+using Luxel.TwoD;
+using Luxel.Typography;
+using Luxel.UI;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.Input.Ime;

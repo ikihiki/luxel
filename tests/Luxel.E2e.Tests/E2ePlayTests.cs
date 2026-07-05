@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using Luxel;
 using Luxel.Gallery;
 using Luxel.Typography;

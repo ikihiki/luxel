@@ -1,4 +1,4 @@
-namespace Luxel.Document;
+﻿namespace Luxel.Document;
 
 /// <summary>
 /// 文書フォーマット抽象 — **パーサーが文章をすべて管理する**。

@@ -1,4 +1,4 @@
-using Luxel.Document;
+﻿using Luxel.Document;
 using Luxel.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
@@ -1288,7 +1288,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
 
         for (int level = 1; level <= maxDepth; level++)
         {
-            for (int si = 0; si < spans.Count; )
+            for (int si = 0; si < spans.Count;)
             {
                 if (spans[si].Depth < level) { si++; continue; }
                 int end = si;

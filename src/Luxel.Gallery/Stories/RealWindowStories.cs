@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Luxel.Audio;
 using Luxel.Input;
 using Luxel.Platform;
