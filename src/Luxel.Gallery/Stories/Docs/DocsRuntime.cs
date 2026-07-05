@@ -230,4 +230,46 @@ public static class DocsRuntime
 
         signal は所有する島 (スレッド) のみが触り、スレッド間は Listener (volatile/lock 済) と EngineCommands (ConcurrentQueue) だけ — [ThreadStatic] やグローバル可変状態は使いません。テーマも UiHost 単位の signal 所有です (DevTools 島は自前テーマを持つ)。
         """, toc: true, fences: DocsFences));
+
+    [Story("Docs/Scripting", Order = 56)]
+    public static Widget Scripting(StoryContext ctx) => ctx.Snap(WithDocFonts(Docs(ctx, $$"""
+        # スクリプト (Luxel.Scripting)
+
+        **言語はエンジンと同じ C#** です (別言語を持ち込みません)。[Roslyn Scripting](https://github.com/dotnet/roslyn) を `ScriptHost` で薄く包み、`.csx` 意味論 (最後の式が戻り値、globals のメンバーが裸で見える) で実行します。書き手は開発者自身なのでフルトラストで、pure-C#・型付き・決定的というリポジトリの方針とそのまま噛み合います。実演は {{StoryRef(ctx, "Demos/Scripting/LiveCsx")}} へ。
+
+        ## ScriptHost — コンパイルと実行
+
+        ```csharp
+        var host = new ScriptHost(
+            references: [typeof(Widget).Assembly, typeof(Kit).Assembly],
+            usings: ["System", "Luxel.UI", "Luxel.Controls", "Luxel.Controls.Kit"],  // 静的 import 可
+            globalsType: typeof(MyGlobals));                                          // 裸で見える API 面
+        ScriptResult r = host.Run("Button(_ => Log(\"hi\"), \"OK\")", myGlobals);
+        // r.ReturnValue = Widget、r.Diagnostics = 行番号付きエラー、r.ExceptionLine = 実行時例外の行
+        ```
+
+        - **参照/using はホストが注入** — スクリプトからエンジン API がどこまで見えるかを面 (globals) と using で決める
+        - コンパイルは**ソース文字列キー**でキャッシュ (同一ソースの再 Run は再コンパイルしない)。初回のみ Roslyn の起動で 1〜2 秒
+        - デバッグ情報付き emit なので、**実行時例外からスクリプトの行番号**が取れる
+
+        ## 機能させる面 (3 つ)
+
+        1. **Gallery/docs のライブブロック** (P1 実装済み) — エディタで編集 → Run → 返した `Widget`/`IGpuScene` をその場に実体化。コンパイルエラー/実行時例外は行番号付きでインライン表示、ブロックが落ちてもページは落ちない (ErrorBoundary)
+        2. **Framework アプリのゲームロジック** (P3 予定) — `.csx` を World/Phase フックへ登録し、ファイル監視でホットリロード
+        3. **DevTools コンソール REPL** (P3 予定) — 実行中アプリへ 1 行ずつ投げて Signal/UiRegistry を突く運用デバッグ
+
+        ## 言語サービス (LSP) の方針
+
+        内蔵エディタと言語サービスは**同一プロセス**なので、LSP (JSON-RPC + 外部プロセス) は挟まず Roslyn を直接ホストします (`ScriptWorkspace`)。診断・**補完** (`Complete(code, position)` → CompletionService)・**ホバー** (`Hover(code, position)` → QuickInfoService) が実装済みで、`ScriptHost` と同じ references/usings を与えると**エンジン API が型付きで補完される** — C# を選んだ最大の配当です。`csx` プレイグラウンドの「補完」ボタンがキャレット位置の候補を出し、選ぶと挿入 + 型情報を表示します。外部エディタ (VS Code) で書きたくなったら、そのとき初めて LSP **サーバー**として公開します (内蔵実装を流用)。
+
+        > [!NOTE]
+        > P2 の割り切り: 補完はボタン起動 (エディタ内 Ctrl+Space の横取りは TextArea のキー拡張が要るため P2.5)。候補はキャレットのフラットオフセット (`TextArea.CaretOffset`) を言語サービスへ渡して解決します。
+
+        ## デバッグの方針
+
+        層を分けます: ① コンパイル診断 + 実行時例外の行マップ (実装済み)、② スクリプトが作る Signal/Widget は DevTools・Props・Knobs にそのまま映る、③ フレームステップ実行 (固定 dt + 決定性で「1 フレームずつ状態を見る」/ 将来は入力記録 → 決定的リプレイ)、④ 本気のステップ実行は **PDB 付き emit + 外部デバッガ (VS/VS Code) アタッチ** を正式手順に (内蔵で C# デバッガを再発明しない)。
+
+        > [!NOTE]
+        > v1 の割り切り: 編集ごとのアセンブリはプロセス終了まで残る (開発時ツールとして許容 — アンロードが要件になったら collectible ALC 化)。サンドボックスは無し (信頼できるコード前提 — 軽量分離が要るなら Lua-CSharp を後付けする退路)。スクリプトは決定性規約 (wall-clock/乱数/await を使わない) を守れば snap/E2E と両立します。
+        """, toc: true, fences: DocsFences)));
 }

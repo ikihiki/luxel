@@ -63,6 +63,27 @@ public sealed partial class TextArea : Widget, ITextInput
 
     public override string? DebugDetail => $"{_ed.Doc.Blocks.Count} ブロック";
 
+    /// <summary>キャレットの全文フラットオフセット (PlainText 内の 0 始まり文字位置) —
+    /// 言語サービス (補完/ホバー) が「どこで」を知るために使う。改行は 1 文字。</summary>
+    public int CaretOffset
+    {
+        get
+        {
+            int flat = 0;
+            for (int i = 0; i < _ed.Caret.Line; i++) flat += _ed.Doc.LineAt(i).Text.Length + 1;
+            return flat + _ed.Caret.Offset;
+        }
+    }
+
+    /// <summary>キャレット位置に文字列を挿入して同期する (補完確定に使う)。</summary>
+    public void InsertAtCaret(string s)
+    {
+        if (!_edInit) { _edInit = true; _ed.SetText(Value.Get().Peek()); }
+        _ed.Insert(s);
+        Sync();
+        Refresh();
+    }
+
     /// <summary>解決済みの表示高さ (旧 ctor の 40 クランプは読み出し時に適用)。</summary>
     private float HeightPx => MathF.Max(40, Height.Get());
 

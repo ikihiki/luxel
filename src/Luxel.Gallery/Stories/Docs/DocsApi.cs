@@ -76,7 +76,7 @@ public static class DocsApi
         "ランタイム API リファレンス",
         "リソース・画像・入力・音声・プラットフォーム・アプリ骨格・DevTools の公開型です。概念は [Docs/Resources](story:Docs/Resources) / [Docs/Framework](story:Docs/Framework) ほかランタイム章へ。",
         "Luxel.Resources", "Luxel.Imaging", "Luxel.Input", "Luxel.Audio", "Luxel.Audio.Sequencing",
-        "Luxel.Strudel", "Luxel.Platform", "Luxel.Framework", "Luxel.Scene.UI", "Luxel.DevTools");
+        "Luxel.Strudel", "Luxel.Scripting", "Luxel.Platform", "Luxel.Framework", "Luxel.Scene.UI", "Luxel.DevTools");
 
     /// <summary>名前空間グループの型 API ページ (H2 = 名前空間、H3 = 型)。
     /// TypeApiRegistry から実行時に組み立てる — 型の追加はページに自動反映される。</summary>
