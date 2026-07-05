@@ -11,32 +11,32 @@ namespace Luxel.MathText;
 [UiComponent]
 public sealed partial class MathBlockView : Widget
 {
-    private readonly string _source;
-    private readonly float _px;
-    private readonly float _maxW;
+    /// <summary>TeX ソース ($$ の内側)。</summary>
+    [UiParam] private readonly Bindable<string> _source = "";
+    /// <summary>基準文字サイズ (px)。</summary>
+    [UiParam] private readonly Bindable<float> _fontSize = 20f;
+    /// <summary>使える最大幅 (0 = 制約幅)。超えると等比縮小。</summary>
+    [UiParam] private readonly Bindable<float> _maxWidth = new();
+
     private MathNode? _node;
     private MathBox _box;
     private float _scale = 1f;
 
-    [UiCtor]
-    internal MathBlockView(string source, float fontSize = 20f, float maxWidth = 0)
-    {
-        _source = source ?? "";
-        _px = fontSize;
-        _maxW = maxWidth;
-    }
+    private string Src => Source.Get();
+    private float Px => FontSize.Get();
 
     /// <summary>デバッグ表示の補足 (ソース先頭 24 文字)。</summary>
-    public override string? DebugDetail => _source.Length <= 24 ? _source : _source[..24] + "…";
+    public override string? DebugDetail => Src.Length <= 24 ? Src : Src[..24] + "…";
 
     private MathLayoutEngine Engine(LayoutContext ctx) =>
         new((t, px) => ctx.Font.Measure(t, px), px => ctx.Font.Ascent(px));
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
-        _node ??= TexParser.Parse(_source.Replace("\n", " ").Trim());
-        _box = Engine(ctx).Measure(_node, _px);
-        float availW = _maxW > 0 ? _maxW : c.MaxW;
+        _node ??= TexParser.Parse(Src.Replace("\n", " ").Trim());
+        _box = Engine(ctx).Measure(_node, Px);
+        float maxW = MaxWidth.Get();
+        float availW = maxW > 0 ? maxW : c.MaxW;
         _scale = !float.IsInfinity(availW) && availW > 0 && _box.W > availW ? availW / _box.W : 1f;
         Size = c.Constrain(new Size(_box.W * _scale, _box.H * _scale));
     }
@@ -53,7 +53,7 @@ public sealed partial class MathBlockView : Widget
         var engine = new MathLayoutEngine(
             (t, px) => ctx.Font.Measure(t, px),
             px => ctx.Font.Ascent(px));
-        engine.Draw(_node, 0, _box.Base * s, _px * s,
+        engine.Draw(_node, 0, _box.Base * s, Px * s,
             text: (t, x, baseY, px) => ctx.Font.AppendText(scene, t, x, baseY, px, Color2D.White),
             line: (x1, y1, x2, y2, w) => scene.StrokeLine(Color2D.White, w * s, x1, y1, x2, y2));
         root.Content = scene;

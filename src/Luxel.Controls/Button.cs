@@ -19,27 +19,24 @@ public sealed partial class Button : Widget
     /// <summary>クリック (EV: 第一引数は発火元の Button 自身)。</summary>
     [UiEvent] public UiEvent<Button> OnClick;
 
-    [UiParam] public readonly BindableString Text = new();
+    [UiParam] private readonly BindableString _text = new();
     /// <summary>背景色。未設定 → テーマ (Variant × Intent × 状態)。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<uint> Background = new();
+    [UiParam(Stateable = true)] private readonly Bindable<uint> _background = new();
     /// <summary>文字色。未設定 → テーマ。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<uint> Foreground = new();
-    [UiParam(Stateable = true)] public readonly Bindable<float> Opacity = new();
-    [UiParam(Stateable = true)] public readonly Bindable<float> Scale = new();
+    [UiParam(Stateable = true)] private readonly Bindable<uint> _foreground = new();
+    [UiParam(Stateable = true)] private readonly Bindable<float> _opacity = 1f;
+    [UiParam(Stateable = true)] private readonly Bindable<float> _scale = 1f;
     /// <summary>角丸。未設定 → テーマ Radius。</summary>
-    [UiParam] public readonly Bindable<float> Rounded = new();
+    [UiParam] private readonly Bindable<float> _rounded = new();
     /// <summary>余白。未設定 → テーマ (BtnPadX, BtnPadY)。</summary>
-    [UiParam] public readonly Bindable<Thickness> Padding = new();
+    [UiParam] private readonly Bindable<Thickness> _padding = new();
     /// <summary>文字サイズ。未設定 → テーマ Font。</summary>
-    [UiParam] public readonly Bindable<float> FontSize = new();
+    [UiParam] private readonly Bindable<float> _fontSize = new();
 
     private float Fs(Theme t) => FontSize.Or(t.Font);
     private Thickness Pad(Theme t) => Padding.Or(new Thickness(t.BtnPadX, t.BtnPadY));
-    [UiParam] public readonly Bindable<Variant> Variant = new();
-    [UiParam] public readonly Bindable<Intent> Intent = new();
-
-
-    internal Button() { }
+    [UiParam] private readonly Bindable<Variant> _variant = new();
+    [UiParam] private readonly Bindable<Intent> _intent = new();
 
     public override string? DebugDetail => Text.Get();
 
@@ -114,8 +111,8 @@ public sealed partial class Button : Widget
             }
             bgSet(Background.Or(vs.Bg));
             fgSet(Foreground.Or(vs.Fg));
-            scSet(Scale.Or(1f));
-            opSet(Opacity.Or(1f));
+            scSet(Scale.Get());
+            opSet(Opacity.Get());
         });
 
         ctx.AddHit(node, new Rect(0, 0, Size.Width, Size.Height),

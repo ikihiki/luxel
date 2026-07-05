@@ -12,26 +12,27 @@ namespace Luxel.Controls;
 [UiComponent]
 public sealed partial class Sparkline : Widget
 {
-    private readonly float _w, _h;
+    /// <summary>グラフ幅 (px、最小 8)。</summary>
+    [UiParam] private readonly Bindable<float> _width = new();
+    /// <summary>グラフ高 (px、最小 8)。</summary>
+    [UiParam] private readonly Bindable<float> _height = new();
+
     private float[] _values = [];
     private float? _min, _max;   // null = データから自動レンジ
 
     /// <summary>折れ線ではなく棒グラフで描く。</summary>
-    [UiParam] public readonly Bindable<bool> Bars = new();
+    [UiParam] private readonly Bindable<bool> _bars = new();
 
     /// <summary>線/棒の色。未設定 → テーマ Primary。</summary>
-    [UiParam] public readonly Bindable<uint> LineColor = new();
+    [UiParam] private readonly Bindable<uint> _lineColor = new();
     /// <summary>下地の色。未設定 → テーマ SurfaceAlt。</summary>
-    [UiParam] public readonly Bindable<uint> Background = new();
+    [UiParam] private readonly Bindable<uint> _background = new();
 
-    [UiCtor]
-    internal Sparkline(float width, float height)
-    {
-        _w = MathF.Max(8, width);
-        _h = MathF.Max(8, height);
-    }
+    // 旧 ctor のクランプは読み出し側で適用
+    private float W => MathF.Max(8, Width.Get());
+    private float H => MathF.Max(8, Height.Get());
 
-    public override string? DebugDetail => $"{_values.Length} 点{(Bars.Or(false) ? " (棒)" : "")}";
+    public override string? DebugDetail => $"{_values.Length} 点{(Bars.Get() ? " (棒)" : "")}";
 
     // 実体化状態
     private UiBuildContext? _ctx;
@@ -51,11 +52,11 @@ public sealed partial class Sparkline : Widget
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
-        _wPx = ResolveW(c, ctx, _w);
-        Size = c.Constrain(new Size(_wPx, _h));
+        _wPx = ResolveW(c, ctx, W);
+        Size = c.Constrain(new Size(_wPx, H));
     }
 
-    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => ResolveWIntrinsic(ctx, _w);
+    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => ResolveWIntrinsic(ctx, W);
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {
@@ -65,7 +66,7 @@ public sealed partial class Sparkline : Widget
         float w = _wPx;
         _bg = ctx.Canvas.AddChild(node);
         var bs = new Scene2D();
-        bs.FillRoundedRect(Color2D.White, 0, 0, w, _h, 3);
+        bs.FillRoundedRect(Color2D.White, 0, 0, w, H, 3);
         _bg.Content = bs;
 
         _fill = ctx.Canvas.AddChild(node);
@@ -88,7 +89,7 @@ public sealed partial class Sparkline : Widget
     private void RebuildGraph()
     {
         if (_fill is null || _line is null) return;
-        float w = _wPx;
+        float w = _wPx, h = H;
         int n = _values.Length;
 
         float lo = _min ?? (n > 0 ? _values.Min() : 0);
@@ -96,18 +97,18 @@ public sealed partial class Sparkline : Widget
         if (hi - lo < 1e-6f) { hi = lo + 0.5f; lo -= 0.5f; }   // 平坦な系列は中央に
 
         const float padY = 3f;
-        float Y(float v) => _h - padY - (v - lo) / (hi - lo) * (_h - padY * 2);
+        float Y(float v) => h - padY - (v - lo) / (hi - lo) * (h - padY * 2);
 
         var fill = new Scene2D();
         var line = new Scene2D();
-        if (n >= 1 && Bars.Or(false))
+        if (n >= 1 && Bars.Get())
         {
             float bw = MathF.Max(1, w / n - 1);
             for (int i = 0; i < n; i++)
             {
                 float x = n > 1 ? i * (w - bw) / (n - 1) : 0;
                 float y = Y(_values[i]);
-                fill.FillRect(Color2D.White, x, y, bw, _h - padY - y);
+                fill.FillRect(Color2D.White, x, y, bw, h - padY - y);
             }
         }
         else if (n >= 2)
@@ -117,9 +118,9 @@ public sealed partial class Sparkline : Widget
                 pts[i] = new System.Numerics.Vector2(i * w / (n - 1), Y(_values[i]));
             line.StrokePolyline(Color2D.White, 1.5f, pts);
 
-            fill.BeginFill(Color2D.White).MoveTo(pts[0].X, _h - padY);
+            fill.BeginFill(Color2D.White).MoveTo(pts[0].X, h - padY);
             foreach (var p in pts) fill.LineTo(p.X, p.Y);
-            fill.LineTo(pts[^1].X, _h - padY).Close().End();
+            fill.LineTo(pts[^1].X, h - padY).Close().End();
         }
         _fill.Content = fill;
         _line.Content = line;

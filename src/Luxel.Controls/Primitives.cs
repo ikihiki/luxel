@@ -9,11 +9,9 @@ namespace Luxel.Controls;
 public sealed partial class Box : Widget
 {
     /// <summary>塗り色。未設定 → テーマ SurfaceAlt。</summary>
-    [UiParam] public readonly Bindable<uint> Background = new();
+    [UiParam] private readonly Bindable<uint> _background = new();
     /// <summary>角丸半径 (px)。</summary>
-    [UiParam] public readonly Bindable<float> Rounded = new();
-
-    internal Box() { }
+    [UiParam] private readonly Bindable<float> _rounded = new();
 
     private static float Fin(float v) => float.IsInfinity(v) ? 0 : v;
 
@@ -30,7 +28,7 @@ public sealed partial class Box : Widget
     {
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
         var s = new Scene2D();
-        float r = Rounded.Or(0);
+        float r = Rounded.Get();
         if (r > 0) s.FillRoundedRect(Color2D.White, 0, 0, Size.Width, Size.Height, MathF.Min(r, MathF.Min(Size.Width, Size.Height) / 2));
         else s.FillRect(Color2D.White, 0, 0, Size.Width, Size.Height);
         node.Content = s;
@@ -44,34 +42,38 @@ public enum IconKind { Check, Close, ChevronDown, ChevronRight, ChevronLeft, Plu
 [UiComponent]
 public sealed partial class Icon : Widget
 {
-    private readonly IconKind _kind;
-    private readonly float _size, _stroke;
+    /// <summary>アイコン種別。</summary>
+    [UiParam] private readonly Bindable<IconKind> _kind = new();
+    /// <summary>表示サイズ (px、正方形)。基底 <see cref="Widget.Size"/> と衝突するため iconSize。</summary>
+    [UiParam] private readonly Bindable<float> _iconSize = 20f;
+    /// <summary>線の太さ (px)。</summary>
+    [UiParam] private readonly Bindable<float> _stroke = 2f;
 
     /// <summary>クリック (任意)。ハンドラがあるときだけヒット登録する — ツリーのシェブロン等、
     /// アイコン単体をボタンにしたい場面用 (Hand カーソル、当たりは少し広め)。</summary>
     [UiEvent] public UiEvent<Icon> OnClick;
 
     /// <summary>色。未設定 → テーマ Text。</summary>
-    [UiParam] public readonly Bindable<uint> Color = new();
+    [UiParam] private readonly Bindable<uint> _color = new();
 
-    [UiCtor]
-    internal Icon(IconKind kind, float size = 20, float stroke = 2f)
+    protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
-        _kind = kind; _size = size; _stroke = stroke;
+        float size = IconSize.Get();
+        Size = c.Constrain(new Size(size, size));
     }
 
-    protected override void PerformLayout(Constraints c, LayoutContext ctx) => Size = c.Constrain(new Size(_size, _size));
-    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => _size;
+    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => IconSize.Get();
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {
+        float size = IconSize.Get();
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
         var s = new Scene2D();
-        Draw(s, _kind, _size, _stroke);
+        Draw(s, Kind.Get(), size, Stroke.Get());
         node.Content = s;
         ctx.Effect(() => node.Color = Color.Or(ctx.Theme.Value.Text));
         if (OnClick.HasHandler)
-            ctx.AddHit(node, new Rect(-2, -2, _size + 4, _size + 4),
+            ctx.AddHit(node, new Rect(-2, -2, size + 4, size + 4),
                 onClick: () => OnClick.Invoke(this), cursor: CursorKind.Hand);
     }
 

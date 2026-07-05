@@ -16,26 +16,23 @@ public sealed partial class DiagramBlock : Widget
 {
     private const float FontPx = 13;
 
-    private readonly string _source;
-    private readonly float _maxW;
+    /// <summary>mermaid フェンス本文。</summary>
+    [UiParam] private readonly Bindable<string> _source = "";
+    /// <summary>使える最大幅 (0 = 制約幅)。超えると全体を等比縮小。</summary>
+    [UiParam] private readonly Bindable<float> _maxWidth = new();
+
     private DiagramLayoutResult? _layout;
     private float _scale = 1f;
-
-    [UiCtor]
-    internal DiagramBlock(string source, float maxWidth = 0)
-    {
-        _source = source ?? "";
-        _maxW = maxWidth;
-    }
 
     /// <summary>デバッグ表示の補足 (配置済みノード数)。</summary>
     public override string? DebugDetail => $"{_layout?.Nodes.Count ?? 0} nodes";
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
-        _layout ??= DiagramLayout.Arrange(MermaidParser.Parse(_source),
+        _layout ??= DiagramLayout.Arrange(MermaidParser.Parse(Source.Get()),
             label => ctx.Font.Measure(label, FontPx));
-        float availW = _maxW > 0 ? _maxW : c.MaxW;
+        float maxW = MaxWidth.Get();
+        float availW = maxW > 0 ? maxW : c.MaxW;
         _scale = !float.IsInfinity(availW) && availW > 0 && _layout.Width > availW
             ? availW / _layout.Width : 1f;
         Size = c.Constrain(new Size(_layout.Width * _scale, _layout.Height * _scale));

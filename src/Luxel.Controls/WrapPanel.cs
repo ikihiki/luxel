@@ -12,14 +12,11 @@ namespace Luxel.Controls;
 public sealed partial class WrapPanel : Widget
 {
     internal readonly List<Widget> Children = new();
-    private readonly float _hgap, _vgap;
 
-    [UiCtor]
-    internal WrapPanel(float hgap = 8f, float vgap = 8f)
-    {
-        _hgap = hgap;
-        _vgap = vgap;
-    }
+    /// <summary>横方向の間隔 (px)。</summary>
+    [UiParam] private readonly Bindable<float> _hgap = 8f;
+    /// <summary>縦方向 (行間) の間隔 (px)。</summary>
+    [UiParam] private readonly Bindable<float> _vgap = 8f;
 
     private void AddChild(Widget child) => Children.Add(child);
 
@@ -34,6 +31,7 @@ public sealed partial class WrapPanel : Widget
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
+        float hgap = Hgap.Get(), vgap = Vgap.Get();
         float avail = ResolveW(c, ctx, float.IsInfinity(c.MaxW) ? 0 : c.MaxW);
         if (avail <= 0) avail = float.PositiveInfinity;   // 幅不明 → 折り返しなしの 1 行
 
@@ -47,13 +45,13 @@ public sealed partial class WrapPanel : Widget
             if (x > 0 && x + w > avail)   // 折り返し
             {
                 x = 0;
-                y += lineH + _vgap;
+                y += lineH + vgap;
                 lineH = 0;
             }
             ch.Offset = new Point(x + m.Left, y + m.Top);
-            x += w + _hgap;
+            x += w + hgap;
             lineH = MathF.Max(lineH, h);
-            maxX = MathF.Max(maxX, x - _hgap);
+            maxX = MathF.Max(maxX, x - hgap);
         }
         float totalH = Children.Count > 0 ? y + lineH : 0;
         float totalW = float.IsInfinity(avail) ? maxX : avail;
@@ -62,9 +60,10 @@ public sealed partial class WrapPanel : Widget
 
     public override float MaxIntrinsicWidth(float height, LayoutContext ctx)
     {
+        float hgap = Hgap.Get();
         float sum = 0;
-        foreach (Widget ch in Children) sum += ch.MaxIntrinsicWidth(height, ctx) + _hgap;
-        return MathF.Max(0, sum - _hgap);
+        foreach (Widget ch in Children) sum += ch.MaxIntrinsicWidth(height, ctx) + hgap;
+        return MathF.Max(0, sum - hgap);
     }
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)

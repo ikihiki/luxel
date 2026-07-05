@@ -19,16 +19,15 @@ public sealed partial class ColorPicker : Widget
         Color2D.Rgba(60, 176, 220), Color2D.Rgba(56, 118, 224), Color2D.Rgba(128, 90, 220), Color2D.Rgba(220, 80, 160),
     ];
 
-    private readonly Signal<uint> _color;
+    /// <summary>RGBA 色の signal (パレット/スライダー/hex どの経路の編集も書き戻す)。</summary>
+    [UiParam] private readonly Bindable<Signal<uint>> _color = new();
+
     private readonly Signal<bool> _open = new(false);
     private const float DefaultWidth = 104;
     private float _h = 38;   // レイアウト時にテーマから確定
     private float W = DefaultWidth;   // PerformLayout で解決 (% / em / vw 対応)
 
-    [UiCtor]
-    internal ColorPicker(Signal<uint> color) { _color = color; }
-
-    public override string? DebugDetail => ToHex(_color.Value);
+    public override string? DebugDetail => ToHex(Color.Get().Value);
 
     /// <summary>"#rrggbb" (α≠255 なら "#rrggbbaa")。</summary>
     public static string ToHex(uint c)
@@ -75,6 +74,7 @@ public sealed partial class ColorPicker : Widget
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
         Point world = WorldPos;
 
+        Signal<uint> color = Color.Get();
         Signal<Theme> theme = ctx.Theme;
         float pad = 3, sw = _h - pad * 2;
         var bg = new Scene2D(); bg.FillRoundedRect(Color2D.White, 0, 0, W, _h, theme.Value.Radius + 1);
@@ -85,7 +85,7 @@ public sealed partial class ColorPicker : Widget
         UiNode swatch = ctx.Canvas.AddChild(node); swatch.Z = 1;
         var ss = new Scene2D(); ss.FillRoundedRect(Color2D.White, pad, pad, sw, sw, MathF.Max(2, theme.Value.Radius - 1));
         swatch.Content = ss;
-        ctx.Effect(() => swatch.Color = _color.Value | 0xFF000000u);   // 表示は不透明で
+        ctx.Effect(() => swatch.Color = color.Value | 0xFF000000u);   // 表示は不透明で
 
         // hex ラベル (色変化で更新)
         UiNode label = ctx.Canvas.AddChild(node); label.Z = 1;
@@ -94,22 +94,22 @@ public sealed partial class ColorPicker : Widget
         ctx.Effect(() =>
         {
             var s = new Scene2D();
-            ctx.Font.AppendText(s, ToHex(_color.Value), pad * 2 + sw, (_h - fh) / 2 + ascent, fs, Color2D.White);
+            ctx.Font.AppendText(s, ToHex(color.Value), pad * 2 + sw, (_h - fh) / 2 + ascent, fs, Color2D.White);
             label.Content = s;
         });
         ctx.Effect(() => label.Color = theme.Value.Text);
 
         // ---- オーバーレイ: パレット + RGB スライダー + hex 入力 ----
         bool sync = false;
-        var rS = new Signal<float>((_color.Value) & 0xFF);
-        var gS = new Signal<float>((_color.Value >> 8) & 0xFF);
-        var bS = new Signal<float>((_color.Value >> 16) & 0xFF);
-        var hexS = new Signal<string>(ToHex(_color.Value));
+        var rS = new Signal<float>((color.Value) & 0xFF);
+        var gS = new Signal<float>((color.Value >> 8) & 0xFF);
+        var bS = new Signal<float>((color.Value >> 16) & 0xFF);
+        var hexS = new Signal<string>(ToHex(color.Value));
 
         // color → sliders/hex (sync 中の再入は依存登録だけ残して抜ける)
         ctx.Effect(() =>
         {
-            uint c = _color.Value;
+            uint c = color.Value;
             if (sync) return;
             sync = true;
             try
@@ -125,7 +125,7 @@ public sealed partial class ColorPicker : Widget
             float r = rS.Value, g = gS.Value, b = bS.Value;
             if (sync) return;
             sync = true;
-            try { _color.Value = ((uint)Math.Clamp(r, 0, 255)) | ((uint)Math.Clamp(g, 0, 255) << 8) | ((uint)Math.Clamp(b, 0, 255) << 16) | (_color.Peek() & 0xFF000000u); }
+            try { color.Value = ((uint)Math.Clamp(r, 0, 255)) | ((uint)Math.Clamp(g, 0, 255) << 8) | ((uint)Math.Clamp(b, 0, 255) << 16) | (color.Peek() & 0xFF000000u); }
             finally { sync = false; }
         });
         // hex → color (完全な hex のときだけ)
@@ -135,14 +135,14 @@ public sealed partial class ColorPicker : Widget
             if (sync) return;
             if (!TryParseHex(h, out uint c)) return;
             sync = true;
-            try { _color.Value = c; }
+            try { color.Value = c; }
             finally { sync = false; }
         });
 
         var paletteRow1 = Palette[..6].Select(SwatchButton).ToArray();
         var paletteRow2 = Palette[6..].Select(SwatchButton).ToArray();
         Widget SwatchButton(uint c) =>
-            Button(_ => _color.Value = c, "", background: c, width: 18f, height: 18f,
+            Button(_ => color.Value = c, "", background: c, width: 18f, height: 18f,
                    rounded: 3f, padding: new Thickness(0));
 
         var hexField = TextField(hexS, width: 108f);

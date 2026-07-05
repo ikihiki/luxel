@@ -21,23 +21,20 @@ internal static class GridKeys
 public sealed partial class Grid : Widget
 {
     internal readonly List<Widget> _children = new();
-    internal GridLength[] Columns = [GridLength.Star(1)];
-    internal GridLength[] Rows = [GridLength.Star(1)];
 
-    internal Grid() { }
+    /// <summary>列定義 (Fixed/Auto/Star)。未設定・空 → Star(1) の 1 列。</summary>
+    [UiParam] private readonly Bindable<GridLength[]> _columns = new([]);
+    /// <summary>行定義 (Fixed/Auto/Star)。未設定・空 → Star(1) の 1 行。</summary>
+    [UiParam] private readonly Bindable<GridLength[]> _rows = new([]);
 
-    /// <summary>列(と任意で行)を指定してグリッドを作る。子は indexer <c>[...]</c> で渡す。</summary>
-    [UiCtor]
-    internal Grid(GridLength[] columns, GridLength[]? rows = null)
-    {
-        if (columns.Length > 0) Columns = columns;
-        if (rows is { Length: > 0 }) Rows = rows;
-    }
+    /// <summary>実効トラック: 未設定/空なら Star(1) 1 本 (旧 ctor の既定と同じ)。</summary>
+    private GridLength[] EffectiveColumns() { GridLength[] t = Columns.Get(); return t.Length > 0 ? t : [GridLength.Star(1)]; }
+    private GridLength[] EffectiveRows() { GridLength[] t = Rows.Get(); return t.Length > 0 ? t : [GridLength.Star(1)]; }
 
     private void AddChild(Widget child) => _children.Add(child);
 
     public override IEnumerable<Widget> DebugChildren() => _children;
-    public override string? DebugDetail => $"{Columns.Length}x{Rows.Length}";
+    public override string? DebugDetail => $"{EffectiveColumns().Length}x{EffectiveRows().Length}";
 
     /// <summary>子要素の宣言: <c>Grid(columns:[1,2])[ a, b ]</c>。子 Widget のみ受け取る。
     /// セル指定は子 Widget 自身の fluent 添付 (<c>.GridColumn(0)</c> 等) で行う。</summary>
@@ -48,18 +45,20 @@ public sealed partial class Grid : Widget
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
+        GridLength[] columns = EffectiveColumns();
+        GridLength[] rows = EffectiveRows();
         float totalW = float.IsInfinity(c.MaxW) ? 0 : c.MaxW;
         float totalH = float.IsInfinity(c.MaxH) ? 0 : c.MaxH;
 
-        float[] colW = ResolveTracks(Columns, totalW, ctx, horizontal: true);
-        float[] rowH = ResolveTracks(Rows, totalH, ctx, horizontal: false);
+        float[] colW = ResolveTracks(columns, totalW, ctx, horizontal: true);
+        float[] rowH = ResolveTracks(rows, totalH, ctx, horizontal: false);
         float[] colX = Cumulative(colW);
         float[] rowY = Cumulative(rowH);
 
         foreach (Widget ch in _children)
         {
-            int col = Math.Clamp(ch.GetAttached(GridKeys.Column, 0), 0, Columns.Length - 1);
-            int row = Math.Clamp(ch.GetAttached(GridKeys.Row, 0), 0, Rows.Length - 1);
+            int col = Math.Clamp(ch.GetAttached(GridKeys.Column, 0), 0, columns.Length - 1);
+            int row = Math.Clamp(ch.GetAttached(GridKeys.Row, 0), 0, rows.Length - 1);
             int cspan = Math.Max(1, ch.GetAttached(GridKeys.ColumnSpan, 1));
             int rspan = Math.Max(1, ch.GetAttached(GridKeys.RowSpan, 1));
             float cw = SumSpan(colW, col, cspan);
@@ -81,7 +80,7 @@ public sealed partial class Grid : Widget
             {
                 case GridUnit.Pixel: sizes[i] = t.Value; used += t.Value; break;
                 case GridUnit.Auto:
-                    sizes[i] = horizontal ? AutoColumnWidth(i, ctx) : 0;   // 行 Auto は v1 未対応 (0)
+                    sizes[i] = horizontal ? AutoColumnWidth(tracks, i, ctx) : 0;   // 行 Auto は v1 未対応 (0)
                     used += sizes[i]; break;
                 case GridUnit.Star: starSum += t.Value; break;
             }
@@ -93,11 +92,11 @@ public sealed partial class Grid : Widget
         return sizes;
     }
 
-    private float AutoColumnWidth(int col, LayoutContext ctx)
+    private float AutoColumnWidth(GridLength[] columns, int col, LayoutContext ctx)
     {
         float w = 0;
         foreach (Widget ch in _children)
-            if (Math.Clamp(ch.GetAttached(GridKeys.Column, 0), 0, Columns.Length - 1) == col)
+            if (Math.Clamp(ch.GetAttached(GridKeys.Column, 0), 0, columns.Length - 1) == col)
                 w = MathF.Max(w, ch.MaxIntrinsicWidth(float.PositiveInfinity, ctx));
         return w;
     }

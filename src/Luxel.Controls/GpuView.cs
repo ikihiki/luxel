@@ -36,32 +36,34 @@ public interface IGpuScene : IDisposable
 [UiComponent]
 public sealed partial class GpuView : Widget
 {
-    private readonly float _w, _h;
-    private readonly IGpuScene _scene;
-    private readonly bool _animated;
+    /// <summary>表示幅 (px、最小 1)。ターゲット幅は 64 の倍数を推奨 (D3D12 の行整列)。</summary>
+    [UiParam] private readonly Bindable<float> _viewWidth = new();
+    /// <summary>表示高さ (px、最小 1)。</summary>
+    [UiParam] private readonly Bindable<float> _viewHeight = new();
+    /// <summary>描画シーン (寿命は realize スコープが所有 — SetRoot 破棄で Dispose)。</summary>
+    [UiParam] private readonly Bindable<IGpuScene> _scene = new();
+    /// <summary>true = 毎フレーム Render (アニメ)、false = 1 回だけ (静的)。</summary>
+    [UiParam] private readonly Bindable<bool> _animated = true;
+
     private bool _alive;   // シーンが Init 済みで未 Dispose か (スコープ破棄で false へ)
     private float _t;
     private int _idx = -1, _stride;
     private UiNode? _node;
 
-    [UiCtor]
-    internal GpuView(float width, float height, IGpuScene scene, bool animated = true)
-    {
-        _w = MathF.Max(1, width);
-        _h = MathF.Max(1, height);
-        _scene = scene;
-        _animated = animated;
-    }
+    private float W1 => MathF.Max(1, ViewWidth.Get());
+    private float H1 => MathF.Max(1, ViewHeight.Get());
 
-    public override string? DebugDetail => $"{(int)_w}x{(int)_h}{(_animated ? " animated" : "")}";
+    public override string? DebugDetail => $"{(int)W1}x{(int)H1}{(Animated.Get() ? " animated" : "")}";
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
-        => Size = c.Constrain(new Size(_w, _h));
+        => Size = c.Constrain(new Size(W1, H1));
 
-    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => _w;
+    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => W1;
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {
+        IGpuScene scene = Scene.Get();
+        float w = W1, h = H1;
         _node = CreateRoot(ctx, parent, worldOrigin);
 
         // シーンの寿命は realize スコープ毎のガードで管理する: スコープ破棄 (ストーリー切替の
@@ -70,18 +72,18 @@ public sealed partial class GpuView : Widget
         // 破棄済みシーンを Render してしまう。
         if (!_alive)
         {
-            _scene.Init(ctx.Canvas.Rasterizer.Device, (int)_w, (int)_h);
+            scene.Init(ctx.Canvas.Rasterizer.Device, (int)w, (int)h);
             _idx = -1;   // バッファは作り直されている — Content を必ず貼り直す
             _alive = true;
         }
         ctx.Own(new SceneGuard(this));
 
-        Apply(_scene.Render(_t));
-        if (_animated)
+        Apply(scene.Render(_t));
+        if (Animated.Get())
             ctx.AddAnimation(dt =>
             {
                 _t += dt;
-                Apply(_scene.Render(_t));
+                Apply(scene.Render(_t));
                 return false;
             });
 
@@ -91,7 +93,7 @@ public sealed partial class GpuView : Widget
             {
                 (_idx, _stride) = r;
                 _node!.Content = new Scene2D().ImageRect(
-                    (uint)_idx, (uint)_stride, (uint)_w, (uint)_h, 0, 0, Size.Width, Size.Height);
+                    (uint)_idx, (uint)_stride, (uint)w, (uint)h, 0, 0, Size.Width, Size.Height);
             }
             else
                 _node!.Touch();   // 同じバッファの中身だけ更新 → 再合成を促す
@@ -105,7 +107,7 @@ public sealed partial class GpuView : Widget
         {
             if (!view._alive) return;   // 二重破棄防止 (リサイズで旧スコープが後から破棄される等)
             view._alive = false;
-            view._scene.Dispose();
+            view.Scene.Get()?.Dispose();
         }
     }
 }

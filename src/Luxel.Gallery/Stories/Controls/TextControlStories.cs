@@ -21,7 +21,7 @@ public static class TextControlStories
             "# 見出し 1\ntext with **bold**, *italic*, `code` and [link](https://example.com)\n" +
             "## 見出し 2\n> 引用ブロックはミュート色 + 左バー\n- リスト項目\n- 項目 **強調** 入り\n" +
             "1. 番号付き\n2. 自動採番\n---\n```cs\nvar x = 1;\nvar y = x + 1;\n```\n日本語の段落も編集できる。");
-        RichTextEditor ed = RichTextEditor(md, height: 330);
+        RichTextEditor ed = RichTextEditor(md, editorHeight: 330);
         ed.Fonts = JpFallback.Value;
         ed.Highlighter = Luxel.Highlight.TextMateHighlighter.Instance;
         (ed.BoldFont, ed.ItalicFont, ed.BoldItalicFont, ed.MonoFont) = EditorFaces.Value;
@@ -51,7 +51,7 @@ public static class TextControlStories
         Signal<string> md = ctx.Signal("markdown",
             "# Hybrid 編集\nキャレットのあるブロックだけ **ソース** を表示して編集し、離れると整形に戻る。\n" +
             "- 行頭で `- ` や `# ` を打つと型が確定する (離脱時の再パース)\n> 引用も同様\n```cs\nvar code = true;\n```");
-        RichTextEditor ed = RichTextEditor(md, height: 330);
+        RichTextEditor ed = RichTextEditor(md, editorHeight: 330);
         ed.HybridSource = true;
         ed.Fonts = JpFallback.Value;
         (ed.BoldFont, ed.ItalicFont, ed.BoldItalicFont, ed.MonoFont) = EditorFaces.Value;
@@ -64,7 +64,7 @@ public static class TextControlStories
         // 同一 signal を Visual (hybrid) と Source (TextArea) が共有 — 双方向バインドの実証。
         // どちらで編集してももう片方へ即時反映される (切替でなく並置デモ)。
         Signal<string> md = ctx.Signal("markdown", "# タイトル\ntext **bold** and *italic*\n- item 1\n- item 2");
-        RichTextEditor visual = RichTextEditor(md, height: 230);
+        RichTextEditor visual = RichTextEditor(md, editorHeight: 230);
         visual.HybridSource = true;
         visual.Fonts = JpFallback.Value;
         (visual.BoldFont, visual.ItalicFont, visual.BoldItalicFont, visual.MonoFont) = EditorFaces.Value;
@@ -126,7 +126,7 @@ public static class TextControlStories
             "| name | value |\n| --- | ---: |\n| alpha | 1 |\n| beta | 2 |\n\n" +
             "画像は Resource システム経由でロードされる (URI キャッシュ + RefCount):\n" +
             $"![サンプル画像]({SampleImage})\n通常の段落は普通に編集できる。");
-        RichTextEditor ed = RichTextEditor(md, height: 360, format: fmt, widgets: widgets);
+        RichTextEditor ed = RichTextEditor(md, editorHeight: 360, format: fmt, widgets: widgets);
         ed.HybridSource = true;   // 打った記法 (![alt](src) 等) が離脱で確定し embed 化される
         ed.Fonts = JpFallback.Value;
         ed.Highlighter = Luxel.Highlight.TextMateHighlighter.Instance;

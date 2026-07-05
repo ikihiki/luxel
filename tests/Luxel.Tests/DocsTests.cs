@@ -50,7 +50,7 @@ public class DocsTests
             """);
 
         Block embed = Assert.Single(doc.Editor.Doc.Blocks, b => b.Kind == BlockKind.Embed);
-        BlockWidgetFactory factory = doc.Widgets.Find(DocString.UiTypeId)!;
+        BlockWidgetFactory factory = doc.WidgetRegistry.Find(DocString.UiTypeId)!;
         Widget canvas = factory(new BlockWidgetContext
         {
             Payload = embed.Payload!,
@@ -76,7 +76,7 @@ public class DocsTests
 
         var embeds = doc.Editor.Doc.Blocks.Where(x => x.Kind == BlockKind.Embed).ToArray();
         Assert.Equal(2, embeds.Length);
-        BlockWidgetFactory factory = doc.Widgets.Find(DocString.UiTypeId)!;
+        BlockWidgetFactory factory = doc.WidgetRegistry.Find(DocString.UiTypeId)!;
         Widget W(Block e) => factory(new BlockWidgetContext
         {
             Payload = e.Payload!, MaxWidth = 400, Theme = UiTheme.Current,

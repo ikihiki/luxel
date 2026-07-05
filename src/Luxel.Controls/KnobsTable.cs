@@ -18,26 +18,22 @@ public sealed partial class KnobsTable : CompositeControl
     private const string IntPattern = "^-?[0-9]*$";
     private const float NameW = 90, TypeW = 46, CtlW = 130, Gap = 6;
 
-    private readonly IReadOnlyList<StoryKnob> _knobs;
-    private readonly float _width;
+    /// <summary>表示する knob 列。</summary>
+    [UiParam] private readonly Bindable<IReadOnlyList<StoryKnob>> _knobs = new([]);
+    /// <summary>テーブル全幅 (px)。説明列が残り幅を受ける。</summary>
+    [UiParam] private readonly Bindable<float> _width = 480f;
 
     /// <summary>knob の文字列編集 (第一引数 = 発火元, knob, 新しい値の文字列表現)。</summary>
     [UiEvent] public UiEvent<KnobsTable, StoryKnob, string> OnEdit;
 
-    [UiCtor]
-    internal KnobsTable(IReadOnlyList<StoryKnob> knobs, float width = 480f)
-    {
-        _knobs = knobs;
-        _width = width;
-    }
-
     protected override Widget Build()
     {
-        if (_knobs.Count == 0)
+        IReadOnlyList<StoryKnob> knobs = Knobs.Get();
+        if (knobs.Count == 0)
             return Text("knob なし", 11, color: Bind.From(() => UiTheme.T.TextMuted),
                         margin: new Thickness(4, 0, 0, 0));
 
-        float descW = MathF.Max(50, _width - NameW - TypeW - CtlW - Gap * 3);
+        float descW = MathF.Max(50, Width.Get() - NameW - TypeW - CtlW - Gap * 3);
         Widget Cell(string s, float w, bool muted = false) =>
             Text(s, 11, color: Bind.From(() => muted ? UiTheme.T.TextMuted : UiTheme.T.Text),
                  width: w, wrap: TextWrap.Word, margin: new Thickness(0, 4, 0, 0));
@@ -49,7 +45,7 @@ public sealed partial class KnobsTable : CompositeControl
                 Cell("説明", descW, muted: true), Cell("操作", CtlW, muted: true)],
             Divider(),
         };
-        foreach (StoryKnob k in _knobs)
+        foreach (StoryKnob k in knobs)
         {
             // 型列は "enum:A|B|C" の候補列挙を出さない (候補は操作列の Select で見える)
             string typeLabel = k.Type.StartsWith("enum:") ? "enum" : k.Type;

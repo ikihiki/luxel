@@ -43,16 +43,16 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         "'{0}' に [UiParam]/[UiComponent] がありますが partial でないため生成コードを焼き込めません。'partial' を追加してください",
         "Luxel.UI", DiagnosticSeverity.Warning, true);
 
-    private static readonly DiagnosticDescriptor NoCtor = new(
-        "NGUI002", "component needs accessible ctor",
-        "'{0}' は [UiComponent] ですが public/internal コンストラクタが無いためファクトリを生成できません",
+    private static readonly DiagnosticDescriptor OwnCtor = new(
+        "NGUI002", "component should not declare constructors",
+        "'{0}' は [UiComponent] ですが手書きコンストラクタがあります。パラメータなし internal ctor はジェネレーターが自動定義し、すべてのパラメータは [UiParam] 経由で渡してください (初期化は partial void OnConstruct() へ)",
         "Luxel.UI", DiagnosticSeverity.Warning, true);
 
     internal enum BindKind { Color, Int, Float, Double, Bool, String, Enum, Parsable, Other, Text /* BindableString */ }
 
     internal sealed class FieldModel : IEquatable<FieldModel>
     {
-        public readonly string Name;
+        public readonly string Name;      // 公開名 (プロパティ名 — private フィールドは _x → X に写す)
         public readonly BindKind Kind;
         public readonly bool IsReadOnly;
         public readonly string TypeFq;
@@ -60,16 +60,18 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         public readonly bool Stateable;   // [UiParam(Stateable = true)] — When/{Class}Props に出す
         public readonly bool Own;         // 自身の型で宣言 (false = 基底 Widget の共通パラメータ)
         public readonly string Summary;   // /// summary (ControlApi 用)
+        public readonly string SourceField;   // 標準形: private フィールド名 ("" = 旧 public 宣言 — アクセサ生成不要)
+        public readonly int Seq;          // 宣言順 (ファクトリ引数の順序 — [UiEvent] と混在で保存)
         public FieldModel(string name, BindKind kind, bool isReadOnly, string typeFq, string enumHint, bool stateable,
-                          bool own = false, string summary = "")
+                          bool own = false, string summary = "", string sourceField = "", int seq = 0)
         { Name = name; Kind = kind; IsReadOnly = isReadOnly; TypeFq = typeFq; EnumHint = enumHint; Stateable = stateable;
-          Own = own; Summary = summary; }
+          Own = own; Summary = summary; SourceField = sourceField; Seq = seq; }
         public bool Equals(FieldModel? o) => o is not null && Name == o.Name && Kind == o.Kind
             && IsReadOnly == o.IsReadOnly && TypeFq == o.TypeFq && EnumHint == o.EnumHint && Stateable == o.Stateable
-            && Own == o.Own && Summary == o.Summary;
+            && Own == o.Own && Summary == o.Summary && SourceField == o.SourceField && Seq == o.Seq;
         public override bool Equals(object? obj) => Equals(obj as FieldModel);
         public override int GetHashCode()
-        { unchecked { return (((((Name.GetHashCode() * 397 ^ (int)Kind) * 397 ^ TypeFq.GetHashCode()) * 397 ^ EnumHint.GetHashCode()) * 397 ^ Summary.GetHashCode()) * 8 + (IsReadOnly ? 1 : 0)) + (Stateable ? 2 : 0) + (Own ? 4 : 0); } }
+        { unchecked { return (((((((Name.GetHashCode() * 397 ^ (int)Kind) * 397 ^ TypeFq.GetHashCode()) * 397 ^ EnumHint.GetHashCode()) * 397 ^ Summary.GetHashCode()) * 397 ^ SourceField.GetHashCode()) * 397 ^ Seq) * 8 + (IsReadOnly ? 1 : 0)) + (Stateable ? 2 : 0) + (Own ? 4 : 0); } }
     }
 
     internal sealed class EventModel : IEquatable<EventModel>
@@ -78,33 +80,19 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         public readonly string[] ArgTypesFq;   // 空 = 引数なし (UiEvent)
         public readonly bool Own;
         public readonly string Summary;
-        public EventModel(string name, string[] argTypesFq, bool own = false, string summary = "")
-        { Name = name; ArgTypesFq = argTypesFq; Own = own; Summary = summary; }
+        public readonly int Seq;               // 宣言順 (ファクトリ引数の順序 — [UiParam] と混在で保存)
+        public EventModel(string name, string[] argTypesFq, bool own = false, string summary = "", int seq = 0)
+        { Name = name; ArgTypesFq = argTypesFq; Own = own; Summary = summary; Seq = seq; }
         public bool Equals(EventModel? o)
         {
             if (o is null || Name != o.Name || ArgTypesFq.Length != o.ArgTypesFq.Length
-                || Own != o.Own || Summary != o.Summary) return false;
+                || Own != o.Own || Summary != o.Summary || Seq != o.Seq) return false;
             for (int i = 0; i < ArgTypesFq.Length; i++) if (ArgTypesFq[i] != o.ArgTypesFq[i]) return false;
             return true;
         }
         public override bool Equals(object? obj) => Equals(obj as EventModel);
         public override int GetHashCode()
-        { unchecked { int h = Name.GetHashCode() * 397 ^ Summary.GetHashCode(); foreach (string a in ArgTypesFq) h = h * 397 ^ a.GetHashCode(); return h * 2 + (Own ? 1 : 0); } }
-    }
-
-    internal sealed class CtorParam : IEquatable<CtorParam>
-    {
-        public readonly string TypeFq;
-        public readonly string Name;
-        public readonly string? DefaultLiteral;   // null = 既定値なし
-        public readonly string Summary;           // /// <param> (ControlApi 用)
-        public CtorParam(string typeFq, string name, string? defaultLiteral, string summary = "")
-        { TypeFq = typeFq; Name = name; DefaultLiteral = defaultLiteral; Summary = summary; }
-        public bool Equals(CtorParam? o) => o is not null && TypeFq == o.TypeFq && Name == o.Name
-            && DefaultLiteral == o.DefaultLiteral && Summary == o.Summary;
-        public override bool Equals(object? obj) => Equals(obj as CtorParam);
-        public override int GetHashCode()
-        { unchecked { return ((TypeFq.GetHashCode() * 397 ^ Name.GetHashCode()) * 397 ^ (DefaultLiteral?.GetHashCode() ?? 0)) * 397 ^ Summary.GetHashCode(); } }
+        { unchecked { int h = (Name.GetHashCode() * 397 ^ Summary.GetHashCode()) * 397 ^ Seq; foreach (string a in ArgTypesFq) h = h * 397 ^ a.GetHashCode(); return h * 2 + (Own ? 1 : 0); } }
     }
 
     internal sealed class WidgetModel : IEquatable<WidgetModel>
@@ -114,6 +102,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         public readonly string ClassName;
         public readonly bool IsPartial;
         public readonly bool IsInternal;
+        public readonly bool IsAbstract;          // 抽象基底 (Widget 等) — アクセサプロパティのみ生成
         public readonly bool DeclaresOwnParams;
         public readonly bool IsComponent;
         public readonly string? FactoryClass;
@@ -121,32 +110,27 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         public readonly string DocSummary;
         public readonly FieldModel[] Fields;      // 自身 → 基底の順
         public readonly EventModel[] Events;      // [UiEvent] フィールド
-        public readonly CtorParam[]? Ctor;        // null = public ctor なし
+        public readonly bool HasOwnCtor;          // 手書き ctor が残っている (パラメータなし ctor を生成しない)
         public WidgetModel(string typeFq, string ns, string className, bool isPartial, bool isInternal,
-            bool declaresOwn, bool isComponent, string? factoryClass, string factoryName,
-            string docSummary, FieldModel[] fields, EventModel[] events, CtorParam[]? ctor)
+            bool isAbstract, bool declaresOwn, bool isComponent, string? factoryClass, string factoryName,
+            string docSummary, FieldModel[] fields, EventModel[] events, bool hasOwnCtor)
         {
             TypeFq = typeFq; Namespace = ns; ClassName = className; IsPartial = isPartial; IsInternal = isInternal;
+            IsAbstract = isAbstract;
             DeclaresOwnParams = declaresOwn; IsComponent = isComponent;
             FactoryClass = factoryClass; FactoryName = factoryName; DocSummary = docSummary; Fields = fields;
-            Events = events; Ctor = ctor;
+            Events = events; HasOwnCtor = hasOwnCtor;
         }
         public bool Equals(WidgetModel? o)
         {
             if (o is null || TypeFq != o.TypeFq || Namespace != o.Namespace || ClassName != o.ClassName
-                || IsPartial != o.IsPartial || IsInternal != o.IsInternal
-                || DeclaresOwnParams != o.DeclaresOwnParams
+                || IsPartial != o.IsPartial || IsInternal != o.IsInternal || IsAbstract != o.IsAbstract
+                || DeclaresOwnParams != o.DeclaresOwnParams || HasOwnCtor != o.HasOwnCtor
                 || IsComponent != o.IsComponent || FactoryClass != o.FactoryClass || FactoryName != o.FactoryName
                 || DocSummary != o.DocSummary || Fields.Length != o.Fields.Length
                 || Events.Length != o.Events.Length) return false;
             for (int i = 0; i < Fields.Length; i++) if (!Fields[i].Equals(o.Fields[i])) return false;
             for (int i = 0; i < Events.Length; i++) if (!Events[i].Equals(o.Events[i])) return false;
-            if ((Ctor is null) != (o.Ctor is null)) return false;
-            if (Ctor is not null && o.Ctor is not null)
-            {
-                if (Ctor.Length != o.Ctor.Length) return false;
-                for (int i = 0; i < Ctor.Length; i++) if (!Ctor[i].Equals(o.Ctor[i])) return false;
-            }
             return true;
         }
         public override bool Equals(object? obj) => Equals(obj as WidgetModel);
@@ -154,10 +138,9 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         {
             unchecked
             {
-                int h = TypeFq.GetHashCode();
+                int h = TypeFq.GetHashCode() * 2 + (HasOwnCtor ? 1 : 0);
                 foreach (FieldModel f in Fields) h = h * 397 ^ f.GetHashCode();
                 foreach (EventModel e in Events) h = h * 397 ^ e.GetHashCode();
-                if (Ctor is not null) foreach (CtorParam p in Ctor) h = h * 397 ^ p.GetHashCode();
                 return h;
             }
         }
@@ -166,7 +149,8 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var widgets = context.SyntaxProvider.CreateSyntaxProvider(
-                static (node, _) => node is ClassDeclarationSyntax { BaseList: not null },
+                // BaseList なしも対象 (Widget 基底自身の [UiParam] private フィールドにアクセサを生成する)
+                static (node, _) => node is ClassDeclarationSyntax,
                 static (ctx, ct) => Transform(ctx, ct))
             .Where(static m => m is not null)
             .Collect();
@@ -190,28 +174,84 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
     private static WidgetModel? Transform(GeneratorSyntaxContext ctx, CancellationToken ct)
     {
         if (ctx.SemanticModel.GetDeclaredSymbol((ClassDeclarationSyntax)ctx.Node, ct) is not INamedTypeSymbol sym) return null;
-        if (sym.IsAbstract || sym.IsStatic || sym.IsGenericType) return null;
+        if (sym.IsStatic || sym.IsGenericType) return null;
         if (sym.ContainingType is not null) return null;   // nested 型は対象外
         if (sym.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Internal)) return null;
 
-        bool isWidget = false;
-        for (INamedTypeSymbol? b = sym.BaseType; b is not null; b = b.BaseType)
-            if (b.ToDisplayString() == WidgetTypeName) { isWidget = true; break; }
+        // Widget 派生 + Widget/抽象基底自身 (基底の [UiParam] private フィールドにもアクセサを生成する)
+        bool isWidget = sym.ToDisplayString() == WidgetTypeName;
+        for (INamedTypeSymbol? b = sym.BaseType; !isWidget && b is not null; b = b.BaseType)
+            if (b.ToDisplayString() == WidgetTypeName) isWidget = true;
         if (!isWidget) return null;
 
-        // [UiParam]/[UiEvent] フィールドを自身 → 基底の順で収集 (Widget 基底の共通プロパティも含む)
+        // [UiParam] プロパティ/フィールドと [UiEvent] フィールドを自身 → 基底の順で収集
+        // (Widget 基底の共通プロパティも含む)。標準形は
+        // `[UiParam] public Bindable<T> X { get; internal init; }` — 生成コードはゲッター経由で
+        // SetBase/SetState を呼ぶので、フィールドとプロパティで出力は同一。
         var fields = new List<FieldModel>();
         var events = new List<EventModel>();
         var seenNames = new HashSet<string>();
         bool declaresOwn = false;
+        int seq = 0;   // 宣言順 (自身 → 基底) — ファクトリ引数は [UiParam]/[UiEvent] の混在宣言順
         for (INamedTypeSymbol? t = sym; t is not null && t.SpecialType != SpecialType.System_Object; t = t.BaseType)
         {
             foreach (ISymbol m in t.GetMembers())
             {
+                bool own = SymbolEqualityComparer.Default.Equals(t, sym);
+
+                // [UiParam] プロパティ (標準形): public get 必須 (init/set は任意 — 生成コードは触らない)
+                if (m is IPropertySymbol prop)
+                {
+                    if (prop.IsStatic || prop.IsIndexer || prop.IsImplicitlyDeclared) continue;
+                    if (prop.DeclaredAccessibility != Accessibility.Public) continue;
+                    if (prop.GetMethod is not { DeclaredAccessibility: Accessibility.Public }) continue;
+                    if (!TryGetUiParam(prop, out bool pStateable)) continue;
+                    if (prop.Type is not INamedTypeSymbol pt || pt.ContainingNamespace?.ToDisplayString() != UiNamespace) continue;
+                    if (pt.Arity == 0 && pt.Name == "BindableString")
+                    {
+                        if (!seenNames.Add(prop.Name)) continue;
+                        if (own) declaresOwn = true;
+                        fields.Add(new FieldModel(prop.Name, BindKind.Text, true, "string", "", pStateable,
+                            own, ExtractSummary(prop.GetDocumentationCommentXml(cancellationToken: ct)), "", seq++));
+                        continue;
+                    }
+                    if (pt.Arity != 1 || pt.Name != "Bindable") continue;
+                    if (!seenNames.Add(prop.Name)) continue;
+                    if (own) declaresOwn = true;
+                    (BindKind pKind, string pHint) = Classify(pt.TypeArguments[0]);
+                    fields.Add(new FieldModel(prop.Name, pKind, true,
+                        pt.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), pHint, pStateable,
+                        own, ExtractSummary(prop.GetDocumentationCommentXml(cancellationToken: ct)), "", seq++));
+                    continue;
+                }
+
                 if (m is not IFieldSymbol f) continue;
                 if (f.IsStatic || f.IsConst || f.IsImplicitlyDeclared) continue;
+
+                // [UiParam] private フィールド (標準形): `_x` → 公開プロパティ `X` を生成する
+                // (public get / internal init — 宣言はフィールドのまま、公開面はジェネレーターが作る)
+                if (f.DeclaredAccessibility == Accessibility.Private && TryGetUiParam(f, out bool pvStateable))
+                {
+                    if (f.Type is not INamedTypeSymbol pvt || pvt.ContainingNamespace?.ToDisplayString() != UiNamespace) continue;
+                    string propName = PropNameOf(f.Name);
+                    if (propName.Length == 0 || !seenNames.Add(propName)) continue;
+                    if (own) declaresOwn = true;
+                    string summary = ExtractSummary(f.GetDocumentationCommentXml(cancellationToken: ct));
+                    if (pvt.Arity == 0 && pvt.Name == "BindableString")
+                    {
+                        fields.Add(new FieldModel(propName, BindKind.Text, true, "string", "", pvStateable,
+                            own, summary, f.Name, seq++));
+                        continue;
+                    }
+                    if (pvt.Arity != 1 || pvt.Name != "Bindable") { seenNames.Remove(propName); continue; }
+                    (BindKind pvKind, string pvHint) = Classify(pvt.TypeArguments[0]);
+                    fields.Add(new FieldModel(propName, pvKind, true,
+                        pvt.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), pvHint, pvStateable,
+                        own, summary, f.Name, seq++));
+                    continue;
+                }
+
                 if (f.DeclaredAccessibility != Accessibility.Public) continue;
-                bool own = SymbolEqualityComparer.Default.Equals(t, sym);
                 if (HasAttribute(f, "Luxel.UI.UiEventAttribute"))
                 {
                     // [UiEvent]: UiEvent / UiEvent<T> / UiEvent<T1,T2> フィールド → ファクトリの Action? 引数
@@ -222,7 +262,8 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
                     var args = new string[et.Arity];
                     for (int i = 0; i < et.Arity; i++)
                         args[i] = et.TypeArguments[i].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                    events.Add(new EventModel(f.Name, args, own, ExtractSummary(f.GetDocumentationCommentXml(cancellationToken: ct))));
+                    events.Add(new EventModel(f.Name, args, own,
+                        ExtractSummary(f.GetDocumentationCommentXml(cancellationToken: ct)), seq++));
                     continue;
                 }
                 if (!TryGetUiParam(f, out bool stateable)) continue;
@@ -234,7 +275,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
                     if (!seenNames.Add(f.Name)) continue;
                     if (own) declaresOwn = true;
                     fields.Add(new FieldModel(f.Name, BindKind.Text, f.IsReadOnly, "string", "", stateable,
-                        own, ExtractSummary(f.GetDocumentationCommentXml(cancellationToken: ct))));
+                        own, ExtractSummary(f.GetDocumentationCommentXml(cancellationToken: ct)), "", seq++));
                     continue;
                 }
                 if (nt.Arity != 1 || nt.Name != "Bindable") continue;
@@ -245,7 +286,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
                 (BindKind kind, string enumHint) = Classify(arg);
                 fields.Add(new FieldModel(f.Name, kind, f.IsReadOnly,
                     arg.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), enumHint, stateable,
-                    own, ExtractSummary(f.GetDocumentationCommentXml(cancellationToken: ct))));
+                    own, ExtractSummary(f.GetDocumentationCommentXml(cancellationToken: ct)), "", seq++));
             }
         }
 
@@ -265,58 +306,26 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
             }
         }
 
-        // 最長 public/internal コンストラクタの引数をファクトリ先頭引数に写す
-        // (ファクトリは同一アセンブリに生成されるため internal ctor でよい — 外部からの直接 new を防ぐ)
-        CtorParam[]? ctor = null;
-        IMethodSymbol? best = null;
+        // コンストラクタは収集しない — パラメータなし internal ctor をジェネレーターが自動定義し、
+        // すべてのパラメータは [UiParam] 経由で渡る (手書き ctor が残っていれば生成をスキップする)
+        bool hasOwnCtor = false;
         foreach (IMethodSymbol c in sym.InstanceConstructors)
-        {
-            if (c.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Internal)) continue;
-            if (HasAttribute(c, "Luxel.UI.UiCtorAttribute")) { best = c; break; }   // 明示指定が最優先
-            if (best is null || c.Parameters.Length > best.Parameters.Length) best = c;
-        }
-        if (best is not null)
-        {
-            string ctorXml = best.GetDocumentationCommentXml(cancellationToken: ct) ?? "";
-            var ps = new CtorParam[best.Parameters.Length];
-            for (int i = 0; i < ps.Length; i++)
-            {
-                IParameterSymbol p = best.Parameters[i];
-                ps[i] = new CtorParam(p.Type.ToDisplayString(TypeFmt), p.Name,
-                    p.HasExplicitDefaultValue ? FormatDefault(p) : null,
-                    ExtractParamDoc(ctorXml, p.Name));
-            }
-            ctor = ps;
-        }
+            if (!c.IsImplicitlyDeclared) { hasOwnCtor = true; break; }
 
         return new WidgetModel(
             sym.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             sym.ContainingNamespace is { IsGlobalNamespace: false } ns ? ns.ToDisplayString() : "",
-            sym.Name, isPartial, sym.DeclaredAccessibility == Accessibility.Internal,
+            sym.Name, isPartial, sym.DeclaredAccessibility == Accessibility.Internal, sym.IsAbstract,
             declaresOwn, isComponent, factoryClass, nameOverride ?? sym.Name,
-            ExtractSummary(sym.GetDocumentationCommentXml(cancellationToken: ct)), fields.ToArray(), events.ToArray(), ctor);
+            ExtractSummary(sym.GetDocumentationCommentXml(cancellationToken: ct)), fields.ToArray(), events.ToArray(),
+            hasOwnCtor);
     }
 
-    private static string FormatDefault(IParameterSymbol p)
+    /// <summary>private フィールド名 → 公開プロパティ名 ("_fontSize" → "FontSize")。</summary>
+    private static string PropNameOf(string field)
     {
-        object? v = p.ExplicitDefaultValue;
-        if (v is null) return p.Type.IsValueType && p.Type.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T
-            ? "default" : "null";
-        if (p.Type.TypeKind == TypeKind.Enum)
-            return "(" + p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + ")" + Convert.ToInt64(v, CultureInfo.InvariantCulture);
-        return v switch
-        {
-            bool b => b ? "true" : "false",
-            string s => SymbolDisplay.FormatLiteral(s, true),
-            char c => SymbolDisplay.FormatLiteral(c, true),
-            float f => f.ToString("R", CultureInfo.InvariantCulture) + "f",
-            double d => d.ToString("R", CultureInfo.InvariantCulture) + "d",
-            decimal m => m.ToString(CultureInfo.InvariantCulture) + "m",
-            uint u => u.ToString(CultureInfo.InvariantCulture) + "u",
-            long l => l.ToString(CultureInfo.InvariantCulture) + "L",
-            ulong ul => ul.ToString(CultureInfo.InvariantCulture) + "UL",
-            _ => Convert.ToString(v, CultureInfo.InvariantCulture) ?? "default",
-        };
+        string n = field.TrimStart('_');
+        return n.Length == 0 ? "" : char.ToUpperInvariant(n[0]) + n.Substring(1);
     }
 
     private static bool HasAttribute(ISymbol s, string fqName)
@@ -362,7 +371,9 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
             if (i.OriginalDefinition.ToDisplayString() == "System.IParsable<TSelf>"
                 && SymbolEqualityComparer.Default.Equals(i.TypeArguments[0], t))
                 return (BindKind.Parsable, "");
-        return (BindKind.Other, "");
+        // Other の EnumHint は値型マーク ("vt") に流用 — ファクトリ引数を生の型にするか
+        // (参照型 = 生の T?) Bindable にするか (値型) の判定に使う
+        return (BindKind.Other, t.IsValueType ? "vt" : "");
     }
 
     private static string ExtractSummary(string? xml)
@@ -371,14 +382,6 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         Match m = Regex.Match(xml!, @"<summary>(.*?)</summary>", RegexOptions.Singleline);
         if (!m.Success) return "";
         return CleanDoc(m.Groups[1].Value);
-    }
-
-    /// <summary>ctor XML doc から &lt;param name="..."&gt; の本文を取り出す (ControlApi 用)。</summary>
-    private static string ExtractParamDoc(string? xml, string paramName)
-    {
-        if (string.IsNullOrEmpty(xml)) return "";
-        Match m = Regex.Match(xml!, "<param name=\"" + Regex.Escape(paramName) + "\">(.*?)</param>", RegexOptions.Singleline);
-        return m.Success ? CleanDoc(m.Groups[1].Value) : "";
     }
 
     /// <summary>doc コメント本文の整形: see/c 等のタグを中身だけに落とし、空白を畳む。</summary>
@@ -413,6 +416,8 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated/> Luxel.UI.Generators.WidgetDebugGenerator");
         sb.AppendLine("#nullable enable");
+        // 派生が基底と同名のパラメータ (_height 等) を再宣言した場合、生成プロパティが基底を隠す — 意図的
+        sb.AppendLine("#pragma warning disable CS0108, CS0114");
 
         // ---- (1) SetProp + デバッグ焼き込み (partial override) ----
         foreach (WidgetModel w in list)
@@ -432,11 +437,8 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         foreach (WidgetModel w in list)
         {
             if (!w.IsComponent) continue;
-            if (w.Ctor is null)
-            {
-                spc.ReportDiagnostic(Diagnostic.Create(NoCtor, Location.None, w.TypeFq));
-                continue;
-            }
+            if (w.HasOwnCtor)
+                spc.ReportDiagnostic(Diagnostic.Create(OwnCtor, Location.None, w.TypeFq));
             (string, string) key = (w.Namespace, w.FactoryClass ?? factoryDefault);
             if (!groups.TryGetValue(key, out List<WidgetModel>? g)) groups[key] = g = new List<WidgetModel>();
             g.Add(w);
@@ -456,7 +458,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
     /// メンバー順: ctor 引数 → イベント → 自身の [UiParam] → 基底 (共通) の [UiParam]。</summary>
     private static void EmitControlApi(StringBuilder sb, List<WidgetModel> list, string assemblyName)
     {
-        var comps = list.Where(static w => w.IsComponent && w.Ctor is not null).ToList();
+        var comps = list.Where(static w => w.IsComponent).ToList();
         if (comps.Count == 0) return;
         comps.Sort(static (a, b) => string.CompareOrdinal(a.FactoryName, b.FactoryName));
 
@@ -473,9 +475,6 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
             sb.Append("            global::Luxel.UI.ControlApiRegistry.Register(new global::Luxel.UI.ControlApi(")
               .Append(Lit(w.FactoryName)).Append(", ").Append(Lit(w.DocSummary))
               .AppendLine(", new global::Luxel.UI.ApiMember[] {");
-            foreach (CtorParam p in w.Ctor!)
-                sb.Append("                new(").Append(Lit(p.Name)).Append(", ").Append(Lit(ShortType(p.TypeFq)))
-                  .Append(", \"ctor\", ").Append(Lit(p.Summary)).AppendLine("),");
             foreach (EventModel e in w.Events)
             {
                 string type = e.ArgTypesFq.Length == 0
@@ -504,6 +503,48 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         OpenNamespace(sb, w.Namespace, out string pad);
         sb.Append(pad).Append("partial class ").AppendLine(w.ClassName);
         sb.Append(pad).AppendLine("{");
+
+        // [UiParam] private フィールドの公開面 (標準形): 宣言はフィールドのまま、
+        // 公開プロパティはここで生成 — 外部アセンブリは get only、構築 (同一アセンブリの
+        // ファクトリ/テスト) は internal init。init は readonly フィールドにも書ける。
+        // 生成プロパティにも [UiParam] を付ける — **参照アセンブリからは private フィールドが
+        // 見えない (metadata は public のみ)** ため、継承先 (別アセンブリ) の収集は
+        // このプロパティ経路で行われる (同一コンパイル内は自分の生成出力が見えないので二重収集しない)
+        foreach (FieldModel f in w.Fields)
+        {
+            if (!f.Own || f.SourceField.Length == 0) continue;
+            string propType = f.Kind == BindKind.Text
+                ? "global::Luxel.UI.BindableString"
+                : "global::Luxel.UI.Bindable<" + f.TypeFq + ">";
+            if (f.Summary.Length > 0)
+                sb.Append(pad).Append("    /// <summary>").Append(new System.Xml.Linq.XText(f.Summary).ToString()).AppendLine("</summary>");
+            sb.Append(pad).Append("    [global::Luxel.UI.UiParam").Append(f.Stateable ? "(Stateable = true)" : "").AppendLine("]");
+            sb.Append(pad).Append("    public ").Append(propType).Append(' ').Append(f.Name)
+              .Append(" { get => ").Append(f.SourceField)
+              .Append("; internal init => ").Append(f.SourceField).AppendLine(" = value; }");
+        }
+
+        // 抽象基底 (Widget 等) はアクセサのみ — SetProp/DebugProps 等の override は具象側が
+        // 全フィールド (基底分含む) をまとめて生成する
+        if (w.IsAbstract)
+        {
+            sb.Append(pad).AppendLine("}");
+            CloseNamespace(sb, w.Namespace);
+            return;
+        }
+
+        // パラメータなし internal ctor (自動定義) — すべてのパラメータは [UiParam] 経由で渡る。
+        // 旧 ctor の初期化ロジックは partial void OnConstruct() へ (パラメータ非依存のみ —
+        // パラメータ依存の初期化は初回 PerformLayout/Realize で遅延させる)
+        if (w.IsComponent && !w.HasOwnCtor)
+        {
+            sb.Append(pad).AppendLine("    /// <summary>ファクトリ用 (生成) — すべてのパラメータは [UiParam] 経由。</summary>");
+            sb.Append(pad).Append("    internal ").Append(w.ClassName).AppendLine("() { OnConstruct(); }");
+            sb.AppendLine();
+            sb.Append(pad).AppendLine("    /// <summary>生成 ctor から呼ばれる初期化フック (旧 ctor 本体の移設先)。</summary>");
+            sb.Append(pad).AppendLine("    partial void OnConstruct();");
+            sb.AppendLine();
+        }
 
         // SetProp<T>: 名前ベースのプロパティ書込 (Tailwind utility / 状態レイヤ)。
         // フィールドは readonly Bindable — 差し替えず SetBase/SetState で中身を書く
@@ -667,41 +708,35 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
 
     private static void EmitFactoryMethod(StringBuilder sb, string pad, WidgetModel w)
     {
-        CtorParam[] ctor = w.Ctor!;
-        var ctorNames = new HashSet<string>();
-        foreach (CtorParam p in ctor) ctorNames.Add(p.Name);
-
         if (w.DocSummary.Length > 0)
             sb.Append(pad).Append("/// <summary>").Append(new System.Xml.Linq.XText(w.DocSummary).ToString()).AppendLine("</summary>");
         sb.Append(pad).Append(w.IsInternal ? "internal" : "public").Append(" static ").Append(w.TypeFq)
           .Append(' ').Append(w.FactoryName).Append('(');
 
-        // 引数リストを収集して結合する (設定はすべて名前付き引数 + fluent 拡張 — parts は無い)
+        // 引数 = [UiParam]/[UiEvent] の**宣言順** (自身 → 基底)。位置引数の互換は宣言順が決める —
+        // 旧 ctor 引数だったものはクラス先頭に宣言しておく。設定はすべて省略可能な名前付き引数
+        var merged = new List<(int Seq, FieldModel? F, EventModel? E)>();
+        foreach (FieldModel f in w.Fields) merged.Add((f.Seq, f, null));
+        foreach (EventModel e in w.Events) merged.Add((e.Seq, null, e));
+        merged.Sort(static (a, b) => a.Seq.CompareTo(b.Seq));
+
         var paramDecls = new List<string>();
-        // (1) ctor 引数 (そのまま写す)
-        foreach (CtorParam p in ctor)
+        foreach ((int _, FieldModel? f, EventModel? e) in merged)
         {
-            string decl = p.TypeFq + " " + SafeName(p.Name);
-            if (p.DefaultLiteral is not null) decl += " = " + p.DefaultLiteral;
-            paramDecls.Add(decl);
-        }
-        // (1.5) [UiEvent] フィールド (Action? の省略可能引数 — ctor 直後に置き位置引数互換を保つ)
-        foreach (EventModel e in w.Events)
-        {
-            if (ctorNames.Contains(ParamName(e.Name))) continue;
-            paramDecls.Add(ActionType(e) + "? " + SafeName(ParamName(e.Name)) + " = null");
-        }
-        // (2) [UiParam] フィールド (readonly / ctor 引数と名前衝突は除外)
-        // Length は値型のまま受ける (int/float/string からの暗黙変換を 1 段に保つため
-        // Bindable<Length> だと 2 段のユーザー定義変換が必要になり width: 380 が書けない)
-        foreach (FieldModel f in w.Fields)
-        {
-            if (ctorNames.Contains(ParamName(f.Name))) continue;
-            // Length は値型のまま (= default + .IsSet)、Bindable 系は nullable (= null)
-            string paramType = f.Kind == BindKind.Text
+            if (e is not null)
+            {
+                paramDecls.Add(ActionType(e) + "? " + SafeName(ParamName(e.Name)) + " = null");
+                continue;
+            }
+            // Length は値型のまま受ける (int/float/string からの暗黙変換を 1 段に保つ)。
+            // Other の参照型 (配列/リスト/Signal/デリゲート等) も生の型で受ける —
+            // コレクション式 `[...]` やラムダの自然な型付けを保つ (Bindable へは SetBase の暗黙変換)
+            string paramType = f!.Kind == BindKind.Text
                 ? "global::Luxel.UI.BindableString?"
                 : f.TypeFq == LengthType
                 ? LengthType
+                : f.Kind == BindKind.Other && f.EnumHint != "vt"
+                ? f.TypeFq + "?"
                 : "global::Luxel.UI.Bindable<" + f.TypeFq + ">?";
             paramDecls.Add(paramType + " " + SafeName(ParamName(f.Name))
                 + (f.TypeFq == LengthType ? " = default" : " = null"));
@@ -715,29 +750,28 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         sb.AppendLine(")");
         sb.Append(pad).AppendLine("{");
 
-        sb.Append(pad).Append("    var w = new ").Append(w.TypeFq).Append('(');
-        for (int i = 0; i < ctor.Length; i++)
-        {
-            if (i > 0) sb.Append(", ");
-            sb.Append(SafeName(ctor[i].Name));
-        }
-        sb.AppendLine(");");
+        // パラメータなし internal ctor (生成) で作り、すべて [UiParam]/[UiEvent] 経由で流し込む
+        sb.Append(pad).Append("    var w = new ").Append(w.TypeFq).AppendLine("();");
 
-        foreach (EventModel e in w.Events)
+        foreach ((int _, FieldModel? f, EventModel? e) in merged)
         {
-            if (ctorNames.Contains(ParamName(e.Name))) continue;
-            string pn = SafeName(ParamName(e.Name));
-            sb.Append(pad).Append("    if (").Append(pn).Append(" is not null) w.")
-              .Append(e.Name).Append(" = ").Append(pn).AppendLine(";");
-        }
-        foreach (FieldModel f in w.Fields)
-        {
-            if (ctorNames.Contains(ParamName(f.Name))) continue;
-            string pn = SafeName(ParamName(f.Name));
-            // フィールドは readonly — 差し替えず SetBase で中身を書く (状態レイヤ/override 維持)
+            if (e is not null)
+            {
+                string en = SafeName(ParamName(e.Name));
+                sb.Append(pad).Append("    if (").Append(en).Append(" is not null) w.")
+                  .Append(e.Name).Append(" = ").Append(en).AppendLine(";");
+                continue;
+            }
+            string pn = SafeName(ParamName(f!.Name));
+            // Bindable は差し替えず SetBase で中身を書く (状態レイヤ/override 維持)。
+            // Other の生受けは new Bindable<T>(値) で明示的に包む — T がインターフェイスだと
+            // ユーザー定義暗黙変換 (T → Bindable<T>) が適用されないため
             string guard = f.TypeFq == LengthType ? pn + ".IsSet" : pn + " is not null";
+            string arg = f.Kind == BindKind.Other && f.EnumHint != "vt" && f.TypeFq != LengthType
+                ? "new global::Luxel.UI.Bindable<" + f.TypeFq + ">(" + pn + ")"
+                : pn;
             sb.Append(pad).Append("    if (").Append(guard).Append(") w.")
-              .Append(f.Name).Append(".SetBase(").Append(pn).AppendLine(");");
+              .Append(f.Name).Append(".SetBase(").Append(arg).AppendLine(");");
         }
         sb.Append(pad).AppendLine("    return w;");
         sb.Append(pad).AppendLine("}");

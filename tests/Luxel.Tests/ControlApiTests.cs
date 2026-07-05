@@ -33,11 +33,13 @@ public class ControlApiTests
     }
 
     [Fact]
-    public void TreeView_CtorParams_WithShortTypes()
+    public void TreeView_Params_WithShortTypes()
     {
         ControlApi? api = ControlApiRegistry.Find("TreeView");
         Assert.NotNull(api);
-        ApiMember roots = api!.Members.First(m => m.Kind == "ctor" && m.Name == "roots");
+        // ctor は全廃 — 旧 ctor 引数 (roots) も param 行として載る
+        Assert.DoesNotContain(api!.Members, m => m.Kind == "ctor");
+        ApiMember roots = api.Members.First(m => m.Kind == "param" && m.Name == "Roots");
         Assert.DoesNotContain("global::", roots.Type);    // 表示用の短い型名
         Assert.Contains(api.Members, m => m.Kind == "param" && m.Name == "Filter" && !m.Inherited);
     }

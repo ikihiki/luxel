@@ -18,8 +18,8 @@ namespace Luxel.Controls;
 [UiComponent]
 public sealed partial class TextArea : Widget, ITextInput
 {
-    private readonly Signal<string> _value;
     private readonly DocumentEditor _ed = new();
+    private bool _edInit;          // value → _ed の初期反映は最初の Realize で一度だけ
     private readonly Signal<bool> _caretOn = new(true);
     private FocusTarget? _focus;   // Realize をまたいで同一インスタンス (フォーカス保存)
     private readonly Signal<float> _scroll = new(0);
@@ -27,14 +27,17 @@ public sealed partial class TextArea : Widget, ITextInput
     private const float DefaultWidth = 320f;
     private const float Pad = 10f;
     private float W = DefaultWidth;
-    private readonly float _height;
     private float _fs = 16, _lineH = 1.35f;
     private float? _goalX;   // ↑↓ 移動の目標 x (水平移動/編集でリセット)
 
+    /// <summary>値の signal (編集で書き戻す)。</summary>
+    [UiParam] private readonly Bindable<Signal<string>> _value = new();
+    /// <summary>表示高さ (px)。40 未満は 40 に切り上げ。</summary>
+    [UiParam] private readonly Bindable<float> _height = 160f;
     /// <summary>文字サイズ。未設定 → テーマ Font。</summary>
-    [UiParam] public readonly Bindable<float> FontSize = new();
+    [UiParam] private readonly Bindable<float> _fontSize = new();
     /// <summary>背景色。未設定 → テーマ SurfaceAlt。</summary>
-    [UiParam] public readonly Bindable<uint> Background = new();
+    [UiParam] private readonly Bindable<uint> _background = new();
     /// <summary>グリフ未収載時のフォールバック (RichTextView と同じ流儀)。null = ctx.Font のみ。</summary>
     public FontCollection? Fonts { get; set; }
 
@@ -58,18 +61,13 @@ public sealed partial class TextArea : Widget, ITextInput
     private int _structSeen = -1;
     private uint _textColor = Color2D.White;
 
-    [UiCtor]
-    internal TextArea(Signal<string> value, float height = 160f)
-    {
-        _value = value;
-        _height = MathF.Max(40, height);
-        _ed.SetText(value.Value);
-    }
-
     public override string? DebugDetail => $"{_ed.Doc.Blocks.Count} ブロック";
 
+    /// <summary>解決済みの表示高さ (旧 ctor の 40 クランプは読み出し時に適用)。</summary>
+    private float HeightPx => MathF.Max(40, Height.Get());
+
     private float ContentH => (_views.Count > 0 ? _views[^1].Top + _views[^1].H : 0) + Pad;
-    private float MaxScroll => MathF.Max(0, ContentH - _height);
+    private float MaxScroll => MathF.Max(0, ContentH - HeightPx);
     private float Clamped() => Math.Clamp(_scroll.Value, 0, MaxScroll);
 
     private void CacheMetrics(Theme t) => _fs = FontSize.Or(t.Font);
@@ -79,7 +77,7 @@ public sealed partial class TextArea : Widget, ITextInput
         CacheMetrics(ctx.Theme);
         W = ResolveW(c, ctx, DefaultWidth);
         float w = HAlign.Get() == Align.Stretch && !float.IsInfinity(c.MaxW) ? c.MaxW : W;
-        Size = c.Constrain(new Size(w, _height));
+        Size = c.Constrain(new Size(w, HeightPx));
         W = Size.Width;
     }
 
@@ -90,6 +88,9 @@ public sealed partial class TextArea : Widget, ITextInput
         _ctx = ctx;
         _theme = ctx.Theme;
         CacheMetrics(_theme.Peek());
+        Signal<string> value = Value.Get();
+        if (!_edInit) { _edInit = true; _ed.SetText(value.Peek()); }   // 旧 ctor の初期反映 (一度きり)
+        float height = HeightPx;
         _views.Clear();
         _structSeen = -1;
 
@@ -99,16 +100,16 @@ public sealed partial class TextArea : Widget, ITextInput
 
         // クリップは内側コンテナに掛ける — _root に掛けると FocusRing (Z=-1 の面塗り、
         // 通常は不透明背景の背後で外周だけ見える) がクリップレイヤ内で内側全面に被る。
-        FocusRing.Add(ctx, _root, -3, -3, W + 6, _height + 6, 9, Focused);
+        FocusRing.Add(ctx, _root, -3, -3, W + 6, height + 6, 9, Focused);
 
         var bg = new Scene2D();
-        bg.FillRoundedRect(Color2D.White, 0, 0, W, _height, _theme.Peek().Radius + 1);
+        bg.FillRoundedRect(Color2D.White, 0, 0, W, height, _theme.Peek().Radius + 1);
         _root.Content = bg;
         ctx.Effect(() => _root.Color = Background.Or(_theme.Value.SurfaceAlt));
 
         UiNode clip = ctx.Canvas.AddChild(_root);
         clip.Z = 1;
-        clip.Clip = new RectClip(0, 0, W, _height);
+        clip.Clip = new RectClip(0, 0, W, height);
 
         _content = ctx.Canvas.AddChild(clip);
         ctx.Effect(() => _content.Transform = Affine2D.Translate(0, -Clamped()));
@@ -138,7 +139,7 @@ public sealed partial class TextArea : Widget, ITextInput
         Refresh();
         ctx.Effect(() =>
         {
-            string v = _value.Value;
+            string v = value.Value;
             if (v != _ed.Doc.PlainText) { _ed.SetText(v); _scroll.Value = 0; Refresh(); }
         });
 
@@ -167,12 +168,12 @@ public sealed partial class TextArea : Widget, ITextInput
             _caretOn.Value = true;
             Refresh();
         }
-        ctx.AddHit(_root, new Rect(0, 0, W, _height), focus: f,
-            onDragStart: (lx, ly) => { PlaceFromPoint(lx, ly, extend: false); MultiClick(lx, ly); },
-            onDrag: (lx, ly) => PlaceFromPoint(lx, ly, extend: true),
+        ctx.AddHit(_root, new Rect(0, 0, W, height), focus: f,
+            onDragStart: e => { PlaceFromPoint(e.X, e.Y, extend: false); MultiClick(e.X, e.Y); },
+            onDrag: e => PlaceFromPoint(e.X, e.Y, extend: true),
             cursor: CursorKind.IBeam,
-            onContext: (lx, ly) => ContextMenu.OpenForEditor(ctx, _root, lx, ly, f));
-        ctx.AddScroll(_root, new Rect(0, 0, W, _height),
+            onContext: e => ContextMenu.OpenForEditor(ctx, _root, e.X, e.Y, f));
+        ctx.AddScroll(_root, new Rect(0, 0, W, height),
             d => _scroll.Value = Math.Clamp(Clamped() - d, 0, MaxScroll));
     }
 
@@ -272,7 +273,7 @@ public sealed partial class TextArea : Widget, ITextInput
 
     private void Sync()
     {
-        _value.Value = _ed.Doc.PlainText;
+        Value.Get().Value = _ed.Doc.PlainText;
         _caretOn.Value = true;
         Refresh();
         EnsureCaretVisible();
@@ -441,10 +442,11 @@ public sealed partial class TextArea : Widget, ITextInput
     /// <summary>キャレットが見える位置までスクロールを合わせる (編集/移動で呼ぶ)。</summary>
     private void EnsureCaretVisible()
     {
+        float height = HeightPx;
         float top = _caretLocal.Y, bottom = _caretLocal.Y + _caretLocal.Height;
         float s = Clamped();
         if (top - s < Pad) s = MathF.Max(0, top - Pad);
-        else if (bottom - s > _height - Pad) s = bottom - _height + Pad;
+        else if (bottom - s > height - Pad) s = bottom - height + Pad;
         _scroll.Value = Math.Clamp(s, 0, MaxScroll);
     }
 

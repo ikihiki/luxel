@@ -15,17 +15,15 @@ public sealed partial class LinkText : Widget
     /// <summary>クリック (EV: 第一引数は発火元の LinkText 自身)。</summary>
     [UiEvent] public UiEvent<LinkText> OnClick;
 
-    [UiParam] public readonly BindableString Text = new();
+    [UiParam] private readonly BindableString _text = new();
     /// <summary>文字サイズ。未設定 → テーマ FontSm。</summary>
-    [UiParam] public readonly Bindable<float> FontSize = new();
+    [UiParam] private readonly Bindable<float> _fontSize = new();
     /// <summary>選択中/現在地の強調 (色がアクセントになる)。</summary>
-    [UiParam] public readonly Bindable<bool> Active = new();
+    [UiParam] private readonly Bindable<bool> _active = new();
     /// <summary>通常色。未設定 → Active ? Primary : TextMuted。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<uint> Color = new();
+    [UiParam(Stateable = true)] private readonly Bindable<uint> _color = new();
     /// <summary>hover 色。未設定 → Active ? Primary : Text。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<uint> HoverColor = new();
-
-    internal LinkText() { }
+    [UiParam(Stateable = true)] private readonly Bindable<uint> _hoverColor = new();
 
     public override string? DebugDetail => Text.Get();
 

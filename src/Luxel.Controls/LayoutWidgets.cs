@@ -9,7 +9,9 @@ namespace Luxel.Controls;
 public sealed partial class Center : Widget
 {
     internal Widget? Child;
-    internal Center() { HAlign.SetBase(Align.Stretch); VAlign.SetBase(Align.Stretch); }
+
+    /// <summary>生成 ctor からの初期化 (旧 ctor 本体): 自身は与えられた領域いっぱいに広がる。</summary>
+    partial void OnConstruct() { HAlign.SetBase(Align.Stretch); VAlign.SetBase(Align.Stretch); }
 
     private void AddChild(Widget child) => Child = child;
 
@@ -53,12 +55,6 @@ public sealed partial class Center : Widget
 [UiComponent]
 public sealed partial class Spacer : Widget
 {
-    [UiCtor]
-    internal Spacer() { }
-
-    /// <summary>旧 API 互換 (アセンブリ内用): 幅/高さを共通の Width/Height に写す。</summary>
-    internal Spacer(float width = 0, float height = 0) { Width.SetBase((Length)width); Height.SetBase((Length)height); }
-
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
         => Size = c.Constrain(new Size(ResolveW(c, ctx, 0), ResolveH(c, ctx, 0)));
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin) { /* 描画なし */ }

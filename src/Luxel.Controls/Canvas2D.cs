@@ -18,43 +18,44 @@ namespace Luxel.Controls;
 [UiComponent]
 public sealed partial class Canvas2D : Widget
 {
-    private readonly float _w, _h;
-    private readonly Action<Scene2D>? _draw;
-    private readonly Action<Scene2D, float>? _animate;
+    /// <summary>描画領域の幅 (px、最小 1)。</summary>
+    [UiParam] private readonly Bindable<float> _canvasWidth = new();
+    /// <summary>描画領域の高さ (px、最小 1)。</summary>
+    [UiParam] private readonly Bindable<float> _canvasHeight = new();
+    /// <summary>静的描画コールバック。</summary>
+    [UiParam] private readonly Bindable<Action<Scene2D>> _draw = new();
+    /// <summary>毎フレーム描画コールバック (t = 累積秒)。</summary>
+    [UiParam] private readonly Bindable<Action<Scene2D, float>> _animate = new();
+
     private float _t;   // 累積時間 (再実体化をまたいで継続)
 
-    [UiCtor]
-    internal Canvas2D(float width, float height,
-                      Action<Scene2D>? draw = null, Action<Scene2D, float>? animate = null)
-    {
-        _w = MathF.Max(1, width);
-        _h = MathF.Max(1, height);
-        _draw = draw;
-        _animate = animate;
-    }
+    private float W1 => MathF.Max(1, CanvasWidth.Get());
+    private float H1 => MathF.Max(1, CanvasHeight.Get());
 
-    public override string? DebugDetail => _animate is not null ? "animated" : "static";
+    public override string? DebugDetail => Animate.Get() is not null ? "animated" : "static";
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
-        => Size = c.Constrain(new Size(_w, _h));
+        => Size = c.Constrain(new Size(W1, H1));
 
-    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => _w;
+    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => W1;
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {
+        Action<Scene2D>? draw = Draw.Get();
+        Action<Scene2D, float>? animate = Animate.Get();
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
         node.ContentColors = true;   // 形状ごとの色を保持 (1 ノード 1 色に畳まない)
 
         Scene2D Encode(float t)
         {
             var s = new Scene2D();
-            _draw?.Invoke(s);
-            _animate?.Invoke(s, t);
+            draw?.Invoke(s);
+            animate?.Invoke(s, t);
             return s;
         }
 
         node.Content = Encode(_t);
-        if (_animate is not null)
+        if (animate is not null)
             ctx.AddAnimation(dt =>
             {
                 _t += dt;

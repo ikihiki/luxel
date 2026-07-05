@@ -22,7 +22,18 @@ namespace Luxel.Controls;
 [UiComponent]
 public sealed partial class RichTextEditor : Widget, ITextInput
 {
-    private readonly Signal<string> _value;   // markdown
+    /// <summary>markdown 値 (双方向: 編集で書き戻し、外部変更で再パース)。</summary>
+    [UiParam] private readonly Bindable<Signal<string>> _markdown = new();
+    /// <summary>表示高さ (px、最小 60)。VAlign=Stretch なら領域いっぱい。</summary>
+    [UiParam] private readonly Bindable<float> _editorHeight = 240f;
+    /// <summary>文書フォーマット (テキスト⇄ブロック列の往復・記法・オートフォーマットの管理者)。
+    /// 未設定 = markdown (<see cref="MarkdownFormat.Default"/>)。実体化前に確定すること。</summary>
+    [UiParam] private readonly Bindable<IDocumentFormat> _format = new();
+    /// <summary>埋め込み widget の解釈 (TypeId → ファクトリ)。**フォーマットと対で決まる** —
+    /// 専用フォーマットは構成済みレジストリを渡して解釈を固定し、markdown 等の汎用では
+    /// アプリがここへ登録する。未設定はエディタ毎に空レジストリを生成。</summary>
+    [UiParam] private readonly Bindable<BlockWidgetRegistry> _widgets = new();
+
     private readonly DocumentEditor _ed = new();
     private readonly Signal<bool> _caretOn = new(true);
     private readonly ScrollModel _scroll = new();   // 位置はフィールド — 再実体化/幅変更をまたいで生き残る
@@ -30,16 +41,24 @@ public sealed partial class RichTextEditor : Widget, ITextInput
     private const float DefaultWidth = 480f;
     private const float Pad = 12f;
     private float W = DefaultWidth;
-    private readonly float _height;
-    private float H;   // 実効高 (VAlign=Stretch なら領域いっぱい、それ以外は ctor の height)
+    private float H;   // 実効高 (VAlign=Stretch なら領域いっぱい、それ以外は EditorHeight)
+
+    private Signal<string> Value => Markdown.Get();
+    private float EdH => MathF.Max(60, EditorHeight.Get());
+    private IDocumentFormat Fmt => Format.Get() ?? MarkdownFormat.Default;
+    private BlockWidgetRegistry? _widgetsFallback;
+
+    /// <summary>実効の埋め込み widget レジストリ (未設定時はエディタ毎の空レジストリ)。
+    /// アプリはここへ <c>Register</c> する。</summary>
+    public BlockWidgetRegistry WidgetRegistry => Widgets.Get() ?? (_widgetsFallback ??= new BlockWidgetRegistry());
     private float _fs = 16;
     private const float LineH = 1.4f;
     private float? _goalX;   // ↑↓ 移動の目標 x (キャンバス座標。水平移動/編集でリセット)
 
     /// <summary>基準文字サイズ。未設定 → テーマ Font。見出し等はここから導出。</summary>
-    [UiParam] public readonly Bindable<float> FontSize = new();
+    [UiParam] private readonly Bindable<float> _fontSize = new();
     /// <summary>背景色。未設定 → テーマ Surface。</summary>
-    [UiParam] public readonly Bindable<uint> Background = new();
+    [UiParam] private readonly Bindable<uint> _background = new();
     /// <summary>グリフ未収載時のフォールバック列 (先頭が通常フォント)。null = ctx.Font のみ。</summary>
     public FontCollection? Fonts { get; set; }
     /// <summary>太字/斜体/等幅の書体 (null = 通常フォントで代用)。見出しは <see cref="BoldFont"/> を使う。</summary>
@@ -82,14 +101,29 @@ public sealed partial class RichTextEditor : Widget, ITextInput
     private readonly System.Collections.Concurrent.ConcurrentQueue<((string, string) Key, SyntaxToken[] Tokens)> _hlArrived = new();
 
     private int _srcLine = -1;   // hybrid でソース展開中の行 (-1 = なし)
-    private string _synced;       // 最後に取り込んだ/書き出した markdown (value-sync の外部変更判定)
+    private string _synced = "";  // 最後に取り込んだ/書き出した markdown (value-sync の外部変更判定)
+    private bool _docInit;        // 初回取り込み済みか (パラメータは構築後に確定するため遅延)
+
+    /// <summary>初回の markdown 取り込み。パラメータ確定後の最初の参照 (Editor/レイアウト/実体化) で走る。</summary>
+    private void EnsureDoc()
+    {
+        if (_docInit) return;
+        _docInit = true;
+        H = EdH;
+        _synced = Value.Value;
+        _ed.SetBlocks(Fmt.Parse(_synced).Blocks);
+    }
 
     /// <summary>編集エンジン (ツールバー等の読み取り用)。変更操作は <see cref="Apply"/> を使うこと。</summary>
-    public DocumentEditor Editor => _ed;
+    public DocumentEditor Editor
+    {
+        get { EnsureDoc(); return _ed; }
+    }
 
     /// <summary>外部 (ツールバー等) からの編集操作 — 実行後に表示/値を同期する。</summary>
     public void Apply(Action<DocumentEditor> action)
     {
+        EnsureDoc();
         action(_ed);
         Sync();
     }
@@ -209,29 +243,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
     private readonly List<LineView> _views = new();   // 文書の行と 1:1
     private int _structSeen = -1;
 
-    /// <summary>文書フォーマット (テキスト⇄ブロック列の往復・記法・オートフォーマットの管理者)。
-    /// 既定 = markdown。差し替えは ctor 引数で (実体化前に確定)。</summary>
-    public IDocumentFormat Format { get; }
-
-    /// <summary>埋め込み widget の解釈 (TypeId → ファクトリ)。**フォーマットと対で決まる** —
-    /// 専用フォーマットは構成済みレジストリを ctor へ渡して解釈を固定し、
-    /// markdown 等の汎用ではアプリがここへ登録する。エディタ毎に独立。</summary>
-    public BlockWidgetRegistry Widgets { get; }
-
-    [UiCtor]
-    internal RichTextEditor(Signal<string> markdown, float height = 240f,
-        IDocumentFormat? format = null, BlockWidgetRegistry? widgets = null)
-    {
-        _value = markdown;
-        _height = MathF.Max(60, height);
-        H = _height;
-        Format = format ?? MarkdownFormat.Default;
-        Widgets = widgets ?? new BlockWidgetRegistry();
-        _synced = markdown.Value;
-        _ed.SetBlocks(Format.Parse(_synced).Blocks);
-    }
-
-    public override string? DebugDetail => $"{_ed.Doc.Blocks.Count} ブロック / {_ed.Doc.LineCount} 行";
+    public override string? DebugDetail => $"{Editor.Doc.Blocks.Count} ブロック / {Editor.Doc.LineCount} 行";
 
     private float ContentH => (_views.Count > 0 ? _views[^1].Top + _views[^1].H : 0) + Pad;
     private float MaxScroll => _scroll.MaxScroll;
@@ -239,10 +251,11 @@ public sealed partial class RichTextEditor : Widget, ITextInput
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
+        EnsureDoc();
         _fs = FontSize.Or(ctx.Theme.Font);
         W = ResolveW(c, ctx, DefaultWidth);
         float w = HAlign.Get() == Align.Stretch && !float.IsInfinity(c.MaxW) ? c.MaxW : W;
-        float h = VAlign.Get() == Align.Stretch && !float.IsInfinity(c.MaxH) ? c.MaxH : _height;
+        float h = VAlign.Get() == Align.Stretch && !float.IsInfinity(c.MaxH) ? c.MaxH : EdH;
         Size = c.Constrain(new Size(w, h));
         W = Size.Width;
         H = Size.Height;
@@ -252,6 +265,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {
+        EnsureDoc();
         _ctx = ctx;
         _theme = ctx.Theme;
         _fs = FontSize.Or(_theme.Peek().Font);
@@ -352,13 +366,13 @@ public sealed partial class RichTextEditor : Widget, ITextInput
             }
         }
         ctx.AddHit(_root, new Rect(0, 0, W, H), focus: f,
-            onDragStart: (lx, ly) => { PlaceFromPoint(lx, ly, extend: false); MultiClick(lx, ly); },
-            onDrag: (lx, ly) => PlaceFromPoint(lx, ly, extend: true),
+            onDragStart: e => { PlaceFromPoint(e.X, e.Y, extend: false); MultiClick(e.X, e.Y); },
+            onDrag: e => PlaceFromPoint(e.X, e.Y, extend: true),
             cursor: CursorKind.IBeam,
-            onContext: (lx, ly) =>
+            onContext: e =>
             {
-                if (ReadOnly) ContextMenu.OpenForReadOnlyText(ctx, _root, lx, ly, f);
-                else ContextMenu.OpenForEditor(ctx, _root, lx, ly, f);
+                if (ReadOnly) ContextMenu.OpenForReadOnlyText(ctx, _root, e.X, e.Y, f);
+                else ContextMenu.OpenForEditor(ctx, _root, e.X, e.Y, f);
             });
         ctx.AddScroll(_root, new Rect(0, 0, W, H), d => _scroll.ScrollBy(-d));
 
@@ -384,7 +398,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
         ScrollBars.AttachVertical(ctx, _root, _scroll, W, H);
         ctx.Effect(() =>
         {
-            string v = _value.Value;
+            string v = Value.Value;
             // 「最後に取り込んだ/書き出した値」との比較で外部変更だけに反応する。
             // SerializeForValue() 比較だと正規化差 (絵文字ショートコード/SmartyPants 等) で恒常不一致になり、
             // effect が Refresh 中に読んだ signal (_scroll 等) へ購読して、スクロールのたびに
@@ -392,7 +406,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
             if (v != _synced)
             {
                 _synced = v;
-                _ed.SetBlocks(Format.Parse(v).Blocks);
+                _ed.SetBlocks(Fmt.Parse(v).Blocks);
                 _srcLine = -1;   // 旧展開状態は無効 (新文書は整形状態) — Refresh の SyncHybrid が展開し直す
                 _scroll.ScrollTo(0);
                 Refresh();
@@ -741,7 +755,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
     private void Sync()
     {
         _synced = SerializeForValue();   // 自分の書き出しは外部変更ではない (effect の再パースを抑止)
-        _value.Value = _synced;
+        Value.Value = _synced;
         _caretOn.Value = true;
         Refresh();
         EnsureCaretVisible();
@@ -753,14 +767,14 @@ public sealed partial class RichTextEditor : Widget, ITextInput
     private string SerializeForValue()
     {
         if (!HybridSource || _srcLine < 0 || _srcLine >= _ed.Doc.LineCount)
-            return Format.Serialize(_ed.Doc);
+            return Fmt.Serialize(_ed.Doc);
         (int bi, int li) = _ed.Doc.Locate(_srcLine);
         Block src = _ed.Doc.Blocks[bi];
         if (src.Kind != BlockKind.Paragraph || li != 0 || src.Lines.Count != 1)
-            return Format.Serialize(_ed.Doc);
+            return Fmt.Serialize(_ed.Doc);
         var blocks = new List<Block>(_ed.Doc.Blocks);
-        blocks[bi] = Format.ParseLine(src.Lines[0].Text);
-        return Format.Serialize(RichDocument.FromBlocks(blocks));
+        blocks[bi] = Fmt.ParseLine(src.Lines[0].Text);
+        return Fmt.Serialize(RichDocument.FromBlocks(blocks));
     }
 
     /// <summary>ReadOnly の最小キーマップ — 選択とコピーだけ (編集/スタイル/undo は配線しない)。</summary>
@@ -778,7 +792,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
     private bool CopySelection()
     {
         if (!_ed.HasSelection || UiClipboard.Instance is not IClipboard clip) return false;
-        clip.SetText(Format.SerializeRange(_ed.Doc, _ed.SelMin, _ed.SelMax));
+        clip.SetText(Fmt.SerializeRange(_ed.Doc, _ed.SelMin, _ed.SelMax));
         return true;
     }
 
@@ -819,12 +833,12 @@ public sealed partial class RichTextEditor : Widget, ITextInput
     private void MaybeAutoFormat(string inserted)
     {
         if (!AutoFormat || HybridSource) return;
-        Format.TryAutoFormat(_ed, inserted);
+        Fmt.TryAutoFormat(_ed, inserted);
     }
 
     /// <summary>Enter 時のブロック確定 (フェンス開始等) — 判断はフォーマットの責務。</summary>
     private bool TryCodeFence()
-        => AutoFormat && Format.TryBlockCommit(_ed);
+        => AutoFormat && Fmt.TryBlockCommit(_ed);
 
     // ---- hybrid ソース表示 (キャレット行だけ markdown ソースで編集) ----
 
@@ -834,7 +848,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
     /// (離脱 = 確定)。記法の知識 (行ソース/prefix 長) はフォーマットの責務。</summary>
     private void SyncHybrid()
     {
-        if (!HybridSource || !Format.SupportsHybrid || _ed.Composition.Length > 0) return;
+        if (!HybridSource || !Fmt.SupportsHybrid || _ed.Composition.Length > 0) return;
         int cl = _ed.Caret.Line;
         if (_srcLine == cl) return;
 
@@ -844,7 +858,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
             (int obi, int oli) = _ed.Doc.Locate(_srcLine);
             Block old = _ed.Doc.Blocks[obi];
             if (old.Kind == BlockKind.Paragraph && oli == 0 && old.Lines.Count == 1)
-                _ed.HybridRestoreLine(_srcLine, Format.ParseLine(old.Lines[0].Text));
+                _ed.HybridRestoreLine(_srcLine, Fmt.ParseLine(old.Lines[0].Text));
         }
         cl = _ed.Caret.Line;   // マージは行数を保存するが、クランプで動く可能性に備えて再取得
         _srcLine = cl;
@@ -853,10 +867,10 @@ public sealed partial class RichTextEditor : Widget, ITextInput
         (int bi, int li) = _ed.Doc.Locate(cl);
         Block b = _ed.Doc.Blocks[bi];
         if (b.Kind is BlockKind.CodeBlock or BlockKind.Embed) return;
-        string src = Format.SerializeLine(b, li);
+        string src = Fmt.SerializeLine(b, li);
         if (src == b.Lines[li].Text && b.Kind == BlockKind.Paragraph) return;
         _ed.HybridSwapLine(cl, new Block(BlockKind.Paragraph, src),
-            _ed.Caret.Offset + Format.LinePrefixLen(b, li));
+            _ed.Caret.Offset + Fmt.LinePrefixLen(b, li));
     }
 
     // ---- 表示 (部分更新) ----
@@ -1105,7 +1119,7 @@ public sealed partial class RichTextEditor : Widget, ITextInput
         // 埋め込み widget (登録済み TypeId): ファクトリが返した任意の Widget をブロック位置へ実体化する。
         // 未登録 TypeId はプレースホルダ表示へフォールバック (下の通常経路)。
         if (b.Kind == BlockKind.Embed && b.Payload is IBlockPayload pl
-            && Widgets.Find(pl.TypeId) is BlockWidgetFactory factory)
+            && WidgetRegistry.Find(pl.TypeId) is BlockWidgetFactory factory)
         {
             foreach ((UiNode n, _) in v.Colored) _ctx.Canvas.Remove(n);   // embed は widget — 色ノードは持たない
             v.Colored.Clear();

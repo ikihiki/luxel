@@ -14,12 +14,15 @@ namespace Luxel.Controls;
 [UiComponent(Name = "Check")]
 public sealed partial class CheckBox : Widget
 {
-    private readonly Signal<bool> _checked;
-    private readonly string _label;
+    /// <summary>チェック状態の signal (クリックで書き戻す)。</summary>
+    [UiParam] private readonly Bindable<Signal<bool>> _isChecked = new();
+    /// <summary>ラベル文字列。</summary>
+    [UiParam] private readonly Bindable<string> _label = "";
+
     private float _box = 20, _gap = 9, _fs = 15;   // レイアウト時にテーマから確定
 
     /// <summary>文字サイズ。未設定 → テーマ Font - 1。</summary>
-    [UiParam] public readonly Bindable<float> FontSize = new();
+    [UiParam] private readonly Bindable<float> _fontSize = new();
 
     private void CacheMetrics(Theme t)
     {
@@ -28,39 +31,35 @@ public sealed partial class CheckBox : Widget
         _fs = FontSize.Or(t.Font - 1);
     }
     /// <summary>箱の色。未設定 → checked ? Primary : SurfaceAlt。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<uint> Background = new();
+    [UiParam(Stateable = true)] private readonly Bindable<uint> _background = new();
     /// <summary>ラベル色。未設定 → テーマ Text。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<uint> Foreground = new();
+    [UiParam(Stateable = true)] private readonly Bindable<uint> _foreground = new();
     /// <summary>チェック印の色。未設定 → テーマ OnAccent。</summary>
-    [UiParam] public readonly Bindable<uint> CheckColor = new();
-    [UiParam] public readonly Bindable<float> Opacity = new();
-
-    internal CheckBox(Signal<bool> isChecked, string label)
-    {
-        _checked = isChecked;
-        _label = label;
-    }
+    [UiParam] private readonly Bindable<uint> _checkColor = new();
+    [UiParam] private readonly Bindable<float> _opacity = 1f;
 
     public override bool IsStateActive(WidgetState state)
-        => state == WidgetState.Checked ? _checked.Value : base.IsStateActive(state);
+        => state == WidgetState.Checked ? IsChecked.Get().Value : base.IsStateActive(state);
 
-    public override string? DebugDetail => _label;
+    public override string? DebugDetail => Label.Get();
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
         CacheMetrics(ctx.Theme);
-        (float tw, float th) = ctx.Font.Measure(_label, _fs);
+        (float tw, float th) = ctx.Font.Measure(Label.Get(), _fs);
         Size = c.Constrain(new Size(_box + _gap + tw, MathF.Max(_box, th)));
     }
 
     public override float MaxIntrinsicWidth(float height, LayoutContext ctx)
-        => _box + _gap + ctx.Font.Measure(_label, FontSize.Or(ctx.Theme.Font - 1)).width;
+        => _box + _gap + ctx.Font.Measure(Label.Get(), FontSize.Or(ctx.Theme.Font - 1)).width;
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
         Point world = WorldPos;
 
+        Signal<bool> isChecked = IsChecked.Get();
+        string text = Label.Get();
         Signal<Theme> theme = ctx.Theme;
         float fontSize = _fs;
         float boxY = (Size.Height - _box) / 2f;
@@ -77,10 +76,10 @@ public sealed partial class CheckBox : Widget
         check.Content = cs; check.Z = 1;
 
         UiNode label = ctx.Canvas.AddChild(node);
-        (float _, float th) = ctx.Font.Measure(_label, fontSize);
+        (float _, float th) = ctx.Font.Measure(text, fontSize);
         label.Transform = Affine2D.Translate(_box + _gap, (Size.Height - th) / 2f);
         var ls = new Scene2D();
-        ctx.Font.AppendText(ls, _label, 0, ctx.Font.Ascent(fontSize), fontSize, Color2D.White);
+        ctx.Font.AppendText(ls, text, 0, ctx.Font.Ascent(fontSize), fontSize, Color2D.White);
         label.Content = ls;
 
         // 配色: 状態/テーマ変化で部分更新 (WrapSetter 経由で Transition 補間可)。
@@ -92,7 +91,7 @@ public sealed partial class CheckBox : Widget
             node.Color = StyleApply.MultiplyAlpha(currentBg, currentOpacity);
             label.Color = StyleApply.MultiplyAlpha(currentFg, currentOpacity);
             check.Color = currentCk;
-            check.Opacity = _checked.Value ? currentOpacity : 0f;
+            check.Opacity = isChecked.Value ? currentOpacity : 0f;
         }
 
         Action<uint> bgSet = WrapSetter<uint>("Background", v => { currentBg = v; ApplyAll(); });
@@ -102,14 +101,14 @@ public sealed partial class CheckBox : Widget
 
         ctx.Effect(() =>
         {
-            bgSet(Background.Or(_checked.Value ? theme.Value.Primary : theme.Value.SurfaceAlt));
+            bgSet(Background.Or(isChecked.Value ? theme.Value.Primary : theme.Value.SurfaceAlt));
             fgSet(Foreground.Or(theme.Value.Text));
             ckSet(CheckColor.Or(theme.Value.OnAccent));
-            opSet(Opacity.Or(1f));
+            opSet(Opacity.Get());
         });
 
         ctx.AddHit(node, new Rect(0, 0, Size.Width, Size.Height),
-            onClick: () => _checked.Value = !_checked.Value,
+            onClick: () => isChecked.Value = !isChecked.Value,
             onHover: h => Hovered.Value = h);
     }
 }

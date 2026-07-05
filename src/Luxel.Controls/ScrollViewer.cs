@@ -13,15 +13,19 @@ namespace Luxel.Controls;
 public sealed partial class ScrollViewer : Widget
 {
     internal Widget? Child;
-    private readonly float _height;
     private readonly ScrollModel _scroll = new();   // 位置はフィールド — 再実体化/リサイズをまたいで生き残る
     private float _viewW, _viewH, _contentH;
 
-    /// <summary>スクロールバー (thumb) の色。未設定 → テーマ BorderColor。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<uint> ThumbColor = new();
+    /// <summary>ビューポート高 (px)。</summary>
+    [UiParam] private readonly Bindable<float> _viewportHeight = new();
 
-    [UiCtor]
-    internal ScrollViewer(float height) { _height = height; }
+    /// <summary>ビューポート高を変更する。**インスタンスを chrome 再構築をまたいで使い回し、
+    /// スクロール位置 (<see cref="_scroll"/>) を保つ**ための API — ウィンドウリサイズ等で
+    /// 高さだけ変えたいとき、作り直すと位置が失われる。</summary>
+    public void SetViewportHeight(float height) => ViewportHeight.SetOverride(height);
+
+    /// <summary>スクロールバー (thumb) の色。未設定 → テーマ BorderColor。</summary>
+    [UiParam(Stateable = true)] private readonly Bindable<uint> _thumbColor = new();
 
     private void AddChild(Widget c) => Child = c;
 
@@ -37,7 +41,7 @@ public sealed partial class ScrollViewer : Widget
     {
         // Width 指定を優先 (HStack 等の無限幅コンテキストでも成立)。未指定は親の制約幅いっぱい。
         _viewW = ResolveW(c, ctx, float.IsInfinity(c.MaxW) ? 0 : c.MaxW);
-        _viewH = ResolveH(c, ctx, _height);
+        _viewH = ResolveH(c, ctx, ViewportHeight.Get());
         Size = c.Constrain(new Size(_viewW, _viewH));
         if (Child != null)
         {

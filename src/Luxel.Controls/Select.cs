@@ -9,14 +9,17 @@ namespace Luxel.Controls;
 [UiComponent]
 public sealed partial class Select : Widget
 {
-    private readonly string[] _options;
-    private readonly Signal<int> _sel;
+    /// <summary>候補ラベル一覧。</summary>
+    [UiParam] private readonly Bindable<string[]> _options = new([]);
+    /// <summary>選択 index の signal (選択で書き戻す)。</summary>
+    [UiParam] private readonly Bindable<Signal<int>> _selected = new();
+
     private readonly Signal<bool> _open = new(false);
     private const float ChevW = 26;
     private float _w, _h = 38, _padX = 12, _fs = 15;   // レイアウト時にテーマから確定
 
     /// <summary>文字サイズ。未設定 → テーマ Font - 1。</summary>
-    [UiParam] public readonly Bindable<float> FontSize = new();
+    [UiParam] private readonly Bindable<float> _fontSize = new();
 
     private void CacheMetrics(Theme t)
     {
@@ -25,19 +28,18 @@ public sealed partial class Select : Widget
         _fs = FontSize.Or(t.Font - 1);
     }
     /// <summary>背景色。未設定 → テーマ SurfaceAlt。</summary>
-    [UiParam] public readonly Bindable<uint> Background = new();
+    [UiParam] private readonly Bindable<uint> _background = new();
 
     /// <summary>背景の丸める角 (入力グループで接合面を直角にする用。LengthField 等が設定)。</summary>
     internal RectCorners BgCorners = RectCorners.All;
 
-    internal Select(string[] options, Signal<int> selected) { _options = options; _sel = selected; }
     public Signal<bool> Opened => _open;
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
         CacheMetrics(ctx.Theme);
         float maxw = 0;
-        foreach (string o in _options) maxw = MathF.Max(maxw, ctx.Font.Measure(o, _fs).width);
+        foreach (string o in Options.Get()) maxw = MathF.Max(maxw, ctx.Font.Measure(o, _fs).width);
         _w = _padX + maxw + ChevW;
         Size = c.Constrain(new Size(_w, _h));
     }
@@ -48,6 +50,8 @@ public sealed partial class Select : Widget
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
         Point world = WorldPos;
 
+        string[] options = Options.Get();
+        Signal<int> sel = Selected.Get();
         Signal<Theme> theme = ctx.Theme;
         FocusRing.Add(ctx, node, -3, -3, _w + 6, _h + 6, 9, Focused);
         var bg = new Scene2D(); bg.FillRoundedRect(Color2D.White, 0, 0, _w, _h, theme.Peek().Radius + 1, BgCorners); node.Content = bg;
@@ -60,7 +64,7 @@ public sealed partial class Select : Widget
         ctx.Effect(() =>
         {
             var s = new Scene2D();
-            ctx.Font.AppendText(s, _options[Math.Clamp(_sel.Value, 0, _options.Length - 1)], _padX, (_h - fh) / 2 + ascent, fontSize, Color2D.White);
+            ctx.Font.AppendText(s, options[Math.Clamp(sel.Value, 0, options.Length - 1)], _padX, (_h - fh) / 2 + ascent, fontSize, Color2D.White);
             label.Content = s;
         });
         ctx.Effect(() => label.Color = theme.Value.Text);
@@ -73,10 +77,10 @@ public sealed partial class Select : Widget
         ctx.Effect(() => chev.Color = theme.Value.TextMuted);
 
         // メニュー (オーバーレイ)
-        var rows = _options.Select((o, i) =>
+        var rows = options.Select((o, i) =>
         {
             int idx = i;
-            return (Widget)MenuRow(o, _ => { _sel.Value = idx; _open.Value = false; }, hAlign: Align.Stretch);
+            return (Widget)MenuRow(o, _ => { sel.Value = idx; _open.Value = false; }, hAlign: Align.Stretch);
         }).ToArray();
         // width を自身に合わせて固定 — オーバーレイのレイアウトは無制約幅のため、
         // Stretch な行がウィンドウ幅まで広がって clamp で左端に飛ぶのを防ぐ。
@@ -87,8 +91,8 @@ public sealed partial class Select : Widget
         FocusTarget f = ctx.AddFocusable(onFocus: on => Focused.Value = on, onKey: ev =>
         {
             if (ev.Key is Key.Enter or Key.Space) { _open.Value = !_open.Value; return true; }
-            if (ev.Key == Key.Up) { _sel.Value = Math.Max(0, _sel.Value - 1); return true; }
-            if (ev.Key == Key.Down) { _sel.Value = Math.Min(_options.Length - 1, _sel.Value + 1); return true; }
+            if (ev.Key == Key.Up) { sel.Value = Math.Max(0, sel.Value - 1); return true; }
+            if (ev.Key == Key.Down) { sel.Value = Math.Min(options.Length - 1, sel.Value + 1); return true; }
             return false;
         });
         ctx.AddHit(node, new Rect(0, 0, _w, _h), onClick: () => _open.Value = !_open.Value, focus: f);

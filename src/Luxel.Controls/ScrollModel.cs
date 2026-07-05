@@ -151,13 +151,13 @@ public static class ScrollBars
             model.ScrollTo(model.OffsetForThumbTop(top, minThumb));
         }
         ctx.AddHit(host, new Rect(viewW - GrabW, 0, GrabW, viewH),
-            onDragStart: (_, ly) =>
+            onDragStart: e =>
             {
                 if (model.MaxScroll <= 0) return;
-                grab = model.BeginThumbDrag(ly, minThumb);
-                SetFromThumbTop(ly - grab);
+                grab = model.BeginThumbDrag(e.Y, minThumb);
+                SetFromThumbTop(e.Y - grab);
             },
-            onDrag: (_, ly) => { if (model.MaxScroll > 0) SetFromThumbTop(ly - grab); });
+            onDrag: e => { if (model.MaxScroll > 0) SetFromThumbTop(e.Y - grab); });
         return bar;
     }
 }

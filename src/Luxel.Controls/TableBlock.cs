@@ -16,11 +16,35 @@ namespace Luxel.Controls;
 [UiComponent]
 public sealed partial class TableBlock : Widget, ITextInput
 {
-    private readonly TablePayload _payload;
-    private readonly float _maxW;
-    private readonly Action<IBlockPayload> _commit;
-    private readonly List<string[]> _rows;   // ローカル編集コピー
-    private readonly TableAlign[] _aligns;
+    /// <summary>テーブル embed の payload (Rows/Aligns/Columns)。</summary>
+    [UiParam] private readonly Bindable<TablePayload> _payload = new();
+    /// <summary>使える最大幅 (最小 80)。収まらない列は比例縮小。</summary>
+    [UiParam] private readonly Bindable<float> _maxWidth = new();
+    /// <summary>フォーカス喪失時に編集結果を 1 op として通知する commit。</summary>
+    [UiParam] private readonly Bindable<Action<IBlockPayload>> _commit = new();
+
+    private List<string[]>? _rowsData;   // ローカル編集コピー (初回参照で payload から複製)
+    private TableAlign[]? _alignsData;
+
+    private TablePayload Pl => Payload.Get();
+    private float MaxW => MathF.Max(80, MaxWidth.Get());
+    private List<string[]> _rows => _rowsData ??= BuildRows();
+    private TableAlign[] _aligns => _alignsData ??= (TableAlign[])Pl.Aligns.Clone();
+
+    private List<string[]> BuildRows()
+    {
+        TablePayload payload = Pl;
+        var rows = payload.Rows.Select(r => Pad(r, payload.Columns)).ToList();
+        if (rows.Count == 0) rows.Add(new string[Math.Max(1, payload.Columns)]);
+        return rows;
+
+        static string[] Pad(string[] r, int cols)
+        {
+            var a = new string[Math.Max(cols, r.Length)];
+            for (int i = 0; i < a.Length; i++) a[i] = i < r.Length ? r[i] : "";
+            return a;
+        }
+    }
 
     private int _selR = -1, _selC = -1;
     private readonly TextEditor _ed = new();
@@ -33,24 +57,6 @@ public sealed partial class TableBlock : Widget, ITextInput
     private UiNode _imeTarget = null!, _imeUnderline = null!;
     private readonly Signal<bool> _caretOn = new(true);
     private FocusTarget? _focus;   // Realize をまたいで同一インスタンス — 再実体化 (行増減) でフォーカスが生き残る
-
-    [UiCtor]
-    internal TableBlock(TablePayload payload, float maxWidth, Action<IBlockPayload> commit)
-    {
-        _payload = payload;
-        _maxW = MathF.Max(80, maxWidth);
-        _commit = commit;
-        _rows = payload.Rows.Select(r => Pad(r, payload.Columns)).ToList();
-        _aligns = (TableAlign[])payload.Aligns.Clone();
-        if (_rows.Count == 0) _rows.Add(new string[Math.Max(1, _payload.Columns)]);
-
-        static string[] Pad(string[] r, int cols)
-        {
-            var a = new string[Math.Max(cols, r.Length)];
-            for (int i = 0; i < a.Length; i++) a[i] = i < r.Length ? r[i] : "";
-            return a;
-        }
-    }
 
     private int Cols => _aligns.Length > 0 ? _aligns.Length : _rows.Max(r => r.Length);
     public override string? DebugDetail => $"{_rows.Count}x{Cols}";
@@ -69,11 +75,11 @@ public sealed partial class TableBlock : Widget, ITextInput
             _colW[col] = w;
         }
         float total = _colW.Sum() + 1;
-        if (total > _maxW)   // 収まらないときは比例縮小
+        if (total > MaxW)   // 収まらないときは比例縮小
         {
-            float k = (_maxW - 1) / (total - 1);
+            float k = (MaxW - 1) / (total - 1);
             for (int i = 0; i < _colW.Length; i++) _colW[i] *= k;
-            total = _maxW;
+            total = MaxW;
         }
         Size = c.Constrain(new Size(total, _rows.Count * _rowH + 1));
     }
@@ -137,13 +143,13 @@ public sealed partial class TableBlock : Widget, ITextInput
 
         ctx.AddHit(_root, new Rect(0, 0, Size.Width, Size.Height), focus: f,
             cursor: CursorKind.IBeam,
-            onDragStart: (lx, ly) =>
+            onDragStart: e =>
             {
-                (int r, int c2) = HitCell(lx, ly);
-                if (r == _selR && c2 == _selC) { PlaceCaret(lx); return; }
+                (int r, int c2) = HitCell(e.X, e.Y);
+                if (r == _selR && c2 == _selC) { PlaceCaret(e.X); return; }
                 CommitCell();
                 SelectCell(r, c2);
-                PlaceCaret(lx);
+                PlaceCaret(e.X);
             });
 
         Refresh();
@@ -204,13 +210,13 @@ public sealed partial class TableBlock : Widget, ITextInput
 
     private void CommitIfDirty()
     {
-        bool dirty = _rows.Count != _payload.Rows.Count;
+        bool dirty = _rows.Count != Pl.Rows.Count;
         if (!dirty)
             for (int r = 0; r < _rows.Count && !dirty; r++)
                 for (int c = 0; c < Cols && !dirty; c++)
-                    dirty = Cell(r, c) != _payload.Cell(r, c);
+                    dirty = Cell(r, c) != Pl.Cell(r, c);
         if (!dirty) return;
-        _commit(new TablePayload(_rows.Select(r => (string[])r.Clone()).ToList(), (TableAlign[])_aligns.Clone()));
+        Commit.Get()?.Invoke(new TablePayload(_rows.Select(r => (string[])r.Clone()).ToList(), (TableAlign[])_aligns.Clone()));
     }
 
     private bool OnKey(KeyEvent ev)

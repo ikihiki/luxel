@@ -86,7 +86,7 @@ public static class LayoutControlStories
     {
         // EV: コールバックはファクトリの省略可能引数 (第一引数 = 発火元)。items も UI パラメータ
         ListView lv = ListView(180f, 18f, onSelect: (_, i) => ctx.Log($"selected: Item {i + 1}"),
-            items: Enumerable.Range(1, 40).Select(i => $"Item {i}").ToArray(), width: 260f);
+            items: new Signal<IReadOnlyList<string>>(Enumerable.Range(1, 40).Select(i => $"Item {i}").ToArray()), width: 260f);
         return Frame(lv);
     }
 
@@ -117,7 +117,7 @@ public static class LayoutControlStories
     {
         // 仮想化ゲート (AP-M3): 10 万行でも実体化は可視行プールのみ、スクロール/選択が破綻しない
         ListView lv = ListView(180f, 18f, onSelect: (_, i) => ctx.Log($"selected: {i}"),
-            items: Enumerable.Range(1, 100_000).Select(i => $"Row {i:n0}").ToArray(), width: 260f);
+            items: new Signal<IReadOnlyList<string>>(Enumerable.Range(1, 100_000).Select(i => $"Row {i:n0}").ToArray()), width: 260f);
         return Frame(lv);
     }
 

@@ -15,8 +15,12 @@ namespace Luxel.Controls;
 [UiComponent]
 public sealed partial class SurfaceView : Widget, IDisposable
 {
-    private readonly float _w, _h;
-    private float _pendingW, _pendingH;   // 子の論理サイズ (既定 = サーフェスサイズ)
+    /// <summary>サーフェス幅 (px、最小 1)。framebuffer と子 UiHost の既定論理サイズ。</summary>
+    [UiParam] private readonly Bindable<float> _surfaceWidth = new();
+    /// <summary>サーフェス高さ (px、最小 1)。</summary>
+    [UiParam] private readonly Bindable<float> _surfaceHeight = new();
+
+    private float? _pendingW, _pendingH;   // 子の論理サイズ (未設定 = サーフェスサイズ)
     private RetainedCanvas? _childCanvas;
     private GpuDevice? _device;
     private GpuBuffer? _fb;
@@ -28,13 +32,10 @@ public sealed partial class SurfaceView : Widget, IDisposable
     /// <summary>子 UiHost (実体化後に有効)。状態強制やツリー検査はこれ経由で行う。</summary>
     public UiHost? Child { get; private set; }
 
-    [UiCtor]
-    internal SurfaceView(float surfaceWidth, float surfaceHeight)
-    {
-        _w = MathF.Max(1, surfaceWidth);
-        _h = MathF.Max(1, surfaceHeight);
-        _pendingW = _w; _pendingH = _h;
-    }
+    private float W1 => MathF.Max(1, SurfaceWidth.Get());
+    private float H1 => MathF.Max(1, SurfaceHeight.Get());
+    private float PendW => _pendingW ?? W1;
+    private float PendH => _pendingH ?? H1;
 
     /// <summary>子ルートを設定/差し替える (実体化前でも可)。親ツリーは再構築されない。
     /// <paramref name="logicalWidth"/>/<paramref name="logicalHeight"/> で子の論理サイズを変更できる
@@ -42,17 +43,17 @@ public sealed partial class SurfaceView : Widget, IDisposable
     public void SetContent(Widget root, float? logicalWidth = null, float? logicalHeight = null)
     {
         _pendingRoot = root;
-        if (logicalWidth is float lw) _pendingW = MathF.Min(lw, _w);
-        if (logicalHeight is float lh) _pendingH = MathF.Min(lh, _h);
+        if (logicalWidth is float lw) _pendingW = MathF.Min(lw, W1);
+        if (logicalHeight is float lh) _pendingH = MathF.Min(lh, H1);
         if (Child is not null)
         {
-            Child.Resize(_pendingW, _pendingH);   // 旧 root の再レイアウトは無害 (直後に差し替え)
+            Child.Resize(PendW, PendH);   // 旧 root の再レイアウトは無害 (直後に差し替え)
             Child.SetRoot(root);
         }
     }
 
-    protected override void PerformLayout(Constraints c, LayoutContext ctx) => Size = c.Constrain(new Size(_w, _h));
-    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => _w;
+    protected override void PerformLayout(Constraints c, LayoutContext ctx) => Size = c.Constrain(new Size(W1, H1));
+    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => W1;
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {
@@ -62,22 +63,22 @@ public sealed partial class SurfaceView : Widget, IDisposable
             Rasterizer2D raster = ctx.Canvas.Rasterizer;
             _device = raster.Device;
             _childCanvas = new RetainedCanvas(raster);
-            Child = new UiHost(_childCanvas, ctx.Font, _pendingW, _pendingH, ctx.Theme);   // 親島とテーマ共有 (同一スレッド)
+            Child = new UiHost(_childCanvas, ctx.Font, PendW, PendH, ctx.Theme);   // 親島とテーマ共有 (同一スレッド)
             if (_pendingRoot is not null) Child.SetRoot(_pendingRoot);
         }
         // fb は親のラスタライズ解像度 (論理 × RenderScale) で持つ — 150% でも子のテキストが鮮明
         if (_fb is null || _scale != ctx.RenderScale)
         {
             _scale = ctx.RenderScale;
-            _pw = (uint)MathF.Ceiling(_w * _scale);
-            _ph = (uint)MathF.Ceiling(_h * _scale);
+            _pw = (uint)MathF.Ceiling(W1 * _scale);
+            _ph = (uint)MathF.Ceiling(H1 * _scale);
             _fb?.Dispose();
             _fb = _device!.Malloc((ulong)((long)_pw * _ph * 4), GpuMemoryKind.DeviceLocal);   // GPU 内で完結
             _rendered = false;
         }
 
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
-        node.Content = new Scene2D().ImageRect(_fb!.BindlessIndex, _pw, _pw, _ph, 0, 0, _w, _h);
+        node.Content = new Scene2D().ImageRect(_fb!.BindlessIndex, _pw, _pw, _ph, 0, 0, W1, H1);
         node.Clip = new RectClip(0, 0, Size.Width, Size.Height);   // レイアウトサイズが surface より小さい場合にはみ出さない
 
         // ---- 入力ブリッジ (ローカル座標 = 子のクライアント座標) ----
@@ -94,12 +95,12 @@ public sealed partial class SurfaceView : Widget, IDisposable
         ctx.AddHit(node, new Rect(0, 0, Size.Width, Size.Height),
             focus: focus,
             onHover: h => { Hovered.Value = h; if (!h) Child!.PointerMove(-10000, -10000); },   // leave で子 hover 解除
-            onMovePos: (lx, ly) => Child!.PointerMove(lx, ly),
-            onDragStart: (lx, ly) => Child!.PointerDown(lx, ly),
-            onDrag: (lx, ly) => Child!.PointerMove(lx, ly),
-            onDragEnd: (lx, ly) => Child!.PointerUp(lx, ly),
+            onMovePos: e => Child!.PointerMove(e.X, e.Y),
+            onDragStart: e => Child!.PointerDown(e.X, e.Y),
+            onDrag: e => Child!.PointerMove(e.X, e.Y),
+            onDragEnd: e => Child!.PointerUp(e.X, e.Y),
             cursorFunc: () => Child?.CurrentCursor ?? CursorKind.Arrow,   // 子のカーソルを親へ転送
-            onContext: (lx, ly) => Child!.ContextClick(lx, ly));          // 右クリックも子へ (メニューは子 canvas 内)
+            onContext: e => Child!.ContextClick(e.X, e.Y));               // 右クリックも子へ (メニューは子 canvas 内)
         ctx.AddScroll(node, new Rect(0, 0, Size.Width, Size.Height), onScrollPos: (lx, ly, d) => Child!.Wheel(lx, ly, d));
 
         // ---- 子の駆動: 親 UiHost の Tick で子を進め、変更があれば fb へ再ラスタライズ ----
@@ -149,7 +150,7 @@ public sealed partial class SurfaceView : Widget, IDisposable
     }
 
     public override string DebugType => "SurfaceView";
-    public override string? DebugDetail => $"{_w:0}x{_h:0}";
+    public override string? DebugDetail => $"{W1:0}x{H1:0}";
 
     public void Dispose()
     {

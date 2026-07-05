@@ -289,7 +289,7 @@ public sealed class UiHost : IDisposable
             if (!HitTest(t.Node, t.Rect, x, y, out float lx, out float ly)) continue;
             if (modal != null && !modal.ContentRect.Contains(x, y)) break;   // モーダルが背面をブロック
             if (t.Focus != null) FocusTo(t.Focus);                           // クリックでフォーカス
-            Guard(t.OnClickPos is null ? null : () => t.OnClickPos!(lx, ly), "Click");
+            Guard(t.OnClickPos is null ? null : () => t.OnClickPos!(new PointerEvent(lx, ly, x, y)), "Click");
             Guard(t.OnClick, "Click");
             return true;
         }
@@ -318,8 +318,10 @@ public sealed class UiHost : IDisposable
                 if (t.Draggable)
                 {
                     _captured = t;
+                    _dragStartLx = lx; _dragStartLy = ly;   // 捕獲時の位置 — 以後の Drag/DragEnd の Start/Delta の基準
+                    _dragStartX = x; _dragStartY = y;
                     if (t.Focus != null) FocusTo(t.Focus);
-                    Guard(t.OnDragStart is null ? null : () => t.OnDragStart!(lx, ly), "DragStart");
+                    Guard(t.OnDragStart is null ? null : () => t.OnDragStart!(new PointerEvent(lx, ly, x, y)), "DragStart");
                     return true;
                 }
                 break;   // 最前面が非ドラッグ → 通常クリックへ
@@ -336,17 +338,23 @@ public sealed class UiHost : IDisposable
         if (_dragPayload is object payload)
         {
             if (FindDropTarget(x, y, payload, out HitTarget? dt, out float dlx, out float dly) && dt != null)
-                Guard(() => dt.OnDrop!(payload, dlx, dly), "Drop");
+                Guard(() => dt.OnDrop!(payload, DragEv(dlx, dly, x, y)), "Drop");
             EndDrag();
         }
         if (_captured is not HitTarget cap) return;
         _captured = null;
         if (ToLocal(cap.Node, x, y, out float lx, out float ly))
-            Guard(cap.OnDragEnd is null ? null : () => cap.OnDragEnd!(lx, ly), "DragEnd");
-        else Guard(cap.OnDragEnd is null ? null : () => cap.OnDragEnd!(0, 0), "DragEnd");
+            Guard(cap.OnDragEnd is null ? null : () => cap.OnDragEnd!(DragEv(lx, ly, x, y)), "DragEnd");
+        else Guard(cap.OnDragEnd is null ? null : () => cap.OnDragEnd!(DragEv(0, 0, x, y)), "DragEnd");
     }
 
     // ---- ペイロード付きドラッグ (QP-M4 アプリ内 D&D) ----
+    private float _dragStartLx, _dragStartLy, _dragStartX, _dragStartY;   // 捕獲時の位置 (ローカル/画面絶対)
+
+    /// <summary>捕獲中イベント用 — 開始位置は PointerDown で記録した値。</summary>
+    private PointerEvent DragEv(float lx, float ly, float x, float y)
+        => new(lx, ly, x, y, _dragStartLx, _dragStartLy, _dragStartX, _dragStartY);
+
     private object? _dragPayload;
     private TwoD.UiNode? _dragGhost;
     private float _ghostGrabX, _ghostGrabY;
@@ -404,7 +412,7 @@ public sealed class UiHost : IDisposable
         if (_captured is HitTarget cap)
         {
             if (ToLocal(cap.Node, x, y, out float lx, out float ly))
-                Guard(cap.OnDrag is null ? null : () => cap.OnDrag!(lx, ly), "Drag");
+                Guard(cap.OnDrag is null ? null : () => cap.OnDrag!(DragEv(lx, ly, x, y)), "Drag");
             if (_dragPayload is object payload)   // ペイロードドラッグ: ゴースト追従 + ドロップ先 hover
             {
                 _dragGhost?.Transform = TwoD.Affine2D.Translate(x - _ghostGrabX, y - _ghostGrabY);
@@ -415,7 +423,7 @@ public sealed class UiHost : IDisposable
                     _dropHover = over;
                     Guard(over?.OnDropHover is { } on ? () => on(true) : null, "DropHover");
                 }
-                if (over?.OnDropMove is { } dropMv) Guard(() => dropMv(payload, dlx, dly), "DropMove");
+                if (over?.OnDropMove is { } dropMv) Guard(() => dropMv(payload, DragEv(dlx, dly, x, y)), "DropMove");
             }
             return;
         }
@@ -435,7 +443,7 @@ public sealed class UiHost : IDisposable
             Guard(hit?.OnHover is { } on ? () => on(true) : null, "Hover");
         }
         CurrentCursor = hit?.EffectiveCursor ?? CursorKind.Arrow;
-        Guard(hit?.OnMovePos is { } mv ? () => mv(hlx, hly) : null, "Move");   // ヒット中は毎移動 (SurfaceView 等の転送用)
+        Guard(hit?.OnMovePos is { } mv ? () => mv(new PointerEvent(hlx, hly, x, y)) : null, "Move");   // ヒット中は毎移動 (SurfaceView 等の転送用)
     }
 
     // ---- キーボード / フォーカス ----
@@ -511,7 +519,7 @@ public sealed class UiHost : IDisposable
             if (t.Active is not null && !t.Active()) continue;
             if (!HitTest(t.Node, t.Rect, x, y, out float lx, out float ly)) continue;
             if (t.Focus != null) FocusTo(t.Focus);
-            Guard(() => t.OnContext!(lx, ly), "Context");
+            Guard(() => t.OnContext!(new PointerEvent(lx, ly, x, y)), "Context");
             return true;
         }
         return false;

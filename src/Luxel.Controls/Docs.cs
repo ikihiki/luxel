@@ -189,7 +189,7 @@ public static partial class Kit
     {
         RichTextEditor doc = Docs(content, toc, fences);
         if (ctx.ResourcesOrNull is { } res)
-            doc.Widgets.Register("image", ImageBlocks.Factory(res));
+            doc.WidgetRegistry.Register("image", ImageBlocks.Factory(res));
         Action<RichTextEditor, string> onLink = (_, url) =>   // lambda 直代入は不可 (EV の変換規則) — 変数経由
         {
             if (url.StartsWith("story:")) { ctx.Navigate(url["story:".Length..]); return; }

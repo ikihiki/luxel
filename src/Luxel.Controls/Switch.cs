@@ -13,19 +13,19 @@ namespace Luxel.Controls;
 [UiComponent]
 public sealed partial class Switch : Widget
 {
-    private readonly Signal<bool> _on;
+    /// <summary>オン/オフ状態の signal (クリック/Space/Enter で書き戻す)。</summary>
+    [UiParam] private readonly Bindable<Signal<bool>> _on = new();
+
     private const float W = 46, H = 26, Pad = 3;
 
     /// <summary>トラック色。未設定 → on ? Primary : SurfaceAlt。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<uint> Background = new();
+    [UiParam(Stateable = true)] private readonly Bindable<uint> _background = new();
     /// <summary>つまみ色。未設定 → テーマ OnAccent。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<uint> KnobColor = new();
-    [UiParam(Stateable = true)] public readonly Bindable<float> Opacity = new();
-
-    internal Switch(Signal<bool> on) => _on = on;
+    [UiParam(Stateable = true)] private readonly Bindable<uint> _knobColor = new();
+    [UiParam(Stateable = true)] private readonly Bindable<float> _opacity = 1f;
 
     public override bool IsStateActive(WidgetState state)
-        => state == WidgetState.Checked ? _on.Value : base.IsStateActive(state);
+        => state == WidgetState.Checked ? On.Get().Value : base.IsStateActive(state);
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx) => Size = c.Constrain(new Size(W, H));
     public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => W;
@@ -35,6 +35,7 @@ public sealed partial class Switch : Widget
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
         Point world = WorldPos;
 
+        Signal<bool> on = On.Get();
         FocusRing.Add(ctx, node, -3, -3, W + 6, H + 6, (H + 6) / 2, Focused);
 
         var track = new Scene2D();
@@ -51,8 +52,8 @@ public sealed partial class Switch : Widget
         UiStates st = ctx.States(new TransitionTable().Default(new TransitionSpec(0.14f)))
             .AddState("off", ("t", 0f))
             .AddState("on", ("t", 1f));
-        st.Start(_on.Peek() ? "on" : "off");
-        ctx.Effect(() => st.Goto(_on.Value ? "on" : "off"));
+        st.Start(on.Peek() ? "on" : "off");
+        ctx.Effect(() => st.Goto(on.Value ? "on" : "off"));
         ctx.Effect(() => knob.Transform = Affine2D.Translate(st.Float("t") * (W - H), 0));   // スライド=transform
 
         uint currentBg = Color2D.White, currentKnob = Color2D.White;
@@ -73,10 +74,10 @@ public sealed partial class Switch : Widget
             // トラック色はスライド量に同期したクロスフェード (明示 Background 指定時は従来どおり)
             bgSet(Background.Or(new RgbaTween(ctx.Theme.Value.SurfaceAlt, ctx.Theme.Value.Primary).Lerp(st.Float("t"))));
             knSet(KnobColor.Or(ctx.Theme.Value.OnAccent));
-            opSet(Opacity.Or(1f));
+            opSet(Opacity.Get());
         });
 
-        void Toggle() => _on.Value = !_on.Value;
+        void Toggle() => on.Value = !on.Value;
         ctx.AddHit(node, new Rect(0, 0, W, H), onClick: Toggle, onHover: h => Hovered.Value = h);
         ctx.AddFocusable(onFocus: f => Focused.Value = f,
             onKey: ev => { if (ev.Key is Key.Space or Key.Enter) { Toggle(); return true; } return false; });

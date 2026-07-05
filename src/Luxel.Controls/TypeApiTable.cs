@@ -15,23 +15,20 @@ public sealed partial class TypeApiTable : CompositeControl
 {
     private const float NameW = 130, TypeW = 260, Gap = 8;
 
-    private readonly string _type;
-    private readonly float _width;
-
-    [UiCtor]
-    internal TypeApiTable(string type, float width = 760f)
-    {
-        _type = type;
-        _width = width;
-    }
+    /// <summary>対象の型名 (TypeApiRegistry のキー — 名前空間付きも可)。</summary>
+    [UiParam] private readonly Bindable<string> _type = "";
+    /// <summary>テーブル全幅 (px)。説明列が残り幅を受ける。</summary>
+    [UiParam] private readonly Bindable<float> _width = 760f;
 
     protected override Widget Build()
     {
-        TypeApi? api = TypeApiRegistry.Find(_type);
+        string type = Type.Get();
+        float width = Width.Get();
+        TypeApi? api = TypeApiRegistry.Find(type);
         if (api is null)
-            return Alert($"不明な型: {_type} (TypeApiRegistry 未登録 — [assembly: GenerateAssemblyApi] を確認)", Intent.Danger);
+            return Alert($"不明な型: {type} (TypeApiRegistry 未登録 — [assembly: GenerateAssemblyApi] を確認)", Intent.Danger);
 
-        float descW = MathF.Max(120, _width - NameW - TypeW - Gap * 2);
+        float descW = MathF.Max(120, width - NameW - TypeW - Gap * 2);
         Widget Cell(string s, float w, bool muted = false) =>
             Text(s, 12, color: Bind.From(() => muted ? UiTheme.T.TextMuted : UiTheme.T.Text),
                  width: w, wrap: TextWrap.Word, margin: new Thickness(0, 2, 0, 0));
@@ -39,7 +36,7 @@ public sealed partial class TypeApiTable : CompositeControl
         var rows = new List<Widget>();
         if (api.Summary.Length > 0)
             rows.Add(Text($"{api.Kind} — {api.Summary}", 12, color: Bind.From(() => UiTheme.T.TextMuted),
-                          width: _width, wrap: TextWrap.Word, margin: new Thickness(0, 0, 0, 4)));
+                          width: width, wrap: TextWrap.Word, margin: new Thickness(0, 0, 0, 4)));
 
         void Section(string title, IEnumerable<ApiMember> members)
         {

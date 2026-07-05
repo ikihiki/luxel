@@ -15,45 +15,42 @@ namespace Luxel.Controls;
 [UiComponent]
 public sealed partial class SearchField : CompositeControl
 {
-    private readonly Signal<string> _query;
-    private readonly IReadOnlyList<string> _candidates;
-    private readonly TextField _field;    // 状態を保つ子はフィールド保持 (Rebuild を跨いで生存)
-    private readonly Button _clear;
-    private string[] _matches;            // 構造状態 — 変わったら Rebuild
+    /// <summary>検索文字列の signal (TextField と双方向)。</summary>
+    [UiParam] private readonly Bindable<Signal<string>> _value = new();
+    /// <summary>絞り込み候補の全リスト。</summary>
+    [UiParam] private readonly Bindable<IReadOnlyList<string>> _candidates = new([]);
+    /// <summary>候補リストの最大表示行数 (既定 5)。</summary>
+    [UiParam] private readonly Bindable<int> _maxSuggestions = 5;
 
-    /// <summary>候補リストの最大表示行数。未設定 → 5。</summary>
-    [UiParam] public readonly Bindable<int> MaxSuggestions = new();
+    private TextField? _field;            // 状態を保つ子はフィールド保持 (Rebuild を跨いで生存) — 初回 Build で構築
+    private Button? _clear;
+    private string[] _matches = [];       // 構造状態 — 変わったら Rebuild
 
-    [UiCtor]
-    internal SearchField(Signal<string> value, IReadOnlyList<string> candidates)
-    {
-        _query = value;
-        _candidates = candidates;
-        _field = Kit.TextField(value, placeholder: "Search...", width: 220);
-        _clear = Kit.Button(_ => _query.Value = "", "×", variant: Variant.Ghost);
-        _matches = [];
-    }
-
-    public override string? DebugDetail => $"\"{_query.Value}\" ({_matches.Length} 候補)";
+    public override string? DebugDetail => $"\"{Value.Get().Value}\" ({_matches.Length} 候補)";
 
     private string[] Filter(string q)
         => q.Length == 0
             ? []
-            : _candidates.Where(c => c.Contains(q, StringComparison.OrdinalIgnoreCase)
-                                     && !string.Equals(c, q, StringComparison.OrdinalIgnoreCase))
-                .Take(Math.Max(1, MaxSuggestions.Or(5))).ToArray();
+            : Candidates.Get().Where(c => c.Contains(q, StringComparison.OrdinalIgnoreCase)
+                                          && !string.Equals(c, q, StringComparison.OrdinalIgnoreCase))
+                .Take(Math.Max(1, MaxSuggestions.Get())).ToArray();
 
     protected override Widget Build()
     {
+        Signal<string> query = Value.Get();
+        // 状態を保つ子は初回 Build で一度だけ構築 (旧 ctor から遅延 — Rebuild を跨いで生存)
+        _field ??= Kit.TextField(query, placeholder: "Search...", width: 220);
+        _clear ??= Kit.Button(_ => query.Value = "", "×", variant: Variant.Ghost);
+
         // Build 本体での signal 読み取り = TrackedBuild の依存 — query が変わると自動 Rebuild される
         // (明示的な購読/Rebuild 呼び出しは不要)。MaxSuggestions が knobs で束縛されていれば同様に追跡。
-        _matches = Filter(_query.Value);
+        _matches = Filter(query.Value);
         var rows = new Widget[1 + _matches.Length];
         rows[0] = Kit.HStack(spacing: 4)[_field, _clear];
         for (int i = 0; i < _matches.Length; i++)
         {
             string m = _matches[i];
-            rows[1 + i] = Kit.MenuRow(m, _ => _query.Value = m);   // 確定 = signal へ (TextField が追従)
+            rows[1 + i] = Kit.MenuRow(m, _ => query.Value = m);   // 確定 = signal へ (TextField が追従)
         }
         return Kit.VStack(spacing: 2)[rows];
     }

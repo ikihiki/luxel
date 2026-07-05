@@ -14,46 +14,44 @@ namespace Luxel.Controls;
 [UiComponent]
 public sealed partial class RichTextView : Widget
 {
-    private readonly TextSpan[] _spans;
+    /// <summary>表示するスパン列 (フォント/サイズ/色の混在可)。</summary>
+    [UiParam] private readonly Bindable<TextSpan[]> _spans = new([]);
 
     /// <summary>既定の文字サイズ (スパンの Size 未指定分)。</summary>
-    [UiParam] public readonly Bindable<float> FontSize = 16f;
+    [UiParam] private readonly Bindable<float> _fontSize = 16f;
     /// <summary>折り返し (既定 None)。</summary>
-    [UiParam] public readonly Bindable<TextWrap> Wrap = new();
+    [UiParam] private readonly Bindable<TextWrap> _wrap = new();
     /// <summary>行の水平整列 (既定 Left)。</summary>
-    [UiParam] public readonly Bindable<TAlign> TextAlign = new();
+    [UiParam] private readonly Bindable<TAlign> _textAlign = new();
     /// <summary>行送り倍率 (既定 1.2)。</summary>
-    [UiParam] public readonly Bindable<float> LineHeight = new();
+    [UiParam] private readonly Bindable<float> _lineHeight = 1.2f;
 
     /// <summary>フォールバック用フォント列 (省略 = レイアウト時の ctx.Font のみ)。</summary>
     public FontCollection? Fonts { get; set; }
 
     private TextLayout? _layout;
 
-    [UiCtor]
-    internal RichTextView(params TextSpan[] spans) { _spans = spans; }
-
     public override string? DebugDetail
     {
         get
         {
-            string t = string.Concat(_spans.Select(s => s.Text));
+            string t = string.Concat(Spans.Get().Select(s => s.Text));
             return t.Length <= 24 ? t : t[..24] + "…";
         }
     }
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
-        Length lw = Width.Or(default);
+        Length lw = Width.Get();
         float maxW = lw.IsSet ? lw.Resolve(c.MaxW, ctx, float.PositiveInfinity)
                    : float.IsInfinity(c.MaxW) ? float.PositiveInfinity : c.MaxW;
         FontCollection fonts = Fonts ?? new FontCollection(ctx.Font);
-        _layout = new TextLayout(fonts, _spans, FontSize.Get(), new TextLayoutOptions
+        _layout = new TextLayout(fonts, Spans.Get(), FontSize.Get(), new TextLayoutOptions
         {
             MaxWidth = maxW,
-            Wrap = Wrap.Or(TextWrap.None),
-            Align = TextAlign.Or(TAlign.Left),
-            LineHeight = LineHeight.Or(1.2f),
+            Wrap = Wrap.Get(),
+            Align = TextAlign.Get(),
+            LineHeight = LineHeight.Get(),
         });
         Size = c.Constrain(new Size(ResolveW(c, ctx, _layout.Width), ResolveH(c, ctx, _layout.Height)));
     }

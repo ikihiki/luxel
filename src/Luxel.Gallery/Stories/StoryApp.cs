@@ -107,11 +107,11 @@ internal sealed class StoryAppView<TScene> : Widget, IDisposable
         _imageSet = false;
 
         ctx.AddHit(node, new Rect(0, 0, Size.Width, Size.Height),
-            onClickPos: (lx, ly) => { _scene!.PointerDown(lx, ly); _scene.PointerUp(lx, ly); },   // プログラム的 Click (E2E/テスト)
-            onMovePos: (lx, ly) => _scene!.PointerMove(lx, ly),
-            onDragStart: (lx, ly) => _scene!.PointerDown(lx, ly),
-            onDrag: (lx, ly) => _scene!.PointerMove(lx, ly),
-            onDragEnd: (lx, ly) => _scene!.PointerUp(lx, ly));
+            onClickPos: e => { _scene!.PointerDown(e.X, e.Y); _scene.PointerUp(e.X, e.Y); },   // プログラム的 Click (E2E/テスト)
+            onMovePos: e => _scene!.PointerMove(e.X, e.Y),
+            onDragStart: e => _scene!.PointerDown(e.X, e.Y),
+            onDrag: e => _scene!.PointerMove(e.X, e.Y),
+            onDragEnd: e => _scene!.PointerUp(e.X, e.Y));
         ctx.AddScroll(node, new Rect(0, 0, Size.Width, Size.Height),
             onScrollPos: (lx, ly, d) => _scene!.Wheel(lx, ly, d));
 

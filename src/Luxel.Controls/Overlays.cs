@@ -9,64 +9,68 @@ namespace Luxel.Controls;
 [UiComponent]
 public sealed partial class Dialog : Widget
 {
-    private readonly Signal<bool> _open;
-    private readonly Widget _panel;
-    internal Dialog(Signal<bool> open, Widget panel) { _open = open; _panel = panel; }
+    /// <summary>開閉 signal (true で表示)。</summary>
+    [UiParam] private readonly Bindable<Signal<bool>> _open = new();
+    /// <summary>ダイアログ本体のパネル。</summary>
+    [UiParam] private readonly Bindable<Widget> _panel = new();
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx) => Size = Size.Zero;
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
-        => ctx.RegisterOverlay(new OverlayEntry { Open = _open, Content = _panel, Placement = OverlayPlacement.Center, Modal = true });
+        => ctx.RegisterOverlay(new OverlayEntry { Open = Open.Get(), Content = Panel.Get(), Placement = OverlayPlacement.Center, Modal = true });
 }
 
 /// <summary>コーナートースト (右下)。portal。</summary>
 [UiComponent]
 public sealed partial class Toast : Widget
 {
-    private readonly Signal<bool> _open;
-    private readonly Widget _content;
-    internal Toast(Signal<bool> open, Widget content) { _open = open; _content = content; }
+    /// <summary>開閉 signal (true で表示)。</summary>
+    [UiParam] private readonly Bindable<Signal<bool>> _open = new();
+    /// <summary>トーストの中身。</summary>
+    [UiParam] private readonly Bindable<Widget> _content = new();
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx) => Size = Size.Zero;
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
-        => ctx.RegisterOverlay(new OverlayEntry { Open = _open, Content = _content, Placement = OverlayPlacement.CornerBottomRight, DismissOnOutside = false });
+        => ctx.RegisterOverlay(new OverlayEntry { Open = Open.Get(), Content = Content.Get(), Placement = OverlayPlacement.CornerBottomRight, DismissOnOutside = false });
 }
 
 /// <summary>右端ドロワー (モーダル)。portal。</summary>
 [UiComponent]
 public sealed partial class Drawer : Widget
 {
-    private readonly Signal<bool> _open;
-    private readonly Widget _panel;
-    internal Drawer(Signal<bool> open, Widget panel) { _open = open; _panel = panel; }
+    /// <summary>開閉 signal (true で表示)。</summary>
+    [UiParam] private readonly Bindable<Signal<bool>> _open = new();
+    /// <summary>ドロワー本体のパネル。</summary>
+    [UiParam] private readonly Bindable<Widget> _panel = new();
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx) => Size = Size.Zero;
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
-        => ctx.RegisterOverlay(new OverlayEntry { Open = _open, Content = _panel, Placement = OverlayPlacement.RightEdge, Modal = true });
+        => ctx.RegisterOverlay(new OverlayEntry { Open = Open.Get(), Content = Panel.Get(), Placement = OverlayPlacement.RightEdge, Modal = true });
 }
 
 /// <summary>ボタン + ドロップダウンメニュー (アンカー下, 外側クリック/Esc で閉じる)。</summary>
 [UiComponent]
 public sealed partial class Dropdown : Widget
 {
-    private readonly string _label;
-    private readonly (string label, Action onClick)[] _items;
+    /// <summary>トリガーボタンのラベル。</summary>
+    [UiParam] private readonly Bindable<string> _label = "";
+    /// <summary>メニュー項目 (ラベル + クリック時アクション) の列。</summary>
+    [UiParam] private readonly Bindable<(string label, Action onClick)[]> _items = new([]);
+
     private readonly Signal<bool> _open = new(false);
     private Button? _trigger;
-
-    internal Dropdown(string label, params (string label, Action onClick)[] items) { _label = label; _items = items; }
 
     /// <summary>開閉状態 (検査/外部制御用)。</summary>
     public Signal<bool> Opened => _open;
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
-        _trigger ??= Button(_ => _open.Value = !_open.Value, _label, variant: Luxel.UI.Variant.Tonal, intent: Luxel.UI.Intent.Neutral);
+        _trigger ??= Button(_ => _open.Value = !_open.Value, Label.Get(), variant: Luxel.UI.Variant.Tonal, intent: Luxel.UI.Intent.Neutral);
         Size = _trigger.Layout(Constraints.LooseW(float.PositiveInfinity, float.PositiveInfinity), ctx, true);
         _trigger.Offset = new Point(0, 0);
     }
 
     public override float MaxIntrinsicWidth(float height, LayoutContext ctx)
-        => (_trigger ??= Button(_ => { }, _label, variant: Luxel.UI.Variant.Tonal, intent: Luxel.UI.Intent.Neutral)).MaxIntrinsicWidth(height, ctx);
+        => (_trigger ??= Button(_ => { }, Label.Get(), variant: Luxel.UI.Variant.Tonal, intent: Luxel.UI.Intent.Neutral)).MaxIntrinsicWidth(height, ctx);
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {
@@ -74,7 +78,7 @@ public sealed partial class Dropdown : Widget
         Point world = WorldPos;
         _trigger!.Realize(ctx, node, world);
 
-        var rows = _items.Select(it =>
+        var rows = Items.Get().Select(it =>
             (Widget)MenuRow(it.label, _ => { it.onClick(); _open.Value = false; }, hAlign: Align.Stretch));
         Widget menu = Border(background: Bind.From(() => ctx.Theme.Value.Surface), rounded: ctx.Theme.Value.Radius, padding: new Thickness(6))
             [VStack(spacing: 2)[rows.ToArray()]];
@@ -93,35 +97,35 @@ public sealed partial class Dropdown : Widget
 [UiComponent]
 public sealed partial class MenuRow : Widget
 {
-    private readonly string _label;
+    /// <summary>行ラベル。</summary>
+    [UiParam] private readonly Bindable<string> _label = "";
 
     /// <summary>行クリック (EV: 第一引数は発火元の MenuRow 自身)。</summary>
     [UiEvent] public UiEvent<MenuRow> OnClick;
 
-    [UiParam] public readonly Bindable<float> FontSize = 15f;
+    [UiParam] private readonly Bindable<float> _fontSize = 15f;
     /// <summary>行の地色。未設定 → hover ? SurfaceAlt : Surface。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<uint> Background = new();
+    [UiParam(Stateable = true)] private readonly Bindable<uint> _background = new();
     /// <summary>ラベル色。未設定 → テーマ Text。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<uint> Foreground = new();
+    [UiParam(Stateable = true)] private readonly Bindable<uint> _foreground = new();
 
-    internal MenuRow(string label) => _label = label;
-
-    public override string? DebugDetail => _label;
+    public override string? DebugDetail => Label.Get();
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
-        (float tw, float th) = ctx.Font.Measure(_label, FontSize.Get());
+        (float tw, float th) = ctx.Font.Measure(Label.Get(), FontSize.Get());
         float w = float.IsInfinity(c.MaxW) ? tw + 24 : MathF.Max(c.MaxW, tw + 24);
         Size = new Size(w, th + 12);
     }
 
-    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => ctx.Font.Measure(_label, FontSize.Get()).width + 24;
+    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => ctx.Font.Measure(Label.Get(), FontSize.Get()).width + 24;
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
         Point world = WorldPos;
 
+        string label = Label.Get();
         float fontSize = FontSize.Get();
         var bg = new Scene2D(); bg.FillRoundedRect(Color2D.White, 0, 0, Size.Width, Size.Height, 5);
         node.Content = bg;
@@ -135,9 +139,9 @@ public sealed partial class MenuRow : Widget
             new RgbaTween(ctx.Theme.Value.Surface, ctx.Theme.Value.SurfaceAlt).Lerp(hover.Float("t"))));
 
         UiNode lbl = ctx.Canvas.AddChild(node); lbl.Z = 1;
-        (float _, float th) = ctx.Font.Measure(_label, fontSize);
+        (float _, float th) = ctx.Font.Measure(label, fontSize);
         lbl.Transform = Affine2D.Translate(12, (Size.Height - th) / 2);
-        var ls = new Scene2D(); ctx.Font.AppendText(ls, _label, 0, ctx.Font.Ascent(fontSize), fontSize, Color2D.White);
+        var ls = new Scene2D(); ctx.Font.AppendText(ls, label, 0, ctx.Font.Ascent(fontSize), fontSize, Color2D.White);
         lbl.Content = ls;
         ctx.Effect(() => lbl.Color = Foreground.Or(ctx.Theme.Value.Text));
 
@@ -149,26 +153,29 @@ public sealed partial class MenuRow : Widget
 [UiComponent]
 public sealed partial class Tooltip : Widget
 {
-    private readonly Widget _child;
-    private readonly string _text;
-    private readonly Signal<bool> _open = new(false);
+    /// <summary>ラップする子 widget (ホバー判定の対象)。</summary>
+    [UiParam] private readonly Bindable<Widget> _child = new();
+    /// <summary>ツールチップ本文。</summary>
+    [UiParam] private readonly Bindable<string> _text = "";
 
-    internal Tooltip(Widget child, string text) { _child = child; _text = text; }
+    private readonly Signal<bool> _open = new(false);
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
-        Size = _child.Layout(c, ctx, true);
-        _child.Offset = new Point(0, 0);
+        Widget child = Child.Get();
+        Size = child.Layout(c, ctx, true);
+        child.Offset = new Point(0, 0);
     }
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
         Point world = WorldPos;
-        _child.Realize(ctx, node, world);
+        Child.Get().Realize(ctx, node, world);
 
+        // Kit.Text で完全修飾 — 生成プロパティ Text と名前が衝突するため
         Widget bubble = Border(background: Bind.From(() => ctx.Theme.Value.Text), rounded: 5, padding: new Thickness(8, 5))
-            [Text(_text, 13, color: Bind.From(() => ctx.Theme.Value.OnAccent))];
+            [Kit.Text(Text.Get(), 13, color: Bind.From(() => ctx.Theme.Value.OnAccent))];
 
         ctx.AddHit(node, new Rect(0, 0, Size.Width, Size.Height), onHover: h => _open.Value = h);
         ctx.RegisterOverlay(new OverlayEntry

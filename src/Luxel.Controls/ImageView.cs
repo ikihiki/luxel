@@ -12,7 +12,11 @@ namespace Luxel.Controls;
 [UiComponent]
 public sealed partial class ImageView : Widget, IDisposable
 {
-    private readonly float _w, _h;
+    /// <summary>表示幅 (px、最小 1)。ソース寸法とは独立 — 表示は nearest 拡縮。</summary>
+    [UiParam] private readonly Bindable<float> _width = new();
+    /// <summary>表示高 (px、最小 1)。</summary>
+    [UiParam] private readonly Bindable<float> _height = new();
+
     private GpuDevice? _device;
     private GpuBuffer? _buf;
     private int _srcW, _srcH;
@@ -22,12 +26,9 @@ public sealed partial class ImageView : Widget, IDisposable
     private UiBuildContext? _ctx;
     private UiNode? _node;
 
-    [UiCtor]
-    internal ImageView(float width, float height)
-    {
-        _w = MathF.Max(1, width);
-        _h = MathF.Max(1, height);
-    }
+    // 旧 ctor のクランプは読み出し側で適用
+    private float W => MathF.Max(1, Width.Get());
+    private float H => MathF.Max(1, Height.Get());
 
     public override string? DebugDetail => _srcW > 0 ? $"{_srcW}x{_srcH}" : "(no image)";
 
@@ -65,8 +66,8 @@ public sealed partial class ImageView : Widget, IDisposable
             : new Scene2D().ImageRect(_buf.BindlessIndex, (uint)_srcW, (uint)_srcW, (uint)_srcH, 0, 0, Size.Width, Size.Height);
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
-        => Size = c.Constrain(new Size(_w, _h));
-    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => _w;
+        => Size = c.Constrain(new Size(W, H));
+    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => W;
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {

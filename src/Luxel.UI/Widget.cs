@@ -34,20 +34,20 @@ public sealed class HitTarget
     /// <summary><see cref="Node"/> のローカル座標での矩形。</summary>
     public required Rect Rect { get; init; }
     public Action? OnClick { get; init; }
-    public Action<float, float>? OnClickPos { get; init; }   // クリック座標 (Node のローカル) 付き
+    public Action<PointerEvent>? OnClickPos { get; init; }   // クリック座標付き
     public Action<bool>? OnHover { get; init; }    // true=enter / false=leave
-    /// <summary>非捕獲時のポインタ移動 (Node のローカル座標)。ヒット中は毎移動呼ばれる (SurfaceView 等の転送用)。</summary>
-    public Action<float, float>? OnMovePos { get; init; }
+    /// <summary>非捕獲時のポインタ移動。ヒット中は毎移動呼ばれる (SurfaceView 等の転送用)。</summary>
+    public Action<PointerEvent>? OnMovePos { get; init; }
     public FocusTarget? Focus { get; init; }       // クリックでこの対象にフォーカス
 
     // ---- ドラッグ (ポインタキャプチャ)。PointerDown でこの対象に捕獲され、
-    //      以後の移動は矩形外でも OnDrag に届く (座標は Node のローカル)。----
+    //      以後の移動は矩形外でも OnDrag に届く (開始位置/差分は PointerEvent が持つ)。----
     /// <summary>ドラッグ開始 (押下位置)。これか <see cref="OnDrag"/> があると PointerDown で捕獲される。</summary>
-    public Action<float, float>? OnDragStart { get; init; }
-    /// <summary>捕獲中の移動 (矩形外も届く)。</summary>
-    public Action<float, float>? OnDrag { get; init; }
+    public Action<PointerEvent>? OnDragStart { get; init; }
+    /// <summary>捕獲中の移動 (矩形外も届く)。移動量は <see cref="PointerEvent.DeltaX"/> (画面絶対基準)。</summary>
+    public Action<PointerEvent>? OnDrag { get; init; }
     /// <summary>ドラッグ終了 (離した位置)。</summary>
-    public Action<float, float>? OnDragEnd { get; init; }
+    public Action<PointerEvent>? OnDragEnd { get; init; }
     internal bool Draggable => OnDragStart is not null || OnDrag is not null;
 
     /// <summary>false を返す間このヒットは無効 (論理的なゲート用)。null = 常に有効。
@@ -58,16 +58,16 @@ public sealed class HitTarget
     public CursorKind Cursor { get; init; } = CursorKind.Arrow;
     /// <summary>動的なカーソル (SurfaceView の子転送等)。非 null なら <see cref="Cursor"/> より優先。</summary>
     public Func<CursorKind>? CursorFunc { get; init; }
-    /// <summary>右クリック (コンテキストメニュー要求)。引数は Node のローカル座標 (他コールバックと同じ)。
-    /// メニューを canvas 座標へ置くときは <c>Node.ComputeWorldNow().Apply(local)</c> で写す。</summary>
-    public Action<float, float>? OnContext { get; init; }
+    /// <summary>右クリック (コンテキストメニュー要求)。メニューを canvas 座標へ置くときは
+    /// <see cref="PointerEvent.ScreenX"/> か <c>Node.ComputeWorldNow().Apply(local)</c> を使う。</summary>
+    public Action<PointerEvent>? OnContext { get; init; }
 
     // ---- ペイロード付きドラッグの受け側 (QP-M4 アプリ内 D&D)。
     //      ドラッグは UiHost.BeginDrag で始まり、以後この対象が最前面ドロップ先として拾われる。----
-    /// <summary>ドロップ (payload, ローカル x, y)。これがあるとドロップ先候補になる。</summary>
-    public Action<object, float, float>? OnDrop { get; init; }
+    /// <summary>ドロップ (payload + 座標)。これがあるとドロップ先候補になる。</summary>
+    public Action<object, PointerEvent>? OnDrop { get; init; }
     /// <summary>ドラッグ中、この対象の上をポインタが動くたび (インジケータ更新用)。</summary>
-    public Action<object, float, float>? OnDropMove { get; init; }
+    public Action<object, PointerEvent>? OnDropMove { get; init; }
     /// <summary>ドロップ先としての enter/leave (ハイライト用)。</summary>
     public Action<bool>? OnDropHover { get; init; }
     /// <summary>この payload を受け入れるか。null = すべて受け入れる。</summary>
@@ -214,12 +214,12 @@ public sealed class UiBuildContext
     /// <summary>クリック/hover/ドラッグを受けるコントロールが自身のノードとローカル矩形、ハンドラを登録する。
     /// 判定はノードの現在の transform に追従する (rect はノードのローカル座標)。</summary>
     public HitTarget AddHit(UiNode node, Rect rect, Action? onClick = null, Action<bool>? onHover = null, FocusTarget? focus = null,
-        Action<float, float>? onClickPos = null,
-        Action<float, float>? onDragStart = null, Action<float, float>? onDrag = null, Action<float, float>? onDragEnd = null,
-        Action<float, float>? onMovePos = null,
+        Action<PointerEvent>? onClickPos = null,
+        Action<PointerEvent>? onDragStart = null, Action<PointerEvent>? onDrag = null, Action<PointerEvent>? onDragEnd = null,
+        Action<PointerEvent>? onMovePos = null,
         CursorKind cursor = CursorKind.Arrow, Func<CursorKind>? cursorFunc = null,
-        Action<float, float>? onContext = null,
-        Action<object, float, float>? onDrop = null, Action<object, float, float>? onDropMove = null,
+        Action<PointerEvent>? onContext = null,
+        Action<object, PointerEvent>? onDrop = null, Action<object, PointerEvent>? onDropMove = null,
         Action<bool>? onDropHover = null, Func<object, bool>? acceptsDrop = null)
     {
         var h = new HitTarget
@@ -276,7 +276,7 @@ public sealed class UiBuildContext
 /// と、保持型ツリーへの実体化 (<see cref="Realize"/>) を持つ。**別アセンブリで継承して独自コントロールを
 /// 追加できる** (Realize/PerformLayout を override、AddChildWidget でコンテナ化)。
 /// </summary>
-public abstract class Widget
+public abstract partial class Widget
 {
     private Dictionary<string, object?>? _attached;
     private Dictionary<string, object>? _setterWraps;
@@ -330,14 +330,14 @@ public abstract class Widget
     //      値/Signal/Func を束縛できるが、レイアウトは単一パスで PerformLayout 時に読むだけ
     //      (リアクティブ再レイアウトは将来の Invalidate フックで対応)。
     //      フィールドは readonly — 差し替え不可、書き込みは SetBase (状態レイヤ/override 維持)。
-    [UiParam] public readonly Bindable<Thickness> Margin = new();
+    [UiParam] private readonly Bindable<Thickness> _margin = new();
     /// <summary>未設定 (default) は <see cref="Align.Start"/> (enum 先頭 = 0)。</summary>
-    [UiParam] public readonly Bindable<Align> HAlign = new();
-    [UiParam] public readonly Bindable<Align> VAlign = new();
+    [UiParam] private readonly Bindable<Align> _hAlign = new();
+    [UiParam] private readonly Bindable<Align> _vAlign = new();
     /// <summary>明示的に固定したい場合の幅 (未設定 = 自然サイズ。旧 float? null 相当)。全 widget で共通。</summary>
-    [UiParam] public readonly Bindable<Length> Width = new();
+    [UiParam] private readonly Bindable<Length> _width = new();
     /// <summary>明示的に固定したい場合の高さ (未設定 = 自然サイズ)。全 widget で共通。</summary>
-    [UiParam] public readonly Bindable<Length> Height = new();
+    [UiParam] private readonly Bindable<Length> _height = new();
 
     // ---- transform 成分 (TF): 全 widget 共通の表示系パラメータ。**行列を直接アニメしない**ための
     //      分解表現 (CSS の translate/rotate/scale 独立プロパティと同じ思想) — プロパティ毎に
@@ -345,15 +345,15 @@ public abstract class Widget
     //      適用はコントロールが root ノードに <see cref="WireTransform"/> を呼ぶ (中心基準で
     //      Translate → Rotate → Scale の順に合成、レイアウトには影響しない)。
     /// <summary>X 方向の平行移動 (px)。未設定 = 0。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<float> TranslateX = new();
+    [UiParam(Stateable = true)] private readonly Bindable<float> _translateX = new();
     /// <summary>Y 方向の平行移動 (px)。未設定 = 0。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<float> TranslateY = new();
-    /// <summary>X 方向スケール (中心基準)。未設定 = 1。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<float> ScaleX = new();
-    /// <summary>Y 方向スケール (中心基準)。未設定 = 1。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<float> ScaleY = new();
+    [UiParam(Stateable = true)] private readonly Bindable<float> _translateY = new();
+    /// <summary>X 方向スケール (中心基準)。既定 = 1。</summary>
+    [UiParam(Stateable = true)] private readonly Bindable<float> _scaleX = 1f;
+    /// <summary>Y 方向スケール (中心基準)。既定 = 1。</summary>
+    [UiParam(Stateable = true)] private readonly Bindable<float> _scaleY = 1f;
     /// <summary>回転 (ラジアン、中心基準)。未設定 = 0。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<float> Rotate = new();
+    [UiParam(Stateable = true)] private readonly Bindable<float> _rotate = new();
     public Size Size { get; protected set; }
     public Point Offset { get; set; }              // 親が書く (ローカル)
     public Point WorldPos { get; protected set; }  // 実体化時に確定 (ヒット登録用)
@@ -361,13 +361,13 @@ public abstract class Widget
     // ---- Width/Height (単位付き Length) の解決ヘルパ ----
     /// <summary>Width を論理 px へ解決 (% は c.MaxW 基準)。未指定は <paramref name="fallback"/>。</summary>
     public float ResolveW(in Constraints c, LayoutContext ctx, float fallback = 0)
-        => Width.Or(default).Resolve(c.MaxW, ctx, fallback);
+        => Width.Get().Resolve(c.MaxW, ctx, fallback);
     /// <summary>Height を論理 px へ解決 (% は c.MaxH 基準)。未指定は <paramref name="fallback"/>。</summary>
     public float ResolveH(in Constraints c, LayoutContext ctx, float fallback = 0)
-        => Height.Or(default).Resolve(c.MaxH, ctx, fallback);
+        => Height.Get().Resolve(c.MaxH, ctx, fallback);
     /// <summary>制約が手元にない文脈 (intrinsic 計測等) 用 — % は解決できず fallback。</summary>
     public float ResolveWIntrinsic(LayoutContext ctx, float fallback = 0)
-        => Width.Or(default).Resolve(float.PositiveInfinity, ctx, fallback);
+        => Width.Get().Resolve(float.PositiveInfinity, ctx, fallback);
 
     /// <summary>root ノードの定型生成 (TF の共通処理): AddChild + WorldPos 記録 + transform 成分の配線。
     /// 従来の 3 行イディオム (`AddChild` → `node.Transform = Translate(Offset)` → `SetWorldPos`) の
@@ -415,11 +415,11 @@ public abstract class Widget
         Action<float> rotSet = WrapSetter<float>("Rotate", v => { rot = v; Apply(); });
         ctx.Effect(() =>
         {
-            txSet(TranslateX.Or(0f));
-            tySet(TranslateY.Or(0f));
-            sxSet(ScaleX.Or(1f));
-            sySet(ScaleY.Or(1f));
-            rotSet(Rotate.Or(0f));
+            txSet(TranslateX.Get());
+            tySet(TranslateY.Get());
+            sxSet(ScaleX.Get());
+            sySet(ScaleY.Get());
+            rotSet(Rotate.Get());
         });
         Apply();
         return h;

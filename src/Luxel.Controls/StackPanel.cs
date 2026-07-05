@@ -9,14 +9,11 @@ namespace Luxel.Controls;
 public sealed partial class StackPanel : Widget
 {
     internal readonly List<Widget> Children = new();
-    public bool Vertical { get; set; } = true;
-    public float Spacing { get; set; } = 0f;
 
-    internal StackPanel() { }
-
-    /// <summary>向きと間隔を指定 (<c>VStack</c>/<c>HStack</c> sugar もある)。</summary>
-    [UiCtor]
-    internal StackPanel(bool vertical, float spacing = 0f) { Vertical = vertical; Spacing = spacing; }
+    /// <summary>true=縦に積む (既定)。向きは <c>VStack</c>/<c>HStack</c> sugar もある。</summary>
+    [UiParam] private readonly Bindable<bool> _vertical = true;
+    /// <summary>子要素間の間隔 (px)。</summary>
+    [UiParam] private readonly Bindable<float> _spacing = 0f;
 
     private void AddChild(Widget child) => Children.Add(child);
 
@@ -30,47 +27,49 @@ public sealed partial class StackPanel : Widget
     public int ChildCount => Children.Count;
 
     public override IEnumerable<Widget> DebugChildren() => Children;
-    public override string? DebugDetail => $"{(Vertical ? "V" : "H")} spacing={Spacing:0}";
+    public override string? DebugDetail => $"{(Vertical.Get() ? "V" : "H")} spacing={Spacing.Get():0}";
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
+        bool vertical = Vertical.Get();
+        float spacing = Spacing.Get();
         float main = 0, cross = 0;
-        float crossMax = Vertical ? c.MaxW : c.MaxH;            // 交差軸の利用可能幅 (∞ もあり)
+        float crossMax = vertical ? c.MaxW : c.MaxH;            // 交差軸の利用可能幅 (∞ もあり)
         bool crossBounded = !float.IsInfinity(crossMax);
         foreach (Widget ch in Children)
         {
             Thickness m = ch.Margin.Get();
-            float crossAvail = crossBounded ? MathF.Max(0, crossMax - (Vertical ? m.Horizontal : m.Vertical)) : float.PositiveInfinity;
-            Align crossAlign = Vertical ? ch.HAlign.Get() : ch.VAlign.Get();
+            float crossAvail = crossBounded ? MathF.Max(0, crossMax - (vertical ? m.Horizontal : m.Vertical)) : float.PositiveInfinity;
+            Align crossAlign = vertical ? ch.HAlign.Get() : ch.VAlign.Get();
             float crossMin = crossBounded && crossAlign == Align.Stretch ? crossAvail : 0;
 
-            Constraints cc = Vertical
+            Constraints cc = vertical
                 ? new Constraints(crossMin, crossAvail, 0, float.PositiveInfinity)
                 : new Constraints(0, float.PositiveInfinity, crossMin, crossAvail);
             Size cs = ch.Layout(cc, ctx, parentUsesSize: true);
 
-            float crossSize = Vertical ? cs.Width : cs.Height;
+            float crossSize = vertical ? cs.Width : cs.Height;
             float ca = crossBounded ? LayoutHelper.AlignOffset(crossAlign, crossAvail, crossSize) : 0;
-            if (Vertical)
+            if (vertical)
             {
                 ch.Offset = new Point(m.Left + ca, main + m.Top);
-                main += cs.Height + m.Vertical + Spacing;
+                main += cs.Height + m.Vertical + spacing;
                 cross = MathF.Max(cross, cs.Width + m.Horizontal);
             }
             else
             {
                 ch.Offset = new Point(main + m.Left, m.Top + ca);
-                main += cs.Width + m.Horizontal + Spacing;
+                main += cs.Width + m.Horizontal + spacing;
                 cross = MathF.Max(cross, cs.Height + m.Vertical);
             }
         }
-        if (Children.Count > 0) main -= Spacing;
-        Size = c.Constrain(Vertical ? new Size(cross, main) : new Size(main, cross));
+        if (Children.Count > 0) main -= spacing;
+        Size = c.Constrain(vertical ? new Size(cross, main) : new Size(main, cross));
     }
 
     public override float MaxIntrinsicWidth(float height, LayoutContext ctx)
     {
-        if (Vertical)
+        if (Vertical.Get())
         {
             float w = 0;
             foreach (Widget ch in Children) w = MathF.Max(w, ch.MaxIntrinsicWidth(height, ctx));
@@ -78,7 +77,7 @@ public sealed partial class StackPanel : Widget
         }
         float sum = 0;
         foreach (Widget ch in Children) sum += ch.MaxIntrinsicWidth(height, ctx);
-        return sum + Spacing * Math.Max(0, Children.Count - 1);
+        return sum + Spacing.Get() * Math.Max(0, Children.Count - 1);
     }
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)

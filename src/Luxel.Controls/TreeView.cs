@@ -19,7 +19,7 @@ public sealed record TreeNode(string Key, string Label, IReadOnlyList<TreeNode>?
 /// <item>子持ちノード: <c>Tag == null</c> (見出し行) はラベルクリック = 開閉。
 ///   <c>Tag != null</c> (選択できるページ等) はラベルクリック = <see cref="OnSelect"/> + 展開、
 ///   開閉はシェブロンのクリック</item>
-/// <item>展開状態は ctor の <c>expanded</c> セットに保持 — 呼び出し側が所有すれば
+/// <item>展開状態は <see cref="Expanded"/> に渡したセットに保持 — 呼び出し側が所有すれば
 ///   ツリーの作り直し (chrome 再構築等) をまたいで生き残る</item>
 /// <item>選択ハイライトは <see cref="Selected"/> (Key 一致でアクセント色)</item>
 /// <item><see cref="Filter"/> が非空なら、Label/SearchText がマッチするノードとその祖先だけを
@@ -29,46 +29,48 @@ public sealed record TreeNode(string Key, string Label, IReadOnlyList<TreeNode>?
 [UiComponent]
 public sealed partial class TreeView : CompositeControl
 {
-    private readonly IReadOnlyList<TreeNode> _roots;
-    private readonly ISet<string> _expanded;
-    private readonly Signal<int> _version = new(0);   // 開閉トグルで進める (TrackBuild が再構築)
+    /// <summary>ルートノード列。</summary>
+    [UiParam] private readonly Bindable<IReadOnlyList<TreeNode>> _roots = new([]);
+    /// <summary>展開状態のセット (呼び出し側所有で共有可 — 省略時は自前のセットを遅延生成)。</summary>
+    [UiParam] private readonly Bindable<ISet<string>> _expanded = new();
 
     /// <summary>葉ノード選択 (第一引数 = 発火元)。Tag 付き子持ちノードのラベルクリックでも発火する。</summary>
     [UiEvent] public UiEvent<TreeView, TreeNode> OnSelect;
 
     /// <summary>選択中ノードの Key (ハイライト表示)。</summary>
-    [UiParam] public readonly Bindable<string> Selected = new();
+    [UiParam] private readonly Bindable<string> _selected = "";
 
     /// <summary>絞り込みクエリ (大小無視の部分一致)。signal を渡せばタイプ毎に TreeView だけ再構築される。</summary>
-    [UiParam] public readonly BindableString Filter = new();
+    [UiParam] private readonly BindableString _filter = new();
 
-    [UiCtor]
-    internal TreeView(IReadOnlyList<TreeNode> roots, ISet<string>? expanded = null)
-    {
-        _roots = roots;
-        _expanded = expanded ?? new HashSet<string>();
-    }
+    private readonly Signal<int> _version = new(0);   // 開閉トグルで進める (TrackBuild が再構築)
+    private ISet<string>? _ownExpanded;   // Expanded 未指定時の自前セット (遅延生成)
+
+    /// <summary>実際に使う展開セット — 呼び出し側所有 (<see cref="Expanded"/>) を優先し、
+    /// 未指定なら自前の HashSet を遅延生成する。</summary>
+    private ISet<string> ExpandedSet => Expanded.Get() ?? (_ownExpanded ??= new HashSet<string>());
 
     /// <summary>ノードを展開する (プログラム操作 — 選択パスを見せる等)。</summary>
     public void Expand(string key)
     {
-        if (_expanded.Add(key)) _version.Value++;
+        if (ExpandedSet.Add(key)) _version.Value++;
     }
 
     protected override Widget Build()
     {
         _ = _version.Value;   // 開閉を追跡
-        string sel = Selected.Or("");
+        string sel = Selected.Get();
         string filter = Filter.Or("").Trim();
+        IReadOnlyList<TreeNode> roots = Roots.Get();
         var flat = new List<(TreeNode Node, int Depth)>();
         if (filter.Length > 0)
         {
             // 絞り込み: マッチするノード + 祖先だけを全展開で (開閉セットは触らない)
-            FlattenFiltered(FilterTree(_roots, filter), 0, flat);
+            FlattenFiltered(FilterTree(roots, filter), 0, flat);
         }
         else
         {
-            Flatten(_roots, _expanded, 0, flat);
+            Flatten(roots, ExpandedSet, 0, flat);
         }
         var rows = new List<Widget>();
         foreach ((TreeNode n, int depth) in flat)
@@ -125,7 +127,7 @@ public sealed partial class TreeView : CompositeControl
             return LinkText(_ => OnSelect.Invoke(this, n), n.Label, active: selected,
                 hAlign: Align.Stretch, margin: new Thickness(indent + 12, 0, 0, 0));
 
-        bool open = filtered || _expanded.Contains(n.Key);
+        bool open = filtered || ExpandedSet.Contains(n.Key);
         // Tag 付きの子持ち (選択できるページ) はラベル = 選択、シェブロン = 開閉。
         // Tag なし (グループ見出し) は従来どおりラベルでも開閉
         Action<LinkText> onLabel = n.Tag is null
@@ -139,7 +141,8 @@ public sealed partial class TreeView : CompositeControl
 
     private void Toggle(TreeNode n)
     {
-        if (!_expanded.Remove(n.Key)) _expanded.Add(n.Key);
+        ISet<string> expanded = ExpandedSet;
+        if (!expanded.Remove(n.Key)) expanded.Add(n.Key);
         _version.Value++;
     }
 }

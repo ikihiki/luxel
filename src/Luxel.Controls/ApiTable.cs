@@ -16,25 +16,23 @@ public sealed partial class ApiTable : CompositeControl
 {
     private const float NameW = 110, TypeW = 150, Gap = 8;
 
-    private readonly string _control;
-    private readonly bool _inherited;
-    private readonly float _width;
-
-    [UiCtor]
-    internal ApiTable(string control, bool inherited = false, float width = 640f)
-    {
-        _control = control;
-        _inherited = inherited;
-        _width = width;
-    }
+    /// <summary>対象コントロール名 (ControlApiRegistry のキー)。</summary>
+    [UiParam] private readonly Bindable<string> _control = "";
+    /// <summary>基底 (Widget 共通: margin/hAlign/transform...) のメンバーも出す。</summary>
+    [UiParam] private readonly Bindable<bool> _inherited = new();
+    /// <summary>テーブル全幅 (px)。説明列が残り幅を受ける。</summary>
+    [UiParam] private readonly Bindable<float> _width = 640f;
 
     protected override Widget Build()
     {
-        ControlApi? api = ControlApiRegistry.Find(_control);
+        string control = Control.Get();
+        bool inherited = Inherited.Get();
+        float width = Width.Get();
+        ControlApi? api = ControlApiRegistry.Find(control);
         if (api is null)
-            return Alert($"不明なコントロール: {_control} (ControlApiRegistry 未登録)", Intent.Danger);
+            return Alert($"不明なコントロール: {control} (ControlApiRegistry 未登録)", Intent.Danger);
 
-        float descW = MathF.Max(120, _width - NameW - TypeW - Gap * 2);
+        float descW = MathF.Max(120, width - NameW - TypeW - Gap * 2);
         Widget Cell(string s, float w, bool muted = false, bool head = false) =>
             Text(s, head ? 11 : 12, color: Bind.From(() => muted ? UiTheme.T.TextMuted : UiTheme.T.Text),
                  width: w, wrap: TextWrap.Word, margin: new Thickness(0, 2, 0, 0));
@@ -42,7 +40,7 @@ public sealed partial class ApiTable : CompositeControl
         var rows = new List<Widget>();
         if (api.Summary.Length > 0)
             rows.Add(Text(api.Summary, 12, color: Bind.From(() => UiTheme.T.TextMuted),
-                          width: _width, wrap: TextWrap.Word, margin: new Thickness(0, 0, 0, 4)));
+                          width: width, wrap: TextWrap.Word, margin: new Thickness(0, 0, 0, 4)));
 
         void Section(string title, IEnumerable<ApiMember> members)
         {
@@ -60,11 +58,11 @@ public sealed partial class ApiTable : CompositeControl
             }
         }
 
-        bool Show(ApiMember m) => _inherited || !m.Inherited;
+        bool Show(ApiMember m) => inherited || !m.Inherited;
         Section("コンストラクタ引数", api.Members.Where(m => m.Kind == "ctor"));
         Section("イベント", api.Members.Where(m => m.Kind == "event" && Show(m)));
         Section("パラメータ", api.Members.Where(m => m.Kind == "param" && Show(m)));
-        if (!_inherited && api.Members.Any(m => m.Inherited))
+        if (!inherited && api.Members.Any(m => m.Inherited))
             rows.Add(Text("(+ Widget 共通パラメータ — inherited: true で表示)", 10,
                           color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(0, 6, 0, 0)));
 

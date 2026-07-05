@@ -17,31 +17,33 @@ namespace Luxel.Controls;
 [UiComponent]
 public sealed partial class ImageBlock : Widget, IDisposable
 {
-    private readonly ImagePayload _payload;
-    private readonly ResourceHandle<CpuImage> _handle;
-    private readonly float _maxW;
+    /// <summary>画像 embed の payload (Src/Alt)。</summary>
+    [UiParam] private readonly Bindable<ImagePayload> _payload = new();
+    /// <summary>画像の取得/デコード/キャッシュを担う Resource システム。</summary>
+    [UiParam] private readonly Bindable<ResourceSystem> _resources = new();
+    /// <summary>使える最大幅 (最小 40)。実寸との小さい方で等比表示。</summary>
+    [UiParam] private readonly Bindable<float> _maxWidth = new();
+
+    private ResourceHandle<CpuImage>? _handle;
     private GpuBuffer? _buf;
 
-    [UiCtor]
-    internal ImageBlock(ImagePayload payload, ResourceSystem resources, float maxWidth)
-    {
-        _payload = payload;
-        _maxW = MathF.Max(40, maxWidth);
-        _handle = resources.Load<CpuImage>(payload.Src);
-    }
+    // ハンドルは初回参照で取得 (パラメータは構築後に確定するため遅延)
+    private ResourceHandle<CpuImage> Handle => _handle ??= Resources.Get().Load<CpuImage>(Payload.Get().Src);
+    private ImagePayload Pl => Payload.Get();
+    private float MaxW => MathF.Max(40, MaxWidth.Get());
 
-    public override string? DebugDetail => $"{_payload.Src} ({_handle.Status})";
+    public override string? DebugDetail => $"{Pl.Src} ({Handle.Status})";
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
-        if (_handle.IsReady && _handle.Value is CpuImage img && img.Width > 0)
+        if (Handle.IsReady && Handle.Value is CpuImage img && img.Width > 0)
         {
-            float w = MathF.Min(_maxW, img.Width);
+            float w = MathF.Min(MaxW, img.Width);
             Size = c.Constrain(new Size(w, w * img.Height / img.Width));   // 等比
         }
         else
         {
-            Size = c.Constrain(new Size(_maxW, 56));   // プレースホルダ帯
+            Size = c.Constrain(new Size(MaxW, 56));   // プレースホルダ帯
         }
     }
 
@@ -49,7 +51,7 @@ public sealed partial class ImageBlock : Widget, IDisposable
     {
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
 
-        if (_handle.IsReady && _handle.Value is CpuImage img && img.Width > 0)
+        if (Handle.IsReady && Handle.Value is CpuImage img && img.Width > 0)
         {
             GpuDevice device = ctx.Canvas.Rasterizer.Device;
             _buf?.Dispose();
@@ -68,19 +70,19 @@ public sealed partial class ImageBlock : Widget, IDisposable
 
         UiNode label = ctx.Canvas.AddChild(node);
         var ls = new Scene2D();
-        string text = _handle.Status == ResourceStatus.Failed
-            ? $"×  {(_payload.Alt.Length > 0 ? _payload.Alt : _payload.Src)}"
-            : $"…  {(_payload.Alt.Length > 0 ? _payload.Alt : _payload.Src)}";
+        string text = Handle.Status == ResourceStatus.Failed
+            ? $"×  {(Pl.Alt.Length > 0 ? Pl.Alt : Pl.Src)}"
+            : $"…  {(Pl.Alt.Length > 0 ? Pl.Alt : Pl.Src)}";
         ctx.Font.AppendText(ls, text, 10, Size.Height / 2 + ctx.Font.Ascent(13) / 2 - 2, 13, Color2D.White);
         label.Content = ls;
         ctx.Effect(() => label.Color = ctx.Theme.Value.TextMuted);
 
         // ロード完了/失敗の検知 (継続はプールスレッド → UI スレッドの Tick でポーリング)
-        if (_handle.Status == ResourceStatus.Loading)
+        if (Handle.Status == ResourceStatus.Loading)
         {
             ctx.AddAnimation(_ =>
             {
-                if (_handle.Status == ResourceStatus.Loading) return false;
+                if (Handle.Status == ResourceStatus.Loading) return false;
                 MarkNeedsRealize();   // 実寸へ再実体化 (同一インスタンス。アニメーションはスコープごと破棄)
                 return true;
             });
@@ -89,7 +91,8 @@ public sealed partial class ImageBlock : Widget, IDisposable
 
     public void Dispose()
     {
-        _handle.Dispose();   // RefCount-- (Resource システムがキャッシュ/解放を管理)
+        _handle?.Dispose();   // RefCount-- (Resource システムがキャッシュ/解放を管理)
+        _handle = null;
         _buf?.Dispose();
         _buf = null;
     }

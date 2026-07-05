@@ -14,11 +14,15 @@ namespace Luxel.Controls;
 [UiComponent]
 public sealed partial class TextField : Widget, ITextInput
 {
-    private readonly Signal<string> _value;
+    /// <summary>値の signal (編集で書き戻す)。</summary>
+    [UiParam] private readonly Bindable<Signal<string>> _value = new();
+    /// <summary>プレースホルダ (空のとき薄色表示)。</summary>
+    [UiParam] private readonly Bindable<string> _placeholder = "";
+
     private readonly TextEditor _ed = new();
+    private bool _edInit;          // value → _ed の初期反映は最初の Realize で一度だけ
     private readonly Signal<bool> _caretOn = new(true);
     private FocusTarget? _focus;   // Realize をまたいで同一インスタンス (フォーカス保存)
-    public string Placeholder { get; set; } = "";
     /// <summary>入力を全文一致で規制する正規表現 (例: 数値 <c>^-?[0-9]*\.?[0-9]*$</c>)。
     /// 不一致になる挿入/置換は拒否する (削除は常に許可)。null = 無制限。</summary>
     public string? Pattern { get; set; }
@@ -33,7 +37,7 @@ public sealed partial class TextField : Widget, ITextInput
     private float EffectiveWidth = DefaultWidth;   // PerformLayout で解決 (% / em / vw 対応)
 
     /// <summary>文字サイズ。未設定 → テーマ Font。</summary>
-    [UiParam] public readonly Bindable<float> FontSize = new();
+    [UiParam] private readonly Bindable<float> _fontSize = new();
 
     private void CacheMetrics(Theme t)
     {
@@ -42,7 +46,7 @@ public sealed partial class TextField : Widget, ITextInput
         _fs = FontSize.Or(t.Font);
     }
     /// <summary>背景色。未設定 → テーマ SurfaceAlt。</summary>
-    [UiParam] public readonly Bindable<uint> Background = new();
+    [UiParam] private readonly Bindable<uint> _background = new();
 
     private UiBuildContext _ctx = null!;
     private Signal<Theme> _theme = UiTheme.Current;
@@ -50,11 +54,7 @@ public sealed partial class TextField : Widget, ITextInput
     private float _ascent, _fontH, _topY, _caretX;
     private TextLayout? _disp;   // 表示文字列のレイアウト (Refresh 毎に構築 — 描画/キャレット/ヒットが共有)
 
-    [UiCtor]
-    internal TextField(Signal<string> value, string placeholder = "")
-    { _value = value; Placeholder = placeholder; _ed.SetText(value.Value); }
-
-    public override string? DebugDetail => _ed.Display.Length > 0 ? _ed.Display : $"(placeholder: {Placeholder})";
+    public override string? DebugDetail => _ed.Display.Length > 0 ? _ed.Display : $"(placeholder: {Placeholder.Get()})";
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
         CacheMetrics(ctx.Theme);
@@ -69,6 +69,8 @@ public sealed partial class TextField : Widget, ITextInput
         _ctx = ctx;
         _theme = ctx.Theme;
         CacheMetrics(_theme.Peek());
+        Signal<string> value = Value.Get();
+        if (!_edInit) { _edInit = true; _ed.SetText(value.Peek()); }   // 旧 ctor の初期反映 (一度きり)
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
         Point world = WorldPos;
 
@@ -96,7 +98,7 @@ public sealed partial class TextField : Widget, ITextInput
         ctx.Effect(() => _caretNode.Opacity = Focused.Value && _caretOn.Value ? 1f : 0f);
 
         Refresh();
-        ctx.Effect(() => { string v = _value.Value; if (v != _ed.Text) { _ed.SetText(v); Refresh(); } });
+        ctx.Effect(() => { string v = value.Value; if (v != _ed.Text) { _ed.SetText(v); Refresh(); } });
 
         float t = 0;
         ctx.AddAnimation(dt => { t += dt; if (t >= 0.53f) { t = 0; _caretOn.Value = !_caretOn.Value; } return false; });
@@ -149,10 +151,10 @@ public sealed partial class TextField : Widget, ITextInput
             }
         }
         ctx.AddHit(node, new Rect(0, 0, Size.Width, _h), focus: f,
-            onDragStart: (lx, _) => { PlaceFromX(lx, extend: false); MultiClick(lx); },
-            onDrag: (lx, _) => PlaceFromX(lx, extend: true),
+            onDragStart: e => { PlaceFromX(e.X, extend: false); MultiClick(e.X); },
+            onDrag: e => PlaceFromX(e.X, extend: true),
             cursor: CursorKind.IBeam,
-            onContext: (lx, ly) => ContextMenu.OpenForEditor(ctx, node, lx, ly, f));
+            onContext: e => ContextMenu.OpenForEditor(ctx, node, e.X, e.Y, f));
     }
 
     private bool OnKey(KeyEvent ev)
@@ -189,7 +191,7 @@ public sealed partial class TextField : Widget, ITextInput
         return true;
     }
 
-    private void Sync() { _value.Value = _ed.Text; Refresh(); _caretOn.Value = true; }
+    private void Sync() { Value.Get().Value = _ed.Text; Refresh(); _caretOn.Value = true; }
 
     /// <summary>[start,end) を s で置き換えた場合の全文 (Pattern の事前検査用)。</summary>
     private string Prospective(int start, int end, string s)
@@ -215,7 +217,7 @@ public sealed partial class TextField : Widget, ITextInput
         bool empty = disp.Length == 0;
         _disp = new TextLayout(_ctx.Font, disp, _fs, new TextLayoutOptions { Wrap = TextWrap.None });
         var ts = new Scene2D();
-        if (empty) _ctx.Font.AppendText(ts, Placeholder, _padX, _topY + _ascent, _fs, Color2D.White);
+        if (empty) _ctx.Font.AppendText(ts, Placeholder.Get(), _padX, _topY + _ascent, _fs, Color2D.White);
         else _disp.Draw(ts, _padX, _topY, Color2D.White);
         _textNode.Content = ts;
         _textNode.Color = empty ? _theme.Value.TextMuted : _theme.Value.Text;

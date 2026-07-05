@@ -17,10 +17,15 @@ public sealed class UiComponentAttribute : Attribute
 }
 
 /// <summary>
-/// ファクトリ引数 + DevTools 編集対象にする public <see cref="Bindable{T}"/> フィールド。
+/// ファクトリ引数 + DevTools 編集対象にする <see cref="Bindable{T}"/>/<see cref="BindableString"/>。
+/// 標準形は **private フィールド** <c>[UiParam] private readonly Bindable&lt;T&gt; _x = ...;</c> —
+/// ソースジェネレーターが公開面のプロパティ <c>public Bindable&lt;T&gt; X { get => _x; internal init => _x = value; }</c>
+/// を partial に生成する (外部アセンブリからは get only、構築 = 同一アセンブリのファクトリ/テストは internal init)。
+/// 生成コード (SetProp/DebugProps/When/ファクトリ) はプロパティ経由で SetBase/SetState を呼ぶ。
 /// 継承先の生成コードにも含まれる (Widget 基底の Width/Margin 等が「共通引数」になる仕組み)。
+/// (旧形式の public readonly フィールド / 手書きプロパティも引き続き収集される。)
 /// </summary>
-[AttributeUsage(AttributeTargets.Field)]
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
 public sealed class UiParamAttribute : Attribute
 {
     /// <summary>状態レイヤ (生成される <c>When(state, ...)</c> と <c>{Class}Props</c> 定数) に出すか。

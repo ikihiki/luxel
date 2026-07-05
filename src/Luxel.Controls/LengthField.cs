@@ -15,19 +15,19 @@ public sealed partial class LengthField : Widget
 {
     private static readonly string[] Units = ["px", "%", "em", "vw", "vh"];
 
-    private readonly Signal<Length> _value;
+    /// <summary>編集対象の Length signal (双方向)。</summary>
+    [UiParam] private readonly Bindable<Signal<Length>> _value = new();
+
     private readonly Signal<string> _num = new("");
     private readonly Signal<int> _unit = new(0);
-    private readonly TextField _tf;
-    private readonly Select _sel;
+    private TextField _tf = null!;   // OnConstruct (生成 ctor) で構築
+    private Select _sel = null!;
     private bool _sync;
+    private bool _initialized;       // value → 表示の初期反映は最初の Realize で一度だけ
     private const float Gap = 0;   // 隙間なしで接合 (接合面は直角、境界は 1px 区切り線)
 
-    [UiCtor]
-    internal LengthField(Signal<Length> value)
+    partial void OnConstruct()
     {
-        _value = value;
-        ReadValue(value.Peek());
         _tf = Kit.TextField(_num, width: 72);
         _tf.Pattern = @"^-?[0-9]*\.?[0-9]*$";
         _tf.BgCorners = RectCorners.Left;    // 右側 (接合面) は直角
@@ -59,7 +59,7 @@ public sealed partial class LengthField : Widget
     };
 
     public override string DebugType => "LengthField";
-    public override string? DebugDetail => _value.Peek().ToString();
+    public override string? DebugDetail => Value.Get().Peek().ToString();
     public override IEnumerable<Widget> DebugChildren() => [_tf, _sel];
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
@@ -77,6 +77,9 @@ public sealed partial class LengthField : Widget
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {
+        Signal<Length> value = Value.Get();
+        if (!_initialized) { _initialized = true; ReadValue(value.Peek()); }   // 旧 ctor の初期反映 (一度きり)
+
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
         Point world = WorldPos;
         _tf.Realize(ctx, node, world);
@@ -93,7 +96,7 @@ public sealed partial class LengthField : Widget
         // 双方向同期 (循環は _sync + 等値スキップで収束)
         ctx.Effect(() =>
         {
-            Length v = _value.Value;
+            Length v = value.Value;
             if (_sync) return;
             _sync = true;
             ReadValue(v);
@@ -106,7 +109,7 @@ public sealed partial class LengthField : Widget
             if (_sync) return;
             if (!float.TryParse(n, NumberStyles.Float, CultureInfo.InvariantCulture, out float f)) return;   // 空/途中入力は保留
             _sync = true;
-            _value.Value = new Length(f, UnitAt(u));
+            value.Value = new Length(f, UnitAt(u));
             _sync = false;
         });
     }

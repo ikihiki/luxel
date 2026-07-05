@@ -12,18 +12,23 @@ namespace Luxel.Controls;
 [UiComponent]
 public sealed partial class Slider : Widget, ISlotted<SliderSlotKey>
 {
-    private readonly Signal<float> _value;
-    private readonly float _min, _max;
+    /// <summary>値の signal (クリック/ドラッグ/←→ で書き戻す)。</summary>
+    [UiParam] private readonly Bindable<Signal<float>> _value = new();
+    /// <summary>最小値。</summary>
+    [UiParam] private readonly Bindable<float> _min = 0f;
+    /// <summary>最大値。</summary>
+    [UiParam] private readonly Bindable<float> _max = 1f;
+
     private const float DefaultWidth = 220f, H = 26, TrackH = 6, Knob = 18;
     private float EffectiveWidth = DefaultWidth;   // PerformLayout で解決 (% / em / vw 対応)
 
     // === スタイル ([UiParam] Bindable。focused 等の状態別は On(WidgetState.Focused, ...) の状態レイヤ) ===
     /// <summary>トラック色。未設定 → テーマ SurfaceAlt。</summary>
-    [UiParam] public readonly Bindable<uint> TrackColor = new();
+    [UiParam] private readonly Bindable<uint> _trackColor = new();
     /// <summary>フィル色。未設定 → テーマ Primary。</summary>
-    [UiParam] public readonly Bindable<uint> FillColor = new();
+    [UiParam] private readonly Bindable<uint> _fillColor = new();
     /// <summary>つまみ色。未設定 → テーマ Primary。</summary>
-    [UiParam] public readonly Bindable<uint> KnobColor = new();
+    [UiParam] private readonly Bindable<uint> _knobColor = new();
 
     // === Slot ===
     private readonly Dictionary<SliderSlotKey, Func<Widget>> _slots = new();
@@ -34,13 +39,20 @@ public sealed partial class Slider : Widget, ISlotted<SliderSlotKey>
         get { foreach (var s in slots) s.ApplyTo(this); return this; }
     }
 
-    internal Slider(Signal<float> value, float min = 0, float max = 1) { _value = value; _min = min; _max = max; }
+    private float Frac
+    {
+        get
+        {
+            float min = Min.Get(), max = Max.Get();
+            return Math.Clamp((Value.Get().Value - min) / (max - min), 0, 1);
+        }
+    }
 
-    private float Frac => Math.Clamp((_value.Value - _min) / (_max - _min), 0, 1);
     private void SetFromX(float localX)
     {
+        float min = Min.Get(), max = Max.Get();
         float f = Math.Clamp((localX - Knob / 2) / (EffectiveWidth - Knob), 0, 1);
-        _value.Value = _min + f * (_max - _min);
+        Value.Get().Value = min + f * (max - min);
     }
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
@@ -99,14 +111,16 @@ public sealed partial class Slider : Widget, ISlotted<SliderSlotKey>
 
         FocusTarget f = ctx.AddFocusable(onFocus: on => Focused.Value = on, onKey: ev =>
         {
-            float step = (_max - _min) / 20f;
-            if (ev.Key == Key.Left) { _value.Value = Math.Clamp(_value.Value - step, _min, _max); return true; }
-            if (ev.Key == Key.Right) { _value.Value = Math.Clamp(_value.Value + step, _min, _max); return true; }
+            Signal<float> value = Value.Get();
+            float min = Min.Get(), max = Max.Get();
+            float step = (max - min) / 20f;
+            if (ev.Key == Key.Left) { value.Value = Math.Clamp(value.Value - step, min, max); return true; }
+            if (ev.Key == Key.Right) { value.Value = Math.Clamp(value.Value + step, min, max); return true; }
             return false;
         });
         ctx.AddHit(node, new Rect(0, 0, EffectiveWidth, H), focus: f,
-            onClickPos: (lx, _) => SetFromX(lx),                 // 直接 Click 用 (テスト/DevTools)
-            onDragStart: (lx, _) => SetFromX(lx),                // 押下で即設定
-            onDrag: (lx, _) => SetFromX(lx));                    // ドラッグで追従 (矩形外も可)
+            onClickPos: e => SetFromX(e.X),                      // 直接 Click 用 (テスト/DevTools)
+            onDragStart: e => SetFromX(e.X),                     // 押下で即設定
+            onDrag: e => SetFromX(e.X));                         // ドラッグで追従 (矩形外も可)
     }
 }

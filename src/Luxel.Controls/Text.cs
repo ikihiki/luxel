@@ -18,23 +18,23 @@ namespace Luxel.Controls;
 public sealed partial class Text : Widget
 {
     /// <summary>テキスト内容。値/Signal/Func/$"..." を受け、内容変化で再ラスタライズされる。</summary>
-    [UiParam] public readonly BindableString Content = "";
+    [UiParam] private readonly BindableString _content = "";
 
-    [UiParam] public readonly Bindable<float> FontSize = 16f;
+    [UiParam] private readonly Bindable<float> _fontSize = 16f;
     /// <summary>文字色。未設定 → 既定 (濃灰)。テーマ追従は <c>Bind.From(() => UiTheme.T.Text)</c>。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<uint> Color = new();
-    [UiParam] public readonly Bindable<float> Opacity = new();
+    [UiParam(Stateable = true)] private readonly Bindable<uint> _color = new();
+    [UiParam] private readonly Bindable<float> _opacity = 1f;
 
     /// <summary>折り返し (既定 None = 1 行互換)。Word=語境界優先、Char=文字単位 (禁則は両方有効)。</summary>
-    [UiParam] public readonly Bindable<TextWrap> Wrap = new();
+    [UiParam] private readonly Bindable<TextWrap> _wrap = new();
     /// <summary>行の水平整列 (既定 Left)。Center/Right/Justify はボックス幅 (Width 指定 or 親の利用可能幅) 内。</summary>
-    [UiParam] public readonly Bindable<TAlign> TextAlign = new();
+    [UiParam] private readonly Bindable<TAlign> _textAlign = new();
     /// <summary>行送り倍率 (既定 1.2)。複数行時のみ使用。</summary>
-    [UiParam] public readonly Bindable<float> LineHeight = new();
+    [UiParam] private readonly Bindable<float> _lineHeight = 1.2f;
     /// <summary>最大行数 (0 = 無制限)。超過分は切り捨てて末尾に … を付ける。</summary>
-    [UiParam] public readonly Bindable<int> MaxLines = new();
+    [UiParam] private readonly Bindable<int> _maxLines = new();
     /// <summary>ボックス内の縦整列 (Height 指定時のみ効く)。</summary>
-    [UiParam] public readonly Bindable<TextVAlign> VerticalAlign = new();
+    [UiParam] private readonly Bindable<TextVAlign> _verticalAlign = new();
 
     // 複数行レイアウト (PerformLayout で構築、Realize が描画に使う。null = 1 行互換パス)
     private TextLayout? _layout;
@@ -42,11 +42,6 @@ public sealed partial class Text : Widget
     private string? _layoutText;
 
     private static readonly uint DefaultColor = Color2D.Rgba(25, 25, 30);
-
-    internal Text() { }
-    internal Text(Func<string> getter) => Content = getter;
-    internal Text(string value) => Content = value;
-    [UiCtor] internal Text(BindableString content) => Content = content;
 
     /// <summary>色をリアクティブに束縛する (テーマ追従など)。signal/テーマ変化で recolor 部分更新。</summary>
     public Text Bind(Func<uint> color) { Color.SetBase(Luxel.UI.Bind.From(color)); return this; }
@@ -56,10 +51,10 @@ public sealed partial class Text : Widget
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
         string content = Content.Get();
-        TextWrap wrap = Wrap.Or(TextWrap.None);
-        TAlign align = TextAlign.Or(TAlign.Left);
-        int maxLines = MaxLines.Or(0);
-        TextVAlign valign = VerticalAlign.Or(TextVAlign.Top);
+        TextWrap wrap = Wrap.Get();
+        TAlign align = TextAlign.Get();
+        int maxLines = MaxLines.Get();
+        TextVAlign valign = VerticalAlign.Get();
         if (wrap == TextWrap.None && align == TAlign.Left && maxLines == 0 && valign == TextVAlign.Top
             && !content.Contains('\n'))
         {
@@ -71,13 +66,13 @@ public sealed partial class Text : Widget
         }
 
         // 複数行: ボックス幅 = 明示 Width > 親の利用可能幅 > ∞、高さ = 明示 Height (縦整列の基準)
-        Length lw = Width.Or(default);
-        Length lh = Height.Or(default);
+        Length lw = Width.Get();
+        Length lh = Height.Get();
         float maxW = lw.IsSet ? lw.Resolve(c.MaxW, ctx, float.PositiveInfinity)
                    : float.IsInfinity(c.MaxW) ? float.PositiveInfinity : c.MaxW;
         _layoutOpts = new TextLayoutOptions
         {
-            MaxWidth = maxW, Wrap = wrap, Align = align, LineHeight = LineHeight.Or(1.2f),
+            MaxWidth = maxW, Wrap = wrap, Align = align, LineHeight = LineHeight.Get(),
             MaxLines = maxLines, VAlign = valign,
             MaxHeight = lh.IsSet ? lh.Resolve(c.MaxH, ctx, float.PositiveInfinity) : float.PositiveInfinity,
         };
@@ -135,7 +130,7 @@ public sealed partial class Text : Widget
         ctx.Effect(() =>
         {
             fgSet(Color.Or(DefaultColor));
-            opSet(Opacity.Or(1f));
+            opSet(Opacity.Get());
         });
     }
 }

@@ -59,9 +59,9 @@ internal static class DocsKit
     {
         doc.Fonts = StoryKit.JpFallback.Value;
         doc.Highlighter = Luxel.Highlight.TextMateHighlighter.Instance;
-        doc.Widgets.Register("mermaid", bc => Luxel.Diagram.Factories.DiagramBlock(
+        doc.WidgetRegistry.Register("mermaid", bc => Luxel.Diagram.Factories.DiagramBlock(
             ((Luxel.Document.FencePayload)bc.Payload).Body, bc.MaxWidth));
-        doc.Widgets.Register("math", bc => Luxel.MathText.Factories.MathBlockView(
+        doc.WidgetRegistry.Register("math", bc => Luxel.MathText.Factories.MathBlockView(
             ((Luxel.Document.MathPayload)bc.Payload).Source, maxWidth: bc.MaxWidth));
         return doc;
     }

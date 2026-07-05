@@ -15,34 +15,38 @@ namespace Luxel.Controls;
 [UiComponent]
 public sealed partial class ListView : Widget
 {
-    private readonly float _height, _rowH;
-    private IReadOnlyList<string> _items = [];
+    /// <summary>リストの表示高 (px)。</summary>
+    [UiParam] private readonly Bindable<float> _height = new();
+    /// <summary>行高 (px、最小 8)。</summary>
+    [UiParam] private readonly Bindable<float> _rowHeight = 18f;
+
+    private IReadOnlyList<string> _rows = [];
     private readonly ScrollModel _scroll = new();     // 位置はフィールド — 再実体化をまたいで生き残る
     private readonly Signal<int> _selected = new(-1);
     private readonly Signal<int> _version = new(0);   // items 差し替え毎に進める (再バインドの再評価用)
 
-    /// <summary>行データ。<see cref="Signal{T}"/> を渡せば値の差し替えがそのまま反映される
-    /// (参照が変わった時だけ再バインド — 選択解除 + スクロールはクランプ)。</summary>
-    [UiParam] public readonly Bindable<IReadOnlyList<string>> Items = new();
-
     /// <summary>行クリックで呼ばれる (index)。(EV: 第一引数は発火元の ListView 自身)</summary>
     [UiEvent] public UiEvent<ListView, int> OnSelect;
+    /// <summary>並べ替えドロップ (from 行, 挿入先 index — from 除去**前**の位置)。</summary>
+    [UiEvent] public UiEvent<ListView, int, int> OnReorder;
+
+    /// <summary>行データの signal。値の差し替えがそのまま反映される
+    /// (参照が変わった時だけ再バインド — 選択解除 + スクロールはクランプ)。</summary>
+    [UiParam] private readonly Bindable<Signal<IReadOnlyList<string>>> _items = new();
 
     /// <summary>行の D&D 並べ替えを許可する (QP-M4)。ドロップで <see cref="OnReorder"/> が呼ばれる —
     /// 呼び出し側が並べ替えた列を <see cref="Items"/> の signal へ入れ直す (このコントロールはデータを所有しない)。</summary>
     public bool AllowReorder { get; set; }
-    /// <summary>並べ替えドロップ (from 行, 挿入先 index — from 除去**前**の位置)。</summary>
-    [UiEvent] public UiEvent<ListView, int, int> OnReorder;
 
     /// <summary>並べ替えドラッグのペイロード (ドロップ先の自己判定用)。</summary>
     public sealed record ReorderDrag(ListView Owner, int Index, string Text);
 
     /// <summary>行テキスト色。未設定 → テーマ TextMuted。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<uint> TextColor = new();
+    [UiParam(Stateable = true)] private readonly Bindable<uint> _textColor = new();
     /// <summary>選択行の地色。未設定 → テーマ SurfaceAlt。</summary>
-    [UiParam(Stateable = true)] public readonly Bindable<uint> SelectedColor = new();
+    [UiParam(Stateable = true)] private readonly Bindable<uint> _selectedColor = new();
     /// <summary>行テキストサイズ。未設定 → テーマ FontSm。</summary>
-    [UiParam] public readonly Bindable<float> FontSize = new();
+    [UiParam] private readonly Bindable<float> _fontSize = new();
 
     private const float DefaultWidth = 240f;
     private float W = DefaultWidth;   // PerformLayout で解決 (% / em / vw 対応)
@@ -57,25 +61,22 @@ public sealed partial class ListView : Widget
     private uint _rowColor = Color2D.White;
     private float _fs, _textY;                          // Realize で解決 (items 差し替え時の再予約に使う)
 
-    [UiCtor]
-    internal ListView(float height, float rowHeight = 18f)
-    {
-        _height = MathF.Max(1, height);
-        _rowH = MathF.Max(8, rowHeight);
-    }
+    // 旧 ctor のクランプは読み出し側で適用 (H = 表示高、RowH = 行高)
+    private float H => MathF.Max(1, Height.Get());
+    private float RowH => MathF.Max(8, RowHeight.Get());
 
     public int SelectedIndex => _selected.Value;
-    public override string? DebugDetail => $"{Items.Or(_items).Count} 行";
+    public override string? DebugDetail => $"{(Items.Get()?.Value ?? _rows).Count} 行";
 
-    private float ContentH => _items.Count * _rowH;
+    private float ContentH => _rows.Count * RowH;
 
     /// <summary>最長行のエンコードサイズをプール全ノードの最低予約にする — 行毎の glyph 数の揺れを
     /// in-place で受け、スクロール中のフル再構築を防ぐ (予約は次のフル再構築で反映される)。</summary>
     private void ReservePool()
     {
-        if (_ctx is null || _rowNodes.Count == 0 || _items.Count == 0) return;
+        if (_ctx is null || _rowNodes.Count == 0 || _rows.Count == 0) return;
         string longest = "";
-        foreach (string s in _items) if (s.Length > longest.Length) longest = s;
+        foreach (string s in _rows) if (s.Length > longest.Length) longest = s;
         var sc = new Scene2D();
         _ctx.Font.AppendText(sc, longest, 0, _textY, _fs, Color2D.White);
         (int segs, int paths) = sc.CountEncoded();
@@ -86,7 +87,7 @@ public sealed partial class ListView : Widget
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
         W = ResolveW(c, ctx, DefaultWidth);
-        Size = c.Constrain(new Size(W, _height));
+        Size = c.Constrain(new Size(W, H));
     }
 
     public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => ResolveWIntrinsic(ctx, DefaultWidth);
@@ -99,19 +100,19 @@ public sealed partial class ListView : Widget
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
 
         _clip = node;
-        node.Clip = new RectClip(0, 0, W, _height);
+        node.Clip = new RectClip(0, 0, W, H);
 
         // 選択ハイライト (行の背面)
         _highlight = ctx.Canvas.AddChild(node);
         var hs = new Scene2D();
-        hs.FillRoundedRect(Color2D.White, 0, 0, W - 10, _rowH, 2);
+        hs.FillRoundedRect(Color2D.White, 0, 0, W - 10, RowH, 2);
         _highlight.Content = hs;
         ctx.Effect(() => _highlight!.Color = SelectedColor.Or(ctx.Theme.Value.SurfaceAlt));
 
         // 行コンテナ (スクロールは transform) + 仮想化プール (可視行数 + 1 の固定ノード)
         _content = ctx.Canvas.AddChild(node);
         _content.Z = 1;
-        int pool = (int)MathF.Ceiling(_height / _rowH) + 1;
+        int pool = (int)MathF.Ceiling(H / RowH) + 1;
         _boundIdx = new int[pool];
         _boundText = new string?[pool];
         for (int j = 0; j < pool; j++)
@@ -131,12 +132,12 @@ public sealed partial class ListView : Widget
         // 選択強調 (AS-M3): 行間の移動は動的状態 "selected" のスライド、消灯は "none"。
         // スクロール追従は表示オフセット同期 (アニメ項と分離)
         UiStates sel = ctx.States(new TransitionTable().Default(new TransitionSpec(0.12f)));
-        float lastY = MathF.Max(0, _selected.Peek()) * _rowH;
+        float lastY = MathF.Max(0, _selected.Peek()) * RowH;
         sel.Start(_selected.Peek() >= 0 ? "selected" : "none", ("y", lastY), ("on", _selected.Peek() >= 0 ? 1f : 0f));
         ctx.Effect(() =>
         {
             int s = _selected.Value;
-            if (s >= 0) { lastY = s * _rowH; sel.Goto("selected", ("y", lastY), ("on", 1f)); }
+            if (s >= 0) { lastY = s * RowH; sel.Goto("selected", ("y", lastY), ("on", 1f)); }
             else sel.Goto("none", ("y", lastY), ("on", 0f));   // 位置は保ったまま消灯
         });
         ctx.Effect(() =>   // 選択強調の位置 (content と同じ座標系に置くため子にする方が素直だが、Z 順のため transform 合成)
@@ -155,29 +156,29 @@ public sealed partial class ListView : Widget
         // 再バインド: スクロール (_offset) / データ差し替え (_version) で可視範囲をプールへ流し込む。
         // 表示中の (index, テキスト) が同じノードは触らない — 1 行スクロールなら差し替えは 1 ノード。
         float fs = _fs = Fs;
-        float textY = _textY = (_rowH - ctx.Font.Measure("Mg", fs).height) / 2 + ctx.Font.Ascent(fs);
+        float textY = _textY = (RowH - ctx.Font.Measure("Mg", fs).height) / 2 + ctx.Font.Ascent(fs);
         // items 同期: Items (signal 可) の参照が変わったら選択解除 + 再予約 + 再バインド
         ctx.Effect(() =>
         {
-            IReadOnlyList<string> items = Items.Or([]);
-            if (ReferenceEquals(items, _items)) return;
-            _items = items;
+            IReadOnlyList<string> items = Items.Get()?.Value ?? [];
+            if (ReferenceEquals(items, _rows)) return;
+            _rows = items;
             _selected.Value = -1;
             ReservePool();
-            _scroll.SetLengths(ContentH, _height);   // 位置はクランプで追従、サムは signal 経由で再評価
+            _scroll.SetLengths(ContentH, H);   // 位置はクランプで追従、サムは signal 経由で再評価
             _version.Value++;   // 再バインド
         });
         ReservePool();
         ctx.Effect(() =>
         {
             _ = _version.Value;
-            int first = (int)(scroll.Float("offset") / _rowH);   // 表示オフセット基準 — 滑走中も可視範囲を欠かさない
+            int first = (int)(scroll.Float("offset") / RowH);   // 表示オフセット基準 — 滑走中も可視範囲を欠かさない
             for (int j = 0; j < _rowNodes.Count; j++)
             {
                 int idx = first + j;
-                string? text = idx < _items.Count ? _items[idx] : null;
+                string? text = idx < _rows.Count ? _rows[idx] : null;
                 UiNode r = _rowNodes[j];
-                r.Transform = Affine2D.Translate(8, idx * _rowH);
+                r.Transform = Affine2D.Translate(8, idx * RowH);
                 if (_boundIdx[j] == idx && ReferenceEquals(_boundText[j], text)) continue;
                 _boundIdx[j] = idx;
                 _boundText[j] = text;
@@ -192,12 +193,12 @@ public sealed partial class ListView : Widget
         const float grabW = ScrollBars.GrabW;
         void SelectAt(float ly)
         {
-            int i = (int)((ly + scroll.Float("offset")) / _rowH);   // 見えている位置でヒット (滑走中も一致)
-            if (i >= 0 && i < _items.Count) { _selected.Value = i; OnSelect.Invoke(this, i); }
+            int i = (int)((ly + scroll.Float("offset")) / RowH);   // 見えている位置でヒット (滑走中も一致)
+            if (i >= 0 && i < _rows.Count) { _selected.Value = i; OnSelect.Invoke(this, i); }
         }
         if (!AllowReorder)
         {
-            ctx.AddHit(node, new Rect(0, 0, W - grabW, _height), onClickPos: (_, ly) => SelectAt(ly));
+            ctx.AddHit(node, new Rect(0, 0, W - grabW, H), onClickPos: e => SelectAt(e.Y));
         }
         else
         {
@@ -210,47 +211,47 @@ public sealed partial class ListView : Widget
             indicator.Content = ind;
             indicator.Opacity = 0f;
             ctx.Effect(() => indicator.Color = ctx.Theme.Value.Primary);
-            int InsertIndexAt(float ly) => Math.Clamp((int)MathF.Round((ly + scroll.Float("offset")) / _rowH), 0, _items.Count);
+            int InsertIndexAt(float ly) => Math.Clamp((int)MathF.Round((ly + scroll.Float("offset")) / RowH), 0, _rows.Count);
 
-            float pressX = 0, pressY = 0; int pressIdx = -1; bool started = false;
-            ctx.AddHit(node, new Rect(0, 0, W - grabW, _height),
-                onDragStart: (lx, ly) =>
+            int pressIdx = -1; bool started = false;
+            ctx.AddHit(node, new Rect(0, 0, W - grabW, H),
+                onDragStart: e =>
                 {
-                    pressX = lx; pressY = ly; started = false;
-                    int i = (int)((ly + scroll.Float("offset")) / _rowH);
-                    pressIdx = i >= 0 && i < _items.Count ? i : -1;
+                    started = false;
+                    int i = (int)((e.Y + scroll.Float("offset")) / RowH);
+                    pressIdx = i >= 0 && i < _rows.Count ? i : -1;
                 },
-                onDrag: (lx, ly) =>
+                onDrag: e =>
                 {
                     if (started || pressIdx < 0 || _ctx?.Host is null) return;
-                    if (MathF.Abs(lx - pressX) + MathF.Abs(ly - pressY) <= 4) return;
+                    if (MathF.Abs(e.DeltaX) + MathF.Abs(e.DeltaY) <= 4) return;   // 4px 動いたら昇格 (画面絶対基準)
                     started = true;
-                    string text = _items[pressIdx];
+                    string text = _rows[pressIdx];
                     var ghost = new Scene2D();
-                    ghost.FillRoundedRect(_ctx.Theme.Peek().SurfaceAlt, 0, 0, W - grabW, _rowH + 4, 4);
+                    ghost.FillRoundedRect(_ctx.Theme.Peek().SurfaceAlt, 0, 0, W - grabW, RowH + 4, 4);
                     _ctx.Font.AppendText(ghost, text, 8, _textY + 2, _fs, _ctx.Theme.Peek().Text);
-                    _ctx.Host.BeginDrag(new ReorderDrag(this, pressIdx, text), ghost, grabX: pressX, grabY: _rowH / 2);
+                    _ctx.Host.BeginDrag(new ReorderDrag(this, pressIdx, text), ghost, grabX: e.StartX, grabY: RowH / 2);
                 },
-                onDragEnd: (_, ly) => { if (!started && pressIdx >= 0) SelectAt(ly); },
+                onDragEnd: e => { if (!started && pressIdx >= 0) SelectAt(e.Y); },
                 acceptsDrop: p => p is ReorderDrag d && d.Owner == this,
                 onDropHover: h => { if (!h) indicator.Opacity = 0f; },
-                onDropMove: (_, _, ly) =>
+                onDropMove: (_, e) =>
                 {
                     indicator.Opacity = 1f;
-                    indicator.Transform = Affine2D.Translate(0, InsertIndexAt(ly) * _rowH - scroll.Float("offset"));
+                    indicator.Transform = Affine2D.Translate(0, InsertIndexAt(e.Y) * RowH - scroll.Float("offset"));
                 },
-                onDrop: (p, _, ly) =>
+                onDrop: (p, e) =>
                 {
                     indicator.Opacity = 0f;
-                    if (p is ReorderDrag d && d.Owner == this) OnReorder.Invoke(this, d.Index, InsertIndexAt(ly));
+                    if (p is ReorderDrag d && d.Owner == this) OnReorder.Invoke(this, d.Index, InsertIndexAt(e.Y));
                 });
         }
         // サム (共通実装 — 表示はスムーズスクロールの動的値に追従、ドラッグは即時チャネル)
-        ScrollBars.AttachVertical(ctx, node, _scroll, W, _height,
+        ScrollBars.AttachVertical(ctx, node, _scroll, W, H,
             displayOffset: () => scroll.Float("offset"),
             onDirectChange: () => src = "drag",
             minThumb: 24);
-        ctx.AddScroll(node, new Rect(0, 0, W, _height),
+        ctx.AddScroll(node, new Rect(0, 0, W, H),
             d => { src = "wheel"; _scroll.ScrollBy(-d); });
     }
 }

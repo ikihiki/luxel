@@ -15,21 +15,16 @@ namespace Luxel.Controls;
 public sealed partial class Border : Widget
 {
     internal Widget? Child;
-    public bool ClipContent { get; set; } = false;
 
+    /// <summary>true で子を自身の矩形でクリップする。</summary>
+    [UiParam] private readonly Bindable<bool> _clip = false;
     /// <summary>背景色。値直接 (<c>Tw.Slate100</c>) / Signal / <c>Bind.From(() => theme.Value.Surface)</c>。未設定=透明。</summary>
-    [UiParam] public readonly Bindable<uint> Background = new();
-    [UiParam] public readonly Bindable<float> Opacity = new();
-    [UiParam] public readonly Bindable<float> Scale = new();
+    [UiParam] private readonly Bindable<uint> _background = new();
+    [UiParam] private readonly Bindable<float> _opacity = 1f;
+    [UiParam] private readonly Bindable<float> _scale = 1f;
     /// <summary>角丸半径 (px)。</summary>
-    [UiParam] public readonly Bindable<float> Rounded = new();
-    [UiParam] public readonly Bindable<Thickness> Padding = new();
-
-    internal Border() { }
-
-    /// <summary>クリップ有無を指定 (<c>clip: true</c> で子を矩形クリップ)。</summary>
-    [UiCtor]
-    internal Border(bool clip = false) { ClipContent = clip; }
+    [UiParam] private readonly Bindable<float> _rounded = new();
+    [UiParam] private readonly Bindable<Thickness> _padding = new();
 
     /// <summary>子要素の宣言: <c>Border(...) [ child ]</c>。</summary>
     public Border this[Widget child]
@@ -53,7 +48,7 @@ public sealed partial class Border : Widget
         }
         // 明示 Width/Height があれば子の利用可能サイズをそれで縛る (CSS の content box 相当 —
         // % の基準もこの幅になる)。未指定は従来どおり入ってきた制約 − padding。
-        Length lw = Width.Or(default), lh = Height.Or(default);
+        Length lw = Width.Get(), lh = Height.Get();
         Constraints cc = c.Deflate(pad);
         if (lw.IsSet)
         {
@@ -85,7 +80,7 @@ public sealed partial class Border : Widget
         if (r > 0) s.FillRoundedRect(Color2D.White, 0, 0, Size.Width, Size.Height, r);
         else s.FillRect(Color2D.White, 0, 0, Size.Width, Size.Height);
         node.Content = s;
-        if (ClipContent) node.Clip = new RectClip(0, 0, Size.Width, Size.Height);
+        if (Clip.Get()) node.Clip = new RectClip(0, 0, Size.Width, Size.Height);
 
         // 配色: 状態変化 (signal) / テーマ変化で recolor を部分更新。
         // transform 成分 (TF) は CreateRoot が配線済み、一様 Scale はその handle へ合成。
@@ -100,9 +95,9 @@ public sealed partial class Border : Widget
 
         ctx.Effect(() =>
         {
-            bgSet(Background.Or(0x00000000u));
-            scSet(Scale.Or(1f));
-            opSet(Opacity.Or(1f));
+            bgSet(Background.Get());
+            scSet(Scale.Get());
+            opSet(Opacity.Get());
         });
 
         Child?.Realize(ctx, node, world);

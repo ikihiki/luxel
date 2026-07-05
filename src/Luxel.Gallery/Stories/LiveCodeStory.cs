@@ -156,7 +156,7 @@ public static class LiveCodeStory
             "8 8 1 8 8 2\n" +
             "-- ここに数列を打って Enter:\n");
 
-        RichTextEditor ed = RichTextEditor(src, height: 420, format: format, widgets: widgets);
+        RichTextEditor ed = RichTextEditor(src, editorHeight: 420, format: format, widgets: widgets);
         ed.Fonts = StoryKit.JpFallback.Value;
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(24))
             [Center()[ed]];
