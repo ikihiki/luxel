@@ -95,4 +95,36 @@ public class ScriptingTests
         Assert.True(r.Success);
         Assert.Equal(9, r.ReturnValue);
     }
+
+    // ---- 継続 REPL セッション (P3) ----
+
+    [Fact]
+    public void Session_KeepsStateAcrossSubmits()
+    {
+        ScriptSession s = NewHost().OpenSession(new TestGlobals());
+        Assert.True(s.Submit("var a = 21;").Success);
+        ScriptResult r = s.Submit("a * 2");                 // 前の行の変数が見える
+        Assert.True(r.Success);
+        Assert.Equal(42, r.ReturnValue);
+    }
+
+    [Fact]
+    public void Session_GlobalsVisible()
+    {
+        var g = new TestGlobals { X = 5 };
+        ScriptSession s = NewHost().OpenSession(g);
+        s.Submit("Log($\"x={X}\");");
+        Assert.Equal(["x=5"], g.Logged);
+    }
+
+    [Fact]
+    public void Session_SurvivesError_AndContinues()
+    {
+        ScriptSession s = NewHost().OpenSession(new TestGlobals());
+        s.Submit("var n = 10;");
+        Assert.False(s.Submit("n +").Success);              // 構文エラー — セッションは壊れない
+        ScriptResult r = s.Submit("n + 1");                 // 直前の成功状態から続く
+        Assert.True(r.Success);
+        Assert.Equal(11, r.ReturnValue);
+    }
 }

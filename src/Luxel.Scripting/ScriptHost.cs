@@ -105,6 +105,10 @@ public sealed class ScriptHost
         }
     }
 
+    /// <summary>継続 REPL セッションを開く (DevTools コンソール相当)。1 行目で宣言した変数が
+    /// 2 行目以降で見える — <see cref="ScriptSession.Submit"/> を続けて呼ぶ。</summary>
+    public ScriptSession OpenSession(object globals) => new(_options, _globalsType, globals);
+
     private static IReadOnlyList<ScriptDiagnostic> Map(ImmutableArray<Diagnostic> diags)
     {
         var list = new List<ScriptDiagnostic>();
@@ -128,5 +132,57 @@ public sealed class ScriptHost
             if (m.Success && int.TryParse(m.Groups[1].Value, out int line)) return line;
         }
         return null;
+    }
+}
+
+/// <summary>
+/// 継続 REPL セッション (Roslyn の <c>ContinueWith</c>) — 前の Submit で宣言した変数/using が
+/// 次の Submit で見える。DevTools コンソールや実行中アプリへの 1 行投入に使う。
+/// スレッド非安全 (UI スレッド専有)。
+/// </summary>
+public sealed class ScriptSession
+{
+    private readonly ScriptOptions _options;
+    private readonly object _globals;
+    private ScriptState<object>? _state;
+
+    internal ScriptSession(ScriptOptions options, Type globalsType, object globals)
+    {
+        _ = globalsType;   // globals から推論される
+        _options = options;
+        _globals = globals;
+    }
+
+    /// <summary>直近 Submit の戻り値 (最後の式)。</summary>
+    public object? LastValue => _state?.ReturnValue;
+
+    /// <summary>1 行/1 文を評価し、状態を積む。コンパイル/実行の失敗は <see cref="ScriptResult"/> に載る
+    /// (セッションは失敗しても壊れない — 次の Submit は最後に成功した状態から続く)。</summary>
+    public ScriptResult Submit(string code)
+    {
+        try
+        {
+            ScriptState<object> next = _state is null
+                ? CSharpScript.RunAsync(code, _options, _globals).GetAwaiter().GetResult()
+                : _state.ContinueWithAsync(code, _options).GetAwaiter().GetResult();
+            _state = next;
+            return new ScriptResult { Success = true, ReturnValue = next.ReturnValue };
+        }
+        catch (Microsoft.CodeAnalysis.Scripting.CompilationErrorException ce)
+        {
+            var diags = ce.Diagnostics
+                .Where(d => d.Severity is Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+                .Select(d =>
+                {
+                    Microsoft.CodeAnalysis.FileLinePositionSpan s = d.Location.GetLineSpan();
+                    return new ScriptDiagnostic(s.StartLinePosition.Line + 1, s.StartLinePosition.Character + 1,
+                        d.GetMessage(), true);
+                }).ToList();
+            return new ScriptResult { Success = false, Diagnostics = diags };
+        }
+        catch (Exception e)
+        {
+            return new ScriptResult { Success = false, Exception = e };
+        }
     }
 }

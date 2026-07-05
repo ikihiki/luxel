@@ -254,9 +254,9 @@ public static class DocsRuntime
 
         ## 機能させる面 (3 つ)
 
-        1. **Gallery/docs のライブブロック** (P1 実装済み) — エディタで編集 → Run → 返した `Widget`/`IGpuScene` をその場に実体化。コンパイルエラー/実行時例外は行番号付きでインライン表示、ブロックが落ちてもページは落ちない (ErrorBoundary)
-        2. **Framework アプリのゲームロジック** (P3 予定) — `.csx` を World/Phase フックへ登録し、ファイル監視でホットリロード
-        3. **DevTools コンソール REPL** (P3 予定) — 実行中アプリへ 1 行ずつ投げて Signal/UiRegistry を突く運用デバッグ
+        1. **Gallery/docs のライブブロック** (実装済み) — エディタで編集 → Run → 返した `Widget`/`IGpuScene` をその場に実体化。コンパイルエラー/実行時例外は行番号付きでインライン表示、ブロックが落ちてもページは落ちない (ErrorBoundary)
+        2. **継続 REPL コンソール** (実装済み) — `ScriptHost.OpenSession(globals)` → `ScriptSession.Submit(line)`。**前の行で宣言した変数/using が次の行で見える** (Roslyn の `ContinueWith`)。実行中アプリへ 1 行ずつ投げて Signal を突く運用デバッグの土台。実演は {{StoryRef(ctx, "Demos/Scripting/Repl")}} へ
+        3. **Framework アプリのゲームロジック** (P3.5 予定) — `.csx` を World/Phase フックへ登録し、ファイル監視でホットリロード
 
         ## 言語サービス (LSP) の方針
 
@@ -267,7 +267,7 @@ public static class DocsRuntime
 
         ## デバッグの方針
 
-        層を分けます: ① コンパイル診断 + 実行時例外の行マップ (実装済み)、② スクリプトが作る Signal/Widget は DevTools・Props・Knobs にそのまま映る、③ フレームステップ実行 (固定 dt + 決定性で「1 フレームずつ状態を見る」/ 将来は入力記録 → 決定的リプレイ)、④ 本気のステップ実行は **PDB 付き emit + 外部デバッガ (VS/VS Code) アタッチ** を正式手順に (内蔵で C# デバッガを再発明しない)。
+        層を分けます: ① コンパイル診断 + 実行時例外の行マップ (実装済み)、② スクリプトが作る Signal/Widget は DevTools・Props・Knobs にそのまま映る、③ 継続 REPL で状態を対話的に突く (実装済み)、④ フレームステップ実行 (固定 dt + 決定性で「1 フレームずつ状態を見る」/ 将来は入力記録 → 決定的リプレイ)、⑤ 本気のステップ実行は **PDB 付き emit + 外部デバッガ (VS/VS Code) アタッチ** を正式手順に (内蔵で C# デバッガを再発明しない)。
 
         > [!NOTE]
         > v1 の割り切り: 編集ごとのアセンブリはプロセス終了まで残る (開発時ツールとして許容 — アンロードが要件になったら collectible ALC 化)。サンドボックスは無し (信頼できるコード前提 — 軽量分離が要るなら Lua-CSharp を後付けする退路)。スクリプトは決定性規約 (wall-clock/乱数/await を使わない) を守れば snap/E2E と両立します。
