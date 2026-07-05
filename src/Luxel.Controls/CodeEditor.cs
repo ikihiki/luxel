@@ -1,0 +1,400 @@
+using Luxel.Document;
+using Luxel.Typography;
+using Luxel.TwoD;
+using Luxel.UI;
+using Luxel.UI.Styling;
+
+namespace Luxel.Controls;
+
+/// <summary>
+/// コードエディタ (VS Code 風) — **等幅・折り返しなし**のプレーンテキスト編集に、行番号ガター /
+/// 現在行ハイライト / シンタックスハイライト (トークン色) を載せる。編集の中核は
+/// <see cref="DocumentEditor"/> をそのまま使い (TextArea と共有の資産)、この widget は
+/// 「コード向けのビュー + 入力」を持つ。文書 (RichTextEditor) と違い Block/Line 装飾はない。
+/// <list type="bullet">
+/// <item>ハイライトは <see cref="Highlighter"/> (SH — null で無色)。**同期**トークン化 (コードは短い)</item>
+/// <item>キー拡張は <see cref="OnKeyIntercept"/> — 補完 (Ctrl+Space) 等を上位が横取りできる (E2 で使う)</item>
+/// <item>等幅前提: キャレット x = offset × 文字幅、ヒット = 逆算 (折り返しなしなので厳密)</item>
+/// </list>
+/// </summary>
+[UiComponent]
+public sealed partial class CodeEditor : Widget, ITextInput
+{
+    /// <summary>編集対象のコード (双方向)。</summary>
+    [UiParam] private readonly Bindable<Signal<string>> _value = new();
+    /// <summary>表示高さ (px、最小 40)。</summary>
+    [UiParam] private readonly Bindable<float> _editorHeight = 200f;
+    /// <summary>表示幅 (px)。</summary>
+    [UiParam] private readonly Bindable<float> _editorWidth = new();
+    /// <summary>基準文字サイズ。未設定 → テーマ FontSm。</summary>
+    [UiParam] private readonly Bindable<float> _fontSize = new();
+
+    /// <summary>等幅フォント (null = テーマ Font で代用 — 桁がずれるので実質必須)。</summary>
+    public VectorFont? MonoFont { get; set; }
+    /// <summary>ハイライタ (SH。null = 無色プレーン)。同期トークン化。</summary>
+    public ISyntaxHighlighter? Highlighter { get; set; }
+    /// <summary>ハイライト言語 (Highlighter.Tokenize へ渡す — "csharp" 等)。</summary>
+    public string Language { get; set; } = "csharp";
+
+    /// <summary>キー横取りフック — true を返すとエディタは既定処理をしない (補完ナビ等を上位が奪う)。
+    /// E2 の補完ポップアップ (Ctrl+Space / ↑↓ / Enter / Escape) がここに刺さる。</summary>
+    public Func<KeyEvent, bool>? OnKeyIntercept { get; set; }
+
+    private readonly DocumentEditor _ed = new();
+    private bool _edInit;
+    private readonly Signal<bool> _caretOn = new(true);
+    private readonly Signal<float> _scroll = new(0);
+
+    private const float Pad = 6f;         // 上下パディング
+    private const float GutterPadR = 8f;  // ガターと本文の間
+    private float _fs = 13, _adv, _charW, _lineH, _gutterW, _ascent;
+    private float? _goalX;
+
+    private UiBuildContext _ctx = null!;
+    private Signal<Theme> _theme = UiTheme.Current;
+    private UiNode _root = null!, _content = null!, _gutter = null!;
+    private UiNode _curLine = null!, _selNode = null!, _textNode = null!, _caretNode = null!;
+    private FocusTarget? _focus;
+    private Rect _caretLocal;
+
+    private float W => MathF.Max(120, EditorWidth.Or(360));
+    private float H => MathF.Max(40, EditorHeight.Get());
+    private int LineCount => _ed.Doc.LineCount;
+
+    public override string DebugType => "CodeEditor";
+    public override string? DebugDetail => $"{LineCount} 行";
+
+    /// <summary>現在のコード (テスト/上位からの読み取り)。</summary>
+    public string Text => _ed.Doc.PlainText;
+    /// <summary>キャレットの全文フラットオフセット (言語サービス連携用)。</summary>
+    public int CaretOffset
+    {
+        get
+        {
+            int flat = 0;
+            for (int i = 0; i < _ed.Caret.Line; i++) flat += _ed.Doc.LineAt(i).Text.Length + 1;
+            return flat + _ed.Caret.Offset;
+        }
+    }
+
+    /// <summary>キャレット直下のワールド座標 (E2 のポップアップ配置用)。</summary>
+    public Point CaretWorld => new(WorldPos.X + _caretLocal.X, WorldPos.Y + _caretLocal.Y - _scroll.Value + _lineH);
+
+    /// <summary>キャレット位置に挿入して同期する (補完確定に使う)。</summary>
+    public void InsertAtCaret(string s)
+    {
+        EnsureInit();
+        _ed.Insert(s);
+        Sync();
+        Refresh();
+    }
+
+    private void EnsureInit()
+    {
+        if (_edInit) return;
+        _edInit = true;
+        _ed.SetText(Value.Get().Peek());
+    }
+
+    protected override void PerformLayout(Constraints c, LayoutContext ctx)
+    {
+        EnsureInit();
+        _fs = FontSize.Or(ctx.Theme.FontSm);
+        Size = c.Constrain(new Size(W, H));
+    }
+
+    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => W;
+
+    protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
+    {
+        EnsureInit();
+        _ctx = ctx;
+        _theme = ctx.Theme;
+        _fs = FontSize.Or(_theme.Peek().FontSm);
+        VectorFont mono = MonoFont ?? ctx.Font;
+        _charW = mono.Measure("M", _fs).width;
+        _adv = mono.Measure("Mg", _fs).height;
+        _lineH = _fs * 1.5f;
+        _ascent = mono.Ascent(_fs);
+        _gutterW = MathF.Max(2, LineCount.ToString().Length) * _charW + GutterPadR * 2;
+
+        _root = CreateRoot(ctx, parent, worldOrigin);
+        var bg = new Scene2D();
+        bg.FillRoundedRect(Color2D.White, 0, 0, W, H, _theme.Peek().Radius + 1);
+        _root.Content = bg;
+        ctx.Effect(() => _root.Color = _theme.Value.SurfaceAlt);
+
+        if (!ReadOnlyFocusless) FocusRing.Add(ctx, _root, -3, -3, W + 6, H + 6, 9, Focused);
+
+        // ガター地 (固定、スクロールしない)
+        _gutter = ctx.Canvas.AddChild(_root);
+        _gutter.Z = 1;
+        var gbg = new Scene2D();
+        gbg.FillRect(Color2D.White, 0, 0, _gutterW, H);
+        _gutter.Content = gbg;
+        ctx.Effect(() => _gutter.Color = Styles.WithAlpha(_theme.Value.Surface, 255));
+
+        // 本文クリップ (ガター右)
+        UiNode clip = ctx.Canvas.AddChild(_root);
+        clip.Z = 2;
+        clip.Clip = new RectClip(_gutterW, 0, W - _gutterW, H);
+        _content = ctx.Canvas.AddChild(clip);
+        ctx.Effect(() => _content.Transform = Affine2D.Translate(_gutterW, Pad - _scroll.Value));
+
+        _curLine = ctx.Canvas.AddChild(_content);   // 現在行ハイライト (背面)
+        ctx.Effect(() => _curLine.Color = Styles.WithAlpha(_theme.Value.Primary, 22));
+        _selNode = ctx.Canvas.AddChild(_content);
+        _selNode.Z = 1;
+        ctx.Effect(() => _selNode.Color = Styles.WithAlpha(_theme.Value.Primary, 70));
+        _textNode = ctx.Canvas.AddChild(_content);
+        _textNode.Z = 2;
+        _textNode.ContentColors = true;   // トークン色を保持
+        _caretNode = ctx.Canvas.AddChild(_content);
+        _caretNode.Z = 3;
+        ctx.Effect(() => _caretNode.Color = _theme.Value.Primary);
+        ctx.Effect(() => _caretNode.Opacity = Focused.Value && _caretOn.Value ? 1f : 0f);
+
+        // ガター行番号 (スクロールに追従するので content と同じ y、ただし x は固定 → gutter の子)
+        _gutterText = ctx.Canvas.AddChild(_gutter);
+        _gutterText.Z = 1;
+        ctx.Effect(() => _gutterText.Color = _theme.Value.TextMuted);
+
+        Refresh();
+        ctx.Effect(() =>
+        {
+            string v = Value.Get().Value;
+            if (v != _ed.Doc.PlainText) { _ed.SetText(v); _scroll.Value = 0; Refresh(); }
+        });
+
+        float t = 0;
+        ctx.AddAnimation(dt => { t += dt; if (t >= 0.53f) { t = 0; _caretOn.Value = !_caretOn.Value; } return false; });
+
+        _focus ??= new FocusTarget
+        {
+            OnFocus = on => { Focused.Value = on; if (on) _caretOn.Value = true; },
+            OnKey = OnKey,
+            OnText = s => { _ed.Insert(s); _goalX = null; Sync(); },
+            OnComposeEx = c => { _ed.SetComposition(c.Text, c.TargetStart, c.TargetLen); Refresh(); },
+            OnCommit = s => { _ed.CommitComposition(s); _goalX = null; Sync(); },
+            TextInput = this,
+        };
+        FocusTarget f = ctx.AddFocusable(_focus);
+
+        void Place(float lx, float ly, bool extend)
+        {
+            if (_ed.Composition.Length > 0) return;
+            DocPos p = HitDoc(lx, ly);
+            _ed.Select(extend ? _ed.Anchor : p, p);
+            _goalX = null; _caretOn.Value = true; Refresh();
+        }
+        ctx.AddHit(_root, new Rect(0, 0, W, H), focus: f, cursor: CursorKind.IBeam,
+            onDragStart: e => Place(e.X, e.Y, extend: false),
+            onDrag: e => Place(e.X, e.Y, extend: true));
+        ctx.AddScroll(_root, new Rect(0, 0, W, H),
+            d => _scroll.Value = Math.Clamp(_scroll.Value - d, 0, MaxScroll));
+    }
+
+    private UiNode _gutterText = null!;
+    private bool ReadOnlyFocusless => false;
+    private float ContentH => LineCount * _lineH + Pad * 2;
+    private float MaxScroll => MathF.Max(0, ContentH - H);
+
+    // ---- 入力 ----
+
+    private bool OnKey(KeyEvent ev)
+    {
+        if (OnKeyIntercept is { } hook && hook(ev)) return true;   // 補完ポップアップ等が横取り
+        switch (ev.Key)
+        {
+            case Key.Left: _ed.MoveLeft(ev.Shift); _goalX = null; break;
+            case Key.Right: _ed.MoveRight(ev.Shift); _goalX = null; break;
+            case Key.Up: MoveVertical(-1, ev.Shift); break;
+            case Key.Down: MoveVertical(+1, ev.Shift); break;
+            case Key.Home: _ed.Home(ev.Shift); _goalX = null; break;
+            case Key.End: _ed.End(ev.Shift); _goalX = null; break;
+            case Key.Enter: _ed.InsertNewline(); _goalX = null; Sync(); return true;
+            case Key.Tab: _ed.Insert("    "); _goalX = null; Sync(); return true;   // 4 スペース
+            case Key.Backspace: _ed.Backspace(); _goalX = null; Sync(); return true;
+            case Key.Delete: _ed.DeleteForward(); _goalX = null; Sync(); return true;
+            case Key.A when ev.Ctrl: _ed.SelectAll(); break;
+            case Key.Z when ev.Ctrl: _ed.Undo(); _goalX = null; Sync(); return true;
+            case Key.Y when ev.Ctrl: _ed.Redo(); _goalX = null; Sync(); return true;
+            case Key.C when ev.Ctrl: CopySelection(); return true;
+            case Key.X when ev.Ctrl: if (CopySelection()) { _ed.Backspace(); _goalX = null; Sync(); } return true;
+            case Key.V when ev.Ctrl:
+                if (UiClipboard.Instance?.GetText() is string paste && paste.Length > 0)
+                { _ed.Insert(paste); _goalX = null; Sync(); }
+                return true;
+            default: return false;
+        }
+        _caretOn.Value = true; Refresh(); EnsureCaretVisible();
+        return true;
+    }
+
+    private void MoveVertical(int dir, bool select)
+    {
+        int line = Math.Clamp(_ed.Caret.Line + dir, 0, LineCount - 1);
+        _goalX ??= _ed.Caret.Offset;
+        int off = Math.Clamp((int)_goalX.Value, 0, _ed.Doc.LineAt(line).Text.Length);
+        var p = new DocPos(line, off);
+        _ed.Select(select ? _ed.Anchor : p, p);
+    }
+
+    private DocPos HitDoc(float lx, float ly)
+    {
+        float y = ly + _scroll.Value - Pad;
+        int line = Math.Clamp((int)(y / _lineH), 0, LineCount - 1);
+        float x = lx - _gutterW;
+        int off = Math.Clamp((int)MathF.Round(x / MathF.Max(1, _charW)), 0, _ed.Doc.LineAt(line).Text.Length);
+        return new DocPos(line, off);
+    }
+
+    private void Sync()
+    {
+        Value.Get().Value = _ed.Doc.PlainText;
+        Refresh();
+        EnsureCaretVisible();
+    }
+
+    private bool CopySelection()
+    {
+        if (!_ed.HasSelection || UiClipboard.Instance is not IClipboard clip) return false;
+        clip.SetText(_ed.GetText(_ed.SelMin, _ed.SelMax));
+        return true;
+    }
+
+    private void EnsureCaretVisible()
+    {
+        float top = _ed.Caret.Line * _lineH;
+        float bottom = top + _lineH;
+        float view = H - Pad * 2;
+        if (top < _scroll.Value) _scroll.Value = top;
+        else if (bottom > _scroll.Value + view) _scroll.Value = Math.Min(MaxScroll, bottom - view);
+    }
+
+    // ---- 描画 ----
+
+    private void Refresh()
+    {
+        if (_ctx is null) return;
+        VectorFont mono = MonoFont ?? _ctx.Font;
+        Theme t = _theme.Peek();
+
+        // 本文 (トークン色) — 折り返しなしなので 1 行 = 1 Y
+        var text = new Scene2D();
+        var gutter = new Scene2D();
+        for (int i = 0; i < LineCount; i++)
+        {
+            string s = _ed.Doc.LineAt(i).Text;
+            float y = i * _lineH + (_lineH - _adv) / 2 + _ascent;
+            AppendColored(text, mono, s, i, y, t);
+            // 行番号 (右寄せ)
+            string num = (i + 1).ToString();
+            float nx = _gutterW - GutterPadR - mono.Measure(num, _fs).width;
+            mono.AppendText(gutter, num, nx, y, _fs, Color2D.White);
+        }
+        _textNode.Content = text;
+        _gutterText.Content = gutter;
+        _gutterText.Transform = Affine2D.Translate(0, Pad - _scroll.Value);
+
+        // 現在行ハイライト (全幅)
+        var cl = new Scene2D();
+        cl.FillRect(Color2D.White, 0, _ed.Caret.Line * _lineH, MathF.Max(W - _gutterW, ContentH), _lineH);
+        _curLine.Content = cl;
+
+        // 選択 (行ごとの矩形)
+        var sel = new Scene2D();
+        if (_ed.HasSelection) BuildSelection(sel, mono);
+        _selNode.Content = sel;
+
+        // キャレット
+        int co = _ed.Caret.Offset;
+        string caretLine = _ed.Doc.LineAt(_ed.Caret.Line).Text;
+        float cx = mono.Measure(caretLine[..Math.Min(co, caretLine.Length)], _fs).width;
+        float cy = _ed.Caret.Line * _lineH;
+        _caretLocal = new Rect(_gutterW + cx, cy, 2, _lineH);
+        var caret = new Scene2D();
+        caret.FillRect(Color2D.White, cx, cy + 2, 2, _lineH - 4);
+        _caretNode.Content = caret;
+
+        // ガター幅は桁数で変わりうる — 再実体化はしない (次の Realize で反映)。
+    }
+
+    private void AppendColored(Scene2D scene, VectorFont mono, string line, int lineIndex, float y, Theme t)
+    {
+        if (Highlighter is null || line.Length == 0)
+        {
+            if (line.Length > 0) mono.AppendText(scene, line, 0, y, _fs, t.Text);
+            return;
+        }
+        // 行単位トークン化 (コードは短い — 同期で十分)
+        SyntaxToken[] toks;
+        try { toks = Highlighter.Tokenize(Language, line); }
+        catch { mono.AppendText(scene, line, 0, y, _fs, t.Text); return; }
+        int pos = 0; float x = 0;
+        foreach (SyntaxToken tk in toks)
+        {
+            int s = Math.Clamp(tk.Start, 0, line.Length);
+            int e = Math.Clamp(tk.Start + tk.Length, s, line.Length);
+            if (s > pos) x = Emit(scene, mono, line[pos..s], x, y, t.Text);
+            if (e > s) x = Emit(scene, mono, line[s..e], x, y, TokenColor(t, tk.Kind));
+            pos = Math.Max(pos, e);
+        }
+        if (pos < line.Length) Emit(scene, mono, line[pos..], x, y, t.Text);
+    }
+
+    private float Emit(Scene2D scene, VectorFont mono, string s, float x, float y, uint color)
+    {
+        if (s.Length == 0) return x;
+        mono.AppendText(scene, s, x, y, _fs, color);
+        return x + mono.Measure(s, _fs).width;
+    }
+
+    private void BuildSelection(Scene2D sel, VectorFont mono)
+    {
+        DocPos a = _ed.SelMin, b = _ed.SelMax;
+        for (int i = a.Line; i <= b.Line; i++)
+        {
+            string s = _ed.Doc.LineAt(i).Text;
+            int from = i == a.Line ? a.Offset : 0;
+            int to = i == b.Line ? b.Offset : s.Length;
+            float x0 = mono.Measure(s[..Math.Min(from, s.Length)], _fs).width;
+            float x1 = i == b.Line
+                ? mono.Measure(s[..Math.Min(to, s.Length)], _fs).width
+                : mono.Measure(s, _fs).width + _charW;   // 行末まで + 改行 1 文字ぶん
+            sel.FillRect(Color2D.White, x0, i * _lineH, MathF.Max(2, x1 - x0), _lineH);
+        }
+    }
+
+    private static uint TokenColor(Theme t, TokenKind k) => k switch
+    {
+        TokenKind.Comment => t.TokComment,
+        TokenKind.String => t.TokString,
+        TokenKind.Escape => t.TokEscape,
+        TokenKind.Regexp => t.TokRegexp,
+        TokenKind.Number => t.TokNumber,
+        TokenKind.Constant => t.TokConstant,
+        TokenKind.Keyword => t.TokKeyword,
+        TokenKind.KeywordControl => t.TokKeywordControl,
+        TokenKind.Operator => t.TokOperator,
+        TokenKind.Function => t.TokFunction,
+        TokenKind.Type => t.TokType,
+        TokenKind.Variable => t.TokVariable,
+        TokenKind.Tag => t.TokTag,
+        TokenKind.Attribute => t.TokAttribute,
+        _ => t.Text,
+    };
+
+    // ---- ITextInput (IME) ----
+    string ITextInput.Text => _ed.Doc.PlainText;
+    (int start, int length) ITextInput.Selection
+    {
+        get { int a = CaretOffset; return (a, 0); }
+    }
+    void ITextInput.Select(int start, int end) { }
+    void ITextInput.Replace(int start, int end, string s) => InsertAtCaret(s);
+    void ITextInput.SetComposition(ImeComposition comp) { }
+    void ITextInput.CommitComposition(string final) => InsertAtCaret(final);
+    void ITextInput.SetCompositionHighlight(int start, int length, int targetStart, int targetLength) { }
+    Rect ITextInput.CaretRect => new(WorldPos.X + _caretLocal.X, WorldPos.Y + _caretLocal.Y - _scroll.Value, 2, _lineH);
+}
