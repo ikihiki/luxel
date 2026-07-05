@@ -98,7 +98,10 @@ static int RunApp(Func<GpuDevice> createDevice, int port, int seconds)
         last = now;
         if (!manager.RunFrame(dt)) break;
         app.Update();   // Log パネル同期
-        // ストーリー選択で knobs パネルが変わるため chrome を再構築 (SurfaceView/story は生存)
+        // ウィンドウの論理サイズを chrome へ同期 — リサイズで表示範囲が追従する (変化時のみ dirty)
+        if (manager.Hosts.Count > 0 && manager.Hosts[0].Content is UiContent gsz)
+            app.SetWindowSize(gsz.Host.Width, gsz.Host.Height);
+        // ストーリー選択/リサイズで chrome を再構築 (SurfaceView/story は生存)
         if (app.ConsumeDirty() && manager.Hosts.Count > 0 && manager.Hosts[0].Content is UiContent uc)
             uc.Host.SetRoot(app.BuildRoot());
         // プレビューの子 UiHost はウィンドウ実体化後に生まれるので、できたら "story" として登録

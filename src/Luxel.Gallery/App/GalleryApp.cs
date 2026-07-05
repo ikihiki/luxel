@@ -19,10 +19,10 @@ namespace Luxel.Gallery;
 public sealed class GalleryApp : IDisposable
 {
     public const float PreviewW = 800, PreviewH = 480;
-    // サーフェス (framebuffer) は全画面モードの最大サイズで確保 — SetContent の論理サイズは
-    // サーフェス以下にしか広げられない (余白は透過なので通常時の見た目は不変)
-    private const float SurfW = 1092, SurfH = 760;
-    private const float WinH = 789f;   // クライアント 801 - Border padding 12
+    // サーフェス (framebuffer) は fill/全画面の最大サイズで確保 — SetContent の論理サイズは
+    // サーフェス以下にしか広げられない (余白は透過なので通常時の見た目は不変)。
+    // 大型モニタの最大化まで追従できるよう余裕を持たせる (DeviceLocal ~14MB×scale²)
+    private const float SurfW = 2560, SurfH = 1440;
 
     private readonly SurfaceView _preview = SurfaceView(SurfW, SurfH);
     // ストーリーへ StoryContext.Resources として配布 (キャッシュ共有、Pump は Update が叩く)
@@ -37,6 +37,9 @@ public sealed class GalleryApp : IDisposable
 
     // ペイン寸法 (Splitter ドラッグで変更 → chrome 再構築)
     private float _sidebarW = 170, _rightW = 360, _logH = 240;   // 右パネルは Knobs テーブル (4 列) が収まる幅
+    // ウィンドウの論理クライアントサイズ (ホストが毎フレーム SetWindowSize で同期 — リサイズで chrome 再構築)
+    private float _winW = 1280, _winH = 801;
+    private ScrollViewer? _sidebarScroll;   // サイドバーのスクロールは chrome 再構築をまたいで位置を保つ
     private readonly Signal<bool> _fHover = new(false), _fPressed = new(false), _fFocused = new(false), _fDisabled = new(false);
     private bool _dark;
     private StoryContext? _ctx;
@@ -68,6 +71,18 @@ public sealed class GalleryApp : IDisposable
     public string? CurrentPath => _currentPath;
     /// <summary>プレビューの子 UiHost (ストーリー側)。リモート検証用に UiRegistry へ登録する。</summary>
     public UiHost? StoryHost => _preview.Child;
+
+    /// <summary>ウィンドウの論理クライアントサイズを同期する (ホストのフレームループから毎フレーム)。
+    /// 変わったら chrome を作り直し、fill/全画面のプレビューも新サイズで実体化し直す —
+    /// ツリー/ドキュメント/Log の表示範囲がウィンドウリサイズに追従する。</summary>
+    public void SetWindowSize(float w, float h)
+    {
+        if (MathF.Abs(w - _winW) < 0.5f && MathF.Abs(h - _winH) < 0.5f) return;
+        _winW = w;
+        _winH = h;
+        _dirty = true;
+        RefreshPreviewSize();
+    }
 
     /// <summary>chrome の再構築が必要か (ストーリー選択後に true、消費で false)。</summary>
     public bool ConsumeDirty()
@@ -115,7 +130,11 @@ public sealed class GalleryApp : IDisposable
     /// メインは行 [ツールバー | プレビュー(Star) | Splitter | Log]。Splitter のドラッグ確定で寸法を更新して再構築する。</summary>
     public Widget BuildRoot()
     {
-        const float winH = WinH;
+        float winH = _winH - 12;   // Border padding 6×2 を除いた内寸
+        // メイン列 (col 2) の実幅 — Log パネル等はこの幅に合わせる (固定幅だと右パネルの下へはみ出す)
+        float mainW = _zen
+            ? _winW - 12 - _sidebarW - Split.Thickness
+            : _winW - 12 - _sidebarW - Split.Thickness * 2 - _rightW;
 
         // ---- サイドバー (col 0): Component > Story > 見出し の 3 階層ツリー + 検索 ----
         // 展開状態 (_treeExpanded) は GalleryApp が所有 — chrome 再構築をまたいで保持。
@@ -159,10 +178,14 @@ public sealed class GalleryApp : IDisposable
             Button(_ => MoveSearch(-1), "‹", fontSize: 12f, padding: new Thickness(6, 2)),
             Text(matchLabel, 10, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(0, 5, 0, 0)),
             Button(_ => MoveSearch(+1), "›", fontSize: 12f, padding: new Thickness(6, 2))];
+        // スクロールは永続インスタンス — chrome 再構築 (ストーリー選択/リサイズ) をまたいで位置を保つ
+        _sidebarScroll ??= Scroll(winH - 58, width: _sidebarW);
+        _sidebarScroll.SetViewportHeight(winH - 58);
+        _sidebarScroll.Width.SetOverride(_sidebarW);
         Widget sidebar = VStack(2)[
             Heading("Stories"),
             searchBar,
-            Scroll(winH - 58, width: _sidebarW)[tree]];
+            _sidebarScroll[tree]];
         sidebar.GridColumn(0);
 
         var splitSidebar = Splitter(vertical: true,
@@ -184,9 +207,9 @@ public sealed class GalleryApp : IDisposable
             onResized: (_, d) => { _logH = Math.Clamp(_logH - d, 60, 440); RefreshPreviewSize(); _dirty = true; });   // 上へドラッグ = Log 拡大
         splitLog.GridRow(2);
         _logItems.Value = LogLines();
-        ListView logList = ListView(MathF.Max(24, _logH - 36), 16f, items: _logItems, width: PreviewW - 24);
+        ListView logList = ListView(MathF.Max(24, _logH - 36), 16f, items: _logItems, width: MathF.Max(120, mainW - 24));
         Widget logPanel = Border(background: Bind.From(() => UiTheme.T.Surface), rounded: UiTheme.T.Radius,
-                                 padding: new Thickness(8, 4), width: PreviewW)[
+                                 padding: new Thickness(8, 4), width: MathF.Max(140, mainW))[
             VStack(2)[
                 Text($"Log ({_logCountSig})", 14, color: Bind.From(() => UiTheme.T.Text)),
                 logList]];
@@ -233,7 +256,7 @@ public sealed class GalleryApp : IDisposable
             Heading("Knobs"),
             Scroll(260f, width: _rightW)[knobsTable],   // テーブル ~7 行分 (それ以上はスクロール)
             Heading("Props"),
-            Scroll(winH - 330, width: _rightW)[VStack(3)[props.ToArray()]]];
+            Scroll(MathF.Max(80, winH - 330), width: _rightW)[VStack(3)[props.ToArray()]]];
         panel.GridColumn(4);
 
         Widget root = _zen
@@ -429,24 +452,24 @@ public sealed class GalleryApp : IDisposable
     private (int W, int H) PreviewSize(StoryInfo story)
     {
         if (_zen)
-            return ((int)MathF.Min(SurfW, 1280 - 12 - _sidebarW - Split.Thickness), (int)SurfH);
+            return ((int)MathF.Min(SurfW, _winW - 12 - _sidebarW - Split.Thickness),
+                    (int)MathF.Min(SurfH, _winH - 12 - 28));
         if (story.Width > 0)
             return (story.Width, story.Height);
         // fill: 通常モードのメイン領域 (サイドバー/右パネル/Log を除いた実寸)
-        float w = 1280 - 12 - _sidebarW - Split.Thickness * 2 - _rightW;
-        float h = WinH - 28 - Split.Thickness - _logH;
+        float w = _winW - 12 - _sidebarW - Split.Thickness * 2 - _rightW;
+        float h = _winH - 12 - 28 - Split.Thickness - _logH;
         return ((int)MathF.Min(SurfW, w), (int)MathF.Min(SurfH, h));
     }
 
-    /// <summary>fill ストーリーの表示中にペイン寸法が変わったら、プレビューを新しい領域サイズで
-    /// 実体化し直す (Splitter ドラッグ確定時)。固定サイズのストーリーは何もしない。</summary>
+    /// <summary>fill/全画面ストーリーの表示中にペイン寸法やウィンドウサイズが変わったら、
+    /// プレビューを新しい領域サイズで実体化し直す。固定サイズのストーリー (通常表示) は何もしない。</summary>
     private void RefreshPreviewSize()
     {
-        if (_currentStory is { Width: <= 0 } s && _storyRoot is not null)
-        {
-            (int pw, int ph) = PreviewSize(s);
-            _preview.SetContent(_storyRoot, pw, ph);
-        }
+        if (_storyRoot is null || _currentStory is not { } s) return;
+        if (!_zen && s.Width > 0) return;
+        (int pw, int ph) = PreviewSize(s);
+        _preview.SetContent(_storyRoot, pw, ph);
     }
 
     /// <summary>実窓ホストの GPU 設備 (Program が結線)。実窓専用ストーリーが ctx.Device/Font で借りる。</summary>
