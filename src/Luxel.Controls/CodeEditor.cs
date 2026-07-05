@@ -136,7 +136,7 @@ public sealed partial class CodeEditor : Widget, ITextInput
     private readonly DocumentEditor _ed = new();
     private bool _edInit;
     private readonly Signal<bool> _caretOn = new(true);
-    private readonly Signal<float> _scroll = new(0);
+    private readonly ScrollModel _scroll = new();   // スクロール位置 + サム計算 (再実体化を跨いで生存)
 
     private const float Pad = 6f;         // 上下パディング
     private const float GutterPadR = 8f;  // ガターと本文の間
@@ -171,7 +171,7 @@ public sealed partial class CodeEditor : Widget, ITextInput
     }
 
     /// <summary>キャレット直下のワールド座標 (E2 のポップアップ配置用)。</summary>
-    public Point CaretWorld => new(WorldPos.X + _caretLocal.X, WorldPos.Y + _caretLocal.Y - _scroll.Value + _lineH);
+    public Point CaretWorld => new(WorldPos.X + _caretLocal.X, WorldPos.Y + _caretLocal.Y - _scroll.Clamped + _lineH);
 
     /// <summary>キャレット位置に挿入して同期する (補完確定に使う)。</summary>
     public void InsertAtCaret(string s)
@@ -222,6 +222,7 @@ public sealed partial class CodeEditor : Widget, ITextInput
         // ガター地 (固定、スクロールしない)
         _gutter = ctx.Canvas.AddChild(_root);
         _gutter.Z = 1;
+        _gutter.Clip = new RectClip(0, 0, _gutterW, H);   // スクロールで消えた行番号がはみ出さない
         var gbg = new Scene2D();
         gbg.FillRect(Color2D.White, 0, 0, _gutterW, H);
         _gutter.Content = gbg;
@@ -232,7 +233,7 @@ public sealed partial class CodeEditor : Widget, ITextInput
         clip.Z = 2;
         clip.Clip = new RectClip(_gutterW, 0, W - _gutterW, H);
         _content = ctx.Canvas.AddChild(clip);
-        ctx.Effect(() => _content.Transform = Affine2D.Translate(_gutterW, Pad - _scroll.Value));
+        ctx.Effect(() => _content.Transform = Affine2D.Translate(_gutterW, Pad - _scroll.Clamped));
 
         _curLine = ctx.Canvas.AddChild(_content);   // 現在行ハイライト (背面)
         ctx.Effect(() => _curLine.Color = Styles.WithAlpha(_theme.Value.Primary, 22));
@@ -255,10 +256,12 @@ public sealed partial class CodeEditor : Widget, ITextInput
         _diagNode.Z = 3;
         ctx.Effect(() => _diagNode.Color = _theme.Value.Danger);
 
-        // ガター行番号 (スクロールに追従するので content と同じ y、ただし x は固定 → gutter の子)
+        // ガター行番号 (スクロールに追従するので content と同じ y、ただし x は固定 → gutter の子)。
+        // スクロール追従は effect でリアクティブに — ホイール (signal 更新) でも Refresh を待たず動く
         _gutterText = ctx.Canvas.AddChild(_gutter);
         _gutterText.Z = 1;
         ctx.Effect(() => _gutterText.Color = _theme.Value.TextMuted);
+        ctx.Effect(() => _gutterText.Transform = Affine2D.Translate(0, Pad - _scroll.Clamped));
 
         // 補完ポップアップ (最前面、root 直下 = クリップ外 OK)
         _popupBg = ctx.Canvas.AddChild(_root);
@@ -276,7 +279,7 @@ public sealed partial class CodeEditor : Widget, ITextInput
         ctx.Effect(() =>
         {
             string v = Value.Get().Value;
-            if (v != _ed.Doc.PlainText) { _ed.SetText(v); _scroll.Value = 0; Refresh(); }
+            if (v != _ed.Doc.PlainText) { _ed.SetText(v); _scroll.ScrollTo(0); Refresh(); }
         });
 
         float t = 0;
@@ -304,7 +307,8 @@ public sealed partial class CodeEditor : Widget, ITextInput
             onDragStart: e => Place(e.X, e.Y, extend: false),
             onDrag: e => Place(e.X, e.Y, extend: true));
         ctx.AddScroll(_root, new Rect(0, 0, W, H),
-            d => _scroll.Value = Math.Clamp(_scroll.Value - d, 0, MaxScroll));
+            d => _scroll.ScrollBy(-d));
+        ScrollBars.AttachVertical(ctx, _root, _scroll, W, H, minThumb: 24);
     }
 
     private UiNode _gutterText = null!, _diagNode = null!, _popupBg = null!, _popupSel = null!, _popupText = null!, _searchNode = null!;
@@ -474,7 +478,7 @@ public sealed partial class CodeEditor : Widget, ITextInput
 
     private DocPos HitDoc(float lx, float ly)
     {
-        float y = ly + _scroll.Value - Pad;
+        float y = ly + _scroll.Clamped - Pad;
         int line = Math.Clamp((int)(y / _lineH), 0, LineCount - 1);
         float x = lx - _gutterW;
         int off = Math.Clamp((int)MathF.Round(x / MathF.Max(1, _charW)), 0, _ed.Doc.LineAt(line).Text.Length);
@@ -499,11 +503,9 @@ public sealed partial class CodeEditor : Widget, ITextInput
 
     private void EnsureCaretVisible()
     {
+        _scroll.SetLengths(ContentH, H);   // 行数変化を反映
         float top = _ed.Caret.Line * _lineH;
-        float bottom = top + _lineH;
-        float view = H - Pad * 2;
-        if (top < _scroll.Value) _scroll.Value = top;
-        else if (bottom > _scroll.Value + view) _scroll.Value = Math.Min(MaxScroll, bottom - view);
+        _scroll.EnsureVisible(top, top + _lineH, Pad);
     }
 
     // ---- 描画 ----
@@ -511,6 +513,7 @@ public sealed partial class CodeEditor : Widget, ITextInput
     private void Refresh()
     {
         if (_ctx is null) return;
+        _scroll.SetLengths(ContentH, H);   // スクロールバーへ内容/表示サイズを伝える
         VectorFont mono = MonoFont ?? _ctx.Font;
         Theme t = _theme.Peek();
 
@@ -528,8 +531,7 @@ public sealed partial class CodeEditor : Widget, ITextInput
             mono.AppendText(gutter, num, nx, y, _fs, Color2D.White);
         }
         _textNode.Content = text;
-        _gutterText.Content = gutter;
-        _gutterText.Transform = Affine2D.Translate(0, Pad - _scroll.Value);
+        _gutterText.Content = gutter;   // 位置は effect がリアクティブに追従 (スクロール)
 
         // 現在行ハイライト (全幅)
         var cl = new Scene2D();
@@ -606,7 +608,7 @@ public sealed partial class CodeEditor : Widget, ITextInput
             wpx = MathF.Max(wpx, mono.Measure($"{it.Label}  {it.Kind}", _fs).width);
         wpx += 16;
         float px = _gutterW + _caretLocal.X - _gutterW;   // キャレット x (root ローカル)
-        float py = (_ed.Caret.Line + 1) * _lineH + Pad - _scroll.Value;
+        float py = (_ed.Caret.Line + 1) * _lineH + Pad - _scroll.Clamped;
         _popupBg.Transform = Affine2D.Translate(_caretLocal.X, py);
 
         var bg = new Scene2D();
@@ -707,5 +709,5 @@ public sealed partial class CodeEditor : Widget, ITextInput
     void ITextInput.SetComposition(ImeComposition comp) { }
     void ITextInput.CommitComposition(string final) => InsertAtCaret(final);
     void ITextInput.SetCompositionHighlight(int start, int length, int targetStart, int targetLength) { }
-    Rect ITextInput.CaretRect => new(WorldPos.X + _caretLocal.X, WorldPos.Y + _caretLocal.Y - _scroll.Value, 2, _lineH);
+    Rect ITextInput.CaretRect => new(WorldPos.X + _caretLocal.X, WorldPos.Y + _caretLocal.Y - _scroll.Clamped, 2, _lineH);
 }

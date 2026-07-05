@@ -207,6 +207,48 @@ public class CodeEditorTests
         Assert.Equal("a\nb", ed.Text);
     }
 
+    // ---- イベントバブリング: 全面ドラッグを張る親の中の子ボタンがクリックを拾える ----
+
+    private sealed class DragContainer : Widget
+    {
+        public int DragStarts;
+        private readonly Widget _child;
+        public DragContainer(Widget child) => _child = child;
+        protected override void PerformLayout(Constraints c, LayoutContext ctx)
+        {
+            _child.Layout(c, ctx);
+            _child.Offset = new Point(40, 40);
+            Size = c.Constrain(new Size(200, 120));
+        }
+        protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
+        {
+            UiNode node = CreateRoot(ctx, parent, worldOrigin);
+            _child.Realize(ctx, node, worldOrigin + _child.Offset);
+            // 全面ドラッグ選択 (エディタの選択ヒット相当) — 子ボタンより先に登録
+            ctx.AddHit(node, new Rect(0, 0, Size.Width, Size.Height),
+                onDragStart: _ => DragStarts++);
+        }
+    }
+
+    [Fact]
+    public void ChildButton_WinsOverParentFullAreaDrag()
+    {
+        VectorFont font = VectorFont.LoadSystem();
+        var host = new UiHost(new RetainedCanvas(), font, 300, 200);
+        int clicks = 0;
+        Widget btn = Button(_ => clicks++, "Run");
+        var container = new DragContainer(btn);
+        host.SetRoot(container);
+
+        // 子ボタンの中心をクリック (親の全面ドラッグヒットと重なる位置)
+        float bx = btn.WorldPos.X + btn.Size.Width / 2;
+        float by = btn.WorldPos.Y + btn.Size.Height / 2;
+        host.PointerDown(bx, by);
+        host.PointerUp(bx, by);
+        Assert.Equal(1, clicks);              // 子ボタンが発火
+        Assert.Equal(0, container.DragStarts); // 親のドラッグ選択は奪われない
+    }
+
     // ---- E3: 検索/置換 ----
 
     [Fact]

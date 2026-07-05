@@ -282,12 +282,9 @@ public sealed class UiHost : IDisposable
         for (int i = _build.Overlays.Count - 1; i >= 0; i--)
             if (_build.Overlays[i].Open.Value && _build.Overlays[i].Modal) { modal = _build.Overlays[i]; break; }
 
-        for (int i = _build.Hits.Count - 1; i >= 0; i--)
+        if (TryPick(x, y, null, out HitTarget t, out float lx, out float ly)
+            && (modal == null || modal.ContentRect.Contains(x, y)))          // モーダルが背面をブロック
         {
-            HitTarget t = _build.Hits[i];
-            if (t.Active is not null && !t.Active()) continue;               // 論理ゲート
-            if (!HitTest(t.Node, t.Rect, x, y, out float lx, out float ly)) continue;
-            if (modal != null && !modal.ContentRect.Contains(x, y)) break;   // モーダルが背面をブロック
             if (t.Focus != null) FocusTo(t.Focus);                           // クリックでフォーカス
             Guard(t.OnClickPos is null ? null : () => t.OnClickPos!(new PointerEvent(lx, ly, x, y)), "Click");
             Guard(t.OnClick, "Click");
@@ -308,24 +305,18 @@ public sealed class UiHost : IDisposable
     public bool PointerDown(float x, float y)
     {
         EmitInput("pointerdown", $"{x:0},{y:0}");
-        if (_build != null)
+        if (_build != null && TryPick(x, y, null, out HitTarget t, out float lx, out float ly))
         {
-            for (int i = _build.Hits.Count - 1; i >= 0; i--)
+            if (t.Draggable)
             {
-                HitTarget t = _build.Hits[i];
-                if (t.Active is not null && !t.Active()) continue;
-                if (!HitTest(t.Node, t.Rect, x, y, out float lx, out float ly)) continue;
-                if (t.Draggable)
-                {
-                    _captured = t;
-                    _dragStartLx = lx; _dragStartLy = ly;   // 捕獲時の位置 — 以後の Drag/DragEnd の Start/Delta の基準
-                    _dragStartX = x; _dragStartY = y;
-                    if (t.Focus != null) FocusTo(t.Focus);
-                    Guard(t.OnDragStart is null ? null : () => t.OnDragStart!(new PointerEvent(lx, ly, x, y)), "DragStart");
-                    return true;
-                }
-                break;   // 最前面が非ドラッグ → 通常クリックへ
+                _captured = t;
+                _dragStartLx = lx; _dragStartLy = ly;   // 捕獲時の位置 — 以後の Drag/DragEnd の Start/Delta の基準
+                _dragStartX = x; _dragStartY = y;
+                if (t.Focus != null) FocusTo(t.Focus);
+                Guard(t.OnDragStart is null ? null : () => t.OnDragStart!(new PointerEvent(lx, ly, x, y)), "DragStart");
+                return true;
             }
+            // 最適ヒットが非ドラッグ → 通常クリックへ (Click も同じ TryPick でこのヒットに届く)
         }
         return Click(x, y);
     }
@@ -386,22 +377,15 @@ public sealed class UiHost : IDisposable
         _dragPayload = null;
     }
 
-    /// <summary>最前面の「payload を受け入れる OnDrop 持ちヒット」を探す。</summary>
+    /// <summary>最適な「payload を受け入れる OnDrop 持ちヒット」を探す (深い子を優先)。</summary>
     private bool FindDropTarget(float x, float y, object payload, out HitTarget? target, out float lx, out float ly)
     {
         target = null; lx = 0; ly = 0;
         if (_build == null) return false;
-        for (int i = _build.Hits.Count - 1; i >= 0; i--)
-        {
-            HitTarget t = _build.Hits[i];
-            if (t.OnDrop is null) continue;
-            if (t.Active is not null && !t.Active()) continue;
-            if (t.AcceptsDrop is not null && !t.AcceptsDrop(payload)) continue;
-            if (!HitTest(t.Node, t.Rect, x, y, out lx, out ly)) continue;
-            target = t;
-            return true;
-        }
-        return false;
+        if (!TryPick(x, y, t => t.OnDrop is not null && (t.AcceptsDrop is null || t.AcceptsDrop(payload)),
+            out HitTarget hit, out lx, out ly)) return false;
+        target = hit;
+        return true;
     }
 
     /// <summary>(x,y) へポインタ移動。ドラッグ捕獲中は OnDrag へ (矩形外も届く)、
@@ -427,15 +411,7 @@ public sealed class UiHost : IDisposable
             }
             return;
         }
-        HitTarget? hit = null;
-        float hlx = 0, hly = 0;
-        for (int i = _build.Hits.Count - 1; i >= 0; i--)
-        {
-            HitTarget t = _build.Hits[i];
-            if (t.Active is not null && !t.Active()) continue;
-            if (!HitTest(t.Node, t.Rect, x, y, out float lx, out float ly)) continue;
-            hit = t; hlx = lx; hly = ly; break;
-        }
+        HitTarget? hit = TryPick(x, y, null, out HitTarget picked, out float hlx, out float hly) ? picked : null;
         if (!ReferenceEquals(hit, _hover))
         {
             Guard(_hover?.OnHover is { } off ? () => off(false) : null, "Hover");
@@ -517,12 +493,8 @@ public sealed class UiHost : IDisposable
     {
         EmitInput("context", $"{x:0},{y:0}");
         if (_build == null) return false;
-        for (int i = _build.Hits.Count - 1; i >= 0; i--)
+        if (TryPick(x, y, t => t.OnContext is not null, out HitTarget t, out float lx, out float ly))
         {
-            HitTarget t = _build.Hits[i];
-            if (t.OnContext is null) continue;
-            if (t.Active is not null && !t.Active()) continue;
-            if (!HitTest(t.Node, t.Rect, x, y, out float lx, out float ly)) continue;
             if (t.Focus != null) FocusTo(t.Focus);
             Guard(() => t.OnContext!(new PointerEvent(lx, ly, x, y)), "Context");
             return true;
@@ -596,6 +568,37 @@ public sealed class UiHost : IDisposable
     /// <summary>ノードのローカル矩形へのヒット判定 (WPF/Flutter 式)。
     /// 「現在の」変換ツリーを逆に写して判定するため、スクロール/スライド/scale/Visible に自動追従する。
     /// 祖先クリップ (ScrollViewer のビューポート等) の外は不発。成功時はローカル座標を返す。</summary>
+    /// <summary>点 (x,y) を含むヒットのうち**最適なもの**を選ぶ — ノードが深い (子) ほど優先し、
+    /// 同深度は登録順が後 (前面) を優先する。これが「イベントの正しいバブリング」の核:
+    /// 親コンテナ (エディタの選択ヒット等) を全面に張っても、その上に載る子 widget
+    /// (埋め込みボタン等) が先に拾える。<paramref name="filter"/> で用途別に絞る (OnContext 持ち等)。</summary>
+    private bool TryPick(float x, float y, Func<HitTarget, bool>? filter,
+        out HitTarget hit, out float lx, out float ly)
+    {
+        hit = null!; lx = ly = 0;
+        int bestDepth = -1, bestIdx = -1;
+        float blx = 0, bly = 0;
+        for (int i = 0; i < _build!.Hits.Count; i++)
+        {
+            HitTarget t = _build.Hits[i];
+            if (t.Active is not null && !t.Active()) continue;
+            if (filter is not null && !filter(t)) continue;
+            if (!HitTest(t.Node, t.Rect, x, y, out float hx, out float hy)) continue;
+            int depth = NodeDepth(t.Node);
+            if (depth > bestDepth || (depth == bestDepth && i > bestIdx))
+            { bestDepth = depth; bestIdx = i; hit = t; blx = hx; bly = hy; }
+        }
+        lx = blx; ly = bly;
+        return bestIdx >= 0;
+    }
+
+    private static int NodeDepth(UiNode n)
+    {
+        int d = 0;
+        for (UiNode? p = n.Parent; p is not null; p = p.Parent) d++;
+        return d;
+    }
+
     private static bool HitTest(UiNode node, Rect rect, float x, float y, out float lx, out float ly)
     {
         lx = ly = 0;

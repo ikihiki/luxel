@@ -54,6 +54,18 @@ public static class CodeEditorStory
             await d.Key(Key.Slash, ctrl: true);      // コメントトグル
             await d.Snap("line-ops");
         });
+        ctx.Play("scrollbar", async d =>
+        {
+            // 高さを超える行数 → 縦スクロールバー (サム) が出る
+            var sb = new System.Text.StringBuilder();
+            for (int i = 1; i <= 40; i++) sb.Append($"var line{i} = {i};\n");
+            code.Value = sb.ToString();
+            await d.Step(2);
+            await d.Click(ed);
+            await d.Wheel(280, 130, -80);            // 下へスクロール
+            await d.Step(2);
+            await d.Snap("scrolled");                // ガター行番号が進み + スクロールバーのサム
+        });
 
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             VStack(10)[

@@ -988,6 +988,8 @@ public sealed partial class RichTextEditor : Widget, ITextInput
                 for (int li = 0; li < b.Lines.Count && line < _views.Count; li++, line++)
                 {
                     LineView v = _views[line];
+                    // 位置を先に確定 — RenderLine (embed realize) が正しい v.Top で WorldPos を計算できるように
+                    if (shifted || v.Top != top) { v.Top = top; v.Container.Transform = Affine2D.Translate(0, top); }
                     string key = KeyOf(line, b, li, ord);
                     if (v.Key != key)
                     {
@@ -997,7 +999,6 @@ public sealed partial class RichTextEditor : Widget, ITextInput
                         v.H = h;
                         v.Key = key;
                     }
-                    if (shifted || v.Top != top) { v.Top = top; v.Container.Transform = Affine2D.Translate(0, top); }
                     top += v.H;
                 }
             }
@@ -1042,9 +1043,9 @@ public sealed partial class RichTextEditor : Widget, ITextInput
                 container.Z = 2;
                 container.Transform = Affine2D.Translate(0, top);
                 var v = new LineView { Container = container, Layout = null!, Key = "" };
+                v.Top = top;   // RenderLine (embed realize) が正しい v.Top で WorldPos を計算できるよう先に確定
                 RenderLine(v, line, b, li, ord);
                 v.Key = KeyOf(line, b, li, ord);
-                v.Top = top;
                 v.H = LineHeight(v, b, li);
                 _views.Add(v);
                 top += v.H;
