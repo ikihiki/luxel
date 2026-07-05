@@ -207,6 +207,42 @@ public class CodeEditorTests
         Assert.Equal("a\nb", ed.Text);
     }
 
+    // ---- E3: 検索/置換 ----
+
+    [Fact]
+    public void Search_FindsAllMatches_AndWraps()
+    {
+        (_, CodeEditor ed) = Focused("foo bar foo\nbaz foo");
+        ed.SetSearch("foo");
+        Assert.Equal(3, ed.SearchMatchCount);
+        Assert.Equal(0, ed.SearchCurrent);
+        ed.FindNext(); Assert.Equal(1, ed.SearchCurrent);
+        ed.FindNext(); Assert.Equal(2, ed.SearchCurrent);
+        ed.FindNext(); Assert.Equal(0, ed.SearchCurrent);   // ラップ
+        ed.FindPrev(); Assert.Equal(2, ed.SearchCurrent);
+    }
+
+    [Fact]
+    public void ReplaceAll_ReplacesEveryMatch()
+    {
+        (_, CodeEditor ed) = Focused("x = x + x");
+        ed.SetSearch("x");
+        ed.ReplaceAll("y");
+        Assert.Equal("y = y + y", ed.Text);
+        Assert.Equal(0, ed.SearchMatchCount);   // 置換後はクリア
+    }
+
+    [Fact]
+    public void ReplaceCurrent_ReplacesOne_AndReindexes()
+    {
+        (_, CodeEditor ed) = Focused("a a a");
+        ed.SetSearch("a");
+        Assert.Equal(3, ed.SearchMatchCount);
+        ed.ReplaceCurrent("b");
+        Assert.Equal("b a a", ed.Text);
+        Assert.Equal(2, ed.SearchMatchCount);   // 残り 2
+    }
+
     private sealed class RecordingHighlighter : ISyntaxHighlighter
     {
         public readonly List<string> SeenLines = new();

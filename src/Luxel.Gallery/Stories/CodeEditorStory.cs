@@ -62,6 +62,46 @@ public static class CodeEditorStory
                 ed]];
     }
 
+    [Story("Controls/CodeEditor/Search", Height = 340, Order = 2)]
+    public static Widget Search(StoryContext ctx)
+    {
+        Signal<string> code = ctx.Signal("code",
+            "int foo = 1;\nint bar = foo + foo;\nreturn foo * bar;");
+        CodeEditor ed = MakeEditor(code);
+        Signal<string> query = ctx.Signal("find", "");
+        Signal<string> repl = ctx.Signal("replace", "");
+        TextField findBar = TextField(query, placeholder: "find", width: 160);
+        TextField replBar = TextField(repl, placeholder: "replace", width: 160);
+
+        Func<string> count = () => ed.SearchMatchCount > 0 ? $"{ed.SearchCurrent + 1}/{ed.SearchMatchCount}" : "-";
+        Widget bar = HStack(6)[
+            findBar,
+            Button(_ => ed.SetSearch(query.Value), "検索", fontSize: 12f),
+            Button(_ => ed.FindPrev(), "‹", fontSize: 12f),
+            Button(_ => ed.FindNext(), "›", fontSize: 12f),
+            Text(count, 12, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(0, 6, 0, 0)),
+            replBar,
+            Button(_ => ed.ReplaceAll(repl.Value), "全置換", fontSize: 12f)];
+
+        ctx.Play(async d =>
+        {
+            ed.SetSearch("foo");
+            await d.Step(2);
+            await d.Expect(() => ed.SearchMatchCount == 4, "4 マッチをハイライト");
+            await d.Snap("matches");
+            ed.ReplaceAll("qux");
+            await d.Step(2);
+            await d.Expect(() => ed.Text.Contains("qux") && !ed.Text.Contains("foo"), "全置換される");
+            await d.Snap("replaced");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("CodeEditor — 検索 / 置換 (E3)"),
+                bar,
+                ed]];
+    }
+
     [Story("Controls/CodeEditor/Completion", Height = 320, Order = 1)]
     public static Widget Completion(StoryContext ctx)
     {

@@ -58,6 +58,81 @@ public sealed partial class CodeEditor : Widget, ITextInput
     /// <summary>キャレット位置シンボルのホバー文字列 (無ければ "")。</summary>
     public string HoverText => _hover;
 
+    // ---- E3: 検索/置換 (バー UI は上位が駆動、ここは primitive + ハイライト) ----
+    private string _search = "";
+    private readonly List<(int Line, int Col)> _matches = new();
+    private int _matchCur = -1;
+
+    /// <summary>検索マッチ数。</summary>
+    public int SearchMatchCount => _matches.Count;
+    /// <summary>現在マッチ番号 (0 始まり、なし = -1)。</summary>
+    public int SearchCurrent => _matchCur;
+
+    /// <summary>検索語を設定して全マッチを収集する (大小区別)。空でクリア。</summary>
+    public void SetSearch(string query)
+    {
+        _search = query ?? "";
+        _matches.Clear();
+        _matchCur = -1;
+        if (_search.Length > 0)
+        {
+            for (int i = 0; i < LineCount; i++)
+            {
+                string s = _ed.Doc.LineAt(i).Text;
+                int idx = 0;
+                while ((idx = s.IndexOf(_search, idx, StringComparison.Ordinal)) >= 0)
+                {
+                    _matches.Add((i, idx));
+                    idx += _search.Length;
+                }
+            }
+            if (_matches.Count > 0) { _matchCur = 0; MoveToMatch(); }
+        }
+        Refresh();
+    }
+
+    /// <summary>次のマッチへ (ラップ)。</summary>
+    public void FindNext() => Step(+1);
+    /// <summary>前のマッチへ。</summary>
+    public void FindPrev() => Step(-1);
+
+    private void Step(int dir)
+    {
+        if (_matches.Count == 0) return;
+        _matchCur = (_matchCur + dir + _matches.Count) % _matches.Count;
+        MoveToMatch();
+        Refresh();
+    }
+
+    private void MoveToMatch()
+    {
+        (int line, int col) = _matches[_matchCur];
+        var a = new DocPos(line, col);
+        var b = new DocPos(line, col + _search.Length);
+        _ed.Select(a, b);   // マッチを選択
+        EnsureCaretVisible();
+    }
+
+    /// <summary>現在マッチを置換して次へ。</summary>
+    public void ReplaceCurrent(string replacement)
+    {
+        if (_matchCur < 0 || _matchCur >= _matches.Count) return;
+        MoveToMatch();
+        _ed.Insert(replacement);   // 選択を置換
+        Sync();
+        SetSearch(_search);        // マッチを取り直す (位置がずれる)
+    }
+
+    /// <summary>全マッチを置換。</summary>
+    public void ReplaceAll(string replacement)
+    {
+        if (_search.Length == 0) return;
+        string replaced = _ed.Doc.PlainText.Replace(_search, replacement);
+        _ed.SetText(replaced);
+        Sync();
+        SetSearch("");
+    }
+
     private readonly DocumentEditor _ed = new();
     private bool _edInit;
     private readonly Signal<bool> _caretOn = new(true);
@@ -161,6 +236,9 @@ public sealed partial class CodeEditor : Widget, ITextInput
 
         _curLine = ctx.Canvas.AddChild(_content);   // 現在行ハイライト (背面)
         ctx.Effect(() => _curLine.Color = Styles.WithAlpha(_theme.Value.Primary, 22));
+        _searchNode = ctx.Canvas.AddChild(_content);   // 検索マッチ (選択の背面)
+        _searchNode.Z = 0;
+        ctx.Effect(() => _searchNode.Color = Styles.WithAlpha(_theme.Value.Warning, 90));
         _selNode = ctx.Canvas.AddChild(_content);
         _selNode.Z = 1;
         ctx.Effect(() => _selNode.Color = Styles.WithAlpha(_theme.Value.Primary, 70));
@@ -229,7 +307,7 @@ public sealed partial class CodeEditor : Widget, ITextInput
             d => _scroll.Value = Math.Clamp(_scroll.Value - d, 0, MaxScroll));
     }
 
-    private UiNode _gutterText = null!, _diagNode = null!, _popupBg = null!, _popupSel = null!, _popupText = null!;
+    private UiNode _gutterText = null!, _diagNode = null!, _popupBg = null!, _popupSel = null!, _popupText = null!, _searchNode = null!;
     private bool ReadOnlyFocusless => false;
     private float ContentH => LineCount * _lineH + Pad * 2;
     private float MaxScroll => MathF.Max(0, ContentH - H);
@@ -457,6 +535,18 @@ public sealed partial class CodeEditor : Widget, ITextInput
         var cl = new Scene2D();
         cl.FillRect(Color2D.White, 0, _ed.Caret.Line * _lineH, MathF.Max(W - _gutterW, ContentH), _lineH);
         _curLine.Content = cl;
+
+        // 検索マッチ (全マッチを黄色帯で)
+        var search = new Scene2D();
+        for (int mi = 0; mi < _matches.Count; mi++)
+        {
+            (int line, int col) = _matches[mi];
+            string s = _ed.Doc.LineAt(line).Text;
+            float x0 = mono.Measure(s[..Math.Min(col, s.Length)], _fs).width;
+            float x1 = mono.Measure(s[..Math.Min(col + _search.Length, s.Length)], _fs).width;
+            search.FillRect(Color2D.White, x0, line * _lineH, MathF.Max(2, x1 - x0), _lineH);
+        }
+        _searchNode.Content = search;
 
         // 選択 (行ごとの矩形)
         var sel = new Scene2D();
