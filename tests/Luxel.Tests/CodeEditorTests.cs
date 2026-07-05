@@ -159,6 +159,54 @@ public class CodeEditorTests
         Assert.Equal("hover!", ed.HoverText);    // キャレット位置のホバー
     }
 
+    // ---- E3: 行操作 ----
+
+    private static (UiHost, CodeEditor) Focused(string code)
+    {
+        var sig = new Signal<string>(code);
+        VectorFont font = VectorFont.LoadSystem();
+        var host = new UiHost(new RetainedCanvas(), font, 400, 200);
+        CodeEditor ed = CodeEditor(sig, editorHeight: 180f, editorWidth: 380f);
+        ed.MonoFont = font;
+        host.SetRoot(ed);
+        host.Click(60, 10);   // フォーカス (行 0)
+        return (host, ed);
+    }
+
+    [Fact]
+    public void CtrlD_DuplicatesLine()
+    {
+        (UiHost host, CodeEditor ed) = Focused("hello\nworld");
+        host.KeyDown(Key.D, ctrl: true);
+        Assert.Equal("hello\nhello\nworld", ed.Text);
+    }
+
+    [Fact]
+    public void CtrlSlash_TogglesComment()
+    {
+        (UiHost host, CodeEditor ed) = Focused("    int x = 1;");
+        host.KeyDown(Key.Slash, ctrl: true);
+        Assert.Equal("    // int x = 1;", ed.Text);   // インデント保持で "// " 付与
+        host.KeyDown(Key.Slash, ctrl: true);
+        Assert.Equal("    int x = 1;", ed.Text);      // トグルで戻る
+    }
+
+    [Fact]
+    public void AltDown_MovesLineDown()
+    {
+        (UiHost host, CodeEditor ed) = Focused("a\nb\nc");
+        host.KeyDown(Key.Down, alt: true);            // 行 0 (a) を下へ
+        Assert.Equal("b\na\nc", ed.Text);
+    }
+
+    [Fact]
+    public void AltUp_AtTop_IsNoOp()
+    {
+        (UiHost host, CodeEditor ed) = Focused("a\nb");
+        host.KeyDown(Key.Up, alt: true);              // 先頭行は動かない
+        Assert.Equal("a\nb", ed.Text);
+    }
+
     private sealed class RecordingHighlighter : ISyntaxHighlighter
     {
         public readonly List<string> SeenLines = new();

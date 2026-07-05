@@ -255,6 +255,12 @@ public sealed partial class CodeEditor : Widget, ITextInput
         }
         if (ev.Key == Key.Space && ev.Ctrl && LanguageService is not null) { OpenCompletion(); return true; }
 
+        // 行操作 (E3) — VS Code 風キーバインド
+        if (ev.Ctrl && ev.Key == Key.D) { DuplicateLine(); return true; }
+        if (ev.Ctrl && ev.Key == Key.Slash) { ToggleComment(); return true; }
+        if (ev.Alt && ev.Key == Key.Up) { MoveLine(-1); return true; }
+        if (ev.Alt && ev.Key == Key.Down) { MoveLine(+1); return true; }
+
         switch (ev.Key)
         {
             case Key.Left: _ed.MoveLeft(ev.Shift); _goalX = null; break;
@@ -316,6 +322,57 @@ public sealed partial class CodeEditor : Widget, ITextInput
         _compOpen = false;
         _goalX = null;
         Sync();
+    }
+
+    // ---- E3: 行操作 ----
+
+    /// <summary>現在行を直下に複製 (Ctrl+D)。キャレットは複製行の同じ桁へ。</summary>
+    private void DuplicateLine()
+    {
+        int col = _ed.Caret.Offset;
+        string s = _ed.Doc.LineAt(_ed.Caret.Line).Text;
+        _ed.End(false);
+        _ed.InsertNewline();
+        _ed.Insert(s);
+        var p = new DocPos(_ed.Caret.Line, Math.Min(col, s.Length));
+        _ed.Select(p, p);
+        _goalX = null; Sync();
+    }
+
+    /// <summary>現在行の行コメント "// " をトグル (Ctrl+/)。</summary>
+    private void ToggleComment()
+    {
+        int line = _ed.Caret.Line;
+        string s = _ed.Doc.LineAt(line).Text;
+        int indent = 0;
+        while (indent < s.Length && s[indent] == ' ') indent++;
+        bool commented = s.Length >= indent + 2 && s[indent] == '/' && s[indent + 1] == '/';
+
+        var start = new DocPos(line, indent);
+        _ed.Select(start, start);   // インデント直後へ
+        if (commented)
+        {
+            _ed.DeleteForward(); _ed.DeleteForward();                    // "//"
+            if (indent + 2 < s.Length && s[indent + 2] == ' ') _ed.DeleteForward();   // 続く空白 1
+        }
+        else _ed.Insert("// ");
+        _goalX = null; Sync();
+    }
+
+    /// <summary>現在行を上/下の行と入れ替える (Alt+↑/↓)。全文文字列でスワップして SetText
+    /// (行入れ替えは 1 undo 単位で扱う — VS Code と同じ挙動)。</summary>
+    private void MoveLine(int dir)
+    {
+        int line = _ed.Caret.Line;
+        int to = line + dir;
+        if (to < 0 || to >= LineCount) return;
+        var lines = new List<string>(_ed.Doc.PlainText.Split('\n'));
+        (lines[line], lines[to]) = (lines[to], lines[line]);
+        int col = _ed.Caret.Offset;
+        _ed.SetText(string.Join('\n', lines));
+        var p = new DocPos(to, Math.Min(col, lines[to].Length));
+        _ed.Select(p, p);
+        _goalX = null; Sync();
     }
 
     private void RefreshDiagnostics()

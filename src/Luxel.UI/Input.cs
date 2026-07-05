@@ -1,7 +1,7 @@
 namespace Luxel.UI;
 
 /// <summary>論理キー (programmatic 入力)。</summary>
-public enum Key { None, Tab, Enter, Space, Escape, Left, Right, Up, Down, Home, End, Backspace, Delete, PageUp, PageDown, A, B, C, D, E, I, V, X, Y, Z }
+public enum Key { None, Tab, Enter, Space, Escape, Left, Right, Up, Down, Home, End, Backspace, Delete, PageUp, PageDown, A, B, C, D, E, F, G, H, I, R, V, X, Y, Z, Slash }
 
 public readonly record struct KeyEvent(Key Key, bool Shift = false, bool Ctrl = false, bool Alt = false);
 

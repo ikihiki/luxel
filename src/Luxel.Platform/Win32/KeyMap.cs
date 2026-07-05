@@ -25,12 +25,18 @@ public static class KeyMap
         0x41 => Key.A,
         0x42 => Key.B,
         0x43 => Key.C,
+        0x44 => Key.D,
         0x45 => Key.E,
+        0x46 => Key.F,
+        0x47 => Key.G,
+        0x48 => Key.H,
         0x49 => Key.I,
+        0x52 => Key.R,
         0x56 => Key.V,
         0x58 => Key.X,
         0x59 => Key.Y,
         0x5A => Key.Z,
+        0xBF => Key.Slash,   // VK_OEM_2 (US 配列の / ?)
 
         _ => Key.None,
     };

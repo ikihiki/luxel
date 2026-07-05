@@ -36,7 +36,7 @@ public static class CodeEditorStory
             "}");
         CodeEditor ed = MakeEditor(code);
 
-        ctx.Play(async d =>
+        ctx.Play("edit", async d =>
         {
             await d.Snap();                          // ガター + ハイライトの初期絵
             await d.Click(ed);                       // フォーカス
@@ -45,11 +45,20 @@ public static class CodeEditorStory
             await d.Expect(() => ed.Text.Contains("// done"), "入力が反映される");
             await d.Snap("typed");
         });
+        ctx.Play("line-ops", async d =>
+        {
+            await d.Click(ed);                       // フォーカス (行 0 = コメント行)
+            await d.Key(Key.Down); await d.Key(Key.Down);   // "if (n < 2)..." 行へ
+            await d.Key(Key.D, ctrl: true);          // 行複製
+            await d.Expect(() => ed.Text.Split('\n').Length == 7, "Ctrl+D で行が増える");
+            await d.Key(Key.Slash, ctrl: true);      // コメントトグル
+            await d.Snap("line-ops");
+        });
 
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             VStack(10)[
                 Heading("CodeEditor"),
-                Muted("行番号ガター + 現在行ハイライト + シンタックスハイライト。等幅・折り返しなし。"),
+                Muted("行番号ガター + 現在行ハイライト + シンタックスハイライト。Ctrl+D 複製 / Ctrl+/ コメント / Alt+↑↓ 移動。"),
                 ed]];
     }
 
