@@ -5,13 +5,15 @@ namespace Luxel.TwoD;
 /// <summary>
 /// 保持型 (retained) 2D シーン。UI ツリーをフレーム間で保持し、一部変更を最小 GPU 更新で反映する。
 /// 移動 = 変換のみ書込、色変更 = スタイルのみ書込 (ジオメトリ不変)。構造変更時のみ再構築。
+/// **ヘッドレスモード** (引数なし ctor): GpuDevice なしで構築でき、CPU 側 SoA・dirty 追跡・
+/// 増分更新統計はそのまま動く (GPU バッファ書き込みだけスキップ)。描画は SkiaSharp 等の
+/// ソフトウェアバックエンド (Luxel.TwoD.Skia) がツリーを直接ラスタライズする — テスト/CI 用。
 /// </summary>
 public sealed class RetainedCanvas : IDisposable
 {
     private const uint NoClip = 0xFFFFFFFF;
 
-    private readonly GpuDevice _device;
-    private readonly Rasterizer2D _raster;
+    private readonly Rasterizer2D? _raster;
 
     private readonly List<GpuTransform> _transforms = new();
     private readonly List<GpuStyle> _styles = new();
@@ -65,14 +67,24 @@ public sealed class RetainedCanvas : IDisposable
     public RetainedCanvas(Rasterizer2D rasterizer)
     {
         _raster = rasterizer;
-        _device = rasterizer.Device;
+        Root = new UiNode(this);
+    }
+
+    /// <summary>ヘッドレス (GPU なし) キャンバス。テスト/CI で SkiaSharp 等のソフトウェア
+    /// バックエンドと組み合わせる。<see cref="Render"/> は使えない (ツリーを直接描く)。</summary>
+    public RetainedCanvas()
+    {
         Root = new UiNode(this);
     }
 
     public UiNode Root { get; }
 
-    /// <summary>共有ラスタライザ (SurfaceView 等が子キャンバスを作るのに使う)。</summary>
-    public Rasterizer2D Rasterizer => _raster;
+    /// <summary>GPU なし (ヘッドレス) で構築されたか。</summary>
+    public bool IsHeadless => _raster is null;
+
+    /// <summary>共有ラスタライザ (SurfaceView 等が子キャンバスを作るのに使う)。ヘッドレスでは例外。</summary>
+    public Rasterizer2D Rasterizer
+        => _raster ?? throw new InvalidOperationException("ヘッドレスキャンバスに Rasterizer はない (GPU なし)");
 
     /// <summary>親の下に子ノードを作る。</summary>
     public UiNode AddChild(UiNode parent)
@@ -113,6 +125,7 @@ public sealed class RetainedCanvas : IDisposable
     public void Render(GpuCommandBuffer cmd, Camera2D camera, uint width, uint height, GpuBuffer framebuffer,
         bool transparent = false)
     {
+        if (_raster is null) throw new InvalidOperationException("ヘッドレスキャンバスは GPU Render 不可 — SkiaRenderer 等でツリーを描くこと");
         Flush(width, height);
         _raster.DispatchRaster(cmd, _seg!, _path!, _tf!, _sty!, _clip!, _orderBuf!,
             (uint)_order.Count, camera, width, height, framebuffer, transparent);
@@ -200,8 +213,8 @@ public sealed class RetainedCanvas : IDisposable
         {
             var affected = new HashSet<UiNode>();
             foreach (UiNode n in _dirtyTransform) AddSubtree(n, affected);
-            Span<GpuTransform> tfSpan = _tf!.Span<GpuTransform>(_transforms.Count);
-            Span<GpuClip> clipSpan = _clips.Count > 0 ? _clip!.Span<GpuClip>(_clips.Count) : default;
+            Span<GpuTransform> tfSpan = _tf is null ? default : _tf.Span<GpuTransform>(_transforms.Count);
+            Span<GpuClip> clipSpan = _clip is not null && _clips.Count > 0 ? _clip.Span<GpuClip>(_clips.Count) : default;
             UpdateTransformsDfs(Root, affected, tfSpan, clipSpan, width, height);
             _dirtyTransform.Clear();
             _dirtyClip.Clear();
@@ -212,7 +225,7 @@ public sealed class RetainedCanvas : IDisposable
             // Opacity は 親 × 自分 の実効値で子へ継承されるため、transform と同様にサブツリーへ伝播する。
             var affected = new HashSet<UiNode>();
             foreach (UiNode n in _dirtyStyle) AddSubtree(n, affected);
-            Span<GpuStyle> stySpan = _sty!.Span<GpuStyle>(_styles.Count);
+            Span<GpuStyle> stySpan = _sty is null ? default : _sty.Span<GpuStyle>(_styles.Count);
             UpdateStylesDfs(Root, affected, stySpan);
             _dirtyStyle.Clear();
         }
@@ -229,22 +242,23 @@ public sealed class RetainedCanvas : IDisposable
     /// 他バッファ/bindless index は不変。パス数が変わったときのみ order を再構成する (軽量)。</summary>
     private bool TryUpdateContentInPlace(UiNode n)
     {
-        if (n.TransformSlot < 0 || _seg is null || _path is null) return false;   // 未割当 (初回 Rebuild 前)
+        if (n.TransformSlot < 0) return false;   // 未割当 (初回 Rebuild 前)
 
         GpuSegment[] segs; GpuPath[] paths; GpuStyle[] styles;
         if (n.Content is null) { segs = []; paths = []; styles = []; }
         else (segs, paths, styles) = PathEncoder.Encode(n.Content);
         if (paths.Length > n.PathCapacity || segs.Length > n.SegCapacity) return false;   // 予約超え → 全再構築
         bool mixed = HasOwnColors(n);
-        if (mixed && (n.ContentStyleStart < 0 || _sty is null)) return false;   // スタイルレンジ未割当 → 全再構築で確保
+        if (mixed && n.ContentStyleStart < 0) return false;   // スタイルレンジ未割当 → 全再構築で確保
 
-        Span<GpuSegment> segSpan = _seg.Span<GpuSegment>(_segments.Count);
-        Span<GpuPath> pathSpan = _path.Span<GpuPath>(_paths.Count);
-        Span<GpuStyle> stySpan = mixed ? _sty!.Span<GpuStyle>(_styles.Count) : default;
+        // ヘッドレスは GPU バッファがない — CPU 側 SoA と統計だけ更新する (span は空 = 書き込みスキップ)
+        Span<GpuSegment> segSpan = _seg is null ? default : _seg.Span<GpuSegment>(_segments.Count);
+        Span<GpuPath> pathSpan = _path is null ? default : _path.Span<GpuPath>(_paths.Count);
+        Span<GpuStyle> stySpan = mixed && _sty is not null ? _sty.Span<GpuStyle>(_styles.Count) : default;
         for (int i = 0; i < segs.Length; i++)
         {
             _segments[n.SegStart + i] = segs[i];
-            segSpan[n.SegStart + i] = segs[i];
+            if (!segSpan.IsEmpty) segSpan[n.SegStart + i] = segs[i];
         }
         for (int i = 0; i < paths.Length; i++)
         {
@@ -255,21 +269,21 @@ public sealed class RetainedCanvas : IDisposable
             p.StyleSlot = abs ? (uint)(n.ContentStyleStart + i) : (uint)n.StyleSlot;
             p.ClipSlot = n.ClipSlot < 0 ? NoClip : (uint)n.ClipSlot;
             _paths[n.PathStart + i] = p;
-            pathSpan[n.PathStart + i] = p;
+            if (!pathSpan.IsEmpty) pathSpan[n.PathStart + i] = p;
             if (mixed)
             {
                 GpuStyle g = abs
                     ? new GpuStyle { ColorRgba = styles[i].ColorRgba, Opacity = styles[i].Opacity * n.EffectiveOpacity }
                     : default;
                 _styles[n.ContentStyleStart + i] = g;
-                stySpan[n.ContentStyleStart + i] = g;
+                if (!stySpan.IsEmpty) stySpan[n.ContentStyleStart + i] = g;
                 LastStyleWrites++;
             }
         }
         for (int i = paths.Length; i < n.PathCount; i++)
         {
             _paths[n.PathStart + i] = default;   // 縮んだ分は中立化 (order からも外れる)
-            pathSpan[n.PathStart + i] = default;
+            if (!pathSpan.IsEmpty) pathSpan[n.PathStart + i] = default;
         }
         if (paths.Length != n.PathCount)
         {
@@ -289,7 +303,7 @@ public sealed class RetainedCanvas : IDisposable
             node.EffectiveOpacity = (node.Parent?.EffectiveOpacity ?? 1f) * node.Opacity;
             var g = new GpuStyle { ColorRgba = node.Color, Opacity = node.EffectiveOpacity };
             _styles[node.StyleSlot] = g;
-            span[node.StyleSlot] = g;
+            if (!span.IsEmpty) span[node.StyleSlot] = g;
             LastStyleWrites++;
         }
         foreach (UiNode child in node.Children) UpdateStylesDfs(child, affected, span);
@@ -301,7 +315,11 @@ public sealed class RetainedCanvas : IDisposable
     {
         _order.Clear();
         BuildOrder(Root);
-        if (_orderBuf is not null && _order.Count <= _orderCap)
+        if (_raster is null)
+        {
+            // ヘッドレス: CPU 側 order だけ再構成 (GPU バッファなし)
+        }
+        else if (_orderBuf is not null && _order.Count <= _orderCap)
         {
             Span<uint> span = _orderBuf.Span<uint>(_orderCap);
             for (int i = 0; i < _order.Count; i++) span[i] = _order[i];
@@ -337,16 +355,19 @@ public sealed class RetainedCanvas : IDisposable
         AssignAndEncode(Root, width, height);
         BuildOrder(Root);
 
-        DisposeBuffers();
-        _seg = _raster.Upload(_segments.Count > 0 ? _segments.ToArray() : new GpuSegment[1], 32);
-        _path = _raster.Upload(_paths.Count > 0 ? _paths.ToArray() : new GpuPath[1], 64);
-        _tf = _raster.Upload(_transforms.ToArray(), 32);
-        _sty = _raster.Upload(_styles.ToArray(), 16);
-        _clip = _raster.Upload(_clips.Count > 0 ? _clips.ToArray() : new GpuClip[1], 16);
-        _orderCap = Math.Max(1, _order.Count * 3 / 2);   // Visible/パス数変化の order 再構成を in-place で受ける余裕
-        var orderArr = new uint[_orderCap];
-        _order.CopyTo(orderArr);
-        _orderBuf = _raster.Upload(orderArr, 4);
+        if (_raster is not null)
+        {
+            DisposeBuffers();
+            _seg = _raster.Upload(_segments.Count > 0 ? _segments.ToArray() : new GpuSegment[1], 32);
+            _path = _raster.Upload(_paths.Count > 0 ? _paths.ToArray() : new GpuPath[1], 64);
+            _tf = _raster.Upload(_transforms.ToArray(), 32);
+            _sty = _raster.Upload(_styles.ToArray(), 16);
+            _clip = _raster.Upload(_clips.Count > 0 ? _clips.ToArray() : new GpuClip[1], 16);
+            _orderCap = Math.Max(1, _order.Count * 3 / 2);   // Visible/パス数変化の order 再構成を in-place で受ける余裕
+            var orderArr = new uint[_orderCap];
+            _order.CopyTo(orderArr);
+            _orderBuf = _raster.Upload(orderArr, 4);
+        }
 
         LastSegmentBytesWritten = _segments.Count * 32L;
         _dirtyStructure = false; _dirtyOrder = false;
@@ -474,7 +495,7 @@ public sealed class RetainedCanvas : IDisposable
             node.World = node.Parent == null ? node.Transform : Affine2D.Mul(node.Parent.World, node.Transform);
             GpuTransform g = node.World.ToGpu();
             _transforms[node.TransformSlot] = g;
-            tfSpan[node.TransformSlot] = g;
+            if (!tfSpan.IsEmpty) tfSpan[node.TransformSlot] = g;
             LastTransformWrites++;
 
             if (node.ClipSlot >= 0 && node.Clip is RectClip rc && clipSpan.Length > 0)

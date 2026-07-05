@@ -28,6 +28,7 @@
     <Project Path="src/Luxel.RenderGraph/Luxel.RenderGraph.csproj" />
     <Project Path="src/Luxel.Resources/Luxel.Resources.csproj" />
     <Project Path="src/Luxel.Scene.UI/Luxel.Scene.UI.csproj" />
+    <Project Path="src/Luxel.TwoD.Skia/Luxel.TwoD.Skia.csproj" />
     <Project Path="src/Luxel.TwoD/Luxel.TwoD.csproj" />
     <Project Path="src/Luxel.Typography.Icu/Luxel.Typography.Icu.csproj" />
     <Project Path="src/Luxel.Typography/Luxel.Typography.csproj" />

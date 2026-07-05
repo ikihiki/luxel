@@ -55,6 +55,7 @@
     <!-- テスト用コンポーネント (TestBadge) にファクトリ/デバッグコードを焼き込む -->
     <ProjectReference Include="..\..\src\Luxel.UI.Generators\Luxel.UI.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU" />
     <ProjectReference Include="..\..\src\Luxel.Physics\Luxel.Physics.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.TwoD.Skia\Luxel.TwoD.Skia.csproj" />
   </ItemGroup>
 
 </Project>
