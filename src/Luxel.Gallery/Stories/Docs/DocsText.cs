@@ -95,6 +95,15 @@ public static class DocsText
 
         実物: [Controls/RichTextEditor/Basic](story:Controls/RichTextEditor/Basic) (ツールバー付き) / [Controls/TextArea/Basic](story:Controls/TextArea/Basic) (プレーン複数行)。
 
+        ## CodeEditor — コードエディタ (VS Code 風)
+
+        文書 (RichTextEditor) と別に、**等幅・折り返しなし**のコード編集に特化した `CodeEditor` があります。編集の中核は同じ `DocumentEditor` を再利用し、ビューだけコード向けです: **行番号ガター + 現在行ハイライト + シンタックスハイライト** (`ISyntaxHighlighter`、行単位の同期トークン化)。
+
+        言語サービスは `ICodeLanguage` (補完/診断/ホバー) を**外から注入**します — Controls は Roslyn を知らず、C# 実装 (`ScriptWorkspace` を包む) は Gallery 側に置きます (LSP のエディタ⇄サーバー分離と同じ疎結合)。付くと: **Ctrl+Space でキャレット直下にフローティング補完ポップアップ** (↑↓/Enter/Escape)、**エラーは赤い波線**、キャレット位置シンボルの**型がホバー**表示されます。実物: [Controls/CodeEditor/Completion](story:Controls/CodeEditor/Completion)。
+
+        > [!NOTE]
+        > v1 スコープ: ガター / ハイライト / 補完ポップアップ / 診断波線 / ホバー。**v2 送り**: マルチカーソル・矩形選択・検索置換 (E3)、ミニマップ・コード折りたたみ・複数ファイルタブ・git 差分ガター・フォーマッタ。
+
         > [!NOTE]
         > エディタ系ストーリーは docs ページへの埋め込みに対応していません (embed 内 RichTextEditor の入れ子は既知の制限) — リンクで実物ページへ飛んでください。
 

@@ -36,9 +36,27 @@ public sealed partial class CodeEditor : Widget, ITextInput
     /// <summary>ハイライト言語 (Highlighter.Tokenize へ渡す — "csharp" 等)。</summary>
     public string Language { get; set; } = "csharp";
 
-    /// <summary>キー横取りフック — true を返すとエディタは既定処理をしない (補完ナビ等を上位が奪う)。
-    /// E2 の補完ポップアップ (Ctrl+Space / ↑↓ / Enter / Escape) がここに刺さる。</summary>
+    /// <summary>言語サービス (補完/診断/ホバー — null で無効)。Controls は実装 (Roslyn 等) を知らない。</summary>
+    public ICodeLanguage? LanguageService { get; set; }
+
+    /// <summary>キー横取りフック — true を返すとエディタは既定処理をしない (上位のカスタム)。</summary>
     public Func<KeyEvent, bool>? OnKeyIntercept { get; set; }
+
+    // ---- E2 言語サービス状態 ----
+    private IReadOnlyList<CodeCompletion> _completions = [];
+    private int _compSel;
+    private bool _compOpen;
+    private IReadOnlyList<CodeDiagnostic> _diags = [];
+    private string _hover = "";
+
+    /// <summary>補完ポップアップが開いているか (play の Expect 用)。</summary>
+    public bool CompletionOpen => _compOpen;
+    /// <summary>補完候補数。</summary>
+    public int CompletionCount => _completions.Count;
+    /// <summary>直近の診断数 (波線)。</summary>
+    public int DiagnosticCount => _diags.Count;
+    /// <summary>キャレット位置シンボルのホバー文字列 (無ければ "")。</summary>
+    public string HoverText => _hover;
 
     private readonly DocumentEditor _ed = new();
     private bool _edInit;
@@ -154,11 +172,28 @@ public sealed partial class CodeEditor : Widget, ITextInput
         ctx.Effect(() => _caretNode.Color = _theme.Value.Primary);
         ctx.Effect(() => _caretNode.Opacity = Focused.Value && _caretOn.Value ? 1f : 0f);
 
+        // 診断波線 (本文と同じ座標系、テキストの上)
+        _diagNode = ctx.Canvas.AddChild(_content);
+        _diagNode.Z = 3;
+        ctx.Effect(() => _diagNode.Color = _theme.Value.Danger);
+
         // ガター行番号 (スクロールに追従するので content と同じ y、ただし x は固定 → gutter の子)
         _gutterText = ctx.Canvas.AddChild(_gutter);
         _gutterText.Z = 1;
         ctx.Effect(() => _gutterText.Color = _theme.Value.TextMuted);
 
+        // 補完ポップアップ (最前面、root 直下 = クリップ外 OK)
+        _popupBg = ctx.Canvas.AddChild(_root);
+        _popupBg.Z = 10;
+        ctx.Effect(() => _popupBg.Color = _theme.Value.Surface);
+        _popupSel = ctx.Canvas.AddChild(_popupBg);
+        _popupSel.Z = 11;
+        ctx.Effect(() => _popupSel.Color = Styles.WithAlpha(_theme.Value.Primary, 60));
+        _popupText = ctx.Canvas.AddChild(_popupBg);
+        _popupText.Z = 12;
+        _popupText.ContentColors = true;
+
+        RefreshDiagnostics();
         Refresh();
         ctx.Effect(() =>
         {
@@ -194,7 +229,7 @@ public sealed partial class CodeEditor : Widget, ITextInput
             d => _scroll.Value = Math.Clamp(_scroll.Value - d, 0, MaxScroll));
     }
 
-    private UiNode _gutterText = null!;
+    private UiNode _gutterText = null!, _diagNode = null!, _popupBg = null!, _popupSel = null!, _popupText = null!;
     private bool ReadOnlyFocusless => false;
     private float ContentH => LineCount * _lineH + Pad * 2;
     private float MaxScroll => MathF.Max(0, ContentH - H);
@@ -203,7 +238,23 @@ public sealed partial class CodeEditor : Widget, ITextInput
 
     private bool OnKey(KeyEvent ev)
     {
-        if (OnKeyIntercept is { } hook && hook(ev)) return true;   // 補完ポップアップ等が横取り
+        if (OnKeyIntercept is { } hook && hook(ev)) return true;   // 上位カスタムが横取り
+
+        // 補完ポップアップが開いている間はナビゲーションを奪う
+        if (_compOpen)
+        {
+            switch (ev.Key)
+            {
+                case Key.Up: _compSel = (_compSel - 1 + _completions.Count) % _completions.Count; Refresh(); return true;
+                case Key.Down: _compSel = (_compSel + 1) % _completions.Count; Refresh(); return true;
+                case Key.Enter or Key.Tab: ConfirmCompletion(); return true;
+                case Key.Escape: CloseCompletion(); return true;
+                case Key.Left or Key.Right or Key.Home or Key.End: CloseCompletion(); break;   // 位置移動で閉じて通常処理
+                default: break;
+            }
+        }
+        if (ev.Key == Key.Space && ev.Ctrl && LanguageService is not null) { OpenCompletion(); return true; }
+
         switch (ev.Key)
         {
             case Key.Left: _ed.MoveLeft(ev.Shift); _goalX = null; break;
@@ -227,8 +278,54 @@ public sealed partial class CodeEditor : Widget, ITextInput
                 return true;
             default: return false;
         }
+        if (_compOpen && ev.Key is not (Key.Left or Key.Right or Key.Home or Key.End)) CloseCompletion();
+        UpdateHover();
         _caretOn.Value = true; Refresh(); EnsureCaretVisible();
         return true;
+    }
+
+    // ---- E2: 補完 / 診断 / ホバー ----
+
+    private void OpenCompletion()
+    {
+        if (LanguageService is null) return;
+        _completions = LanguageService.Complete(Text, CaretOffset);
+        _compSel = 0;
+        _compOpen = _completions.Count > 0;
+        Refresh();
+    }
+
+    private void CloseCompletion()
+    {
+        if (!_compOpen) return;
+        _compOpen = false;
+        Refresh();
+    }
+
+    private void ConfirmCompletion()
+    {
+        if (!_compOpen || _compSel >= _completions.Count) { CloseCompletion(); return; }
+        // 直前に打った識別子の断片を消してから挿入 (VS Code 風の置換)
+        string insert = _completions[_compSel].InsertText;
+        string line = _ed.Doc.LineAt(_ed.Caret.Line).Text;
+        int start = _ed.Caret.Offset;
+        while (start > 0 && (char.IsLetterOrDigit(line[start - 1]) || line[start - 1] == '_')) start--;
+        int fragLen = _ed.Caret.Offset - start;
+        for (int i = 0; i < fragLen; i++) _ed.Backspace();
+        _ed.Insert(insert);
+        _compOpen = false;
+        _goalX = null;
+        Sync();
+    }
+
+    private void RefreshDiagnostics()
+    {
+        _diags = LanguageService?.Diagnose(Text) ?? [];
+    }
+
+    private void UpdateHover()
+    {
+        _hover = LanguageService?.Hover(Text, CaretOffset) ?? "";
     }
 
     private void MoveVertical(int dir, bool select)
@@ -252,6 +349,8 @@ public sealed partial class CodeEditor : Widget, ITextInput
     private void Sync()
     {
         Value.Get().Value = _ed.Doc.PlainText;
+        RefreshDiagnostics();
+        UpdateHover();
         Refresh();
         EnsureCaretVisible();
     }
@@ -317,7 +416,72 @@ public sealed partial class CodeEditor : Widget, ITextInput
         caret.FillRect(Color2D.White, cx, cy + 2, 2, _lineH - 4);
         _caretNode.Content = caret;
 
+        // 診断波線 (行/桁/長さから x0..x1、ベースライン下にジグザグ)
+        var diag = new Scene2D();
+        foreach (CodeDiagnostic dg in _diags)
+        {
+            int li = dg.Line - 1;
+            if (li < 0 || li >= LineCount) continue;
+            string s = _ed.Doc.LineAt(li).Text;
+            int c0 = Math.Clamp(dg.Column - 1, 0, s.Length);
+            int c1 = Math.Clamp(dg.Column - 1 + dg.Length, c0, s.Length);
+            float x0 = mono.Measure(s[..c0], _fs).width;
+            float x1 = c1 > c0 ? mono.Measure(s[..c1], _fs).width : x0 + _charW;
+            float wy = li * _lineH + (_lineH + _adv) / 2 + 1;   // ベースライン少し下
+            for (float x = x0; x < x1 - 1; x += 4)              // 2px 山のジグザグ
+            {
+                diag.FillRect(Color2D.White, x, wy, 2, 1);
+                diag.FillRect(Color2D.White, x + 2, wy + 1, 2, 1);
+            }
+        }
+        _diagNode.Content = diag;
+
+        DrawPopup(mono);
         // ガター幅は桁数で変わりうる — 再実体化はしない (次の Realize で反映)。
+    }
+
+    /// <summary>補完ポップアップ (キャレット直下、キーボード駆動 — ↑↓/Enter/Escape)。</summary>
+    private void DrawPopup(VectorFont mono)
+    {
+        if (!_compOpen || _completions.Count == 0)
+        {
+            _popupBg.Content = null; _popupSel.Content = null; _popupText.Content = null;
+            _popupBg.Visible = _popupSel.Visible = _popupText.Visible = false;
+            return;
+        }
+        _popupBg.Visible = _popupSel.Visible = _popupText.Visible = true;
+
+        const int maxRows = 8;
+        float rowH = _fs + 8;
+        int n = Math.Min(maxRows, _completions.Count);
+        float wpx = 0;
+        foreach (CodeCompletion it in _completions.Take(maxRows))
+            wpx = MathF.Max(wpx, mono.Measure($"{it.Label}  {it.Kind}", _fs).width);
+        wpx += 16;
+        float px = _gutterW + _caretLocal.X - _gutterW;   // キャレット x (root ローカル)
+        float py = (_ed.Caret.Line + 1) * _lineH + Pad - _scroll.Value;
+        _popupBg.Transform = Affine2D.Translate(_caretLocal.X, py);
+
+        var bg = new Scene2D();
+        bg.FillRoundedRect(Color2D.White, 0, 0, wpx, n * rowH + 4, 4);
+        _popupBg.Content = bg;
+
+        var selBg = new Scene2D();
+        int top = Math.Clamp(_compSel - maxRows + 1, 0, Math.Max(0, _completions.Count - maxRows));
+        selBg.FillRect(Color2D.White, 2, 2 + (_compSel - top) * rowH, wpx - 4, rowH);
+        _popupSel.Content = selBg;
+
+        var txt = new Scene2D();
+        for (int i = 0; i < n; i++)
+        {
+            CodeCompletion it = _completions[top + i];
+            float y = 2 + i * rowH + (rowH - _adv) / 2 + _ascent;
+            mono.AppendText(txt, it.Label, 6, y, _fs, _theme.Peek().Text);
+            float kx = wpx - 8 - mono.Measure(it.Kind, _fs).width;
+            mono.AppendText(txt, it.Kind, kx, y, _fs, _theme.Peek().TextMuted);
+        }
+        _popupText.Content = txt;
+        _ = px;
     }
 
     private void AppendColored(Scene2D scene, VectorFont mono, string line, int lineIndex, float y, Theme t)

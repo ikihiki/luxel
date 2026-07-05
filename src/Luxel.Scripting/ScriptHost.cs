@@ -8,7 +8,11 @@ using Microsoft.CodeAnalysis.Scripting;
 namespace Luxel.Scripting;
 
 /// <summary>スクリプト診断 (1 始まりの行/桁 — エディタのインライン表示用)。</summary>
-public sealed record ScriptDiagnostic(int Line, int Column, string Message, bool IsError);
+public sealed record ScriptDiagnostic(int Line, int Column, string Message, bool IsError)
+{
+    /// <summary>波線を引く文字数 (既定 1)。<see cref="ScriptWorkspace.Diagnose"/> が実長を入れる。</summary>
+    public int Length { get; init; } = 1;
+}
 
 /// <summary>1 回の実行結果。コンパイル失敗は <see cref="Diagnostics"/>、実行時例外は
 /// <see cref="Exception"/> + 取れれば <see cref="ExceptionLine"/> (スクリプト内の 1 始まり行)。</summary>

@@ -471,10 +471,15 @@ public sealed class UiHost : IDisposable
         bool consumed;
         if (key == Key.Escape)
         {
+            // フォーカス中コントロールが先に消費できる (補完ポップアップを閉じる等) —
+            // 消費しなければ従来どおりオーバーレイのディスミスへ回す
             consumed = false;
-            for (int i = _build!.Overlays.Count - 1; i >= 0; i--)
-                if (_build.Overlays[i].Open.Value && _build.Overlays[i].DismissOnOutside)
-                { _build.Overlays[i].Open.Value = false; consumed = true; break; }
+            try { consumed = Current()?.OnKey?.Invoke(new KeyEvent(key, shift, ctrl, alt)) ?? false; }
+            catch (Exception ex) { UiError.Report(ex, "KeyDown"); consumed = true; }
+            if (!consumed)
+                for (int i = _build!.Overlays.Count - 1; i >= 0; i--)
+                    if (_build.Overlays[i].Open.Value && _build.Overlays[i].DismissOnOutside)
+                    { _build.Overlays[i].Open.Value = false; consumed = true; break; }
         }
         else if (key == Key.Tab) { if (shift) FocusPrev(); else FocusNext(); consumed = true; }
         else

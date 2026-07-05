@@ -85,6 +85,25 @@ public sealed class ScriptWorkspace : IDisposable
         return items;
     }
 
+    /// <summary>コードのコンパイル診断 (エラー/警告、1 始まりの行/桁 + 長さ) — 波線表示用。</summary>
+    public IReadOnlyList<ScriptDiagnostic> Diagnose(string code)
+    {
+        Document doc = WithCode(code);
+        Compilation? comp = doc.Project.GetCompilationAsync().GetAwaiter().GetResult();
+        if (comp is null) return [];
+        var list = new List<ScriptDiagnostic>();
+        foreach (Diagnostic d in comp.GetDiagnostics())
+        {
+            if (d.Severity is not (DiagnosticSeverity.Error or DiagnosticSeverity.Warning)) continue;
+            FileLinePositionSpan span = d.Location.GetLineSpan();
+            int len = Math.Max(1, span.EndLinePosition.Character - span.StartLinePosition.Character);
+            list.Add(new ScriptDiagnostic(
+                span.StartLinePosition.Line + 1, span.StartLinePosition.Character + 1,
+                d.GetMessage(), d.Severity == DiagnosticSeverity.Error) { Length = len });
+        }
+        return list;
+    }
+
     /// <summary>position のシンボルのホバー情報 (型/シグネチャ/doc)。無ければ null。</summary>
     public HoverInfo? Hover(string code, int position)
     {
