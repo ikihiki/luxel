@@ -32,6 +32,14 @@ public sealed partial class SurfaceView : Widget, IDisposable
     /// <summary>子 UiHost (実体化後に有効)。状態強制やツリー検査はこれ経由で行う。</summary>
     public UiHost? Child { get; private set; }
 
+    /// <summary>true の間、子はアニメ時間を進めない (dt=0 で Tick) — フレームステップデバッグ用。
+    /// 入力と描画は生きたまま、アニメ/物理/Tick 駆動だけが凍る。</summary>
+    public bool Paused { get; set; }
+    private float _pendingStep;   // Paused 中に 1 回だけ子へ通す dt (StepFrame が積む)
+
+    /// <summary>Paused 中に 1 フレームだけ進める (既定 1/60 秒 — 決定的に状態を観察する)。</summary>
+    public void StepFrame(float dt = 1f / 60f) => _pendingStep = dt;
+
     private float W1 => MathF.Max(1, SurfaceWidth.Get());
     private float H1 => MathF.Max(1, SurfaceHeight.Get());
     private float PendW => _pendingW ?? W1;
@@ -106,7 +114,15 @@ public sealed partial class SurfaceView : Widget, IDisposable
         // ---- 子の駆動: 親 UiHost の Tick で子を進め、変更があれば fb へ再ラスタライズ ----
         ctx.AddAnimation(dt =>
         {
-            Child!.Tick(dt);
+            // Paused 中は dt=0 で子を刻む (アニメを凍結、入力/描画は生きる)。
+            // StepFrame 要求があればその 1 回だけ固定 dt を通す (決定的フレームステップデバッグ)。
+            float childDt = dt;
+            if (Paused)
+            {
+                childDt = _pendingStep;
+                _pendingStep = 0;
+            }
+            Child!.Tick(childDt);
             if (!_rendered || _childCanvas!.HasPendingChanges)
             {
                 RenderChild();

@@ -266,10 +266,15 @@ public sealed class GalleryApp : IDisposable
         splitSidebar.GridColumn(1);
 
         // ---- メイン (col 2): ツールバー / プレビュー / Splitter / Log ----
+        // フレームステップデバッグ: ⏸ で子のアニメ時間を凍結、⏭ で 1 フレームだけ進める
+        Func<string> pauseLabel = () => _preview.Paused ? "▶ 再生" : "⏸ 停止";
         Widget toolbar = HStack(8)[
             Text($"{_title}", 14, color: Bind.From(() => UiTheme.T.Text), width: 300),
             Button(_ => ToggleTheme(), "theme"),
             Button(_ => ToggleZen(), _zen ? "元に戻す" : "全画面"),
+            Button(_ => { _preview.Paused = !_preview.Paused; _dirty = true; }, pauseLabel,
+                   variant: _preview.Paused ? Luxel.UI.Variant.Tonal : Luxel.UI.Variant.Ghost, fontSize: 12f),
+            Button(_ => _preview.StepFrame(), "⏭", variant: Luxel.UI.Variant.Ghost, fontSize: 12f),
             Check(_fHover, "hover"),
             Check(_fPressed, "pressed"),
             Check(_fFocused, "focused"),
