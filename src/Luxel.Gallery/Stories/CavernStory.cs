@@ -2,6 +2,7 @@ using System.Numerics;
 using LuxelCavern.Core;
 using Luxel.Particles;
 using Luxel.Particles.TwoD;
+using Luxel.Scripting;
 using Luxel.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
@@ -20,14 +21,36 @@ public static class CavernStories
 {
     private const int Steps = 78;
 
+    // 敵 AI を .csx で書くドッグフーディング (ScriptSystem、タスク 01/19)。既定巡回と同じ挙動を .csx で表現し、
+    // 実ゲームビルドで Roslyn コンパイル経路が通ることを golden で担保する (挙動は既定と同一なので diff 0)。
+    private static readonly ScriptProfile AiProfile = new("cavern.ai",
+        [
+            typeof(object).Assembly, typeof(Enumerable).Assembly,
+            typeof(Vector2).Assembly, typeof(RectF).Assembly, typeof(GpuDevice).Assembly, typeof(Walker).Assembly,
+        ],
+        ["System", "LuxelCavern.Core"],
+        typeof(object));
+
+    private const string PatrolAiCsx =
+        "(Action<Walker, CavernSim, float>)((w, s, dt) => { w.Pos.X += w.VelX * dt; " +
+        "if (w.Pos.X <= w.MinX) { w.Pos.X = w.MinX; w.VelX = MathF.Abs(w.VelX); } " +
+        "else if (w.Pos.X + w.Size.X >= w.MaxX) { w.Pos.X = w.MaxX - w.Size.X; w.VelX = -MathF.Abs(w.VelX); } })";
+
     [Story("Game/Cavern", Height = 300, Order = 145)]
-    public static Widget Cavern(StoryContext ctx) => ctx.Snap(Frame(GpuView(384, 256, new CavernScene(), animated: false)));
+    public static Widget Cavern(StoryContext ctx, ScriptHostRegistry scripts)
+    {
+        // 敵 AI を .csx からコンパイル (ScriptSystem のドッグフーディング — 実ゲームの敵ロジックを csx で書く)
+        ScriptResult r = scripts.GetOrAdd(AiProfile).Run(PatrolAiCsx, new object());
+        var ai = r.ReturnValue as Action<Walker, CavernSim, float>;
+        return ctx.Snap(Frame(GpuView(384, 256, new CavernScene(ai), animated: false)));
+    }
 
     private static readonly Lazy<VectorFont> Font = new(() => Luxel.Gallery.GalleryFonts.Load(Luxel.Gallery.GalleryFonts.Regular));
 
-    private sealed class CavernScene : GpuSceneBase
+    private sealed class CavernScene(Action<Walker, CavernSim, float>? ai) : GpuSceneBase
     {
         private const int Tile = CavernLevel.Tile;
+        private readonly Action<Walker, CavernSim, float>? _ai = ai;
         private Rasterizer2D _raster = null!;
         private GpuBuffer _atlasBuf = null!;
         private RetainedCanvas _canvas = null!;
@@ -60,6 +83,9 @@ public static class CavernStories
 
             CavernSim sim = CavernLevel.CreateSim();
             sim.Map.TileSet.Atlas.Bind(_atlasBuf.BindlessIndex, aw, ah);
+            if (_ai is not null && sim.Enemies.Count > 0) sim.Enemies[0].Ai = _ai;   // .csx 製の敵 AI
+
+
 
             // パーティクル演出 (放射スパーク、per-particle tint で炎/砂埃/コイン/撃破を出し分け)
             var fx = new ParticleSystem(new ParticleConfig(

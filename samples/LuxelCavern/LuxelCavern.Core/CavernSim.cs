@@ -22,7 +22,20 @@ public sealed class Walker
     public bool Alive = true;
     public float MinX, MaxX;
 
+    /// <summary>差し替え可能な AI (省略時は既定の端で反転する巡回)。<c>(自分, sim, dt)</c> を受け取り移動する。
+    /// ゲームは開発中これを **.csx で書き hot reload** する ([01](ScriptSystem) のドッグフーディング) —
+    /// 型は純デリゲート (Core は Scripting 非依存)。</summary>
+    public Action<Walker, CavernSim, float>? Ai;
+
     public RectF Box => new(Pos.X, Pos.Y, Size.X, Size.Y);
+
+    /// <summary>既定の巡回 (端で反転)。<see cref="Ai"/> 未設定時に使う。</summary>
+    public void DefaultPatrol(float dt)
+    {
+        Pos.X += VelX * dt;
+        if (Pos.X <= MinX) { Pos.X = MinX; VelX = MathF.Abs(VelX); }
+        else if (Pos.X + Size.X >= MaxX) { Pos.X = MaxX - Size.X; VelX = -MathF.Abs(VelX); }
+    }
 }
 
 /// <summary>飛行の敵 (<see cref="Home"/> 中心にサイン波で浮遊)。接触でダメージ、上から踏むと撃破。</summary>
@@ -174,9 +187,8 @@ public sealed class CavernSim
         foreach (Walker w in Enemies)
         {
             if (!w.Alive) continue;
-            w.Pos.X += w.VelX * dt;
-            if (w.Pos.X <= w.MinX) { w.Pos.X = w.MinX; w.VelX = MathF.Abs(w.VelX); }
-            else if (w.Pos.X + w.Size.X >= w.MaxX) { w.Pos.X = w.MaxX - w.Size.X; w.VelX = -MathF.Abs(w.VelX); }
+            if (w.Ai is { } ai) ai(w, this, dt);   // 差し替え AI (.csx 等)
+            else w.DefaultPatrol(dt);
         }
         foreach (Flyer f in Flyers)
             if (f.Alive) f.Time += dt;   // 位置は Time からサインで算出

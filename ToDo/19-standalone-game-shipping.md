@@ -118,7 +118,12 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
   - `CavernHud` (HP ハート・コイン・鍵を**カメラにアンカーしてスクリーン空間**へ描く純ロジック。screen px → world 逆算。テキストは DebugTextDrawer 委譲。ポーズオーバーレイも)。exe/ストーリー共用。
   - Gallery `Game/Cavern` golden に HUD (HP×3 / ×3 / 0/3) を描画 (world-anchored でカメラ変換下でも画面左上に固定)。
   - 単体テスト +6 (GameFlow: 開始/ポーズ切替/ポーズ中は進まない/死亡→GameOver/クリア→Clear/つづきから復元)。計 756 passed。e2e 65/65 diff 0。
-  - **残 (次セッション以降)**: 片方の敵 AI を .csx (ScriptSystem、実時間 exe で hot reload) / SettingsStore で音量/キーバインドを %APPDATA% へ (Q06 B) + 設定 UI / Audio (BGM ストリーミング + SE) / **実時間 GameScene + 補間 + 入力 (キーボード/パッド) で exe プレイアブル化** (LuxelHostBuilder/GameLoop へ移行、%APPDATA% 実ファイル書込、--frames スモーク) / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / publish 本番 (checklist 5,6,9) + リポジトリ外スモーク / Docs「配布」節。
+- **ステージ B セッション 6 (2026-07-06, Q13)**: **.csx 敵 AI ドッグフーディング** (ScriptSystem、タスク 01 の検証場)。
+  - `Walker.Ai` = 差し替え可能な `Action<Walker, CavernSim, float>` デリゲート (省略時は `DefaultPatrol`)。純デリゲートなので **Core は Scripting 非依存**。
+  - Gallery `Game/Cavern` ストーリーが `ScriptHostRegistry` を DI 注入し、敵 AI を **.csx から Roslyn コンパイル** (`ScriptProfile "cavern.ai"`、refs Core+TwoD+Numerics、usings LuxelCavern.Core) して walker に割り当て — 実ゲームビルドで csx 経路が通ることを golden で担保 (既定巡回と同一挙動なので diff 0)。
+  - 単体テスト +2 (AI フックが既定巡回を上書き / .csx コンパイルした追跡 AI が敵をプレイヤー方向へ駆動)。計 758 passed。e2e 65/65 diff 0。
+  - hot reload (実行中の csx 差し替え) は実時間 exe (下記) で活きる — ロジック経路はここで実証済み。
+  - **残 (次セッション以降・調査済)**: **実時間 exe プレイアブル化** — `AppWindow` は UI ツリー専用でゲーム描画を素直にホストできない (調査済) → 下位の WindowManager 経路 or GameScene を image widget として AppWindow に載せる方式。GameLoop/FixedUpdate + 補間 + 入力 (Win32InputSource.Poll → InputStack) + %APPDATA% 実ファイル書込、`--frames` スモークで検証。/ SettingsStore で音量/キーバインド (Q06 B) + 設定 UI / Audio (BGM ストリーミング + SE、sim イベントから発火) / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / publish 本番 (checklist 5,6,9) + リポジトリ外スモーク / Docs「配布」節。
 
 ## 作業ステップ
 
