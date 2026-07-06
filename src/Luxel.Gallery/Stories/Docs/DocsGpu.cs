@@ -137,6 +137,25 @@ public static class DocsGpu
 
         {{StoryRef(ctx, "Demos/TwoD/Sprites")}}
 
+        ## タイルマップ — グリッド描画 + AABB 衝突
+
+        `TileSet` (スプライトアトラス + タイル px サイズ + id → スプライト名/衝突フラグ) と `TileMap` (int グリッド、0 = 空) で直交タイルマップを組みます。マップは自前 CSV (`TileMap.FromCsv`) か Tiled の `.tmj` 最小 import (`TileMap.FromTiledJson` — 外部エディタで編集できる) から読めます。描画は**チャンク単位** (既定 32×32 タイル) で、`TileMapLayer` が `RetainedCanvas` 上に**可視チャンクだけ UiNode 実体化**し、`SetTile` で dirty になったチャンクだけ再構築します (静的チャンクはジオメトリ不変 → スクロールは `Camera2D` 側)。大マップでも画面周辺のチャンクしか焼きません。
+
+        衝突は物理エンジン非依存の純 AABB グリッドクエリです。`QueryAabb(rect)` は矩形に重なる衝突タイルを列挙し、`Sweep(box, delta, out hitX, out hitY)` は衝突タイルへめり込まない移動可能量を X→Y の軸分離で返します (プラットフォーマの定番)。純ロジックなので決定的にテストできます。
+
+        ```csharp
+        var tileSet = new TileSet(atlas, 16, 16, [new(1, new TileDef("grass", Solid: true)), new(2, new TileDef("wall", Solid: true))]);
+        TileMap map = TileMap.FromCsv(tileSet, csv);
+        var layer = new TileMapLayer(canvas, canvas.Root, map);
+        layer.Update(cameraWorldView);                    // 可視チャンクを実体化/更新
+
+        Vector2 moved = map.Sweep(playerBox, velocity, out bool hitX, out bool hitY);   // 壁の手前で止まる
+        ```
+
+        下のデモは壁柱へ右移動するプレイヤー (赤) が `Sweep` で壁の手前に切り詰められる様子です (アウトラインが意図した移動先):
+
+        {{StoryRef(ctx, "Demos/TwoD/Tilemap")}}
+
         ## RetainedCanvas — 保持型ツリーと部分更新
 
         UI ライブラリのバックエンドとして、フレーム間で保持するノードツリーを提供します。データは SoA (Transform / Style / Clip / Order / Segment を分離) で、シェーダが per-path 変換を適用するため **移動 = 変換だけ書込、色変更 = スタイルだけ書込** (ジオメトリ不変) になります。
