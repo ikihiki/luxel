@@ -16,6 +16,11 @@
     <ProjectReference Include="..\..\..\src\Luxel.Platform\Luxel.Platform.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Vulkan\Luxel.Vulkan.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.D3D12\Luxel.D3D12.csproj" />
+    <!-- 実時間ゲームループ (GameScene/LuxelHostBuilder) + 入力 + パーティクル -->
+    <ProjectReference Include="..\..\..\src\Luxel.Framework\Luxel.Framework.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.Input\Luxel.Input.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.Particles\Luxel.Particles.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.Particles.TwoD\Luxel.Particles.TwoD.csproj" />
   </ItemGroup>
 
   <!-- 同梱アセット (フォント等) を exe 隣へコピー + publish にも含める。cwd 非依存ロードの前提。 -->

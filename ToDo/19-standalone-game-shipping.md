@@ -123,7 +123,12 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
   - Gallery `Game/Cavern` ストーリーが `ScriptHostRegistry` を DI 注入し、敵 AI を **.csx から Roslyn コンパイル** (`ScriptProfile "cavern.ai"`、refs Core+TwoD+Numerics、usings LuxelCavern.Core) して walker に割り当て — 実ゲームビルドで csx 経路が通ることを golden で担保 (既定巡回と同一挙動なので diff 0)。
   - 単体テスト +2 (AI フックが既定巡回を上書き / .csx コンパイルした追跡 AI が敵をプレイヤー方向へ駆動)。計 758 passed。e2e 65/65 diff 0。
   - hot reload (実行中の csx 差し替え) は実時間 exe (下記) で活きる — ロジック経路はここで実証済み。
-  - **残 (次セッション以降・調査済)**: **実時間 exe プレイアブル化** — `AppWindow` は UI ツリー専用でゲーム描画を素直にホストできない (調査済) → 下位の WindowManager 経路 or GameScene を image widget として AppWindow に載せる方式。GameLoop/FixedUpdate + 補間 + 入力 (Win32InputSource.Poll → InputStack) + %APPDATA% 実ファイル書込、`--frames` スモークで検証。/ SettingsStore で音量/キーバインド (Q06 B) + 設定 UI / Audio (BGM ストリーミング + SE、sim イベントから発火) / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / publish 本番 (checklist 5,6,9) + リポジトリ外スモーク / Docs「配布」節。
+- **ステージ B セッション 7 (2026-07-06, Q13)**: **実時間 exe プレイアブル化** — `LuxelHostBuilder` + `GameScene` でゲームループ駆動 (ユーザー指示「ビルダーでシーンを動かす」)。
+  - `CavernRealtimeScene : GameScene` (exe 内): `OnFixedUpdate` で入力を読み `GameFlow`/`CavernSim` を固定 dt で進め、`OnRender` で毎フレーム即時モードのシーン (空/タイル可視チャンク/エンティティ/パーティクル/HUD/ポーズ・リザルトオーバーレイ) を組んで自前 fb へ描く。`CameraRig2D` で追従 + 被弾シェイク + 無敵点滅。
+  - Program: `LuxelHostBuilder.Create().UseGpuDevice().UseFrameWaiter(pacer).ConfigureServices(font/IInputSource/scene).AddScene().Build()` → `host.Start()` → メインループで `WindowSystem`/`NativeWindow` を Pump + `pacer.Tick()` (1 フレーム同期実行) + `GpuSurface.Present(scene.Framebuffer)`。**Framework は窓/提示を持たない**ので pacer (TCS inline = GPU キュー安全) でフレームを呼び出しスレッドで走らせる。
+  - 入力: `KeyboardSource : IInputSource` (Win32 vk → KeyCode → InputBus)。GameLoop が毎フレーム Poll。A/D・←→ 移動、Space/W/↑ ジャンプ、Esc ポーズ、Enter リトライ。
+  - **検証**: `LuxelCavern.exe vk --frames 40` が実窓を開き 40 フレーム描画・提示して exit 0 (クラッシュログ無し)。build/test/e2e 全 green (758 passed, e2e 65/65)。対話プレイ (キーボード) はこの環境で自動検証不可 — 配線はコンパイル + スモークで担保。
+  - **残 (次セッション以降)**: SettingsStore で音量/キーバインド (Q06 B) + 設定 UI + タイトル/メニュー UI 統合 / Audio (BGM ストリーミング + SE、sim イベントから発火) / %APPDATA% への実セーブ書込 (CavernSave + IFileStore) / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / publish 本番 (checklist 5,6,9) + リポジトリ外スモーク / Docs「配布」節。
 
 ## 作業ステップ
 

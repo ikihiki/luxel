@@ -1,19 +1,25 @@
+using System.Diagnostics;
 using Luxel;
+using Luxel.Framework;
+using Luxel.Input;
 using Luxel.Platform;
 using Luxel.Typography;
-using Luxel.UI;
+using LuxelCavern;
 using LuxelCavern.Core;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-// LuxelCavern — スタンドアロン起動 (capstone ①, Stage A: タイトル画面のみ)。
+// LuxelCavern — スタンドアロン実行 (capstone ①, Stage B: 実時間プレイアブル)。
 //   LuxelCavern[.exe] [vk|dx] [--frames N]
 //     vk (既定) / dx : GPU バックエンド
-//     --frames N      : N フレーム描画して自動終了 (publish スモーク・CI 用。既定は閉じるまで対話実行)
+//     --frames N      : N フレーム回して自動終了 (publish スモーク・CI 用)
 //
-// 実窓 (Win32) と TSF は STA スレッドを要求するため、Gallery の Program.cs と同様に
-// エントリで専用スレッドを張って SetApartmentState(STA) してから実処理を回す。
+// LuxelHostBuilder + GameScene (CavernRealtimeScene) でゲームループを駆動し、Win32Window + GpuSurface へ
+// 提示する (Framework は窓/提示を持たないので、フレーム待ちを pacer で同期し scene のフレームバッファを Present)。
+// 実窓 (Win32) は STA スレッド必須。操作: A/D or ←→ 移動、Space/W/↑ ジャンプ、Esc ポーズ、Enter リトライ。
 
 string backend = "vk";
-int frames = 0;   // 0 = 対話実行 (閉じるまで)
+int frames = 0;
 for (int i = 0; i < args.Length; i++)
 {
     string a = args[i].ToLowerInvariant();
@@ -39,37 +45,114 @@ static int Run(string backend, int frames)
 {
     try
     {
-        // ダークテーマを既定テーマ島に設定 — Kit の複合ヘルパ (Heading/Muted) はこれを購読する
-        UiTheme.Current.Value = Theme.Dark;
-
         using GpuDevice device = CreateDevice(backend);
         Console.WriteLine($"=== Luxel Cavern (backend: {backend}, device: {device.Name}) ===");
+        using VectorFont font = CavernAssets.LoadBodyFont();
 
-        using VectorFont font = CavernAssets.LoadBodyFont();   // 同梱フォント (システム非依存)
-        using var window = new AppWindow(device, font, 1280, 720, TitleScreen.GameTitle);
+        int w = CavernRealtimeScene.Width, h = CavernRealtimeScene.Height;
+        using var windows = new WindowSystem(Win32WindowBackend.Create());
+        NativeWindow win = windows.CreateWindow(new Luxel.Abstraction.WindowDesc(TitleScreen.GameTitle, w, h));
+        using GpuSurface surface = win.CreateSwapchain(device);
 
-        window.SetRoot(TitleScreen.Build(new TitleScreen.Actions(
-            Start: () => Console.WriteLine("[title] はじめる (Playing への遷移は Stage B で実装)"),
-            Settings: () => Console.WriteLine("[title] せってい (設定画面は ToDo 15 で実装)"),
-            Quit: () => { Console.WriteLine("cavern: 「おわる」で終了"); window.Close(); })));
+        var keyboard = new KeyboardSource();
+        win.KeyDown += vk => keyboard.Down(vk);
+        win.KeyUp += vk => keyboard.Up(vk);
 
-        if (frames > 0)
+        var pacer = new FramePacer();
+        using IHost host = LuxelHostBuilder.Create()
+            .UseGpuDevice(device)
+            .UseFrameWaiter(pacer.WaitAsync)
+            .ConfigureServices(s =>
+            {
+                s.AddSingleton(font);
+                s.AddSingleton<IInputSource>(keyboard);
+                s.AddSingleton<CavernRealtimeScene>();
+            })
+            .AddScene<CavernRealtimeScene>()
+            .Build();
+
+        host.Start();   // GameLoop 開始 (最初のフレーム待ちで停止)
+        var scene = host.Services.GetRequiredService<CavernRealtimeScene>();
+
+        var sw = Stopwatch.StartNew();
+        int drawn = 0;
+        while (windows.Pump())
         {
-            window.RunFrames(frames);   // N フレーム回して閉じる (スモーク)
-            Console.WriteLine($"cavern: {frames} フレーム描画して終了 (smoke ok)");
+            long t0 = sw.ElapsedMilliseconds;
+            pacer.Tick();   // 1 フレーム分のゲームループを同期実行 (入力→固定更新→描画)
+            if (scene.Framebuffer is { } fb)
+                surface.Present(fb, scene.StridePixels, (uint)w, (uint)h);
+
+            if (frames > 0 && ++drawn >= frames) { win.Close(); windows.Pump(); break; }
+
+            int elapsed = (int)(sw.ElapsedMilliseconds - t0);
+            if (elapsed < 16) Thread.Sleep(16 - elapsed);   // ~60fps 上限
         }
-        else
-        {
-            window.Run();   // 閉じられる (× または「おわる」) までフレームを回す
-        }
+
+        host.StopAsync().GetAwaiter().GetResult();
+        Console.WriteLine(frames > 0 ? $"cavern: {frames} フレーム描画して終了 (smoke ok)" : "cavern: 終了");
         return 0;
     }
     catch (Exception ex)
     {
-        // WinExe はコンソールを持たないため、起動失敗を exe 隣のログにも残す (publish スモークの診断用)
         string log = Path.Combine(AppContext.BaseDirectory, "cavern-crash.log");
-        try { File.WriteAllText(log, ex.ToString()); } catch { /* ログ書き込み失敗は無視 */ }
+        try { File.WriteAllText(log, ex.ToString()); } catch { /* ログ失敗は無視 */ }
         Console.Error.WriteLine(ex);
         return 1;
     }
+}
+
+/// <summary>Win32 のキーイベントを <see cref="InputBus"/> へ流す入力源 (GameLoop が毎フレーム Poll)。</summary>
+sealed class KeyboardSource : IInputSource
+{
+    private readonly List<(KeyCode Key, bool Down)> _pending = new();
+    public string Name => "cavern-keyboard";
+
+    public void Down(ushort vk) { if (Map(vk) is { } k) lock (_pending) _pending.Add((k, true)); }
+    public void Up(ushort vk) { if (Map(vk) is { } k) lock (_pending) _pending.Add((k, false)); }
+
+    public void Poll(InputBus bus)
+    {
+        lock (_pending)
+        {
+            foreach ((KeyCode k, bool d) in _pending) bus.EnqueueKey(k, d);
+            _pending.Clear();
+        }
+    }
+
+    private static KeyCode? Map(ushort vk) => vk switch
+    {
+        >= 0x41 and <= 0x5A => (KeyCode)((int)KeyCode.A + (vk - 0x41)),   // A-Z
+        0x20 => KeyCode.Space,
+        0x0D => KeyCode.Enter,
+        0x1B => KeyCode.Escape,
+        0x25 => KeyCode.Left,
+        0x27 => KeyCode.Right,
+        0x26 => KeyCode.Up,
+        0x28 => KeyCode.Down,
+        _ => null,
+    };
+}
+
+/// <summary>メインスレッドの <see cref="Tick"/> で GameLoop の 1 フレームを同期的に進めるペーサ
+/// (StoryAppView と同型 — TCS を inline 完了させ、フレーム実行を呼び出しスレッドで走らせて GPU キュー安全)。</summary>
+sealed class FramePacer
+{
+    private TaskCompletionSource? _tcs;
+    private bool _cancelHooked;
+
+    public Task WaitAsync(CancellationToken token)
+    {
+        if (!_cancelHooked)
+        {
+            _cancelHooked = true;
+            token.Register(() => Interlocked.Exchange(ref _tcs, null)?.TrySetCanceled(token));
+        }
+        var tcs = new TaskCompletionSource();
+        Volatile.Write(ref _tcs, tcs);
+        if (token.IsCancellationRequested) tcs.TrySetCanceled(token);
+        return tcs.Task;
+    }
+
+    public void Tick() => Interlocked.Exchange(ref _tcs, null)?.TrySetResult();
 }
