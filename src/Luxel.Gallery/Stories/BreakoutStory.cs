@@ -1,6 +1,9 @@
-﻿using Friflo.Engine.ECS;
+﻿using System.Numerics;
+using Friflo.Engine.ECS;
 using Luxel.Ecs;
 using Luxel.Framework;
+using Luxel.Particles;
+using Luxel.Particles.TwoD;
 using Luxel.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
@@ -74,15 +77,15 @@ public static class BreakoutStories
         private Rasterizer2D? _raster;
         private RetainedCanvas? _canvas;
         private GpuBuffer? _fb;
-        private UiNode? _ballNode, _paddleNode, _particleNode, _scoreNode, _livesNode, _msgNode;
+        private UiNode? _ballNode, _paddleNode, _scoreNode, _livesNode, _msgNode;
         private readonly List<UiNode> _brickNodes = new();
         private long _version, _seen;
         private int _shownScore = -1, _shownLives = -1;
 
-        // パーティクル (破壊エフェクト — 1 ノードの Content 差し替えで描く)
-        private struct Particle { public float X, Y, VX, VY, Life; public uint Color; }
-        private readonly List<Particle> _particles = new();
-        private readonly Random _rng = new(12345);   // 固定シード (演出のみ — 決定性を壊さない)
+        // パーティクル (破壊エフェクト — 標準 ParticleSystem + ParticleNode。色はブロック色を tint で per-particle 指定)
+        private ParticleSystem? _particles;
+        private ParticleNode? _pnode;
+        private bool _hadParticles;
 
         public BreakoutScene(SceneLoopServices loop, VectorFont font, Action<string> log) : base(loop)
         {
@@ -209,11 +212,16 @@ public static class BreakoutStories
             _ballNode.Z = 3;
             _world.CreateEntity(new Ball { X = FieldW / 2, Y = PadY - BallR, Stuck = true });
 
-            // パーティクル (多色 → ContentColors、容量は ReserveContent で予約 = in-place 差し替え)
-            _particleNode = _canvas.AddChild(root);
-            _particleNode.ContentColors = true;
-            _particleNode.ReserveContent(segments: 64 * 4, paths: 64);
-            _particleNode.Z = 4;
+            // パーティクル: 標準 ParticleSystem。設定色 = 白→透明フェード、tint (ブロック色) を per-particle 乗算。
+            // ParticleNode が ContentColors + ReserveContent (= in-place 差し替え) を面倒みる。
+            var pcfg = new ParticleConfig(
+                Life: 0.5f, Speed: ParticleValue.Range(40, 130), SpreadRadians: MathF.PI, BaseAngle: 0f,
+                Gravity: 300, Drag: 0f, Size: 4f,
+                Color: new ParticleColor(Color2D.Rgba(255, 255, 255, 255), Color2D.Rgba(255, 255, 255, 0)),
+                Shape: ParticleShape.Quad);
+            _particles = new ParticleSystem(pcfg, capacity: 128, seed: 12345);
+            _pnode = new ParticleNode(_canvas, root, _particles);
+            _pnode.Node.Z = 4;
 
             // HUD
             _scoreNode = _canvas.AddChild(root);
@@ -373,47 +381,16 @@ public static class BreakoutStories
         }
 
         private void SpawnParticles(float x, float y, uint color)
-        {
-            for (int i = 0; i < 6; i++)
-            {
-                float a = (float)(_rng.NextDouble() * Math.Tau);
-                float sp = 40 + (float)_rng.NextDouble() * 90;
-                _particles.Add(new Particle
-                {
-                    X = x,
-                    Y = y,
-                    VX = MathF.Cos(a) * sp,
-                    VY = MathF.Sin(a) * sp - 30,
-                    Life = 0.5f,
-                    Color = color,
-                });
-            }
-        }
+            => _particles?.Emit(new Vector3(x, y, 0), 6, tint: color);   // tint = ブロック色
 
-        /// <summary>パーティクル更新 + 1 ノードへの Content 差し替え (ReserveContent 以内なら in-place)。</summary>
+        /// <summary>パーティクル更新 + 1 ノードへの Content 差し替え (ParticleNode が in-place を面倒みる)。</summary>
         private void StepParticles()
         {
-            if (_particleNode is null) return;
-            if (_particles.Count == 0) return;
-            for (int i = _particles.Count - 1; i >= 0; i--)
-            {
-                Particle p = _particles[i];
-                p.Life -= _dt;
-                if (p.Life <= 0) { _particles.RemoveAt(i); continue; }
-                p.X += p.VX * _dt;
-                p.Y += p.VY * _dt;
-                p.VY += 300 * _dt;   // 重力
-                _particles[i] = p;
-            }
-            var s = new Scene2D();
-            foreach (Particle p in _particles)
-            {
-                uint c = (p.Color & 0x00FFFFFF) | ((uint)(byte)(Math.Clamp(p.Life * 2, 0, 1) * 255) << 24);
-                s.BeginFill(c, absoluteColor: true)
-                 .MoveTo(p.X - 2, p.Y - 2).LineTo(p.X + 2, p.Y - 2).LineTo(p.X + 2, p.Y + 2).LineTo(p.X - 2, p.Y + 2)
-                 .Close().End();
-            }
-            _particleNode.Content = s;   // 空になった最後の 1 回も空シーンで消す
+            if (_particles is null || _pnode is null) return;
+            if (_particles.Alive == 0 && !_hadParticles) return;   // 空が続く間は再構築しない
+            _particles.Update(_dt);
+            _pnode.Sync();                                          // 空になった最後の 1 回も空シーンで消す
+            _hadParticles = _particles.Alive > 0;
         }
 
         // ---- HUD ----

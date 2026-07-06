@@ -60,7 +60,7 @@ public sealed class ParticleBillboards : IDisposable
         {
             float t01 = b.Age[i] / MathF.Max(1e-6f, b.LifeMax[i]);
             float size = animSize ? cfg.Size.Eval(t01) : b.Size[i];
-            uint c = cfg.Color.Eval(t01);
+            uint c = ParticleColor.Multiply(cfg.Color.Eval(t01), b.Tint[i]);
             data[i] = new Instance
             {
                 PosX = b.PosX[i],

@@ -20,7 +20,6 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 | 09 | [09-gltf-skin-morph.md](09-gltf-skin-morph.md) | glTF skin/morph アニメーション | 大 | 中 |
 | 10 | [10-audio-streaming.md](10-audio-streaming.md) | Audio: ストリーミング再生 | 中 | 中 |
 | 11 | [11-scripting-debug-tools.md](11-scripting-debug-tools.md) | Scripting: DevTools Console タブ + リプレイ + 外部デバッガ | 中 (分割可) | 中 |
-| 16 | [16-particle-system.md](16-particle-system.md) | 標準パーティクルシステム (2D + 3D ビルボード) | 中〜大 | 低 |
 | 19 | [19-standalone-game-shipping.md](19-standalone-game-shipping.md) | capstone ①: 2D プラットフォーマー「Luxel Cavern」+ publish 検証 | 大 | 中 |
 | 20 | [20-game2-3d-shooting-range.md](20-game2-3d-shooting-range.md) | capstone ②: 3D 射的「Luxel Range」(03/04/05/09 の検証場) | 中〜大 | 中 |
 | 21 | [21-devtools-game-scale.md](21-devtools-game-scale.md) | DevTools のゲーム規模対応 (ECS スケール/gizmo/ゲーム統計/timescale) | 中 | 低 |

@@ -44,7 +44,7 @@ public sealed class ParticleNode
             float size = animSize ? cfg.Size.Eval(t01) : b.Size[i];
             float half = MathF.Max(0f, size) * 0.5f;
             float x = b.PosX[i], y = b.PosY[i];
-            uint color = cfg.Color.Eval(t01);
+            uint color = ParticleColor.Multiply(cfg.Color.Eval(t01), b.Tint[i]);
 
             s.BeginFill(color, absoluteColor: true);
             if (cfg.Shape == ParticleShape.Circle)

@@ -206,6 +206,29 @@ public class ParticleTests
         }
     }
 
+    [Fact]
+    public void Emit_Tint_StoredAndCarriedThroughUpdate()
+    {
+        var ps = new ParticleSystem(Straight(speed: 0, life: 1f), capacity: 8, seed: 1);
+        uint tint = Color2D.Rgba(200, 100, 50, 255);
+        ps.Emit(Vector3.Zero, 1, tint: tint);
+        Assert.Equal(tint, ps.Buffer.Tint[0]);
+        ps.Update(0.1f);
+        Assert.Equal(tint, ps.Buffer.Tint[0]);   // 前方詰めで tint も維持
+    }
+
+    [Fact]
+    public void ParticleColor_Multiply_PerChannel()
+    {
+        // 白 × tint = tint
+        Assert.Equal(Color2D.Rgba(200, 100, 50, 255),
+            ParticleColor.Multiply(Color2D.Rgba(255, 255, 255, 255), Color2D.Rgba(200, 100, 50, 255)));
+        // α フェード (白の α=128) × 不透明ブロック色 → ブロック色の α=128
+        uint faded = ParticleColor.Multiply(Color2D.Rgba(255, 255, 255, 128), Color2D.Rgba(226, 88, 98, 255));
+        Assert.Equal(128, (int)((faded >> 24) & 0xFF));
+        Assert.Equal(226, (int)(faded & 0xFF));
+    }
+
     // ---- Spherical emission (3D) ----
 
     [Fact]

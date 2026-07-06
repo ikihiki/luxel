@@ -20,6 +20,7 @@ public sealed class ParticleBuffer
         Age = new float[capacity];
         LifeMax = new float[capacity];
         Size = new float[capacity];
+        Tint = new uint[capacity];
     }
 
     public int Capacity { get; }
@@ -38,6 +39,9 @@ public sealed class ParticleBuffer
     public float[] LifeMax { get; }
     /// <summary>放出時にサンプルした基本サイズ (寿命カーブが無いとき使う)。</summary>
     public float[] Size { get; }
+    /// <summary>放出時に指定した per-particle 色 tint (RGBA8)。設定色 <see cref="ParticleColor"/> に乗算される。
+    /// 既定は白 (0xFFFFFFFF = 変化なし)。1 システムから色違いのバースト (例: 敵の色ごとの破片) を出すため。</summary>
+    public uint[] Tint { get; }
 
     /// <summary>全消去 (再利用)。</summary>
     public void Clear() => Count = 0;

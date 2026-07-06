@@ -19,6 +19,13 @@ public readonly record struct ParticleColor(uint Start, uint End, ICurve? Curve 
 {
     public static ParticleColor Const(uint c) => new(c, c);
 
+    /// <summary>RGBA8 の per-channel 乗算 (tint 適用: 各チャンネル a*b/255)。</summary>
+    public static uint Multiply(uint a, uint b)
+    {
+        byte M(int shift) => (byte)(((a >> shift) & 0xFF) * ((b >> shift) & 0xFF) / 255);
+        return (uint)(M(0) | (M(8) << 8) | (M(16) << 16) | (M(24) << 24));
+    }
+
     /// <summary>寿命 t01∈[0,1] での色 (各チャンネル線形補間、α 含む)。</summary>
     public uint Eval(float t01)
     {

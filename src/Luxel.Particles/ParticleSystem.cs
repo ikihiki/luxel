@@ -39,6 +39,7 @@ public sealed class ParticleSystem
     private Vector3 _emitPos;
     private float _emitRate;
     private float _emitAccum;
+    private uint _emitTint = 0xFFFFFFFF;
 
     public ParticleSystem(ParticleConfig config, int capacity, ulong seed, IParticleSimulator? simulator = null)
     {
@@ -61,21 +62,23 @@ public sealed class ParticleSystem
     /// <summary>毎ステップ積分前に速度等を加工するフック (省略可)。</summary>
     public ParticleForce? Forces { get; set; }
 
-    /// <summary>指定位置から <paramref name="count"/> 個を即時放出する (容量超過分は無視 — 発生順を崩さない)。</summary>
-    public void Emit(Vector3 pos, int count)
+    /// <summary>指定位置から <paramref name="count"/> 個を即時放出する (容量超過分は無視 — 発生順を崩さない)。
+    /// <paramref name="tint"/> は per-particle 色 (設定色に乗算、既定 白 = 変化なし) — 1 システムから色違いのバーストを出せる。</summary>
+    public void Emit(Vector3 pos, int count, uint tint = 0xFFFFFFFF)
     {
         for (int i = 0; i < count; i++)
         {
-            if (!Spawn(pos)) break;
+            if (!Spawn(pos, tint)) break;
         }
     }
 
     /// <summary>位置 <paramref name="pos"/> から毎秒 <paramref name="rate"/> 個の連続放出を設定する
-    /// (<see cref="Update"/> で dt を積算して放出)。rate=0 で停止。</summary>
-    public void SetEmission(Vector3 pos, float rate)
+    /// (<see cref="Update"/> で dt を積算して放出)。rate=0 で停止。<paramref name="tint"/> は per-particle 色。</summary>
+    public void SetEmission(Vector3 pos, float rate, uint tint = 0xFFFFFFFF)
     {
         _emitPos = pos;
         _emitRate = MathF.Max(0f, rate);
+        _emitTint = tint;
     }
 
     /// <summary>連続放出を止める (発生済みは寿命まで残る)。</summary>
@@ -90,7 +93,7 @@ public sealed class ParticleSystem
             int n = (int)_emitAccum;
             _emitAccum -= n;
             for (int i = 0; i < n; i++)
-                if (!Spawn(_emitPos)) { _emitAccum = 0f; break; }
+                if (!Spawn(_emitPos, _emitTint)) { _emitAccum = 0f; break; }
         }
 
         Forces?.Invoke(new ParticleSpans(_buffer), dt);
@@ -100,7 +103,7 @@ public sealed class ParticleSystem
     /// <summary>全消去。</summary>
     public void Clear() => _buffer.Clear();
 
-    private bool Spawn(Vector3 pos)
+    private bool Spawn(Vector3 pos, uint tint)
     {
         if (_buffer.Count >= _buffer.Capacity) return false;
         int i = _buffer.Count++;
@@ -139,6 +142,7 @@ public sealed class ParticleSystem
         _buffer.Age[i] = 0f;
         _buffer.LifeMax[i] = life;
         _buffer.Size[i] = size;
+        _buffer.Tint[i] = tint;
         return true;
     }
 }

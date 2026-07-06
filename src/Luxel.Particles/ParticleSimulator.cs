@@ -38,6 +38,7 @@ public sealed class CpuParticleSimulator : IParticleSimulator
             b.Age[w] = age;
             b.LifeMax[w] = b.LifeMax[r];
             b.Size[w] = b.Size[r];
+            b.Tint[w] = b.Tint[r];
             w++;
         }
         b.Count = w;
