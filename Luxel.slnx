@@ -33,6 +33,7 @@
     <Project Path="src/Luxel.Resources/Luxel.Resources.csproj" />
     <Project Path="src/Luxel.Scene.UI/Luxel.Scene.UI.csproj" />
     <Project Path="src/Luxel.Settings/Luxel.Settings.csproj" />
+    <Project Path="src/Luxel.Scripting.Framework/Luxel.Scripting.Framework.csproj" />
     <Project Path="src/Luxel.Scripting/Luxel.Scripting.csproj" />
     <Project Path="src/Luxel.Strudel/Luxel.Strudel.csproj" />
     <Project Path="src/Luxel.TwoD.Skia/Luxel.TwoD.Skia.csproj" />

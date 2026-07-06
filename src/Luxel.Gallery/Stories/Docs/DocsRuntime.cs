@@ -301,7 +301,22 @@ public static class DocsRuntime
 
         1. **Gallery/docs のライブブロック** (実装済み) — エディタで編集 → Run → 返した `Widget`/`IGpuScene` をその場に実体化。コンパイルエラー/実行時例外は行番号付きでインライン表示、ブロックが落ちてもページは落ちない (ErrorBoundary)
         2. **継続 REPL コンソール** (実装済み) — `ScriptHost.OpenSession(globals)` → `ScriptSession.Submit(line)`。**前の行で宣言した変数/using が次の行で見える** (Roslyn の `ContinueWith`)。実行中アプリへ 1 行ずつ投げて Signal を突く運用デバッグの土台。実演は {{StoryRef(ctx, "Demos/Scripting/Repl")}} へ
-        3. **Framework アプリのゲームロジック** (P3.5 予定) — `.csx` を World/Phase フックへ登録し、ファイル監視でホットリロード
+        3. **Framework アプリのゲームロジック** (実装済み) — `.csx` を World/Phase フックへ登録し、ファイル監視でホットリロード (`Luxel.Scripting.Framework` の `ScriptSystem`、下記)
+
+        ## ScriptSystem — .csx ゲームロジック + hot reload
+
+        `.csx` の最後の式で `Systems(update: (w, dt) => {...}, lateUpdate: ..., fixedUpdate: ...)` (または裸の `Action<World,float>`) を返すと、`ScriptSystem` がそれを `World` のフェーズループへ繋ぎます。ソースは `IScriptSource` 抽象 (実ファイル = `FileScriptSource` の `FileSystemWatcher`、テスト/ライブ編集 = `MemoryScriptSource`) から取り、`Changed` をフレーム先頭で畳んで `PollReload()` が 1 回だけ再コンパイルします (連続保存イベントのデバウンス)。
+
+        安全性が最重要です。`World.AddSystem` は削除できないので **安定ラッパ system を 1 回だけ `Attach` し、reload は現在のデリゲート束を差し替えるだけ**。コンパイル失敗・実行時例外が出ても**旧ロジックを動かし続け**、診断 (行番号付き) を `LastResult`/`RuntimeException` に公開します — 編集ミスでゲームが止まりません。
+
+        ```csharp
+        var script = new ScriptSystem(host, new FileScriptSource("enemy.csx"), new ScriptGameGlobals(Log));
+        script.Attach(world, () => _dt);   // 安定ラッパを Update/LateUpdate/FixedUpdate へ
+        // フレーム先頭で: script.PollReload();   // 変更があれば安全に差し替え
+        ```
+
+        > [!NOTE]
+        > 編集ごとのアセンブリはプロセス終了まで残ります (collectible AssemblyLoadContext は将来枠)。高頻度リロードのデモではメモリが伸びます。
 
         ## 言語サービス (LSP) の方針
 

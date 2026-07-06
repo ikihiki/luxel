@@ -75,6 +75,34 @@ public interface IScriptSource
 - DI ストーリーの結線: `ctx.SetServices(GalleryServices.Provider)` は GalleryHost.BuildCurrent / GalleryApp.Select / DocsIndex.Build / E2ePlayTests.E2eCatalog.Discover の 4 箇所 — 忘れると play が列挙されず golden も出ない。
 - Friflo クエリは `world.Query<T>().ForEachEntity((ref T c, Entity e) => ...)`。`Phase` は Ecs/Framework で名前衝突 (using alias)。
 
+## 進捗 (2026-07-06)
+
+**コア (ステップ 1-2) + Docs 完了。デモ (ステップ 3-5 のうち UI) は次セッション。**
+
+### 完了 (この MD はまだ削除しない)
+
+- **新プロジェクト `Luxel.Scripting.Framework`** (Luxel.Scripting + Luxel.Ecs 参照。**Luxel.Framework は net10.0-windows なので参照せず**、
+  フェーズ名は文字列定数 "Update"/"LateUpdate"/"FixedUpdate" で持つ = Framework.Phase.Name と一致):
+  - `ScriptSystems` 記述子 (record、Update/LateUpdate/FixedUpdate の `Action<World,float>`) + `ScriptGameGlobals` (Log + `Systems(...)` ヘルパ)。
+  - `ScriptSystem`: `Attach(world, ()=>dt)` で**安定ラッパ system を 1 回登録**、`Reload()` は現在のデリゲート束を差し替えるだけ
+    (World.AddSystem は削除不可のため)。コンパイル失敗/実行時例外で**旧を維持**+ `LastResult`/`RuntimeException` 公開。
+    `PollReload()` (フレーム先頭) が `IScriptSource.Changed` の dirty を 1 回に畳む。
+- **`IScriptSource`** ([src/Luxel.Scripting/IScriptSource.cs](../src/Luxel.Scripting/IScriptSource.cs)): `MemoryScriptSource` (Set で Changed) +
+  `FileScriptSource` (FileSystemWatcher + 共有/リトライ読み。デバウンスは消費側のフレーム先頭 Reload に委任)。
+- **テスト** ([tests/Luxel.Tests/ScriptSystemTests.cs](../tests/Luxel.Tests/ScriptSystemTests.cs)) 6 本: 初回実行 / Reload 成功で挙動変化 /
+  構文エラーで旧維持+診断 / 実行時例外を捕捉して停止 / 裸 Action 返却 / 非記述子で no-op。計 719 passed。
+- **Docs** ([DocsRuntime.cs](../src/Luxel.Gallery/Stories/Docs/DocsRuntime.cs)): 面③を「実装済み」へ + ScriptSystem 節 (golden 更新済み)。
+
+### 残り (次セッション)
+
+- **Demos/Scripting/HotReload ストーリー**: 左 CodeEditor (LanguageService = CsharpCodeLanguage) + 右に実行中シーン
+  (FrameworkAppStory / StoryAppView<TScene> 土台)。play: 初期コード Snap → SetText で挙動変更 → Apply → Step → Expect →
+  構文エラー → Apply → Expect (旧生存 + 診断)。golden。
+- **GalleryServices に game globals 用 ScriptHost 登録** (typeof(ScriptGameGlobals) で別インスタンス。references に Luxel.Ecs/Framework/bridge)。
+  DI 結線は `ctx.SetServices(GalleryServices.Provider)` の 4 箇所 (GalleryHost.BuildCurrent / GalleryApp.Select / DocsIndex.Build /
+  E2ePlayTests.E2eCatalog.Discover) — 既存で足りるはず。
+- Roslyn 初回コンパイル 1-2s のウォームアップに注意 (play の Step 数)。全ステージ完了で **この MD を削除**。
+
 ## スコープ外
 
 - collectible ALC によるアンロード、サンドボックス、外部デバッガアタッチ (→ [11](11-scripting-debug-tools.md))。
