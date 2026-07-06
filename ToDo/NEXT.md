@@ -44,7 +44,7 @@
 
 ### M3 — capstone ① 完成
 
-- [ ] **Q13**: [19 capstone ①](19-standalone-game-shipping.md) **ステージ B: ゲーム組み上げ → e2e → publish 本番 → Docs「配布」節** — 完了したら **19 の MD を削除**。**ここで合流**: Q05-E (WithDevTools 統合、ゲーム構造が固まってから) + Q06 の保存/設定ゲーム配線 (保存先パス・セーブ/設定 UI・InputBindings 永続化)。 (着手中: 2026-07-06 — **大タスク・複数セッション**。**S1 済**: CavernSim (プレイヤー物理) + CavernLevel + Game/Cavern golden。**S2 済**: ゲームコンテンツ層 — 収集(コイン/鍵)/扉(鍵3で開)/トゲ+HP/巡回敵(接触/踏み撃破)/無敵+ノックバック+シェイク要求 + CreateSim。golden をエンティティ描画に更新。単体テスト計 14。**残**: 飛行敵+.csx AI/パーティクル演出/HUD日本語+ポーズ/セーブ設定配線(Q06)/Audio/実時間 exe プレイアブル化(補間+入力)/Tiled/WithDevTools+gizmo(Q05-E/Q12)/publish本番/Docs。詳細は 19 MD 進捗節)
+- [ ] **Q13**: [19 capstone ①](19-standalone-game-shipping.md) **ステージ B: ゲーム組み上げ → e2e → publish 本番 → Docs「配布」節** — 完了したら **19 の MD を削除**。**ここで合流**: Q05-E (WithDevTools 統合、ゲーム構造が固まってから) + Q06 の保存/設定ゲーム配線 (保存先パス・セーブ/設定 UI・InputBindings 永続化)。 (着手中: 2026-07-06 — **大タスク・複数セッション**。**S1 済**: CavernSim (プレイヤー物理) + CavernLevel + Game/Cavern golden。**S2 済**: 収集/扉/トゲ+HP/巡回敵/無敵+ノックバック+シェイク。**S3 済**: 飛行敵 Flyer (サイン波、Contact 共通化) + 演出イベント (着地/収集/撃破) + 松明位置。Gallery で ParticleSystem を同期して松明炎+砂埃/コイン/撃破バースト (tint ドッグフーディング)。単体テスト計 19。**残**: 片方敵 AI を .csx(ScriptSystem)/HUD日本語+ポーズ/セーブ設定配線(Q06)/Audio/実時間 exe プレイアブル化(補間+入力)/Tiled/WithDevTools+gizmo(Q05-E/Q12)/publish本番/Docs。詳細は 19 MD 進捗節)
 
 ### M4 — 3D 物理・アニメーション (capstone ② の部品)
 

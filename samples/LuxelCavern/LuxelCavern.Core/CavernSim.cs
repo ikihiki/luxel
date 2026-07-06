@@ -24,6 +24,22 @@ public sealed class Walker
     public RectF Box => new(Pos.X, Pos.Y, Size.X, Size.Y);
 }
 
+/// <summary>飛行の敵 (<see cref="Home"/> 中心にサイン波で浮遊)。接触でダメージ、上から踏むと撃破。</summary>
+public sealed class Flyer
+{
+    public Vector2 Home;
+    public Vector2 Size = new(14, 14);
+    public float AmpX = 40f, AmpY = 22f, Freq = 1.2f, Phase;
+    public bool Alive = true;
+    public float Time;
+
+    /// <summary>現在位置 (左上)。Home + サイン変位。</summary>
+    public Vector2 Pos => new(
+        Home.X + AmpX * MathF.Sin(Time * Freq * MathF.Tau) - Size.X * 0.5f,
+        Home.Y + AmpY * MathF.Sin(Time * Freq * MathF.Tau * 0.5f + Phase) - Size.Y * 0.5f);
+    public RectF Box { get { Vector2 p = Pos; return new(p.X, p.Y, Size.X, Size.Y); } }
+}
+
 /// <summary>ゲームの帰結。</summary>
 public enum CavernResult { Playing, Cleared, Dead }
 
@@ -57,6 +73,14 @@ public sealed class CavernSim
 
     public readonly List<Pickup> Pickups = new();
     public readonly List<Walker> Enemies = new();
+    public readonly List<Flyer> Flyers = new();
+
+    // 演出レイヤ (パーティクル等) が読む「このステップの出来事」。毎ステップ先頭でクリア。
+    public bool LandedThisStep { get; private set; }
+    public readonly List<Vector2> DefeatsThisStep = new();
+    public readonly List<Vector2> PickupsThisStep = new();
+    private bool _prevOnGround;
+
     public Vector2 DoorPos;
     public Vector2 DoorSize = new(20, 32);
     public bool DoorOpen { get; private set; }
@@ -82,10 +106,16 @@ public sealed class CavernSim
     public void Step(float dt, float moveX, bool jumpPressed)
     {
         ShakeRequested = false;
+        LandedThisStep = false;
+        DefeatsThisStep.Clear();
+        PickupsThisStep.Clear();
         if (Result != CavernResult.Playing) return;
         if (InvincibleRemain > 0f) InvincibleRemain -= dt;
 
         MovePlayer(dt, moveX, jumpPressed);
+        if (OnGround && !_prevOnGround) LandedThisStep = true;   // 着地した瞬間 (砂埃の発火口)
+        _prevOnGround = OnGround;
+
         MoveEnemies(dt);
         ResolvePickups();
         ResolveEnemies();
@@ -129,6 +159,8 @@ public sealed class CavernSim
             if (w.Pos.X <= w.MinX) { w.Pos.X = w.MinX; w.VelX = MathF.Abs(w.VelX); }
             else if (w.Pos.X + w.Size.X >= w.MaxX) { w.Pos.X = w.MaxX - w.Size.X; w.VelX = -MathF.Abs(w.VelX); }
         }
+        foreach (Flyer f in Flyers)
+            if (f.Alive) f.Time += dt;   // 位置は Time からサインで算出
     }
 
     private void ResolvePickups()
@@ -140,6 +172,7 @@ public sealed class CavernSim
             if (!Overlaps(PlayerBox, new RectF(p.Pos.X, p.Pos.Y, p.Size, p.Size))) continue;
             p.Collected = true;
             Pickups[i] = p;
+            PickupsThisStep.Add(new Vector2(p.Pos.X + p.Size * 0.5f, p.Pos.Y + p.Size * 0.5f));
             if (p.IsKey) { Keys++; if (Keys >= RequiredKeys) DoorOpen = true; }
             else Coins++;
         }
@@ -148,19 +181,24 @@ public sealed class CavernSim
     private void ResolveEnemies()
     {
         foreach (Walker w in Enemies)
+            if (w.Alive && Contact(w.Box, w.Pos, w.Size)) w.Alive = false;
+        foreach (Flyer f in Flyers)
+            if (f.Alive && Contact(f.Box, f.Pos, f.Size)) f.Alive = false;
+    }
+
+    /// <summary>プレイヤーと敵の接触を解決する。踏みつけなら true (撃破) を返し、そうでなければダメージ。</summary>
+    private bool Contact(RectF box, Vector2 pos, Vector2 size)
+    {
+        if (!Overlaps(PlayerBox, box)) return false;
+        bool stomp = PlayerVel.Y > 0f && PlayerCenter.Y < pos.Y + size.Y * 0.5f;
+        if (stomp)
         {
-            if (!w.Alive || !Overlaps(PlayerBox, w.Box)) continue;
-            bool stomp = PlayerVel.Y > 0f && PlayerCenter.Y < w.Pos.Y + w.Size.Y * 0.5f;
-            if (stomp)
-            {
-                w.Alive = false;
-                PlayerVel.Y = -StompBounce;   // 踏んで跳ねる
-            }
-            else
-            {
-                Damage(w.Pos.X + w.Size.X * 0.5f);
-            }
+            PlayerVel.Y = -StompBounce;   // 踏んで跳ねる
+            DefeatsThisStep.Add(new Vector2(pos.X + size.X * 0.5f, pos.Y + size.Y * 0.5f));
+            return true;
         }
+        Damage(pos.X + size.X * 0.5f);
+        return false;
     }
 
     private void ResolveSpikes()

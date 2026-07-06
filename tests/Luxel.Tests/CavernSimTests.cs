@@ -187,7 +187,66 @@ public class CavernSimTests
         Assert.Equal(3, sim.Pickups.Count(p => p.IsKey));
         Assert.Contains(sim.Pickups, p => !p.IsKey);   // コインもある
         Assert.NotEmpty(sim.Enemies);
+        Assert.NotEmpty(sim.Flyers);
         Assert.False(sim.DoorOpen);
         Assert.Equal(3, sim.Hp);
+    }
+
+    // ---- 飛行敵 + 演出イベント ----
+
+    [Fact]
+    public void Flyer_Oscillates()
+    {
+        var f = new Flyer { Home = new Vector2(200, 200), AmpX = 30, AmpY = 20, Freq = 1f };
+        float y0 = f.Pos.Y;
+        f.Time = 0.5f;
+        Assert.True(MathF.Abs(f.Pos.Y - y0) > 10f);   // サイン波で浮遊
+    }
+
+    [Fact]
+    public void FlyerContact_Damages()
+    {
+        var sim = MakeSim();
+        for (int i = 0; i < 20; i++) sim.Step(Dt, 0f, false);   // 着地
+        var fl = new Flyer { Home = sim.PlayerCenter, AmpX = 0, AmpY = 0 };   // プレイヤーに重ねる
+        sim.Flyers.Add(fl);
+        int hp0 = sim.Hp;
+        sim.Step(Dt, 0f, false);
+        Assert.Equal(hp0 - 1, sim.Hp);
+        Assert.True(fl.Alive);
+    }
+
+    [Fact]
+    public void FlyerStomp_DefeatsAndFiresEvent()
+    {
+        var sim = MakeSim();
+        var fl = new Flyer { Home = new Vector2(440, 250), AmpX = 0, AmpY = 0 };
+        sim.Flyers.Add(fl);
+        Vector2 fpos = fl.Pos;
+        sim.PlayerPos = new Vector2(fpos.X, fpos.Y - 22);
+        sim.PlayerVel = new Vector2(0, 120);
+        sim.Step(Dt, 0f, false);
+        Assert.False(fl.Alive);
+        Assert.True(sim.PlayerVel.Y < 0f);
+        Assert.NotEmpty(sim.DefeatsThisStep);   // 撃破イベント
+    }
+
+    [Fact]
+    public void LandedThisStep_FiresOnLanding_NotWhileGrounded()
+    {
+        var sim = MakeSim();
+        bool sawLand = false;
+        for (int i = 0; i < 40; i++) { sim.Step(Dt, 0f, false); if (sim.LandedThisStep) sawLand = true; }
+        Assert.True(sawLand);
+        Assert.False(sim.LandedThisStep);   // 着地後の接地継続では再発火しない
+    }
+
+    [Fact]
+    public void PickupEvent_FiresOnCollect()
+    {
+        var sim = MakeSim();
+        sim.Pickups.Add(new Pickup { Pos = sim.PlayerPos, Size = 10 });
+        sim.Step(Dt, 0f, false);
+        Assert.Single(sim.PickupsThisStep);
     }
 }

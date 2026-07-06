@@ -1,5 +1,7 @@
 using System.Numerics;
 using LuxelCavern.Core;
+using Luxel.Particles;
+using Luxel.Particles.TwoD;
 using Luxel.TwoD;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
@@ -8,10 +10,10 @@ using static Luxel.Gallery.Stories.StoryKit;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>
-/// **capstone ① 「Luxel Cavern」** (タスク 19 ステージ B) — タイルマップ + プレイヤー物理 (走り/ジャンプ/Sweep 衝突) +
-/// カメラ追従 + **収集物 (コイン/鍵)・扉・トゲ・巡回敵** (<see cref="CavernSim"/>)。sim を固定 dt で決定的に事前実行し、
-/// タイル + エンティティ + プレイヤーを追従カメラで描く (golden)。手続きアトラス (外部アセット不要)。
-/// HUD (日本語)・実時間 exe・Audio・パーティクル演出・セーブは後段。
+/// **capstone ① 「Luxel Cavern」** (タスク 19 ステージ B) — タイルマップ + プレイヤー物理 + カメラ追従 +
+/// 収集/扉/トゲ/巡回敵/飛行敵 (<see cref="CavernSim"/>) + **パーティクル演出** (松明の炎 + 着地砂埃 / コイン /
+/// 撃破バースト、sim のイベントから発火・per-particle tint)。sim + fx を固定 dt で決定的に事前実行し追従カメラで描く。
+/// HUD (日本語)・実時間 exe・Audio・セーブは後段。手続きアトラス (外部アセット不要)。
 /// </summary>
 public static class CavernStories
 {
@@ -34,16 +36,12 @@ public static class CavernStories
         {
             _raster = Track(new Rasterizer2D(Device));
 
-            // --- 手続きアトラス 32×32 (grass(0,0)/dirt(16,0)/wall(0,16)/spike(16,16)) ---
             const int aw = 32, ah = 32;
             _atlasBuf = Track(Device.Malloc(aw * ah * 4, GpuMemoryKind.HostMapped));
             Span<byte> px = _atlasBuf.Span<byte>(aw * ah * 4);
             (int Ox, int Oy, byte R, byte G, byte B)[] cells =
             [
-                (0, 0, 70, 175, 85),      // grass
-                (16, 0, 140, 92, 52),     // dirt
-                (0, 16, 120, 122, 135),   // wall
-                (16, 16, 210, 70, 70),    // spike (赤)
+                (0, 0, 70, 175, 85), (16, 0, 140, 92, 52), (0, 16, 120, 122, 135), (16, 16, 210, 70, 70),
             ];
             foreach (var (ox, oy, r, g, b) in cells)
                 for (int y = 0; y < Tile; y++)
@@ -60,9 +58,26 @@ public static class CavernStories
             CavernSim sim = CavernLevel.CreateSim();
             sim.Map.TileSet.Atlas.Bind(_atlasBuf.BindlessIndex, aw, ah);
 
-            // プレイヤー物理を固定 dt で事前実行 (落下 → 右へ走ってコインを拾う)
+            // パーティクル演出 (放射スパーク、per-particle tint で炎/砂埃/コイン/撃破を出し分け)
+            var fx = new ParticleSystem(new ParticleConfig(
+                Life: ParticleValue.Range(0.4f, 0.8f), Speed: ParticleValue.Range(20, 60),
+                SpreadRadians: MathF.PI, BaseAngle: -MathF.PI / 2, Gravity: -40, Drag: 0.6f,
+                Size: 3f, Color: new ParticleColor(Color2D.Rgba(255, 255, 255, 255), Color2D.Rgba(255, 255, 255, 0)),
+                Shape: ParticleShape.Circle), capacity: 400, seed: 0xCA5E);
+            uint torchTint = Color2D.Rgba(255, 160, 60), dustTint = Color2D.Rgba(200, 180, 150);
+            uint coinTint = Color2D.Rgba(250, 225, 70), defeatTint = Color2D.Rgba(230, 90, 90);
+
+            // プレイヤー物理 + fx を固定 dt で事前実行
             for (int f = 0; f < Steps; f++)
+            {
                 sim.Step(1f / 60, f >= 12 ? 1f : 0f, jumpPressed: false);
+                foreach (Vector2 t in CavernLevel.Torches) fx.Emit(new Vector3(t, 0), 2, torchTint);
+                if (sim.LandedThisStep)
+                    fx.Emit(new Vector3(sim.PlayerPos.X + sim.PlayerSize.X * 0.5f, sim.PlayerPos.Y + sim.PlayerSize.Y, 0), 8, dustTint);
+                foreach (Vector2 c in sim.PickupsThisStep) fx.Emit(new Vector3(c, 0), 10, coinTint);
+                foreach (Vector2 d in sim.DefeatsThisStep) fx.Emit(new Vector3(d, 0), 14, defeatTint);
+                fx.Update(1f / 60);
+            }
             _cameraCenter = sim.PlayerCenter;
 
             _canvas = Track(new RetainedCanvas(_raster));
@@ -74,14 +89,11 @@ public static class CavernStories
             var layer = new TileMapLayer(_canvas, _canvas.Root, sim.Map);
             layer.Update(new RectF(0, 0, CavernLevel.Width * Tile, CavernLevel.Height * Tile));
 
-            // エンティティ + プレイヤー (per-shape 色 = ContentColors)
             UiNode ents = _canvas.AddChild(_canvas.Root);
             ents.ContentColors = true;
             var es = new Scene2D();
-
             uint door = sim.DoorOpen ? Color2D.Rgba(90, 200, 120) : Color2D.Rgba(120, 80, 50);
             es.FillRoundedRect(door, sim.DoorPos.X, sim.DoorPos.Y, sim.DoorSize.X, sim.DoorSize.Y, 3);
-
             foreach (Pickup p in sim.Pickups)
             {
                 if (p.Collected) continue;
@@ -89,11 +101,14 @@ public static class CavernStories
                 es.FillCircle(c, p.Pos.X + p.Size * 0.5f, p.Pos.Y + p.Size * 0.5f, p.Size * 0.5f, 12);
             }
             foreach (Walker w in sim.Enemies)
-                if (w.Alive)
-                    es.FillRoundedRect(Color2D.Rgba(220, 80, 90), w.Pos.X, w.Pos.Y, w.Size.X, w.Size.Y, 2);
-
+                if (w.Alive) es.FillRoundedRect(Color2D.Rgba(220, 80, 90), w.Pos.X, w.Pos.Y, w.Size.X, w.Size.Y, 2);
+            foreach (Flyer fl in sim.Flyers)
+                if (fl.Alive) { Vector2 fp = fl.Pos; es.FillRoundedRect(Color2D.Rgba(200, 110, 220), fp.X, fp.Y, fl.Size.X, fl.Size.Y, 6); }
             es.FillRoundedRect(Color2D.Rgba(90, 170, 245), sim.PlayerPos.X, sim.PlayerPos.Y, sim.PlayerSize.X, sim.PlayerSize.Y, 3);
             ents.Content = es;
+
+            // パーティクル (最前面)
+            new ParticleNode(_canvas, _canvas.Root, fx, circleSegments: 8).Sync();
         }
 
         protected override void OnRender(float time)

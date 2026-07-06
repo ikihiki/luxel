@@ -88,9 +88,14 @@ public static class CavernLevel
             VelX = -42f,
             MinX = 190, MaxX = 310,
         });
+        // 飛行敵 (序盤の空をサイン波で浮遊)
+        sim.Flyers.Add(new Flyer { Home = new Vector2(215, 248), AmpX = 34, AmpY = 20, Freq = 1.0f });
 
         return sim;
     }
+
+    /// <summary>松明の位置 (連続パーティクルの発生点。演出レイヤが使う純データ)。</summary>
+    public static Vector2[] Torches => [new(150, Floor * Tile - 30), new(600, (Floor - 2) * Tile - 30)];
 
     private static void AddCoin(CavernSim sim, float x, float y)
         => sim.Pickups.Add(new Pickup { Pos = new Vector2(x, y), Size = 10, IsKey = false });

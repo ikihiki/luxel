@@ -103,7 +103,12 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
   - `CavernLevel.CreateSim()` = マップ + コイン6/鍵3/扉/巡回敵/トゲ を配置した完全な sim。アトラス 4 セル目に spike (赤)。
   - Gallery `Game/Cavern` golden をエンティティ描画に更新 (タイル + コイン/鍵/扉/敵/プレイヤーを ContentColors で per-shape 色)。
   - 単体テスト +9 (コイン収集/鍵3で開扉/開扉クリア/トゲダメージ+シェイク/無敵で追加ダメージ無し/敵接触ダメージ/踏み撃破+バウンド/落下死/CreateSim 配置)。計 743 passed。e2e 65/65 diff 0。
-  - **残 (次セッション以降)**: 飛行敵 (サイン波) + 片方 .csx AI (ScriptSystem ドッグフーディング) / パーティクル演出 (砂埃/撃破/コイン/松明) / HUD (日本語 HP・コイン) + ポーズ / セーブ・設定配線 (Q06 合流、%APPDATA%) / Audio (BGM ストリーミング + SE) / 実時間 GameScene + 補間 + 入力 (キーボード/パッド) で exe プレイアブル化 / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats 統合 (Q05-E/Q12 合流) / publish 本番 (checklist 5,6,9) + リポジトリ外スモーク / Docs「配布」節。
+- **ステージ B セッション 3 (2026-07-06, Q13)**: **敵 2 種完成 + パーティクル演出** (純ロジック・決定的)。
+  - 飛行敵 `Flyer` (Home 中心にサイン波で浮遊、AmpX/AmpY/Freq/Phase)。接触/踏み撃破は `Walker` と共通の `Contact` ヘルパに集約。
+  - 演出イベント: `LandedThisStep` (着地) / `PickupsThisStep` / `DefeatsThisStep` (位置) を毎ステップ発信 (Core は Particles 非依存、位置だけ渡す)。`CavernLevel.Torches` (松明位置の純データ)。
+  - Gallery 側で `ParticleSystem` を sim と同じ固定 dt で回し、**松明の炎 (連続) + 着地砂埃 / コイン / 撃破バースト** を per-particle tint で出す (パーティクル + tint のドッグフーディング)。golden に炎/コインスパークルが出る。
+  - 単体テスト +5 (飛行敵オシレート/飛行接触ダメージ/飛行踏み撃破+イベント/着地イベント/収集イベント)。計 748 passed。e2e 65/65 diff 0。
+  - **残 (次セッション以降)**: 片方の敵 AI を .csx (ScriptSystem ドッグフーディング、実時間 exe で hot reload) / HUD (日本語 HP・コイン) + ポーズ / セーブ・設定配線 (Q06 合流、%APPDATA%) / Audio (BGM ストリーミング + SE) / 実時間 GameScene + 補間 + 入力 (キーボード/パッド) で exe プレイアブル化 / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / publish 本番 (checklist 5,6,9) + リポジトリ外スモーク / Docs「配布」節。
 
 ## 作業ステップ
 
