@@ -20,7 +20,6 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 | 09 | [09-gltf-skin-morph.md](09-gltf-skin-morph.md) | glTF skin/morph アニメーション | 大 | 中 |
 | 10 | [10-audio-streaming.md](10-audio-streaming.md) | Audio: ストリーミング再生 | 中 | 中 |
 | 11 | [11-scripting-debug-tools.md](11-scripting-debug-tools.md) | Scripting: DevTools Console タブ + リプレイ + 外部デバッガ | 中 (分割可) | 中 |
-| 12 | [12-maintenance-docs-golden.md](12-maintenance-docs-golden.md) | メンテ: Docs の stale 記述修正 + dx golden 更新 | 小 | 低 |
 | 14 | [14-framework-fixedupdate.md](14-framework-fixedupdate.md) | Framework: FixedUpdate フェーズ + 描画補間 | 中 | 中 |
 | 15 | [15-save-load-settings.md](15-save-load-settings.md) | 永続化: セーブ/ロード + 設定ファイル機構 | 中 | 低 |
 | 16 | [16-particle-system.md](16-particle-system.md) | 標準パーティクルシステム (2D + 3D ビルボード) | 中〜大 | 低 |
