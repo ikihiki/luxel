@@ -22,7 +22,7 @@ struct RasterArgs
 struct Path { uint segStart, segCount, transformSlot, styleSlot;
               uint fillRule, kind, clipSlot, srcIndex;           // kind: 0=fill 1=stroke 2=image
               float bminx, bminy, bmaxx, bmaxy;                  // image は bbox が UV 矩形を兼ねる
-              float strokeHalfWidth; uint srcStride, srcW, srcH; };   // 64B
+              float strokeHalfWidth; uint srcStride, srcW, srcH, srcX, srcY; };   // 72B (srcX/Y=アトラス原点オフセット px)
 struct Tf { float a, b, c, d, e, f; uint p0, p1; };             // 32B
 struct St { uint colorRgba; float opacity; uint p0, p1; };      // 16B
 struct Cl { float minx, miny, maxx, maxy; };                    // 16B
@@ -86,7 +86,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     {
         uint oi = binned ? g_buffers[args.tileListIndex].Load<uint>((tile * args.tileCap + i) * 4) : i;
         uint pidx = g_buffers[args.orderIndex].Load<uint>(oi * 4);
-        Path path = g_buffers[args.pathIndex].Load<Path>(pidx * 64);
+        Path path = g_buffers[args.pathIndex].Load<Path>(pidx * 72);
         Tf tf = g_buffers[args.transformIndex].Load<Tf>(path.transformSlot * 32);
 
         // クリップ AABB (world 空間で保持) → カメラで画面空間へ (軸並行前提: 4 隅の min/max)。無しは [-inf,inf]。
@@ -174,10 +174,12 @@ void main(uint3 tid : SV_DispatchThreadID)
                 int2 tmax = int2(int(path.srcW) - 1, int(path.srcH) - 1);
                 int2 t0 = clamp(int2(tf), int2(0, 0), tmax);
                 int2 t1 = min(t0 + int2(1, 1), tmax);
-                float4 c00 = unpack(g_buffers[path.srcIndex].Load<uint>((uint(t0.y) * path.srcStride + uint(t0.x)) * 4));
-                float4 c10 = unpack(g_buffers[path.srcIndex].Load<uint>((uint(t0.y) * path.srcStride + uint(t1.x)) * 4));
-                float4 c01 = unpack(g_buffers[path.srcIndex].Load<uint>((uint(t1.y) * path.srcStride + uint(t0.x)) * 4));
-                float4 c11 = unpack(g_buffers[path.srcIndex].Load<uint>((uint(t1.y) * path.srcStride + uint(t1.x)) * 4));
+                // アトラス原点 (srcX,srcY) を texel 座標へ加算 (clamp 後に加算 → sub-rect 内に閉じ隣接スプライトへ漏れない)
+                uint ox = path.srcX, oy = path.srcY;
+                float4 c00 = unpack(g_buffers[path.srcIndex].Load<uint>(((uint(t0.y) + oy) * path.srcStride + uint(t0.x) + ox) * 4));
+                float4 c10 = unpack(g_buffers[path.srcIndex].Load<uint>(((uint(t0.y) + oy) * path.srcStride + uint(t1.x) + ox) * 4));
+                float4 c01 = unpack(g_buffers[path.srcIndex].Load<uint>(((uint(t1.y) + oy) * path.srcStride + uint(t0.x) + ox) * 4));
+                float4 c11 = unpack(g_buffers[path.srcIndex].Load<uint>(((uint(t1.y) + oy) * path.srcStride + uint(t1.x) + ox) * 4));
                 float4 ic = lerp(lerp(c00, c10, fr.x), lerp(c01, c11, fr.x), fr.y);
                 float f = st.opacity * cov;
                 src = float4(ic.rgb * f, ic.a * f);

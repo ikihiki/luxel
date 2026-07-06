@@ -56,6 +56,8 @@ internal static class PathEncoder
                 SrcStride = shape.SrcStride,
                 SrcW = shape.SrcW,
                 SrcH = shape.SrcH,
+                SrcX = shape.SrcX,
+                SrcY = shape.SrcY,
             };
             styles[pi] = new GpuStyle { ColorRgba = shape.Color, Opacity = 1f };
         }

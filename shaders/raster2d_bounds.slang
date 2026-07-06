@@ -21,7 +21,7 @@ struct RasterArgs
 struct Path { uint segStart, segCount, transformSlot, styleSlot;
               uint fillRule, kind, clipSlot, srcIndex;
               float bminx, bminy, bmaxx, bmaxy;
-              float strokeHalfWidth; uint srcStride, srcW, srcH; };
+              float strokeHalfWidth; uint srcStride, srcW, srcH, srcX, srcY; };   // 72B
 struct Tf { float a, b, c, d, e, f; uint p0, p1; };
 struct Cl { float minx, miny, maxx, maxy; };
 
@@ -44,7 +44,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     if (oi >= args.orderCount) return;
 
     uint pidx = g_buffers[args.orderIndex].Load<uint>(oi * 4);
-    Path path = g_buffers[args.pathIndex].Load<Path>(pidx * 64);
+    Path path = g_buffers[args.pathIndex].Load<Path>(pidx * 72);
     Tf tf = g_buffers[args.transformIndex].Load<Tf>(path.transformSlot * 32);
 
     float2 clo = float2(-1e30, -1e30), chi = float2(1e30, 1e30);

@@ -66,7 +66,7 @@ public sealed class Rasterizer2D : IDisposable
         var clips = new GpuClip[1];                          // 即時モードはクリップ無し
 
         GpuBuffer segBuf = Upload(segs, 32);
-        GpuBuffer pathBuf = Upload(paths, 64);
+        GpuBuffer pathBuf = Upload(paths, GpuPath.SizeBytes);
         GpuBuffer tfBuf = Upload(transforms, 32);
         GpuBuffer styBuf = Upload(styles, 16);
         GpuBuffer clipBuf = Upload(clips, 16);

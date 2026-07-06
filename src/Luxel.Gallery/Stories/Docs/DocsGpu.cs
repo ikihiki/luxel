@@ -119,6 +119,24 @@ public static class DocsGpu
 
         {{StoryRef(ctx, "Demos/TwoD/CameraRig")}}
 
+        ## スプライトアトラス — 1 テクスチャに複数スプライト
+
+        2D ゲームの素材は 1 枚のアトラス (テクスチャに複数スプライトを詰めた画像) に UV 矩形で参照するのが定石です。`SpriteAtlas` は名前 → `SpriteRect` (px 矩形 + ピボット) の辞書を持ち、JSON 定義 (`SpriteAtlas.FromJson`、リソース DAG なら `resources.Load<SpriteAtlas>("sprites.atlas.json")`) から読みます。テクスチャを密 (行ピッチ = 幅) に bindless バッファへ上げたら `Bind(srcIndex, atlasW, atlasH)` で GPU 情報を注入し、`scene.DrawSprite(atlas, "player_idle_0", x, y, scale)` でピボットを (x,y) に合わせて描きます。フレーム列は `SpriteAnimation` (名前プレフィクス + fps、固定 dt 積算で決定的) が現フレーム名を返します。
+
+        ```csharp
+        SpriteAtlas atlas = SpriteAtlas.FromJson(json);   // { "texture":"...", "sprites": { "run_0": {"x":0,"y":0,"w":32,"h":32,"px":16,"py":32} } }
+        atlas.Bind(atlasBuf.BindlessIndex, atlasW, atlasH);
+        scene.DrawSprite(atlas, "run_0", 100, 200, scale: 2f);
+
+        var anim = new SpriteAnimation("run_", frameCount: 6, fps: 12f);
+        anim.Update(dt);                                  // 固定 dt を積算 (wall-clock 禁止)
+        scene.DrawSprite(atlas, anim, playerX, playerY);  // 現フレームを描く
+        ```
+
+        GPU 側は `GpuPath` の image シェイプ (`ImageSubRect`) がアトラスの**サブ矩形**を直接サンプリングします — `srcStride` = アトラス全幅 (行ピッチ)、`srcX/srcY` = サブ矩形原点、`srcW/srcH` = サイズ。clamp 付きサンプリングでサブ矩形境界に閉じるため、隣接スプライトへ滲みません (1:1 表示は nearest 相当)。image シェイプは GPU 専用 (Skia CPU バックエンドは非対応) です。
+
+        {{StoryRef(ctx, "Demos/TwoD/Sprites")}}
+
         ## RetainedCanvas — 保持型ツリーと部分更新
 
         UI ライブラリのバックエンドとして、フレーム間で保持するノードツリーを提供します。データは SoA (Transform / Style / Clip / Order / Segment を分離) で、シェーダが per-path 変換を適用するため **移動 = 変換だけ書込、色変更 = スタイルだけ書込** (ジオメトリ不変) になります。

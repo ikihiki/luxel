@@ -37,15 +37,17 @@ internal struct GpuSegment   // 32 バイト
 }
 
 [StructLayout(LayoutKind.Sequential)]
-internal struct GpuPath       // 64 バイト
+internal struct GpuPath       // 72 バイト
 {
     public uint SegStart, SegCount, TransformSlot, StyleSlot;
     public uint FillRule, Kind, ClipSlot, SrcIndex;   // ClipSlot=0xFFFFFFFF で無し。Kind: 0=fill 1=stroke 2=image
     public float BMinX, BMinY, BMaxX, BMaxY;           // ローカル bbox (変換前)。image は UV 矩形を兼ねる
     public float StrokeHalfWidth;
-    public uint SrcStride, SrcW, SrcH;                 // image 用: ソース bindless バッファの行ピッチ(px)/寸法
+    public uint SrcStride, SrcW, SrcH;                 // image 用: ソース bindless バッファの行ピッチ(px)/サンプリング寸法
+    public uint SrcX, SrcY;                            // image 用: アトラス原点オフセット(px)。0 = バッファ先頭 (全画像)
 
     public const uint NoClip = 0xFFFFFFFF;
+    public const int SizeBytes = 72;
 }
 
 [StructLayout(LayoutKind.Sequential)]

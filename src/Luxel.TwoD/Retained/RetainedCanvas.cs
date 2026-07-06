@@ -156,7 +156,7 @@ public sealed class RetainedCanvas : IDisposable
         if (LastWasFullRebuild)
         {
             c.Add(new("upload", $"segments[{_segments.Count}]  {_segments.Count * 32}B"));
-            c.Add(new("upload", $"paths[{_paths.Count}]  {_paths.Count * 64}B"));
+            c.Add(new("upload", $"paths[{_paths.Count}]  {_paths.Count * GpuPath.SizeBytes}B"));
             c.Add(new("upload", $"transforms[{_transforms.Count}]  {_transforms.Count * 32}B"));
             c.Add(new("upload", $"styles[{_styles.Count}]  {_styles.Count * 16}B"));
             c.Add(new("upload", $"clips[{_clips.Count}]  {_clips.Count * 16}B"));
@@ -203,7 +203,7 @@ public sealed class RetainedCanvas : IDisposable
                 / System.Diagnostics.Stopwatch.Frequency;
             TotalRebuilds++;
             TotalRebuildMicros += LastRebuildMicros;
-            TotalUploadBytes += _segments.Count * 32L + _paths.Count * 64L + _transforms.Count * 32L
+            TotalUploadBytes += _segments.Count * 32L + _paths.Count * (long)GpuPath.SizeBytes + _transforms.Count * 32L
                 + _styles.Count * 16L + _clips.Count * 16L + _order.Count * 4L;
             EmitFlush(width, height);
             return;
@@ -292,7 +292,7 @@ public sealed class RetainedCanvas : IDisposable
         }
         LastContentWrites++;
         LastSegmentBytesWritten += segs.Length * 32L;
-        TotalUploadBytes += segs.Length * 32L + paths.Length * 64L;
+        TotalUploadBytes += segs.Length * 32L + paths.Length * (long)GpuPath.SizeBytes;
         return true;
     }
 
@@ -359,7 +359,7 @@ public sealed class RetainedCanvas : IDisposable
         {
             DisposeBuffers();
             _seg = _raster.Upload(_segments.Count > 0 ? _segments.ToArray() : new GpuSegment[1], 32);
-            _path = _raster.Upload(_paths.Count > 0 ? _paths.ToArray() : new GpuPath[1], 64);
+            _path = _raster.Upload(_paths.Count > 0 ? _paths.ToArray() : new GpuPath[1], GpuPath.SizeBytes);
             _tf = _raster.Upload(_transforms.ToArray(), 32);
             _sty = _raster.Upload(_styles.ToArray(), 16);
             _clip = _raster.Upload(_clips.Count > 0 ? _clips.ToArray() : new GpuClip[1], 16);

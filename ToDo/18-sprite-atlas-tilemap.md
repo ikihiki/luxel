@@ -54,6 +54,38 @@
 - ピクセルアート想定のサンプリング (nearest) が Image シェイプで選べるか確認 — 選べなければ v1 は linear のみで割り切り、Docs に注記 (シェーダ側 sampler の話になるので改修は別判断)。
 - golden 用アセットは assets/ に置き goldens/ と分離 (既存規約)。
 
+## 進捗 (2026-07-06)
+
+**ステップ 1-2 (スプライトアトラス) 完了。ステップ 3-6 (タイルマップ) は未着手。**
+
+### 完了 (この MD はまだ削除しない)
+
+- **プリミティブ拡張 (前提の穴を埋めた)**: 概要は「Image シェイプがサブ矩形をサポート」と書いていたが、実際は
+  `srcStride`(行ピッチ) はあっても**ソース原点オフセットが無く**、アトラス左上以外のサブ矩形を取れなかった。
+  `GpuPath` (64→72B) と両シェーダ (`raster2d_fine.slang` / `raster2d_bounds.slang`) に `srcX/srcY`(texel) を追加。
+  clamp が sub-rect 境界で効くので**隣接スプライトへ滲まない** (gutter 不要)。既存 fill/stroke/image は srcX=srcY=0 で
+  従来と bit 一致 → **既存 golden は全て無変更** (vk e2e 58/58, diff 0 で確認済み)。パスストライドは `GpuPath.SizeBytes` に集約。
+- **データ層** ([src/Luxel.TwoD/SpriteAtlas.cs](../src/Luxel.TwoD/SpriteAtlas.cs)): `SpriteRect`(x,y,w,h,pivot) /
+  `SpriteAtlas`(名前→矩形 + `FromJson` + `Bind(srcIndex,w,h)` で GPU 情報注入、GPU 非依存でロード/テスト可) /
+  `SpriteAtlasStep`(byte[] JSON→SpriteAtlas のリソースステップ、Executor.Cpu)。Luxel.TwoD に Luxel.Resources 参照を追加。
+- **アニメ + 描画** ([SpriteAnimation.cs](../src/Luxel.TwoD/SpriteAnimation.cs)): `SpriteAnimation`(プレフィクス+fps、固定 dt 積算で決定的、
+  `FrameAt` 純関数)。`Scene2D.ImageSubRect` (サブ矩形描画口) + `Scene2D.DrawSprite(atlas,name/anim,x,y,scale)`(ピボット合わせ)。
+- **テスト**: [tests/Luxel.Tests/SpriteAtlasTests.cs](../tests/Luxel.Tests/SpriteAtlasTests.cs) 15 本 (JSON パース/ピボット既定/DestRect/
+  ImageSubRect の GPU エンコード検証/アニメのループ巡回・非ループ飽和・境界)。単体 662 passed。
+- **デモ + Docs**: [SpriteStory.cs](../src/Luxel.Gallery/Stories/SpriteStory.cs) `Demos/TwoD/Sprites` (手続きアトラス =
+  外部アセット不要・決定的。4 セルを別スプライトとして拡大 + フィルムストリップ + SpriteAnimation 現フレーム)。golden = `Demos_TwoD_Sprites.vk.png`。
+  Docs は [DocsGpu.cs](../src/Luxel.Gallery/Stories/Docs/DocsGpu.cs) に「スプライトアトラス」節を追加。
+
+### 残り (次セッション)
+
+- **ステップ 3**: `TileSet` (SpriteAtlas + タイルサイズ + id→スプライト名/衝突フラグ) / `TileMap` (int グリッド + TileSet) +
+  チャンク分割描画 (1 チャンク = UiNode、可視チャンクのみ実体化) + `SetTile` の dirty 判定。
+- **ステップ 4**: `TileMap.QueryAabb(rect)` / `Sweep(aabb,delta)` の物理非依存 AABB グリッドクエリ + テスト。
+- **ステップ 5 (余力)**: Tiled `.tmj` 最小 import (タイルレイヤ 1 枚 + tileset 参照)。
+- **ステップ 6**: `Demos/TwoD/Tilemap` デモ + Docs 追記 + golden。
+- **注意**: `srcX/srcY` を使うので各タイル = bbox が実クオド (過大 bbox にならず) → チャンク描画でタイルビニングが効く。
+  スプライトのピボット/`SpriteAtlas` 資産はそのままタイルに流用可。全ステップ完了で初めてこの MD を削除。
+
 ## スコープ外
 
 - 自動アトラスパッカー、isometric/hex、Tiled のオブジェクトレイヤ/無限マップ、2D 専用物理エンジン、マップエディタ内製。

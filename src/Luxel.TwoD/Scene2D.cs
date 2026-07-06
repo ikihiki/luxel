@@ -38,6 +38,7 @@ public sealed class Scene2D
         public FillRule Rule;
         public float StrokeWidth;
         public uint SrcIndex, SrcStride, SrcW, SrcH;   // Image 用 (bindless バッファソース)
+        public uint SrcX, SrcY;                        // Image 用: アトラス原点オフセット(px, texel)
         /// <summary>true = 保持型キャンバスでノード色に畳まれず自分の色で描かれる (カラー絵文字のレイヤ等)。</summary>
         public bool AbsoluteColor;
         public readonly List<Contour> Contours = new();
@@ -153,6 +154,43 @@ public sealed class Scene2D
         MoveTo(x, y); LineTo(x + w, y); LineTo(x + w, y + h); LineTo(x, y + h); Close();
         return End();
     }
+
+    /// <summary>アトラス (1 バッファに複数スプライトを詰めた RGBA8 画像) の**サブ矩形**を dest 矩形へサンプリングして描く。
+    /// <paramref name="srcStride"/> = アトラス全幅 (px, 行ピッチ)。(<paramref name="srcX"/>,<paramref name="srcY"/>) =
+    /// サブ矩形の左上 texel、(<paramref name="srcW"/>,<paramref name="srcH"/>) = サブ矩形サイズ。
+    /// サンプリングは clamp 付き bilinear で、隣接スプライトへ漏れない (1:1 表示は nearest 相当)。
+    /// ソースは premultiplied RGBA (透過キャンバス出力、または <c>SpriteAtlas</c> の GPU アップロード) 前提。</summary>
+    public Scene2D ImageSubRect(uint srcIndex, uint srcStride, uint srcX, uint srcY, uint srcW, uint srcH,
+                                float x, float y, float w, float h)
+    {
+        FlushContour();
+        _shape = new Shape
+        {
+            Kind = PaintKind.Image,
+            Color = Color2D.White,
+            SrcIndex = srcIndex,
+            SrcStride = srcStride,
+            SrcW = srcW,
+            SrcH = srcH,
+            SrcX = srcX,
+            SrcY = srcY,
+        };
+        MoveTo(x, y); LineTo(x + w, y); LineTo(x + w, y + h); LineTo(x, y + h); Close();
+        return End();
+    }
+
+    /// <summary>アトラスのスプライト <paramref name="name"/> を、ピボットが (<paramref name="x"/>,<paramref name="y"/>) に
+    /// 合うよう <paramref name="scale"/> 倍で描く。<paramref name="atlas"/> は <see cref="SpriteAtlas.Bind"/> 済みであること。</summary>
+    public Scene2D DrawSprite(SpriteAtlas atlas, string name, float x, float y, float scale = 1f)
+    {
+        SpriteRect r = atlas[name];
+        return ImageSubRect(atlas.SrcIndex, atlas.SrcStride, (uint)r.X, (uint)r.Y, (uint)r.W, (uint)r.H,
+            x - r.PivotX * scale, y - r.PivotY * scale, r.W * scale, r.H * scale);
+    }
+
+    /// <summary>アニメーションの現フレーム (<see cref="SpriteAnimation.FrameName"/>) を描く (<see cref="DrawSprite"/> の糖衣)。</summary>
+    public Scene2D DrawSprite(SpriteAtlas atlas, SpriteAnimation anim, float x, float y, float scale = 1f)
+        => DrawSprite(atlas, anim.FrameName, x, y, scale);
 
     public Scene2D FillRoundedRect(uint color, float x, float y, float w, float h, float r)
         => FillRoundedRect(color, x, y, w, h, r, RectCorners.All);
