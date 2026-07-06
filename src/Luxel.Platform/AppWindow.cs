@@ -83,6 +83,10 @@ public sealed class AppWindow : IDisposable
 
     public void SetRoot(Widget root) => Host.SetRoot(root);
 
+    /// <summary>ウィンドウに閉じ要求を送る。<see cref="Run"/> は次の <c>Pump</c> でループを抜ける
+    /// (UI イベントハンドラ内から「終了」を実現するのに使う)。</summary>
+    public void Close() => _win.Close();
+
     /// <summary>キーを TSF→UI 層の順に通す (擬似自動テスト用)。TIP が消費したら true。</summary>
     public bool SimulateKey(ushort vk)
     {

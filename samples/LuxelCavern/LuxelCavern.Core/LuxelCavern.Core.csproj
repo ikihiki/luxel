@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    LuxelCavern.Core — capstone ① のゲームロジック (Platform/実窓に非依存の純ロジック)。
+    タイトル画面 UI の組み立て・ゲーム状態機械・(将来) GameScene 派生シーンを置く。
+    Gallery が本アセンブリを参照して Game/Cavern ストーリーとして play/golden を維持する予定 (ToDo 19)。
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.Controls\Luxel.Controls.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.TwoD\Luxel.TwoD.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.Typography\Luxel.Typography.csproj" />
+  </ItemGroup>
+
+</Project>

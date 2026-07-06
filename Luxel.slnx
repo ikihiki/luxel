@@ -40,6 +40,10 @@
     <Project Path="src/Luxel.Vulkan/Luxel.Vulkan.csproj" />
     <Project Path="src/Luxel/Luxel.csproj" />
   </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/LuxelCavern/LuxelCavern.Core/LuxelCavern.Core.csproj" />
+    <Project Path="samples/LuxelCavern/LuxelCavern/LuxelCavern.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Luxel.E2e.Tests/Luxel.E2e.Tests.csproj" />
     <Project Path="tests/Luxel.Tests/Luxel.Tests.csproj" />

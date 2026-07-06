@@ -81,9 +81,18 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
 - publish 検証の自動化は最低限「`dotnet publish` が成功し shaders/assets/フォントが出力に存在する」を確認するスクリプト or CI ステップ (実起動は手動スモーク)。
 - Docs/Framework (または新 Docs/Shipping ページ) に「ゲームを配布する」手順を書く — 踏んだ穴と対処がそのままドキュメントになる。
 
+## 進捗
+
+- **ステージ A 完了 (2026-07-06, Q04)**: `samples/LuxelCavern/` に骨組みを作成。
+  - `LuxelCavern.Core`: `TitleScreen.Build` (日本語タイトル + はじめる/せってい/おわる)・`GameState` enum・`CavernAssets` (exe 隣 `assets/` を `AppContext.BaseDirectory` 基準で解決)。
+  - `LuxelCavern` (WinExe): STA スレッド + backend 引数 (vk/dx) + `AppWindow` で提示。`--frames N` で N フレーム描画して自動終了 (スモーク用)。起動失敗は `cavern-crash.log` に残す。
+  - **publish チェックリスト結果**: 1 shaders ✓ / 2 assetパス(cwd 非依存) ✓ / 3 フォント同梱 ✓ / 4 ネイティブ DLL (libHarfBuzzSharp・glfw3 ✓、vulkan-1 は OS 側、ICU は Typography.Icu 非参照で不要) / 7 リポジトリ外 (`C:\Temp\cavern-test`) 起動 ✓ / 8 両バックエンド ✓。
+  - **Luxel 本体側の修正**: (a) `shaders/Luxel.Shaders.targets` に `AddCompiledShadersToPublish` を追加 — 生成シェーダはプロジェクト項目でないため publish 出力にコピーされない穴を塞いだ (エンジン全体に効く)。(b) `AppWindow.Close()` を追加 (UI ハンドラから対話ループを終了する口)。
+  - **未実施 (Stage B / Q13 で)**: Gallery `Game/Cavern` ストーリー + play/golden、単一ファイル化 (checklist 5)、%APPDATA% セーブ先 (checklist 6, ToDo 15 連動)、起動時間/exe サイズ記録 (checklist 9)、Docs「配布」節、`--devtools` (`WithDevTools`, ToDo 21/Q05)。exe サイズは self-contained で約 117MB。
+
 ## 作業ステップ
 
-1. **骨組み + publish 早回し**: タイトル画面 (日本語 1 行 + ボタン) だけの LuxelCavern を作り、publish チェックリスト 1〜4, 7, 8 を先に 1 周 (直すのは Luxel 本体側: targets / assetRoot / フォント)。
+1. **骨組み + publish 早回し**: タイトル画面 (日本語 1 行 + ボタン) だけの LuxelCavern を作り、publish チェックリスト 1〜4, 7, 8 を先に 1 周 (直すのは Luxel 本体側: targets / assetRoot / フォント)。 ← **済 (Q04)**
 2. 機能タスクの実装は各 ToDo (13→14→17→18→16→15→10 推奨順) 側で行い、完成したものからゲームへ統合。未実装機能は仮実装で先へ進んで良い (敵 AI 直書き、BGM クリップ等)。
 3. ステージ制作 (Tiled) + プレイヤー/敵/収集/セーブの組み上げ。
 4. Gallery ストーリー版の play/golden 整備。

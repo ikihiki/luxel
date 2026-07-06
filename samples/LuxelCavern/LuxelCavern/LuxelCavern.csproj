@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    LuxelCavern — スタンドアロン実行ファイル (capstone ①)。実窓・スワップチェーン提示・入力の結線だけを持つ
+    薄い層で、ゲームロジックは LuxelCavern.Core にある。ToDo 19 の publish 検証の本丸。
+    RID は publish 時に -r win-x64 で指定する (csproj には固定しない — dotnet run/build を軽く保つ)。
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AssemblyName>LuxelCavern</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LuxelCavern.Core\LuxelCavern.Core.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.Vulkan\Luxel.Vulkan.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.D3D12\Luxel.D3D12.csproj" />
+  </ItemGroup>
+
+  <!-- 同梱アセット (フォント等) を exe 隣へコピー + publish にも含める。cwd 非依存ロードの前提。 -->
+  <ItemGroup>
+    <Content Include="assets\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Slang シェーダ (Rasterizer2D 用) を出力/publish の shaders/ へ。targets 側で publish コピーも面倒を見る。 -->
+  <Import Project="..\..\..\shaders\Luxel.Shaders.targets" />
+
+</Project>

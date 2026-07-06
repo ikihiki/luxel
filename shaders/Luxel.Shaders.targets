@@ -53,4 +53,21 @@
     <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangGraphicsShader.FullPath)&quot; -target dxil -profile $(SlangDxilProfile) -fvk-use-entrypoint-name -entry vsMain -stage vertex -Xdxc -validator-version -Xdxc 1.7 -o &quot;$(OutDir)shaders\%(SlangGraphicsShader.Filename).vs.dxil&quot;" />
     <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangGraphicsShader.FullPath)&quot; -target dxil -profile $(SlangDxilProfile) -fvk-use-entrypoint-name -entry psMain -stage pixel -Xdxc -validator-version -Xdxc 1.7 -o &quot;$(OutDir)shaders\%(SlangGraphicsShader.Filename).ps.dxil&quot;" />
   </Target>
+
+  <!--
+    publish 出力への同梱 (ToDo 19)。コンパイル済みシェーダは $(OutDir)shaders に生成される「生成物」で
+    プロジェクト項目ではないため、既定では publish 出力にコピーされない。GpuShaderCode.Load は
+    実行時に $(AppContext.BaseDirectory)/shaders から読むので、publish フォルダにも配置する必要がある。
+    Build が先に走って $(OutDir)shaders を満たすため、ComputeFilesToPublish の直前に実ファイルを列挙して
+    ResolvedFileToPublish へ追加する (相対パスは shaders\ 配下に維持)。
+  -->
+  <Target Name="AddCompiledShadersToPublish" BeforeTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <_CompiledShaderToPublish Include="$(OutDir)shaders\*" />
+      <ResolvedFileToPublish Include="@(_CompiledShaderToPublish)">
+        <RelativePath>shaders\%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
 </Project>
