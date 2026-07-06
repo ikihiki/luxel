@@ -118,11 +118,21 @@ capstone との順序: **A/C/E は 19 のゲーム組み上げ前に済ませる
 - golden: **Demos/Framework/Gizmos** (Order 150) — 箱/円/線/ラベル + 無効カテゴリ非描画。単体テスト `DebugDrawTests` 7 件 (ゼロ割り当て / カテゴリ / 投影 / テキスト委譲 / Reset)。
 - 検証: build OK / test 611 passed / e2e 54 plays passed・golden diff 0 (新規 Gizmos golden 1 枚のみ) / golden 目視 OK。
 
+### 2026-07-06 (3): ステージ ② — B の 2D gizmo 完了 (Q12)
+
+**済 (Q12)**:
+- **`Gizmos2D`** (Luxel.TwoD、DebugDraw コアの上): `TileCollision(map, worldView, color)` = 表示矩形と重なる衝突タイルのワイヤ矩形 /
+  `Sweep(map, box, delta, ...)` = 開始 box + Sweep 解決 box / `CameraRig(rig, deadzoneColor, boundsColor)` = 中央デッドゾーン矩形 + WorldBounds。
+- **`ParticleGizmos.Emitter(ps, pos, color)`** (Luxel.Particles.TwoD): エミッタに十字+円マーカ + `alive N` ラベル。`ParticleSystem.EmitPosition` 公開。
+- 各ヘルパは先頭で `DebugDraw.IsEnabled(kind)` 判定 → **OFF 時は列挙/割り当てゼロ**。カテゴリ: `gizmo.tiles` / `gizmo.camera` / `gizmo.particles`。
+- テスト: `DebugDrawTests` に 4 件追記 (同クラス=静的状態を直列化。衝突タイル数=矩形数 / デッドゾーン+境界 / 境界なし / エミッタ 4 コマンド + OFF ゼロ)。計 729 passed。
+- golden: **Demos/TwoD/Gizmos2D** (Order 151) — ゲーム画面 (塗り) 下地 + 3 種 gizmo を on にした 1 枚 (Canvas2D=Skia可・決定的、worldToScreen 恒等)。e2e 64/64 diff 0。
+
 **残 (Q05 の残り — 次セッション以降)**:
 - **E (WithDevTools 統合)**: **Q13 (19 ゲーム組み上げ) と一緒にやるのが自然**と判明 — capstone サンプル (samples/LuxelCavern) は現状 `LuxelHostBuilder`/`GameScene` ではなく `AppWindow` + UI 直書きで、実ゲームループは Stage B (Q13) で作る。DevTools を実ゲームに挿すのはゲーム構造が固まる Q13 で。内容: `LuxelHostBuilder.WithDevTools(...)` (Framework を DevTools UI に結合させない配置 = 別アセンブリの拡張メソッド)、`--devtools` (内蔵) / `--devtools-port` (ブラウザ)、3D フレーム (RenderGraph) が DiagFrame に乗るか調査、publish スモーク。
 - **F (ライブビュー fps 化)**: F1 割り当て除去 (リングバッファ + 二読者所有権) → F2 内蔵版 60fps 実測 → F3 ブラウザ WebSocket push (latest-wins) → 任意 F4 MJPEG。単独で先行可。
 - **Docs**: Docs/Framework or 新 Docs/DevTools に「ゲームを観測する」節 (E/F 完了時にまとめて執筆)。DebugDraw の使い方もここへ。
-- B の機能別 gizmo (物理/カメラ/タイル) は Q12/Q14 で対象機能実装後 (この DebugDraw コアの上に載せる)。
+- B の機能別 gizmo: **2D (タイル/カメラ/エミッタ) は Q12 で完了**。**物理 gizmo (コライダーワイヤ/接触点/トリガー/CCD 色分け) はステージ③ = Q14** (03/04/05 の実装後、この DebugDraw + Gizmos2D の流儀で載せる)。
 
 ## スコープ外
 

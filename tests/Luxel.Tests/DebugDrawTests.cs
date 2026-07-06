@@ -1,4 +1,6 @@
 ﻿using System.Numerics;
+using Luxel.Particles;
+using Luxel.Particles.TwoD;
 using Luxel.TwoD;
 
 namespace Luxel.Tests;
@@ -102,5 +104,67 @@ public class DebugDrawTests
         Assert.True(DebugDraw.IsEnabled("physics"));
         DebugDraw.SetEnabled("physics", false);
         Assert.False(DebugDraw.IsEnabled("physics"));
+    }
+
+    // ---- Gizmos2D / ParticleGizmos (タスク 21 ステージ②、DebugDraw と同クラス = 静的状態を直列化) ----
+
+    private static TileMap MakeMap()
+    {
+        var atlas = new SpriteAtlas("a", [new("wall", new SpriteRect(0, 0, 16, 16))]);
+        var ts = new TileSet(atlas, 16, 16, [new(1, new TileDef("wall", Solid: true))]);
+        var map = new TileMap(8, 8, ts);
+        map.SetTile(2, 2, 1);
+        map.SetTile(3, 2, 1);   // 衝突タイル 2 個
+        return map;
+    }
+
+    [Fact]
+    public void Gizmo_TileCollision_RectPerSolidTile_ZeroWhenOff()
+    {
+        TileMap map = MakeMap();
+        Gizmos2D.TileCollision(map, new RectF(0, 0, 128, 128), 0u);   // OFF
+        Assert.Equal(0, DebugDraw.PendingCount);
+
+        DebugDraw.Enable(Gizmos2D.Tiles);
+        Gizmos2D.TileCollision(map, new RectF(0, 0, 128, 128), 0u);
+        Assert.Equal(2, DebugDraw.PendingCount);   // (2,2),(3,2) の 2 矩形
+    }
+
+    [Fact]
+    public void Gizmo_CameraRig_DeadzoneAndBounds()
+    {
+        var rig = new CameraRig2D { Deadzone = new Vector2(80, 60), WorldBounds = new RectF(0, 0, 500, 400) };
+        rig.Target = new Vector2(100, 100);
+        rig.SnapToTarget();
+        DebugDraw.Enable(Gizmos2D.Camera);
+        Gizmos2D.CameraRig(rig, 0u, 0u);
+        Assert.Equal(2, DebugDraw.PendingCount);   // デッドゾーン + 境界
+    }
+
+    [Fact]
+    public void Gizmo_CameraRig_NoBounds_OnlyDeadzone()
+    {
+        var rig = new CameraRig2D { Deadzone = new Vector2(80, 60) };   // WorldBounds = null
+        rig.Target = Vector2.Zero;
+        rig.SnapToTarget();
+        DebugDraw.Enable(Gizmos2D.Camera);
+        Gizmos2D.CameraRig(rig, 0u, 0u);
+        Assert.Equal(1, DebugDraw.PendingCount);
+    }
+
+    [Fact]
+    public void Gizmo_ParticleEmitter_MarkerAndLabel_ZeroWhenOff()
+    {
+        var ps = new ParticleSystem(
+            new ParticleConfig(Life: 1f, Speed: 0f, SpreadRadians: 0, BaseAngle: 0, Gravity: 0, Drag: 0,
+                Size: 1f, Color: ParticleColor.Const(0xFFFFFFFF)), capacity: 16, seed: 1);
+        ps.Emit(Vector3.Zero, 3);
+
+        ParticleGizmos.Emitter(ps, new Vector2(50, 50), 0u);   // OFF
+        Assert.Equal(0, DebugDraw.PendingCount);
+
+        DebugDraw.Enable(ParticleGizmos.Emitters);
+        ParticleGizmos.Emitter(ps, new Vector2(50, 50), 0u);
+        Assert.Equal(4, DebugDraw.PendingCount);   // 円 + 十字 2 線 + ラベル
     }
 }

@@ -62,6 +62,9 @@ public sealed class ParticleSystem
     /// <summary>毎ステップ積分前に速度等を加工するフック (省略可)。</summary>
     public ParticleForce? Forces { get; set; }
 
+    /// <summary>連続放出の現在位置 (<see cref="SetEmission"/> で設定。gizmo/診断用)。</summary>
+    public Vector3 EmitPosition => _emitPos;
+
     /// <summary>指定位置から <paramref name="count"/> 個を即時放出する (容量超過分は無視 — 発生順を崩さない)。
     /// <paramref name="tint"/> は per-particle 色 (設定色に乗算、既定 白 = 変化なし) — 1 システムから色違いのバーストを出せる。</summary>
     public void Emit(Vector3 pos, int count, uint tint = 0xFFFFFFFF)
