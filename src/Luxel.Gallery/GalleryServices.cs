@@ -36,6 +36,12 @@ public static class GalleryServices
         "Luxel.UI.Tailwind",
     ];
 
+    /// <summary>UI (Widget を返す) スクリプトの役割名。</summary>
+    public const string UiProfile = "ui";
+
+    /// <summary>UI スクリプトのプロファイル (docs/Gallery のライブブロック用)。</summary>
+    private static ScriptProfile UiScriptProfile => new(UiProfile, Refs, Usings, typeof(ScriptGlobals));
+
     private static readonly Lazy<IServiceProvider> Lazy = new(Build);
 
     /// <summary>プロセス共有のサービスプロバイダ (初回参照で構築 — ScriptHost 初回コンパイルは 1-2 秒)。</summary>
@@ -43,10 +49,15 @@ public static class GalleryServices
 
     private static IServiceProvider Build()
     {
+        // 役割ごとの ScriptHost を束ねる登録簿 (UI 用をここで、ゲーム/ECS 用は各機能側が GetOrAdd で足す)。
+        var registry = new ScriptHostRegistry();
+        registry.Register(UiScriptProfile);
+
         var services = new ServiceCollection();
-        services.AddSingleton(_ => new ScriptHost(Refs, Usings, typeof(ScriptGlobals)));
-        services.AddSingleton(_ => new ScriptWorkspace(Refs, Usings));
-        // 言語サービス (CodeEditor 用) — ScriptWorkspace を包む。ICodeLanguage で解決させる
+        services.AddSingleton(registry);
+        // 既存ストーリー互換: ScriptHost/ScriptWorkspace/ICodeLanguage は UI プロファイルへ解決
+        services.AddSingleton(sp => sp.GetRequiredService<ScriptHostRegistry>().Host(UiProfile));
+        services.AddSingleton(sp => sp.GetRequiredService<ScriptHostRegistry>().Workspace(UiProfile));
         services.AddSingleton<ICodeLanguage>(sp => new Luxel.Gallery.Stories.CsharpCodeLanguage(sp.GetRequiredService<ScriptWorkspace>()));
         return services.BuildServiceProvider();
     }

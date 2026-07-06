@@ -310,10 +310,13 @@ public static class DocsRuntime
         安全性が最重要です。`World.AddSystem` は削除できないので **安定ラッパ system を 1 回だけ `Attach` し、reload は現在のデリゲート束を差し替えるだけ**。コンパイル失敗・実行時例外が出ても**旧ロジックを動かし続け**、診断 (行番号付き) を `LastResult`/`RuntimeException` に公開します — 編集ミスでゲームが止まりません。
 
         ```csharp
-        var script = new ScriptSystem(host, new FileScriptSource("enemy.csx"), new ScriptGameGlobals(Log));
+        ScriptHost host = registry.GetOrAdd(new ScriptProfile("ecs", Refs, Usings, typeof(MyGameApi)));
+        var script = new ScriptSystem(host, new FileScriptSource("enemy.csx"), new MyGameApi(Log));
         script.Attach(world, () => _dt);   // 安定ラッパを Update/LateUpdate/FixedUpdate へ
         // フレーム先頭で: script.PollReload();   // 変更があれば安全に差し替え
         ```
+
+        ゲームは役割ごとに**別のスクリプト方言**を持ちます (ECS ロジック用・UI 用など — 使える参照/using と globals 型が違う)。`ScriptProfile` (参照 + using + globals 型) を `ScriptHostRegistry` に役割名で登録すると、役割ごとの `ScriptHost` / `ScriptWorkspace` (補完用) が遅延生成・キャッシュされます。DI で登録簿 1 個を共有すれば、各システム/ストーリーが `static Lazy<ScriptHost>` を個別に抱えずに済みます。
 
         > [!NOTE]
         > 編集ごとのアセンブリはプロセス終了まで残ります (collectible AssemblyLoadContext は将来枠)。高頻度リロードのデモではメモリが伸びます。

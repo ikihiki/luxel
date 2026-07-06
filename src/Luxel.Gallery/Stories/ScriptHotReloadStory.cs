@@ -28,16 +28,19 @@ public static class ScriptHotReloadStory
         public BoxState Box { get; } = new();
     }
 
-    // ゲームスクリプト用 ScriptHost (UI 用とは別 globals 型)。初回コンパイルは重いので Lazy で共有。
-    private static readonly Lazy<ScriptHost> GameHost = new(() => new ScriptHost(
-        references:
+    // ゲームスクリプト用の**プロファイル** (UI 用とは別 refs/usings/globals)。ScriptHost 実体は
+    // 共有の ScriptHostRegistry (DI) が役割名で遅延生成/キャッシュする — ストーリー static は持たない。
+    private const string GameProfile = "hotreload.box";
+    private static ScriptProfile BoxProfile() => new(
+        GameProfile,
+        References:
         [
             typeof(object).Assembly, typeof(Enumerable).Assembly,
             typeof(World).Assembly, typeof(Friflo.Engine.ECS.Entity).Assembly,
             typeof(GpuDevice).Assembly, typeof(ScriptGameGlobals).Assembly, typeof(BoxGlobals).Assembly,
         ],
-        usings: ["System", "Luxel.Ecs", "Luxel.Scripting.Framework"],
-        globalsType: typeof(BoxGlobals)));
+        Usings: ["System", "Luxel.Ecs", "Luxel.Scripting.Framework"],
+        GlobalsType: typeof(BoxGlobals));
 
     private const int Steps = 40;
     private const float StartX = 18f, BoxY = 40f, BoxSize = 22f, CanvasW = 300, CanvasH = 96;
@@ -59,7 +62,7 @@ public static class ScriptHotReloadStory
         internal float BoxX { get; private set; }
         internal bool HasError => _sys.HasError;
 
-        public HotReloadBlock(float maxW)
+        public HotReloadBlock(float maxW, ScriptHostRegistry scripts)
         {
             _maxW = maxW;
             _code = new Signal<string>(InitialCode);
@@ -67,7 +70,8 @@ public static class ScriptHotReloadStory
             (_, _, _, _editor.MonoFont) = EditorFaces.Value;
             _editor.Highlighter = Luxel.Highlight.TextMateHighlighter.Instance;
             _source = new MemoryScriptSource(_code.Value);
-            _sys = new ScriptSystem(GameHost.Value, _source, _globals);   // 初回コンパイル
+            // ゲーム用 ScriptHost は登録簿から役割で取得 (未登録なら登録して構築)。
+            _sys = new ScriptSystem(scripts.GetOrAdd(BoxProfile()), _source, _globals);
             ApplyButton = Button(_ => Apply(), "Apply");
             Simulate();
         }
@@ -123,9 +127,9 @@ public static class ScriptHotReloadStory
     }
 
     [Story("Demos/Scripting/HotReload", Height = 420, Order = 2035)]
-    public static Widget HotReload(StoryContext ctx)
+    public static Widget HotReload(StoryContext ctx, ScriptHostRegistry scripts)
     {
-        var block = new HotReloadBlock(460);
+        var block = new HotReloadBlock(460, scripts);
 
         ctx.Play(async d =>
         {
