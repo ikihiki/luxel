@@ -223,7 +223,9 @@ public static class DocsRuntime
 
         **アプリ設定** は `SettingsStore.LoadFrom(files, "settings.json")` で読み、`store.Get<T>(key, fallback)` が **`Signal<T>` を返す**のが肝です。設定画面の Slider/Switch にそのまま双方向バインドでき、購読側 (音量 → AudioMixer 等) も `Reactive.Effect` で反応します。`Save()` (または `AutoSave`) でファイルへ書き出し、破損 JSON はパース失敗時に既定値で起動 + `.bak` 退避します (設定破損でゲームが起動しないのを防ぐ)。[Demos/Framework/Settings](story:Demos/Framework/Settings) で保存値 (音量 0.65 / フルスクリーン on) が反映される様子を見られます。
 
-        **DI 統合 (Microsoft.Extensions.Options)**: `LuxelHostBuilder.WithSettings("MyGame")` で保存先 `%APPDATA%/MyGame` の設定ストアを DI 登録し、`ConfigureServices(s => s.AddSettingsOptions<GraphicsSettings>("graphics"))` で設定 POCO を束ねると、任意のサービスが `IOptions<GraphicsSettings>` / `IOptionsMonitor<GraphicsSettings>` を注入して値を読めます (`OnChange` で変更通知)。書き込みたい側は同じキーの `Signal<GraphicsSettings>` を注入します。設定の読み口は標準の Options パターン、書き口とファイル永続化は SettingsStore、と役割が分かれます。
+        **読み込みは .NET 標準 Configuration**: 値は `Microsoft.Extensions.Configuration` (JSON ファイル + 環境変数 + コマンドライン) のレイヤで読みます。優先順は **保存済みファイル < 環境変数 (`Graphics__Quality=3`) < コマンドライン (`--Graphics:Quality=3`)** で、ops による上書きが効きます。`LuxelHostBuilder.WithSettings("MyGame", envPrefix: "MYGAME_")` は保存先 `%APPDATA%/MyGame` のファイルを最下層に、環境変数/引数を上層に重ねた config を組みます (非ホストアプリは `LuxelConfiguration.Build(files, ...)` で同じものを作れます)。書き込み (UI での変更) はファイルへ戻り、環境変数は読み取り時の上書きレイヤとして常に勝ちます。
+
+        **DI 統合 (Microsoft.Extensions.Options)**: `ConfigureServices(s => s.AddSettingsOptions<GraphicsSettings>("graphics"))` で設定 POCO を束ねると、任意のサービスが `IOptions<GraphicsSettings>` / `IOptionsMonitor<GraphicsSettings>` を注入して値を読めます (`OnChange` で変更通知)。書き込みたい側は同じキーの `Signal<GraphicsSettings>` を注入します。読み口は標準の Configuration/Options、書き口とファイル永続化は SettingsStore、と役割が分かれます。
 
         ## AppWindow — 最小構成
 

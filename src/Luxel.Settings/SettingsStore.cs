@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Luxel.UI;
+using Microsoft.Extensions.Configuration;
 
 namespace Luxel.Settings;
 
@@ -15,9 +16,10 @@ namespace Luxel.Settings;
 /// </summary>
 public sealed class SettingsStore
 {
-    private readonly IFileStore _files;
+    private readonly IFileStore _files;                            // 書き込み先 (永続化)
+    private readonly IConfiguration? _config;                      // 読み込み源 (.NET 標準: JSON + 環境変数 + cmdline)
     private readonly string _name;
-    private readonly Dictionary<string, string> _values = new();   // key → 生 JSON テキスト
+    private readonly Dictionary<string, string> _values = new();   // key → 生 JSON テキスト (書き込み側の現在値)
     private readonly Dictionary<string, object> _signals = new();  // key → Signal<T> (boxed)
     private readonly List<IDisposable> _effects = new();
 
@@ -26,10 +28,11 @@ public sealed class SettingsStore
     /// <summary>true なら値変更のたび即 <see cref="Save"/> する (既定 false = 明示保存)。</summary>
     public bool AutoSave { get; set; }
 
-    private SettingsStore(IFileStore files, string name)
+    private SettingsStore(IFileStore files, string name, IConfiguration? config = null)
     {
         _files = files;
         _name = name;
+        _config = config;
     }
 
     /// <summary>ファイルから設定を読み込んでストアを作る。破損 JSON は既定値で起動 + <c>.bak</c> 退避。</summary>
@@ -56,6 +59,35 @@ public sealed class SettingsStore
         return store;
     }
 
+    /// <summary>
+    /// **読み込みは .NET 標準の <see cref="IConfiguration"/>** から行う (JSON ファイル + 環境変数 + コマンドライン
+    /// のレイヤ — 後のプロバイダが優先)。<paramref name="config"/> が読み口、<paramref name="writeStore"/> が
+    /// <see cref="Save"/> の書き込み先。環境変数などの上書きは config 側で解決され、UI からの変更はファイルへ書き戻る。
+    /// <para><see cref="LuxelConfiguration.Build"/> で標準 config を組める。ホストでは
+    /// <c>LuxelHostBuilder.WithSettings</c> が host の <see cref="IConfiguration"/> (appsettings+env+cmdline) を使う。</para>
+    /// </summary>
+    public static SettingsStore LoadFrom(IConfiguration config, IFileStore writeStore, string fileName = "settings.json")
+        => new(writeStore, fileName, config);
+
+    /// <summary>キーの初期値を決める: config があれば .NET 標準 config (env/cmdline 込み) から束縛、
+    /// 無ければ読み込んだファイル値、どちらも無ければ <paramref name="fallback"/>。</summary>
+    private T ReadInitial<T>(string key, T fallback)
+    {
+        if (_config is not null)
+        {
+            IConfigurationSection section = _config.GetSection(key);
+            if (!section.Exists()) return fallback;
+            try { return section.Get<T>() ?? fallback; }
+            catch { return fallback; }   // 束縛失敗 (型不一致等) は既定へ
+        }
+        if (_values.TryGetValue(key, out string? raw))
+        {
+            try { return JsonSerializer.Deserialize<T>(raw, JsonOpts) ?? fallback; }
+            catch (JsonException) { return fallback; }
+        }
+        return fallback;
+    }
+
     /// <summary>キーに対応する <see cref="Signal{T}"/> を取得 (初回は登録、以降は同一インスタンス)。
     /// 保存済みの値があればそれで、無ければ <paramref name="fallback"/> で初期化する。
     /// 値変更は自動で内部状態に反映され、<see cref="AutoSave"/> なら即保存される。</summary>
@@ -63,14 +95,7 @@ public sealed class SettingsStore
     {
         if (_signals.TryGetValue(key, out object? existing)) return (Signal<T>)existing;
 
-        T initial = fallback;
-        if (_values.TryGetValue(key, out string? raw))
-        {
-            try { initial = JsonSerializer.Deserialize<T>(raw, JsonOpts)!; }
-            catch (JsonException) { initial = fallback; }   // 型不一致は既定へ
-        }
-
-        var sig = new Signal<T>(initial);
+        var sig = new Signal<T>(ReadInitial(key, fallback));
         // 値を読む effect: 初回で内部状態を初期化、以降は変更のたび追従 (+ AutoSave)
         _effects.Add(Reactive.Effect(() =>
         {

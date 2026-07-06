@@ -38,10 +38,13 @@ public sealed class LuxelHostBuilder
     private bool _useAudio;
     private Luxel.Settings.IFileStore? _settingsFiles;
     private string _settingsFileName = "settings.json";
+    private string? _settingsEnvPrefix;
+    private readonly string[] _args;
 
     private LuxelHostBuilder(string[]? args)
     {
-        _inner = Host.CreateApplicationBuilder(args ?? Array.Empty<string>());
+        _args = args ?? Array.Empty<string>();
+        _inner = Host.CreateApplicationBuilder(_args);
     }
 
     /// <summary>Host builder を作る。args は Microsoft.Extensions.Hosting の設定 (env, config) にそのまま渡る。</summary>
@@ -81,21 +84,26 @@ public sealed class LuxelHostBuilder
     public LuxelHostBuilder UseResources(string? assetRoot = null) { _assetRoot = assetRoot ?? AppContext.BaseDirectory; return this; }
 
     /// <summary>設定ストア (<see cref="Luxel.Settings.SettingsStore"/>) を DI に登録する。保存先は
-    /// <c>%APPDATA%/<paramref name="appName"/></c> (実ファイル)。後は <c>ConfigureServices</c> で
-    /// <c>services.AddSettingsOptions&lt;T&gt;("key")</c> すると <c>IOptions&lt;T&gt;</c>/<c>IOptionsMonitor&lt;T&gt;</c> で注入できる。</summary>
-    public LuxelHostBuilder WithSettings(string appName, string fileName = "settings.json")
+    /// <c>%APPDATA%/<paramref name="appName"/></c> (実ファイル)。**読み込みは .NET 標準 config** —
+    /// 保存済み JSON &lt; 環境変数 (<paramref name="envPrefix"/> 付き) &lt; コマンドライン の順で上書きされる。
+    /// 後は <c>ConfigureServices</c> で <c>services.AddSettingsOptions&lt;T&gt;("key")</c> すると
+    /// <c>IOptions&lt;T&gt;</c>/<c>IOptionsMonitor&lt;T&gt;</c> で注入できる。</summary>
+    public LuxelHostBuilder WithSettings(string appName, string fileName = "settings.json", string? envPrefix = null)
     {
         string root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), appName);
         _settingsFiles = new Luxel.Settings.PhysicalFileStore(root);
         _settingsFileName = fileName;
+        _settingsEnvPrefix = envPrefix;
         return this;
     }
 
-    /// <summary>設定ストアを指定 <see cref="Luxel.Settings.IFileStore"/> で登録する (テストのインメモリ等)。</summary>
-    public LuxelHostBuilder WithSettings(Luxel.Settings.IFileStore files, string fileName = "settings.json")
+    /// <summary>設定ストアを指定 <see cref="Luxel.Settings.IFileStore"/> で登録する (テストのインメモリ等)。
+    /// 読み込みは同様に .NET 標準 config (ファイル &lt; 環境変数 &lt; cmdline)。</summary>
+    public LuxelHostBuilder WithSettings(Luxel.Settings.IFileStore files, string fileName = "settings.json", string? envPrefix = null)
     {
         _settingsFiles = files;
         _settingsFileName = fileName;
+        _settingsEnvPrefix = envPrefix;
         return this;
     }
 
@@ -167,9 +175,15 @@ public sealed class LuxelHostBuilder
         // UiRegistry — 複数 UiHost を DevTools が一括で見られるよう登録簿を提供
         _inner.Services.AddSingleton<UiRegistry>();
 
-        // 設定ストア (指定時) — 値は ConfigureServices の AddSettingsOptions<T> で IOptions 化できる
+        // 設定ストア (指定時) — 読み込みは .NET 標準 config (ファイル < 環境変数 < cmdline)。
+        // 書き込みは指定 IFileStore。値は ConfigureServices の AddSettingsOptions<T> で IOptions 化できる。
         if (_settingsFiles is not null)
-            Luxel.Settings.SettingsServiceCollectionExtensions.AddLuxelSettings(_inner.Services, _settingsFiles, _settingsFileName);
+        {
+            var settingsConfig = Luxel.Settings.LuxelConfiguration.Build(
+                _settingsFiles, _settingsFileName, _settingsEnvPrefix, _args);
+            Luxel.Settings.SettingsServiceCollectionExtensions.AddLuxelSettings(
+                _inner.Services, settingsConfig, _settingsFiles, _settingsFileName);
+        }
 
         // SceneLoopServices — Scene の ctor に渡す (device / resources / audio / input の束)
         _inner.Services.AddSingleton(sp => new SceneLoopServices(

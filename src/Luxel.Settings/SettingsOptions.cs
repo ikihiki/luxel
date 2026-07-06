@@ -1,4 +1,5 @@
 ﻿using Luxel.UI;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -42,11 +43,22 @@ public sealed class SignalOptionsMonitor<T> : IOptionsMonitor<T>, IOptions<T> wh
 /// <summary>設定 (<see cref="SettingsStore"/> + Options) の DI 登録拡張。</summary>
 public static class SettingsServiceCollectionExtensions
 {
-    /// <summary><see cref="SettingsStore"/> を singleton 登録する (指定 <see cref="IFileStore"/> + ファイル名から読み込み)。</summary>
+    /// <summary><see cref="SettingsStore"/> を singleton 登録する (指定 <see cref="IFileStore"/> のファイルから読み込み)。
+    /// 環境変数などの .NET 標準 config を効かせたい場合は <see cref="AddLuxelSettings(IServiceCollection, IConfiguration, IFileStore, string)"/> を使う。</summary>
     public static IServiceCollection AddLuxelSettings(
         this IServiceCollection services, IFileStore files, string fileName = "settings.json")
     {
         services.AddSingleton(_ => SettingsStore.LoadFrom(files, fileName));
+        return services;
+    }
+
+    /// <summary><see cref="SettingsStore"/> を singleton 登録する。**読み込みは .NET 標準の <see cref="IConfiguration"/>**
+    /// (JSON + 環境変数 + cmdline)、書き込みは <paramref name="writeStore"/>。<see cref="LuxelConfiguration.Build"/> や
+    /// ホストの <c>builder.Configuration</c> を <paramref name="config"/> に渡す。</summary>
+    public static IServiceCollection AddLuxelSettings(
+        this IServiceCollection services, IConfiguration config, IFileStore writeStore, string fileName = "settings.json")
+    {
+        services.AddSingleton(_ => SettingsStore.LoadFrom(config, writeStore, fileName));
         return services;
     }
 

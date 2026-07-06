@@ -9,6 +9,12 @@
     <!-- 設定値を DI で取れるよう Microsoft.Extensions.Options / DI に対応 (Hosting と同じ 9.0.0) -->
     <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <!-- 読み込みは .NET 標準の Configuration (JSON + 環境変数 + コマンドライン のレイヤ) を採用 -->
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="9.0.0" />
   </ItemGroup>
 
   <PropertyGroup>
