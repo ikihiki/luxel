@@ -148,8 +148,19 @@ public static class DocsRuntime
 
         `Load<AudioClip>("bgm.ogg")` で Resources 経由のロード/キャッシュに乗ります。対応形式は WAV / OGG (NAudio.Vorbis によるデコード)。
 
+        ## ストリーミング再生 (StreamingVoice)
+
+        BGM のような長尺音源は全展開せず**デコードしながら再生**します。`IAudioStream` (`int Read(Span<float>)`、インターリーブ float) を `StreamingVoice` に渡し、毎 Tick `Pump()` を呼ぶと「キュー深さ &lt; 3 まで 100ms チャンクをデコードして submit」する方式で供給します (Strudel の StreamMixerSink と同じ骨格、専用スレッド不要)。WAV は依存なしの自前パーサ `WavStream` (16bit PCM / 32bit float)、ループは `LoopingStream` でラップします。
+
+        ```csharp
+        var stream = new LoopingStream(WavStream.Open("bgm.wav"));   // 継ぎ目なくループ
+        var bgm = new StreamingVoice(backend, stream);
+        // フレームループ / AddAnimation から毎 Tick:
+        bgm.Pump();                                                  // キューを補充 (終端で自動停止)
+        ```
+
         > [!NOTE]
-        > 現状は 16bit PCM の全展開クリップのみ (ストリーミングと Doppler は将来枠)。Tick/Update を呼ばないと Signal の変更が voice に反映されません。
+        > SFX は全展開クリップ (`AudioClip`)、BGM は `StreamingVoice`。Doppler と mp3 は将来枠。Tick/Update/Pump を呼ばないと Signal の変更やキュー補充が反映されません。
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/Framework", Order = 54)]
