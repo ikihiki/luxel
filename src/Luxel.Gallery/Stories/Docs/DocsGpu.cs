@@ -178,6 +178,12 @@ public static class DocsGpu
 
         {{StoryRef(ctx, "Demos/TwoD/Particles")}}
 
+        3D は `Luxel.Particles.ThreeD` の `ParticleBillboards` — 生存パーティクルを `RenderBuffer<T>` の instance 配列に詰め、`billboard.slang` が SV_InstanceID から各粒子をカメラ向きの quad (right/up 軸で展開) に開きます。深度テストあり・書き込み無し + アルファブレンドで、描画順は発生順 (半透明ソートは v1 でやらない割り切り)。`Spherical: true` の設定で +Y 軸まわりの円錐 (π で全球) に 3D 放出します。
+
+        設定は JSON からも読めます (`ParticleConfigJson.FromJson`、リソース DAG なら `resources.Load<ParticleConfig>("explosion.particle.json")`)。DAG の watch/reload に乗るので「JSON 保存 → 実行中のゲームでエフェクトが変わる」ライブ編集が既存機構のタダ乗りで成立します。
+
+        {{StoryRef(ctx, "Demos/3D/Particles")}}
+
         ## RetainedCanvas — 保持型ツリーと部分更新
 
         UI ライブラリのバックエンドとして、フレーム間で保持するノードツリーを提供します。データは SoA (Transform / Style / Clip / Order / Segment を分離) で、シェーダが per-path 変換を適用するため **移動 = 変換だけ書込、色変更 = スタイルだけ書込** (ジオメトリ不変) になります。

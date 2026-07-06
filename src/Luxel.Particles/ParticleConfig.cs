@@ -46,4 +46,5 @@ public sealed record ParticleConfig(
     float Drag,
     ParticleValue Size,
     ParticleColor Color,
-    ParticleShape Shape = ParticleShape.Quad);
+    ParticleShape Shape = ParticleShape.Quad,
+    bool Spherical = false);

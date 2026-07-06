@@ -71,7 +71,19 @@ public record ParticleConfig(
 
 ## 進捗 (2026-07-06)
 
-**コア + .TwoD 完了。.ThreeD / JSON 資産 / ParticleView / Breakout dogfood は次セッション。**
+**コア + .TwoD + .ThreeD + JSON 資産 完了。残り: ParticleView [UiComponent] + Breakout dogfood (最終セッション)。**
+
+### 完了 (第 2 セッション: .ThreeD + JSON)
+
+- **`.ThreeD` ビルボード** ([ParticleBillboards.cs](../src/Luxel.Particles.ThreeD/ParticleBillboards.cs)): 生存を `RenderBuffer<Instance>` (32B) に詰め、
+  **`shaders/billboard.slang`** が SV_InstanceID から 6 頂点 quad をカメラ right/up 軸で展開 (ソフト円、straight alpha)。
+  深度テストあり・書き込み無し + AlphaBlend、発生順描画 (ソートなし)。`CameraAxes(eye,target)` で OrbitCamera のスクリーン軸。
+  球面放出は `ParticleConfig.Spherical` (+Y 軸円錐、π で全球) を追加 — `SpawnOne` に分岐。デモ Demos/3D/Particles (vk golden)。
+- **JSON 資産化** ([ParticleConfigJson.cs](../src/Luxel.Particles/ParticleConfigJson.cs)): `FromJson`/`ToJson` 往復 (ParticleValue は数値/const/range/curve、
+  色は `#RRGGBBAA`、ease 名) + `ParticleConfigStep` (リソースステップ)。Luxel.Particles に Resources 参照追加。
+- テスト +4 (球面放出 / CameraAxes 直交 / JSON 往復 / hex 色)。計 701 passed。Docs/Gpu パーティクル節に 3D/JSON 追記。
+
+### 完了 (第 1 セッション: コア + .TwoD)
 
 ### 完了 (この MD はまだ削除しない)
 
@@ -88,13 +100,12 @@ public record ParticleConfig(
   (バースト爆発 + 連続噴水、固定シード + 固定 dt で事前ステップ、vk golden)。Docs/Gpu に「パーティクル」節。
 - プロジェクトは `Luxel.slnx` + Gallery/Tests に配線済み。
 
-### 残り (次セッション)
+### 残り (最終セッション)
 
-- **`.ThreeD` ビルボード** (方針 2b): `ParticleInstanceData` を `RenderBuffer<T>` に詰め、**ビルボード Slang シェーダ 1 本**
-  (カメラ right/up で quad 展開、vk/dx ピクセル一致) で RenderGraph 1 パス描画。球面放出 (現状 SpawnOne は XY 平面固定 — `VelZ=0` の箇所) を .ThreeD 用に足す。深度ソート/フェードはやらない。Demos/ThreeD/Particles。
-- **JSON 資産化** (方針 3): `ParticleConfig.FromJson`/`ToJson` (ParticleValue/Color/Shape のエンコード) + リソースステップ。往復単体テスト。
 - **`ParticleView` [UiComponent]** (方針 2): AddAnimation で Tick 駆動する widget ラッパ (Reference/Overview golden 更新対象)。
-- **BreakoutStory の dogfooding 置換**: ad hoc パーティクルを新 `ParticleSystem` に置換 (golden 差分は同等なら update)。
+  `ParticleNode` を UI ツリー/ストーリーから使えるようにする薄いラッパ。
+- **BreakoutStory の dogfooding 置換**: ad hoc パーティクル (`Particle struct` + `List` + `StepParticles`) を新 `ParticleSystem` +
+  `ParticleNode` に置換 ([src/Luxel.Gallery/Stories/BreakoutStory.cs](../src/Luxel.Gallery/Stories/BreakoutStory.cs)、golden 差分は同等なら update)。
 - 全ステージ完了で **この MD を削除**。
 
 ## 罠・注意

@@ -206,6 +206,77 @@ public class ParticleTests
         }
     }
 
+    // ---- Spherical emission (3D) ----
+
+    [Fact]
+    public void SphericalEmission_ProducesVariedDirections()
+    {
+        var cfg = new ParticleConfig(Life: 10f, Speed: 5f, SpreadRadians: MathF.PI, BaseAngle: 0f,
+            Gravity: 0, Drag: 0, Size: 1f, Color: ParticleColor.Const(0xFFFFFFFF), Shape: ParticleShape.Quad, Spherical: true);
+        var ps = new ParticleSystem(cfg, 200, seed: 5);
+        ps.Emit(Vector3.Zero, 200);
+        ParticleBuffer b = ps.Buffer;
+        bool anyZ = false;
+        for (int i = 0; i < b.Count; i++)
+        {
+            float sp = MathF.Sqrt(b.VelX[i] * b.VelX[i] + b.VelY[i] * b.VelY[i] + b.VelZ[i] * b.VelZ[i]);
+            Assert.Equal(5f, sp, 2);   // 速度の大きさは Speed 一定
+            if (MathF.Abs(b.VelZ[i]) > 0.1f) anyZ = true;
+        }
+        Assert.True(anyZ);   // 3D 放出なので z 成分を持つものがある
+    }
+
+    [Fact]
+    public void CameraAxes_AreOrthonormal()
+    {
+        (Vector3 right, Vector3 up) = Luxel.Particles.ThreeD.ParticleBillboards.CameraAxes(
+            eye: new Vector3(5, 5, 5), target: Vector3.Zero);
+        Assert.Equal(1f, right.Length(), 4);
+        Assert.Equal(1f, up.Length(), 4);
+        Assert.Equal(0f, Vector3.Dot(right, up), 4);   // 直交
+    }
+
+    // ---- JSON 往復 ----
+
+    [Fact]
+    public void Json_RoundTrip_PreservesConfig()
+    {
+        var cfg = new ParticleConfig(
+            Life: ParticleValue.Range(0.4f, 0.9f), Speed: ParticleValue.Const(120),
+            SpreadRadians: 3.14f, BaseAngle: -1.57f, Gravity: 260, Drag: 0.6f,
+            Size: ParticleValue.Curved(2, 8, null),
+            Color: new ParticleColor(Color2D.Rgba(255, 230, 120, 255), Color2D.Rgba(230, 60, 40, 0), CubicBezierCurve.EaseIn),
+            Shape: ParticleShape.Circle);
+
+        ParticleConfig back = ParticleConfigJson.FromJson(ParticleConfigJson.ToJson(cfg));
+
+        Assert.Equal(ParticleValueKind.Range, back.Life.Kind);
+        Assert.Equal(0.4f, back.Life.A, 4);
+        Assert.Equal(0.9f, back.Life.B, 4);
+        Assert.Equal(ParticleValueKind.Const, back.Speed.Kind);
+        Assert.Equal(120f, back.Speed.A, 4);
+        Assert.Equal(ParticleValueKind.Curve, back.Size.Kind);
+        Assert.Equal(8f, back.Size.B, 4);
+        Assert.Equal(260f, back.Gravity, 3);
+        Assert.Equal(0.6f, back.Drag, 3);
+        Assert.Equal(cfg.Color.Start, back.Color.Start);
+        Assert.Equal(cfg.Color.End, back.Color.End);
+        Assert.Equal(ParticleShape.Circle, back.Shape);
+    }
+
+    [Fact]
+    public void Json_ParsesHexColorAndShorthand()
+    {
+        ParticleConfig cfg = ParticleConfigJson.FromJson("""
+        { "life": 1.0, "speed": {"range":[10,20]}, "size": 3,
+          "color": {"start":"#FF8800", "end":"#00000000"}, "shape": "quad" }
+        """);
+        Assert.Equal(Color2D.Rgba(0xFF, 0x88, 0x00, 0xFF), cfg.Color.Start);   // #RRGGBB → 不透明
+        Assert.Equal(0u, cfg.Color.End);
+        Assert.Equal(ParticleValueKind.Range, cfg.Speed.Kind);
+        Assert.Equal(1f, cfg.Life.A, 4);   // 数値 → Const
+    }
+
     // ---- ParticleNode.BuildScene (.TwoD) ----
 
     [Fact]

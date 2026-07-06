@@ -107,15 +107,35 @@ public sealed class ParticleSystem
 
         float life = MathF.Max(1e-4f, Config.Life.Sample(ref _rng));
         float speed = Config.Speed.Sample(ref _rng);
-        float angle = Config.BaseAngle + _rng.NextSigned() * Config.SpreadRadians;
         float size = Config.Size.Sample(ref _rng);
+
+        float vx, vy, vz;
+        if (Config.Spherical)
+        {
+            // +Y 軸まわりの円錐内 (半角 = Spread、π で全球) の一様方向 (3D バースト用)
+            float cosMin = MathF.Cos(MathF.Min(MathF.PI, Config.SpreadRadians));
+            float cosTheta = 1f - _rng.NextFloat() * (1f - cosMin);
+            float sinTheta = MathF.Sqrt(MathF.Max(0f, 1f - cosTheta * cosTheta));
+            float phi = _rng.NextFloat() * MathF.Tau;
+            vx = sinTheta * MathF.Cos(phi) * speed;
+            vy = cosTheta * speed;
+            vz = sinTheta * MathF.Sin(phi) * speed;
+        }
+        else
+        {
+            // XY 平面: BaseAngle ± Spread
+            float angle = Config.BaseAngle + _rng.NextSigned() * Config.SpreadRadians;
+            vx = MathF.Cos(angle) * speed;
+            vy = MathF.Sin(angle) * speed;
+            vz = 0f;
+        }
 
         _buffer.PosX[i] = pos.X;
         _buffer.PosY[i] = pos.Y;
         _buffer.PosZ[i] = pos.Z;
-        _buffer.VelX[i] = MathF.Cos(angle) * speed;
-        _buffer.VelY[i] = MathF.Sin(angle) * speed;
-        _buffer.VelZ[i] = 0f;   // v1 は XY 平面放出 (.ThreeD で球面放出を足す)
+        _buffer.VelX[i] = vx;
+        _buffer.VelY[i] = vy;
+        _buffer.VelZ[i] = vz;
         _buffer.Age[i] = 0f;
         _buffer.LifeMax[i] = life;
         _buffer.Size[i] = size;

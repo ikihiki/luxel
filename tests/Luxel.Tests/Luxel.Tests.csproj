@@ -61,6 +61,7 @@
     <ProjectReference Include="..\..\src\Luxel.Physics\Luxel.Physics.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Particles\Luxel.Particles.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Particles.TwoD\Luxel.Particles.TwoD.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Particles.ThreeD\Luxel.Particles.ThreeD.csproj" />
     <ProjectReference Include="..\..\src\Luxel.TwoD.Skia\Luxel.TwoD.Skia.csproj" />
   </ItemGroup>
 
