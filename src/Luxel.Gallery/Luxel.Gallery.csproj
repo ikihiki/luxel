@@ -32,6 +32,7 @@
     <!-- デモストーリー (RenderGraph/ECS 3D/Animation) の下回り -->
     <ProjectReference Include="..\Luxel.RenderGraph\Luxel.RenderGraph.csproj" />
     <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj" />
+    <ProjectReference Include="..\Luxel.Settings\Luxel.Settings.csproj" />
     <ProjectReference Include="..\Luxel.Assets\Luxel.Assets.csproj" />
     <ProjectReference Include="..\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
     <ProjectReference Include="..\Luxel.Animation.ThreeD\Luxel.Animation.ThreeD.csproj" />

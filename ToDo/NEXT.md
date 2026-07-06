@@ -30,11 +30,11 @@
 - [x] **Q02**: 12 メンテ: Docs stale + dx golden — golden を新フォント基準で整えた直後に片付ける
 - [x] **Q03**: 14 FixedUpdate + 描画補間 — ゲーム/物理の時間基盤。既存デモ (Knockdown) を移行済み。完了 = FixedUpdate フェーズ/蓄積器/Alpha + InterpolatedTransform + 単体テスト + Demos/Framework/DrawInterpolation + Docs/Framework 追記
 - [x] **Q04**: [19 capstone ①](19-standalone-game-shipping.md) **ステージ A: 骨組み + publish 早回し** — タイトル画面だけの LuxelCavern を作り publish チェックリスト 1〜4, 7, 8 を 1 周 (直すのは Luxel 本体側)。**MD はまだ削除しない** (2026-07-06 完了: samples/LuxelCavern 骨組み + shaders publish 修正。詳細は 19 MD 進捗節)
-- [ ] **Q05**: [21 DevTools ゲーム規模対応](21-devtools-game-scale.md) **ステージ ①: A (ECS スケール) + C (DevStats) + D (FixedUpdate/timescale) + E (WithDevTools) + F (fps 化) + DebugDraw コア** — B の機能別 gizmo (物理/カメラ/タイル) は対象機能の実装後 (Q12/Q14) に回す。**MD はまだ削除しない** (着手中: 2026-07-06 — **A/C/D + DebugDraw コア 完了** (両 UI + 単体テスト 611 passed + Gizmos golden、e2e 54/54 diff 0)。**残: E (WithDevTools → Q13 と同時が自然) / F (fps 化) / Docs**。詳細は 21 MD 進捗節)
+- [ ] **Q05**: [21 DevTools ゲーム規模対応](21-devtools-game-scale.md) **ステージ ①: A (ECS スケール) + C (DevStats) + D (FixedUpdate/timescale) + E (WithDevTools) + F (fps 化) + DebugDraw コア** — B の機能別 gizmo (物理/カメラ/タイル) は対象機能の実装後 (Q12/Q14) に回す。**MD はまだ削除しない** (**A/C/D + DebugDraw コア 完了** (両 UI + 単体テスト 611 passed + Gizmos golden、e2e 54/54 diff 0)。**残り E/F/Docs は後段へ据え置き** (ユーザー判断 2026-07-06): E は Q13 と同時、F は実ゲーム稼働後 (60fps 測定に実ゲーム要)、Docs は E/F 完了後。詳細は 21 MD 進捗節。**MD はまだ削除しない**)
 
 ### M2 — 2D ゲーム機能 (capstone ① の部品)
 
-- [ ] **Q06**: [15 セーブ/ロード + 設定](15-save-load-settings.md)
+- [x] **Q06**: 15 セーブ/ロード + 設定 (2026-07-06 完了) — A: `WorldSave.Serialize/Deserialize` (Friflo EntitySerializer + version ラッパ + `[ComponentKey(null)]` 除外)。B: `SettingsStore.Get<T>()`→`Signal<T>` + `IFileStore` (インメモリ/物理) + 破損 .bak 退避。新プロジェクト `Luxel.Settings`。デモ Demos/Framework/SaveLoad・Settings (golden 各 1)、Docs/Runtime 「永続化」節。単体テスト 14。ゲーム側配線 (保存先 %APPDATA%/ゲーム名、セーブ/設定 UI、InputBindings 永続化) は **Q13 (ゲーム組み上げ)** で実施。
 - [ ] **Q07**: [17 カメラコントローラ](17-camera-controller.md) — CameraRig2D + OrbitCamera 抽出 (3D 分もここで済ませる)
 - [ ] **Q08**: [18 スプライトアトラス + タイルマップ](18-sprite-atlas-tilemap.md) — 大きい。MD の作業ステップ単位で複数セッションに分けて良い (分けた場合は着手中メモに進捗を書く)
 - [ ] **Q09**: [16 パーティクル](16-particle-system.md) — コア + .TwoD + .ThreeD (ビルボード) まで全部
@@ -44,7 +44,7 @@
 
 ### M3 — capstone ① 完成
 
-- [ ] **Q13**: [19 capstone ①](19-standalone-game-shipping.md) **ステージ B: ゲーム組み上げ → e2e → publish 本番 → Docs「配布」節** — 完了したら **19 の MD を削除**
+- [ ] **Q13**: [19 capstone ①](19-standalone-game-shipping.md) **ステージ B: ゲーム組み上げ → e2e → publish 本番 → Docs「配布」節** — 完了したら **19 の MD を削除**。**ここで合流**: Q05-E (WithDevTools 統合、ゲーム構造が固まってから) + Q06 の保存/設定ゲーム配線 (保存先パス・セーブ/設定 UI・InputBindings 永続化)。
 
 ### M4 — 3D 物理・アニメーション (capstone ② の部品)
 

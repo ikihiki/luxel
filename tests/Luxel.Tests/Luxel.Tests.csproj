@@ -48,6 +48,7 @@
     <ProjectReference Include="..\..\src\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Gltf\Luxel.Gltf.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Scene.UI\Luxel.Scene.UI.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Settings\Luxel.Settings.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Input\Luxel.Input.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Audio\Luxel.Audio.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Scripting\Luxel.Scripting.csproj" />

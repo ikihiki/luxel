@@ -20,7 +20,6 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 | 09 | [09-gltf-skin-morph.md](09-gltf-skin-morph.md) | glTF skin/morph アニメーション | 大 | 中 |
 | 10 | [10-audio-streaming.md](10-audio-streaming.md) | Audio: ストリーミング再生 | 中 | 中 |
 | 11 | [11-scripting-debug-tools.md](11-scripting-debug-tools.md) | Scripting: DevTools Console タブ + リプレイ + 外部デバッガ | 中 (分割可) | 中 |
-| 15 | [15-save-load-settings.md](15-save-load-settings.md) | 永続化: セーブ/ロード + 設定ファイル機構 | 中 | 低 |
 | 16 | [16-particle-system.md](16-particle-system.md) | 標準パーティクルシステム (2D + 3D ビルボード) | 中〜大 | 低 |
 | 17 | [17-camera-controller.md](17-camera-controller.md) | カメラコントローラ (追従/シェイク/境界) | 小〜中 | 低 |
 | 18 | [18-sprite-atlas-tilemap.md](18-sprite-atlas-tilemap.md) | スプライトアトラス + タイルマップ | 中〜大 | 中 |

@@ -217,6 +217,12 @@ public static class DocsRuntime
 
         `world.Signal<Position>(entity)` で component を Signal 化できます — component の変更が UI へ自動伝播し、スライダーと entity が直結します。
 
+        ## 永続化 — セーブ/ロード + 設定
+
+        **ゲーム状態のセーブ/ロード** は `WorldSave.Serialize(world)` → JSON 文字列 → `WorldSave.Deserialize(world, json)` で往復します。Friflo 組み込みの component 名→値スキーマを土台にするのでアーキタイプ変更やエンジン更新をまたいで安定です。GPU ハンドルや観測専用の component は `[ComponentKey(null)]` でセーブ対象外にします (例: `DebugName`)。文字列 in/out なのでファイル IO 非依存でテストでき、ファイル層は `IFileStore` (インメモリ/物理) で薄く繋ぎます。効果は [Demos/Framework/SaveLoad](story:Demos/Framework/SaveLoad) で「セーブ → 動かす → ロードで戻る」を確認できます。
+
+        **アプリ設定** は `SettingsStore.LoadFrom(files, "settings.json")` で読み、`store.Get<T>(key, fallback)` が **`Signal<T>` を返す**のが肝です。設定画面の Slider/Switch にそのまま双方向バインドでき、購読側 (音量 → AudioMixer 等) も `Reactive.Effect` で反応します。`Save()` (または `AutoSave`) でファイルへ書き出し、破損 JSON はパース失敗時に既定値で起動 + `.bak` 退避します (設定破損でゲームが起動しないのを防ぐ)。[Demos/Framework/Settings](story:Demos/Framework/Settings) で保存値 (音量 0.65 / フルスクリーン on) が反映される様子を見られます。
+
         ## AppWindow — 最小構成
 
         フル DI が要らない小さなアプリは `AppWindow` (device + font + サイズ) に `SetRoot(widget)` して `Run()` するだけです。この Gallery も WindowManager + UiHost の同じ部品でできています。

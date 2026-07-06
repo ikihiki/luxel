@@ -53,8 +53,10 @@ public struct MeshRef : IComponent
 /// <summary>
 /// デバッグ表示名。DevTools の ECS 一覧で Id の代わりに人間可読な名前を出すための純データ。
 /// ゲームが敵/弾/的などに命名する用途。無ければ DevTools は Id を表示する。
-/// <para>セーブ対象外の意図 (実行時の観測専用。15 のセーブ機構が入ったら <c>[SaveIgnore]</c> の適用例第 1 号になる)。</para>
+/// <para>セーブ対象外 (実行時の観測専用)。Friflo の <c>[ComponentKey(null)]</c> で
+/// セーブ/ロード JSON (<see cref="WorldSave"/>) から除外される — key=null が「この型はシリアライズしない」の意。</para>
 /// </summary>
+[ComponentKey(null)]
 public struct DebugName : IComponent
 {
     /// <summary>表示名。</summary>
