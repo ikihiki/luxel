@@ -177,9 +177,33 @@ public static class DocsRuntime
         }
         ```
 
-        ## 6 フェーズのフレームループ
+        ## 7 フェーズのフレームループ
 
-        EarlyUpdate → Update → LateUpdate → PreRender → Render → PostRender。GameScene の virtual フックと **ECS World の system** が同じフェーズ軸で実行されます (`AddWorld(world)` で登録、独自フェーズも Priority で挿入可)。Render フェーズは 1 フレームの RenderGraph を受け取り、パスを積むだけで提示まで面倒を見ます。
+        EarlyUpdate → **FixedUpdate** → Update → LateUpdate → PreRender → Render → PostRender。GameScene の virtual フックと **ECS World の system** が同じフェーズ軸で実行されます (`AddWorld(world)` で登録、独自フェーズも Priority で挿入可)。Render フェーズは 1 フレームの RenderGraph を受け取り、パスを積むだけで提示まで面倒を見ます。
+
+        ## FixedUpdate — 固定タイムステップと描画補間
+
+        物理・キャラクター制御・決定的なゲームロジックは**固定刻み**で回します。GameScene が可変 dt を蓄積器に積み、溜まった分だけ `FixedUpdate` を回します — フレームレートが変わっても同じ dt 列なら同じ結果 (決定的) です。1 フレームの実行回数は上限 (`MaxFixedStepsPerFrame`) で頭打ちにして、処理落ち時のスパイラルを防ぎます (超過分は捨てる)。
+
+        ```csharp
+        public sealed class PlayScene(SceneLoopServices loop) : GameScene(loop)
+        {
+            protected override double FixedDeltaSeconds => 1.0 / 60;   // 物理と揃える
+
+            protected override void OnFixedUpdate(FixedUpdateContext ctx)
+            {
+                // dt は常に ctx.FixedDeltaSeconds (可変 dt は渡さない = 誤用防止)
+                _step.StepFixedOnce();      // 物理を 1 ステップ
+            }
+
+            protected override void OnRender(RenderContext ctx)
+            {
+                TransformInterpolationSystem.Run(_world, Alpha);   // lerp(prev, curr, Alpha)
+            }
+        }
+        ```
+
+        60Hz 表示 + 1/60 固定でも、表示と固定の刻みがずれるとフレーム間で箱がガタつきます。`Alpha` (直近の固定ステップから次までの進捗 [0,1)) を使い、`InterpolatedTransform` (前/現ステップの TRS を保持) を `TransformInterpolationSystem` が `lerp(prev, curr, Alpha)` して `LocalTransform` に書くと、1 ステップ分の遅延と引き換えにガタつきが消えます。効果は [Demos/Framework/DrawInterpolation](story:Demos/Framework/DrawInterpolation) で並べて確認できます。
 
         ## UiSurface — 複数サーフェスとレート制御
 

@@ -35,12 +35,22 @@ public sealed class PhysicsStepSystem : BaseSystem
 
     protected override void OnUpdateGroup() => Run(Tick.deltaTime);
 
-    /// <summary>手動駆動 (デモ/テスト用)。dt は経過秒 — 内部で固定ステップへ分割される。</summary>
-    public void Run(float dt)
+    /// <summary>手動駆動 (デモ/テスト用)。dt は経過秒 — 内部で固定ステップへ分割される。実行ステップ数を返す。</summary>
+    public int Run(float dt)
     {
         AttachNewBodies();
         int steps = _physics.Step(dt);
         if (steps > 0) WriteBackPoses();
+        return steps;
+    }
+
+    /// <summary>FixedUpdate フェーズから駆動する用: 固定 dt で**必ず 1 ステップ**進める
+    /// (蓄積は GameScene 側に一本化されている前提)。</summary>
+    public void StepFixedOnce()
+    {
+        AttachNewBodies();
+        _physics.StepOnce();
+        WriteBackPoses();
     }
 
     private void AttachNewBodies()

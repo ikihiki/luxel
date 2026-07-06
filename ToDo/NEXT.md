@@ -28,7 +28,7 @@
 
 - [x] **Q01**: [13 日本語フォント同梱](13-e2e-japanese-font.md) — 全 golden 再生成を伴うため最初。完了 = e2e で日本語が出る + golden がフォント同梱由来で安定
 - [x] **Q02**: 12 メンテ: Docs stale + dx golden — golden を新フォント基準で整えた直後に片付ける
-- [ ] **Q03**: [14 FixedUpdate + 描画補間](14-framework-fixedupdate.md) — ゲーム/物理の時間基盤。既存デモ (Knockdown 等) の移行まで
+- [x] **Q03**: 14 FixedUpdate + 描画補間 — ゲーム/物理の時間基盤。既存デモ (Knockdown) を移行済み。完了 = FixedUpdate フェーズ/蓄積器/Alpha + InterpolatedTransform + 単体テスト + Demos/Framework/DrawInterpolation + Docs/Framework 追記
 - [ ] **Q04**: [19 capstone ①](19-standalone-game-shipping.md) **ステージ A: 骨組み + publish 早回し** — タイトル画面だけの LuxelCavern を作り publish チェックリスト 1〜4, 7, 8 を 1 周 (直すのは Luxel 本体側)。**MD はまだ削除しない**
 - [ ] **Q05**: [21 DevTools ゲーム規模対応](21-devtools-game-scale.md) **ステージ ①: A (ECS スケール) + C (DevStats) + D (FixedUpdate/timescale) + E (WithDevTools) + F (fps 化) + DebugDraw コア** — B の機能別 gizmo (物理/カメラ/タイル) は対象機能の実装後 (Q12/Q14) に回す。**MD はまだ削除しない**
 

@@ -28,6 +28,9 @@ public interface IScene
 // ==================== Phase context (per-phase 型) ====================
 
 public readonly record struct EarlyUpdateContext(FrameTime Time);
+/// <summary>FixedUpdate 用の context。可変 dt (<c>Time.DeltaSeconds</c>) を渡さないのは意図的 —
+/// 固定ステップ内で可変 dt を読むと決定性が壊れる。刻みは <paramref name="FixedDeltaSeconds"/> のみ。</summary>
+public readonly record struct FixedUpdateContext(long Frame, double TotalSeconds, float FixedDeltaSeconds);
 public readonly record struct UpdateContext(FrameTime Time);
 public readonly record struct LateUpdateContext(FrameTime Time);
 public readonly record struct PreRenderContext(FrameTime Time, LuxelRG.RenderGraph RenderGraph);
@@ -94,8 +97,8 @@ public abstract class GameScene : IScene
 
     private static readonly string[] AllPhaseNames = new[]
     {
-        Phase.EarlyUpdate.Name, Phase.Update.Name, Phase.LateUpdate.Name,
-        Phase.PreRender.Name,   Phase.Render.Name, Phase.PostRender.Name,
+        Phase.EarlyUpdate.Name, Phase.FixedUpdate.Name, Phase.Update.Name, Phase.LateUpdate.Name,
+        Phase.PreRender.Name,   Phase.Render.Name,      Phase.PostRender.Name,
     };
 
     /// <summary><see cref="UiSurface"/> を登録する。RunAsync が Render phase で RateHz に従い各 surface の Draw pass を RG に追加する。</summary>
@@ -107,8 +110,23 @@ public abstract class GameScene : IScene
     /// <summary>登録済 surface (読み取り専用) ─ user の OnRender が composite などで参照する。</summary>
     protected IReadOnlyList<UiSurface> Surfaces => _surfaces;
 
+    // ==================== 固定タイムステップ設定 (user override) ====================
+
+    /// <summary>FixedUpdate の固定刻み (秒)。既定 1/60。物理と揃えるとゲームロジックと物理が同じ刻みで進む。</summary>
+    protected virtual double FixedDeltaSeconds => 1.0 / 60;
+    /// <summary>1 フレームで回す FixedUpdate の上限 (spiral of death 防止)。既定 8。</summary>
+    protected virtual int MaxFixedStepsPerFrame => 8;
+
+    private FixedTimestep? _fixed;
+
+    /// <summary>描画補間係数 [0,1) — 直近の FixedUpdate から次の固定ステップまでの進捗。
+    /// Render/PreRender で <c>lerp(prev, curr, Alpha)</c> に使う (<see cref="TransformInterpolationSystem"/>)。</summary>
+    protected float Alpha { get; private set; }
+
     // ==================== Phase virtual フック (user override) ====================
     protected virtual void OnEarlyUpdate(EarlyUpdateContext ctx) { }
+    /// <summary>固定タイムステップのシミュレーション。1 フレームで 0 回以上呼ばれ、dt は常に <c>FixedDeltaSeconds</c>。</summary>
+    protected virtual void OnFixedUpdate(FixedUpdateContext ctx) { }
     protected virtual void OnUpdate(UpdateContext ctx) { }
     protected virtual void OnLateUpdate(LateUpdateContext ctx) { }
     protected virtual void OnPreRender(PreRenderContext ctx) { }
@@ -132,6 +150,7 @@ public abstract class GameScene : IScene
         long frame = 0;
         double fpsAvg = 0;
         int ecsEmitCounter = 0;   // Ecs snapshot は emit コスト高 → 30 フレームに 1 回
+        _fixed = new FixedTimestep(FixedDeltaSeconds, MaxFixedStepsPerFrame);
 
         RegisterCommands();
 
@@ -161,7 +180,7 @@ public abstract class GameScene : IScene
             var tick = new UpdateTick(dt, (float)now);
 
             bool perfEnabled = EngineDiagnostics.IsEnabled(EngineDiagnostics.Perf);
-            DiagPhaseTiming[]? phaseTimings = perfEnabled ? new DiagPhaseTiming[6] : null;
+            DiagPhaseTiming[]? phaseTimings = perfEnabled ? new DiagPhaseTiming[7] : null;
             // 初回に system perf monitor を on にする — 診断購読者が居る時のみコスト発生
             if (perfEnabled && !_perfMonitorInstalled)
             {
@@ -177,21 +196,37 @@ public abstract class GameScene : IScene
                 _loop.InputStack.Update(_loop.InputBus);
             }
 
-            // === EarlyUpdate / Update / LateUpdate ===
+            // === EarlyUpdate ===
             phaseSw.Restart();
             OnEarlyUpdate(new EarlyUpdateContext(time));
             RunWorlds(Phase.EarlyUpdate.Name, tick);
             if (phaseTimings is not null) phaseTimings[0] = new DiagPhaseTiming("EarlyUpdate", phaseSw.Elapsed.TotalMilliseconds);
 
+            // === FixedUpdate (蓄積器で溜まった分だけ固定刻みで回す) ===
+            phaseSw.Restart();
+            int fixedSteps = _fixed!.Advance(dt);
+            if (fixedSteps > 0)
+            {
+                var fixedTick = new UpdateTick((float)_fixed.FixedDt, (float)now);
+                for (int i = 0; i < fixedSteps; i++)
+                {
+                    OnFixedUpdate(new FixedUpdateContext(time.Frame, time.TotalSeconds, (float)_fixed.FixedDt));
+                    RunWorlds(Phase.FixedUpdate.Name, fixedTick);
+                }
+            }
+            Alpha = _fixed.Alpha;
+            if (phaseTimings is not null) phaseTimings[1] = new DiagPhaseTiming("FixedUpdate", phaseSw.Elapsed.TotalMilliseconds);
+
+            // === Update / LateUpdate ===
             phaseSw.Restart();
             OnUpdate(new UpdateContext(time));
             RunWorlds(Phase.Update.Name, tick);
-            if (phaseTimings is not null) phaseTimings[1] = new DiagPhaseTiming("Update", phaseSw.Elapsed.TotalMilliseconds);
+            if (phaseTimings is not null) phaseTimings[2] = new DiagPhaseTiming("Update", phaseSw.Elapsed.TotalMilliseconds);
 
             phaseSw.Restart();
             OnLateUpdate(new LateUpdateContext(time));
             RunWorlds(Phase.LateUpdate.Name, tick);
-            if (phaseTimings is not null) phaseTimings[2] = new DiagPhaseTiming("LateUpdate", phaseSw.Elapsed.TotalMilliseconds);
+            if (phaseTimings is not null) phaseTimings[3] = new DiagPhaseTiming("LateUpdate", phaseSw.Elapsed.TotalMilliseconds);
 
             // === PreRender / Render (RenderGraph 生成～Submit) ===
             using (var rg = new LuxelRG.RenderGraph(_loop.Device))
@@ -200,7 +235,7 @@ public abstract class GameScene : IScene
                 OnPreRender(new PreRenderContext(time, rg));
                 RunWorlds(Phase.PreRender.Name, tick);
                 AddSurfacePasses(rg, time);
-                if (phaseTimings is not null) phaseTimings[3] = new DiagPhaseTiming("PreRender", phaseSw.Elapsed.TotalMilliseconds);
+                if (phaseTimings is not null) phaseTimings[4] = new DiagPhaseTiming("PreRender", phaseSw.Elapsed.TotalMilliseconds);
 
                 phaseSw.Restart();
                 OnRender(new RenderContext(time, rg));
@@ -210,14 +245,14 @@ public abstract class GameScene : IScene
                 rg.Execute(cmd);
                 cmd.Finish();
                 _loop.Device.MainQueue.SubmitAndWait(cmd);
-                if (phaseTimings is not null) phaseTimings[4] = new DiagPhaseTiming("Render", phaseSw.Elapsed.TotalMilliseconds);
+                if (phaseTimings is not null) phaseTimings[5] = new DiagPhaseTiming("Render", phaseSw.Elapsed.TotalMilliseconds);
             }
 
             // === PostRender ===
             phaseSw.Restart();
             OnPostRender(new PostRenderContext(time));
             RunWorlds(Phase.PostRender.Name, tick);
-            if (phaseTimings is not null) phaseTimings[5] = new DiagPhaseTiming("PostRender", phaseSw.Elapsed.TotalMilliseconds);
+            if (phaseTimings is not null) phaseTimings[6] = new DiagPhaseTiming("PostRender", phaseSw.Elapsed.TotalMilliseconds);
 
             // === Pump ===
             _loop.Resources?.Pump();

@@ -58,3 +58,59 @@ public struct Visible : IComponent
     /// <summary>表示状態を指定して生成。</summary>
     public Visible(bool on) { On = on; }
 }
+
+/// <summary>
+/// 固定タイムステップ (FixedUpdate) のシミュレーション結果を描画時に補間するための前/現ステップ TRS。
+/// FixedUpdate 内で <see cref="Push"/> して「前ステップ位置」と「現ステップ位置」を持ち、
+/// Render 前に <see cref="Luxel.Ecs.TransformInterpolationSystem"/> が <c>Alpha</c> で lerp/slerp して
+/// <see cref="LocalTransform"/> に書き込む。これをやると 60Hz 表示 + 1/60 固定でもガタつかない。
+/// </summary>
+public struct InterpolatedTransform : IComponent
+{
+    /// <summary>前ステップの位置。</summary>
+    public Vector3 PrevPosition;
+    /// <summary>前ステップの回転。</summary>
+    public Quaternion PrevRotation;
+    /// <summary>前ステップのスケール。</summary>
+    public Vector3 PrevScale;
+    /// <summary>現ステップの位置。</summary>
+    public Vector3 CurrPosition;
+    /// <summary>現ステップの回転。</summary>
+    public Quaternion CurrRotation;
+    /// <summary>現ステップのスケール。</summary>
+    public Vector3 CurrScale;
+
+    /// <summary>前後を同じ TRS で初期化する (テレポート時に補間の飛びを消す)。</summary>
+    public InterpolatedTransform(Vector3 position, Quaternion rotation, Vector3 scale)
+    {
+        PrevPosition = CurrPosition = position;
+        PrevRotation = CurrRotation = rotation;
+        PrevScale = CurrScale = scale;
+    }
+
+    /// <summary>現ステップを前ステップへ送り、新しい TRS を現ステップに入れる (各 FixedUpdate で 1 回)。</summary>
+    public void Push(Vector3 position, Quaternion rotation, Vector3 scale)
+    {
+        PrevPosition = CurrPosition; PrevRotation = CurrRotation; PrevScale = CurrScale;
+        CurrPosition = position; CurrRotation = rotation; CurrScale = scale;
+    }
+
+    /// <summary>前後を同じ TRS に揃える (瞬間移動 — 補間しない)。</summary>
+    public void Teleport(Vector3 position, Quaternion rotation, Vector3 scale)
+    {
+        PrevPosition = CurrPosition = position;
+        PrevRotation = CurrRotation = rotation;
+        PrevScale = CurrScale = scale;
+    }
+
+    /// <summary>alpha [0,1] で前→現を補間した行列 (Scale × Rotation × Translation)。</summary>
+    public readonly Matrix4x4 Sample(float alpha)
+    {
+        Vector3 pos = Vector3.Lerp(PrevPosition, CurrPosition, alpha);
+        Quaternion rot = Quaternion.Slerp(PrevRotation, CurrRotation, alpha);
+        Vector3 scale = Vector3.Lerp(PrevScale, CurrScale, alpha);
+        return Matrix4x4.CreateScale(scale)
+             * Matrix4x4.CreateFromQuaternion(rot)
+             * Matrix4x4.CreateTranslation(pos);
+    }
+}

@@ -8,6 +8,9 @@ public sealed record Phase(string Name, int Priority)
 {
     /// <summary>engine 側処理 (input poll, resources.Pump 等)。ユーザー登録は通常しない。</summary>
     public static readonly Phase EarlyUpdate = new(nameof(EarlyUpdate), 100);
+    /// <summary>固定タイムステップの決定的シミュレーション (物理・キャラ制御)。1 フレームで 0 回以上、
+    /// 溜まった分だけ回る。dt は常に <c>FixedDt</c> — 可変 dt に依存する処理は Update 側へ。</summary>
+    public static readonly Phase FixedUpdate = new(nameof(FixedUpdate), 150);
     /// <summary>ゲームロジック本体。ユーザー system の中心。</summary>
     public static readonly Phase Update = new(nameof(Update), 200);
     /// <summary>Update 後の追従処理 (camera follow, animation blend 後の骨計算 等)。</summary>

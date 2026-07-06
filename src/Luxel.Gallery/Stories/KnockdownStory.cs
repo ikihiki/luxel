@@ -14,7 +14,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>
 /// **3D ショーケースゲーム: KNOCKDOWN (射的)** — 3D スタックを実 Framework アプリで:
-/// - <b>物理</b>: Luxel.Physics (BepuPhysics v2)。箱タワー + 発射体、固定タイムステップの蓄積器
+/// - <b>物理</b>: Luxel.Physics (BepuPhysics v2)。箱タワー + 発射体、GameScene の FixedUpdate 固定刻み
 /// - <b>3D 描画</b>: ECS (LocalTransform/Color3D/MeshRef) → TransformPropagate → Render3DExtract →
 ///   RenderGraph の cube_forward パス → Target texture → framebuffer へコピー (シェーダ変更ゼロ)
 /// - <b>Framework</b>: GameScene のフェーズでシミュレーション/描画。GPU 資源は最初のフレームで遅延生成
@@ -67,7 +67,6 @@ public static class KnockdownStories
         private readonly List<Entity> _towerBoxes = new();
         private int _shots, _knocked;
         private bool _running;          // 最初のクリックまで物理停止 = 初期絵が決定的
-        private float _accumulator;     // 固定タイムステップ (1/120) の蓄積器
 
         // カメラ (軌道)
         private float _camYaw = -0.6f, _camPitch = 0.34f, _camDist = 8.2f;
@@ -127,6 +126,18 @@ public static class KnockdownStories
 
         // ---- フレーム ----
 
+        // FixedUpdate = 物理刻み。GameScene の蓄積器に一本化 (手書き accumulator を廃止)。
+        protected override double FixedDeltaSeconds => 1.0 / 60;
+
+        protected override void OnFixedUpdate(FixedUpdateContext ctx)
+        {
+            if (!_running || _physics is null) return;   // 最初の発射まで静止 (初期絵が決定的)
+            _step.StepFixedOnce();
+            TransformPropagateSystem.Run(_world);
+            _fbDirty = true;
+            CountKnocked();
+        }
+
         protected override void OnUpdate(UpdateContext ctx)
         {
             if (_fb is null) InitGpu();
@@ -135,25 +146,6 @@ public static class KnockdownStories
             {
                 _shotQueued = null;
                 Shoot(sx, sy);
-            }
-
-            if (_running)
-            {
-                // 固定タイムステップ (安定 + タブ切替の巨大 dt を吸収)
-                _accumulator += MathF.Min(ctx.Time.DeltaSeconds, 0.1f);
-                int steps = 0;
-                while (_accumulator >= 1f / 120f && steps < 8)
-                {
-                    _step.Run(1f / 120f);
-                    _accumulator -= 1f / 120f;
-                    steps++;
-                }
-                if (steps > 0)
-                {
-                    TransformPropagateSystem.Run(_world);
-                    _fbDirty = true;
-                    CountKnocked();
-                }
             }
         }
 
@@ -245,7 +237,6 @@ public static class KnockdownStories
             _shots = 0;
             _knocked = 0;
             _running = false;
-            _accumulator = 0;
 
             // 台座 (静的、少し高い位置 — 落とされた箱は奈落へ)
             _world.Store.CreateEntity(
