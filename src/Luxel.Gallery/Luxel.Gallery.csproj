@@ -42,6 +42,7 @@
     <ProjectReference Include="..\Luxel.Particles.TwoD\Luxel.Particles.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.Particles.ThreeD\Luxel.Particles.ThreeD.csproj" />
     <ProjectReference Include="..\Luxel.Particles.UI\Luxel.Particles.UI.csproj" />
+    <ProjectReference Include="..\Luxel.Scripting.Framework\Luxel.Scripting.Framework.csproj" />
     <!-- 型 API リファレンス (Docs/Api*) の対象 — Gallery はドキュメントハブとして全域を参照する -->
     <ProjectReference Include="..\Luxel.Framework\Luxel.Framework.csproj" />
     <ProjectReference Include="..\Luxel.Scene.UI\Luxel.Scene.UI.csproj" />
