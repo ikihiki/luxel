@@ -156,6 +156,28 @@ public static class DocsGpu
 
         {{StoryRef(ctx, "Demos/TwoD/Tilemap")}}
 
+        ## パーティクル — 標準 VFX システム
+
+        爆発・煙・キラキラ等の VFX は `ParticleSystem` (プロジェクト `Luxel.Particles`) で作ります。エミッタは `Emit(pos, count)` (バースト) と `SetEmission(pos, rate)` (連続放出)、シミュレーションは寿命/速度/重力/抗力を `Update(dt)` で積分します。座標は Vector3 (2D は z=0) でコードパスは 1 本、乱数は固定シード xorshift・時間は固定 dt なので**決定的** (golden 安定)。内部は SoA の固定長配列 (GC ゼロ)、生存パーティクルは発生順で連続に並び、寿命切れは前方詰めで除去します (描画順が変わらない)。
+
+        パラメータは判別共用体 `ParticleValue` (`Const` / `Range(min,max)` / `Curved(from,to,curve)`) に統一し、寿命に沿う色は `ParticleColor` (start→end を `ICurve` で補間、α 含む) で表します。乱流・引力等のフォースフィールドはエンジンに入れず、毎ステップ速度 span を加工する `Forces` フックでゲーム側が実装します。
+
+        2D 描画は `Luxel.Particles.TwoD` の `ParticleNode` — `RetainedCanvas` の 1 ノードに `ContentColors` + `ReserveContent` で容量を確保しきり、毎フレーム生存パーティクルを Content 差し替えで描きます (Breakout の手法を部品化。容量内なら構造 Rebuild なし)。
+
+        ```csharp
+        var config = new ParticleConfig(
+            Life: ParticleValue.Range(0.4f, 0.9f), Speed: ParticleValue.Range(60, 160),
+            SpreadRadians: MathF.PI, BaseAngle: -MathF.PI / 2, Gravity: 260, Drag: 0.6f,
+            Size: 5f, Color: new ParticleColor(yellow, redTransparent), Shape: ParticleShape.Quad);
+        var ps = new ParticleSystem(config, capacity: 120, seed: 0x2024);
+        var node = new ParticleNode(canvas, canvas.Root, ps);
+        ps.Emit(new Vector3(x, y, 0), 90);
+        ps.Update(dt);                                    // 固定 dt (wall-clock 禁止)
+        node.Sync();                                      // 生存パーティクルを描き直す
+        ```
+
+        {{StoryRef(ctx, "Demos/TwoD/Particles")}}
+
         ## RetainedCanvas — 保持型ツリーと部分更新
 
         UI ライブラリのバックエンドとして、フレーム間で保持するノードツリーを提供します。データは SoA (Transform / Style / Clip / Order / Segment を分離) で、シェーダが per-path 変換を適用するため **移動 = 変換だけ書込、色変更 = スタイルだけ書込** (ジオメトリ不変) になります。

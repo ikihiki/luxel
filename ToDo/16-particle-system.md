@@ -69,6 +69,34 @@ public record ParticleConfig(
 - BreakoutStory のパーティクルを新 ParticleSystem に置き換え (dogfooding、golden 差分は許容 — 見た目が同等なら update)。
 - Docs/TwoD にパーティクル節を追加。
 
+## 進捗 (2026-07-06)
+
+**コア + .TwoD 完了。.ThreeD / JSON 資産 / ParticleView / Breakout dogfood は次セッション。**
+
+### 完了 (この MD はまだ削除しない)
+
+- **コア `Luxel.Particles`** (依存 Luxel + Luxel.Animation): `Xorshift64` (決定的乱数、共通化) /
+  `ParticleValue` (Const/Range/Curve 判別共用体、`Sample`=放出時スカラー・`Eval`=寿命補間、float 暗黙変換) /
+  `ParticleColor` (start→end を ICurve 補間、α 含む) / `ParticleConfig` (record) / `ParticleShape` (Quad/Circle) /
+  `ParticleBuffer` (SoA float[]、生存は発生順で連続) / `IParticleSimulator` + `CpuParticleSimulator` (積分器 seam) /
+  `ParticleSystem` (Emit バースト / SetEmission 連続 / Update / `Forces` フック / `Buffer` 公開)。容量超過 Emit は無視 (順序安定)。
+- **`Luxel.Particles.TwoD`**: `ParticleNode` (RetainedCanvas 1 ノード + ContentColors + ReserveContent、
+  `BuildScene` で生存パーティクルを per-particle 色の絵に、`Sync()` で Content 差し替え — Breakout の手法を部品化)。
+- **テスト**: [tests/Luxel.Tests/ParticleTests.cs](../tests/Luxel.Tests/ParticleTests.cs) 18 本 (xorshift 決定性 / ParticleValue 各形態 /
+  色補間 / Emit・容量・連続放出 / 速度・重力・抗力積分 / 寿命除去 / 発生順安定 / フォースフック / 決定性再現 / BuildScene パス数)。計 697 passed。
+- **デモ + Docs**: [ParticleStory.cs](../src/Luxel.Gallery/Stories/ParticleStory.cs) `Demos/TwoD/Particles`
+  (バースト爆発 + 連続噴水、固定シード + 固定 dt で事前ステップ、vk golden)。Docs/Gpu に「パーティクル」節。
+- プロジェクトは `Luxel.slnx` + Gallery/Tests に配線済み。
+
+### 残り (次セッション)
+
+- **`.ThreeD` ビルボード** (方針 2b): `ParticleInstanceData` を `RenderBuffer<T>` に詰め、**ビルボード Slang シェーダ 1 本**
+  (カメラ right/up で quad 展開、vk/dx ピクセル一致) で RenderGraph 1 パス描画。球面放出 (現状 SpawnOne は XY 平面固定 — `VelZ=0` の箇所) を .ThreeD 用に足す。深度ソート/フェードはやらない。Demos/ThreeD/Particles。
+- **JSON 資産化** (方針 3): `ParticleConfig.FromJson`/`ToJson` (ParticleValue/Color/Shape のエンコード) + リソースステップ。往復単体テスト。
+- **`ParticleView` [UiComponent]** (方針 2): AddAnimation で Tick 駆動する widget ラッパ (Reference/Overview golden 更新対象)。
+- **BreakoutStory の dogfooding 置換**: ad hoc パーティクルを新 `ParticleSystem` に置換 (golden 差分は同等なら update)。
+- 全ステージ完了で **この MD を削除**。
+
 ## 罠・注意
 
 - **golden 決定性が最重要**: シード固定・dt 固定・`Alive` 順序の安定 (swap-remove は順序が変わる — 描画順が変わると絵が変わるので、z 一定 or 発生順を保つ free-list を選ぶ)。
