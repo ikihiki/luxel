@@ -108,7 +108,12 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
   - 演出イベント: `LandedThisStep` (着地) / `PickupsThisStep` / `DefeatsThisStep` (位置) を毎ステップ発信 (Core は Particles 非依存、位置だけ渡す)。`CavernLevel.Torches` (松明位置の純データ)。
   - Gallery 側で `ParticleSystem` を sim と同じ固定 dt で回し、**松明の炎 (連続) + 着地砂埃 / コイン / 撃破バースト** を per-particle tint で出す (パーティクル + tint のドッグフーディング)。golden に炎/コインスパークルが出る。
   - 単体テスト +5 (飛行敵オシレート/飛行接触ダメージ/飛行踏み撃破+イベント/着地イベント/収集イベント)。計 748 passed。e2e 65/65 diff 0。
-  - **残 (次セッション以降)**: 片方の敵 AI を .csx (ScriptSystem ドッグフーディング、実時間 exe で hot reload) / HUD (日本語 HP・コイン) + ポーズ / セーブ・設定配線 (Q06 合流、%APPDATA%) / Audio (BGM ストリーミング + SE) / 実時間 GameScene + 補間 + 入力 (キーボード/パッド) で exe プレイアブル化 / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / publish 本番 (checklist 5,6,9) + リポジトリ外スモーク / Docs「配布」節。
+- **ステージ B セッション 4 (2026-07-06, Q13)**: **チェックポイント + ゲーム進捗のセーブ/ロード** (純ロジック・テスト可能、Q06 永続化のドッグフーディング)。
+  - `Checkpoint` (通過で `LastCheckpoint` = 復活位置更新 + `CheckpointThisStep` イベント)。`CavernLevel` に 2 個配置。
+  - `CavernSave` DTO (復活位置 + HP/コイン/鍵 + 収集/撃破/通過フラグ配列) + JSON 往復。`CavernSim.Export()`/`ApplySave()` (新規 CreateSim に流し込む「つづきから」。版ずれに耐える bounds-safe Restore)。
+  - ファイル IO の場所 (%APPDATA%) は exe の責務として分離 (Core は純データ + 直列化)。golden にチェックポイント旗を描画。
+  - 単体テスト +2 (チェックポイント通過で復活位置更新 / セーブ→JSON→ロードで進捗復元)。計 750 passed。e2e 65/65 diff 0。
+  - **残 (次セッション以降)**: 片方の敵 AI を .csx (ScriptSystem、実時間 exe で hot reload) / HUD (日本語 HP・コイン) + ポーズ + 設定 UI (音量) / SettingsStore で音量/キーバインドを %APPDATA% へ (Q06 の B) / Audio (BGM ストリーミング + SE) / 実時間 GameScene + 補間 + 入力 (キーボード/パッド) で exe プレイアブル化 (ここで %APPDATA% への実ファイル書き込みも配線) / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / publish 本番 (checklist 5,6,9) + リポジトリ外スモーク / Docs「配布」節。
 
 ## 作業ステップ
 

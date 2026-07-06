@@ -94,6 +94,12 @@ public static class CavernStories
             var es = new Scene2D();
             uint door = sim.DoorOpen ? Color2D.Rgba(90, 200, 120) : Color2D.Rgba(120, 80, 50);
             es.FillRoundedRect(door, sim.DoorPos.X, sim.DoorPos.Y, sim.DoorSize.X, sim.DoorSize.Y, 3);
+            foreach (Checkpoint c in sim.Checkpoints)   // 旗ポール (通過済=緑 / 未=灰)
+            {
+                float cx = c.Pos.X + c.Size.X * 0.5f;
+                es.FillRoundedRect(Color2D.Rgba(180, 180, 190), cx - 1, c.Pos.Y, 2, c.Size.Y, 0);
+                es.FillRoundedRect(c.Reached ? Color2D.Rgba(90, 200, 120) : Color2D.Rgba(150, 150, 160), cx + 1, c.Pos.Y, 11, 7, 1);
+            }
             foreach (Pickup p in sim.Pickups)
             {
                 if (p.Collected) continue;

@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Numerics;
 using Luxel.TwoD;
 
@@ -40,6 +41,16 @@ public sealed class Flyer
     public RectF Box { get { Vector2 p = Pos; return new(p.X, p.Y, Size.X, Size.Y); } }
 }
 
+/// <summary>チェックポイント (通過でセーブ点 + 復活位置を更新)。</summary>
+public sealed class Checkpoint
+{
+    public Vector2 Pos;
+    public Vector2 Size = new(14, 28);
+    public bool Reached;
+
+    public RectF Box => new(Pos.X, Pos.Y, Size.X, Size.Y);
+}
+
 /// <summary>ゲームの帰結。</summary>
 public enum CavernResult { Playing, Cleared, Dead }
 
@@ -74,6 +85,11 @@ public sealed class CavernSim
     public readonly List<Pickup> Pickups = new();
     public readonly List<Walker> Enemies = new();
     public readonly List<Flyer> Flyers = new();
+    public readonly List<Checkpoint> Checkpoints = new();
+    /// <summary>直近に通過したチェックポイント (復活位置)。既定はスポーン。</summary>
+    public Vector2 LastCheckpoint;
+    /// <summary>このステップでチェックポイントを通過したか (セーブの発火口)。</summary>
+    public bool CheckpointThisStep { get; private set; }
 
     // 演出レイヤ (パーティクル等) が読む「このステップの出来事」。毎ステップ先頭でクリア。
     public bool LandedThisStep { get; private set; }
@@ -95,6 +111,7 @@ public sealed class CavernSim
         Map = map;
         PlayerPos = spawn;
         PlayerSize = size;
+        LastCheckpoint = spawn;
         KillY = map.Height * map.TileH + 200f;
     }
 
@@ -107,6 +124,7 @@ public sealed class CavernSim
     {
         ShakeRequested = false;
         LandedThisStep = false;
+        CheckpointThisStep = false;
         DefeatsThisStep.Clear();
         PickupsThisStep.Clear();
         if (Result != CavernResult.Playing) return;
@@ -120,6 +138,7 @@ public sealed class CavernSim
         ResolvePickups();
         ResolveEnemies();
         ResolveSpikes();
+        ResolveCheckpoints();
         ResolveDoor();
 
         if (PlayerPos.Y > KillY) { Hp = 0; Result = CavernResult.Dead; }
@@ -211,9 +230,58 @@ public sealed class CavernSim
             }
     }
 
+    private void ResolveCheckpoints()
+    {
+        foreach (Checkpoint c in Checkpoints)
+        {
+            if (c.Reached || !Overlaps(PlayerBox, c.Box)) continue;
+            c.Reached = true;
+            LastCheckpoint = c.Pos;
+            CheckpointThisStep = true;
+        }
+    }
+
     private void ResolveDoor()
     {
         if (DoorOpen && Overlaps(PlayerBox, DoorBox)) Result = CavernResult.Cleared;
+    }
+
+    // ---- セーブ / ロード (ゲーム進捗のスナップショット) ----
+
+    /// <summary>現在の進捗を <see cref="CavernSave"/> に書き出す (復活位置 = 直近チェックポイント)。</summary>
+    public CavernSave Export() => new()
+    {
+        PlayerX = LastCheckpoint.X,
+        PlayerY = LastCheckpoint.Y,
+        Hp = Hp,
+        Coins = Coins,
+        Keys = Keys,
+        PickupsCollected = Pickups.Select(p => p.Collected).ToArray(),
+        WalkersAlive = Enemies.Select(e => e.Alive).ToArray(),
+        FlyersAlive = Flyers.Select(f => f.Alive).ToArray(),
+        CheckpointsReached = Checkpoints.Select(c => c.Reached).ToArray(),
+    };
+
+    /// <summary>セーブを適用して進捗を復元する (<see cref="CavernLevel.CreateSim"/> の新規 sim に対して呼ぶ)。</summary>
+    public void ApplySave(CavernSave s)
+    {
+        PlayerPos = new Vector2(s.PlayerX, s.PlayerY);
+        PlayerVel = Vector2.Zero;
+        LastCheckpoint = PlayerPos;
+        Hp = s.Hp;
+        Coins = s.Coins;
+        Keys = s.Keys;
+        DoorOpen = Keys >= RequiredKeys;
+        Restore(s.PickupsCollected, Pickups.Count, i => { Pickup p = Pickups[i]; p.Collected = s.PickupsCollected[i]; Pickups[i] = p; });
+        Restore(s.WalkersAlive, Enemies.Count, i => Enemies[i].Alive = s.WalkersAlive[i]);
+        Restore(s.FlyersAlive, Flyers.Count, i => Flyers[i].Alive = s.FlyersAlive[i]);
+        Restore(s.CheckpointsReached, Checkpoints.Count, i => Checkpoints[i].Reached = s.CheckpointsReached[i]);
+    }
+
+    private static void Restore(bool[] arr, int count, Action<int> set)
+    {
+        int n = Math.Min(arr.Length, count);   // セーブとレベルの版ずれに耐える
+        for (int i = 0; i < n; i++) set(i);
     }
 
     private void Damage(float sourceX)

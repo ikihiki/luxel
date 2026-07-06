@@ -91,6 +91,10 @@ public static class CavernLevel
         // 飛行敵 (序盤の空をサイン波で浮遊)
         sim.Flyers.Add(new Flyer { Home = new Vector2(215, 248), AmpX = 34, AmpY = 20, Freq = 1.0f });
 
+        // チェックポイント 2 個 (通過でセーブ点 + 復活位置)
+        sim.Checkpoints.Add(new Checkpoint { Pos = new Vector2(160, groundTop - 28) });
+        sim.Checkpoints.Add(new Checkpoint { Pos = new Vector2(500, raisedTop - 28) });
+
         return sim;
     }
 

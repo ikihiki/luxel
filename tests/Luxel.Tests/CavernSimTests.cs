@@ -249,4 +249,48 @@ public class CavernSimTests
         sim.Step(Dt, 0f, false);
         Assert.Single(sim.PickupsThisStep);
     }
+
+    // ---- チェックポイント / セーブ ----
+
+    [Fact]
+    public void ReachingCheckpoint_UpdatesRespawn()
+    {
+        var sim = MakeSim();
+        Vector2 cpPos = sim.PlayerPos;
+        sim.Checkpoints.Add(new Checkpoint { Pos = cpPos });
+        sim.Step(Dt, 0f, false);
+        Assert.True(sim.Checkpoints[0].Reached);
+        Assert.True(sim.CheckpointThisStep);
+        Assert.Equal(cpPos.X, sim.LastCheckpoint.X, 1);
+        Assert.Equal(cpPos.Y, sim.LastCheckpoint.Y, 1);
+    }
+
+    [Fact]
+    public void SaveLoad_RestoresProgress()
+    {
+        var sim = CavernLevel.CreateSim();
+        sim.Coins = 4;
+        sim.Keys = 3;
+        sim.Hp = 2;
+        Pickup p = sim.Pickups[0]; p.Collected = true; sim.Pickups[0] = p;
+        sim.Enemies[0].Alive = false;
+        sim.Checkpoints[0].Reached = true;
+        sim.LastCheckpoint = new Vector2(500, 200);
+
+        string json = sim.Export().ToJson();
+        CavernSave loaded = CavernSave.FromJson(json);
+
+        var fresh = CavernLevel.CreateSim();
+        fresh.ApplySave(loaded);
+
+        Assert.Equal(4, fresh.Coins);
+        Assert.Equal(3, fresh.Keys);
+        Assert.True(fresh.DoorOpen);            // 鍵 3 → 扉が開いた状態も復元
+        Assert.Equal(2, fresh.Hp);
+        Assert.True(fresh.Pickups[0].Collected);
+        Assert.False(fresh.Enemies[0].Alive);
+        Assert.True(fresh.Checkpoints[0].Reached);
+        Assert.Equal(500, fresh.PlayerPos.X, 1);   // 復活位置 = セーブ時のチェックポイント
+        Assert.Equal(200, fresh.PlayerPos.Y, 1);
+    }
 }
