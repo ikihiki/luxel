@@ -113,6 +113,12 @@ public static class DocsGpu
 
         {{StoryRef(ctx, "Demos/2D/Map", knobs: true)}}
 
+        ## CameraRig2D — 追従カメラ (ゲームフィール)
+
+        低レベルの `Camera2D` (ズーム/パン affine) の上に、ゲーム向けの高レベルコントローラ `CameraRig2D` があります。毎フレーム追従対象 (`Target`) を与えて `Update(dt, viewportW, viewportH)` し、`Camera(w, h)` で `Camera2D` を得ます。**デッドゾーン** (中央のこの矩形内では動かない)・**指数平滑** (フレームレート非依存の `1 - exp(-dt/tau)`、`* 0.1f` 方式は dt 依存なので使わない)・**ワールド境界クランプ** (画面端が `WorldBounds` を出ない、ワールドが画面より小さい軸は中央固定)・**画面シェイク** (`Shake(amp, duration, seed)`、固定シード xorshift なので golden 決定的) を持ちます。追従はターゲットが動いた後 = LateUpdate が定位置です。
+
+        {{StoryRef(ctx, "Demos/TwoD/CameraRig")}}
+
         ## RetainedCanvas — 保持型ツリーと部分更新
 
         UI ライブラリのバックエンドとして、フレーム間で保持するノードツリーを提供します。データは SoA (Transform / Style / Clip / Order / Segment を分離) で、シェーダが per-path 変換を適用するため **移動 = 変換だけ書込、色変更 = スタイルだけ書込** (ジオメトリ不変) になります。
@@ -248,6 +254,10 @@ public static class DocsGpu
         - shadow map (ライト視点 R32Float → bindless バッファ → 比較) → [Demos/3D/ShadowMap](story:Demos/3D/ShadowMap)
 
         shadow map も「R32F カラー RT + bindless バッファ経由の Load」— 専用のサンプラ比較ハードウェアに頼らない compute-first の流儀です。
+
+        ## OrbitCamera — 軌道カメラ
+
+        注視点を中心に yaw/pitch/distance で周回する軌道カメラ `OrbitCamera` (Luxel core) が `ViewProjection` (`view * proj`) を計算します。`Orbit(dYaw, dPitch)` でドラッグ回転 (pitch はジンバルロック手前でクランプ)、`Dolly(factor, min, max)` でズームします。ルート引数へ渡すときは行列レイアウトの罠 (下記) に従い `Matrix4x4.Transpose` を入れます。2D の `CameraRig2D` (追従/シェイク/境界) に対し、3D は v1 では viewProj 算出とドラッグ操作までがスコープです。
 
         ## 設計ノート: UI に ECS を使わない理由
 

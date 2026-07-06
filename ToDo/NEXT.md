@@ -35,7 +35,7 @@
 ### M2 — 2D ゲーム機能 (capstone ① の部品)
 
 - [x] **Q06**: 15 セーブ/ロード + 設定 (2026-07-06 完了) — A: `WorldSave.Serialize/Deserialize` (Friflo EntitySerializer + version ラッパ + `[ComponentKey(null)]` 除外)。B: `SettingsStore.Get<T>()`→`Signal<T>` + `IFileStore` (インメモリ/物理) + 破損 .bak 退避。新プロジェクト `Luxel.Settings`。デモ Demos/Framework/SaveLoad・Settings (golden 各 1)、Docs/Runtime 「永続化」節。単体テスト 14。ゲーム側配線 (保存先 %APPDATA%/ゲーム名、セーブ/設定 UI、InputBindings 永続化) は **Q13 (ゲーム組み上げ)** で実施。
-- [ ] **Q07**: [17 カメラコントローラ](17-camera-controller.md) — CameraRig2D + OrbitCamera 抽出 (3D 分もここで済ませる)
+- [x] **Q07**: 17 カメラコントローラ (2026-07-06 完了) — `CameraRig2D` (Luxel.TwoD): 追従 (デッドゾーン + フレームレート非依存の指数平滑) / ワールド境界クランプ / 画面シェイク (固定シード xorshift) / ズーム平滑。`OrbitCamera` (Luxel core): yaw/pitch/distance → viewProj + Orbit/Dolly。`RectF` 追加。単体テスト 11、デモ Demos/TwoD/CameraRig (golden)、Docs/TwoD・ThreeD にカメラ節。3D の follow/shake は MD 通りスコープ外、シェイクは平行移動のみ (回転は任意)。
 - [ ] **Q08**: [18 スプライトアトラス + タイルマップ](18-sprite-atlas-tilemap.md) — 大きい。MD の作業ステップ単位で複数セッションに分けて良い (分けた場合は着手中メモに進捗を書く)
 - [ ] **Q09**: [16 パーティクル](16-particle-system.md) — コア + .TwoD + .ThreeD (ビルボード) まで全部
 - [ ] **Q10**: [10 Audio ストリーミング](10-audio-streaming.md)
