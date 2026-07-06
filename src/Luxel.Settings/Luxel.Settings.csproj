@@ -5,6 +5,12 @@
     <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- 設定値を DI で取れるよう Microsoft.Extensions.Options / DI に対応 (Hosting と同じ 9.0.0) -->
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

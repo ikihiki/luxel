@@ -36,6 +36,8 @@ public sealed class LuxelHostBuilder
     private Type? _startupScene;
     private string? _assetRoot;
     private bool _useAudio;
+    private Luxel.Settings.IFileStore? _settingsFiles;
+    private string _settingsFileName = "settings.json";
 
     private LuxelHostBuilder(string[]? args)
     {
@@ -77,6 +79,25 @@ public sealed class LuxelHostBuilder
 
     /// <summary>Resources system を DI に登録し、<paramref name="assetRoot"/> を base ディレクトリにする。</summary>
     public LuxelHostBuilder UseResources(string? assetRoot = null) { _assetRoot = assetRoot ?? AppContext.BaseDirectory; return this; }
+
+    /// <summary>設定ストア (<see cref="Luxel.Settings.SettingsStore"/>) を DI に登録する。保存先は
+    /// <c>%APPDATA%/<paramref name="appName"/></c> (実ファイル)。後は <c>ConfigureServices</c> で
+    /// <c>services.AddSettingsOptions&lt;T&gt;("key")</c> すると <c>IOptions&lt;T&gt;</c>/<c>IOptionsMonitor&lt;T&gt;</c> で注入できる。</summary>
+    public LuxelHostBuilder WithSettings(string appName, string fileName = "settings.json")
+    {
+        string root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), appName);
+        _settingsFiles = new Luxel.Settings.PhysicalFileStore(root);
+        _settingsFileName = fileName;
+        return this;
+    }
+
+    /// <summary>設定ストアを指定 <see cref="Luxel.Settings.IFileStore"/> で登録する (テストのインメモリ等)。</summary>
+    public LuxelHostBuilder WithSettings(Luxel.Settings.IFileStore files, string fileName = "settings.json")
+    {
+        _settingsFiles = files;
+        _settingsFileName = fileName;
+        return this;
+    }
 
     /// <summary>起動時に自動 Load する scene 型。SceneManager が最初に SwitchAsync{T}() する。</summary>
     public LuxelHostBuilder AddScene<TScene>() where TScene : GameScene
@@ -145,6 +166,10 @@ public sealed class LuxelHostBuilder
 
         // UiRegistry — 複数 UiHost を DevTools が一括で見られるよう登録簿を提供
         _inner.Services.AddSingleton<UiRegistry>();
+
+        // 設定ストア (指定時) — 値は ConfigureServices の AddSettingsOptions<T> で IOptions 化できる
+        if (_settingsFiles is not null)
+            Luxel.Settings.SettingsServiceCollectionExtensions.AddLuxelSettings(_inner.Services, _settingsFiles, _settingsFileName);
 
         // SceneLoopServices — Scene の ctor に渡す (device / resources / audio / input の束)
         _inner.Services.AddSingleton(sp => new SceneLoopServices(
