@@ -28,7 +28,7 @@ GameLoop に固定タイムステップの FixedUpdate フェーズを追加す�
   }
   Alpha = (float)(_accum / FixedDt);     // 描画補間係数 [0,1)
   ```
-- `FixedDt` は設定可能 (既定 1/60)。`MaxStepsPerFrame` 超過時は余剰を捨てる (スローモーション化を選ぶか捨てるかは設定 — 既定は捨てる + 診断イベント)。
+- `FixedDt` は設定可能 (既定 1/60)。`MaxStepsPerFrame` 超過時は余剰を捨てる (スローモーション化を選ぶか捨てるかは設定 — 既定は捨てる + 診断イベント。DevTools 側の受け皿 = ステップ回数/Alpha/超過の Perf 表示は [21](21-devtools-game-scale.md) D)。
 - `FrameTime` に `FixedDeltaSeconds` / `Alpha` を足すか、FixedUpdate 用の context を分けるかは既存の UpdateContext の形に合わせる。
 
 ### 2. 描画補間 (alpha)
