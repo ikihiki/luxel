@@ -314,6 +314,7 @@ public abstract class GameScene : IScene
         cmds.Register("ecs.set", arg => HandleEcsSet(arg));
         cmds.Register("ecs.inspect", arg => HandleEcsInspect(arg));
         cmds.Register("ecs.filter", arg => HandleEcsFilter(arg));
+        cmds.Register("gizmo.enable", arg => HandleGizmoEnable(arg));
         cmds.Register("ui.set", arg => HandleUiSet(arg));
     }
 
@@ -342,6 +343,17 @@ public abstract class GameScene : IScene
         string? text = el.TryGetProperty("text", out var t) && t.ValueKind == System.Text.Json.JsonValueKind.String
             ? t.GetString() : null;
         _ecsFilter = string.IsNullOrWhiteSpace(text) ? null : text;
+    }
+
+    /// <summary>gizmo カテゴリの ON/OFF。<c>{ op:"gizmo.enable", kind:"physics", on:true }</c>。
+    /// kind 省略時は <c>"all"</c>、on 省略時は true。実際に描くかはゲーム側の <see cref="Luxel.TwoD.DebugDraw"/> flush 次第。</summary>
+    private static void HandleGizmoEnable(object? arg)
+    {
+        if (arg is not System.Text.Json.JsonElement el) { Luxel.TwoD.DebugDraw.Enable(Luxel.TwoD.DebugDraw.All); return; }
+        string kind = el.TryGetProperty("kind", out var k) && k.ValueKind == System.Text.Json.JsonValueKind.String
+            ? k.GetString() ?? Luxel.TwoD.DebugDraw.All : Luxel.TwoD.DebugDraw.All;
+        bool on = !el.TryGetProperty("on", out var o) || o.ValueKind != System.Text.Json.JsonValueKind.False;
+        Luxel.TwoD.DebugDraw.SetEnabled(kind, on);
     }
 
     /// <summary>

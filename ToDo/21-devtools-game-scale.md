@@ -110,12 +110,19 @@ capstone との順序: **A/C/E は 19 のゲーム組み上げ前に済ませる
 - 付随: `FixedTimestep` を `Luxel.Framework` (net10.0-windows、テスト不可) から Luxel core (net10.0) へ移設し単体テスト可能に。`EcsDiagnostics` は Luxel.Ecs へ (core 参照追加、循環なし)。
 - 検証: `dotnet build` OK / `dotnet test` 604 passed / e2e 53 plays passed・golden diff 0 / index.html JS 構文 OK。
 
+### 2026-07-06 (2): DebugDraw コア 完了
+
+**済 (Q05 の一部)**:
+- **DebugDraw コア** (`Luxel.TwoD.DebugDraw`, static 即時モード): `Line/Rect/Circle/Text` をワールド空間で溜め、`Flush(Scene2D, WorldToScreen, DebugTextDrawer?)` で最前面オーバーレイへ流す。`WorldToScreen` 委譲で 2D=恒等 / 3D=viewProj の両対応。テキストは `DebugTextDrawer` 委譲で Typography 非依存。カテゴリ (kind) 単位の Enable/Disable、`"all"` で一括、OFF カテゴリはゼロ割り当てで抜ける。`gizmo.enable {kind,on}` コマンドを Scene に登録。
+- 配置: Luxel.TwoD (net10.0, テスト可)。Scene2D の `StrokeLine/StrokePolyline` で線・矩形・円を、委譲でテキストを描画。
+- golden: **Demos/Framework/Gizmos** (Order 150) — 箱/円/線/ラベル + 無効カテゴリ非描画。単体テスト `DebugDrawTests` 7 件 (ゼロ割り当て / カテゴリ / 投影 / テキスト委譲 / Reset)。
+- 検証: build OK / test 611 passed / e2e 54 plays passed・golden diff 0 (新規 Gizmos golden 1 枚のみ) / golden 目視 OK。
+
 **残 (Q05 の残り — 次セッション以降)**:
-- **DebugDraw コア** (B の gizmo 本体ではなく描画レイヤ基盤): RetainedCanvas 最前面オーバーレイ + `DebugDraw.Line/Rect/Circle/Text` 即時 API + ワールド→スクリーン変換 delegate (2D/3D 両対応)。off 時ゼロ割り当て。
-- **E (WithDevTools 統合)**: `LuxelHostBuilder` 相当の `.WithDevTools(...)` オプトイン (Gallery Program.cs の定型集約)、`--devtools` (内蔵) / `--devtools-port` (ブラウザ)、3D フレーム (RenderGraph) が DiagFrame に乗るか調査。19 の publish スモークに合流。
-- **F (ライブビュー fps 化)**: F1 割り当て除去 (リングバッファ + 二読者所有権) → F2 内蔵版 60fps 実測 → F3 ブラウザ WebSocket push (latest-wins) → 任意 F4 MJPEG。
-- **Docs**: Docs/Framework or 新 Docs/DevTools に「ゲームを観測する」節 (E/F 完了時にまとめて執筆)。
-- B の機能別 gizmo (物理/カメラ/タイル) は Q12/Q14 で対象機能実装後。
+- **E (WithDevTools 統合)**: **Q13 (19 ゲーム組み上げ) と一緒にやるのが自然**と判明 — capstone サンプル (samples/LuxelCavern) は現状 `LuxelHostBuilder`/`GameScene` ではなく `AppWindow` + UI 直書きで、実ゲームループは Stage B (Q13) で作る。DevTools を実ゲームに挿すのはゲーム構造が固まる Q13 で。内容: `LuxelHostBuilder.WithDevTools(...)` (Framework を DevTools UI に結合させない配置 = 別アセンブリの拡張メソッド)、`--devtools` (内蔵) / `--devtools-port` (ブラウザ)、3D フレーム (RenderGraph) が DiagFrame に乗るか調査、publish スモーク。
+- **F (ライブビュー fps 化)**: F1 割り当て除去 (リングバッファ + 二読者所有権) → F2 内蔵版 60fps 実測 → F3 ブラウザ WebSocket push (latest-wins) → 任意 F4 MJPEG。単独で先行可。
+- **Docs**: Docs/Framework or 新 Docs/DevTools に「ゲームを観測する」節 (E/F 完了時にまとめて執筆)。DebugDraw の使い方もここへ。
+- B の機能別 gizmo (物理/カメラ/タイル) は Q12/Q14 で対象機能実装後 (この DebugDraw コアの上に載せる)。
 
 ## スコープ外
 
