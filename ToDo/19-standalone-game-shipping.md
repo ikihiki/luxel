@@ -113,7 +113,12 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
   - `CavernSave` DTO (復活位置 + HP/コイン/鍵 + 収集/撃破/通過フラグ配列) + JSON 往復。`CavernSim.Export()`/`ApplySave()` (新規 CreateSim に流し込む「つづきから」。版ずれに耐える bounds-safe Restore)。
   - ファイル IO の場所 (%APPDATA%) は exe の責務として分離 (Core は純データ + 直列化)。golden にチェックポイント旗を描画。
   - 単体テスト +2 (チェックポイント通過で復活位置更新 / セーブ→JSON→ロードで進捗復元)。計 750 passed。e2e 65/65 diff 0。
-  - **残 (次セッション以降)**: 片方の敵 AI を .csx (ScriptSystem、実時間 exe で hot reload) / HUD (日本語 HP・コイン) + ポーズ + 設定 UI (音量) / SettingsStore で音量/キーバインドを %APPDATA% へ (Q06 の B) / Audio (BGM ストリーミング + SE) / 実時間 GameScene + 補間 + 入力 (キーボード/パッド) で exe プレイアブル化 (ここで %APPDATA% への実ファイル書き込みも配線) / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / publish 本番 (checklist 5,6,9) + リポジトリ外スモーク / Docs「配布」節。
+- **ステージ B セッション 5 (2026-07-06, Q13)**: **HUD + 状態機械 + ポーズ** (純ロジック・テスト可能 / golden)。
+  - `GameFlow` (Title ⇄ Playing ⇄ Paused、Playing → GameOver/Clear。CavernSim を保持し Playing 中のみ Step、Result を状態へ反映)。
+  - `CavernHud` (HP ハート・コイン・鍵を**カメラにアンカーしてスクリーン空間**へ描く純ロジック。screen px → world 逆算。テキストは DebugTextDrawer 委譲。ポーズオーバーレイも)。exe/ストーリー共用。
+  - Gallery `Game/Cavern` golden に HUD (HP×3 / ×3 / 0/3) を描画 (world-anchored でカメラ変換下でも画面左上に固定)。
+  - 単体テスト +6 (GameFlow: 開始/ポーズ切替/ポーズ中は進まない/死亡→GameOver/クリア→Clear/つづきから復元)。計 756 passed。e2e 65/65 diff 0。
+  - **残 (次セッション以降)**: 片方の敵 AI を .csx (ScriptSystem、実時間 exe で hot reload) / SettingsStore で音量/キーバインドを %APPDATA% へ (Q06 B) + 設定 UI / Audio (BGM ストリーミング + SE) / **実時間 GameScene + 補間 + 入力 (キーボード/パッド) で exe プレイアブル化** (LuxelHostBuilder/GameLoop へ移行、%APPDATA% 実ファイル書込、--frames スモーク) / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / publish 本番 (checklist 5,6,9) + リポジトリ外スモーク / Docs「配布」節。
 
 ## 作業ステップ
 

@@ -44,7 +44,7 @@
 
 ### M3 — capstone ① 完成
 
-- [ ] **Q13**: [19 capstone ①](19-standalone-game-shipping.md) **ステージ B: ゲーム組み上げ → e2e → publish 本番 → Docs「配布」節** — 完了したら **19 の MD を削除**。**ここで合流**: Q05-E (WithDevTools 統合、ゲーム構造が固まってから) + Q06 の保存/設定ゲーム配線 (保存先パス・セーブ/設定 UI・InputBindings 永続化)。 (着手中: 2026-07-06 — **大タスク・複数セッション**。**S1 済**: CavernSim (プレイヤー物理) + CavernLevel + Game/Cavern golden。**S2 済**: 収集/扉/トゲ+HP/巡回敵/無敵+ノックバック+シェイク。**S3 済**: 飛行敵 + 演出イベント + 松明炎/コイン/撃破パーティクル (tint)。**S4 済**: チェックポイント + CavernSave (進捗 JSON 往復 Export/ApplySave、Q06 ドッグフーディング、%APPDATA% は exe 責務に分離)。単体テスト計 21。**残**: .csx 敵 AI/HUD日本語+ポーズ+設定UI/SettingsStore音量(Q06 B)/Audio/実時間 exe プレイアブル化(補間+入力+実ファイル書込)/Tiled/WithDevTools+gizmo(Q05-E/Q12)/publish本番/Docs。詳細は 19 MD 進捗節)
+- [ ] **Q13**: [19 capstone ①](19-standalone-game-shipping.md) **ステージ B: ゲーム組み上げ → e2e → publish 本番 → Docs「配布」節** — 完了したら **19 の MD を削除**。**ここで合流**: Q05-E (WithDevTools 統合、ゲーム構造が固まってから) + Q06 の保存/設定ゲーム配線 (保存先パス・セーブ/設定 UI・InputBindings 永続化)。 (着手中: 2026-07-06 — **大タスク・複数セッション**。**S1 済**: CavernSim (プレイヤー物理) + CavernLevel + Game/Cavern golden。**S2 済**: 収集/扉/トゲ+HP/巡回敵/無敵+ノックバック+シェイク。**S3 済**: 飛行敵 + 演出イベント + 松明炎/コイン/撃破パーティクル (tint)。**S4 済**: チェックポイント + CavernSave (進捗 JSON 往復)。**S5 済**: GameFlow 状態機械 (Title/Playing/Paused/GameOver/Clear) + CavernHud (HP/コイン/鍵を world-anchored でスクリーン空間へ、ポーズオーバーレイ)。golden に HUD。単体テスト計 27 (CavernSim 21 + GameFlow 6)。**残**: .csx 敵 AI/SettingsStore音量+設定UI(Q06 B)/Audio/**実時間 exe プレイアブル化(GameLoop+補間+入力+実ファイル書込)**/Tiled/WithDevTools+gizmo(Q05-E/Q12)/publish本番/Docs。詳細は 19 MD 進捗節)
 
 ### M4 — 3D 物理・アニメーション (capstone ② の部品)
 

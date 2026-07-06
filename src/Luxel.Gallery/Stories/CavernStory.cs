@@ -3,6 +3,7 @@ using LuxelCavern.Core;
 using Luxel.Particles;
 using Luxel.Particles.TwoD;
 using Luxel.TwoD;
+using Luxel.Typography;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
@@ -21,6 +22,8 @@ public static class CavernStories
 
     [Story("Game/Cavern", Height = 300, Order = 145)]
     public static Widget Cavern(StoryContext ctx) => ctx.Snap(Frame(GpuView(384, 256, new CavernScene(), animated: false)));
+
+    private static readonly Lazy<VectorFont> Font = new(() => Luxel.Gallery.GalleryFonts.Load(Luxel.Gallery.GalleryFonts.Regular));
 
     private sealed class CavernScene : GpuSceneBase
     {
@@ -113,8 +116,16 @@ public static class CavernStories
             es.FillRoundedRect(Color2D.Rgba(90, 170, 245), sim.PlayerPos.X, sim.PlayerPos.Y, sim.PlayerSize.X, sim.PlayerSize.Y, 3);
             ents.Content = es;
 
-            // パーティクル (最前面)
+            // パーティクル (エンティティの上)
             new ParticleNode(_canvas, _canvas.Root, fx, circleSegments: 8).Sync();
+
+            // HUD (HP/コイン/鍵。カメラにアンカーしてスクリーン左上へ、最前面)
+            UiNode hud = _canvas.AddChild(_canvas.Root);
+            hud.ContentColors = true;
+            var hs = new Scene2D();
+            CavernHud.Draw(hs, (sc, t, x, y, h, c) => Font.Value.AppendText(sc, t, x, y, h, c),
+                sim, _cameraCenter, 2f, (int)W, (int)H);
+            hud.Content = hs;
         }
 
         protected override void OnRender(float time)
