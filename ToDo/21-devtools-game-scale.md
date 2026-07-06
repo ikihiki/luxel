@@ -2,7 +2,7 @@
 
 ## 概要
 
-DevTools (ブラウザ型、`src/Luxel.DevTools/`) を capstone ゲーム 2 本 ([19](19-standalone-game-shipping.md) / [20](20-game2-3d-shooting-range.md)) の開発に耐える観測・操作ツールへ拡張する。現状はデモストーリー規模 (数十エンティティ) 前提の全量スナップショット方式で、ゲーム規模 (数百エンティティ + 物理 + パーティクル) では ①ECS インスペクタがスケールしない ②物理/カメラ/パーティクルの可視化がない ③FixedUpdate/タイムスケール非対応 ④ライブビューがポーリング駆動でゲームの fps に届かない、が問題になる。
+DevTools を capstone ゲーム 2 本 ([19](19-standalone-game-shipping.md) / [20](20-game2-3d-shooting-range.md)) の開発に耐える観測・操作ツールへ拡張する。現状はデモストーリー規模 (数十エンティティ) 前提の全量スナップショット方式で、ゲーム規模 (数百エンティティ + 物理 + パーティクル) では ①ECS インスペクタがスケールしない ②物理/カメラ/パーティクルの可視化がない ③FixedUpdate/タイムスケール非対応 ④ライブビューがポーリング駆動でゲームの fps に届かない、が問題になる。
 
 [11](11-scripting-debug-tools.md) (Console タブ・入力リプレイ・外部デバッガ) とは独立 — 11 はスクリプティングのデバッグ層、本タスクはゲームランタイムの観測。重複しない。
 
@@ -65,7 +65,6 @@ DevStats.Set("bodies", physicsWorld.BodyCount);
 
 1. `LuxelHostBuilder` に `.WithDevTools(...)` 相当のオプトイン (Gallery の Program.cs で手書きしている定型の集約)。**内蔵版とブラウザ版を選べるようにする**: ゲーム引数の案 — `--devtools` = 内蔵ウィンドウ (`DevToolsApp.Launch`、第二 GpuDevice が必要な点はファクトリを渡す)、`--devtools-port <n>` = ブラウザ版 DebugServer、併用可。既定はどちらも off (publish 成果物で勝手に立てない)。
 2. wwwroot は埋め込みリソースなので publish 追加作業は無いはず — 19 の publish スモークで `--devtools` (内蔵) / `--devtools-port` (ブラウザ) の両起動を各 1 回確認。内蔵版は Luxel.DevTools.App の参照が publish サイズに乗る — 気になるなら Release ではリンクしない構成も検討 (計測してから判断)。
-3. **3D フレーム画像の調査**: `DiagFrame` が最終フレームバッファ (3D 含む) を映すか確認し、RetainedCanvas 分しか映らないなら「swapchain 提示前の合成結果をキャプチャする口」を検討 (重ければ v1 は 2D のみと明記)。
 
 ### F. ライブビューのゲーム fps 化 (目標: ゲームと同等の滑らかさ、両フロントエンド)
 

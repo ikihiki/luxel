@@ -26,7 +26,7 @@
 
 ### M1 — 基盤 (golden をきれいにしてから土台)
 
-- [ ] **Q01**: [13 日本語フォント同梱](13-e2e-japanese-font.md) — 全 golden 再生成を伴うため最初。完了 = e2e で日本語が出る + golden がフォント同梱由来で安定
+- [x] **Q01**: [13 日本語フォント同梱](13-e2e-japanese-font.md) — 全 golden 再生成を伴うため最初。完了 = e2e で日本語が出る + golden がフォント同梱由来で安定
 - [ ] **Q02**: [12 メンテ: Docs stale + dx golden](12-maintenance-docs-golden.md) — golden を新フォント基準で整えた直後に片付ける
 - [ ] **Q03**: [14 FixedUpdate + 描画補間](14-framework-fixedupdate.md) — ゲーム/物理の時間基盤。既存デモ (Knockdown 等) の移行まで
 - [ ] **Q04**: [19 capstone ①](19-standalone-game-shipping.md) **ステージ A: 骨組み + publish 早回し** — タイトル画面だけの LuxelCavern を作り publish チェックリスト 1〜4, 7, 8 を 1 周 (直すのは Luxel 本体側)。**MD はまだ削除しない**

@@ -233,4 +233,39 @@ public static class TextControlStories
         Text("Muted 13px", 13, color: Bind.From(() => UiTheme.T.TextMuted)),
         Text("Tailwind colored", 16, color: Tw.Blue500),
         Text("Half opacity", 16, color: Bind.From(() => UiTheme.T.Text), opacity: 0.5f)]));
+
+    [Story("Controls/Text/Japanese", Height = 380)]
+    public static Widget Japanese(StoryContext ctx)
+    {
+        // 同梱フォント (BIZ UDGothic / UDEV Gothic) で日本語が出ることを 1 画面で確認する:
+        // 基本フォント直 (Heading/Button/Text) + IME 入力 (TextArea) + 等幅の日本語コメント (CodeEditor)。
+        Signal<string> input = ctx.Signal("input", "");
+        TextArea ta = TextArea(input, height: 72);
+        ta.Fonts = JpFallback.Value;
+
+        Signal<string> code = ctx.Signal("code",
+            "// 日本語コメントも等幅で表示される\nint 合計 = 1 + 2;  // 全角識別子");
+        CodeEditor ed = CodeEditor(code, editorHeight: 90f, editorWidth: 420f);
+        (_, _, _, ed.MonoFont) = EditorFaces.Value;
+        ed.Highlighter = Luxel.Highlight.TextMateHighlighter.Instance;
+        ed.Language = "csharp";
+
+        ctx.Play("jp", async d =>
+        {
+            await d.Snap();                              // 見出し/ラベル/コメントの日本語 (基本フォント直 + 等幅)
+            await d.Click(ta);
+            await d.Type("日本語入力テスト");
+            await d.Expect(() => input.Value.Contains("日本語"), "IME 経由で日本語が入力される");
+            await d.Snap("typed");
+        });
+
+        return Frame(VStack(10)[
+            Heading("日本語表示 — ひらがな・カタカナ・漢字"),
+            HStack(8)[Button(_ => { }, "ボタン"),
+                      Text("ラベル：あいうえお アイウエオ 日本語", 14, color: Bind.From(() => UiTheme.T.Text))],
+            Muted("TextArea に IME で入力："),
+            ta,
+            Muted("CodeEditor 内の日本語コメント (等幅)："),
+            ed]);
+    }
 }

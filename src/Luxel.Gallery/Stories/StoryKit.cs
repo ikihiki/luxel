@@ -13,24 +13,23 @@ internal static class StoryKit
         Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(24))
             [Center()[child]];
 
-    /// <summary>UI + 日本語 + カラー絵文字 (COLR — 無い環境では省略) のフォールバック連鎖。</summary>
+    /// <summary>本文 (日本語+ラテン, 同梱 BIZ UDGothic) + カラー絵文字 (COLR — 無い環境では省略) の
+    /// フォールバック連鎖。BIZ UDGothic がラテンもカバーするので基本 1 本 + 絵文字。
+    /// 絵文字のみシステム依存 (seguiemj) を許容 — その絵文字 golden はこのマシン専用。</summary>
     internal static readonly Lazy<FontCollection> JpFallback = new(() =>
     {
+        VectorFont host = GalleryFonts.Load(GalleryFonts.Regular);
         VectorFont? emoji = null;
         try { emoji = VectorFont.LoadSystem("seguiemj.ttf"); } catch { /* 絵文字フォント無し */ }
-        return emoji is null
-            ? new FontCollection(VectorFont.LoadSystem(), VectorFont.LoadSystemJapanese())
-            : new FontCollection(VectorFont.LoadSystem(), VectorFont.LoadSystemJapanese(), emoji);
+        return emoji is null ? new FontCollection(host) : new FontCollection(host, emoji);
     });
 
-    /// <summary>リッチエディタ用の書体 (太字/斜体/等幅。無ければ通常フォント代用)。</summary>
+    /// <summary>リッチエディタ用の書体。太字/等幅は同梱フォント (マシン非依存)。
+    /// 斜体は BIZ UDGothic に無い → null (RichTextEditor が通常フォントで代用、golden は決定的)。</summary>
     internal static readonly Lazy<(VectorFont? Bold, VectorFont? Italic, VectorFont? BoldItalic, VectorFont? Mono)> EditorFaces = new(() =>
     {
-        VectorFont? Try(params string[] names)
-        {
-            try { return VectorFont.LoadSystem(names); } catch { return null; }
-        }
-        return (Try("segoeuib.ttf", "arialbd.ttf"), Try("segoeuii.ttf", "ariali.ttf"),
-                Try("segoeuiz.ttf", "arialbi.ttf"), Try("consola.ttf", "cour.ttf"));
+        VectorFont bold = GalleryFonts.Load(GalleryFonts.Bold);
+        VectorFont mono = GalleryFonts.Load(GalleryFonts.Mono);
+        return (bold, null, null, mono);
     });
 }

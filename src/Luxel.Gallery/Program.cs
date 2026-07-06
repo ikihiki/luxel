@@ -28,7 +28,7 @@ if (args.Length > 1 && args[1] is "e2e" or "snap")
         Console.WriteLine("snap は廃止されました — e2e (ctx.Play + d.Snap) として実行します。");
     using GpuDevice device = CreateDevice();
     Console.WriteLine($"=== Luxel.Gallery e2e on '{backend}' (device: {device.Name}) ===");
-    using VectorFont font = VectorFont.LoadSystem();
+    using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);   // 同梱フォント (日本語 + マシン非依存)
     using var host = new GalleryHost(device, font);
     // フラグ以外の残り引数 = テスト名フィルタ (部分一致、"パス#play名")
     string? filter = args.Skip(2).FirstOrDefault(a => !a.StartsWith("--"));
@@ -40,7 +40,7 @@ if (args.Length > 2 && args[1] == "bench")
 {
     using GpuDevice device = CreateDevice();
     Console.WriteLine($"=== Luxel.Gallery bench on '{backend}' (device: {device.Name}) ===");
-    using VectorFont font = VectorFont.LoadSystem();
+    using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);   // 同梱フォント
     using var host = new GalleryHost(device, font);
     int frames = args.Length > 3 && int.TryParse(args[3], out int f) ? f : 300;
     (float x, float y)? click = null;
@@ -69,7 +69,7 @@ static int RunApp(Func<GpuDevice> createDevice, int port, int seconds)
     using GpuDevice device = createDevice();
     Console.WriteLine($"=== Luxel.Gallery app (device: {device.Name}) ===");
     UiTheme.Current.Value = Theme.Light.Compact();   // ギャラリーは高密度テーマ (snap は既定テーマのまま)
-    using VectorFont font = VectorFont.LoadSystemJapanese();
+    using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);   // 実窓も同梱フォント (golden と字形一致)
     using var windows = new WindowSystem(Win32WindowBackend.Create());
 
     var cmds = new EngineCommands();
