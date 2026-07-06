@@ -96,7 +96,14 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
   - `CavernSim` (プレイヤー物理: 走る + 重力 + ジャンプを `TileMap.Sweep` 衝突で解決。**固定 dt で決定的**・GPU 非依存)。
   - Gallery `Game/Cavern` ストーリー (GpuScene で手続きアトラスを焼き、sim を固定 dt で事前実行 → タイル + プレイヤー + 追従カメラを描く。**実時間 GameScene/StoryAppView は wall-clock dt で非決定的なので採らず**、sim を事前実行して golden 決定化)。vk golden。
   - 単体テスト `CavernSimTests` 5 (落下着地/右移動/接地時のみジャンプ・二段不可/壁停止/決定性)。計 734 passed。e2e 65/65 diff 0。
-  - **残 (次セッション以降)**: 敵 2 種 (巡回/飛行、片方 .csx AI) / 収集 (コイン・鍵・扉) / トゲ + HP + ノックバック + 無敵 + シェイク / パーティクル演出 (砂埃/撃破/コイン/松明) / HUD (日本語) + ポーズ / セーブ・設定配線 (Q06 合流、%APPDATA%) / Audio (BGM ストリーミング + SE) / 実時間 GameScene + 補間 + 入力 (キーボード/パッド) で exe プレイアブル化 / Tiled (.tmj) レベル化 / WithDevTools (Q05-E 合流) / publish 本番 (checklist 5,6,9) + リポジトリ外スモーク / Docs「配布」節。
+- **ステージ B セッション 2 (2026-07-06, Q13)**: **ゲームコンテンツ層** — 収集/ハザード/敵を `CavernSim` に追加 (純ロジック・決定的)。
+  - 収集物 `Pickup` (コイン/鍵) + `CavernSim.Coins`/`Keys`。鍵 3 個で扉 (`DoorOpen`) が開き、開扉に触れると `Result=Cleared`。
+  - HP (3) + トゲタイル (id 4=Spike、非 solid だが接触ダメージ) + 巡回敵 `Walker` (接触ダメージ / 上から踏み撃破 + バウンド)。
+  - 被弾: 無敵時間 (1s) + ノックバック (横入力を 0.18s 無視) + `ShakeRequested` (カメラシェイクの発火口)。HP 0 / 落下 (`KillY`) で `Result=Dead`。
+  - `CavernLevel.CreateSim()` = マップ + コイン6/鍵3/扉/巡回敵/トゲ を配置した完全な sim。アトラス 4 セル目に spike (赤)。
+  - Gallery `Game/Cavern` golden をエンティティ描画に更新 (タイル + コイン/鍵/扉/敵/プレイヤーを ContentColors で per-shape 色)。
+  - 単体テスト +9 (コイン収集/鍵3で開扉/開扉クリア/トゲダメージ+シェイク/無敵で追加ダメージ無し/敵接触ダメージ/踏み撃破+バウンド/落下死/CreateSim 配置)。計 743 passed。e2e 65/65 diff 0。
+  - **残 (次セッション以降)**: 飛行敵 (サイン波) + 片方 .csx AI (ScriptSystem ドッグフーディング) / パーティクル演出 (砂埃/撃破/コイン/松明) / HUD (日本語 HP・コイン) + ポーズ / セーブ・設定配線 (Q06 合流、%APPDATA%) / Audio (BGM ストリーミング + SE) / 実時間 GameScene + 補間 + 入力 (キーボード/パッド) で exe プレイアブル化 / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats 統合 (Q05-E/Q12 合流) / publish 本番 (checklist 5,6,9) + リポジトリ外スモーク / Docs「配布」節。
 
 ## 作業ステップ
 

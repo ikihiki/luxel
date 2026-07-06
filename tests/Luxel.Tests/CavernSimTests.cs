@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Numerics;
 using LuxelCavern.Core;
 using Luxel.TwoD;
@@ -81,5 +82,112 @@ public class CavernSimTests
         }
         Assert.Equal(a.PlayerPos.X, b.PlayerPos.X, 4);
         Assert.Equal(a.PlayerPos.Y, b.PlayerPos.Y, 4);
+    }
+
+    // ---- 収集物 / 扉 ----
+
+    [Fact]
+    public void CollectsCoin()
+    {
+        var sim = MakeSim();
+        for (int i = 0; i < 30; i++) sim.Step(Dt, 0f, false);   // 着地
+        sim.Pickups.Add(new Pickup { Pos = sim.PlayerPos, Size = 10 });   // 重なる位置
+        sim.Step(Dt, 0f, false);
+        Assert.Equal(1, sim.Coins);
+        Assert.True(sim.Pickups[0].Collected);
+    }
+
+    [Fact]
+    public void ThreeKeysOpenDoor()
+    {
+        var sim = MakeSim();
+        for (int i = 0; i < 3; i++) sim.Pickups.Add(new Pickup { Pos = sim.PlayerPos, Size = 12, IsKey = true });
+        sim.Step(Dt, 0f, false);
+        Assert.Equal(3, sim.Keys);
+        Assert.True(sim.DoorOpen);
+    }
+
+    [Fact]
+    public void ReachingOpenDoor_Clears()
+    {
+        var sim = MakeSim();
+        for (int i = 0; i < 3; i++) sim.Pickups.Add(new Pickup { Pos = sim.PlayerPos, Size = 12, IsKey = true });
+        sim.DoorPos = sim.PlayerPos;
+        sim.Step(Dt, 0f, false);
+        Assert.Equal(CavernResult.Cleared, sim.Result);
+    }
+
+    // ---- ハザード / HP ----
+
+    [Fact]
+    public void SpikeTile_Damages_AndRequestsShake()
+    {
+        var sim = MakeSim();
+        sim.PlayerPos = new Vector2(31 * 16 + 2, 300);   // トゲタイル (x=31, floor 行) に重なる
+        sim.PlayerVel = Vector2.Zero;
+        sim.Step(Dt, 0f, false);
+        Assert.Equal(2, sim.Hp);
+        Assert.True(sim.Invincible);
+        Assert.True(sim.ShakeRequested);
+    }
+
+    [Fact]
+    public void Invincibility_PreventsRepeatDamage()
+    {
+        var sim = MakeSim();
+        sim.PlayerPos = new Vector2(31 * 16 + 2, 300);
+        sim.Step(Dt, 0f, false);
+        int hp1 = sim.Hp;
+        sim.PlayerPos = new Vector2(31 * 16 + 2, 300);   // 再び重ねても
+        sim.Step(Dt, 0f, false);
+        Assert.Equal(hp1, sim.Hp);   // 無敵中は追加ダメージなし
+    }
+
+    [Fact]
+    public void EnemyContact_Damages_EnemySurvives()
+    {
+        var sim = MakeSim();
+        for (int i = 0; i < 20; i++) sim.Step(Dt, 0f, false);   // 着地 (落下していない状態に)
+        var e = new Walker { Pos = sim.PlayerPos, MinX = 0, MaxX = 1000 };
+        sim.Enemies.Add(e);
+        int hp0 = sim.Hp;
+        sim.Step(Dt, 0f, false);
+        Assert.Equal(hp0 - 1, sim.Hp);
+        Assert.True(e.Alive);   // 横接触は踏みつけでない
+    }
+
+    [Fact]
+    public void Stomp_DefeatsEnemy_NoDamage_Bounces()
+    {
+        var sim = MakeSim();
+        var e = new Walker { Pos = new Vector2(200, 290), MinX = 0, MaxX = 1000 };
+        sim.Enemies.Add(e);
+        sim.PlayerPos = new Vector2(200, 272);   // 敵の真上
+        sim.PlayerVel = new Vector2(0, 120);     // 落下中
+        sim.Step(Dt, 0f, false);
+        Assert.False(e.Alive);
+        Assert.True(sim.PlayerVel.Y < 0f);   // 踏んで跳ねる
+        Assert.Equal(3, sim.Hp);             // ダメージなし
+    }
+
+    [Fact]
+    public void FallOffMap_Dies()
+    {
+        var sim = MakeSim();
+        sim.PlayerPos = new Vector2(100, sim.KillY + 10);
+        sim.Step(Dt, 0f, false);
+        Assert.Equal(CavernResult.Dead, sim.Result);
+        Assert.Equal(0, sim.Hp);
+    }
+
+    [Fact]
+    public void CreateSim_PopulatesEntities()
+    {
+        CavernSim sim = CavernLevel.CreateSim();
+        Assert.Equal(3, sim.Pickups.Count(p => p.IsKey));
+        Assert.Contains(sim.Pickups, p => !p.IsKey);   // コインもある
+        Assert.NotEmpty(sim.Enemies);
+        Assert.False(sim.DoorOpen);
+        Assert.Equal(3, sim.Hp);
     }
 }

@@ -8,14 +8,14 @@ using static Luxel.Gallery.Stories.StoryKit;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>
-/// **capstone ① 「Luxel Cavern」** (タスク 19 ステージ B) のゲームプレイ土台 — タイルマップ + プレイヤー
-/// 走り/ジャンプ (<see cref="CavernSim"/> の Sweep 衝突) + カメラ追従。sim を固定 dt で決定的に事前実行し、
-/// <see cref="TileMapLayer"/> + プレイヤーノードを <see cref="CameraRig2D"/> 風に追従カメラで描く (golden)。
-/// 実時間 GameScene/exe ラッパ・敵/収集/セーブ/HUD/Audio は後段。アトラスは手続き生成 (外部アセット不要)。
+/// **capstone ① 「Luxel Cavern」** (タスク 19 ステージ B) — タイルマップ + プレイヤー物理 (走り/ジャンプ/Sweep 衝突) +
+/// カメラ追従 + **収集物 (コイン/鍵)・扉・トゲ・巡回敵** (<see cref="CavernSim"/>)。sim を固定 dt で決定的に事前実行し、
+/// タイル + エンティティ + プレイヤーを追従カメラで描く (golden)。手続きアトラス (外部アセット不要)。
+/// HUD (日本語)・実時間 exe・Audio・パーティクル演出・セーブは後段。
 /// </summary>
 public static class CavernStories
 {
-    private const int Steps = 78;   // 事前実行フレーム数 (固定 dt)
+    private const int Steps = 78;
 
     [Story("Game/Cavern", Height = 300, Order = 145)]
     public static Widget Cavern(StoryContext ctx) => ctx.Snap(Frame(GpuView(384, 256, new CavernScene(), animated: false)));
@@ -34,15 +34,16 @@ public static class CavernStories
         {
             _raster = Track(new Rasterizer2D(Device));
 
-            // --- 手続きアトラス 32×32 (grass=(0,0) / wall=(16,0)? → CavernLevel の矩形に合わせる: grass(0,0)/dirt(16,0)/wall(0,16)) ---
+            // --- 手続きアトラス 32×32 (grass(0,0)/dirt(16,0)/wall(0,16)/spike(16,16)) ---
             const int aw = 32, ah = 32;
             _atlasBuf = Track(Device.Malloc(aw * ah * 4, GpuMemoryKind.HostMapped));
             Span<byte> px = _atlasBuf.Span<byte>(aw * ah * 4);
             (int Ox, int Oy, byte R, byte G, byte B)[] cells =
             [
-                (0, 0, 70, 175, 85),      // grass (緑)
-                (16, 0, 140, 92, 52),     // dirt  (茶)
-                (0, 16, 120, 122, 135),   // wall  (石)
+                (0, 0, 70, 175, 85),      // grass
+                (16, 0, 140, 92, 52),     // dirt
+                (0, 16, 120, 122, 135),   // wall
+                (16, 16, 210, 70, 70),    // spike (赤)
             ];
             foreach (var (ox, oy, r, g, b) in cells)
                 for (int y = 0; y < Tile; y++)
@@ -56,37 +57,43 @@ public static class CavernStories
                         px[i + 3] = 255;
                     }
 
-            SpriteAtlas atlas = CavernLevel.BuildAtlas();
-            atlas.Bind(_atlasBuf.BindlessIndex, aw, ah);
-            TileSet tileSet = CavernLevel.BuildTileSet(atlas);
-            TileMap map = CavernLevel.Build(tileSet);
+            CavernSim sim = CavernLevel.CreateSim();
+            sim.Map.TileSet.Atlas.Bind(_atlasBuf.BindlessIndex, aw, ah);
 
-            // --- プレイヤー物理を固定 dt で事前実行 (走って壁の手前でジャンプ) ---
-            var sim = new CavernSim(map, CavernLevel.Spawn, new Vector2(12, 22));
+            // プレイヤー物理を固定 dt で事前実行 (落下 → 右へ走ってコインを拾う)
             for (int f = 0; f < Steps; f++)
-            {
-                float moveX = f >= 12 ? 1f : 0f;   // 落下後に右へ走る
-                bool jump = f == 30;               // 途中で一度ジャンプ (snap までに着地)
-                sim.Step(1f / 60, moveX, jump);
-            }
+                sim.Step(1f / 60, f >= 12 ? 1f : 0f, jumpPressed: false);
             _cameraCenter = sim.PlayerCenter;
 
             _canvas = Track(new RetainedCanvas(_raster));
 
-            // 空 (最背面)
             UiNode sky = _canvas.AddChild(_canvas.Root);
             sky.Content = new Scene2D().FillRect(Color2D.White, 0, 0, CavernLevel.Width * Tile, CavernLevel.Height * Tile);
             sky.Color = Color2D.Rgba(120, 170, 220);
 
-            // タイル (可視チャンク)
-            var layer = new TileMapLayer(_canvas, _canvas.Root, map);
+            var layer = new TileMapLayer(_canvas, _canvas.Root, sim.Map);
             layer.Update(new RectF(0, 0, CavernLevel.Width * Tile, CavernLevel.Height * Tile));
 
-            // プレイヤー箱
-            UiNode player = _canvas.AddChild(_canvas.Root);
-            player.Content = new Scene2D().FillRoundedRect(Color2D.White,
-                sim.PlayerPos.X, sim.PlayerPos.Y, sim.PlayerSize.X, sim.PlayerSize.Y, 3);
-            player.Color = Color2D.Rgba(90, 170, 245);
+            // エンティティ + プレイヤー (per-shape 色 = ContentColors)
+            UiNode ents = _canvas.AddChild(_canvas.Root);
+            ents.ContentColors = true;
+            var es = new Scene2D();
+
+            uint door = sim.DoorOpen ? Color2D.Rgba(90, 200, 120) : Color2D.Rgba(120, 80, 50);
+            es.FillRoundedRect(door, sim.DoorPos.X, sim.DoorPos.Y, sim.DoorSize.X, sim.DoorSize.Y, 3);
+
+            foreach (Pickup p in sim.Pickups)
+            {
+                if (p.Collected) continue;
+                uint c = p.IsKey ? Color2D.Rgba(240, 210, 90) : Color2D.Rgba(250, 225, 70);
+                es.FillCircle(c, p.Pos.X + p.Size * 0.5f, p.Pos.Y + p.Size * 0.5f, p.Size * 0.5f, 12);
+            }
+            foreach (Walker w in sim.Enemies)
+                if (w.Alive)
+                    es.FillRoundedRect(Color2D.Rgba(220, 80, 90), w.Pos.X, w.Pos.Y, w.Size.X, w.Size.Y, 2);
+
+            es.FillRoundedRect(Color2D.Rgba(90, 170, 245), sim.PlayerPos.X, sim.PlayerPos.Y, sim.PlayerSize.X, sim.PlayerSize.Y, 3);
+            ents.Content = es;
         }
 
         protected override void OnRender(float time)
