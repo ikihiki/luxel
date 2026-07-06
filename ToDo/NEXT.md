@@ -44,7 +44,7 @@
 
 ### M3 — capstone ① 完成
 
-- [ ] **Q13**: [19 capstone ①](19-standalone-game-shipping.md) **ステージ B: ゲーム組み上げ → e2e → publish 本番 → Docs「配布」節** — 完了したら **19 の MD を削除**。**ここで合流**: Q05-E (WithDevTools 統合、ゲーム構造が固まってから) + Q06 の保存/設定ゲーム配線 (保存先パス・セーブ/設定 UI・InputBindings 永続化)。
+- [ ] **Q13**: [19 capstone ①](19-standalone-game-shipping.md) **ステージ B: ゲーム組み上げ → e2e → publish 本番 → Docs「配布」節** — 完了したら **19 の MD を削除**。**ここで合流**: Q05-E (WithDevTools 統合、ゲーム構造が固まってから) + Q06 の保存/設定ゲーム配線 (保存先パス・セーブ/設定 UI・InputBindings 永続化)。 (着手中: 2026-07-06 — **大タスク・複数セッション**。**セッション1 済**: `CavernSim` (プレイヤー物理 走り/ジャンプ + Sweep 衝突、固定 dt 決定的) + `CavernLevel` (アトラス/タイルセット/レベル) を LuxelCavern.Core (net10.0 化) に。Gallery `Game/Cavern` ストーリー (sim 事前実行 → タイル+プレイヤー+追従カメラ、vk golden)。単体テスト 5。**残**: 敵/収集/トゲHP/パーティクル演出/HUD日本語+ポーズ/セーブ設定配線(Q06)/Audio/実時間 GameScene+補間+入力で exe プレイアブル化/Tiled/WithDevTools(Q05-E)/publish本番/Docs。詳細は 19 MD 進捗節)
 
 ### M4 — 3D 物理・アニメーション (capstone ② の部品)
 

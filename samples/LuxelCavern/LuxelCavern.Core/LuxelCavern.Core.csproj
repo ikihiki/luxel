@@ -5,8 +5,12 @@
     タイトル画面 UI の組み立て・ゲーム状態機械・(将来) GameScene 派生シーンを置く。
     Gallery が本アセンブリを参照して Game/Cavern ストーリーとして play/golden を維持する予定 (ToDo 19)。
   -->
+  <!-- 純ロジック (依存は UI/Controls/TwoD/Typography = すべて net10.0)。net10.0 にして
+       テスト (Luxel.Tests) と Gallery/exe の両方から参照可能にする。 -->
   <PropertyGroup>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

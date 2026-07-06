@@ -90,6 +90,14 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
   - **Luxel 本体側の修正**: (a) `shaders/Luxel.Shaders.targets` に `AddCompiledShadersToPublish` を追加 — 生成シェーダはプロジェクト項目でないため publish 出力にコピーされない穴を塞いだ (エンジン全体に効く)。(b) `AppWindow.Close()` を追加 (UI ハンドラから対話ループを終了する口)。
   - **未実施 (Stage B / Q13 で)**: Gallery `Game/Cavern` ストーリー + play/golden、単一ファイル化 (checklist 5)、%APPDATA% セーブ先 (checklist 6, ToDo 15 連動)、起動時間/exe サイズ記録 (checklist 9)、Docs「配布」節、`--devtools` (`WithDevTools`, ToDo 21/Q05)。exe サイズは self-contained で約 117MB。
 
+- **ステージ B セッション 1 (2026-07-06, Q13)**: **ゲームプレイの核** — プレイヤー物理 + タイルマップ + カメラ追従。
+  - `LuxelCavern.Core` を **net10.0** へ (依存の UI/Controls/TwoD/Typography は全 net10.0。テスト・Gallery から参照可能に)。
+  - `CavernLevel` (アトラス矩形 grass/dirt/wall + タイルセット + コード定義レベル [地面/浮き床/壁柱/段差] + スポーン、純データ GPU 非依存)。
+  - `CavernSim` (プレイヤー物理: 走る + 重力 + ジャンプを `TileMap.Sweep` 衝突で解決。**固定 dt で決定的**・GPU 非依存)。
+  - Gallery `Game/Cavern` ストーリー (GpuScene で手続きアトラスを焼き、sim を固定 dt で事前実行 → タイル + プレイヤー + 追従カメラを描く。**実時間 GameScene/StoryAppView は wall-clock dt で非決定的なので採らず**、sim を事前実行して golden 決定化)。vk golden。
+  - 単体テスト `CavernSimTests` 5 (落下着地/右移動/接地時のみジャンプ・二段不可/壁停止/決定性)。計 734 passed。e2e 65/65 diff 0。
+  - **残 (次セッション以降)**: 敵 2 種 (巡回/飛行、片方 .csx AI) / 収集 (コイン・鍵・扉) / トゲ + HP + ノックバック + 無敵 + シェイク / パーティクル演出 (砂埃/撃破/コイン/松明) / HUD (日本語) + ポーズ / セーブ・設定配線 (Q06 合流、%APPDATA%) / Audio (BGM ストリーミング + SE) / 実時間 GameScene + 補間 + 入力 (キーボード/パッド) で exe プレイアブル化 / Tiled (.tmj) レベル化 / WithDevTools (Q05-E 合流) / publish 本番 (checklist 5,6,9) + リポジトリ外スモーク / Docs「配布」節。
+
 ## 作業ステップ
 
 1. **骨組み + publish 早回し**: タイトル画面 (日本語 1 行 + ボタン) だけの LuxelCavern を作り、publish チェックリスト 1〜4, 7, 8 を先に 1 周 (直すのは Luxel 本体側: targets / assetRoot / フォント)。 ← **済 (Q04)**
