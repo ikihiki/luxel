@@ -74,6 +74,8 @@ public sealed class DebugServer : IDisposable
             case ("GET", "/rendergraph"): WriteText(ctx, _listener.GetRenderGraph() ?? "{}", "application/json"); break;
             case ("GET", "/perf"): WriteText(ctx, _listener.GetPerf() ?? "{}", "application/json"); break;
             case ("GET", "/ecs"): WriteText(ctx, _listener.GetEcs() ?? "{}", "application/json"); break;
+            case ("GET", "/ecssummary"): WriteText(ctx, _listener.GetEcsSummary() ?? "{}", "application/json"); break;
+            case ("GET", "/custom"): WriteText(ctx, _listener.GetCustom() ?? "{}", "application/json"); break;
             case ("GET", "/surfaces"): WriteText(ctx, _listener.GetSurfaces() ?? "{}", "application/json"); break;
             case ("GET", "/input"): WriteText(ctx, _listener.GetInputState() ?? "{}", "application/json"); break;
             case ("GET", "/audio"): WriteText(ctx, _listener.GetAudio() ?? "{}", "application/json"); break;

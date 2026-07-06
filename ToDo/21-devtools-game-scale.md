@@ -98,6 +98,25 @@ capstone との順序: **A/C/E は 19 のゲーム組み上げ前に済ませる
 - pause 中も emit は続く既存挙動 (state 最新化) を維持 — gizmo/統計も pause 中に見えることがデバッグ価値。
 - Ecs/Framework の `Phase` 名前衝突 (using alias)。
 
+## 進捗
+
+### 2026-07-06: ステージ ① のうち A / C / D 完了 (データ層 + 両フロントエンド + 単体テスト)
+
+**済 (Q05 の一部)**:
+- **A (ECS スケール)**: `DiagEcsSummary` (id + 名前 + アーキタイプ、値なし) を常時 emit、詳細は `ecs.inspect` の選択 entity のみ (未選択かつ ≤64 entity は全量フォールバック)。`ecs.filter` op でサーバ側フィルタ (名前/Id/component 型)。`DebugName` component を Luxel.Ecs に追加。ロジックは `Luxel.Ecs.EcsDiagnostics` (BuildSummary/BuildDetail/FilterMatch) に切り出し単体テスト済み。ブラウザ ECS タブ = サマリ一覧 + クリックで詳細 (右 Details ペイン) + フィルタ、内蔵版 = 一覧/詳細の 2 段パネル。
+- **C (DevStats)**: `Luxel.Diagnostics.DevStats.Set(key, value)` (数値/文字列/bool)。購読者ゼロなら `IsEnabled` 判定だけで即 return (ゼロコスト)。30f 毎に `DiagCustom` を emit (`Flush`)。ブラウザ Home に "Game" セクション、内蔵版 Stat に "Game (DevStats)" カード。
+- **D2 (timescale)**: `engine.timescale {value}` op で dt に係数 ([0,8] クランプ)。dt 供給の単一点 `FixedTimestep.ScaleDt`。play/e2e は timescale=1 (決定性維持)。
+- **D1 (FixedUpdate 統計)**: `DiagPerf.Fixed` = `DiagFixedStep` (このフレームのステップ数 / Alpha / accumulator 残 / 捨てた累計)。Perf タブ (両版) に表示。フェーズ可変長化は Q03 で `DiagPhaseTiming[7]` 済み。
+- 付随: `FixedTimestep` を `Luxel.Framework` (net10.0-windows、テスト不可) から Luxel core (net10.0) へ移設し単体テスト可能に。`EcsDiagnostics` は Luxel.Ecs へ (core 参照追加、循環なし)。
+- 検証: `dotnet build` OK / `dotnet test` 604 passed / e2e 53 plays passed・golden diff 0 / index.html JS 構文 OK。
+
+**残 (Q05 の残り — 次セッション以降)**:
+- **DebugDraw コア** (B の gizmo 本体ではなく描画レイヤ基盤): RetainedCanvas 最前面オーバーレイ + `DebugDraw.Line/Rect/Circle/Text` 即時 API + ワールド→スクリーン変換 delegate (2D/3D 両対応)。off 時ゼロ割り当て。
+- **E (WithDevTools 統合)**: `LuxelHostBuilder` 相当の `.WithDevTools(...)` オプトイン (Gallery Program.cs の定型集約)、`--devtools` (内蔵) / `--devtools-port` (ブラウザ)、3D フレーム (RenderGraph) が DiagFrame に乗るか調査。19 の publish スモークに合流。
+- **F (ライブビュー fps 化)**: F1 割り当て除去 (リングバッファ + 二読者所有権) → F2 内蔵版 60fps 実測 → F3 ブラウザ WebSocket push (latest-wins) → 任意 F4 MJPEG。
+- **Docs**: Docs/Framework or 新 Docs/DevTools に「ゲームを観測する」節 (E/F 完了時にまとめて執筆)。
+- B の機能別 gizmo (物理/カメラ/タイル) は Q12/Q14 で対象機能実装後。
+
 ## スコープ外
 
 - GPU pass 単位のタイムスタンプ計測 (Tier 2 の既存項目)、メモリ allocation tracking、リモート (loopback 外) 接続と認証、DevTools UI のフレームワーク化 (素の HTML/JS を維持)、入力記録リプレイ (→ [11](11-scripting-debug-tools.md) B)、Console/REPL タブ (→ [11](11-scripting-debug-tools.md) A)。

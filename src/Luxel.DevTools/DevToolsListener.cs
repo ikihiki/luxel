@@ -25,7 +25,9 @@ public sealed class DevToolsListener : IObserver<DiagnosticListener>, IObserver<
     private readonly LatestSlot<string> _resources = new();  // JSON (リソース ロードグラフ, オンデマンド取得)
     private readonly LatestSlot<string> _renderGraph = new(); // JSON (レンダーグラフ Compile 後, オンデマンド取得)
     private readonly LatestSlot<string> _perf = new();         // JSON (per-frame timing、最新のみ)
-    private readonly LatestSlot<string> _ecs = new();          // JSON (world × entity、on-demand)
+    private readonly LatestSlot<string> _ecs = new();          // JSON (world × entity 詳細、on-demand)
+    private readonly LatestSlot<string> _ecsSummary = new();    // JSON (world × entity 軽量一覧、30f)
+    private readonly LatestSlot<string> _custom = new();        // JSON (DevStats key-value、30f)
     private readonly LatestSlot<string> _surfaces = new();     // JSON (UiSurface 群、on-demand)
     private readonly LatestSlot<string> _inputState = new();   // JSON (InputStack スナップショット、per-frame)
     private readonly LatestSlot<string> _audio = new();        // JSON (AudioRegistry snapshot、30f/1 回)
@@ -91,6 +93,12 @@ public sealed class DevToolsListener : IObserver<DiagnosticListener>, IObserver<
             case EngineDiagnostics.Ecs when kv.Value is DiagEcs ecs:
                 _ecs.Publish(Json.Serialize(ecs));
                 break;
+            case EngineDiagnostics.EcsSummary when kv.Value is DiagEcsSummary sum:
+                _ecsSummary.Publish(Json.Serialize(sum));
+                break;
+            case EngineDiagnostics.Custom when kv.Value is DiagCustom cust:
+                _custom.Publish(Json.Serialize(cust));
+                break;
             case EngineDiagnostics.Surfaces when kv.Value is DiagSurfaces surf:
                 _surfaces.Publish(Json.Serialize(surf));
                 break;
@@ -148,7 +156,9 @@ public sealed class DevToolsListener : IObserver<DiagnosticListener>, IObserver<
     public string BuildPoll(long logSince)
     {
         (LogEntry[] logs, long cursor) = _log.Since(logSince);
-        return Json.Serialize(new PollResponse(_frame.Rev, _tree.Rev, _perf.Rev, _ecs.Rev, _surfaces.Rev, _inputState.Rev, _paused, _stat, logs, cursor));
+        return Json.Serialize(new PollResponse(
+            _frame.Rev, _tree.Rev, _perf.Rev, _ecs.Rev, _ecsSummary.Rev, _custom.Rev,
+            _surfaces.Rev, _inputState.Rev, _paused, _stat, logs, cursor));
     }
 
     /// <summary>最新フレーム body と rev。<paramref name="sinceRev"/> と同一なら null (= 304)。</summary>
@@ -179,8 +189,12 @@ public sealed class DevToolsListener : IObserver<DiagnosticListener>, IObserver<
     public string? GetRenderGraph() => _renderGraph.Read().value;
     /// <summary>最新の per-frame 性能内訳 JSON。</summary>
     public string? GetPerf() => _perf.Read().value;
-    /// <summary>最新の ECS スナップショット JSON。</summary>
+    /// <summary>最新の ECS 詳細スナップショット JSON (選択 entity / 小規模フォールバック)。</summary>
     public string? GetEcs() => _ecs.Read().value;
+    /// <summary>最新の ECS 軽量サマリ JSON (一覧: id + 名前 + アーキタイプ)。</summary>
+    public string? GetEcsSummary() => _ecsSummary.Read().value;
+    /// <summary>最新のゲーム側カスタム統計 JSON (DevStats key-value)。</summary>
+    public string? GetCustom() => _custom.Read().value;
     /// <summary>最新の UiSurface スナップショット JSON。</summary>
     public string? GetSurfaces() => _surfaces.Read().value;
     /// <summary>最新の InputStack スナップショット JSON。</summary>

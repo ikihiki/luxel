@@ -50,6 +50,19 @@ public struct MeshRef : IComponent
     public const int Cube = 0;
 }
 
+/// <summary>
+/// デバッグ表示名。DevTools の ECS 一覧で Id の代わりに人間可読な名前を出すための純データ。
+/// ゲームが敵/弾/的などに命名する用途。無ければ DevTools は Id を表示する。
+/// <para>セーブ対象外の意図 (実行時の観測専用。15 のセーブ機構が入ったら <c>[SaveIgnore]</c> の適用例第 1 号になる)。</para>
+/// </summary>
+public struct DebugName : IComponent
+{
+    /// <summary>表示名。</summary>
+    public string Name;
+    /// <summary>名前を指定して生成。</summary>
+    public DebugName(string name) { Name = name; }
+}
+
 /// <summary>表示/非表示。</summary>
 public struct Visible : IComponent
 {

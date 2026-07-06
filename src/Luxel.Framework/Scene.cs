@@ -141,6 +141,13 @@ public abstract class GameScene : IScene
     // pause/step: DevTools から /cmd で切り替えられる
     private volatile bool _paused;
     private volatile int _stepRequests;
+    // timescale: dt に掛ける係数 (0.1 でスローモーション、既定 1)。app スレッドのみが読み書き。
+    // play/e2e は使わない (決定性は固定 dt が担保、これは手動デバッグ専用)。
+    private double _timeScale = 1.0;
+    // ECS インスペクタ: 詳細を出す選択 entity (未選択は -1) と一覧フィルタ (null は全件)。
+    private int _ecsSelWorld = -1;
+    private int _ecsSelEntity = -1;
+    private string? _ecsFilter;
 
     public async Task RunAsync(CancellationToken token)
     {
@@ -174,7 +181,7 @@ public abstract class GameScene : IScene
             if (_stepRequests > 0) _stepRequests--;
 
             double now = sw.Elapsed.TotalSeconds;
-            float dt = (float)Math.Clamp(now - prev, 0.0001, 0.1);
+            float dt = FixedTimestep.ScaleDt(now - prev, _timeScale);
             prev = now;
             var time = new FrameTime(frame++, dt, now);
             var tick = new UpdateTick(dt, (float)now);
@@ -268,14 +275,21 @@ public abstract class GameScene : IScene
                     foreach (var w in _worlds)
                         foreach (var (name, ms) in w.CollectSystemTimings(phaseName))
                             systems.Add(new DiagSystemTiming(phaseName, name, ms));
+                var fixedStat = new DiagFixedStep(
+                    fixedSteps, _fixed.Alpha, _fixed.Accumulator * 1000.0, _fixed.FixedDt * 1000.0, _fixed.DroppedSteps);
                 EngineDiagnostics.Emit(EngineDiagnostics.Perf,
-                    new DiagPerf(time.Frame, dt * 1000.0, fpsAvg, phaseTimings, systems.ToArray()));
+                    new DiagPerf(time.Frame, dt * 1000.0, fpsAvg, phaseTimings, systems.ToArray(), fixedStat));
             }
             // ECS / Surfaces / Audio / Runtime / UI Trees スナップショットは 30 フレームに 1 回 (≒ 0.5s @ 60fps)
             if (++ecsEmitCounter >= 30)
             {
                 ecsEmitCounter = 0;
-                if (EngineDiagnostics.IsEnabled(EngineDiagnostics.Ecs)) EmitEcsSnapshot();
+                // ECS: 一覧は軽量サマリ (常時)、詳細は選択 entity のみ (未選択かつ小規模なら全量フォールバック)
+                if (EngineDiagnostics.IsEnabled(EngineDiagnostics.EcsSummary))
+                    EngineDiagnostics.Emit(EngineDiagnostics.EcsSummary, EcsDiagnostics.BuildSummary(_worlds, _ecsFilter));
+                if (EngineDiagnostics.IsEnabled(EngineDiagnostics.Ecs))
+                    EngineDiagnostics.Emit(EngineDiagnostics.Ecs, EcsDiagnostics.BuildDetail(_worlds, _ecsSelWorld, _ecsSelEntity));
+                DevStats.Flush();   // ゲーム側カスタム統計 (self-guard: 購読者ゼロなら no-op)
                 if (EngineDiagnostics.IsEnabled(EngineDiagnostics.Surfaces)) EmitSurfacesSnapshot();
                 if (EngineDiagnostics.IsEnabled(EngineDiagnostics.Audio)) EmitAudioSnapshot();
                 if (EngineDiagnostics.IsEnabled(EngineDiagnostics.Runtime)) EmitRuntimeSnapshot();
@@ -289,42 +303,6 @@ public abstract class GameScene : IScene
         }
     }
 
-    /// <summary>登録 World の全 entity と持ち component の値 (JSON) を集めて Diagnostics に emit する。</summary>
-    private void EmitEcsSnapshot()
-    {
-        var worlds = new DiagWorld[_worlds.Count];
-        for (int i = 0; i < _worlds.Count; i++)
-        {
-            var w = _worlds[i];
-            var entities = new List<DiagEntity>();
-            foreach (var e in w.Store.Entities)
-            {
-                var comps = new List<DiagComponent>();
-                foreach (var c in e.Components)
-                {
-                    string json;
-                    // c.Value は Debugger 表示用に obsolete 指定されているが、DevTools でも同じ用途
-#pragma warning disable CS0618
-                    try { json = System.Text.Json.JsonSerializer.Serialize(c.Value, EcsJsonOptions); }
-                    catch (Exception ex) { json = $"\"<serialize failed: {ex.GetType().Name}>\""; }
-#pragma warning restore CS0618
-                    comps.Add(new DiagComponent(c.Type.Type.Name, json));
-                }
-                var tagTypes = new List<string>();
-                foreach (var t in e.Tags) tagTypes.Add(t.Type.Name);
-                entities.Add(new DiagEntity(e.Id, comps.ToArray(), tagTypes.ToArray()));
-            }
-            worlds[i] = new DiagWorld($"World#{i}", w.Store.Count, entities.ToArray());
-        }
-        EngineDiagnostics.Emit(EngineDiagnostics.Ecs, new DiagEcs(worlds));
-    }
-
-    private static readonly System.Text.Json.JsonSerializerOptions EcsJsonOptions = new()
-    {
-        IncludeFields = true,   // struct field も出す (Matrix4x4/Vector3/Vector4 等の public field)
-        WriteIndented = false,
-    };
-
     private void RegisterCommands()
     {
         var cmds = _loop.Commands;
@@ -332,8 +310,38 @@ public abstract class GameScene : IScene
         cmds.Register("engine.pause", _ => _paused = true);
         cmds.Register("engine.resume", _ => _paused = false);
         cmds.Register("engine.step", _ => { _paused = true; _stepRequests++; });
+        cmds.Register("engine.timescale", arg => HandleTimeScale(arg));
         cmds.Register("ecs.set", arg => HandleEcsSet(arg));
+        cmds.Register("ecs.inspect", arg => HandleEcsInspect(arg));
+        cmds.Register("ecs.filter", arg => HandleEcsFilter(arg));
         cmds.Register("ui.set", arg => HandleUiSet(arg));
+    }
+
+    /// <summary>timescale 変更。<c>{ op:"engine.timescale", value:0.5 }</c>。[0,8] にクランプ。</summary>
+    private void HandleTimeScale(object? arg)
+    {
+        if (arg is System.Text.Json.JsonElement el
+            && el.TryGetProperty("value", out var v) && v.TryGetDouble(out double s))
+            _timeScale = Math.Clamp(s, 0.0, 8.0);
+    }
+
+    /// <summary>ECS 詳細の対象 entity を選択。<c>{ op:"ecs.inspect", world:0, entityId:1 }</c>。entityId&lt;0 で選択解除。</summary>
+    private void HandleEcsInspect(object? arg)
+    {
+        if (arg is not System.Text.Json.JsonElement el) return;
+        int world = el.TryGetProperty("world", out var w) && w.TryGetInt32(out int wi) ? wi : 0;
+        int entity = el.TryGetProperty("entityId", out var e) && e.TryGetInt32(out int ei) ? ei : -1;
+        _ecsSelWorld = world;
+        _ecsSelEntity = entity;
+    }
+
+    /// <summary>ECS 一覧フィルタ。<c>{ op:"ecs.filter", text:"Enemy" }</c>。空/未指定で解除。</summary>
+    private void HandleEcsFilter(object? arg)
+    {
+        if (arg is not System.Text.Json.JsonElement el) { _ecsFilter = null; return; }
+        string? text = el.TryGetProperty("text", out var t) && t.ValueKind == System.Text.Json.JsonValueKind.String
+            ? t.GetString() : null;
+        _ecsFilter = string.IsNullOrWhiteSpace(text) ? null : text;
     }
 
     /// <summary>

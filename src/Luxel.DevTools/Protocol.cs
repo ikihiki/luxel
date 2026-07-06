@@ -9,8 +9,10 @@ public sealed record LogEntry(long Seq, long Ts, string Kind, string Text);
 /// <summary>描画フラッシュ統計 (最新のみ)。</summary>
 public sealed record StatDto(int TransformWrites, int StyleWrites, long SegBytes, bool FullRebuild, int W, int H);
 
-/// <summary>/poll の軽量応答。大物 (frame/tree/perf/ecs) は含めず rev だけ返す → 変化時のみ取得させる。</summary>
-public sealed record PollResponse(long FrameRev, long TreeRev, long PerfRev, long EcsRev, long SurfacesRev, long InputRev, bool Paused, StatDto? Stat, LogEntry[] Logs, long LogCursor);
+/// <summary>/poll の軽量応答。大物 (frame/tree/perf/ecs/custom) は含めず rev だけ返す → 変化時のみ取得させる。</summary>
+public sealed record PollResponse(
+    long FrameRev, long TreeRev, long PerfRev, long EcsRev, long EcsSummaryRev, long CustomRev,
+    long SurfacesRev, long InputRev, bool Paused, StatDto? Stat, LogEntry[] Logs, long LogCursor);
 
 /// <summary>JSON 設定 (camelCase, null 省略)。</summary>
 public static class Json

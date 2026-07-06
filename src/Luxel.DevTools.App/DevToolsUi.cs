@@ -37,13 +37,18 @@ internal sealed class DevToolsUi
     private readonly Signal<IReadOnlyList<string>> _logItems = new([]);
     private readonly ListView _treesList;
     private readonly ListView _logList;
-    private readonly JsonPanel _ecs = new(), _res = new(), _surf = new(), _input = new(), _audio = new(), _gpu = new(), _graph = new();
+    // ECS は一覧 (軽量サマリ) + 詳細 (選択/小規模) の 2 段。ゲーム規模でも一覧が破綻しない。
+    private readonly JsonPanel _ecsSummary = new(250f), _ecs = new(250f);
+    private readonly JsonPanel _res = new(), _surf = new(), _input = new(), _audio = new(), _gpu = new(), _graph = new();
 
     // ---- Stat ダッシュボード (カード + グラフ) ----
     private readonly Signal<IReadOnlyList<string>> _statItems = new([]);
     private readonly Signal<IReadOnlyList<string>> _phasesItems = new([]);
+    private readonly Signal<IReadOnlyList<string>> _gameItems = new([]);   // ゲーム側 DevStats key-value
     private readonly ListView _statList;     // flush/engine key-value
     private readonly ListView _phasesList;   // perf phases/systems
+    private readonly ListView _gameList;     // DevStats (Game セクション)
+    private string? _lastCustom;
     private readonly Sparkline _fpsSpark = Sparkline(385, 64);
     private readonly Sparkline _msSpark = Sparkline(385, 48, bars: true);
     private readonly Sparkline _memSpark = Sparkline(385, 64);
@@ -67,6 +72,7 @@ internal sealed class DevToolsUi
         _logList = ListView(470f, 15f, items: _logItems, width: 810f);
         _statList = ListView(150f, 15f, items: _statItems, width: 385f);
         _phasesList = ListView(150f, 15f, items: _phasesItems, width: 385f);
+        _gameList = ListView(150f, 15f, items: _gameItems, width: 385f);
     }
 
     /// <summary>島スレッドの毎フレーム同期 (rev ポーリング → パネル更新)。</summary>
@@ -122,7 +128,10 @@ internal sealed class DevToolsUi
             _treesItems.Value = ParseTrees(trees);
         }
 
+        UpdateGameStats();
+
         // JSON 系パネル (内容変化時のみ items 更新)
+        _ecsSummary.Update(_listener.GetEcsSummary());
         _ecs.Update(_listener.GetEcs());
         _res.Update(_listener.GetResources());
         _surf.Update(_listener.GetSurfaces());
@@ -149,6 +158,9 @@ internal sealed class DevToolsUi
         _perfText.Value = $"fps {fps:0.0}   frame {ms:0.00} ms";
 
         var lines = new List<string>();
+        if (r.TryGetProperty("fixed", out JsonElement fx) && fx.ValueKind == JsonValueKind.Object)
+            lines.Add($"FixedUpdate: {fx.GetProperty("stepsThisFrame").GetInt32()} step/f  α {fx.GetProperty("alpha").GetDouble():0.00}"
+                    + $"  accum {fx.GetProperty("accumulatorMs").GetDouble():0.00}ms  dropped {fx.GetProperty("droppedTotal").GetInt64()}");
         if (r.TryGetProperty("phases", out JsonElement phases) && phases.ValueKind == JsonValueKind.Array)
             foreach (JsonElement p in phases.EnumerateArray())
                 lines.Add($"{p.GetProperty("name").GetString()}: {p.GetProperty("ms").GetDouble():0.000} ms");
@@ -172,6 +184,25 @@ internal sealed class DevToolsUi
         _memText.Value = $"heap {mb:0.0} MB   ws {(r.TryGetProperty("workingSetMB", out var w) ? w.GetInt32() : 0)} MB";
         _gcText.Value = $"gc {Get("gen0Collections")}/{Get("gen1Collections")}/{Get("gen2Collections")}   threads {Get("threadCount")}";
         string Get(string name) => r.TryGetProperty(name, out var v) ? v.ToString() : "?";
+    }
+
+    /// <summary>Game カード: ゲーム側 DevStats (key-value) を "key: value" 行で表示。</summary>
+    private void UpdateGameStats()
+    {
+        string? json = _listener.GetCustom();
+        if (json is null || json == _lastCustom) return;
+        _lastCustom = json;
+        var lines = new List<string>();
+        try
+        {
+            using JsonDocument doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("stats", out JsonElement stats) && stats.ValueKind == JsonValueKind.Array)
+                foreach (JsonElement s in stats.EnumerateArray())
+                    lines.Add($"{s.GetProperty("key").GetString()}: {s.GetProperty("value").GetString()}");
+        }
+        catch { /* JSON 形状の揺れは無視 */ }
+        if (lines.Count == 0) lines.Add("(no game stats — DevStats.Set)");
+        _gameItems.Value = lines;
     }
 
     private static void Push(List<float> hist, float v)
@@ -264,7 +295,7 @@ internal sealed class DevToolsUi
         public readonly ListView List;
         private string? _last;
 
-        public JsonPanel() => List = ListView(470f, 15f, items: _items, width: 810f);
+        public JsonPanel(float height = 470f) => List = ListView(height, 15f, items: _items, width: 810f);
 
         public void Update(string? json)
         {
@@ -338,7 +369,8 @@ internal sealed class DevToolsUi
                 _memSpark,
                 Text($"{_gcText}", 11, color: Bind.From(() => _theme.Value.TextMuted))]),
             Card("Engine / Flush", _statList),
-            Card("Phases / Systems", _phasesList)];
+            Card("Phases / Systems", _phasesList),
+            Card("Game (DevStats)", _gameList)];
 
         Tabs tabs = Tabs(
             ["Frame", "Trees", "Log", "Stat", "ECS", "Res", "Surf", "Input", "Audio", "GPU", "Graph"],
@@ -347,7 +379,9 @@ internal sealed class DevToolsUi
                 Card("UI Trees", _treesList),
                 Card("Input Log", _logList),
                 statPanel,
-                Card("ECS", _ecs.List),
+                Card("ECS", VStack(6)[
+                    Muted("一覧 (id · 名前 · アーキタイプ、値なし)", 10), _ecsSummary.List,
+                    Muted("詳細 (選択 entity / 小規模フォールバック)", 10), _ecs.List]),
                 Card("Resources", _res.List),
                 Card("Surfaces", _surf.List),
                 Card("Input State", _input.List),

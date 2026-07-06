@@ -4,6 +4,11 @@
     <PackageReference Include="Friflo.Engine.ECS" Version="3.6.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- 診断 DTO (DiagEcs/DiagEcsSummary 等) は core にあるため参照 (core は Ecs を参照しないので循環なし) -->
+    <ProjectReference Include="..\Luxel\Luxel.csproj" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

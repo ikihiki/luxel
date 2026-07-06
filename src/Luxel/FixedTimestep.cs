@@ -11,7 +11,7 @@
 /// Render 時に <c>lerp(prevState, currState, Alpha)</c> すると 60Hz 表示 + 1/60 固定でもガタつかない。</para>
 ///
 /// <para>浮動小数の蓄積誤差を避けるため内部は <c>double</c> で持つ (0.1×n の累積で割れる前例あり)。
-/// GPU 非依存 — 単体テスト可能。</para>
+/// GPU 非依存 — 単体テスト可能 (core 常駐)。</para>
 /// </summary>
 public sealed class FixedTimestep
 {
@@ -32,6 +32,9 @@ public sealed class FixedTimestep
     /// <summary>上限クランプで捨てた固定ステップの総数 (診断用)。0 でなければ処理落ちの兆候。</summary>
     public long DroppedSteps { get; private set; }
 
+    /// <summary>まだ消化していない蓄積時間 (秒)。0 ≤ 値 &lt; <see cref="FixedDt"/> (診断用)。</summary>
+    public double Accumulator => _accum;
+
     /// <param name="fixedDt">固定刻み (秒)。0 以下は 1e-4 に丸める。</param>
     /// <param name="maxStepsPerFrame">1 フレームの実行上限 (最低 1)。</param>
     public FixedTimestep(double fixedDt = 1.0 / 60, int maxStepsPerFrame = 8)
@@ -39,6 +42,12 @@ public sealed class FixedTimestep
         FixedDt = Math.Max(1e-4, fixedDt);
         MaxStepsPerFrame = Math.Max(1, maxStepsPerFrame);
     }
+
+    /// <summary>可変フレーム dt に timescale を掛け、健全なフレーム範囲 [<paramref name="minDt"/>,<paramref name="maxDt"/>] に
+    /// クランプする (フレームループの dt 供給の単一点で使う)。timescale=0 でも下限までしか下がらないので
+    /// pause と等価にはならない (スローモーション/早送りは手動デバッグ専用、play/e2e は timescale=1)。</summary>
+    public static float ScaleDt(double rawDelta, double timeScale, double minDt = 1e-4, double maxDt = 0.1)
+        => (float)Math.Clamp(rawDelta * timeScale, minDt, maxDt);
 
     /// <summary>可変 dt を蓄積し、このフレームで回すべき固定ステップ数を返す。
     /// 返した回数だけ呼び出し側が FixedUpdate を回し、その後 <see cref="Alpha"/> を読む。

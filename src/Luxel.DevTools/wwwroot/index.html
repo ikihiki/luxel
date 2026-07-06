@@ -319,6 +319,12 @@ input[type=text], input[type=search] { background: var(--bg); color: var(--fg); 
 .activity .ts { color: var(--fg-muted); }
 .activity .kind { color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .activity .text { color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.game-stats { display: flex; flex-wrap: wrap; gap: 6px; }
+.game-stat { display: flex; gap: 6px; align-items: baseline; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 4px; padding: 3px 8px; font-size: 12px; }
+.game-stat .k { color: var(--fg-muted); }
+.game-stat .v { color: var(--fg); }
+.fixed-info { margin-top: 6px; color: var(--fg-muted); font-family: Consolas, monospace; font-size: 11px; }
 
 /* ==== Right panel ==== */
 .detail-empty { color: var(--fg-muted); font-size: 12px; padding: 10px; text-align: center; }
@@ -393,6 +399,10 @@ input[type=text], input[type=search] { background: var(--bg); color: var(--fg); 
           </div>
         </div>
         <div style="margin-top: 12px;">
+          <h3>Game <span style="color:var(--fg-muted);font-size:11px;font-weight:normal;">(DevStats)</span></h3>
+          <div id="homeGame" class="game-stats"></div>
+        </div>
+        <div style="margin-top: 12px;">
           <h3>Recent activity</h3>
           <div id="homeActivity" class="activity"></div>
         </div>
@@ -406,6 +416,7 @@ input[type=text], input[type=search] { background: var(--bg); color: var(--fg); 
         <h3>Latest frame breakdown (phases)</h3>
         <div id="phaseBar" class="phase-bar"></div>
         <div id="phaseLegend"></div>
+        <div id="fixedInfo" class="fixed-info"></div>
         <h3 style="margin-top: 12px;">Systems (per phase)</h3>
         <div id="systemList"></div>
       </div>
@@ -530,10 +541,10 @@ input[type=text], input[type=search] { background: var(--bg); color: var(--fg); 
 
 <script>
 const state = {
-  frameRev: -1, treeRev: -1, perfRev: -1, ecsRev: -1, surfacesRev: -1, inputRev: -1, logCursor: 0,
+  frameRev: -1, treeRev: -1, perfRev: -1, ecsRev: -1, ecsSummaryRev: -1, customRev: -1, surfacesRev: -1, inputRev: -1, logCursor: 0,
   msSeries: new Array(120).fill(0),
   fpsSeries: new Array(60).fill(0),
-  perf: null, ecs: null, surfaces: null, inputState: null, runtime: null, tree: null, stat: null,
+  perf: null, ecs: null, ecsSummary: null, gameStats: [], surfaces: null, inputState: null, runtime: null, tree: null, stat: null,
   logs: [], logFilter: '',
   selectedWorld: 0, selectedEntity: null, ecsFilter: '',
   activeTab: 'home',
@@ -615,7 +626,9 @@ async function poll() {
     if (j.frameRev !== state.frameRev) { state.frameRev = j.frameRev; fetchFrame(); }
     if (j.treeRev !== state.treeRev) { state.treeRev = j.treeRev; if (state.activeTab === 'tree') fetchTree(); }
     if (j.perfRev !== state.perfRev) { state.perfRev = j.perfRev; fetchPerf(); }
+    if (j.ecsSummaryRev !== state.ecsSummaryRev) { state.ecsSummaryRev = j.ecsSummaryRev; fetchEcsSummary(); }
     if (j.ecsRev !== state.ecsRev) { state.ecsRev = j.ecsRev; fetchEcs(); }
+    if (j.customRev !== state.customRev) { state.customRev = j.customRev; fetchCustom(); }
     if (j.surfacesRev !== state.surfacesRev) { state.surfacesRev = j.surfacesRev; fetchSurfaces(); }
     if (j.inputRev !== state.inputRev) { state.inputRev = j.inputRev; fetchInput(); }
 
@@ -952,6 +965,11 @@ async function fetchPerf() {
   state.msSeries.push(j.frameMs); state.msSeries.shift();
   state.fpsSeries.push(j.fpsAvg); state.fpsSeries.shift();
   renderPerfChart(); renderPhaseBar(); renderSystemList();
+  const fx = j.fixed;
+  const fi = document.getElementById('fixedInfo');
+  if (fi) fi.textContent = fx
+    ? `FixedUpdate: ${fx.stepsThisFrame} step/frame · α ${fx.alpha.toFixed(2)} · accum ${fx.accumulatorMs.toFixed(2)} ms · fixed dt ${fx.fixedDeltaMs.toFixed(2)} ms · dropped ${fx.droppedTotal}`
+    : '';
 }
 
 function renderSystemList() {
@@ -1106,45 +1124,80 @@ function renderSurfaces() {
     </div>`).join('');
 }
 
+// ECS 一覧は軽量サマリ (id + 名前 + アーキタイプ)。詳細は選択 entity のみ /ecs にオンデマンド。
+async function fetchEcsSummary() {
+  const j = await (await fetch('/ecssummary')).json();
+  if (!j || !j.worlds) return;
+  state.ecsSummary = j;
+  renderEcs(); renderLeft(); renderHome();
+}
+
+// 選択 entity の値付き詳細 (ecs.inspect で対象を絞ってサーバが emit)。
 async function fetchEcs() {
   const j = await (await fetch('/ecs')).json();
   if (!j || !j.worlds) return;
   state.ecs = j;
-  renderEcs();
+  const world = j.worlds[state.selectedWorld];
+  if (!world || state.selectedEntity == null) return;
+  const e = (world.entities || []).find(x => x.id === state.selectedEntity);
+  if (e) renderEntityDetail(e);
+}
+
+async function fetchCustom() {
+  const j = await (await fetch('/custom')).json();
+  state.gameStats = (j && j.stats) ? j.stats : [];
+  renderHome();
 }
 
 function renderEcs() {
-  if (!state.ecs) return;
+  const sum = state.ecsSummary;
   const wpane = document.getElementById('ecsWorlds');
   wpane.innerHTML = '';
-  state.ecs.worlds.forEach((w, i) => {
+  if (!sum || !sum.worlds) return;
+  sum.worlds.forEach((w, i) => {
     const row = document.createElement('div');
     row.className = 'entity-row' + (i === state.selectedWorld ? ' selected' : '');
     row.textContent = `${w.name} `;
     const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = `${w.entityCount} ent`;
     row.appendChild(tag);
-    row.onclick = () => { state.selectedWorld = i; state.selectedEntity = null; renderEcs(); };
+    row.onclick = () => {
+      state.selectedWorld = i; state.selectedEntity = null;
+      sendCmd('ecs.inspect', { world: i, entityId: -1 });
+      renderEcs();
+    };
     wpane.appendChild(row);
   });
-  const world = state.ecs.worlds[state.selectedWorld];
+  const world = sum.worlds[state.selectedWorld];
   if (!world) return;
   const epane = document.getElementById('ecsEntities');
   const filter = state.ecsFilter.trim().toLowerCase();
+  const entities = world.entities || [];
+  // サーバも同じフィルタで絞るが、体感を上げるためクライアントでも即時フィルタする
   const filtered = filter
-    ? world.entities.filter(e => e.components.some(c => c.type.toLowerCase().includes(filter))
-                              || e.tagTypes.some(t => t.toLowerCase().includes(filter)))
-    : world.entities;
-  document.getElementById('ecsEntCount').textContent = ` (${filtered.length}/${world.entities.length})`;
+    ? entities.filter(e => (e.name && e.name.toLowerCase().includes(filter))
+                         || String(e.id).includes(filter)
+                         || (e.archetype || []).some(t => t.toLowerCase().includes(filter)))
+    : entities;
+  document.getElementById('ecsEntCount').textContent = ` (${filtered.length}/${world.entityCount})`;
   epane.innerHTML = '';
   filtered.slice(0, 500).forEach(e => {
     const row = document.createElement('div');
     row.className = 'entity-row' + (state.selectedEntity === e.id ? ' selected' : '');
-    row.textContent = `#${e.id}`;
-    const compCount = document.createElement('span');
-    compCount.className = 'tag';
-    compCount.textContent = `${e.components.length}c${e.tagTypes.length ? ' ' + e.tagTypes.length + 't' : ''}`;
-    row.appendChild(compCount);
-    row.onclick = () => { state.selectedEntity = e.id; renderEcs(); renderEntityDetail(e); };
+    const label = document.createElement('span');
+    label.textContent = e.name ? e.name : `#${e.id}`;
+    row.appendChild(label);
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.textContent = `${(e.archetype || []).length}c`;
+    row.appendChild(tag);
+    row.title = (e.archetype || []).join(', ');
+    row.onclick = () => {
+      state.selectedEntity = e.id;
+      sendCmd('ecs.inspect', { world: state.selectedWorld, entityId: e.id });
+      renderEcs();
+      document.getElementById('detailPane').innerHTML =
+        `<div class="detail-empty">Loading entity #${e.id}…</div>`;
+    };
     epane.appendChild(row);
   });
 }
@@ -1227,7 +1280,9 @@ async function submitEcsEdit(inp) {
 }
 
 document.getElementById('ecsFilter').addEventListener('input', ev => {
-  state.ecsFilter = ev.target.value; renderEcs();
+  state.ecsFilter = ev.target.value;
+  sendCmd('ecs.filter', { text: ev.target.value });   // emit 側でも絞って一覧を軽くする
+  renderEcs();
 });
 
 function renderLeft() {
@@ -1236,9 +1291,9 @@ function renderLeft() {
     document.getElementById('infoFrame').textContent = state.perf.frame;
     document.getElementById('infoMs').textContent = state.perf.frameMs.toFixed(2);
   }
-  if (state.ecs) {
-    document.getElementById('infoWorlds').textContent = state.ecs.worlds.length;
-    document.getElementById('infoEntities').textContent = state.ecs.worlds.reduce((a, w) => a + w.entityCount, 0);
+  if (state.ecsSummary) {
+    document.getElementById('infoWorlds').textContent = state.ecsSummary.worlds.length;
+    document.getElementById('infoEntities').textContent = state.ecsSummary.worlds.reduce((a, w) => a + w.entityCount, 0);
   }
   if (state.stat) {
     document.getElementById('infoSize').textContent = `${state.stat.w}×${state.stat.h}`;
@@ -1251,10 +1306,11 @@ function renderHome() {
     drawSpark('homeFpsSpark', state.fpsSeries, { color: '#4ade80', minY: 0, targetY: 60 });
     drawSpark('homeMsSpark',  state.msSeries.slice(-60), { color: '#fbbf24', minY: 0, targetY: 16.67, warnY: 33.33 });
   }
-  if (state.ecs) {
-    document.getElementById('homeEntities').textContent = state.ecs.worlds.reduce((a, w) => a + w.entityCount, 0);
+  if (state.ecsSummary) {
+    document.getElementById('homeEntities').textContent = state.ecsSummary.worlds.reduce((a, w) => a + w.entityCount, 0);
   }
   document.getElementById('homeLogs').textContent = state.logs.length;
+  renderHomeGame();
   if (state.runtime) {
     const mb = (state.runtime.totalMemoryBytes / (1024 * 1024)).toFixed(1);
     document.getElementById('homeMem').textContent = mb;
@@ -1265,6 +1321,20 @@ function renderHome() {
   }
   renderHomeAlerts();
   renderHomeActivity();
+}
+
+// ゲーム側 DevStats (key-value watch) を Home に描画。空なら未使用のヒントを出す。
+function renderHomeGame() {
+  const el = document.getElementById('homeGame');
+  if (!el) return;
+  const stats = state.gameStats || [];
+  if (!stats.length) {
+    el.innerHTML = '<div style="color:var(--fg-muted);font-size:11px;">no game stats — call DevStats.Set(key, value) from your game</div>';
+    return;
+  }
+  el.innerHTML = stats.map(s =>
+    `<div class="game-stat"><span class="k">${escapeHtml(s.key)}</span><span class="v mono">${escapeHtml(s.value)}</span></div>`
+  ).join('');
 }
 
 function drawSpark(id, series, opts) {
@@ -1500,9 +1570,11 @@ async function exportSession() {
     try { const r = await fetch(url); return r.ok ? await r.json() : null; }
     catch { return null; }
   };
-  const [perf, ecs, surfaces, input, rg, resources, tree] = await Promise.all([
+  const [perf, ecs, ecsSummary, custom, surfaces, input, rg, resources, tree] = await Promise.all([
     fetchJson('/perf'),
     fetchJson('/ecs'),
+    fetchJson('/ecssummary'),
+    fetchJson('/custom'),
     fetchJson('/surfaces'),
     fetchJson('/input'),
     fetchJson('/rendergraph'),
@@ -1514,7 +1586,7 @@ async function exportSession() {
     origin: location.origin,
     poll: { paused: state.paused, stat: state.stat, frameRev: state.frameRev, treeRev: state.treeRev,
             perfRev: state.perfRev, ecsRev: state.ecsRev, surfacesRev: state.surfacesRev, inputRev: state.inputRev },
-    perf, ecs, surfaces, input, rendergraph: rg, resources, tree,
+    perf, ecs, ecsSummary, custom, surfaces, input, rendergraph: rg, resources, tree,
     logs: state.logs,
   };
   const json = JSON.stringify(payload, null, 2);
