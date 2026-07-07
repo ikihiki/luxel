@@ -3,6 +3,7 @@ using Luxel;
 using Luxel.Framework;
 using Luxel.Input;
 using Luxel.Platform;
+using Luxel.Settings;
 using Luxel.Typography;
 using LuxelCavern;
 using LuxelCavern.Core;
@@ -58,6 +59,10 @@ static int Run(string backend, int frames)
         win.KeyDown += vk => keyboard.Down(vk);
         win.KeyUp += vk => keyboard.Up(vk);
 
+        // セーブは %APPDATA%/LuxelCavern/ に置く (checklist 6: 実ユーザ書込パス、リポジトリ非依存)。
+        string saveDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LuxelCavern");
+        var fileStore = new PhysicalFileStore(saveDir);
+
         var pacer = new FramePacer();
         using IHost host = LuxelHostBuilder.Create()
             .UseGpuDevice(device)
@@ -66,6 +71,7 @@ static int Run(string backend, int frames)
             {
                 s.AddSingleton(font);
                 s.AddSingleton<IInputSource>(keyboard);
+                s.AddSingleton<IFileStore>(fileStore);
                 s.AddSingleton<CavernRealtimeScene>();
             })
             .AddScene<CavernRealtimeScene>()
@@ -83,6 +89,7 @@ static int Run(string backend, int frames)
             if (scene.Framebuffer is { } fb)
                 surface.Present(fb, scene.StridePixels, (uint)w, (uint)h);
 
+            if (scene.QuitRequested) { win.Close(); windows.Pump(); break; }        // タイトルの「おわる」
             if (frames > 0 && ++drawn >= frames) { win.Close(); windows.Pump(); break; }
 
             int elapsed = (int)(sw.ElapsedMilliseconds - t0);

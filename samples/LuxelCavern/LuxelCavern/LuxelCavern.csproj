@@ -21,6 +21,8 @@
     <ProjectReference Include="..\..\..\src\Luxel.Input\Luxel.Input.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Particles\Luxel.Particles.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Particles.TwoD\Luxel.Particles.TwoD.csproj" />
+    <!-- セーブの実 IO (PhysicalFileStore を %APPDATA% に向ける) -->
+    <ProjectReference Include="..\..\..\src\Luxel.Settings\Luxel.Settings.csproj" />
   </ItemGroup>
 
   <!-- 同梱アセット (フォント等) を exe 隣へコピー + publish にも含める。cwd 非依存ロードの前提。 -->

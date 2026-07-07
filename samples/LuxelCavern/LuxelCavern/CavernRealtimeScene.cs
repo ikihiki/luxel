@@ -3,6 +3,7 @@ using Luxel;
 using Luxel.Framework;
 using Luxel.Input;
 using Luxel.Particles;
+using Luxel.Settings;
 using Luxel.TwoD;
 using Luxel.Typography;
 using LuxelCavern.Core;
@@ -23,6 +24,11 @@ public sealed class CavernRealtimeScene : GameScene
 
     private readonly SceneLoopServices _loop;
     private readonly VectorFont _font;
+    private readonly IFileStore _store;
+    private CavernSave? _save;
+
+    /// <summary>タイトルの「おわる」で立つ — Program がウィンドウを閉じる合図。</summary>
+    public bool QuitRequested { get; private set; }
 
     private Rasterizer2D _raster = null!;
     private GpuBuffer _fb = null!;
@@ -35,8 +41,8 @@ public sealed class CavernRealtimeScene : GameScene
     private ParticleSystem _fx = null!;
 
     private Axis1DAction _move = null!;
-    private ButtonAction _jump = null!, _pause = null!, _confirm = null!;
-    private bool _prevJump, _prevPause, _prevConfirm;
+    private ButtonAction _jump = null!, _pause = null!, _confirm = null!, _continue = null!;
+    private bool _prevJump, _prevPause, _prevConfirm, _prevMenuJump, _prevContinue;
 
     private static readonly uint TorchTint = Color2D.Rgba(255, 160, 60), DustTint = Color2D.Rgba(200, 180, 150);
     private static readonly uint CoinTint = Color2D.Rgba(250, 225, 70), DefeatTint = Color2D.Rgba(230, 90, 90);
@@ -45,10 +51,11 @@ public sealed class CavernRealtimeScene : GameScene
     public GpuBuffer Framebuffer => _fb;
     public uint StridePixels => (uint)_paddedW;
 
-    public CavernRealtimeScene(SceneLoopServices loop, VectorFont font) : base(loop)
+    public CavernRealtimeScene(SceneLoopServices loop, VectorFont font, IFileStore store) : base(loop)
     {
         _loop = loop;
         _font = font;
+        _store = store;
     }
 
     private void Init()
@@ -64,8 +71,9 @@ public sealed class CavernRealtimeScene : GameScene
         _jump = new ButtonAction("jump", KeyCode.Space, KeyCode.W, KeyCode.Up);
         _pause = new ButtonAction("pause", KeyCode.Escape);
         _confirm = new ButtonAction("confirm", KeyCode.Enter);
+        _continue = new ButtonAction("continue", KeyCode.C);
         var ctx = new InputContext("gameplay");
-        ctx.Add(_move); ctx.Add(_jump); ctx.Add(_pause); ctx.Add(_confirm);
+        ctx.Add(_move); ctx.Add(_jump); ctx.Add(_pause); ctx.Add(_confirm); ctx.Add(_continue);
         _loop.InputStack?.Push(ctx);
 
         _fx = new ParticleSystem(new ParticleConfig(
@@ -74,7 +82,9 @@ public sealed class CavernRealtimeScene : GameScene
             Size: 3f, Color: new ParticleColor(Color2D.Rgba(255, 255, 255, 255), Color2D.Rgba(255, 255, 255, 0)),
             Shape: ParticleShape.Circle), capacity: 600, seed: 0xCA5E);
 
-        StartLevel();
+        // タイトルで起動 — セーブがあれば「つづきから」を出す (%APPDATA% は Program が PhysicalFileStore で渡す)。
+        _save = CavernPersistence.TryLoad(_store);
+        _flow.HasSave = _save is not null;
     }
 
     private void BakeAtlas()
@@ -96,9 +106,20 @@ public sealed class CavernRealtimeScene : GameScene
                 }
     }
 
-    private void StartLevel()
+    /// <summary>最初から始める (「はじめる」/ GameOver のセーブ無しリトライ)。</summary>
+    private void StartNewGame() { _flow.StartNew(); OnSimStarted(); }
+
+    /// <summary>セーブから再開する (「つづきから」/ GameOver のチェックポイント復活)。</summary>
+    private void ContinueGame()
     {
-        _flow.StartNew();
+        if (_save is not { } save) { StartNewGame(); return; }
+        _flow.Continue(save);
+        OnSimStarted();
+    }
+
+    /// <summary>sim 差し替え後のビュー初期化 (アトラス束縛・カメラ据付・パーティクル掃除)。</summary>
+    private void OnSimStarted()
+    {
         CavernSim sim = _flow.Sim!;
         sim.Map.TileSet.Atlas.Bind(_atlas.BindlessIndex, AtlasW, AtlasH);
         _rig.Zoom = 3f;
@@ -114,13 +135,30 @@ public sealed class CavernRealtimeScene : GameScene
     {
         if (!_init) { Init(); _init = true; }
 
-        bool ph = _pause.Value.Value;
-        if (ph && !_prevPause) _flow.TogglePause();
-        _prevPause = ph;
+        // メニュー系の押下エッジ (ゲームプレイの _prevJump とは別トラッキング)。
+        bool esc = _pause.Value.Value, escEdge = esc && !_prevPause; _prevPause = esc;
+        bool enter = _confirm.Value.Value, enterEdge = enter && !_prevConfirm; _prevConfirm = enter;
+        bool mjump = _jump.Value.Value, mjumpEdge = mjump && !_prevMenuJump; _prevMenuJump = mjump;
+        bool cont = _continue.Value.Value, contEdge = cont && !_prevContinue; _prevContinue = cont;
 
-        bool ch = _confirm.Value.Value;
-        if (ch && !_prevConfirm && _flow.State is GameState.GameOver or GameState.Clear) StartLevel();
-        _prevConfirm = ch;
+        switch (_flow.State)
+        {
+            case GameState.Title:
+                if (enterEdge || mjumpEdge) StartNewGame();            // はじめる
+                else if (contEdge && _flow.HasSave) ContinueGame();    // つづきから
+                else if (escEdge) QuitRequested = true;                // おわる
+                break;
+            case GameState.Playing:
+            case GameState.Paused:
+                if (escEdge) _flow.TogglePause();
+                break;
+            case GameState.GameOver:
+                if (enterEdge) { if (_flow.HasSave) ContinueGame(); else StartNewGame(); }   // 復活 or 最初から
+                break;
+            case GameState.Clear:
+                if (enterEdge) { _flow.ToTitle(); _flow.HasSave = _save is not null; }        // タイトルへ
+                break;
+        }
     }
 
     protected override void OnFixedUpdate(FixedUpdateContext ctx)
@@ -133,8 +171,27 @@ public sealed class CavernRealtimeScene : GameScene
         bool jp = jh && !_prevJump;
         _prevJump = jh;
 
+        GameState before = _flow.State;
         _flow.Step(dt, move, jp);
         CavernSim? sim = _flow.Sim;
+
+        // 永続化: チェックポイント通過でオートセーブ、クリアでセーブ消去。
+        if (sim is not null)
+        {
+            if (sim.CheckpointThisStep)
+            {
+                _save = sim.Export();
+                CavernPersistence.Save(_store, _save);
+                _flow.HasSave = true;
+            }
+            if (before == GameState.Playing && _flow.State == GameState.Clear)
+            {
+                CavernPersistence.Clear(_store);
+                _save = null;
+                _flow.HasSave = false;
+            }
+        }
+
         if (sim is not null && _flow.State == GameState.Playing)
         {
             _rig.Target = sim.PlayerCenter;
@@ -151,12 +208,21 @@ public sealed class CavernRealtimeScene : GameScene
 
     protected override void OnRender(RenderContext ctx)
     {
-        if (!_init || _flow.Sim is not { } sim) return;
-        Camera2D cam = _rig.Camera(Width, Height);
+        if (!_init) return;
         var s = new Scene2D();
-        DrawWorld(s, sim, cam);
-        CavernHud.Draw(s, (sc, t, x, y, h, c) => _font.AppendText(sc, t, x, y, h, c), sim, CameraCenter(cam), _rig.EffectiveZoom, Width, Height);
-        DrawOverlay(s, cam);
+        Camera2D cam;
+        if (_flow.State == GameState.Title || _flow.Sim is not { } sim)
+        {
+            cam = Camera2D.Pixels;   // スクリーン空間 (world == px) でタイトルを描く
+            DrawTitle(s);
+        }
+        else
+        {
+            cam = _rig.Camera(Width, Height);
+            DrawWorld(s, sim, cam);
+            CavernHud.Draw(s, (sc, t, x, y, h, c) => _font.AppendText(sc, t, x, y, h, c), sim, CameraCenter(cam), _rig.EffectiveZoom, Width, Height);
+            DrawOverlay(s, cam);
+        }
 
         using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
         using EncodedScene encoded = _raster.Encode(s);
@@ -226,6 +292,23 @@ public sealed class CavernRealtimeScene : GameScene
         string hint = _flow.State == GameState.Paused ? "Esc で再開" : "Enter でリトライ";
         CavernHud.DrawPauseOverlay(s, (sc, t, x, y, h, c) => _font.AppendText(sc, t, x, y, h, c),
             CameraCenter(cam), _rig.EffectiveZoom, Width, Height, title, hint);
+    }
+
+    /// <summary>タイトル画面 (スクリーン空間、<see cref="Camera2D.Pixels"/> 前提)。中央にタイトル + メニュー。</summary>
+    private void DrawTitle(Scene2D s)
+    {
+        s.FillRect(Color2D.Rgba(14, 16, 26), 0, 0, Width, Height);
+        float cx = Width * 0.5f;
+        // AppendText は左寄せなので、おおよその字幅 (height*0.28) で中央寄せ。
+        void Line(string t, float y, float size, uint col) => _font.AppendText(s, t, cx - t.Length * size * 0.28f, y, size, col);
+
+        Line(TitleScreen.GameTitle, 170, 52, Color2D.Rgba(245, 246, 252));
+        Line(TitleScreen.Subtitle, 222, 15, Color2D.Rgba(150, 160, 182));
+
+        float y = 320;
+        Line("Space / Enter : はじめる", y, 20, Color2D.Rgba(214, 220, 236)); y += 34;
+        if (_flow.HasSave) { Line("C : つづきから", y, 20, Color2D.Rgba(150, 220, 170)); y += 34; }
+        Line("Esc : おわる", y, 20, Color2D.Rgba(160, 170, 190));
     }
 
     // Camera2D (screen = A*wx + C*wy + E, ...) の中心 world 座標を逆算 (A=D=zoom, C=B=0)

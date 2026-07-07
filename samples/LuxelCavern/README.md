@@ -21,7 +21,15 @@ dotnet run --project samples/LuxelCavern/LuxelCavern -- dx        # D3D12
 dotnet run --project samples/LuxelCavern/LuxelCavern -- vk --frames 30   # 30 フレームで自動終了 (スモーク)
 ```
 
-操作: **A/D** または **←→** 移動、**Space/W/↑** ジャンプ、**Esc** ポーズ、**Enter** リトライ。
+起動するとタイトル画面が出る。**Space/Enter** で「はじめる」、セーブがあれば **C** で「つづきから」、**Esc** で終了。
+
+ゲーム中の操作: **A/D** または **←→** 移動、**Space/W/↑** ジャンプ、**Esc** ポーズ、**Enter** リトライ (死亡時は直近チェックポイントから復活)。
+
+### セーブ
+
+チェックポイント通過で **`%APPDATA%\LuxelCavern\cavern-save.json`** へオートセーブ (HP/コイン/鍵/収集・撃破・通過フラグ + 復活位置)。
+次回起動時にタイトルへ「つづきから」が出る。クリアするとセーブは消える。永続化は `IFileStore` 抽象 (`Luxel.Settings`) 上で
+行い、exe は `PhysicalFileStore` を %APPDATA% に向ける — ロジックはインメモリ実装で単体テスト済み (`CavernPersistenceTests`)。
 
 ## 配布 (publish)
 

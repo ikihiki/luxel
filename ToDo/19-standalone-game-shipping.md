@@ -133,7 +133,12 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
   - **リポジトリ外起動スモーク**: publish 出力 (%TEMP%、cwd=`C:\`) から `LuxelCavern.exe vk --frames 30` / `dx --frames 30` とも **exit 0・クラッシュ無し** — cwd 非依存 (AppContext.BaseDirectory) を実ゲームで実証。checklist 1-4,7,8 を実ゲームで再確認。9: フォルダ 120MB、起動 ~1-2s (dx が速い)。
   - **checklist 5 (単一ファイル)**: `-p:PublishSingleFile=true` は exe 88MB になるが、同梱フォント (Content) が単一ファイルへバンドルされ `BaseDirectory` から見つからず起動失敗 (`FileNotFoundException`)。**フォルダ配布を推奨**とし single-file の Content-loose 対応は将来課題として記録。
   - `samples/LuxelCavern/README.md` (構成・実行・publish・動作要件・既知の制限) + Docs/Framework に「ゲームを配布する (publish)」節。build/test/e2e 全 green (758 passed, e2e 65/65 diff 0)。
-  - **残 (次セッション以降)**: SettingsStore で音量/キーバインド (Q06 B) + 設定 UI + タイトル/メニュー UI 統合 / Audio (BGM ストリーミング + SE、sim イベントから発火) / %APPDATA% への実セーブ書込 (CavernSave + IFileStore、checklist 6) / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / single-file の Content-loose 対応 (任意)。**capstone のコア (プレイアブル + 配布) は達成** — 残りは仕上げ。全て済んだら 19 MD を削除。
+- **ステージ B セッション 9 (2026-07-07, Q13)**: **タイトル/メニューのゲームフロー + %APPDATA% オートセーブ (checklist 6)**。
+  - `CavernPersistence` (Core、`IFileStore` 上で `Save`/`TryLoad`/`HasSave`/`Clear`) — 削除口の無い IFileStore なので「消去」= 空書き込み、読込は空/壊れを「セーブ無し」に倒す (never throw)。Q06 の IFileStore をドッグフード。
+  - exe を**タイトル起動**に変更 (従来は即プレイ)。`CavernRealtimeScene` が GameFlow.Title を描画 (`Camera2D.Pixels` のスクリーン空間) — Space/Enter「はじめる」・C「つづきから」(セーブ時のみ)・Esc「おわる」(→ `QuitRequested` で Program がウィンドウ閉)。
+  - **オートセーブ**: `sim.CheckpointThisStep` で `Export()`→`Save`。クリアで `Clear`。GameOver + Enter は**セーブがあればチェックポイント復活**、無ければ最初から。exe は `PhysicalFileStore(%APPDATA%/LuxelCavern)` を DI 注入。
+  - 単体テスト `CavernPersistenceTests` 5 本 (往復 / 未保存 null / 消去 null / 壊れ JSON は null / GameFlow.Continue 復元)。build 0 エラー、Cavern 系テスト 34 passed、exe タイトルスモーク (vk --frames 20) exit 0、**e2e 65/65 diff 0** (story/golden は CavernSim 直叩きなので不変)。README にタイトル操作 + セーブ節。**checklist 6 (保存先 %APPDATA%) 達成。**
+  - **残 (次セッション以降)**: SettingsStore で音量/キーバインド (Q06 B) + 設定 UI / Audio (BGM ストリーミング + SE、sim イベントから発火) / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / single-file の Content-loose 対応 (任意)。**capstone のコア (プレイアブル + 配布 + フロー + セーブ) は達成** — 残りは音・設定・レベル多様化の仕上げ。全て済んだら 19 MD を削除。
 
 ## 作業ステップ
 
