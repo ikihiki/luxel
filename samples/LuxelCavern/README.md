@@ -7,7 +7,8 @@ Luxel エンジンで作ったスタンドアロンの 2D 探索アクション�
 ## 構成
 
 - **`LuxelCavern.Core`** (net10.0, 純ロジック): `CavernSim` (プレイヤー物理・収集・敵・トゲ・HP・
-  チェックポイント)、`CavernLevel` (レベル/アトラス)、`GameFlow` (状態機械)、`CavernHud`、`CavernSave`。
+  チェックポイント)、`CavernTiled` (Tiled .tmj レベル読み込み)、`CavernLevel` (アトラス/タイルセット)、
+  `GameFlow` (状態機械)、`CavernHud`、`CavernSave`、`CavernSettings`、`CavernAudio`。
   GPU/実窓に非依存で**決定的** — Gallery の `Game/Cavern` ストーリーが play/golden を維持し、
   単体テスト (`tests/Luxel.Tests/CavernSimTests` 他) が守る。
 - **`LuxelCavern`** (net10.0-windows, WinExe): `CavernRealtimeScene : GameScene` を
@@ -56,6 +57,13 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
 **`assets/fonts/`** (同梱 BIZ UDGothic)・ネイティブ DLL (glfw3 / HarfBuzzSharp / Silk.NET.*) が揃う。
 アセット/フォント/シェーダは `AppContext.BaseDirectory` (exe の隣) から読むので **cwd 非依存** —
 publish フォルダをリポジトリ外の任意パスへコピーして起動できる (検証: `C:\`, `%TEMP%` から vk/dx とも exit 0)。
+
+### レベル (Tiled)
+
+ステージは **Tiled (.tmj = JSON)** で外部化し、`LuxelCavern.Core/levels/cavern1.tmj` を Core.dll に埋め込む
+(exe/Gallery/テストが同一レベルを持ち、publish の追加コピー不要)。タイル層は `TileMap.FromTiledJson`、
+オブジェクト層 (`objectgroup`) は `CavernTiled` が本ゲーム固有のエンティティ (coin/key/door/walker/flyer/
+checkpoint/torch) として `CavernSim` に流し込む。Tiled で編集すればレベルを差し替えられる。
 
 ### 動作要件
 

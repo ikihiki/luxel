@@ -24,4 +24,9 @@
     <ProjectReference Include="..\..\..\src\Luxel.Audio\Luxel.Audio.csproj" />
   </ItemGroup>
 
+  <!-- Tiled (.tmj) レベルを Core.dll へ埋め込む (exe/Gallery/テストが同じレベルを持つ・publish 追加コピー不要)。 -->
+  <ItemGroup>
+    <EmbeddedResource Include="levels\cavern1.tmj" />
+  </ItemGroup>
+
 </Project>
