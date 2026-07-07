@@ -241,6 +241,12 @@ public static class DocsRuntime
         ## AppWindow — 最小構成
 
         フル DI が要らない小さなアプリは `AppWindow` (device + font + サイズ) に `SetRoot(widget)` して `Run()` するだけです。この Gallery も WindowManager + UiHost の同じ部品でできています。
+
+        ## ゲームを配布する (publish)
+
+        スタンドアロンゲームは `LuxelHostBuilder` + `GameScene` でループを組み、`WindowSystem`/`NativeWindow`/`GpuSurface` へ提示します。**Framework は窓/提示を持たない**ので、フレーム待ち (`UseFrameWaiter`) を pacer で同期し、`host.Start()` 後にメインループで `pacer.Tick()` (1 フレーム同期実行) → `surface.Present(scene の framebuffer)` します (StoryAppView と同じ TCS inline 方式で GPU キュー安全)。入力は `IInputSource` を登録すると GameLoop が毎フレーム Poll します。
+
+        出荷は `dotnet publish -c Release -r win-x64 --self-contained` の self-contained フォルダ配布。出力にはコンパイル済みシェーダ (`shaders/*.spv`/`*.dxil` — `Luxel.Shaders.targets` が自動コピー)・アセット/同梱フォント (csproj の Content)・ネイティブ DLL (glfw / HarfBuzz / Silk.NET) が揃います。アセットは `AppContext.BaseDirectory` (exe の隣) 基準で読むので **cwd 非依存** — リポジトリ外の任意パスへコピーして起動できます。`vulkan-1.dll` は OS/ドライバ側 (同梱しない) なので README に動作要件として明記します。実例は capstone ① `samples/LuxelCavern` (フォルダ publish を vk/dx 両方でリポジトリ外起動まで検証)。
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/DevTools", Order = 55)]

@@ -128,7 +128,12 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
   - Program: `LuxelHostBuilder.Create().UseGpuDevice().UseFrameWaiter(pacer).ConfigureServices(font/IInputSource/scene).AddScene().Build()` → `host.Start()` → メインループで `WindowSystem`/`NativeWindow` を Pump + `pacer.Tick()` (1 フレーム同期実行) + `GpuSurface.Present(scene.Framebuffer)`。**Framework は窓/提示を持たない**ので pacer (TCS inline = GPU キュー安全) でフレームを呼び出しスレッドで走らせる。
   - 入力: `KeyboardSource : IInputSource` (Win32 vk → KeyCode → InputBus)。GameLoop が毎フレーム Poll。A/D・←→ 移動、Space/W/↑ ジャンプ、Esc ポーズ、Enter リトライ。
   - **検証**: `LuxelCavern.exe vk --frames 40` が実窓を開き 40 フレーム描画・提示して exit 0 (クラッシュログ無し)。build/test/e2e 全 green (758 passed, e2e 65/65)。対話プレイ (キーボード) はこの環境で自動検証不可 — 配線はコンパイル + スモークで担保。
-  - **残 (次セッション以降)**: SettingsStore で音量/キーバインド (Q06 B) + 設定 UI + タイトル/メニュー UI 統合 / Audio (BGM ストリーミング + SE、sim イベントから発火) / %APPDATA% への実セーブ書込 (CavernSave + IFileStore) / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / publish 本番 (checklist 5,6,9) + リポジトリ外スモーク / Docs「配布」節。
+- **ステージ B セッション 8 (2026-07-06, Q13)**: **publish 本番 + 配布検証** (実ゲームで再検証、capstone の本丸)。
+  - `dotnet publish -c Release -r win-x64 --self-contained` (フォルダ配布) → 出力 120MB / 371 ファイル。**shaders/ (raster2d_*.spv/dxil + billboard.spv 含む)・assets/fonts/BIZUDGothic・ネイティブ DLL (glfw/HarfBuzz/Silk.NET) 全て同梱確認**。
+  - **リポジトリ外起動スモーク**: publish 出力 (%TEMP%、cwd=`C:\`) から `LuxelCavern.exe vk --frames 30` / `dx --frames 30` とも **exit 0・クラッシュ無し** — cwd 非依存 (AppContext.BaseDirectory) を実ゲームで実証。checklist 1-4,7,8 を実ゲームで再確認。9: フォルダ 120MB、起動 ~1-2s (dx が速い)。
+  - **checklist 5 (単一ファイル)**: `-p:PublishSingleFile=true` は exe 88MB になるが、同梱フォント (Content) が単一ファイルへバンドルされ `BaseDirectory` から見つからず起動失敗 (`FileNotFoundException`)。**フォルダ配布を推奨**とし single-file の Content-loose 対応は将来課題として記録。
+  - `samples/LuxelCavern/README.md` (構成・実行・publish・動作要件・既知の制限) + Docs/Framework に「ゲームを配布する (publish)」節。build/test/e2e 全 green (758 passed, e2e 65/65 diff 0)。
+  - **残 (次セッション以降)**: SettingsStore で音量/キーバインド (Q06 B) + 設定 UI + タイトル/メニュー UI 統合 / Audio (BGM ストリーミング + SE、sim イベントから発火) / %APPDATA% への実セーブ書込 (CavernSave + IFileStore、checklist 6) / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / single-file の Content-loose 対応 (任意)。**capstone のコア (プレイアブル + 配布) は達成** — 残りは仕上げ。全て済んだら 19 MD を削除。
 
 ## 作業ステップ
 
