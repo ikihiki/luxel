@@ -27,6 +27,8 @@ public sealed class CavernRealtimeScene : GameScene
     private readonly VectorFont _font;
     private readonly IFileStore _store;
     private readonly IAudioBackend _audioBackend;
+    private readonly IKeyCapture _capture;
+    private bool _rebinding;
     private CavernAudio? _audio;
     private CavernSave? _save;
 
@@ -64,12 +66,13 @@ public sealed class CavernRealtimeScene : GameScene
     public GpuBuffer Framebuffer => _fb;
     public uint StridePixels => (uint)_paddedW;
 
-    public CavernRealtimeScene(SceneLoopServices loop, VectorFont font, IFileStore store, IAudioBackend audioBackend) : base(loop)
+    public CavernRealtimeScene(SceneLoopServices loop, VectorFont font, IFileStore store, IAudioBackend audioBackend, IKeyCapture keyCapture) : base(loop)
     {
         _loop = loop;
         _font = font;
         _store = store;
         _audioBackend = audioBackend;
+        _capture = keyCapture;
     }
 
     private void Init()
@@ -83,10 +86,8 @@ public sealed class CavernRealtimeScene : GameScene
         _fb = Device.Malloc((ulong)(_paddedW * Height * 4), GpuMemoryKind.HostMapped);
         BakeAtlas();
 
-        _move = new Axis1DAction("move");
-        _move.ButtonPairs.Add((KeyCode.D, KeyCode.A));
-        _move.ButtonPairs.Add((KeyCode.Right, KeyCode.Left));
-        _jump = new ButtonAction("jump", KeyCode.Space, KeyCode.W, KeyCode.Up);
+        _move = new Axis1DAction("move");     // バインドは CavernBindings.Apply が設定 (プライマリ + 矢印セカンダリ)
+        _jump = new ButtonAction("jump");
         _pause = new ButtonAction("pause", KeyCode.Escape);
         _confirm = new ButtonAction("confirm", KeyCode.Enter);
         _continue = new ButtonAction("continue", KeyCode.C);
@@ -105,8 +106,9 @@ public sealed class CavernRealtimeScene : GameScene
             Size: 3f, Color: new ParticleColor(Color2D.Rgba(255, 255, 255, 255), Color2D.Rgba(255, 255, 255, 0)),
             Shape: ParticleShape.Circle), capacity: 600, seed: 0xCA5E);
 
-        // 設定 (音量) を %APPDATA% から読み込み、オーディオの音量バスへ束ねる。
+        // 設定 (音量 + キーバインド) を %APPDATA% から読み込み、キーバインドを入力アクションへ反映。
         _settings = new CavernSettings(_store);
+        CavernBindings.Apply(_move, _jump, _settings);
 
         // オーディオ配線 (BGM + イベント SE)。Mixer は Framework の UseAudio が用意する共有インスタンス。
         if (_loop.Mixer is { } mixer)
@@ -201,12 +203,25 @@ public sealed class CavernRealtimeScene : GameScene
                 else if (escEdge) { _audio?.StopBgm(); QuitRequested = true; }   // おわる
                 break;
             case GameState.Settings:
+                if (_rebinding)
+                {
+                    // リバインド中: 次に押された生キーを割り当て (Esc はキャンセル)
+                    if (_capture.TakePressed() is { } key)
+                    {
+                        if (key != KeyCode.Escape && _settings is { } st)
+                            CavernBindings.Rebind(st, (CavernBind)(_settingsRow - 3), key);
+                        _rebinding = false;
+                        if (_settings is not null) CavernBindings.Apply(_move, _jump, _settings);
+                    }
+                    break;   // リバインド中は他操作を無視
+                }
                 float nav = _navV.Value.Value;
-                if (nav != 0f && _prevNavV == 0f) _settingsRow = Math.Clamp(_settingsRow + (nav > 0f ? 1 : -1), 0, 2);
+                if (nav != 0f && _prevNavV == 0f) _settingsRow = Math.Clamp(_settingsRow + (nav > 0f ? 1 : -1), 0, 5);
                 _prevNavV = nav;
                 float adj = _move.Value.Value;
-                if (adj != 0f && _prevAdjust == 0f) AdjustVolume(_settingsRow, adj > 0f ? 0.05f : -0.05f);
+                if (_settingsRow < 3 && adj != 0f && _prevAdjust == 0f) AdjustVolume(_settingsRow, adj > 0f ? 0.05f : -0.05f);
                 _prevAdjust = adj;
+                if (_settingsRow >= 3 && enterEdge) { _capture.TakePressed(); _rebinding = true; }   // Enter 自身を捨ててリバインド開始
                 if (escEdge) _flow.ToTitle();   // もどる (AutoSave 済み)
                 break;
             case GameState.Playing:
@@ -393,29 +408,48 @@ public sealed class CavernRealtimeScene : GameScene
         Line("Esc : おわる", y, 20, Color2D.Rgba(160, 170, 190));
     }
 
-    /// <summary>設定画面 (音量。スクリーン空間、<see cref="Camera2D.Pixels"/> 前提)。↑↓ で行選択・←→ で調整。</summary>
+    /// <summary>設定画面 (音量 + キーバインド。スクリーン空間、<see cref="Camera2D.Pixels"/> 前提)。↑↓ 選択・←→ 音量・Enter 割当。</summary>
     private void DrawSettings(Scene2D s)
     {
         s.FillRect(Color2D.Rgba(14, 16, 26), 0, 0, Width, Height);
         float cx = Width * 0.5f;
-        _font.AppendText(s, "せってい", cx - 4 * 44 * 0.28f, 150, 44, Color2D.Rgba(245, 246, 252));
+        _font.AppendText(s, "せってい", cx - 4 * 40 * 0.28f, 120, 40, Color2D.Rgba(245, 246, 252));
 
-        string[] names = { "マスター音量", "BGM 音量", "SE 音量" };
-        var vals = new[] { _settings?.MasterVolume.Value ?? 0f, _settings?.MusicVolume.Value ?? 0f, _settings?.SfxVolume.Value ?? 0f };
-        float y = 250, bx = cx + 30, bw = 200, bh = 16;
+        uint sel_ = Color2D.Rgba(250, 230, 130), normal_ = Color2D.Rgba(210, 216, 230);
+        float y = 190, bx = cx + 30, bw = 180, bh = 14;
+
+        // 音量 (行 0-2)
+        string[] volNames = { "マスター音量", "BGM 音量", "SE 音量" };
+        var vols = new[] { _settings?.MasterVolume.Value ?? 0f, _settings?.MusicVolume.Value ?? 0f, _settings?.SfxVolume.Value ?? 0f };
         for (int i = 0; i < 3; i++)
         {
             bool sel = i == _settingsRow;
-            uint col = sel ? Color2D.Rgba(250, 230, 130) : Color2D.Rgba(210, 216, 230);
-            _font.AppendText(s, (sel ? "▶ " : "   ") + names[i], cx - 230, y, 22, col);
-            s.FillRoundedRect(Color2D.Rgba(50, 54, 66), bx, y - 15, bw, bh, 4);                    // トラック
+            uint col = sel ? sel_ : normal_;
+            _font.AppendText(s, (sel ? "▶ " : "   ") + volNames[i], cx - 240, y, 20, col);
+            s.FillRoundedRect(Color2D.Rgba(50, 54, 66), bx, y - 13, bw, bh, 4);
             s.FillRoundedRect(sel ? Color2D.Rgba(120, 200, 150) : Color2D.Rgba(90, 150, 200),
-                bx, y - 15, bw * Math.Clamp(vals[i], 0f, 1f), bh, 4);                              // 現在値
-            _font.AppendText(s, $"{(int)MathF.Round(vals[i] * 100)}", bx + bw + 18, y, 20, col);
-            y += 46;
+                bx, y - 13, bw * Math.Clamp(vols[i], 0f, 1f), bh, 4);
+            _font.AppendText(s, $"{(int)MathF.Round(vols[i] * 100)}", bx + bw + 14, y, 18, col);
+            y += 38;
         }
-        _font.AppendText(s, "↑↓ せんたく / ←→ ちょうせい / Esc もどる",
-            cx - 24 * 16 * 0.28f, 440, 16, Color2D.Rgba(150, 160, 182));
+
+        // キーバインド (行 3-5)
+        for (int i = 0; i < 3; i++)
+        {
+            int row = 3 + i;
+            bool sel = row == _settingsRow;
+            uint col = sel ? sel_ : normal_;
+            var bind = (CavernBind)i;
+            _font.AppendText(s, (sel ? "▶ " : "   ") + CavernBindings.Label(bind), cx - 240, y, 20, col);
+            string keyName = (_rebinding && sel) ? "＿＿" : (_settings is { } ss ? CavernBindings.Current(ss, bind).ToString() : "");
+            _font.AppendText(s, $"[{keyName}]", bx, y, 20, sel ? sel_ : Color2D.Rgba(170, 200, 230));
+            y += 38;
+        }
+
+        string hint = _rebinding
+            ? "キーをおしてください (Esc でキャンセル)"
+            : "↑↓ せんたく / ←→ おんりょう / Enter わりあて / Esc もどる";
+        _font.AppendText(s, hint, cx - hint.Length * 13 * 0.28f, 470, 13, Color2D.Rgba(150, 160, 182));
     }
 
     // Camera2D (screen = A*wx + C*wy + E, ...) の中心 world 座標を逆算 (A=D=zoom, C=B=0)

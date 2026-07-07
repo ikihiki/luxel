@@ -25,10 +25,10 @@ dotnet run --project samples/LuxelCavern/LuxelCavern -- vk --frames 30   # 30 �
 ```
 
 起動するとタイトル画面が出る。**Space/Enter** で「はじめる」、セーブがあれば **C** で「つづきから」、**S** で「せってい」、**Esc** で終了。
-設定画面では **↑↓** で項目選択・**←→** で音量調整・**Esc** で戻る (変更は即 %APPDATA% へ保存)。
-ゲーム中 **F1** で DevTools オーバーレイ (gizmo + 統計) を切り替え。
+設定画面では **↑↓** で項目選択・音量行は **←→** で調整・キーバインド行は **Enter** で割り当て (次に押したキー、Esc でキャンセル)・**Esc** で戻る (変更は即 %APPDATA% へ保存)。
+ゲーム中 **F1** で DevTools オーバーレイ (gizmo + 統計) を切り替え。移動/ジャンプのキーは設定で再割当できる (既定: 移動 **A/D** または **←→**、ジャンプ **Space** または **↑**、ポーズ **Esc**、リトライ **Enter**)。
 
-ゲーム中の操作: **A/D** または **←→** 移動、**Space/W/↑** ジャンプ、**Esc** ポーズ、**Enter** リトライ (死亡時は直近チェックポイントから復活)。
+ゲーム中の操作 (既定): **A/D** または **←→** 移動、**Space** または **↑** ジャンプ、**Esc** ポーズ、**Enter** リトライ (死亡時は直近チェックポイントから復活)。移動/ジャンプのキーは設定画面で再割当できる (矢印キーは固定セカンダリとして常に有効)。
 
 ### セーブ
 
@@ -44,9 +44,14 @@ dotnet run --project samples/LuxelCavern/LuxelCavern -- vk --frames 30   # 30 �
 
 ### 設定
 
-タイトルの「せってい」で音量 (Master / BGM / SE) を調整。値は `SettingsStore` (`Luxel.Settings`) 上の `Signal<float>` で、
-`AutoSave` により変更が即 **`%APPDATA%\LuxelCavern\cavern-settings.json`** へ書き戻る。`CavernAudio` が設定値を
-`AudioBus.Volume` へ束ね、次フレームから発音に効く。破損ファイルは既定値で起動 + `.bak` 退避 (SettingsStore が担保)。
+タイトルの「せってい」で音量 (Master / BGM / SE) と**キーバインド** (左移動 / 右移動 / ジャンプ) を設定。値は
+`SettingsStore` (`Luxel.Settings`) 上の `Signal<float>` / `Signal<KeyCode>` で、`AutoSave` により変更が即
+**`%APPDATA%\LuxelCavern\cavern-settings.json`** へ書き戻る。破損ファイルは既定値で起動 + `.bak` 退避。
+
+- **音量**: `CavernAudio` が設定値を `AudioBus.Volume` へ束ね、次フレームから発音に効く。
+- **キーバインド**: キーバインド行で **Enter** → 次に押したキーを割り当て (Esc でキャンセル)。生キーの取得は
+  `IKeyCapture` (実窓の `KeyboardSource` が実装)、`CavernBindings.Apply` がプライマリキー + 固定セカンダリ (矢印)
+  を `Axis1DAction`/`ButtonAction` へ反映する (純ロジック、`CavernBindingsTests` が担保)。
 
 ## 配布 (publish)
 

@@ -80,6 +80,7 @@ static int Run(string backend, int frames)
             {
                 s.AddSingleton(font);
                 s.AddSingleton<IInputSource>(keyboard);
+                s.AddSingleton<IKeyCapture>(keyboard);
                 s.AddSingleton<IFileStore>(fileStore);
                 s.AddSingleton<CavernRealtimeScene>();
             })
@@ -118,14 +119,19 @@ static int Run(string backend, int frames)
     }
 }
 
-/// <summary>Win32 のキーイベントを <see cref="InputBus"/> へ流す入力源 (GameLoop が毎フレーム Poll)。</summary>
-sealed class KeyboardSource : IInputSource
+/// <summary>Win32 のキーイベントを <see cref="InputBus"/> へ流す入力源 (GameLoop が毎フレーム Poll)。
+/// <see cref="IKeyCapture"/> も実装し、設定画面のリバインドで「直近に押された生キー」を取り出せる。</summary>
+sealed class KeyboardSource : IInputSource, IKeyCapture
 {
     private readonly List<(KeyCode Key, bool Down)> _pending = new();
+    private KeyCode? _lastPressed;
     public string Name => "cavern-keyboard";
 
-    public void Down(ushort vk) { if (Map(vk) is { } k) lock (_pending) _pending.Add((k, true)); }
+    public void Down(ushort vk) { if (Map(vk) is { } k) lock (_pending) { _pending.Add((k, true)); _lastPressed = k; } }
     public void Up(ushort vk) { if (Map(vk) is { } k) lock (_pending) _pending.Add((k, false)); }
+
+    /// <summary>リバインド用: 直近に押されたキーを取り出してクリア。</summary>
+    public KeyCode? TakePressed() { lock (_pending) { KeyCode? k = _lastPressed; _lastPressed = null; return k; } }
 
     public void Poll(InputBus bus)
     {

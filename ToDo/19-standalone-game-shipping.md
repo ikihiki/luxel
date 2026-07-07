@@ -165,7 +165,12 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
   - 本文フォント (BIZUDGothic-Regular.ttf) を exe の Content から **Core.dll の EmbeddedResource へ移動** (`git mv` で Core/assets/fonts へ)。`CavernAssets.LoadBodyFont(ResourceSystem)` が `res://fonts/…` を `EmbeddedResourceSource` 経由で byte[] ロード → `new VectorFont(bytes)`。`CavernResources.CreateEmbedded()` で埋め込み用 RS を組む (レベルローダも共用)。Program はフォントを RS 経由でロード (旧: `AppContext.BaseDirectory` 隣の Content 直読み)。
   - **単一ファイル publish 検証**: `-p:PublishSingleFile=true --self-contained` → `LuxelCavern.exe` ~86MB。フォントは Core.dll 内 (単一 exe にバンドル) を RS で読むので loose 非依存。`C:\` (リポジトリ外) から `vk`/`dx` とも `--frames 30` で **exit 0・クラッシュ無し** (旧: 同梱フォントが BaseDirectory から見つからず起動失敗していた)。shaders/ とネイティブ DLL は exe 隣に loose。
   - テスト `CavernAssetsTests` 2 本 (埋め込み .ttf を RS 経由でロード / 欠損でエラー)。build 0 エラー、全 789 passed、フォルダ/単一ファイル両スモーク exit 0、**e2e 65/65 diff 0**。README の「既知の制限 (single-file)」を削除し配布節に単一ファイル手順を追加。
-  - **残 (任意仕上げ)**: キーバインド再割当 (UI 複雑) / DevTools オーバーレイの golden ストーリー化 (視覚回帰) / DebugServer を exe から起動して Web パネル配信。**capstone のコア (プレイアブル + 配布 + フロー + セーブ + 音 + 設定 + Tiled/リソース管理レベル + DevTools + single-file) は達成**。主要ギャップ + checklist 全項目が埋まった — 残りは任意。判断で 19 MD を削除予定。
+- **ステージ B セッション 16 (2026-07-07, Q13)**: **キーバインド再割当 UI** (ユーザー指示) — Q06 設定 + Q08 入力の合流。
+  - `CavernSettings` に `Signal<KeyCode> BindLeft/BindRight/BindJump` を追加 (既定 A/D/Space、AutoSave で %APPDATA% へ、KeyCode は enum→数値で JSON 直列化)。Core に `Luxel.Input` 参照追加。
+  - `CavernBindings` (Core, 純ロジック): `Apply` が設定のプライマリキー + 固定セカンダリ (矢印) を `Axis1DAction.ButtonPairs`/`ButtonAction.Keys` へ反映、`Rebind` がプライマリを差し替え。`IKeyCapture` (Core, `KeyCode? TakePressed()`) をリバインドの生キー取得口に。
+  - exe: `KeyboardSource` が `IKeyCapture` を実装 (Down で `_lastPressed` 記録、TakePressed で取り出し)。`InputStack.Update` が bus を毎フレーム Clear するため OnUpdate では生イベントを読めない → 入力源側でキャプチャする方式。シーンは Init で `CavernBindings.Apply`、設定画面を 6 行化 (音量 3 + キーバインド 3)、キーバインド行で Enter → リバインド待ち (次の生キーを割当、Esc キャンセル)。
+  - テスト `CavernBindingsTests` 4 本 (Apply がプライマリ+矢印 / Rebind がプライマリ差し替え・矢印は残る / 永続化→再読込 / Current・Label)。build 0 エラー、全 793 passed、exe スモーク exit 0、**e2e 65/65 diff 0**。README 更新。
+  - **残 (任意仕上げ)**: DevTools オーバーレイ/設定画面の golden ストーリー化 (視覚回帰) / DebugServer を exe から起動して Web パネル配信。**capstone のコア + checklist 全項目 + 設定 UI (音量 + キーバインド) 達成**。主要ギャップは完全に解消 — 残りは任意。判断で 19 MD を削除予定。
 
 ## 作業ステップ
 

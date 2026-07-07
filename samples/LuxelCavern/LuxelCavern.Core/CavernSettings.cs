@@ -1,3 +1,4 @@
+using Luxel.Input;
 using Luxel.Settings;
 using Luxel.UI;
 
@@ -21,13 +22,21 @@ public sealed class CavernSettings
     public Signal<float> MusicVolume { get; }
     public Signal<float> SfxVolume { get; }
 
+    /// <summary>キーバインド (再割当可能なプライマリキー)。矢印キーは固定セカンダリとして別途束ねる。</summary>
+    public Signal<KeyCode> BindLeft { get; }
+    public Signal<KeyCode> BindRight { get; }
+    public Signal<KeyCode> BindJump { get; }
+
     public CavernSettings(IFileStore files)
     {
         _store = SettingsStore.LoadFrom(files, FileName);
-        _store.AutoSave = true;   // スライダー変更のたび即永続化
+        _store.AutoSave = true;   // スライダー/リバインドのたび即永続化
         MasterVolume = _store.Get("volume.master", 0.8f);
         MusicVolume = _store.Get("volume.music", 0.7f);
         SfxVolume = _store.Get("volume.sfx", 0.9f);
+        BindLeft = _store.Get("bind.left", KeyCode.A);
+        BindRight = _store.Get("bind.right", KeyCode.D);
+        BindJump = _store.Get("bind.jump", KeyCode.Space);
     }
 
     /// <summary>明示保存 (AutoSave なので通常不要だが、終了時の念押しに使える)。</summary>
