@@ -44,6 +44,25 @@ glTF アニメーションのうち未対応の skin (ジョイント階層 + �
 - スキン付きメッシュの AABB はアニメで動く — カリングやレイキャストがあるなら保守的に (v1 はバインドポーズ AABB × 余裕係数で可)。
 - 新アセットを assets/ に追加する際は golden のライフサイクルと切断された場所に (goldens/ に画像 fixture を置かない — 前例あり)。
 
+## 進捗
+
+### 2026-07-07: skin スライス完了 (Q17 ステップ 1〜3, 5-skin, 6-skin)
+
+**判明 (調査)**: skin はデータ層が**既に scaffold 済み・render 未結線**だった — `AssetSkin` (joints + InverseBindMatrices) パース、per-vertex JOINTS_0/WEIGHTS_0 パース、`SceneBuilder` の `SkinnedVertex` 56B アップロード + `HasSkinning`、`SkinningSystem.Run` (joint 行列 = InverseBind × jointWorld を `JointMatrices` component へ)、`scene_pbr_skinned.slang` (未参照)。
+
+**済 (skin)**:
+- `scene_pbr_skinned.slang` を **SceneInstanceData 形式** (world 64 + baseColor 16) + joint バッファ (Matrix4x4[], row-major) に整えた (旧 matIdx/material-array 版から差替、テクスチャ依存を除去)。glTF 規約で **skinned mesh の node 変換は無視** = instance world は恒等、joint 行列が world-bind 空間へ写す。
+- デモ `Demos/3D/GltfSkinned` — `RiggedSimple.glb` をアニメ**固定時刻** (dur×0.3) で `SceneAnimationPlayer` sample → `TransformPropagateSystem` → `SkinningSystem.Run` → `JointMatrices` を joint `RenderBuffer<Matrix4x4>` へ upload → `scene_pbr_skinned` で GPU 頂点スキニング描画。曲がった棒が出る。vk/dx golden 一致。
+- 単体テスト `SkinningSystemTests` 3 (GPU 不要): 行列 = InverseBind×jointWorld / バインドポーズ = 単位 (頂点不変) / joint entity 欠落は単位フォールバック。
+- 罠: RenderGraph パスは Write 宣言が無いとデッドパスカリングされる (instance を liveness アンカーに Write)。
+- 検証: build OK / test 818 passed (+3) / e2e 69/69 diff 0・vk/dx 一致 / Docs/Motion 更新。
+
+**残 (morph — 次スライス、greenfield)**:
+- **loader**: `GltfPrimitiveDef.targets` / `GltfMeshDef.weights` / `GltfNodeDef.weights` を未パース → `AssetPrimitive.MorphTargets` / `AssetNode.Weights` が常に null。ここを埋める (POSITION/NORMAL デルタ + 既定 weights)。
+- **再生**: `SceneAnimationPlayer.Sample` が `AssetAnimationPath.Weights` を `continue` で skip 中 → weights を適用する経路 (weights を per-entity component へ)。
+- **シェーダ**: morph デルタ storage buffer + `pos += Σ weight_t · delta_t[vertex]` を頂点で。skin と併用可 (skinned + morph の順序に注意)。
+- **デモ + テスト**: AnimatedMorphCube 等 (khronos-samples に無いので追加要) or 手製 fixture。Docs/Motion の「morph は将来」を更新。
+
 ## スコープ外
 
 - アニメーションブレンド/ステートマシンとの高度な統合 (Graph/StateMachine は既存 — 接続は動いてから)、GPU スキニングの compute プリパス化 (頂点内で足りる)、モーフ法線の高精度化。

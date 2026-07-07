@@ -60,7 +60,7 @@ public static class DocsMotion
         キーフレームの束は `AnimationClip` に正規化されます。コードで組む (`Tracks.Vector3(path, kind, keyframes)`) ほか、**Importer** が外部形式を落とし込みます:
 
         - **CSS @keyframes** — `CssKeyframesImporter.Parse(css)` → opacity / translate / color の Track 群 ([Demos/Animation/CssKeyframes](story:Demos/Animation/CssKeyframes))
-        - **glTF** — animations[] → translation/rotation/scale の Track (skin/morph は将来)
+        - **glTF** — animations[] → translation/rotation/scale の Track。**skin (スケルタル) 対応済み** — JOINTS_0/WEIGHTS_0 + inverse bind matrix から GPU 頂点スキニングで描く ({{StoryRef(ctx, "Demos/3D/GltfSkinned")}})。morph target (ブレンドシェイプ) は将来
         - 拡張点は `IAnimationImporter` — Lottie subset 等はここに載せます。パース警告は既定 Warn (Strict / Lenient に切替可)
 
         Track の `TargetPath` ("card/opacity" 等) をアダプタの `Bind(name, 対象)` が解決します。
