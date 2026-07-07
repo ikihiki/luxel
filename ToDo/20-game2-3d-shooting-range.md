@@ -160,7 +160,14 @@ samples/LuxelRange/
 - 単体テスト +3: Title→Play→hit→Result + ハイスコア更新 / 発射は Play のみ / ハイスコアが別ゲーム跨ぎで永続 (同じ InMemoryFileStore)。全 837 passed / e2e 71/71 diff 0 (Core のみ・golden 不変)。
 - **Title/Result の UI 描画 + BGM/SE 実音配線は exe/RealWindowOnly** — スライス 5 (exe) で。
 
-**残 (後続スライス)**: 5 = exe プレイアブル化 (LuxelHostBuilder + GameScene で RangeGame を実時間駆動、OrbitCamera 操作、Title/Result UI、BGM/SE 実音 [10]、%APPDATA% 永続化) + publish 3D 検証 (glTF アセット/scene_pbr・billboard shaders が publish 出力に乗るか、リポジトリ外 vk/dx 起動、Docs 配布節追記)。**20 MD は全スライス完了まで残す**。
+### 2026-07-07 (10): スライス 5-1 — exe 骨組み + publish 3D 検証
+
+**済**:
+- 新プロジェクト `samples/LuxelRange/LuxelRange` (WinExe、Cavern exe と同型)。`Program.cs` (STA + `WindowSystem`/`GpuSurface` 提示 + `FramePacer` + `--frames N` スモーク + `LuxelHostBuilder`)、`RangeRealtimeScene : GameScene` (RangeGame を固定 dt 駆動、起伏地形 scene_pbr_lite + 的/小物 cube_forward を Framebuffer へ、**attract 動作** = カメラ自動旋回 + 定期発射)。ハイスコアは `%APPDATA%/LuxelRange/`。
+- 罠: `RangeGame` (DI singleton) を scene でも Dispose すると Bepu `Simulation.Dispose` 二重呼び出しでクラッシュ → scene の Dispose を外し `RangeSim.Dispose` を冪等化。
+- **検証**: vk/dx とも `--frames` スモーク exit 0。**publish (self-contained win-x64) で全 3D シェーダ (cube_forward/scene_pbr_lite/morph/skinned/billboard の SPIR-V+DXIL) が `shaders/` に同梱**、**リポジトリ外の publish フォルダから vk/dx とも起動 exit 0** (3D 出荷経路 OK)。全 837 passed / e2e 71/71 diff 0。
+
+**残 (後続スライス)**: 5-2 = exe にキーボード/マウス操作 (OrbitCamera + クリック発射) + Fox skin/パーティクル描画 + Title/Result UI + BGM/SE 実音 (10) を結線 (Gallery RangeScene の描画を共有 or 移植)。Docs の「配布」節に 3D capstone を追記。**これで 20 の全スライス完了 → 20 MD 削除**。
 
 ## スコープ外
 

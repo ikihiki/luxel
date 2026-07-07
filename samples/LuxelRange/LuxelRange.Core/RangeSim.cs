@@ -290,5 +290,11 @@ public sealed class RangeSim : IDisposable
         return true;
     }
 
-    public void Dispose() => Physics.Dispose();
+    private bool _disposed;
+    public void Dispose()
+    {
+        if (_disposed) return;   // Bepu Simulation.Dispose は二重呼び出し不可 — 冪等化
+        _disposed = true;
+        Physics.Dispose();
+    }
 }

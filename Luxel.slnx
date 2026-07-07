@@ -52,6 +52,7 @@
     <Project Path="samples/LuxelCavern/LuxelCavern.Core/LuxelCavern.Core.csproj" />
     <Project Path="samples/LuxelCavern/LuxelCavern/LuxelCavern.csproj" />
     <Project Path="samples/LuxelRange/LuxelRange.Core/LuxelRange.Core.csproj" />
+    <Project Path="samples/LuxelRange/LuxelRange/LuxelRange.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Luxel.E2e.Tests/Luxel.E2e.Tests.csproj" />

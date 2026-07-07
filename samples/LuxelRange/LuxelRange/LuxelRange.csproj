@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    LuxelRange — スタンドアロン実行ファイル (capstone ②)。実窓・スワップチェーン提示・入力の結線だけを持つ
+    薄い層で、ゲームロジックは LuxelRange.Core にある。3D (glTF/scene_pbr/billboard) の publish 検証の本丸。
+    RID は publish 時に -r win-x64 で指定する (csproj には固定しない)。
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AssemblyName>LuxelRange</AssemblyName>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LuxelRange.Core\LuxelRange.Core.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.Vulkan\Luxel.Vulkan.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.D3D12\Luxel.D3D12.csproj" />
+    <!-- 実時間ゲームループ (GameScene/LuxelHostBuilder) + 入力 -->
+    <ProjectReference Include="..\..\..\src\Luxel.Framework\Luxel.Framework.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.Input\Luxel.Input.csproj" />
+    <!-- 3D 描画 (ECS→Render3DExtract→cube_forward、地形メッシュ→scene_pbr_lite) -->
+    <ProjectReference Include="..\..\..\src\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <!-- セーブの実 IO (PhysicalFileStore を %APPDATA% に向ける) -->
+    <ProjectReference Include="..\..\..\src\Luxel.Settings\Luxel.Settings.csproj" />
+  </ItemGroup>
+
+  <!-- Slang シェーダを出力/publish の shaders/ へ。targets 側が publish コピーも面倒を見る。 -->
+  <Import Project="..\..\..\shaders\Luxel.Shaders.targets" />
+
+</Project>
