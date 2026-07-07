@@ -106,7 +106,15 @@ samples/LuxelRange/
 - 単体テスト `RangeSimTests` に winding 検証 1 追加 (低速球が地形上で静定 = 上面衝突向き)。全 827 passed / e2e 71/71 diff 0。
 - **既知の制約**: 100m/s の弾を地形へ**真下に**撃つと Bepu の CCD-vs-Mesh が捕捉できず貫通する (静止メッシュへの高速掃引の限界)。ゲームでは的への概ね水平な射撃が主で、地形を外した弾は **kill plane で despawn** する設計 (スライス 3) — トンネリングした弾の落下無限化を防ぐ。
 
-**残 (後続スライス)**: 3 = 物理小物 (ConvexHull) + 動く的 (09 Fox skin) + ボーナスゾーン/kill plane トリガー (04) + パーティクル (16) + SE。4 = Title/Result + ハイスコア/設定 (15) + BGM (10)。5 = exe プレイアブル化 + publish 3D 検証 (glTF/scene_pbr shaders)。**20 MD は全スライス完了まで残す**。
+### 2026-07-07 (3): スライス 3a — ConvexHull 物理小物 + kill plane despawn
+
+**済**:
+- `PhysicsWorld.RemoveBody(BodyHandle)` / `RemoveStatic` を追加 (Bepu `Simulation.Bodies.Remove`)。**entity 削除と対で呼ぶ** — body を残すと見えない衝突体がリークする (Docs/Physics の既知課題を解消)。
+- `RangeSim`: 動的 ConvexHull 小物 ×3 (単位箱の 8 頂点 = `HullCollider.Dynamic`、`RangeProp` マーカ、地形上に配置、描画は単位キューブ = ハルと一致)。**kill plane** = `DespawnFallen` が毎ステップ `KillY=-20` を下回った弾/小物を `RemoveBody` + `DeleteEntity`。`PropCount`/`DespawnedCount` 公開。
+- 単体テスト +2: 真下撃ちで地形貫通した弾が KillY 下回りで despawn (スライス 2 の高速弾トンネリング制約の**回収経路を実証**) / 小物が地形上に留まり despawn しない (ConvexHull vs Mesh の静定)。
+- Gallery: 小物が単位キューブ (青) として地形上に描画される。golden 更新、vk/dx 一致。全 829 passed / e2e 71/71 diff 0。
+
+**残 (後続スライス)**: 3b = 動く的 (09 Fox skin) の巡回 + ひるみ + ボーナスゾーン トリガー scoring (04) + 命中パーティクル (16) + SE。4 = Title/Result + ハイスコア/設定 (15) + BGM (10)。5 = exe プレイアブル化 + publish 3D 検証 (glTF/scene_pbr shaders)。**20 MD は全スライス完了まで残す**。
 
 ## スコープ外
 

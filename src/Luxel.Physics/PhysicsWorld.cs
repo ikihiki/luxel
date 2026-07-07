@@ -208,6 +208,13 @@ public sealed class PhysicsWorld : IDisposable
             bodyPose, velocity, inertia, collidable, new BodyActivityDescription(sleepThreshold)));
     }
 
+    /// <summary>動的ボディを削除する (despawn / kill plane 用)。ECS 側の entity 削除と対で呼ぶ —
+    /// entity だけ消して body を残すと「見えない衝突体」がリークする。</summary>
+    public void RemoveBody(BodyHandle handle) => Simulation.Bodies.Remove(handle);
+
+    /// <summary>静的コライダーを削除する。</summary>
+    public void RemoveStatic(StaticHandle handle) => Simulation.Statics.Remove(handle);
+
     /// <summary>ボディの現在 pose (位置 + 回転)。</summary>
     public RigidPose GetPose(BodyHandle handle) => Simulation.Bodies[handle].Pose;
 

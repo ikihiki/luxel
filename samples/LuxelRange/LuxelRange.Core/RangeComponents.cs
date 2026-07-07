@@ -16,3 +16,8 @@ public struct RangeTarget : IComponent
 public struct RangeBullet : IComponent
 {
 }
+
+/// <summary>動的な物理小物 (ConvexHull の箱)。撃って動かせる。場外落下で despawn。</summary>
+public struct RangeProp : IComponent
+{
+}

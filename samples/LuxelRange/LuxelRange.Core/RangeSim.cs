@@ -25,6 +25,8 @@ public sealed class RangeSim : IDisposable
     public const float BulletRadius = 0.1f;
     /// <summary>弾の初速 (m/s)。</summary>
     public const float BulletSpeed = 100f;
+    /// <summary>この高さを下回った動的体は despawn する (kill plane — 場外/貫通弾の body リーク防止)。</summary>
+    public const float KillY = -20f;
 
     public Luxel.Ecs.World World { get; }
     public PhysicsWorld Physics { get; }
@@ -38,6 +40,10 @@ public sealed class RangeSim : IDisposable
     public int TargetsHit { get; private set; }
     /// <summary>的の総数。</summary>
     public int TargetCount => _targets.Count;
+    /// <summary>配置した物理小物 (ConvexHull) の数。</summary>
+    public int PropCount { get; private set; }
+    /// <summary>kill plane で despawn した動的体の累計。</summary>
+    public int DespawnedCount { get; private set; }
     /// <summary>1 発でも撃ったか (最初の発射まで物理停止 = 初期絵が決定的)。</summary>
     public bool Started { get; private set; }
 
@@ -89,6 +95,25 @@ public sealed class RangeSim : IDisposable
                 new RangeTarget(100));
             _targets.Add(e);
         }
+
+        // 物理小物 (動的 ConvexHull = 単位箱、撃って動かせる)。地形上に配置。描画は単位キューブ。
+        Vector3[] cube =
+        [
+            new(-0.5f, -0.5f, -0.5f), new(0.5f, -0.5f, -0.5f), new(-0.5f, 0.5f, -0.5f), new(0.5f, 0.5f, -0.5f),
+            new(-0.5f, -0.5f, 0.5f), new(0.5f, -0.5f, 0.5f), new(-0.5f, 0.5f, 0.5f), new(0.5f, 0.5f, 0.5f),
+        ];
+        float[] propXs = [-3f, 0f, 3f];
+        foreach (float x in propXs)
+        {
+            float groundY = RangeTerrain.Height(x, -1f);
+            World.Store.CreateEntity(
+                new LocalTransform(Matrix4x4.CreateTranslation(x, groundY + 0.6f, -1f)),
+                new Color3D(new Vector4(0.55f, 0.75f, 0.85f, 1f)),
+                new MeshRef(MeshRef.Cube),
+                HullCollider.Dynamic(cube, mass: 1f),
+                new RangeProp());
+            PropCount++;
+        }
     }
 
     /// <summary>原点から方向へ CCD 弾を発射する (残弾があれば)。命中判定は次の <see cref="StepOnce"/> 群で。</summary>
@@ -108,12 +133,31 @@ public sealed class RangeSim : IDisposable
         return true;
     }
 
-    /// <summary>物理を固定 1 ステップ進め、pose を書き戻し、命中を処理する。最初の発射まで物理は止まる。</summary>
+    /// <summary>物理を固定 1 ステップ進め、pose を書き戻し、命中を処理し、場外落下体を despawn する。</summary>
     public void StepOnce()
     {
         if (!Started) return;
         Step.StepFixedOnce();
         ProcessHits();
+        DespawnFallen();
+    }
+
+    /// <summary>KillY を下回った弾/小物を body ごと削除する (リーク防止)。収集 → 削除の 2 段。</summary>
+    private void DespawnFallen()
+    {
+        var dead = new List<(Entity E, BepuPhysics.BodyHandle H)>();
+        World.Query<RangeBullet, RigidBody, LocalTransform>().ForEachEntity(
+            (ref RangeBullet _, ref RigidBody b, ref LocalTransform t, Entity e) =>
+            { if (b.Attached && t.Matrix.Translation.Y < KillY) dead.Add((e, b.Handle)); });
+        World.Query<RangeProp, HullCollider, LocalTransform>().ForEachEntity(
+            (ref RangeProp _, ref HullCollider h, ref LocalTransform t, Entity e) =>
+            { if (h.Attached && t.Matrix.Translation.Y < KillY) dead.Add((e, h.Handle)); });
+        foreach ((Entity e, BepuPhysics.BodyHandle h) in dead)
+        {
+            Physics.RemoveBody(h);
+            e.DeleteEntity();
+            DespawnedCount++;
+        }
     }
 
     /// <summary>今ステップの ContactBegin から「弾 × 未命中の的」を拾ってスコア加算。</summary>

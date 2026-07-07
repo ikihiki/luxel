@@ -72,6 +72,46 @@ public class RangeSimTests
         Assert.True(y < ground + 1.2f, $"球 y={y} が地形上で静定していない");
     }
 
+    /// <summary>kill plane: 地形をすり抜けて (または場外へ) 落ちた弾は body ごと despawn される (リーク防止)。
+    /// スライス 2 の「高速弾は Mesh CCD を貫通しうる」制約の回収経路。</summary>
+    [Fact]
+    public void KillPlane_DespawnsFallenBullet()
+    {
+        using var sim = new RangeSim();
+        sim.Fire(new Vector3(5, 8, 5), new Vector3(0, -1, 0));   // 真下 → 地形貫通で落下
+        Assert.Equal(1, CountBullets(sim));
+
+        for (int i = 0; i < 400; i++) sim.StepOnce();
+
+        Assert.Equal(0, CountBullets(sim));       // KillY を下回って despawn
+        Assert.True(sim.DespawnedCount >= 1);
+    }
+
+    [Fact]
+    public void Props_RestOnTerrain_NotDespawned()
+    {
+        using var sim = new RangeSim();
+        Assert.Equal(3, sim.PropCount);
+        sim.Fire(new Vector3(0, 1.3f, 5f), new Vector3(0, 1, 0));   // 空撃ちで物理開始 (的には当てない)
+        for (int i = 0; i < 240; i++) sim.StepOnce();
+        Assert.Equal(3, CountProps(sim));   // 小物は地形上に留まる (落下 despawn しない)
+        Assert.Equal(0, sim.DespawnedCount);
+    }
+
+    private static int CountBullets(RangeSim sim)
+    {
+        int n = 0;
+        sim.World.Query<RangeBullet>().ForEachEntity((ref RangeBullet _, Entity _) => n++);
+        return n;
+    }
+
+    private static int CountProps(RangeSim sim)
+    {
+        int n = 0;
+        sim.World.Query<RangeProp>().ForEachEntity((ref RangeProp _, Entity _) => n++);
+        return n;
+    }
+
     [Fact]
     public void NotStarted_PhysicsFrozen()
     {
