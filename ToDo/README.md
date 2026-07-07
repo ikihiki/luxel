@@ -18,13 +18,13 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 | 08 | [08-strudel-music-features.md](08-strudel-music-features.md) | Strudel: 音楽機能拡張 (scale/chord・filter/delay・記法・MIDI) | 中 (分割可) | 低 |
 | 09 | [09-gltf-skin-morph.md](09-gltf-skin-morph.md) | glTF skin/morph アニメーション | 大 | 中 |
 | 11 | [11-scripting-debug-tools.md](11-scripting-debug-tools.md) | Scripting: DevTools Console タブ + リプレイ + 外部デバッガ | 中 (分割可) | 中 |
-| 19 | [19-standalone-game-shipping.md](19-standalone-game-shipping.md) | capstone ①: 2D プラットフォーマー「Luxel Cavern」+ publish 検証 | 大 | 中 |
+| ~~19~~ | ✅ 完了 (2026-07-07) | capstone ①「Luxel Cavern」— `samples/LuxelCavern` として完成・MD 削除済み | — | — |
 | 20 | [20-game2-3d-shooting-range.md](20-game2-3d-shooting-range.md) | capstone ②: 3D 射的「Luxel Range」(03/04/05/09 の検証場) | 中〜大 | 中 |
 | 21 | [21-devtools-game-scale.md](21-devtools-game-scale.md) | DevTools のゲーム規模対応 (ECS スケール/gizmo/ゲーム統計/timescale) | 中 | 低 |
 
 ## ゲームエンジン完成に向けた文脈 (2026-07-06 ギャップ分析)
 
-14〜19 は「ゲームを 1 本作って出荷する」ためのギャップ分析 (Tier 1 = 必須) から起こしたタスク。既存タスクでは 04 (接触イベント)・09 (skin/morph)・10 (Audio ストリーミング) が同じ Tier 1〜2 に属する。**完成の定義は capstone ゲーム 2 本** (2026-07-06 決定、当初の Breakout 案を置換): [19](19-standalone-game-shipping.md) = 2D プラットフォーマー「Luxel Cavern」(13/14/15/16-2D/17/18 + 01/10 の検証場 + publish 基盤) → [20](20-game2-3d-shooting-range.md) = 3D 射的「Luxel Range」(03/04/05/09 + 16-.ThreeD/17-3D + glTF/3D シェーダ publish の検証場)。この 2 本でゲーム検証可能な全タスクをカバーする (02/06/07/08/11/12 はエディタ/ツール系のため各自のデモ/テストで担保)。19 は最小構成 (タイトル画面のみ) で publish を早めに 1 回通し、見つかった穴をタスク化するのが効率的。[21](21-devtools-game-scale.md) (DevTools のゲーム規模対応) は capstone の開発を支える支援タスク — A (ECS スケール)/C (ゲーム統計)/E (スタンドアロン統合) は 19 のゲーム組み上げ前、B (物理 gizmo) は 20 着手前までに済ませると効率が良い。Tier 2 (未タスク化、必要になったら起こす): 音のバス/グループ音量とフェード、シーン間の型安全なパラメータ受け渡し、ゲームパッド振動、実行時キーリバインド UI、固定シード Random / timeScale の DI サービス、normal map / IBL、GPU タイムスタンプ プロファイリング、i18n 文字列テーブル。Tier 3 (ゲームの種類が決まってから): ネットワーク、デファード/SSAO/TAA、アセット暗号化、Windows 以外のプラットフォーム。
+14〜19 は「ゲームを 1 本作って出荷する」ためのギャップ分析 (Tier 1 = 必須) から起こしたタスク。既存タスクでは 04 (接触イベント)・09 (skin/morph)・10 (Audio ストリーミング) が同じ Tier 1〜2 に属する。**完成の定義は capstone ゲーム 2 本** (2026-07-06 決定、当初の Breakout 案を置換): 19 = 2D プラットフォーマー「Luxel Cavern」(13/14/15/16-2D/17/18 + 01/10 の検証場 + publish 基盤、**✅ 2026-07-07 完成 = `samples/LuxelCavern`、MD 削除済み**) → [20](20-game2-3d-shooting-range.md) = 3D 射的「Luxel Range」(03/04/05/09 + 16-.ThreeD/17-3D + glTF/3D シェーダ publish の検証場)。この 2 本でゲーム検証可能な全タスクをカバーする (02/06/07/08/11/12 はエディタ/ツール系のため各自のデモ/テストで担保)。19 は最小構成 (タイトル画面のみ) で publish を早めに 1 回通し、見つかった穴をタスク化するのが効率的。[21](21-devtools-game-scale.md) (DevTools のゲーム規模対応) は capstone の開発を支える支援タスク — A (ECS スケール)/C (ゲーム統計)/E (スタンドアロン統合) は 19 のゲーム組み上げ前、B (物理 gizmo) は 20 着手前までに済ませると効率が良い。Tier 2 (未タスク化、必要になったら起こす): 音のバス/グループ音量とフェード、シーン間の型安全なパラメータ受け渡し、ゲームパッド振動、実行時キーリバインド UI、固定シード Random / timeScale の DI サービス、normal map / IBL、GPU タイムスタンプ プロファイリング、i18n 文字列テーブル。Tier 3 (ゲームの種類が決まってから): ネットワーク、デファード/SSAO/TAA、アセット暗号化、Windows 以外のプラットフォーム。
 
 ## 全タスク共通の規約・検証手順
 
