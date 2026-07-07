@@ -24,6 +24,7 @@ dotnet run --project samples/LuxelCavern/LuxelCavern -- vk --frames 30   # 30 �
 
 起動するとタイトル画面が出る。**Space/Enter** で「はじめる」、セーブがあれば **C** で「つづきから」、**S** で「せってい」、**Esc** で終了。
 設定画面では **↑↓** で項目選択・**←→** で音量調整・**Esc** で戻る (変更は即 %APPDATA% へ保存)。
+ゲーム中 **F1** で DevTools オーバーレイ (gizmo + 統計) を切り替え。
 
 ゲーム中の操作: **A/D** または **←→** 移動、**Space/W/↑** ジャンプ、**Esc** ポーズ、**Enter** リトライ (死亡時は直近チェックポイントから復活)。
 
@@ -68,6 +69,13 @@ publish フォルダをリポジトリ外の任意パスへコピーして起動
 キャッシュ/型付きノード/(将来の) リロードをリソースシステムに任せる。パースは `CavernTiled` (純ロジック) —
 タイル層は `TileMap.FromTiledJson`、オブジェクト層 (`objectgroup`) は本ゲーム固有のエンティティ
 (coin/key/door/walker/flyer/checkpoint/torch) として `CavernSim` に流し込む。Tiled で編集すればレベルを差し替えられる。
+
+### DevTools オーバーレイ (F1)
+
+ゲーム中 **F1** で `CavernDevOverlay` を切り替え。ON で gizmo (`Gizmos2D` の衝突タイル / カメラのデッドゾーン・境界、
+`ParticleGizmos` のエミッタ + 生存数) を `DebugDraw` に溜め、最前面へ Flush。右上に統計パネル (fps / 状態 / HP・コイン・鍵 /
+座標 / パーティクル数)。同時に `DevStats` にも観測値を載せる (DevTools 未接続なら zero-cost で no-op、接続時は Web パネルへ配信)。
+gizmo カテゴリは `DebugDraw` のグローバル ON/OFF なので OFF 時は溜め込み・割り当てゼロ。
 
 ### 動作要件
 

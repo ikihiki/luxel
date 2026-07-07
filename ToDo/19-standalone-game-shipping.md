@@ -157,7 +157,11 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
   - `CavernLevelLoader` (Core, インスタンス・static 無し): `res://levels/cavern1.tmj` を `ResourceSystem` 経由で `byte[]` ノードとしてロード (ハンドル保持でキャッシュ)、`CavernTiled` でパース。既定は自前 RS を所有、共有 RS を渡せば `AddSource` で相乗り。`CavernTiled.LoadEmbeddedJson` (直接 `Assembly.GetManifestResourceStream`) は廃し、`CavernTiled` は純パースに。
   - `CavernLevel.CreateSim`/`Torches`/`Build` の static を廃し、`GameFlow` は `CavernLevelLoader` を受け取る。シーンは Init でローダ生成→`GameFlow(loader)`、`_levels.Torches`、Unload で Dispose。Gallery ストーリー/テストもローダ経由 (`CavernTestLevel` ヘルパ)。
   - テスト: `CavernTiledTests` を RS 経由に更新 (`ResourceSystem_LoadsLevelJson` / 欠損リソースが RS 経由でエラー伝播)。build 0 エラー、全 783 passed、exe スモーク exit 0、**e2e 65/65 diff 0** (RS 経由でも同一描画)。README 更新。
-  - **残 (次セッション以降)**: WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / キーバインド再割当 (任意、UI 複雑) / single-file の Content-loose 対応 (任意)。**capstone のコア (プレイアブル + 配布 + フロー + セーブ + 音 + 設定 + Tiled/リソース管理レベル) は達成** — 残りは DevTools 合流と任意仕上げ。全て済んだら 19 MD を削除。
+- **ステージ B セッション 14 (2026-07-07, Q13)**: **ゲーム内 DevTools オーバーレイ (gizmo + DevStats)** — Q05-E/Q12 の合流。
+  - `CavernDevOverlay` (Core): F1 トグルで gizmo カテゴリ (`Gizmos2D.Tiles/Camera` + `ParticleGizmos.Emitters`) を `DebugDraw` の ON/OFF に合わせる。`EmitGizmos` が衝突タイル/カメラのデッドゾーン・境界/エミッタ+生存数をワールド空間で溜め、シーンが `DebugDraw.Flush` (worldToScreen 恒等) で最前面へ。`PublishStats` がゲーム観測値を `DevStats.Set` に載せる (未接続時 zero-cost no-op、DebugServer 接続時は Web パネルへ配信)。`DrawStatsPanel` が右上に統計 (fps/状態/HP・コイン・鍵/座標/パーティクル数、カメラアンカーのスクリーン空間)。
+  - exe 結線: `KeyboardSource` に VK_F1、シーンは `OnUpdate` で fps を指数移動平均 + F1 トグル + 毎フレーム `PublishStats`、`OnRender` の world 分岐で `_dev.Enabled` 時に gizmo emit → Flush → パネル。
+  - テスト `CavernDevOverlayTests` 4 本 (トグルが gizmo カテゴリを ON/OFF / 有効時のみ溜まる / OFF はゼロ割り当て / DevStats は未接続で no-op)。グローバル `DebugDraw` を触るので `DebugDrawTests` と同じ `[Collection("GlobalGizmo")]` で直列化。build 0 エラー、全 787 passed、exe スモーク exit 0、**e2e 65/65 diff 0**。gizmo→DebugDraw→Flush→Scene2D は `DebugDrawTests` が図形レベルで担保、対話表示 (F1) はヘッドレス検証不可。README に DevTools 節。
+  - **残 (任意仕上げ)**: キーバインド再割当 (UI 複雑) / single-file の Content-loose 対応 / DevTools オーバーレイの golden ストーリー化 (視覚回帰) / DebugServer を exe から起動して Web パネル配信。**capstone のコア (プレイアブル + 配布 + フロー + セーブ + 音 + 設定 + Tiled/リソース管理レベル + DevTools) は達成**。主要ギャップは埋まった — 残りは任意。全て済んだ判断で 19 MD を削除予定。
 
 ## 作業ステップ
 

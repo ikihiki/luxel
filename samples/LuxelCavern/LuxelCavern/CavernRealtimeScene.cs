@@ -52,6 +52,11 @@ public sealed class CavernRealtimeScene : GameScene
     private CavernSettings? _settings;
     private int _settingsRow;   // 0=Master, 1=Music, 2=Sfx
 
+    private readonly CavernDevOverlay _dev = new();
+    private ButtonAction _devToggle = null!;
+    private bool _prevDevToggle;
+    private float _fps = 60f;
+
     private static readonly uint TorchTint = Color2D.Rgba(255, 160, 60), DustTint = Color2D.Rgba(200, 180, 150);
     private static readonly uint CoinTint = Color2D.Rgba(250, 225, 70), DefeatTint = Color2D.Rgba(230, 90, 90);
 
@@ -86,11 +91,12 @@ public sealed class CavernRealtimeScene : GameScene
         _confirm = new ButtonAction("confirm", KeyCode.Enter);
         _continue = new ButtonAction("continue", KeyCode.C);
         _settingsBtn = new ButtonAction("settings", KeyCode.S);
+        _devToggle = new ButtonAction("dev", KeyCode.F1);
         _navV = new Axis1DAction("navV");
         _navV.ButtonPairs.Add((KeyCode.Down, KeyCode.Up));   // Down=+1 (下へ), Up=-1 (上へ)
         var ctx = new InputContext("gameplay");
         ctx.Add(_move); ctx.Add(_jump); ctx.Add(_pause); ctx.Add(_confirm); ctx.Add(_continue);
-        ctx.Add(_settingsBtn); ctx.Add(_navV);
+        ctx.Add(_settingsBtn); ctx.Add(_navV); ctx.Add(_devToggle);
         _loop.InputStack?.Push(ctx);
 
         _fx = new ParticleSystem(new ParticleConfig(
@@ -171,6 +177,13 @@ public sealed class CavernRealtimeScene : GameScene
     protected override void OnUpdate(UpdateContext ctx)
     {
         if (!_init) { Init(); _init = true; }
+
+        // DevTools オーバーレイ (F1): gizmo + 統計。状態に依らず切り替え可能。
+        float dt = ctx.Time.DeltaSeconds;
+        if (dt > 1e-4f) _fps += (1f / dt - _fps) * 0.1f;   // 指数移動平均で滑らかに
+        bool dev = _devToggle.Value.Value, devEdge = dev && !_prevDevToggle; _prevDevToggle = dev;
+        if (devEdge) _dev.Toggle();
+        _dev.PublishStats(_flow.Sim, _flow.State, _fx.Alive, _fps);
 
         // メニュー系の押下エッジ (ゲームプレイの _prevJump とは別トラッキング)。
         bool esc = _pause.Value.Value, escEdge = esc && !_prevPause; _prevPause = esc;
@@ -280,6 +293,16 @@ public sealed class CavernRealtimeScene : GameScene
             DrawWorld(s, sim, cam);
             CavernHud.Draw(s, (sc, t, x, y, h, c) => _font.AppendText(sc, t, x, y, h, c), sim, CameraCenter(cam), _rig.EffectiveZoom, Width, Height);
             DrawOverlay(s, cam);
+
+            if (_dev.Enabled)   // DevTools: gizmo をワールド空間で溜めて最前面へ Flush + 統計パネル
+            {
+                Vector2 c = CameraCenter(cam);
+                float zoom = _rig.EffectiveZoom, vw = Width / zoom, vh = Height / zoom;
+                _dev.EmitGizmos(sim, _rig, new RectF(c.X - vw * 0.5f, c.Y - vh * 0.5f, vw, vh), _fx, _levels.Torches);
+                DebugDraw.Flush(s, w => new Vector2(w.X, w.Y), (sc, t, x, y, h, cc) => _font.AppendText(sc, t, x, y, h, cc));
+                _dev.DrawStatsPanel(s, (sc, t, x, y, h, cc) => _font.AppendText(sc, t, x, y, h, cc),
+                    c, zoom, Width, Height, sim, _flow.State, _fx.Alive, _fps);
+            }
         }
 
         using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();

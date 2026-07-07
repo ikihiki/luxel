@@ -9,6 +9,7 @@ namespace Luxel.Tests;
 /// DebugDraw (gizmo コア) の GPU 不要テスト: カテゴリ ON/OFF のゼロ割り当て、
 /// Flush が Scene2D へ正しい図形を出すこと、worldToScreen 投影、テキスト委譲。
 /// </summary>
+[Collection("GlobalGizmo")]   // グローバル DebugDraw を触るテストを直列化 (CavernDevOverlayTests と干渉しない)
 public class DebugDrawTests
 {
     public DebugDrawTests() => DebugDraw.Reset();   // 静的状態をテスト間で分離

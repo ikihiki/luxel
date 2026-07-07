@@ -131,6 +131,7 @@ sealed class KeyboardSource : IInputSource
     private static KeyCode? Map(ushort vk) => vk switch
     {
         >= 0x41 and <= 0x5A => (KeyCode)((int)KeyCode.A + (vk - 0x41)),   // A-Z
+        0x70 => KeyCode.F1,   // DevTools オーバーレイ切替
         0x20 => KeyCode.Space,
         0x0D => KeyCode.Enter,
         0x1B => KeyCode.Escape,
