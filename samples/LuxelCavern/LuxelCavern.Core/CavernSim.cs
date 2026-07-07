@@ -106,6 +106,8 @@ public sealed class CavernSim
 
     // 演出レイヤ (パーティクル等) が読む「このステップの出来事」。毎ステップ先頭でクリア。
     public bool LandedThisStep { get; private set; }
+    /// <summary>このステップでジャンプ (踏み切り) したか (SE の発火口)。</summary>
+    public bool JumpedThisStep { get; private set; }
     public readonly List<Vector2> DefeatsThisStep = new();
     public readonly List<Vector2> PickupsThisStep = new();
     private bool _prevOnGround;
@@ -137,6 +139,7 @@ public sealed class CavernSim
     {
         ShakeRequested = false;
         LandedThisStep = false;
+        JumpedThisStep = false;
         CheckpointThisStep = false;
         DefeatsThisStep.Clear();
         PickupsThisStep.Clear();
@@ -171,7 +174,7 @@ public sealed class CavernSim
             else if (moveX < -0.01f) FacingRight = false;
         }
 
-        if (jumpPressed && OnGround) PlayerVel.Y = -JumpSpeed;
+        if (jumpPressed && OnGround) { PlayerVel.Y = -JumpSpeed; JumpedThisStep = true; }
         PlayerVel.Y = MathF.Min(PlayerVel.Y + Gravity * dt, MaxFallSpeed);
 
         Vector2 delta = PlayerVel * dt;

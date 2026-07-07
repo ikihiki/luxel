@@ -1,5 +1,6 @@
 using System.Numerics;
 using Luxel;
+using Luxel.Audio;
 using Luxel.Framework;
 using Luxel.Input;
 using Luxel.Particles;
@@ -25,6 +26,8 @@ public sealed class CavernRealtimeScene : GameScene
     private readonly SceneLoopServices _loop;
     private readonly VectorFont _font;
     private readonly IFileStore _store;
+    private readonly IAudioBackend _audioBackend;
+    private CavernAudio? _audio;
     private CavernSave? _save;
 
     /// <summary>タイトルの「おわる」で立つ — Program がウィンドウを閉じる合図。</summary>
@@ -51,11 +54,12 @@ public sealed class CavernRealtimeScene : GameScene
     public GpuBuffer Framebuffer => _fb;
     public uint StridePixels => (uint)_paddedW;
 
-    public CavernRealtimeScene(SceneLoopServices loop, VectorFont font, IFileStore store) : base(loop)
+    public CavernRealtimeScene(SceneLoopServices loop, VectorFont font, IFileStore store, IAudioBackend audioBackend) : base(loop)
     {
         _loop = loop;
         _font = font;
         _store = store;
+        _audioBackend = audioBackend;
     }
 
     private void Init()
@@ -81,6 +85,9 @@ public sealed class CavernRealtimeScene : GameScene
             SpreadRadians: MathF.PI, BaseAngle: -MathF.PI / 2, Gravity: -40, Drag: 0.6f,
             Size: 3f, Color: new ParticleColor(Color2D.Rgba(255, 255, 255, 255), Color2D.Rgba(255, 255, 255, 0)),
             Shape: ParticleShape.Circle), capacity: 600, seed: 0xCA5E);
+
+        // オーディオ配線 (BGM + イベント SE)。Mixer は Framework の UseAudio が用意する共有インスタンス。
+        if (_loop.Mixer is { } mixer) _audio = new CavernAudio(_audioBackend, mixer);
 
         // タイトルで起動 — セーブがあれば「つづきから」を出す (%APPDATA% は Program が PhysicalFileStore で渡す)。
         _save = CavernPersistence.TryLoad(_store);
@@ -129,6 +136,8 @@ public sealed class CavernRealtimeScene : GameScene
         _rig.Target = sim.PlayerCenter;
         _rig.SnapToTarget();
         _fx.Clear();
+        _audio?.ResetForNewGame();
+        _audio?.PlayBgm();
     }
 
     protected override void OnUpdate(UpdateContext ctx)
@@ -146,7 +155,7 @@ public sealed class CavernRealtimeScene : GameScene
             case GameState.Title:
                 if (enterEdge || mjumpEdge) StartNewGame();            // はじめる
                 else if (contEdge && _flow.HasSave) ContinueGame();    // つづきから
-                else if (escEdge) QuitRequested = true;                // おわる
+                else if (escEdge) { _audio?.StopBgm(); QuitRequested = true; }   // おわる
                 break;
             case GameState.Playing:
             case GameState.Paused:
@@ -156,9 +165,11 @@ public sealed class CavernRealtimeScene : GameScene
                 if (enterEdge) { if (_flow.HasSave) ContinueGame(); else StartNewGame(); }   // 復活 or 最初から
                 break;
             case GameState.Clear:
-                if (enterEdge) { _flow.ToTitle(); _flow.HasSave = _save is not null; }        // タイトルへ
+                if (enterEdge) { _audio?.StopBgm(); _flow.ToTitle(); _flow.HasSave = _save is not null; }   // タイトルへ
                 break;
         }
+
+        _audio?.Tick();   // BGM の音量 Signal を voice へ反映 (SE 側の Tick は Framework)
     }
 
     protected override void OnFixedUpdate(FixedUpdateContext ctx)
@@ -174,6 +185,9 @@ public sealed class CavernRealtimeScene : GameScene
         GameState before = _flow.State;
         _flow.Step(dt, move, jp);
         CavernSim? sim = _flow.Sim;
+
+        // オーディオ: このステップの出来事を SE として鳴らす (Playing→Clear の遷移ステップも含めるため before で判定)。
+        if (before == GameState.Playing && sim is not null) _audio?.React(sim);
 
         // 永続化: チェックポイント通過でオートセーブ、クリアでセーブ消去。
         if (sim is not null)
@@ -317,6 +331,7 @@ public sealed class CavernRealtimeScene : GameScene
 
     public override Task OnUnloadAsync()
     {
+        _audio?.Dispose();
         _fb?.Dispose();
         _atlas?.Dispose();
         _raster?.Dispose();

@@ -138,7 +138,12 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
   - exe を**タイトル起動**に変更 (従来は即プレイ)。`CavernRealtimeScene` が GameFlow.Title を描画 (`Camera2D.Pixels` のスクリーン空間) — Space/Enter「はじめる」・C「つづきから」(セーブ時のみ)・Esc「おわる」(→ `QuitRequested` で Program がウィンドウ閉)。
   - **オートセーブ**: `sim.CheckpointThisStep` で `Export()`→`Save`。クリアで `Clear`。GameOver + Enter は**セーブがあればチェックポイント復活**、無ければ最初から。exe は `PhysicalFileStore(%APPDATA%/LuxelCavern)` を DI 注入。
   - 単体テスト `CavernPersistenceTests` 5 本 (往復 / 未保存 null / 消去 null / 壊れ JSON は null / GameFlow.Continue 復元)。build 0 エラー、Cavern 系テスト 34 passed、exe タイトルスモーク (vk --frames 20) exit 0、**e2e 65/65 diff 0** (story/golden は CavernSim 直叩きなので不変)。README にタイトル操作 + セーブ節。**checklist 6 (保存先 %APPDATA%) 達成。**
-  - **残 (次セッション以降)**: SettingsStore で音量/キーバインド (Q06 B) + 設定 UI / Audio (BGM ストリーミング + SE、sim イベントから発火) / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / single-file の Content-loose 対応 (任意)。**capstone のコア (プレイアブル + 配布 + フロー + セーブ) は達成** — 残りは音・設定・レベル多様化の仕上げ。全て済んだら 19 MD を削除。
+- **ステージ B セッション 10 (2026-07-07, Q13)**: **オーディオ (BGM + イベント SE)** — Q10/Luxel.Audio のドッグフード。
+  - `CavernSfxDetector` (Core、純ロジック): sim の 1 ステップ後の状態から鳴らす SE を割り出す。コイン/鍵/HP は前フレーム差分、ジャンプ/着地/チェックポイント/撃破/クリアは per-step フラグ。`Reset` で sim 差し替え時に再基準化 (初回 Detect は無音で誤発火防止)。ジャンプ検出のため `CavernSim.JumpedThisStep` を追加 (踏み切りフラグ、sim 挙動不変)。
+  - `CavernSfxBank` (Core): SE/BGM を CPU 合成 (外部アセット不要・決定的)。cue ごとに周波数/長さ/グライドを変えたエンベロープ付きサイン波、BGM は整数周期に合わせた低音サインの無クリックループ (16-bit mono 44k)。
+  - `CavernAudio` (Core): BGM (`AudioSource` ループ) + イベント SE (`AudioMixer.PlayOneShot`) を結線。`AudioBus` 階層 (Master → Music / Sfx) で音量グループ化 (設定 UI から bind 可能に = Q06 B の足場)。exe は `LuxelHostBuilder.UseAudio()` で XAudio2 + AudioMixer を DI、シーンが `_loop.Mixer` + `IAudioBackend` から構築。新規/再開で `ResetForNewGame`+`PlayBgm`、タイトル復帰/終了で `StopBgm`、固定更新で `React(sim)`。
+  - 単体テスト `CavernSfxDetectorTests` 9 本 + `CavernAudioTests` 3 本 (NullAudioBackend で音デバイス非依存)。build 0 エラー、全 775 passed、exe スモーク (vk --frames 20) exit 0 (XAudio2 init 込み)、**e2e 65/65 diff 0** (story は sim 直叩き・JumpedThisStep 追加は無影響)。実際の発音はヘッドレス検証不可 — 配線は単体テスト + スモークで担保 (S7 入力と同じ扱い)。README にオーディオ節。
+  - **残 (次セッション以降)**: SettingsStore で音量 (Master/Music/Sfx Volume に bind) + キーバインド + 設定 UI (Q06 B) / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / single-file の Content-loose 対応 (任意)。**capstone のコア (プレイアブル + 配布 + フロー + セーブ + 音) は達成** — 残りは設定 UI とレベル多様化の仕上げ。全て済んだら 19 MD を削除。
 
 ## 作業ステップ
 

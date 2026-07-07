@@ -20,6 +20,8 @@
     <ProjectReference Include="..\..\..\src\Luxel.Typography\Luxel.Typography.csproj" />
     <!-- セーブの読み書き抽象 (IFileStore)。%APPDATA% への実 IO は exe が PhysicalFileStore で渡す。 -->
     <ProjectReference Include="..\..\..\src\Luxel.Settings\Luxel.Settings.csproj" />
+    <!-- ゲームオーディオ (BGM/SE)。実バックエンド (XAudio2) は exe が UseAudio で注入、テストは Null。 -->
+    <ProjectReference Include="..\..\..\src\Luxel.Audio\Luxel.Audio.csproj" />
   </ItemGroup>
 
 </Project>

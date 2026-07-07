@@ -2,7 +2,7 @@
 
 Luxel エンジンで作ったスタンドアロンの 2D 探索アクション。エンジンの主要機能
 (タイルマップ + Sweep 衝突・カメラ追従・パーティクル・FixedUpdate 物理・入力・セーブ・
-ScriptSystem・実時間 GameLoop) を「無いとゲームが成立しない形」で使う検証場。
+オーディオ (BGM/SE)・ScriptSystem・実時間 GameLoop) を「無いとゲームが成立しない形」で使う検証場。
 
 ## 構成
 
@@ -30,6 +30,12 @@ dotnet run --project samples/LuxelCavern/LuxelCavern -- vk --frames 30   # 30 �
 チェックポイント通過で **`%APPDATA%\LuxelCavern\cavern-save.json`** へオートセーブ (HP/コイン/鍵/収集・撃破・通過フラグ + 復活位置)。
 次回起動時にタイトルへ「つづきから」が出る。クリアするとセーブは消える。永続化は `IFileStore` 抽象 (`Luxel.Settings`) 上で
 行い、exe は `PhysicalFileStore` を %APPDATA% に向ける — ロジックはインメモリ実装で単体テスト済み (`CavernPersistenceTests`)。
+
+### オーディオ
+
+ループ BGM + イベント SE (ジャンプ/着地/コイン/鍵/撃破/被弾/チェックポイント/クリア)。音は CPU 合成で外部アセット不要
+(`CavernSfxBank`、決定的)。`CavernSfxDetector` が sim の出来事を SE に変換し、`AudioBus` 階層 (Master → Music / Sfx) で
+音量を分ける (設定 UI から bind 予定)。バックエンドは exe が XAudio2 (`UseAudio`)、テストは `NullAudioBackend`。
 
 ## 配布 (publish)
 
