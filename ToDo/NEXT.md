@@ -30,7 +30,7 @@
 - [x] **Q02**: 12 メンテ: Docs stale + dx golden — golden を新フォント基準で整えた直後に片付ける
 - [x] **Q03**: 14 FixedUpdate + 描画補間 — ゲーム/物理の時間基盤。既存デモ (Knockdown) を移行済み。完了 = FixedUpdate フェーズ/蓄積器/Alpha + InterpolatedTransform + 単体テスト + Demos/Framework/DrawInterpolation + Docs/Framework 追記
 - [x] **Q04**: [19 capstone ①](19-standalone-game-shipping.md) **ステージ A: 骨組み + publish 早回し** — タイトル画面だけの LuxelCavern を作り publish チェックリスト 1〜4, 7, 8 を 1 周 (直すのは Luxel 本体側)。**MD はまだ削除しない** (2026-07-06 完了: samples/LuxelCavern 骨組み + shaders publish 修正。詳細は 19 MD 進捗節)
-- [ ] **Q05**: [21 DevTools ゲーム規模対応](21-devtools-game-scale.md) **ステージ ①: A (ECS スケール) + C (DevStats) + D (FixedUpdate/timescale) + E (WithDevTools) + F (fps 化) + DebugDraw コア** — B の機能別 gizmo (物理/カメラ/タイル) は対象機能の実装後 (Q12/Q14) に回す。**MD はまだ削除しない** (**A/C/D + DebugDraw コア 完了** (両 UI + 単体テスト 611 passed + Gizmos golden、e2e 54/54 diff 0)。**残り E/F/Docs は後段へ据え置き** (ユーザー判断 2026-07-06): E は Q13 と同時、F は実ゲーム稼働後 (60fps 測定に実ゲーム要)、Docs は E/F 完了後。詳細は 21 MD 進捗節。**MD はまだ削除しない**)
+- [ ] **Q05**: [21 DevTools ゲーム規模対応](21-devtools-game-scale.md) **ステージ ①: A (ECS スケール) + C (DevStats) + D (FixedUpdate/timescale) + E (WithDevTools) + F (fps 化) + DebugDraw コア** — B の機能別 gizmo (物理/カメラ/タイル) は対象機能の実装後 (Q12/Q14) に回す。**MD はまだ削除しない** (**A/C/D + DebugDraw コア 完了** (両 UI + 単体テスト 611 passed + Gizmos golden、e2e 54/54 diff 0)。**残り E/F/Docs は後段へ据え置き** (ユーザー判断 2026-07-06): E は Q13 と同時、F は実ゲーム稼働後 (60fps 測定に実ゲーム要)、Docs は E/F 完了後。詳細は 21 MD 進捗節。**MD はまだ削除しない**) (着手中: 2026-07-07 — 残り E+F+Docs を実装、ユーザー判断で全部やる)
 
 ### M2 — 2D ゲーム機能 (capstone ① の部品)
 

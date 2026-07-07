@@ -18,7 +18,7 @@ public sealed class DevToolsListener : IObserver<DiagnosticListener>, IObserver<
     private IDisposable? _allListenersSub;
 
     // coalesce: 最新のみ保持
-    private readonly LatestSlot<byte[]> _frame = new();   // HTTP body (8B ヘッダ + RGBA)
+    private readonly FrameChannel _frame = new();          // ライブフレーム (リングバッファ、書き手ゼロ割り当て)
     private readonly LatestSlot<string> _tree = new();     // JSON
     private readonly LatestSlot<string> _primitives = new(); // JSON (最終 2D SoA, オンデマンド取得)
     private readonly LatestSlot<string> _gpu = new();        // JSON (GPU 発行コマンド, オンデマンド取得)
@@ -142,14 +142,9 @@ public sealed class DevToolsListener : IObserver<DiagnosticListener>, IObserver<
         _tree.Publish(json);
     }
 
-    private void PublishFrame(DiagFrame fr)
-    {
-        byte[] body = new byte[8 + fr.Rgba.Length];
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(0), fr.Width);
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(4), fr.Height);
-        fr.Rgba.CopyTo(body, 8);
-        _frame.Publish(body);
-    }
+    // 書き手 (ゲーム main スレッド) はリングスロットへコピーするだけ = 定常割り当てゼロ。
+    // fr.Rgba は emitter が使い回すバッファなので、ここで必ずコピーしてから公開する (参照保持は不可)。
+    private void PublishFrame(DiagFrame fr) => _frame.Publish(fr.Width, fr.Height, fr.Rgba);
 
     // ---- サーバ向けデータアクセス (読み取り専用) ----
 
@@ -161,14 +156,12 @@ public sealed class DevToolsListener : IObserver<DiagnosticListener>, IObserver<
             _surfaces.Rev, _inputState.Rev, _paused, _stat, logs, cursor));
     }
 
-    /// <summary>最新フレーム body と rev。<paramref name="sinceRev"/> と同一なら null (= 304)。</summary>
-    public (byte[]? body, long rev) GetFrame(long? sinceRev)
-    {
-        (byte[]? body, long rev) = _frame.Read();
-        if (body == null) return (null, rev);
-        if (sinceRev is long s && s == rev) return (null, rev);
-        return (body, rev);
-    }
+    /// <summary>最新フレーム body (8B ヘッダ + tight RGBA) と rev。<paramref name="sinceRev"/> と同一なら null (= 304)。
+    /// 返る配列は呼び出し側専有 (FrameChannel が seqlock でコピー) — 非同期送信/アップロードに渡して安全。</summary>
+    public (byte[]? body, long rev) GetFrame(long? sinceRev) => _frame.Read(sinceRev);
+
+    /// <summary>フレーム更新を待つ購読側 (WebSocket push など) が現在の frame rev を取れるよう公開する。</summary>
+    public long FrameRev => _frame.Rev;
 
     /// <summary>最新ツリー JSON と rev。<paramref name="sinceRev"/> と同一なら null (= 304)。</summary>
     public (string? json, long rev) GetTree(long? sinceRev)

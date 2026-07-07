@@ -188,15 +188,24 @@ public sealed class AppWindow : IDisposable
         Host.EmitTree();
     }
 
-    /// <summary>可視 w×h の密 RGBA を抜き出して DevTools へ配信 (padded stride → tight)。</summary>
+    private byte[]? _emitTight;      // 使い回す tight RGBA (サイズ変化時のみ再確保) — 購読中の毎フレーム割り当てを避ける
+    private DiagFrame? _emitFrame;   // 使い回す DiagFrame (バッファ/寸法が同じなら再生成しない)
+
+    /// <summary>可視 w×h の密 RGBA を抜き出して DevTools へ配信 (padded stride → tight)。
+    /// 購読者が居るときだけ実行し、バッファは使い回す (F1: main スレッドの毎フレーム割り当てを排除)。</summary>
     private void EmitFrame()
     {
         if (!EngineDiagnostics.IsEnabled(EngineDiagnostics.Frame)) return;
+        int len = _w * _h * 4;
+        if (_emitTight is null || _emitTight.Length != len)
+        {
+            _emitTight = new byte[len];
+            _emitFrame = new DiagFrame(_w, _h, _emitTight);   // 寸法/バッファが変わったときだけ record を作り直す
+        }
         ReadOnlySpan<byte> src = _fb.Span<byte>(_paddedW * _h * 4);
-        byte[] tight = new byte[_w * _h * 4];
         for (int y = 0; y < _h; y++)
-            src.Slice(y * _paddedW * 4, _w * 4).CopyTo(tight.AsSpan(y * _w * 4));
-        EngineDiagnostics.Emit(EngineDiagnostics.Frame, new DiagFrame(_w, _h, tight));
+            src.Slice(y * _paddedW * 4, _w * 4).CopyTo(_emitTight.AsSpan(y * _w * 4));
+        EngineDiagnostics.Emit(EngineDiagnostics.Frame, _emitFrame!);   // listener が seqlock でリングへコピー
     }
 
     public void Dispose()
