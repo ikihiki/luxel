@@ -1,4 +1,5 @@
 using System.Numerics;
+using Friflo.Engine.ECS;
 using LuxelRange.Core;
 using Xunit;
 
@@ -48,6 +49,27 @@ public class RangeSimTests
         Assert.True(sim.Fire(new Vector3(-1, 1.3f, 5f), -Vector3.UnitZ));
         Assert.False(sim.Fire(new Vector3(2, 1.3f, 5f), -Vector3.UnitZ));   // 残弾 0
         Assert.Equal(0, sim.AmmoLeft);
+    }
+
+    /// <summary>地形メッシュの winding が上面衝突向き — 上から落ちた (通常速度の) 物体が地形上で静定する。
+    /// 描画と同じ頂点を物理コライダーに使うので、これが通れば「絵 = 当たり」の整合が担保される (タスク 05)。</summary>
+    [Fact]
+    public void Terrain_WindingUpward_ObjectRestsOnSurface()
+    {
+        (Vector3[] pos, _, int[] idx) = RangeTerrain.Build();
+        Assert.Equal((RangeTerrain.N + 1) * (RangeTerrain.N + 1), pos.Length);
+        Assert.Equal(RangeTerrain.N * RangeTerrain.N * 6, idx.Length);
+
+        using var physics = new Luxel.Physics.PhysicsWorld();
+        physics.AddStaticMesh(BepuPhysics.RigidPose.Identity, pos, idx, Vector3.One);
+        BepuPhysics.BodyHandle ball = physics.AddDynamic(
+            new BepuPhysics.RigidPose(new Vector3(2, 5, 2)), new BepuPhysics.Collidables.Sphere(0.3f));
+        for (int i = 0; i < 300; i++) physics.StepOnce();
+
+        float y = physics.GetPose(ball).Position.Y;
+        float ground = RangeTerrain.Height(2, 2);
+        Assert.True(y > ground - 0.2f, $"球 y={y} が地形 {ground} を貫通した (winding が下向き?)");
+        Assert.True(y < ground + 1.2f, $"球 y={y} が地形上で静定していない");
     }
 
     [Fact]

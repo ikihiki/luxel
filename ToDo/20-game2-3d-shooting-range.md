@@ -97,7 +97,16 @@ samples/LuxelRange/
 - 罠: `OnFixedUpdate` は `OnUpdate` (InitGpu で `_sim` 生成) より先に走る → `_sim is null` ガード必須。
 - 検証: 全 826 passed / e2e 71/71 diff 0・vk/dx 一致。
 
-**残 (後続スライス)**: 2 = メッシュアリーナ (05、起伏 + 外周壁) + 物理小物 (ConvexHull)。3 = 動く的 (09 Fox skin) + ボーナスゾーン/kill plane トリガー (04) + パーティクル (16) + SE。4 = Title/Result + ハイスコア/設定 (15) + BGM (10)。5 = exe プレイアブル化 + publish 3D 検証 (glTF/scene_pbr shaders)。**20 MD は全スライス完了まで残す**。
+### 2026-07-07 (2): スライス 2 — メッシュアリーナ (05 in-game、起伏地形 + 外周壁)
+
+**済**:
+- `RangeTerrain` (Core): 決定的な起伏地形メッシュ (位置 + 解析法線 + 三角形、±15m、N=20)。winding は Q16 の上面法線向き。**同じ頂点を物理 (AddStaticMesh) と描画の両方に使う** = 絵と当たりが一致。
+- `RangeSim`: 平床を起伏メッシュ地形に差替 (`Physics.AddStaticMesh`)、外周壁 ×4 (見えない静的箱、場外防止)、薄板ターゲットを地形高さに載せる。地形データを `TerrainPositions/Normals/Indices` で公開。
+- Gallery `RangeScene`: 地形を `scene_pbr_lite` で描画 (RangeSim と同一頂点)、的/弾は `cube_forward`。1 パス内で 2 パイプライン描画。golden 更新 (起伏地形 + 地形上の薄板)、vk/dx 一致。
+- 単体テスト `RangeSimTests` に winding 検証 1 追加 (低速球が地形上で静定 = 上面衝突向き)。全 827 passed / e2e 71/71 diff 0。
+- **既知の制約**: 100m/s の弾を地形へ**真下に**撃つと Bepu の CCD-vs-Mesh が捕捉できず貫通する (静止メッシュへの高速掃引の限界)。ゲームでは的への概ね水平な射撃が主で、地形を外した弾は **kill plane で despawn** する設計 (スライス 3) — トンネリングした弾の落下無限化を防ぐ。
+
+**残 (後続スライス)**: 3 = 物理小物 (ConvexHull) + 動く的 (09 Fox skin) + ボーナスゾーン/kill plane トリガー (04) + パーティクル (16) + SE。4 = Title/Result + ハイスコア/設定 (15) + BGM (10)。5 = exe プレイアブル化 + publish 3D 検証 (glTF/scene_pbr shaders)。**20 MD は全スライス完了まで残す**。
 
 ## スコープ外
 

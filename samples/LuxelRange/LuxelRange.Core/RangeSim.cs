@@ -1,4 +1,5 @@
 using System.Numerics;
+using BepuPhysics;
 using Friflo.Engine.ECS;
 using Luxel.Ecs;
 using Luxel.Physics;
@@ -42,6 +43,13 @@ public sealed class RangeSim : IDisposable
 
     private readonly List<Entity> _targets = new();
 
+    /// <summary>地形メッシュの頂点 (描画と物理コライダーで共有 — 絵と当たりが一致)。</summary>
+    public Vector3[] TerrainPositions { get; private set; } = Array.Empty<Vector3>();
+    /// <summary>地形メッシュの法線。</summary>
+    public Vector3[] TerrainNormals { get; private set; } = Array.Empty<Vector3>();
+    /// <summary>地形メッシュの三角形インデックス。</summary>
+    public int[] TerrainIndices { get; private set; } = Array.Empty<int>();
+
     public RangeSim(int ammo = 20)
     {
         AmmoLeft = ammo;
@@ -51,24 +59,29 @@ public sealed class RangeSim : IDisposable
         BuildArena();
     }
 
-    /// <summary>床 + 薄板ターゲット列を配置する (ハードコード = 決定的)。</summary>
+    /// <summary>起伏メッシュ地形 + 外周壁 + 薄板ターゲット列を配置する (ハードコード = 決定的)。</summary>
     private void BuildArena()
     {
-        // 床 (静的、上面 y=0)
-        World.Store.CreateEntity(
-            new LocalTransform(Matrix4x4.CreateScale(20f, 1f, 20f) * Matrix4x4.CreateTranslation(0, -0.5f, 0)),
-            new Color3D(new Vector4(0.32f, 0.34f, 0.40f, 1f)),
-            new MeshRef(MeshRef.Cube),
-            Collider.Box(20f, 1f, 20f),
-            new StaticBody());
+        // 起伏メッシュ地形 (静的 Mesh コライダー、タスク 05)。描画は Gallery が同じ頂点を使う。
+        (TerrainPositions, TerrainNormals, TerrainIndices) = RangeTerrain.Build();
+        Physics.AddStaticMesh(RigidPose.Identity, TerrainPositions, TerrainIndices, Vector3.One);
 
-        // 薄板ターゲット ×5 (厚さ 0.15m、z=-3 に立てる。弾は +Z 側から撃つ)
-        float[] xs = [-4f, -2f, 0f, 2f, 4f];
+        // 外周壁 ×4 (弾/小物の場外飛び出し防止、静的箱)。ECS entity にはしない (描画不要 = 見えない壁)。
+        const float hs = RangeTerrain.HalfSize, wallH = 3f, wallT = 0.5f;
+        Physics.AddStatic(new RigidPose(new Vector3(0, wallH / 2, -hs)), Physics.AddShape(new BepuPhysics.Collidables.Box(2 * hs, wallH, wallT)));
+        Physics.AddStatic(new RigidPose(new Vector3(0, wallH / 2, hs)), Physics.AddShape(new BepuPhysics.Collidables.Box(2 * hs, wallH, wallT)));
+        Physics.AddStatic(new RigidPose(new Vector3(-hs, wallH / 2, 0)), Physics.AddShape(new BepuPhysics.Collidables.Box(wallT, wallH, 2 * hs)));
+        Physics.AddStatic(new RigidPose(new Vector3(hs, wallH / 2, 0)), Physics.AddShape(new BepuPhysics.Collidables.Box(wallT, wallH, 2 * hs)));
+
+        // 薄板ターゲット ×5 (厚さ 0.15m、z=-8 の地形上に立てる。弾は +Z 側から撃つ)
+        float[] xs = [-6f, -3f, 0f, 3f, 6f];
+        const float targetZ = -8f, plateH = 1.6f;
         foreach (float x in xs)
         {
-            var size = new Vector3(1.2f, 1.6f, 0.15f);
+            float groundY = RangeTerrain.Height(x, targetZ);
+            var size = new Vector3(1.2f, plateH, 0.15f);
             Entity e = World.Store.CreateEntity(
-                new LocalTransform(Matrix4x4.CreateScale(size) * Matrix4x4.CreateTranslation(x, 1.3f, -3f)),
+                new LocalTransform(Matrix4x4.CreateScale(size) * Matrix4x4.CreateTranslation(x, groundY + plateH / 2, targetZ)),
                 new Color3D(new Vector4(0.90f, 0.45f, 0.30f, 1f)),
                 new MeshRef(MeshRef.Cube),
                 Collider.Box(size.X, size.Y, size.Z),
