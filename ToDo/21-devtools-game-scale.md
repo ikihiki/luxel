@@ -128,11 +128,22 @@ capstone との順序: **A/C/E は 19 のゲーム組み上げ前に済ませる
 - テスト: `DebugDrawTests` に 4 件追記 (同クラス=静的状態を直列化。衝突タイル数=矩形数 / デッドゾーン+境界 / 境界なし / エミッタ 4 コマンド + OFF ゼロ)。計 729 passed。
 - golden: **Demos/TwoD/Gizmos2D** (Order 151) — ゲーム画面 (塗り) 下地 + 3 種 gizmo を on にした 1 枚 (Canvas2D=Skia可・決定的、worldToScreen 恒等)。e2e 64/64 diff 0。
 
-**残 (Q05 の残り — 次セッション以降)**:
-- **E (WithDevTools 統合)**: **Q13 (19 ゲーム組み上げ) と一緒にやるのが自然**と判明 — capstone サンプル (samples/LuxelCavern) は現状 `LuxelHostBuilder`/`GameScene` ではなく `AppWindow` + UI 直書きで、実ゲームループは Stage B (Q13) で作る。DevTools を実ゲームに挿すのはゲーム構造が固まる Q13 で。内容: `LuxelHostBuilder.WithDevTools(...)` (Framework を DevTools UI に結合させない配置 = 別アセンブリの拡張メソッド)、`--devtools` (内蔵) / `--devtools-port` (ブラウザ)、3D フレーム (RenderGraph) が DiagFrame に乗るか調査、publish スモーク。
-- **F (ライブビュー fps 化)**: F1 割り当て除去 (リングバッファ + 二読者所有権) → F2 内蔵版 60fps 実測 → F3 ブラウザ WebSocket push (latest-wins) → 任意 F4 MJPEG。単独で先行可。
-- **Docs**: Docs/Framework or 新 Docs/DevTools に「ゲームを観測する」節 (E/F 完了時にまとめて執筆)。DebugDraw の使い方もここへ。
-- B の機能別 gizmo: **2D (タイル/カメラ/エミッタ) は Q12 で完了**。**物理 gizmo (コライダーワイヤ/接触点/トリガー/CCD 色分け) はステージ③ = Q14** (03/04/05 の実装後、この DebugDraw + Gizmos2D の流儀で載せる)。
+**残 (Q05 の残り) — B の物理 gizmo を除き完了**:
+- B の機能別 gizmo: **2D (タイル/カメラ/エミッタ) は Q12 で完了**。**物理 gizmo (コライダーワイヤ/接触点/トリガー/CCD 色分け) はステージ③ = Q14** (03/04/05 の実装後、この DebugDraw + Gizmos2D の流儀で載せる)。**21 MD はこのステージ③完了まで残す**。
+
+### 2026-07-07: ステージ ① の E / F / Docs 完了 (Q05 クローズ)
+
+**済 (Q05 の残り)**:
+- **E (WithDevTools 統合)**: 新アセンブリ `Luxel.Framework.DevTools` (橋渡し層、Framework 本体は DevTools 非依存)。`LuxelHostBuilder.WithDevTools(DevToolsOptions)` が `DevToolsListener` + `DebugServer`(ブラウザ) / `DevToolsApp`(内蔵) + `IFramePublisher` を `IHostedService` として host に載せる (host.Start/StopAsync でライフサイクル管理)。引数解釈 `DevToolsOptions.Parse` は純ロジックなので net10.0 の `Luxel.DevTools` 側に置きテスト可能に。フラグ: `--devtools[ port]` / `--devtools-port <n>` = ブラウザ (port 省略で自動)、`--devtools-native` = 内蔵 (第二 GpuDevice factory 要)、併用可。**当初 MD 案の「`--devtools`=内蔵」から変更** — S17 のブラウザ検証フローと互換を優先し `--devtools`=ブラウザ、内蔵は `--devtools-native`。`LuxelCavern` を集約 API へ移行 (手書き `CavernDevServer` 削除、提示ループは `IFramePublisher.Publish` を呼ぶだけ)。ポート衝突 (Windows 予約帯) でも DebugServer 起動失敗を握ってゲーム本体は継続。
+  - **3D (RenderGraph) フレーム調査**: `IFramePublisher.Publish` はホスト可視 (host-mapped) の RGBA `GpuBuffer` を受ける汎用口で、バックエンド非依存。2D (Cavern) は提示バッファをそのまま渡せる。**3D ゲームは RenderGraph の最終カラーターゲットを host-mapped バッファへ resolve/readback してから Publish する必要がある** (自動 RG キャプチャは無い) — これは 2D と同じ要件。Q18 (3D capstone) 未着手のため実機ライブ確認は Q18 で。
+- **F (ライブビュー fps 化)**:
+  - **F1 割り当て除去**: `FrameChannel` (seqlock 付き 3 枚リング) を新設し `DevToolsListener` のフレームスロットを `LatestSlot<byte[]>` から置換。書き手 (ゲーム main スレッド) はスロットへコピーするだけで定常割り当てゼロ。読み手 2 系統 (HTTP + 内蔵版島) は seqlock で整合検証しつつ自前 body へコピー (破れなし)。`AppWindow.EmitFrame` も tight/DiagFrame 使い回しで毎フレーム new byte[] 排除。単体テスト `FrameChannelTests` 7 (body 形状/304/latest-wins/リサイズ/未サイズ無視/`ReadInto` 再利用/二読者 2 万フレーム torn なし)。
+  - **F3 WebSocket push**: `DebugServer` に `GET /ws/frame` — frame rev が進むたび最新フレームを binary で push、latest-wins (各送信を await、遅い受信は中間フレーム間引き、キュー深さ 1)、メインスレッド非ブロック、pause 中は送信なし。既存 `/frame` ポーリングは互換で残置。ブラウザ `index.html` は `connectFrameSocket()` で購読・`blitFrame()` 共通化・接続中はポーリング停止・切断で自動フォールバック/再接続。`FrameChannel.ReadInto(ref buf)` で読み手も送信バッファ使い回し (2MB body を LOH に積むと gen2 GC がゲーム main を巻き込むため)。
+  - **F2 内蔵版**: `DevToolsUi.UpdateFrame` の main フレーム読みを `GetFrameInto(ref _frameBuf)` に変更 (島スレッドの LOH churn ゼロ)。ペーシングは既存 16ms (60fps 目標) 維持。
+  - **F4 MJPEG: 不採用** (計測して判断)。loopback 生 RGBA が実機 25MB/s で余裕 (60fps≈120MB/s も帯域内)、帯域は制約でない。MJPEG はリモート/高解像度向けで F5 のスコープ外方針と一致。
+  - **実機検証 (Claude in Chrome)**: `LuxelCavern.exe vk --devtools`(自動ポート) を起動し DevTools を開いて確認: `/ws/frame` が 960×540 (~2MB) を live push、受信 fps == publish fps で欠落なし、Home に live frame + DevStats (fps/particles/state) 表示。**プール化の効果**: WS 25.5MB/s 配信中でも gen2 GC は 5 秒で +1 (プール化前は ~1.5/s)。ゲーム自身は Debug + 非フォアグラウンド窓で ~13fps だったが、それは配信経路でなくゲームの提示レート (配信は追従・非ボトルネック)。**60fps リテラル値の確認には実フォアグラウンドの 60fps ゲームが要る**が、loopback 帯域と main スレッドのゼロ割り当ては数値で担保済み。
+- **Docs**: `Docs/DevTools` (DocsRuntime.cs) に「スタンドアロンゲームへ結線する — WithDevTools」+「ゲームを観測する」節 (DevStats / DebugDraw・gizmo / timescale / ECS スケール / ライブビューのモード=滑らかさ vs 正確さ) を追記。
+- **検証**: `dotnet build` (全ソリューション) OK / `dotnet test` 805 passed (+12) / e2e 65/65・golden diff 0 / 実機 chrome で live view 確認。
 
 ## スコープ外
 

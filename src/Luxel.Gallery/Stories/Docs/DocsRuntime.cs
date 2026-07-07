@@ -277,6 +277,34 @@ public static class DocsRuntime
         > [!TIP]
         > `/winframe` は arm → 次リクエストで取得の 2 段構えなので、直近の操作の反映は **1 リクエスト遅れ**ます。「クリックが効かない」と誤診しないよう、取得を 2 回重ねてから判断してください。
 
+        ## スタンドアロンゲームへ結線する — WithDevTools
+
+        `LuxelHostBuilder` のゲームは `.WithDevTools(DevToolsOptions.Parse(args, nativeDeviceFactory))` の 1 行で DevTools を載せられます (集約は別アセンブリ `Luxel.Framework.DevTools` — Framework 本体は DevTools に依存しません)。フラグは `--devtools[ port]` / `--devtools-port <n>` (ブラウザ版 DebugServer、port 省略で自動割当)、`--devtools-native` (内蔵ウィンドウ、第二 GpuDevice を島スレッドで作る factory が要る)。併用可、既定は両方 off なので publish 成果物が勝手にサーバを立てることはありません。提示ループは DI で取れる `IFramePublisher` に `Publish(framebuffer, stride, w, h)` を渡すだけ — 実装例は capstone ① `samples/LuxelCavern`。
+
+        ## ゲームを観測する
+
+        デモ規模 (数十エンティティ) から**ゲーム規模** (数百エンティティ + 物理 + パーティクル) へスケールさせるための観測面です。どれも購読者がゼロなら `IsEnabled` 判定だけで即 return する zero-cost 設計で、off のときは割り当ても列挙もしません。
+
+        ### DevStats — ゲーム側のカスタム統計
+
+        `DevStats.Set("score", score)` / `Set("state", "Playing")` のように 1 行で数値・文字列・bool を観測に載せられます (printf デバッグの受け皿)。30 フレームに 1 度まとめて emit され、ブラウザ版 Home の "Game" セクションと内蔵版 Stat ダッシュボードの両方に key-value で並びます。スコア・残弾・HP・状態機械の現在状態を出す口です。
+
+        ### DebugDraw / gizmo — ゲーム画面上のオーバーレイ
+
+        `DebugDraw.Line/Rect/Circle/Text` はワールド空間に即時モードで積み、`Flush(scene, worldToScreen, textDrawer)` で最前面オーバーレイへ流します。`worldToScreen` 委譲で 2D=恒等・3D=viewProj の両対応。カテゴリ (kind) 単位で `Enable/Disable` でき、DevTools の `gizmo.enable {kind,on}` コマンドからトグルします (既定 off、OFF カテゴリはゼロ割り当てで抜ける)。この上に標準 gizmo (`Gizmos2D` = タイル衝突/Sweep/CameraRig、`ParticleGizmos.Emitter` = エミッタ位置 + alive 数) が載ります。実演は {{StoryRef(ctx, "Demos/TwoD/Gizmos2D")}}。
+
+        ### timescale — スローモーション
+
+        `engine.timescale {value}` コマンドで dt に係数を掛けます ([0,8] にクランプ、0.1 でスロー再生)。既存の pause/step とは直交する手動デバッグ用で、**play/e2e は timescale=1** — 決定性は固定 dt が担保し、timescale は golden に混ぜません。
+
+        ### ECS インスペクタのスケール
+
+        一覧は軽量サマリ (id + 名前 + アーキタイプのみ、値なし) を常時 emit し、詳細は `ecs.inspect` で選択した entity だけを全量 JSON にします (未選択かつ小規模なら従来の全量にフォールバック)。`ecs.filter` で名前/型のサーバ側フィルタ、`DebugName` component で敵/弾/的に表示名を付けられます。数百〜数千 entity でも一覧の DOM/転送が破綻しません。
+
+        ### ライブビューのモード — 滑らかさ と 正確さ
+
+        「動きを見る」経路と「ピクセルを見る」経路を分けています。**滑らかさ**優先はブラウザ版の `GET /ws/frame` (WebSocket push、frame rev が進むたび最新フレームを配信、latest-wins で遅い受信は中間フレームを間引く) と、in-process で最短経路の内蔵版。**正確さ**優先は `GET /frame` (生 RGBA ポーリング) と `?format=png` の単発取得。配信の書き手はリングバッファ (`FrameChannel`) を使い回すのでゲーム main スレッドは購読中でも割り当てゼロで、読み手 (HTTP スレッド + 内蔵版島スレッドの 2 系統) は seqlock で整合を検証しつつ自前バッファへコピーします。loopback の生 RGBA は帯域に余裕があるため GPU ハードウェアエンコードや MJPEG は使いません (検証用途では劣化のない生ピクセルを優先)。
+
         ## スレッド設計の規約
 
         signal は所有する島 (スレッド) のみが触り、スレッド間は Listener (volatile/lock 済) と EngineCommands (ConcurrentQueue) だけ — [ThreadStatic] やグローバル可変状態は使いません。テーマも UiHost 単位の signal 所有です (DevTools 島は自前テーマを持つ)。

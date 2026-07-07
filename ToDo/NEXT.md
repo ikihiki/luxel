@@ -30,7 +30,7 @@
 - [x] **Q02**: 12 メンテ: Docs stale + dx golden — golden を新フォント基準で整えた直後に片付ける
 - [x] **Q03**: 14 FixedUpdate + 描画補間 — ゲーム/物理の時間基盤。既存デモ (Knockdown) を移行済み。完了 = FixedUpdate フェーズ/蓄積器/Alpha + InterpolatedTransform + 単体テスト + Demos/Framework/DrawInterpolation + Docs/Framework 追記
 - [x] **Q04**: [19 capstone ①](19-standalone-game-shipping.md) **ステージ A: 骨組み + publish 早回し** — タイトル画面だけの LuxelCavern を作り publish チェックリスト 1〜4, 7, 8 を 1 周 (直すのは Luxel 本体側)。**MD はまだ削除しない** (2026-07-06 完了: samples/LuxelCavern 骨組み + shaders publish 修正。詳細は 19 MD 進捗節)
-- [ ] **Q05**: [21 DevTools ゲーム規模対応](21-devtools-game-scale.md) **ステージ ①: A (ECS スケール) + C (DevStats) + D (FixedUpdate/timescale) + E (WithDevTools) + F (fps 化) + DebugDraw コア** — B の機能別 gizmo (物理/カメラ/タイル) は対象機能の実装後 (Q12/Q14) に回す。**MD はまだ削除しない** (**A/C/D + DebugDraw コア 完了** (両 UI + 単体テスト 611 passed + Gizmos golden、e2e 54/54 diff 0)。**残り E/F/Docs は後段へ据え置き** (ユーザー判断 2026-07-06): E は Q13 と同時、F は実ゲーム稼働後 (60fps 測定に実ゲーム要)、Docs は E/F 完了後。詳細は 21 MD 進捗節。**MD はまだ削除しない**) (着手中: 2026-07-07 — 残り E+F+Docs を実装、ユーザー判断で全部やる)
+- [x] **Q05**: [21 DevTools ゲーム規模対応](21-devtools-game-scale.md) **ステージ ①: A (ECS スケール) + C (DevStats) + D (FixedUpdate/timescale) + E (WithDevTools) + F (fps 化) + DebugDraw コア** — 完了 (2026-07-07)。A/C/D + DebugDraw コア (2026-07-06) に加え、**E (WithDevTools 集約: 新 `Luxel.Framework.DevTools` + `IFramePublisher`、Cavern を移行) / F1 (FrameChannel リング, 書き手ゼロ割り当て + 二読者 seqlock) / F3 (WebSocket push, latest-wins, 実機 chrome 検証) / F2 (内蔵版プール化) / F4 (MJPEG 不採用) / Docs (Docs/DevTools に「ゲームを観測する」節)** を実装。単体テスト 805 passed、e2e 65/65 diff 0。**MD はまだ削除しない** — B の物理 gizmo (ステージ③ = Q14) 完了まで残す。詳細は 21 MD 進捗節。
 
 ### M2 — 2D ゲーム機能 (capstone ① の部品)
 
