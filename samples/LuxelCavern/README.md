@@ -91,6 +91,19 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
 座標 / パーティクル数)。同時に `DevStats` にも観測値を載せる (DevTools 未接続なら zero-cost で no-op、接続時は Web パネルへ配信)。
 gizmo カテゴリは `DebugDraw` のグローバル ON/OFF なので OFF 時は溜め込み・割り当てゼロ。
 
+### DevTools サーバ (ブラウザ観測)
+
+```powershell
+dotnet run --project samples/LuxelCavern/LuxelCavern -- vk --devtools        # 空きポート自動割当 (URL を stdout に出力)
+dotnet run --project samples/LuxelCavern/LuxelCavern -- vk --devtools 5007   # ポート固定
+```
+
+`--devtools` で Q05 の `DebugServer` (loopback HTTP) を起動し、起動時に URL を表示する。ブラウザで開くと DevTools UI が
+出て、ゲームの統計 (`DevStats` = fps / 状態 / HP など、`CavernDevOverlay.PublishStats` が毎フレーム更新) ・ランタイム
+メトリクス (GC / メモリ / スレッド) がライブ表示される。`CavernDevServer` はさらにゲームのフレームバッファを
+`Luxel.Frame` として配信するので、`GET /frame?format=png` で実画面の PNG を取得できる (`Color2D` は R が下位バイト =
+そのまま RGBA)。配信は購読者 (DevTools 接続) が居るときだけで、居なければ zero-cost。
+
 ### 動作要件
 
 - Windows x64 + **Vulkan または D3D12 対応 GPU ドライバ**。`vulkan-1.dll` は OS/ドライバ側 (同梱しない)。

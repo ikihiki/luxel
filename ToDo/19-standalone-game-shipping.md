@@ -170,7 +170,11 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
   - `CavernBindings` (Core, 純ロジック): `Apply` が設定のプライマリキー + 固定セカンダリ (矢印) を `Axis1DAction.ButtonPairs`/`ButtonAction.Keys` へ反映、`Rebind` がプライマリを差し替え。`IKeyCapture` (Core, `KeyCode? TakePressed()`) をリバインドの生キー取得口に。
   - exe: `KeyboardSource` が `IKeyCapture` を実装 (Down で `_lastPressed` 記録、TakePressed で取り出し)。`InputStack.Update` が bus を毎フレーム Clear するため OnUpdate では生イベントを読めない → 入力源側でキャプチャする方式。シーンは Init で `CavernBindings.Apply`、設定画面を 6 行化 (音量 3 + キーバインド 3)、キーバインド行で Enter → リバインド待ち (次の生キーを割当、Esc キャンセル)。
   - テスト `CavernBindingsTests` 4 本 (Apply がプライマリ+矢印 / Rebind がプライマリ差し替え・矢印は残る / 永続化→再読込 / Current・Label)。build 0 エラー、全 793 passed、exe スモーク exit 0、**e2e 65/65 diff 0**。README 更新。
-  - **残 (任意仕上げ)**: DevTools オーバーレイ/設定画面の golden ストーリー化 (視覚回帰) / DebugServer を exe から起動して Web パネル配信。**capstone のコア + checklist 全項目 + 設定 UI (音量 + キーバインド) 達成**。主要ギャップは完全に解消 — 残りは任意。判断で 19 MD を削除予定。
+- **ステージ B セッション 17 (2026-07-07, Q13)**: **DebugServer 起動 (ブラウザ DevTools 配信)** (ユーザー指示) — Q05 DevTools の最終合流。
+  - `CavernDevServer` (exe): `--devtools [port]` で `DevToolsListener` (エンジン診断を購読) + `DebugServer` (loopback HTTP、埋め込み DevTools UI) を起動、URL を stdout に表示。`CavernDevOverlay.PublishStats` の `DevStats` が `/custom` に、Framework の `DevStats.Flush` (Scene.cs) がフレーム毎に emit。さらにゲームのフレームバッファ (`_fb`、`Color2D` は R 下位バイト = RGBA) をパディング列を落として `DiagFrame` として配信 (~15fps、購読者が居るときだけ)。`EngineCommands` は host DI から取得。
+  - **ブラウザ実機検証 (Claude in Chrome)**: `--devtools 5007` で起動 → `http://127.0.0.1:5007/` を Chrome で開き DevTools UI 表示を確認。GAME(DEVSTATS) 行に fps/particles/state がライブ更新、FPS/フレーム時間グラフ・GC/メモリも表示。`GET /frame?format=png` が 960×540 RGBA PNG (実タイトル画面、色正常・埋め込みフォント描画) を返すことを確認。`/poll`/`/custom`/`/runtime` も curl で検証。
+  - build 0 エラー、全 793 passed、デフォルト (devtools OFF) スモーク exit 0。README に DevTools サーバ節。`CavernDevServer` は HTTP+GPU で単体テスト非対象 — ライブ実行 + ブラウザで検証。
+  - **残 (任意)**: DevTools オーバーレイ/設定画面の golden ストーリー化 (視覚回帰)。**capstone は完成 — コア + checklist 全項目 + 設定 UI (音量/キーバインド) + DevTools オーバーレイ + DebugServer 配信、すべて達成**。19 MD は締めて良い状態 (次の判断で削除)。
 
 ## 作業ステップ
 

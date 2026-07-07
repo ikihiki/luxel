@@ -21,16 +21,19 @@ using Microsoft.Extensions.Hosting;
 
 string backend = "vk";
 int frames = 0;
+bool devtools = false;
+int devPort = 0;   // 0 = 空きポート自動割当
 for (int i = 0; i < args.Length; i++)
 {
     string a = args[i].ToLowerInvariant();
     if (a is "vk" or "vulkan") backend = "vk";
     else if (a is "dx" or "d3d12") backend = "dx";
     else if (a == "--frames" && i + 1 < args.Length && int.TryParse(args[i + 1], out int n)) { frames = Math.Max(1, n); i++; }
+    else if (a == "--devtools") { devtools = true; if (i + 1 < args.Length && int.TryParse(args[i + 1], out int p)) { devPort = p; i++; } }
 }
 
 int exit = 1;
-var thread = new Thread(() => exit = Run(backend, frames)) { Name = "LuxelCavern-Main" };
+var thread = new Thread(() => exit = Run(backend, frames, devtools, devPort)) { Name = "LuxelCavern-Main" };
 thread.SetApartmentState(ApartmentState.STA);
 thread.Start();
 thread.Join();
@@ -49,7 +52,7 @@ static GpuDevice CreateDevice(string backend) => backend switch
     _ => new GpuDevice(Luxel.Vulkan.VulkanBackend.Create()),
 };
 
-static int Run(string backend, int frames)
+static int Run(string backend, int frames, bool devtools, int devPort)
 {
     try
     {
@@ -87,6 +90,13 @@ static int Run(string backend, int frames)
             .AddScene<CavernRealtimeScene>()
             .Build();
 
+        // DevTools サーバ (任意): ゲームの診断 (DevStats) + フレームをブラウザへ配信。
+        using CavernDevServer? devServer = devtools
+            ? new CavernDevServer(host.Services.GetRequiredService<Luxel.Diagnostics.EngineCommands>(), devPort)
+            : null;
+        if (devServer is not null)
+            Console.WriteLine($"DevTools: {devServer.Url} (ブラウザで開くとゲームの統計/画面を確認できます)");
+
         host.Start();   // GameLoop 開始 (最初のフレーム待ちで停止)
         var scene = host.Services.GetRequiredService<CavernRealtimeScene>();
 
@@ -97,7 +107,10 @@ static int Run(string backend, int frames)
             long t0 = sw.ElapsedMilliseconds;
             pacer.Tick();   // 1 フレーム分のゲームループを同期実行 (入力→固定更新→描画)
             if (scene.Framebuffer is { } fb)
+            {
                 surface.Present(fb, scene.StridePixels, (uint)w, (uint)h);
+                devServer?.EmitFrame(fb, (int)scene.StridePixels, w, h);   // ブラウザへ配信 (購読者が居るときだけ)
+            }
 
             if (scene.QuitRequested) { win.Close(); windows.Pump(); break; }        // タイトルの「おわる」
             if (frames > 0 && ++drawn >= frames) { win.Close(); windows.Pump(); break; }
