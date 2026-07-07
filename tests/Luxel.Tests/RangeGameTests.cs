@@ -47,6 +47,16 @@ public class RangeGameTests
     }
 
     [Fact]
+    public void SfxBank_SynthesizesAllCuesAndBgm()
+    {
+        var clips = RangeSfxBank.Build();
+        Assert.Equal(4, clips.Count);
+        foreach (RangeSfx cue in Enum.GetValues<RangeSfx>())
+            Assert.True(clips.ContainsKey(cue), $"cue {cue} が無い");
+        Assert.NotNull(RangeSfxBank.BuildBgm());   // BGM 合成 (device 不要)
+    }
+
+    [Fact]
     public void HighScore_PersistsAcrossGames()
     {
         var files = new InMemoryFileStore();

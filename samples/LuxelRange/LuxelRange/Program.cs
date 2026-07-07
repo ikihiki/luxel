@@ -63,6 +63,7 @@ static int Run(string backend, int frames)
         var pacer = new FramePacer();
         using IHost host = LuxelHostBuilder.Create()
             .UseGpuDevice(device)
+            .UseAudio()   // XAudio2 + AudioMixer (BGM/SE)。オーディオデバイス不在時は no-op。
             .UseFrameWaiter(pacer.WaitAsync)
             .ConfigureServices(s =>
             {

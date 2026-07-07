@@ -4,6 +4,7 @@ using Luxel;
 using Luxel.AssetRuntime;
 using Luxel.Assets;
 using Luxel.AssetsGpu;
+using Luxel.Audio;
 using Luxel.Ecs;
 using Luxel.Framework;
 using Luxel.Gltf;
@@ -34,6 +35,8 @@ public sealed class RangeRealtimeScene : GameScene
 
     private readonly RangeGame _game;
     private readonly SceneLoopServices _loop;
+    private readonly IAudioBackend _audioBackend;
+    private RangeAudio? _audio;
     private OrbitCamera _cam = new(new Vector3(0, 0.8f, -6f), yaw: 0f, pitch: 0.40f, distance: 18f,
         fovYRadians: MathF.PI / 3.4f, aspect: (float)Width / Height);
     private float _fireTimer = 0.4f;
@@ -69,7 +72,8 @@ public sealed class RangeRealtimeScene : GameScene
     public uint StridePixels => Width;
     public bool QuitRequested { get; private set; }
 
-    public RangeRealtimeScene(SceneLoopServices loop, RangeGame game) : base(loop) { _loop = loop; _game = game; }
+    public RangeRealtimeScene(SceneLoopServices loop, RangeGame game, IAudioBackend audioBackend) : base(loop)
+    { _loop = loop; _game = game; _audioBackend = audioBackend; }
 
     protected override double FixedDeltaSeconds => RangeSim.FixedDt;
 
@@ -88,6 +92,14 @@ public sealed class RangeRealtimeScene : GameScene
         var inputCtx = new InputContext("range");
         inputCtx.Add(_orbitH); inputCtx.Add(_orbitV); inputCtx.Add(_fire); inputCtx.Add(_quit);
         _loop.InputStack?.Push(inputCtx);
+
+        // オーディオ (BGM ループ + イベント SE)。Mixer は UseAudio が用意する共有インスタンス。
+        if (_loop.Mixer is { } mixer)
+        {
+            _audio = new RangeAudio(_audioBackend, mixer);
+            _audio.BindSettings(_game.Settings);
+            _audio.PlayBgm();
+        }
 
         _init = true;
     }
@@ -117,6 +129,7 @@ public sealed class RangeRealtimeScene : GameScene
         foreach (RangeEvent ev in _game.Sim.Events)
             if (ev.Kind is RangeEventKind.TargetHit or RangeEventKind.FoxHit)
                 _burstPs!.Emit(ev.Position, 32);
+        _audio?.React(_game.Sim.Events);   // 発射/命中/ボーナスの SE
         _game.Sim.ClearEvents();
         _burstPs!.Update(dt);
     }
@@ -278,6 +291,7 @@ public sealed class RangeRealtimeScene : GameScene
         _terrainVb?.Dispose(); _terrainIb?.Dispose(); _terrainInst?.Dispose();
         _foxAssets?.Dispose(); _foxJoints?.Dispose(); _foxInst?.Dispose(); _skinPipe?.Dispose();
         _hitBurst?.Dispose();
+        _audio?.Dispose();
         // RangeGame は DI singleton — 破棄は DI コンテナが行う (ここで Dispose すると二重破棄)。
         return Task.CompletedTask;
     }

@@ -188,7 +188,15 @@ samples/LuxelRange/
 - exe csproj に `Luxel.Particles` / `Luxel.Particles.ThreeD` 参照。`RangeRealtimeScene` に火花バーストを移植: `ParticleSystem` (固定シード) + `ParticleBillboards`、命中イベント (`TargetHit`/`FoxHit`) 位置で放出、毎ステップ `Update`、`OnRender` で `Sync` → RenderGraph パス内でカメラ向きビルボード描画 (4 番目の draw)。
 - **検証**: vk `--frames` スモーク exit 0。exe 描画が Gallery と一致 (起伏地形 + 的/小物 + 歩く Fox skin + 命中火花)。全 837 passed / e2e 71/71 diff 0。
 
-**残 (最終磨き)**: exe に Title/Result UI オーバーレイ (Rasterizer2D、スコア/ハイスコア/残弾) + BGM/SE 実音 (10、UseAudio + AudioMixer、RealWindowOnly)。Docs 配布節に 3D capstone を追記。**capstone ② の検証目標 (03/04/05/09/16 + 10/15/17) と出荷は達成済み・exe 描画も完了** — 残るは UI と音。これらを終えたら **20 MD 削除**。
+### 2026-07-07 (14): スライス 5-5 — exe BGM/SE 実音 (10)
+
+**済** (Cavern の Audio 層を踏襲):
+- `RangeSfxBank` (Core): SE (Fire/Hit/FoxHit/Bonus = エンベロープ付きサイン、cue ごとに周波数/グライド) + BGM (低音サインの整数周期ループ) を CPU 合成 (外部アセット不要)。
+- `RangeAudio` (Core): `AudioMixer` ワンショット SE + `AudioSource` BGM + `AudioBus` 階層 (Master→Music/Sfx)。`React(events)` が `RangeSfxDetector` でイベント→cue→ワンショット。`BindSettings` で音量バスに設定を反映。
+- exe: `.UseAudio()` + `RangeRealtimeScene` が `IAudioBackend` 注入・`_loop.Mixer` から `RangeAudio` 構築、`PlayBgm` + 毎固定更新 `React(_game.Sim.Events)`。
+- 単体テスト +1: SfxBank が全 cue + BGM を合成 (device 不要)。全 838 passed / e2e 71/71 diff 0。vk スモーク exit 0。実音は RealWindowOnly。**capstone ① の Audio 層が 2 ゲーム目でも通じることを確認 (10)**。
+
+**残 (最終・任意)**: exe に Title/Result UI オーバーレイ (Rasterizer2D、スコア/ハイスコア/残弾/レティクル)。**capstone ② の全検証目標 (03/04/05/09/16 + 10/15/17) + 出荷 + exe 描画/操作/音は達成** — 残るは on-screen UI (ゲーム性に必須でない表示)。Docs 配布節への追記込みで終えたら **20 MD 削除**。
 
 ## スコープ外
 
