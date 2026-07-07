@@ -55,7 +55,7 @@
 
 ### M5 — capstone ② 完成
 
-- [ ] **Q18**: [20 capstone ②: 3D 射的](20-game2-3d-shooting-range.md) — 完了したら **20 の MD を削除**
+- [ ] **Q18**: [20 capstone ②: 3D 射的](20-game2-3d-shooting-range.md) — 完了したら **20 の MD を削除** (着手中: 2026-07-07、大タスク・複数セッション)。**スライス 1 完了**: `samples/LuxelRange/LuxelRange.Core` の `RangeSim` (床 + 薄板ターゲット + CCD 弾 + ContactBegin スコア、残弾制、最初の発射まで物理停止) + `RangeSimTests` 4 + Gallery `Apps/Game/Range` (OrbitCamera 軌道 + クリック発射 + cube_forward、golden vk/dx 一致)。03/04/17 統合済み。全 826 passed、e2e 71/71 diff 0。**残**: 2=メッシュアリーナ(05)+ConvexHull小物 / 3=動く的(09 Fox)+トリガー(kill plane/ボーナス)+パーティクル(16)+SE / 4=Title/Result+ハイスコア/設定(15)+BGM(10) / 5=exe+publish 3D 検証。詳細は 20 MD 進捗節。
 
 ### M6 — エディタ/ツール系 (ゲーム完成後。順不同で良い)
 

@@ -46,6 +46,7 @@
     <ProjectReference Include="..\Luxel.Scripting.Framework\Luxel.Scripting.Framework.csproj" />
     <!-- capstone ① 「Luxel Cavern」のゲームロジックを Game/Cavern ストーリーでホスト (ToDo 19) -->
     <ProjectReference Include="..\..\samples\LuxelCavern\LuxelCavern.Core\LuxelCavern.Core.csproj" />
+    <ProjectReference Include="..\..\samples\LuxelRange\LuxelRange.Core\LuxelRange.Core.csproj" />
     <!-- 型 API リファレンス (Docs/Api*) の対象 — Gallery はドキュメントハブとして全域を参照する -->
     <ProjectReference Include="..\Luxel.Framework\Luxel.Framework.csproj" />
     <ProjectReference Include="..\Luxel.Scene.UI\Luxel.Scene.UI.csproj" />

@@ -62,6 +62,7 @@
     <ProjectReference Include="..\..\src\Luxel.Physics\Luxel.Physics.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Physics.Gizmos\Luxel.Physics.Gizmos.csproj" />
     <ProjectReference Include="..\..\samples\LuxelCavern\LuxelCavern.Core\LuxelCavern.Core.csproj" />
+    <ProjectReference Include="..\..\samples\LuxelRange\LuxelRange.Core\LuxelRange.Core.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Particles\Luxel.Particles.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Particles.TwoD\Luxel.Particles.TwoD.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Particles.ThreeD\Luxel.Particles.ThreeD.csproj" />

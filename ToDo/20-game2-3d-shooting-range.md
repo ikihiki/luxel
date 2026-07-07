@@ -85,6 +85,20 @@ samples/LuxelRange/
 - 命中イベントは「フレーム内で読み切り、持ち越さない」規約 ([04](04-physics-contact-events.md))。
 - STA/GPU 遅延生成/Phase 名前衝突は ① と同じ。
 
+## 進捗
+
+### 2026-07-07: スライス 1 — 縦切り (アリーナ + OrbitCamera + CCD 弾 + 薄板ターゲット + 命中スコア)
+
+03 (CCD) + 04 (接触イベント) + 17 (OrbitCamera) の統合を最初に通す縦切り。**済**:
+- 新プロジェクト `samples/LuxelRange/LuxelRange.Core` (純ロジック、net10.0、参照 = Luxel.Ecs + Luxel.Physics)。
+- `RangeSim`: 床 (静的箱) + 薄板ターゲット ×5 (厚さ 0.15m の静的箱、`RangeTarget{Score}`) を配置。`Fire(origin, dir)` = CCD 球弾 (半径 0.1m、初速 100m/s、`RangeBullet` マーカ)。`StepOnce()` = 固定 1/120 ステップ + `ProcessHits` (Step.ContactEvents の弾×的 Begin → スコア加算、Hit フラグで二重計上防止)。最初の発射まで物理停止 (`Started`) = 初期絵決定的。残弾制。
+- 単体テスト `RangeSimTests` 4 (命中で +100・二重計上なし / 空撃ち無得点 / 残弾枯渇で Fire 拒否 / 未発射は物理停止)。
+- Gallery ストーリー `Apps/Game/Range` (KnockdownStory 型: `RangeScene : GameScene, IStoryApp`、`OrbitCamera` でドラッグ軌道 + ホイールズーム、クリック→レイキャスト→Fire、ECS→Render3DExtract→cube_forward 描画)。golden = 初期静止アリーナ (床 + 薄板 5 枚)、vk/dx 一致。
+- 罠: `OnFixedUpdate` は `OnUpdate` (InitGpu で `_sim` 生成) より先に走る → `_sim is null` ガード必須。
+- 検証: 全 826 passed / e2e 71/71 diff 0・vk/dx 一致。
+
+**残 (後続スライス)**: 2 = メッシュアリーナ (05、起伏 + 外周壁) + 物理小物 (ConvexHull)。3 = 動く的 (09 Fox skin) + ボーナスゾーン/kill plane トリガー (04) + パーティクル (16) + SE。4 = Title/Result + ハイスコア/設定 (15) + BGM (10)。5 = exe プレイアブル化 + publish 3D 検証 (glTF/scene_pbr shaders)。**20 MD は全スライス完了まで残す**。
+
 ## スコープ外
 
 - morph のゲーム内使用 (09 のデモストーリーで検証)、2D パーティクルの 3D 空間内使用、深度フェード付きエフェクト (16 スコープ外)。

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    LuxelRange.Core — capstone ②「Luxel Range」(3D 射的) のゲームロジック (GPU/実窓に非依存の純ロジック)。
+    物理シミュレーション (アリーナ + 的 + 弾 + 命中判定) を置く。Gallery が本アセンブリを参照して
+    Apps/Game/Range ストーリーとして play/golden を維持し、将来 exe が実時間プレイアブル化する (ToDo 20)。
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Luxel.Ecs\Luxel.Ecs.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.Physics\Luxel.Physics.csproj" />
+  </ItemGroup>
+
+</Project>
