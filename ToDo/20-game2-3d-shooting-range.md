@@ -152,7 +152,15 @@ samples/LuxelRange/
 - `RangeScene`: `ParticleSystem` (火花 cfg、固定シード) + `ParticleBillboards`。命中イベント (`TargetHit`/`FoxHit`) の位置でバースト放出、毎ステップ `Update`、`OnRender` で `Sync` → RenderGraph パス内で `Draw` (カメラ向きビルボード、5 番目の描画、深度テスト + アルファブレンド)。
 - golden: 中央ターゲット位置にデモバーストを 1 発焼いて 15 step 進め、frozen golden で in-game パーティクル描画を確認。**歩く Fox + 火花バースト**が映る。vk/dx 一致。全 834 passed / e2e 71/71 diff 0。**16 (.ThreeD パーティクル) を capstone ゲーム内で検証達成**。
 
-**残 (後続スライス)**: 4 = Title/Result 状態機械 + ハイスコア/音量の永続化 (15、SettingsStore 再利用) + BGM/SE 実音配線 (10、exe/RealWindowOnly)。5 = exe プレイアブル化 (LuxelHostBuilder + GameScene) + publish 3D 検証 (glTF アセット/scene_pbr・billboard shaders が publish 出力に乗るか、リポジトリ外 vk/dx 起動)。**20 MD は全スライス完了まで残す**。
+### 2026-07-07 (9): スライス 4 — ゲームフロー (Title/Play/Result) + ハイスコア永続化 (15)
+
+**済** (純ロジック、Cavern の GameFlow + Settings を踏襲):
+- `RangeSettings(IFileStore)`: `SettingsStore` 上に HighScore (`Signal<int>`) + 音量 3 つ。AutoSave で即永続化。`SubmitScore` はハイスコア超えのみ更新。**capstone ① の SettingsStore が 2 ゲーム目でも通じることを確認 (15)**。
+- `RangeGame(IFileStore)`: `RangeState {Title, Play, Result}` の状態機械。`StartRound` (sim 作り直し = 決定的リセット) → Play、`Fire` は Play のみ、`Step` は弾切れ後 `SettleSeconds`(2s) で Result へ (スコア確定 + `SubmitScore`)。`BackToTitle`。
+- 単体テスト +3: Title→Play→hit→Result + ハイスコア更新 / 発射は Play のみ / ハイスコアが別ゲーム跨ぎで永続 (同じ InMemoryFileStore)。全 837 passed / e2e 71/71 diff 0 (Core のみ・golden 不変)。
+- **Title/Result の UI 描画 + BGM/SE 実音配線は exe/RealWindowOnly** — スライス 5 (exe) で。
+
+**残 (後続スライス)**: 5 = exe プレイアブル化 (LuxelHostBuilder + GameScene で RangeGame を実時間駆動、OrbitCamera 操作、Title/Result UI、BGM/SE 実音 [10]、%APPDATA% 永続化) + publish 3D 検証 (glTF アセット/scene_pbr・billboard shaders が publish 出力に乗るか、リポジトリ外 vk/dx 起動、Docs 配布節追記)。**20 MD は全スライス完了まで残す**。
 
 ## スコープ外
 

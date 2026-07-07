@@ -14,6 +14,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Luxel.Ecs\Luxel.Ecs.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Physics\Luxel.Physics.csproj" />
+    <!-- ハイスコア/音量の永続化 (SettingsStore + IFileStore、Signal は Luxel.UI から transitively)。 -->
+    <ProjectReference Include="..\..\..\src\Luxel.Settings\Luxel.Settings.csproj" />
   </ItemGroup>
 
 </Project>
