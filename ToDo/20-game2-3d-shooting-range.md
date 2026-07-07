@@ -174,7 +174,15 @@ samples/LuxelRange/
 - `RangeRealtimeScene`: 入力アクション (`Axis1DAction` orbitH/orbitV = 矢印、`ButtonAction` fire=Space/quit=Esc) を `InputContext` で `_loop.InputStack` に push。`OnFixedUpdate` で矢印カメラ旋回 (+ 無操作時の緩い自動旋回) + Space 押下エッジで画面中央へ CCD 弾発射 + Esc 終了。
 - **検証**: vk `--frames` スモーク exit 0 (入力配線後もループ健全)。
 
-**残 (最終スライス 5-3)**: exe に Fox skin/パーティクル描画 (Gallery RangeScene の描画共有/移植) + Title/Result UI オーバーレイ (Rasterizer2D、スコア/ハイスコア表示) + BGM/SE 実音 (10、UseAudio + AudioMixer)。Docs の「配布」節に 3D capstone を追記。**これで 20 の全スライス完了 → 20 MD 削除**。
+### 2026-07-07 (12): スライス 5-3 — exe に Fox skin 描画 + glTF publish 検証
+
+**済**:
+- exe csproj に `Luxel.Gltf` 参照 + **Fox.glb を assets/ へ Content 同梱** (Copy/PublishToOutput)。
+- `RangeRealtimeScene` に Gallery RangeScene の Fox skin 描画を移植: `BuildFox`/`PoseFox`/`UploadFox` (別 world で Fox.glb を `SceneBuilder`、歩行アニメ + `SkinningSystem`、instance World=Scale×Rot×Translate(FoxPosition) で配置)、`scene_pbr_skinned` の 3 番目 draw。ひるみ中は歩行停止。Fox.glb は `AppContext.BaseDirectory/assets/` からロード (cwd 非依存)。
+- **検証 (3D 出荷経路の総仕上げ)**: vk `--frames` スモーク exit 0。**publish (self-contained win-x64) に Fox.glb (glTF アセット) + scene_pbr_skinned 等の全 3D シェーダが同梱**され、**リポジトリ外 publish から起動して bundled Fox.glb を `AppContext.BaseDirectory` 基準で解決・描画、exit 0**。全 837 passed / e2e 71/71 diff 0。
+- exe 描画: 起伏地形 (scene_pbr_lite) + 的/小物 (cube_forward) + **歩く Fox (scene_pbr_skinned)**。
+
+**残 (任意の最終磨き)**: exe に命中パーティクル (Gallery で golden 検証済み・billboard shader は publish 済み) + Title/Result UI オーバーレイ (Rasterizer2D、スコア/ハイスコア) + BGM/SE 実音 (10、RealWindowOnly)。**capstone ② の検証目標 (03/04/05/09/16 + 10/15/17) と出荷 (publish/リポジトリ外起動 vk/dx) は達成済み** — 残りは exe の視覚/音の磨き。Docs 配布節への追記も含め、これらを終えたら **20 MD 削除**。
 
 ## スコープ外
 

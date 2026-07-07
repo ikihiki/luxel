@@ -2,8 +2,11 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Luxel;
 using Luxel.AssetRuntime;
+using Luxel.Assets;
+using Luxel.AssetsGpu;
 using Luxel.Ecs;
 using Luxel.Framework;
+using Luxel.Gltf;
 using Luxel.Input;
 using Luxel.RenderGraph;
 using LuxelRange.Core;
@@ -24,6 +27,8 @@ public sealed class RangeRealtimeScene : GameScene
     private struct DrawArgs { public Matrix4x4 ViewProj; public uint VertexBufIndex, InstanceBufIndex, Pad0, Pad1; }
     [StructLayout(LayoutKind.Sequential)]
     private struct PbrArgs { public Matrix4x4 ViewProj; public uint VertexBufIndex, IndexBufIndex, InstanceBufIndex, InstanceStart; }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SkinnedArgs { public Matrix4x4 ViewProj; public uint VertexBufIndex, IndexBufIndex, InstanceBufIndex, JointBufIndex, InstanceStart, Pad0, Pad1, Pad2; }
 
     private readonly RangeGame _game;
     private readonly SceneLoopServices _loop;
@@ -37,6 +42,17 @@ public sealed class RangeRealtimeScene : GameScene
     private GpuPipeline? _cubePipe, _pbrPipe;
     private Render3DExtractSystem? _extractor;
     private bool _init;
+
+    // 動く的 = Fox.glb の skin モデル (別 world、instance World で FoxPosition へ配置)
+    private Luxel.Ecs.World? _foxWorld;
+    private SceneAssets? _foxAssets;
+    private SceneAnimationPlayer? _foxAnim;
+    private float _foxAnimDur, _foxAnimTime;
+    private ScenePrimitiveGpu? _foxPrim;
+    private RenderBuffer<Matrix4x4>? _foxJoints;
+    private GpuBuffer? _foxInst;
+    private GpuPipeline? _skinPipe;
+    private const float FoxModelScale = 0.018f, FoxHalfY = 0.6f;
 
     // 入力アクション (矢印でカメラ旋回、Space 発射、Esc 終了)
     private Axis1DAction _orbitH = null!, _orbitV = null!;
@@ -90,6 +106,8 @@ public sealed class RangeRealtimeScene : GameScene
         }
 
         _game.Step();
+        if (!_game.Sim.FoxFlinching) _foxAnimTime += dt;   // ひるみ中は歩行停止
+        if (_foxPrim is not null) UploadFox();
         _game.Sim.ClearEvents();   // exe 段では演出/音を未配線なので毎ステップ消費
     }
 
@@ -105,9 +123,19 @@ public sealed class RangeRealtimeScene : GameScene
         BufferHandle hTV = rg.ImportBuffer(_terrainVb!, "tv");
         BufferHandle hTI = rg.ImportBuffer(_terrainIb!, "ti");
         BufferHandle hTInst = rg.ImportBuffer(_terrainInst!, "tinst");
-        rg.AddPass("Range3D", PassQueue.Graphics)
-          .Read(hV).Read(hInst).Read(hTV).Read(hTI).Read(hTInst).Write(hInst)
-          .Execute(p =>
+        var pass = rg.AddPass("Range3D", PassQueue.Graphics)
+          .Read(hV).Read(hInst).Read(hTV).Read(hTI).Read(hTInst).Write(hInst);
+        bool drawFox = _foxPrim is not null;
+        BufferHandle hFV = default, hFI = default, hFInst = default, hFJoint = default;
+        if (drawFox)
+        {
+            hFV = rg.ImportBuffer(_foxPrim!.VertexBuffer, "fv");
+            hFI = rg.ImportBuffer(_foxPrim.IndexBuffer, "fi");
+            hFInst = rg.ImportBuffer(_foxInst!, "finst");
+            hFJoint = rg.ImportBuffer(_foxJoints!.Buffer, "fj");
+            pass = pass.Read(hFV).Read(hFI).Read(hFInst).Read(hFJoint);
+        }
+        pass.Execute(p =>
           {
               p.Cmd.BeginRendering(_target!, _depth!, 0.05f, 0.06f, 0.09f, 1f, 1f)
                    .SetGraphicsPipeline(_pbrPipe!)
@@ -115,8 +143,12 @@ public sealed class RangeRealtimeScene : GameScene
                    .Draw((uint)_terrainIdxCount, 1);
               p.Cmd.SetGraphicsPipeline(_cubePipe!)
                    .SetRootArguments(new DrawArgs { ViewProj = vpT, VertexBufIndex = p.BindlessIndex(hV), InstanceBufIndex = p.BindlessIndex(hInst) })
-                   .Draw((uint)Luxel.Assets.CubeMesh.VertexCount, (uint)_extractor.InstanceCount)
-                   .EndRendering();
+                   .Draw((uint)Luxel.Assets.CubeMesh.VertexCount, (uint)_extractor.InstanceCount);
+              if (drawFox)
+                  p.Cmd.SetGraphicsPipeline(_skinPipe!)
+                       .SetRootArguments(new SkinnedArgs { ViewProj = vpT, VertexBufIndex = p.BindlessIndex(hFV), IndexBufIndex = p.BindlessIndex(hFI), InstanceBufIndex = p.BindlessIndex(hFInst), JointBufIndex = p.BindlessIndex(hFJoint), InstanceStart = 0 })
+                       .Draw((uint)_foxPrim!.IndexCount, 1);
+              p.Cmd.EndRendering();
           });
 
         using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
@@ -141,6 +173,62 @@ public sealed class RangeRealtimeScene : GameScene
         _extractor = new Render3DExtractSystem(_game.Sim.World, Device);
         TransformPropagateSystem.Run(_game.Sim.World);
         BuildTerrain();
+        BuildFox();
+    }
+
+    /// <summary>Fox.glb (exe 隣の assets/) を別 world で組み、skin 描画資源を用意して初期ポーズを焼く。</summary>
+    private void BuildFox()
+    {
+        string path = Path.Combine(AppContext.BaseDirectory, "assets", "Fox.glb");
+        if (!File.Exists(path)) return;   // アセット無しなら Fox 描画スキップ (物理 proxy は箱)
+
+        AssetDocument doc = new GltfLoader().LoadAsync(path).GetAwaiter().GetResult();
+        for (int i = 0; i < doc.Materials.Count; i++) doc.Materials[i].BaseColorFactor = new Vector4(0.80f, 0.52f, 0.28f, 1f);
+        _foxWorld = new Luxel.Ecs.World();
+        _foxAssets = SceneBuilder.Build(_foxWorld, doc, Device);
+        if (doc.Animations.Count > 0)
+        {
+            int walk = Math.Min(1, doc.Animations.Count - 1);
+            _foxAnim = new SceneAnimationPlayer(_foxWorld, _foxAssets, doc.Animations[walk]);
+            _foxAnimDur = MathF.Max(0.01f, doc.Animations[walk].Duration);
+        }
+        PoseFox(0f, out Matrix4x4[] jointMats);
+        if (_foxPrim is null) { _foxWorld = null; _foxAssets = null; return; }
+
+        var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
+        raster.DepthTest = true; raster.DepthWrite = true;
+        _foxJoints = new RenderBuffer<Matrix4x4>(Device, Math.Max(1, jointMats.Length), "foxJoints");
+        _foxInst = Device.Malloc((ulong)SceneInstanceData.Stride, GpuMemoryKind.HostMapped);
+        _skinPipe = Device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_skinned"), raster);
+        UploadFox();
+    }
+
+    private void PoseFox(float t, out Matrix4x4[] jointMats)
+    {
+        _foxAnim?.Sample(_foxAnimDur > 0 ? t % _foxAnimDur : 0f);
+        TransformPropagateSystem.Run(_foxWorld!);
+        SkinningSystem.Run(_foxWorld!, _foxAssets!);
+        Matrix4x4[] mats = Array.Empty<Matrix4x4>();
+        _foxWorld!.Query<AssetMeshRef, AssetSkinRef, JointMatrices>().ForEachEntity(
+            (ref AssetMeshRef mr, ref AssetSkinRef _, ref JointMatrices jm, Friflo.Engine.ECS.Entity _) =>
+            {
+                AssetPrimitive p = mr.Mesh.Primitives[0];
+                if (_foxAssets!.Primitives.TryGetValue(p, out ScenePrimitiveGpu gpu) && gpu.HasSkinning) { _foxPrim = gpu; mats = jm.Matrices; }
+            });
+        jointMats = mats;
+    }
+
+    private void UploadFox()
+    {
+        if (_foxPrim is null) return;
+        PoseFox(_foxAnimTime, out Matrix4x4[] mats);
+        for (int i = 0; i < mats.Length && i < _foxJoints!.Data.Length; i++) _foxJoints.Data[i] = mats[i];
+        _foxJoints!.MarkDirty();
+        _foxJoints.FlushImmediate();
+        Vector3 pos = _game.Sim.FoxPosition;
+        Matrix4x4 world = Matrix4x4.CreateScale(FoxModelScale) * Matrix4x4.CreateRotationY(MathF.PI / 2)
+                        * Matrix4x4.CreateTranslation(pos.X, pos.Y - FoxHalfY, pos.Z);
+        _foxInst!.Span<SceneInstanceData>(1)[0] = new SceneInstanceData { World = world, BaseColor = new Vector4(0.80f, 0.52f, 0.28f, 1f) };
     }
 
     private void BuildTerrain()
@@ -165,6 +253,7 @@ public sealed class RangeRealtimeScene : GameScene
         _depth?.Dispose(); _target?.Dispose();
         _vb?.Dispose(); _fb?.Dispose();
         _terrainVb?.Dispose(); _terrainIb?.Dispose(); _terrainInst?.Dispose();
+        _foxAssets?.Dispose(); _foxJoints?.Dispose(); _foxInst?.Dispose(); _skinPipe?.Dispose();
         // RangeGame は DI singleton — 破棄は DI コンテナが行う (ここで Dispose すると二重破棄)。
         return Task.CompletedTask;
     }

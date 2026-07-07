@@ -21,10 +21,22 @@
     <!-- 実時間ゲームループ (GameScene/LuxelHostBuilder) + 入力 -->
     <ProjectReference Include="..\..\..\src\Luxel.Framework\Luxel.Framework.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Input\Luxel.Input.csproj" />
-    <!-- 3D 描画 (ECS→Render3DExtract→cube_forward、地形メッシュ→scene_pbr_lite) -->
+    <!-- 3D 描画 (ECS→Render3DExtract→cube_forward、地形メッシュ→scene_pbr_lite、Fox skin→scene_pbr_skinned) -->
     <ProjectReference Include="..\..\..\src\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <!-- glTF ロード (動く的 = Fox.glb のスケルタルスキン) -->
+    <ProjectReference Include="..\..\..\src\Luxel.Gltf\Luxel.Gltf.csproj" />
     <!-- セーブの実 IO (PhysicalFileStore を %APPDATA% に向ける) -->
     <ProjectReference Include="..\..\..\src\Luxel.Settings\Luxel.Settings.csproj" />
+  </ItemGroup>
+
+  <!-- glTF アセット (Fox.glb, CC0) を exe 隣の assets/ へコピー + publish にも含める (cwd 非依存ロード)。
+       publish 出力に glTF が乗り AppContext.BaseDirectory 基準で解決されるかの検証も兼ねる (ToDo 20)。 -->
+  <ItemGroup>
+    <Content Include="..\..\..\tools\khronos-samples\Fox.glb">
+      <Link>assets\Fox.glb</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
   <!-- Slang シェーダを出力/publish の shaders/ へ。targets 側が publish コピーも面倒を見る。 -->
