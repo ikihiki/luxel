@@ -13,7 +13,6 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 | 06 | [06-codeeditor-completion-polish.md](06-codeeditor-completion-polish.md) | CodeEditor: 補完ポップアップの磨き込み (P2.5 残) | 小〜中 | 低 |
 | 07 | [07-codeeditor-multicursor.md](07-codeeditor-multicursor.md) | CodeEditor: マルチカーソル (E3.5) | 大 | **高** |
 | 08 | [08-strudel-music-features.md](08-strudel-music-features.md) | Strudel: 音楽機能拡張 (scale/chord・filter/delay・記法・MIDI) | 中 (分割可) | 低 |
-| 09 | [09-gltf-skin-morph.md](09-gltf-skin-morph.md) | glTF skin/morph アニメーション | 大 | 中 |
 | 11 | [11-scripting-debug-tools.md](11-scripting-debug-tools.md) | Scripting: DevTools Console タブ + リプレイ + 外部デバッガ | 中 (分割可) | 中 |
 | ~~19~~ | ✅ 完了 (2026-07-07) | capstone ①「Luxel Cavern」— `samples/LuxelCavern` として完成・MD 削除済み | — | — |
 | 20 | [20-game2-3d-shooting-range.md](20-game2-3d-shooting-range.md) | capstone ②: 3D 射的「Luxel Range」(03/04/05/09 の検証場) | 中〜大 | 中 |

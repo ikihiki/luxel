@@ -60,6 +60,64 @@ public class GltfTests
     }
 
     [Fact]
+    public async Task GltfLoader_ParsesMorphTargetsAndDefaultWeights()
+    {
+        // バッファを C# で組んで base64 埋め込み (positions 3×vec3 / delta 3×vec3 / indices 3×u16)
+        float[] positions = [0, 0, 0, 1, 0, 0, 0, 1, 0];
+        float[] deltas = [0, 0, 0, 0, 0, 0, 0, 0, 1];   // 頂点 2 を +Z へ
+        ushort[] indices = [0, 1, 2];
+        var bytes = new List<byte>();
+        foreach (float f in positions) bytes.AddRange(BitConverter.GetBytes(f));
+        foreach (float f in deltas) bytes.AddRange(BitConverter.GetBytes(f));
+        foreach (ushort u in indices) bytes.AddRange(BitConverter.GetBytes(u));
+        string b64 = Convert.ToBase64String(bytes.ToArray());
+
+        var json = $$"""
+        {
+          "asset": { "version": "2.0" },
+          "scene": 0,
+          "scenes": [{ "nodes": [0] }],
+          "nodes": [{ "mesh": 0 }],
+          "meshes": [{
+            "weights": [0.5],
+            "primitives": [{
+              "attributes": { "POSITION": 0 },
+              "indices": 2,
+              "targets": [{ "POSITION": 1 }]
+            }]
+          }],
+          "accessors": [
+            { "bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3" },
+            { "bufferView": 1, "componentType": 5126, "count": 3, "type": "VEC3" },
+            { "bufferView": 2, "componentType": 5123, "count": 3, "type": "SCALAR" }
+          ],
+          "bufferViews": [
+            { "buffer": 0, "byteOffset": 0,  "byteLength": 36 },
+            { "buffer": 0, "byteOffset": 36, "byteLength": 36 },
+            { "buffer": 0, "byteOffset": 72, "byteLength": 6 }
+          ],
+          "buffers": [{ "uri": "data:application/octet-stream;base64,{{b64}}", "byteLength": {{bytes.Count}} }]
+        }
+        """;
+        var tmp = Path.GetTempFileName() + ".gltf";
+        await File.WriteAllTextAsync(tmp, json);
+        try
+        {
+            var doc = await new GltfLoader().LoadAsync(tmp);
+            var prim = doc.Meshes[0].Primitives[0];
+            Assert.NotNull(prim.MorphTargets);
+            Assert.Single(prim.MorphTargets!);
+            var target = prim.MorphTargets![0];
+            Assert.NotNull(target.DeltaPositions);
+            Assert.Equal(new Vector3(0, 0, 1), target.DeltaPositions![2]);   // 頂点 2 のデルタ
+            // node.Weights は mesh.weights [0.5] からフォールバック
+            Assert.NotNull(doc.Nodes[0].Weights);
+            Assert.Equal(0.5f, doc.Nodes[0].Weights![0], 5);
+        }
+        finally { File.Delete(tmp); }
+    }
+
+    [Fact]
     public void GltfLoader_RegistersToAssetLoaders()
     {
         AssetLoaders.Clear();

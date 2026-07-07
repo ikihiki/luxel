@@ -123,6 +123,16 @@ public static class SceneBuilder
                 var firstMat = prims[0].Material;
                 if (firstMat is not null) entity.AddComponent(new AssetMaterialRef(firstMat));
 
+                // morph target があれば重み component を初期化 (node.Weights 既定、無ければ全 0)
+                int morphCount = prims[0].MorphTargets?.Count ?? 0;
+                if (morphCount > 0)
+                {
+                    var w = new float[morphCount];
+                    if (node.Weights is not null)
+                        for (int k = 0; k < morphCount && k < node.Weights.Length; k++) w[k] = node.Weights[k];
+                    entity.AddComponent(new MorphWeights(w));
+                }
+
                 // primitive 1..N-1 は child entity として展開
                 for (int p = 1; p < prims.Count; p++)
                 {
@@ -168,7 +178,7 @@ public static class SceneBuilder
             }
             var ibuf = device.Malloc((ulong)Math.Max(4, indices.Length * sizeof(uint)), GpuMemoryKind.HostMapped);
             if (indices.Length > 0) indices.AsSpan().CopyTo(ibuf.Span<uint>(indices.Length));
-            return new ScenePrimitiveGpu
+            var result = new ScenePrimitiveGpu
             {
                 VertexBuffer = vbuf,
                 IndexBuffer = ibuf,
@@ -178,6 +188,26 @@ public static class SceneBuilder
                 MaterialIndex = materialIndex,
                 HasSkinning = false,
             };
+            // morph target: デルタを [target][vertex] = t*n+v で GPU へ (位置 + 法線)
+            if (prim.MorphTargets is { Count: > 0 } targets)
+            {
+                int tc = targets.Count;
+                var mbuf = device.Malloc((ulong)(tc * n * MorphDelta.Stride), GpuMemoryKind.HostMapped);
+                var mspan = mbuf.Span<MorphDelta>(tc * n);
+                for (int t = 0; t < tc; t++)
+                {
+                    var mt = targets[t];
+                    for (int v = 0; v < n; v++)
+                        mspan[t * n + v] = new MorphDelta
+                        {
+                            DeltaPosition = (mt.DeltaPositions is not null && v < mt.DeltaPositions.Length) ? mt.DeltaPositions[v] : Vector3.Zero,
+                            DeltaNormal = (mt.DeltaNormals is not null && v < mt.DeltaNormals.Length) ? mt.DeltaNormals[v] : Vector3.Zero,
+                        };
+                }
+                result.MorphBuffer = mbuf;
+                result.MorphTargetCount = tc;
+            }
+            return result;
         }
         else
         {

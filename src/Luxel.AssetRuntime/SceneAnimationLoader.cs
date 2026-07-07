@@ -31,6 +31,8 @@ public sealed class SceneAnimationPlayer
         {
             if (ch.TargetNode is null) continue;
             if (!_assets.NodeEntities.TryGetValue(ch.TargetNode, out var entity)) continue;
+
+            if (ch.Path == AssetAnimationPath.Weights) { ApplyWeights(entity, ch.TargetNode, ch.Sampler, t); continue; }
             if (!entity.HasComponent<Luxel.Ecs.LocalTransform>()) continue;
 
             var lt = entity.GetComponent<Luxel.Ecs.LocalTransform>();
@@ -42,7 +44,6 @@ public sealed class SceneAnimationPlayer
                 case AssetAnimationPath.Translation: trans = SampleVec3(ch.Sampler, t); break;
                 case AssetAnimationPath.Rotation: rot = SampleQuat(ch.Sampler, t); break;
                 case AssetAnimationPath.Scale: scale = SampleVec3(ch.Sampler, t); break;
-                case AssetAnimationPath.Weights: continue; // morph target 未対応
             }
 
             var newMat = Matrix4x4.CreateScale(scale)
@@ -51,6 +52,30 @@ public sealed class SceneAnimationPlayer
             entity.RemoveComponent<Luxel.Ecs.LocalTransform>();
             entity.AddComponent(new Luxel.Ecs.LocalTransform(newMat));
         }
+    }
+
+    /// <summary>weights channel (morph 重み) を sample して <see cref="MorphWeights"/> component へ書く。
+    /// sampler の出力は flat float[] (keyCount × targetCount)。</summary>
+    private void ApplyWeights(Entity entity, AssetNode node, AssetAnimationSampler s, float t)
+    {
+        int tc = node.Mesh is { Primitives.Count: > 0 } m ? (m.Primitives[0].MorphTargets?.Count ?? 0) : 0;
+        if (tc == 0) return;
+        var vals = (float[])s.Values;
+        if (vals.Length == 0) return;
+
+        var (i, u) = FindSegment(s.Times, t);
+        int next = Math.Min(i + 1, s.Times.Length - 1);
+        bool lerp = u > 0 && s.Interpolation != AssetInterpolation.Step;
+        var w = new float[tc];
+        for (int k = 0; k < tc; k++)
+        {
+            float a = i * tc + k < vals.Length ? vals[i * tc + k] : 0f;
+            if (!lerp) { w[k] = a; continue; }
+            float b = next * tc + k < vals.Length ? vals[next * tc + k] : a;
+            w[k] = a + (b - a) * u;
+        }
+        if (entity.HasComponent<MorphWeights>()) entity.RemoveComponent<MorphWeights>();
+        entity.AddComponent(new MorphWeights(w));
     }
 
     private static (int idx, float u) FindSegment(float[] times, float t)

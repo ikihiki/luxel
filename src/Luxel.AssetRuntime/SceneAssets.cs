@@ -44,6 +44,15 @@ public sealed class SceneAssets : IDisposable
     }
 }
 
+/// <summary>morph target のデルタ (24B = 位置 12 + 法線 12)。buffer は [target][vertex] = t*VertexCount+v。</summary>
+[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]
+public struct MorphDelta
+{
+    public Vector3 DeltaPosition;
+    public Vector3 DeltaNormal;
+    public const int Stride = 24;
+}
+
 /// <summary>1 primitive ぶんの GPU state (vertex/index buffer + メタ情報)。</summary>
 public sealed class ScenePrimitiveGpu : IDisposable
 {
@@ -54,11 +63,16 @@ public sealed class ScenePrimitiveGpu : IDisposable
     public int VertexStride;
     public int MaterialIndex = -1;
     public bool HasSkinning;
+    /// <summary>morph デルタバッファ (<see cref="MorphDelta"/>[targetCount × vertexCount])。無ければ null。</summary>
+    public GpuBuffer? MorphBuffer;
+    /// <summary>morph target 数 (0 = morph なし)。</summary>
+    public int MorphTargetCount;
 
     public void Dispose()
     {
         VertexBuffer?.Dispose();
         IndexBuffer?.Dispose();
+        MorphBuffer?.Dispose();
     }
 }
 

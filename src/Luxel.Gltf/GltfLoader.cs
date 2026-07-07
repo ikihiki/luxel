@@ -149,10 +149,12 @@ public sealed class GltfLoader : IAssetLoader
 
         // Meshes + Primitives (Material の resolve は pass 2)
         var primitiveMaterialIndex = new List<(AssetPrimitive Prim, int MaterialIndex)>();
+        var meshDefaultWeights = new List<float[]?>();   // mesh.weights (morph 既定重み、node へフォールバック)
         if (json.meshes is not null)
         {
             foreach (var m in json.meshes)
             {
+                meshDefaultWeights.Add(m.weights);
                 var mesh = new AssetMesh { Name = m.name ?? "" };
                 if (m.primitives is not null)
                 {
@@ -184,6 +186,20 @@ public sealed class GltfLoader : IAssetLoader
                             prim.Indices = new uint[attr.Positions.Length];
                             for (uint i = 0; i < prim.Indices.Length; i++) prim.Indices[i] = i;
                         }
+                        // morph target (POSITION/NORMAL のデルタ)
+                        if (p.targets is not null)
+                        {
+                            prim.MorphTargets = new List<AssetMorphTarget>();
+                            foreach (var tgt in p.targets)
+                            {
+                                var mt = new AssetMorphTarget();
+                                if (tgt.TryGetValue("POSITION", out var dpAcc))
+                                    mt.DeltaPositions = ReadVec3Accessor(json, buffers, dpAcc);
+                                if (tgt.TryGetValue("NORMAL", out var dnAcc))
+                                    mt.DeltaNormals = ReadVec3Accessor(json, buffers, dnAcc);
+                                prim.MorphTargets.Add(mt);
+                            }
+                        }
                         mesh.Primitives.Add(prim);
                         primitiveMaterialIndex.Add((prim, p.material ?? -1));
                     }
@@ -211,6 +227,7 @@ public sealed class GltfLoader : IAssetLoader
                     if (n.rotation is { Length: >= 4 } r) node.Rotation = new Quaternion(r[0], r[1], r[2], r[3]);
                     if (n.scale is { Length: >= 3 } s) node.Scale = new Vector3(s[0], s[1], s[2]);
                 }
+                if (n.weights is not null) node.Weights = n.weights;   // node が明示した morph 重み (mesh 既定を上書き)
                 doc.Nodes.Add(node);
             }
         }
@@ -321,7 +338,14 @@ public sealed class GltfLoader : IAssetLoader
             {
                 var jsn = json.nodes[i];
                 var node = doc.Nodes[i];
-                if (jsn.mesh is int mi && mi >= 0 && mi < doc.Meshes.Count) node.Mesh = doc.Meshes[mi];
+                if (jsn.mesh is int mi && mi >= 0 && mi < doc.Meshes.Count)
+                {
+                    node.Mesh = doc.Meshes[mi];
+                    // morph 重みの既定: node.weights (pass1 済) → mesh.weights → 全 0 (target 数ぶん)
+                    int targetCount = node.Mesh.Primitives.Count > 0 ? (node.Mesh.Primitives[0].MorphTargets?.Count ?? 0) : 0;
+                    if (targetCount > 0)
+                        node.Weights ??= (mi < meshDefaultWeights.Count ? meshDefaultWeights[mi] : null) ?? new float[targetCount];
+                }
                 if (jsn.skin is int si && si >= 0 && si < doc.Skins.Count) node.Skin = doc.Skins[si];
                 if (jsn.children is int[] ch)
                     foreach (var c in ch)

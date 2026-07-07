@@ -46,3 +46,11 @@ public struct JointMatrices : IComponent
     public Matrix4x4[] Matrices;
     public JointMatrices(Matrix4x4[] m) { Matrices = m; }
 }
+
+/// <summary>morph target 重み (per-entity)。<see cref="SceneAnimationPlayer"/> が weights channel から更新、
+/// morph シェーダが bindless で参照。既定は node.Weights (無ければ全 0)。</summary>
+public struct MorphWeights : IComponent
+{
+    public float[] Weights;
+    public MorphWeights(float[] w) { Weights = w; }
+}

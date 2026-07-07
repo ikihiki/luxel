@@ -35,11 +35,13 @@ internal sealed class GltfNodeDef
     public float[]? rotation { get; set; }
     public float[]? scale { get; set; }
     public float[]? matrix { get; set; }
+    public float[]? weights { get; set; }   // morph target 重み (mesh.weights を上書き)
 }
 internal sealed class GltfMeshDef
 {
     public string? name { get; set; }
     public GltfPrimitiveDef[]? primitives { get; set; }
+    public float[]? weights { get; set; }   // morph target の既定重み
 }
 internal sealed class GltfPrimitiveDef
 {
@@ -47,6 +49,7 @@ internal sealed class GltfPrimitiveDef
     public int? indices { get; set; }
     public int? material { get; set; }
     public int? mode { get; set; }  // 4=Triangles default
+    public Dictionary<string, int>[]? targets { get; set; }   // morph target (POSITION/NORMAL のデルタ accessor)
 }
 internal sealed class GltfMaterialDef
 {
