@@ -81,7 +81,9 @@ public static class CavernStories
                         px[i + 3] = 255;
                     }
 
-            CavernSim sim = CavernLevel.CreateSim();
+            using var levels = new CavernLevelLoader();   // レベルは ResourceSystem 経由で読む (埋め込み .tmj)
+            CavernSim sim = levels.CreateSim();
+            Vector2[] torches = levels.Torches;
             sim.Map.TileSet.Atlas.Bind(_atlasBuf.BindlessIndex, aw, ah);
             if (_ai is not null && sim.Enemies.Count > 0) sim.Enemies[0].Ai = _ai;   // .csx 製の敵 AI
 
@@ -100,7 +102,7 @@ public static class CavernStories
             for (int f = 0; f < Steps; f++)
             {
                 sim.Step(1f / 60, f >= 12 ? 1f : 0f, jumpPressed: false);
-                foreach (Vector2 t in CavernLevel.Torches) fx.Emit(new Vector3(t, 0), 2, torchTint);
+                foreach (Vector2 t in torches) fx.Emit(new Vector3(t, 0), 2, torchTint);
                 if (sim.LandedThisStep)
                     fx.Emit(new Vector3(sim.PlayerPos.X + sim.PlayerSize.X * 0.5f, sim.PlayerPos.Y + sim.PlayerSize.Y, 0), 8, dustTint);
                 foreach (Vector2 c in sim.PickupsThisStep) fx.Emit(new Vector3(c, 0), 10, coinTint);

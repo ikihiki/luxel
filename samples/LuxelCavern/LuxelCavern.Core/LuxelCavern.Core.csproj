@@ -22,6 +22,8 @@
     <ProjectReference Include="..\..\..\src\Luxel.Settings\Luxel.Settings.csproj" />
     <!-- ゲームオーディオ (BGM/SE)。実バックエンド (XAudio2) は exe が UseAudio で注入、テストは Null。 -->
     <ProjectReference Include="..\..\..\src\Luxel.Audio\Luxel.Audio.csproj" />
+    <!-- レベル (.tmj) の読み込みを ResourceSystem 経由で管理する (キャッシュ/型付きノード/リロード)。 -->
+    <ProjectReference Include="..\..\..\src\Luxel.Resources\Luxel.Resources.csproj" />
   </ItemGroup>
 
   <!-- Tiled (.tmj) レベルを Core.dll へ埋め込む (exe/Gallery/テストが同じレベルを持つ・publish 追加コピー不要)。 -->

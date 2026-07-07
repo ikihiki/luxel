@@ -7,22 +7,27 @@ namespace LuxelCavern.Core;
 /// </summary>
 public sealed class GameFlow
 {
+    private readonly CavernLevelLoader _loader;
+
     public GameState State { get; private set; } = GameState.Title;
     public CavernSim? Sim { get; private set; }
     /// <summary>セーブがあるか (タイトルの「つづきから」表示の判定)。</summary>
     public bool HasSave { get; set; }
 
+    /// <param name="loader">レベルを ResourceSystem 経由で読む <see cref="CavernLevelLoader"/>。</param>
+    public GameFlow(CavernLevelLoader loader) => _loader = loader;
+
     /// <summary>新規開始 (最初から)。</summary>
     public void StartNew()
     {
-        Sim = CavernLevel.CreateSim();
+        Sim = _loader.CreateSim();
         State = GameState.Playing;
     }
 
     /// <summary>セーブから再開 (つづきから)。</summary>
     public void Continue(CavernSave save)
     {
-        CavernSim sim = CavernLevel.CreateSim();
+        CavernSim sim = _loader.CreateSim();
         sim.ApplySave(save);
         Sim = sim;
         State = GameState.Playing;

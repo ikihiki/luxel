@@ -1,32 +1,18 @@
 using System.Numerics;
-using System.Reflection;
 using System.Text.Json;
 using Luxel.TwoD;
 
 namespace LuxelCavern.Core;
 
 /// <summary>
-/// Tiled (.tmj) レベルの読み込み。タイル層は <see cref="TileMap.FromTiledJson"/> に委譲 (Q07 のドッグフード)、
+/// Tiled (.tmj) JSON のパース (純ロジック)。タイル層は <see cref="TileMap.FromTiledJson"/> に委譲 (Q07 のドッグフード)、
 /// オブジェクト層 (<c>objectgroup</c>) は本ゲーム固有のエンティティ (coin/key/door/walker/flyer/checkpoint/torch)
-/// として <see cref="CavernSim"/> に流し込む。レベルは Core.dll に埋め込み (<c>levels/cavern1.tmj</c>) — exe/Gallery/
-/// テストが同一レベルを持ち、publish の追加コピーも不要。gid = <see cref="TileSet"/> の id に一致させてある。
+/// として <see cref="CavernSim"/> に流し込む。**JSON の取得は <see cref="CavernLevelLoader"/> が
+/// <see cref="Luxel.Resources.ResourceSystem"/> 経由で行う** — ここは受け取った文字列を解釈するだけ。
+/// gid = <see cref="TileSet"/> の id に一致させてある。
 /// </summary>
 public static class CavernTiled
 {
-    /// <summary>埋め込みレベルのファイル名 (リソース名の末尾一致で探す)。</summary>
-    public const string LevelResource = "cavern1.tmj";
-
-    /// <summary>埋め込みレベル JSON を読み出す。</summary>
-    public static string LoadEmbeddedJson(string name = LevelResource)
-    {
-        Assembly asm = typeof(CavernTiled).Assembly;
-        string res = asm.GetManifestResourceNames().FirstOrDefault(n => n.EndsWith(name, StringComparison.Ordinal))
-            ?? throw new FileNotFoundException($"埋め込みレベルが見つかりません: {name}");
-        using Stream s = asm.GetManifestResourceStream(res)!;
-        using var r = new StreamReader(s);
-        return r.ReadToEnd();
-    }
-
     /// <summary>.tmj のタイル層だけからマップを組む (エンティティ抜き。物理テスト等が使う)。</summary>
     public static TileMap BuildMap(TileSet ts, string json) => TileMap.FromTiledJson(ts, json);
 

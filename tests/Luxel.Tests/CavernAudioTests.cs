@@ -30,7 +30,7 @@ public class CavernAudioTests
     public void React_OnCoin_FiresOneShot()
     {
         var (audio, mixer, _) = Make();
-        var sim = CavernLevel.CreateSim();
+        var sim = CavernTestLevel.CreateSim();
         audio.ResetForNewGame();
         audio.React(sim);        // baseline (無音)
         Assert.Equal(0, mixer.ActiveVoiceCount);

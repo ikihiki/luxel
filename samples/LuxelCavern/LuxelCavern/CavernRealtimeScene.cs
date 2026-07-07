@@ -39,7 +39,8 @@ public sealed class CavernRealtimeScene : GameScene
     private int _paddedW;
     private bool _init;
 
-    private readonly GameFlow _flow = new();
+    private CavernLevelLoader _levels = null!;
+    private GameFlow _flow = null!;
     private readonly CameraRig2D _rig = new();
     private ParticleSystem _fx = null!;
 
@@ -68,6 +69,10 @@ public sealed class CavernRealtimeScene : GameScene
 
     private void Init()
     {
+        // レベルは ResourceSystem 経由で読む (埋め込み .tmj)。GameFlow がこのローダで sim を作る。
+        _levels = new CavernLevelLoader();
+        _flow = new GameFlow(_levels);
+
         _paddedW = Align(Width, 64);
         _raster = new Rasterizer2D(Device);
         _fb = Device.Malloc((ulong)(_paddedW * Height * 4), GpuMemoryKind.HostMapped);
@@ -250,7 +255,7 @@ public sealed class CavernRealtimeScene : GameScene
             foreach (Vector2 c in sim.PickupsThisStep) _fx.Emit(new Vector3(c, 0), 10, CoinTint);
             foreach (Vector2 d in sim.DefeatsThisStep) _fx.Emit(new Vector3(d, 0), 14, DefeatTint);
         }
-        foreach (Vector2 t in CavernLevel.Torches) _fx.Emit(new Vector3(t, 0), 1, TorchTint);
+        foreach (Vector2 t in _levels.Torches) _fx.Emit(new Vector3(t, 0), 1, TorchTint);
         _fx.Update(dt);
     }
 
@@ -397,6 +402,7 @@ public sealed class CavernRealtimeScene : GameScene
     public override Task OnUnloadAsync()
     {
         _audio?.Dispose();
+        _levels?.Dispose();
         _fb?.Dispose();
         _atlas?.Dispose();
         _raster?.Dispose();

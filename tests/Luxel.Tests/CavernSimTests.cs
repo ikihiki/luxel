@@ -18,7 +18,7 @@ public class CavernSimTests
     {
         SpriteAtlas atlas = CavernLevel.BuildAtlas();
         TileSet ts = CavernLevel.BuildTileSet(atlas);
-        TileMap map = CavernLevel.Build(ts);
+        TileMap map = CavernTestLevel.BuildMap(ts);
         return new CavernSim(map, spawn ?? CavernLevel.Spawn, new Vector2(12, 22));
     }
 
@@ -183,7 +183,7 @@ public class CavernSimTests
     [Fact]
     public void CreateSim_PopulatesEntities()
     {
-        CavernSim sim = CavernLevel.CreateSim();
+        CavernSim sim = CavernTestLevel.CreateSim();
         Assert.Equal(3, sim.Pickups.Count(p => p.IsKey));
         Assert.Contains(sim.Pickups, p => !p.IsKey);   // コインもある
         Assert.NotEmpty(sim.Enemies);
@@ -268,7 +268,7 @@ public class CavernSimTests
     [Fact]
     public void SaveLoad_RestoresProgress()
     {
-        var sim = CavernLevel.CreateSim();
+        var sim = CavernTestLevel.CreateSim();
         sim.Coins = 4;
         sim.Keys = 3;
         sim.Hp = 2;
@@ -280,7 +280,7 @@ public class CavernSimTests
         string json = sim.Export().ToJson();
         CavernSave loaded = CavernSave.FromJson(json);
 
-        var fresh = CavernLevel.CreateSim();
+        var fresh = CavernTestLevel.CreateSim();
         fresh.ApplySave(loaded);
 
         Assert.Equal(4, fresh.Coins);

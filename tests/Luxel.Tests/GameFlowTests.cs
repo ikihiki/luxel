@@ -14,7 +14,7 @@ public class GameFlowTests
     [Fact]
     public void StartNew_EntersPlaying()
     {
-        var flow = new GameFlow();
+        var flow = CavernTestLevel.NewFlow();
         flow.StartNew();
         Assert.Equal(GameState.Playing, flow.State);
         Assert.NotNull(flow.Sim);
@@ -23,7 +23,7 @@ public class GameFlowTests
     [Fact]
     public void TogglePause_PlayingToPausedToPlaying()
     {
-        var flow = new GameFlow();
+        var flow = CavernTestLevel.NewFlow();
         flow.StartNew();
         flow.TogglePause();
         Assert.Equal(GameState.Paused, flow.State);
@@ -34,7 +34,7 @@ public class GameFlowTests
     [Fact]
     public void Step_WhilePaused_DoesNotAdvance()
     {
-        var flow = new GameFlow();
+        var flow = CavernTestLevel.NewFlow();
         flow.StartNew();
         flow.TogglePause();
         Vector2 before = flow.Sim!.PlayerPos;
@@ -45,7 +45,7 @@ public class GameFlowTests
     [Fact]
     public void Step_OnDeath_GoesGameOver()
     {
-        var flow = new GameFlow();
+        var flow = CavernTestLevel.NewFlow();
         flow.StartNew();
         flow.Sim!.PlayerPos = new Vector2(100, flow.Sim.KillY + 10);   // マップ下へ落下
         flow.Step(Dt, 0f, false);
@@ -55,7 +55,7 @@ public class GameFlowTests
     [Fact]
     public void Step_OnClear_GoesClear()
     {
-        var flow = new GameFlow();
+        var flow = CavernTestLevel.NewFlow();
         flow.StartNew();
         flow.Sim!.Keys = 3;
         // ApplySave 経由で「鍵3 → 開扉 + 位置=扉」を作る (DoorOpen は内部設定なので)
@@ -70,10 +70,10 @@ public class GameFlowTests
     [Fact]
     public void Continue_RestoresProgressAndPlays()
     {
-        var src = CavernLevel.CreateSim();
+        var src = CavernTestLevel.CreateSim();
         src.Coins = 5;
         src.Keys = 1;
-        var flow = new GameFlow();
+        var flow = CavernTestLevel.NewFlow();
         flow.Continue(src.Export());
         Assert.Equal(GameState.Playing, flow.State);
         Assert.Equal(5, flow.Sim!.Coins);

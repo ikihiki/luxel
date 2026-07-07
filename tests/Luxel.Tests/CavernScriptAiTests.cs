@@ -14,7 +14,7 @@ public class CavernScriptAiTests
     [Fact]
     public void AiHook_OverridesDefaultPatrol()
     {
-        CavernSim sim = CavernLevel.CreateSim();
+        CavernSim sim = CavernTestLevel.CreateSim();
         Walker w = sim.Enemies[0];
         w.Ai = (self, s, dt) => self.Pos.X += 100f * dt;   // ひたすら右へ
         float x0 = w.Pos.X;
@@ -42,7 +42,7 @@ public class CavernScriptAiTests
         Assert.True(r.Success, string.Join(" | ", r.Diagnostics.Select(d => d.Message)));
         var ai = Assert.IsAssignableFrom<Action<Walker, CavernSim, float>>(r.ReturnValue);
 
-        CavernSim sim = CavernLevel.CreateSim();
+        CavernSim sim = CavernTestLevel.CreateSim();
         Walker w = sim.Enemies[0];
         w.Ai = ai;
         sim.PlayerPos = new Vector2(w.Pos.X + 120, sim.PlayerPos.Y);   // プレイヤーは敵の右

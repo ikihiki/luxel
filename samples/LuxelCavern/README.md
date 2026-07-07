@@ -61,9 +61,13 @@ publish フォルダをリポジトリ外の任意パスへコピーして起動
 ### レベル (Tiled)
 
 ステージは **Tiled (.tmj = JSON)** で外部化し、`LuxelCavern.Core/levels/cavern1.tmj` を Core.dll に埋め込む
-(exe/Gallery/テストが同一レベルを持ち、publish の追加コピー不要)。タイル層は `TileMap.FromTiledJson`、
-オブジェクト層 (`objectgroup`) は `CavernTiled` が本ゲーム固有のエンティティ (coin/key/door/walker/flyer/
-checkpoint/torch) として `CavernSim` に流し込む。Tiled で編集すればレベルを差し替えられる。
+(exe/Gallery/テストが同一レベルを持ち、publish の追加コピー不要)。
+
+読み込みは **`ResourceSystem` 経由で管理**する: `CavernLevelLoader` が `res://levels/cavern1.tmj` を
+`EmbeddedResourceSource` (スキーム `res://` の `IResourceSource`) 越しに `byte[]` ノードとしてロードし、
+キャッシュ/型付きノード/(将来の) リロードをリソースシステムに任せる。パースは `CavernTiled` (純ロジック) —
+タイル層は `TileMap.FromTiledJson`、オブジェクト層 (`objectgroup`) は本ゲーム固有のエンティティ
+(coin/key/door/walker/flyer/checkpoint/torch) として `CavernSim` に流し込む。Tiled で編集すればレベルを差し替えられる。
 
 ### 動作要件
 

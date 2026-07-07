@@ -152,7 +152,12 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
   - レベル配置 (タイル + エンティティ) を **Tiled JSON** に外部化し `LuxelCavern.Core/levels/cavern1.tmj` を **Core.dll に埋め込み** (exe/Gallery/テストが同一レベル、publish 追加コピー不要)。既存 `Build()` のタイル規則から .tmj を生成 (bit 同一を保証)。
   - `CavernTiled` (Core): タイル層は `TileMap.FromTiledJson` に委譲、オブジェクト層 (`objectgroup`) を本ゲーム固有エンティティ (coin/key/door/walker/flyer/checkpoint/torch、位置 + カスタムプロパティ velX/minX/maxX/ampX/ampY/freq) として `CavernSim` に流し込む。`CavernLevel.Build`/`CreateSim`/`Torches` を .tmj 読み込みへ切替 (タイルの単一ソース化)。
   - 単体テスト `CavernTiledTests` 5 本 (埋め込み解決 / タイル寸法・代表タイル / エンティティ数・種別 / 位置・プロパティ / 欠損リソースで例外)。build 0 エラー、全 783 passed、exe スモーク exit 0、**e2e 65/65 diff 0 (= .tmj ロードのレベルが旧コード生成と bit 同一)**。README にレベル節。
-  - **残 (次セッション以降)**: WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / キーバインド再割当 (任意、UI 複雑) / single-file の Content-loose 対応 (任意)。**capstone のコア (プレイアブル + 配布 + フロー + セーブ + 音 + 設定 + Tiled レベル) は達成** — 残りは DevTools 合流と任意仕上げ。全て済んだら 19 MD を削除。
+- **ステージ B セッション 13 (2026-07-07, Q13)**: **レベル読み込みを ResourceSystem 経由に** (ユーザー指示) — Luxel.Resources のドッグフード。
+  - `EmbeddedResourceSource` (Core, `IResourceSource`, スキーム `res://`): アセンブリ埋め込みリソースをリソース名の末尾一致で読む。ファイル VFS と衝突しない独自スキームなのでホストの共有 RS にも相乗り可。
+  - `CavernLevelLoader` (Core, インスタンス・static 無し): `res://levels/cavern1.tmj` を `ResourceSystem` 経由で `byte[]` ノードとしてロード (ハンドル保持でキャッシュ)、`CavernTiled` でパース。既定は自前 RS を所有、共有 RS を渡せば `AddSource` で相乗り。`CavernTiled.LoadEmbeddedJson` (直接 `Assembly.GetManifestResourceStream`) は廃し、`CavernTiled` は純パースに。
+  - `CavernLevel.CreateSim`/`Torches`/`Build` の static を廃し、`GameFlow` は `CavernLevelLoader` を受け取る。シーンは Init でローダ生成→`GameFlow(loader)`、`_levels.Torches`、Unload で Dispose。Gallery ストーリー/テストもローダ経由 (`CavernTestLevel` ヘルパ)。
+  - テスト: `CavernTiledTests` を RS 経由に更新 (`ResourceSystem_LoadsLevelJson` / 欠損リソースが RS 経由でエラー伝播)。build 0 エラー、全 783 passed、exe スモーク exit 0、**e2e 65/65 diff 0** (RS 経由でも同一描画)。README 更新。
+  - **残 (次セッション以降)**: WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / キーバインド再割当 (任意、UI 複雑) / single-file の Content-loose 対応 (任意)。**capstone のコア (プレイアブル + 配布 + フロー + セーブ + 音 + 設定 + Tiled/リソース管理レベル) は達成** — 残りは DevTools 合流と任意仕上げ。全て済んだら 19 MD を削除。
 
 ## 作業ステップ
 

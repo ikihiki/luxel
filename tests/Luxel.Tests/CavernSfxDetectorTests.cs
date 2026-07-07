@@ -18,7 +18,7 @@ public class CavernSfxDetectorTests
     [Fact]
     public void FirstDetect_IsSilent_Baseline()
     {
-        var sim = CavernLevel.CreateSim();
+        var sim = CavernTestLevel.CreateSim();
         sim.Coins = 3;   // 既に貯まっていても初回は鳴らさない
         var d = new CavernSfxDetector();
         Assert.Empty(Detect(d, sim));
@@ -27,7 +27,7 @@ public class CavernSfxDetectorTests
     [Fact]
     public void CoinIncrement_EmitsCoin()
     {
-        var sim = CavernLevel.CreateSim();
+        var sim = CavernTestLevel.CreateSim();
         var d = new CavernSfxDetector();
         Detect(d, sim);                 // baseline
         sim.Coins++;
@@ -37,7 +37,7 @@ public class CavernSfxDetectorTests
     [Fact]
     public void MultipleCoinsInOneStep_EmitsOnePerCoin()
     {
-        var sim = CavernLevel.CreateSim();
+        var sim = CavernTestLevel.CreateSim();
         var d = new CavernSfxDetector();
         Detect(d, sim);
         sim.Coins += 3;
@@ -47,7 +47,7 @@ public class CavernSfxDetectorTests
     [Fact]
     public void KeyIncrement_EmitsKey()
     {
-        var sim = CavernLevel.CreateSim();
+        var sim = CavernTestLevel.CreateSim();
         var d = new CavernSfxDetector();
         Detect(d, sim);
         sim.Keys++;
@@ -57,7 +57,7 @@ public class CavernSfxDetectorTests
     [Fact]
     public void HpDecrease_EmitsHurt()
     {
-        var sim = CavernLevel.CreateSim();
+        var sim = CavernTestLevel.CreateSim();
         var d = new CavernSfxDetector();
         Detect(d, sim);
         sim.Hp--;
@@ -67,7 +67,7 @@ public class CavernSfxDetectorTests
     [Fact]
     public void DefeatList_EmitsDefeat()
     {
-        var sim = CavernLevel.CreateSim();
+        var sim = CavernTestLevel.CreateSim();
         var d = new CavernSfxDetector();
         Detect(d, sim);
         sim.DefeatsThisStep.Add(new System.Numerics.Vector2(1, 2));
@@ -77,7 +77,7 @@ public class CavernSfxDetectorTests
     [Fact]
     public void ClearTransition_EmitsClearOnce()
     {
-        var sim = CavernLevel.CreateSim();
+        var sim = CavernTestLevel.CreateSim();
         var d = new CavernSfxDetector();
         Detect(d, sim);
         sim.Result = CavernResult.Cleared;
@@ -88,7 +88,7 @@ public class CavernSfxDetectorTests
     [Fact]
     public void JumpFlag_EmitsJump()
     {
-        var sim = CavernLevel.CreateSim();
+        var sim = CavernTestLevel.CreateSim();
         const float dt = 1f / 60;
         for (int i = 0; i < 240 && !sim.OnGround; i++) sim.Step(dt, 0f, false);   // 着地まで
         Assert.True(sim.OnGround, "テスト前提: プレイヤーが接地している");
@@ -103,7 +103,7 @@ public class CavernSfxDetectorTests
     [Fact]
     public void Reset_RebaselinesSoNextDetectIsSilent()
     {
-        var sim = CavernLevel.CreateSim();
+        var sim = CavernTestLevel.CreateSim();
         var d = new CavernSfxDetector();
         Detect(d, sim);
         sim.Coins += 5;

@@ -1,5 +1,6 @@
 using System.Numerics;
 using LuxelCavern.Core;
+using Luxel.Resources;
 using Luxel.TwoD;
 
 namespace Luxel.Tests;
@@ -10,17 +11,12 @@ namespace Luxel.Tests;
 /// </summary>
 public class CavernTiledTests
 {
-    private static CavernSim Load(out Vector2[] torches)
-    {
-        TileSet ts = CavernLevel.BuildTileSet(CavernLevel.BuildAtlas());
-        return CavernTiled.BuildSim(CavernTiled.LoadEmbeddedJson(), ts,
-            CavernLevel.Spawn, new Vector2(12, 22), out torches);
-    }
+    private static CavernSim Load(out Vector2[] torches) => CavernTestLevel.CreateSim(out torches);
 
     [Fact]
-    public void EmbeddedResource_IsResolvable()
+    public void ResourceSystem_LoadsLevelJson()
     {
-        string json = CavernTiled.LoadEmbeddedJson();
+        string json = CavernTestLevel.Json();   // res:// 経由で ResourceSystem がロード
         Assert.Contains("\"tilelayer\"", json);
         Assert.Contains("\"objectgroup\"", json);
     }
@@ -75,6 +71,10 @@ public class CavernTiledTests
     }
 
     [Fact]
-    public void MissingResourceName_Throws()
-        => Assert.Throws<FileNotFoundException>(() => CavernTiled.LoadEmbeddedJson("does-not-exist.tmj"));
+    public void MissingEmbeddedResource_SurfacesErrorThroughResourceSystem()
+    {
+        using var res = new ResourceSystem(sources: [new EmbeddedResourceSource(typeof(CavernTiled).Assembly)]);
+        using ResourceHandle<byte[]> h = res.Load<byte[]>("res://levels/does-not-exist.tmj");
+        Assert.ThrowsAny<Exception>(() => h.Ready.GetAwaiter().GetResult());   // FileNotFound がロードエラーとして伝播
+    }
 }

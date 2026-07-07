@@ -11,7 +11,7 @@ public class CavernPersistenceTests
 {
     private static CavernSave SampleSave()
     {
-        var sim = CavernLevel.CreateSim();
+        var sim = CavernTestLevel.CreateSim();
         sim.Coins = 7;
         sim.Keys = 2;
         sim.Hp = 2;
@@ -71,7 +71,7 @@ public class CavernPersistenceTests
         CavernPersistence.Save(files, SampleSave());
 
         CavernSave? loaded = CavernPersistence.TryLoad(files);
-        var flow = new GameFlow();
+        var flow = CavernTestLevel.NewFlow();
         flow.Continue(loaded!);
         Assert.Equal(GameState.Playing, flow.State);
         Assert.Equal(7, flow.Sim!.Coins);
