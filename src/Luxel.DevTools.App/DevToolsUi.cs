@@ -30,6 +30,7 @@ internal sealed class DevToolsUi
     private int _frameSource = -1;
     private long _frameRev = -1;
     private byte[]? _lastUiFrame;
+    private byte[] _frameBuf = Array.Empty<byte>();   // main フレーム読みの使い回しバッファ (島スレッドの LOH churn 回避、F2)
 
     // ListView は items signal 駆動 (EV3) — signal へ流し込むと参照変化分だけ再バインドされる。
     // ファクトリはインスタンスフィールドの signal を参照するため ctor で生成する。
@@ -215,14 +216,14 @@ internal sealed class DevToolsUi
     {
         if (_frameSource < 0)
         {
-            (byte[]? body, long rev) = _listener.GetFrame(_frameRev);
-            if (body is not null && rev != _frameRev)
+            // main フレーム: 使い回しバッファへ詰めて読む (新フレーム時のみ true) — 島スレッドで 2MB/frame を確保しない
+            if (_listener.GetFrameInto(ref _frameBuf, out int len, out long rev, _frameRev < 0 ? null : _frameRev) && len > 0)
             {
                 _frameRev = rev;
-                Show(body);
+                Show(_frameBuf);
             }
             // メイン frame を emit しないアプリ (Framework 系) は UiFrame 0 へ自動フォールバック
-            else if (rev == 0 && _frame % 10 == 0 && _listener.GetUiFrame(0) is { } uf && !ReferenceEquals(uf, _lastUiFrame))
+            else if (_listener.FrameRev == 0 && _frame % 10 == 0 && _listener.GetUiFrame(0) is { } uf && !ReferenceEquals(uf, _lastUiFrame))
             {
                 _lastUiFrame = uf;
                 Show(uf);
