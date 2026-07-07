@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using System.Net.WebSockets;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -62,6 +63,9 @@ public sealed class DebugServer : IDisposable
     {
         HttpListenerRequest req = ctx.Request;
         string path = req.Url?.AbsolutePath ?? "/";
+        // ライブフレームの WebSocket push (F3): rev が進むたび最新フレームを配信、latest-wins。
+        // ゲーム fps に追従させる経路。既存の /frame ポーリングは互換のため残す。
+        if (path == "/ws/frame" && req.IsWebSocketRequest) { _ = RunFrameSocket(ctx); return; }
         switch (req.HttpMethod, path)
         {
             case ("GET", "/"): WriteText(ctx, IndexHtml, "text/html; charset=utf-8"); break;
@@ -86,6 +90,42 @@ public sealed class DebugServer : IDisposable
             case ("GET", "/winframe"): WriteWinFrame(ctx, (int)(QueryLong(req, "id") ?? 0), QueryLong(req, "rev"), IsPng(req)); break;
             case ("POST", "/cmd"): HandleCmd(ctx); break;
             default: ctx.Response.StatusCode = 404; ctx.Response.Close(); break;
+        }
+    }
+
+    /// <summary>ライブフレームを WebSocket で push する (F3)。frame rev が進むたび最新フレーム (8B ヘッダ + RGBA)
+    /// を binary で送る。バックプレッシャは latest-wins — 各送信を await するので、受信が遅ければ中間フレームは
+    /// 自然に間引かれる (送信キュー深さ 1)。pause 中は rev 不変 = 送信なし。メインスレッドは一切ブロックしない
+    /// (この送信ループは HttpListener のワーカータスク上)。</summary>
+    private async Task RunFrameSocket(HttpListenerContext ctx)
+    {
+        WebSocket? ws = null;
+        try
+        {
+            HttpListenerWebSocketContext wsCtx = await ctx.AcceptWebSocketAsync(subProtocol: null);
+            ws = wsCtx.WebSocket;
+            CancellationToken ct = _cts?.Token ?? CancellationToken.None;
+            byte[] buf = Array.Empty<byte>();   // 送信バッファを使い回す (毎フレーム 2MB を LOH に積まない = gen2 GC 抑止)
+            long lastRev = 0;
+            while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
+            {
+                long rev = _listener.FrameRev;
+                if (rev != 0 && rev != lastRev
+                    && _listener.GetFrameInto(ref buf, out int len, out long r, lastRev == 0 ? null : lastRev))
+                {
+                    await ws.SendAsync(new ArraySegment<byte>(buf, 0, len), WebSocketMessageType.Binary, endOfMessage: true, ct);
+                    lastRev = r;
+                    continue;   // 送信直後に次フレームを即チェック (latest-wins で最新へ追従)
+                }
+                await Task.Delay(5, ct);   // 変化なし → 軽く待つ (~200Hz チェックで 60fps を確実に拾う)
+            }
+        }
+        catch { /* クライアント切断・サーバ停止は無視 */ }
+        finally
+        {
+            try { if (ws is { State: WebSocketState.Open }) await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None); }
+            catch { /* 既に切断済み */ }
+            ws?.Dispose();
         }
     }
 

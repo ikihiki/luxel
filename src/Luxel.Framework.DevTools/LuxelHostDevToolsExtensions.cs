@@ -67,9 +67,18 @@ public sealed class DevToolsRuntime : IHostedService, IDisposable
 
         if (_options.BrowserPort is int port)
         {
-            _server = new DebugServer(_listener, port);
-            _server.Start();
-            Console.WriteLine($"DevTools (browser): {_server.Url}");
+            // DevTools はオプトインの補助機能 — ポート衝突等で立てられなくてもゲーム本体は落とさない。
+            try
+            {
+                _server = new DebugServer(_listener, port);
+                _server.Start();
+                Console.WriteLine($"DevTools (browser): {_server.Url}");
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($"DevTools (browser): 起動失敗 (port {port}): {e.Message}");
+                _server?.Dispose(); _server = null;
+            }
         }
 
         if (_options.Native)

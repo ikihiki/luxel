@@ -80,11 +80,29 @@ public sealed class FrameChannel
         if (rev == 0) return (null, 0);
         if (sinceRev is long s && s == rev) return (null, rev);
 
-        // seqlock 読み: 世代が偶数のまま前後一致すれば整合フレーム。数回 retry して諦めたら null。
+        var body = new byte[8 + 0];   // 実サイズは ReadInto が確定する
+        if (ReadInto(ref body, out int total, out long bodyRev, sinceRev) && total > 0)
+            return (body.Length == total ? body : body.AsSpan(0, total).ToArray(), bodyRev);
+        return (null, rev);
+    }
+
+    /// <summary>
+    /// 最新フレーム body (8B ヘッダ + tight RGBA) を <paramref name="buf"/> に**詰めて**返す (割り当て再利用版)。
+    /// buf が小さければ拡張し呼び出し側に返す。返り値 true = 新フレームを書いた (<paramref name="length"/> が有効)。
+    /// WebSocket push のように毎フレーム読む経路が同じバッファを使い回せば、読み手側も LOH churn ゼロにできる
+    /// (これが無いと 2MB/frame の body が gen2 GC を誘発し、ゲーム main スレッドを巻き込んで停止させうる)。
+    /// </summary>
+    public bool ReadInto(ref byte[] buf, out int length, out long rev, long? sinceRev = null)
+    {
+        length = 0;
+        rev = Interlocked.Read(ref _rev);
+        if (rev == 0) return false;
+        if (sinceRev is long s && s == rev) return false;
+
         for (int attempt = 0; attempt < 8; attempt++)
         {
             int slot = Volatile.Read(ref _cur);
-            if (slot < 0) return (null, rev);
+            if (slot < 0) return false;
             long g1 = Volatile.Read(ref _gen[slot]);
             if ((g1 & 1) != 0) continue;                 // 書き込み中 → retry
 
@@ -94,15 +112,16 @@ public sealed class FrameChannel
             int len = w * h * 4;
             if (src is null || w <= 0 || h <= 0 || src.Length < len) continue;
 
-            var body = new byte[8 + len];
-            BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(0), w);
-            BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(4), h);
-            src.AsSpan(0, len).CopyTo(body.AsSpan(8));
+            int total = 8 + len;
+            if (buf is null || buf.Length < total) buf = new byte[total];
+            BinaryPrimitives.WriteInt32LittleEndian(buf.AsSpan(0), w);
+            BinaryPrimitives.WriteInt32LittleEndian(buf.AsSpan(4), h);
+            src.AsSpan(0, len).CopyTo(buf.AsSpan(8));
 
             long g2 = Volatile.Read(ref _gen[slot]);
-            if (g1 == g2) return (body, slotRev);        // 破れなし → 確定
+            if (g1 == g2) { length = total; rev = slotRev; return true; }   // 破れなし → 確定
             // torn: 書き手が同スロットを踏んだ (稀) → retry
         }
-        return (null, rev);
+        return false;
     }
 }

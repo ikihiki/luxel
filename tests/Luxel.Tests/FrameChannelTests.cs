@@ -74,6 +74,25 @@ public class FrameChannelTests
         Assert.Equal(0, ch.Rev);
     }
 
+    [Fact]
+    public void ReadInto_ReusesBuffer_NoReallocWhenSameSize()
+    {
+        var ch = new FrameChannel();
+        var buf = Array.Empty<byte>();
+        ch.Publish(2, 2, Rgba(2, 2, 9));
+        Assert.True(ch.ReadInto(ref buf, out int len1, out long rev1));
+        Assert.Equal(8 + 2 * 2 * 4, len1);
+        Assert.Equal(1, rev1);
+        byte[] first = buf;                            // 拡張された配列を掴む
+
+        ch.Publish(2, 2, Rgba(2, 2, 10));
+        Assert.True(ch.ReadInto(ref buf, out int len2, out long rev2));
+        Assert.Same(first, buf);                       // 同サイズなら再確保しない (LOH churn ゼロ)
+        Assert.Equal(len1, len2);
+
+        Assert.False(ch.ReadInto(ref buf, out _, out _, rev2));   // 同 rev → false
+    }
+
     // ---- 二読者所有権: 書き手が高速に周回しても、読み手は常に「破れていない」1 枚を得る ----
     // 各フレームは全 tight バイトを rev%256 で塗る。torn なら body 内でバイトが混在するので検出できる。
     [Fact]

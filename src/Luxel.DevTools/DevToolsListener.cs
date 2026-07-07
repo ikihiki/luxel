@@ -163,6 +163,11 @@ public sealed class DevToolsListener : IObserver<DiagnosticListener>, IObserver<
     /// <summary>フレーム更新を待つ購読側 (WebSocket push など) が現在の frame rev を取れるよう公開する。</summary>
     public long FrameRev => _frame.Rev;
 
+    /// <summary>最新フレーム body を <paramref name="buf"/> に詰めて返す (割り当て再利用版、WebSocket push 用)。
+    /// 詳細は <see cref="FrameChannel.ReadInto"/>。同じ buf を渡し続ければ読み手側も LOH churn ゼロ。</summary>
+    public bool GetFrameInto(ref byte[] buf, out int length, out long rev, long? sinceRev = null)
+        => _frame.ReadInto(ref buf, out length, out rev, sinceRev);
+
     /// <summary>最新ツリー JSON と rev。<paramref name="sinceRev"/> と同一なら null (= 304)。</summary>
     public (string? json, long rev) GetTree(long? sinceRev)
     {

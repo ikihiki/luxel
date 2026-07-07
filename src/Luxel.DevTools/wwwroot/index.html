@@ -549,6 +549,7 @@ const state = {
   selectedWorld: 0, selectedEntity: null, ecsFilter: '',
   activeTab: 'home',
   paused: false,
+  wsFrameActive: false,   // /ws/frame push が生きている間はポーリング fetchFrame を止める (F3)
 };
 
 async function sendCmd(op, extra = {}) {
@@ -623,7 +624,8 @@ async function poll() {
     if (state.logs.length > 2000) state.logs.splice(0, state.logs.length - 2000);
     state.logCursor = j.logCursor;
 
-    if (j.frameRev !== state.frameRev) { state.frameRev = j.frameRev; fetchFrame(); }
+    // frame は WebSocket push (F3) が生きていればそちらに任せ、ポーリング fetch は止める (二重描画回避)
+    if (j.frameRev !== state.frameRev) { state.frameRev = j.frameRev; if (!state.wsFrameActive) fetchFrame(); }
     if (j.treeRev !== state.treeRev) { state.treeRev = j.treeRev; if (state.activeTab === 'tree') fetchTree(); }
     if (j.perfRev !== state.perfRev) { state.perfRev = j.perfRev; fetchPerf(); }
     if (j.ecsSummaryRev !== state.ecsSummaryRev) { state.ecsSummaryRev = j.ecsSummaryRev; fetchEcsSummary(); }
@@ -646,17 +648,35 @@ function setStatus(kind) {
   document.getElementById('statUrl').textContent = location.host;
 }
 
-async function fetchFrame() {
-  const r = await fetch(`/frame?rev=${state.frameRev}`);
-  if (r.status !== 200) return;
-  const buf = new Uint8Array(await r.arrayBuffer());
+// 8B ヘッダ (w,h LE) + tight RGBA を frameCanvas に blit する (polling / WebSocket 共通)
+function blitFrame(buf) {
   const w = buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24);
   const h = buf[4] | (buf[5] << 8) | (buf[6] << 16) | (buf[7] << 24);
+  if (w <= 0 || h <= 0 || buf.length < 8 + w * h * 4) return;
   const rgba = new Uint8ClampedArray(buf.buffer, buf.byteOffset + 8, w * h * 4);
   const c = document.getElementById('frameCanvas');
   c.width = w; c.height = h;
   c.getContext('2d').putImageData(new ImageData(rgba, w, h), 0, 0);
   document.getElementById('frameEmpty').style.display = 'none';
+}
+
+async function fetchFrame() {
+  const r = await fetch(`/frame?rev=${state.frameRev}`);
+  if (r.status !== 200) return;
+  blitFrame(new Uint8Array(await r.arrayBuffer()));
+}
+
+// ライブフレームの WebSocket push (F3): ゲーム fps に追従して滑らかに描く。
+// 接続中は wsFrameActive を立ててポーリング fetch を止め、切断したらポーリングへフォールバック。
+function connectFrameSocket() {
+  let ws;
+  try { ws = new WebSocket(`ws://${location.host}/ws/frame`); }
+  catch (e) { return; }              // WebSocket 非対応 → ポーリングのまま
+  ws.binaryType = 'arraybuffer';
+  ws.onopen = () => { state.wsFrameActive = true; };
+  ws.onmessage = ev => { blitFrame(new Uint8Array(ev.data)); };
+  ws.onclose = () => { state.wsFrameActive = false; setTimeout(connectFrameSocket, 1000); };  // 再接続
+  ws.onerror = () => { try { ws.close(); } catch (e) {} };
 }
 
 // ============== UI Tree (Angular DevTools 風、複数 UI 対応) ==============
@@ -1689,6 +1709,7 @@ document.getElementById('paletteInput').addEventListener('input', ev => updatePa
 document.getElementById('palette').addEventListener('click', ev => { if (ev.target.id === 'palette') closePalette(); });
 
 poll();
+connectFrameSocket();   // ライブフレームを WebSocket push で受ける (F3、失敗時はポーリングにフォールバック)
 // Home alerts が失敗/読込中の集計を出せるよう起動時に 1 回リソースをフェッチ
 setTimeout(loadResources, 500);
 
