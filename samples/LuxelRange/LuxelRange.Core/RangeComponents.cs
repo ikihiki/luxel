@@ -29,3 +29,13 @@ public struct RangeProp : IComponent
 public struct RangeBonusZone : IComponent
 {
 }
+
+/// <summary>動く的 (巡回するキネマティック体)。命中で加点し、ひるみ (一定時間停止) → 復帰。</summary>
+public struct RangeFox : IComponent
+{
+    /// <summary>命中時の得点。</summary>
+    public int Score;
+    /// <summary>ひるみ残り秒 (&gt; 0 = ひるみ中、巡回停止・再命中で加点しない)。</summary>
+    public float FlinchTimer;
+    public RangeFox(int score) { Score = score; FlinchTimer = 0; }
+}

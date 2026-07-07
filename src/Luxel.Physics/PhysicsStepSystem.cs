@@ -95,6 +95,7 @@ public sealed class PhysicsStepSystem : BaseSystem
         _staticToEntity.Clear();
         _world.Query<RigidBody>().ForEachEntity((ref RigidBody b, Entity e) => { if (b.Attached) _bodyToEntity[b.Handle.Value] = e; });
         _world.Query<HullCollider>().ForEachEntity((ref HullCollider h, Entity e) => { if (h.Attached) _bodyToEntity[h.Handle.Value] = e; });
+        _world.Query<KinematicBody>().ForEachEntity((ref KinematicBody k, Entity e) => { _bodyToEntity[k.Handle.Value] = e; });
         _world.Query<StaticBody>().ForEachEntity((ref StaticBody s, Entity e) => { if (s.Attached) _staticToEntity[s.Handle.Value] = e; });
         _world.Query<MeshCollider>().ForEachEntity((ref MeshCollider m, Entity e) => { if (m.Attached) _staticToEntity[m.Handle.Value] = e; });
         _world.Query<Trigger>().ForEachEntity((ref Trigger t, Entity e) => { if (t.Attached) _staticToEntity[t.Handle.Value] = e; });

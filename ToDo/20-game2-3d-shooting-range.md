@@ -122,7 +122,15 @@ samples/LuxelRange/
 - Gallery: 黄色の床マーカが小物と的の間に描画される。golden 更新、vk/dx 一致。全 830 passed / e2e 71/71 diff 0。
 - **物理の知見**: **100m/s の弾で動的小物を吹き飛ばすのは Bepu の対動体 CCD 限界で不確実** (弾が小物をトンネリング、SolverSubsteps を上げても改善せず)。的 (静的箱) への CCD 命中は確実 (スライス 1 で実証済み)。ボーナス機構自体は速度直接付与で決定的にテスト。実プレイでは大きめのゾーンで best-effort。
 
-**残 (後続スライス)**: 3c = 動く的 (09 Fox skin) の巡回 + ひるみ + 命中 +300。3d = 命中パーティクル (16) + SE。4 = Title/Result + ハイスコア/設定 (15) + BGM (10)。5 = exe プレイアブル化 + publish 3D 検証 (glTF/scene_pbr shaders)。**20 MD は全スライス完了まで残す**。
+### 2026-07-07 (5): スライス 3c-1 — 動く的 (キネマティック巡回 + 命中 +300 + ひるみ)
+
+**済**:
+- キネマティック体インフラ: `PhysicsWorld.AddKinematic` + `SetBodyPose` + `KinematicBody` component (接触の handle→Entity 逆引きに `BuildEntityMap` へ追加)。**キネマティックは無限質量 = 静的同様に CCD 弾が確実に当たる** (動的小物のトンネリング問題を回避)。
+- `RangeSim`: 動く的 Fox = キネマティック箱 proxy を X 方向に巡回 (`FoxAt(phase)`、地形高さに載る)。`UpdateFox` が毎ステップ位相を進め姿勢 + LocalTransform 更新。命中 (`TryResolveFox`) で `FoxScore += 300` + ひるみ 1.5s (巡回停止・再命中で加点しない)。`FoxPosition`/`FoxFlinching`/`TotalScore` 公開。
+- 単体テスト +2: Fox 命中で +300 + ひるみ / 巡回で位置が動く。全 832 passed / e2e 71/71 diff 0。
+- Gallery: Fox は紫の箱として描画 (キネマティック pose を LocalTransform に反映、Render3DExtract が拾う)。**skin モデル (09 Fox.glb の scene_pbr_skinned 描画) は 3c-2 で差し替え** (FoxPosition へ配置)。golden 更新、vk/dx 一致。
+
+**残 (後続スライス)**: 3c-2 = Fox 箱を skin モデル (09) に差し替え (FoxPosition に glTF Fox を配置・歩行アニメ + SkinningSystem)。3d = 命中パーティクル (16) + SE。4 = Title/Result + ハイスコア/設定 (15) + BGM (10)。5 = exe プレイアブル化 + publish 3D 検証。**20 MD は全スライス完了まで残す**。
 
 ## スコープ外
 

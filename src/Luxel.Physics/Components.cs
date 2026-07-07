@@ -127,6 +127,16 @@ public struct Trigger : IComponent
     public bool Attached;
 }
 
+/// <summary>スクリプト駆動のキネマティックボディへの参照 (動く的/プラットフォーム)。body は
+/// <see cref="PhysicsWorld.AddKinematic"/> で手動発行し、この component で ECS entity と対応づける
+/// (接触イベントの handle→Entity 逆引きに使う)。姿勢は所有者が毎ステップ更新する。</summary>
+public struct KinematicBody : IComponent
+{
+    /// <summary>発行済み body ハンドル。</summary>
+    public BodyHandle Handle;
+    public KinematicBody(BodyHandle handle) { Handle = handle; }
+}
+
 /// <summary>接触/トリガーイベント (Entity ベース)。<see cref="PhysicsStepSystem.ContactEvents"/> が公開。
 /// フレーム内で読み切る規約 (持ち越さない)。トリガー判定はどちらかの Entity が <see cref="Trigger"/> を
 /// 持つかで行う。</summary>

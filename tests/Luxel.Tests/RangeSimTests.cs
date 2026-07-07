@@ -126,6 +126,29 @@ public class RangeSimTests
         Assert.Equal(before, sim.BonusScore);   // 二重計上しない
     }
 
+    [Fact]
+    public void Fox_Hit_Scores300AndFlinches()
+    {
+        using var sim = new RangeSim();
+        Vector3 fox = sim.FoxPosition;
+        sim.Fire(new Vector3(fox.X, fox.Y, 5f), new Vector3(0, 0, -1));   // 動く的へ (キネマティック = CCD 確実)
+        for (int i = 0; i < 40; i++) sim.StepOnce();
+
+        Assert.Equal(300, sim.FoxScore);
+        Assert.True(sim.FoxFlinching);          // 命中でひるみ
+        Assert.Equal(300, sim.TotalScore - sim.Score - sim.BonusScore);
+    }
+
+    [Fact]
+    public void Fox_Patrols_WhenRunning()
+    {
+        using var sim = new RangeSim();
+        float startX = sim.FoxPosition.X;
+        sim.Fire(new Vector3(0, 1.3f, 5f), new Vector3(0, 1, 0));   // 空撃ちで物理開始 (Fox には当てない)
+        for (int i = 0; i < 120; i++) sim.StepOnce();
+        Assert.True(MathF.Abs(sim.FoxPosition.X - startX) > 0.5f, $"Fox が動いていない ({startX} → {sim.FoxPosition.X})");
+    }
+
     private static int CountBullets(RangeSim sim)
     {
         int n = 0;

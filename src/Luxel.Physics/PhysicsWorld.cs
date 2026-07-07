@@ -208,6 +208,19 @@ public sealed class PhysicsWorld : IDisposable
             bodyPose, velocity, inertia, collidable, new BodyActivityDescription(sleepThreshold)));
     }
 
+    /// <summary>キネマティックボディを追加する (スクリプト駆動で動く的/プラットフォーム)。無限質量で
+    /// 外力に動じず、<see cref="SetBodyPose"/> で毎ステップ姿勢を与える。動的ボディの CCD は静的同様に確実に当たる。</summary>
+    public BodyHandle AddKinematic(in RigidPose pose, TypedIndex shape)
+        => Simulation.Bodies.Add(BodyDescription.CreateKinematic(pose, shape, new BodyActivityDescription(0.01f)));
+
+    /// <summary>ボディの姿勢を直接設定して起こす (キネマティックの scripted 移動用)。</summary>
+    public void SetBodyPose(BodyHandle handle, in RigidPose pose)
+    {
+        BodyReference body = Simulation.Bodies[handle];
+        body.Pose = pose;
+        body.Awake = true;
+    }
+
     /// <summary>動的ボディを削除する (despawn / kill plane 用)。ECS 側の entity 削除と対で呼ぶ —
     /// entity だけ消して body を残すと「見えない衝突体」がリークする。</summary>
     public void RemoveBody(BodyHandle handle) => Simulation.Bodies.Remove(handle);

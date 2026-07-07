@@ -40,8 +40,17 @@ public sealed class RangeSim : IDisposable
     public int TargetsHit { get; private set; }
     /// <summary>的の総数。</summary>
     public int TargetCount => _targets.Count;
+    /// <summary>動く的 (Fox) 命中の得点。</summary>
+    public int FoxScore { get; private set; }
     /// <summary>ボーナス加点 (小物をゾーンへ) の得点。</summary>
     public int BonusScore { get; private set; }
+    /// <summary>合計スコア (的 + Fox + ボーナス)。</summary>
+    public int TotalScore => Score + FoxScore + BonusScore;
+
+    /// <summary>動く的 (Fox) の現在位置 (描画側が skin モデルをここへ置く)。</summary>
+    public Vector3 FoxPosition { get; private set; }
+    /// <summary>Fox がひるみ中か (描画側の演出用)。</summary>
+    public bool FoxFlinching { get; private set; }
     /// <summary>配置した物理小物 (ConvexHull) の数。</summary>
     public int PropCount { get; private set; }
     /// <summary>kill plane で despawn した動的体の累計。</summary>
@@ -50,6 +59,13 @@ public sealed class RangeSim : IDisposable
     public bool Started { get; private set; }
 
     private readonly List<Entity> _targets = new();
+
+    // 動く的 (Fox) — キネマティック proxy を X 方向に巡回させる
+    private const float FoxZ = -7f, FoxCenterX = -1f, FoxAmp = 3.5f, FoxSpeed = 0.9f;
+    private static readonly Vector3 FoxSize = new(1f, 1.2f, 2f);
+    private Entity _fox;
+    private BodyHandle _foxHandle;
+    private float _foxPhase;
 
     /// <summary>地形メッシュの頂点 (描画と物理コライダーで共有 — 絵と当たりが一致)。</summary>
     public Vector3[] TerrainPositions { get; private set; } = Array.Empty<Vector3>();
@@ -131,6 +147,24 @@ public sealed class RangeSim : IDisposable
             new LocalTransform(Matrix4x4.CreateScale(11f, 0.08f, 2f) * Matrix4x4.CreateTranslation(0, markerY + 0.1f, -5f)),
             new Color3D(new Vector4(0.95f, 0.85f, 0.35f, 0.9f)),
             new MeshRef(MeshRef.Cube));
+
+        // 動く的 (Fox) — キネマティックの箱 proxy (CCD 弾が確実に当たる)。描画はここでは箱 (skin モデルは描画側で後日)。
+        Vector3 foxPos = FoxAt(0f);
+        _foxHandle = Physics.AddKinematic(new RigidPose(foxPos), Physics.AddShape(new BepuPhysics.Collidables.Box(FoxSize.X, FoxSize.Y, FoxSize.Z)));
+        _fox = World.Store.CreateEntity(
+            new LocalTransform(Matrix4x4.CreateScale(FoxSize) * Matrix4x4.CreateTranslation(foxPos)),
+            new Color3D(new Vector4(0.85f, 0.45f, 0.80f, 1f)),
+            new MeshRef(MeshRef.Cube),
+            new KinematicBody(_foxHandle),
+            new RangeFox(300));
+        FoxPosition = foxPos;
+    }
+
+    /// <summary>巡回位相 <paramref name="phase"/> での Fox の中心位置 (X 往復、地形高さに載る)。</summary>
+    private static Vector3 FoxAt(float phase)
+    {
+        float x = FoxCenterX + FoxAmp * MathF.Sin(phase);
+        return new Vector3(x, RangeTerrain.Height(x, FoxZ) + FoxSize.Y / 2, FoxZ);
     }
 
     /// <summary>原点から方向へ CCD 弾を発射する (残弾があれば)。命中判定は次の <see cref="StepOnce"/> 群で。</summary>
@@ -154,9 +188,30 @@ public sealed class RangeSim : IDisposable
     public void StepOnce()
     {
         if (!Started) return;
+        UpdateFox();
         Step.StepFixedOnce();
         ProcessHits();
         DespawnFallen();
+    }
+
+    /// <summary>Fox の巡回とひるみを進める。ひるみ中は停止、明けたら再び往復。</summary>
+    private void UpdateFox()
+    {
+        RangeFox f = _fox.GetComponent<RangeFox>();
+        FoxFlinching = f.FlinchTimer > 0;
+        if (FoxFlinching)
+        {
+            f.FlinchTimer -= FixedDt;
+            _fox.AddComponent(f);
+        }
+        else
+        {
+            _foxPhase += FoxSpeed * FixedDt;   // ひるみ中は位相を進めない = その場で停止
+        }
+        Vector3 pos = FoxAt(_foxPhase);
+        FoxPosition = pos;
+        Physics.SetBodyPose(_foxHandle, new RigidPose(pos));
+        _fox.AddComponent(new LocalTransform(Matrix4x4.CreateScale(FoxSize) * Matrix4x4.CreateTranslation(pos)));
     }
 
     /// <summary>KillY を下回った弾/小物を body ごと削除する (リーク防止)。収集 → 削除の 2 段。</summary>
@@ -184,8 +239,21 @@ public sealed class RangeSim : IDisposable
         {
             if (ev.Phase != ContactPhase.Begin) continue;
             if (TryResolveHit(ev.A, ev.B) || TryResolveHit(ev.B, ev.A)) continue;
+            if (TryResolveFox(ev.A, ev.B) || TryResolveFox(ev.B, ev.A)) continue;
             if (TryResolveBonus(ev.A, ev.B) || TryResolveBonus(ev.B, ev.A)) { }
         }
+    }
+
+    /// <summary><paramref name="bullet"/> が弾で <paramref name="fox"/> がひるみ中でない動く的なら +300 + ひるみ開始。</summary>
+    private bool TryResolveFox(Entity bullet, Entity fox)
+    {
+        if (!bullet.HasComponent<RangeBullet>() || !fox.HasComponent<RangeFox>()) return false;
+        RangeFox f = fox.GetComponent<RangeFox>();
+        if (f.FlinchTimer > 0) return false;   // ひるみ中は加点しない
+        FoxScore += f.Score;
+        f.FlinchTimer = 1.5f;
+        fox.AddComponent(f);
+        return true;
     }
 
     /// <summary><paramref name="prop"/> が未加点の小物で <paramref name="zone"/> がボーナスゾーンなら +200。</summary>
