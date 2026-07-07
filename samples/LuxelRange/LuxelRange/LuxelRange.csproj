@@ -25,6 +25,9 @@
     <ProjectReference Include="..\..\..\src\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
     <!-- glTF ロード (動く的 = Fox.glb のスケルタルスキン) -->
     <ProjectReference Include="..\..\..\src\Luxel.Gltf\Luxel.Gltf.csproj" />
+    <!-- 命中パーティクル (.ThreeD ビルボードバースト) -->
+    <ProjectReference Include="..\..\..\src\Luxel.Particles\Luxel.Particles.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.Particles.ThreeD\Luxel.Particles.ThreeD.csproj" />
     <!-- セーブの実 IO (PhysicalFileStore を %APPDATA% に向ける) -->
     <ProjectReference Include="..\..\..\src\Luxel.Settings\Luxel.Settings.csproj" />
   </ItemGroup>

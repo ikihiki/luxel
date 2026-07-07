@@ -8,6 +8,8 @@ using Luxel.Ecs;
 using Luxel.Framework;
 using Luxel.Gltf;
 using Luxel.Input;
+using Luxel.Particles;
+using Luxel.Particles.ThreeD;
 using Luxel.RenderGraph;
 using LuxelRange.Core;
 
@@ -53,6 +55,10 @@ public sealed class RangeRealtimeScene : GameScene
     private GpuBuffer? _foxInst;
     private GpuPipeline? _skinPipe;
     private const float FoxModelScale = 0.018f, FoxHalfY = 0.6f;
+
+    // 命中パーティクル (火花バースト)
+    private ParticleSystem? _burstPs;
+    private ParticleBillboards? _hitBurst;
 
     // 入力アクション (矢印でカメラ旋回、Space 発射、Esc 終了)
     private Axis1DAction _orbitH = null!, _orbitV = null!;
@@ -108,15 +114,22 @@ public sealed class RangeRealtimeScene : GameScene
         _game.Step();
         if (!_game.Sim.FoxFlinching) _foxAnimTime += dt;   // ひるみ中は歩行停止
         if (_foxPrim is not null) UploadFox();
-        _game.Sim.ClearEvents();   // exe 段では演出/音を未配線なので毎ステップ消費
+        foreach (RangeEvent ev in _game.Sim.Events)
+            if (ev.Kind is RangeEventKind.TargetHit or RangeEventKind.FoxHit)
+                _burstPs!.Emit(ev.Position, 32);
+        _game.Sim.ClearEvents();
+        _burstPs!.Update(dt);
     }
 
     protected override void OnRender(RenderContext ctx)
     {
         if (!_init) return;
         _extractor!.Extract();
+        _hitBurst?.Sync();
+        (Vector3 billRight, Vector3 billUp) = ParticleBillboards.CameraAxes(_cam.Eye, _cam.Target);
 
-        Matrix4x4 vpT = Matrix4x4.Transpose(_cam.ViewProjection);
+        Matrix4x4 viewProj = _cam.ViewProjection;
+        Matrix4x4 vpT = Matrix4x4.Transpose(viewProj);
         using var rg = new Luxel.RenderGraph.RenderGraph(Device);
         BufferHandle hV = rg.ImportBuffer(_vb!, "verts");
         BufferHandle hInst = rg.ImportBuffer(_extractor.InstanceBuffer, "instances");
@@ -148,6 +161,7 @@ public sealed class RangeRealtimeScene : GameScene
                   p.Cmd.SetGraphicsPipeline(_skinPipe!)
                        .SetRootArguments(new SkinnedArgs { ViewProj = vpT, VertexBufIndex = p.BindlessIndex(hFV), IndexBufIndex = p.BindlessIndex(hFI), InstanceBufIndex = p.BindlessIndex(hFInst), JointBufIndex = p.BindlessIndex(hFJoint), InstanceStart = 0 })
                        .Draw((uint)_foxPrim!.IndexCount, 1);
+              _hitBurst?.Draw(p.Cmd, viewProj, billRight, billUp);   // 命中パーティクル (ビルボード)
               p.Cmd.EndRendering();
           });
 
@@ -174,7 +188,16 @@ public sealed class RangeRealtimeScene : GameScene
         TransformPropagateSystem.Run(_game.Sim.World);
         BuildTerrain();
         BuildFox();
+
+        var cfg = new ParticleConfig(
+            Life: ParticleValue.Range(0.30f, 0.70f), Speed: ParticleValue.Range(2f, 5f),
+            SpreadRadians: MathF.PI, BaseAngle: 0f, Gravity: -6f, Drag: 0.3f, Size: 0.09f,
+            Color: new ParticleColor(Rgba(255, 220, 120, 255), Rgba(240, 90, 40, 0)), Shape: ParticleShape.Circle, Spherical: true);
+        _burstPs = new ParticleSystem(cfg, capacity: 400, seed: 0x2A11);
+        _hitBurst = new ParticleBillboards(Device, _burstPs);
     }
+
+    private static uint Rgba(byte r, byte g, byte b, byte a) => (uint)(r | (g << 8) | (b << 16) | (a << 24));
 
     /// <summary>Fox.glb (exe 隣の assets/) を別 world で組み、skin 描画資源を用意して初期ポーズを焼く。</summary>
     private void BuildFox()
@@ -254,6 +277,7 @@ public sealed class RangeRealtimeScene : GameScene
         _vb?.Dispose(); _fb?.Dispose();
         _terrainVb?.Dispose(); _terrainIb?.Dispose(); _terrainInst?.Dispose();
         _foxAssets?.Dispose(); _foxJoints?.Dispose(); _foxInst?.Dispose(); _skinPipe?.Dispose();
+        _hitBurst?.Dispose();
         // RangeGame は DI singleton — 破棄は DI コンテナが行う (ここで Dispose すると二重破棄)。
         return Task.CompletedTask;
     }

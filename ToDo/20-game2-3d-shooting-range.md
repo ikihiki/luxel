@@ -182,7 +182,13 @@ samples/LuxelRange/
 - **検証 (3D 出荷経路の総仕上げ)**: vk `--frames` スモーク exit 0。**publish (self-contained win-x64) に Fox.glb (glTF アセット) + scene_pbr_skinned 等の全 3D シェーダが同梱**され、**リポジトリ外 publish から起動して bundled Fox.glb を `AppContext.BaseDirectory` 基準で解決・描画、exit 0**。全 837 passed / e2e 71/71 diff 0。
 - exe 描画: 起伏地形 (scene_pbr_lite) + 的/小物 (cube_forward) + **歩く Fox (scene_pbr_skinned)**。
 
-**残 (任意の最終磨き)**: exe に命中パーティクル (Gallery で golden 検証済み・billboard shader は publish 済み) + Title/Result UI オーバーレイ (Rasterizer2D、スコア/ハイスコア) + BGM/SE 実音 (10、RealWindowOnly)。**capstone ② の検証目標 (03/04/05/09/16 + 10/15/17) と出荷 (publish/リポジトリ外起動 vk/dx) は達成済み** — 残りは exe の視覚/音の磨き。Docs 配布節への追記も含め、これらを終えたら **20 MD 削除**。
+### 2026-07-07 (13): スライス 5-4 — exe に命中パーティクル
+
+**済**:
+- exe csproj に `Luxel.Particles` / `Luxel.Particles.ThreeD` 参照。`RangeRealtimeScene` に火花バーストを移植: `ParticleSystem` (固定シード) + `ParticleBillboards`、命中イベント (`TargetHit`/`FoxHit`) 位置で放出、毎ステップ `Update`、`OnRender` で `Sync` → RenderGraph パス内でカメラ向きビルボード描画 (4 番目の draw)。
+- **検証**: vk `--frames` スモーク exit 0。exe 描画が Gallery と一致 (起伏地形 + 的/小物 + 歩く Fox skin + 命中火花)。全 837 passed / e2e 71/71 diff 0。
+
+**残 (最終磨き)**: exe に Title/Result UI オーバーレイ (Rasterizer2D、スコア/ハイスコア/残弾) + BGM/SE 実音 (10、UseAudio + AudioMixer、RealWindowOnly)。Docs 配布節に 3D capstone を追記。**capstone ② の検証目標 (03/04/05/09/16 + 10/15/17) と出荷は達成済み・exe 描画も完了** — 残るは UI と音。これらを終えたら **20 MD 削除**。
 
 ## スコープ外
 
