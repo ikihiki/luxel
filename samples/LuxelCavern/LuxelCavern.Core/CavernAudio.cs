@@ -21,6 +21,8 @@ public sealed class CavernAudio : IDisposable
     public AudioBus Music { get; }
     public AudioBus Sfx { get; }
 
+    private CavernSettings? _settings;
+
     /// <param name="backend">出力バックエンド (BGM voice を確保するため)。</param>
     /// <param name="mixer">SE のワンショット用ミキサ (Framework の <c>UseAudio</c> が用意する共有インスタンス)。</param>
     public CavernAudio(IAudioBackend backend, AudioMixer mixer)
@@ -35,6 +37,9 @@ public sealed class CavernAudio : IDisposable
         _bgm = new AudioSource(backend, CavernSfxBank.BuildBgm()) { Bus = Music };
         _bgm.Volume.Value = 0.7f;
     }
+
+    /// <summary>設定の音量を音量バスへ束ねる (以降 <see cref="Tick"/> で追従)。</summary>
+    public void BindSettings(CavernSettings settings) => _settings = settings;
 
     /// <summary>新規/再開でシーンを差し替えたら SE 検出の基準を取り直す (ロード直後の誤発火防止)。</summary>
     public void ResetForNewGame() => _detector.Reset();
@@ -55,8 +60,17 @@ public sealed class CavernAudio : IDisposable
                 _sfx.PlayOneShot(clip);
     }
 
-    /// <summary>BGM の Signal → voice 反映 (音量変更を効かせる)。SE 側の <see cref="AudioMixer.Tick"/> は Framework が行う。</summary>
-    public void Tick() => _bgm.Tick();
+    /// <summary>設定の音量をバスへ反映 + BGM の Signal → voice 反映。SE 側の <see cref="AudioMixer.Tick"/> は Framework が行う。</summary>
+    public void Tick()
+    {
+        if (_settings is { } s)
+        {
+            Master.Volume.Value = s.MasterVolume.Value;   // Signal は等値なら no-op なので毎フレーム代入で可
+            Music.Volume.Value = s.MusicVolume.Value;
+            Sfx.Volume.Value = s.SfxVolume.Value;
+        }
+        _bgm.Tick();
+    }
 
     public void Dispose() => _bgm.Dispose();
 }

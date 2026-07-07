@@ -21,7 +21,8 @@ dotnet run --project samples/LuxelCavern/LuxelCavern -- dx        # D3D12
 dotnet run --project samples/LuxelCavern/LuxelCavern -- vk --frames 30   # 30 フレームで自動終了 (スモーク)
 ```
 
-起動するとタイトル画面が出る。**Space/Enter** で「はじめる」、セーブがあれば **C** で「つづきから」、**Esc** で終了。
+起動するとタイトル画面が出る。**Space/Enter** で「はじめる」、セーブがあれば **C** で「つづきから」、**S** で「せってい」、**Esc** で終了。
+設定画面では **↑↓** で項目選択・**←→** で音量調整・**Esc** で戻る (変更は即 %APPDATA% へ保存)。
 
 ゲーム中の操作: **A/D** または **←→** 移動、**Space/W/↑** ジャンプ、**Esc** ポーズ、**Enter** リトライ (死亡時は直近チェックポイントから復活)。
 
@@ -35,7 +36,13 @@ dotnet run --project samples/LuxelCavern/LuxelCavern -- vk --frames 30   # 30 �
 
 ループ BGM + イベント SE (ジャンプ/着地/コイン/鍵/撃破/被弾/チェックポイント/クリア)。音は CPU 合成で外部アセット不要
 (`CavernSfxBank`、決定的)。`CavernSfxDetector` が sim の出来事を SE に変換し、`AudioBus` 階層 (Master → Music / Sfx) で
-音量を分ける (設定 UI から bind 予定)。バックエンドは exe が XAudio2 (`UseAudio`)、テストは `NullAudioBackend`。
+音量を分ける。バックエンドは exe が XAudio2 (`UseAudio`)、テストは `NullAudioBackend`。
+
+### 設定
+
+タイトルの「せってい」で音量 (Master / BGM / SE) を調整。値は `SettingsStore` (`Luxel.Settings`) 上の `Signal<float>` で、
+`AutoSave` により変更が即 **`%APPDATA%\LuxelCavern\cavern-settings.json`** へ書き戻る。`CavernAudio` が設定値を
+`AudioBus.Volume` へ束ね、次フレームから発音に効く。破損ファイルは既定値で起動 + `.bak` 退避 (SettingsStore が担保)。
 
 ## 配布 (publish)
 

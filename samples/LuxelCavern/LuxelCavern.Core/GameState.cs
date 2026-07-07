@@ -11,6 +11,7 @@ namespace LuxelCavern.Core;
 public enum GameState
 {
     Title,
+    Settings,
     Playing,
     Paused,
     GameOver,

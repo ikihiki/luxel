@@ -35,8 +35,11 @@ public sealed class GameFlow
         else if (State == GameState.Paused) State = GameState.Playing;
     }
 
-    /// <summary>タイトルへ戻る (リザルトから)。</summary>
+    /// <summary>タイトルへ戻る (リザルト/設定から)。</summary>
     public void ToTitle() => State = GameState.Title;
+
+    /// <summary>設定画面へ (タイトルから)。</summary>
+    public void ToSettings() { if (State == GameState.Title) State = GameState.Settings; }
 
     /// <summary>1 ステップ進める (Playing 中のみ)。クリア/死亡でリザルト状態へ遷移。</summary>
     public void Step(float dt, float moveX, bool jumpPressed)

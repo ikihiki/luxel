@@ -143,7 +143,12 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
   - `CavernSfxBank` (Core): SE/BGM を CPU 合成 (外部アセット不要・決定的)。cue ごとに周波数/長さ/グライドを変えたエンベロープ付きサイン波、BGM は整数周期に合わせた低音サインの無クリックループ (16-bit mono 44k)。
   - `CavernAudio` (Core): BGM (`AudioSource` ループ) + イベント SE (`AudioMixer.PlayOneShot`) を結線。`AudioBus` 階層 (Master → Music / Sfx) で音量グループ化 (設定 UI から bind 可能に = Q06 B の足場)。exe は `LuxelHostBuilder.UseAudio()` で XAudio2 + AudioMixer を DI、シーンが `_loop.Mixer` + `IAudioBackend` から構築。新規/再開で `ResetForNewGame`+`PlayBgm`、タイトル復帰/終了で `StopBgm`、固定更新で `React(sim)`。
   - 単体テスト `CavernSfxDetectorTests` 9 本 + `CavernAudioTests` 3 本 (NullAudioBackend で音デバイス非依存)。build 0 エラー、全 775 passed、exe スモーク (vk --frames 20) exit 0 (XAudio2 init 込み)、**e2e 65/65 diff 0** (story は sim 直叩き・JumpedThisStep 追加は無影響)。実際の発音はヘッドレス検証不可 — 配線は単体テスト + スモークで担保 (S7 入力と同じ扱い)。README にオーディオ節。
-  - **残 (次セッション以降)**: SettingsStore で音量 (Master/Music/Sfx Volume に bind) + キーバインド + 設定 UI (Q06 B) / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / single-file の Content-loose 対応 (任意)。**capstone のコア (プレイアブル + 配布 + フロー + セーブ + 音) は達成** — 残りは設定 UI とレベル多様化の仕上げ。全て済んだら 19 MD を削除。
+- **ステージ B セッション 11 (2026-07-07, Q13)**: **設定画面 (音量) + SettingsStore 永続化 (Q06 B)** — Q06 SettingsStore のドッグフード。
+  - `CavernSettings` (Core): `SettingsStore` の上に Master/Music/Sfx 音量を `Signal<float>` で公開。`AutoSave` = true で変更が即 `IFileStore` (exe は %APPDATA%) へ。破損は既定値起動 + `.bak` 退避 (SettingsStore が担保)。
+  - `CavernAudio.BindSettings` + `Tick` で設定音量 → `AudioBus.Volume` へ反映 (Signal は等値 no-op なので毎フレーム代入で可)。今回のオーディオ (S10) の音量バスに実際に効く。
+  - `GameState.Settings` + `GameFlow.ToSettings` を追加。exe: タイトル「S : せってい」→ 設定画面。↑↓ で行選択 (`Axis1DAction navV`)、←→ で ±0.05 調整 (`_move` のエッジ)、Esc で戻る。スクリーン空間 (`Camera2D.Pixels`) で音量バー描画。
+  - 単体テスト `CavernSettingsTests` 3 本 (既定値 / 変更が AutoSave→再読込で復元 / BindSettings が Tick でバス音量を駆動)。build 0 エラー、全 778 passed、exe スモーク (vk --frames 20) exit 0、**e2e 65/65 diff 0**。設定画面の対話描画はヘッドレス検証不可 — 配線は単体テスト + スモークで担保。README に設定節。
+  - **残 (次セッション以降)**: キーバインド再割当 (任意、UI 複雑) / Tiled (.tmj) レベル化 / WithDevTools + gizmo/DevStats (Q05-E/Q12 合流) / single-file の Content-loose 対応 (任意)。**capstone のコア (プレイアブル + 配布 + フロー + セーブ + 音 + 設定) は達成** — 残りはレベル多様化と DevTools 合流。全て済んだら 19 MD を削除。
 
 ## 作業ステップ
 
