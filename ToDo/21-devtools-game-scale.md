@@ -145,6 +145,14 @@ capstone との順序: **A/C/E は 19 のゲーム組み上げ前に済ませる
 - **Docs**: `Docs/DevTools` (DocsRuntime.cs) に「スタンドアロンゲームへ結線する — WithDevTools」+「ゲームを観測する」節 (DevStats / DebugDraw・gizmo / timescale / ECS スケール / ライブビューのモード=滑らかさ vs 正確さ) を追記。
 - **検証**: `dotnet build` (全ソリューション) OK / `dotnet test` 805 passed (+12) / e2e 65/65・golden diff 0 / 実機 chrome で live view 確認。
 
+### 2026-07-07 (2): 性能修正 — フレーム読み戻しの write-combined ペナルティ
+
+**問題** (ユーザー報告): DevTools 購読中にゲームが ~10fps へ低下 (devtools なしは正常)。**実測で原因確定**: `FramePublisher` の padded→tight コピーが提示バッファ (`GpuMemoryKind.HostMapped` = write-combined/uncached) を毎フレーム CPU 読みしていて **copy=75.15ms / emit=0.11ms** (960×540)。WC メモリの CPU 読みは通常 RAM の ~40 倍遅い。旧 `CavernDevServer` は 4 フレームに 1 回スキップして隠していた (それでも ~19ms/frame)、毎フレーム化で顕在化。
+
+**修正**: `IFramePublisher` を **GPU 読み戻しの定石**へ — `GpuMemoryKind.HostCached` (READBACK) バッファへ `GpuCommandBuffer.CopyBuffer` で GPU コピーしてから cached を CPU 読み (高速)。さらにライブ配信を 30fps に間引き。**実測 75ms → ~0.6ms/publish** (約 100 倍改善)。readback/tight/DiagFrame は使い回しで割り当てゼロ、`FramePublisher` は `GpuDevice` を DI 注入・`IDisposable` で readback を破棄。chrome で 960×540 が正しく streaming 継続を確認。
+
+**注意 (別課題)**: `AppWindow.EmitFrame` (Gallery 系) も同じ WC 直読みパターンを持つが、FramePublisher とは別経路。実クライアントが 60fps で張り付く shipped アプリは無いため今回は据え置き (必要になれば同じ readback 定石を適用)。
+
 ## スコープ外
 
 - GPU pass 単位のタイムスタンプ計測 (Tier 2 の既存項目)、メモリ allocation tracking、リモート (loopback 外) 接続と認証、DevTools UI のフレームワーク化 (素の HTML/JS を維持)、入力記録リプレイ (→ [11](11-scripting-debug-tools.md) B)、Console/REPL タブ (→ [11](11-scripting-debug-tools.md) A)。

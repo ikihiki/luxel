@@ -305,6 +305,9 @@ public static class DocsRuntime
 
         「動きを見る」経路と「ピクセルを見る」経路を分けています。**滑らかさ**優先はブラウザ版の `GET /ws/frame` (WebSocket push、frame rev が進むたび最新フレームを配信、latest-wins で遅い受信は中間フレームを間引く) と、in-process で最短経路の内蔵版。**正確さ**優先は `GET /frame` (生 RGBA ポーリング) と `?format=png` の単発取得。配信の書き手はリングバッファ (`FrameChannel`) を使い回すのでゲーム main スレッドは購読中でも割り当てゼロで、読み手 (HTTP スレッド + 内蔵版島スレッドの 2 系統) は seqlock で整合を検証しつつ自前バッファへコピーします。loopback の生 RGBA は帯域に余裕があるため GPU ハードウェアエンコードや MJPEG は使いません (検証用途では劣化のない生ピクセルを優先)。
 
+        > [!IMPORTANT]
+        > 提示バッファ (`GpuMemoryKind.HostMapped`) は write-combined/uncached なことが多く、**CPU 読み戻しが激遅** (960×540 で ~75ms/frame)。そのまま毎フレーム CPU で読むと購読中のゲームが 10fps 台へ落ちます。`IFramePublisher` は `GpuMemoryKind.HostCached` の readback バッファへ **GPU コピー**してから CPU で読む定石 (`GpuCommandBuffer.CopyBuffer`) で ~0.6ms/frame に抑え、さらにライブビュー配信を 30fps に間引きます。フレームバッファを CPU で直接読む自作の配信経路を書くときは同じ落とし穴に注意してください。
+
         ## スレッド設計の規約
 
         signal は所有する島 (スレッド) のみが触り、スレッド間は Listener (volatile/lock 済) と EngineCommands (ConcurrentQueue) だけ — [ThreadStatic] やグローバル可変状態は使いません。テーマも UiHost 単位の signal 所有です (DevTools 島は自前テーマを持つ)。
