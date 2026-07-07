@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Luxel;
 using Luxel.Framework;
+using Luxel.Input;
 using Luxel.Platform;
 using Luxel.Settings;
 using LuxelRange;
@@ -51,6 +52,10 @@ static int Run(string backend, int frames)
         NativeWindow win = windows.CreateWindow(new Luxel.Abstraction.WindowDesc("Luxel Range", w, h));
         using GpuSurface surface = win.CreateSwapchain(device);
 
+        var keyboard = new KeyboardSource();
+        win.KeyDown += vk => keyboard.Down(vk);
+        win.KeyUp += vk => keyboard.Up(vk);
+
         // ハイスコアは %APPDATA%/LuxelRange/ へ (リポジトリ非依存の実ユーザ書込パス)。
         string saveDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LuxelRange");
         var fileStore = new PhysicalFileStore(saveDir);
@@ -62,6 +67,7 @@ static int Run(string backend, int frames)
             .ConfigureServices(s =>
             {
                 s.AddSingleton<IFileStore>(fileStore);
+                s.AddSingleton<IInputSource>(keyboard);
                 s.AddSingleton(sp => new RangeGame(sp.GetRequiredService<IFileStore>()));
                 s.AddSingleton<RangeRealtimeScene>();
             })
@@ -119,4 +125,35 @@ sealed class FramePacer
     }
 
     public void Tick() => Interlocked.Exchange(ref _tcs, null)?.TrySetResult();
+}
+
+/// <summary>Win32 のキーイベントを <see cref="InputBus"/> へ流す入力源 (GameLoop が毎フレーム Poll)。</summary>
+sealed class KeyboardSource : IInputSource
+{
+    private readonly List<(KeyCode Key, bool Down)> _pending = new();
+    public string Name => "range-keyboard";
+
+    public void Down(ushort vk) { if (Map(vk) is { } k) lock (_pending) _pending.Add((k, true)); }
+    public void Up(ushort vk) { if (Map(vk) is { } k) lock (_pending) _pending.Add((k, false)); }
+
+    public void Poll(InputBus bus)
+    {
+        lock (_pending)
+        {
+            foreach ((KeyCode k, bool d) in _pending) bus.EnqueueKey(k, d);
+            _pending.Clear();
+        }
+    }
+
+    private static KeyCode? Map(ushort vk) => vk switch
+    {
+        0x20 => KeyCode.Space,
+        0x0D => KeyCode.Enter,
+        0x1B => KeyCode.Escape,
+        0x25 => KeyCode.Left,
+        0x27 => KeyCode.Right,
+        0x26 => KeyCode.Up,
+        0x28 => KeyCode.Down,
+        _ => null,
+    };
 }

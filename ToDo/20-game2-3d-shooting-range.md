@@ -167,7 +167,14 @@ samples/LuxelRange/
 - 罠: `RangeGame` (DI singleton) を scene でも Dispose すると Bepu `Simulation.Dispose` 二重呼び出しでクラッシュ → scene の Dispose を外し `RangeSim.Dispose` を冪等化。
 - **検証**: vk/dx とも `--frames` スモーク exit 0。**publish (self-contained win-x64) で全 3D シェーダ (cube_forward/scene_pbr_lite/morph/skinned/billboard の SPIR-V+DXIL) が `shaders/` に同梱**、**リポジトリ外の publish フォルダから vk/dx とも起動 exit 0** (3D 出荷経路 OK)。全 837 passed / e2e 71/71 diff 0。
 
-**残 (後続スライス)**: 5-2 = exe にキーボード/マウス操作 (OrbitCamera + クリック発射) + Fox skin/パーティクル描画 + Title/Result UI + BGM/SE 実音 (10) を結線 (Gallery RangeScene の描画を共有 or 移植)。Docs の「配布」節に 3D capstone を追記。**これで 20 の全スライス完了 → 20 MD 削除**。
+### 2026-07-07 (11): スライス 5-2 — exe キーボード操作 (OrbitCamera + 発射)
+
+**済**:
+- `Program.cs`: `KeyboardSource : IInputSource` (Win32 キー → `InputBus`) を登録・`win.KeyDown/Up` に結線。
+- `RangeRealtimeScene`: 入力アクション (`Axis1DAction` orbitH/orbitV = 矢印、`ButtonAction` fire=Space/quit=Esc) を `InputContext` で `_loop.InputStack` に push。`OnFixedUpdate` で矢印カメラ旋回 (+ 無操作時の緩い自動旋回) + Space 押下エッジで画面中央へ CCD 弾発射 + Esc 終了。
+- **検証**: vk `--frames` スモーク exit 0 (入力配線後もループ健全)。
+
+**残 (最終スライス 5-3)**: exe に Fox skin/パーティクル描画 (Gallery RangeScene の描画共有/移植) + Title/Result UI オーバーレイ (Rasterizer2D、スコア/ハイスコア表示) + BGM/SE 実音 (10、UseAudio + AudioMixer)。Docs の「配布」節に 3D capstone を追記。**これで 20 の全スライス完了 → 20 MD 削除**。
 
 ## スコープ外
 

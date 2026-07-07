@@ -4,6 +4,7 @@ using Luxel;
 using Luxel.AssetRuntime;
 using Luxel.Ecs;
 using Luxel.Framework;
+using Luxel.Input;
 using Luxel.RenderGraph;
 using LuxelRange.Core;
 
@@ -25,6 +26,7 @@ public sealed class RangeRealtimeScene : GameScene
     private struct PbrArgs { public Matrix4x4 ViewProj; public uint VertexBufIndex, IndexBufIndex, InstanceBufIndex, InstanceStart; }
 
     private readonly RangeGame _game;
+    private readonly SceneLoopServices _loop;
     private OrbitCamera _cam = new(new Vector3(0, 0.8f, -6f), yaw: 0f, pitch: 0.40f, distance: 18f,
         fovYRadians: MathF.PI / 3.4f, aspect: (float)Width / Height);
     private float _fireTimer = 0.4f;
@@ -36,11 +38,16 @@ public sealed class RangeRealtimeScene : GameScene
     private Render3DExtractSystem? _extractor;
     private bool _init;
 
+    // 入力アクション (矢印でカメラ旋回、Space 発射、Esc 終了)
+    private Axis1DAction _orbitH = null!, _orbitV = null!;
+    private ButtonAction _fire = null!, _quit = null!;
+    private bool _prevFire;
+
     public GpuBuffer Framebuffer => _fb!;
     public uint StridePixels => Width;
     public bool QuitRequested { get; private set; }
 
-    public RangeRealtimeScene(SceneLoopServices loop, RangeGame game) : base(loop) => _game = game;
+    public RangeRealtimeScene(SceneLoopServices loop, RangeGame game) : base(loop) { _loop = loop; _game = game; }
 
     protected override double FixedDeltaSeconds => RangeSim.FixedDt;
 
@@ -49,21 +56,39 @@ public sealed class RangeRealtimeScene : GameScene
         if (_init) return;
         _game.StartRound();   // Play 状態の sim/world を作ってから
         InitGpu();            // その world から extractor/地形バッファを作る
+
+        _orbitH = new Axis1DAction("orbitH");
+        _orbitH.ButtonPairs.Add((KeyCode.Right, KeyCode.Left));
+        _orbitV = new Axis1DAction("orbitV");
+        _orbitV.ButtonPairs.Add((KeyCode.Up, KeyCode.Down));
+        _fire = new ButtonAction("fire", KeyCode.Space);
+        _quit = new ButtonAction("quit", KeyCode.Escape);
+        var inputCtx = new InputContext("range");
+        inputCtx.Add(_orbitH); inputCtx.Add(_orbitV); inputCtx.Add(_fire); inputCtx.Add(_quit);
+        _loop.InputStack?.Push(inputCtx);
+
         _init = true;
     }
 
     protected override void OnFixedUpdate(FixedUpdateContext ctx)
     {
         if (!_init) return;
-        _cam.Orbit(0.10f * RangeSim.FixedDt, 0f);   // ゆっくり自動旋回
+        float dt = RangeSim.FixedDt;
 
-        _fireTimer -= RangeSim.FixedDt;
-        if (_fireTimer <= 0f && _game.State == RangeState.Play)
+        if (_quit.Value.Value) QuitRequested = true;
+
+        // カメラ旋回 (矢印) + ゆっくり自動旋回 (無操作でも見栄えする)
+        _cam.Orbit((0.08f + _orbitH.Value.Value * 1.4f) * dt, _orbitV.Value.Value * 1.0f * dt);
+
+        // 発射 (Space の押下エッジ) — 画面中央 (カメラ前方) へ CCD 弾
+        bool fh = _fire.Value.Value, fp = fh && !_prevFire;
+        _prevFire = fh;
+        if (fp && _game.State == RangeState.Play)
         {
-            _fireTimer = 0.7f;
             Vector3 dir = Vector3.Normalize(_cam.Target - _cam.Eye);
             _game.Fire(_cam.Eye + dir * 0.5f, dir);
         }
+
         _game.Step();
         _game.Sim.ClearEvents();   // exe 段では演出/音を未配線なので毎ステップ消費
     }
