@@ -161,7 +161,11 @@ dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-cont
   - `CavernDevOverlay` (Core): F1 トグルで gizmo カテゴリ (`Gizmos2D.Tiles/Camera` + `ParticleGizmos.Emitters`) を `DebugDraw` の ON/OFF に合わせる。`EmitGizmos` が衝突タイル/カメラのデッドゾーン・境界/エミッタ+生存数をワールド空間で溜め、シーンが `DebugDraw.Flush` (worldToScreen 恒等) で最前面へ。`PublishStats` がゲーム観測値を `DevStats.Set` に載せる (未接続時 zero-cost no-op、DebugServer 接続時は Web パネルへ配信)。`DrawStatsPanel` が右上に統計 (fps/状態/HP・コイン・鍵/座標/パーティクル数、カメラアンカーのスクリーン空間)。
   - exe 結線: `KeyboardSource` に VK_F1、シーンは `OnUpdate` で fps を指数移動平均 + F1 トグル + 毎フレーム `PublishStats`、`OnRender` の world 分岐で `_dev.Enabled` 時に gizmo emit → Flush → パネル。
   - テスト `CavernDevOverlayTests` 4 本 (トグルが gizmo カテゴリを ON/OFF / 有効時のみ溜まる / OFF はゼロ割り当て / DevStats は未接続で no-op)。グローバル `DebugDraw` を触るので `DebugDrawTests` と同じ `[Collection("GlobalGizmo")]` で直列化。build 0 エラー、全 787 passed、exe スモーク exit 0、**e2e 65/65 diff 0**。gizmo→DebugDraw→Flush→Scene2D は `DebugDrawTests` が図形レベルで担保、対話表示 (F1) はヘッドレス検証不可。README に DevTools 節。
-  - **残 (任意仕上げ)**: キーバインド再割当 (UI 複雑) / single-file の Content-loose 対応 / DevTools オーバーレイの golden ストーリー化 (視覚回帰) / DebugServer を exe から起動して Web パネル配信。**capstone のコア (プレイアブル + 配布 + フロー + セーブ + 音 + 設定 + Tiled/リソース管理レベル + DevTools) は達成**。主要ギャップは埋まった — 残りは任意。全て済んだ判断で 19 MD を削除予定。
+- **ステージ B セッション 15 (2026-07-07, Q13)**: **single-file publish 対応** (ユーザー指示: フォントを DLL 埋め込み + リソースシステム経由) — checklist 5 達成。
+  - 本文フォント (BIZUDGothic-Regular.ttf) を exe の Content から **Core.dll の EmbeddedResource へ移動** (`git mv` で Core/assets/fonts へ)。`CavernAssets.LoadBodyFont(ResourceSystem)` が `res://fonts/…` を `EmbeddedResourceSource` 経由で byte[] ロード → `new VectorFont(bytes)`。`CavernResources.CreateEmbedded()` で埋め込み用 RS を組む (レベルローダも共用)。Program はフォントを RS 経由でロード (旧: `AppContext.BaseDirectory` 隣の Content 直読み)。
+  - **単一ファイル publish 検証**: `-p:PublishSingleFile=true --self-contained` → `LuxelCavern.exe` ~86MB。フォントは Core.dll 内 (単一 exe にバンドル) を RS で読むので loose 非依存。`C:\` (リポジトリ外) から `vk`/`dx` とも `--frames 30` で **exit 0・クラッシュ無し** (旧: 同梱フォントが BaseDirectory から見つからず起動失敗していた)。shaders/ とネイティブ DLL は exe 隣に loose。
+  - テスト `CavernAssetsTests` 2 本 (埋め込み .ttf を RS 経由でロード / 欠損でエラー)。build 0 エラー、全 789 passed、フォルダ/単一ファイル両スモーク exit 0、**e2e 65/65 diff 0**。README の「既知の制限 (single-file)」を削除し配布節に単一ファイル手順を追加。
+  - **残 (任意仕上げ)**: キーバインド再割当 (UI 複雑) / DevTools オーバーレイの golden ストーリー化 (視覚回帰) / DebugServer を exe から起動して Web パネル配信。**capstone のコア (プレイアブル + 配布 + フロー + セーブ + 音 + 設定 + Tiled/リソース管理レベル + DevTools + single-file) は達成**。主要ギャップ + checklist 全項目が埋まった — 残りは任意。判断で 19 MD を削除予定。
 
 ## 作業ステップ
 

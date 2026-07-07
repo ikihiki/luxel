@@ -30,16 +30,15 @@ public sealed class CavernLevelLoader : IDisposable
     /// 未指定なら埋め込み専用の ResourceSystem を自前で生成し所有する。</param>
     public CavernLevelLoader(ResourceSystem? resources = null)
     {
-        var source = new EmbeddedResourceSource(typeof(CavernLevelLoader).Assembly);
         if (resources is not null)
         {
             _res = resources;
-            _res.AddSource(source);
+            _res.AddSource(new EmbeddedResourceSource(typeof(CavernLevelLoader).Assembly));
             _ownsResources = false;
         }
         else
         {
-            _res = new ResourceSystem(sources: [source]);
+            _res = CavernResources.CreateEmbedded();
             _ownsResources = true;
         }
     }

@@ -7,8 +7,10 @@ Luxel エンジンで作ったスタンドアロンの 2D 探索アクション�
 ## 構成
 
 - **`LuxelCavern.Core`** (net10.0, 純ロジック): `CavernSim` (プレイヤー物理・収集・敵・トゲ・HP・
-  チェックポイント)、`CavernTiled` (Tiled .tmj レベル読み込み)、`CavernLevel` (アトラス/タイルセット)、
-  `GameFlow` (状態機械)、`CavernHud`、`CavernSave`、`CavernSettings`、`CavernAudio`。
+  チェックポイント)、`CavernTiled`/`CavernLevelLoader` (Tiled .tmj レベルを ResourceSystem 経由で読み込み)、
+  `CavernLevel` (アトラス/タイルセット)、`GameFlow` (状態機械)、`CavernHud`、`CavernSave`、`CavernSettings`、
+  `CavernAudio`、`CavernDevOverlay` (F1 gizmo/統計)。**レベル (.tmj) と本文フォント (.ttf) は Core.dll に埋め込み**、
+  `CavernResources`/`EmbeddedResourceSource` (スキーム `res://`) 経由でロードする (single-file publish 対応)。
   GPU/実窓に非依存で**決定的** — Gallery の `Game/Cavern` ストーリーが play/golden を維持し、
   単体テスト (`tests/Luxel.Tests/CavernSimTests` 他) が守る。
 - **`LuxelCavern`** (net10.0-windows, WinExe): `CavernRealtimeScene : GameScene` を
@@ -48,16 +50,23 @@ dotnet run --project samples/LuxelCavern/LuxelCavern -- vk --frames 30   # 30 �
 
 ## 配布 (publish)
 
-self-contained のフォルダ配布 (推奨):
+self-contained のフォルダ配布:
 
 ```powershell
 dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-contained -o publish
 ```
 
-出力 (約 120 MB) に **`shaders/`** (Slang → SPIR-V/DXIL、`Luxel.Shaders.targets` が publish へコピー)・
-**`assets/fonts/`** (同梱 BIZ UDGothic)・ネイティブ DLL (glfw3 / HarfBuzzSharp / Silk.NET.*) が揃う。
-アセット/フォント/シェーダは `AppContext.BaseDirectory` (exe の隣) から読むので **cwd 非依存** —
-publish フォルダをリポジトリ外の任意パスへコピーして起動できる (検証: `C:\`, `%TEMP%` から vk/dx とも exit 0)。
+**単一ファイル配布** (推奨、フォント埋め込みで対応済み):
+
+```powershell
+dotnet publish samples/LuxelCavern/LuxelCavern -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish
+```
+
+フォント (BIZ UDGothic) は **Core.dll に埋め込み**、`ResourceSystem` 経由でロードするので単一ファイルにバンドルされても
+起動できる (検証: `LuxelCavern.exe` ~86 MB、`C:\` から vk/dx とも exit 0)。**`shaders/`** (Slang → SPIR-V/DXIL、
+`Luxel.Shaders.targets` が publish へコピー) とネイティブ DLL (glfw3 / HarfBuzzSharp / Silk.NET.*) は exe の隣に loose 配置。
+シェーダは `AppContext.BaseDirectory` (exe の隣) から読むので **cwd 非依存** — publish 出力をリポジトリ外の任意パスへ
+コピーして起動できる (検証: `C:\`, `%TEMP%` から vk/dx とも exit 0)。
 
 ### レベル (Tiled)
 
@@ -81,9 +90,3 @@ gizmo カテゴリは `DebugDraw` のグローバル ON/OFF なので OFF 時は
 
 - Windows x64 + **Vulkan または D3D12 対応 GPU ドライバ**。`vulkan-1.dll` は OS/ドライバ側 (同梱しない)。
 - .NET ランタイム不要 (self-contained)。
-
-### 既知の制限
-
-- **単一ファイル publish** (`-p:PublishSingleFile=true`) は、同梱フォント (Content) が単一ファイルへ
-  バンドルされ `BaseDirectory` から見つからず起動失敗する。フォルダ配布を推奨。
-  (Content を loose に保つ設定 = single-file 対応は将来課題。)

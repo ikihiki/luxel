@@ -29,9 +29,11 @@
     <ProjectReference Include="..\..\..\src\Luxel.Particles.TwoD\Luxel.Particles.TwoD.csproj" />
   </ItemGroup>
 
-  <!-- Tiled (.tmj) レベルを Core.dll へ埋め込む (exe/Gallery/テストが同じレベルを持つ・publish 追加コピー不要)。 -->
+  <!-- ゲームアセットを Core.dll へ埋め込む (ResourceSystem 経由でロード)。レベル (.tmj) + 本文フォント (.ttf)。
+       埋め込みにより single-file publish でも loose ファイル (BaseDirectory 依存) に頼らず起動できる。 -->
   <ItemGroup>
     <EmbeddedResource Include="levels\cavern1.tmj" />
+    <EmbeddedResource Include="assets\fonts\BIZUDGothic-Regular.ttf" />
   </ItemGroup>
 
 </Project>

@@ -1,33 +1,30 @@
+using Luxel.Resources;
 using Luxel.Typography;
 
 namespace LuxelCavern.Core;
 
 /// <summary>
-/// ゲーム同梱アセットの解決口。<b>cwd 非依存</b> — 常に <see cref="AppContext.BaseDirectory"/>
-/// (実行ファイルの隣) を基準にするので、publish フォルダをリポジトリ外へコピーしても解決できる。
-/// フォントは <c>assets/fonts/</c> に同梱 (csproj の Content コピーで exe 隣へ配置)。
+/// ゲーム同梱アセットの解決口。フォントは **Core.dll に埋め込み**、<see cref="ResourceSystem"/> 経由で
+/// <c>res://</c> スキーム (<see cref="EmbeddedResourceSource"/>) から読む — cwd/loose ファイルに非依存なので
+/// **single-file publish でも起動できる** (旧: <see cref="AppContext.BaseDirectory"/> 隣の Content を読んでいたため
+/// 単一ファイルではフォントが見つからず失敗していた)。
 /// </summary>
 public static class CavernAssets
 {
-    /// <summary>本文/UI フォント (BIZ UDGothic — 日本語かな漢字 + ラテン)。システムフォント非依存。</summary>
-    public const string BodyFont = "BIZUDGothic-Regular.ttf";
+    /// <summary>本文/UI フォント (BIZ UDGothic — 日本語かな漢字 + ラテン) の埋め込み URI。</summary>
+    public const string BodyFontUri = "res://fonts/BIZUDGothic-Regular.ttf";
 
-    /// <summary>exe 隣の <c>assets/</c> 基準にサブパスを解決する。</summary>
-    public static string Path(string relative) =>
-        System.IO.Path.Combine(AppContext.BaseDirectory, "assets", relative);
+    /// <summary>本文フォントを <see cref="ResourceSystem"/> 経由でロードして <see cref="VectorFont"/> を作る。</summary>
+    public static VectorFont LoadBodyFont(ResourceSystem resources)
+        => new(LoadBytes(resources, BodyFontUri));
 
-    /// <summary>同梱フォントの実パス。</summary>
-    public static string FontPath(string fileName) => Path(System.IO.Path.Combine("fonts", fileName));
-
-    /// <summary>同梱の本文フォントを <see cref="VectorFont"/> として読む。見つからなければ
-    /// <see cref="FileNotFoundException"/> — publish でフォントがコピーされていない穴を早期に検出する。</summary>
-    public static VectorFont LoadBodyFont()
+    /// <summary>埋め込みアセットのバイト列を ResourceSystem 経由で取得する (ロード完了を待つ)。</summary>
+    public static byte[] LoadBytes(ResourceSystem resources, string uri)
     {
-        string path = FontPath(BodyFont);
-        if (!File.Exists(path))
-            throw new FileNotFoundException(
-                $"同梱フォントが見つかりません: {path} " +
-                "(csproj の Content コピー、または publish のアセット同梱を確認してください)", path);
-        return VectorFont.Load(path);
+        using ResourceHandle<byte[]> h = resources.Load<byte[]>(uri);
+        h.Ready.GetAwaiter().GetResult();
+        if (h.Error is not null)
+            throw new InvalidOperationException($"埋め込みアセットの読み込みに失敗: {uri}", h.Error);
+        return h.Value;
     }
 }

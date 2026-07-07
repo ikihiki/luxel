@@ -36,6 +36,13 @@ thread.Start();
 thread.Join();
 return exit;
 
+// フォントは Core.dll 埋め込みを ResourceSystem 経由でロード (RS は読み込み後に破棄、VectorFont はバイトを保持)。
+static VectorFont LoadBodyFont()
+{
+    using Luxel.Resources.ResourceSystem res = CavernResources.CreateEmbedded();
+    return CavernAssets.LoadBodyFont(res);
+}
+
 static GpuDevice CreateDevice(string backend) => backend switch
 {
     "dx" => new GpuDevice(Luxel.D3D12.D3D12Backend.Create()),
@@ -48,7 +55,8 @@ static int Run(string backend, int frames)
     {
         using GpuDevice device = CreateDevice(backend);
         Console.WriteLine($"=== Luxel Cavern (backend: {backend}, device: {device.Name}) ===");
-        using VectorFont font = CavernAssets.LoadBodyFont();
+        // フォントは Core.dll 埋め込みを ResourceSystem 経由で読む (single-file publish でも loose 依存なし)。
+        using VectorFont font = LoadBodyFont();
 
         int w = CavernRealtimeScene.Width, h = CavernRealtimeScene.Height;
         using var windows = new WindowSystem(Win32WindowBackend.Create());
