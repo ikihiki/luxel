@@ -114,7 +114,15 @@ samples/LuxelRange/
 - 単体テスト +2: 真下撃ちで地形貫通した弾が KillY 下回りで despawn (スライス 2 の高速弾トンネリング制約の**回収経路を実証**) / 小物が地形上に留まり despawn しない (ConvexHull vs Mesh の静定)。
 - Gallery: 小物が単位キューブ (青) として地形上に描画される。golden 更新、vk/dx 一致。全 829 passed / e2e 71/71 diff 0。
 
-**残 (後続スライス)**: 3b = 動く的 (09 Fox skin) の巡回 + ひるみ + ボーナスゾーン トリガー scoring (04) + 命中パーティクル (16) + SE。4 = Title/Result + ハイスコア/設定 (15) + BGM (10)。5 = exe プレイアブル化 + publish 3D 検証 (glTF/scene_pbr shaders)。**20 MD は全スライス完了まで残す**。
+### 2026-07-07 (4): スライス 3b — ボーナスゾーン トリガー scoring (04)
+
+**済**:
+- `RangeSim`: ボーナスゾーン (静的 `Trigger` collidable + `RangeBonusZone` マーカ、z=-5 の帯) + 装飾床マーカ (黄、コライダー無し)。`RangeProp.Scored` フラグ。`ProcessHits` を拡張し ContactBegin(小物 × ボーナスゾーン) → `BonusScore += 200` (一度だけ)。
+- 単体テスト +1: 小物にゾーン方向の速度を与えると +200 を一度だけ (二重計上なし)。
+- Gallery: 黄色の床マーカが小物と的の間に描画される。golden 更新、vk/dx 一致。全 830 passed / e2e 71/71 diff 0。
+- **物理の知見**: **100m/s の弾で動的小物を吹き飛ばすのは Bepu の対動体 CCD 限界で不確実** (弾が小物をトンネリング、SolverSubsteps を上げても改善せず)。的 (静的箱) への CCD 命中は確実 (スライス 1 で実証済み)。ボーナス機構自体は速度直接付与で決定的にテスト。実プレイでは大きめのゾーンで best-effort。
+
+**残 (後続スライス)**: 3c = 動く的 (09 Fox skin) の巡回 + ひるみ + 命中 +300。3d = 命中パーティクル (16) + SE。4 = Title/Result + ハイスコア/設定 (15) + BGM (10)。5 = exe プレイアブル化 + publish 3D 検証 (glTF/scene_pbr shaders)。**20 MD は全スライス完了まで残す**。
 
 ## スコープ外
 

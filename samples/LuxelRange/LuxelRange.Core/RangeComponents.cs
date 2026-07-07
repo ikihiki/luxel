@@ -17,7 +17,15 @@ public struct RangeBullet : IComponent
 {
 }
 
-/// <summary>動的な物理小物 (ConvexHull の箱)。撃って動かせる。場外落下で despawn。</summary>
+/// <summary>動的な物理小物 (ConvexHull の箱)。撃って動かせる。場外落下で despawn。
+/// ボーナスゾーン通過で加点 (<see cref="Scored"/> で一度だけ)。</summary>
 public struct RangeProp : IComponent
+{
+    /// <summary>ボーナス加点済みか。</summary>
+    public bool Scored;
+}
+
+/// <summary>ボーナスゾーン (トリガー) のマーカ。小物を通過させると加点。</summary>
+public struct RangeBonusZone : IComponent
 {
 }

@@ -98,6 +98,34 @@ public class RangeSimTests
         Assert.Equal(0, sim.DespawnedCount);
     }
 
+    /// <summary>ボーナスゾーン (トリガー) 機構: 小物がゾーンへ入ると +200 を一度だけ。速度は直接与える
+    /// (100m/s 弾で小物を吹き飛ばすのは Bepu の対動体 CCD 限界で不確実 — スコア機構自体を決定的に検証)。</summary>
+    [Fact]
+    public void BonusZone_PropEntersZone_Scores200Once()
+    {
+        using var sim = new RangeSim();
+        sim.Fire(new Vector3(0, 1.3f, 5f), new Vector3(0, 1, 0));   // 空撃ちで物理開始
+        for (int i = 0; i < 5; i++) sim.StepOnce();                 // 小物の body を Attach
+
+        // 中央の小物 (x≈0) にゾーン方向 (-Z) の速度を与える (吹き飛ばされた状態を再現)
+        BepuPhysics.BodyHandle propH = default;
+        bool found = false;
+        sim.World.Query<RangeProp, Luxel.Physics.HullCollider>().ForEachEntity(
+            (ref RangeProp _, ref Luxel.Physics.HullCollider h, Entity e) =>
+            { if (h.Attached && !found && MathF.Abs(e.GetComponent<Luxel.Ecs.LocalTransform>().Matrix.Translation.X) < 1f) { propH = h.Handle; found = true; } });
+        Assert.True(found, "中央の小物が見つからない");
+        BepuPhysics.BodyReference body = sim.Physics.Simulation.Bodies[propH];
+        body.Velocity.Linear = new Vector3(0, 1f, -8f);   // ゾーン (z=-5) へ滑走
+        body.Awake = true;
+
+        for (int i = 0; i < 200; i++) sim.StepOnce();
+        Assert.Equal(200, sim.BonusScore);   // ゾーン通過で +200
+
+        int before = sim.BonusScore;
+        for (int i = 0; i < 200; i++) sim.StepOnce();
+        Assert.Equal(before, sim.BonusScore);   // 二重計上しない
+    }
+
     private static int CountBullets(RangeSim sim)
     {
         int n = 0;

@@ -40,6 +40,8 @@ public sealed class RangeSim : IDisposable
     public int TargetsHit { get; private set; }
     /// <summary>的の総数。</summary>
     public int TargetCount => _targets.Count;
+    /// <summary>ボーナス加点 (小物をゾーンへ) の得点。</summary>
+    public int BonusScore { get; private set; }
     /// <summary>配置した物理小物 (ConvexHull) の数。</summary>
     public int PropCount { get; private set; }
     /// <summary>kill plane で despawn した動的体の累計。</summary>
@@ -114,6 +116,21 @@ public sealed class RangeSim : IDisposable
                 new RangeProp());
             PropCount++;
         }
+
+        // ボーナスゾーン (トリガー、z=-5 の帯)。小物をここへ吹き飛ばすと +200。
+        // 物理はトリガー collidable (通過検知・力なし)。描画は地形上の薄い床マーカ (装飾、コライダー無し)。
+        var zoneCenter = new Vector3(0, 1.5f, -5f);
+        var zoneSize = new Vector3(11f, 3f, 2f);
+        World.Store.CreateEntity(
+            new LocalTransform(Matrix4x4.CreateTranslation(zoneCenter)),
+            Collider.Box(zoneSize.X, zoneSize.Y, zoneSize.Z),
+            new Trigger(),
+            new RangeBonusZone());
+        float markerY = RangeTerrain.Height(0, -5f);
+        World.Store.CreateEntity(
+            new LocalTransform(Matrix4x4.CreateScale(11f, 0.08f, 2f) * Matrix4x4.CreateTranslation(0, markerY + 0.1f, -5f)),
+            new Color3D(new Vector4(0.95f, 0.85f, 0.35f, 0.9f)),
+            new MeshRef(MeshRef.Cube));
     }
 
     /// <summary>原点から方向へ CCD 弾を発射する (残弾があれば)。命中判定は次の <see cref="StepOnce"/> 群で。</summary>
@@ -160,14 +177,27 @@ public sealed class RangeSim : IDisposable
         }
     }
 
-    /// <summary>今ステップの ContactBegin から「弾 × 未命中の的」を拾ってスコア加算。</summary>
+    /// <summary>今ステップの ContactBegin から「弾 × 未命中の的」「小物 × ボーナスゾーン」を拾ってスコア加算。</summary>
     private void ProcessHits()
     {
         foreach (ContactEvent ev in Step.ContactEvents)
         {
             if (ev.Phase != ContactPhase.Begin) continue;
-            if (TryResolveHit(ev.A, ev.B) || TryResolveHit(ev.B, ev.A)) { }
+            if (TryResolveHit(ev.A, ev.B) || TryResolveHit(ev.B, ev.A)) continue;
+            if (TryResolveBonus(ev.A, ev.B) || TryResolveBonus(ev.B, ev.A)) { }
         }
+    }
+
+    /// <summary><paramref name="prop"/> が未加点の小物で <paramref name="zone"/> がボーナスゾーンなら +200。</summary>
+    private bool TryResolveBonus(Entity prop, Entity zone)
+    {
+        if (!prop.HasComponent<RangeProp>() || !zone.HasComponent<RangeBonusZone>()) return false;
+        RangeProp p = prop.GetComponent<RangeProp>();
+        if (p.Scored) return false;
+        p.Scored = true;
+        prop.AddComponent(p);   // 上書き
+        BonusScore += 200;
+        return true;
     }
 
     /// <summary><paramref name="bullet"/> が弾で <paramref name="target"/> が未命中の的なら加点して true。</summary>
