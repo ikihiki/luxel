@@ -10,7 +10,6 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 | # | ファイル | タスク | 規模感 | リスク |
 |---|---|---|---|---|
 | 02 | [02-strudel-codeeditor.md](02-strudel-codeeditor.md) | Strudel REPL の CodeEditor 化 + Ctrl+Enter 評価 | 小〜中 | 低 |
-| 03 | [03-physics-ccd.md](03-physics-ccd.md) | Physics: CCD (連続衝突検出) の ECS 公開 | 小 | 低 |
 | 04 | [04-physics-contact-events.md](04-physics-contact-events.md) | Physics: 接触イベント + トリガーボリューム | 中 | 中 |
 | 05 | [05-physics-mesh-colliders.md](05-physics-mesh-colliders.md) | Physics: メッシュ/凸包コライダー | 中 | 中 |
 | 06 | [06-codeeditor-completion-polish.md](06-codeeditor-completion-polish.md) | CodeEditor: 補完ポップアップの磨き込み (P2.5 残) | 小〜中 | 低 |

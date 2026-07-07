@@ -131,6 +131,20 @@ capstone との順序: **A/C/E は 19 のゲーム組み上げ前に済ませる
 **残 (Q05 の残り) — B の物理 gizmo を除き完了**:
 - B の機能別 gizmo: **2D (タイル/カメラ/エミッタ) は Q12 で完了**。**物理 gizmo (コライダーワイヤ/接触点/トリガー/CCD 色分け) はステージ③ = Q14** (03/04/05 の実装後、この DebugDraw + Gizmos2D の流儀で載せる)。**21 MD はこのステージ③完了まで残す**。
 
+### 2026-07-07 (3): ステージ ③ — B の物理 gizmo 骨格 (Q14、コライダーワイヤ + CCD 色分け)
+
+**済 (Q14)**:
+- **`PhysicsGizmos`** (新プロジェクト `Luxel.Physics.Gizmos`、Luxel.Physics + Luxel.TwoD を参照 = `ParticleGizmos` の先例に倣う。物理コアは DebugDraw 非依存のまま)。`DrawColliders(world, dynamicColor, staticColor, ccdColor, width)` = ECS の `Collider` + `RigidBody`/`StaticBody` + `LocalTransform` を **OBB ワイヤ (12 辺)** で描画。寸法は `Collider.RenderScale` (箱=実寸、球/カプセル=外接ボックス)、姿勢は `LocalTransform` の回転 + 平行移動。**動的=緑 / 静的=灰 / CCD 有効=赤** を色分け。先頭で `DebugDraw.IsEnabled` 判定 → **OFF 時は ECS 列挙も割り当てもゼロ**。カテゴリ `gizmo.physics`。
+- 3D → 2D 投影は `DebugDraw.Flush` の `WorldToScreen` に任せる (2D=恒等/3D=viewProj)。デモは決定的な等角投影。
+- テスト: `DebugDrawTests` に 2 件追記 (箱 2 個 = 24 辺 / OFF ゼロ / CCD 色分けは Flush 後の Scene2D.Shapes 色で検証)。
+- golden: **Demos/3D/PhysicsGizmos** (Order 129) — 床 (静的) + 動的箱 2 (軸整列 + 回転 OBB) + CCD 球の外接箱を等角投影で 1 枚 (Canvas2D=Skia 可・決定的、Bepu を回さず authored pose で gizmo 層だけを守る)。e2e 66/66 diff 0。
+- Docs: Docs/DevTools の gizmo 節に `PhysicsGizmos.DrawColliders` を追記 + `Demos/3D/PhysicsGizmos` の StoryRef。
+
+**残 (ステージ③ の完成 = Q15 以降)**:
+- **接触点**の gizmo: [04](04-physics-contact-events.md) (Q15) の接触イベントを購読して接触点マーカを描く。
+- **トリガーボリューム**の gizmo: 04 のトリガー Collider を専用色/破線で描く。
+- これらが済んだら **21 の全ステージ完了 → 21 MD を削除** (README 一覧からも 21 行を削除)。
+
 ### 2026-07-07: ステージ ① の E / F / Docs 完了 (Q05 クローズ)
 
 **済 (Q05 の残り)**:

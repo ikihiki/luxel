@@ -113,6 +113,30 @@ public class PhysicsTests
         Assert.Equal(0.5f, scale.X, 3);             // RenderScale = Collider.Size を保持
     }
 
+    /// <summary>CCD: 薄い壁へ高速な球を撃ち込み、CCD なしはトンネリング / CCD ありは手前で止まる、を両方示す
+    /// (「CCD なしで実際にすり抜ける」ことがテストの信頼性を担保する)。</summary>
+    [Fact]
+    public void Ccd_PreventsTunnelingThroughThinWall()
+    {
+        static float FireSphere(bool ccd)
+        {
+            // 重力を切って Z 軸のトンネリングだけを見る
+            using var physics = new PhysicsWorld(new PhysicsSettings { Gravity = Vector3.Zero });
+            physics.AddStatic(new RigidPose(new Vector3(0, 0, 0)),
+                physics.AddShape(new Box(4, 4, 0.1f)));   // 壁: z ∈ [-0.05, 0.05]、厚さ 0.1
+            BodyHandle ball = physics.AddDynamic(
+                new RigidPose(new Vector3(0, 0, -2)), new Sphere(0.2f), mass: 1f,
+                velocity: new BodyVelocity(new Vector3(0, 0, 150f)),   // 150 m/s → 1 ステップ 2.5m (壁 0.1m を飛び越える)
+                continuous: ccd,
+                maxSpeculativeMargin: 0.1f);   // 投機マージンを絞る → discrete では壁を捕捉できず CCD の掃引だけが止める
+            for (int i = 0; i < 8; i++) physics.StepOnce();
+            return physics.GetPose(ball).Position.Z;
+        }
+
+        Assert.True(FireSphere(ccd: false) > 1f);   // CCD なし → 壁をすり抜けて向こう側 (z > 0)
+        Assert.True(FireSphere(ccd: true) < 0f);    // CCD あり → 壁の手前で停止 (z < 0)
+    }
+
     [Fact]
     public void Accumulator_FixedStepCount()
     {

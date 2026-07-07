@@ -65,11 +65,12 @@ public sealed class PhysicsStepSystem : BaseSystem
         {
             var velocity = new BodyVelocity(b.InitialVelocity);
             float mass = b.Mass > 0 ? b.Mass : 1f;
+            bool ccd = b.Continuous;
             BodyHandle handle = c.Kind switch
             {
-                ColliderKind.Sphere => _physics.AddDynamic(pose, new Sphere(c.Radius), mass, velocity),
-                ColliderKind.Capsule => _physics.AddDynamic(pose, new Capsule(c.Radius, c.Length), mass, velocity),
-                _ => _physics.AddDynamic(pose, new Box(c.Size.X, c.Size.Y, c.Size.Z), mass, velocity),
+                ColliderKind.Sphere => _physics.AddDynamic(pose, new Sphere(c.Radius), mass, velocity, continuous: ccd),
+                ColliderKind.Capsule => _physics.AddDynamic(pose, new Capsule(c.Radius, c.Length), mass, velocity, continuous: ccd),
+                _ => _physics.AddDynamic(pose, new Box(c.Size.X, c.Size.Y, c.Size.Z), mass, velocity, continuous: ccd),
             };
             RigidBody updated = b;
             updated.Handle = handle;

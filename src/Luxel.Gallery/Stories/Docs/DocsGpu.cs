@@ -533,6 +533,22 @@ public static class DocsGpu
             ctx.Log($"t={hit.T} normal={hit.Normal} static={hit.IsStatic}");
         ```
 
+        ## CCD (連続衝突検出)
+
+        高速な弾/投擲物が薄い壁をすり抜ける「トンネリング」は、`RigidBody.Dynamic(ccd: true)` (または `PhysicsWorld.AddDynamic(..., continuous: true)`) で防げます。Bepu の掃引 (sweep) ベース連続検出を有効にするフラグで、Attach 時に一度だけ反映されます:
+
+        ```csharp
+        world.Store.CreateEntity(
+            new LocalTransform(Matrix4x4.CreateTranslation(0, 1, -8)),
+            Collider.Sphere(0.2f),
+            RigidBody.Dynamic(initialVelocity: new Vector3(0, 0, 150), ccd: true));   // 高速弾でも壁を貫通しない
+        ```
+
+        > [!NOTE]
+        > 既定 (`ccd: false`) でも Bepu は速度に応じた**投機マージン**で大抵のトンネリングを防ぎます。CCD が本当に効くのは、投機マージンを絞った構成 (`AddDynamic` の `maxSpeculativeMargin`) や、極端な速度 + 薄い壁 + 回転を伴う掃引です。掃引コストと引き換えなので、弾など必要なボディにだけ付けます。
+
+        コライダーの可視化 (動的/静的/CCD の色分けワイヤ) は物理 gizmo で行えます — {{StoryRef(ctx, "Demos/3D/PhysicsGizmos")}}。
+
         ## 設計ノート
 
         - **リセットは丸ごと再構築** — entity 削除に連動した body 掃除は持たず、World + PhysicsWorld を作り直すのが決定的な初期状態へ戻る正攻法です (Playground の reset knob がこの形)
@@ -540,11 +556,7 @@ public static class DocsGpu
 
         ## ロードマップ (v1 スコープ外)
 
-        v1 で見送った項目と、その理由・実装の要点です。おおまかな優先度は **CCD → 接触イベント → 静的メッシュコライダー → キャラクターコントローラ** (費用対効果順)。
-
-        ### CCD (連続衝突検出)
-
-        高速な物体が薄い壁をすり抜ける「トンネリング」対策。Bepu 側には既にあり (`ContinuousDetection.Continuous`)、`Collider`/`RigidBody` に指定する口を作っていないだけです — Attach 時の `BodyDescription.Collidable` へ渡す数行で載る、いちばん安い項目。
+        v1 で見送った項目と、その理由・実装の要点です。おおまかな優先度は **接触イベント → 静的メッシュコライダー → キャラクターコントローラ** (費用対効果順)。CCD は実装済み (上記「CCD」節)。
 
         ### 接触イベント (trigger)
 

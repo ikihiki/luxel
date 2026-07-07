@@ -1,6 +1,10 @@
-﻿using System.Numerics;
+﻿using System.Linq;
+using System.Numerics;
+using Luxel.Ecs;
 using Luxel.Particles;
 using Luxel.Particles.TwoD;
+using Luxel.Physics;
+using Luxel.Physics.Gizmos;
 using Luxel.TwoD;
 
 namespace Luxel.Tests;
@@ -167,5 +171,45 @@ public class DebugDrawTests
         DebugDraw.Enable(ParticleGizmos.Emitters);
         ParticleGizmos.Emitter(ps, new Vector2(50, 50), 0u);
         Assert.Equal(4, DebugDraw.PendingCount);   // 円 + 十字 2 線 + ラベル
+    }
+
+    // ---- PhysicsGizmos (タスク 21 ステージ③ = Q14、DebugDraw と同クラス = 静的状態を直列化) ----
+
+    [Fact]
+    public void Gizmo_PhysicsColliders_WireBoxPerBody_ZeroWhenOff()
+    {
+        using var world = new Luxel.Ecs.World();
+        world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, 3, 0)),
+            Collider.Box(1, 1, 1), RigidBody.Dynamic());
+        world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, -0.5f, 0)),
+            Collider.Box(8, 1, 8), new StaticBody());
+
+        PhysicsGizmos.DrawColliders(world, 0xFF00FF00, 0xFF888888, 0xFFFF0000);   // OFF
+        Assert.Equal(0, DebugDraw.PendingCount);
+
+        DebugDraw.Enable(PhysicsGizmos.Colliders);
+        PhysicsGizmos.DrawColliders(world, 0xFF00FF00, 0xFF888888, 0xFFFF0000);
+        Assert.Equal(24, DebugDraw.PendingCount);   // 箱 2 個 × 12 辺
+    }
+
+    [Fact]
+    public void Gizmo_PhysicsColliders_CcdColorCoded()
+    {
+        using var world = new Luxel.Ecs.World();
+        world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, 3, 0)),
+            Collider.Box(1, 1, 1), RigidBody.Dynamic(ccd: true));   // CCD 有効 → ccdColor
+        world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, -0.5f, 0)),
+            Collider.Box(8, 1, 8), new StaticBody());               // 静的 → staticColor
+
+        const uint dyn = 0xFF00FF00, stat = 0xFF888888, ccd = 0xFFFF0000;
+        DebugDraw.Enable(PhysicsGizmos.Colliders);
+        PhysicsGizmos.DrawColliders(world, dyn, stat, ccd);
+
+        var scene = new Scene2D();
+        DebugDraw.Flush(scene, w => new Vector2(w.X, w.Y));   // 恒等投影 (XY)
+        var colors = scene.Shapes.Select(s => s.Color).ToHashSet();
+        Assert.Contains(ccd, colors);
+        Assert.Contains(stat, colors);
+        Assert.DoesNotContain(dyn, colors);   // CCD 有効なので通常動的色は出ない
     }
 }

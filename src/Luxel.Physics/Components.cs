@@ -50,13 +50,16 @@ public struct RigidBody : IComponent
     public float Mass;
     /// <summary>Attach 時に与える初速。</summary>
     public Vector3 InitialVelocity;
+    /// <summary>CCD (連続衝突検出) を有効にするか。高速な物体が薄い壁をすり抜ける
+    /// トンネリングを防ぐ (弾/投擲物向け)。既定 false = discrete。Attach 時に一度だけ反映。</summary>
+    public bool Continuous;
     /// <summary>発行済み body ハンドル (システムが書く)。</summary>
     public BodyHandle Handle;
     /// <summary>body 発行済みか (BodyHandle は値 0 が有効なため別フラグ)。</summary>
     public bool Attached;
 
-    public static RigidBody Dynamic(float mass = 1f, Vector3 initialVelocity = default)
-        => new() { Mass = mass, InitialVelocity = initialVelocity };
+    public static RigidBody Dynamic(float mass = 1f, Vector3 initialVelocity = default, bool ccd = false)
+        => new() { Mass = mass, InitialVelocity = initialVelocity, Continuous = ccd };
 }
 
 /// <summary>静的コライダー (床/壁)。pose は Attach 時の LocalTransform で固定される。</summary>

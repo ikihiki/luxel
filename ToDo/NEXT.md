@@ -48,7 +48,7 @@
 
 ### M4 — 3D 物理・アニメーション (capstone ② の部品)
 
-- [ ] **Q14**: [03 CCD](03-physics-ccd.md) — 小。続けて [21](21-devtools-game-scale.md) **ステージ ③: 物理 gizmo (コライダーワイヤ/接触点/トリガー/CCD 色分け)** の骨格をここで作ると 04/05 のデバッグが楽 (接触点表示は Q15 後に完成)。21 の全ステージが済んだら **21 の MD を削除**
+- [x] **Q14**: 03 CCD + [21](21-devtools-game-scale.md) **ステージ ③ 物理 gizmo 骨格** (2026-07-07 完了)。**CCD**: `RigidBody.Dynamic(ccd: true)` / `PhysicsWorld.AddDynamic(continuous:, maxSpeculativeMargin:)` → Bepu `ContinuousDetection.Continuous`。テスト = 薄い壁へ 150m/s の球 (margin 0.1 で投機接触を無効化) で「CCD なし=貫通 / あり=手前で停止」を両 assert。Docs/Physics に CCD 節、ロードマップから CCD 削除。**03 MD 削除済み**。**物理 gizmo 骨格**: 新プロジェクト `Luxel.Physics.Gizmos` の `PhysicsGizmos.DrawColliders(world, dyn, static, ccd 色)` = ECS の Collider を OBB ワイヤ (箱=実寸/球・カプセル=外接) で描画・動的/静的/CCD を色分け・OFF 時ゼロ割り当て。デモ `Demos/3D/PhysicsGizmos` (等角投影・authored pose で決定的、golden 1)。単体テスト 3 (CCD 1 + gizmo 2)、全 808 passed、e2e 66/66 diff 0。**接触点/トリガーの gizmo は Q15 (04 接触イベント) 後に完成** — **21 MD はそれまで残す**。
 - [ ] **Q15**: [04 接触イベント + トリガー](04-physics-contact-events.md)
 - [ ] **Q16**: [05 メッシュ/凸包コライダー](05-physics-mesh-colliders.md)
 - [ ] **Q17**: [09 glTF skin/morph](09-gltf-skin-morph.md) — 大。作業ステップ単位で分割可 (skin → morph)

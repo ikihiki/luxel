@@ -103,14 +103,23 @@ public sealed class PhysicsWorld : IDisposable
     public TypedIndex AddShape<TShape>(in TShape shape) where TShape : unmanaged, IShape
         => Simulation.Shapes.Add(shape);
 
-    /// <summary>動的ボディを追加する (慣性は shape × mass から計算)。</summary>
+    /// <summary>動的ボディを追加する (慣性は shape × mass から計算)。
+    /// <paramref name="continuous"/> = true で CCD (連続衝突検出) を有効化 — 高速な物体が薄い壁を
+    /// すり抜けるトンネリングを防ぐ (掃引コストと引き換え)。既定 false は Bepu の Passive (discrete)。
+    /// <para><paramref name="maxSpeculativeMargin"/> は投機的接触の生成距離上限。既定 (無制限) では
+    /// Bepu は速度に応じた投機マージンで大抵のトンネリングを discrete でも防ぐ — CCD が本当に効くのは
+    /// この値を絞った (薄い壁 + 極端な速度) 場合や回転を伴う掃引。</para></summary>
     public BodyHandle AddDynamic<TShape>(in RigidPose pose, in TShape shape, float mass = 1f,
-        in BodyVelocity velocity = default, float sleepThreshold = 0.01f)
+        in BodyVelocity velocity = default, float sleepThreshold = 0.01f, bool continuous = false,
+        float maxSpeculativeMargin = float.MaxValue)
         where TShape : unmanaged, IConvexShape
     {
         BodyInertia inertia = shape.ComputeInertia(mass);
+        var collidable = new CollidableDescription(
+            AddShape(shape), 0f, maxSpeculativeMargin,
+            continuous ? ContinuousDetection.Continuous() : ContinuousDetection.Passive);
         return Simulation.Bodies.Add(BodyDescription.CreateDynamic(
-            pose, velocity, inertia, AddShape(shape), new BodyActivityDescription(sleepThreshold)));
+            pose, velocity, inertia, collidable, new BodyActivityDescription(sleepThreshold)));
     }
 
     /// <summary>静的コライダーを追加する (床/壁)。</summary>
