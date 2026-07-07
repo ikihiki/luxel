@@ -94,7 +94,9 @@ public sealed class PhysicsStepSystem : BaseSystem
         _bodyToEntity.Clear();
         _staticToEntity.Clear();
         _world.Query<RigidBody>().ForEachEntity((ref RigidBody b, Entity e) => { if (b.Attached) _bodyToEntity[b.Handle.Value] = e; });
+        _world.Query<HullCollider>().ForEachEntity((ref HullCollider h, Entity e) => { if (h.Attached) _bodyToEntity[h.Handle.Value] = e; });
         _world.Query<StaticBody>().ForEachEntity((ref StaticBody s, Entity e) => { if (s.Attached) _staticToEntity[s.Handle.Value] = e; });
+        _world.Query<MeshCollider>().ForEachEntity((ref MeshCollider m, Entity e) => { if (m.Attached) _staticToEntity[m.Handle.Value] = e; });
         _world.Query<Trigger>().ForEachEntity((ref Trigger t, Entity e) => { if (t.Attached) _staticToEntity[t.Handle.Value] = e; });
     }
 
@@ -145,6 +147,34 @@ public sealed class PhysicsStepSystem : BaseSystem
         });
         foreach ((Entity e, Collider c, RigidPose pose) in newTriggers)
             e.AddComponent(new Trigger { Handle = _physics.AddTrigger(pose, ShapeOf(c)), Attached = true });
+
+        var newMeshes = new List<(Entity E, MeshCollider M, RigidPose Pose)>();
+        _world.Query<MeshCollider>().ForEachEntity((ref MeshCollider m, Entity e) =>
+        {
+            if (!m.Attached) newMeshes.Add((e, m, InitialPose(e)));
+        });
+        foreach ((Entity e, MeshCollider m, RigidPose pose) in newMeshes)
+        {
+            MeshCollider updated = m;
+            updated.Handle = _physics.AddStaticMesh(pose, m.Vertices, m.Indices, m.Scale);
+            updated.Attached = true;
+            e.AddComponent(updated);
+        }
+
+        var newHulls = new List<(Entity E, HullCollider H, RigidPose Pose)>();
+        _world.Query<HullCollider>().ForEachEntity((ref HullCollider h, Entity e) =>
+        {
+            if (!h.Attached) newHulls.Add((e, h, InitialPose(e)));
+        });
+        foreach ((Entity e, HullCollider h, RigidPose pose) in newHulls)
+        {
+            float mass = h.Mass > 0 ? h.Mass : 1f;
+            HullCollider updated = h;
+            updated.Handle = _physics.AddDynamicHull(pose, h.Points, mass, out updated.Center,
+                new BepuPhysics.BodyVelocity(h.InitialVelocity), continuous: h.Continuous);
+            updated.Attached = true;
+            e.AddComponent(updated);
+        }
     }
 
     /// <summary>Collider から Bepu の shape を登録して TypedIndex を得る (静的/トリガー共通)。</summary>
@@ -176,6 +206,16 @@ public sealed class PhysicsStepSystem : BaseSystem
             Matrix4x4 m = Matrix4x4.CreateScale(s)
                         * Matrix4x4.CreateFromQuaternion(pose.Orientation)
                         * Matrix4x4.CreateTranslation(pose.Position);
+            updates.Add((e, m));
+        });
+        // 凸包: pose.Position は重心。元の頂点原点へ戻すため Center ぶん引く (スケールは持たない = 頂点そのまま)
+        _world.Query<HullCollider>().ForEachEntity((ref HullCollider h, Entity e) =>
+        {
+            if (!h.Attached) return;
+            RigidPose pose = _physics.GetPose(h.Handle);
+            Vector3 origin = pose.Position - Vector3.Transform(h.Center, pose.Orientation);
+            Matrix4x4 m = Matrix4x4.CreateFromQuaternion(pose.Orientation)
+                        * Matrix4x4.CreateTranslation(origin);
             updates.Add((e, m));
         });
         foreach ((Entity e, Matrix4x4 m) in updates)

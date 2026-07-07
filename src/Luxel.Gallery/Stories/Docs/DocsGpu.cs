@@ -579,13 +579,30 @@ public static class DocsGpu
         - **リセットは丸ごと再構築** — entity 削除に連動した body 掃除は持たず、World + PhysicsWorld を作り直すのが決定的な初期状態へ戻る正攻法です (Playground の reset knob がこの形)
         - 生の Bepu API は `PhysicsWorld.Simulation` から常に触れます — ラッパに無い機能 (constraint 等) はそこから使えます
 
+        ## メッシュ / 凸包コライダー
+
+        プリミティブ (箱/球/カプセル) に加えて、実メッシュ形状で衝突できます。**静的な地形/建物**は三角形スープの `MeshCollider` (Bepu の `Mesh`)、**動的な小物**は頂点群から作る `HullCollider` (Bepu の `ConvexHull`) です:
+
+        ```csharp
+        // 静的地形 (頂点 + インデックス、glTF の AssetPrimitive.Attributes.Positions / Indices から取れる)
+        world.Store.CreateEntity(new LocalTransform(Matrix4x4.Identity),
+            MeshCollider.Static(vertices, indices));
+
+        // 動的な凸包 (頂点群 → 凸包)
+        world.Store.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, 5, 0)),
+            HullCollider.Dynamic(points, mass: 1f));
+        ```
+
+        {{StoryRef(ctx, "Demos/3D/PhysicsMesh")}}
+
+        > [!WARNING]
+        > **三角形の winding** で衝突面 (法線の向き) が決まります — Bepu メッシュは片面で、法線と逆側から来た物体は貫通します。地形の上面へ物体を載せるなら、上向き法線になる巻き方にしてください (向きが逆なら 2 頂点を入れ替え)。glTF の座標系/スケールは描画と同じ変換を渡さないと絵と当たりがずれます。
+        >
+        > **凸包の重心オフセット**: Bepu は形状を重心原点へ recenter します。`HullCollider` は重心オフセットを内部で保持し、書き戻しで元の頂点原点に合わせます (描画メッシュと一致)。**凹メッシュの凸分解 (V-HACD 等) と動的メッシュは v1 スコープ外** — 動的な実形状は凸包で近似します。
+
         ## ロードマップ (v1 スコープ外)
 
-        v1 で見送った項目と、その理由・実装の要点です。おおまかな優先度は **静的メッシュコライダー → キャラクターコントローラ** (費用対効果順)。CCD と接触イベント/トリガーは実装済み (上記の各節)。
-
-        ### メッシュ / 凸包コライダー
-
-        glTF の実メッシュ形状で衝突させる項目。静的な地形は Bepu の `Mesh` (三角形スープ) が先 — `Collider.Mesh(AssetPrimitive)` を足し、Attach 時に頂点/インデックスを BufferPool の `Buffer<Triangle>` へ詰め替えます。動的ボディ向けの `ConvexHull` はその後 (凹メッシュは凸分解が要る)。
+        v1 で見送った項目と、その理由・実装の要点です。おおまかな優先度は **キャラクターコントローラ → Compound shape → Joint/constraint** (費用対効果順)。CCD・接触イベント/トリガー・メッシュ/凸包コライダーは実装済み (上記の各節)。
 
         ### キャラクターコントローラ
 

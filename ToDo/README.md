@@ -10,7 +10,6 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 | # | ファイル | タスク | 規模感 | リスク |
 |---|---|---|---|---|
 | 02 | [02-strudel-codeeditor.md](02-strudel-codeeditor.md) | Strudel REPL の CodeEditor 化 + Ctrl+Enter 評価 | 小〜中 | 低 |
-| 05 | [05-physics-mesh-colliders.md](05-physics-mesh-colliders.md) | Physics: メッシュ/凸包コライダー | 中 | 中 |
 | 06 | [06-codeeditor-completion-polish.md](06-codeeditor-completion-polish.md) | CodeEditor: 補完ポップアップの磨き込み (P2.5 残) | 小〜中 | 低 |
 | 07 | [07-codeeditor-multicursor.md](07-codeeditor-multicursor.md) | CodeEditor: マルチカーソル (E3.5) | 大 | **高** |
 | 08 | [08-strudel-music-features.md](08-strudel-music-features.md) | Strudel: 音楽機能拡張 (scale/chord・filter/delay・記法・MIDI) | 中 (分割可) | 低 |

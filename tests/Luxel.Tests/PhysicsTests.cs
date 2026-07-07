@@ -222,6 +222,109 @@ public class PhysicsTests
         Assert.True(ball.GetComponent<LocalTransform>().Matrix.Translation.X > 3f);   // 通り抜けた
     }
 
+    /// <summary>静的メッシュ (三角形スープ): 平面グリッドメッシュに球を落とすと表面 (y≈半径) で静定する。</summary>
+    [Fact]
+    public void StaticMesh_SphereRestsOnTriangleSoup()
+    {
+        (Vector3[] verts, int[] idx) = FlatGrid(4, 6f);   // y=0 の平面を 4×4 = 32 三角形で
+        using var physics = new PhysicsWorld();
+        physics.AddStaticMesh(RigidPose.Identity, verts, idx, Vector3.One);
+        BodyHandle ball = physics.AddDynamic(new RigidPose(new Vector3(0, 3, 0)), new Sphere(0.3f));
+
+        for (int i = 0; i < 240; i++) physics.StepOnce();   // 4 秒で静定
+
+        float y = physics.GetPose(ball).Position.Y;
+        Assert.InRange(y, 0.2f, 0.45f);   // 半径 0.3 ぶん表面上 — すり抜けていない
+
+        // 平面グリッド (y=0)。三角形の法線が +Y になる winding。
+        static (Vector3[], int[]) FlatGrid(int n, float size)
+        {
+            var verts = new Vector3[(n + 1) * (n + 1)];
+            for (int z = 0; z <= n; z++)
+                for (int x = 0; x <= n; x++)
+                    verts[z * (n + 1) + x] = new Vector3(x / (float)n * size - size / 2, 0, z / (float)n * size - size / 2);
+            var idx = new List<int>();
+            for (int z = 0; z < n; z++)
+                for (int x = 0; x < n; x++)
+                {
+                    int a = z * (n + 1) + x, b = a + 1, c = a + (n + 1), d = c + 1;
+                    idx.AddRange([a, b, c, b, d, c]);   // Bepu の winding 規約で上面法線になる向き
+                }
+            return (verts, idx.ToArray());
+        }
+    }
+
+    /// <summary>動的凸包 (ConvexHull): 四面体の頂点群から作った剛体が床で静定し、床を貫通しない。</summary>
+    [Fact]
+    public void ConvexHull_TetrahedronRestsOnFloorWithoutPenetration()
+    {
+        using var physics = new PhysicsWorld();
+        physics.AddStatic(new RigidPose(new Vector3(0, -0.5f, 0)), physics.AddShape(new Box(16, 1, 16)));   // 床上面 y=0
+
+        Vector3[] tetra =
+        [
+            new(0.3f, 0.3f, 0.3f), new(0.3f, -0.3f, -0.3f), new(-0.3f, 0.3f, -0.3f), new(-0.3f, -0.3f, 0.3f),
+        ];
+        BodyHandle hull = physics.AddDynamicHull(new RigidPose(new Vector3(0, 2, 0)), tetra, mass: 1f, out Vector3 center);
+
+        for (int i = 0; i < 300; i++) physics.StepOnce();   // 5 秒で静定
+
+        RigidPose pose = physics.GetPose(hull);
+        Assert.True(pose.Position.Y > 0f);          // 落下したが床の上に留まる (すり抜けていない)
+        // 全頂点が床上面 (y=0) より下へめり込んでいない
+        float minY = float.MaxValue;
+        foreach (Vector3 p in tetra)
+        {
+            Vector3 world = pose.Position + Vector3.Transform(p - center, pose.Orientation);
+            minY = MathF.Min(minY, world.Y);
+        }
+        Assert.True(minY > -0.05f);                 // 貫通なし (接触の soft margin ぶんだけ許容)
+    }
+
+    /// <summary>ECS 経由: 静的メッシュ地形 + 動的凸包が Attach され、球と凸包が地形に載って静定する。</summary>
+    [Fact]
+    public void EcsBridge_MeshAndHull_AttachAndRest()
+    {
+        using var physics = new PhysicsWorld();
+        var world = new Luxel.Ecs.World();
+        var system = new PhysicsStepSystem(world, physics);
+
+        // 平面メッシュ地形 (y=0)
+        (Vector3[] verts, int[] idx) = FlatGrid(4, 8f);
+        var terrain = world.CreateEntity(new LocalTransform(Matrix4x4.Identity),
+            MeshCollider.Static(verts, idx));
+        // 落下する凸包 (四面体)
+        Vector3[] tetra = [new(0.3f, 0.3f, 0.3f), new(0.3f, -0.3f, -0.3f), new(-0.3f, 0.3f, -0.3f), new(-0.3f, -0.3f, 0.3f)];
+        var hull = world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, 3, 0)),
+            HullCollider.Dynamic(tetra));
+
+        system.Run(1f / 60f);   // Attach
+        Assert.True(terrain.GetComponent<MeshCollider>().Attached);
+        Assert.True(hull.GetComponent<HullCollider>().Attached);
+
+        for (int i = 0; i < 300; i++) system.Run(1f / 60f);   // 5 秒で静定
+
+        // 書き戻された LocalTransform が地形上 (y > 0) で落ち着く
+        float y = hull.GetComponent<LocalTransform>().Matrix.Translation.Y;
+        Assert.InRange(y, -0.1f, 1.5f);   // 落下したが地形を貫通せず上に留まる
+
+        static (Vector3[], int[]) FlatGrid(int n, float size)
+        {
+            var v = new Vector3[(n + 1) * (n + 1)];
+            for (int z = 0; z <= n; z++)
+                for (int x = 0; x <= n; x++)
+                    v[z * (n + 1) + x] = new Vector3(x / (float)n * size - size / 2, 0, z / (float)n * size - size / 2);
+            var idx = new List<int>();
+            for (int z = 0; z < n; z++)
+                for (int x = 0; x < n; x++)
+                {
+                    int a = z * (n + 1) + x, b = a + 1, c = a + (n + 1), d = c + 1;
+                    idx.AddRange([a, b, c, b, d, c]);
+                }
+            return (v, idx.ToArray());
+        }
+    }
+
     [Fact]
     public void Accumulator_FixedStepCount()
     {

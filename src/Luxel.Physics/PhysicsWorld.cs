@@ -172,6 +172,42 @@ public sealed class PhysicsWorld : IDisposable
         return handle;
     }
 
+    /// <summary>三角形スープ (頂点 + インデックス) から静的メッシュ shape を登録する (地形/建物など)。
+    /// Bepu <see cref="Mesh"/> は BufferPool のメモリを保持するが、<see cref="Simulation"/> の Shapes 経由で
+    /// 追加するため <see cref="Dispose"/> 時に解放される。動的メッシュは非対応 (動的は <see cref="AddDynamicHull"/>)。</summary>
+    public TypedIndex AddMeshShape(ReadOnlySpan<Vector3> vertices, ReadOnlySpan<int> indices, Vector3 scale)
+    {
+        int triangleCount = indices.Length / 3;
+        BufferPool.Take<Triangle>(triangleCount, out Buffer<Triangle> triangles);
+        for (int i = 0; i < triangleCount; i++)
+            triangles[i] = new Triangle(
+                vertices[indices[i * 3 + 0]], vertices[indices[i * 3 + 1]], vertices[indices[i * 3 + 2]]);
+        var mesh = new Mesh(triangles, scale, BufferPool);
+        return Simulation.Shapes.Add(mesh);
+    }
+
+    /// <summary>静的メッシュコライダーを追加する (三角形スープ直渡し)。</summary>
+    public StaticHandle AddStaticMesh(in RigidPose pose, ReadOnlySpan<Vector3> vertices, ReadOnlySpan<int> indices, Vector3 scale)
+        => AddStatic(pose, AddMeshShape(vertices, indices, scale));
+
+    /// <summary>頂点群から凸包 (<see cref="ConvexHull"/>) の動的ボディを追加する。
+    /// Bepu は形状を重心原点へ recenter するため <paramref name="center"/> (入力座標系での重心) を返す —
+    /// <paramref name="originPose"/> は「入力頂点の原点」を指す pose として渡し、内部で重心ぶん平行移動して発行する
+    /// (描画メッシュとの位置合わせは <c>GetPose - Rotate(center)</c> で元の原点に戻す)。</summary>
+    public BodyHandle AddDynamicHull(in RigidPose originPose, Span<Vector3> points, float mass,
+        out Vector3 center, in BodyVelocity velocity = default, float sleepThreshold = 0.01f, bool continuous = false)
+    {
+        ConvexHullHelper.CreateShape(points, BufferPool, out center, out ConvexHull hull);
+        var bodyPose = originPose;
+        bodyPose.Position += Vector3.Transform(center, originPose.Orientation);
+        BodyInertia inertia = hull.ComputeInertia(mass);
+        var collidable = new CollidableDescription(
+            Simulation.Shapes.Add(hull),
+            continuous ? ContinuousDetection.Continuous() : ContinuousDetection.Passive);
+        return Simulation.Bodies.Add(BodyDescription.CreateDynamic(
+            bodyPose, velocity, inertia, collidable, new BodyActivityDescription(sleepThreshold)));
+    }
+
     /// <summary>ボディの現在 pose (位置 + 回転)。</summary>
     public RigidPose GetPose(BodyHandle handle) => Simulation.Bodies[handle].Pose;
 

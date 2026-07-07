@@ -71,6 +71,51 @@ public struct StaticBody : IComponent
     public bool Attached;
 }
 
+/// <summary>静的メッシュコライダー — 三角形スープ (頂点 + インデックス) で地形/建物と衝突する静的 collidable。
+/// <see cref="Collider"/> (凸プリミティブ) の代わりに付ける。pose は Attach 時の <see cref="LocalTransform"/>。
+/// 動的メッシュは Bepu で非推奨のため非対応 (動的な実形状は <see cref="HullCollider"/> = 凸包を使う)。</summary>
+public struct MeshCollider : IComponent
+{
+    /// <summary>頂点配列。</summary>
+    public Vector3[] Vertices;
+    /// <summary>三角形インデックス (3 個で 1 三角形)。</summary>
+    public int[] Indices;
+    /// <summary>形状スケール。</summary>
+    public Vector3 Scale;
+    /// <summary>発行済み static ハンドル (システムが書く)。</summary>
+    public StaticHandle Handle;
+    /// <summary>発行済みか。</summary>
+    public bool Attached;
+
+    public static MeshCollider Static(Vector3[] vertices, int[] indices, Vector3? scale = null)
+        => new() { Vertices = vertices, Indices = indices, Scale = scale ?? Vector3.One };
+}
+
+/// <summary>動的な凸包コライダー — 頂点群から <c>ConvexHull</c> を作った動的剛体 (実アセットの小物など)。
+/// <see cref="Collider"/> + <see cref="RigidBody"/> の代わりに単独で付ける。Bepu は形状を重心原点へ recenter
+/// するため、システムが重心オフセット <see cref="Center"/> を書き、書き戻しで元の頂点原点に合わせる。
+/// 凹メッシュの凸分解は v1 スコープ外 (凸包のみ)。</summary>
+public struct HullCollider : IComponent
+{
+    /// <summary>凸包を張る頂点群 (入力座標系)。</summary>
+    public Vector3[] Points;
+    /// <summary>質量。0 以下は 1。</summary>
+    public float Mass;
+    /// <summary>Attach 時に与える初速。</summary>
+    public Vector3 InitialVelocity;
+    /// <summary>CCD を有効にするか。</summary>
+    public bool Continuous;
+    /// <summary>入力座標系での重心オフセット (システムが書く)。書き戻しの位置補正に使う。</summary>
+    public Vector3 Center;
+    /// <summary>発行済み body ハンドル (システムが書く)。</summary>
+    public BodyHandle Handle;
+    /// <summary>発行済みか。</summary>
+    public bool Attached;
+
+    public static HullCollider Dynamic(Vector3[] points, float mass = 1f, Vector3 initialVelocity = default, bool ccd = false)
+        => new() { Points = points, Mass = mass, InitialVelocity = initialVelocity, Continuous = ccd };
+}
+
 /// <summary>トリガーボリューム — <see cref="Collider"/> の形状で「通過検知」だけを行う静的 collidable
 /// (物理応答なし)。ゴール判定/アイテム取得/ダメージゾーンなどに。動的ボディが触れると
 /// <see cref="PhysicsStepSystem.ContactEvents"/> に Begin/End が出る (相手側はゲームがコンポーネントで判別)。</summary>
