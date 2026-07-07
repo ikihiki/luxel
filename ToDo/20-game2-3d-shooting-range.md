@@ -138,7 +138,15 @@ samples/LuxelRange/
 - 罠: joint 行列の抽出を「初回のみ」にすると毎フレームの upload が空になり全頂点が原点へ潰れる → **毎フレーム抽出**に修正。Fox モデルは ~155 units (bounds Z[-88,66]) なので scale 0.018。
 - golden: 起伏地形 + 薄板 + 小物 + ボーナスゾーン + **歩く Fox** が描画。vk/dx skinning 一致。全 832 passed / e2e 71/71 diff 0。**09 (skin) をゲーム内で検証達成**。
 
-**残 (後続スライス)**: 3d = 命中パーティクル (16、.ThreeD バースト) + SE (10)。4 = Title/Result + ハイスコア/設定 (15) + BGM (10)。5 = exe プレイアブル化 + publish 3D 検証 (glTF アセット/scene_pbr shaders が publish 出力に乗るか)。**20 MD は全スライス完了まで残す**。
+### 2026-07-07 (7): スライス 3d — ゲームイベント層 + SFX 対応表 (演出/SE の駆動元)
+
+**済** (Cavern の SfxDetector と同じ純ロジック方針):
+- `RangeEvent { Kind, Position }` + `RangeEventKind {Shot, TargetHit, FoxHit, BonusScored}`。`RangeSim.Events` にそのフレームの出来事 (発射位置/命中位置) を積み、`ClearEvents` で消費。Fire/TryResolveHit/TryResolveFox/TryResolveBonus が発火。
+- `RangeSfxDetector.Detect(events, into)` = イベント種別 → `RangeSfx {Fire, Hit, FoxHit, Bonus}` キューへの写像 (exe が実音を鳴らす)。
+- 単体テスト +2: Fire/命中でイベント発火 / SFX 対応表の写像。全 834 passed / e2e 71/71 diff 0 (Core のみ、golden 不変)。
+- **命中パーティクル (.ThreeD バースト、16) と exe 音 (10) はこのイベントを consume する** — パーティクル描画は frozen golden に映らないため follow-up (装飾常時エミッタで golden 化 or scripted play)。音は RealWindowOnly。
+
+**残 (後続スライス)**: 3d-2 = 命中 .ThreeD パーティクルバースト描画 (イベント consume、golden 手当て)。4 = Title/Result + ハイスコア/設定 (15) + BGM/SE 実音 (10、exe/RealWindowOnly)。5 = exe プレイアブル化 + publish 3D 検証。**20 MD は全スライス完了まで残す**。
 
 ## スコープ外
 

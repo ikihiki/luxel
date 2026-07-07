@@ -149,6 +149,39 @@ public class RangeSimTests
         Assert.True(MathF.Abs(sim.FoxPosition.X - startX) > 0.5f, $"Fox が動いていない ({startX} → {sim.FoxPosition.X})");
     }
 
+    [Fact]
+    public void Events_FireAndHit_Emitted()
+    {
+        using var sim = new RangeSim();
+        // 中央の的 (x=0, z=-8) へ撃つ
+        sim.Fire(new Vector3(0, 1.3f, 5f), new Vector3(0, 0, -1));
+        Assert.Contains(sim.Events, e => e.Kind == RangeEventKind.Shot);   // 発射イベント
+
+        bool sawHit = false;
+        for (int i = 0; i < 40; i++)
+        {
+            sim.StepOnce();
+            if (sim.Events.Any(e => e.Kind == RangeEventKind.TargetHit)) sawHit = true;
+            sim.ClearEvents();
+        }
+        Assert.True(sawHit);   // 命中イベント
+    }
+
+    [Fact]
+    public void SfxDetector_MapsEventsToCues()
+    {
+        var events = new List<RangeEvent>
+        {
+            new(RangeEventKind.Shot, Vector3.Zero),
+            new(RangeEventKind.TargetHit, Vector3.Zero),
+            new(RangeEventKind.FoxHit, Vector3.Zero),
+            new(RangeEventKind.BonusScored, Vector3.Zero),
+        };
+        var cues = new List<RangeSfx>();
+        RangeSfxDetector.Detect(events, cues);
+        Assert.Equal([RangeSfx.Fire, RangeSfx.Hit, RangeSfx.FoxHit, RangeSfx.Bonus], cues);
+    }
+
     private static int CountBullets(RangeSim sim)
     {
         int n = 0;

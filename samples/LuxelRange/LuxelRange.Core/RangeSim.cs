@@ -59,6 +59,12 @@ public sealed class RangeSim : IDisposable
     public bool Started { get; private set; }
 
     private readonly List<Entity> _targets = new();
+    private readonly List<RangeEvent> _events = new();
+
+    /// <summary>このフレームに起きたイベント (演出/SE 駆動用)。読んだら <see cref="ClearEvents"/> で消費する。</summary>
+    public IReadOnlyList<RangeEvent> Events => _events;
+    /// <summary>イベントを消費済みにする (毎フレーム描画/音の反映後に呼ぶ)。</summary>
+    public void ClearEvents() => _events.Clear();
 
     // 動く的 (Fox) — キネマティック proxy を X 方向に巡回させる
     private const float FoxZ = -7f, FoxCenterX = -1f, FoxAmp = 3.5f, FoxSpeed = 0.9f;
@@ -172,6 +178,7 @@ public sealed class RangeSim : IDisposable
         if (AmmoLeft <= 0) return false;
         AmmoLeft--;
         Started = true;
+        _events.Add(new RangeEvent(RangeEventKind.Shot, origin));
         Vector3 dir = Vector3.Normalize(direction);
         World.Store.CreateEntity(
             new LocalTransform(Matrix4x4.CreateScale(BulletRadius * 2) * Matrix4x4.CreateTranslation(origin)),
@@ -252,6 +259,7 @@ public sealed class RangeSim : IDisposable
         FoxScore += f.Score;
         f.FlinchTimer = 1.5f;
         fox.AddComponent(f);
+        _events.Add(new RangeEvent(RangeEventKind.FoxHit, FoxPosition));
         return true;
     }
 
@@ -264,6 +272,7 @@ public sealed class RangeSim : IDisposable
         p.Scored = true;
         prop.AddComponent(p);   // 上書き
         BonusScore += 200;
+        _events.Add(new RangeEvent(RangeEventKind.BonusScored, prop.GetComponent<LocalTransform>().Matrix.Translation));
         return true;
     }
 
@@ -277,6 +286,7 @@ public sealed class RangeSim : IDisposable
         target.AddComponent(t);   // 上書き
         Score += t.Score;
         TargetsHit++;
+        _events.Add(new RangeEvent(RangeEventKind.TargetHit, target.GetComponent<LocalTransform>().Matrix.Translation));
         return true;
     }
 
