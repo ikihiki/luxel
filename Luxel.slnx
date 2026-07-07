@@ -16,6 +16,7 @@
     <Project Path="src/Luxel.Document/Luxel.Document.csproj" />
     <Project Path="src/Luxel.Ecs.Signal/Luxel.Ecs.Signal.csproj" />
     <Project Path="src/Luxel.Ecs/Luxel.Ecs.csproj" />
+    <Project Path="src/Luxel.Framework.DevTools/Luxel.Framework.DevTools.csproj" />
     <Project Path="src/Luxel.Framework/Luxel.Framework.csproj" />
     <Project Path="src/Luxel.Gallery/Luxel.Gallery.csproj" />
     <Project Path="src/Luxel.Gltf/Luxel.Gltf.csproj" />

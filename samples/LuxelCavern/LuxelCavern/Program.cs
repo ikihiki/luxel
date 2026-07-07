@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using Luxel;
+using Luxel.DevTools;
 using Luxel.Framework;
+using Luxel.Framework.DevTools;
 using Luxel.Input;
 using Luxel.Platform;
 using Luxel.Settings;
@@ -21,19 +23,17 @@ using Microsoft.Extensions.Hosting;
 
 string backend = "vk";
 int frames = 0;
-bool devtools = false;
-int devPort = 0;   // 0 = 空きポート自動割当
 for (int i = 0; i < args.Length; i++)
 {
     string a = args[i].ToLowerInvariant();
     if (a is "vk" or "vulkan") backend = "vk";
     else if (a is "dx" or "d3d12") backend = "dx";
     else if (a == "--frames" && i + 1 < args.Length && int.TryParse(args[i + 1], out int n)) { frames = Math.Max(1, n); i++; }
-    else if (a == "--devtools") { devtools = true; if (i + 1 < args.Length && int.TryParse(args[i + 1], out int p)) { devPort = p; i++; } }
+    // DevTools 系フラグ (--devtools[ port] / --devtools-native) は DevToolsOptions.Parse が解釈する。
 }
 
 int exit = 1;
-var thread = new Thread(() => exit = Run(backend, frames, devtools, devPort)) { Name = "LuxelCavern-Main" };
+var thread = new Thread(() => exit = Run(backend, frames, args)) { Name = "LuxelCavern-Main" };
 thread.SetApartmentState(ApartmentState.STA);
 thread.Start();
 thread.Join();
@@ -52,7 +52,7 @@ static GpuDevice CreateDevice(string backend) => backend switch
     _ => new GpuDevice(Luxel.Vulkan.VulkanBackend.Create()),
 };
 
-static int Run(string backend, int frames, bool devtools, int devPort)
+static int Run(string backend, int frames, string[] args)
 {
     try
     {
@@ -74,11 +74,15 @@ static int Run(string backend, int frames, bool devtools, int devPort)
         string saveDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LuxelCavern");
         var fileStore = new PhysicalFileStore(saveDir);
 
+        // DevTools 結線 (任意、--devtools[ port] / --devtools-native)。内蔵版は第二 GpuDevice を島スレッドで作る。
+        var devOptions = DevToolsOptions.Parse(args, () => CreateDevice(backend));
+
         var pacer = new FramePacer();
         using IHost host = LuxelHostBuilder.Create()
             .UseGpuDevice(device)
             .UseAudio()   // XAudio2 + AudioMixer を DI 登録 (BGM/SE)。オーディオデバイス不在時は各 voice が no-op。
             .UseFrameWaiter(pacer.WaitAsync)
+            .WithDevTools(devOptions)   // listener + DebugServer/DevToolsApp + IFramePublisher を host に載せる
             .ConfigureServices(s =>
             {
                 s.AddSingleton(font);
@@ -90,15 +94,11 @@ static int Run(string backend, int frames, bool devtools, int devPort)
             .AddScene<CavernRealtimeScene>()
             .Build();
 
-        // DevTools サーバ (任意): ゲームの診断 (DevStats) + フレームをブラウザへ配信。
-        using CavernDevServer? devServer = devtools
-            ? new CavernDevServer(host.Services.GetRequiredService<Luxel.Diagnostics.EngineCommands>(), devPort)
-            : null;
-        if (devServer is not null)
-            Console.WriteLine($"DevTools: {devServer.Url} (ブラウザで開くとゲームの統計/画面を確認できます)");
-
-        host.Start();   // GameLoop 開始 (最初のフレーム待ちで停止)
+        host.Start();   // GameLoop + DevToolsRuntime 開始 (最初のフレーム待ちで停止)
         var scene = host.Services.GetRequiredService<CavernRealtimeScene>();
+        var framePublisher = host.Services.GetService<IFramePublisher>();   // 提示ループが呼ぶフレーム配信口
+        if (host.Services.GetService<DevToolsRuntime>()?.BrowserUrl is { } url)
+            Console.WriteLine($"DevTools: {url} (ブラウザで開くとゲームの統計/画面を確認できます)");
 
         var sw = Stopwatch.StartNew();
         int drawn = 0;
@@ -109,7 +109,7 @@ static int Run(string backend, int frames, bool devtools, int devPort)
             if (scene.Framebuffer is { } fb)
             {
                 surface.Present(fb, scene.StridePixels, (uint)w, (uint)h);
-                devServer?.EmitFrame(fb, (int)scene.StridePixels, w, h);   // ブラウザへ配信 (購読者が居るときだけ)
+                framePublisher?.Publish(fb, (int)scene.StridePixels, w, h);   // DevTools へ配信 (購読者が居るときだけ)
             }
 
             if (scene.QuitRequested) { win.Close(); windows.Pump(); break; }        // タイトルの「おわる」

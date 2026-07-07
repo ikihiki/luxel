@@ -23,8 +23,8 @@
     <ProjectReference Include="..\..\..\src\Luxel.Particles.TwoD\Luxel.Particles.TwoD.csproj" />
     <!-- セーブの実 IO (PhysicalFileStore を %APPDATA% に向ける) -->
     <ProjectReference Include="..\..\..\src\Luxel.Settings\Luxel.Settings.csproj" />
-    <!-- DevTools サーバ (devtools フラグでブラウザに診断/フレームを配信) -->
-    <ProjectReference Include="..\..\..\src\Luxel.DevTools\Luxel.DevTools.csproj" />
+    <!-- DevTools 結線 (WithDevTools でブラウザ/内蔵版に診断/フレームを配信) -->
+    <ProjectReference Include="..\..\..\src\Luxel.Framework.DevTools\Luxel.Framework.DevTools.csproj" />
   </ItemGroup>
 
   <!-- 同梱アセット (フォント等) を exe 隣へコピー + publish にも含める。cwd 非依存ロードの前提。 -->
