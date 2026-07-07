@@ -31,6 +31,10 @@ public sealed class PhysicsWorld : IDisposable
     private readonly ThreadDispatcher? _dispatcher;
     private float _accumulator;
 
+    private readonly PhysicsContacts _contacts = new();
+    private readonly HashSet<ContactPairKey> _prevPairs = new();
+    private readonly List<ContactPairEvent> _contactEvents = new();
+
     /// <summary>Bepu の生 Simulation。高度な操作 (constraint 等) はこれ経由で。</summary>
     public Simulation Simulation { get; }
     /// <summary>Bepu のアンマネージドメモリプール (Simulation と寿命を共にする)。</summary>
@@ -51,6 +55,7 @@ public sealed class PhysicsWorld : IDisposable
                 FrictionCoefficient = s.Friction,
                 MaximumRecoveryVelocity = s.MaximumRecoveryVelocity,
                 ContactSpringiness = s.ContactSpring,
+                Contacts = _contacts,
             },
             new LuxelPoseIntegratorCallbacks
             {
@@ -81,15 +86,23 @@ public sealed class PhysicsWorld : IDisposable
         set => NarrowCallbacks.MaximumRecoveryVelocity = value;
     }
 
+    /// <summary>今フレームの接触イベント (Begin/End)。フレーム内で読み切る規約 — 次の
+    /// <see cref="Step"/>/<see cref="StepOnce"/> 冒頭でクリアされる。raw (collidable ハンドルベース)。</summary>
+    public IReadOnlyList<ContactPairEvent> ContactEvents => _contactEvents;
+
+    /// <summary>直近ステップで実接触しているペア集合 (gizmo/デバッグ用)。</summary>
+    public IReadOnlyCollection<ContactPairKey> CurrentContacts => _contacts.Current;
+
     /// <summary>経過時間を accumulator へ積み、固定 <see cref="FixedDt"/> で進める (実行ステップ数を返す)。
     /// 巨大な elapsed は 0.25s に clamp — 停止からの復帰でスパイラルしない。</summary>
     public int Step(float elapsed)
     {
+        _contactEvents.Clear();
         _accumulator += MathF.Min(MathF.Max(0, elapsed), 0.25f);
         int steps = 0;
         while (_accumulator >= FixedDt)
         {
-            Simulation.Timestep(FixedDt, _dispatcher);
+            RunTimestep(FixedDt);
             _accumulator -= FixedDt;
             steps++;
         }
@@ -97,7 +110,31 @@ public sealed class PhysicsWorld : IDisposable
     }
 
     /// <summary>固定 dt で 1 ステップだけ進める (テスト/手動駆動用)。</summary>
-    public void StepOnce() => Simulation.Timestep(FixedDt, _dispatcher);
+    public void StepOnce()
+    {
+        _contactEvents.Clear();
+        RunTimestep(FixedDt);
+    }
+
+    /// <summary>1 Timestep = 接触集合をクリア → 前進 → 前ステップとの差分を Begin/End イベントへ。</summary>
+    private void RunTimestep(float dt)
+    {
+        _contacts.BeginStep();
+        Simulation.Timestep(dt, _dispatcher);
+        DiffContacts();
+    }
+
+    private void DiffContacts()
+    {
+        foreach (ContactPairKey k in _contacts.Current)
+            if (!_prevPairs.Contains(k))
+                _contactEvents.Add(new ContactPairEvent(k.A, k.B, ContactPhase.Begin));
+        foreach (ContactPairKey k in _prevPairs)
+            if (!_contacts.Current.Contains(k))
+                _contactEvents.Add(new ContactPairEvent(k.A, k.B, ContactPhase.End));
+        _prevPairs.Clear();
+        foreach (ContactPairKey k in _contacts.Current) _prevPairs.Add(k);
+    }
 
     /// <summary>shape を登録して bindless 的な TypedIndex を得る (同じ形は使い回してよい)。</summary>
     public TypedIndex AddShape<TShape>(in TShape shape) where TShape : unmanaged, IShape
@@ -125,6 +162,15 @@ public sealed class PhysicsWorld : IDisposable
     /// <summary>静的コライダーを追加する (床/壁)。</summary>
     public StaticHandle AddStatic(in RigidPose pose, TypedIndex shape)
         => Simulation.Statics.Add(new StaticDescription(pose, shape));
+
+    /// <summary>トリガーボリュームを追加する — 物理応答なしで通過だけを検知する静的 collidable。
+    /// 動的ボディがこの形状に触れると <see cref="ContactEvents"/> に Begin/End が出るが、力は働かない。</summary>
+    public StaticHandle AddTrigger(in RigidPose pose, TypedIndex shape)
+    {
+        StaticHandle handle = Simulation.Statics.Add(new StaticDescription(pose, shape));
+        _contacts.RegisterTriggerStatic(handle.Value);
+        return handle;
+    }
 
     /// <summary>ボディの現在 pose (位置 + 回転)。</summary>
     public RigidPose GetPose(BodyHandle handle) => Simulation.Bodies[handle].Pose;

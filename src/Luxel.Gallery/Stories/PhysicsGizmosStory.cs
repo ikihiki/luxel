@@ -58,9 +58,54 @@ public static class PhysicsGizmosStories
             dynamicColor: Color2D.Rgba(110, 220, 130),   // 動的 = 緑
             staticColor: Color2D.Rgba(150, 156, 170),    // 静的 = 灰
             ccdColor: Color2D.Rgba(240, 96, 96),         // CCD = 赤
+            triggerColor: Color2D.Rgba(90, 200, 240),    // トリガー = シアン (この絵には無し)
             width: 1.6f);
 
         Font.Value.AppendText(s, "physics colliders  —  dynamic / static / CCD", 16, 20, 15, Color2D.Rgba(210, 214, 222));
+
+        DebugDraw.Flush(s, Iso, (sc, t, x, y, h, c) => Font.Value.AppendText(sc, t, x, y, h, c));
+    })));
+
+    /// <summary>接触イベント + トリガー (タスク 04 / Q15) — ゴールゾーン (トリガー) を球が落下で通過し、
+    /// 通過回数を数える。床に着いた球は接触インジケータ (十字) で示す。物理を固定 dt で回すので決定的。</summary>
+    [Story("Demos/3D/PhysicsTrigger", Height = 340, Order = 130)]
+    public static Widget PhysicsTriggerDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(W, H, draw: s =>
+    {
+        s.FillRect(Color2D.Rgba(20, 24, 30), 0, 0, W, H);
+
+        using var physics = new Luxel.Physics.PhysicsWorld();   // 既定重力
+        using var world = new Luxel.Ecs.World();
+        var system = new Luxel.Physics.PhysicsStepSystem(world, physics) { TrackCurrentContacts = true };
+
+        world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, -0.5f, 0)),
+            Collider.Box(6, 1, 6), new StaticBody());                                          // 床
+        var gate = world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, 2f, 0)),
+            Collider.Box(2, 2, 2), new Trigger());                                             // ゴールゾーン (トリガー)
+        world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, 3.8f, 0)),
+            Collider.Sphere(0.4f), RigidBody.Dynamic());                                       // 落下する球
+
+        int enter = 0, exit = 0;
+        // ~1.3s: 球が落ちてゲートを通過し着地。静止後 sleep すると narrow phase が止まり接触が消えるので
+        // (実ゲームの gizmo と同じ制約)、着地直後のまだ awake なフレームでスナップする。
+        for (int i = 0; i < 80; i++)
+        {
+            system.Run(1f / 60f);
+            foreach (ContactEvent e in system.ContactEvents)
+            {
+                if (e.A != gate && e.B != gate) continue;
+                if (e.Phase == ContactPhase.Begin) enter++; else exit++;
+            }
+        }
+
+        DebugDraw.Reset();
+        DebugDraw.Enable(PhysicsGizmos.Colliders);
+        DebugDraw.Enable(PhysicsGizmos.Contacts);
+        PhysicsGizmos.DrawColliders(world,
+            dynamicColor: Color2D.Rgba(110, 220, 130), staticColor: Color2D.Rgba(150, 156, 170),
+            ccdColor: Color2D.Rgba(240, 96, 96), triggerColor: Color2D.Rgba(90, 200, 240), width: 1.6f);
+        PhysicsGizmos.ContactMarkers(system.CurrentContacts, Color2D.Rgba(245, 210, 90), size: 0.22f, width: 2f);   // 接触インジケータ (黄)
+
+        Font.Value.AppendText(s, $"goal trigger   enter {enter}  /  exit {exit}", 16, 20, 15, Color2D.Rgba(210, 214, 222));
 
         DebugDraw.Flush(s, Iso, (sc, t, x, y, h, c) => Font.Value.AppendText(sc, t, x, y, h, c));
     })));

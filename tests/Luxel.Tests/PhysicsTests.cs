@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using BepuPhysics;
 using BepuPhysics.Collidables;
+using Friflo.Engine.ECS;
 using Luxel.Ecs;
 using Luxel.Physics;
 using Xunit;
@@ -135,6 +136,90 @@ public class PhysicsTests
 
         Assert.True(FireSphere(ccd: false) > 1f);   // CCD なし → 壁をすり抜けて向こう側 (z > 0)
         Assert.True(FireSphere(ccd: true) < 0f);    // CCD あり → 壁の手前で停止 (z < 0)
+    }
+
+    /// <summary>接触イベント: 落下する箱が床に着くと Begin が 1 回、跳ね上げると End が出る (ECS 経由)。</summary>
+    [Fact]
+    public void ContactEvents_BeginOnLanding_EndOnSeparation()
+    {
+        using var physics = new PhysicsWorld();
+        var world = new Luxel.Ecs.World();
+        var system = new PhysicsStepSystem(world, physics);
+
+        var floor = world.CreateEntity(
+            new LocalTransform(Matrix4x4.CreateTranslation(0, -0.5f, 0)),
+            Collider.Box(16, 1, 16), new StaticBody());
+        var box = world.CreateEntity(
+            new LocalTransform(Matrix4x4.CreateTranslation(0, 1.2f, 0)),   // 床上すぐ (すぐ着地)
+            Collider.Box(1, 1, 1), RigidBody.Dynamic());
+
+        // 着地まで進める → どこかのステップで Begin が 1 回出る
+        int begins = 0;
+        for (int i = 0; i < 120; i++)
+        {
+            system.Run(1f / 60f);
+            foreach (ContactEvent e in system.ContactEvents)
+                if (e.Phase == ContactPhase.Begin && Involves(e, box, floor)) begins++;
+        }
+        Assert.Equal(1, begins);   // 着地は 1 回だけ (静止後は再発火しない)
+
+        // 跳ね上げる (上向き初速の新しい箱でも良いが、ここは分離を作る) → End が出る
+        // 箱に上向き速度を与えるため body を直接叩く
+        BodyHandle h = box.GetComponent<RigidBody>().Handle;
+        BodyReference bodyRef = physics.Simulation.Bodies[h];
+        bodyRef.Velocity.Linear = new Vector3(0, 8, 0);
+        bodyRef.Awake = true;
+
+        int ends = 0;
+        for (int i = 0; i < 60; i++)
+        {
+            system.Run(1f / 60f);
+            foreach (ContactEvent e in system.ContactEvents)
+                if (e.Phase == ContactPhase.End && Involves(e, box, floor)) ends++;
+        }
+        Assert.True(ends >= 1);   // 離れたら End
+
+        static bool Involves(ContactEvent e, Entity a, Entity b)
+            => (e.A == a && e.B == b) || (e.A == b && e.B == a);
+    }
+
+    /// <summary>トリガー: 球がトリガーボリュームを通過すると Begin/End が出るが、速度は変わらない (物理応答なし)。</summary>
+    [Fact]
+    public void Trigger_DetectsPassage_WithoutPhysicalResponse()
+    {
+        // 重力 + 減衰オフ = 応答が無ければ完全な等速直進 (トリガーの「力なし」を厳密に検証)
+        using var physics = new PhysicsWorld(new PhysicsSettings { Gravity = Vector3.Zero, LinearDamping = 0f });
+        var world = new Luxel.Ecs.World();
+        var system = new PhysicsStepSystem(world, physics);
+
+        var gate = world.CreateEntity(
+            new LocalTransform(Matrix4x4.CreateTranslation(0, 0, 0)),
+            Collider.Box(2, 2, 2), new Trigger());
+        var ball = world.CreateEntity(
+            new LocalTransform(Matrix4x4.CreateTranslation(-4, 0, 0)),
+            Collider.Sphere(0.4f), RigidBody.Dynamic(initialVelocity: new Vector3(4, 0, 0)));
+
+        int enter = 0, exit = 0;
+        for (int i = 0; i < 120; i++)   // 2 秒: -4 → +4 でゲートを通過
+        {
+            system.Run(1f / 60f);
+            foreach (ContactEvent e in system.ContactEvents)
+            {
+                bool involvesGate = e.A == gate || e.B == gate;
+                if (!involvesGate) continue;
+                if (e.Phase == ContactPhase.Begin) enter++;
+                else exit++;
+            }
+        }
+
+        Assert.Equal(1, enter);   // 1 回入って
+        Assert.Equal(1, exit);    // 1 回出る
+
+        // 物理応答なし = 等速直進 (重力オフ)。x 速度が初速のまま、y/z はほぼ 0
+        Vector3 v = physics.Simulation.Bodies[ball.GetComponent<RigidBody>().Handle].Velocity.Linear;
+        Assert.InRange(v.X, 3.9f, 4.1f);         // 減速していない (壁なら止まる)
+        Assert.InRange(v.Y, -0.01f, 0.01f);
+        Assert.True(ball.GetComponent<LocalTransform>().Matrix.Translation.X > 3f);   // 通り抜けた
     }
 
     [Fact]

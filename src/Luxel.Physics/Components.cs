@@ -70,3 +70,22 @@ public struct StaticBody : IComponent
     /// <summary>発行済みか。</summary>
     public bool Attached;
 }
+
+/// <summary>トリガーボリューム — <see cref="Collider"/> の形状で「通過検知」だけを行う静的 collidable
+/// (物理応答なし)。ゴール判定/アイテム取得/ダメージゾーンなどに。動的ボディが触れると
+/// <see cref="PhysicsStepSystem.ContactEvents"/> に Begin/End が出る (相手側はゲームがコンポーネントで判別)。</summary>
+public struct Trigger : IComponent
+{
+    /// <summary>発行済み static ハンドル (システムが書く)。</summary>
+    public StaticHandle Handle;
+    /// <summary>発行済みか。</summary>
+    public bool Attached;
+}
+
+/// <summary>接触/トリガーイベント (Entity ベース)。<see cref="PhysicsStepSystem.ContactEvents"/> が公開。
+/// フレーム内で読み切る規約 (持ち越さない)。トリガー判定はどちらかの Entity が <see cref="Trigger"/> を
+/// 持つかで行う。</summary>
+public readonly record struct ContactEvent(Entity A, Entity B, ContactPhase Phase);
+
+/// <summary>接触中の Entity ペア (<see cref="PhysicsStepSystem.CurrentContacts"/>、gizmo/デバッグ用)。</summary>
+public readonly record struct EntityPair(Entity A, Entity B);

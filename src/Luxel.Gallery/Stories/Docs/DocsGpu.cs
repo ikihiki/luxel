@@ -549,6 +549,31 @@ public static class DocsGpu
 
         コライダーの可視化 (動的/静的/CCD の色分けワイヤ) は物理 gizmo で行えます — {{StoryRef(ctx, "Demos/3D/PhysicsGizmos")}}。
 
+        ## 接触イベント + トリガー
+
+        「何かに当たった」をゲームロジックが購読できます。`PhysicsStepSystem.ContactEvents` にそのフレームの `ContactEvent { Entity A, B; ContactPhase Phase }` が並び (Phase = Begin/End)、**フレーム内で読み切る**規約です (持ち越さない):
+
+        ```csharp
+        foreach (ContactEvent e in physicsStep.ContactEvents)
+            if (e.Phase == ContactPhase.Begin)
+                ctx.Log($"{e.A} が {e.B} に接触");
+        ```
+
+        接触は実接触 (めり込み depth ≥ 0) のみ — speculative な予測接触は含めません。Begin/End は「今ステップで接触したペア集合」と前ステップの差分で判定します。
+
+        **トリガーボリューム** は `Trigger` コンポーネント (形状は同居する `Collider`) を付けた静的 collidable で、通過を検知しても**力を発生させません** (ゴール/アイテム取得/ダメージゾーン)。動的ボディが通ると同じ `ContactEvents` に Begin/End が出ます — どちらの Entity が `Trigger` を持つかで判別します:
+
+        ```csharp
+        world.Store.CreateEntity(
+            new LocalTransform(Matrix4x4.CreateTranslation(goalX, goalY, goalZ)),
+            Collider.Box(2, 2, 2), new Trigger());   // ゴールゾーン
+        ```
+
+        {{StoryRef(ctx, "Demos/3D/PhysicsTrigger")}}
+
+        > [!NOTE]
+        > 接触点の詳細 (位置/法線/深度) は v1 では公開しません — Begin/End で十分な用途 (判定・カウント) を先に。接触中ペアの可視化は `PhysicsStepSystem.TrackCurrentContacts` を有効にして `CurrentContacts` を gizmo で描きます (sleep した body は narrow phase が止まるため出ません)。マルチスレッド (`ThreadCount > 0`) の接触イベントは v1 未対応 (既定の単スレッドで使う)。
+
         ## 設計ノート
 
         - **リセットは丸ごと再構築** — entity 削除に連動した body 掃除は持たず、World + PhysicsWorld を作り直すのが決定的な初期状態へ戻る正攻法です (Playground の reset knob がこの形)
@@ -556,11 +581,7 @@ public static class DocsGpu
 
         ## ロードマップ (v1 スコープ外)
 
-        v1 で見送った項目と、その理由・実装の要点です。おおまかな優先度は **接触イベント → 静的メッシュコライダー → キャラクターコントローラ** (費用対効果順)。CCD は実装済み (上記「CCD」節)。
-
-        ### 接触イベント (trigger)
-
-        「触れた瞬間の通知」(ダメージ/ゴール判定) と「応答せず通過検知だけ」(トリガーボリューム)。Bepu の接触は callbacks (`ConfigureContactManifold`) の中で拾う設計で、マルチスレッド時は任意のワーカースレッドから呼ばれます — キューに積んで Step 後にドレインし ECS イベントへ変換する配管が必要。トリガーは manifold を返さないフラグを `Collider` に足す形。
+        v1 で見送った項目と、その理由・実装の要点です。おおまかな優先度は **静的メッシュコライダー → キャラクターコントローラ** (費用対効果順)。CCD と接触イベント/トリガーは実装済み (上記の各節)。
 
         ### メッシュ / 凸包コライダー
 

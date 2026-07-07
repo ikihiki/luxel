@@ -19,6 +19,9 @@ internal struct LuxelNarrowPhaseCallbacks : INarrowPhaseCallbacks
     public float MaximumRecoveryVelocity;
     public SpringSettings ContactSpringiness;
 
+    /// <summary>接触イベント収集器 (class 参照 — struct コピー後も共有)。イベント購読が無ければ null。</summary>
+    public PhysicsContacts? Contacts;
+
     public void Initialize(Simulation simulation) { }
 
     public bool AllowContactGeneration(int workerIndex, CollidableReference a, CollidableReference b, ref float speculativeMargin)
@@ -30,7 +33,24 @@ internal struct LuxelNarrowPhaseCallbacks : INarrowPhaseCallbacks
         out PairMaterialProperties pairMaterial) where TManifold : unmanaged, IContactManifold<TManifold>
     {
         pairMaterial = new PairMaterialProperties(FrictionCoefficient, MaximumRecoveryVelocity, ContactSpringiness);
+        if (Contacts is not null)
+        {
+            if (IsTouching(ref manifold)) Contacts.Record(pair.A, pair.B);
+            // トリガーが絡むペアは検知だけして物理応答を発生させない (manifold を無効化)
+            if (Contacts.IsTrigger(pair.A) || Contacts.IsTrigger(pair.B)) return false;
+        }
         return true;
+    }
+
+    /// <summary>manifold に実接触点 (depth ≥ 0) があるか (speculative の負 depth は除外)。</summary>
+    private static bool IsTouching<TManifold>(ref TManifold manifold) where TManifold : unmanaged, IContactManifold<TManifold>
+    {
+        for (int i = 0; i < manifold.Count; i++)
+        {
+            manifold.GetContact(i, out _, out _, out float depth, out _);
+            if (depth >= 0f) return true;
+        }
+        return false;
     }
 
     public bool ConfigureContactManifold(int workerIndex, CollidablePair pair, int childIndexA, int childIndexB,

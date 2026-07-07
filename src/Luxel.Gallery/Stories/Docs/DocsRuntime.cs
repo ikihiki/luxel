@@ -291,7 +291,7 @@ public static class DocsRuntime
 
         ### DebugDraw / gizmo — ゲーム画面上のオーバーレイ
 
-        `DebugDraw.Line/Rect/Circle/Text` はワールド空間に即時モードで積み、`Flush(scene, worldToScreen, textDrawer)` で最前面オーバーレイへ流します。`worldToScreen` 委譲で 2D=恒等・3D=viewProj の両対応。カテゴリ (kind) 単位で `Enable/Disable` でき、DevTools の `gizmo.enable {kind,on}` コマンドからトグルします (既定 off、OFF カテゴリはゼロ割り当てで抜ける)。この上に標準 gizmo (`Gizmos2D` = タイル衝突/Sweep/CameraRig、`ParticleGizmos.Emitter` = エミッタ位置 + alive 数、`PhysicsGizmos.DrawColliders` = コライダーワイヤの動的/静的/CCD 色分け) が載ります。実演は {{StoryRef(ctx, "Demos/TwoD/Gizmos2D")}} と {{StoryRef(ctx, "Demos/3D/PhysicsGizmos")}}。
+        `DebugDraw.Line/Rect/Circle/Text` はワールド空間に即時モードで積み、`Flush(scene, worldToScreen, textDrawer)` で最前面オーバーレイへ流します。`worldToScreen` 委譲で 2D=恒等・3D=viewProj の両対応。カテゴリ (kind) 単位で `Enable/Disable` でき、DevTools の `gizmo.enable {kind,on}` コマンドからトグルします (既定 off、OFF カテゴリはゼロ割り当てで抜ける)。この上に標準 gizmo (`Gizmos2D` = タイル衝突/Sweep/CameraRig、`ParticleGizmos.Emitter` = エミッタ位置 + alive 数、`PhysicsGizmos.DrawColliders` = コライダーワイヤの動的/静的/CCD/トリガー色分け、`PhysicsGizmos.ContactMarkers` = 接触中ペアのインジケータ) が載ります。実演は {{StoryRef(ctx, "Demos/TwoD/Gizmos2D")}} / {{StoryRef(ctx, "Demos/3D/PhysicsGizmos")}} / {{StoryRef(ctx, "Demos/3D/PhysicsTrigger")}}。
 
         ### timescale — スローモーション
 

@@ -184,11 +184,11 @@ public class DebugDrawTests
         world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, -0.5f, 0)),
             Collider.Box(8, 1, 8), new StaticBody());
 
-        PhysicsGizmos.DrawColliders(world, 0xFF00FF00, 0xFF888888, 0xFFFF0000);   // OFF
+        PhysicsGizmos.DrawColliders(world, 0xFF00FF00, 0xFF888888, 0xFFFF0000, 0xFF00FFFF);   // OFF
         Assert.Equal(0, DebugDraw.PendingCount);
 
         DebugDraw.Enable(PhysicsGizmos.Colliders);
-        PhysicsGizmos.DrawColliders(world, 0xFF00FF00, 0xFF888888, 0xFFFF0000);
+        PhysicsGizmos.DrawColliders(world, 0xFF00FF00, 0xFF888888, 0xFFFF0000, 0xFF00FFFF);
         Assert.Equal(24, DebugDraw.PendingCount);   // 箱 2 個 × 12 辺
     }
 
@@ -201,9 +201,9 @@ public class DebugDrawTests
         world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, -0.5f, 0)),
             Collider.Box(8, 1, 8), new StaticBody());               // 静的 → staticColor
 
-        const uint dyn = 0xFF00FF00, stat = 0xFF888888, ccd = 0xFFFF0000;
+        const uint dyn = 0xFF00FF00, stat = 0xFF888888, ccd = 0xFFFF0000, trig = 0xFF00FFFF;
         DebugDraw.Enable(PhysicsGizmos.Colliders);
-        PhysicsGizmos.DrawColliders(world, dyn, stat, ccd);
+        PhysicsGizmos.DrawColliders(world, dyn, stat, ccd, trig);
 
         var scene = new Scene2D();
         DebugDraw.Flush(scene, w => new Vector2(w.X, w.Y));   // 恒等投影 (XY)
@@ -211,5 +211,38 @@ public class DebugDrawTests
         Assert.Contains(ccd, colors);
         Assert.Contains(stat, colors);
         Assert.DoesNotContain(dyn, colors);   // CCD 有効なので通常動的色は出ない
+    }
+
+    [Fact]
+    public void Gizmo_PhysicsColliders_TriggerColorCoded()
+    {
+        using var world = new Luxel.Ecs.World();
+        world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, 1, 0)),
+            Collider.Box(2, 2, 2), new Trigger());   // トリガー → triggerColor
+
+        const uint dyn = 0xFF00FF00, stat = 0xFF888888, ccd = 0xFFFF0000, trig = 0xFF00FFFF;
+        DebugDraw.Enable(PhysicsGizmos.Colliders);
+        PhysicsGizmos.DrawColliders(world, dyn, stat, ccd, trig);
+        Assert.Equal(12, DebugDraw.PendingCount);   // 箱 1 個 × 12 辺
+
+        var scene = new Scene2D();
+        DebugDraw.Flush(scene, w => new Vector2(w.X, w.Y));
+        Assert.All(scene.Shapes, s => Assert.Equal(trig, s.Color));   // すべてトリガー色
+    }
+
+    [Fact]
+    public void Gizmo_ContactMarkers_CrossPerPair_ZeroWhenOff()
+    {
+        using var world = new Luxel.Ecs.World();
+        var a = world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, 0, 0)));
+        var b = world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(2, 0, 0)));
+        var pairs = new List<EntityPair> { new(a, b) };
+
+        PhysicsGizmos.ContactMarkers(pairs, 0xFFFFFF00);   // OFF
+        Assert.Equal(0, DebugDraw.PendingCount);
+
+        DebugDraw.Enable(PhysicsGizmos.Contacts);
+        PhysicsGizmos.ContactMarkers(pairs, 0xFFFFFF00);
+        Assert.Equal(3, DebugDraw.PendingCount);   // 3D 十字 = 3 線
     }
 }

@@ -27,11 +27,26 @@ public sealed class PhysicsStepSystem : BaseSystem
     private readonly Luxel.Ecs.World _world;
     private readonly PhysicsWorld _physics;
 
+    private readonly List<ContactEvent> _contactEvents = new();
+    private readonly List<EntityPair> _currentContacts = new();
+    private readonly Dictionary<int, Entity> _bodyToEntity = new();
+    private readonly Dictionary<int, Entity> _staticToEntity = new();
+
     public PhysicsStepSystem(Luxel.Ecs.World world, PhysicsWorld physics)
     {
         _world = world;
         _physics = physics;
     }
+
+    /// <summary>今フレームの接触/トリガーイベント (Begin/End、Entity ベース)。フレーム内で読み切る規約。</summary>
+    public IReadOnlyList<ContactEvent> ContactEvents => _contactEvents;
+
+    /// <summary>直近ステップで接触中の Entity ペア (gizmo/デバッグ用)。<see cref="TrackCurrentContacts"/> が
+    /// true のときだけ埋まる (既定 false = ゼロコスト)。</summary>
+    public IReadOnlyList<EntityPair> CurrentContacts => _currentContacts;
+
+    /// <summary>接触中ペアの毎ステップ収集を有効にするか (contact gizmo 用のオプトイン)。既定 false。</summary>
+    public bool TrackCurrentContacts { get; set; }
 
     protected override void OnUpdateGroup() => Run(Tick.deltaTime);
 
@@ -41,6 +56,7 @@ public sealed class PhysicsStepSystem : BaseSystem
         AttachNewBodies();
         int steps = _physics.Step(dt);
         if (steps > 0) WriteBackPoses();
+        TranslateContacts();
         return steps;
     }
 
@@ -51,6 +67,42 @@ public sealed class PhysicsStepSystem : BaseSystem
         AttachNewBodies();
         _physics.StepOnce();
         WriteBackPoses();
+        TranslateContacts();
+    }
+
+    /// <summary>PhysicsWorld の raw イベント (collidable ハンドル) を Entity ベースへ変換する。
+    /// 逆引きマップはイベントがあるときだけ構築 (無ければゼロコスト)。</summary>
+    private void TranslateContacts()
+    {
+        _contactEvents.Clear();
+        _currentContacts.Clear();
+        bool wantCurrent = TrackCurrentContacts && _physics.CurrentContacts.Count > 0;
+        if (_physics.ContactEvents.Count == 0 && !wantCurrent) return;
+
+        BuildEntityMap();
+        foreach (ContactPairEvent e in _physics.ContactEvents)
+            if (Resolve(e.A, out Entity a) && Resolve(e.B, out Entity b))
+                _contactEvents.Add(new ContactEvent(a, b, e.Phase));
+        if (wantCurrent)
+            foreach (ContactPairKey k in _physics.CurrentContacts)
+                if (Resolve(k.A, out Entity a) && Resolve(k.B, out Entity b))
+                    _currentContacts.Add(new EntityPair(a, b));
+    }
+
+    private void BuildEntityMap()
+    {
+        _bodyToEntity.Clear();
+        _staticToEntity.Clear();
+        _world.Query<RigidBody>().ForEachEntity((ref RigidBody b, Entity e) => { if (b.Attached) _bodyToEntity[b.Handle.Value] = e; });
+        _world.Query<StaticBody>().ForEachEntity((ref StaticBody s, Entity e) => { if (s.Attached) _staticToEntity[s.Handle.Value] = e; });
+        _world.Query<Trigger>().ForEachEntity((ref Trigger t, Entity e) => { if (t.Attached) _staticToEntity[t.Handle.Value] = e; });
+    }
+
+    private bool Resolve(BepuPhysics.Collidables.CollidableReference c, out Entity e)
+    {
+        if (c.Mobility == BepuPhysics.Collidables.CollidableMobility.Static)
+            return _staticToEntity.TryGetValue(c.StaticHandle.Value, out e);
+        return _bodyToEntity.TryGetValue(c.BodyHandle.Value, out e);
     }
 
     private void AttachNewBodies()
@@ -84,16 +136,24 @@ public sealed class PhysicsStepSystem : BaseSystem
             if (!s.Attached) newStatic.Add((e, c, InitialPose(e)));
         });
         foreach ((Entity e, Collider c, RigidPose pose) in newStatic)
+            e.AddComponent(new StaticBody { Handle = _physics.AddStatic(pose, ShapeOf(c)), Attached = true });
+
+        var newTriggers = new List<(Entity E, Collider C, RigidPose Pose)>();
+        _world.Query<Collider, Trigger>().ForEachEntity((ref Collider c, ref Trigger t, Entity e) =>
         {
-            TypedIndex shape = c.Kind switch
-            {
-                ColliderKind.Sphere => _physics.AddShape(new Sphere(c.Radius)),
-                ColliderKind.Capsule => _physics.AddShape(new Capsule(c.Radius, c.Length)),
-                _ => _physics.AddShape(new Box(c.Size.X, c.Size.Y, c.Size.Z)),
-            };
-            e.AddComponent(new StaticBody { Handle = _physics.AddStatic(pose, shape), Attached = true });
-        }
+            if (!t.Attached) newTriggers.Add((e, c, InitialPose(e)));
+        });
+        foreach ((Entity e, Collider c, RigidPose pose) in newTriggers)
+            e.AddComponent(new Trigger { Handle = _physics.AddTrigger(pose, ShapeOf(c)), Attached = true });
     }
+
+    /// <summary>Collider から Bepu の shape を登録して TypedIndex を得る (静的/トリガー共通)。</summary>
+    private TypedIndex ShapeOf(in Collider c) => c.Kind switch
+    {
+        ColliderKind.Sphere => _physics.AddShape(new Sphere(c.Radius)),
+        ColliderKind.Capsule => _physics.AddShape(new Capsule(c.Radius, c.Length)),
+        _ => _physics.AddShape(new Box(c.Size.X, c.Size.Y, c.Size.Z)),
+    };
 
     /// <summary>entity の LocalTransform から初期 pose (位置 + 回転) を採る。スケールは形状 (Collider) が持つ。</summary>
     private static RigidPose InitialPose(Entity e)
