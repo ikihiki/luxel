@@ -183,7 +183,32 @@ public sealed class RangeRealtimeScene : GameScene
         cmd.Barrier(GpuStage.ColorOutput, GpuStage.Copy).CopyTextureToBuffer(_target!, _fb!);
         cmd.Finish();
         Device.MainQueue.SubmitAndWait(cmd);
+
+        DrawHud();   // レティクル + 残弾ピップ + スコアバー (CPU で framebuffer へ直接)
     }
+
+    /// <summary>簡易 HUD を framebuffer (HostMapped RGBA8) へ CPU 描画: 中央レティクル + 残弾ピップ + スコアバー。
+    /// フォント非依存の最小オーバーレイ (Title/Result のテキスト画面は将来)。</summary>
+    private void DrawHud()
+    {
+        Span<uint> px = _fb!.Span<uint>((int)(Width * Height));
+        int cx = (int)Width / 2, cy = (int)Height / 2;
+        const uint white = 0xFFFFFFFF, green = 0xFF50E050, amber = 0xFF40C0FF;
+
+        for (int d = -6; d <= 6; d++) { Put(px, cx + d, cy, white); Put(px, cx, cy + d, white); }   // 中央レティクル (十字)
+        Put(px, cx, cy, 0xFF3030FF);   // 中心点 (赤)
+
+        for (int i = 0; i < _game.Sim.AmmoLeft; i++) Rect(px, 8 + i * 8, 8, 6, 6, green);   // 残弾ピップ (左上)
+
+        float ratio = Math.Min(1f, _game.Score / 1000f);   // スコアバー (下端、1000 で満タン)
+        Rect(px, 8, (int)Height - 10, (int)((Width - 16) * ratio), 4, amber);
+    }
+
+    private static void Put(Span<uint> px, int x, int y, uint c)
+    { if (x >= 0 && x < Width && y >= 0 && y < Height) px[y * (int)Width + x] = c; }
+
+    private static void Rect(Span<uint> px, int x, int y, int w, int h, uint c)
+    { for (int j = 0; j < h; j++) for (int i = 0; i < w; i++) Put(px, x + i, y + j, c); }
 
     private void InitGpu()
     {
