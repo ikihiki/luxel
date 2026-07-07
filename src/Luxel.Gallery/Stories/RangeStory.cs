@@ -2,8 +2,11 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Luxel;
 using Luxel.AssetRuntime;
+using Luxel.Assets;
+using Luxel.AssetsGpu;
 using Luxel.Ecs;
 using Luxel.Framework;
+using Luxel.Gltf;
 using Luxel.RenderGraph;
 using Luxel.UI;
 using LuxelRange.Core;
@@ -48,6 +51,18 @@ public static class RangeStories
         public uint InstanceStart;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SkinnedDrawArgs
+    {
+        public Matrix4x4 ViewProj;
+        public uint VertexBufIndex;
+        public uint IndexBufIndex;
+        public uint InstanceBufIndex;
+        public uint JointBufIndex;
+        public uint InstanceStart;
+        public uint Pad0, Pad1, Pad2;
+    }
+
     public sealed class RangeScene : GameScene, IStoryApp
     {
         public const uint W = 512, H = 320;   // 512*4 = 2048B 行 (256B 整列) — D3D12 CopyTextureToBuffer 要件
@@ -71,6 +86,17 @@ public static class RangeStories
         private int _terrainIndexCount;
         private GpuTexture? _target, _depth;
         private GpuPipeline? _pipeline, _pbrPipeline;
+
+        // 動く的 = skin モデル (Fox.glb)。別 world で glTF を組み、FoxPosition へ instance World で置く。
+        private Luxel.Ecs.World? _foxWorld;
+        private SceneAssets? _foxAssets;
+        private SceneAnimationPlayer? _foxAnim;
+        private float _foxAnimDur, _foxAnimTime;
+        private ScenePrimitiveGpu? _foxPrim;
+        private RenderBuffer<Matrix4x4>? _foxJoints;
+        private GpuBuffer? _foxInst;
+        private GpuPipeline? _skinPipeline;
+        private const float FoxModelScale = 0.018f;   // Khronos Fox は ~100 単位 → ~1.8m 相当へ縮小
         private long _version, _seen;
         private bool _fbDirty = true;
 
@@ -114,6 +140,8 @@ public static class RangeStories
             if (_sim is null || !_sim.Started) return;   // InitGpu (OnUpdate) 前は _sim 未生成
             _sim.StepOnce();
             TransformPropagateSystem.Run(_sim.World);
+            if (!_sim.FoxFlinching) _foxAnimTime += (float)RangeSim.FixedDt;   // ひるみ中は歩行を止める
+            if (_foxPrim is not null) UploadFox();
             _fbDirty = true;
             if (_sim.Score != _lastScore)
             {
@@ -142,9 +170,21 @@ public static class RangeStories
             BufferHandle hTV = rg.ImportBuffer(_terrainVb!, "terrainVerts");
             BufferHandle hTI = rg.ImportBuffer(_terrainIb!, "terrainIdx");
             BufferHandle hTInst = rg.ImportBuffer(_terrainInst!, "terrainInst");
-            rg.AddPass("Range3D", PassQueue.Graphics)
-              .Read(hVerts).Read(hInsts).Read(hTV).Read(hTI).Read(hTInst).Write(hInsts)   // Write 無しパスはデッドパスカリング
-              .Execute(pctx =>
+            var pass = rg.AddPass("Range3D", PassQueue.Graphics)
+              .Read(hVerts).Read(hInsts).Read(hTV).Read(hTI).Read(hTInst).Write(hInsts);   // Write 無しパスはデッドパスカリング
+
+            bool drawFox = _foxPrim is not null;
+            BufferHandle hFV = default, hFI = default, hFInst = default, hFJoint = default;
+            if (drawFox)
+            {
+                hFV = rg.ImportBuffer(_foxPrim!.VertexBuffer, "foxVerts");
+                hFI = rg.ImportBuffer(_foxPrim.IndexBuffer, "foxIdx");
+                hFInst = rg.ImportBuffer(_foxInst!, "foxInst");
+                hFJoint = rg.ImportBuffer(_foxJoints!.Buffer, "foxJoints");
+                pass = pass.Read(hFV).Read(hFI).Read(hFInst).Read(hFJoint);
+            }
+
+            pass.Execute(pctx =>
               {
                   // 1) 起伏メッシュ地形 (scene_pbr_lite)
                   pctx.Cmd.BeginRendering(_target!, _depth!, 0.05f, 0.06f, 0.09f, 1f, 1f)
@@ -158,7 +198,7 @@ public static class RangeStories
                               InstanceStart = 0,
                           })
                           .Draw((uint)_terrainIndexCount, 1);
-                  // 2) 的/弾 (cube_forward)
+                  // 2) 的/弾/小物 (cube_forward)
                   pctx.Cmd.SetGraphicsPipeline(_pipeline!)
                           .SetRootArguments(new DrawArgs
                           {
@@ -166,8 +206,23 @@ public static class RangeStories
                               VertexBufIndex = pctx.BindlessIndex(hVerts),
                               InstanceBufIndex = pctx.BindlessIndex(hInsts),
                           })
-                          .Draw((uint)Luxel.Assets.CubeMesh.VertexCount, (uint)_extractor.InstanceCount)
-                          .EndRendering();
+                          .Draw((uint)Luxel.Assets.CubeMesh.VertexCount, (uint)_extractor.InstanceCount);
+                  // 3) 動く的 = skin モデル (scene_pbr_skinned)
+                  if (drawFox)
+                  {
+                      pctx.Cmd.SetGraphicsPipeline(_skinPipeline!)
+                              .SetRootArguments(new SkinnedDrawArgs
+                              {
+                                  ViewProj = vpT,
+                                  VertexBufIndex = pctx.BindlessIndex(hFV),
+                                  IndexBufIndex = pctx.BindlessIndex(hFI),
+                                  InstanceBufIndex = pctx.BindlessIndex(hFInst),
+                                  JointBufIndex = pctx.BindlessIndex(hFJoint),
+                                  InstanceStart = 0,
+                              })
+                              .Draw((uint)_foxPrim!.IndexCount, 1);
+                  }
+                  pctx.Cmd.EndRendering();
               });
 
             using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
@@ -192,8 +247,13 @@ public static class RangeStories
             _terrainVb?.Dispose();
             _terrainIb?.Dispose();
             _terrainInst?.Dispose();
+            _foxAssets?.Dispose();
+            _foxJoints?.Dispose();
+            _foxInst?.Dispose();
+            _skinPipeline?.Dispose();
             _extractor = null; _pipeline = null; _pbrPipeline = null; _depth = null; _target = null; _vb = null; _fb = null;
             _terrainVb = null; _terrainIb = null; _terrainInst = null;
+            _foxWorld = null; _foxAssets = null; _foxPrim = null; _foxJoints = null; _foxInst = null; _skinPipeline = null;
             return Task.CompletedTask;
         }
 
@@ -215,8 +275,89 @@ public static class RangeStories
             TransformPropagateSystem.Run(_sim.World);   // 初期 (静止) シーンの GlobalTransform
             _extractor = new Render3DExtractSystem(_sim.World, Device);
             BuildTerrainBuffers();
+            BuildFox();
             _fbDirty = true;
         }
+
+        /// <summary>Fox.glb を別 world で組み、skin 描画資源を用意して初期ポーズを焼く。</summary>
+        private void BuildFox()
+        {
+            string[] candidates =
+            [
+                Path.Combine(Environment.CurrentDirectory, "tools", "khronos-samples", "Fox.glb"),
+                Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "tools", "khronos-samples", "Fox.glb"),
+            ];
+            string? path = candidates.FirstOrDefault(File.Exists);
+            if (path is null) return;   // アセットが無ければ Fox 描画はスキップ (的の当たりは箱 proxy が担保)
+
+            AssetDocument doc = new GltfLoader().LoadAsync(path).GetAwaiter().GetResult();
+            for (int i = 0; i < doc.Materials.Count; i++)
+                doc.Materials[i].BaseColorFactor = new Vector4(0.80f, 0.52f, 0.28f, 1f);   // キツネ色
+
+            _foxWorld = new Luxel.Ecs.World();
+            _foxAssets = SceneBuilder.Build(_foxWorld, doc, Device);
+            if (doc.Animations.Count > 0)
+            {
+                int walk = Math.Min(1, doc.Animations.Count - 1);   // Fox: 0=Survey 1=Walk 2=Run
+                _foxAnim = new SceneAnimationPlayer(_foxWorld, _foxAssets, doc.Animations[walk]);
+                _foxAnimDur = MathF.Max(0.01f, doc.Animations[walk].Duration);
+            }
+
+            // skin 付き primitive を特定
+            Matrix4x4[] jointMats = Array.Empty<Matrix4x4>();
+            PoseFox(0f, out jointMats);
+            if (_foxPrim is null) { _foxWorld = null; _foxAssets = null; return; }   // skin 無し
+
+            _foxJoints = new RenderBuffer<Matrix4x4>(Device, Math.Max(1, jointMats.Length), "foxJoints");
+            _foxInst = Device.Malloc((ulong)SceneInstanceData.Stride, GpuMemoryKind.HostMapped);
+            _skinPipeline = Device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_skinned"), MeshRaster());
+            UploadFox();
+        }
+
+        private static GpuRasterDesc MeshRaster()
+        {
+            var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
+            raster.DepthTest = true;
+            raster.DepthWrite = true;
+            return raster;
+        }
+
+        /// <summary>Fox のアニメを時刻 t で sample → 伝播 → SkinningSystem。skin primitive と joint 行列を取り出す。</summary>
+        private void PoseFox(float t, out Matrix4x4[] jointMats)
+        {
+            jointMats = Array.Empty<Matrix4x4>();
+            _foxAnim?.Sample(_foxAnimDur > 0 ? t % _foxAnimDur : 0f);
+            TransformPropagateSystem.Run(_foxWorld!);
+            SkinningSystem.Run(_foxWorld!, _foxAssets!);
+            Matrix4x4[] mats = Array.Empty<Matrix4x4>();
+            _foxWorld!.Query<AssetMeshRef, AssetSkinRef, JointMatrices>().ForEachEntity(
+                (ref AssetMeshRef mr, ref AssetSkinRef _, ref JointMatrices jm, Friflo.Engine.ECS.Entity _) =>
+                {
+                    AssetPrimitive p = mr.Mesh.Primitives[0];
+                    if (_foxAssets!.Primitives.TryGetValue(p, out ScenePrimitiveGpu gpu) && gpu.HasSkinning)
+                    { _foxPrim = gpu; mats = jm.Matrices; }   // 毎回 joint 行列を取り出す (アニメ更新のため)
+                });
+            jointMats = mats;
+        }
+
+        /// <summary>現在の Fox ポーズ + FoxPosition を GPU バッファへ (joint 行列 + instance World)。</summary>
+        private void UploadFox()
+        {
+            if (_foxPrim is null) return;
+            PoseFox(_foxAnimTime, out Matrix4x4[] mats);
+            for (int i = 0; i < mats.Length && i < _foxJoints!.Data.Length; i++) _foxJoints.Data[i] = mats[i];
+            _foxJoints!.MarkDirty();
+            _foxJoints.FlushImmediate();
+
+            // instance World = Scale × Yaw(+X 進行方向で正面) × Translation(FoxPosition)。skin 頂点 (モデル空間) を世界へ。
+            Vector3 pos = _sim.FoxPosition;
+            Matrix4x4 world = Matrix4x4.CreateScale(FoxModelScale)
+                            * Matrix4x4.CreateRotationY(MathF.PI / 2)
+                            * Matrix4x4.CreateTranslation(pos.X, pos.Y - FoxSize_Y_half, pos.Z);
+            _foxInst!.Span<SceneInstanceData>(1)[0] = new SceneInstanceData { World = world, BaseColor = new Vector4(0.80f, 0.52f, 0.28f, 1f) };
+        }
+
+        private const float FoxSize_Y_half = 0.6f;   // proxy 箱の半分 (足元を地形に合わせる)
 
         /// <summary>RangeSim と同じ頂点で地形メッシュの GPU バッファを作る (絵 = 当たり)。scene_pbr_lite 用。</summary>
         private void BuildTerrainBuffers()

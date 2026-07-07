@@ -151,10 +151,9 @@ public sealed class RangeSim : IDisposable
         // 動く的 (Fox) — キネマティックの箱 proxy (CCD 弾が確実に当たる)。描画はここでは箱 (skin モデルは描画側で後日)。
         Vector3 foxPos = FoxAt(0f);
         _foxHandle = Physics.AddKinematic(new RigidPose(foxPos), Physics.AddShape(new BepuPhysics.Collidables.Box(FoxSize.X, FoxSize.Y, FoxSize.Z)));
+        // 描画は Gallery が skin モデルを FoxPosition に置く (ここでは物理 proxy + gameplay マーカのみ)。
         _fox = World.Store.CreateEntity(
             new LocalTransform(Matrix4x4.CreateScale(FoxSize) * Matrix4x4.CreateTranslation(foxPos)),
-            new Color3D(new Vector4(0.85f, 0.45f, 0.80f, 1f)),
-            new MeshRef(MeshRef.Cube),
             new KinematicBody(_foxHandle),
             new RangeFox(300));
         FoxPosition = foxPos;

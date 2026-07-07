@@ -130,7 +130,15 @@ samples/LuxelRange/
 - 単体テスト +2: Fox 命中で +300 + ひるみ / 巡回で位置が動く。全 832 passed / e2e 71/71 diff 0。
 - Gallery: Fox は紫の箱として描画 (キネマティック pose を LocalTransform に反映、Render3DExtract が拾う)。**skin モデル (09 Fox.glb の scene_pbr_skinned 描画) は 3c-2 で差し替え** (FoxPosition へ配置)。golden 更新、vk/dx 一致。
 
-**残 (後続スライス)**: 3c-2 = Fox 箱を skin モデル (09) に差し替え (FoxPosition に glTF Fox を配置・歩行アニメ + SkinningSystem)。3d = 命中パーティクル (16) + SE。4 = Title/Result + ハイスコア/設定 (15) + BGM (10)。5 = exe プレイアブル化 + publish 3D 検証。**20 MD は全スライス完了まで残す**。
+### 2026-07-07 (6): スライス 3c-2 — 動く的を skin モデル (Fox.glb) に差し替え (09 in-game)
+
+**済**:
+- `RangeSim`: Fox entity から描画コンポーネント (MeshRef/Color3D) を除去 (物理 proxy + gameplay マーカのみ)。描画は Gallery が担当。
+- `RangeScene`: `Fox.glb` を別 world で `SceneBuilder`、歩行アニメ (anim[1]) を毎ステップ sample → `TransformPropagateSystem` → `SkinningSystem` → joint 行列を `RenderBuffer` へ。**skin 頂点 (モデル空間) を instance World = Scale×YawRot×Translate(FoxPosition) で世界に配置** (root node は動かさず instance 変換で置く方式)。`scene_pbr_skinned` で 4 番目の draw。ひるみ中は歩行停止。
+- 罠: joint 行列の抽出を「初回のみ」にすると毎フレームの upload が空になり全頂点が原点へ潰れる → **毎フレーム抽出**に修正。Fox モデルは ~155 units (bounds Z[-88,66]) なので scale 0.018。
+- golden: 起伏地形 + 薄板 + 小物 + ボーナスゾーン + **歩く Fox** が描画。vk/dx skinning 一致。全 832 passed / e2e 71/71 diff 0。**09 (skin) をゲーム内で検証達成**。
+
+**残 (後続スライス)**: 3d = 命中パーティクル (16、.ThreeD バースト) + SE (10)。4 = Title/Result + ハイスコア/設定 (15) + BGM (10)。5 = exe プレイアブル化 + publish 3D 検証 (glTF アセット/scene_pbr shaders が publish 出力に乗るか)。**20 MD は全スライス完了まで残す**。
 
 ## スコープ外
 
