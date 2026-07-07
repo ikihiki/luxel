@@ -146,7 +146,13 @@ samples/LuxelRange/
 - 単体テスト +2: Fire/命中でイベント発火 / SFX 対応表の写像。全 834 passed / e2e 71/71 diff 0 (Core のみ、golden 不変)。
 - **命中パーティクル (.ThreeD バースト、16) と exe 音 (10) はこのイベントを consume する** — パーティクル描画は frozen golden に映らないため follow-up (装飾常時エミッタで golden 化 or scripted play)。音は RealWindowOnly。
 
-**残 (後続スライス)**: 3d-2 = 命中 .ThreeD パーティクルバースト描画 (イベント consume、golden 手当て)。4 = Title/Result + ハイスコア/設定 (15) + BGM/SE 実音 (10、exe/RealWindowOnly)。5 = exe プレイアブル化 + publish 3D 検証。**20 MD は全スライス完了まで残す**。
+### 2026-07-07 (8): スライス 3d-2 — 命中 .ThreeD パーティクルバースト描画 (16 in-game)
+
+**済**:
+- `RangeScene`: `ParticleSystem` (火花 cfg、固定シード) + `ParticleBillboards`。命中イベント (`TargetHit`/`FoxHit`) の位置でバースト放出、毎ステップ `Update`、`OnRender` で `Sync` → RenderGraph パス内で `Draw` (カメラ向きビルボード、5 番目の描画、深度テスト + アルファブレンド)。
+- golden: 中央ターゲット位置にデモバーストを 1 発焼いて 15 step 進め、frozen golden で in-game パーティクル描画を確認。**歩く Fox + 火花バースト**が映る。vk/dx 一致。全 834 passed / e2e 71/71 diff 0。**16 (.ThreeD パーティクル) を capstone ゲーム内で検証達成**。
+
+**残 (後続スライス)**: 4 = Title/Result 状態機械 + ハイスコア/音量の永続化 (15、SettingsStore 再利用) + BGM/SE 実音配線 (10、exe/RealWindowOnly)。5 = exe プレイアブル化 (LuxelHostBuilder + GameScene) + publish 3D 検証 (glTF アセット/scene_pbr・billboard shaders が publish 出力に乗るか、リポジトリ外 vk/dx 起動)。**20 MD は全スライス完了まで残す**。
 
 ## スコープ外
 

@@ -7,6 +7,8 @@ using Luxel.AssetsGpu;
 using Luxel.Ecs;
 using Luxel.Framework;
 using Luxel.Gltf;
+using Luxel.Particles;
+using Luxel.Particles.ThreeD;
 using Luxel.RenderGraph;
 using Luxel.UI;
 using LuxelRange.Core;
@@ -97,6 +99,10 @@ public static class RangeStories
         private GpuBuffer? _foxInst;
         private GpuPipeline? _skinPipeline;
         private const float FoxModelScale = 0.018f;   // Khronos Fox は ~100 単位 → ~1.8m 相当へ縮小
+
+        // 命中パーティクル (.ThreeD バースト)。命中イベント位置で放出、カメラ向きビルボードで描く。
+        private ParticleSystem? _burstPs;
+        private ParticleBillboards? _hitBurst;
         private long _version, _seen;
         private bool _fbDirty = true;
 
@@ -142,6 +148,12 @@ public static class RangeStories
             TransformPropagateSystem.Run(_sim.World);
             if (!_sim.FoxFlinching) _foxAnimTime += (float)RangeSim.FixedDt;   // ひるみ中は歩行を止める
             if (_foxPrim is not null) UploadFox();
+            // 命中イベントでパーティクルバースト
+            foreach (RangeEvent ev in _sim.Events)
+                if (ev.Kind is RangeEventKind.TargetHit or RangeEventKind.FoxHit)
+                    _burstPs!.Emit(ev.Position, 32);
+            _sim.ClearEvents();
+            _burstPs!.Update((float)RangeSim.FixedDt);
             _fbDirty = true;
             if (_sim.Score != _lastScore)
             {
@@ -161,9 +173,11 @@ public static class RangeStories
             if (_fb is null || _extractor is null || !_fbDirty) return;
             _fbDirty = false;
             _extractor.Extract();
+            _hitBurst?.Sync();
 
             Matrix4x4 viewProj = _cam.ViewProjection;
             Matrix4x4 vpT = Matrix4x4.Transpose(viewProj);
+            (Vector3 billRight, Vector3 billUp) = ParticleBillboards.CameraAxes(_cam.Eye, _cam.Target);
             using var rg = new Luxel.RenderGraph.RenderGraph(Device);
             BufferHandle hVerts = rg.ImportBuffer(_vb!, "verts");
             BufferHandle hInsts = rg.ImportBuffer(_extractor.InstanceBuffer, "instances");
@@ -222,6 +236,8 @@ public static class RangeStories
                               })
                               .Draw((uint)_foxPrim!.IndexCount, 1);
                   }
+                  // 4) 命中パーティクル (カメラ向きビルボード、深度テストあり + アルファブレンド)
+                  _hitBurst?.Draw(pctx.Cmd, viewProj, billRight, billUp);
                   pctx.Cmd.EndRendering();
               });
 
@@ -251,6 +267,8 @@ public static class RangeStories
             _foxJoints?.Dispose();
             _foxInst?.Dispose();
             _skinPipeline?.Dispose();
+            _hitBurst?.Dispose();
+            _hitBurst = null; _burstPs = null;
             _extractor = null; _pipeline = null; _pbrPipeline = null; _depth = null; _target = null; _vb = null; _fb = null;
             _terrainVb = null; _terrainIb = null; _terrainInst = null;
             _foxWorld = null; _foxAssets = null; _foxPrim = null; _foxJoints = null; _foxInst = null; _skinPipeline = null;
@@ -276,8 +294,27 @@ public static class RangeStories
             _extractor = new Render3DExtractSystem(_sim.World, Device);
             BuildTerrainBuffers();
             BuildFox();
+            BuildBurst();
             _fbDirty = true;
         }
+
+        /// <summary>命中パーティクル (火花バースト) を用意。golden 用に中央ターゲット位置へデモバーストを 1 発焼く。</summary>
+        private void BuildBurst()
+        {
+            var cfg = new ParticleConfig(
+                Life: ParticleValue.Range(0.30f, 0.70f), Speed: ParticleValue.Range(2f, 5f),
+                SpreadRadians: MathF.PI, BaseAngle: 0f, Gravity: -6f, Drag: 0.3f,
+                Size: 0.09f, Color: new ParticleColor(Rgba(255, 220, 120, 255), Rgba(240, 90, 40, 0)),
+                Shape: ParticleShape.Circle, Spherical: true);
+            _burstPs = new ParticleSystem(cfg, capacity: 400, seed: 0x2A11);
+            _hitBurst = new ParticleBillboards(Device, _burstPs);
+            // golden 用のデモバースト (中央ターゲット付近、命中演出の見本)。少し進めて広げる。
+            _burstPs.Emit(new Vector3(0f, 1.0f, -8f), 44);
+            for (int f = 0; f < 15; f++) _burstPs.Update(1f / 60);
+            _hitBurst.Sync();
+        }
+
+        private static uint Rgba(byte r, byte g, byte b, byte a) => (uint)(r | (g << 8) | (b << 16) | (a << 24));
 
         /// <summary>Fox.glb を別 world で組み、skin 描画資源を用意して初期ポーズを焼く。</summary>
         private void BuildFox()
