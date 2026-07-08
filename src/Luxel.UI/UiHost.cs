@@ -704,20 +704,31 @@ public sealed class UiHost : IDisposable
 
         foreach (OverlayEntry e in _build.Overlays)
         {
-            Constraints cc = e.Placement switch
-            {
-                OverlayPlacement.RightEdge or OverlayPlacement.LeftEdge => new Constraints(0, _width, _height, _height),
-                OverlayPlacement.BottomEdge => new Constraints(_width, _width, 0, _height),
-                _ => Constraints.LooseW(_width, _height),
-            };
+            AnchoredPlacement? anch = AnchoredOf(e);
+            Constraints cc = anch is not null
+                ? new Constraints(0, Cap(anch.MaxWidth, _width), 0, Cap(anch.MaxHeight, _height))
+                : e.Placement switch
+                {
+                    OverlayPlacement.RightEdge or OverlayPlacement.LeftEdge => new Constraints(0, _width, _height, _height),
+                    OverlayPlacement.BottomEdge => new Constraints(_width, _width, 0, _height),
+                    _ => Constraints.LooseW(_width, _height),
+                };
             Size cs = e.Content.Layout(cc, _layoutCtx, parentUsesSize: true);
-            Point pos = Place(e, cs);
+
+            Point pos; PopupSide solvedSide = PopupSide.Below;
+            if (anch is not null)
+            {
+                PopupSolve sol = PopupPlacer.Solve(e.Anchor!(), cs, new Rect(0, 0, _width, _height), anch);
+                pos = new Point(sol.Rect.X, sol.Rect.Y);
+                solvedSide = sol.Side;
+            }
+            else pos = PlaceRegion(e, cs);
             e.ContentRect = new Rect(pos.X, pos.Y, cs.Width, cs.Height);
 
             // 開閉トランジション: open/closed の状態遷移 (AS-M3 — 状態機械へ統一)。
             // 初期は瞬時 (snap 不変)。Visible は開度 > 0 の間だけ true — 閉アニメ完了で描画順から除外。
             OverlayEntry e2 = e;
-            float dur = e.Placement switch
+            float dur = anch is not null ? 0.13f : e.Placement switch
             {
                 OverlayPlacement.RightEdge or OverlayPlacement.LeftEdge or OverlayPlacement.BottomEdge => 0.22f,
                 OverlayPlacement.Center => 0.18f,
@@ -742,60 +753,64 @@ public sealed class UiHost : IDisposable
             e.Content.Realize(_build, holder, pos);
             float cw = cs.Width, ch = cs.Height;
             OverlayPlacement pl = e.Placement;
+            bool anchored = anch is not null;
+            PopupSide side = solvedSide;
             _build.Effect(() =>
             {
                 float t = vis.Float("t");
                 holder.Visible = t > 0.001f;
                 holder.Opacity = t;   // EffectiveOpacity でサブツリーに継承される
-                holder.Transform = pl switch
-                {
-                    // ダイアログ: 中心スケール 0.96 → 1
-                    OverlayPlacement.Center => TwoD.Affine2D.Mul(
-                        TwoD.Affine2D.Translate(pos.X + cw / 2, pos.Y + ch / 2),
-                        TwoD.Affine2D.Mul(TwoD.Affine2D.Scale(0.96f + 0.04f * t, 0.96f + 0.04f * t),
-                                          TwoD.Affine2D.Translate(-cw / 2, -ch / 2))),
-                    // ドロワー: 端からスライドイン
-                    OverlayPlacement.RightEdge => TwoD.Affine2D.Translate(pos.X + (1 - t) * cw, pos.Y),
-                    OverlayPlacement.LeftEdge => TwoD.Affine2D.Translate(pos.X - (1 - t) * cw, pos.Y),
-                    OverlayPlacement.BottomEdge => TwoD.Affine2D.Translate(pos.X, pos.Y + (1 - t) * ch),
-                    // トースト: 下から浮き上がる
-                    OverlayPlacement.CornerBottomRight => TwoD.Affine2D.Translate(pos.X, pos.Y + (1 - t) * 16),
-                    // ドロップダウン/ツールチップ: 6px ドロップ + フェード
-                    OverlayPlacement.Below => TwoD.Affine2D.Translate(pos.X, pos.Y - (1 - t) * 6),
-                    OverlayPlacement.Above => TwoD.Affine2D.Translate(pos.X, pos.Y + (1 - t) * 6),
-                    _ => TwoD.Affine2D.Translate(pos.X, pos.Y),
-                };
+                holder.Transform = anchored
+                    // アンカー配置: 解いた方向に 6px スライド + フェード
+                    ? side switch
+                    {
+                        PopupSide.Above => TwoD.Affine2D.Translate(pos.X, pos.Y + (1 - t) * 6),
+                        PopupSide.Right => TwoD.Affine2D.Translate(pos.X - (1 - t) * 6, pos.Y),
+                        PopupSide.Left => TwoD.Affine2D.Translate(pos.X + (1 - t) * 6, pos.Y),
+                        _ => TwoD.Affine2D.Translate(pos.X, pos.Y - (1 - t) * 6),   // Below
+                    }
+                    : pl switch
+                    {
+                        // ダイアログ: 中心スケール 0.96 → 1
+                        OverlayPlacement.Center => TwoD.Affine2D.Mul(
+                            TwoD.Affine2D.Translate(pos.X + cw / 2, pos.Y + ch / 2),
+                            TwoD.Affine2D.Mul(TwoD.Affine2D.Scale(0.96f + 0.04f * t, 0.96f + 0.04f * t),
+                                              TwoD.Affine2D.Translate(-cw / 2, -ch / 2))),
+                        // ドロワー: 端からスライドイン
+                        OverlayPlacement.RightEdge => TwoD.Affine2D.Translate(pos.X + (1 - t) * cw, pos.Y),
+                        OverlayPlacement.LeftEdge => TwoD.Affine2D.Translate(pos.X - (1 - t) * cw, pos.Y),
+                        OverlayPlacement.BottomEdge => TwoD.Affine2D.Translate(pos.X, pos.Y + (1 - t) * ch),
+                        // トースト: 下から浮き上がる
+                        OverlayPlacement.CornerBottomRight => TwoD.Affine2D.Translate(pos.X, pos.Y + (1 - t) * 16),
+                        _ => TwoD.Affine2D.Translate(pos.X, pos.Y),
+                    };
             });
         }
     }
 
-    private Point Place(OverlayEntry e, Size cs)
+    // Placement (Below/Above) を同等の Anchored へ写す — 既存呼び出しも同じソルバ (フリップ/シフト/クランプ) を通す。
+    // 旧挙動と一致させるため Margin=0 (旧 Below/Above は端余白を持たなかった)。
+    private static AnchoredPlacement? AnchoredOf(OverlayEntry e)
+        => e.Anchored
+           ?? e.Placement switch
+           {
+               OverlayPlacement.Below => new AnchoredPlacement { Side = PopupSide.Below, Gap = e.Gap, Margin = 0 },
+               OverlayPlacement.Above => new AnchoredPlacement { Side = PopupSide.Above, Gap = e.Gap, Margin = 0 },
+               _ => null,
+           };
+
+    private static float Cap(float v, float max) => v > 0 ? MathF.Min(v, max) : max;
+
+    private Point PlaceRegion(OverlayEntry e, Size cs)
     {
-        float W = _width, H = _height, cw = cs.Width, ch = cs.Height, g = e.Gap, m = e.Margin;
-        static float Clamp(float v, float lo, float hi) => MathF.Max(lo, MathF.Min(v, hi));
-        switch (e.Placement)
+        float W = _width, H = _height, cw = cs.Width, ch = cs.Height, m = e.Margin;
+        return e.Placement switch
         {
-            case OverlayPlacement.Below:
-                {
-                    Rect a = e.Anchor!();
-                    float x = Clamp(a.X, 0, MathF.Max(0, W - cw));
-                    float y = a.Y + a.Height + g;
-                    if (y + ch > H) y = a.Y - ch - g;
-                    return new Point(x, y);
-                }
-            case OverlayPlacement.Above:
-                {
-                    Rect a = e.Anchor!();
-                    float x = Clamp(a.X, 0, MathF.Max(0, W - cw));
-                    float y = a.Y - ch - g;
-                    if (y < 0) y = a.Y + a.Height + g;
-                    return new Point(x, y);
-                }
-            case OverlayPlacement.RightEdge: return new Point(W - cw, 0);
-            case OverlayPlacement.LeftEdge: return new Point(0, 0);
-            case OverlayPlacement.BottomEdge: return new Point(0, H - ch);
-            case OverlayPlacement.CornerBottomRight: return new Point(W - cw - m, H - ch - m);
-            default: return new Point((W - cw) / 2, (H - ch) / 2);   // Center
-        }
+            OverlayPlacement.RightEdge => new Point(W - cw, 0),
+            OverlayPlacement.LeftEdge => new Point(0, 0),
+            OverlayPlacement.BottomEdge => new Point(0, H - ch),
+            OverlayPlacement.CornerBottomRight => new Point(W - cw - m, H - ch - m),
+            _ => new Point((W - cw) / 2, (H - ch) / 2),   // Center
+        };
     }
 }

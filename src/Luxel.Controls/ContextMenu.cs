@@ -38,8 +38,17 @@ public static class ContextMenu
         HitTarget dismiss = ctx.AddHit(ctx.Canvas.Root, new Rect(-1e6f, -1e6f, 2e6f, 2e6f), onClick: () => Close(ctx));
 
         var lc = new LayoutContext { Font = ctx.Font, Theme = t };
-        menu.Layout(Constraints.LooseW(320, 600), lc, parentUsesSize: true);
-        menu.Offset = new Point(x, y);
+        Size cs = menu.Layout(Constraints.LooseW(320, 600), lc, parentUsesSize: true);
+        // 画面端でクランプ/フリップ (ADR-0007 の共通ソルバ)。カーソル直下に開き、下に入らなければ上へ。
+        float vw = ctx.Host?.Width ?? 0, vh = ctx.Host?.Height ?? 0;
+        Point pos = new(x, y);
+        if (vw > 0 && vh > 0)
+        {
+            PopupSolve sol = PopupPlacer.Solve(new Rect(x, y, 0, 0), cs, new Rect(0, 0, vw, vh),
+                new AnchoredPlacement { Side = PopupSide.Below, Align = PopupAlign.Start, Gap = 0, Margin = 4 });
+            pos = new Point(sol.Rect.X, sol.Rect.Y);
+        }
+        menu.Offset = pos;
         UiNode holder = ctx.Canvas.AddChild(ctx.Canvas.Root);
         holder.Z = 3000;   // 最前面 (オーバーレイ層 1000 より上)
         menu.Realize(ctx, holder, new Point(0, 0));

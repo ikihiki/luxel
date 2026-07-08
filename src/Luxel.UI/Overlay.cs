@@ -21,7 +21,10 @@ public sealed class OverlayEntry
     public required Signal<bool> Open { get; init; }
     public required Widget Content { get; init; }
     public OverlayPlacement Placement { get; init; } = OverlayPlacement.Center;
-    public Func<Rect>? Anchor { get; init; }          // トリガのワールド矩形 (Below/Above 用)
+    /// <summary>アンカー配置 (ADR-0007)。指定時は <see cref="PopupPlacer"/> で解く (Placement より優先)。
+    /// 未指定でも Placement が Below/Above なら内部で同等の Anchored に写して同じソルバを通る。</summary>
+    public AnchoredPlacement? Anchored { get; init; }
+    public Func<Rect>? Anchor { get; init; }          // トリガのワールド矩形 (Below/Above/Anchored 用)
     public bool Modal { get; init; }                  // scrim + 背面ブロック
     public bool DismissOnOutside { get; init; } = true;
     public float Gap { get; init; } = 6;
