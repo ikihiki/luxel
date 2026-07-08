@@ -146,6 +146,21 @@ public static class Controls
     public static Pattern<ControlMap> Speed(this Pattern<ControlMap> p, Pattern<float> v)
         => p.OpLeft(v, static (c, x) => c with { Speed = x });
 
+    public static Pattern<ControlMap> Lpf(this Pattern<ControlMap> p, Pattern<float> v)
+        => p.OpLeft(v, static (c, x) => c with { Cutoff = x });
+
+    public static Pattern<ControlMap> Resonance(this Pattern<ControlMap> p, Pattern<float> v)
+        => p.OpLeft(v, static (c, x) => c with { Resonance = x });
+
+    public static Pattern<ControlMap> Delay(this Pattern<ControlMap> p, Pattern<float> v)
+        => p.OpLeft(v, static (c, x) => c with { DelayTime = x });
+
+    public static Pattern<ControlMap> DelayFeedback(this Pattern<ControlMap> p, Pattern<float> v)
+        => p.OpLeft(v, static (c, x) => c with { DelayFeedback = x });
+
+    public static Pattern<ControlMap> DelayMix(this Pattern<ControlMap> p, Pattern<float> v)
+        => p.OpLeft(v, static (c, x) => c with { DelayMix = x });
+
     public static Pattern<ControlMap> Sound(this Pattern<ControlMap> p, Pattern<string> v)
         => p.OpLeft(v, static (c, s) => c with { Instrument = s });
 

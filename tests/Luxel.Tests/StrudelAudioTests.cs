@@ -80,6 +80,66 @@ public class StrudelAudioTests
     }
 
     [Fact]
+    public void Delay_ProducesDecayingEchoes()
+    {
+        (StreamMixerSink mixer, _) = NewMixer();   // rate=1000
+        // 全部左チャンネルへ (pan=-1 → GainL=1, GainR=0)、0.25s (=250 サンプル) ディレイ・帰還 0.5・ウェット 1.0
+        var c = new ControlMap(Instrument: "imp", Gain: 1f, Pan: -1f,
+            DelayTime: 0.25f, DelayFeedback: 0.5f, DelayMix: 1f);
+        mixer.Schedule([new ScheduledEvent(0.0, 0.1, c)], 0.0, 1.0);   // 1 チャンク = 1000 サンプル
+        float[] ch = mixer.LastChunk!;
+        Assert.True(ch[0] > 0.9f);                       // ドライ (頭)
+        Assert.True(ch[250 * 2] > 0.9f);                 // 1 反射目 (0.25s)
+        Assert.InRange(ch[500 * 2], 0.4f, 0.6f);         // 2 反射目 (帰還 0.5)
+        Assert.InRange(ch[750 * 2], 0.2f, 0.3f);         // 3 反射目 (0.5^2)
+        Assert.Equal(0f, ch[125 * 2]);                   // 反射の隙間は無音
+    }
+
+    /// <summary>固定周波数の正弦波音色 (LPF の減衰検証用)。</summary>
+    private sealed class SineTone(double freq) : IInstrument
+    {
+        public float[] Render(in ControlMap c, double duration, int rate)
+        {
+            var w = new float[(int)(rate * duration)];
+            for (int i = 0; i < w.Length; i++)
+                w[i] = MathF.Sin((float)(2 * Math.PI * freq * i / rate));
+            return w;
+        }
+    }
+
+    [Fact]
+    public void Lowpass_AttenuatesHighFrequency()
+    {
+        static float Peak(bool filtered)
+        {
+            var bank = new InstrumentBank();
+            bank.Register("hi", new SineTone(5000));   // カットオフの 10 倍
+            var mixer = new StreamMixerSink(bank, new NullAudioBackend(), 44100) { KeepLastChunk = true };
+            var c = filtered
+                ? new ControlMap(Instrument: "hi", Cutoff: 500f)
+                : new ControlMap(Instrument: "hi");
+            mixer.Schedule([new ScheduledEvent(0.0, 0.1, c)], 0.0, 0.1);
+            float[] mix = mixer.LastChunk!;
+            float p = 0;
+            for (int i = 2000; i < mix.Length / 2; i++)   // ウォームアップを飛ばす
+                p = MathF.Max(p, MathF.Abs(mix[i * 2]));
+            return p;
+        }
+        float filtered = Peak(true), raw = Peak(false);
+        Assert.True(raw > 0.5f, $"素の 5kHz は大振幅のはず: {raw}");
+        Assert.True(filtered < 0.1f, $"500Hz LPF で 5kHz は大幅減衰のはず: {filtered}");
+    }
+
+    [Fact]
+    public void Eval_LpfAndDelay_SetControls()
+    {
+        var haps = StrudelEval.Evaluate("""s("bd").lpf(800).delay(0.25).delayfb(0.6)""").Pattern!.QueryCycles();
+        Assert.Equal(800f, haps[0].Value.Cutoff);
+        Assert.Equal(0.25f, haps[0].Value.DelayTime);
+        Assert.Equal(0.6f, haps[0].Value.DelayFeedback);
+    }
+
+    [Fact]
     public void Scheduler_FiresOnsetsOnce_AcrossWindows()
     {
         var sched = new StrudelScheduler(chunkSeconds: 0.1) { Cps = 1.0 };   // 1 サイクル = 1 秒

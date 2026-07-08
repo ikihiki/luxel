@@ -25,11 +25,27 @@ public sealed class StreamMixerSink : IEventSink, IDisposable
         public required double Step;       // 1 出力サンプルあたりの前進量 (= speed)
         public required float GainL, GainR;
         public long StartSample;            // 絶対サンプル位置 (この時点から鳴る)
+
+        // ボイス単位 biquad LPF (transposed direct form II — 状態は z1/z2 の 2 つ)
+        public bool HasFilter;
+        public float B0, B1, B2, A1, A2;
+        public float Z1, Z2;
+
+        // このボイスのウェット送り量 (0 = ディレイなし)
+        public float DelayMix;
     }
 
     private readonly List<ActiveVoice> _active = new();
     private long _rendered;                 // 焼き込み済みの絶対サンプル数 (= 次チャンクの先頭)
     private bool _playing;
+
+    // 全体バスのフィードバックディレイライン (循環バッファ、最大 2 秒)。
+    // 送り量はイベント単位 (DelayMix)、長さ/帰還は直近の指定イベントが設定する (last-writer-wins)。
+    private readonly float[] _delayL;
+    private readonly float[] _delayR;
+    private int _delayPos;
+    private int _delaySamples;               // 現在のディレイ長 (サンプル、0 = 無効)
+    private float _delayFeedback;
 
     // 波形タップ (UI 表示用): 128 サンプルごとのピークをリングに書く
     private readonly float[] _peaks = new float[256];
@@ -51,6 +67,9 @@ public sealed class StreamMixerSink : IEventSink, IDisposable
         _bank = bank;
         _rate = sampleRate;
         _voice = backend.CreateVoice(new AudioFormat(sampleRate, 2, 16));
+        int maxDelay = Math.Max(1, sampleRate * 2);   // 2 秒ぶんの循環バッファ
+        _delayL = new float[maxDelay];
+        _delayR = new float[maxDelay];
     }
 
     /// <summary>窓 [windowStart, windowEnd) を PCM に焼いて voice へ投入する。</summary>
@@ -66,16 +85,41 @@ public sealed class StreamMixerSink : IEventSink, IDisposable
             float pan = Math.Clamp(e.Controls.Pan ?? 0f, -1f, 1f);
             // 等パワーパン
             double a = (pan + 1) * (Math.PI / 4);
-            _active.Add(new ActiveVoice
+            var av = new ActiveVoice
             {
                 Wave = wave,
                 Step = Math.Max(0.01f, e.Controls.Speed ?? 1f),
                 GainL = gain * (float)Math.Cos(a),
                 GainR = gain * (float)Math.Sin(a),
                 StartSample = (long)Math.Round(e.Time * _rate),
-            });
+            };
+            if (e.Controls.Cutoff is float cut)
+                SetLowpass(av, cut, e.Controls.Resonance ?? 0.707f);
+            if (e.Controls.DelayTime is float dt)
+            {
+                _delaySamples = Math.Clamp((int)Math.Round(dt * _rate), 0, _delayL.Length - 1);
+                _delayFeedback = Math.Clamp(e.Controls.DelayFeedback ?? 0.5f, 0f, 0.99f);
+                av.DelayMix = Math.Clamp(e.Controls.DelayMix ?? 0.5f, 0f, 1f);
+            }
+            _active.Add(av);
         }
         RenderChunk((int)Math.Round((windowEnd - windowStart) * _rate));
+    }
+
+    /// <summary>RBJ クックブックの LPF 係数を計算してボイスへ格納する。</summary>
+    private void SetLowpass(ActiveVoice v, float cutoffHz, float q)
+    {
+        float f0 = Math.Clamp(cutoffHz, 20f, _rate * 0.49f);
+        q = Math.Max(0.1f, q);
+        float w0 = 2f * MathF.PI * f0 / _rate;
+        float cosw = MathF.Cos(w0), sinw = MathF.Sin(w0);
+        float alpha = sinw / (2f * q);
+        float b0 = (1f - cosw) / 2f, b1 = 1f - cosw, b2 = (1f - cosw) / 2f;
+        float a0 = 1f + alpha, a1 = -2f * cosw, a2 = 1f - alpha;
+        v.HasFilter = true;
+        v.B0 = b0 / a0; v.B1 = b1 / a0; v.B2 = b2 / a0;
+        v.A1 = a1 / a0; v.A2 = a2 / a0;
+        v.Z1 = 0f; v.Z2 = 0f;
     }
 
     private void RenderChunk(int samples)
@@ -83,6 +127,8 @@ public sealed class StreamMixerSink : IEventSink, IDisposable
         if (samples <= 0) return;
         var mix = new float[samples * 2];
         long chunkStart = _rendered;
+        // ディレイ送り (ドライ信号のウェット分をステレオで集める)
+        float[]? sendL = null, sendR = null;
 
         for (int vi = _active.Count - 1; vi >= 0; vi--)
         {
@@ -95,11 +141,41 @@ public sealed class StreamMixerSink : IEventSink, IDisposable
                 if (i0 >= v.Wave.Length - 1) break;
                 float frac = (float)(v.Pos - i0);
                 float s = v.Wave[i0] + (v.Wave[i0 + 1] - v.Wave[i0]) * frac;   // 線形補間
-                mix[i * 2] += s * v.GainL;
-                mix[i * 2 + 1] += s * v.GainR;
+                if (v.HasFilter)   // transposed direct form II biquad
+                {
+                    float y = v.B0 * s + v.Z1;
+                    v.Z1 = v.B1 * s - v.A1 * y + v.Z2;
+                    v.Z2 = v.B2 * s - v.A2 * y;
+                    s = y;
+                }
+                float l = s * v.GainL, r = s * v.GainR;
+                mix[i * 2] += l;
+                mix[i * 2 + 1] += r;
+                if (v.DelayMix > 0f)
+                {
+                    (sendL ??= new float[samples])[i] += l * v.DelayMix;
+                    (sendR ??= new float[samples])[i] += r * v.DelayMix;
+                }
                 v.Pos += v.Step;
             }
             if (v.Pos >= v.Wave.Length - 1) _active.RemoveAt(vi);   // 鳴り終わった
+        }
+
+        // 全体バスのフィードバックディレイ (送りが無くても既存のテールは鳴らし続ける)
+        if (_delaySamples > 0)
+        {
+            int size = _delayL.Length;
+            for (int i = 0; i < samples; i++)
+            {
+                int read = _delayPos - _delaySamples;
+                if (read < 0) read += size;
+                float dl = _delayL[read], dr = _delayR[read];
+                mix[i * 2] += dl;
+                mix[i * 2 + 1] += dr;
+                _delayL[_delayPos] = (sendL?[i] ?? 0f) + dl * _delayFeedback;
+                _delayR[_delayPos] = (sendR?[i] ?? 0f) + dr * _delayFeedback;
+                if (++_delayPos >= size) _delayPos = 0;
+            }
         }
 
         // ソフトクリップ + 16bit 化 + ピークタップ
@@ -133,7 +209,12 @@ public sealed class StreamMixerSink : IEventSink, IDisposable
 
     /// <summary>全停止 — 鳴っている/予定のイベントを破棄する。投入済みチャンク (先読み分,
     /// 最大数百 ms) は鳴り切る (XAudio2 のキューは取り消さない — v1 の割り切り)。</summary>
-    public void Hush() => _active.Clear();
+    public void Hush()
+    {
+        _active.Clear();
+        Array.Clear(_delayL);
+        Array.Clear(_delayR);
+    }
 
     /// <summary>UI 波形表示用: 直近ピーク列 (128 サンプル ≒ 3ms 毎) を古い順にコピーする。</summary>
     public void CopyPeaks(Span<float> dest)

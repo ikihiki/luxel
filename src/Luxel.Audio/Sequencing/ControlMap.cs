@@ -12,12 +12,19 @@ public readonly record struct ControlMap(
     float? Note = null,          // MIDI ノート番号 (c4 = 60、小数可)
     float? Gain = null,          // 振幅倍率 (既定 1)
     float? Pan = null,           // -1 (左) .. 0 .. 1 (右)
-    float? Speed = null)         // 再生レート倍率 (既定 1)
+    float? Speed = null,         // 再生レート倍率 (既定 1)
+    float? Cutoff = null,        // LPF カットオフ (Hz) — ボイス単位の biquad
+    float? Resonance = null,     // LPF レゾナンス Q (既定 0.707)
+    float? DelayTime = null,     // ディレイ長 (秒) — 全体バスのフィードバックディレイ
+    float? DelayFeedback = null, // ディレイ帰還量 0..1
+    float? DelayMix = null)      // ディレイ送り量 (ウェット) 0..1
 {
     /// <summary>右側の指定フィールドで上書きした新しい map を返す。</summary>
     public ControlMap Merge(in ControlMap o) => new(
         o.Instrument ?? Instrument, o.N ?? N, o.Note ?? Note,
-        o.Gain ?? Gain, o.Pan ?? Pan, o.Speed ?? Speed);
+        o.Gain ?? Gain, o.Pan ?? Pan, o.Speed ?? Speed,
+        o.Cutoff ?? Cutoff, o.Resonance ?? Resonance,
+        o.DelayTime ?? DelayTime, o.DelayFeedback ?? DelayFeedback, o.DelayMix ?? DelayMix);
 }
 
 /// <summary>

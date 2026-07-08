@@ -55,6 +55,8 @@ public static class DocsStrudel
         stack(s("bd*2"), s("hh*4").gain("1 0.6"))
         n("0 2 4 6").scale("C:minor").s("saw")   // 度数 → スケール上の音
         chord("C Am F G").s("saw").slow(2)       // 1 ステップ → 同時発音の和音
+        note("c2 c3").s("saw").lpf(400)          // ローパスフィルタ (Hz)
+        s("bd sd").delay(0.375).delayfb(0.4)     // フィードバックディレイ
         cps(0.6)     // テンポ (cycles per second)
         silence      // このスロットを停止
         ```
@@ -62,6 +64,8 @@ public static class DocsStrudel
         `rev` や `fast(2)` は単独では**変換** (パターン → パターン) で、`every/off/jux` の引数にそのまま渡せます。`gain` 等の値引数は数値かミニ記法文字列 (`"1 0.5"`) — 左のイベント構造を保ったまま値だけ合流します。
 
         `scale("C:minor")` は数値パターン (`n`) の度数をスケール表で MIDI ノートへ写します — ルート省略で c4、度数はオクターブを跨いで巻き上がります (major/minor/dorian/…/pentatonic)。`chord("C Am F G")` は各ステップを和音 (同時刻の複数ノート) に展開します (`m`/`7`/`maj7`/`sus4`/… の品質接尾辞)。
+
+        `lpf(Hz)` はボイス単位の 2 次ローパス (biquad、`resonance` で Q)、`delay(秒)`/`delayfb`/`delaymix` は全体バスのフィードバックディレイ (循環バッファ) — どちらも `StreamMixerSink` の DSP で決定的に焼き込むので、反射位置やフィルタ減衰をユニットテストで検証しています。
 
         ## 実行系 — Hap → ScheduledEvent → sink
 
@@ -79,6 +83,6 @@ public static class DocsStrudel
         エディタは各ライブブロックが `CodeEditor` (ガター/等幅/横スクロール) で、`StrudelCodeLanguage` (`ICodeLanguage` 実装) を挿してあります: `StrudelEval` でパースした `StrudelEvalError` (MiniNotation の位置付きエラーも畳まれる) を**診断波線**に写し (評価するだけで音は出さない)、`.` の直後はメソッド・クォート内は音色を静的補完します。**Ctrl+Enter** はエディタの `OnKeyIntercept` で横取りし、そのブロックを Run (= ホットスワップ) します — 通常の Enter は改行のまま。
 
         > [!NOTE]
-        > v1 スコープ外: MIDI out sink・サンプル (wav) 音色・エフェクト (filter/delay)。イベント表現が汎用なので、MIDI out は `IEventSink` 実装 1 つで足せます。
+        > v1 スコープ外: MIDI out sink・サンプル (wav) 音色。イベント表現が汎用なので、MIDI out は `IEventSink` 実装 1 つで足せます。
         """)));
 }

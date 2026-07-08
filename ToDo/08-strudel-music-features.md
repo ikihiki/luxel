@@ -29,7 +29,9 @@ Strudel v1 で明示的にスコープ外とした音楽機能群。独立性が
 - StrudelEval にチェーンメソッド `scale`/`chord` を追加 (値種別「変換」の既存機構に乗せる)。
 - テスト: EvalTests (チェーン評価) + PatternTests (度数→ノート番号のゴールデン)。
 
-## サブタスク C — エフェクト: filter / delay
+## サブタスク C — エフェクト: filter / delay ✅ 完了 (2026-07-08)
+
+**実装済み**: `ControlMap` に `Cutoff`/`Resonance`/`DelayTime`/`DelayFeedback`/`DelayMix` を追加 (Merge も更新)。`StreamMixerSink` にボイス単位 biquad LPF (RBJ クックブック係数、transposed direct form II で状態 z1/z2) + 全体バスのフィードバックディレイ (2 秒循環バッファ、送りはイベント単位 DelayMix、長さ/帰還は last-writer-wins、Hush でテールもクリア)。`Controls` に Lpf/Resonance/Delay/DelayFeedback/DelayMix、StrudelEval に `.lpf`/`.resonance`/`.delay`/`.delayfb`/`.delaymix` メソッド。テスト +3 (ディレイ反射位置=減衰する 3 反射をサンプル位置で検証・LPF が 5kHz を 500Hz カットオフで大幅減衰・eval フィールド設定)。Docs/Strudel にチェーン例 2 行 + 説明段落、v1 スコープ外から filter/delay 削除、golden 更新。全 867 passed、vk e2e 73/73 diff 0。
 
 - ControlMap にフィールド追加: `Cutoff` (lpf)、`Resonance`、`DelayTime`/`DelayFeedback`/`DelayMix` など。record struct の固定フィールド方式を維持 (Merge = 右優先も自動で効く)。
 - StreamMixerSink に DSP を実装:
