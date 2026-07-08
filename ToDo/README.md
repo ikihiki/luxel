@@ -10,7 +10,7 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 | # | ファイル | タスク | 規模感 | リスク |
 |---|---|---|---|---|
 | 07 | [07-codeeditor-multicursor.md](07-codeeditor-multicursor.md) | CodeEditor: マルチカーソル (E3.5) | 大 | **高** |
-| 08 | [08-strudel-music-features.md](08-strudel-music-features.md) | Strudel: 音楽機能拡張 (scale/chord・filter/delay・記法・MIDI) | 中 (分割可) | 低 |
+| ~~08~~ | ✅ 完了 (2026-07-08) | Strudel 音楽機能拡張 (記法 `!`/`.`・scale/chord・filter/delay・wav 音色・MIDI out) — MD 削除済み、仕様は Docs/Strudel | — | — |
 | ~~19~~ | ✅ 完了 (2026-07-07) | capstone ①「Luxel Cavern」— `samples/LuxelCavern` として完成・MD 削除済み | — | — |
 
 ## ゲームエンジン完成に向けた文脈 (2026-07-06 ギャップ分析)

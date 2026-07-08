@@ -73,7 +73,7 @@ public static class DocsStrudel
         Pattern (有理時間・純関数)
           → StrudelScheduler   窓ごとにクエリ、cps でサイクル→秒へ (Fraction で厳密)
           → ScheduledEvent     絶対秒 + 持続 + ControlMap (MIDI 相当の汎用表現)
-          → IEventSink         ミキサ / UI ハイライト / (将来) MIDI out
+          → IEventSink         ミキサ / UI ハイライト / MIDI out
         ```
 
         `StreamMixerSink` はイベントを **PCM チャンク (100ms) に焼き込み**、1 本のストリーミング voice へ 300ms 先まで先行投入します。voice を都度 Play() するとフレーム精度 (±16ms) のジッタが出るため、サンプル位置に直接書きます — 精度は 1 サンプル。gain / 等パワー pan / speed (線形補間リサンプル) はイベント単位でここで掛かり、出力は tanh ソフトクリップです。
@@ -82,7 +82,9 @@ public static class DocsStrudel
 
         エディタは各ライブブロックが `CodeEditor` (ガター/等幅/横スクロール) で、`StrudelCodeLanguage` (`ICodeLanguage` 実装) を挿してあります: `StrudelEval` でパースした `StrudelEvalError` (MiniNotation の位置付きエラーも畳まれる) を**診断波線**に写し (評価するだけで音は出さない)、`.` の直後はメソッド・クォート内は音色を静的補完します。**Ctrl+Enter** はエディタの `OnKeyIntercept` で横取りし、そのブロックを Run (= ホットスワップ) します — 通常の Enter は改行のまま。
 
+        外部シンセを鳴らすなら `MidiOutSink` (`IEventSink`) が `ScheduledEvent` を note on/off に変換します — Note (無ければ N) → ノート番号、Gain → ベロシティ。PCM に焼けないので絶対秒でメッセージを溜め、ホストが実時間クロックで `Pump(now)` を呼んで送出します (ミキサが窓ループで駆動されるのと同じ構図 — ライブラリは wall-clock を持たず、メッセージ生成は記録用出力で決定的にテストできます)。出力ポートは `IMidiOut` 抽象で、Windows は winmm (`WinMmMidiOut`)、デバイス無し/非 Windows は `NullMidiOut` に自動フォールバックします。
+
         > [!NOTE]
-        > v1 スコープ外: MIDI out sink。イベント表現が汎用なので、MIDI out は `IEventSink` 実装 1 つで足せます。
+        > 実装済み: ミニ記法の全記法・scale/chord・filter/delay・wav サンプル (`SampleInstrument`)・MIDI out (`MidiOutSink`)。MIDI の実デバイス送出は実機依存のため、自動テストはメッセージ生成まで (送出は実機スモーク)。
         """)));
 }
