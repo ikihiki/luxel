@@ -137,16 +137,21 @@ public static class StrudelStory
         }
     }
 
-    // ---- ライブブロック: エディタ + Run/Stop + インラインエラー ----
+    // ---- ライブブロック: CodeEditor (診断波線 + Ctrl+Enter 評価) + Run/Stop + ステータス ----
     private sealed class StrudelBlock : CompositeControl, IDisposable
     {
         private readonly Signal<string> _code;
         private readonly Signal<string> _status = new("");
         private readonly Action<IBlockPayload> _commit;
-        private readonly TextArea _editor;
+        private readonly CodeEditor _editor;
         private readonly Button _run, _stop;
         private readonly int _slot;
         private readonly float _maxW;
+
+        /// <summary>コードエディタ (play からフォーカス/型付け/Ctrl+Enter するために公開)。</summary>
+        internal CodeEditor Editor => _editor;
+        /// <summary>直近評価が成功したか (play の Expect 用)。</summary>
+        internal bool LastRunOk { get; private set; }
 
         public StrudelBlock(FencePayload payload, float maxWidth, Action<IBlockPayload> commit)
         {
@@ -157,7 +162,14 @@ public static class StrudelStory
             string[] parts = payload.Info.Split(' ', 2);
             int? requested = parts.Length == 2 && int.TryParse(parts[1], out int s) ? s : null;
             _slot = Session.ClaimSlot(requested, this);
-            _editor = TextArea(_code, height: 46f, width: _maxW - 130);
+            _editor = CodeEditor(_code, editorHeight: 62f, editorWidth: _maxW - 130);
+            (_, _, _, _editor.MonoFont) = StoryKit.EditorFaces.Value;
+            _editor.LanguageService = StrudelCodeLanguage.Instance;   // 診断波線 + 補完 (音は出さない)
+            _editor.OnKeyIntercept = ev =>                            // Ctrl+Enter = 現ブロックを評価
+            {
+                if (ev.Key == Key.Enter && ev.Ctrl) { Run(); return true; }
+                return false;
+            };
             _run = Button(_ => Run(), "Run");
             _stop = Button(_ => { Session.Stop(_slot); _status.Value = "stopped"; }, "Stop", variant: Variant.Ghost);
         }
@@ -175,6 +187,7 @@ public static class StrudelStory
         private void Run()
         {
             string? err = Session.Eval(_slot, _code.Value);
+            LastRunOk = err is null;
             _status.Value = err ?? $"d{_slot} ♪";
             if (err is null)
                 _commit(new FencePayload($"strudel {_slot}", _code.Value));   // 文書へ確定 (undo 可)
@@ -189,8 +202,14 @@ public static class StrudelStory
     public static Widget Repl(StoryContext ctx)
     {
         var format = new StrudelScriptFormat();
+        var blocks = new List<StrudelBlock>();   // play が Editor/Ctrl+Enter/診断を叩くための参照
         var widgets = new BlockWidgetRegistry()
-            .Register("strudel", bc => new StrudelBlock((FencePayload)bc.Payload, bc.MaxWidth, bc.Commit));
+            .Register("strudel", bc =>
+            {
+                var b = new StrudelBlock((FencePayload)bc.Payload, bc.MaxWidth, bc.Commit);
+                blocks.Add(b);
+                return b;
+            });
 
         Signal<string> src = ctx.Signal("source",
             "-- Strudel REPL: パターン行で Enter → ライブブロック化、Run で評価 (再 Run = ホットスワップ)\n" +
@@ -207,7 +226,26 @@ public static class StrudelStory
 
         var root = new ReplRoot(ed, wave, cps);
         Func<string> cpsLabel = () => $"cps {cps.Value:0.00}";
-        ctx.Play(static d => d.Snap());
+        ctx.Play(async d =>
+        {
+            await d.Snap();                                           // 初期 (CodeEditor ブロック × 2、無音)
+            await d.Expect(() => blocks.Count >= 2, "パターン行がライブブロック化");
+
+            // 診断波線: 2 つ目のブロック末尾に未知メソッドを足す (型付け → Sync → 再診断 → 波線)
+            await d.Click(blocks[1].Editor);
+            await d.Key(Key.End);
+            await d.Type(".nope()");
+            await d.Step(1);
+            await d.Expect(() => blocks[1].Editor.DiagnosticCount > 0, "不正記法で診断波線が出る");
+            await d.Snap("diag");
+
+            // Ctrl+Enter: 1 つ目のブロック (正しい記法) を評価 → スロットに反映 (コミットで再構築)
+            await d.Click(blocks[0].Editor);
+            await d.Key(Key.End);
+            await d.Key(Key.Enter, ctrl: true);
+            await d.Step(2);
+            await d.Expect(() => blocks[0].LastRunOk, "Ctrl+Enter で評価成功");
+        });
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             VStack(spacing: 8)[
                 HStack(spacing: 10)[

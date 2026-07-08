@@ -70,7 +70,9 @@ public static class DocsStrudel
 
         評価 = `SetPattern` の**ホットスワップ**で、クロックは止まらず次の窓 (≤300ms) から新パターンが鳴ります。音色は全てプロシージャル生成 (bd/sd/hh/oh/cp/rim/lt/ht + sine/tri/saw/square、固定シード) — バイナリアセットなしで、**パターン → PCM が丸ごと決定的**なのでユニットテストで波形を検証しています。
 
+        エディタは各ライブブロックが `CodeEditor` (ガター/等幅/横スクロール) で、`StrudelCodeLanguage` (`ICodeLanguage` 実装) を挿してあります: `StrudelEval` でパースした `StrudelEvalError` (MiniNotation の位置付きエラーも畳まれる) を**診断波線**に写し (評価するだけで音は出さない)、`.` の直後はメソッド・クォート内は音色を静的補完します。**Ctrl+Enter** はエディタの `OnKeyIntercept` で横取りし、そのブロックを Run (= ホットスワップ) します — 通常の Enter は改行のまま。
+
         > [!NOTE]
-        > v1 スコープ外: MIDI out sink・サンプル (wav) 音色・`!` 繰り返しや `.` グループ等の残り記法・scale/chord・エフェクト (filter/delay)・Ctrl+Enter 評価。イベント表現が汎用なので、MIDI out は `IEventSink` 実装 1 つで足せます。
+        > v1 スコープ外: MIDI out sink・サンプル (wav) 音色・`!` 繰り返しや `.` グループ等の残り記法・scale/chord・エフェクト (filter/delay)。イベント表現が汎用なので、MIDI out は `IEventSink` 実装 1 つで足せます。
         """)));
 }
