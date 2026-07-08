@@ -1,9 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- テキストエディタ新スタックの canvas 非依存コア (ADR-0006 / ToDo 22)。
-       S1 は純データ (TextDoc / ChangeSet / EditorSelection / Transaction / History) で外部依存ゼロ。
-       ジオメトリ (S3) で Luxel.Typography を足す。 -->
+       S1/S2 は純データ (TextDoc / ChangeSet / EditorSelection / Transaction / History / Decoration)。
+       S3 のジオメトリ (EditorGeometry) が TextLayout を使うため Luxel.Typography を参照 (GPU は含まない)。 -->
   <ItemGroup>
+    <ProjectReference Include="..\Luxel.Typography\Luxel.Typography.csproj" />
     <InternalsVisibleTo Include="Luxel.Tests" />
   </ItemGroup>
 
