@@ -78,11 +78,11 @@ public static class DocsStrudel
 
         `StreamMixerSink` はイベントを **PCM チャンク (100ms) に焼き込み**、1 本のストリーミング voice へ 300ms 先まで先行投入します。voice を都度 Play() するとフレーム精度 (±16ms) のジッタが出るため、サンプル位置に直接書きます — 精度は 1 サンプル。gain / 等パワー pan / speed (線形補間リサンプル) はイベント単位でここで掛かり、出力は tanh ソフトクリップです。
 
-        評価 = `SetPattern` の**ホットスワップ**で、クロックは止まらず次の窓 (≤300ms) から新パターンが鳴ります。音色は全てプロシージャル生成 (bd/sd/hh/oh/cp/rim/lt/ht + sine/tri/saw/square、固定シード) — バイナリアセットなしで、**パターン → PCM が丸ごと決定的**なのでユニットテストで波形を検証しています。
+        評価 = `SetPattern` の**ホットスワップ**で、クロックは止まらず次の窓 (≤300ms) から新パターンが鳴ります。音色は全てプロシージャル生成 (bd/sd/hh/oh/cp/rim/lt/ht + sine/tri/saw/square、固定シード) — バイナリアセットなしで、**パターン → PCM が丸ごと決定的**なのでユニットテストで波形を検証しています。wav サンプルを鳴らす場合は `SampleInstrument` (16bit PCM / 32bit float を読み、ステレオはモノ化、Note で 2^(半音/12) ピッチ + 出力レートへ線形補間リサンプル) を `InstrumentBank` に登録すれば `s("名前")` でそのまま鳴ります。
 
         エディタは各ライブブロックが `CodeEditor` (ガター/等幅/横スクロール) で、`StrudelCodeLanguage` (`ICodeLanguage` 実装) を挿してあります: `StrudelEval` でパースした `StrudelEvalError` (MiniNotation の位置付きエラーも畳まれる) を**診断波線**に写し (評価するだけで音は出さない)、`.` の直後はメソッド・クォート内は音色を静的補完します。**Ctrl+Enter** はエディタの `OnKeyIntercept` で横取りし、そのブロックを Run (= ホットスワップ) します — 通常の Enter は改行のまま。
 
         > [!NOTE]
-        > v1 スコープ外: MIDI out sink・サンプル (wav) 音色。イベント表現が汎用なので、MIDI out は `IEventSink` 実装 1 つで足せます。
+        > v1 スコープ外: MIDI out sink。イベント表現が汎用なので、MIDI out は `IEventSink` 実装 1 つで足せます。
         """)));
 }

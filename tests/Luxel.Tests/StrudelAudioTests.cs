@@ -139,6 +139,68 @@ public class StrudelAudioTests
         Assert.Equal(0.6f, haps[0].Value.DelayFeedback);
     }
 
+    /// <summary>16bit PCM の RIFF/WAVE バイト列をメモリ上で組む (実ファイルに依存しない)。</summary>
+    private static byte[] MakeWav16(float[] interleaved, int rate, int channels)
+    {
+        using var ms = new MemoryStream();
+        using var w = new BinaryWriter(ms);
+        int dataBytes = interleaved.Length * 2;
+        w.Write("RIFF"u8); w.Write(36 + dataBytes); w.Write("WAVE"u8);
+        w.Write("fmt "u8); w.Write(16); w.Write((ushort)1); w.Write((ushort)channels);
+        w.Write(rate); w.Write(rate * channels * 2); w.Write((ushort)(channels * 2)); w.Write((ushort)16);
+        w.Write("data"u8); w.Write(dataBytes);
+        foreach (float s in interleaved)
+            w.Write((short)Math.Clamp((int)MathF.Round(s * 32767f), short.MinValue, short.MaxValue));
+        w.Flush();
+        return ms.ToArray();
+    }
+
+    [Fact]
+    public void Sample_FromWav_DecodesAndPlaysAtPosition()
+    {
+        var mono = new float[16];
+        mono[5] = 1f;                                  // フレーム 5 にスパイク
+        byte[] wav = MakeWav16(mono, 1000, 1);
+        var bank = new InstrumentBank();
+        bank.Register("smp", SampleInstrument.FromWav(new MemoryStream(wav)));
+        var mixer = new StreamMixerSink(bank, new NullAudioBackend(), 1000) { KeepLastChunk = true };
+        mixer.Schedule([new ScheduledEvent(0.0, 0.1, new ControlMap(Instrument: "smp", Pan: -1f))], 0.0, 0.1);
+        float[] ch = mixer.LastChunk!;
+        Assert.True(ch[5 * 2] > 0.9f);                 // 素材レート == 出力レート → 1:1、フレーム 5 に頭
+        Assert.Equal(0f, ch[4 * 2]);
+    }
+
+    [Fact]
+    public void Sample_PitchUpByOctave_HalvesLength()
+    {
+        var inst = new SampleInstrument(new float[100], 1000, baseNote: 60f);
+        float[] natural = inst.Render(new ControlMap(Note: 60f), 0, 1000);   // 原音 (base と同じ)
+        float[] octaveUp = inst.Render(new ControlMap(Note: 72f), 0, 1000);  // 1 オクターブ上 = 2 倍速
+        Assert.InRange(natural.Length, 98, 100);
+        Assert.InRange(octaveUp.Length, 49, 51);
+    }
+
+    [Fact]
+    public void Sample_DownmixesStereoToMono()
+    {
+        // L=1, R=0 の定常ステレオ → モノは 0.5
+        var stereo = new float[8 * 2];
+        for (int i = 0; i < 8; i++) { stereo[i * 2] = 1f; stereo[(i * 2) + 1] = 0f; }
+        var inst = SampleInstrument.FromWav(new MemoryStream(MakeWav16(stereo, 1000, 2)));
+        float[] w = inst.Render(new ControlMap(), 0, 1000);
+        Assert.InRange(w[0], 0.49f, 0.51f);
+        Assert.InRange(w[3], 0.49f, 0.51f);
+    }
+
+    [Fact]
+    public void Sample_ResamplesToOutputRate()
+    {
+        // 素材 500Hz を 1000Hz へ → 2 倍長に伸びる
+        var inst = new SampleInstrument(new float[50], 500);
+        float[] w = inst.Render(new ControlMap(), 0, 1000);
+        Assert.InRange(w.Length, 98, 100);
+    }
+
     [Fact]
     public void Scheduler_FiresOnsetsOnce_AcrossWindows()
     {

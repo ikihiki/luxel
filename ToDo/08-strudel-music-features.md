@@ -40,7 +40,9 @@ Strudel v1 で明示的にスコープ外とした音楽機能群。独立性が
 - StrudelEval に `.lpf(800)` / `.delay(0.25)` 等のチェーンを追加 → ControlMap へ。
 - テスト: インパルス音色でディレイの反射位置 (サンプル単位) を検証 / LPF は高周波正弦波の振幅減衰を assert。決定的なので数値比較可。
 
-## サブタスク D — wav サンプル音色
+## サブタスク D — wav サンプル音色 ✅ 完了 (2026-07-08)
+
+**実装済み**: `SampleInstrument : IInstrument` (`src/Luxel.Audio/Sequencing/`) — モノラル float 配列 + 素材レート + 任意 BaseNote を保持、`Render` で「素材レート差 × Note ピッチ (2^(半音/12))」を線形補間リサンプル。`FromWav(Stream)`/`FromWavFile(path)` が既存 `WavStream` (Q10、16bit PCM / 32bit float RIFF パーサ) で全展開 → チャンネル平均でモノ化。`InstrumentBank.Register` に載せれば `s("名前")` でそのまま鳴る (StrudelEval 変更不要)。テスト +4 (実 wav 非依存: メモリ上 RIFF を組んで 位置/ピッチ半減/ステレオ→モノ 0.5/レート変換で伸長)。Docs/Strudel に SampleInstrument 節 + v1 スコープ外から wav 削除、golden 更新。全 871 passed、vk e2e 73/73 diff 0。**実 wav アセット同梱の Gallery デモは Q10 実窓スモークと同様に見送り** (決定性・アセット/ライセンス回避、リサンプル経路はメモリ RIFF テストで実証済み)。
 
 - `IInstrument` の新実装 `SampleInstrument` (PCM float 配列 + ベース周波数、Speed/N でリサンプル再生 — StreamMixerSink の既存線形補間を流用できるか確認)。
 - wav 読み込み: RIFF PCM 16bit/float の最小パーサを Luxel.Audio に (依存追加なしで書ける)。リソース DAG (Luxel.Resources) に載せるなら (型,uri) ノード + デコードステップ。
