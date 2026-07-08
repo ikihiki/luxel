@@ -94,6 +94,14 @@ public sealed partial class TextEditorView : Widget, ITextInput
     /// <summary>カーソル (選択レンジ) の本数 — マルチカーソルの観測用。</summary>
     public int CursorCount => _state.Selection.Ranges.Count;
 
+    /// <summary>owner の装飾を外部から差し替える (毎フレーム更新も可 — 再生囲みのような
+    /// レイアウト非依存装飾は行キャッシュに触れず 60fps で回せる)。プロバイダを使わない push 型。</summary>
+    public void SetDecorations(string owner, DecorationSet set)
+    {
+        _state = _state.WithDecorations(owner, set).State;
+        Refresh();
+    }
+
     // ---- 検索 / 置換 ----
     private string _searchQuery = "";
     private readonly List<(int From, int To)> _matches = new();

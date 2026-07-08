@@ -53,11 +53,21 @@ public readonly struct TimeArc(Fraction begin, Fraction end)
 /// クエリ窓がイベントを跨ぐと同じ Whole の断片が複数回返る — 発音は <see cref="HasOnset"/>
 /// (断片が頭を含む) のときだけ行う。これが「窓を跨いでも二重発火しない」仕組みの核。
 /// </summary>
-public readonly struct Hap<T>(TimeArc? whole, TimeArc part, T value)
+/// <summary>ミニ記法アトムのソース位置 (ソース文字列内の開始オフセット + 長さ)。
+/// パース時にアトムへ刻まれ、クエリ変形 (fast/slow/rev/cat/…) を通り抜けて Hap に残る。
+/// スケジューラ/REPL が「いまどのトークンが鳴っているか」を判定して文字の囲みを描くのに使う。</summary>
+public readonly record struct SourceSpan(int Start, int Length)
+{
+    public int End => Start + Length;
+}
+
+public readonly struct Hap<T>(TimeArc? whole, TimeArc part, T value, SourceSpan? span = null)
 {
     public TimeArc? Whole { get; } = whole;
     public TimeArc Part { get; } = part;
     public T Value { get; } = value;
+    /// <summary>このイベントを生んだミニ記法アトムのソース位置 (無ければ null)。</summary>
+    public SourceSpan? Span { get; } = span;
 
     /// <summary>この断片がイベントの頭 (発音点) を含むか。</summary>
     public bool HasOnset => Whole is { } w && w.Begin == Part.Begin;
@@ -65,11 +75,11 @@ public readonly struct Hap<T>(TimeArc? whole, TimeArc part, T value)
     /// <summary>発音の長さ (Whole 基準。Whole なしは Part)。</summary>
     public Fraction Duration => (Whole ?? Part).Length;
 
-    public Hap<TU> WithValue<TU>(TU v) => new(Whole, Part, v);
+    public Hap<TU> WithValue<TU>(TU v) => new(Whole, Part, v, Span);
 
-    /// <summary>Whole/Part の両方に時間写像を適用する。</summary>
+    /// <summary>Whole/Part の両方に時間写像を適用する (ソース位置は保つ)。</summary>
     public Hap<T> WithTime(Func<Fraction, Fraction> f)
-        => new(Whole?.WithTime(f), Part.WithTime(f), Value);
+        => new(Whole?.WithTime(f), Part.WithTime(f), Value, Span);
 
     public override string ToString() => $"{Part} (whole {Whole?.ToString() ?? "-"}): {Value}";
 }

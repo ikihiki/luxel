@@ -26,7 +26,7 @@ public sealed class Pattern<T>(Func<TimeArc, IEnumerable<Hap<T>>> query)
 
     /// <summary>1 値 → 複数値へ展開 (同じ Whole/Part で複数 Hap = 同時発音)。chord 等が使う。</summary>
     public Pattern<TU> FlatMapValues<TU>(Func<T, IEnumerable<TU>> f)
-        => new(span => Query(span).SelectMany(h => f(h.Value).Select(v => new Hap<TU>(h.Whole, h.Part, v))));
+        => new(span => Query(span).SelectMany(h => f(h.Value).Select(v => new Hap<TU>(h.Whole, h.Part, v, h.Span))));
 
     public Pattern<T> Where(Func<Hap<T>, bool> pred)
         => new(span => Query(span).Where(pred));
@@ -147,7 +147,7 @@ public sealed class Pattern<T>(Func<TimeArc, IEnumerable<Hap<T>>> query)
             {
                 TimeArc? part = h.Part.Intersect(r.Part);
                 if (part is TimeArc p)
-                    yield return new Hap<T>(h.Whole, p, combine(h.Value, r.Value));
+                    yield return new Hap<T>(h.Whole, p, combine(h.Value, r.Value), h.Span);   // 構造は左 = ソース側から
             }
     }
 }
@@ -158,16 +158,17 @@ public static class Pat
     /// <summary>無音。</summary>
     public static Pattern<T> Silence<T>() => new(static _ => []);
 
-    /// <summary>毎サイクル 1 回、サイクル全長のイベント。</summary>
-    public static Pattern<T> Pure<T>(T v)
-        => new(span => PureQuery(v, span));
+    /// <summary>毎サイクル 1 回、サイクル全長のイベント。<paramref name="span"/> はミニ記法アトムのソース位置
+    /// (指定すると各 Hap に刻まれ、変形を通り抜けて残る)。</summary>
+    public static Pattern<T> Pure<T>(T v, SourceSpan? span = null)
+        => new(arc => PureQuery(v, arc, span));
 
-    private static IEnumerable<Hap<T>> PureQuery<T>(T v, TimeArc span)
+    private static IEnumerable<Hap<T>> PureQuery<T>(T v, TimeArc span, SourceSpan? src)
     {
         foreach (TimeArc s in span.SpanCycles())
         {
             Fraction sam = s.Begin.Sam;
-            yield return new Hap<T>(new TimeArc(sam, s.Begin.NextSam), s, v);
+            yield return new Hap<T>(new TimeArc(sam, s.Begin.NextSam), s, v, src);
         }
     }
 

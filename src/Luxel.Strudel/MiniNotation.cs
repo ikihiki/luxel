@@ -29,17 +29,20 @@ public sealed class MiniNotationError(string message, int position)
 /// </summary>
 public static class MiniNotation
 {
-    /// <summary>パースして Pattern を返す。失敗は <see cref="MiniNotationError"/>。</summary>
-    public static Pattern<string> Parse(string source)
+    /// <summary>パースして Pattern を返す。失敗は <see cref="MiniNotationError"/>。
+    /// <paramref name="baseOffset"/> はソース文字列がより大きな行内の何文字目から始まるか — アトムの
+    /// <see cref="SourceSpan"/> を行絶対にするための下駄 (StrudelEval が <c>literal.Pos + 1</c> を渡す)。</summary>
+    public static Pattern<string> Parse(string source, int baseOffset = 0)
     {
-        var p = new Parser(source);
+        var p = new Parser(source, baseOffset);
         Pattern<string> pat = p.ParseTop(closer: '\0');
         return pat;
     }
 
-    private ref struct Parser(string src)
+    private ref struct Parser(string src, int baseOffset)
     {
         private readonly string _s = src;
+        private readonly int _base = baseOffset;
         private int _i;
 
         private void SkipWs() { while (_i < _s.Length && char.IsWhiteSpace(_s[_i])) _i++; }
@@ -152,7 +155,11 @@ public static class MiniNotation
                 case '[': _i++; return ParseTop(closer: ']');
                 case '<': _i++; return ParseAlternation();
                 case '\0': throw new MiniNotationError("ステップがありません", _i);
-                default: return Pat.Pure(ReadWord());
+                default:
+                {
+                    string w = ReadWord(out int start);
+                    return Pat.Pure(w, new SourceSpan(_base + start, w.Length));   // 行絶対のソース位置を刻む
+                }
             }
         }
 
@@ -172,9 +179,10 @@ public static class MiniNotation
             return Pat.Cat(steps);
         }
 
-        private string ReadWord()
+        private string ReadWord(out int start)
         {
             SkipWs();
+            start = _i;   // 空白飛ばし後がアトム開始 (ミニ記法ローカル offset)
             var sb = new StringBuilder();
             while (_i < _s.Length && (char.IsLetterOrDigit(_s[_i]) || _s[_i] is ':' or '.' or '#' or '-' or '_'))
                 sb.Append(_s[_i++]);

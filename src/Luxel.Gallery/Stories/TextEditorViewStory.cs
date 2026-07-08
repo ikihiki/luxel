@@ -1,5 +1,6 @@
 using Luxel.Controls;
 using Luxel.Editor;
+using Luxel.Strudel;
 using Luxel.Typography;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
@@ -135,6 +136,59 @@ public static class TextEditorViewStory
                 Muted("Alt+↑↓ 行移動 / Shift+Alt+↓ 複製 / Ctrl+/ コメント。検索は背景ハイライト + ナビ + 全置換。"),
                 bar,
                 ed]];
+    }
+
+    // Strudel の再生囲み + 行内スライダを駆動する小さなルート (beat 変化でパターンを点クエリ → Mark.Box)
+    private sealed class StrudelDemoRoot(TextEditorView ed, Pattern<string> pat, Signal<int> beat, uint boxColor) : CompositeControl
+    {
+        protected override Widget Build() => ed;
+
+        protected override void OnRealize(UiBuildContext ctx)
+        {
+            // 行内スライダ (数値 "0.8" を置換 widget に) — realize 後に設定 (EnsureInit が _state を作った後)
+            ed.SetDecorations("widget", new DecorationSet([new WidgetDecoration(0, 3, 64f, 18f, "gain")]));
+            ctx.Effect(() =>
+            {
+                int b = beat.Value;                                   // beat 変化で購読・再計算
+                var now = new Fraction(2 * b + 1, 8);                 // トークン中央 (4 トークン/サイクル)
+                var boxes = pat.ActiveAt(now)
+                    .Select(sp => (Decoration)new MarkDecoration(sp.Start, sp.End, Box: new BoxStyle(boxColor)))
+                    .ToList();
+                ed.SetDecorations("playing", new DecorationSet(boxes));   // レイアウト非依存 = 行キャッシュに触れない
+            });
+        }
+    }
+
+    [Story("Controls/TextEditorView/Strudel", Height = 200, Order = 6)]
+    public static Widget Strudel(StoryContext ctx)
+    {
+        Signal<string> code = ctx.Signal("code", "0.8 bd sd hh");     // "0.8"[0,3) bd[4,6) sd[7,9) hh[10,12)
+        TextEditorView ed = TextEditorView(code, editorHeight: 90f, editorWidth: 420f);
+        (_, _, _, VectorFont mono) = EditorFaces.Value;
+        ed.EditorFont = mono;
+
+        // 行内スライダ: 数値 "0.8" を置換 widget に (Strudel の「行内 UI コントロール」要件)
+        Signal<float> gain = ctx.Signal("gain", 0.8f);
+        Slider slider = Slider(gain, min: 0f, max: 1f);
+        ed.WidgetResolver = key => key as string == "gain" ? slider : null;   // 装飾は root の OnRealize で設定
+
+        Pattern<string> pat = MiniNotation.Parse(code.Peek());
+        Signal<int> beat = ctx.Signal("beat", 1);
+        var root = new StrudelDemoRoot(ed, pat, beat, 0xFF4A90D9);
+
+        ctx.Play(async d =>
+        {
+            await d.Step(1);
+            await d.Snap("beat-bd");        // 再生囲みが "bd" を囲む + 行内スライダ
+            beat.Value = 2; await d.Step(1);
+            await d.Snap("beat-sd");        // 囲みが "sd" へ移動 (行キャッシュ非再構築)
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("TextEditorView — Strudel (再生囲み + 行内スライダ)"),
+                Muted("MiniNotation のソーススパンで「いま鳴っているトークン」を Mark.Box で囲む。数値は行内スライダに置換。"),
+                root]];
     }
 
     [Story("Controls/TextEditorView/MultiCursor", Height = 260, Order = 5)]
