@@ -137,6 +137,48 @@ public static class TextEditorViewStory
                 ed]];
     }
 
+    [Story("Controls/TextEditorView/MultiCursor", Height = 260, Order = 5)]
+    public static Widget MultiCursor(StoryContext ctx)
+    {
+        Signal<string> code = ctx.Signal("code", "foo = 1;\nfoo = 2;\nfoo = 3;");
+        TextEditorView ed = TextEditorView(code, editorHeight: 170f, editorWidth: 460f);
+        ed.ShowLineNumbers = true;
+        (_, _, _, VectorFont mono) = EditorFaces.Value;
+        ed.EditorFont = mono;
+
+        ctx.Play("ctrl-d", async d =>
+        {
+            await d.Click(ed);
+            await d.Key(Key.Up); await d.Key(Key.Up); await d.Key(Key.Home);   // 1 行目頭へ
+            await d.Key(Key.D, ctrl: true);                                    // "foo" を選択
+            await d.Key(Key.D, ctrl: true);                                    // 2 つ目
+            await d.Key(Key.D, ctrl: true);                                    // 3 つ目
+            await d.Expect(() => ed.CursorCount == 3, "Ctrl+D×3 で 3 箇所選択");
+            await d.Snap("selected");
+            await d.Type("bar");                                              // 3 箇所同時置換
+            await d.Expect(() => ed.Text == "bar = 1;\nbar = 2;\nbar = 3;", "1 打鍵で 3 箇所置換");
+            await d.Snap("replaced");
+        });
+        ctx.Play("column", async d =>
+        {
+            await d.Click(ed);
+            await d.Key(Key.Up); await d.Key(Key.Up); await d.Key(Key.Home);   // 1 行目頭へ
+            await d.Key(Key.Down, ctrl: true, alt: true);                      // 下の行へカーソル追加
+            await d.Key(Key.Down, ctrl: true, alt: true);
+            await d.Expect(() => ed.CursorCount == 3, "Ctrl+Alt+↓ で縦列 3 カーソル");
+            await d.Snap("column");
+            await d.Type("// ");                                              // 縦列に一括挿入
+            await d.Expect(() => ed.Text.StartsWith("// foo") && ed.Text.Contains("// foo = 3"), "縦列に一括挿入");
+            await d.Snap("column-typed");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("TextEditorView — マルチカーソル"),
+                Muted("Ctrl+D 次の同一語 / Ctrl+Alt+↑↓ 縦列 / Esc 解除。native 複数レンジ = 1 打鍵で全箇所編集・1 undo。"),
+                ed]];
+    }
+
     [Story("Controls/TextEditorView/Completion", Height = 320, Order = 4)]
     public static Widget Completion(StoryContext ctx, ICodeLanguage lang)
     {

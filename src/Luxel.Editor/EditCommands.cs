@@ -239,6 +239,56 @@ public static class EditCommands
         return i;
     }
 
+    // ---- マルチカーソル ----
+
+    /// <summary>Ctrl+D — 主選択が空ならその語を選択、選択済みなら同一テキストの次の出現を
+    /// 追加選択する (全件済みならそのまま)。native 複数レンジなので新レンジを足すだけ。</summary>
+    public static Transaction SelectNextOccurrence(EditorState s)
+    {
+        string text = s.Doc.Text;
+        SelectionRange main = s.Selection.Main;
+
+        if (main.Empty)
+        {
+            (int ws, int we) = WordAt(text, main.Head);
+            if (ws == we) return Reselect(s, s.Selection.Ranges);
+            var ranges = s.Selection.Ranges.ToList();
+            ranges[s.Selection.MainIndex] = new SelectionRange(ws, we);
+            return SelectExplicit(s, ranges, s.Selection.MainIndex);
+        }
+
+        string needle = text[main.From..main.To];
+        if (needle.Length == 0) return Reselect(s, s.Selection.Ranges);
+        var have = new HashSet<(int, int)>(s.Selection.Ranges.Select(r => (r.From, r.To)));
+        var matches = TextSearch.FindAll(text, needle);
+
+        (int From, int To)? pick = null;
+        foreach ((int f, int t) in matches) if (f >= main.To && !have.Contains((f, t))) { pick = (f, t); break; }
+        if (pick is null) foreach ((int f, int t) in matches) if (!have.Contains((f, t))) { pick = (f, t); break; }   // ラップ
+        if (pick is null) return Reselect(s, s.Selection.Ranges);   // 全件選択済み
+
+        var next = s.Selection.Ranges.ToList();
+        next.Add(new SelectionRange(pick.Value.From, pick.Value.To));
+        return SelectExplicit(s, next, next.Count - 1);
+    }
+
+    /// <summary>Escape — セカンダリカーソルを解除して主レンジのみにする。</summary>
+    public static Transaction ClearSecondaryCursors(EditorState s)
+        => s.Update(new TransactionSpec { Selection = EditorSelection.Single(s.Selection.Main.Anchor, s.Selection.Main.Head) });
+
+    private static Transaction SelectExplicit(EditorState s, IReadOnlyList<SelectionRange> ranges, int mainIndex)
+        => s.Update(new TransactionSpec { Selection = EditorSelection.Of(ranges, mainIndex), ScrollIntoView = true });
+
+    /// <summary>位置を含む語の範囲 [start, end) (識別子文字。語外なら start==end)。</summary>
+    internal static (int Start, int End) WordAt(string t, int pos)
+    {
+        static bool IsW(char c) => char.IsLetterOrDigit(c) || c == '_';
+        int a = Math.Clamp(pos, 0, t.Length), b = a;
+        while (a > 0 && IsW(t[a - 1])) a--;
+        while (b < t.Length && IsW(t[b])) b++;
+        return (a, b);
+    }
+
     // ---- グラフェム境界 (サロゲートペアを割らない。結合文字の完全対応は将来) ----
 
     internal static int StepLeft(string t, int i)

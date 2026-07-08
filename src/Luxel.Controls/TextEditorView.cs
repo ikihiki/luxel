@@ -91,6 +91,8 @@ public sealed partial class TextEditorView : Widget, ITextInput
     public int CaretOffset => _state.Selection.Main.Head;
     /// <summary>選択があるか。</summary>
     public bool HasSelection => !_state.Selection.Main.Empty;
+    /// <summary>カーソル (選択レンジ) の本数 — マルチカーソルの観測用。</summary>
+    public int CursorCount => _state.Selection.Ranges.Count;
 
     // ---- 検索 / 置換 ----
     private string _searchQuery = "";
@@ -454,7 +456,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
         _overlayFg.ContentColors = true;
         _caretNode = ctx.Canvas.AddChild(_content);
         _caretNode.Z = 4;
-        ctx.Effect(() => _caretNode.Color = _theme.Value.Primary);
+        _caretNode.ContentColors = true;   // 主/セカンダリで色を変えるため色を焼き込む
         ctx.Effect(() => _caretNode.Opacity = Focused.Value && _caretOn.Value ? 1f : 0f);
 
         // テーマ変化で色が変わる → ジオメトリを作り直して再描画 (稀なので全再構築で可)
@@ -480,7 +482,11 @@ public sealed partial class TextEditorView : Widget, ITextInput
             OnFocus = on => { Focused.Value = on; if (on) _caretOn.Value = true; },
             OnKey = OnKey,
             OnText = s => { _compText = ""; Apply(EditCommands.InsertText(_state, s)); },
-            OnComposeEx = c => { _compText = c.Text; _compTargetStart = c.TargetStart; _compTargetLen = c.TargetLen; Refresh(); EnsureCaretVisible(); },
+            OnComposeEx = c =>
+            {
+                if (_state.Selection.Ranges.Count > 1) _state = EditCommands.ClearSecondaryCursors(_state).State;   // IME は主のみ
+                _compText = c.Text; _compTargetStart = c.TargetStart; _compTargetLen = c.TargetLen; Refresh(); EnsureCaretVisible();
+            },
             OnCommit = final => { _compText = ""; if (final.Length > 0) Apply(EditCommands.InsertText(_state, final)); else Refresh(); },
             TextInput = this,
         };
@@ -558,6 +564,12 @@ public sealed partial class TextEditorView : Widget, ITextInput
         }
         if (ev.Key == Key.Space && ev.Ctrl && LanguageService is not null) { OpenCompletion(); return true; }
 
+        // マルチカーソル (Ctrl+D=次の同一語、Ctrl+Alt+↑↓=縦列に追加、Esc=解除)。Ctrl+Alt+↓ は Alt+↓ より先に判定
+        if (ev.Ctrl && ev.Key == Key.D) { Apply(EditCommands.SelectNextOccurrence(_state)); _goalX = null; return true; }
+        if (ev.Ctrl && ev.Alt && ev.Key == Key.Down) { AddColumnCursor(+1); return true; }
+        if (ev.Ctrl && ev.Alt && ev.Key == Key.Up) { AddColumnCursor(-1); return true; }
+        if (ev.Key == Key.Escape && _state.Selection.Ranges.Count > 1) { Apply(EditCommands.ClearSecondaryCursors(_state)); return true; }
+
         // 行操作 (VS Code 風。Shift+Alt+↓=複製、Alt+↑↓=移動、Ctrl+/=コメント)
         if (ev.Alt && ev.Shift && ev.Key == Key.Down) { Apply(EditCommands.DuplicateLine(_state)); _goalX = null; return true; }
         if (ev.Alt && ev.Key == Key.Up) { Apply(EditCommands.MoveLineUp(_state)); _goalX = null; return true; }
@@ -595,6 +607,22 @@ public sealed partial class TextEditorView : Widget, ITextInput
         int head = _geo.MoveVertical(main.Head, dir, ref _goalX);
         var sel = EditorSelection.Single(select ? main.Anchor : head, head);
         Apply(EditCommands.SetSelection(_state, sel));
+    }
+
+    // Ctrl+Alt+↑↓ — 主カーソルの列に沿って上/下の行へキャレットを 1 本追加 (縦列選択)。
+    // 列 x は主キャレット基準 (同一 x への HitTest なので等幅非依存)。端では追加しない。
+    private void AddColumnCursor(int dir)
+    {
+        if (_geo is null) return;
+        IReadOnlyList<SelectionRange> ranges = _state.Selection.Ranges;
+        float colX = _geo.CaretRect(_state.Selection.Main.Head).X;
+        int extreme = dir > 0 ? ranges.Max(r => r.Head) : ranges.Min(r => r.Head);
+        float? g = colX;
+        int next = _geo.MoveVertical(extreme, dir, ref g);
+        if (next == extreme || ranges.Any(r => r.Empty && r.Head == next)) return;
+        var list = ranges.ToList();
+        list.Add(SelectionRange.Cursor(next));
+        Apply(EditCommands.SetSelection(_state, EditorSelection.Of(list, list.Count - 1)));
     }
 
     private void Apply(Transaction tr, bool coalesce = false)
@@ -816,11 +844,14 @@ public sealed partial class TextEditorView : Widget, ITextInput
     private void BuildCaret(EditorState eff)
     {
         var caret = new Scene2D();
-        foreach (SelectionRange r in eff.Selection.Ranges)
+        Theme t = _theme.Peek();
+        uint mainC = t.Primary, secC = Styles.WithAlpha(t.Primary, 150);   // セカンダリは薄め
+        IReadOnlyList<SelectionRange> ranges = eff.Selection.Ranges;
+        for (int i = 0; i < ranges.Count; i++)
         {
-            TextRect cr = _geo!.CaretRect(r.Head);
-            if (r.Head == eff.Selection.Main.Head) _caretLocal = new Rect(cr.X, cr.Y, 2, cr.Height);
-            caret.FillRect(Color2D.White, cr.X, cr.Y + 1, 2, MathF.Max(4, cr.Height - 2));
+            TextRect cr = _geo!.CaretRect(ranges[i].Head);
+            if (i == eff.Selection.MainIndex) _caretLocal = new Rect(cr.X, cr.Y, 2, cr.Height);
+            caret.FillRect(i == eff.Selection.MainIndex ? mainC : secC, cr.X, cr.Y + 1, 2, MathF.Max(4, cr.Height - 2));
         }
         _caretNode.Content = caret;
     }

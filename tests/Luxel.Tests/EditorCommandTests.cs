@@ -184,4 +184,58 @@ public class EditorCommandTests
         Assert.Equal(2, TextSearch.FindAll("Foo foo", "foo", ignoreCase: true).Count);
         Assert.Empty(TextSearch.FindAll("abc", ""));
     }
+
+    // ---- マルチカーソル ----
+
+    [Fact]
+    public void SelectNextOccurrence_FirstSelectsWord()
+    {
+        var s = S("foo bar foo", 1);   // "foo" 内
+        Transaction t = EditCommands.SelectNextOccurrence(s);
+        Assert.Equal(1, t.State.Selection.Ranges.Count);
+        Assert.Equal(0, t.State.Selection.Main.From);
+        Assert.Equal(3, t.State.Selection.Main.To);   // "foo" を選択
+    }
+
+    [Fact]
+    public void SelectNextOccurrence_AddsNextMatch()
+    {
+        var s = EditorState.Create("foo bar foo", EditorSelection.Single(0, 3));   // "foo" 選択済み
+        Transaction t = EditCommands.SelectNextOccurrence(s);
+        Assert.Equal(2, t.State.Selection.Ranges.Count);       // 2 つ目の "foo" を追加
+        Assert.Equal(8, t.State.Selection.Main.From);
+        Assert.Equal(11, t.State.Selection.Main.To);
+    }
+
+    [Fact]
+    public void SelectNextOccurrence_ThenTypeReplacesAll_OneUndo()
+    {
+        var s = EditorState.Create("foo bar foo", EditorSelection.Single(0, 3));
+        var t1 = EditCommands.SelectNextOccurrence(s);         // 2 箇所選択
+        var t2 = EditCommands.InsertText(t1.State, "X");       // 両方置換 (1 transaction)
+        Assert.Equal("X bar X", t2.State.Doc.Text);
+        var h = new History();
+        h.Record(t2);
+        Assert.Equal("foo bar foo", h.Undo(t2.State).Doc.Text);  // 1 undo で両方戻る
+    }
+
+    [Fact]
+    public void SelectNextOccurrence_WrapsWhenAllSelected()
+    {
+        // 2 箇所とも選択済みで再実行 → 追加なし (全件選択済み)
+        var s = EditorState.Create("foo foo",
+            EditorSelection.Of([new SelectionRange(0, 3), new SelectionRange(4, 7)], 1));
+        Transaction t = EditCommands.SelectNextOccurrence(s);
+        Assert.Equal(2, t.State.Selection.Ranges.Count);
+    }
+
+    [Fact]
+    public void ClearSecondaryCursors_KeepsMain()
+    {
+        var s = EditorState.Create("a b c",
+            EditorSelection.Of([SelectionRange.Cursor(0), SelectionRange.Cursor(2), SelectionRange.Cursor(4)], 1));
+        Transaction t = EditCommands.ClearSecondaryCursors(s);
+        Assert.Equal(1, t.State.Selection.Ranges.Count);
+        Assert.Equal(2, t.State.Selection.Main.Head);   // 主のみ残る
+    }
 }
