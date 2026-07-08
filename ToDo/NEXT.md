@@ -82,6 +82,16 @@
 
 - [ ] **Q31**: [24 カスタム IME 候補ウインドウ](24-custom-ime-candidates.md) — TSF `ITfUIElementSink` で OS 候補を抑制 + `ITfCandidateListUIElement` 読み取り + Popup 描画 (排他フルスクリーン対応)。**排他モードが必要になった時点で着手**、実機手動検証 (golden 不可)。ADR-0008
 
+### M9 — 汎用ノードエディタ (ADR-0009、[25](25-node-editor.md) の S1〜S7。既存 Diagram / Animation.Graph は触らず新規追加。**25 MD は全ステージ完了まで残す**)
+
+- [x] **Q32**: 25 ノードエディタ **S1** (2026-07-09 完了) — コアデータ。新プロジェクト `Luxel.NodeGraph` (依存ゼロ・canvas 非依存、2D ベクトルは BCL `System.Numerics.Vector2`)。`GraphElements` (`PortId`/`PortDir`/`NodePort`/`GraphNode`/`GraphEdge`、不変 record)、`NodeGraphDoc` (id→索引辞書で O(1) 引き・辺端点/向き検証・`RemoveNode` で接続辺を掃除・`EdgesOf`)、`GraphChange` (抽象 record + `AddNode`/`RemoveNode`/`MoveNode`/`SetNodeData`/`SetNodeCollapsed`/`Connect`/`Disconnect`、各 `Apply`/`InvertAgainst`。**RemoveNode の逆 = ノード復活 + 接続辺の再接続**) + `GraphChangeSet` (`Apply`/`InvertAgainst` は中間 Doc に対して反転し逆順連結・`Concat`)、`GraphSelection` (ノード/辺 id 集合 + main、`Retain` で削除参照を落とす = 安定 id なので写像不要)、`GraphViewport` (pan/zoom、undo 非対象)、`NodeGraphState`/`GraphTransaction`/`GraphTransactionSpec` (不変スナップショット、遅延 State キャッシュ)、`GraphHistory` (1 tx=1 undo、coalesce で連続移動畳み、viewport 保持)。テキスト新スタック ([[luxel-editor-redesign]]) の骨格を鏡写し。単体 `NodeGraphCoreTests` 19 本 (id 索引/重複・向き・端点検証/辺掃除/各変更 Apply-Invert 往復/ChangeSet 反転で開始復帰/選択 Retain/複数変更 1 undo/coalesce/redo 破棄)。全 998 passed、**vk e2e 84/84 diff 0** (S1 は UI 非接続 = golden 影響なし、ADR-0009 追記も golden 中立を実証)。**MD 仕様との差**: 設計の `Vec2` は `System.Numerics.Vector2`、`History`→`GraphHistory` (名前空間衝突回避)。次は S2 (装飾)
+- [ ] **Q33**: 25 **S2** — 装飾を第一級状態に (`GraphDecoration` + `AffectsLayout` 分類 + `Map` + `DecorationTable` + `StateEffect`/`SetDecorations` + `IGraphDecorationProvider` + `NodeGraphState.Decorations` 統合)。単体テスト。golden 影響なし
+- [ ] **Q34**: 25 **S3** — `GraphGeometry` (純射影、`NodeMeasure` 注入、コアは Typography 非依存)。ノード矩形/ポートアンカー/ワイヤベジェ/HitTest/WidgetSlots/world↔screen/ContentBounds + キャッシュ (Assert.Same/NotSame)。単体テスト (座標往復・ヒット判定・ズーム変換)。golden 影響なし
+- [ ] **Q35**: 25 **S4** — canvas 接続。`GraphCommands` + `NodeGraphView` [UiComponent] (グリッド+ノード+辺描画、pan/zoom コンテナ変換、ノードドラッグ=1 undo、クリック/範囲選択)。story `Controls/NodeGraphView/Basic` + vk/dx golden。**新 [UiComponent] → Reference/Overview golden 更新**
+- [ ] **Q36**: 25 **S5** — 配線操作 (ポートドラッグ→進行中ワイヤ→Connect/Disconnect、型互換チェック、辺削除)。story `Controls/NodeGraphView/Wiring` + golden
+- [ ] **Q37**: 25 **S6** — ノード内インライン widget (`WidgetResolver`/slots 流用) + `PopupPlacer` パレット + `INodeCatalog`。story `Controls/NodeGraphView/Widgets` + golden
+- [ ] **Q38**: 25 **S7** — 自動整列 (`DiagramLayout` 包み) + fit-to-view + グリッドスナップ + 具体ドメインのデモ 1 つ (汎用性実証)。Docs/NodeEditor 節 + デモストーリー。**完了で 25 MD 削除**
+
 ## 順序の根拠 (要約)
 
 - **13 が最初**: 全 golden 再生成タスク — golden が増える前ほど差分が小さい。
