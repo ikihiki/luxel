@@ -189,4 +189,47 @@ public static class NodeGraphViewStory
                 Muted("NodeInlineDecoration + WidgetResolver でノード内にスライダをホスト。右クリックで INodeCatalog のパレット追加 (PopupPlacer)。"),
                 ed]];
     }
+
+    // 式グラフのドメイン: Const×2 → Add → Output (汎用ノードエディタの一利用例)
+    private static NodeGraphDoc ExprGraph()
+    {
+        NodePort In(int id, string label) => new(id, PortDir.In, "num", label);
+        NodePort Out(int id) => new(id, PortDir.Out, "num", "");
+        var c1 = new GraphNode(1, "const", "2", new Vector2(300, 40), [Out(0)]);
+        var c2 = new GraphNode(2, "const", "3", new Vector2(60, 250), [Out(0)]);
+        var add = new GraphNode(3, "add", "Add", new Vector2(430, 170), [In(0, "a"), In(1, "b"), Out(2)]);
+        var outN = new GraphNode(4, "out", "Output", new Vector2(170, 60), [In(0, "")]);
+        return NodeGraphDoc.Of([c1, c2, add, outN],
+            [new GraphEdge(10, new PortId(1, 0), new PortId(3, 0)),
+             new GraphEdge(11, new PortId(2, 0), new PortId(3, 1)),
+             new GraphEdge(12, new PortId(3, 2), new PortId(4, 0))]);
+    }
+
+    [Story("Controls/NodeGraphView/AutoLayout", Height = 460, Order = 4)]
+    public static Widget AutoLayoutStory(StoryContext ctx)
+    {
+        NodeGraphView ed = NodeGraphView(source: ExprGraph(), viewWidth: 620f, viewHeight: 380f);
+        ed.SnapToGrid = true;
+        ed.NodeCatalog = new NodeCatalog(
+            new NodeCatalogEntry("const", "Const", (id, pos) => new GraphNode(id, "const", "0", pos, [new NodePort(0, PortDir.Out, "num", "")])),
+            new NodeCatalogEntry("add", "Add", (id, pos) => new GraphNode(id, "add", "Add", pos,
+                [new NodePort(0, PortDir.In, "num", "a"), new NodePort(1, PortDir.In, "num", "b"), new NodePort(2, PortDir.Out, "num", "")])),
+            new NodeCatalogEntry("out", "Output", (id, pos) => new GraphNode(id, "out", "Output", pos, [new NodePort(0, PortDir.In, "num", "")])));
+
+        ctx.Play("layout", async d =>
+        {
+            await d.Snap();                              // ばらけた初期配置
+            ed.AutoLayout();                             // 辺の依存に沿って左→右へ整列
+            ed.FitToView();                              // 全体が収まるよう pan/zoom
+            await d.Step(1);
+            await d.Expect(() => ed.NodePos(1).X < ed.NodePos(3).X, "Const は Add の左");
+            await d.Snap("arranged");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("NodeGraphView — 自動整列 (式グラフ)"),
+                Muted("式グラフ (Const×2 → Add → Output) を例に、AutoLayout で辺依存に沿って左→右へ整列 + FitToView。グリッドスナップ有効。"),
+                ed]];
+    }
 }

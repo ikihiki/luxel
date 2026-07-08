@@ -43,4 +43,57 @@ public static class GraphCommands
     /// <summary>辺を 1 本張って選択する (端点の存在/向きは Doc が検証)。</summary>
     public static GraphTransaction Connect(NodeGraphState s, GraphEdge edge)
         => s.Update(new GraphTransactionSpec { Changes = [new Connect(edge)], Selection = GraphSelection.Edge(edge.Id) });
+
+    /// <summary>
+    /// 辺の依存 (出力→入力) に沿ってノードを左→右のランクに整列する ([[Luxel.Diagram.DiagramLayout]] と同じ
+    /// 最長経路ランキングを辺モデルで自前実装 — core を依存ゼロに保つ)。サイズは <paramref name="measure"/> で外注。
+    /// 全ノードを 1 トランザクションで移動 (= 1 undo)。循環は反復回数を辺数で打ち切って安全に扱う。
+    /// </summary>
+    public static GraphTransaction AutoLayout(NodeGraphState s, NodeMeasure measure, float gapX = 60f, float gapY = 24f, Vector2? origin = null)
+    {
+        NodeGraphDoc doc = s.Doc;
+        if (doc.Nodes.Count == 0) return s.Update(new GraphTransactionSpec());
+
+        // 最長経路ランク: sources=0、辺ごとに rank[to] = max(rank[to], rank[from]+1)。循環安全に反復を打ち切る。
+        var rank = new Dictionary<int, int>(doc.Nodes.Count);
+        foreach (GraphNode n in doc.Nodes) rank[n.Id] = 0;
+        for (int iter = 0; iter <= doc.Edges.Count; iter++)
+        {
+            bool changed = false;
+            foreach (GraphEdge e in doc.Edges)
+            {
+                int r = rank[e.From.Node] + 1;
+                if (r > rank[e.To.Node]) { rank[e.To.Node] = r; changed = true; }
+            }
+            if (!changed) break;
+        }
+
+        // ランク別にまとめ、各ランク内は id 昇順 (決定的)
+        var byRank = new SortedDictionary<int, List<GraphNode>>();
+        foreach (GraphNode n in doc.Nodes)
+        {
+            if (!byRank.TryGetValue(rank[n.Id], out List<GraphNode>? list)) byRank[rank[n.Id]] = list = new();
+            list.Add(n);
+        }
+
+        Vector2 o = origin ?? new Vector2(40, 40);
+        var target = new Dictionary<int, Vector2>(doc.Nodes.Count);
+        float x = o.X;
+        foreach ((_, List<GraphNode> group) in byRank)
+        {
+            group.Sort((a, b) => a.Id.CompareTo(b.Id));
+            float colW = 0, y = o.Y;
+            foreach (GraphNode n in group)
+            {
+                NodeSize sz = measure(n);
+                target[n.Id] = new Vector2(x, y);
+                y += sz.Height + gapY;
+                colW = MathF.Max(colW, sz.Width);
+            }
+            x += colW + gapX;
+        }
+
+        var changes = doc.Nodes.Select(n => (GraphChange)new MoveNode(n.Id, target[n.Id] - n.Pos)).ToList();
+        return s.Update(new GraphTransactionSpec { Changes = changes });
+    }
 }

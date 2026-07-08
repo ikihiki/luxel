@@ -31,6 +31,9 @@ public sealed partial class NodeGraphView : Widget
     /// <summary>右クリック追加パレットのノードカタログ (null = パレット無効)。</summary>
     public INodeCatalog? NodeCatalog { get; set; }
 
+    /// <summary>true = ノードドラッグのドロップ位置をグリッドにスナップする。</summary>
+    public bool SnapToGrid { get; set; }
+
     // ノード内にホストした実 Widget (画面空間に配置し毎 Refresh で WorldToScreen 追従)
     private sealed class Hosted { public required Widget Widget; public required UiNode Container; public Rect ScreenRect; }
     private readonly Dictionary<object, Hosted> _widgets = new();
@@ -341,7 +344,7 @@ public sealed partial class NodeGraphView : Widget
         switch (_drag)
         {
             case Drag.Nodes:
-                if (_dragDelta != Vector2.Zero) Apply(GraphCommands.MoveNodes(_state, _dragNodes, _dragDelta));
+                if (_dragDelta != Vector2.Zero) Apply(BuildMove());
                 break;
             case Drag.Marquee:
                 GraphRect box = GraphRect.FromCorners(_marqStart, _marqCur);
@@ -460,6 +463,29 @@ public sealed partial class NodeGraphView : Widget
         foreach (Hosted h in _widgets.Values)
             if (ReferenceEquals(h.Widget, child)) { RealizeWidget(h); return true; }
         return false;
+    }
+
+    // ドラッグ移動を 1 トランザクションに (スナップ時はノードごとにグリッド整合させる)
+    private GraphTransaction BuildMove()
+    {
+        if (!SnapToGrid) return GraphCommands.MoveNodes(_state, _dragNodes, _dragDelta);
+        var changes = _dragNodes.Select(id =>
+        {
+            Vector2 cur = _state.Doc.Node(id).Pos;
+            Vector2 tgt = SnapPos(cur + _dragDelta);
+            return (GraphChange)new MoveNode(id, tgt - cur);
+        }).ToList();
+        return _state.Update(new GraphTransactionSpec { Changes = changes });
+    }
+
+    private static Vector2 SnapPos(Vector2 p)
+        => new(MathF.Round(p.X / GridStep) * GridStep, MathF.Round(p.Y / GridStep) * GridStep);
+
+    /// <summary>辺の依存に沿ってノードを左→右に自動整列する (1 undo)。</summary>
+    public void AutoLayout()
+    {
+        if (_geo is null) return;
+        Apply(GraphCommands.AutoLayout(_state, MeasureNode));
     }
 
     private void ZoomAt(float delta, Vector2 cursorLocal)

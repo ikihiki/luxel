@@ -128,4 +128,36 @@ public class NodeGraphCommandTests
         var s = GraphCommands.AddNode(NodeGraphState.Create(), n).State;
         Assert.True(s.Doc.HasNode(7) && s.Selection.ContainsNode(7));
     }
+
+    // ---- AutoLayout (S7) ----
+
+    [Fact]
+    public void AutoLayout_RanksChainLeftToRight_OneUndo()
+    {
+        // A→B→C の鎖を全部同じ位置に置いてから整列
+        var s = NodeGraphState.Create(NodeGraphDoc.Of(
+            [N(1, 500, 500), N(2, 500, 500), N(3, 500, 500)],
+            [E(10, 1, 2), E(11, 2, 3)]));
+        var history = new GraphHistory();
+        NodeMeasure measure = _ => new NodeSize(120, 60);
+        var tr = GraphCommands.AutoLayout(s, measure);
+        history.Record(tr);
+        var s1 = tr.State;
+
+        float ax = s1.Doc.Node(1).Pos.X, bx = s1.Doc.Node(2).Pos.X, cx = s1.Doc.Node(3).Pos.X;
+        Assert.True(ax < bx && bx < cx);        // 依存に沿って左→右
+        Assert.Equal(1, history.UndoDepth);     // 全ノード移動で 1 undo
+        Assert.Equal(500, history.Undo(s1).Doc.Node(2).Pos.X);   // undo で元位置へ
+    }
+
+    [Fact]
+    public void AutoLayout_SameRankStacksVertically()
+    {
+        // 2 と 3 はどちらも 1 からの辺 → 同じランク (縦に積む)
+        var s = NodeGraphState.Create(NodeGraphDoc.Of(
+            [N(1), N(2), N(3)], [E(10, 1, 2), new GraphEdge(11, new PortId(1, 1), new PortId(3, 0))]));
+        var s1 = GraphCommands.AutoLayout(s, _ => new NodeSize(100, 50)).State;
+        Assert.Equal(s1.Doc.Node(2).Pos.X, s1.Doc.Node(3).Pos.X, 3);   // 同ランク = 同 x
+        Assert.NotEqual(s1.Doc.Node(2).Pos.Y, s1.Doc.Node(3).Pos.Y);   // 縦にずれる
+    }
 }
