@@ -29,6 +29,7 @@ public static class E2e
     public static int Run(GalleryHost host, IReadOnlyList<StoryInfo> stories, string backend, bool update,
         string? filter = null, bool times = false)
     {
+        Stories.StrudelStory.HeadlessAudio = true;   // E2E は実 XAudio2 を触らない (決定的 + Vortice callback GC レース回避)
         string dir = GoldenDir();
         Directory.CreateDirectory(dir);
         Console.WriteLine($"goldens: {dir} ({(update ? "update" : "verify")}{(filter is null ? "" : $", filter '{filter}'")})");
@@ -119,6 +120,7 @@ public static class E2e
     /// golden 差分/欠落/Expect 失敗は <see cref="PlayError"/>。ストーリーは呼び出しごとに作り直される。</summary>
     public static void RunPlay(GalleryHost host, string path, int playIndex, string backend)
     {
+        Stories.StrudelStory.HeadlessAudio = true;   // E2E は実 XAudio2 を触らない (上記 Run と同じ理由)
         StoryInfo story = StoryRegistry.Find(path) ?? throw new PlayError($"ストーリーがありません: {path}");
         string dir = GoldenDir();
         host.Select(path);

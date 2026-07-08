@@ -43,20 +43,38 @@ public sealed partial class CodeEditor : Widget, ITextInput
     public Func<KeyEvent, bool>? OnKeyIntercept { get; set; }
 
     // ---- E2 言語サービス状態 ----
-    private IReadOnlyList<CodeCompletion> _completions = [];
+    private IReadOnlyList<CodeCompletion> _completions = [];   // フィルタ後の表示リスト
+    private IReadOnlyList<CodeCompletion> _compAll = [];       // open 時の全候補 (ローカル絞り込みの元)
     private int _compSel;
     private bool _compOpen;
+    private int _compTriggerLine, _compTriggerCol;   // 断片の起点 = open 時の識別子開始
     private IReadOnlyList<CodeDiagnostic> _diags = [];
     private string _hover = "";
+    // 補完ポップアップの当たり判定 (DrawPopup が更新) — クリック選択/ホバー行に使う
+    private float _popupW, _popupRowH;
+    private int _popupTop;            // 表示窓の先頭候補インデックス
+    private int _popupHoverRow = -1;  // マウスホバー中の視覚行 (-1 = なし)
+    private const int MaxPopupRows = 8;
+    private const float PopupHitW = 320f;   // 行ヒットの幅上限 (実幅 _popupW でゲート)
+    // dwell ホバーツールチップ (フレームカウント — wall-clock 非依存で決定的)
+    private float _hoverPx = -1, _hoverPy = -1;
+    private int _dwellFrames;
+    private bool _tipOpen;
+    private string _tipText = "";
+    private const int DwellFrames = 30;
 
     /// <summary>補完ポップアップが開いているか (play の Expect 用)。</summary>
     public bool CompletionOpen => _compOpen;
-    /// <summary>補完候補数。</summary>
+    /// <summary>補完候補数 (フィルタ後)。</summary>
     public int CompletionCount => _completions.Count;
     /// <summary>直近の診断数 (波線)。</summary>
     public int DiagnosticCount => _diags.Count;
     /// <summary>キャレット位置シンボルのホバー文字列 (無ければ "")。</summary>
     public string HoverText => _hover;
+    /// <summary>dwell ホバーツールチップが表示中か (play の Expect 用)。</summary>
+    public bool HoverTipOpen => _tipOpen;
+    /// <summary>dwell ホバーツールチップの文字列 (無ければ "")。</summary>
+    public string HoverTipText => _tipText;
 
     // ---- E3: 検索/置換 (バー UI は上位が駆動、ここは primitive + ハイライト) ----
     private string _search = "";
@@ -270,9 +288,32 @@ public sealed partial class CodeEditor : Widget, ITextInput
         _popupSel = ctx.Canvas.AddChild(_popupBg);
         _popupSel.Z = 11;
         ctx.Effect(() => _popupSel.Color = Styles.WithAlpha(_theme.Value.Primary, 60));
+        _popupHover = ctx.Canvas.AddChild(_popupBg);   // マウスホバー行 (選択の背面、より淡く)
+        _popupHover.Z = 10;
+        ctx.Effect(() => _popupHover.Color = Styles.WithAlpha(_theme.Value.Primary, 24));
         _popupText = ctx.Canvas.AddChild(_popupBg);
         _popupText.Z = 12;
         _popupText.ContentColors = true;
+
+        // 補完候補行のクリック/ホバー (_popupBg 相対なので transform に自動追従)。行高は _fs 依存で固定。
+        float rh0 = _fs + 8;
+        for (int i = 0; i < MaxPopupRows; i++)
+        {
+            int row = i;
+            ctx.AddHit(_popupBg, new Rect(0, 2 + row * rh0, PopupHitW, rh0),
+                onClickPos: e => { if (e.X >= 0 && e.X <= _popupW) PopupSelectRow(row); },
+                onMovePos: e => PopupHoverRow(e.X >= 0 && e.X <= _popupW ? row : -1),
+                onHover: on => { if (!on) PopupHoverRow(-1); })
+                .Active = () => _compOpen && row < Math.Min(MaxPopupRows, _completions.Count);
+        }
+
+        // dwell ホバーツールチップ (フローティング、最前面)
+        _tipBg = ctx.Canvas.AddChild(_root);
+        _tipBg.Z = 13;
+        ctx.Effect(() => _tipBg.Color = _theme.Value.Surface);
+        _tipTxt = ctx.Canvas.AddChild(_tipBg);
+        _tipTxt.Z = 14;
+        _tipTxt.ContentColors = true;
 
         RefreshDiagnostics();
         Refresh();
@@ -285,12 +326,25 @@ public sealed partial class CodeEditor : Widget, ITextInput
         float t = 0;
         ctx.AddAnimation(dt => { t += dt; if (t >= 0.53f) { t = 0; _caretOn.Value = !_caretOn.Value; } return false; });
 
+        // dwell ホバー: 同一位置に DwellFrames 留まったらツールチップ (フレーム基準 = 決定的)。
+        ctx.AddAnimation(_ =>
+        {
+            if (LanguageService is null || _hoverPx < 0 || _tipOpen) return false;
+            if (++_dwellFrames >= DwellFrames)
+            {
+                DocPos p = HitDoc(_hoverPx, _hoverPy);
+                string? h = LanguageService.Hover(Text, FlatOffset(p));
+                if (!string.IsNullOrEmpty(h)) { _tipText = h!; _tipOpen = true; Refresh(); }
+            }
+            return false;
+        });
+
         _focus ??= new FocusTarget
         {
             OnFocus = on => { Focused.Value = on; if (on) _caretOn.Value = true; },
             OnKey = OnKey,
-            OnText = s => { _ed.Insert(s); _goalX = null; Sync(); },
-            OnComposeEx = c => { _ed.SetComposition(c.Text, c.TargetStart, c.TargetLen); Refresh(); },
+            OnText = s => { _ed.Insert(s); _goalX = null; if (_compOpen) RefilterCompletion(); Sync(); },
+            OnComposeEx = c => { if (_compOpen) CloseCompletion(); _ed.SetComposition(c.Text, c.TargetStart, c.TargetLen); Refresh(); },
             OnCommit = s => { _ed.CommitComposition(s); _goalX = null; Sync(); },
             TextInput = this,
         };
@@ -305,13 +359,15 @@ public sealed partial class CodeEditor : Widget, ITextInput
         }
         ctx.AddHit(_root, new Rect(0, 0, W, H), focus: f, cursor: CursorKind.IBeam,
             onDragStart: e => Place(e.X, e.Y, extend: false),
-            onDrag: e => Place(e.X, e.Y, extend: true));
+            onDrag: e => Place(e.X, e.Y, extend: true),
+            onMovePos: e => OnEditorMove(e.X, e.Y));
         ctx.AddScroll(_root, new Rect(0, 0, W, H),
             d => _scroll.ScrollBy(-d));
         ScrollBars.AttachVertical(ctx, _root, _scroll, W, H, minThumb: 24);
     }
 
     private UiNode _gutterText = null!, _diagNode = null!, _popupBg = null!, _popupSel = null!, _popupText = null!, _searchNode = null!;
+    private UiNode _popupHover = null!, _tipBg = null!, _tipTxt = null!;
     private bool ReadOnlyFocusless => false;
     private float ContentH => LineCount * _lineH + Pad * 2;
     private float MaxScroll => MathF.Max(0, ContentH - H);
@@ -353,7 +409,7 @@ public sealed partial class CodeEditor : Widget, ITextInput
             case Key.End: _ed.End(ev.Shift); _goalX = null; break;
             case Key.Enter: _ed.InsertNewline(); _goalX = null; Sync(); return true;
             case Key.Tab: _ed.Insert("    "); _goalX = null; Sync(); return true;   // 4 スペース
-            case Key.Backspace: _ed.Backspace(); _goalX = null; Sync(); return true;
+            case Key.Backspace: _ed.Backspace(); _goalX = null; if (_compOpen) RefilterCompletion(); Sync(); return true;
             case Key.Delete: _ed.DeleteForward(); _goalX = null; Sync(); return true;
             case Key.A when ev.Ctrl: _ed.SelectAll(); break;
             case Key.Z when ev.Ctrl: _ed.Undo(); _goalX = null; Sync(); return true;
@@ -377,8 +433,11 @@ public sealed partial class CodeEditor : Widget, ITextInput
     private void OpenCompletion()
     {
         if (LanguageService is null) return;
-        _completions = LanguageService.Complete(Text, CaretOffset);
+        _compAll = LanguageService.Complete(Text, CaretOffset);
+        (_compTriggerLine, _compTriggerCol) = IdentStart();
+        _completions = _compAll;   // open 時は LS の返り (位置相応の候補) をそのまま。以後の入力で絞る
         _compSel = 0;
+        _popupHoverRow = -1;
         _compOpen = _completions.Count > 0;
         Refresh();
     }
@@ -387,7 +446,78 @@ public sealed partial class CodeEditor : Widget, ITextInput
     {
         if (!_compOpen) return;
         _compOpen = false;
+        _popupHoverRow = -1;
         Refresh();
+    }
+
+    /// <summary>キャレット直前の識別子の開始 (行, 桁) — 補完の断片起点。</summary>
+    private (int Line, int Col) IdentStart()
+    {
+        string line = _ed.Doc.LineAt(_ed.Caret.Line).Text;
+        int start = _ed.Caret.Offset;
+        while (start > 0 && IsIdentChar(line[start - 1])) start--;
+        return (_ed.Caret.Line, start);
+    }
+
+    private static bool IsIdentChar(char c) => char.IsLetterOrDigit(c) || c == '_';
+
+    /// <summary>トリガー位置からキャレットまでの断片で <see cref="_compAll"/> をローカル絞り込みする
+    /// (prefix 一致優先、無ければ大小無視の包含)。範囲外なら空 (呼び出し側が閉じる)。</summary>
+    private void FilterCompletion()
+    {
+        if (_ed.Caret.Line != _compTriggerLine || _ed.Caret.Offset < _compTriggerCol) { _completions = []; return; }
+        string line = _ed.Doc.LineAt(_compTriggerLine).Text;
+        int end = Math.Min(_ed.Caret.Offset, line.Length);
+        int col = Math.Min(_compTriggerCol, end);
+        string frag = line[col..end];
+        if (frag.Length == 0) { _completions = _compAll; _compSel = 0; return; }
+        var pref = _compAll.Where(c => c.Label.StartsWith(frag, StringComparison.OrdinalIgnoreCase)).ToList();
+        _completions = pref.Count > 0
+            ? pref
+            : _compAll.Where(c => c.Label.Contains(frag, StringComparison.OrdinalIgnoreCase)).ToList();
+        _compSel = 0;
+    }
+
+    /// <summary>タイプ/削除の後に再絞り込みする。0 件 or トリガーより前へ戻ったら閉じる。</summary>
+    private void RefilterCompletion()
+    {
+        if (!_compOpen) return;
+        FilterCompletion();
+        if (_completions.Count == 0) { _compOpen = false; _popupHoverRow = -1; }
+    }
+
+    /// <summary>ポップアップ行 (視覚 row) をクリックで確定挿入する。</summary>
+    private void PopupSelectRow(int row)
+    {
+        if (!_compOpen) return;
+        int idx = _popupTop + row;
+        if (idx < 0 || idx >= _completions.Count) return;
+        _compSel = idx;
+        ConfirmCompletion();
+    }
+
+    /// <summary>ポップアップ行のマウスホバーハイライト (視覚 row、-1 = クリア)。</summary>
+    private void PopupHoverRow(int row)
+    {
+        int r = (row >= 0 && _popupTop + row < _completions.Count) ? row : -1;
+        if (r != _popupHoverRow) { _popupHoverRow = r; Refresh(); }
+    }
+
+    /// <summary>本文上のポインタ移動 — 位置が変わったら dwell をリセットしツールチップを畳む。</summary>
+    private void OnEditorMove(float x, float y)
+    {
+        if (MathF.Abs(x - _hoverPx) > 1 || MathF.Abs(y - _hoverPy) > 1)
+        {
+            _hoverPx = x; _hoverPy = y; _dwellFrames = 0;
+            if (_tipOpen) { _tipOpen = false; Refresh(); }
+        }
+    }
+
+    private int FlatOffset(DocPos p)
+    {
+        int flat = 0;
+        for (int i = 0; i < p.Line; i++) flat += _ed.Doc.LineAt(i).Text.Length + 1;
+        return flat + p.Offset;
     }
 
     private void ConfirmCompletion()
@@ -586,37 +716,42 @@ public sealed partial class CodeEditor : Widget, ITextInput
         _diagNode.Content = diag;
 
         DrawPopup(mono);
+        DrawTip(mono);
         // ガター幅は桁数で変わりうる — 再実体化はしない (次の Realize で反映)。
     }
 
-    /// <summary>補完ポップアップ (キャレット直下、キーボード駆動 — ↑↓/Enter/Escape)。</summary>
+    /// <summary>補完ポップアップ (キャレット直下、キーボード + クリック + ホバー)。</summary>
     private void DrawPopup(VectorFont mono)
     {
         if (!_compOpen || _completions.Count == 0)
         {
-            _popupBg.Content = null; _popupSel.Content = null; _popupText.Content = null;
-            _popupBg.Visible = _popupSel.Visible = _popupText.Visible = false;
+            _popupBg.Content = null; _popupSel.Content = null; _popupText.Content = null; _popupHover.Content = null;
+            _popupBg.Visible = _popupSel.Visible = _popupText.Visible = _popupHover.Visible = false;
             return;
         }
-        _popupBg.Visible = _popupSel.Visible = _popupText.Visible = true;
+        _popupBg.Visible = _popupSel.Visible = _popupText.Visible = _popupHover.Visible = true;
 
-        const int maxRows = 8;
         float rowH = _fs + 8;
-        int n = Math.Min(maxRows, _completions.Count);
+        int n = Math.Min(MaxPopupRows, _completions.Count);
         float wpx = 0;
-        foreach (CodeCompletion it in _completions.Take(maxRows))
+        foreach (CodeCompletion it in _completions.Take(MaxPopupRows))
             wpx = MathF.Max(wpx, mono.Measure($"{it.Label}  {it.Kind}", _fs).width);
         wpx += 16;
-        float px = _gutterW + _caretLocal.X - _gutterW;   // キャレット x (root ローカル)
         float py = (_ed.Caret.Line + 1) * _lineH + Pad - _scroll.Clamped;
+        int top = Math.Clamp(_compSel - MaxPopupRows + 1, 0, Math.Max(0, _completions.Count - MaxPopupRows));
         _popupBg.Transform = Affine2D.Translate(_caretLocal.X, py);
+        _popupW = wpx; _popupRowH = rowH; _popupTop = top;   // ヒット/クリック判定用
 
         var bg = new Scene2D();
         bg.FillRoundedRect(Color2D.White, 0, 0, wpx, n * rowH + 4, 4);
         _popupBg.Content = bg;
 
+        var hov = new Scene2D();
+        if (_popupHoverRow >= 0 && _popupHoverRow < n && _popupHoverRow != _compSel - top)
+            hov.FillRect(Color2D.White, 2, 2 + _popupHoverRow * rowH, wpx - 4, rowH);
+        _popupHover.Content = hov;
+
         var selBg = new Scene2D();
-        int top = Math.Clamp(_compSel - maxRows + 1, 0, Math.Max(0, _completions.Count - maxRows));
         selBg.FillRect(Color2D.White, 2, 2 + (_compSel - top) * rowH, wpx - 4, rowH);
         _popupSel.Content = selBg;
 
@@ -630,7 +765,29 @@ public sealed partial class CodeEditor : Widget, ITextInput
             mono.AppendText(txt, it.Kind, kx, y, _fs, _theme.Peek().TextMuted);
         }
         _popupText.Content = txt;
-        _ = px;
+    }
+
+    /// <summary>dwell ホバーツールチップ (ポインタ近傍、フローティング)。</summary>
+    private void DrawTip(VectorFont mono)
+    {
+        if (!_tipOpen || _tipText.Length == 0)
+        {
+            _tipBg.Content = null; _tipTxt.Content = null;
+            _tipBg.Visible = _tipTxt.Visible = false;
+            return;
+        }
+        _tipBg.Visible = _tipTxt.Visible = true;
+        float w = mono.Measure(_tipText, _fs).width + 12;
+        float h = _fs + 8;
+        _tipBg.Transform = Affine2D.Translate(_hoverPx + 12, _hoverPy + 16);
+
+        var bg = new Scene2D();
+        bg.FillRoundedRect(Color2D.White, 0, 0, w, h, 4);
+        _tipBg.Content = bg;
+
+        var txt = new Scene2D();
+        mono.AppendText(txt, _tipText, 6, (h - _adv) / 2 + _ascent, _fs, _theme.Peek().Text);
+        _tipTxt.Content = txt;
     }
 
     private void AppendColored(Scene2D scene, VectorFont mono, string line, int lineIndex, float y, Theme t)

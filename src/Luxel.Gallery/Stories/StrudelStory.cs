@@ -18,6 +18,10 @@ namespace Luxel.Gallery.Stories;
 /// </summary>
 public static class StrudelStory
 {
+    /// <summary>E2E/headless では実 XAudio2 を避けて <see cref="NullAudioBackend"/> を使う
+    /// (golden は音を snap しない + Vortice のエンジンコールバック GC レースを踏まない)。E2e ランナーが設定。</summary>
+    internal static bool HeadlessAudio { get; set; }
+
     // ---- セッション (プロセスで 1 個 — XAudio2 マスタリングボイスと同じ寿命) ----
     private static class Session
     {
@@ -72,8 +76,10 @@ public static class StrudelStory
         {
             if (_mixer is not null) return;
             IAudioBackend backend;
-            try { var x = new XAudio2Backend(); x.Initialize(); backend = x; }
-            catch { backend = new NullAudioBackend(); }   // headless (E2E) は無音で動く
+            if (HeadlessAudio) backend = new NullAudioBackend();   // E2E: 実 XAudio2 を触らない (決定的 + Vortice callback GC レースを避ける)
+            else
+                try { var x = new XAudio2Backend(); x.Initialize(); backend = x; }
+                catch { backend = new NullAudioBackend(); }        // 実デバイス無し (CI 等) も無音で動く
             _mixer = new StreamMixerSink(StrudelKit.CreateBank(), backend);
             Sched.AddSink(_mixer);
         }

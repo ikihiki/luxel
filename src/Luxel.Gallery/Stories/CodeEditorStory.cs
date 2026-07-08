@@ -125,9 +125,25 @@ public static class CodeEditorStory
             await d.Step(2);
             await d.Expect(() => ed.CompletionOpen && ed.CompletionCount > 0, "補完ポップアップが開く");
             await d.Snap("popup");                   // 候補リストの絵
-            await d.Key(Key.Enter);                  // 先頭候補を確定
-            await d.Expect(() => !ed.CompletionOpen, "Enter で確定して閉じる");
-            await d.Snap("inserted");
+            int all = ed.CompletionCount;
+            await d.Type("Le");                      // タイプで絞り込み (閉じずにフィルタし続ける)
+            await d.Step(1);
+            await d.Expect(() => ed.CompletionOpen && ed.CompletionCount <= all, "タイプで候補が絞られる");
+            await d.Snap("filtered");
+            var cw = ed.CaretWorld;                  // ポップアップはキャレット直下 — 先頭行をクリック
+            await d.Click(cw.X + 20, cw.Y + 12);
+            await d.Step(1);
+            await d.Expect(() => !ed.CompletionOpen, "クリックで確定して閉じる");
+            await d.Snap("clicked");
+        });
+        ctx.Play("hover", async d =>
+        {
+            await d.Click(ed);
+            var wp = ed.WorldPos;
+            d.Host.PointerMove(wp.X + 28, wp.Y + 34);   // 2 行目の識別子 s の上に留まる
+            await d.Step(31);                           // dwell (フレーム基準 = 決定的)
+            await d.Expect(() => ed.HoverTipOpen, "同一位置に留まるとホバーツールチップ");
+            await d.Snap("hover");
         });
         ctx.Play("diagnostics", async d =>
         {

@@ -145,6 +145,94 @@ public class CodeEditorTests
     }
 
     [Fact]
+    public void Typing_FiltersCompletionsAndClosesWhenNoMatch()
+    {
+        var code = new Signal<string>("");
+        VectorFont font = VectorFont.LoadSystem();
+        var host = new UiHost(new RetainedCanvas(), font, 400, 200);
+        CodeEditor ed = CodeEditor(code, editorHeight: 180f, editorWidth: 380f);
+        ed.MonoFont = font; ed.LanguageService = new StubLanguage();
+        host.SetRoot(ed);
+
+        host.Click(60, 10);
+        host.KeyDown(Key.Space, ctrl: true);
+        Assert.Equal(2, ed.CompletionCount);     // Length / ToUpper (open 時は無フィルタ)
+
+        host.Char("T");                          // "T" → ToUpper のみ (prefix)
+        Assert.True(ed.CompletionOpen);
+        Assert.Equal(1, ed.CompletionCount);
+
+        host.Char("o");                          // "To" → まだ ToUpper
+        Assert.Equal(1, ed.CompletionCount);
+
+        host.Char("z");                          // "Toz" → 一致なし → 閉じる
+        Assert.False(ed.CompletionOpen);
+    }
+
+    [Fact]
+    public void Backspace_RefiltersAndClosesPastTrigger()
+    {
+        var code = new Signal<string>("x.");
+        VectorFont font = VectorFont.LoadSystem();
+        var host = new UiHost(new RetainedCanvas(), font, 400, 200);
+        CodeEditor ed = CodeEditor(code, editorHeight: 180f, editorWidth: 380f);
+        ed.MonoFont = font; ed.LanguageService = new StubLanguage();
+        host.SetRoot(ed);
+
+        host.Click(60, 10);
+        host.KeyDown(Key.End);                   // caret 末尾 (トリガー = "." の後)
+        host.KeyDown(Key.Space, ctrl: true);
+        Assert.Equal(2, ed.CompletionCount);
+        host.Char("T");
+        Assert.Equal(1, ed.CompletionCount);     // 絞り込み
+        host.KeyDown(Key.Backspace);             // "T" を消す → 断片 "" → 全件
+        Assert.True(ed.CompletionOpen);
+        Assert.Equal(2, ed.CompletionCount);
+        host.KeyDown(Key.Backspace);             // "." を消す → トリガーより前 → 閉じる
+        Assert.False(ed.CompletionOpen);
+    }
+
+    [Fact]
+    public void Click_SelectsCandidateRow()
+    {
+        var code = new Signal<string>("");
+        VectorFont font = VectorFont.LoadSystem();
+        var host = new UiHost(new RetainedCanvas(), font, 400, 200);
+        CodeEditor ed = CodeEditor(code, editorHeight: 180f, editorWidth: 380f);
+        ed.MonoFont = font; ed.LanguageService = new StubLanguage();
+        host.SetRoot(ed);
+
+        host.Click(60, 10);
+        host.KeyDown(Key.Space, ctrl: true);
+        Assert.True(ed.CompletionOpen);
+
+        Point cw = ed.CaretWorld;                // ポップアップはキャレット直下
+        host.Click(cw.X + 20, cw.Y + 12);        // 先頭行 (Length) をクリック
+        Assert.False(ed.CompletionOpen);
+        Assert.Contains("Length", ed.Text);
+    }
+
+    [Fact]
+    public void Dwell_ShowsHoverTooltip_ByFrameCount()
+    {
+        var code = new Signal<string>("value");
+        VectorFont font = VectorFont.LoadSystem();
+        var host = new UiHost(new RetainedCanvas(), font, 400, 200);
+        CodeEditor ed = CodeEditor(code, editorHeight: 180f, editorWidth: 380f);
+        ed.MonoFont = font; ed.LanguageService = new StubLanguage();
+        host.SetRoot(ed);
+
+        host.PointerMove(40, 12);                // 本文上に留まる
+        Assert.False(ed.HoverTipOpen);
+        for (int i = 0; i < 31; i++) host.Tick(1f / 60f);   // dwell (フレーム基準 = 決定的)
+        Assert.True(ed.HoverTipOpen);
+        Assert.Equal("hover!", ed.HoverTipText);
+
+        host.PointerMove(80, 12);                // 動いたら畳む
+        Assert.False(ed.HoverTipOpen);
+    }
+
+    [Fact]
     public void Diagnostics_ComputedOnEdit()
     {
         var code = new Signal<string>("");
