@@ -36,8 +36,9 @@ public static class DocsNodeEditor
         - **ノード内インライン UI**: `NodeInlineDecoration` + `WidgetResolver` でノード本体に実 Widget (スライダ等) をホスト
         - **ノード追加パレット**: 右クリックで `INodeCatalog` の種別を [PopupPlacer](story:ADR/0007-Floating-Ui-Placement) のメニューに並べ、クリック位置に追加
         - **自動整列**: 辺の依存に沿って左→右にランク配置 (`AutoLayout`) + `FitToView` + グリッドスナップ
+        - **読み取り専用** (`ReadOnly`): 編集を無効化し、ドラッグ = pan / クリック = 選択 (検査) / ホイール = ズームの閲覧モード。DevTools のレンダーグラフ可視化で使います (`RenderGraphNodes` が診断 `DiagRenderGraph` を「パス = ノード / リソース依存 = 辺」の doc に変換 → 読み取り専用ビューで表示)
 
-        実物: [Controls/NodeGraphView/Basic](story:Controls/NodeGraphView/Basic) (ノード/選択/移動) / [Wiring](story:Controls/NodeGraphView/Wiring) (配線) / [Widgets](story:Controls/NodeGraphView/Widgets) (ノード内 UI + パレット) / [AutoLayout](story:Controls/NodeGraphView/AutoLayout) (式グラフの自動整列)。
+        実物: [Controls/NodeGraphView/Basic](story:Controls/NodeGraphView/Basic) (ノード/選択/移動) / [Wiring](story:Controls/NodeGraphView/Wiring) (配線) / [Widgets](story:Controls/NodeGraphView/Widgets) (ノード内 UI + パレット) / [AutoLayout](story:Controls/NodeGraphView/AutoLayout) (式グラフの自動整列) / [RenderGraph](story:Controls/NodeGraphView/RenderGraph) (レンダーグラフの読み取り専用可視化)。
 
         > [!NOTE]
         > ドメインを載せるには `INodeCatalog` (種別と工場) を実装し、必要ならノード内の値編集を `WidgetResolver` で供給します。既存の [Luxel.Diagram](story:Docs/Controls) は**表示専用の図**、`Luxel.Animation` の Graph は**実行時評価ツリー**で、本エディタ (編集キャンバス) とは別物です (配置アルゴリズムのみ Diagram と同型)。

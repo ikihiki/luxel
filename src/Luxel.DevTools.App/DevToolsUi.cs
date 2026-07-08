@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using Luxel.Controls;
 using Luxel.Diagnostics;
+using Luxel.NodeGraph;
 using Luxel.TwoD;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
@@ -40,7 +41,11 @@ internal sealed class DevToolsUi
     private readonly ListView _logList;
     // ECS は一覧 (軽量サマリ) + 詳細 (選択/小規模) の 2 段。ゲーム規模でも一覧が破綻しない。
     private readonly JsonPanel _ecsSummary = new(250f), _ecs = new(250f);
-    private readonly JsonPanel _res = new(), _surf = new(), _input = new(), _audio = new(), _gpu = new(), _graph = new();
+    private readonly JsonPanel _res = new(), _surf = new(), _input = new(), _audio = new(), _gpu = new();
+
+    // Render Graph は読み取り専用のノードグラフで可視化 (パス=ノード / リソース依存=辺)
+    private readonly NodeGraphView _graphView;
+    private string? _lastGraph;
 
     // ---- Stat ダッシュボード (カード + グラフ) ----
     private readonly Signal<IReadOnlyList<string>> _statItems = new([]);
@@ -74,6 +79,8 @@ internal sealed class DevToolsUi
         _statList = ListView(150f, 15f, items: _statItems, width: 385f);
         _phasesList = ListView(150f, 15f, items: _phasesItems, width: 385f);
         _gameList = ListView(150f, 15f, items: _gameItems, width: 385f);
+        _graphView = NodeGraphView(source: NodeGraphDoc.Empty, viewWidth: 820f, viewHeight: 500f);
+        _graphView.ReadOnly = true;
     }
 
     /// <summary>島スレッドの毎フレーム同期 (rev ポーリング → パネル更新)。</summary>
@@ -139,7 +146,21 @@ internal sealed class DevToolsUi
         _input.Update(_listener.GetInputState());
         _audio.Update(_listener.GetAudio());
         _gpu.Update(_listener.GetGpu());
-        _graph.Update(_listener.GetRenderGraph());
+        UpdateRenderGraph();
+    }
+
+    // レンダーグラフ JSON が変わったら DiagRenderGraph に復元 → ノードグラフへ変換して読み取り専用ビューへ
+    private void UpdateRenderGraph()
+    {
+        string? json = _listener.GetRenderGraph();
+        if (json is null || json == _lastGraph) return;
+        _lastGraph = json;
+        try
+        {
+            DiagRenderGraph? rg = JsonSerializer.Deserialize<DiagRenderGraph>(json, Json.Options);
+            if (rg is not null) _graphView.Load(RenderGraphNodes.Build(rg));
+        }
+        catch { /* JSON 形状の揺れは無視 */ }
     }
 
     /// <summary>Perf カード: fps/frameMs 履歴グラフ + phase/system 内訳。</summary>
@@ -388,7 +409,7 @@ internal sealed class DevToolsUi
                 Card("Input State", _input.List),
                 Card("Audio", _audio.List),
                 Card("GPU", _gpu.List),
-                Card("Render Graph", _graph.List),
+                Card("Render Graph", _graphView),
             ],
             _tab, width: 860f, height: 590f);
 

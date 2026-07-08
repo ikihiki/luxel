@@ -268,7 +268,7 @@ public static class DocsRuntime
 
         ## パネル
 
-        Frame (画面ミラー) / Trees (widget ツリー) / Log / Stat (fps・ヒープ・GC の Sparkline ダッシュボード) / ECS (ライブ component 値) / Res (リソース依存グラフ) / GPU / Graph (RenderGraph の DAG — culled/aliased の色分け) / Audio / Input / Surf。操作は pause / resume / step (`engine.*` コマンドの Enqueue)。
+        Frame (画面ミラー) / Trees (widget ツリー) / Log / Stat (fps・ヒープ・GC の Sparkline ダッシュボード) / ECS (ライブ component 値) / Res (リソース依存グラフ) / GPU / Graph (RenderGraph の DAG を[読み取り専用](story:Docs/NodeEditor)のノードグラフで可視化 — パス = ノード / リソース依存 = 辺、pan/zoom で閲覧) / Audio / Input / Surf。操作は pause / resume / step (`engine.*` コマンドの Enqueue)。
 
         ## HTTP DebugServer
 

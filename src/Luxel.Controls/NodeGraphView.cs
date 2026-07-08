@@ -34,6 +34,10 @@ public sealed partial class NodeGraphView : Widget
     /// <summary>true = ノードドラッグのドロップ位置をグリッドにスナップする。</summary>
     public bool SnapToGrid { get; set; }
 
+    /// <summary>true = 読み取り専用 (編集不可)。ドラッグ = pan、クリック = 選択 (検査)、ホイール = ズームのみ。
+    /// 移動・配線・削除・パレット追加を無効化する (DevTools のレンダーグラフ可視化など、閲覧用途)。</summary>
+    public bool ReadOnly { get; set; }
+
     // ノード内にホストした実 Widget (画面空間に配置し毎 Refresh で WorldToScreen 追従)
     private sealed class Hosted { public required Widget Widget; public required UiNode Container; public Rect ScreenRect; }
     private readonly Dictionary<object, Hosted> _widgets = new();
@@ -47,8 +51,9 @@ public sealed partial class NodeGraphView : Widget
     private VectorFont? _font;
 
     // ドラッグ状態
-    private enum Drag { None, Nodes, Marquee, Wire }
+    private enum Drag { None, Nodes, Marquee, Wire, Pan }
     private Drag _drag;
+    private Vector2 _panStartPan;               // pan ドラッグ開始時の viewport.Pan
     private Vector2 _dragDelta;                 // ノードドラッグの累積移動量 (world)
     private int[] _dragNodes = [];              // ドラッグ中のノード id
     private Vector2 _marqStart, _marqCur;       // marquee の対角 (world)
@@ -284,6 +289,12 @@ public sealed partial class NodeGraphView : Widget
     {
         if (_geo is null) return;
         Focused.Value = true;
+        if (ReadOnly)   // 閲覧: ドラッグは pan、離した位置が動いていなければクリック選択 (検査)
+        {
+            _drag = Drag.Pan;
+            _panStartPan = _state.Viewport.Pan;
+            return;
+        }
         Vector2 world = WorldAt(e);
         GraphHit hit = _geo.HitTest(world);
         switch (hit.Kind)
@@ -334,6 +345,9 @@ public sealed partial class NodeGraphView : Widget
             case Drag.Wire:
                 _wireEnd = WorldAt(e);
                 break;
+            case Drag.Pan:
+                _state = _state.WithViewport(_state.Viewport with { Pan = _panStartPan + new Vector2(e.DeltaX, e.DeltaY) }).State;
+                break;
             default: return;
         }
         Refresh();
@@ -357,9 +371,25 @@ public sealed partial class NodeGraphView : Widget
             case Drag.Wire:
                 TryConnect(_geo!.HitTest(_wireEnd));
                 break;
+            case Drag.Pan:
+                // ほぼ移動なし = クリック → 直下の対象を選択 (読み取り専用の検査)
+                if (new Vector2(e.DeltaX, e.DeltaY).LengthSquared() < 9) SelectAt(WorldAt(e));
+                break;
         }
         _drag = Drag.None; _preview = null; _dragDelta = Vector2.Zero;
         Refresh();
+    }
+
+    // world 点の直下を選択する (ノード/辺/空白)。文書非変更なので履歴には積まれない。
+    private void SelectAt(Vector2 world)
+    {
+        GraphHit hit = _geo!.HitTest(world);
+        _state = hit.Kind switch
+        {
+            GraphHitKind.Node or GraphHitKind.InputPort or GraphHitKind.OutputPort => GraphCommands.SelectNodes(_state, [hit.NodeId], hit.NodeId).State,
+            GraphHitKind.Edge => GraphCommands.Select(_state, GraphSelection.Edge(hit.EdgeId)).State,
+            _ => GraphCommands.SelectNone(_state).State,
+        };
     }
 
     // 配線ドラッグの終端が互換ポートなら接続する (単入力ポートは既存の入力辺を置換 = 1 undo)
@@ -397,7 +427,7 @@ public sealed partial class NodeGraphView : Widget
     // 右クリック → PopupPlacer 上の ContextMenu でノード追加パレット (クリック位置に生成)
     private void OpenPalette(PointerEvent e)
     {
-        if (NodeCatalog is null || _geo is null || NodeCatalog.Entries.Count == 0) return;
+        if (ReadOnly || NodeCatalog is null || _geo is null || NodeCatalog.Entries.Count == 0) return;
         Focused.Value = true;
         Vector2 world = WorldAt(e);
         var items = NodeCatalog.Entries
@@ -500,6 +530,11 @@ public sealed partial class NodeGraphView : Widget
 
     private bool OnKey(KeyEvent ev)
     {
+        if (ReadOnly)   // 閲覧: 編集キーは無効、Esc の選択解除のみ
+        {
+            if (ev.Key == Key.Escape) { _state = GraphCommands.SelectNone(_state).State; Refresh(); return true; }
+            return false;
+        }
         switch (ev.Key)
         {
             case Key.Z when ev.Ctrl: Undo(); return true;

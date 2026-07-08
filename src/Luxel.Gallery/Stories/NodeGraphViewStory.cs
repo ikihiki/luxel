@@ -1,5 +1,6 @@
 using System.Numerics;
 using Luxel.Controls;
+using Luxel.Diagnostics;
 using Luxel.NodeGraph;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
@@ -230,6 +231,51 @@ public static class NodeGraphViewStory
             VStack(10)[
                 Heading("NodeGraphView — 自動整列 (式グラフ)"),
                 Muted("式グラフ (Const×2 → Add → Output) を例に、AutoLayout で辺依存に沿って左→右へ整列 + FitToView。グリッドスナップ有効。"),
+                ed]];
+    }
+
+    // DevTools のレンダーグラフと同型のサンプル診断 (パス×リソース DAG)
+    private static DiagRenderGraph SampleRenderGraph()
+    {
+        DiagRenderGraphPass Pass(int i, string name, int[] reads, int[] writes) => new(i, name, "Graphics", false, reads, writes);
+        DiagRenderGraphResource Res(int id, string name) => new(id, name, "Transient", false, 0, 0, 0, 0);
+        return new DiagRenderGraph(
+            [Pass(0, "Upload", [], [1]),
+             Pass(1, "Shadow", [1], [2]),
+             Pass(2, "Main", [1, 2], [3]),
+             Pass(3, "Present", [3], [])],
+            [Res(1, "vbuf"), Res(2, "shadow"), Res(3, "color")], 3, 4);
+    }
+
+    [Story("Controls/NodeGraphView/RenderGraph", Height = 460, Order = 5)]
+    public static Widget RenderGraph(StoryContext ctx)
+    {
+        // RenderGraphNodes で診断 → ノードグラフ (整列済み) に変換し、読み取り専用ビューで可視化
+        NodeGraphView ed = NodeGraphView(source: RenderGraphNodes.Build(SampleRenderGraph()), viewWidth: 620f, viewHeight: 380f);
+        ed.ReadOnly = true;
+
+        ctx.Play("view", async d =>
+        {
+            ed.FitToView();
+            await d.Step(1);
+            await d.Snap();                              // レンダーグラフ (Upload→Shadow→Main→Present)
+            Vector2 before = ed.NodePos(2);
+            Vector2 pan0 = ed.Viewport.Pan;
+            Vector2 c = ed.NodeScreenCenter(2);
+            await d.Drag(c.X, c.Y, c.X + 50, c.Y + 30);  // read-only: ドラッグは pan
+            await d.Expect(() => ed.NodePos(2) == before, "ノードは動かない (読み取り専用)");
+            await d.Expect(() => ed.Viewport.Pan != pan0, "ドラッグで pan した");
+            await d.Snap("panned");
+            Vector2 c2 = ed.NodeScreenCenter(2);
+            await d.Click(c2.X, c2.Y);                    // クリックで検査選択
+            await d.Expect(() => ed.IsSelected(2), "クリックで検査選択");
+            await d.Snap("selected");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("NodeGraphView — レンダーグラフ (読み取り専用)"),
+                Muted("DevTools のレンダーグラフ (パス×リソース DAG) を RenderGraphNodes で変換し、ReadOnly の NodeGraphView で可視化。ドラッグ=pan / クリック=検査 / ホイール=ズーム。"),
                 ed]];
     }
 }
