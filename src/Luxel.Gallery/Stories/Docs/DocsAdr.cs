@@ -50,6 +50,8 @@ public static class DocsAdr
         - [ADR-0004 — 2D はコンピュートラスタライザ + 保持型キャンバス](story:ADR/0004-Compute-Rasterizer-Retained-2D) — **Accepted** (2026-07-08)
         - [ADR-0005 — ドキュメントとサンプルは Gallery に一本化する](story:ADR/0005-Docs-In-Gallery) — **Accepted** (2026-07-04)
         - [ADR-0006 — テキストエディタは Transaction ベースの新スタックを新規に作る](story:ADR/0006-Editor-New-Stack) — **Accepted** (2026-07-08)
+        - [ADR-0007 — 浮遊 UI は単一の anchored placement エンジンに統一する](story:ADR/0007-Floating-Ui-Placement) — **Accepted** (2026-07-08)
+        - [ADR-0008 — IME 候補ウインドウを自前描画する (排他モード対応)](story:ADR/0008-Custom-Ime-Candidates) — **Proposed** (2026-07-08)
 
         ## 参考
 
@@ -375,5 +377,90 @@ public static class DocsAdr
         - ⚠️ **新規コード量が大きい** — IME/TSF ブリッジ・undo・ChangeSet 代数を新 view 向けに正しく作り直す (DocumentEditor の実装は流用しない)
         - ⚠️ Strudel/デモを新コントロールへ移行する必要があり、MiniNotation にソーススパンの配管を足す (greenfield)
         - ⚠️ 「view を純粋な塗り役に保つ」境界規律を維持する必要がある — ロジックは canvas 非依存の層に置く
+        """, toc: true, fences: DocsFences));
+
+    [Story("ADR/0007-Floating-Ui-Placement", Order = 78)]
+    public static Widget Adr0007(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+        # ADR-0007 — 浮遊 UI は単一の anchored placement エンジンに統一する
+
+        - **Status**: Accepted
+        - **Date**: 2026-07-08
+        - **Deciders**: ikihiki
+
+        ## Context
+
+        浮遊 UI (ダイアログ・トースト・ドロワー・ドロップダウン・Select・ColorPicker・コンテキストメニュー・補完ポップアップ・ホバーツールチップ・IME 候補) が増え、配置ロジックが散らばっています。
+
+        - オーバーレイ層 (`OverlayEntry` / `UiHost.Place`、Z=1000) に anchor + フリップ/クランプはあるが、**下↔上のフリップと X のクランプだけ**。水平フリップ・shift-to-fit・左右 side 配置・画面より高いときの max-height/スクロールが無い
+        - `ContextMenu` はこの層を使わず Z=3000 の一点物 — **端でクランプもフリップもしない** (右端・下端ではみ出す)
+        - CodeEditor の補完ポップアップ/ツールチップは**エディタの content 内の素の Scene2D ノード** — エディタのクリップに閉じ込められて画面外へ出られず、端でフリップもしない
+        - 画面端での挙動 (方向を変える) を各コントロールが個別に持つ/持たないため一貫しない
+
+        新スタックの補完ポップアップ ([ADR-0006](story:ADR/0006-Editor-New-Stack) の S6c) を機に、**全ての浮遊 UI が同じ規則で端に反応する**土台を作りたい、という力学です。
+
+        ## Decision
+
+        `Luxel.UI` に**単一の anchored placement エンジン**を置き、浮遊 UI を統一します。
+
+        - **配置指定** `AnchoredPlacement { Side (Below/Above/Right/Left), Align (Start/Center/End), bool Flip, bool Shift, float Gap, Margin, MaxWidth/MaxHeight }`
+        - **純粋なソルバ** `Solve(Rect anchor, Size content, Rect viewport) → (Rect rect, PopupSide actualSide, Size constrained)` — ①希望 side に置く ②入らなければ反対 side へ**フリップ** ③交差軸で画面内へ**シフト** ④viewport を超えるなら**サイズをクランプ** (中身はスクロール)。canvas 非依存で単体テスト可能
+        - **2 つの配置ファミリ**を明確に分ける: **anchored** (トリガー/キャレットに紐づく — Side/Align/Flip/Shift) と **region** (ダイアログ/ドロワー/トースト — Center/Edge/Corner、既存踏襲)
+        - **移行**: ContextMenu・Select/Dropdown/ColorPicker・**CodeEditor 補完ポップアップ + ツールチップ**をこのエンジンへ。ポップアップは Z=1000 のオーバーレイ層へ昇格し、トリガーの WorldPos 矩形または `ITextInput.CaretRect` にアンカーする (エディタのクリップから出て、画面端でフリップする)
+        - **IME 候補ウインドウ** ([ADR-0008](story:ADR/0008-Custom-Ime-Candidates)) も、自前描画する場合はこの Popup として CaretRect にアンカーする — 浮遊 UI の一消費者になる
+
+        実装計画は ToDo/23。現在の姿は [Docs/UI](story:Docs/UI) が正。
+
+        ## Alternatives
+
+        - **各コントロールが個別に配置** (現状) — フリップ/クランプを毎回作り直し、ContextMenu と補完は端でクランプすらせずはみ出す → 却下
+        - **Floating UI / CSS Anchor Positioning 相当のフルミドルウェア** (flip/shift/size/arrow/autoPlacement…) — 過剰。必要な部分集合 (flip + shift + size) だけ採る → 却下 (部分採用)
+        - **ポップアップ毎に手でクランプ** — 重複・未テスト・端対応が漏れる → 却下
+
+        ## Consequences
+
+        - ✅ フリップ/シフト/クランプが 1 か所・単体テスト済みになり、全浮遊 UI が一貫して画面端に反応する
+        - ✅ 補完ポップアップがエディタのクリップから解放され、キャレットにアンカーして端でフリップする
+        - ✅ ContextMenu が端でのクランプ/フリップを獲得する
+        - ⚠️ 移行が複数コントロール + golden に及ぶ (配置が数 px 動きうる — 意図差分として --update)
+        - ⚠️ anchored と region の 2 ファミリを区別して保守する必要がある
+        """, toc: true, fences: DocsFences));
+
+    [Story("ADR/0008-Custom-Ime-Candidates", Order = 79)]
+    public static Widget Adr0008(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+        # ADR-0008 — IME 候補ウインドウを自前描画する (排他モード対応)
+
+        - **Status**: Proposed
+        - **Date**: 2026-07-08
+        - **Deciders**: ikihiki
+
+        ## Context
+
+        IME (TSF) の**変換候補リスト**は現状 OS/TIP が描画し、我々は `CaretRect` (`GetTextExt`) で位置を渡すだけです。preedit テキスト・下線・変換対象節の強調は既に自前 (`ITextInput` 経由) ですが、候補リストだけ OS 任せです。
+
+        排他フルスクリーン (ゲーム) では OS の候補ウインドウがスワップチェーン上に出ない/破綻することがあり、エンジン内で候補を描けないと日本語入力が実質使えません。TSF の `ITfUIElementSink` / `ITfCandidateListUIElement` を使ったフックは未実装です。
+
+        ## Decision
+
+        TSF の `ITfUIElementMgr` に **`ITfUIElementSink` を advise** し、候補リスト UI 要素で `BeginUIElement` の `pbShow=false` を返して**OS 描画を抑制**、`ITfCandidateListUIElement` から候補文字列・選択・ページを読み、UI 層へ渡します。UI 層は候補を **[ADR-0007](story:ADR/0007-Floating-Ui-Placement) の Popup** として `CaretRect` にアンカーして自前描画します。
+
+        - 抑制は**排他モード時 (またはオプトイン) のみ**。通常ウインドウでは OS 描画を既定にする (OS の絵文字候補等の利点を残す)
+        - 失敗時・非 TSF (IMM フォールバック) は OS 描画へフォールバック
+        - モデル `ImeCandidates { IReadOnlyList<string> Items, int Selected, int PageStart, int PageSize }` を `ITextInput` (または新ホスト) へ通知
+
+        実装計画は ToDo/24。**Proposed** — 排他モードが必要になった時点で着手する。
+
+        ## Alternatives
+
+        - **OS 任せのまま** — 通常ウインドウでは十分だが排他モードで日本語が使えない → 排他対応が要るなら却下 (通常時は既定として残す)
+        - **IMM32 へ切替** — レガシーで TSF より候補情報が乏しい・将来性がない → 却下
+        - **候補用に別ウインドウ (レイヤードウインドウ) を出す** — 排他フルスクリーンでは前面に出せない/合成外 → 却下
+
+        ## Consequences
+
+        - ✅ 排他フルスクリーンで日本語入力の候補を描け、見た目もテーマに統一できる
+        - ⚠️ TSF COM の追加実装 (`ITfUIElementSink` の advise、`ITfCandidateListUIElement` の読み取り、STA スレッド規律) が要る
+        - ⚠️ **実 IME 依存で決定的テストが困難** — 実機 + 各 IME (MS-IME/Google 日本語入力等) の手動検証が必須。golden に乗らない
+        - ⚠️ 候補以外の UI 要素 (リーディングウインドウ/ツールチップ) もあり、抑制範囲の線引きが要る
+        - ⚠️ 抑制すると OS の候補由来の便利機能も消えるため、既定は通常ウインドウ=OS 描画・排他=自前、の切替方針を守る必要がある
         """, toc: true, fences: DocsFences));
 }
