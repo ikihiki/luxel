@@ -35,6 +35,9 @@ public sealed partial class TextEditorView : Widget, ITextInput
     /// <summary>行番号ガターを左に出す (コードエディタ用)。本文はガター幅ぶん右へ寄る。</summary>
     public bool ShowLineNumbers { get; set; }
 
+    /// <summary>キー横取りフック — true を返すと既定処理をしない (上位のカスタム、例: Strudel の Ctrl+Enter)。</summary>
+    public Func<KeyEvent, bool>? OnKeyIntercept { get; set; }
+
     /// <summary>行内 widget の解決 — 装飾の不透明キー → 実 Widget (null = 無視)。BlockWidgetRegistry と同じ流儀。
     /// view が生成・所有し、スロット矩形に Realize する。状態は外部 (signal) に持たせると再実体化で生き残る。</summary>
     public Func<object, Widget?>? WidgetResolver { get; set; }
@@ -557,6 +560,8 @@ public sealed partial class TextEditorView : Widget, ITextInput
 
     private bool OnKey(KeyEvent ev)
     {
+        if (OnKeyIntercept is { } hook && hook(ev)) return true;   // 上位カスタムが横取り
+
         // 補完ポップアップが開いている間はナビゲーションを奪う
         if (_compOpen)
         {

@@ -35,6 +35,11 @@ public sealed class StrudelScheduler(double chunkSeconds = 0.1)
     /// <summary>現在のサイクル位置 (クエリ済み地点 — 表示は再生位置と先読み分ずれる)。</summary>
     public double CyclePos => _cyclePos.ToDouble();
 
+    /// <summary>スロットのパターンで現在のサイクル位置に鳴っているトークンのソース位置 (再生囲み用)。
+    /// 位置はクエリ済み地点なので音より先読み分わずかに先行する。空スロットは空。</summary>
+    public IReadOnlyList<SourceSpan> ActiveSpans(int slot)
+        => _slots.TryGetValue(slot, out Pattern<ControlMap>? p) ? p.ActiveAt(_cyclePos) : [];
+
     /// <summary>発行済み窓の末尾時刻 (秒)。</summary>
     public double RenderedSeconds => _window * _chunk.ToDouble();
 

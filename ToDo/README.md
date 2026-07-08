@@ -9,8 +9,8 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 
 | # | ファイル | タスク | 規模感 | リスク |
 |---|---|---|---|---|
-| 22 | [22-editor-decoration-redesign.md](22-editor-decoration-redesign.md) | テキストエディタ新スタック (Transaction ベース、greenfield。既存コントロールは触らず新規追加。S7 に旧 07 マルチカーソル/矩形選択を統合。ADR-0006) | 特大 | **高** |
-| 23 | [23-floating-ui-placement.md](23-floating-ui-placement.md) | 浮遊 UI 共通化: anchored placement エンジン + Popup 統一 (端フリップ/シフト/クランプ。ContextMenu/Select/補完を統一。ADR-0007) | 中 | 中 |
+| ~~22~~ | ✅ 完了 (2026-07-08) | テキストエディタ新スタック (Transaction ベース、S1〜S8)。`Luxel.Editor` + `TextEditorView`。仕様は Docs/Editor + ADR-0006/0007。MD 削除済み | — | — |
+| 23 | [23-floating-ui-placement.md](23-floating-ui-placement.md) | 浮遊 UI 共通化: anchored placement エンジン + Popup 統一 (P1〜P3 完了。ContextMenu/Select/補完を統一。ADR-0007) | 中 | 中 |
 | 24 | [24-custom-ime-candidates.md](24-custom-ime-candidates.md) | カスタム IME 候補ウインドウ (TSF ITfUIElementSink で OS 抑制 + 自前 Popup 描画、排他モード対応。ADR-0008 Proposed) | 中 | **高** (実 IME 依存) |
 | ~~07~~ | 22 の S7 へ統合 (2026-07-08) | CodeEditor: マルチカーソル + 矩形選択 (E3.5) — MD 削除済み | — | — |
 | ~~08~~ | ✅ 完了 (2026-07-08) | Strudel 音楽機能拡張 (記法 `!`/`.`・scale/chord・filter/delay・wav 音色・MIDI out) — MD 削除済み、仕様は Docs/Strudel | — | — |

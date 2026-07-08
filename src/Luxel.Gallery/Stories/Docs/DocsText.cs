@@ -107,6 +107,24 @@ public static class DocsText
         > [!NOTE]
         > エディタ系ストーリーは docs ページへの埋め込みに対応していません (embed 内 RichTextEditor の入れ子は既知の制限) — リンクで実物ページへ飛んでください。
 
+        ## 新スタック — Transaction ベースのエディタ (Luxel.Editor)
+
+        「標準編集 / 行内 UI + 再生シーケンスの文字囲み (Strudel) / 下線・波線 (C#) / 行内色分け」が**同一行で同時に**要る要件から、既存の `DocumentEditor` 系を触らず **Transaction ベースの新スタックを新規追加**しました (決定は [ADR-0006](story:ADR/0006-Editor-New-Stack)、CodeMirror 6 流)。旧 CodeEditor/TextArea は当面併存します。
+
+        ```mermaid
+        flowchart TB
+        core[Luxel.Editor - canvas 非依存コア] --> view[TextEditorView - 薄いビュー]
+        core --> geo[EditorGeometry - 純射影]
+        ```
+
+        - **不変 `EditorState`** = `TextDoc` + `Selection` (複数レンジ + main) + 装飾状態。編集は `Transaction` (`ChangeSet` を運ぶ)、**`ChangeSet.MapPos` が選択・装飾・非同期結果の唯一の位置写像**。undo = 反転 ChangeSet で **1 Transaction = 1 undo** (マルチカーソルの 1 打鍵も自動で 1 undo)
+        - **マルチカーソルが native** — 単一カーソルはレンジ 1 個。`Ctrl+D` 次の同一語 / `Ctrl+Alt+↑↓` 縦列 / `Esc` 解除。編集は 1 ChangeSet で全レンジ一括
+        - **装飾は第一級状態** — Mark (前景色/背景/下線・波線/囲み) / Widget (行内 UI) / LinePrefix (行頭番号) / Block (縦バー) / Line (行背景)。**レイアウトに効く** (色/widget/prefix) と**効かない** (背景/下線/囲み = 矩形オーバーレイのみ、行キャッシュに触れず 60fps 更新可) を型で区別。シンタックス色・診断波線・検索・現在行・Strudel 再生囲みは全て `IDecorationProvider` か push 型の `SetDecorations` でここに載る
+        - **ジオメトリは `TextLayout` を使う純射影** (選択を持たない) → canvas なしで単体テスト可能。ソース↔表示写像で行頭 prefix・行内 widget ボックス・IME 合成を統合
+        - **view は canvas がないとできないことだけ** — 塗り・入力配線・widget ホスト・IME/TSF。補完/ホバーは [ADR-0007](story:ADR/0007-Floating-Ui-Placement) の anchored placement エンジンで CaretRect にアンカーし画面端でフリップ
+
+        実物: [Controls/TextEditorView/Code](story:Controls/TextEditorView/Code) (色分け+波線+ガター) / [Completion](story:Controls/TextEditorView/Completion) / [MultiCursor](story:Controls/TextEditorView/MultiCursor) / [Widgets](story:Controls/TextEditorView/Widgets) (行内 widget) / [Strudel](story:Controls/TextEditorView/Strudel) (再生囲み)。Strudel REPL の各ライブブロックもこの `TextEditorView` です。
+
         ## Markdown と hybrid 編集
 
         パースは **Markdig** (フル CommonMark + コールアウト + CJK 強調 + 絵文字 + SmartyPants)、シリアライザは正規形を出す自前実装で、**round-trip が安定**します (md → doc → md が収束)。1 ソース行 = 1 表示行の行指向モデルで、空行も保存されます。

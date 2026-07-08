@@ -169,7 +169,7 @@ public static class StrudelEval
         {
             if (args is not [StrV s])
                 throw new StrudelEvalError($"{name}(\"…\") の形で使います", pos);
-            try { return MiniNotation.Parse(s.S); }
+            try { return MiniNotation.Parse(s.S, s.Pos + 1); }   // s.Pos+1 = リテラル内容の行内開始 → スパンを行絶対に
             catch (MiniNotationError e)
             {
                 throw new StrudelEvalError(e.Message, s.Pos + 1 + e.Position);

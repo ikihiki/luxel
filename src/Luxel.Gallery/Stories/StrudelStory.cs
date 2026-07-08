@@ -2,6 +2,7 @@
 using Luxel.Audio.Sequencing;
 using Luxel.Controls;
 using Luxel.Document;
+using Luxel.Editor;
 using Luxel.Platform;
 using Luxel.Strudel;
 using Luxel.TwoD;
@@ -143,21 +144,25 @@ public static class StrudelStory
         }
     }
 
-    // ---- ライブブロック: CodeEditor (診断波線 + Ctrl+Enter 評価) + Run/Stop + ステータス ----
+    // ---- ライブブロック: TextEditorView (新スタック。診断波線 + 補完 + 再生囲み + Ctrl+Enter 評価) + Run/Stop ----
     private sealed class StrudelBlock : CompositeControl, IDisposable
     {
         private readonly Signal<string> _code;
         private readonly Signal<string> _status = new("");
         private readonly Action<IBlockPayload> _commit;
-        private readonly CodeEditor _editor;
+        private readonly TextEditorView _editor;
+        private readonly DiagnosticsProvider _diag;
         private readonly Button _run, _stop;
         private readonly int _slot;
         private readonly float _maxW;
+        private string _lastSpanKey = "";
 
         /// <summary>コードエディタ (play からフォーカス/型付け/Ctrl+Enter するために公開)。</summary>
-        internal CodeEditor Editor => _editor;
+        internal TextEditorView Editor => _editor;
         /// <summary>直近評価が成功したか (play の Expect 用)。</summary>
         internal bool LastRunOk { get; private set; }
+        /// <summary>診断数 (波線、play の Expect 用)。</summary>
+        internal int DiagnosticCount => _diag.Count;
 
         public StrudelBlock(FencePayload payload, float maxWidth, Action<IBlockPayload> commit)
         {
@@ -168,10 +173,12 @@ public static class StrudelStory
             string[] parts = payload.Info.Split(' ', 2);
             int? requested = parts.Length == 2 && int.TryParse(parts[1], out int s) ? s : null;
             _slot = Session.ClaimSlot(requested, this);
-            _editor = CodeEditor(_code, editorHeight: 62f, editorWidth: _maxW - 130);
-            (_, _, _, _editor.MonoFont) = StoryKit.EditorFaces.Value;
-            _editor.LanguageService = StrudelCodeLanguage.Instance;   // 診断波線 + 補完 (音は出さない)
-            _editor.OnKeyIntercept = ev =>                            // Ctrl+Enter = 現ブロックを評価
+            _editor = TextEditorView(_code, editorHeight: 62f, editorWidth: _maxW - 130);
+            (_, _, _, _editor.EditorFont) = StoryKit.EditorFaces.Value;
+            _editor.LanguageService = StrudelCodeLanguage.Instance;                      // 補完
+            _diag = new DiagnosticsProvider(StrudelCodeLanguage.Instance, () => UiTheme.T);
+            _editor.Providers.Add(_diag);                                                // 診断波線
+            _editor.OnKeyIntercept = ev =>                                              // Ctrl+Enter = 現ブロックを評価
             {
                 if (ev.Key == Key.Enter && ev.Ctrl) { Run(); return true; }
                 return false;
@@ -188,6 +195,24 @@ public static class StrudelStory
                 VStack(spacing: 4)[
                     HStack(spacing: 4)[_run, _stop],
                     Text(status, 11f, color: Bind.From(() => UiTheme.T.TextMuted))]];
+        }
+
+        // 毎フレーム: スロットの再生トークンを Mark.Box で囲む (変化時のみ Refresh — 大半のフレームは据え置き)
+        protected override void OnRealize(UiBuildContext ctx)
+        {
+            ctx.AddAnimation(_ =>
+            {
+                IReadOnlyList<SourceSpan> spans = Session.Sched.ActiveSpans(_slot);
+                string key = string.Join(",", spans.Select(sp => $"{sp.Start}:{sp.Length}"));
+                if (key != _lastSpanKey)
+                {
+                    _lastSpanKey = key;
+                    uint c = UiTheme.T.Primary;
+                    var boxes = spans.Select(sp => (Decoration)new MarkDecoration(sp.Start, sp.End, Box: new BoxStyle(c))).ToList();
+                    _editor.SetDecorations("playing", new DecorationSet(boxes));
+                }
+                return false;
+            });
         }
 
         private void Run()
@@ -242,7 +267,7 @@ public static class StrudelStory
             await d.Key(Key.End);
             await d.Type(".nope()");
             await d.Step(1);
-            await d.Expect(() => blocks[1].Editor.DiagnosticCount > 0, "不正記法で診断波線が出る");
+            await d.Expect(() => blocks[1].DiagnosticCount > 0, "不正記法で診断波線が出る");
             await d.Snap("diag");
 
             // Ctrl+Enter: 1 つ目のブロック (正しい記法) を評価 → スロットに反映 (コミットで再構築)
@@ -251,6 +276,8 @@ public static class StrudelStory
             await d.Key(Key.Enter, ctrl: true);
             await d.Step(2);
             await d.Expect(() => blocks[0].LastRunOk, "Ctrl+Enter で評価成功");
+            // 再生囲み (Mark.Box) は実配線済み — ただし Session は process-wide static でサイクル位置が
+            // 走行順に依存するため snap しない (決定的な囲みの絵は Controls/TextEditorView/Strudel に)
         });
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             VStack(spacing: 8)[

@@ -49,6 +49,16 @@ public class StrudelSpanTests
     }
 
     [Fact]
+    public void Spans_SurviveControlMapAndOps()
+    {
+        // s("bd sd").gain(...) — Select (string→ControlMap) と OpLeft (gain) を通してもスパンが残る
+        // (スケジューラの ActiveSpans が再生囲みに使う経路)
+        var p = Luxel.Strudel.Controls.S(MiniNotation.Parse("bd sd")).Gain(Pat.Pure(0.9f));
+        Assert.Equal(new SourceSpan(0, 2), p.ActiveAt(new Fraction(1, 4))[0]);   // 前半 "bd"
+        Assert.Equal(new SourceSpan(3, 2), p.ActiveAt(new Fraction(3, 4))[0]);   // 後半 "sd"
+    }
+
+    [Fact]
     public void ActiveAt_NextCycleWraps()
     {
         // サイクル 1 の中央でも同じトークンが鳴る (パターンは純関数・毎サイクル反復)

@@ -80,7 +80,7 @@ public static class DocsStrudel
 
         評価 = `SetPattern` の**ホットスワップ**で、クロックは止まらず次の窓 (≤300ms) から新パターンが鳴ります。音色は全てプロシージャル生成 (bd/sd/hh/oh/cp/rim/lt/ht + sine/tri/saw/square、固定シード) — バイナリアセットなしで、**パターン → PCM が丸ごと決定的**なのでユニットテストで波形を検証しています。wav サンプルを鳴らす場合は `SampleInstrument` (16bit PCM / 32bit float を読み、ステレオはモノ化、Note で 2^(半音/12) ピッチ + 出力レートへ線形補間リサンプル) を `InstrumentBank` に登録すれば `s("名前")` でそのまま鳴ります。
 
-        エディタは各ライブブロックが `CodeEditor` (ガター/等幅/横スクロール) で、`StrudelCodeLanguage` (`ICodeLanguage` 実装) を挿してあります: `StrudelEval` でパースした `StrudelEvalError` (MiniNotation の位置付きエラーも畳まれる) を**診断波線**に写し (評価するだけで音は出さない)、`.` の直後はメソッド・クォート内は音色を静的補完します。**Ctrl+Enter** はエディタの `OnKeyIntercept` で横取りし、そのブロックを Run (= ホットスワップ) します — 通常の Enter は改行のまま。
+        エディタは各ライブブロックが新スタックの `TextEditorView` (ADR-0006 の Transaction ベース) で、`StrudelCodeLanguage` (`ICodeLanguage` 実装) を挿してあります: `StrudelEval` でパースした `StrudelEvalError` (MiniNotation の位置付きエラーも畳まれる) を `DiagnosticsProvider` 経由で**診断波線** (`Mark.Underline` 波線) に写し (評価するだけで音は出さない)、`.` の直後はメソッド・クォート内は音色を静的補完します。**Ctrl+Enter** はエディタの `OnKeyIntercept` で横取りし、そのブロックを Run (= ホットスワップ) します — 通常の Enter は改行のまま。**再生囲み**: `MiniNotation` がアトムにソース位置 (`SourceSpan`) を刻み、`Hap` に載せて変形を通り抜けさせるので、スケジューラの `ActiveSpans(slot)` で「いま鳴っているトークン」を点クエリし、`Mark.Box` (レイアウト非依存 = 行キャッシュに触れず毎フレーム更新可) で囲みます。
 
         外部シンセを鳴らすなら `MidiOutSink` (`IEventSink`) が `ScheduledEvent` を note on/off に変換します — Note (無ければ N) → ノート番号、Gain → ベロシティ。PCM に焼けないので絶対秒でメッセージを溜め、ホストが実時間クロックで `Pump(now)` を呼んで送出します (ミキサが窓ループで駆動されるのと同じ構図 — ライブラリは wall-clock を持たず、メッセージ生成は記録用出力で決定的にテストできます)。出力ポートは `IMidiOut` 抽象で、Windows は winmm (`WinMmMidiOut`)、デバイス無し/非 Windows は `NullMidiOut` に自動フォールバックします。
 
