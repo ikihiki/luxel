@@ -137,6 +137,53 @@ public static class TextEditorViewStory
                 ed]];
     }
 
+    [Story("Controls/TextEditorView/Completion", Height = 320, Order = 4)]
+    public static Widget Completion(StoryContext ctx, ICodeLanguage lang)
+    {
+        Signal<string> code = ctx.Signal("code", "var s = \"hi\";\ns.");
+        TextEditorView ed = TextEditorView(code, editorHeight: 240f, editorWidth: 560f);
+        ed.ShowLineNumbers = true;
+        (_, _, _, VectorFont mono) = EditorFaces.Value;
+        ed.EditorFont = mono;
+        ed.LanguageService = lang;
+        ed.Providers.Add(new SyntaxHighlightProvider(Luxel.Highlight.TextMateHighlighter.Instance, "csharp", () => UiTheme.T));
+        ed.Providers.Add(new DiagnosticsProvider(lang, () => UiTheme.T));
+
+        ctx.Play("complete", async d =>
+        {
+            await d.Snap();
+            await d.Click(ed);
+            await d.Key(Key.Down); await d.Key(Key.End);      // 2 行目 "s." の末尾へ
+            await d.Key(Key.Space, ctrl: true);               // 補完を開く
+            await d.Step(2);
+            await d.Expect(() => ed.CompletionOpen && ed.CompletionCount > 0, "補完ポップアップが開く");
+            await d.Snap("popup");
+            int all = ed.CompletionCount;
+            await d.Type("Le");                               // タイプで絞り込み (閉じずにフィルタ)
+            await d.Step(1);
+            await d.Expect(() => ed.CompletionOpen && ed.CompletionCount <= all, "タイプで候補が絞られる");
+            await d.Snap("filtered");
+            await d.Key(Key.Enter);                           // 確定
+            await d.Expect(() => !ed.CompletionOpen && ed.Text.Contains("Le"), "Enter で確定して閉じる");
+            await d.Snap("confirmed");
+        });
+        ctx.Play("hover", async d =>
+        {
+            await d.Click(ed);
+            var wp = ed.WorldPos;
+            d.Host.PointerMove(wp.X + 34, wp.Y + 33);         // 2 行目 "s." の識別子 s の上に留まる
+            await d.Step(31);                                 // dwell (フレーム基準 = 決定的)
+            await d.Expect(() => ed.HoverTipOpen, "同一位置に留まるとホバーツールチップ");
+            await d.Snap("hover");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("TextEditorView — 補完 / ホバー (Popup)"),
+                Muted("Ctrl+Space で補完 (CaretRect にアンカー、画面端でフリップ)。dwell でホバー。"),
+                ed]];
+    }
+
     // 行頭番号 + 行内 widget (◯ をチェックボックスに置換) + 左縦バーを供給する装飾プロバイダ (デモ用)
     private sealed class ListDecoProvider : IDecorationProvider
     {
