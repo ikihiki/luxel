@@ -89,6 +89,54 @@ public static class TextEditorViewStory
                 ed]];
     }
 
+    [Story("Controls/TextEditorView/Edit", Height = 320, Order = 3)]
+    public static Widget Edit(StoryContext ctx)
+    {
+        Signal<string> code = ctx.Signal("code", "int foo = 1;\nint bar = foo + foo;\nreturn foo * bar;");
+        TextEditorView ed = TextEditorView(code, editorHeight: 190f, editorWidth: 520f);
+        ed.ShowLineNumbers = true;
+        (_, _, _, VectorFont mono) = EditorFaces.Value;
+        ed.EditorFont = mono;
+        ed.Providers.Add(new SyntaxHighlightProvider(Luxel.Highlight.TextMateHighlighter.Instance, "csharp", () => UiTheme.T));
+
+        Signal<string> query = ctx.Signal("find", "");
+        TextField findBar = TextField(query, placeholder: "find", width: 140);
+        Widget bar = HStack(6)[
+            findBar,
+            Button(_ => ed.SetSearch(query.Value), "検索", fontSize: 12f),
+            Button(_ => ed.FindNext(), "›", fontSize: 12f),
+            Button(_ => ed.ReplaceAll("qux"), "全置換→qux", fontSize: 12f)];
+
+        ctx.Play("line-ops", async d =>
+        {
+            await d.Click(ed);
+            await d.Key(Key.Down);                          // 2 行目へ
+            await d.Key(Key.Down, alt: true);               // 行を下へ移動
+            await d.Key(Key.Down, shift: true, alt: true);  // 行を複製
+            await d.Key(Key.Slash, ctrl: true);             // コメントトグル
+            await d.Expect(() => ed.Text.Contains("//"), "行操作が反映される");
+            await d.Snap("line-ops");
+        });
+        ctx.Play("search", async d =>
+        {
+            ed.SetSearch("foo");
+            await d.Step(1);
+            await d.Expect(() => ed.SearchMatchCount == 4, "4 マッチをハイライト");
+            await d.Snap("matches");
+            ed.ReplaceAll("qux");
+            await d.Step(1);
+            await d.Expect(() => ed.Text.Contains("qux") && !ed.Text.Contains("foo"), "全置換される");
+            await d.Snap("replaced");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("TextEditorView — 行操作 / 検索置換"),
+                Muted("Alt+↑↓ 行移動 / Shift+Alt+↓ 複製 / Ctrl+/ コメント。検索は背景ハイライト + ナビ + 全置換。"),
+                bar,
+                ed]];
+    }
+
     // 行頭番号 + 行内 widget (◯ をチェックボックスに置換) + 左縦バーを供給する装飾プロバイダ (デモ用)
     private sealed class ListDecoProvider : IDecorationProvider
     {

@@ -92,6 +92,76 @@ public sealed partial class TextEditorView : Widget, ITextInput
     /// <summary>選択があるか。</summary>
     public bool HasSelection => !_state.Selection.Main.Empty;
 
+    // ---- 検索 / 置換 ----
+    private string _searchQuery = "";
+    private readonly List<(int From, int To)> _matches = new();
+    private int _matchCur = -1;
+
+    /// <summary>検索マッチ数。</summary>
+    public int SearchMatchCount => _matches.Count;
+    /// <summary>現在マッチ番号 (0 始まり、なし = -1)。</summary>
+    public int SearchCurrent => _matchCur;
+
+    /// <summary>検索語を設定し全マッチを収集・ハイライトする (空でクリア)。</summary>
+    public void SetSearch(string query)
+    {
+        _searchQuery = query ?? "";
+        _matches.Clear();
+        _matches.AddRange(TextSearch.FindAll(_state.Doc.Text, _searchQuery));
+        _matchCur = _matches.Count > 0 ? 0 : -1;
+        UpdateSearchDeco();
+        if (_matchCur >= 0) SelectMatch();
+        Refresh();
+    }
+
+    /// <summary>次のマッチへ (ラップ)。</summary>
+    public void FindNext() => StepMatch(+1);
+    /// <summary>前のマッチへ。</summary>
+    public void FindPrev() => StepMatch(-1);
+
+    private void StepMatch(int dir)
+    {
+        if (_matches.Count == 0) return;
+        _matchCur = (_matchCur + dir + _matches.Count) % _matches.Count;
+        UpdateSearchDeco();
+        SelectMatch();
+        Refresh();
+    }
+
+    /// <summary>全マッチを置換して再検索する。</summary>
+    public void ReplaceAll(string replacement)
+    {
+        if (_matches.Count == 0) return;
+        var specs = _matches.Select(m => new ChangeSpec(m.From, m.To, replacement ?? "")).ToList();
+        Apply(_state.Update(new TransactionSpec { Changes = specs }));
+        SetSearch(_searchQuery);
+    }
+
+    private void UpdateSearchDeco()
+    {
+        if (_matches.Count == 0)
+        {
+            _state = _state.Update(new TransactionSpec { Effects = [new RemoveDecorations("search")] }).State;
+            return;
+        }
+        var marks = new List<Decoration>(_matches.Count);
+        for (int i = 0; i < _matches.Count; i++)
+        {
+            (int f, int t) = _matches[i];
+            byte alpha = (byte)(i == _matchCur ? 170 : 80);   // 現在マッチは強め
+            marks.Add(new MarkDecoration(f, t, Background: Styles.WithAlpha(_theme.Peek().Warning, alpha)));
+        }
+        _state = _state.WithDecorations("search", new DecorationSet(marks)).State;
+    }
+
+    private void SelectMatch()
+    {
+        (int f, int t) = _matches[_matchCur];
+        _state = EditCommands.SetSelection(_state, EditorSelection.Single(f, t)).State;
+        _caretOn.Value = true;
+        EnsureCaretVisible();
+    }
+
     private void EnsureInit()
     {
         if (_init) return;
@@ -253,6 +323,12 @@ public sealed partial class TextEditorView : Widget, ITextInput
 
     private bool OnKey(KeyEvent ev)
     {
+        // 行操作 (VS Code 風。Shift+Alt+↓=複製、Alt+↑↓=移動、Ctrl+/=コメント)
+        if (ev.Alt && ev.Shift && ev.Key == Key.Down) { Apply(EditCommands.DuplicateLine(_state)); _goalX = null; return true; }
+        if (ev.Alt && ev.Key == Key.Up) { Apply(EditCommands.MoveLineUp(_state)); _goalX = null; return true; }
+        if (ev.Alt && ev.Key == Key.Down) { Apply(EditCommands.MoveLineDown(_state)); _goalX = null; return true; }
+        if (ev.Ctrl && ev.Key == Key.Slash) { Apply(EditCommands.ToggleLineComment(_state)); _goalX = null; return true; }
+
         switch (ev.Key)
         {
             case Key.Left: Apply(EditCommands.MoveLeft(_state, ev.Shift)); _goalX = null; return true;

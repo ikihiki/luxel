@@ -116,6 +116,129 @@ public static class EditCommands
     private static Transaction Reselect(EditorState s, IReadOnlyList<SelectionRange> ranges)
         => s.Update(new TransactionSpec { Selection = EditorSelection.Of(ranges, s.Selection.MainIndex), ScrollIntoView = true });
 
+    // ---- 行操作 (主選択が跨ぐ行範囲に作用) ----
+
+    private static (int la, int lb) MainLineSpan(EditorState s)
+    {
+        SelectionRange m = s.Selection.Main;
+        return (s.Doc.LineOf(m.From), s.Doc.LineOf(m.To));
+    }
+
+    /// <summary>主選択の行範囲を 1 つ上の行と入れ替える (Alt+↑)。</summary>
+    public static Transaction MoveLineUp(EditorState s)
+    {
+        TextDoc doc = s.Doc;
+        (int la, int lb) = MainLineSpan(s);
+        if (la == 0) return Reselect(s, s.Selection.Ranges);   // no-op
+        int prevStart = doc.LineStart(la - 1);
+        int blockStart = doc.LineStart(la), blockEnd = doc.LineEnd(lb);
+        string prev = doc.LineText(la - 1);
+        string block = doc.Slice(blockStart, blockEnd);
+        int shift = prev.Length + 1;
+        SelectionRange m = s.Selection.Main;
+        return s.Update(new TransactionSpec
+        {
+            Changes = [new ChangeSpec(prevStart, blockEnd, block + "\n" + prev)],
+            Selection = EditorSelection.Single(m.Anchor - shift, m.Head - shift),
+            ScrollIntoView = true,
+        });
+    }
+
+    /// <summary>主選択の行範囲を 1 つ下の行と入れ替える (Alt+↓)。</summary>
+    public static Transaction MoveLineDown(EditorState s)
+    {
+        TextDoc doc = s.Doc;
+        (int la, int lb) = MainLineSpan(s);
+        if (lb >= doc.LineCount - 1) return Reselect(s, s.Selection.Ranges);
+        int blockStart = doc.LineStart(la), blockEnd = doc.LineEnd(lb);
+        int nextEnd = doc.LineEnd(lb + 1);
+        string next = doc.LineText(lb + 1);
+        string block = doc.Slice(blockStart, blockEnd);
+        int shift = next.Length + 1;
+        SelectionRange m = s.Selection.Main;
+        return s.Update(new TransactionSpec
+        {
+            Changes = [new ChangeSpec(blockStart, nextEnd, next + "\n" + block)],
+            Selection = EditorSelection.Single(m.Anchor + shift, m.Head + shift),
+            ScrollIntoView = true,
+        });
+    }
+
+    /// <summary>主選択の行範囲を直下に複製し、選択を複製側へ移す (Shift+Alt+↓)。</summary>
+    public static Transaction DuplicateLine(EditorState s)
+    {
+        TextDoc doc = s.Doc;
+        (int la, int lb) = MainLineSpan(s);
+        int blockStart = doc.LineStart(la), blockEnd = doc.LineEnd(lb);
+        string block = doc.Slice(blockStart, blockEnd);
+        int shift = block.Length + 1;
+        SelectionRange m = s.Selection.Main;
+        return s.Update(new TransactionSpec
+        {
+            Changes = [new ChangeSpec(blockEnd, blockEnd, "\n" + block)],
+            Selection = EditorSelection.Single(m.Anchor + shift, m.Head + shift),
+            ScrollIntoView = true,
+        });
+    }
+
+    /// <summary>主選択の行範囲の行コメントをトグルする (Ctrl+/)。全行がコメント済みなら外す、
+    /// でなければ各行のインデント直後に <paramref name="prefix"/> を挿入する。</summary>
+    public static Transaction ToggleLineComment(EditorState s, string prefix = "// ")
+    {
+        TextDoc doc = s.Doc;
+        (int la, int lb) = MainLineSpan(s);
+        string trimmed = prefix.TrimEnd();
+
+        // 非空行が全てコメント済みか
+        bool allCommented = true;
+        bool any = false;
+        for (int i = la; i <= lb; i++)
+        {
+            string t = doc.LineText(i);
+            int ind = Indent(t);
+            if (ind >= t.Length) continue;   // 空行は無視
+            any = true;
+            if (!t.AsSpan(ind).StartsWith(trimmed)) { allCommented = false; break; }
+        }
+        if (!any) allCommented = false;
+
+        var specs = new List<ChangeSpec>();
+        for (int i = la; i <= lb; i++)
+        {
+            string t = doc.LineText(i);
+            int ind = Indent(t);
+            int at = doc.LineStart(i) + ind;
+            if (allCommented)
+            {
+                if (ind >= t.Length || !t.AsSpan(ind).StartsWith(trimmed)) continue;
+                int rm = trimmed.Length;
+                if (ind + rm < t.Length && t[ind + rm] == ' ') rm++;   // 続く空白 1 も
+                specs.Add(new ChangeSpec(at, at + rm, ""));
+            }
+            else
+            {
+                if (ind >= t.Length) continue;   // 空行はコメントしない
+                specs.Add(new ChangeSpec(at, at, prefix));
+            }
+        }
+        if (specs.Count == 0) return Reselect(s, s.Selection.Ranges);
+        ChangeSet cs = ChangeSet.Of(doc.Length, specs);
+        SelectionRange m = s.Selection.Main;
+        return s.Update(new TransactionSpec
+        {
+            Changes = specs,
+            Selection = EditorSelection.Single(cs.MapPos(m.Anchor), cs.MapPos(m.Head)),
+            ScrollIntoView = true,
+        });
+    }
+
+    private static int Indent(string line)
+    {
+        int i = 0;
+        while (i < line.Length && (line[i] == ' ' || line[i] == '\t')) i++;
+        return i;
+    }
+
     // ---- グラフェム境界 (サロゲートペアを割らない。結合文字の完全対応は将来) ----
 
     internal static int StepLeft(string t, int i)

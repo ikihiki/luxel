@@ -118,4 +118,70 @@ public class EditorCommandTests
         Assert.Equal(0, t.State.Selection.Main.From);
         Assert.Equal(11, t.State.Selection.Main.To);
     }
+
+    // ---- 行操作 ----
+
+    [Fact]
+    public void MoveLineDown_SwapsWithNext()
+    {
+        var t = EditCommands.MoveLineDown(S("a\nb\nc", 0));   // 行 0 "a" を下へ
+        Assert.Equal("b\na\nc", t.State.Doc.Text);
+        Assert.Equal(2, t.State.Selection.Main.Head);        // キャレットは "a" 行に追従
+    }
+
+    [Fact]
+    public void MoveLineUp_SwapsWithPrev()
+    {
+        var t = EditCommands.MoveLineUp(S("a\nb\nc", 4));     // 行 2 "c"... offset 4 は 3 行目
+        Assert.Equal("a\nc\nb", t.State.Doc.Text);
+    }
+
+    [Fact]
+    public void MoveLineUp_AtTop_NoOp()
+    {
+        Assert.False(EditCommands.MoveLineUp(S("a\nb", 0)).DocChanged);
+    }
+
+    [Fact]
+    public void DuplicateLine_CopiesBelow()
+    {
+        var t = EditCommands.DuplicateLine(S("ab\ncd", 1));   // 行 0 "ab"
+        Assert.Equal("ab\nab\ncd", t.State.Doc.Text);
+        Assert.Equal(4, t.State.Selection.Main.Head);        // 複製行の同じ桁 (1) へ: offset 3+1
+    }
+
+    [Fact]
+    public void ToggleComment_AddsThenRemoves()
+    {
+        var on = EditCommands.ToggleLineComment(S("  foo", 3));
+        Assert.Equal("  // foo", on.State.Doc.Text);         // インデント直後に "// "
+        var off = EditCommands.ToggleLineComment(on.State);
+        Assert.Equal("  foo", off.State.Doc.Text);           // 戻る
+    }
+
+    [Fact]
+    public void ToggleComment_MultiLine()
+    {
+        var s = EditorState.Create("a\nb\nc", EditorSelection.Single(0, 5));   // 全行選択
+        var on = EditCommands.ToggleLineComment(s);
+        Assert.Equal("// a\n// b\n// c", on.State.Doc.Text);
+    }
+
+    // ---- 検索 ----
+
+    [Fact]
+    public void Search_FindAll()
+    {
+        var m = TextSearch.FindAll("foo bar foo", "foo");
+        Assert.Equal(2, m.Count);
+        Assert.Equal((0, 3), m[0]);
+        Assert.Equal((8, 11), m[1]);
+    }
+
+    [Fact]
+    public void Search_IgnoreCaseAndEmpty()
+    {
+        Assert.Equal(2, TextSearch.FindAll("Foo foo", "foo", ignoreCase: true).Count);
+        Assert.Empty(TextSearch.FindAll("abc", ""));
+    }
 }
