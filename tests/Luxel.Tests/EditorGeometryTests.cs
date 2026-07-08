@@ -105,6 +105,21 @@ public class EditorGeometryTests
         Assert.Equal(2, right);
     }
 
+    [Fact]
+    public void Widget_Anchor_InsertsDisplaySlot()
+    {
+        // "xy" の位置 1 (x と y の間) にアンカー widget (ソース 0 文字)
+        var st = EditorState.Create("xy")
+            .WithDecorations("w", new DecorationSet([new WidgetDecoration(1, 1, 20, 12, "mark")])).State;
+        var g = new EditorGeometry(Cfg(), st);
+        DisplayLine dl = g.Line(0);
+        Assert.Equal(0, dl.SourceToDisplay(0));
+        Assert.Equal(2, dl.SourceToDisplay(1));   // アンカーの後ろ
+        Assert.Equal(3, dl.SourceToDisplay(2));
+        Assert.Single(g.WidgetSlots());
+        Assert.Equal("mark", g.WidgetSlots()[0].Key);
+    }
+
     // ---- 前景色ラン (色分け) ----
 
     [Fact]

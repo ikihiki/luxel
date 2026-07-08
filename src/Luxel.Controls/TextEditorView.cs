@@ -32,6 +32,15 @@ public sealed partial class TextEditorView : Widget, ITextInput
     /// <summary>折返し (既定 false = コード)。</summary>
     public bool WrapText { get; set; }
 
+    /// <summary>行内 widget の解決 — 装飾の不透明キー → 実 Widget (null = 無視)。BlockWidgetRegistry と同じ流儀。
+    /// view が生成・所有し、スロット矩形に Realize する。状態は外部 (signal) に持たせると再実体化で生き残る。</summary>
+    public Func<object, Widget?>? WidgetResolver { get; set; }
+
+    /// <summary>装飾プロバイダ — 状態が変わるたびに走らせ、結果を装飾として反映する
+    /// (シンタックス色/診断/検索/再生囲みが後続ステージでここに載る)。</summary>
+    public IList<IDecorationProvider> Providers => _providers;
+    private readonly List<IDecorationProvider> _providers = new();
+
     // ---- モデル (canvas 非依存) ----
     private EditorState _state = EditorState.Create();
     private readonly History _history = new();
@@ -54,6 +63,9 @@ public sealed partial class TextEditorView : Widget, ITextInput
     private readonly List<UiNode> _colorNodes = new();
     private FocusTarget? _focus;
     private Rect _caretLocal;
+
+    private sealed class Hosted { public required Widget Widget; public required UiNode Container; public TextRect Rect; }
+    private readonly Dictionary<object, Hosted> _widgets = new();
 
     private const float Pad = 6f;
     private float _fs = 13;
@@ -127,6 +139,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
         _theme = ctx.Theme;
         _fs = FontSize.Or(_theme.Peek().FontSm);
         _geo = new EditorGeometry(BuildConfig(), _state);
+        _widgets.Clear();   // 旧ホストは再実体化でスコープごと破棄済み — dict だけ捨てて Refresh で作り直す
 
         _root = CreateRoot(ctx, parent, worldOrigin);
         var bg = new Scene2D();
@@ -280,6 +293,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
     private void Refresh()
     {
         if (_ctx is null || _geo is null) return;
+        RunProviders();
         EditorState eff = Effective();
         _geo.SetState(eff);
         _scroll.SetLengths(ContentH, H);
@@ -288,6 +302,76 @@ public sealed partial class TextEditorView : Widget, ITextInput
         BuildSelection(eff);
         BuildOverlays();
         BuildCaret(eff);
+        HostWidgets();
+    }
+
+    // 装飾プロバイダを走らせて結果を _state へ (文書は変えないので履歴に積まない・純関数なので冪等)
+    private void RunProviders()
+    {
+        if (_providers.Count == 0) return;
+        IReadOnlyList<StateEffect> effects = DecorationProviders.Collect(_state, _providers);
+        _state = _state.Update(new TransactionSpec { Effects = effects }).State;
+    }
+
+    // ---- 行内 widget のホスト (resolver → Realize → OnChildNeedsRealize) ----
+
+    private void HostWidgets()
+    {
+        if (WidgetResolver is null) { if (_widgets.Count > 0) ClearWidgets(); return; }
+        var seen = new HashSet<object>();
+        foreach (WidgetSlot slot in _geo!.WidgetSlots())
+        {
+            seen.Add(slot.Key);
+            if (!_widgets.TryGetValue(slot.Key, out Hosted? h))
+            {
+                if (WidgetResolver(slot.Key) is not { } w) continue;
+                UiNode container = _ctx.Canvas.AddChild(_content);
+                container.Z = 5;
+                h = new Hosted { Widget = w, Container = container };
+                _widgets[slot.Key] = h;
+            }
+            h.Rect = slot.Rect;
+            RealizeWidget(h);
+        }
+        if (_widgets.Count > seen.Count)
+            foreach (object k in _widgets.Keys.Where(k => !seen.Contains(k)).ToList())
+            { DisposeHosted(_widgets[k]); _widgets.Remove(k); }
+    }
+
+    // widget を宣言サイズのスロットへ実体化 (箱サイズは装飾が宣言 → 行レイアウトは変わらない = 高さ吸収不要)
+    private void RealizeWidget(Hosted h)
+    {
+        Widget w = h.Widget;
+        w.Scope?.Release();
+        var lc = new LayoutContext { Font = _ctx.Font, Theme = _theme.Peek(), ViewportW = W, ViewportH = H };
+        w.Layout(new Constraints(0, h.Rect.Width, 0, h.Rect.Height), lc);
+        w.Offset = new Point(h.Rect.X, h.Rect.Y);
+        // worldOrigin は container (=_content) の原点。CreateRoot が WorldPos = worldOrigin + Offset とするので
+        // ここに rect を足すと二重計上になる (描画はノード transform で正しいが WorldPos がずれ d.Click が外れる)。
+        w.Realize(_ctx, h.Container, new Point(WorldPos.X + Pad, WorldPos.Y + Pad - _scroll.Clamped));
+        w.ParentWidget = this;
+    }
+
+    private void ClearWidgets()
+    {
+        foreach (Hosted h in _widgets.Values) DisposeHosted(h);
+        _widgets.Clear();
+    }
+
+    private void DisposeHosted(Hosted h)
+    {
+        h.Widget.Scope?.Release();
+        (h.Widget as IDisposable)?.Dispose();
+        _ctx.Canvas.Remove(h.Container);
+    }
+
+    /// <summary>ホストした行内 widget の再実体化要求を吸収する — 箱サイズは固定なので同じスロットへ
+    /// 実体化し直すだけ (行レイアウトは変わらない)。</summary>
+    protected override bool OnChildNeedsRealize(Widget child)
+    {
+        foreach (Hosted h in _widgets.Values)
+            if (ReferenceEquals(h.Widget, child)) { RealizeWidget(h); return true; }
+        return false;
     }
 
     private void RebuildText()

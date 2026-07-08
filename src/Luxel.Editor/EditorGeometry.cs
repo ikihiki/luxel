@@ -216,11 +216,11 @@ public sealed class EditorGeometry
         foreach (LinePrefixDecoration p in _state.Decorations.All().OfType<LinePrefixDecoration>())
             if (p.At >= start && p.At <= end) { prefixText += p.Text; prefixColor = p.Color; }
 
-        // 置換 widget (行内ソース範囲、非重複前提。開始桁昇順)
+        // 行内 widget (置換=ソース範囲 n>0、アンカー=点 n==0)。開始桁昇順、非重複前提。
         var widgets = new List<(int a, int b, object key, float w, float h)>();
         foreach (WidgetDecoration wd in _state.Decorations.All().OfType<WidgetDecoration>())
         {
-            if (wd.From >= start && wd.To <= end && wd.To > wd.From)   // S3 は置換のみ (アンカーは S5)
+            if (wd.From >= start && wd.To <= end && wd.To >= wd.From)
                 widgets.Add((wd.From - start, wd.To - start, wd.Key, wd.Width, wd.Height));
         }
         widgets.Sort((x, y) => x.a.CompareTo(y.a));
@@ -263,6 +263,13 @@ public sealed class EditorGeometry
             spans.Add(new TextSpan(text[pos..runEnd], new SpanStyle { Color = color[pos] }));
             segs.Add(new DisplayLine.Seg(runEnd - pos, runEnd - pos, IsWidget: false, null));
             pos = runEnd;
+        }
+        // 行末のアンカー widget (ソース len 位置)
+        while (wi < widgets.Count && widgets[wi].a == len && widgets[wi].b == len)
+        {
+            spans.Add(new TextSpan("￼", new SpanStyle { BoxW = widgets[wi].w, BoxH = widgets[wi].h, Color = _cfg.DefaultColor }));
+            segs.Add(new DisplayLine.Seg(0, 1, IsWidget: true, widgets[wi].key));
+            wi++;
         }
         if (spans.Count == 0) spans.Add(new TextSpan("", new SpanStyle { Color = _cfg.DefaultColor }));
 
