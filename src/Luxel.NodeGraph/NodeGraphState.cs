@@ -1,8 +1,8 @@
 namespace Luxel.NodeGraph;
 
-/// <summary>トランザクションの指定 — 変更 (複数を 1 セットに束ねる) + 結果選択 + viewport
+/// <summary>トランザクションの指定 — 変更 (複数を 1 セットに束ねる) + 結果選択 + viewport + 装飾の副作用
 /// ([[Luxel.Editor.TransactionSpec]] 相当)。<see cref="Selection"/> 省略時は現在の選択を編集で写す
-/// (削除ノード/辺への参照は落ちる)。装飾の副作用は S2 でここに足す。</summary>
+/// (削除ノード/辺への参照は落ちる)。<see cref="Effects"/> は変更適用後の新しい Doc を基準に解釈される。</summary>
 public sealed class GraphTransactionSpec
 {
     /// <summary>この編集での変更列 (省略 = 変更なし)。</summary>
@@ -11,6 +11,8 @@ public sealed class GraphTransactionSpec
     public GraphSelection? Selection { get; init; }
     /// <summary>結果の viewport (省略 = 現在のまま)。</summary>
     public GraphViewport? Viewport { get; init; }
+    /// <summary>装飾等の副作用 (省略 = なし)。変更適用後の新しい Doc を基準に解釈される。</summary>
+    public IReadOnlyList<GraphStateEffect>? Effects { get; init; }
 }
 
 /// <summary>
@@ -26,15 +28,19 @@ public sealed class NodeGraphState
     public GraphSelection Selection { get; }
     /// <summary>pan/zoom。</summary>
     public GraphViewport Viewport { get; }
+    /// <summary>装飾テーブル (owner 別)。</summary>
+    public GraphDecorationTable Decorations { get; }
 
-    internal NodeGraphState(NodeGraphDoc doc, GraphSelection selection, GraphViewport viewport)
+    // 装飾は呼び出し側 (Transaction.Build / With) が Doc と整合させてから渡す契約 (テキストスタックと同じ)。
+    internal NodeGraphState(NodeGraphDoc doc, GraphSelection selection, GraphViewport viewport, GraphDecorationTable? decorations = null)
     {
         Doc = doc;
         Selection = selection.Retain(doc);
         Viewport = viewport;
+        Decorations = decorations ?? GraphDecorationTable.Empty;
     }
 
-    /// <summary>初期状態を作る (省略時は空グラフ・空選択・既定 viewport)。</summary>
+    /// <summary>初期状態を作る (省略時は空グラフ・空選択・既定 viewport・装飾なし)。</summary>
     public static NodeGraphState Create(NodeGraphDoc? doc = null, GraphSelection? selection = null, GraphViewport? viewport = null)
         => new(doc ?? NodeGraphDoc.Empty, selection ?? GraphSelection.Empty, viewport ?? GraphViewport.Default);
 
@@ -53,7 +59,12 @@ public sealed class NodeGraphState
     public GraphTransaction WithViewport(GraphViewport viewport)
         => Update(new GraphTransactionSpec { Viewport = viewport });
 
-    internal NodeGraphState With(NodeGraphDoc doc, GraphSelection selection) => new(doc, selection, Viewport);
+    /// <summary>文書を変えず owner の装飾を差し替えるトランザクションの便宜 (プロバイダ更新)。</summary>
+    public GraphTransaction WithDecorations(string owner, GraphDecorationSet set)
+        => Update(new GraphTransactionSpec { Effects = [new SetGraphDecorations(owner, set)] });
+
+    // undo/redo で新 Doc に切り替える際、装飾は削除対象を落として retain する (provider が後で再供給する契約)。
+    internal NodeGraphState With(NodeGraphDoc doc, GraphSelection selection) => new(doc, selection, Viewport, Decorations.Map(doc));
 }
 
 /// <summary>
@@ -71,6 +82,8 @@ public sealed class GraphTransaction
     public GraphSelection Selection { get; }
     /// <summary>結果の viewport。</summary>
     public GraphViewport Viewport { get; }
+    /// <summary>副作用 (装飾更新など)。</summary>
+    public IReadOnlyList<GraphStateEffect> Effects { get; }
 
     private NodeGraphState? _state;
 
@@ -80,11 +93,20 @@ public sealed class GraphTransaction
         Changes = new GraphChangeSet(spec.Changes ?? []);
         Selection = spec.Selection ?? start.Selection;
         Viewport = spec.Viewport ?? start.Viewport;
+        Effects = spec.Effects ?? [];
     }
 
     /// <summary>文書が変わるか (変更が空でない)。</summary>
     public bool DocChanged => !Changes.IsEmpty;
 
-    /// <summary>適用後の新しい状態 (遅延生成・キャッシュ)。選択は新 Doc へ Retain される。</summary>
-    public NodeGraphState State => _state ??= new NodeGraphState(Changes.Apply(StartState.Doc), Selection, Viewport);
+    /// <summary>適用後の新しい状態 (遅延生成・キャッシュ)。既存装飾を新 Doc へ写した後、effect を適用する。</summary>
+    public NodeGraphState State => _state ??= Build();
+
+    private NodeGraphState Build()
+    {
+        NodeGraphDoc doc = Changes.Apply(StartState.Doc);
+        GraphDecorationTable table = StartState.Decorations.Map(doc);   // 既存装飾を新 Doc へ (削除対象を落とす)
+        foreach (GraphStateEffect eff in Effects) table = eff.ApplyTo(table);
+        return new NodeGraphState(doc, Selection, Viewport, table);
+    }
 }
