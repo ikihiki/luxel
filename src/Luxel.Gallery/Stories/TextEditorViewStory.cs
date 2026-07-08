@@ -1,5 +1,6 @@
 using Luxel.Controls;
 using Luxel.Editor;
+using Luxel.Typography;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
@@ -47,6 +48,44 @@ public static class TextEditorViewStory
             VStack(10)[
                 Heading("TextEditorView (新スタック)"),
                 Muted("Luxel.Editor (Transaction + native 複数レンジ + 装飾) を canvas に載せた薄いビュー。"),
+                ed]];
+    }
+
+    [Story("Controls/TextEditorView/Code", Height = 320, Order = 2)]
+    public static Widget Code(StoryContext ctx, ICodeLanguage lang)
+    {
+        Signal<string> code = ctx.Signal("code",
+            "// 新スタックのコードエディタ (プロバイダで色分け + 波線)\n" +
+            "public int Fib(int n)\n" +
+            "{\n" +
+            "    if (n < 2) return n;\n" +
+            "    return Fib(n - 1) + Fib(n - 2);\n" +
+            "}\n" +
+            "int broken = ;");
+        TextEditorView ed = TextEditorView(code, editorHeight: 260f, editorWidth: 560f);
+        ed.ShowLineNumbers = true;
+        (_, _, _, VectorFont mono) = EditorFaces.Value;
+        ed.EditorFont = mono;
+
+        Func<Theme> theme = () => UiTheme.T;
+        ed.Providers.Add(new SyntaxHighlightProvider(Luxel.Highlight.TextMateHighlighter.Instance, "csharp", theme));
+        var diags = new DiagnosticsProvider(lang, theme);
+        ed.Providers.Add(diags);
+        ed.Providers.Add(new CurrentLineProvider(theme));
+
+        ctx.Play(async d =>
+        {
+            await d.Snap();                               // 色分け + 行番号 + 現在行 + "int broken = ;" に波線
+            await d.Expect(() => diags.Count > 0, "エラー行に波線が付く");
+            await d.Click(ed);
+            await d.Key(Key.Down); await d.Key(Key.Down); await d.Key(Key.Down);
+            await d.Snap("caret");                        // 現在行ハイライトが移動
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("TextEditorView — コード (色分け + 診断波線 + ガター)"),
+                Muted("SyntaxHighlightProvider / DiagnosticsProvider / CurrentLineProvider を Providers に足すだけ。"),
                 ed]];
     }
 

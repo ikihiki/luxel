@@ -32,6 +32,9 @@ public sealed partial class TextEditorView : Widget, ITextInput
     /// <summary>折返し (既定 false = コード)。</summary>
     public bool WrapText { get; set; }
 
+    /// <summary>行番号ガターを左に出す (コードエディタ用)。本文はガター幅ぶん右へ寄る。</summary>
+    public bool ShowLineNumbers { get; set; }
+
     /// <summary>行内 widget の解決 — 装飾の不透明キー → 実 Widget (null = 無視)。BlockWidgetRegistry と同じ流儀。
     /// view が生成・所有し、スロット矩形に Realize する。状態は外部 (signal) に持たせると再実体化で生き残る。</summary>
     public Func<object, Widget?>? WidgetResolver { get; set; }
@@ -60,9 +63,15 @@ public sealed partial class TextEditorView : Widget, ITextInput
     private Signal<Theme> _theme = UiTheme.Current;
     private UiNode _root = null!, _content = null!, _selNode = null!, _caretNode = null!;
     private UiNode _textLayer = null!, _overlayBg = null!, _overlayFg = null!;
+    private UiNode? _gutter, _gutterText;
     private readonly List<UiNode> _colorNodes = new();
     private FocusTarget? _focus;
     private Rect _caretLocal;
+
+    private const float GutterPadR = 8f;
+    private float _gutterW, _charW = 8f;
+    private VectorFont? _primaryFont;
+    private float ContentX => ShowLineNumbers ? _gutterW : Pad;
 
     private sealed class Hosted { public required Widget Widget; public required UiNode Container; public TextRect Rect; }
     private readonly Dictionary<object, Hosted> _widgets = new();
@@ -138,7 +147,11 @@ public sealed partial class TextEditorView : Widget, ITextInput
         _ctx = ctx;
         _theme = ctx.Theme;
         _fs = FontSize.Or(_theme.Peek().FontSm);
-        _geo = new EditorGeometry(BuildConfig(), _state);
+        EditorConfig cfg = BuildConfig();
+        _primaryFont = cfg.Fonts.Primary;
+        _charW = MathF.Max(1, cfg.Fonts.Primary.Measure("0", _fs).width);
+        _gutterW = ShowLineNumbers ? MathF.Max(2, _state.Doc.LineCount.ToString().Length) * _charW + GutterPadR * 2 : 0;
+        _geo = new EditorGeometry(cfg, _state);
         _widgets.Clear();   // 旧ホストは再実体化でスコープごと破棄済み — dict だけ捨てて Refresh で作り直す
 
         _root = CreateRoot(ctx, parent, worldOrigin);
@@ -148,11 +161,28 @@ public sealed partial class TextEditorView : Widget, ITextInput
         ctx.Effect(() => _root.Color = _theme.Value.SurfaceAlt);
         FocusRing.Add(ctx, _root, -3, -3, W + 6, H + 6, 9, Focused);
 
+        // ガター (行番号) — 固定 x、縦だけスクロール追従、クリップ
+        _gutter = _gutterText = null;
+        if (ShowLineNumbers)
+        {
+            _gutter = ctx.Canvas.AddChild(_root);
+            _gutter.Z = 1;
+            _gutter.Clip = new RectClip(0, 0, _gutterW, H);
+            var gbg = new Scene2D();
+            gbg.FillRect(Color2D.White, 0, 0, _gutterW, H);
+            _gutter.Content = gbg;
+            ctx.Effect(() => _gutter.Color = _theme.Value.Surface);
+            _gutterText = ctx.Canvas.AddChild(_gutter);
+            _gutterText.Z = 1;
+            _gutterText.ContentColors = true;
+            ctx.Effect(() => _gutterText!.Transform = Affine2D.Translate(0, Pad - _scroll.Clamped));
+        }
+
         UiNode clip = ctx.Canvas.AddChild(_root);
-        clip.Z = 1;
-        clip.Clip = new RectClip(0, 0, W, H);
+        clip.Z = 2;
+        clip.Clip = new RectClip(_gutterW, 0, W - _gutterW, H);
         _content = ctx.Canvas.AddChild(clip);
-        ctx.Effect(() => _content.Transform = Affine2D.Translate(Pad, Pad - _scroll.Clamped));
+        ctx.Effect(() => _content.Transform = Affine2D.Translate(ContentX, Pad - _scroll.Clamped));
 
         _overlayBg = ctx.Canvas.AddChild(_content);   // 背景/行背景/ブロック/囲み塗り (テキストの背面)
         _overlayBg.Z = 0;
@@ -202,7 +232,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
         void Place(float lx, float ly, bool extend)
         {
             if (_geo is null || Composing) return;
-            int off = _geo.HitTest(lx - Pad, ly - Pad + _scroll.Clamped);
+            int off = _geo.HitTest(lx - ContentX, ly - Pad + _scroll.Clamped);
             SelectionRange main = _state.Selection.Main;
             var sel = EditorSelection.Single(extend ? main.Anchor : off, off);
             Apply(EditCommands.SetSelection(_state, sel));
@@ -303,6 +333,23 @@ public sealed partial class TextEditorView : Widget, ITextInput
         BuildOverlays();
         BuildCaret(eff);
         HostWidgets();
+        BuildGutter();
+    }
+
+    // 行番号ガター (右寄せ、本文と同じベースライン)。スクロール追従は effect が y 平行移動でやる
+    private void BuildGutter()
+    {
+        if (_gutterText is null || _geo is null || _primaryFont is null) return;
+        var scene = new Scene2D();
+        uint muted = _theme.Peek().TextMuted;
+        for (int i = 0; i < _geo.LineCount; i++)
+        {
+            string num = (i + 1).ToString();
+            float x = _gutterW - GutterPadR - _primaryFont.Measure(num, _fs).width;
+            float baseline = _geo.LineTop(i) + _geo.Line(i).Layout.LineAscentAt(0);
+            _primaryFont.AppendText(scene, num, x, baseline, _fs, muted);
+        }
+        _gutterText.Content = scene;
     }
 
     // 装飾プロバイダを走らせて結果を _state へ (文書は変えないので履歴に積まない・純関数なので冪等)
@@ -348,7 +395,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
         w.Offset = new Point(h.Rect.X, h.Rect.Y);
         // worldOrigin は container (=_content) の原点。CreateRoot が WorldPos = worldOrigin + Offset とするので
         // ここに rect を足すと二重計上になる (描画はノード transform で正しいが WorldPos がずれ d.Click が外れる)。
-        w.Realize(_ctx, h.Container, new Point(WorldPos.X + Pad, WorldPos.Y + Pad - _scroll.Clamped));
+        w.Realize(_ctx, h.Container, new Point(WorldPos.X + ContentX, WorldPos.Y + Pad - _scroll.Clamped));
         w.ParentWidget = this;
     }
 
@@ -472,5 +519,5 @@ public sealed partial class TextEditorView : Widget, ITextInput
         => Apply(_state.Update(new TransactionSpec { Changes = [new ChangeSpec(start, end, s)], Selection = EditorSelection.Cursor(start + s.Length) }));
     void ITextInput.SetComposition(ImeComposition comp) { _compText = comp.Text; _compTargetStart = comp.TargetStart; _compTargetLen = comp.TargetLen; Refresh(); EnsureCaretVisible(); }
     void ITextInput.CommitComposition(string final) { _compText = ""; if (final.Length > 0) Apply(EditCommands.InsertText(_state, final)); else Refresh(); }
-    Rect ITextInput.CaretRect => new(WorldPos.X + Pad + _caretLocal.X, WorldPos.Y + Pad + _caretLocal.Y - _scroll.Clamped, 2, _caretLocal.Height);
+    Rect ITextInput.CaretRect => new(WorldPos.X + ContentX + _caretLocal.X, WorldPos.Y + Pad + _caretLocal.Y - _scroll.Clamped, 2, _caretLocal.Height);
 }
