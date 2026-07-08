@@ -57,8 +57,10 @@ public sealed partial class Slider : Widget, ISlotted<SliderSlotKey>
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
-        EffectiveWidth = ResolveW(c, ctx, DefaultWidth);
-        Size = c.Constrain(new Size(EffectiveWidth, H));
+        // 描画/ヒットに使う実効幅は「制約適用後の実サイズ」に一致させる — 制約 (狭いスロット等) より広く
+        // 描いて枠を突き抜けないため。幅未指定なら DefaultWidth を上限にフィット、明示幅は % 等で解決。
+        Size = c.Constrain(new Size(ResolveW(c, ctx, DefaultWidth), H));
+        EffectiveWidth = Size.Width;
     }
     public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => ResolveWIntrinsic(ctx, DefaultWidth);
 

@@ -42,6 +42,9 @@ public sealed partial class TextEditorView : Widget, ITextInput
     /// view が生成・所有し、スロット矩形に Realize する。状態は外部 (signal) に持たせると再実体化で生き残る。</summary>
     public Func<object, Widget?>? WidgetResolver { get; set; }
 
+    /// <summary>ホストした行内 widget のクリップ方式 (既定 = 枠でクリップ、はみ出しを隠す)。</summary>
+    public WidgetClipMode WidgetClip { get; set; } = WidgetClipMode.Box;
+
     /// <summary>装飾プロバイダ — 状態が変わるたびに走らせ、結果を装飾として反映する
     /// (シンタックス色/診断/検索/再生囲みが後続ステージでここに載る)。</summary>
     public IList<IDecorationProvider> Providers => _providers;
@@ -748,6 +751,9 @@ public sealed partial class TextEditorView : Widget, ITextInput
         var lc = new LayoutContext { Font = _ctx.Font, Theme = _theme.Peek(), ViewportW = W, ViewportH = H };
         w.Layout(new Constraints(0, h.Rect.Width, 0, h.Rect.Height), lc);
         w.Offset = new Point(h.Rect.X, h.Rect.Y);
+        // 枠でクリップ (はみ出しを隠す)。RectClip は container (=_content の子) のローカル空間 = h.Rect と同じ座標系。
+        h.Container.Clip = WidgetClip == WidgetClipMode.Box
+            ? new RectClip(h.Rect.X, h.Rect.Y, h.Rect.Width, h.Rect.Height) : null;
         // worldOrigin は container (=_content) の原点。CreateRoot が WorldPos = worldOrigin + Offset とするので
         // ここに rect を足すと二重計上になる (描画はノード transform で正しいが WorldPos がずれ d.Click が外れる)。
         w.Realize(_ctx, h.Container, new Point(WorldPos.X + ContentX, WorldPos.Y + Pad - _scroll.Clamped));

@@ -33,7 +33,7 @@ public static class DocsNodeEditor
 
         - **ノードドラッグで移動** (複数選択はまとめて 1 undo)、**クリック選択 / 空白ドラッグで範囲選択 (marquee)**、**ホイールでカーソル中心ズーム**
         - **配線**: ポートからドラッグ → 進行中ワイヤ (互換ポートなら緑・不可なら赤) → ドロップで接続。型キー一致・向き・重複を `GraphConnect` が検証。**辺クリック選択 → Delete で切断**
-        - **ノード内インライン UI**: `NodeInlineDecoration` + `WidgetResolver` でノード本体に実 Widget (スライダ等) をホスト
+        - **ノード内インライン UI**: `NodeInlineDecoration` + `WidgetResolver` でノード本体に実 Widget (スライダ等) をホスト。枠の宣言幅はノード幅に吸収され (widget は枠幅に収まる)、`WidgetClip` (既定 = 枠でクリップ) ではみ出しを隠す
         - **ノード追加パレット**: 右クリックで `INodeCatalog` の種別を [PopupPlacer](story:ADR/0007-Floating-Ui-Placement) のメニューに並べ、クリック位置に追加
         - **自動整列**: 辺の依存に沿って左→右にランク配置 (`AutoLayout`) + `FitToView` + グリッドスナップ
         - **読み取り専用** (`ReadOnly`): 編集を無効化し、ドラッグ = pan / クリック = 選択 (検査) / ホイール = ズームの閲覧モード。DevTools のレンダーグラフ可視化で使います (`RenderGraphNodes` が診断 `DiagRenderGraph` を「パス = ノード / リソース依存 = 辺」の doc に変換 → 読み取り専用ビューで表示)

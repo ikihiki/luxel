@@ -28,6 +28,9 @@ public sealed partial class NodeGraphView : Widget
     /// <summary>ノード内インライン枠 (<see cref="NodeInlineDecoration"/>) の Key → 実 Widget を解決する (null = ホストしない)。</summary>
     public Func<object, Widget?>? WidgetResolver { get; set; }
 
+    /// <summary>ホストしたインライン widget のクリップ方式 (既定 = 枠でクリップ)。</summary>
+    public WidgetClipMode WidgetClip { get; set; } = WidgetClipMode.Box;
+
     /// <summary>右クリック追加パレットのノードカタログ (null = パレット無効)。</summary>
     public INodeCatalog? NodeCatalog { get; set; }
 
@@ -208,8 +211,13 @@ public sealed partial class NodeGraphView : Widget
         {
             int rows = Math.Max(inN, outN);
             h = Config.TitleBarHeight + Config.PortStartY + rows * Config.PortRowHeight + 6;
+            // インライン枠: 高さを足し、宣言幅がノードに収まるようノード幅も広げる (スロット幅 = ノード内幅 − 2·padding)
             foreach (GraphDecoration d in _state.Decorations.All())
-                if (d is NodeInlineDecoration nid && nid.NodeId == n.Id) h += nid.Height + Config.SlotGap;
+                if (d is NodeInlineDecoration nid && nid.NodeId == n.Id)
+                {
+                    h += nid.Height + Config.SlotGap;
+                    w = MathF.Max(w, nid.Width + Config.SlotPadding * 2);
+                }
         }
         return new NodeSize(w, h);
     }
@@ -469,6 +477,9 @@ public sealed partial class NodeGraphView : Widget
         var lc = new LayoutContext { Font = _ctx.Font, Theme = _theme.Peek(), ViewportW = W, ViewportH = H };
         w.Layout(new Constraints(0, h.ScreenRect.Width, 0, h.ScreenRect.Height), lc);
         w.Offset = new Point(h.ScreenRect.X, h.ScreenRect.Y);
+        // 枠でクリップ (はみ出しを隠す)。RectClip は container のローカル空間 = _widgetLayer と同じ view-local px。
+        h.Container.Clip = WidgetClip == WidgetClipMode.Box
+            ? new RectClip(h.ScreenRect.X, h.ScreenRect.Y, h.ScreenRect.Width, h.ScreenRect.Height) : null;
         // container (=_widgetLayer 直下・無変換) の world 原点は view の WorldPos。CreateRoot が
         // WorldPos = worldOrigin + Offset とするので rect を二重に足さない (d.Click が外れないように)。
         w.Realize(_ctx, h.Container, new Point(WorldPos.X, WorldPos.Y));
