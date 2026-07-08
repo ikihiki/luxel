@@ -103,7 +103,7 @@ public sealed class ChangeSet
     /// (負=左/挿入の前、正=右/挿入の後)。削除範囲内は assoc 側の端へ潰れる。</summary>
     public int MapPos(int pos, int assoc = -1)
     {
-        if (pos <= 0) return 0;
+        if (pos < 0) return 0;   // pos==0 は先頭挿入 (assoc>0 で挿入の後ろ) を扱うため通す
         int oldPos = 0, newPos = 0;
         for (int i = 0; i < _secs.Length; i++)
         {

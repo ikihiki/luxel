@@ -46,23 +46,23 @@ public sealed class History
         _redo.Clear();
     }
 
-    /// <summary>現在状態に対し 1 手 undo した状態を返す (履歴が空なら現状のまま)。</summary>
+    /// <summary>現在状態に対し 1 手 undo した状態を返す (履歴が空なら現状のまま)。装飾は逆変更で写す。</summary>
     public EditorState Undo(EditorState current)
     {
         if (_undo.Count == 0) return current;
         Entry e = _undo[^1];
         _undo.RemoveAt(_undo.Count - 1);
         _redo.Add(e);
-        return new EditorState(current.Doc.ApplyChange(e.Inverted), e.Before);
+        return new EditorState(current.Doc.ApplyChange(e.Inverted), e.Before, current.Decorations.Map(e.Inverted));
     }
 
-    /// <summary>現在状態に対し 1 手 redo した状態を返す (履歴が空なら現状のまま)。</summary>
+    /// <summary>現在状態に対し 1 手 redo した状態を返す (履歴が空なら現状のまま)。装飾は変更で写す。</summary>
     public EditorState Redo(EditorState current)
     {
         if (_redo.Count == 0) return current;
         Entry e = _redo[^1];
         _redo.RemoveAt(_redo.Count - 1);
         _undo.Add(e);
-        return new EditorState(current.Doc.ApplyChange(e.Changes), e.After);
+        return new EditorState(current.Doc.ApplyChange(e.Changes), e.After, current.Decorations.Map(e.Changes));
     }
 }
