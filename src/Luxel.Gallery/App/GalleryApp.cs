@@ -94,7 +94,10 @@ public sealed class GalleryApp : IDisposable
     }
 
     // ---- Interactions (play の Gallery 内再生 — 本家 Storybook の Interactions パネル相当) ----
-    private readonly Signal<int> _bottomTab = new(0);   // 下ペインのタブ (Log/Knobs/Interactions) — 再構築を跨いで保持
+    private readonly Signal<int> _bottomTab = new(0);   // 下ペインのタブ (Log/Knobs/Interactions/Console) — 再構築を跨いで保持
+    // 常設 Console — Gallery 起動中ずっと生きる継続 REPL (セッション/履歴は chrome 再構築・ストーリー切替を跨ぐ)。
+    // Log の宛先は遅延解決 (() => _ctx) で「今選択中のストーリー」に追従する。
+    private Stories.ReplConsole? _console;
     private readonly List<string> _playSteps = new();
     private readonly Signal<int> _playVer = new(0);   // ステップ/状態の再描画トリガ
     private string _playStatus = "";
@@ -329,9 +332,17 @@ public sealed class GalleryApp : IDisposable
                     Text(playLog, 11, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(4, 2, 0, 0))]];
         }
 
+        // Console: 常設の継続 REPL (Gallery 起動中ずっと生きる — セッション/履歴を保持)。
+        // 開くと前の行で宣言した変数が次に見える。Log(...) は今選択中のストーリーの Log パネルへ。
+        _console ??= new Stories.ReplConsole(
+            paneW - 32,
+            (Luxel.Scripting.ScriptHost)GalleryServices.Provider.GetService(typeof(Luxel.Scripting.ScriptHost))!,
+            new Stories.ScriptGlobals(() => _ctx),
+            initial: "");
+
         Widget bottomPane = Border(background: Bind.From(() => UiTheme.T.Surface), rounded: UiTheme.T.Radius,
                                    padding: new Thickness(8, 4), width: paneW)[
-            Tabs(["Log", "Knobs", "Interactions"], [logPane, knobsPane, interactionsPane],
+            Tabs(["Log", "Knobs", "Interactions", "Console"], [logPane, knobsPane, interactionsPane, _console],
                  _bottomTab, width: paneW - 16, height: _logH - 16)];
         bottomPane.GridRow(3);
 
