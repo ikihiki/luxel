@@ -63,7 +63,16 @@
 - [x] **Q20**: 02 Strudel REPL の CodeEditor 化 (2026-07-08 完了)。`StrudelCodeLanguage` (`ICodeLanguage`、Gallery/Stories): `StrudelEval.Evaluate` でパース → `StrudelEvalError` (MiniNotation の位置付きエラーも畳まれる) を `CodeDiagnostic` 波線に写す (評価するだけで音は出さない) + 文脈補完 (クォート内=音色 / `.` 直後=メソッド / それ以外=関数)。StrudelStory のライブブロックを `TextArea` → `CodeEditor` (ガター/等幅/横スクロール、MonoFont + LanguageService)、**Ctrl+Enter** を `OnKeyIntercept` で横取り → 現ブロック Run (音の連続性のスロット所有権はそのまま、通常 Enter は改行)。play を拡充 (2 ブロック実体化 → 未知メソッド型付けで `DiagnosticCount>0` + `diag` golden の赤波線 → Ctrl+Enter で `LastRunOk`)。単体テスト +8 (診断位置/行マップ/補完文脈、E2e.Tests に配置 = Gallery 参照が要るため)、golden Repl/diag/Docs_Strudel を vk/dx 更新、全 845 passed + vk e2e 72/72 diff 0。DocsStrudel 更新 (v1 スコープ外から Ctrl+Enter 削除 + エディタ統合節)。**02 MD 削除済み** (仕様は Docs/Strudel)。
 - [x] **Q21**: 06 CodeEditor 補完磨き込み (2026-07-08 完了、3 点セット)。**① 入力絞り込み**: 補完 open 後もタイプで閉じず、トリガー (識別子開始) からの断片で `_compAll` をローカル絞り込み (prefix 優先→大小無視包含)、Backspace で戻る・トリガーより前 or 0 件で閉じる (`CompletionCount` はフィルタ後、IME 合成開始で閉じる)。**② クリック選択**: `_popupBg` 相対の行ヒット (transform 追従・`Active` で可視行ゲート) + マウスホバー行ハイライト。**③ dwell ホバーツールチップ**: `AddAnimation` の**フレームカウント** dwell (wall-clock 非依存=決定的)、`OnEditorMove` で位置追跡→30 フレーム留まると `LanguageService.Hover` をフローティング表示 (`HoverTipOpen`/`HoverTipText` 公開)。単体テスト +4 (絞り込み/Backspace/クリック挿入/dwell、GPU 不要)、story Completion に play 拡充 (filtered/clicked/hover golden 追加・inserted は clicked に改名) vk/dx 更新、Docs/Editor 更新。**副次修正**: E2E で Strudel が実 XAudio2 を初期化して Vortice のエンジンコールバック GC レースで稀にクラッシュしていた (Q20 の Ctrl+Enter play が誘発) → `StrudelStory.HeadlessAudio` を E2e ランナーが立てて NullAudioBackend を使う (golden 不変・音は snap しないので影響なし)。全 849 passed + vk e2e 73/73 diff 0 (2 回連続クリーン)。**06 MD 削除済み** (仕様は Docs/Editor)。
 - [x] **Q22**: 08 Strudel 音楽機能拡張 (2026-07-08 完了、A〜E の 5 サブタスク)。**A** = 記法 `!` 繰り返し + `.` グループ (MiniNotation)。**B** = scale/chord (`Pattern.FlatMapValues` + `Controls.Scale`/`Chord` + StrudelEval `chord`/`.scale`)。**C** = filter/delay (ControlMap 5 フィールド + StreamMixerSink に biquad LPF + フィードバックディレイ + StrudelEval `.lpf`/`.delay` 等)。**D** = wav 音色 (`SampleInstrument` = WavStream 全展開→モノ化→Note ピッチ/レートリサンプル、`InstrumentBank` 登録で `s("名前")`、実アセットデモは見送り)。**E** = MIDI out (`MidiOutSink` [`IEventSink`] = ScheduledEvent→note on/off を絶対秒で溜め `Pump(now)` 送出、`IMidiOut`/`NullMidiOut`/`WinMmMidiOut` [winmm LibraryImport]、実送出は実機スモーク)。単体テスト +30 (記法 7 / eval 8 / audio 7 / midi 8)、全 879 passed、vk e2e 73/73 diff 0。**08 MD 削除済み** (仕様は Docs/Strudel)。
-- [ ] **Q23**: [07 CodeEditor マルチカーソル](07-codeeditor-multicursor.md) — リスク高のため最後
+### M7 — テキストエディタ新スタック (ADR-0006、[22](22-editor-decoration-redesign.md) の S1〜S8。既存コントロールは触らず新規追加。**22 MD は全ステージ完了まで残す**)
+
+- [x] **Q23**: 22 新スタック S1 (2026-07-08 完了) — 新プロジェクト `Luxel.Editor` (依存ゼロ・canvas 非依存)。`TextDoc` (行索引・不変)、`ChangeSet` (retain/replace セクション列 + `Apply`/`MapPos(assoc)`/`Invert`/`Compose`、CodeMirror6 流)、`ChangeSpec`、`EditorSelection`/`SelectionRange` (native 複数レンジ + ソート/マージ正規化 + Map)、`EditorState`/`Transaction`/`TransactionSpec` (不変スナップショット、複数編集を 1 ChangeSet に)、`History` (undo/redo、1 Transaction=1 undo、Compose で連続タイプ畳み)。単体テスト `EditorCoreTests` 22 本 (行索引/Apply/MapPos 境界/Invert 往復/**Compose fuzz 500 ケース**/選択正規化/マルチカーソル編集 1 undo/coalesce)。全 901 passed。UI 未接続なので golden 影響なし・e2e 対象外。**知見**: 合成 ChangeSet の MapPos は挿入の由来がフラット化で失われ置換境界の右寄せが逐次と一致しないことがある (CM6 も同様) → 実害なし (選択は単発 ChangeSet を通す・畳み undo は Apply を使う)。Compose の不変条件は Apply 一致で担保
+- [ ] **Q24**: 22 S2 — 装飾を状態として持つ (Decoration/DecorationSet.Map) + プロバイダ契約 (同期 + 非同期の古い結果写像)。単体テスト
+- [ ] **Q25**: 22 S3 — EditorGeometry (純射影、TextLayout): ソース↔表示写像 (prefix/widget/IME) + pos↔座標 + 各種矩形。canvas 不要・単体テスト
+- [ ] **Q26**: 22 S4 — TextEditorView [UiComponent] + Commands + 基本編集 + IME/TSF ブリッジ。e2e story + golden
+- [ ] **Q27**: 22 S5 — インライン widget (resolver/OnChildNeedsRealize) + 行頭/ブロック装飾。デモ story
+- [ ] **Q28**: 22 S6 — CodeEditorView: ガター + syntax/診断/検索プロバイダ + 現在行 + 補完/ホバー。story + golden
+- [ ] **Q29**: 22 S7 — マルチカーソル + 矩形選択 (旧 07 統合、native なのでほぼコマンド。IME は main のみ)。story + golden
+- [ ] **Q30**: 22 S8 — Strudel を CodeEditorView へ + MiniNotation ソーススパン → 再生囲み 60fps + 行内 widget デモ (play は HeadlessAudio) — 完了で **22 MD 削除** + Docs/Editor へ現在形で記載
 
 ## 順序の根拠 (要約)
 
@@ -76,6 +85,6 @@
 
 ## 運用メモ
 
-- キューの分割ステージ (Q04/Q05/Q12〜14 の 19・21) は **MD を消すタイミングに注意** — 全ステージ完了まで残す。
+- キューの分割ステージ (Q04/Q05/Q12〜14 の 19・21、Q23〜27 の 22) は **MD を消すタイミングに注意** — 全ステージ完了まで残す。
 - git worktree で作業する場合は tools/ junction を忘れない (README/メモリ参照)。
 - 検証 GPU が無い環境では e2e は Skip される — その場合は「単体テスト + ビルド」までで完了とし、キューに `(e2e 未実施)` を残して次のセッションで実機確認する。

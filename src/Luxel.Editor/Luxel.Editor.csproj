@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- テキストエディタ新スタックの canvas 非依存コア (ADR-0006 / ToDo 22)。
+       S1 は純データ (TextDoc / ChangeSet / EditorSelection / Transaction / History) で外部依存ゼロ。
+       ジオメトリ (S3) で Luxel.Typography を足す。 -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Luxel.Tests" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
