@@ -77,4 +77,35 @@ public class NodeGraphCommandTests
         Assert.True(tr.State.Doc.HasEdge(10));
         Assert.True(tr.State.Selection.ContainsEdge(10));
     }
+
+    // ---- GraphConnect (配線可否、S5) ----
+
+    // out(num) / in(num) / in(str) の 3 ノード
+    private static NodeGraphDoc WireDoc() => NodeGraphDoc.Of([
+        new GraphNode(1, "a", "A", Vector2.Zero, [new NodePort(0, PortDir.Out, "num", "o")]),
+        new GraphNode(2, "b", "B", new Vector2(100, 0), [new NodePort(0, PortDir.In, "num", "i"), new NodePort(1, PortDir.Out, "num", "o")]),
+        new GraphNode(3, "c", "C", new Vector2(200, 0), [new NodePort(0, PortDir.In, "str", "i")]),
+    ]);
+
+    [Fact]
+    public void Connect_Valid_NormalizesOutToIn()
+    {
+        var doc = WireDoc();
+        // 入力(2,0) → 出力(1,0) の順で渡しても out→in に正規化される
+        Assert.True(GraphConnect.TryResolve(doc, new PortId(2, 0), new PortId(1, 0), out PortId outP, out PortId inP));
+        Assert.Equal(new PortId(1, 0), outP);
+        Assert.Equal(new PortId(2, 0), inP);
+    }
+
+    [Fact]
+    public void Connect_Rejects_SelfSameDirTypeMismatchDuplicate()
+    {
+        var doc = WireDoc();
+        Assert.False(GraphConnect.CanConnect(doc, new PortId(1, 0), new PortId(1, 0)));   // 自己
+        Assert.False(GraphConnect.CanConnect(doc, new PortId(1, 0), new PortId(2, 1)));   // 同方向 (out×out)
+        Assert.False(GraphConnect.CanConnect(doc, new PortId(1, 0), new PortId(3, 0)));   // 型不一致 (num×str)
+
+        var connected = doc.AddEdge(new GraphEdge(10, new PortId(1, 0), new PortId(2, 0)));
+        Assert.False(GraphConnect.CanConnect(connected, new PortId(1, 0), new PortId(2, 0)));   // 重複
+    }
 }

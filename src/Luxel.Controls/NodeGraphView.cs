@@ -33,17 +33,19 @@ public sealed partial class NodeGraphView : Widget
     private VectorFont? _font;
 
     // ドラッグ状態
-    private enum Drag { None, Nodes, Marquee }
+    private enum Drag { None, Nodes, Marquee, Wire }
     private Drag _drag;
     private Vector2 _dragDelta;                 // ノードドラッグの累積移動量 (world)
     private int[] _dragNodes = [];              // ドラッグ中のノード id
     private Vector2 _marqStart, _marqCur;       // marquee の対角 (world)
     private NodeGraphState? _preview;           // ドラッグ中の描画用一時状態 (履歴に積まない)
+    private PortId _wireFrom;                    // 配線ドラッグの出発ポート
+    private Vector2 _wireEnd;                    // 配線ドラッグの現在端 (world)
 
     private UiBuildContext _ctx = null!;
     private Signal<Theme> _theme = UiTheme.Current;
     private UiNode _root = null!, _world = null!, _overlay = null!;
-    private UiNode _gridN = null!, _wireN = null!, _fillN = null!, _headerN = null!, _strokeN = null!, _selStrokeN = null!, _portN = null!, _titleN = null!;
+    private UiNode _gridN = null!, _wireN = null!, _selWireN = null!, _pendingN = null!, _fillN = null!, _headerN = null!, _strokeN = null!, _selStrokeN = null!, _portN = null!, _titleN = null!;
     private FocusTarget? _focus;
 
     private const float GridStep = 40f;
@@ -60,8 +62,12 @@ public sealed partial class NodeGraphView : Widget
     public NodeGraphState Graph => _state;
     /// <summary>ノード数。</summary>
     public int NodeCount => _state.Doc.Nodes.Count;
+    /// <summary>辺 (接続) 数。</summary>
+    public int EdgeCount => _state.Doc.Edges.Count;
     /// <summary>選択ノード数。</summary>
     public int SelectionCount => _state.Selection.Nodes.Count;
+    /// <summary>辺が選択されているか。</summary>
+    public bool IsEdgeSelected(int edgeId) => _state.Selection.ContainsEdge(edgeId);
     /// <summary>ノードが選択されているか。</summary>
     public bool IsSelected(int nodeId) => _state.Selection.ContainsNode(nodeId);
     /// <summary>ノードの現在位置 (world、左上)。</summary>
@@ -88,7 +94,17 @@ public sealed partial class NodeGraphView : Widget
     }
 
     /// <summary>ビューの空白点のクライアント座標 (world 原点付近など) — marquee/クリック空白の play 用。</summary>
-    public Vector2 ClientOf(Vector2 world)
+    public Vector2 ClientOf(Vector2 world) => ClientOfWorld(world);
+
+    /// <summary>ポートアンカーのクライアント座標 — 配線ドラッグの play 用。</summary>
+    public Vector2 PortScreen(int nodeId, int portId)
+        => ClientOfWorld(_geo?.PortAnchor(new PortId(nodeId, portId)) ?? default);
+
+    /// <summary>辺の中点のクライアント座標 — 辺クリックの play 用。</summary>
+    public Vector2 EdgeMidScreen(int edgeId)
+        => ClientOfWorld(_geo?.Wire(edgeId).At(0.5f) ?? default);
+
+    private Vector2 ClientOfWorld(Vector2 world)
     {
         Vector2 local = _geo?.WorldToScreen(world) ?? world;
         return new Vector2(WorldPos.X + local.X, WorldPos.Y + local.Y);
@@ -187,12 +203,14 @@ public sealed partial class NodeGraphView : Widget
 
         _gridN = ctx.Canvas.AddChild(_world); _gridN.Z = 0;
         _wireN = ctx.Canvas.AddChild(_world); _wireN.Z = 1;
-        _fillN = ctx.Canvas.AddChild(_world); _fillN.Z = 2;
-        _headerN = ctx.Canvas.AddChild(_world); _headerN.Z = 3;
-        _strokeN = ctx.Canvas.AddChild(_world); _strokeN.Z = 4;
-        _selStrokeN = ctx.Canvas.AddChild(_world); _selStrokeN.Z = 5;
-        _portN = ctx.Canvas.AddChild(_world); _portN.Z = 6;
-        _titleN = ctx.Canvas.AddChild(_world); _titleN.Z = 7;
+        _selWireN = ctx.Canvas.AddChild(_world); _selWireN.Z = 2;
+        _fillN = ctx.Canvas.AddChild(_world); _fillN.Z = 3;
+        _headerN = ctx.Canvas.AddChild(_world); _headerN.Z = 4;
+        _strokeN = ctx.Canvas.AddChild(_world); _strokeN.Z = 5;
+        _selStrokeN = ctx.Canvas.AddChild(_world); _selStrokeN.Z = 6;
+        _portN = ctx.Canvas.AddChild(_world); _portN.Z = 7;
+        _titleN = ctx.Canvas.AddChild(_world); _titleN.Z = 8;
+        _pendingN = ctx.Canvas.AddChild(_world); _pendingN.Z = 9;   // 進行中ワイヤ (色は DrawPending が可否で node.Color を設定)
 
         // marquee は画面空間のオーバーレイ (world 変換を受けない)
         _overlay = ctx.Canvas.AddChild(_root); _overlay.Z = 100; _overlay.ContentColors = true;
@@ -202,6 +220,7 @@ public sealed partial class NodeGraphView : Widget
             Theme t = _theme.Value;
             _gridN.Color = Styles.WithAlpha(t.BorderColor, 40);
             _wireN.Color = t.TextMuted;
+            _selWireN.Color = t.Primary;
             _fillN.Color = t.Surface;
             _headerN.Color = t.SurfaceAlt;
             _strokeN.Color = t.BorderColor;
@@ -231,62 +250,107 @@ public sealed partial class NodeGraphView : Widget
     {
         if (_geo is null) return;
         Focused.Value = true;
-        GraphHit hit = _geo.HitTest(WorldAt(e));
-        if (hit.Kind is GraphHitKind.Node or GraphHitKind.InputPort or GraphHitKind.OutputPort)
+        Vector2 world = WorldAt(e);
+        GraphHit hit = _geo.HitTest(world);
+        switch (hit.Kind)
         {
-            // ノード (or そのポート) を掴む — 未選択なら単独選択に置換してから移動開始
-            if (!_state.Selection.ContainsNode(hit.NodeId))
-                _state = GraphCommands.SelectNodes(_state, [hit.NodeId], hit.NodeId).State;
-            _drag = Drag.Nodes;
-            _dragNodes = _state.Selection.Nodes.ToArray();
-            _dragDelta = Vector2.Zero;
-            _preview = _state;
-        }
-        else
-        {
-            // 空白 (or 辺) — 選択を解除して marquee 開始
-            _state = GraphCommands.SelectNone(_state).State;
-            _drag = Drag.Marquee;
-            _marqStart = _marqCur = WorldAt(e);
-            _preview = null;
+            case GraphHitKind.InputPort or GraphHitKind.OutputPort:
+                // ポートから配線を引き始める (ノード選択・移動はしない)
+                _drag = Drag.Wire;
+                _wireFrom = new PortId(hit.NodeId, hit.PortId);
+                _wireEnd = world;
+                break;
+            case GraphHitKind.Node:
+                // ノードを掴む — 未選択なら単独選択に置換してから移動開始
+                if (!_state.Selection.ContainsNode(hit.NodeId))
+                    _state = GraphCommands.SelectNodes(_state, [hit.NodeId], hit.NodeId).State;
+                _drag = Drag.Nodes;
+                _dragNodes = _state.Selection.Nodes.ToArray();
+                _dragDelta = Vector2.Zero;
+                _preview = _state;
+                break;
+            case GraphHitKind.Edge:
+                // 辺をクリック → 選択 (Delete で切断できる)
+                _state = GraphCommands.Select(_state, GraphSelection.Edge(hit.EdgeId)).State;
+                _drag = Drag.None;
+                break;
+            default:
+                // 空白 — 選択を解除して marquee 開始
+                _state = GraphCommands.SelectNone(_state).State;
+                _drag = Drag.Marquee;
+                _marqStart = _marqCur = world;
+                break;
         }
         Refresh();
     }
 
     private void OnDrag(PointerEvent e)
     {
-        if (_geo is null || _drag == Drag.None) return;
-        float zoom = MathF.Max(_state.Viewport.Zoom, 1e-4f);
-        if (_drag == Drag.Nodes)
+        if (_geo is null) return;
+        switch (_drag)
         {
-            _dragDelta = new Vector2(e.DeltaX, e.DeltaY) / zoom;   // 画面移動量を world に
-            _preview = GraphCommands.MoveNodes(_state, _dragNodes, _dragDelta).State;
-        }
-        else
-        {
-            _marqCur = WorldAt(e);
+            case Drag.Nodes:
+                float zoom = MathF.Max(_state.Viewport.Zoom, 1e-4f);
+                _dragDelta = new Vector2(e.DeltaX, e.DeltaY) / zoom;   // 画面移動量を world に
+                _preview = GraphCommands.MoveNodes(_state, _dragNodes, _dragDelta).State;
+                break;
+            case Drag.Marquee:
+                _marqCur = WorldAt(e);
+                break;
+            case Drag.Wire:
+                _wireEnd = WorldAt(e);
+                break;
+            default: return;
         }
         Refresh();
     }
 
     private void OnDragEnd(PointerEvent e)
     {
-        if (_drag == Drag.Nodes)
+        switch (_drag)
         {
-            if (_dragDelta != Vector2.Zero)
-                Apply(GraphCommands.MoveNodes(_state, _dragNodes, _dragDelta));
-        }
-        else if (_drag == Drag.Marquee)
-        {
-            GraphRect box = GraphRect.FromCorners(_marqStart, _marqCur);
-            if (box.Width > 2 || box.Height > 2)
-            {
-                var ids = _state.Doc.Nodes.Where(n => _geo!.NodeRect(n.Id).Intersects(box)).Select(n => n.Id).ToList();
-                _state = GraphCommands.SelectNodes(_state, ids).State;
-            }
+            case Drag.Nodes:
+                if (_dragDelta != Vector2.Zero) Apply(GraphCommands.MoveNodes(_state, _dragNodes, _dragDelta));
+                break;
+            case Drag.Marquee:
+                GraphRect box = GraphRect.FromCorners(_marqStart, _marqCur);
+                if (box.Width > 2 || box.Height > 2)
+                {
+                    var ids = _state.Doc.Nodes.Where(n => _geo!.NodeRect(n.Id).Intersects(box)).Select(n => n.Id).ToList();
+                    _state = GraphCommands.SelectNodes(_state, ids).State;
+                }
+                break;
+            case Drag.Wire:
+                TryConnect(_geo!.HitTest(_wireEnd));
+                break;
         }
         _drag = Drag.None; _preview = null; _dragDelta = Vector2.Zero;
         Refresh();
+    }
+
+    // 配線ドラッグの終端が互換ポートなら接続する (単入力ポートは既存の入力辺を置換 = 1 undo)
+    private void TryConnect(GraphHit endHit)
+    {
+        if (endHit.Kind is not (GraphHitKind.InputPort or GraphHitKind.OutputPort)) return;
+        var target = new PortId(endHit.NodeId, endHit.PortId);
+        if (!GraphConnect.TryResolve(_state.Doc, _wireFrom, target, out PortId outP, out PortId inP)) return;
+
+        var changes = new List<GraphChange>();
+        // 単入力の In ポートが既に埋まっていれば付け替え (Multi は許容)
+        NodePort inPort = _state.Doc.Port(inP)!;
+        if (!inPort.Multi)
+            foreach (GraphEdge ex in _state.Doc.Edges)
+                if (ex.To == inP) changes.Add(new Disconnect(ex.Id));
+        int id = NextEdgeId();
+        changes.Add(new Connect(new GraphEdge(id, outP, inP)));
+        Apply(_state.Update(new GraphTransactionSpec { Changes = changes, Selection = GraphSelection.Edge(id) }));
+    }
+
+    private int NextEdgeId()
+    {
+        int max = 0;
+        foreach (GraphEdge e in _state.Doc.Edges) max = Math.Max(max, e.Id);
+        return max + 1;
     }
 
     private void ZoomAt(float delta, Vector2 cursorLocal)
@@ -335,6 +399,7 @@ public sealed partial class NodeGraphView : Widget
         DrawGrid(eff.Viewport);
         DrawWires(eff);
         DrawNodes(eff);
+        DrawPending();
         DrawMarquee();
     }
 
@@ -356,12 +421,35 @@ public sealed partial class NodeGraphView : Widget
     private void DrawWires(NodeGraphState eff)
     {
         var s = new Scene2D();
+        var sel = new Scene2D();
         foreach (GraphEdge e in eff.Doc.Edges)
         {
             GraphWire w = _geo!.Wire(e.Id);
-            s.BeginStroke(Color2D.White, 2).MoveTo(w.P0.X, w.P0.Y).CubicTo(w.C0.X, w.C0.Y, w.C1.X, w.C1.Y, w.P1.X, w.P1.Y).End();
+            Scene2D dst = _state.Selection.ContainsEdge(e.Id) ? sel : s;
+            dst.BeginStroke(Color2D.White, _state.Selection.ContainsEdge(e.Id) ? 2.5f : 2f)
+               .MoveTo(w.P0.X, w.P0.Y).CubicTo(w.C0.X, w.C0.Y, w.C1.X, w.C1.Y, w.P1.X, w.P1.Y).End();
         }
         _wireN.Content = s;
+        _selWireN.Content = sel;
+    }
+
+    // 進行中ワイヤ (配線ドラッグ中) — 終端が互換ポートなら緑、そうでなければ赤で焼き込む
+    private void DrawPending()
+    {
+        if (_drag != Drag.Wire || _geo is null) { _pendingN.Content = null; return; }
+        Vector2 p0 = _geo.PortAnchor(_wireFrom);
+        GraphHit end = _geo.HitTest(_wireEnd);
+        bool valid = end.Kind is GraphHitKind.InputPort or GraphHitKind.OutputPort
+                     && GraphConnect.CanConnect(_state.Doc, _wireFrom, new PortId(end.NodeId, end.PortId));
+        _pendingN.Color = valid ? Color2D.Rgba(63, 185, 80) : Color2D.Rgba(229, 83, 75);   // 緑=可 / 赤=不可
+        float t = MathF.Max(Config.WireTangent, MathF.Abs(_wireEnd.X - p0.X) * 0.5f);
+        // 出発が入力なら接線を左へ、出力なら右へ
+        float dir = _state.Doc.Port(_wireFrom)!.Dir == PortDir.Out ? 1 : -1;
+        var s = new Scene2D();
+        s.BeginStroke(Color2D.White, 2).MoveTo(p0.X, p0.Y)
+         .CubicTo(p0.X + t * dir, p0.Y, _wireEnd.X - t * dir, _wireEnd.Y, _wireEnd.X, _wireEnd.Y).End();
+        s.FillCircle(Color2D.White, _wireEnd.X, _wireEnd.Y, 3);
+        _pendingN.Content = s;
     }
 
     private void DrawNodes(NodeGraphState eff)
