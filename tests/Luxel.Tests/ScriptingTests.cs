@@ -66,6 +66,36 @@ public class ScriptingTests
         Assert.Equal(3, r.ExceptionLine);
     }
 
+    /// <summary>外部デバッガアタッチ (11-C) の土台: 実在する .csx を FilePath に渡すと、
+    /// 出力 PDB / スタックトレースがその<b>実ファイル</b>を指す (= VS/VS Code がブレークポイントを束ねられる)。
+    /// 行番号も実パス由来で拾える。対話デバッガのブレーク着弾は人手検証だが、この機構は自動で担保する。</summary>
+    [Fact]
+    public void FileBackedHost_ExceptionReferencesRealPath_ForDebuggerBinding()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), "luxel-scripting-tests");
+        Directory.CreateDirectory(dir);
+        string path = Path.Combine(dir, "debug_probe.csx");
+        string code = "var ok = 1;\nLog(\"before\");\nthrow new InvalidOperationException(\"boom\");";
+        File.WriteAllText(path, code);   // デバッガが開くソース = スクリプトと一致させる
+
+        var host = new ScriptHost(
+            references: [typeof(object).Assembly, typeof(Enumerable).Assembly, typeof(ScriptingTests).Assembly],
+            usings: ["System", "System.Linq", "System.Collections.Generic"],
+            globalsType: typeof(TestGlobals),
+            filePath: path);
+
+        Assert.Equal(path, host.FilePath);
+        ScriptResult r = host.Run(code, new TestGlobals());
+        Assert.False(r.Success);
+        Assert.Equal(3, r.ExceptionLine);                 // 実パス由来で行番号を拾う
+        Assert.Contains(path, r.Exception!.StackTrace);    // 実ファイルパスがトレースに載る = デバッガが束ねられる
+    }
+
+    /// <summary>既定 (filePath 省略) は従来どおり論理名 script.csx — 後方互換。</summary>
+    [Fact]
+    public void DefaultHost_UsesLogicalScriptCsxPath()
+        => Assert.Equal("script.csx", NewHost().FilePath);
+
     [Fact]
     public void Check_ReportsWithoutRunning()
     {

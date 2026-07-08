@@ -46,25 +46,36 @@ public sealed class ScriptResult
 public sealed class ScriptHost
 {
     private const string FileName = "script.csx";
-    private static readonly Regex LineRe = new(@"script\.csx:line (\d+)", RegexOptions.Compiled);
 
     private readonly ScriptOptions _options;
     private readonly Type _globalsType;
+    private readonly Regex _lineRe;
     private readonly object _gate = new();
     private readonly Dictionary<string, Script<object>> _cache = new();
+
+    /// <summary>デバッグ emit が使うスクリプトのファイルパス (診断/スタックトレース/PDB の document)。
+    /// 既定は論理名 <c>script.csx</c> (インメモリ)。外部デバッガでブレークするには実在パスを渡し、
+    /// その内容をスクリプトソースと一致させること (下記 <see cref="ScriptHost(IEnumerable{Assembly}, IEnumerable{string}, Type, string)"/>)。</summary>
+    public string FilePath { get; }
 
     /// <summary>キャッシュ済みスクリプト数 (テスト/診断用)。</summary>
     public int CachedScripts { get { lock (_gate) return _cache.Count; } }
 
-    public ScriptHost(IEnumerable<Assembly> references, IEnumerable<string> usings, Type globalsType)
+    /// <param name="filePath">デバッグ emit の document パス。<c>null</c> = 論理名 <c>script.csx</c> (既定)。
+    /// <b>外部デバッガアタッチ</b>には**実在する .csx の絶対パス**を渡す — 出力 PDB がその実ファイルを
+    /// 指すので VS / VS Code がブレークポイントを束ねられる (ソース内容がスクリプトと一致している前提)。</param>
+    public ScriptHost(IEnumerable<Assembly> references, IEnumerable<string> usings, Type globalsType, string? filePath = null)
     {
+        FilePath = filePath ?? FileName;
         _options = ScriptOptions.Default
             .WithReferences(references.ToArray())
             .WithImports(usings.ToArray())
-            .WithEmitDebugInformation(true)         // 実行時例外 → スクリプト行番号のため
+            .WithEmitDebugInformation(true)         // 実行時例外 → スクリプト行番号 / 外部デバッガのため
             .WithFileEncoding(System.Text.Encoding.UTF8)
-            .WithFilePath(FileName);
+            .WithFilePath(FilePath);
         _globalsType = globalsType;
+        // スタックトレースは WithFilePath の値を verbatim で埋め込む → その実パスで行番号を拾う
+        _lineRe = new Regex(Regex.Escape(FilePath) + @":line (\d+)", RegexOptions.Compiled);
     }
 
     /// <summary>コンパイル診断のみ (エディタのインライン表示用 — 実行しない)。</summary>
@@ -128,11 +139,11 @@ public sealed class ScriptHost
     }
 
     /// <summary>例外スタックからスクリプト内の行番号を取り出す (デバッグ emit + FilePath 前提)。</summary>
-    private static int? ExtractLine(Exception e)
+    private int? ExtractLine(Exception e)
     {
         for (Exception? cur = e; cur is not null; cur = cur.InnerException)
         {
-            Match m = LineRe.Match(cur.StackTrace ?? "");
+            Match m = _lineRe.Match(cur.StackTrace ?? "");
             if (m.Success && int.TryParse(m.Groups[1].Value, out int line)) return line;
         }
         return null;
