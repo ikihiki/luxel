@@ -133,4 +133,60 @@ public static class NodeGraphViewStory
                 Muted("ポートからドラッグ → 進行中ワイヤ (緑=可/赤=不可) → 互換ポートで接続。辺クリック選択 → Delete で切断。"),
                 ed]];
     }
+
+    private static GraphNode NumNode(int id, string kind, string title, Vector2 pos, bool hasIn, bool hasOut)
+    {
+        var ports = new List<NodePort>();
+        if (hasIn) ports.Add(new NodePort(0, PortDir.In, "num", "in"));
+        if (hasOut) ports.Add(new NodePort(1, PortDir.Out, "num", "out"));
+        return new GraphNode(id, kind, title, pos, ports);
+    }
+
+    [Story("Controls/NodeGraphView/Widgets", Height = 470, Order = 3)]
+    public static Widget Widgets(StoryContext ctx)
+    {
+        Signal<float> vol = ctx.Signal("vol", 0.6f);
+        const string sliderKey = "gain-slider";
+
+        var doc = NodeGraphDoc.Of(
+            [NumNode(1, "gain", "Gain", new Vector2(60, 60), hasIn: true, hasOut: true),
+             NumNode(2, "out", "Output", new Vector2(380, 90), hasIn: true, hasOut: false)],
+            [new GraphEdge(10, new PortId(1, 1), new PortId(2, 0))]);
+
+        NodeGraphView ed = NodeGraphView(source: doc, viewWidth: 620f, viewHeight: 390f);
+        // ノード内インライン widget: Gain ノードにスライダ
+        ed.WidgetResolver = key => Equals(key, sliderKey) ? Slider(vol) : null;
+        ed.SetDecorations("inline", new GraphDecorationSet([new NodeInlineDecoration(1, 150, 24, sliderKey)]));
+        // 右クリック追加パレット
+        ed.NodeCatalog = new NodeCatalog(
+            new NodeCatalogEntry("gain", "Gain", (id, pos) => NumNode(id, "gain", "Gain", pos, true, true)),
+            new NodeCatalogEntry("out", "Output", (id, pos) => NumNode(id, "out", "Output", pos, true, false)));
+
+        ctx.Play("inline", async d =>
+        {
+            await d.Snap();                              // Gain ノードにスライダ (値 0.6)
+            Vector2 c = ed.SlotScreenCenter(sliderKey);
+            await d.Click(c.X + 30, c.Y);                // スライダを叩く → 値が動く
+            await d.Expect(() => Math.Abs(vol.Peek() - 0.6f) > 0.01f, "ノード内スライダが反応");
+            await d.Snap("slid");
+        });
+
+        ctx.Play("palette", async d =>
+        {
+            await d.Expect(() => ed.NodeCount == 2, "初期 2 ノード");
+            Vector2 empty = ed.ClientOf(new Vector2(180, 250));
+            d.Host.ContextClick(empty.X, empty.Y);       // 右クリック → パレット
+            await d.Step(2);
+            await d.Snap("palette");                     // Gain / Output のメニュー
+            await d.Click(empty.X + 50, empty.Y + 18);   // 先頭 "Gain" を選ぶ
+            await d.Expect(() => ed.NodeCount == 3, "パレットからノード追加");
+            await d.Snap("added");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("NodeGraphView — ノード内 UI + パレット"),
+                Muted("NodeInlineDecoration + WidgetResolver でノード内にスライダをホスト。右クリックで INodeCatalog のパレット追加 (PopupPlacer)。"),
+                ed]];
+    }
 }

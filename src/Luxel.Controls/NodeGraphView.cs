@@ -25,6 +25,17 @@ public sealed partial class NodeGraphView : Widget
     /// <summary>ノード配置の設定 (タイトルバー高・ポート行高・ワイヤ接線など)。</summary>
     public GraphConfig Config { get; set; } = new();
 
+    /// <summary>ノード内インライン枠 (<see cref="NodeInlineDecoration"/>) の Key → 実 Widget を解決する (null = ホストしない)。</summary>
+    public Func<object, Widget?>? WidgetResolver { get; set; }
+
+    /// <summary>右クリック追加パレットのノードカタログ (null = パレット無効)。</summary>
+    public INodeCatalog? NodeCatalog { get; set; }
+
+    // ノード内にホストした実 Widget (画面空間に配置し毎 Refresh で WorldToScreen 追従)
+    private sealed class Hosted { public required Widget Widget; public required UiNode Container; public Rect ScreenRect; }
+    private readonly Dictionary<object, Hosted> _widgets = new();
+    private UiNode _widgetLayer = null!;
+
     private NodeGraphState _state = NodeGraphState.Create();
     private readonly GraphHistory _history = new();
     private GraphGeometry? _geo;
@@ -86,6 +97,14 @@ public sealed partial class NodeGraphView : Widget
         Refresh();
     }
 
+    /// <summary>owner の装飾を差し替える (バッジ/ハイライト/ノード内インライン枠など)。文書は変えない。</summary>
+    public void SetDecorations(string owner, GraphDecorationSet set)
+    {
+        EnsureInit();   // realize 前でも source doc を先に読み込む (でないと空グラフに装飾が乗り消える)
+        _state = _state.WithDecorations(owner, set).State;
+        Refresh();
+    }
+
     /// <summary>ノードの画面中心 (ストーリーのクライアント座標) — play が d.Click/d.Drag に渡す用。</summary>
     public Vector2 NodeScreenCenter(int nodeId)
     {
@@ -103,6 +122,14 @@ public sealed partial class NodeGraphView : Widget
     /// <summary>辺の中点のクライアント座標 — 辺クリックの play 用。</summary>
     public Vector2 EdgeMidScreen(int edgeId)
         => ClientOfWorld(_geo?.Wire(edgeId).At(0.5f) ?? default);
+
+    /// <summary>インライン枠 (Key) の中心クライアント座標 — ホストした widget を叩く play 用。</summary>
+    public Vector2 SlotScreenCenter(object key)
+    {
+        foreach (WidgetSlot s in _geo?.WidgetSlots() ?? [])
+            if (Equals(s.Key, key)) return ClientOfWorld(s.Rect.Center);
+        return default;
+    }
 
     private Vector2 ClientOfWorld(Vector2 world)
     {
@@ -212,6 +239,10 @@ public sealed partial class NodeGraphView : Widget
         _titleN = ctx.Canvas.AddChild(_world); _titleN.Z = 8;
         _pendingN = ctx.Canvas.AddChild(_world); _pendingN.Z = 9;   // 進行中ワイヤ (色は DrawPending が可否で node.Color を設定)
 
+        // ノード内 widget は画面空間レイヤ (WorldToScreen で配置 → zoom でヒットがずれない)。クリップは view 内。
+        _widgetLayer = ctx.Canvas.AddChild(_root); _widgetLayer.Z = 50; _widgetLayer.Clip = new RectClip(0, 0, W, H);
+        _widgets.Clear();   // 旧ホストは再実体化でスコープごと破棄済み — dict を捨てて Refresh で作り直す
+
         // marquee は画面空間のオーバーレイ (world 変換を受けない)
         _overlay = ctx.Canvas.AddChild(_root); _overlay.Z = 100; _overlay.ContentColors = true;
 
@@ -236,7 +267,7 @@ public sealed partial class NodeGraphView : Widget
         FocusTarget f = ctx.AddFocusable(_focus);
 
         ctx.AddHit(_root, new Rect(0, 0, W, H), focus: f, cursor: CursorKind.Arrow,
-            onDragStart: OnDragStart, onDrag: OnDrag, onDragEnd: OnDragEnd);
+            onDragStart: OnDragStart, onDrag: OnDrag, onDragEnd: OnDragEnd, onContext: OpenPalette);
         ctx.AddScroll(_root, new Rect(0, 0, W, H), onScrollPos: (d, x, y) => ZoomAt(d, new Vector2(x, y)));
 
         Refresh();
@@ -353,6 +384,84 @@ public sealed partial class NodeGraphView : Widget
         return max + 1;
     }
 
+    private int NextNodeId()
+    {
+        int max = 0;
+        foreach (GraphNode n in _state.Doc.Nodes) max = Math.Max(max, n.Id);
+        return max + 1;
+    }
+
+    // 右クリック → PopupPlacer 上の ContextMenu でノード追加パレット (クリック位置に生成)
+    private void OpenPalette(PointerEvent e)
+    {
+        if (NodeCatalog is null || _geo is null || NodeCatalog.Entries.Count == 0) return;
+        Focused.Value = true;
+        Vector2 world = WorldAt(e);
+        var items = NodeCatalog.Entries
+            .Select(entry => (entry.Label, (Action)(() => Apply(GraphCommands.AddNode(_state, entry.Create(NextNodeId(), world))))))
+            .ToArray();
+        ContextMenu.Open(_ctx, e.ScreenX, e.ScreenY, items);
+    }
+
+    // ---- ノード内インライン widget のホスト (WidgetResolver → 画面空間へ Realize、TextEditorView 移植) ----
+
+    private void HostWidgets()
+    {
+        if (WidgetResolver is null) { if (_widgets.Count > 0) ClearWidgets(); return; }
+        var seen = new HashSet<object>();
+        float zoom = _state.Viewport.Zoom;
+        foreach (WidgetSlot slot in _geo!.WidgetSlots())
+        {
+            seen.Add(slot.Key);
+            if (!_widgets.TryGetValue(slot.Key, out Hosted? h))
+            {
+                if (WidgetResolver(slot.Key) is not { } w) continue;
+                UiNode container = _ctx.Canvas.AddChild(_widgetLayer);
+                h = new Hosted { Widget = w, Container = container };
+                _widgets[slot.Key] = h;
+            }
+            Vector2 pos = _geo.WorldToScreen(slot.Rect.Min);   // world 枠 → 画面矩形 (zoom 反映)
+            h.ScreenRect = new Rect(pos.X, pos.Y, slot.Rect.Width * zoom, slot.Rect.Height * zoom);
+            RealizeWidget(h);
+        }
+        if (_widgets.Count > seen.Count)
+            foreach (object k in _widgets.Keys.Where(k => !seen.Contains(k)).ToList())
+            { DisposeHosted(_widgets[k]); _widgets.Remove(k); }
+    }
+
+    private void RealizeWidget(Hosted h)
+    {
+        Widget w = h.Widget;
+        w.Scope?.Release();
+        var lc = new LayoutContext { Font = _ctx.Font, Theme = _theme.Peek(), ViewportW = W, ViewportH = H };
+        w.Layout(new Constraints(0, h.ScreenRect.Width, 0, h.ScreenRect.Height), lc);
+        w.Offset = new Point(h.ScreenRect.X, h.ScreenRect.Y);
+        // container (=_widgetLayer 直下・無変換) の world 原点は view の WorldPos。CreateRoot が
+        // WorldPos = worldOrigin + Offset とするので rect を二重に足さない (d.Click が外れないように)。
+        w.Realize(_ctx, h.Container, new Point(WorldPos.X, WorldPos.Y));
+        w.ParentWidget = this;
+    }
+
+    private void ClearWidgets()
+    {
+        foreach (Hosted h in _widgets.Values) DisposeHosted(h);
+        _widgets.Clear();
+    }
+
+    private void DisposeHosted(Hosted h)
+    {
+        h.Widget.Scope?.Release();
+        (h.Widget as IDisposable)?.Dispose();
+        _ctx.Canvas.Remove(h.Container);
+    }
+
+    protected override bool OnChildNeedsRealize(Widget child)
+    {
+        foreach (Hosted h in _widgets.Values)
+            if (ReferenceEquals(h.Widget, child)) { RealizeWidget(h); return true; }
+        return false;
+    }
+
     private void ZoomAt(float delta, Vector2 cursorLocal)
     {
         if (_geo is null) return;
@@ -401,6 +510,7 @@ public sealed partial class NodeGraphView : Widget
         DrawNodes(eff);
         DrawPending();
         DrawMarquee();
+        HostWidgets();
     }
 
     private void DrawGrid(GraphViewport vp)

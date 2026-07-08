@@ -108,4 +108,24 @@ public class NodeGraphCommandTests
         var connected = doc.AddEdge(new GraphEdge(10, new PortId(1, 0), new PortId(2, 0)));
         Assert.False(GraphConnect.CanConnect(connected, new PortId(1, 0), new PortId(2, 0)));   // 重複
     }
+
+    // ---- INodeCatalog (S6) ----
+
+    [Fact]
+    public void Catalog_Entry_CreatesNodeAtPosition()
+    {
+        var catalog = new NodeCatalog(
+            new NodeCatalogEntry("gain", "Gain", (id, pos) => new GraphNode(id, "gain", "Gain", pos, [Out(1)])),
+            new NodeCatalogEntry("out", "Output", (id, pos) => new GraphNode(id, "out", "Output", pos, [In(0)])));
+
+        Assert.Equal(2, catalog.Entries.Count);
+        GraphNode n = catalog.Entries[0].Create(7, new Vector2(50, 60));
+        Assert.Equal(7, n.Id);
+        Assert.Equal("gain", n.Kind);
+        Assert.Equal(new Vector2(50, 60), n.Pos);
+
+        // カタログ工場 → AddNode で追加・選択される
+        var s = GraphCommands.AddNode(NodeGraphState.Create(), n).State;
+        Assert.True(s.Doc.HasNode(7) && s.Selection.ContainsNode(7));
+    }
 }
