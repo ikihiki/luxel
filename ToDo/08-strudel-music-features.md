@@ -12,7 +12,9 @@ Strudel v1 で明示的にスコープ外とした音楽機能群。独立性が
 - **テストの流儀**: tests/Luxel.Tests/Strudel{Pattern,MiniNotation,Eval,Audio}Tests.cs (~66 本)。パターンはゴールデン文字列 ("0-1/4:bd …")、ミキサはインパルス音色でサンプル位置検証、EndToEnd はパターン→PCM の決定性比較。**新機能もこの 3 段 (パターン文字列 / PCM サンプル / E2E 決定性) で書く。**
 - **決定性**: 乱数は固定シード xorshift のみ。wall-clock 禁止。
 
-## サブタスク A — 記法の残り: `!` (繰り返し) と `.` (グループ)
+## サブタスク A — 記法の残り: `!` (繰り返し) と `.` (グループ) ✅ 完了 (2026-07-08)
+
+**実装済み**: `ParseTerm` に後置 `!n` (数値省略で 2 回)、`ParseSequence` に単独 `!` (直前ステップ複製) と `.` グループ区切り (`PeekIsDotSeparator` = 前後空白の単独ドットのみ区切り扱い、`0.5` 等のトークン内ドットは非区切り)。`.` グループは各グループ等分 → `Pat.TimeCat`。テスト +7 (StrudelMiniNotationTests)。Docs/Strudel の記法表に 2 行追加 + v1 スコープ外から記法項目を削除。golden Docs_Strudel を vk/dx 更新。全 856 passed、vk e2e 73/73 diff 0。
 
 - `MiniNotation.cs` のパーサ拡張。Strudel 本家の意味論: `bd!3` = `bd bd bd` (要素を横に展開)、`bd . sd sd . hh` = `.` 区切りの各グループが等分 (= `[bd] [sd sd] [hh]` の糖衣)。
 - パースエラーは位置付き `MiniNotationError` を維持。

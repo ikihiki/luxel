@@ -40,6 +40,8 @@ public static class DocsStrudel
         | `<a b c>` | サイクルごとに交互 |
         | `a@3 b` | 重み (a がサイクルの 3/4) |
         | `a?` / `a?0.3` | 確率で間引く (時間ハッシュ — 決定的) |
+        | `bd!3` / `bd ! !` | 繰り返し (横に複製 — `bd!3` = `bd bd bd`、数値省略で 2 回) |
+        | `bd . sd sd . hh` | `.` 区切りグループ (各グループを等分 = `[bd] [sd sd] [hh]`) |
         | `bd:3` | サンプルバリエーション番号 |
         | `a , b` | スタック (同時再生) |
 
@@ -73,6 +75,6 @@ public static class DocsStrudel
         エディタは各ライブブロックが `CodeEditor` (ガター/等幅/横スクロール) で、`StrudelCodeLanguage` (`ICodeLanguage` 実装) を挿してあります: `StrudelEval` でパースした `StrudelEvalError` (MiniNotation の位置付きエラーも畳まれる) を**診断波線**に写し (評価するだけで音は出さない)、`.` の直後はメソッド・クォート内は音色を静的補完します。**Ctrl+Enter** はエディタの `OnKeyIntercept` で横取りし、そのブロックを Run (= ホットスワップ) します — 通常の Enter は改行のまま。
 
         > [!NOTE]
-        > v1 スコープ外: MIDI out sink・サンプル (wav) 音色・`!` 繰り返しや `.` グループ等の残り記法・scale/chord・エフェクト (filter/delay)。イベント表現が汎用なので、MIDI out は `IEventSink` 実装 1 つで足せます。
+        > v1 スコープ外: MIDI out sink・サンプル (wav) 音色・scale/chord・エフェクト (filter/delay)。イベント表現が汎用なので、MIDI out は `IEventSink` 実装 1 つで足せます。
         """)));
 }

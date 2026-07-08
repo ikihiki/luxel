@@ -20,6 +20,8 @@ public sealed class MiniNotationError(string message, int position)
 /// &lt;a b c&gt;           サイクルごとに交互 (1 サイクル 1 つ)
 /// a@3 b             重み (a がサイクルの 3/4)
 /// a?  a?0.3         確率で間引く (既定 0.5 — 時間ハッシュで決定的)
+/// bd!3  bd ! !      繰り返し (横に複製 — bd!3 = bd bd bd、数値省略で 2 回)
+/// bd . sd sd . hh   グループ区切り (. 区切りの各グループが等分 = [bd] [sd sd] [hh])
 /// bd:3              サンプル番号 (トークンのまま — 分解は s() 側)
 /// a , b             トップレベルのカンマ = スタック
 /// </code>
@@ -64,32 +66,72 @@ public static class MiniNotation
             return layers.Count == 1 ? layers[0] : Pat.Stack(layers);
         }
 
-        /// <summary>空白区切りのステップ列 → 重み付き TimeCat。</summary>
+        /// <summary>空白区切りのステップ列 → 重み付き TimeCat。'.' 区切りがあれば各グループを等分する。</summary>
         private Pattern<string> ParseSequence(char closer)
         {
+            var groups = new List<List<(Fraction Weight, Pattern<string> P)>>();
             var parts = new List<(Fraction Weight, Pattern<string> P)>();
+            bool grouped = false;
             while (true)
             {
                 char c = Peek();
                 if (c == '\0' || c == ',' || c == closer || c == ']' || c == '>') break;
-                parts.Add(ParseTerm());
+                if (PeekIsDotSeparator())           // '.' = グループ区切り (前後空白の単独ドット)
+                {
+                    _i++;
+                    groups.Add(parts);
+                    parts = [];
+                    grouped = true;
+                    continue;
+                }
+                if (c == '!')                        // 単独の '!' = 直前ステップを複製
+                {
+                    _i++;
+                    if (parts.Count == 0) throw new MiniNotationError("'!' の前に要素がありません", _i);
+                    parts.Add(parts[^1]);
+                    continue;
+                }
+                (Fraction w, Pattern<string> p, int repeat) = ParseTerm();
+                for (int r = 0; r < repeat; r++) parts.Add((w, p));
             }
+            if (!grouped) return BuildSeq(parts);
+            groups.Add(parts);
+            var outer = new List<(Fraction Weight, Pattern<string> P)>(groups.Count);
+            foreach (List<(Fraction Weight, Pattern<string> P)> g in groups)
+                outer.Add((Fraction.One, BuildSeq(g)));
+            return Pat.TimeCat(outer);
+        }
+
+        /// <summary>重み付きステップ列 → 単一パターン (1 ステップ等倍ならそのまま)。</summary>
+        private static Pattern<string> BuildSeq(List<(Fraction Weight, Pattern<string> P)> parts)
+        {
             if (parts.Count == 0) return Pat.Silence<string>();
             if (parts.Count == 1 && parts[0].Weight == Fraction.One) return parts[0].P;
             return Pat.TimeCat(parts);
         }
 
-        /// <summary>1 ステップ = 因子 + 後置修飾 (* / @ ?)。</summary>
-        private (Fraction Weight, Pattern<string> P) ParseTerm()
+        /// <summary>現在位置の '.' が (数値/語ではなく) グループ区切りかを先読みで判定する。</summary>
+        private readonly bool PeekIsDotSeparator()
+        {
+            if (_i >= _s.Length || _s[_i] != '.') return false;
+            if (_i + 1 >= _s.Length) return true;
+            char nx = _s[_i + 1];
+            return char.IsWhiteSpace(nx) || nx is ',' or ']' or '>' or '.';
+        }
+
+        /// <summary>1 ステップ = 因子 + 後置修飾 (* / @ ? !)。! は複製回数を返す。</summary>
+        private (Fraction Weight, Pattern<string> P, int Repeat) ParseTerm()
         {
             Pattern<string> p = ParseFactor();
             Fraction weight = Fraction.One;
+            int repeat = 1;
             while (true)
             {
                 char c = _i < _s.Length ? _s[_i] : '\0';   // 後置は空白を挟まない
                 if (c == '*') { _i++; p = p.Fast(ReadNumber("* の後")); }
                 else if (c == '/') { _i++; p = p.Slow(ReadNumber("/ の後")); }
                 else if (c == '@') { _i++; weight = ReadNumber("@ の後"); }
+                else if (c == '!') { _i++; repeat = TryReadNumber(out Fraction rf) ? Math.Max(1, (int)rf.ToDouble()) : 2; }
                 else if (c == '?')
                 {
                     _i++;
@@ -98,7 +140,7 @@ public static class MiniNotation
                 }
                 else break;
             }
-            return (weight, p);
+            return (weight, p, repeat);
         }
 
         private Pattern<string> ParseFactor()

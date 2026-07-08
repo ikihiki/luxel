@@ -86,6 +86,35 @@ public class StrudelMiniNotationTests
     public void Notes_And_Numbers_AreWords()
         => Assert.Equal("0-1/3:c#3 1/3-2/3:e3 2/3-1:-12", Dump("c#3 e3 -12"));
 
+    [Fact]
+    public void Bang_ReplicatesStep()
+        => Assert.Equal("0-1/3:bd 1/3-2/3:bd 2/3-1:bd", Dump("bd!3"));
+
+    [Fact]
+    public void Bang_EqualsSpelledOut()
+        => Assert.Equal(Dump("bd bd bd"), Dump("bd!3"));
+
+    [Fact]
+    public void Bang_DefaultsToTwo()
+        => Assert.Equal(Dump("bd bd sd"), Dump("bd! sd"));
+
+    [Fact]
+    public void Bang_Standalone_ReplicatesPrevious()
+        => Assert.Equal(Dump("bd bd bd"), Dump("bd ! !"));
+
+    [Fact]
+    public void DotGroups_DivideEqually()
+        => Assert.Equal("0-1/3:bd 1/3-1/2:sd 1/2-2/3:sd 2/3-1:hh", Dump("bd . sd sd . hh"));
+
+    [Fact]
+    public void DotGroup_EqualsBrackets()
+        => Assert.Equal(Dump("[a] [b c]"), Dump("a . b c"));
+
+    [Fact]
+    public void DecimalToken_NotAGroupSeparator()
+        // 先頭にドットが来ない語 (0.5) はトークンのまま — グループ区切りと誤認しない
+        => Assert.Equal("0-1:0.5", Dump("0.5"));
+
     [Theory]
     [InlineData("bd [sd", "閉じていません")]
     [InlineData("bd <sd", "閉じていません")]
