@@ -272,6 +272,18 @@ public sealed class UiHost : IDisposable
     private static void EmitInput(string op, string info)
         => EngineDiagnostics.Emit(EngineDiagnostics.Input, new DiagInput(op, info));
 
+    /// <summary>記録用の構造化入力フック (<see cref="InputRecorder"/> が購読する)。購読者が居なければ
+    /// 0 コスト (null 条件で引数構築ごと短絡)。DevTools 表示用の <see cref="DiagInput"/> と違い
+    /// <b>ロスなし</b> — 座標/修飾キー/移動/ホイールをそのまま持つので決定的リプレイに足る。</summary>
+    public event Action<RecordedInput>? InputCaptured;
+
+    /// <summary>フレーム前進フック (<see cref="Tick"/> 末尾で発火)。記録のフレーム番号採番に使う。</summary>
+    public event Action? Ticked;
+
+    private void Capture(InputKind kind, float x = 0, float y = 0, float delta = 0,
+        Key key = Key.None, bool shift = false, bool ctrl = false, bool alt = false, string text = "")
+        => InputCaptured?.Invoke(new RecordedInput(0, kind, x, y, delta, key, shift, ctrl, alt, text));
+
     /// <summary>(x,y) でクリック。モーダルは背面をブロック、外側クリックはディスミス。</summary>
     public bool Click(float x, float y)
     {
@@ -305,6 +317,7 @@ public sealed class UiHost : IDisposable
     public bool PointerDown(float x, float y)
     {
         EmitInput("pointerdown", $"{x:0},{y:0}");
+        Capture(InputKind.PointerDown, x, y);
         if (_build != null && TryPick(x, y, null, out HitTarget t, out float lx, out float ly))
         {
             if (t.Draggable)
@@ -326,6 +339,7 @@ public sealed class UiHost : IDisposable
     public void PointerUp(float x, float y)
     {
         EmitInput("pointerup", $"{x:0},{y:0}");
+        Capture(InputKind.PointerUp, x, y);
         if (_dragPayload is object payload)
         {
             if (FindDropTarget(x, y, payload, out HitTarget? dt, out float dlx, out float dly) && dt != null)
@@ -392,6 +406,7 @@ public sealed class UiHost : IDisposable
     /// それ以外は最前面ヒットを hover 状態にし、他を解除する。</summary>
     public void PointerMove(float x, float y)
     {
+        Capture(InputKind.PointerMove, x, y);   // 診断 EmitInput は無いが記録はロスなくフックする
         if (_build == null) return;
         if (_captured is HitTarget cap)
         {
@@ -444,6 +459,7 @@ public sealed class UiHost : IDisposable
     public bool KeyDown(Key key, bool shift = false, bool ctrl = false, bool alt = false)
     {
         EmitInput("keydown", $"{key}{(shift ? "+shift" : "")}{(ctrl ? "+ctrl" : "")}{(alt ? "+alt" : "")}");
+        Capture(InputKind.KeyDown, key: key, shift: shift, ctrl: ctrl, alt: alt);
         bool consumed;
         if (key == Key.Escape)
         {
@@ -531,7 +547,7 @@ public sealed class UiHost : IDisposable
         => ActiveTextInput?.SetCompositionHighlight(start, length, targetStart, targetLength);
 
     /// <summary>文字入力をフォーカス中のテキスト対象へ送る。</summary>
-    public void Char(string text) { EmitInput("char", text); Guard(Current()?.OnText is { } h ? () => h(text) : null, "Char"); }
+    public void Char(string text) { EmitInput("char", text); Capture(InputKind.Char, text: text); Guard(Current()?.OnText is { } h ? () => h(text) : null, "Char"); }
     /// <summary>IME 編集中文字列を送る (単純版)。</summary>
     public void Compose(string text) { EmitInput("compose", text); Guard(Current()?.OnCompose is { } h ? () => h(text) : null, "Compose"); }
     /// <summary>IME 状態 (対象節含む) を送る。</summary>
@@ -542,6 +558,7 @@ public sealed class UiHost : IDisposable
     /// <summary>ホイール。点を含む最前面のスクロール対象へ量を渡す (transform 追従判定)。</summary>
     public void Wheel(float x, float y, float delta)
     {
+        Capture(InputKind.Wheel, x, y, delta);
         if (_build == null) return;
         for (int i = _build.Scrollables.Count - 1; i >= 0; i--)
         {
@@ -627,14 +644,15 @@ public sealed class UiHost : IDisposable
     {
         Clock.Advance(dt);
         FlushRealize();
-        if (_build == null) return;
-        for (int i = _build.Animations.Count - 1; i >= 0; i--)
-        {
-            bool done;
-            try { done = _build.Animations[i](dt); }
-            catch (Exception ex) { UiError.Report(ex, "Animation"); done = true; }
-            if (done) _build.Animations.RemoveAt(i);
-        }
+        if (_build != null)
+            for (int i = _build.Animations.Count - 1; i >= 0; i--)
+            {
+                bool done;
+                try { done = _build.Animations[i](dt); }
+                catch (Exception ex) { UiError.Report(ex, "Animation"); done = true; }
+                if (done) _build.Animations.RemoveAt(i);
+            }
+        Ticked?.Invoke();   // フレーム前進 — InputRecorder のフレーム採番に使う
     }
 
     /// <summary>ユーザーハンドラの例外を握って報告する (エラー境界 — 入力 1 回の失敗でアプリを落とさない)。</summary>
