@@ -6,6 +6,8 @@
     <ProjectReference Include="..\Luxel.TwoD\Luxel.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.Document\Luxel.Document.csproj" />
     <ProjectReference Include="..\Luxel.Editor\Luxel.Editor.csproj" />
+    <!-- 汎用ノードエディタのコア (ADR-0009)。NodeGraphView が投影して描く (canvas 非依存の純データ/幾何) -->
+    <ProjectReference Include="..\Luxel.NodeGraph\Luxel.NodeGraph.csproj" />
     <!-- 画像 embed (ImageBlock) が ResourceHandle<CpuImage> を扱う。GPU API は含まれない (Diagnostics のみ依存) -->
     <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />
     <ProjectReference Include="..\Luxel\Luxel.csproj" />

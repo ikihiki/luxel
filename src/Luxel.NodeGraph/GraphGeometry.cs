@@ -151,7 +151,7 @@ public sealed class GraphGeometry
         for (int i = 0; i < doc.Nodes.Count; i++)
         {
             GraphNode node = doc.Nodes[i];
-            Size size = _measure(node);
+            NodeSize size = _measure(node);
             var inline = InlineDecorationsOf(node.Id);
             string key = LayoutKey(node, size, inline);
             if (!next.TryGetValue(key, out NodeLayout? nl))
@@ -180,7 +180,7 @@ public sealed class GraphGeometry
 
     // キャッシュ鍵: ノード id + Pos + サイズ + 折り畳み + ポート署名 + インライン枠署名。
     // オーバーレイ装飾 (バッジ/ハイライト) と viewport は鍵に含めない (それらの変化では再構築しない)。
-    private static string LayoutKey(GraphNode node, Size size, List<NodeInlineDecoration> inline)
+    private static string LayoutKey(GraphNode node, NodeSize size, List<NodeInlineDecoration> inline)
     {
         var sb = new StringBuilder();
         sb.Append(node.Id).Append('|').Append(node.Pos.X).Append(',').Append(node.Pos.Y)
@@ -192,7 +192,7 @@ public sealed class GraphGeometry
         return sb.ToString();
     }
 
-    private NodeLayout BuildNode(GraphNode node, Size size, List<NodeInlineDecoration> inline)
+    private NodeLayout BuildNode(GraphNode node, NodeSize size, List<NodeInlineDecoration> inline)
     {
         GraphRect rect = GraphRect.FromMinSize(node.Pos, size);
 

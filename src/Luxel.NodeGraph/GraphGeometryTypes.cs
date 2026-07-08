@@ -2,8 +2,9 @@ using System.Numerics;
 
 namespace Luxel.NodeGraph;
 
-/// <summary>寸法 (幅・高さ) — view が <see cref="NodeMeasure"/> で返すノードの実寸。</summary>
-public readonly record struct Size(float Width, float Height);
+/// <summary>寸法 (幅・高さ) — view が <see cref="NodeMeasure"/> で返すノードの実寸。
+/// UI レイアウトの <c>Size</c> と衝突しないよう <c>NodeSize</c> と名付ける。</summary>
+public readonly record struct NodeSize(float Width, float Height);
 
 /// <summary>軸並行矩形 (world 座標)。core は Luxel.TwoD/Typography に依存しないため自前の軽量版。</summary>
 public readonly record struct GraphRect(float X, float Y, float Width, float Height)
@@ -20,8 +21,15 @@ public readonly record struct GraphRect(float X, float Y, float Width, float Hei
     /// <summary>点を含むか (端を含む)。</summary>
     public bool Contains(Vector2 p) => p.X >= X && p.X <= Right && p.Y >= Y && p.Y <= Bottom;
 
+    /// <summary>2 矩形が交差するか (端の接触を含む)。box 選択の判定に使う。</summary>
+    public bool Intersects(GraphRect o) => X <= o.Right && Right >= o.X && Y <= o.Bottom && Bottom >= o.Y;
+
+    /// <summary>2 点を対角とする正規化矩形 (marquee 用、負の幅/高さを作らない)。</summary>
+    public static GraphRect FromCorners(Vector2 a, Vector2 b)
+        => new(MathF.Min(a.X, b.X), MathF.Min(a.Y, b.Y), MathF.Abs(a.X - b.X), MathF.Abs(a.Y - b.Y));
+
     /// <summary>左上 + 寸法から作る。</summary>
-    public static GraphRect FromMinSize(Vector2 min, Size size) => new(min.X, min.Y, size.Width, size.Height);
+    public static GraphRect FromMinSize(Vector2 min, NodeSize size) => new(min.X, min.Y, size.Width, size.Height);
 
     /// <summary>2 矩形を包む最小矩形。</summary>
     public GraphRect Union(GraphRect o)
@@ -69,7 +77,7 @@ public readonly record struct GraphHit(GraphHitKind Kind, int NodeId = -1, int P
 
 /// <summary>ノードの実寸を測る関数 — view が注入する (ラベル幅・ポート数・インライン枠からサイズを決める)。
 /// core を Luxel.Typography 非依存に保つための境界 (<c>DiagramLayout.Arrange(spec, measure)</c> と同型)。</summary>
-public delegate Size NodeMeasure(GraphNode node);
+public delegate NodeSize NodeMeasure(GraphNode node);
 
 /// <summary>ジオメトリの設定 — タイトルバー高・ポート行高・角丸・ワイヤ接線長・ヒット許容など。view が注入する。</summary>
 public sealed class GraphConfig

@@ -15,7 +15,7 @@ public class NodeGraphGeometryTests
     private static GraphEdge E(int id, int fromNode, int toNode) => new(id, new PortId(fromNode, 1), new PortId(toNode, 0));
 
     // 固定サイズを返す測定 (120×80)。core は Typography 非依存なのでこれで幾何が回る。
-    private static readonly NodeMeasure Measure = _ => new Size(120, 80);
+    private static readonly NodeMeasure Measure = _ => new NodeSize(120, 80);
     private static readonly GraphConfig Cfg = new();   // 既定 (TitleBar 22 / PortRow 18 / PortStartY 4 / PortRadius 5)
 
     private static GraphGeometry Geo(NodeGraphState state) => new(Cfg, Measure, state);
