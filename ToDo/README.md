@@ -9,7 +9,8 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 
 | # | ファイル | タスク | 規模感 | リスク |
 |---|---|---|---|---|
-| 07 | [07-codeeditor-multicursor.md](07-codeeditor-multicursor.md) | CodeEditor: マルチカーソル (E3.5) | 大 | **高** |
+| 22 | [22-editor-decoration-redesign.md](22-editor-decoration-redesign.md) | テキストエディタ新スタック (Transaction ベース、greenfield。既存コントロールは触らず新規追加。S7 に旧 07 マルチカーソル/矩形選択を統合。ADR-0006) | 特大 | **高** |
+| ~~07~~ | 22 の S7 へ統合 (2026-07-08) | CodeEditor: マルチカーソル + 矩形選択 (E3.5) — MD 削除済み | — | — |
 | ~~08~~ | ✅ 完了 (2026-07-08) | Strudel 音楽機能拡張 (記法 `!`/`.`・scale/chord・filter/delay・wav 音色・MIDI out) — MD 削除済み、仕様は Docs/Strudel | — | — |
 | ~~19~~ | ✅ 完了 (2026-07-07) | capstone ①「Luxel Cavern」— `samples/LuxelCavern` として完成・MD 削除済み | — | — |
 
