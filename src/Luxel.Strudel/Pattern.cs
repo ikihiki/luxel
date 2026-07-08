@@ -24,6 +24,10 @@ public sealed class Pattern<T>(Func<TimeArc, IEnumerable<Hap<T>>> query)
     public Pattern<TU> Select<TU>(Func<T, TU> f)
         => new(span => Query(span).Select(h => h.WithValue(f(h.Value))));
 
+    /// <summary>1 値 → 複数値へ展開 (同じ Whole/Part で複数 Hap = 同時発音)。chord 等が使う。</summary>
+    public Pattern<TU> FlatMapValues<TU>(Func<T, IEnumerable<TU>> f)
+        => new(span => Query(span).SelectMany(h => f(h.Value).Select(v => new Hap<TU>(h.Whole, h.Part, v))));
+
     public Pattern<T> Where(Func<Hap<T>, bool> pred)
         => new(span => Query(span).Where(pred));
 

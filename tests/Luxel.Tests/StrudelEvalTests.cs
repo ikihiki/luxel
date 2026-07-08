@@ -95,6 +95,71 @@ public class StrudelEvalTests
         Assert.Equal(new Fraction(1, 2), onsets[1]);   // 0.25 + late 0.25
     }
 
+    [Fact]
+    public void Scale_MapsDegreesToNotes()
+    {
+        // C:major, 度数 0 2 4 → C E G (60 64 67)
+        var haps = Cycle("""n("0 2 4").scale("C:major")""");
+        Assert.Equal([60f, 64f, 67f], haps.Select(h => h.Value.Note!.Value));
+        Assert.All(haps, h => Assert.Null(h.Value.N));   // 度数 N は消える
+    }
+
+    [Fact]
+    public void Scale_WrapsOctavesAndNegatives()
+    {
+        // C:minor (0 2 3 5 7 8 10)。度数 7 = 1 オクターブ上のルート (72)、-1 = 直下の第 7 度 (60-2=58)
+        var haps = Cycle("""n("7 -1").scale("C:minor")""");
+        Assert.Equal(72f, haps[0].Value.Note);
+        Assert.Equal(58f, haps[1].Value.Note);
+    }
+
+    [Fact]
+    public void Scale_DefaultRootAndMode()
+    {
+        // ルート省略 = c4(60)。minorpentatonic (0 3 5 7 10)
+        var haps = Cycle("""n("0 1 2").scale("minorpentatonic")""");
+        Assert.Equal([60f, 63f, 65f], haps.Select(h => h.Value.Note!.Value));
+    }
+
+    [Fact]
+    public void Chord_ExpandsToSimultaneousNotes()
+    {
+        // C メジャートライアド = 60 64 67 が同時刻に 3 つ
+        var haps = Cycle("""chord("C")""");
+        Assert.Equal(3, haps.Count);
+        Assert.All(haps, h => Assert.Equal(Fraction.Zero, h.Part.Begin));
+        Assert.Equal([60f, 64f, 67f], haps.Select(h => h.Value.Note!.Value).OrderBy(x => x));
+    }
+
+    [Fact]
+    public void Chord_QualityAndSequence()
+    {
+        // ルートは各ピッチクラスをオクターブ 4 に配置 (C=60, A=69)。
+        // "C Am" → 前半 C(60 64 67)、後半 Am(69 72 76)
+        var haps = Cycle("""chord("C Am")""");
+        var first = haps.Where(h => h.Part.Begin < new Fraction(1, 2)).Select(h => h.Value.Note!.Value).OrderBy(x => x).ToList();
+        var second = haps.Where(h => h.Part.Begin >= new Fraction(1, 2)).Select(h => h.Value.Note!.Value).OrderBy(x => x).ToList();
+        Assert.Equal([60f, 64f, 67f], first);
+        Assert.Equal([69f, 72f, 76f], second);
+    }
+
+    [Fact]
+    public void Chord_CanReceiveSound()
+    {
+        var haps = Cycle("""chord("Cmaj7").s("saw")""");
+        Assert.Equal(4, haps.Count);
+        Assert.All(haps, h => Assert.Equal("saw", h.Value.Instrument));
+    }
+
+    [Theory]
+    [InlineData("""n("0").scale("C:bogus")""", "未知のスケール")]
+    [InlineData("""s("bd").scale(1)""", "の形で使います")]
+    public void ScaleErrors_AreReported(string code, string contains)
+    {
+        var ex = Assert.Throws<StrudelEvalError>(() => StrudelEval.Evaluate(code));
+        Assert.Contains(contains, ex.Message);
+    }
+
     [Theory]
     [InlineData("""s("bd").nope(1)""", "未知のメソッド")]
     [InlineData("""wat("bd")""", "未知の関数")]

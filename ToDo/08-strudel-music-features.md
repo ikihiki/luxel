@@ -20,7 +20,9 @@ Strudel v1 で明示的にスコープ外とした音楽機能群。独立性が
 - パースエラーは位置付き `MiniNotationError` を維持。
 - テスト: MiniNotationTests にゴールデン文字列で (`"bd!3"` → `"0-1/3:bd 1/3-2/3:bd 2/3-1:bd"` 相当)。展開等価性 (`bd!3` == `bd bd bd`、`a . b c` == `[a] [b c]`) も比較で。
 
-## サブタスク B — scale / chord
+## サブタスク B — scale / chord ✅ 完了 (2026-07-08)
+
+**実装済み**: `Pattern.FlatMapValues` (1 値→複数 Hap = 同時発音) を追加。`Controls.Scale` (度数 N → スケール表で MIDI Note、N は消す。`ScaleTable` = major/minor/dorian/…/pentatonic 等 15 種、`"C:minor"`/`"c4:dorian"`/ルート省略で c4=60、度数は floor 除算でオクターブ巻き上げ)。`Controls.Chord` (`ChordTable` = 品質接尾辞 m/7/maj7/sus4/… → ルートからの半音群、各ステップを FlatMapValues で和音展開)。StrudelEval に `chord(…)` グローバル + `.scale("…")` メソッド (未知スケールは FormatException → StrudelEvalError に包む)。テスト +8 (StrudelEvalTests: 度数写像/オクターブ巻き上げ/既定ルート/和音展開/品質列/和音→音色/エラー 2)。Docs/Strudel にチェーン例 2 行 + 説明段落追加、v1 スコープ外から scale/chord 削除、golden Docs_Strudel 更新。全 864 passed、vk e2e 73/73 diff 0。
 
 - 音階: `n("0 2 4").scale("C:minor")` 風 — 数値パターン (度数) をスケール表で半音オフセット → ControlMap.Note へ。スケール表 (major/minor/dorian/pentatonic 程度から) は static 辞書。
 - コード: `chord("C Am F G")` は 1 イベント → 複数 Hap (同時発音) への展開。`Pattern<T>` は Hap 列なので同一 TimeArc に複数 Hap を返せばよい。

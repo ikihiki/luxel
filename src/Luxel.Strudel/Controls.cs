@@ -26,6 +26,115 @@ public static class Controls
     public static Pattern<ControlMap> N(Pattern<string> p)
         => p.Select(static tok => new ControlMap(N: ParseFloat(tok)));
 
+    /// <summary>コードパターン: "C Am F G" → 各ステップを複数 Note (同時発音) へ展開する。</summary>
+    public static Pattern<ControlMap> Chord(Pattern<string> p)
+        => p.FlatMapValues(static tok => ChordNotes(tok).Select(static note => new ControlMap(Note: note)));
+
+    // ---- スケール / コード ----
+
+    /// <summary>度数 (N) → スケール上の Note へ写像する (Note を設定し N は消す)。
+    /// spec は "C:minor" / "c4:dorian" / "major" (ルート省略時は c4=60)。</summary>
+    public static Pattern<ControlMap> Scale(this Pattern<ControlMap> p, string spec)
+    {
+        (int rootMidi, int[] steps) = ParseScale(spec);
+        return p.Select(c => c with
+        {
+            Note = DegreeToNote(rootMidi, steps, (int)MathF.Round(c.N ?? 0f)),
+            N = null,
+        });
+    }
+
+    /// <summary>スケール表 (1 オクターブ内の半音オフセット)。</summary>
+    private static readonly Dictionary<string, int[]> ScaleTable = new(StringComparer.Ordinal)
+    {
+        ["major"] = [0, 2, 4, 5, 7, 9, 11],
+        ["ionian"] = [0, 2, 4, 5, 7, 9, 11],
+        ["minor"] = [0, 2, 3, 5, 7, 8, 10],
+        ["aeolian"] = [0, 2, 3, 5, 7, 8, 10],
+        ["dorian"] = [0, 2, 3, 5, 7, 9, 10],
+        ["phrygian"] = [0, 1, 3, 5, 7, 8, 10],
+        ["lydian"] = [0, 2, 4, 6, 7, 9, 11],
+        ["mixolydian"] = [0, 2, 4, 5, 7, 9, 10],
+        ["locrian"] = [0, 1, 3, 5, 6, 8, 10],
+        ["harmonicminor"] = [0, 2, 3, 5, 7, 8, 11],
+        ["melodicminor"] = [0, 2, 3, 5, 7, 9, 11],
+        ["majorpentatonic"] = [0, 2, 4, 7, 9],
+        ["minorpentatonic"] = [0, 3, 5, 7, 10],
+        ["chromatic"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+        ["wholetone"] = [0, 2, 4, 6, 8, 10],
+    };
+
+    /// <summary>コード品質 → ルートからの半音オフセット。接尾辞なし = メジャー。</summary>
+    private static readonly Dictionary<string, int[]> ChordTable = new(StringComparer.Ordinal)
+    {
+        [""] = [0, 4, 7],
+        ["maj"] = [0, 4, 7],
+        ["m"] = [0, 3, 7],
+        ["min"] = [0, 3, 7],
+        ["dim"] = [0, 3, 6],
+        ["aug"] = [0, 4, 8],
+        ["sus2"] = [0, 2, 7],
+        ["sus4"] = [0, 5, 7],
+        ["6"] = [0, 4, 7, 9],
+        ["m6"] = [0, 3, 7, 9],
+        ["7"] = [0, 4, 7, 10],
+        ["maj7"] = [0, 4, 7, 11],
+        ["m7"] = [0, 3, 7, 10],
+        ["min7"] = [0, 3, 7, 10],
+        ["dim7"] = [0, 3, 6, 9],
+        ["m7b5"] = [0, 3, 6, 10],
+        ["9"] = [0, 4, 7, 10, 14],
+        ["maj9"] = [0, 4, 7, 11, 14],
+        ["m9"] = [0, 3, 7, 10, 14],
+        ["add9"] = [0, 4, 7, 14],
+    };
+
+    private static (int RootMidi, int[] Steps) ParseScale(string spec)
+    {
+        string root = "c";
+        string mode = spec.Trim().ToLowerInvariant();
+        int colon = spec.IndexOf(':');
+        if (colon >= 0)
+        {
+            root = spec[..colon];
+            mode = spec[(colon + 1)..].Trim().ToLowerInvariant();
+        }
+        mode = mode.Replace(" ", "");
+        if (!ScaleTable.TryGetValue(mode, out int[]? steps))
+            throw new FormatException($"未知のスケール: '{mode}'");
+        return (RootMidi(root), steps);
+    }
+
+    /// <summary>コードトークン ("C" / "Am" / "F#maj7") → 絶対 MIDI ノート群。</summary>
+    private static IEnumerable<float> ChordNotes(string tok)
+    {
+        int i = 1;
+        if (i < tok.Length && (tok[i] == '#' || tok[i] == 'b')) i++;
+        string rootStr = tok[..i];
+        string quality = tok[i..];
+        if (!ChordTable.TryGetValue(quality, out int[]? offsets))
+            throw new FormatException($"未知のコード: '{tok}'");
+        int rootMidi = RootMidi(rootStr);
+        return offsets.Select(o => (float)(rootMidi + o));
+    }
+
+    /// <summary>ルート表記 → MIDI。オクターブ省略時は c4 = 60 の帯。</summary>
+    private static int RootMidi(string root)
+    {
+        root = root.Trim();
+        if (root.Length == 0) return 60;
+        return char.IsAsciiDigit(root[^1]) ? (int)ParseNote(root) : (int)ParseNote(root + "4");
+    }
+
+    /// <summary>度数 → 絶対 MIDI (負/オクターブ跨ぎは floor 除算で巻き上げ)。</summary>
+    private static float DegreeToNote(int rootMidi, int[] steps, int degree)
+    {
+        int n = steps.Length;
+        int idx = ((degree % n) + n) % n;
+        int oct = (degree - idx) / n;
+        return rootMidi + (oct * 12) + steps[idx];
+    }
+
     // ---- ControlMap パターンへの後置修飾 (左の構造を保つ) ----
 
     public static Pattern<ControlMap> Gain(this Pattern<ControlMap> p, Pattern<float> v)

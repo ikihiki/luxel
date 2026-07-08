@@ -130,6 +130,7 @@ public static class StrudelEval
                 case "s" or "sound": return new PatV(Controls.S(MiniArg(name, args, pos)));
                 case "note": return new PatV(Controls.Note(MiniArg(name, args, pos)));
                 case "n": return new PatV(Controls.N(MiniArg(name, args, pos)));
+                case "chord": return new PatV(Controls.Chord(MiniArg(name, args, pos)));
 
                 case "stack" or "cat":
                     {
@@ -205,9 +206,18 @@ public static class StrudelEval
                 "speed" => p.Speed(FloatPatArg(name, args, pos)),
                 "s" or "sound" => p.Sound(MiniArg(name, args, pos)),
                 "note" => p.NoteSet(MiniArg(name, args, pos)),
+                "scale" => ScaleMethod(p, name, args, pos),
                 _ => throw new StrudelEvalError($"未知のメソッド '.{name}'", pos),
             };
             return new PatV(r);
+        }
+
+        private static Pattern<ControlMap> ScaleMethod(Pattern<ControlMap> p, string name, List<Val> args, int pos)
+        {
+            if (args is not [StrV s])
+                throw new StrudelEvalError($".{name}(\"…\") の形で使います", pos);
+            try { return p.Scale(s.S); }
+            catch (FormatException e) { throw new StrudelEvalError(e.Message, s.Pos); }
         }
 
         private static Fraction FracArg(string name, List<Val> args, int pos)
