@@ -389,7 +389,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
             node.Color = color;
             var scene = new Scene2D();
             for (int i = 0; i < _geo.LineCount; i++)
-                _geo.Line(i).Layout.DrawColorRuns(scene, 0, _geo.LineTop(i), color);
+                _geo.Line(i).Layout.DrawColorRuns(scene, _geo.LineIndent(i), _geo.LineTop(i), color);
             node.Content = scene;
             _colorNodes.Add(node);
         }

@@ -108,7 +108,8 @@ public sealed class EditorGeometry
     private EditorConfig _cfg;
     private EditorState _state;
     private DisplayLine[] _lines = [];
-    private float[] _tops = [];   // 各行の絶対 Top
+    private float[] _tops = [];      // 各行の絶対 Top
+    private float[] _indents = [];   // 各行の左インデント (ブロックの縦バー分の余白)
     private float _contentHeight;
     private Dictionary<string, DisplayLine> _cache = new();
 
@@ -146,6 +147,8 @@ public sealed class EditorGeometry
     public DisplayLine Line(int index) => _lines[Math.Clamp(index, 0, _lines.Length - 1)];
     /// <summary>ソース行の絶対 Top。</summary>
     public float LineTop(int index) => _tops[Math.Clamp(index, 0, _tops.Length - 1)];
+    /// <summary>ソース行の左インデント (ブロックの縦バー分の余白)。view はテキストをこの x から描く。</summary>
+    public float LineIndent(int index) => _indents[Math.Clamp(index, 0, _indents.Length - 1)];
 
     private void Rebuild()
     {
@@ -169,8 +172,18 @@ public sealed class EditorGeometry
             top += dl.Height;
         }
 
+        // ブロックのインデント (縦バー/マーカー分の左余白) を行ごとに集計
+        var indents = new float[n];
+        foreach (BlockDecoration bd in _state.Decorations.All().OfType<BlockDecoration>())
+        {
+            if (bd.Indent <= 0) continue;
+            int l0 = doc.LineOf(bd.From), l1 = doc.LineOf(bd.To);
+            for (int i = l0; i <= l1 && i < n; i++) indents[i] += bd.Indent;
+        }
+
         _lines = lines;
         _tops = tops;
+        _indents = indents;
         _contentHeight = top;
         _cache = next;
     }
@@ -287,7 +300,7 @@ public sealed class EditorGeometry
         (int line, int col) = _state.Doc.CoordAt(sourceOffset);
         DisplayLine dl = _lines[line];
         TextRect r = dl.Layout.CaretRect(dl.SourceToDisplay(col));
-        return r with { Y = r.Y + _tops[line] };
+        return r with { X = r.X + _indents[line], Y = r.Y + _tops[line] };
     }
 
     /// <summary>ピクセル座標 → ソースオフセット (ヒットテスト)。</summary>
@@ -295,7 +308,7 @@ public sealed class EditorGeometry
     {
         int line = LineAtY(y);
         DisplayLine dl = _lines[line];
-        int disp = dl.Layout.HitTest(x, y - _tops[line]);
+        int disp = dl.Layout.HitTest(x - _indents[line], y - _tops[line]);
         int col = dl.DisplayToSource(disp);
         return _state.Doc.LineStart(line) + Math.Min(col, _state.Doc.LineText(line).Length);
     }
@@ -329,7 +342,7 @@ public sealed class EditorGeometry
             int b = (i == lb ? to : le) - ls;
             int da = dl.SourceToDisplay(a), db = dl.SourceToDisplay(b);
             foreach (TextRect r in dl.Layout.SelectionRects(da, db))
-                outp.Add(r with { Y = r.Y + _tops[i] });
+                outp.Add(r with { X = r.X + _indents[i], Y = r.Y + _tops[i] });
         }
     }
 
@@ -351,7 +364,7 @@ public sealed class EditorGeometry
                 case LineDecoration ld:
                 {
                     int line = _state.Doc.LineOf(ld.At);
-                    outp.Add(new OverlayRect(new TextRect(0, _tops[line], _lines[line].Layout.Width, _lines[line].Height), OverlayKind.LineBackground, ld.Background));
+                    outp.Add(new OverlayRect(new TextRect(0, _tops[line], _indents[line] + _lines[line].Layout.Width, _lines[line].Height), OverlayKind.LineBackground, ld.Background));
                     break;
                 }
                 case BlockDecoration bd:
@@ -384,7 +397,7 @@ public sealed class EditorGeometry
             foreach ((object key, int dispStart) in dl.Widgets())
             {
                 TextRect[] rr = dl.Layout.SelectionRects(dispStart, dispStart + 1);
-                if (rr.Length > 0) outp.Add(new WidgetSlot(key, rr[0] with { Y = rr[0].Y + _tops[i] }));
+                if (rr.Length > 0) outp.Add(new WidgetSlot(key, rr[0] with { X = rr[0].X + _indents[i], Y = rr[0].Y + _tops[i] }));
             }
         }
         return outp;

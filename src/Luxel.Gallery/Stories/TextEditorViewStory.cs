@@ -63,7 +63,7 @@ public static class TextEditorViewStory
             int ci = 0;
             for (int idx = doc.Text.IndexOf('◯'); idx >= 0; idx = doc.Text.IndexOf('◯', idx + 1))
                 d.Add(new WidgetDecoration(idx, idx + 1, 44f, 22f, $"chk{ci++}"));
-            d.Add(new BlockDecoration(0, doc.Length, BarColor: 0xFF4A90D9, BarWidth: 3f));
+            d.Add(new BlockDecoration(0, doc.Length, BarColor: 0xFF4A90D9, BarWidth: 3f, Indent: 14f));
             return new DecorationSet(d);
         }
     }

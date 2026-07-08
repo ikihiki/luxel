@@ -178,6 +178,24 @@ public class EditorGeometryTests
         Assert.NotSame(before, g.Line(0).Layout);
     }
 
+    // ---- ブロックインデント (縦バーの場所を確保) ----
+
+    [Fact]
+    public void BlockIndent_ShiftsContentRight()
+    {
+        var st = EditorState.Create("abc\ndef")
+            .WithDecorations("q", new DecorationSet([new BlockDecoration(0, 7, BarColor: Blue, Indent: 20f)])).State;
+        var g = new EditorGeometry(Cfg(), st);
+        Assert.Equal(20f, g.LineIndent(0), 1);
+        Assert.Equal(20f, g.LineIndent(1), 1);
+
+        var plain = new EditorGeometry(Cfg(), EditorState.Create("abc\ndef"));
+        Assert.True(g.CaretRect(0).X >= plain.CaretRect(0).X + 19f);   // 行頭キャレットがインデントぶん右へ
+
+        // 縦バー領域 (x < indent) のクリックは行頭にマップ (テキストに食い込まない)
+        Assert.Equal(0, g.HitTest(3f, g.CaretRect(0).Y + 2f));
+    }
+
     // ---- 選択矩形 ----
 
     [Fact]

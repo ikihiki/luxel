@@ -113,8 +113,10 @@ public sealed record LinePrefixDecoration(int At, string Text, uint Color) : Dec
     public override Decoration? Map(ChangeSet cs) => this with { At = cs.MapPos(At) };
 }
 
-/// <summary>行グループ <c>[From, To)</c> への装飾 — 背景や左縦バー (引用/コードブロック)。オーバーレイのみ。</summary>
-public sealed record BlockDecoration(int From, int To, uint? Background = null, uint? BarColor = null, float BarWidth = 3f) : Decoration
+/// <summary>行グループ <c>[From, To)</c> への装飾 — 背景や左縦バー (引用/コードブロック)。
+/// <see cref="Indent"/> はブロック内の行を右へずらす左余白 px (縦バー/マーカーの場所を確保し、
+/// 行頭 prefix やテキストと重ならないようにする)。背景/バーはインデント前の左端に描かれる。</summary>
+public sealed record BlockDecoration(int From, int To, uint? Background = null, uint? BarColor = null, float BarWidth = 3f, float Indent = 0f) : Decoration
 {
     /// <inheritdoc/>
     public override int SortFrom => From;
