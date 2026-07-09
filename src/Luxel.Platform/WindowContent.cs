@@ -32,15 +32,16 @@ public interface IWindowContent : IDisposable
     void Render(GpuCommandBuffer cmd, uint paddedWidth, uint width, uint height, GpuBuffer target, float scale);
 
     // ---- ウィンドウ入力 (論理 px — WindowHost が物理→論理へ変換して渡す) ----
-    void PointerMove(float x, float y);
-    void PointerDown(float x, float y);
-    void PointerUp(float x, float y);
+    // button/mods はイベント発生時点の値 (WindowHost が GetKeyState で拾って渡す)。既定引数で旧呼び出しも互換。
+    void PointerMove(float x, float y, KeyModifiers mods = KeyModifiers.None);
+    void PointerDown(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers mods = KeyModifiers.None);
+    void PointerUp(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers mods = KeyModifiers.None);
     void Wheel(float x, float y, float delta);
-    void KeyDown(ushort vk);
+    void KeyDown(ushort vk, KeyModifiers mods = KeyModifiers.None);
     void Char(string text);
 
     /// <summary>右クリック (コンテキストメニュー要求)。既定 no-op。</summary>
-    void ContextClick(float x, float y) { }
+    void ContextClick(float x, float y, KeyModifiers mods = KeyModifiers.None) { }
     /// <summary>hover 中のカーソル形状 (WM_SETCURSOR が参照)。既定 = 矢印。</summary>
     CursorKind Cursor => CursorKind.Arrow;
 }
@@ -79,13 +80,14 @@ public sealed class UiContent : IWindowContent
     public void Render(GpuCommandBuffer cmd, uint paddedWidth, uint width, uint height, GpuBuffer target, float scale)
         => _canvas.Render(cmd, new Camera2D { A = scale, D = scale }, paddedWidth, height, target);
 
-    public void PointerMove(float x, float y) => Host.PointerMove(x, y);
-    public void PointerDown(float x, float y) => Host.PointerDown(x, y);
-    public void PointerUp(float x, float y) => Host.PointerUp(x, y);
+    public void PointerMove(float x, float y, KeyModifiers mods = KeyModifiers.None) => Host.PointerMove(x, y, mods);
+    public void PointerDown(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers mods = KeyModifiers.None) => Host.PointerDown(x, y, button, mods);
+    public void PointerUp(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers mods = KeyModifiers.None) => Host.PointerUp(x, y, button, mods);
     public void Wheel(float x, float y, float delta) => Host.Wheel(x, y, delta);
-    public void KeyDown(ushort vk) => Host.KeyDown(KeyMap.FromVk(vk));
+    public void KeyDown(ushort vk, KeyModifiers mods = KeyModifiers.None)
+        => Host.KeyDown(KeyMap.FromVk(vk), mods.HasFlag(KeyModifiers.Shift), mods.HasFlag(KeyModifiers.Ctrl), mods.HasFlag(KeyModifiers.Alt));
     public void Char(string text) => Host.Char(text);
-    public void ContextClick(float x, float y) => Host.ContextClick(x, y);
+    public void ContextClick(float x, float y, KeyModifiers mods = KeyModifiers.None) => Host.ContextClick(x, y, mods);
     public CursorKind Cursor => Host.CurrentCursor;
 
     public void Dispose()

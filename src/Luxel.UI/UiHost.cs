@@ -285,7 +285,7 @@ public sealed class UiHost : IDisposable
         => InputCaptured?.Invoke(new RecordedInput(0, kind, x, y, delta, key, shift, ctrl, alt, text));
 
     /// <summary>(x,y) でクリック。モーダルは背面をブロック、外側クリックはディスミス。</summary>
-    public bool Click(float x, float y)
+    public bool Click(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers mods = KeyModifiers.None)
     {
         EmitInput("click", $"{x:0},{y:0}");
         if (_build == null) return false;
@@ -298,7 +298,7 @@ public sealed class UiHost : IDisposable
             && (modal == null || modal.ContentRect.Contains(x, y)))          // モーダルが背面をブロック
         {
             if (t.Focus != null) FocusTo(t.Focus);                           // クリックでフォーカス
-            Guard(t.OnClickPos is null ? null : () => t.OnClickPos!(new PointerEvent(lx, ly, x, y)), "Click");
+            Guard(t.OnClickPos is null ? null : () => t.OnClickPos!(new PointerEvent(lx, ly, x, y, button, mods)), "Click");
             Guard(t.OnClick, "Click");
             return true;
         }
@@ -314,7 +314,7 @@ public sealed class UiHost : IDisposable
 
     /// <summary>ポインタ押下。最前面のドラッグ対応ヒットがあれば捕獲して true
     /// (以後の <see cref="PointerMove"/> は矩形外でも OnDrag へ届く)。なければ従来どおり <see cref="Click"/>。</summary>
-    public bool PointerDown(float x, float y)
+    public bool PointerDown(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers mods = KeyModifiers.None)
     {
         EmitInput("pointerdown", $"{x:0},{y:0}");
         Capture(InputKind.PointerDown, x, y);
@@ -323,42 +323,44 @@ public sealed class UiHost : IDisposable
             if (t.Draggable)
             {
                 _captured = t;
+                _captureButton = button;                // 以後の Drag/DragEnd はこのボタンを報告する
                 _dragStartLx = lx; _dragStartLy = ly;   // 捕獲時の位置 — 以後の Drag/DragEnd の Start/Delta の基準
                 _dragStartX = x; _dragStartY = y;
                 if (t.Focus != null) FocusTo(t.Focus);
-                Guard(t.OnDragStart is null ? null : () => t.OnDragStart!(new PointerEvent(lx, ly, x, y)), "DragStart");
+                Guard(t.OnDragStart is null ? null : () => t.OnDragStart!(new PointerEvent(lx, ly, x, y, button, mods)), "DragStart");
                 return true;
             }
             // 最適ヒットが非ドラッグ → 通常クリックへ (Click も同じ TryPick でこのヒットに届く)
         }
-        return Click(x, y);
+        return Click(x, y, button, mods);
     }
 
     /// <summary>ポインタ解放。捕獲中なら OnDragEnd を発火して解放する。
     /// ペイロードドラッグ中ならドロップ先の OnDrop を先に発火する。</summary>
-    public void PointerUp(float x, float y)
+    public void PointerUp(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers mods = KeyModifiers.None)
     {
         EmitInput("pointerup", $"{x:0},{y:0}");
         Capture(InputKind.PointerUp, x, y);
         if (_dragPayload is object payload)
         {
             if (FindDropTarget(x, y, payload, out HitTarget? dt, out float dlx, out float dly) && dt != null)
-                Guard(() => dt.OnDrop!(payload, DragEv(dlx, dly, x, y)), "Drop");
+                Guard(() => dt.OnDrop!(payload, DragEv(dlx, dly, x, y, mods)), "Drop");
             EndDrag();
         }
         if (_captured is not HitTarget cap) return;
         _captured = null;
         if (ToLocal(cap.Node, x, y, out float lx, out float ly))
-            Guard(cap.OnDragEnd is null ? null : () => cap.OnDragEnd!(DragEv(lx, ly, x, y)), "DragEnd");
-        else Guard(cap.OnDragEnd is null ? null : () => cap.OnDragEnd!(DragEv(0, 0, x, y)), "DragEnd");
+            Guard(cap.OnDragEnd is null ? null : () => cap.OnDragEnd!(DragEv(lx, ly, x, y, mods)), "DragEnd");
+        else Guard(cap.OnDragEnd is null ? null : () => cap.OnDragEnd!(DragEv(0, 0, x, y, mods)), "DragEnd");
     }
 
     // ---- ペイロード付きドラッグ (QP-M4 アプリ内 D&D) ----
     private float _dragStartLx, _dragStartLy, _dragStartX, _dragStartY;   // 捕獲時の位置 (ローカル/画面絶対)
+    private PointerButton _captureButton;                                 // 捕獲時のボタン (Drag/DragEnd で報告)
 
-    /// <summary>捕獲中イベント用 — 開始位置は PointerDown で記録した値。</summary>
-    private PointerEvent DragEv(float lx, float ly, float x, float y)
-        => new(lx, ly, x, y, _dragStartLx, _dragStartLy, _dragStartX, _dragStartY);
+    /// <summary>捕獲中イベント用 — 開始位置は PointerDown で記録した値、ボタンは捕獲時のもの。</summary>
+    private PointerEvent DragEv(float lx, float ly, float x, float y, KeyModifiers mods = KeyModifiers.None)
+        => new(lx, ly, x, y, _dragStartLx, _dragStartLy, _dragStartX, _dragStartY, _captureButton, mods);
 
     private object? _dragPayload;
     private TwoD.UiNode? _dragGhost;
@@ -404,14 +406,14 @@ public sealed class UiHost : IDisposable
 
     /// <summary>(x,y) へポインタ移動。ドラッグ捕獲中は OnDrag へ (矩形外も届く)、
     /// それ以外は最前面ヒットを hover 状態にし、他を解除する。</summary>
-    public void PointerMove(float x, float y)
+    public void PointerMove(float x, float y, KeyModifiers mods = KeyModifiers.None)
     {
         Capture(InputKind.PointerMove, x, y);   // 診断 EmitInput は無いが記録はロスなくフックする
         if (_build == null) return;
         if (_captured is HitTarget cap)
         {
             if (ToLocal(cap.Node, x, y, out float lx, out float ly))
-                Guard(cap.OnDrag is null ? null : () => cap.OnDrag!(DragEv(lx, ly, x, y)), "Drag");
+                Guard(cap.OnDrag is null ? null : () => cap.OnDrag!(DragEv(lx, ly, x, y, mods)), "Drag");
             if (_dragPayload is object payload)   // ペイロードドラッグ: ゴースト追従 + ドロップ先 hover
             {
                 _dragGhost?.Transform = TwoD.Affine2D.Translate(x - _ghostGrabX, y - _ghostGrabY);
@@ -422,7 +424,7 @@ public sealed class UiHost : IDisposable
                     _dropHover = over;
                     Guard(over?.OnDropHover is { } on ? () => on(true) : null, "DropHover");
                 }
-                if (over?.OnDropMove is { } dropMv) Guard(() => dropMv(payload, DragEv(dlx, dly, x, y)), "DropMove");
+                if (over?.OnDropMove is { } dropMv) Guard(() => dropMv(payload, DragEv(dlx, dly, x, y, mods)), "DropMove");
             }
             return;
         }
@@ -434,7 +436,7 @@ public sealed class UiHost : IDisposable
             Guard(hit?.OnHover is { } on ? () => on(true) : null, "Hover");
         }
         CurrentCursor = hit?.EffectiveCursor ?? CursorKind.Arrow;
-        Guard(hit?.OnMovePos is { } mv ? () => mv(new PointerEvent(hlx, hly, x, y)) : null, "Move");   // ヒット中は毎移動 (SurfaceView 等の転送用)
+        Guard(hit?.OnMovePos is { } mv ? () => mv(new PointerEvent(hlx, hly, x, y, PointerButton.Left, mods)) : null, "Move");   // ヒット中は毎移動 (SurfaceView 等の転送用)
     }
 
     // ---- キーボード / フォーカス ----
@@ -505,14 +507,14 @@ public sealed class UiHost : IDisposable
 
     /// <summary>右クリック (コンテキストメニュー要求) を配送する。最前面の OnContext 持ちヒットへ
     /// ローカル座標で渡す。クリック同様フォーカスも移す。</summary>
-    public bool ContextClick(float x, float y)
+    public bool ContextClick(float x, float y, KeyModifiers mods = KeyModifiers.None)
     {
         EmitInput("context", $"{x:0},{y:0}");
         if (_build == null) return false;
         if (TryPick(x, y, t => t.OnContext is not null, out HitTarget t, out float lx, out float ly))
         {
             if (t.Focus != null) FocusTo(t.Focus);
-            Guard(() => t.OnContext!(new PointerEvent(lx, ly, x, y)), "Context");
+            Guard(() => t.OnContext!(new PointerEvent(lx, ly, x, y, PointerButton.Right, mods)), "Context");
             return true;
         }
         return false;

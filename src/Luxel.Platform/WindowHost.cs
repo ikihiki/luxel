@@ -100,12 +100,16 @@ public sealed class WindowHost : IDisposable
     {
         Window.Resized += (w, h) => { _resizePending = true; _rw = w; _rh = h; };
         // マウスは物理クライアント px で届く → 論理 px へ (UI は論理座標)
-        Window.MouseMoved += (x, y) => Content.PointerMove(x / S, y / S);
-        Window.MouseDown += (x, y, b) => { if (b == 0) Content.PointerDown(x / S, y / S); };   // ドラッグ捕獲 or クリック
+        Window.MouseMoved += (x, y) => Content.PointerMove(x / S, y / S, Win32Modifiers.Current());
+        Window.MouseDown += (x, y, b) =>
+        {
+            // 左/中ボタンは PointerDown (中ボタンドラッグ = pan 等)。右は down では何もしない (up で ContextClick)。
+            if (b == 0 || b == 2) Content.PointerDown(x / S, y / S, Win32Modifiers.Button(b), Win32Modifiers.Current());
+        };
         Window.MouseUp += (x, y, b) =>
         {
-            if (b == 0) Content.PointerUp(x / S, y / S);
-            else if (b == 1) Content.ContextClick(x / S, y / S);   // 右クリック = コンテキストメニュー (up で発火が Windows 流儀)
+            if (b == 0 || b == 2) Content.PointerUp(x / S, y / S, Win32Modifiers.Button(b), Win32Modifiers.Current());
+            else if (b == 1) Content.ContextClick(x / S, y / S, Win32Modifiers.Current());   // 右クリック = コンテキストメニュー (up で発火が Windows 流儀)
         };
         Window.CursorQuery = () => Content.Cursor;   // WM_SETCURSOR → hover 中ヒットの形状
         Window.Wheeled += (x, y, d) => Content.Wheel(x / S, y / S, d * 40f);
@@ -117,7 +121,7 @@ public sealed class WindowHost : IDisposable
             _keyEatenByTip = _tsfThread?.HandleKeyDown(vk, lp) ?? false;
             return _keyEatenByTip;
         };
-        Window.KeyDown += vk => Content.KeyDown(vk);
+        Window.KeyDown += vk => Content.KeyDown(vk, Win32Modifiers.Current());
         Window.CharTyped += c => { if (!TsfActive || !_keyEatenByTip) Content.Char(c.ToString()); };
         Window.FocusChanged += f => { if (f) _tsfDoc?.Focus(); };   // IME フォーカス文書をこの窓へ
     }

@@ -38,7 +38,7 @@ WS-B CodeEditor ───┘ (TextEditorView へ移植 → 削除)              
 
 ---
 
-## WS-0 — PointerEvent 拡張 (ADR-0011)
+## WS-0 — PointerEvent 拡張 (ADR-0011) ✅ 完了 (2026-07-09、Q39)
 
 - `PointerEvent` に `Button` (Left/Right/Middle) と `Modifiers` (Ctrl/Shift/Alt/Meta ビットフラグ) を追加。`UiHost` の PointerDown/Move/Up → `PointerEvent` → `HitTarget` を貫き、ドラッグ捕獲時のボタンも保持。
 - Platform 層 (Win32 メッセージ) でイベント発生時点の状態を詰める。

@@ -297,7 +297,8 @@ public sealed partial class NodeGraphView : Widget
     {
         if (_geo is null) return;
         Focused.Value = true;
-        if (ReadOnly)   // 閲覧: ドラッグは pan、離した位置が動いていなければクリック選択 (検査)
+        // 中ボタンドラッグ = pan (編集モードでも。空白ドラッグは範囲選択に使うため別ボタンで対話 pan する)
+        if (ReadOnly || e.Button == PointerButton.Middle)   // 閲覧: ドラッグは pan、離した位置が動いていなければクリック選択 (検査)
         {
             _drag = Drag.Pan;
             _panStartPan = _state.Viewport.Pan;
@@ -312,6 +313,16 @@ public sealed partial class NodeGraphView : Widget
                 _drag = Drag.Wire;
                 _wireFrom = new PortId(hit.NodeId, hit.PortId);
                 _wireEnd = world;
+                break;
+            case GraphHitKind.Node when e.Ctrl:
+                // Ctrl+Click = 選択トグル (追加/解除のみ、移動はしない)
+                {
+                    var ids = _state.Selection.Nodes.ToList();
+                    bool had = ids.Remove(hit.NodeId);
+                    if (!had) ids.Add(hit.NodeId);
+                    _state = GraphCommands.SelectNodes(_state, ids, had ? -1 : hit.NodeId).State;
+                    _drag = Drag.None;
+                }
                 break;
             case GraphHitKind.Node:
                 // ノードを掴む — 未選択なら単独選択に置換してから移動開始

@@ -70,10 +70,27 @@ public static class NodeGraphViewStory
             await d.Expect(() => ed.NodeCount == 3, "undo で復活");
         });
 
+        ctx.Play("modifiers", async d =>
+        {
+            // Ctrl+Click で追加選択 (ADR-0011: PointerEvent の修飾キー)
+            Vector2 p1 = ed.NodeScreenCenter(1);
+            Vector2 p3 = ed.NodeScreenCenter(3);
+            await d.Click(p1.X, p1.Y);                                  // Input を選択
+            await d.Click(p3.X, p3.Y, KeyModifiers.Ctrl);              // Ctrl+Click で Output も追加
+            await d.Expect(() => ed.IsSelected(1) && ed.IsSelected(3) && ed.SelectionCount == 2, "Ctrl+Click で追加選択");
+            await d.Snap("ctrl-select");
+            // 中ボタンドラッグで pan (ノード上から始めても移動でなく pan になる)
+            Vector2 pc = ed.NodeScreenCenter(2);
+            Vector2 pan0 = ed.Viewport.Pan;
+            await d.Drag(pc.X, pc.Y, pc.X + 70, pc.Y + 40, button: PointerButton.Middle);
+            await d.Expect(() => ed.Viewport.Pan != pan0, "中ボタンドラッグで pan");
+            await d.Snap("panned");
+        });
+
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             VStack(10)[
                 Heading("NodeGraphView (汎用ノードエディタ)"),
-                Muted("Luxel.NodeGraph (不変 + Transaction + 純射影) を canvas に載せた薄いビュー。ドラッグ移動 / クリック・範囲選択 / ホイールズーム。"),
+                Muted("Luxel.NodeGraph (不変 + Transaction + 純射影) を canvas に載せた薄いビュー。ドラッグ移動 / クリック・範囲選択 / ホイールズーム / 中ボタン pan / Ctrl+Click 追加選択。"),
                 ed]];
     }
 

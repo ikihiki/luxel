@@ -37,35 +37,49 @@ public sealed class PlayDriver
     /// <summary>n フレーム進める (トランジション/アニメの静定待ちに)。</summary>
     public Task Step(int frames = 1) => _step(frames);
 
-    /// <summary>クリック (押下 → 1 フレーム → 解放 → 2 フレーム)。座標はストーリーのクライアント座標。</summary>
-    public async Task Click(float x, float y)
+    /// <summary>クリック (押下 → 1 フレーム → 解放 → 2 フレーム)。座標はストーリーのクライアント座標。
+    /// <paramref name="mods"/>/<paramref name="button"/> で修飾キー・ボタンを指定できる (Alt+Click 等)。</summary>
+    public async Task Click(float x, float y, KeyModifiers mods = KeyModifiers.None, PointerButton button = PointerButton.Left)
     {
-        Note($"Click ({x:0}, {y:0})");
-        _host.PointerDown(x, y);
+        Note($"Click ({x:0}, {y:0}){ModLabel(mods)}");
+        _host.PointerDown(x, y, button, mods);
         await _step(1);
-        _host.PointerUp(x, y);
+        _host.PointerUp(x, y, button, mods);
         await _step(2);
     }
 
     /// <summary>widget の中心をクリックする (実体化済みであること — WorldPos/Size を使う)。</summary>
-    public Task Click(Widget w) => Click(
-        w.WorldPos.X + w.Size.Width / 2, w.WorldPos.Y + w.Size.Height / 2);
+    public Task Click(Widget w, KeyModifiers mods = KeyModifiers.None, PointerButton button = PointerButton.Left) => Click(
+        w.WorldPos.X + w.Size.Width / 2, w.WorldPos.Y + w.Size.Height / 2, mods, button);
 
-    /// <summary>ドラッグ (押下 → 補間移動 × moves → 解放)。</summary>
-    public async Task Drag(float fromX, float fromY, float toX, float toY, int moves = 8)
+    /// <summary>右クリック (コンテキストメニュー要求)。</summary>
+    public async Task RightClick(float x, float y, KeyModifiers mods = KeyModifiers.None)
     {
-        Note($"Drag ({fromX:0}, {fromY:0}) → ({toX:0}, {toY:0})");
-        _host.PointerDown(fromX, fromY);
+        Note($"RightClick ({x:0}, {y:0}){ModLabel(mods)}");
+        _host.ContextClick(x, y, mods);
+        await _step(2);
+    }
+
+    /// <summary>ドラッグ (押下 → 補間移動 × moves → 解放)。<paramref name="button"/>/<paramref name="mods"/> で
+    /// 中ボタン pan や Alt ドラッグを指定できる。</summary>
+    public async Task Drag(float fromX, float fromY, float toX, float toY, int moves = 8,
+        PointerButton button = PointerButton.Left, KeyModifiers mods = KeyModifiers.None)
+    {
+        Note($"Drag ({fromX:0}, {fromY:0}) → ({toX:0}, {toY:0}){ModLabel(mods)}");
+        _host.PointerDown(fromX, fromY, button, mods);
         await _step(1);
         for (int i = 1; i <= moves; i++)
         {
             float t = (float)i / moves;
-            _host.PointerMove(fromX + (toX - fromX) * t, fromY + (toY - fromY) * t);
+            _host.PointerMove(fromX + (toX - fromX) * t, fromY + (toY - fromY) * t, mods);
             await _step(1);
         }
-        _host.PointerUp(toX, toY);
+        _host.PointerUp(toX, toY, button, mods);
         await _step(2);
     }
+
+    private static string ModLabel(KeyModifiers m) => m == KeyModifiers.None ? "" :
+        $" [{(m.HasFlag(KeyModifiers.Ctrl) ? "Ctrl+" : "")}{(m.HasFlag(KeyModifiers.Shift) ? "Shift+" : "")}{(m.HasFlag(KeyModifiers.Alt) ? "Alt+" : "")}{(m.HasFlag(KeyModifiers.Meta) ? "Meta+" : "")}]";
 
     /// <summary>ホイール。</summary>
     public async Task Wheel(float x, float y, float delta)

@@ -506,17 +506,23 @@ public sealed partial class TextEditorView : Widget, ITextInput
         };
         FocusTarget f = ctx.AddFocusable(_focus);
 
-        void Place(float lx, float ly, bool extend)
+        void Place(float lx, float ly, bool extend, bool additive = false)
         {
             if (_geo is null || Composing) return;
             int off = _geo.HitTest(lx - ContentX, ly - Pad + _scroll.Clamped);
-            SelectionRange main = _state.Selection.Main;
-            var sel = EditorSelection.Single(extend ? main.Anchor : off, off);
+            EditorSelection sel;
+            if (additive)   // Alt+Click: 既存キャレットを保ったまま新しいキャレットを追加 (ポインタからのマルチカーソル)
+                sel = _state.Selection.AddRange(SelectionRange.Cursor(off), asMain: true);
+            else
+            {
+                SelectionRange main = _state.Selection.Main;
+                sel = EditorSelection.Single(extend ? main.Anchor : off, off);
+            }
             Apply(EditCommands.SetSelection(_state, sel));
             _goalX = null; _caretOn.Value = true;
         }
         ctx.AddHit(_root, new Rect(0, 0, W, H), focus: f, cursor: CursorKind.IBeam,
-            onDragStart: e => Place(e.X, e.Y, extend: false),
+            onDragStart: e => Place(e.X, e.Y, extend: e.Shift, additive: e.Alt),
             onDrag: e => Place(e.X, e.Y, extend: true),
             onMovePos: e => OnHoverMove(e.X, e.Y));
         ctx.AddScroll(_root, new Rect(0, 0, W, H), d => _scroll.ScrollBy(-d));

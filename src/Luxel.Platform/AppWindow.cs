@@ -71,12 +71,22 @@ public sealed class AppWindow : IDisposable
     private void Wire()
     {
         _win.Resized = (w, h) => { _resizePending = true; _rw = w; _rh = h; };
-        _win.MouseMoved = (x, y) => { Host.PointerMove(x, y); InputSource.HandlePointer(x, y); };
-        _win.MouseDown = (x, y, b) => { if (b == 0) Host.PointerDown(x, y); InputSource.HandleMouseDown(b); };   // ドラッグ捕獲 or クリック
-        _win.MouseUp = (x, y, b) => { if (b == 0) Host.PointerUp(x, y); InputSource.HandleMouseUp(b); };
+        _win.MouseMoved = (x, y) => { Host.PointerMove(x, y, Win32Modifiers.Current()); InputSource.HandlePointer(x, y); };
+        _win.MouseDown = (x, y, b) => { if (b == 0 || b == 2) Host.PointerDown(x, y, Win32Modifiers.Button(b), Win32Modifiers.Current()); InputSource.HandleMouseDown(b); };   // ドラッグ捕獲 or クリック
+        _win.MouseUp = (x, y, b) =>
+        {
+            if (b == 0 || b == 2) Host.PointerUp(x, y, Win32Modifiers.Button(b), Win32Modifiers.Current());
+            else if (b == 1) Host.ContextClick(x, y, Win32Modifiers.Current());
+            InputSource.HandleMouseUp(b);
+        };
         _win.Wheeled = (x, y, d) => { Host.Wheel(x, y, d * 40f); InputSource.HandleWheel(d); };
         _win.KeyPreFilter = (vk, lp) => _tsf.HandleKeyDown(vk, lp);   // TIP 先取り
-        _win.KeyDown = vk => { Host.KeyDown(KeyMap.FromVk(vk)); InputSource.HandleKeyDown((VIRTUAL_KEY)vk); };
+        _win.KeyDown = vk =>
+        {
+            KeyModifiers m = Win32Modifiers.Current();
+            Host.KeyDown(KeyMap.FromVk(vk), m.HasFlag(KeyModifiers.Shift), m.HasFlag(KeyModifiers.Ctrl), m.HasFlag(KeyModifiers.Alt));
+            InputSource.HandleKeyDown((VIRTUAL_KEY)vk);
+        };
         _win.KeyUp = vk => InputSource.HandleKeyUp((VIRTUAL_KEY)vk);
         _win.CharTyped = c => { if (!_tsf.Active) Host.Char(c.ToString()); };   // TSF 有効時は store 経由
     }

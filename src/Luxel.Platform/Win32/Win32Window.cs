@@ -234,6 +234,10 @@ internal sealed unsafe class Win32Window : IWindowBackendWindow
                 MouseDown?.Invoke((short)(lp & 0xFFFF), (short)(lp >> 16), 1); return new LRESULT(0);
             case PInvoke.WM_RBUTTONUP:
                 MouseUp?.Invoke((short)(lp & 0xFFFF), (short)(lp >> 16), 1); return new LRESULT(0);
+            case PInvoke.WM_MBUTTONDOWN:
+                MouseDown?.Invoke((short)(lp & 0xFFFF), (short)(lp >> 16), 2); return new LRESULT(0);
+            case PInvoke.WM_MBUTTONUP:
+                MouseUp?.Invoke((short)(lp & 0xFFFF), (short)(lp >> 16), 2); return new LRESULT(0);
             case PInvoke.WM_MOUSEWHEEL:
                 {
                     short delta = (short)(wParam.Value >> 16);

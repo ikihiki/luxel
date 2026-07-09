@@ -225,11 +225,25 @@ public static class TextEditorViewStory
             await d.Expect(() => ed.Text.StartsWith("// foo") && ed.Text.Contains("// foo = 3"), "縦列に一括挿入");
             await d.Snap("column-typed");
         });
+        ctx.Play("alt-click", async d =>
+        {
+            // Alt+Click で追加キャレット (ADR-0011: PointerEvent の修飾キー = ポインタからのマルチカーソル)
+            float x = ed.WorldPos.X + 40;
+            await d.Click(x, ed.WorldPos.Y + 16);                             // 1 行目にキャレット
+            await d.Expect(() => ed.CursorCount == 1, "クリックで単一キャレット");
+            await d.Click(x, ed.WorldPos.Y + 44, KeyModifiers.Alt);          // Alt+Click で 2 行目に追加
+            await d.Click(x, ed.WorldPos.Y + 72, KeyModifiers.Alt);          // 3 行目にも
+            await d.Expect(() => ed.CursorCount == 3, "Alt+Click で 3 キャレット");
+            await d.Snap("alt-click");
+            await d.Type("X");                                               // 3 箇所同時挿入
+            await d.Expect(() => ed.CursorCount == 3, "3 キャレット維持で一括挿入");
+            await d.Snap("alt-typed");
+        });
 
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             VStack(10)[
                 Heading("TextEditorView — マルチカーソル"),
-                Muted("Ctrl+D 次の同一語 / Ctrl+Alt+↑↓ 縦列 / Esc 解除。native 複数レンジ = 1 打鍵で全箇所編集・1 undo。"),
+                Muted("Ctrl+D 次の同一語 / Ctrl+Alt+↑↓ 縦列 / Alt+Click 追加キャレット / Esc 解除。native 複数レンジ = 1 打鍵で全箇所編集・1 undo。"),
                 ed]];
     }
 
