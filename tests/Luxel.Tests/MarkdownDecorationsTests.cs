@@ -123,9 +123,19 @@ public class MarkdownDecorationsTests
         // "intro\n```embed counter\n```\nend": ```embed = [6,22), ``` = [23,26)
         var set = Build("intro\n```embed counter\n```\nend");
         BlockWidgetDecoration bw = set.OfKind<BlockWidgetDecoration>().Single();
-        Assert.Equal("counter", bw.Key);
+        Assert.Equal("counter", ((EmbedRef)bw.Key).Key);
         Assert.True(bw.Height <= 0);          // 自動高さ
         Assert.Equal((6, 26), (bw.From, bw.To));
+    }
+
+    [Fact]
+    public void EmbedFence_CapturesBody()
+    {
+        // 本文を持つ埋め込み (mermaid/数式の図・式ソースの土台)
+        EmbedRef r = (EmbedRef)Build("```embed mermaid\nA --> B\nC --> D\n```")
+            .OfKind<BlockWidgetDecoration>().Single().Key;
+        Assert.Equal("mermaid", r.Key);
+        Assert.Equal("A --> B\nC --> D", r.Body);
     }
 
     [Fact]

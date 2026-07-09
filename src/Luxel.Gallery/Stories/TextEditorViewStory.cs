@@ -297,15 +297,23 @@ public static class TextEditorViewStory
             "Docs embed real widgets via an embed fence:\n" +
             "```embed demo\n" +
             "```\n" +
-            "Text continues after the embedded widget.");
+            "Embeds can carry a body (diagram/math source):\n" +
+            "```embed note\n" +
+            "body passed to the resolver\n" +
+            "```\n" +
+            "Text continues after.");
         (VectorFont? bold, _, _, VectorFont? mono) = EditorFaces.Value;
-        TextEditorView ed = MarkdownDoc.Create(md, () => UiTheme.T, width: 520f, height: 250f, bold: bold, mono: mono);
-        ed.WidgetResolver = key => key as string == "demo"
-            ? Border(background: Bind.From(() => Styles.WithAlpha(UiTheme.T.Primary, 25)), padding: new Thickness(12))[
-                  VStack(6)[
-                      Text("Embedded live widget", color: Bind.From(() => UiTheme.T.Primary)),
-                      Button(_ => { }, "a real button in the document")]]
-            : null;
+        TextEditorView ed = MarkdownDoc.Create(md, () => UiTheme.T, width: 520f, height: 260f, bold: bold, mono: mono);
+        ed.WidgetResolver = key => key is not EmbedRef r ? null : r.Key switch
+        {
+            "demo" => Border(background: Bind.From(() => Styles.WithAlpha(UiTheme.T.Primary, 25)), padding: new Thickness(12))[
+                VStack(6)[
+                    Text("Embedded live widget", color: Bind.From(() => UiTheme.T.Primary)),
+                    Button(_ => { }, "a real button in the document")]],
+            "note" => Border(background: Bind.From(() => Styles.WithAlpha(UiTheme.T.TextMuted, 22)), padding: new Thickness(12))[
+                Text($"note body → \"{r.Body}\"", color: Bind.From(() => UiTheme.T.Text))],
+            _ => null,
+        };
 
         ctx.Play(async d =>
         {

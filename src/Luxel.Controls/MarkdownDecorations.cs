@@ -12,6 +12,11 @@ public readonly record struct MarkdownHeading(int Level, string Text, int Offset
 /// (view の <see cref="TextEditorView.OnClickOffset"/> で当たり判定する)。</summary>
 public readonly record struct MarkdownLink(int From, int To, string Text, string Url);
 
+/// <summary>埋め込みフェンス <c>```embed &lt;key&gt; ... ```</c> の中身 — 種別キーとフェンス本文。
+/// block widget の <see cref="BlockWidgetDecoration.Key"/> になり、view の <see cref="TextEditorView.WidgetResolver"/>
+/// が種別で実 Widget を作る (例 mermaid/数式は Body を図/式ソースとして解決)。</summary>
+public readonly record struct EmbedRef(string Key, string Body);
+
 /// <summary>Markdown を「文書として描く」ワンショット (WS-A / ADR-0012) — <see cref="TextEditorView"/> に
 /// <see cref="MarkdownProvider"/> を付け、read-only + 折返しで束ねる。表示は行、装飾は provider。
 /// 将来 <see cref="Kit.Docs(DocString, bool, System.Collections.Generic.IReadOnlyList{IFenceResolver})"/> の
@@ -107,19 +112,25 @@ public static class MarkdownDecorations
         bool inEmbed = false;
         int embedStart = 0;
         string embedKey = "";
+        var embedBody = new System.Text.StringBuilder();
         foreach (string line in text.Split('\n'))
         {
             int end = lineStart + line.Length;
             string trimmed = line.TrimStart();
             int indent = line.Length - trimmed.Length;
 
-            // 埋め込みフェンス ```embed <key> ... ``` = 自動高さ block widget (view が key で live UI を解決)
+            // 埋め込みフェンス ```embed <key> <本文> ``` = 自動高さ block widget (view が key/本文で live UI を解決)
             if (inEmbed)
             {
-                if (trimmed.StartsWith("```"))   // 閉じフェンス → 範囲全体を block widget に
+                if (trimmed.StartsWith("```"))   // 閉じフェンス → 範囲全体を block widget に (本文を EmbedRef で渡す)
                 {
-                    marks.Add(new BlockWidgetDecoration(embedStart, end, embedKey, 0f));
+                    marks.Add(new BlockWidgetDecoration(embedStart, end, new EmbedRef(embedKey, embedBody.ToString()), 0f));
                     inEmbed = false;
+                }
+                else
+                {
+                    if (embedBody.Length > 0) embedBody.Append('\n');
+                    embedBody.Append(line);
                 }
                 Consume(consumed, lineStart, end);
                 lineStart = end + 1;
@@ -134,6 +145,7 @@ public static class MarkdownDecorations
                 {
                     embedStart = lineStart;
                     embedKey = info.Length > 5 ? info[5..].Trim() : "";
+                    embedBody.Clear();
                     inEmbed = true;
                     Consume(consumed, lineStart, end);
                     lineStart = end + 1;
