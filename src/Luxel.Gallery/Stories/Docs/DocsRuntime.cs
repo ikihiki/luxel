@@ -314,7 +314,7 @@ public static class DocsRuntime
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/Scripting", Order = 56)]
-    public static Widget Scripting(StoryContext ctx) => ctx.Snap(WithDocFonts(Docs(ctx, $$"""
+    public static Widget Scripting(StoryContext ctx) => ctx.Snap(DocNew(ctx, $$"""
         # スクリプト (Luxel.Scripting)
 
         **言語はエンジンと同じ C#** です (別言語を持ち込みません)。[Roslyn Scripting](https://github.com/dotnet/roslyn) を `ScriptHost` で薄く包み、`.csx` 意味論 (最後の式が戻り値、globals のメンバーが裸で見える) で実行します。書き手は開発者自身なのでフルトラストで、pure-C#・型付き・決定的というリポジトリの方針とそのまま噛み合います。実演は {{StoryRef(ctx, "Demos/Scripting/LiveCsx")}} へ。
@@ -374,5 +374,5 @@ public static class DocsRuntime
 
         > [!NOTE]
         > v1 の割り切り: 編集ごとのアセンブリはプロセス終了まで残る (開発時ツールとして許容 — アンロードが要件になったら collectible ALC 化)。サンドボックスは無し (信頼できるコード前提 — 軽量分離が要るなら Lua-CSharp を後付けする退路)。スクリプトは決定性規約 (wall-clock/乱数/await を使わない) を守れば snap/E2E と両立します。
-        """, toc: true, fences: DocsFences)));
+        """, toc: true));
 }

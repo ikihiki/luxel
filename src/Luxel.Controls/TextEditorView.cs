@@ -794,6 +794,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
         foreach (WidgetSlot slot in _geo!.WidgetSlots())
         {
             seen.Add(slot.Key);
+            bool isNew = false;
             if (!_widgets.TryGetValue(slot.Key, out Hosted? h))
             {
                 if (WidgetResolver(slot.Key) is not { } w) continue;
@@ -801,10 +802,18 @@ public sealed partial class TextEditorView : Widget, ITextInput
                 container.Z = 5;
                 h = new Hosted { Key = slot.Key, Widget = w, Container = container };
                 _widgets[slot.Key] = h;
+                isNew = true;
             }
-            h.Rect = slot.Rect;
             bool auto = _autoBlockKeys.Contains(slot.Key);
-            MeasureAutoBlock(slot.Key, RealizeWidget(h, auto), auto);
+            // 既に実体化済みで箱 (位置+サイズ) が不変なら再実体化しない — ライブ/GPU/audio を毎フレーム
+            // 回す埋め込みを毎 Refresh で Scope.Release()+Realize() すると使用中リソースの use-after-free で
+            // device lost する。旧スタックと同じ「1 回だけ実体化して保持、あとは埋め込み自身の scope が
+            // 自己更新 (Effect/AddAnimation)」。箱が変わったとき (新規・自動高さ確定・折返し幅変化) だけ組み直す。
+            if (isNew || h.Rect != slot.Rect)
+            {
+                h.Rect = slot.Rect;
+                MeasureAutoBlock(slot.Key, RealizeWidget(h, auto), auto);
+            }
         }
         if (_widgets.Count > seen.Count)
             foreach (object k in _widgets.Keys.Where(k => !seen.Contains(k)).ToList())
