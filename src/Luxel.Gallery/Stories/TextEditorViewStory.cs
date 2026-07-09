@@ -287,6 +287,43 @@ public static class TextEditorViewStory
                 ed]];
     }
 
+    [Story("Controls/TextEditorView/DocEmbeds", Height = 460, Order = 13)]
+    public static Widget DocEmbeds(StoryContext ctx)
+    {
+        // mermaid/数式アダプタ (WS-A / ADR-0012): ```embed mermaid|math フェンス本文を、既存の
+        // Luxel.Diagram / Luxel.MathText を再利用して図/式 widget に解決 (自動高さで載る)。
+        Signal<string> md = ctx.Signal("md",
+            "# Diagrams and math\n" +
+            "A mermaid diagram, reusing Luxel.Diagram:\n" +
+            "```embed mermaid\n" +
+            "flowchart LR\n" +
+            "A[Editor] --> B[Provider]\n" +
+            "B --> C[BlockWidget]\n" +
+            "```\n" +
+            "A formula via Luxel.MathText:\n" +
+            "```embed math\n" +
+            "w = \\frac{\\alpha + \\beta}{\\sqrt{x^2 + y^2}}\n" +
+            "```\n" +
+            "Both are just embed widgets.");
+        (VectorFont? bold, _, _, VectorFont? mono) = EditorFaces.Value;
+        TextEditorView ed = MarkdownDoc.Create(md, () => UiTheme.T, width: 520f, height: 380f, bold: bold, mono: mono);
+        const float cw = 460f;
+        ed.WidgetResolver = key => key is not EmbedRef r ? null : r.Key switch
+        {
+            "mermaid" => Luxel.Diagram.Factories.DiagramBlock(r.Body, cw),
+            "math" => Luxel.MathText.Factories.MathBlockView(r.Body, maxWidth: cw),
+            _ => null,
+        };
+
+        ctx.Play(async d => { await d.Step(3); await d.Snap("docembeds"); });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("TextEditorView — mermaid / 数式 埋め込み"),
+                Muted("```embed mermaid|math の本文を既存プロセッサ (Diagram/MathText) で解決 = 内容プロセッサ再利用。"),
+                ed]];
+    }
+
     [Story("Controls/TextEditorView/Embed", Height = 320, Order = 12)]
     public static Widget Embed(StoryContext ctx)
     {
