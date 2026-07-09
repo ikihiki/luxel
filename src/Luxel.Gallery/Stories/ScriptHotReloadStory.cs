@@ -51,7 +51,7 @@ public static class ScriptHotReloadStory
     {
         private readonly Signal<string> _code;
         private readonly Signal<int> _ver = new(0);
-        private readonly CodeEditor _editor;
+        private readonly TextEditorView _editor;
         private readonly BoxGlobals _globals = new(null);
         private readonly MemoryScriptSource _source;
         private readonly ScriptSystem _sys;
@@ -66,9 +66,12 @@ public static class ScriptHotReloadStory
         {
             _maxW = maxW;
             _code = new Signal<string>(InitialCode);
-            _editor = CodeEditor(_code, editorHeight: 110f, editorWidth: maxW - 96);
-            (_, _, _, _editor.MonoFont) = EditorFaces.Value;
-            _editor.Highlighter = Luxel.Highlight.TextMateHighlighter.Instance;
+            _editor = TextEditorView(_code, editorHeight: 110f, editorWidth: maxW - 96);
+            _editor.ShowLineNumbers = true;
+            _editor.EditorFont = EditorFaces.Value.Mono;
+            Func<Theme> th = () => UiTheme.T;
+            _editor.Providers.Add(new SyntaxHighlightProvider(Luxel.Highlight.TextMateHighlighter.Instance, "csharp", th));
+            _editor.Providers.Add(new CurrentLineProvider(th));
             _source = new MemoryScriptSource(_code.Value);
             // ゲーム用 ScriptHost は登録簿から役割で取得 (未登録なら登録して構築)。
             _sys = new ScriptSystem(scripts.GetOrAdd(BoxProfile()), _source, _globals);

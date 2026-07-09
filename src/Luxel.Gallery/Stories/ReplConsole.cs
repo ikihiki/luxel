@@ -14,7 +14,7 @@ internal sealed class ReplConsole : CompositeControl
 {
     private readonly Signal<string> _input;
     private readonly Signal<int> _ver = new(0);
-    private readonly TextArea _editor;
+    private readonly TextEditorView _editor;
     private readonly ScriptSession _session;
     private readonly List<(string In, string Out, bool Ok)> _history = new();
     private readonly float _maxW;
@@ -30,8 +30,9 @@ internal sealed class ReplConsole : CompositeControl
     {
         _maxW = MathF.Max(240, maxWidth);
         _input = new Signal<string>(initial);
-        _editor = TextArea(_input, height: 40f, width: _maxW - 96);
+        _editor = TextEditorView(_input, editorHeight: 40f, editorWidth: _maxW - 96);
         _editor.Fonts = StoryKit.JpFallback.Value;
+        _editor.EditorFont = StoryKit.EditorFaces.Value.Mono;
         _session = host.OpenSession(globals);
         SubmitButton = Button(_ => Submit(), "▷");
     }
