@@ -158,6 +158,24 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void EmbedKinds_RecognizesDirectKindFence()
+    {
+        // ```luxel-ui\n0\n``` を embedKinds で埋め込み扱いに (DocString 橋)
+        var set = MarkdownDecorations.Build("```luxel-ui\n0\n```", T, embedKinds: new[] { "luxel-ui" });
+        EmbedRef r = (EmbedRef)set.OfKind<BlockWidgetDecoration>().Single().Key;
+        Assert.Equal("luxel-ui", r.Key);
+        Assert.Equal("0", r.Body);
+    }
+
+    [Fact]
+    public void EmbedKinds_Null_DirectKindIsCodeFence_NotEmbed()
+    {
+        // embedKinds を渡さなければ ```luxel-ui は通常のコードフェンス (無回帰)
+        var set = MarkdownDecorations.Build("```luxel-ui\n0\n```", T);
+        Assert.Empty(set.OfKind<BlockWidgetDecoration>());
+    }
+
+    [Fact]
     public void EmbedFence_CapturesBody()
     {
         // 本文を持つ埋め込み (mermaid/数式の図・式ソースの土台)

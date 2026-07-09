@@ -27,7 +27,8 @@ public static class MarkdownDoc
     /// <summary>設定済みの文書レンダラを作る。<paramref name="body"/> が null なら既定 (テーマ) フォント。</summary>
     public static TextEditorView Create(Signal<string> markdown, Func<Theme> theme, float width, float height,
         VectorFont? body = null, VectorFont? bold = null, VectorFont? italic = null,
-        VectorFont? boldItalic = null, VectorFont? mono = null, bool wrap = true, ISyntaxHighlighter? highlighter = null)
+        VectorFont? boldItalic = null, VectorFont? mono = null, bool wrap = true, ISyntaxHighlighter? highlighter = null,
+        IReadOnlyCollection<string>? embedKinds = null)
     {
         TextEditorView ed = Kit.TextEditorView(markdown, editorHeight: height, editorWidth: width);
         if (body is not null) ed.EditorFont = body;
@@ -38,7 +39,31 @@ public static class MarkdownDoc
         ed.WrapText = wrap;
         ed.WrapLineHeight = 1.3f;   // 段落内はブロック間 (1.5) より詰める
         ed.ReadOnly = true;
-        ed.Providers.Add(new MarkdownProvider(theme, hideMarkers: true, highlighter));   // 文書レンダラ: マーカ非表示 + コード色分け
+        ed.Providers.Add(new MarkdownProvider(theme, hideMarkers: true, highlighter, embedKinds));   // 文書レンダラ: マーカ非表示 + コード色分け + 埋め込み
+        return ed;
+    }
+
+    /// <summary>既存の <see cref="DocString"/> (```luxel-ui の UI hole を含む markdown) を新スタックで描く橋。
+    /// これで <c>Docs($"...{Widget}...")</c> 記法のページを 1 行変更で新スタックへ移行できる。
+    /// block hole (luxel-ui) は <see cref="DocString.HoleWidgets"/> で解決。mermaid/数式など外部ドメインの
+    /// フェンスは <paramref name="fences"/> (kind → 本文で widget を作る) で注入する (Controls は Diagram/MathText 非依存)。
+    /// インライン hole (<c>[￼](luxel-ui:N)</c>) は後段。</summary>
+    public static TextEditorView FromDoc(DocString content, Func<Theme> theme, float width, float height,
+        VectorFont? body = null, VectorFont? bold = null, VectorFont? mono = null, ISyntaxHighlighter? highlighter = null,
+        IReadOnlyDictionary<string, Func<string, Widget>>? fences = null)
+    {
+        IReadOnlyList<Widget> holes = content.HoleWidgets;
+        var kinds = new HashSet<string> { DocString.UiTypeId };
+        if (fences is not null) foreach (string k in fences.Keys) kinds.Add(k);
+        TextEditorView ed = Create(new Signal<string>(content.Md), theme, width, height,
+            body: body, bold: bold, mono: mono, highlighter: highlighter, embedKinds: kinds);
+        ed.WidgetResolver = key =>
+        {
+            if (key is not EmbedRef r) return null;
+            if (r.Key == DocString.UiTypeId)
+                return int.TryParse(r.Body.Trim(), out int i) && i >= 0 && i < holes.Count ? holes[i] : null;
+            return fences is not null && fences.TryGetValue(r.Key, out Func<string, Widget>? f) ? f(r.Body) : null;
+        };
         return ed;
     }
 }
@@ -103,7 +128,8 @@ public static class MarkdownDecorations
     /// <summary>Markdown 全文 → 装飾集合 (純関数、フォント非依存 = GPU 不要でテスト可)。
     /// <paramref name="hideMarkers"/> = true (read-only 文書レンダラ) で記法マーカ (#/**/`/&gt;/-/[]() 等) を
     /// 淡色化ではなく**非表示** (幅0) にする。false (編集/live-preview) は従来どおり淡色。</summary>
-    public static DecorationSet Build(string text, Theme t, bool hideMarkers = false, ISyntaxHighlighter? highlighter = null)
+    public static DecorationSet Build(string text, Theme t, bool hideMarkers = false, ISyntaxHighlighter? highlighter = null,
+        IReadOnlyCollection<string>? embedKinds = null)
     {
         var marks = new List<Decoration>();
         var consumed = new bool[text.Length];
@@ -112,6 +138,16 @@ public static class MarkdownDecorations
         Decoration Marker(int from, int to) => hideMarkers
             ? new MarkDecoration(from, to, Hidden: true)
             : new MarkDecoration(from, to, Foreground: muted);
+        // 埋め込みフェンス判定: ```embed <key> は常に、```<kind> は kind が embedKinds にあるとき。
+        bool IsEmbedFence(string info, out string key)
+        {
+            if (info == "embed" || info.StartsWith("embed "))
+            { key = info.Length > 5 ? info[5..].Trim() : ""; return true; }
+            string first = info.Length > 0 ? info.Split(' ', 2)[0] : "";
+            if (first.Length > 0 && embedKinds is not null && embedKinds.Contains(first)) { key = first; return true; }
+            key = "";
+            return false;
+        }
 
         // --- 行単位: 埋め込み / 見出し / コードフェンス / 引用 / 箇条書き ---
         int lineStart = 0;
@@ -149,10 +185,10 @@ public static class MarkdownDecorations
             if (trimmed.StartsWith("```"))
             {
                 string info = trimmed[3..].Trim();
-                if (!inFence && info.StartsWith("embed"))
+                if (!inFence && IsEmbedFence(info, out string ek))
                 {
                     embedStart = lineStart;
-                    embedKey = info.Length > 5 ? info[5..].Trim() : "";
+                    embedKey = ek;
                     embedBody.Clear();
                     inEmbed = true;
                     Consume(consumed, lineStart, end);
@@ -273,7 +309,8 @@ public static class MarkdownDecorations
 
 /// <summary>Markdown ソースを装飾に変換する <see cref="IDecorationProvider"/> — <see cref="TextEditorView.Providers"/>
 /// に足すと見出し/太字/斜体/コードが付く。テキストとテーマが変わらない限りキャッシュを返す。</summary>
-public sealed class MarkdownProvider(Func<Theme> theme, bool hideMarkers = false, ISyntaxHighlighter? highlighter = null) : IDecorationProvider
+public sealed class MarkdownProvider(Func<Theme> theme, bool hideMarkers = false, ISyntaxHighlighter? highlighter = null,
+    IReadOnlyCollection<string>? embedKinds = null) : IDecorationProvider
 {
     private string? _lastText;
     private uint _lastDisc;
@@ -291,7 +328,7 @@ public sealed class MarkdownProvider(Func<Theme> theme, bool hideMarkers = false
         if (text == _lastText && disc == _lastDisc) return _cache;
         _lastText = text;
         _lastDisc = disc;
-        _cache = MarkdownDecorations.Build(text, t, hideMarkers, highlighter);
+        _cache = MarkdownDecorations.Build(text, t, hideMarkers, highlighter, embedKinds);
         return _cache;
     }
 }

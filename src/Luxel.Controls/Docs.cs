@@ -47,6 +47,11 @@ public sealed class DocString
     private bool _afterFence;   // 直前が UI フェンス — 次の追記の頭で行境界を保証する
     internal readonly List<Widget> Holes = new();
 
+    /// <summary>組み上がった markdown (```luxel-ui フェンス等を含む)。新スタック橋 (<see cref="Kit.MarkdownDocs"/>) 用。</summary>
+    internal string Md => _md.ToString();
+    /// <summary>ブロック hole の Widget 列 (```luxel-ui の index が指す)。</summary>
+    internal IReadOnlyList<Widget> HoleWidgets => Holes;
+
     public DocString(int literalLength, int formattedCount)
         => _md = new StringBuilder(literalLength + formattedCount * 24);
 

@@ -288,6 +288,40 @@ public static class TextEditorViewStory
                 ed]];
     }
 
+    [Story("Controls/TextEditorView/DocBridge", Height = 420, Order = 14)]
+    public static Widget DocBridge(StoryContext ctx)
+    {
+        // 移行の本命 (WS-A / ADR-0012 S(A3)): 既存の Docs($"...{Widget}...") 記法 (DocString) を
+        // そのまま MarkdownDoc.FromDoc で新スタック描画。既存 Docs ページを 1 行変更で移行できる。
+        Widget live = Button(_ => { }, "a live embedded widget");
+        DocString content = $$"""
+            # Migrated docs page
+
+            This page is authored with the **DocString** API but renders on the *new stack* via `MarkdownDoc.FromDoc`.
+
+            {{live}}
+
+            A mermaid diagram, reusing Luxel.Diagram:
+
+            ```mermaid
+            flowchart LR
+            Docs --> FromDoc --> NewStack
+            ```
+            """;
+        (VectorFont? bold, _, _, VectorFont? mono) = EditorFaces.Value;
+        TextEditorView ed = MarkdownDoc.FromDoc(content, () => UiTheme.T, width: 520f, height: 330f, bold: bold, mono: mono,
+            highlighter: Luxel.Highlight.TextMateHighlighter.Instance,
+            fences: new Dictionary<string, Func<string, Widget>> { ["mermaid"] = b => Luxel.Diagram.Factories.DiagramBlock(b, 460f) });
+
+        ctx.Play(async d => { await d.Step(3); await d.Snap("bridge"); });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("TextEditorView — Docs 橋 (DocString → 新スタック)"),
+                Muted("既存の Docs($\"...{Widget}...\") 記法を MarkdownDoc.FromDoc で新スタック描画 = 移行の 1 行化。"),
+                ed]];
+    }
+
     [Story("Controls/TextEditorView/DocEmbeds", Height = 460, Order = 13)]
     public static Widget DocEmbeds(StoryContext ctx)
     {
