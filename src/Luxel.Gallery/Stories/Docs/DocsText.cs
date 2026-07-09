@@ -103,7 +103,7 @@ public static class DocsText
 
         文書 (RichTextEditor) と別に、**等幅・折り返しなし**のコード編集に特化した `CodeEditor` があります。編集の中核は同じ `DocumentEditor` を再利用し、ビューだけコード向けです: **行番号ガター + 現在行ハイライト + シンタックスハイライト** (`ISyntaxHighlighter`、行単位の同期トークン化)。
 
-        言語サービスは `ICodeLanguage` (補完/診断/ホバー) を**外から注入**します — Controls は Roslyn を知らず、C# 実装 (`ScriptWorkspace` を包む) は Gallery 側に置きます (LSP のエディタ⇄サーバー分離と同じ疎結合)。付くと: **Ctrl+Space でキャレット直下にフローティング補完ポップアップ** (↑↓/Enter/Escape、**タイプで候補を絞り込み**続け・**クリックでも選択**)、**エラーは赤い波線**、シンボルに**マウスを留めるとツールチップ** (dwell はフレームカウント基準で snap も決定的) が出ます。キャレット位置の型も `HoverText` で取れます。実物: [Controls/CodeEditor/Completion](story:Controls/CodeEditor/Completion)。
+        言語サービスは `ICodeLanguage` (補完/診断/ホバー) を**外から注入**します — Controls は Roslyn を知らず、C# 実装 (`ScriptWorkspace` を包む) は Gallery 側に置きます (LSP のエディタ⇄サーバー分離と同じ疎結合)。付くと: **Ctrl+Space でキャレット直下にフローティング補完ポップアップ** (↑↓/Enter/Escape、**タイプで候補を絞り込み**続け・**クリックでも選択**)、**エラーは赤い波線**、シンボルに**マウスを留めるとツールチップ** (dwell はフレームカウント基準で snap も決定的) が出ます。キャレット位置の型も `HoverText` で取れます。実物: [Controls/TextEditorView/Completion](story:Controls/TextEditorView/Completion)。
 
         > [!NOTE]
         > 実装済み: ガター / 現在行 / トークン色 / 補完ポップアップ (Ctrl+Space) / 診断波線 / ホバー / 行操作 (Ctrl+D 複製・Ctrl+/ コメントトグル・Alt+↑↓ 行移動) / 検索置換 / スクロールバー。**v2 送り**: マルチカーソル・矩形選択 (E3.5 として意図的延期)、ミニマップ・コード折りたたみ・複数ファイルタブ・git 差分ガター・スニペット・フォーマッタ。
