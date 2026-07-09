@@ -268,6 +268,7 @@ public static class TextEditorViewStory
         Signal<string> md = ctx.Signal("md",
             "# Document renderer\n" +
             "This is a longer paragraph that wraps across the available width, showing that the read-only Markdown document renderer handles flowing prose — not just short lines.\n" +
+            "日本語の段落も混在できます（フォールバックフォント）。\n" +
             "## Features\n" +
             "- **bold**, *italic*, `code`\n" +
             "- links like [the editor docs](story:Docs/Editor)\n" +
@@ -276,8 +277,8 @@ public static class TextEditorViewStory
             "var answer = 42;  // syntax colored, selectable\n" +
             "```");
         (VectorFont? bold, _, _, VectorFont? mono) = EditorFaces.Value;
-        TextEditorView ed = MarkdownDoc.Create(md, () => UiTheme.T, width: 520f, height: 260f, bold: bold, mono: mono,
-            highlighter: Luxel.Highlight.TextMateHighlighter.Instance);
+        TextEditorView ed = MarkdownDoc.Create(md, () => UiTheme.T, width: 520f, height: 280f, bold: bold, mono: mono,
+            highlighter: Luxel.Highlight.TextMateHighlighter.Instance, fonts: JpFallback.Value);
 
         ctx.Play(async d => await d.Snap("doc"));
 

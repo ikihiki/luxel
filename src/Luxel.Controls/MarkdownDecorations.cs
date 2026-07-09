@@ -28,10 +28,11 @@ public static class MarkdownDoc
     public static TextEditorView Create(Signal<string> markdown, Func<Theme> theme, float width, float height,
         VectorFont? body = null, VectorFont? bold = null, VectorFont? italic = null,
         VectorFont? boldItalic = null, VectorFont? mono = null, bool wrap = true, ISyntaxHighlighter? highlighter = null,
-        IReadOnlyCollection<string>? embedKinds = null)
+        IReadOnlyCollection<string>? embedKinds = null, FontCollection? fonts = null)
     {
         TextEditorView ed = Kit.TextEditorView(markdown, editorHeight: height, editorWidth: width);
         if (body is not null) ed.EditorFont = body;
+        if (fonts is not null) ed.Fonts = fonts;   // 日本語/絵文字フォールバック用フォント列
         ed.BoldFont = bold;
         ed.ItalicFont = italic;
         ed.BoldItalicFont = boldItalic;
