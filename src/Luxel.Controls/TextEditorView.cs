@@ -40,6 +40,9 @@ public sealed partial class TextEditorView : Widget, ITextInput
     public float? WrapLineHeight { get; set; }
     /// <summary>読み取り専用 (文書レンダラ用)。文書を変える編集は無視し、選択/スクロール/widget 操作は許す。</summary>
     public bool ReadOnly { get; set; }
+    /// <summary>Markdown 文書レンダラの場合、索引用の markdown ソース (build 時に取れる = realize 不要)。
+    /// null = 通常のエディタ (docs 索引の対象外)。<see cref="MarkdownDoc"/> が設定する。</summary>
+    public string? DocSource { get; set; }
     /// <summary>クリック時にクリック位置のソースオフセットを通知する (リンクナビ等の当たり判定用)。</summary>
     public Action<int>? OnClickOffset { get; set; }
 

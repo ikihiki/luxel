@@ -39,6 +39,7 @@ public static class MarkdownDoc
         ed.WrapText = wrap;
         ed.WrapLineHeight = 1.3f;   // 段落内はブロック間 (1.5) より詰める
         ed.ReadOnly = true;
+        ed.DocSource = markdown.Peek();   // docs 索引用 (realize 不要で本文/見出し/リンクを取れる)
         ed.Providers.Add(new MarkdownProvider(theme, hideMarkers: true, highlighter, embedKinds));   // 文書レンダラ: マーカ非表示 + コード色分け + 埋め込み
         return ed;
     }

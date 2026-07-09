@@ -32,25 +32,34 @@ public static class DocsIndex
                 var ctx = new StoryContext(resources);
                 ctx.SetServices(GalleryServices.Provider);   // Scripting 等 DI ストーリーも build できるように
                 Widget w = s.Build(ctx);
-                if (FindDocEditor(w) is not { } doc) continue;
-                IReadOnlyList<Luxel.Document.Block> blocks = doc.Editor.Doc.Blocks;
-                var heads = new List<DocsHeading>();
-                var text = new System.Text.StringBuilder();
-                for (int i = 0; i < blocks.Count; i++)
+                if (FindDocEditor(w) is { } doc)
                 {
-                    if (blocks[i].Kind == Luxel.Document.BlockKind.Heading && blocks[i].HeadingLevel >= 2)
-                        heads.Add(new DocsHeading(blocks[i].Text, blocks[i].HeadingLevel, i));
-                    if (blocks[i].Kind != Luxel.Document.BlockKind.Embed)
-                        text.AppendLine(blocks[i].Text);
+                    // 旧スタック (RichTextEditor): ブロックから本文/見出し/リンクを取る
+                    IReadOnlyList<Luxel.Document.Block> blocks = doc.Editor.Doc.Blocks;
+                    var heads = new List<DocsHeading>();
+                    var text = new System.Text.StringBuilder();
+                    for (int i = 0; i < blocks.Count; i++)
+                    {
+                        if (blocks[i].Kind == Luxel.Document.BlockKind.Heading && blocks[i].HeadingLevel >= 2)
+                            heads.Add(new DocsHeading(blocks[i].Text, blocks[i].HeadingLevel, i));
+                        if (blocks[i].Kind != Luxel.Document.BlockKind.Embed)
+                            text.AppendLine(blocks[i].Text);
+                    }
+                    map[s.Path] = new DocsPage(s.Path, text.ToString(), heads);
+                    foreach (string url in Luxel.Document.LinkCheck.FindBroken(blocks, p => StoryRegistry.Find(p) is not null))
+                    { broken++; Console.Error.WriteLine($"[gallery] dead link in '{s.Path}': {url}"); }
                 }
-                map[s.Path] = new DocsPage(s.Path, text.ToString(), heads);
-
-                // デッドリンク検証: #アンカー (同一ページ見出し) と story: (レジストリ) を確認
-                foreach (string url in Luxel.Document.LinkCheck.FindBroken(
-                             blocks, p => StoryRegistry.Find(p) is not null))
+                else if (FindMarkdownDoc(w) is { DocSource: { } src })
                 {
-                    broken++;
-                    Console.Error.WriteLine($"[gallery] dead link in '{s.Path}': {url}");
+                    // 新スタック (MarkdownDoc): markdown ソースから見出し/リンクを取る (realize 不要)
+                    var heads = MarkdownDecorations.Headings(src)
+                        .Where(h => h.Level >= 2)
+                        .Select(h => new DocsHeading(h.Text, h.Level, 0))
+                        .ToList();
+                    map[s.Path] = new DocsPage(s.Path, src, heads);
+                    foreach (MarkdownLink l in MarkdownDecorations.Links(src))
+                        if (LinkBroken(l.Url, src))
+                        { broken++; Console.Error.WriteLine($"[gallery] dead link in '{s.Path}': {l.Url}"); }
                 }
             }
             catch (Exception e)
@@ -71,5 +80,22 @@ public static class DocsIndex
         foreach (Widget c in w.DebugChildren())
             if (FindDocEditor(c) is { } found) return found;
         return null;
+    }
+
+    /// <summary>widget 木から新スタックの docs (<see cref="TextEditorView.DocSource"/> を持つ) を探す。</summary>
+    internal static TextEditorView? FindMarkdownDoc(Widget w)
+    {
+        if (w is TextEditorView e && e.DocSource is not null) return e;
+        foreach (Widget c in w.DebugChildren())
+            if (FindMarkdownDoc(c) is { } found) return found;
+        return null;
+    }
+
+    // 新スタック docs のリンク検証: story: (レジストリ) と #アンカー (見出し slug)。外部リンクは検証しない。
+    private static bool LinkBroken(string url, string src)
+    {
+        if (url.StartsWith("story:")) return StoryRegistry.Find(url["story:".Length..]) is null;
+        if (url.StartsWith("#")) return !MarkdownDecorations.Headings(src).Any(h => RichTextEditor.Slug(h.Text) == url[1..]);
+        return false;
     }
 }
