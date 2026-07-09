@@ -287,6 +287,39 @@ public static class TextEditorViewStory
                 ed]];
     }
 
+    [Story("Controls/TextEditorView/Embed", Height = 320, Order = 12)]
+    public static Widget Embed(StoryContext ctx)
+    {
+        // 埋め込みライブ UI (WS-A / ADR-0012、Kit.Docs() の目玉を新スタックで): ```embed <key> フェンス →
+        // MarkdownProvider が自動高さ block widget を出し、WidgetResolver が key から実 Widget を解決する。
+        Signal<string> md = ctx.Signal("md",
+            "# Embedded live UI\n" +
+            "Docs embed real widgets via an embed fence:\n" +
+            "```embed demo\n" +
+            "```\n" +
+            "Text continues after the embedded widget.");
+        (VectorFont? bold, _, _, VectorFont? mono) = EditorFaces.Value;
+        TextEditorView ed = MarkdownDoc.Create(md, () => UiTheme.T, width: 520f, height: 250f, bold: bold, mono: mono);
+        ed.WidgetResolver = key => key as string == "demo"
+            ? Border(background: Bind.From(() => Styles.WithAlpha(UiTheme.T.Primary, 25)), padding: new Thickness(12))[
+                  VStack(6)[
+                      Text("Embedded live widget", color: Bind.From(() => UiTheme.T.Primary)),
+                      Button(_ => { }, "a real button in the document")]]
+            : null;
+
+        ctx.Play(async d =>
+        {
+            await d.Step(3);   // 自動高さの収束を待つ
+            await d.Snap("embed");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("TextEditorView — 埋め込みライブ UI"),
+                Muted("```embed key フェンス → 自動高さ block widget → WidgetResolver で live Widget。Kit.Docs() の hole 埋め込み相当。"),
+                ed]];
+    }
+
     [Story("Controls/TextEditorView/BlockWidgetAuto", Height = 300, Order = 11)]
     public static Widget BlockWidgetAuto(StoryContext ctx)
     {

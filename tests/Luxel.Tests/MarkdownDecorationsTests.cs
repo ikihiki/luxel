@@ -118,6 +118,17 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void EmbedFence_EmitsAutoHeightBlockWidget()
+    {
+        // "intro\n```embed counter\n```\nend": ```embed = [6,22), ``` = [23,26)
+        var set = Build("intro\n```embed counter\n```\nend");
+        BlockWidgetDecoration bw = set.OfKind<BlockWidgetDecoration>().Single();
+        Assert.Equal("counter", bw.Key);
+        Assert.True(bw.Height <= 0);          // 自動高さ
+        Assert.Equal((6, 26), (bw.From, bw.To));
+    }
+
+    [Fact]
     public void ListMarkers_AreMuted()
     {
         Assert.Equal(T.TextMuted, At(Build("- item"), 0, 2).Foreground);        // 箇条書き "- "

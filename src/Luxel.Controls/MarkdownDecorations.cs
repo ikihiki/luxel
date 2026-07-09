@@ -101,18 +101,44 @@ public static class MarkdownDecorations
         uint muted = t.TextMuted;
         uint codeBg = Styles.WithAlpha(t.Text, 22);
 
-        // --- 行単位: 見出し / コードフェンス / 引用 / 箇条書き ---
+        // --- 行単位: 埋め込み / 見出し / コードフェンス / 引用 / 箇条書き ---
         int lineStart = 0;
         bool inFence = false;
+        bool inEmbed = false;
+        int embedStart = 0;
+        string embedKey = "";
         foreach (string line in text.Split('\n'))
         {
             int end = lineStart + line.Length;
             string trimmed = line.TrimStart();
             int indent = line.Length - trimmed.Length;
 
-            // ``` フェンス開閉 (行自体は淡色、間の行はコードブロック)
+            // 埋め込みフェンス ```embed <key> ... ``` = 自動高さ block widget (view が key で live UI を解決)
+            if (inEmbed)
+            {
+                if (trimmed.StartsWith("```"))   // 閉じフェンス → 範囲全体を block widget に
+                {
+                    marks.Add(new BlockWidgetDecoration(embedStart, end, embedKey, 0f));
+                    inEmbed = false;
+                }
+                Consume(consumed, lineStart, end);
+                lineStart = end + 1;
+                continue;
+            }
+
+            // ``` フェンス開閉 (行自体は淡色、間の行はコードブロック)。info が "embed" なら埋め込み開始。
             if (trimmed.StartsWith("```"))
             {
+                string info = trimmed[3..].Trim();
+                if (!inFence && info.StartsWith("embed"))
+                {
+                    embedStart = lineStart;
+                    embedKey = info.Length > 5 ? info[5..].Trim() : "";
+                    inEmbed = true;
+                    Consume(consumed, lineStart, end);
+                    lineStart = end + 1;
+                    continue;
+                }
                 marks.Add(new MarkDecoration(lineStart, end, Foreground: muted));
                 Consume(consumed, lineStart, end);
                 inFence = !inFence;
