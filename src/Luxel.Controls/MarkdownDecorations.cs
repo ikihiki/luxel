@@ -269,15 +269,23 @@ public static class MarkdownDecorations
                 continue;
             }
 
-            // 箇条書き / 番号付きリストのマーカを淡色 (本文はそのまま)
+            // 箇条書き / 番号付きリスト。read-only (hideMarkers) は源の "- " を畳んで
+            // 行頭 prefix で "• " (番号は "N. " のまま) を出す = マーカ非表示でも箇条書きに見える。
+            // 編集モード (hideMarkers=false) は従来どおりマーカを淡色化 (本文はそのまま)。
             if (trimmed.Length >= 2 && trimmed[1] == ' ' && trimmed[0] is '-' or '*' or '+')
-                marks.Add(Marker(lineStart + indent, lineStart + indent + 2));
+            {
+                if (hideMarkers) ListBullet(marks, lineStart, lineStart + indent + 2, indent, "• ", muted);
+                else marks.Add(Marker(lineStart + indent, lineStart + indent + 2));
+            }
             else
             {
                 int d = indent;
                 while (d < line.Length && char.IsAsciiDigit(line[d])) d++;
                 if (d > indent && d + 1 < line.Length && line[d] == '.' && line[d + 1] == ' ')
-                    marks.Add(Marker(lineStart + indent, lineStart + d + 2));
+                {
+                    if (hideMarkers) ListBullet(marks, lineStart, lineStart + d + 2, indent, line[indent..(d + 1)] + " ", muted);
+                    else marks.Add(Marker(lineStart + indent, lineStart + d + 2));
+                }
             }
             lineStart = end + 1;   // +1 = '\n'
         }
@@ -304,6 +312,15 @@ public static class MarkdownDecorations
             (from, to) => new MarkDecoration(from, to, Variant: FontVariant.Italic));
 
         return new DecorationSet(marks);
+    }
+
+    /// <summary>read-only 文書のリスト行: 源のインデント+マーカ <c>[lineStart, hideEnd)</c> を畳み、
+    /// 行頭 prefix で <c>インデント空白 + glyph</c> ("• " / "1. ") を淡色で出す。マーカ非表示でも
+    /// 箇条書きに見え、ネストは prefix の空白でインデントが保たれる。</summary>
+    private static void ListBullet(List<Decoration> marks, int lineStart, int hideEnd, int indent, string glyph, uint color)
+    {
+        marks.Add(new MarkDecoration(lineStart, hideEnd, Hidden: true));
+        marks.Add(new LinePrefixDecoration(lineStart, new string(' ', indent) + glyph, color));
     }
 
     private static void Inline(Regex re, string text, bool[] consumed, List<Decoration> marks,

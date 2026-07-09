@@ -35,6 +35,38 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void ReadOnlyList_HidesMarker_ShowsBulletPrefix()
+    {
+        // "- item" : read-only は源の "- " を畳み、行頭 prefix "• " を出す
+        var set = MarkdownDecorations.Build("- item", T, hideMarkers: true);
+        Assert.True(At(set, 0, 2).Hidden);   // "- " は非表示
+        LinePrefixDecoration pre = set.OfKind<LinePrefixDecoration>().Single();
+        Assert.Equal("• ", pre.Text);
+        Assert.Equal(0, pre.At);
+        Assert.Equal(T.TextMuted, pre.Color);
+    }
+
+    [Fact]
+    public void ReadOnlyList_NestedAndOrdered_PreservesIndentAndNumber()
+    {
+        // ネスト箇条書き: indent 空白 + "• "、番号リストは "1. " をそのまま prefix に
+        var nested = MarkdownDecorations.Build("  - deep", T, hideMarkers: true);
+        Assert.Equal("  • ", nested.OfKind<LinePrefixDecoration>().Single().Text);
+        var ordered = MarkdownDecorations.Build("1. first", T, hideMarkers: true);
+        Assert.Equal("1. ", ordered.OfKind<LinePrefixDecoration>().Single().Text);
+        Assert.True(ordered.OfKind<MarkDecoration>().Any(m => m is { From: 0, To: 3, Hidden: true }));  // "1. " 畳み
+    }
+
+    [Fact]
+    public void EditMode_List_MarkerMutedNotBulleted()
+    {
+        // hideMarkers=false (編集) は従来どおりマーカ淡色・prefix なし
+        var set = MarkdownDecorations.Build("- item", T);
+        Assert.Empty(set.OfKind<LinePrefixDecoration>());
+        Assert.Equal(T.TextMuted, At(set, 0, 2).Foreground);
+    }
+
+    [Fact]
     public void Heading_Level_ScalesDown()
     {
         Assert.Equal(MarkdownDecorations.HeadingScale(2), At(Build("## Sub"), 3, 6).FontScale!.Value, 3);
