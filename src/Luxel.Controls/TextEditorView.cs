@@ -311,6 +311,17 @@ public sealed partial class TextEditorView : Widget, ITextInput
     private Rect CaretLocalRect()
         => new(ContentX + _caretLocal.X, Pad + _caretLocal.Y - _scroll.Clamped, 2, MathF.Max(4, _caretLocal.Height));
 
+    /// <summary>指定ソースオフセットの行を上端近くまでスクロールする (docs の <c>#アンカー</c> / TOC ナビ用)。
+    /// realize 済み (geometry あり) が前提。</summary>
+    public void ScrollToSource(int offset)
+    {
+        if (_geo is null) return;
+        float y = _geo.CaretRect(Math.Clamp(offset, 0, _state.Doc.Text.Length)).Y;
+        _scroll.SetLengths(ContentH, H);
+        _scroll.ScrollTo(y);
+        Refresh();
+    }
+
     private Rect LocalViewport()
     {
         float vw = _ctx.Host?.Width ?? W, vh = _ctx.Host?.Height ?? H;

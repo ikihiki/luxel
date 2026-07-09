@@ -53,12 +53,14 @@ public static class MarkdownDoc
     /// インライン hole (<c>[￼](luxel-ui:N)</c>) は後段。</summary>
     public static TextEditorView FromDoc(DocString content, Func<Theme> theme, float width, float height,
         VectorFont? body = null, VectorFont? bold = null, VectorFont? mono = null, ISyntaxHighlighter? highlighter = null,
-        IReadOnlyDictionary<string, Func<string, Widget>>? fences = null, FontCollection? fonts = null, bool fill = false)
+        IReadOnlyDictionary<string, Func<string, Widget>>? fences = null, FontCollection? fonts = null, bool fill = false,
+        bool toc = false)
     {
         IReadOnlyList<Widget> holes = content.HoleWidgets;
         var kinds = new HashSet<string> { DocString.UiTypeId };
         if (fences is not null) foreach (string k in fences.Keys) kinds.Add(k);
-        TextEditorView ed = Create(new Signal<string>(content.Md), theme, width, height,
+        string md = toc ? InsertToc(content.Md) : content.Md;   // TOC = アンカー付き markdown リスト (hole 番号は不変)
+        TextEditorView ed = Create(new Signal<string>(md), theme, width, height,
             body: body, bold: bold, mono: mono, highlighter: highlighter, embedKinds: kinds, fonts: fonts, fill: fill);
         ed.WidgetResolver = key =>
         {
@@ -68,6 +70,28 @@ public static class MarkdownDoc
             return fences is not null && fences.TryGetValue(r.Key, out Func<string, Widget>? f) ? f(r.Body) : null;
         };
         return ed;
+    }
+
+    /// <summary>TOC = アンカーリンク付き markdown リストを最初の H1 直後 (無ければ先頭) へ挿入する。
+    /// ただの markdown なのでフォントもリンク機構 (<c>#アンカー</c>→スクロール) もそのまま効く。
+    /// H2/H3 が対象・コードフェンス内は無視。slug は <see cref="RichTextEditor.Slug"/> で本文と一致させる。</summary>
+    public static string InsertToc(string md)
+    {
+        string[] lines = md.Split('\n');
+        var toc = new List<string>();
+        bool inFence = false;
+        foreach (string l in lines)
+        {
+            if (l.TrimStart().StartsWith("```")) { inFence = !inFence; continue; }
+            if (inFence) continue;
+            if (l.StartsWith("## ")) toc.Add($"- [{l[3..].Trim()}](#{RichTextEditor.Slug(l[3..])})");
+            else if (l.StartsWith("### ")) toc.Add($"  - [{l[4..].Trim()}](#{RichTextEditor.Slug(l[4..])})");
+        }
+        if (toc.Count == 0) return md;
+        string block = string.Join('\n', toc);
+        for (int i = 0; i < lines.Length; i++)
+            if (lines[i].StartsWith("# ")) { lines[i] += "\n\n" + block; return string.Join('\n', lines); }
+        return block + "\n\n" + md;
     }
 }
 

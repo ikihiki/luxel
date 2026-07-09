@@ -1,4 +1,6 @@
-﻿using Luxel.Controls;
+﻿using System.Diagnostics;
+using Luxel.Controls;
+using Luxel.Typography;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 
@@ -57,6 +59,54 @@ internal static class DocsKit
     /// <summary>docs ページ共通のフェンス拡張 (```mermaid → Luxel.Diagram)。</summary>
     internal static readonly Luxel.Document.IFenceResolver[] DocsFences =
         [Luxel.Diagram.MermaidFenceResolver.Instance];
+
+    /// <summary>新スタック (テキストスタック / ADR-0012) の docs ページ。<see cref="MarkdownDoc.FromDoc"/> で
+    /// 既存の <c>Docs($"...")</c> 記法をそのまま描き、日本語フォント・シンタックスハイライト・mermaid/数式
+    /// フェンス・領域いっぱい (fill) を配線し、クリック → <c>story:</c>/外部/<c>#アンカー</c> ナビを繋ぐ。
+    /// docs ページの `Docs(ctx, ...)` を `DocNew(ctx, ...)` に替えるだけで移行できる (WS-A / S(A3))。</summary>
+    internal static Widget DocNew(StoryContext ctx, DocString content, bool toc = false)
+    {
+        (VectorFont? bold, _, _, VectorFont? mono) = StoryKit.EditorFaces.Value;
+        var fences = new Dictionary<string, Func<string, Widget>>
+        {
+            ["mermaid"] = body => Luxel.Diagram.Factories.DiagramBlock(body, 640f),
+            ["math"] = body => Luxel.MathText.Factories.MathBlockView(body, maxWidth: 640f),
+        };
+        TextEditorView ed = MarkdownDoc.FromDoc(content, () => UiTheme.T, width: 640f, height: 480f,
+            bold: bold, mono: mono, highlighter: Luxel.Highlight.TextMateHighlighter.Instance,
+            fences: fences, fonts: StoryKit.JpFallback.Value, fill: true, toc: toc);
+
+        // ナビ: クリック位置のソースオフセット → その位置のリンク → 解決 (Links/DocSource は最終 markdown 基準)
+        string src = ed.DocSource!;
+        IReadOnlyList<MarkdownLink> links = MarkdownDecorations.Links(src);
+        ed.OnClickOffset = off =>
+        {
+            foreach (MarkdownLink l in links)
+                if (off >= l.From && off < l.To) { NavigateDoc(ctx, ed, src, l.Url); return; }
+        };
+        return ed;
+    }
+
+    /// <summary>docs のリンク解決: <c>story:</c> は Navigate、<c>#アンカー</c> は見出しへスクロール、
+    /// http(s) は既定ブラウザ、その他は Log。</summary>
+    private static void NavigateDoc(StoryContext ctx, TextEditorView ed, string src, string url)
+    {
+        if (url.StartsWith("story:")) { ctx.Navigate(url["story:".Length..]); return; }
+        if (url.StartsWith("#"))
+        {
+            string slug = url[1..];
+            foreach (MarkdownHeading h in MarkdownDecorations.Headings(src))
+                if (Luxel.Controls.RichTextEditor.Slug(h.Text) == slug) { ed.ScrollToSource(h.Offset); return; }
+            return;
+        }
+        if (url.StartsWith("http://") || url.StartsWith("https://"))
+        {
+            try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); ctx.Log($"open: {url}"); }
+            catch (Exception e) { ctx.Log($"link 失敗: {url} ({e.Message})"); }
+            return;
+        }
+        ctx.Log($"link: {url}");
+    }
 
     /// <summary>日本語/絵文字フォールバック + シンタックスハイライト + mermaid/math widget を配線する。
     /// docs ページは必ずこれで包む。</summary>

@@ -8,7 +8,10 @@ namespace Luxel.Gallery.Stories;
 public static partial class DocsAdr
 {
     [Story("ADR/0001-Record-Architecture-Decisions", Order = 72)]
-    public static Widget Adr0001(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Adr0001(StoryContext ctx)
+    {
+        ctx.Play(static d => d.Snap());   // 新スタック (MarkdownDoc) 描画の golden
+        return DocNew(ctx, $$"""
         # ADR-0001 — アーキテクチャ決定を ADR として Gallery に記録する
 
         - **Status**: Accepted
@@ -41,5 +44,6 @@ public static partial class DocsAdr
         - ✅ docs と同じ執筆・レビュー・デッドリンク検証フローに乗る (新規 ADR は `[Story]` を足して `dotnet build` するだけ)
         - ⚠️ 決定ごとに 1 ページ書く軽い手間が増える。瑣末な決定まで ADR 化しない線引きが要る ([ADR/Overview](story:ADR/Overview) の「何を ADR にするか」が目安)
         - ⚠️ ADR は不変記録。変更は supersede 運用を守る必要がある
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
+    }
 }

@@ -118,6 +118,24 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void InsertToc_AddsAnchorListAfterH1_SkipsFencedHashes()
+    {
+        string md = MarkdownDoc.InsertToc("# Title\n\nintro\n## First Section\ntext\n### Sub A\n```\n## not a heading\n```\n## Second");
+        // TOC は H1 直後に挿入され、H2 は "- [..](#slug)"、H3 は 2 スペースインデント
+        Assert.Contains("# Title\n\n- [First Section](#first-section)", md);
+        Assert.Contains("  - [Sub A](#sub-a)", md);
+        Assert.Contains("- [Second](#second)", md);
+        Assert.DoesNotContain("(#not-a-heading)", md);   // フェンス内の ## は無視
+        // アンカーの slug は Headings の本文と一致する (ナビが解決できる)
+        foreach (MarkdownHeading h in MarkdownDecorations.Headings(md).Where(x => x.Level >= 2))
+            Assert.Contains($"(#{Luxel.Controls.RichTextEditor.Slug(h.Text)})", md);
+    }
+
+    [Fact]
+    public void InsertToc_NoHeadings_ReturnsUnchanged()
+        => Assert.Equal("# Only title\n\nbody", MarkdownDoc.InsertToc("# Only title\n\nbody"));
+
+    [Fact]
     public void Link_TextIsAccentUnderlined_MarkersMuted()
     {
         var set = Build("see [docs](http://x) here");          // '['=4 "docs"=[5,9) ']'=9
