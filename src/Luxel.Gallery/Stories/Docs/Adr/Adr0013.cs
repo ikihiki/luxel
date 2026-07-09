@@ -1,0 +1,51 @@
+using Luxel.Controls;
+using Luxel.UI;
+using static Luxel.Controls.Kit;
+using static Luxel.Gallery.Stories.DocsKit;
+
+namespace Luxel.Gallery.Stories;
+
+public static partial class DocsAdr
+{
+    [Story("ADR/0013-Menu-Command-System", Order = 84)]
+    public static Widget Adr0013(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+        # ADR-0013 — メニューは CommandRegistry を単一の真実とし、全サーフェスをその純粋ビューとして生成する
+
+        - **Status**: Accepted
+        - **Date**: 2026-07-09
+        - **Deciders**: ikihiki
+
+        ## Context
+
+        Workbench ([ADR-0010](story:ADR/0010-Workbench-Framework)) にメニュー/コマンド起動の面が要ります。現状 `MenuBar`・コマンドパレット・汎用ツールバーは無く、あるのは `ContextMenu` と浮遊 UI 配置エンジン ([ADR-0007](story:ADR/0007-Floating-Ui-Placement)) だけです。
+
+        ゲームエンジンのエディタを調査すると、メニューの表現には共通の作法があります: **メニュー/ツールバー/キーマップ/検索を単一のコマンド定義から生成し、寄与 (contribution) で拡張する**。Unity は `[MenuItem("パス")]`、Unreal は `UToolMenus` + `FUICommandInfo` (メニュー/ツールバー/キーが同じコマンドを参照)、Blender はオペレータ (`bpy.ops`、メニュー/キー/F3 検索が共有)。いずれもメニューバーは薄く、発見性はコマンドパレット/検索が担います。
+
+        リボン (Office Fluent UI) は候補になりますが、**特許 (意匠 + 実用、Corel 訴訟で行使実績あり) とライセンス条項 (旧 Office UI License は Office 競合アプリに使用不可・現在はプログラム撤回) の懸念**があり、加えて IDE/開発ツールの慣習にも合いません (発見性のために重い)。
+
+        ## Decision
+
+        **`CommandRegistry` を「コマンドの単一の真実」**に据え、メニュー系サーフェスをその純粋ビューとして生成します。リボンは採りません。
+
+        - **コマンド** { id, タイトル, キーバインド, enablement, run(ctx) } を登録し、**`MenuBar` / `ContextMenu` / `CommandPalette` / `Toolbar` / Keymap** はすべてこの Registry のビュー
+        - **寄与モデル** — 項目はパス文字列 (例 `"Edit/Find"`) + コマンド id で登録し、パスがそのまま階層になる (Unity 流)。**共通メニュー (Workbench) + アクティブ `IEditorDocument` の文脈メニュー節を合成**する (Unreal の per-editor 流)
+        - **発見性の主役はコマンドパレット** (Blender の F3 相当)。メニューバーは薄く保つ
+        - `IEditorDocument` ([ADR-0010](story:ADR/0010-Workbench-Framework)) に「メニュー/ツールバー寄与」の面を 1 本追加する
+
+        実装計画は ToDo/26。
+
+        ## Alternatives
+
+        - **リボン (Fluent UI 風)** — 特許/ライセンスの懸念 + IDE 慣習外 + 発見性のために過剰 → 却下 (独自意匠のグルーピング表示が必要になっても CommandRegistry の上に後付けできる)
+        - **メニューを手書きで固定** — 拡張のたびに 1 か所が肥大化し、アクティブ doc 依存の文脈メニューにできない → 却下
+        - **コマンドを持たず各サーフェスが独自にアクションを実装** — 重複と、キーバインド/メニュー/パレット間の不整合が生じる → 却下
+
+        ## Consequences
+
+        - ✅ メニュー/パレット/ツールバー/キーマップが 1 モデルから生え、整合が自動で取れる
+        - ✅ アクティブ doc が文脈メニューを寄与でき、エディタ種別ごとに chrome が切り替わる
+        - ✅ リボンを避けつつ発見性はパレットで担保し、特許面もクリーン
+        - ⚠️ 全コントロールをコマンド経由に寄せる**規律**が要る (直接アクション実装を避ける)
+        - ⚠️ enablement / keymap の評価タイミング (アクティブ doc の変化に追従) を正しく配線する必要がある
+        """, toc: true, fences: DocsFences));
+}

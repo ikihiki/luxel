@@ -92,6 +92,17 @@
 - [x] **Q37**: 25 **S6** (2026-07-09 完了) — ノード内インライン widget + パレット。**`INodeCatalog`** (core、`NodeCatalogEntry(Kind/Label/Create(id,pos)→GraphNode)` + 素朴実装 `NodeCatalog`): ドメインが種別と工場を宣言 (core は具体ドメイン非依存)。**インライン widget ホスト** (`NodeGraphView`、TextEditorView 移植): `WidgetResolver` (Key→Widget) + `NodeInlineDecoration` の `WidgetSlots` を**画面空間レイヤ** (`_widgetLayer`) に `WorldToScreen` 配置で Realize (zoom でヒットがずれない選択)、`OnChildNeedsRealize` で再実体化、消えたキーは Dispose。`SetDecorations(owner,set)` 公開。**パレット**: 右クリック (`onContext`) → `ContextMenu.Open` (ADR-0007 の PopupPlacer 上) に `NodeCatalog.Entries` を並べ、選択でクリック位置に `AddNode` (id=max+1)。公開 API: `SlotScreenCenter` (play 用)。**罠修正**: `SetDecorations` が realize 前に呼ばれると `EnsureInit` 前で空グラフに装飾が乗り消える → `SetDecorations` 冒頭で `EnsureInit()` して source doc を先に読む。story `Controls/NodeGraphView/Widgets` (Gain ノードにスライダ + 右クリックパレットで Gain/Output 追加、play inline[スライダ操作]・palette[右クリック→追加])。単体 `NodeCatalog` 1 本、全 1028 passed、**vk/dx golden 各 4 枚**、**full vk e2e 92/92 diff 0**。次は S7 (自動整列 + fit-to-view + グリッドスナップ + ドメインデモ + Docs、**完了で 25 MD 削除**)
 - [x] **Q38**: 25 **S7** (2026-07-09 完了) — 自動整列 + fit-to-view + グリッドスナップ + ドメインデモ + Docs。`GraphCommands.AutoLayout` (core、`DiagramLayout` の最長経路ランキングを**辺モデルで自前実装** = 依存ゼロ維持、サイズは `NodeMeasure` 外注、全ノード 1 tx=1 undo、循環は反復打ち切りで安全)。view: `AutoLayout()`/`FitToView()` (S4 既存)/`SnapToGrid` (ドロップ位置をノードごとにグリッド整合、`BuildMove`)。**ドメインデモ** story `Controls/NodeGraphView/AutoLayout` (式グラフ Const×2→Add→Output を `INodeCatalog` + AutoLayout で整列、汎用性を実証)。**Docs/NodeEditor** ページ新規 (DocsNodeEditor.cs、Order 42、コア/ビュー/機能/制約 + 4 ストーリーへのリンク)。単体 `AutoLayout` 2 本 (ランク左→右・同ランク縦積み・1 undo)、全 1030 passed、**vk/dx golden 各 2 枚**、**full vk e2e 93/93 diff 0** (デッドリンク無)。**→ ToDo 25 (S1〜S7) 完成・MD 削除。ADR-0009 全ステージ達成。M9 完了**
 
+### M10 — エディタ Workbench (ADR-0010〜0014、[26](26-editor-workbench.md) の大プログラム。既存編集コンポーネントを束ねるシェル + 土台整備。**26 MD は全ワークストリーム完了まで残す**。設計のみ、未着手)
+
+> 依存順の既定: WS-0 (0011) → WS-A (0012) / WS-B は並行 → WS-C (0010/0014) → WS-M (0013) → WS-D。各ワークストリームは独立に「次へ」で着手できる。詳細・罠・検証は [26](26-editor-workbench.md) に集約。
+
+- [ ] **Q39**: 26 **WS-0** — PointerEvent 拡張 (ADR-0011)。`PointerEvent` に `Button`/`Modifiers` 追加、`UiHost` 経路を貫通、Platform (Win32) で詰める。既存ドラッグ無回帰 (golden diff 0) + テキスト Alt+Click マルチカーソル / ノード pan・追加選択の延期解消。**前提タスク — 最初**
+- [ ] **Q40**: 26 **WS-A** — Markdown/リッチ文書を**テキストスタックの構成**に (ADR-0012、別プロジェクト無し)。テキストスタック拡張 (font-variant Mark + mixed-weight ラン + ブロック widget) → Markdown 装飾プロバイダ + widget リゾルバ (内容プロセッサを widget 化) + read-only 描画 → `Kit.Docs()` 差し替え + Docs/ADR 全 11 モジュール移行 → ブロック単位コマンド + 編集モード → RichTextEditor/TextArea/Luxel.Document 編集核 削除。**golden 全再生成を伴う最大ワークストリーム**
+- [ ] **Q41**: 26 **WS-B** — CodeEditor 削除。5 ストーリーを TextEditorView + プロバイダへ移植 → `CodeEditor.cs` 削除。WS-A と並行可
+- [ ] **Q42**: 26 **WS-C** — Workbench コア + 基盤 UI (ADR-0010/0014)。`Luxel.Workbench` (IEditorDocument/Workspace/DockTree/IDocumentStore) + `DocumentTabs`/`DockHost`/`StatusBar`/`PropertyGrid`/`AssetBrowser`。純ロジックは単体、コントロールは golden
+- [ ] **Q43**: 26 **WS-M** — メニュー/コマンド (ADR-0013)。`CommandRegistry` を単一の真実に MenuBar/CommandPalette/Toolbar/Keymap を生成。寄与登録 + アクティブ doc の文脈メニュー合成
+- [ ] **Q44**: 26 **WS-D** — 具体エディタ作成。D1 (既存 4 view を host) → D2 (open/save 配線) → D3 (新ドメイン 1 本 = Slang or マテリアルグラフ) → D4 (PropertyGrid 実証)。**Gallery を Workbench で再構築 (既定レイアウト再現で golden 中立)**。完了で **26 MD 削除**。D5 (ビューポート系シーンエディタ) は別 ADR・スコープ外
+
 ## 順序の根拠 (要約)
 
 - **13 が最初**: 全 golden 再生成タスク — golden が増える前ほど差分が小さい。
@@ -103,6 +114,6 @@
 
 ## 運用メモ
 
-- キューの分割ステージ (Q04/Q05/Q12〜14 の 19・21、Q23〜27 の 22) は **MD を消すタイミングに注意** — 全ステージ完了まで残す。
+- キューの分割ステージ (Q04/Q05/Q12〜14 の 19・21、Q23〜27 の 22、**Q39〜44 の 26**) は **MD を消すタイミングに注意** — 全ステージ完了まで残す。
 - git worktree で作業する場合は tools/ junction を忘れない (README/メモリ参照)。
 - 検証 GPU が無い環境では e2e は Skip される — その場合は「単体テスト + ビルド」までで完了とし、キューに `(e2e 未実施)` を残して次のセッションで実機確認する。
