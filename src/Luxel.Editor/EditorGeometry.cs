@@ -13,8 +13,11 @@ public sealed class EditorConfig
     public TextWrap Wrap { get; init; } = TextWrap.None;
     /// <summary>折返し幅 px (Wrap!=None のとき有効)。</summary>
     public float MaxWidth { get; init; } = float.PositiveInfinity;
-    /// <summary>行高倍率。</summary>
+    /// <summary>行高倍率 (単一行/ブロック間の行送り)。</summary>
     public float LineHeight { get; init; } = 1.4f;
+    /// <summary>折返し**段落内**の行送り倍率 (null = <see cref="LineHeight"/> と同じ)。
+    /// 文書レンダラは段落内をブロック間より詰めると読みやすい (例 1.3 vs 1.5)。</summary>
+    public float? WrapLineHeight { get; init; }
     /// <summary>既定の文字色 (前景マークが無い箇所)。</summary>
     public uint DefaultColor { get; init; } = 0xFF000000;
 
@@ -356,9 +359,14 @@ public sealed class EditorGeometry
         }
         if (spans.Count == 0) spans.Add(new TextSpan("", new SpanStyle { Color = _cfg.DefaultColor }));
 
-        var opt = new TextLayoutOptions { MaxWidth = _cfg.MaxWidth, Wrap = _cfg.Wrap, LineHeight = _cfg.LineHeight };
+        // 折返し段落内は WrapLineHeight (layout.Height に反映)、単一行/ブロック間は LineHeight
+        var opt = new TextLayoutOptions { MaxWidth = _cfg.MaxWidth, Wrap = _cfg.Wrap, LineHeight = _cfg.WrapLineHeight ?? _cfg.LineHeight };
         var layout = new TextLayout(_cfg.Fonts, spans, _cfg.FontSize, opt);
-        float height = MathF.Max(layout.Height, layout.LineAdvance);
+        float height = MathF.Max(layout.Height, _cfg.FontSize * _cfg.LineHeight);
+        // 行全体が非表示 (フェンス区切り等、マーカのみの行) は高さ0 に畳む
+        bool allHidden = len > 0 && prefixText.Length == 0 && widgets.Count == 0;
+        for (int i = 0; allHidden && i < len; i++) if (!hidden[i]) allHidden = false;
+        if (allHidden) height = 0;
         return new DisplayLine(layout, prefixLen, segs.ToArray(), height);
     }
 

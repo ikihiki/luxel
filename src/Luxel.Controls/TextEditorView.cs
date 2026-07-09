@@ -36,6 +36,8 @@ public sealed partial class TextEditorView : Widget, ITextInput
     public VectorFont? MonoFont { get; set; }
     /// <summary>折返し (既定 false = コード)。</summary>
     public bool WrapText { get; set; }
+    /// <summary>折返し段落内の行送り倍率 (null = ブロック行送りと同じ)。文書は段落内を詰めると読みやすい (例 1.3)。</summary>
+    public float? WrapLineHeight { get; set; }
     /// <summary>読み取り専用 (文書レンダラ用)。文書を変える編集は無視し、選択/スクロール/widget 操作は許す。</summary>
     public bool ReadOnly { get; set; }
     /// <summary>クリック時にクリック位置のソースオフセットを通知する (リンクナビ等の当たり判定用)。</summary>
@@ -404,6 +406,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
             Wrap = WrapText ? TextWrap.Word : TextWrap.None,
             MaxWidth = WrapText ? W - Pad * 2 : float.PositiveInfinity,
             LineHeight = 1.5f,
+            WrapLineHeight = WrapLineHeight,
             DefaultColor = _theme.Peek().Text,
             BoldFont = BoldFont,
             ItalicFont = ItalicFont,

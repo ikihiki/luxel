@@ -36,6 +36,7 @@ public static class MarkdownDoc
         ed.BoldItalicFont = boldItalic;
         ed.MonoFont = mono;
         ed.WrapText = wrap;
+        ed.WrapLineHeight = 1.3f;   // 段落内はブロック間 (1.5) より詰める
         ed.ReadOnly = true;
         ed.Providers.Add(new MarkdownProvider(theme, hideMarkers: true, highlighter));   // 文書レンダラ: マーカ非表示 + コード色分け
         return ed;

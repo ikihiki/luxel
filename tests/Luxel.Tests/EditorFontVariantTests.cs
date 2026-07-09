@@ -61,6 +61,32 @@ public class EditorFontVariantTests
     }
 
     [Fact]
+    public void WrapLineHeight_TightensParagraph_KeepsBlockSpacing()
+    {
+        EditorConfig Wrap(float? wlh) => new()
+        {
+            Fonts = new FontCollection(F()), FontSize = 14f, Wrap = TextWrap.Word, MaxWidth = 80f,
+            LineHeight = 1.5f, WrapLineHeight = wlh,
+        };
+        const string para = "aaaa aaaa aaaa aaaa";   // 80px で複数行に折返す
+        float tight = new EditorGeometry(Wrap(1.25f), EditorState.Create(para)).Line(0).Height;
+        float loose = new EditorGeometry(Wrap(null), EditorState.Create(para)).Line(0).Height;
+        Assert.True(tight < loose);                                   // 段落内を詰めると総高が縮む
+        Assert.Equal(14f * 1.5f, new EditorGeometry(Wrap(1.25f), EditorState.Create("b")).Line(0).Height, 1);   // 単一行はブロック行送りのまま
+    }
+
+    [Fact]
+    public void FullyHiddenLine_CollapsesToZeroHeight()
+    {
+        // "```" 行を全部非表示 = マーカのみの行 → 高さ0 (空行が残らない、フェンス区切りの畳み)
+        var st = EditorState.Create("```\nx")
+            .WithDecorations("md", new DecorationSet([new MarkDecoration(0, 3, Hidden: true)])).State;
+        var g = new EditorGeometry(Cfg(), st);
+        Assert.Equal(0f, g.Line(0).Height, 3);
+        Assert.True(g.Line(1).Height > 0);
+    }
+
+    [Fact]
     public void FontFor_ResolvesVariantSlots()
     {
         VectorFont reg = F();
