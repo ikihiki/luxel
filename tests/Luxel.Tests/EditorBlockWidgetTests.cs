@@ -34,6 +34,20 @@ public class EditorBlockWidgetTests
     }
 
     [Fact]
+    public void AutoHeight_UsesBlockHeightDelegate()
+    {
+        // Height<=0 = 自動: 未測定は見積り、BlockHeight デリゲート (view が実測) で採用高さになる
+        var st = EditorState.Create("a\nb\nc\nd")
+            .WithDecorations("md", new DecorationSet([new BlockWidgetDecoration(2, 5, "k", 0f)])).State;
+        var g = new EditorGeometry(Cfg(), st);
+        Assert.Equal(24f, g.Line(1).Height, 3);        // 未測定 = 見積り
+        g.BlockHeight = _ => 60f;                        // 実測供給
+        g.SetState(st);                                  // 高さ署名が変わり再構築
+        Assert.Equal(60f, g.Line(1).Height, 3);
+        Assert.Equal(60f, g.WidgetSlots().First(s => Equals(s.Key, "k")).Rect.Height, 3);
+    }
+
+    [Fact]
     public void HeightChange_RebuildsViaKey()
     {
         var g = new EditorGeometry(Cfg(), WithBlock());

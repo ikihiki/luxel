@@ -88,8 +88,11 @@ public sealed partial class TextEditorView : Widget, ITextInput
     private VectorFont? _primaryFont;
     private float ContentX => ShowLineNumbers ? _gutterW : Pad;
 
-    private sealed class Hosted { public required Widget Widget; public required UiNode Container; public TextRect Rect; }
+    private sealed class Hosted { public required object Key; public required Widget Widget; public required UiNode Container; public TextRect Rect; }
     private readonly Dictionary<object, Hosted> _widgets = new();
+    private readonly Dictionary<object, float> _blockMeasured = new();   // 自動高さ block widget の実測高さ (key→px)
+    private HashSet<object> _autoBlockKeys = new();                       // Height<=0 の block widget キー
+    private bool _blockDirty;                                            // 実測が変わった → 次フレームで採用
 
     private const float Pad = 6f;
     private float _fs = 13;
@@ -438,6 +441,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
         _charW = MathF.Max(1, cfg.Fonts.Primary.Measure("0", _fs).width);
         _gutterW = ShowLineNumbers ? MathF.Max(2, _state.Doc.LineCount.ToString().Length) * _charW + GutterPadR * 2 : 0;
         _geo = new EditorGeometry(cfg, _state);
+        _geo.BlockHeight = k => _blockMeasured.GetValueOrDefault(k);   // 自動高さ block widget の実測を供給
         _widgets.Clear();   // 旧ホストは再実体化でスコープごと破棄済み — dict だけ捨てて Refresh で作り直す
 
         _root = CreateRoot(ctx, parent, worldOrigin);
@@ -500,6 +504,9 @@ public sealed partial class TextEditorView : Widget, ITextInput
             string v = Value.Get().Value;
             if (v != _state.Doc.Text) { _state = EditorState.Create(v); _history.Clear(); _scroll.ScrollTo(0); Refresh(); }
         });
+
+        // 自動高さ block widget: realize 中に測った高さが変わったら次フレームで採用 (再入回避で収束)
+        ctx.AddAnimation(_ => { if (_blockDirty) { _blockDirty = false; Refresh(); } return false; });
 
         float t = 0;
         ctx.AddAnimation(dt => { t += dt; if (t >= 0.53f) { t = 0; _caretOn.Value = !_caretOn.Value; } return false; });
@@ -748,6 +755,8 @@ public sealed partial class TextEditorView : Widget, ITextInput
     private void HostWidgets()
     {
         if (WidgetResolver is null) { if (_widgets.Count > 0) ClearWidgets(); return; }
+        _autoBlockKeys = _state.Decorations.All().OfType<BlockWidgetDecoration>()
+            .Where(b => b.Height <= 0).Select(b => b.Key).ToHashSet();
         var seen = new HashSet<object>();
         foreach (WidgetSlot slot in _geo!.WidgetSlots())
         {
@@ -757,24 +766,33 @@ public sealed partial class TextEditorView : Widget, ITextInput
                 if (WidgetResolver(slot.Key) is not { } w) continue;
                 UiNode container = _ctx.Canvas.AddChild(_content);
                 container.Z = 5;
-                h = new Hosted { Widget = w, Container = container };
+                h = new Hosted { Key = slot.Key, Widget = w, Container = container };
                 _widgets[slot.Key] = h;
             }
             h.Rect = slot.Rect;
-            RealizeWidget(h);
+            bool auto = _autoBlockKeys.Contains(slot.Key);
+            MeasureAutoBlock(slot.Key, RealizeWidget(h, auto), auto);
         }
         if (_widgets.Count > seen.Count)
             foreach (object k in _widgets.Keys.Where(k => !seen.Contains(k)).ToList())
             { DisposeHosted(_widgets[k]); _widgets.Remove(k); }
     }
 
-    // widget を宣言サイズのスロットへ実体化 (箱サイズは装飾が宣言 → 行レイアウトは変わらない = 高さ吸収不要)
-    private void RealizeWidget(Hosted h)
+    // 自動高さ block widget の実測を反映 (変化があれば次フレームで採用高さに = _blockDirty)
+    private void MeasureAutoBlock(object key, Size sz, bool auto)
+    {
+        if (!auto || sz.Height <= 0) return;
+        if (MathF.Abs(_blockMeasured.GetValueOrDefault(key) - sz.Height) > 0.5f)
+        { _blockMeasured[key] = sz.Height; _blockDirty = true; }
+    }
+
+    // widget をスロットへ実体化。auto=自動高さ block widget は高さ無制約で組んで自然高さを測る。
+    private Size RealizeWidget(Hosted h, bool autoHeight = false)
     {
         Widget w = h.Widget;
         w.Scope?.Release();
         var lc = new LayoutContext { Font = _ctx.Font, Theme = _theme.Peek(), ViewportW = W, ViewportH = H };
-        w.Layout(new Constraints(0, h.Rect.Width, 0, h.Rect.Height), lc);
+        Size sz = w.Layout(new Constraints(0, h.Rect.Width, 0, autoHeight ? float.PositiveInfinity : h.Rect.Height), lc);
         w.Offset = new Point(h.Rect.X, h.Rect.Y);
         // 枠でクリップ (はみ出しを隠す)。RectClip は container (=_content の子) のローカル空間 = h.Rect と同じ座標系。
         h.Container.Clip = WidgetClip == WidgetClipMode.Box
@@ -783,6 +801,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
         // ここに rect を足すと二重計上になる (描画はノード transform で正しいが WorldPos がずれ d.Click が外れる)。
         w.Realize(_ctx, h.Container, new Point(WorldPos.X + ContentX, WorldPos.Y + Pad - _scroll.Clamped));
         w.ParentWidget = this;
+        return sz;
     }
 
     private void ClearWidgets()
@@ -803,7 +822,12 @@ public sealed partial class TextEditorView : Widget, ITextInput
     protected override bool OnChildNeedsRealize(Widget child)
     {
         foreach (Hosted h in _widgets.Values)
-            if (ReferenceEquals(h.Widget, child)) { RealizeWidget(h); return true; }
+            if (ReferenceEquals(h.Widget, child))
+            {
+                bool auto = _autoBlockKeys.Contains(h.Key);
+                MeasureAutoBlock(h.Key, RealizeWidget(h, auto), auto);   // 自動高さは再実体化でも測り直す
+                return true;
+            }
         return false;
     }
 

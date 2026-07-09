@@ -162,6 +162,18 @@ public sealed class EditorGeometry
         Rebuild();
     }
 
+    /// <summary>ブロック widget の実測高さを供給する (view が realize 後に測って渡す)。
+    /// <see cref="BlockWidgetDecoration.Height"/> が 0 以下 (=自動) のとき使う。0 = 未測定。</summary>
+    public Func<object, float>? BlockHeight { get; set; }
+
+    // ブロック widget の採用高さ: 宣言 (Height>0) 優先、自動 (<=0) は実測、未測定は見積り。
+    private float BlockHeightOf(BlockWidgetDecoration bw)
+    {
+        if (bw.Height > 0) return bw.Height;
+        float m = BlockHeight?.Invoke(bw.Key) ?? 0f;
+        return m > 0 ? m : 24f;
+    }
+
     /// <summary>ソース行 (0 始まり) の表示行。</summary>
     public DisplayLine Line(int index) => _lines[Math.Clamp(index, 0, _lines.Length - 1)];
     /// <summary>ソース行の絶対 Top。</summary>
@@ -184,7 +196,7 @@ public sealed class EditorGeometry
         {
             int l0 = doc.LineOf(bw.From), l1 = doc.LineOf(Math.Max(bw.From, bw.To - 1));
             if (l0 < 0 || l0 >= n) continue;
-            blockH[l0] = bw.Height;
+            blockH[l0] = BlockHeightOf(bw);
             for (int i = l0 + 1; i <= l1 && i < n; i++) blockFold[i] = true;
         }
 
@@ -241,7 +253,7 @@ public sealed class EditorGeometry
                     sb.Append("w").Append(w.From).Append(',').Append(w.To).Append(',').Append(w.Width).Append(',').Append(w.Height).Append(';');
                     break;
                 case BlockWidgetDecoration bw:
-                    sb.Append("bw").Append(bw.From).Append(',').Append(bw.To).Append(',').Append(bw.Height).Append(';');
+                    sb.Append("bw").Append(bw.From).Append(',').Append(bw.To).Append(',').Append(BlockHeightOf(bw)).Append(';');
                     break;
                 case LinePrefixDecoration p:
                     sb.Append("p").Append(p.Text).Append(';');
@@ -462,7 +474,7 @@ public sealed class EditorGeometry
         {
             int l0 = _state.Doc.LineOf(bw.From);
             if (l0 >= 0 && l0 < _lines.Length)
-                outp.Add(new WidgetSlot(bw.Key, new TextRect(0, _tops[l0], blockW, bw.Height)));
+                outp.Add(new WidgetSlot(bw.Key, new TextRect(0, _tops[l0], blockW, BlockHeightOf(bw))));
         }
         return outp;
     }

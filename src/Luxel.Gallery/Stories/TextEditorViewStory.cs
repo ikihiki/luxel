@@ -287,6 +287,36 @@ public static class TextEditorViewStory
                 ed]];
     }
 
+    [Story("Controls/TextEditorView/BlockWidgetAuto", Height = 300, Order = 11)]
+    public static Widget BlockWidgetAuto(StoryContext ctx)
+    {
+        // ブロック widget 自動高さ (WS-A / ADR-0012): Height=0 は「宣言しない」= view が widget の自然高さを
+        // 測って geometry に返し、その高さぶんを確保する (埋め込みライブ UI の前提)。範囲 [11,22) = 中間 1 行。
+        Signal<string> text = ctx.Signal("text", "Intro line\nPLACEHOLDER\nOutro line");
+        TextEditorView ed = TextEditorView(text, editorHeight: 220f, editorWidth: 460f);
+        ed.WrapText = true;
+        ed.WidgetResolver = key => key as string == "auto"
+            ? Border(background: Bind.From(() => Styles.WithAlpha(UiTheme.T.Primary, 30)), padding: new Thickness(12))[
+                  VStack(4)[
+                      Text("Auto-height block widget", color: Bind.From(() => UiTheme.T.Primary)),
+                      Text("declares no height (0) —", color: Bind.From(() => UiTheme.T.Text)),
+                      Text("the editor measures its content and reserves it.", color: Bind.From(() => UiTheme.T.Text))]]
+            : null;
+
+        ctx.Play(async d =>
+        {
+            ed.SetDecorations("block", new DecorationSet([new BlockWidgetDecoration(11, 22, "auto", 0f)]));
+            await d.Step(3);   // 実測 → 次フレーム採用 の収束を待つ
+            await d.Snap("auto");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("TextEditorView — ブロック widget (自動高さ)"),
+                Muted("Height=0 で widget の自然高さを測って確保。宣言不要 = 埋め込みライブ UI の前提。"),
+                ed]];
+    }
+
     [Story("Controls/TextEditorView/BlockWidget", Height = 300, Order = 9)]
     public static Widget BlockWidget(StoryContext ctx)
     {
