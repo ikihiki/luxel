@@ -78,6 +78,25 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void Headings_ExtractsLevelsTextOffsets()
+    {
+        var hs = MarkdownDecorations.Headings("# One\ntext\n## Two\n### Three");
+        Assert.Equal(3, hs.Count);
+        Assert.Equal((1, "One"), (hs[0].Level, hs[0].Text));
+        Assert.Equal((2, "Two"), (hs[1].Level, hs[1].Text));
+        Assert.Equal(11, hs[1].Offset);                 // "# One\ntext\n" = 11
+        Assert.Equal("Three", hs[2].Text);
+    }
+
+    [Fact]
+    public void Headings_SkipsFencedHashes()
+    {
+        var hs = MarkdownDecorations.Headings("# Real\n```\n# not a heading\n```");
+        Assert.Single(hs);
+        Assert.Equal("Real", hs[0].Text);
+    }
+
+    [Fact]
     public void Link_TextIsAccentUnderlined_MarkersMuted()
     {
         var set = Build("see [docs](http://x) here");          // '['=4 "docs"=[5,9) ']'=9

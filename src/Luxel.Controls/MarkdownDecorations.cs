@@ -1,8 +1,36 @@
 using System.Text.RegularExpressions;
 using Luxel.Editor;
+using Luxel.Typography;
 using Luxel.UI;
 
 namespace Luxel.Controls;
+
+/// <summary>見出し 1 件 (レベル・テキスト・ソースオフセット)。TOC / <c>story:</c> ナビの素。</summary>
+public readonly record struct MarkdownHeading(int Level, string Text, int Offset);
+
+/// <summary>Markdown を「文書として描く」ワンショット (WS-A / ADR-0012) — <see cref="TextEditorView"/> に
+/// <see cref="MarkdownProvider"/> を付け、read-only + 折返しで束ねる。表示は行、装飾は provider。
+/// 将来 <see cref="Kit.Docs(DocString, bool, System.Collections.Generic.IReadOnlyList{IFenceResolver})"/> の
+/// RichTextEditor をこれに差し替える。</summary>
+public static class MarkdownDoc
+{
+    /// <summary>設定済みの文書レンダラを作る。<paramref name="body"/> が null なら既定 (テーマ) フォント。</summary>
+    public static TextEditorView Create(Signal<string> markdown, Func<Theme> theme, float width, float height,
+        VectorFont? body = null, VectorFont? bold = null, VectorFont? italic = null,
+        VectorFont? boldItalic = null, VectorFont? mono = null, bool wrap = true)
+    {
+        TextEditorView ed = Kit.TextEditorView(markdown, editorHeight: height, editorWidth: width);
+        if (body is not null) ed.EditorFont = body;
+        ed.BoldFont = bold;
+        ed.ItalicFont = italic;
+        ed.BoldItalicFont = boldItalic;
+        ed.MonoFont = mono;
+        ed.WrapText = wrap;
+        ed.ReadOnly = true;
+        ed.Providers.Add(new MarkdownProvider(theme));
+        return ed;
+    }
+}
 
 /// <summary>
 /// Markdown ソース → 装飾 (WS-A / ADR-0012)。見出し (Bold + サイズ倍率)・太字・斜体・
@@ -19,6 +47,28 @@ public static class MarkdownDecorations
     private static readonly Regex Code = new(@"`([^`\n]+)`", RegexOptions.Compiled);
     private static readonly Regex Bold = new(@"(\*\*|__)(?=\S)(.+?)(?<=\S)\1", RegexOptions.Compiled);
     private static readonly Regex Italic = new(@"(?<![\*_\w])([*_])(?=\S)([^\*_\n]+)(?<=\S)\1(?![\*_\w])", RegexOptions.Compiled);
+
+    /// <summary>文書中の ATX 見出しを順に抽出する (TOC / <c>story:</c> ナビの素。フェンス内は除外)。純関数。</summary>
+    public static IReadOnlyList<MarkdownHeading> Headings(string text)
+    {
+        var list = new List<MarkdownHeading>();
+        int lineStart = 0;
+        bool inFence = false;
+        foreach (string line in text.Split('\n'))
+        {
+            string trimmed = line.TrimStart();
+            if (trimmed.StartsWith("```")) inFence = !inFence;
+            else if (!inFence)
+            {
+                int h = 0;
+                while (h < line.Length && line[h] == '#') h++;
+                if (h is >= 1 and <= 6 && h < line.Length && line[h] == ' ')
+                    list.Add(new MarkdownHeading(h, line[(h + 1)..].Trim(), lineStart));
+            }
+            lineStart += line.Length + 1;
+        }
+        return list;
+    }
 
     /// <summary>見出しレベル (1..6) → 基準サイズへの倍率。</summary>
     public static float HeadingScale(int level) => level switch

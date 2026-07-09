@@ -257,6 +257,33 @@ public static class TextEditorViewStory
                 ed]];
     }
 
+    [Story("Controls/TextEditorView/MarkdownDoc", Height = 340, Order = 10)]
+    public static Widget MarkdownDocStory(StoryContext ctx)
+    {
+        // 文書レンダラを 1 ファクトリで (WS-A / ADR-0012、Kit.Docs() 差し替えの部品):
+        // MarkdownDoc.Create が TextEditorView + MarkdownProvider を read-only + 折返しで束ねる。
+        Signal<string> md = ctx.Signal("md",
+            "# Document renderer\n" +
+            "This is a longer paragraph that wraps across the available width, showing that the read-only Markdown document renderer handles flowing prose — not just short lines.\n" +
+            "## Features\n" +
+            "- **bold**, *italic*, `code`\n" +
+            "- links like [the editor docs](story:Docs/Editor)\n" +
+            "> Blockquotes render with a left bar.\n" +
+            "```\n" +
+            "fenced = code;\n" +
+            "```");
+        (VectorFont? bold, _, _, VectorFont? mono) = EditorFaces.Value;
+        TextEditorView ed = MarkdownDoc.Create(md, () => UiTheme.T, width: 520f, height: 260f, bold: bold, mono: mono);
+
+        ctx.Play(async d => await d.Snap("doc"));
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("MarkdownDoc — 文書レンダラ (1 ファクトリ)"),
+                Muted("MarkdownDoc.Create が TextEditorView + MarkdownProvider を read-only + 折返しで束ねる。折返す段落 + 全 Markdown。"),
+                ed]];
+    }
+
     [Story("Controls/TextEditorView/BlockWidget", Height = 300, Order = 9)]
     public static Widget BlockWidget(StoryContext ctx)
     {
