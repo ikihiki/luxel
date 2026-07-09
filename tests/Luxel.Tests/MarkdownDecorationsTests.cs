@@ -164,6 +164,26 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void LivePreview_RevealedLineShowsMarkerRaw_OthersHidden()
+    {
+        // reveal(pos)=true の行 (キャレット行) はマーカを淡色 raw、他行は非表示 — Typora 風編集モード
+        var set = MarkdownDecorations.Build("# A\n# B", T, hideMarkers: true, reveal: pos => pos < 4);   // 行0 のみ
+        Assert.False(At(set, 0, 2).Hidden);                     // 行0 "# " は raw
+        Assert.Equal(T.TextMuted, At(set, 0, 2).Foreground);
+        Assert.True(At(set, 4, 6).Hidden);                       // 行1 "# " は非表示
+    }
+
+    [Fact]
+    public void LivePreview_RevealedListLine_ShowsRawDash_NotBullet()
+    {
+        // reveal した箇条書き行は "- " を raw (淡色) で見せ、bullet prefix は出さない
+        var set = MarkdownDecorations.Build("- a\n- b", T, hideMarkers: true, reveal: pos => pos < 4);   // 行0 のみ
+        Assert.Empty(set.OfKind<LinePrefixDecoration>().Where(p => p.At == 0));   // 行0 は bullet なし
+        Assert.Equal(T.TextMuted, At(set, 0, 2).Foreground);                       // 行0 "- " は raw
+        Assert.Single(set.OfKind<LinePrefixDecoration>().Where(p => p.At == 4));   // 行1 は bullet (•)
+    }
+
+    [Fact]
     public void InlineHole_BecomesWidgetDecoration_NotTextLink()
     {
         // `[￼](luxel-ui:2)` (DocString のインライン hole) は埋め込み種別 luxel-ui が embedKinds にあれば

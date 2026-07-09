@@ -260,6 +260,35 @@ public static class TextEditorViewStory
                 ed]];
     }
 
+    [Story("Controls/TextEditorView/LivePreview", Height = 300, Order = 16)]
+    public static Widget LivePreviewStory(StoryContext ctx)
+    {
+        // Live Preview 編集モード (WS-A / S(A4)): editable:true でキャレット行だけ記法マーカを raw で見せ、
+        // 離れた行は整形表示 (Typora 風)。read-only の MarkdownDoc は全行マーカ非表示だった。
+        Signal<string> md = ctx.Signal("md",
+            "# Live Preview 編集モード\n" +
+            "キャレット行だけ **記法** が `raw` で見え、離れると整形されます。\n" +
+            "- リスト項目 (行を離れると • になる)\n" +
+            "> 引用ブロック");
+        (VectorFont? bold, _, _, VectorFont? mono) = EditorFaces.Value;
+        TextEditorView ed = MarkdownDoc.Create(md, () => UiTheme.T, width: 520f, height: 220f, bold: bold, mono: mono,
+            highlighter: Luxel.Highlight.TextMateHighlighter.Instance, fonts: JpFallback.Value, editable: true);
+
+        ctx.Play(async d =>
+        {
+            await d.Snap("h1");        // 初期: キャレットは先頭 = 見出し行の "# " が raw、他行は整形
+            await d.Click(ed);          // クリック位置 (中央付近の行) へキャレット → その行が raw に切替わる
+            await d.Step(1);
+            await d.Snap("moved");      // reveal がキャレット行に追従したのを実証
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("TextEditorView — Live Preview (編集モード)"),
+                Muted("editable:true。キャレット行のマーカだけ raw、他行は整形 (Typora 風)。read-only は全行非表示。"),
+                ed]];
+    }
+
     [Story("Controls/TextEditorView/MarkdownDoc", Height = 340, Order = 10)]
     public static Widget MarkdownDocStory(StoryContext ctx)
     {
