@@ -18,6 +18,22 @@ public sealed class EditorConfig
     /// <summary>既定の文字色 (前景マークが無い箇所)。</summary>
     public uint DefaultColor { get; init; } = 0xFF000000;
 
+    /// <summary>太字フェイス (<see cref="FontVariant.Bold"/> マーク用)。null なら既定 <see cref="Fonts"/>。</summary>
+    public VectorFont? BoldFont { get; init; }
+    /// <summary>斜体フェイス (<see cref="FontVariant.Italic"/> マーク用)。null なら既定 <see cref="Fonts"/>。</summary>
+    public VectorFont? ItalicFont { get; init; }
+    /// <summary>太字斜体フェイス (<see cref="FontVariant.BoldItalic"/> マーク用)。null なら既定 <see cref="Fonts"/>。</summary>
+    public VectorFont? BoldItalicFont { get; init; }
+
+    /// <summary>変種に対応する VectorFont を返す (未供給なら null = 既定 <see cref="Fonts"/> を使う)。</summary>
+    public VectorFont? FontFor(FontVariant? v) => v switch
+    {
+        FontVariant.Bold => BoldFont,
+        FontVariant.Italic => ItalicFont,
+        FontVariant.BoldItalic => BoldItalicFont,
+        _ => null,
+    };
+
     /// <summary>単一フォントから作る便宜コンストラクタ相当。</summary>
     public static EditorConfig Mono(VectorFont font, float size = 14f, uint color = 0xFF000000)
         => new() { Fonts = new FontCollection(font), FontSize = size, DefaultColor = color };
@@ -202,8 +218,9 @@ public sealed class EditorGeometry
             if (d.SortTo < start || d.SortFrom > end) continue;
             switch (d)
             {
-                case MarkDecoration m when m.Foreground is { } fg:
-                    sb.Append("f").Append(m.From).Append(',').Append(m.To).Append(',').Append(fg).Append(';');
+                case MarkDecoration m when m.AffectsLayout:
+                    sb.Append("f").Append(m.From).Append(',').Append(m.To).Append(',')
+                      .Append(m.Foreground).Append(',').Append(m.Variant).Append(',').Append(m.FontScale).Append(';');
                     break;
                 case WidgetDecoration w:
                     sb.Append("w").Append(w.From).Append(',').Append(w.To).Append(',').Append(w.Width).Append(',').Append(w.Height).Append(';');
@@ -238,14 +255,21 @@ public sealed class EditorGeometry
         }
         widgets.Sort((x, y) => x.a.CompareTo(y.a));
 
-        // 前景色 (既定 → マークで上書き)
+        // 前景色 / フォント変種 / サイズ倍率 (既定 → マークで上書き。1 マークが色+変種+倍率を同時指定可)
         var color = new uint[len];
+        var variant = new FontVariant?[len];
+        var scale = new float?[len];
         for (int i = 0; i < len; i++) color[i] = _cfg.DefaultColor;
         foreach (MarkDecoration m in _state.Decorations.All().OfType<MarkDecoration>())
         {
-            if (m.Foreground is not { } fg) continue;
             int a = Math.Max(start, m.From) - start, b = Math.Min(end, m.To) - start;
-            for (int i = a; i < b; i++) if (i >= 0 && i < len) color[i] = fg;
+            for (int i = a; i < b; i++)
+            {
+                if (i < 0 || i >= len) continue;
+                if (m.Foreground is { } fg) color[i] = fg;
+                if (m.Variant is { } v) variant[i] = v;
+                if (m.FontScale is { } s) scale[i] = s;
+            }
         }
 
         // セグメント + スパンを組む
@@ -271,9 +295,15 @@ public sealed class EditorGeometry
             }
             int runEnd = pos + 1;
             int nextWidget = wi < widgets.Count ? widgets[wi].a : len;
-            while (runEnd < len && runEnd < nextWidget && color[runEnd] == color[pos]) runEnd++;
+            while (runEnd < len && runEnd < nextWidget
+                && color[runEnd] == color[pos] && variant[runEnd] == variant[pos] && scale[runEnd] == scale[pos]) runEnd++;
             runEnd = Math.Min(runEnd, nextWidget);
-            spans.Add(new TextSpan(text[pos..runEnd], new SpanStyle { Color = color[pos] }));
+            spans.Add(new TextSpan(text[pos..runEnd], new SpanStyle
+            {
+                Color = color[pos],
+                Font = _cfg.FontFor(variant[pos]),
+                Size = scale[pos] is { } sc ? _cfg.FontSize * sc : null,
+            }));
             segs.Add(new DisplayLine.Seg(runEnd - pos, runEnd - pos, IsWidget: false, null));
             pos = runEnd;
         }

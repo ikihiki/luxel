@@ -191,6 +191,36 @@ public static class TextEditorViewStory
                 root]];
     }
 
+    [Story("Controls/TextEditorView/RichText", Height = 220, Order = 7)]
+    public static Widget RichText(StoryContext ctx)
+    {
+        // Markdown/リッチ文書の素地 (WS-A / ADR-0012、S(A1)): font-variant Mark で見出し/太字/小サイズを
+        // 同一の行テキストモデルの上に描く — 表示は行に分解、装飾は push 型。
+        Signal<string> text = ctx.Signal("text", "Title\nbold here\nsmall");
+        TextEditorView ed = TextEditorView(text, editorHeight: 130f, editorWidth: 460f);
+        ed.BoldFont = EditorFaces.Value.Bold;
+
+        var set = new DecorationSet(
+        [
+            new MarkDecoration(0, 5, Variant: FontVariant.Bold, FontScale: 2.0f),          // 見出し (太字 + 2x)
+            new MarkDecoration(6, 10, Variant: FontVariant.Bold),                          // "bold" 太字
+            new MarkDecoration(16, 21, Foreground: 0xFF888888, FontScale: 0.8f),           // "small" 小さめ・淡色
+        ]);
+
+        ctx.Play(async d =>
+        {
+            ed.SetDecorations("md", set);
+            await d.Step(1);
+            await d.Snap("variants");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("TextEditorView — font-variant (Markdown 素地)"),
+                Muted("MarkDecoration の Variant (Bold) + FontScale で見出し・太字・小サイズを同一行モデルに描く。表示は行、装飾は push。"),
+                ed]];
+    }
+
     [Story("Controls/TextEditorView/MultiCursor", Height = 260, Order = 5)]
     public static Widget MultiCursor(StoryContext ctx)
     {
