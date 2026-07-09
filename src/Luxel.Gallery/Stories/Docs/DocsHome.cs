@@ -13,13 +13,12 @@ public static class DocsHome
     public static Widget GettingStarted(StoryContext ctx)
     {
         Signal<int> count = ctx.Signal("count", 0, "カウンタの現在値 (± ボタンと連動)");
-        ctx.Play(static d => d.Snap());
         Widget counter = HStack(8)[
             Button(_ => { count.Value--; ctx.Log("counter: -1"); }, "-"),
             Text($" {count} ", 20, vAlign: Align.Center),
             Button(_ => { count.Value++; ctx.Log("counter: +1"); }, "+")];
 
-        RichTextEditor doc = Docs(ctx, $$"""
+        Widget doc = DocNew(ctx, $$"""
             # Luxel を始める
 
             Luxel は [Sebastian Aaltonen の *No Graphics API*](https://www.sebastianaaltonen.com/blog/no-graphics-api) の設計を C# で実装した薄いグラフィックエンジンです。最新のバインドレス GPU が備える機能 (64bit ポインタ / bindless / dynamic rendering / stage バリア) の上に、ディスクリプタセットや PSO 爆発のない薄い API を構築し、その上に 2D ベクター・宣言的 UI・アニメーション・レンダーグラフを積み上げています。
@@ -74,8 +73,19 @@ public static class DocsHome
 
             > [!TIP]
             > `Ctrl+D` でライト/ダークテーマを切り替えられます。右パネルの Knobs はストーリーが公開している調整パラメータです — このページのカウンタも編集できます。
-            """, toc: true, fences: DocsFences);
-        return WithDocFonts(doc);   // 日本語/絵文字フォールバック + ハイライト + mermaid widget
+            """, toc: true);
+
+        // golden ①先頭 (見出し/TOC)、②「最初の UI」見出しへスクロールして埋め込みカウンタ (hole) を映す
+        ctx.Play(async d =>
+        {
+            await d.Snap();
+            if (doc is TextEditorView tev)
+                foreach (MarkdownHeading h in MarkdownDecorations.Headings(tev.DocSource!))
+                    if (h.Text == "最初の UI") { tev.ScrollToSource(h.Offset); break; }
+            await d.Step(2);
+            await d.Snap("counter");
+        });
+        return doc;
     }
 
     [Story("Docs/FirstTriangle", Order = 2)]
