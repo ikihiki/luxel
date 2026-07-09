@@ -95,7 +95,7 @@ public static class DocsIndex
     private static bool LinkBroken(string url, string src)
     {
         if (url.StartsWith("story:")) return StoryRegistry.Find(url["story:".Length..]) is null;
-        if (url.StartsWith("#")) return !MarkdownDecorations.Headings(src).Any(h => RichTextEditor.Slug(h.Text) == url[1..]);
+        if (url.StartsWith("#")) return !MarkdownDecorations.Headings(src).Any(h => MarkdownDoc.Slug(h.Text) == url[1..]);
         return false;
     }
 }

@@ -31,8 +31,18 @@ public static class DocsApi
             s.AppendFormatted(ApiTable(api.Name, width: 720f));
             s.AppendLiteral("\n");
         }
-        ctx.Play(static d => d.Snap());
-        return WithDocFonts(Docs(ctx, s, toc: true, fences: DocsFences));
+        Widget doc = DocNew(ctx, s, toc: true);
+        // golden ①先頭 (H1+巨大 TOC)、②最初の ## 見出しへスクロールして ApiTable widget hole を映す
+        ctx.Play(async d =>
+        {
+            await d.Snap();
+            if (doc is TextEditorView tev)
+                foreach (MarkdownHeading h in MarkdownDecorations.Headings(tev.DocSource!))
+                    if (h.Level == 2) { tev.ScrollToSource(h.Offset); break; }
+            await d.Step(2);
+            await d.Snap("table");
+        });
+        return doc;
     }
 
     [Story("Reference/Ui", Order = 61)]
@@ -98,6 +108,6 @@ public static class DocsApi
                 s.AppendLiteral("\n");
             }
         }
-        return WithDocFonts(Docs(ctx, s, toc: true, fences: DocsFences));
+        return DocNew(ctx, s, toc: true);
     }
 }

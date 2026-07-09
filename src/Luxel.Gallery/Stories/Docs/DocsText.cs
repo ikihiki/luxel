@@ -10,7 +10,10 @@ namespace Luxel.Gallery.Stories;
 public static class DocsText
 {
     [Story("Docs/Typography", Order = 40)]
-    public static Widget Typography(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Typography(StoryContext ctx)
+    {
+        ctx.Play(static d => d.Snap());   // 新スタック: mermaid フェンス + コードブロックの描画 golden
+        return DocNew(ctx, $$"""
         # テキスト (Luxel.Typography)
 
         HarfBuzz シェーピング + 自前レイアウトのテキスト基盤です。2D レイヤ (Luxel.TwoD) はテキストを知らない純粋レイヤのままで、フォント依存は Typography に隔離されています。ICU (完全な UAX#14/#29) は `Luxel.Typography.Icu` アダプタ — 使うアプリだけが参照します。
@@ -69,10 +72,11 @@ public static class DocsText
         キャレットの単位は**グラフェム境界**。fi 合字のように 1 グリフに複数グラフェムが入る場合はグリフ advance を按分します (HarfBuzz 推奨の近似)。HitTest はクラスタ矩形の中央で左右に吸着し、選択は行ごとの矩形列です。
 
         次: [Docs/Editor](story:Docs/Editor) — この上に載る文書モデルとエディタへ。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
+    }
 
     [Story("Docs/Editor", Order = 41)]
-    public static Widget Editor(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Editor(StoryContext ctx) => DocNew(ctx, $$"""
         # ドキュメントとエディタ (Luxel.Document)
 
         リッチテキスト編集は 3 層に分かれます。Document 層は UI/GPU 非依存の純ロジックで、エディタの全意味論が UI なしでテストできます。
@@ -150,5 +154,5 @@ public static class DocsText
         ## 埋め込みブロック (Embed)
 
         `BlockKind.Embed` + `IBlockPayload` がデータ、widget 化は表示側の `BlockWidgetRegistry` が行います。canonical 形は `FencePayload(Info, Body)` — リゾルバのいない環境では**ただのコードブロックとして完全に保全**されます。画像・テーブル・チャート ([Controls/MarkdownEditor/Embeds](story:Controls/MarkdownEditor/Embeds))、そして独自フォーマット + ライブ実行の [Demos/Strudel/LiveScript](story:Demos/Strudel/LiveScript) もこの機構です。**この docs ページ自体**の mermaid / 数式 / ライブ UI も同じ経路 (IFenceResolver + BlockWidgetRegistry) で動いています。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 }

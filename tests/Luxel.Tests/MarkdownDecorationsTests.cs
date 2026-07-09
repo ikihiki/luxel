@@ -160,7 +160,18 @@ public class MarkdownDecorationsTests
         Assert.DoesNotContain("(#not-a-heading)", md);   // フェンス内の ## は無視
         // アンカーの slug は Headings の本文と一致する (ナビが解決できる)
         foreach (MarkdownHeading h in MarkdownDecorations.Headings(md).Where(x => x.Level >= 2))
-            Assert.Contains($"(#{Luxel.Controls.RichTextEditor.Slug(h.Text)})", md);
+            Assert.Contains($"(#{MarkdownDoc.Slug(h.Text)})", md);
+    }
+
+    [Fact]
+    public void Slug_StripsParens_SoAnchorUrlDoesNotBreak()
+    {
+        // 見出しに (...) があっても slug から括弧を除く → TOC の #アンカーが Links で正しく抽出できる
+        Assert.Equal("セグメンタ-itextsegmenter", MarkdownDoc.Slug("セグメンタ (ITextSegmenter)"));
+        string md = MarkdownDoc.InsertToc("# T\n\n## セグメンタ (ITextSegmenter)\nx");
+        MarkdownLink toc = MarkdownDecorations.Links(md).Single(l => l.Url.StartsWith("#"));
+        Assert.Equal("#セグメンタ-itextsegmenter", toc.Url);   // URL 内に ) が無く途中で閉じない
+        Assert.False(toc.Url.Contains(')'));
     }
 
     [Fact]

@@ -96,7 +96,7 @@ internal static class DocsKit
         {
             string slug = url[1..];
             foreach (MarkdownHeading h in MarkdownDecorations.Headings(src))
-                if (Luxel.Controls.RichTextEditor.Slug(h.Text) == slug) { ed.ScrollToSource(h.Offset); return; }
+                if (MarkdownDoc.Slug(h.Text) == slug) { ed.ScrollToSource(h.Offset); return; }
             return;
         }
         if (url.StartsWith("http://") || url.StartsWith("https://"))
