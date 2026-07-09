@@ -8,7 +8,7 @@ namespace Luxel.Gallery.Stories;
 public static partial class DocsAdr
 {
     [Story("ADR/0004-Compute-Rasterizer-Retained-2D", Order = 75)]
-    public static Widget Adr0004(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Adr0004(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0004 — 2D はコンピュートラスタライザ + 保持型キャンバス
 
         - **Status**: Accepted
@@ -51,5 +51,5 @@ public static partial class DocsAdr
         - ⚠️ **現状はブルートフォース** — 画素×線分 (+ bbox 早期スキップ) で、タイル binning は今後の課題。AA も 4x4 スーパーサンプルで解析的 AA ではない
         - ⚠️ compute ラスタライザは非標準経路 — RenderDoc 等での三角形パイプラインのデバッグ手法がそのまま効かず、問題調査は自前の観測カウンタと golden 比較が頼り
         - ⚠️ 容量付き slot の増分更新は複雑さの置き場 — コンパクション条件やノード増減の増分化 (保留中) など、チューニング項目を自前で抱える
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 }

@@ -8,7 +8,7 @@ namespace Luxel.Gallery.Stories;
 public static partial class DocsAdr
 {
     [Story("ADR/0008-Custom-Ime-Candidates", Order = 79)]
-    public static Widget Adr0008(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Adr0008(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0008 — IME 候補ウインドウを自前描画する (排他モード対応)
 
         - **Status**: Proposed
@@ -44,5 +44,5 @@ public static partial class DocsAdr
         - ⚠️ **実 IME 依存で決定的テストが困難** — 実機 + 各 IME (MS-IME/Google 日本語入力等) の手動検証が必須。golden に乗らない
         - ⚠️ 候補以外の UI 要素 (リーディングウインドウ/ツールチップ) もあり、抑制範囲の線引きが要る
         - ⚠️ 抑制すると OS の候補由来の便利機能も消えるため、既定は通常ウインドウ=OS 描画・排他=自前、の切替方針を守る必要がある
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 }

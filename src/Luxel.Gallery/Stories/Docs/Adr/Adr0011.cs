@@ -8,7 +8,7 @@ namespace Luxel.Gallery.Stories;
 public static partial class DocsAdr
 {
     [Story("ADR/0011-Pointer-Button-Modifiers", Order = 82)]
-    public static Widget Adr0011(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Adr0011(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0011 — PointerEvent にボタンと修飾キーを通す
 
         - **Status**: Accepted
@@ -45,5 +45,5 @@ public static partial class DocsAdr
         - ✅ 本格ドッキング ([ADR-0010](story:ADR/0010-Workbench-Framework) / [ADR-0014](story:ADR/0014-Workbench-Ui-Controls)) の前提が揃う
         - ⚠️ `PointerEvent` の構造とその生成/配布経路 (`UiHost`) を触るため、**全ドラッグ系の無回帰**を golden で確認する必要がある
         - ⚠️ 修飾キー/ボタンの取得はプラットフォーム依存 — Win32 のメッセージから正しく組み立てる (他 OS 対応時は各 Platform で埋める)
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 }

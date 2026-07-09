@@ -8,7 +8,7 @@ namespace Luxel.Gallery.Stories;
 public static partial class DocsAdr
 {
     [Story("ADR/0003-Declarative-Signal-Ui", Order = 74)]
-    public static Widget Adr0003(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Adr0003(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0003 — UI は「宣言的 C# DSL + signals」を自作する
 
         - **Status**: Accepted
@@ -52,5 +52,5 @@ public static partial class DocsAdr
         - ⚠️ 値状態と構造状態の区別は**規約** — 構造が変わるのに `Rebuild()` を忘れる・状態を保つ子をフィールド保持しないと壊れる。CompositeControl の 3 層規約を守る教育コストがある
         - ⚠️ Effect の文脈規律が要る — Effect 内から他 widget の状態 signal を書くと依存追跡と干渉するため、「フラグを立てて Update (effect 外) で書く」パターンを守る必要がある (GalleryApp が実例)
         - ⚠️ 単一パスレイアウトは「親サイズが子に依存し、子が親サイズに依存する」ような循環要求を表現できない — Constraints で表せる範囲に設計を寄せる
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 }

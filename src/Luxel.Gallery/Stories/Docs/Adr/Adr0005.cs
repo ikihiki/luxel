@@ -8,7 +8,7 @@ namespace Luxel.Gallery.Stories;
 public static partial class DocsAdr
 {
     [Story("ADR/0005-Docs-In-Gallery", Order = 76)]
-    public static Widget Adr0005(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Adr0005(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0005 — ドキュメントとサンプルは Gallery に一本化する
 
         - **Status**: Accepted
@@ -48,5 +48,5 @@ public static partial class DocsAdr
         - ⚠️ **GitHub 上でそのまま読めない** — docs を読むには Gallery を起動する (かソースを読む)。公開ドキュメントが必要になったら書き出し手段の検討が要る
         - ⚠️ 執筆に C# ビルドが要り、raw string の規約 (`$` の数 = hole の波かっこ数、段落は 1 ソース行、本文に引用符 3 連を含むページは区切りを 4 連に) を覚える必要がある
         - ⚠️ 計画文書のリポジトリ内の置き場が無くなる — 意図的な制約 (現在形の仕様として docs に吸収するか、リポジトリ外へ)
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 }

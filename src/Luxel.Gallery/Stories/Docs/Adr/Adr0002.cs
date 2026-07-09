@@ -8,7 +8,7 @@ namespace Luxel.Gallery.Stories;
 public static partial class DocsAdr
 {
     [Story("ADR/0002-Thin-Bindless-Gpu-Abstraction", Order = 73)]
-    public static Widget Adr0002(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Adr0002(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0002 — 3D グラフィック API は「薄い bindless 抽象」を自作する
 
         - **Status**: Accepted
@@ -52,5 +52,5 @@ public static partial class DocsAdr
         - ⚠️ 抽象を自作した以上、**vk / dx ピクセル一致**を自分で保証し続ける必要がある — snap 回帰をバックエンド別 golden で持ち、新機能は両方で検証してから完了とする開発規律が生まれた
         - ⚠️ バックエンド固有の罠は自分で吸収する (例: D3D12 の CopyTextureToBuffer 行 256B 整列 → RGBA8 はターゲット幅 64 の倍数、DXIL は validator 1.7 指定)
         - ⚠️ stage バリアのみの単純化は「単純な使用パターン」が前提 — 複雑な並行アクセスパターンが将来必要になったら見直し対象
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 }

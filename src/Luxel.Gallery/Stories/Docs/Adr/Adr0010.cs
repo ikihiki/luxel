@@ -8,7 +8,7 @@ namespace Luxel.Gallery.Stories;
 public static partial class DocsAdr
 {
     [Story("ADR/0010-Workbench-Framework", Order = 81)]
-    public static Widget Adr0010(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Adr0010(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0010 — 複数エディタを束ねる Workbench フレームワークを新規に作る
 
         - **Status**: Accepted
@@ -49,5 +49,5 @@ public static partial class DocsAdr
         - ⚠️ 本格ドッキング + 保存経路 + 複数 doc は**新規コード量が大きい** (だからこそ ADR-0011〜0014 に分割した)
         - ⚠️ Gallery 移行は golden 面積が広い — 既定レイアウト再現で中立化する規律が要る
         - ⚠️ `IEditorDocument` の serialize 契約を各スタックで満たす必要がある (ノード = JSON 往復、テキスト = 文字列、リッチ文書 = ブロック)
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 }

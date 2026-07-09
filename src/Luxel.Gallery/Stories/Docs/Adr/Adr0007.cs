@@ -8,7 +8,7 @@ namespace Luxel.Gallery.Stories;
 public static partial class DocsAdr
 {
     [Story("ADR/0007-Floating-Ui-Placement", Order = 78)]
-    public static Widget Adr0007(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Adr0007(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0007 — 浮遊 UI は単一の anchored placement エンジンに統一する
 
         - **Status**: Accepted
@@ -51,5 +51,5 @@ public static partial class DocsAdr
         - ✅ ContextMenu が端でのクランプ/フリップを獲得する
         - ⚠️ 移行が複数コントロール + golden に及ぶ (配置が数 px 動きうる — 意図差分として --update)
         - ⚠️ anchored と region の 2 ファミリを区別して保守する必要がある
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 }

@@ -8,7 +8,7 @@ namespace Luxel.Gallery.Stories;
 public static partial class DocsAdr
 {
     [Story("ADR/0009-Node-Editor-Stack", Order = 80)]
-    public static Widget Adr0009(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Adr0009(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0009 — ノードエディタは汎用の Transaction ベース新スタックとして作る
 
         - **Status**: Accepted
@@ -55,5 +55,5 @@ public static partial class DocsAdr
         - ⚠️ 新プロジェクト + view の表面積が増える (既存 Diagram / Animation.Graph と概念が近く、使い分けの説明が要る)
         - ⚠️ PointerEvent に修飾キーが無い制約で、追加クリック選択の操作感はフレームワーク拡張まで範囲選択で代替 (マルチカーソル / [ADR-0008](story:ADR/0008-Custom-Ime-Candidates) と共有の穴)
         - ⚠️ pan/zoom がコンテナ変換 1 枚の共有ワールドなので、入れ子で独立ズームが要る規模になったら `SurfaceView` 化の再検討が要る
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 }
