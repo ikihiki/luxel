@@ -43,15 +43,16 @@ public sealed record MarkDecoration(
     bool InclusiveStart = false,
     bool InclusiveEnd = false,
     FontVariant? Variant = null,
-    float? FontScale = null) : Decoration
+    float? FontScale = null,
+    bool Hidden = false) : Decoration
 {
     /// <inheritdoc/>
     public override int SortFrom => From;
     /// <inheritdoc/>
     public override int SortTo => To;
-    /// <summary>前景色・フォント変種・サイズ倍率のいずれかを持つ場合にレイアウト (ラン分割) に効く。
+    /// <summary>前景色・フォント変種・サイズ倍率・非表示のいずれかを持つ場合にレイアウト (ラン分割/幅0 畳み) に効く。
     /// 背景/下線/囲みはオーバーレイのみ。</summary>
-    public override bool AffectsLayout => Foreground.HasValue || Variant.HasValue || FontScale.HasValue;
+    public override bool AffectsLayout => Foreground.HasValue || Variant.HasValue || FontScale.HasValue || Hidden;
 
     /// <inheritdoc/>
     public override Decoration? Map(ChangeSet cs)

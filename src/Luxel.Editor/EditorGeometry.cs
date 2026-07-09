@@ -247,7 +247,7 @@ public sealed class EditorGeometry
             {
                 case MarkDecoration m when m.AffectsLayout:
                     sb.Append("f").Append(m.From).Append(',').Append(m.To).Append(',')
-                      .Append(m.Foreground).Append(',').Append(m.Variant).Append(',').Append(m.FontScale).Append(';');
+                      .Append(m.Foreground).Append(',').Append(m.Variant).Append(',').Append(m.FontScale).Append(',').Append(m.Hidden).Append(';');
                     break;
                 case WidgetDecoration w:
                     sb.Append("w").Append(w.From).Append(',').Append(w.To).Append(',').Append(w.Width).Append(',').Append(w.Height).Append(';');
@@ -285,10 +285,11 @@ public sealed class EditorGeometry
         }
         widgets.Sort((x, y) => x.a.CompareTo(y.a));
 
-        // 前景色 / フォント変種 / サイズ倍率 (既定 → マークで上書き。1 マークが色+変種+倍率を同時指定可)
+        // 前景色 / フォント変種 / サイズ倍率 / 非表示 (既定 → マークで上書き)
         var color = new uint[len];
         var variant = new FontVariant?[len];
         var scale = new float?[len];
+        var hidden = new bool[len];
         for (int i = 0; i < len; i++) color[i] = _cfg.DefaultColor;
         foreach (MarkDecoration m in _state.Decorations.All().OfType<MarkDecoration>())
         {
@@ -299,6 +300,7 @@ public sealed class EditorGeometry
                 if (m.Foreground is { } fg) color[i] = fg;
                 if (m.Variant is { } v) variant[i] = v;
                 if (m.FontScale is { } s) scale[i] = s;
+                if (m.Hidden) hidden[i] = true;
             }
         }
 
@@ -323,9 +325,17 @@ public sealed class EditorGeometry
                 pos = b; wi++;
                 continue;
             }
-            int runEnd = pos + 1;
             int nextWidget = wi < widgets.Count ? widgets[wi].a : len;
-            while (runEnd < len && runEnd < nextWidget
+            if (hidden[pos])   // 非表示レンジ: グリフを出さず幅0で畳む (widget と同じ折り畳み写像、Key=null で widget 扱いされない)
+            {
+                int hEnd = pos + 1;
+                while (hEnd < len && hEnd < nextWidget && hidden[hEnd]) hEnd++;
+                segs.Add(new DisplayLine.Seg(hEnd - pos, 0, IsWidget: true, null));
+                pos = hEnd;
+                continue;
+            }
+            int runEnd = pos + 1;
+            while (runEnd < len && runEnd < nextWidget && !hidden[runEnd]
                 && color[runEnd] == color[pos] && variant[runEnd] == variant[pos] && scale[runEnd] == scale[pos]) runEnd++;
             runEnd = Math.Min(runEnd, nextWidget);
             spans.Add(new TextSpan(text[pos..runEnd], new SpanStyle

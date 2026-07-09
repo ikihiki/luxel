@@ -25,6 +25,16 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void HideMarkers_MarkerIsHiddenNotMuted()
+    {
+        var set = MarkdownDecorations.Build("# Title", T, hideMarkers: true);
+        MarkDecoration marker = At(set, 0, 2);   // "# "
+        Assert.True(marker.Hidden);              // 非表示 (幅0)
+        Assert.Null(marker.Foreground);          // 淡色化ではない
+        Assert.Equal(FontVariant.Bold, At(set, 2, 7).Variant);   // 本文は従来どおり
+    }
+
+    [Fact]
     public void Heading_Level_ScalesDown()
     {
         Assert.Equal(MarkdownDecorations.HeadingScale(2), At(Build("## Sub"), 3, 6).FontScale!.Value, 3);

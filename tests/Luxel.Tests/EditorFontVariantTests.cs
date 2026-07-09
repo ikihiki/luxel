@@ -47,6 +47,20 @@ public class EditorFontVariantTests
     }
 
     [Fact]
+    public void Hidden_CollapsesToZeroWidth_KeepsMapping()
+    {
+        // "abcd" の [1,3) を非表示 → 表示は "ad" (幅0 で畳む)、ソース↔表示写像は保つ
+        var st = EditorState.Create("abcd")
+            .WithDecorations("md", new DecorationSet([new MarkDecoration(1, 3, Hidden: true)])).State;
+        var g = new EditorGeometry(Cfg(), st);
+        DisplayLine dl = g.Line(0);
+        Assert.Equal(1, dl.SourceToDisplay(1));   // 非表示開始は左詰め
+        Assert.Equal(2, dl.SourceToDisplay(4));   // 末尾 = 表示 2 桁 (b,c は幅0)
+        float plainW = new EditorGeometry(Cfg(), EditorState.Create("abcd")).Line(0).Layout.Width;
+        Assert.True(dl.Layout.Width < plainW);     // 幅が縮む
+    }
+
+    [Fact]
     public void FontFor_ResolvesVariantSlots()
     {
         VectorFont reg = F();
