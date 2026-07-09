@@ -10,7 +10,10 @@ namespace Luxel.Gallery.Stories;
 public static class DocsNodeEditor
 {
     [Story("Docs/NodeEditor", Order = 42)]
-    public static Widget NodeEditor(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget NodeEditor(StoryContext ctx)
+    {
+        ctx.Play(static d => d.Snap());   // 新スタック: mermaid 図の描画 golden (ライブ埋め込み無し=安全)
+        return DocNew(ctx, $$"""
         # ノードエディタ (Luxel.NodeGraph)
 
         ノード + ポート + 接続線を空間上で編集する**汎用ノードグラフ制御**です。特定ドメインに縛られない土台 (TouchDesigner / Blueprint 流) で、アニメブレンド・シェーダ・オーディオパッチ・レンダーグラフ可視化などが同じ control に載ります。決定は [ADR-0009](story:ADR/0009-Node-Editor-Stack)。テキスト新スタック ([ADR-0006](story:ADR/0006-Editor-New-Stack)) と**同じ骨格**で、canvas 非依存のコアと薄いビューに分かれます。
@@ -45,5 +48,6 @@ public static class DocsNodeEditor
 
         > [!NOTE]
         > **制約**: `PointerEvent` にボタン/修飾キーが無いため、空白ドラッグを範囲選択に割り当てた結果、**対話的な pan ドラッグは延期**しています (pan は `PanBy`/`FitToView` の API、ズームはホイールで対話可)。フレームワークがポインタ修飾を通せば追加選択・pan ドラッグを足せます (マルチカーソルの Alt+Click 延期と同じ穴)。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
+    }
 }

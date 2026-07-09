@@ -147,7 +147,10 @@ public static class DocsHome
         """, toc: true, fences: DocsFences));
 
     [Story("Docs/Architecture", Order = 1)]
-    public static Widget Architecture(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Architecture(StoryContext ctx)
+    {
+        ctx.Play(static d => d.Snap());   // 新スタック: 全体像 mermaid 図の描画 golden (ライブ埋め込み無し=安全)
+        return DocNew(ctx, $$"""
         # アーキテクチャ
 
         Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。
@@ -214,5 +217,6 @@ public static class DocsHome
         ## vk / dx ピクセル一致という規律
 
         すべての描画機能は Vulkan と DirectX 12 の両方で動き、snap 回帰は**バックエンド別の golden** と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。新機能はどちらか一方で「たまたま動く」ことを許さない — これが薄い抽象を薄いまま保つための開発規律です。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
+    }
 }
