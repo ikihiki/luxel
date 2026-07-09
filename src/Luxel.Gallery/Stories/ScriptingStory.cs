@@ -140,7 +140,7 @@ public static class ScriptingStory
         });
         ctx.Play("complete", async d =>
         {
-            // CodeEditor 内蔵の Ctrl+Space 補完 — キャレットを "hi". の直後に置いて開く
+            // TextEditorView 内蔵の Ctrl+Space 補完 — キャレットを "hi". の直後に置いて開く
             block.SetCode("\"hi\".");
             await d.Step(1);
             await d.Click(block.Editor);             // フォーカス
@@ -181,17 +181,10 @@ public static class ScriptingStory
                 repl]];
     }
 
-    // ---- Jupyter 風ノートブック: 文章 (markdown) + コードセル (CodeEditor + Run + 結果) ----
+    // ---- Jupyter 風ノートブック: 文章 (markdown) + コードセル (TextEditorView + Run + 結果) ----
 
-    /// <summary>```csx フェンス → セル embed 昇格。</summary>
-    private sealed class CsxCellResolver : Luxel.Document.IFenceResolver
-    {
-        public Luxel.Document.IBlockPayload? Resolve(string info, string body)
-            => info.Split(' ', 2)[0] is "csx" ? new Luxel.Document.FencePayload(info, body) : null;
-    }
-
-    /// <summary>ノートブックの 1 コードセル — CodeEditor (ガター/補完/診断/スクロールバー) +
-    /// Run + 結果パネル。RichTextEditor の embed block widget として文章の間に並ぶ。
+    /// <summary>ノートブックの 1 コードセル — TextEditorView (ガター/補完/診断/スクロールバー) +
+    /// Run + 結果パネル。MarkdownDoc の embed block widget として文章の間に並ぶ。
     /// **クリックが Run に届くのはヒットの深さ優先バブリングのおかげ** (埋め込み widget の
     /// ボタンが親エディタの選択ヒットに勝つ)。</summary>
     private sealed class NotebookCell : CompositeControl, IDisposable
@@ -200,7 +193,7 @@ public static class ScriptingStory
         private readonly ScriptHost _host;            // DI 注入 (共有シングルトン)
         private readonly Signal<string> _code;
         private readonly Signal<int> _ver = new(0);
-        private readonly CodeEditor _editor;
+        private readonly TextEditorView _editor;
         private readonly float _maxW;
         private Widget? _output;
         private string _outText = "";
@@ -209,16 +202,20 @@ public static class ScriptingStory
         internal Button RunButton { get; }
         internal bool HasOutput => _output is not null || _outText.Length > 0;
 
-        public NotebookCell(Luxel.Document.FencePayload payload, float maxWidth, StoryContext ctx, ScriptHost host, ICodeLanguage lang)
+        public NotebookCell(string body, float maxWidth, StoryContext ctx, ScriptHost host, ICodeLanguage lang)
         {
             _ctx = ctx;
             _host = host;
             _maxW = MathF.Max(240, maxWidth);
-            _code = new Signal<string>(payload.Body);
-            _editor = CodeEditor(_code, editorHeight: 96f, editorWidth: _maxW - 60);
-            (_, _, _, _editor.MonoFont) = EditorFaces.Value;
-            _editor.Highlighter = Luxel.Highlight.TextMateHighlighter.Instance;
+            _code = new Signal<string>(body);
+            _editor = TextEditorView(_code, editorHeight: 96f, editorWidth: _maxW - 60);
+            _editor.ShowLineNumbers = true;
+            _editor.EditorFont = EditorFaces.Value.Mono;
             _editor.LanguageService = lang;
+            Func<Theme> th = () => UiTheme.T;
+            _editor.Providers.Add(new SyntaxHighlightProvider(Luxel.Highlight.TextMateHighlighter.Instance, "csharp", th));
+            _editor.Providers.Add(new DiagnosticsProvider(lang, th));
+            _editor.Providers.Add(new CurrentLineProvider(th));
             RunButton = Button(_ => Run(), "▷", variant: Variant.Ghost);
         }
 
@@ -260,24 +257,20 @@ public static class ScriptingStory
     [Story("Demos/Scripting/Notebook", Height = 620, Order = 2034)]
     public static Widget Notebook(StoryContext ctx, ScriptHost host, ICodeLanguage lang)
     {
-        var fmt = new Luxel.Document.MarkdownFormat();
-        fmt.FenceResolvers.Add(new CsxCellResolver());
-        // factory は RenderLine 毎に呼ばれる — 本文キーでキャッシュし**同一インスタンス**を返す
+        // resolver は再描画毎に呼ばれる — 本文キーでキャッシュし**同一インスタンス**を返す
         // (状態=出力が再描画で消えない + play が安定して掴める)
         var cellByBody = new Dictionary<string, NotebookCell>();
         var cells = new List<NotebookCell>();
-        var widgets = new BlockWidgetRegistry()
-            .Register("csx", bc =>
+        NotebookCell CellFor(string body)
+        {
+            if (!cellByBody.TryGetValue(body, out NotebookCell? cell))
             {
-                string body = ((Luxel.Document.FencePayload)bc.Payload).Body;
-                if (!cellByBody.TryGetValue(body, out NotebookCell? cell))
-                {
-                    cell = new NotebookCell((Luxel.Document.FencePayload)bc.Payload, bc.MaxWidth, ctx, host, lang);
-                    cellByBody[body] = cell;
-                    cells.Add(cell);
-                }
-                return cell;
-            });
+                cell = new NotebookCell(body, 560f, ctx, host, lang);
+                cellByBody[body] = cell;
+                cells.Add(cell);
+            }
+            return cell;
+        }
 
         Signal<string> md = ctx.Signal("markdown",
             "# Luxel ノートブック\n" +
@@ -289,9 +282,12 @@ public static class ScriptingStory
             "```csx\nHStack(6)[\n    Badge(\"Ready\", Intent.Success),\n    Button(_ => Log(\"cell!\"), \"押す\")]\n```\n" +
             "文章とコードが交互に並ぶのが notebook 体験です。\n");
 
-        RichTextEditor doc = RichTextEditor(md, editorHeight: 520, format: fmt, widgets: widgets);
-        doc.Fonts = StoryKit.JpFallback.Value;
-        doc.Highlighter = Luxel.Highlight.TextMateHighlighter.Instance;
+        // 新スタック: markdown 文書レンダラ + ```csx フェンスを embed 扱いし NotebookCell に解決
+        TextEditorView doc = MarkdownDoc.Create(md, () => UiTheme.T, width: 600f, height: 520f,
+            bold: EditorFaces.Value.Bold, mono: EditorFaces.Value.Mono,
+            highlighter: Luxel.Highlight.TextMateHighlighter.Instance,
+            embedKinds: new[] { "csx" }, fonts: StoryKit.JpFallback.Value);
+        doc.WidgetResolver = key => key is EmbedRef { Key: "csx" } r ? CellFor(r.Body) : null;
 
         ctx.Play(async d =>
         {
