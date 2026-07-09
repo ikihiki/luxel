@@ -127,6 +127,25 @@ public class MarkdownDecorationsTests
         Assert.Equal(T.TextMuted, At(set, 4, 5).Foreground);   // "[" は淡色
     }
 
+    private sealed class StubHl : Luxel.Document.ISyntaxHighlighter
+    {
+        public bool Supports(string lang) => lang == "csharp";
+        public Luxel.Document.SyntaxToken[] Tokenize(string lang, string code)
+        {
+            int i = code.IndexOf("KW", System.StringComparison.Ordinal);
+            return i >= 0 ? [new Luxel.Document.SyntaxToken(i, 2, Luxel.Document.TokenKind.Keyword)] : [];
+        }
+    }
+
+    [Fact]
+    public void CodeFence_SyntaxHighlight_EmitsForegroundTokensViaDecoration()
+    {
+        // "```csharp\nKW x\n```": ```csharp=[0,9) \n=9 "KW x"=[10,14) → KW=[10,12)。装飾 (widget でない) で色付け
+        var set = MarkdownDecorations.Build("```csharp\nKW x\n```", T, highlighter: new StubHl());
+        Assert.Contains(set.OfKind<MarkDecoration>(),
+            m => m.From == 10 && m.To == 12 && m.Foreground == CodeDecorations.TokenColor(T, Luxel.Document.TokenKind.Keyword));
+    }
+
     [Fact]
     public void EmbedFence_EmitsAutoHeightBlockWidget()
     {

@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Luxel.Document;
 using Luxel.Editor;
 using Luxel.Typography;
 using Luxel.UI;
@@ -26,7 +27,7 @@ public static class MarkdownDoc
     /// <summary>設定済みの文書レンダラを作る。<paramref name="body"/> が null なら既定 (テーマ) フォント。</summary>
     public static TextEditorView Create(Signal<string> markdown, Func<Theme> theme, float width, float height,
         VectorFont? body = null, VectorFont? bold = null, VectorFont? italic = null,
-        VectorFont? boldItalic = null, VectorFont? mono = null, bool wrap = true)
+        VectorFont? boldItalic = null, VectorFont? mono = null, bool wrap = true, ISyntaxHighlighter? highlighter = null)
     {
         TextEditorView ed = Kit.TextEditorView(markdown, editorHeight: height, editorWidth: width);
         if (body is not null) ed.EditorFont = body;
@@ -36,7 +37,7 @@ public static class MarkdownDoc
         ed.MonoFont = mono;
         ed.WrapText = wrap;
         ed.ReadOnly = true;
-        ed.Providers.Add(new MarkdownProvider(theme, hideMarkers: true));   // 文書レンダラはマーカ非表示
+        ed.Providers.Add(new MarkdownProvider(theme, hideMarkers: true, highlighter));   // 文書レンダラ: マーカ非表示 + コード色分け
         return ed;
     }
 }
@@ -101,7 +102,7 @@ public static class MarkdownDecorations
     /// <summary>Markdown 全文 → 装飾集合 (純関数、フォント非依存 = GPU 不要でテスト可)。
     /// <paramref name="hideMarkers"/> = true (read-only 文書レンダラ) で記法マーカ (#/**/`/&gt;/-/[]() 等) を
     /// 淡色化ではなく**非表示** (幅0) にする。false (編集/live-preview) は従来どおり淡色。</summary>
-    public static DecorationSet Build(string text, Theme t, bool hideMarkers = false)
+    public static DecorationSet Build(string text, Theme t, bool hideMarkers = false, ISyntaxHighlighter? highlighter = null)
     {
         var marks = new List<Decoration>();
         var consumed = new bool[text.Length];
@@ -114,6 +115,7 @@ public static class MarkdownDecorations
         // --- 行単位: 埋め込み / 見出し / コードフェンス / 引用 / 箇条書き ---
         int lineStart = 0;
         bool inFence = false;
+        string fenceLang = "";
         bool inEmbed = false;
         int embedStart = 0;
         string embedKey = "";
@@ -158,6 +160,7 @@ public static class MarkdownDecorations
                 }
                 marks.Add(Marker(lineStart, end));
                 Consume(consumed, lineStart, end);
+                fenceLang = inFence ? "" : info;   // 開き = info を言語に / 閉じ = クリア
                 inFence = !inFence;
                 lineStart = end + 1;
                 continue;
@@ -166,6 +169,12 @@ public static class MarkdownDecorations
             {
                 marks.Add(new LineDecoration(lineStart, codeBg));                        // 行背景
                 if (end > lineStart) marks.Add(new MarkDecoration(lineStart, end, Variant: FontVariant.Mono));
+                // シンタックスハイライトを装飾で (実テキストのまま = 選択可能・widget 化しない)
+                if (highlighter is { } hl && fenceLang.Length > 0 && hl.Supports(fenceLang))
+                    foreach (SyntaxToken tk in hl.Tokenize(fenceLang, line))
+                        if (tk.Kind != TokenKind.Text && tk.Length > 0)
+                            marks.Add(new MarkDecoration(lineStart + tk.Start, lineStart + tk.Start + tk.Length,
+                                Foreground: CodeDecorations.TokenColor(t, tk.Kind)));
                 Consume(consumed, lineStart, end);                                       // インライン無効
                 lineStart = end + 1;
                 continue;
@@ -263,7 +272,7 @@ public static class MarkdownDecorations
 
 /// <summary>Markdown ソースを装飾に変換する <see cref="IDecorationProvider"/> — <see cref="TextEditorView.Providers"/>
 /// に足すと見出し/太字/斜体/コードが付く。テキストとテーマが変わらない限りキャッシュを返す。</summary>
-public sealed class MarkdownProvider(Func<Theme> theme, bool hideMarkers = false) : IDecorationProvider
+public sealed class MarkdownProvider(Func<Theme> theme, bool hideMarkers = false, ISyntaxHighlighter? highlighter = null) : IDecorationProvider
 {
     private string? _lastText;
     private uint _lastDisc;
@@ -276,12 +285,12 @@ public sealed class MarkdownProvider(Func<Theme> theme, bool hideMarkers = false
     public DecorationSet Provide(EditorState state)
     {
         Theme t = theme();
-        uint disc = t.Text ^ (t.TextMuted << 1);   // テーマ変化の検出子
+        uint disc = t.Text ^ (t.TextMuted << 1) ^ CodeDecorations.TokenColor(t, TokenKind.Keyword);   // テーマ変化の検出子
         string text = state.Doc.Text;
         if (text == _lastText && disc == _lastDisc) return _cache;
         _lastText = text;
         _lastDisc = disc;
-        _cache = MarkdownDecorations.Build(text, t, hideMarkers);
+        _cache = MarkdownDecorations.Build(text, t, hideMarkers, highlighter);
         return _cache;
     }
 }

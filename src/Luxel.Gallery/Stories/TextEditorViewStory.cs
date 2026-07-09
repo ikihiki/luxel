@@ -272,11 +272,12 @@ public static class TextEditorViewStory
             "- **bold**, *italic*, `code`\n" +
             "- links like [the editor docs](story:Docs/Editor)\n" +
             "> Blockquotes render with a left bar.\n" +
-            "```\n" +
-            "fenced = code;\n" +
+            "```csharp\n" +
+            "var answer = 42;  // syntax colored, selectable\n" +
             "```");
         (VectorFont? bold, _, _, VectorFont? mono) = EditorFaces.Value;
-        TextEditorView ed = MarkdownDoc.Create(md, () => UiTheme.T, width: 520f, height: 260f, bold: bold, mono: mono);
+        TextEditorView ed = MarkdownDoc.Create(md, () => UiTheme.T, width: 520f, height: 260f, bold: bold, mono: mono,
+            highlighter: Luxel.Highlight.TextMateHighlighter.Instance);
 
         ctx.Play(async d => await d.Snap("doc"));
 
