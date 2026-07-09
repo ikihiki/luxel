@@ -78,6 +78,16 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void Link_TextIsAccentUnderlined_MarkersMuted()
+    {
+        var set = Build("see [docs](http://x) here");          // '['=4 "docs"=[5,9) ']'=9
+        MarkDecoration txt = At(set, 5, 9);
+        Assert.Equal(T.Primary, txt.Foreground);
+        Assert.NotNull(txt.Underline);
+        Assert.Equal(T.TextMuted, At(set, 4, 5).Foreground);   // "[" は淡色
+    }
+
+    [Fact]
     public void ListMarkers_AreMuted()
     {
         Assert.Equal(T.TextMuted, At(Build("- item"), 0, 2).Foreground);        // 箇条書き "- "

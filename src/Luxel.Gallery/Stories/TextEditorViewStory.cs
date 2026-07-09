@@ -230,17 +230,25 @@ public static class TextEditorViewStory
         Signal<string> md = ctx.Signal("md",
             "# Markdown on the text stack\n" +
             "Rich text via decorations: **bold**, *italic*, `code`.\n" +
+            "See [the docs](story:Docs/Editor) for links.\n" +
             "> A quoted line renders with a left bar.\n" +
             "- first list item\n" +
             "- second list item\n" +
             "```\n" +
             "let mono = code_block;\n" +
             "```");
-        TextEditorView ed = TextEditorView(md, editorHeight: 220f, editorWidth: 520f);
+        TextEditorView ed = TextEditorView(md, editorHeight: 240f, editorWidth: 520f);
         (ed.BoldFont, _, _, ed.MonoFont) = EditorFaces.Value;
+        ed.ReadOnly = true;   // 文書レンダラ = 読み取り専用
         ed.Providers.Add(new MarkdownProvider(() => UiTheme.T));
 
-        ctx.Play(async d => await d.Snap("rendered"));
+        ctx.Play(async d =>
+        {
+            await d.Snap("rendered");
+            await d.Click(ed);
+            await d.Type("XXX");
+            await d.Expect(() => !ed.Text.Contains("XXX"), "ReadOnly は編集を無視する");
+        });
 
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             VStack(10)[

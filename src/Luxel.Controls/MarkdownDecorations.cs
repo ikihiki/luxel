@@ -15,6 +15,7 @@ namespace Luxel.Controls;
 public static class MarkdownDecorations
 {
     // 行内: コード → 太字 → 斜体 の順に処理し、consumed で重複 (太字の中の斜体等) を避ける。
+    private static readonly Regex Link = new(@"\[([^\]\n]+)\]\(([^)\n]+)\)", RegexOptions.Compiled);
     private static readonly Regex Code = new(@"`([^`\n]+)`", RegexOptions.Compiled);
     private static readonly Regex Bold = new(@"(\*\*|__)(?=\S)(.+?)(?<=\S)\1", RegexOptions.Compiled);
     private static readonly Regex Italic = new(@"(?<![\*_\w])([*_])(?=\S)([^\*_\n]+)(?<=\S)\1(?![\*_\w])", RegexOptions.Compiled);
@@ -96,6 +97,19 @@ public static class MarkdownDecorations
                     marks.Add(new MarkDecoration(lineStart + indent, lineStart + d + 2, Foreground: muted));
             }
             lineStart = end + 1;   // +1 = '\n'
+        }
+
+        // --- 行内: リンク [text](url) → text をアクセント色+下線、括弧/URL は淡色 ---
+        uint link = t.Primary;
+        foreach (Match m in Link.Matches(text))
+        {
+            int s = m.Index, e = m.Index + m.Length;
+            if (Overlaps(consumed, s, e)) continue;
+            Group g = m.Groups[1];
+            marks.Add(new MarkDecoration(g.Index, g.Index + g.Length, Foreground: link, Underline: new UnderlineStyle(link)));
+            marks.Add(new MarkDecoration(s, g.Index, Foreground: muted));                    // "["
+            marks.Add(new MarkDecoration(g.Index + g.Length, e, Foreground: muted));         // "](url)"
+            Consume(consumed, s, e);
         }
 
         // --- 行内: コード / 太字 / 斜体 ---

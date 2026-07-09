@@ -36,6 +36,8 @@ public sealed partial class TextEditorView : Widget, ITextInput
     public VectorFont? MonoFont { get; set; }
     /// <summary>折返し (既定 false = コード)。</summary>
     public bool WrapText { get; set; }
+    /// <summary>読み取り専用 (文書レンダラ用)。文書を変える編集は無視し、選択/スクロール/widget 操作は許す。</summary>
+    public bool ReadOnly { get; set; }
 
     /// <summary>行番号ガターを左に出す (コードエディタ用)。本文はガター幅ぶん右へ寄る。</summary>
     public bool ShowLineNumbers { get; set; }
@@ -658,6 +660,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
 
     private void Apply(Transaction tr, bool coalesce = false)
     {
+        if (ReadOnly && tr.DocChanged) return;   // 読み取り専用: 文書変更は無視 (選択/スクロールは空 ChangeSet で通す)
         if (tr.DocChanged) _history.Record(tr, coalesce);
         _state = tr.State;
         Sync();
