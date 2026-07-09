@@ -51,6 +51,8 @@ WS-B CodeEditor ───┘ (TextEditorView へ移植 → 削除)              
 
 - **S(A1)** ✅ 完了 (2026-07-09) — **font-variant Mark** (`MarkDecoration` に `Variant`/`FontScale`、`AffectsLayout` 拡張) + `EditorConfig` の Bold/Italic/BoldItalic スロット + `EditorGeometry.BuildLine` の行内 mixed-run (色+変種+倍率でラン分割) + `LineKey` 変種署名 + `TextEditorView` 変種フォント props。TextLayout は無改修 (ラン混在対応済み)。**ブロック widget (表/図の複数行占有) は S(A1) では未対応 → S(A2) で新 `BlockWidgetDecoration` を足す** (旧 RichTextEditor の Embed 方式が参考)。単体 4 + story RichText (vk/dx golden)、e2e 97/97。
 - **S(A2)** Markdown 装飾プロバイダ + widget リゾルバ (`Luxel.Controls`) — パーサ → Line/Block/Mark/LinePrefix + widget。内容プロセッサ (Diagram/MathText/Highlight.TextMate) を **widget コンテンツ**として再利用し、`Luxel.Document` 依存の共有ブロック/フォーマット型をここへ移設 (or 中立化)。**read-only 描画モード** = Docs レンダラ。
+  - **S(A2) 一部 済** (2026-07-09): `MarkdownDecorations.Build` (見出し/太字/斜体/インラインコード = font-variant Mark、記法マーカ淡色) + `MarkdownProvider` (`IDecorationProvider`) + `FontVariant.Mono`。単体 6 + story Markdown (vk/dx golden)、e2e 98/98。
+  - **残**: ブロック widget (新 `BlockWidgetDecoration` = 複数行占有、表/mermaid/数式/埋め込み。旧 Embed 方式が参考) + 引用/リスト記法 + 内容プロセッサの widget 化。
 - **S(A3)** `Kit.Docs()` をこの構成へ差し替え、Docs/ADR 全 11 モジュールを移行 (golden 全再生成、意図差分のみ)。全文検索/TOC/`story:` リンクの無回帰。
 - **S(A4)** **ブロック単位コマンド** (move/indent/heading/list 継続/fold) + 編集 (ハイブリッド/Live Preview) モード = Markdown エディタ。
 - **S(A5)** `RichTextEditor` + `TextArea` + `Luxel.Document` の編集核 (`DocumentEditor`) を削除。TextArea 依存箇所は TextEditorView (プレーンモード) へ。

@@ -24,6 +24,8 @@ public sealed class EditorConfig
     public VectorFont? ItalicFont { get; init; }
     /// <summary>太字斜体フェイス (<see cref="FontVariant.BoldItalic"/> マーク用)。null なら既定 <see cref="Fonts"/>。</summary>
     public VectorFont? BoldItalicFont { get; init; }
+    /// <summary>等幅フェイス (<see cref="FontVariant.Mono"/> マーク用、インラインコード)。null なら既定 <see cref="Fonts"/>。</summary>
+    public VectorFont? MonoFont { get; init; }
 
     /// <summary>変種に対応する VectorFont を返す (未供給なら null = 既定 <see cref="Fonts"/> を使う)。</summary>
     public VectorFont? FontFor(FontVariant? v) => v switch
@@ -31,6 +33,7 @@ public sealed class EditorConfig
         FontVariant.Bold => BoldFont,
         FontVariant.Italic => ItalicFont,
         FontVariant.BoldItalic => BoldItalicFont,
+        FontVariant.Mono => MonoFont,
         _ => null,
     };
 

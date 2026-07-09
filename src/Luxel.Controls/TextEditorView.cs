@@ -29,10 +29,11 @@ public sealed partial class TextEditorView : Widget, ITextInput
     public VectorFont? EditorFont { get; set; }
     /// <summary>フォールバック用フォント列 (null = EditorFont/ctx.Font 単体)。</summary>
     public FontCollection? Fonts { get; set; }
-    /// <summary>太字/斜体/太字斜体フェイス (Markdown/リッチ文書の <see cref="FontVariant"/> マーク用、null = 変種なし)。</summary>
+    /// <summary>太字/斜体/太字斜体/等幅フェイス (Markdown/リッチ文書の <see cref="FontVariant"/> マーク用、null = 変種なし)。</summary>
     public VectorFont? BoldFont { get; set; }
     public VectorFont? ItalicFont { get; set; }
     public VectorFont? BoldItalicFont { get; set; }
+    public VectorFont? MonoFont { get; set; }
     /// <summary>折返し (既定 false = コード)。</summary>
     public bool WrapText { get; set; }
 
@@ -400,6 +401,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
             BoldFont = BoldFont,
             ItalicFont = ItalicFont,
             BoldItalicFont = BoldItalicFont,
+            MonoFont = MonoFont,
         };
     }
 

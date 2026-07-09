@@ -221,6 +221,29 @@ public static class TextEditorViewStory
                 ed]];
     }
 
+    [Story("Controls/TextEditorView/Markdown", Height = 240, Order = 8)]
+    public static Widget Markdown(StoryContext ctx)
+    {
+        // read-only 文書レンダラの核 (WS-A / ADR-0012): MarkdownProvider が Markdown ソースを
+        // font-variant Mark に変換 → 同一の行テキストモデルの上に見出し/太字/斜体/コードが乗る。
+        Signal<string> md = ctx.Signal("md",
+            "# Markdown on the text stack\n" +
+            "Rich text via decorations: **bold**, *italic*, `code`.\n" +
+            "## Sub heading\n" +
+            "Same line model — the provider parses source to marks.");
+        TextEditorView ed = TextEditorView(md, editorHeight: 160f, editorWidth: 520f);
+        (ed.BoldFont, _, _, ed.MonoFont) = EditorFaces.Value;
+        ed.Providers.Add(new MarkdownProvider(() => UiTheme.T));
+
+        ctx.Play(async d => await d.Snap("rendered"));
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("TextEditorView — Markdown (プロバイダ)"),
+                Muted("MarkdownProvider を Providers に足すと見出し/太字/斜体/コードが付く。表示は行、装飾は push = read-only 文書レンダラの核。"),
+                ed]];
+    }
+
     [Story("Controls/TextEditorView/MultiCursor", Height = 260, Order = 5)]
     public static Widget MultiCursor(StoryContext ctx)
     {

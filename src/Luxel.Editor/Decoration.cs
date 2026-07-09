@@ -6,9 +6,9 @@ public readonly record struct UnderlineStyle(uint Color, bool Wavy = false);
 /// <summary>囲みスタイル — 枠色・任意の塗り・角丸半径 (Strudel の再生シーケンス囲みに使う)。</summary>
 public readonly record struct BoxStyle(uint Stroke, uint? Fill = null, float Radius = 0f);
 
-/// <summary>フォント変種 — Bold/Italic は合成できないため view が別 VectorFont を供給する
-/// (<see cref="EditorConfig"/> の各スロット)。Markdown/リッチ文書の太字・斜体・見出しに使う。</summary>
-public enum FontVariant { Bold, Italic, BoldItalic }
+/// <summary>フォント変種 — 合成できないため view が別 VectorFont を供給する
+/// (<see cref="EditorConfig"/> の各スロット)。Markdown/リッチ文書の太字・斜体・見出し・インラインコードに使う。</summary>
+public enum FontVariant { Bold, Italic, BoldItalic, Mono }
 
 /// <summary>アンカー widget を文字の前/後どちらに置くか。</summary>
 public enum WidgetSide { Before, After }
