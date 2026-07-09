@@ -241,11 +241,14 @@ public static class TextEditorViewStory
         (ed.BoldFont, _, _, ed.MonoFont) = EditorFaces.Value;
         ed.ReadOnly = true;   // 文書レンダラ = 読み取り専用
         ed.Providers.Add(new MarkdownProvider(() => UiTheme.T));
+        int clickOff = -1;
+        ed.OnClickOffset = o => clickOff = o;   // クリック→ソースオフセット (リンクナビの当たり判定用)
 
         ctx.Play(async d =>
         {
             await d.Snap("rendered");
             await d.Click(ed);
+            await d.Expect(() => clickOff >= 0, "OnClickOffset がクリックで発火する");
             await d.Type("XXX");
             await d.Expect(() => !ed.Text.Contains("XXX"), "ReadOnly は編集を無視する");
         });

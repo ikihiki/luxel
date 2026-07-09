@@ -97,6 +97,17 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void Links_ExtractsTextRangeAndUrl()
+    {
+        var ls = MarkdownDecorations.Links("see [docs](http://x) and [more](y)");   // "see [" = 5
+        Assert.Equal(2, ls.Count);
+        Assert.Equal((5, 9), (ls[0].From, ls[0].To));
+        Assert.Equal("docs", ls[0].Text);
+        Assert.Equal("http://x", ls[0].Url);
+        Assert.Equal("y", ls[1].Url);
+    }
+
+    [Fact]
     public void Link_TextIsAccentUnderlined_MarkersMuted()
     {
         var set = Build("see [docs](http://x) here");          // '['=4 "docs"=[5,9) ']'=9

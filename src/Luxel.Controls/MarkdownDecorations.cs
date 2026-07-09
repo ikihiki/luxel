@@ -8,6 +8,10 @@ namespace Luxel.Controls;
 /// <summary>見出し 1 件 (レベル・テキスト・ソースオフセット)。TOC / <c>story:</c> ナビの素。</summary>
 public readonly record struct MarkdownHeading(int Level, string Text, int Offset);
 
+/// <summary>リンク 1 件 — リンクテキストのソース範囲 <c>[From, To)</c> と URL。クリック→ナビの素
+/// (view の <see cref="TextEditorView.OnClickOffset"/> で当たり判定する)。</summary>
+public readonly record struct MarkdownLink(int From, int To, string Text, string Url);
+
 /// <summary>Markdown を「文書として描く」ワンショット (WS-A / ADR-0012) — <see cref="TextEditorView"/> に
 /// <see cref="MarkdownProvider"/> を付け、read-only + 折返しで束ねる。表示は行、装飾は provider。
 /// 将来 <see cref="Kit.Docs(DocString, bool, System.Collections.Generic.IReadOnlyList{IFenceResolver})"/> の
@@ -66,6 +70,19 @@ public static class MarkdownDecorations
                     list.Add(new MarkdownHeading(h, line[(h + 1)..].Trim(), lineStart));
             }
             lineStart += line.Length + 1;
+        }
+        return list;
+    }
+
+    /// <summary>文書中のリンク <c>[text](url)</c> をリンクテキストの範囲 + URL で抽出する (純関数)。
+    /// view の <see cref="TextEditorView.OnClickOffset"/> でクリック位置を当てて URL へ飛ばす。</summary>
+    public static IReadOnlyList<MarkdownLink> Links(string text)
+    {
+        var list = new List<MarkdownLink>();
+        foreach (Match m in Link.Matches(text))
+        {
+            Group g = m.Groups[1];
+            list.Add(new MarkdownLink(g.Index, g.Index + g.Length, g.Value, m.Groups[2].Value));
         }
         return list;
     }

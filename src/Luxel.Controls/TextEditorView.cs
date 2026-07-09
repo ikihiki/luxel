@@ -38,6 +38,8 @@ public sealed partial class TextEditorView : Widget, ITextInput
     public bool WrapText { get; set; }
     /// <summary>読み取り専用 (文書レンダラ用)。文書を変える編集は無視し、選択/スクロール/widget 操作は許す。</summary>
     public bool ReadOnly { get; set; }
+    /// <summary>クリック時にクリック位置のソースオフセットを通知する (リンクナビ等の当たり判定用)。</summary>
+    public Action<int>? OnClickOffset { get; set; }
 
     /// <summary>行番号ガターを左に出す (コードエディタ用)。本文はガター幅ぶん右へ寄る。</summary>
     public bool ShowLineNumbers { get; set; }
@@ -533,7 +535,12 @@ public sealed partial class TextEditorView : Widget, ITextInput
             _goalX = null; _caretOn.Value = true;
         }
         ctx.AddHit(_root, new Rect(0, 0, W, H), focus: f, cursor: CursorKind.IBeam,
-            onDragStart: e => Place(e.X, e.Y, extend: e.Shift, additive: e.Alt),
+            onDragStart: e =>
+            {
+                Place(e.X, e.Y, extend: e.Shift, additive: e.Alt);
+                if (OnClickOffset is { } cb && _geo is not null)
+                    cb(_geo.HitTest(e.X - ContentX, e.Y - Pad + _scroll.Clamped));
+            },
             onDrag: e => Place(e.X, e.Y, extend: true),
             onMovePos: e => OnHoverMove(e.X, e.Y));
         ctx.AddScroll(_root, new Rect(0, 0, W, H), d => _scroll.ScrollBy(-d));
