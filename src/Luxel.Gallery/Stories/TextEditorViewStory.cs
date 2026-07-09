@@ -221,17 +221,22 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story("Controls/TextEditorView/Markdown", Height = 240, Order = 8)]
+    [Story("Controls/TextEditorView/Markdown", Height = 320, Order = 8)]
     public static Widget Markdown(StoryContext ctx)
     {
         // read-only 文書レンダラの核 (WS-A / ADR-0012): MarkdownProvider が Markdown ソースを
-        // font-variant Mark に変換 → 同一の行テキストモデルの上に見出し/太字/斜体/コードが乗る。
+        // font-variant Mark + Block/Line/LinePrefix 装飾に変換 → 同一の行テキストモデルの上に
+        // 見出し/太字/斜体/インラインコード + 引用/箇条書き/コードフェンスが乗る。
         Signal<string> md = ctx.Signal("md",
             "# Markdown on the text stack\n" +
             "Rich text via decorations: **bold**, *italic*, `code`.\n" +
-            "## Sub heading\n" +
-            "Same line model — the provider parses source to marks.");
-        TextEditorView ed = TextEditorView(md, editorHeight: 160f, editorWidth: 520f);
+            "> A quoted line renders with a left bar.\n" +
+            "- first list item\n" +
+            "- second list item\n" +
+            "```\n" +
+            "let mono = code_block;\n" +
+            "```");
+        TextEditorView ed = TextEditorView(md, editorHeight: 220f, editorWidth: 520f);
         (ed.BoldFont, _, _, ed.MonoFont) = EditorFaces.Value;
         ed.Providers.Add(new MarkdownProvider(() => UiTheme.T));
 

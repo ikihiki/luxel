@@ -33,20 +33,67 @@ public static class MarkdownDecorations
         uint muted = t.TextMuted;
         uint codeBg = Styles.WithAlpha(t.Text, 22);
 
-        // --- 行単位: ATX 見出し (# .. ######) ---
+        // --- 行単位: 見出し / コードフェンス / 引用 / 箇条書き ---
         int lineStart = 0;
+        bool inFence = false;
         foreach (string line in text.Split('\n'))
         {
             int end = lineStart + line.Length;
+            string trimmed = line.TrimStart();
+            int indent = line.Length - trimmed.Length;
+
+            // ``` フェンス開閉 (行自体は淡色、間の行はコードブロック)
+            if (trimmed.StartsWith("```"))
+            {
+                marks.Add(new MarkDecoration(lineStart, end, Foreground: muted));
+                Consume(consumed, lineStart, end);
+                inFence = !inFence;
+                lineStart = end + 1;
+                continue;
+            }
+            if (inFence)
+            {
+                marks.Add(new LineDecoration(lineStart, codeBg));                        // 行背景
+                if (end > lineStart) marks.Add(new MarkDecoration(lineStart, end, Variant: FontVariant.Mono));
+                Consume(consumed, lineStart, end);                                       // インライン無効
+                lineStart = end + 1;
+                continue;
+            }
+
+            // ATX 見出し (# .. ######、行頭)
             int h = 0;
             while (h < line.Length && line[h] == '#') h++;
             if (h is >= 1 and <= 6 && h < line.Length && line[h] == ' ')
             {
                 int content = lineStart + h + 1;
-                marks.Add(new MarkDecoration(lineStart, content, Foreground: muted));   // "# " マーカを淡色
+                marks.Add(new MarkDecoration(lineStart, content, Foreground: muted));    // "# " マーカを淡色
                 marks.Add(new MarkDecoration(content, end, Foreground: t.Text,
                     Variant: FontVariant.Bold, FontScale: HeadingScale(h)));
-                for (int i = lineStart; i < end; i++) consumed[i] = true;               // 本文のインライン再走査は行わない
+                Consume(consumed, lineStart, end);                                       // 本文のインライン再走査は行わない
+                lineStart = end + 1;
+                continue;
+            }
+
+            // 引用 (> ...): 左縦バー + インデント、マーカは淡色。本文のインラインは効かせる
+            if (trimmed.StartsWith("> ") || trimmed == ">")
+            {
+                if (end > lineStart) marks.Add(new BlockDecoration(lineStart, end, BarColor: muted, Indent: 12f));
+                int gt = lineStart + indent;
+                int after = Math.Min(gt + (trimmed.StartsWith("> ") ? 2 : 1), end);
+                marks.Add(new MarkDecoration(gt, after, Foreground: muted));
+                lineStart = end + 1;
+                continue;
+            }
+
+            // 箇条書き / 番号付きリストのマーカを淡色 (本文はそのまま)
+            if (trimmed.Length >= 2 && trimmed[1] == ' ' && trimmed[0] is '-' or '*' or '+')
+                marks.Add(new MarkDecoration(lineStart + indent, lineStart + indent + 2, Foreground: muted));
+            else
+            {
+                int d = indent;
+                while (d < line.Length && char.IsAsciiDigit(line[d])) d++;
+                if (d > indent && d + 1 < line.Length && line[d] == '.' && line[d + 1] == ' ')
+                    marks.Add(new MarkDecoration(lineStart + indent, lineStart + d + 2, Foreground: muted));
             }
             lineStart = end + 1;   // +1 = '\n'
         }
@@ -82,6 +129,11 @@ public static class MarkdownDecorations
     {
         for (int i = from; i < to; i++) if (consumed[i]) return true;
         return false;
+    }
+
+    private static void Consume(bool[] consumed, int from, int to)
+    {
+        for (int i = from; i < to && i < consumed.Length; i++) consumed[i] = true;
     }
 }
 

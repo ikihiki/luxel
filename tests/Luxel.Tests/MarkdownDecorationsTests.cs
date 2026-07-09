@@ -60,4 +60,27 @@ public class MarkdownDecorationsTests
         var set = Build("# a **b** c");
         Assert.DoesNotContain(set.OfKind<MarkDecoration>(), m => m.From == 7 && m.Variant == FontVariant.Bold && m.FontScale is null);
     }
+
+    [Fact]
+    public void Blockquote_HasBarAndMutedMarker()
+    {
+        var set = Build("> quoted");                          // '>'0 ' '1 "quoted"=[2,8)
+        Assert.Contains(set.OfKind<BlockDecoration>(), b => b.From == 0 && b.BarColor == T.TextMuted);
+        Assert.Equal(T.TextMuted, At(set, 0, 2).Foreground);  // "> " マーカは淡色
+    }
+
+    [Fact]
+    public void FencedCode_LinesGetBackgroundAndMono()
+    {
+        var set = Build("```\ncode\n```");                    // ```=[0,3) \n=3 code=[4,8) \n=8 ```=[9,12)
+        Assert.Contains(set.OfKind<LineDecoration>(), l => l.At == 4);          // コード行の背景
+        Assert.Equal(FontVariant.Mono, At(set, 4, 8).Variant);                  // コード本文は等幅
+    }
+
+    [Fact]
+    public void ListMarkers_AreMuted()
+    {
+        Assert.Equal(T.TextMuted, At(Build("- item"), 0, 2).Foreground);        // 箇条書き "- "
+        Assert.Equal(T.TextMuted, At(Build("1. item"), 0, 3).Foreground);       // 番号付き "1. "
+    }
 }
