@@ -28,11 +28,12 @@ public static class MarkdownDoc
     public static TextEditorView Create(Signal<string> markdown, Func<Theme> theme, float width, float height,
         VectorFont? body = null, VectorFont? bold = null, VectorFont? italic = null,
         VectorFont? boldItalic = null, VectorFont? mono = null, bool wrap = true, ISyntaxHighlighter? highlighter = null,
-        IReadOnlyCollection<string>? embedKinds = null, FontCollection? fonts = null)
+        IReadOnlyCollection<string>? embedKinds = null, FontCollection? fonts = null, bool fill = false)
     {
         TextEditorView ed = Kit.TextEditorView(markdown, editorHeight: height, editorWidth: width);
         if (body is not null) ed.EditorFont = body;
         if (fonts is not null) ed.Fonts = fonts;   // 日本語/絵文字フォールバック用フォント列
+        ed.Fill = fill;   // true = 領域いっぱい (文書ページ)。width/height は初期見積り
         ed.BoldFont = bold;
         ed.ItalicFont = italic;
         ed.BoldItalicFont = boldItalic;
@@ -52,13 +53,13 @@ public static class MarkdownDoc
     /// インライン hole (<c>[￼](luxel-ui:N)</c>) は後段。</summary>
     public static TextEditorView FromDoc(DocString content, Func<Theme> theme, float width, float height,
         VectorFont? body = null, VectorFont? bold = null, VectorFont? mono = null, ISyntaxHighlighter? highlighter = null,
-        IReadOnlyDictionary<string, Func<string, Widget>>? fences = null)
+        IReadOnlyDictionary<string, Func<string, Widget>>? fences = null, FontCollection? fonts = null, bool fill = false)
     {
         IReadOnlyList<Widget> holes = content.HoleWidgets;
         var kinds = new HashSet<string> { DocString.UiTypeId };
         if (fences is not null) foreach (string k in fences.Keys) kinds.Add(k);
         TextEditorView ed = Create(new Signal<string>(content.Md), theme, width, height,
-            body: body, bold: bold, mono: mono, highlighter: highlighter, embedKinds: kinds);
+            body: body, bold: bold, mono: mono, highlighter: highlighter, embedKinds: kinds, fonts: fonts, fill: fill);
         ed.WidgetResolver = key =>
         {
             if (key is not EmbedRef r) return null;

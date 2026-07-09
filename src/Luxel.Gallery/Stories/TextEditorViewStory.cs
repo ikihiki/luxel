@@ -289,6 +289,32 @@ public static class TextEditorViewStory
                 ed]];
     }
 
+    [Story("Controls/TextEditorView/MarkdownFill", Height = 340, Order = 15)]
+    public static Widget MarkdownFillStory(StoryContext ctx)
+    {
+        // Fill モード (WS-A / ADR-0012、実 Docs ページ移行の前提):
+        // fill:true で固定幅でなく「制約サイズいっぱい」に広がる = ペインに合わせて折返す文書ページ相当。
+        // ここでは 440×240 の枠に入れて、fallback (width:160/height:120) でなく枠サイズで折返すのを示す。
+        Signal<string> md = ctx.Signal("md",
+            "# Fill モード\n" +
+            "This paragraph wraps at the **container** width, not a fixed 160px fallback — the renderer stretches to fill whatever pane it is placed in, exactly like a real docs page. 段落は枠いっぱいの幅で折返します。\n" +
+            "## 用途\n" +
+            "- `fill:true` で制約サイズを採用\n" +
+            "- resize すれば再折返し (geometry 再構築)");
+        (VectorFont? bold, _, _, VectorFont? mono) = EditorFaces.Value;
+        TextEditorView ed = MarkdownDoc.Create(md, () => UiTheme.T, width: 160f, height: 120f, bold: bold, mono: mono,
+            highlighter: Luxel.Highlight.TextMateHighlighter.Instance, fonts: JpFallback.Value, fill: true);
+
+        ctx.Play(async d => { await d.Step(2); await d.Snap("fill"); });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("MarkdownDoc — Fill (領域いっぱい)"),
+                Muted("fill:true で固定幅でなく制約サイズに広がる = 文書ページ向け。下の枠は 440×240、fallback 160×120 でなく枠幅で折返す。"),
+                Border(background: Bind.From(() => UiTheme.T.SurfaceAlt), rounded: UiTheme.T.Radius,
+                       width: 440f, height: 240f)[ed]]];
+    }
+
     [Story("Controls/TextEditorView/DocBridge", Height = 420, Order = 14)]
     public static Widget DocBridge(StoryContext ctx)
     {

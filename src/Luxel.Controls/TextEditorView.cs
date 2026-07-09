@@ -43,6 +43,8 @@ public sealed partial class TextEditorView : Widget, ITextInput
     /// <summary>Markdown 文書レンダラの場合、索引用の markdown ソース (build 時に取れる = realize 不要)。
     /// null = 通常のエディタ (docs 索引の対象外)。<see cref="MarkdownDoc"/> が設定する。</summary>
     public string? DocSource { get; set; }
+    /// <summary>領域いっぱいに広がる (固定 editorWidth/Height でなく制約サイズを使う)。文書ページ向け。</summary>
+    public bool Fill { get; set; }
     /// <summary>クリック時にクリック位置のソースオフセットを通知する (リンクナビ等の当たり判定用)。</summary>
     public Action<int>? OnClickOffset { get; set; }
 
@@ -98,12 +100,14 @@ public sealed partial class TextEditorView : Widget, ITextInput
     private readonly Dictionary<object, float> _blockMeasured = new();   // 自動高さ block widget の実測高さ (key→px)
     private HashSet<object> _autoBlockKeys = new();                       // Height<=0 の block widget キー
     private bool _blockDirty;                                            // 実測が変わった → 次フレームで採用
+    private float _fillW, _fillH;                                        // Fill 時の制約サイズ
+    private bool _layoutDirty;                                           // Fill サイズが変わった → 次フレームで config 再構築
 
     private const float Pad = 6f;
     private float _fs = 13;
 
-    private float W => MathF.Max(120, EditorWidth.Or(360));
-    private float H => MathF.Max(40, EditorHeight.Get());
+    private float W => Fill && _fillW > 0 ? _fillW : MathF.Max(120, EditorWidth.Or(360));
+    private float H => Fill && _fillH > 0 ? _fillH : MathF.Max(40, EditorHeight.Get());
 
     public override string DebugType => "TextEditorView";
     public override string? DebugDetail => $"{_state.Doc.LineCount} 行";
@@ -393,10 +397,17 @@ public sealed partial class TextEditorView : Widget, ITextInput
     {
         EnsureInit();
         _fs = FontSize.Or(ctx.Theme.FontSm);
+        if (Fill)
+        {
+            // 制約サイズを採用。変わったら次フレームで config (折返し幅) を作り直す (再入回避)。
+            float nw = float.IsFinite(c.MaxW) ? c.MaxW : W;
+            float nh = float.IsFinite(c.MaxH) ? c.MaxH : H;
+            if (MathF.Abs(nw - _fillW) > 0.5f || MathF.Abs(nh - _fillH) > 0.5f) { _fillW = nw; _fillH = nh; _layoutDirty = true; }
+        }
         Size = c.Constrain(new Size(W, H));
     }
 
-    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => W;
+    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => Fill ? 100000f : W;
 
     private EditorConfig BuildConfig()
     {
@@ -511,8 +522,13 @@ public sealed partial class TextEditorView : Widget, ITextInput
             if (v != _state.Doc.Text) { _state = EditorState.Create(v); _history.Clear(); _scroll.ScrollTo(0); Refresh(); }
         });
 
-        // 自動高さ block widget: realize 中に測った高さが変わったら次フレームで採用 (再入回避で収束)
-        ctx.AddAnimation(_ => { if (_blockDirty) { _blockDirty = false; Refresh(); } return false; });
+        // Fill リサイズ (config=折返し幅 再構築) と 自動高さ block widget の再測定を次フレームで反映 (再入回避で収束)
+        ctx.AddAnimation(_ =>
+        {
+            if (_layoutDirty) { _layoutDirty = false; _geo?.Configure(BuildConfig()); Refresh(); }
+            else if (_blockDirty) { _blockDirty = false; Refresh(); }
+            return false;
+        });
 
         float t = 0;
         ctx.AddAnimation(dt => { t += dt; if (t >= 0.53f) { t = 0; _caretOn.Value = !_caretOn.Value; } return false; });
