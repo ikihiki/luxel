@@ -805,14 +805,28 @@ public sealed partial class TextEditorView : Widget, ITextInput
                 isNew = true;
             }
             bool auto = _autoBlockKeys.Contains(slot.Key);
-            // 既に実体化済みで箱 (位置+サイズ) が不変なら再実体化しない — ライブ/GPU/audio を毎フレーム
-            // 回す埋め込みを毎 Refresh で Scope.Release()+Realize() すると使用中リソースの use-after-free で
-            // device lost する。旧スタックと同じ「1 回だけ実体化して保持、あとは埋め込み自身の scope が
-            // 自己更新 (Effect/AddAnimation)」。箱が変わったとき (新規・自動高さ確定・折返し幅変化) だけ組み直す。
-            if (isNew || h.Rect != slot.Rect)
+            // 既に実体化済みで箱が不変なら再実体化しない — ライブ/GPU/audio を毎フレーム回す埋め込みを
+            // 毎 Refresh で Scope.Release()+Realize() すると使用中リソースの use-after-free で device lost する。
+            // 旧スタックと同じ「1 回だけ実体化して保持、あとは埋め込み自身の scope が自己更新」。
+            if (isNew)
             {
                 h.Rect = slot.Rect;
                 MeasureAutoBlock(slot.Key, RealizeWidget(h, auto), auto);
+            }
+            else if (h.Rect != slot.Rect)
+            {
+                // **幅が同じなら再実体化せず位置 (transform) と clip だけ更新する**。widget は初回に高さ
+                // 無制約 (∞) で自然高さのまま実体化済みなので、確定時は clip を広げれば全体が見え、位置が
+                // 動いた (上のブロック高さ確定で下がった) ときはルートノードの transform を差し替えれば動く。
+                // ライブ GPU シーン (GpuView) は再実体化 = SceneGuard の Dispose→Init 往復で描画中リソースが
+                // 壊れ device lost するので、この経路 (RealizeWidget) を通さないことが必須。積み重なった GPU
+                // デモ (下段は上段の高さ確定で Y が動く) でもこれで安全。折返し幅が変わるときだけ組み直す。
+                bool widthChanged = MathF.Abs(h.Rect.Width - slot.Rect.Width) > 0.5f;
+                h.Rect = slot.Rect;
+                if (widthChanged)
+                    MeasureAutoBlock(slot.Key, RealizeWidget(h, auto), auto);
+                else
+                    RepositionHosted(h);
             }
         }
         if (_widgets.Count > seen.Count)
@@ -844,6 +858,20 @@ public sealed partial class TextEditorView : Widget, ITextInput
         w.Realize(_ctx, h.Container, new Point(WorldPos.X + ContentX, WorldPos.Y + Pad - _scroll.Clamped));
         w.ParentWidget = this;
         return sz;
+    }
+
+    // 実体化済み埋め込みを再実体化せず移動する (位置 + clip のみ)。自動高さ確定や上ブロックの高さ変化で
+    // 箱が縦に動いても、GPU/audio シーンを Dispose→Init し直さずに済ませる (device lost 回避)。ルートノードの
+    // transform を差し替える (CreateRoot が Translate(Offset) を張るのと同じ) — 実クリックは ComputeWorldNow
+    // がこの transform を辿るのでヒットは追従する (programmatic d.Click の WorldPos だけは据え置きだが read-only
+    // 文書では不要)。
+    private void RepositionHosted(Hosted h)
+    {
+        h.Widget.Offset = new Point(h.Rect.X, h.Rect.Y);
+        if (h.Container.Children.Count > 0)
+            h.Container.Children[0].Transform = Affine2D.Translate(h.Rect.X, h.Rect.Y);
+        h.Container.Clip = WidgetClip == WidgetClipMode.Box
+            ? new RectClip(h.Rect.X, h.Rect.Y, h.Rect.Width, h.Rect.Height) : null;
     }
 
     private void ClearWidgets()

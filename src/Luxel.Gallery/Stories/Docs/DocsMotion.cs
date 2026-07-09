@@ -10,7 +10,7 @@ namespace Luxel.Gallery.Stories;
 public static class DocsMotion
 {
     [Story("Docs/Animation", Order = 30)]
-    public static Widget Animation(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Animation(StoryContext ctx) => DocNew(ctx, $$"""
         # アニメーション (Luxel.Animation)
 
         glTF / CSS / コード DSL など様々な形式を統一的に扱うアニメーションシステムです。中核は **3 層の IR** で、書き込み先 (UI / 2D / 3D) はアダプタに分離されています。
@@ -81,10 +81,10 @@ public static class DocsMotion
         > wall-clock は使いません。ストーリーやアプリのフレームループが持つ累積秒から clock を組み立てるのが規約です (Gallery のデモは全てこの形)。
 
         次: [Docs/Transitions](story:Docs/Transitions) — 「値を変えるだけで補間される」層へ。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 
     [Story("Docs/Transitions", Order = 31)]
-    public static Widget Transitions(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Transitions(StoryContext ctx) => DocNew(ctx, $$"""
         # UI トランジション
 
         CSS の `transition` 相当 — **プロパティ値を変えるだけで**古い値から新しい値へ自動補間される層です。明示的アニメ (Clip) や状態機械とは起動のしかたが違います:
@@ -148,5 +148,5 @@ public static class DocsMotion
         | Button / MenuRow | hover 色フェード (80ms) |
 
         設計原則: **アニメは変化時のみ、初期状態は瞬時** (Realize 直後は静止値 — snap の golden が揺れない)。静定後は signal 書き込みゼロ (アイドルで再描画 0)。動きは全て transform / opacity / color の部分更新に乗ります。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 }

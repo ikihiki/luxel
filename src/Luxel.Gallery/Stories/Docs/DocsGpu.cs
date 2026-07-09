@@ -10,7 +10,7 @@ namespace Luxel.Gallery.Stories;
 public static class DocsGpu
 {
     [Story("Docs/GpuDevice", Order = 10)]
-    public static Widget GpuDevice(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget GpuDevice(StoryContext ctx) => DocNew(ctx, $$"""
         # GPU 抽象 (GpuDevice)
 
         `Luxel` (コア) は *No Graphics API* の哲学どおり、最新のバインドレス GPU を前提に **ディスクリプタセットも PSO バリアントも持たない**薄い抽象です。実装は `Luxel.Vulkan` (Vulkan 1.3) と `Luxel.D3D12` (DirectX 12) — アプリのコードはバックエンド分岐なしの 1 本で書けます。
@@ -80,10 +80,13 @@ public static class DocsGpu
         > D3D12 の `CopyTextureToBuffer` は行 256B 整列が必要です。RGBA8 なら **ターゲット幅を 64 の倍数**にしてください (このページのデモはすべて 256)。
 
         次: [Docs/TwoD](story:Docs/TwoD) — この GPU 抽象の上に 2D ベクターを載せます。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 
     [Story("Docs/TwoD", Order = 11)]
-    public static Widget TwoD(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget TwoD(StoryContext ctx)
+    {
+        ctx.Play(static d => d.Snap());   // 積み重なった GPU デモ 7 本が device lost せず描画される回帰 golden
+        return DocNew(ctx, $$"""
         # 2D ベクター (Luxel.TwoD)
 
         GPU **コンピュートラスタライザ** (Vello 風) による 2D ベクター描画です。パスを三角形分割せず、線分のまま GPU に常駐させ、compute が画素ごとに巻き数/距離で被覆を計算して塗ります。バックエンド変更ゼロ (framebuffer は bindless バッファ)。
@@ -218,10 +221,11 @@ public static class DocsGpu
         タイル binning (現状は画素×線分のブルートフォース + bbox 早期スキップ)、解析的 AA (現状 4x4 スーパーサンプル)。
 
         次: [Docs/RenderGraph](story:Docs/RenderGraph) — 多段パスの合成へ。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
+    }
 
     [Story("Docs/RenderGraph", Order = 12)]
-    public static Widget RenderGraphDocs(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget RenderGraphDocs(StoryContext ctx) => DocNew(ctx, $$"""
         # レンダーグラフ (Luxel.RenderGraph)
 
         UI のレンダリング結果を別パスで参照したり、compute/graphics 混在の多段パスを組み立てるための薄い管理層です。**scene-agnostic** — 入力は GPU ハンドル (`BufferHandle` / `TextureHandle`) のみで、シーン側 (RetainedCanvas / ECS) を一切知りません。
@@ -290,10 +294,10 @@ public static class DocsGpu
         両者は直交します。併用パターン: ResourceSystem でロードした `GpuTexture` を `ImportTexture` で External として取り込む。
 
         次: [Docs/ThreeD](story:Docs/ThreeD) — ECS と組み合わせて 3D を描きます。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 
     [Story("Docs/ThreeD", Order = 13)]
-    public static Widget ThreeD(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget ThreeD(StoryContext ctx) => DocNew(ctx, $$"""
         # 3D と ECS
 
         3D は **ECS (Friflo Engine ECS のラッパ = Luxel.Ecs) + 抽出 + レンダーグラフ**の直列で描きます。シーングラフという独立した抽象はありません — 階層は ECS の `Parent`/`Children` コンポーネントが素直に表します。
@@ -336,10 +340,10 @@ public static class DocsGpu
         > Slang/HLSL の既定行列レイアウトは column-major、`System.Numerics.Matrix4x4` は row-major です。ルート引数で行列を渡すときは **CPU 側で `Matrix4x4.Transpose`** を入れて整えます (per-instance 行列はシェーダ側で Load4 ×4 の行構築なので転置不要)。
 
         アニメーションを ECS へ流す例は [Demos/Animation/EcsClip](story:Demos/Animation/EcsClip) と [Demos/Animation/Graph](story:Demos/Animation/Graph) へ。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 
     [Story("Docs/Assets", Order = 14)]
-    public static Widget Assets(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Assets(StoryContext ctx) => DocNew(ctx, $$"""
         # アセットパイプライン (glTF)
 
         glTF 2.0 (.gltf/.glb) を読み込み、ECS + GPU バッファへ展開して描くまでのパイプラインです。4 つのプロジェクトが層を分担します:
@@ -415,10 +419,10 @@ public static class DocsGpu
         - サンプルモデルはリポジトリの `tools/khronos-samples/` (Khronos 公式 glTF テストスイート) にあります
 
         型 API の一覧は [Reference/ThreeD](story:Reference/ThreeD) へ。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 
     [Story("Docs/Ecs", Order = 15)]
-    public static Widget Ecs(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Ecs(StoryContext ctx) => DocNew(ctx, $$"""
         # ECS (Luxel.Ecs)
 
         Friflo Engine ECS の薄いラッパです。3D シーン ([Docs/ThreeD](story:Docs/ThreeD)) とアセット展開 ([Docs/Assets](story:Docs/Assets)) の土台ですが、単体でも使えます。高度な操作は `world.Store` (生の Friflo `EntityStore`) を直接触ってかまいません。
@@ -473,10 +477,10 @@ public static class DocsGpu
         - ラッパを薄く保つのは、Friflo の archetype API (`ArchetypeQuery` / `ForEachEntity`) がそのまま最速経路だからです。Luxel が足すのは Phase 規約・DelegateSystem・Signal ブリッジ・perf 収集だけ
 
         物理 (剛体/衝突) を entity に付けるには [Docs/Physics](story:Docs/Physics) へ。型 API の一覧は [Reference/ThreeD](story:Reference/ThreeD) へ。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 
     [Story("Docs/Physics", Order = 16)]
-    public static Widget Physics(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Physics(StoryContext ctx) => DocNew(ctx, $$"""
         # 物理 (Luxel.Physics)
 
         BepuPhysics v2 (pure C#) を薄く包んだ 3D 剛体物理です。Bepu の boilerplate (Simulation.Create の callbacks 構造体、BufferPool 管理) は `PhysicsWorld` が隠蔽し、ECS 側はコンポーネントを付けるだけで動きます。
@@ -633,5 +637,5 @@ public static class DocsGpu
         `ThreadCount > 0` は浮動小数の加算順がスレッドスケジューリングで変わり、実行ごとに結果が揺れます (Bepu 2.4 の仕様)。だから既定は単スレッド = 決定的で、マルチスレッドは速度と引き換えの opt-in。Bepu 2.5 系は決定性オプションが改善されているため、バージョン更新時に「固定スレッド数なら決定的」へ緩められる可能性があります。
 
         型 API の一覧は [Reference/ThreeD](story:Reference/ThreeD) へ。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 }

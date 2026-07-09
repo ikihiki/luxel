@@ -10,7 +10,7 @@ namespace Luxel.Gallery.Stories;
 public static class DocsUi
 {
     [Story("Docs/UI", Order = 20)]
-    public static Widget Ui(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Ui(StoryContext ctx) => DocNew(ctx, $$"""
         # 宣言的 UI (Luxel.UI)
 
         保持型 2D 層 (RetainedCanvas) の上に、**宣言的 C# DSL + signals (細粒度リアクティブ) + 単一パスレイアウト + 入力**を提供します。フレームワークは仮想 DOM を持たず、変わった値だけが保持型キャンバスの部分更新に落ちます。
@@ -48,10 +48,10 @@ public static class DocsUi
         `UiHost` がポインタ/キー/IME を前面優先でディスパッチします (Esc → Tab → フォーカス → フォーカス中コントロール → アプリ全域ショートカットの順)。ユーザーコード (Build / Effect / 入力ハンドラ) の例外は**エラー境界**が捕捉し、該当サブツリーを赤枠の ErrorWidget に縮退させます — アプリ全体は落ちません。
 
         次: [Docs/Controls](story:Docs/Controls) (組み込みコントロールと独自コントロール) / [Docs/Styling](story:Docs/Styling) (状態別スタイルと Tailwind)。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 
     [Story("Docs/Controls", Order = 21)]
-    public static Widget Controls(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Controls(StoryContext ctx) => DocNew(ctx, $$"""
         # コントロール (Luxel.Controls)
 
         Button から RichTextEditor まで 40 超のコントロール群です。**実物はサイドバーの各章にあります** — このページは地図と、独自コントロールの書き方です。全コントロールの引数/イベント/パラメータの一覧は [Reference/Overview](story:Reference/Overview) へ。
@@ -114,10 +114,10 @@ public static class DocsUi
         - **オフセットだけでなく内容長/ビューポート長も Signal** — `SetLengths(contentH, viewH)` を Refresh/レイアウトから毎回呼ぶ (同値なら発火しない)。幅変更で内容高が変わっても、`model.Clamped` を読む effect (content transform) が再実行され、**スクロール位置は保たれたまま**新しい範囲へクランプされる
         - model を **フィールドで持てば再実体化をまたいで位置が生き残る**
         - 平滑スクロール (UiStates) と併用するときは `displayOffset` に動的値、`onDirectChange` でドラッグの即時チャネルへ切り替える (ScrollViewer/ListView の形)
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 
     [Story("Docs/Styling", Order = 23)]
-    public static Widget Styling(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Styling(StoryContext ctx) => DocNew(ctx, $$"""
         # スタイリングと Tailwind
 
         コントロールの見た目は 3 つの層で決まります: **① テーマ既定** (Variant × Intent) → **② ファクトリ引数** (background 等の個別指定) → **③ 状態レイヤ** (fluent `.When(state, ...)` の override)。後の層ほど強く、CSS の specificity と同じ感覚です。
@@ -162,10 +162,10 @@ public static class DocsUi
         {{StoryRef(ctx, "Demos/Animation/Transitions")}}
 
         設計ノート: 状態別スタイルを「引数と同名の型付き宣言」にしたのは Tailwind の hover: / MUI sx / Flutter WidgetState と同じ発想です。テーマを経由しない一発指定と、テーマ経由の既定解決が同居し、どちらもトランジションに乗ります。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 
     [Story("Docs/Button", Order = 22)]
-    public static Widget ButtonDocs(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget ButtonDocs(StoryContext ctx) => DocNew(ctx, $$"""
         # Button
 
         ボタンは **Variant × Intent × 状態** から配色を解決します。未指定のプロパティはテーマ値へフォールバックし、hover/press はトランジション (状態機械) で補間されます。
@@ -194,5 +194,5 @@ public static class DocsUi
         ## API
 
         {{ApiTable("Button")}}
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 }

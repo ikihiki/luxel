@@ -89,7 +89,10 @@ public static class DocsHome
     }
 
     [Story("Docs/FirstTriangle", Order = 2)]
-    public static Widget FirstTriangle(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget FirstTriangle(StoryContext ctx)
+    {
+        ctx.Play(static d => d.Snap());
+        return DocNew(ctx, $$"""
         # はじめての GPU 描画
 
         UI ([Docs/GettingStarted](story:Docs/GettingStarted)) の次は GPU です。Luxel の描画は常に同じ 4 手 — **確保 (Malloc/CreateRenderTarget) → パイプライン (Slang) → コマンド記録 → Submit** — で、ディスクリプタもレイアウトオブジェクトもありません。回る三角形 1 枚でその全部が出てきます。
@@ -144,7 +147,8 @@ public static class DocsHome
         - 深度/ブレンドの状態 → [Demos/3D/Depth](story:Demos/3D/Depth) / [Demos/3D/Blend](story:Demos/3D/Blend)
         - GpuDevice の全体像 (bindless/バリア/Slang の設計) → [Docs/GpuDevice](story:Docs/GpuDevice)
         - パスが増えてきたら → [Docs/RenderGraph](story:Docs/RenderGraph)
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
+    }
 
     [Story("Docs/Architecture", Order = 1)]
     public static Widget Architecture(StoryContext ctx)

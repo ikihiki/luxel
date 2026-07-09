@@ -10,7 +10,7 @@ namespace Luxel.Gallery.Stories;
 public static class DocsRuntime
 {
     [Story("Docs/Resources", Order = 50)]
-    public static Widget Resources(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Resources(StoryContext ctx) => DocNew(ctx, $$"""
         # リソース (Luxel.Resources)
 
         アセットのロードは **(型, uri) をキーとするノードキャッシュ**の上で動きます。同じ (型, uri) は常に同じノードを共有し、参照カウントとリロードをシステムが管理します。
@@ -58,10 +58,10 @@ public static class DocsRuntime
         ## RenderGraph との関係
 
         混同注意 — Resources は**多フレーム寿命のアセット** ((型, uri) DAG)、RenderGraph は **1 フレームのパス合成** ((pass, resource) DAG) です。併用は「Resources でロードした GpuTexture を `ImportTexture` で External として取り込む」形 ([Docs/RenderGraph](story:Docs/RenderGraph) の対比表も参照)。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 
     [Story("Docs/Platform", Order = 51)]
-    public static Widget Platform(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Platform(StoryContext ctx) => DocNew(ctx, $$"""
         # プラットフォーム (Luxel.Platform, Windows)
 
         実 OS ウィンドウ・スワップチェーン提示・IME を提供します (CsWin32 で Win32/TSF を生成)。オフスクリーン描画 (snap / bench) とはここだけが違います。
@@ -83,10 +83,10 @@ public static class DocsRuntime
         - `CursorKind` (Arrow / IBeam / Hand / Resize) を `HitTarget.Cursor` で宣言 — hover 先のカーソルが WM_SETCURSOR で反映されます
         - 右クリックは `OnContext` → `ContextMenu.Open` (エディタ標準の切り取り/コピー/貼り付け)
         - クリップボードは `IClipboard` 抽象 (Win32 実装 + テスト用フェイク)。リッチテキストは plain + markdown の両形式で書き込みます
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 
     [Story("Docs/Input", Order = 52)]
-    public static Widget Input(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Input(StoryContext ctx) => DocNew(ctx, $$"""
         # 入力
 
         入力は 2 系統あります — **UI 入力** (UiHost がポインタ/キー/IME をコントロールへ配送) と、**ゲーム入力** (Luxel.Input — アクションマップとリバインド)。ゲーム入力の動くデモは [RealWindow/Input/Gamepad](story:RealWindow/Input/Gamepad) (実窓専用) へ。
@@ -110,10 +110,10 @@ public static class DocsRuntime
         ## programmatic 入力
 
         ウィンドウなしで `host.Click(x, y)` / `host.Char("Hi")` / `host.KeyDown(Key.Tab)` を直接呼べます — ユニットテストや snap 前の状態強制はこの経路です。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 
     [Story("Docs/Audio", Order = 53)]
-    public static Widget Audio(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Audio(StoryContext ctx) => DocNew(ctx, $$"""
         # オーディオ (Luxel.Audio)
 
         `IAudioBackend` (Windows は XAudio2) の上に、SFX ミキサ / BGM ソース / 3D 音源 / バスによる音量カスケードを提供します。**Volume / Pitch / Pan が Signal** なので、UI ともアニメーション (Transition) とも自然につながります。実際に音が鳴るデモは [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone) (実窓専用) へ。
@@ -161,10 +161,10 @@ public static class DocsRuntime
 
         > [!NOTE]
         > SFX は全展開クリップ (`AudioClip`)、BGM は `StreamingVoice`。Doppler と mp3 は将来枠。Tick/Update/Pump を呼ばないと Signal の変更やキュー補充が反映されません。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 
     [Story("Docs/Framework", Order = 54)]
-    public static Widget Framework(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Framework(StoryContext ctx) => DocNew(ctx, $$"""
         # フレームワーク (Luxel.Framework)
 
         アプリの骨格です。Microsoft.Extensions.Hosting の DI に GPU / Resources / Audio / Input を統合し、シーンの生成・切り替えとフレームループを一括管理します。
@@ -247,10 +247,10 @@ public static class DocsRuntime
         スタンドアロンゲームは `LuxelHostBuilder` + `GameScene` でループを組み、`WindowSystem`/`NativeWindow`/`GpuSurface` へ提示します。**Framework は窓/提示を持たない**ので、フレーム待ち (`UseFrameWaiter`) を pacer で同期し、`host.Start()` 後にメインループで `pacer.Tick()` (1 フレーム同期実行) → `surface.Present(scene の framebuffer)` します (StoryAppView と同じ TCS inline 方式で GPU キュー安全)。入力は `IInputSource` を登録すると GameLoop が毎フレーム Poll します。
 
         出荷は `dotnet publish -c Release -r win-x64 --self-contained` の self-contained フォルダ配布。出力にはコンパイル済みシェーダ (`shaders/*.spv`/`*.dxil` — `Luxel.Shaders.targets` が自動コピー)・アセット/同梱フォント (csproj の Content)・ネイティブ DLL (glfw / HarfBuzz / Silk.NET) が揃います。アセットは `AppContext.BaseDirectory` (exe の隣) 基準で読むので **cwd 非依存** — リポジトリ外の任意パスへコピーして起動できます。`vulkan-1.dll` は OS/ドライバ側 (同梱しない) なので README に動作要件として明記します。実例は capstone ① `samples/LuxelCavern` (フォルダ publish を vk/dx 両方でリポジトリ外起動まで検証)。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 
     [Story("Docs/DevTools", Order = 55)]
-    public static Widget DevTools(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget DevTools(StoryContext ctx) => DocNew(ctx, $$"""
         # DevTools (Luxel.DevTools)
 
         エンジンとの結合は 2 本だけです — **DiagnosticListener (読み) + EngineCommands (書き)**。この疎結合がそのままスレッド境界・プロセス境界になります。
@@ -311,7 +311,7 @@ public static class DocsRuntime
         ## スレッド設計の規約
 
         signal は所有する島 (スレッド) のみが触り、スレッド間は Listener (volatile/lock 済) と EngineCommands (ConcurrentQueue) だけ — [ThreadStatic] やグローバル可変状態は使いません。テーマも UiHost 単位の signal 所有です (DevTools 島は自前テーマを持つ)。
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 
     [Story("Docs/Scripting", Order = 56)]
     public static Widget Scripting(StoryContext ctx) => ctx.Snap(DocNew(ctx, $$"""
