@@ -97,7 +97,7 @@ public static class DocsText
 
         挿入/削除、**Enter = ブロック分割** (リスト内は次項目、空項目で解除)、**行頭 Backspace = 前ブロックと結合** (リスト/引用はまず型解除)、スタイルトグル (Ctrl+B/I/E)、ブロック型変換、ブロック跨ぎ選択。undo/redo は逆操作ジャーナルで、連続タイプは 1 op に合体します。IME 合成はキャレットのあるブロック内に限定 — TSF の文書 = 現在ブロックです。
 
-        実物: [Controls/RichTextEditor/Basic](story:Controls/RichTextEditor/Basic) (ツールバー付き) / [Controls/TextArea/Basic](story:Controls/TextArea/Basic) (プレーン複数行)。
+        実物: [Controls/RichTextEditor/Basic](story:Controls/RichTextEditor/Basic) (ツールバー付き) / [Controls/TextEditorView/Basic](story:Controls/TextEditorView/Basic) (プレーン複数行)。
 
         ## CodeEditor — コードエディタ (VS Code 風)
 

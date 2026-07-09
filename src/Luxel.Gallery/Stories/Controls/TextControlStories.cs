@@ -157,27 +157,6 @@ public static class TextControlStories
         return Frame(SearchField(ctx.Signal("query", ""), langs));
     }
 
-    [Story("Controls/TextArea/Basic", Height = 280)]
-    public static Widget TextAreaBasic(StoryContext ctx)
-    {
-        TextArea ta = TextArea(ctx.Signal("text",
-            "複数行のプレーンテキスト編集。\nEnter でブロック分割、行頭 Backspace で結合。\n" +
-            "折返しの長い行はこのように wrap され、↑↓ は goal-x を保存して表示行単位で動く。\n日本語も IME で入力できる。"),
-            height: 180);
-        ta.Fonts = JpFallback.Value;
-        return Frame(ta);
-    }
-
-    [Story("Controls/TextArea/Scroll", Height = 280)]
-    public static Widget TextAreaScroll(StoryContext ctx)
-    {
-        TextArea ta = TextArea(ctx.Signal("text",
-            string.Join('\n', Enumerable.Range(1, 24).Select(i => $"line {i:00} — キャレット追従スクロールの確認"))),
-            height: 180);
-        ta.Fonts = JpFallback.Value;
-        return ctx.Snap(Frame(ta));
-    }
-
     [Story("Controls/Text/EllipsisVAlign", Height = 360)]
     public static Widget TextEllipsisVAlign()
     {
@@ -238,17 +217,19 @@ public static class TextControlStories
     public static Widget Japanese(StoryContext ctx)
     {
         // 同梱フォント (BIZ UDGothic / UDEV Gothic) で日本語が出ることを 1 画面で確認する:
-        // 基本フォント直 (Heading/Button/Text) + IME 入力 (TextArea) + 等幅の日本語コメント (CodeEditor)。
+        // 基本フォント直 (Heading/Button/Text) + IME 入力 (TextEditorView) + 等幅の日本語コメント (色分け)。
         Signal<string> input = ctx.Signal("input", "");
-        TextArea ta = TextArea(input, height: 72);
+        TextEditorView ta = TextEditorView(input, editorHeight: 72f, editorWidth: 420f);
         ta.Fonts = JpFallback.Value;
 
         Signal<string> code = ctx.Signal("code",
             "// 日本語コメントも等幅で表示される\nint 合計 = 1 + 2;  // 全角識別子");
-        CodeEditor ed = CodeEditor(code, editorHeight: 90f, editorWidth: 420f);
-        (_, _, _, ed.MonoFont) = EditorFaces.Value;
-        ed.Highlighter = Luxel.Highlight.TextMateHighlighter.Instance;
-        ed.Language = "csharp";
+        TextEditorView ed = TextEditorView(code, editorHeight: 90f, editorWidth: 420f);
+        ed.ShowLineNumbers = true;
+        ed.EditorFont = EditorFaces.Value.Mono;
+        Func<Theme> th = () => UiTheme.T;
+        ed.Providers.Add(new SyntaxHighlightProvider(Luxel.Highlight.TextMateHighlighter.Instance, "csharp", th));
+        ed.Providers.Add(new CurrentLineProvider(th));
 
         ctx.Play("jp", async d =>
         {
@@ -263,9 +244,9 @@ public static class TextControlStories
             Heading("日本語表示 — ひらがな・カタカナ・漢字"),
             HStack(8)[Button(_ => { }, "ボタン"),
                       Text("ラベル：あいうえお アイウエオ 日本語", 14, color: Bind.From(() => UiTheme.T.Text))],
-            Muted("TextArea に IME で入力："),
+            Muted("TextEditorView に IME で入力："),
             ta,
-            Muted("CodeEditor 内の日本語コメント (等幅)："),
+            Muted("等幅の日本語コメント (色分け)："),
             ed]);
     }
 }
