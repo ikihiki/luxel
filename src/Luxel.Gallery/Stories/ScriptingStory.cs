@@ -27,14 +27,14 @@ public static class ScriptingStory
         private readonly Signal<string> _code;
         private readonly Signal<string> _status = new("");
         private readonly Signal<int> _ver = new(0);   // 出力/診断の構造変化 → TrackBuild が Rebuild
-        private readonly CodeEditor _editor;          // E4: TextArea → CodeEditor (ガター/補完/診断/ハイライト)
+        private readonly TextEditorView _editor;      // 新スタック (ガター/補完/診断/ハイライトを provider で)
         private readonly float _maxW;
 
         private string _diags = "";       // Run 由来のメッセージ (構造状態)
         private Widget? _output;
 
         /// <summary>コードエディタ (play からクリック/フォーカス/Ctrl+Space する)。</summary>
-        internal CodeEditor Editor => _editor;
+        internal TextEditorView Editor => _editor;
         /// <summary>Run ボタン (play からクリックするために公開)。</summary>
         internal Button RunButton { get; }
         /// <summary>直近 Run が成功して Widget を出したか (play の Expect 用)。</summary>
@@ -46,10 +46,14 @@ public static class ScriptingStory
             _host = host;
             _maxW = MathF.Max(240, maxWidth);
             _code = new Signal<string>(initialCode);
-            _editor = CodeEditor(_code, editorHeight: 170f, editorWidth: _maxW - 96);
-            (_, _, _, _editor.MonoFont) = EditorFaces.Value;
-            _editor.Highlighter = Luxel.Highlight.TextMateHighlighter.Instance;
-            _editor.LanguageService = lang;   // Ctrl+Space 補完 + 診断波線 + ホバー (DI 注入)
+            _editor = TextEditorView(_code, editorHeight: 170f, editorWidth: _maxW - 96);
+            _editor.ShowLineNumbers = true;
+            _editor.EditorFont = EditorFaces.Value.Mono;
+            _editor.LanguageService = lang;   // Ctrl+Space 補完 + ホバー (DI 注入)
+            Func<Theme> th = () => UiTheme.T;
+            _editor.Providers.Add(new SyntaxHighlightProvider(Luxel.Highlight.TextMateHighlighter.Instance, "csharp", th));
+            _editor.Providers.Add(new DiagnosticsProvider(lang, th));   // 診断波線
+            _editor.Providers.Add(new CurrentLineProvider(th));         // 現在行ハイライト
             RunButton = Button(_ => Run(), "Run");
         }
 
@@ -150,7 +154,7 @@ public static class ScriptingStory
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             VStack(10)[
                 Heading("C# ライブスクリプト (csx)"),
-                Muted("CodeEditor でガター/ハイライト/Ctrl+Space 補完/診断波線。Run で最後の式の Widget を実体化。"),
+                Muted("TextEditorView でガター/ハイライト/Ctrl+Space 補完/診断波線。Run で最後の式の Widget を実体化。"),
                 block]];
     }
 
