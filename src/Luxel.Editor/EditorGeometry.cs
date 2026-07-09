@@ -177,13 +177,25 @@ public sealed class EditorGeometry
         var tops = new float[n];
         var next = new Dictionary<string, DisplayLine>(n);
 
+        // ブロック widget: 範囲の先頭行 = 宣言高さの全幅スロット、残りの被覆行 = 高さ 0 (畳む)。
+        var blockH = new float?[n];      // 先頭行のみ宣言高さ
+        var blockFold = new bool[n];     // 先頭以外の被覆行 (高さ 0)
+        foreach (BlockWidgetDecoration bw in _state.Decorations.All().OfType<BlockWidgetDecoration>())
+        {
+            int l0 = doc.LineOf(bw.From), l1 = doc.LineOf(Math.Max(bw.From, bw.To - 1));
+            if (l0 < 0 || l0 >= n) continue;
+            blockH[l0] = bw.Height;
+            for (int i = l0 + 1; i <= l1 && i < n; i++) blockFold[i] = true;
+        }
+
         float top = 0;
         for (int i = 0; i < n; i++)
         {
             string key = LineKey(i);
             if (!next.TryGetValue(key, out DisplayLine? dl))
             {
-                if (!_cache.TryGetValue(key, out dl)) dl = BuildLine(i);
+                if (!_cache.TryGetValue(key, out dl))
+                    dl = blockH[i] is { } bh ? BuildBlockLine(bh) : blockFold[i] ? BuildBlockLine(0) : BuildLine(i);
                 next[key] = dl;
             }
             lines[i] = dl;
@@ -227,6 +239,9 @@ public sealed class EditorGeometry
                     break;
                 case WidgetDecoration w:
                     sb.Append("w").Append(w.From).Append(',').Append(w.To).Append(',').Append(w.Width).Append(',').Append(w.Height).Append(';');
+                    break;
+                case BlockWidgetDecoration bw:
+                    sb.Append("bw").Append(bw.From).Append(',').Append(bw.To).Append(',').Append(bw.Height).Append(';');
                     break;
                 case LinePrefixDecoration p:
                     sb.Append("p").Append(p.Text).Append(';');
@@ -323,6 +338,14 @@ public sealed class EditorGeometry
         var layout = new TextLayout(_cfg.Fonts, spans, _cfg.FontSize, opt);
         float height = MathF.Max(layout.Height, layout.LineAdvance);
         return new DisplayLine(layout, prefixLen, segs.ToArray(), height);
+    }
+
+    // ブロック widget の占有行 (テキスト無し・宣言高さ)。被覆行は height=0 で畳む。
+    private DisplayLine BuildBlockLine(float height)
+    {
+        var opt = new TextLayoutOptions { MaxWidth = _cfg.MaxWidth, Wrap = _cfg.Wrap, LineHeight = _cfg.LineHeight };
+        var layout = new TextLayout(_cfg.Fonts, [new TextSpan("", new SpanStyle { Color = _cfg.DefaultColor })], _cfg.FontSize, opt);
+        return new DisplayLine(layout, 0, [], height);
     }
 
     // ---- ソース位置 ↔ ピクセル ----
@@ -432,6 +455,14 @@ public sealed class EditorGeometry
                 TextRect[] rr = dl.Layout.SelectionRects(dispStart, dispStart + 1);
                 if (rr.Length > 0) outp.Add(new WidgetSlot(key, rr[0] with { X = rr[0].X + _indents[i], Y = rr[0].Y + _tops[i] }));
             }
+        }
+        // ブロック widget: 先頭行の top に全幅 × 宣言高さのスロット
+        float blockW = float.IsFinite(_cfg.MaxWidth) ? _cfg.MaxWidth : 100000f;
+        foreach (BlockWidgetDecoration bw in _state.Decorations.All().OfType<BlockWidgetDecoration>())
+        {
+            int l0 = _state.Doc.LineOf(bw.From);
+            if (l0 >= 0 && l0 < _lines.Length)
+                outp.Add(new WidgetSlot(bw.Key, new TextRect(0, _tops[l0], blockW, bw.Height)));
         }
         return outp;
     }

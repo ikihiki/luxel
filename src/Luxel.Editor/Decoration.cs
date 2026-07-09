@@ -93,6 +93,27 @@ public sealed record WidgetDecoration(
     }
 }
 
+/// <summary>複数ソース行 <c>[From, To)</c> を占有する**ブロック widget** — 表/図 (mermaid)/数式/埋め込みライブ UI など。
+/// geometry は範囲の先頭行を宣言高さ <see cref="Height"/> の**全幅スロット**にし、残りの被覆行を高さ 0 に畳む
+/// (行 ↔ ソースの 1:1 対応は保つのでキャレット/ヒットは壊れない)。view が <see cref="Key"/> から実 Widget を解決する。</summary>
+public sealed record BlockWidgetDecoration(int From, int To, object Key, float Height) : Decoration
+{
+    /// <inheritdoc/>
+    public override int SortFrom => From;
+    /// <inheritdoc/>
+    public override int SortTo => To;
+    /// <summary>行の占有 (高さ/畳み) を変えるのでレイアウトに効く。</summary>
+    public override bool AffectsLayout => true;
+    /// <inheritdoc/>
+    public override Decoration? Map(ChangeSet cs)
+    {
+        int nf = cs.MapPos(From, 1), nt = cs.MapPos(To, -1);
+        if (nt < nf) nt = nf;
+        if (From < To && nf == nt) return null;   // 範囲が丸ごと削除された
+        return this with { From = nf, To = nt };
+    }
+}
+
 /// <summary>行全体の背景 (現在行・実行中の行)。<see cref="At"/> はその行内の任意オフセット (行は編集で移っても追従)。</summary>
 public sealed record LineDecoration(int At, uint Background) : Decoration
 {

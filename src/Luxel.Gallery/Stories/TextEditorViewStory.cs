@@ -249,6 +249,35 @@ public static class TextEditorViewStory
                 ed]];
     }
 
+    [Story("Controls/TextEditorView/BlockWidget", Height = 300, Order = 9)]
+    public static Widget BlockWidget(StoryContext ctx)
+    {
+        // 複数ソース行を占有するブロック widget (WS-A S(A2b) / ADR-0012): 表/図/数式/埋め込みの土台。
+        // 範囲 [6,31) = 中間 2 ソース行を 80px の全幅パネルに置換 (先頭行=widget、残りは高さ0に畳む)。
+        Signal<string> text = ctx.Signal("text", "Above\nblock line 1\nblock line 2\nBelow");
+        TextEditorView ed = TextEditorView(text, editorHeight: 220f, editorWidth: 480f);
+        ed.WrapText = true;
+
+        ed.WidgetResolver = key => key as string == "panel"
+            ? Border(background: Bind.From(() => Styles.WithAlpha(UiTheme.T.Primary, 40)),
+                     padding: new Thickness(14))[
+                  Text("▦ block widget — 2 ソース行を占有", color: Bind.From(() => UiTheme.T.Primary))]
+            : null;
+
+        ctx.Play(async d =>
+        {
+            ed.SetDecorations("block", new DecorationSet([new BlockWidgetDecoration(6, 31, "panel", 80f)]));
+            await d.Step(1);
+            await d.Snap("block");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("TextEditorView — ブロック widget"),
+                Muted("BlockWidgetDecoration が複数ソース行を全幅 widget に置換 (表/図/埋め込みの土台)。行↔ソースの 1:1 は保つ。"),
+                ed]];
+    }
+
     [Story("Controls/TextEditorView/MultiCursor", Height = 260, Order = 5)]
     public static Widget MultiCursor(StoryContext ctx)
     {
