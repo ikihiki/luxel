@@ -153,6 +153,6 @@ public static class DocsText
 
         ## 埋め込みブロック (Embed)
 
-        `BlockKind.Embed` + `IBlockPayload` がデータ、widget 化は表示側の `BlockWidgetRegistry` が行います。canonical 形は `FencePayload(Info, Body)` — リゾルバのいない環境では**ただのコードブロックとして完全に保全**されます。画像・テーブル・チャート ([Controls/MarkdownEditor/Embeds](story:Controls/MarkdownEditor/Embeds))、そして独自フォーマット + ライブ実行の [Demos/Strudel/LiveScript](story:Demos/Strudel/LiveScript) もこの機構です。**この docs ページ自体**の mermaid / 数式 / ライブ UI も同じ経路 (IFenceResolver + BlockWidgetRegistry) で動いています。
+        `BlockKind.Embed` + `IBlockPayload` がデータ、widget 化は表示側の `BlockWidgetRegistry` が行います。canonical 形は `FencePayload(Info, Body)` — リゾルバのいない環境では**ただのコードブロックとして完全に保全**されます。画像・テーブル・チャート ([Controls/MarkdownEditor/Embeds](story:Controls/MarkdownEditor/Embeds)) もこの機構です。**この docs ページ自体**の mermaid / 数式 / ライブ UI も同じ経路 (IFenceResolver + BlockWidgetRegistry) で動いています。
         """, toc: true);
 }

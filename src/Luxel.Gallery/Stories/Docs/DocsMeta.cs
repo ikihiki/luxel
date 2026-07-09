@@ -209,7 +209,7 @@ public static class DocsMeta
         ## bench — canvas 更新コストの回帰ゲート
 
         ```powershell
-        dotnet run --project src/Luxel.Gallery -- vk bench "Demos/Strudel/LiveScript" 300
+        dotnet run --project src/Luxel.Gallery -- vk bench "Demos/2D/Orbit" 300
         dotnet run --project src/Luxel.Gallery -- vk bench "Controls/TextArea/Basic" 300 --type
         dotnet run --project src/Luxel.Gallery -- vk bench "Controls/ListView/Huge" 300 --wheel 1
         ```
