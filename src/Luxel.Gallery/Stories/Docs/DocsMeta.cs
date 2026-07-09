@@ -27,7 +27,7 @@ public static class DocsMeta
             Text($" {count} ", 20, vAlign: Align.Center),
             Button(_ => { count.Value++; ctx.Log("counter: +1"); }, "+")];
 
-        RichTextEditor doc = Docs(ctx, $$$""""
+        Widget doc = DocNew(ctx, $$$""""
             # docs ページの書き方
 
             docs ページは **補完文字列 + markdown** で書きます。リテラル部分は markdown として整形され、hole に `Widget` を置くとその場に**ライブ UI** が埋め込まれます。カラー絵文字 :smile: :rocket: :+1: と "smart quotes" -- SmartyPants も効きます。リンクも張れます: [Docs/Button を開く](story:Docs/Button) / [書けるもの へ](#書けるもの) / [No Graphics API (外部)](https://www.sebastianaaltonen.com/blog/no-graphics-api)
@@ -38,7 +38,7 @@ public static class DocsMeta
 
             ```csharp
             [Story("Docs/MyPage", Order = 50)]
-            public static Widget MyPage(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+            public static Widget MyPage(StoryContext ctx) => DocNew(ctx, $$"""
                 # 見出し
 
                 本文。hole にはライブ UI が置けます: {{Button(_ => ctx.Log("hi"), "押す")}}
@@ -46,7 +46,7 @@ public static class DocsMeta
                 コード例の波かっこはリテラルです: new Args { Count = n }
 
                 {{StoryRef(ctx, "Controls/Button/Variants", knobs: true)}}
-                """, toc: true, fences: DocsFences));
+                """, toc: true);
             ```
 
             `Order` がサイドバーの並び、`toc: true` で H2/H3 の目次が H1 直後に入ります。ページの H2/H3 はサイドバーのツリーにも出るので、節の粒度 = ナビゲーションの粒度です。
@@ -106,13 +106,22 @@ public static class DocsMeta
             - 埋め込みストーリーの knob 名がページ側と衝突したら後勝ち
             - StoryRef は 1 ページ 1〜3 個まで (実体化 + snap のコストがかかる)
             - snap (オフスクリーン回帰) は日本語フォールバックフォントがなく豆腐になりますが、決定的なので回帰検出には有効です
-            """", toc: true, fences: DocsFences);
-        ctx.Play(static d => d.Snap());
-        return WithDocFonts(doc);
+            """", toc: true);
+        // golden ①先頭、②「ライブ UI」見出しへスクロールして**行内 widget** (Badge/Button の :inline hole) を映す
+        ctx.Play(async d =>
+        {
+            await d.Snap();
+            if (doc is TextEditorView tev)
+                foreach (MarkdownHeading h in MarkdownDecorations.Headings(tev.DocSource!))
+                    if (h.Text == "ライブ UI") { tev.ScrollToSource(h.Offset); break; }
+            await d.Step(2);
+            await d.Snap("inline");
+        });
+        return doc;
     }
 
     [Story("Docs/Gallery", Order = 90)]
-    public static Widget Gallery(StoryContext ctx) => ctx.Snap(WithDocFonts(Docs(ctx, $$"""
+    public static Widget Gallery(StoryContext ctx) => ctx.Snap(DocNew(ctx, $$"""
         # Gallery — ストーリーの書き方
 
         この Gallery は Storybook 相当のカタログ + ドキュメント + 回帰基盤です。「ストーリー」= Widget を返す static メソッド 1 つで、実窓カタログ・snap 回帰・ docs への埋め込みのすべてに同じ実装が使われます。
@@ -170,10 +179,10 @@ public static class DocsMeta
         ```
 
         実窓は `Ctrl+D` でテーマ切替、ツールバーの「全画面」でプレビューをメイン全面に。サイドバーの検索欄は docs 本文の全文検索です。docs ページの書き方は [Docs/Authoring](story:Docs/Authoring) へ。
-        """, toc: true, fences: DocsFences)));
+        """, toc: true));
 
     [Story("Docs/Contributing", Order = 92)]
-    public static Widget Contributing(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
+    public static Widget Contributing(StoryContext ctx) => DocNew(ctx, $$"""
         # 貢献者向け — ビルド・テスト・回帰ゲート
 
         ## ビルドとツール (tools/)
@@ -212,5 +221,5 @@ public static class DocsMeta
         - **vk / dx ピクセル一致** — 新しい描画機能は両バックエンドで検証してから完了
         - **デッドリンク検証** — 実窓起動時に docs 全ページの `story:` / `#アンカー` を検査し、切れたリンクを stderr に警告します (`[gallery] dead link in ...`)
         - **実窓 E2E** — DebugServer の `/winframe` + `/cmd` で操作と描画を確認 ([Docs/DevTools](story:Docs/DevTools))
-        """, toc: true, fences: DocsFences));
+        """, toc: true);
 }

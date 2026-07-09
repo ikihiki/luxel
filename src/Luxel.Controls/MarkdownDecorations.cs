@@ -303,11 +303,22 @@ public static class MarkdownDecorations
         }
 
         // --- 行内: リンク [text](url) → text をアクセント色+下線、括弧/URL は淡色 ---
+        // ただし url が `<kind>:<body>` で kind が埋め込み種別なら**行内 widget** (WidgetDecoration) に置換
+        // する — DocString の `[￼](luxel-ui:N)` インライン hole がこれ (自動サイズ、view が key で解決)。
         uint link = t.Primary;
         foreach (Match m in Link.Matches(text))
         {
             int s = m.Index, e = m.Index + m.Length;
             if (Overlaps(consumed, s, e)) continue;
+            string url = m.Groups[2].Value;
+            int colon = url.IndexOf(':');
+            if (colon > 0 && embedKinds is not null && embedKinds.Contains(url[..colon]))
+            {
+                // `[￼](kind:body)` 全体 [s,e) を自動サイズ行内 widget に置換
+                marks.Add(new WidgetDecoration(s, e, 0f, 0f, new EmbedRef(url[..colon], url[(colon + 1)..])));
+                Consume(consumed, s, e);
+                continue;
+            }
             Group g = m.Groups[1];
             marks.Add(new MarkDecoration(g.Index, g.Index + g.Length, Foreground: link, Underline: new UnderlineStyle(link)));
             marks.Add(Marker(s, g.Index));                    // "["

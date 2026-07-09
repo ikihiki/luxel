@@ -164,6 +164,28 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void InlineHole_BecomesWidgetDecoration_NotTextLink()
+    {
+        // `[￼](luxel-ui:2)` (DocString のインライン hole) は埋め込み種別 luxel-ui が embedKinds にあれば
+        // 行内 widget (WidgetDecoration、自動サイズ) に置換される — テキストリンクではない。
+        var kinds = new HashSet<string> { "luxel-ui" };
+        var set = MarkdownDecorations.Build("状態 [￼](luxel-ui:2) です", T, hideMarkers: true, embedKinds: kinds);
+        WidgetDecoration wd = set.OfKind<WidgetDecoration>().Single();
+        Assert.Equal("状態 ".Length, wd.From);                       // `[` の位置
+        Assert.Equal("状態 [￼](luxel-ui:2)".Length, wd.To);          // `)` の直後まで置換
+        Assert.True(wd.Width <= 0 && wd.Height <= 0);                // 自動サイズ
+        Assert.Equal(new EmbedRef("luxel-ui", "2"), wd.Key);
+    }
+
+    [Fact]
+    public void InlineHole_UnknownScheme_StaysTextLink()
+    {
+        // 埋め込み種別でない url (http 等) は従来どおりテキストリンクのまま
+        var set = MarkdownDecorations.Build("[x](https://a)", T, embedKinds: new HashSet<string> { "luxel-ui" });
+        Assert.Empty(set.OfKind<WidgetDecoration>());
+    }
+
+    [Fact]
     public void Slug_StripsParens_SoAnchorUrlDoesNotBreak()
     {
         // 見出しに (...) があっても slug から括弧を除く → TOC の #アンカーが Links で正しく抽出できる

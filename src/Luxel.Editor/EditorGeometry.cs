@@ -177,6 +177,19 @@ public sealed class EditorGeometry
         return m > 0 ? m : 24f;
     }
 
+    /// <summary>行内 widget の実測サイズを供給する (view が realize 後に測って渡す)。
+    /// <see cref="WidgetDecoration.Width"/>/<see cref="WidgetDecoration.Height"/> が 0 以下 (=自動) のとき使う。</summary>
+    public Func<object, (float W, float H)?>? WidgetSize { get; set; }
+
+    // 行内 widget の採用サイズ: 宣言 (>0) 優先、自動 (<=0) は実測、未測定は見積り (行内なので小さめ)。
+    private (float W, float H) WidgetSizeOf(WidgetDecoration wd)
+    {
+        (float W, float H)? m = (wd.Width <= 0 || wd.Height <= 0) ? WidgetSize?.Invoke(wd.Key) : null;
+        float w = wd.Width > 0 ? wd.Width : (m?.W is > 0 and { } mw ? mw : 24f);
+        float h = wd.Height > 0 ? wd.Height : (m?.H is > 0 and { } mh ? mh : _cfg.FontSize + 4f);
+        return (w, h);
+    }
+
     /// <summary>ソース行 (0 始まり) の表示行。</summary>
     public DisplayLine Line(int index) => _lines[Math.Clamp(index, 0, _lines.Length - 1)];
     /// <summary>ソース行の絶対 Top。</summary>
@@ -253,7 +266,8 @@ public sealed class EditorGeometry
                       .Append(m.Foreground).Append(',').Append(m.Variant).Append(',').Append(m.FontScale).Append(',').Append(m.Hidden).Append(';');
                     break;
                 case WidgetDecoration w:
-                    sb.Append("w").Append(w.From).Append(',').Append(w.To).Append(',').Append(w.Width).Append(',').Append(w.Height).Append(';');
+                    (float ww, float wh) = WidgetSizeOf(w);   // 実測込みの採用サイズ (auto は測定変化で行を作り直す)
+                    sb.Append("w").Append(w.From).Append(',').Append(w.To).Append(',').Append(ww).Append(',').Append(wh).Append(';');
                     break;
                 case BlockWidgetDecoration bw:
                     sb.Append("bw").Append(bw.From).Append(',').Append(bw.To).Append(',').Append(BlockHeightOf(bw)).Append(';');
@@ -284,7 +298,10 @@ public sealed class EditorGeometry
         foreach (WidgetDecoration wd in _state.Decorations.All().OfType<WidgetDecoration>())
         {
             if (wd.From >= start && wd.To <= end && wd.To >= wd.From)
-                widgets.Add((wd.From - start, wd.To - start, wd.Key, wd.Width, wd.Height));
+            {
+                (float w, float h) = WidgetSizeOf(wd);
+                widgets.Add((wd.From - start, wd.To - start, wd.Key, w, h));
+            }
         }
         widgets.Sort((x, y) => x.a.CompareTo(y.a));
 
