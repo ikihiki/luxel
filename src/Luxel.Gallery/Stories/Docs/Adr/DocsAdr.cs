@@ -60,6 +60,7 @@ public static partial class DocsAdr
         - [ADR-0012 — Markdown/リッチ文書はテキスト新スタックの構成として実装する](story:ADR/0012-Rich-Document-Stack) — **Accepted** (2026-07-09)
         - [ADR-0013 — メニューは CommandRegistry を単一の真実として全サーフェスを生成する](story:ADR/0013-Menu-Command-System) — **Accepted** (2026-07-09)
         - [ADR-0014 — Workbench 基盤 UI コントロール群を新設する](story:ADR/0014-Workbench-Ui-Controls) — **Accepted** (2026-07-09)
+        - [ADR-0015 — ゲームプロジェクト/シーン形式はエディタ専用モデル + 一方向コンパイルにする](story:ADR/0015-Game-Project-Scene-Format) — **Accepted** (2026-07-10)
 
         ## 参考
 

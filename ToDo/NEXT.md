@@ -30,7 +30,7 @@
 
 > 依存順: GE-0 → GE-1 (S1→S2) → GE-2 → GE-3 → GE-4 → GE-5 → GE-6 → GE-7。**設計は 2D/3D 両対応 (27 MD の「設計原則」節が全エントリの縛り)、実装は M11=2D・M12=3D** (GE-7 完了後に M12 = GE-8〜10 を起票)。詳細・罠・検証・ユーザー確認事項は [27](27-game-editor.md) に集約。着手前に MD の「ユーザーに確認」残 2 点を確認する。
 
-- [ ] **Q45**: 27 **GE-0** — プロジェクト/シーンモデル (`Luxel.SceneEdit`: GameProject/SceneDoc [space ヘッダ]/IComponentSchema [全フィールド型 + 対応 space]、Transform2D/3D 両スキーマ、JSON 決定的往復 + 未知コンポーネント保全)。ADR-0015 起草。純ロジック単体テストのみ・golden 影響なし
+- [x] **Q45**: 27 **GE-0** (2026-07-10 完了) — プロジェクト/シーンモデル。新プロジェクト `Luxel.SceneEdit` (依存ゼロ): `SceneValue` (**形ベース**: Bool/Number/Text/Vec2/3/4/Raw — 型付きの意味 [Int/Enum/AssetRef/Quat/Color] はスキーマの解釈、未知保全が構造的に成立。float は最短表現正規化)、`SceneComponent` (フィールド名前順ソート = 決定的 JSON、"type" 予約)/`SceneEntity` (安定 id、型ごと 1 個)/`TileLayer` (行優先 cells)/`SceneDoc` (space ヘッダ + id 索引)、`IComponentSchema`/`SchemaRegistry` (対応 space で出し分け) + `SceneSchemas.Transform2D/3D` 両定義、`SceneJson` (決定的整形: キー順固定/LF/インデント 2/非 ASCII 素通し、serialize∘deserialize=恒等をテストで担保、タイルは行 CSV)、`GameProject`/`GameProjectJson`/`ResPath` (res:// 検証: 脱出/絶対/バックスラッシュ拒否)。ADR-0015 起草 (Accepted、Order 86) + ADR/Overview 一覧追記。単体 `SceneEditCoreTests` 14 本、全 1041 passed、vk e2e 116/116 diff 0 (golden 変更なし — ADR ページは 0002〜0014 同様 play 無し)。**副次発見**: dotnet test の E2E アダプタ乖離 → [28](28-e2e-adapter-drift.md) に起票
 - [ ] **Q46**: 27 **GE-1 S1** — シーンエディタ変更モデル + ビュー骨格 (SceneChange/History + `SceneEditorView` = 共有シェル + `ISceneSpaceAdapter` の 2D アダプタ: グリッド/pan/zoom/選択/移動 [軸分解ハンドル]/undo)。ADR-0016 起草。story + golden
 - [ ] **Q47**: 27 **GE-1 S2** — タイル描き込み (TileSet パレット + ブラシ/矩形/消しゴム、ストローク=1 undo、TileMapLayer 流用)。story + golden
 - [ ] **Q48**: 27 **GE-2** — インスペクタ (PropertyGrid×IComponentSchema、編集は Transaction 経由、space で出し分け) + AssetBrowser 配線 + SpriteAtlas 定義エディタ。story + golden
@@ -39,6 +39,10 @@
 - [ ] **Q51**: 27 **GE-5** — スクリプト編集統合 (csx DocumentProvider = TextEditorView + ScriptHost 診断、保存→ホットリロード、Problems ペイン)。story + golden
 - [ ] **Q52**: 27 **GE-6** — 出荷コマンド (dotnet publish Player + コンテンツコピー → リポジトリ外起動 vk/dx exit 0 の自動検証)。capstone チェックリスト踏襲
 - [ ] **Q53**: 27 **GE-7** — dogfood: ミニゲーム 1 本をエディタ操作だけで作って出荷 (通し play + golden) + `Docs/Studio` 執筆 → **M11 クローズ。M12 (3D: GE-8〜10) を 27 MD の見取り図からキューに起票** (27 MD は M12 完了まで残す)
+
+### メンテナンス (発見順。M11 の合間に片付けて良い)
+
+- [ ] **Q54**: [28 dotnet test E2E アダプタ乖離](28-e2e-adapter-drift.md) — `dotnet test` (E2ePlayTests) だけ Reference/Overview.table (決定的)・Docs/Strudel (走行順依存) の golden が落ちる (Gallery ランナーは全緑)。描画環境の一致 + stale golden `Demos_Strudel_Repl.playing.vk.png` の後始末。**golden を安易に --update しない** (MD の罠参照)
 
 ### M8 — 排他モード IME (必要になったら。ADR-0008 は Proposed)
 

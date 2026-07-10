@@ -11,6 +11,7 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 |---|---|---|---|---|
 | 27 | [27-game-editor.md](27-game-editor.md) | ゲームエディタ「Luxel Studio」: プロジェクト → シーン編集 → csx → プレイインエディタ → 出荷をエディタだけで完走 (ADR-0015〜0018 予定。**設計は 2D/3D 両対応、実装は M11=2D → M12=3D** の 2 フェーズ。計画のみ・未着手) | **特大** | 中〜高 |
 | 24 | [24-custom-ime-candidates.md](24-custom-ime-candidates.md) | カスタム IME 候補ウインドウ (TSF ITfUIElementSink で OS 抑制 + 自前 Popup 描画、排他モード対応。ADR-0008 Proposed) | 中 | **高** (実 IME 依存) |
+| 28 | [28-e2e-adapter-drift.md](28-e2e-adapter-drift.md) | dotnet test の E2E アダプタが Gallery ランナーと乖離 (golden 2 件 + stale 1 件。ランナーは全緑 — 描画環境を一致させる) | 小〜中 | 中 |
 
 完了したタスクの MD は削除済み (規約通り)。仕様は Gallery の Docs/ADR ストーリー、経緯は git 履歴を参照。直近では 13 (e2e 日本語フォント)・22 (エディタ新スタック)・23 (浮遊 UI placement)・25 (ノードエディタ)・26 (Workbench) が完了 (2026-07-10 整理)。
 
