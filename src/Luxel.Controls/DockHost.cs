@@ -167,14 +167,12 @@ internal sealed class DockFillPanel : Widget
     {
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
         Child.Realize(ctx, node, WorldPos);
-        int baseLayer = ctx.HitLayer;
         for (int i = 0; i < Floats.Count; i++)
         {
             UiNode holder = ctx.Canvas.AddChild(node);
-            holder.Z = 300 + i;                 // 描画も前面 (末尾 = 最前)
-            ctx.HitLayer = baseLayer + 1 + i;   // ヒットも前面優先 (背面ドックの深いヒットに勝つ)
-            try { Floats[i].Realize(ctx, holder, WorldPos); }
-            finally { ctx.HitLayer = baseLayer; }
+            holder.Z = 300 + i;                    // 描画も前面 (末尾 = 最前)
+            Floats[i].HitLayer = ctx.HitLayer + 1 + i;   // ヒットも前面優先 (部分再実体化でも保たれる)
+            Floats[i].Realize(ctx, holder, WorldPos);
         }
     }
 }

@@ -1,7 +1,16 @@
 ﻿namespace Luxel.UI;
 
-/// <summary>論理キー (programmatic 入力)。</summary>
-public enum Key { None, Tab, Enter, Space, Escape, Left, Right, Up, Down, Home, End, Backspace, Delete, PageUp, PageDown, A, B, C, D, E, F, G, H, I, R, V, X, Y, Z, Slash }
+/// <summary>論理キー (programmatic 入力)。追加は**末尾へ** — 途中挿入は既存メンバーの序数を
+/// 変え、記録済み入力リプレイを壊す。</summary>
+public enum Key
+{
+    None, Tab, Enter, Space, Escape, Left, Right, Up, Down, Home, End, Backspace, Delete, PageUp, PageDown,
+    A, B, C, D, E, F, G, H, I, R, V, X, Y, Z, Slash,
+    // ---- 追記分 (コマンドのキーバインド用、ADR-0013) ----
+    J, K, L, M, N, O, P, Q, S, T, U, W,
+    D0, D1, D2, D3, D4, D5, D6, D7, D8, D9,
+    F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
+}
 
 public readonly record struct KeyEvent(Key Key, bool Shift = false, bool Ctrl = false, bool Alt = false);
 

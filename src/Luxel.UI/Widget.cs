@@ -496,6 +496,11 @@ public abstract partial class Widget
     /// false (既定) はさらに親へバブリングし、ルートまで届くと SetRoot 全再構築になる。</summary>
     protected internal virtual bool OnChildNeedsRealize(Widget child) => false;
 
+    /// <summary>この widget 以下のヒット登録に使うレイヤ (null = 親のまま)。フローティング
+    /// パネル/メニュー等「浅いが最前面」の UI が設定する — Realize テンプレートがサブツリーの
+    /// 間だけ <see cref="UiBuildContext.HitLayer"/> を差し替えるので、**部分再実体化でも保たれる**。</summary>
+    public int? HitLayer { get; set; }
+
     /// <summary>保持型ツリーへ実体化する (レイアウト後)。スコープを積んで <see cref="RealizeCore"/> を
     /// 呼ぶテンプレート — 実体化中の登録 (ノード/入力/Effect) はこの widget のスコープが所有する。</summary>
     public void Realize(UiBuildContext ctx, UiNode parent, Point worldOrigin)
@@ -514,9 +519,12 @@ public abstract partial class Widget
         if (GetAttached<Animation.TransitionTable>(TransitionWiring.TableKey) is { } transitionTable)
             SetSetterWrapFallback(new TransitionWiring.Provider(this, ctx, transitionTable));
         int before = parent.Children.Count;
+        int prevLayer = ctx.HitLayer;
+        if (HitLayer is { } hl) ctx.HitLayer = hl;
         try { RealizeCore(ctx, parent, worldOrigin); }
         finally
         {
+            ctx.HitLayer = prevLayer;
             for (int i = before; i < parent.Children.Count; i++) scope.Nodes.Add(parent.Children[i]);
             ctx.PopScope(scope);
         }

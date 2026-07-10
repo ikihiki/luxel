@@ -48,6 +48,9 @@ public sealed partial class TextField : Widget, ITextInput
     /// <summary>背景色。未設定 → テーマ SurfaceAlt。</summary>
     [UiParam] private readonly Bindable<uint> _background = new();
 
+    /// <summary>未処理キーの拡張フック (コマンドパレットの ↑↓/Enter/Esc 等)。true = 消費。</summary>
+    public Func<KeyEvent, bool>? ExtraKeys { get; set; }
+
     private UiBuildContext _ctx = null!;
     private Signal<Theme> _theme = UiTheme.Current;
     private UiNode _textNode = null!, _caretNode = null!, _selNode = null!, _underlineNode = null!, _targetNode = null!;
@@ -178,7 +181,7 @@ public sealed partial class TextField : Widget, ITextInput
                     if (Accepts(Prospective(_ed.SelMin, _ed.SelMax, s))) { _ed.Insert(s); Sync(); }
                 }
                 return true;
-            default: return false;
+            default: return ExtraKeys?.Invoke(ev) ?? false;
         }
         Sync();
         return true;

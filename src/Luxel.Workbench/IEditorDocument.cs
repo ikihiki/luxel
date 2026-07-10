@@ -40,6 +40,10 @@ public interface IEditorDocument
 
     /// <summary>直列化表現から内容を読み込む (open の実体)。</summary>
     void LoadFrom(string content);
+
+    /// <summary>メニュー/ツールバー寄与 (ADR-0013 の「面」)。アクティブなときシェルが
+    /// CommandRegistry のビュー (MenuBar/CommandPalette/Toolbar/Keymap) へ合成する。既定 = なし。</summary>
+    IReadOnlyList<CommandContribution> Contributions => [];
 }
 
 /// <summary>

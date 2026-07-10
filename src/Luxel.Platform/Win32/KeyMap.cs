@@ -21,21 +21,17 @@ public static class KeyMap
         0x2E => Key.Delete,
         0x21 => Key.PageUp,
         0x22 => Key.PageDown,
-        // ショートカット用の文字キー (Ctrl+A/B/C/E/I/V/X/Y/Z)。無修飾の文字入力は WM_CHAR 側が担う
-        0x41 => Key.A,
-        0x42 => Key.B,
-        0x43 => Key.C,
-        0x44 => Key.D,
-        0x45 => Key.E,
-        0x46 => Key.F,
-        0x47 => Key.G,
-        0x48 => Key.H,
-        0x49 => Key.I,
-        0x52 => Key.R,
-        0x56 => Key.V,
-        0x58 => Key.X,
-        0x59 => Key.Y,
-        0x5A => Key.Z,
+        // ショートカット用の文字キー。無修飾の文字入力は WM_CHAR 側が担う
+        >= 0x41 and <= 0x5A => (char)('A' + (vk - 0x41)) switch
+        {
+            'A' => Key.A, 'B' => Key.B, 'C' => Key.C, 'D' => Key.D, 'E' => Key.E, 'F' => Key.F,
+            'G' => Key.G, 'H' => Key.H, 'I' => Key.I, 'J' => Key.J, 'K' => Key.K, 'L' => Key.L,
+            'M' => Key.M, 'N' => Key.N, 'O' => Key.O, 'P' => Key.P, 'Q' => Key.Q, 'R' => Key.R,
+            'S' => Key.S, 'T' => Key.T, 'U' => Key.U, 'V' => Key.V, 'W' => Key.W, 'X' => Key.X,
+            'Y' => Key.Y, 'Z' => Key.Z, _ => Key.None,
+        },
+        >= 0x30 and <= 0x39 => Key.D0 + (vk - 0x30),   // 数字段 (Key.D0..D9 は連番)
+        >= 0x70 and <= 0x7B => Key.F1 + (vk - 0x70),   // F1..F12 (連番)
         0xBF => Key.Slash,   // VK_OEM_2 (US 配列の / ?)
 
         _ => Key.None,

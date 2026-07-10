@@ -708,6 +708,9 @@ public sealed class UiHost : IDisposable
 
         foreach (OverlayEntry e in _build.Overlays)
         {
+            // ヒットもレイヤで前面優先 — フローティングパネル (レイヤ 1+) の上に開く
+            // ポップアップがフロートのヒットに奪われないようにする (部分再実体化でも保たれる)
+            e.Content.HitLayer ??= 2000;
             AnchoredPlacement? anch = AnchoredOf(e);
             Constraints cc = anch is not null
                 ? new Constraints(0, Cap(anch.MaxWidth, _width), 0, Cap(anch.MaxHeight, _height))
