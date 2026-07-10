@@ -98,6 +98,11 @@ public sealed partial class NodeGraphView : Widget
     public GraphViewport Viewport => _state.Viewport;
     /// <summary>undo できるか。</summary>
     public bool CanUndo => _history.CanUndo;
+    /// <summary>redo できるか。</summary>
+    public bool CanRedo => _history.CanRedo;
+
+    /// <summary>グラフが変わった (編集/undo/redo)。IEditorDocument アダプタのダーティ検知用。</summary>
+    public Action<NodeGraphView>? OnEdit { get; set; }
 
     /// <summary>グラフを丸ごと差し替える (選択・履歴はリセット)。</summary>
     public void Load(NodeGraphDoc doc)
@@ -173,9 +178,9 @@ public sealed partial class NodeGraphView : Widget
     }
 
     /// <summary>undo 1 手。</summary>
-    public void Undo() { _state = _history.Undo(_state); Refresh(); }
+    public void Undo() { _state = _history.Undo(_state); Refresh(); OnEdit?.Invoke(this); }
     /// <summary>redo 1 手。</summary>
-    public void Redo() { _state = _history.Redo(_state); Refresh(); }
+    public void Redo() { _state = _history.Redo(_state); Refresh(); OnEdit?.Invoke(this); }
 
     private void SetViewport(GraphViewport vp) { _state = _state.WithViewport(vp).State; Refresh(); }
 
@@ -573,6 +578,7 @@ public sealed partial class NodeGraphView : Widget
         if (tr.DocChanged) _history.Record(tr);
         _state = tr.State;
         Refresh();
+        if (tr.DocChanged) OnEdit?.Invoke(this);
     }
 
     // ---- 描画 ----

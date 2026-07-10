@@ -178,8 +178,9 @@ public sealed partial class Toolbar : CompositeControl
 
     private readonly Signal<int> _refresh = new(0);
 
-    /// <summary>enablement を再評価して描き直す。</summary>
-    public void Refresh() => _refresh.Value++;
+    /// <summary>enablement を再評価して描き直す。Effect 内から呼ばれても自己購読しないよう
+    /// Peek ベース (`++` は get を含み、呼び元 Effect が購読して無限ループする)。</summary>
+    public void Refresh() => _refresh.Value = _refresh.Peek() + 1;
 
     protected override Widget Build()
     {

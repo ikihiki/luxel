@@ -29,8 +29,8 @@ public sealed partial class AssetBrowser : CompositeControl
     /// <summary>選択中の path (ハイライト)。</summary>
     public string Selected => _selected.Peek();
 
-    /// <summary>ファイルの増減を反映し直す。</summary>
-    public void Refresh() => _version.Value++;
+    /// <summary>ファイルの増減を反映し直す (Peek ベース — Effect 内から呼ばれても自己購読しない)。</summary>
+    public void Refresh() => _version.Value = _version.Peek() + 1;
 
     /// <summary>フラットな path 列 ('/' 区切り) をフォルダ優先 + 名前順の木にする (テスト用に公開)。
     /// Key = フル path (フォルダも)、ファイルは Tag = path。</summary>

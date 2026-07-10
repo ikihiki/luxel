@@ -61,7 +61,11 @@ public abstract class CompositeControl : Widget
 
     protected sealed override void PerformLayout(Constraints c, LayoutContext ctx)
     {
-        if (_root is null)
+        // _trackSub is null (TrackBuild 時) は「購読が生きていない」— SetRoot 等で旧スコープが
+        // TrackCleanup を破棄した後、この widget インスタンスが再レイアウトされる場合に起きる
+        // (chrome をまたいで生きる永続シェル)。購読なしで _root を使い続けると以後の signal 変化で
+        // 再構築されなくなるため、Build し直して購読を張り直す。
+        if (_root is null || (TrackBuild && _trackSub is null))
         {
             _trackSub?.Dispose();
             _trackSub = null;

@@ -48,6 +48,9 @@ public sealed partial class TextEditorView : Widget, ITextInput
     /// <summary>クリック時にクリック位置のソースオフセットを通知する (リンクナビ等の当たり判定用)。</summary>
     public Action<int>? OnClickOffset { get; set; }
 
+    /// <summary>文書が変わった (編集/undo/redo)。IEditorDocument アダプタのダーティ検知用。</summary>
+    public Action<TextEditorView>? OnEdit { get; set; }
+
     /// <summary>行番号ガターを左に出す (コードエディタ用)。本文はガター幅ぶん右へ寄る。</summary>
     public bool ShowLineNumbers { get; set; }
 
@@ -714,6 +717,33 @@ public sealed partial class TextEditorView : Widget, ITextInput
         if (tr.DocChanged) _history.Record(tr, coalesce);
         _state = tr.State;
         Sync();
+        if (tr.DocChanged) OnEdit?.Invoke(this);
+    }
+
+    /// <summary>undo できるか (IEditorDocument アダプタの委譲先)。</summary>
+    public bool CanUndo => _history.CanUndo;
+
+    /// <summary>redo できるか。</summary>
+    public bool CanRedo => _history.CanRedo;
+
+    /// <summary>undo する (Ctrl+Z と同じ)。</summary>
+    public void Undo()
+    {
+        if (!_history.CanUndo) return;
+        _state = _history.Undo(_state);
+        _goalX = null;
+        Sync();
+        OnEdit?.Invoke(this);
+    }
+
+    /// <summary>redo する (Ctrl+Y と同じ)。</summary>
+    public void Redo()
+    {
+        if (!_history.CanRedo) return;
+        _state = _history.Redo(_state);
+        _goalX = null;
+        Sync();
+        OnEdit?.Invoke(this);
     }
 
     private void Sync()

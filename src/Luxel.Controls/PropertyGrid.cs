@@ -57,8 +57,9 @@ public sealed partial class PropertyGrid : CompositeControl
     private readonly Signal<int> _version = new(0);
     private readonly Dictionary<string, Widget> _editors = new();   // play/テスト用
 
-    /// <summary>対象の値が外部で変わったとき呼ぶ — 反映し直す。</summary>
-    public void Refresh() => _version.Value++;
+    /// <summary>対象の値が外部で変わったとき呼ぶ — 反映し直す (Peek ベース — Effect 内から
+    /// 呼ばれても自己購読しない)。</summary>
+    public void Refresh() => _version.Value = _version.Peek() + 1;
 
     /// <summary>メンバー名のエディタ widget (play/テスト用)。</summary>
     public Widget? EditorOf(string name) => _editors.GetValueOrDefault(name);

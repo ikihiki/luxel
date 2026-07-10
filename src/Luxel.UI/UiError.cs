@@ -13,7 +13,7 @@ public static class UiError
     /// <summary>例外を報告する (Console.Error + 診断イベント "error" — DevTools/Gallery の Log に出る)。</summary>
     public static void Report(Exception ex, string context)
     {
-        Console.Error.WriteLine($"[ui-error] {context}: {ex.GetType().Name}: {ex.Message}");
+        Console.Error.WriteLine($"[ui-error] {context}: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
         if (EngineDiagnostics.IsEnabled(EngineDiagnostics.Input))
             EngineDiagnostics.Emit(EngineDiagnostics.Input, new DiagInput("error", $"{context}: {ex.Message}"));
     }
