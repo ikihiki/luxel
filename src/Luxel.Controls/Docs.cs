@@ -1,12 +1,11 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text;
-using Luxel.Document;
 using Luxel.UI;
 
 namespace Luxel.Controls;
 
 /// <summary>
-/// MDX 風 docs ページの補完文字列 (<see cref="Kit.Docs(DocString, bool, IReadOnlyList{IFenceResolver})"/> の引数)。
+/// MDX 風 docs ページの補完文字列 (新スタック <see cref="MarkdownDoc.FromDoc"/> / <c>DocNew</c> の引数)。
 /// **リテラル部分 = markdown、hole = ライブ UI / テキスト補完**。
 ///
 /// <code>
@@ -123,123 +122,4 @@ public sealed class DocString
         _afterFence = false;
     }
 
-    internal string ToMarkdown() => _md.ToString();
-
-    /// <summary>```luxel-ui フェンスだけ embed へ昇格するリゾルバ (他のフェンスはコードブロックのまま)。</summary>
-    internal sealed class UiFenceResolver : IFenceResolver
-    {
-        public static readonly UiFenceResolver Instance = new();
-        public IBlockPayload? Resolve(string info, string body)
-            => info.Split(' ', 2)[0] == UiTypeId ? new FencePayload(info, body) : null;
-    }
-}
-
-public static partial class Kit
-{
-    /// <summary>
-    /// MDX 風 docs ページ (Storybook Docs 相当)。markdown の文章にライブ UI を混ぜて表示する —
-    /// <c>Docs($"# 見出し\n\n説明 {Button(...)} ...")</c>。表示は読み取り専用
-    /// (<see cref="RichTextEditor.ReadOnly"/>) で、スクロールと埋め込み UI の操作だけ有効。
-    /// **サイズは与えられた領域いっぱい** (HAlign/VAlign = Stretch)。UI hole は幅いっぱいの
-    /// キャンバス枠 (SurfaceAlt 地 + 角丸) に載る。
-    /// </summary>
-    public static RichTextEditor Docs(DocString content, bool toc = false,
-                                      IReadOnlyList<IFenceResolver>? fences = null)
-    {
-        var format = new MarkdownFormat();
-        format.FenceResolvers.Add(DocString.UiFenceResolver.Instance);
-        // 追加フェンス (```mermaid 等 — resolver は別アセンブリが提供、widget は Widgets へ登録)
-        if (fences is not null)
-            foreach (IFenceResolver f in fences)
-                format.FenceResolvers.Add(f);
-
-        List<Widget> holes = content.Holes;
-        var widgets = new BlockWidgetRegistry();
-        widgets.Register(DocString.UiTypeId, bctx =>
-        {
-            Widget inner = int.TryParse(((FencePayload)bctx.Payload).Body.Trim(), out int i)
-                           && i >= 0 && i < holes.Count
-                ? holes[i]
-                : Label($"(不明な doc-ui 参照: {((FencePayload)bctx.Payload).Body})");
-            // キャンバス枠 (Storybook の Canvas): 幅いっぱい、UI はそのまま操作できる。
-            // テーマはホスト (エディタ) の signal を使う — 島でも正しく追従する
-            Signal<Theme> theme = bctx.Theme;
-            return Border(background: Bind.From(() => theme.Value.SurfaceAlt),
-                          rounded: 8, padding: new Thickness(14, 12),
-                          width: Length.Percent(100))[inner];
-        });
-
-        widgets.Register("table", TableBlocks.Factory());   // markdown テーブルを embed 表示
-
-        string md = content.ToMarkdown();
-        if (toc) md = InsertToc(md);
-        RichTextEditor doc = RichTextEditor(new Signal<string>(md),
-                                            format: format, widgets: widgets);
-        // インライン hole ({widget:inline}) の解決 — 同じ N には常に同じインスタンス (状態が生きる)
-        doc.InlineWidgetResolver = url =>
-            url.StartsWith(DocString.InlineScheme)
-            && int.TryParse(url[DocString.InlineScheme.Length..], out int n)
-            && n >= 0 && n < holes.Count ? holes[n] : null;
-        doc.ReadOnly = true;
-        doc.HAlign.SetBase(Align.Stretch);
-        doc.VAlign.SetBase(Align.Stretch);
-        return doc;
-    }
-
-    /// <summary>ctx 付き糖衣: <c>story:</c> リンクを <see cref="StoryContext.Navigate"/> へ、
-    /// その他の未知スキームは Log へ配線する (<c>#アンカー</c> はエディタが内部で解決)。
-    /// ホストが ResourceSystem を持つなら markdown 画像 <c>![alt](src)</c> も表示される。</summary>
-    public static RichTextEditor Docs(StoryContext ctx, DocString content, bool toc = false,
-                                      IReadOnlyList<IFenceResolver>? fences = null)
-    {
-        RichTextEditor doc = Docs(content, toc, fences);
-        if (ctx.ResourcesOrNull is { } res)
-            doc.WidgetRegistry.Register("image", ImageBlocks.Factory(res));
-        Action<RichTextEditor, string> onLink = (_, url) =>   // lambda 直代入は不可 (EV の変換規則) — 変数経由
-        {
-            if (url.StartsWith("story:")) { ctx.Navigate(url["story:".Length..]); return; }
-            if (url.StartsWith("http://") || url.StartsWith("https://"))
-            {
-                // 外部リンクは既定ブラウザで (ShellExecute)。失敗は Log へ
-                try
-                {
-                    System.Diagnostics.Process.Start(
-                        new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
-                    ctx.Log($"open: {url}");
-                }
-                catch (Exception e) { ctx.Log($"link 失敗: {url} ({e.Message})"); }
-                return;
-            }
-            ctx.Log($"link: {url}");   // 未知スキームは Log のみ
-        };
-        doc.OnLink = onLink;
-        return doc;
-    }
-
-    /// <summary>TOC = アンカーリンク付き markdown リストとして最初の H1 直後へ挿入する
-    /// (H1 が無ければ先頭)。ただの markdown なのでエディタのフォント (日本語/絵文字) と
-    /// リンク機構 (#アンカー → スクロール) がそのまま効く。H2/H3 が対象、コードフェンス内は無視。</summary>
-    private static string InsertToc(string md)
-    {
-        string[] lines = md.Split('\n');
-        var toc = new List<string>();
-        bool inFence = false;
-        foreach (string l in lines)
-        {
-            if (l.TrimStart().StartsWith("```")) { inFence = !inFence; continue; }
-            if (inFence) continue;
-            // Kit.RichTextEditor (ファクトリ) が型名を隠すため完全修飾 (CS0119)
-            if (l.StartsWith("## ")) toc.Add($"- [{l[3..].Trim()}](#{Luxel.Controls.RichTextEditor.Slug(l[3..])})");
-            else if (l.StartsWith("### ")) toc.Add($"  - [{l[4..].Trim()}](#{Luxel.Controls.RichTextEditor.Slug(l[4..])})");
-        }
-        if (toc.Count == 0) return md;
-        string block = string.Join('\n', toc);
-        for (int i = 0; i < lines.Length; i++)
-            if (lines[i].StartsWith("# "))
-            {
-                lines[i] += "\n\n" + block;
-                return string.Join('\n', lines);
-            }
-        return block + "\n\n" + md;
-    }
 }

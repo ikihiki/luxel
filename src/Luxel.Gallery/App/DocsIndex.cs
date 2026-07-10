@@ -32,29 +32,13 @@ public static class DocsIndex
                 var ctx = new StoryContext(resources);
                 ctx.SetServices(GalleryServices.Provider);   // Scripting 等 DI ストーリーも build できるように
                 Widget w = s.Build(ctx);
-                if (FindDocEditor(w) is { } doc)
+                if (FindMarkdownDoc(w) is { DocSource: { } src })
                 {
-                    // 旧スタック (RichTextEditor): ブロックから本文/見出し/リンクを取る
-                    IReadOnlyList<Luxel.Document.Block> blocks = doc.Editor.Doc.Blocks;
-                    var heads = new List<DocsHeading>();
-                    var text = new System.Text.StringBuilder();
-                    for (int i = 0; i < blocks.Count; i++)
-                    {
-                        if (blocks[i].Kind == Luxel.Document.BlockKind.Heading && blocks[i].HeadingLevel >= 2)
-                            heads.Add(new DocsHeading(blocks[i].Text, blocks[i].HeadingLevel, i));
-                        if (blocks[i].Kind != Luxel.Document.BlockKind.Embed)
-                            text.AppendLine(blocks[i].Text);
-                    }
-                    map[s.Path] = new DocsPage(s.Path, text.ToString(), heads);
-                    foreach (string url in Luxel.Document.LinkCheck.FindBroken(blocks, p => StoryRegistry.Find(p) is not null))
-                    { broken++; Console.Error.WriteLine($"[gallery] dead link in '{s.Path}': {url}"); }
-                }
-                else if (FindMarkdownDoc(w) is { DocSource: { } src })
-                {
-                    // 新スタック (MarkdownDoc): markdown ソースから見出し/リンクを取る (realize 不要)
+                    // 新スタック (MarkdownDoc): markdown ソースから見出し/リンクを取る (realize 不要)。
+                    // Block はソースオフセット (TextEditorView.ScrollToSource でそのまま使える)。
                     var heads = MarkdownDecorations.Headings(src)
                         .Where(h => h.Level >= 2)
-                        .Select(h => new DocsHeading(h.Text, h.Level, 0))
+                        .Select(h => new DocsHeading(h.Text, h.Level, h.Offset))
                         .ToList();
                     map[s.Path] = new DocsPage(s.Path, src, heads);
                     foreach (MarkdownLink l in MarkdownDecorations.Links(src))
@@ -71,15 +55,6 @@ public static class DocsIndex
         Console.WriteLine($"[gallery] docs index: {map.Count} pages, {sw.ElapsedMilliseconds}ms"
                           + (broken > 0 ? $", dead links: {broken}" : ""));
         return map;
-    }
-
-    /// <summary>widget 木から docs エディタ (RichTextEditor) を探す。docs 以外のストーリーは通常 null。</summary>
-    internal static RichTextEditor? FindDocEditor(Widget w)
-    {
-        if (w is RichTextEditor e) return e;
-        foreach (Widget c in w.DebugChildren())
-            if (FindDocEditor(c) is { } found) return found;
-        return null;
     }
 
     /// <summary>widget 木から新スタックの docs (<see cref="TextEditorView.DocSource"/> を持つ) を探す。</summary>

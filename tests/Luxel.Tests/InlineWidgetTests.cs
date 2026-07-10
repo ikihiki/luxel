@@ -33,24 +33,34 @@ public class InlineWidgetTests
         Assert.True(after[0].X >= box[0].X + 40 - 0.5f);
     }
 
+    // ---- DocString の markdown 符号化 (新スタック MarkdownDoc.FromDoc/DocNew が使う .Md) ----
+
     [Fact]
-    public void DocString_InlineFormat_EmitsLinkSyntax()
+    public void DocString_InlineHole_EmitsLinkSyntax()
     {
         Widget b = Label("x");
-        RichTextEditor doc = Docs($"前 {b:inline} 後");
-        // インライン hole はリンク記法 → run (Link = luxel-ui:0) になり、resolver が widget を返す
-        Luxel.Document.Block block = doc.Editor.Doc.Blocks[0];
-        Luxel.Document.InlineRun run = block.Lines[0].Runs.First(r => r.Style.Link is not null);
-        Assert.Equal("luxel-ui:0", run.Style.Link);
-        Assert.Same(b, doc.InlineWidgetResolver!(run.Style.Link!));
-        Assert.Null(doc.InlineWidgetResolver!("luxel-ui:99"));   // 範囲外は null (通常リンク扱い)
+        DocString content = $"前 {b:inline} 後";
+        Assert.Contains("[￼](luxel-ui:0)", content.Md);   // インライン hole = リンク記法 (resolver が解決)
+        Assert.Same(b, content.HoleWidgets[0]);
     }
 
     [Fact]
-    public void DocString_BlockHole_Unchanged()
+    public void DocString_BlockHole_EmitsLuxelUiFence()
     {
         Widget b = Label("x");
-        RichTextEditor doc = Docs($"前\n\n{b}\n\n後");
-        Assert.Contains(doc.Editor.Doc.Blocks, bl => bl.Kind == Luxel.Document.BlockKind.Embed);
+        DocString content = $"前\n\n{b}\n\n後";
+        Assert.Contains("```luxel-ui", content.Md);        // ブロック hole = luxel-ui フェンス
+        Assert.Same(b, content.HoleWidgets[0]);
+    }
+
+    [Fact]
+    public void DocString_SignalHole_BakesValue_WidgetHolesKeepOrder()
+    {
+        var sig = new Signal<int>(3);
+        Widget a = Label("A"), c = Label("C");
+        DocString content = $"{a} count={sig} {c}";
+        Assert.Contains("count=3", content.Md);            // Signal hole は構築時の値が焼き込まれる (非リアクティブ)
+        Assert.Same(a, content.HoleWidgets[0]);            // widget hole の順序保持
+        Assert.Same(c, content.HoleWidgets[1]);
     }
 }

@@ -242,8 +242,8 @@ public sealed class GalleryApp : IDisposable
                 else if (n.Tag is (StoryInfo hs, int block))
                 {
                     if (hs.Path != _currentPath) { Select(hs); _pendingScroll = block; }
-                    else if (_storyRoot is not null && DocsIndex.FindDocEditor(_storyRoot) is { } doc)
-                        doc.ScrollTo(block);
+                    else if (_storyRoot is not null && DocsIndex.FindMarkdownDoc(_storyRoot) is { } doc)
+                        doc.ScrollToSource(block);   // block = 見出しのソースオフセット
                 }
             },
             selected: _currentPath ?? "", filter: _search);
@@ -538,10 +538,10 @@ public sealed class GalleryApp : IDisposable
     /// 適用し、n/m を更新する。見出しクリックのページ跨ぎスクロールも実体化を待ってここで消費。</summary>
     private void SyncSearch()
     {
-        RichTextEditor? doc = _storyRoot is null ? null : DocsIndex.FindDocEditor(_storyRoot);
-        if (_pendingScroll >= 0 && doc is { Realized: true })
+        TextEditorView? doc = _storyRoot is null ? null : DocsIndex.FindMarkdownDoc(_storyRoot);
+        if (_pendingScroll >= 0 && doc is { Scope: not null })
         {
-            doc.ScrollTo(_pendingScroll);
+            doc.ScrollToSource(_pendingScroll);
             _pendingScroll = -1;
         }
         string q = _search.Value;
@@ -550,7 +550,7 @@ public sealed class GalleryApp : IDisposable
         _appliedRoot = _storyRoot;
         if (doc is not null)
         {
-            doc.SetSearchHighlight(q);
+            doc.SetSearch(q);
             _matchTotal.Value = doc.SearchMatchCount;
             _matchCur.Value = doc.SearchCurrent + 1;
         }
@@ -564,8 +564,8 @@ public sealed class GalleryApp : IDisposable
     /// <summary>前へ/次へ: 開いている docs ページ内でマッチを移動する。</summary>
     private void MoveSearch(int dir)
     {
-        if (_storyRoot is null || DocsIndex.FindDocEditor(_storyRoot) is not { } doc) return;
-        if (dir > 0) doc.SearchNext(); else doc.SearchPrev();
+        if (_storyRoot is null || DocsIndex.FindMarkdownDoc(_storyRoot) is not { } doc) return;
+        if (dir > 0) doc.FindNext(); else doc.FindPrev();
         _matchCur.Value = doc.SearchCurrent + 1;
         _matchTotal.Value = doc.SearchMatchCount;
     }
