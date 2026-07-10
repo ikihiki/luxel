@@ -73,13 +73,13 @@ public static class MarkdownDoc
         return ed;
     }
 
-    /// <summary>見出しアンカーの slug。<see cref="RichTextEditor.Slug"/> (lowercase + 空白→<c>-</c>) を土台に、
+    /// <summary>見出しアンカーの slug: lowercase + 空白 (半角/全角) → <c>-</c>、さらに
     /// markdown リンク URL <c>](…)</c> を壊す丸括弧/角括弧を除去する。見出しに <c>(...)</c> があっても
     /// TOC の <c>#アンカー</c> が正しく張れる (括弧が残ると URL 内の <c>)</c> がリンクを途中で閉じる)。
     /// TOC 生成・ナビ・デッドリンク検証で共通に使う。</summary>
     public static string Slug(string heading)
     {
-        string s = RichTextEditor.Slug(heading);
+        string s = heading.Trim().ToLowerInvariant().Replace(' ', '-').Replace('　', '-');
         var sb = new System.Text.StringBuilder(s.Length);
         foreach (char c in s) if (c is not ('(' or ')' or '（' or '）' or '[' or ']')) sb.Append(c);
         return sb.ToString();
@@ -87,7 +87,7 @@ public static class MarkdownDoc
 
     /// <summary>TOC = アンカーリンク付き markdown リストを最初の H1 直後 (無ければ先頭) へ挿入する。
     /// ただの markdown なのでフォントもリンク機構 (<c>#アンカー</c>→スクロール) もそのまま効く。
-    /// H2/H3 が対象・コードフェンス内は無視。slug は <see cref="RichTextEditor.Slug"/> で本文と一致させる。</summary>
+    /// H2/H3 が対象・コードフェンス内は無視。slug は <see cref="Slug"/> で本文と一致させる。</summary>
     public static string InsertToc(string md)
     {
         string[] lines = md.Split('\n');
