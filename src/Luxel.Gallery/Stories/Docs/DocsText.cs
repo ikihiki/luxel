@@ -97,7 +97,7 @@ public static class DocsText
 
         挿入/削除、**Enter = ブロック分割** (リスト内は次項目、空項目で解除)、**行頭 Backspace = 前ブロックと結合** (リスト/引用はまず型解除)、スタイルトグル (Ctrl+B/I/E)、ブロック型変換、ブロック跨ぎ選択。undo/redo は逆操作ジャーナルで、連続タイプは 1 op に合体します。IME 合成はキャレットのあるブロック内に限定 — TSF の文書 = 現在ブロックです。
 
-        実物: [Controls/RichTextEditor/Basic](story:Controls/RichTextEditor/Basic) (ツールバー付き) / [Controls/TextEditorView/Basic](story:Controls/TextEditorView/Basic) (プレーン複数行)。
+        実物: [Controls/TextEditorView/LivePreview](story:Controls/TextEditorView/LivePreview) (Live Preview 編集) / [Controls/TextEditorView/Basic](story:Controls/TextEditorView/Basic) (プレーン複数行)。
 
         ## CodeEditor — コードエディタ (VS Code 風)
 
@@ -133,7 +133,7 @@ public static class DocsText
 
         パースは **Markdig** (フル CommonMark + コールアウト + CJK 強調 + 絵文字 + SmartyPants)、シリアライザは正規形を出す自前実装で、**round-trip が安定**します (md → doc → md が収束)。1 ソース行 = 1 表示行の行指向モデルで、空行も保存されます。
 
-        hybrid 表示 = Typora 風: キャレットの入ったブロックだけ**ソース表示**に切り替わり、離れると再パースして整形表示へ戻ります。行頭 `- ` や `# ` のオートフォーマットもフォーマット側の責務です。実物: [Controls/MarkdownEditor/Hybrid](story:Controls/MarkdownEditor/Hybrid) / [Controls/MarkdownEditor/VisualSource](story:Controls/MarkdownEditor/VisualSource) (双方向バインド)。
+        hybrid 表示 = Typora 風: キャレットの入ったブロックだけ**ソース表示**に切り替わり、離れると再パースして整形表示へ戻ります。行頭 `- ` や `# ` のオートフォーマットもフォーマット側の責務です。実物: [Controls/TextEditorView/LivePreview](story:Controls/TextEditorView/LivePreview) (キャレット行だけ raw = Typora 風)。
 
         ## IDocumentFormat — パーサーが文章をすべて管理する
 
@@ -153,6 +153,6 @@ public static class DocsText
 
         ## 埋め込みブロック (Embed)
 
-        `BlockKind.Embed` + `IBlockPayload` がデータ、widget 化は表示側の `BlockWidgetRegistry` が行います。canonical 形は `FencePayload(Info, Body)` — リゾルバのいない環境では**ただのコードブロックとして完全に保全**されます。画像・テーブル・チャート ([Controls/MarkdownEditor/Embeds](story:Controls/MarkdownEditor/Embeds)) もこの機構です。**この docs ページ自体**の mermaid / 数式 / ライブ UI も同じ経路 (IFenceResolver + BlockWidgetRegistry) で動いています。
+        `BlockKind.Embed` + `IBlockPayload` がデータ、widget 化は表示側の `BlockWidgetRegistry` が行います。canonical 形は `FencePayload(Info, Body)` — リゾルバのいない環境では**ただのコードブロックとして完全に保全**されます。画像・テーブル・チャート ([Controls/TextEditorView/DocEmbeds](story:Controls/TextEditorView/DocEmbeds)) もこの機構です。**この docs ページ自体**の mermaid / 数式 / ライブ UI も同じ経路 (IFenceResolver + BlockWidgetRegistry) で動いています。
         """, toc: true);
 }
