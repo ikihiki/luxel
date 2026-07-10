@@ -6,10 +6,12 @@ Workbench (ADR-0010〜0014) の上に、**ゲームを最初から最後まで �
 
 **解釈 (ユーザーに確認済みの前提として進める。違ったら指摘を)**: 「一通り作れる」= Unity 的な完結環境 (ゲーム = プロジェクトデータ + csx スクリプト、エンジン改造なしで 1 本出せる)。既存 capstone のような「C# コア + データ」方式のゲームにも部品 (シーンエディタ/インスペクタ) が使える設計にするが、北極星は前者。
 
+**2D/3D の扱い (2026-07-10 ユーザー決定)**: 実装フェーズは分けて良い (M11 = 2D、M12 = 3D) が、**設計は最初から両対応** — モデル/スキーマ/エディタ/コンパイラ/プレイヤーのどの層にも「2D 前提」を焼き込まない。具体規則は下の「2D/3D 両対応の設計原則」節。
+
 ## ゴール / 非ゴール
 
-- **v1 は 2D のみ** (LuxelCavern 相当の 2D ゲームが作れる)。3D シーン編集は v2 (資産: OrbitCamera / PhysicsGizmos / glTF は揃っているので拡張点だけ確保)。
-- **非ゴール (v1)**: 3D 編集、アニメーションタイムライン UI、ビジュアルスクリプティング (NodeGraph 資産はあるが挙動は csx で)、アセットストア的な配布、マルチユーザー編集、Windows 以外。
+- **M11 (このキュー) で実装するのは 2D** (LuxelCavern 相当の 2D ゲームが作れる)。**3D は M12** として GE-7 完了後に起票 (見取り図は本 MD 末尾) — 資産: OrbitCamera / PhysicsGizmos / glTF / scene_pbr 系は揃っている。
+- **非ゴール (M11)**: 3D 編集の実装 (設計対応のみ)、アニメーションタイムライン UI、ビジュアルスクリプティング (NodeGraph 資産はあるが挙動は csx で)、アセットストア的な配布、マルチユーザー編集、Windows 以外。
 - README の Tier 2 候補 (音バス UI、i18n 等) はエディタが動いてから個別タスク化。
 
 ## 北極星シナリオ (GE-7 で実演するユーザー体験)
@@ -37,10 +39,19 @@ Workbench (ADR-0010〜0014) の上に、**ゲームを最初から最後まで �
 | リソース | `ResourceSystem` + `res://` `EmbeddedResourceSource` + `IVirtualFileSystem` |
 | 出荷知見 | capstone の publish チェックリスト (shaders/フォント/glTF 同梱、self-contained、single-file、リポジトリ外起動検証) |
 
+## 2D/3D 両対応の設計原則 (全 WS 共通の縛り。M11 は 2D 実装だが、この形を崩さない)
+
+1. **SceneDoc は空間非依存** — エンティティ + コンポーネントデータの袋。シーンヘッダに `space: "2d" | "3d"` を持ち、viewport/コンパイラのパイプライン選択だけに使う。座標はコンポーネント側の関心事: `Transform2D` (Vector2 + 回転 rad + スケール) と `Transform3D` (Vector3 + クォータニオン + スケール) は**別スキーマ**として最初から両方定義する (Unity 式の「常に 3D Transform」は採らない — Luxel のランタイムが 2D/3D 別スタックのため。混在や自動変換はしない)。
+2. **IComponentSchema のフィールド型は初日から全部切る** — Bool/Int/Float/String/Enum/**Vec2/Vec3/Quat (エディタ表示はオイラー角)**/Color/AssetRef。2D だけなら Vec3/Quat は不要だが、後から足すとスキーマ + JSON + PropertyGrid の 3 箇所に同時に手が入るため先に揃える。各スキーマは**対応 space** (2d/3d/両方) を宣言し、インスペクタの「コンポーネント追加」やパレットが自動で出し分ける。
+3. **SceneEditorView = 共有シェル + `ISceneSpaceAdapter`** — 選択モデル/Transaction 配線/ツール切替/オーバーレイ/キーバインドは空間非依存の共有シェル。**スクリーン↔ワールド変換・ヒットテスト・カメラ操作・エンティティ/ハンドル描画はすべてアダプタ経由** (シェルに「ワールド = 平面」の前提を書かない。書きたくなったらアダプタへ)。M11 は 2D アダプタ (Affine2D pan/zoom + TileMapLayer + 矩形ヒット) のみ実装、M12 で 3D アダプタ (OrbitCamera + レイピック + ワイヤ描画) を追加。
+4. **移動ギズモは v1 から軸分解の形** — ハンドル = 軸 (X/Y、3D で Z が増える) + 平面ドラッグ。2D を「2 軸の特殊形」として作れば 3D で作り直しにならない。回転/スケールハンドルは両フェーズともスコープ外 (数値はインスペクタで)。
+5. **SceneCompiler もコア + space 別バックエンド** — エンティティ/コンポーネント→ECS のコアは空間非依存、描画パス (Rasterizer2D/TileMapLayer vs RenderGraph + scene_pbr 系)・カメラ (CameraRig2D vs OrbitCamera 等)・衝突 (QueryAabb/Sweep vs Luxel.Physics) の構築だけ space 別モジュール。
+6. **プロジェクトは 2D/3D シーン混在可** — space はシーン単位 (例: 3D ゲームの 2D タイトル画面)。Player はシーンの space を見て描画パスを選ぶ。csx ビヘイビアの globals も空間非依存の共通部 + space 別の拡張に分ける。
+
 ## アーキテクチャ決定 (着手時に ADR を起こす。次番号 0015〜)
 
-- **ADR-0015 (GE-0 で起草): プロジェクト/シーン形式とデータ駆動ランタイム。** ゲームプロジェクト = フォルダ (`project.luxel` [JSON: 名前/開始シーン/ウインドウ設定] + `scenes/*.scene.json` + `assets/**` + `scripts/*.csx` + `atlas/*.json` 等)。シーンはエディタ専用モデル `SceneDoc` (安定 id のエンティティ列 + コンポーネントデータ + タイルレイヤ参照) を JSON 往復し、ランタイムは `SceneCompiler` が ECS world + TileMap + リソースへ**一方向に構築** (Friflo `WorldSave` を編集形式に直接使わない — エディタは安定 id/未知コンポーネント保全/差分 undo が要るため。WorldSave はゲーム内セーブ用のまま)。アセット参照は `res://` 相対パスで統一。
-- **ADR-0016 (GE-1 で起草): シーンエディタ = 第 3 の Transaction スタック。** `Luxel.SceneEdit` (依存最小・canvas 非依存): `SceneDoc` (不変) + `SceneChange` (AddEntity/RemoveEntity/MoveEntity/SetComponent/PaintTiles…、各 Apply/Invert) + `SceneSelection` + `SceneTransaction`/`History` — NodeGraph S1 の設計をほぼ写経。ビューは `SceneEditorView` [UiComponent] (pan/zoom = Affine2D コンテナ、TileMapLayer/スプライト描画を流用、PointerEvent の Button/Modifiers [ADR-0011] を初めて本格消費)。
+- **ADR-0015 (GE-0 で起草): プロジェクト/シーン形式とデータ駆動ランタイム。** ゲームプロジェクト = フォルダ (`project.luxel` [JSON: 名前/開始シーン/ウインドウ設定] + `scenes/*.scene.json` + `assets/**` + `scripts/*.csx` + `atlas/*.json` 等)。シーンはエディタ専用モデル `SceneDoc` (安定 id のエンティティ列 + コンポーネントデータ + タイルレイヤ参照 + **space ヘッダ**) を JSON 往復し、ランタイムは `SceneCompiler` が ECS world + TileMap + リソースへ**一方向に構築** (Friflo `WorldSave` を編集形式に直接使わない — エディタは安定 id/未知コンポーネント保全/差分 undo が要るため。WorldSave はゲーム内セーブ用のまま)。アセット参照は `res://` 相対パスで統一 (png/wav/tmj/**glb** を同列に)。両対応原則 1・2・5・6 をここで固定する。
+- **ADR-0016 (GE-1 で起草): シーンエディタ = 第 3 の Transaction スタック + 空間アダプタ。** `Luxel.SceneEdit` (依存最小・canvas 非依存): `SceneDoc` (不変) + `SceneChange` (AddEntity/RemoveEntity/MoveEntity/SetComponent/PaintTiles…、各 Apply/Invert。移動は Vec2/Vec3 を持てる中立表現) + `SceneSelection` + `SceneTransaction`/`History` — NodeGraph S1 の設計をほぼ写経。ビューは `SceneEditorView` [UiComponent] = 共有シェル + `ISceneSpaceAdapter` (原則 3・4)。2D アダプタは pan/zoom = Affine2D コンテナ、TileMapLayer/スプライト描画流用、PointerEvent の Button/Modifiers (ADR-0011) を初めて本格消費。
 - **ADR-0017 (GE-4 で起草): プレイインエディタ実行モデル。** 編集 world とプレイ world は**別インスタンス** (SceneCompiler で都度構築 → 停止で破棄 = 状態リークなし、Unity の「プレイ中の変更は消える」と同じ契約)。エディタ内 viewport はストーリー内ゲーム描画の既存手法 (Apps/Game 系) を踏襲、固定 dt 駆動でエディタ golden も決定的に。ポーズ/ステップ/timescale は DevTools の既存機構を接続。
 - **ADR-0018 (GE-3 で起草): csx ビヘイビアモデル。** エンティティのコンポーネントに `Behaviour { Script = "scripts/enemy.csx" }` を持たせ、`Luxel.Player` が `ScriptSystem` で Attach。スクリプトの globals はプレイヤー提供の `StudioGlobals` (world/entity/入力/時間/音)。コンパイル失敗は旧維持 + 診断をエディタの Problems へ (既存 ScriptSystem の契約そのまま)。
 
@@ -48,14 +59,14 @@ Workbench (ADR-0010〜0014) の上に、**ゲームを最初から最後まで �
 
 ### GE-0 — プロジェクト/シーンモデル (純ロジック)
 
-`Luxel.SceneEdit` プロジェクト新設: `GameProject` (project.luxel 往復 + 相対パス解決)、`SceneDoc` (エンティティ/コンポーネント/タイルレイヤ、JSON 往復 + **未知コンポーネントの素通し保全**)、コンポーネントスキーマ登録 (`IComponentSchema`: 型名 → フィールド定義 → 既定値。PropertyGrid/インスペクタとランタイム構築の共通語彙)。ADR-0015 起草。検証 = 単体テスト (往復/未知保全/パス解決)。golden 影響なし。
-**罠**: シーン JSON の決定的整形 (キー順固定・改行固定) — golden とテキスト diff の要。float の往復は R フォーマット固定。
+`Luxel.SceneEdit` プロジェクト新設: `GameProject` (project.luxel 往復 + 相対パス解決)、`SceneDoc` (space ヘッダ + エンティティ/コンポーネント/タイルレイヤ、JSON 往復 + **未知コンポーネントの素通し保全**)、コンポーネントスキーマ登録 (`IComponentSchema`: 型名 → フィールド定義 [全型: 原則 2] → 既定値 → 対応 space。PropertyGrid/インスペクタとランタイム構築の共通語彙)。`Transform2D`/`Transform3D` 両スキーマをここで定義 (3D はスキーマとテストのみ — エディタ/ランタイム実装は M12)。ADR-0015 起草。検証 = 単体テスト (往復/未知保全/パス解決/Vec3・Quat 往復)。golden 影響なし。
+**罠**: シーン JSON の決定的整形 (キー順固定・改行固定) — golden とテキスト diff の要。float の往復は R フォーマット固定。Quat のオイラー表示変換はエディタ側の表示問題であり保存形式は Quat (往復劣化を避ける)。
 
 ### GE-1 — シーンエディタ (2 ステージ)
 
-- **S1 変更モデル + ビュー骨格**: `SceneChange`/`History` (NodeGraph S1 写経) + `SceneEditorView` (グリッド/pan/zoom、エンティティ = スプライトかプレースホルダ矩形で表示、クリック選択/矩形選択/ドラッグ移動 [スナップ]、Delete/複製、undo/redo)。story + golden。ADR-0016 起草。
+- **S1 変更モデル + ビュー骨格**: `SceneChange`/`History` (NodeGraph S1 写経、移動は空間中立表現) + `SceneEditorView` = **共有シェル + `ISceneSpaceAdapter`** (原則 3) の 2D アダプタ実装 (グリッド/pan/zoom、エンティティ = スプライトかプレースホルダ矩形で表示、クリック選択/矩形選択/ドラッグ移動 [スナップ、軸分解ハンドル = 原則 4]、Delete/複製、undo/redo)。story + golden。ADR-0016 起草。
 - **S2 タイル描き込み**: TileSet パレットペイン + ブラシ/矩形/消しゴム/スポイト、`PaintTiles` change (ストローク 1 回 = 1 undo に coalesce)、`TileMapLayer` 描画流用。story + golden。
-**罠**: ドラッグ中はプレビュー状態で描き drop で 1 change 記録 (NodeGraphView の MoveNodes と同じ)。タイル座標系と world 座標の変換は geometry 層に閉じる。
+**罠**: ドラッグ中はプレビュー状態で描き drop で 1 change 記録 (NodeGraphView の MoveNodes と同じ)。タイル座標系と world 座標の変換は geometry 層に閉じる。**シェルにスクリーン↔ワールドの直計算を書かない** (必ずアダプタ経由 — 3D アダプタ追加時の唯一の保険)。
 
 ### GE-2 — インスペクタ + アセットパイプライン
 
@@ -64,7 +75,7 @@ Workbench (ADR-0010〜0014) の上に、**ゲームを最初から最後まで �
 
 ### GE-3 — Luxel.Player (データ駆動ランタイム)
 
-`Luxel.Player` プロジェクト新設: `GameProject` を読み `SceneCompiler` で ECS world/TileMap/アトラス/カメラを構築、`LuxelHostBuilder` + `GameScene` で駆動。入力 = InputAction (project.luxel でバインド宣言)、衝突 = QueryAabb/Sweep、音 = res:// の wav。**csx ビヘイビア** (ADR-0018): Behaviour コンポーネント → ScriptSystem Attach。exe `Luxel.Player.App` (引数 = プロジェクトフォルダ)。検証 = 単体 (コンパイラ/往復) + fixture プロジェクトを Gallery story で実体化 (golden) + 実窓スモーク。
+`Luxel.Player` プロジェクト新設: `GameProject` を読み `SceneCompiler` で ECS world/TileMap/アトラス/カメラを構築、`LuxelHostBuilder` + `GameScene` で駆動。**コンパイラはコア + space 別バックエンドに分割 (原則 5)、M11 は 2D バックエンドのみ実装** (3D は space="3d" で NotSupported を明示、M12 で追加)。入力 = InputAction (project.luxel でバインド宣言)、衝突 = QueryAabb/Sweep、音 = res:// の wav。**csx ビヘイビア** (ADR-0018): Behaviour コンポーネント → ScriptSystem Attach、globals は空間非依存の共通部 + space 別拡張 (原則 6)。exe `Luxel.Player.App` (引数 = プロジェクトフォルダ)。検証 = 単体 (コンパイラ/往復) + fixture プロジェクトを Gallery story で実体化 (golden) + 実窓スモーク。
 **罠**: e2e に音を出させない — `HeadlessAudio` 判定に乗せる ([[luxel-e2e-headless-audio]] 方式)。スクリプトは固定 dt の Update フックのみ (wall-clock 禁止) で決定性を守る。
 
 ### GE-4 — プレイインエディタ
@@ -100,12 +111,19 @@ scripts/*.csx を TextEditorView + Roslyn プロバイダ (`ScriptHost` の診�
 - **csx の表現力不足が dogfood で露見** — StudioGlobals の API はミニゲームを先に紙上で書いてから決める (GE-3 冒頭)
 - **エディタ golden の脆さ** (シェル全体 snap はレイアウト変化に敏感) — snap は各ペイン/各機能単位のストーリーに分け、シェル全体 snap は GE-7 の通しのみ
 
+## M12 (3D フェーズ) の見取り図 (GE-7 完了後に起票。M11 の設計原則が効いていれば「追加」だけで済むはず)
+
+- **GE-8 — 3D 空間アダプタ**: `ISceneSpaceAdapter` の 3D 実装 (OrbitCamera 操作 + レイピックのヒットテスト + エンティティのワイヤ/AABB 表示 [PhysicsGizmos 流] + 3 軸移動ハンドル + グリッド平面)。シーンエディタ共有シェルは無改修が目標 (改修が要る = 原則 3 違反の検出)。
+- **GE-9 — 3D コンパイラバックエンド + Player 拡張**: SceneCompiler の 3D バックエンド (scene_pbr 系描画 + glTF 参照 [AssetRef で glb] + Luxel.Physics 衝突 + OrbitCamera/追従カメラ)。csx globals の 3D 拡張。
+- **GE-10 — dogfood ミニ 3D + Docs 追記**: Range 風の 1 シーンものをエディタ操作だけで (2D タイトル画面 + 3D プレイ画面の**混在プロジェクト**で原則 6 を実証) → 出荷。
+- タイムライン/スキンアニメの編集 UI・回転/スケールハンドルは M12 でもスコープ外 (必要になったら個別タスク)。
+
 ## ユーザーに確認
 
-1. **v1 = 2D のみ**で良いか (3D は v2)
+1. ~~v1 = 2D のみで良いか~~ → **決定 (2026-07-10)**: フェーズは 2D (M11) → 3D (M12) で分割、ただし**設計は最初から両対応** (上の設計原則節)。
 2. アプリ名 **「Luxel Studio」** (`src/Luxel.Studio` + `Luxel.Studio.App` / `Luxel.Player` + `Luxel.Player.App`) で良いか
 3. Strudel を BGM 作成ペインとして v1 に含めるか (含めない想定。資産はあるが scope を絞る)
 
-## スコープ外 (v1)
+## スコープ外 (M11。3D 実装は M12 = 上の見取り図)
 
-3D 編集 / アニメーションタイムライン / ビジュアルスクリプティング / 回転・スケールギズモ / プレハブ・ネストシーン / アセットのサムネイル生成 / エディタの多言語化 / プレイ中ライブ編集の書き戻し
+アニメーションタイムライン / ビジュアルスクリプティング / 回転・スケールギズモ / プレハブ・ネストシーン / アセットのサムネイル生成 / エディタの多言語化 / プレイ中ライブ編集の書き戻し
