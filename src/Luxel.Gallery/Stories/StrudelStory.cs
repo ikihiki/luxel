@@ -1,7 +1,7 @@
 ﻿using Luxel.Audio;
 using Luxel.Audio.Sequencing;
 using Luxel.Controls;
-using Luxel.Editor;
+using Luxel.Document;
 using Luxel.Platform;
 using Luxel.Strudel;
 using Luxel.TwoD;

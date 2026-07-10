@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using Luxel.Editor;
+using Luxel.Document;
 using Luxel.Typography;
 using Luxel.UI;
 

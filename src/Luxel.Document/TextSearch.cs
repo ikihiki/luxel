@@ -1,4 +1,4 @@
-namespace Luxel.Editor;
+namespace Luxel.Document;
 
 /// <summary>プレーンテキスト検索 — マッチ位置の収集 (canvas 不要・純関数)。ハイライトやナビゲーションは
 /// view がこの結果を装飾・選択に落とす。</summary>

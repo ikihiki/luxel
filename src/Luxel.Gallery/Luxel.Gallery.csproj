@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Luxel.DevTools\Luxel.DevTools.csproj" />
-    <ProjectReference Include="..\Luxel.Editor\Luxel.Editor.csproj" />
+    <ProjectReference Include="..\Luxel.Document\Luxel.Document.csproj" />
     <ProjectReference Include="..\Luxel.Platform\Luxel.Platform.csproj" />
     <ProjectReference Include="..\Luxel\Luxel.csproj" />
     <ProjectReference Include="..\Luxel.Vulkan\Luxel.Vulkan.csproj" />

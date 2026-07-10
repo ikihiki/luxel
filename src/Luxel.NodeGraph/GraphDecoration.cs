@@ -6,7 +6,7 @@ namespace Luxel.NodeGraph;
 public enum GraphBadge { Error, Warning, Info }
 
 /// <summary>
-/// グラフへの**装飾** — ノード/辺/ポートに紐づく描画メタデータ ([[Luxel.Editor.Decoration]] 相当)。テキストと違い
+/// グラフへの**装飾** — ノード/辺/ポートに紐づく描画メタデータ ([[Luxel.Document.Decoration]] 相当)。テキストと違い
 /// 対象は**安定 id** なので、編集追従は座標写像ではなく <see cref="Map"/> による「対象が消えたら落とす」存在フィルタ。
 /// <see cref="AffectsLayout"/> は「ノードの再射影 (サイズ変化) を要するか」の分類 — バッジ/ハイライト/進行中ワイヤ=不要
 /// (オーバーレイのみ、進行中ワイヤ 60fps の根拠) / ノード内インライン枠=要 (S3/S6 のノード幾何に効く)。
@@ -67,7 +67,7 @@ public sealed record PendingWireDecoration(PortId From, Vector2 To, uint Color) 
 }
 
 /// <summary>ノード本体に差すインライン枠 — <see cref="Width"/>×<see cref="Height"/> を占有し view が <see cref="Key"/> から
-/// 実 Widget を解決する ([[Luxel.Editor.WidgetDecoration]] 相当、コアは Widget 型を知らない)。ノードのサイズに効くので
+/// 実 Widget を解決する ([[Luxel.Document.WidgetDecoration]] 相当、コアは Widget 型を知らない)。ノードのサイズに効くので
 /// <see cref="AffectsLayout"/>=true。実際の widget ホストは S6 で view 側に足す。</summary>
 public sealed record NodeInlineDecoration(int NodeId, float Width, float Height, object Key) : GraphDecoration
 {

@@ -55,7 +55,7 @@ public readonly record struct GraphWire(Vector2 P0, Vector2 C0, Vector2 C1, Vect
 public readonly record struct PortGeometry(PortId Port, PortDir Dir, Vector2 Anchor, GraphRect HitRect);
 
 /// <summary>ノード内インライン UI の配置枠 (world) — view が <see cref="Key"/> から実 Widget を解決してこの矩形に重ねる
-/// ([[Luxel.Editor.WidgetSlot]] 相当)。<see cref="NodeInlineDecoration"/> 由来。</summary>
+/// ([[Luxel.Document.WidgetSlot]] 相当)。<see cref="NodeInlineDecoration"/> 由来。</summary>
 public readonly record struct WidgetSlot(int NodeId, object Key, GraphRect Rect);
 
 /// <summary>ヒット対象の種別。</summary>

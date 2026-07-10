@@ -3,7 +3,7 @@ using System.Numerics;
 namespace Luxel.NodeGraph;
 
 /// <summary>
-/// グラフへの 1 個の変更 — [[Luxel.Editor.ChangeSpec]] 相当のアトム。<see cref="Apply"/> が新 Doc を返し、
+/// グラフへの 1 個の変更 — [[Luxel.Document.ChangeSpec]] 相当のアトム。<see cref="Apply"/> が新 Doc を返し、
 /// <see cref="InvertAgainst"/> が**適用直前**の Doc に対する逆変更 (複数になりうる) を返す。
 /// 安定 id 前提なので座標写像は不要。逆変更が複数になる例: <see cref="RemoveNode"/> の逆は
 /// 「ノード復活 + 接続していた辺の再接続」。
@@ -77,7 +77,7 @@ public sealed record Disconnect(int EdgeId) : GraphChange
 }
 
 /// <summary>
-/// 変更の列 — [[Luxel.Editor.ChangeSet]] 相当。1 トランザクションが束ねる変更の単位で、まとめて適用/反転する。
+/// 変更の列 — [[Luxel.Document.ChangeSet]] 相当。1 トランザクションが束ねる変更の単位で、まとめて適用/反転する。
 /// <see cref="InvertAgainst"/> は各変更を**適用直前**の中間 Doc に対して反転し、逆順に並べて返す
 /// (テキストの ChangeSet.Invert と同じ手筋)。
 /// </summary>

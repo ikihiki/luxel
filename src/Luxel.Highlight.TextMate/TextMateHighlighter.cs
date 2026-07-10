@@ -1,4 +1,4 @@
-﻿using Luxel.Editor;
+﻿using Luxel.Document;
 using TextMateSharp.Grammars;
 using TextMateSharp.Registry;
 

@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Luxel.Editor;
+namespace Luxel.Document;
 
 /// <summary>単発の編集指定: 旧文書の <c>[From, To)</c> を <see cref="Insert"/> で置換する。純挿入は From==To、純削除は Insert=""。</summary>
 public readonly record struct ChangeSpec(int From, int To, string Insert);

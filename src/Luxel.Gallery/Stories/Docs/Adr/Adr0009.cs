@@ -23,7 +23,7 @@ public static partial class DocsAdr
 
         - **`Luxel.Diagram`** — measure → layout → 描画の**一方向レンダラ**。編集可能なモデル・ポート・ドラッグが無く、辺は直線。ただし階層ランク配置 (`DiagramLayout.Arrange`) は自動整列に**再利用**できる
         - **`Luxel.Animation/Graph`** — 実行時評価 DAG (`GraphNode.Evaluate`)。接続は blend ノード内の親子参照で暗黙、座標もポートも無く、空間エディタのモデルではない
-        - **`Luxel.Editor` (テキスト新スタック、[ADR-0006](story:ADR/0006-Editor-New-Stack))** — こちらは**アーキテクチャの手本**になる: 不変状態 + Transaction + 純射影ジオメトリ + 薄い view が、canvas 非依存で headless テスト可能という Luxel の強みをそのまま出せている
+        - **`Luxel.Document` (テキスト新スタック、[ADR-0006](story:ADR/0006-Editor-New-Stack))** — こちらは**アーキテクチャの手本**になる: 不変状態 + Transaction + 純射影ジオメトリ + 薄い view が、canvas 非依存で headless テスト可能という Luxel の強みをそのまま出せている
 
         また描画・入力の素材は既に揃っています — `Scene2D.CubicTo` (接続線のベジェ)・`AddHit` のドラッグフック・`Affine2D` コンテナ変換 (pan/zoom)・`PopupPlacer` ([ADR-0007](story:ADR/0007-Floating-Ui-Placement) のノード追加パレット)・`DiagramLayout` (自動整列)。
 

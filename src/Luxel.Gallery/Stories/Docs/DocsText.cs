@@ -111,13 +111,13 @@ public static class DocsText
         > [!NOTE]
         > エディタ系ストーリーは docs ページへの埋め込みに対応していません (embed 内 RichTextEditor の入れ子は既知の制限) — リンクで実物ページへ飛んでください。
 
-        ## 新スタック — Transaction ベースのエディタ (Luxel.Editor)
+        ## 新スタック — Transaction ベースのエディタ (Luxel.Document)
 
         「標準編集 / 行内 UI + 再生シーケンスの文字囲み (Strudel) / 下線・波線 (C#) / 行内色分け」が**同一行で同時に**要る要件から、既存の `DocumentEditor` 系を触らず **Transaction ベースの新スタックを新規追加**しました (決定は [ADR-0006](story:ADR/0006-Editor-New-Stack)、CodeMirror 6 流)。旧 CodeEditor/TextArea は当面併存します。
 
         ```mermaid
         flowchart TB
-        core[Luxel.Editor - canvas 非依存コア] --> view[TextEditorView - 薄いビュー]
+        core[Luxel.Document - canvas 非依存コア] --> view[TextEditorView - 薄いビュー]
         core --> geo[EditorGeometry - 純射影]
         ```
 

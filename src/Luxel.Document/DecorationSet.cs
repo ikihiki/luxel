@@ -1,4 +1,4 @@
-namespace Luxel.Editor;
+namespace Luxel.Document;
 
 /// <summary>
 /// 装飾の集合 — 開始オフセット昇順に並んだ不変リスト。編集追従は <see cref="Map"/> が全装飾を写し

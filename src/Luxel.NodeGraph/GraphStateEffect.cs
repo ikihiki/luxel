@@ -1,7 +1,7 @@
 namespace Luxel.NodeGraph;
 
 /// <summary>
-/// トランザクションが運ぶ**副作用** — 文書変更以外の状態更新 ([[Luxel.Editor.StateEffect]] 相当)。S2 では装飾の
+/// トランザクションが運ぶ**副作用** — 文書変更以外の状態更新 ([[Luxel.Document.StateEffect]] 相当)。S2 では装飾の
 /// 差し替え/削除。effect は変更を適用した**後**の新しい Doc を基準に解釈される (プロバイダは新状態に対して装飾を計算する)。
 /// </summary>
 public abstract record GraphStateEffect
@@ -25,7 +25,7 @@ public sealed record RemoveGraphDecorations(string Owner) : GraphStateEffect
 }
 
 /// <summary>
-/// 装飾の**供給元** — 状態から装飾集合を導く純関数 (同期) ([[Luxel.Editor.IDecorationProvider]] 相当)。選択強調・
+/// 装飾の**供給元** — 状態から装飾集合を導く純関数 (同期) ([[Luxel.Document.IDecorationProvider]] 相当)。選択強調・
 /// 配線ヒントなど状態から即座に決まるものはこれで十分。検証のような**非同期**プロバイダは view がワーカーで走らせ、
 /// 結果を <see cref="SetGraphDecorations"/> effect にして反映する (安定 id なので古い結果でも対象存在チェックで整合)。
 /// </summary>

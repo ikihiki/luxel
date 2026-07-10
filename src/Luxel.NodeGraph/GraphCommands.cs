@@ -3,7 +3,7 @@ using System.Numerics;
 namespace Luxel.NodeGraph;
 
 /// <summary>
-/// 状態遷移を組み立てる純関数群 ([[Luxel.Editor.EditCommands]] 相当) — <c>(NodeGraphState) → GraphTransaction</c>。
+/// 状態遷移を組み立てる純関数群 ([[Luxel.Document.EditCommands]] 相当) — <c>(NodeGraphState) → GraphTransaction</c>。
 /// view はヒット/幾何を解決してからこれらを呼ぶ (幾何依存の box 選択などは view が id を集めて <see cref="SelectNodes"/> に渡す)。
 /// </summary>
 public static class GraphCommands

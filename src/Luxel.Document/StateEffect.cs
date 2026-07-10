@@ -1,4 +1,4 @@
-namespace Luxel.Editor;
+namespace Luxel.Document;
 
 /// <summary>
 /// トランザクションが運ぶ**副作用** — 文書変更 (<see cref="ChangeSet"/>) 以外の状態更新。S2 では装飾の

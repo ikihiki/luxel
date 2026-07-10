@@ -1,4 +1,4 @@
-using Luxel.Editor;
+using Luxel.Document;
 
 namespace Luxel.Tests;
 

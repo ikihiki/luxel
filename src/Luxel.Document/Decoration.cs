@@ -1,4 +1,4 @@
-namespace Luxel.Editor;
+namespace Luxel.Document;
 
 /// <summary>下線スタイル — 色と波線か否か (C# 診断の実線/波線に使う)。</summary>
 public readonly record struct UnderlineStyle(uint Color, bool Wavy = false);

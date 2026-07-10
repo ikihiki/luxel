@@ -1,4 +1,4 @@
-namespace Luxel.Editor;
+namespace Luxel.Document;
 
 /// <summary>
 /// 編集/移動コマンド — いずれも純関数 <c>(EditorState) → Transaction</c> で、canvas 不要で単体テストできる。

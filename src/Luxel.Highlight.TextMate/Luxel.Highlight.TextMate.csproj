@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Luxel.Editor\Luxel.Editor.csproj" />
+    <ProjectReference Include="..\Luxel.Document\Luxel.Document.csproj" />
     <!-- TextMate 文法 (VS Code と同じ .tmLanguage) + onig 正規表現。依存はこのアセンブリに閉じる -->
     <PackageReference Include="TextMateSharp" Version="1.0.66" />
     <PackageReference Include="TextMateSharp.Grammars" Version="1.0.66" />

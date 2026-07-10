@@ -4,7 +4,7 @@ using System.Text;
 namespace Luxel.NodeGraph;
 
 /// <summary>
-/// ノードエディタの**純射影** ([[Luxel.Editor.EditorGeometry]] 相当) — <see cref="NodeGraphState"/> と
+/// ノードエディタの**純射影** ([[Luxel.Document.EditorGeometry]] 相当) — <see cref="NodeGraphState"/> と
 /// <see cref="GraphConfig"/> + view 注入の <see cref="NodeMeasure"/> から、ノード矩形・ポートアンカー・接続線のベジェ・
 /// ヒット判定・world↔screen 変換を計算する。**選択状態を持たない** (state を投影するだけ)。core は Luxel.Typography/TwoD に
 /// 依存せず、サイズ測定を <see cref="NodeMeasure"/> で外注するので canvas 無しで単体テストできる。ノードは内容 (Pos/サイズ/

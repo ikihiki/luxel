@@ -1,4 +1,4 @@
-namespace Luxel.Editor;
+namespace Luxel.Document;
 
 /// <summary>選択レンジ 1 本 — <see cref="Anchor"/> (固定端) と <see cref="Head"/> (キャレット端)。
 /// 空 (Anchor==Head) はただのキャレット。方向を保つため From/To ではなく anchor/head で持つ。</summary>

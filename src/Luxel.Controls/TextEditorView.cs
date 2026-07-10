@@ -1,4 +1,4 @@
-using Luxel.Editor;
+using Luxel.Document;
 using Luxel.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
@@ -9,7 +9,7 @@ namespace Luxel.Controls;
 /// <summary>
 /// テキストエディタ新スタック (ADR-0006 / ToDo 22) の**ビュー** — canvas がないとできないことだけを担う薄い皮。
 /// 編集意味論・座標写像・装飾は <see cref="EditorState"/> / <see cref="EditorGeometry"/> / <see cref="EditCommands"/>
-/// (canvas 非依存の Luxel.Editor) が持ち、この widget は「入力を Transaction にし、ジオメトリが返す矩形を塗る」。
+/// (canvas 非依存の Luxel.Document) が持ち、この widget は「入力を Transaction にし、ジオメトリが返す矩形を塗る」。
 /// マルチカーソル描画・折返し・プロポーショナル/日本語/合字はジオメトリ由来で最初から正しい。装飾プロバイダ
 /// (シンタックス色/診断/検索/再生囲み) や行内 widget は後続ステージがこの上に載る。
 /// </summary>

@@ -1,7 +1,7 @@
 namespace Luxel.NodeGraph;
 
 /// <summary>
-/// グラフの選択状態 — 選択ノード id 集合 + 選択辺 id 集合 + 主ノード ([[Luxel.Editor.EditorSelection]] 相当)。
+/// グラフの選択状態 — 選択ノード id 集合 + 選択辺 id 集合 + 主ノード ([[Luxel.Document.EditorSelection]] 相当)。
 /// id は昇順・重複なしに正規化する (決定性)。編集追従は <see cref="Retain"/> が、削除されたノード/辺への
 /// 参照を落とす (テキストの Map に相当するが、安定 id なので写像ではなく存在フィルタ)。
 /// </summary>

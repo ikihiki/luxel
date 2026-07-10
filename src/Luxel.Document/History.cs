@@ -1,4 +1,4 @@
-namespace Luxel.Editor;
+namespace Luxel.Document;
 
 /// <summary>
 /// undo/redo 履歴 — 各エントリが「変更セット + その逆 + 前後の選択」を持つ。1 トランザクション = 1 undo が基本で、

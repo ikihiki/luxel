@@ -1,7 +1,7 @@
 namespace Luxel.NodeGraph;
 
 /// <summary>
-/// 装飾の集合 — <see cref="GraphDecoration.SortKey"/> 昇順に並んだ不変リスト ([[Luxel.Editor.DecorationSet]] 相当)。
+/// 装飾の集合 — <see cref="GraphDecoration.SortKey"/> 昇順に並んだ不変リスト ([[Luxel.Document.DecorationSet]] 相当)。
 /// 編集追従は <see cref="Map"/> が全装飾を写し (削除対象のものを落とす)、供給側 (プロバイダ) はこの set を丸ごと
 /// 差し替える。重なる装飾は共存する (描画時に重畳)。
 /// </summary>
@@ -37,7 +37,7 @@ public sealed class GraphDecorationSet
 }
 
 /// <summary>
-/// owner (供給元) 別に <see cref="GraphDecorationSet"/> を保持する不変テーブル ([[Luxel.Editor.DecorationTable]] 相当) —
+/// owner (供給元) 別に <see cref="GraphDecorationSet"/> を保持する不変テーブル ([[Luxel.Document.DecorationTable]] 相当) —
 /// 検証/選択/配線ヒントなどがそれぞれ独立した set を持ち、独立に差し替える。<see cref="NodeGraphState"/> が 1 つ保持し、
 /// 編集時は <see cref="Map"/> が全 owner の set を写す (プロバイダが出した新しい set は現状態基準なので写さない)。
 /// </summary>

@@ -1,7 +1,7 @@
 namespace Luxel.NodeGraph;
 
 /// <summary>トランザクションの指定 — 変更 (複数を 1 セットに束ねる) + 結果選択 + viewport + 装飾の副作用
-/// ([[Luxel.Editor.TransactionSpec]] 相当)。<see cref="Selection"/> 省略時は現在の選択を編集で写す
+/// ([[Luxel.Document.TransactionSpec]] 相当)。<see cref="Selection"/> 省略時は現在の選択を編集で写す
 /// (削除ノード/辺への参照は落ちる)。<see cref="Effects"/> は変更適用後の新しい Doc を基準に解釈される。</summary>
 public sealed class GraphTransactionSpec
 {
@@ -16,7 +16,7 @@ public sealed class GraphTransactionSpec
 }
 
 /// <summary>
-/// ノードエディタの**不変スナップショット** — 文書 + 選択 + viewport ([[Luxel.Editor.EditorState]] 相当)。
+/// ノードエディタの**不変スナップショット** — 文書 + 選択 + viewport ([[Luxel.Document.EditorState]] 相当)。
 /// 編集は <see cref="Update"/> が <see cref="GraphTransaction"/> を作り、その <see cref="GraphTransaction.State"/>
 /// が新しい状態になる (元は変わらない)。装飾フィールドは S2 でここに足す。
 /// </summary>
@@ -68,7 +68,7 @@ public sealed class NodeGraphState
 }
 
 /// <summary>
-/// 1 回の状態遷移 — 開始状態 + 変更セット + 結果選択/viewport ([[Luxel.Editor.Transaction]] 相当)。
+/// 1 回の状態遷移 — 開始状態 + 変更セット + 結果選択/viewport ([[Luxel.Document.Transaction]] 相当)。
 /// <see cref="State"/> が適用後の新しい <see cref="NodeGraphState"/> (遅延計算・キャッシュ)。undo 履歴は
 /// この Transaction から作られる。
 /// </summary>

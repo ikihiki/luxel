@@ -1,5 +1,5 @@
 using Luxel.Controls;
-using Luxel.Editor;
+using Luxel.Document;
 using Luxel.Strudel;
 using Luxel.Typography;
 using Luxel.UI;
@@ -9,7 +9,7 @@ using static Luxel.Gallery.Stories.StoryKit;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>TextEditorView — テキストエディタ新スタック (ADR-0006 / ToDo 22) のビュー。
-/// 編集意味論・座標写像・装飾は canvas 非依存の Luxel.Editor が持ち、この widget は入力を Transaction にして
+/// 編集意味論・座標写像・装飾は canvas 非依存の Luxel.Document が持ち、この widget は入力を Transaction にして
 /// ジオメトリの矩形を塗るだけ。折返し・プロポーショナル・マルチカーソルはジオメトリ由来で最初から正しい。</summary>
 public static class TextEditorViewStory
 {
@@ -48,7 +48,7 @@ public static class TextEditorViewStory
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             VStack(10)[
                 Heading("TextEditorView (新スタック)"),
-                Muted("Luxel.Editor (Transaction + native 複数レンジ + 装飾) を canvas に載せた薄いビュー。"),
+                Muted("Luxel.Document (Transaction + native 複数レンジ + 装飾) を canvas に載せた薄いビュー。"),
                 ed]];
     }
 

@@ -1,4 +1,4 @@
-namespace Luxel.Editor;
+namespace Luxel.Document;
 
 /// <summary>
 /// エディタ新スタックのテキスト文書 — **不変スナップショット**。全文文字列 + 行開始オフセットの索引を持ち、

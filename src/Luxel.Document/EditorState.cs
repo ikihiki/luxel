@@ -1,4 +1,4 @@
-namespace Luxel.Editor;
+namespace Luxel.Document;
 
 /// <summary>トランザクションの指定 — 変更 (複数編集を 1 つの ChangeSet に束ねる) と結果選択を宣言する。
 /// <see cref="Selection"/> を省くと現在の選択を変更で写した位置になる。</summary>

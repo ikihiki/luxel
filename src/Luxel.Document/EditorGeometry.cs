@@ -1,6 +1,6 @@
 using Luxel.Typography;
 
-namespace Luxel.Editor;
+namespace Luxel.Document;
 
 /// <summary>ジオメトリの設定 — フォント・基準サイズ・折返し。view が注入する。</summary>
 public sealed class EditorConfig

@@ -1,5 +1,5 @@
 using Luxel.Controls;
-using Luxel.Editor;
+using Luxel.Document;
 using Luxel.UI;
 
 namespace Luxel.Tests;

@@ -1,7 +1,7 @@
 namespace Luxel.NodeGraph;
 
 /// <summary>
-/// ノードグラフの文書 — **不変スナップショット** ([[Luxel.Editor.TextDoc]] 相当)。ノード列 + 辺列を
+/// ノードグラフの文書 — **不変スナップショット** ([[Luxel.Document.TextDoc]] 相当)。ノード列 + 辺列を
 /// 挿入順 (描画順) に保ち、id → 索引の辞書で O(1) 引きを提供する。テキストのフラットオフセットと違い
 /// ノード/ポート/辺は**安定 id** を持つので、編集をまたいだ座標写像 (ChangeSet.MapPos 相当) は要らない。
 /// 編集は <see cref="Apply"/> が新しい <see cref="NodeGraphDoc"/> を返す (元は変えない)。v1 は素朴な配列実装。

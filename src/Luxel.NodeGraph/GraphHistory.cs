@@ -1,7 +1,7 @@
 namespace Luxel.NodeGraph;
 
 /// <summary>
-/// undo/redo 履歴 — 各エントリが「変更セット + その逆 + 前後の選択」を持つ ([[Luxel.Editor.History]] 相当)。
+/// undo/redo 履歴 — 各エントリが「変更セット + その逆 + 前後の選択」を持つ ([[Luxel.Document.History]] 相当)。
 /// **1 トランザクション = 1 undo** が基本で、複数ノード移動やパレット追加も 1 つの Transaction なので自動で
 /// 1 undo になる。<see cref="Record"/> の <c>coalesce</c> で直前エントリと <see cref="GraphChangeSet.Concat"/>
 /// して連続移動を 1 undo に畳める (いつ畳むかは view が決める — コアは wall-clock を持たない)。viewport (pan/zoom)

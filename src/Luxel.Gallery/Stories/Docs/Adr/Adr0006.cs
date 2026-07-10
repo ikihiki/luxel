@@ -28,7 +28,7 @@ public static partial class DocsAdr
 
         ## Decision
 
-        既存の DocumentEditor / TextArea / CodeEditor / RichTextEditor には**一切手を入れず**、**Transaction ベースの新エディタスタックを新規に追加**します。中核は canvas 非依存の新プロジェクト `Luxel.Editor`、ビューは `Luxel.Controls` の薄い widget。CodeMirror 6 に倣った設計です。
+        既存の DocumentEditor / TextArea / CodeEditor / RichTextEditor には**一切手を入れず**、**Transaction ベースの新エディタスタックを新規に追加**します。中核は canvas 非依存の新プロジェクト `Luxel.Document`、ビューは `Luxel.Controls` の薄い widget。CodeMirror 6 に倣った設計です。
 
         - **不変の `EditorState`** = テキスト文書 + `Selection` (複数レンジ + main index) + 装飾状態。**マルチカーソルが native** — 単一カーソルはレンジ 1 個の特殊ケースで、プライマリ/セカンダリの区別は存在しない
         - **編集は Transaction** — 変更を `ChangeSet` (retain/insert/delete 列) として運び、`ChangeSet.MapPos` が**唯一の写像機構**として選択・装飾・非同期プロバイダの古い結果を一括写像する。undo は反転 ChangeSet (1 Transaction = 1 undo なので、N カーソルの 1 打鍵が自動で 1 undo)

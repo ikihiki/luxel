@@ -17,7 +17,7 @@ public static partial class DocsAdr
 
         ## Context
 
-        Luxel には成熟した**編集コンポーネント**が育ちました — テキスト新スタック ([ADR-0006](story:ADR/0006-Editor-New-Stack)、`Luxel.Editor` + `TextEditorView`) とノード新スタック ([ADR-0009](story:ADR/0009-Node-Editor-Stack)、`Luxel.NodeGraph` + `NodeGraphView`)。さらにリッチ文書スタック ([ADR-0012](story:ADR/0012-Rich-Document-Stack)) を新設予定です。
+        Luxel には成熟した**編集コンポーネント**が育ちました — テキスト新スタック ([ADR-0006](story:ADR/0006-Editor-New-Stack)、`Luxel.Document` + `TextEditorView`) とノード新スタック ([ADR-0009](story:ADR/0009-Node-Editor-Stack)、`Luxel.NodeGraph` + `NodeGraphView`)。さらにリッチ文書スタック ([ADR-0012](story:ADR/0012-Rich-Document-Stack)) を新設予定です。
 
         しかしこれらを「**開いて・並べて・保存する**」アプリ/シェル層がありません。唯一のシェルは Gallery (Storybook 風・単一ドキュメントのプレビュー) で、複数ドキュメントのタブ・ドッキング・ファイル連動・コマンド起動・保存経路が全面的に未実装です。一方で各エディタスタックは**内部モデルを意図的に分離**しています ([ADR-0006](story:ADR/0006-Editor-New-Stack) / [ADR-0009](story:ADR/0009-Node-Editor-Stack))。シェルはそこに手を出さず、各エディタを不透明に束ねたい、という力学です。
 
