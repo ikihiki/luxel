@@ -45,4 +45,31 @@ public sealed class SceneDoc
     public TileLayer Layer(int id) => TryLayer(id) ?? throw new KeyNotFoundException($"タイルレイヤが無い: {id}");
 
     public TileLayer? TryLayer(int id) => _layerIndex.TryGetValue(id, out int i) ? TileLayers[i] : null;
+
+    // ---- 変更モデル (SceneChange) 用の不変操作 ----
+
+    /// <summary>エンティティを追加した新しい Doc (id 重複は例外)。<paramref name="index"/> は
+    /// 挿入位置 (-1 = 末尾)。エンティティ順は 2D の描画順 (後 = 上) なので、削除の undo は
+    /// 元の位置へ戻す必要がある。</summary>
+    public SceneDoc AddEntity(SceneEntity entity, int index = -1)
+    {
+        if (index < 0 || index >= Entities.Count) return new SceneDoc(Space, [.. Entities, entity], TileLayers);
+        var list = new List<SceneEntity>(Entities);
+        list.Insert(index, entity);
+        return new SceneDoc(Space, list, TileLayers);
+    }
+
+    /// <summary>エンティティを外した新しい Doc (無ければ例外)。</summary>
+    public SceneDoc RemoveEntity(int id)
+    {
+        _ = Entity(id);
+        return new SceneDoc(Space, Entities.Where(e => e.Id != id).ToList(), TileLayers);
+    }
+
+    /// <summary>同 id のエンティティを差し替えた新しい Doc (無ければ例外)。</summary>
+    public SceneDoc ReplaceEntity(SceneEntity entity)
+    {
+        _ = Entity(entity.Id);
+        return new SceneDoc(Space, Entities.Select(e => e.Id == entity.Id ? entity : e).ToList(), TileLayers);
+    }
 }

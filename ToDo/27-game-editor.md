@@ -66,7 +66,7 @@ Workbench (ADR-0010〜0014) の上に、**ゲームを最初から最後まで �
 
 ### GE-1 — シーンエディタ (2 ステージ)
 
-- **S1 変更モデル + ビュー骨格**: `SceneChange`/`History` (NodeGraph S1 写経、移動は空間中立表現) + `SceneEditorView` = **共有シェル + `ISceneSpaceAdapter`** (原則 3) の 2D アダプタ実装 (グリッド/pan/zoom、エンティティ = スプライトかプレースホルダ矩形で表示、クリック選択/矩形選択/ドラッグ移動 [スナップ、軸分解ハンドル = 原則 4]、Delete/複製、undo/redo)。story + golden。ADR-0016 起草。
+- **S1 変更モデル + ビュー骨格**: ✅ **完了 (2026-07-11, Q46)** — ADR-0016 Accepted。設計判断の追加分: viewport はコア状態でなく**空間アダプタ所有**、削除の undo は**元の描画順位置へ復活** (AddEntity に挿入 Index)、移動/インスペクタ編集は **SetField 1 本** (形ベース SceneValue で 2D/3D 共通)。詳細は NEXT.md Q46 の完了ログと ADR-0016。
 - **S2 タイル描き込み**: TileSet パレットペイン + ブラシ/矩形/消しゴム/スポイト、`PaintTiles` change (ストローク 1 回 = 1 undo に coalesce)、`TileMapLayer` 描画流用。story + golden。
 **罠**: ドラッグ中はプレビュー状態で描き drop で 1 change 記録 (NodeGraphView の MoveNodes と同じ)。タイル座標系と world 座標の変換は geometry 層に閉じる。**シェルにスクリーン↔ワールドの直計算を書かない** (必ずアダプタ経由 — 3D アダプタ追加時の唯一の保険)。
 

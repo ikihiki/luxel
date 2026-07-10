@@ -7,6 +7,8 @@
     <ProjectReference Include="..\Luxel.Document\Luxel.Document.csproj" />
     <!-- 汎用ノードエディタのコア (ADR-0009)。NodeGraphView が投影して描く (canvas 非依存の純データ/幾何) -->
     <ProjectReference Include="..\Luxel.NodeGraph\Luxel.NodeGraph.csproj" />
+    <!-- シーンエディタのコア (ADR-0015/0016)。SceneEditorView が空間アダプタ経由で投影して描く -->
+    <ProjectReference Include="..\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
     <!-- Workbench コア (ADR-0010)。DockHost が DockTree を投影して描く (canvas 非依存の純モデル) -->
     <ProjectReference Include="..\Luxel.Workbench\Luxel.Workbench.csproj" />
     <!-- 画像 embed (ImageBlock) が ResourceHandle<CpuImage> を扱う。GPU API は含まれない (Diagnostics のみ依存) -->
