@@ -28,7 +28,7 @@ public sealed record MathMatrix(IReadOnlyList<IReadOnlyList<MathNode>> Rows, cha
 /// <summary>
 /// TeX **サブセット**パーサ。対応: <c>^ _ {}</c>、<c>\frac \sqrt \vec</c>、
 /// <c>\begin{matrix/pmatrix/bmatrix}</c> (<c>&amp;</c> / <c>\\</c>)、ギリシャ文字・演算子コマンド
-/// (置換表は <see cref="Luxel.Document.TexText"/> と同じ)、関数名 (\sin 等 = 立体)。
+/// (置換表は <see cref="TexText"/> と同じ)、関数名 (\sin 等 = 立体)。
 /// 未知のコマンドは <c>\cmd</c> のまま立体で出す (豆腐にしない)。
 /// </summary>
 public static class TexParser
@@ -92,7 +92,7 @@ public static class TexParser
                 case "": pos++; return null;   // 単独の \ (未知) は読み飛ばす
                 default:
                     // 置換表 (ギリシャ/演算子/関数名) — TexText と共有。関数名は立体
-                    string uni = Luxel.Document.TexText.ToUnicode("\\" + cmd);
+                    string uni = TexText.ToUnicode("\\" + cmd);
                     return uni != "\\" + cmd
                         ? new MathSymbol(uni, Italic: false)
                         : new MathSymbol("\\" + cmd, Italic: false);   // 未知はそのまま

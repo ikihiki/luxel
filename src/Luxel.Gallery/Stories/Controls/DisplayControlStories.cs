@@ -1,5 +1,4 @@
 ﻿using Luxel.Controls;
-using Luxel.Document;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
@@ -59,7 +58,7 @@ public static class DisplayControlStories
             ],
             [TableAlign.Left, TableAlign.Right, TableAlign.Left]);
         return Frame(TableBlock(payload, 420,
-            p => ctx.Log($"commit: {((TablePayload)p).Rows.Count} 行")));
+            p => ctx.Log($"commit: {p.Rows.Count} 行")));
     }
 
     [Story("Controls/SurfaceView/Basic", Height = 300)]

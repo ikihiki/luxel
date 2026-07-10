@@ -1,4 +1,3 @@
-﻿using Luxel.Document;
 using Luxel.TwoD;
 using Luxel.UI;
 using Luxel.UI.Styling;
@@ -21,7 +20,7 @@ public sealed partial class TableBlock : Widget, ITextInput
     /// <summary>使える最大幅 (最小 80)。収まらない列は比例縮小。</summary>
     [UiParam] private readonly Bindable<float> _maxWidth = new();
     /// <summary>フォーカス喪失時に編集結果を 1 op として通知する commit。</summary>
-    [UiParam] private readonly Bindable<Action<IBlockPayload>> _commit = new();
+    [UiParam] private readonly Bindable<Action<TablePayload>> _commit = new();
 
     private List<string[]>? _rowsData;   // ローカル編集コピー (初回参照で payload から複製)
     private TableAlign[]? _alignsData;
@@ -379,9 +378,3 @@ public sealed partial class TableBlock : Widget, ITextInput
     Rect ITextInput.CaretRect => _caretWorld;
 }
 
-/// <summary>テーブル embed の標準ファクトリ。フォーマット構成側が registry へ登録する。</summary>
-public static class TableBlocks
-{
-    public static BlockWidgetFactory Factory()
-        => bc => Kit.TableBlock((TablePayload)bc.Payload, bc.MaxWidth, bc.Commit);
-}

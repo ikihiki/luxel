@@ -56,7 +56,6 @@
     <ProjectReference Include="..\..\src\Luxel.Scripting.Framework\Luxel.Scripting.Framework.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Strudel\Luxel.Strudel.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Typography.Icu\Luxel.Typography.Icu.csproj" />
-    <ProjectReference Include="..\..\src\Luxel.Document\Luxel.Document.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Editor\Luxel.Editor.csproj" />
     <ProjectReference Include="..\..\src\Luxel.NodeGraph\Luxel.NodeGraph.csproj" />
     <!-- テスト用コンポーネント (TestBadge) にファクトリ/デバッグコードを焼き込む -->

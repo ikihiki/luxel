@@ -1,10 +1,9 @@
-﻿using Luxel.Document;
-using Luxel.MathText;
+﻿using Luxel.MathText;
 using Xunit;
 
 namespace Luxel.Tests;
 
-/// <summary>MA: 数式 — インライン Unicode 正規化 / $$ 写像と round-trip / TeX パーサ / ボックス組版。</summary>
+/// <summary>MA: 数式 — TeX の Unicode 正規化 (TexText) / TeX パーサ / ボックス組版。</summary>
 public class MathTextTests
 {
     [Fact]
@@ -15,33 +14,6 @@ public class MathTextTests
         Assert.Equal("aᵢⱼ", TexText.ToUnicode("a_{ij}"));
         Assert.Equal(@"x^\frac", TexText.ToUnicode(@"x^\frac"));   // 変換不能な ^ は原文のまま
         Assert.Equal(@"\unknown", TexText.ToUnicode(@"\unknown"));
-    }
-
-    [Fact]
-    public void InlineMath_MappedToMathRun_AndRoundTrips()
-    {
-        RichDocument doc = Markdown.Parse(@"エネルギーは $E = mc^2$ です");
-        InlineRun run = doc.Blocks[0].Lines[0].Runs.First(r => r.Style.Math);
-        Assert.Equal("E = mc²", run.Text);   // Unicode 正規化済み
-
-        string md = Markdown.Serialize(doc);
-        Assert.Contains("$E = mc²$", md);    // 正規形で書き戻し (1 回で収束)
-        Assert.Equal(md, Markdown.Serialize(Markdown.Parse(md)));
-    }
-
-    [Fact]
-    public void BlockMath_MappedToPayload_AndRoundTrips()
-    {
-        RichDocument doc = Markdown.Parse("$$\n\\frac{a}{b}\n$$");
-        Block embed = doc.Blocks.First(b => b.Kind == BlockKind.Embed);
-        var payload = Assert.IsType<MathPayload>(embed.Payload);
-        Assert.Equal(@"\frac{a}{b}", payload.Source);
-
-        string md = Markdown.Serialize(doc);
-        Assert.Contains("$$", md);
-        RichDocument again = Markdown.Parse(md);
-        Assert.Equal(@"\frac{a}{b}",
-            ((MathPayload)again.Blocks.First(b => b.Kind == BlockKind.Embed).Payload!).Source);
     }
 
     [Fact]

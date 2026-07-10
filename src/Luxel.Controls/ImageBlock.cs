@@ -1,4 +1,3 @@
-﻿using Luxel.Document;
 using Luxel.Resources;
 using Luxel.TwoD;
 using Luxel.UI;
@@ -96,11 +95,4 @@ public sealed partial class ImageBlock : Widget, IDisposable
         _buf?.Dispose();
         _buf = null;
     }
-}
-
-/// <summary>画像 embed の標準ファクトリ。フォーマット構成側が registry へ登録する。</summary>
-public static class ImageBlocks
-{
-    public static BlockWidgetFactory Factory(ResourceSystem resources)
-        => bc => Kit.ImageBlock((ImagePayload)bc.Payload, resources, bc.MaxWidth);
 }

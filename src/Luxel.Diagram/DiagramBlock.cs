@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Luxel.Document;
 using Luxel.TwoD;
 using Luxel.UI;
 
@@ -125,17 +124,4 @@ public sealed partial class DiagramBlock : Widget
             edgeTextN.Color = t.TextMuted;
         });
     }
-}
-
-/// <summary>```mermaid フェンス → embed 昇格 (Kit.Docs の fences 引数へ渡す)。widget 側の登録は
-/// アプリが行う: <c>doc.Widgets.Register("mermaid", bc => Factories.DiagramBlock(((FencePayload)bc.Payload).Body, bc.MaxWidth))</c>
-/// (BlockWidgetRegistry は Controls 層 — このアセンブリは Controls 非依存に保つ)。</summary>
-public sealed class MermaidFenceResolver : IFenceResolver
-{
-    /// <summary>共有インスタンス (状態を持たない)。</summary>
-    public static readonly MermaidFenceResolver Instance = new();
-
-    /// <summary>info 先頭語が <c>mermaid</c> のフェンスだけ <see cref="FencePayload"/> に昇格する (他は null)。</summary>
-    public IBlockPayload? Resolve(string info, string body)
-        => info.Split(' ', 2)[0] is "mermaid" ? new FencePayload(info, body) : null;
 }

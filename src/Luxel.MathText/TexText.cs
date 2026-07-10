@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Luxel.Document;
+namespace Luxel.MathText;
 
 /// <summary>
 /// インライン数式 (<c>$...$</c>) の TeX サブセット → Unicode 正規化。

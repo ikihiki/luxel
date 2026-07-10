@@ -12,7 +12,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\Luxel.TwoD\Luxel.TwoD.csproj" />
-    <ProjectReference Include="..\Luxel.Document\Luxel.Document.csproj" />
     <ProjectReference Include="..\Luxel.UI.Generators\Luxel.UI.Generators.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU" />
     <InternalsVisibleTo Include="Luxel.Tests" />
