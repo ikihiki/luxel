@@ -118,6 +118,82 @@ public static class WorkbenchStory
         return host;
     }
 
+    /// <summary>DebugChildren を辿って指定ラベルの LinkText を探す (play 用)。</summary>
+    private static Widget? FindLink(Widget root, string label)
+    {
+        if (root is LinkText lt && lt.Text.Or("") == label) return root;
+        foreach (Widget c in root.DebugChildren())
+            if (FindLink(c, label) is { } hit) return hit;
+        return null;
+    }
+
+    // ---- PropertyGrid (Inspector) ----
+
+    private enum Quality { Low, Medium, High }
+
+    private sealed class ParticleConfig
+    {
+        public bool Visible { get; set; } = true;
+        [PropertyRange(0, 1)] public float Opacity { get; set; } = 0.65f;
+        public int Count { get; set; } = 500;
+        [PropertyGroup("見た目")] public uint Tint { get; set; } = 0xFF4A90D9;
+        [PropertyGroup("見た目")] public Quality Level { get; set; } = Quality.Medium;
+        [PropertyGroup("配置")] public System.Numerics.Vector2 Offset { get; set; } = new(16, 24);
+        [PropertyGroup("配置")] public string Layer { get; set; } = "front";
+    }
+
+    [Story("Controls/PropertyGrid/Basic", Height = 420)]
+    public static Widget PropertyGridBasic(StoryContext ctx)
+    {
+        var cfg = new ParticleConfig();
+        string lastChange = "";
+        PropertyGrid grid = PropertyGrid(cfg, width: 330,
+            onChanged: (_, name, v) => { lastChange = $"{name}={v}"; ctx.Log($"changed: {name} = {v}"); });
+
+        ctx.Play(async d =>
+        {
+            await d.Snap();                                    // 型別エディタ + グループ見出し
+            await d.Click(grid.EditorOf("Visible")!);          // Check をクリック → 対象へ即書き込み
+            await d.Expect(() => !cfg.Visible && lastChange == "Visible=False", "編集が対象へ書き戻る");
+            await d.Snap("edited");
+        });
+
+        return VStack(10)[
+            Heading("PropertyGrid — 型別エディタで対象を編集"),
+            Muted("bool=Check / 範囲 float=Slider / uint=ColorPicker / enum=Select / Vector2=軸別 / [PropertyGroup] 見出し"),
+            grid];
+    }
+
+    // ---- AssetBrowser (IFileStorage × TreeView) ----
+
+    [Story("Controls/AssetBrowser/Basic", Height = 360)]
+    public static Widget AssetBrowserBasic(StoryContext ctx)
+    {
+        var fs = new MemoryFileStorage();
+        fs.Write("readme.md", "# hi");
+        fs.Write("src/Main.cs", "//");
+        fs.Write("src/App.cs", "//");
+        fs.Write("assets/logo.png", "png");
+        fs.Write("assets/shaders/tri.slang", "//");
+        string opened = "";
+        AssetBrowser browser = AssetBrowser(fs, expanded: new HashSet<string> { "src", "assets" },
+            onOpen: (_, path) => { opened = path; ctx.Log($"open: {path}"); });
+
+        ctx.Play(async d =>
+        {
+            await d.Snap();                                    // フォルダ優先 + 展開済みツリー
+            Widget leaf = FindLink(browser, "Main.cs")!;
+            await d.Click(leaf);
+            await d.Expect(() => opened == "src/Main.cs", "ファイルクリックで OnOpen(path)");
+            await d.Snap("opened");
+        });
+
+        return VStack(10)[
+            Heading("AssetBrowser — IFileStorage のファイルツリー"),
+            Muted("フォルダ = 開閉見出し、ファイルクリック = OnOpen(path) → シェルが IDocumentStore.Open へ。"),
+            browser];
+    }
+
     // ---- StatusBar ----
 
     [Story("Controls/StatusBar/Basic", Height = 160)]

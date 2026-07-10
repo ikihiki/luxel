@@ -21,6 +21,10 @@ public interface IFileStorage
     /// <summary>変更監視。未対応なら null。callback のスレッドは実装依存
     /// (実ディスクは watcher スレッド — UI へは呼び側がマーシャルする)。</summary>
     IDisposable? Watch(string path, Action onChanged);
+
+    /// <summary>全ファイルの相対 path を列挙する ('/' 区切り、順序不定)。AssetBrowser 等の
+    /// 一覧表示用。</summary>
+    IEnumerable<string> List();
 }
 
 /// <summary>メモリ上の <see cref="IFileStorage"/> (テスト/一時ワークスペース用、決定的)。
@@ -55,6 +59,8 @@ public sealed class MemoryFileStorage : IFileStorage
         }
         return new Token(() => { lock (_lock) { if (_watchers.TryGetValue(path, out var l)) l.Remove(onChanged); } });
     }
+
+    public IEnumerable<string> List() { lock (_lock) return _files.Keys.ToArray(); }
 
     private sealed class Token(Action dispose) : IDisposable
     {
@@ -96,6 +102,13 @@ public sealed class PhysicalFileStorage(string root) : IFileStorage
         w.Changed += h; w.Created += h;
         w.Renamed += (_, _) => onChanged();
         return w;
+    }
+
+    public IEnumerable<string> List()
+    {
+        if (!Directory.Exists(_root)) yield break;
+        foreach (string f in Directory.EnumerateFiles(_root, "*", SearchOption.AllDirectories))
+            yield return Path.GetRelativePath(_root, f).Replace('\\', '/');
     }
 }
 
