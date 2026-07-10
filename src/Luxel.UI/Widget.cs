@@ -54,6 +54,11 @@ public sealed class HitTarget
     /// 可視性 (Visible) は判定側が自動で見るのでここでは扱わない。</summary>
     public Func<bool>? Active { get; set; }
 
+    /// <summary>ヒットレイヤ (既定 0)。判定はレイヤ大 → ノード深さ → 登録順の優先 —
+    /// フローティングパネル等「浅いが最前面」の UI が、背面のより深いヒットに負けないための層。
+    /// 登録側には <see cref="UiBuildContext.HitLayer"/> (ambient) が刻印される。</summary>
+    public int Layer { get; set; }
+
     /// <summary>hover 中のカーソル形状 (テキスト編集=IBeam、Splitter=Resize 等)。既定 = 矢印。</summary>
     public CursorKind Cursor { get; init; } = CursorKind.Arrow;
     /// <summary>動的なカーソル (SurfaceView の子転送等)。非 null なら <see cref="Cursor"/> より優先。</summary>
@@ -138,6 +143,10 @@ public sealed class UiBuildContext
     /// <summary>この build を所有する UiHost (D&D の <see cref="UiHost.BeginDrag"/> 等、
     /// host サービスへのアクセス用)。SetRoot が設定する。</summary>
     public UiHost? Host { get; internal set; }
+
+    /// <summary>現在のヒットレイヤ (ambient、既定 0)。<see cref="AddHit"/> が刻印する。
+    /// フローティングパネル等がサブツリーの実体化中だけ上げる (try/finally で戻す)。</summary>
+    public int HitLayer { get; set; }
 
     /// <summary>ルートスコープ (この build の全登録の所有者)。UiHost が SetRoot 時に前世代を破棄する。</summary>
     public RealizeScope Root => _root ??= new RealizeScope(this);
@@ -241,6 +250,7 @@ public sealed class UiBuildContext
             OnDropMove = onDropMove,
             OnDropHover = onDropHover,
             AcceptsDrop = acceptsDrop,
+            Layer = HitLayer,
         };
         Hits.Add(h);
         CurrentScope.Hits.Add(h);

@@ -209,6 +209,81 @@ public class DockTreeTests
         Assert.Throws<ArgumentException>(() => t.WithSizes(sid, new[] { 1f }));
     }
 
+    // ---- 窓内フローティング ----
+
+    [Fact]
+    public void Float_RemovesFromDock_CreatesFloatGroup()
+    {
+        DockTree t = DockTree.Single("a", "b").Float("b", 100, 50, 200, 150);
+
+        Assert.Equal(new[] { "a" }, ((DockGroup)t.Root).Tabs);
+        DockFloat fl = Assert.Single(t.Floats);
+        Assert.Equal(new[] { "b" }, fl.Group.Tabs);
+        Assert.Equal((100, 50, 200, 150), (fl.X, fl.Y, fl.W, fl.H));
+        Assert.Same(fl.Group, t.GroupOf("b"));            // 参照はフロートも含む
+        Assert.Same(fl.Group, t.Group(fl.Group.Id));
+        Assert.Same(fl, t.FloatOf(fl.Group.Id));
+    }
+
+    [Fact]
+    public void MoveTab_DockToFloat_AndBack_EmptyFloatVanishes()
+    {
+        DockTree t = DockTree.Single("a", "b", "c").Float("c", 10, 10, 200, 150);
+        int floatGid = t.Floats[0].Group.Id;
+        int dockGid = t.GroupOf("a")!.Id;
+
+        t = t.MoveTab("b", floatGid);                     // ドック → フロート
+        Assert.Equal(new[] { "c", "b" }, t.Floats[0].Group.Tabs);
+
+        t = t.MoveTab("c", dockGid).MoveTab("b", dockGid);   // 全部戻すとフロートが消える
+        Assert.Empty(t.Floats);
+        Assert.Equal(3, t.GroupOf("a")!.Tabs.Count);
+    }
+
+    [Fact]
+    public void RemoveTab_LastFloatTab_RemovesFloat()
+    {
+        DockTree t = DockTree.Single("a", "b").Float("b", 0, 0, 200, 150).RemoveTab("b");
+        Assert.Empty(t.Floats);
+    }
+
+    [Fact]
+    public void MoveFloat_Moves_ResizeClampsMin()
+    {
+        DockTree t = DockTree.Single("a", "b").Float("b", 10, 10, 200, 150);
+        int gid = t.Floats[0].Group.Id;
+
+        t = t.MoveFloat(gid, 60, 70);
+        Assert.Equal((60f, 70f), (t.Floats[0].X, t.Floats[0].Y));
+
+        t = t.ResizeFloat(gid, 10, 10);                   // 最小 120×80 でクランプ
+        Assert.Equal((120f, 80f), (t.Floats[0].W, t.Floats[0].H));
+    }
+
+    [Fact]
+    public void Dock_TargetFloatGroup_AppendsInsteadOfSplit()
+    {
+        DockTree t = DockTree.Single("a", "b", "c").Float("c", 0, 0, 200, 150);
+        int floatGid = t.Floats[0].Group.Id;
+
+        t = t.Dock("b", floatGid, DockSide.Right);        // フロートは分割しない → 末尾追加
+
+        Assert.Single(t.Floats);
+        Assert.Equal(new[] { "c", "b" }, t.Floats[0].Group.Tabs);
+        Assert.IsType<DockGroup>(t.Root);                 // ドック側に分割はできていない
+    }
+
+    [Fact]
+    public void SerializeDeserialize_RoundTrips_WithFloats()
+    {
+        DockTree t = DockTree.Single("a", "b").Float("b", 30, 40, 220, 160).ActivateTab("a");
+        DockTree back = DockTree.Deserialize(t.Serialize());
+        Assert.Equal(t.Serialize(), back.Serialize());
+        DockFloat fl = Assert.Single(back.Floats);
+        Assert.Equal((30f, 40f, 220f, 160f), (fl.X, fl.Y, fl.W, fl.H));
+        Assert.Equal(new[] { "b" }, fl.Group.Tabs);
+    }
+
     [Fact]
     public void SerializeDeserialize_RoundTrips()
     {

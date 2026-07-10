@@ -55,8 +55,21 @@ public sealed partial class DockHost : CompositeControl
             (_views[k] as IDisposable)?.Dispose();
             _views.Remove(k);
         }
-        // ルートを FillPanel で包む — 親が高さ無制約 (VStack 内等) でも 0 に潰れない
-        return new DockFillPanel { Child = BuildNode(t.Root, sig) };
+        // ルートを FillPanel で包む — 親が高さ無制約 (VStack 内等) でも 0 に潰れない。
+        // フロートは FillPanel が最前面 (高 Z + ヒットレイヤ) に重ねる
+        var fill = new DockFillPanel { Child = BuildNode(t.Root, sig) };
+        foreach (DockFloat fl in t.Floats)
+        {
+            int gid = fl.Group.Id;
+            fill.Floats.Add(new DockFloatPanel
+            {
+                Rect = new Rect(fl.X, fl.Y, fl.W, fl.H),
+                Child = BuildGroup(fl.Group, sig),
+                OnMoved = (dx, dy) => sig.Value = sig.Value.MoveFloat(gid, MathF.Max(0, fl.X + dx), MathF.Max(0, fl.Y + dy)),
+                OnResized = (dw, dh) => sig.Value = sig.Value.ResizeFloat(gid, fl.W + dw, fl.H + dh),
+            });
+        }
+        return fill;
     }
 
     private Widget BuildNode(DockNode n, Signal<DockTree> sig) => n switch
@@ -125,10 +138,12 @@ public sealed partial class DockHost : CompositeControl
 }
 
 /// <summary>DockHost ルートの詰め物: 制約いっぱいに子を広げる (無制約軸は 640×400 の既定) —
-/// 親が高さ無制約でも Star 行が 0 に潰れないようにする。</summary>
+/// 親が高さ無制約でも Star 行が 0 に潰れないようにする。フロートパネルを最前面
+/// (Z=300+ / ヒットレイヤ 1+) に重ねる — レイヤのおかげで背面ドックの深いヒットに負けない。</summary>
 internal sealed class DockFillPanel : Widget
 {
     public required Widget Child;
+    public readonly List<DockFloatPanel> Floats = new();
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
@@ -136,6 +151,51 @@ internal sealed class DockFillPanel : Widget
         float h = float.IsInfinity(c.MaxH) ? 400 : c.MaxH;
         Child.Layout(new Constraints(w, w, h, h), ctx, parentUsesSize: true);
         Child.Offset = default;
+        foreach (DockFloatPanel f in Floats)
+        {
+            float fw = MathF.Min(f.Rect.Width, w), fh = MathF.Min(f.Rect.Height, h);
+            f.Layout(new Constraints(fw, fw, fh, fh), ctx, parentUsesSize: true);
+            f.Offset = new Point(Math.Clamp(f.Rect.X, 0, MathF.Max(0, w - fw)),
+                                 Math.Clamp(f.Rect.Y, 0, MathF.Max(0, h - fh)));
+        }
+        Size = c.Constrain(new Size(w, h));
+    }
+
+    public override IEnumerable<Widget> DebugChildren() => [Child, .. Floats];
+
+    protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
+    {
+        UiNode node = CreateRoot(ctx, parent, worldOrigin);
+        Child.Realize(ctx, node, WorldPos);
+        int baseLayer = ctx.HitLayer;
+        for (int i = 0; i < Floats.Count; i++)
+        {
+            UiNode holder = ctx.Canvas.AddChild(node);
+            holder.Z = 300 + i;                 // 描画も前面 (末尾 = 最前)
+            ctx.HitLayer = baseLayer + 1 + i;   // ヒットも前面優先 (背面ドックの深いヒットに勝つ)
+            try { Floats[i].Realize(ctx, holder, WorldPos); }
+            finally { ctx.HitLayer = baseLayer; }
+        }
+    }
+}
+
+/// <summary>窓内フローティングパネル: つかみバー (ドラッグで移動、Splitter と同じゴースト追従 +
+/// 終了時 commit) + グループ内容 (タブ帯 + ドロップゾーン) + 右下リサイズハンドル。</summary>
+internal sealed class DockFloatPanel : Widget
+{
+    public const float GrabH = 14f;
+    private const float Corner = 14f;
+
+    public required Rect Rect;
+    public required Widget Child;
+    public required Action<float, float> OnMoved;     // (dx, dy) ドラッグ終了時
+    public required Action<float, float> OnResized;   // (dw, dh) ドラッグ終了時
+
+    protected override void PerformLayout(Constraints c, LayoutContext ctx)
+    {
+        float w = c.MaxW, h = c.MaxH;
+        Child.Layout(new Constraints(w, w, h - GrabH, h - GrabH), ctx, parentUsesSize: true);
+        Child.Offset = new Point(0, GrabH);
         Size = c.Constrain(new Size(w, h));
     }
 
@@ -144,6 +204,45 @@ internal sealed class DockFillPanel : Widget
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
+        float w = Size.Width, h = Size.Height;
+
+        // 地 + 枠 (浮いて見えるように背景を不透明で塗る)
+        UiNode bg = ctx.Canvas.AddChild(node);
+        var bs = new Scene2D();
+        bs.FillRoundedRect(Color2D.White, 0, 0, w, h, 6);
+        bg.Content = bs;
+        ctx.Effect(() => bg.Color = ctx.Theme.Value.Surface);
+        UiNode frame = ctx.Canvas.AddChild(node); frame.Z = 60;
+        var fs = new Scene2D();
+        fs.StrokeRoundedRect(Color2D.White, 1, 0.5f, 0.5f, w - 1, h - 1, 6);
+        frame.Content = fs;
+        ctx.Effect(() => frame.Color = ctx.Theme.Value.BorderColor);
+
+        // つかみバー (中央にグリップ点々)
+        UiNode grab = ctx.Canvas.AddChild(node); grab.Z = 61;
+        var gs = new Scene2D();
+        for (int i = -2; i <= 2; i++) gs.FillRoundedRect(Color2D.White, w / 2 + i * 8 - 1.5f, GrabH / 2 - 1.5f, 3, 3, 1.5f);
+        grab.Content = gs;
+        ctx.Effect(() => grab.Color = ctx.Theme.Value.TextMuted);
+        ctx.AddHit(node, new Rect(0, 0, w - Corner, GrabH), cursor: CursorKind.Hand,
+            onDrag: e => node.Transform = Affine2D.Translate(Offset.X + e.DeltaX, Offset.Y + e.DeltaY),
+            onDragEnd: e =>
+            {
+                node.Transform = Affine2D.Translate(Offset.X, Offset.Y);
+                if (e.DeltaX != 0 || e.DeltaY != 0) OnMoved(e.DeltaX, e.DeltaY);
+            });
+
+        // 右下リサイズハンドル
+        UiNode corner = ctx.Canvas.AddChild(node); corner.Z = 61;
+        var cs = new Scene2D();
+        cs.FillRect(Color2D.White, w - 10, h - 3, 8, 2);
+        cs.FillRect(Color2D.White, w - 3, h - 10, 2, 8);
+        corner.Content = cs;
+        ctx.Effect(() => corner.Color = ctx.Theme.Value.TextMuted);
+        ctx.AddHit(node, new Rect(w - Corner, h - Corner, Corner, Corner), cursor: CursorKind.ResizeH,
+            onDragStart: _ => { },
+            onDragEnd: e => { if (e.DeltaX != 0 || e.DeltaY != 0) OnResized(e.DeltaX, e.DeltaY); });
+
         Child.Realize(ctx, node, WorldPos);
     }
 }

@@ -118,6 +118,48 @@ public static class WorkbenchStory
         return host;
     }
 
+    [Story("Controls/DockHost/Floating", Height = 420)]
+    public static Widget DockHostFloating(StoryContext ctx)
+    {
+        // "graph" を最初から窓内フロートにしたレイアウト
+        var tree = new Signal<DockTree>(
+            DockTree.Single("readme", "main", "graph").Float("graph", 300, 120, 260, 190));
+        DockItem Resolve(string id) => id switch
+        {
+            "readme" => new DockItem("readme.md", () => Pane("readme.md — ドキュメント", 0x22808080)),
+            "main" => new DockItem("Main.cs", () => Pane("Main.cs — コード", 0x2260A060)),
+            _ => new DockItem("flow.graph", () => Pane("flow.graph — ノード", 0x226080C0)),
+        };
+        DockHost host = DockHost(tree, Resolve, width: 640, height: 360);
+
+        ctx.Play(async d =>
+        {
+            await d.Snap();                                   // ドックの上にフロートが浮く
+            // つかみバーをドラッグ → フロートが動く (背面ドックのヒットに勝つ = ヒットレイヤ)
+            DockFloat fl = tree.Value.Floats[0];
+            float gx = host.WorldPos.X + fl.X + fl.W / 2 - 20;
+            float gy = host.WorldPos.Y + fl.Y + 7;
+            await d.Drag(gx, gy, gx - 120, gy - 60);
+            await d.Expect(() => tree.Value.Floats[0].X < 300 && tree.Value.Floats[0].Y < 120, "つかみバーで移動");
+            await d.Snap("moved");
+            // ドックのタブ "main" をフロートの帯へドラッグ → フロートへ移動 (分割しない)
+            var from = host.TabCenter("main")!.Value;
+            var to = host.TabCenter("graph")!.Value;
+            await d.Drag(from.X, from.Y, to.X + 50, to.Y, moves: 12);
+            int floatGid = tree.Value.Floats[0].Group.Id;
+            await d.Expect(() => tree.Value.GroupOf("main")!.Id == floatGid, "帯ドロップでフロートへ移動");
+            await d.Snap("gathered");
+            // フロートのタブ "graph" をドック右端へ → フロートから出て横分割
+            var g = host.TabCenter("graph")!.Value;
+            await d.Drag(g.X, g.Y, host.WorldPos.X + host.Size.Width - 20, host.WorldPos.Y + 200, moves: 12);
+            await d.Expect(() => tree.Value.Root is DockSplit { Horizontal: true }
+                              && tree.Value.FloatOf(tree.Value.GroupOf("graph")!.Id) is null, "フロートからドックへ分割");
+            await d.Snap("redocked");
+        });
+
+        return host;
+    }
+
     /// <summary>DebugChildren を辿って指定ラベルの LinkText を探す (play 用)。</summary>
     private static Widget? FindLink(Widget root, string label)
     {

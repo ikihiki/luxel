@@ -16,38 +16,53 @@ public sealed record DockGroup(int Id, IReadOnlyList<string> Tabs, int Active) :
 /// <summary>分割領域 (内部ノード)。Horizontal = 子が左→右に並ぶ。Sizes は子の割合 (合計 1)。</summary>
 public sealed record DockSplit(int Id, bool Horizontal, IReadOnlyList<DockNode> Children, IReadOnlyList<float> Sizes) : DockNode(Id);
 
+/// <summary>窓内フローティングパネル 1 枚 (ドック木の外に浮くタブグループ + 矩形、ホスト相対 px)。</summary>
+public sealed record DockFloat(DockGroup Group, float X, float Y, float W, float H);
+
 /// <summary>
-/// 領域 + タブグループの再帰木 (ADR-0010)。**不変** — 各操作は新しいツリーを返す
-/// (テキスト/ノードスタックと同じ不変状態の流儀)。描画は ADR-0014 の DockHost。
+/// 領域 + タブグループの再帰木 + 窓内フローティング (ADR-0010)。**不変** — 各操作は新しいツリーを
+/// 返す (テキスト/ノードスタックと同じ不変状態の流儀)。描画は ADR-0014 の DockHost。
 /// 正規化規則: 空グループは消える (ルートは空グループ 1 つで残る)・子 1 つの分割は繰上げ・
-/// 同方向の入れ子分割は親へ畳む (サイズは按分)。
+/// 同方向の入れ子分割は親へ畳む (サイズは按分)・空になったフロートは消える。
+/// フロートのグループも <see cref="Groups"/>/<see cref="Group"/> に含まれ、MoveTab/AddTab の
+/// 対象にできる (Dock でフロートグループを指すと分割せず末尾追加)。
 /// </summary>
 public sealed class DockTree
 {
-    private DockTree(DockNode root, int nextId) { Root = root; NextId = nextId; }
+    private DockTree(DockNode root, IReadOnlyList<DockFloat> floats, int nextId)
+    { Root = root; Floats = floats; NextId = nextId; }
 
     public DockNode Root { get; }
+
+    /// <summary>フローティングパネル (前面順 = 末尾が最前)。</summary>
+    public IReadOnlyList<DockFloat> Floats { get; }
 
     /// <summary>次に割り当てる id (直列化に含め、復元後も衝突しない)。</summary>
     public int NextId { get; }
 
     /// <summary>グループ 1 つの初期ツリー。</summary>
     public static DockTree Single(params string[] tabs)
-        => new(new DockGroup(1, tabs, tabs.Length > 0 ? 0 : -1), 2);
+        => new(new DockGroup(1, tabs, tabs.Length > 0 ? 0 : -1), [], 2);
 
     // ---- 参照 ----
 
-    /// <summary>全グループ (DFS = 左→右/上→下 順)。</summary>
-    public IEnumerable<DockGroup> Groups => Walk(Root).OfType<DockGroup>();
+    /// <summary>全グループ (ドック木 DFS → フロート順)。</summary>
+    public IEnumerable<DockGroup> Groups
+        => Walk(Root).OfType<DockGroup>().Concat(Floats.Select(f => f.Group));
 
     /// <summary>タブが属するグループ。無ければ null。</summary>
     public DockGroup? GroupOf(string tab) => Groups.FirstOrDefault(g => g.Tabs.Contains(tab));
 
-    /// <summary>id のグループ。無ければ null。</summary>
-    public DockGroup? Group(int id) => Walk(Root).FirstOrDefault(n => n.Id == id) as DockGroup;
+    /// <summary>id のグループ (フロート含む)。無ければ null。</summary>
+    public DockGroup? Group(int id)
+        => Walk(Root).FirstOrDefault(n => n.Id == id) as DockGroup
+           ?? Floats.FirstOrDefault(f => f.Group.Id == id)?.Group;
 
     /// <summary>id の分割。無ければ null。</summary>
     public DockSplit? Split(int id) => Walk(Root).FirstOrDefault(n => n.Id == id) as DockSplit;
+
+    /// <summary>id のグループを持つフロート。ドック内 (または無い) なら null。</summary>
+    public DockFloat? FloatOf(int groupId) => Floats.FirstOrDefault(f => f.Group.Id == groupId);
 
     private static IEnumerable<DockNode> Walk(DockNode n)
     {
@@ -66,14 +81,18 @@ public sealed class DockTree
     {
         if (GroupOf(tab) is not null) return MoveTab(tab, groupId, index);
         if (Group(groupId) is null) return this;
-        return new DockTree(Map(Root, n => n is DockGroup g && g.Id == groupId ? InsertTab(g, tab, index) : n), NextId);
+        (DockNode root, IReadOnlyList<DockFloat> floats) =
+            MapAll(n => n is DockGroup g && g.Id == groupId ? InsertTab(g, tab, index) : n);
+        return new DockTree(root, floats, NextId);
     }
 
-    /// <summary>タブを外す。空になったグループは畳む (ルートは空グループで残る)。無ければ no-op。</summary>
+    /// <summary>タブを外す。空になったグループ/フロートは畳む (ルートは空グループで残る)。無ければ no-op。</summary>
     public DockTree RemoveTab(string tab)
     {
         if (GroupOf(tab) is null) return this;
-        return Normalized(Map(Root, n => n is DockGroup g && g.Tabs.Contains(tab) ? RemoveFromGroup(g, tab) : n), NextId);
+        (DockNode root, IReadOnlyList<DockFloat> floats) =
+            MapAll(n => n is DockGroup g && g.Tabs.Contains(tab) ? RemoveFromGroup(g, tab) : n);
+        return Normalized(root, floats, NextId);
     }
 
     /// <summary>タブを属するグループ内でアクティブにする。無ければ no-op。</summary>
@@ -82,11 +101,14 @@ public sealed class DockTree
         if (GroupOf(tab) is not { } g) return this;
         int i = IndexOf(g.Tabs, tab);
         if (g.Active == i) return this;
-        return new DockTree(Map(Root, n => n is DockGroup gg && gg.Id == g.Id ? gg with { Active = i } : n), NextId);
+        (DockNode root, IReadOnlyList<DockFloat> floats) =
+            MapAll(n => n is DockGroup gg && gg.Id == g.Id ? gg with { Active = i } : n);
+        return new DockTree(root, floats, NextId);
     }
 
     /// <summary>タブを別グループ (または同グループ内の別位置) へ移す。移動後そのタブがアクティブ。
-    /// 空になった元グループは畳む。タブ/グループが無ければ no-op (D&amp;D の競合に安全)。</summary>
+    /// 空になった元グループ/フロートは畳む。ドック⇄フロート間の移動も可。
+    /// タブ/グループが無ければ no-op (D&amp;D の競合に安全)。</summary>
     public DockTree MoveTab(string tab, int targetGroupId, int index = -1)
     {
         if (GroupOf(tab) is not { } src || Group(targetGroupId) is null) return this;
@@ -96,23 +118,27 @@ public sealed class DockTree
             var tabs = src.Tabs.Where(t => t != tab).ToList();
             int at = index < 0 || index > tabs.Count ? tabs.Count : index;
             tabs.Insert(at, tab);
-            return new DockTree(Map(Root, n => n is DockGroup g && g.Id == src.Id ? g with { Tabs = tabs, Active = at } : n), NextId);
+            (DockNode r, IReadOnlyList<DockFloat> f) =
+                MapAll(n => n is DockGroup g && g.Id == src.Id ? g with { Tabs = tabs, Active = at } : n);
+            return new DockTree(r, f, NextId);
         }
-        DockNode root = Map(Root, n => n switch
+        (DockNode root, IReadOnlyList<DockFloat> floats) = MapAll(n => n switch
         {
             DockGroup g when g.Id == src.Id => RemoveFromGroup(g, tab),
             DockGroup g when g.Id == targetGroupId => InsertTab(g, tab, index),
             _ => n,
         });
-        return Normalized(root, NextId);
+        return Normalized(root, floats, NextId);
     }
 
     /// <summary>タブをグループの side に**新グループで dock** する (本格ドッキングの分割操作)。
     /// タブは現在位置から外れる。親分割が同方向なら入れ子にせず隣へ挿入 (対象の取り分を半分こ)、
-    /// 違う方向なら対象を新しい分割で包む。唯一タブの自己分割は no-op。</summary>
+    /// 違う方向なら対象を新しい分割で包む。**フロートグループが対象のときは分割せず末尾追加**
+    /// (フロートは 1 グループ)。唯一タブの自己分割は no-op。</summary>
     public DockTree Dock(string tab, int groupId, DockSide side)
     {
         if (Group(groupId) is not { } target) return this;
+        if (FloatOf(groupId) is not null) return MoveTab(tab, groupId);   // フロートは分割しない
         if (GroupOf(tab) is { } src && src.Id == groupId && target.Tabs.Count == 1) return this;
 
         DockTree t = GroupOf(tab) is null ? this : RemoveTab(tab);
@@ -123,7 +149,38 @@ public sealed class DockTree
         bool horizontal = side is DockSide.Left or DockSide.Right;
         bool before = side is DockSide.Left or DockSide.Top;
         DockNode root = InsertBeside(t.Root, groupId, add, horizontal, before, splitId);
-        return new DockTree(root, t.NextId + 2);
+        return new DockTree(root, t.Floats, t.NextId + 2);
+    }
+
+    // ---- フローティング ----
+
+    /// <summary>タブを現在位置から外して窓内フロートにする (新グループ、指定矩形)。
+    /// タブが無ければ no-op。</summary>
+    public DockTree Float(string tab, float x, float y, float w, float h)
+    {
+        if (GroupOf(tab) is null) return this;
+        DockTree t = RemoveTab(tab);
+        var fl = new DockFloat(new DockGroup(t.NextId, [tab], 0), x, y, MathF.Max(120, w), MathF.Max(80, h));
+        return new DockTree(t.Root, [.. t.Floats, fl], t.NextId + 1);
+    }
+
+    /// <summary>フロートを移動する (グループ id 指定)。前面 (末尾) へも上げる。無ければ no-op。</summary>
+    public DockTree MoveFloat(int groupId, float x, float y)
+    {
+        if (FloatOf(groupId) is not { } fl) return this;
+        var rest = Floats.Where(f => f.Group.Id != groupId).ToList();
+        rest.Add(fl with { X = x, Y = y });
+        return new DockTree(Root, rest, NextId);
+    }
+
+    /// <summary>フロートをリサイズする (最小 120×80)。無ければ no-op。</summary>
+    public DockTree ResizeFloat(int groupId, float w, float h)
+    {
+        if (FloatOf(groupId) is not { } fl) return this;
+        return new DockTree(Root,
+            Floats.Select(f => f.Group.Id == groupId
+                ? f with { W = MathF.Max(120, w), H = MathF.Max(80, h) } : f).ToArray(),
+            NextId);
     }
 
     /// <summary>分割の子サイズを差し替える (スプリッタドラッグ)。合計 1 に正規化。
@@ -136,19 +193,37 @@ public sealed class DockTree
         float sum = sizes.Sum();
         if (sum <= 0) throw new ArgumentException("サイズ合計が非正", nameof(sizes));
         var norm = sizes.Select(x => x / sum).ToArray();
-        return new DockTree(Map(Root, n => n is DockSplit ss && ss.Id == splitId ? ss with { Sizes = norm } : n), NextId);
+        return new DockTree(Map(Root, n => n is DockSplit ss && ss.Id == splitId ? ss with { Sizes = norm } : n), Floats, NextId);
     }
 
     // ---- 直列化 ----
 
-    /// <summary>JSON へ直列化 (レイアウトの保存)。</summary>
-    public string Serialize() => new JsonObject { ["nextId"] = NextId, ["root"] = Write(Root) }.ToJsonString();
+    /// <summary>JSON へ直列化 (レイアウトの保存、フロート込み)。</summary>
+    public string Serialize()
+    {
+        var o = new JsonObject { ["nextId"] = NextId, ["root"] = Write(Root) };
+        if (Floats.Count > 0)
+            o["floats"] = new JsonArray(Floats.Select(f => (JsonNode)new JsonObject
+            {
+                ["group"] = Write(f.Group),
+                ["x"] = f.X, ["y"] = f.Y, ["w"] = f.W, ["h"] = f.H,
+            }).ToArray());
+        return o.ToJsonString();
+    }
 
     /// <summary>JSON から復元。</summary>
     public static DockTree Deserialize(string json)
     {
         var o = (JsonObject)JsonNode.Parse(json)!;
-        return new DockTree(Read((JsonObject)o["root"]!), (int)o["nextId"]!);
+        var floats = new List<DockFloat>();
+        if (o["floats"] is JsonArray fa)
+            foreach (JsonNode? fn in fa)
+            {
+                var fo = (JsonObject)fn!;
+                floats.Add(new DockFloat((DockGroup)Read((JsonObject)fo["group"]!),
+                    (float)fo["x"]!, (float)fo["y"]!, (float)fo["w"]!, (float)fo["h"]!));
+            }
+        return new DockTree(Read((JsonObject)o["root"]!), floats, (int)o["nextId"]!);
     }
 
     private static JsonNode Write(DockNode n) => n switch
@@ -192,6 +267,10 @@ public sealed class DockTree
         return n;
     }
 
+    /// <summary>ドック木 + 全フロートグループへ変換を適用する。</summary>
+    private (DockNode Root, IReadOnlyList<DockFloat> Floats) MapAll(Func<DockNode, DockNode> f)
+        => (Map(Root, f), Floats.Select(fl => fl with { Group = (DockGroup)f(fl.Group) }).ToArray());
+
     private static DockGroup RemoveFromGroup(DockGroup g, string tab)
     {
         int i = IndexOf(g.Tabs, tab);
@@ -210,13 +289,14 @@ public sealed class DockTree
         return g with { Tabs = tabs, Active = at };
     }
 
-    /// <summary>正規化: 空グループ削除・子 1 つの分割繰上げ・同方向入れ子の畳み込み。
-    /// 全部消えたらルートを空グループで残す。</summary>
-    private static DockTree Normalized(DockNode root, int nextId)
+    /// <summary>正規化: 空グループ削除・子 1 つの分割繰上げ・同方向入れ子の畳み込み・空フロート削除。
+    /// ドック木が全部消えたらルートを空グループで残す。</summary>
+    private static DockTree Normalized(DockNode root, IReadOnlyList<DockFloat> floats, int nextId)
     {
+        var live = floats.Where(f => f.Group.Tabs.Count > 0).ToArray();
         DockNode? n = Norm(root);
-        if (n is null) return new DockTree(new DockGroup(nextId, [], -1), nextId + 1);
-        return new DockTree(n, nextId);
+        if (n is null) return new DockTree(new DockGroup(nextId, [], -1), live, nextId + 1);
+        return new DockTree(n, live, nextId);
     }
 
     private static DockNode? Norm(DockNode n)

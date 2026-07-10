@@ -595,7 +595,7 @@ public sealed class UiHost : IDisposable
         out HitTarget hit, out float lx, out float ly)
     {
         hit = null!; lx = ly = 0;
-        int bestDepth = -1, bestIdx = -1;
+        int bestLayer = int.MinValue, bestDepth = -1, bestIdx = -1;
         float blx = 0, bly = 0;
         for (int i = 0; i < _build!.Hits.Count; i++)
         {
@@ -604,8 +604,10 @@ public sealed class UiHost : IDisposable
             if (filter is not null && !filter(t)) continue;
             if (!HitTest(t.Node, t.Rect, x, y, out float hx, out float hy)) continue;
             int depth = NodeDepth(t.Node);
-            if (depth > bestDepth || (depth == bestDepth && i > bestIdx))
-            { bestDepth = depth; bestIdx = i; hit = t; blx = hx; bly = hy; }
+            // レイヤ大 → ノード深さ → 登録順 (フローティング層は浅くても背面の深いヒットに勝つ)
+            if (t.Layer > bestLayer
+                || (t.Layer == bestLayer && (depth > bestDepth || (depth == bestDepth && i > bestIdx))))
+            { bestLayer = t.Layer; bestDepth = depth; bestIdx = i; hit = t; blx = hx; bly = hy; }
         }
         lx = blx; ly = bly;
         return bestIdx >= 0;
