@@ -76,83 +76,73 @@ public static class DocsText
     }
 
     [Story("Docs/Editor", Order = 41)]
-    public static Widget Editor(StoryContext ctx) => DocNew(ctx, $$"""
+    public static Widget Editor(StoryContext ctx)
+    {
+        ctx.Play(static d => d.Snap());   // 新スタック解説ページ (見出し/mermaid/コードの描画 golden)
+        return DocNew(ctx, $$"""
         # ドキュメントとエディタ (Luxel.Document)
 
-        リッチテキスト編集は 3 層に分かれます。Document 層は UI/GPU 非依存の純ロジックで、エディタの全意味論が UI なしでテストできます。
+        テキスト編集は 2 層です。**Luxel.Document** が canvas 非依存のエディタコア (状態・編集・装飾・幾何)、**Luxel.Controls の `TextEditorView`** が塗り・入力・IME を足す薄いビュー。CodeMirror 6 に倣った設計です (決定は [ADR-0006](story:ADR/0006-Editor-New-Stack))。コアの全意味論が UI/GPU なしで単体テストできます。
 
         ```mermaid
         flowchart TB
-        typo[Luxel.Typography - TextLayout/キャレット] --> doc[Luxel.Document - モデル/編集/Markdown]
-        doc --> ctl[Luxel.Controls - TextArea/RichTextEditor]
+        typo[Luxel.Typography - TextLayout/キャレット] --> core[Luxel.Document - 状態/編集/装飾/幾何]
+        core --> view[Luxel.Controls TextEditorView - 塗り/入力/IME]
         ```
 
-        ## RichDocument — ブロック列のモデル
+        ## EditorState と Transaction
 
-        - **ブロック**: Heading / Paragraph / ListItem / Quote / CodeBlock / Divider / Callout / **Embed** (payload 付き — 画像・テーブル・任意 widget)
-        - **インライン**: `InlineRun(Text, InlineStyle)` — Bold / Italic / Code / Link / Math。色やサイズはテーマとブロック型から導出します (WYSIWYG の一貫性)
-        - **位置**: `DocPos(Block, Offset)`。操作はグラフェム単位。ブロックは Version を持ち、表示側レイアウトキャッシュのキーになります
+        - **不変 `EditorState`** = `TextDoc` (テキスト) + `EditorSelection` (複数レンジ + main) + 装飾状態。編集は `Transaction` が運ぶ `ChangeSet` で、**`ChangeSet.MapPos` が選択・装飾・非同期結果の唯一の位置写像**
+        - undo/redo は反転 `ChangeSet` の履歴 (`History`)。**1 Transaction = 1 undo**、連続タイプは 1 op に合体
+        - 編集操作は `EditCommands` (挿入/削除/行操作/検索置換などの純関数)
 
-        ## DocumentEditor — 編集エンジン
+        ## マルチカーソル (native)
 
-        挿入/削除、**Enter = ブロック分割** (リスト内は次項目、空項目で解除)、**行頭 Backspace = 前ブロックと結合** (リスト/引用はまず型解除)、スタイルトグル (Ctrl+B/I/E)、ブロック型変換、ブロック跨ぎ選択。undo/redo は逆操作ジャーナルで、連続タイプは 1 op に合体します。IME 合成はキャレットのあるブロック内に限定 — TSF の文書 = 現在ブロックです。
+        単一カーソルはレンジ 1 個にすぎません。`Ctrl+D` で次の同一語を追加、`Ctrl+Alt+↑↓` で縦列、`Esc` で解除。編集は 1 ChangeSet で全レンジ一括 = 1 undo。実物: [Controls/TextEditorView/MultiCursor](story:Controls/TextEditorView/MultiCursor)。
 
-        実物: [Controls/TextEditorView/LivePreview](story:Controls/TextEditorView/LivePreview) (Live Preview 編集) / [Controls/TextEditorView/Basic](story:Controls/TextEditorView/Basic) (プレーン複数行)。
+        ## 装飾は第一級の状態 (Decoration)
 
-        ## CodeEditor — コードエディタ (VS Code 風)
+        すべての「見た目」は装飾として状態に載ります:
 
-        文書 (RichTextEditor) と別に、**等幅・折り返しなし**のコード編集に特化した `CodeEditor` があります。編集の中核は同じ `DocumentEditor` を再利用し、ビューだけコード向けです: **行番号ガター + 現在行ハイライト + シンタックスハイライト** (`ISyntaxHighlighter`、行単位の同期トークン化)。
+        - **Mark** — 前景色 / 背景 / 下線・波線 / 囲み / フォント変種 (Bold/Italic/Mono) / サイズ倍率 / 非表示
+        - **Widget** — 行内 UI (範囲置換 or アンカー挿入、自動サイズ)
+        - **BlockWidget** — 複数行を占有するブロック UI (表/図/数式/ライブ UI、自動高さ)
+        - **LinePrefix** — 行頭の番号/箇条書き記号 (ソース 0 文字 ↔ 表示 k 文字)
+        - **Block / Line** — 縦バー (引用) や行背景
 
-        言語サービスは `ICodeLanguage` (補完/診断/ホバー) を**外から注入**します — Controls は Roslyn を知らず、C# 実装 (`ScriptWorkspace` を包む) は Gallery 側に置きます (LSP のエディタ⇄サーバー分離と同じ疎結合)。付くと: **Ctrl+Space でキャレット直下にフローティング補完ポップアップ** (↑↓/Enter/Escape、**タイプで候補を絞り込み**続け・**クリックでも選択**)、**エラーは赤い波線**、シンボルに**マウスを留めるとツールチップ** (dwell はフレームカウント基準で snap も決定的) が出ます。キャレット位置の型も `HoverText` で取れます。実物: [Controls/TextEditorView/Completion](story:Controls/TextEditorView/Completion)。
+        **レイアウトに効く** (色/変種/widget/prefix) と**効かない** (背景/下線/囲み = 矩形オーバーレイのみ、行キャッシュに触れず 60fps 更新可) を型で区別します。装飾は `IDecorationProvider` (テキストから導出・キャッシュ) か push 型の `SetDecorations` で載せます — シンタックス色・診断波線・検索ハイライト・現在行・Strudel 再生囲みは全てこの上に乗ります。
 
-        > [!NOTE]
-        > 実装済み: ガター / 現在行 / トークン色 / 補完ポップアップ (Ctrl+Space) / 診断波線 / ホバー / 行操作 (Ctrl+D 複製・Ctrl+/ コメントトグル・Alt+↑↓ 行移動) / 検索置換 / スクロールバー。**v2 送り**: マルチカーソル・矩形選択 (E3.5 として意図的延期)、ミニマップ・コード折りたたみ・複数ファイルタブ・git 差分ガター・スニペット・フォーマッタ。
+        ## ジオメトリは純射影 (EditorGeometry)
 
-        > [!NOTE]
-        > エディタ系ストーリーは docs ページへの埋め込みに対応していません (embed 内 RichTextEditor の入れ子は既知の制限) — リンクで実物ページへ飛んでください。
+        `EditorGeometry` は `EditorState` + フォントから**表示行**を組む純射影で、選択を持ちません → canvas なしで単体テスト可能。ソース↔表示の桁写像で、行頭 prefix・行内 widget ボックス・非表示レンジ・IME 合成を 1 つのモデルに統合します。描画・キャレット・ヒットテストが同じ `TextLayout` から出るので必ず一致します。
 
-        ## 新スタック — Transaction ベースのエディタ (Luxel.Document)
+        ## TextEditorView — 薄いビュー
 
-        「標準編集 / 行内 UI + 再生シーケンスの文字囲み (Strudel) / 下線・波線 (C#) / 行内色分け」が**同一行で同時に**要る要件から、既存の `DocumentEditor` 系を触らず **Transaction ベースの新スタックを新規追加**しました (決定は [ADR-0006](story:ADR/0006-Editor-New-Stack)、CodeMirror 6 流)。旧 CodeEditor/TextArea は当面併存します。
+        canvas がないとできないことだけを持ちます: 色別ノードでの塗り・入力配線・行内 widget のホスト・IME/TSF。補完/ホバーのポップアップは [ADR-0007](story:ADR/0007-Floating-Ui-Placement) の anchored placement で `CaretRect` にアンカーし画面端でフリップします。実物: [Controls/TextEditorView/Code](story:Controls/TextEditorView/Code) (色分け+波線+ガター) / [Widgets](story:Controls/TextEditorView/Widgets) (行内 widget) / [Strudel](story:Controls/TextEditorView/Strudel) (再生囲み)。Strudel REPL の各ライブブロックもこの `TextEditorView` です。
 
-        ```mermaid
-        flowchart TB
-        core[Luxel.Document - canvas 非依存コア] --> view[TextEditorView - 薄いビュー]
-        core --> geo[EditorGeometry - 純射影]
-        ```
+        ## コード編集 — 色分け・診断・補完
 
-        - **不変 `EditorState`** = `TextDoc` + `Selection` (複数レンジ + main) + 装飾状態。編集は `Transaction` (`ChangeSet` を運ぶ)、**`ChangeSet.MapPos` が選択・装飾・非同期結果の唯一の位置写像**。undo = 反転 ChangeSet で **1 Transaction = 1 undo** (マルチカーソルの 1 打鍵も自動で 1 undo)
-        - **マルチカーソルが native** — 単一カーソルはレンジ 1 個。`Ctrl+D` 次の同一語 / `Ctrl+Alt+↑↓` 縦列 / `Esc` 解除。編集は 1 ChangeSet で全レンジ一括
-        - **装飾は第一級状態** — Mark (前景色/背景/下線・波線/囲み) / Widget (行内 UI) / LinePrefix (行頭番号) / Block (縦バー) / Line (行背景)。**レイアウトに効く** (色/widget/prefix) と**効かない** (背景/下線/囲み = 矩形オーバーレイのみ、行キャッシュに触れず 60fps 更新可) を型で区別。シンタックス色・診断波線・検索・現在行・Strudel 再生囲みは全て `IDecorationProvider` か push 型の `SetDecorations` でここに載る
-        - **ジオメトリは `TextLayout` を使う純射影** (選択を持たない) → canvas なしで単体テスト可能。ソース↔表示写像で行頭 prefix・行内 widget ボックス・IME 合成を統合
-        - **view は canvas がないとできないことだけ** — 塗り・入力配線・widget ホスト・IME/TSF。補完/ホバーは [ADR-0007](story:ADR/0007-Floating-Ui-Placement) の anchored placement エンジンで CaretRect にアンカーし画面端でフリップ
+        コード向けの機能はビュー本体でなく**装飾プロバイダ + 言語サービス**で足します (view は言語非依存):
 
-        実物: [Controls/TextEditorView/Code](story:Controls/TextEditorView/Code) (色分け+波線+ガター) / [Completion](story:Controls/TextEditorView/Completion) / [MultiCursor](story:Controls/TextEditorView/MultiCursor) / [Widgets](story:Controls/TextEditorView/Widgets) (行内 widget) / [Strudel](story:Controls/TextEditorView/Strudel) (再生囲み)。Strudel REPL の各ライブブロックもこの `TextEditorView` です。
+        - **`SyntaxHighlightProvider`** — `ISyntaxHighlighter` (フェンスの言語でコードをトークナイズ) をトークン色 Mark に。実装は別アセンブリ `Luxel.Highlight.TextMate` (VS Code と同じ .tmLanguage) を注入 — Controls/Document は TextMate 非依存
+        - **`DiagnosticsProvider`** — `ICodeLanguage.Diagnose` の結果を波線 Mark に
+        - **`CurrentLineProvider`** — キャレット行の行背景
+        - **`ICodeLanguage`** (補完/診断/ホバー) を**外から注入**。C# 実装 (`ScriptWorkspace` を包む) は Gallery 側 (LSP のエディタ⇄サーバー分離と同じ疎結合)。**Ctrl+Space** でキャレット直下に補完ポップアップ (↑↓/Enter/Esc・タイプで絞り込み・クリック選択)、シンボルに**マウスを留めるとツールチップ**
 
-        ## Markdown と hybrid 編集
+        実物: [Controls/TextEditorView/Completion](story:Controls/TextEditorView/Completion)。
 
-        パースは **Markdig** (フル CommonMark + コールアウト + CJK 強調 + 絵文字 + SmartyPants)、シリアライザは正規形を出す自前実装で、**round-trip が安定**します (md → doc → md が収束)。1 ソース行 = 1 表示行の行指向モデルで、空行も保存されます。
+        ## Markdown レンダリングと Live Preview
 
-        hybrid 表示 = Typora 風: キャレットの入ったブロックだけ**ソース表示**に切り替わり、離れると再パースして整形表示へ戻ります。行頭 `- ` や `# ` のオートフォーマットもフォーマット側の責務です。実物: [Controls/TextEditorView/LivePreview](story:Controls/TextEditorView/LivePreview) (キャレット行だけ raw = Typora 風)。
+        **`MarkdownDecorations.Build`** が markdown ソースを純関数で装飾に変換します (見出し = Bold+サイズ倍率・太字・斜体・インラインコード = Mono+背景・リンク・引用・リスト・コードフェンス・埋め込み)。これを `MarkdownProvider` (`IDecorationProvider`) 経由で `TextEditorView` に載せると markdown 文書レンダラになります。ワンショットは **`MarkdownDoc.Create`** — **この docs ページ自体もこれで描かれています** (旧 `Kit.Docs` の後継)。
 
-        ## IDocumentFormat — パーサーが文章をすべて管理する
+        - **read-only モード** — 記法マーカ (`#` / `**` / `` ` `` / `>` / `-` / `[]()`) を非表示に畳み、リストは `•` bullet で見せる
+        - **編集モード (Live Preview)** — `editable: true`。キャレットのある行だけマーカを raw で見せ、離れると整形に戻る (Typora 風)。実物: [Controls/TextEditorView/LivePreview](story:Controls/TextEditorView/LivePreview)
 
-        エディタ本体は「ブロック列の編集と表示」だけを持ち、テキスト往復・記法・embed 判定は **文書フォーマット実装の責務**です。Markdown は一実装にすぎません:
-
-        ```csharp
-        public interface IDocumentFormat
-        {
-            RichDocument Parse(string source);
-            string Serialize(RichDocument doc);
-            bool SupportsHybrid { get; }                    // 行指向フォーマットのみ true
-            Block ParseLine(string line);                   // hybrid の局所再パース
-            bool TryAutoFormat(DocumentEditor ed, string inserted);   // 行頭 "- " 等の確定
-            bool TryBlockCommit(DocumentEditor ed);         // Enter 時のブロック確定
-        }
-        ```
+        見出しは TOC の `#アンカー` と `story:` リンクの素になり、起動時に**デッドリンク検証**が走ります。
 
         ## 埋め込みブロック (Embed)
 
-        `BlockKind.Embed` + `IBlockPayload` がデータ、widget 化は表示側の `BlockWidgetRegistry` が行います。canonical 形は `FencePayload(Info, Body)` — リゾルバのいない環境では**ただのコードブロックとして完全に保全**されます。画像・テーブル・チャート ([Controls/TextEditorView/DocEmbeds](story:Controls/TextEditorView/DocEmbeds)) もこの機構です。**この docs ページ自体**の mermaid / 数式 / ライブ UI も同じ経路 (IFenceResolver + BlockWidgetRegistry) で動いています。
+        図/表/数式/ライブ UI は**ブロック widget** として文章の間に載ります。`embed <key>` フェンス (や `mermaid` / `math` 言語のフェンス) を `MarkdownDecorations` が自動高さ block widget にし、view の `WidgetResolver` が key + 本文から実 Widget を解決します (mermaid → `Luxel.Diagram`、数式 → `Luxel.MathText`、ライブ UI → 任意 widget)。リゾルバのいない環境では**ただのコードブロックとして保全**されます。行内 hole は `[￼](luxel-ui:N)` = 自動サイズの行内 widget。実物: [Controls/TextEditorView/DocEmbeds](story:Controls/TextEditorView/DocEmbeds) (mermaid + 数式) / [Embed](story:Controls/TextEditorView/Embed) (ライブ UI)。**この docs ページの mermaid / コードブロックも同じ経路**です。
         """, toc: true);
+    }
 }
