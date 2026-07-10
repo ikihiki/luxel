@@ -1,63 +1,12 @@
 ﻿using Luxel.Controls;
-using Luxel.Document;
 using Xunit;
 
 namespace Luxel.Tests;
 
-/// <summary>SR: docs 検索 — マッチ列挙 (RichTextEditor.FindMatches) とツリー絞り込み (FilterTree)。</summary>
+/// <summary>SR: サイドバーのツリー絞り込み (TreeView.FilterTree)。
+/// (docs 全文検索は新スタック TextEditorView.SetSearch = TextSearch.FindAll に移行済み。)</summary>
 public class SearchTests
 {
-    private static List<(int Line, int Start, int Len)> Find(string md, string query)
-    {
-        var into = new List<(int, int, int)>();
-        RichTextEditor.FindMatches(Markdown.Parse(md), query, into);
-        return into;
-    }
-
-    [Fact]
-    public void FindMatches_CaseInsensitive_AcrossLines()
-    {
-        var m = Find("# Alpha\n\nalpha beta ALPHA\n\nbeta", "alpha");
-        // 見出し 1 + 段落内 2 (空行の空段落はマッチなし)
-        Assert.Equal(3, m.Count);
-        Assert.Equal(0, m[0].Line);
-        Assert.Equal(2, m[1].Line);      // 空段落 (行 1) を挟む
-        Assert.Equal(0, m[1].Start);
-        Assert.Equal(11, m[2].Start);     // "alpha beta " の後
-    }
-
-    [Fact]
-    public void FindMatches_MultipleInOneBlock_NoOverlap()
-    {
-        var m = Find("aaaa", "aa");
-        Assert.Equal(2, m.Count);         // 0..2 と 2..4 — 重なりは数えない
-    }
-
-    [Fact]
-    public void FindMatches_EmptyQuery_NoMatch()
-    {
-        Assert.Empty(Find("abc", ""));
-        Assert.Empty(Find("abc", "  "));
-    }
-
-    [Fact]
-    public void FindMatches_CodeBlockText_IsSearchable()
-    {
-        var m = Find("```cs\nvar counter = 1;\n```", "counter");
-        Assert.Single(m);
-    }
-
-    [Fact]
-    public void FindMatches_MultiLineCode_ReportsPerLine()
-    {
-        var m = Find("```cs\nvar a = 1;\nvar b = a;\n```", "var");
-        Assert.Equal(2, m.Count);
-        Assert.Equal(0, m[0].Line);
-        Assert.Equal(1, m[1].Line);   // コード 2 行目 = 行 index 1
-    }
-
-    // ---- FilterTree ----
-
     private static TreeNode[] Tree() =>
     [
         new("g:Docs", "Docs", [
