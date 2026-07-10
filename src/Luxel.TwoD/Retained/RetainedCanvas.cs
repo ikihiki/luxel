@@ -441,7 +441,21 @@ public sealed class RetainedCanvas : IDisposable
 
     private int ResolveClip(UiNode node, uint width, uint height)
     {
-        // 祖先のクリップ矩形を画面空間で交差。今回は軸並行 (回転なし) 前提の AABB。
+        if (EffectiveClipRect(node) is not RectClip r) return -1;
+        int slot = _clips.Count;
+        _clips.Add(new GpuClip { MinX = r.X, MinY = r.Y, MaxX = r.X + r.W, MaxY = r.Y + r.H });
+        return slot;
+    }
+
+    /// <summary>クリップスロットの現在値 (テスト用 — 部分更新の追従検証)。</summary>
+    internal GpuClip DebugClipAt(int slot) => _clips[slot];
+
+    /// <summary>自分 + 祖先のクリップ矩形を画面空間で交差した実効クリップ (無ければ null)。
+    /// 軸並行 (回転なし) 前提の AABB。Rebuild (ResolveClip) と transform 部分更新の両方が使う —
+    /// 各ノードのクリップスロットには**祖先の分も焼き込まれている**ため、部分更新でも
+    /// 祖先込みで再計算しないと、動いたサブツリーの内容が古い位置のクリップで切られる。</summary>
+    private static RectClip? EffectiveClipRect(UiNode node)
+    {
         RectClip? eff = null;
         for (UiNode? a = node; a != null; a = a.Parent)
             if (a.Clip is RectClip rc)
@@ -451,10 +465,7 @@ public sealed class RetainedCanvas : IDisposable
                     ? Intersect(e, new RectClip(lo.x, lo.y, hi.x - lo.x, hi.y - lo.y))
                     : new RectClip(lo.x, lo.y, hi.x - lo.x, hi.y - lo.y);
             }
-        if (eff is not RectClip r) return -1;
-        int slot = _clips.Count;
-        _clips.Add(new GpuClip { MinX = r.X, MinY = r.Y, MaxX = r.X + r.W, MaxY = r.Y + r.H });
-        return slot;
+        return eff;
     }
 
     private static ((float x, float y) lo, (float x, float y) hi) ToScreenAabb(RectClip rc, Affine2D world)
@@ -498,11 +509,14 @@ public sealed class RetainedCanvas : IDisposable
             if (!tfSpan.IsEmpty) tfSpan[node.TransformSlot] = g;
             LastTransformWrites++;
 
-            if (node.ClipSlot >= 0 && node.Clip is RectClip rc && clipSpan.Length > 0)
+            // クリップスロットは自分のクリップだけでなく**祖先のクリップも交差で焼き込まれている**。
+            // 自分がクリップを持たないノード (祖先クリップだけ継承) のスロットも、サブツリーが
+            // 動いたら再計算しないと古い画面位置で切られる (フローティングパネルのゴースト移動等)
+            if (node.ClipSlot >= 0 && EffectiveClipRect(node) is RectClip r)
             {
-                var (lo, hi) = ToScreenAabb(rc, node.World);
-                var gc = new GpuClip { MinX = lo.x, MinY = lo.y, MaxX = hi.x, MaxY = hi.y };
-                _clips[node.ClipSlot] = gc; clipSpan[node.ClipSlot] = gc;
+                var gc = new GpuClip { MinX = r.X, MinY = r.Y, MaxX = r.X + r.W, MaxY = r.Y + r.H };
+                _clips[node.ClipSlot] = gc;                                   // CPU 側 (ヘッドレス/Skia も更新)
+                if (clipSpan.Length > node.ClipSlot) clipSpan[node.ClipSlot] = gc;
             }
         }
         foreach (UiNode child in SortedChildren(node))

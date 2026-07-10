@@ -64,12 +64,15 @@ public sealed partial class DockHost : CompositeControl
         foreach (DockFloat fl in t.Floats)
         {
             int gid = fl.Group.Id;
+            // コミットは**表示位置/表示サイズ基準の絶対値** (パネルが Offset/Size から計算して渡す) —
+            // ツリー値基準 (fl.X + delta) だと、表示クランプでツリー値と表示がずれているとき
+            // ドロップ位置から飛ぶ
             fill.Floats.Add(new DockFloatPanel
             {
                 Rect = new Rect(fl.X, fl.Y, fl.W, fl.H),
                 Child = BuildGroup(fl.Group, sig),
-                OnMoved = (dx, dy) => sig.Value = sig.Value.MoveFloat(gid, MathF.Max(0, fl.X + dx), MathF.Max(0, fl.Y + dy)),
-                OnResized = (dw, dh) => sig.Value = sig.Value.ResizeFloat(gid, fl.W + dw, fl.H + dh),
+                OnMoved = (x, y) => sig.Value = sig.Value.MoveFloat(gid, MathF.Max(0, x), MathF.Max(0, y)),
+                OnResized = (w, h) => sig.Value = sig.Value.ResizeFloat(gid, w, h),
             });
         }
         return fill;
@@ -187,15 +190,19 @@ internal sealed class DockFillPanel : Widget
         for (int i = 0; i < Floats.Count; i++)
         {
             UiNode holder = ctx.Canvas.AddChild(node);
-            holder.Z = 300 + i;                    // 描画も前面 (末尾 = 最前)
-            Floats[i].HitLayer = ctx.HitLayer + 1 + i;   // ヒットも前面優先 (部分再実体化でも保たれる)
+            holder.Z = 300 + i;                          // 描画も前面 (末尾 = 最前)
+            // レイヤは 2 刻み — +0 = パネル内容、+1 = パネル chrome (つかみバー/リサイズ隅) が
+            // 深い内容ヒットに勝つための予約 (次のフロートの基底とは重ならない)
+            Floats[i].HitLayer = ctx.HitLayer + 1 + i * 2;
             Floats[i].Realize(ctx, holder, WorldPos);
         }
     }
 }
 
 /// <summary>窓内フローティングパネル: つかみバー (ドラッグで移動、Splitter と同じゴースト追従 +
-/// 終了時 commit) + グループ内容 (タブ帯 + ドロップゾーン) + 右下リサイズハンドル。</summary>
+/// 終了時 commit) + グループ内容 (タブ帯 + ドロップゾーン) + 右下リサイズハンドル (ドラッグ中は
+/// アウトラインのゴースト)。chrome (バー/隅) のヒットは内容よりレイヤを 1 つ上げる —
+/// 深さ優先の判定では深い内容ヒット (ドロップゾーン等) に負けるため。</summary>
 internal sealed class DockFloatPanel : Widget
 {
     public const float GrabH = 14f;
@@ -203,8 +210,8 @@ internal sealed class DockFloatPanel : Widget
 
     public required Rect Rect;
     public required Widget Child;
-    public required Action<float, float> OnMoved;     // (dx, dy) ドラッグ終了時
-    public required Action<float, float> OnResized;   // (dw, dh) ドラッグ終了時
+    public required Action<float, float> OnMoved;     // (newX, newY) 表示位置基準の絶対値、ドラッグ終了時
+    public required Action<float, float> OnResized;   // (newW, newH) 同、ドラッグ終了時
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
@@ -233,30 +240,50 @@ internal sealed class DockFloatPanel : Widget
         frame.Content = fs;
         ctx.Effect(() => frame.Color = ctx.Theme.Value.BorderColor);
 
-        // つかみバー (中央にグリップ点々)
+        // つかみバー (中央にグリップ点々)。移動コミットは表示位置 (Offset) + 移動量の絶対値
         UiNode grab = ctx.Canvas.AddChild(node); grab.Z = 61;
         var gs = new Scene2D();
         for (int i = -2; i <= 2; i++) gs.FillRoundedRect(Color2D.White, w / 2 + i * 8 - 1.5f, GrabH / 2 - 1.5f, 3, 3, 1.5f);
         grab.Content = gs;
         ctx.Effect(() => grab.Color = ctx.Theme.Value.TextMuted);
-        ctx.AddHit(node, new Rect(0, 0, w - Corner, GrabH), cursor: CursorKind.Hand,
+        HitTarget grabHit = ctx.AddHit(node, new Rect(0, 0, w - Corner, GrabH), cursor: CursorKind.Hand,
             onDrag: e => node.Transform = Affine2D.Translate(Offset.X + e.DeltaX, Offset.Y + e.DeltaY),
             onDragEnd: e =>
             {
                 node.Transform = Affine2D.Translate(Offset.X, Offset.Y);
-                if (e.DeltaX != 0 || e.DeltaY != 0) OnMoved(e.DeltaX, e.DeltaY);
+                if (e.DeltaX != 0 || e.DeltaY != 0) OnMoved(Offset.X + e.DeltaX, Offset.Y + e.DeltaY);
             });
+        grabHit.Layer += 1;   // 深い内容ヒット (タブ帯/ドロップゾーン) に負けない
 
-        // 右下リサイズハンドル
+        // 右下リサイズハンドル — ドラッグ中は新しいサイズのアウトラインを見せ、離した位置で commit
         UiNode corner = ctx.Canvas.AddChild(node); corner.Z = 61;
         var cs = new Scene2D();
         cs.FillRect(Color2D.White, w - 10, h - 3, 8, 2);
         cs.FillRect(Color2D.White, w - 3, h - 10, 2, 8);
         corner.Content = cs;
         ctx.Effect(() => corner.Color = ctx.Theme.Value.TextMuted);
-        ctx.AddHit(node, new Rect(w - Corner, h - Corner, Corner, Corner), cursor: CursorKind.ResizeH,
-            onDragStart: _ => { },
-            onDragEnd: e => { if (e.DeltaX != 0 || e.DeltaY != 0) OnResized(e.DeltaX, e.DeltaY); });
+        UiNode resizeGhost = ctx.Canvas.AddChild(node); resizeGhost.Z = 62;
+        resizeGhost.Opacity = 0f;
+        // 予約: リサイズ中の Content 差し替え (アウトライン 4 辺) を in-place で受ける
+        resizeGhost.Content = new Scene2D().StrokeRoundedRect(Color2D.White, 1, 0.5f, 0.5f, w - 1, h - 1, 6);
+        ctx.Effect(() => resizeGhost.Color = ctx.Theme.Value.Primary);
+        (float W, float H) NewSize(PointerEvent e) =>
+            (MathF.Max(120, w + e.DeltaX), MathF.Max(80, h + e.DeltaY));
+        HitTarget cornerHit = ctx.AddHit(node, new Rect(w - Corner, h - Corner, Corner, Corner), cursor: CursorKind.ResizeH,
+            onDrag: e =>
+            {
+                (float nw, float nh) = NewSize(e);
+                resizeGhost.Opacity = 1f;
+                resizeGhost.Content = new Scene2D().StrokeRoundedRect(Color2D.White, 1, 0.5f, 0.5f, nw - 1, nh - 1, 6);
+            },
+            onDragEnd: e =>
+            {
+                resizeGhost.Opacity = 0f;
+                if (e.DeltaX == 0 && e.DeltaY == 0) return;
+                (float nw, float nh) = NewSize(e);
+                OnResized(nw, nh);
+            });
+        cornerHit.Layer += 1;
 
         Child.Realize(ctx, node, WorldPos);
     }
