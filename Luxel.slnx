@@ -25,6 +25,7 @@
     <Project Path="src/Luxel.Input/Luxel.Input.csproj" />
     <Project Path="src/Luxel.MathText/Luxel.MathText.csproj" />
     <Project Path="src/Luxel.NodeGraph/Luxel.NodeGraph.csproj" />
+    <Project Path="src/Luxel.Workbench/Luxel.Workbench.csproj" />
     <Project Path="src/Luxel.Particles.ThreeD/Luxel.Particles.ThreeD.csproj" />
     <Project Path="src/Luxel.Particles.TwoD/Luxel.Particles.TwoD.csproj" />
     <Project Path="src/Luxel.Particles.UI/Luxel.Particles.UI.csproj" />
