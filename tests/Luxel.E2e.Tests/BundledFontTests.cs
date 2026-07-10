@@ -26,9 +26,9 @@ public sealed class BundledFontTests
     }
 
     [Fact]
-    public void MonoFont_CoversJapaneseForCodeEditor()
+    public void MonoFont_CoversJapaneseForCodeEditing()
     {
-        // CodeEditor は単一フォントで描く (日本語フォールバック無し) ので、等幅フォント自身が
+        // コードエディタ (TextEditorView の Mono 変種) は単一フォントで描く (日本語フォールバック無し) ので、等幅フォント自身が
         // 日本語を収載している必要がある — 収載していないとコメントが豆腐になる。
         using VectorFont mono = GalleryFonts.Load(GalleryFonts.Mono);
         Assert.True(mono.HasGlyph('あ'));

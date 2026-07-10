@@ -1,13 +1,13 @@
 ﻿namespace Luxel.Controls;
 
-/// <summary>補完候補 1 件 (CodeEditor のポップアップ用 — 言語サービス非依存の DTO)。</summary>
+/// <summary>補完候補 1 件 (TextEditorView の補完ポップアップ用 — 言語サービス非依存の DTO)。</summary>
 public readonly record struct CodeCompletion(string Label, string InsertText, string Kind);
 
 /// <summary>診断 1 件 (波線 + ガターマーカー用)。座標は 1 始まりの行/桁。</summary>
 public readonly record struct CodeDiagnostic(int Line, int Column, int Length, string Message, bool IsError);
 
 /// <summary>
-/// CodeEditor が使う言語サービスの契約。実装 (C# = Roslyn、将来は他言語) を外から注入する —
+/// TextEditorView (補完/診断/ホバー) が使う言語サービスの契約。実装 (C# = Roslyn、将来は他言語) を外から注入する —
 /// **Controls はここに Roslyn を持ち込まない** (LSP のエディタ⇄サーバー分離と同じ疎結合)。
 /// すべて同期 (コードは短い前提)。UI スレッドから呼ばれる。
 /// </summary>

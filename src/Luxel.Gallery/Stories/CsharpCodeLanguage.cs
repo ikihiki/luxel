@@ -5,7 +5,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>
 /// <see cref="ICodeLanguage"/> の C# 実装 — <see cref="ScriptWorkspace"/> (in-proc Roslyn) を
-/// CodeEditor 向けの DTO へ橋渡しする。**この橋は Controls と Scripting の両方を参照する層
+/// TextEditorView 向けの DTO へ橋渡しする。**この橋は Controls と Scripting の両方を参照する層
 /// (Gallery) に置く** — Controls は Roslyn を知らない (LSP のエディタ⇄サーバー分離と同じ)。
 /// </summary>
 public sealed class CsharpCodeLanguage(ScriptWorkspace ws) : ICodeLanguage

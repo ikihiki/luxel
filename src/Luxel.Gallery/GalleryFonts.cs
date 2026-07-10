@@ -6,7 +6,7 @@ namespace Luxel.Gallery;
 /// リポジトリ同梱フォント (<c>src/Luxel.Gallery/assets/fonts/</c>) のローダ。
 /// Gallery / e2e はシステムフォントに依存せず、clone すればどのマシン・CI でも同じ字形が出る
 /// (golden の再現性)。フォントはいずれも glyf アウトライン (VectorFont は CFF/OTF 非対応) の
-/// SIL OFL フォント: BIZ UDGothic (本文, 日本語+ラテン) と UDEV Gothic (等幅, CodeEditor)。
+/// SIL OFL フォント: BIZ UDGothic (本文, 日本語+ラテン) と UDEV Gothic (等幅, コードエディタ)。
 /// 解決順: cwd 相対 → cwd から Luxel.slnx を上方探索したルート相対 → exe 隣 (publish 用)。
 /// </summary>
 public static class GalleryFonts
@@ -18,7 +18,7 @@ public static class GalleryFonts
     public const string Bold = "BIZUDGothic-Bold.ttf";
 
     /// <summary>等幅 (UDEV Gothic — JetBrains Mono 由来のラテン等幅 + BIZ UDGothic 由来の日本語)。
-    /// CodeEditor は単一フォントで描く (フォールバック無し) ため、日本語コメントもこれで等幅表示する。</summary>
+    /// コードエディタ (TextEditorView の Mono 変種) は単一フォントで描く (フォールバック無し) ため、日本語コメントもこれで等幅表示する。</summary>
     public const string Mono = "UDEVGothic-Regular.ttf";
 
     private const string RelDir = "src/Luxel.Gallery/assets/fonts";
