@@ -9,18 +9,16 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 
 | # | ファイル | タスク | 規模感 | リスク |
 |---|---|---|---|---|
-| ~~22~~ | ✅ 完了 (2026-07-08) | テキストエディタ新スタック (Transaction ベース、S1〜S8)。`Luxel.Editor` + `TextEditorView`。仕様は Docs/Editor + ADR-0006/0007。MD 削除済み | — | — |
-| 23 | [23-floating-ui-placement.md](23-floating-ui-placement.md) | 浮遊 UI 共通化: anchored placement エンジン + Popup 統一 (P1〜P3 完了。ContextMenu/Select/補完を統一。ADR-0007) | 中 | 中 |
 | 24 | [24-custom-ime-candidates.md](24-custom-ime-candidates.md) | カスタム IME 候補ウインドウ (TSF ITfUIElementSink で OS 抑制 + 自前 Popup 描画、排他モード対応。ADR-0008 Proposed) | 中 | **高** (実 IME 依存) |
-| ~~25~~ | ✅ 完了 (2026-07-09) | 汎用ノードエディタ (Transaction ベース新スタック、S1〜S7)。`Luxel.NodeGraph` + `NodeGraphView`。仕様は Docs/NodeEditor + ADR-0009。MD 削除済み | — | — |
-| 26 | [26-editor-workbench.md](26-editor-workbench.md) | エディタ Workbench: 複数エディタを束ねるシェル + 基盤整備 (ADR-0010〜0014、WS-0/A/B/C/M/D の大プログラム。設計のみ・未着手) | **特大** | 中〜高 |
-| ~~07~~ | 22 の S7 へ統合 (2026-07-08) | CodeEditor: マルチカーソル + 矩形選択 (E3.5) — MD 削除済み | — | — |
-| ~~08~~ | ✅ 完了 (2026-07-08) | Strudel 音楽機能拡張 (記法 `!`/`.`・scale/chord・filter/delay・wav 音色・MIDI out) — MD 削除済み、仕様は Docs/Strudel | — | — |
-| ~~19~~ | ✅ 完了 (2026-07-07) | capstone ①「Luxel Cavern」— `samples/LuxelCavern` として完成・MD 削除済み | — | — |
 
-## ゲームエンジン完成に向けた文脈 (2026-07-06 ギャップ分析)
+完了したタスクの MD は削除済み (規約通り)。仕様は Gallery の Docs/ADR ストーリー、経緯は git 履歴を参照。直近では 13 (e2e 日本語フォント)・22 (エディタ新スタック)・23 (浮遊 UI placement)・25 (ノードエディタ)・26 (Workbench) が完了 (2026-07-10 整理)。
 
-14〜19 は「ゲームを 1 本作って出荷する」ためのギャップ分析 (Tier 1 = 必須) から起こしたタスク。既存タスクでは 04 (接触イベント)・09 (skin/morph)・10 (Audio ストリーミング) が同じ Tier 1〜2 に属する。**完成の定義は capstone ゲーム 2 本** (2026-07-06 決定、当初の Breakout 案を置換): 19 = 2D プラットフォーマー「Luxel Cavern」(13/14/15/16-2D/17/18 + 01/10 の検証場 + publish 基盤、**✅ 2026-07-07 完成 = `samples/LuxelCavern`、MD 削除済み**) → 20 = 3D 射的「Luxel Range」(03/04/05/09 + 16-.ThreeD/17-3D + glTF/3D シェーダ publish の検証場、**✅ 2026-07-07 完成 = `samples/LuxelRange`、MD 削除済み**)。この 2 本でゲーム検証可能な全タスクをカバーする (02/06/07/08/11/12 はエディタ/ツール系のため各自のデモ/テストで担保)。19 は最小構成 (タイトル画面のみ) で publish を早めに 1 回通し、見つかった穴をタスク化するのが効率的。21 (DevTools のゲーム規模対応) は capstone の開発を支える支援タスクで、**✅ 2026-07-07 完成 (全ステージ済み、MD 削除済み、仕様は Docs/DevTools)**。Tier 2 (未タスク化、必要になったら起こす): 音のバス/グループ音量とフェード、シーン間の型安全なパラメータ受け渡し、ゲームパッド振動、実行時キーリバインド UI、固定シード Random / timeScale の DI サービス、normal map / IBL、GPU タイムスタンプ プロファイリング、i18n 文字列テーブル。Tier 3 (ゲームの種類が決まってから): ネットワーク、デファード/SSAO/TAA、アセット暗号化、Windows 以外のプラットフォーム。
+## 将来タスクの候補 (2026-07-06 ギャップ分析の残り)
+
+ゲームエンジン完成の定義だった capstone 2 本 (`samples/LuxelCavern`・`samples/LuxelRange`) は 2026-07-07 に完成済み。ギャップ分析の Tier 1 タスクはすべて消化した。残る候補 (未タスク化、必要になったら MD を起こす):
+
+- **Tier 2**: 音のバス/グループ音量とフェード、シーン間の型安全なパラメータ受け渡し、ゲームパッド振動、実行時キーリバインド UI、固定シード Random / timeScale の DI サービス、normal map / IBL、GPU タイムスタンプ プロファイリング、i18n 文字列テーブル。
+- **Tier 3** (ゲームの種類が決まってから): ネットワーク、デファード/SSAO/TAA、アセット暗号化、Windows 以外のプラットフォーム。
 
 ## 全タスク共通の規約・検証手順
 
