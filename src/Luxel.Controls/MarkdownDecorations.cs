@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using Luxel.Document;
 using Luxel.Editor;
 using Luxel.Typography;
 using Luxel.UI;
@@ -20,8 +19,7 @@ public readonly record struct EmbedRef(string Key, string Body);
 
 /// <summary>Markdown を「文書として描く」ワンショット (WS-A / ADR-0012) — <see cref="TextEditorView"/> に
 /// <see cref="MarkdownProvider"/> を付け、read-only + 折返しで束ねる。表示は行、装飾は provider。
-/// 将来 <see cref="Kit.Docs(DocString, bool, System.Collections.Generic.IReadOnlyList{IFenceResolver})"/> の
-/// RichTextEditor をこれに差し替える。</summary>
+/// Gallery の docs レンダラ (旧 <c>Kit.Docs</c> の後継) はこれ。</summary>
 public static class MarkdownDoc
 {
     /// <summary>設定済みの文書レンダラを作る。<paramref name="body"/> が null なら既定 (テーマ) フォント。</summary>

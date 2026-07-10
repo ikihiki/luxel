@@ -1,4 +1,4 @@
-﻿namespace Luxel.Document;
+namespace Luxel.Editor;
 
 /// <summary>シンタックスハイライトのトークン分類 — VS Code (Dark+/Light+) が実際に**色分けしている粒度**に
 /// 合わせた 15 種 (色はテーマが決める)。VS Code で同色のもの (parameter/property = variable 等) は統合。</summary>
@@ -37,7 +37,7 @@ public readonly record struct SyntaxToken(int Start, int Length, TokenKind Kind)
 
 /// <summary>
 /// コードブロックのトークナイザ契約。実装は別アセンブリ (TextMateSharp 等) に置き、
-/// エディタへ注入する — Document/Controls はライブラリ依存を持たない。
+/// エディタへ注入する — Editor/Controls はライブラリ依存を持たない。
 /// <see cref="Tokenize"/> は**ハイライトワーカースレッド (単一)** から呼ばれる:
 /// 実装は再入を考慮しなくてよいが、UI スレッドの状態に触れないこと。
 /// </summary>
