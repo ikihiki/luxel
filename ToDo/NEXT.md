@@ -26,6 +26,20 @@
 
 > **完了済み (2026-07-10 整理)**: M1〜M7 / M9 / M10 の Q01〜Q30b・Q32〜Q44 は全完了につきキューから削除した。capstone 2 本 (`samples/LuxelCavern`・`samples/LuxelRange`)、テキストエディタ新スタック (`Luxel.Document`、ADR-0006/0007)、ノードエディタ (`Luxel.NodeGraph`、ADR-0009)、Workbench (`Luxel.Workbench`、ADR-0010〜0014) まで達成済み。仕様は Gallery の Docs/ADR ストーリー、経緯は git 履歴 (この整理前の NEXT.md に完了ログあり) を参照。
 
+### M11 — ゲームエディタ「Luxel Studio」(ADR-0015〜0018、[27](27-game-editor.md) の大プログラム。**27 MD は全ワークストリーム完了まで残す**)
+
+> 依存順: GE-0 → GE-1 (S1→S2) → GE-2 → GE-3 → GE-4 → GE-5 → GE-6 → GE-7。詳細・罠・検証・ユーザー確認事項は [27](27-game-editor.md) に集約。着手前に MD の「ユーザーに確認」3 点を確認する。
+
+- [ ] **Q45**: 27 **GE-0** — プロジェクト/シーンモデル (`Luxel.SceneEdit`: GameProject/SceneDoc/IComponentSchema、JSON 決定的往復 + 未知コンポーネント保全)。ADR-0015 起草。純ロジック単体テストのみ・golden 影響なし
+- [ ] **Q46**: 27 **GE-1 S1** — シーンエディタ変更モデル + ビュー骨格 (SceneChange/History + `SceneEditorView`: グリッド/pan/zoom/選択/移動/undo)。ADR-0016 起草。story + golden
+- [ ] **Q47**: 27 **GE-1 S2** — タイル描き込み (TileSet パレット + ブラシ/矩形/消しゴム、ストローク=1 undo、TileMapLayer 流用)。story + golden
+- [ ] **Q48**: 27 **GE-2** — インスペクタ (PropertyGrid×IComponentSchema、編集は Transaction 経由) + AssetBrowser 配線 + SpriteAtlas 定義エディタ。story + golden
+- [ ] **Q49**: 27 **GE-3** — `Luxel.Player` データ駆動ランタイム (SceneCompiler + LuxelHostBuilder + csx ビヘイビア = ScriptSystem) + `Luxel.Player.App`。ADR-0018 起草。fixture プロジェクト story + 実窓スモーク。e2e は HeadlessAudio に乗せる
+- [ ] **Q50**: 27 **GE-4** — プレイインエディタ (▶/⏸/ステップ/⏹、プレイ world 別インスタンス・停止で破棄、gizmo/DevStats オーバーレイ)。ADR-0017 起草。story play + golden
+- [ ] **Q51**: 27 **GE-5** — スクリプト編集統合 (csx DocumentProvider = TextEditorView + ScriptHost 診断、保存→ホットリロード、Problems ペイン)。story + golden
+- [ ] **Q52**: 27 **GE-6** — 出荷コマンド (dotnet publish Player + コンテンツコピー → リポジトリ外起動 vk/dx exit 0 の自動検証)。capstone チェックリスト踏襲
+- [ ] **Q53**: 27 **GE-7** — dogfood: ミニゲーム 1 本をエディタ操作だけで作って出荷 (通し play + golden) + `Docs/Studio` 執筆 → **27 MD 削除・M11 クローズ**
+
 ### M8 — 排他モード IME (必要になったら。ADR-0008 は Proposed)
 
 - [ ] **Q31**: [24 カスタム IME 候補ウインドウ](24-custom-ime-candidates.md) — TSF `ITfUIElementSink` で OS 候補を抑制 + `ITfCandidateListUIElement` 読み取り + Popup 描画 (排他フルスクリーン対応)。**排他モードが必要になった時点で着手**、実機手動検証 (golden 不可)。ADR-0008
