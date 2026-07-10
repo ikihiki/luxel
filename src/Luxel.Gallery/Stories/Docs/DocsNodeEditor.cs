@@ -47,7 +47,9 @@ public static class DocsNodeEditor
         > ドメインを載せるには `INodeCatalog` (種別と工場) を実装し、必要ならノード内の値編集を `WidgetResolver` で供給します。既存の [Luxel.Diagram](story:Docs/Controls) は**表示専用の図**、`Luxel.Animation` の Graph は**実行時評価ツリー**で、本エディタ (編集キャンバス) とは別物です (配置アルゴリズムのみ Diagram と同型)。
 
         > [!NOTE]
-        > **制約**: `PointerEvent` にボタン/修飾キーが無いため、空白ドラッグを範囲選択に割り当てた結果、**対話的な pan ドラッグは延期**しています (pan は `PanBy`/`FitToView` の API、ズームはホイールで対話可)。フレームワークがポインタ修飾を通せば追加選択・pan ドラッグを足せます (マルチカーソルの Alt+Click 延期と同じ穴)。
+        > ポインタのボタン/修飾キーは [ADR-0011](story:ADR/0011-Pointer-Button-Modifiers) で追加済み — **中ボタンドラッグ = pan**、**Ctrl+クリック = 追加選択**が使えます (空白の左ドラッグは範囲選択のまま)。
+        >
+        > Workbench ([Docs/Workbench](story:Docs/Workbench)) に載せるときは `NodeGraphDocument` アダプタが JSON 往復 (`NodeGraphJson`) と undo 委譲を配線します。
         """, toc: true);
     }
 }
