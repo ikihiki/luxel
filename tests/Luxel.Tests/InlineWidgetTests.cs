@@ -25,7 +25,9 @@ public class InlineWidgetTests
         IReadOnlyList<TextRect> box = layout.SelectionRects(2, 3);   // 占位 1 文字
         Assert.Single(box);
         Assert.Equal(40, box[0].Width, 1);
-        Assert.True(layout.LineAscentAt(2) >= 30);      // ボックスが行のベースラインを押し上げる
+        Assert.True(box[0].Height >= 30);               // ボックスは自身の高さを行内に確保する (行が高くなる)
+        // 箱の縦中心は本文 em 中心へ寄る (vertical-align: middle) ので ascent は箱高の丁度半分より上・全高より下
+        Assert.True(layout.LineAscentAt(2) is >= 15 and < 30);
         Assert.True(layout.Width >= 40);
 
         // 前後のテキスト矩形はボックスの幅ぶんずれる

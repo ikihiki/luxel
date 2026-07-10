@@ -198,15 +198,18 @@ public sealed class TextLayout
                 if (style.BoxW > 0)
                 {
                     // インラインボックス: piece 全体 (占位 1 文字) を advance = BoxW の 1 疑似グリフに。
-                    // Px/Ascent = BoxH で行高へ寄与し、下端がベースラインに揃う
+                    // 行高へは BoxH (Px) で寄与しつつ、箱の縦中心を本文 em ボックスの中心へ合わせる
+                    // (CSS の vertical-align: middle 相当)。旧実装は下端をベースラインに揃えていたため、
+                    // 本文が箱の底に沈み込み行内 widget が本文よりやや上に見えていた。
                     float bh = MathF.Max(style.BoxH, 1);
+                    float mid = _fonts.Primary.Ascent(_px) - _px * 0.5f;   // ベースライン→本文 em 中心の距離
                     para.Runs.Add(new Run
                     {
                         Font = _fonts.Primary,
                         Px = bh,
                         Color = style.Color,
                         CharStart = charStart,
-                        AscentPx = bh,
+                        AscentPx = bh * 0.5f + mid,   // 箱中心を本文中心へ (箱が本文より高いとき上端=行頭に一致)
                         IsBox = true,
                         Glyphs = [new ShapedGlyph(0, 0, style.BoxW, 0, 0)],
                     });
