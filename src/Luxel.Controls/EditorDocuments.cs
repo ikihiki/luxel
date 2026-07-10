@@ -33,7 +33,10 @@ public sealed class TextDocument : IEditorDocument, IDisposable
     public Signal<string> Text { get; }
 
     public string Kind { get; }
-    public string Title { get; }
+
+    /// <summary>表示名。ファイルに結んだとき (IDocumentStore.Open/SaveAs) シェルがファイル名を入れる。</summary>
+    public string Title { get; set; }
+
     public Signal<bool> Dirty { get; } = new(false);
     public IReadOnlyList<CommandContribution> Contributions { get; }
 
@@ -107,7 +110,10 @@ public sealed class NodeGraphDocument : IEditorDocument
     public NodeGraphDoc Doc { get; private set; }
 
     public string Kind { get; }
-    public string Title { get; }
+
+    /// <summary>表示名。ファイルに結んだときシェルがファイル名を入れる。</summary>
+    public string Title { get; set; }
+
     public Signal<bool> Dirty { get; } = new(false);
     public IReadOnlyList<CommandContribution> Contributions { get; }
 
