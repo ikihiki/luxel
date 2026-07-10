@@ -24,6 +24,9 @@ public sealed partial class DockHost : CompositeControl
     [UiParam] private readonly Bindable<Func<string, DockItem>> _resolve = new();
     /// <summary>× で自動的に tree から外す (false = OnCloseTab だけ発火しシェルが外す)。</summary>
     [UiParam] private readonly Bindable<bool> _closeRemoves = true;
+    /// <summary>タブ 1 つのグループはタブ帯を出さない (固定ペイン風の chrome 用 —
+    /// 内容ドロップゾーンは生きるので他のタブをドックして分割はできる)。</summary>
+    [UiParam] private readonly Bindable<bool> _hideSingleTabStrip = false;
 
     /// <summary>タブの × が押された (id)。</summary>
     [UiEvent] public UiEvent<DockHost, string> OnCloseTab;
@@ -90,6 +93,20 @@ public sealed partial class DockHost : CompositeControl
             if (!_views.ContainsKey(id)) _views[id] = item.CreateView();
         }
         string? activeId = g.Active >= 0 && g.Active < g.Tabs.Count ? g.Tabs[g.Active] : null;
+
+        Widget contentOnly = activeId is not null ? _views[activeId] : Kit.Spacer();
+        if (HideSingleTabStrip.Get() && g.Tabs.Count == 1)
+        {
+            // 固定ペイン風: タブ帯なし。ドロップゾーンは残す (他タブのドックは可能)
+            return new DockDropZone
+            {
+                Child = contentOnly,
+                Channel = this,
+                OnDropped = (id, side) => sig.Value = side is null
+                    ? sig.Value.MoveTab(id, g.Id)
+                    : sig.Value.Dock(id, g.Id, side.Value),
+            };
+        }
 
         DocumentTabs strip = Kit.DocumentTabs(tabs, active: activeId,
             dragChannel: this,   // この DockHost 内の帯どうしでタブを移せる

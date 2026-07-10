@@ -2,6 +2,7 @@
 using Luxel.Controls;
 using Luxel.TwoD;
 using Luxel.UI;
+using Luxel.Workbench;
 using static Luxel.Controls.Kit;
 using CP = Luxel.Controls.ColorPicker;   // using static Kit とファクトリ名が衝突するため (CS0119)
 using Split = Luxel.Controls.Splitter;   // 同上 (静的メンバ Thickness 参照用)
@@ -94,7 +95,6 @@ public sealed class GalleryApp : IDisposable
     }
 
     // ---- Interactions (play の Gallery 内再生 — 本家 Storybook の Interactions パネル相当) ----
-    private readonly Signal<int> _bottomTab = new(0);   // 下ペインのタブ (Log/Knobs/Interactions/Console) — 再構築を跨いで保持
     // 常設 Console — Gallery 起動中ずっと生きる継続 REPL (セッション/履歴は chrome 再構築・ストーリー切替を跨ぐ)。
     // Log の宛先は遅延解決 (() => _ctx) で「今選択中のストーリー」に追従する。
     private Stories.ReplConsole? _console;
@@ -194,13 +194,140 @@ public sealed class GalleryApp : IDisposable
     /// メインは行 [ツールバー | プレビュー(Star) | Splitter | Log]。Splitter のドラッグ確定で寸法を更新して再構築する。</summary>
     public Widget BuildRoot()
     {
-        float winH = _winH - 12;   // Border padding 6×2 を除いた内寸
-        // メイン列 (col 2) の実幅 — Log パネル等はこの幅に合わせる (固定幅だと右パネルの下へはみ出す)
-        float mainW = _zen
-            ? _winW - 12 - _sidebarW - Split.Thickness
-            : _winW - 12 - _sidebarW - Split.Thickness * 2 - _rightW;
+        _docsIndex ??= DocsIndex.Build(StoryRegistry.All, _resources);
+        EnsureDock();
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(6))[_dockHost!];
+    }
 
-        // ---- サイドバー (col 0): Component > Story > 見出し の 3 階層ツリー + 検索 ----
+    // ---- Workbench 化した chrome (ToDo 26 WS-D ドッグフード): レイアウトの真実 = DockTree。
+    //      サイドバー/プレビュー/下ペイン (Log/Knobs/Interactions/Console のタブ)/Props が
+    //      「ドックされたパネル」になり、下ペインのタブは D&D で動かせる。単一タブのペインは
+    //      タブ帯を隠して従来 chrome と同じ見え方 (golden 中立)。ペイン内容は SetRoot ごとに
+    //      Build し直す Pane (CompositeControl) — 従来の「_dirty → 全再構築」の意味論を保つ。----
+
+    private Signal<DockTree>? _dock;
+    private DockTree? _normalTree;     // zen 中に退避する通常レイアウト
+    private DockHost? _dockHost;
+    private readonly Dictionary<string, Pane> _panes = new();
+
+    private sealed class Pane : CompositeControl
+    {
+        public required Func<Widget> Builder;
+        protected override Widget Build() => Builder();
+    }
+
+    private static readonly (string Id, string Title)[] PaneDefs =
+    [
+        ("stories", "Stories"), ("preview", "プレビュー"), ("log", "Log"), ("knobs", "Knobs"),
+        ("interactions", "Interactions"), ("console", "Console"), ("props", "Props"),
+    ];
+
+    private void EnsureDock()
+    {
+        if (_dock is null)
+        {
+            _dock = new Signal<DockTree>(NormalTree());
+            // ドック操作 (スプリッタ/タブ移動) → ペイン寸法 px の同期 (アプリ生涯 1 Effect)
+            Reactive.Effect(() => { _ = _dock!.Value; SyncPaneSizes(); });
+        }
+        _dockHost ??= DockHost(_dock, ResolvePane, hideSingleTabStrip: true, closeRemoves: false);
+    }
+
+    private DockItem ResolvePane(string id)
+    {
+        string title = PaneDefs.First(p => p.Id == id).Title;
+        return new DockItem(title, () => _panes.TryGetValue(id, out Pane? p) ? p
+            : _panes[id] = new Pane { Builder = id switch
+            {
+                "stories" => BuildSidebarPane,
+                "preview" => BuildPreviewPane,
+                "log" => BuildLogPane,
+                "knobs" => BuildKnobsPane,
+                "interactions" => BuildInteractionsPane,
+                "console" => BuildConsolePane,
+                "props" => BuildPropsPane,
+                _ => () => Spacer(),
+            } });
+    }
+
+    /// <summary>通常レイアウト: H[stories | V[preview | 下ペイン(4 タブ)] | props]。
+    /// 割合は現在のペイン寸法 px から。</summary>
+    private DockTree NormalTree()
+    {
+        DockTree t = DockTree.Single("preview", "stories", "props", "log", "knobs", "interactions", "console");
+        int pg = t.GroupOf("preview")!.Id;
+        t = t.Dock("stories", pg, DockSide.Left);
+        t = t.Dock("props", pg, DockSide.Right);
+        t = t.Dock("log", pg, DockSide.Bottom);
+        int bottom = t.GroupOf("log")!.Id;
+        t = t.MoveTab("knobs", bottom).MoveTab("interactions", bottom).MoveTab("console", bottom);
+        t = t.ActivateTab("log");
+        // サイズ: 外側 H (sidebar | main | props) と内側 V (preview | bottom)
+        float availW = MathF.Max(1, _winW - 12 - Split.Thickness * 2);
+        var h = (DockSplit)t.Root;
+        t = t.WithSizes(h.Id, [_sidebarW / availW, MathF.Max(0.05f, 1 - (_sidebarW + _rightW) / availW), _rightW / availW]);
+        float availH = MathF.Max(1, _winH - 12 - Split.Thickness);
+        var v = (DockSplit)((DockSplit)t.Root).Children[1];
+        t = t.WithSizes(v.Id, [MathF.Max(0.05f, 1 - _logH / availH), _logH / availH]);
+        return t;
+    }
+
+    /// <summary>zen レイアウト: H[stories | preview] (Log/右パネルを隠して docs をメイン全面に)。</summary>
+    private DockTree ZenTree()
+    {
+        DockTree t = DockTree.Single("preview", "stories");
+        t = t.Dock("stories", t.GroupOf("preview")!.Id, DockSide.Left);
+        float availW = MathF.Max(1, _winW - 12 - Split.Thickness);
+        var h = (DockSplit)t.Root;
+        return t.WithSizes(h.Id, [_sidebarW / availW, MathF.Max(0.05f, 1 - _sidebarW / availW)]);
+    }
+
+    /// <summary>ドラッグされた割合 → ペイン寸法 px (従来の Splitter 確定と同じ扱い)。
+    /// 変わったらプレビュー再実体化 + chrome 再構築。</summary>
+    private void SyncPaneSizes()
+    {
+        if (_dock?.Peek() is not { } t || t.Root is not DockSplit h || !h.Horizontal) return;
+        float availW = MathF.Max(1, _winW - 12 - Split.Thickness * (h.Children.Count - 1));
+        bool changed = false;
+        void Set(ref float field, float v, float min, float max)
+        {
+            v = Math.Clamp(v, min, max);
+            if (MathF.Abs(field - v) > 0.5f) { field = v; changed = true; }
+        }
+        // 外側 H: stories を含む子 = サイドバー幅、props を含む子 = 右パネル幅
+        for (int i = 0; i < h.Children.Count; i++)
+        {
+            float px = (i < h.Sizes.Count ? h.Sizes[i] : 1f / h.Children.Count) * availW;
+            if (ContainsTab(h.Children[i], "stories")) Set(ref _sidebarW, px, 120, 420);
+            else if (ContainsTab(h.Children[i], "props")) Set(ref _rightW, px, 200, 460);
+            else if (h.Children[i] is DockSplit { Horizontal: false } v)
+            {
+                float availH = MathF.Max(1, _winH - 12 - Split.Thickness * (v.Children.Count - 1));
+                for (int j = 0; j < v.Children.Count; j++)
+                    if (ContainsTab(v.Children[j], "log"))
+                        Set(ref _logH, (j < v.Sizes.Count ? v.Sizes[j] : 1f / v.Children.Count) * availH, 60, 440);
+            }
+        }
+        if (changed)
+        {
+            RefreshPreviewSize();
+            _dirty = true;
+        }
+    }
+
+    private static bool ContainsTab(DockNode n, string tab) => n switch
+    {
+        DockGroup g => g.Tabs.Contains(tab),
+        DockSplit s => s.Children.Any(c => ContainsTab(c, tab)),
+        _ => false,
+    };
+
+    // ---- ペイン内容 (従来 chrome の各断片。Pane.Build が呼ぶ — SetRoot ごとに現在状態で作り直す) ----
+
+    private Widget BuildSidebarPane()
+    {
+        float winH = _winH - 12;
+        // ---- サイドバー: Component > Story > 見出し の 3 階層ツリー + 検索 ----
         // 展開状態 (_treeExpanded) は GalleryApp が所有 — chrome 再構築をまたいで保持。
         // 初回は全 Component を展開 (従来の全件表示と同じ見え方から始める)。
         // 見出し (TOC) は DocsIndex から全ページ分を常設 (Tag = (StoryInfo, ブロック index))
@@ -258,17 +385,15 @@ public sealed class GalleryApp : IDisposable
         _sidebarScroll ??= Scroll(winH - 58, width: _sidebarW);
         _sidebarScroll.SetViewportHeight(winH - 58);
         _sidebarScroll.Width.SetOverride(_sidebarW);
-        Widget sidebar = VStack(2)[
+        return VStack(2)[
             Heading("Stories"),
             searchBar,
             _sidebarScroll[tree]];
-        sidebar.GridColumn(0);
+    }
 
-        var splitSidebar = Splitter(vertical: true,
-            onResized: (_, d) => { _sidebarW = Math.Clamp(_sidebarW + d, 120, 420); RefreshPreviewSize(); _dirty = true; });
-        splitSidebar.GridColumn(1);
-
-        // ---- メイン (col 2): ツールバー / プレビュー / Splitter / Log ----
+    private Widget BuildPreviewPane()
+    {
+        // ---- ツールバー + プレビュー ----
         // フレームステップデバッグ: ⏸ で子のアニメ時間を凍結、⏭ で 1 フレームだけ進める
         Func<string> pauseLabel = () => _preview.Paused ? "▶ 再生" : "⏸ 停止";
         Widget toolbar = HStack(8)[
@@ -284,25 +409,41 @@ public sealed class GalleryApp : IDisposable
             Check(_fDisabled, "disabled")];
         toolbar.GridRow(0);
         _preview.GridRow(1);
-        var splitLog = Splitter(vertical: false,
-            onResized: (_, d) => { _logH = Math.Clamp(_logH - d, 60, 440); RefreshPreviewSize(); _dirty = true; });   // 上へドラッグ = 下ペイン拡大
-        splitLog.GridRow(2);
+        return Grid(rows: [GridLength.Px(28), GridLength.Star(1)])[toolbar, _preview];
+    }
 
-        // ---- 下ペイン: Log / Knobs / Interactions のタブ切替 (選択はフィールド — 再構築を跨いで保持) ----
-        float paneW = MathF.Max(140, mainW);
-        float innerH = MathF.Max(24, _logH - 64);   // タブバー + 見出し分を引いた内容高
+    /// <summary>メインペイン (プレビュー/下ペイン) の実幅 px。</summary>
+    private float MainW() => _zen
+        ? _winW - 12 - _sidebarW - Split.Thickness
+        : _winW - 12 - _sidebarW - Split.Thickness * 2 - _rightW;
 
+    /// <summary>下ペイン内容の高さ (タブ帯 32 とパディングを引いた内寸)。</summary>
+    private float BottomInnerH() => MathF.Max(24, _logH - 56);
+
+    private Widget BuildLogPane()
+    {
+        float paneW = MathF.Max(140, MainW());
+        float innerH = BottomInnerH();
         _logItems.Value = LogLines();
-        Widget logPane = VStack(2)[
+        return VStack(2)[
             Text($"({_logCountSig})", 11, color: Bind.From(() => UiTheme.T.TextMuted)),
             ListView(MathF.Max(24, innerH - 16), 16f, items: _logItems, width: MathF.Max(120, paneW - 40))];
+    }
 
+    private Widget BuildKnobsPane()
+    {
         // Knobs (autodoc 風テーブル)。編集は StoryContext のキューへ (Update の PumpKnobEdits が適用)
-        Widget knobsPane = Scroll(innerH, width: paneW - 32)[
+        float paneW = MathF.Max(140, MainW());
+        return Scroll(BottomInnerH(), width: paneW - 32)[
             KnobsTable(_ctx?.Knobs ?? [], width: paneW - 48,
                 onEdit: (_, k, v) => _ctx?.QueueKnobEdit(k, v))];
+    }
 
+    private Widget BuildInteractionsPane()
+    {
         // Interactions: play 一覧 + ▶ 再生 + ステップログ (Storybook の Interactions 相当)
+        float paneW = MathF.Max(140, MainW());
+        float innerH = BottomInnerH();
         IReadOnlyList<StoryPlay> storyPlays = _ctx?.Plays ?? [];
         Widget interactionsPane;
         if (storyPlays.Count == 0)
@@ -331,35 +472,25 @@ public sealed class GalleryApp : IDisposable
                 Scroll(innerH, width: MathF.Max(120, paneW - 260))[
                     Text(playLog, 11, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(4, 2, 0, 0))]];
         }
+        return interactionsPane;
+    }
 
+    private Widget BuildConsolePane()
+    {
         // Console: 常設の継続 REPL (Gallery 起動中ずっと生きる — セッション/履歴を保持)。
         // 開くと前の行で宣言した変数が次に見える。Log(...) は今選択中のストーリーの Log パネルへ。
         _console ??= new Stories.ReplConsole(
-            paneW - 32,
+            MathF.Max(140, MainW()) - 32,
             (Luxel.Scripting.ScriptHost)GalleryServices.Provider.GetService(typeof(Luxel.Scripting.ScriptHost))!,
             new Stories.ScriptGlobals(() => _ctx),
             initial: "");
+        return _console;
+    }
 
-        Widget bottomPane = Border(background: Bind.From(() => UiTheme.T.Surface), rounded: UiTheme.T.Radius,
-                                   padding: new Thickness(8, 4), width: paneW)[
-            Tabs(["Log", "Knobs", "Interactions", "Console"], [logPane, knobsPane, interactionsPane, _console],
-                 _bottomTab, width: paneW - 16, height: _logH - 16)];
-        bottomPane.GridRow(3);
-
-        // 全画面 (zen): ツールバー + プレビューのみ (Log/右パネルを隠して docs をメイン全面に)
-        Widget main = _zen
-            ? Grid([GridLength.Star(1)], [GridLength.Px(28), GridLength.Star(1)])[toolbar, _preview]
-            : Grid(
-                [GridLength.Star(1)],
-                [GridLength.Px(28), GridLength.Star(1), GridLength.Px(Split.Thickness), GridLength.Px(_logH)])[
-                toolbar, _preview, splitLog, bottomPane];
-        main.GridColumn(2);
-
-        var splitPanel = Splitter(vertical: true,
-            onResized: (_, d) => { _rightW = Math.Clamp(_rightW - d, 200, 460); RefreshPreviewSize(); _dirty = true; });
-        splitPanel.GridColumn(3);
-
-        // ---- 右パネル (col 4): Props (ツリー + 選択ノードのプロパティ編集) ----
+    private Widget BuildPropsPane()
+    {
+        // ---- 右パネル: Props (ツリー + 選択ノードのプロパティ編集) ----
+        float winH = _winH - 12;
         var props = new List<Widget>();
         if (_storyRoot is not null)
         {
@@ -378,26 +509,21 @@ public sealed class GalleryApp : IDisposable
                     props.Add(PropEditor(sel, p));
         }
 
-        Widget panel = VStack(2)[
+        return VStack(2)[
             Heading("Props"),
             Scroll(MathF.Max(80, winH - 70), width: _rightW)[VStack(3)[props.ToArray()]]];
-        panel.GridColumn(4);
-
-        Widget root = _zen
-            ? Grid([GridLength.Px(_sidebarW), GridLength.Px(Split.Thickness), GridLength.Star(1)])[
-                sidebar, splitSidebar, main]
-            : Grid(
-                [GridLength.Px(_sidebarW), GridLength.Px(Split.Thickness), GridLength.Star(1),
-                 GridLength.Px(Split.Thickness), GridLength.Px(_rightW)])[
-                sidebar, splitSidebar, main, splitPanel, panel];
-
-        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(6))[root];
     }
 
-    /// <summary>全画面 (zen) の切替: chrome を組み替え、プレビュー内容もメイン全面サイズで再実体化する。</summary>
+    /// <summary>全画面 (zen) の切替: DockTree を組み替え (通常レイアウトは退避して復元)、
+    /// プレビュー内容もメイン全面サイズで再実体化する。</summary>
     private void ToggleZen()
     {
         _zen = !_zen;
+        if (_dock is not null)
+        {
+            if (_zen) { _normalTree = _dock.Value; _dock.Value = ZenTree(); }
+            else if (_normalTree is not null) _dock.Value = _normalTree;
+        }
         if (_currentStory is { } s && _storyRoot is not null)
         {
             (int pw, int ph) = PreviewSize(s);
