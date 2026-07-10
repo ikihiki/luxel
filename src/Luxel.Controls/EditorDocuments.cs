@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Luxel.NodeGraph;
 using Luxel.UI;
 using Luxel.Workbench;
@@ -158,5 +160,129 @@ public sealed class NodeGraphDocument : IEditorDocument
         _saved = NodeGraphJson.Serialize(Doc);
         Dirty.Value = false;
         View?.Load(Doc);
+    }
+}
+
+/// <summary>
+/// 設定/コンポーネント オブジェクトの <see cref="IEditorDocument"/> アダプタ (ADR-0014 の
+/// PropertyGrid 実証)。ビュー = <see cref="PropertyGrid"/> (型別エディタ)、直列化 = JSON
+/// (System.Text.Json、enum は文字列・public field 込み)。undo/redo は**プロパティ変更単位**の
+/// 履歴 (PropertyGrid の OnChanged を記録して巻き戻す)。
+/// </summary>
+public sealed class ObjectDocument<T> : IEditorDocument where T : class
+{
+    private static readonly JsonSerializerOptions JsonOpts = new()
+    {
+        WriteIndented = true,
+        IncludeFields = true,
+        Converters = { new JsonStringEnumConverter() },
+    };
+
+    private readonly List<PropertyGrid> _grids = new();
+    private readonly List<(string Name, object? Old, object? New)> _undo = new();
+    private readonly List<(string Name, object? Old, object? New)> _redo = new();
+    private readonly Dictionary<string, object?> _shadow = new();   // 直前値 (undo の Old 用)
+    private string _saved;
+
+    public ObjectDocument(string kind, string title, T target,
+                          IReadOnlyList<CommandContribution>? contributions = null)
+    {
+        Kind = kind;
+        Title = title;
+        Target = target;
+        Contributions = contributions ?? [];
+        _saved = JsonSerializer.Serialize(Target, JsonOpts);
+        Snapshot();
+    }
+
+    /// <summary>編集対象 (真実)。PropertyGrid が直接書き込む。</summary>
+    public T Target { get; private set; }
+
+    public string Kind { get; }
+
+    /// <summary>表示名。ファイルに結んだときシェルがファイル名を入れる。</summary>
+    public string Title { get; set; }
+
+    public Signal<bool> Dirty { get; } = new(false);
+    public IReadOnlyList<CommandContribution> Contributions { get; }
+
+    public Widget CreateView()
+    {
+        PropertyGrid grid = Kit.PropertyGrid(
+            onChanged: (_, name, value) =>
+            {
+                _undo.Add((name, _shadow.GetValueOrDefault(name), value));
+                _redo.Clear();
+                _shadow[name] = value;
+                UpdateDirty();
+            });
+        // target は getter 束縛 — LoadFrom でインスタンスが替わっても Refresh で追従する
+        // (ファクトリ引数は object? なので Bindable を渡すと箱詰めされてしまう)
+        grid.Target.SetBase(new Bindable<object?>(() => Target));
+        _grids.Add(grid);
+        return grid;
+    }
+
+    public bool CanUndo => _undo.Count > 0;
+    public bool CanRedo => _redo.Count > 0;
+
+    public void Undo()
+    {
+        if (_undo.Count == 0) return;
+        (string name, object? old, object? @new) = _undo[^1];
+        _undo.RemoveAt(_undo.Count - 1);
+        _redo.Add((name, old, @new));
+        SetMember(name, old);
+    }
+
+    public void Redo()
+    {
+        if (_redo.Count == 0) return;
+        (string name, object? old, object? @new) = _redo[^1];
+        _redo.RemoveAt(_redo.Count - 1);
+        _undo.Add((name, old, @new));
+        SetMember(name, @new);
+    }
+
+    public string Serialize()
+    {
+        _saved = JsonSerializer.Serialize(Target, JsonOpts);
+        Dirty.Value = false;
+        return _saved;
+    }
+
+    public void LoadFrom(string content)
+    {
+        Target = JsonSerializer.Deserialize<T>(content, JsonOpts)
+            ?? throw new InvalidOperationException($"JSON から {typeof(T).Name} を復元できない");
+        _saved = JsonSerializer.Serialize(Target, JsonOpts);
+        _undo.Clear();
+        _redo.Clear();
+        Snapshot();
+        Dirty.Value = false;
+        RefreshGrids();
+    }
+
+    private void SetMember(string name, object? value)
+    {
+        foreach (PropertyRow row in PropertyGrid.Discover(Target))
+            if (row.Name == name) { row.Set(value); break; }
+        _shadow[name] = value;
+        UpdateDirty();
+        RefreshGrids();
+    }
+
+    private void Snapshot()
+    {
+        _shadow.Clear();
+        foreach (PropertyRow row in PropertyGrid.Discover(Target)) _shadow[row.Name] = row.Get();
+    }
+
+    private void UpdateDirty() => Dirty.Value = JsonSerializer.Serialize(Target, JsonOpts) != _saved;
+
+    private void RefreshGrids()
+    {
+        foreach (PropertyGrid g in _grids)
+            if (g.Scope is { IsDisposed: false }) g.Refresh();
     }
 }
