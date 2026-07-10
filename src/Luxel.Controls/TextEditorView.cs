@@ -829,6 +829,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
                 // 壊れ device lost するので、この経路 (RealizeWidget) を通さないことが必須。積み重なった GPU
                 // デモ (下段は上段の高さ確定で Y が動く) でもこれで安全。折返し幅が変わるときだけ組み直す。
                 bool widthChanged = MathF.Abs(h.Rect.Width - slot.Rect.Width) > 0.5f;
+                float dx = slot.Rect.X - h.Rect.X, dy = slot.Rect.Y - h.Rect.Y;
                 h.Rect = slot.Rect;
                 if (widthChanged)
                 {
@@ -837,7 +838,10 @@ public sealed partial class TextEditorView : Widget, ITextInput
                     MeasureAutoWidget(slot.Key, sz);
                 }
                 else
+                {
                     RepositionHosted(h);
+                    h.Widget.ShiftWorldPos(new Point(dx, dy));   // WorldPos も同期 (programmatic d.Click 用)
+                }
             }
         }
         if (_widgets.Count > seen.Count)

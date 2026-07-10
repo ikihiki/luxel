@@ -537,6 +537,15 @@ public abstract partial class Widget
     /// <summary>WorldPos を確定する (派生コントロールの Realize から呼ぶ)。</summary>
     protected void SetWorldPos(Point p) => WorldPos = p;
 
+    /// <summary>再実体化せず位置だけずらした親 (エディタの埋め込みホスト等) が、この widget と全子孫の
+    /// <see cref="WorldPos"/> を <paramref name="delta"/> だけ平行移動する。描画はノード transform で正しく
+    /// 動くが、WorldPos は実体化時に焼かれるため programmatic ヒット (d.Click(widget)) 用に同期する。</summary>
+    public void ShiftWorldPos(Point delta)
+    {
+        WorldPos = new Point(WorldPos.X + delta.X, WorldPos.Y + delta.Y);
+        foreach (Widget c in DebugChildren()) c.ShiftWorldPos(delta);
+    }
+
     /// <summary>添付プロパティを記録する。</summary>
     public void SetAttached(Attached a)
     {

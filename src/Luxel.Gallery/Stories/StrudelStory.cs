@@ -1,7 +1,6 @@
 ﻿using Luxel.Audio;
 using Luxel.Audio.Sequencing;
 using Luxel.Controls;
-using Luxel.Document;
 using Luxel.Editor;
 using Luxel.Platform;
 using Luxel.Strudel;
@@ -101,55 +100,11 @@ public static class StrudelStory
         }
     }
 
-    // ---- 文書フォーマット: `--` コメント / 空行 / パターン行 (Enter でブロック化) ----
-    private sealed class StrudelScriptFormat : IDocumentFormat
-    {
-        public RichDocument Parse(string source)
-        {
-            var blocks = new List<Block>();
-            foreach (string line in (source ?? "").Replace("\r", "").Split('\n'))
-            {
-                if (line.StartsWith("--")) blocks.Add(new Block(BlockKind.Paragraph, line[2..].TrimStart()));
-                else if (line.Length == 0) blocks.Add(new Block(BlockKind.Paragraph));
-                else blocks.Add(new Block(BlockKind.Embed) { Payload = new FencePayload("strudel", line) });
-            }
-            return RichDocument.FromBlocks(blocks);
-        }
-
-        public string Serialize(RichDocument doc)
-            => string.Join("\n", doc.Blocks.Select(b => SerializeLine(b, 0)));
-
-        public string SerializeRange(RichDocument doc, DocPos min, DocPos max)
-            => new DocumentEditor(doc).GetText(min, max);
-
-        public bool SupportsHybrid => false;
-        public Block ParseLine(string line) => Parse(line).Blocks[0];
-
-        public string SerializeLine(Block b, int line) => b switch
-        {
-            { Kind: BlockKind.Embed, Payload: FencePayload f } => f.Body,
-            { Kind: BlockKind.Paragraph, Length: 0 } => "",
-            _ => "-- " + b.Lines[line].Text,
-        };
-
-        public int LinePrefixLen(Block b, int line) => b.Kind == BlockKind.Paragraph && b.Length > 0 ? 3 : 0;
-        public bool TryAutoFormat(DocumentEditor ed, string inserted) => false;
-
-        public bool TryBlockCommit(DocumentEditor ed)
-        {
-            Block b = ed.CaretBlock;
-            if (b.Kind != BlockKind.Paragraph || b.Length == 0 || b.Text.StartsWith("--")) return false;
-            ed.ConvertToEmbed(new FencePayload("strudel", b.Text));
-            return true;
-        }
-    }
-
     // ---- ライブブロック: TextEditorView (新スタック。診断波線 + 補完 + 再生囲み + Ctrl+Enter 評価) + Run/Stop ----
     private sealed class StrudelBlock : CompositeControl, IDisposable
     {
         private readonly Signal<string> _code;
         private readonly Signal<string> _status = new("");
-        private readonly Action<IBlockPayload> _commit;
         private readonly TextEditorView _editor;
         private readonly DiagnosticsProvider _diag;
         private readonly Button _run, _stop;
@@ -164,15 +119,13 @@ public static class StrudelStory
         /// <summary>診断数 (波線、play の Expect 用)。</summary>
         internal int DiagnosticCount => _diag.Count;
 
-        public StrudelBlock(FencePayload payload, float maxWidth, Action<IBlockPayload> commit)
+        public StrudelBlock(string body, float maxWidth)
         {
             _maxW = MathF.Max(160, maxWidth);
-            _commit = commit;
-            _code = new Signal<string>(payload.Body);
-            // info "strudel <slot>" — Run のコミット再構築でスロットを引き継ぐ (音が途切れない)
-            string[] parts = payload.Info.Split(' ', 2);
-            int? requested = parts.Length == 2 && int.TryParse(parts[1], out int s) ? s : null;
-            _slot = Session.ClaimSlot(requested, this);
+            _code = new Signal<string>(body);
+            // block は文書内 ```strudel フェンス 1 つ = 独立スロット (本文キャッシュで 1 インスタンス、
+            // 再描画で消えない)。Run はブロック自身の _code を再評価するだけ (再構築なし = 音が途切れない)。
+            _slot = Session.ClaimSlot(null, this);
             _editor = TextEditorView(_code, editorHeight: 62f, editorWidth: _maxW - 130);
             (_, _, _, _editor.EditorFont) = StoryKit.EditorFaces.Value;
             _editor.LanguageService = StrudelCodeLanguage.Instance;                      // 補完
@@ -220,8 +173,6 @@ public static class StrudelStory
             string? err = Session.Eval(_slot, _code.Value);
             LastRunOk = err is null;
             _status.Value = err ?? $"d{_slot} ♪";
-            if (err is null)
-                _commit(new FencePayload($"strudel {_slot}", _code.Value));   // 文書へ確定 (undo 可)
         }
 
         public override string? DebugDetail => $"strudel d{_slot}";
@@ -232,35 +183,41 @@ public static class StrudelStory
     [Story("Demos/Strudel/Repl", Height = 560, Order = 2031)]
     public static Widget Repl(StoryContext ctx)
     {
-        var format = new StrudelScriptFormat();
+        // 各セルは ```strudel フェンス — 本文キーでキャッシュし同一 StrudelBlock を返す (再描画で状態が消えない)
         var blocks = new List<StrudelBlock>();   // play が Editor/Ctrl+Enter/診断を叩くための参照
-        var widgets = new BlockWidgetRegistry()
-            .Register("strudel", bc =>
+        var cellByBody = new Dictionary<string, StrudelBlock>();
+        StrudelBlock CellFor(string body)
+        {
+            if (!cellByBody.TryGetValue(body, out StrudelBlock? cell))
             {
-                var b = new StrudelBlock((FencePayload)bc.Payload, bc.MaxWidth, bc.Commit);
-                blocks.Add(b);
-                return b;
-            });
+                cell = new StrudelBlock(body, 560f);
+                cellByBody[body] = cell;
+                blocks.Add(cell);
+            }
+            return cell;
+        }
 
         Signal<string> src = ctx.Signal("source",
-            "-- Strudel REPL: パターン行で Enter → ライブブロック化、Run で評価 (再 Run = ホットスワップ)\n" +
-            "s(\"bd*2 [~ sd] hh*4\").gain(0.9)\n" +
-            "-- 別ブロックは独立スロット — 重ねて鳴る。silence を Run するとそのスロットだけ止まる\n" +
-            "note(\"c3 eb3 g3 <bb3 c4>\").s(\"saw\").slow(2)\n" +
-            "-- 例: .every(2, rev) / .jux(fast(2)) / .degrade() / cps(0.6) でテンポ\n");
+            "Strudel REPL: 各 ```strudel セルを **Ctrl+Enter** または Run で評価 (再 Run = ホットスワップ)。\n\n" +
+            "```strudel\ns(\"bd*2 [~ sd] hh*4\").gain(0.9)\n```\n\n" +
+            "別セルは独立スロット — 重ねて鳴る。silence を Run するとそのスロットだけ止まる。\n\n" +
+            "```strudel\nnote(\"c3 eb3 g3 <bb3 c4>\").s(\"saw\").slow(2)\n```\n\n" +
+            "例: `.every(2, rev)` / `.jux(fast(2))` / `.degrade()` / `cps(0.6)` でテンポ。\n");
 
         Signal<float> cps = ctx.Signal("cps", 0.5f);
         var wave = Sparkline(300f, 30f, bars: true);
 
-        RichTextEditor ed = RichTextEditor(src, editorHeight: 430, format: format, widgets: widgets);
-        ed.Fonts = StoryKit.JpFallback.Value;
+        // 新スタック: markdown 文書レンダラ + ```strudel フェンスを embed 扱いし StrudelBlock に解決
+        TextEditorView ed = MarkdownDoc.Create(src, () => UiTheme.T, width: 560f, height: 430f,
+            mono: StoryKit.EditorFaces.Value.Mono, embedKinds: new[] { "strudel" }, fonts: StoryKit.JpFallback.Value);
+        ed.WidgetResolver = key => key is EmbedRef { Key: "strudel" } r ? CellFor(r.Body) : null;
 
         var root = new ReplRoot(ed, wave, cps);
         Func<string> cpsLabel = () => $"cps {cps.Value:0.00}";
         ctx.Play(async d =>
         {
-            await d.Snap();                                           // 初期 (CodeEditor ブロック × 2、無音)
-            await d.Expect(() => blocks.Count >= 2, "パターン行がライブブロック化");
+            await d.Snap();                                           // 初期 (strudel セル × 2、無音)
+            await d.Expect(() => blocks.Count >= 2, "```strudel フェンスがライブブロック化");
 
             // 診断波線: 2 つ目のブロック末尾に未知メソッドを足す (型付け → Sync → 再診断 → 波線)
             await d.Click(blocks[1].Editor);
@@ -290,7 +247,7 @@ public static class StrudelStory
     }
 
     /// <summary>ルート: エディタを包み、Tick でセッションを駆動する (ポンプ + 波形 + cps 同期)。</summary>
-    private sealed class ReplRoot(RichTextEditor editor, Sparkline wave, Signal<float> cps) : CompositeControl
+    private sealed class ReplRoot(Widget editor, Sparkline wave, Signal<float> cps) : CompositeControl
     {
         protected override Widget Build() => editor;
 

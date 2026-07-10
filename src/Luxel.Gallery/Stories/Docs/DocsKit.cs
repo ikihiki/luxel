@@ -56,10 +56,6 @@ internal static class DocsKit
             ? new DocMarkdown($"```csharp\n{s.Source}\n```")
             : new DocMarkdown($"```\n(ソースなし: {path})\n```");
 
-    /// <summary>docs ページ共通のフェンス拡張 (```mermaid → Luxel.Diagram)。</summary>
-    internal static readonly Luxel.Document.IFenceResolver[] DocsFences =
-        [Luxel.Diagram.MermaidFenceResolver.Instance];
-
     /// <summary>新スタック (テキストスタック / ADR-0012) の docs ページ。<see cref="MarkdownDoc.FromDoc"/> で
     /// 既存の <c>Docs($"...")</c> 記法をそのまま描き、日本語フォント・シンタックスハイライト・mermaid/数式
     /// フェンス・領域いっぱい (fill) を配線し、クリック → <c>story:</c>/外部/<c>#アンカー</c> ナビを繋ぐ。
@@ -106,18 +102,5 @@ internal static class DocsKit
             return;
         }
         ctx.Log($"link: {url}");
-    }
-
-    /// <summary>日本語/絵文字フォールバック + シンタックスハイライト + mermaid/math widget を配線する。
-    /// docs ページは必ずこれで包む。</summary>
-    internal static RichTextEditor WithDocFonts(RichTextEditor doc)
-    {
-        doc.Fonts = StoryKit.JpFallback.Value;
-        doc.Highlighter = Luxel.Highlight.TextMateHighlighter.Instance;
-        doc.WidgetRegistry.Register("mermaid", bc => Luxel.Diagram.Factories.DiagramBlock(
-            ((Luxel.Document.FencePayload)bc.Payload).Body, bc.MaxWidth));
-        doc.WidgetRegistry.Register("math", bc => Luxel.MathText.Factories.MathBlockView(
-            ((Luxel.Document.MathPayload)bc.Payload).Source, maxWidth: bc.MaxWidth));
-        return doc;
     }
 }
