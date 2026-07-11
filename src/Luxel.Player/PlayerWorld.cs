@@ -101,10 +101,14 @@ public sealed class Player2DWorld
     public int TileAt(int layerId, int x, int y)
         => _layers.FirstOrDefault(l => l.Id == layerId)?.Cell(x, y) ?? 0;
 
-    /// <summary>固定 dt で 1 ステップ進める。csx ビヘイビアの駆動 (S2) はここに載る。</summary>
+    /// <summary>csx ビヘイビアのホスト (ADR-0018、ローダが配線。null = スクリプトなし)。</summary>
+    public PlayerBehaviours? Behaviours { get; set; }
+
+    /// <summary>固定 dt で 1 ステップ進める (時間 → csx ビヘイビア)。</summary>
     public void Update(float dt)
     {
         Time += dt;
+        Behaviours?.Update(this, dt);
     }
 
     /// <summary>world 全体を Scene2D へ描く (背景 → タイル → エンティティ)。</summary>

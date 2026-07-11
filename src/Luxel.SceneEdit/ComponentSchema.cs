@@ -158,8 +158,14 @@ public static class SceneSchemas
             new SceneFieldDef("scale", SceneFieldType.Vec3, SceneValue.Of(Vector3.One)),
         ]);
 
+    /// <summary>csx ビヘイビア (ADR-0018)。script はプロジェクト内 .csx への res:// 参照 —
+    /// ランタイム (Luxel.Player) が ScriptHost でコンパイルし毎ステップ呼ぶ。</summary>
+    public static readonly IComponentSchema Behaviour = new ComponentSchema(
+        "behaviour", "Behaviour (csx)", SceneSpaces.Both,
+        [new SceneFieldDef("script", SceneFieldType.AssetRef, SceneValue.Of(""), AssetKind: "csx")]);
+
     /// <summary>組み込み分を登録した新しい登録簿。</summary>
-    public static SchemaRegistry BuiltIns() => new SchemaRegistry().Add(Transform2D).Add(Transform3D);
+    public static SchemaRegistry BuiltIns() => new SchemaRegistry().Add(Transform2D).Add(Transform3D).Add(Behaviour);
 
     /// <summary>スキーマの既定値で埋めた新しいコンポーネント (インスペクタの「追加」の実体)。</summary>
     public static SceneComponent NewComponent(IComponentSchema schema)

@@ -39,12 +39,16 @@ public static class PlayerLoader
     public static SceneDoc LoadScene(IVirtualFileSystem fs, string resPath)
         => SceneJson.Deserialize(Text(fs, ResPath.Resolve(resPath)));
 
-    /// <summary>プロジェクトを読み、開始シーンをコンパイルして返す。</summary>
+    /// <summary>プロジェクトを読み、開始シーンをコンパイルし、csx ビヘイビアを配線して返す。</summary>
     public static PlayerGame LoadStart(IVirtualFileSystem fs)
     {
         GameProject project = LoadProject(fs);
         SceneDoc scene = LoadScene(fs, project.StartScene);
-        return new PlayerGame(project, SceneCompiler.Compile(scene));
+        Player2DWorld world = SceneCompiler.Compile(scene);
+        var behaviours = new PlayerBehaviours(fs);
+        behaviours.LoadAll(world);
+        world.Behaviours = behaviours;
+        return new PlayerGame(project, world);
     }
 
     private static string Text(IVirtualFileSystem fs, string path)
