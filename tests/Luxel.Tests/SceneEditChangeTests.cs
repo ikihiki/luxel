@@ -76,6 +76,27 @@ public class SceneEditChangeTests
             new RemoveEntity(1));
     }
 
+    [Fact]
+    public void Change_PaintTiles_RoundTripsAndValidates()
+    {
+        var layer = TileLayer.Of(1, "g", "res://t.json", 32, 4, 3, [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]);
+        var doc = SceneDoc.Of(SceneSpace.TwoD, [], [layer]);
+        var paint = new PaintTiles(1, [new TilePaint(0, 0, 2), new TilePaint(1, 1, 0), new TilePaint(3, 2, 4)]);
+        SceneDoc after = paint.Apply(doc);
+        Assert.Equal(2, after.Layer(1).Cell(0, 0));
+        Assert.Equal(0, after.Layer(1).Cell(1, 1));   // 消し
+        Assert.Equal(4, after.Layer(1).Cell(3, 2));
+        AssertRoundTrip(doc, paint);                  // 逆 = 描き込み前の値
+        // 座標重複は例外 (逆適用の復元順が不定になるため)
+        Assert.Throws<ArgumentException>(() =>
+            new PaintTiles(1, [new TilePaint(0, 0, 2), new TilePaint(0, 0, 3)]).Apply(doc));
+        // 範囲外は例外
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new PaintTiles(1, [new TilePaint(4, 0, 2)]).Apply(doc));
+        // 無いレイヤは例外
+        Assert.Throws<KeyNotFoundException>(() => new PaintTiles(9, [new TilePaint(0, 0, 2)]).Apply(doc));
+    }
+
     // ---- 選択 ----
 
     [Fact]

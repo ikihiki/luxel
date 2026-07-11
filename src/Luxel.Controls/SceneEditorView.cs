@@ -5,6 +5,21 @@ using Luxel.UI;
 
 namespace Luxel.Controls;
 
+/// <summary>シーンエディタのツール。Select 以外はタイル描き込み系で、空間アダプタが
+/// <see cref="ISceneTileAdapter"/> を実装しているときだけ効く (2D/3D 両対応原則 3)。</summary>
+public enum SceneTool
+{
+    Select,
+    /// <summary>ブラシ — ドラッグでセルを塗る (1 ストローク = 1 undo)。</summary>
+    Brush,
+    /// <summary>矩形 — ドラッグ範囲を塗り潰す。</summary>
+    Rect,
+    /// <summary>消しゴム — ブラシのタイル 0 版。</summary>
+    Eraser,
+    /// <summary>スポイト — クリックしたセルのタイルを <see cref="SceneEditorView.ActiveTile"/> に取る。</summary>
+    Picker,
+}
+
 /// <summary>
 /// シーンエディタのビュー (ADR-0016 / ToDo 27 GE-1) — エンティティの選択/移動/複製/削除を編集する
 /// キャンバス。編集意味論は canvas 非依存の <see cref="Luxel.SceneEdit"/> (Transaction スタック 3 本目)、
@@ -29,6 +44,15 @@ public sealed partial class SceneEditorView : Widget
     /// <summary>true = ドロップ位置をグリッドにスナップする。</summary>
     public bool SnapToGrid { get; set; }
 
+    /// <summary>現在のツール (既定 = 選択)。</summary>
+    public SceneTool Tool { get; set; } = SceneTool.Select;
+
+    /// <summary>描き込みに使うタイル番号 (スポイトで更新される)。</summary>
+    public int ActiveTile { get; set; } = 1;
+
+    /// <summary>描き込み対象のタイルレイヤ id (-1 = 最初のレイヤ)。</summary>
+    public int ActiveLayer { get; set; } = -1;
+
     /// <summary>シーンが変わった (編集/undo/redo)。IEditorDocument アダプタのダーティ検知用。</summary>
     public Action<SceneEditorView>? OnEdit { get; set; }
 
@@ -37,7 +61,7 @@ public sealed partial class SceneEditorView : Widget
     private ISceneSpaceAdapter? _space;
     private bool _init;
 
-    private enum Drag { None, Move, Marquee, Pan }
+    private enum Drag { None, Move, Marquee, Pan, Paint, PaintRect }
     private Drag _drag;
     private SceneHandleKind _axis = SceneHandleKind.Free;   // Move 中の拘束軸
     private Vector2 _dragScreenDelta;                       // Move の総移動量 (e.Delta は開始からの累計)
@@ -45,6 +69,9 @@ public sealed partial class SceneEditorView : Widget
     private int[] _dragIds = [];
     private Vector2 _marqStart, _marqCur;                   // marquee の対角 (view-local px)
     private SceneEditState? _preview;                       // ドラッグ中の描画用一時状態 (履歴に積まない)
+    private readonly Dictionary<(int X, int Y), int> _stroke = new();   // 描き込みストロークの集計 (座標→タイル)
+    private (int X, int Y) _lastCell, _rectA, _rectB;       // ブラシの前回セル / 矩形の対角
+    private int _paintLayer;                                // 描き込み中のレイヤ id
 
     private UiBuildContext _ctx = null!;
     private Signal<Theme> _theme = UiTheme.Current;
@@ -88,6 +115,25 @@ public sealed partial class SceneEditorView : Widget
     {
         Vector2 local = _space?.LocalOfPlane(world) ?? world;
         return new Vector2(WorldPos.X + local.X, WorldPos.Y + local.Y);
+    }
+
+    /// <summary>描き込み対象レイヤのタイル番号 (play/テスト用)。レイヤが無ければ 0。</summary>
+    public int TileAt(int x, int y)
+        => PaintTargetLayer() is { } id ? _state.Doc.Layer(id).Cell(x, y) : 0;
+
+    /// <summary>描き込み対象レイヤのセル中心クライアント座標 (play 用)。</summary>
+    public Vector2 CellClient(int x, int y)
+    {
+        if (_space is not ISceneTileAdapter tile || PaintTargetLayer() is not { } id) return default;
+        Vector2 local = tile.CellLocalCenter(_state.Doc, id, x, y);
+        return new Vector2(WorldPos.X + local.X, WorldPos.Y + local.Y);
+    }
+
+    // 描き込み対象レイヤ id (ActiveLayer 優先、-1 なら最初のレイヤ。無ければ null)
+    private int? PaintTargetLayer()
+    {
+        if (ActiveLayer >= 0 && _state.Doc.TryLayer(ActiveLayer) is not null) return ActiveLayer;
+        return _state.Doc.TileLayers.Count > 0 ? _state.Doc.TileLayers[0].Id : null;
     }
 
     /// <summary>シーンを丸ごと差し替える (選択・履歴はリセット)。</summary>
@@ -189,6 +235,14 @@ public sealed partial class SceneEditorView : Widget
             return;
         }
 
+        // タイルツール (Select 以外) はアダプタが対応していれば描き込みへ
+        if (Tool != SceneTool.Select && _space is ISceneTileAdapter tile && PaintTargetLayer() is { } layerId)
+        {
+            ToolDown(tile, layerId, local);
+            Refresh();
+            return;
+        }
+
         // 1) 主選択の移動ハンドル (エンティティより優先 — 重なりの上に描かれている)
         SceneHandleKind handle = _space.HitHandle(_state, local);
         if (handle != SceneHandleKind.None)
@@ -247,6 +301,22 @@ public sealed partial class SceneEditorView : Widget
             case Drag.Marquee:
                 _marqCur = new Vector2(e.X, e.Y);
                 break;
+            case Drag.Paint when _space is ISceneTileAdapter tile:
+                if (tile.CellAt(_state.Doc, _paintLayer, new Vector2(e.X, e.Y), clamp: true) is { } cur)
+                {
+                    StampLine(_lastCell, cur);
+                    _lastCell = cur;
+                    _preview = PaintPreview();
+                }
+                break;
+            case Drag.PaintRect when _space is ISceneTileAdapter tile:
+                if (tile.CellAt(_state.Doc, _paintLayer, new Vector2(e.X, e.Y), clamp: true) is { } corner)
+                {
+                    _rectB = corner;
+                    RebuildRectStroke();
+                    _preview = PaintPreview();
+                }
+                break;
             case Drag.Pan:
                 var total = new Vector2(e.DeltaX, e.DeltaY);
                 _space.Pan(total - _panApplied);   // アダプタ API は相対 → 累計との差分を渡す
@@ -273,9 +343,81 @@ public sealed partial class SceneEditorView : Widget
                 if ((_marqCur - _marqStart).LengthSquared() > 4)
                     _state = SceneCommands.SelectEntities(_state, _space.EntitiesIn(_state.Doc, _marqStart, _marqCur)).State;
                 break;
+            case Drag.Paint or Drag.PaintRect:
+                CommitStroke();
+                break;
         }
         _drag = Drag.None; _preview = null; _dragScreenDelta = Vector2.Zero; _axis = SceneHandleKind.Free;
         Refresh();
+    }
+
+    // ---- タイル描き込み (Brush/Rect/Eraser/Picker) ----
+
+    private void ToolDown(ISceneTileAdapter tile, int layerId, Vector2 local)
+    {
+        // 開始点はレイヤ内であること (clamp しない — 枠外クリックで塗らない)
+        if (tile.CellAt(_state.Doc, layerId, local, clamp: false) is not { } cell) return;
+        _paintLayer = layerId;
+        switch (Tool)
+        {
+            case SceneTool.Picker:
+                ActiveTile = _state.Doc.Layer(layerId).Cell(cell.X, cell.Y);
+                break;
+            case SceneTool.Brush or SceneTool.Eraser:
+                _drag = Drag.Paint;
+                _stroke.Clear();
+                _lastCell = cell;
+                _stroke[cell] = PaintValue();
+                _preview = PaintPreview();
+                break;
+            case SceneTool.Rect:
+                _drag = Drag.PaintRect;
+                _stroke.Clear();
+                _rectA = _rectB = cell;
+                RebuildRectStroke();
+                _preview = PaintPreview();
+                break;
+        }
+    }
+
+    private int PaintValue() => Tool == SceneTool.Eraser ? 0 : ActiveTile;
+
+    // ブラシの前回セル → 現在セルを直線補間で埋める (速いドラッグでも途切れない)
+    private void StampLine((int X, int Y) a, (int X, int Y) b)
+    {
+        int n = Math.Max(Math.Abs(b.X - a.X), Math.Abs(b.Y - a.Y));
+        int tileValue = PaintValue();
+        for (int i = 0; i <= n; i++)
+        {
+            float t = n == 0 ? 1 : (float)i / n;
+            var c = ((int)MathF.Round(a.X + (b.X - a.X) * t), (int)MathF.Round(a.Y + (b.Y - a.Y) * t));
+            _stroke[c] = tileValue;
+        }
+    }
+
+    private void RebuildRectStroke()
+    {
+        _stroke.Clear();
+        int tileValue = PaintValue();
+        for (int y = Math.Min(_rectA.Y, _rectB.Y); y <= Math.Max(_rectA.Y, _rectB.Y); y++)
+            for (int x = Math.Min(_rectA.X, _rectB.X); x <= Math.Max(_rectA.X, _rectB.X); x++)
+                _stroke[(x, y)] = tileValue;
+    }
+
+    // ストローク集計 → プレビュー状態 (履歴に積まない)
+    private SceneEditState PaintPreview()
+        => _state.Apply(new PaintTiles(_paintLayer, _stroke.Select(kv => new TilePaint(kv.Key.X, kv.Key.Y, kv.Value)).ToList())).State;
+
+    // drop で 1 ストローク = 1 PaintTiles = 1 undo (値の変わらないセルは除外、全部同値なら記録なし)
+    private void CommitStroke()
+    {
+        TileLayer layer = _state.Doc.Layer(_paintLayer);
+        var cells = _stroke
+            .Where(kv => layer.Cell(kv.Key.X, kv.Key.Y) != kv.Value)
+            .Select(kv => new TilePaint(kv.Key.X, kv.Key.Y, kv.Value))
+            .ToList();
+        _stroke.Clear();
+        if (cells.Count > 0) Apply(_state.Apply(new PaintTiles(_paintLayer, cells)));
     }
 
     private bool OnKey(KeyEvent ev)

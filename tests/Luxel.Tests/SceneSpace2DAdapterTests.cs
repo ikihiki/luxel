@@ -56,6 +56,21 @@ public class SceneSpace2DAdapterTests
     }
 
     [Fact]
+    public void CellAt_MapsAndClamps()
+    {
+        var ad = new SceneSpace2DAdapter();   // zoom=1, pan=0 → local = world
+        var layer = TileLayer.Of(1, "g", "res://t.json", 32, 4, 3);
+        var doc = SceneDoc.Of(SceneSpace.TwoD, [], [layer]);
+        Assert.Equal((2, 1), ad.CellAt(doc, 1, new Vector2(70, 40), clamp: false));
+        Assert.Null(ad.CellAt(doc, 1, new Vector2(-5, 40), clamp: false));       // 範囲外
+        Assert.Equal((0, 1), ad.CellAt(doc, 1, new Vector2(-5, 40), clamp: true));
+        Assert.Equal((3, 2), ad.CellAt(doc, 1, new Vector2(500, 500), clamp: true));
+        Assert.Null(ad.CellAt(doc, 9, new Vector2(0, 0), clamp: true));          // 無いレイヤ
+        // セル中心の local 座標 (play 用)
+        Assert.Equal(new Vector2(80, 48), ad.CellLocalCenter(doc, 1, 2, 1));
+    }
+
+    [Fact]
     public void OffsetDuplicate_ShiftsPos()
     {
         var ad = new SceneSpace2DAdapter();

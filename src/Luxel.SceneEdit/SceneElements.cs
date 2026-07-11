@@ -156,4 +156,21 @@ public sealed class TileLayer
         if ((uint)x >= (uint)Width || (uint)y >= (uint)Height) throw new ArgumentOutOfRangeException($"({x},{y})");
         return Cells[y * Width + x];
     }
+
+    /// <summary>セル群を書き換えた新しいレイヤ (範囲外は例外)。同座標が複数あれば後勝ち。</summary>
+    public TileLayer WithCells(IEnumerable<TilePaint> paints)
+    {
+        var cells = new int[Cells.Count];
+        for (int i = 0; i < cells.Length; i++) cells[i] = Cells[i];
+        foreach (TilePaint p in paints)
+        {
+            if ((uint)p.X >= (uint)Width || (uint)p.Y >= (uint)Height)
+                throw new ArgumentOutOfRangeException($"({p.X},{p.Y})");
+            cells[p.Y * Width + p.X] = p.Tile;
+        }
+        return new TileLayer(Id, Name, TileSet, CellSize, Width, Height, cells);
+    }
 }
+
+/// <summary>タイル描き込みの 1 セル分 (レイヤ座標 + タイル番号。0 = 消し)。</summary>
+public readonly record struct TilePaint(int X, int Y, int Tile);

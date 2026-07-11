@@ -67,7 +67,7 @@ Workbench (ADR-0010〜0014) の上に、**ゲームを最初から最後まで �
 ### GE-1 — シーンエディタ (2 ステージ)
 
 - **S1 変更モデル + ビュー骨格**: ✅ **完了 (2026-07-11, Q46)** — ADR-0016 Accepted。設計判断の追加分: viewport はコア状態でなく**空間アダプタ所有**、削除の undo は**元の描画順位置へ復活** (AddEntity に挿入 Index)、移動/インスペクタ編集は **SetField 1 本** (形ベース SceneValue で 2D/3D 共通)。詳細は NEXT.md Q46 の完了ログと ADR-0016。
-- **S2 タイル描き込み**: TileSet パレットペイン + ブラシ/矩形/消しゴム/スポイト、`PaintTiles` change (ストローク 1 回 = 1 undo に coalesce)、`TileMapLayer` 描画流用。story + golden。
+- **S2 タイル描き込み**: ✅ **完了 (2026-07-11, Q47)** — PaintTiles change (座標重複禁止を Apply 検証) + SceneTool + `ISceneTileAdapter` (タイルは 2D 機能なので基底アダプタと分離、`is` 判定でツール有効化)。**MD 差**: タイル表示はエディタ用プレースホルダ色 — TileMapLayer/実アトラス流用は **GE-2/GE-3 のアセット配線後に差し替え** (SpriteAtlas 実テクスチャが要るため)。パレットは story 内 Button 合成 (専用ペインは Studio シェルで判断)。詳細は NEXT.md Q47 完了ログ。
 **罠**: ドラッグ中はプレビュー状態で描き drop で 1 change 記録 (NodeGraphView の MoveNodes と同じ)。タイル座標系と world 座標の変換は geometry 層に閉じる。**シェルにスクリーン↔ワールドの直計算を書かない** (必ずアダプタ経由 — 3D アダプタ追加時の唯一の保険)。
 
 ### GE-2 — インスペクタ + アセットパイプライン

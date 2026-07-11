@@ -93,6 +93,30 @@ public sealed record SetField(int EntityId, string Type, string Field, SceneValu
 }
 
 /// <summary>
+/// タイルレイヤへの描き込み 1 ストローク分 (ブラシ/矩形/消しゴム共通 — 消しは Tile=0)。
+/// **1 ストローク = 1 change = 1 undo**。<see cref="Cells"/> の座標は重複なしであること
+/// (view のストローク集計 [dict] が保証する契約 — 重複があると逆適用の復元順が不定になるため
+/// Apply が検証する)。逆 = 同じ座標の描き込み前の値。
+/// </summary>
+public sealed record PaintTiles(int LayerId, IReadOnlyList<TilePaint> Cells) : SceneChange
+{
+    public override SceneDoc Apply(SceneDoc doc)
+    {
+        var seen = new HashSet<(int, int)>();
+        foreach (TilePaint p in Cells)
+            if (!seen.Add((p.X, p.Y)))
+                throw new ArgumentException($"PaintTiles の座標重複: ({p.X},{p.Y})");
+        return doc.ReplaceLayer(doc.Layer(LayerId).WithCells(Cells));
+    }
+
+    public override IReadOnlyList<SceneChange> InvertAgainst(SceneDoc doc)
+    {
+        TileLayer layer = doc.Layer(LayerId);
+        return [new PaintTiles(LayerId, Cells.Select(p => new TilePaint(p.X, p.Y, layer.Cell(p.X, p.Y))).ToList())];
+    }
+}
+
+/// <summary>
 /// 変更の列 — GraphChangeSet 相当。1 トランザクションが束ねる変更の単位で、まとめて適用/反転する。
 /// <see cref="InvertAgainst"/> は各変更を**適用直前**の中間 Doc に対して反転し、逆順に並べて返す。
 /// </summary>

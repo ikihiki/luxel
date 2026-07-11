@@ -72,4 +72,11 @@ public sealed class SceneDoc
         _ = Entity(entity.Id);
         return new SceneDoc(Space, Entities.Select(e => e.Id == entity.Id ? entity : e).ToList(), TileLayers);
     }
+
+    /// <summary>同 id のタイルレイヤを差し替えた新しい Doc (無ければ例外)。</summary>
+    public SceneDoc ReplaceLayer(TileLayer layer)
+    {
+        _ = Layer(layer.Id);
+        return new SceneDoc(Space, Entities, TileLayers.Select(l => l.Id == layer.Id ? layer : l).ToList());
+    }
 }

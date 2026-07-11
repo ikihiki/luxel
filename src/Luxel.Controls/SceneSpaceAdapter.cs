@@ -66,11 +66,29 @@ public interface ISceneSpaceAdapter
 }
 
 /// <summary>
-/// 2D 空間アダプタ — pan/zoom は world コンテナの <see cref="Affine2D"/> 変換 (ヒットが自動追従、
-/// NodeGraphView と同じ手筋)。エンティティは `transform2d.pos` を中心とする定型ボックスで表示する
-/// (見た目のスプライト対応は GE-2/GE-3)。ハンドルは画面空間に固定サイズで描く (zoom 非依存)。
+/// タイル描き込みに対応する空間アダプタの追加口 (ADR-0016)。タイルは 2D 空間の機能なので
+/// 基底の <see cref="ISceneSpaceAdapter"/> には載せない — シェルは <c>is</c> 判定で
+/// ツールを有効化する (3D アダプタが実装しなければタイルツールが出ないだけ)。
 /// </summary>
-public sealed class SceneSpace2DAdapter : ISceneSpaceAdapter
+public interface ISceneTileAdapter
+{
+    /// <summary>view-local 点が指すレイヤセル座標。<paramref name="clamp"/>=true はレイヤ範囲へ
+    /// クランプ (ストローク継続用)、false は範囲外 null。</summary>
+    (int X, int Y)? CellAt(SceneDoc doc, int layerId, Vector2 local, bool clamp);
+
+    /// <summary>セル中心の view-local 座標 (play/テスト用)。</summary>
+    Vector2 CellLocalCenter(SceneDoc doc, int layerId, int x, int y);
+}
+
+/// <summary>
+/// 2D 空間アダプタ — pan/zoom は world コンテナの <see cref="Affine2D"/> 変換 (ヒットが自動追従、
+/// NodeGraphView と同じ手筋)。エンティティは `transform2d.pos` を中心とする定型ボックス、タイルは
+/// **エディタ用プレースホルダ色** (タイル番号 → 決定的パレット) の矩形で表示する — 実アトラス描画
+/// (TileSet/SpriteAtlas) はアセット配線後の GE-2/GE-3 で差し替える。ハンドルは画面空間に
+/// 固定サイズで描く (zoom 非依存)。タイルレイヤの原点は world (0,0)、セル (x,y) は
+/// [x·cell, (x+1)·cell] × [y·cell, (y+1)·cell]。
+/// </summary>
+public sealed class SceneSpace2DAdapter : ISceneSpaceAdapter, ISceneTileAdapter
 {
     /// <summary>グリッド/スナップの間隔 (world)。</summary>
     public float GridStep { get; init; } = 32f;
@@ -84,7 +102,7 @@ public sealed class SceneSpace2DAdapter : ISceneSpaceAdapter
     private float _fs = 13;
     private VectorFont? _font;
 
-    private UiNode _worldN = null!, _gridN = null!, _fillN = null!, _strokeN = null!, _selStrokeN = null!, _nameN = null!, _handleN = null!;
+    private UiNode _worldN = null!, _gridN = null!, _tileN = null!, _layerN = null!, _fillN = null!, _strokeN = null!, _selStrokeN = null!, _nameN = null!, _handleN = null!;
 
     private const float HandleLen = 44f;      // 中心→矢印先端 (画面 px)
     private const float HandleGrab = 8f;      // ハンドルのヒット許容 (画面 px)
@@ -113,10 +131,12 @@ public sealed class SceneSpace2DAdapter : ISceneSpaceAdapter
         _viewW = viewW; _viewH = viewH; _font = font;
         _worldN = world;
         _gridN = ctx.Canvas.AddChild(world); _gridN.Z = 0;
-        _fillN = ctx.Canvas.AddChild(world); _fillN.Z = 1;
-        _strokeN = ctx.Canvas.AddChild(world); _strokeN.Z = 2;
-        _selStrokeN = ctx.Canvas.AddChild(world); _selStrokeN.Z = 3;
-        _nameN = ctx.Canvas.AddChild(world); _nameN.Z = 4;
+        _tileN = ctx.Canvas.AddChild(world); _tileN.Z = 1; _tileN.ContentColors = true;   // タイルは固定パレット色
+        _layerN = ctx.Canvas.AddChild(world); _layerN.Z = 2;                              // レイヤ境界 (テーマ色)
+        _fillN = ctx.Canvas.AddChild(world); _fillN.Z = 3;
+        _strokeN = ctx.Canvas.AddChild(world); _strokeN.Z = 4;
+        _selStrokeN = ctx.Canvas.AddChild(world); _selStrokeN.Z = 5;
+        _nameN = ctx.Canvas.AddChild(world); _nameN.Z = 6;
         // ハンドルは固定色 2 色 (X=赤/Y=緑 の慣習) を焼き込むので ContentColors
         _handleN = ctx.Canvas.AddChild(overlay); _handleN.Z = 10; _handleN.ContentColors = true;
     }
@@ -125,12 +145,14 @@ public sealed class SceneSpace2DAdapter : ISceneSpaceAdapter
     {
         _fs = theme.FontSm;
         _gridN.Color = Styles.WithAlpha(theme.BorderColor, 40);
+        _layerN.Color = Styles.WithAlpha(theme.TextMuted, 120);
         _fillN.Color = theme.Surface;
         _strokeN.Color = theme.BorderColor;
         _selStrokeN.Color = theme.Primary;
         _nameN.Color = theme.Text;
         _worldN.Transform = new Affine2D { A = _zoom, B = 0, C = 0, D = _zoom, E = _pan.X, F = _pan.Y };
         DrawGrid();
+        DrawTiles(state);
         DrawEntities(state);
         DrawHandles(state);
     }
@@ -215,6 +237,35 @@ public sealed class SceneSpace2DAdapter : ISceneSpaceAdapter
 
     public Vector2 LocalOfPlane(Vector2 world) => ToLocal(world);
 
+    // ---- ISceneTileAdapter ----
+
+    public (int X, int Y)? CellAt(SceneDoc doc, int layerId, Vector2 local, bool clamp)
+    {
+        if (doc.TryLayer(layerId) is not { } layer) return null;
+        Vector2 w = ToWorld(local);
+        int x = (int)MathF.Floor(w.X / layer.CellSize);
+        int y = (int)MathF.Floor(w.Y / layer.CellSize);
+        if (clamp)
+            return (Math.Clamp(x, 0, layer.Width - 1), Math.Clamp(y, 0, layer.Height - 1));
+        return x >= 0 && x < layer.Width && y >= 0 && y < layer.Height ? (x, y) : null;
+    }
+
+    public Vector2 CellLocalCenter(SceneDoc doc, int layerId, int x, int y)
+    {
+        TileLayer layer = doc.Layer(layerId);
+        return ToLocal(new Vector2((x + 0.5f) * layer.CellSize, (y + 0.5f) * layer.CellSize));
+    }
+
+    /// <summary>エディタ用のタイル色 (決定的パレット — 実アトラス描画は GE-2/GE-3 で差し替え)。</summary>
+    internal static uint TileColor(int tile) => tile switch
+    {
+        1 => Color2D.Rgba(106, 170, 100),   // 草
+        2 => Color2D.Rgba(160, 120, 84),    // 土
+        3 => Color2D.Rgba(140, 144, 152),   // 石
+        4 => Color2D.Rgba(222, 186, 92),    // 金
+        _ => Color2D.Rgba((byte)(70 + tile * 53 % 150), (byte)(70 + tile * 97 % 150), (byte)(70 + tile * 29 % 150)),
+    };
+
     // ---- 描画 ----
 
     private void DrawGrid()
@@ -230,6 +281,26 @@ public sealed class SceneSpace2DAdapter : ISceneSpaceAdapter
             for (float y = y0; y <= br.Y && guard < 1000; y += GridStep, guard++) s.StrokeLine(Color2D.White, 1, tl.X, y, br.X, y);
         }
         _gridN.Content = s;
+    }
+
+    // タイルレイヤ: 非ゼロセルをパレット色の矩形で + レイヤ境界の枠
+    private void DrawTiles(SceneEditState state)
+    {
+        var tiles = new Scene2D();
+        var bounds = new Scene2D();
+        foreach (TileLayer layer in state.Doc.TileLayers)
+        {
+            float cs = layer.CellSize;
+            for (int y = 0; y < layer.Height; y++)
+                for (int x = 0; x < layer.Width; x++)
+                {
+                    int t = layer.Cell(x, y);
+                    if (t != 0) tiles.FillRect(TileColor(t), x * cs, y * cs, cs, cs);
+                }
+            bounds.StrokeRoundedRect(Color2D.White, 1, 0, 0, layer.Width * cs, layer.Height * cs, 0);
+        }
+        _tileN.Content = tiles;
+        _layerN.Content = bounds;
     }
 
     private void DrawEntities(SceneEditState state)
