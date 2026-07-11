@@ -59,6 +59,7 @@
     <ProjectReference Include="..\..\src\Luxel.Document\Luxel.Document.csproj" />
     <ProjectReference Include="..\..\src\Luxel.NodeGraph\Luxel.NodeGraph.csproj" />
     <ProjectReference Include="..\..\src\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Player\Luxel.Player.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Workbench\Luxel.Workbench.csproj" />
     <!-- テスト用コンポーネント (TestBadge) にファクトリ/デバッグコードを焼き込む -->
     <ProjectReference Include="..\..\src\Luxel.UI.Generators\Luxel.UI.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU" />

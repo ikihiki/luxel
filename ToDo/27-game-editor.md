@@ -74,7 +74,9 @@ Workbench (ADR-0010〜0014) の上に、**ゲームを最初から最後まで �
 
 実装済み。**MD 差**: ① インスペクタは PropertyGrid 流用でなく **`SceneInspector`** (IComponentSchema 駆動) を新設 — PropertyGrid はリフレクションベースでスキーマ駆動の SceneComponent に合わない。編集は `SceneEditorView.ApplyEdit` の Transaction 経由 (undo 可)。② atlas 定義エディタは ObjectDocument\<T\> でなく PropertyGrid 直結 + `AtlasDefJson` (決定的 JSON を正とする)。Quat はオイラー度表示・Quat 保存 (`SceneRotation`)。取り込みはパス入力。詳細と罠 (Revision は Peek ベース必須/story snap は幅 480) は NEXT.md Q48 完了ログ。
 
-### GE-3 — Luxel.Player (データ駆動ランタイム)
+### GE-3 — Luxel.Player (データ駆動ランタイム) — S1 ✅ 完了 (2026-07-11, Q49)、S2 (csx) = Q49b・S3 (exe) = Q49c
+
+S1 実装済み: `Luxel.Player` (PlayerLoader/SceneCompiler/Player2DWorld)。**MD 差**: 読込は IFileStorage でなく **IVirtualFileSystem** (ランタイムは読み取り専用 — 層の分離)。transform2d は第一級フィールドに展開 (データ袋から除外)。TilePalette を SceneEdit へ切り出しエディタ/ランタイムで見た目共有。衝突 (QueryAabb/Sweep) は TileSet の solid 定義が要るため S2 以降で AtlasDef 拡張と合わせて。詳細は NEXT.md Q49 完了ログ。
 
 `Luxel.Player` プロジェクト新設: `GameProject` を読み `SceneCompiler` で ECS world/TileMap/アトラス/カメラを構築、`LuxelHostBuilder` + `GameScene` で駆動。**コンパイラはコア + space 別バックエンドに分割 (原則 5)、M11 は 2D バックエンドのみ実装** (3D は space="3d" で NotSupported を明示、M12 で追加)。入力 = InputAction (project.luxel でバインド宣言)、衝突 = QueryAabb/Sweep、音 = res:// の wav。**csx ビヘイビア** (ADR-0018): Behaviour コンポーネント → ScriptSystem Attach、globals は空間非依存の共通部 + space 別拡張 (原則 6)。exe `Luxel.Player.App` (引数 = プロジェクトフォルダ)。検証 = 単体 (コンパイラ/往復) + fixture プロジェクトを Gallery story で実体化 (golden) + 実窓スモーク。
 **罠**: e2e に音を出させない — `HeadlessAudio` 判定に乗せる ([[luxel-e2e-headless-audio]] 方式)。スクリプトは固定 dt の Update フックのみ (wall-clock 禁止) で決定性を守る。

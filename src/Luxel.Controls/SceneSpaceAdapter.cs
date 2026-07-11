@@ -256,15 +256,9 @@ public sealed class SceneSpace2DAdapter : ISceneSpaceAdapter, ISceneTileAdapter
         return ToLocal(new Vector2((x + 0.5f) * layer.CellSize, (y + 0.5f) * layer.CellSize));
     }
 
-    /// <summary>エディタ用のタイル色 (決定的パレット — 実アトラス描画は GE-2/GE-3 で差し替え)。</summary>
-    internal static uint TileColor(int tile) => tile switch
-    {
-        1 => Color2D.Rgba(106, 170, 100),   // 草
-        2 => Color2D.Rgba(160, 120, 84),    // 土
-        3 => Color2D.Rgba(140, 144, 152),   // 石
-        4 => Color2D.Rgba(222, 186, 92),    // 金
-        _ => Color2D.Rgba((byte)(70 + tile * 53 % 150), (byte)(70 + tile * 97 % 150), (byte)(70 + tile * 29 % 150)),
-    };
+    /// <summary>エディタ用のタイル色 — ランタイム (Luxel.Player) と共有の <see cref="TilePalette"/>
+    /// (実アトラス描画が配線されたら差し替え)。</summary>
+    internal static uint TileColor(int tile) => TilePalette.ColorOf(tile);
 
     // ---- 描画 ----
 

@@ -45,6 +45,8 @@
     <ProjectReference Include="..\Luxel.Particles.ThreeD\Luxel.Particles.ThreeD.csproj" />
     <ProjectReference Include="..\Luxel.Particles.UI\Luxel.Particles.UI.csproj" />
     <ProjectReference Include="..\Luxel.Scripting.Framework\Luxel.Scripting.Framework.csproj" />
+    <!-- データ駆動ゲームランタイム (ToDo 27 GE-3) — Apps/Player ストーリーでホスト -->
+    <ProjectReference Include="..\Luxel.Player\Luxel.Player.csproj" />
     <!-- capstone ① 「Luxel Cavern」のゲームロジックを Game/Cavern ストーリーでホスト (ToDo 19) -->
     <ProjectReference Include="..\..\samples\LuxelCavern\LuxelCavern.Core\LuxelCavern.Core.csproj" />
     <ProjectReference Include="..\..\samples\LuxelRange\LuxelRange.Core\LuxelRange.Core.csproj" />
