@@ -62,6 +62,7 @@ public static partial class DocsAdr
         - [ADR-0014 — Workbench 基盤 UI コントロール群を新設する](story:ADR/0014-Workbench-Ui-Controls) — **Accepted** (2026-07-09)
         - [ADR-0015 — ゲームプロジェクト/シーン形式はエディタ専用モデル + 一方向コンパイルにする](story:ADR/0015-Game-Project-Scene-Format) — **Accepted** (2026-07-10)
         - [ADR-0016 — シーンエディタは第 3 の Transaction スタック + 空間アダプタで作る](story:ADR/0016-Scene-Editor-Stack) — **Accepted** (2026-07-11)
+        - [ADR-0017 — プレイインエディタは「都度コンパイル + 停止で破棄」の別インスタンスで動かす](story:ADR/0017-Play-In-Editor) — **Accepted** (2026-07-11)
         - [ADR-0018 — ゲームの挙動は csx ビヘイビア (状態レス Update) で書く](story:ADR/0018-Csx-Behaviour-Model) — **Accepted** (2026-07-11)
 
         ## 参考

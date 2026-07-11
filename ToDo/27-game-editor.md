@@ -83,7 +83,9 @@ S1 実装済み: `Luxel.Player` (PlayerLoader/SceneCompiler/Player2DWorld)。**M
 `Luxel.Player` プロジェクト新設: `GameProject` を読み `SceneCompiler` で ECS world/TileMap/アトラス/カメラを構築、`LuxelHostBuilder` + `GameScene` で駆動。**コンパイラはコア + space 別バックエンドに分割 (原則 5)、M11 は 2D バックエンドのみ実装** (3D は space="3d" で NotSupported を明示、M12 で追加)。入力 = InputAction (project.luxel でバインド宣言)、衝突 = QueryAabb/Sweep、音 = res:// の wav。**csx ビヘイビア** (ADR-0018): Behaviour コンポーネント → ScriptSystem Attach、globals は空間非依存の共通部 + space 別拡張 (原則 6)。exe `Luxel.Player.App` (引数 = プロジェクトフォルダ)。検証 = 単体 (コンパイラ/往復) + fixture プロジェクトを Gallery story で実体化 (golden) + 実窓スモーク。
 **罠**: e2e に音を出させない — `HeadlessAudio` 判定に乗せる ([[luxel-e2e-headless-audio]] 方式)。スクリプトは固定 dt の Update フックのみ (wall-clock 禁止) で決定性を守る。
 
-### GE-4 — プレイインエディタ
+### GE-4 — プレイインエディタ — ✅ 完了 (2026-07-11, Q50)
+
+ADR-0017 Accepted: ▶ = 都度コンパイル (別インスタンス・一方向) / ⏹ = 破棄 / ⏸⏭ = 固定 dt。**MD 差**: gizmo/DevStats オーバーレイとプレイ中インスペクタは Studio シェル統合 (GE-7) 時に。詳細は NEXT.md Q50 完了ログ。
 
 Studio に ▶/⏸/ステップ/⏹: プレイ用 world を SceneCompiler で構築しエディタ内 viewport タブで固定 dt 駆動 (別インスタンス、停止で破棄)。Gizmos2D/DevStats オーバーレイトグル。プレイ中のインスペクタは読み取り表示 (書き込みは v2)。ADR-0017 起草。story play (▶ → 数ステップ → snap → ⏹ → 編集状態が不変) + golden。
 **罠**: エディタ UI とゲーム viewport の入力ルーティング (viewport フォーカス時のみゲームへ)。プレイ中のシーン保存は禁止 (編集 doc は触っていないので本来安全だが、UI 上グレーアウト)。
