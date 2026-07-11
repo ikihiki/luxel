@@ -74,9 +74,9 @@ Workbench (ADR-0010〜0014) の上に、**ゲームを最初から最後まで �
 
 実装済み。**MD 差**: ① インスペクタは PropertyGrid 流用でなく **`SceneInspector`** (IComponentSchema 駆動) を新設 — PropertyGrid はリフレクションベースでスキーマ駆動の SceneComponent に合わない。編集は `SceneEditorView.ApplyEdit` の Transaction 経由 (undo 可)。② atlas 定義エディタは ObjectDocument\<T\> でなく PropertyGrid 直結 + `AtlasDefJson` (決定的 JSON を正とする)。Quat はオイラー度表示・Quat 保存 (`SceneRotation`)。取り込みはパス入力。詳細と罠 (Revision は Peek ベース必須/story snap は幅 480) は NEXT.md Q48 完了ログ。
 
-### GE-3 — Luxel.Player (データ駆動ランタイム) — S1/S2 ✅ 完了 (2026-07-11, Q49/Q49b)、S3 (exe) = Q49c
+### GE-3 — Luxel.Player (データ駆動ランタイム) — ✅ 全完了 (2026-07-11, Q49/Q49b/Q49c)
 
-S2 実装済み: ADR-0018 Accepted — csx = 状態レス Update 関数 (1 スクリプト 1 コンパイル共有、状態はコンポーネント)、失敗契約 = 旧維持/無効化 + 診断 + Reload 復帰。`SceneSchemas.Behaviour` 組み込み。
+S1 = ローダ/SceneCompiler/Player2DWorld、S2 = csx ビヘイビア (ADR-0018 Accepted: 状態レス Update・失敗契約)、S3 = `Luxel.Player.App` exe (`samples/PlayerDemo` 同梱、vk/dx スモーク exit 0、キー入力 = KeysDown)。**MD 差**: 音は dogfood まで未配線、InputAction 宣言も GE-7 で、衝突は AtlasDef の solid 拡張と合わせて後段。詳細は NEXT.md Q49/Q49b/Q49c 完了ログ。
 
 S1 実装済み: `Luxel.Player` (PlayerLoader/SceneCompiler/Player2DWorld)。**MD 差**: 読込は IFileStorage でなく **IVirtualFileSystem** (ランタイムは読み取り専用 — 層の分離)。transform2d は第一級フィールドに展開 (データ袋から除外)。TilePalette を SceneEdit へ切り出しエディタ/ランタイムで見た目共有。衝突 (QueryAabb/Sweep) は TileSet の solid 定義が要るため S2 以降で AtlasDef 拡張と合わせて。詳細は NEXT.md Q49 完了ログ。
 

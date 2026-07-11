@@ -1,0 +1,5 @@
+{
+  "name": "Player Demo",
+  "startScene": "res://scenes/main.scene.json",
+  "window": { "width": 640, "height": 360 }
+}

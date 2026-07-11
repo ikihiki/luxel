@@ -93,6 +93,11 @@ public sealed class Player2DWorld
     /// <summary>累積時間 (固定 dt の合計)。</summary>
     public float Time { get; private set; }
 
+    /// <summary>現在押されているキー名 (exe が毎ステップ供給。"A"/"Left"/"Space" 等) —
+    /// csx が <c>world.KeysDown.Contains("Right")</c> で読む。InputAction 宣言 (project.luxel) は
+    /// dogfood (GE-7) で必要になったら載せる。</summary>
+    public HashSet<string> KeysDown { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     public PlayerEntity Entity(int id) => _byId.TryGetValue(id, out PlayerEntity? e) ? e : throw new KeyNotFoundException($"エンティティが無い: {id}");
 
     /// <summary>名前で引く (最初の一致。無ければ null)。</summary>
