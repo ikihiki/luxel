@@ -180,6 +180,39 @@ public class SceneEditCoreTests
         Assert.Equal(SceneValueKind.Text, SceneFieldTypes.KindOf(SceneFieldType.AssetRef));
     }
 
+    // ---- SceneRotation (Quat ↔ オイラー、インスペクタ表示用) ----
+
+    [Fact]
+    public void Rotation_EulerQuatRoundTrip()
+    {
+        // 一般姿勢: オイラー → Quat → オイラーで角度が戻る
+        var e = new Vector3(20, 30, 10);
+        Vector3 back = SceneRotation.ToEulerDegrees(SceneRotation.FromEulerDegrees(e));
+        Assert.True((back - e).Length() < 0.01f, $"往復誤差: {back}");
+        // Quat → オイラー → Quat は「同じ回転」(q と -q は同一視)
+        var q = Quaternion.CreateFromYawPitchRoll(1.2f, 0.4f, -0.7f);
+        Quaternion q2 = SceneRotation.FromEulerDegrees(SceneRotation.ToEulerDegrees(q));
+        float dot = MathF.Abs(Quaternion.Dot(Quaternion.Normalize(q), Quaternion.Normalize(q2)));
+        Assert.True(dot > 0.9999f, $"回転が変わった: dot={dot}");
+        Assert.Equal(Vector3.Zero, SceneRotation.ToEulerDegrees(Quaternion.Identity));
+    }
+
+    // ---- AtlasDef ----
+
+    [Fact]
+    public void Atlas_RoundTripsAndValidates()
+    {
+        var a = new AtlasDef { Image = "res://assets/tiles.png", TileWidth = 16, TileHeight = 24 };
+        string json = AtlasDefJson.Serialize(a);
+        Assert.Equal(json, AtlasDefJson.Serialize(AtlasDefJson.Deserialize(json)));   // 決定的往復
+        AtlasDef back = AtlasDefJson.Deserialize(json);
+        Assert.Equal(("res://assets/tiles.png", 16, 24), (back.Image, back.TileWidth, back.TileHeight));
+        // 未設定 (空 Image) は許す、res:// でないパスと非正サイズは拒否
+        Assert.Equal("", AtlasDefJson.Deserialize("""{"image":""}""").Image);
+        Assert.Throws<ArgumentException>(() => AtlasDefJson.Deserialize("""{"image":"C:/x.png"}"""));
+        Assert.Throws<FormatException>(() => AtlasDefJson.Deserialize("""{"image":"","tileWidth":0}"""));
+    }
+
     // ---- GameProject / ResPath ----
 
     [Fact]

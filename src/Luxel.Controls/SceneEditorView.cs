@@ -99,6 +99,15 @@ public sealed partial class SceneEditorView : Widget
     /// <summary>redo できるか。</summary>
     public bool CanRedo => _history.CanRedo;
 
+    /// <summary>状態 (文書/選択) が確定的に変わるたび増える — インスペクタ等の外部ビューが
+    /// 購読して作り直す (ドラッグ中のプレビューでは増えない)。</summary>
+    public Signal<int> Revision { get; } = new(0);
+
+    /// <summary>外部 (インスペクタ等) からの編集を 1 トランザクションとして適用する
+    /// (履歴に積まれ undo 可能 — **状態を直接いじらずこれを通すこと**)。</summary>
+    public void ApplyEdit(params SceneChange[] changes)
+        => Apply(_state.Update(new SceneTransactionSpec { Changes = changes }));
+
     /// <summary>2D シーンのエンティティ位置 (transform2d.pos)。play/テストの便宜。</summary>
     public Vector2 EntityPos2D(int id)
         => _state.Doc.Entity(id).Component("transform2d")?.Get("pos")?.AsVec2() ?? default;
@@ -140,6 +149,7 @@ public sealed partial class SceneEditorView : Widget
     public void Load(SceneDoc doc)
     {
         _state = SceneEditState.Create(doc);
+        Revision.Value = Revision.Peek() + 1;
         _history.Clear();
         _preview = null; _drag = Drag.None;
         _space = null;   // space が変わりうるので作り直す
@@ -148,9 +158,9 @@ public sealed partial class SceneEditorView : Widget
     }
 
     /// <summary>undo 1 手。</summary>
-    public void Undo() { _state = _history.Undo(_state); Refresh(); OnEdit?.Invoke(this); }
+    public void Undo() { _state = _history.Undo(_state); Revision.Value = Revision.Peek() + 1; Refresh(); OnEdit?.Invoke(this); }
     /// <summary>redo 1 手。</summary>
-    public void Redo() { _state = _history.Redo(_state); Refresh(); OnEdit?.Invoke(this); }
+    public void Redo() { _state = _history.Redo(_state); Revision.Value = Revision.Peek() + 1; Refresh(); OnEdit?.Invoke(this); }
 
     /// <summary>カメラを画面量で平行移動する。</summary>
     public void Pan(Vector2 screenDelta) { _space?.Pan(screenDelta); Refresh(); }
@@ -265,12 +275,16 @@ public sealed partial class SceneEditorView : Widget
                 bool had = ids.Remove(hit);
                 if (!had) ids.Add(hit);
                 _state = SceneCommands.SelectEntities(_state, ids, had ? -1 : hit).State;
+                Revision.Value = Revision.Peek() + 1;
                 _drag = Drag.None;
             }
             else
             {
                 if (!_state.Selection.Contains(hit))
+                {
                     _state = SceneCommands.SelectEntities(_state, [hit], hit).State;
+                    Revision.Value = Revision.Peek() + 1;
+                }
                 _drag = Drag.Move;
                 _axis = SceneHandleKind.Free;
                 _dragIds = _state.Selection.Entities.ToArray();
@@ -282,6 +296,7 @@ public sealed partial class SceneEditorView : Widget
         {
             // 空白 — 選択解除して marquee 開始
             _state = SceneCommands.SelectNone(_state).State;
+            Revision.Value = Revision.Peek() + 1;
             _drag = Drag.Marquee;
             _marqStart = _marqCur = local;
         }
@@ -341,7 +356,10 @@ public sealed partial class SceneEditorView : Widget
                 break;
             case Drag.Marquee:
                 if ((_marqCur - _marqStart).LengthSquared() > 4)
+                {
                     _state = SceneCommands.SelectEntities(_state, _space.EntitiesIn(_state.Doc, _marqStart, _marqCur)).State;
+                    Revision.Value = Revision.Peek() + 1;
+                }
                 break;
             case Drag.Paint or Drag.PaintRect:
                 CommitStroke();
@@ -438,6 +456,7 @@ public sealed partial class SceneEditorView : Widget
     {
         if (tr.DocChanged) _history.Record(tr);
         _state = tr.State;
+        Revision.Value = Revision.Peek() + 1;
         Refresh();
         if (tr.DocChanged) OnEdit?.Invoke(this);
     }

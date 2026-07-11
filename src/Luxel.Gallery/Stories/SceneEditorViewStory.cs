@@ -2,6 +2,7 @@ using System.Numerics;
 using Luxel.Controls;
 using Luxel.SceneEdit;
 using Luxel.UI;
+using Luxel.Workbench;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
 
@@ -159,5 +160,147 @@ public static class SceneEditorViewStory
                 HStack(6)[select, brush, rect, erase, pick, grass, dirt, stone, gold],
                 Text($"{status}", 13, color: Bind.From(() => UiTheme.T.TextMuted)),
                 ed]];
+    }
+
+    // ゲーム固有スキーマの例 (敵 AI + 着色) — 登録するだけでインスペクタに出る
+    private static readonly IComponentSchema EnemySchema = new ComponentSchema(
+        "enemy", "Enemy AI", SceneSpaces.TwoD,
+        [
+            new SceneFieldDef("speed", SceneFieldType.Float, SceneValue.Of(60f)),
+            new SceneFieldDef("patrol", SceneFieldType.Bool, SceneValue.Of(false)),
+            new SceneFieldDef("mode", SceneFieldType.Enum, SceneValue.Of("idle"), ["idle", "chase"]),
+        ]);
+
+    private static readonly IComponentSchema TintSchema = new ComponentSchema(
+        "tint", "Tint", SceneSpaces.Both,
+        [new SceneFieldDef("color", SceneFieldType.Color, SceneValue.Of(new Vector4(1, 1, 1, 1)))]);
+
+    // snap は幅 480 なので、golden に写したいもの (インスペクタ) を左に置く
+    [Story("Controls/SceneEditorView/Inspector", Height = 480, Order = 3)]
+    public static Widget Inspector(StoryContext ctx)
+    {
+        SchemaRegistry reg = SceneSchemas.BuiltIns().Add(EnemySchema).Add(TintSchema);
+
+        SceneEntity E(int id, string name, float x, float y, params SceneComponent[] extra)
+            => SceneEntity.Of(id, name, extra.Prepend(
+                SceneSchemas.NewComponent(SceneSchemas.Transform2D).With("pos", SceneValue.Of(new Vector2(x, y)))));
+        var scene = SceneDoc.Of(SceneSpace.TwoD,
+            [E(1, "Player", 100, 90), E(2, "Enemy", 180, 190, SceneSchemas.NewComponent(EnemySchema))]);
+
+        SceneEditorView ed = SceneEditorView(source: scene, viewWidth: 300f, viewHeight: 350f);
+        SceneInspector insp = SceneInspector(editor: ed, schemas: reg, width: 230f);
+
+        ctx.Play("inspect", async d =>
+        {
+            Vector2 p2 = ed.EntityScreenCenter(2);
+            await d.Click(p2.X, p2.Y);                   // Enemy を選択 → インスペクタに 2 コンポーネント
+            await d.Expect(() => insp.EditorOf("enemy", "patrol") is not null, "スキーマの行が出る");
+            await d.Snap();
+            await d.Click(insp.EditorOf("enemy", "patrol")!);   // Check をトグル = SetField 1 undo
+            bool Patrol() => ed.Scene.Doc.Entity(2).Component("enemy")!.Get("patrol")!.Value.AsBool();
+            await d.Expect(() => Patrol(), "インスペクタ編集が Transaction で反映");
+            await d.Snap("edited");
+            await d.Click(p2.X, p2.Y);                   // キャンバスへフォーカス
+            await d.Key(Key.Z, ctrl: true);
+            await d.Expect(() => !Patrol(), "インスペクタ編集も undo できる");
+        });
+
+        ctx.Play("components", async d =>
+        {
+            Vector2 p1 = ed.EntityScreenCenter(1);
+            await d.Click(p1.X, p1.Y);                   // Player を選択
+            insp.AddComponent("tint");                   // 追加ボタンと同じ経路
+            await d.Step(1);
+            await d.Expect(() => ed.Scene.Doc.Entity(1).Component("tint") is not null, "コンポーネント追加");
+            await d.Snap("added");
+            insp.RemoveComponent("tint");
+            await d.Step(1);
+            await d.Expect(() => ed.Scene.Doc.Entity(1).Component("tint") is null, "× で削除");
+            await d.Key(Key.Z, ctrl: true);              // 削除も undo できる (フォーカスはキャンバスのまま)
+            await d.Expect(() => ed.Scene.Doc.Entity(1).Component("tint") is not null, "削除の undo");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))[
+            VStack(8)[
+                Heading("SceneEditorView — インスペクタ"),
+                Muted("SceneInspector = IComponentSchema 駆動 (space で出し分け)。編集は ApplyEdit の Transaction 経由なので undo 可。スキーマ外のコンポーネントは読み取り表示で保全。"),
+                HStack(12)[insp, ed]]];
+    }
+
+    [Story("Controls/SceneEditorView/Assets", Height = 480, Order = 4)]
+    public static Widget Assets(StoryContext ctx)
+    {
+        // プロジェクトフォルダ相当 (golden は実 FS watch を持ち込まない = MemoryFileStorage)
+        var storage = new MemoryFileStorage();
+        storage.Write("project.luxel", GameProjectJson.Serialize(new GameProject("デモ", "res://scenes/main.scene.json")));
+        storage.Write("scenes/main.scene.json", SceneJson.Serialize(SceneDoc.Empty(SceneSpace.TwoD)));
+        storage.Write("assets/tiles.png", "(png)");
+        storage.Write("atlas/tiles.atlas.json", AtlasDefJson.Serialize(
+            new AtlasDef { Image = "res://assets/tiles.png", TileWidth = 16, TileHeight = 16 }));
+        storage.Write("sfx/coin.wav", "(wav)");
+
+        // アトラス定義エディタ (最小): 開いた *.atlas.json を PropertyGrid で編集 → 変更のたび決定的 JSON で保存
+        AtlasDef? atlasDef = null;
+        Signal<string> atlasPath = ctx.Signal("atlasPath", "(atlas 未選択)");
+        PropertyGrid atlasGrid = PropertyGrid(width: 210f, onChanged: (_, _, _) =>
+        {
+            if (atlasDef is not null && storage.Exists(atlasPath.Peek()))
+                storage.Write(atlasPath.Peek(), AtlasDefJson.Serialize(atlasDef));
+        });
+        void OpenAtlas(string path)
+        {
+            atlasDef = AtlasDefJson.Deserialize(storage.Read(path)!);
+            atlasPath.Value = path;
+            atlasGrid.Target.SetBase(new Bindable<object?>(() => atlasDef));
+            atlasGrid.Refresh();
+        }
+
+        AssetBrowser browser = AssetBrowser(storage: storage,
+            expanded: new HashSet<string> { "assets", "atlas", "scenes", "sfx" },
+            onOpen: (_, p) => { if (p.EndsWith(".atlas.json")) OpenAtlas(p); });
+
+        // 取り込み (v1: ファイルドロップ API が無いのでパス入力 → ファイル作成で代替)
+        Signal<string> importName = ctx.Signal("importName", "assets/hero.png");
+        Button importBtn = Button(_ =>
+        {
+            string p = importName.Peek().Trim();
+            if (p.Length > 0 && !storage.Exists(p)) { storage.Write(p, ""); browser.Refresh(); }
+        }, "取り込み");
+
+        ctx.Play("atlas", async d =>
+        {
+            await d.Snap();                              // ブラウザ + 未選択の atlas ペイン
+            OpenAtlas("atlas/tiles.atlas.json");         // ブラウザのクリックと同じ経路
+            await d.Step(1);
+            await d.Expect(() => atlasGrid.EditorOf("TileWidth") is not null, "atlas 定義が PropertyGrid に出る");
+            await d.Snap("opened");
+            await d.Click(atlasGrid.EditorOf("TileWidth")!);
+            await d.Key(Key.End);
+            await d.Type("0");                           // 16 → 160
+            await d.Expect(() => storage.Read("atlas/tiles.atlas.json")!.Contains("\"tileWidth\": 160"),
+                "編集のたび決定的 JSON で保存");
+            await d.Snap("saved");
+        });
+
+        ctx.Play("import", async d =>
+        {
+            await d.Expect(() => !storage.Exists("assets/hero.png"), "取り込み前は無い");
+            await d.Click(importBtn);
+            await d.Expect(() => storage.Exists("assets/hero.png"), "パス入力の取り込みで追加");
+            await d.Snap("imported");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))[
+            VStack(8)[
+                Heading("SceneEditorView — アセット + atlas 定義"),
+                Muted("AssetBrowser = IFileStorage.List のツリー。*.atlas.json を PropertyGrid で編集し AtlasDefJson (決定的) で保存。取り込みは v1 はパス入力 (ファイルドロップ API なし)。"),
+                HStack(12)[
+                    VStack(6)[
+                        Muted("アセット"),
+                        browser,
+                        HStack(6)[TextField(importName, width: 110), importBtn]],
+                    VStack(6)[
+                        Text($"{atlasPath}", 11, color: Bind.From(() => UiTheme.T.TextMuted)),
+                        atlasGrid]]]];
     }
 }

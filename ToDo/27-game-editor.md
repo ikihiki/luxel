@@ -70,10 +70,9 @@ Workbench (ADR-0010〜0014) の上に、**ゲームを最初から最後まで �
 - **S2 タイル描き込み**: ✅ **完了 (2026-07-11, Q47)** — PaintTiles change (座標重複禁止を Apply 検証) + SceneTool + `ISceneTileAdapter` (タイルは 2D 機能なので基底アダプタと分離、`is` 判定でツール有効化)。**MD 差**: タイル表示はエディタ用プレースホルダ色 — TileMapLayer/実アトラス流用は **GE-2/GE-3 のアセット配線後に差し替え** (SpriteAtlas 実テクスチャが要るため)。パレットは story 内 Button 合成 (専用ペインは Studio シェルで判断)。詳細は NEXT.md Q47 完了ログ。
 **罠**: ドラッグ中はプレビュー状態で描き drop で 1 change 記録 (NodeGraphView の MoveNodes と同じ)。タイル座標系と world 座標の変換は geometry 層に閉じる。**シェルにスクリーン↔ワールドの直計算を書かない** (必ずアダプタ経由 — 3D アダプタ追加時の唯一の保険)。
 
-### GE-2 — インスペクタ + アセットパイプライン
+### GE-2 — インスペクタ + アセットパイプライン — ✅ 完了 (2026-07-11, Q48)
 
-選択エンティティ → `IComponentSchema` 経由で PropertyGrid に表示・編集 (`SetComponent` change = undo 可)。コンポーネント追加/削除メニュー。AssetBrowser を `IFileStorage.List` + プロジェクトフォルダに配線し、png → SpriteAtlas 定義エディタ (`ObjectDocument<T>` ベースで最小)、.tmj/wav はコピー取り込み。story + golden。
-**罠**: PropertyGrid の編集を Transaction 経由にする (直接 mutate すると undo が壊れる)。ファイルドロップ API は無い → v1 は「取り込み」ダイアログ (パス入力) で可。
+実装済み。**MD 差**: ① インスペクタは PropertyGrid 流用でなく **`SceneInspector`** (IComponentSchema 駆動) を新設 — PropertyGrid はリフレクションベースでスキーマ駆動の SceneComponent に合わない。編集は `SceneEditorView.ApplyEdit` の Transaction 経由 (undo 可)。② atlas 定義エディタは ObjectDocument\<T\> でなく PropertyGrid 直結 + `AtlasDefJson` (決定的 JSON を正とする)。Quat はオイラー度表示・Quat 保存 (`SceneRotation`)。取り込みはパス入力。詳細と罠 (Revision は Peek ベース必須/story snap は幅 480) は NEXT.md Q48 完了ログ。
 
 ### GE-3 — Luxel.Player (データ駆動ランタイム)
 
