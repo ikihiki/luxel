@@ -90,7 +90,9 @@ ADR-0017 Accepted: ▶ = 都度コンパイル (別インスタンス・一方�
 Studio に ▶/⏸/ステップ/⏹: プレイ用 world を SceneCompiler で構築しエディタ内 viewport タブで固定 dt 駆動 (別インスタンス、停止で破棄)。Gizmos2D/DevStats オーバーレイトグル。プレイ中のインスペクタは読み取り表示 (書き込みは v2)。ADR-0017 起草。story play (▶ → 数ステップ → snap → ⏹ → 編集状態が不変) + golden。
 **罠**: エディタ UI とゲーム viewport の入力ルーティング (viewport フォーカス時のみゲームへ)。プレイ中のシーン保存は禁止 (編集 doc は触っていないので本来安全だが、UI 上グレーアウト)。
 
-### GE-5 — スクリプト編集統合
+### GE-5 — スクリプト編集統合 — ✅ 完了 (2026-07-11, Q51)
+
+ScriptWorkspace に hostObjectType (エディタがランタイムと同じ globals を見る)。TextEditorView + CsharpCodeLanguage + 保存→Reload ホットリロード + Problems。**MD 差**: Problems ペイン専用化と csx DocumentProvider 化は GE-7 の Studio シェル統合と合流。詳細は NEXT.md Q51 完了ログ。
 
 scripts/*.csx を TextEditorView + Roslyn プロバイダ (`ScriptHost` の診断 → DiagnosticsProvider 波線、既存 csx プレイグラウンドの流用) で開く DocumentProvider。保存 → プレイ中なら ScriptSystem Reload (ホットリロード)。Problems ペイン (診断一覧 → クリックでジャンプ)。story + golden。
 **罠**: 補完はプレイグラウンド同等の範囲で十分 (LSP 級は [[luxel-scripting]] の別フェーズ)。Reload の失敗は旧維持 + Problems 表示で「エディタが落ちない」ことを play で実証。

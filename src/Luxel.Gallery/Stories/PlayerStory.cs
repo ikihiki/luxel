@@ -4,6 +4,7 @@ using Luxel.Controls;
 using Luxel.Player;
 using Luxel.Resources;
 using Luxel.SceneEdit;
+using Luxel.Scripting;
 using Luxel.Typography;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
@@ -148,5 +149,83 @@ public static class PlayerStory
                 Muted("▶ = 編集中の SceneDoc から SceneCompiler で別インスタンスを都度構築 (csx 込み)。⏸/⏭ = 固定 dt の一時停止/ステップ。⏹ = プレイ world を破棄 — 編集状態は汚染されない。"),
                 HStack(6)[play, pause, step, stop, Text($"{status}", 12, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8, 5, 0, 0))],
                 HStack(12)[ed, view]]];
+    }
+
+    // スクリプト編集統合 (GE-5): csx を TextEditorView (診断波線) で編集 → 保存で
+    // PlayerBehaviours.Reload (ホットリロード)。壊れた保存は旧挙動継続 + Problems 表示 (ADR-0018 の失敗契約の UI)。
+    [Story("Apps/Player/ScriptEditor", Height = 570, Order = 150)]
+    public static Widget ScriptEditor(StoryContext ctx)
+    {
+        IVirtualFileSystem fs = FixtureProject();
+        PlayerGame game = PlayerLoader.LoadStart(fs);
+        Player2DWorld world = game.World;
+        const string scriptRes = "res://scripts/walk.csx";
+        const string scriptFile = "scripts/walk.csx";
+
+        // 言語サービス: 実行時と同じ references/usings + BehaviourGlobals を globals に —
+        // エディタがランタイムと同じ言語風景を見る (Update が偽エラーにならない)
+        var ws = new ScriptWorkspace(
+            [typeof(PlayerEntity).Assembly, typeof(SceneValue).Assembly, typeof(Vector2).Assembly, typeof(object).Assembly],
+            ["System", "System.Numerics", "Luxel.Player", "Luxel.SceneEdit"],
+            typeof(BehaviourGlobals));
+        var lang = new CsharpCodeLanguage(ws);
+
+        Signal<string> code = ctx.Signal("code",
+            Encoding.UTF8.GetString(fs.ReadAsync(scriptFile, CancellationToken.None).GetAwaiter().GetResult()));
+        TextEditorView ed = TextEditorView(code, editorHeight: 130f, editorWidth: 448f);
+        ed.ShowLineNumbers = true;
+        (_, _, _, VectorFont mono) = EditorFaces.Value;
+        ed.EditorFont = mono;
+        ed.LanguageService = lang;
+        ed.Providers.Add(new SyntaxHighlightProvider(Luxel.Highlight.TextMateHighlighter.Instance, "csharp", () => UiTheme.T));
+        ed.Providers.Add(new DiagnosticsProvider(lang, () => UiTheme.T));
+
+        Signal<string> problems = ctx.Signal("problems", "問題なし");
+        Button save = Button(_ =>
+        {
+            ((MemoryFileSystem)fs).Set(scriptFile, Encoding.UTF8.GetBytes(ed.Text));
+            world.Behaviours!.Reload(scriptRes);
+            IReadOnlyList<string> diags = world.Behaviours.Diagnostics;
+            problems.Value = diags.Count == 0 ? "問題なし" : string.Join(" / ", diags);
+        }, "保存 (リロード)");
+
+        Canvas2D view = Canvas2D(448f, 288f, animate: (s, _) =>
+        {
+            world.Update(1f / 60f);
+            world.Render(s, 448, 288, Font.Value);
+        });
+
+        ctx.Play("hotreload", async d =>
+        {
+            await d.Snap();                                        // エディタ + 走行中の world
+            float x0 = world.Entity(1).Pos.X;
+            await d.Step(30);
+            await d.Expect(() => world.Entity(1).Pos.X - x0 is > 25f and < 35f, "初期 60px/s");
+            ed.SetSearch("60f"); ed.ReplaceAll("240f");            // エディタで速度を書き換え
+            await d.Click(save);                                   // 保存 → ホットリロード
+            float x1 = world.Entity(1).Pos.X;
+            await d.Step(30);
+            await d.Expect(() => world.Entity(1).Pos.X - x1 > 100f, "リロード後 240px/s");
+            ed.SetSearch("dt) =>"); ed.ReplaceAll("dt) =>>");      // 壊す
+            await d.Click(save);
+            await d.Step(1);
+            await d.Expect(() => problems.Peek() != "問題なし", "壊れた保存は Problems に診断");
+            float x2 = world.Entity(1).Pos.X;
+            await d.Step(30);
+            await d.Expect(() => world.Entity(1).Pos.X - x2 > 100f, "旧挙動 (240px/s) を維持 — 落ちない");
+            await d.Snap("problems");                              // 赤波線 + Problems 表示
+            ed.SetSearch("dt) =>>"); ed.ReplaceAll("dt) =>");      // 直す
+            await d.Click(save);
+            await d.Expect(() => problems.Peek() == "問題なし", "直して保存 → 診断が消える");
+            await d.Snap("fixed");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))[
+            VStack(8)[
+                Heading("スクリプト編集 + ホットリロード (GE-5)"),
+                Muted("csx を TextEditorView (診断波線 + 補完) で編集し、保存で PlayerBehaviours.Reload。壊れた保存は旧挙動を維持して Problems に診断 (ADR-0018 の失敗契約)。"),
+                ed,
+                HStack(8)[save, Text($"{problems}", 12, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(4, 5, 0, 0))],
+                view]];
     }
 }

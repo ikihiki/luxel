@@ -28,7 +28,10 @@ public sealed class ScriptWorkspace : IDisposable
     private readonly CompletionService _completion;
     private readonly QuickInfoService _quickInfo;
 
-    public ScriptWorkspace(IEnumerable<Assembly> references, IEnumerable<string> usings)
+    /// <param name="hostObjectType">スクリプト globals の型 (null = object)。指定すると
+    /// その public メンバー (例: BehaviourGlobals.Update) が診断/補完で解決される —
+    /// エディタが実行時と同じ言語風景を見るための口 (ToDo 27 GE-5)。</param>
+    public ScriptWorkspace(IEnumerable<Assembly> references, IEnumerable<string> usings, Type? hostObjectType = null)
     {
         var hostServices = MefHostServices.Create(MefHostServices.DefaultAssemblies);
         _workspace = new AdhocWorkspace(hostServices);
@@ -47,7 +50,7 @@ public sealed class ScriptWorkspace : IDisposable
         var projInfo = ProjectInfo.Create(
             ProjectId.CreateNewId(), VersionStamp.Create(), "Script", "Script", LanguageNames.CSharp,
             compilationOptions: compOptions, parseOptions: parseOptions, metadataReferences: refs,
-            isSubmission: true, hostObjectType: typeof(object));
+            isSubmission: true, hostObjectType: hostObjectType ?? typeof(object));
         Project project = _workspace.AddProject(projInfo);
 
         var docInfo = DocumentInfo.Create(
