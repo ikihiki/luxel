@@ -97,7 +97,9 @@ ScriptWorkspace に hostObjectType (エディタがランタイムと同じ glob
 scripts/*.csx を TextEditorView + Roslyn プロバイダ (`ScriptHost` の診断 → DiagnosticsProvider 波線、既存 csx プレイグラウンドの流用) で開く DocumentProvider。保存 → プレイ中なら ScriptSystem Reload (ホットリロード)。Problems ペイン (診断一覧 → クリックでジャンプ)。story + golden。
 **罠**: 補完はプレイグラウンド同等の範囲で十分 (LSP 級は [[luxel-scripting]] の別フェーズ)。Reload の失敗は旧維持 + Problems 表示で「エディタが落ちない」ことを play で実証。
 
-### GE-6 — 出荷 (エディタから publish)
+### GE-6 — 出荷 (エディタから publish) — ✅ 完了 (2026-07-12, Q52)
+
+`PlayerShipper` (publish + project/ コピー、exe は引数省略で隣の project/ を読む規約) + `--ship` サブコマンド + `ship-verify.ps1` (リポジトリ外 vk/dx exit 0 — 一発合格)。SDK 前提 (選択肢 a)。詳細は NEXT.md Q52 完了ログ。
 
 「出荷」コマンド: `dotnet publish Luxel.Player.App` (self-contained) + プロジェクトフォルダのコンテンツコピー → 出力フォルダ。capstone チェックリスト (shaders/フォント同梱、リポジトリ外起動 vk/dx exit 0) を自動検証するスクリプト/テストに落とす。**選択肢** (着手時に判断、ADR-0015 に追記): (a) dotnet SDK 前提で publish 実行 / (b) 事前ビルド済み player の同梱コピー。v1 は (a) で可 (開発機前提)。
 **罠**: single-file は capstone の知見どおりフォント埋め込み経路に注意。出荷検証はリポジトリ外パスから。

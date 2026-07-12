@@ -65,6 +65,34 @@ public class PlayerCoreTests
     }
 
     [Fact]
+    public void Shipper_CopyProject_LayoutAndValidation()
+    {
+        string src = Path.Combine(Path.GetTempPath(), $"luxel-ship-src-{Guid.NewGuid():N}");
+        string dst = Path.Combine(Path.GetTempPath(), $"luxel-ship-dst-{Guid.NewGuid():N}", "project");
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(src, "scripts"));
+            File.WriteAllText(Path.Combine(src, "project.luxel"), "{}");
+            File.WriteAllText(Path.Combine(src, "scripts", "a.csx"), "// a");
+            PlayerShipper.CopyProject(src, dst);
+            Assert.True(File.Exists(Path.Combine(dst, "project.luxel")));
+            Assert.Equal("// a", File.ReadAllText(Path.Combine(dst, "scripts", "a.csx")));
+            // 再コピー = 入れ替え (残骸が残らない)
+            File.Delete(Path.Combine(src, "scripts", "a.csx"));
+            File.WriteAllText(Path.Combine(src, "scripts", "b.csx"), "// b");
+            PlayerShipper.CopyProject(src, dst);
+            Assert.False(File.Exists(Path.Combine(dst, "scripts", "a.csx")));
+            // project.luxel の無いフォルダは拒否
+            File.Delete(Path.Combine(src, "project.luxel"));
+            Assert.Throws<InvalidOperationException>(() => PlayerShipper.CopyProject(src, dst));
+        }
+        finally
+        {
+            try { Directory.Delete(src, true); Directory.Delete(Path.GetDirectoryName(dst)!, true); } catch { }
+        }
+    }
+
+    [Fact]
     public void Loader_LoadsProjectAndStartScene()
     {
         var fs = new MemoryFileSystem();

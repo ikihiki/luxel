@@ -14,6 +14,21 @@ using Microsoft.Extensions.Hosting;
 // LuxelCavern exe と同型: LuxelHostBuilder + GameScene を FramePacer で同期駆動し、
 // フレームバッファをスワップチェーンへ Present する。実窓 (Win32) は STA スレッド必須。
 
+// --ship <プロジェクト> <出力> [--csproj path] = 出荷 (publish + project/ コピー、GE-6)。窓は開かない
+if (args.Length >= 1 && args[0] == "--ship")
+{
+    if (args.Length < 3) { Console.Error.WriteLine("使い方: Luxel.Player.App --ship <プロジェクトフォルダ> <出力フォルダ> [--csproj path]"); return 2; }
+    string csproj = args.Length >= 5 && args[3] == "--csproj" ? args[4]
+        : Path.Combine("src", "Luxel.Player.App", "Luxel.Player.App.csproj");   // 既定 = リポジトリルートから
+    try
+    {
+        string outp = Luxel.Player.PlayerShipper.Ship(csproj, args[1], args[2]);
+        Console.WriteLine($"ship: {outp} (exe + project/ — フォルダごと配布可)");
+        return 0;
+    }
+    catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+}
+
 string? folder = null;
 string backend = "vk";
 int frames = 0;
@@ -25,9 +40,11 @@ for (int i = 0; i < args.Length; i++)
     else if (a == "--frames" && i + 1 < args.Length && int.TryParse(args[i + 1], out int n)) { frames = Math.Max(1, n); i++; }
     else folder ??= a;
 }
-if (folder is null || !Directory.Exists(folder))
+// 引数省略時は exe 隣の project/ (PlayerShipper の出荷レイアウト規約 — 配布フォルダはダブルクリックで動く)
+folder ??= Path.Combine(AppContext.BaseDirectory, "project");
+if (!Directory.Exists(folder))
 {
-    Console.Error.WriteLine("使い方: Luxel.Player.App <プロジェクトフォルダ> [vk|dx] [--frames N]");
+    Console.Error.WriteLine("使い方: Luxel.Player.App <プロジェクトフォルダ> [vk|dx] [--frames N] (省略時は exe 隣の project/)");
     return 2;
 }
 
