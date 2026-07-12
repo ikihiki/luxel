@@ -104,9 +104,9 @@ scripts/*.csx を TextEditorView + Roslyn プロバイダ (`ScriptHost` の診�
 「出荷」コマンド: `dotnet publish Luxel.Player.App` (self-contained) + プロジェクトフォルダのコンテンツコピー → 出力フォルダ。capstone チェックリスト (shaders/フォント同梱、リポジトリ外起動 vk/dx exit 0) を自動検証するスクリプト/テストに落とす。**選択肢** (着手時に判断、ADR-0015 に追記): (a) dotnet SDK 前提で publish 実行 / (b) 事前ビルド済み player の同梱コピー。v1 は (a) で可 (開発機前提)。
 **罠**: single-file は capstone の知見どおりフォント埋め込み経路に注意。出荷検証はリポジトリ外パスから。
 
-### GE-7 — dogfood + Docs (完了で 27 MD 削除)
+### GE-7 — dogfood + Docs — ✅ 完了 (2026-07-12, Q53) → **M11 (2D フェーズ) クローズ**
 
-北極星シナリオを通しで実演: **ミニゲーム 1 本 (コイン集め 1 画面もの) をエディタ操作だけで作る** — 手順は play スクリプト化して golden に (新規プロジェクト → タイル描き → 配置 → csx → プレイ → 出荷までの主要 snap)。`Docs/Studio` ページ執筆 (使い方 + アーキテクチャ + 4 ADR へのリンク)。README/メモリ更新、27 MD 削除。
+story `Apps/Studio/CoinGame` (北極星の通し実演) + `Docs/Studio`。**確定**: 名前 = Luxel Studio / Strudel ペイン v1 見送り。**MD 差**: フル DockHost シェル (メニュー/パレット/Problems ペイン/csx DocumentProvider/gizmo オーバーレイ) は M12 以降の「Studio シェル」ワークストリームへ。27 MD は M12 完了まで残す。詳細は NEXT.md Q53 完了ログ。
 
 ## 検証方針 (全 WS 共通)
 
@@ -129,11 +129,11 @@ scripts/*.csx を TextEditorView + Roslyn プロバイダ (`ScriptHost` の診�
 - **GE-10 — dogfood ミニ 3D + Docs 追記**: Range 風の 1 シーンものをエディタ操作だけで (2D タイトル画面 + 3D プレイ画面の**混在プロジェクト**で原則 6 を実証) → 出荷。
 - タイムライン/スキンアニメの編集 UI・回転/スケールハンドルは M12 でもスコープ外 (必要になったら個別タスク)。
 
-## ユーザーに確認
+## ユーザーに確認 — 全件決定済み
 
 1. ~~v1 = 2D のみで良いか~~ → **決定 (2026-07-10)**: フェーズは 2D (M11) → 3D (M12) で分割、ただし**設計は最初から両対応** (上の設計原則節)。
-2. アプリ名 **「Luxel Studio」** (`src/Luxel.Studio` + `Luxel.Studio.App` / `Luxel.Player` + `Luxel.Player.App`) で良いか
-3. Strudel を BGM 作成ペインとして v1 に含めるか (含めない想定。資産はあるが scope を絞る)
+2. ~~アプリ名~~ → **決定 (2026-07-12、既定案で確定)**: **Luxel Studio** (Docs/Studio に記載。実装済みプロジェクトは `Luxel.SceneEdit`/`Luxel.Player`/`Luxel.Player.App` — `Luxel.Studio` 名のシェル exe は Studio シェル WS で)。
+3. ~~Strudel BGM ペイン~~ → **決定 (2026-07-12、既定案で確定)**: v1 に含めない。
 
 ## スコープ外 (M11。3D 実装は M12 = 上の見取り図)
 
