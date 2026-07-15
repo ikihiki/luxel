@@ -50,7 +50,7 @@
 
 ### Luxel Studio シェル (M11/M12 の dogfood を実アプリ面へ束ねる独立ワークストリーム)
 
-- [ ] **Q58**: [29 Studio シェル統合](29-studio-shell.md) — DockHost/MenuBar/CommandPalette/Problems/csx DocumentProvider/gizmo overlay/Ship command を、M11/M12 で作った SceneEditor/Inspector/Player の上に統合する
+- [x] **Q58**: [29 Studio シェル統合](29-studio-shell.md) (2026-07-15 完了) — story `Apps/Studio/Shell` を追加し、MemoryFileStorage プロジェクト上に DockHost レイアウト (SceneEditor / Inspector / AssetBrowser / csx ScriptEditor / Play View / Problems) を構築。MenuBar / Toolbar / CommandPalette は `CommandRegistry` へ集約し、New/Open/Save/Play/Pause/Step/Stop/Ship mock、Scene Add Beacon、Script Reload、Problems Jump を配線。csx は `IDocumentProvider` + `TextDocument` + `DocumentStore` として開き、保存時に実行中 `MemoryFileSystem` も更新して `PlayerBehaviours.Reload` へ接続。Play View は 2D title → 3D arena の遷移、保存済み Beacon、オーバーレイを表示し、Problems は csx compile diagnostics と AssetRef missing をまとめる。play は open→scene edit/save→play→compile error→fix→ship command mock を assert。vk/dx golden 各 4 枚追加。検証: `dotnet build Luxel.slnx --no-restore` OK、`dotnet test tests\Luxel.Tests\Luxel.Tests.csproj --no-build` = 1074 passed、`dotnet run --project src\Luxel.Gallery -- vk e2e Apps/Studio/Shell` = 1 play / 4 snap diff 0、`dx e2e Apps/Studio/Shell` = 1 play / 4 snap diff 0。
 
 ### メンテナンス (発見順。M11 の合間に片付けて良い)
 

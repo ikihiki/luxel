@@ -16,7 +16,7 @@ public static class DocsStudio
         return DocNew(ctx, $$"""
         # Luxel Studio (ゲームエディタ)
 
-        **C# ソリューションを書かずに** — プロジェクト作成 → シーン編集 → csx で挙動 → エディタ内プレイ → フォルダごと出荷 — を完走するためのエディタ群です。決定は [ADR-0015](story:ADR/0015-Game-Project-Scene-Format) (形式) / [ADR-0016](story:ADR/0016-Scene-Editor-Stack) (シーンエディタ) / [ADR-0017](story:ADR/0017-Play-In-Editor) (プレイ) / [ADR-0018](story:ADR/0018-Csx-Behaviour-Model) (csx)。通し実演は [Apps/Studio/CoinGame](story:Apps/Studio/CoinGame) と [Apps/Studio/Mixed3D](story:Apps/Studio/Mixed3D)。
+        **C# ソリューションを書かずに** — プロジェクト作成 → シーン編集 → csx で挙動 → エディタ内プレイ → フォルダごと出荷 — を完走するためのエディタ群です。決定は [ADR-0015](story:ADR/0015-Game-Project-Scene-Format) (形式) / [ADR-0016](story:ADR/0016-Scene-Editor-Stack) (シーンエディタ) / [ADR-0017](story:ADR/0017-Play-In-Editor) (プレイ) / [ADR-0018](story:ADR/0018-Csx-Behaviour-Model) (csx)。通し実演は [Apps/Studio/Shell](story:Apps/Studio/Shell)、[Apps/Studio/CoinGame](story:Apps/Studio/CoinGame)、[Apps/Studio/Mixed3D](story:Apps/Studio/Mixed3D)。
 
         設計と実装は **2D/3D 両対応**です: シーンは `space` を宣言し、座標はコンポーネント (`transform2d` / `transform3d` は別スキーマ) の関心事。エディタは共有シェル + 空間アダプタ、ランタイムのコンパイラはコア + space 別バックエンドです。プロジェクトは 2D/3D シーンを混在でき、csx から `world.RequestScene("res://scenes/arena.scene.json")` で別 space のシーンへ遷移できます。
 
@@ -49,6 +49,12 @@ public static class DocsStudio
 
         1 スクリプト 1 コンパイルで全エンティティ共有・状態はコンポーネント側。globals の `world` は `IPlayerWorld` なので 2D/3D 共通の `Time` / `KeysDown` / `Find` / `RequestScene` が使え、3D エンティティは `self.Pos3D` を更新できます。失敗契約: コンパイル失敗 = 旧維持 + 診断 / 実行時例外 = 無効化 + 診断 / Reload で復帰。[ScriptEditor](story:Apps/Player/ScriptEditor) が TextEditorView (診断波線 + 補完、`ScriptWorkspace` にランタイムと同じ globals を渡す) と保存 → ホットリロードを実演します。
 
+        ## Studio シェル ([Apps/Studio/Shell](story:Apps/Studio/Shell))
+
+        Workbench の `DockHost` / `CommandRegistry` / `DocumentStore` を土台に、SceneEditor、Inspector、AssetBrowser、csx ScriptEditor、Play View、Problems を 1 つの作業台へ束ねます。MenuBar / Toolbar / CommandPalette は同じ registry から生成され、Save / Play / Pause / Step / Stop / Ship mock、Scene 操作、Script reload、Problems jump を実行します。`scripts/*.csx` は `IDocumentProvider` + `TextDocument` として開き、保存時に実行中 Player の VFS も更新して `PlayerBehaviours.Reload` へ流します。
+
+        Play View は保存済みプロジェクトから Player を起動し、2D title → 3D arena の `RequestScene` 遷移と overlay 表示を同じペインで確認できます。Problems は csx compile/runtime diagnostics と AssetRef 欠落を統合表示します。story の play は scene edit/save → play → compile error → fix → ship command mock を通し、Vulkan / D3D12 の golden で回帰します。
+
         ## プレイと出荷
 
         - **プレイインエディタ** ([ADR-0017](story:ADR/0017-Play-In-Editor) / [デモ](story:Apps/Player/PlayInEditor)): ▶ = SceneCompiler で**別インスタンスを都度構築**、⏹ = 破棄 — 編集データは汚染されません。⏸/ステップは固定 dt (1/60) で決定的
@@ -57,7 +63,7 @@ public static class DocsStudio
 
         ## 現状の制約
 
-        2D タイル/エンティティと 3D メッシュの見た目はプレースホルダ描画です。3D は glb 参照の存在検証とワイヤ表示までで、フル `scene_pbr` / glTF 展開 / Bepu 物理統合は実アセット描画フェーズで接続します。音は未配線。フル DockHost シェル (メニュー/コマンドパレット/Problems/csx DocumentProvider/gizmo オーバーレイ) は独立タスクとして扱います。
+        2D タイル/エンティティと 3D メッシュの見た目はプレースホルダ描画です。3D は glb 参照の存在検証とワイヤ表示までで、フル `scene_pbr` / glTF 展開 / Bepu 物理統合は実アセット描画フェーズで接続します。音は未配線。Studio Shell は Gallery story 上の hermetic 実証で、実 FS / マルチウィンドウ / 外部アセット監視の完全 UX は後続です。
         """, toc: true);
     }
 }

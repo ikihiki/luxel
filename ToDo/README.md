@@ -9,7 +9,6 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 
 | # | ファイル | タスク | 規模感 | リスク |
 |---|---|---|---|---|
-| 29 | [29-studio-shell.md](29-studio-shell.md) | Luxel Studio シェル統合。M11/M12 の SceneEditor/Inspector/Player/ScriptEditor/Ship を Workbench + DockHost + MenuBar/CommandPalette/Problems/csx DocumentProvider へ束ねる | 大 | 中 |
 | 24 | [24-custom-ime-candidates.md](24-custom-ime-candidates.md) | カスタム IME 候補ウインドウ (TSF ITfUIElementSink で OS 抑制 + 自前 Popup 描画、排他モード対応。ADR-0008 Proposed) | 中 | **高** (実 IME 依存) |
 | 28 | [28-e2e-adapter-drift.md](28-e2e-adapter-drift.md) | dotnet test の E2E アダプタが Gallery ランナーと乖離 (golden 2 件 + stale 1 件。ランナーは全緑 — 描画環境を一致させる) | 小〜中 | 中 |
 
