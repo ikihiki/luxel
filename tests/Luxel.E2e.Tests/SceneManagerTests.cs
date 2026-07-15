@@ -20,25 +20,21 @@ public class SceneManagerTests
         Assert.Equal(1, frames.ContinuousLeases);
         SceneNode rootNode = manager.Root!;
 
-        await manager.AddChildAsync(rootNode, child);
-        await manager.ApplyPendingAsync();
+        await ApplyOperationAsync(manager, manager.AddChildAsync(rootNode, child));
         SceneNode childNode = Assert.Single(rootNode.Children);
         Assert.Equal(SceneLifecycleState.Active, childNode.State);
         Assert.Equal(2, frames.ContinuousLeases);
 
-        await manager.SuspendAsync(childNode);
-        await manager.ApplyPendingAsync();
+        await ApplyOperationAsync(manager, manager.SuspendAsync(childNode));
         Assert.Equal(SceneLifecycleState.Suspended, childNode.State);
         Assert.Equal(1, frames.ContinuousLeases);
 
-        await manager.ResumeAsync(childNode);
-        await manager.ApplyPendingAsync();
+        await ApplyOperationAsync(manager, manager.ResumeAsync(childNode));
         Assert.Equal(SceneLifecycleState.Active, childNode.State);
         Assert.Equal(2, frames.ContinuousLeases);
 
         var next = new RecordingScene("next", events, SceneExecutionMode.OnDemand);
-        await manager.SwitchAsync(next);
-        await manager.ApplyPendingAsync();
+        await ApplyOperationAsync(manager, manager.SwitchAsync(next));
 
         Assert.Same(next, manager.Current);
         Assert.Equal(0, frames.ContinuousLeases);
@@ -63,22 +59,17 @@ public class SceneManagerTests
         var child = new RecordingScene("child", events, SceneExecutionMode.Continuous);
 
         await manager.InitializeAsync(root);
-        await manager.AddChildAsync(manager.Root!, child);
-        await manager.ApplyPendingAsync();
+        await ApplyOperationAsync(manager, manager.AddChildAsync(manager.Root!, child));
         SceneNode childNode = Assert.Single(manager.Root!.Children);
 
-        await manager.SuspendAsync(childNode);
-        await manager.ApplyPendingAsync();
-        await manager.SuspendAsync(manager.Root!);
-        await manager.ApplyPendingAsync();
-        await manager.ResumeAsync(manager.Root!);
-        await manager.ApplyPendingAsync();
+        await ApplyOperationAsync(manager, manager.SuspendAsync(childNode));
+        await ApplyOperationAsync(manager, manager.SuspendAsync(manager.Root!));
+        await ApplyOperationAsync(manager, manager.ResumeAsync(manager.Root!));
 
         Assert.Equal(SceneLifecycleState.Active, manager.Root!.State);
         Assert.Equal(SceneLifecycleState.Suspended, childNode.State);
 
-        await manager.ResumeAsync(childNode);
-        await manager.ApplyPendingAsync();
+        await ApplyOperationAsync(manager, manager.ResumeAsync(childNode));
         Assert.Equal(SceneLifecycleState.Active, childNode.State);
         await manager.ShutdownAsync();
     }
@@ -119,9 +110,8 @@ public class SceneManagerTests
         var overlay = new DemandScene(run: true); // pause menu相当
 
         await manager.InitializeAsync(parent);
-        await manager.AddChildAsync(manager.Root!, overlay,
-            SceneExecutionMode.OnDemand, SceneRenderMode.WhenDirty);
-        await manager.ApplyPendingAsync();
+        await ApplyOperationAsync(manager, manager.AddChildAsync(manager.Root!, overlay,
+            SceneExecutionMode.OnDemand, SceneRenderMode.WhenDirty));
         SceneNode child = Assert.Single(manager.Root!.Children);
 
         Assert.False(SceneRunner.ShouldRunNode(manager.Root));
@@ -189,8 +179,7 @@ public class SceneManagerTests
         await manager.InitializeAsync(outgoing);
         Task transition = manager.TransitionAsync(incoming, new SceneTransitionSpec(10f));
         await manager.ApplyPendingAsync();
-        await manager.SwitchAsync(replacement);
-        await manager.ApplyPendingAsync();
+        await ApplyOperationAsync(manager, manager.SwitchAsync(replacement));
 
         Assert.True(transition.IsCanceled);
         Assert.False(manager.IsTransitioning);
@@ -212,9 +201,10 @@ public class SceneManagerTests
         var incoming = new TransitionRecordingScene("in", events, run: true);
 
         await manager.InitializeAsync(root);
-        await manager.AddChildAsync(manager.Root!, outgoing);
-        await manager.AddChildAsync(manager.Root!, sibling);
+        Task addOutgoing = manager.AddChildAsync(manager.Root!, outgoing);
+        Task addSibling = manager.AddChildAsync(manager.Root!, sibling);
         await manager.ApplyPendingAsync();
+        await Task.WhenAll(addOutgoing, addSibling);
         SceneNode outgoingNode = manager.Find(outgoing)!;
         SceneNode siblingNode = manager.Find(sibling)!;
 
@@ -435,8 +425,7 @@ public class SceneManagerTests
         var menu = new InputRecordingScene(menuContext, SceneInputMode.Modal);
 
         await manager.InitializeAsync(gameplay);
-        await manager.AddChildAsync(manager.Root!, menu);
-        await manager.ApplyPendingAsync();
+        await ApplyOperationAsync(manager, manager.AddChildAsync(manager.Root!, menu));
 
         Assert.Equal(new[] { gameplayContext, menuContext }, input.Contexts);
         Assert.True(input.IsSuspended(gameplayContext));
@@ -446,8 +435,7 @@ public class SceneManagerTests
         input.Update(bus);
         Assert.False(move.IsActive.Value);
 
-        await manager.RemoveAsync(manager.Find(menu)!);
-        await manager.ApplyPendingAsync();
+        await ApplyOperationAsync(manager, manager.RemoveAsync(manager.Find(menu)!));
 
         Assert.Equal(new[] { gameplayContext }, input.Contexts);
         Assert.False(input.IsSuspended(gameplayContext));
@@ -469,9 +457,10 @@ public class SceneManagerTests
         var second = new RecordingOverlayScene(frames, "second");
 
         await manager.InitializeAsync(gameplay);
-        await manager.AddChildAsync(manager.Root!, first);
-        await manager.AddChildAsync(manager.Root!, second);
+        Task addFirst = manager.AddChildAsync(manager.Root!, first);
+        Task addSecond = manager.AddChildAsync(manager.Root!, second);
         await manager.ApplyPendingAsync();
+        await Task.WhenAll(addFirst, addSecond);
 
         Assert.True(gameplay.IsPaused);
         Assert.Equal(2, gameplay.PauseRequests);
@@ -479,14 +468,12 @@ public class SceneManagerTests
         Assert.True(input.IsSuspended(first.Context));
         Assert.False(input.IsSuspended(second.Context));
 
-        await manager.RemoveAsync(manager.Find(first)!);
-        await manager.ApplyPendingAsync();
+        await ApplyOperationAsync(manager, manager.RemoveAsync(manager.Find(first)!));
         Assert.True(gameplay.IsPaused);
         Assert.Equal(1, gameplay.PauseRequests);
         Assert.Equal(new[] { second.Context }, input.Contexts);
 
-        await manager.RemoveAsync(manager.Find(second)!);
-        await manager.ApplyPendingAsync();
+        await ApplyOperationAsync(manager, manager.RemoveAsync(manager.Find(second)!));
         Assert.False(gameplay.IsPaused);
         Assert.Equal(0, gameplay.PauseRequests);
         Assert.Empty(input.Contexts);
@@ -535,6 +522,37 @@ public class SceneManagerTests
         await manager.ShutdownAsync();
     }
 
+    [Fact]
+    public async Task QueuedOperation_PropagatesLifecycleFailureAndShutdownCancellation()
+    {
+        var services = new ServiceCollection().BuildServiceProvider();
+        var manager = new SceneManager(services, new RecordingFrameScheduler());
+        var events = new List<string>();
+        var root = new RecordingScene("root", events, SceneExecutionMode.OnDemand);
+
+        await manager.InitializeAsync(root);
+        Task failing = manager.AddChildAsync(manager.Root!, new FailingLoadScene());
+
+        Assert.False(failing.IsCompleted);
+        InvalidOperationException applyError = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => manager.ApplyPendingAsync());
+        InvalidOperationException operationError = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => failing);
+        Assert.Equal(applyError.Message, operationError.Message);
+
+        Task pending = manager.SuspendAsync(manager.Root!);
+        await manager.ShutdownAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
+    }
+
+    private static async Task ApplyOperationAsync(SceneManager manager, Task operation)
+    {
+        Assert.False(operation.IsCompleted);
+        await manager.ApplyPendingAsync();
+        await operation;
+    }
+
     private sealed class RecordingScene(
         string name, List<string> events, SceneExecutionMode executionMode) : IScene
     {
@@ -545,6 +563,12 @@ public class SceneManagerTests
         public Task OnResumeAsync() { events.Add($"{name}.resume"); return Task.CompletedTask; }
         public Task OnDeactivateAsync() { events.Add($"{name}.deactivate"); return Task.CompletedTask; }
         public Task OnUnloadAsync() { events.Add($"{name}.unload"); return Task.CompletedTask; }
+    }
+
+    private sealed class FailingLoadScene : IScene
+    {
+        public Task OnLoadAsync()
+            => Task.FromException(new InvalidOperationException("load failed"));
     }
 
     private sealed class RecordingFrameScheduler : IFrameScheduler

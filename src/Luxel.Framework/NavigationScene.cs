@@ -123,7 +123,7 @@ public abstract class NavigationScene : IScene
     async Task IScene.OnActivateAsync()
     {
         await OnActivateAsync();
-        await _scenes.AddChildAsync(Node, _current!);
+        _ = _scenes.AddChildAsync(Node, _current!);
     }
 
     async Task IScene.OnSuspendAsync() => await OnSuspendAsync();

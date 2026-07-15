@@ -120,7 +120,7 @@ public abstract class DockScene : IScene
         SceneNode node = _node
             ?? throw new InvalidOperationException("DockSceneがSceneGraphへ接続されていません。");
         foreach (DockSceneSlot slot in _slots.Values)
-            await _scenes.AddChildAsync(node, slot.Scene, slot.ExecutionMode, slot.RenderMode);
+            _ = _scenes.AddChildAsync(node, slot.Scene, slot.ExecutionMode, slot.RenderMode);
     }
 
     async Task IScene.OnSuspendAsync() => await OnSuspendAsync();

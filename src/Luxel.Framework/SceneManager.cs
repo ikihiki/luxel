@@ -10,18 +10,27 @@ namespace Luxel.Framework;
 /// </summary>
 public sealed class SceneManager
 {
-    private abstract record SceneOperation;
-    private sealed record ReplaceRootOperation(IScene Scene) : SceneOperation;
+    private abstract record SceneOperation(TaskCompletionSource Completion);
+    private sealed record ReplaceRootOperation(
+        IScene Scene,
+        TaskCompletionSource OperationCompletion) : SceneOperation(OperationCompletion);
     private sealed record BeginTransitionOperation(
         SceneNode? Outgoing,
         IScene Scene,
         SceneTransitionSpec Spec,
-        TaskCompletionSource Completion) : SceneOperation;
+        TaskCompletionSource OperationCompletion) : SceneOperation(OperationCompletion);
     private sealed record AddChildOperation(SceneNode Parent, IScene Scene,
-        SceneExecutionMode? ExecutionMode, SceneRenderMode? RenderMode) : SceneOperation;
-    private sealed record RemoveOperation(SceneNode Node) : SceneOperation;
-    private sealed record SuspendOperation(SceneNode Node) : SceneOperation;
-    private sealed record ResumeOperation(SceneNode Node) : SceneOperation;
+        SceneExecutionMode? ExecutionMode, SceneRenderMode? RenderMode,
+        TaskCompletionSource OperationCompletion) : SceneOperation(OperationCompletion);
+    private sealed record RemoveOperation(
+        SceneNode Node,
+        TaskCompletionSource OperationCompletion) : SceneOperation(OperationCompletion);
+    private sealed record SuspendOperation(
+        SceneNode Node,
+        TaskCompletionSource OperationCompletion) : SceneOperation(OperationCompletion);
+    private sealed record ResumeOperation(
+        SceneNode Node,
+        TaskCompletionSource OperationCompletion) : SceneOperation(OperationCompletion);
 
     private sealed class TransitionRuntime(
         SceneNode outgoing,
@@ -66,12 +75,14 @@ public sealed class SceneManager
     public Task SwitchAsync<TScene>() where TScene : class, IScene
         => SwitchAsync(CreateScene<TScene>());
 
-    /// <summary>root Sceneを置換する。要求は安全なフレーム境界で適用される。</summary>
+    /// <summary>
+    /// root Sceneを安全なフレーム境界で置換する。
+    /// 返るTaskは新しいSceneのLoad/Activate完了後に完了する。
+    /// </summary>
     public Task SwitchAsync(IScene next)
     {
         ArgumentNullException.ThrowIfNull(next);
-        Enqueue(new ReplaceRootOperation(next));
-        return Task.CompletedTask;
+        return Enqueue(new ReplaceRootOperation(next, CreateCompletion()));
     }
 
     public Task TransitionAsync<TScene>(SceneTransitionSpec transition)
@@ -86,9 +97,8 @@ public sealed class SceneManager
     {
         ArgumentNullException.ThrowIfNull(next);
         ArgumentNullException.ThrowIfNull(transition);
-        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        Enqueue(new BeginTransitionOperation(null, next, transition, completion));
-        return completion.Task;
+        return Enqueue(new BeginTransitionOperation(
+            null, next, transition, CreateCompletion()));
     }
 
     public Task TransitionAsync<TScene>(SceneNode outgoing, SceneTransitionSpec transition)
@@ -104,9 +114,8 @@ public sealed class SceneManager
         ArgumentNullException.ThrowIfNull(outgoing);
         ArgumentNullException.ThrowIfNull(next);
         ArgumentNullException.ThrowIfNull(transition);
-        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        Enqueue(new BeginTransitionOperation(outgoing, next, transition, completion));
-        return completion.Task;
+        return Enqueue(new BeginTransitionOperation(
+            outgoing, next, transition, CreateCompletion()));
     }
 
     public Task AddChildAsync<TScene>(SceneNode parent,
@@ -114,35 +123,38 @@ public sealed class SceneManager
         where TScene : class, IScene
         => AddChildAsync(parent, CreateScene<TScene>(), executionMode, renderMode);
 
-    /// <summary>既存nodeの子としてSceneを追加し、親と同時にphaseへ参加させる。</summary>
+    /// <summary>
+    /// 既存nodeの子としてSceneを追加し、親と同時にphaseへ参加させる。
+    /// 返るTaskは子SceneのLoad/Activate完了後に完了する。
+    /// </summary>
     public Task AddChildAsync(SceneNode parent, IScene child,
         SceneExecutionMode? executionMode = null, SceneRenderMode? renderMode = null)
     {
         ArgumentNullException.ThrowIfNull(parent);
         ArgumentNullException.ThrowIfNull(child);
-        Enqueue(new AddChildOperation(parent, child, executionMode, renderMode));
-        return Task.CompletedTask;
+        return Enqueue(new AddChildOperation(
+            parent, child, executionMode, renderMode, CreateCompletion()));
     }
 
+    /// <summary>指定subtreeをフレーム境界で削除し、Unload完了後にTaskを完了する。</summary>
     public Task RemoveAsync(SceneNode node)
     {
         ArgumentNullException.ThrowIfNull(node);
-        Enqueue(new RemoveOperation(node));
-        return Task.CompletedTask;
+        return Enqueue(new RemoveOperation(node, CreateCompletion()));
     }
 
+    /// <summary>指定subtreeをフレーム境界でSuspendし、完了後にTaskを完了する。</summary>
     public Task SuspendAsync(SceneNode node)
     {
         ArgumentNullException.ThrowIfNull(node);
-        Enqueue(new SuspendOperation(node));
-        return Task.CompletedTask;
+        return Enqueue(new SuspendOperation(node, CreateCompletion()));
     }
 
+    /// <summary>指定subtreeをフレーム境界でResumeし、完了後にTaskを完了する。</summary>
     public Task ResumeAsync(SceneNode node)
     {
         ArgumentNullException.ThrowIfNull(node);
-        Enqueue(new ResumeOperation(node));
-        return Task.CompletedTask;
+        return Enqueue(new ResumeOperation(node, CreateCompletion()));
     }
 
     public SceneNode? Find(IScene scene)
@@ -176,67 +188,74 @@ public sealed class SceneManager
     {
         while (_pending.TryDequeue(out SceneOperation? operation))
         {
-            switch (operation)
+            try
             {
-                case ReplaceRootOperation replace:
-                    await CancelAllTransitionsAsync(promoteIncoming: false);
-                    if (_root is not null) await DeactivateAndUnloadAsync(_root);
-                    _root = CreateNode(replace.Scene, null, null);
-                    await LoadAndActivateAsync(_root, primary: true);
-                    break;
-
-                case BeginTransitionOperation begin:
-                    try { await BeginTransitionAsync(begin); }
-                    catch (Exception ex)
-                    {
-                        begin.Completion.TrySetException(ex);
-                        throw;
-                    }
-                    break;
-
-                case AddChildOperation add:
-                    EnsureAttached(add.Parent);
-                    SceneNode child = CreateNode(add.Scene, add.ExecutionMode, add.RenderMode, add.Parent);
-                    add.Parent.MutableChildren.Add(child);
-                    await LoadAndActivateAsync(child, primary: false);
-                    if (add.Parent.IsTransitioning) SetTransitioning(child, true);
-                    if (add.Parent.State == SceneLifecycleState.Suspended)
-                        await SuspendSubtreeAsync(child);
-                    break;
-
-                case RemoveOperation remove:
-                    EnsureAttached(remove.Node);
-                    TransitionRuntime? incomingTransition = _transitions
-                        .FirstOrDefault(transition => ReferenceEquals(remove.Node, transition.Incoming));
-                    if (incomingTransition is not null)
-                    {
-                        await CancelTransitionAsync(incomingTransition, promoteIncoming: false);
+                switch (operation)
+                {
+                    case ReplaceRootOperation replace:
+                        await CancelAllTransitionsAsync(promoteIncoming: false);
+                        if (_root is not null) await DeactivateAndUnloadAsync(_root);
+                        _root = CreateNode(replace.Scene, null, null);
+                        await LoadAndActivateAsync(_root, primary: true);
                         break;
-                    }
-                    TransitionRuntime[] affectedTransitions = _transitions
-                        .Where(active => ContainsNode(remove.Node, active.Outgoing)
-                                         || ContainsNode(remove.Node, active.Incoming))
-                        .ToArray();
-                    foreach (TransitionRuntime active in affectedTransitions)
-                        await CancelTransitionAsync(active, promoteIncoming: false);
-                    await DeactivateAndUnloadAsync(remove.Node);
-                    if (remove.Node.Parent is { } parent) parent.MutableChildren.Remove(remove.Node);
-                    else if (ReferenceEquals(remove.Node, _root)) _root = null;
-                    remove.Node.Parent = null;
-                    break;
 
-                case SuspendOperation suspend:
-                    EnsureAttached(suspend.Node);
-                    suspend.Node.IsLocallySuspended = true;
-                    await SuspendSubtreeAsync(suspend.Node);
-                    break;
+                    case BeginTransitionOperation begin:
+                        await BeginTransitionAsync(begin);
+                        break;
 
-                case ResumeOperation resume:
-                    EnsureAttached(resume.Node);
-                    resume.Node.IsLocallySuspended = false;
-                    if (resume.Node.Parent is null || resume.Node.Parent.State == SceneLifecycleState.Active)
-                        await ResumeSubtreeAsync(resume.Node);
-                    break;
+                    case AddChildOperation add:
+                        EnsureAttached(add.Parent);
+                        SceneNode child = CreateNode(add.Scene, add.ExecutionMode, add.RenderMode, add.Parent);
+                        add.Parent.MutableChildren.Add(child);
+                        await LoadAndActivateAsync(child, primary: false);
+                        if (add.Parent.IsTransitioning) SetTransitioning(child, true);
+                        if (add.Parent.State == SceneLifecycleState.Suspended)
+                            await SuspendSubtreeAsync(child);
+                        break;
+
+                    case RemoveOperation remove:
+                        EnsureAttached(remove.Node);
+                        TransitionRuntime? incomingTransition = _transitions
+                            .FirstOrDefault(transition => ReferenceEquals(remove.Node, transition.Incoming));
+                        if (incomingTransition is not null)
+                        {
+                            await CancelTransitionAsync(incomingTransition, promoteIncoming: false);
+                            break;
+                        }
+                        TransitionRuntime[] affectedTransitions = _transitions
+                            .Where(active => ContainsNode(remove.Node, active.Outgoing)
+                                             || ContainsNode(remove.Node, active.Incoming))
+                            .ToArray();
+                        foreach (TransitionRuntime active in affectedTransitions)
+                            await CancelTransitionAsync(active, promoteIncoming: false);
+                        await DeactivateAndUnloadAsync(remove.Node);
+                        if (remove.Node.Parent is { } parent) parent.MutableChildren.Remove(remove.Node);
+                        else if (ReferenceEquals(remove.Node, _root)) _root = null;
+                        remove.Node.Parent = null;
+                        break;
+
+                    case SuspendOperation suspend:
+                        EnsureAttached(suspend.Node);
+                        suspend.Node.IsLocallySuspended = true;
+                        await SuspendSubtreeAsync(suspend.Node);
+                        break;
+
+                    case ResumeOperation resume:
+                        EnsureAttached(resume.Node);
+                        resume.Node.IsLocallySuspended = false;
+                        if (resume.Node.Parent is null || resume.Node.Parent.State == SceneLifecycleState.Active)
+                            await ResumeSubtreeAsync(resume.Node);
+                        break;
+                }
+
+                // Transitionはduration完了時に通知する。それ以外はこのフレーム境界で適用済み。
+                if (operation is not BeginTransitionOperation)
+                    operation.Completion.TrySetResult();
+            }
+            catch (Exception ex)
+            {
+                operation.Completion.TrySetException(ex);
+                throw;
             }
         }
     }
@@ -277,8 +296,7 @@ public sealed class SceneManager
     {
         await CancelAllTransitionsAsync(promoteIncoming: false);
         while (_pending.TryDequeue(out SceneOperation? operation))
-            if (operation is BeginTransitionOperation transition)
-                transition.Completion.TrySetCanceled();
+            operation.Completion.TrySetCanceled();
         if (_root is null) return;
         await DeactivateAndUnloadAsync(_root);
         _root = null;
@@ -288,10 +306,14 @@ public sealed class SceneManager
         => (TScene?)_services.GetService(typeof(TScene))
            ?? ActivatorUtilities.CreateInstance<TScene>(_services);
 
-    private void Enqueue(SceneOperation operation)
+    private static TaskCompletionSource CreateCompletion()
+        => new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private Task Enqueue(SceneOperation operation)
     {
         _pending.Enqueue(operation);
         _frames.RequestFrame();
+        return operation.Completion.Task;
     }
 
     private async Task BeginTransitionAsync(BeginTransitionOperation operation)
