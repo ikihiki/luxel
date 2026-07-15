@@ -38,6 +38,8 @@ public class SceneManagerTests
 
         Assert.Same(next, manager.Current);
         Assert.Equal(0, frames.ContinuousLeases);
+        Assert.Empty(rootNode.Children);
+        Assert.Null(childNode.Parent);
         Assert.Equal(new[]
         {
             "root.load", "root.activate", "child.load", "child.activate",
@@ -529,9 +531,10 @@ public class SceneManagerTests
         var manager = new SceneManager(services, new RecordingFrameScheduler());
         var events = new List<string>();
         var root = new RecordingScene("root", events, SceneExecutionMode.OnDemand);
+        var failingScene = new FailingLoadScene();
 
         await manager.InitializeAsync(root);
-        Task failing = manager.AddChildAsync(manager.Root!, new FailingLoadScene());
+        Task failing = manager.AddChildAsync(manager.Root!, failingScene);
 
         Assert.False(failing.IsCompleted);
         InvalidOperationException applyError = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -539,11 +542,84 @@ public class SceneManagerTests
         InvalidOperationException operationError = await Assert.ThrowsAsync<InvalidOperationException>(
             () => failing);
         Assert.Equal(applyError.Message, operationError.Message);
+        Assert.Empty(manager.Root!.Children);
+        Assert.Null(manager.Find(failingScene));
+        Assert.Equal(1, failingScene.UnloadCalls);
+        Assert.True(failingScene.IsDetached);
 
         Task pending = manager.SuspendAsync(manager.Root!);
         await manager.ShutdownAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
+    }
+
+    [Fact]
+    public async Task AddChildFailure_RollsBackInputContextAndContinuousLease()
+    {
+        var input = new InputStack();
+        var services = new ServiceCollection().AddSingleton(input).BuildServiceProvider();
+        var frames = new RecordingFrameScheduler();
+        var manager = new SceneManager(services, frames);
+        var events = new List<string>();
+        var root = new RecordingScene("root", events, SceneExecutionMode.OnDemand);
+        var context = new InputContext("failing-child");
+        var child = new RollbackRecordingScene(context);
+
+        await manager.InitializeAsync(root);
+        frames.AcquireFailure = new InvalidOperationException("continuous lease failed");
+        Task operation = manager.AddChildAsync(manager.Root!, child);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => manager.ApplyPendingAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => operation);
+
+        Assert.Empty(manager.Root!.Children);
+        Assert.Null(manager.Find(child));
+        Assert.Empty(input.Contexts);
+        Assert.Equal(0, frames.ContinuousLeases);
+        Assert.True(child.WasDeactivated);
+        Assert.True(child.WasUnloaded);
+        Assert.True(child.WasDetached);
+        await manager.ShutdownAsync();
+    }
+
+    [Fact]
+    public async Task FailedRootSwitch_LeavesNoPartiallyLoadedRoot()
+    {
+        var services = new ServiceCollection().BuildServiceProvider();
+        var manager = new SceneManager(services, new RecordingFrameScheduler());
+        var events = new List<string>();
+        var root = new RecordingScene("root", events, SceneExecutionMode.OnDemand);
+        var failingScene = new FailingLoadScene();
+
+        await manager.InitializeAsync(root);
+        Task operation = manager.SwitchAsync(failingScene);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => manager.ApplyPendingAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => operation);
+
+        Assert.Null(manager.Root);
+        Assert.Null(manager.Current);
+        Assert.Contains("root.unload", events);
+        Assert.Equal(1, failingScene.UnloadCalls);
+        Assert.True(failingScene.IsDetached);
+        await manager.ShutdownAsync();
+    }
+
+    [Fact]
+    public async Task FailedInitialization_RollsBackRoot()
+    {
+        var services = new ServiceCollection().BuildServiceProvider();
+        var manager = new SceneManager(services, new RecordingFrameScheduler());
+        var failingScene = new FailingLoadScene();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => manager.InitializeAsync(failingScene));
+
+        Assert.Null(manager.Root);
+        Assert.Null(manager.Current);
+        Assert.Equal(1, failingScene.UnloadCalls);
+        Assert.True(failingScene.IsDetached);
+        await manager.ShutdownAsync();
     }
 
     private static async Task ApplyOperationAsync(SceneManager manager, Task operation)
@@ -567,19 +643,56 @@ public class SceneManagerTests
 
     private sealed class FailingLoadScene : IScene
     {
+        public int UnloadCalls { get; private set; }
+        public bool IsDetached { get; private set; }
+
         public Task OnLoadAsync()
             => Task.FromException(new InvalidOperationException("load failed"));
+
+        public Task OnUnloadAsync()
+        {
+            UnloadCalls++;
+            return Task.CompletedTask;
+        }
+
+        public void OnDetached(SceneNode node) => IsDetached = true;
+    }
+
+    private sealed class RollbackRecordingScene(InputContext context)
+        : IScene, ISceneInputParticipant
+    {
+        public SceneExecutionMode ExecutionMode => SceneExecutionMode.Continuous;
+        public IReadOnlyList<InputContext> InputContexts { get; } = new[] { context };
+        public bool WasDeactivated { get; private set; }
+        public bool WasUnloaded { get; private set; }
+        public bool WasDetached { get; private set; }
+
+        public Task OnDeactivateAsync()
+        {
+            WasDeactivated = true;
+            return Task.CompletedTask;
+        }
+
+        public Task OnUnloadAsync()
+        {
+            WasUnloaded = true;
+            return Task.CompletedTask;
+        }
+
+        public void OnDetached(SceneNode node) => WasDetached = true;
     }
 
     private sealed class RecordingFrameScheduler : IFrameScheduler
     {
         public int ContinuousLeases { get; private set; }
         public int FrameRequests { get; private set; }
+        public Exception? AcquireFailure { get; set; }
 
         public ValueTask WaitForNextFrameAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
         public void RequestFrame() => FrameRequests++;
         public IDisposable AcquireContinuousFrames()
         {
+            if (AcquireFailure is not null) throw AcquireFailure;
             ContinuousLeases++;
             return new Lease(this);
         }

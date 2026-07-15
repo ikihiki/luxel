@@ -181,7 +181,12 @@ public sealed class SceneManager
     {
         if (_root is not null) return;
         _root = CreateNode(startup, null, null);
-        await LoadAndActivateAsync(_root, primary: true);
+        try { await LoadAndActivateAsync(_root, primary: true); }
+        catch (Exception ex)
+        {
+            await RollbackNewNodeAsync(_root, ex);
+            throw;
+        }
     }
 
     internal async Task ApplyPendingAsync()
@@ -194,9 +199,19 @@ public sealed class SceneManager
                 {
                     case ReplaceRootOperation replace:
                         await CancelAllTransitionsAsync(promoteIncoming: false);
-                        if (_root is not null) await DeactivateAndUnloadAsync(_root);
+                        if (_root is not null)
+                        {
+                            SceneNode previous = _root;
+                            _root = null;
+                            await DeactivateAndUnloadAsync(previous);
+                        }
                         _root = CreateNode(replace.Scene, null, null);
-                        await LoadAndActivateAsync(_root, primary: true);
+                        try { await LoadAndActivateAsync(_root, primary: true); }
+                        catch (Exception ex)
+                        {
+                            await RollbackNewNodeAsync(_root, ex);
+                            throw;
+                        }
                         break;
 
                     case BeginTransitionOperation begin:
@@ -207,10 +222,18 @@ public sealed class SceneManager
                         EnsureAttached(add.Parent);
                         SceneNode child = CreateNode(add.Scene, add.ExecutionMode, add.RenderMode, add.Parent);
                         add.Parent.MutableChildren.Add(child);
-                        await LoadAndActivateAsync(child, primary: false);
-                        if (add.Parent.IsTransitioning) SetTransitioning(child, true);
-                        if (add.Parent.State == SceneLifecycleState.Suspended)
-                            await SuspendSubtreeAsync(child);
+                        try
+                        {
+                            await LoadAndActivateAsync(child, primary: false);
+                            if (add.Parent.IsTransitioning) SetTransitioning(child, true);
+                            if (add.Parent.State == SceneLifecycleState.Suspended)
+                                await SuspendSubtreeAsync(child);
+                        }
+                        catch (Exception ex)
+                        {
+                            await RollbackNewNodeAsync(child, ex);
+                            throw;
+                        }
                         break;
 
                     case RemoveOperation remove:
@@ -298,8 +321,9 @@ public sealed class SceneManager
         while (_pending.TryDequeue(out SceneOperation? operation))
             operation.Completion.TrySetCanceled();
         if (_root is null) return;
-        await DeactivateAndUnloadAsync(_root);
+        SceneNode root = _root;
         _root = null;
+        await DeactivateAndUnloadAsync(root);
     }
 
     private TScene CreateScene<TScene>() where TScene : class, IScene
@@ -342,7 +366,12 @@ public sealed class SceneManager
             if (operation.Outgoing is not null)
                 throw new InvalidOperationException("遷移元のSceneNodeは現在のSceneGraphに属していません。");
             _root = CreateNode(operation.Scene, null, null);
-            await LoadAndActivateAsync(_root, primary: true);
+            try { await LoadAndActivateAsync(_root, primary: true); }
+            catch (Exception ex)
+            {
+                await RollbackNewNodeAsync(_root, ex);
+                throw;
+            }
             operation.Completion.TrySetResult();
             return;
         }
@@ -360,9 +389,9 @@ public sealed class SceneManager
         SceneNode incoming = CreateNode(operation.Scene, null, null, parent);
         if (parent is not null) parent.MutableChildren.Insert(outgoingIndex + 1, incoming);
         try { await LoadAndActivateAsync(incoming, primary: parent is null); }
-        catch
+        catch (Exception ex)
         {
-            await DeactivateUnloadAndDetachAsync(incoming);
+            await RollbackNewNodeAsync(incoming, ex);
             throw;
         }
 
@@ -502,6 +531,19 @@ public sealed class SceneManager
         finally { DetachNode(node); }
     }
 
+    private async Task RollbackNewNodeAsync(SceneNode node, Exception activationError)
+    {
+        if (ReferenceEquals(_root, node)) _root = null;
+        try { await DeactivateUnloadAndDetachAsync(node); }
+        catch (Exception rollbackError)
+        {
+            throw new AggregateException(
+                "新規Sceneの適用失敗後のロールバックにも失敗しました。",
+                activationError,
+                rollbackError);
+        }
+    }
+
     private static SceneNode CreateNode(
         IScene scene,
         SceneExecutionMode? executionMode,
@@ -565,7 +607,11 @@ public sealed class SceneManager
     private async Task DeactivateAndUnloadAsync(SceneNode node)
     {
         for (int i = node.MutableChildren.Count - 1; i >= 0; i--)
-            await DeactivateAndUnloadAsync(node.MutableChildren[i]);
+        {
+            SceneNode child = node.MutableChildren[i];
+            await DeactivateAndUnloadAsync(child);
+            child.Parent = null;
+        }
         node.MutableChildren.Clear();
 
         ReleaseContinuousLease(node);
