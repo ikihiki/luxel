@@ -203,7 +203,7 @@ public sealed class SceneManager
                         {
                             SceneNode previous = _root;
                             _root = null;
-                            await DeactivateAndUnloadAsync(previous);
+                            await DeactivateUnloadAndDetachAsync(previous);
                         }
                         _root = CreateNode(replace.Scene, null, null);
                         try { await LoadAndActivateAsync(_root, primary: true); }
@@ -251,10 +251,8 @@ public sealed class SceneManager
                             .ToArray();
                         foreach (TransitionRuntime active in affectedTransitions)
                             await CancelTransitionAsync(active, promoteIncoming: false);
-                        await DeactivateAndUnloadAsync(remove.Node);
-                        if (remove.Node.Parent is { } parent) parent.MutableChildren.Remove(remove.Node);
-                        else if (ReferenceEquals(remove.Node, _root)) _root = null;
-                        remove.Node.Parent = null;
+                        if (ReferenceEquals(remove.Node, _root)) _root = null;
+                        await DeactivateUnloadAndDetachAsync(remove.Node);
                         break;
 
                     case SuspendOperation suspend:
@@ -323,7 +321,7 @@ public sealed class SceneManager
         if (_root is null) return;
         SceneNode root = _root;
         _root = null;
-        await DeactivateAndUnloadAsync(root);
+        await DeactivateUnloadAndDetachAsync(root);
     }
 
     private TScene CreateScene<TScene>() where TScene : class, IScene
@@ -528,7 +526,11 @@ public sealed class SceneManager
     private async Task DeactivateUnloadAndDetachAsync(SceneNode node)
     {
         try { await DeactivateAndUnloadAsync(node); }
-        finally { DetachNode(node); }
+        finally
+        {
+            DetachNode(node);
+            node.Scene.OnDetached(node);
+        }
     }
 
     private async Task RollbackNewNodeAsync(SceneNode node, Exception activationError)
@@ -606,13 +608,8 @@ public sealed class SceneManager
 
     private async Task DeactivateAndUnloadAsync(SceneNode node)
     {
-        for (int i = node.MutableChildren.Count - 1; i >= 0; i--)
-        {
-            SceneNode child = node.MutableChildren[i];
-            await DeactivateAndUnloadAsync(child);
-            child.Parent = null;
-        }
-        node.MutableChildren.Clear();
+        while (node.MutableChildren.Count > 0)
+            await DeactivateUnloadAndDetachAsync(node.MutableChildren[^1]);
 
         ReleaseContinuousLease(node);
         if (node.State is SceneLifecycleState.Active or SceneLifecycleState.Suspended)
@@ -627,7 +624,6 @@ public sealed class SceneManager
             await node.Scene.OnUnloadAsync();
         }
         node.State = SceneLifecycleState.Unloaded;
-        node.Scene.OnDetached(node);
         RefreshInputRouting();
     }
 

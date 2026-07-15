@@ -525,6 +525,35 @@ public class SceneManagerTests
     }
 
     [Fact]
+    public async Task SubtreeRemoval_DetachesChildrenBeforeParentNotification()
+    {
+        var services = new ServiceCollection().BuildServiceProvider();
+        var manager = new SceneManager(services, new RecordingFrameScheduler());
+        var lifecycle = new List<string>();
+        var rootEvents = new List<string>();
+        var root = new RecordingScene("root", rootEvents, SceneExecutionMode.OnDemand);
+        var parent = new DetachRecordingScene("parent", lifecycle);
+        var child = new DetachRecordingScene("child", lifecycle);
+
+        await manager.InitializeAsync(root);
+        await ApplyOperationAsync(manager, manager.AddChildAsync(manager.Root!, parent));
+        SceneNode parentNode = manager.Find(parent)!;
+        await ApplyOperationAsync(manager, manager.AddChildAsync(parentNode, child));
+        SceneNode childNode = manager.Find(child)!;
+
+        await ApplyOperationAsync(manager, manager.RemoveAsync(parentNode));
+
+        Assert.Equal(new[] { "child.detached", "parent.detached" }, lifecycle);
+        Assert.Null(child.ParentAtDetach);
+        Assert.Null(parent.ParentAtDetach);
+        Assert.Null(childNode.Parent);
+        Assert.Null(parentNode.Parent);
+        Assert.Empty(parentNode.Children);
+        Assert.Empty(manager.Root!.Children);
+        await manager.ShutdownAsync();
+    }
+
+    [Fact]
     public async Task QueuedOperation_PropagatesLifecycleFailureAndShutdownCancellation()
     {
         var services = new ServiceCollection().BuildServiceProvider();
@@ -656,6 +685,17 @@ public class SceneManagerTests
         }
 
         public void OnDetached(SceneNode node) => IsDetached = true;
+    }
+
+    private sealed class DetachRecordingScene(string name, List<string> lifecycle) : IScene
+    {
+        public SceneNode? ParentAtDetach { get; private set; }
+
+        public void OnDetached(SceneNode node)
+        {
+            ParentAtDetach = node.Parent;
+            lifecycle.Add($"{name}.detached");
+        }
     }
 
     private sealed class RollbackRecordingScene(InputContext context)
