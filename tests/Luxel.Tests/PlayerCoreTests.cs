@@ -7,7 +7,7 @@ using Luxel.SceneEdit;
 namespace Luxel.Tests;
 
 /// <summary>Luxel.Player GE-3 S1 (ToDo 27 / ADR-0015) の単体テスト — SceneCompiler の 2D 展開
-/// (transform 第一級化・データ袋・タイル素通し)、3D 未対応、PlayerLoader (VFS からの読込)、
+/// (transform 第一級化・データ袋・タイル素通し)、3D バックエンド、PlayerLoader (VFS からの読込)、
 /// PlayerEntity の Field/SetField。canvas 不要 (純データ)。</summary>
 public class PlayerCoreTests
 {
@@ -24,10 +24,28 @@ public class PlayerCoreTests
             [TileLayer.Of(1, "ground", "res://atlas/t.json", 32, 4, 2, [0, 0, 0, 0, 1, 1, 2, 1])]);
     }
 
+    private static SceneDoc Sample3DScene(string asset = "res://assets/cube.glb")
+    {
+        var t = SceneSchemas.NewComponent(SceneSchemas.Transform3D)
+            .With("pos", SceneValue.Of(new Vector3(1, 0.5f, 0)))
+            .With("scale", SceneValue.Of(new Vector3(2, 1, 1)));
+        var mesh = SceneSchemas.NewComponent(SceneSchemas.Mesh3D).With("asset", SceneValue.Of(asset));
+        var cam = SceneSchemas.NewComponent(SceneSchemas.Camera3D)
+            .With("target", SceneValue.Of(new Vector3(1, 0.4f, 0)))
+            .With("distance", SceneValue.Of(6f))
+            .With("yaw", SceneValue.Of(0.7f))
+            .With("pitch", SceneValue.Of(0.3f));
+        return SceneDoc.Of(SceneSpace.ThreeD,
+            [
+                SceneEntity.Of(1, "Crate", t, mesh),
+                SceneEntity.Of(2, "Camera", cam),
+            ]);
+    }
+
     [Fact]
     public void Compile2D_ExpandsTransformAndKeepsData()
     {
-        Player2DWorld w = SceneCompiler.Compile(SampleScene());
+        Player2DWorld w = SceneCompiler.Compile2D(SampleScene());
         Assert.Equal(3, w.Entities.Count);
         PlayerEntity p = w.Entity(1);
         Assert.True(p.HasTransform);
@@ -48,13 +66,26 @@ public class PlayerCoreTests
     }
 
     [Fact]
-    public void Compile_3DIsNotSupportedYet()
-        => Assert.Throws<NotSupportedException>(() => SceneCompiler.Compile(SceneDoc.Empty(SceneSpace.ThreeD)));
+    public void Compile3D_ExpandsTransformMeshCameraAndQueries()
+    {
+        Player3DWorld w = SceneCompiler.Compile3D(Sample3DScene());
+        Assert.IsType<Player3DWorld>(SceneCompiler.Compile(Sample3DScene()));
+        PlayerEntity e = w.Entity(1);
+        Assert.True(e.HasTransform3D);
+        Assert.Equal(new Vector3(1, 0.5f, 0), e.Pos3D);
+        Assert.Equal(new Vector3(2, 1, 1), e.Scale3D);
+        Assert.Equal("res://assets/cube.glb", e.MeshAsset);
+        Assert.Contains("res://assets/cube.glb", w.MeshAssets);
+        Assert.Equal(6f, w.Camera.Distance);
+        Assert.Contains(e, w.QueryAabb(new Vector3(0.5f, 0, -0.2f), new Vector3(1.5f, 1, 0.2f)));
+        Assert.True(w.RayCast(new Vector3(1, 0.5f, -5), Vector3.UnitZ, out Player3DHit hit));
+        Assert.Equal(1, hit.Entity.Id);
+    }
 
     [Fact]
     public void Entity_SetFieldMutatesRuntimeOnly()
     {
-        Player2DWorld w = SceneCompiler.Compile(SampleScene());
+        Player2DWorld w = SceneCompiler.Compile2D(SampleScene());
         PlayerEntity e = w.Entity(2);
         e.SetField("enemy", "speed", SceneValue.Of(90f));
         Assert.Equal(90f, e.Field("enemy", "speed")!.Value.AsFloat());
@@ -104,7 +135,24 @@ public class PlayerCoreTests
         Assert.Equal("デモ", game.Project.Name);
         Assert.Equal(480, game.Project.WindowWidth);
         Assert.Equal(new Vector2(100, 80), game.World.Entity(1).Pos);
+        Assert.IsType<Player2DWorld>(game.World);
         // 無いファイルはパス付きで分かる
         Assert.Throws<FileNotFoundException>(() => PlayerLoader.LoadStart(new MemoryFileSystem()));
+    }
+
+    [Fact]
+    public void Loader3D_ValidatesGlbAssetRefs()
+    {
+        var fs = new MemoryFileSystem();
+        void Put(string path, string text) => fs.Set(path, Encoding.UTF8.GetBytes(text));
+        Put("project.luxel", GameProjectJson.Serialize(new GameProject("3d", "res://scenes/main.scene.json")));
+        Put("scenes/main.scene.json", SceneJson.Serialize(Sample3DScene()));
+
+        Player3DWorld missing = PlayerLoader.LoadStart(fs).World3D;
+        Assert.Contains("res://assets/cube.glb", missing.MissingAssets);
+
+        fs.Set("assets/cube.glb", [0x67, 0x6c, 0x54, 0x46]);
+        Player3DWorld ok = PlayerLoader.LoadStart(fs).World3D;
+        Assert.Empty(ok.MissingAssets);
     }
 }

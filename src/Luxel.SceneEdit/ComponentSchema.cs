@@ -164,8 +164,23 @@ public static class SceneSchemas
         "behaviour", "Behaviour (csx)", SceneSpaces.Both,
         [new SceneFieldDef("script", SceneFieldType.AssetRef, SceneValue.Of(""), AssetKind: "csx")]);
 
+    /// <summary>3D メッシュ参照。asset は project 内の glTF/glb への res:// 参照。</summary>
+    public static readonly IComponentSchema Mesh3D = new ComponentSchema(
+        "mesh3d", "Mesh 3D", SceneSpaces.ThreeD,
+        [new SceneFieldDef("asset", SceneFieldType.AssetRef, SceneValue.Of(""), AssetKind: "glb")]);
+
+    /// <summary>3D カメラ。SceneCompiler が最初の camera3d を Player3DWorld の OrbitCamera 初期値に使う。</summary>
+    public static readonly IComponentSchema Camera3D = new ComponentSchema(
+        "camera3d", "Camera 3D", SceneSpaces.ThreeD,
+        [
+            new SceneFieldDef("target", SceneFieldType.Vec3, SceneValue.Of(Vector3.Zero)),
+            new SceneFieldDef("distance", SceneFieldType.Float, SceneValue.Of(8f)),
+            new SceneFieldDef("yaw", SceneFieldType.Float, SceneValue.Of(0.72f)),
+            new SceneFieldDef("pitch", SceneFieldType.Float, SceneValue.Of(0.42f)),
+        ]);
+
     /// <summary>組み込み分を登録した新しい登録簿。</summary>
-    public static SchemaRegistry BuiltIns() => new SchemaRegistry().Add(Transform2D).Add(Transform3D).Add(Behaviour);
+    public static SchemaRegistry BuiltIns() => new SchemaRegistry().Add(Transform2D).Add(Transform3D).Add(Behaviour).Add(Mesh3D).Add(Camera3D);
 
     /// <summary>スキーマの既定値で埋めた新しいコンポーネント (インスペクタの「追加」の実体)。</summary>
     public static SceneComponent NewComponent(IComponentSchema schema)

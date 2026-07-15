@@ -20,7 +20,7 @@ public static class StudioDogfoodStory
 {
     private static readonly Lazy<VectorFont> Font = new(() => GalleryFonts.Load(GalleryFonts.Regular));
 
-    [Story("Apps/Studio/CoinGame", Height = 700, Order = 151)]
+    [Story("Apps/Studio/CoinGame", Height = 700, Order = 152)]
     public static Widget CoinGame(StoryContext ctx)
     {
         // プロジェクトフォルダ (エディタ側 = 書ける IFileStorage)。開始点はほぼ空:
@@ -57,7 +57,7 @@ public static class StudioDogfoodStory
         {
             var fs = new MemoryFileSystem();
             foreach (string path in storage.List()) fs.Set(path, Encoding.UTF8.GetBytes(storage.Read(path)!));
-            world = PlayerLoader.LoadStart(fs).World;
+            world = PlayerLoader.LoadStart(fs).World2D;
         }
         Button play = Button(_ => Play(), "▶ 実行"), stop = Button(_ => world = null, "停止");
 

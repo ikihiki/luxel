@@ -36,7 +36,7 @@ public sealed class PlayerRealtimeScene : GameScene
 
     protected override void OnFixedUpdate(FixedUpdateContext ctx)
     {
-        Player2DWorld world = _game.World;
+        IPlayerWorld world = _game.World;
         world.KeysDown.Clear();
         foreach (string k in _keys()) world.KeysDown.Add(k);
         world.Update(ctx.FixedDeltaSeconds);

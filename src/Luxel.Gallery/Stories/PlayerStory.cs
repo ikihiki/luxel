@@ -50,11 +50,42 @@ public static class PlayerStory
         return fs;
     }
 
+    private static IVirtualFileSystem FixtureProject3D()
+    {
+        SceneComponent T3(float x, float y, float z, float sx = 1, float sy = 1, float sz = 1)
+            => SceneSchemas.NewComponent(SceneSchemas.Transform3D)
+                .With("pos", SceneValue.Of(new Vector3(x, y, z)))
+                .With("scale", SceneValue.Of(new Vector3(sx, sy, sz)));
+        SceneComponent Mesh(string path)
+            => SceneSchemas.NewComponent(SceneSchemas.Mesh3D).With("asset", SceneValue.Of(path));
+        SceneComponent Script(string path)
+            => SceneSchemas.NewComponent(SceneSchemas.Behaviour).With("script", SceneValue.Of(path));
+        var cam = SceneSchemas.NewComponent(SceneSchemas.Camera3D)
+            .With("target", SceneValue.Of(new Vector3(0.2f, 0.6f, 0.2f)))
+            .With("distance", SceneValue.Of(7.2f))
+            .With("yaw", SceneValue.Of(0.68f))
+            .With("pitch", SceneValue.Of(0.4f));
+        var scene = SceneDoc.Of(SceneSpace.ThreeD,
+            [
+                SceneEntity.Of(1, "Walker", T3(-1.5f, 0.5f, 0, 1, 1, 1), Mesh("res://assets/cube.glb"), Script("res://scripts/walk3d.csx")),
+                SceneEntity.Of(2, "Crate", T3(1.2f, 0.5f, 0.4f, 1.2f, 1, 1.2f), Mesh("res://assets/cube.glb")),
+                SceneEntity.Of(3, "Camera", cam),
+            ]);
+
+        var fs = new MemoryFileSystem();
+        void Put(string path, string text) => fs.Set(path, Encoding.UTF8.GetBytes(text));
+        Put("project.luxel", GameProjectJson.Serialize(new GameProject("Player 3D デモ", "res://scenes/main.scene.json", 520, 320)));
+        Put("scenes/main.scene.json", SceneJson.Serialize(scene));
+        Put("scripts/walk3d.csx", "Update = (self, world, dt) => { self.Pos3D.X += 0.8f * dt; self.Pos3D.Z = 0.35f * MathF.Sin(world.Time * 2f); };");
+        fs.Set("assets/cube.glb", [0x67, 0x6c, 0x54, 0x46]); // glTF binary magic; loader v1 は参照検証のみ
+        return fs;
+    }
+
     [Story("Apps/Player/Basic", Height = 420, Order = 148)]
     public static Widget Basic(StoryContext ctx)
     {
         PlayerGame game = PlayerLoader.LoadStart(FixtureProject());
-        Player2DWorld world = game.World;
+        Player2DWorld world = game.World2D;
         float w = game.Project.WindowWidth, h = game.Project.WindowHeight;
 
         // Canvas2D の animate = Tick 累積 (wall-clock 禁止) — snap の固定ステップで決定的
@@ -79,9 +110,37 @@ public static class PlayerStory
                 view]];
     }
 
+    [Story("Apps/Player/ThreeD", Height = 450, Order = 149)]
+    public static Widget ThreeD(StoryContext ctx)
+    {
+        PlayerGame game = PlayerLoader.LoadStart(FixtureProject3D());
+        Player3DWorld world = game.World3D;
+        float w = game.Project.WindowWidth, h = game.Project.WindowHeight;
+        Canvas2D view = Canvas2D(w, h, animate: (s, _) => world.Render(s, w, h, Font.Value));
+
+        ctx.Play("run3d", async d =>
+        {
+            await d.Snap();
+            await d.Expect(() => world.MissingAssets.Count == 0, "mesh3d の glb AssetRef は VFS 上で解決できる");
+            await d.Expect(() => world.RayCast(new Vector3(-1.5f, 0.5f, -6f), Vector3.UnitZ, out Player3DHit hit) && hit.Entity.Id == 1, "AABB raycast が Walker に当たる");
+            float x0 = world.Entity(1).Pos3D.X;
+            for (int i = 0; i < 30; i++) world.Update(1f / 60f);
+            await d.Expect(() => world.Entity(1).Pos3D.X > x0 + 0.35f, "3D csx が Pos3D を更新");
+            world.Camera.Orbit(0.35f, -0.08f);
+            await d.Step(1);
+            await d.Snap("orbit");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("Luxel.Player — 3D バックエンド"),
+                Muted("SceneCompiler が transform3d / mesh3d(glb AssetRef) / camera3d を Player3DWorld へ構築。csx は Pos3D を更新し、AABB query/raycast と Scene2D 投影の実窓描画で確認する。"),
+                view]];
+    }
+
     // プレイインエディタ (ADR-0017): ▶ = 編集中 SceneDoc から都度コンパイル、⏹ = プレイ world を破棄。
     // gizmo/DevStats オーバーレイの統合は Studio シェル (GE-7 dogfood) で。
-    [Story("Apps/Player/PlayInEditor", Height = 480, Order = 149)]
+    [Story("Apps/Player/PlayInEditor", Height = 480, Order = 150)]
     public static Widget PlayInEditor(StoryContext ctx)
     {
         IVirtualFileSystem fs = FixtureProject();
@@ -96,7 +155,7 @@ public static class PlayerStory
 
         void Play()
         {
-            world = SceneCompiler.Compile(ed.Scene.Doc);   // 編集中の最新 doc から別インスタンスを構築
+            world = SceneCompiler.Compile2D(ed.Scene.Doc);   // 編集中の最新 doc から別インスタンスを構築
             var behaviours = new PlayerBehaviours(fs);
             behaviours.LoadAll(world);
             world.Behaviours = behaviours;
@@ -153,12 +212,12 @@ public static class PlayerStory
 
     // スクリプト編集統合 (GE-5): csx を TextEditorView (診断波線) で編集 → 保存で
     // PlayerBehaviours.Reload (ホットリロード)。壊れた保存は旧挙動継続 + Problems 表示 (ADR-0018 の失敗契約の UI)。
-    [Story("Apps/Player/ScriptEditor", Height = 570, Order = 150)]
+    [Story("Apps/Player/ScriptEditor", Height = 570, Order = 151)]
     public static Widget ScriptEditor(StoryContext ctx)
     {
         IVirtualFileSystem fs = FixtureProject();
         PlayerGame game = PlayerLoader.LoadStart(fs);
-        Player2DWorld world = game.World;
+        Player2DWorld world = game.World2D;
         const string scriptRes = "res://scripts/walk.csx";
         const string scriptFile = "scripts/walk.csx";
 

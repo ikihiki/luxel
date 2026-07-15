@@ -11,11 +11,11 @@ namespace Luxel.Player;
 /// 毎ステップ処理を代入する: <c>Update = (self, world, dt) =&gt; { self.Pos.X += 60f * dt; };</c>。
 /// **スクリプト自身は状態を持たない** (同じスクリプトを複数エンティティが共有する) —
 /// エンティティ状態はコンポーネント (<see cref="PlayerEntity.Field"/>/<see cref="PlayerEntity.SetField"/>) に置く。
-/// 空間非依存の共通部で、space 別拡張 (3D) は M12 で足す。</summary>
+/// 空間非依存の共通部で、2D/3D の world へ同じ delegate で接続する。</summary>
 public sealed class BehaviourGlobals
 {
     /// <summary>毎ステップ呼ばれる更新 (self = このスクリプトを持つエンティティ, world, 固定 dt)。</summary>
-    public Action<PlayerEntity, Player2DWorld, float>? Update;
+    public Action<PlayerEntity, IPlayerWorld, float>? Update;
 }
 
 /// <summary>
@@ -28,7 +28,7 @@ public sealed class PlayerBehaviours
 {
     private sealed class Slot
     {
-        public Action<PlayerEntity, Player2DWorld, float>? Update;
+        public Action<PlayerEntity, IPlayerWorld, float>? Update;
         public List<string> Diagnostics = [];
     }
 
@@ -56,7 +56,7 @@ public sealed class PlayerBehaviours
                    .SelectMany(kv => kv.Value.Diagnostics.Select(d => $"{kv.Key}: {d}")).ToList();
 
     /// <summary>world の behaviour コンポーネントが参照する全スクリプトを読み込む。</summary>
-    public void LoadAll(Player2DWorld world)
+    public void LoadAll(IPlayerWorld world)
     {
         foreach (PlayerEntity e in world.Entities)
             if (ScriptPathOf(e) is { Length: > 0 } path && !_scripts.ContainsKey(path))
@@ -90,7 +90,7 @@ public sealed class PlayerBehaviours
 
     /// <summary>behaviour を持つ全エンティティの Update を呼ぶ (固定 dt)。実行時例外は
     /// そのスクリプトを無効化して診断に積む (リロードで復帰)。</summary>
-    public void Update(Player2DWorld world, float dt)
+    public void Update(IPlayerWorld world, float dt)
     {
         foreach (PlayerEntity e in world.Entities)
         {
