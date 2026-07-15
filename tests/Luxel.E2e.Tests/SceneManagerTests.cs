@@ -200,6 +200,49 @@ public class SceneManagerTests
     }
 
     [Fact]
+    public async Task ChildTransition_KeepsParentAndSiblingActive()
+    {
+        var services = new ServiceCollection().BuildServiceProvider();
+        var manager = new SceneManager(services, new RecordingFrameScheduler());
+        var events = new List<string>();
+        var root = new RecordingScene("root", events, SceneExecutionMode.OnDemand);
+        var outgoing = new TransitionRecordingScene("out", events, run: true);
+        var sibling = new RecordingScene("sibling", events, SceneExecutionMode.OnDemand);
+        var incoming = new TransitionRecordingScene("in", events, run: true);
+
+        await manager.InitializeAsync(root);
+        await manager.AddChildAsync(manager.Root!, outgoing);
+        await manager.AddChildAsync(manager.Root!, sibling);
+        await manager.ApplyPendingAsync();
+        SceneNode outgoingNode = manager.Find(outgoing)!;
+        SceneNode siblingNode = manager.Find(sibling)!;
+
+        Task completion = manager.TransitionAsync(
+            outgoingNode, incoming, new SceneTransitionSpec(0.1f));
+        await manager.ApplyPendingAsync();
+
+        Assert.Same(root, manager.Current);
+        Assert.Equal(new IScene[] { outgoing, incoming, sibling },
+            manager.Root!.Children.Select(n => n.Scene));
+        Assert.Equal(4, manager.GetActiveNodes().Length);
+        Assert.Equal(SceneLifecycleState.Active, siblingNode.State);
+
+        await manager.AdvanceTransitionAsync(0.1f); // progress=0 frame
+        await manager.AdvanceTransitionAsync(0.1f);
+        await completion;
+
+        Assert.Same(root, manager.Current);
+        Assert.Equal(new IScene[] { incoming, sibling },
+            manager.Root.Children.Select(n => n.Scene));
+        Assert.Null(outgoingNode.Parent);
+        Assert.Same(manager.Root, manager.Find(incoming)!.Parent);
+        Assert.Equal(SceneLifecycleState.Active, siblingNode.State);
+        Assert.DoesNotContain("root.unload", events);
+        Assert.DoesNotContain("sibling.unload", events);
+        await manager.ShutdownAsync();
+    }
+
+    [Fact]
     public async Task DockScene_AttachesNamedSlotsAsIndependentChildren()
     {
         var services = new ServiceCollection().BuildServiceProvider();
@@ -232,6 +275,42 @@ public class SceneManagerTests
             "content.deactivate", "content.unload", "list.deactivate", "list.unload",
             "dock.deactivate", "dock.unload",
         }, events);
+    }
+
+    [Fact]
+    public async Task DockScene_TransitionsOnlySelectedSlot()
+    {
+        var services = new ServiceCollection().BuildServiceProvider();
+        var manager = new SceneManager(services, new RecordingFrameScheduler());
+        var events = new List<string>();
+        var list = new RecordingScene("list", events, SceneExecutionMode.OnDemand);
+        var first = new TransitionRecordingScene("first", events, run: true);
+        var next = new TransitionRecordingScene("next", events, run: true);
+        var dock = new RecordingDockScene(manager, events, list, first);
+
+        await manager.InitializeAsync(dock);
+        await manager.ApplyPendingAsync();
+        SceneNode listNode = dock.GetSlotNode("stories")!;
+
+        Task completion = dock.TransitionSlotAsync(
+            "content", next, new SceneTransitionSpec(0.1f));
+        await manager.ApplyPendingAsync();
+
+        Assert.True(manager.IsTransitioning);
+        Assert.Same(listNode, dock.GetSlotNode("stories"));
+        Assert.Equal(SceneLifecycleState.Active, listNode.State);
+        Assert.Equal(3, manager.Root!.Children.Count); // list + outgoing + incoming
+
+        await manager.AdvanceTransitionAsync(0.1f);
+        await manager.AdvanceTransitionAsync(0.1f);
+        await completion;
+
+        Assert.False(manager.IsTransitioning);
+        Assert.Same(next, dock.GetSlotNode("content")!.Scene);
+        Assert.Same(listNode, dock.GetSlotNode("stories"));
+        Assert.DoesNotContain("list.unload", events);
+        Assert.Contains("first.unload", events);
+        await manager.ShutdownAsync();
     }
 
     private sealed class RecordingScene(

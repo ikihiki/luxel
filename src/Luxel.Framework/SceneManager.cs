@@ -12,7 +12,10 @@ public sealed class SceneManager
     private abstract record SceneOperation;
     private sealed record ReplaceRootOperation(IScene Scene) : SceneOperation;
     private sealed record BeginTransitionOperation(
-        IScene Scene, SceneTransitionSpec Spec, TaskCompletionSource Completion) : SceneOperation;
+        SceneNode? Outgoing,
+        IScene Scene,
+        SceneTransitionSpec Spec,
+        TaskCompletionSource Completion) : SceneOperation;
     private sealed record AddChildOperation(SceneNode Parent, IScene Scene,
         SceneExecutionMode? ExecutionMode, SceneRenderMode? RenderMode) : SceneOperation;
     private sealed record RemoveOperation(SceneNode Node) : SceneOperation;
@@ -76,7 +79,25 @@ public sealed class SceneManager
         ArgumentNullException.ThrowIfNull(next);
         ArgumentNullException.ThrowIfNull(transition);
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        Enqueue(new BeginTransitionOperation(next, transition, completion));
+        Enqueue(new BeginTransitionOperation(null, next, transition, completion));
+        return completion.Task;
+    }
+
+    public Task TransitionAsync<TScene>(SceneNode outgoing, SceneTransitionSpec transition)
+        where TScene : class, IScene
+        => TransitionAsync(outgoing, CreateScene<TScene>(), transition);
+
+    /// <summary>
+    /// SceneGraph内の<paramref name="outgoing"/>だけを<paramref name="next"/>へ遷移する。
+    /// 親と兄弟はActiveのまま維持され、outgoing/incomingは遷移中だけ同じ親の下で同時実行される。
+    /// </summary>
+    public Task TransitionAsync(SceneNode outgoing, IScene next, SceneTransitionSpec transition)
+    {
+        ArgumentNullException.ThrowIfNull(outgoing);
+        ArgumentNullException.ThrowIfNull(next);
+        ArgumentNullException.ThrowIfNull(transition);
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Enqueue(new BeginTransitionOperation(outgoing, next, transition, completion));
         return completion.Task;
     }
 
@@ -179,7 +200,9 @@ public sealed class SceneManager
                         await CancelTransitionAsync(promoteIncoming: false);
                         break;
                     }
-                    if (ReferenceEquals(remove.Node, _root) && _transition is not null)
+                    if (_transition is { } active
+                        && (ContainsNode(remove.Node, active.Outgoing)
+                            || ContainsNode(remove.Node, active.Incoming)))
                         await CancelTransitionAsync(promoteIncoming: false);
                     await DeactivateAndUnloadAsync(remove.Node);
                     if (remove.Node.Parent is { } parent) parent.MutableChildren.Remove(remove.Node);
@@ -208,7 +231,7 @@ public sealed class SceneManager
         IEnumerable<SceneNode> nodes = _root is null
             ? Enumerable.Empty<SceneNode>()
             : EnumeratePreOrder(_root);
-        if (_transition is not null)
+        if (_transition is { Incoming.Parent: null })
             nodes = nodes.Concat(EnumeratePreOrder(_transition.Incoming));
         return nodes.Where(n => n.State == SceneLifecycleState.Active).ToArray();
     }
@@ -256,26 +279,43 @@ public sealed class SceneManager
 
     private async Task BeginTransitionAsync(BeginTransitionOperation operation)
     {
-        // 新しい遷移で割り込む場合は、画面に入りつつあるincomingを次のoutgoingとして採用する。
+        // 同じoutgoing側を再指定した場合は元へ戻し、それ以外は画面に入りつつあるincomingを採用する。
         if (_transition is not null)
-            await CancelTransitionAsync(promoteIncoming: true);
-
-        if (_root is null)
         {
+            bool requestedOutgoingStillNeeded = operation.Outgoing is { } requested
+                                                && ContainsNode(_transition.Outgoing, requested);
+            await CancelTransitionAsync(promoteIncoming: !requestedOutgoingStillNeeded);
+        }
+
+        SceneNode? outgoing = operation.Outgoing ?? _root;
+        if (outgoing is null)
+        {
+            if (operation.Outgoing is not null)
+                throw new InvalidOperationException("遷移元のSceneNodeは現在のSceneGraphに属していません。");
             _root = CreateNode(operation.Scene, null, null);
             await LoadAndActivateAsync(_root, primary: true);
             operation.Completion.TrySetResult();
             return;
         }
+        EnsureAttached(outgoing);
+        if (outgoing.State != SceneLifecycleState.Active)
+            throw new InvalidOperationException("ActiveではないSceneNodeを遷移元にできません。");
 
-        SceneNode incoming = CreateNode(operation.Scene, null, null);
-        try { await LoadAndActivateAsync(incoming, primary: true); }
+        SceneNode? parent = outgoing.Parent;
+        if (parent is null && !ReferenceEquals(outgoing, _root))
+            throw new InvalidOperationException("rootではないSceneNodeに親が設定されていません。");
+        int outgoingIndex = parent?.MutableChildren.IndexOf(outgoing) ?? -1;
+        if (parent is not null && outgoingIndex < 0)
+            throw new InvalidOperationException("遷移元のSceneNodeが親の子一覧に存在しません。");
+
+        SceneNode incoming = CreateNode(operation.Scene, null, null, parent);
+        if (parent is not null) parent.MutableChildren.Insert(outgoingIndex + 1, incoming);
+        try { await LoadAndActivateAsync(incoming, primary: parent is null); }
         catch
         {
-            await DeactivateAndUnloadAsync(incoming);
+            await DeactivateUnloadAndDetachAsync(incoming);
             throw;
         }
-        SceneNode outgoing = _root;
 
         if (operation.Spec.DurationSeconds <= 0f)
         {
@@ -289,13 +329,13 @@ public sealed class SceneManager
             {
                 SetTransitioning(outgoing, false);
                 SetTransitioning(incoming, false);
-                await DeactivateAndUnloadAsync(incoming);
+                await DeactivateUnloadAndDetachAsync(incoming);
                 throw;
             }
             SetTransitioning(outgoing, false);
             SetTransitioning(incoming, false);
-            _root = incoming;
-            await DeactivateAndUnloadAsync(outgoing);
+            if (parent is null) _root = incoming;
+            await DeactivateUnloadAndDetachAsync(outgoing);
             operation.Completion.TrySetResult();
             return;
         }
@@ -313,7 +353,7 @@ public sealed class SceneManager
             SetTransitioning(outgoing, false);
             SetTransitioning(incoming, false);
             runtime.ContinuousLease.Dispose();
-            await DeactivateAndUnloadAsync(incoming);
+            await DeactivateUnloadAndDetachAsync(incoming);
             throw;
         }
     }
@@ -324,10 +364,10 @@ public sealed class SceneManager
         _transition = null;
         SetTransitioning(transition.Outgoing, false);
         SetTransitioning(transition.Incoming, false);
-        _root = transition.Incoming;
+        if (transition.Outgoing.Parent is null) _root = transition.Incoming;
         try
         {
-            await DeactivateAndUnloadAsync(transition.Outgoing);
+            await DeactivateUnloadAndDetachAsync(transition.Outgoing);
             transition.Completion.TrySetResult();
         }
         catch (Exception ex)
@@ -354,12 +394,12 @@ public sealed class SceneManager
         {
             if (promoteIncoming)
             {
-                _root = transition.Incoming;
-                await DeactivateAndUnloadAsync(transition.Outgoing);
+                if (transition.Outgoing.Parent is null) _root = transition.Incoming;
+                await DeactivateUnloadAndDetachAsync(transition.Outgoing);
             }
             else
             {
-                await DeactivateAndUnloadAsync(transition.Incoming);
+                await DeactivateUnloadAndDetachAsync(transition.Incoming);
             }
         }
         finally
@@ -386,6 +426,21 @@ public sealed class SceneManager
     private static void SetTransitioning(SceneNode root, bool value)
     {
         foreach (SceneNode node in EnumeratePreOrder(root)) node.IsTransitioning = value;
+    }
+
+    private static bool ContainsNode(SceneNode root, SceneNode candidate)
+        => EnumeratePreOrder(root).Contains(candidate);
+
+    private static void DetachNode(SceneNode node)
+    {
+        if (node.Parent is { } parent) parent.MutableChildren.Remove(node);
+        node.Parent = null;
+    }
+
+    private async Task DeactivateUnloadAndDetachAsync(SceneNode node)
+    {
+        try { await DeactivateAndUnloadAsync(node); }
+        finally { DetachNode(node); }
     }
 
     private static SceneNode CreateNode(

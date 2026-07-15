@@ -27,7 +27,7 @@ public interface ISceneTransitionParticipant
 }
 
 /// <summary>
-/// root Scene間の時間付き遷移設定。描画方式をFrameworkへ固定せず、participantまたは
+/// Scene間の時間付き遷移設定。描画方式をFrameworkへ固定せず、participantまたは
 /// <see cref="Apply"/> callbackが各Sceneのopacity、slide位置、render target合成等を更新する。
 /// </summary>
 public sealed class SceneTransitionSpec

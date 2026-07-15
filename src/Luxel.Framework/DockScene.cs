@@ -59,6 +59,35 @@ public abstract class DockScene : IScene
         return _node.Children.FirstOrDefault(child => ReferenceEquals(child.Scene, slot.Scene));
     }
 
+    /// <summary>
+    /// 指定slotのSceneだけを遷移する。他のslotはActiveのまま実行される。
+    /// 返るTaskは遷移完了後に完了し、中断された場合はCanceledになる。
+    /// </summary>
+    public async Task TransitionSlotAsync(
+        string name,
+        IScene next,
+        SceneTransitionSpec transition)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(next);
+        ArgumentNullException.ThrowIfNull(transition);
+        if (!_slots.TryGetValue(name, out DockSceneSlot? current))
+            throw new KeyNotFoundException($"DockScene slot '{name}' は存在しません。");
+        SceneNode outgoing = GetSlotNode(name)
+            ?? throw new InvalidOperationException($"DockScene slot '{name}' はまだSceneGraphへ反映されていません。");
+
+        await _scenes.TransitionAsync(outgoing, next, transition);
+        _slots[name] = new DockSceneSlot(
+            current.Name,
+            next,
+            current.ExecutionMode,
+            current.RenderMode);
+    }
+
+    /// <summary>指定slotを次のフレーム境界で即時置換する。</summary>
+    public Task ReplaceSlotAsync(string name, IScene next)
+        => TransitionSlotAsync(name, next, new SceneTransitionSpec(0f));
+
     SceneExecutionMode IScene.ExecutionMode => SceneExecutionMode.OnDemand;
     SceneRenderMode IScene.RenderMode => SceneRenderMode.Frozen;
     bool IScene.TryBeginFrame() => false;
