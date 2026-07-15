@@ -9,7 +9,8 @@ namespace Luxel.Platform;
 
 /// <summary>
 /// マルチウィンドウの駆動役: <see cref="WindowSystem"/> + ウィンドウ毎の <see cref="WindowHost"/> + オフスクリーン UI。
-/// ループは <see cref="RunFrame"/> を毎フレーム呼ぶだけ (Drain → Pump → 各窓 Frame → 閉窓の掃除)。
+/// ゲーム型ループは <see cref="RunFrame"/> を毎フレーム呼べる。UI型ループは
+/// <see cref="WaitForNextFrame"/> → <see cref="RunFrame"/> とし、静止中はOSイベント待機へ入る。
 ///
 /// リモート制御は既存 DevTools に統合する:
 ///  - ウィンドウ一覧/ピクセル = <see cref="IWindowRemoteHost"/> 実装 → DebugServer の /windows, /winframe
@@ -27,9 +28,11 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
     private readonly List<WindowHost> _hosts = new();
     private readonly List<IWindowContent> _offscreen = new();
     private readonly Dictionary<string, Func<Widget>> _contents = new();
+    private readonly AutoResetEvent _wake = new(false);
     private string? _defaultContent;
     private int _nextId = 1;
     private long _frameCount;
+    private bool _disposed;
 
     public EngineCommands Commands { get; }
     /// <summary>全 UI の登録簿 (ウィンドウ付き/オフスクリーンを問わない)。Framework と共有可。</summary>
@@ -44,6 +47,7 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
         _raster = new Rasterizer2D(device);
         Commands = commands ?? new EngineCommands();
         UiRegistry = uiRegistry ?? new UiRegistry();
+        Commands.Enqueued += RequestFrame;
         RegisterCommands();
     }
 
@@ -62,7 +66,9 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
         // 論理サイズ同期は WindowHost ctor が行う (物理クライアント ÷ DPI スケール)
         var host = new WindowHost(_nextId++, _device, win, content);
         foreach ((string name, UiHost ui) in content.Uis) UiRegistry.Register(name, ui);
+        AttachFrameDemand(content);
         lock (_gate) _hosts.Add(host);
+        RequestFrame();
         return host;
     }
 
@@ -77,7 +83,9 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
     {
         var content = new UiContent(_raster, _font, name, width, height, build());
         foreach ((string n, UiHost ui) in content.Uis) UiRegistry.Register(n, ui);
+        AttachFrameDemand(content);
         lock (_gate) _offscreen.Add(content);
+        RequestFrame();
         return content;
     }
 
@@ -90,6 +98,46 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
     /// present は vsync でブロックしループを律速するため、true の周回は追加スリープ不要
     /// (スリープを足すと入力レイテンシに直列加算される)。</summary>
     public bool AnyRendered { get; private set; }
+
+    /// <summary>別スレッドの非同期完了などから、次の UI フレームを明示的に要求する。</summary>
+    public void RequestFrame()
+    {
+        if (_disposed) return;
+        try { _wake.Set(); }
+        catch (ObjectDisposedException) { }
+    }
+
+    /// <summary>
+    /// 即時要求があればそのまま返り、アイドルなら OS の入力/ウィンドウイベントまたは
+    /// <see cref="RequestFrame"/> を待つ。連続 animation 中は present の vsync をペーサーとして使い、
+    /// 前フレームが描画されなかった場合だけ約 60Hz に制限する。
+    /// </summary>
+    public bool WaitForNextFrame(int timeoutMilliseconds = Timeout.Infinite)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (timeoutMilliseconds < Timeout.Infinite)
+            throw new ArgumentOutOfRangeException(nameof(timeoutMilliseconds));
+
+        WindowHost[] hosts;
+        IWindowContent[] offscreen;
+        lock (_gate) { hosts = _hosts.ToArray(); offscreen = _offscreen.ToArray(); }
+        if (hosts.Length == 0) return false;
+
+        bool explicitlyRequested = _wake.WaitOne(0);
+        bool immediate = explicitlyRequested || Commands.HasPending
+            || hosts.Any(h => h.HasPendingFrame)
+            || offscreen.OfType<IFrameDemandSource>().Any(d => d.HasPendingFrame);
+        if (immediate) return true;
+
+        bool continuous = hosts.Any(h => h.RequiresContinuousFrames)
+            || offscreen.OfType<IFrameDemandSource>().Any(d => d.RequiresContinuousFrames);
+        if (continuous && AnyRendered) return true; // 直前の present が vsync 待機済み
+
+        int wait = continuous
+            ? timeoutMilliseconds == Timeout.Infinite ? 16 : Math.Min(16, timeoutMilliseconds)
+            : timeoutMilliseconds;
+        return _windows.WaitForEvents(_wake, wait);
+    }
 
     /// <summary>1 フレーム: コマンド適用 → メッセージポンプ → 各窓描画 (+オフスクリーン Tick) → 閉じた窓の破棄。
     /// ウィンドウが残っていれば true。</summary>
@@ -107,6 +155,7 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
             {
                 lock (_gate) _hosts.Remove(h);
                 foreach ((string _, UiHost ui) in h.Content.Uis) UiRegistry.Unregister(ui);
+                DetachFrameDemand(h.Content);
                 h.Dispose();
                 continue;
             }
@@ -213,6 +262,9 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
 
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
+        Commands.Enqueued -= RequestFrame;
         WindowHost[] hosts;
         IWindowContent[] offscreen;
         lock (_gate)
@@ -223,13 +275,26 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
         foreach (WindowHost h in hosts)
         {
             foreach ((string _, UiHost ui) in h.Content.Uis) UiRegistry.Unregister(ui);
+            DetachFrameDemand(h.Content);
             h.Dispose();
         }
         foreach (IWindowContent c in offscreen)
         {
             foreach ((string _, UiHost ui) in c.Uis) UiRegistry.Unregister(ui);
+            DetachFrameDemand(c);
             c.Dispose();
         }
+        _wake.Dispose();
         _raster.Dispose();
+    }
+
+    private void AttachFrameDemand(IWindowContent content)
+    {
+        if (content is IFrameDemandSource demand) demand.FrameRequested += RequestFrame;
+    }
+
+    private void DetachFrameDemand(IWindowContent content)
+    {
+        if (content is IFrameDemandSource demand) demand.FrameRequested -= RequestFrame;
     }
 }

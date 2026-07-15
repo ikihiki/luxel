@@ -14,6 +14,9 @@ public sealed class EngineCommands
     private readonly Dictionary<string, Func<object?, object?>> _handlers = new();
     private readonly ConcurrentQueue<(string name, object? arg)> _inbound = new();
 
+    /// <summary>任意スレッドからコマンドが投入されたことを app loop へ通知する。</summary>
+    public event Action? Enqueued;
+
     /// <summary>操作を登録する (戻り値あり)。同名は上書き。</summary>
     public void Register(string name, Func<object?, object?> handler) => _handlers[name] = handler;
 
@@ -26,7 +29,14 @@ public sealed class EngineCommands
     public bool Has(string name) => _handlers.ContainsKey(name);
 
     /// <summary>リスナーが呼ぶ (任意スレッド)。実行は app スレッドの <see cref="Drain"/> まで遅延。</summary>
-    public void Enqueue(string name, object? arg) => _inbound.Enqueue((name, arg));
+    public void Enqueue(string name, object? arg)
+    {
+        _inbound.Enqueue((name, arg));
+        Enqueued?.Invoke();
+    }
+
+    /// <summary>次の <see cref="Drain"/> で処理すべきコマンドがあるか。</summary>
+    public bool HasPending => !_inbound.IsEmpty;
 
     /// <summary>app スレッドが毎フレーム呼ぶ。溜まった操作を順に実行する。実行件数を返す。
     /// throw した操作は報告して読み飛ばす (エラー境界 — 1 コマンドの失敗でループを落とさない)。</summary>

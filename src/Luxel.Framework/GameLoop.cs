@@ -6,9 +6,7 @@ namespace Luxel.Framework;
 /// <summary>
 /// engine の起動 wrapper。<see cref="BackgroundService"/> として Host.RunAsync で起動され、
 /// startup Scene を <see cref="SceneManager"/> に流して <see cref="SceneManager.RunLoopAsync"/> に委譲する。
-///
-/// <para>ゲームループの本体は <see cref="IScene.RunAsync"/> 内 (Scene 所有)。GameLoop は Scene 切替の
-/// 外側ループを回すだけ。</para>
+/// ループ本体は <see cref="SceneRunner"/> が所有し、SceneManagerのGraphへphaseを配信する。
 /// </summary>
 public sealed class GameLoop(IServiceProvider services, SceneManager sceneManager, StartupScene? startup = null)
     : BackgroundService

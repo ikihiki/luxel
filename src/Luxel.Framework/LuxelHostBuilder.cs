@@ -45,6 +45,7 @@ public sealed class LuxelHostBuilder
     {
         _args = args ?? Array.Empty<string>();
         _inner = Host.CreateApplicationBuilder(_args);
+        UseGameSceneManager(); // 後方互換: 未指定時は従来どおり常時フレームを回す
     }
 
     /// <summary>Host builder を作る。args は Microsoft.Extensions.Hosting の設定 (env, config) にそのまま渡る。</summary>
@@ -72,9 +73,33 @@ public sealed class LuxelHostBuilder
     /// インスタンス登録なのでコンテナは Dispose しない — 所有はホスト側のまま。</summary>
     public LuxelHostBuilder UseGpuDevice(GpuDevice device) { _borrowedDevice = device; return this; }
 
+    /// <summary>
+    /// SceneManager をゲーム向けの常時フレーム駆動にする。
+    /// Scene の寿命管理は共通の <see cref="SceneManager"/> を使い、DI の <see cref="IFrameScheduler"/> を
+    /// <see cref="GameFrameScheduler"/> に切り替える。UseGameSceneManager / UseUiSceneManager は後から呼んだ方が優先される。
+    /// </summary>
+    public LuxelHostBuilder UseGameSceneManager()
+    {
+        _inner.Services.RemoveAll<IFrameScheduler>();
+        _inner.Services.AddSingleton<IFrameScheduler>(_ => new GameFrameScheduler(_frameWaiter));
+        return this;
+    }
+
+    /// <summary>
+    /// SceneManager を UI向けの要求駆動にする。
+    /// DI の <see cref="IFrameScheduler"/> は <see cref="UiFrameScheduler"/> になり、初回描画後は
+    /// RequestFrame が呼ばれるまで待機する。アニメーション中は AcquireContinuousFrames で一時的に連続駆動できる。
+    /// </summary>
+    public LuxelHostBuilder UseUiSceneManager()
+    {
+        _inner.Services.RemoveAll<IFrameScheduler>();
+        _inner.Services.AddSingleton<IFrameScheduler>(_ => new UiFrameScheduler(_frameWaiter));
+        return this;
+    }
+
     /// <summary>フレームペーシングを差し替える (Platform 部分の抽象 — 既定は固定ディレイ)。
     /// Storybook 等の埋め込みホストが自分の描画ティックに同期させるのに使う。
-    /// 詳細は <see cref="SceneLoopServices.WaitFrame"/>。</summary>
+    /// Game/UI いずれの <see cref="IFrameScheduler"/> でも、実行可能になったフレームをこの waiter に同期する。</summary>
     public LuxelHostBuilder UseFrameWaiter(Func<CancellationToken, Task> waiter) { _frameWaiter = waiter; return this; }
 
     /// <summary>Audio (XAudio2Backend) を DI に登録する。未指定なら audio system は起動しない。</summary>
@@ -108,7 +133,7 @@ public sealed class LuxelHostBuilder
     }
 
     /// <summary>起動時に自動 Load する scene 型。SceneManager が最初に SwitchAsync{T}() する。</summary>
-    public LuxelHostBuilder AddScene<TScene>() where TScene : GameScene
+    public LuxelHostBuilder AddScene<TScene>() where TScene : class, IScene
     {
         _startupScene = typeof(TScene);
         _inner.Services.TryAddTransient<TScene>();
@@ -135,7 +160,12 @@ public sealed class LuxelHostBuilder
         _inner.Services.AddSingleton<Luxel.Ecs.World>();
 
         // EngineCommands (DevTools → engine の操作経路。Scene が engine.pause/resume/step を Register する)
-        _inner.Services.AddSingleton<Luxel.Diagnostics.EngineCommands>();
+        _inner.Services.AddSingleton(sp =>
+        {
+            var commands = new Luxel.Diagnostics.EngineCommands();
+            commands.Enqueued += sp.GetRequiredService<IFrameScheduler>().RequestFrame;
+            return commands;
+        });
 
         // Input (常時 available)
         _inner.Services.AddSingleton<InputBus>();
@@ -186,19 +216,25 @@ public sealed class LuxelHostBuilder
         }
 
         // SceneLoopServices — Scene の ctor に渡す (device / resources / audio / input の束)
-        _inner.Services.AddSingleton(sp => new SceneLoopServices(
-            Device: sp.GetRequiredService<GpuDevice>(),
-            Resources: sp.GetService<ResourceSystem>(),
-            Mixer: sp.GetService<AudioMixer>(),
-            InputBus: sp.GetService<InputBus>(),
-            InputStack: sp.GetService<InputStack>(),
-            InputSources: sp.GetServices<IInputSource>().ToArray(),
-            Commands: sp.GetService<Luxel.Diagnostics.EngineCommands>(),
-            AudioRegistry: sp.GetService<AudioRegistry>(),
-            UiRegistry: sp.GetService<UiRegistry>(),
-            WaitFrame: _frameWaiter));
+        _inner.Services.AddSingleton(sp =>
+        {
+            IFrameScheduler frames = sp.GetRequiredService<IFrameScheduler>();
+            Luxel.Diagnostics.EngineCommands? commands = sp.GetService<Luxel.Diagnostics.EngineCommands>();
+            return new SceneLoopServices(
+                Device: sp.GetRequiredService<GpuDevice>(),
+                FrameScheduler: frames,
+                Resources: sp.GetService<ResourceSystem>(),
+                Mixer: sp.GetService<AudioMixer>(),
+                InputBus: sp.GetService<InputBus>(),
+                InputStack: sp.GetService<InputStack>(),
+                InputSources: sp.GetServices<IInputSource>().ToArray(),
+                Commands: commands,
+                AudioRegistry: sp.GetService<AudioRegistry>(),
+                UiRegistry: sp.GetService<UiRegistry>());
+        });
 
-        // SceneManager (singleton)
+        // SceneRunner / SceneManager (singleton)
+        _inner.Services.AddSingleton<SceneRunner>();
         _inner.Services.AddSingleton<SceneManager>();
 
         // Startup scene 情報を DI に (GameLoop が読む)

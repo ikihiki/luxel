@@ -16,6 +16,7 @@ namespace Luxel.DevTools;
 public sealed class DevToolsApp : IDisposable
 {
     private Thread? _thread;
+    private volatile WindowManager? _manager;
     private volatile bool _stop;
 
     /// <summary>E2E 検証用の第二 DebugServer の URL (e2ePort 指定時のみ、起動後に設定)。</summary>
@@ -54,6 +55,8 @@ public sealed class DevToolsApp : IDisposable
             // ウィンドウ操作/入力用の島内コマンド (エンジン側 commands とは別 — こちらは島スレッドで Drain)
             var localCmds = new EngineCommands();
             using var manager = new WindowManager(device, font, windows, localCmds);
+            _manager = manager;
+            listener.Updated += manager.RequestFrame;
 
             var ui = new DevToolsUi(listener, commands, theme);
             manager.CreateUiWindow(
@@ -74,14 +77,22 @@ public sealed class DevToolsApp : IDisposable
 
             var sw = System.Diagnostics.Stopwatch.StartNew();
             long last = 0;
-            while (!_stop)
+            try
             {
-                long now = sw.ElapsedMilliseconds;
-                float dt = Math.Min(0.1f, (now - last) / 1000f);
-                last = now;
-                if (!manager.RunFrame(dt)) break;   // ウィンドウが閉じられた
-                ui.Update();
-                Thread.Sleep(16);
+                while (!_stop)
+                {
+                    if (!manager.WaitForNextFrame()) break;
+                    long now = sw.ElapsedMilliseconds;
+                    float dt = Math.Min(0.1f, (now - last) / 1000f);
+                    last = now;
+                    if (!manager.RunFrame(dt)) break;   // ウィンドウが閉じられた
+                    ui.Update();
+                }
+            }
+            finally
+            {
+                listener.Updated -= manager.RequestFrame;
+                _manager = null;
             }
             e2e?.Dispose();
             e2eListener?.Dispose();
@@ -96,6 +107,7 @@ public sealed class DevToolsApp : IDisposable
     public void Dispose()
     {
         _stop = true;
+        _manager?.RequestFrame();
         if (_thread is { IsAlive: true }) _thread.Join(3000);
     }
 }

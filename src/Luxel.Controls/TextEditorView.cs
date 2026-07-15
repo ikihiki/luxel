@@ -227,6 +227,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
     private const float PopupHitW = 320f;
 
     private float _hoverX = -1, _hoverY = -1;
+    private bool _dwellDone;
     private int _dwellFrames;
     private bool _tipOpen;
     private string _tipText = "";
@@ -309,6 +310,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
         if (MathF.Abs(x - _hoverX) > 1 || MathF.Abs(y - _hoverY) > 1)
         {
             _hoverX = x; _hoverY = y; _dwellFrames = 0;
+            _dwellDone = false;
             if (_tipOpen) { _tipOpen = false; Refresh(); }
         }
     }
@@ -545,10 +547,12 @@ public sealed partial class TextEditorView : Widget, ITextInput
             if (_layoutDirty) { _layoutDirty = false; _geo?.Configure(BuildConfig()); Refresh(); }
             else if (_blockDirty) { _blockDirty = false; Refresh(); }
             return false;
-        });
+        }, () => _layoutDirty || _blockDirty);
 
         float t = 0;
-        ctx.AddAnimation(dt => { t += dt; if (t >= 0.53f) { t = 0; _caretOn.Value = !_caretOn.Value; } return false; });
+        ctx.AddAnimation(
+            dt => { t += dt; if (t >= 0.53f) { t = 0; _caretOn.Value = !_caretOn.Value; } return false; },
+            () => Focused.Peek());
 
         _focus ??= new FocusTarget
         {
@@ -620,9 +624,10 @@ public sealed partial class TextEditorView : Widget, ITextInput
                 int off = _geo.HitTest(_hoverX - ContentX, _hoverY - Pad + _scroll.Clamped);
                 string? h = LanguageService.Hover(_state.Doc.Text, off);
                 if (!string.IsNullOrEmpty(h)) { _tipText = h!; _tipOpen = true; Refresh(); }
+                _dwellDone = true;
             }
             return false;
-        });
+        }, () => LanguageService is not null && _hoverX >= 0 && !_tipOpen && !_compOpen && _geo is not null && !_dwellDone);
 
         Refresh();
     }

@@ -45,14 +45,26 @@ public sealed class UiHost : IDisposable
         Theme = theme ?? UiTheme.Current;
         _layoutCtx = new LayoutContext { Font = font, Theme = Theme.Peek() };
         _uiSetSub = new UiSetRequestSubscriber(this);
+        _canvas.Invalidated += RequestFrame;
     }
 
     /// <summary>DevTools からの ui.set リクエスト購読を停止し、実体化の登録 (Effect 等) を破棄する。</summary>
     public void Dispose()
     {
+        _canvas.Invalidated -= RequestFrame;
         _uiSetSub.Dispose();
         _build?.Root.Dispose();
     }
+
+    /// <summary>入力、Signal、layout、canvas変更により次のUIフレームが必要になったとき発火する。</summary>
+    public event Action? FrameRequested;
+
+    /// <summary>次のUIフレームを要求する。複数要求のcoalesceはscheduler側が行う。</summary>
+    public void RequestFrame() => FrameRequested?.Invoke();
+
+    public bool HasPendingRealize => _build is { Dirty.Count: > 0 };
+    public bool HasActiveAnimations => _build?.Animations.Any(a => a.IsActive) == true;
+    public bool NeedsFrame => HasPendingRealize || _canvas.HasPendingChanges || HasActiveAnimations;
 
     /// <summary>path (dotted-index 例 "0.1.2") で tree を辿り Widget を返す。</summary>
     private Widget? FindByPath(string path)
@@ -642,21 +654,31 @@ public sealed class UiHost : IDisposable
     /// PropertyStateMachine 等の絶対時刻ベースのアニメがホスト内で共有する時刻源。</summary>
     public ManualClock Clock { get; } = new();
 
-    /// <summary>アニメーションを 1 ステップ進め (dt 秒)、溜まった dirty widget を部分 Realize する。
-    /// throw したアニメーションは報告して除去する (エラー境界 — 他のアニメと UI は生かす)。</summary>
+    /// <summary>互換用の1 UI frame。dirty flush後にactive animationを進める。</summary>
     public void Tick(float dt)
     {
-        Clock.Advance(dt);
         FlushRealize();
+        AdvanceAnimations(dt);
+    }
+
+    /// <summary>activeなanimationだけを1step進める。常駐tickerでもactivity predicateがfalseなら休止する。</summary>
+    public bool AdvanceAnimations(float dt)
+    {
+        Clock.Advance(dt);
         if (_build != null)
             for (int i = _build.Animations.Count - 1; i >= 0; i--)
             {
+                UiAnimationRegistration animation = _build.Animations[i];
+                if (!animation.IsActive) continue;
                 bool done;
-                try { done = _build.Animations[i](dt); }
+                try { done = animation.Step(dt); }
                 catch (Exception ex) { UiError.Report(ex, "Animation"); done = true; }
                 if (done) _build.Animations.RemoveAt(i);
             }
         Ticked?.Invoke();   // フレーム前進 — InputRecorder のフレーム採番に使う
+        bool active = HasActiveAnimations;
+        if (active) RequestFrame();
+        return active;
     }
 
     /// <summary>ユーザーハンドラの例外を握って報告する (エラー境界 — 入力 1 回の失敗でアプリを落とさない)。</summary>

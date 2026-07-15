@@ -97,6 +97,14 @@ static int RunApp(Func<GpuDevice> createDevice, int port, int seconds)
     bool storyRegistered = false;
     while (true)
     {
+        int waitTimeout = Timeout.Infinite;
+        if (seconds > 0)
+        {
+            double remainingMs = (seconds - sw.Elapsed.TotalSeconds) * 1000;
+            if (remainingMs <= 0) break;
+            waitTimeout = (int)Math.Min(int.MaxValue, Math.Ceiling(remainingMs));
+        }
+        if (!manager.WaitForNextFrame(waitTimeout)) break;
         long now = sw.ElapsedMilliseconds;
         float dt = Math.Min(0.1f, (now - last) / 1000f);
         last = now;
@@ -115,9 +123,6 @@ static int RunApp(Func<GpuDevice> createDevice, int port, int seconds)
             storyRegistered = true;
         }
         if (seconds > 0 && sw.Elapsed.TotalSeconds > seconds) break;
-        // 描画した周回は present (vsync) が既にループを律速している — スリープを足すと
-        // 入力レイテンシに直列加算されるので休まない。完全アイドルの周回だけ CPU を返す。
-        if (!manager.AnyRendered) Thread.Sleep(8);
     }
     Console.WriteLine("gallery: shutting down");
     return 0;

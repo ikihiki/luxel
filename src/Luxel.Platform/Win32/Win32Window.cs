@@ -42,6 +42,15 @@ internal sealed unsafe class Win32Window : IWindowBackendWindow
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
     private static extern nint GetWindowLongPtrW(nint hWnd, int nIndex);
 
+    // UI の要求駆動ループ用。Win32 メッセージキューと .NET の wake event を同時に待つ。
+    // QS_ALLINPUT は入力だけでなく paint/timer/hotkey 等も含み、MWMO_INPUTAVAILABLE は
+    // PeekMessage で一度観測済みのメッセージも待機解除対象にする。
+    private const uint QS_ALLINPUT = 0x04FF;
+    private const uint MWMO_INPUTAVAILABLE = 0x0004;
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint MsgWaitForMultipleObjectsEx(
+        uint count, nint* handles, uint milliseconds, uint wakeMask, uint flags);
+
     public HWND Hwnd { get; private set; }
     public nint Handle => (nint)Hwnd.Value;
     public int Width { get; private set; }
@@ -141,6 +150,36 @@ internal sealed unsafe class Win32Window : IWindowBackendWindow
             PInvoke.TranslateMessage(in msg);
             PInvoke.DispatchMessage(in msg);
         }
+    }
+
+    /// <summary>呼び出しスレッドの Win32 メッセージまたは外部 signal を待ってからポンプする。</summary>
+    public static void WaitForThreadMessages(WaitHandle? wakeSignal, int timeoutMilliseconds)
+    {
+        uint timeout = timeoutMilliseconds == Timeout.Infinite
+            ? uint.MaxValue
+            : checked((uint)timeoutMilliseconds);
+
+        if (wakeSignal is null)
+        {
+            MsgWaitForMultipleObjectsEx(0, null, timeout, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+        }
+        else
+        {
+            bool addedRef = false;
+            var safeHandle = wakeSignal.SafeWaitHandle;
+            try
+            {
+                safeHandle.DangerousAddRef(ref addedRef);
+                nint handle = safeHandle.DangerousGetHandle();
+                MsgWaitForMultipleObjectsEx(1, &handle, timeout, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+            }
+            finally
+            {
+                if (addedRef) safeHandle.DangerousRelease();
+            }
+        }
+
+        PumpThreadMessages();
     }
 
     /// <summary>旧 API 互換 (AppWindow, 単一ウィンドウ用)。この窓が閉じたら false。</summary>
@@ -304,6 +343,15 @@ public sealed class Win32WindowBackend : IWindowBackend
     public bool Pump()
     {
         Win32Window.PumpThreadMessages();
+        _windows.RemoveAll(w => w.IsClosed);
+        return _windows.Count > 0;
+    }
+
+    public bool WaitForEvents(WaitHandle? wakeSignal, int timeoutMilliseconds)
+    {
+        _windows.RemoveAll(w => w.IsClosed);
+        if (_windows.Count == 0) return false;
+        Win32Window.WaitForThreadMessages(wakeSignal, timeoutMilliseconds);
         _windows.RemoveAll(w => w.IsClosed);
         return _windows.Count > 0;
     }

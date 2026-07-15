@@ -40,6 +40,9 @@ public sealed class DevToolsListener : IObserver<DiagnosticListener>, IObserver<
     private string? _lastTreeJson;
     private readonly object _treeLock = new();
 
+    /// <summary>新しい診断データを受信した。要求駆動のネイティブ UI を wake するための通知。</summary>
+    public event Action? Updated;
+
     // stream: ログ
     private readonly LogRing _log = new(512);
 
@@ -127,6 +130,8 @@ public sealed class DevToolsListener : IObserver<DiagnosticListener>, IObserver<
                 }
                 break;
         }
+        try { Updated?.Invoke(); }
+        catch { /* 診断購読者の wake 失敗を engine 側へ伝播させない */ }
     }
     void IObserver<KeyValuePair<string, object?>>.OnError(Exception error) { }
     void IObserver<KeyValuePair<string, object?>>.OnCompleted() { }

@@ -13,16 +13,35 @@ namespace Luxel.Framework;
 // ==================== IScene (最小契約) ====================
 
 /// <summary>
-/// Scene の最小契約。engine は起動時に <see cref="RunAsync"/> を呼ぶだけで、ゲームループ本体は Scene が所有する。
-/// カスタム描画・タイミング制御を全て自作したい場合はこの Interface を直接実装する。
-/// 通常は <see cref="GameScene"/> を継承する。
+/// Scene の共通契約。ループは <see cref="SceneRunner"/> が所有し、ActiveなSceneへphaseを配信する。
+/// 通常は <see cref="GameScene"/> または <see cref="UiScene"/> を継承する。
 /// </summary>
 public interface IScene
 {
+    SceneExecutionMode ExecutionMode => SceneExecutionMode.OnDemand;
+    SceneRenderMode RenderMode => SceneRenderMode.WhenDirty;
+    bool UsesFixedUpdate => false;
+    double FixedDeltaSeconds => 1.0 / 60;
+    int MaxFixedStepsPerFrame => 8;
+
     Task OnLoadAsync() => Task.CompletedTask;
-    /// <summary>Scene のゲームループ。token がキャンセルされるまで走る。</summary>
-    Task RunAsync(CancellationToken token);
+    Task OnActivateAsync() => Task.CompletedTask;
+    Task OnSuspendAsync() => Task.CompletedTask;
+    Task OnResumeAsync() => Task.CompletedTask;
+    Task OnDeactivateAsync() => Task.CompletedTask;
     Task OnUnloadAsync() => Task.CompletedTask;
+
+    /// <summary>OnDemand Sceneが今回のフレームへ参加するかを返す。Continuous Sceneでは参照されない。</summary>
+    bool TryBeginFrame() => true;
+    void EarlyUpdate(EarlyUpdateContext context) { }
+    void FixedUpdate(FixedUpdateContext context) { }
+    void Update(UpdateContext context) { }
+    void LateUpdate(LateUpdateContext context) { }
+    void PreRender(PreRenderContext context) { }
+    void Render(RenderContext context) { }
+    void PostRender(PostRenderContext context) { }
+    /// <summary>全phase完了後の通知。OnDemand実装が次フレーム要求を整理する用途などに使う。</summary>
+    void FrameCompleted() { }
 }
 
 // ==================== Phase context (per-phase 型) ====================
@@ -42,13 +61,12 @@ public readonly record struct PostRenderContext(FrameTime Time);
 /// <summary>
 /// <see cref="GameScene"/> のゲームループが必要とする外部サービスの束。
 /// Framework が DI で組み立て、Scene の ctor に渡す。
-/// <para><paramref name="WaitFrame"/> は**フレームペーシングの差し込み点** (Platform 部分の抽象)。
-/// null = 既定の固定ディレイ (<paramref name="FrameDelayMs"/>)。Storybook 等の埋め込みホストは
-/// 自分の描画ティックに同期する waiter を渡す — TCS の同期継続で完了させると、
-/// アプリの 1 フレームがホストのスレッド上で同期実行される (GPU キュー共有が安全になる)。</para>
+/// <para><paramref name="FrameScheduler"/> はフレーム発生方法の差し込み点。
+/// HostBuilder の UseGameSceneManager / UseUiSceneManager が対応実装を DI に登録する。</para>
 /// </summary>
 public sealed record SceneLoopServices(
     GpuDevice Device,
+    IFrameScheduler FrameScheduler,
     ResourceSystem? Resources = null,
     AudioMixer? Mixer = null,
     InputBus? InputBus = null,
@@ -56,14 +74,12 @@ public sealed record SceneLoopServices(
     IReadOnlyList<IInputSource>? InputSources = null,
     Luxel.Diagnostics.EngineCommands? Commands = null,
     AudioRegistry? AudioRegistry = null,
-    Luxel.UI.UiRegistry? UiRegistry = null,
-    int FrameDelayMs = 16,
-    Func<CancellationToken, Task>? WaitFrame = null);
+    Luxel.UI.UiRegistry? UiRegistry = null);
 
 // ==================== GameScene (標準抽象) ====================
 
 /// <summary>
-/// 標準的な動作をする抽象 Scene。<see cref="RunAsync"/> にゲームループの while が入り、以下を一括管理する:
+/// 標準的なゲーム向け Scene。<see cref="SceneRunner"/> から以下のphaseを受け取る:
 /// <list type="bullet">
 /// <item>FrameTime の更新</item>
 /// <item>Input source の Poll / InputStack.Update</item>
@@ -117,6 +133,7 @@ public abstract class GameScene : IScene
     /// <summary>1 フレームで回す FixedUpdate の上限 (spiral of death 防止)。既定 8。</summary>
     protected virtual int MaxFixedStepsPerFrame => 8;
 
+    // RunAsync は移行互換用。通常の実行では SceneNode 側の FixedTimestep を SceneRunner が所有する。
     private FixedTimestep? _fixed;
 
     /// <summary>描画補間係数 [0,1) — 直近の FixedUpdate から次の固定ステップまでの進捗。
@@ -134,13 +151,94 @@ public abstract class GameScene : IScene
     protected virtual void OnPostRender(PostRenderContext ctx) { }
 
     public virtual Task OnLoadAsync() => Task.CompletedTask;
+    public virtual Task OnActivateAsync() => Task.CompletedTask;
+    public virtual Task OnSuspendAsync() => Task.CompletedTask;
+    public virtual Task OnResumeAsync() => Task.CompletedTask;
+    public virtual Task OnDeactivateAsync() => Task.CompletedTask;
     public virtual Task OnUnloadAsync() => Task.CompletedTask;
 
-    // ==================== ゲームループ ====================
+    protected virtual SceneExecutionMode UpdateMode => SceneExecutionMode.Continuous;
+    protected virtual SceneRenderMode RenderingMode => SceneRenderMode.EveryFrame;
+
+    SceneExecutionMode IScene.ExecutionMode => UpdateMode;
+    SceneRenderMode IScene.RenderMode => RenderingMode;
+    bool IScene.UsesFixedUpdate => true;
+    double IScene.FixedDeltaSeconds => FixedDeltaSeconds;
+    int IScene.MaxFixedStepsPerFrame => MaxFixedStepsPerFrame;
+
+    void IScene.EarlyUpdate(EarlyUpdateContext context)
+    {
+        OnEarlyUpdate(context);
+        RunWorlds(Phase.EarlyUpdate.Name, new UpdateTick(context.Time.DeltaSeconds, (float)context.Time.TotalSeconds));
+    }
+
+    void IScene.FixedUpdate(FixedUpdateContext context)
+    {
+        OnFixedUpdate(context);
+        RunWorlds(Phase.FixedUpdate.Name, new UpdateTick(context.FixedDeltaSeconds, (float)context.TotalSeconds));
+    }
+
+    void IScene.Update(UpdateContext context)
+    {
+        OnUpdate(context);
+        RunWorlds(Phase.Update.Name, new UpdateTick(context.Time.DeltaSeconds, (float)context.Time.TotalSeconds));
+    }
+
+    void IScene.LateUpdate(LateUpdateContext context)
+    {
+        OnLateUpdate(context);
+        RunWorlds(Phase.LateUpdate.Name, new UpdateTick(context.Time.DeltaSeconds, (float)context.Time.TotalSeconds));
+    }
+
+    void IScene.PreRender(PreRenderContext context)
+    {
+        OnPreRender(context);
+        RunWorlds(Phase.PreRender.Name, new UpdateTick(context.Time.DeltaSeconds, (float)context.Time.TotalSeconds));
+        AddSurfacePasses(context.RenderGraph, context.Time);
+    }
+
+    void IScene.Render(RenderContext context)
+    {
+        OnRender(context);
+        RunWorlds(Phase.Render.Name, new UpdateTick(context.Time.DeltaSeconds, (float)context.Time.TotalSeconds));
+    }
+
+    void IScene.PostRender(PostRenderContext context)
+    {
+        OnPostRender(context);
+        RunWorlds(Phase.PostRender.Name, new UpdateTick(context.Time.DeltaSeconds, (float)context.Time.TotalSeconds));
+    }
+
+    // ==================== runner state / diagnostics ====================
 
     // pause/step: DevTools から /cmd で切り替えられる
     private volatile bool _paused;
-    private volatile int _stepRequests;
+    private int _stepRequests;
+
+    /// <summary>simulation phaseが一時停止中か。子のUI SceneはActiveのまま駆動できる。</summary>
+    public bool IsPaused => _paused;
+
+    /// <summary>このGameSceneのsimulationを止める。SceneGraph上の子（pause menu等）は停止しない。</summary>
+    public void Pause()
+    {
+        _paused = true;
+        _loop.FrameScheduler.RequestFrame();
+    }
+
+    /// <summary>一時停止を解除する。</summary>
+    public void Resume()
+    {
+        _paused = false;
+        _loop.FrameScheduler.RequestFrame();
+    }
+
+    /// <summary>一時停止状態のまま固定1フレームを進める。</summary>
+    public void Step()
+    {
+        _paused = true;
+        Interlocked.Increment(ref _stepRequests);
+        _loop.FrameScheduler.RequestFrame();
+    }
     // timescale: dt に掛ける係数 (0.1 でスローモーション、既定 1)。app スレッドのみが読み書き。
     // play/e2e は使わない (決定性は固定 dt が担保、これは手動デバッグ専用)。
     private double _timeScale = 1.0;
@@ -149,6 +247,7 @@ public abstract class GameScene : IScene
     private int _ecsSelEntity = -1;
     private string? _ecsFilter;
 
+    [Obsolete("Sceneの直接実行ではなくSceneManager/SceneRunnerを使用してください。")]
     public async Task RunAsync(CancellationToken token)
     {
         var sw = Stopwatch.StartNew();
@@ -163,22 +262,22 @@ public abstract class GameScene : IScene
 
         while (!token.IsCancellationRequested)
         {
-            // フレームペーシング (Platform 部分の差し込み点) — ループ先頭で待つ:
+            // フレーム scheduling (Platform 部分の差し込み点) — ループ先頭で待つ:
             // 埋め込みホスト (Storybook 等) の waiter を同期継続で完了させると、フレーム本体が
             // ホストのスレッド上で実行される (初回フレームも待ってから = 起動直後のスレッド競合なし)
-            try { await (_loop.WaitFrame?.Invoke(token) ?? Task.Delay(_loop.FrameDelayMs, token)); }
+            try { await _loop.FrameScheduler.WaitForNextFrameAsync(token); }
             catch (OperationCanceledException) { break; }
 
             // pause 中は step 要求が来るまでフレームをスキップしてコマンドを Drain し続ける
             _loop.Commands?.Drain();
-            if (_paused && _stepRequests <= 0)
+            if (_paused && Volatile.Read(ref _stepRequests) <= 0)
             {
                 // pause でも state emit は続けて DevTools UI を最新に保つ
                 if (EngineDiagnostics.IsEnabled(EngineDiagnostics.EngineState))
                     EngineDiagnostics.Emit(EngineDiagnostics.EngineState, new DiagEngineState(true));
                 continue;
             }
-            if (_stepRequests > 0) _stepRequests--;
+            if (Volatile.Read(ref _stepRequests) > 0) Interlocked.Decrement(ref _stepRequests);
 
             double now = sw.Elapsed.TotalSeconds;
             float dt = FixedTimestep.ScaleDt(now - prev, _timeScale);
@@ -303,13 +402,81 @@ public abstract class GameScene : IScene
         }
     }
 
+    private double _runnerFpsAvg;
+    private int _runnerEcsEmitCounter;
+
+    internal double RunnerTimeScale => _timeScale;
+
+    internal void AttachToRunner(bool primary)
+    {
+        if (primary) RegisterCommands();
+    }
+
+    internal bool TryBeginRunnerFrame()
+    {
+        if (_paused && Volatile.Read(ref _stepRequests) <= 0)
+        {
+            if (EngineDiagnostics.IsEnabled(EngineDiagnostics.EngineState))
+                EngineDiagnostics.Emit(EngineDiagnostics.EngineState, new DiagEngineState(true));
+            return false;
+        }
+        if (Volatile.Read(ref _stepRequests) > 0) Interlocked.Decrement(ref _stepRequests);
+        return true;
+    }
+
+    internal void SetRunnerAlpha(float alpha) => Alpha = alpha;
+
+    internal void PrepareRunnerDiagnostics()
+    {
+        if (!EngineDiagnostics.IsEnabled(EngineDiagnostics.Perf) || _perfMonitorInstalled) return;
+        foreach (World world in _worlds) world.EnableSystemPerfMonitor();
+        _perfMonitorInstalled = true;
+    }
+
+    internal void EmitRunnerDiagnostics(FrameTime time, int fixedSteps, FixedTimestep fixedStep,
+        DiagPhaseTiming[]? phaseTimings)
+    {
+        float dt = time.DeltaSeconds;
+        _runnerFpsAvg = _runnerFpsAvg == 0 ? 1.0 / dt : _runnerFpsAvg * 0.9 + (1.0 / dt) * 0.1;
+        if (phaseTimings is not null)
+        {
+            var systems = new List<DiagSystemTiming>();
+            foreach (string phaseName in AllPhaseNames)
+                foreach (World world in _worlds)
+                    foreach ((string name, double ms) in world.CollectSystemTimings(phaseName))
+                        systems.Add(new DiagSystemTiming(phaseName, name, ms));
+            var fixedStat = new DiagFixedStep(
+                fixedSteps, fixedStep.Alpha, fixedStep.Accumulator * 1000.0,
+                fixedStep.FixedDt * 1000.0, fixedStep.DroppedSteps);
+            EngineDiagnostics.Emit(EngineDiagnostics.Perf,
+                new DiagPerf(time.Frame, dt * 1000.0, _runnerFpsAvg, phaseTimings, systems.ToArray(), fixedStat));
+        }
+
+        if (++_runnerEcsEmitCounter >= 30)
+        {
+            _runnerEcsEmitCounter = 0;
+            if (EngineDiagnostics.IsEnabled(EngineDiagnostics.EcsSummary))
+                EngineDiagnostics.Emit(EngineDiagnostics.EcsSummary, EcsDiagnostics.BuildSummary(_worlds, _ecsFilter));
+            if (EngineDiagnostics.IsEnabled(EngineDiagnostics.Ecs))
+                EngineDiagnostics.Emit(EngineDiagnostics.Ecs, EcsDiagnostics.BuildDetail(_worlds, _ecsSelWorld, _ecsSelEntity));
+            DevStats.Flush();
+            if (EngineDiagnostics.IsEnabled(EngineDiagnostics.Surfaces)) EmitSurfacesSnapshot();
+            if (EngineDiagnostics.IsEnabled(EngineDiagnostics.Audio)) EmitAudioSnapshot();
+            if (EngineDiagnostics.IsEnabled(EngineDiagnostics.Runtime)) EmitRuntimeSnapshot();
+            if (EngineDiagnostics.IsEnabled(EngineDiagnostics.Trees)) EmitUiTreesSnapshot();
+        }
+        if (EngineDiagnostics.IsEnabled(EngineDiagnostics.InputState)) EmitInputStateSnapshot();
+        if (EngineDiagnostics.IsEnabled(EngineDiagnostics.EngineState))
+            EngineDiagnostics.Emit(EngineDiagnostics.EngineState, new DiagEngineState(_paused));
+    }
+
     private void RegisterCommands()
     {
         var cmds = _loop.Commands;
         if (cmds is null) return;
-        cmds.Register("engine.pause", _ => _paused = true);
-        cmds.Register("engine.resume", _ => _paused = false);
-        cmds.Register("engine.step", _ => { _paused = true; _stepRequests++; });
+        cmds.Register("engine.pause", _ => Pause());
+        cmds.Register("engine.resume", _ => Resume());
+        cmds.Register("engine.step", _ => Step());
         cmds.Register("engine.timescale", arg => HandleTimeScale(arg));
         cmds.Register("ecs.set", arg => HandleEcsSet(arg));
         cmds.Register("ecs.inspect", arg => HandleEcsInspect(arg));

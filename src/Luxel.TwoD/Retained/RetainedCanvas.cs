@@ -79,6 +79,9 @@ public sealed class RetainedCanvas : IDisposable
 
     public UiNode Root { get; }
 
+    /// <summary>保持ツリーが変更され、次の描画が必要になったとき発火する。</summary>
+    public event Action? Invalidated;
+
     /// <summary>GPU なし (ヘッドレス) で構築されたか。</summary>
     public bool IsHeadless => _raster is null;
 
@@ -92,6 +95,7 @@ public sealed class RetainedCanvas : IDisposable
         var n = new UiNode(this) { Parent = parent };
         parent.Children.Add(n);
         _dirtyStructure = true;
+        Invalidated?.Invoke();
         return n;
     }
 
@@ -100,12 +104,17 @@ public sealed class RetainedCanvas : IDisposable
     {
         node.Parent?.Children.Remove(node);
         _dirtyStructure = true;
+        Invalidated?.Invoke();
     }
 
     /// <summary>明示的な全再構築要求。Content 差し替え/ノード増減は setter/AddChild が自動で
     /// dirty をマークするため通常は不要 — 呼ぶとフル再構築を強制する (増分更新が効かなくなる) ので、
     /// slot 管理の外で何かを変えた場合の脱出口としてのみ使うこと。</summary>
-    public void Invalidate() => _dirtyStructure = true;
+    public void Invalidate()
+    {
+        _dirtyStructure = true;
+        Invalidated?.Invoke();
+    }
 
     /// <summary>未反映の変更があるか。false なら再描画しても前回と同じ絵になる
     /// (呼び出し側は Render 自体をスキップできる)。</summary>
@@ -113,12 +122,35 @@ public sealed class RetainedCanvas : IDisposable
         => _dirtyStructure || _dirtyOrder || _dirtyContent.Count > 0
         || _dirtyTransform.Count > 0 || _dirtyStyle.Count > 0 || _dirtyClip.Count > 0;
 
-    internal void MarkTransformDirty(UiNode n) => _dirtyTransform.Add(n);
-    internal void MarkStyleDirty(UiNode n) => _dirtyStyle.Add(n);
-    internal void MarkClipDirty(UiNode n) { _dirtyClip.Add(n); _dirtyTransform.Add(n); }
-    internal void MarkContentDirty(UiNode n) => _dirtyContent.Add(n);
-    internal void MarkStructureDirty() => _dirtyStructure = true;
-    internal void MarkOrderDirty() => _dirtyOrder = true;
+    internal void MarkTransformDirty(UiNode n)
+    {
+        if (_dirtyTransform.Add(n)) Invalidated?.Invoke();
+    }
+    internal void MarkStyleDirty(UiNode n)
+    {
+        if (_dirtyStyle.Add(n)) Invalidated?.Invoke();
+    }
+    internal void MarkClipDirty(UiNode n)
+    {
+        bool changed = _dirtyClip.Add(n);
+        changed |= _dirtyTransform.Add(n);
+        if (changed) Invalidated?.Invoke();
+    }
+    internal void MarkContentDirty(UiNode n)
+    {
+        if (_dirtyContent.Add(n)) Invalidated?.Invoke();
+    }
+    internal void MarkStructureDirty()
+    {
+        _dirtyStructure = true;
+        Invalidated?.Invoke();
+    }
+    internal void MarkOrderDirty()
+    {
+        if (_dirtyOrder) return;
+        _dirtyOrder = true;
+        Invalidated?.Invoke();
+    }
 
     /// <summary>dirty を反映し framebuffer へ描画する。
     /// transparent=true で背景を透過 (premultiplied alpha)、既定は既存互換の白背景。</summary>

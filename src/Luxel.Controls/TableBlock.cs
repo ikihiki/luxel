@@ -122,7 +122,9 @@ public sealed partial class TableBlock : Widget, ITextInput
         ctx.Effect(() => _caretNode.Opacity = Focused.Value && _caretOn.Value && _selR >= 0 ? 1f : 0f);
 
         float t = 0;
-        ctx.AddAnimation(dt => { t += dt; if (t >= 0.53f) { t = 0; _caretOn.Value = !_caretOn.Value; } return false; });
+        ctx.AddAnimation(
+            dt => { t += dt; if (t >= 0.53f) { t = 0; _caretOn.Value = !_caretOn.Value; } return false; },
+            () => Focused.Peek());
 
         _focus ??= new FocusTarget
         {
@@ -377,4 +379,3 @@ public sealed partial class TableBlock : Widget, ITextInput
     { _hlStart = start; _hlLen = length; _hlTargetStart = targetStart; _hlTargetLen = targetLength; Refresh(); }
     Rect ITextInput.CaretRect => _caretWorld;
 }
-

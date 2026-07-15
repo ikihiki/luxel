@@ -20,13 +20,18 @@ public class DevToolsTests
         var cmds = new EngineCommands();
         int sum = 0;
         cmds.Register("add", a => sum += (int)a!);
+        int wakeCount = 0;
+        cmds.Enqueued += () => wakeCount++;
         cmds.Enqueue("add", 3);
         cmds.Enqueue("add", 4);
         cmds.Enqueue("nope", 1);          // 未知操作は無視
         Assert.Equal(0, sum);              // Drain まで適用されない
+        Assert.True(cmds.HasPending);
+        Assert.Equal(3, wakeCount);
         int n = cmds.Drain();
         Assert.Equal(3, n);                // 未知含め 3 件処理 (no-op 含む)
         Assert.Equal(7, sum);
+        Assert.False(cmds.HasPending);
         Assert.Null(cmds.Invoke("nope", null));
     }
 

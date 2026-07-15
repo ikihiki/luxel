@@ -104,7 +104,9 @@ public sealed partial class TextField : Widget, ITextInput
         ctx.Effect(() => { string v = value.Value; if (v != _ed.Text) { _ed.SetText(v); Refresh(); } });
 
         float t = 0;
-        ctx.AddAnimation(dt => { t += dt; if (t >= 0.53f) { t = 0; _caretOn.Value = !_caretOn.Value; } return false; });
+        ctx.AddAnimation(
+            dt => { t += dt; if (t >= 0.53f) { t = 0; _caretOn.Value = !_caretOn.Value; } return false; },
+            () => Focused.Peek());
 
         // FocusTarget は同一インスタンスを再登録 — 再実体化 (CompositeControl.Rebuild/部分 Realize) を
         // またいで参照保持フォーカスが生き残る (TableBlock と同じパターン)

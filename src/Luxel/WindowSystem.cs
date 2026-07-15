@@ -60,6 +60,21 @@ public sealed class WindowSystem : IDisposable
         return alive;
     }
 
+    /// <summary>
+    /// OS の入力/ウィンドウイベントまたは任意の wake signal を待ち、届いたメッセージを処理する。
+    /// UI のアイドル待機用。ゲームの常時更新ループは従来どおり <see cref="Pump"/> を使用できる。
+    /// </summary>
+    public bool WaitForEvents(WaitHandle? wakeSignal = null, int timeoutMilliseconds = Timeout.Infinite)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (timeoutMilliseconds < Timeout.Infinite)
+            throw new ArgumentOutOfRangeException(nameof(timeoutMilliseconds));
+
+        bool alive = _backend.WaitForEvents(wakeSignal, timeoutMilliseconds);
+        Prune();
+        return alive;
+    }
+
     private void Prune() => _windows.RemoveAll(w => w.IsClosed);
 
     public void Dispose()

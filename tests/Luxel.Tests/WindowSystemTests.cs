@@ -52,6 +52,9 @@ public class WindowSystemTests
     {
         public readonly List<FakeWindow> Created = new();
         public bool Disposed;
+        public int WaitCalls;
+        public WaitHandle? LastWakeSignal;
+        public int LastTimeout;
         public string Name => "Fake";
 
         public IWindowBackendWindow CreateWindow(in WindowDesc desc)
@@ -62,6 +65,13 @@ public class WindowSystemTests
         }
 
         public bool Pump() => Created.Any(w => !w.IsClosed);
+        public bool WaitForEvents(WaitHandle? wakeSignal, int timeoutMilliseconds)
+        {
+            WaitCalls++;
+            LastWakeSignal = wakeSignal;
+            LastTimeout = timeoutMilliseconds;
+            return Pump();
+        }
         public void Dispose() => Disposed = true;
     }
 
@@ -142,5 +152,20 @@ public class WindowSystemTests
         Assert.All(backend.Created, w => Assert.True(w.Disposed));
         Assert.True(backend.Disposed);
         Assert.Throws<ObjectDisposedException>(() => sys.CreateWindow(new WindowDesc("C", 1, 1)));
+    }
+
+    [Fact]
+    public void WaitForEvents_外部シグナルとタイムアウトをバックエンドへ渡す()
+    {
+        var backend = new FakeBackend();
+        using var sys = new WindowSystem(backend);
+        sys.CreateWindow(new WindowDesc("A", 100, 100));
+        using var wake = new AutoResetEvent(false);
+
+        Assert.True(sys.WaitForEvents(wake, 25));
+        Assert.Equal(1, backend.WaitCalls);
+        Assert.Same(wake, backend.LastWakeSignal);
+        Assert.Equal(25, backend.LastTimeout);
+        Assert.Throws<ArgumentOutOfRangeException>(() => sys.WaitForEvents(timeoutMilliseconds: -2));
     }
 }

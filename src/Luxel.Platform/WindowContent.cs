@@ -47,10 +47,26 @@ public interface IWindowContent : IDisposable
 }
 
 /// <summary>
+/// 入力や状態変更があるときだけ駆動できる content が実装するフレーム要求契約。
+/// <see cref="WindowManager"/> はイベントを OS 待機の wake signal に接続し、静止中のポーリングを止める。
+/// </summary>
+public interface IFrameDemandSource
+{
+    /// <summary>dirty、入力、非同期完了などにより 1 フレームが必要になった。</summary>
+    event Action? FrameRequested;
+
+    /// <summary>realize/描画など、すぐ処理すべき 1 回分の要求が残っている。</summary>
+    bool HasPendingFrame { get; }
+
+    /// <summary>アニメーション等により一時的な連続フレームが必要。</summary>
+    bool RequiresContinuousFrames { get; }
+}
+
+/// <summary>
 /// UiHost 1 つをウィンドウの中身にする標準実装 (RetainedCanvas + UiHost を所有)。
 /// ウィンドウ無し (オフスクリーン, tree/入力のみ) でも使える — <see cref="WindowManager.AddOffscreenUi"/>。
 /// </summary>
-public sealed class UiContent : IWindowContent
+public sealed class UiContent : IWindowContent, IFrameDemandSource
 {
     private readonly RetainedCanvas _canvas;
 
@@ -68,6 +84,13 @@ public sealed class UiContent : IWindowContent
 
     public IReadOnlyList<(string Name, UiHost Host)> Uis => [(Name, Host)];
     public UiHost? ImeTarget => Host;
+    public event Action? FrameRequested
+    {
+        add => Host.FrameRequested += value;
+        remove => Host.FrameRequested -= value;
+    }
+    public bool HasPendingFrame => Host.HasPendingRealize || _canvas.HasPendingChanges;
+    public bool RequiresContinuousFrames => Host.HasActiveAnimations;
 
     public void Resize(float width, float height, float scale = 1f)
     {

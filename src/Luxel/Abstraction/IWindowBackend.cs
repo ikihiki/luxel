@@ -16,6 +16,13 @@ public interface IWindowBackend : IDisposable
 
     /// <summary>保留メッセージを処理する。生存ウィンドウが 1 つでも残っていれば true。</summary>
     bool Pump();
+
+    /// <summary>
+    /// OS のウィンドウイベントまたは <paramref name="wakeSignal"/> を待ってから、保留メッセージを処理する。
+    /// <paramref name="timeoutMilliseconds"/> は <see cref="Timeout.Infinite"/> または 0 以上。
+    /// UI の要求駆動ループでは、入力をポーリングするために短周期で起床せず、この待機を使う。
+    /// </summary>
+    bool WaitForEvents(WaitHandle? wakeSignal, int timeoutMilliseconds);
 }
 
 /// <summary>ウィンドウ生成パラメータ。X/Y 省略 (null) は OS 既定位置。</summary>

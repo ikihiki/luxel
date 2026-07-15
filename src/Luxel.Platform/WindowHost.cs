@@ -53,6 +53,15 @@ public sealed class WindowHost : IDisposable
     public NativeWindow Window { get; }
     public IWindowContent Content { get; }
 
+    /// <summary>初回描画、リサイズ、retained dirty 等による即時フレーム要求。</summary>
+    internal bool HasPendingFrame
+        => !_rendered || _resizePending || Content.NeedsRender
+           || Content is IFrameDemandSource { HasPendingFrame: true };
+
+    /// <summary>content がアニメーション等で一時的な連続更新を必要としているか。</summary>
+    internal bool RequiresContinuousFrames
+        => Content is IFrameDemandSource { RequiresContinuousFrames: true };
+
     private static int Align(int v, int a) => (v + a - 1) / a * a;
 
     /// <summary>DPI スケール (論理 px × S = 物理 px)。</summary>

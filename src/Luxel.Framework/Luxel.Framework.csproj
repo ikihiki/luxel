@@ -29,6 +29,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Luxel.Tests" />
+    <InternalsVisibleTo Include="Luxel.E2e.Tests" />
   </ItemGroup>
 
 </Project>

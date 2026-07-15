@@ -99,7 +99,7 @@ public sealed class RealizeScope : IDisposable
     internal readonly List<HitTarget> Hits = new();
     internal readonly List<FocusTarget> Focusables = new();
     internal readonly List<ScrollTarget> Scrollables = new();
-    internal readonly List<Func<float, bool>> Animations = new();
+    internal readonly List<UiAnimationRegistration> Animations = new();
     internal readonly List<IDisposable> Effects = new();
 
     internal RealizeScope(UiBuildContext ctx) => _ctx = ctx;
@@ -127,11 +127,27 @@ public sealed class RealizeScope : IDisposable
         Focusables.Clear();
         foreach (ScrollTarget s in Scrollables) _ctx.Scrollables.Remove(s);
         Scrollables.Clear();
-        foreach (Func<float, bool> a in Animations) _ctx.Animations.Remove(a);
+        foreach (UiAnimationRegistration a in Animations) _ctx.Animations.Remove(a);
         Animations.Clear();
         foreach (UiNode n in Nodes) _ctx.Canvas.Remove(n);
         Nodes.Clear();
     }
+}
+
+/// <summary>UiHostへ登録されたanimation ticker。activity predicateでidle中の常駐tickerを休止できる。</summary>
+public sealed class UiAnimationRegistration
+{
+    private readonly Func<float, bool> _step;
+    private readonly Func<bool>? _isActive;
+
+    internal UiAnimationRegistration(Func<float, bool> step, Func<bool>? isActive)
+    {
+        _step = step;
+        _isActive = isActive;
+    }
+
+    public bool IsActive => _isActive?.Invoke() ?? true;
+    internal bool Step(float deltaSeconds) => _step(deltaSeconds);
 }
 
 /// <summary>ウィジェットを保持型ツリーへ実体化する際の文脈。</summary>
@@ -198,8 +214,8 @@ public sealed class UiBuildContext
     public List<ScrollTarget> Scrollables { get; } = new();
     /// <summary>オーバーレイ (Dialog/Menu/Tooltip/Toast/Drawer)。最前面レイヤへ実体化される。</summary>
     public List<OverlayEntry> Overlays { get; } = new();
-    /// <summary>アニメーション (毎 Tick 呼ばれ、true で完了・除去)。</summary>
-    public List<Func<float, bool>> Animations { get; } = new();
+    /// <summary>アニメーション (activeな登録だけTickされ、stepがtrueを返すと完了・除去)。</summary>
+    public List<UiAnimationRegistration> Animations { get; } = new();
 
     /// <summary>再実体化待ちの dirty widget (<see cref="Widget.MarkNeedsRealize"/> の集積先)。
     /// UiHost が Tick 頭でまとめて処理する (バッチ = 1 フレーム内の多重変更を 1 回の部分 Realize に)。</summary>
@@ -209,15 +225,18 @@ public sealed class UiBuildContext
     public void MarkDirty(Widget w)
     {
         if (!Dirty.Contains(w)) Dirty.Add(w);
+        Host?.RequestFrame();
     }
 
     /// <summary>オーバーレイを登録する (実体化は UiHost が最前面で行う)。</summary>
     public void RegisterOverlay(OverlayEntry e) => Overlays.Add(e);
-    /// <summary>アニメーションを登録する (step(dt)→true で完了)。</summary>
-    public void AddAnimation(Func<float, bool> step)
+    /// <summary>アニメーションを登録する (step(dt)→true で完了)。常駐tickerはisActiveでidle条件を指定する。</summary>
+    public void AddAnimation(Func<float, bool> step, Func<bool>? isActive = null)
     {
-        Animations.Add(step);
-        CurrentScope.Animations.Add(step);
+        var registration = new UiAnimationRegistration(step, isActive);
+        Animations.Add(registration);
+        CurrentScope.Animations.Add(registration);
+        Host?.RequestFrame();
     }
 
     /// <summary>クリック/hover/ドラッグを受けるコントロールが自身のノードとローカル矩形、ハンドラを登録する。

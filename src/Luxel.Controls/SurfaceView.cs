@@ -26,6 +26,7 @@ public sealed partial class SurfaceView : Widget, IDisposable
     private GpuBuffer? _fb;
     private Widget? _pendingRoot;
     private bool _rendered;
+    private UiHost? _parentHost;
     private float _scale = 1f;            // 親 UI の DPI スケール — 子 fb は物理解像度 (_pw×_ph) で持つ
     private uint _pw, _ph;
 
@@ -38,7 +39,11 @@ public sealed partial class SurfaceView : Widget, IDisposable
     private float _pendingStep;   // Paused 中に 1 回だけ子へ通す dt (StepFrame が積む)
 
     /// <summary>Paused 中に 1 フレームだけ進める (既定 1/60 秒 — 決定的に状態を観察する)。</summary>
-    public void StepFrame(float dt = 1f / 60f) => _pendingStep = dt;
+    public void StepFrame(float dt = 1f / 60f)
+    {
+        _pendingStep = dt;
+        _parentHost?.RequestFrame();
+    }
 
     private float W1 => MathF.Max(1, SurfaceWidth.Get());
     private float H1 => MathF.Max(1, SurfaceHeight.Get());
@@ -72,8 +77,10 @@ public sealed partial class SurfaceView : Widget, IDisposable
             _device = raster.Device;
             _childCanvas = new RetainedCanvas(raster);
             Child = new UiHost(_childCanvas, ctx.Font, PendW, PendH, ctx.Theme);   // 親島とテーマ共有 (同一スレッド)
+            Child.FrameRequested += OnChildFrameRequested;
             if (_pendingRoot is not null) Child.SetRoot(_pendingRoot);
         }
+        _parentHost = ctx.Host;
         // fb は親のラスタライズ解像度 (論理 × RenderScale) で持つ — 150% でも子のテキストが鮮明
         if (_fb is null || _scale != ctx.RenderScale)
         {
@@ -129,8 +136,13 @@ public sealed partial class SurfaceView : Widget, IDisposable
                 node.Touch();   // 親 image ノードを dirty に (親の再合成を促す)
             }
             return false;   // 常駐
-        });
+        }, () => !_rendered
+                 || _pendingStep != 0
+                 || _childCanvas?.HasPendingChanges == true
+                 || (!Paused && Child?.NeedsFrame == true));
     }
+
+    private void OnChildFrameRequested() => _parentHost?.RequestFrame();
 
     private void RenderChild()
     {
@@ -170,9 +182,10 @@ public sealed partial class SurfaceView : Widget, IDisposable
 
     public void Dispose()
     {
+        if (Child is not null) Child.FrameRequested -= OnChildFrameRequested;
         Child?.Dispose();
         _childCanvas?.Dispose();
         _fb?.Dispose();
-        Child = null; _childCanvas = null; _fb = null;
+        Child = null; _childCanvas = null; _fb = null; _parentHost = null;
     }
 }
