@@ -385,6 +385,48 @@ public class SceneManagerTests
         await manager.ShutdownAsync();
     }
 
+    [Fact]
+    public async Task NavigationScene_NavigateAndGoBack_ReloadsPreviousScene()
+    {
+        var services = new ServiceCollection().BuildServiceProvider();
+        var manager = new SceneManager(services, new RecordingFrameScheduler());
+        var events = new List<string>();
+        var first = new RecordingScene("first", events, SceneExecutionMode.OnDemand);
+        var second = new RecordingScene("second", events, SceneExecutionMode.OnDemand);
+        var navigation = new RecordingNavigationScene(manager, first);
+
+        await manager.InitializeAsync(navigation);
+        await manager.ApplyPendingAsync();
+        Assert.Same(first, navigation.Current);
+        Assert.Same(manager.Root, navigation.CurrentNode!.Parent);
+        Assert.False(navigation.CanGoBack);
+
+        Task navigate = navigation.NavigateAsync(second, new SceneTransitionSpec(0.1f));
+        await manager.ApplyPendingAsync();
+        await manager.AdvanceTransitionAsync(0.1f);
+        await manager.AdvanceTransitionAsync(0.1f);
+        await navigate;
+
+        Assert.Same(second, navigation.Current);
+        Assert.True(navigation.CanGoBack);
+        Assert.Equal(1, navigation.HistoryCount);
+        Assert.Same(second, Assert.Single(manager.Root!.Children).Scene);
+
+        Task<bool> goBack = navigation.GoBackAsync(new SceneTransitionSpec(0.1f));
+        await manager.ApplyPendingAsync();
+        await manager.AdvanceTransitionAsync(0.1f);
+        await manager.AdvanceTransitionAsync(0.1f);
+        Assert.True(await goBack);
+
+        Assert.Same(first, navigation.Current);
+        Assert.False(navigation.CanGoBack);
+        Assert.Equal(2, events.Count(e => e == "first.load"));
+        Assert.Equal(2, events.Count(e => e == "first.activate"));
+        Assert.Contains("second.unload", events);
+        Assert.False(await navigation.GoBackAsync(new SceneTransitionSpec(0f)));
+        await manager.ShutdownAsync();
+    }
+
     private sealed class RecordingScene(
         string name, List<string> events, SceneExecutionMode executionMode) : IScene
     {
@@ -522,5 +564,12 @@ public class SceneManagerTests
         }
 
         public InputContext Context { get; }
+    }
+
+    private sealed class RecordingNavigationScene(
+        SceneManager manager,
+        IScene initial) : NavigationScene(manager)
+    {
+        protected override IScene CreateInitialScene() => initial;
     }
 }
