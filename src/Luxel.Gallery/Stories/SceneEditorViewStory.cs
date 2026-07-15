@@ -162,6 +162,36 @@ public static class SceneEditorViewStory
                 ed]];
     }
 
+    private static SceneDoc SampleScene3D()
+    {
+        SceneEntity E(int id, string name, float x, float y, float z, Vector3? scale = null)
+            => SceneEntity.Of(id, name, SceneSchemas.NewComponent(SceneSchemas.Transform3D)
+                .With("pos", SceneValue.Of(new Vector3(x, y, z)))
+                .With("scale", SceneValue.Of(scale ?? Vector3.One)));
+        return SceneDoc.Of(SceneSpace.ThreeD,
+            [E(1, "Player", 0, 0, 0), E(2, "Crate", 2.2f, 0, 0.6f), E(3, "Gate", -2.1f, 0, -1.4f, new Vector3(1.4f, 1.5f, 0.4f))]);
+    }
+
+    [Story("Controls/SceneEditorView/ThreeD", Height = 440, Order = 5)]
+    public static Widget ThreeD(StoryContext ctx)
+    {
+        SceneEditorView ed = SceneEditorView(source: SampleScene3D(), viewWidth: 620f, viewHeight: 360f);
+
+        ctx.Play("basic", async d =>
+        {
+            await d.Snap();                              // 地面グリッド + transform3d AABB
+            ed.Pan(new Vector2(36, -18));                // 3D では Pan API = OrbitCamera orbit
+            await d.Step(1);
+            await d.Snap("orbit");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("SceneEditorView — 3D 空間アダプタ"),
+                Muted("同じ SceneEditorView シェルに SceneSpace3DAdapter を差し込み、OrbitCamera 投影でグリッド/AABB/XYZ ハンドルを描く。中ボタンドラッグは orbit、ホイールは dolly。"),
+                ed]];
+    }
+
     // ゲーム固有スキーマの例 (敵 AI + 着色) — 登録するだけでインスペクタに出る
     private static readonly IComponentSchema EnemySchema = new ComponentSchema(
         "enemy", "Enemy AI", SceneSpaces.TwoD,

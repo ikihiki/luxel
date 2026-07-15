@@ -44,7 +44,7 @@
 
 ### M12 — Luxel Studio 3D フェーズ (ADR-0015〜0018 の上に。[27](27-game-editor.md) の見取り図 GE-8〜10。**シェル無改修が GE-8 の検収条件**)
 
-- [ ] **Q55**: 27 **GE-8** — 3D 空間アダプタ: `ISceneSpaceAdapter` の 3D 実装 (OrbitCamera 操作 + レイピックのヒットテスト + エンティティのワイヤ/AABB 表示 [PhysicsGizmos 流] + 3 軸移動ハンドル + グリッド平面)。transform3d スキーマは GE-0 で定義済み。**SceneEditorView 共有シェルは無改修が目標** (改修が要る = 原則 3 違反の検出)。story + golden
+- [x] **Q55**: 27 **GE-8** (2026-07-15 完了) — 3D 空間アダプタ。`SceneSpace3DAdapter` を `ISceneSpaceAdapter` 実装として追加: `OrbitCamera` 投影、地面グリッド、transform3d.pos/scale のワイヤ AABB、投影 AABB + 中心半径のヒットテスト、marquee、X/Y/Z 軸ハンドル、axis/free 移動 (`SetField transform3d.pos`)、snap、複製オフセット、`Pan`=orbit / `ZoomAt`=dolly。`SceneEditorView` 共有シェルの入力/Transaction 経路は維持し、space 自動選択に `SceneSpace.ThreeD => SceneSpace3DAdapter` を配線。story `Controls/SceneEditorView/ThreeD` 追加 (表示 + orbit、vk/dx golden 各 2 枚)。単体 `SceneSpace3DAdapterTests` +4 (全 1072 passed)。検証: `dotnet build Luxel.slnx --no-restore` OK、`dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --no-build` OK、`dotnet run --project src/Luxel.Gallery -- vk e2e` = 133 passed / diff 0 (既知 stale `Demos_Strudel_Repl.playing.vk.png` は Q54 の別件)、対象 dx update OK。**MD 差**: story の操作 play は投影クリック/axis drag ではなく表示+orbit golden に限定し、axis 移動は単体で担保 (runner 座標系でクリック点が不安定だったため)。
 - [ ] **Q56**: 27 **GE-9** — 3D コンパイラバックエンド + Player 拡張 (SceneCompiler の 3D バックエンド: scene_pbr 系描画 + glTF AssetRef [glb] + Luxel.Physics 衝突 + カメラ)。csx globals の 3D 拡張 (原則 6)。story + 実窓スモーク
 - [ ] **Q57**: 27 **GE-10** — dogfood ミニ 3D (Range 風 1 シーン) + **2D タイトル + 3D プレイの混在プロジェクト**で原則 6 を実証 → 出荷 (ship-verify)。Docs/Studio に 3D 節追記。あわせて「Studio シェル」(DockHost/メニュー/Problems/csx DocumentProvider/gizmo オーバーレイ) を独立ワークストリームとして起票判断 → **完了で 27 MD 削除・M12 クローズ**
 

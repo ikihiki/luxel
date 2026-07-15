@@ -1,4 +1,5 @@
 using System.Numerics;
+using Luxel;
 using Luxel.SceneEdit;
 using Luxel.TwoD;
 using Luxel.Typography;
@@ -15,6 +16,7 @@ public enum SceneHandleKind
     Free,
     AxisX,
     AxisY,
+    AxisZ,
 }
 
 /// <summary>
@@ -341,5 +343,317 @@ public sealed class SceneSpace2DAdapter : ISceneSpaceAdapter, ISceneTileAdapter
         s.StrokeLine(green, 2, c.X, c.Y + HandleDead, c.X, c.Y + HandleLen);
         s.BeginFill(green).MoveTo(c.X, c.Y + HandleLen + 8).LineTo(c.X - 5, c.Y + HandleLen).LineTo(c.X + 5, c.Y + HandleLen).Close().End();
         _handleN.Content = s;
+    }
+}
+
+/// <summary>
+/// 3D 空間アダプタ — <see cref="OrbitCamera"/> で地面グリッド / transform3d の AABB / 3 軸移動ハンドルを
+/// 2D キャンバスへ投影して描く。共有シェルは view-local px だけを渡し、このアダプタが
+/// レイピック・軸拘束・orbit/dolly 操作を閉じ込める。
+/// </summary>
+public sealed class SceneSpace3DAdapter : ISceneSpaceAdapter
+{
+    public float GridStep { get; init; } = 1f;
+    public int GridHalfLines { get; init; } = 8;
+    public Vector3 BoxSize { get; init; } = Vector3.One;
+
+    private OrbitCamera _cam = new(new Vector3(0, 0.4f, 0), yaw: 0.72f, pitch: 0.42f, distance: 8f,
+        fovYRadians: 1.05f, aspect: 620f / 360f, near: 0.05f, far: 100f);
+    private float _viewW = 620f, _viewH = 360f, _fs = 13f;
+    private VectorFont? _font;
+
+    private UiNode _gridN = null!, _boxN = null!, _selN = null!, _nameN = null!, _handleN = null!;
+
+    private const float HandleLenWorld = 1.35f;
+    private const float HandleGrab = 8f;
+    private const float EntityGrabPad = 5f;
+
+    public OrbitCamera Camera => _cam;
+
+    private static Vector3? Pos(SceneDoc doc, int id)
+        => doc.TryEntity(id)?.Component("transform3d")?.Get("pos")?.AsVec3();
+
+    private static Vector3 Scale(SceneEntity e)
+        => e.Component("transform3d")?.Get("scale")?.AsVec3() ?? Vector3.One;
+
+    private (Vector3 Min, Vector3 Max)? EntityBounds(SceneEntity e)
+    {
+        Vector3? p = e.Component("transform3d")?.Get("pos")?.AsVec3();
+        if (p is null) return null;
+        Vector3 s = Vector3.Max(Vector3.Abs(Scale(e)), new Vector3(0.15f));
+        Vector3 half = BoxSize * s * 0.5f;
+        return (p.Value - half, p.Value + half);
+    }
+
+    public void Attach(UiBuildContext ctx, UiNode world, UiNode overlay, float viewW, float viewH, VectorFont? font)
+    {
+        _viewW = viewW; _viewH = viewH; _font = font;
+        _cam.Aspect = viewW / MathF.Max(1f, viewH);
+        _gridN = ctx.Canvas.AddChild(world); _gridN.Z = 0; _gridN.ContentColors = true;
+        _boxN = ctx.Canvas.AddChild(world); _boxN.Z = 1; _boxN.ContentColors = true;
+        _selN = ctx.Canvas.AddChild(world); _selN.Z = 2; _selN.ContentColors = true;
+        _nameN = ctx.Canvas.AddChild(world); _nameN.Z = 3; _nameN.ContentColors = true;
+        _handleN = ctx.Canvas.AddChild(overlay); _handleN.Z = 10; _handleN.ContentColors = true;
+    }
+
+    public void Refresh(SceneEditState state, Theme theme)
+    {
+        _fs = theme.FontSm;
+        DrawGrid();
+        DrawEntities(state);
+        DrawHandles(state);
+    }
+
+    public int HitEntity(SceneDoc doc, Vector2 local)
+    {
+        for (int i = doc.Entities.Count - 1; i >= 0; i--)
+        {
+            SceneEntity e = doc.Entities[i];
+            if (e.Component("transform3d")?.Get("pos")?.AsVec3() is { } p && Project(p) is { } c &&
+                (local - c).LengthSquared() <= 26f * 26f)
+                return e.Id;
+            if (ScreenBounds(e) is not { } r) continue;
+            if (local.X >= r.X - EntityGrabPad && local.X <= r.X + r.W + EntityGrabPad &&
+                local.Y >= r.Y - EntityGrabPad && local.Y <= r.Y + r.H + EntityGrabPad)
+                return e.Id;
+        }
+        return -1;
+    }
+
+    public SceneHandleKind HitHandle(SceneEditState state, Vector2 local)
+    {
+        if (state.Selection.Main < 0 || Pos(state.Doc, state.Selection.Main) is not { } pos) return SceneHandleKind.None;
+        SceneHandleKind best = SceneHandleKind.None;
+        float bestD = HandleGrab;
+        CheckAxis(SceneHandleKind.AxisX, pos, Vector3.UnitX);
+        CheckAxis(SceneHandleKind.AxisY, pos, Vector3.UnitY);
+        CheckAxis(SceneHandleKind.AxisZ, pos, Vector3.UnitZ);
+        return best;
+
+        void CheckAxis(SceneHandleKind kind, Vector3 p, Vector3 axis)
+        {
+            if (Project(p) is not { } a || Project(p + axis * HandleLenWorld) is not { } b) return;
+            float d = DistanceToSegment(local, a, b);
+            if (d <= bestD) { bestD = d; best = kind; }
+        }
+    }
+
+    public IReadOnlyList<int> EntitiesIn(SceneDoc doc, Vector2 aLocal, Vector2 bLocal)
+    {
+        float x0 = MathF.Min(aLocal.X, bLocal.X), x1 = MathF.Max(aLocal.X, bLocal.X);
+        float y0 = MathF.Min(aLocal.Y, bLocal.Y), y1 = MathF.Max(aLocal.Y, bLocal.Y);
+        var ids = new List<int>();
+        foreach (SceneEntity e in doc.Entities)
+        {
+            if (ScreenBounds(e) is not { } r) continue;
+            if (r.X <= x1 && r.X + r.W >= x0 && r.Y <= y1 && r.Y + r.H >= y0) ids.Add(e.Id);
+        }
+        return ids;
+    }
+
+    public IReadOnlyList<SceneChange> BuildMove(SceneDoc doc, IReadOnlyList<int> ids, Vector2 screenDelta, SceneHandleKind axis, bool snap)
+    {
+        var changes = new List<SceneChange>(ids.Count);
+        foreach (int id in ids)
+        {
+            if (Pos(doc, id) is not { } cur) continue;
+            Vector3 delta = axis switch
+            {
+                SceneHandleKind.AxisX => AxisDelta(cur, Vector3.UnitX, screenDelta),
+                SceneHandleKind.AxisY => AxisDelta(cur, Vector3.UnitY, screenDelta),
+                SceneHandleKind.AxisZ => AxisDelta(cur, Vector3.UnitZ, screenDelta),
+                _ => PlaneDelta(cur, screenDelta),
+            };
+            Vector3 tgt = cur + delta;
+            if (snap) tgt = Snap(tgt);
+            if (tgt != cur) changes.Add(new SetField(id, "transform3d", "pos", SceneValue.Of(tgt)));
+        }
+        return changes;
+    }
+
+    public SceneEntity OffsetDuplicate(SceneEntity entity)
+    {
+        if (entity.Component("transform3d") is not { } t || t.Get("pos") is not { } pos) return entity;
+        return entity.WithComponent(t.With("pos", SceneValue.Of(pos.AsVec3() + new Vector3(0.75f, 0, 0.75f))));
+    }
+
+    public void Pan(Vector2 screenDelta) => _cam.Orbit(screenDelta.X * 0.01f, screenDelta.Y * 0.01f);
+
+    public void ZoomAt(float wheelDelta, Vector2 local) => _cam.Dolly(MathF.Pow(0.9f, wheelDelta), 1.5f, 40f);
+
+    public void ResetView()
+        => _cam = new OrbitCamera(new Vector3(0, 0.4f, 0), yaw: 0.72f, pitch: 0.42f, distance: 8f,
+            fovYRadians: 1.05f, aspect: _viewW / MathF.Max(1f, _viewH), near: 0.05f, far: 100f);
+
+    public Vector2 EntityLocalCenter(SceneDoc doc, int id)
+        => Pos(doc, id) is { } p && Project(p) is { } s ? s : default;
+
+    public Vector2 LocalOfPlane(Vector2 world)
+        => Project(new Vector3(world.X, 0, world.Y)) ?? default;
+
+    private Vector3 Snap(Vector3 v)
+        => new(MathF.Round(v.X / GridStep) * GridStep, MathF.Round(v.Y / GridStep) * GridStep, MathF.Round(v.Z / GridStep) * GridStep);
+
+    private Vector3 AxisDelta(Vector3 pos, Vector3 axis, Vector2 screenDelta)
+    {
+        if (Project(pos) is not { } a || Project(pos + axis) is not { } b) return Vector3.Zero;
+        Vector2 sa = b - a;
+        float len2 = sa.LengthSquared();
+        if (len2 < 1e-4f) return Vector3.Zero;
+        return axis * (Vector2.Dot(screenDelta, sa) / len2);
+    }
+
+    private Vector3 PlaneDelta(Vector3 pos, Vector2 screenDelta)
+    {
+        if (Project(pos) is not { } start) return Vector3.Zero;
+        Vector3 normal = Vector3.Normalize(_cam.Target - _cam.Eye);
+        if (!RayPlane(start, pos, normal, out Vector3 a)) return Vector3.Zero;
+        if (!RayPlane(start + screenDelta, pos, normal, out Vector3 b)) return Vector3.Zero;
+        return b - a;
+    }
+
+    private bool RayPlane(Vector2 local, Vector3 planePoint, Vector3 planeNormal, out Vector3 hit)
+    {
+        Ray(local, out Vector3 origin, out Vector3 dir);
+        float denom = Vector3.Dot(dir, planeNormal);
+        if (MathF.Abs(denom) < 1e-5f) { hit = default; return false; }
+        float t = Vector3.Dot(planePoint - origin, planeNormal) / denom;
+        if (t < 0) { hit = default; return false; }
+        hit = origin + dir * t;
+        return true;
+    }
+
+    private void Ray(Vector2 local, out Vector3 origin, out Vector3 dir)
+    {
+        Matrix4x4.Invert(_cam.ViewProjection, out Matrix4x4 inv);
+        float x = local.X / MathF.Max(1f, _viewW) * 2f - 1f;
+        float y = 1f - local.Y / MathF.Max(1f, _viewH) * 2f;
+        Vector3 near = Unproject(new Vector4(x, y, 0f, 1f), inv);
+        Vector3 far = Unproject(new Vector4(x, y, 1f, 1f), inv);
+        origin = near;
+        dir = Vector3.Normalize(far - near);
+    }
+
+    private static Vector3 Unproject(Vector4 clip, Matrix4x4 inv)
+    {
+        Vector4 w = Vector4.Transform(clip, inv);
+        return new Vector3(w.X, w.Y, w.Z) / w.W;
+    }
+
+    private Vector2? Project(Vector3 world)
+    {
+        Vector4 clip = Vector4.Transform(new Vector4(world, 1f), _cam.ViewProjection);
+        if (clip.W <= 1e-5f) return null;
+        float ndcX = clip.X / clip.W, ndcY = clip.Y / clip.W;
+        if (float.IsNaN(ndcX) || float.IsNaN(ndcY)) return null;
+        return new Vector2((ndcX + 1f) * 0.5f * _viewW, (1f - ndcY) * 0.5f * _viewH);
+    }
+
+    private RectF? ScreenBounds(SceneEntity e)
+    {
+        if (EntityBounds(e) is not { } b) return null;
+        Span<Vector3> c = stackalloc Vector3[8];
+        Corners(b.Min, b.Max, c);
+        bool any = false;
+        float x0 = float.PositiveInfinity, y0 = float.PositiveInfinity, x1 = float.NegativeInfinity, y1 = float.NegativeInfinity;
+        foreach (Vector3 p in c)
+        {
+            if (Project(p) is not { } s) continue;
+            any = true;
+            x0 = MathF.Min(x0, s.X); y0 = MathF.Min(y0, s.Y);
+            x1 = MathF.Max(x1, s.X); y1 = MathF.Max(y1, s.Y);
+        }
+        return any ? new RectF(x0, y0, x1 - x0, y1 - y0) : null;
+    }
+
+    private void DrawGrid()
+    {
+        var s = new Scene2D();
+        uint major = Color2D.Rgba(108, 128, 150, 90);
+        uint minor = Color2D.Rgba(108, 128, 150, 50);
+        uint xColor = Color2D.Rgba(229, 83, 75, 150);
+        uint zColor = Color2D.Rgba(71, 132, 238, 150);
+        int n = Math.Max(1, GridHalfLines);
+        for (int i = -n; i <= n; i++)
+        {
+            float v = i * GridStep;
+            DrawLine(s, new Vector3(-n * GridStep, 0, v), new Vector3(n * GridStep, 0, v), i == 0 ? xColor : (i % 4 == 0 ? major : minor), 1);
+            DrawLine(s, new Vector3(v, 0, -n * GridStep), new Vector3(v, 0, n * GridStep), i == 0 ? zColor : (i % 4 == 0 ? major : minor), 1);
+        }
+        _gridN.Content = s;
+    }
+
+    private void DrawEntities(SceneEditState state)
+    {
+        var boxes = new Scene2D();
+        var selected = new Scene2D();
+        var names = new Scene2D();
+        foreach (SceneEntity e in state.Doc.Entities)
+        {
+            if (EntityBounds(e) is not { } b) continue;
+            DrawBox(state.Selection.Contains(e.Id) ? selected : boxes, b.Min, b.Max,
+                state.Selection.Contains(e.Id) ? Color2D.Rgba(245, 196, 80) : Color2D.Rgba(218, 226, 235, 190),
+                state.Selection.Contains(e.Id) ? 2.2f : 1.2f);
+            if (_font is { } font && e.Name.Length > 0 && Project(new Vector3((b.Min.X + b.Max.X) * 0.5f, b.Max.Y, (b.Min.Z + b.Max.Z) * 0.5f)) is { } p)
+                font.AppendText(names, e.Name, p.X + 6, p.Y - 4, _fs, Color2D.Rgba(235, 240, 245));
+        }
+        _boxN.Content = boxes;
+        _selN.Content = selected;
+        _nameN.Content = names;
+    }
+
+    private void DrawHandles(SceneEditState state)
+    {
+        if (state.Selection.Main < 0 || Pos(state.Doc, state.Selection.Main) is not { } pos)
+        {
+            _handleN.Content = null;
+            return;
+        }
+        var s = new Scene2D();
+        DrawAxis(s, pos, Vector3.UnitX, Color2D.Rgba(229, 83, 75), "X");
+        DrawAxis(s, pos, Vector3.UnitY, Color2D.Rgba(63, 185, 80), "Y");
+        DrawAxis(s, pos, Vector3.UnitZ, Color2D.Rgba(71, 132, 238), "Z");
+        _handleN.Content = s;
+    }
+
+    private void DrawAxis(Scene2D s, Vector3 origin, Vector3 axis, uint color, string label)
+    {
+        Vector3 end = origin + axis * HandleLenWorld;
+        DrawLine(s, origin, end, color, 2.4f);
+        if (_font is { } font && Project(end) is { } p)
+            font.AppendText(s, label, p.X + 4, p.Y - 4, _fs, color);
+    }
+
+    private void DrawBox(Scene2D s, Vector3 min, Vector3 max, uint color, float width)
+    {
+        Span<Vector3> c = stackalloc Vector3[8];
+        Corners(min, max, c);
+        for (int i = 0; i < 8; i++)
+        {
+            if ((i & 1) == 0) DrawLine(s, c[i], c[i | 1], color, width);
+            if ((i & 2) == 0) DrawLine(s, c[i], c[i | 2], color, width);
+            if ((i & 4) == 0) DrawLine(s, c[i], c[i | 4], color, width);
+        }
+    }
+
+    private void DrawLine(Scene2D s, Vector3 a, Vector3 b, uint color, float width)
+    {
+        if (Project(a) is not { } p0 || Project(b) is not { } p1) return;
+        s.StrokeLine(color, width, p0.X, p0.Y, p1.X, p1.Y);
+    }
+
+    private static void Corners(Vector3 min, Vector3 max, Span<Vector3> c)
+    {
+        for (int i = 0; i < 8; i++)
+            c[i] = new Vector3((i & 1) == 0 ? min.X : max.X, (i & 2) == 0 ? min.Y : max.Y, (i & 4) == 0 ? min.Z : max.Z);
+    }
+
+    private static float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)
+    {
+        Vector2 ab = b - a;
+        float len2 = ab.LengthSquared();
+        if (len2 < 1e-4f) return (p - a).Length();
+        float t = Math.Clamp(Vector2.Dot(p - a, ab) / len2, 0f, 1f);
+        return (p - (a + ab * t)).Length();
     }
 }

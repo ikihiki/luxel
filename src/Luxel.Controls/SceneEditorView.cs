@@ -38,7 +38,7 @@ public sealed partial class SceneEditorView : Widget
     [UiParam] private readonly Bindable<float> _viewHeight = new();
 
     /// <summary>空間アダプタ (null = シーンの space から自動選択。2D → <see cref="SceneSpace2DAdapter"/>、
-    /// 3D は M12 で追加予定につき未対応例外)。</summary>
+    /// 3D → <see cref="SceneSpace3DAdapter"/>)。</summary>
     public ISceneSpaceAdapter? Adapter { get; set; }
 
     /// <summary>true = ドロップ位置をグリッドにスナップする。</summary>
@@ -182,7 +182,8 @@ public sealed partial class SceneEditorView : Widget
         _space = Adapter ?? _state.Doc.Space switch
         {
             SceneSpace.TwoD => new SceneSpace2DAdapter(),
-            _ => throw new NotSupportedException("3D 空間アダプタは M12 で追加予定 (ToDo/27 GE-8)"),
+            SceneSpace.ThreeD => new SceneSpace3DAdapter(),
+            _ => throw new NotSupportedException($"未対応のシーン空間: {_state.Doc.Space}"),
         };
     }
 
