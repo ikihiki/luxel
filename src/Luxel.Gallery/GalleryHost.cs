@@ -82,16 +82,25 @@ public sealed class GalleryHost : IDisposable
     {
         StoryInfo? story = StoryRegistry.Find(path);
         if (story is null) return;
+        SelectCore(story, e2e: false);
+    }
+
+    internal void SelectForE2e(StoryInfo story) => SelectCore(story, e2e: true);
+
+    private void SelectCore(StoryInfo story, bool e2e)
+    {
         var sw = System.Diagnostics.Stopwatch.StartNew();
         TearDown();
         _story = story;
         // fill (W/H 未指定 = 0,0) は snap/bench の決定性のため 800×480 固定で描く
         _w = story.Width > 0 ? story.Width : (int)GalleryApp.PreviewW;
         _h = story.Height > 0 ? story.Height : (int)GalleryApp.PreviewH;
-        if (story.Theme is not null) _dark = story.Theme == "dark";
+        if (e2e) _dark = string.Equals(story.Theme, "dark", StringComparison.OrdinalIgnoreCase);
+        else if (story.Theme is not null) _dark = story.Theme == "dark";
         ApplyTheme();
+        if (e2e) Stories.StrudelStory.ResetForE2e();
         BuildCurrent();
-        Console.WriteLine($"[gallery] select '{path}' {sw.ElapsedMilliseconds}ms");
+        Console.WriteLine($"[gallery] select '{story.Path}' {sw.ElapsedMilliseconds}ms");
     }
 
     private void BuildCurrent()

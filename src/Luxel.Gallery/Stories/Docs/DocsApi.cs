@@ -39,7 +39,7 @@ public static class DocsApi
             if (doc is TextEditorView tev)
                 foreach (MarkdownHeading h in MarkdownDecorations.Headings(tev.DocSource!))
                     if (h.Level == 2) { tev.ScrollToSource(h.Offset); break; }
-            await d.Step(2);
+            await d.Step(16);
             await d.Snap("table");
         });
         return doc;

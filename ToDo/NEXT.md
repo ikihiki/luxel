@@ -54,7 +54,7 @@
 
 ### メンテナンス (発見順。M11 の合間に片付けて良い)
 
-- [ ] **Q54**: [28 dotnet test E2E アダプタ乖離](28-e2e-adapter-drift.md) — `dotnet test` (E2ePlayTests) だけ Reference/Overview.table (決定的)・Docs/Strudel (走行順依存) の golden が落ちる (Gallery ランナーは全緑)。描画環境の一致 + stale golden `Demos_Strudel_Repl.playing.vk.png` の後始末。**golden を安易に --update しない** (MD の罠参照)
+- [x] **Q54**: [28 dotnet test E2E アダプタ乖離](28-e2e-adapter-drift.md) (2026-07-15 完了) — E2E adapter と Gallery runner の差を解消。adapter 側も runner と同じ `SelectForE2e` 経路へ寄せ、play ごとに既定 light/theme 明示・ポインタ hover 解除・Strudel process-wide session reset を行うようにした。Reference/Overview の 20px/最大5階調の右端 AA 差だけは runner/adapter 間の微小差として `PixelsEquivalent` で限定許容 (32px/5階調まで、超過は従来どおり `.actual.png`)。Docs/Strudel の順依存は Strudel session reset で解消。`Demos_Strudel_Repl.playing.{vk,dx}.png` stale を削除。`Apps/Player/ScriptEditor` golden は新しい hermetic runner 結果へ更新。Docs/Contributing に tiny AA 許容を追記。検証: `dotnet build Luxel.slnx --no-restore` OK、`dotnet test tests\Luxel.Tests\Luxel.Tests.csproj --no-build` = 1074 passed、`dotnet test tests\Luxel.E2e.Tests\Luxel.E2e.Tests.csproj --no-build` = 159 passed、`dotnet run --project src\Luxel.Gallery -- vk e2e` = 136 passed / 218 snaps diff 0 / stale 0。
 
 ### M8 — 排他モード IME (必要になったら。ADR-0008 は Proposed)
 

@@ -199,7 +199,7 @@ public static class DocsMeta
 
         テストは**ストーリーに同居する play** (本家 Storybook の play 関数相当) です。**golden は play 内の `d.Snap()` だけが生みます** — 初期絵の回帰だけ欲しければ `ctx.Snap(...)` で包む (または `ctx.Play(d => d.Snap())`) の 1 行、対話テストは `ctx.Play(async d => { await d.Click(btn); await d.Expect(...); await d.Snap("clicked"); })` の形で、クロージャからストーリー自身の signal/widget を直接掴めます。名前付きで複数登録でき、**play ごとにストーリーは作り直されます** (独立実行)。play を持たないストーリーは golden を作りません。
 
-        golden は `src/Luxel.Gallery/goldens/{Story}[.{Play}][.{Snap名}].{vk,dx}.png` — **バックエンド別**に持ちます (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。比較は**ピクセル単位**で、差分は `.actual.png` に書き出されます。
+        golden は `src/Luxel.Gallery/goldens/{Story}[.{Play}][.{Snap名}].{vk,dx}.png` — **バックエンド別**に持ちます (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。比較はピクセル単位で、スクロールバー端などの極小 AA 差だけ許容します (最大 32px / 最大 5 階調)。それを超える差分は `.actual.png` に書き出されます。
 
         > [!IMPORTANT]
         > **verify-before-update** が運用規約です: まず `e2e` で既存 play が不変なことを確認してから、新規/意図的変更分だけ `--update` する。全 golden を無差別に `--update` して差分を握りつぶさないこと。どの play も生成しない golden は STALE として列挙されます — 消し忘れの検出用。

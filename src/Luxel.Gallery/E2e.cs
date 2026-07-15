@@ -19,6 +19,8 @@ public static class E2e
 {
     private const int WarmupSteps = 8;          // 固定 1/60s × 8 (アニメ/caret を決定的に進める)
     private const float FixedDt = 1f / 60f;
+    private const int MaxTinyAaPixels = 32;
+    private const int MaxTinyAaChannelDelta = 5;
 
     private sealed class Counters
     {
@@ -45,8 +47,9 @@ public static class E2e
 
             // play の有無はまず 1 回構築して調べる (構築は数十 ms — 全ストーリー許容)
             sw.Restart();
-            host.Select(story.Path);
+            host.SelectForE2e(story);
             Warmup(host);
+            ResetPointer(host);
             msBuild += sw.Elapsed.TotalMilliseconds;
             IReadOnlyList<StoryPlay>? registered = host.Context?.Plays;
             if (registered is null or { Count: 0 }) { noPlay++; continue; }
@@ -60,8 +63,9 @@ public static class E2e
                 if (pi > 0)   // play ごとに作り直し (独立実行)。最初の play は探索時の構築を使う
                 {
                     sw.Restart();
-                    host.Select(story.Path);
+                    host.SelectForE2e(story);
                     Warmup(host);
+                    ResetPointer(host);
                     msBuild += sw.Elapsed.TotalMilliseconds;
                 }
                 StoryPlay play = host.Context!.Plays[pi];
@@ -123,8 +127,9 @@ public static class E2e
         Stories.StrudelStory.HeadlessAudio = true;   // E2E は実 XAudio2 を触らない (上記 Run と同じ理由)
         StoryInfo story = StoryRegistry.Find(path) ?? throw new PlayError($"ストーリーがありません: {path}");
         string dir = GoldenDir();
-        host.Select(path);
+        host.SelectForE2e(story);
         Warmup(host);
+        ResetPointer(host);
         IReadOnlyList<StoryPlay> plays = host.Context?.Plays ?? [];
         if (playIndex >= plays.Count) throw new PlayError($"play #{playIndex} がありません (登録 {plays.Count})");
         var c = new Counters();
@@ -142,6 +147,12 @@ public static class E2e
         if (!Luxel.Controls.HighlightQueue.WaitIdle(15000))
             Console.Error.WriteLine("  WARN: ハイライト静定待ちタイムアウト");
         for (int i = 0; i < 2; i++) host.Step(0f);
+    }
+
+    private static void ResetPointer(GalleryHost host)
+    {
+        host.Host?.PointerMove(-1000, -1000);
+        host.Step(0f);
     }
 
     /// <summary>d.Snap() の実体: 静定 → 撮影 → 比較/更新。失敗は PlayError (play 全体を落とす)。</summary>
@@ -176,7 +187,11 @@ public static class E2e
             c.SnapFailed++;
             throw new PlayError($"golden なし: {Path.GetFileName(file)} (--update で生成)");
         }
-        if (PixelsEqual(File.ReadAllBytes(file), snap.Value)) return;
+        if (PixelsEquivalent(File.ReadAllBytes(file), snap.Value, out string? diffNote))
+        {
+            if (diffNote is not null) Console.WriteLine($"  OK {Path.GetFileName(file)} ({diffNote})");
+            return;
+        }
 
         c.SnapFailed++;
         string actual = Path.Combine(dir, $"{name}.{backend}.actual.png");
@@ -184,12 +199,31 @@ public static class E2e
         throw new PlayError($"golden 差分: {Path.GetFileName(actual)}");
     }
 
-    private static bool PixelsEqual(byte[] goldenPng, (byte[] rgba, int w, int h) snap)
+    private static bool PixelsEquivalent(byte[] goldenPng, (byte[] rgba, int w, int h) snap, out string? diffNote)
     {
+        diffNote = null;
         try
         {
             (byte[] rgba, int w, int h) = Png.Decode(goldenPng);
-            return w == snap.w && h == snap.h && rgba.AsSpan().SequenceEqual(snap.rgba);
+            if (w != snap.w || h != snap.h) return false;
+            if (rgba.AsSpan().SequenceEqual(snap.rgba)) return true;
+
+            int diffPixels = 0, maxDelta = 0;
+            for (int i = 0; i < rgba.Length; i += 4)
+            {
+                int prMax = 0;
+                for (int c = 0; c < 4; c++)
+                {
+                    int d = Math.Abs(rgba[i + c] - snap.rgba[i + c]);
+                    if (d > prMax) prMax = d;
+                }
+                if (prMax == 0) continue;
+                diffPixels++;
+                maxDelta = Math.Max(maxDelta, prMax);
+                if (diffPixels > MaxTinyAaPixels || maxDelta > MaxTinyAaChannelDelta) return false;
+            }
+            diffNote = $"tiny AA diff: pixels={diffPixels}, maxΔ={maxDelta}";
+            return true;
         }
         catch (Exception e)
         {

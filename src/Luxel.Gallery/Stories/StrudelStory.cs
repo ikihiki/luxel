@@ -25,7 +25,7 @@ public static class StrudelStory
     // ---- セッション (プロセスで 1 個 — XAudio2 マスタリングボイスと同じ寿命) ----
     private static class Session
     {
-        public static readonly StrudelScheduler Sched = new(chunkSeconds: 0.1);
+        public static StrudelScheduler Sched = new(chunkSeconds: 0.1);
         private static StreamMixerSink? _mixer;
         private static readonly Dictionary<int, object> _owners = new();   // slot → 現在のブロック
         private static int _nextSlot;
@@ -98,7 +98,19 @@ public static class StrudelStory
             _mixer.CopyPeaks(_peaks);
             return _peaks;
         }
+
+        public static void ResetForE2e()
+        {
+            _mixer?.Dispose();
+            _mixer = null;
+            _owners.Clear();
+            _nextSlot = 0;
+            Array.Clear(_peaks);
+            Sched = new StrudelScheduler(chunkSeconds: 0.1);
+        }
     }
+
+    internal static void ResetForE2e() => Session.ResetForE2e();
 
     // ---- ライブブロック: TextEditorView (新スタック。診断波線 + 補完 + 再生囲み + Ctrl+Enter 評価) + Run/Stop ----
     private sealed class StrudelBlock : CompositeControl, IDisposable
