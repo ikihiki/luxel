@@ -59,6 +59,8 @@ public sealed class SceneRunner(SceneLoopServices services)
                 double now = clock.Elapsed.TotalSeconds;
                 double globalRawDelta = now - previous;
                 previous = now;
+                await manager.AdvanceTransitionAsync(
+                    FixedTimestep.ScaleDt(globalRawDelta, timeScale: 1.0));
                 List<FrameEntry> entries = BuildFrameEntries(manager.GetActiveNodes(), now, globalRawDelta);
 
                 bool perfEnabled = EngineDiagnostics.IsEnabled(EngineDiagnostics.Perf);
@@ -165,7 +167,9 @@ public sealed class SceneRunner(SceneLoopServices services)
     internal static bool ShouldRunNode(SceneNode node)
     {
         IScene scene = node.Scene;
-        if (node.EffectiveExecutionMode == SceneExecutionMode.OnDemand && !scene.TryBeginFrame())
+        if (node.EffectiveExecutionMode == SceneExecutionMode.OnDemand
+            && !node.IsTransitioning
+            && !scene.TryBeginFrame())
             return false;
         return scene is not GameScene game || game.TryBeginRunnerFrame();
     }

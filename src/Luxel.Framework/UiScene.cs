@@ -6,7 +6,7 @@ namespace Luxel.Framework;
 /// 要求駆動UI向けのScene基底。登録した <see cref="UiHost"/> のdirtyとanimationをまとめ、
 /// 通常は変更されたフレームだけ、animation/transition中は一時的に連続駆動する。
 /// </summary>
-public abstract class UiScene : IScene
+public abstract class UiScene : IScene, ISceneTransitionParticipant
 {
     private readonly IFrameScheduler _frames;
     private readonly List<UiHost> _hosts = new();
@@ -31,6 +31,10 @@ public abstract class UiScene : IScene
     protected virtual void OnPreRender(PreRenderContext context) { }
     protected virtual void OnRender(RenderContext context) { }
     protected virtual void OnPostRender(PostRenderContext context) { }
+    /// <summary>Scene遷移のprogressをUI固有のopacity/transform等へ反映する。</summary>
+    protected virtual void OnTransition(SceneTransitionContext context, SceneTransitionRole role) { }
+    protected virtual void OnAttached(SceneNode node) { }
+    protected virtual void OnDetached(SceneNode node) { }
 
     /// <summary>このSceneで駆動するUiHostを登録する。所有権は呼び出し側に残る。</summary>
     protected void AddHost(UiHost host)
@@ -69,6 +73,8 @@ public abstract class UiScene : IScene
 
     SceneExecutionMode IScene.ExecutionMode => SceneExecutionMode.OnDemand;
     SceneRenderMode IScene.RenderMode => SceneRenderMode.WhenDirty;
+    void IScene.OnAttached(SceneNode node) => OnAttached(node);
+    void IScene.OnDetached(SceneNode node) => OnDetached(node);
 
     async Task IScene.OnLoadAsync() => await OnLoadAsync();
 
@@ -131,6 +137,13 @@ public abstract class UiScene : IScene
     void IScene.PreRender(PreRenderContext context) => OnPreRender(context);
     void IScene.Render(RenderContext context) => OnRender(context);
     void IScene.PostRender(PostRenderContext context) => OnPostRender(context);
+
+    void ISceneTransitionParticipant.OnSceneTransition(
+        SceneTransitionContext context, SceneTransitionRole role)
+    {
+        OnTransition(context, role);
+        Invalidate();
+    }
 
     private void EndContinuousFrames()
     {

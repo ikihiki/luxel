@@ -59,6 +59,8 @@ public sealed class SceneNode
     public SceneExecutionMode ExecutionMode { get; internal set; }
     public SceneRenderMode RenderMode { get; internal set; }
     public SceneLifecycleState State { get; internal set; } = SceneLifecycleState.Created;
+    /// <summary>root Scene遷移のoutgoing/incoming subtreeとして同時実行中か。</summary>
+    public bool IsTransitioning { get; internal set; }
 
     public SceneExecutionMode EffectiveExecutionMode
     {

@@ -24,12 +24,16 @@ public interface IScene
     double FixedDeltaSeconds => 1.0 / 60;
     int MaxFixedStepsPerFrame => 8;
 
+    /// <summary>SceneGraphへ接続された直後、Loadより前にnodeを通知する。</summary>
+    void OnAttached(SceneNode node) { }
     Task OnLoadAsync() => Task.CompletedTask;
     Task OnActivateAsync() => Task.CompletedTask;
     Task OnSuspendAsync() => Task.CompletedTask;
     Task OnResumeAsync() => Task.CompletedTask;
     Task OnDeactivateAsync() => Task.CompletedTask;
     Task OnUnloadAsync() => Task.CompletedTask;
+    /// <summary>Unload完了後にSceneGraphから切り離されたことを通知する。</summary>
+    void OnDetached(SceneNode node) { }
 
     /// <summary>OnDemand Sceneが今回のフレームへ参加するかを返す。Continuous Sceneでは参照されない。</summary>
     bool TryBeginFrame() => true;
@@ -92,7 +96,7 @@ public sealed record SceneLoopServices(
 /// 継承 Scene は phase ごとの virtual メソッド (例 <see cref="OnUpdate"/> / <see cref="OnRender"/>) を override するだけでよい。
 /// ECS-heavy な処理は <see cref="AddWorld"/> で登録した World の system として組み込む。
 /// </summary>
-public abstract class GameScene : IScene
+public abstract class GameScene : IScene, ISceneTransitionParticipant
 {
     private readonly SceneLoopServices _loop;
     private readonly List<World> _worlds = new();
@@ -149,6 +153,10 @@ public abstract class GameScene : IScene
     protected virtual void OnPreRender(PreRenderContext ctx) { }
     protected virtual void OnRender(RenderContext ctx) { }
     protected virtual void OnPostRender(PostRenderContext ctx) { }
+    /// <summary>Scene遷移のprogressをcamera、compositor、描画parameter等へ反映する。</summary>
+    protected virtual void OnTransition(SceneTransitionContext context, SceneTransitionRole role) { }
+    protected virtual void OnAttached(SceneNode node) { }
+    protected virtual void OnDetached(SceneNode node) { }
 
     public virtual Task OnLoadAsync() => Task.CompletedTask;
     public virtual Task OnActivateAsync() => Task.CompletedTask;
@@ -165,6 +173,8 @@ public abstract class GameScene : IScene
     bool IScene.UsesFixedUpdate => true;
     double IScene.FixedDeltaSeconds => FixedDeltaSeconds;
     int IScene.MaxFixedStepsPerFrame => MaxFixedStepsPerFrame;
+    void IScene.OnAttached(SceneNode node) => OnAttached(node);
+    void IScene.OnDetached(SceneNode node) => OnDetached(node);
 
     void IScene.EarlyUpdate(EarlyUpdateContext context)
     {
@@ -207,6 +217,13 @@ public abstract class GameScene : IScene
     {
         OnPostRender(context);
         RunWorlds(Phase.PostRender.Name, new UpdateTick(context.Time.DeltaSeconds, (float)context.Time.TotalSeconds));
+    }
+
+    void ISceneTransitionParticipant.OnSceneTransition(
+        SceneTransitionContext context, SceneTransitionRole role)
+    {
+        OnTransition(context, role);
+        _loop.FrameScheduler.RequestFrame();
     }
 
     // ==================== runner state / diagnostics ====================
