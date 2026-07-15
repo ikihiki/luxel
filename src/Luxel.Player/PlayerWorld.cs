@@ -12,8 +12,10 @@ public interface IPlayerWorld
     float Time { get; }
     HashSet<string> KeysDown { get; }
     PlayerBehaviours? Behaviours { get; set; }
+    string? SceneRequest { get; }
     PlayerEntity Entity(int id);
     PlayerEntity? Find(string name);
+    void RequestScene(string resPath);
     void Update(float dt);
     void Render(Scene2D s, float viewW, float viewH, VectorFont? font = null, float fontSize = 13);
 }
@@ -145,6 +147,10 @@ public sealed class Player2DWorld : IPlayerWorld
     /// <summary>csx ビヘイビアのホスト (ADR-0018、ローダが配線。null = スクリプトなし)。</summary>
     public PlayerBehaviours? Behaviours { get; set; }
 
+    public string? SceneRequest { get; private set; }
+
+    public void RequestScene(string resPath) => SceneRequest = resPath;
+
     /// <summary>固定 dt で 1 ステップ進める (時間 → csx ビヘイビア)。</summary>
     public void Update(float dt)
     {
@@ -225,11 +231,15 @@ public sealed class Player3DWorld : IPlayerWorld
 
     public PlayerBehaviours? Behaviours { get; set; }
 
+    public string? SceneRequest { get; private set; }
+
     public PlayerEntity Entity(int id) => _byId.TryGetValue(id, out PlayerEntity? e) ? e : throw new KeyNotFoundException($"エンティティが無い: {id}");
 
     public PlayerEntity? Find(string name) => _entities.FirstOrDefault(e => e.Name == name);
 
     public void MarkMissingAsset(string asset) => _missingAssets.Add(asset);
+
+    public void RequestScene(string resPath) => SceneRequest = resPath;
 
     public void Update(float dt)
     {

@@ -155,4 +155,28 @@ public class PlayerCoreTests
         Player3DWorld ok = PlayerLoader.LoadStart(fs).World3D;
         Assert.Empty(ok.MissingAssets);
     }
+
+    [Fact]
+    public void PlayerGame_AppliesSceneRequestAcrossSpaces()
+    {
+        var fs = new MemoryFileSystem();
+        void Put(string path, string text) => fs.Set(path, Encoding.UTF8.GetBytes(text));
+        var title = SceneDoc.Of(SceneSpace.TwoD,
+            [SceneEntity.Of(1, "Start",
+                SceneSchemas.NewComponent(SceneSchemas.Transform2D),
+                SceneSchemas.NewComponent(SceneSchemas.Behaviour).With("script", SceneValue.Of("res://scripts/start.csx")))]);
+        Put("project.luxel", GameProjectJson.Serialize(new GameProject("mixed", "res://scenes/title.scene.json")));
+        Put("scenes/title.scene.json", SceneJson.Serialize(title));
+        Put("scenes/arena.scene.json", SceneJson.Serialize(Sample3DScene()));
+        fs.Set("assets/cube.glb", [0x67, 0x6c, 0x54, 0x46]);
+        Put("scripts/start.csx", "Update = (self, world, dt) => { world.RequestScene(\"res://scenes/arena.scene.json\"); };");
+
+        PlayerGame game = PlayerLoader.LoadStart(fs);
+        Assert.IsType<Player2DWorld>(game.World);
+        game.World.Update(1f / 60f);
+        Assert.True(game.ApplySceneRequest());
+        Assert.Equal("res://scenes/arena.scene.json", game.ScenePath);
+        Assert.IsType<Player3DWorld>(game.World);
+        Assert.Empty(game.World3D.MissingAssets);
+    }
 }

@@ -1,0 +1,5 @@
+{
+  "name": "Player Demo 3D",
+  "startScene": "res://scenes/title.scene.json",
+  "window": { "width": 640, "height": 360 }
+}

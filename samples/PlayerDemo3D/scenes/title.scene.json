@@ -1,0 +1,15 @@
+{
+  "space": "2d",
+  "entities": [
+    {
+      "id": 1,
+      "name": "START 3D",
+      "components": [
+        { "type": "transform2d", "pos": [320, 180], "rotation": 0, "scale": [1, 1] },
+        { "type": "tint", "color": [0.55, 0.78, 0.95, 1] },
+        { "type": "behaviour", "script": "res://scripts/title.csx" }
+      ]
+    }
+  ],
+  "tileLayers": []
+}

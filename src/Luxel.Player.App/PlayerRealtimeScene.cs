@@ -40,6 +40,7 @@ public sealed class PlayerRealtimeScene : GameScene
         world.KeysDown.Clear();
         foreach (string k in _keys()) world.KeysDown.Add(k);
         world.Update(ctx.FixedDeltaSeconds);
+        _game.ApplySceneRequest();
     }
 
     protected override void OnRender(RenderContext ctx)

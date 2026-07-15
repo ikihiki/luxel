@@ -1,0 +1,30 @@
+{
+  "space": "3d",
+  "entities": [
+    {
+      "id": 1,
+      "name": "Runner",
+      "components": [
+        { "type": "transform3d", "pos": [-2.2, 0.45, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1] },
+        { "type": "mesh3d", "asset": "res://assets/cube.glb" },
+        { "type": "behaviour", "script": "res://scripts/runner3d.csx" }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Gate",
+      "components": [
+        { "type": "transform3d", "pos": [1.7, 0.7, 0], "rotation": [0, 0, 0, 1], "scale": [0.4, 1.4, 1.6] },
+        { "type": "mesh3d", "asset": "res://assets/cube.glb" }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Camera",
+      "components": [
+        { "type": "camera3d", "target": [0, 0.5, 0], "distance": 7.5, "yaw": 0.64, "pitch": 0.38 }
+      ]
+    }
+  ],
+  "tileLayers": []
+}

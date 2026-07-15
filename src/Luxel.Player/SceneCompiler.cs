@@ -43,11 +43,40 @@ public static class SceneCompiler
     }
 }
 
-/// <summary>読み込んだゲーム一式 (プロジェクト宣言 + 開始シーンの world)。</summary>
-public sealed record PlayerGame(GameProject Project, IPlayerWorld World)
+/// <summary>読み込んだゲーム一式 (プロジェクト宣言 + 現在シーンの world)。</summary>
+public sealed class PlayerGame
 {
+    internal PlayerGame(GameProject project, IPlayerWorld world, IVirtualFileSystem fs, string scenePath)
+    {
+        Project = project;
+        World = world;
+        FileSystem = fs;
+        ScenePath = scenePath;
+    }
+
+    public GameProject Project { get; }
+
+    public IPlayerWorld World { get; private set; }
+
+    public IVirtualFileSystem FileSystem { get; }
+
+    public string ScenePath { get; private set; }
+
     public Player2DWorld World2D => World as Player2DWorld ?? throw new InvalidOperationException("開始シーンは 2D ではありません");
     public Player3DWorld World3D => World as Player3DWorld ?? throw new InvalidOperationException("開始シーンは 3D ではありません");
+
+    public void LoadScene(string resPath)
+    {
+        ScenePath = resPath;
+        World = PlayerLoader.LoadWorld(FileSystem, resPath);
+    }
+
+    public bool ApplySceneRequest()
+    {
+        if (World.SceneRequest is not { Length: > 0 } resPath) return false;
+        LoadScene(resPath);
+        return true;
+    }
 }
 
 /// <summary>
@@ -68,13 +97,19 @@ public static class PlayerLoader
     public static PlayerGame LoadStart(IVirtualFileSystem fs)
     {
         GameProject project = LoadProject(fs);
-        SceneDoc scene = LoadScene(fs, project.StartScene);
+        IPlayerWorld world = LoadWorld(fs, project.StartScene);
+        return new PlayerGame(project, world, fs, project.StartScene);
+    }
+
+    public static IPlayerWorld LoadWorld(IVirtualFileSystem fs, string resPath)
+    {
+        SceneDoc scene = LoadScene(fs, resPath);
         IPlayerWorld world = SceneCompiler.Compile(scene);
         ValidateAssets(fs, world);
         var behaviours = new PlayerBehaviours(fs);
         behaviours.LoadAll(world);
         world.Behaviours = behaviours;
-        return new PlayerGame(project, world);
+        return world;
     }
 
     private static void ValidateAssets(IVirtualFileSystem fs, IPlayerWorld world)

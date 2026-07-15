@@ -108,4 +108,109 @@ public static class StudioDogfoodStory
                 HStack(10)[ed, insp],
                 view]];
     }
+
+    [Story("Apps/Studio/Mixed3D", Height = 700, Order = 153)]
+    public static Widget Mixed3D(StoryContext ctx)
+    {
+        var storage = new MemoryFileStorage();
+        SceneComponent T2(float x, float y) => SceneSchemas.NewComponent(SceneSchemas.Transform2D).With("pos", SceneValue.Of(new Vector2(x, y)));
+        SceneComponent T3(float x, float y, float z, float sx = 1, float sy = 1, float sz = 1)
+            => SceneSchemas.NewComponent(SceneSchemas.Transform3D)
+                .With("pos", SceneValue.Of(new Vector3(x, y, z)))
+                .With("scale", SceneValue.Of(new Vector3(sx, sy, sz)));
+        SceneComponent Tint(float r, float g, float b) => SceneComponent.Of("tint", ("color", SceneValue.Of(new Vector4(r, g, b, 1))));
+        SceneComponent Mesh(string p) => SceneSchemas.NewComponent(SceneSchemas.Mesh3D).With("asset", SceneValue.Of(p));
+        SceneComponent Script(string p) => SceneSchemas.NewComponent(SceneSchemas.Behaviour).With("script", SceneValue.Of(p));
+
+        var title = SceneDoc.Of(SceneSpace.TwoD,
+            [SceneEntity.Of(1, "START 3D", T2(250, 154), Tint(0.55f, 0.78f, 0.95f), Script("res://scripts/title.csx"))],
+            [TileLayer.Of(1, "title", "res://atlas/title.atlas.json", 32, 16, 10)]);
+        var cam = SceneSchemas.NewComponent(SceneSchemas.Camera3D)
+            .With("target", SceneValue.Of(new Vector3(0, 0.5f, 0)))
+            .With("distance", SceneValue.Of(7.5f))
+            .With("yaw", SceneValue.Of(0.64f))
+            .With("pitch", SceneValue.Of(0.38f));
+        var arena = SceneDoc.Of(SceneSpace.ThreeD,
+            [
+                SceneEntity.Of(1, "Runner", T3(-2.2f, 0.45f, 0), Mesh("res://assets/cube.glb"), Script("res://scripts/runner3d.csx")),
+                SceneEntity.Of(2, "Gate", T3(1.7f, 0.7f, 0, 0.4f, 1.4f, 1.6f), Mesh("res://assets/cube.glb")),
+                SceneEntity.Of(3, "Camera", cam),
+            ]);
+        storage.Write("project.luxel", GameProjectJson.Serialize(new GameProject("Mixed 3D", "res://scenes/title.scene.json", 520, 320)));
+        storage.Write("scenes/title.scene.json", SceneJson.Serialize(title));
+        storage.Write("scenes/arena.scene.json", SceneJson.Serialize(arena));
+        storage.Write("scripts/title.csx", "Update = (self, world, dt) => { if (world.Time > 0.20f) world.RequestScene(\"res://scenes/arena.scene.json\"); };");
+        storage.Write("scripts/runner3d.csx", "Update = (self, world, dt) => { self.Pos3D.X += 1.0f * dt; self.Pos3D.Z = 0.45f * MathF.Sin(world.Time * 3f); };");
+        storage.Write("assets/cube.glb", "glTF");
+
+        SceneEditorView arenaEditor = SceneEditorView(source: arena, viewWidth: 280f, viewHeight: 280f);
+        SceneInspector insp = SceneInspector(editor: arenaEditor, schemas: SceneSchemas.BuiltIns(), width: 164f);
+        PlayerGame? game = null;
+        Signal<string> status = ctx.Signal("mixed3dStatus", "停止中");
+
+        MemoryFileSystem ToFs()
+        {
+            var fs = new MemoryFileSystem();
+            foreach (string path in storage.List()) fs.Set(path, Encoding.UTF8.GetBytes(storage.Read(path)!));
+            return fs;
+        }
+
+        void SaveArena()
+        {
+            storage.Write("scenes/arena.scene.json", SceneJson.Serialize(arenaEditor.Scene.Doc));
+            status.Value = "保存済み";
+        }
+
+        void Play()
+        {
+            game = PlayerLoader.LoadStart(ToFs());
+            status.Value = "title → 3D";
+        }
+
+        Button addBeacon = Button(_ => arenaEditor.ApplyEdit(new AddEntity(
+            SceneEntity.Of(SceneCommands.NextEntityId(arenaEditor.Scene.Doc), "Beacon", T3(0, 1.1f, -1.5f, 0.35f, 0.35f, 0.35f), Mesh("res://assets/cube.glb")))), "+Beacon");
+        Button save = Button(_ => SaveArena(), "保存");
+        Button play = Button(_ => Play(), "▶ 混在プレイ");
+        Button stop = Button(_ => { game = null; status.Value = "停止中"; }, "停止");
+
+        Canvas2D view = Canvas2D(520f, 320f, animate: (s, _) =>
+        {
+            if (game is null)
+            {
+                s.FillRect(TilePalette.Pack(18, 23, 31), 0, 0, 520, 320);
+                Font.Value.AppendText(s, "(2D title -> 3D arena)", 178, 164, 13, TilePalette.Pack(150, 158, 174));
+                return;
+            }
+            game.World.Update(1f / 60f);
+            game.ApplySceneRequest();
+            game.World.Render(s, 520, 320, Font.Value);
+        });
+
+        ctx.Play("mixed3d", async d =>
+        {
+            await d.Snap();
+            await d.Click(addBeacon);
+            await d.Click(save);
+            await d.Expect(() => storage.Read("scenes/arena.scene.json")!.Contains("Beacon"), "3D シーン編集を保存");
+            await d.Click(play);
+            await d.Step(4);
+            await d.Expect(() => game!.World is Player2DWorld, "開始は 2D タイトル");
+            await d.Step(20);
+            await d.Expect(() => game!.ScenePath == "res://scenes/arena.scene.json", "csx が 3D シーンへ遷移");
+            await d.Expect(() => game!.World is Player3DWorld, "遷移後は 3D world");
+            await d.Expect(() => game!.World.Find("Beacon") is not null, "保存した 3D エンティティがプレイに出る");
+            float x = game!.World.Entity(1).Pos3D.X;
+            await d.Step(30);
+            await d.Expect(() => game!.World.Entity(1).Pos3D.X > x + 0.45f, "3D csx が Runner を動かす");
+            await d.Snap("arena");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))[
+            VStack(8)[
+                Heading("Luxel Studio dogfood — 2D タイトル + 3D アリーナ"),
+                Muted("混在プロジェクト: startScene は 2D タイトル、csx の RequestScene で 3D アリーナへ遷移。3D エディタで追加した Beacon を保存し、Player が同じプロジェクトから読み直して実行する。"),
+                HStack(6)[addBeacon, save, play, stop, Text($"{status}", 12, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8, 5, 0, 0))],
+                HStack(10)[arenaEditor, insp],
+                view]];
+    }
 }
