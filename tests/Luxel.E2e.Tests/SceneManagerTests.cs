@@ -315,6 +315,114 @@ public class SceneManagerTests
     }
 
     [Fact]
+    public async Task DockScene_TransitionsIndependentSlotsConcurrently()
+    {
+        var services = new ServiceCollection().BuildServiceProvider();
+        var frames = new RecordingFrameScheduler();
+        var manager = new SceneManager(services, frames);
+        var events = new List<string>();
+        var firstStories = new TransitionRecordingScene("stories.first", events, run: true);
+        var firstContent = new TransitionRecordingScene("content.first", events, run: true);
+        var nextStories = new TransitionRecordingScene("stories.next", events, run: true);
+        var nextContent = new TransitionRecordingScene("content.next", events, run: true);
+        var dock = new RecordingDockScene(manager, events, firstStories, firstContent);
+
+        await manager.InitializeAsync(dock);
+        await manager.ApplyPendingAsync();
+
+        Task storiesTransition = dock.TransitionSlotAsync(
+            "stories", nextStories, new SceneTransitionSpec(0.1f));
+        Task contentTransition = dock.TransitionSlotAsync(
+            "content", nextContent, new SceneTransitionSpec(0.2f));
+        await manager.ApplyPendingAsync();
+
+        Assert.True(manager.IsTransitioning);
+        Assert.Equal(new IScene[] { nextStories, nextContent },
+            manager.TransitionIncomings.Select(node => node.Scene));
+        Assert.Equal(new IScene[] { firstStories, nextStories, firstContent, nextContent },
+            manager.Root!.Children.Select(node => node.Scene));
+        Assert.Equal(2, frames.ContinuousLeases);
+
+        await manager.AdvanceTransitionAsync(0.1f); // progress=0 frame
+        await manager.AdvanceTransitionAsync(0.1f);
+        await storiesTransition;
+
+        Assert.False(contentTransition.IsCompleted);
+        Assert.Single(manager.TransitionIncomings);
+        Assert.Same(nextContent, manager.TransitionIncoming!.Scene);
+        Assert.Same(nextStories, dock.GetSlotNode("stories")!.Scene);
+        Assert.Same(firstContent, dock.GetSlotNode("content")!.Scene);
+        Assert.Equal(new IScene[] { nextStories, firstContent, nextContent },
+            manager.Root.Children.Select(node => node.Scene));
+        Assert.Equal(1, frames.ContinuousLeases);
+
+        await manager.AdvanceTransitionAsync(0.1f);
+        await contentTransition;
+
+        Assert.False(manager.IsTransitioning);
+        Assert.Empty(manager.TransitionIncomings);
+        Assert.Same(nextContent, dock.GetSlotNode("content")!.Scene);
+        Assert.Equal(new IScene[] { nextStories, nextContent },
+            manager.Root.Children.Select(node => node.Scene));
+        Assert.Equal(0, frames.ContinuousLeases);
+        await manager.ShutdownAsync();
+    }
+
+    [Fact]
+    public async Task DockScene_RestartingOneSlotKeepsOtherSlotTransitionRunning()
+    {
+        var services = new ServiceCollection().BuildServiceProvider();
+        var frames = new RecordingFrameScheduler();
+        var manager = new SceneManager(services, frames);
+        var events = new List<string>();
+        var firstStories = new TransitionRecordingScene("stories.first", events, run: true);
+        var firstContent = new TransitionRecordingScene("content.first", events, run: true);
+        var skippedStories = new TransitionRecordingScene("stories.skipped", events, run: true);
+        var finalStories = new TransitionRecordingScene("stories.final", events, run: true);
+        var nextContent = new TransitionRecordingScene("content.next", events, run: true);
+        var dock = new RecordingDockScene(manager, events, firstStories, firstContent);
+
+        await manager.InitializeAsync(dock);
+        await manager.ApplyPendingAsync();
+
+        Task skippedTransition = dock.TransitionSlotAsync(
+            "stories", skippedStories, new SceneTransitionSpec(0.2f));
+        Task contentTransition = dock.TransitionSlotAsync(
+            "content", nextContent, new SceneTransitionSpec(0.2f));
+        await manager.ApplyPendingAsync();
+
+        Task finalTransition = dock.TransitionSlotAsync(
+            "stories", finalStories, new SceneTransitionSpec(0.1f));
+        await manager.ApplyPendingAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => skippedTransition);
+        Assert.False(contentTransition.IsCompleted);
+        Assert.Equal(new IScene[] { nextContent, finalStories },
+            manager.TransitionIncomings.Select(node => node.Scene));
+        Assert.DoesNotContain(skippedStories, manager.Root!.Children.Select(node => node.Scene));
+        Assert.Contains(nextContent, manager.Root.Children.Select(node => node.Scene));
+        Assert.Equal(2, frames.ContinuousLeases);
+
+        await manager.AdvanceTransitionAsync(0.1f); // progress=0 frame
+        await manager.AdvanceTransitionAsync(0.1f);
+        await finalTransition;
+
+        Assert.False(contentTransition.IsCompleted);
+        Assert.Single(manager.TransitionIncomings);
+        Assert.Same(nextContent, manager.TransitionIncoming!.Scene);
+        Assert.Same(finalStories, dock.GetSlotNode("stories")!.Scene);
+        Assert.Equal(1, frames.ContinuousLeases);
+
+        await manager.AdvanceTransitionAsync(0.1f);
+        await contentTransition;
+
+        Assert.False(manager.IsTransitioning);
+        Assert.Same(nextContent, dock.GetSlotNode("content")!.Scene);
+        Assert.Equal(0, frames.ContinuousLeases);
+        await manager.ShutdownAsync();
+    }
+
+    [Fact]
     public async Task ModalScene_SuspendsLowerSceneInputUntilRemoved()
     {
         var input = new InputStack();

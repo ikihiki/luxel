@@ -45,8 +45,8 @@ public sealed class SceneManager
     private readonly ConcurrentQueue<SceneOperation> _pending = new();
     private readonly HashSet<SceneNode> _inputNodes = new();
     private readonly Dictionary<InputContext, SceneNode> _inputOwners = new();
+    private readonly List<TransitionRuntime> _transitions = new();
     private SceneNode? _root;
-    private TransitionRuntime? _transition;
 
     public SceneManager(IServiceProvider services, IFrameScheduler frames)
     {
@@ -57,8 +57,11 @@ public sealed class SceneManager
 
     public IScene? Current => _root?.Scene;
     public SceneNode? Root => _root;
-    public bool IsTransitioning => _transition is not null;
-    public SceneNode? TransitionIncoming => _transition?.Incoming;
+    public bool IsTransitioning => _transitions.Count > 0;
+    /// <summary>直近に開始した遷移のincoming。複数遷移の列挙には<see cref="TransitionIncomings"/>を使う。</summary>
+    public SceneNode? TransitionIncoming => _transitions.Count == 0 ? null : _transitions[^1].Incoming;
+    public IReadOnlyList<SceneNode> TransitionIncomings
+        => _transitions.Select(transition => transition.Incoming).ToArray();
 
     public Task SwitchAsync<TScene>() where TScene : class, IScene
         => SwitchAsync(CreateScene<TScene>());
@@ -149,9 +152,13 @@ public sealed class SceneManager
             SceneNode? found = EnumeratePreOrder(_root).FirstOrDefault(n => ReferenceEquals(n.Scene, scene));
             if (found is not null) return found;
         }
-        return _transition is null
-            ? null
-            : EnumeratePreOrder(_transition.Incoming).FirstOrDefault(n => ReferenceEquals(n.Scene, scene));
+        foreach (TransitionRuntime transition in _transitions)
+        {
+            SceneNode? found = EnumeratePreOrder(transition.Incoming)
+                .FirstOrDefault(n => ReferenceEquals(n.Scene, scene));
+            if (found is not null) return found;
+        }
+        return null;
     }
 
     /// <summary>startup Sceneから始め、外部cancelまでSceneGraphを実行する。</summary>
@@ -172,8 +179,7 @@ public sealed class SceneManager
             switch (operation)
             {
                 case ReplaceRootOperation replace:
-                    if (_transition is not null)
-                        await CancelTransitionAsync(promoteIncoming: false);
+                    await CancelAllTransitionsAsync(promoteIncoming: false);
                     if (_root is not null) await DeactivateAndUnloadAsync(_root);
                     _root = CreateNode(replace.Scene, null, null);
                     await LoadAndActivateAsync(_root, primary: true);
@@ -200,15 +206,19 @@ public sealed class SceneManager
 
                 case RemoveOperation remove:
                     EnsureAttached(remove.Node);
-                    if (ReferenceEquals(remove.Node, _transition?.Incoming))
+                    TransitionRuntime? incomingTransition = _transitions
+                        .FirstOrDefault(transition => ReferenceEquals(remove.Node, transition.Incoming));
+                    if (incomingTransition is not null)
                     {
-                        await CancelTransitionAsync(promoteIncoming: false);
+                        await CancelTransitionAsync(incomingTransition, promoteIncoming: false);
                         break;
                     }
-                    if (_transition is { } active
-                        && (ContainsNode(remove.Node, active.Outgoing)
-                            || ContainsNode(remove.Node, active.Incoming)))
-                        await CancelTransitionAsync(promoteIncoming: false);
+                    TransitionRuntime[] affectedTransitions = _transitions
+                        .Where(active => ContainsNode(remove.Node, active.Outgoing)
+                                         || ContainsNode(remove.Node, active.Incoming))
+                        .ToArray();
+                    foreach (TransitionRuntime active in affectedTransitions)
+                        await CancelTransitionAsync(active, promoteIncoming: false);
                     await DeactivateAndUnloadAsync(remove.Node);
                     if (remove.Node.Parent is { } parent) parent.MutableChildren.Remove(remove.Node);
                     else if (ReferenceEquals(remove.Node, _root)) _root = null;
@@ -236,34 +246,36 @@ public sealed class SceneManager
         IEnumerable<SceneNode> nodes = _root is null
             ? Enumerable.Empty<SceneNode>()
             : EnumeratePreOrder(_root);
-        if (_transition is { Incoming.Parent: null })
-            nodes = nodes.Concat(EnumeratePreOrder(_transition.Incoming));
+        foreach (TransitionRuntime transition in _transitions)
+            if (transition.Incoming.Parent is null)
+                nodes = nodes.Concat(EnumeratePreOrder(transition.Incoming));
         return nodes.Where(n => n.State == SceneLifecycleState.Active).ToArray();
     }
 
     /// <summary>SceneRunnerがphase dispatch前に遷移時計を進める。</summary>
     internal async Task AdvanceTransitionAsync(float deltaSeconds)
     {
-        TransitionRuntime? transition = _transition;
-        if (transition is null) return;
-        if (transition.SkipFirstAdvance)
+        foreach (TransitionRuntime transition in _transitions.ToArray())
         {
-            transition.SkipFirstAdvance = false;
-            return; // 開始frameはprogress=0を必ず1回描画する
-        }
+            if (!_transitions.Contains(transition)) continue;
+            if (transition.SkipFirstAdvance)
+            {
+                transition.SkipFirstAdvance = false;
+                continue; // 開始frameはprogress=0を必ず1回描画する
+            }
 
-        transition.ElapsedSeconds += Math.Clamp(deltaSeconds, 0f, 0.1f);
-        float linear = transition.Spec.DurationSeconds <= 0f
-            ? 1f
-            : Math.Clamp(transition.ElapsedSeconds / transition.Spec.DurationSeconds, 0f, 1f);
-        ApplyTransition(transition, linear);
-        if (linear >= 1f) await CompleteTransitionAsync(transition);
+            transition.ElapsedSeconds += Math.Clamp(deltaSeconds, 0f, 0.1f);
+            float linear = transition.Spec.DurationSeconds <= 0f
+                ? 1f
+                : Math.Clamp(transition.ElapsedSeconds / transition.Spec.DurationSeconds, 0f, 1f);
+            ApplyTransition(transition, linear);
+            if (linear >= 1f) await CompleteTransitionAsync(transition);
+        }
     }
 
     internal async Task ShutdownAsync()
     {
-        if (_transition is not null)
-            await CancelTransitionAsync(promoteIncoming: false);
+        await CancelAllTransitionsAsync(promoteIncoming: false);
         while (_pending.TryDequeue(out SceneOperation? operation))
             if (operation is BeginTransitionOperation transition)
                 transition.Completion.TrySetCanceled();
@@ -284,12 +296,22 @@ public sealed class SceneManager
 
     private async Task BeginTransitionAsync(BeginTransitionOperation operation)
     {
-        // 同じoutgoing側を再指定した場合は元へ戻し、それ以外は画面に入りつつあるincomingを採用する。
-        if (_transition is not null)
+        if (operation.Outgoing is null)
         {
-            bool requestedOutgoingStillNeeded = operation.Outgoing is { } requested
-                                                && ContainsNode(_transition.Outgoing, requested);
-            await CancelTransitionAsync(promoteIncoming: !requestedOutgoingStillNeeded);
+            // root遷移はGraph全体を置換するため、進行中の部分遷移をincoming側へ確定してから始める。
+            await CancelAllTransitionsAsync(promoteIncoming: true);
+        }
+        else
+        {
+            SceneNode requested = operation.Outgoing;
+            TransitionRuntime[] conflicts = _transitions
+                .Where(active => TransitionsOverlap(requested, active))
+                .ToArray();
+            foreach (TransitionRuntime active in conflicts)
+            {
+                bool requestedOutgoingStillNeeded = ContainsNode(active.Outgoing, requested);
+                await CancelTransitionAsync(active, promoteIncoming: !requestedOutgoingStillNeeded);
+            }
         }
 
         SceneNode? outgoing = operation.Outgoing ?? _root;
@@ -350,12 +372,12 @@ public sealed class SceneManager
         var runtime = new TransitionRuntime(
             outgoing, incoming, operation.Spec, operation.Completion,
             _frames.AcquireContinuousFrames());
-        _transition = runtime;
+        _transitions.Add(runtime);
         RefreshInputRouting();
         try { ApplyTransition(runtime, 0f); }
         catch
         {
-            _transition = null;
+            _transitions.Remove(runtime);
             SetTransitioning(outgoing, false);
             SetTransitioning(incoming, false);
             runtime.ContinuousLease.Dispose();
@@ -366,8 +388,7 @@ public sealed class SceneManager
 
     private async Task CompleteTransitionAsync(TransitionRuntime transition)
     {
-        if (!ReferenceEquals(_transition, transition)) return;
-        _transition = null;
+        if (!_transitions.Remove(transition)) return;
         SetTransitioning(transition.Outgoing, false);
         SetTransitioning(transition.Incoming, false);
         if (transition.Outgoing.Parent is null) _root = transition.Incoming;
@@ -387,11 +408,9 @@ public sealed class SceneManager
         }
     }
 
-    private async Task CancelTransitionAsync(bool promoteIncoming)
+    private async Task CancelTransitionAsync(TransitionRuntime transition, bool promoteIncoming)
     {
-        TransitionRuntime? transition = _transition;
-        if (transition is null) return;
-        _transition = null;
+        if (!_transitions.Remove(transition)) return;
         SetTransitioning(transition.Outgoing, false);
         SetTransitioning(transition.Incoming, false);
         transition.ContinuousLease.Dispose();
@@ -412,6 +431,12 @@ public sealed class SceneManager
         {
             transition.Completion.TrySetCanceled();
         }
+    }
+
+    private async Task CancelAllTransitionsAsync(bool promoteIncoming)
+    {
+        foreach (TransitionRuntime transition in _transitions.ToArray())
+            await CancelTransitionAsync(transition, promoteIncoming);
     }
 
     private static void ApplyTransition(TransitionRuntime transition, float linearProgress)
@@ -436,6 +461,12 @@ public sealed class SceneManager
 
     private static bool ContainsNode(SceneNode root, SceneNode candidate)
         => EnumeratePreOrder(root).Contains(candidate);
+
+    private static bool TransitionsOverlap(SceneNode requested, TransitionRuntime active)
+        => NodesOverlap(requested, active.Outgoing) || NodesOverlap(requested, active.Incoming);
+
+    private static bool NodesOverlap(SceneNode first, SceneNode second)
+        => ContainsNode(first, second) || ContainsNode(second, first);
 
     private static void DetachNode(SceneNode node)
     {
@@ -629,7 +660,8 @@ public sealed class SceneManager
     private void EnsureAttached(SceneNode node)
     {
         bool attached = _root is not null && EnumeratePreOrder(_root).Contains(node);
-        attached |= _transition is not null && EnumeratePreOrder(_transition.Incoming).Contains(node);
+        attached |= _transitions.Any(transition =>
+            EnumeratePreOrder(transition.Incoming).Contains(node));
         if (!attached)
             throw new InvalidOperationException("SceneNodeは現在のSceneGraphに属していません。");
     }
