@@ -48,6 +48,9 @@ public sealed class SceneRunner(SceneLoopServices services)
 
                 services.Commands?.Drain();
 
+                // Active中に追加・削除されたScene所有InputContextをpoll前に同期する。
+                manager.RefreshInputRouting();
+
                 // InputはScene数に関わらず1回だけpollする。OnDemand Sceneはこの結果でdirtyになれる。
                 if (services.InputBus is not null && services.InputStack is not null)
                 {

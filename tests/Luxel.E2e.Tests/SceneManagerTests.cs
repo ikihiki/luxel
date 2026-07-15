@@ -1,4 +1,5 @@
 using Luxel.Framework;
+using Luxel.Input;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Luxel.Gallery.E2eTests;
@@ -313,6 +314,77 @@ public class SceneManagerTests
         await manager.ShutdownAsync();
     }
 
+    [Fact]
+    public async Task ModalScene_SuspendsLowerSceneInputUntilRemoved()
+    {
+        var input = new InputStack();
+        var services = new ServiceCollection().AddSingleton(input).BuildServiceProvider();
+        var manager = new SceneManager(services, new RecordingFrameScheduler());
+        var gameplayContext = new InputContext("gameplay");
+        ButtonAction move = gameplayContext.Add(new ButtonAction("Move", KeyCode.D));
+        var menuContext = new InputContext("menu");
+        var gameplay = new InputRecordingScene(gameplayContext, SceneInputMode.Shared);
+        var menu = new InputRecordingScene(menuContext, SceneInputMode.Modal);
+
+        await manager.InitializeAsync(gameplay);
+        await manager.AddChildAsync(manager.Root!, menu);
+        await manager.ApplyPendingAsync();
+
+        Assert.Equal(new[] { gameplayContext, menuContext }, input.Contexts);
+        Assert.True(input.IsSuspended(gameplayContext));
+        Assert.False(input.IsSuspended(menuContext));
+        var bus = new InputBus();
+        bus.EnqueueKey(KeyCode.D, down: true);
+        input.Update(bus);
+        Assert.False(move.IsActive.Value);
+
+        await manager.RemoveAsync(manager.Find(menu)!);
+        await manager.ApplyPendingAsync();
+
+        Assert.Equal(new[] { gameplayContext }, input.Contexts);
+        Assert.False(input.IsSuspended(gameplayContext));
+        input.Update(bus); // held状態はInputStackが維持している
+        Assert.True(move.IsActive.Value);
+        await manager.ShutdownAsync();
+        Assert.Empty(input.Contexts);
+    }
+
+    [Fact]
+    public async Task OverlayScene_HoldsReferenceCountedPauseWhileActive()
+    {
+        var input = new InputStack();
+        var services = new ServiceCollection().AddSingleton(input).BuildServiceProvider();
+        var frames = new RecordingFrameScheduler();
+        var manager = new SceneManager(services, frames);
+        var gameplay = new RecordingPausableScene();
+        var first = new RecordingOverlayScene(frames, "first");
+        var second = new RecordingOverlayScene(frames, "second");
+
+        await manager.InitializeAsync(gameplay);
+        await manager.AddChildAsync(manager.Root!, first);
+        await manager.AddChildAsync(manager.Root!, second);
+        await manager.ApplyPendingAsync();
+
+        Assert.True(gameplay.IsPaused);
+        Assert.Equal(2, gameplay.PauseRequests);
+        Assert.Equal(new[] { first.Context, second.Context }, input.Contexts);
+        Assert.True(input.IsSuspended(first.Context));
+        Assert.False(input.IsSuspended(second.Context));
+
+        await manager.RemoveAsync(manager.Find(first)!);
+        await manager.ApplyPendingAsync();
+        Assert.True(gameplay.IsPaused);
+        Assert.Equal(1, gameplay.PauseRequests);
+        Assert.Equal(new[] { second.Context }, input.Contexts);
+
+        await manager.RemoveAsync(manager.Find(second)!);
+        await manager.ApplyPendingAsync();
+        Assert.False(gameplay.IsPaused);
+        Assert.Equal(0, gameplay.PauseRequests);
+        Assert.Empty(input.Contexts);
+        await manager.ShutdownAsync();
+    }
+
     private sealed class RecordingScene(
         string name, List<string> events, SceneExecutionMode executionMode) : IScene
     {
@@ -408,5 +480,47 @@ public class SceneManagerTests
             events.Add("dock.unload");
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class InputRecordingScene(
+        InputContext context,
+        SceneInputMode mode) : IScene, ISceneInputParticipant
+    {
+        public SceneInputMode InputMode => mode;
+        public IReadOnlyList<InputContext> InputContexts { get; } = new[] { context };
+    }
+
+    private sealed class RecordingPausableScene : IScene, IPausableScene
+    {
+        public int PauseRequests { get; private set; }
+        public bool IsPaused => PauseRequests > 0;
+
+        public IDisposable AcquirePause()
+        {
+            PauseRequests++;
+            return new Lease(this);
+        }
+
+        private sealed class Lease(RecordingPausableScene owner) : IDisposable
+        {
+            private RecordingPausableScene? _owner = owner;
+
+            public void Dispose()
+            {
+                RecordingPausableScene? value = Interlocked.Exchange(ref _owner, null);
+                if (value is not null) value.PauseRequests--;
+            }
+        }
+    }
+
+    private sealed class RecordingOverlayScene : OverlayScene
+    {
+        public RecordingOverlayScene(IFrameScheduler frames, string name) : base(frames)
+        {
+            Context = new InputContext(name);
+            AddInputContext(Context);
+        }
+
+        public InputContext Context { get; }
     }
 }

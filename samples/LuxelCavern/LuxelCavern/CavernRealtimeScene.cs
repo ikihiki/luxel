@@ -98,7 +98,7 @@ public sealed class CavernRealtimeScene : GameScene
         var ctx = new InputContext("gameplay");
         ctx.Add(_move); ctx.Add(_jump); ctx.Add(_pause); ctx.Add(_confirm); ctx.Add(_continue);
         ctx.Add(_settingsBtn); ctx.Add(_navV); ctx.Add(_devToggle);
-        _loop.InputStack?.Push(ctx);
+        AddInputContext(ctx);
 
         _fx = new ParticleSystem(new ParticleConfig(
             Life: ParticleValue.Range(0.4f, 0.8f), Speed: ParticleValue.Range(20, 60),

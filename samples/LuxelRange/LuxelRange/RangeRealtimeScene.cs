@@ -91,7 +91,7 @@ public sealed class RangeRealtimeScene : GameScene
         _quit = new ButtonAction("quit", KeyCode.Escape);
         var inputCtx = new InputContext("range");
         inputCtx.Add(_orbitH); inputCtx.Add(_orbitV); inputCtx.Add(_fire); inputCtx.Add(_quit);
-        _loop.InputStack?.Push(inputCtx);
+        AddInputContext(inputCtx);
 
         // オーディオ (BGM ループ + イベント SE)。Mixer は UseAudio が用意する共有インスタンス。
         if (_loop.Mixer is { } mixer)

@@ -1,3 +1,5 @@
+using Luxel.Input;
+
 namespace Luxel.Framework;
 
 /// <summary>Scene node がフレーム処理へ参加する頻度。</summary>
@@ -89,4 +91,5 @@ public sealed class SceneNode
     internal long Frame { get; set; }
     internal double TotalSeconds { get; set; }
     internal double? LastRunAt { get; set; }
+    internal List<InputContext> ManagedInputContexts { get; } = new();
 }

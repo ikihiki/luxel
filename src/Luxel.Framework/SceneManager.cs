@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Luxel.Input;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Luxel.Framework;
@@ -40,7 +41,10 @@ public sealed class SceneManager
 
     private readonly IServiceProvider _services;
     private readonly IFrameScheduler _frames;
+    private readonly InputStack? _inputStack;
     private readonly ConcurrentQueue<SceneOperation> _pending = new();
+    private readonly HashSet<SceneNode> _inputNodes = new();
+    private readonly Dictionary<InputContext, SceneNode> _inputOwners = new();
     private SceneNode? _root;
     private TransitionRuntime? _transition;
 
@@ -48,6 +52,7 @@ public sealed class SceneManager
     {
         _services = services;
         _frames = frames;
+        _inputStack = services.GetService<InputStack>();
     }
 
     public IScene? Current => _root?.Scene;
@@ -346,6 +351,7 @@ public sealed class SceneManager
             outgoing, incoming, operation.Spec, operation.Completion,
             _frames.AcquireContinuousFrames());
         _transition = runtime;
+        RefreshInputRouting();
         try { ApplyTransition(runtime, 0f); }
         catch
         {
@@ -468,6 +474,7 @@ public sealed class SceneManager
         if (node.Scene is GameScene game) game.AttachToRunner(primary);
         await node.Scene.OnActivateAsync();
         node.State = SceneLifecycleState.Active;
+        RegisterInputContexts(node);
         AcquireContinuousLease(node);
     }
 
@@ -483,6 +490,7 @@ public sealed class SceneManager
         }
         foreach (SceneNode child in node.MutableChildren)
             await SuspendSubtreeAsync(child);
+        RefreshInputRouting();
     }
 
     private async Task ResumeSubtreeAsync(SceneNode node)
@@ -498,6 +506,7 @@ public sealed class SceneManager
         }
         foreach (SceneNode child in node.MutableChildren)
             await ResumeSubtreeAsync(child);
+        RefreshInputRouting();
     }
 
     private async Task DeactivateAndUnloadAsync(SceneNode node)
@@ -509,6 +518,7 @@ public sealed class SceneManager
         ReleaseContinuousLease(node);
         if (node.State is SceneLifecycleState.Active or SceneLifecycleState.Suspended)
         {
+            UnregisterInputContexts(node);
             await node.Scene.OnDeactivateAsync();
             node.State = SceneLifecycleState.Loaded;
         }
@@ -519,6 +529,89 @@ public sealed class SceneManager
         }
         node.State = SceneLifecycleState.Unloaded;
         node.Scene.OnDetached(node);
+        RefreshInputRouting();
+    }
+
+    private void RegisterInputContexts(SceneNode node)
+    {
+        if (_inputStack is null || node.Scene is not ISceneInputParticipant participant) return;
+        _inputNodes.Add(node);
+        SynchronizeInputContexts(node, participant);
+        RefreshInputRouting();
+    }
+
+    private void SynchronizeInputContexts(SceneNode node, ISceneInputParticipant participant)
+    {
+        if (_inputStack is null) return;
+        IReadOnlyList<InputContext> contexts = participant.InputContexts
+            ?? throw new InvalidOperationException("ISceneInputParticipant.InputContextsはnullを返せません。");
+        var unique = new HashSet<InputContext>();
+        foreach (InputContext context in contexts)
+        {
+            if (context is null)
+                throw new InvalidOperationException("Scene所有InputContextにnullは指定できません。");
+            if (!unique.Add(context))
+                throw new InvalidOperationException("同じInputContextがScene内で重複しています。");
+            if (_inputOwners.TryGetValue(context, out SceneNode? owner) && !ReferenceEquals(owner, node))
+                throw new InvalidOperationException(
+                    $"InputContext '{context.Name}' は既にScene '{owner.Scene.GetType().Name}' が所有しています。");
+            if (!_inputOwners.ContainsKey(context) && _inputStack.Contains(context))
+                throw new InvalidOperationException(
+                    $"InputContext '{context.Name}' は既にInputStackへ登録されています。");
+        }
+
+        for (int i = node.ManagedInputContexts.Count - 1; i >= 0; i--)
+        {
+            InputContext existing = node.ManagedInputContexts[i];
+            if (unique.Contains(existing)) continue;
+            _inputStack.Remove(existing);
+            _inputOwners.Remove(existing);
+            node.ManagedInputContexts.RemoveAt(i);
+        }
+
+        foreach (InputContext context in contexts)
+        {
+            if (node.ManagedInputContexts.Contains(context)) continue;
+            node.ManagedInputContexts.Add(context);
+            _inputOwners.Add(context, node);
+            _inputStack.Push(context);
+        }
+    }
+
+    private void UnregisterInputContexts(SceneNode node)
+    {
+        if (_inputStack is null || !_inputNodes.Remove(node)) return;
+        foreach (InputContext context in node.ManagedInputContexts)
+        {
+            _inputStack.Remove(context);
+            _inputOwners.Remove(context);
+        }
+        node.ManagedInputContexts.Clear();
+        RefreshInputRouting();
+    }
+
+    internal void RefreshInputRouting()
+    {
+        if (_inputStack is null || _inputNodes.Count == 0) return;
+        foreach (SceneNode node in _inputNodes)
+            if (node.Scene is ISceneInputParticipant participant)
+                SynchronizeInputContexts(node, participant);
+
+        SceneNode[] active = GetActiveNodes();
+        var activeOrder = new Dictionary<SceneNode, int>(active.Length);
+        for (int i = 0; i < active.Length; i++) activeOrder[active[i]] = i;
+
+        int modalIndex = -1;
+        for (int i = 0; i < active.Length; i++)
+            if (active[i].Scene is ISceneInputParticipant { InputMode: SceneInputMode.Modal })
+                modalIndex = i;
+
+        foreach (SceneNode node in _inputNodes)
+        {
+            bool suspended = !activeOrder.TryGetValue(node, out int index) || index < modalIndex;
+            foreach (InputContext context in node.ManagedInputContexts)
+                _inputStack.SetSuspended(context, suspended);
+        }
     }
 
     private void AcquireContinuousLease(SceneNode node)

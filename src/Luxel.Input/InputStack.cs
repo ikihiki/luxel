@@ -24,7 +24,22 @@ public sealed class InputStack
         if (_layers.Count == 0) return null;
         var top = _layers[^1].Context;
         _layers.RemoveAt(_layers.Count - 1);
+        foreach (InputAction action in top.Actions) UpdateWithEmpty(action);
         return top;
+    }
+
+    /// <summary>指定contextを位置に関係なく取り除く。見つからなければfalse。</summary>
+    public bool Remove(InputContext ctx)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        for (int i = _layers.Count - 1; i >= 0; i--)
+        {
+            if (!ReferenceEquals(_layers[i].Context, ctx)) continue;
+            _layers.RemoveAt(i);
+            foreach (InputAction action in ctx.Actions) UpdateWithEmpty(action);
+            return true;
+        }
+        return false;
     }
 
     /// <summary>指定 context を suspend する (Update から除外)。UI focus 検出などで使用。</summary>
@@ -33,14 +48,36 @@ public sealed class InputStack
         for (int i = 0; i < _layers.Count; i++)
             if (ReferenceEquals(_layers[i].Context, ctx))
             {
-                var layer = _layers[i]; layer.Suspended = suspended; _layers[i] = layer;
+                var layer = _layers[i];
+                bool newlySuspended = suspended && !layer.Suspended;
+                layer.Suspended = suspended;
+                _layers[i] = layer;
+                if (newlySuspended)
+                    foreach (InputAction action in ctx.Actions) UpdateWithEmpty(action);
                 return;
             }
+    }
+
+    /// <summary>指定contextが現在suspendされているか。未登録の場合はfalse。</summary>
+    public bool IsSuspended(InputContext ctx)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        for (int i = 0; i < _layers.Count; i++)
+            if (ReferenceEquals(_layers[i].Context, ctx)) return _layers[i].Suspended;
+        return false;
     }
 
     public IReadOnlyList<InputContext> Contexts
     {
         get { var list = new List<InputContext>(_layers.Count); foreach (var l in _layers) list.Add(l.Context); return list; }
+    }
+
+    public bool Contains(InputContext ctx)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        for (int i = 0; i < _layers.Count; i++)
+            if (ReferenceEquals(_layers[i].Context, ctx)) return true;
+        return false;
     }
 
     /// <summary>

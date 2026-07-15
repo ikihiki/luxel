@@ -1,3 +1,4 @@
+using Luxel.Input;
 using Luxel.UI;
 
 namespace Luxel.Framework;
@@ -6,10 +7,11 @@ namespace Luxel.Framework;
 /// 要求駆動UI向けのScene基底。登録した <see cref="UiHost"/> のdirtyとanimationをまとめ、
 /// 通常は変更されたフレームだけ、animation/transition中は一時的に連続駆動する。
 /// </summary>
-public abstract class UiScene : IScene, ISceneTransitionParticipant
+public abstract class UiScene : IScene, ISceneTransitionParticipant, ISceneInputParticipant
 {
     private readonly IFrameScheduler _frames;
     private readonly List<UiHost> _hosts = new();
+    private readonly List<InputContext> _inputContexts = new();
     private int _frameRequested = 1;
     private int _continuousRequests;
     private bool _active;
@@ -35,6 +37,7 @@ public abstract class UiScene : IScene, ISceneTransitionParticipant
     protected virtual void OnTransition(SceneTransitionContext context, SceneTransitionRole role) { }
     protected virtual void OnAttached(SceneNode node) { }
     protected virtual void OnDetached(SceneNode node) { }
+    protected virtual SceneInputMode InputMode => SceneInputMode.Shared;
 
     /// <summary>このSceneで駆動するUiHostを登録する。所有権は呼び出し側に残る。</summary>
     protected void AddHost(UiHost host)
@@ -54,6 +57,16 @@ public abstract class UiScene : IScene, ISceneTransitionParticipant
     }
 
     protected IReadOnlyList<UiHost> Hosts => _hosts;
+
+    /// <summary>このSceneのActive期間だけInputStackへ登録するcontextを追加する。Active中の追加は次フレームから反映される。</summary>
+    protected void AddInputContext(InputContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        if (!_inputContexts.Contains(context)) _inputContexts.Add(context);
+    }
+
+    /// <summary>Scene所有contextを解除する。Active中の解除は次フレームから反映される。</summary>
+    protected bool RemoveInputContext(InputContext context) => _inputContexts.Remove(context);
 
     /// <summary>状態変更を次のUIフレームへまとめる。任意スレッドから呼べる。</summary>
     public void Invalidate()
@@ -75,6 +88,8 @@ public abstract class UiScene : IScene, ISceneTransitionParticipant
     SceneRenderMode IScene.RenderMode => SceneRenderMode.WhenDirty;
     void IScene.OnAttached(SceneNode node) => OnAttached(node);
     void IScene.OnDetached(SceneNode node) => OnDetached(node);
+    SceneInputMode ISceneInputParticipant.InputMode => InputMode;
+    IReadOnlyList<InputContext> ISceneInputParticipant.InputContexts => _inputContexts;
 
     async Task IScene.OnLoadAsync() => await OnLoadAsync();
 

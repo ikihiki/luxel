@@ -96,11 +96,12 @@ public sealed record SceneLoopServices(
 /// 継承 Scene は phase ごとの virtual メソッド (例 <see cref="OnUpdate"/> / <see cref="OnRender"/>) を override するだけでよい。
 /// ECS-heavy な処理は <see cref="AddWorld"/> で登録した World の system として組み込む。
 /// </summary>
-public abstract class GameScene : IScene, ISceneTransitionParticipant
+public abstract class GameScene : IScene, ISceneTransitionParticipant, ISceneInputParticipant, IPausableScene
 {
     private readonly SceneLoopServices _loop;
     private readonly List<World> _worlds = new();
     private readonly List<UiSurface> _surfaces = new();
+    private readonly List<InputContext> _inputContexts = new();
 
     protected GameScene(SceneLoopServices loop) => _loop = loop;
 
@@ -129,6 +130,16 @@ public abstract class GameScene : IScene, ISceneTransitionParticipant
 
     /// <summary>登録済 surface (読み取り専用) ─ user の OnRender が composite などで参照する。</summary>
     protected IReadOnlyList<UiSurface> Surfaces => _surfaces;
+
+    /// <summary>このSceneのActive期間だけInputStackへ登録するcontextを追加する。Active中の追加は次フレームから反映される。</summary>
+    protected void AddInputContext(InputContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        if (!_inputContexts.Contains(context)) _inputContexts.Add(context);
+    }
+
+    /// <summary>Scene所有contextを解除する。Active中の解除は次フレームから反映される。</summary>
+    protected bool RemoveInputContext(InputContext context) => _inputContexts.Remove(context);
 
     // ==================== 固定タイムステップ設定 (user override) ====================
 
@@ -167,6 +178,7 @@ public abstract class GameScene : IScene, ISceneTransitionParticipant
 
     protected virtual SceneExecutionMode UpdateMode => SceneExecutionMode.Continuous;
     protected virtual SceneRenderMode RenderingMode => SceneRenderMode.EveryFrame;
+    protected virtual SceneInputMode InputMode => SceneInputMode.Shared;
 
     SceneExecutionMode IScene.ExecutionMode => UpdateMode;
     SceneRenderMode IScene.RenderMode => RenderingMode;
@@ -175,6 +187,8 @@ public abstract class GameScene : IScene, ISceneTransitionParticipant
     int IScene.MaxFixedStepsPerFrame => MaxFixedStepsPerFrame;
     void IScene.OnAttached(SceneNode node) => OnAttached(node);
     void IScene.OnDetached(SceneNode node) => OnDetached(node);
+    SceneInputMode ISceneInputParticipant.InputMode => InputMode;
+    IReadOnlyList<InputContext> ISceneInputParticipant.InputContexts => _inputContexts;
 
     void IScene.EarlyUpdate(EarlyUpdateContext context)
     {
@@ -229,32 +243,41 @@ public abstract class GameScene : IScene, ISceneTransitionParticipant
     // ==================== runner state / diagnostics ====================
 
     // pause/step: DevTools から /cmd で切り替えられる
-    private volatile bool _paused;
+    private volatile bool _manualPaused;
+    private int _pauseRequests;
     private int _stepRequests;
 
     /// <summary>simulation phaseが一時停止中か。子のUI SceneはActiveのまま駆動できる。</summary>
-    public bool IsPaused => _paused;
+    public bool IsPaused => _manualPaused || Volatile.Read(ref _pauseRequests) > 0;
 
     /// <summary>このGameSceneのsimulationを止める。SceneGraph上の子（pause menu等）は停止しない。</summary>
     public void Pause()
     {
-        _paused = true;
+        _manualPaused = true;
         _loop.FrameScheduler.RequestFrame();
     }
 
     /// <summary>一時停止を解除する。</summary>
     public void Resume()
     {
-        _paused = false;
+        _manualPaused = false;
         _loop.FrameScheduler.RequestFrame();
     }
 
     /// <summary>一時停止状態のまま固定1フレームを進める。</summary>
     public void Step()
     {
-        _paused = true;
+        _manualPaused = true;
         Interlocked.Increment(ref _stepRequests);
         _loop.FrameScheduler.RequestFrame();
+    }
+
+    /// <summary>Disposeされるまでsimulationを停止する。複数overlayから安全に共有できる。</summary>
+    public IDisposable AcquirePause()
+    {
+        Interlocked.Increment(ref _pauseRequests);
+        _loop.FrameScheduler.RequestFrame();
+        return new PauseRequest(this);
     }
     // timescale: dt に掛ける係数 (0.1 でスローモーション、既定 1)。app スレッドのみが読み書き。
     // play/e2e は使わない (決定性は固定 dt が担保、これは手動デバッグ専用)。
@@ -287,7 +310,7 @@ public abstract class GameScene : IScene, ISceneTransitionParticipant
 
             // pause 中は step 要求が来るまでフレームをスキップしてコマンドを Drain し続ける
             _loop.Commands?.Drain();
-            if (_paused && Volatile.Read(ref _stepRequests) <= 0)
+            if (IsPaused && Volatile.Read(ref _stepRequests) <= 0)
             {
                 // pause でも state emit は続けて DevTools UI を最新に保つ
                 if (EngineDiagnostics.IsEnabled(EngineDiagnostics.EngineState))
@@ -415,7 +438,7 @@ public abstract class GameScene : IScene, ISceneTransitionParticipant
             if (EngineDiagnostics.IsEnabled(EngineDiagnostics.InputState))
                 EmitInputStateSnapshot();
             if (EngineDiagnostics.IsEnabled(EngineDiagnostics.EngineState))
-                EngineDiagnostics.Emit(EngineDiagnostics.EngineState, new DiagEngineState(_paused));
+                EngineDiagnostics.Emit(EngineDiagnostics.EngineState, new DiagEngineState(IsPaused));
         }
     }
 
@@ -431,7 +454,7 @@ public abstract class GameScene : IScene, ISceneTransitionParticipant
 
     internal bool TryBeginRunnerFrame()
     {
-        if (_paused && Volatile.Read(ref _stepRequests) <= 0)
+        if (IsPaused && Volatile.Read(ref _stepRequests) <= 0)
         {
             if (EngineDiagnostics.IsEnabled(EngineDiagnostics.EngineState))
                 EngineDiagnostics.Emit(EngineDiagnostics.EngineState, new DiagEngineState(true));
@@ -484,7 +507,20 @@ public abstract class GameScene : IScene, ISceneTransitionParticipant
         }
         if (EngineDiagnostics.IsEnabled(EngineDiagnostics.InputState)) EmitInputStateSnapshot();
         if (EngineDiagnostics.IsEnabled(EngineDiagnostics.EngineState))
-            EngineDiagnostics.Emit(EngineDiagnostics.EngineState, new DiagEngineState(_paused));
+            EngineDiagnostics.Emit(EngineDiagnostics.EngineState, new DiagEngineState(IsPaused));
+    }
+
+    private void ReleasePause()
+    {
+        int remaining = Interlocked.Decrement(ref _pauseRequests);
+        if (remaining < 0) Interlocked.Exchange(ref _pauseRequests, 0);
+        _loop.FrameScheduler.RequestFrame();
+    }
+
+    private sealed class PauseRequest(GameScene owner) : IDisposable
+    {
+        private GameScene? _owner = owner;
+        public void Dispose() => Interlocked.Exchange(ref _owner, null)?.ReleasePause();
     }
 
     private void RegisterCommands()
@@ -664,8 +700,7 @@ public abstract class GameScene : IScene, ISceneTransitionParticipant
                 };
                 acts[j] = new DiagInputAction(a.Name, kind, a.IsActive.Value, val);
             }
-            // Suspended は InputStack 内部で管理されており外から取得できないため、ここでは false 固定 (将来 API 拡張時に対応)
-            out_[i] = new DiagInputContext(ctx.Name, false, acts);
+            out_[i] = new DiagInputContext(ctx.Name, stack.IsSuspended(ctx), acts);
         }
         EngineDiagnostics.Emit(EngineDiagnostics.InputState, new DiagInputState(out_));
     }

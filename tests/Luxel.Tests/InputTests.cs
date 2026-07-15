@@ -141,6 +141,47 @@ public class InputTests
     }
 
     [Fact]
+    public void SuspendingActiveContext_ClearsActionImmediately()
+    {
+        var bus = new InputBus();
+        var context = new InputContext("gameplay");
+        ButtonAction action = context.Add(new ButtonAction("Action", KeyCode.Enter));
+        var stack = new InputStack();
+        stack.Push(context);
+        bus.EnqueueKey(KeyCode.Enter, down: true);
+        stack.Update(bus);
+        Assert.True(action.IsActive.Value);
+
+        stack.SetSuspended(context, true);
+
+        Assert.False(action.IsActive.Value);
+        Assert.True(stack.IsSuspended(context));
+    }
+
+    [Fact]
+    public void Remove_ContextAtAnyLayer_ClearsActionAndPreservesOrder()
+    {
+        var bus = new InputBus();
+        var first = new InputContext("first");
+        var middle = new InputContext("middle");
+        ButtonAction action = middle.Add(new ButtonAction("Action", KeyCode.Enter));
+        var last = new InputContext("last");
+        var stack = new InputStack();
+        stack.Push(first);
+        stack.Push(middle);
+        stack.Push(last);
+
+        bus.EnqueueKey(KeyCode.Enter, down: true);
+        stack.Update(bus);
+        Assert.True(action.IsActive.Value);
+
+        Assert.True(stack.Remove(middle));
+        Assert.False(action.IsActive.Value);
+        Assert.Equal(new[] { first, last }, stack.Contexts);
+        Assert.False(stack.Remove(middle));
+    }
+
+    [Fact]
     public void SignalValue_TracksActiveState()
     {
         var (bus, src) = NewBus();
