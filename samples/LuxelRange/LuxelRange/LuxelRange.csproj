@@ -32,15 +32,41 @@
     <ProjectReference Include="..\..\..\src\Luxel.Settings\Luxel.Settings.csproj" />
   </ItemGroup>
 
-  <!-- glTF アセット (Fox.glb, CC0) を exe 隣の assets/ へコピー + publish にも含める (cwd 非依存ロード)。
-       publish 出力に glTF が乗り AppContext.BaseDirectory 基準で解決されるかの検証も兼ねる (ToDo 20)。 -->
+  <!--
+    Khronos 公式 glTF-Sample-Assets の Fox.glb を固定コミットから tools/ へ取得する。
+    通常はローカルキャッシュを再利用し、毎ビルド SHA-256 を検証してから出力/publish に含める。
+  -->
+  <PropertyGroup>
+    <KhronosFoxCommit>5bad5aaa0bbb5d0f9cdc934e626f27d0df1e79b8</KhronosFoxCommit>
+    <KhronosFoxSha256>D97044E701822BAC5A62696459B27D7B375AADA5DE8574ED4362EDBBA94771F7</KhronosFoxSha256>
+    <KhronosSampleCacheDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\..\tools\khronos-samples'))</KhronosSampleCacheDir>
+    <KhronosFoxPath>$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', 'Fox.glb'))</KhronosFoxPath>
+    <KhronosFoxUrl>https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/$(KhronosFoxCommit)/Models/Fox/glTF-Binary/Fox.glb</KhronosFoxUrl>
+  </PropertyGroup>
+
   <ItemGroup>
-    <Content Include="..\..\..\tools\khronos-samples\Fox.glb">
-      <Link>assets\Fox.glb</Link>
+    <Content Include="$(KhronosFoxPath)">
+      <Link>assets/Fox.glb</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
+
+  <Target Name="AcquireKhronosFoxAsset" BeforeTargets="PrepareForBuild">
+    <MakeDir Directories="$(KhronosSampleCacheDir)" />
+    <DownloadFile Condition="!Exists('$(KhronosFoxPath)')"
+                  SourceUrl="$(KhronosFoxUrl)"
+                  DestinationFolder="$(KhronosSampleCacheDir)"
+                  Retries="3"
+                  RetryDelayMilliseconds="1000" />
+    <Error Condition="!Exists('$(KhronosFoxPath)')"
+           Text="Khronos Fox.glb を取得できませんでした: $(KhronosFoxUrl)" />
+    <GetFileHash Files="$(KhronosFoxPath)" Algorithm="SHA256">
+      <Output TaskParameter="Items" ItemName="_KhronosFoxHash" />
+    </GetFileHash>
+    <Error Condition="'@(_KhronosFoxHash->'%(FileHash)')' != '$(KhronosFoxSha256)'"
+           Text="Fox.glb の SHA-256 が一致しません。$(KhronosFoxPath) を削除して再ビルドしてください。" />
+  </Target>
 
   <!-- Slang シェーダを出力/publish の shaders/ へ。targets 側が publish コピーも面倒を見る。 -->
   <Import Project="..\..\..\shaders\Luxel.Shaders.targets" />

@@ -4,7 +4,7 @@ obj/
 .vs/
 *.user
 
-# Slang/DXC ツールチェーン (slang-llvm.dll が 110MB — GitHub の 100MB 制限超) — README のセットアップ参照
+# MSBuild が自動取得する Slang/DXC ツールチェーン。コンパイル済みキャッシュは shaders/compiled/ で Git 管理する。
 tools/
 
 # snap 回帰の一時出力 (golden 本体はコミットする)

@@ -1,71 +1,200 @@
 <Project>
   <!--
-    Slang シェーダを SPIR-V (Vulkan) と DXIL (D3D12) の両方にオフラインコンパイルし、
-    出力ディレクトリの shaders/ にコピーする。1 ソースから両形式を直接出力する。
-    DXIL 出力には dxcompiler.dll / dxil.dll が slangc.exe の隣に必要。
-    注意: $(OutDir) は静的評価時には空なので、Target 属性/Exec 内でのみ参照する。
+    通常ビルドでは Git 管理された compiled/ を検証して $(OutDir)/shaders へコピーする。
+    明示的な CompileLuxelShaderCache ターゲットだけが Slang を取得・起動してキャッシュを更新する。
   -->
   <PropertyGroup>
-    <SlangcPath Condition="'$(SlangcPath)' == ''">$(MSBuildThisFileDirectory)..\tools\slang\bin\slangc.exe</SlangcPath>
+    <SlangVersion Condition="'$(SlangVersion)' == ''">2026.14</SlangVersion>
     <SlangSpirvProfile Condition="'$(SlangSpirvProfile)' == ''">spirv_1_6</SlangSpirvProfile>
     <SlangDxilProfile Condition="'$(SlangDxilProfile)' == ''">sm_6_6</SlangDxilProfile>
+    <SlangCacheSchema Condition="'$(SlangCacheSchema)' == ''">2</SlangCacheSchema>
+    <SlangCacheDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)compiled'))$([System.IO.Path]::DirectorySeparatorChar)</SlangCacheDir>
+    <SlangCacheManifest>$(SlangCacheDir)inputs.sha256</SlangCacheManifest>
+    <SlangCurrentManifest>$(BaseIntermediateOutputPath)luxel-shaders/inputs.sha256</SlangCurrentManifest>
+    <SlangToolRid Condition="'$(SlangToolRid)' == '' and '$(NETCoreSdkRuntimeIdentifier)' != ''">$(NETCoreSdkRuntimeIdentifier)</SlangToolRid>
+    <SlangToolRid Condition="'$(SlangToolRid)' == ''">$([System.Runtime.InteropServices.RuntimeInformation]::RuntimeIdentifier)</SlangToolRid>
+    <SlangToolRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\tools\slang\$(SlangVersion)\$(SlangToolRid)'))</SlangToolRoot>
+    <SlangDownloadDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\tools\slang\downloads'))</SlangDownloadDir>
+    <SlangReleaseBaseUrl>https://github.com/shader-slang/slang/releases/download/v$(SlangVersion)</SlangReleaseBaseUrl>
+
+    <SlangArchiveName Condition="'$(SlangToolRid)' == 'linux-x64'">slang-$(SlangVersion)-linux-x86_64-glibc-2.27.zip</SlangArchiveName>
+    <SlangArchiveSha256 Condition="'$(SlangToolRid)' == 'linux-x64'">32767880D712CE10D745F0B1E1A4C8F62DA156215595E8C20680E2AE859984DC</SlangArchiveSha256>
+    <SlangArchiveName Condition="'$(SlangToolRid)' == 'win-x64'">slang-$(SlangVersion)-windows-x86_64.zip</SlangArchiveName>
+    <SlangArchiveSha256 Condition="'$(SlangToolRid)' == 'win-x64'">36029C50EF0C82F2616FFB02E0ED27D642CB44A2A297D531CC2AD333B85B85B6</SlangArchiveSha256>
+    <SlangArchiveName Condition="'$(SlangToolRid)' == 'win-arm64'">slang-$(SlangVersion)-windows-aarch64.zip</SlangArchiveName>
+    <SlangArchiveSha256 Condition="'$(SlangToolRid)' == 'win-arm64'">4ACEC8A0AEDD574043A37AA0FDCAED11B08D7F26399B09166FCACC4F60CB73A2</SlangArchiveSha256>
+
+    <SlangArchivePath>$([System.IO.Path]::Combine('$(SlangDownloadDir)', '$(SlangArchiveName)'))</SlangArchivePath>
+    <SlangcPath Condition="'$(SlangcPath)' == '' and '$(OS)' == 'Windows_NT'">$([System.IO.Path]::Combine('$(SlangToolRoot)', 'bin', 'slangc.exe'))</SlangcPath>
+    <SlangcPath Condition="'$(SlangcPath)' == '' and '$(OS)' != 'Windows_NT'">$([System.IO.Path]::Combine('$(SlangToolRoot)', 'bin', 'slangc'))</SlangcPath>
+    <SlangBinDir>$([System.IO.Path]::GetDirectoryName('$(SlangcPath)'))</SlangBinDir>
+    <DxcVersion Condition="'$(DxcVersion)' == ''">1.9.2602.24</DxcVersion>
+    <DxcToolRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\tools\dxc\$(DxcVersion)\$(SlangToolRid)'))</DxcToolRoot>
+    <DxcReleaseBaseUrl>https://github.com/microsoft/DirectXShaderCompiler/releases/download/v$(DxcVersion)</DxcReleaseBaseUrl>
+    <DxcArchiveName Condition="'$(SlangToolRid)' == 'linux-x64'">linux_dxc_2026_05_26.x86_64.tar.gz</DxcArchiveName>
+    <DxcArchiveSha256 Condition="'$(SlangToolRid)' == 'linux-x64'">928B3E9986D11DC4279050E02340950C29BCBD1E5EFB9D3DED9669DADE37639D</DxcArchiveSha256>
+    <DxcArchiveName Condition="$([System.String]::Copy('$(SlangToolRid)').StartsWith('win-'))">dxc_2026_05_27.zip</DxcArchiveName>
+    <DxcArchiveSha256 Condition="$([System.String]::Copy('$(SlangToolRid)').StartsWith('win-'))">CF658AACF070D3045E31B8F1F8A696C2945F37C1095019481EF7C513368DB3B4</DxcArchiveSha256>
+    <DxcArchivePath>$([System.IO.Path]::Combine('$(SlangDownloadDir)', '$(DxcArchiveName)'))</DxcArchivePath>
+    <DxcWindowsArch Condition="'$(SlangToolRid)' == 'win-x64'">x64</DxcWindowsArch>
+    <DxcWindowsArch Condition="'$(SlangToolRid)' == 'win-arm64'">arm64</DxcWindowsArch>
+    <DxcLibraryDir Condition="'$(SlangToolRid)' == 'linux-x64'">$([System.IO.Path]::Combine('$(DxcToolRoot)', 'lib'))</DxcLibraryDir>
+    <SlangExecEnvironment Condition="'$(SlangToolRid)' == 'linux-x64'">LD_LIBRARY_PATH=$(DxcLibraryDir)</SlangExecEnvironment>
+    <SlangCompilerInputs>$(MSBuildThisFileFullPath);$(SlangcPath)</SlangCompilerInputs>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- SPIR-V は全シェーダ。DXIL は compute と graphics で分けてコンパイルする。
-         compute シェーダ = compute*.slang と raster2d_*.slang。それ以外は graphics(vs/ps)。 -->
+    <!-- compute シェーダ = compute*.slang と raster2d_*.slang。それ以外は graphics(vs/ps)。 -->
     <SlangShader Include="$(MSBuildThisFileDirectory)*.slang" />
     <SlangDxilShader Include="$(MSBuildThisFileDirectory)compute*.slang" />
     <SlangDxilShader Include="$(MSBuildThisFileDirectory)raster2d_*.slang" />
     <SlangGraphicsShader Include="$(MSBuildThisFileDirectory)*.slang"
         Exclude="$(MSBuildThisFileDirectory)compute*.slang;$(MSBuildThisFileDirectory)raster2d_*.slang" />
+
+    <_ExpectedCachedShader Include="@(SlangShader->'$(SlangCacheDir)%(Filename).spv')" />
+    <_ExpectedCachedShader Include="@(SlangDxilShader->'$(SlangCacheDir)%(Filename).dxil')" />
+    <_ExpectedCachedShader Include="@(SlangGraphicsShader->'$(SlangCacheDir)%(Filename).vs.dxil')" />
+    <_ExpectedCachedShader Include="@(SlangGraphicsShader->'$(SlangCacheDir)%(Filename).ps.dxil')" />
   </ItemGroup>
 
-  <Target Name="CompileSlangSpirv"
-          BeforeTargets="Build"
-          Inputs="@(SlangShader)"
-          Outputs="@(SlangShader->'$(OutDir)shaders\%(Filename).spv')">
-    <Error Condition="!Exists('$(SlangcPath)')" Text="slangc が見つかりません: $(SlangcPath)" />
-    <MakeDir Directories="$(OutDir)shaders" />
-    <Message Importance="high" Text="Slang -> SPIR-V: %(SlangShader.Filename).slang" />
-    <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangShader.FullPath)&quot; -target spirv -emit-spirv-directly -profile $(SlangSpirvProfile) -force-glsl-scalar-layout -fvk-use-entrypoint-name -o &quot;$(OutDir)shaders\%(SlangShader.Filename).spv&quot;" />
+  <Target Name="WriteCurrentSlangCacheManifest">
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(SlangCurrentManifest)'))" />
+    <GetFileHash Files="@(SlangShader)" Algorithm="SHA256">
+      <Output TaskParameter="Items" ItemName="_SlangSourceHash" />
+    </GetFileHash>
+    <WriteLinesToFile
+        File="$(SlangCurrentManifest)"
+        Overwrite="true"
+        Lines="schema|$(SlangCacheSchema);slang|$(SlangVersion);dxc|$(DxcVersion);spirv-profile|$(SlangSpirvProfile);dxil-profile|$(SlangDxilProfile);@(_SlangSourceHash->'%(Filename)%(Extension)|%(FileHash)')" />
   </Target>
 
-  <Target Name="CompileSlangDxil"
-          BeforeTargets="Build"
-          Inputs="@(SlangDxilShader)"
-          Outputs="@(SlangDxilShader->'$(OutDir)shaders\%(Filename).dxil')">
-    <Error Condition="!Exists('$(SlangcPath)')" Text="slangc が見つかりません: $(SlangcPath)" />
-    <MakeDir Directories="$(OutDir)shaders" />
-    <Message Importance="high" Text="Slang -> DXIL: %(SlangDxilShader.Filename).slang" />
-    <!-- validator-version 1.7: DXC 既定の検証版は OS ランタイムより新しく PSO 生成で拒否されるため下げる。
-         -Xdxc は -entry/-stage を明示しないと適用されない。現状 D3D12 シェーダは compute/main のみ。 -->
-    <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangDxilShader.FullPath)&quot; -target dxil -profile $(SlangDxilProfile) -fvk-use-entrypoint-name -entry main -stage compute -Xdxc -validator-version -Xdxc 1.7 -o &quot;$(OutDir)shaders\%(SlangDxilShader.Filename).dxil&quot;" />
+  <Target Name="ValidateSlangShaderCache" DependsOnTargets="WriteCurrentSlangCacheManifest">
+    <Error Condition="!Exists('$(SlangCacheManifest)')"
+           Text="Slang シェーダキャッシュがありません。'dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache' を実行して生成してください。" />
+    <Error Condition="!Exists('%(_ExpectedCachedShader.Identity)')"
+           Text="Slang シェーダキャッシュが不足しています: %(_ExpectedCachedShader.Identity)。CompileLuxelShaderCache を実行してください。" />
+    <ReadLinesFromFile File="$(SlangCurrentManifest)">
+      <Output TaskParameter="Lines" ItemName="_CurrentSlangManifestLines" />
+    </ReadLinesFromFile>
+    <ReadLinesFromFile File="$(SlangCacheManifest)">
+      <Output TaskParameter="Lines" ItemName="_CachedSlangManifestLines" />
+    </ReadLinesFromFile>
+    <PropertyGroup>
+      <_CurrentSlangManifestText>@(_CurrentSlangManifestLines, '|')</_CurrentSlangManifestText>
+      <_CachedSlangManifestText>@(_CachedSlangManifestLines, '|')</_CachedSlangManifestText>
+    </PropertyGroup>
+    <Error Condition="'$(_CurrentSlangManifestText)' != '$(_CachedSlangManifestText)'"
+           Text="Slang ソースまたはコンパイル設定が Git キャッシュと一致しません。CompileLuxelShaderCache を実行し、shaders/compiled をコミットしてください。" />
   </Target>
 
-  <Target Name="CompileSlangGraphicsDxil"
+  <Target Name="CopyCachedSlangShaders"
           BeforeTargets="Build"
-          Inputs="@(SlangGraphicsShader)"
-          Outputs="@(SlangGraphicsShader->'$(OutDir)shaders\%(Filename).vs.dxil')">
-    <Error Condition="!Exists('$(SlangcPath)')" Text="slangc が見つかりません: $(SlangcPath)" />
-    <MakeDir Directories="$(OutDir)shaders" />
-    <Message Importance="high" Text="Slang -> DXIL(vs/ps): %(SlangGraphicsShader.Filename).slang" />
-    <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangGraphicsShader.FullPath)&quot; -target dxil -profile $(SlangDxilProfile) -fvk-use-entrypoint-name -entry vsMain -stage vertex -Xdxc -validator-version -Xdxc 1.7 -o &quot;$(OutDir)shaders\%(SlangGraphicsShader.Filename).vs.dxil&quot;" />
-    <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangGraphicsShader.FullPath)&quot; -target dxil -profile $(SlangDxilProfile) -fvk-use-entrypoint-name -entry psMain -stage pixel -Xdxc -validator-version -Xdxc 1.7 -o &quot;$(OutDir)shaders\%(SlangGraphicsShader.Filename).ps.dxil&quot;" />
+          DependsOnTargets="ValidateSlangShaderCache">
+    <MakeDir Directories="$([System.IO.Path]::Combine('$(OutDir)', 'shaders'))" />
+    <Copy SourceFiles="@(_ExpectedCachedShader)"
+          DestinationFolder="$([System.IO.Path]::Combine('$(OutDir)', 'shaders'))"
+          SkipUnchangedFiles="true" />
   </Target>
 
-  <!--
-    publish 出力への同梱 (ToDo 19)。コンパイル済みシェーダは $(OutDir)shaders に生成される「生成物」で
-    プロジェクト項目ではないため、既定では publish 出力にコピーされない。GpuShaderCode.Load は
-    実行時に $(AppContext.BaseDirectory)/shaders から読むので、publish フォルダにも配置する必要がある。
-    Build が先に走って $(OutDir)shaders を満たすため、ComputeFilesToPublish の直前に実ファイルを列挙して
-    ResolvedFileToPublish へ追加する (相対パスは shaders\ 配下に維持)。
-  -->
-  <Target Name="AddCompiledShadersToPublish" BeforeTargets="ComputeFilesToPublish">
+  <Target Name="AcquireSlangCompiler">
+    <Error Condition="'$(SlangArchiveName)' == ''"
+           Text="Slang の自動取得は $(SlangToolRid) に未対応です。SlangcPath または SlangToolRid (linux-x64/win-x64/win-arm64) を指定してください。" />
+    <MakeDir Directories="$(SlangDownloadDir);$(SlangToolRoot)" />
+    <DownloadFile Condition="!Exists('$(SlangArchivePath)')"
+                  SourceUrl="$(SlangReleaseBaseUrl)/$(SlangArchiveName)"
+                  DestinationFolder="$(SlangDownloadDir)"
+                  Retries="3"
+                  RetryDelayMilliseconds="1000" />
+    <GetFileHash Files="$(SlangArchivePath)" Algorithm="SHA256">
+      <Output TaskParameter="Items" ItemName="_SlangArchiveHash" />
+    </GetFileHash>
+    <Error Condition="'@(_SlangArchiveHash->'%(FileHash)')' != '$(SlangArchiveSha256)'"
+           Text="Slang アーカイブの SHA-256 が一致しません。$(SlangArchivePath) を削除して再実行してください。" />
+    <Unzip Condition="!Exists('$(SlangcPath)')"
+           SourceFiles="$(SlangArchivePath)"
+           DestinationFolder="$(SlangToolRoot)"
+           OverwriteReadOnlyFiles="true" />
+    <Exec Condition="'$(OS)' != 'Windows_NT' and Exists('$(SlangcPath)')"
+          Command="chmod +x &quot;$(SlangcPath)&quot;" />
+    <Error Condition="!Exists('$(SlangcPath)')" Text="Slang の展開後も slangc が見つかりません: $(SlangcPath)" />
+  </Target>
+
+  <Target Name="AcquireDxcCompiler" DependsOnTargets="AcquireSlangCompiler">
+    <Error Condition="'$(DxcArchiveName)' == ''"
+           Text="DXC の自動取得は $(SlangToolRid) に未対応です。対応 RID は linux-x64/win-x64/win-arm64 です。" />
+    <MakeDir Directories="$(SlangDownloadDir);$(DxcToolRoot)" />
+    <DownloadFile Condition="!Exists('$(DxcArchivePath)')"
+                  SourceUrl="$(DxcReleaseBaseUrl)/$(DxcArchiveName)"
+                  DestinationFolder="$(SlangDownloadDir)"
+                  Retries="3"
+                  RetryDelayMilliseconds="1000" />
+    <GetFileHash Files="$(DxcArchivePath)" Algorithm="SHA256">
+      <Output TaskParameter="Items" ItemName="_DxcArchiveHash" />
+    </GetFileHash>
+    <Error Condition="'@(_DxcArchiveHash->'%(FileHash)')' != '$(DxcArchiveSha256)'"
+           Text="DXC アーカイブの SHA-256 が一致しません。$(DxcArchivePath) を削除して再実行してください。" />
+
+    <Exec Condition="'$(SlangToolRid)' == 'linux-x64' and !Exists('$(DxcLibraryDir)/libdxcompiler.so')"
+          Command="tar -xzf &quot;$(DxcArchivePath)&quot; -C &quot;$(DxcToolRoot)&quot;" />
+    <Unzip Condition="'$(OS)' == 'Windows_NT' and !Exists('$(DxcToolRoot)/bin/$(DxcWindowsArch)/dxcompiler.dll')"
+           SourceFiles="$(DxcArchivePath)"
+           DestinationFolder="$(DxcToolRoot)"
+           OverwriteReadOnlyFiles="true" />
+    <Copy Condition="'$(OS)' == 'Windows_NT'"
+          SourceFiles="$(DxcToolRoot)/bin/$(DxcWindowsArch)/dxcompiler.dll;$(DxcToolRoot)/bin/$(DxcWindowsArch)/dxil.dll"
+          DestinationFolder="$(SlangBinDir)"
+          SkipUnchangedFiles="true" />
+
+    <Error Condition="'$(SlangToolRid)' == 'linux-x64' and !Exists('$(DxcLibraryDir)/libdxcompiler.so')"
+           Text="DXC の展開後も libdxcompiler.so が見つかりません: $(DxcLibraryDir)" />
+    <Error Condition="'$(OS)' == 'Windows_NT' and !Exists('$(SlangBinDir)/dxcompiler.dll')"
+           Text="DXC の展開後も dxcompiler.dll が見つかりません。" />
+  </Target>
+
+  <Target Name="CompileSlangSpirvCache"
+          DependsOnTargets="AcquireSlangCompiler"
+          Inputs="@(SlangShader);$(SlangCompilerInputs)"
+          Outputs="@(SlangShader->'$(SlangCacheDir)%(Filename).spv')">
+    <MakeDir Directories="$(SlangCacheDir)" />
+    <Message Importance="high" Text="Slang -> SPIR-V cache: %(SlangShader.Filename).slang" />
+    <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangShader.FullPath)&quot; -target spirv -emit-spirv-directly -profile $(SlangSpirvProfile) -force-glsl-scalar-layout -fvk-use-entrypoint-name -o &quot;$(SlangCacheDir)%(SlangShader.Filename).spv&quot;" />
+  </Target>
+
+  <Target Name="CompileSlangDxilCache"
+          DependsOnTargets="AcquireDxcCompiler"
+          Inputs="@(SlangDxilShader);$(SlangCompilerInputs)"
+          Outputs="@(SlangDxilShader->'$(SlangCacheDir)%(Filename).dxil')">
+    <MakeDir Directories="$(SlangCacheDir)" />
+    <Message Importance="high" Text="Slang -> DXIL cache: %(SlangDxilShader.Filename).slang" />
+    <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangDxilShader.FullPath)&quot; -target dxil -profile $(SlangDxilProfile) -fvk-use-entrypoint-name -entry main -stage compute -Xdxc -validator-version -Xdxc 1.7 -o &quot;$(SlangCacheDir)%(SlangDxilShader.Filename).dxil&quot;"
+          EnvironmentVariables="$(SlangExecEnvironment)" />
+  </Target>
+
+  <Target Name="CompileSlangGraphicsDxilCache"
+          DependsOnTargets="AcquireDxcCompiler"
+          Inputs="@(SlangGraphicsShader);$(SlangCompilerInputs)"
+          Outputs="@(SlangGraphicsShader->'$(SlangCacheDir)%(Filename).vs.dxil');@(SlangGraphicsShader->'$(SlangCacheDir)%(Filename).ps.dxil')">
+    <MakeDir Directories="$(SlangCacheDir)" />
+    <Message Importance="high" Text="Slang -> DXIL(vs/ps) cache: %(SlangGraphicsShader.Filename).slang" />
+    <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangGraphicsShader.FullPath)&quot; -target dxil -profile $(SlangDxilProfile) -fvk-use-entrypoint-name -entry vsMain -stage vertex -Xdxc -validator-version -Xdxc 1.7 -o &quot;$(SlangCacheDir)%(SlangGraphicsShader.Filename).vs.dxil&quot;"
+          EnvironmentVariables="$(SlangExecEnvironment)" />
+    <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangGraphicsShader.FullPath)&quot; -target dxil -profile $(SlangDxilProfile) -fvk-use-entrypoint-name -entry psMain -stage pixel -Xdxc -validator-version -Xdxc 1.7 -o &quot;$(SlangCacheDir)%(SlangGraphicsShader.Filename).ps.dxil&quot;"
+          EnvironmentVariables="$(SlangExecEnvironment)" />
+  </Target>
+
+  <Target Name="CompileLuxelShaderCache"
+          DependsOnTargets="CompileSlangSpirvCache;CompileSlangDxilCache;CompileSlangGraphicsDxilCache;WriteCurrentSlangCacheManifest">
+    <Copy SourceFiles="$(SlangCurrentManifest)" DestinationFiles="$(SlangCacheManifest)" />
+    <Message Importance="high" Text="Slang shader cache updated: $(SlangCacheDir)" />
+  </Target>
+
+  <Target Name="AddCompiledShadersToPublish"
+          BeforeTargets="ComputeFilesToPublish"
+          DependsOnTargets="CopyCachedSlangShaders">
     <ItemGroup>
-      <_CompiledShaderToPublish Include="$(OutDir)shaders\*" />
+      <_CompiledShaderToPublish Include="$(OutDir)shaders/*" />
       <ResolvedFileToPublish Include="@(_CompiledShaderToPublish)">
-        <RelativePath>shaders\%(Filename)%(Extension)</RelativePath>
+        <RelativePath>shaders/%(Filename)%(Extension)</RelativePath>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       </ResolvedFileToPublish>
     </ItemGroup>
