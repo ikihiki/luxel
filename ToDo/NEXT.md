@@ -56,6 +56,17 @@
 
 - [x] **Q54**: [28 dotnet test E2E アダプタ乖離](28-e2e-adapter-drift.md) (2026-07-15 完了) — E2E adapter と Gallery runner の差を解消。adapter 側も runner と同じ `SelectForE2e` 経路へ寄せ、play ごとに既定 light/theme 明示・ポインタ hover 解除・Strudel process-wide session reset を行うようにした。Reference/Overview の 20px/最大5階調の右端 AA 差だけは runner/adapter 間の微小差として `PixelsEquivalent` で限定許容 (32px/5階調まで、超過は従来どおり `.actual.png`)。Docs/Strudel の順依存は Strudel session reset で解消。`Demos_Strudel_Repl.playing.{vk,dx}.png` stale を削除。`Apps/Player/ScriptEditor` golden は新しい hermetic runner 結果へ更新。Docs/Contributing に tiny AA 許容を追記。検証: `dotnet build Luxel.slnx --no-restore` OK、`dotnet test tests\Luxel.Tests\Luxel.Tests.csproj --no-build` = 1074 passed、`dotnet test tests\Luxel.E2e.Tests\Luxel.E2e.Tests.csproj --no-build` = 159 passed、`dotnet run --project src\Luxel.Gallery -- vk e2e` = 136 passed / 218 snaps diff 0 / stale 0。
 
+### レンダリング学習ドキュメント
+
+> [30](30-rendering-docs-beginner.md) を R1〜R6 の順に進める。各段階で実サンプルを単一の正とし、Gallery 内だけで成立する省略コードを初心者向けの「完全なコード」として扱わない。
+
+- [ ] **Q59**: [30 R1 導線、整合性、最小サンプル](30-rendering-docs-beginner.md) — `samples/LuxelTriangle`、Environment/Clear/FirstTriangle、既存記述の不整合修正。
+- [ ] **Q60**: [30 R2 バッファ、バインディング、シェーダ](30-rendering-docs-beginner.md) — GPU memory、ABI/alignment、bindless、Slang と Git shader cache。
+- [ ] **Q61**: [30 R3 テクスチャと最小3D](30-rendering-docs-beginner.md) — textured quad、MVP、depth/culling/light、座標・色規約。
+- [ ] **Q62**: [30 R4 フレーム同期とRenderGraph](30-rendering-docs-beginner.md) — frame lifecycle、同期、1 pass から post-process への段階導入。
+- [ ] **Q63**: [30 R5 2D、glTF、デバッグ、出荷](30-rendering-docs-beginner.md) — API選択、静的モデル、troubleshooting、publish。
+- [ ] **Q64**: [30 R6 ドキュメント品質の自動検証](30-rendering-docs-beginner.md) — 実サンプル参照、link/metadata/sample build 検証、Docs分割。
+
 ### M8 — 排他モード IME (必要になったら。ADR-0008 は Proposed)
 
 - [ ] **Q31**: [24 カスタム IME 候補ウインドウ](24-custom-ime-candidates.md) — TSF `ITfUIElementSink` で OS 候補を抑制 + `ITfCandidateListUIElement` 読み取り + Popup 描画 (排他フルスクリーン対応)。**排他モードが必要になった時点で着手**、実機手動検証 (golden 不可)。ADR-0008

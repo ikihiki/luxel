@@ -10,6 +10,7 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 | # | ファイル | タスク | 規模感 | リスク |
 |---|---|---|---|---|
 | 24 | [24-custom-ime-candidates.md](24-custom-ime-candidates.md) | カスタム IME 候補ウインドウ (TSF ITfUIElementSink で OS 抑制 + 自前 Popup 描画、排他モード対応。ADR-0008 Proposed) | 中 | **高** (実 IME 依存) |
+| 30 | [30-rendering-docs-beginner.md](30-rendering-docs-beginner.md) | 初心者向けレンダリング学習経路 (最小 standalone app、shader/texture/3D/RenderGraph/glTF、Docs 自動検証) | 大 (6段階) | 中 (vk/dx 実機検証) |
 
 完了したタスクの MD は削除済み (規約通り)。仕様は Gallery の Docs/ADR ストーリー、経緯は git 履歴を参照。直近では 13 (e2e 日本語フォント)・22 (エディタ新スタック)・23 (浮遊 UI placement)・25 (ノードエディタ)・26 (Workbench) が完了 (2026-07-10 整理)。
 
