@@ -9,6 +9,12 @@
     <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.0" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.116.1" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\highlightjs\highlight.min.js" />
+    <EmbeddedResource Include="Assets\highlightjs\github-dark.min.css" />
+    <EmbeddedResource Include="Assets\highlightjs\LICENSE" />
+  </ItemGroup>
+
   <PropertyGroup>
     <KhronosBoxCommit>5bad5aaa0bbb5d0f9cdc934e626f27d0df1e79b8</KhronosBoxCommit>
     <KhronosBoxGltfSha256>4A0D69EECFCE0672A50B71DC218CBACEC6C53FE2445040C235C6314B1B2C41B9</KhronosBoxGltfSha256>

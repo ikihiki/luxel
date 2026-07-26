@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -27,11 +28,16 @@ public static partial class GallerySiteExporter
         string imagesDir = Path.Combine(output, "images");
         Directory.CreateDirectory(fragmentsDir);
         Directory.CreateDirectory(imagesDir);
+        string highlightDir = Path.Combine(output, "vendor", "highlightjs");
+        Directory.CreateDirectory(highlightDir);
+        CopyRuntimeAsset(Path.Combine("Assets", "highlightjs", "highlight.min.js"), Path.Combine(highlightDir, "highlight.min.js"));
+        CopyRuntimeAsset(Path.Combine("Assets", "highlightjs", "github-dark.min.css"), Path.Combine(highlightDir, "github-dark.min.css"));
         string licensesDir = Path.Combine(output, "licenses");
         Directory.CreateDirectory(licensesDir);
         string boxLicense = Path.Combine(repositoryRoot, "tools", "khronos-samples", "Box-LICENSE.md");
         if (!File.Exists(boxLicense))
             throw new FileNotFoundException("Khronos Box license was not provisioned before site export.", boxLicense);
+        CopyRuntimeAsset(Path.Combine("Assets", "highlightjs", "LICENSE"), Path.Combine(licensesDir, "highlight.js-LICENSE.txt"));
         File.Copy(boxLicense, Path.Combine(licensesDir, "Box-LICENSE.md"), overwrite: true);
         File.WriteAllText(Path.Combine(output, ".nojekyll"), "", new UTF8Encoding(false));
         File.WriteAllText(Path.Combine(output, "site.css"), Css, new UTF8Encoding(false));
@@ -88,7 +94,7 @@ public static partial class GallerySiteExporter
                 body = Markdig.Markdown.ToHtml(md, Pipeline);
             }
             else if (imageUrl is not null)
-                body = StaticFigure("../" + imageUrl, story.Path, "Static story capture");
+                body = StaticFigure(imageUrl, story.Path, "Static story capture");
             else
                 body = Unavailable(error ?? "No static capture is available.", status);
 
@@ -142,7 +148,7 @@ public static partial class GallerySiteExporter
             {
                 var result = EnsureStoryImage(host, story, imagesDir, repositoryRoot, cache);
                 if (result.Url is { } url)
-                    html = StaticFigure("../" + url, path, "Static embedded story capture",
+                    html = StaticFigure(url, path, "Static embedded story capture",
                         "#story=" + Uri.EscapeDataString(path));
                 else
                 {
@@ -162,7 +168,7 @@ public static partial class GallerySiteExporter
                 {
                     string file = $"embed-{Convert.ToHexString(SHA256.HashData(png)).ToLowerInvariant()[..20]}.png";
                     File.WriteAllBytes(Path.Combine(imagesDir, file), png);
-                    html = StaticFigure("../images/" + file, $"Documentation embed {i + 1}", "Static widget capture");
+                    html = StaticFigure("images/" + file, $"Documentation embed {i + 1}", "Static widget capture");
                 }
                 else { html = Unavailable(result.Error ?? "Widget capture failed.", "error"); errors++; }
             }
@@ -186,7 +192,7 @@ public static partial class GallerySiteExporter
             string extension = Path.GetExtension(source).ToLowerInvariant();
             string file = $"asset-{Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant()[..20]}{extension}";
             File.WriteAllBytes(Path.Combine(imagesDir, file), bytes);
-            return $"{match.Groups[1].Value}../images/{file}{match.Groups[3].Value}";
+            return $"{match.Groups[1].Value}images/{file}{match.Groups[3].Value}";
         });
 
     private static string ReplaceSpecialFences(string md, GalleryHost host, string imagesDir, ref int errors)
@@ -207,7 +213,7 @@ public static partial class GallerySiteExporter
             }
             string file = $"{kind}-{Convert.ToHexString(SHA256.HashData(png)).ToLowerInvariant()[..20]}.png";
             File.WriteAllBytes(Path.Combine(imagesDir, file), png);
-            return StaticFigure("../images/" + file, $"{kind} diagram", $"Static {kind} capture");
+            return StaticFigure("images/" + file, $"{kind} diagram", $"Static {kind} capture");
         });
         errors += failed;
         return replaced;
@@ -226,6 +232,9 @@ public static partial class GallerySiteExporter
                 throw new InvalidDataException($"Unknown capture status '{story.Status}' for {story.Path}.");
         }
 
+        foreach (string png in Directory.GetFiles(output, "*.png", SearchOption.AllDirectories))
+            ValidatePng(png);
+
         foreach (string file in Directory.GetFiles(output, "*.html", SearchOption.AllDirectories))
         {
             string html = File.ReadAllText(file);
@@ -237,10 +246,28 @@ public static partial class GallerySiteExporter
                 string value = WebUtility.HtmlDecode(m.Groups[1].Value);
                 if (value.StartsWith('#') || value.StartsWith("http:") || value.StartsWith("https:") || value.StartsWith("data:")) continue;
                 string path = value.Split('?', '#')[0].Replace('/', Path.DirectorySeparatorChar);
-                string full = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file)!, path));
+                // Story fragments are fetched into index.html via innerHTML, so browser-relative URLs resolve
+                // from the site root, not from the physical stories/ directory containing the fragment file.
+                string baseDirectory = Path.GetRelativePath(output, file).StartsWith("stories" + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+                    ? output : Path.GetDirectoryName(file)!;
+                string full = Path.GetFullPath(Path.Combine(baseDirectory, path));
                 if (!File.Exists(full)) throw new FileNotFoundException($"Missing local reference '{value}' in {file}", full);
             }
         }
+    }
+
+    private static void ValidatePng(string path)
+    {
+        Span<byte> header = stackalloc byte[24];
+        using FileStream stream = File.OpenRead(path);
+        stream.ReadExactly(header);
+        ReadOnlySpan<byte> signature = [137, 80, 78, 71, 13, 10, 26, 10];
+        if (!header[..8].SequenceEqual(signature) || !header.Slice(12, 4).SequenceEqual("IHDR"u8))
+            throw new InvalidDataException($"Static capture is not a valid PNG: {path}");
+        uint width = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(16, 4));
+        uint height = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(20, 4));
+        if (width == 0 || height == 0)
+            throw new InvalidDataException($"Static capture has an invalid size {width}x{height}: {path}");
     }
 
     private static void RequireRelativeFile(string output, string relative, string kind)
@@ -251,6 +278,20 @@ public static partial class GallerySiteExporter
         if (!full.StartsWith(Path.GetFullPath(output) + Path.DirectorySeparatorChar, StringComparison.Ordinal))
             throw new InvalidDataException($"Reference escapes output for {kind}: {relative}");
         if (!File.Exists(full)) throw new FileNotFoundException($"Missing {kind}: {relative}", full);
+    }
+
+    private static void CopyRuntimeAsset(string relativePath, string destination)
+    {
+        string suffix = relativePath.Replace(Path.DirectorySeparatorChar, '.').Replace(Path.AltDirectorySeparatorChar, '.');
+        System.Reflection.Assembly assembly = typeof(GallerySiteExporter).Assembly;
+        string? resource = assembly.GetManifestResourceNames()
+            .SingleOrDefault(name => name.EndsWith(suffix, StringComparison.Ordinal));
+        if (resource is null)
+            throw new FileNotFoundException($"Embedded static Gallery runtime asset is missing: {relativePath}");
+        using Stream source = assembly.GetManifestResourceStream(resource)
+            ?? throw new FileNotFoundException($"Embedded static Gallery runtime asset cannot be opened: {relativePath}");
+        using FileStream target = File.Create(destination);
+        source.CopyTo(target);
     }
 
     public static string FindRepositoryRoot()
@@ -300,7 +341,7 @@ public static partial class GallerySiteExporter
     [GeneratedRegex("(?:src|href)=\"([^\"]+)\"")]
     private static partial Regex LocalReference();
 
-    private const string Index = """<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Luxel Gallery — Static Captures</title><link rel="stylesheet" href="site.css"></head><body><aside id="sidebar"><header><h1>Luxel Gallery</h1><p>静的HTML版です。埋め込みはPNGで、操作はできません。</p><button id="theme" type="button">テーマ切替</button><p><a href="licenses/Box-LICENSE.md">Khronos Box license</a></p></header><input id="search" type="search" placeholder="Story・見出し・本文を検索"><nav id="stories" aria-label="Stories"></nav></aside><main id="content"><p>Galleryを読み込んでいます…</p></main><script src="site.js"></script></body></html>""";
-    private const string Js = """const nav=document.querySelector('#stories'),content=document.querySelector('#content'),search=document.querySelector('#search'),theme=document.querySelector('#theme');let stories=[];const key=()=>{const m=location.hash.match(/story=([^&]+)/);return m?decodeURIComponent(m[1]):stories[0]?.path};async function show(){const s=stories.find(x=>x.path===key())||stories[0];if(!s)return;const r=await fetch(s.fragment);content.innerHTML=r.ok?await r.text():'<p>ページを読み込めませんでした。</p>';document.querySelectorAll('a[data-path]').forEach(a=>a.classList.toggle('active',a.dataset.path===s.path));document.title=s.path+' — Luxel Gallery';scrollTo(0,0)}function draw(q=''){nav.innerHTML='';let component='';const needle=q.trim().toLowerCase();for(const s of stories.filter(x=>(x.searchText||x.path).toLowerCase().includes(needle))){if(s.component!==component){component=s.component;const h=document.createElement('h2');h.textContent=component;nav.append(h)}const a=document.createElement('a');a.href='#story='+encodeURIComponent(s.path);a.dataset.path=s.path;a.textContent=s.path.slice(component.length+1)||s.name;nav.append(a)}}const saved=localStorage.getItem('luxel-gallery-theme');if(saved==='light')document.documentElement.dataset.theme='light';theme.addEventListener('click',()=>{const light=document.documentElement.dataset.theme!=='light';document.documentElement.dataset.theme=light?'light':'';localStorage.setItem('luxel-gallery-theme',light?'light':'dark')});fetch('manifest.json').then(r=>r.json()).then(x=>{stories=x;draw();show()}).catch(()=>content.innerHTML='<p>manifest.jsonを読み込めませんでした。</p>');addEventListener('hashchange',show);search.addEventListener('input',()=>draw(search.value));""";
-    private const string Css = """:root{color-scheme:dark;--bg:#10131a;--panel:#171b24;--text:#e7eaf0;--muted:#9eabc1;--line:#303746;--link:#84b8ff;--code:#090b10;--active:#283044;background:var(--bg);color:var(--text);font:15px/1.65 system-ui,sans-serif}:root[data-theme=light]{color-scheme:light;--bg:#f7f8fb;--panel:#fff;--text:#1d2430;--muted:#657086;--line:#d8dde7;--link:#155fc4;--code:#eef1f6;--active:#e2e9f6}*{box-sizing:border-box}body{margin:0;display:grid;grid-template-columns:310px 1fr;min-height:100vh;background:var(--bg);color:var(--text)}#sidebar{position:sticky;top:0;height:100vh;overflow:auto;padding:20px;border-right:1px solid var(--line);background:var(--panel)}#sidebar h1{font-size:20px;margin-bottom:0}#sidebar h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 8px 4px}#theme{padding:6px 10px;margin-bottom:12px;color:inherit;background:transparent;border:1px solid var(--line);border-radius:6px;cursor:pointer}#search{width:100%;padding:9px;background:var(--bg);color:inherit;border:1px solid var(--line);border-radius:6px}nav a{display:block;color:var(--text);text-decoration:none;padding:5px 8px;border-radius:5px}nav a:hover,nav a.active{background:var(--active)}main{min-width:0;width:100%;max-width:1100px;padding:32px 48px}.story h1{line-height:1.2}.static-badge,figcaption{color:var(--muted)}.static-badge{display:inline-block;border:1px solid var(--muted);border-radius:99px;padding:2px 10px}.static-capture{margin:24px 0;border:1px solid var(--line);background:var(--panel);padding:12px;border-radius:9px}.static-capture img{display:block;max-width:100%;height:auto;margin:auto}.static-capture a{display:block}.static-capture figcaption{padding-top:8px}.capture-unavailable,.capture-error{border-left:4px solid #d19520;background:#fff4d6;color:#342b16;padding:12px;margin:18px 0}.capture-error{border-color:#d33d50;background:#ffe4e8;color:#3b171d}pre{white-space:pre-wrap;overflow:auto;background:var(--code);padding:12px;border-radius:6px}code{color:inherit}a{color:var(--link)}table{border-collapse:collapse;max-width:100%}th,td{border:1px solid var(--line);padding:6px 9px}@media(max-width:760px){body{display:block}#sidebar{position:relative;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:22px}}""";
+    private const string Index = """<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Luxel Gallery — Static Captures</title><link rel="stylesheet" href="site.css"><link rel="stylesheet" href="vendor/highlightjs/github-dark.min.css"></head><body><aside id="sidebar"><header><h1>Luxel Gallery</h1><p>静的HTML版です。埋め込みはPNGで、操作はできません。</p><button id="theme" type="button">テーマ切替</button><p><a href="licenses/Box-LICENSE.md">Khronos Box license</a> · <a href="licenses/highlight.js-LICENSE.txt">Highlight.js license</a></p></header><input id="search" type="search" placeholder="Story・見出し・本文を検索"><nav id="stories" aria-label="Stories"></nav></aside><main id="content"><p>Galleryを読み込んでいます…</p></main><script src="vendor/highlightjs/highlight.min.js"></script><script src="site.js"></script></body></html>""";
+    private const string Js = """const nav=document.querySelector('#stories'),content=document.querySelector('#content'),search=document.querySelector('#search'),theme=document.querySelector('#theme');let stories=[];const languageAliases={slang:'cpp',hlsl:'cpp',powershell:'shell',pwsh:'shell',csharp:'cs'};function highlight(root){if(typeof hljs==='undefined')return;for(const code of root.querySelectorAll('pre code')){const match=[...code.classList].find(x=>x.startsWith('language-'));const requested=match?.slice(9).toLowerCase();const language=languageAliases[requested]||requested;if(language&&hljs.getLanguage(language)){if(match)code.classList.replace(match,'language-'+language)}else if(requested){code.classList.add('no-highlight')}hljs.highlightElement(code)}}const key=()=>{const m=location.hash.match(/story=([^&]+)/);return m?decodeURIComponent(m[1]):stories[0]?.path};async function show(){const s=stories.find(x=>x.path===key())||stories[0];if(!s)return;const r=await fetch(s.fragment);content.innerHTML=r.ok?await r.text():'<p>ページを読み込めませんでした。</p>';highlight(content);document.querySelectorAll('a[data-path]').forEach(a=>a.classList.toggle('active',a.dataset.path===s.path));document.title=s.path+' — Luxel Gallery';scrollTo(0,0)}function draw(q=''){nav.innerHTML='';let component='';const needle=q.trim().toLowerCase();for(const s of stories.filter(x=>(x.searchText||x.path).toLowerCase().includes(needle))){if(s.component!==component){component=s.component;const h=document.createElement('h2');h.textContent=component;nav.append(h)}const a=document.createElement('a');a.href='#story='+encodeURIComponent(s.path);a.dataset.path=s.path;a.textContent=s.path.slice(component.length+1)||s.name;nav.append(a)}}const saved=localStorage.getItem('luxel-gallery-theme');if(saved==='light')document.documentElement.dataset.theme='light';theme.addEventListener('click',()=>{const light=document.documentElement.dataset.theme!=='light';document.documentElement.dataset.theme=light?'light':'';localStorage.setItem('luxel-gallery-theme',light?'light':'dark')});fetch('manifest.json').then(r=>r.json()).then(x=>{stories=x;draw();show()}).catch(()=>content.innerHTML='<p>manifest.jsonを読み込めませんでした。</p>');addEventListener('hashchange',show);search.addEventListener('input',()=>draw(search.value));""";
+    private const string Css = """:root{color-scheme:dark;--bg:#10131a;--panel:#171b24;--text:#e7eaf0;--muted:#9eabc1;--line:#303746;--link:#84b8ff;--code:#090b10;--active:#283044;background:var(--bg);color:var(--text);font:15px/1.65 system-ui,sans-serif}:root[data-theme=light]{color-scheme:light;--bg:#f7f8fb;--panel:#fff;--text:#1d2430;--muted:#657086;--line:#d8dde7;--link:#155fc4;--code:#eef1f6;--active:#e2e9f6}*{box-sizing:border-box}body{margin:0;display:grid;grid-template-columns:310px 1fr;min-height:100vh;background:var(--bg);color:var(--text)}#sidebar{position:sticky;top:0;height:100vh;overflow:auto;padding:20px;border-right:1px solid var(--line);background:var(--panel)}#sidebar h1{font-size:20px;margin-bottom:0}#sidebar h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 8px 4px}#theme{padding:6px 10px;margin-bottom:12px;color:inherit;background:transparent;border:1px solid var(--line);border-radius:6px;cursor:pointer}#search{width:100%;padding:9px;background:var(--bg);color:inherit;border:1px solid var(--line);border-radius:6px}nav a{display:block;color:var(--text);text-decoration:none;padding:5px 8px;border-radius:5px}nav a:hover,nav a.active{background:var(--active)}main{min-width:0;width:100%;max-width:1100px;padding:32px 48px}.story h1{line-height:1.2}.static-badge,figcaption{color:var(--muted)}.static-badge{display:inline-block;border:1px solid var(--muted);border-radius:99px;padding:2px 10px}.static-capture{margin:24px 0;border:1px solid var(--line);background:var(--panel);padding:12px;border-radius:9px}.static-capture img{display:block;max-width:100%;height:auto;margin:auto}.static-capture a{display:block}.static-capture figcaption{padding-top:8px}.capture-unavailable,.capture-error{border-left:4px solid #d19520;background:#fff4d6;color:#342b16;padding:12px;margin:18px 0}.capture-error{border-color:#d33d50;background:#ffe4e8;color:#3b171d}pre{white-space:pre-wrap;overflow:auto;background:var(--code);padding:12px;border-radius:6px}pre code.hljs{white-space:pre;overflow:visible;padding:0;background:transparent}code{color:inherit}a{color:var(--link)}table{border-collapse:collapse;max-width:100%}th,td{border:1px solid var(--line);padding:6px 9px}@media(max-width:760px){body{display:block}#sidebar{position:relative;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:22px}}""";
 }

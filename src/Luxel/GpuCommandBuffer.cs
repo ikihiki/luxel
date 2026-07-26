@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Luxel.Abstraction;
 
@@ -86,10 +86,11 @@ public sealed class GpuCommandBuffer : IDisposable
         return this;
     }
 
-    /// <summary>テクスチャをバッファへコピーする (読み戻し用)。</summary>
-    public GpuCommandBuffer CopyTextureToBuffer(GpuTexture source, GpuBuffer destination)
+    /// <summary>テクスチャをバッファへコピーする (読み戻し用)。destinationRowLengthPixels=0 は密な行。</summary>
+    public GpuCommandBuffer CopyTextureToBuffer(GpuTexture source, GpuBuffer destination,
+        uint destinationRowLengthPixels = 0)
     {
-        _cmd.CopyTextureToBuffer(source.Backend, destination.Backend);
+        _cmd.CopyTextureToBuffer(source.Backend, destination.Backend, destinationRowLengthPixels);
         return this;
     }
 

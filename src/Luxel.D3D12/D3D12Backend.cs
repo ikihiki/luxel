@@ -219,6 +219,15 @@ public sealed unsafe class D3D12Backend : IGpuBackend
         ReadOnlySpan<byte> psBlob, string psEntry,
         GpuRasterDesc raster)
     {
+        RasterizerDescription rasterizer = RasterizerDescription.CullNone;
+        rasterizer.CullMode = raster.CullMode switch
+        {
+            GpuCullMode.Front => CullMode.Front,
+            GpuCullMode.Back => CullMode.Back,
+            _ => CullMode.None,
+        };
+        rasterizer.FrontCounterClockwise = raster.FrontFace == GpuFrontFace.CounterClockwise;
+
         var psoDesc = new GraphicsPipelineStateDescription
         {
             RootSignature = _rootSignature,
@@ -226,7 +235,7 @@ public sealed unsafe class D3D12Backend : IGpuBackend
             PixelShader = psBlob.ToArray(),
             InputLayout = new InputLayoutDescription(),   // 空 = vertex pulling
             PrimitiveTopologyType = PrimitiveTopologyType.Triangle,
-            RasterizerState = RasterizerDescription.CullNone,
+            RasterizerState = rasterizer,
             // NonPremultiplied = straight alpha (SrcAlpha, InvSrcAlpha)。Vulkan 側と一致させる。
             BlendState = raster.Blend == GpuBlendMode.AlphaBlend
                 ? BlendDescription.NonPremultiplied : BlendDescription.Opaque,

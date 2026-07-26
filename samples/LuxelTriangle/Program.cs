@@ -9,19 +9,21 @@ using Luxel.Platform.Silk;
 
 string backend = args.FirstOrDefault(a => a is "vk" or "vulkan" or "dx" or "d3d12")?.ToLowerInvariant() ?? "vk";
 int? frameLimit = ParseFrameLimit(args);
+TutorialStage stage = ParseStage(args);
+(int initialWidth, int initialHeight) = ParseSize(args);
 
 #if LUXEL_WINDOWS
 int exitCode = 1;
-var thread = new Thread(() => exitCode = Run(backend, frameLimit)) { Name = "LuxelTriangle-Main" };
+var thread = new Thread(() => exitCode = Run(backend, frameLimit, stage, initialWidth, initialHeight)) { Name = "LuxelTriangle-Main" };
 thread.SetApartmentState(ApartmentState.STA);
 thread.Start();
 thread.Join();
 return exitCode;
 #else
-return Run(backend, frameLimit);
+return Run(backend, frameLimit, stage, initialWidth, initialHeight);
 #endif
 
-static int Run(string backend, int? frameLimit)
+static int Run(string backend, int? frameLimit, TutorialStage stage, int initialWidth, int initialHeight)
 {
     try
     {
@@ -32,10 +34,10 @@ static int Run(string backend, int? frameLimit)
             throw new PlatformNotSupportedException("DirectX 12 は Windows でのみ利用できます。Linux では 'vk' を指定してください。");
         using var windows = new WindowSystem(SilkWindowBackend.Create());
 #endif
-        NativeWindow window = windows.CreateWindow(new WindowDesc("Luxel — First Triangle", 800, 600));
+        NativeWindow window = windows.CreateWindow(new WindowDesc($"Luxel — 3D Tutorial ({stage})", initialWidth, initialHeight));
         using GpuDevice device = CreateDevice(backend, window);
         using GpuSurface surface = window.CreateSwapchain(device);
-        using var renderer = new TriangleRenderer(device);
+        using var renderer = new TriangleRenderer(device, stage);
 
         int width = Math.Max(0, window.Width);
         int height = Math.Max(0, window.Height);
@@ -78,7 +80,7 @@ static int Run(string backend, int? frameLimit)
         }
 
         device.MainQueue.WaitIdle();
-        Console.WriteLine($"triangle: {renderedFrames} frame(s), backend={backend}, device={device.Name}");
+        Console.WriteLine($"tutorial-3d: {renderedFrames} frame(s), stage={stage}, backend={backend}, device={device.Name}, aspect={renderer.AspectRatio:F4}");
         return 0;
     }
     catch (Exception ex)
@@ -113,4 +115,35 @@ static int? ParseFrameLimit(string[] args)
         if (args[i] == "--frames" && int.TryParse(args[i + 1], out int frames))
             return Math.Max(1, frames);
     return null;
+}
+
+static (int Width, int Height) ParseSize(string[] args)
+{
+    for (int i = 0; i + 1 < args.Length; i++)
+    {
+        if (args[i] != "--size") continue;
+        string[] parts = args[i + 1].Split('x', 'X');
+        if (parts.Length == 2 && int.TryParse(parts[0], out int width) && int.TryParse(parts[1], out int height)
+            && width > 0 && height > 0)
+            return (width, height);
+        throw new ArgumentException("--size must be a positive WIDTHxHEIGHT value, for example 801x603.");
+    }
+    return (800, 600);
+}
+
+static TutorialStage ParseStage(string[] args)
+{
+    for (int i = 0; i + 1 < args.Length; i++)
+    {
+        if (args[i] != "--stage") continue;
+        return args[i + 1].ToLowerInvariant() switch
+        {
+            "triangle" => TutorialStage.Triangle,
+            "texture" or "quad" => TutorialStage.Texture,
+            "transform" or "cube" => TutorialStage.Transform,
+            "lighting" or "light" => TutorialStage.Lighting,
+            _ => throw new ArgumentException("--stage must be triangle, texture, transform, or lighting."),
+        };
+    }
+    return TutorialStage.Triangle;
 }
