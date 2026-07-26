@@ -1,0 +1,49 @@
+<Project>
+  <!--
+    Gallery とテストで共有する Git 管理フォント。外部リポジトリ全体を submodule にせず、
+    レビュー済みの TTF と OFL を assets/fonts/ に一元化する。
+  -->
+  <PropertyGroup>
+    <LuxelFontAssetsDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)fonts'))$([System.IO.Path]::DirectorySeparatorChar)</LuxelFontAssetsDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="$(LuxelFontAssetsDir)BIZUDGothic-Regular.ttf">
+      <Link>fonts/BIZUDGothic-Regular.ttf</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="$(LuxelFontAssetsDir)BIZUDGothic-Bold.ttf">
+      <Link>fonts/BIZUDGothic-Bold.ttf</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="$(LuxelFontAssetsDir)UDEVGothic-Regular.ttf">
+      <Link>fonts/UDEVGothic-Regular.ttf</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="$(LuxelFontAssetsDir)BIZUDGothic-OFL.txt">
+      <Link>licenses/BIZUDGothic-OFL.txt</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="$(LuxelFontAssetsDir)UDEVGothic-LICENSE.txt">
+      <Link>licenses/UDEVGothic-LICENSE.txt</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <Target Name="ValidateLuxelFontAssets" BeforeTargets="PrepareForBuild">
+    <ItemGroup>
+      <_RequiredLuxelFontAsset Include="$(LuxelFontAssetsDir)BIZUDGothic-Regular.ttf" />
+      <_RequiredLuxelFontAsset Include="$(LuxelFontAssetsDir)BIZUDGothic-Bold.ttf" />
+      <_RequiredLuxelFontAsset Include="$(LuxelFontAssetsDir)UDEVGothic-Regular.ttf" />
+      <_RequiredLuxelFontAsset Include="$(LuxelFontAssetsDir)BIZUDGothic-OFL.txt" />
+      <_RequiredLuxelFontAsset Include="$(LuxelFontAssetsDir)UDEVGothic-LICENSE.txt" />
+    </ItemGroup>
+    <Error Condition="!Exists('%(_RequiredLuxelFontAsset.Identity)')"
+           Text="共有フォントアセットが不足しています: %(_RequiredLuxelFontAsset.Identity)" />
+  </Target>
+</Project>

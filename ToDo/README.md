@@ -33,7 +33,7 @@ dotnet run --project src/Luxel.Gallery -- vk e2e         # E2E play 実行 + gol
 dotnet run --project src/Luxel.Gallery -- vk e2e --update "部分一致フィルタ"   # golden 更新
 ```
 
-- 通常ビルドは Git 管理された `shaders/compiled/` を使う。シェーダ更新時は `dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache` が固定 Slang/DXC を `tools/` へ自動取得する。フォントと外部サンプルも固定 URL + SHA-256 で `tools/` へキャッシュする。
+- 通常ビルドは Git 管理された `shaders/compiled/` を使う。シェーダ更新時は `dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache` が固定 Slang/DXC を `tools/` へ自動取得する。共有フォントは `assets/fonts/` でGit管理し、外部サンプルは固定URL + SHA-256で `tools/` へキャッシュする。
 - 検証 GPU は RTX 4080 SUPER (Vulkan 一次、D3D12 二次)。
 
 ### golden (スナップショット) 運用

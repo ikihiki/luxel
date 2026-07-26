@@ -55,7 +55,7 @@ public sealed class VectorFont : IDisposable
 
     /// <summary>
     /// システムフォントを探して読み込む (既定はラテン)。既定候補がない環境では、
-    /// MSBuild が出力した fonts/NotoSans.ttf を決定的な fallback として使う。
+    /// MSBuild が出力した共有 fonts/BIZUDGothic-Regular.ttf を決定的な fallback として使う。
     /// </summary>
     public static VectorFont LoadSystem(params string[] candidates)
     {
@@ -64,7 +64,7 @@ public sealed class VectorFont : IDisposable
         string? path = FindSystemFont(names);
         if (path is not null) return Load(path);
 
-        if (candidates.Length == 0 && FindManagedFont("NotoSans.ttf") is { } managed)
+        if (candidates.Length == 0 && FindManagedFont("BIZUDGothic-Regular.ttf") is { } managed)
             return Load(managed);
 
         throw new FileNotFoundException("利用可能なフォントが見つかりません: " + string.Join(", ", names));
@@ -74,7 +74,7 @@ public sealed class VectorFont : IDisposable
     public static VectorFont LoadSystemJapanese()
     {
         string[] names = ["yumin.ttf", "YuGothM.ttc", "meiryo.ttc", "msgothic.ttc", "BIZ-UDGothicR.ttc"];
-        string? path = FindSystemFont(names) ?? FindManagedFont("NotoSansJP.ttf");
+        string? path = FindSystemFont(names) ?? FindManagedFont("BIZUDGothic-Regular.ttf");
         return path is not null
             ? Load(path)
             : throw new FileNotFoundException("利用可能な日本語フォントが見つかりません: " + string.Join(", ", names));

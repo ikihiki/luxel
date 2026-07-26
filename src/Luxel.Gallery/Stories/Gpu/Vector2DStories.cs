@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Luxel.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
@@ -13,8 +13,8 @@ namespace Luxel.Gallery.Stories;
 /// </summary>
 public static class Vector2DStories
 {
-    private static readonly Lazy<VectorFont> EnFont = new(() => VectorFont.LoadSystem());
-    private static readonly Lazy<VectorFont> JpFont = new(() => VectorFont.LoadSystemJapanese());
+    private static readonly Lazy<VectorFont> EnFont = new(() => GalleryFonts.Load(GalleryFonts.Regular));
+    private static readonly Lazy<VectorFont> JpFont = new(() => GalleryFonts.Load(GalleryFonts.Regular));
 
     /// <summary>EvenOdd の穴あきリング + 塗り/ストローク/ベクターテキスト。
     /// パスは三角形分割されず、GPU compute がそのまま塗る。</summary>
