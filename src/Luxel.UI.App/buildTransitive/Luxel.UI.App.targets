@@ -1,0 +1,26 @@
+<Project>
+  <PropertyGroup>
+    <_LuxelUiAppContentRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\contentFiles\any\any'))</_LuxelUiAppContentRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <_LuxelUiAppAsset Include="$(_LuxelUiAppContentRoot)\shaders\*.spv" TargetSubPath="shaders\%(Filename)%(Extension)" />
+    <_LuxelUiAppAsset Include="$(_LuxelUiAppContentRoot)\assets\fonts\*" TargetSubPath="assets\fonts\%(Filename)%(Extension)" />
+    <Content Include="@(_LuxelUiAppAsset)"
+             Link="%(_LuxelUiAppAsset.TargetSubPath)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest"
+             Visible="false" />
+  </ItemGroup>
+  <Target Name="CopyLuxelGlfwCompatibilityAlias" AfterTargets="CopyFilesToOutputDirectory" Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <Copy SourceFiles="$(OutDir)runtimes/linux-x64/native/libglfw.so.3"
+          DestinationFiles="$(OutDir)libglfw.so.3.3"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(OutDir)runtimes/linux-x64/native/libglfw.so.3')" />
+  </Target>
+  <Target Name="PublishLuxelGlfwCompatibilityAlias" AfterTargets="Publish" Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <Copy SourceFiles="$(PublishDir)runtimes/linux-x64/native/libglfw.so.3"
+          DestinationFiles="$(PublishDir)libglfw.so.3.3"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(PublishDir)runtimes/linux-x64/native/libglfw.so.3')" />
+  </Target>
+</Project>

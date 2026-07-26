@@ -14,16 +14,32 @@ internal static partial class Win32Modifiers
     [LibraryImport("user32.dll")]
     private static partial short GetKeyState(int nVirtKey);
 
-    public static KeyModifiers Current()
+    public static WindowKeyModifiers CurrentWindow()
     {
-        KeyModifiers m = KeyModifiers.None;
-        if ((GetKeyState(VK_CONTROL) & Down) != 0) m |= KeyModifiers.Ctrl;
-        if ((GetKeyState(VK_SHIFT) & Down) != 0) m |= KeyModifiers.Shift;
-        if ((GetKeyState(VK_MENU) & Down) != 0) m |= KeyModifiers.Alt;
-        if (((GetKeyState(VK_LWIN) | GetKeyState(VK_RWIN)) & Down) != 0) m |= KeyModifiers.Meta;
+        WindowKeyModifiers m = WindowKeyModifiers.None;
+        if ((GetKeyState(VK_CONTROL) & Down) != 0) m |= WindowKeyModifiers.Control;
+        if ((GetKeyState(VK_SHIFT) & Down) != 0) m |= WindowKeyModifiers.Shift;
+        if ((GetKeyState(VK_MENU) & Down) != 0) m |= WindowKeyModifiers.Alt;
+        if (((GetKeyState(VK_LWIN) | GetKeyState(VK_RWIN)) & Down) != 0) m |= WindowKeyModifiers.Meta;
         return m;
     }
 
-    /// <summary>Win32 のマウスボタン番号 (0=L, 1=R, 2=M) を <see cref="PointerButton"/> へ。</summary>
-    public static PointerButton Button(int b) => b switch { 1 => PointerButton.Right, 2 => PointerButton.Middle, _ => PointerButton.Left };
+    public static KeyModifiers ToUi(WindowKeyModifiers modifiers)
+    {
+        KeyModifiers m = KeyModifiers.None;
+        if (modifiers.HasFlag(WindowKeyModifiers.Control)) m |= KeyModifiers.Ctrl;
+        if (modifiers.HasFlag(WindowKeyModifiers.Shift)) m |= KeyModifiers.Shift;
+        if (modifiers.HasFlag(WindowKeyModifiers.Alt)) m |= KeyModifiers.Alt;
+        if (modifiers.HasFlag(WindowKeyModifiers.Meta)) m |= KeyModifiers.Meta;
+        return m;
+    }
+
+    public static KeyModifiers Current() => ToUi(CurrentWindow());
+
+    public static PointerButton ToUi(WindowPointerButton button) => button switch
+    {
+        WindowPointerButton.Right => PointerButton.Right,
+        WindowPointerButton.Middle => PointerButton.Middle,
+        _ => PointerButton.Left,
+    };
 }

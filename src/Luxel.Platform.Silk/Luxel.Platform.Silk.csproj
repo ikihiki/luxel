@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel\Luxel.csproj" />
+    <PackageReference Include="Silk.NET.Windowing" Version="2.23.0" />
+  </ItemGroup>
+
+  <!-- Silk 2.23 looks for libglfw.so.3.3 while its transitive native package ships libglfw.so.3. -->
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux')) and '$(RuntimeIdentifier)' != 'linux-arm64'">
+    <Content Include="$(NuGetPackageRoot)ultz.native.glfw/3.4.0/runtimes/linux-x64/native/libglfw.so.3"
+             Link="libglfw.so.3.3"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>14</LangVersion>
+    <PackageId>Luxel.UI.App</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Luxel contributors</Authors>
+    <Description>Cross-platform Luxel UI application facade for .NET 10.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <NuspecFile>Luxel.UI.App.nuspec</NuspecFile>
+    <NuspecProperties>Configuration=$(Configuration)</NuspecProperties>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel\Luxel.csproj" />
+    <ProjectReference Include="..\Luxel.Platform.Silk\Luxel.Platform.Silk.csproj" />
+    <ProjectReference Include="..\Luxel.Vulkan\Luxel.Vulkan.csproj" />
+    <ProjectReference Include="..\Luxel.TwoD\Luxel.TwoD.csproj" />
+    <ProjectReference Include="..\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\Luxel.Controls\Luxel.Controls.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\shaders\compiled\raster2d_bounds.spv" Link="shaders\raster2d_bounds.spv" Pack="false"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\shaders\compiled\raster2d_bin.spv" Link="shaders\raster2d_bin.spv" Pack="false"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\shaders\compiled\raster2d_fine.spv" Link="shaders\raster2d_fine.spv" Pack="false"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\assets\fonts\BIZUDGothic-Regular.ttf" Link="assets\fonts\BIZUDGothic-Regular.ttf" Pack="false"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\assets\fonts\BIZUDGothic-OFL.txt" Link="assets\fonts\OFL.txt" Pack="false"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The facade is distributed as one Luxel package; third-party runtime dependencies remain normal NuGet dependencies. -->
+    <PackageReference Include="Silk.NET.Windowing" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.Vulkan" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.Vulkan.Extensions.EXT" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.23.0" />
+    <PackageReference Include="HarfBuzzSharp" Version="14.2.0" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.0" />
+  </ItemGroup>
+
+  <Target Name="ValidateLuxelUiAppShaderCache" BeforeTargets="BeforeBuild">
+    <MSBuild Projects="..\..\shaders\Luxel.ShaderCache.proj" Targets="ValidateSlangShaderCache" Properties="Configuration=$(Configuration)" />
+  </Target>
+</Project>

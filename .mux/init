@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "$(uname -s)" != "Linux" ]]; then
+    exit 0
+fi
+
+missing=()
+for command_name in Xvfb openbox x11vnc websockify xdpyinfo xwininfo scrot; do
+    command -v "${command_name}" >/dev/null 2>&1 || missing+=("${command_name}")
+done
+
+if ((${#missing[@]} > 0)); then
+    printf '[luxel-desktop] optional desktop tools missing: %s\n' "${missing[*]}"
+    printf '[luxel-desktop] install with: eng/desktop/install.sh\n'
+else
+    printf '[luxel-desktop] desktop prerequisites are installed\n'
+    eng/desktop/status.sh || true
+fi
+
+if [[ -e /dev/dri/renderD128 ]]; then
+    printf '[luxel-desktop] render device available: /dev/dri/renderD128\n'
+else
+    printf '[luxel-desktop] no /dev/dri/renderD128; lavapipe may still be available\n'
+fi

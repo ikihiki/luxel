@@ -5,6 +5,20 @@ namespace Luxel.Platform;
 /// <summary>Win32 仮想キーコード → Luxel.UI.Key の対応表 (テスト可能, raw ushort)。</summary>
 public static class KeyMap
 {
+    public static Key FromWindowKey(WindowKey key) => key switch
+    {
+        WindowKey.Tab => Key.Tab, WindowKey.Enter => Key.Enter, WindowKey.Escape => Key.Escape,
+        WindowKey.Space => Key.Space, WindowKey.Left => Key.Left, WindowKey.Up => Key.Up,
+        WindowKey.Right => Key.Right, WindowKey.Down => Key.Down, WindowKey.Home => Key.Home,
+        WindowKey.End => Key.End, WindowKey.Backspace => Key.Backspace, WindowKey.Delete => Key.Delete,
+        WindowKey.PageUp => Key.PageUp, WindowKey.PageDown => Key.PageDown,
+        >= WindowKey.A and <= WindowKey.Z => Key.A + (key - WindowKey.A),
+        >= WindowKey.D0 and <= WindowKey.D9 => Key.D0 + (key - WindowKey.D0),
+        >= WindowKey.F1 and <= WindowKey.F12 => Key.F1 + (key - WindowKey.F1),
+        WindowKey.Slash => Key.Slash,
+        _ => Key.None,
+    };
+
     public static Key FromVk(ushort vk) => vk switch
     {
         0x09 => Key.Tab,

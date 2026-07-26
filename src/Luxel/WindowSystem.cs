@@ -90,13 +90,13 @@ public sealed class NativeWindow : IDisposable
         _win.Moved = (x, y) => Moved?.Invoke(x, y);
         _win.Closed = () => Closed?.Invoke();
         _win.FocusChanged = f => FocusChanged?.Invoke(f);
-        _win.MouseMoved = (x, y) => MouseMoved?.Invoke(x, y);
-        _win.MouseDown = (x, y, b) => MouseDown?.Invoke(x, y, b);
-        _win.MouseUp = (x, y, b) => MouseUp?.Invoke(x, y, b);
-        _win.Wheeled = (x, y, d) => Wheeled?.Invoke(x, y, d);
-        _win.KeyDown = vk => KeyDown?.Invoke(vk);
-        _win.KeyUp = vk => KeyUp?.Invoke(vk);
-        _win.CharTyped = c => CharTyped?.Invoke(c);
+        _win.PointerMoved = input => PointerMoved?.Invoke(input);
+        _win.PointerDown = input => PointerDown?.Invoke(input);
+        _win.PointerUp = input => PointerUp?.Invoke(input);
+        _win.Wheel = input => Wheel?.Invoke(input);
+        _win.KeyDown = input => KeyDown?.Invoke(input);
+        _win.KeyUp = input => KeyUp?.Invoke(input);
+        _win.TextInput = text => TextInput?.Invoke(text);
     }
 
     /// <summary>クライアント領域のカーソル形状の問い合わせ先 (WM_SETCURSOR 相当で呼ばれる)。null = 矢印。</summary>
@@ -122,20 +122,16 @@ public sealed class NativeWindow : IDisposable
     public event Action<int, int>? Moved;
     public event Action? Closed;
     public event Action<bool>? FocusChanged;
-    public event Action<float, float>? MouseMoved;
-    public event Action<float, float, int>? MouseDown;
-    public event Action<float, float, int>? MouseUp;
-    public event Action<float, float, float>? Wheeled;
-    public event Action<ushort>? KeyDown;
-    public event Action<ushort>? KeyUp;
-    public event Action<char>? CharTyped;
+    public event Action<WindowPointerEvent>? PointerMoved;
+    public event Action<WindowPointerEvent>? PointerDown;
+    public event Action<WindowPointerEvent>? PointerUp;
+    public event Action<WindowWheelEvent>? Wheel;
+    public event Action<WindowKeyEvent>? KeyDown;
+    public event Action<WindowKeyEvent>? KeyUp;
+    public event Action<string>? TextInput;
 
-    /// <summary>キー先取りフック (IME/TSF 用, true=消費)。イベントでなく単一 Func (消費判定があるため)。</summary>
-    public Func<ushort, nint, bool>? KeyPreFilter
-    {
-        get => _win.KeyPreFilter;
-        set => _win.KeyPreFilter = value;
-    }
+    /// <summary>Gets an optional backend-specific feature without adding it to the portable window ABI.</summary>
+    public TFeature? GetFeature<TFeature>() where TFeature : class => _win as TFeature;
 
     /// <summary>このウィンドウへのスワップチェーン提示面を取得する (現在のクライアントサイズ)。</summary>
     public GpuSurface CreateSwapchain(GpuDevice device)

@@ -1,4 +1,4 @@
-﻿using Luxel.Abstraction;
+using Luxel.Abstraction;
 using Luxel.Vulkan.Interop;
 using Silk.NET.Core;
 using Silk.NET.Core.Native;
@@ -42,27 +42,53 @@ public sealed unsafe class VulkanBackend : IGpuBackend
     private ExtDebugUtils? _debugUtils;
     private DebugUtilsMessengerEXT _messenger;
     private bool _disposed;
+    private VulkanPresentationMode _presentation;
+    private IVulkanWindowSurface? _windowSurfaceProvider;
+    private KhrSurface? _bootstrapKhrSurface;
+    private SurfaceKHR _bootstrapSurface;
 
     private VulkanBackend(Vk vk) => _vk = vk;
 
     public string Name { get; private set; } = "Vulkan";
     public GpuBackendKind Kind => GpuBackendKind.Vulkan;
     public IGpuBackendQueue MainQueue { get; private set; } = null!;
+    public bool SupportsPresentation => _presentation != VulkanPresentationMode.Disabled;
 
     public static VulkanBackend Create(bool enableValidation = true)
+        => Create(new VulkanBackendOptions { EnableValidation = enableValidation });
+
+    public static VulkanBackend Create(VulkanBackendOptions options)
     {
+        ArgumentNullException.ThrowIfNull(options);
         var backend = new VulkanBackend(Vk.GetApi());
-        backend.Initialize(enableValidation);
-        return backend;
+        try
+        {
+            backend.Initialize(options);
+            return backend;
+        }
+        catch
+        {
+            backend.Dispose();
+            throw;
+        }
     }
 
-    private void Initialize(bool enableValidation)
+    private void Initialize(VulkanBackendOptions options)
     {
-        bool useValidation = enableValidation && IsLayerAvailable("VK_LAYER_KHRONOS_validation");
+        _presentation = ResolvePresentationMode(options.Presentation);
+        _windowSurfaceProvider = options.WindowSurface;
+        if (_presentation == VulkanPresentationMode.Window && _windowSurfaceProvider is null)
+            throw new ArgumentException("Window presentation requires VulkanBackendOptions.WindowSurface.", nameof(options));
+        if (_presentation != VulkanPresentationMode.Window && _windowSurfaceProvider is not null)
+            throw new ArgumentException("WindowSurface can only be supplied with VulkanPresentationMode.Window.", nameof(options));
+
+        bool useValidation = options.EnableValidation && IsLayerAvailable("VK_LAYER_KHRONOS_validation");
         bool useDebugUtils = useValidation && IsInstanceExtensionAvailable(ExtDebugUtils.ExtensionName);
 
+        ValidatePresentationSupport();
         CreateInstance(useValidation, useDebugUtils);
         if (useDebugUtils) SetupDebugMessenger();
+        if (_presentation == VulkanPresentationMode.Window) CreateBootstrapSurface();
         PickPhysicalDevice();
         CreateDevice();
         CreateBindlessLayout();
@@ -89,8 +115,16 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         if (useValidation) layers.Add("VK_LAYER_KHRONOS_validation");
         var extensions = new List<string>();
         if (useDebugUtils) extensions.Add(ExtDebugUtils.ExtensionName);
-        extensions.Add(KhrSurface.ExtensionName);          // ウィンドウ提示用
-        extensions.Add(KhrWin32Surface.ExtensionName);
+        if (_presentation == VulkanPresentationMode.Win32)
+        {
+            extensions.Add(KhrSurface.ExtensionName);
+            extensions.Add(KhrWin32Surface.ExtensionName);
+        }
+        else if (_presentation == VulkanPresentationMode.Window)
+        {
+            extensions.AddRange(_windowSurfaceProvider!.RequiredInstanceExtensions);
+        }
+        extensions = extensions.Distinct(StringComparer.Ordinal).ToList();
 
         var createInfo = new InstanceCreateInfo
         {
@@ -108,6 +142,16 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         SilkMarshal.Free((nint)appInfo.PEngineName);
         if (createInfo.PpEnabledLayerNames != null) SilkMarshal.Free((nint)createInfo.PpEnabledLayerNames);
         if (createInfo.PpEnabledExtensionNames != null) SilkMarshal.Free((nint)createInfo.PpEnabledExtensionNames);
+    }
+
+    private void CreateBootstrapSurface()
+    {
+        if (!_vk.TryGetInstanceExtension(_instance, out KhrSurface khrSurface))
+            throw new VulkanException("Failed to load VK_KHR_surface for window presentation.");
+        _bootstrapKhrSurface = khrSurface;
+        ulong handle = _windowSurfaceProvider!.CreateSurface(_instance.Handle);
+        if (handle == 0) throw new VulkanException("The window surface provider returned a null VkSurfaceKHR.");
+        _bootstrapSurface = new SurfaceKHR(handle);
     }
 
     private void SetupDebugMessenger()
@@ -150,6 +194,8 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         int bestScore = -1;
         foreach (var dev in devices)
         {
+            if (_presentation != VulkanPresentationMode.Disabled &&
+                !IsDeviceExtensionAvailable(dev, KhrSwapchain.ExtensionName)) continue;
             if (!TryFindGraphicsComputeQueue(dev, out _)) continue;
             _vk.GetPhysicalDeviceProperties(dev, out var props);
             int score = props.DeviceType == PhysicalDeviceType.DiscreteGpu ? 1000 : 100;
@@ -176,11 +222,15 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         for (uint i = 0; i < count; i++)
         {
             var flags = props[i].QueueFlags;
-            if ((flags & QueueFlags.GraphicsBit) != 0 && (flags & QueueFlags.ComputeBit) != 0)
+            if ((flags & QueueFlags.GraphicsBit) == 0 || (flags & QueueFlags.ComputeBit) == 0) continue;
+            if (_presentation == VulkanPresentationMode.Window)
             {
-                family = i;
-                return true;
+                VkCheck.Ok(_bootstrapKhrSurface!.GetPhysicalDeviceSurfaceSupport(dev, i, _bootstrapSurface, out Bool32 supported),
+                    "vkGetPhysicalDeviceSurfaceSupportKHR");
+                if (!supported) continue;
             }
+            family = i;
+            return true;
         }
         return false;
     }
@@ -226,7 +276,12 @@ public sealed unsafe class VulkanBackend : IGpuBackend
             PNext = &features12,
         };
 
-        var deviceExtensions = new[] { KhrSwapchain.ExtensionName };
+        string[] deviceExtensions = _presentation == VulkanPresentationMode.Disabled
+            ? []
+            : [KhrSwapchain.ExtensionName];
+        var extensionNames = deviceExtensions.Length > 0
+            ? (byte**)SilkMarshal.StringArrayToPtr(deviceExtensions)
+            : null;
         var deviceInfo = new DeviceCreateInfo
         {
             SType = StructureType.DeviceCreateInfo,
@@ -234,15 +289,39 @@ public sealed unsafe class VulkanBackend : IGpuBackend
             QueueCreateInfoCount = 1,
             PQueueCreateInfos = &queueInfo,
             EnabledExtensionCount = (uint)deviceExtensions.Length,
-            PpEnabledExtensionNames = (byte**)SilkMarshal.StringArrayToPtr(deviceExtensions),
+            PpEnabledExtensionNames = extensionNames,
         };
 
-        VkCheck.Ok(_vk.CreateDevice(_physicalDevice, in deviceInfo, null, out _device), "vkCreateDevice");
-        SilkMarshal.Free((nint)deviceInfo.PpEnabledExtensionNames);
+        try
+        {
+            VkCheck.Ok(_vk.CreateDevice(_physicalDevice, in deviceInfo, null, out _device), "vkCreateDevice");
+        }
+        finally
+        {
+            if (extensionNames != null) SilkMarshal.Free((nint)extensionNames);
+        }
     }
 
     public IGpuBackendSurface CreateSurface(nint windowHandle, uint width, uint height)
-        => new VulkanSurface(_vk, _instance, _physicalDevice, _device, _queue, _queueFamily, windowHandle, width, height);
+    {
+        if (_presentation == VulkanPresentationMode.Disabled)
+            throw new InvalidOperationException(
+                "この Vulkan backend は headless mode で作成されているため presentation surface を作成できません。");
+        if (windowHandle == 0) throw new ArgumentException("A non-zero native window handle is required.", nameof(windowHandle));
+
+        if (_presentation == VulkanPresentationMode.Window)
+        {
+            if (_bootstrapSurface.Handle == 0)
+                throw new InvalidOperationException("This Vulkan backend already transferred its window surface; only one surface is supported.");
+            SurfaceKHR surface = _bootstrapSurface;
+            _bootstrapSurface = default;
+            return VulkanSurface.FromExisting(
+                _vk, _instance, _physicalDevice, _device, _queue, _queueFamily, surface, width, height);
+        }
+
+        return VulkanSurface.FromWin32(
+            _vk, _instance, _physicalDevice, _device, _queue, _queueFamily, windowHandle, width, height);
+    }
 
     // ---- 固定 bindless レイアウト --------------------------------------------
 
@@ -919,6 +998,34 @@ public sealed unsafe class VulkanBackend : IGpuBackend
 
     // ---- availability helpers ------------------------------------------------
 
+    private static VulkanPresentationMode ResolvePresentationMode(VulkanPresentationMode mode)
+        => mode switch
+        {
+            VulkanPresentationMode.Auto => OperatingSystem.IsWindows()
+                ? VulkanPresentationMode.Win32
+                : VulkanPresentationMode.Disabled,
+            VulkanPresentationMode.Win32 when !OperatingSystem.IsWindows() =>
+                throw new PlatformNotSupportedException("Win32 Vulkan presentation は Windows でのみ利用できます。"),
+            _ => mode,
+        };
+
+    private void ValidatePresentationSupport()
+    {
+        IEnumerable<string> required = _presentation switch
+        {
+            VulkanPresentationMode.Win32 => [KhrSurface.ExtensionName, KhrWin32Surface.ExtensionName],
+            VulkanPresentationMode.Window => _windowSurfaceProvider!.RequiredInstanceExtensions,
+            _ => [],
+        };
+        foreach (string extension in required.Distinct(StringComparer.Ordinal))
+        {
+            if (string.IsNullOrWhiteSpace(extension))
+                throw new VulkanException("The window surface provider returned an empty Vulkan instance extension name.");
+            if (!IsInstanceExtensionAvailable(extension))
+                throw new VulkanException($"Required Vulkan instance extension is unavailable: {extension}");
+        }
+    }
+
     private bool IsLayerAvailable(string name)
     {
         uint count = 0;
@@ -949,6 +1056,25 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         return false;
     }
 
+    private bool IsDeviceExtensionAvailable(PhysicalDevice device, string name)
+    {
+        uint count = 0;
+        VkCheck.Ok(_vk.EnumerateDeviceExtensionProperties(device, (byte*)null, ref count, null),
+            "vkEnumerateDeviceExtensionProperties(count)");
+        var properties = new ExtensionProperties[count];
+        fixed (ExtensionProperties* values = properties)
+            VkCheck.Ok(_vk.EnumerateDeviceExtensionProperties(device, (byte*)null, ref count, values),
+                "vkEnumerateDeviceExtensionProperties(properties)");
+        for (int i = 0; i < properties.Length; i++)
+        {
+            fixed (byte* extensionName = properties[i].ExtensionName)
+            {
+                if (SilkMarshal.PtrToString((nint)extensionName) == name) return true;
+            }
+        }
+        return false;
+    }
+
     public void Dispose()
     {
         if (_disposed) return;
@@ -957,6 +1083,11 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         if (_descriptorPool.Handle != 0) _vk.DestroyDescriptorPool(_device, _descriptorPool, null);
         if (_setLayout.Handle != 0) _vk.DestroyDescriptorSetLayout(_device, _setLayout, null);
         if (_device.Handle != 0) _vk.DestroyDevice(_device, null);
+        if (_bootstrapSurface.Handle != 0 && _bootstrapKhrSurface is not null)
+            _bootstrapKhrSurface.DestroySurface(_instance, _bootstrapSurface, null);
+        _bootstrapSurface = default;
+        _bootstrapKhrSurface?.Dispose();
+        _bootstrapKhrSurface = null;
         if (_debugUtils is not null && _messenger.Handle != 0)
             _debugUtils.DestroyDebugUtilsMessenger(_instance, _messenger, null);
         _debugUtils?.Dispose();
