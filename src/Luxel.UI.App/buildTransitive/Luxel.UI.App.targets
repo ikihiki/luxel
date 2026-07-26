@@ -11,16 +11,32 @@
              CopyToPublishDirectory="PreserveNewest"
              Visible="false" />
   </ItemGroup>
-  <Target Name="CopyLuxelGlfwCompatibilityAlias" AfterTargets="CopyFilesToOutputDirectory" Condition="$([MSBuild]::IsOSPlatform('Linux'))">
-    <Copy SourceFiles="$(OutDir)runtimes/linux-x64/native/libglfw.so.3"
-          DestinationFiles="$(OutDir)libglfw.so.3.3"
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <_LuxelUiAppRuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">linux-x64</_LuxelUiAppRuntimeIdentifier>
+    <_LuxelUiAppRuntimeIdentifier Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</_LuxelUiAppRuntimeIdentifier>
+  </PropertyGroup>
+  <Target Name="CopyLuxelGlfwCompatibilityAlias" AfterTargets="CopyFilesToOutputDirectory"
+          Condition="$([MSBuild]::IsOSPlatform('Linux')) and '$(_LuxelUiAppRuntimeIdentifier)' == 'linux-x64'">
+    <ItemGroup>
+      <_LuxelGlfwOutputSource Include="$(OutDir)libglfw.so.3" Condition="Exists('$(OutDir)libglfw.so.3')" />
+      <_LuxelGlfwOutputSource Include="$(OutDir)runtimes/$(_LuxelUiAppRuntimeIdentifier)/native/libglfw.so.3"
+                              Condition="'@(_LuxelGlfwOutputSource)' == '' and Exists('$(OutDir)runtimes/$(_LuxelUiAppRuntimeIdentifier)/native/libglfw.so.3')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_LuxelGlfwOutputSource)"
+          DestinationFiles="@(_LuxelGlfwOutputSource->'$(OutDir)libglfw.so.3.3')"
           SkipUnchangedFiles="true"
-          Condition="Exists('$(OutDir)runtimes/linux-x64/native/libglfw.so.3')" />
+          Condition="'@(_LuxelGlfwOutputSource)' != ''" />
   </Target>
-  <Target Name="PublishLuxelGlfwCompatibilityAlias" AfterTargets="Publish" Condition="$([MSBuild]::IsOSPlatform('Linux'))">
-    <Copy SourceFiles="$(PublishDir)runtimes/linux-x64/native/libglfw.so.3"
-          DestinationFiles="$(PublishDir)libglfw.so.3.3"
+  <Target Name="PublishLuxelGlfwCompatibilityAlias" AfterTargets="Publish"
+          Condition="$([MSBuild]::IsOSPlatform('Linux')) and '$(_LuxelUiAppRuntimeIdentifier)' == 'linux-x64'">
+    <ItemGroup>
+      <_LuxelGlfwPublishSource Include="$(PublishDir)libglfw.so.3" Condition="Exists('$(PublishDir)libglfw.so.3')" />
+      <_LuxelGlfwPublishSource Include="$(PublishDir)runtimes/$(_LuxelUiAppRuntimeIdentifier)/native/libglfw.so.3"
+                               Condition="'@(_LuxelGlfwPublishSource)' == '' and Exists('$(PublishDir)runtimes/$(_LuxelUiAppRuntimeIdentifier)/native/libglfw.so.3')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_LuxelGlfwPublishSource)"
+          DestinationFiles="@(_LuxelGlfwPublishSource->'$(PublishDir)libglfw.so.3.3')"
           SkipUnchangedFiles="true"
-          Condition="Exists('$(PublishDir)runtimes/linux-x64/native/libglfw.so.3')" />
+          Condition="'@(_LuxelGlfwPublishSource)' != ''" />
   </Target>
 </Project>

@@ -57,7 +57,8 @@
     <ProjectReference Include="..\Luxel.Gltf\Luxel.Gltf.csproj" />
     <ProjectReference Include="..\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
     <!-- [Story] 収集 + コントロールの生成ファクトリ/デバッグ焼き込み -->
-    <ProjectReference Include="..\Luxel.UI.Generators\Luxel.UI.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU" />
+    <ProjectReference Include="..\Luxel.UI.Generators\Luxel.UI.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU"
+                      GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
   </ItemGroup>
 
   <!-- Gallery / e2e / publish で共有 BIZ/UDEV フォントを使う。 -->

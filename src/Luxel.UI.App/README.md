@@ -16,4 +16,10 @@ Packages are published to GitHub Packages when a GitHub Release is published. Re
 
 Consumers must add the owner feed `https://nuget.pkg.github.com/ikihiki/index.json` to their NuGet configuration and authenticate with a GitHub token that can read packages.
 
-The package carries the required Rasterizer2D SPIR-V shaders, bundled font, Linux native dependencies, and UI source generator. Framework-dependent deployment is supported; trimming, Native AOT, and single-file publish are not yet supported.
+The package carries the required Rasterizer2D SPIR-V shaders, bundled font, Linux native dependencies, and UI source generator.
+
+Framework-dependent deployment and Native AOT on Ubuntu/glibc `linux-x64` are supported. Native AOT still publishes GLFW, HarfBuzz, shaders, and fonts as sidecars; arm64, musl/Alpine, and a completely static single executable are not yet supported. Publish with an explicit RID:
+
+```bash
+dotnet publish app.cs -c Release -r linux-x64
+```

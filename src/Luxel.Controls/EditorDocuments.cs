@@ -184,6 +184,8 @@ public sealed class ObjectDocument<T> : IEditorDocument where T : class
     private readonly Dictionary<string, object?> _shadow = new();   // 直前値 (undo の Old 用)
     private string _saved;
 
+    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode(
+        "ObjectDocument<T> uses reflection-based PropertyGrid discovery and JSON serialization. Supply an AOT-safe document implementation for trimmed applications.")]
     public ObjectDocument(string kind, string title, T target,
                           IReadOnlyList<CommandContribution>? contributions = null)
     {
@@ -206,6 +208,8 @@ public sealed class ObjectDocument<T> : IEditorDocument where T : class
     public Signal<bool> Dirty { get; } = new(false);
     public IReadOnlyList<CommandContribution> Contributions { get; }
 
+    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode(
+        "ObjectDocument<T> uses reflection-based PropertyGrid discovery.")]
     public Widget CreateView()
     {
         PropertyGrid grid = Kit.PropertyGrid(
@@ -244,6 +248,8 @@ public sealed class ObjectDocument<T> : IEditorDocument where T : class
         SetMember(name, @new);
     }
 
+    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode(
+        "ObjectDocument<T> uses reflection-based JSON serialization.")]
     public string Serialize()
     {
         _saved = JsonSerializer.Serialize(Target, JsonOpts);
@@ -251,6 +257,8 @@ public sealed class ObjectDocument<T> : IEditorDocument where T : class
         return _saved;
     }
 
+    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode(
+        "ObjectDocument<T> uses reflection-based JSON serialization.")]
     public void LoadFrom(string content)
     {
         Target = JsonSerializer.Deserialize<T>(content, JsonOpts)

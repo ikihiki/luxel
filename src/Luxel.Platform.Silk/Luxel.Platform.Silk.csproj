@@ -4,9 +4,13 @@
     <PackageReference Include="Silk.NET.Windowing" Version="2.23.0" />
   </ItemGroup>
 
-  <!-- Silk 2.23 looks for libglfw.so.3.3 while its transitive native package ships libglfw.so.3. -->
-  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux')) and '$(RuntimeIdentifier)' != 'linux-arm64'">
-    <Content Include="$(NuGetPackageRoot)ultz.native.glfw/3.4.0/runtimes/linux-x64/native/libglfw.so.3"
+  <!-- Linux v1 supports glibc x64. Silk 2.23 probes libglfw.so.3.3 while its native package ships libglfw.so.3. -->
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <_LuxelGlfwRid Condition="'$(RuntimeIdentifier)' == ''">linux-x64</_LuxelGlfwRid>
+    <_LuxelGlfwRid Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</_LuxelGlfwRid>
+  </PropertyGroup>
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux')) and '$(_LuxelGlfwRid)' == 'linux-x64'">
+    <Content Include="$(NuGetPackageRoot)ultz.native.glfw/3.4.0/runtimes/$(_LuxelGlfwRid)/native/libglfw.so.3"
              Link="libglfw.so.3.3"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />

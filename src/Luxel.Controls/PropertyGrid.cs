@@ -65,6 +65,8 @@ public sealed partial class PropertyGrid : CompositeControl
     public Widget? EditorOf(string name) => _editors.GetValueOrDefault(name);
 
     /// <summary>対象から行を発見する (宣言順、public 読み書き + 対応型のみ)。テスト用に公開。</summary>
+    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode(
+        "PropertyGrid discovers arbitrary runtime members. Native AOT callers should use generated/static property descriptors instead.")]
     public static List<PropertyRow> Discover(object target)
     {
         var rows = new List<PropertyRow>();

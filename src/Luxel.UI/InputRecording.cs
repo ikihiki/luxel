@@ -38,30 +38,30 @@ public sealed record InputRecording(int Version, int Frames, IReadOnlyList<Recor
     /// <summary>現行フォーマット版。</summary>
     public const int CurrentVersion = 1;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,   // 0/false/"" を省いて簡潔に
-        WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() },   // Kind/Key は文字列で可読に
-    };
-
     /// <summary>空の記録。</summary>
     public static InputRecording Empty { get; } = new(CurrentVersion, 0, []);
 
     /// <summary>JSON へ直列化する (人が読める・差分に強いインデント + 文字列 enum)。</summary>
-    public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
+    public string ToJson() => JsonSerializer.Serialize(this, InputRecordingJsonContext.Default.InputRecording);
 
     /// <summary>JSON から復元する。version 不一致は例外 (前方互換は将来対応)。</summary>
     public static InputRecording FromJson(string json)
     {
-        InputRecording? rec = JsonSerializer.Deserialize<InputRecording>(json, JsonOptions)
+        InputRecording? rec = JsonSerializer.Deserialize(json, InputRecordingJsonContext.Default.InputRecording)
             ?? throw new FormatException("入力記録の JSON が null にデシリアライズされた");
         if (rec.Version != CurrentVersion)
             throw new FormatException($"未対応の入力記録バージョン {rec.Version} (対応 = {CurrentVersion})");
         return rec;
     }
 }
+
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+    WriteIndented = true,
+    UseStringEnumConverter = true)]
+[JsonSerializable(typeof(InputRecording))]
+internal sealed partial class InputRecordingJsonContext : JsonSerializerContext;
 
 /// <summary>記録を <see cref="PlayDriver"/> の play コード列 (<c>d.Click(...)</c> 等) に起こす。
 /// <para>手操作の記録を回帰テスト用 play の下書きに変換するのが狙い — 低レベルな

@@ -1,0 +1,54 @@
+name: Test Linux Native AOT
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/test-native-aot.yml'
+      - 'assets/**'
+      - 'eng/desktop/**'
+      - 'samples/FileBasedApps/**'
+      - 'shaders/**'
+      - 'src/Luxel*/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-x64:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install Linux desktop, Vulkan, and Native AOT prerequisites
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            xvfb openbox x11vnc novnc websockify x11-utils x11-xserver-utils xauth xdotool scrot \
+            dbus-x11 fonts-dejavu-core fonts-noto-cjk mesa-vulkan-drivers libvulkan1 vulkan-tools \
+            clang zlib1g-dev binutils file
+
+      - name: Start test desktop
+        run: eng/desktop/start.sh
+
+      - name: Publish and run project/package Native AOT fixtures
+        shell: bash
+        run: |
+          source "${XDG_RUNTIME_DIR:-/tmp}/luxel-desktop-${UID}/environment"
+          eng/desktop/healthcheck.sh
+          rm -rf /tmp/luxel-aot-project
+          dotnet publish samples/FileBasedApps/HelloLuxel.Aot.Linux.cs \
+            -c Release -r linux-x64 -o /tmp/luxel-aot-project -p:TrimmerSingleWarn=false
+          (cd /tmp && LUXEL_RUN_FRAMES=1 /tmp/luxel-aot-project/HelloLuxel.Aot.Linux)
+          samples/FileBasedApps/test-package-aot.sh
+
+      - name: Stop test desktop
+        if: always()
+        run: eng/desktop/stop.sh
