@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Luxel.TwoD\Luxel.TwoD.csproj" />
     <PackageReference Include="SkiaSharp" Version="3.116.1" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.116.1" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
   </ItemGroup>
 
   <PropertyGroup>

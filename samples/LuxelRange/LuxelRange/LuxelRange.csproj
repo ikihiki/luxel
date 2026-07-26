@@ -39,14 +39,23 @@
   <PropertyGroup>
     <KhronosFoxCommit>5bad5aaa0bbb5d0f9cdc934e626f27d0df1e79b8</KhronosFoxCommit>
     <KhronosFoxSha256>D97044E701822BAC5A62696459B27D7B375AADA5DE8574ED4362EDBBA94771F7</KhronosFoxSha256>
+    <KhronosFoxLicenseSha256>1EA9BA5E4A5F22552E2FEB44719AF14D4139580BEF0CE5DBBA3709AF98CEA445</KhronosFoxLicenseSha256>
     <KhronosSampleCacheDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\..\tools\khronos-samples'))</KhronosSampleCacheDir>
     <KhronosFoxPath>$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', 'Fox.glb'))</KhronosFoxPath>
+    <KhronosFoxLicensePath>$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', 'Fox-LICENSE.md'))</KhronosFoxLicensePath>
+    <KhronosFoxDownloadedLicensePath>$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', 'LICENSE.md'))</KhronosFoxDownloadedLicensePath>
     <KhronosFoxUrl>https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/$(KhronosFoxCommit)/Models/Fox/glTF-Binary/Fox.glb</KhronosFoxUrl>
+    <KhronosFoxLicenseUrl>https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/$(KhronosFoxCommit)/Models/Fox/LICENSE.md</KhronosFoxLicenseUrl>
   </PropertyGroup>
 
   <ItemGroup>
     <Content Include="$(KhronosFoxPath)">
       <Link>assets/Fox.glb</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="$(KhronosFoxLicensePath)">
+      <Link>licenses/Fox-LICENSE.md</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
@@ -59,13 +68,28 @@
                   DestinationFolder="$(KhronosSampleCacheDir)"
                   Retries="3"
                   RetryDelayMilliseconds="1000" />
+    <DownloadFile Condition="!Exists('$(KhronosFoxLicensePath)')"
+                  SourceUrl="$(KhronosFoxLicenseUrl)"
+                  DestinationFolder="$(KhronosSampleCacheDir)"
+                  Retries="3"
+                  RetryDelayMilliseconds="1000" />
+    <Copy Condition="!Exists('$(KhronosFoxLicensePath)') and Exists('$(KhronosFoxDownloadedLicensePath)')"
+          SourceFiles="$(KhronosFoxDownloadedLicensePath)"
+          DestinationFiles="$(KhronosFoxLicensePath)" />
     <Error Condition="!Exists('$(KhronosFoxPath)')"
            Text="Khronos Fox.glb を取得できませんでした: $(KhronosFoxUrl)" />
+    <Error Condition="!Exists('$(KhronosFoxLicensePath)')"
+           Text="Khronos Fox のライセンスを取得できませんでした: $(KhronosFoxLicenseUrl)" />
     <GetFileHash Files="$(KhronosFoxPath)" Algorithm="SHA256">
       <Output TaskParameter="Items" ItemName="_KhronosFoxHash" />
     </GetFileHash>
+    <GetFileHash Files="$(KhronosFoxLicensePath)" Algorithm="SHA256">
+      <Output TaskParameter="Items" ItemName="_KhronosFoxLicenseHash" />
+    </GetFileHash>
     <Error Condition="'@(_KhronosFoxHash->'%(FileHash)')' != '$(KhronosFoxSha256)'"
            Text="Fox.glb の SHA-256 が一致しません。$(KhronosFoxPath) を削除して再ビルドしてください。" />
+    <Error Condition="'@(_KhronosFoxLicenseHash->'%(FileHash)')' != '$(KhronosFoxLicenseSha256)'"
+           Text="Fox-LICENSE.md の SHA-256 が一致しません。$(KhronosFoxLicensePath) を削除して再ビルドしてください。" />
   </Target>
 
   <!-- Slang シェーダを出力/publish の shaders/ へ。targets 側が publish コピーも面倒を見る。 -->

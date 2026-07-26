@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using HarfBuzzSharp;
 using Luxel.TwoD;
@@ -53,23 +53,57 @@ public sealed class VectorFont : IDisposable
 
     public static VectorFont Load(string path, int fontIndex = 0) => new(File.ReadAllBytes(path), fontIndex);
 
-    /// <summary>よくある Windows フォントを探して読み込む (既定はラテン)。</summary>
+    /// <summary>
+    /// システムフォントを探して読み込む (既定はラテン)。既定候補がない環境では、
+    /// MSBuild が出力した fonts/NotoSans.ttf を決定的な fallback として使う。
+    /// </summary>
     public static VectorFont LoadSystem(params string[] candidates)
     {
-        string dir = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
         string[] names = candidates.Length > 0 ? candidates
             : ["arial.ttf", "segoeui.ttf", "consola.ttf", "tahoma.ttf", "verdana.ttf"];
-        foreach (string n in names)
-        {
-            string p = Path.Combine(dir, n);
-            if (File.Exists(p)) return Load(p);
-        }
+        string? path = FindSystemFont(names);
+        if (path is not null) return Load(path);
+
+        if (candidates.Length == 0 && FindManagedFont("NotoSans.ttf") is { } managed)
+            return Load(managed);
+
         throw new FileNotFoundException("利用可能なフォントが見つかりません: " + string.Join(", ", names));
     }
 
-    /// <summary>日本語フォント (かな/漢字対応) を探して読み込む。</summary>
+    /// <summary>日本語フォント (かな/漢字対応) を探し、無ければ管理対象 Noto Sans JP を読み込む。</summary>
     public static VectorFont LoadSystemJapanese()
-        => LoadSystem("yumin.ttf", "YuGothM.ttc", "meiryo.ttc", "msgothic.ttc", "BIZ-UDGothicR.ttc");
+    {
+        string[] names = ["yumin.ttf", "YuGothM.ttc", "meiryo.ttc", "msgothic.ttc", "BIZ-UDGothicR.ttc"];
+        string? path = FindSystemFont(names) ?? FindManagedFont("NotoSansJP.ttf");
+        return path is not null
+            ? Load(path)
+            : throw new FileNotFoundException("利用可能な日本語フォントが見つかりません: " + string.Join(", ", names));
+    }
+
+    private static string? FindSystemFont(IEnumerable<string> names)
+    {
+        string dir = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
+        if (string.IsNullOrEmpty(dir)) return null;
+        foreach (string name in names)
+        {
+            string path = Path.Combine(dir, name);
+            if (File.Exists(path)) return path;
+        }
+        return null;
+    }
+
+    private static string? FindManagedFont(string fileName)
+    {
+        string? configured = Environment.GetEnvironmentVariable("LUXEL_FONT_DIR");
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            string configuredPath = Path.Combine(configured, fileName);
+            if (File.Exists(configuredPath)) return configuredPath;
+        }
+
+        string bundledPath = Path.Combine(AppContext.BaseDirectory, "fonts", fileName);
+        return File.Exists(bundledPath) ? bundledPath : null;
+    }
 
     /// <summary>px 高さ (ascent−descent 基準 — 旧実装と同じ規約) → フォント単位のスケール。</summary>
     private float Scale(float pixelHeight) => pixelHeight / _heightUnits;

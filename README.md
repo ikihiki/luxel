@@ -97,9 +97,24 @@ dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache
 自動取得の対応環境は `linux-x64`、`win-x64`、`win-arm64`。独自配置を使う場合は
 `/p:SlangcPath=...` を指定できるが、DXIL 生成用 DXC も利用可能にする必要がある。
 
+## 管理フォント
+
+Windows 標準フォントがない Linux / CI では、`tests/Luxel.Tests` のビルドが `assets/Luxel.ManagedFonts.targets` を通じて
+Google Fonts の固定コミットから Noto Sans と Noto Sans JP を `tools/fonts/` へ取得する。SHA-256 と OFL ライセンスを検証・保存し、
+テスト出力の `fonts/` と `licenses/` へコピーする。`VectorFont.LoadSystem*` はシステムフォントを優先し、存在しない場合だけ管理フォントへ
+フォールバックする。Linux 用 HarfBuzzSharp / SkiaSharp native assets も対象プロジェクトから条件付き参照する。
+
 ## Khronos サンプルアセット
 
 LuxelRange が使用する `Fox.glb` は、初回ビルド時に KhronosGroup の公式
 `glTF-Sample-Assets` リポジトリの固定コミットから `tools/khronos-samples/` へ自動取得する。
 取得ファイルは SHA-256 を毎ビルド検証し、2回目以降はローカルキャッシュを再利用する。
 `tools/` を削除すれば次回ビルド時に再取得される。
+モデルのライセンスも同じ固定コミットから取得し、`licenses/Fox-LICENSE.md` として build / publish 出力へ含める。
+
+## 外部アセットと Git submodule
+
+GLB とフォントには Git submodule を使わない。`glTF-Sample-Assets` と `google/fonts` は、必要な数ファイルに対して上流リポジトリ全体が非常に大きく、
+submodule はファイル単位の依存や clone 時の sparse checkout を保証しない。また `git submodule update --init`、CI設定、更新手順という別の運用が増える。
+このリポジトリでは、必要ファイルだけを固定コミット URL から取得し、SHA-256 とライセンスを検証して無視対象の `tools/` にキャッシュする方式へ統一する。
+上流ソースツリー自体を開発・検証する必要が生じた場合に限り、submodule を再検討する。

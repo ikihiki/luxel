@@ -73,4 +73,7 @@
     <ProjectReference Include="..\..\src\Luxel.TwoD.Skia\Luxel.TwoD.Skia.csproj" />
   </ItemGroup>
 
+  <!-- Windows 標準フォントがない CI/Linux では固定 Noto Sans fallback を取得してテスト出力へ含める。 -->
+  <Import Project="..\..\assets\Luxel.ManagedFonts.targets" />
+
 </Project>

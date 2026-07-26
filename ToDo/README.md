@@ -33,7 +33,7 @@ dotnet run --project src/Luxel.Gallery -- vk e2e         # E2E play 実行 + gol
 dotnet run --project src/Luxel.Gallery -- vk e2e --update "部分一致フィルタ"   # golden 更新
 ```
 
-- シェーダビルドには `tools/slang/` (standalone Slang + `tools/slang/bin/` に dxcompiler.dll/dxil.dll) が必要。リポジトリ非含。git worktree で作業する場合は本体の tools/ へ junction を張る。
+- 通常ビルドは Git 管理された `shaders/compiled/` を使う。シェーダ更新時は `dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache` が固定 Slang/DXC を `tools/` へ自動取得する。フォントと外部サンプルも固定 URL + SHA-256 で `tools/` へキャッシュする。
 - 検証 GPU は RTX 4080 SUPER (Vulkan 一次、D3D12 二次)。
 
 ### golden (スナップショット) 運用
