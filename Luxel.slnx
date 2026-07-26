@@ -18,6 +18,7 @@
     <Project Path="src/Luxel.Document/Luxel.Document.csproj" />
     <Project Path="src/Luxel.Framework.DevTools/Luxel.Framework.DevTools.csproj" />
     <Project Path="src/Luxel.Framework/Luxel.Framework.csproj" />
+    <Project Path="src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj" />
     <Project Path="src/Luxel.Gallery/Luxel.Gallery.csproj" />
     <Project Path="src/Luxel.Gltf/Luxel.Gltf.csproj" />
     <Project Path="src/Luxel.Highlight.TextMate/Luxel.Highlight.TextMate.csproj" />
@@ -63,6 +64,7 @@
     <Project Path="samples/LuxelRange/LuxelRange/LuxelRange.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj" />
     <Project Path="tests/Luxel.E2e.Tests/Luxel.E2e.Tests.csproj" />
     <Project Path="tests/Luxel.Platform.Silk.Tests/Luxel.Platform.Silk.Tests.csproj" />
     <Project Path="tests/Luxel.Vulkan.Tests/Luxel.Vulkan.Tests.csproj" />

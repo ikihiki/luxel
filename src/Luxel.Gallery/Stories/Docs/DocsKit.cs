@@ -19,13 +19,13 @@ internal static class DocsKit
     /// 出す — **この Build が登録した knob だけ** (登録数の前後差分で切り出す)。
     /// ソース表示は <see cref="StorySource"/> (生 markdown hole) を隣に置く。
     /// パス不明はエラーカード (ページ全体は落とさない)。</summary>
-    internal static Widget StoryRef(StoryContext ctx, string path, bool knobs = false)
+    internal static DocEmbed StoryRef(StoryContext ctx, string path, bool knobs = false)
     {
         StoryInfo? s = StoryRegistry.Find(path);
         if (s is null)
-            return VStack(6)[
+            return new DocEmbed(VStack(6)[
                 Text(path, 12, color: Bind.From(() => UiTheme.T.TextMuted)),
-                Alert($"ストーリーが見つかりません: {path}", Intent.Danger)];
+                Alert($"ストーリーが見つかりません: {path}", Intent.Danger)], DocEmbedKind.StoryRef, path);
 
         int before = ctx.Knobs.Count;
         // 埋め込みは ctx を共有するが、play はページへ漏らさない (golden はページ自身の play が撮る)
@@ -46,7 +46,7 @@ internal static class DocsKit
             parts.Add(KnobsTable(mine, width: 640,
                 onEdit: (_, k, v) => ctx.QueueKnobEdit(k, v)));
         }
-        return VStack(6)[parts.ToArray()];
+        return new DocEmbed(VStack(6)[parts.ToArray()], DocEmbedKind.StoryRef, path);
     }
 
     /// <summary>ストーリーの C# ソース (storysource — ジェネレーターが焼き込み) をコードフェンスとして

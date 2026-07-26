@@ -85,6 +85,34 @@ public sealed class GalleryHost : IDisposable
         SelectCore(story, e2e: false);
     }
 
+    /// <summary>Selects exactly one registered story or throws instead of silently retaining the previous story.</summary>
+    public void SelectExact(string path)
+        => SelectForE2e(StoryRegistry.Find(path)
+            ?? throw new KeyNotFoundException($"Story not found: {path}"));
+
+    /// <summary>The currently realized widget tree. Intended for deterministic export/introspection.</summary>
+    public Widget? CurrentRoot => _root;
+
+    /// <summary>Realizes a standalone widget for deterministic documentation capture.</summary>
+    public void SelectWidget(Widget widget, int width = 800, int height = 480, bool dark = false)
+    {
+        TearDown();
+        _w = width;
+        _h = height;
+        _dark = dark;
+        ApplyTheme();
+        _canvas = new RetainedCanvas(_raster);
+        _host = new UiHost(_canvas, _font, _w, _h);
+        UiHostCommands.RegisterDefaults(Commands, _host);
+        _ctx = new StoryContext(_resources);
+        _ctx.SetServices(GalleryServices.Provider);
+        _root = widget;
+        _host.SetRoot(widget);
+        _fb = _device.Malloc((ulong)(_w * _h * 4), GpuMemoryKind.HostMapped);
+        _frameHash = 0;
+        Render();
+    }
+
     internal void SelectForE2e(StoryInfo story) => SelectCore(story, e2e: true);
 
     private void SelectCore(StoryInfo story, bool e2e)

@@ -1,5 +1,26 @@
 # Luxel — 「No Graphics API」C# 実装
 
+## 静的Gallery / GitHub Pages
+
+ネイティブGalleryを操作可能な正としつつ、同じ`StoryRegistry.All`からGitHub Pages向けの静的HTML版を生成できる。
+Story preview、`StoryRef`、通常のWidget埋め込み、Mermaid、数式はoffscreen VulkanでPNG化され、静的版では操作できないことを明示する。
+
+```bash
+# Linux/CIではMesa lavapipe（mesa-vulkan-drivers）を用意する
+dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site
+
+# 対象を絞って確認する場合
+dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site --filter Controls/Button
+```
+
+生成物は相対URLだけを使い、`.nojekyll`、hash routing、sidebar、全文検索、light/dark themeを含む。
+既存Vulkan goldenを代表previewとして優先し、不足画像はVulkanで決定的に生成する。`RealWindowOnly`や描画失敗は
+黙って省略せず、明示的な状態cardとして出力する。`luxel-ui` placeholder、local参照切れ、root absolute URLはexport時に検証する。
+
+生成先の`artifacts/`はGitへcommitしない。`.github/workflows/deploy-pages.yml`は`main`へのpushまたは手動実行で
+Ubuntu/lavapipe上のtestとexportを行い、公式GitHub Pages actionsでdeployする。初回のみrepositoryの
+**Settings → Pages → Source**を**GitHub Actions**へ設定する。
+
 [Sebastian Aaltonen の *No Graphics API*](https://www.sebastianaaltonen.com/blog/no-graphics-api)
 の設計を C# で提供する薄いグラフィックエンジン。最新のバインドレス GPU が備える機能
 (64bit ポインタ / bindless / dynamic rendering / stage バリア) の上に、ディスクリプタセットや
@@ -141,11 +162,12 @@ LuxelCavernは同じRegularをCore.dllへ埋め込む。`VectorFont.LoadSystem*`
 
 ## Khronos サンプルアセット
 
-LuxelRange が使用する `Fox.glb` は、初回ビルド時に KhronosGroup の公式
-`glTF-Sample-Assets` リポジトリの固定コミットから `tools/khronos-samples/` へ自動取得する。
+LuxelRangeが使用する`Fox.glb`と静的Galleryが使用する`Box.gltf` / `Box0.bin`は、初回ビルド時にKhronosGroupの公式
+`glTF-Sample-Assets`リポジトリの固定コミットから`tools/khronos-samples/`へ自動取得する。
 取得ファイルは SHA-256 を毎ビルド検証し、2回目以降はローカルキャッシュを再利用する。
 `tools/` を削除すれば次回ビルド時に再取得される。
-モデルのライセンスも同じ固定コミットから取得し、`licenses/Fox-LICENSE.md` として build / publish 出力へ含める。
+モデルのライセンスも同じ固定コミットから取得してSHA-256を検証する。Foxは`licenses/Fox-LICENSE.md`としてbuild/publishへ、
+Boxは静的Galleryの`licenses/Box-LICENSE.md`としてPages成果物へ含める。
 
 ## 外部アセットと Git submodule
 

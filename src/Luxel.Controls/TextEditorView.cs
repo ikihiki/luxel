@@ -43,6 +43,9 @@ public sealed partial class TextEditorView : Widget, ITextInput
     /// <summary>Markdown 文書レンダラの場合、索引用の markdown ソース (build 時に取れる = realize 不要)。
     /// null = 通常のエディタ (docs 索引の対象外)。<see cref="MarkdownDoc"/> が設定する。</summary>
     public string? DocSource { get; set; }
+    /// <summary>Structured live-embed metadata associated with <see cref="DocSource"/>.
+    /// Native rendering continues through <see cref="WidgetResolver"/>; static exporters consume this list.</summary>
+    public IReadOnlyList<DocEmbed> DocEmbeds { get; set; } = [];
     /// <summary>領域いっぱいに広がる (固定 editorWidth/Height でなく制約サイズを使う)。文書ページ向け。</summary>
     public bool Fill { get; set; }
     /// <summary>クリック時にクリック位置のソースオフセットを通知する (リンクナビ等の当たり判定用)。</summary>
