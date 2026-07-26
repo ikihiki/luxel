@@ -1,4 +1,4 @@
-﻿namespace Luxel.Abstraction;
+namespace Luxel.Abstraction;
 
 /// <summary>
 /// バックエンド (Vulkan / D3D12) が実装する低レベル抽象。
@@ -137,8 +137,8 @@ public interface IGpuBackendCommandBuffer : IDisposable
     /// <summary>描画 (頂点プル)。</summary>
     void Draw(uint vertexCount, uint instanceCount);
 
-    /// <summary>テクスチャ全体をバッファへコピーする (読み戻し用)。</summary>
-    void CopyTextureToBuffer(IGpuBackendTexture source, IGpuBackendBuffer destination);
+    /// <summary>テクスチャ全体をバッファへコピーする (読み戻し用)。rowLengthPixels=0 は密な行。</summary>
+    void CopyTextureToBuffer(IGpuBackendTexture source, IGpuBackendBuffer destination, uint rowLengthPixels);
 
     /// <summary>バッファ間コピー (先頭から bytes 分)。WC メモリの読み戻しを避けて
     /// HostCached (READBACK) バッファへ落とす用途など。</summary>

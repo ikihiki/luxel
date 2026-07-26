@@ -1,4 +1,4 @@
-﻿using Luxel.Abstraction;
+using Luxel.Abstraction;
 using Luxel.Vulkan.Interop;
 using Silk.NET.Vulkan;
 
@@ -135,7 +135,7 @@ internal sealed unsafe class VulkanCommandBuffer : IGpuBackendCommandBuffer
     public void Draw(uint vertexCount, uint instanceCount)
         => _vk.CmdDraw(_cb, vertexCount, instanceCount, 0, 0);
 
-    public void CopyTextureToBuffer(IGpuBackendTexture source, IGpuBackendBuffer destination)
+    public void CopyTextureToBuffer(IGpuBackendTexture source, IGpuBackendBuffer destination, uint rowLengthPixels)
     {
         var tex = (VulkanTexture)source;
         var buf = (VulkanBuffer)destination;
@@ -146,7 +146,7 @@ internal sealed unsafe class VulkanCommandBuffer : IGpuBackendCommandBuffer
         var region = new BufferImageCopy
         {
             BufferOffset = 0,
-            BufferRowLength = 0,
+            BufferRowLength = rowLengthPixels,
             BufferImageHeight = 0,
             ImageSubresource = new ImageSubresourceLayers(ImageAspectFlags.ColorBit, 0, 0, 1),
             ImageOffset = new Offset3D(0, 0, 0),

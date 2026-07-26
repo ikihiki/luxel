@@ -113,7 +113,7 @@ Luxel.Gallery のレンダリング関連 Docs / Demos を、機能カタログ�
 - コード例の struct size を単体テストで固定する。
 - shader cache の説明が root README と矛盾しない。
 
-### R3 — テクスチャと最小3D
+### R3 — テクスチャと最小3D (完了: 2026-07-26)
 
 #### 実装
 
