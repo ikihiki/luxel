@@ -53,8 +53,8 @@ static int Run(string backend, int frames)
         using GpuSurface surface = win.CreateSwapchain(device);
 
         var keyboard = new KeyboardSource();
-        win.KeyDown += vk => keyboard.Down(vk);
-        win.KeyUp += vk => keyboard.Up(vk);
+        win.KeyDown += input => keyboard.Down(input.Key);
+        win.KeyUp += input => keyboard.Up(input.Key);
 
         // ハイスコアは %APPDATA%/LuxelRange/ へ (リポジトリ非依存の実ユーザ書込パス)。
         string saveDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LuxelRange");
@@ -134,8 +134,8 @@ sealed class KeyboardSource : IInputSource
     private readonly List<(KeyCode Key, bool Down)> _pending = new();
     public string Name => "range-keyboard";
 
-    public void Down(ushort vk) { if (Map(vk) is { } k) lock (_pending) _pending.Add((k, true)); }
-    public void Up(ushort vk) { if (Map(vk) is { } k) lock (_pending) _pending.Add((k, false)); }
+    public void Down(WindowKey key) { if (Map(key) is { } k) lock (_pending) _pending.Add((k, true)); }
+    public void Up(WindowKey key) { if (Map(key) is { } k) lock (_pending) _pending.Add((k, false)); }
 
     public void Poll(InputBus bus)
     {
@@ -146,15 +146,15 @@ sealed class KeyboardSource : IInputSource
         }
     }
 
-    private static KeyCode? Map(ushort vk) => vk switch
+    private static KeyCode? Map(WindowKey key) => key switch
     {
-        0x20 => KeyCode.Space,
-        0x0D => KeyCode.Enter,
-        0x1B => KeyCode.Escape,
-        0x25 => KeyCode.Left,
-        0x27 => KeyCode.Right,
-        0x26 => KeyCode.Up,
-        0x28 => KeyCode.Down,
+        WindowKey.Space => KeyCode.Space,
+        WindowKey.Enter => KeyCode.Enter,
+        WindowKey.Escape => KeyCode.Escape,
+        WindowKey.Left => KeyCode.Left,
+        WindowKey.Right => KeyCode.Right,
+        WindowKey.Up => KeyCode.Up,
+        WindowKey.Down => KeyCode.Down,
         _ => null,
     };
 }

@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>Luxel.UI.App</id>
+    <version>$Version$</version>
+    <authors>Luxel contributors</authors>
+    <description>Cross-platform Luxel UI application facade for .NET 10.</description>
+    <license type="expression">MIT</license>
+    <readme>README.md</readme>
+    <repository type="git" url="https://github.com/ikihiki/luxel" />
+    <contentFiles>
+      <files include="any/any/**" buildAction="None" copyToOutput="true" flatten="false" />
+    </contentFiles>
+    <dependencies>
+      <group targetFramework="net10.0">
+        <dependency id="Silk.NET.Windowing" version="[2.23.0]" />
+        <dependency id="Silk.NET.Vulkan" version="[2.23.0]" />
+        <dependency id="Silk.NET.Vulkan.Extensions.EXT" version="[2.23.0]" />
+        <dependency id="Silk.NET.Vulkan.Extensions.KHR" version="[2.23.0]" />
+        <dependency id="HarfBuzzSharp" version="[14.2.0]" />
+        <dependency id="HarfBuzzSharp.NativeAssets.Linux" version="[14.2.0]" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="README.md" target="" />
+    <file src="bin\$configuration$\net10.0\Luxel*.dll" target="lib\net10.0" />
+    <file src="..\Luxel.UI.Generators\bin\$configuration$\netstandard2.0\Luxel.UI.Generators.dll" target="analyzers\dotnet\cs" />
+    <file src="buildTransitive\Luxel.UI.App.targets" target="buildTransitive" />
+    <file src="..\..\shaders\compiled\raster2d_*.spv" target="contentFiles\any\any\shaders" />
+    <file src="..\..\assets\fonts\BIZUDGothic-Regular.ttf" target="contentFiles\any\any\assets\fonts" />
+    <file src="..\..\assets\fonts\BIZUDGothic-OFL.txt" target="contentFiles\any\any\assets\fonts\OFL.txt" />
+  </files>
+</package>

@@ -12,7 +12,7 @@ namespace Luxel.Platform;
 /// スレッドローカルを持たない (どのスレッドが何枚窓を持っても所有はインスタンスに閉じる)。
 /// メッセージポンプは呼び出しスレッドのキューを処理する (Win32 の意味論どおりスレッド所有)。
 /// </summary>
-internal sealed unsafe class Win32Window : IWindowBackendWindow
+internal sealed unsafe class Win32Window : IWindowBackendWindow, IWin32RawKeyInput
 {
     private static readonly WNDPROC _wndProcThunk = StaticWndProc;         // GC で回収されないよう静的保持
     private static readonly object ClassGate = new();                      // クラス登録はプロセスで 1 回
@@ -61,13 +61,13 @@ internal sealed unsafe class Win32Window : IWindowBackendWindow
     public Action<int, int>? Moved { get; set; }
     public Action? Closed { get; set; }
     public Action<bool>? FocusChanged { get; set; }
-    public Action<float, float>? MouseMoved { get; set; }
-    public Action<float, float, int>? MouseDown { get; set; }
-    public Action<float, float, int>? MouseUp { get; set; }
-    public Action<float, float, float>? Wheeled { get; set; }
-    public Action<ushort>? KeyDown { get; set; }
-    public Action<ushort>? KeyUp { get; set; }
-    public Action<char>? CharTyped { get; set; }
+    public Action<WindowPointerEvent>? PointerMoved { get; set; }
+    public Action<WindowPointerEvent>? PointerDown { get; set; }
+    public Action<WindowPointerEvent>? PointerUp { get; set; }
+    public Action<WindowWheelEvent>? Wheel { get; set; }
+    public Action<WindowKeyEvent>? KeyDown { get; set; }
+    public Action<WindowKeyEvent>? KeyUp { get; set; }
+    public Action<string>? TextInput { get; set; }
     public Func<ushort, nint, bool>? KeyPreFilter { get; set; }
     public Func<CursorKind>? CursorQuery { get; set; }
 
@@ -182,6 +182,12 @@ internal sealed unsafe class Win32Window : IWindowBackendWindow
         return win?.WndProc(hwnd, msg, wParam, lParam) ?? PInvoke.DefWindowProc(hwnd, msg, wParam, lParam);
     }
 
+    private static WindowPointerEvent PointerEvent(int lParam, WindowPointerButton button = WindowPointerButton.None)
+        => new((short)(lParam & 0xFFFF), (short)(lParam >> 16), button, Win32Modifiers.CurrentWindow());
+
+    private static WindowKeyEvent KeyEvent(ushort vk, int lParam)
+        => new(Win32KeyMap.FromVirtualKey(vk), Win32Modifiers.CurrentWindow(), (lParam & 0x40000000) != 0);
+
     private LRESULT WndProc(HWND hwnd, uint msg, WPARAM wParam, LPARAM lParam)
     {
         int lp = (int)lParam.Value;
@@ -225,38 +231,38 @@ internal sealed unsafe class Win32Window : IWindowBackendWindow
                 }
                 break;
             case PInvoke.WM_MOUSEMOVE:
-                MouseMoved?.Invoke((short)(lp & 0xFFFF), (short)(lp >> 16)); return new LRESULT(0);
+                PointerMoved?.Invoke(PointerEvent(lp)); return new LRESULT(0);
             case PInvoke.WM_LBUTTONDOWN:
-                MouseDown?.Invoke((short)(lp & 0xFFFF), (short)(lp >> 16), 0); return new LRESULT(0);
+                PointerDown?.Invoke(PointerEvent(lp, WindowPointerButton.Left)); return new LRESULT(0);
             case PInvoke.WM_LBUTTONUP:
-                MouseUp?.Invoke((short)(lp & 0xFFFF), (short)(lp >> 16), 0); return new LRESULT(0);
+                PointerUp?.Invoke(PointerEvent(lp, WindowPointerButton.Left)); return new LRESULT(0);
             case PInvoke.WM_RBUTTONDOWN:
-                MouseDown?.Invoke((short)(lp & 0xFFFF), (short)(lp >> 16), 1); return new LRESULT(0);
+                PointerDown?.Invoke(PointerEvent(lp, WindowPointerButton.Right)); return new LRESULT(0);
             case PInvoke.WM_RBUTTONUP:
-                MouseUp?.Invoke((short)(lp & 0xFFFF), (short)(lp >> 16), 1); return new LRESULT(0);
+                PointerUp?.Invoke(PointerEvent(lp, WindowPointerButton.Right)); return new LRESULT(0);
             case PInvoke.WM_MBUTTONDOWN:
-                MouseDown?.Invoke((short)(lp & 0xFFFF), (short)(lp >> 16), 2); return new LRESULT(0);
+                PointerDown?.Invoke(PointerEvent(lp, WindowPointerButton.Middle)); return new LRESULT(0);
             case PInvoke.WM_MBUTTONUP:
-                MouseUp?.Invoke((short)(lp & 0xFFFF), (short)(lp >> 16), 2); return new LRESULT(0);
+                PointerUp?.Invoke(PointerEvent(lp, WindowPointerButton.Middle)); return new LRESULT(0);
             case PInvoke.WM_MOUSEWHEEL:
                 {
                     short delta = (short)(wParam.Value >> 16);
                     var p = new System.Drawing.Point((short)(lp & 0xFFFF), (short)(lp >> 16));   // wheel は screen 座標
                     PInvoke.ScreenToClient(hwnd, ref p);
-                    Wheeled?.Invoke(p.X, p.Y, delta / 120f); return new LRESULT(0);
+                    Wheel?.Invoke(new WindowWheelEvent(p.X, p.Y, delta / 120f, Win32Modifiers.CurrentWindow())); return new LRESULT(0);
                 }
             case PInvoke.WM_KEYDOWN:
                 {
                     ushort vk = (ushort)wParam.Value;
                     if (KeyPreFilter?.Invoke(vk, (nint)lParam.Value) == true) return new LRESULT(0);   // TIP が消費
-                    KeyDown?.Invoke(vk); return new LRESULT(0);
+                    KeyDown?.Invoke(KeyEvent(vk, lp)); return new LRESULT(0);
                 }
             case PInvoke.WM_KEYUP:
-                KeyUp?.Invoke((ushort)wParam.Value); return new LRESULT(0);
+                KeyUp?.Invoke(KeyEvent((ushort)wParam.Value, lp)); return new LRESULT(0);
             case PInvoke.WM_CHAR:
                 {
                     char c = (char)(ushort)wParam.Value;
-                    if (c >= ' ') CharTyped?.Invoke(c);
+                    if (c >= ' ') TextInput?.Invoke(c.ToString());
                     return new LRESULT(0);
                 }
             case PInvoke.WM_CLOSE:

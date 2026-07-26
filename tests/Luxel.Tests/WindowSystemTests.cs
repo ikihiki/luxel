@@ -30,14 +30,13 @@ public class WindowSystemTests
         public Action<int, int>? Moved { get; set; }
         public Action? Closed { get; set; }
         public Action<bool>? FocusChanged { get; set; }
-        public Action<float, float>? MouseMoved { get; set; }
-        public Action<float, float, int>? MouseDown { get; set; }
-        public Action<float, float, int>? MouseUp { get; set; }
-        public Action<float, float, float>? Wheeled { get; set; }
-        public Action<ushort>? KeyDown { get; set; }
-        public Action<ushort>? KeyUp { get; set; }
-        public Action<char>? CharTyped { get; set; }
-        public Func<ushort, nint, bool>? KeyPreFilter { get; set; }
+        public Action<WindowPointerEvent>? PointerMoved { get; set; }
+        public Action<WindowPointerEvent>? PointerDown { get; set; }
+        public Action<WindowPointerEvent>? PointerUp { get; set; }
+        public Action<WindowWheelEvent>? Wheel { get; set; }
+        public Action<WindowKeyEvent>? KeyDown { get; set; }
+        public Action<WindowKeyEvent>? KeyUp { get; set; }
+        public Action<string>? TextInput { get; set; }
 
         public void SetTitle(string title) => LastTitle = title;
         public void SetBounds(int? x, int? y, int? w, int? h) => LastBounds = (x, y, w, h);
@@ -108,16 +107,24 @@ public class WindowSystemTests
         FakeWindow fake = backend.Created.Single();
 
         (int w, int h) resized = default;
-        (float x, float y, int b) down = default;
+        WindowPointerEvent down = default;
         bool closed = false;
         win.Resized += (w, h) => resized = (w, h);
-        win.MouseDown += (x, y, b) => down = (x, y, b);
+        WindowKeyEvent key = default;
+        string? text = null;
+        win.PointerDown += input => down = input;
+        win.KeyDown += input => key = input;
+        win.TextInput += input => text = input;
         win.Closed += () => closed = true;
 
         fake.Resized!(320, 240);
-        fake.MouseDown!(5, 6, 1);
+        fake.PointerDown!(new WindowPointerEvent(5, 6, WindowPointerButton.Right, WindowKeyModifiers.Control));
+        fake.KeyDown!(new WindowKeyEvent(WindowKey.A, WindowKeyModifiers.Shift, IsRepeat: true));
+        fake.TextInput!("😀");
         Assert.Equal((320, 240), resized);
-        Assert.Equal((5f, 6f, 1), down);
+        Assert.Equal(new WindowPointerEvent(5, 6, WindowPointerButton.Right, WindowKeyModifiers.Control), down);
+        Assert.Equal(new WindowKeyEvent(WindowKey.A, WindowKeyModifiers.Shift, IsRepeat: true), key);
+        Assert.Equal("😀", text);
 
         win.SetTitle("New");
         Assert.Equal("New", fake.LastTitle);

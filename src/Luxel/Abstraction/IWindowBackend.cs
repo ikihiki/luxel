@@ -70,15 +70,13 @@ public interface IWindowBackendWindow : IDisposable
     Action<int, int>? Moved { get; set; }               // 外枠 x,y
     Action? Closed { get; set; }                        // 破棄時 (1 回)
     Action<bool>? FocusChanged { get; set; }            // キーボードフォーカス得/喪失 (IME 切替等)
-    Action<float, float>? MouseMoved { get; set; }
-    Action<float, float, int>? MouseDown { get; set; }  // x,y,button(0=左,1=右)
-    Action<float, float, int>? MouseUp { get; set; }
-    Action<float, float, float>? Wheeled { get; set; }  // x,y,delta(ノッチ)
-    Action<ushort>? KeyDown { get; set; }               // 仮想キーコード (Win32 VK)
-    Action<ushort>? KeyUp { get; set; }
-    Action<char>? CharTyped { get; set; }
-    /// <summary>キーの先取りフック (IME/TSF 用, true=消費)。対応しないバックエンドは無視してよい。</summary>
-    Func<ushort, nint, bool>? KeyPreFilter { get; set; }
+    Action<WindowPointerEvent>? PointerMoved { get; set; }
+    Action<WindowPointerEvent>? PointerDown { get; set; }
+    Action<WindowPointerEvent>? PointerUp { get; set; }
+    Action<WindowWheelEvent>? Wheel { get; set; }
+    Action<WindowKeyEvent>? KeyDown { get; set; }
+    Action<WindowKeyEvent>? KeyUp { get; set; }
+    Action<string>? TextInput { get; set; }
     /// <summary>クライアント領域のカーソル形状の問い合わせ (WM_SETCURSOR 相当)。
     /// null = 矢印。対応しないバックエンドは無視してよい。</summary>
     Func<CursorKind>? CursorQuery { get => null; set { } }

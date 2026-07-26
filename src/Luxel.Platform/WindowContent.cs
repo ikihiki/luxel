@@ -33,12 +33,12 @@ public interface IWindowContent : IDisposable
 
     // ---- ウィンドウ入力 (論理 px — WindowHost が物理→論理へ変換して渡す) ----
     // button/mods はイベント発生時点の値 (WindowHost が GetKeyState で拾って渡す)。既定引数で旧呼び出しも互換。
-    void PointerMove(float x, float y, KeyModifiers mods = KeyModifiers.None);
-    void PointerDown(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers mods = KeyModifiers.None);
-    void PointerUp(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers mods = KeyModifiers.None);
-    void Wheel(float x, float y, float delta);
-    void KeyDown(ushort vk, KeyModifiers mods = KeyModifiers.None);
-    void Char(string text);
+    void PointerMove(WindowPointerEvent input);
+    void PointerDown(WindowPointerEvent input);
+    void PointerUp(WindowPointerEvent input);
+    void Wheel(WindowWheelEvent input);
+    void KeyDown(WindowKeyEvent input);
+    void TextInput(string text);
 
     /// <summary>右クリック (コンテキストメニュー要求)。既定 no-op。</summary>
     void ContextClick(float x, float y, KeyModifiers mods = KeyModifiers.None) { }
@@ -80,13 +80,13 @@ public sealed class UiContent : IWindowContent
     public void Render(GpuCommandBuffer cmd, uint paddedWidth, uint width, uint height, GpuBuffer target, float scale)
         => _canvas.Render(cmd, new Camera2D { A = scale, D = scale }, paddedWidth, height, target);
 
-    public void PointerMove(float x, float y, KeyModifiers mods = KeyModifiers.None) => Host.PointerMove(x, y, mods);
-    public void PointerDown(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers mods = KeyModifiers.None) => Host.PointerDown(x, y, button, mods);
-    public void PointerUp(float x, float y, PointerButton button = PointerButton.Left, KeyModifiers mods = KeyModifiers.None) => Host.PointerUp(x, y, button, mods);
-    public void Wheel(float x, float y, float delta) => Host.Wheel(x, y, delta);
-    public void KeyDown(ushort vk, KeyModifiers mods = KeyModifiers.None)
-        => Host.KeyDown(KeyMap.FromVk(vk), mods.HasFlag(KeyModifiers.Shift), mods.HasFlag(KeyModifiers.Ctrl), mods.HasFlag(KeyModifiers.Alt));
-    public void Char(string text) => Host.Char(text);
+    public void PointerMove(WindowPointerEvent input) => Host.PointerMove(input.X, input.Y, Win32Modifiers.ToUi(input.Modifiers));
+    public void PointerDown(WindowPointerEvent input) => Host.PointerDown(input.X, input.Y, Win32Modifiers.ToUi(input.Button), Win32Modifiers.ToUi(input.Modifiers));
+    public void PointerUp(WindowPointerEvent input) => Host.PointerUp(input.X, input.Y, Win32Modifiers.ToUi(input.Button), Win32Modifiers.ToUi(input.Modifiers));
+    public void Wheel(WindowWheelEvent input) => Host.Wheel(input.X, input.Y, input.Delta);
+    public void KeyDown(WindowKeyEvent input)
+        => Host.KeyDown(KeyMap.FromWindowKey(input.Key), input.Modifiers.HasFlag(WindowKeyModifiers.Shift), input.Modifiers.HasFlag(WindowKeyModifiers.Control), input.Modifiers.HasFlag(WindowKeyModifiers.Alt));
+    public void TextInput(string text) => Host.Char(text);
     public void ContextClick(float x, float y, KeyModifiers mods = KeyModifiers.None) => Host.ContextClick(x, y, mods);
     public CursorKind Cursor => Host.CurrentCursor;
 

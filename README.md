@@ -18,6 +18,22 @@ PSO 爆発のない薄い API を構築する。
 通常ビルドは Git 管理されたコンパイル済みシェーダを使うため、Slang/DXC のローカル導入は不要。
 シェーダを変更してキャッシュを再生成するときだけ、下記の MSBuild ターゲットがツールを自動取得する。
 
+## Linux リモートデスクトップ開発
+
+Coder/Mux の Linux workspace では、Xvfb + openbox + noVNC の開発用 desktop を用意できる。
+Luxel の Silk.NET/X11 backend と Vulkan WSI を開発・検証でき、環境自体の baseline は
+`vkcube` でも確認できる。
+
+```bash
+eng/desktop/install.sh
+eng/desktop/start.sh
+eng/desktop/run-vkcube.sh
+eng/desktop/url.sh
+```
+
+出力された URL は Coder の認証付き preview。VNC は TCP port を開かず private Unix socket を使い、
+追加 password は使用しない。運用、healthcheck、screenshot、停止方法は `eng/desktop/README.md` を参照。
+
 ## ビルドと実行
 
 ドキュメント・機能の実例 (デモストーリー)・回帰テストはすべて **Gallery** に集約されている:
@@ -33,6 +49,25 @@ dotnet test                                             # ユニットテスト
 Gallery のサイドバー **Docs 章**が本体ドキュメント (入門 → アーキテクチャ → サブシステム別 →
 貢献者向け)。**GPU / 2D / 3D / RenderGraph / Animation 章**が動くデモ。左上の検索欄で
 docs 本文を全文検索できる。
+
+### Linux headless Vulkan
+
+Linux では `VulkanBackend.Create()` が既定で WSI/swapchain extensions を読み込まない headless mode を
+選ぶ。offscreen GPU処理を明示する場合は次の options を利用する。
+
+```csharp
+using var backend = VulkanBackend.Create(new VulkanBackendOptions
+{
+    Presentation = VulkanPresentationMode.Disabled,
+});
+```
+
+lavapipe を使った最小回帰テスト:
+
+```bash
+VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
+  dotnet test tests/Luxel.Vulkan.Tests/Luxel.Vulkan.Tests.csproj
+```
 
 ## 機能ハイライト
 

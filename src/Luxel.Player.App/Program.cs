@@ -75,8 +75,8 @@ static int Run(string folder, string backend, int frames)
         // 生キー → world.KeysDown (csx が world.KeysDown.Contains("Right") 等で読む)
         var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         bool esc = false;
-        win.KeyDown += vk => { if (KeyName(vk) is { } k) lock (keys) keys.Add(k); if (vk == 0x1B) esc = true; };
-        win.KeyUp += vk => { if (KeyName(vk) is { } k) lock (keys) keys.Remove(k); };
+        win.KeyDown += input => { if (KeyName(input.Key) is { } k) lock (keys) keys.Add(k); if (input.Key == WindowKey.Escape) esc = true; };
+        win.KeyUp += input => { if (KeyName(input.Key) is { } k) lock (keys) keys.Remove(k); };
 
         var pacer = new FramePacer();
         using IHost host = LuxelHostBuilder.Create()
@@ -119,16 +119,16 @@ static int Run(string folder, string backend, int frames)
     }
 }
 
-// VK → csx が読むキー名 (最小セット。網羅は InputAction 宣言と合わせて GE-7 で)
-static string? KeyName(ushort vk) => vk switch
+// Portable window key → csx が読むキー名 (最小セット。網羅は InputAction 宣言と合わせて GE-7 で)
+static string? KeyName(WindowKey key) => key switch
 {
-    >= 0x41 and <= 0x5A => ((char)vk).ToString(),   // A-Z
-    0x20 => "Space",
-    0x0D => "Enter",
-    0x25 => "Left",
-    0x27 => "Right",
-    0x26 => "Up",
-    0x28 => "Down",
+    >= WindowKey.A and <= WindowKey.Z => key.ToString(),
+    WindowKey.Space => "Space",
+    WindowKey.Enter => "Enter",
+    WindowKey.Left => "Left",
+    WindowKey.Right => "Right",
+    WindowKey.Up => "Up",
+    WindowKey.Down => "Down",
     _ => null,
 };
 

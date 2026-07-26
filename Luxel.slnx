@@ -35,6 +35,7 @@
     <Project Path="src/Luxel.Particles/Luxel.Particles.csproj" />
     <Project Path="src/Luxel.Physics.Gizmos/Luxel.Physics.Gizmos.csproj" />
     <Project Path="src/Luxel.Physics/Luxel.Physics.csproj" />
+    <Project Path="src/Luxel.Platform.Silk/Luxel.Platform.Silk.csproj" />
     <Project Path="src/Luxel.Platform/Luxel.Platform.csproj" />
     <Project Path="src/Luxel.RenderGraph/Luxel.RenderGraph.csproj" />
     <Project Path="src/Luxel.Resources/Luxel.Resources.csproj" />
@@ -47,6 +48,7 @@
     <Project Path="src/Luxel.TwoD/Luxel.TwoD.csproj" />
     <Project Path="src/Luxel.Typography.Icu/Luxel.Typography.Icu.csproj" />
     <Project Path="src/Luxel.Typography/Luxel.Typography.csproj" />
+    <Project Path="src/Luxel.UI.App/Luxel.UI.App.csproj" />
     <Project Path="src/Luxel.UI.Generators/Luxel.UI.Generators.csproj" />
     <Project Path="src/Luxel.UI.Tailwind/Luxel.UI.Tailwind.csproj" />
     <Project Path="src/Luxel.UI/Luxel.UI.csproj" />
@@ -61,6 +63,10 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Luxel.E2e.Tests/Luxel.E2e.Tests.csproj" />
+    <Project Path="tests/Luxel.Platform.Silk.Tests/Luxel.Platform.Silk.Tests.csproj" />
+    <Project Path="tests/Luxel.Vulkan.Tests/Luxel.Vulkan.Tests.csproj" />
+    <Project Path="tests/Luxel.Vulkan.Present.Tests/Luxel.Vulkan.Present.Tests.csproj" />
+    <Project Path="tests/Luxel.UI.App.Tests/Luxel.UI.App.Tests.csproj" />
     <Project Path="tests/Luxel.Tests/Luxel.Tests.csproj" />
   </Folder>
 </Solution>

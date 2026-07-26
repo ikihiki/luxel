@@ -67,8 +67,8 @@ static int Run(string backend, int frames, string[] args)
         using GpuSurface surface = win.CreateSwapchain(device);
 
         var keyboard = new KeyboardSource();
-        win.KeyDown += vk => keyboard.Down(vk);
-        win.KeyUp += vk => keyboard.Up(vk);
+        win.KeyDown += input => keyboard.Down(input.Key);
+        win.KeyUp += input => keyboard.Up(input.Key);
 
         // セーブは %APPDATA%/LuxelCavern/ に置く (checklist 6: 実ユーザ書込パス、リポジトリ非依存)。
         string saveDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LuxelCavern");
@@ -140,8 +140,8 @@ sealed class KeyboardSource : IInputSource, IKeyCapture
     private KeyCode? _lastPressed;
     public string Name => "cavern-keyboard";
 
-    public void Down(ushort vk) { if (Map(vk) is { } k) lock (_pending) { _pending.Add((k, true)); _lastPressed = k; } }
-    public void Up(ushort vk) { if (Map(vk) is { } k) lock (_pending) _pending.Add((k, false)); }
+    public void Down(WindowKey key) { if (Map(key) is { } k) lock (_pending) { _pending.Add((k, true)); _lastPressed = k; } }
+    public void Up(WindowKey key) { if (Map(key) is { } k) lock (_pending) _pending.Add((k, false)); }
 
     /// <summary>リバインド用: 直近に押されたキーを取り出してクリア。</summary>
     public KeyCode? TakePressed() { lock (_pending) { KeyCode? k = _lastPressed; _lastPressed = null; return k; } }
@@ -155,17 +155,17 @@ sealed class KeyboardSource : IInputSource, IKeyCapture
         }
     }
 
-    private static KeyCode? Map(ushort vk) => vk switch
+    private static KeyCode? Map(WindowKey key) => key switch
     {
-        >= 0x41 and <= 0x5A => (KeyCode)((int)KeyCode.A + (vk - 0x41)),   // A-Z
-        0x70 => KeyCode.F1,   // DevTools オーバーレイ切替
-        0x20 => KeyCode.Space,
-        0x0D => KeyCode.Enter,
-        0x1B => KeyCode.Escape,
-        0x25 => KeyCode.Left,
-        0x27 => KeyCode.Right,
-        0x26 => KeyCode.Up,
-        0x28 => KeyCode.Down,
+        >= WindowKey.A and <= WindowKey.Z => (KeyCode)((int)KeyCode.A + ((int)key - (int)WindowKey.A)),
+        WindowKey.F1 => KeyCode.F1,   // DevTools オーバーレイ切替
+        WindowKey.Space => KeyCode.Space,
+        WindowKey.Enter => KeyCode.Enter,
+        WindowKey.Escape => KeyCode.Escape,
+        WindowKey.Left => KeyCode.Left,
+        WindowKey.Right => KeyCode.Right,
+        WindowKey.Up => KeyCode.Up,
+        WindowKey.Down => KeyCode.Down,
         _ => null,
     };
 }
