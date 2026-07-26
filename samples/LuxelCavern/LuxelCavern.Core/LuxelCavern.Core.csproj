@@ -35,7 +35,9 @@
        埋め込みにより single-file publish でも loose ファイル (BaseDirectory 依存) に頼らず起動できる。 -->
   <ItemGroup>
     <EmbeddedResource Include="levels\cavern1.tmj" />
-    <EmbeddedResource Include="assets\fonts\BIZUDGothic-Regular.ttf" />
+    <EmbeddedResource Include="..\..\..\assets\fonts\BIZUDGothic-Regular.ttf">
+      <Link>assets\fonts\BIZUDGothic-Regular.ttf</Link>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>

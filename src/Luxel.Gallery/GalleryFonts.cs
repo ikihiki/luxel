@@ -3,7 +3,7 @@ using Luxel.Typography;
 namespace Luxel.Gallery;
 
 /// <summary>
-/// リポジトリ同梱フォント (<c>src/Luxel.Gallery/assets/fonts/</c>) のローダ。
+/// リポジトリ共有フォント (<c>assets/fonts/</c>) のローダ。
 /// Gallery / e2e はシステムフォントに依存せず、clone すればどのマシン・CI でも同じ字形が出る
 /// (golden の再現性)。フォントはいずれも glyf アウトライン (VectorFont は CFF/OTF 非対応) の
 /// SIL OFL フォント: BIZ UDGothic (本文, 日本語+ラテン) と UDEV Gothic (等幅, コードエディタ)。
@@ -21,7 +21,7 @@ public static class GalleryFonts
     /// コードエディタ (TextEditorView の Mono 変種) は単一フォントで描く (フォールバック無し) ため、日本語コメントもこれで等幅表示する。</summary>
     public const string Mono = "UDEVGothic-Regular.ttf";
 
-    private const string RelDir = "src/Luxel.Gallery/assets/fonts";
+    private const string RelDir = "assets/fonts";
 
     /// <summary>同梱フォントを VectorFont として読む。</summary>
     public static VectorFont Load(string fileName) => VectorFont.Load(Resolve(fileName));
@@ -42,8 +42,8 @@ public static class GalleryFonts
                 break;
             }
 
-        // 3) exe 隣の assets/fonts (スタンドアロン publish 用 — ToDo 19 で Content コピー)
-        string appPath = Path.Combine(AppContext.BaseDirectory, "assets", "fonts", fileName);
+        // 3) exe 隣の fonts (スタンドアロン publish 用 — Luxel.FontAssets.targets が Content コピー)
+        string appPath = Path.Combine(AppContext.BaseDirectory, "fonts", fileName);
         if (File.Exists(appPath)) return appPath;
 
         throw new FileNotFoundException(

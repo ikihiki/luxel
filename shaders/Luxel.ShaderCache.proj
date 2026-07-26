@@ -1,0 +1,7 @@
+<Project DefaultTargets="CompileLuxelShaderCache">
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)obj/</BaseIntermediateOutputPath>
+  </PropertyGroup>
+
+  <Import Project="Luxel.Shaders.targets" />
+</Project>

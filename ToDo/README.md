@@ -10,6 +10,7 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 | # | ファイル | タスク | 規模感 | リスク |
 |---|---|---|---|---|
 | 24 | [24-custom-ime-candidates.md](24-custom-ime-candidates.md) | カスタム IME 候補ウインドウ (TSF ITfUIElementSink で OS 抑制 + 自前 Popup 描画、排他モード対応。ADR-0008 Proposed) | 中 | **高** (実 IME 依存) |
+| 30 | [30-rendering-docs-beginner.md](30-rendering-docs-beginner.md) | 初心者向けレンダリング学習経路 (最小 standalone app、shader/texture/3D/RenderGraph/glTF、Docs 自動検証) | 大 (6段階) | 中 (vk/dx 実機検証) |
 
 完了したタスクの MD は削除済み (規約通り)。仕様は Gallery の Docs/ADR ストーリー、経緯は git 履歴を参照。直近では 13 (e2e 日本語フォント)・22 (エディタ新スタック)・23 (浮遊 UI placement)・25 (ノードエディタ)・26 (Workbench) が完了 (2026-07-10 整理)。
 
@@ -32,7 +33,7 @@ dotnet run --project src/Luxel.Gallery -- vk e2e         # E2E play 実行 + gol
 dotnet run --project src/Luxel.Gallery -- vk e2e --update "部分一致フィルタ"   # golden 更新
 ```
 
-- シェーダビルドには `tools/slang/` (standalone Slang + `tools/slang/bin/` に dxcompiler.dll/dxil.dll) が必要。リポジトリ非含。git worktree で作業する場合は本体の tools/ へ junction を張る。
+- 通常ビルドは Git 管理された `shaders/compiled/` を使う。シェーダ更新時は `dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache` が固定 Slang/DXC を `tools/` へ自動取得する。共有フォントは `assets/fonts/` でGit管理し、外部サンプルは固定URL + SHA-256で `tools/` へキャッシュする。
 - 検証 GPU は RTX 4080 SUPER (Vulkan 一次、D3D12 二次)。
 
 ### golden (スナップショット) 運用

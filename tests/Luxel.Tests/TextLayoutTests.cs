@@ -1,4 +1,4 @@
-﻿using Luxel.Typography;
+using Luxel.Typography;
 using Xunit;
 
 namespace Luxel.Tests;
@@ -252,17 +252,18 @@ public class TextLayoutTests
     [Fact]
     public void FontCollection_FallsBackForMissingGlyphs()
     {
-        using VectorFont latin = F();
-        using VectorFont jp = Jp();
-        var fonts = new FontCollection(latin, jp);
-        Assert.False(latin.HasGlyph('あ'));
-        Assert.Same(latin, fonts.FontFor('a'));
-        Assert.Same(jp, fonts.FontFor('あ'));
+        using VectorFont primary = VectorFont.Load(Path.Combine(AppContext.BaseDirectory, "fonts", "BIZUDGothic-Regular.ttf"));
+        using VectorFont fallback = VectorFont.Load(Path.Combine(AppContext.BaseDirectory, "fonts", "UDEVGothic-Regular.ttf"));
+        var fonts = new FontCollection(primary, fallback);
+        const char fallbackGlyph = '\u018F';   // Ə: UDEV Gothic にあり BIZ UDGothic にはない
+        Assert.False(primary.HasGlyph(fallbackGlyph));
+        Assert.True(fallback.HasGlyph(fallbackGlyph));
+        Assert.Same(primary, fonts.FontFor('a'));
+        Assert.Same(fallback, fonts.FontFor(fallbackGlyph));
         // 混在テキストがフォールバック付きでレイアウトできる (豆腐にならない)
-        var l = new TextLayout(fonts, [new TextSpan("abあcd")], 16, new TextLayoutOptions { Wrap = TextWrap.None });
+        var l = new TextLayout(fonts, [new TextSpan($"ab{fallbackGlyph}cd")], 16, new TextLayoutOptions { Wrap = TextWrap.None });
         Assert.True(l.Width > 0);
-        Assert.Equal(f_width_ab_cd_plus_jp(l), l.CaretRect(6).X, precision: 2);
-        static float f_width_ab_cd_plus_jp(TextLayout l) => l.LineWidth(0);   // キャレット終端 = 行幅
+        Assert.Equal(l.LineWidth(0), l.CaretRect(6).X, precision: 2);   // キャレット終端 = 行幅
     }
 
     [Fact]

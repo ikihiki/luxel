@@ -14,7 +14,9 @@ PSO 爆発のない薄い API を構築する。
 
 - .NET SDK (net10.0)
 - Vulkan 対応 GPU/ドライバ (`vulkan-1.dll`)
-- `slangc` — `tools/slang/` に standalone Slang を展開して使用 (下記セットアップ参照)
+
+通常ビルドは Git 管理されたコンパイル済みシェーダを使うため、Slang/DXC のローカル導入は不要。
+シェーダを変更してキャッシュを再生成するときだけ、下記の MSBuild ターゲットがツールを自動取得する。
 
 ## ビルドと実行
 
@@ -76,8 +78,43 @@ docs 本文を全文検索できる。
 | Luxel.DevTools (+ .App) | デバッガ / HTTP DebugServer / ネイティブ DevTools |
 | Luxel.Gallery | ドキュメント + デモ + snap/bench (このリポジトリの玄関) |
 
-## セットアップ: tools/ (リポジトリ非含)
+## Slang シェーダキャッシュ
 
-シェーダビルドに standalone Slang + DXC が必要 (`slang-llvm.dll` が GitHub の 100MB 制限を
-超えるためリポジトリには含めていない)。`tools/slang/` に Slang リリースを展開し、DXIL 出力用に
-`dxcompiler.dll` / `dxil.dll` を `tools/slang/bin/` へコピーする。
+`shaders/compiled/` の SPIR-V/DXIL は Git 管理し、通常の `dotnet build` では入力ハッシュを検証して
+各プロジェクトの出力へコピーする。同じシェーダをプロジェクトごと・ビルドごとに再コンパイルしない。
+`.slang`、コンパイラ版、プロファイルのいずれかがキャッシュと違う場合、通常ビルドは説明付きで失敗する。
+
+シェーダ変更後はリポジトリルートで次を1回実行し、ソースと `shaders/compiled/` を一緒にコミットする:
+
+```powershell
+dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache
+```
+
+このターゲットは固定バージョンの Slang と DXC を公式リリースから `tools/` へ自動取得し、SHA-256 を
+検証してから SPIR-V と DXIL を更新する。2回目以降は MSBuild の `Inputs` / `Outputs` により変更のない
+シェーダをスキップする。`tools/` は大きなローカルツールキャッシュなので Git には含めない。
+
+自動取得の対応環境は `linux-x64`、`win-x64`、`win-arm64`。独自配置を使う場合は
+`/p:SlangcPath=...` を指定できるが、DXIL 生成用 DXC も利用可能にする必要がある。
+
+## 共有フォント
+
+Gallery、LuxelCavern、Linux / CI テストは、Git 管理された `assets/fonts/` の BIZ UDGothic Regular/Bold と
+UDEV Gothic Regular を共有する。`assets/Luxel.FontAssets.targets` が Gallery とテストの出力・publishへフォントとOFLをコピーし、
+LuxelCavernは同じRegularをCore.dllへ埋め込む。`VectorFont.LoadSystem*` はシステムフォントを優先し、存在しない場合だけ出力の
+`fonts/BIZUDGothic-Regular.ttf`へフォールバックする。Linux用HarfBuzzSharp / SkiaSharp native assetsも対象プロジェクトから条件付き参照する。
+
+## Khronos サンプルアセット
+
+LuxelRange が使用する `Fox.glb` は、初回ビルド時に KhronosGroup の公式
+`glTF-Sample-Assets` リポジトリの固定コミットから `tools/khronos-samples/` へ自動取得する。
+取得ファイルは SHA-256 を毎ビルド検証し、2回目以降はローカルキャッシュを再利用する。
+`tools/` を削除すれば次回ビルド時に再取得される。
+モデルのライセンスも同じ固定コミットから取得し、`licenses/Fox-LICENSE.md` として build / publish 出力へ含める。
+
+## 外部アセットと Git submodule
+
+GLB とフォントには Git submodule を使わない。`glTF-Sample-Assets` やフォントの上流リポジトリは、必要な数ファイルに対して全体が非常に大きく、
+submodule はファイル単位の依存や clone 時の sparse checkout を保証しない。また `git submodule update --init`、CI設定、更新手順という別の運用が増える。
+小さいレビュー済みフォントは `assets/fonts/` へ直接Git管理し、Fox.glbのような外部サンプルは固定コミットURL + SHA-256 + ライセンスで
+`tools/`へキャッシュする。上流ソースツリー自体を開発・検証する必要が生じた場合に限り、submoduleを再検討する。
