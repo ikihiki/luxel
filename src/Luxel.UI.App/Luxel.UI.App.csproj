@@ -11,7 +11,10 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <NuspecFile>Luxel.UI.App.nuspec</NuspecFile>
-    <NuspecProperties>Configuration=$(Configuration)</NuspecProperties>
+    <NuspecProperties>Configuration=$(Configuration);Version=$(Version)</NuspecProperties>
+    <RepositoryUrl>https://github.com/ikihiki/luxel</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
