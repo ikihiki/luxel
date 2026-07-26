@@ -22,7 +22,8 @@ export DEBIAN_FRONTEND=noninteractive
 "${run[@]}" apt-get install -y --no-install-recommends \
     xvfb openbox x11vnc novnc websockify \
     x11-utils x11-xserver-utils xauth xdotool scrot \
-    dbus-x11 fonts-dejavu-core fonts-noto-cjk
+    dbus-x11 fonts-dejavu-core fonts-noto-cjk \
+    clang zlib1g-dev binutils file
 
 printf '%s\n' "Installed commands:"
 for command_name in Xvfb openbox x11vnc websockify xdpyinfo xwininfo xdotool scrot; do

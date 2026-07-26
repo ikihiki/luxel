@@ -15,7 +15,8 @@
     <ProjectReference Include="..\Luxel.TwoD\Luxel.TwoD.csproj" />
     <!-- [UiComponent] のファクトリ/デバッグ焼き込み (別アセンブリでも生成される) -->
     <ProjectReference Include="..\Luxel.UI.Generators\Luxel.UI.Generators.csproj"
-                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU" />
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU"
+                      GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
     <InternalsVisibleTo Include="Luxel.Tests" />
   </ItemGroup>
 

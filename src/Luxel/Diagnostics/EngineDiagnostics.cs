@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
 namespace Luxel.Diagnostics;
 
@@ -38,6 +38,10 @@ public static class EngineDiagnostics
     public static bool IsEnabled(string name) => Listener.IsEnabled(name);
 
     /// <summary>イベントを書く。購読者が居なければ何もしない。</summary>
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2026",
+        Justification = "Diagnostic payloads are optional observability data. Luxel never reflects over them; listeners that require payload metadata must preserve their own payload types.")]
     public static void Emit(string name, object? payload)
     {
         if (Listener.IsEnabled(name)) Listener.Write(name, payload);
