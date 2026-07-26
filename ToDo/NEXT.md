@@ -62,7 +62,7 @@
 
 - [x] **Q59**: [30 R1 導線、整合性、最小サンプル](30-rendering-docs-beginner.md) — `samples/LuxelTriangle`、Environment/Clear/FirstTriangle、既存記述の不整合修正。 (完了: 2026-07-26)
 - [x] **Q60**: [30 R2 バッファ、バインディング、シェーダ](30-rendering-docs-beginner.md) — GPU memory、ABI/alignment、bindless、Slang と Git shader cache。 (完了: 2026-07-26)
-- [ ] **Q61**: [30 R3 テクスチャと最小3D](30-rendering-docs-beginner.md) — textured quad、MVP、depth/culling/light、座標・色規約。
+- [ ] **Q61**: [30 R3 テクスチャと最小3D](30-rendering-docs-beginner.md) — textured quad、MVP、depth/culling/light、座標・色規約。 (着手中: 2026-07-26)
 - [ ] **Q62**: [30 R4 フレーム同期とRenderGraph](30-rendering-docs-beginner.md) — frame lifecycle、同期、1 pass から post-process への段階導入。
 - [ ] **Q63**: [30 R5 2D、glTF、デバッグ、出荷](30-rendering-docs-beginner.md) — API選択、静的モデル、troubleshooting、publish。
 - [ ] **Q64**: [30 R6 ドキュメント品質の自動検証](30-rendering-docs-beginner.md) — 実サンプル参照、link/metadata/sample build 検証、Docs分割。
