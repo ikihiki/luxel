@@ -67,7 +67,7 @@ public sealed record SceneLoopServices(
 /// <list type="bullet">
 /// <item>FrameTime の更新</item>
 /// <item>Input source の Poll / InputStack.Update</item>
-/// <item>6 Phase (EarlyUpdate / Update / LateUpdate / PreRender / Render / PostRender) 順の実行
+/// <item>7 Phase (EarlyUpdate / FixedUpdate / Update / LateUpdate / PreRender / Render / PostRender) 順の実行
 ///       ─ virtual フック + 登録 World の <see cref="World.RunPhase"/></item>
 /// <item>RenderGraph の生成 / Execute / Submit</item>
 /// <item>ResourceSystem.Pump / AudioMixer.Tick</item>

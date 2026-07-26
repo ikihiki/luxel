@@ -33,6 +33,19 @@ namespace Luxel.Controls;
 /// 違い行境界を保証し、ページ本体の markdown として整形される — storysource のコードフェンス等。</summary>
 public readonly record struct DocMarkdown(string Markdown);
 
+/// <summary>Structured description of a live widget embedded in a <see cref="DocString"/>.
+/// Static exporters use this metadata to replace the live widget with an equivalent capture.
+/// <paramref name="Reference"/> is the referenced story path for <see cref="DocEmbedKind.StoryRef"/>.</summary>
+public sealed record DocEmbed(Widget Widget, DocEmbedKind Kind = DocEmbedKind.Widget, string? Reference = null,
+    bool Inline = false);
+
+/// <summary>Kind of live content represented by a <see cref="DocEmbed"/>.</summary>
+public enum DocEmbedKind
+{
+    Widget,
+    StoryRef,
+}
+
 [InterpolatedStringHandler]
 public sealed class DocString
 {
@@ -45,11 +58,14 @@ public sealed class DocString
     private readonly StringBuilder _md;
     private bool _afterFence;   // 直前が UI フェンス — 次の追記の頭で行境界を保証する
     internal readonly List<Widget> Holes = new();
+    private readonly List<DocEmbed> _embeds = new();
 
     /// <summary>組み上がった markdown (```luxel-ui フェンス等を含む)。新スタック橋 (<see cref="Kit.MarkdownDocs"/>) 用。</summary>
     internal string Md => _md.ToString();
     /// <summary>ブロック hole の Widget 列 (```luxel-ui の index が指す)。</summary>
     internal IReadOnlyList<Widget> HoleWidgets => Holes;
+    /// <summary>Structured metadata for every UI hole, in the same index order as <see cref="HoleWidgets"/>.</summary>
+    public IReadOnlyList<DocEmbed> Embeds => _embeds;
 
     public DocString(int literalLength, int formattedCount)
         => _md = new StringBuilder(literalLength + formattedCount * 24);
@@ -63,13 +79,17 @@ public sealed class DocString
     /// <summary>ブロックレベルのライブ UI (Storybook の Canvas 相当)。
     /// フェンスは行境界だけ保証する (改行は足さない) — 空行は空行として表示される
     /// (改行 = 改行の行指向モデル) ため、区切りの量は書き手のソースがそのまま決める。</summary>
-    public void AppendFormatted(Widget widget)
+    public void AppendFormatted(Widget widget) => AppendFormatted(new DocEmbed(widget));
+
+    /// <summary>Adds a live UI hole with structured metadata for native rendering and static export.</summary>
+    public void AppendFormatted(DocEmbed embed)
     {
         if (_md.Length > 0 && _md[^1] != '\n') _md.Append('\n');
         _md.Append("```").Append(UiTypeId).Append('\n')
            .Append(Holes.Count).Append("\n```");
         _afterFence = true;   // 閉じフェンスの行終端はソース側の改行に任せる (二重改行を作らない)
-        Holes.Add(widget);
+        Holes.Add(embed.Widget);
+        _embeds.Add(embed with { Inline = false });
     }
 
     /// <summary>書式付き widget hole: <c>{widget:inline}</c> = **文中インライン** (行内に占位ボックスを
@@ -82,6 +102,7 @@ public sealed class DocString
             FenceBoundary("[");
             _md.Append("[￼](").Append(InlineScheme).Append(Holes.Count).Append(')');
             Holes.Add(widget);
+            _embeds.Add(new DocEmbed(widget, Inline: true));
             return;
         }
         AppendFormatted(widget);

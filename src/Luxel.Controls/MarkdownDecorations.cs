@@ -61,6 +61,7 @@ public static class MarkdownDoc
         string md = toc ? InsertToc(content.Md) : content.Md;   // TOC = アンカー付き markdown リスト (hole 番号は不変)
         TextEditorView ed = Create(new Signal<string>(md), theme, width, height,
             body: body, bold: bold, mono: mono, highlighter: highlighter, embedKinds: kinds, fonts: fonts, fill: fill);
+        ed.DocEmbeds = content.Embeds;
         ed.WidgetResolver = key =>
         {
             if (key is not EmbedRef r) return null;

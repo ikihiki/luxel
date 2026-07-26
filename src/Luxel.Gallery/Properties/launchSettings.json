@@ -8,13 +8,13 @@
       "commandName": "Project",
       "commandLineArgs": "dx 5180"
     },
-    "Snapshot verify (vk)": {
+    "E2E verify (vk)": {
       "commandName": "Project",
-      "commandLineArgs": "vk snap"
+      "commandLineArgs": "vk e2e"
     },
-    "Snapshot update (vk)": {
+    "E2E update (vk)": {
       "commandName": "Project",
-      "commandLineArgs": "vk snap --update"
+      "commandLineArgs": "vk e2e --update"
     }
   }
 }
