@@ -32,7 +32,7 @@ public sealed class GallerySiteExporterTests
     public void Focused_export_is_complete_and_deterministic()
     {
         string root = GallerySiteExporter.FindRepositoryRoot();
-        StoryInfo story = StoryRegistry.Find("Controls/Button/Variants")
+        StoryInfo story = StoryRegistry.Find("Learn/Rendering/Shaders")
             ?? StoryRegistry.All.First(s => !s.RealWindowOnly);
         string a = Path.Combine(Path.GetTempPath(), "luxel-gallery-site-a-" + Guid.NewGuid().ToString("N"));
         string b = Path.Combine(Path.GetTempPath(), "luxel-gallery-site-b-" + Guid.NewGuid().ToString("N"));
@@ -45,6 +45,18 @@ public sealed class GallerySiteExporterTests
             GallerySiteExporter.Export(host, [story], b, root);
             GallerySiteExporter.Validate(a);
             string html = string.Join('\n', Directory.GetFiles(a, "*.html", SearchOption.AllDirectories).Select(File.ReadAllText));
+            string index = File.ReadAllText(Path.Combine(a, "index.html"));
+            string script = File.ReadAllText(Path.Combine(a, "site.js"));
+            Assert.Contains("vendor/highlightjs/highlight.min.js", index);
+            Assert.Contains("vendor/highlightjs/github-dark.min.css", index);
+            Assert.Contains("Highlight.js license", index);
+            Assert.Contains("highlight(content)", script);
+            Assert.Contains("slang:'cpp'", script);
+            Assert.Contains("powershell:'shell'", script);
+            Assert.True(File.Exists(Path.Combine(a, "vendor", "highlightjs", "highlight.min.js")));
+            Assert.True(File.Exists(Path.Combine(a, "vendor", "highlightjs", "github-dark.min.css")));
+            Assert.True(File.Exists(Path.Combine(a, "licenses", "highlight.js-LICENSE.txt")));
+            Assert.Contains("language-powershell", html);
             Assert.DoesNotContain("language-luxel-ui", html);
             Assert.DoesNotContain("href=\"luxel-ui:", html);
             Assert.Equal(HashTree(a, "*.html"), HashTree(b, "*.html"));
@@ -55,6 +67,23 @@ public sealed class GallerySiteExporterTests
         {
             if (Directory.Exists(a)) Directory.Delete(a, true);
             if (Directory.Exists(b)) Directory.Delete(b, true);
+        }
+    }
+
+    [Fact]
+    public void Validator_rejects_non_png_capture_files()
+    {
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-site-invalid-png-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(output, "images"));
+            File.WriteAllText(Path.Combine(output, "manifest.json"), "[]");
+            File.WriteAllBytes(Path.Combine(output, "images", "broken.png"), new byte[24]);
+            Assert.Throws<InvalidDataException>(() => GallerySiteExporter.Validate(output));
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
         }
     }
 
