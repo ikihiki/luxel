@@ -1,7 +1,10 @@
 using System.Numerics;
 using Luxel;
+using Luxel.RenderGraph;
 using DrawArgs3D = TutorialAbi.DrawArgs3D;
+using PostProcessArgs = TutorialAbi.PostProcessArgs;
 using Vertex3D = TutorialAbi.Vertex3D;
+using Rg = Luxel.RenderGraph.RenderGraph;
 
 internal sealed class TriangleRenderer : IDisposable
 {
@@ -12,6 +15,7 @@ internal sealed class TriangleRenderer : IDisposable
     private readonly GpuTexture _texture;
     private readonly GpuSampler _sampler;
     private readonly GpuPipeline _pipeline;
+    private readonly GpuPipeline _postPipeline;
     private readonly uint _indexCount;
     private GpuTexture? _target;
     private GpuTexture? _depth;
@@ -50,10 +54,12 @@ internal sealed class TriangleRenderer : IDisposable
         GpuRasterDesc raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
         raster.DepthTest = UsesDepth(stage);
         raster.DepthWrite = UsesDepth(stage);
-        raster.CullMode = stage == TutorialStage.Lighting ? GpuCullMode.Back : GpuCullMode.None;
+        raster.CullMode = stage is TutorialStage.Lighting or TutorialStage.Graph or TutorialStage.PostProcess
+            ? GpuCullMode.Back : GpuCullMode.None;
         raster.FrontFace = GpuFrontFace.CounterClockwise;
         string shader = stage == TutorialStage.Triangle ? "tutorial_triangle" : "tutorial_3d";
         _pipeline = device.CreateGraphicsPipeline(GpuShaderCode.Load(shader), raster);
+        _postPipeline = device.CreateComputePipeline(GpuShaderCode.Load("compute_tutorial_postprocess"));
     }
 
     public GpuBuffer Framebuffer
@@ -125,21 +131,96 @@ internal sealed class TriangleRenderer : IDisposable
             Model = Matrix4x4.Transpose(model),
             ViewProjection = Matrix4x4.Transpose(viewProjection),
             LightDirection = new Vector4(Vector3.Normalize(new Vector3(-0.45f, 0.8f, -0.35f)), 0),
-            Stage = (uint)_stage - 1,
+            Stage = _stage == TutorialStage.Texture ? 0u
+                : _stage == TutorialStage.Transform ? 1u : 2u,
         };
 
+        if (_stage is TutorialStage.Graph or TutorialStage.PostProcess)
+            RenderGraphFrame(args);
+        else
+            RenderDirectFrame(args);
+        _frame++;
+    }
+
+    private void RenderDirectFrame(DrawArgs3D args)
+    {
         using GpuCommandBuffer command = _device.MainQueue.StartCommandRecording();
-        command.BeginRendering(_target, _depth, 0.025f, 0.035f, 0.06f, 1)
+        command.BeginRendering(_target!, _depth, 0.025f, 0.035f, 0.06f, 1)
             .SetGraphicsPipeline(_pipeline)
             .SetRootArguments(args)
             .Draw(_indexCount)
             .EndRendering()
             .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
-            .CopyTextureToBuffer(_target, _framebuffer, StridePixels);
+            .CopyTextureToBuffer(_target!, _framebuffer!, StridePixels);
         command.Finish();
         _device.MainQueue.SubmitAndWait(command);
-        _frame++;
     }
+
+    private void RenderGraphFrame(DrawArgs3D args)
+    {
+        // One graph is one frame in this tutorial. It owns transients until SubmitAndWait completes.
+        using var graph = new Rg(_device);
+        TextureHandle finalColor = graph.ImportTexture(_target!, "present-color");
+        TextureHandle finalDepth = graph.ImportTexture(_depth!, "present-depth");
+        BufferHandle finalBuffer = graph.ImportBuffer(_framebuffer!, "present-framebuffer");
+
+        if (_stage == TutorialStage.Graph)
+        {
+            graph.AddPass("DrawAndReadback", PassQueue.Graphics)
+                .Write(finalColor, TextureUsage.ColorAttachment)
+                .Write(finalDepth, TextureUsage.DepthAttachment)
+                .Write(finalBuffer, ResourceUsage.CopyDest)
+                .Execute(c =>
+                {
+                    DrawCube(c.Cmd, c.Texture(finalColor), c.Texture(finalDepth), args);
+                    c.Cmd.Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+                        .CopyTextureToBuffer(c.Texture(finalColor), c.Buffer(finalBuffer), StridePixels);
+                });
+        }
+        else
+        {
+            TextureHandle sceneColor = graph.CreateTexture(
+                new TextureDesc(_width, _height, GpuFormat.Rgba8Unorm), "scene-color");
+            TextureHandle sceneDepth = graph.CreateTexture(
+                new TextureDesc(_width, _height, GpuFormat.D32Float, TextureKind.Depth), "scene-depth");
+            BufferHandle scenePixels = graph.CreateBuffer(
+                new BufferDesc(checked((ulong)StridePixels * _height * 4), GpuMemoryKind.HostMapped), "scene-pixels");
+
+            graph.AddPass("DrawScene", PassQueue.Graphics)
+                .Write(sceneColor, TextureUsage.ColorAttachment)
+                .Write(sceneDepth, TextureUsage.DepthAttachment)
+                .Execute(c => DrawCube(c.Cmd, c.Texture(sceneColor), c.Texture(sceneDepth), args));
+            graph.AddPass("SceneReadback", PassQueue.Graphics)
+                .Read(sceneColor, TextureUsage.CopySource)
+                .Write(scenePixels, ResourceUsage.CopyDest)
+                .Execute(c => c.Cmd.CopyTextureToBuffer(c.Texture(sceneColor), c.Buffer(scenePixels), StridePixels));
+            graph.AddPass("PostProcess", PassQueue.Compute)
+                .Read(scenePixels, ResourceUsage.StorageBufferRead)
+                .Write(finalBuffer, ResourceUsage.StorageBufferWrite)
+                .Execute(c => c.Cmd.SetComputePipeline(_postPipeline)
+                    .SetRootArguments(new PostProcessArgs
+                    {
+                        SourceBufferIndex = c.BindlessIndex(scenePixels),
+                        DestinationBufferIndex = c.BindlessIndex(finalBuffer),
+                        Width = _width,
+                        Height = _height,
+                        StridePixels = StridePixels,
+                    })
+                    .Dispatch((_width + 7) / 8, (_height + 7) / 8));
+        }
+
+        using GpuCommandBuffer command = _device.MainQueue.StartCommandRecording();
+        graph.Execute(command);
+        command.Finish();
+        _device.MainQueue.SubmitAndWait(command);
+    }
+
+    private void DrawCube(GpuCommandBuffer command, GpuTexture color, GpuTexture depth, DrawArgs3D args)
+        => command.BeginRendering(color, depth, 0.025f, 0.035f, 0.06f, 1)
+            .SetGraphicsPipeline(_pipeline)
+            .SetRootArguments(args)
+            .Draw(_indexCount)
+            .EndRendering();
 
     public void Dispose()
     {
@@ -147,6 +228,7 @@ internal sealed class TriangleRenderer : IDisposable
         _framebuffer?.Dispose();
         _depth?.Dispose();
         _target?.Dispose();
+        _postPipeline.Dispose();
         _pipeline.Dispose();
         _sampler.Dispose();
         _texture.Dispose();
@@ -155,7 +237,7 @@ internal sealed class TriangleRenderer : IDisposable
     }
 
     private static bool UsesDepth(TutorialStage stage)
-        => stage is TutorialStage.Transform or TutorialStage.Lighting;
+        => stage is TutorialStage.Transform or TutorialStage.Lighting or TutorialStage.Graph or TutorialStage.PostProcess;
 
     private static TutorialAbi.Vertex[] CreateTriangleVertices() =>
     [

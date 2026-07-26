@@ -142,7 +142,9 @@ static TutorialStage ParseStage(string[] args)
             "texture" or "quad" => TutorialStage.Texture,
             "transform" or "cube" => TutorialStage.Transform,
             "lighting" or "light" => TutorialStage.Lighting,
-            _ => throw new ArgumentException("--stage must be triangle, texture, transform, or lighting."),
+            "graph" or "rendergraph" => TutorialStage.Graph,
+            "post" or "postprocess" => TutorialStage.PostProcess,
+            _ => throw new ArgumentException("--stage must be triangle, texture, transform, lighting, graph, or post."),
         };
     }
     return TutorialStage.Triangle;

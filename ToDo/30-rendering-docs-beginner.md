@@ -135,7 +135,7 @@ Luxel.Gallery のレンダリング関連 Docs / Demos を、機能カタログ�
 - vk / dx で期待画像が一致するか、許容差と理由を明記する。
 - resize と aspect ratio を play で検証する。
 
-### R4 — フレーム同期とRenderGraph
+### R4 — フレーム同期とRenderGraph (完了: 2026-07-26)
 
 #### 実装
 

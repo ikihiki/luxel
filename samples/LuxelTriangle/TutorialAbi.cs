@@ -8,6 +8,7 @@ public static class TutorialAbi
     public const int DrawArgsSize = 4;
     public const int Vertex3DSize = 32;
     public const int DrawArgs3DSize = 176;
+    public const int PostProcessArgsSize = 20;
 
     [StructLayout(LayoutKind.Sequential)]
     public struct Vertex
@@ -44,6 +45,16 @@ public static class TutorialAbi
         private uint _pad0, _pad1, _pad2;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PostProcessArgs
+    {
+        public uint SourceBufferIndex;
+        public uint DestinationBufferIndex;
+        public uint Width;
+        public uint Height;
+        public uint StridePixels;
+    }
+
     public static float VisibleAspect(int width, int height)
     {
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
@@ -58,4 +69,6 @@ public enum TutorialStage
     Texture,
     Transform,
     Lighting,
+    Graph,
+    PostProcess,
 }

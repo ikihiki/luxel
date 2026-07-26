@@ -244,7 +244,7 @@ public static class DocsGpu
         compile --> exec[Execute - pass lambda 駆動]
         ```
 
-        Setup でパスと依存を宣言し、`Execute(cmd)` 1 回で Compile + Execute が走ります。Compile 相の仕事: デッドパスカリング (External への書き込みに到達しないパスを除去) → トポロジカルソート → 各リソースの first-write / last-read 計算 → transient の物理割当 (aliasing) → パス境界のバリア計算。
+        Setup でパスと依存を宣言し、`Execute(cmd)` 1 回で Compile + Execute が走ります。Compile 相の仕事: デッドパスカリング (External への書き込みに到達しないパスを除去) → 各リソースの first-write / last-read 計算 → transient の物理割当 (aliasing) → パス境界のバリア計算。現在の実行順はトポロジカルソートではなく**パスの登録順**なので、producerをconsumerより先に登録します。
 
         ```csharp
         using var rg = new RenderGraph(device);                       // 1 フレーム使い切り
