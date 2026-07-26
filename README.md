@@ -28,7 +28,7 @@ PSO 爆発のない薄い API を構築する。
 
 - **バックエンド:** Vulkan 1.3 (一次) + DirectX 12 (二次)。`IGpuBackend` 抽象で切替。
 - **シェーダ:** Slang で記述し、SPIR-V (Vulkan) と DXIL (D3D12) に併存コンパイル。
-- **核心:** 全パイプライン共通の固定レイアウト = 8B push 定数 (ルート引数) + bindless heap。
+- **核心:** 全パイプライン共通の固定レイアウト = 最大 192B のルート引数 (4B単位のraw bytes) + bindless heap。
 - **規律:** すべての描画機能は vk/dx の両バックエンドでピクセル一致を検証する。
 
 ## 必要環境
@@ -134,11 +134,19 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 | Luxel.DevTools (+ .App) | デバッガ / HTTP DebugServer / ネイティブ DevTools |
 | Luxel.Gallery | ドキュメント + デモ + e2e/bench (このリポジトリの玄関) |
 
+初心者向けGPU経路は Gallery の `Learn/Rendering/Overview` から始まり、`FirstTriangle` →
+`BuffersAndBindings` → `Shaders` の順で、standalone sample、bindless buffer ABI、shader cache更新を扱う。
+`GpuMemoryKind` はCPU write向け`HostMapped`、GPU専用`DeviceLocal`、CPU readback向け`HostCached`の3種類。
+
 ## Slang シェーダキャッシュ
 
 `shaders/compiled/` の SPIR-V/DXIL は Git 管理し、通常の `dotnet build` では入力ハッシュを検証して
 各プロジェクトの出力へコピーする。同じシェーダをプロジェクトごと・ビルドごとに再コンパイルしない。
 `.slang`、コンパイラ版、プロファイルのいずれかがキャッシュと違う場合、通常ビルドは説明付きで失敗する。
+
+filenameが`compute*.slang`または`raster2d_*.slang`ならcompute entry `main`として分類し、
+`<name>.spv` + `<name>.dxil`を生成する。それ以外はgraphics entry `vsMain` / `psMain`として、
+`<name>.spv` + `<name>.vs.dxil` + `<name>.ps.dxil`を生成する。
 
 シェーダ変更後はリポジトリルートで次を1回実行し、ソースと `shaders/compiled/` を一緒にコミットする:
 

@@ -20,7 +20,7 @@ public static partial class DocsAdr
 
         ## Context
 
-        Luxel は薄い GPU 抽象の上に多数のサブシステムを積む構成で、随所に「なぜこの設計なのか」という判断があります — 固定レイアウト (8B push 定数 + bindless heap)、vk/dx ピクセル一致という開発規律、docs を Gallery に一本化した方針、Effekseer を統合しない選択などです。
+        Luxel は薄い GPU 抽象の上に多数のサブシステムを積む構成で、随所に「なぜこの設計なのか」という判断があります — 固定レイアウト (最大192Bのルート引数 + bindless heap)、vk/dx ピクセル一致という開発規律、docs を Gallery に一本化した方針、Effekseer を統合しない選択などです。
 
         こうした *理由* は現状、コード・docs・コミットログ・個々人の記憶に散在しています。docs は「現在の姿」を説明しますが、「なぜその姿を選び、何を捨てたか」は残りにくく、後から掘り起こすのに時間がかかります。
 

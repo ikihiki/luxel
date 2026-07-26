@@ -1,4 +1,4 @@
-﻿using Luxel.Abstraction;
+using Luxel.Abstraction;
 using Vortice.Direct3D;
 using Vortice.Direct3D12;
 using Vortice.Direct3D12.Debug;
@@ -129,7 +129,7 @@ public sealed unsafe class D3D12Backend : IGpuBackend
     private void CreateRootSignature()
     {
         // 全パイプライン共通の固定ルートシグネチャ:
-        //   param 0 = root 32bit 定数 (b0)   = ルート引数 (最大 128B)
+        //   param 0 = root 32bit 定数 (b0)   = ルート引数 (固定容量 192B)
         //   param 1 = descriptor table (u0, space1, unbounded) = bindless バッファ配列
         const uint unbounded = unchecked((uint)-1);
         var uavRange = new DescriptorRange1(DescriptorRangeType.UnorderedAccessView, unbounded, 0, 1, 0, DescriptorRangeFlags.DescriptorsVolatile);

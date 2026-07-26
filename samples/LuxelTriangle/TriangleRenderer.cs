@@ -1,20 +1,9 @@
-using System.Runtime.InteropServices;
 using Luxel;
+using DrawArgs = TutorialAbi.DrawArgs;
+using Vertex = TutorialAbi.Vertex;
 
 internal sealed class TriangleRenderer : IDisposable
 {
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Vertex
-    {
-        public float Px, Py, Pz, Pw;
-        public float R, G, B, A;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct DrawArgs
-    {
-        public uint VertexBufferIndex;
-    }
 
     private readonly GpuDevice _device;
     private readonly GpuBuffer _vertices;
@@ -26,7 +15,7 @@ internal sealed class TriangleRenderer : IDisposable
     public TriangleRenderer(GpuDevice device)
     {
         _device = device;
-        _vertices = device.Malloc(3 * 32, GpuMemoryKind.HostMapped);
+        _vertices = device.Malloc(3 * TutorialAbi.VertexSize, GpuMemoryKind.HostMapped);
         Span<Vertex> vertices = _vertices.Span<Vertex>(3);
         vertices[0] = new Vertex { Px = 0, Py = -0.72f, Pz = 0, Pw = 1, R = 1, G = 0.18f, B = 0.18f, A = 1 };
         vertices[1] = new Vertex { Px = 0.72f, Py = 0.62f, Pz = 0, Pw = 1, R = 0.18f, G = 1, B = 0.28f, A = 1 };

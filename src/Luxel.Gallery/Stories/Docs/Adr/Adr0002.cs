@@ -28,7 +28,7 @@ public static partial class DocsAdr
 
         既存のグラフィック抽象ライブラリを使わず、*No Graphics API* 設計の**薄い bindless 抽象を C# で自作**します (`Luxel` コア + `Luxel.Vulkan` / `Luxel.D3D12`)。核心は次の 5 点:
 
-        - **固定パイプラインレイアウト** — 全 PSO が「8B push 定数 (ルート引数構造体の GPU アドレス/インデックス) + グローバル bindless heap」の 1 レイアウトを共有。ディスクリプタセットも PSO バリアントも存在しない
+        - **固定パイプラインレイアウト** — 全 PSO が「最大192Bのルート引数 (4B単位のraw bytes) + グローバル bindless heap」の 1 レイアウトを共有。ディスクリプタセットも PSO バリアントも存在しない
         - **bindless 一本** — バッファ/テクスチャは作成時に `BindlessIndex` を持ち、シェーダは `g_buffers[index]` / `g_textures[index]` で参照。「どのリソースを使うか」はルート引数内の index が全て
         - **メモリはただのポインタ** — `device.Malloc(bytes, kind)` で確保し、HostMapped は `Span<T>` で直接読み書き (頂点フォーマット宣言なし、頂点プル)
         - **同期は stage バリアのみ** — `Barrier(srcStage, dstStage)` の 1 種類。リソース個別の状態遷移管理を持たない
