@@ -16,7 +16,7 @@ public static class CameraRigStories
     private const float CW = 460, RowH = 96, Grid = 60, Player = 18;
     private static readonly Vector2 Deadzone = new(140, 70);
 
-    [Story("Demos/TwoD/CameraRig", Height = 340, Order = 118)]
+    [Story("Demos/2D/CameraRig", Height = 340, Order = 118)]
     public static Widget CameraRig(StoryContext ctx)
     {
         return ctx.Snap(VStack(6)[

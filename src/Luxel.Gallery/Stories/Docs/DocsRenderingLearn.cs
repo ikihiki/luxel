@@ -1086,6 +1086,8 @@ public static class DocsRenderingLearn
         } finally { Pop-Location }
         ```
 
+        この手順はrepository rootの`rendering-ship-verify.ps1`として実行できます。Windowsで`-IncludeRange`を付けると、`LuxelRange`のFox asset、license、static/skinned shaderも構造検査してからVulkan/D3D12で起動します。
+
         Windowsでは同じpublishへ`dx --stage post --frames 3`も実行します。Linuxでは実行ファイル名に`.exe`を付けず、X11/XvfbとVulkan ICDを用意します。capstoneのasset/shader配置とrun/publish手順は`samples/LuxelRange/README.md`へ続きます。
         """, toc: true);
     }

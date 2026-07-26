@@ -63,6 +63,7 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("aria-current','page'", script);
             Assert.Contains("!hasSavedOpen()&&!prefix", script);
             Assert.Contains("if(!expandAll)details.addEventListener", script);
+            Assert.Contains("(x.aliases||[]).includes(requested)", script);
             Assert.True(File.Exists(Path.Combine(a, "vendor", "highlightjs", "highlight.min.js")));
             Assert.True(File.Exists(Path.Combine(a, "vendor", "highlightjs", "github-dark.min.css")));
             Assert.True(File.Exists(Path.Combine(a, "licenses", "highlight.js-LICENSE.txt")));
@@ -81,6 +82,20 @@ public sealed class GallerySiteExporterTests
             if (Directory.Exists(a)) Directory.Delete(a, true);
             if (Directory.Exists(b)) Directory.Delete(b, true);
         }
+    }
+
+    [Fact]
+    public void Legacy_two_d_routes_resolve_without_duplicate_sidebar_entries()
+    {
+        string[] names = ["CameraRig", "Sprites", "Tilemap", "Particles", "ParticleView", "Gizmos2D"];
+        foreach (string name in names)
+        {
+            StoryInfo canonical = StoryRegistry.Find($"Demos/2D/{name}")
+                ?? throw new InvalidOperationException($"Canonical 2D story is missing: {name}");
+            Assert.Same(canonical, StoryRegistry.Find($"Demos/TwoD/{name}"));
+            Assert.Contains($"Demos/TwoD/{name}", StoryRegistry.AliasesFor(canonical.Path));
+        }
+        Assert.DoesNotContain(StoryRegistry.All, story => story.Path.StartsWith("Demos/TwoD/", StringComparison.Ordinal));
     }
 
     [Fact]

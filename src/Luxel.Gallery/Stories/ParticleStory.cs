@@ -17,7 +17,7 @@ namespace Luxel.Gallery.Stories;
 /// </summary>
 public static class ParticleStories
 {
-    [Story("Demos/TwoD/Particles", Height = 260, Order = 121)]
+    [Story("Demos/2D/Particles", Height = 260, Order = 121)]
     public static Widget Particles(StoryContext ctx) => ctx.Snap(Frame(GpuView(384, 192, new ParticleScene(), animated: false)));
 
     private sealed class ParticleScene : GpuSceneBase

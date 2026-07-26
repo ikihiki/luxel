@@ -15,52 +15,7 @@
     <EmbeddedResource Include="Assets\highlightjs\LICENSE" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <KhronosBoxCommit>5bad5aaa0bbb5d0f9cdc934e626f27d0df1e79b8</KhronosBoxCommit>
-    <KhronosBoxGltfSha256>4A0D69EECFCE0672A50B71DC218CBACEC6C53FE2445040C235C6314B1B2C41B9</KhronosBoxGltfSha256>
-    <KhronosBoxBinSha256>3266A8E39B9F425B3341CBE5EEC7849F44310256BFA651E6B8B40C85CE0CCAFB</KhronosBoxBinSha256>
-    <KhronosBoxLicenseSha256>BEB770A60599C2F99DD27C26355F64CF42309B2F3BA700D9C8D969EDB5939D0B</KhronosBoxLicenseSha256>
-    <KhronosSampleCacheDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\tools\khronos-samples'))</KhronosSampleCacheDir>
-    <KhronosBoxDownloadDir>$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', '.downloads', 'box'))</KhronosBoxDownloadDir>
-    <KhronosBoxBaseUrl>https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/$(KhronosBoxCommit)/Models/Box</KhronosBoxBaseUrl>
-    <KhronosBoxGltfPath>$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', 'Box.gltf'))</KhronosBoxGltfPath>
-    <KhronosBoxBinPath>$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', 'Box0.bin'))</KhronosBoxBinPath>
-    <KhronosBoxLicensePath>$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', 'Box-LICENSE.md'))</KhronosBoxLicensePath>
-  </PropertyGroup>
-
-  <Target Name="AcquireKhronosBoxAsset" BeforeTargets="PrepareForBuild">
-    <MakeDir Directories="$(KhronosSampleCacheDir);$(KhronosBoxDownloadDir)" />
-    <DownloadFile Condition="!Exists('$(KhronosBoxGltfPath)') and !Exists('$(KhronosBoxDownloadDir)/Box.gltf')"
-                  SourceUrl="$(KhronosBoxBaseUrl)/glTF/Box.gltf" DestinationFolder="$(KhronosBoxDownloadDir)"
-                  Retries="3" RetryDelayMilliseconds="1000" />
-    <DownloadFile Condition="!Exists('$(KhronosBoxBinPath)') and !Exists('$(KhronosBoxDownloadDir)/Box0.bin')"
-                  SourceUrl="$(KhronosBoxBaseUrl)/glTF/Box0.bin" DestinationFolder="$(KhronosBoxDownloadDir)"
-                  Retries="3" RetryDelayMilliseconds="1000" />
-    <DownloadFile Condition="!Exists('$(KhronosBoxLicensePath)') and !Exists('$(KhronosBoxDownloadDir)/LICENSE.md')"
-                  SourceUrl="$(KhronosBoxBaseUrl)/LICENSE.md" DestinationFolder="$(KhronosBoxDownloadDir)"
-                  Retries="3" RetryDelayMilliseconds="1000" />
-    <Copy Condition="!Exists('$(KhronosBoxGltfPath)')" SourceFiles="$(KhronosBoxDownloadDir)/Box.gltf" DestinationFiles="$(KhronosBoxGltfPath)" />
-    <Copy Condition="!Exists('$(KhronosBoxBinPath)')" SourceFiles="$(KhronosBoxDownloadDir)/Box0.bin" DestinationFiles="$(KhronosBoxBinPath)" />
-    <Copy Condition="!Exists('$(KhronosBoxLicensePath)')" SourceFiles="$(KhronosBoxDownloadDir)/LICENSE.md" DestinationFiles="$(KhronosBoxLicensePath)" />
-    <Error Condition="!Exists('$(KhronosBoxGltfPath)') or !Exists('$(KhronosBoxBinPath)') or !Exists('$(KhronosBoxLicensePath)')"
-           Text="Khronos Box asset一式を取得できませんでした: $(KhronosBoxBaseUrl)" />
-    <GetFileHash Files="$(KhronosBoxGltfPath)" Algorithm="SHA256">
-      <Output TaskParameter="Items" ItemName="_KhronosBoxGltfHash" />
-    </GetFileHash>
-    <GetFileHash Files="$(KhronosBoxBinPath)" Algorithm="SHA256">
-      <Output TaskParameter="Items" ItemName="_KhronosBoxBinHash" />
-    </GetFileHash>
-    <GetFileHash Files="$(KhronosBoxLicensePath)" Algorithm="SHA256">
-      <Output TaskParameter="Items" ItemName="_KhronosBoxLicenseHash" />
-    </GetFileHash>
-    <Error Condition="'@(_KhronosBoxGltfHash->'%(FileHash)')' != '$(KhronosBoxGltfSha256)'"
-           Text="Box.gltfのSHA-256が一致しません。$(KhronosBoxGltfPath)を削除して再実行してください。" />
-    <Error Condition="'@(_KhronosBoxBinHash->'%(FileHash)')' != '$(KhronosBoxBinSha256)'"
-           Text="Box0.binのSHA-256が一致しません。$(KhronosBoxBinPath)を削除して再実行してください。" />
-    <Error Condition="'@(_KhronosBoxLicenseHash->'%(FileHash)')' != '$(KhronosBoxLicenseSha256)'"
-           Text="Box-LICENSE.mdのSHA-256が一致しません。$(KhronosBoxLicensePath)を削除して再実行してください。" />
-  </Target>
-
+  <Import Project="..\..\assets\Luxel.KhronosBox.targets" />
   <Import Project="..\..\assets\Luxel.FontAssets.targets" />
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />
 </Project>

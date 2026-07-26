@@ -17,7 +17,7 @@ public static class ParticleViewStories
 {
     private const float VW = 360, VH = 168;
 
-    [Story("Demos/TwoD/ParticleView", Height = 240, Order = 122)]
+    [Story("Demos/2D/ParticleView", Height = 240, Order = 122)]
     public static Widget View(StoryContext ctx)
     {
         var cfg = new ParticleConfig(

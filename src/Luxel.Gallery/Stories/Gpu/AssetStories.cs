@@ -1,7 +1,8 @@
-﻿using System.Numerics;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Luxel.AssetRuntime;
 using Luxel.Assets;
+using Luxel.AssetsGpu;
 using Luxel.Gltf;
 using Luxel.RenderGraph;
 using Luxel.UI;
@@ -27,9 +28,78 @@ public static class AssetStories
         public uint InstanceStart;
     }
 
-    /// <summary>Box.gltf → AssetDocument → ECS → 1 draw。アセットパイプラインの最小経路。</summary>
+    /// <summary>Box.gltf → AssetDocument → AssetPrimitive → GPU buffers → 1 draw。ECSなしの静的最小経路。</summary>
     [Story("Demos/3D/GltfBox", Height = 320, Order = 125)]
-    public static Widget GltfBox() => Frame(GpuView(256, 256, new GltfScene("Box.gltf"), animated: false));
+    public static Widget GltfBox() => Frame(GpuView(256, 256, new StaticGltfScene("Box.gltf"), animated: false));
+
+    /// <summary>静的primitiveを直接uploadし、1件のinstance bufferで描く。ECS/animation/skin/morphは使わない。</summary>
+    private sealed class StaticGltfScene(string file) : GpuSceneBase
+    {
+        private GpuPrimitive _primitive = null!;
+        private GpuBuffer _instances = null!;
+        private GpuTexture _depth = null!;
+        private GpuPipeline _pipeline = null!;
+
+        protected override void OnInit()
+        {
+            string path = FindSample(file);
+            AssetDocument doc = new GltfLoader().LoadAsync(path).GetAwaiter().GetResult();
+            AssetPrimitive source = doc.Meshes.FirstOrDefault()?.Primitives.FirstOrDefault()
+                ?? throw new InvalidDataException($"glTF has no mesh primitive: {path}");
+
+            _primitive = Track(GpuAssetFactory.Upload(source, Device));
+            Vector4 baseColor = source.Material?.BaseColorFactor ?? new Vector4(0.86f, 0.34f, 0.30f, 1f);
+            _instances = Track(Device.Malloc((ulong)SceneInstanceData.Stride, GpuMemoryKind.HostMapped));
+            _instances.Span<SceneInstanceData>(1)[0] = new SceneInstanceData
+            {
+                World = Matrix4x4.Identity,
+                BaseColor = baseColor,
+            };
+
+            _depth = Track(Device.CreateDepthTarget(W, H));
+            GpuRasterDesc raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
+            raster.DepthTest = true;
+            raster.DepthWrite = true;
+            _pipeline = Track(Device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_lite"), raster));
+        }
+
+        protected override void OnRender(float time)
+        {
+            Matrix4x4 view = Matrix4x4.CreateLookAt(new Vector3(2.6f, 2.0f, -3.4f), new Vector3(0, 0.4f, 0), Vector3.UnitY);
+            Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 3, 1f, 0.1f, 100f);
+            bool indexed = _primitive.IndexBuffer is not null;
+
+            using GpuCommandBuffer command = Device.MainQueue.StartCommandRecording();
+            command.BeginRendering(Target, _depth, 0.05f, 0.06f, 0.09f, 1f, 1f)
+                .SetGraphicsPipeline(_pipeline)
+                .SetRootArguments(new DrawArgs
+                {
+                    ViewProj = Matrix4x4.Transpose(view * projection),
+                    VertexBufIndex = _primitive.VertexBuffer.BindlessIndex,
+                    IndexBufIndex = indexed ? _primitive.IndexBuffer!.BindlessIndex : 0xFFFFFFFFu,
+                    InstanceBufIndex = _instances.BindlessIndex,
+                    InstanceStart = 0,
+                })
+                .Draw((uint)(indexed ? _primitive.IndexCount : _primitive.VertexCount), 1)
+                .EndRendering()
+                .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+                .CopyTextureToBuffer(Target, OutBuffer);
+            command.Finish();
+            Device.MainQueue.SubmitAndWait(command);
+        }
+    }
+
+    private static string FindSample(string file)
+    {
+        // Khronos samples are repository tools; support both repo-root cwd and bin launches.
+        string[] candidates =
+        [
+            Path.Combine(Environment.CurrentDirectory, "tools", "khronos-samples", file),
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "tools", "khronos-samples", file),
+        ];
+        return candidates.FirstOrDefault(File.Exists)
+            ?? throw new FileNotFoundException($"khronos-samples/{file} が見つかりません");
+    }
 
     /// <summary>BoxAnimated.glb — ノード TRS アニメーションを SceneAnimationPlayer が毎フレーム
     /// sample → TransformPropagate → 再 Extract して描く (スキニングなしのアニメーション経路)。</summary>
@@ -53,17 +123,7 @@ public static class AssetStories
 
         protected override void OnInit()
         {
-            // khronos-samples はリポジトリ直下 tools/ — 実行ディレクトリ (repo root) と
-            // bin 起動 (AppContext) の両対応 (goldens の SampleImage と同じ流儀)
-            string[] candidates =
-            [
-                Path.Combine(Environment.CurrentDirectory, "tools", "khronos-samples", file),
-                Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "tools", "khronos-samples", file),
-            ];
-            string path = candidates.FirstOrDefault(File.Exists)
-                ?? throw new FileNotFoundException($"khronos-samples/{file} が見つかりません");
-
-            AssetDocument doc = new GltfLoader().LoadAsync(path).GetAwaiter().GetResult();
+            AssetDocument doc = new GltfLoader().LoadAsync(FindSample(file)).GetAwaiter().GetResult();
             // Khronos sample の material は白 — 見やすい色に上書き
             for (int i = 0; i < doc.Materials.Count; i++)
                 doc.Materials[i].BaseColorFactor = i % 2 == 0
