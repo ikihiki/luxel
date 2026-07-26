@@ -31,7 +31,7 @@ public static class Gizmos2DStories
         return map;
     }
 
-    [Story("Demos/TwoD/Gizmos2D", Height = 320, Order = 151)]
+    [Story("Demos/2D/Gizmos2D", Height = 320, Order = 151)]
     public static Widget Gizmos2DDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(W, H, draw: s =>
     {
         TileMap map = BuildMap();

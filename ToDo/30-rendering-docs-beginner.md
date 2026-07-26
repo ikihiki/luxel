@@ -152,7 +152,7 @@ Luxel.Gallery のレンダリング関連 Docs / Demos を、機能カタログ�
 - 1 pass → post-process の差分が追える。
 - validation error の代表例がある。
 
-### R5 — 2D、glTF、デバッグ、出荷
+### R5 — 2D、glTF、デバッグ、出荷 (完了: 2026-07-26)
 
 #### 実装
 

@@ -61,6 +61,9 @@
                       GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
   </ItemGroup>
 
+  <!-- Static glTF beginner story fixture. Gallery単体buildでも取得・hash検証する。 -->
+  <Import Project="..\..\assets\Luxel.KhronosBox.targets" />
+
   <!-- Gallery / e2e / publish で共有 BIZ/UDEV フォントを使う。 -->
   <Import Project="..\..\assets\Luxel.FontAssets.targets" />
 

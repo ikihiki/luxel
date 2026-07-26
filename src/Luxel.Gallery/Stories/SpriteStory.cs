@@ -15,7 +15,7 @@ namespace Luxel.Gallery.Stories;
 /// </summary>
 public static class SpriteStories
 {
-    [Story("Demos/TwoD/Sprites", Height = 260, Order = 119)]
+    [Story("Demos/2D/Sprites", Height = 260, Order = 119)]
     public static Widget Sprites(StoryContext ctx) => ctx.Snap(Frame(GpuView(384, 192, new SpriteScene(), animated: false)));
 
     private sealed class SpriteScene : GpuSceneBase

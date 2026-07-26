@@ -120,7 +120,7 @@ public static class DocsGpu
 
         低レベルの `Camera2D` (ズーム/パン affine) の上に、ゲーム向けの高レベルコントローラ `CameraRig2D` があります。毎フレーム追従対象 (`Target`) を与えて `Update(dt, viewportW, viewportH)` し、`Camera(w, h)` で `Camera2D` を得ます。**デッドゾーン** (中央のこの矩形内では動かない)・**指数平滑** (フレームレート非依存の `1 - exp(-dt/tau)`、`* 0.1f` 方式は dt 依存なので使わない)・**ワールド境界クランプ** (画面端が `WorldBounds` を出ない、ワールドが画面より小さい軸は中央固定)・**画面シェイク** (`Shake(amp, duration, seed)`、固定シード xorshift なので golden 決定的) を持ちます。追従はターゲットが動いた後 = LateUpdate が定位置です。
 
-        {{StoryRef(ctx, "Demos/TwoD/CameraRig")}}
+        {{StoryRef(ctx, "Demos/2D/CameraRig")}}
 
         ## スプライトアトラス — 1 テクスチャに複数スプライト
 
@@ -138,7 +138,7 @@ public static class DocsGpu
 
         GPU 側は `GpuPath` の image シェイプ (`ImageSubRect`) がアトラスの**サブ矩形**を直接サンプリングします — `srcStride` = アトラス全幅 (行ピッチ)、`srcX/srcY` = サブ矩形原点、`srcW/srcH` = サイズ。clamp 付きサンプリングでサブ矩形境界に閉じるため、隣接スプライトへ滲みません (1:1 表示は nearest 相当)。image シェイプは GPU 専用 (Skia CPU バックエンドは非対応) です。
 
-        {{StoryRef(ctx, "Demos/TwoD/Sprites")}}
+        {{StoryRef(ctx, "Demos/2D/Sprites")}}
 
         ## タイルマップ — グリッド描画 + AABB 衝突
 
@@ -157,7 +157,7 @@ public static class DocsGpu
 
         下のデモは壁柱へ右移動するプレイヤー (赤) が `Sweep` で壁の手前に切り詰められる様子です (アウトラインが意図した移動先):
 
-        {{StoryRef(ctx, "Demos/TwoD/Tilemap")}}
+        {{StoryRef(ctx, "Demos/2D/Tilemap")}}
 
         ## パーティクル — 標準 VFX システム
 
@@ -179,7 +179,7 @@ public static class DocsGpu
         node.Sync();                                      // 生存パーティクルを描き直す
         ```
 
-        {{StoryRef(ctx, "Demos/TwoD/Particles")}}
+        {{StoryRef(ctx, "Demos/2D/Particles")}}
 
         3D は `Luxel.Particles.ThreeD` の `ParticleBillboards` — 生存パーティクルを `RenderBuffer<T>` の instance 配列に詰め、`billboard.slang` が SV_InstanceID から各粒子をカメラ向きの quad (right/up 軸で展開) に開きます。深度テストあり・書き込み無し + アルファブレンドで、描画順は発生順 (半透明ソートは v1 でやらない割り切り)。`Spherical: true` の設定で +Y 軸まわりの円錐 (π で全球) に 3D 放出します。
 

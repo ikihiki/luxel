@@ -64,7 +64,7 @@
 - [x] **Q60**: [30 R2 バッファ、バインディング、シェーダ](30-rendering-docs-beginner.md) — GPU memory、ABI/alignment、bindless、Slang と Git shader cache。 (完了: 2026-07-26)
 - [x] **Q61**: [30 R3 テクスチャと最小3D](30-rendering-docs-beginner.md) — textured quad、MVP、depth/culling/light、座標・色規約。 (完了: 2026-07-26)
 - [x] **Q62**: [30 R4 フレーム同期とRenderGraph](30-rendering-docs-beginner.md) — frame lifecycle、同期、1 pass から post-process への段階導入。 (完了: 2026-07-26)
-- [ ] **Q63**: [30 R5 2D、glTF、デバッグ、出荷](30-rendering-docs-beginner.md) — API選択、静的モデル、troubleshooting、publish。
+- [x] **Q63**: [30 R5 2D、glTF、デバッグ、出荷](30-rendering-docs-beginner.md) — API選択、静的モデル、troubleshooting、publish。 (完了: 2026-07-26)
 - [ ] **Q64**: [30 R6 ドキュメント品質の自動検証](30-rendering-docs-beginner.md) — 実サンプル参照、link/metadata/sample build 検証、Docs分割。
 
 ### M8 — 排他モード IME (必要になったら。ADR-0008 は Proposed)

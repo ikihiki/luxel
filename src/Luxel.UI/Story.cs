@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 
 namespace Luxel.UI;
 
@@ -293,6 +293,7 @@ public static class StoryRegistry
 {
     private static readonly object Gate = new();
     private static readonly List<StoryInfo> Stories = new();
+    private static readonly Dictionary<string, string> Aliases = new(StringComparer.Ordinal);
 
     public static void Register(StoryInfo story)
     {
@@ -319,8 +320,34 @@ public static class StoryRegistry
         }
     }
 
+    /// <summary>旧routeをcanonical storyへ解決するaliasを登録する。aliasは<see cref="All"/>へ表示しない。</summary>
+    public static void RegisterAlias(string oldPath, string canonicalPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(oldPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(canonicalPath);
+        if (oldPath == canonicalPath) throw new ArgumentException("Story alias must point to a different path.", nameof(canonicalPath));
+        lock (Gate) Aliases[oldPath] = canonicalPath;
+    }
+
+    /// <summary>canonical pathへ登録された旧route一覧のsnapshot。</summary>
+    public static IReadOnlyList<string> AliasesFor(string canonicalPath)
+    {
+        lock (Gate)
+            return Aliases.Where(pair => pair.Value == canonicalPath)
+                .Select(pair => pair.Key).Order(StringComparer.Ordinal).ToArray();
+    }
+
     public static StoryInfo? Find(string path)
     {
-        lock (Gate) return Stories.FirstOrDefault(s => s.Path == path);
+        lock (Gate)
+        {
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            while (Aliases.TryGetValue(path, out string? canonical))
+            {
+                if (!visited.Add(path)) throw new InvalidOperationException($"Story alias cycle detected at '{path}'.");
+                path = canonical;
+            }
+            return Stories.FirstOrDefault(s => s.Path == path);
+        }
     }
 }
