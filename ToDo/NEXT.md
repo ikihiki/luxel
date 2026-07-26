@@ -60,7 +60,7 @@
 
 > [30](30-rendering-docs-beginner.md) を R1〜R6 の順に進める。各段階で実サンプルを単一の正とし、Gallery 内だけで成立する省略コードを初心者向けの「完全なコード」として扱わない。
 
-- [ ] **Q59**: [30 R1 導線、整合性、最小サンプル](30-rendering-docs-beginner.md) — `samples/LuxelTriangle`、Environment/Clear/FirstTriangle、既存記述の不整合修正。
+- [ ] **Q59**: [30 R1 導線、整合性、最小サンプル](30-rendering-docs-beginner.md) — `samples/LuxelTriangle`、Environment/Clear/FirstTriangle、既存記述の不整合修正。 (着手中: 2026-07-26)
 - [ ] **Q60**: [30 R2 バッファ、バインディング、シェーダ](30-rendering-docs-beginner.md) — GPU memory、ABI/alignment、bindless、Slang と Git shader cache。
 - [ ] **Q61**: [30 R3 テクスチャと最小3D](30-rendering-docs-beginner.md) — textured quad、MVP、depth/culling/light、座標・色規約。
 - [ ] **Q62**: [30 R4 フレーム同期とRenderGraph](30-rendering-docs-beginner.md) — frame lifecycle、同期、1 pass から post-process への段階導入。
