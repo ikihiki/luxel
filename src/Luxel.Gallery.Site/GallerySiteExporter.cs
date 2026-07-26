@@ -94,7 +94,7 @@ public static partial class GallerySiteExporter
                 body = Markdig.Markdown.ToHtml(md, Pipeline);
             }
             else if (imageUrl is not null)
-                body = StaticFigure("../" + imageUrl, story.Path, "Static story capture");
+                body = StaticFigure(imageUrl, story.Path, "Static story capture");
             else
                 body = Unavailable(error ?? "No static capture is available.", status);
 
@@ -148,7 +148,7 @@ public static partial class GallerySiteExporter
             {
                 var result = EnsureStoryImage(host, story, imagesDir, repositoryRoot, cache);
                 if (result.Url is { } url)
-                    html = StaticFigure("../" + url, path, "Static embedded story capture",
+                    html = StaticFigure(url, path, "Static embedded story capture",
                         "#story=" + Uri.EscapeDataString(path));
                 else
                 {
@@ -168,7 +168,7 @@ public static partial class GallerySiteExporter
                 {
                     string file = $"embed-{Convert.ToHexString(SHA256.HashData(png)).ToLowerInvariant()[..20]}.png";
                     File.WriteAllBytes(Path.Combine(imagesDir, file), png);
-                    html = StaticFigure("../images/" + file, $"Documentation embed {i + 1}", "Static widget capture");
+                    html = StaticFigure("images/" + file, $"Documentation embed {i + 1}", "Static widget capture");
                 }
                 else { html = Unavailable(result.Error ?? "Widget capture failed.", "error"); errors++; }
             }
@@ -192,7 +192,7 @@ public static partial class GallerySiteExporter
             string extension = Path.GetExtension(source).ToLowerInvariant();
             string file = $"asset-{Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant()[..20]}{extension}";
             File.WriteAllBytes(Path.Combine(imagesDir, file), bytes);
-            return $"{match.Groups[1].Value}../images/{file}{match.Groups[3].Value}";
+            return $"{match.Groups[1].Value}images/{file}{match.Groups[3].Value}";
         });
 
     private static string ReplaceSpecialFences(string md, GalleryHost host, string imagesDir, ref int errors)
@@ -213,7 +213,7 @@ public static partial class GallerySiteExporter
             }
             string file = $"{kind}-{Convert.ToHexString(SHA256.HashData(png)).ToLowerInvariant()[..20]}.png";
             File.WriteAllBytes(Path.Combine(imagesDir, file), png);
-            return StaticFigure("../images/" + file, $"{kind} diagram", $"Static {kind} capture");
+            return StaticFigure("images/" + file, $"{kind} diagram", $"Static {kind} capture");
         });
         errors += failed;
         return replaced;
@@ -246,7 +246,11 @@ public static partial class GallerySiteExporter
                 string value = WebUtility.HtmlDecode(m.Groups[1].Value);
                 if (value.StartsWith('#') || value.StartsWith("http:") || value.StartsWith("https:") || value.StartsWith("data:")) continue;
                 string path = value.Split('?', '#')[0].Replace('/', Path.DirectorySeparatorChar);
-                string full = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file)!, path));
+                // Story fragments are fetched into index.html via innerHTML, so browser-relative URLs resolve
+                // from the site root, not from the physical stories/ directory containing the fragment file.
+                string baseDirectory = Path.GetRelativePath(output, file).StartsWith("stories" + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+                    ? output : Path.GetDirectoryName(file)!;
+                string full = Path.GetFullPath(Path.Combine(baseDirectory, path));
                 if (!File.Exists(full)) throw new FileNotFoundException($"Missing local reference '{value}' in {file}", full);
             }
         }

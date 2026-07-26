@@ -34,6 +34,8 @@ public sealed class GallerySiteExporterTests
         string root = GallerySiteExporter.FindRepositoryRoot();
         StoryInfo story = StoryRegistry.Find("Learn/Rendering/Shaders")
             ?? StoryRegistry.All.First(s => !s.RealWindowOnly);
+        StoryInfo imageStory = StoryRegistry.Find("Controls/Button/Intents")
+            ?? StoryRegistry.All.First(s => !s.RealWindowOnly && s.Path != story.Path);
         string a = Path.Combine(Path.GetTempPath(), "luxel-gallery-site-a-" + Guid.NewGuid().ToString("N"));
         string b = Path.Combine(Path.GetTempPath(), "luxel-gallery-site-b-" + Guid.NewGuid().ToString("N"));
         try
@@ -41,8 +43,8 @@ public sealed class GallerySiteExporterTests
             using var device = CreateDeviceOrSkip();
             using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
             using var host = new GalleryHost(device, font);
-            GallerySiteExporter.Export(host, [story], a, root);
-            GallerySiteExporter.Export(host, [story], b, root);
+            GallerySiteExporter.Export(host, [story, imageStory], a, root);
+            GallerySiteExporter.Export(host, [story, imageStory], b, root);
             GallerySiteExporter.Validate(a);
             string html = string.Join('\n', Directory.GetFiles(a, "*.html", SearchOption.AllDirectories).Select(File.ReadAllText));
             string index = File.ReadAllText(Path.Combine(a, "index.html"));
@@ -57,6 +59,9 @@ public sealed class GallerySiteExporterTests
             Assert.True(File.Exists(Path.Combine(a, "vendor", "highlightjs", "github-dark.min.css")));
             Assert.True(File.Exists(Path.Combine(a, "licenses", "highlight.js-LICENSE.txt")));
             Assert.Contains("language-powershell", html);
+            string imageFragment = File.ReadAllText(Path.Combine(a, "stories", "controls-button-intents.html"));
+            Assert.Contains("src=\"images/controls-button-intents.png\"", imageFragment);
+            Assert.DoesNotContain("src=\"../images/", imageFragment);
             Assert.DoesNotContain("language-luxel-ui", html);
             Assert.DoesNotContain("href=\"luxel-ui:", html);
             Assert.Equal(HashTree(a, "*.html"), HashTree(b, "*.html"));
