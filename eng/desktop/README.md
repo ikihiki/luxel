@@ -105,4 +105,4 @@ The stop script validates PID command lines before terminating processes and doe
 
 ## Luxel integration
 
-The desktop stack can be tested now with `vkcube`. Luxel itself still needs a Linux window backend and Vulkan X11/XCB surface support. Once implemented, launch Luxel after sourcing the generated environment file. Use noVNC for OS/window behavior and Luxel DebugServer endpoints for framebuffer, UI tree, GPU, and performance inspection.
+After sourcing the generated environment file, Luxel can create X11 windows through `Luxel.Platform.Silk` and present with the Vulkan window-surface backend. For a minimal smoke test, run `dotnet run --project samples/LuxelTriangle -- vk --frames 3`. Use noVNC for OS/window behavior and Luxel DebugServer endpoints for framebuffer, UI tree, GPU, and performance inspection.

@@ -1,4 +1,4 @@
-﻿using Luxel.Controls;
+using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.DocsKit;
@@ -48,7 +48,7 @@ public static class DocsGpu
 
         ## Slang 統一シェーダ
 
-        シェーダは Slang で 1 回書き、SPIR-V (Vulkan) と DXIL (D3D12) の両方へコンパイルされます (`shaders/*.slang` → ビルド時に `slangc`)。
+        シェーダは Slang で 1 回書き、SPIR-V (Vulkan) と DXIL (D3D12) の両方へコンパイルします。通常ビルドは Git 管理済みの `shaders/compiled/` を検証して使い、shader変更時だけ `CompileLuxelShaderCache` で両形式を更新します。
 
         - `g_buffers[index]` は Vulkan では set0/binding0 の storage buffer 配列、D3D12 では u0/space1 の unbounded UAV テーブルに lower される
         - シェーダはレンダーグラフにもバックエンドにも依存しない

@@ -41,7 +41,7 @@ eng/desktop/url.sh
 ```powershell
 dotnet build
 dotnet run --project src/Luxel.Gallery -- vk            # Gallery (実ウィンドウ。dx も可)
-dotnet run --project src/Luxel.Gallery -- vk snap       # スナップショット回帰 (--update で golden 更新)
+dotnet run --project src/Luxel.Gallery -- vk e2e        # play + golden 回帰 (--update で更新)
 dotnet run --project src/Luxel.Gallery -- vk bench "Button/Counter" 300 --type
 dotnet test                                             # ユニットテスト
 ```
@@ -91,7 +91,7 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
   CSS @keyframes、Graph/StateMachine、CSS transition 相当の暗黙補間 (→ Docs/Animation,
   Docs/Transitions)
 - **ランタイム** — (型,uri) リソース DAG、Win32 窓 + TSF IME、XAudio2、
-  LuxelHostBuilder + 6 フェーズループ + UiSurface、ネイティブ DevTools + HTTP DebugServer
+  LuxelHostBuilder + 7 フェーズループ + UiSurface、ネイティブ DevTools + HTTP DebugServer
   (→ Docs/Resources, Docs/Platform, Docs/Audio, Docs/Framework, Docs/DevTools)
 
 ## プロジェクト構成
@@ -111,7 +111,7 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 | Luxel.Platform / Luxel.Input / Luxel.Audio | Win32 + IME / 入力 / 音声 |
 | Luxel.Framework (+ Scene.UI) | アプリ骨格 / シーン遷移 / UiSurface |
 | Luxel.DevTools (+ .App) | デバッガ / HTTP DebugServer / ネイティブ DevTools |
-| Luxel.Gallery | ドキュメント + デモ + snap/bench (このリポジトリの玄関) |
+| Luxel.Gallery | ドキュメント + デモ + e2e/bench (このリポジトリの玄関) |
 
 ## Slang シェーダキャッシュ
 

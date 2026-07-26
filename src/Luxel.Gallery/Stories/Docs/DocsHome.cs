@@ -1,4 +1,4 @@
-﻿using Luxel.Controls;
+using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.DocsKit;
@@ -31,7 +31,7 @@ public static class DocsHome
 
             - .NET SDK (net10.0)
             - Vulkan 対応 GPU/ドライバ (`vulkan-1.dll`)
-            - `slangc` — 本リポジトリは `tools/slang/` に standalone Slang を配置して使用
+            - 通常ビルドは Git 管理済み shader cache を使用。Slang/DXC は shader 更新時だけ MSBuild が取得
 
             ## ビルドと Gallery の起動
 
@@ -40,7 +40,7 @@ public static class DocsHome
             ```powershell
             dotnet build
             dotnet run --project src/Luxel.Gallery -- vk           # この Gallery (実ウィンドウ)
-            dotnet run --project src/Luxel.Gallery -- vk snap      # スナップショット回帰 (--update で golden 更新)
+            dotnet run --project src/Luxel.Gallery -- vk e2e       # play + golden 回帰 (--update で更新)
             dotnet run --project src/Luxel.Gallery -- vk bench "Controls/Button/Counter" 300 --type
             dotnet test                                            # ユニットテスト
             ```
@@ -66,7 +66,7 @@ public static class DocsHome
             ## ドキュメントの歩き方
 
             - 全体像とレイヤ構成 → [Docs/Architecture](story:Docs/Architecture)
-            - GPU 描画の最初の一歩 (写経用) → [Docs/FirstTriangle](story:Docs/FirstTriangle)
+            - GPU 描画の最初の一歩 (standalone) → [Learn/Rendering/Overview](story:Learn/Rendering/Overview)
             - コントロールの型見本 (Variant/Intent/API 表) → [Docs/Button](story:Docs/Button)
             - この docs ページ自体の書き方 → [Docs/Authoring](story:Docs/Authoring)
             - サイドバーの **GPU / 2D / 3D / RenderGraph / Animation** 章に、各サブシステムの動くデモが並んでいます。左上の検索欄は docs 本文の全文検索です
@@ -92,61 +92,14 @@ public static class DocsHome
     public static Widget FirstTriangle(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());
-        return DocNew(ctx, $$"""
+        return DocNew(ctx, $"""
         # はじめての GPU 描画
 
-        UI ([Docs/GettingStarted](story:Docs/GettingStarted)) の次は GPU です。Luxel の描画は常に同じ 4 手 — **確保 (Malloc/CreateRenderTarget) → パイプライン (Slang) → コマンド記録 → Submit** — で、ディスクリプタもレイアウトオブジェクトもありません。回る三角形 1 枚でその全部が出てきます。
+        このページは既存リンクとの互換入口です。初心者向けの説明と、Gallery helperに依存しない完全なstandaloneサンプルは次へ移動しました。
 
-        {{StoryRef(ctx, "Demos/3D/Triangle")}}
+        → [Learn/Rendering/Overview](story:Learn/Rendering/Overview)
 
-        ## 1. 頂点バッファ = ただのメモリ
-
-        `device.Malloc(bytes, GpuMemoryKind.HostMapped)` で確保したバッファは `Span<T>` で直接書けます。頂点フォーマット宣言はありません — シェーダが bindless バッファを `SV_VertexID` で読むだけです:
-
-        ```csharp
-        GpuBuffer vb = device.Malloc(3 * 32, GpuMemoryKind.HostMapped);   // 3 頂点 × 32B
-        Span<Vertex> v = vb.Span<Vertex>(3);
-        v[0] = new Vertex { Px = 0, Py = 0.7f, R = 1, A = 1 };   // CPU から直接書く
-        ```
-
-        ## 2. シェーダとパイプライン
-
-        シェーダは Slang (`shaders/triangle.slang`) で書き、ビルドが SPIR-V と DXIL の両方へコンパイルします。ルート引数はバッファの **bindless index を積むだけ**の 8B push constants:
-
-        ```csharp
-        GpuPipeline pipeline = device.CreateGraphicsPipeline(
-            GpuShaderCode.Load("triangle"), GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
-        ```
-
-        ## 3. 記録して投げる
-
-        コマンドバッファはメソッドチェーンで記録し、`SubmitAndWait` で完結します。バリアは「ステージ → ステージ」の 1 種類だけです:
-
-        ```csharp
-        using GpuCommandBuffer cmd = device.MainQueue.StartCommandRecording();
-        cmd.BeginRendering(target, null, 0.09f, 0.1f, 0.12f, 1)   // RT 直指定 (render pass オブジェクト無し)
-           .SetGraphicsPipeline(pipeline)
-           .SetRootArguments(new DrawArgs { VertexBufferIndex = vb.BindlessIndex })
-           .Draw(3)
-           .EndRendering()
-           .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
-           .CopyTextureToBuffer(target, readback);
-        cmd.Finish();
-        device.MainQueue.SubmitAndWait(cmd);
-        ```
-
-        ## 全体を写経する
-
-        上のデモの実ソースがこれです (Gallery の `IGpuScene` 規約 — ctor は保持のみ、確保は Init):
-
-        {{StorySource("Demos/3D/Triangle")}}
-
-        ## 次の一歩
-
-        - 2D を 1 行で描きたい → `Canvas2D(w, h, draw: s => s.FillCircle(...))` ([Demos/2D/Shapes](story:Demos/2D/Shapes))
-        - 深度/ブレンドの状態 → [Demos/3D/Depth](story:Demos/3D/Depth) / [Demos/3D/Blend](story:Demos/3D/Blend)
-        - GpuDevice の全体像 (bindless/バリア/Slang の設計) → [Docs/GpuDevice](story:Docs/GpuDevice)
-        - パスが増えてきたら → [Docs/RenderGraph](story:Docs/RenderGraph)
+        最短で三角形まで進む場合は [Learn/Rendering/FirstTriangle](story:Learn/Rendering/FirstTriangle) を開いてください。`Demos/3D/Triangle` はGallery内のoffscreen回帰用で、通常アプリのwindow / surface / present処理は含みません。
         """, toc: true);
     }
 
@@ -216,11 +169,11 @@ public static class DocsHome
         | Luxel.Platform / Luxel.Input / Luxel.Audio | Win32 / 入力 / 音声 |
         | Luxel.Framework (+ Scene.UI) | アプリ骨格 / シーン遷移 |
         | Luxel.DevTools (+ .App) | デバッガ / HTTP DebugServer |
-        | Luxel.Gallery | この Gallery (docs + デモ + snap/bench) |
+        | Luxel.Gallery | この Gallery (docs + デモ + e2e/bench) |
 
         ## vk / dx ピクセル一致という規律
 
-        すべての描画機能は Vulkan と DirectX 12 の両方で動き、snap 回帰は**バックエンド別の golden** と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。新機能はどちらか一方で「たまたま動く」ことを許さない — これが薄い抽象を薄いまま保つための開発規律です。
+        すべての描画機能は Vulkan と DirectX 12 の両方で動き、e2e回帰は**バックエンド別の golden** と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。新機能はどちらか一方で「たまたま動く」ことを許さない — これが薄い抽象を薄いまま保つための開発規律です。
         """, toc: true);
     }
 }

@@ -1,6 +1,6 @@
 // サンプル02: 三角形 (vertex pulling)。
 // 頂点バッファは bindless 配列 g_buffers[] から SV_VertexID で raw load する
-// (頂点入力ステート無し = ブログの vertex pulling)。現状 Vulkan(SPIR-V) のみ。
+// (頂点入力ステート無し = ブログの vertex pulling)。Vulkan (SPIR-V) / D3D12 (DXIL) 共通。
 
 [[vk::binding(0, 0)]]
 RWByteAddressBuffer g_buffers[];

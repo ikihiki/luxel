@@ -1,4 +1,4 @@
-﻿using Luxel;
+using Luxel;
 using Luxel.DevTools;
 using Luxel.Diagnostics;
 using Luxel.Gallery;
@@ -9,7 +9,7 @@ using Luxel.UI;
 
 // 使い方:
 //   dotnet run --project src/Luxel.Gallery -- <backend> [port] [seconds]   ネイティブ app (実ウィンドウ, 既定 port=5180, 常駐)
-//   dotnet run --project src/Luxel.Gallery -- <backend> snap [--update]    全ストーリーのスナップショット回帰 (offscreen)
+//   dotnet run --project src/Luxel.Gallery -- <backend> e2e [--update]     play + golden 回帰 (offscreen)
 //   backend: vk | dx
 // リモート検証 (AI): DevTools — GET /windows /winframe?id=1 /trees, POST /cmd
 //   (UI 入力は {op, ui:"gallery"|"story", x, y}、ウィンドウ操作は window.*)

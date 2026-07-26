@@ -1,4 +1,4 @@
-﻿using Luxel.Controls;
+using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.DocsKit;
@@ -187,7 +187,7 @@ public static class DocsMeta
 
         ## ビルドとツール (tools/)
 
-        シェーダビルドに standalone Slang + DXC が必要です (`slang-llvm.dll` が GitHub の 100MB 制限を超えるためリポジトリ非含)。`tools/slang/` に Slang リリースを展開し、DXIL 出力用に `dxcompiler.dll` / `dxil.dll` を `tools/slang/bin/` へコピーします。あとは `dotnet build` — .slang は targets が spv/dxil へ自動コンパイルします。
+        通常ビルドは Git 管理された `shaders/compiled/` の SPIR-V / DXIL を検証して使うため、Slang/DXC の手動導入は不要です。shader変更時だけ `dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache` を実行すると、固定版ツールを取得・SHA-256検証してcacheを更新します。
 
         ## テストと E2E 回帰 (play + golden)
 

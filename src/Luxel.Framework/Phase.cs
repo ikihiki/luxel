@@ -2,7 +2,7 @@
 
 /// <summary>
 /// per-frame パイプラインの実行区分。System は phase に登録され、engine が priority 順に実行する。
-/// 標準 6 phase を engine が提供、<see cref="Create"/> でユーザー拡張可能。
+/// 標準 7 phase を engine が提供、<see cref="Create"/> でユーザー拡張可能。
 /// </summary>
 public sealed record Phase(string Name, int Priority)
 {
