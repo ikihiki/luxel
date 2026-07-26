@@ -61,6 +61,23 @@ public class RenderGraphNodesTests
     }
 
     [Fact]
+    public void Build_TutorialPostProcess_ShowsSceneCopyAndPostDependencies()
+    {
+        var rg = new DiagRenderGraph(
+            [new DiagRenderGraphPass(0, "DrawScene", "Graphics", false, [], [1]),
+             new DiagRenderGraphPass(1, "SceneReadback", "Graphics", false, [1], [2]),
+             new DiagRenderGraphPass(2, "PostProcess", "Compute", false, [2], [3])],
+            [new DiagRenderGraphResource(1, "scene-color", "TransientTex", false, 0, 0, 1, 0),
+             new DiagRenderGraphResource(2, "scene-pixels", "Transient", false, 0, 1, 2, 0),
+             new DiagRenderGraphResource(3, "present-framebuffer", "External", false, -1, 2, -1, 0)],
+            PhysicalTransientCount: 2, ExecutedPassCount: 3);
+
+        NodeGraphDoc doc = RenderGraphNodes.Build(rg);
+        Assert.Equal(["DrawScene", "SceneReadback", "PostProcess"], doc.Nodes.Select(n => n.Title));
+        Assert.Equal(2, doc.Edges.Count);
+    }
+
+    [Fact]
     public void Build_EmptyGraph_NoNodes()
         => Assert.Empty(RenderGraphNodes.Build(new DiagRenderGraph([], [], 0, 0)).Nodes);
 }

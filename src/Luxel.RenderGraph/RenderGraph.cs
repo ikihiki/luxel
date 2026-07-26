@@ -1,4 +1,4 @@
-﻿using Luxel.Diagnostics;
+using Luxel.Diagnostics;
 
 namespace Luxel.RenderGraph;
 
@@ -252,7 +252,8 @@ public sealed class RenderGraph : IDisposable
                 LastReadPass: r.LastReadPass,
                 SizeBytes: sizeBytes);
         }
-        return new DiagRenderGraph(passes, resources, _ownedTransientBuffers.Count, LastExecutedPassCount);
+        return new DiagRenderGraph(passes, resources,
+            _ownedTransientBuffers.Count + _ownedTransientTextures.Count, LastExecutedPassCount);
     }
 
     /// <summary>テスト/計測用: 直近 Execute で実際に駆動された (非 culled の) パス数。</summary>

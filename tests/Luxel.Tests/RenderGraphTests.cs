@@ -1,4 +1,4 @@
-﻿using Luxel;
+using Luxel;
 using Luxel.RenderGraph;
 using Xunit;
 // 名前空間 Luxel.RenderGraph と型 RenderGraph が同名なので、テスト内ではエイリアスで区別する。
@@ -162,6 +162,46 @@ public class RenderGraphTests
         Assert.False(ResourceUsage.UniformBuffer.IsWrite());
         Assert.False(ResourceUsage.IndirectArgs.IsWrite());
         Assert.False(ResourceUsage.CopySource.IsWrite());
+    }
+
+    [Fact]
+    public void Tutorial_one_pass_external_outputs_remain_live()
+    {
+        var rg = new Rg();
+        TextureHandle color = rg.ImportTextureForTest("present-color");
+        TextureHandle depth = rg.ImportTextureForTest("present-depth");
+        BufferHandle framebuffer = rg.ImportBufferForTest("present-framebuffer");
+
+        rg.AddPass("DrawAndReadback", PassQueue.Graphics)
+            .Write(color, TextureUsage.ColorAttachment)
+            .Write(depth, TextureUsage.DepthAttachment)
+            .Write(framebuffer, ResourceUsage.CopyDest)
+            .Execute(_ => { });
+
+        rg.CompileForTest();
+        Assert.False(rg.IsPassCulled(0));
+    }
+
+    [Fact]
+    public void Tutorial_post_process_chain_keeps_dependencies_and_culls_dead_branch()
+    {
+        var rg = new Rg();
+        TextureHandle scene = rg.CreateTextureForTest(new TextureDesc(801, 603, GpuFormat.Rgba8Unorm), "scene");
+        BufferHandle pixels = rg.CreateBufferForTest(new BufferDesc(832UL * 603 * 4), "pixels");
+        BufferHandle final = rg.ImportBufferForTest("final");
+        BufferHandle dead = rg.CreateBufferForTest(new BufferDesc(64), "dead");
+
+        rg.AddPass("DrawScene", PassQueue.Graphics).Write(scene, TextureUsage.ColorAttachment).Execute(_ => { });
+        rg.AddPass("SceneReadback", PassQueue.Graphics).Read(scene, TextureUsage.CopySource)
+            .Write(pixels, ResourceUsage.CopyDest).Execute(_ => { });
+        rg.AddPass("PostProcess", PassQueue.Compute).Read(pixels).Write(final).Execute(_ => { });
+        rg.AddPass("Dead", PassQueue.Compute).Write(dead).Execute(_ => { });
+
+        rg.CompileForTest();
+        Assert.False(rg.IsPassCulled(0));
+        Assert.False(rg.IsPassCulled(1));
+        Assert.False(rg.IsPassCulled(2));
+        Assert.True(rg.IsPassCulled(3));
     }
 
     // === RG-M2: デッドパスカリング ============================================

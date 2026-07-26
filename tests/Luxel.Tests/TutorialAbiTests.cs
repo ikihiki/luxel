@@ -41,6 +41,18 @@ public sealed class TutorialAbiTests
     }
 
     [Fact]
+    public void Tutorial_post_process_args_match_slang()
+    {
+        Assert.Equal(TutorialAbi.PostProcessArgsSize, Marshal.SizeOf<TutorialAbi.PostProcessArgs>());
+        Assert.Equal(0, TutorialAbi.PostProcessArgsSize % 4);
+        Assert.Equal(0, Marshal.OffsetOf<TutorialAbi.PostProcessArgs>(nameof(TutorialAbi.PostProcessArgs.SourceBufferIndex)).ToInt32());
+        Assert.Equal(4, Marshal.OffsetOf<TutorialAbi.PostProcessArgs>(nameof(TutorialAbi.PostProcessArgs.DestinationBufferIndex)).ToInt32());
+        Assert.Equal(8, Marshal.OffsetOf<TutorialAbi.PostProcessArgs>(nameof(TutorialAbi.PostProcessArgs.Width)).ToInt32());
+        Assert.Equal(12, Marshal.OffsetOf<TutorialAbi.PostProcessArgs>(nameof(TutorialAbi.PostProcessArgs.Height)).ToInt32());
+        Assert.Equal(16, Marshal.OffsetOf<TutorialAbi.PostProcessArgs>(nameof(TutorialAbi.PostProcessArgs.StridePixels)).ToInt32());
+    }
+
+    [Fact]
     public void Visible_aspect_uses_client_width_not_aligned_readback_stride()
     {
         Assert.Equal(801f / 603f, TutorialAbi.VisibleAspect(801, 603));

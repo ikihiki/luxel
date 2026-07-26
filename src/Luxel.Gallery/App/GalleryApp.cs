@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Luxel.Controls;
 using Luxel.TwoD;
 using Luxel.UI;
@@ -729,7 +729,15 @@ public sealed class GalleryApp : IDisposable
     {
         _currentStory = story;
         _currentPath = story.Path;
-        _treeExpanded.Add(story.Path);   // 選択したページの TOC をツリーで開いて見せる
+        // 選択したstoryが折りたたまれたfolder内でも必ず見えるよう、全ancestorを展開する。
+        string[] segments = story.Path.Split('/');
+        string prefix = "";
+        for (int i = 0; i < segments.Length - 1; i++)
+        {
+            prefix = i == 0 ? segments[i] : $"{prefix}/{segments[i]}";
+            _treeExpanded.Add($"g:{prefix}");
+        }
+        _treeExpanded.Add(story.Path);   // docs story自身も開いてTOCを見せる
         _title.Value = story.Path;
         _ctx = new StoryContext(_resources);
         _ctx.SetServices(GalleryServices.Provider);   // DI: ScriptHost / ICodeLanguage をストーリー引数へ注入
