@@ -16,7 +16,7 @@ public static class DocsRenderingLearn
 
         この章は、Gallery のデモを見るだけでなく、自分のウィンドウへ描画できるところまでを順番に進みます。最小アプリの実装はリポジトリの `samples/LuxelTriangle/` が単一の正です。
 
-        ## 11ステップの進み方
+        ## 15ステップの進み方
 
         1. [Environment](story:Learn/Rendering/Environment) — OS、GPU、backend、shader cacheを確認
         2. [ClearColor](story:Learn/Rendering/ClearColor) — window / surface / event loop / resizeを理解
@@ -28,21 +28,25 @@ public static class DocsRenderingLearn
         8. [DepthCullingLighting](story:Learn/Rendering/DepthCullingLighting) — depth、front face、back-face culling、Lambert光を追加
         9. [FrameLoopAndSynchronization](story:Learn/Rendering/FrameLoopAndSynchronization) — frameの寿命、submit、present、待機を整理
         10. [FirstRenderGraph](story:Learn/Rendering/FirstRenderGraph) — passとresource依存を宣言し、post-processへ進む
-        11. [Demos/3D/Triangle](story:Demos/3D/Triangle) — Galleryのoffscreen実例を操作
+        11. [First2DScene](story:Learn/Rendering/First2DScene) — Scene2Dを作り、4つの2D APIを使い分ける
+        12. [StaticGltf](story:Learn/Rendering/StaticGltf) — ECSなしで静的glTFを1 drawする
+        13. [Debugging](story:Learn/Rendering/Debugging) — 真っ黒、shader、resize、asset問題を切り分ける
+        14. [Shipping](story:Learn/Rendering/Shipping) — shader/assetsをpublishし、別cwdからsmokeする
+        15. [Demos/3D/Triangle](story:Demos/3D/Triangle) — Galleryのoffscreen実例を操作
 
         > [!IMPORTANT]
         > `GpuView` と `IGpuScene` はGallery内でデモを表示するためのハーネスです。通常アプリでは `WindowSystem`、`NativeWindow`、`GpuSurface` を使います。
 
         ## どのAPIまで学ぶか
 
-        R1の三角形、R2のbuffer ABIとshader cache、R3のtexture付きquadからdepth/culling/方向光に続き、R4ではframe loopとRenderGraphへ進みます。`--stage graph`でdirect描画を1 passへ移し、`--stage post`でtransient resourceとcompute post-processを追加します。glTFとECSはさらに後続です。複数frame-in-flightは本番設計として説明しますが、現在の公開queue APIとtutorialはper-frame fenceをまだ提供しません。
+        R1の三角形、R2のbuffer ABIとshader cache、R3のtexture付きquadからdepth/culling/方向光に続き、R4ではframe loopとRenderGraphへ進みます。`--stage graph`でdirect描画を1 passへ移し、`--stage post`でtransient resourceとcompute post-processを追加します。R5では2D、ECSを使わない静的glTF、デバッグ、publishまで進みます。複数frame-in-flightは本番設計として説明しますが、現在の公開queue APIとtutorialはper-frame fenceをまだ提供しません。
         """, toc: true);
     }
 
     [Story("Learn/Rendering/Environment", Order = 1)]
     public static Widget Environment(StoryContext ctx)
     {
-        return DocNew(ctx, $"""
+        return DocNew(ctx, $$"""
         # レンダリング環境を確認する
 
         **難易度:** Beginner　 **実行環境:** Standalone　 **Backend:** Vulkan / DirectX 12
@@ -79,6 +83,19 @@ public static class DocsRenderingLearn
         ```
 
         生成物と `inputs.sha256` をshader sourceと一緒にコミットします。
+
+        ## Backendとdeviceを作る最小コード
+
+        ```csharp
+        using GpuDevice device = backend switch
+        {
+            "dx" or "d3d12" => new GpuDevice(D3D12Backend.Create()),
+            _ => new GpuDevice(VulkanBackend.Create()),
+        };
+        using GpuSurface surface = window.CreateSwapchain(device);
+        ```
+
+        Linuxではwindowが提供する`IVulkanWindowSurface`を`VulkanBackendOptions.WindowSurface`へ渡します。device、surface、window systemは`using`で所有者を明確にし、終了前にqueueをidleにします。
 
         ## 典型的な失敗
 
@@ -163,6 +180,25 @@ public static class DocsRenderingLearn
         ```
 
         Slang側は `SV_VertexID` を使ってbindless bufferから頂点を読むため、vertex-input layout objectはありません。C#の `Vertex` とSlangの `Vertex` はどちらも `float4 position + float4 color = 32 byte` です。
+
+        ```slang
+        struct Vertex { float4 position; float4 color; }
+        struct DrawArgs { uint vertexBufferIndex; }
+        [[vk::push_constant]] DrawArgs g_args;
+        [[vk::binding(0, 0)]] RWByteAddressBuffer g_buffers[];
+
+        [shader("vertex")]
+        VertexOut vsMain(uint vertexId : SV_VertexID)
+        {
+            Vertex v = g_buffers[g_args.vertexBufferIndex].Load<Vertex>(vertexId * 32);
+            VertexOut o; o.position = v.position; o.color = v.color; return o;
+        }
+
+        [shader("pixel")]
+        float4 psMain(VertexOut input) : SV_Target => input.color;
+        ```
+
+        つまり最小例のdata flowは`C# Vertex[] → HostMapped buffer → BindlessIndex → root args → SV_VertexID`です。このblockと上のcommand記録を組み合わせれば、サンプルファイルを開かなくても必要なbindingを追えます。
 
         > [!NOTE]
         > 入門サンプルは処理順を明確にするため毎フレーム `SubmitAndWait` します。複数frame-in-flightとfenceによる本番向け同期は後続のFrame Loopページで扱います。
@@ -684,7 +720,7 @@ public static class DocsRenderingLearn
 
         **難易度:** Beginner+　 **実行環境:** Standalone + DevTools　 **Backend:** Vulkan / DirectX 12
 
-        **前提:** [FrameLoopAndSynchronization](story:Learn/Rendering/FrameLoopAndSynchronization)　 **次:** [Docs/GpuDevice](story:Docs/GpuDevice)
+        **前提:** [FrameLoopAndSynchronization](story:Learn/Rendering/FrameLoopAndSynchronization)　 **次:** [First2DScene](story:Learn/Rendering/First2DScene)
 
         sampleは `samples/LuxelTriangle/Program.cs`、`samples/LuxelTriangle/TriangleRenderer.cs`、`samples/LuxelTriangle/TutorialAbi.cs`、scene shaderの`shaders/tutorial_3d.slang`、post-process shaderの`shaders/compute_tutorial_postprocess.slang`です。RenderGraph本体は`src/Luxel.RenderGraph/`にあります。
 
@@ -808,6 +844,249 @@ public static class DocsRenderingLearn
         `RenderGraph.Execute`は`EngineDiagnostics.RenderGraph`が有効なとき、compile後の`DiagRenderGraph`を発行します。`src/Luxel.Controls/RenderGraphNodes.cs`の`RenderGraphNodes.Build(...)`が、**passをnode、resourceのwriter→reader依存をedge**へ変換し、DevToolsの読み取り専用NodeGraphへ渡します。
 
         DevToolsではpass名、`Graphics` / `Compute`分類、Read/Write resource、`(culled)`表示、transientのphysical slot / alias情報を確認します。画面が空なら診断channelが有効か、graphが実際に`Execute`されたか、DevTools listenerが`EngineDiagnostics.RenderGraph`を購読しているかを順に確認してください。この経路は可視化であり、実行順変更やasync computeを行うschedulerではありません。
+        """, toc: true);
+    }
+
+
+    [Story("Learn/Rendering/First2DScene", Order = 11)]
+    public static Widget First2DScene(StoryContext ctx)
+    {
+        return DocNew(ctx, $$"""
+        # はじめての2Dシーン
+
+        **難易度:** Beginner　 **実行環境:** Gallery / Standalone / Headless　 **Backend:** Vulkan / DirectX 12 / Skia CPU
+
+        **前提:** [FirstRenderGraph](story:Learn/Rendering/FirstRenderGraph)　 **次:** [StaticGltf](story:Learn/Rendering/StaticGltf)
+
+        {{StoryRef(ctx, "Demos/2D/Shapes")}}
+
+        `Scene2D`は「何を描くか」をCPU側で組み立てる最小APIです。次のコードだけで角丸矩形、円、線を含むsceneを作れます。
+
+        ```csharp
+        using Luxel.TwoD;
+
+        var scene = new Scene2D();
+        scene.FillRoundedRect(0xFF2F6FED, 24, 24, 220, 120, 18);
+        scene.FillCircle(0xFFFFC857, 86, 84, 28);
+        scene.StrokeLine(0xFFE7EAF0, 4, 32, 176, 250, 176);
+        ```
+
+        GPUへ出すstandalone側は`Rasterizer2D`がsceneをencodeし、commandへrenderを記録します。geometryが変わらないなら`encoded`を毎frame作り直さず保持します。
+
+        ```csharp
+        using var rasterizer = new Rasterizer2D(device);
+        using var encoded = rasterizer.Encode(scene);
+        using GpuCommandBuffer cmd = device.MainQueue.StartCommandRecording();
+
+        rasterizer.Render(cmd, encoded, Camera2D.Pixels,
+            width, height, framebuffer);
+        cmd.Finish();
+        device.MainQueue.SubmitAndWait(cmd);
+        ```
+
+        ## 4つの入口の選び方
+
+        | API | 選ぶ場面 | GPU | 注意点 |
+        | --- | --- | --- | --- |
+        | `Scene2D` | shape/pathを直接作る | render時のみ必要 | callerがencode/render寿命を所有 |
+        | `RetainedCanvas` | objectが残りtransform/styleだけ変わる | headless構築可 | `Invalidate()`連打ではなく部分更新を使う |
+        | UI `Canvas2D` | GalleryやUIへ小さな図を埋め込む | hostが提供 | standalone window APIではない |
+        | `SkiaRenderer` | CI、headless test、CPU参照画像 | 不要 | image shape非対応、AA edgeはGPUと完全一致しない |
+
+        retained treeではnodeを保持し、変更箇所だけ更新します。
+
+        ```csharp
+        var canvas = new RetainedCanvas();       // headlessでも構築可能
+        UiNode card = canvas.AddChild(canvas.Root);
+        card.Content = new Scene2D()
+            .FillRoundedRect(Color2D.White, 20, 20, 240, 120, 16);
+        card.Color = 0xFF2F6FED;
+        card.Transform = Affine2D.Translate(12, 8);
+
+        if (canvas.HasPendingChanges)
+            Console.WriteLine("次のGPU renderで差分を反映する");
+        ```
+
+        UI内なら`Canvas2D(draw: scene => ...)`、headlessなら`SkiaRenderer`を使います。stroke widthはscreen pixel、world座標変換はcameraが担当します。透明imageはpremultiplied RGBAを前提にし、Skia pathではGPU bindless imageを描けません。
+        """, toc: true);
+    }
+
+    [Story("Learn/Rendering/StaticGltf", Order = 12)]
+    public static Widget StaticGltf(StoryContext ctx)
+    {
+        return DocNew(ctx, $$"""
+        # ECSなしで静的glTFを描く
+
+        **難易度:** Beginner+　 **実行環境:** Gallery / Standalone　 **Backend:** Vulkan / DirectX 12
+
+        **前提:** [First2DScene](story:Learn/Rendering/First2DScene)　 **次:** [Debugging](story:Learn/Rendering/Debugging)
+
+        {{StoryRef(ctx, "Demos/3D/GltfBox")}}
+
+        最初の1モデルではECS、animation、skin、morphを使いません。理解する経路はこれだけです。
+
+        ```text
+        Box.gltf → AssetDocument → AssetPrimitive → GpuPrimitive → instance buffer → Draw
+        ```
+
+        `.gltf`が参照する`.bin`やimageはgltf fileのあるdirectoryから解決されます。asset rootではなく、まず絶対pathを確定してloaderへ渡します。
+
+        ```csharp
+        string path = Path.Combine(AppContext.BaseDirectory, "assets", "Box.gltf");
+        AssetDocument doc = await new GltfLoader().LoadAsync(path);
+        AssetPrimitive source = doc.Meshes[0].Primitives[0];
+        using GpuPrimitive primitive = GpuAssetFactory.Upload(source, device);
+        ```
+
+        `GpuAssetFactory.Upload`はposition/normal/UVを32-byte vertexへ変換し、indexがあれば`uint` bufferも作ります。次に1 instanceだけ用意します。
+
+        ```csharp
+        using GpuBuffer instances = device.Malloc(
+            (ulong)Marshal.SizeOf<SceneInstanceData>(), GpuMemoryKind.HostMapped);
+        instances.Span<SceneInstanceData>(1)[0] = new SceneInstanceData
+        {
+            World = Matrix4x4.Identity,
+            BaseColor = source.Material?.BaseColorFactor ?? Vector4.One,
+        };
+
+        bool indexed = primitive.IndexBuffer is not null;
+        var args = new DrawArgs
+        {
+            ViewProj = Matrix4x4.Transpose(view * projection),
+            VertexBufIndex = primitive.VertexBuffer.BindlessIndex,
+            IndexBufIndex = indexed ? primitive.IndexBuffer!.BindlessIndex : 0xFFFFFFFFu,
+            InstanceBufIndex = instances.BindlessIndex,
+            InstanceStart = 0,
+        };
+        ```
+
+        最後はdepth target付きpassで`scene_pbr_lite`をbindし、index countまたはvertex countをdrawします。Luxel coreに別の`DrawIndexed`はなく、shaderがindex bufferをpullします。
+
+        ```csharp
+        uint count = (uint)(indexed ? primitive.IndexCount : primitive.VertexCount);
+        command.BeginRendering(color, depth, 0.05f, 0.06f, 0.09f, 1, 1)
+            .SetGraphicsPipeline(pipeline)
+            .SetRootArguments(args)
+            .Draw(count, 1)
+            .EndRendering();
+        ```
+
+        ここまでが静的1 primitiveです。scene graphと複数node/ECSは[Docs/Assets](story:Docs/Assets)、TRS animationは[GltfAnimated](story:Demos/3D/GltfAnimated)、skinは[GltfSkinned](story:Demos/3D/GltfSkinned)、morphは[GltfMorph](story:Demos/3D/GltfMorph)へ分けて進んでください。
+        """, toc: true);
+    }
+
+    [Story("Learn/Rendering/Debugging", Order = 13)]
+    public static Widget Debugging(StoryContext ctx)
+    {
+        return DocNew(ctx, $$"""
+        # レンダリングをデバッグする
+
+        **難易度:** Beginner　 **実行環境:** Standalone / Gallery / DevTools　 **Backend:** Vulkan / DirectX 12
+
+        **前提:** [StaticGltf](story:Learn/Rendering/StaticGltf)　 **次:** [Shipping](story:Learn/Rendering/Shipping)
+
+        ## 起動しない
+
+        1. window backend、GPU backend、device、queueのどこで失敗したか例外の先頭を確認する。
+        2. Linux実窓は`DISPLAY`とVulkan ICD、Windowsの`dx`はD3D12対応GPUを確認する。
+        3. shader cacheを検証・再生成する。
+
+        ```powershell
+        dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache
+        dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
+        ```
+
+        runtimeは`AppContext.BaseDirectory/shaders`を読みます。source名`foo.slang`に対しgraphicsは`foo.spv`, `foo.vs.dxil`, `foo.ps.dxil`、computeは`foo.spv`, `foo.dxil`が必要です。
+
+        ## 真っ黒なときの最小probe
+
+        drawを疑う前にclear→copy→presentだけへ戻します。
+
+        ```csharp
+        command.BeginRendering(target, null, 1, 0, 1, 1)
+            .EndRendering()
+            .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+            .CopyTextureToBuffer(target, framebuffer, stridePixels);
+        command.Finish();
+        device.MainQueue.SubmitAndWait(command);
+        surface.Present(framebuffer, stridePixels, visibleWidth, visibleHeight);
+        ```
+
+        magentaが見えなければwindow/surface/copy/stride、見えればpipeline/root args/drawへ問題を絞れます。次にcullingを一時的に`None`、depthをoff、identity matrix、白textureへ一つずつ戻します。
+
+        - 裏面だけ消える: front faceとindex windingを揃える
+        - depthで全消去: depth target、clear=1、near/far、projectionを確認
+        - resize後だけ壊れる: queue完了後にcolor/depth/framebufferを同じsizeで再生成
+        - texture上下反転: CPU rowとUV(0,0)を左上規約へ統一
+        - 暗すぎる: sRGB decode/encodeを0回または1回に固定
+        - D3D12 copy破損: RGBA8 strideを64 pixel単位へalignし、visible widthと分離
+        - glTF asset missing:解決した絶対pathをerrorへ出し、外部`.bin`/imageも同梱
+        - 時々device lost: GPU完了前のbuffer/texture/bindless index再利用を疑う
+
+        `SubmitAndWait`は切り分けには有効ですがCPU/GPUを直列化します。動作確認後にframe slot/fence設計へ戻し、毎frameの`WaitIdle`をperformance fixとして残さないでください。
+        """, toc: true);
+    }
+
+    [Story("Learn/Rendering/Shipping", Order = 14)]
+    public static Widget Shipping(StoryContext ctx)
+    {
+        return DocNew(ctx, $$"""
+        # Publishして別ディレクトリから起動する
+
+        **難易度:** Beginner+　 **実行環境:** Published standalone app　 **Backend:** Vulkan / DirectX 12
+
+        **前提:** [Debugging](story:Learn/Rendering/Debugging)　 **次:** このページが初心者経路の終点です。3D capstoneは[Apps/Game/Range](story:Apps/Game/Range)
+
+        executable projectが`shaders/Luxel.Shaders.targets`をimportすると、compiled shaderはbuild/publishの`shaders/`へ入ります。loose assetは`Content`として出力とpublishの両方へ含めます。
+
+        ```xml
+        <ItemGroup>
+          <Content Include="assets/**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+          </Content>
+        </ItemGroup>
+        <Import Project="../../shaders/Luxel.Shaders.targets" />
+        ```
+
+        codeはcwdではなくexecutable基準でassetを解決します。
+
+        ```csharp
+        string model = Path.Combine(AppContext.BaseDirectory, "assets", "Box.glb");
+        string shaderDirectory = Path.Combine(AppContext.BaseDirectory, "shaders");
+        if (!File.Exists(model))
+            throw new FileNotFoundException($"Published model is missing: {model}", model);
+        ```
+
+        ## 別cwd smoke test
+
+        publish directory内へ`cd`して起動するだけではcwd依存を発見できません。空の別directoryをcwdにして、executableは絶対pathで起動します。
+
+        ```powershell
+        $publish = Join-Path $env:TEMP "luxel-triangle-publish"
+        $cwd = Join-Path $env:TEMP "luxel-triangle-empty-cwd"
+        Remove-Item $publish,$cwd -Recurse -Force -ErrorAction Ignore
+        New-Item $publish,$cwd -ItemType Directory | Out-Null
+
+        dotnet publish samples/LuxelTriangle/LuxelTriangle.csproj `
+          -c Release -o $publish
+
+        @(
+          "shaders/tutorial_triangle.spv",
+          "shaders/tutorial_3d.spv",
+          "shaders/compute_tutorial_postprocess.spv"
+        ) | ForEach-Object {
+          if (-not (Test-Path (Join-Path $publish $_))) { throw "missing: $_" }
+        }
+
+        Push-Location $cwd
+        try {
+          & (Join-Path $publish "LuxelTriangle.exe") vk --stage post --frames 3
+          if ($LASTEXITCODE -ne 0) { throw "Vulkan smoke failed" }
+        } finally { Pop-Location }
+        ```
+
+        Windowsでは同じpublishへ`dx --stage post --frames 3`も実行します。Linuxでは実行ファイル名に`.exe`を付けず、X11/XvfbとVulkan ICDを用意します。capstoneのasset/shader配置とrun/publish手順は`samples/LuxelRange/README.md`へ続きます。
         """, toc: true);
     }
 }

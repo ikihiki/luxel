@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Luxel;
+using Luxel.Controls;
 using Luxel.Gallery;
 using Luxel.Gallery.Site;
 using Luxel.Typography;
@@ -55,6 +56,13 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("highlight(content)", script);
             Assert.Contains("slang:'cpp'", script);
             Assert.Contains("powershell:'shell'", script);
+            Assert.Contains("treeFor(filtered)", script);
+            Assert.Contains("details.tree-folder", script);
+            Assert.Contains("localStorage.setItem(openKey", script);
+            Assert.Contains("renderLevel(child,path,open,expandAll)", script);
+            Assert.Contains("aria-current','page'", script);
+            Assert.Contains("!hasSavedOpen()&&!prefix", script);
+            Assert.Contains("if(!expandAll)details.addEventListener", script);
             Assert.True(File.Exists(Path.Combine(a, "vendor", "highlightjs", "highlight.min.js")));
             Assert.True(File.Exists(Path.Combine(a, "vendor", "highlightjs", "github-dark.min.css")));
             Assert.True(File.Exists(Path.Combine(a, "licenses", "highlight.js-LICENSE.txt")));
@@ -72,6 +80,30 @@ public sealed class GallerySiteExporterTests
         {
             if (Directory.Exists(a)) Directory.Delete(a, true);
             if (Directory.Exists(b)) Directory.Delete(b, true);
+        }
+    }
+
+    [Fact]
+    public void Rendering_learn_chain_is_complete_and_has_inline_examples()
+    {
+        string[] routes =
+        [
+            "Overview", "Environment", "ClearColor", "FirstTriangle", "BuffersAndBindings", "Shaders",
+            "Textures", "TransformsAndCamera", "DepthCullingLighting", "FrameLoopAndSynchronization",
+            "FirstRenderGraph", "First2DScene", "StaticGltf", "Debugging", "Shipping",
+        ];
+
+        for (int i = 0; i < routes.Length; i++)
+        {
+            string path = "Learn/Rendering/" + routes[i];
+            StoryInfo story = StoryRegistry.Find(path)
+                ?? throw new InvalidOperationException($"Rendering Learn route is missing: {path}");
+            Widget root = story.Build(new StoryContext());
+            TextEditorView document = GallerySnapshots.FindDocument(root)
+                ?? throw new InvalidOperationException($"Rendering Learn route is not a document: {path}");
+            Assert.Contains("**難易度:**", document.DocSource);
+            if (i > 0)
+                Assert.Contains("```", document.DocSource); // The page remains understandable without opening sample files.
         }
     }
 
