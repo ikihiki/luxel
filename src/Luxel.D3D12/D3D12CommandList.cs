@@ -1,4 +1,4 @@
-﻿using Luxel.Abstraction;
+using Luxel.Abstraction;
 using Vortice;
 using Vortice.Direct3D;
 using Vortice.Direct3D12;
@@ -95,8 +95,9 @@ internal sealed class D3D12CommandList : IGpuBackendCommandBuffer
     public void Draw(uint vertexCount, uint instanceCount)
         => _list.DrawInstanced(vertexCount, instanceCount, 0, 0);
 
-    public unsafe void CopyTextureToBuffer(IGpuBackendTexture source, IGpuBackendBuffer destination)
+    public unsafe void CopyTextureToBuffer(IGpuBackendTexture source, IGpuBackendBuffer destination, uint rowLengthPixels)
     {
+        _ = rowLengthPixels; // D3D12 uses GetCopyableFootprints; callers pass its 256-byte-aligned equivalent.
         var tex = (D3D12Texture)source;
         var buf = (D3D12Buffer)destination;
         Transition(tex, ResourceStates.CopySource);

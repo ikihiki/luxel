@@ -1,10 +1,13 @@
+using System.Numerics;
 using System.Runtime.InteropServices;
 
-/// <summary>CPU/Slang ABI used by the LuxelTriangle tutorial shader.</summary>
+/// <summary>CPU/Slang ABI used by the staged LuxelTriangle tutorials.</summary>
 public static class TutorialAbi
 {
     public const int VertexSize = 32;
     public const int DrawArgsSize = 4;
+    public const int Vertex3DSize = 32;
+    public const int DrawArgs3DSize = 176;
 
     [StructLayout(LayoutKind.Sequential)]
     public struct Vertex
@@ -18,4 +21,41 @@ public static class TutorialAbi
     {
         public uint VertexBufferIndex;
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Vertex3D
+    {
+        public Vector3 Position;
+        public Vector3 Normal;
+        public Vector2 Uv;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct DrawArgs3D
+    {
+        public uint VertexBufferIndex;
+        public uint IndexBufferIndex;
+        public uint TextureIndex;
+        public uint SamplerIndex;
+        public Matrix4x4 Model;
+        public Matrix4x4 ViewProjection;
+        public Vector4 LightDirection;
+        public uint Stage;
+        private uint _pad0, _pad1, _pad2;
+    }
+
+    public static float VisibleAspect(int width, int height)
+    {
+        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        return (float)width / height;
+    }
+}
+
+public enum TutorialStage
+{
+    Triangle,
+    Texture,
+    Transform,
+    Lighting,
 }

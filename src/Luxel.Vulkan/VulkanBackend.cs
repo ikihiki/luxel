@@ -608,8 +608,14 @@ public sealed unsafe class VulkanBackend : IGpuBackend
             {
                 SType = StructureType.PipelineRasterizationStateCreateInfo,
                 PolygonMode = PolygonMode.Fill,
-                CullMode = CullModeFlags.None,
-                FrontFace = FrontFace.CounterClockwise,
+                CullMode = raster.CullMode switch
+                {
+                    GpuCullMode.Front => CullModeFlags.FrontBit,
+                    GpuCullMode.Back => CullModeFlags.BackBit,
+                    _ => CullModeFlags.None,
+                },
+                FrontFace = raster.FrontFace == GpuFrontFace.Clockwise
+                    ? FrontFace.Clockwise : FrontFace.CounterClockwise,
                 LineWidth = 1.0f,
             };
             var multisample = new PipelineMultisampleStateCreateInfo
