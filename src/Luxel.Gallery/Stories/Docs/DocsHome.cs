@@ -25,7 +25,7 @@ public static class DocsHome
 
             - **バックエンド**: Vulkan 1.3 (一次) + DirectX 12 (二次)。`IGpuBackend` 抽象で切替
             - **シェーダ**: Slang で記述し、SPIR-V (Vulkan) と DXIL (D3D12) に併存コンパイル
-            - **核心**: 全パイプライン共通の固定レイアウト = 8B push 定数 (ルート引数の GPU アドレス) + bindless heap。シェーダはルート引数構造体への単一ポインタを受け取る
+            - **核心**: 全パイプライン共通の固定レイアウト = 最大192Bのルート引数 (4B単位のraw bytes) + bindless heap。バッファはルート引数内のbindless indexで参照する
 
             ## 必要環境
 
@@ -130,7 +130,7 @@ public static class DocsHome
 
         ## GPU 土台
 
-        `Luxel` (コア) が GpuDevice / バッファ / テクスチャ / パイプライン / コマンドの薄い抽象を提供し、`Luxel.Vulkan` と `Luxel.D3D12` が実装します。全パイプラインが **固定レイアウト** (8B push 定数 + bindless heap) を共有するため、ディスクリプタセットの管理も PSO のバリアントも存在しません。シェーダは Slang で 1 回書き、SPIR-V / DXIL の両方へコンパイルされます。
+        `Luxel` (コア) が GpuDevice / バッファ / テクスチャ / パイプライン / コマンドの薄い抽象を提供し、`Luxel.Vulkan` と `Luxel.D3D12` が実装します。全パイプラインが **固定レイアウト** (最大192Bのルート引数 + bindless heap) を共有するため、ディスクリプタセットの管理も PSO のバリアントも存在しません。シェーダは Slang で 1 回書き、SPIR-V / DXIL の両方へコンパイルされます。
 
         ## 2D とテキスト
 

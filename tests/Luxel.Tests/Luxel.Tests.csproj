@@ -73,6 +73,11 @@
     <ProjectReference Include="..\..\src\Luxel.TwoD.Skia\Luxel.TwoD.Skia.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Tutorial rendererと同じABI sourceをcompileし、テスト専用の複製を作らない。 -->
+    <Compile Include="..\..\samples\LuxelTriangle\TutorialAbi.cs" Link="TutorialAbi.cs" />
+  </ItemGroup>
+
   <!-- Gallery/Cavern と同じ Git 管理フォントをテスト出力へ含める。 -->
   <Import Project="..\..\assets\Luxel.FontAssets.targets" />
 

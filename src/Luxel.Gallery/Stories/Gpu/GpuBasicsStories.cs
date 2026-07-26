@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
@@ -6,7 +6,7 @@ using static Luxel.Gallery.Stories.StoryKit;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>
-/// GPU 抽象の基礎デモ — 固定パイプラインレイアウト (8B push 定数 + bindless heap) の上で
+/// GPU 抽象の基礎デモ — 固定パイプラインレイアウト (最大192Bのルート引数 + bindless heap) の上で
 /// 深度テスト / アルファブレンドがどう書けるかを示す。docs の Docs/GpuDevice から参照される。
 /// </summary>
 public static class GpuBasicsStories

@@ -12,7 +12,7 @@ namespace Luxel.Vulkan;
 /// Vulkan 1.3 バックエンド。「No Graphics API」設計の薄いラッパー。
 /// 全パイプライン共通の固定レイアウト:
 ///   set 0 / binding 0 = bindless storage buffer 配列 (descriptor-indexing)
-///   push 定数 (128B)  = ルート引数
+///   push 定数 (192B)  = ルート引数
 /// シェーダは <c>g_buffers[index]</c> でバッファを参照する (D3D12 と同一の index モデル)。
 /// </summary>
 public sealed unsafe class VulkanBackend : IGpuBackend

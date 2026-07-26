@@ -20,6 +20,7 @@ dotnet run --project samples/LuxelTriangle -- vk --frames 3
 ## ファイル
 
 - `Program.cs`: window、backend、surface、event loop、resize、shutdown
+- `TutorialAbi.cs`: rendererとlayout unit testが共有するC# / Slang ABI (`Vertex` 32B、`DrawArgs` 4B)
 - `TriangleRenderer.cs`: vertex buffer、pipeline、command recording、readback framebuffer
 - `../../shaders/tutorial_triangle.slang`: Vulkan / D3D12 共通 Slang shader
 

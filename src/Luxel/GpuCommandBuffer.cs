@@ -10,6 +10,9 @@ namespace Luxel;
 /// </summary>
 public sealed class GpuCommandBuffer : IDisposable
 {
+    /// <summary>Maximum byte size shared by the Vulkan push-constant range and D3D12 root constants.</summary>
+    public const int MaxRootArgumentBytes = 192;
+
     private readonly IGpuBackendCommandBuffer _cmd;
     private bool _disposed;
 
@@ -32,13 +35,17 @@ public sealed class GpuCommandBuffer : IDisposable
     {
         ReadOnlySpan<byte> bytes = MemoryMarshal.AsBytes(
             MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in value), 1));
-        _cmd.SetRootConstants(bytes);
-        return this;
+        return SetRootArguments(bytes);
     }
 
     /// <summary>ルート引数を生のバイト列で設定する。</summary>
     public GpuCommandBuffer SetRootArguments(ReadOnlySpan<byte> data)
     {
+        if (data.Length > MaxRootArgumentBytes)
+            throw new ArgumentOutOfRangeException(nameof(data), data.Length,
+                $"Root arguments are limited to {MaxRootArgumentBytes} bytes.");
+        if ((data.Length & 3) != 0)
+            throw new ArgumentException("Root arguments must have a 4-byte-compatible size.", nameof(data));
         _cmd.SetRootConstants(data);
         return this;
     }

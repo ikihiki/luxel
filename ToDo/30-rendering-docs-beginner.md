@@ -95,7 +95,7 @@ Luxel.Gallery のレンダリング関連 Docs / Demos を、機能カタログ�
 - Docs のコードが private Gallery helper を前提にしない。
 - vk / dx の Story play + golden がある。
 
-### R2 — バッファ、バインディング、シェーダ
+### R2 — バッファ、バインディング、シェーダ (完了: 2026-07-26)
 
 #### 実装
 

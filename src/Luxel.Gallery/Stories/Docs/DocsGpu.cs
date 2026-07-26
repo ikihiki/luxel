@@ -26,7 +26,7 @@ public static class DocsGpu
 
         ## メモリとバッファ
 
-        `device.Malloc(bytes, GpuMemoryKind)` でバッファを確保します。`HostMapped` は CPU から `Span<T>` で直接読み書きでき (staging 不要)、`DeviceLocal` は GPU 専用、`Readback` は GPU→CPU 読み戻し用です。
+        `device.Malloc(bytes, GpuMemoryKind)` でバッファを確保します。`HostMapped` は CPU から `Span<T>` で書き込みやすい upload 用、`DeviceLocal` は GPU 専用、`HostCached` は GPU→CPU 読み戻し用です。`HostMapped` は write-combined / uncached の場合があるため、CPU readback は `HostCached` へ GPU copyしてから行います。
 
         ```csharp
         using var device = new GpuDevice(VulkanBackend.Create());   // dx も可
