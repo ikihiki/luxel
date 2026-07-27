@@ -4,7 +4,7 @@ namespace Luxel.Platform.Windows;
 
 /// <summary>
 /// Win32 の keyboard / mouse event を <see cref="IInputSource"/> として <see cref="InputBus"/> に流す実装。
-/// <see cref="AppWindow"/> が本ソースをインスタンス化し、<see cref="Win32Window"/> の callback から差分イベントを注入する。
+/// Win32ウィンドウの入力callbackから差分イベントを注入して使う。
 /// portable <see cref="WindowKey"/> → <see cref="KeyCode"/> のマッピングは内部対応表で行う。
 /// </summary>
 public sealed class Win32InputSource : IInputSource

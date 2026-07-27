@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using Luxel.UI;
 
 namespace Luxel.Platform.Windows;
 
@@ -23,23 +22,4 @@ internal static partial class Win32Modifiers
         if (((GetKeyState(VK_LWIN) | GetKeyState(VK_RWIN)) & Down) != 0) m |= WindowKeyModifiers.Meta;
         return m;
     }
-
-    public static KeyModifiers ToUi(WindowKeyModifiers modifiers)
-    {
-        KeyModifiers m = KeyModifiers.None;
-        if (modifiers.HasFlag(WindowKeyModifiers.Control)) m |= KeyModifiers.Ctrl;
-        if (modifiers.HasFlag(WindowKeyModifiers.Shift)) m |= KeyModifiers.Shift;
-        if (modifiers.HasFlag(WindowKeyModifiers.Alt)) m |= KeyModifiers.Alt;
-        if (modifiers.HasFlag(WindowKeyModifiers.Meta)) m |= KeyModifiers.Meta;
-        return m;
-    }
-
-    public static KeyModifiers Current() => ToUi(CurrentWindow());
-
-    public static PointerButton ToUi(WindowPointerButton button) => button switch
-    {
-        WindowPointerButton.Right => PointerButton.Right,
-        WindowPointerButton.Middle => PointerButton.Middle,
-        _ => PointerButton.Left,
-    };
 }

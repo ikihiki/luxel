@@ -238,9 +238,9 @@ public static class DocsRuntime
 
         **DI 統合 (Microsoft.Extensions.Options)**: `ConfigureServices(s => s.AddSettingsOptions<GraphicsSettings>("graphics"))` で設定 POCO を束ねると、任意のサービスが `IOptions<GraphicsSettings>` / `IOptionsMonitor<GraphicsSettings>` を注入して値を読めます (`OnChange` で変更通知)。書き込みたい側は同じキーの `Signal<GraphicsSettings>` を注入します。読み口は標準の Configuration/Options、書き口とファイル永続化は SettingsStore、と役割が分かれます。
 
-        ## AppWindow — 最小構成
+        ## WindowManager — UIウィンドウ管理
 
-        フル DI が要らない小さなアプリは `AppWindow` (device + font + サイズ) に `SetRoot(widget)` して `Run()` するだけです。この Gallery も WindowManager + UiHost の同じ部品でできています。
+        UI向けウィンドウは `Luxel.UI.App.WindowManager` が管理します。`WindowSystem`へWin32などのPlatformバックエンドを注入し、`CreateUiWindow`と`RunFrame`でUiHostの生成・入力・描画・提示を駆動します。
 
         ## ゲームを配布する (publish)
 

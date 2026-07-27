@@ -51,8 +51,6 @@ internal sealed unsafe class Win32Window : IWindowBackendWindow, IWin32RawKeyInp
     public bool IsClosed { get; private set; }
     public bool IsVisible => !IsClosed && PInvoke.IsWindowVisible(Hwnd);
     public bool IsFocused => !IsClosed && PInvoke.GetForegroundWindow() == Hwnd;
-    /// <summary>旧 API 互換 (AppWindow)。IsClosed と同じ。</summary>
-    public bool ShouldClose => IsClosed;
     /// <summary>モニタの DPI スケール (96dpi=1.0, 150%=1.5)。クライアント物理 px = 論理 px × Scale。</summary>
     public float Scale => _dpi / 96f;
 
@@ -141,13 +139,6 @@ internal sealed unsafe class Win32Window : IWindowBackendWindow, IWin32RawKeyInp
             PInvoke.TranslateMessage(in msg);
             PInvoke.DispatchMessage(in msg);
         }
-    }
-
-    /// <summary>旧 API 互換 (AppWindow, 単一ウィンドウ用)。この窓が閉じたら false。</summary>
-    public bool Pump()
-    {
-        PumpThreadMessages();
-        return !IsClosed;
     }
 
     IWindowTextInputContext IWindowTextInputContextFactory.Create(

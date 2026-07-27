@@ -2,10 +2,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Platform\Luxel.Platform.csproj" />
-    <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
-    <ProjectReference Include="..\Luxel\Luxel.csproj" />
-    <ProjectReference Include="..\Luxel.TwoD\Luxel.TwoD.csproj" />
-    <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\Luxel.Input\Luxel.Input.csproj" />
   </ItemGroup>
 
@@ -21,7 +17,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Using Include="Luxel.Graphics" />
     <Using Include="Luxel.Platform" />
   </ItemGroup>
 </Project>
