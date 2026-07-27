@@ -1,5 +1,5 @@
 ﻿using Luxel.Framework;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

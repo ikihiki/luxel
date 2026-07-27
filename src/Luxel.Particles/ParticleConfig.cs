@@ -13,7 +13,7 @@ public enum ParticleShape
 
 /// <summary>
 /// 寿命に沿って start→end を補間する RGBA (α 含む)。<see cref="ICurve"/> 省略時は線形。
-/// 色は RGBA8 (R が下位バイト、<c>Luxel.TwoD.Color2D</c> と同じ並び)。
+/// 色は RGBA8 (R が下位バイト、<c>Luxel.Graphics.TwoD.Color2D</c> と同じ並び)。
 /// </summary>
 public readonly record struct ParticleColor(uint Start, uint End, ICurve? Curve = null)
 {

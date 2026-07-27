@@ -1,4 +1,4 @@
-﻿using Luxel.TwoD;
+﻿using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 using TAlign = Luxel.Typography.TextAlign;

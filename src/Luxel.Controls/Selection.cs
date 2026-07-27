@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 using Luxel.Animation;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Luxel.UI.Styling;
 

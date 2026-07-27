@@ -3,7 +3,7 @@ using LuxelCavern.Core;
 using Luxel.Diagnostics;
 using Luxel.Particles;
 using Luxel.Particles.TwoD;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 
 namespace Luxel.Tests;
 

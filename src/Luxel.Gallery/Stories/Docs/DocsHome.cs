@@ -120,7 +120,7 @@ public static class DocsHome
         controls --> ui[Luxel.UI]
         ui --> anim[Luxel.Animation]
         ui --> typo[Luxel.Typography]
-        ui --> twod[Luxel.TwoD]
+        ui --> twod[Luxel.Graphics.TwoD]
         rg --> gpu[Luxel.Graphics — GpuDevice]
         ecs --> rg
         twod --> gpu
@@ -134,7 +134,7 @@ public static class DocsHome
 
         ## 2D とテキスト
 
-        `Luxel.TwoD` は compute ベースのベクターラスタライザ (三角形分割なし) と保持型キャンバス (RetainedCanvas)。`Luxel.Typography` は HarfBuzz シェーピング + 自前 TextLayout、`Luxel.Typography.Icu` が ICU セグメンタを差し込みます。
+        `Luxel.Graphics.TwoD` は compute ベースのベクターラスタライザ (三角形分割なし) と保持型キャンバス (RetainedCanvas)。`Luxel.Typography` は HarfBuzz シェーピング + 自前 TextLayout、`Luxel.Typography.Icu` が ICU セグメンタを差し込みます。
 
         ## UI とコントロール
 
@@ -157,7 +157,7 @@ public static class DocsHome
         | プロジェクト | 役割 |
         | --- | --- |
         | Luxel.Graphics / Luxel.Graphics.Vulkan / Luxel.Graphics.DirectX12 | GPU 抽象とバックエンド |
-        | Luxel.TwoD | 2D ベクターラスタライザ + 保持型キャンバス |
+        | Luxel.Graphics.TwoD | 2D ベクターラスタライザ + 保持型キャンバス |
         | Luxel.Typography (+ .Icu) | テキストレイアウト / シェーピング / ICU |
         | Luxel.UI (+ .Generators, .Tailwind) | 宣言的 UI / signals / ソースジェネレーター |
         | Luxel.Controls | コントロール群 + docs 基盤 (Kit) |

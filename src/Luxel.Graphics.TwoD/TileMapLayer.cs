@@ -1,4 +1,4 @@
-namespace Luxel.TwoD;
+namespace Luxel.Graphics.TwoD;
 
 /// <summary>
 /// <see cref="TileMap"/> を <see cref="RetainedCanvas"/> 上に描く保持型レイヤ。

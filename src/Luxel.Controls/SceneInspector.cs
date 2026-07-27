@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Numerics;
 using Luxel.SceneEdit;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 

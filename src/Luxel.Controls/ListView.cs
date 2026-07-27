@@ -1,5 +1,5 @@
 ﻿using Luxel.Animation;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 
 namespace Luxel.Controls;

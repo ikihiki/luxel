@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace Luxel.TwoD;
+namespace Luxel.Graphics.TwoD;
 
 /// <summary>
 /// 2D カメラの高レベルコントローラ (ゲームフィールの中核)。ターゲット追従 (デッドゾーン + 指数平滑)、

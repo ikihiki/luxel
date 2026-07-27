@@ -1,5 +1,5 @@
-﻿using Luxel.TwoD;
-using Luxel.TwoD.Skia;
+﻿using Luxel.Graphics.TwoD;
+using Luxel.Graphics.TwoD.Skia;
 using Luxel.Typography;
 using Luxel.UI;
 using Xunit;

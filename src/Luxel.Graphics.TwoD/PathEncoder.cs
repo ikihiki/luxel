@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace Luxel.TwoD;
+namespace Luxel.Graphics.TwoD;
 
 /// <summary>Scene2D を GPU 用の Segment[]/Path[] 配列にエンコードする。</summary>
 internal static class PathEncoder

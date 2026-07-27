@@ -346,14 +346,14 @@ public abstract class GameScene : IScene
     }
 
     /// <summary>gizmo カテゴリの ON/OFF。<c>{ op:"gizmo.enable", kind:"physics", on:true }</c>。
-    /// kind 省略時は <c>"all"</c>、on 省略時は true。実際に描くかはゲーム側の <see cref="Luxel.TwoD.DebugDraw"/> flush 次第。</summary>
+    /// kind 省略時は <c>"all"</c>、on 省略時は true。実際に描くかはゲーム側の <see cref="Luxel.Graphics.TwoD.DebugDraw"/> flush 次第。</summary>
     private static void HandleGizmoEnable(object? arg)
     {
-        if (arg is not System.Text.Json.JsonElement el) { Luxel.TwoD.DebugDraw.Enable(Luxel.TwoD.DebugDraw.All); return; }
+        if (arg is not System.Text.Json.JsonElement el) { Luxel.Graphics.TwoD.DebugDraw.Enable(Luxel.Graphics.TwoD.DebugDraw.All); return; }
         string kind = el.TryGetProperty("kind", out var k) && k.ValueKind == System.Text.Json.JsonValueKind.String
-            ? k.GetString() ?? Luxel.TwoD.DebugDraw.All : Luxel.TwoD.DebugDraw.All;
+            ? k.GetString() ?? Luxel.Graphics.TwoD.DebugDraw.All : Luxel.Graphics.TwoD.DebugDraw.All;
         bool on = !el.TryGetProperty("on", out var o) || o.ValueKind != System.Text.Json.JsonValueKind.False;
-        Luxel.TwoD.DebugDraw.SetEnabled(kind, on);
+        Luxel.Graphics.TwoD.DebugDraw.SetEnabled(kind, on);
     }
 
     /// <summary>

@@ -3,7 +3,7 @@ using LuxelCavern.Core;
 using Luxel.Particles;
 using Luxel.Particles.TwoD;
 using Luxel.Scripting;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 using static Luxel.Controls.Kit;

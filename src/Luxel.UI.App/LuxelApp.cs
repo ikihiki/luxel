@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Luxel.Platform.Abstraction;
 using Luxel.Platform.Silk;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 using Luxel.Graphics.Vulkan;

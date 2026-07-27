@@ -1,7 +1,7 @@
 ﻿namespace Luxel.UI;
 
 /// <summary>参照アセンブリの公開型 API をドキュメント化する opt-in。アセンブリに
-/// <c>[assembly: GenerateAssemblyApi("Luxel.TwoD")]</c> と書くと、ソースジェネレーター
+/// <c>[assembly: GenerateAssemblyApi("Luxel.Graphics.TwoD")]</c> と書くと、ソースジェネレーター
 /// (AssemblyApiGenerator) がその名前空間の公開型を XML doc コメントごと
 /// <see cref="TypeApiRegistry"/> へ焼き込む — docs の型 API リファレンスが実行時に組み立てる。</summary>
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]

@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using Luxel;
 using Luxel.Diagnostics;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 

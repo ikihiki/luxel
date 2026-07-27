@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using SkiaSharp;
 
-namespace Luxel.TwoD.Skia;
+namespace Luxel.Graphics.TwoD.Skia;
 
 /// <summary>
 /// SkiaSharp による 2D システムの CPU バックエンド。GPU コンピュートラスタライザ

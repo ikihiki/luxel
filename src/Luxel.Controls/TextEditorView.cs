@@ -1,5 +1,5 @@
 using Luxel.Document;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 using Luxel.UI.Styling;

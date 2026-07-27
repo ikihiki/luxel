@@ -1,5 +1,5 @@
 ﻿using System.Globalization;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 
 namespace Luxel.Controls;

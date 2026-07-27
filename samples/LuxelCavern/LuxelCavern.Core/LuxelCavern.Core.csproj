@@ -16,7 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Controls\Luxel.Controls.csproj" />
-    <ProjectReference Include="..\..\..\src\Luxel.TwoD\Luxel.TwoD.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Typography\Luxel.Typography.csproj" />
     <!-- セーブの読み書き抽象 (IFileStore)。%APPDATA% への実 IO は exe が PhysicalFileStore で渡す。 -->
     <ProjectReference Include="..\..\..\src\Luxel.Settings\Luxel.Settings.csproj" />

@@ -34,7 +34,7 @@ public sealed class FocusTarget
 /// <summary>スクロール対象 (wheel ルーティング用)。rect はノードのローカル座標 (判定は transform 追従)。</summary>
 public sealed class ScrollTarget
 {
-    public required Luxel.TwoD.UiNode Node { get; init; }
+    public required Luxel.Graphics.TwoD.UiNode Node { get; init; }
     public required Rect Rect { get; init; }
     public Action<float>? OnScroll { get; init; }                  // 引数 = ホイール量
     public Action<float, float, float>? OnScrollPos { get; init; } // ローカル x,y + ホイール量 (指定時優先)

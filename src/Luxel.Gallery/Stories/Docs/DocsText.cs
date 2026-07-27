@@ -16,7 +16,7 @@ public static class DocsText
         return DocNew(ctx, $$"""
         # テキスト (Luxel.Typography)
 
-        HarfBuzz シェーピング + 自前レイアウトのテキスト基盤です。2D レイヤ (Luxel.TwoD) はテキストを知らない純粋レイヤのままで、フォント依存は Typography に隔離されています。ICU (完全な UAX#14/#29) は `Luxel.Typography.Icu` アダプタ — 使うアプリだけが参照します。
+        HarfBuzz シェーピング + 自前レイアウトのテキスト基盤です。2D レイヤ (Luxel.Graphics.TwoD) はテキストを知らない純粋レイヤのままで、フォント依存は Typography に隔離されています。ICU (完全な UAX#14/#29) は `Luxel.Typography.Icu` アダプタ — 使うアプリだけが参照します。
 
         ## パイプライン
 

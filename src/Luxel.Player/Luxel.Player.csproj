@@ -8,7 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
     <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />
-    <ProjectReference Include="..\Luxel.TwoD\Luxel.TwoD.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.Typography\Luxel.Typography.csproj" />
     <!-- csx ビヘイビア (ADR-0018): ScriptHost (Roslyn) でコンパイル・毎ステップ実行 -->
     <ProjectReference Include="..\Luxel.Scripting\Luxel.Scripting.csproj" />

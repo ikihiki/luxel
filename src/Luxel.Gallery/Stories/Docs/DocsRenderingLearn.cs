@@ -859,7 +859,7 @@ public static class DocsRenderingLearn
         `Scene2D`は「何を描くか」をCPU側で組み立てる最小APIです。次のコードだけで角丸矩形、円、線を含むsceneを作れます。
 
         ```csharp
-        using Luxel.TwoD;
+        using Luxel.Graphics.TwoD;
 
         var scene = new Scene2D();
         scene.FillRoundedRect(0xFF2F6FED, 24, 24, 220, 120, 18);

@@ -1,7 +1,7 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using HarfBuzzSharp;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using HbBuffer = HarfBuzzSharp.Buffer;
 using HbFont = HarfBuzzSharp.Font;
 

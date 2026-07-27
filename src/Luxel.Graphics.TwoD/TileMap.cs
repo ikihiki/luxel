@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace Luxel.TwoD;
+namespace Luxel.Graphics.TwoD;
 
 /// <summary>タイル 1 種の定義: 描画に使うアトラススプライト名 + 衝突フラグ。</summary>
 public readonly record struct TileDef(string Sprite, bool Solid = false);

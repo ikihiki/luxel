@@ -5,7 +5,7 @@ using Luxel.Framework;
 using Luxel.Input;
 using Luxel.Particles;
 using Luxel.Settings;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using LuxelCavern.Core;
 

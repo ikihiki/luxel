@@ -1,4 +1,4 @@
-namespace Luxel.TwoD;
+namespace Luxel.Graphics.TwoD;
 
 /// <summary>
 /// アトラスのフレーム列 (名前プレフィクス + 連番) を fps で進める決定的アニメーション。

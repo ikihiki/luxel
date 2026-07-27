@@ -1,4 +1,4 @@
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Xunit;
 
 namespace Luxel.Tests;

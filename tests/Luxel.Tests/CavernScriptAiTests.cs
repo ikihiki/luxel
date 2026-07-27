@@ -29,7 +29,7 @@ public class CavernScriptAiTests
             references:
             [
                 typeof(object).Assembly, typeof(Enumerable).Assembly,
-                typeof(Vector2).Assembly, typeof(Luxel.TwoD.RectF).Assembly,
+                typeof(Vector2).Assembly, typeof(Luxel.Graphics.TwoD.RectF).Assembly,
                 typeof(Luxel.Graphics.GpuDevice).Assembly, typeof(Walker).Assembly,
             ],
             usings: ["System", "LuxelCavern.Core"],

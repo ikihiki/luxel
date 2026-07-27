@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using Luxel.Animation;
 using Luxel.Diagnostics;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
+
+using TwoD = Luxel.Graphics.TwoD;
 
 namespace Luxel.UI;
 

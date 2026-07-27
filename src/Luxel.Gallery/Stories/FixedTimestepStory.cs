@@ -2,7 +2,7 @@
 using Luxel.Controls;
 using Luxel.Ecs;
 using Luxel.Framework;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Luxel.UI.Tailwind;
 using static Luxel.Controls.Kit;

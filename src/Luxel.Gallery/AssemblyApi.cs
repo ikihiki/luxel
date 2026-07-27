@@ -13,7 +13,7 @@ using Luxel.UI;
 [assembly: GenerateAssemblyApi("Luxel.Graphics.Vulkan")]
 [assembly: GenerateAssemblyApi("Luxel.Graphics.DirectX12")]
 // 2D
-[assembly: GenerateAssemblyApi("Luxel.TwoD")]
+[assembly: GenerateAssemblyApi("Luxel.Graphics.TwoD")]
 // UI
 [assembly: GenerateAssemblyApi("Luxel.UI")]
 [assembly: GenerateAssemblyApi("Luxel.UI.Styling")]
@@ -64,7 +64,7 @@ using Luxel.UI;
 [assembly: GenerateAssemblyApi("Luxel.Scripting")]
 [assembly: GenerateAssemblyApi("Luxel.Scripting.Framework")]
 [assembly: GenerateAssemblyApi("Luxel.Strudel")]
-[assembly: GenerateAssemblyApi("Luxel.TwoD.Skia")]
+[assembly: GenerateAssemblyApi("Luxel.Graphics.TwoD.Skia")]
 [assembly: GenerateAssemblyApi("Luxel.Framework")]
 [assembly: GenerateAssemblyApi("Luxel.Framework.DevTools")]
 [assembly: GenerateAssemblyApi("Luxel.Scene.UI")]

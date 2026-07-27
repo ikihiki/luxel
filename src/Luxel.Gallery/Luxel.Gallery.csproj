@@ -29,7 +29,7 @@
     <ProjectReference Include="..\Luxel\Luxel.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
-    <ProjectReference Include="..\Luxel.TwoD\Luxel.TwoD.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
     <ProjectReference Include="..\Luxel.Controls\Luxel.Controls.csproj" />
@@ -66,7 +66,7 @@
     <ProjectReference Include="..\Luxel.NodeGraph\Luxel.NodeGraph.csproj" />
     <ProjectReference Include="..\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
     <ProjectReference Include="..\Luxel.Workbench\Luxel.Workbench.csproj" />
-    <ProjectReference Include="..\Luxel.TwoD.Skia\Luxel.TwoD.Skia.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics.TwoD.Skia\Luxel.Graphics.TwoD.Skia.csproj" />
     <ProjectReference Include="..\Luxel.Typography.Icu\Luxel.Typography.Icu.csproj" />
     <!-- 型 API リファレンス (Docs/Api*) の対象 — Gallery はドキュメントハブとして全域を参照する -->
     <ProjectReference Include="..\Luxel.Framework\Luxel.Framework.csproj" />

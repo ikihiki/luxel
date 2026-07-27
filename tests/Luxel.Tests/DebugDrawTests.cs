@@ -5,7 +5,7 @@ using Luxel.Particles;
 using Luxel.Particles.TwoD;
 using Luxel.Physics;
 using Luxel.Physics.Gizmos;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 
 namespace Luxel.Tests;
 

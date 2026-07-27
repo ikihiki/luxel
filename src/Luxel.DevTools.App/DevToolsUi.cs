@@ -2,7 +2,7 @@
 using Luxel.Controls;
 using Luxel.Diagnostics;
 using Luxel.NodeGraph;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 

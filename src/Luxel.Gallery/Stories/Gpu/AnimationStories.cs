@@ -8,7 +8,7 @@ using Luxel.AssetRuntime;
 using Luxel.Assets;
 using Luxel.Ecs;
 using Luxel.RenderGraph;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;

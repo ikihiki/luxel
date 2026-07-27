@@ -1,7 +1,7 @@
 using System.Numerics;
 using System.Text;
 using Luxel.Resources;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 
 namespace LuxelCavern.Core;
 

@@ -4,7 +4,7 @@ using Luxel.Ecs;
 using Luxel.Framework;
 using Luxel.Particles;
 using Luxel.Particles.TwoD;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;

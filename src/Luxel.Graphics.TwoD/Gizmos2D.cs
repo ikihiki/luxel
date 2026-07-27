@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace Luxel.TwoD;
+namespace Luxel.Graphics.TwoD;
 
 /// <summary>
 /// 2D ゲーム機能の標準 gizmo (<see cref="DebugDraw"/> の上に載せる)。タイルマップの衝突タイル/Sweep 結果、

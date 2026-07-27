@@ -87,7 +87,7 @@ public static partial class DocsGpu
     {
         ctx.Play(static d => d.Snap());   // 積み重なった GPU デモ 7 本が device lost せず描画される回帰 golden
         return DocNew(ctx, $$"""
-        # 2D ベクター (Luxel.TwoD)
+        # 2D ベクター (Luxel.Graphics.TwoD)
 
         GPU **コンピュートラスタライザ** (Vello 風) による 2D ベクター描画です。パスを三角形分割せず、線分のまま GPU に常駐させ、compute が画素ごとに巻き数/距離で被覆を計算して塗ります。バックエンド変更ゼロ (framebuffer は bindless バッファ)。
 

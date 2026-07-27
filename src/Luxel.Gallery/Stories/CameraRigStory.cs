@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;

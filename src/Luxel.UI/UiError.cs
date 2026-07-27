@@ -1,5 +1,5 @@
 ﻿using Luxel.Diagnostics;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 
 namespace Luxel.UI;
 

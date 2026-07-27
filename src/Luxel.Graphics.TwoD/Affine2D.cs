@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace Luxel.TwoD;
+namespace Luxel.Graphics.TwoD;
 
 /// <summary>2x3 アフィン変換。screen = (A*x + C*y + E, B*x + D*y + F)。</summary>
 public struct Affine2D

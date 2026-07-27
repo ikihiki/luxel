@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace Luxel.TwoD;
+namespace Luxel.Graphics.TwoD;
 
 /// <summary>図形の種別。</summary>
 public enum PaintKind { Fill, Stroke, Image }

@@ -1,4 +1,4 @@
-﻿namespace Luxel.TwoD;
+﻿namespace Luxel.Graphics.TwoD;
 
 /// <summary>エンコード済みシーン (GPU 常駐の SoA バッファ群)。</summary>
 public sealed class EncodedScene : IDisposable

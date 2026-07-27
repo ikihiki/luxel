@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace Luxel.TwoD;
+namespace Luxel.Graphics.TwoD;
 
 /// <summary>ワールド → スクリーン (px) 変換。2D はほぼ恒等、3D はゲームの viewProj + ビューポート。</summary>
 public delegate Vector2 WorldToScreen(Vector3 world);

@@ -1,6 +1,6 @@
 using System.Numerics;
 using Luxel.SceneEdit;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 
 namespace Luxel.Controls;

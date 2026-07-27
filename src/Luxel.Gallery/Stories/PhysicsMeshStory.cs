@@ -2,7 +2,7 @@ using System.Numerics;
 using Luxel.Ecs;
 using Luxel.Physics;
 using Luxel.Physics.Gizmos;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 using static Luxel.Controls.Kit;

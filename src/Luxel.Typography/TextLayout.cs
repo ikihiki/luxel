@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 using System.Text;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 
 namespace Luxel.Typography;
 

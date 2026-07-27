@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Luxel.TwoD;
+namespace Luxel.Graphics.TwoD;
 
 /// <summary>アトラス内の 1 スプライト: ソーステクスチャ上の px 矩形 + ピボット(px, スプライト左上基準)。
 /// ピボットは描画基準点 — <see cref="Scene2D.DrawSprite"/> は指定ワールド座標にこの点を合わせる

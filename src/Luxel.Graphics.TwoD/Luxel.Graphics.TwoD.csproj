@@ -3,7 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <InternalsVisibleTo Include="Luxel.Tests" />
-    <InternalsVisibleTo Include="Luxel.TwoD.Skia" />
+    <InternalsVisibleTo Include="Luxel.Graphics.TwoD.Skia" />
     <ProjectReference Include="..\Luxel\Luxel.csproj" />
     <!-- スプライトアトラス JSON のロード (SpriteAtlasStep)。Resources は CPU のみ (GPU 非依存)。 -->
     <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />

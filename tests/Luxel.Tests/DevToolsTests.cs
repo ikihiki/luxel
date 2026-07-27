@@ -2,7 +2,7 @@
 using Luxel.Controls;
 using Luxel.DevTools;
 using Luxel.Diagnostics;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 
 namespace Luxel.Tests;

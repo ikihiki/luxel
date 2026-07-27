@@ -1,7 +1,7 @@
 using Luxel;
 using Luxel.Framework;
 using Luxel.Player;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 
 namespace Luxel.Player;

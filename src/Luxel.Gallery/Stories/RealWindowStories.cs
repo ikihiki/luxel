@@ -5,7 +5,7 @@ using Luxel.Input.XInput;
 using Luxel.Platform;
 using Luxel.Platform.Windows;
 using Luxel.UI.App;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Luxel.UI.Tailwind;
 using static Luxel.Controls.Kit;

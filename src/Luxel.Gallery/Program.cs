@@ -4,7 +4,7 @@ using Luxel.Diagnostics;
 using Luxel.Gallery;
 using Luxel.Platform;
 using Luxel.UI.App;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 

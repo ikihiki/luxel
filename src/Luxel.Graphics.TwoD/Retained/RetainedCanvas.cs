@@ -1,13 +1,13 @@
 ﻿using Luxel.Diagnostics;
 
-namespace Luxel.TwoD;
+namespace Luxel.Graphics.TwoD;
 
 /// <summary>
 /// 保持型 (retained) 2D シーン。UI ツリーをフレーム間で保持し、一部変更を最小 GPU 更新で反映する。
 /// 移動 = 変換のみ書込、色変更 = スタイルのみ書込 (ジオメトリ不変)。構造変更時のみ再構築。
 /// **ヘッドレスモード** (引数なし ctor): GpuDevice なしで構築でき、CPU 側 SoA・dirty 追跡・
 /// 増分更新統計はそのまま動く (GPU バッファ書き込みだけスキップ)。描画は SkiaSharp 等の
-/// ソフトウェアバックエンド (Luxel.TwoD.Skia) がツリーを直接ラスタライズする — テスト/CI 用。
+/// ソフトウェアバックエンド (Luxel.Graphics.TwoD.Skia) がツリーを直接ラスタライズする — テスト/CI 用。
 /// </summary>
 public sealed class RetainedCanvas : IDisposable
 {

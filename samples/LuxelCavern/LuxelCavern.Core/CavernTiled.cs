@@ -1,6 +1,6 @@
 using System.Numerics;
 using System.Text.Json;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 
 namespace LuxelCavern.Core;
 

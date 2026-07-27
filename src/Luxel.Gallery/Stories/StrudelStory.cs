@@ -4,7 +4,7 @@ using Luxel.Controls;
 using Luxel.Document;
 using Luxel.Platform;
 using Luxel.Strudel;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 

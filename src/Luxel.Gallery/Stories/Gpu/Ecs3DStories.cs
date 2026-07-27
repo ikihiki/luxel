@@ -327,19 +327,19 @@ public static class Ecs3DStories
         protected override void OnInit()
         {
             // 2D UI シーン → bindless バッファへラスタライズ (1 回きり)
-            using var raster = new Luxel.TwoD.Rasterizer2D(Device);
-            var ui = new Luxel.TwoD.Scene2D();
-            ui.FillRoundedRect(Luxel.TwoD.Color2D.Rgba(245, 240, 230, 255), 0, 0, UiW, UiH, 0);
-            ui.FillRoundedRect(Luxel.TwoD.Color2D.Rgba(60, 130, 240, 255), 20, 20, 100, 40, 8);
-            ui.FillRoundedRect(Luxel.TwoD.Color2D.Rgba(230, 80, 100, 255), 140, 20, 100, 40, 8);
-            ui.FillRoundedRect(Luxel.TwoD.Color2D.Rgba(40, 200, 120, 255), 20, 80, 220, 60, 12);
-            ui.FillRoundedRect(Luxel.TwoD.Color2D.Rgba(180, 90, 220, 255), 20, 160, 100, 80, 14);
-            ui.FillRoundedRect(Luxel.TwoD.Color2D.Rgba(255, 200, 60, 255), 140, 160, 100, 80, 14);
-            using Luxel.TwoD.EncodedScene encoded = raster.Encode(ui);
+            using var raster = new Luxel.Graphics.TwoD.Rasterizer2D(Device);
+            var ui = new Luxel.Graphics.TwoD.Scene2D();
+            ui.FillRoundedRect(Luxel.Graphics.TwoD.Color2D.Rgba(245, 240, 230, 255), 0, 0, UiW, UiH, 0);
+            ui.FillRoundedRect(Luxel.Graphics.TwoD.Color2D.Rgba(60, 130, 240, 255), 20, 20, 100, 40, 8);
+            ui.FillRoundedRect(Luxel.Graphics.TwoD.Color2D.Rgba(230, 80, 100, 255), 140, 20, 100, 40, 8);
+            ui.FillRoundedRect(Luxel.Graphics.TwoD.Color2D.Rgba(40, 200, 120, 255), 20, 80, 220, 60, 12);
+            ui.FillRoundedRect(Luxel.Graphics.TwoD.Color2D.Rgba(180, 90, 220, 255), 20, 160, 100, 80, 14);
+            ui.FillRoundedRect(Luxel.Graphics.TwoD.Color2D.Rgba(255, 200, 60, 255), 140, 160, 100, 80, 14);
+            using Luxel.Graphics.TwoD.EncodedScene encoded = raster.Encode(ui);
             _uiBuf = Track(Device.Malloc((ulong)(UiW * UiH * 4), GpuMemoryKind.HostMapped));
             using (GpuCommandBuffer c = Device.MainQueue.StartCommandRecording())
             {
-                raster.Render(c, encoded, Luxel.TwoD.Camera2D.Pixels, UiW, UiH, _uiBuf);
+                raster.Render(c, encoded, Luxel.Graphics.TwoD.Camera2D.Pixels, UiW, UiH, _uiBuf);
                 c.Finish();
                 Device.MainQueue.SubmitAndWait(c);
             }

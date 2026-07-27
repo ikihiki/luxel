@@ -1,7 +1,7 @@
 using System.Text;
 using Luxel.Resources;
 
-namespace Luxel.TwoD;
+namespace Luxel.Graphics.TwoD;
 
 /// <summary>
 /// byte[] (UTF-8 JSON) → <see cref="SpriteAtlas"/> のリソースステップ (CPU ステージ)。
