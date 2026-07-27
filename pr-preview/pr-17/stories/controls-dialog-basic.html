@@ -1,0 +1,24 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Dialog/Basic</h1></header><figure class="static-capture"><img src="images/controls-dialog-basic.png" alt="Controls/Dialog/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/Dialog/Basic&quot;, Height = 320)]
+public static Widget DialogBasic(StoryContext ctx)
+{
+    Signal&lt;bool&gt; open = ctx.Signal(&quot;open&quot;, true);
+    Button opener = Button(_ =&gt; open.Value = true, &quot;Open dialog&quot;);
+    // play: 初期 (開) → Esc で閉じる → 再度開く (E2E の対話ショーケース)
+    ctx.Play(async d =&gt;
+    {
+        await d.Snap();                                    // 開いた状態 (初期)
+        await d.Key(Key.Escape);
+        await d.Step(30);   // 閉フェード (~0.2s) の静定待ち
+        await d.Expect(() =&gt; !open.Value, &quot;Esc でダイアログが閉じる&quot;);
+        await d.Snap(&quot;closed&quot;);
+        await d.Click(opener);
+        await d.Expect(() =&gt; open.Value, &quot;ボタンで再度開く&quot;);
+    });
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(24))
+        [VStack(8)[
+            opener,
+            Dialog(open, Card(VStack(8)[
+                Heading(&quot;Dialog title&quot;, 2),
+                Muted(&quot;Esc か外側クリックで閉じる&quot;),
+                Button(_ =&gt; open.Value = false, &quot;Close&quot;)]))]];
+}</code></pre></details></article>

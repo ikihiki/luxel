@@ -1,0 +1,65 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/NodeGraphView/Basic</h1></header><figure class="static-capture"><img src="images/controls-nodegraphview-basic.png" alt="Controls/NodeGraphView/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/NodeGraphView/Basic&quot;, Height = 440)]
+public static Widget Basic(StoryContext ctx)
+{
+    NodeGraphView ed = NodeGraphView(source: SampleGraph(), viewWidth: 620f, viewHeight: 360f);
+
+    ctx.Play(&quot;basic&quot;, async d =&gt;
+    {
+        await d.Snap();                              // 3 ノード + 2 ワイヤ + グリッド
+        Vector2 p2 = ed.NodeScreenCenter(2);
+        await d.Click(p2.X, p2.Y);                   // Process を選択
+        await d.Expect(() =&gt; ed.IsSelected(2), &quot;クリックでノード選択&quot;);
+        await d.Snap(&quot;selected&quot;);
+        Vector2 from = ed.NodeScreenCenter(2);
+        await d.Drag(from.X, from.Y, from.X + 60, from.Y + 90);   // ドラッグで移動
+        await d.Expect(() =&gt; ed.NodePos(2).Y &gt; 90, &quot;ドラッグで移動 (1 undo)&quot;);
+        await d.Snap(&quot;moved&quot;);
+    });
+
+    ctx.Play(&quot;marquee&quot;, async d =&gt;
+    {
+        // 空白から Input+Process を囲む範囲選択 (world 座標をクライアント座標へ)
+        Vector2 a = ed.ClientOf(new Vector2(10, 10));
+        Vector2 b = ed.ClientOf(new Vector2(380, 200));
+        await d.Drag(a.X, a.Y, b.X, b.Y);
+        await d.Expect(() =&gt; ed.SelectionCount == 2, &quot;範囲選択で 2 ノード&quot;);
+        await d.Snap(&quot;box&quot;);
+    });
+
+    ctx.Play(&quot;keys&quot;, async d =&gt;
+    {
+        Vector2 p1 = ed.NodeScreenCenter(1);
+        await d.Click(p1.X, p1.Y);                   // フォーカス
+        await d.Key(Key.A, ctrl: true);              // 全選択
+        await d.Expect(() =&gt; ed.SelectionCount == 3, &quot;Ctrl+A で全選択&quot;);
+        await d.Snap(&quot;all&quot;);
+        await d.Key(Key.Delete);                     // 削除
+        await d.Expect(() =&gt; ed.NodeCount == 0, &quot;Delete で全削除&quot;);
+        await d.Snap(&quot;deleted&quot;);
+        await d.Key(Key.Z, ctrl: true);              // undo
+        await d.Expect(() =&gt; ed.NodeCount == 3, &quot;undo で復活&quot;);
+    });
+
+    ctx.Play(&quot;modifiers&quot;, async d =&gt;
+    {
+        // Ctrl+Click で追加選択 (ADR-0011: PointerEvent の修飾キー)
+        Vector2 p1 = ed.NodeScreenCenter(1);
+        Vector2 p3 = ed.NodeScreenCenter(3);
+        await d.Click(p1.X, p1.Y);                                  // Input を選択
+        await d.Click(p3.X, p3.Y, KeyModifiers.Ctrl);              // Ctrl+Click で Output も追加
+        await d.Expect(() =&gt; ed.IsSelected(1) &amp;&amp; ed.IsSelected(3) &amp;&amp; ed.SelectionCount == 2, &quot;Ctrl+Click で追加選択&quot;);
+        await d.Snap(&quot;ctrl-select&quot;);
+        // 中ボタンドラッグで pan (ノード上から始めても移動でなく pan になる)
+        Vector2 pc = ed.NodeScreenCenter(2);
+        Vector2 pan0 = ed.Viewport.Pan;
+        await d.Drag(pc.X, pc.Y, pc.X + 70, pc.Y + 40, button: PointerButton.Middle);
+        await d.Expect(() =&gt; ed.Viewport.Pan != pan0, &quot;中ボタンドラッグで pan&quot;);
+        await d.Snap(&quot;panned&quot;);
+    });
+
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(10)[
+            Heading(&quot;NodeGraphView (汎用ノードエディタ)&quot;),
+            Muted(&quot;Luxel.NodeGraph (不変 + Transaction + 純射影) を canvas に載せた薄いビュー。ドラッグ移動 / クリック・範囲選択 / ホイールズーム / 中ボタン pan / Ctrl+Click 追加選択。&quot;),
+            ed]];
+}</code></pre></details></article>
