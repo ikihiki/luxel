@@ -9,7 +9,7 @@ namespace Luxel.Player;
 /// <summary>
 /// PlayerGame を実時間で駆動する GameScene (CavernRealtimeScene と同型の薄い層) —
 /// OnFixedUpdate = キー供給 + world.Update (固定 dt)、OnRender = world.Render を
-/// Rasterizer2D で Framebuffer へ焼く (Program が Present)。
+/// GpuDeviceRasterizer2D で Framebuffer へ焼く (Program が Present)。
 /// </summary>
 public sealed class PlayerRealtimeScene : GameScene
 {
@@ -17,7 +17,7 @@ public sealed class PlayerRealtimeScene : GameScene
     private readonly VectorFont _font;
     private readonly Func<ISet<string>> _keys;
 
-    private Rasterizer2D? _raster;
+    private GpuDeviceRasterizer2D? _raster;
     private GpuBuffer? _fb;
     private int _paddedW;
 
@@ -49,14 +49,14 @@ public sealed class PlayerRealtimeScene : GameScene
         if (_raster is null)
         {
             _paddedW = Align(w, 64);
-            _raster = new Rasterizer2D(Device);
+            _raster = new GpuDeviceRasterizer2D(Device);
             _fb = Device.Malloc((ulong)(_paddedW * h * 4), GpuMemoryKind.HostMapped);
         }
         var s = new Scene2D();
         _game.World.Render(s, w, h, _font);
 
         using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-        using EncodedScene encoded = _raster.Encode(s);
+        using GpuEncodedScene2D encoded = _raster.Encode(s);
         _raster.Render(cmd, encoded, Camera2D.Pixels, (uint)_paddedW, (uint)h, _fb!);
         cmd.Finish();
         Device.MainQueue.SubmitAndWait(cmd);

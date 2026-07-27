@@ -46,7 +46,7 @@
     </Content>
   </ItemGroup>
 
-  <!-- Slang シェーダ (Rasterizer2D 用) を出力/publish の shaders/ へ。targets 側で publish コピーも面倒を見る。 -->
+  <!-- Slang シェーダ (GpuDeviceRasterizer2D 用) を出力/publish の shaders/ へ。targets 側で publish コピーも面倒を見る。 -->
   <Import Project="..\..\..\shaders\Luxel.Shaders.targets" />
 
   <ItemGroup>

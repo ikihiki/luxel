@@ -18,6 +18,7 @@ public sealed class UiHost : IDisposable, ITextInputClient
     private readonly RetainedCanvas _canvas;
     private readonly VectorFont _font;
     private readonly LayoutContext _layoutCtx;
+    private readonly GpuDeviceRasterizer2D? _gpuRasterizer;
     private float _width, _height;
 
     private Widget? _root;
@@ -38,10 +39,12 @@ public sealed class UiHost : IDisposable, ITextInputClient
     /// 別スレッドの UI 島は必ず自前の signal を渡すこと (signal は所有スレッドのみが触る規約)。</summary>
     public Signal<Theme> Theme { get; }
 
-    public UiHost(RetainedCanvas canvas, VectorFont font, float width, float height, Signal<Theme>? theme = null)
+    public UiHost(RetainedCanvas canvas, VectorFont font, float width, float height, Signal<Theme>? theme = null,
+                  GpuDeviceRasterizer2D? gpuRasterizer = null)
     {
         _canvas = canvas;
         _font = font;
+        _gpuRasterizer = gpuRasterizer;
         _width = width;
         _height = height;
         Theme = theme ?? UiTheme.Current;
@@ -235,7 +238,11 @@ public sealed class UiHost : IDisposable, ITextInputClient
         root.Layout(Constraints.Tight(new Size(_width, _height)), _layoutCtx);
         root.Offset = new Point(0, 0);
 
-        _build = new UiBuildContext { Canvas = _canvas, Font = _font, Theme = Theme, RenderScale = _renderScale, Host = this };
+        _build = new UiBuildContext
+        {
+            Canvas = _canvas, Font = _font, Theme = Theme, RenderScale = _renderScale, Host = this,
+            GpuRasterizer = _gpuRasterizer,
+        };
         root.Realize(_build, _canvas.Root, new Point(0, 0));
         RealizeOverlays();
         EmitTree();

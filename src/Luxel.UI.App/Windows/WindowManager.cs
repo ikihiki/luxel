@@ -21,7 +21,7 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
 {
     private readonly GpuDevice _device;
     private readonly VectorFont _font;
-    private readonly Rasterizer2D _raster;   // パイプライン生成が重いので device で 1 個を共有
+    private readonly GpuDeviceRasterizer2D _raster;   // パイプライン生成が重いので device で 1 個を共有
     private readonly WindowSystem _windows;
     private readonly object _gate = new();   // _hosts/_offscreen のスナップショット用 (server スレッドが読む)
     private readonly List<WindowHost> _hosts = new();
@@ -41,7 +41,7 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
         _device = device;
         _font = font;
         _windows = windows;
-        _raster = new Rasterizer2D(device);
+        _raster = new GpuDeviceRasterizer2D(device);
         Commands = commands ?? new EngineCommands();
         UiRegistry = uiRegistry ?? new UiRegistry();
         RegisterCommands();

@@ -1,7 +1,8 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Luxel;
 using Luxel.Diagnostics;
 using Luxel.Graphics.TwoD;
+using Luxel.Graphics.TwoD.Skia;
 using Luxel.Typography;
 using Luxel.UI;
 
@@ -14,9 +15,10 @@ namespace Luxel.Gallery;
 /// </summary>
 public sealed class GalleryHost : IDisposable
 {
-    private readonly GpuDevice _device;
+    private readonly GpuDevice? _device;
     private readonly VectorFont _font;
-    private readonly Rasterizer2D _raster;   // パイプライン生成が重いので device で 1 個を使い回す
+    private readonly IRasterizer2D _raster;
+    private readonly GpuDeviceRasterizer2D? _gpuRasterizer;
     // ストーリーへ StoryContext.Resources として配布 (キャッシュはストーリー横断で共有、Pump は Step が叩く)
     private readonly Luxel.Resources.ResourceSystem _resources = new(
         sources: Luxel.Resources.ResourceSystemDefaults.BuiltinSources(assetRoot: Environment.CurrentDirectory),
@@ -29,7 +31,9 @@ public sealed class GalleryHost : IDisposable
     private RetainedCanvas? _canvas;
     private UiHost? _host;
     private Widget? _root;
-    private GpuBuffer? _fb;
+    private IRasterScene2D? _rasterScene;
+    private IRasterTarget2D? _rasterTarget;
+    private GpuBuffer? _gpuFramebuffer;
     private static readonly JsonSerializerOptions TreeJson = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private int _w, _h;
     private bool _dark;
@@ -41,10 +45,17 @@ public sealed class GalleryHost : IDisposable
     private ulong _frameHash;
 
     public GalleryHost(GpuDevice device, VectorFont font)
+        : this(new GpuDeviceRasterizer2D(device), font, device) { }
+
+    public GalleryHost(IRasterizer2D rasterizer, VectorFont font)
+        : this(rasterizer, font, rasterizer is GpuDeviceRasterizer2D gpu ? gpu.Device : null) { }
+
+    private GalleryHost(IRasterizer2D rasterizer, VectorFont font, GpuDevice? device)
     {
         _device = device;
         _font = font;
-        _raster = new Rasterizer2D(device);
+        _raster = rasterizer ?? throw new ArgumentNullException(nameof(rasterizer));
+        _gpuRasterizer = rasterizer as GpuDeviceRasterizer2D;
         Commands.Register("story.select", a => { if (a is JsonElement el && el.TryGetProperty("id", out JsonElement id)) Select(id.GetString() ?? ""); });
         Commands.Register("story.theme", a => { _dark = a is JsonElement el && el.TryGetProperty("dark", out JsonElement d) && d.ValueKind == JsonValueKind.True; ApplyTheme(); });
         Commands.Register("story.state", a => SetState(a));
@@ -101,14 +112,15 @@ public sealed class GalleryHost : IDisposable
         _h = height;
         _dark = dark;
         ApplyTheme();
-        _canvas = new RetainedCanvas(_raster);
-        _host = new UiHost(_canvas, _font, _w, _h);
+        _canvas = new RetainedCanvas();
+        _rasterScene = _raster.CreateScene(_canvas);
+        _host = new UiHost(_canvas, _font, _w, _h, gpuRasterizer: _gpuRasterizer);
         UiHostCommands.RegisterDefaults(Commands, _host);
         _ctx = new StoryContext(_resources);
         _ctx.SetServices(GalleryServices.Provider);
         _root = widget;
         _host.SetRoot(widget);
-        _fb = _device.Malloc((ulong)(_w * _h * 4), GpuMemoryKind.HostMapped);
+        CreateRasterTarget();
         _frameHash = 0;
         Render();
     }
@@ -134,8 +146,9 @@ public sealed class GalleryHost : IDisposable
     private void BuildCurrent()
     {
         if (_story is null) return;
-        _canvas = new RetainedCanvas(_raster);
-        _host = new UiHost(_canvas, _font, _w, _h);
+        _canvas = new RetainedCanvas();
+        _rasterScene = _raster.CreateScene(_canvas);
+        _host = new UiHost(_canvas, _font, _w, _h, gpuRasterizer: _gpuRasterizer);
         UiHostCommands.RegisterDefaults(Commands, _host);   // click/pointermove/key/char/... (同名上書き)
         _ctx = new StoryContext(_resources);
         _ctx.SetServices(GalleryServices.Provider);   // DI: ScriptHost / ICodeLanguage をストーリー引数へ注入
@@ -143,7 +156,7 @@ public sealed class GalleryHost : IDisposable
         _ctx.SetNavigator(p => Commands.Enqueue("story.select", JsonSerializer.SerializeToElement(new { id = p })));
         _root = _story.Build(_ctx);
         _host.SetRoot(_root);
-        _fb = _device.Malloc((ulong)(_w * _h * 4), GpuMemoryKind.HostMapped);
+        CreateRasterTarget();
         _frameHash = 0;   // 次の Render で必ず配信
         Render();         // 選択/リサイズ直後から新フレームを配信する
     }
@@ -192,7 +205,7 @@ public sealed class GalleryHost : IDisposable
         Commands.Drain();
         _resources.Pump();   // リロード/遅延 Dispose の処理 (初回ロードの publish は Pump 不要)
         _ctx?.PumpKnobEdits();   // Knobs テーブル (docs 埋め込み) の編集適用 (effect 文脈外)
-        if (_host is null || _canvas is null || _fb is null) return;
+        if (_host is null || _canvas is null || _rasterScene is null) return;
         _host.Tick(dt);
         if (_frame is not null && !_canvas.HasPendingChanges) return;   // 前回と同じ絵になるだけ
         Render();
@@ -200,20 +213,29 @@ public sealed class GalleryHost : IDisposable
 
     private void Render()
     {
-        using (GpuCommandBuffer cmd = _device.MainQueue.StartCommandRecording())
+        if (_rasterScene is null) return;
+        if (_gpuRasterizer is not null)
         {
-            _canvas!.Render(cmd, Camera2D.Pixels, (uint)_w, (uint)_h, _fb!);
+            using GpuCommandBuffer cmd = _device!.MainQueue.StartCommandRecording();
+            _rasterScene.Render(Camera2D.Pixels,
+                new GpuRasterTarget2D(cmd, _gpuFramebuffer!, (uint)_w, (uint)_h));
             cmd.Finish();
             _device.MainQueue.SubmitAndWait(cmd);
         }
+        else if (_rasterTarget is not null)
+        {
+            _rasterScene.Render(Camera2D.Pixels, _rasterTarget);
+        }
+        else
+        {
+            throw new InvalidOperationException($"No target is available for {_raster.Name}.");
+        }
 
-        // host-mapped (write-combined) メモリは CPU 読み取りが非キャッシュで極端に遅いので、
-        // 一括コピー 1 回でキャッシュ可能メモリへ移してからハッシュする (バイト毎の直接読みは 100ms 級)。
         int len = _w * _h * 4;
         byte[] body = new byte[8 + len];
         BitConverter.TryWriteBytes(body.AsSpan(0, 4), _w);
         BitConverter.TryWriteBytes(body.AsSpan(4, 4), _h);
-        _fb!.Span<byte>(len).CopyTo(body.AsSpan(8));
+        CopyPixels(body.AsSpan(8));
 
         // 内容ハッシュ (FNV-1a, ulong 単位 + 端数) — 不変フレームは rev を進めず 304 で済ませる
         ulong hash = 14695981039346656037ul;
@@ -231,8 +253,37 @@ public sealed class GalleryHost : IDisposable
     /// <summary>最後に描いたフレームの PNG 用生データ (スナップショット用)。</summary>
     public (byte[] rgba, int w, int h)? SnapshotRgba()
     {
-        if (_fb is null) return null;
-        return (_fb.Span<byte>(_w * _h * 4).ToArray(), _w, _h);
+        if (_gpuFramebuffer is null && _rasterTarget is null) return null;
+        byte[] rgba = new byte[_w * _h * 4];
+        CopyPixels(rgba);
+        return (rgba, _w, _h);
+    }
+
+    private void CreateRasterTarget()
+    {
+        _gpuFramebuffer?.Dispose();
+        _gpuFramebuffer = null;
+        if (_gpuRasterizer is not null)
+        {
+            _gpuFramebuffer = _device!.Malloc((ulong)(_w * _h * 4), GpuMemoryKind.HostMapped);
+            _rasterTarget = null; // GPU target owns a per-frame command buffer and is created in Render().
+        }
+        else if (_raster is SkiaRasterizer2D)
+        {
+            _rasterTarget = new SkiaRasterTarget2D((uint)_w, (uint)_h);
+        }
+        else
+        {
+            throw new NotSupportedException($"GalleryHost does not know how to create a target for {_raster.Name}.");
+        }
+    }
+
+    private void CopyPixels(Span<byte> destination)
+    {
+        if (_rasterTarget is SkiaRasterTarget2D skia)
+            skia.Pixels.Span.CopyTo(destination);
+        else
+            _gpuFramebuffer!.Span<byte>(_w * _h * 4).CopyTo(destination);
     }
 
     public (byte[]? body, long rev) GetFrame(long? sinceRev)
@@ -285,7 +336,9 @@ public sealed class GalleryHost : IDisposable
 
     private void TearDownCanvasOnly()
     {
-        _fb?.Dispose(); _fb = null;
+        _rasterScene?.Dispose(); _rasterScene = null;
+        _gpuFramebuffer?.Dispose(); _gpuFramebuffer = null;
+        _rasterTarget = null;
         _host?.Dispose(); _host = null;
         _root = null;
         _canvas?.Dispose(); _canvas = null;

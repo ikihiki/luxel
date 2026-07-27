@@ -22,7 +22,7 @@
     <ProjectReference Include="..\Luxel.Framework\Luxel.Framework.csproj" />
   </ItemGroup>
 
-  <!-- Slang シェーダ (Rasterizer2D 用) を出力/publish の shaders/ へ -->
+  <!-- Slang シェーダ (GpuDeviceRasterizer2D 用) を出力/publish の shaders/ へ -->
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />
 
   <ItemGroup>

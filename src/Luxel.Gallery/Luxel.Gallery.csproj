@@ -95,7 +95,7 @@
   <!-- Gallery / e2e / publish で共有 BIZ/UDEV フォントを使う。 -->
   <Import Project="..\..\assets\Luxel.FontAssets.targets" />
 
-  <!-- Slang シェーダ (Rasterizer2D 用) -->
+  <!-- Slang シェーダ (GpuDeviceRasterizer2D 用) -->
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />
 
   <ItemGroup>

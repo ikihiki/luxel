@@ -6,7 +6,7 @@ namespace Luxel.Graphics.TwoD.Skia;
 
 /// <summary>
 /// SkiaSharp による 2D システムの CPU バックエンド。GPU コンピュートラスタライザ
-/// (<see cref="Rasterizer2D"/>) と同じシーン表現 — 保持ツリー (<see cref="RetainedCanvas"/>) と
+/// (<see cref="GpuDeviceRasterizer2D"/>) と同じシーン表現 — 保持ツリー (<see cref="RetainedCanvas"/>) と
 /// 即時シーン (<see cref="Scene2D"/>) — を**実デバイスなし**でラスタライズする。テスト/CI 用。
 /// ヘッドレスの <c>new RetainedCanvas()</c> と組み合わせると GpuDevice が一切要らない。
 ///
@@ -28,7 +28,7 @@ public static class SkiaRenderer
             Affine2D.Identity, 1f, null));
 
     /// <summary>即時シーンを CPU でラスタライズして RGBA8 を返す。GPU の即時モード
-    /// (<c>Rasterizer2D.Encode</c> + <c>Render</c>) に相当 — シェイプは自色で描く。</summary>
+    /// (<c>GpuDeviceRasterizer2D.Encode</c> + <c>Render</c>) に相当 — シェイプは自色で描く。</summary>
     public static byte[] RenderRgba(Scene2D scene, Camera2D camera, int width, int height,
         bool transparent = false)
         => Draw(width, height, transparent, c =>

@@ -3,6 +3,7 @@ using Luxel;
 using Luxel.Controls;
 using Luxel.Gallery;
 using Luxel.Gallery.Site;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 
@@ -59,6 +60,39 @@ public sealed class GallerySiteExporterTests
         DocEmbed typeEmbed = Assert.Single(type.Embeds);
         Assert.Equal(DocEmbedKind.TypeApiTable, typeEmbed.Kind);
         Assert.Equal(typeName, typeEmbed.Reference);
+    }
+
+    [Fact]
+    public void Rasterizer_api_reference_exposes_backend_neutral_contracts()
+    {
+        TypeApi contract = TypeApiRegistry.Find("Luxel.Graphics.TwoD.IRasterizer2D")
+            ?? throw new Xunit.Sdk.XunitException("IRasterizer2D was not registered in the API reference.");
+        Assert.Equal("interface", contract.Kind);
+        Assert.Contains(contract.Members, member => member.Name == "CreateScene");
+        Assert.DoesNotContain(contract.Members, member => member.Type.Contains("GpuBuffer", StringComparison.Ordinal)
+            || member.Type.Contains("GpuCommandBuffer", StringComparison.Ordinal));
+
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.Graphics.TwoD.GpuDeviceRasterizer2D"));
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D"));
+    }
+
+    [SkippableFact]
+    public void Gpu_retained_session_applies_incremental_canvas_writes()
+    {
+        using GpuDevice device = CreateDeviceOrSkip();
+        using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
+        using var host = new GalleryHost(device, font);
+        host.SelectWidget(Luxel.Controls.Kit.Text("incremental"), 160, 80);
+
+        RetainedCanvas canvas = host.Canvas
+            ?? throw new Xunit.Sdk.XunitException("GalleryHost did not create a retained canvas.");
+        UiNode node = Assert.Single(canvas.Root.Children);
+        node.Transform = Affine2D.Translate(4, 0);
+
+        host.Step(1f / 60f);
+
+        Assert.False(canvas.LastWasFullRebuild);
+        Assert.True(canvas.LastTransformWrites > 0);
     }
 
     [SkippableFact]

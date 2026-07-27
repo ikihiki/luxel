@@ -8,6 +8,8 @@ Story preview、`StoryRef`、通常のWidget埋め込み、Mermaid、数式はof
 ```bash
 # Linux/CIではMesa lavapipe（mesa-vulkan-drivers）を用意する
 dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site
+# CPU/Skiaで生成する場合（GPU専用storyは明示的なunavailable/error cardになる）
+dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site --rasterizer skia
 
 # 対象を絞って確認する場合
 dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site --filter Controls/Button
@@ -96,8 +98,8 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 
 - **GPU 抽象** — 固定レイアウト + bindless、Slang 統一シェーダ、stage バリアのみの同期、
   深度/ブレンド/テクスチャ (→ Docs/GpuDevice)
-- **2D ベクター** — compute ラスタライザ (三角形分割なし)、EvenOdd/ストローク/日本語ベクター
-  テキスト、Camera2D スムーズズーム、保持型キャンバスの増分更新 (→ Docs/TwoD)
+- **2D ベクター** — backend-neutralな`IRasterizer2D`からGPU computeまたはSkia CPU RGBAを選択。
+  EvenOdd/ストローク/日本語ベクターテキスト、Camera2D、保持型キャンバスのGPU増分更新 (→ Docs/TwoD)
 - **レンダーグラフ** — Setup/Compile/Execute 三相、transient aliasing、デッドパスカリング、
   自動バリア。scene-agnostic (→ Docs/RenderGraph)
 - **3D + ECS** — Friflo ECS + Transform 伝播 + IRenderExtractor、forward/bloom/shadow map/
@@ -120,7 +122,7 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 | プロジェクト | 役割 |
 | --- | --- |
 | Luxel.Graphics / Luxel.Graphics.Vulkan / Luxel.Graphics.DirectX12 | GPU 抽象とバックエンド |
-| Luxel.Graphics.TwoD | 2D ベクターラスタライザ + 保持型キャンバス |
+| Luxel.Graphics.TwoD / Luxel.Graphics.TwoD.Skia | 共通2D契約 + GPU compute / Skia CPU backend + 保持型キャンバス |
 | Luxel.Typography (+ .Icu) | テキストレイアウト / シェーピング / ICU |
 | Luxel.UI (+ .Generators, .Tailwind) | 宣言的 UI / signals / ソースジェネレーター |
 | Luxel.Controls | コントロール群 + docs 基盤 (Kit) |

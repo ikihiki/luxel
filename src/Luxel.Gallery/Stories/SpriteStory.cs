@@ -22,15 +22,15 @@ public static class SpriteStories
     {
         private const int AtlasW = 64, AtlasH = 64, Cell = 32;
 
-        private Rasterizer2D _raster = null!;
+        private GpuDeviceRasterizer2D _raster = null!;
         private GpuBuffer _atlas = null!;
-        private EncodedScene _encoded = null!;
+        private GpuEncodedScene2D _encoded = null!;
 
         protected override bool NeedsColorTarget => false;   // Scene2D を直接 OutBuffer へラスタライズ
 
         protected override void OnInit()
         {
-            _raster = Track(new Rasterizer2D(Device));
+            _raster = Track(new GpuDeviceRasterizer2D(Device));
 
             // --- 手続きアトラス: 2×2 の 32px セル。各セルは基色 + 暗い枠 + フレーム毎に位置が違う白マーカ ---
             _atlas = Track(Device.Malloc(AtlasW * AtlasH * 4, GpuMemoryKind.HostMapped));

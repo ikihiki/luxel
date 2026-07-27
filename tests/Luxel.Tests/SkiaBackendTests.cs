@@ -1,4 +1,4 @@
-﻿using Luxel.Graphics.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.Graphics.TwoD.Skia;
 using Luxel.Typography;
 using Luxel.UI;
@@ -8,7 +8,7 @@ using static Luxel.Controls.Kit;
 namespace Luxel.Tests;
 
 /// <summary>SkiaSharp CPU バックエンド — **GpuDevice なし**で 2D システム (保持ツリー/即時シーン/
-/// UiHost) をラスタライズして検証する。GPU (Rasterizer2D) とは AA 実装が違うため、
+/// UiHost) をラスタライズして検証する。GPU (GpuDeviceRasterizer2D) とは AA 実装が違うため、
 /// 検証は形状内部のピクセル・構造・増分更新統計で行う (エッジ画素は比較しない)。</summary>
 public class SkiaBackendTests
 {
@@ -21,6 +21,103 @@ public class SkiaBackendTests
     private static void AssertNear(byte expected, byte actual, int tol = 8)
         => Assert.True(Math.Abs(expected - actual) <= tol, $"expected≈{expected} actual={actual}");
 
+    private static byte[] Render(RetainedCanvas canvas, Camera2D camera, int width, int height, bool transparent = false)
+    {
+        using var rasterizer = new SkiaRasterizer2D();
+        using IRasterScene2D scene = rasterizer.CreateScene(canvas);
+        var target = new SkiaRasterTarget2D((uint)width, (uint)height);
+        scene.Render(camera, target, transparent);
+        return target.ToArray();
+    }
+
+    private static byte[] Render(Scene2D source, Camera2D camera, int width, int height, bool transparent = false)
+    {
+        using var rasterizer = new SkiaRasterizer2D();
+        using IRasterScene2D scene = rasterizer.CreateScene(source);
+        var target = new SkiaRasterTarget2D((uint)width, (uint)height);
+        scene.Render(camera, target, transparent);
+        return target.ToArray();
+    }
+
+
+    [Fact]
+    public void RasterizerContract_ReportsCapabilitiesAndRejectsWrongTarget()
+    {
+        using var rasterizer = new SkiaRasterizer2D();
+        Assert.Equal("SkiaSharp", rasterizer.Name);
+        Assert.True(rasterizer.Capabilities.HasFlag(Rasterizer2DCapabilities.CpuRgbaTarget));
+        Assert.False(rasterizer.Capabilities.HasFlag(Rasterizer2DCapabilities.GpuCommandRecording));
+
+        using IRasterScene2D scene = rasterizer.CreateScene(new Scene2D().FillRect(Color2D.Red, 0, 0, 10, 10));
+        Assert.Throws<ArgumentException>(() => scene.Render(Camera2D.Pixels, new FakeTarget()));
+    }
+
+    [Fact]
+    public void RasterizerContract_ReusesRetainedSessionAcrossChanges()
+    {
+        var canvas = new RetainedCanvas();
+        UiNode node = canvas.AddChild(canvas.Root);
+        node.Content = new Scene2D().FillRect(Color2D.White, 0, 0, 20, 20);
+        node.Color = Color2D.Red;
+
+        using var rasterizer = new SkiaRasterizer2D();
+        using IRasterScene2D scene = rasterizer.CreateScene(canvas);
+        var target = new SkiaRasterTarget2D(50, 50);
+        scene.Render(Camera2D.Pixels, target);
+        Assert.Equal(Color2D.Red, SkiaRenderer.PixelAt(target.ToArray(), 50, 10, 10));
+
+        node.Color = Color2D.Blue;
+        scene.Render(Camera2D.Pixels, target);
+        Assert.Equal(Color2D.Blue, SkiaRenderer.PixelAt(target.ToArray(), 50, 10, 10));
+    }
+
+    [Fact]
+    public void RasterizerContract_RejectsBindlessImages()
+    {
+        using var rasterizer = new SkiaRasterizer2D();
+        Scene2D scene = new Scene2D().ImageRect(1, 4, 4, 4, 0, 0, 4, 4);
+        Assert.Throws<NotSupportedException>(() => rasterizer.CreateScene(scene));
+    }
+
+    [Fact]
+    public void RasterizerContract_RejectsUseAfterSessionOrRasterizerDispose()
+    {
+        var rasterizer = new SkiaRasterizer2D();
+        IRasterScene2D scene = rasterizer.CreateScene(new Scene2D().FillRect(Color2D.Red, 0, 0, 10, 10));
+        var target = new SkiaRasterTarget2D(10, 10);
+
+        rasterizer.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => scene.Render(Camera2D.Pixels, target));
+
+        scene.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => scene.Render(Camera2D.Pixels, target));
+        Assert.Throws<ObjectDisposedException>(() => rasterizer.CreateScene(new Scene2D()));
+    }
+
+    [Fact]
+    public void ProjectDependencies_KeepSkiaBehindTheBackendAssembly()
+    {
+        string[] coreReferences = typeof(IRasterizer2D).Assembly.GetReferencedAssemblies().Select(a => a.Name ?? "").ToArray();
+        Assert.DoesNotContain(coreReferences, name => name.Contains("Skia", StringComparison.OrdinalIgnoreCase));
+
+        string[] skiaReferences = typeof(SkiaRasterizer2D).Assembly.GetReferencedAssemblies().Select(a => a.Name ?? "").ToArray();
+        Assert.Contains("Luxel.Graphics.TwoD", skiaReferences);
+    }
+
+    [Fact]
+    public void LegacySkiaRendererFacadeStillWorks()
+    {
+        byte[] pixels = SkiaRenderer.RenderRgba(new Scene2D().FillRect(Color2D.Green, 0, 0, 8, 8),
+            Camera2D.Pixels, 8, 8);
+        Assert.Equal(Color2D.Green, SkiaRenderer.PixelAt(pixels, 8, 4, 4));
+    }
+
+    private sealed class FakeTarget : IRasterTarget2D
+    {
+        public uint Width => 1;
+        public uint Height => 1;
+    }
+
     // ---- 保持ツリー ----
 
     [Fact]
@@ -31,7 +128,7 @@ public class SkiaBackendTests
         n.Content = new Scene2D().FillRect(Color2D.White, 10, 10, 40, 40);   // 白描き
         n.Color = Color2D.Red;                                               // ノード色が実色
 
-        byte[] px = SkiaRenderer.RenderRgba(canvas, Camera2D.Pixels, 100, 100);
+        byte[] px = Render(canvas, Camera2D.Pixels, 100, 100);
         Assert.Equal(Color2D.Red, SkiaRenderer.PixelAt(px, 100, 30, 30));    // 矩形内部
         Assert.Equal(Color2D.Rgba(255, 255, 255), SkiaRenderer.PixelAt(px, 100, 70, 70));   // 背景は白
     }
@@ -45,7 +142,7 @@ public class SkiaBackendTests
         n.Color = Color2D.Blue;
         n.Transform = Affine2D.Translate(50, 0);
 
-        byte[] px = SkiaRenderer.RenderRgba(canvas, Camera2D.Pixels, 100, 100);
+        byte[] px = Render(canvas, Camera2D.Pixels, 100, 100);
         Assert.Equal(Color2D.Blue, SkiaRenderer.PixelAt(px, 100, 60, 10));   // 移動先
         Assert.Equal(Color2D.Rgba(255, 255, 255), SkiaRenderer.PixelAt(px, 100, 10, 10));   // 元位置は空
     }
@@ -62,11 +159,11 @@ public class SkiaBackendTests
         b.Color = Color2D.Blue;
         b.Z = 1;
 
-        byte[] px = SkiaRenderer.RenderRgba(canvas, Camera2D.Pixels, 100, 100);
+        byte[] px = Render(canvas, Camera2D.Pixels, 100, 100);
         Assert.Equal(Color2D.Blue, SkiaRenderer.PixelAt(px, 100, 30, 30));   // 重なりは Z 高が勝つ
 
         b.Z = -1;   // 背面へ
-        px = SkiaRenderer.RenderRgba(canvas, Camera2D.Pixels, 100, 100);
+        px = Render(canvas, Camera2D.Pixels, 100, 100);
         Assert.Equal(Color2D.Red, SkiaRenderer.PixelAt(px, 100, 30, 30));
     }
 
@@ -80,7 +177,7 @@ public class SkiaBackendTests
         n.Content = new Scene2D().FillRect(Color2D.White, 0, 0, 40, 40);
         n.Color = Color2D.Rgba(0, 0, 0);   // 黒 50% over 白 ≈ 127 グレー
 
-        byte[] px = SkiaRenderer.RenderRgba(canvas, Camera2D.Pixels, 100, 100);
+        byte[] px = Render(canvas, Camera2D.Pixels, 100, 100);
         (byte r, byte g, byte b, _) = Px(px, 100, 20, 20);
         AssertNear(127, r); AssertNear(127, g); AssertNear(127, b);
     }
@@ -94,7 +191,7 @@ public class SkiaBackendTests
         n.Content = new Scene2D().FillRect(Color2D.White, 0, 0, 60, 60);
         n.Color = Color2D.Green;
 
-        byte[] px = SkiaRenderer.RenderRgba(canvas, Camera2D.Pixels, 100, 100);
+        byte[] px = Render(canvas, Camera2D.Pixels, 100, 100);
         Assert.Equal(Color2D.Green, SkiaRenderer.PixelAt(px, 100, 10, 10));                 // クリップ内
         Assert.Equal(Color2D.Rgba(255, 255, 255), SkiaRenderer.PixelAt(px, 100, 40, 10));   // クリップ外
     }
@@ -102,9 +199,9 @@ public class SkiaBackendTests
     [Fact]
     public void AbsoluteColor_And_ImmediateScene_UseShapeColor()
     {
-        // 即時モード: シェイプ自身の色で描かれる (GPU の Rasterizer2D.Encode と同じ)
+        // 即時モード: シェイプ自身の色で描かれる (GPU の GpuDeviceRasterizer2D.Encode と同じ)
         var scene = new Scene2D().FillCircle(Color2D.Blue, 50, 50, 30);
-        byte[] px = SkiaRenderer.RenderRgba(scene, Camera2D.Pixels, 100, 100);
+        byte[] px = Render(scene, Camera2D.Pixels, 100, 100);
         Assert.Equal(Color2D.Blue, SkiaRenderer.PixelAt(px, 100, 50, 50));
 
         // 保持ツリーの AbsoluteColor: ノード色に畳まれない (カラー絵文字レイヤ等)
@@ -115,7 +212,7 @@ public class SkiaBackendTests
          .MoveTo(0, 0).LineTo(30, 0).LineTo(30, 30).LineTo(0, 30).Close().End();
         n.Content = s;
         n.Color = Color2D.Red;   // AbsoluteColor シェイプには効かない
-        byte[] px2 = SkiaRenderer.RenderRgba(canvas, Camera2D.Pixels, 100, 100);
+        byte[] px2 = Render(canvas, Camera2D.Pixels, 100, 100);
         Assert.Equal(Color2D.Green, SkiaRenderer.PixelAt(px2, 100, 15, 15));
     }
 
@@ -128,7 +225,7 @@ public class SkiaBackendTests
         n.Color = Color2D.Red;
 
         var cam = new Camera2D { A = 4, D = 4 };   // 4 倍ズーム
-        byte[] px = SkiaRenderer.RenderRgba(canvas, cam, 100, 100);
+        byte[] px = Render(canvas, cam, 100, 100);
         Assert.Equal(Color2D.Red, SkiaRenderer.PixelAt(px, 100, 35, 35));   // 10px 矩形が 40px に
     }
 
@@ -174,7 +271,7 @@ public class SkiaBackendTests
         host.SetRoot(btn);
 
         // 描画: ボタンの塗り (テーマ Primary) が背景以外のピクセルを作る
-        byte[] px = SkiaRenderer.RenderRgba(canvas, Camera2D.Pixels, 200, 100);
+        byte[] px = Render(canvas, Camera2D.Pixels, 200, 100);
         int nonWhite = 0;
         for (int i = 0; i < px.Length; i += 4)
             if (px[i] != 255 || px[i + 1] != 255 || px[i + 2] != 255) nonWhite++;

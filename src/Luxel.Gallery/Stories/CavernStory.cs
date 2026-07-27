@@ -51,16 +51,17 @@ public static class CavernStories
     {
         private const int Tile = CavernLevel.Tile;
         private readonly Action<Walker, CavernSim, float>? _ai = ai;
-        private Rasterizer2D _raster = null!;
+        private GpuDeviceRasterizer2D _raster = null!;
         private GpuBuffer _atlasBuf = null!;
         private RetainedCanvas _canvas = null!;
+        private IRasterScene2D _rasterScene = null!;
         private Vector2 _cameraCenter;
 
         protected override bool NeedsColorTarget => false;
 
         protected override void OnInit()
         {
-            _raster = Track(new Rasterizer2D(Device));
+            _raster = Track(new GpuDeviceRasterizer2D(Device));
 
             const int aw = 32, ah = 32;
             _atlasBuf = Track(Device.Malloc(aw * ah * 4, GpuMemoryKind.HostMapped));
@@ -111,7 +112,8 @@ public static class CavernStories
             }
             _cameraCenter = sim.PlayerCenter;
 
-            _canvas = Track(new RetainedCanvas(_raster));
+            _canvas = Track(new RetainedCanvas());
+            _rasterScene = Track(_raster.CreateScene(_canvas));
 
             UiNode sky = _canvas.AddChild(_canvas.Root);
             sky.Content = new Scene2D().FillRect(Color2D.White, 0, 0, CavernLevel.Width * Tile, CavernLevel.Height * Tile);
@@ -160,7 +162,7 @@ public static class CavernStories
         {
             Camera2D cam = Camera2D.Create(2f, _cameraCenter, W, H);
             using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-            _canvas.Render(cmd, cam, W, H, OutBuffer);
+            _rasterScene.Render(cam, new GpuRasterTarget2D(cmd, OutBuffer, W, H));
             cmd.Finish();
             Device.MainQueue.SubmitAndWait(cmd);
         }

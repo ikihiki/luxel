@@ -5,6 +5,7 @@ using Luxel.Gallery;
 using Luxel.Platform;
 using Luxel.UI.App;
 using Luxel.Graphics.TwoD;
+using Luxel.Graphics.TwoD.Skia;
 using Luxel.Typography;
 using Luxel.UI;
 
@@ -15,6 +16,10 @@ using Luxel.UI;
 // リモート検証 (AI): DevTools — GET /windows /winframe?id=1 /trees, POST /cmd
 //   (UI 入力は {op, ui:"gallery"|"story", x, y}、ウィンドウ操作は window.*)
 string backend = (args.Length > 0 ? args[0] : "vk").ToLowerInvariant();
+
+string rasterizerBackend = args.SkipWhile(a => a != "--rasterizer").Skip(1).FirstOrDefault()?.ToLowerInvariant() ?? "gpu";
+if (rasterizerBackend is not ("gpu" or "skia"))
+    throw new ArgumentException($"未知の2D rasterizer: {rasterizerBackend} (gpu / skia)");
 
 GpuDevice CreateDevice() => backend switch
 {
@@ -27,18 +32,26 @@ if (args.Length > 1 && args[1] is "e2e" or "snap")
 {
     if (args[1] == "snap")
         Console.WriteLine("snap は廃止されました — e2e (ctx.Play + d.Snap) として実行します。");
+    using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);   // 同梱フォント (日本語 + マシン非依存)
+    string? filter = args.Skip(2).FirstOrDefault(a => !a.StartsWith("--") && a is not "gpu" and not "skia");
+    if (rasterizerBackend == "skia")
+    {
+        Console.WriteLine("=== Luxel.Gallery e2e with SkiaSharp CPU rasterizer ===");
+        using var rasterizer = new SkiaRasterizer2D();
+        using var host = new GalleryHost(rasterizer, font);
+        return E2e.Run(host, StoryRegistry.All, "skia", args.Contains("--update"), filter, args.Contains("--times"));
+    }
     using GpuDevice device = CreateDevice();
     Console.WriteLine($"=== Luxel.Gallery e2e on '{backend}' (device: {device.Name}) ===");
-    using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);   // 同梱フォント (日本語 + マシン非依存)
-    using var host = new GalleryHost(device, font);
-    // フラグ以外の残り引数 = テスト名フィルタ (部分一致、"パス#play名")
-    string? filter = args.Skip(2).FirstOrDefault(a => !a.StartsWith("--"));
-    return E2e.Run(host, StoryRegistry.All, backend, args.Contains("--update"), filter, args.Contains("--times"));
+    using var gpuHost = new GalleryHost(device, font);
+    return E2e.Run(gpuHost, StoryRegistry.All, backend, args.Contains("--update"), filter, args.Contains("--times"));
 }
 
 // canvas 更新コストのマイクロベンチ: -- vk bench <story> [frames] [--type] [--click x y] [--wheel d]
 if (args.Length > 2 && args[1] == "bench")
 {
+    if (rasterizerBackend != "gpu")
+        throw new NotSupportedException("既存benchはGPU upload/readbackを計測するため --rasterizer gpu 専用です。");
     using GpuDevice device = CreateDevice();
     Console.WriteLine($"=== Luxel.Gallery bench on '{backend}' (device: {device.Name}) ===");
     using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);   // 同梱フォント

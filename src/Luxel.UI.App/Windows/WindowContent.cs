@@ -53,16 +53,18 @@ public interface IWindowContent : IDisposable
 public sealed class UiContent : IWindowContent
 {
     private readonly RetainedCanvas _canvas;
+    private readonly IRasterScene2D _rasterScene;
 
     public string Name { get; }
     public UiHost Host { get; }
 
-    public UiContent(Rasterizer2D raster, VectorFont font, string name, int width, int height, Widget root,
+    public UiContent(GpuDeviceRasterizer2D raster, VectorFont font, string name, int width, int height, Widget root,
                      Signal<Theme>? theme = null)
     {
         Name = name;
-        _canvas = new RetainedCanvas(raster);
-        Host = new UiHost(_canvas, font, Math.Max(1, width), Math.Max(1, height), theme);
+        _canvas = new RetainedCanvas();
+        _rasterScene = raster.CreateScene(_canvas);
+        Host = new UiHost(_canvas, font, Math.Max(1, width), Math.Max(1, height), theme, raster);
         Host.SetRoot(root);
     }
 
@@ -78,7 +80,8 @@ public sealed class UiContent : IWindowContent
     public bool NeedsRender => _canvas.HasPendingChanges;
 
     public void Render(GpuCommandBuffer cmd, uint paddedWidth, uint width, uint height, GpuBuffer target, float scale)
-        => _canvas.Render(cmd, new Camera2D { A = scale, D = scale }, paddedWidth, height, target);
+        => _rasterScene.Render(new Camera2D { A = scale, D = scale },
+            new GpuRasterTarget2D(cmd, target, paddedWidth, height));
 
     public void PointerMove(WindowPointerEvent input) => Host.PointerMove(input.X, input.Y, LuxelInput.MapModifiers(input.Modifiers));
     public void PointerDown(WindowPointerEvent input)
@@ -101,6 +104,7 @@ public sealed class UiContent : IWindowContent
     public void Dispose()
     {
         Host.Dispose();
+        _rasterScene.Dispose();
         _canvas.Dispose();
     }
 }

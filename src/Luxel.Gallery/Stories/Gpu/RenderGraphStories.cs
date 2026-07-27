@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>
 /// RenderGraph のデモ — Setup/Compile/Execute 三相、transient バッファの aliasing、
-/// デッドパスカリング。グラフ層は scene-agnostic (Rasterizer2D / Scene2D を知らない —
+/// デッドパスカリング。グラフ層は scene-agnostic (GpuDeviceRasterizer2D / Scene2D を知らない —
 /// ImportBuffer / CreateBuffer だけ)。docs の Docs/RenderGraph から参照される。
 /// </summary>
 public static class RenderGraphStories
@@ -45,8 +45,8 @@ public static class RenderGraphStories
     private sealed class BlurScene(int stages, bool addDeadPass = false, Action<string>? log = null)
         : GpuSceneBase
     {
-        private Rasterizer2D _raster = null!;
-        private EncodedScene _encoded = null!;
+        private GpuDeviceRasterizer2D _raster = null!;
+        private GpuEncodedScene2D _encoded = null!;
         private GpuBuffer _ui = null!;
         private GpuPipeline _blur = null!, _composite = null!;
 
@@ -55,7 +55,7 @@ public static class RenderGraphStories
         protected override void OnInit()
         {
             // デモ UI (角丸矩形 5 枚) を Scene2D で作り、ui バッファへ 1 回ラスタライズ
-            _raster = Track(new Rasterizer2D(Device));
+            _raster = Track(new GpuDeviceRasterizer2D(Device));
             var scene = new Scene2D();
             scene.FillRoundedRect(Color2D.Rgba(60, 130, 240, 255), 20, 20, 100, 60, 12);
             scene.FillRoundedRect(Color2D.Rgba(230, 80, 100, 255), 140, 30, 90, 90, 16);

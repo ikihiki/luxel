@@ -1,4 +1,4 @@
-﻿using Luxel.Graphics.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 
 namespace Luxel.Controls;
@@ -72,7 +72,7 @@ public sealed partial class ImageView : Widget, IDisposable
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {
         _ctx = ctx;
-        _device = ctx.Canvas.Rasterizer.Device;
+        _device = ctx.RequireGpuRasterizer().Device;
         _node = CreateRoot(ctx, parent, worldOrigin);
         _node.Content = MakeContent();
 

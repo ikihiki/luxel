@@ -35,7 +35,7 @@ public sealed class CavernRealtimeScene : GameScene
     /// <summary>タイトルの「おわる」で立つ — Program がウィンドウを閉じる合図。</summary>
     public bool QuitRequested { get; private set; }
 
-    private Rasterizer2D _raster = null!;
+    private GpuDeviceRasterizer2D _raster = null!;
     private GpuBuffer _fb = null!;
     private GpuBuffer _atlas = null!;
     private int _paddedW;
@@ -82,7 +82,7 @@ public sealed class CavernRealtimeScene : GameScene
         _flow = new GameFlow(_levels);
 
         _paddedW = Align(Width, 64);
-        _raster = new Rasterizer2D(Device);
+        _raster = new GpuDeviceRasterizer2D(Device);
         _fb = Device.Malloc((ulong)(_paddedW * Height * 4), GpuMemoryKind.HostMapped);
         BakeAtlas();
 
@@ -321,7 +321,7 @@ public sealed class CavernRealtimeScene : GameScene
         }
 
         using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-        using EncodedScene encoded = _raster.Encode(s);
+        using GpuEncodedScene2D encoded = _raster.Encode(s);
         _raster.Render(cmd, encoded, cam, (uint)_paddedW, (uint)Height, _fb);
         cmd.Finish();
         Device.MainQueue.SubmitAndWait(cmd);

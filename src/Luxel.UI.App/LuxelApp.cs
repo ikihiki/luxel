@@ -119,15 +119,16 @@ internal sealed class LinuxLuxelApp
             WindowSurface = provider,
         }));
         using GpuSurface surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
-        using var rasterizer = new Rasterizer2D(device);
-        using var canvas = new RetainedCanvas(rasterizer);
+        using var rasterizer = new GpuDeviceRasterizer2D(device);
+        using var canvas = new RetainedCanvas();
+        using IRasterScene2D rasterScene = rasterizer.CreateScene(canvas);
         using VectorFont font = _options.FontFactory?.Invoke()
             ?? LuxelApp.LoadBundledFont(AppContext.BaseDirectory);
         if (font is null)
             throw new InvalidOperationException("LuxelAppOptions.FontFactory returned null.");
 
         var theme = new Signal<Theme>(_options.Theme ?? Theme.Light);
-        using var host = new UiHost(canvas, font, Math.Max(1, window.Width), Math.Max(1, window.Height), theme);
+        using var host = new UiHost(canvas, font, Math.Max(1, window.Width), Math.Max(1, window.Height), theme, rasterizer);
         host.SetRoot(_root);
         WireInput(window, host);
 
@@ -173,7 +174,8 @@ internal sealed class LinuxLuxelApp
                 host.Tick(dt);
                 using (GpuCommandBuffer command = device.MainQueue.StartCommandRecording())
                 {
-                    canvas.Render(command, Camera2D.Pixels, (uint)stride, (uint)height, framebuffer);
+                    rasterScene.Render(Camera2D.Pixels,
+                        new GpuRasterTarget2D(command, framebuffer, (uint)stride, (uint)height));
                     command.Finish();
                     device.MainQueue.SubmitAndWait(command);
                 }

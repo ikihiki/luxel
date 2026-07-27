@@ -1,4 +1,4 @@
-﻿using Luxel.Graphics.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 
 namespace Luxel.Controls;
@@ -72,7 +72,7 @@ public sealed partial class GpuView : Widget
         // 破棄済みシーンを Render してしまう。
         if (!_alive)
         {
-            scene.Init(ctx.Canvas.Rasterizer.Device, (int)w, (int)h);
+            scene.Init(ctx.RequireGpuRasterizer().Device, (int)w, (int)h);
             _idx = -1;   // バッファは作り直されている — Content を必ず貼り直す
             _alive = true;
         }
