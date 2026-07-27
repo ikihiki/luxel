@@ -9,6 +9,7 @@ internal static class StoryAliases
     [ModuleInitializer]
     internal static void Register()
     {
+        Stories.DocsApi.RegisterReferenceProvider();
         StoryRegistry.RegisterAlias("Demos/TwoD/CameraRig", "Demos/2D/CameraRig");
         StoryRegistry.RegisterAlias("Demos/TwoD/Sprites", "Demos/2D/Sprites");
         StoryRegistry.RegisterAlias("Demos/TwoD/Tilemap", "Demos/2D/Tilemap");

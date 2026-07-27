@@ -65,7 +65,7 @@ public static class DocsMeta
 
             {{{StoryRef(ctx, "Demos/2D/Orbit", knobs: true)}}}
 
-            `StorySource(path)` はジェネレーターが公開する **[Story] method本体**をコードフェンスとして差し込みます。private helper、別file、shaderまでは含まれないため「完全なsource」とは呼びません。実行可能sampleを教材の正にする場合は、build時に埋め込んだ実file/regionを表示する`SampleSource(path, region)`を使います。コントロール個別ページでは `ApiTable("Button")` で API リファレンス表が出ます (実例は [Docs/Button](story:Docs/Button))。
+            `StorySource(path)` はジェネレーターが公開する **[Story] method本体**をコードフェンスとして差し込みます。private helper、別file、shaderまでは含まれないため「完全なsource」とは呼びません。実行可能sampleを教材の正にする場合は、build時に埋め込んだ実file/regionを表示する`SampleSource(path, region)`を使います。コントロール個別ページでは `DocsApi.ControlApiReference("Button")` で API リファレンス表が出ます (実例は [Controls/Button/Overview](story:Controls/Button/Overview))。
 
             ## 書けるもの
 

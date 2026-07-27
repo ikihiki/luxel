@@ -35,6 +35,12 @@ public static class TypeApiRegistry
                 ?? Apis.Values.FirstOrDefault(a => a.Name == name);
     }
 
+    /// <summary>登録されている名前空間 (名前順)。</summary>
+    public static IReadOnlyList<string> Namespaces
+    {
+        get { lock (Gate) return Apis.Values.Select(a => a.Namespace).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray(); }
+    }
+
     /// <summary>指定名前空間の型 (名前順)。</summary>
     public static IReadOnlyList<TypeApi> InNamespace(string ns)
     {

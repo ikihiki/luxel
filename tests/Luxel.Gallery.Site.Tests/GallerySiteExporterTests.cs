@@ -10,6 +10,9 @@ namespace Luxel.Gallery.Site.Tests;
 
 public sealed class GallerySiteExporterTests
 {
+    static GallerySiteExporterTests()
+        => System.Runtime.CompilerServices.RuntimeHelpers.RunModuleConstructor(typeof(Luxel.Gallery.Stories.DocsApi).Module.ModuleHandle);
+
     [Fact]
     public void Slug_is_stable_and_relative_safe()
     {
@@ -27,6 +30,23 @@ public sealed class GallerySiteExporterTests
         Assert.Same(widget, doc.Embeds[0].Widget);
         Assert.Equal("Controls/Test", doc.Embeds[0].Reference);
         Assert.Equal(Luxel.Controls.DocEmbedKind.StoryRef, doc.Embeds[0].Kind);
+    }
+
+    [Fact]
+    public void DocString_recognizes_api_tables_for_semantic_export()
+    {
+        DocString control = $"{Luxel.Controls.Kit.ApiTable("Button", inherited: true)}";
+        DocEmbed controlEmbed = Assert.Single(control.Embeds);
+        Assert.Equal(DocEmbedKind.ControlApiTable, controlEmbed.Kind);
+        Assert.Equal("Button", controlEmbed.Reference);
+        Assert.True(controlEmbed.IncludeInherited);
+
+        string typeName = TypeApiRegistry.Namespaces.SelectMany(TypeApiRegistry.InNamespace)
+            .Select(api => $"{api.Namespace}.{api.Name}").First();
+        DocString type = $"{Luxel.Controls.Kit.TypeApiTable(typeName)}";
+        DocEmbed typeEmbed = Assert.Single(type.Embeds);
+        Assert.Equal(DocEmbedKind.TypeApiTable, typeEmbed.Kind);
+        Assert.Equal(typeName, typeEmbed.Reference);
     }
 
     [SkippableFact]
@@ -81,6 +101,88 @@ public sealed class GallerySiteExporterTests
         {
             if (Directory.Exists(a)) Directory.Delete(a, true);
             if (Directory.Exists(b)) Directory.Delete(b, true);
+        }
+    }
+
+    [Fact]
+    public void Reference_pages_are_generated_per_namespace_and_control()
+    {
+        string[] legacy = ["Overview", "Ui", "TwoD", "Core", "Text", "Animation", "ThreeD", "Runtime"];
+        foreach (string path in legacy)
+            Assert.Null(StoryRegistry.Find("Reference/" + path));
+
+        foreach (string ns in TypeApiRegistry.Namespaces)
+        {
+            StoryInfo story = StoryRegistry.Find("Reference/" + ns)
+                ?? throw new InvalidOperationException($"Namespace reference is missing: {ns}");
+            TextEditorView document = GallerySnapshots.FindDocument(story.Build(new StoryContext()))
+                ?? throw new InvalidOperationException($"Namespace reference is not a document: {ns}");
+            Assert.Contains($"# {ns}", document.DocSource);
+            Assert.All(document.DocEmbeds, embed => Assert.Equal(DocEmbedKind.TypeApiTable, embed.Kind));
+        }
+
+        string[] existingCategories = StoryRegistry.All
+            .Where(story => story.Path.StartsWith("Controls/", StringComparison.Ordinal)
+                            && !story.Path.EndsWith("/Overview", StringComparison.Ordinal))
+            .Select(story => story.Path.Split('/')[1]).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+        string[] overviewCategories = StoryRegistry.All
+            .Where(story => story.Path.StartsWith("Controls/", StringComparison.Ordinal)
+                            && story.Path.EndsWith("/Overview", StringComparison.Ordinal))
+            .Select(story => story.Path.Split('/')[1]).Order(StringComparer.Ordinal).ToArray();
+        Assert.Equal(existingCategories, overviewCategories);
+
+        var mapped = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["Button"] = "Button", ["CheckBox"] = "Check", ["Knobs"] = "KnobsTable",
+            ["RichText"] = "RichTextView", ["ScrollViewer"] = "Scroll", ["WrapPanel"] = "Wrap",
+        };
+        foreach ((string category, string apiName) in mapped)
+        {
+            StoryInfo story = StoryRegistry.Find($"Controls/{category}/Overview")
+                ?? throw new InvalidOperationException($"Control overview is missing: {category}");
+            TextEditorView document = GallerySnapshots.FindDocument(story.Build(new StoryContext()))
+                ?? throw new InvalidOperationException($"Control overview is not a document: {category}");
+            Assert.Contains(document.DocEmbeds,
+                embed => embed.Kind == DocEmbedKind.ControlApiTable && embed.Reference == apiName);
+        }
+        foreach (string special in new[] { "Layout", "Kit", "CommandPalette" })
+            Assert.NotNull(StoryRegistry.Find($"Controls/{special}/Overview"));
+
+        StoryInfo controls = StoryRegistry.Find("Docs/Controls")
+            ?? throw new InvalidOperationException("Docs/Controls is missing.");
+        TextEditorView controlsDocument = GallerySnapshots.FindDocument(controls.Build(new StoryContext()))
+            ?? throw new InvalidOperationException("Docs/Controls is not a document.");
+        Assert.DoesNotContain("Reference/Overview", controlsDocument.DocSource);
+        Assert.Contains("Controls/Button/Overview", controlsDocument.DocSource);
+    }
+
+    [SkippableFact]
+    public void Api_tables_export_as_semantic_html_instead_of_embed_pngs()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        StoryInfo control = StoryRegistry.Find("Controls/Button/Overview")
+            ?? throw new InvalidOperationException("Controls/Button/Overview is missing.");
+        StoryInfo type = StoryRegistry.Find("Reference/Luxel.UI")
+            ?? throw new InvalidOperationException("Reference/Luxel.UI is missing.");
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-api-html-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            using var device = CreateDeviceOrSkip();
+            using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
+            using var host = new GalleryHost(device, font);
+            GallerySiteExporter.Export(host, [control, type], output, root);
+
+            string controlHtml = File.ReadAllText(Path.Combine(output, "stories", "controls-button-overview.html"));
+            string typeHtml = File.ReadAllText(Path.Combine(output, "stories", "reference-luxel-ui.html"));
+            Assert.Contains("<table class=\"api-table\">", controlHtml);
+            Assert.Contains("OnClick", controlHtml);
+            Assert.Contains("<table class=\"api-table\">", typeHtml);
+            Assert.DoesNotContain("Static widget capture", controlHtml + typeHtml);
+            Assert.Empty(Directory.GetFiles(Path.Combine(output, "images"), "embed-*.png"));
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
         }
     }
 
@@ -212,6 +314,17 @@ public sealed class GallerySiteExporterTests
         string workflow = File.ReadAllText(Path.Combine(root, ".github", "workflows", "deploy-pages.yml"));
         Assert.Contains("dotnet build Luxel.slnx --no-restore --configuration Release", workflow);
         Assert.Contains("--no-build --configuration Release", workflow);
+        Assert.Contains("JamesIves/github-pages-deploy-action@v4.8.0", workflow);
+        Assert.Contains("clean-exclude: pr-preview", workflow);
+        Assert.Contains("force: false", workflow);
+
+        string preview = File.ReadAllText(Path.Combine(root, ".github", "workflows", "preview-pages.yml"));
+        Assert.Contains("pull_request:", preview);
+        Assert.Contains("types: [opened, reopened, synchronize, closed]", preview);
+        Assert.Contains("rossjrw/pr-preview-action@v1.8.1", preview);
+        Assert.Contains("source-dir: artifacts/gallery-site", preview);
+        Assert.Contains("wait-for-pages-deployment: true", preview);
+        Assert.Contains("pull-requests: write", preview);
     }
 
     [Fact]

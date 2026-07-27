@@ -475,7 +475,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         foreach (WidgetModel w in comps)
         {
             sb.Append("            global::Luxel.UI.ControlApiRegistry.Register(new global::Luxel.UI.ControlApi(")
-              .Append(Lit(w.FactoryName)).Append(", ").Append(Lit(w.DocSummary))
+              .Append(Lit(w.Namespace)).Append(", ").Append(Lit(w.FactoryName)).Append(", ").Append(Lit(w.DocSummary))
               .AppendLine(", new global::Luxel.UI.ApiMember[] {");
             foreach (EventModel e in w.Events)
             {

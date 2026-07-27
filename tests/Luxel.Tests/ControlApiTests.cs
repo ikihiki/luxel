@@ -18,6 +18,7 @@ public class ControlApiTests
     {
         ControlApi? api = ControlApiRegistry.Find("Button");
         Assert.NotNull(api);
+        Assert.Equal("Luxel.Controls", api!.Namespace);
         Assert.NotEqual("", api!.Summary);   // クラス /// summary が入る
 
         ApiMember bg = api.Members.First(m => m.Name == "Background" && m.Kind == "param");

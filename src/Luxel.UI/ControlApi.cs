@@ -7,7 +7,7 @@ public sealed record ApiMember(string Name, string Type, string Kind, string Des
 
 /// <summary>コントロール 1 つの API 記述 (クラスの XML doc summary + メンバー一覧)。
 /// ソースジェネレーターが [UiComponent] から /// コメントごと焼き込む — reflection なし。</summary>
-public sealed record ControlApi(string Name, string Summary, IReadOnlyList<ApiMember> Members);
+public sealed record ControlApi(string Namespace, string Name, string Summary, IReadOnlyList<ApiMember> Members);
 
 /// <summary>全アセンブリのコントロール API 登録先 (module initializer から Register される)。
 /// docs の ApiTable が名前で引く。</summary>

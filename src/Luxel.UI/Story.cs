@@ -293,6 +293,7 @@ public static class StoryRegistry
 {
     private static readonly object Gate = new();
     private static readonly List<StoryInfo> Stories = new();
+    private static readonly List<Action> Providers = new();
     private static readonly Dictionary<string, string> Aliases = new(StringComparer.Ordinal);
 
     public static void Register(StoryInfo story)
@@ -304,12 +305,27 @@ public static class StoryRegistry
         }
     }
 
+    /// <summary>列挙/検索の直前に追加storyを同期するproviderを登録する。providerは冪等であること。</summary>
+    public static void RegisterProvider(Action provider)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+        lock (Gate) Providers.Add(provider);
+    }
+
+    private static void EnsureProviders()
+    {
+        Action[] providers;
+        lock (Gate) providers = Providers.ToArray();
+        foreach (Action provider in providers) provider();
+    }
+
     /// <summary>表示順のスナップショット: コンポーネントは「所属ストーリーの最小 Order → 名前」、
     /// コンポーネント内は「Order → Path」。Order 未指定 (既定 1000) なら従来のアルファベット順。</summary>
     public static IReadOnlyList<StoryInfo> All
     {
         get
         {
+            EnsureProviders();
             lock (Gate)
                 return Stories
                     .GroupBy(s => s.Component)
@@ -339,6 +355,7 @@ public static class StoryRegistry
 
     public static StoryInfo? Find(string path)
     {
+        EnsureProviders();
         lock (Gate)
         {
             var visited = new HashSet<string>(StringComparer.Ordinal);

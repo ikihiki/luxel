@@ -54,7 +54,7 @@ public static class DocsUi
     public static Widget Controls(StoryContext ctx) => DocNew(ctx, $$"""
         # コントロール (Luxel.Controls)
 
-        Button から RichTextEditor まで 40 超のコントロール群です。**実物はサイドバーの各章にあります** — このページは地図と、独自コントロールの書き方です。全コントロールの引数/イベント/パラメータの一覧は [Reference/Overview](story:Reference/Overview) へ。
+        Button から RichTextEditor まで 40 超のコントロール群です。**実物はサイドバーの各章にあります** — このページは地図と、独自コントロールの書き方です。各コントロールの引数/イベント/パラメータは、そのカテゴリ直下の `Overview` (例: [Controls/Button/Overview](story:Controls/Button/Overview)) にあります。
 
         ## カタログ
 
@@ -193,6 +193,6 @@ public static class DocsUi
 
         ## API
 
-        {{ApiTable("Button")}}
+        {{DocsApi.ControlApiReference("Button")}}
         """, toc: true);
 }
