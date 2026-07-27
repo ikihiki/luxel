@@ -93,6 +93,7 @@ static int Run(string backend, int? frameLimit, TutorialStage stage, int initial
 
 // docs:end standalone-frame-loop
 
+// docs:begin device-and-surface-backend
 static GpuDevice CreateDevice(string backend, Window window)
 {
 #if LUXEL_WINDOWS
@@ -111,6 +112,7 @@ static GpuDevice CreateDevice(string backend, Window window)
     }));
 #endif
 }
+// docs:end device-and-surface-backend
 
 static int? ParseFrameLimit(string[] args)
 {

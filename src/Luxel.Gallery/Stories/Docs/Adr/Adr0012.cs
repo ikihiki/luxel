@@ -17,6 +17,10 @@ public static partial class DocsAdr
 
         ## Context
 
+        > [!NOTE]
+        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+
+
         `RichTextEditor` (旧 `DocumentEditor` スタック) は「旧エディタ」ではなく、**現役の Docs 描画エンジン**です。`Kit.Docs()` ファクトリが返す型がこれで、Gallery の全ドキュメント (Reference/Guides/ADR の 11 モジュール) がこれで描かれています。中身はブロックモデル (Block→Line→UiNode) + 埋め込みライブ UI + mermaid (`Luxel.Diagram`) + 数式 (`Luxel.MathText`) + シンタックス fence (`Luxel.Highlight.TextMate`) + 全文検索アンカーで、docs の Gallery 一本化 ([ADR-0005](story:Internals/ADR/0005-Docs-In-Gallery)) の土台そのものです。Workbench 化 ([ADR-0010](story:Internals/ADR/0010-Workbench-Framework)) と旧スタック整理 (`CodeEditor` 削除) に合わせ、この文書役を新スタックの流儀に揃えたい。
 
         当初は「別の Transaction ベース リッチ文書スタックを新規に作る」案でした。しかしテキスト新スタック ([ADR-0006](story:Internals/ADR/0006-Editor-New-Stack)) は **CodeMirror 6 流**で、CM6 / Obsidian の Live Preview はまさに「下地はテキスト (行)、表示はブロック装飾、編集はブロック単位コマンド」で Markdown を成立させています。核心は — **ブロックはデータモデルではなく、行テキストをパースした射影**である点。ならば別スタック (別のブロックモデル) はモデルの二重化で、テキストスタックの構成として載せるのが筋だ、という力学です。

@@ -17,6 +17,10 @@ public static partial class DocsAdr
 
         ## Context
 
+        > [!NOTE]
+        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+
+
         Workbench ([ADR-0010](story:Internals/ADR/0010-Workbench-Framework)) のシェルに必要な**内容/レイアウト系コントロール**が未実装です。調査の結果、次が「無い」と判明しました: 複数ドキュメントの `DocumentTabs`、ドッキングを描く `DockHost`、型/ECS を反映する `PropertyGrid`/Inspector、`StatusBar`、VFS 連動の `AssetBrowser`。
 
         既存に**種**はあります — `Tabs` (ビュー切替専用)・`Splitter`・`KnobsTable`/`TypeApiTable`・`TreeView` — が、複数ドキュメント/ドッキング/インスペクションの用途にはそのまま使えません。これらを WS-D (具体エディタ作成) に埋め込まず、**再利用可能なコントロールとして独立に切り出す**判断です (Inspector は将来のシーン/レベルエディタの前提でもあるため)。

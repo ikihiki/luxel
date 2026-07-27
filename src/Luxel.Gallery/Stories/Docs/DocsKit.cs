@@ -95,13 +95,18 @@ internal static class DocsKit
         text.AppendLine(bundle.Description);
         text.AppendLine();
         text.AppendLine($"**必要条件:** {requirements}");
+        if (bundle.Platforms is { Count: > 0 }) text.AppendLine($"  **Platform:** {string.Join(" / ", bundle.Platforms)}");
+        text.AppendLine($"  **検証契約:** exit `{bundle.ExpectedExitCode}` / timeout `{bundle.TimeoutSeconds}s`"
+            + (bundle.ExpectedStdoutMarker is null ? "" : $" / stdout `{bundle.ExpectedStdoutMarker}`"));
+        if (bundle.ExpectedArtifacts is { Count: > 0 }) text.AppendLine($"  **生成物:** {string.Join(", ", bundle.ExpectedArtifacts.Select(x => $"`{x}`"))}");
         if (bundle.ExportSymbol is not null) text.AppendLine($"  **接続点:** `{bundle.ExportSymbol}`");
         if (bundle.RunCommand is not null) text.AppendLine($"\n**Run**\n```powershell\n{bundle.RunCommand}\n```");
         if (bundle.SmokeCommand is not null) text.AppendLine($"\n**Smoke test**\n```powershell\n{bundle.SmokeCommand}\n```");
         foreach (SampleFileInfo file in bundle.Files)
         {
             text.AppendLine($"\n### `{file.Path}` ({file.Kind})\n");
-            text.AppendLine(SampleSource(file.Path, file.Region, file.Language).Markdown);
+            if (file.Kind == SampleFileKind.Asset) text.AppendLine("Binary asset — bundle materialization preserves the original bytes.");
+            else text.AppendLine(SampleSource(file.Path, file.Region, file.Language).Markdown);
         }
         return new DocMarkdown(text.ToString());
     }

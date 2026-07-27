@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using Luxel;
 using Luxel.Controls;
 using Luxel.Gallery;
+using Luxel.Gallery.Stories;
 using Luxel.Gallery.Site;
 using Luxel.Graphics.TwoD;
 using Luxel.Typography;
@@ -478,18 +479,120 @@ public sealed class GallerySiteExporterTests
             visited.Add(id);
         }
 
-        foreach (SampleBundleInfo bundle in SampleBundleRegistry.All)
+        foreach (SampleBundleInfo bundle in SampleBundleRegistry.All.Where(bundle => !bundle.Id.StartsWith("test.", StringComparison.Ordinal)))
         {
             Visit(bundle.Id);
             foreach (SampleFileInfo file in bundle.Files)
             {
-                Assert.True(File.Exists(Path.Combine(root, file.Path)), file.Path);
-                _ = Luxel.Gallery.Stories.DocsKit.SampleSource(file.Path, file.Region, file.Language);
+                string sourcePath = Path.Combine(root, file.Path);
+                Assert.True(file.EffectiveMode == SampleFileMode.Glob ? Directory.Exists(sourcePath) : File.Exists(sourcePath), file.Path);
+                if (file.Kind != SampleFileKind.Asset)
+                    _ = Luxel.Gallery.Stories.DocsKit.SampleSource(file.Path, file.Region, file.Language);
             }
         }
         StoryInfo triangle = StoryRegistry.Find("Build/Recipes/TriangleApp")!;
         Assert.Equal("rendering.triangle", triangle.SampleBundle);
         Assert.NotNull(SampleBundleRegistry.Find(triangle.SampleBundle));
+    }
+
+    [Fact]
+    public void Rendering_overview_follows_catalog_and_build_paths_match_copy_levels()
+    {
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(
+            [StoryRegistry.Find("Learn/Rendering/Basics/Overview")!], resources: null);
+        string overview = pages["Learn/Rendering/Basics/Overview"].Text;
+        int previous = -1;
+        foreach (string route in RenderingCourseCatalog.ApplicationRoute)
+        {
+            int current = overview.IndexOf("story:" + route, StringComparison.Ordinal);
+            Assert.True(current > previous, $"Overview route is missing or out of order: {route}");
+            previous = current;
+        }
+        Assert.True(overview.IndexOf("story:Examples/3D/Triangle", StringComparison.Ordinal) > previous);
+        Assert.Contains("独立トラック", overview);
+
+        foreach (StoryInfo story in StoryRegistry.All.Where(story => story.Path.StartsWith("Build/Blocks/", StringComparison.Ordinal)))
+        {
+            Assert.False(string.IsNullOrWhiteSpace(story.SampleBundle), story.Path);
+            Assert.Equal(SampleCopyLevel.Block, SampleBundleRegistry.Find(story.SampleBundle!)!.CopyLevel);
+        }
+        foreach (StoryInfo story in StoryRegistry.All.Where(story => story.Path.StartsWith("Build/Recipes/", StringComparison.Ordinal)))
+        {
+            Assert.False(string.IsNullOrWhiteSpace(story.SampleBundle), story.Path);
+            Assert.Contains(SampleBundleRegistry.Find(story.SampleBundle!)!.CopyLevel,
+                new[] { SampleCopyLevel.Recipe, SampleCopyLevel.StandaloneProject });
+        }
+
+        Assert.Null(StoryRegistry.Find("Build/Blocks/ThreeD/Triangle"));
+        Assert.Null(StoryRegistry.Find("Build/Recipes/TwoDCanvasApp"));
+        Assert.Null(StoryRegistry.Find("Build/Recipes/MiniGame2D"));
+        Assert.Null(StoryRegistry.Find("Build/Recipes/Viewer3D"));
+        Assert.NotNull(StoryRegistry.Find("Build/Recipes/HeadlessScene2D"));
+    }
+
+    [Fact]
+    public void Sample_bundle_materializer_expands_dependencies_and_rejects_conflicts()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-bundle-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            IReadOnlyList<string> files = SampleBundleMaterializer.Materialize(root, "rendering.triangle", output);
+            Assert.Contains(files, path => path.EndsWith(Path.Combine("samples", "LuxelTriangle", "LuxelTriangle.csproj"), StringComparison.Ordinal));
+            Assert.Contains(files, path => path.EndsWith(Path.Combine("samples", "LuxelTriangle", "Program.cs"), StringComparison.Ordinal));
+            string abi = File.ReadAllText(Path.Combine(output, "samples", "LuxelTriangle", "TutorialAbi.cs"));
+            Assert.Contains("enum TutorialStage", abi);
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, recursive: true);
+        }
+
+        string uiOutput = Path.Combine(Path.GetTempPath(), "luxel-bundle-ui-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            SampleBundleMaterializer.Materialize(root, "ui.headless-tree", uiOutput);
+            byte[] expectedFont = File.ReadAllBytes(Path.Combine(root, "assets", "fonts", "BIZUDGothic-Regular.ttf"));
+            byte[] actualFont = File.ReadAllBytes(Path.Combine(uiOutput, "assets", "fonts", "BIZUDGothic-Regular.ttf"));
+            Assert.Equal(SHA256.HashData(expectedFont), SHA256.HashData(actualFont));
+        }
+        finally
+        {
+            if (Directory.Exists(uiOutput)) Directory.Delete(uiOutput, recursive: true);
+        }
+
+        string conflictOutput = Path.Combine(Path.GetTempPath(), "luxel-bundle-conflict-" + Guid.NewGuid().ToString("N"));
+        string conflictId = "test.materializer.conflict." + Guid.NewGuid().ToString("N");
+        SampleBundleRegistry.Register(new SampleBundleInfo(conflictId, conflictId, conflictId, "Test", SampleCopyLevel.Recipe,
+            [new("README.md", SampleFileKind.Asset, Destination: "same.txt"),
+             new("Luxel.slnx", SampleFileKind.Asset, Destination: "same.txt")]));
+        try
+        {
+            Assert.Throws<InvalidOperationException>(() => SampleBundleMaterializer.Materialize(root, conflictId, conflictOutput));
+        }
+        finally
+        {
+            if (Directory.Exists(conflictOutput)) Directory.Delete(conflictOutput, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Triangle_bundle_restores_and_builds_from_a_materialized_temp_directory()
+    {
+        SampleVerificationResult result = await SampleBundleVerifier.VerifyAsync(
+            GallerySiteExporter.FindRepositoryRoot(), "rendering.triangle", runSmoke: false);
+        Assert.Contains("Build succeeded", result.Stdout, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Initial_headless_bundles_restore_build_and_smoke_from_materialized_temp_directories()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        foreach (string id in new[] { "input.actions", "audio.tone", "resources.pipeline", "rendering.2d" })
+        {
+            SampleVerificationResult result = await SampleBundleVerifier.VerifyAsync(root, id);
+            Assert.Contains(SampleBundleRegistry.Find(id)!.ExpectedStdoutMarker!, result.Stdout, StringComparison.Ordinal);
+        }
     }
 
     [Fact]
@@ -504,11 +607,72 @@ public sealed class GallerySiteExporterTests
         foreach (var item in cases)
         {
             SampleBundleInfo bundle = SampleBundleRegistry.Find(item.Bundle)!;
-            Assert.Equal(SampleCopyLevel.StandaloneProject, bundle.CopyLevel);
+            Assert.Equal(SampleCopyLevel.Block, bundle.CopyLevel);
             Assert.False(string.IsNullOrWhiteSpace(bundle.SmokeCommand));
             Assert.Equal(item.Bundle, StoryRegistry.Find(item.Learn)!.SampleBundle);
             Assert.Equal(item.Bundle, StoryRegistry.Find(item.Build)!.SampleBundle);
         }
+    }
+
+    [Fact]
+    public void Framework_and_ui_learning_paths_have_clean_consumer_bundles()
+    {
+        (string Route, string Bundle)[] pages =
+        [
+            ("Learn/Framework/Overview", "framework.fixed-timestep"),
+            ("Learn/Framework/FixedTimestepAndPhases", "framework.fixed-timestep"),
+            ("Build/Blocks/Framework/FixedTimestep", "framework.fixed-timestep"),
+            ("Learn/UI/WidgetTrees", "ui.headless-tree"),
+            ("Learn/UI/Signals", "ui.headless-tree"),
+            ("Build/Blocks/UI/HeadlessTree", "ui.headless-tree"),
+        ];
+        foreach ((string route, string bundle) in pages)
+        {
+            StoryInfo story = StoryRegistry.Find(route) ?? throw new InvalidOperationException(route);
+            Assert.Equal(bundle, story.SampleBundle);
+            Assert.NotNull(SampleBundleRegistry.Find(bundle));
+        }
+        Assert.NotNull(StoryRegistry.Find("Learn/Framework/ScenesAndServices"));
+        Assert.NotNull(StoryRegistry.Find("Learn/UI/BuildAndReconciliation"));
+        Assert.Empty(DocsIndex.ValidateLinks(DocsIndex.Build(StoryRegistry.All, resources: null)));
+    }
+
+    [Fact]
+    public void Domain_and_production_learning_paths_are_registered_and_linked()
+    {
+        string[] routes =
+        [
+            "Learn/Assets/Overview", "Learn/Assets/GltfRuntime",
+            "Learn/ECSPhysics/Overview", "Learn/ECSPhysics/CollisionsAndGizmos",
+            "Learn/AnimationParticles/Overview", "Learn/AnimationParticles/GraphsAndEmitters",
+            "Learn/Scripting/Overview", "Learn/Scripting/ReloadAndIsolation",
+            "Learn/Production/StudioToPlayer", "Learn/Production/Workbench", "Learn/Production/ValidateAndShip",
+            "Build/Recipes/Cavern2D", "Build/Recipes/Range3D", "Build/Blocks/Scripting/HotReload",
+        ];
+        StoryInfo[] stories = routes.Select(route => StoryRegistry.Find(route)
+            ?? throw new InvalidOperationException(route)).ToArray();
+        Assert.Empty(DocsIndex.ValidateLinks(DocsIndex.Build(stories, resources: null)));
+    }
+
+    [Fact]
+    public void Runtime_examples_are_source_backed_and_bundle_connected()
+    {
+        (string Route, string Bundle)[] examples =
+        [
+            ("Examples/Input/Actions", "input.actions"), ("Examples/Input/ContextStack", "input.actions"),
+            ("Examples/Input/Bindings", "input.actions"), ("Examples/Audio/WaveformAndVoice", "audio.tone"),
+            ("Examples/Audio/Buses", "audio.tone"), ("Examples/Audio/SpatialAttenuation", "audio.tone"),
+            ("Examples/Audio/StreamingQueue", "audio.tone"), ("Examples/Resources/Pipeline", "resources.pipeline"),
+            ("Examples/Resources/DependencyDag", "resources.pipeline"), ("Examples/Resources/Reload", "resources.pipeline"),
+            ("Examples/Resources/Lifetime", "resources.pipeline"),
+        ];
+        StoryInfo[] stories = examples.Select(item => StoryRegistry.Find(item.Route)!).ToArray();
+        Assert.DoesNotContain(stories, story => story is null);
+        for (int i = 0; i < examples.Length; i++) Assert.Equal(examples[i].Bundle, stories[i].SampleBundle);
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null);
+        Assert.Equal(examples.Length, pages.Count);
+        Assert.Empty(DocsIndex.ValidateLinks(pages));
+        Assert.All(pages.Values, page => Assert.Contains("コピーして動かす", page.Text));
     }
 
     [Fact]

@@ -17,6 +17,10 @@ public static partial class DocsAdr
 
         ## Context
 
+        > [!NOTE]
+        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+
+
         Luxel Studio ([ADR-0015](story:Internals/ADR/0015-Game-Project-Scene-Format)) の北極星は「C# ソリューション無しでゲームを 1 本出す」— エンティティの挙動をプロジェクトデータの一部として書ける仕組みが要ります。エンジンには `ScriptHost` (Roslyn csx、診断付き) と、capstone で実証した「コンパイル失敗で旧ロジック維持 + 診断公開」の運用があります。制約は: 決定性 (固定 dt・wall-clock 禁止 — golden/リプレイ)、ホットリロード (GE-5)、同じスクリプトを複数エンティティで共有できること。
 
         ## Decision
