@@ -1,7 +1,6 @@
-﻿namespace Luxel.Graphics.TwoD;
+namespace Luxel.Mathematics;
 
-/// <summary>軸並行の矩形 (左上 <see cref="X"/>,<see cref="Y"/> + 幅 <see cref="W"/> / 高さ <see cref="H"/>)。
-/// カメラのワールド境界やデッドゾーン等に使う。</summary>
+/// <summary>左上座標と幅・高さで表す単精度浮動小数点の軸平行矩形。</summary>
 public readonly record struct RectF(float X, float Y, float W, float H)
 {
     /// <summary>左端 (= X)。</summary>

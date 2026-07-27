@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 namespace Luxel.Graphics.TwoD;
 
@@ -31,7 +31,7 @@ public sealed class CameraRig2D
 
     // シェイク状態 (固定シード xorshift、Random/wall-clock 非使用)
     private float _shakeAmp, _shakeDur, _shakeRemain;
-    private ulong _shakeState = DefaultSeed;
+    private Xorshift64 _shakeRandom = new(DefaultSeed);
     private Vector2 _shakeOffset;
     private const ulong DefaultSeed = 0x9E3779B97F4A7C15;
 
@@ -60,7 +60,7 @@ public sealed class CameraRig2D
         _shakeAmp += amplitude;
         _shakeDur = MathF.Max(_shakeDur, duration);
         _shakeRemain = MathF.Max(_shakeRemain, duration);
-        if (seed != 0) _shakeState = seed;
+        if (seed != 0) _shakeRandom = new Xorshift64(seed);
     }
 
     /// <summary>1 フレーム進める。<paramref name="viewportW"/>/<paramref name="viewportH"/> は境界クランプの
@@ -127,16 +127,5 @@ public sealed class CameraRig2D
         _shakeOffset = new Vector2(NextNoise(), NextNoise()) * (_shakeAmp * decay);
     }
 
-    /// <summary>xorshift64 で [-1,1) のノイズを 1 サンプル。</summary>
-    private float NextNoise()
-    {
-        ulong s = _shakeState;
-        s ^= s << 13;
-        s ^= s >> 7;
-        s ^= s << 17;
-        _shakeState = s;
-        // 上位 53bit を [0,1) に、そして [-1,1) へ
-        double unit = (s >> 11) * (1.0 / (1UL << 53));
-        return (float)(unit * 2.0 - 1.0);
-    }
+    private float NextNoise() => _shakeRandom.NextSigned();
 }

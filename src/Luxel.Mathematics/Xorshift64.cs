@@ -1,8 +1,8 @@
-namespace Luxel.Particles;
+namespace Luxel.Mathematics;
 
 /// <summary>
-/// 決定的 xorshift64 乱数 (StrudelKit 方式)。<see cref="System.Random"/> は使わない
-/// (割り当てゼロ + シード注入で golden 決定的)。0 シードは既定シードへ丸める。
+/// 割り当てなしで動作する決定的xorshift64疑似乱数生成器。
+/// 同じseedから同じ系列を生成し、0 seedは既定seedへ丸める。
 /// </summary>
 public struct Xorshift64
 {

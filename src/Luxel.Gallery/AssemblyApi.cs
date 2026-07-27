@@ -25,6 +25,7 @@ using Luxel.UI;
 [assembly: GenerateAssemblyApi("Luxel.Document")]
 [assembly: GenerateAssemblyApi("Luxel.Highlight")]
 [assembly: GenerateAssemblyApi("Luxel.Diagram")]
+[assembly: GenerateAssemblyApi("Luxel.Mathematics")]
 [assembly: GenerateAssemblyApi("Luxel.MathText")]
 // アニメーション
 [assembly: GenerateAssemblyApi("Luxel.Animation")]

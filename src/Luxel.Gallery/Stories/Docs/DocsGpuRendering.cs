@@ -110,7 +110,7 @@ public static partial class DocsGpu
 
         ## OrbitCamera — 軌道カメラ
 
-        注視点を中心に yaw/pitch/distance で周回する軌道カメラ `OrbitCamera` (Luxel core) が `ViewProjection` (`view * proj`) を計算します。`Orbit(dYaw, dPitch)` でドラッグ回転 (pitch はジンバルロック手前でクランプ)、`Dolly(factor, min, max)` でズームします。ルート引数へ渡すときは行列レイアウトの罠 (下記) に従い `Matrix4x4.Transpose` を入れます。2D の `CameraRig2D` (追従/シェイク/境界) に対し、3D は v1 では viewProj 算出とドラッグ操作までがスコープです。
+        注視点を中心に yaw/pitch/distance で周回する軌道カメラ `OrbitCamera` (`Luxel.Mathematics`) が `ViewProjection` (`view * proj`) を計算します。`Orbit(dYaw, dPitch)` でドラッグ回転 (pitch はジンバルロック手前でクランプ)、`Dolly(factor, min, max)` でズームします。ルート引数へ渡すときは行列レイアウトの罠 (下記) に従い `Matrix4x4.Transpose` を入れます。2D の `CameraRig2D` (追従/シェイク/境界) に対し、3D は v1 では viewProj 算出とドラッグ操作までがスコープです。
 
         ## 設計ノート: UI に ECS を使わない理由
 

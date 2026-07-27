@@ -425,7 +425,7 @@ public sealed class UiHost : IDisposable, ITextInputClient
                 Guard(cap.OnDrag is null ? null : () => cap.OnDrag!(DragEv(lx, ly, x, y, mods)), "Drag");
             if (_dragPayload is object payload)   // ペイロードドラッグ: ゴースト追従 + ドロップ先 hover
             {
-                _dragGhost?.Transform = TwoD.Affine2D.Translate(x - _ghostGrabX, y - _ghostGrabY);
+                _dragGhost?.Transform = Affine2D.Translate(x - _ghostGrabX, y - _ghostGrabY);
                 FindDropTarget(x, y, payload, out HitTarget? over, out float dlx, out float dly);
                 if (!ReferenceEquals(over, _dropHover))
                 {
@@ -596,7 +596,7 @@ public sealed class UiHost : IDisposable, ITextInputClient
     private static bool ToLocal(UiNode node, float x, float y, out float lx, out float ly)
     {
         lx = ly = 0;
-        if (!node.ComputeWorldNow().TryInvert(out TwoD.Affine2D inv)) return false;
+        if (!node.ComputeWorldNow().TryInvert(out Affine2D inv)) return false;
         System.Numerics.Vector2 p = inv.Apply(new(x, y));
         lx = p.X; ly = p.Y;
         return true;
@@ -642,13 +642,13 @@ public sealed class UiHost : IDisposable, ITextInputClient
     {
         lx = ly = 0;
         if (!node.IsShown) return false;                                     // Visible=false (非選択タブ/閉オーバーレイ)
-        if (!node.ComputeWorldNow().TryInvert(out TwoD.Affine2D inv)) return false;
+        if (!node.ComputeWorldNow().TryInvert(out Affine2D inv)) return false;
         System.Numerics.Vector2 p = inv.Apply(new(x, y));
         if (!rect.Contains(p.X, p.Y)) return false;
         for (UiNode? a = node; a != null; a = a.Parent)
         {
             if (a.Clip is not RectClip rc) continue;
-            if (!a.ComputeWorldNow().TryInvert(out TwoD.Affine2D ai)) return false;
+            if (!a.ComputeWorldNow().TryInvert(out Affine2D ai)) return false;
             System.Numerics.Vector2 ap = ai.Apply(new(x, y));
             if (ap.X < rc.X || ap.X > rc.X + rc.W || ap.Y < rc.Y || ap.Y > rc.Y + rc.H) return false;
         }
@@ -789,25 +789,25 @@ public sealed class UiHost : IDisposable, ITextInputClient
                     // アンカー配置: 解いた方向に 6px スライド + フェード
                     ? side switch
                     {
-                        PopupSide.Above => TwoD.Affine2D.Translate(pos.X, pos.Y + (1 - t) * 6),
-                        PopupSide.Right => TwoD.Affine2D.Translate(pos.X - (1 - t) * 6, pos.Y),
-                        PopupSide.Left => TwoD.Affine2D.Translate(pos.X + (1 - t) * 6, pos.Y),
-                        _ => TwoD.Affine2D.Translate(pos.X, pos.Y - (1 - t) * 6),   // Below
+                        PopupSide.Above => Affine2D.Translate(pos.X, pos.Y + (1 - t) * 6),
+                        PopupSide.Right => Affine2D.Translate(pos.X - (1 - t) * 6, pos.Y),
+                        PopupSide.Left => Affine2D.Translate(pos.X + (1 - t) * 6, pos.Y),
+                        _ => Affine2D.Translate(pos.X, pos.Y - (1 - t) * 6),   // Below
                     }
                     : pl switch
                     {
                         // ダイアログ: 中心スケール 0.96 → 1
-                        OverlayPlacement.Center => TwoD.Affine2D.Mul(
-                            TwoD.Affine2D.Translate(pos.X + cw / 2, pos.Y + ch / 2),
-                            TwoD.Affine2D.Mul(TwoD.Affine2D.Scale(0.96f + 0.04f * t, 0.96f + 0.04f * t),
-                                              TwoD.Affine2D.Translate(-cw / 2, -ch / 2))),
+                        OverlayPlacement.Center => Affine2D.Mul(
+                            Affine2D.Translate(pos.X + cw / 2, pos.Y + ch / 2),
+                            Affine2D.Mul(Affine2D.Scale(0.96f + 0.04f * t, 0.96f + 0.04f * t),
+                                              Affine2D.Translate(-cw / 2, -ch / 2))),
                         // ドロワー: 端からスライドイン
-                        OverlayPlacement.RightEdge => TwoD.Affine2D.Translate(pos.X + (1 - t) * cw, pos.Y),
-                        OverlayPlacement.LeftEdge => TwoD.Affine2D.Translate(pos.X - (1 - t) * cw, pos.Y),
-                        OverlayPlacement.BottomEdge => TwoD.Affine2D.Translate(pos.X, pos.Y + (1 - t) * ch),
+                        OverlayPlacement.RightEdge => Affine2D.Translate(pos.X + (1 - t) * cw, pos.Y),
+                        OverlayPlacement.LeftEdge => Affine2D.Translate(pos.X - (1 - t) * cw, pos.Y),
+                        OverlayPlacement.BottomEdge => Affine2D.Translate(pos.X, pos.Y + (1 - t) * ch),
                         // トースト: 下から浮き上がる
-                        OverlayPlacement.CornerBottomRight => TwoD.Affine2D.Translate(pos.X, pos.Y + (1 - t) * 16),
-                        _ => TwoD.Affine2D.Translate(pos.X, pos.Y),
+                        OverlayPlacement.CornerBottomRight => Affine2D.Translate(pos.X, pos.Y + (1 - t) * 16),
+                        _ => Affine2D.Translate(pos.X, pos.Y),
                     };
             });
         }

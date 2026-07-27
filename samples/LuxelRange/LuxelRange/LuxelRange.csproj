@@ -5,6 +5,11 @@
     薄い層で、ゲームロジックは LuxelRange.Core にある。3D (glTF/scene_pbr/billboard) の publish 検証の本丸。
     RID は publish 時に -r win-x64 で指定する (csproj には固定しない)。
   -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Luxel.Mathematics\Luxel.Mathematics.csproj" />
+    <Using Include="Luxel.Mathematics" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>

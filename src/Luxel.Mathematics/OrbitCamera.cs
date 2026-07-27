@@ -1,11 +1,11 @@
-﻿using System.Numerics;
+using System.Numerics;
 
-namespace Luxel;
+namespace Luxel.Mathematics;
 
 /// <summary>
-/// 3D 軌道カメラ (ターゲットを中心に yaw/pitch/distance で周回)。KnockdownStory のドラッグ軌道カメラを部品化。
-/// 純 <see cref="System.Numerics"/> 数学で <see cref="ViewProjection"/> を計算する (GPU 非依存・テスト可能)。
-/// 3D の follow/shake は v1 スコープ外 — これは viewProj 算出とドラッグ操作 (<see cref="Orbit"/>/<see cref="Dolly"/>) のみ。
+/// ターゲットを中心にyaw/pitch/distanceで周回する3D軌道カメラ。
+/// 純粋な<see cref="System.Numerics"/>計算で<see cref="ViewProjection"/>を求め、
+/// <see cref="Orbit"/>と<see cref="Dolly"/>で姿勢と距離を更新する。
 /// </summary>
 public struct OrbitCamera
 {

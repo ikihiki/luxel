@@ -1,6 +1,6 @@
-﻿using System.Numerics;
+using System.Numerics;
 
-namespace Luxel.Graphics.TwoD;
+namespace Luxel.Mathematics;
 
 /// <summary>2x3 アフィン変換。screen = (A*x + C*y + E, B*x + D*y + F)。</summary>
 public struct Affine2D
@@ -48,6 +48,4 @@ public struct Affine2D
         };
         return true;
     }
-
-    internal readonly GpuTransform ToGpu() => new() { A = A, B = B, C = C, D = D, E = E, F = F };
 }

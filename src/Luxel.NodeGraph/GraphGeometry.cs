@@ -126,19 +126,10 @@ public sealed class GraphGeometry
         for (int i = 1; i <= Samples; i++)
         {
             Vector2 cur = w.At(i / (float)Samples);
-            best = MathF.Min(best, DistanceToSegment(p, prev, cur));
+            best = MathF.Min(best, Geometry2D.DistancePointToSegment(p, prev, cur));
             prev = cur;
         }
         return best;
-    }
-
-    private static float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)
-    {
-        Vector2 ab = b - a;
-        float len2 = ab.LengthSquared();
-        if (len2 < 1e-9f) return Vector2.Distance(p, a);
-        float t = Math.Clamp(Vector2.Dot(p - a, ab) / len2, 0f, 1f);
-        return Vector2.Distance(p, a + ab * t);
     }
 
     private void Rebuild()

@@ -859,7 +859,7 @@ public class RetainedCanvasAnimationTargetTests
 
     private sealed class FakeUiNode
     {
-        public Luxel.Graphics.TwoD.Affine2D Transform = Luxel.Graphics.TwoD.Affine2D.Identity;
+        public Luxel.Mathematics.Affine2D Transform = Luxel.Mathematics.Affine2D.Identity;
         public uint Color = 0xFFFFFFFFu;
         public float Opacity = 1f;
     }
@@ -869,9 +869,9 @@ public class RetainedCanvasAnimationTargetTests
     {
         // RetainedCanvas が必要なので fake で代用できないため、内部分岐の論理のみ確認。
         // ここでは Affine2D の組み立てロジックを直接検証。
-        var t = Luxel.Graphics.TwoD.Affine2D.Translate(0, 0);
+        var t = Luxel.Mathematics.Affine2D.Translate(0, 0);
         // translationX を 50 にした場合の効果
-        var expected = new Luxel.Graphics.TwoD.Affine2D { A = 1, B = 0, C = 0, D = 1, E = 50, F = 0 };
+        var expected = new Luxel.Mathematics.Affine2D { A = 1, B = 0, C = 0, D = 1, E = 50, F = 0 };
         Assert.Equal(expected.E, 50f);
         Assert.Equal(t.A, 1f);
     }
