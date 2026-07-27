@@ -1,0 +1,58 @@
+name: Test Terminal
+
+on:
+  pull_request:
+    paths:
+      - 'src/Luxel.Terminal*/**'
+      - 'tests/Luxel.Terminal*/**'
+      - 'samples/LuxelTerminal/**'
+      - 'src/**/*.csproj'
+      - 'tests/**/*.csproj'
+      - 'Luxel.slnx'
+      - 'eng/check-project-dependencies.py'
+      - '.github/workflows/test-terminal.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  architecture:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate project dependency graph
+        run: python3 eng/check-project-dependencies.py
+
+  core:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet test tests/Luxel.Terminal.Tests/Luxel.Terminal.Tests.csproj -c Release
+      - run: dotnet test tests/Luxel.Terminal.UI.Tests/Luxel.Terminal.UI.Tests.csproj -c Release
+
+  linux-pty:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet test tests/Luxel.Terminal.Linux.Tests/Luxel.Terminal.Linux.Tests.csproj -c Release
+      - run: dotnet publish samples/LuxelTerminal/LuxelTerminal.csproj -c Release -r linux-x64 -o artifacts/terminal-linux-x64
+
+  windows-conpty:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet test tests/Luxel.Terminal.Windows.Tests/Luxel.Terminal.Windows.Tests.csproj -c Release
+      - run: dotnet publish samples/LuxelTerminal/LuxelTerminal.csproj -c Release -r win-x64 --self-contained true -o artifacts/terminal-win-x64
