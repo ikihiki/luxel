@@ -1,0 +1,62 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Rendering/DepthCullingLighting</h1></header><h1 id="depthculling">Depth、culling、方向光</h1>
+<ul>
+<li><a href="#%E5%AE%9F%E8%A1%8C%E3%81%A8%E6%9C%9F%E5%BE%85%E7%B5%90%E6%9E%9C">実行と期待結果</a></li>
+<li><a href="#depth-target">Depth target</a></li>
+<li><a href="#front-face%E3%81%A8culling">Front faceとculling</a></li>
+<li><a href="#%E6%9C%80%E5%B0%8Fdirectional-lambert">最小Directional Lambert</a></li>
+<li><a href="#backend%E7%94%BB%E5%83%8F%E3%81%A8play%E6%A4%9C%E8%A8%BC">Backend画像とplay検証</a></li>
+<li><a href="#%E6%89%80%E6%9C%89%E6%A8%A9%E3%81%A8%E5%AF%BF%E5%91%BD">所有権と寿命</a></li>
+<li><a href="#%E5%85%B8%E5%9E%8B%E7%9A%84%E3%81%AA%E5%A4%B1%E6%95%97">典型的な失敗</a></li>
+</ul>
+<p><strong>難易度:</strong> Beginner+　 <strong>実行環境:</strong> Standalone　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> TransformsAndCamera</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FRendering%2FTransformsAndCamera">TransformsAndCamera</a>　 <strong>次:</strong> <a href="#story=Learn%2FRendering%2FFrameLoopAndSynchronization">FrameLoopAndSynchronization</a></p>
+<p>完成形は <code>samples/LuxelTriangle/TriangleRenderer.cs</code>と<code>samples/LuxelTriangle/TutorialAbi.cs</code>、shaderは <code>shaders/tutorial_3d.slang</code> です。indexed cubeへD32 depth target、back-face culling、最小のdirectional Lambert lightを追加します。</p>
+<h2 id="section">実行と期待結果</h2>
+<pre><code class="language-powershell">dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
+dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter TutorialAbiTests
+dotnet run --project samples/LuxelTriangle -- vk --stage lighting
+dotnet run --project samples/LuxelTriangle -- vk --stage lighting --frames 3
+dotnet run --project samples/LuxelTriangle -- vk --stage lighting --size 801x603 --frames 3
+# Windowsのみ
+dotnet run --project samples/LuxelTriangle -- dx --stage lighting
+dotnet run --project samples/LuxelTriangle -- dx --stage lighting --frames 3
+</code></pre>
+<p>成功すると、手前の面が奥の面を正しく隠し、外側を向く面だけが描かれ、light方向へ向いた面が明るいtexture付きcubeになります。frames指定なしでresizeし、正方形・横長・縦長でもaspect、depth、cullingが安定することを確認します。</p>
+<h2 id="depth-target">Depth target</h2>
+<p>pipelineはcolor formatに加えて<code>DepthTest = true</code>、<code>DepthWrite = true</code>、<code>DepthFormat = GpuFormat.D32Float</code>を持ち、resize時にvisible sizeと同じ<code>CreateDepthTarget</code>を作ります。render pass開始時にcolorとdepthを毎frame clearし、<code>BeginRendering</code>へcolor targetとdepth targetの両方を渡します。通常の0..1 depthではnearが小さくfarが大きいため、比較はless相当、clear値は1.0です。</p>
+<p>depth targetはsampling textureやCPU framebufferではありません。rendererがresize単位で所有し、<strong>queue idle → old framebuffer / depth / colorをdispose → new resourcesを作成</strong>します。pipelineが参照するのはformat/stateであり個々のtarget objectではないため、size変更だけならpipeline再生成は不要です。</p>
+<h2 id="front-faceculling">Front faceとculling</h2>
+<p>front faceはmesh index order、projectionのY向き、viewport変換の組み合わせで決まります。このtutorialは最終screen上のcounter-clockwiseをfrontとし、back facesをcullします。cubeを外側から見た各triangleのindexを同じ向きで並べます。</p>
+<p><code>GpuRasterDesc</code>では<code>CullMode = GpuCullMode.Back</code>と<code>FrontFace = GpuFrontFace.CounterClockwise</code>を明示します。選べるcull modeは<code>None</code> / <code>Front</code> / <code>Back</code>、front faceは<code>CounterClockwise</code> / <code>Clockwise</code>です。診断時は<code>CullMode.None</code>へ戻し、(1)depthのみ、(2)cullingのみ、(3)両方、の順で有効化します。negative scaleはwindingを反転するため、教材では使わないかfront-face扱いを明示的に反転します。</p>
+<p>VulkanとD3D12はviewport/front-face定義が内部で異なり得ますが、Luxel利用者から見たCCW/front規約は同じであるべきです。backendごとにindexを逆順にしたりshaderでposition.yを追加反転したりせず、backend変換を1か所に閉じ込めます。</p>
+<h2 id="directional-lambert">最小Directional Lambert</h2>
+<p>directional lightは位置を持たず、world-spaceの単位方向と色・強度だけをroot argumentsへ渡します。ここではsurfaceからlightへ向かう <code>L</code> とworld normal <code>N</code>をnormalizeし、次を計算します。</p>
+<pre><code class="language-slang">float ndotl = saturate(dot(normalize(worldNormal), normalize(lightDirection)));
+float3 linearRgb = albedoLinear * (ambient + lightColor * intensity * ndotl);
+return float4(linearRgb, alpha);
+</code></pre>
+<p>textureがsRGB authoredなら<a href="#story=Learn%2FRendering%2FTextures">Textures</a>のdecode後にLambertを掛けます。ambientは完全な黒面を避ける小値で、specular、shadow、gamma-correct outputはこの章の範囲外です。normalはmodel変換後のworld-space、lightもworld-spaceに統一します。dotの符号が逆なら「lightが進む方向」と「surfaceからlightへの方向」を混同しています。</p>
+<p>opaque cubeは<code>GpuBlendMode.None</code>、alpha=1を維持します。透明物をdepth write + cullingだけで正しく描くことはできず、sortや別passが必要なので後続課題です。</p>
+<h2 id="backendplay">Backend画像とplay検証</h2>
+<ol>
+<li><code>vk</code>とWindowsの<code>dx</code>を同じwindow visible size、同じ初期camera/modelで起動する。</li>
+<li><code>--frames 3</code>のsmokeが終了コード0で完了することを確認する。</li>
+<li>通常起動でresizeを正方形→横長→縦長→正方形と往復する。</li>
+<li>cubeの縦横比、見える面、明暗の面、textureの上下を比較する。</li>
+<li>capture比較はlinear filteringとfloat丸めを考慮した小さなchannel toleranceを使う。silhouette、edge位置、front/backの違いは許容しない。</li>
+</ol>
+<p>animation/playを追加した場合は固定deltaまたは同じframe numberでcaptureし、wall-clock時刻をgoldenへ混ぜません。backend差に見えても、resize直後だけ壊れるならaspect/depth target再生成、特定角度だけ面が消えるならwinding/normalを先に疑います。</p>
+<h2 id="section-1">所有権と寿命</h2>
+<p>rendererはpipeline、mesh buffers、texture、samplerを長寿命resourceとして、color/depth targetとreadback framebufferをresize resourceとして所有します。command bufferは1 frame、root args bytesもその記録に属します。<code>SubmitAndWait</code>完了前に、pipeline、bindless resource、color/depth targetをdisposeしません。終了時は <strong>queue idle → framebuffer / depth / color → pipeline → sampler / texture → index / vertex buffer → device</strong> の順です。</p>
+<h2 id="section-2">典型的な失敗</h2>
+<ul>
+<li>奥の面が手前へ描かれる → depth targetを渡したか、DepthTest/DepthWrite、clear=1、0..1 projectionを確認</li>
+<li>cubeが丸ごと消える → front faceが逆。cullingを切ってindex windingとprojection Yを確認</li>
+<li>内側の面だけ見える → 全triangleのwinding、negative scale、front-face規約を確認</li>
+<li>面が点滅する → near/far精度、同一平面、depth targetのresize漏れを確認</li>
+<li>明るい面が逆 → light directionの意味とdotの符号、normalのspaceを合わせる</li>
+<li>non-uniform scaleで光が歪む → normalへinverse-transposeを使う</li>
+<li>backend間でedgeだけ1程度違う → tolerance対象。面の有無やsilhouette差はbugとして扱う</li>
+<li>resize後だけdepthが壊れる → colorだけでなくdepth targetもvisible sizeで再生成する</li>
+</ul>
+</article>
