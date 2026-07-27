@@ -41,6 +41,19 @@ public class SkiaBackendTests
 
 
     [Fact]
+    public void RasterizerContract_DoesNotExposeLegacyGpuApi()
+    {
+        System.Reflection.Assembly assembly = typeof(IRasterizer2D).Assembly;
+        Assert.Null(assembly.GetType("Luxel.Graphics.TwoD.Rasterizer2D"));
+        Assert.Null(assembly.GetType("Luxel.Graphics.TwoD.EncodedScene"));
+
+        System.Reflection.ConstructorInfo constructor = Assert.Single(typeof(RetainedCanvas).GetConstructors());
+        Assert.Empty(constructor.GetParameters());
+        Assert.DoesNotContain(typeof(RetainedCanvas).GetMethods(), method => method.Name == "Render");
+        Assert.DoesNotContain(typeof(RetainedCanvas).GetProperties(), property => property.Name == "Rasterizer");
+    }
+
+    [Fact]
     public void RasterizerContract_ReportsCapabilitiesAndRejectsWrongTarget()
     {
         using var rasterizer = new SkiaRasterizer2D();

@@ -59,26 +59,10 @@ public sealed class RetainedCanvas : IDisposable
         LastRebuildMicros = 0; TotalUploadBytes = 0;
     }
 
-    private GpuDeviceRasterizer2D? _legacyRasterizer;
-    private IRasterScene2D? _legacyScene;
-
     /// <summary>バックエンド非依存の保持型キャンバス。</summary>
     public RetainedCanvas() => Root = new UiNode(this);
 
-    /// <summary>旧GPU直結APIとの互換constructor。新規コードはparameterless constructorと
-    /// <see cref="IRasterizer2D.CreateScene(RetainedCanvas)"/>を使用する。</summary>
-    [Obsolete("Create a backend-neutral RetainedCanvas and call IRasterizer2D.CreateScene(canvas).") ]
-    public RetainedCanvas(GpuDeviceRasterizer2D rasterizer) : this()
-    {
-        _legacyRasterizer = rasterizer ?? throw new ArgumentNullException(nameof(rasterizer));
-        _legacyScene = rasterizer.CreateScene(this);
-    }
-
     public UiNode Root { get; }
-
-    [Obsolete("RetainedCanvas is backend-neutral. Pass GPU services explicitly through UiHost/UiBuildContext.")]
-    public GpuDeviceRasterizer2D Rasterizer
-        => _legacyRasterizer ?? throw new InvalidOperationException("This backend-neutral canvas has no attached GPU rasterizer.");
 
     /// <summary>親の下に子ノードを作る。</summary>
     public UiNode AddChild(UiNode parent)
@@ -113,17 +97,6 @@ public sealed class RetainedCanvas : IDisposable
     internal void MarkContentDirty(UiNode n) => _dirtyContent.Add(n);
     internal void MarkStructureDirty() => _dirtyStructure = true;
     internal void MarkOrderDirty() => _dirtyOrder = true;
-
-    /// <summary>dirty を反映し framebuffer へ描画する。
-    /// transparent=true で背景を透過 (premultiplied alpha)、既定は既存互換の白背景。</summary>
-    [Obsolete("Create an IRasterScene2D from a rasterizer and render it into a backend target.")]
-    public void Render(GpuCommandBuffer cmd, Camera2D camera, uint width, uint height, GpuBuffer framebuffer,
-        bool transparent = false)
-    {
-        if (_legacyScene is null)
-            throw new InvalidOperationException("This canvas is backend-neutral; create a scene with GpuDeviceRasterizer2D.CreateScene(canvas).");
-        _legacyScene.Render(camera, new GpuRasterTarget2D(cmd, framebuffer, width, height), transparent);
-    }
 
     /// <summary>最終 2D プリミティブ (SoA) のスナップショットを DevTools へ配信する。</summary>
     private void EmitPrimitives()
@@ -507,8 +480,6 @@ public sealed class RetainedCanvas : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        _legacyScene?.Dispose();
-        _legacyScene = null;
-        _legacyRasterizer = null;
+        _sinks.Clear();
     }
 }
