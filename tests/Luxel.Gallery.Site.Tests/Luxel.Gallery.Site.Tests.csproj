@@ -4,7 +4,7 @@
     <Using Include="Luxel.Mathematics" />
   </ItemGroup>
 
-  <PropertyGroup><IsPackable>false</IsPackable><TargetFramework>net10.0-windows</TargetFramework></PropertyGroup>
+  <PropertyGroup><IsPackable>false</IsPackable></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Luxel.Graphics\Luxel.Graphics.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />

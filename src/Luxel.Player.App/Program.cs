@@ -48,6 +48,12 @@ if (!Directory.Exists(folder))
     return 2;
 }
 
+if (!OperatingSystem.IsWindows())
+{
+    Console.Error.WriteLine("Luxel.Player.App native playback currently requires Windows. The --ship command is cross-platform.");
+    return 3;
+}
+
 int exit = 1;
 var thread = new Thread(() => exit = Run(folder, backend, frames)) { Name = "LuxelPlayer-Main" };
 thread.SetApartmentState(ApartmentState.STA);

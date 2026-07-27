@@ -54,6 +54,8 @@ public sealed unsafe class D3D12Backend : IGpuBackend
 
     public static D3D12Backend Create(bool enableDebug = true)
     {
+        if (!OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException("Direct3D 12 is available only on Windows.");
         var backend = new D3D12Backend();
         backend.Initialize(enableDebug);
         return backend;

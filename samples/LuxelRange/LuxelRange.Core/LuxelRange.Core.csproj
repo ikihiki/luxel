@@ -6,7 +6,7 @@
     Apps/Game/Range ストーリーとして play/golden を維持し、将来 exe が実時間プレイアブル化する (ToDo 20)。
   -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>

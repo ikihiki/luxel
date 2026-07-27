@@ -19,6 +19,8 @@
         <dependency id="Silk.NET.Vulkan.Extensions.KHR" version="[2.23.0]" />
         <dependency id="HarfBuzzSharp" version="[14.2.0]" />
         <dependency id="HarfBuzzSharp.NativeAssets.Linux" version="[14.2.0]" />
+        <dependency id="Vortice.Direct3D12" version="[3.8.3]" />
+        <dependency id="Vortice.DXGI" version="[3.8.3]" />
       </group>
     </dependencies>
   </metadata>
@@ -28,6 +30,7 @@
     <file src="..\Luxel.UI.Generators\bin\$configuration$\netstandard2.0\Luxel.UI.Generators.dll" target="analyzers\dotnet\cs" />
     <file src="buildTransitive\Luxel.UI.App.targets" target="buildTransitive" />
     <file src="..\..\shaders\compiled\raster2d_*.spv" target="contentFiles\any\any\shaders" />
+    <file src="..\..\shaders\compiled\raster2d_*.dxil" target="contentFiles\any\any\shaders" />
     <file src="..\..\assets\fonts\BIZUDGothic-Regular.ttf" target="contentFiles\any\any\assets\fonts" />
     <file src="..\..\assets\fonts\BIZUDGothic-OFL.txt" target="contentFiles\any\any\assets\fonts\OFL.txt" />
   </files>

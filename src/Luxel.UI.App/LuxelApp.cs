@@ -1,14 +1,16 @@
 using System.Diagnostics;
+using Luxel.Graphics.Abstraction;
+using Luxel.Graphics.DirectX12;
+using Luxel.Graphics.Vulkan;
 using Luxel.Platform.Abstraction;
 using Luxel.Platform.Silk;
-using Luxel.Graphics.TwoD;
+using Luxel.Platform.Windows;
 using Luxel.Typography;
 using Luxel.UI;
-using Luxel.Graphics.Vulkan;
 
 namespace Luxel.UI.App;
 
-/// <summary>One-call Linux/X11 host for a single Luxel widget tree.</summary>
+/// <summary>Environment-aware host for a Luxel widget tree.</summary>
 public static class LuxelApp
 {
     internal const string BundledFontRelativePath = "assets/fonts/BIZUDGothic-Regular.ttf";
@@ -18,47 +20,84 @@ public static class LuxelApp
         "shaders/raster2d_bounds.spv",
         "shaders/raster2d_bin.spv",
         "shaders/raster2d_fine.spv",
+        "shaders/raster2d_bounds.dxil",
+        "shaders/raster2d_bin.dxil",
+        "shaders/raster2d_fine.dxil",
     ];
 
-    /// <summary>Creates a builder for fixed-path screen registration.</summary>
+    /// <summary>Creates a builder whose window and GPU defaults follow the current environment.</summary>
     public static LuxelAppBuilder CreateBuilder(string[]? args = null) => new(args);
 
     public static void Run(Func<Widget> rootFactory, LuxelAppOptions? options = null)
+        => Run(rootFactory, options ?? new LuxelAppOptions(), new LuxelAppLifecycle());
+
+    internal static void Run(Func<Widget> rootFactory, LuxelAppOptions options, LuxelAppLifecycle lifecycle)
     {
         ArgumentNullException.ThrowIfNull(rootFactory);
-        options ??= new LuxelAppOptions();
+        ArgumentNullException.ThrowIfNull(lifecycle);
         ValidateOptions(options);
         ValidateAssets(AppContext.BaseDirectory, options.FontFactory is null);
 
-        Theme? previousTheme = null;
-        if (options.Theme is not null)
+        Exception? failure = null;
+        void RunCore()
         {
-            previousTheme = UiTheme.Current.Peek();
-            UiTheme.Current.Value = options.Theme;
+            try { new EnvironmentLuxelApp(rootFactory, options, lifecycle).Run(); }
+            catch (Exception error) { failure = error; }
         }
 
-        try
+        if (OperatingSystem.IsWindows() && Thread.CurrentThread.GetApartmentState() != ApartmentState.STA)
         {
-            Widget root = rootFactory() ?? throw new InvalidOperationException("The Luxel root widget factory returned null.");
-            new LinuxLuxelApp(root, options).Run();
+            var thread = new Thread(RunCore) { Name = options.Title };
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
         }
-        finally
+        else
         {
-            if (previousTheme is not null) UiTheme.Current.Value = previousTheme;
+            RunCore();
         }
+
+        if (failure is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
     }
+
+    internal static LuxelWindowBackend ResolveWindowBackend(LuxelWindowBackend backend)
+        => backend != LuxelWindowBackend.Auto ? backend
+            : OperatingSystem.IsWindows() ? LuxelWindowBackend.Win32
+            : OperatingSystem.IsLinux() ? LuxelWindowBackend.SilkX11
+            : throw new PlatformNotSupportedException("Luxel.UI.App currently supports Windows and Linux/X11.");
+
+    internal static LuxelGraphicsBackend ResolveGraphicsBackend(LuxelGraphicsBackend backend)
+        => backend != LuxelGraphicsBackend.Auto ? backend
+            : OperatingSystem.IsWindows() ? LuxelGraphicsBackend.Direct3D12
+            : OperatingSystem.IsLinux() ? LuxelGraphicsBackend.Vulkan
+            : throw new PlatformNotSupportedException("Luxel.UI.App currently supports Direct3D 12 on Windows and Vulkan on Linux.");
 
     internal static void ValidateOptions(LuxelAppOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
         if (string.IsNullOrWhiteSpace(options.Title))
             throw new ArgumentException("LuxelAppOptions.Title must not be empty.", nameof(options));
+        if (string.IsNullOrWhiteSpace(options.UiName))
+            throw new ArgumentException("LuxelAppOptions.UiName must not be empty.", nameof(options));
         if (options.Width <= 0)
             throw new ArgumentOutOfRangeException(nameof(options), options.Width, "LuxelAppOptions.Width must be greater than zero.");
         if (options.Height <= 0)
             throw new ArgumentOutOfRangeException(nameof(options), options.Height, "LuxelAppOptions.Height must be greater than zero.");
         if (options.RunFrames is <= 0)
             throw new ArgumentOutOfRangeException(nameof(options), options.RunFrames, "LuxelAppOptions.RunFrames must be null or greater than zero.");
+        if (options.RunDuration is { } duration && duration <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(options), options.RunDuration, "LuxelAppOptions.RunDuration must be null or greater than zero.");
+
+        LuxelWindowBackend window = ResolveWindowBackend(options.WindowBackend);
+        LuxelGraphicsBackend graphics = ResolveGraphicsBackend(options.GraphicsBackend);
+        if (window == LuxelWindowBackend.Win32 && !OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException("The Win32 window backend is only available on Windows.");
+        if (window == LuxelWindowBackend.SilkX11 && !OperatingSystem.IsLinux())
+            throw new PlatformNotSupportedException("The Silk.NET X11 window backend is only available on Linux.");
+        if (graphics == LuxelGraphicsBackend.Direct3D12 && !OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException("Direct3D 12 is only available on Windows.");
+        if (window == LuxelWindowBackend.SilkX11 && graphics != LuxelGraphicsBackend.Vulkan)
+            throw new PlatformNotSupportedException("The Silk.NET X11 window backend currently requires Vulkan.");
     }
 
     internal static void ValidateAssets(string baseDirectory, bool requireBundledFont)
@@ -92,151 +131,129 @@ public static class LuxelApp
         => new($"Luxel.UI.App required asset '{relativePath}' was not found at '{resolvedPath}'. {remediation}", resolvedPath);
 }
 
-internal sealed class LinuxLuxelApp
+internal sealed class EnvironmentLuxelApp
 {
-    private readonly Widget _root;
+    private readonly Func<Widget> _rootFactory;
     private readonly LuxelAppOptions _options;
+    private readonly LuxelAppLifecycle _lifecycle;
 
-    public LinuxLuxelApp(Widget root, LuxelAppOptions options)
+    public EnvironmentLuxelApp(Func<Widget> rootFactory, LuxelAppOptions options, LuxelAppLifecycle lifecycle)
     {
-        _root = root;
+        _rootFactory = rootFactory;
         _options = options;
+        _lifecycle = lifecycle;
     }
 
     public void Run()
     {
-        _options.Diagnostic?.Invoke("Creating Silk.NET X11 window.");
-        using var windows = new WindowSystem(SilkWindowBackend.Create());
-        using var clipboard = new Clipboard(SilkWindowBackend.CreateClipboardBackend());
-        PlatformClipboard.Current = clipboard;
-        Window window = windows.CreateWindow(new WindowDesc(_options.Title, _options.Width, _options.Height));
+        LuxelWindowBackend windowBackend = LuxelApp.ResolveWindowBackend(_options.WindowBackend);
+        LuxelGraphicsBackend graphicsBackend = LuxelApp.ResolveGraphicsBackend(_options.GraphicsBackend);
+        _options.Diagnostic?.Invoke($"Using {windowBackend} windowing with {graphicsBackend} graphics.");
 
-        IVulkanWindowSurface provider = window.GetFeature<IVulkanWindowSurface>()
-            ?? throw new PlatformNotSupportedException("The Silk window did not provide a Vulkan surface. Luxel.UI.App requires Linux/X11 Vulkan presentation.");
-
-        _options.Diagnostic?.Invoke("Creating Vulkan device and swapchain.");
-        using var device = new GpuDevice(VulkanBackend.Create(new VulkanBackendOptions
+        Theme? previousTheme = null;
+        if (_options.Theme is not null)
         {
-            EnableValidation = _options.EnableValidation,
-            Presentation = VulkanPresentationMode.Window,
-            WindowSurface = provider,
-        }));
-        using GpuSurface surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
-        using var rasterizer = new GpuDeviceRasterizer2D(device);
-        using var canvas = new RetainedCanvas();
-        using IRasterScene2D rasterScene = rasterizer.CreateScene(canvas);
-        using VectorFont font = _options.FontFactory?.Invoke()
-            ?? LuxelApp.LoadBundledFont(AppContext.BaseDirectory);
-        if (font is null)
-            throw new InvalidOperationException("LuxelAppOptions.FontFactory returned null.");
+            previousTheme = UiTheme.Current.Peek();
+            UiTheme.Current.Value = _options.Theme;
+        }
 
-        var theme = new Signal<Theme>(_options.Theme ?? Theme.Light);
-        using var host = new UiHost(canvas, font, Math.Max(1, window.Width), Math.Max(1, window.Height), theme, rasterizer);
-        host.SetRoot(_root);
-        WireInput(window, host);
-
-        GpuBuffer? framebuffer = null;
-        int width = Math.Max(0, window.Width);
-        int height = Math.Max(0, window.Height);
-        int stride = 0;
-        bool resizePending = true;
-        window.Resized += (w, h) => { width = Math.Max(0, w); height = Math.Max(0, h); resizePending = true; };
-
+        using var windows = new WindowSystem(CreateWindowBackend(windowBackend));
+        using var clipboard = new Clipboard(CreateClipboardBackend(windowBackend));
+        PlatformClipboard.Current = clipboard;
+        Window? bootstrapWindow = null;
         try
         {
-            var stopwatch = Stopwatch.StartNew();
-            double previous = stopwatch.Elapsed.TotalSeconds;
-            int renderedFrames = 0;
-            while (windows.Pump())
+            var desc = new WindowDesc(_options.Title, _options.Width, _options.Height);
+            IGpuBackend backend;
+            if (windowBackend == LuxelWindowBackend.SilkX11)
             {
-                if (resizePending)
+                bootstrapWindow = windows.CreateWindow(desc);
+                IVulkanWindowSurface provider = bootstrapWindow.GetFeature<IVulkanWindowSurface>()
+                    ?? throw new PlatformNotSupportedException("The Silk window did not provide a Vulkan surface.");
+                backend = VulkanBackend.Create(new VulkanBackendOptions
                 {
-                    device.MainQueue.WaitIdle();
-                    surface.Resize((uint)width, (uint)height);
-                    framebuffer?.Dispose();
-                    framebuffer = null;
-                    stride = 0;
-                    if (width > 0 && height > 0)
-                    {
-                        stride = Align(width, 64);
-                        framebuffer = device.Malloc(checked((ulong)stride * (uint)height * 4), GpuMemoryKind.HostMapped);
-                        host.Resize(width, height);
-                    }
-                    resizePending = false;
-                }
-
-                if (width == 0 || height == 0 || framebuffer is null)
-                {
-                    Thread.Sleep(10);
-                    continue;
-                }
-
-                double now = stopwatch.Elapsed.TotalSeconds;
-                float dt = _options.RunFrames.HasValue ? 1f / 60f : (float)Math.Min(0.1, now - previous);
-                previous = now;
-                host.Tick(dt);
-                using (GpuCommandBuffer command = device.MainQueue.StartCommandRecording())
-                {
-                    rasterScene.Render(Camera2D.Pixels,
-                        new GpuRasterTarget2D(command, framebuffer, (uint)stride, (uint)height));
-                    command.Finish();
-                    device.MainQueue.SubmitAndWait(command);
-                }
-                surface.Present(framebuffer, (uint)stride, (uint)width, (uint)height);
-                host.EmitTree();
-                renderedFrames++;
-
-                if (_options.RunFrames is int limit && renderedFrames >= limit)
-                {
-                    window.Close();
-                    windows.Pump();
-                    break;
-                }
+                    EnableValidation = _options.EnableValidation,
+                    Presentation = VulkanPresentationMode.Window,
+                    WindowSurface = provider,
+                });
             }
-            _options.Diagnostic?.Invoke($"Luxel UI loop stopped after {renderedFrames} rendered frame(s).");
+            else
+            {
+                backend = graphicsBackend switch
+                {
+                    LuxelGraphicsBackend.Vulkan => VulkanBackend.Create(new VulkanBackendOptions
+                    {
+                        EnableValidation = _options.EnableValidation,
+                        Presentation = VulkanPresentationMode.Win32,
+                    }),
+                    LuxelGraphicsBackend.Direct3D12 => D3D12Backend.Create(),
+                    _ => throw new UnreachableException(),
+                };
+            }
+
+            using var device = new GpuDevice(backend);
+            using VectorFont font = _options.FontFactory?.Invoke()
+                ?? LuxelApp.LoadBundledFont(AppContext.BaseDirectory);
+            if (font is null) throw new InvalidOperationException("LuxelAppOptions.FontFactory returned null.");
+            using var manager = new WindowManager(device, font, windows);
+            var runtime = new LuxelAppRuntime(device, font, windows, manager);
+            try
+            {
+                _lifecycle.Configure?.Invoke(runtime);
+                Widget root = _rootFactory() ?? throw new InvalidOperationException("The Luxel root widget factory returned null.");
+                runtime.MainWindow = bootstrapWindow is null
+                    ? manager.CreateUiWindow(desc, _options.UiName, () => root)
+                    : manager.AttachUiWindow(bootstrapWindow, _options.UiName, () => root);
+                bootstrapWindow = null; // WindowHost owns it now.
+                _lifecycle.Started?.Invoke(runtime);
+                RunLoop(runtime);
+            }
+            finally
+            {
+                runtime.DisposeOwned();
+            }
         }
         finally
         {
+            bootstrapWindow?.Dispose();
             if (ReferenceEquals(PlatformClipboard.Current, clipboard)) PlatformClipboard.Current = null;
-            device.MainQueue.WaitIdle();
-            framebuffer?.Dispose();
+            if (previousTheme is not null) UiTheme.Current.Value = previousTheme;
         }
     }
 
-    private static int Align(int value, int alignment) => checked((value + alignment - 1) / alignment * alignment);
-
-    private static void WireInput(Window window, UiHost host)
+    private void RunLoop(LuxelAppRuntime runtime)
     {
-        window.PointerMoved += input => host.PointerMove(input.X, input.Y, LuxelInput.MapModifiers(input.Modifiers));
-        window.PointerDown += input =>
+        var stopwatch = Stopwatch.StartNew();
+        double previous = stopwatch.Elapsed.TotalSeconds;
+        int frames = 0;
+        while (true)
         {
-            if (LuxelInput.TryMapButton(input.Button, out PointerButton button) && input.Button != WindowPointerButton.Right)
-                host.PointerDown(input.X, input.Y, button, LuxelInput.MapModifiers(input.Modifiers));
-        };
-        window.PointerUp += input =>
-        {
-            KeyModifiers modifiers = LuxelInput.MapModifiers(input.Modifiers);
-            if (input.Button == WindowPointerButton.Right)
-                host.ContextClick(input.X, input.Y, modifiers);
-            else if (LuxelInput.TryMapButton(input.Button, out PointerButton button))
-                host.PointerUp(input.X, input.Y, button, modifiers);
-        };
-        window.Wheel += input => host.Wheel(input.X, input.Y, input.Delta * 40f);
-        window.KeyDown += input =>
-        {
-            Key key = LuxelInput.MapKey(input.Key);
-            if (key != Key.None)
-            {
-                KeyModifiers modifiers = LuxelInput.MapModifiers(input.Modifiers);
-                host.KeyDown(key,
-                    (modifiers & KeyModifiers.Shift) != 0,
-                    (modifiers & KeyModifiers.Ctrl) != 0,
-                    (modifiers & KeyModifiers.Alt) != 0);
-            }
-        };
-        window.TextInput += host.Char;
-        window.CursorQuery = () => host.CurrentCursor;
+            double now = stopwatch.Elapsed.TotalSeconds;
+            float dt = _options.RunFrames.HasValue ? 1f / 60f : (float)Math.Min(0.1, now - previous);
+            previous = now;
+            if (!runtime.WindowManager.RunFrame(dt)) break;
+            _lifecycle.Frame?.Invoke(runtime, dt);
+            frames++;
+            if (_options.RunFrames is int limit && frames >= limit) break;
+            if (_options.RunDuration is { } duration && stopwatch.Elapsed >= duration) break;
+            if (!runtime.WindowManager.AnyRendered) Thread.Sleep(8);
+        }
+        _options.Diagnostic?.Invoke($"Luxel UI loop stopped after {frames} rendered frame(s).");
     }
+
+    private static IWindowBackend CreateWindowBackend(LuxelWindowBackend backend) => backend switch
+    {
+        LuxelWindowBackend.Win32 => Win32WindowBackend.Create(),
+        LuxelWindowBackend.SilkX11 => SilkWindowBackend.Create(),
+        _ => throw new UnreachableException(),
+    };
+
+    private static IClipboardBackend CreateClipboardBackend(LuxelWindowBackend backend) => backend switch
+    {
+        LuxelWindowBackend.Win32 => Win32WindowBackend.CreateClipboardBackend(),
+        LuxelWindowBackend.SilkX11 => SilkWindowBackend.CreateClipboardBackend(),
+        _ => throw new UnreachableException(),
+    };
 }
 
 internal static class LuxelInput

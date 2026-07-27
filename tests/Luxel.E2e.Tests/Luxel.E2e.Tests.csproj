@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
-    <!-- Gallery (net10.0-windows) を参照するため合わせる -->
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <!-- Gallery (net10.0) を参照するため合わせる -->
+
   </PropertyGroup>
 
   <ItemGroup>

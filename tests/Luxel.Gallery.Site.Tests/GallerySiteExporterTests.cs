@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Security.Cryptography;
 using Luxel;
 using Luxel.Controls;
@@ -60,6 +61,83 @@ public sealed class GallerySiteExporterTests
         DocEmbed typeEmbed = Assert.Single(type.Embeds);
         Assert.Equal(DocEmbedKind.TypeApiTable, typeEmbed.Kind);
         Assert.Equal(typeName, typeEmbed.Reference);
+    }
+
+    [Fact]
+    public void Story_source_html_is_collapsed_highlightable_and_escaped()
+    {
+        string html = GallerySiteExporter.StorySourceHtml("[Story(\"X\")]\nstatic Widget X() => Text(\"<tag> & value\");");
+
+        Assert.Contains("<details class=\"story-source\">", html);
+        Assert.Contains("<summary>Story source</summary>", html);
+        Assert.Contains("<code class=\"language-csharp\">", html);
+        Assert.Contains("&lt;tag&gt; &amp; value", html);
+        Assert.DoesNotContain(" open", html);
+        Assert.Equal("", GallerySiteExporter.StorySourceHtml(null));
+        Assert.Equal("", GallerySiteExporter.StorySourceHtml("   "));
+    }
+
+    [Fact]
+    public void Export_continues_after_document_failure_and_writes_later_pages()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-errors-" + Guid.NewGuid().ToString("N"));
+        var broken = new StoryInfo("Test/Broken<Docs>", 400, 240, null, _ =>
+            MarkdownDoc.Create(new Signal<string>("# Broken\n\n[Missing](story:Missing/<tag>)"),
+                () => Theme.Light, 400, 240));
+        var healthy = new StoryInfo("Test/Healthy", 200, 100, null, _ => Luxel.Controls.Kit.Text("healthy"),
+            RealWindowOnly: true);
+
+        try
+        {
+            using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
+            using var rasterizer = new Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D();
+            using var host = new GalleryHost(rasterizer, font);
+
+            SiteExportReport report = GallerySiteExporter.Export(host, [broken, healthy], output, root);
+
+            Assert.Equal(2, report.Stories);
+            Assert.Equal(1, report.Errors);
+            Assert.True(File.Exists(Path.Combine(output, "index.html")));
+            string brokenHtml = File.ReadAllText(Path.Combine(output, "stories", "test-broken-docs.html"));
+            string healthyHtml = File.ReadAllText(Path.Combine(output, "stories", "test-healthy.html"));
+            Assert.Contains("capture-error", brokenHtml);
+            Assert.Contains("Test/Broken&lt;Docs&gt;", brokenHtml);
+            Assert.Contains("healthy", healthyHtml, StringComparison.OrdinalIgnoreCase);
+
+            SiteStory[] manifest = JsonSerializer.Deserialize<SiteStory[]>(
+                File.ReadAllText(Path.Combine(output, "manifest.json")),
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })!;
+            Assert.Equal(2, manifest.Length);
+            Assert.Equal("error", manifest[0].Status);
+            Assert.Equal("unavailable", manifest[1].Status);
+            Assert.Contains("Test/Broken<Docs>", manifest[0].SearchText);
+            GallerySiteExporter.Validate(output);
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+        }
+    }
+
+    [Fact]
+    public void Native_story_source_pane_uses_read_only_highlighted_editor_or_placeholder()
+    {
+        const string source = "[Story(\"Test/Source\")]\npublic static Widget Source() => Text(\"hello\");";
+        var story = new StoryInfo("Test/Source", 100, 100, null,
+            _ => Luxel.Controls.Kit.Text("hello"), Source: source);
+
+        TextEditorView editor = Assert.IsType<TextEditorView>(GalleryApp.BuildStorySourcePane(story));
+        Assert.True(editor.ReadOnly);
+        Assert.True(editor.Fill);
+        Assert.True(editor.ShowLineNumbers);
+        Assert.NotNull(editor.EditorFont);
+        Assert.Contains(editor.Providers, provider => provider is SyntaxHighlightProvider);
+        Assert.Equal(source, editor.Value.Get().Value);
+
+        Text placeholder = Assert.IsType<Text>(GalleryApp.BuildStorySourcePane(
+            new StoryInfo("Test/Generated", 0, 0, null, _ => Luxel.Controls.Kit.Text("generated"))));
+        Assert.Contains("Source unavailable", placeholder.DebugDetail, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -148,6 +226,9 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("language-powershell", html);
             string imageFragment = File.ReadAllText(Path.Combine(a, "stories", "controls-button-intents.html"));
             Assert.Contains("src=\"images/controls-button-intents.png\"", imageFragment);
+            Assert.Contains("<details class=\"story-source\">", imageFragment);
+            Assert.Contains("<code class=\"language-csharp\">", imageFragment);
+            Assert.Contains("[Story", imageFragment);
             Assert.DoesNotContain("src=\"../images/", imageFragment);
             Assert.DoesNotContain("language-luxel-ui", html);
             Assert.DoesNotContain("href=\"luxel-ui:", html);
@@ -349,8 +430,8 @@ public sealed class GallerySiteExporterTests
 
         StoryInfo authoring = StoryRegistry.Find("Docs/Authoring")
             ?? throw new InvalidOperationException("Docs/Authoring is missing.");
-        Assert.Contains("[Story] method本体", authoring.Source);
-        Assert.Contains("完全なsource", authoring.Source);
+        Assert.Contains("完全な `[Story]` method宣言", authoring.Source);
+        Assert.Contains("下部の **Source** タブ", authoring.Source);
         Assert.Contains("SampleSource(path, region)", authoring.Source);
     }
 
@@ -434,8 +515,10 @@ public sealed class GallerySiteExporterTests
             using var host = new GalleryHost(device, font);
             GallerySiteExporter.Export(host, [story], output, root);
             string html = string.Join('\n', Directory.GetFiles(output, "*.html", SearchOption.AllDirectories).Select(File.ReadAllText));
-            Assert.DoesNotContain("```mermaid", html);
-            Assert.Contains("Static mermaid capture", html);
+            string renderedBody = html[..html.IndexOf("<details class=\"story-source\">", StringComparison.Ordinal)];
+            Assert.DoesNotContain("```mermaid", renderedBody);
+            Assert.Contains("Static mermaid capture", renderedBody);
+            Assert.Contains("```mermaid", html); // generated method source remains visible in the collapsed Source section
             Assert.NotEmpty(Directory.GetFiles(Path.Combine(output, "images"), "mermaid-*.png"));
         }
         finally

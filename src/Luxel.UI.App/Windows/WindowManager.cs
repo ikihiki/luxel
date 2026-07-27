@@ -57,10 +57,15 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
     /// <summary>ウィンドウを生成し中身を結びつける。content の UI は <see cref="UiRegistry"/> へ登録される。
     /// ポンプスレッド (app スレッド) から呼ぶ。</summary>
     public WindowHost CreateWindow(in WindowDesc desc, IWindowContent content)
+        => AttachWindow(_windows.CreateWindow(desc), content);
+
+    /// <summary>Attaches content to a window created before the GPU device (required by portable Vulkan bootstrap).</summary>
+    public WindowHost AttachWindow(Window window, IWindowContent content)
     {
-        Window win = _windows.CreateWindow(desc);
+        ArgumentNullException.ThrowIfNull(window);
+        ArgumentNullException.ThrowIfNull(content);
         // 論理サイズ同期は WindowHost ctor が行う (物理クライアント ÷ DPI スケール)
-        var host = new WindowHost(_nextId++, _device, win, content);
+        var host = new WindowHost(_nextId++, _device, window, content);
         foreach ((string name, UiHost ui) in content.Uis) UiRegistry.Register(name, ui);
         lock (_gate) _hosts.Add(host);
         return host;
@@ -70,6 +75,11 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
     /// <paramref name="theme"/> でこの UI 島のテーマ signal を指定できる (省略 = プロセス既定)。</summary>
     public WindowHost CreateUiWindow(in WindowDesc desc, string uiName, Func<Widget> build, Signal<Theme>? theme = null)
         => CreateWindow(desc, new UiContent(_raster, _font, uiName, desc.Width, desc.Height, build(), theme));
+
+    /// <summary>Attaches a standard UI content island to a pre-created window.</summary>
+    public WindowHost AttachUiWindow(Window window, string uiName, Func<Widget> build, Signal<Theme>? theme = null)
+        => AttachWindow(window, new UiContent(_raster, _font, uiName,
+            Math.Max(1, window.Width), Math.Max(1, window.Height), build(), theme));
 
     /// <summary>ウィンドウを持たない UI を登録する (tree/入力/ui.set の対象になるが描画はされない)。
     /// 「ウィンドウ 1 : UI 1」ではないことの明示 — HUD 等をオフスクリーンで組み立てておく用途。</summary>
@@ -179,16 +189,17 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
             w.WriteStartArray();
             foreach (WindowHost h in hosts)
             {
+                WindowRemoteInfo info = h.RemoteInfo;
                 w.WriteStartObject();
                 w.WriteNumber("id", h.Id);
-                w.WriteString("title", h.Window.Title);
-                w.WriteNumber("x", h.Window.X);
-                w.WriteNumber("y", h.Window.Y);
-                w.WriteNumber("w", h.Window.Width);
-                w.WriteNumber("h", h.Window.Height);
-                w.WriteNumber("scale", h.Window.Scale);   // DPI (物理 px = 論理 px × scale)
-                w.WriteBoolean("visible", h.Window.IsVisible);
-                w.WriteBoolean("focused", h.Window.IsFocused);
+                w.WriteString("title", info.Title);
+                w.WriteNumber("x", info.X);
+                w.WriteNumber("y", info.Y);
+                w.WriteNumber("w", info.Width);
+                w.WriteNumber("h", info.Height);
+                w.WriteNumber("scale", info.Scale);   // DPI (物理 px = 論理 px × scale)
+                w.WriteBoolean("visible", info.Visible);
+                w.WriteBoolean("focused", info.Focused);
                 w.WriteStartArray("uis");   // このウィンドウに載っている UI 名 (0..N — 1:1 ではない)
                 foreach ((string name, UiHost _) in h.Content.Uis) w.WriteStringValue(name);
                 w.WriteEndArray();

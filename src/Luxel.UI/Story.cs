@@ -277,8 +277,8 @@ public sealed class StoryKnob
 /// <paramref name="Width"/>/<paramref name="Height"/> が 0,0 = fill (ホストがプレビュー領域
 /// いっぱいに表示する — 属性で両方省略したストーリー)。
 /// <paramref name="Order"/> は表示順 (小さいほど先頭、既定 1000 = アルファベット順)。
-/// <paramref name="Source"/> は [Story] メソッドの C# ソース (storysource — docs の「コードを見る」用、
-/// ジェネレーターが焼き込む)。<paramref name="RealWindowOnly"/> は snap 回帰の対象外 (実窓専用)。</summary>
+/// <paramref name="Source"/> は属性・signature・本体を含む [Story] メソッド宣言の C# ソース
+/// (storysource — GalleryのSourceビュー／docsの「コードを見る」用、ジェネレーターが焼き込む)。<paramref name="RealWindowOnly"/> は snap 回帰の対象外 (実窓専用)。</summary>
 public sealed record StoryInfo(string Path, int Width, int Height, string? Theme, Func<StoryContext, Widget> Build,
                                int Order = 1000, string? Source = null, bool RealWindowOnly = false)
 {
@@ -294,6 +294,7 @@ public static class StoryRegistry
     private static readonly object Gate = new();
     private static readonly List<StoryInfo> Stories = new();
     private static readonly List<Action> Providers = new();
+    private static readonly HashSet<Action> FailedProviders = new();
     private static readonly Dictionary<string, string> Aliases = new(StringComparer.Ordinal);
 
     public static void Register(StoryInfo story)
@@ -315,8 +316,16 @@ public static class StoryRegistry
     private static void EnsureProviders()
     {
         Action[] providers;
-        lock (Gate) providers = Providers.ToArray();
-        foreach (Action provider in providers) provider();
+        lock (Gate) providers = Providers.Where(provider => !FailedProviders.Contains(provider)).ToArray();
+        foreach (Action provider in providers)
+        {
+            try { provider(); }
+            catch (Exception error)
+            {
+                lock (Gate) FailedProviders.Add(provider);
+                Console.Error.WriteLine($"[story-registry] provider failed and was disabled: {error}");
+            }
+        }
     }
 
     /// <summary>表示順のスナップショット: コンポーネントは「所属ストーリーの最小 Order → 名前」、

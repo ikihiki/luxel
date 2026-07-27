@@ -27,12 +27,19 @@ public sealed partial class SurfaceView : Widget, IDisposable
     private GpuDevice? _device;
     private GpuBuffer? _fb;
     private Widget? _pendingRoot;
+    private Exception? _contentError;
     private bool _rendered;
     private float _scale = 1f;            // 親 UI の DPI スケール — 子 fb は物理解像度 (_pw×_ph) で持つ
     private uint _pw, _ph;
 
     /// <summary>子 UiHost (実体化後に有効)。状態強制やツリー検査はこれ経由で行う。</summary>
     public UiHost? Child { get; private set; }
+
+    /// <summary>子の Tick/描画が失敗したときに一度だけ通知する。次の <see cref="SetContent"/> で復旧する。</summary>
+    public Action<Exception>? ContentError { get; set; }
+
+    /// <summary>現在の子コンテンツで最後に発生したエラー。新しいコンテンツ設定時にクリアされる。</summary>
+    public Exception? LastContentError => _contentError;
 
     /// <summary>true の間、子はアニメ時間を進めない (dt=0 で Tick) — フレームステップデバッグ用。
     /// 入力と描画は生きたまま、アニメ/物理/Tick 駆動だけが凍る。</summary>
@@ -52,6 +59,9 @@ public sealed partial class SurfaceView : Widget, IDisposable
     /// (framebuffer はサーフェスサイズのまま — 論理サイズが小さい場合は左上に配置され余白は透過)。</summary>
     public void SetContent(Widget root, float? logicalWidth = null, float? logicalHeight = null)
     {
+        ArgumentNullException.ThrowIfNull(root);
+        _contentError = null;
+        _rendered = false;
         _pendingRoot = root;
         if (logicalWidth is float lw) _pendingW = MathF.Min(lw, W1);
         if (logicalHeight is float lh) _pendingH = MathF.Min(lh, H1);
@@ -125,11 +135,27 @@ public sealed partial class SurfaceView : Widget, IDisposable
                 childDt = _pendingStep;
                 _pendingStep = 0;
             }
-            Child!.Tick(childDt);
-            if (!_rendered || _childCanvas!.HasPendingChanges)
+            if (_contentError is not null) return false;
+            try
             {
-                RenderChild();
-                node.Touch();   // 親 image ノードを dirty に (親の再合成を促す)
+                Child!.Tick(childDt);
+                if (!_rendered || _childCanvas!.HasPendingChanges)
+                {
+                    RenderChild();
+                    node.Touch();   // 親 image ノードを dirty に (親の再合成を促す)
+                }
+            }
+            catch (Exception error)
+            {
+                // この infrastructure animation を throw させると親 UiHost が削除し、次の story も永久に
+                // Tick/描画されなくなる。現在の子だけを fault 状態にして SetContent による復旧を待つ。
+                _contentError = error;
+                Console.Error.WriteLine($"[surface] child content error: {error}");
+                try { ContentError?.Invoke(error); }
+                catch (Exception callbackError)
+                {
+                    Console.Error.WriteLine($"[surface] content error callback failed: {callbackError}");
+                }
             }
             return false;   // 常駐
         });
@@ -179,5 +205,6 @@ public sealed partial class SurfaceView : Widget, IDisposable
         _childCanvas?.Dispose();
         _fb?.Dispose();
         Child = null; _rasterScene = null; _childCanvas = null; _fb = null; _rasterizer = null;
+        _contentError = null;
     }
 }

@@ -1,4 +1,4 @@
-﻿using Luxel.Audio;
+using Luxel.Audio;
 using Vortice.Multimedia;
 using Vortice.XAudio2;
 
@@ -24,6 +24,8 @@ public sealed class XAudio2Backend : IAudioBackend
 
     public void Initialize()
     {
+        if (!OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException("XAudio2 is available only on Windows.");
         if (_xa2 != null) return;
         _xa2 = XAudio2.XAudio2Create();
         _master = _xa2.CreateMasteringVoice();

@@ -10,12 +10,12 @@ using Luxel.Typography;
 using Luxel.UI;
 
 // 使い方:
-//   dotnet run --project src/Luxel.Gallery -- <backend> [port] [seconds]   ネイティブ app (実ウィンドウ, 既定 port=5180, 常駐)
+//   dotnet run --project src/Luxel.Gallery -- [auto|vk|dx] [port] [seconds]   ネイティブ app (環境自動検出, 既定 port=5180, 常駐)
 //   dotnet run --project src/Luxel.Gallery -- <backend> e2e [--update]     play + golden 回帰 (offscreen)
-//   backend: vk | dx
+//   backend: auto (既定) | vk | dx
 // リモート検証 (AI): DevTools — GET /windows /winframe?id=1 /trees, POST /cmd
 //   (UI 入力は {op, ui:"gallery"|"story", x, y}、ウィンドウ操作は window.*)
-string backend = (args.Length > 0 ? args[0] : "vk").ToLowerInvariant();
+string backend = (args.Length > 0 ? args[0] : "auto").ToLowerInvariant();
 
 string rasterizerBackend = args.SkipWhile(a => a != "--rasterizer").Skip(1).FirstOrDefault()?.ToLowerInvariant() ?? "gpu";
 if (rasterizerBackend is not ("gpu" or "skia"))
@@ -23,6 +23,8 @@ if (rasterizerBackend is not ("gpu" or "skia"))
 
 GpuDevice CreateDevice() => backend switch
 {
+    "auto" when OperatingSystem.IsWindows() => new GpuDevice(Luxel.Graphics.DirectX12.D3D12Backend.Create()),
+    "auto" => new GpuDevice(Luxel.Graphics.Vulkan.VulkanBackend.Create()),
     "vk" or "vulkan" => new GpuDevice(Luxel.Graphics.Vulkan.VulkanBackend.Create()),
     "dx" or "d3d12" => new GpuDevice(Luxel.Graphics.DirectX12.D3D12Backend.Create()),
     _ => throw new ArgumentException($"未知のバックエンド: {backend} (vk / dx)"),
@@ -71,70 +73,60 @@ if (args.Length > 2 && args[1] == "bench")
 int port = args.Length > 1 && int.TryParse(args[1], out int p) ? p : 5180;
 int seconds = args.Length > 2 && int.TryParse(args[2], out int s) ? s : 0;   // 0 = 常駐
 
-int exit = 1;
-var t = new Thread(() => exit = RunApp(CreateDevice, port, seconds));
-t.SetApartmentState(ApartmentState.STA);   // 実ウィンドウ/TSF は STA
-t.Start();
-t.Join();
-return exit;
-
-static int RunApp(Func<GpuDevice> createDevice, int port, int seconds)
+var gallery = new GalleryApp();
+bool storyRegistered = false;
+LuxelAppBuilder builder = LuxelApp.CreateBuilder(args);
+builder.Options.Title = "Luxel Gallery";
+builder.Options.UiName = "gallery";
+builder.Options.Width = 1280;
+builder.Options.Height = 840;
+builder.Options.Theme = Theme.Light.Compact();
+builder.Options.FontFactory = () => GalleryFonts.Load(GalleryFonts.Regular);
+builder.Options.RunDuration = seconds > 0 ? TimeSpan.FromSeconds(seconds) : null;
+builder.Options.GraphicsBackend = backend switch
 {
-    using GpuDevice device = createDevice();
-    Console.WriteLine($"=== Luxel.Gallery app (device: {device.Name}) ===");
-    UiTheme.Current.Value = Theme.Light.Compact();   // ギャラリーは高密度テーマ (snap は既定テーマのまま)
-    using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);   // 実窓も同梱フォント (golden と字形一致)
-    using var windows = new WindowSystem(Win32WindowBackend.Create());
-    using var clipboard = new Clipboard(Win32WindowBackend.CreateClipboardBackend());
-    PlatformClipboard.Current = clipboard;
-
-    var cmds = new EngineCommands();
-    using var listener = new DevToolsListener(cmds);
-    using var manager = new WindowManager(device, font, windows, cmds);
-    using var app = new GalleryApp { HostGpu = (device, font) };   // 実窓専用ストーリーの GPU 窓口
-
-    WindowHost galleryWin = manager.CreateUiWindow(new Luxel.Platform.Abstraction.WindowDesc("Luxel Gallery", 1280, 840), "gallery", app.BuildRoot);
-    // アプリ全域ショートカット (AP-M5): フォーカス中コントロールが消費しないキーだけ届く
-    if (galleryWin.Content is UiContent gc)
-        gc.Host.RegisterShortcut(new KeyGesture(Key.D, Ctrl: true), app.ToggleTheme);
-    if (StoryRegistry.All.Count > 0) app.Select(StoryRegistry.All[0]);   // 初期選択
-    cmds.Register("story.select", a =>
+    "auto" => LuxelGraphicsBackend.Auto,
+    "vk" or "vulkan" => LuxelGraphicsBackend.Vulkan,
+    "dx" or "d3d12" => LuxelGraphicsBackend.Direct3D12,
+    _ => throw new ArgumentException($"未知のバックエンド: {backend} (auto / vk / dx)"),
+};
+builder.ConfigureRuntime(runtime =>
+{
+    runtime.Own(gallery);
+    gallery.HostGpu = (runtime.Device, runtime.Font);
+});
+builder.OnStarted(runtime =>
+{
+    Console.WriteLine($"=== Luxel.Gallery app (device: {runtime.Device.Name}) ===");
+    if (runtime.MainWindow.Content is UiContent content)
+        content.Host.RegisterShortcut(new KeyGesture(Key.D, Ctrl: true), gallery.ToggleTheme);
+    if (StoryRegistry.All.Count > 0) gallery.Select(StoryRegistry.All[0]);
+    runtime.Commands.Register("story.select", value =>
     {
-        if (a is System.Text.Json.JsonElement el && el.TryGetProperty("id", out var id))
-            app.SelectByPath(id.GetString() ?? "");
+        if (value is System.Text.Json.JsonElement element && element.TryGetProperty("id", out var id))
+            gallery.SelectByPath(id.GetString() ?? "");
     });
 
-    using var server = new DebugServer(listener, port, windows: manager);
+    DevToolsListener listener = runtime.Own(new DevToolsListener(runtime.Commands));
+    var server = runtime.Own(new DebugServer(listener, port, windows: runtime.WindowManager));
     server.Start();
     Console.WriteLine($"Gallery URL: {server.Url} (stories: {StoryRegistry.All.Count})");
-
-    var sw = System.Diagnostics.Stopwatch.StartNew();
-    long last = 0;
-    bool storyRegistered = false;
-    while (true)
+});
+builder.OnFrame((runtime, _) =>
+{
+    gallery.Update();
+    if (runtime.MainWindow.Content is not UiContent content) return;
+    gallery.SetWindowSize(content.Host.Width, content.Host.Height);
+    if (gallery.ConsumeDirty()) content.Host.SetRoot(gallery.BuildRoot());
+    if (!storyRegistered && gallery.StoryHost is { } storyHost)
     {
-        long now = sw.ElapsedMilliseconds;
-        float dt = Math.Min(0.1f, (now - last) / 1000f);
-        last = now;
-        if (!manager.RunFrame(dt)) break;
-        app.Update();   // Log パネル同期
-        // ウィンドウの論理サイズを chrome へ同期 — リサイズで表示範囲が追従する (変化時のみ dirty)
-        if (manager.Hosts.Count > 0 && manager.Hosts[0].Content is UiContent gsz)
-            app.SetWindowSize(gsz.Host.Width, gsz.Host.Height);
-        // ストーリー選択/リサイズで chrome を再構築 (SurfaceView/story は生存)
-        if (app.ConsumeDirty() && manager.Hosts.Count > 0 && manager.Hosts[0].Content is UiContent uc)
-            uc.Host.SetRoot(app.BuildRoot());
-        // プレビューの子 UiHost はウィンドウ実体化後に生まれるので、できたら "story" として登録
-        if (!storyRegistered && app.StoryHost is { } sh)
-        {
-            manager.UiRegistry.Register("story", sh);
-            storyRegistered = true;
-        }
-        if (seconds > 0 && sw.Elapsed.TotalSeconds > seconds) break;
-        // 描画した周回は present (vsync) が既にループを律速している — スリープを足すと
-        // 入力レイテンシに直列加算されるので休まない。完全アイドルの周回だけ CPU を返す。
-        if (!manager.AnyRendered) Thread.Sleep(8);
+        runtime.WindowManager.UiRegistry.Register("story", storyHost);
+        storyRegistered = true;
     }
-    Console.WriteLine("gallery: shutting down");
-    return 0;
-}
+});
+
+LuxelUiApplication app = builder.Build();
+app.MapScreen("/", gallery.BuildRoot);
+app.Run();
+Console.WriteLine("gallery: shutting down");
+return 0;
