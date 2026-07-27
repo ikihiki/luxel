@@ -3,6 +3,8 @@
 // (Directory.Build.props で全プロジェクト有効)。
 using Luxel.UI;
 
+// Reference は再利用可能な src/Luxel.* ライブラリをすべて列挙する。
+// 実行ホスト (Gallery / Gallery.Site / Player.App) と source generator は対象外。
 // コア / GPU 抽象 + バックエンド
 [assembly: GenerateAssemblyApi("Luxel")]
 [assembly: GenerateAssemblyApi("Luxel.Diagnostics")]
@@ -16,6 +18,8 @@ using Luxel.UI;
 [assembly: GenerateAssemblyApi("Luxel.UI")]
 [assembly: GenerateAssemblyApi("Luxel.UI.Styling")]
 [assembly: GenerateAssemblyApi("Luxel.UI.Tailwind")]
+[assembly: GenerateAssemblyApi("Luxel.Controls")]
+[assembly: GenerateAssemblyApi("Luxel.UI.App")]
 // テキスト / ドキュメント
 [assembly: GenerateAssemblyApi("Luxel.Typography")]
 [assembly: GenerateAssemblyApi("Luxel.Document")]
@@ -27,6 +31,10 @@ using Luxel.UI;
 [assembly: GenerateAssemblyApi("Luxel.Animation.UI")]
 [assembly: GenerateAssemblyApi("Luxel.Animation.TwoD")]
 [assembly: GenerateAssemblyApi("Luxel.Animation.ThreeD")]
+[assembly: GenerateAssemblyApi("Luxel.Particles")]
+[assembly: GenerateAssemblyApi("Luxel.Particles.TwoD")]
+[assembly: GenerateAssemblyApi("Luxel.Particles.ThreeD")]
+[assembly: GenerateAssemblyApi("Luxel.Particles.UI")]
 // 3D / レンダーグラフ / アセット
 [assembly: GenerateAssemblyApi("Luxel.RenderGraph")]
 [assembly: GenerateAssemblyApi("Luxel.Ecs")]
@@ -36,6 +44,10 @@ using Luxel.UI;
 [assembly: GenerateAssemblyApi("Luxel.AssetsGpu")]
 [assembly: GenerateAssemblyApi("Luxel.AssetRuntime")]
 [assembly: GenerateAssemblyApi("Luxel.Gltf")]
+[assembly: GenerateAssemblyApi("Luxel.NodeGraph")]
+[assembly: GenerateAssemblyApi("Luxel.Physics.Gizmos")]
+[assembly: GenerateAssemblyApi("Luxel.SceneEdit")]
+[assembly: GenerateAssemblyApi("Luxel.Workbench")]
 // ランタイム
 [assembly: GenerateAssemblyApi("Luxel.Resources")]
 [assembly: GenerateAssemblyApi("Luxel.Imaging")]
@@ -46,6 +58,13 @@ using Luxel.UI;
 [assembly: GenerateAssemblyApi("Luxel.Platform.Abstraction")]
 [assembly: GenerateAssemblyApi("Luxel.Platform.Windows")]
 [assembly: GenerateAssemblyApi("Luxel.Platform.Silk")]
+[assembly: GenerateAssemblyApi("Luxel.Player")]
+[assembly: GenerateAssemblyApi("Luxel.Settings")]
+[assembly: GenerateAssemblyApi("Luxel.Scripting")]
+[assembly: GenerateAssemblyApi("Luxel.Scripting.Framework")]
+[assembly: GenerateAssemblyApi("Luxel.Strudel")]
+[assembly: GenerateAssemblyApi("Luxel.TwoD.Skia")]
 [assembly: GenerateAssemblyApi("Luxel.Framework")]
+[assembly: GenerateAssemblyApi("Luxel.Framework.DevTools")]
 [assembly: GenerateAssemblyApi("Luxel.Scene.UI")]
 [assembly: GenerateAssemblyApi("Luxel.DevTools")]

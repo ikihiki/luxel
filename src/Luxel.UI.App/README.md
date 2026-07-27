@@ -1,6 +1,6 @@
 # Luxel.UI.App
 
-A .NET 10 facade for creating Luxel UI applications. On Linux, the package uses Silk.NET windowing and Vulkan.
+A .NET 10 facade for creating Luxel UI applications. It owns UI-oriented window orchestration (`WindowManager`, `WindowHost`, `IWindowContent`, and `UiContent`) while platform backends remain in `Luxel.Platform.*`. On Linux, the package uses Silk.NET windowing and Vulkan.
 
 ```csharp
 #:package Luxel.UI.App@0.1.0

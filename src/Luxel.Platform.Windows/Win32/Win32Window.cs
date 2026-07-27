@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using Luxel.Platform.Abstraction;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -12,7 +12,7 @@ namespace Luxel.Platform.Windows;
 /// スレッドローカルを持たない (どのスレッドが何枚窓を持っても所有はインスタンスに閉じる)。
 /// メッセージポンプは呼び出しスレッドのキューを処理する (Win32 の意味論どおりスレッド所有)。
 /// </summary>
-internal sealed unsafe class Win32Window : IWindowBackendWindow, IWin32RawKeyInput
+internal sealed unsafe class Win32Window : IWindowBackendWindow, IWin32RawKeyInput, IWindowTextInputContextFactory, IClipboard
 {
     private static readonly WNDPROC _wndProcThunk = StaticWndProc;         // GC で回収されないよう静的保持
     private static readonly object ClassGate = new();                      // クラス登録はプロセスで 1 回
@@ -149,6 +149,13 @@ internal sealed unsafe class Win32Window : IWindowBackendWindow, IWin32RawKeyInp
         PumpThreadMessages();
         return !IsClosed;
     }
+
+    IWindowTextInputContext IWindowTextInputContextFactory.Create(
+        NativeWindow window, Func<ITextInputClient?> getClient, Func<float>? getScale)
+        => new WindowsTextInputContext(window, getClient, getScale);
+
+    string? IClipboard.GetText() => new Win32Clipboard().GetText();
+    void IClipboard.SetText(string text) => new Win32Clipboard().SetText(text);
 
     // ---- 操作 ----
     public void SetTitle(string title) => PInvoke.SetWindowText(Hwnd, title);

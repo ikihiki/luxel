@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
+    <ProjectReference Include="..\Luxel.UI.App\Luxel.UI.App.csproj" />
     <ProjectReference Include="..\Luxel.Audio.Windows\Luxel.Audio.Windows.csproj" />
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
@@ -59,6 +60,13 @@
     <!-- capstone ① 「Luxel Cavern」のゲームロジックを Game/Cavern ストーリーでホスト (ToDo 19) -->
     <ProjectReference Include="..\..\samples\LuxelCavern\LuxelCavern.Core\LuxelCavern.Core.csproj" />
     <ProjectReference Include="..\..\samples\LuxelRange\LuxelRange.Core\LuxelRange.Core.csproj" />
+    <!-- Reference対象のうち通常ストーリーから到達しないライブラリも明示参照する。 -->
+    <ProjectReference Include="..\Luxel.Framework.DevTools\Luxel.Framework.DevTools.csproj" />
+    <ProjectReference Include="..\Luxel.NodeGraph\Luxel.NodeGraph.csproj" />
+    <ProjectReference Include="..\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
+    <ProjectReference Include="..\Luxel.Workbench\Luxel.Workbench.csproj" />
+    <ProjectReference Include="..\Luxel.TwoD.Skia\Luxel.TwoD.Skia.csproj" />
+    <ProjectReference Include="..\Luxel.Typography.Icu\Luxel.Typography.Icu.csproj" />
     <!-- 型 API リファレンス (Docs/Api*) の対象 — Gallery はドキュメントハブとして全域を参照する -->
     <ProjectReference Include="..\Luxel.Framework\Luxel.Framework.csproj" />
     <ProjectReference Include="..\Luxel.Scene.UI\Luxel.Scene.UI.csproj" />

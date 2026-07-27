@@ -1,8 +1,8 @@
-﻿namespace Luxel.Diagnostics;
+namespace Luxel.Diagnostics;
 
 /// <summary>
 /// ウィンドウ一覧とウィンドウピクセルの読み取り契約 (DevTools の DebugServer が /windows, /winframe で配信)。
-/// 実装は Platform 側 (WindowManager) — 双方が core のこの型のみに依存する。
+/// 実装はアプリケーション/UI層の WindowManager — 双方が core のこの型のみに依存する。
 /// 操作 (window.* と UI 入力) はここを通らず、共有 <see cref="EngineCommands"/> の op として登録する
 /// (window.* は WindowManager、UI 入力は UiHostCommands.RegisterDefaults(cmds, registry))。
 /// UI ツリーは /trees (Luxel.Trees イベント)、UI オフスクリーン画像は /uiframe (Luxel.UiFrame) — ウィンドウとは別リソース。

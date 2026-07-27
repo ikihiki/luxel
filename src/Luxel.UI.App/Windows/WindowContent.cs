@@ -2,7 +2,7 @@ using Luxel.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 
-namespace Luxel.Platform.Windows;
+namespace Luxel.UI.App;
 
 /// <summary>
 /// ウィンドウに表示する中身。ウィンドウは UI と 1:1 ではない —
@@ -80,12 +80,20 @@ public sealed class UiContent : IWindowContent
     public void Render(GpuCommandBuffer cmd, uint paddedWidth, uint width, uint height, GpuBuffer target, float scale)
         => _canvas.Render(cmd, new Camera2D { A = scale, D = scale }, paddedWidth, height, target);
 
-    public void PointerMove(WindowPointerEvent input) => Host.PointerMove(input.X, input.Y, Win32Modifiers.ToUi(input.Modifiers));
-    public void PointerDown(WindowPointerEvent input) => Host.PointerDown(input.X, input.Y, Win32Modifiers.ToUi(input.Button), Win32Modifiers.ToUi(input.Modifiers));
-    public void PointerUp(WindowPointerEvent input) => Host.PointerUp(input.X, input.Y, Win32Modifiers.ToUi(input.Button), Win32Modifiers.ToUi(input.Modifiers));
+    public void PointerMove(WindowPointerEvent input) => Host.PointerMove(input.X, input.Y, LuxelInput.MapModifiers(input.Modifiers));
+    public void PointerDown(WindowPointerEvent input)
+    {
+        if (LuxelInput.TryMapButton(input.Button, out PointerButton button))
+            Host.PointerDown(input.X, input.Y, button, LuxelInput.MapModifiers(input.Modifiers));
+    }
+    public void PointerUp(WindowPointerEvent input)
+    {
+        if (LuxelInput.TryMapButton(input.Button, out PointerButton button))
+            Host.PointerUp(input.X, input.Y, button, LuxelInput.MapModifiers(input.Modifiers));
+    }
     public void Wheel(WindowWheelEvent input) => Host.Wheel(input.X, input.Y, input.Delta);
     public void KeyDown(WindowKeyEvent input)
-        => Host.KeyDown(KeyMap.FromWindowKey(input.Key), input.Modifiers.HasFlag(WindowKeyModifiers.Shift), input.Modifiers.HasFlag(WindowKeyModifiers.Control), input.Modifiers.HasFlag(WindowKeyModifiers.Alt));
+        => Host.KeyDown(LuxelInput.MapKey(input.Key), input.Modifiers.HasFlag(WindowKeyModifiers.Shift), input.Modifiers.HasFlag(WindowKeyModifiers.Control), input.Modifiers.HasFlag(WindowKeyModifiers.Alt));
     public void TextInput(string text) => Host.Char(text);
     public void ContextClick(float x, float y, KeyModifiers mods = KeyModifiers.None) => Host.ContextClick(x, y, mods);
     public CursorKind Cursor => Host.CurrentCursor;

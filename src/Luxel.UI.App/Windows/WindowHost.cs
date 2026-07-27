@@ -1,12 +1,6 @@
-using System.Runtime.InteropServices;
 using Luxel.UI;
-using Windows.Win32;
-using Windows.Win32.Foundation;
-using Windows.Win32.UI.Input.Ime;
-using Windows.Win32.UI.Input.KeyboardAndMouse;
-using Windows.Win32.UI.WindowsAndMessaging;
 
-namespace Luxel.Platform.Windows;
+namespace Luxel.UI.App;
 
 /// <summary>
 /// ウィンドウ 1 枚分の提示ホスト: <see cref="NativeWindow"/> + スワップチェーン + framebuffer。
@@ -20,8 +14,7 @@ public sealed class WindowHost : IDisposable
 {
     private readonly GpuDevice _device;
     private readonly GpuSurface _surface;
-    private TsfThread? _tsfThread;
-    private TsfDocument? _tsfDoc;
+    private readonly IWindowTextInputContext _textInput;
 
     private GpuBuffer _fb = null!;
     private GpuBuffer? _staging;   // 捕獲用 READBACK (HostCached) — WC の _fb を直接読まない
@@ -29,7 +22,6 @@ public sealed class WindowHost : IDisposable
     private bool _resizePending;
     private int _rw, _rh;
     private bool _rendered;
-    private bool _keyEatenByTip;   // 直前の WM_KEYDOWN を TIP が消費したか (対応する WM_CHAR の抑止判定)
 
     // 最新フレーム (8B ヘッダ w,h LE + tight RGBA)。rev は内容変化時のみ進む。
     // 捕獲は要求駆動: GetFrame が呼ばれてから CaptureWindowMs の間だけ有効 (通常使用ではコストゼロ)。
@@ -65,25 +57,17 @@ public sealed class WindowHost : IDisposable
         Window = window;
         Content = content;
         _w = Math.Max(1, window.Width); _h = Math.Max(1, window.Height);
-        PlatformClipboard.Instance ??= new Win32Clipboard();   // OS クリップボード (プロセス 1 回)
+        PlatformClipboard.Instance ??= window.GetFeature<IClipboard>();
         Content.Resize(_w / S, _h / S, S);   // content の論理サイズを実クライアント (物理/scale) に同期
         Alloc();
         _surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
-        // TSF: content が IME 対象を持つウィンドウだけ文書を作る (スレッド資源は共有・参照カウント)
-        if (content.ImeTarget is not null)
-        {
-            _tsfThread = TsfThread.Acquire();
-            _tsfDoc = _tsfThread?.CreateDocument(() => Content.ImeTarget, () => Hwnd, () => S);
-            if (_tsfThread is not null && _tsfDoc is null) { _tsfThread.Release(); _tsfThread = null; }
-        }
+        _textInput = window.GetFeature<IWindowTextInputContextFactory>()?.Create(window, () => Content.ImeTarget, () => S)
+            ?? NoWindowTextInputContext.Instance;
         Wire();
-        if (window.IsFocused) _tsfDoc?.Focus();   // 生成時に既に前面なら (WM_SETFOCUS は配線前に流れている)
     }
 
-    private HWND Hwnd => new(Window.Handle);
-
     /// <summary>TSF (実 IME) が有効か。false は WM_CHAR フォールバック。</summary>
-    public bool TsfActive => _tsfDoc is not null;
+    public bool TsfActive => _textInput.Active;
 
     private void Alloc()
     {
@@ -111,74 +95,12 @@ public sealed class WindowHost : IDisposable
         {
             WindowPointerEvent logical = input with { X = input.X / S, Y = input.Y / S };
             if (input.Button is WindowPointerButton.Left or WindowPointerButton.Middle) Content.PointerUp(logical);
-            else if (input.Button == WindowPointerButton.Right) Content.ContextClick(logical.X, logical.Y, Win32Modifiers.ToUi(logical.Modifiers));
+            else if (input.Button == WindowPointerButton.Right) Content.ContextClick(logical.X, logical.Y, LuxelInput.MapModifiers(logical.Modifiers));
         };
         Window.CursorQuery = () => Content.Cursor;   // WM_SETCURSOR → hover 中ヒットの形状
         Window.Wheel += input => Content.Wheel(input with { X = input.X / S, Y = input.Y / S, Delta = input.Delta * 40f });
-        // TIP 先取り: 消費されたキーの WM_CHAR は捨てる (変換中の二重挿入防止)。
-        // 消費されなかったキー (IME オフ/直接入力) の WM_CHAR は通す — TIP は text store へ
-        // 挿入しないため、全面抑止すると英数の直接タイプが一切入らなくなる (LengthField で発覚)。
-        if (Window.GetFeature<IWin32RawKeyInput>() is { } rawKeyInput)
-            rawKeyInput.KeyPreFilter = (vk, lp) =>
-            {
-                _keyEatenByTip = _tsfThread?.HandleKeyDown(vk, lp) ?? false;
-                return _keyEatenByTip;
-            };
         Window.KeyDown += input => Content.KeyDown(input);
-        Window.TextInput += text => { if (!TsfActive || !_keyEatenByTip) Content.TextInput(text); };
-        Window.FocusChanged += f => { if (f) _tsfDoc?.Focus(); };   // IME フォーカス文書をこの窓へ
-    }
-
-    /// <summary>前面化を強制する (E2E テスト用)。通常の SetForegroundWindow は前面を持たないプロセスからは
-    /// 拒否されるため、前面スレッドに AttachThreadInput してから奪う。成功 (この窓がフォーカス) なら true —
-    /// false のまま SendInput すると**他アプリにキーが飛ぶ**ので、呼び出し側は必ず確認すること。</summary>
-    public unsafe bool ForceForeground()
-    {
-        HWND fg = PInvoke.GetForegroundWindow();
-        uint cur = PInvoke.GetCurrentThreadId();
-        uint fgThread = fg.IsNull ? 0 : PInvoke.GetWindowThreadProcessId(fg, null);
-        bool attached = fgThread != 0 && fgThread != cur && PInvoke.AttachThreadInput(cur, fgThread, true);
-        try
-        {
-            PInvoke.SetForegroundWindow(Hwnd);
-            PInvoke.SetFocus(Hwnd);
-        }
-        finally { if (attached) PInvoke.AttachThreadInput(cur, fgThread, false); }
-        if (PInvoke.GetForegroundWindow() == Hwnd) return true;
-
-        // フォールバック: 最小化→復元はアクティブ化制限を通ることが多い
-        PInvoke.ShowWindow(Hwnd, SHOW_WINDOW_CMD.SW_MINIMIZE);
-        PInvoke.ShowWindow(Hwnd, SHOW_WINDOW_CMD.SW_RESTORE);
-        PInvoke.SetForegroundWindow(Hwnd);
-        PInvoke.SetFocus(Hwnd);
-        return PInvoke.GetForegroundWindow() == Hwnd;
-    }
-
-    /// <summary>日本語 IME を有効化し ひらがな/ローマ字入力モードにする (実変換 E2E テスト用)。</summary>
-    public void ActivateJapaneseIme()
-    {
-        PInvoke.LoadKeyboardLayout("00000411", ACTIVATE_KEYBOARD_LAYOUT_FLAGS.KLF_ACTIVATE);
-        HIMC himc = PInvoke.ImmGetContext(Hwnd);
-        if (!himc.IsNull)
-        {
-            PInvoke.ImmSetOpenStatus(himc, true);
-            PInvoke.ImmSetConversionStatus(himc,
-                IME_CONVERSION_MODE.IME_CMODE_NATIVE | IME_CONVERSION_MODE.IME_CMODE_ROMAN, default);
-            PInvoke.ImmReleaseContext(Hwnd, himc);
-        }
-        _tsfThread?.SetJapaneseInputMode();
-    }
-
-    /// <summary>実キーを OS 入力キューへ注入 (SendInput) → 前面ウィンドウのアクティブ IME が処理する (E2E テスト用)。</summary>
-    public static void SendKeyStroke(ushort vk)
-    {
-        ushort scan = (ushort)PInvoke.MapVirtualKey(vk, MAP_VIRTUAL_KEY_TYPE.MAPVK_VK_TO_VSC);
-        Span<INPUT> inputs = stackalloc INPUT[2];
-        inputs[0] = new INPUT { type = INPUT_TYPE.INPUT_KEYBOARD };
-        inputs[0].Anonymous.ki = new KEYBDINPUT { wVk = (VIRTUAL_KEY)vk, wScan = scan };
-        inputs[1] = new INPUT { type = INPUT_TYPE.INPUT_KEYBOARD };
-        inputs[1].Anonymous.ki = new KEYBDINPUT { wVk = (VIRTUAL_KEY)vk, wScan = scan, dwFlags = KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP };
-        PInvoke.SendInput(inputs, Marshal.SizeOf<INPUT>());
+        Window.TextInput += text => { if (_textInput.ShouldDispatchTextInput) Content.TextInput(text); };
     }
 
     /// <summary>1 フレーム: リサイズ反映 → Tick → (変更があれば) 描画+present。
@@ -295,10 +217,17 @@ public sealed class WindowHost : IDisposable
             return sinceRev.HasValue && sinceRev.Value == _frameRev ? (null, _frameRev) : (_frame, _frameRev);
     }
 
+    private sealed class NoWindowTextInputContext : IWindowTextInputContext
+    {
+        public static readonly NoWindowTextInputContext Instance = new();
+        public bool Active => false;
+        public bool ShouldDispatchTextInput => true;
+        public void Dispose() { }
+    }
+
     public void Dispose()
     {
-        _tsfDoc?.Dispose(); _tsfDoc = null;
-        _tsfThread?.Release(); _tsfThread = null;
+        _textInput.Dispose();
         _staging?.Dispose(); _staging = null;
         _fb?.Dispose();
         Content.Dispose();

@@ -68,7 +68,7 @@ public static class DocsRuntime
 
         ## ウィンドウとマルチウィンドウ
 
-        `Win32Window` (CreateWindowEx + WndProc + PeekMessage) を `WindowSystem` / `WindowManager` が束ねます。ウィンドウは複数持て、インスタンスは GWLP_USERDATA で引く正攻法 — 静的マップがないので**別スレッドの別ウィンドウ** (ネイティブ DevTools) とも共存します。マウス/ホイール/キー/WM_CHAR/リサイズは `UiHost` へ配線されます。第 2 ウィンドウを実際に開くデモは [RealWindow/Platform/SecondWindow](story:RealWindow/Platform/SecondWindow) (実窓専用) へ。
+        `Luxel.Platform.Windows` の `Win32Window` (CreateWindowEx + WndProc + PeekMessage) を共通 `WindowSystem` が公開し、`Luxel.UI.App` の `WindowManager` / `WindowHost` が UI ウィンドウとして束ねます。ウィンドウは複数持て、インスタンスは GWLP_USERDATA で引く正攻法 — 静的マップがないので**別スレッドの別ウィンドウ** (ネイティブ DevTools) とも共存します。マウス/ホイール/キー/WM_CHAR/リサイズは `UiHost` へ配線されます。第 2 ウィンドウを実際に開くデモは [RealWindow/Platform/SecondWindow](story:RealWindow/Platform/SecondWindow) (実窓専用) へ。
 
         ## スワップチェーン提示
 

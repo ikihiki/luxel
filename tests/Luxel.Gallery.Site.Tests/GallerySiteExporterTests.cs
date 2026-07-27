@@ -21,6 +21,18 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Static_markdown_keeps_story_route_when_navigating_toc_anchor()
+    {
+        string html = GallerySiteExporter.RenderMarkdown(
+            "# Reference\n\n- [Widget](#widget)\n\n## Widget\n", "Reference/Luxel.UI");
+
+        Assert.Contains("section:p.get('section')", GallerySiteExporter.ClientScript);
+        Assert.Contains("scrollIntoView()", GallerySiteExporter.ClientScript);
+        Assert.Contains("id=\"widget\"", html);
+        Assert.Contains("href=\"#story=Reference%2FLuxel.UI&amp;section=widget\"", html);
+    }
+
+    [Fact]
     public void DocString_preserves_structured_embed_metadata()
     {
         Widget widget = Luxel.Controls.Kit.Text("static metadata test");
@@ -120,6 +132,15 @@ public sealed class GallerySiteExporterTests
             Assert.Contains($"# {ns}", document.DocSource);
             Assert.All(document.DocEmbeds, embed => Assert.Equal(DocEmbedKind.TypeApiTable, embed.Kind));
         }
+
+        string[] requiredNamespaces =
+        [
+            "Luxel.Controls", "Luxel.Framework.DevTools", "Luxel.NodeGraph", "Luxel.Particles",
+            "Luxel.Particles.TwoD", "Luxel.Particles.ThreeD", "Luxel.Particles.UI", "Luxel.Physics.Gizmos",
+            "Luxel.Player", "Luxel.SceneEdit", "Luxel.Settings", "Luxel.Scripting", "Luxel.Scripting.Framework",
+            "Luxel.Strudel", "Luxel.TwoD.Skia", "Luxel.UI.App", "Luxel.Workbench",
+        ];
+        Assert.All(requiredNamespaces, ns => Assert.Contains(ns, TypeApiRegistry.Namespaces));
 
         string[] existingCategories = StoryRegistry.All
             .Where(story => story.Path.StartsWith("Controls/", StringComparison.Ordinal)

@@ -9,7 +9,7 @@ namespace Luxel.Platform.Windows;
 /// TSF のスレッドレベル資源 (ITfThreadMgr / ITfKeystrokeMgr)。**1 スレッドに 1 つ** — マルチウィンドウでは
 /// 全ウィンドウがこれを共有し、ウィンドウ毎の <see cref="TsfDocument"/> を <see cref="SetFocus"/> で切り替える
 /// (TSF の標準モデル: thread mgr 1 : document mgr N)。
-/// <see cref="Acquire"/> は参照カウント式 — 利用者 (AppWindow の TsfManager / WindowHost) 毎に取得し、
+/// <see cref="Acquire"/> は参照カウント式 — 利用者 (AppWindow の TsfManager / WindowsTextInputContext) 毎に取得し、
 /// <see cref="Release"/> で最後の 1 つが Deactivate する。STA 必須 (MTA では初期化失敗 → null)。
 /// </summary>
 internal sealed unsafe class TsfThread
