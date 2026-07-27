@@ -1,0 +1,15 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Kit/Overview</h1></header><h1 id="kit">Kit</h1>
+<p><code>Luxel.Controls.Kit</code> の複合helperです。<code>[UiComponent]</code> ではないため生成 <code>ApiTable</code> は持たず、公開signatureをここにまとめます。</p>
+<pre><code class="language-csharp">Text Heading(string text, int level = 1)
+Text Label(string text)
+Text Muted(string text)
+Border Card(Widget child)
+Box Divider()
+Border Badge(string text, Intent intent = Intent.Primary)
+Border Chip(string text)
+Border Alert(string message, Intent intent = Intent.Info)
+Box Skeleton(float width, float height)
+Border Breadcrumb(params string[] crumbs)
+</code></pre>
+<p>実例は <a href="#story=Controls%2FKit%2FBadges">Badges</a> / <a href="#story=Controls%2FKit%2FAlert">Alert</a> / <a href="#story=Controls%2FKit%2FTypography">Typography</a> へ。</p>
+</article>

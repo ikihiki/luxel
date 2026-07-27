@@ -1,0 +1,92 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Rendering/BuffersAndBindings</h1></header><h1 id="abibindless-binding">バッファ、ABI、bindless binding</h1>
+<ul>
+<li><a href="#luxel%E3%81%A7%E3%81%AF%E3%80%8Cvertex-buffer%E3%80%8D%E3%82%82raw-bindless-buffer">Luxelでは「vertex buffer」もraw bindless buffer</a></li>
+<li><a href="#c#-%E3%81%A8slang%E3%81%AEabi">C# とSlangのABI</a></li>
+<li><a href="#root-arguments%E3%81%AFraw-bytes">Root argumentsはraw bytes</a></li>
+<li><a href="#%E6%89%80%E6%9C%89%E6%A8%A9%E3%81%A8%E5%AF%BF%E5%91%BD">所有権と寿命</a></li>
+<li><a href="#%E5%85%B8%E5%9E%8B%E7%9A%84%E3%81%AA%E5%A4%B1%E6%95%97">典型的な失敗</a></li>
+</ul>
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone + Gallery　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> FirstTriangle</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FRendering%2FFirstTriangle">FirstTriangle</a>　 <strong>次:</strong> <a href="#story=Learn%2FRendering%2FShaders">Shaders</a></p>
+<p>このページの実コードは <code>samples/LuxelTriangle/TutorialAbi.cs</code>、<code>TriangleRenderer.cs</code>、<code>shaders/tutorial_triangle.slang</code> です。確認コマンド:</p>
+<pre><code class="language-powershell">dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
+dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter TutorialAbiTests
+dotnet run --project samples/LuxelTriangle -- vk --frames 3
+# Windowsのみ: dotnet run --project samples/LuxelTriangle -- dx --frames 3
+</code></pre>
+<p>成功時はABI testが2件通り、実行すると暗い背景にRGB三角形が3 frame表示されます。</p>
+<h2 id="luxelvertex-bufferraw-bindless-buffer">Luxelでは「vertex buffer」もraw bindless buffer</h2>
+<p><code>GpuDevice.Malloc</code> が作る <code>GpuBuffer</code> は、作成時に <code>BindlessIndex</code> を得てraw storage buffer配列へ登録されます。vertex / index / storage / upload / readbackは別クラスではなく、<strong>同じバッファをどう使うかという役割</strong>です。</p>
+<table>
+<thead>
+<tr>
+<th>役割</th>
+<th>中身とアクセス</th>
+<th>推奨memory kind</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>vertex</td>
+<td>頂点shaderが <code>SV_VertexID</code> からbyte offsetを計算してpull</td>
+<td>小さい更新データは<code>HostMapped</code>、大きい静的データは<code>DeviceLocal</code></td>
+</tr>
+<tr>
+<td>index</td>
+<td>index値をraw bufferからpullし、その値でvertexをpull。Luxel coreに<code>DrawIndexed</code>はない</td>
+<td>通常<code>DeviceLocal</code>、作成時にupload</td>
+</tr>
+<tr>
+<td>storage</td>
+<td>compute / graphicsが任意offsetを読み書き</td>
+<td>通常<code>DeviceLocal</code></td>
+</tr>
+<tr>
+<td>upload</td>
+<td>CPUが書き、GPUが読む一時または頻繁更新データ</td>
+<td><code>HostMapped</code></td>
+</tr>
+<tr>
+<td>readback</td>
+<td>GPU copy後にCPUが読む</td>
+<td><code>HostCached</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>HostMapped</code> はCPU write向けで、write-combined / uncachedの場合があります。CPU readbackには使わず、<code>CopyBuffer</code>や<code>CopyTextureToBuffer</code>で <code>HostCached</code> へコピーします。<code>DeviceLocal</code> はCPUの <code>Span&lt;T&gt;</code> を持たずGPU処理向けです。古い資料の <code>HostCache</code> ではなく、API名は <strong><code>HostCached</code></strong> です。</p>
+<h2 id="c-slangabi">C# とSlangのABI</h2>
+<p>tutorialの実構造体はテスト専用コピーではなく、renderer自身が使う <code>TutorialAbi.Vertex</code> と <code>TutorialAbi.DrawArgs</code> です。</p>
+<pre><code class="language-csharp">[StructLayout(LayoutKind.Sequential)]
+public struct Vertex
+{
+    public float Px, Py, Pz, Pw; // offset 0, float4 position
+    public float R, G, B, A;     // offset 16, float4 color
+}                                // size 32
+
+public struct DrawArgs
+{
+    public uint VertexBufferIndex; // offset 0, size 4
+}
+</code></pre>
+<pre><code class="language-slang">struct DrawArgs { uint vertexBufferIndex; };
+struct Vertex { float4 position; float4 color; };
+
+Vertex vertex = g_buffers[g_args.vertexBufferIndex]
+    .Load&lt;Vertex&gt;(vertexId * 32);
+</code></pre>
+<p><code>float3</code>の直後へ別fieldを足す、C#側だけ<code>bool</code>を使う、field順を変える、といった変更はoffsetをずらします。曖昧な詰め方を避け、必要なら明示paddingを置き、<code>Marshal.SizeOf</code> / <code>Marshal.OffsetOf</code> testを同時に更新してください。buffer内の配列strideもstruct sizeと一致させます。</p>
+<p>行列は<strong>置き場所とshaderの読み方に依存</strong>します。Slang/HLSL既定のcolumn-major matrixをroot argsの型付きfieldとして受け、<code>mul(v, M)</code>する既存3Dコードは <code>Matrix4x4.Transpose</code> して渡します。一方、bufferから <code>Load4</code> を4回行ってrowを組み立てるper-instance matrixは転置しません。「Matrix4x4なら常にtranspose」ではありません。</p>
+<h2 id="root-argumentsraw-bytes">Root argumentsはraw bytes</h2>
+<p><code>SetRootArguments&lt;T&gt;</code> はunmanaged structをそのままbytes化し、Vulkanではpush constants、D3D12ではroot 32-bit constantsへ送ります。共通固定容量は <strong>192 byte</strong>、D3D12互換のためsizeは <strong>4 byte単位</strong>です。参照そのものではなく <code>BindlessIndex</code> や小さなscalar / matrixを入れます。大きな配列はbufferへ置いてindexだけを渡します。</p>
+<figure class="static-capture"><img src="images/mermaid-2ab9d8072f950ebf052a.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
+<h2 id="section">所有権と寿命</h2>
+<p><code>TriangleRenderer</code>がvertex bufferとpipelineを所有し、resize単位のtarget/framebufferも所有します。command bufferは1 frameだけです。dispose順は <strong>queue idle → framebuffer / target → pipeline → vertex buffer → device</strong>。bindless indexはbufferが生存中だけ有効なので、記録済みcommandが参照している間にbufferを破棄・再利用してはいけません。</p>
+<h2 id="section-1">典型的な失敗</h2>
+<ul>
+<li><code>ArgumentException: 4-byte-compatible size</code> → root argsへ3 byteなどDWord非互換の型を渡した</li>
+<li><code>ArgumentOutOfRangeException: limited to 192 bytes</code> → 大きなデータをbufferへ移し、indexだけをroot argsへ置く</li>
+<li>三角形が崩れる → C# / Slangのsize、offset、stride、paddingを照合する</li>
+<li>GPU validation / device lost → 寿命切れのbindless index、copy/barrier前後、範囲外offsetを確認する</li>
+<li>CPU readbackが極端に遅い → <code>HostMapped</code>を直接読まず<code>HostCached</code>へGPU copyする</li>
+</ul>
+</article>
