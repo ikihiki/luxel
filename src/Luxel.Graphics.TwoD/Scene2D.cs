@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 namespace Luxel.Graphics.TwoD;
 
@@ -281,6 +281,21 @@ public sealed class Scene2D
             var c = new Contour { Closed = true };
             c.Points.Capacity = pts.Length;
             for (int i = 0; i < pts.Length; i++) c.Points.Add(new Vector2(pts[i].X + ox, pts[i].Y + oy));
+            _shape!.Contours.Add(c);
+        }
+        return this;
+    }
+
+    /// <summary>平坦化済みの閉輪郭列をアフィン変換して現在の図形へコピーする。
+    /// グリフ輪郭をセル矩形へwarpする場合など、再平坦化せずscale/translateする高速パス。</summary>
+    public Scene2D AppendClosedContours(Vector2[][] contours, Matrix3x2 transform)
+    {
+        FlushContour();
+        foreach (Vector2[] pts in contours)
+        {
+            var c = new Contour { Closed = true };
+            c.Points.Capacity = pts.Length;
+            for (int i = 0; i < pts.Length; i++) c.Points.Add(Vector2.Transform(pts[i], transform));
             _shape!.Contours.Add(c);
         }
         return this;

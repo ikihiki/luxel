@@ -40,6 +40,14 @@ public sealed class TerminalView : Widget, IDisposable, IAsyncDisposable
     public float CellWidth { get; set; } = 9;
     public float CellHeight { get; set; } = 18;
     public float FontSize { get; set; } = 16;
+    /// <summary>Warp cell-joining Powerline separators to the full cell bounds.</summary>
+    public bool WarpPowerlineGlyphs { get; set; } = true;
+    /// <summary>Horizontal overlap in logical pixels used to hide antialiasing seams.</summary>
+    public float PowerlineHorizontalBleed { get; set; } = 0.75f;
+    /// <summary>Vertical overlap in logical pixels used to align separator tops and bottoms.</summary>
+    public float PowerlineVerticalBleed { get; set; } = 0.5f;
+    /// <summary>Optional application-specific warp classifier. The built-in Powerline block is always recognized.</summary>
+    public Func<Rune, bool>? AdditionalGlyphWarpPredicate { get; set; }
     public TerminalPalette Palette { get; set; } = new();
     public TerminalSelection? Selection { get; private set; }
     public int ScrollOffset => _scrollOffset;
@@ -117,6 +125,8 @@ public sealed class TerminalView : Widget, IDisposable, IAsyncDisposable
         var scene = new Scene2D();
         scene.FillRect(Palette.Background, 0, 0, Size.Width, Size.Height);
 
+        // Pass 1: paint every cell background before glyphs. Warped separators may overlap a neighboring
+        // cell by a subpixel; painting later backgrounds would otherwise cover that bleed and recreate seams.
         for (int row = 0; row < lines.Count; row++)
         {
             IReadOnlyList<TerminalCell> line = lines[row];
@@ -125,22 +135,27 @@ public sealed class TerminalView : Widget, IDisposable, IAsyncDisposable
             {
                 TerminalCell cell = line[column];
                 if (cell.Continuation) continue;
-                bool inverse = (cell.Attributes.Style & TerminalStyle.Inverse) != 0;
-                uint foreground = Palette.Resolve(cell.Attributes.Foreground, true);
-                uint background = Palette.Resolve(cell.Attributes.Background, false);
-                if (inverse) (foreground, background) = (background, foreground);
+                (uint _, uint background) = ResolveColors(cell);
                 int width = Math.Clamp(cell.Width, 1, 2);
                 float x = column * cellW, y = row * cellH, w = width * cellW;
                 if (background != Palette.Background) scene.FillRect(background, x, y, w, cellH);
                 if (IsSelected(absoluteLine, column, width)) scene.FillRect(Palette.Selection, x, y, w, cellH);
+            }
+        }
+
+        // Pass 2: paint glyphs and decorations above all backgrounds so Powerline bleed stays continuous.
+        for (int row = 0; row < lines.Count; row++)
+        {
+            IReadOnlyList<TerminalCell> line = lines[row];
+            for (int column = 0; column < Math.Min(line.Count, _columns == 0 ? line.Count : _columns); column++)
+            {
+                TerminalCell cell = line[column];
+                if (cell.Continuation) continue;
+                (uint foreground, uint _) = ResolveColors(cell);
+                int width = Math.Clamp(cell.Width, 1, 2);
+                float x = column * cellW, y = row * cellH, w = width * cellW;
                 if ((cell.Attributes.Style & TerminalStyle.Hidden) == 0 && !string.IsNullOrWhiteSpace(cell.Text))
-                {
-                    VectorFont font = _fonts.Resolver.Resolve(cell.Text);
-                    float measured = font.Measure(cell.Text, FontSize).width;
-                    float glyphX = x + MathF.Max(0, (w - measured) * 0.5f);
-                    float baseline = y + (cellH - FontSize) * 0.5f + font.Ascent(FontSize);
-                    font.AppendText(scene, cell.Text, glyphX, baseline, FontSize, foreground);
-                }
+                    AppendCellGlyph(scene, cell.Text, x, y, w, cellH, foreground);
                 if ((cell.Attributes.Style & TerminalStyle.Underline) != 0)
                 {
                     uint underline = cell.Attributes.UnderlineColor.Kind == TerminalColorKind.Default
@@ -159,6 +174,41 @@ public sealed class TerminalView : Widget, IDisposable, IAsyncDisposable
         }
         DrawComposition(scene, snapshot, cellW, cellH);
         return scene;
+    }
+
+    private (uint Foreground, uint Background) ResolveColors(TerminalCell cell)
+    {
+        uint foreground = Palette.Resolve(cell.Attributes.Foreground, true);
+        uint background = Palette.Resolve(cell.Attributes.Background, false);
+        if ((cell.Attributes.Style & TerminalStyle.Inverse) != 0) (foreground, background) = (background, foreground);
+        return (foreground, background);
+    }
+
+    private void AppendCellGlyph(Scene2D scene, string text, float x, float y, float width, float height, uint color)
+    {
+        VectorFont font = _fonts.Resolver.Resolve(text);
+        if (WarpPowerlineGlyphs && ShouldWarpGlyph(text))
+        {
+            float horizontal = Math.Clamp(PowerlineHorizontalBleed, 0, 1);
+            float vertical = Math.Clamp(PowerlineVerticalBleed, 0, 1);
+            if (font.TryAppendSingleGlyphWarped(scene, text,
+                x - horizontal, y - vertical, width + horizontal * 2, height + vertical * 2,
+                FontSize, color)) return;
+        }
+
+        float measured = font.Measure(text, FontSize).width;
+        float glyphX = x + MathF.Max(0, (width - measured) * 0.5f);
+        float baseline = y + (height - FontSize) * 0.5f + font.Ascent(FontSize);
+        font.AppendText(scene, text, glyphX, baseline, FontSize, color);
+    }
+
+    private bool ShouldWarpGlyph(string text)
+    {
+        var runes = text.EnumerateRunes();
+        if (!runes.MoveNext()) return false;
+        Rune rune = runes.Current;
+        return !runes.MoveNext() &&
+            (TerminalGlyphWarpPolicy.IsPowerlineSeparator(rune) || AdditionalGlyphWarpPredicate?.Invoke(rune) == true);
     }
 
     public bool HandleKey(KeyEvent e)

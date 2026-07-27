@@ -44,6 +44,21 @@ public sealed class TerminalFontSet : IDisposable
     }
 }
 
+/// <summary>Classifies cell-joining Powerline glyphs that should be warped to the terminal cell bounds.</summary>
+public static class TerminalGlyphWarpPolicy
+{
+    /// <summary>Powerline and Powerline Extra separator block. SCM/status icons at U+E0A0–U+E0AF are excluded.</summary>
+    public static bool IsPowerlineSeparator(Rune rune) => rune.Value is >= 0xE0B0 and <= 0xE0D4;
+
+    public static bool IsPowerlineSeparator(string text)
+    {
+        var runes = text.EnumerateRunes();
+        if (!runes.MoveNext()) return false;
+        Rune rune = runes.Current;
+        return !runes.MoveNext() && IsPowerlineSeparator(rune);
+    }
+}
+
 /// <summary>Resolves a complete terminal cell cluster to one font without splitting combining sequences.</summary>
 public sealed class GlyphResolver
 {
