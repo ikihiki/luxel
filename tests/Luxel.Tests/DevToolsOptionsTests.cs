@@ -37,7 +37,7 @@ public class DevToolsOptionsTests
     {
         // --devtools-native は factory を要求し、ブラウザと併用できる
         bool called = false;
-        Func<Luxel.GpuDevice> factory = () => { called = true; return null!; };
+        Func<Luxel.Graphics.GpuDevice> factory = () => { called = true; return null!; };
         var o = DevToolsOptions.Parse(new[] { "--devtools", "7000", "--devtools-native" }, factory);
         Assert.Equal(7000, o.BrowserPort);
         Assert.True(o.Native);

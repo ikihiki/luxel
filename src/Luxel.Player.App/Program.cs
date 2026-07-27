@@ -63,14 +63,14 @@ static int Run(string folder, string backend, int frames)
         PlayerGame game = PlayerLoader.LoadStart(fs);
         foreach (string d in game.World.Behaviours!.Diagnostics) Console.Error.WriteLine($"[csx] {d}");
 
-        using var device = new GpuDevice(backend == "dx" ? Luxel.D3D12.D3D12Backend.Create() : Luxel.Vulkan.VulkanBackend.Create());
+        using var device = new GpuDevice(backend == "dx" ? Luxel.Graphics.DirectX12.D3D12Backend.Create() : Luxel.Graphics.Vulkan.VulkanBackend.Create());
         Console.WriteLine($"=== {game.Project.Name} (Luxel.Player, backend: {backend}, device: {device.Name}) ===");
         using VectorFont font = VectorFont.LoadSystem();
 
         int w = game.Project.WindowWidth, h = game.Project.WindowHeight;
         using var windows = new WindowSystem(Win32WindowBackend.Create());
         NativeWindow win = windows.CreateWindow(new Luxel.Abstraction.WindowDesc(game.Project.Name, w, h));
-        using GpuSurface surface = win.CreateSwapchain(device);
+        using GpuSurface surface = device.CreateSurface(win.Handle, (uint)Math.Max(1, win.Width), (uint)Math.Max(1, win.Height));
 
         // 生キー → world.KeysDown (csx が world.KeysDown.Contains("Right") 等で読む)
         var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

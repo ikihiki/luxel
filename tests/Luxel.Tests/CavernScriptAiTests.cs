@@ -30,7 +30,7 @@ public class CavernScriptAiTests
             [
                 typeof(object).Assembly, typeof(Enumerable).Assembly,
                 typeof(Vector2).Assembly, typeof(Luxel.TwoD.RectF).Assembly,
-                typeof(Luxel.GpuDevice).Assembly, typeof(Walker).Assembly,
+                typeof(Luxel.Graphics.GpuDevice).Assembly, typeof(Walker).Assembly,
             ],
             usings: ["System", "LuxelCavern.Core"],
             globalsType: typeof(object));

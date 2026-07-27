@@ -10,12 +10,12 @@ namespace Luxel.DevTools;
 /// </summary>
 /// <param name="BrowserPort">ブラウザ版 DebugServer のポート。<c>null</c>=無効、<c>0</c>=空きポート自動割当。</param>
 /// <param name="Native">内蔵版ネイティブ DevTools ウィンドウ (別スレッド UI 島) を起動するか。</param>
-/// <param name="NativeDeviceFactory">内蔵版が使う第二 <see cref="Luxel.GpuDevice"/> を作る factory
+/// <param name="NativeDeviceFactory">内蔵版が使う第二 <see cref="Luxel.Graphics.GpuDevice"/> を作る factory
 ///   (島スレッド上で呼ばれる)。<paramref name="Native"/>=true のとき必須。</param>
 public sealed record DevToolsOptions(
     int? BrowserPort = null,
     bool Native = false,
-    Func<Luxel.GpuDevice>? NativeDeviceFactory = null)
+    Func<Luxel.Graphics.GpuDevice>? NativeDeviceFactory = null)
 {
     /// <summary>どちらのフロントエンドも無効か。</summary>
     public bool IsDisabled => BrowserPort is null && !Native;
@@ -29,7 +29,7 @@ public sealed record DevToolsOptions(
     /// </list>
     /// 両方指定すれば併用。該当引数が無ければ <see cref="IsDisabled"/> な設定を返す。
     /// </summary>
-    public static DevToolsOptions Parse(string[] args, Func<Luxel.GpuDevice>? nativeDeviceFactory = null)
+    public static DevToolsOptions Parse(string[] args, Func<Luxel.Graphics.GpuDevice>? nativeDeviceFactory = null)
     {
         int? browserPort = null;
         bool native = false;

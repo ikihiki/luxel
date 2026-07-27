@@ -1,6 +1,6 @@
 using Luxel;
 using Luxel.Abstraction;
-using Luxel.Vulkan;
+using Luxel.Graphics.Vulkan;
 #if LUXEL_WINDOWS
 using Luxel.Platform;
 #else
@@ -37,7 +37,7 @@ static int Run(string backend, int? frameLimit, TutorialStage stage, int initial
 #endif
         NativeWindow window = windows.CreateWindow(new WindowDesc($"Luxel — 3D Tutorial ({stage})", initialWidth, initialHeight));
         using GpuDevice device = CreateDevice(backend, window);
-        using GpuSurface surface = window.CreateSwapchain(device);
+        using GpuSurface surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
         using var renderer = new TriangleRenderer(device, stage);
 
         int width = Math.Max(0, window.Width);
@@ -98,7 +98,7 @@ static GpuDevice CreateDevice(string backend, NativeWindow window)
 #if LUXEL_WINDOWS
     return backend switch
     {
-        "dx" or "d3d12" => new GpuDevice(Luxel.D3D12.D3D12Backend.Create()),
+        "dx" or "d3d12" => new GpuDevice(Luxel.Graphics.DirectX12.D3D12Backend.Create()),
         _ => new GpuDevice(VulkanBackend.Create()),
     };
 #else

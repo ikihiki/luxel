@@ -48,8 +48,8 @@ static VectorFont LoadBodyFont()
 
 static GpuDevice CreateDevice(string backend) => backend switch
 {
-    "dx" => new GpuDevice(Luxel.D3D12.D3D12Backend.Create()),
-    _ => new GpuDevice(Luxel.Vulkan.VulkanBackend.Create()),
+    "dx" => new GpuDevice(Luxel.Graphics.DirectX12.D3D12Backend.Create()),
+    _ => new GpuDevice(Luxel.Graphics.Vulkan.VulkanBackend.Create()),
 };
 
 static int Run(string backend, int frames, string[] args)
@@ -64,7 +64,7 @@ static int Run(string backend, int frames, string[] args)
         int w = CavernRealtimeScene.Width, h = CavernRealtimeScene.Height;
         using var windows = new WindowSystem(Win32WindowBackend.Create());
         NativeWindow win = windows.CreateWindow(new Luxel.Abstraction.WindowDesc(TitleScreen.GameTitle, w, h));
-        using GpuSurface surface = win.CreateSwapchain(device);
+        using GpuSurface surface = device.CreateSurface(win.Handle, (uint)Math.Max(1, win.Width), (uint)Math.Max(1, win.Height));
 
         var keyboard = new KeyboardSource();
         win.KeyDown += input => keyboard.Down(input.Key);

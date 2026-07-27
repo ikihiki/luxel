@@ -26,7 +26,7 @@ public static partial class DocsAdr
 
         ## Decision
 
-        既存のグラフィック抽象ライブラリを使わず、*No Graphics API* 設計の**薄い bindless 抽象を C# で自作**します (`Luxel` コア + `Luxel.Vulkan` / `Luxel.D3D12`)。核心は次の 5 点:
+        既存のグラフィック抽象ライブラリを使わず、*No Graphics API* 設計の**薄い bindless 抽象を C# で自作**します (`Luxel.Graphics` + `Luxel.Graphics.Vulkan` / `Luxel.Graphics.DirectX12`)。核心は次の 5 点:
 
         - **固定パイプラインレイアウト** — 全 PSO が「最大192Bのルート引数 (4B単位のraw bytes) + グローバル bindless heap」の 1 レイアウトを共有。ディスクリプタセットも PSO バリアントも存在しない
         - **bindless 一本** — バッファ/テクスチャは作成時に `BindlessIndex` を持ち、シェーダは `g_buffers[index]` / `g_textures[index]` で参照。「どのリソースを使うか」はルート引数内の index が全て

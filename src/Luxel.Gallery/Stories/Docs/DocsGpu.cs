@@ -13,7 +13,7 @@ public static partial class DocsGpu
     public static Widget GpuDevice(StoryContext ctx) => DocNew(ctx, $$"""
         # GPU 抽象 (GpuDevice)
 
-        `Luxel` (コア) は *No Graphics API* の哲学どおり、最新のバインドレス GPU を前提に **ディスクリプタセットも PSO バリアントも持たない**薄い抽象です。実装は `Luxel.Vulkan` (Vulkan 1.3) と `Luxel.D3D12` (DirectX 12) — アプリのコードはバックエンド分岐なしの 1 本で書けます。
+        `Luxel.Graphics` は *No Graphics API* の哲学どおり、最新のバインドレス GPU を前提に **ディスクリプタセットも PSO バリアントも持たない**薄い抽象です。実装は `Luxel.Graphics.Vulkan` (Vulkan 1.3) と `Luxel.Graphics.DirectX12` (DirectX 12) — アプリのコードはバックエンド分岐なしの 1 本で書けます。
 
         ## 固定パイプラインレイアウト
 

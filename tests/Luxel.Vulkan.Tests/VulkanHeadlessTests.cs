@@ -1,4 +1,4 @@
-using Luxel.Vulkan;
+using Luxel.Graphics.Vulkan;
 
 namespace Luxel.Vulkan.Tests;
 

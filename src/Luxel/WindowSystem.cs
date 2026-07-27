@@ -1,4 +1,4 @@
-﻿using Luxel.Abstraction;
+using Luxel.Abstraction;
 
 namespace Luxel;
 
@@ -17,12 +17,12 @@ public enum CursorKind
 }
 
 /// <summary>
-/// ウィンドウシステムの公開窓口 (<see cref="GpuDevice"/> のウィンドウ版)。
+/// ウィンドウシステムの公開窓口 (グラフィックデバイスに対するウィンドウ側の窓口)。
 /// バックエンド (Win32 等) を包み、ウィンドウの生成・一覧・メッセージポンプを提供する。
 /// <code>
 /// using var windows = new WindowSystem(Win32WindowBackend.Create());
 /// NativeWindow main = windows.CreateWindow(new WindowDesc("App", 800, 600));
-/// GpuSurface swapchain = main.CreateSwapchain(device);
+/// var swapchain = device.CreateSurface(main.Handle, (uint)main.Width, (uint)main.Height);
 /// while (windows.Pump()) { ...描画して swapchain.Present... }
 /// </code>
 /// </summary>
@@ -132,10 +132,6 @@ public sealed class NativeWindow : IDisposable
 
     /// <summary>Gets an optional backend-specific feature without adding it to the portable window ABI.</summary>
     public TFeature? GetFeature<TFeature>() where TFeature : class => _win as TFeature;
-
-    /// <summary>このウィンドウへのスワップチェーン提示面を取得する (現在のクライアントサイズ)。</summary>
-    public GpuSurface CreateSwapchain(GpuDevice device)
-        => device.CreateSurface(Handle, (uint)Math.Max(1, Width), (uint)Math.Max(1, Height));
 
     public void SetTitle(string title) { _title = title; _win.SetTitle(title); }
     public void SetBounds(int? x = null, int? y = null, int? clientWidth = null, int? clientHeight = null)

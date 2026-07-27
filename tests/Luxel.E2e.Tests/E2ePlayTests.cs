@@ -73,7 +73,7 @@ public sealed class GpuGalleryFixture : IDisposable
         RepoRoot.Ensure();
         try
         {
-            _device = new GpuDevice(Luxel.Vulkan.VulkanBackend.Create());
+            _device = new GpuDevice(Luxel.Graphics.Vulkan.VulkanBackend.Create());
             _font = GalleryFonts.Load(GalleryFonts.Regular);   // 同梱フォント (e2e と実窓で字形一致・マシン非依存)
             Host = new GalleryHost(_device, _font);
         }

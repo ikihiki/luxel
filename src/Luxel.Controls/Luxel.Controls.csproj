@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\Luxel.Animation\Luxel.Animation.csproj" />
     <ProjectReference Include="..\Luxel.TwoD\Luxel.TwoD.csproj" />
@@ -32,4 +33,7 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
 </Project>

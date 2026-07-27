@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Luxel.Abstraction;
 using Luxel.Platform.Silk;
-using Luxel.Vulkan;
+using Luxel.Graphics.Vulkan;
 
 namespace Luxel.Vulkan.Present.Tests;
 
@@ -26,7 +26,7 @@ public sealed class VulkanX11PresentTests
             Presentation = VulkanPresentationMode.Window,
             WindowSurface = provider,
         }));
-        using GpuSurface surface = window.CreateSwapchain(device);
+        using GpuSurface surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
         using GpuBuffer pixels = CreatePixels(device, 160, 120, 0xFF2040E0u);
 
         surface.Present(pixels, 160, 160, 120);
@@ -50,7 +50,7 @@ public sealed class VulkanX11PresentTests
             Presentation = VulkanPresentationMode.Window,
             WindowSurface = provider,
         }));
-        using GpuSurface surface = window.CreateSwapchain(device);
+        using GpuSurface surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
         using (GpuBuffer initial = CreatePixels(device, 128, 96, 0xFF30C050u))
             surface.Present(initial, 128, 128, 96);
 

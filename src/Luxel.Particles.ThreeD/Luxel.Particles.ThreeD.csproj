@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel\Luxel.csproj" />
     <ProjectReference Include="..\Luxel.Particles\Luxel.Particles.csproj" />
     <ProjectReference Include="..\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
@@ -16,4 +17,7 @@
     <InternalsVisibleTo Include="Luxel.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
 </Project>

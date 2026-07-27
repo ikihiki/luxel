@@ -19,7 +19,7 @@ public class ScriptSystemTests
             typeof(object).Assembly, typeof(Enumerable).Assembly,
             typeof(World).Assembly,                                   // Luxel.Ecs
             typeof(Friflo.Engine.ECS.Entity).Assembly,               // Friflo
-            typeof(Luxel.GpuDevice).Assembly,                        // Luxel core
+            typeof(Luxel.Graphics.GpuDevice).Assembly,                        // Luxel.Graphics
             typeof(ScriptGameGlobals).Assembly,                      // ブリッジ
         ],
         usings: ["System", "System.Linq", "Luxel.Ecs", "Luxel.Scripting.Framework"],

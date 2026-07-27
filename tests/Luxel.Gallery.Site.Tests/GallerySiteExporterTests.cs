@@ -382,7 +382,7 @@ public sealed class GallerySiteExporterTests
 
     private static GpuDevice CreateDeviceOrSkip()
     {
-        try { return new GpuDevice(Luxel.Vulkan.VulkanBackend.Create()); }
+        try { return new GpuDevice(Luxel.Graphics.Vulkan.VulkanBackend.Create()); }
         catch (Exception e) { Skip.If(true, "Vulkan unavailable: " + e.Message); throw; }
     }
 

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel\Luxel.csproj" />
     <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj" />
     <ProjectReference Include="..\Luxel.RenderGraph\Luxel.RenderGraph.csproj" />
@@ -12,8 +13,8 @@
     <ProjectReference Include="..\Luxel.Assets\Luxel.Assets.csproj" />
     <ProjectReference Include="..\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
     <ProjectReference Include="..\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
-    <ProjectReference Include="..\Luxel.Vulkan\Luxel.Vulkan.csproj" />
-    <ProjectReference Include="..\Luxel.D3D12\Luxel.D3D12.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
     <ProjectReference Include="..\Luxel.Platform\Luxel.Platform.csproj" />
   </ItemGroup>
 
@@ -31,4 +32,7 @@
     <InternalsVisibleTo Include="Luxel.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
 </Project>
