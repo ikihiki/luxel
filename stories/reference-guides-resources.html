@@ -1,0 +1,118 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Guides/Resources</h1></header><h1 id="luxel.resources">リソース (Luxel.Resources)</h1>
+<ul>
+<li><a href="#story=Reference%2FGuides%2FResources&amp;section=load-%E3%81%A8-resourcehandle">Load と ResourceHandle</a></li>
+<li><a href="#story=Reference%2FGuides%2FResources&amp;section=%E8%87%AA%E5%8B%95%E3%82%B3%E3%83%B3%E3%83%9D%E3%83%BC%E3%82%BA-%E2%80%94-step-%E3%81%AE%E9%80%A3%E9%8E%96">自動コンポーズ — Step の連鎖</a></li>
+<li><a href="#story=Reference%2FGuides%2FResources&amp;section=3-%E3%83%AC%E3%83%BC%E3%83%B3%E5%AE%9F%E8%A1%8C-io-%2F-cpu-%2F-gpu">3 レーン実行 (Io / Cpu / Gpu)</a></li>
+<li><a href="#story=Reference%2FGuides%2FResources&amp;section=%E3%83%91%E3%83%83%E3%82%B1%E3%83%BC%E3%82%B8%E3%81%AE%E5%BD%B9%E5%89%B2%E5%88%86%E6%8B%85">パッケージの役割分担</a></li>
+<li><a href="#story=Reference%2FGuides%2FResources&amp;section=rendergraph-%E3%81%A8%E3%81%AE%E9%96%A2%E4%BF%82">RenderGraph との関係</a></li>
+</ul>
+<p>初めて使う場合は <a href="#story=Learn%2FResources%2FOverview">Resources Learn</a>、コピー可能な最小構成は <a href="#story=Build%2FBlocks%2FResources%2FPipeline">Build/Blocks/Resources/Pipeline</a> から始めてください。</p>
+<p>アセットのロードは <strong>(型, uri) をキーとするノードキャッシュ</strong>の上で動きます。同じ (型, uri) は常に同じノードを共有し、参照カウントとリロードをシステムが管理します。</p>
+<h2 id="load-resourcehandle">Load と ResourceHandle</h2>
+<pre><code class="language-csharp">using var resources = new ResourceSystem(
+    ResourceSystemDefaults.BuiltinSources(assetRoot: &quot;./assets&quot;),
+    ResourceSystemDefaults.BuiltinSteps());
+
+ResourceHandle&lt;CpuImage&gt; img = resources.Load&lt;CpuImage&gt;(&quot;hero.png&quot;);
+await img.Ready;                    // または IsReady をポーリング
+Use(img.Value);
+img.Dispose();                      // refcount 減 — 0 で自動 evict
+
+resources.Watch();                  // ファイル変更 → 自動リロード (Reloaded イベント)
+resources.Pump();                   // 毎フレーム: リロード反映と破棄の消化
+</code></pre>
+<p><code>Publish(uri, value)</code> で外部所有のオブジェクトも登録でき、<code>Republish</code> すると依存先へリロードが伝播します。GPU デバイスロストは <code>NotifyDeviceLost()</code> で全再ロード。</p>
+<h2 id="step">自動コンポーズ — Step の連鎖</h2>
+<p>「<code>CpuImage</code> を作る Step (png デコード)」を登録しておくと、<code>Load&lt;CpuImage&gt;(&quot;a.png&quot;)</code> は自動的に <code>CpuImage ← byte[] ← FileSource</code> の依存ノードを連鎖生成します。変換の追加は <code>IResourceStep</code> の登録だけ — 呼び出し側は最終型で Load するだけです。</p>
+<ul>
+<li><strong>Source</strong> (<code>IResourceSource</code>) — スキーム別の byte[] ロード (file / http / メモリ VFS)</li>
+<li><strong>Step</strong> (<code>IResourceStep&lt;TIn, TOut&gt;</code>) — 型変換。拡張子とフラグメントで選ばれる</li>
+<li><strong>フラグメント</strong> — <code>model.glb#mesh/0</code> のように 1 ファイルから複数リソースを切り出せます (glTF のメッシュ/マテリアル分割がこれ)</li>
+</ul>
+<h2 id="io-cpu-gpu">3 レーン実行 (Io / Cpu / Gpu)</h2>
+<p>Step の中では <code>await ctx.Io</code> / <code>ctx.Cpu</code> / <code>ctx.Gpu</code> でレーンを移動します。ファイル読みは Io、デコードは Cpu、アップロードは Gpu — レーン毎に並列度が制限され、大量ロードでもフレームを崩しません。初回ロードの publish は Pump 不要で直接反映されるため、初期化時は <code>Ready.Wait</code> で同期的に待てます (Gallery のデモもこの形)。</p>
+<h2 id="section">パッケージの役割分担</h2>
+<table>
+<thead>
+<tr>
+<th>プロジェクト</th>
+<th>役割</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Luxel.Resources</td>
+<td>コア (ResourceSystem / Source / Step / VFS)</td>
+</tr>
+<tr>
+<td>Luxel.Imaging</td>
+<td>ImageSharp による画像デコード (依存を隔離)</td>
+</tr>
+<tr>
+<td>Luxel.Assets / AssetsGpu</td>
+<td>アセット型定義 / GPU アップロード Step</td>
+</tr>
+<tr>
+<td>Luxel.AssetRuntime</td>
+<td>ECS 統合 (Render3DExtractSystem 等)</td>
+</tr>
+<tr>
+<td>Luxel.Gltf</td>
+<td>glTF 2.0 → AssetDocument</td>
+</tr>
+</tbody>
+</table>
+<h2 id="rendergraph">RenderGraph との関係</h2>
+<p>混同注意 — Resources は<strong>多フレーム寿命のアセット</strong> ((型, uri) DAG)、RenderGraph は <strong>1 フレームのパス合成</strong> ((pass, resource) DAG) です。併用は「Resources でロードした GpuTexture を <code>ImportTexture</code> で External として取り込む」形 (<a href="#story=Reference%2FGuides%2FRenderGraph">Reference/Guides/RenderGraph</a> の対比表も参照)。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Resources&quot;, Order = 50)]
+public static Widget Resources(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # リソース (Luxel.Resources)
+
+    初めて使う場合は [Resources Learn](story:Learn/Resources/Overview)、コピー可能な最小構成は [Build/Blocks/Resources/Pipeline](story:Build/Blocks/Resources/Pipeline) から始めてください。
+
+    アセットのロードは **(型, uri) をキーとするノードキャッシュ**の上で動きます。同じ (型, uri) は常に同じノードを共有し、参照カウントとリロードをシステムが管理します。
+
+    ## Load と ResourceHandle
+
+    ```csharp
+    using var resources = new ResourceSystem(
+        ResourceSystemDefaults.BuiltinSources(assetRoot: &quot;./assets&quot;),
+        ResourceSystemDefaults.BuiltinSteps());
+
+    ResourceHandle&lt;CpuImage&gt; img = resources.Load&lt;CpuImage&gt;(&quot;hero.png&quot;);
+    await img.Ready;                    // または IsReady をポーリング
+    Use(img.Value);
+    img.Dispose();                      // refcount 減 — 0 で自動 evict
+
+    resources.Watch();                  // ファイル変更 → 自動リロード (Reloaded イベント)
+    resources.Pump();                   // 毎フレーム: リロード反映と破棄の消化
+    ```
+
+    `Publish(uri, value)` で外部所有のオブジェクトも登録でき、`Republish` すると依存先へリロードが伝播します。GPU デバイスロストは `NotifyDeviceLost()` で全再ロード。
+
+    ## 自動コンポーズ — Step の連鎖
+
+    「`CpuImage` を作る Step (png デコード)」を登録しておくと、`Load&lt;CpuImage&gt;(&quot;a.png&quot;)` は自動的に `CpuImage ← byte[] ← FileSource` の依存ノードを連鎖生成します。変換の追加は `IResourceStep` の登録だけ — 呼び出し側は最終型で Load するだけです。
+
+    - **Source** (`IResourceSource`) — スキーム別の byte[] ロード (file / http / メモリ VFS)
+    - **Step** (`IResourceStep&lt;TIn, TOut&gt;`) — 型変換。拡張子とフラグメントで選ばれる
+    - **フラグメント** — `model.glb#mesh/0` のように 1 ファイルから複数リソースを切り出せます (glTF のメッシュ/マテリアル分割がこれ)
+
+    ## 3 レーン実行 (Io / Cpu / Gpu)
+
+    Step の中では `await ctx.Io` / `ctx.Cpu` / `ctx.Gpu` でレーンを移動します。ファイル読みは Io、デコードは Cpu、アップロードは Gpu — レーン毎に並列度が制限され、大量ロードでもフレームを崩しません。初回ロードの publish は Pump 不要で直接反映されるため、初期化時は `Ready.Wait` で同期的に待てます (Gallery のデモもこの形)。
+
+    ## パッケージの役割分担
+
+    | プロジェクト | 役割 |
+    | --- | --- |
+    | Luxel.Resources | コア (ResourceSystem / Source / Step / VFS) |
+    | Luxel.Imaging | ImageSharp による画像デコード (依存を隔離) |
+    | Luxel.Assets / AssetsGpu | アセット型定義 / GPU アップロード Step |
+    | Luxel.AssetRuntime | ECS 統合 (Render3DExtractSystem 等) |
+    | Luxel.Gltf | glTF 2.0 → AssetDocument |
+
+    ## RenderGraph との関係
+
+    混同注意 — Resources は**多フレーム寿命のアセット** ((型, uri) DAG)、RenderGraph は **1 フレームのパス合成** ((pass, resource) DAG) です。併用は「Resources でロードした GpuTexture を `ImportTexture` で External として取り込む」形 ([Reference/Guides/RenderGraph](story:Reference/Guides/RenderGraph) の対比表も参照)。
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
