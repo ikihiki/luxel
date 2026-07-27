@@ -2,7 +2,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Platform\Luxel.Platform.csproj" />
-    <ProjectReference Include="..\Luxel.Input\Luxel.Input.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Luxel.Input.XInput\Luxel.Input.XInput.csproj" />
     <ProjectReference Include="..\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
     <ProjectReference Include="..\Luxel.UI.App\Luxel.UI.App.csproj" />
     <ProjectReference Include="..\Luxel.Audio.Windows\Luxel.Audio.Windows.csproj" />

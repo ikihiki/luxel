@@ -105,7 +105,7 @@ public static class DocsRuntime
 
         ## ゲーム入力 (Luxel.Input)
 
-        アクションマップ (コンテキスト単位の有効/無効 — 例: gameplay と menu) と **キーバインドの JSON リマップ** (保存/復元の round-trip) を提供します。Framework のフレームループ (`InputBus` / `InputStack`) に統合されます。
+        アクションマップ (コンテキスト単位の有効/無効 — 例: gameplay と menu) と **キーバインドの JSON リマップ** (保存/復元の round-trip) を提供します。Framework のフレームループ (`InputBus` / `InputStack`) に統合されます。Windows固有のXbox互換ゲームパッド入力は `Luxel.Input.XInput` の `XInputSource` に分離されています。
 
         ## programmatic 入力
 

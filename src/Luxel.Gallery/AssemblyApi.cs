@@ -51,6 +51,7 @@ using Luxel.UI;
 // ランタイム
 [assembly: GenerateAssemblyApi("Luxel.Resources")]
 [assembly: GenerateAssemblyApi("Luxel.Imaging")]
+[assembly: GenerateAssemblyApi("Luxel.Input.XInput")]
 [assembly: GenerateAssemblyApi("Luxel.Input")]
 [assembly: GenerateAssemblyApi("Luxel.Audio")]
 [assembly: GenerateAssemblyApi("Luxel.Audio.Windows")]

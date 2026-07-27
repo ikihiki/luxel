@@ -150,7 +150,7 @@ public static class DocsHome
 
         ## ランタイムとツール
 
-        `Luxel.Platform` + `.Windows` / `.Silk` (窓 / クリップボード / IME / 低レベル入力)、`Luxel.Input`、`Luxel.Audio` + `.Windows`、`Luxel.Framework` (ホストビルダー + シーン遷移)、そして `Luxel.DevTools` (別窓デバッガ + HTTP DebugServer)。この Gallery (`Luxel.Gallery`) 自体が Luxel UI で書かれたドッグフーディングアプリです。
+        `Luxel.Platform` + `.Windows` / `.Silk` (窓 / クリップボード / IME / 低レベル入力)、`Luxel.Input` + `.XInput`、`Luxel.Audio` + `.Windows`、`Luxel.Framework` (ホストビルダー + シーン遷移)、そして `Luxel.DevTools` (別窓デバッガ + HTTP DebugServer)。この Gallery (`Luxel.Gallery`) 自体が Luxel UI で書かれたドッグフーディングアプリです。
 
         ## プロジェクト一覧
 
@@ -167,7 +167,7 @@ public static class DocsHome
         | Luxel.RenderGraph | パス合成 / transient aliasing / 自動バリア |
         | Luxel.Resources (+ Imaging, Assets, AssetsGpu, AssetRuntime, Gltf) | リソース DAG / 画像 / glTF / 3D 抽出 |
         | Luxel.Platform (+ .Windows, .Silk) | ウィンドウ / クリップボード / IME / 低レベル入力 |
-        | Luxel.Input | アクションマップ / リバインド |
+        | Luxel.Input (+ .XInput) | アクションマップ / リバインド / Windowsゲームパッド入力 |
         | Luxel.Audio (+ .Windows) | 音声API / XAudio2バックエンド |
         | Luxel.Framework (+ Scene.UI) | アプリ骨格 / シーン遷移 |
         | Luxel.DevTools (+ .App) | デバッガ / HTTP DebugServer |

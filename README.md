@@ -130,7 +130,7 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 | Luxel.RenderGraph | パス合成 / transient aliasing / 自動バリア |
 | Luxel.Resources (+ Imaging, Assets, AssetsGpu, AssetRuntime, Gltf) | リソース DAG / 画像 / glTF / 3D 抽出 |
 | Luxel.Platform (+ .Windows, .Silk) | ウィンドウ / クリップボード / IME / 低レベル入力 |
-| Luxel.Input | アクションマップ / リバインド |
+| Luxel.Input (+ .XInput) | アクションマップ / リバインド / Windowsゲームパッド入力 |
 | Luxel.Audio (+ .Windows) | 音声API / ミキサ / XAudio2バックエンド |
 | Luxel.Framework (+ Scene.UI) | アプリ骨格 / シーン遷移 / UiSurface |
 | Luxel.DevTools (+ .App) | デバッガ / HTTP DebugServer / ネイティブ DevTools |

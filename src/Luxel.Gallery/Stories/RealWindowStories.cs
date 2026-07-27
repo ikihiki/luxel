@@ -1,6 +1,7 @@
 using System.Numerics;
 using Luxel.Audio;
 using Luxel.Input;
+using Luxel.Input.XInput;
 using Luxel.Platform;
 using Luxel.Platform.Windows;
 using Luxel.UI.App;

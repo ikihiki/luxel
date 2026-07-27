@@ -25,6 +25,7 @@
     <Project Path="src/Luxel.Gltf/Luxel.Gltf.csproj" />
     <Project Path="src/Luxel.Highlight.TextMate/Luxel.Highlight.TextMate.csproj" />
     <Project Path="src/Luxel.Imaging/Luxel.Imaging.csproj" />
+    <Project Path="src/Luxel.Input.XInput/Luxel.Input.XInput.csproj" />
     <Project Path="src/Luxel.Input/Luxel.Input.csproj" />
     <Project Path="src/Luxel.MathText/Luxel.MathText.csproj" />
     <Project Path="src/Luxel.NodeGraph/Luxel.NodeGraph.csproj" />

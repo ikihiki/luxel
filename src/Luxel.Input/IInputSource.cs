@@ -147,7 +147,7 @@ public sealed class WindowInputSource : IInputSource, Luxel.Platform.IWindowInpu
 }
 
 /// <summary>
-/// 物理入力の生成源。プラットフォーム固有 (Win32/XInput) は本 interface を実装し、
+/// 物理入力の生成源。Window入力やXInputなどの具象sourceは本interfaceを実装し、
 /// <see cref="Poll"/> で per-frame の event 列を <see cref="InputBus"/> に流し込む。
 /// テスト用に <see cref="FakeInputSource"/> がある。
 /// </summary>
