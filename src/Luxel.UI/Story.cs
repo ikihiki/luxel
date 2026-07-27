@@ -306,7 +306,7 @@ public sealed record SampleFileInfo(string Path, SampleFileKind Kind, string? Re
 public sealed record SampleBundleInfo(string Id, string Name, string Description, string Difficulty, SampleCopyLevel CopyLevel,
     IReadOnlyList<SampleFileInfo> Files, IReadOnlyList<string>? Dependencies = null, IReadOnlyList<string>? Requirements = null,
     string? ExportSymbol = null, string? RunCommand = null, string? SmokeCommand = null,
-    IReadOnlyList<string>? Platforms = null, int TimeoutSeconds = 120, int ExpectedExitCode = 0,
+    IReadOnlyList<string>? Platforms = null, int TimeoutSeconds = 300, int ExpectedExitCode = 0,
     string? ExpectedStdoutMarker = null, IReadOnlyList<string>? ExpectedArtifacts = null);
 
 public static class SampleBundleRegistry

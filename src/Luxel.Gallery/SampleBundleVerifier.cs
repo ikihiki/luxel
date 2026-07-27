@@ -67,10 +67,15 @@ public static class SampleBundleVerifier
         };
         foreach (string argument in arguments) start.ArgumentList.Add(argument);
         using Process process = Process.Start(start) ?? throw new InvalidOperationException("Could not start dotnet.");
-        Task<string> stdout = process.StandardOutput.ReadToEndAsync(timeout.Token);
-        Task<string> stderr = process.StandardError.ReadToEndAsync(timeout.Token);
+        Task<string> stdout = process.StandardOutput.ReadToEndAsync();
+        Task<string> stderr = process.StandardError.ReadToEndAsync();
         try { await process.WaitForExitAsync(timeout.Token); }
-        catch (OperationCanceledException) { process.Kill(entireProcessTree: true); throw new TimeoutException($"Bundle '{bundle.Id}' exceeded {bundle.TimeoutSeconds}s."); }
+        catch (OperationCanceledException)
+        {
+            process.Kill(entireProcessTree: true);
+            await Task.WhenAll(stdout, stderr);
+            throw new TimeoutException($"Bundle '{bundle.Id}' exceeded {bundle.TimeoutSeconds}s.");
+        }
         return (await stdout, await stderr, process.ExitCode);
     }
 }
