@@ -1,0 +1,45 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>ADR/0016-Scene-Editor-Stack</h1></header><h1 id="adr-0016-3-transaction">ADR-0016 — シーンエディタは第 3 の Transaction スタック + 空間アダプタで作る</h1>
+<ul>
+<li><p><a href="#context">Context</a></p>
+</li>
+<li><p><a href="#decision">Decision</a></p>
+</li>
+<li><p><a href="#alternatives">Alternatives</a></p>
+</li>
+<li><p><a href="#consequences">Consequences</a></p>
+</li>
+<li><p><strong>Status</strong>: Accepted</p>
+</li>
+<li><p><strong>Date</strong>: 2026-07-11</p>
+</li>
+<li><p><strong>Deciders</strong>: ikihiki</p>
+</li>
+</ul>
+<h2 id="context">Context</h2>
+<p>ゲームエディタ (Luxel Studio、<a href="#story=ADR%2F0015-Game-Project-Scene-Format">ADR-0015</a>) の中心はシーン編集 — エンティティの選択/移動/複製/削除、タイル描き込み、undo/redo です。リポジトリには実証済みの編集アーキテクチャが 2 本あります: テキスト (<a href="#story=ADR%2F0006-Editor-New-Stack">ADR-0006</a>) とノードグラフ (<a href="#story=ADR%2F0009-Node-Editor-Stack">ADR-0009</a>)。どちらも「不変スナップショット + Transaction + 1 tx = 1 undo + 安定 id」の同じ骨格です。</p>
+<p>加えて 2D/3D 両対応の制約 (2026-07-10 決定) がある: 実装は 2D 先行 (M11) だが、3D (M12) をシェルの作り直しなしに足せる形にする必要があります。2D と 3D ではカメラの型 (pan/zoom vs 軌道)、ヒットテスト (矩形 vs レイピック)、座標型 (Vector2 vs Vector3) が違います。</p>
+<h2 id="decision">Decision</h2>
+<p><code>Luxel.SceneEdit</code> に<strong>第 3 の Transaction スタック</strong>を作り、ビューは<strong>共有シェル + 空間アダプタ</strong>に分けます。</p>
+<ul>
+<li><strong>変更モデル</strong> (NodeGraph S1 の鏡写し): <code>SceneChange</code> (AddEntity/RemoveEntity/Rename/SetComponent/RemoveComponent/<strong>SetField</strong>) + <code>SceneChangeSet</code> + <code>SceneEditState</code>/<code>SceneTransaction</code> + <code>SceneHistory</code> (1 tx = 1 undo、coalesce)。移動もインスペクタ編集も <strong>SetField が形ベースの <code>SceneValue</code> で運ぶ</strong>ため、2D/3D どちらの Transform にも同じ変更型が効く</li>
+<li><strong>エンティティ順 = 描画順</strong>: <code>RemoveEntity</code> の逆は<strong>元の位置への復活</strong> (AddEntity が挿入 Index を持つ) — undo で重なり順が変わらない</li>
+<li><strong>カメラはコアの状態に持たせない</strong>: NodeGraph は viewport を状態に含めたが、シーンでは空間ごとに型が違う (pan/zoom vs 軌道) ため<strong>空間アダプタの所有</strong>とする。undo 対象外なのは同じ</li>
+<li><strong><code>ISceneSpaceAdapter</code></strong> (Luxel.Controls): スクリーン↔ワールド変換・ヒットテスト・カメラ操作・world 描画・移動の変更列組み立て (<code>BuildMove</code>)・複製オフセットをすべて閉じる。<strong>シェル (<code>SceneEditorView</code>) は view-local px と id しか扱わない</strong> — 「ワールド = 平面」の前提をシェルに書いたら原則違反</li>
+<li><strong>移動ギズモは軸分解</strong> (X=赤/Y=緑、画面空間固定サイズ)。2D は「2 軸の特殊形」で、3D アダプタは Z を足すだけ</li>
+<li>ドラッグはプレビュー状態で描き drop で 1 変更を記録 (NodeGraphView の手筋)。プレビューと確定が同じ <code>BuildMove</code> を通るので拘束/スナップの実装が一元化される</li>
+</ul>
+<h2 id="alternatives">Alternatives</h2>
+<ul>
+<li><strong>NodeGraphView を流用</strong> — ポート/辺の意味論が不要で、エンティティ=コンポーネントの編集 (SetField) とタイルレイヤが乗らない → 却下 (骨格だけ鏡写し)</li>
+<li><strong>2D と 3D で別エディタ</strong> — 選択/undo/ツール切替/キーバインドが二重実装になり、混在プロジェクト (原則 6) で UX が割れる → 却下 (共有シェル + アダプタ)</li>
+<li><strong>カメラをコア状態に統一型で持つ</strong> — 2D と 3D のカメラを 1 つの型に押し込むと結局 union になり、コアが空間を知ってしまう → 却下 (アダプタ所有)</li>
+</ul>
+<h2 id="consequences">Consequences</h2>
+<ul>
+<li>✅ 実証済み骨格の 3 度目の適用 — 設計リスクが低く、テストの書き方も既知</li>
+<li>✅ 3D 対応 (M12) は「アダプタ 1 実装を足す」に局所化される (シェル無改修が検収条件)</li>
+<li>✅ SetField 1 本で移動/インスペクタ/スクリプト設定が同じ undo 経路に乗る</li>
+<li>⚠️ アダプタ境界の維持には規律が要る — シェルに空間ロジックを書くと 3D で崩壊する (レビュー観点)</li>
+<li>⚠️ プレースホルダ表示 (定型ボックス) は GE-2/GE-3 でスプライト/実表示に置き換えるまでの仮</li>
+</ul>
+</article>

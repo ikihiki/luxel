@@ -1,0 +1,17 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Layout/Overview</h1></header><h1 id="layout">Layout</h1>
+<ul>
+<li><a href="#box">Box</a></li>
+<li><a href="#stack">Stack</a></li>
+<li><a href="#center">Center</a></li>
+<li><a href="#spacer">Spacer</a></li>
+</ul>
+<p><code>Controls/Layout</code> のデモで使う基本レイアウトコントロールです。個別カテゴリを持たないプリミティブをまとめています。</p>
+<h2 id="box">Box</h2>
+<section class="api-reference"><p class="api-summary">角丸塗りボックス (子なし)。サイズは共通引数 (width/height)、伸縮は hAlign/vAlign: Stretch。</p><h3>パラメータ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Background</code></th><td><code>uint</code></td><td>塗り色。未設定 → テーマ SurfaceAlt。</td></tr><tr><th scope="row"><code>Rounded</code></th><td><code>float</code></td><td>角丸半径 (px)。</td></tr></tbody></table></div></section>
+<h2 id="stack">Stack</h2>
+<section class="api-reference"><p class="api-summary">子を縦/横に順に並べる単純コンテナ。</p><h3>パラメータ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Vertical</code></th><td><code>bool</code></td><td>true=縦に積む (既定)。向きは VStack/HStack sugar もある。</td></tr><tr><th scope="row"><code>Spacing</code></th><td><code>float</code></td><td>子要素間の間隔 (px)。</td></tr></tbody></table></div></section>
+<h2 id="center">Center</h2>
+<section class="api-reference"><p class="api-summary">子を中央(または指定整列)に配置するコンテナ。与えられた領域いっぱいに広がる。</p></section>
+<h2 id="spacer">Spacer</h2>
+<section class="api-reference"><p class="api-summary">固定サイズの空き (区切り/余白)。描画なし。サイズは共通引数 (width/height)。</p></section>
+</article>

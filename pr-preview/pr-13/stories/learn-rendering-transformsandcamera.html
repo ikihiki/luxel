@@ -1,0 +1,91 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Rendering/TransformsAndCamera</h1></header><h1 id="transformcameraindexed-cube">Transformとcameraでindexed cubeを描く</h1>
+<ul>
+<li><a href="#%E5%AE%9F%E8%A1%8C%E3%81%A8%E6%9C%9F%E5%BE%85%E7%B5%90%E6%9E%9C">実行と期待結果</a></li>
+<li><a href="#%E3%81%93%E3%81%AEtutorial%E3%81%AE%E5%BA%A7%E6%A8%99%E8%A6%8F%E7%B4%84">このtutorialの座標規約</a></li>
+<li><a href="#indexed-vertex-pulling">Indexed vertex pulling</a></li>
+<li><a href="#resize%E3%81%A8aspect">Resizeとaspect</a></li>
+<li><a href="#normal-transform">Normal transform</a></li>
+<li><a href="#%E6%89%80%E6%9C%89%E6%A8%A9%E3%81%A8backend%E5%B7%AE">所有権とbackend差</a></li>
+<li><a href="#%E5%85%B8%E5%9E%8B%E7%9A%84%E3%81%AA%E5%A4%B1%E6%95%97">典型的な失敗</a></li>
+</ul>
+<p><strong>難易度:</strong> Beginner+　 <strong>実行環境:</strong> Standalone　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> Textures</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FRendering%2FTextures">Textures</a>　 <strong>次:</strong> <a href="#story=Learn%2FRendering%2FDepthCullingLighting">DepthCullingLighting</a></p>
+<p>実コードは <code>samples/LuxelTriangle/TriangleRenderer.cs</code>、共有ABIは <code>samples/LuxelTriangle/TutorialAbi.cs</code>、vertex pullingとMVPは <code>shaders/tutorial_3d.slang</code> を参照します。texture付きquadを24頂点・36 indexのcubeへ広げ、model / view / projectionをroot argumentsから渡します。</p>
+<h2 id="section">実行と期待結果</h2>
+<pre><code class="language-powershell">dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
+dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter TutorialAbiTests
+dotnet run --project samples/LuxelTriangle -- vk --stage transform
+dotnet run --project samples/LuxelTriangle -- vk --stage transform --frames 3
+dotnet run --project samples/LuxelTriangle -- vk --stage transform --size 801x603 --frames 3
+# Windowsのみ
+dotnet run --project samples/LuxelTriangle -- dx --stage transform
+dotnet run --project samples/LuxelTriangle -- dx --stage transform --frames 3
+</code></pre>
+<p>成功時はdepth test/writeが有効、cullingは無効の、回転するtexture付きcubeが見えます。次ページでback-face cullingと光を足す前後を比較できます。windowを横長・縦長へresizeしてもcubeが横につぶれず、visible client sizeのaspectに追従することを確認します。</p>
+<h2 id="tutorial">このtutorialの座標規約</h2>
+<p>規約を混ぜないことが最重要です。</p>
+<table>
+<thead>
+<tr>
+<th>項目</th>
+<th>tutorialの規約</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>handedness</td>
+<td>right-handed</td>
+</tr>
+<tr>
+<td>world axes</td>
+<td>+X=右、+Y=上、cameraの前方=-Z</td>
+</tr>
+<tr>
+<td>unit</td>
+<td>1.0 = 1 meter相当</td>
+</tr>
+<tr>
+<td>UV</td>
+<td>(0,0)=左上、+V=下</td>
+</tr>
+<tr>
+<td>clip/depth</td>
+<td>shader出力後のdepthは0..1</td>
+</tr>
+<tr>
+<td>front face</td>
+<td>screen上でcounter-clockwiseをfrontとしてmesh indexを作る</td>
+</tr>
+<tr>
+<td>matrix</td>
+<td>CPUは<code>System.Numerics.Matrix4x4</code>で<code>model</code>と<code>view * projection</code>を作り、root argsへtransposeして渡す</td>
+</tr>
+</tbody>
+</table>
+<p>CPUの意味上の順序はrow-vectorの <code>p * model * view * projection</code> です。実装は<code>Model = Matrix4x4.Transpose(model)</code>、<code>ViewProjection = Matrix4x4.Transpose(view * projection)</code>としてcolumn-majorのSlang fieldへ渡し、shaderでは <code>mul(g_args.model, float4(position, 1))</code>、続けて<code>mul(g_args.viewProjection, worldPosition)</code>とmatrix×column-vectorで計算します。bufferから4 rowを<code>Load4</code>して行列を組み立てる方式へ変える場合は同じtransposeを機械的に残さないでください。<strong>掛け算順とupload layoutを別問題として確認</strong>します。</p>
+<p>cameraは右手系look-at、projectionは0..1 depthのperspectiveを使います。.NET helperが異なるclip規約を返す場合はprojectionを補正し、VulkanだけYを場当たり的に反転するのではなく、Luxelの両backendで同じ最終clip規約になる1か所へ集約します。nearは0より大きく、farより十分小さくします。</p>
+<h2 id="indexed-vertex-pulling">Indexed vertex pulling</h2>
+<p>core APIに固定functionの<code>DrawIndexed</code>はありません。commandの<code>Draw(36)</code>が生成する<code>SV_VertexID</code>をindex-stream番号として扱い、raw index bufferからvertex indexをloadし、そのindexでvertex bufferをloadします。</p>
+<pre><code class="language-slang">uint vertexIndex = g_buffers[indexBufferIndex].Load(vertexId * 4);
+Vertex vertex = g_buffers[vertexBufferIndex].Load&lt;Vertex&gt;(vertexIndex * vertexStride);
+float4 clip = mul(float4(vertex.position, 1.0), modelViewProjection);
+</code></pre>
+<p>tutorialは分かりやすさのため32-bit indexを使います。24頂点に面ごとのnormal / UVを持たせ、位置が同じcornerでも面が違えば別vertexにします。8 positionだけを共有すると、UV seamとhard normalを表せません。</p>
+<h2 id="resizeaspect">Resizeとaspect</h2>
+<p>projectionのaspectはrequestされたwindow sizeやreadbackのaligned strideではなく、<strong>resize callbackで確定したvisible client width / height</strong>から <code>width / height</code> を計算します。D3D12用<code>StridePixels</code>を使うと、64 pixel alignmentの余白ぶん画角がずれます。0×0の最小化中はprojection計算とrenderを休止し、正のsizeへ戻った次frameでcolor target、framebuffer、のちのdepth targetとprojectionをまとめて更新します。</p>
+<p>resizeを目視検証するときは正方形、横長、縦長を往復し、cubeの辺の比率と中心位置を確認します。自動画像比較は同じvisible size・同じframeのVulkan/D3D12画像を小さなtolerance付きで比較し、aspectの違いは許容しません。</p>
+<h2 id="normal-transform">Normal transform</h2>
+<p>平行移動をnormalへ適用せず、uniform scale + rotationだけならmodelの3x3で変換してnormalizeします。non-uniform scaleを許すなら <strong>model 3x3のinverse-transpose</strong> を使います。projectionやviewの平行移動をnormalへ掛けないでください。normal matrixもC# / Slangのrow/column規約と同じ規則でuploadします。</p>
+<h2 id="backend">所有権とbackend差</h2>
+<p>rendererがvertex / index buffer、texture / sampler、pipelineを全window lifetimeで所有します。model / view / projectionは毎frameの値ですが、root argumentsはcommand記録時にbytesとしてcopyされます。resize resourceはqueue idle後に作り直し、静的mesh resourceはresizeで再生成しません。</p>
+<p>VulkanはSPIR-V push constants、D3D12はroot constantsへ同じMVP bytesを渡します。clip-space変換やtransposeをbackend別shaderへ分岐させないでください。両backendでcubeの回転方向、front face、画角が一致することを基準にします。</p>
+<h2 id="section-1">典型的な失敗</h2>
+<ul>
+<li>cubeが消える → near/far、cameraの-Z前方、W、matrix multiplication orderを確認</li>
+<li>平行移動が回転する / orbitする → <code>model * view * projection</code>の順を確認</li>
+<li>VulkanとD3D12で上下が違う → projection補正をbackend layerとshaderの両方で行っていないか確認</li>
+<li>resizeでcubeが伸びる → <code>StridePixels</code>ではなくvisible width / heightからaspectを作る</li>
+<li>一部の面だけtextureが崩れる → index値、32-bit stride、faceごとのUV seamを確認</li>
+<li>光を入れるとnormalが傾く → directionとしてw=0で扱い、non-uniform scaleではinverse-transposeを使う</li>
+</ul>
+</article>
