@@ -30,10 +30,28 @@ public sealed class TerminalCell
     public string Text { get; set; } = " ";
     public int Width { get; set; } = 1;
     public bool Continuation { get; set; }
+    public bool Occupied { get; set; }
     public TerminalAttributes Attributes { get; set; } = TerminalAttributes.Default;
 
-    public TerminalCell Clone() => new() { Text = Text, Width = Width, Continuation = Continuation, Attributes = Attributes };
-    public void Clear(TerminalAttributes attributes) { Text = " "; Width = 1; Continuation = false; Attributes = attributes; }
+    public TerminalCell Clone() => new() { Text = Text, Width = Width, Continuation = Continuation, Occupied = Occupied, Attributes = Attributes };
+    public void Clear(TerminalAttributes attributes) { Text = " "; Width = 1; Continuation = false; Occupied = false; Attributes = attributes; }
+}
+
+public sealed class TerminalLine
+{
+    public TerminalLine(int columns) => Cells = Enumerable.Range(0, columns).Select(_ => new TerminalCell()).ToArray();
+    public TerminalCell[] Cells { get; }
+    /// <summary>True when the next physical row continues this logical line due to DEC autowrap.</summary>
+    public bool WrappedToNext { get; set; }
+    /// <summary>Number of cell columns that contain explicit terminal content.</summary>
+    public int ContentColumns { get; set; }
+
+    public TerminalLine Clone()
+    {
+        var line = new TerminalLine(Cells.Length) { WrappedToNext = WrappedToNext, ContentColumns = ContentColumns };
+        for (int i = 0; i < Cells.Length; i++) line.Cells[i] = Cells[i].Clone();
+        return line;
+    }
 }
 
 public readonly record struct TerminalCursor(int Row, int Column, bool Visible = true);
@@ -41,7 +59,11 @@ public readonly record struct TerminalCursor(int Row, int Column, bool Visible =
 public sealed record TerminalSnapshot(
     int Columns, int Rows, IReadOnlyList<IReadOnlyList<TerminalCell>> Lines,
     IReadOnlyList<IReadOnlyList<TerminalCell>> Scrollback, TerminalCursor Cursor,
-    long Generation, bool AlternateScreen, string? Title, bool BracketedPaste);
+    long Generation, bool AlternateScreen, string? Title, bool BracketedPaste)
+{
+    public IReadOnlyList<bool> LineWraps { get; init; } = [];
+    public IReadOnlyList<bool> ScrollbackWraps { get; init; } = [];
+}
 
 public static class TerminalCellWidth
 {

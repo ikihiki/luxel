@@ -42,6 +42,8 @@ public interface ITerminalPty : IAsyncDisposable
 public sealed class TerminalSession : IAsyncDisposable
 {
     private interface ICommand;
+    private sealed record OutputCommand(byte[] Bytes) : ICommand;
+    private sealed record FlushOutputCommand : ICommand;
     private sealed record WriteCommand(byte[] Bytes) : ICommand;
     private sealed record ResizeCommand(int Columns, int Rows) : ICommand;
     private sealed record ResponseCommand(byte[] Bytes) : ICommand;
@@ -99,9 +101,9 @@ public sealed class TerminalSession : IAsyncDisposable
             while (!cancellationToken.IsCancellationRequested)
             {
                 int read = await _pty.ReadAsync(bytes, cancellationToken).ConfigureAwait(false); if (read == 0) break;
-                _parser.Parse(bytes.AsSpan(0, read)); PublishSnapshot();
+                await _commands.Writer.WriteAsync(new OutputCommand(bytes.AsSpan(0, read).ToArray()), cancellationToken).ConfigureAwait(false);
             }
-            _parser.Flush(); PublishSnapshot();
+            await _commands.Writer.WriteAsync(new FlushOutputCommand(), cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
         catch (Exception ex) { await CompleteAsync(new TerminalExitStatus(-1, false, ex)).ConfigureAwait(false); }
@@ -115,6 +117,8 @@ public sealed class TerminalSession : IAsyncDisposable
             {
                 switch (command)
                 {
+                    case OutputCommand output: _parser.Parse(output.Bytes); PublishSnapshot(); break;
+                    case FlushOutputCommand: _parser.Flush(); PublishSnapshot(); break;
                     case WriteCommand write: await _pty.WriteAsync(write.Bytes, cancellationToken).ConfigureAwait(false); break;
                     case ResponseCommand response: await _pty.WriteAsync(response.Bytes, cancellationToken).ConfigureAwait(false); break;
                     case ResizeCommand resize:
@@ -148,7 +152,7 @@ public sealed class TerminalSession : IAsyncDisposable
     {
         bool notify;
         lock (_sync) { notify = State is TerminalSessionState.Running or TerminalSessionState.Closing; if (notify) { ExitStatus = status; State = TerminalSessionState.Exited; } }
-        if (!notify) return; _commands.Writer.TryComplete(); Exited?.Invoke(status); await Task.CompletedTask;
+        if (!notify) return; Exited?.Invoke(status); await Task.CompletedTask;
     }
 
     public async Task CloseAsync(CancellationToken cancellationToken = default)

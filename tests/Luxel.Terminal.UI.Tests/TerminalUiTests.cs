@@ -50,6 +50,17 @@ public sealed class TerminalUiTests
     }
 
     [Fact]
+    public void SelectionCopyOmitsNewlineAcrossSoftWrapButKeepsHardBreak()
+    {
+        TerminalSnapshot soft = Snapshot([], ["abcd", "ef"] ) with { LineWraps = [true, false] };
+        var selection = new TerminalSelection(new TerminalPoint(0, 0), new TerminalPoint(1, 2));
+        Assert.Equal("abcdef", TerminalViewport.ExtractSelection(soft, selection));
+
+        TerminalSnapshot hard = soft with { LineWraps = [false, false] };
+        Assert.Equal($"abcd{Environment.NewLine}ef", TerminalViewport.ExtractSelection(hard, selection));
+    }
+
+    [Fact]
     public void Palette_ResolvesAnsiCubeGrayAndTrueColor()
     {
         var palette = new TerminalPalette();

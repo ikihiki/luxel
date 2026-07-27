@@ -57,9 +57,17 @@ public static class TerminalViewport
             int to = lineIndex == end.Line ? end.Column : line.Count;
             for (int column = from; column < Math.Min(to, line.Count); column++)
                 if (!line[column].Continuation) result.Append(line[column].Text);
-            if (lineIndex != end.Line) result.AppendLine();
+            if (lineIndex != end.Line && !IsSoftWrapped(snapshot, lineIndex)) result.AppendLine();
         }
         return result.ToString().TrimEnd(' ');
+    }
+
+    private static bool IsSoftWrapped(TerminalSnapshot snapshot, int absoluteLine)
+    {
+        if (absoluteLine < snapshot.Scrollback.Count)
+            return absoluteLine < snapshot.ScrollbackWraps.Count && snapshot.ScrollbackWraps[absoluteLine];
+        int screenLine = absoluteLine - snapshot.Scrollback.Count;
+        return screenLine >= 0 && screenLine < snapshot.LineWraps.Count && snapshot.LineWraps[screenLine];
     }
 }
 

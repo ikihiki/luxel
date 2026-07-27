@@ -153,7 +153,7 @@ public sealed class VtParser
         {
             case 1: _buffer.ApplicationCursorKeys = enabled; break;
             case 6: _buffer.OriginMode = enabled; break;
-            case 7: _buffer.AutoWrap = enabled; break;
+            case 7: _buffer.SetAutoWrap(enabled); break;
             case 25: _buffer.CursorVisible = enabled; break;
             case 47: case 1047: case 1049: _buffer.UseAlternateScreen(enabled); break;
             case 2004: _buffer.BracketedPaste = enabled; break;
@@ -206,7 +206,7 @@ public sealed class VtParser
         return TerminalColor.Default;
     }
 
-    private void Reset() { _buffer.Attributes = TerminalAttributes.Default; _buffer.CursorVisible = true; _buffer.AutoWrap = true; _buffer.UseAlternateScreen(false); _buffer.EraseDisplay(2); _buffer.MoveCursor(0, 0); }
+    private void Reset() { _buffer.Attributes = TerminalAttributes.Default; _buffer.CursorVisible = true; _buffer.SetAutoWrap(true); _buffer.UseAlternateScreen(false); _buffer.EraseDisplay(2); _buffer.MoveCursor(0, 0); }
     private void FlushText() { if (_text.Length == 0) return; foreach (Rune rune in _text.ToString().EnumerateRunes()) _buffer.WriteRune(rune); _text.Clear(); }
     private void AppendSequence(char ch) { if (_sequence.Length < MaxSequenceLength) _sequence.Append(ch); else { _sequence.Clear(); _state = State.Ground; } }
     private void Send(string value) => Response?.Invoke(Encoding.ASCII.GetBytes(value));
