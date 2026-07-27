@@ -6,7 +6,6 @@
     <InternalsVisibleTo Include="Luxel.Tests" />
     <ProjectReference Include="..\Luxel.Typography\Luxel.Typography.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
-    <ProjectReference Include="..\Luxel\Luxel.csproj" />
     <ProjectReference Include="..\Luxel.Animation\Luxel.Animation.csproj" />
     <!-- StoryContext.Resources (ホスト所有 ResourceSystem の配布窓口) -->
     <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />
@@ -19,6 +18,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Mathematics\Luxel.Mathematics.csproj" />
     <Using Include="Luxel.Mathematics" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

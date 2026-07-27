@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Luxel\Luxel.csproj" />
     <ProjectReference Include="..\Luxel.Animation\Luxel.Animation.csproj" />
     <!-- ParticleConfig JSON のロード (ParticleConfigStep)。Resources は CPU のみ (GPU 非依存)。 -->
     <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />

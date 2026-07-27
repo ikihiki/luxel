@@ -59,7 +59,7 @@
     <Project Path="src/Luxel.UI.Tailwind/Luxel.UI.Tailwind.csproj" />
     <Project Path="src/Luxel.UI/Luxel.UI.csproj" />
     <Project Path="src/Luxel.Graphics.Vulkan/Luxel.Graphics.Vulkan.csproj" />
-    <Project Path="src/Luxel/Luxel.csproj" />
+    <Project Path="src/Luxel.Diagnostics/Luxel.Diagnostics.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/LuxelCavern/LuxelCavern.Core/LuxelCavern.Core.csproj" />

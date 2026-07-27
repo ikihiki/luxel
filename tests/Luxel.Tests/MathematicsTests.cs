@@ -16,6 +16,15 @@ public sealed class MathematicsTests
     }
 
     [Fact]
+    public void DiagnosticsAssembly_HasNoLuxelProjectDependencies()
+    {
+        string[] references = typeof(Luxel.Diagnostics.EngineDiagnostics).Assembly.GetReferencedAssemblies()
+            .Select(assembly => assembly.Name ?? "")
+            .ToArray();
+        Assert.DoesNotContain(references, name => name.StartsWith("Luxel", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void PureTypes_AreOwnedByMathematicsAssembly()
     {
         Assert.Equal("Luxel.Mathematics", typeof(OrbitCamera).Namespace);

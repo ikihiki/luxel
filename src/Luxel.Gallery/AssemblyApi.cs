@@ -6,7 +6,6 @@ using Luxel.UI;
 // Reference は再利用可能な src/Luxel.* ライブラリをすべて列挙する。
 // 実行ホスト (Gallery / Gallery.Site / Player.App) と source generator は対象外。
 // コア / GPU 抽象 + バックエンド
-[assembly: GenerateAssemblyApi("Luxel")]
 [assembly: GenerateAssemblyApi("Luxel.Diagnostics")]
 [assembly: GenerateAssemblyApi("Luxel.Graphics")]
 [assembly: GenerateAssemblyApi("Luxel.Graphics.Abstraction")]

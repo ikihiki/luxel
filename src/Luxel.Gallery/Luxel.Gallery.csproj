@@ -5,6 +5,10 @@
     <Using Include="Luxel.Mathematics" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -31,7 +35,6 @@
     <ProjectReference Include="..\Luxel.DevTools\Luxel.DevTools.csproj" />
     <ProjectReference Include="..\Luxel.Document\Luxel.Document.csproj" />
     <ProjectReference Include="..\Luxel.Platform\Luxel.Platform.csproj" />
-    <ProjectReference Include="..\Luxel\Luxel.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />

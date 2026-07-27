@@ -121,6 +121,7 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 
 | プロジェクト | 役割 |
 | --- | --- |
+| Luxel.Diagnostics | 計装イベント、診断payload、EngineCommands、DevStats |
 | Luxel.Mathematics | ベクトル幾何、アフィン変換、カメラ計算、決定的乱数などの純粋数学 |
 | Luxel.Graphics / Luxel.Graphics.Vulkan / Luxel.Graphics.DirectX12 | GPU 抽象とバックエンド |
 | Luxel.Graphics.TwoD / Luxel.Graphics.TwoD.Skia | 共通2D契約 + GPU compute / Skia CPU backend + 保持型キャンバス |

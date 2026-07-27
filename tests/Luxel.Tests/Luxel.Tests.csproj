@@ -5,6 +5,10 @@
     <Using Include="Luxel.Mathematics" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -33,7 +37,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Luxel\Luxel.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\..\src\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\..\src\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />

@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Luxel.Controls;
 using Luxel.DevTools;
 using Luxel.Diagnostics;
@@ -7,10 +7,14 @@ using Luxel.UI;
 
 namespace Luxel.Tests;
 
+[CollectionDefinition("GlobalDiagnostics", DisableParallelization = true)]
+public sealed class GlobalDiagnosticsCollection;
+
 /// <summary>
 /// DevTools 計装/リスナーの GPU 不要テスト。エンジンの Emit/操作レジストリ・最新のみ保持(coalesce)・
 /// ログリング・ツリー introspection・キーマップを検証する (デバイス生成なし)。
 /// </summary>
+[Collection("GlobalDiagnostics")]
 public class DevToolsTests
 {
     // ---- EngineCommands: 登録→Enqueue→Drain (app スレッド適用) ----

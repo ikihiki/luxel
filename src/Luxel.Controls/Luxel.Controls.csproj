@@ -15,7 +15,6 @@
     <ProjectReference Include="..\Luxel.Workbench\Luxel.Workbench.csproj" />
     <!-- 画像 embed (ImageBlock) が ResourceHandle<CpuImage> を扱う。GPU API は含まれない (Diagnostics のみ依存) -->
     <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />
-    <ProjectReference Include="..\Luxel\Luxel.csproj" />
     <!-- Widget の DebugProps を reflection なしで焼き込むソースジェネレーター -->
     <ProjectReference Include="..\Luxel.UI.Generators\Luxel.UI.Generators.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU"
@@ -26,6 +25,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Mathematics\Luxel.Mathematics.csproj" />
     <Using Include="Luxel.Mathematics" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

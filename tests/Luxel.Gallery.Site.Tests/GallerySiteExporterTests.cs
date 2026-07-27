@@ -72,6 +72,10 @@ public sealed class GallerySiteExporterTests
         Assert.DoesNotContain(contract.Members, member => member.Type.Contains("GpuBuffer", StringComparison.Ordinal)
             || member.Type.Contains("GpuCommandBuffer", StringComparison.Ordinal));
 
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.Diagnostics.EngineDiagnostics"));
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.Framework.FixedTimestep"));
+        Assert.Contains("Luxel.Diagnostics", TypeApiRegistry.Namespaces);
+        Assert.DoesNotContain("Luxel", TypeApiRegistry.Namespaces);
         Assert.NotNull(TypeApiRegistry.Find("Luxel.Mathematics.OrbitCamera"));
         Assert.NotNull(TypeApiRegistry.Find("Luxel.Mathematics.Xorshift64"));
         Assert.Null(TypeApiRegistry.Find("Luxel.OrbitCamera"));

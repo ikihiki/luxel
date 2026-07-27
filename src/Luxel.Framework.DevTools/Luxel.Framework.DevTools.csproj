@@ -5,13 +5,16 @@
     Framework を DevTools/DevTools.App に依存させないため、拡張メソッドはこの別アセンブリに置く
     (ゲームだけが両方を参照する)。ブラウザ版 (DebugServer) と内蔵版 (DevToolsApp) を選択・併用できる。
   -->
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
-    <ProjectReference Include="..\Luxel\Luxel.csproj" />
     <ProjectReference Include="..\Luxel.Framework\Luxel.Framework.csproj" />
     <ProjectReference Include="..\Luxel.DevTools\Luxel.DevTools.csproj" />
     <ProjectReference Include="..\Luxel.DevTools.App\Luxel.DevTools.App.csproj" />

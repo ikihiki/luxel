@@ -1,15 +1,15 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Luxel.DevTools;
 using Luxel.Diagnostics;
 using Luxel.Ecs;
-using Luxel.Framework;
 
 namespace Luxel.Tests;
 
 /// <summary>
-/// DevTools ゲーム規模対応 (タスク 21 ステージ ①) の GPU 不要テスト:
-/// ECS サマリ/詳細/フィルタ (A)、DevStats カスタム統計 (C)、timescale (D2)、FixedUpdate 統計 (D1)。
+/// DevTools ゲーム規模対応のGPU不要テスト:
+/// ECSサマリ/詳細/フィルタとDevStatsカスタム統計を検証する。
 /// </summary>
+[Collection("GlobalDiagnostics")]
 public class DevToolsGameScaleTests
 {
     // ==================== A: ECS スケール対応 ====================
@@ -149,33 +149,4 @@ public class DevToolsGameScaleTests
         DevStats.Clear();
     }
 
-    // ==================== D2: timescale ====================
-
-    [Theory]
-    [InlineData(0.016, 1.0, 0.016)]     // 等倍
-    [InlineData(0.016, 0.5, 0.008)]     // スローモーション
-    [InlineData(0.016, 2.0, 0.032)]     // 早送り
-    [InlineData(0.016, 0.0, 0.0001)]    // 0 は下限クランプ (pause と等価にしない)
-    [InlineData(1.0, 1.0, 0.1)]         // 上限クランプ (スパイク吸収)
-    public void ScaleDt_AppliesTimeScale_AndClamps(double raw, double scale, double expected)
-        => Assert.Equal(expected, FixedTimestep.ScaleDt(raw, scale), precision: 5);
-
-    // ==================== D1: FixedUpdate 統計 (slow-mo で 2 倍フレーム) ====================
-
-    [Fact]
-    public void TimeScale_Half_Doubles_FramesPerFixedStep()
-    {
-        // timescale 0.5 の scaled dt を FixedTimestep に流すと、同じシム時間に約 2 倍のフレームがかかる
-        var fixedStep = new FixedTimestep(fixedDt: 1.0 / 60, maxStepsPerFrame: 8);
-        int totalSteps = 0;
-        const int frames = 120;   // 実 60fps で 120 フレーム = 2 秒
-        for (int i = 0; i < frames; i++)
-        {
-            float dt = FixedTimestep.ScaleDt(1.0 / 60, 0.5);   // 実 1/60 を半分に
-            totalSteps += fixedStep.Advance(dt);
-        }
-        // 実 2 秒ぶんのフレームだが sim は半速 = 約 1 秒ぶん (60 ステップ) しか進まない
-        Assert.InRange(totalSteps, 58, 62);
-        Assert.Equal(0, fixedStep.DroppedSteps);           // スローモーは処理落ちではない
-    }
 }

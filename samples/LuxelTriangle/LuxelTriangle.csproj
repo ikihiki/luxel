@@ -14,7 +14,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Luxel.Graphics\Luxel.Graphics.csproj" />
-    <ProjectReference Include="..\..\src\Luxel\Luxel.csproj" />
     <ProjectReference Include="..\..\src\Luxel.RenderGraph\Luxel.RenderGraph.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
   </ItemGroup>
