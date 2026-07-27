@@ -1,11 +1,11 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Docs/ThreeD</h1></header><h1 id="d-ecs">3D と ECS</h1>
 <ul>
-<li><a href="#%E3%82%B3%E3%83%B3%E3%83%9D%E3%83%BC%E3%83%8D%E3%83%B3%E3%83%88%E3%81%A8%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0">コンポーネントとシステム</a></li>
-<li><a href="#%E6%8A%BD%E5%87%BA-irenderextractor">抽出 (IRenderExtractor)</a></li>
-<li><a href="#%E6%8F%8F%E7%94%BB%E3%83%91%E3%82%BF%E3%83%BC%E3%83%B3">描画パターン</a></li>
-<li><a href="#orbitcamera-%E2%80%94-%E8%BB%8C%E9%81%93%E3%82%AB%E3%83%A1%E3%83%A9">OrbitCamera — 軌道カメラ</a></li>
-<li><a href="#%E8%A8%AD%E8%A8%88%E3%83%8E%E3%83%BC%E3%83%88:-ui-%E3%81%AB-ecs-%E3%82%92%E4%BD%BF%E3%82%8F%E3%81%AA%E3%81%84%E7%90%86%E7%94%B1">設計ノート: UI に ECS を使わない理由</a></li>
-<li><a href="#%E8%A1%8C%E5%88%97%E3%83%AC%E3%82%A4%E3%82%A2%E3%82%A6%E3%83%88%E3%81%AE%E7%BD%A0">行列レイアウトの罠</a></li>
+<li><a href="#story=Docs%2FThreeD&amp;section=%E3%82%B3%E3%83%B3%E3%83%9D%E3%83%BC%E3%83%8D%E3%83%B3%E3%83%88%E3%81%A8%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0">コンポーネントとシステム</a></li>
+<li><a href="#story=Docs%2FThreeD&amp;section=%E6%8A%BD%E5%87%BA-irenderextractor">抽出 (IRenderExtractor)</a></li>
+<li><a href="#story=Docs%2FThreeD&amp;section=%E6%8F%8F%E7%94%BB%E3%83%91%E3%82%BF%E3%83%BC%E3%83%B3">描画パターン</a></li>
+<li><a href="#story=Docs%2FThreeD&amp;section=orbitcamera-%E2%80%94-%E8%BB%8C%E9%81%93%E3%82%AB%E3%83%A1%E3%83%A9">OrbitCamera — 軌道カメラ</a></li>
+<li><a href="#story=Docs%2FThreeD&amp;section=%E8%A8%AD%E8%A8%88%E3%83%8E%E3%83%BC%E3%83%88%3A-ui-%E3%81%AB-ecs-%E3%82%92%E4%BD%BF%E3%82%8F%E3%81%AA%E3%81%84%E7%90%86%E7%94%B1">設計ノート: UI に ECS を使わない理由</a></li>
+<li><a href="#story=Docs%2FThreeD&amp;section=%E8%A1%8C%E5%88%97%E3%83%AC%E3%82%A4%E3%82%A2%E3%82%A6%E3%83%88%E3%81%AE%E7%BD%A0">行列レイアウトの罠</a></li>
 </ul>
 <p>3D は <strong>ECS (Friflo Engine ECS のラッパ = Luxel.Ecs) + 抽出 + レンダーグラフ</strong>の直列で描きます。シーングラフという独立した抽象はありません — 階層は ECS の <code>Parent</code>/<code>Children</code> コンポーネントが素直に表します。</p>
 <h2 id="section">コンポーネントとシステム</h2>
@@ -26,7 +26,7 @@
 </ul>
 <p>shadow map も「R32F カラー RT + bindless バッファ経由の Load」— 専用のサンプラ比較ハードウェアに頼らない compute-first の流儀です。</p>
 <h2 id="orbitcamera">OrbitCamera — 軌道カメラ</h2>
-<p>注視点を中心に yaw/pitch/distance で周回する軌道カメラ <code>OrbitCamera</code> (Luxel core) が <code>ViewProjection</code> (<code>view * proj</code>) を計算します。<code>Orbit(dYaw, dPitch)</code> でドラッグ回転 (pitch はジンバルロック手前でクランプ)、<code>Dolly(factor, min, max)</code> でズームします。ルート引数へ渡すときは行列レイアウトの罠 (下記) に従い <code>Matrix4x4.Transpose</code> を入れます。2D の <code>CameraRig2D</code> (追従/シェイク/境界) に対し、3D は v1 では viewProj 算出とドラッグ操作までがスコープです。</p>
+<p>注視点を中心に yaw/pitch/distance で周回する軌道カメラ <code>OrbitCamera</code> (<code>Luxel.Mathematics</code>) が <code>ViewProjection</code> (<code>view * proj</code>) を計算します。<code>Orbit(dYaw, dPitch)</code> でドラッグ回転 (pitch はジンバルロック手前でクランプ)、<code>Dolly(factor, min, max)</code> でズームします。ルート引数へ渡すときは行列レイアウトの罠 (下記) に従い <code>Matrix4x4.Transpose</code> を入れます。2D の <code>CameraRig2D</code> (追従/シェイク/境界) に対し、3D は v1 では viewProj 算出とドラッグ操作までがスコープです。</p>
 <h2 id="ui-ecs">設計ノート: UI に ECS を使わない理由</h2>
 <ul>
 <li>UI は reactive signals + 保持型ツリーのほうが DSL / 部分更新と相性が良い</li>

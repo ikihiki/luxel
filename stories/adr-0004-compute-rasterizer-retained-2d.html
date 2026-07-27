@@ -1,12 +1,12 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>ADR/0004-Compute-Rasterizer-Retained-2D</h1></header><h1 id="adr-0004-2d">ADR-0004 — 2D はコンピュートラスタライザ + 保持型キャンバス</h1>
 <ul>
-<li><p><a href="#context">Context</a></p>
+<li><p><a href="#story=ADR%2F0004-Compute-Rasterizer-Retained-2D&amp;section=context">Context</a></p>
 </li>
-<li><p><a href="#decision">Decision</a></p>
+<li><p><a href="#story=ADR%2F0004-Compute-Rasterizer-Retained-2D&amp;section=decision">Decision</a></p>
 </li>
-<li><p><a href="#alternatives">Alternatives</a></p>
+<li><p><a href="#story=ADR%2F0004-Compute-Rasterizer-Retained-2D&amp;section=alternatives">Alternatives</a></p>
 </li>
-<li><p><a href="#consequences">Consequences</a></p>
+<li><p><a href="#story=ADR%2F0004-Compute-Rasterizer-Retained-2D&amp;section=consequences">Consequences</a></p>
 </li>
 <li><p><strong>Status</strong>: Accepted</p>
 </li>
@@ -24,7 +24,7 @@
 <li>参照実装として Vello (Rust) が「三角形分割しない compute ラスタライズ」の成立を実証している</li>
 </ul>
 <h2 id="decision">Decision</h2>
-<p><strong>GPU コンピュートラスタライザ (Vello 風) + 保持型キャンバス (RetainedCanvas)</strong> を自作します (<code>Luxel.TwoD</code>)。核心は次の 4 点:</p>
+<p><strong>GPU コンピュートラスタライザ (Vello 風) + 保持型キャンバス (RetainedCanvas)</strong> を自作します (<code>Luxel.Graphics.TwoD</code>)。核心は次の 4 点:</p>
 <ul>
 <li><strong>三角形分割しない</strong> — パスを線分のまま GPU に常駐させ、compute シェーダが画素ごとに巻き数/距離で被覆を計算して塗る (NonZero/EvenOdd、距離ベースの画面一定幅ストローク)。framebuffer は bindless バッファなのでバックエンド変更ゼロ</li>
 <li><strong>Encode 1 回、ズームはカメラだけ</strong> — ワールド座標で <code>Encode</code> したら <code>Camera2D</code> を変えるだけで連続拡縮できる (再エンコードも再分割もない)</li>
@@ -34,7 +34,7 @@
 <p>現在の姿は <a href="#story=Docs%2FTwoD">Docs/TwoD</a> へ。部分更新量は <code>LastTransformWrites</code> 等で観測でき、bench が回帰を監視します。</p>
 <h2 id="alternatives">Alternatives</h2>
 <ul>
-<li><strong>Skia を製品描画経路に採用</strong> — 実績は最大だが、レンダラが自前 GPU 抽象の外にあり bindless 経路・vk/dx ピクセル一致・部分更新の観測に載らない → 製品経路としては却下。ただし <strong>CPU リファレンスバックエンド (Luxel.TwoD.Skia) として検証用に併用</strong>する</li>
+<li><strong>Skia を製品描画経路に採用</strong> — 実績は最大だが、レンダラが自前 GPU 抽象の外にあり bindless 経路・vk/dx ピクセル一致・部分更新の観測に載らない → 製品経路としては却下。ただし <strong>CPU リファレンスバックエンド (Luxel.Graphics.TwoD.Skia) として検証用に併用</strong>する</li>
 <li><strong>三角形分割 (テッセレーション) 方式 (NanoVG / ImDrawList 系)</strong> — ズームや形状変更のたびに再分割が走り、「Encode 1 回でスムーズズーム」が成立しない。曲線の分割粒度と AA 品質のトレードオフも抱える → 却下</li>
 <li><strong>Direct2D / バックエンド固有 2D API</strong> — vk 側に対応物がなく、バックエンド中立の規律と矛盾 → 却下</li>
 <li><strong>SDF ベース (テキスト/図形を距離場テクスチャ化)</strong> — 小さい字の品質とアトラス管理のコストが重く、任意パス (穴あき・複数パス合成) への一般化が難しい → 却下</li>

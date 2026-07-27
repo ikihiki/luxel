@@ -1,12 +1,12 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Docs/Studio</h1></header><h1 id="luxel-studio">Luxel Studio (ゲームエディタ)</h1>
 <ul>
-<li><a href="#%E3%83%97%E3%83%AD%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88%E5%BD%A2%E5%BC%8F-luxel.sceneedit">プロジェクト形式 (Luxel.SceneEdit)</a></li>
+<li><a href="#story=Docs%2FStudio&amp;section=%E3%83%97%E3%83%AD%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88%E5%BD%A2%E5%BC%8F-luxel.sceneedit">プロジェクト形式 (Luxel.SceneEdit)</a></li>
 <li>[シーンエディタ (<a href="#story=Controls%2FSceneEditorView%2FBasic">SceneEditorView</a>)](#シーンエディタ-sceneeditorviewstory:controls/sceneeditorview/basic)</li>
 <li>[3D シーン (<a href="#story=Controls%2FSceneEditorView%2FThreeD">SceneEditorView/ThreeD</a>)](#3d-シーン-sceneeditorview/threedstory:controls/sceneeditorview/threed)</li>
 <li>[挙動 = csx (<a href="#story=ADR%2F0018-Csx-Behaviour-Model">ADR-0018</a>)](#挙動-=-csx-adr-0018story:adr/0018-csx-behaviour-model)</li>
 <li>[Studio シェル (<a href="#story=Apps%2FStudio%2FShell">Apps/Studio/Shell</a>)](#studio-シェル-apps/studio/shellstory:apps/studio/shell)</li>
-<li><a href="#%E3%83%97%E3%83%AC%E3%82%A4%E3%81%A8%E5%87%BA%E8%8D%B7">プレイと出荷</a></li>
-<li><a href="#%E7%8F%BE%E7%8A%B6%E3%81%AE%E5%88%B6%E7%B4%84">現状の制約</a></li>
+<li><a href="#story=Docs%2FStudio&amp;section=%E3%83%97%E3%83%AC%E3%82%A4%E3%81%A8%E5%87%BA%E8%8D%B7">プレイと出荷</a></li>
+<li><a href="#story=Docs%2FStudio&amp;section=%E7%8F%BE%E7%8A%B6%E3%81%AE%E5%88%B6%E7%B4%84">現状の制約</a></li>
 </ul>
 <p><strong>C# ソリューションを書かずに</strong> — プロジェクト作成 → シーン編集 → csx で挙動 → エディタ内プレイ → フォルダごと出荷 — を完走するためのエディタ群です。決定は <a href="#story=ADR%2F0015-Game-Project-Scene-Format">ADR-0015</a> (形式) / <a href="#story=ADR%2F0016-Scene-Editor-Stack">ADR-0016</a> (シーンエディタ) / <a href="#story=ADR%2F0017-Play-In-Editor">ADR-0017</a> (プレイ) / <a href="#story=ADR%2F0018-Csx-Behaviour-Model">ADR-0018</a> (csx)。通し実演は <a href="#story=Apps%2FStudio%2FShell">Apps/Studio/Shell</a>、<a href="#story=Apps%2FStudio%2FCoinGame">Apps/Studio/CoinGame</a>、<a href="#story=Apps%2FStudio%2FMixed3D">Apps/Studio/Mixed3D</a>。</p>
 <p>設計と実装は <strong>2D/3D 両対応</strong>です: シーンは <code>space</code> を宣言し、座標はコンポーネント (<code>transform2d</code> / <code>transform3d</code> は別スキーマ) の関心事。エディタは共有シェル + 空間アダプタ、ランタイムのコンパイラはコア + space 別バックエンドです。プロジェクトは 2D/3D シーンを混在でき、csx から <code>world.RequestScene(&quot;res://scenes/arena.scene.json&quot;)</code> で別 space のシーンへ遷移できます。</p>

@@ -1,22 +1,22 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Luxel.Audio</h1></header><h1 id="luxel.audio">Luxel.Audio</h1>
 <ul>
-<li><a href="#audiobus">AudioBus</a></li>
-<li><a href="#audioclip">AudioClip</a></li>
-<li><a href="#audiocliploader">AudioClipLoader</a></li>
-<li><a href="#audioclipstep">AudioClipStep</a></li>
-<li><a href="#audioformat">AudioFormat</a></li>
-<li><a href="#audiolistener">AudioListener</a></li>
-<li><a href="#audiomixer">AudioMixer</a></li>
-<li><a href="#audioregistry">AudioRegistry</a></li>
-<li><a href="#audiosource">AudioSource</a></li>
-<li><a href="#audiosource3d">AudioSource3D</a></li>
-<li><a href="#iaudiobackend">IAudioBackend</a></li>
-<li><a href="#iaudiostream">IAudioStream</a></li>
-<li><a href="#iaudiovoice">IAudioVoice</a></li>
-<li><a href="#loopingstream">LoopingStream</a></li>
-<li><a href="#nullaudiobackend">NullAudioBackend</a></li>
-<li><a href="#streamingvoice">StreamingVoice</a></li>
-<li><a href="#wavstream">WavStream</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audiobus">AudioBus</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audioclip">AudioClip</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audiocliploader">AudioClipLoader</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audioclipstep">AudioClipStep</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audioformat">AudioFormat</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audiolistener">AudioListener</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audiomixer">AudioMixer</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audioregistry">AudioRegistry</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audiosource">AudioSource</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audiosource3d">AudioSource3D</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=iaudiobackend">IAudioBackend</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=iaudiostream">IAudioStream</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=iaudiovoice">IAudioVoice</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=loopingstream">LoopingStream</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=nullaudiobackend">NullAudioBackend</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=streamingvoice">StreamingVoice</a></li>
+<li><a href="#story=Reference%2FLuxel.Audio&amp;section=wavstream">WavStream</a></li>
 </ul>
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="audiobus">AudioBus</h2>
@@ -40,7 +40,7 @@
 <h2 id="audiosource3d">AudioSource3D</h2>
 <section class="api-reference"><p class="api-summary">class — 3D 空間に配置される音源。Position を持ち、per-frame AudioListener) で AudioListener との距離を計算して volume + pan を voice に流す。 距離減衰は linear: distance ≤ MinDistance で 100%、≥ MaxDistance で 0%、間は線形。 pan は listener の Right ベクトルとの内積 (-1 = 完全左、+1 = 完全右)。 (Doppler shift は M7+ で追加検討。)</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>AudioSource3D</code></th><td><code>(IAudioBackend backend, AudioClip clip)</code></td><td></td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Play</code></th><td><code>(bool loop) → void</code></td><td></td></tr><tr><th scope="row"><code>Stop</code></th><td><code>() → void</code></td><td></td></tr><tr><th scope="row"><code>Update</code></th><td><code>(AudioListener listener) → void</code></td><td>per-frame 呼び出し ─ listener 相対で volume + pan を計算して voice に反映。</td></tr><tr><th scope="row"><code>Dispose</code></th><td><code>() → void</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Position</code></th><td><code>Vector3 (get/set)</code></td><td></td></tr><tr><th scope="row"><code>MinDistance</code></th><td><code>float (get/set)</code></td><td></td></tr><tr><th scope="row"><code>MaxDistance</code></th><td><code>float (get/set)</code></td><td></td></tr><tr><th scope="row"><code>Volume</code></th><td><code>Signal&lt;float&gt; (get)</code></td><td></td></tr><tr><th scope="row"><code>Pitch</code></th><td><code>Signal&lt;float&gt; (get)</code></td><td></td></tr><tr><th scope="row"><code>Bus</code></th><td><code>AudioBus (get/set)</code></td><td></td></tr><tr><th scope="row"><code>EffectiveVolume</code></th><td><code>float (get)</code></td><td>直近の Update で計算した実効 volume (attenuation + bus 掛け算後)。デバッグ用。</td></tr><tr><th scope="row"><code>EffectivePan</code></th><td><code>float (get)</code></td><td>直近の pan 値。</td></tr><tr><th scope="row"><code>IsPlaying</code></th><td><code>bool (get)</code></td><td></td></tr></tbody></table></div></section>
 <h2 id="iaudiobackend">IAudioBackend</h2>
-<section class="api-reference"><p class="api-summary">interface — オーディオ出力バックエンドの抽象。Windows は Luxel.Platform.XAudio2Backend、 headless テストは NullAudioBackend を差替える。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Initialize</code></th><td><code>() → void</code></td><td>バックエンド固有のリソース (デバイス / mastering voice) を初期化する。</td></tr><tr><th scope="row"><code>CreateVoice</code></th><td><code>(AudioFormat format) → IAudioVoice</code></td><td>音源を再生するための voice を確保する。format ごとに別インスタンス。</td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>MasterVolume</code></th><td><code>float (get/set)</code></td><td>マスター音量 (0..1, linear)。全 voice に適用される。</td></tr></tbody></table></div></section>
+<section class="api-reference"><p class="api-summary">interface — オーディオ出力バックエンドの抽象。Windows は Luxel.Audio.Windows.XAudio2Backend、 headless テストは NullAudioBackend を差替える。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Initialize</code></th><td><code>() → void</code></td><td>バックエンド固有のリソース (デバイス / mastering voice) を初期化する。</td></tr><tr><th scope="row"><code>CreateVoice</code></th><td><code>(AudioFormat format) → IAudioVoice</code></td><td>音源を再生するための voice を確保する。format ごとに別インスタンス。</td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>MasterVolume</code></th><td><code>float (get/set)</code></td><td>マスター音量 (0..1, linear)。全 voice に適用される。</td></tr></tbody></table></div></section>
 <h2 id="iaudiostream">IAudioStream</h2>
 <section class="api-reference"><p class="api-summary">interface — ファイル等から**逐次デコード**して PCM を供給する音源 (BGM のような長尺用 — 全展開しない)。 出力はインターリーブ float サンプル ([-1,1])。全展開クリップ (AudioClip) と対をなす。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Read</code></th><td><code>(Span&lt;float&gt; dst) → int</code></td><td>をインターリーブ float サンプルで埋める。書き込んだ float 数を返す (0 = 終端)。 の長さは Channels の倍数が望ましい。</td></tr><tr><th scope="row"><code>Reset</code></th><td><code>() → void</code></td><td>先頭へ巻き戻す (ループ/再生し直し用)。</td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>SampleRate</code></th><td><code>int (get)</code></td><td>ソースのサンプルレート (Hz)。</td></tr><tr><th scope="row"><code>Channels</code></th><td><code>int (get)</code></td><td>チャンネル数 (1=モノ, 2=ステレオ)。</td></tr></tbody></table></div></section>
 <h2 id="iaudiovoice">IAudioVoice</h2>

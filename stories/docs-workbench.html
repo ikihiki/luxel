@@ -1,10 +1,10 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Docs/Workbench</h1></header><h1 id="workbench-luxel.workbench">Workbench (Luxel.Workbench)</h1>
 <ul>
-<li><a href="#ieditordocument-%E2%80%94-1-%E3%83%89%E3%82%AD%E3%83%A5%E3%83%A1%E3%83%B3%E3%83%88%E3%81%AE%E4%B8%8D%E9%80%8F%E6%98%8E%E3%83%8F%E3%83%B3%E3%83%89%E3%83%AB">IEditorDocument — 1 ドキュメントの不透明ハンドル</a></li>
-<li><a href="#workspace-%E3%81%A8-docktree">Workspace と DockTree</a></li>
-<li><a href="#idocumentstore-%E2%80%94-%E5%AE%9F%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%81%AE-open/save">IDocumentStore — 実ファイルの open/save</a></li>
-<li><a href="#%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89-adr-0013">コマンド (ADR-0013)</a></li>
-<li><a href="#%E7%B5%84%E3%81%BF%E7%AB%8B%E3%81%A6%E4%BE%8B">組み立て例</a></li>
+<li><a href="#story=Docs%2FWorkbench&amp;section=ieditordocument-%E2%80%94-1-%E3%83%89%E3%82%AD%E3%83%A5%E3%83%A1%E3%83%B3%E3%83%88%E3%81%AE%E4%B8%8D%E9%80%8F%E6%98%8E%E3%83%8F%E3%83%B3%E3%83%89%E3%83%AB">IEditorDocument — 1 ドキュメントの不透明ハンドル</a></li>
+<li><a href="#story=Docs%2FWorkbench&amp;section=workspace-%E3%81%A8-docktree">Workspace と DockTree</a></li>
+<li><a href="#story=Docs%2FWorkbench&amp;section=idocumentstore-%E2%80%94-%E5%AE%9F%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%81%AE-open%2Fsave">IDocumentStore — 実ファイルの open/save</a></li>
+<li><a href="#story=Docs%2FWorkbench&amp;section=%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89-adr-0013">コマンド (ADR-0013)</a></li>
+<li><a href="#story=Docs%2FWorkbench&amp;section=%E7%B5%84%E3%81%BF%E7%AB%8B%E3%81%A6%E4%BE%8B">組み立て例</a></li>
 </ul>
 <p>複数のエディタを「<strong>開いて・並べて・保存する</strong>」シェルのフレームワークです。エディタは特定型をハードコードせず<strong>構成</strong>として載せます — テキスト (<a href="#story=Docs%2FEditor">Docs/Editor</a>)・ノード (<a href="#story=Docs%2FNodeEditor">Docs/NodeEditor</a>)・Inspector が同じ契約で並び、内部モデルは統一しません。決定は <a href="#story=ADR%2F0010-Workbench-Framework">ADR-0010</a> (コア) / <a href="#story=ADR%2F0013-Menu-Command-System">ADR-0013</a> (コマンド) / <a href="#story=ADR%2F0014-Workbench-Ui-Controls">ADR-0014</a> (基盤 UI)。</p>
 <figure class="static-capture"><img src="images/mermaid-a404a152e317328ab4d1.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>

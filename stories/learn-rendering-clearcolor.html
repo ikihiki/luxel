@@ -1,12 +1,12 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Rendering/ClearColor</h1></header><h1 id="clear-color">ウィンドウとClear Color</h1>
 <ul>
-<li><a href="#%E5%AE%9Fsample%E3%81%AEframe-loop">実sampleのframe loop</a></li>
-<li><a href="#resize">Resize</a></li>
+<li><a href="#story=Learn%2FRendering%2FClearColor&amp;section=%E5%AE%9Fsample%E3%81%AEframe-loop">実sampleのframe loop</a></li>
+<li><a href="#story=Learn%2FRendering%2FClearColor&amp;section=resize">Resize</a></li>
 </ul>
 <p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> Environment</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FRendering%2FEnvironment">Environment</a>　 <strong>次:</strong> <a href="#story=Learn%2FRendering%2FFirstTriangle">FirstTriangle</a></p>
 <p><code>samples/LuxelTriangle/Program.cs</code> がstandaloneアプリの外枠です。責務は次の順です。</p>
-<pre><code class="language-text">WindowSystem → NativeWindow → GpuDevice → GpuSurface
+<pre><code class="language-text">WindowSystem → Window → GpuDevice → GpuSurface
              → event loop → Render → Present
 </code></pre>
 <p><code>GpuSurface</code>へrender targetを直接渡すのではなく、RGBA8のCPU可視framebufferを渡します。サンプルはGPU render targetをclearし、三角形を描き、<code>CopyTextureToBuffer</code>でframebufferへコピーします。三角形を外してもclear colorだけは表示されるため、window / surface / presentの切り分けに使えます。</p>
@@ -31,9 +31,9 @@ surface.Present(framebuffer, stridePixels, width, height);
             throw new PlatformNotSupportedException(&quot;DirectX 12 は Windows でのみ利用できます。Linux では 'vk' を指定してください。&quot;);
         using var windows = new WindowSystem(SilkWindowBackend.Create());
 #endif
-        NativeWindow window = windows.CreateWindow(new WindowDesc($&quot;Luxel — 3D Tutorial ({stage})&quot;, initialWidth, initialHeight));
+        Window window = windows.CreateWindow(new WindowDesc($&quot;Luxel — 3D Tutorial ({stage})&quot;, initialWidth, initialHeight));
         using GpuDevice device = CreateDevice(backend, window);
-        using GpuSurface surface = window.CreateSwapchain(device);
+        using GpuSurface surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
         using var renderer = new TriangleRenderer(device, stage);
 
         int width = Math.Max(0, window.Width);

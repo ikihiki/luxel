@@ -1,12 +1,12 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>ADR/0002-Thin-Bindless-Gpu-Abstraction</h1></header><h1 id="adr-0002-3d-api-bindless">ADR-0002 — 3D グラフィック API は「薄い bindless 抽象」を自作する</h1>
 <ul>
-<li><p><a href="#context">Context</a></p>
+<li><p><a href="#story=ADR%2F0002-Thin-Bindless-Gpu-Abstraction&amp;section=context">Context</a></p>
 </li>
-<li><p><a href="#decision">Decision</a></p>
+<li><p><a href="#story=ADR%2F0002-Thin-Bindless-Gpu-Abstraction&amp;section=decision">Decision</a></p>
 </li>
-<li><p><a href="#alternatives">Alternatives</a></p>
+<li><p><a href="#story=ADR%2F0002-Thin-Bindless-Gpu-Abstraction&amp;section=alternatives">Alternatives</a></p>
 </li>
-<li><p><a href="#consequences">Consequences</a></p>
+<li><p><a href="#story=ADR%2F0002-Thin-Bindless-Gpu-Abstraction&amp;section=consequences">Consequences</a></p>
 </li>
 <li><p><strong>Status</strong>: Accepted</p>
 </li>
@@ -24,7 +24,7 @@
 <li>参照設計として <a href="https://www.sebastianaaltonen.com/blog/no-graphics-api">Sebastian Aaltonen の <em>No Graphics API</em></a> がある — 「最新 GPU の共通機能に絞れば、グラフィック API 抽象はほぼ消せる」という主張の実証も兼ねる</li>
 </ul>
 <h2 id="decision">Decision</h2>
-<p>既存のグラフィック抽象ライブラリを使わず、<em>No Graphics API</em> 設計の<strong>薄い bindless 抽象を C# で自作</strong>します (<code>Luxel</code> コア + <code>Luxel.Vulkan</code> / <code>Luxel.D3D12</code>)。核心は次の 5 点:</p>
+<p>既存のグラフィック抽象ライブラリを使わず、<em>No Graphics API</em> 設計の<strong>薄い bindless 抽象を C# で自作</strong>します (<code>Luxel.Graphics</code> + <code>Luxel.Graphics.Vulkan</code> / <code>Luxel.Graphics.DirectX12</code>)。核心は次の 5 点:</p>
 <ul>
 <li><strong>固定パイプラインレイアウト</strong> — 全 PSO が「最大192Bのルート引数 (4B単位のraw bytes) + グローバル bindless heap」の 1 レイアウトを共有。ディスクリプタセットも PSO バリアントも存在しない</li>
 <li><strong>bindless 一本</strong> — バッファ/テクスチャは作成時に <code>BindlessIndex</code> を持ち、シェーダは <code>g_buffers[index]</code> / <code>g_textures[index]</code> で参照。「どのリソースを使うか」はルート引数内の index が全て</li>
