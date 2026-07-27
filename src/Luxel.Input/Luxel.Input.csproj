@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Luxel\Luxel.csproj" />
+    <ProjectReference Include="..\Luxel.Platform\Luxel.Platform.csproj" />
     <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />
   </ItemGroup>

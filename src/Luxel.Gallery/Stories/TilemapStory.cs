@@ -1,5 +1,5 @@
 using System.Numerics;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
@@ -22,15 +22,16 @@ public static class TilemapStories
     {
         private const int Tile = 16, MapW = 16, MapH = 10;
 
-        private Rasterizer2D _raster = null!;
+        private GpuDeviceRasterizer2D _raster = null!;
         private GpuBuffer _atlas = null!;
         private RetainedCanvas _canvas = null!;
+        private IRasterScene2D _rasterScene = null!;
 
         protected override bool NeedsColorTarget => false;
 
         protected override void OnInit()
         {
-            _raster = Track(new Rasterizer2D(Device));
+            _raster = Track(new GpuDeviceRasterizer2D(Device));
 
             // --- 手続きアトラス 32×32 (16px タイル 4 種): grass / wall / dirt ---
             const int aw = 32, ah = 32;
@@ -74,7 +75,8 @@ public static class TilemapStories
             for (int y = 5; y <= 7; y++) map.SetTile(10, y, 2);                              // 壁柱
             map.ClearAllDirty();
 
-            _canvas = Track(new RetainedCanvas(_raster));
+            _canvas = Track(new RetainedCanvas());
+            _rasterScene = Track(_raster.CreateScene(_canvas));
 
             // 空 (最背面) → タイル → プレイヤー箱 の順で子ノードを積む。
             // RetainedCanvas は塗り/ストロークの色を **node.Color** で与える (Content の色はマスク) —
@@ -105,7 +107,7 @@ public static class TilemapStories
             // ズーム 2倍・(150,104) を画面中心に (地面・壁柱・浮き床・プレイヤーが収まる)
             Camera2D cam = Camera2D.Create(2f, new Vector2(150, 104), W, H);
             using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-            _canvas.Render(cmd, cam, W, H, OutBuffer);
+            _rasterScene.Render(cam, new GpuRasterTarget2D(cmd, OutBuffer, W, H));
             cmd.Finish();
             Device.MainQueue.SubmitAndWait(cmd);
         }

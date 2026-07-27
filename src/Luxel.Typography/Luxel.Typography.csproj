@@ -1,10 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Luxel.TwoD\Luxel.TwoD.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="HarfBuzzSharp" Version="14.2.0" />
     <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.0" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
   </ItemGroup>

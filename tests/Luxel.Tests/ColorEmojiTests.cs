@@ -1,7 +1,8 @@
-﻿using Luxel.TwoD;
+﻿using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Xunit;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Tests;
 
 /// <summary>CE: カラー絵文字 (COLR v0 + CPAL) — レイヤ取得と AbsoluteColor シェイプでの描画。

@@ -1,6 +1,7 @@
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Controls;
 
 /// <summary>ドキュメントタブの 1 項目。Dirty は signal — ● がライブに追従する (null = 常にクリーン)。</summary>

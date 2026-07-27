@@ -8,6 +8,8 @@ Story preview、`StoryRef`、通常のWidget埋め込み、Mermaid、数式はof
 ```bash
 # Linux/CIではMesa lavapipe（mesa-vulkan-drivers）を用意する
 dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site
+# CPU/Skiaで生成する場合（GPU専用storyは明示的なunavailable/error cardになる）
+dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site --rasterizer skia
 
 # 対象を絞って確認する場合
 dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site --filter Controls/Button
@@ -96,8 +98,8 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 
 - **GPU 抽象** — 固定レイアウト + bindless、Slang 統一シェーダ、stage バリアのみの同期、
   深度/ブレンド/テクスチャ (→ Docs/GpuDevice)
-- **2D ベクター** — compute ラスタライザ (三角形分割なし)、EvenOdd/ストローク/日本語ベクター
-  テキスト、Camera2D スムーズズーム、保持型キャンバスの増分更新 (→ Docs/TwoD)
+- **2D ベクター** — backend-neutralな`IRasterizer2D`からGPU computeまたはSkia CPU RGBAを選択。
+  EvenOdd/ストローク/日本語ベクターテキスト、Camera2D、保持型キャンバスのGPU増分更新 (→ Docs/TwoD)
 - **レンダーグラフ** — Setup/Compile/Execute 三相、transient aliasing、デッドパスカリング、
   自動バリア。scene-agnostic (→ Docs/RenderGraph)
 - **3D + ECS** — Friflo ECS + Transform 伝播 + IRenderExtractor、forward/bloom/shadow map/
@@ -119,9 +121,11 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 
 | プロジェクト | 役割 |
 | --- | --- |
+| Luxel.Diagnostics | 計装イベント、診断payload、EngineCommands、DevStats |
+| Luxel.Mathematics | ベクトル幾何、アフィン変換、カメラ計算、決定的乱数などの純粋数学 |
 | Luxel.Graphics / Luxel.Graphics.Vulkan / Luxel.Graphics.DirectX12 | GPU 抽象とバックエンド |
-| Luxel.TwoD | 2D ベクターラスタライザ + 保持型キャンバス |
-| Luxel.Typography (+ .Icu) | テキストレイアウト / シェーピング / ICU |
+| Luxel.Graphics.TwoD / Luxel.Graphics.TwoD.Skia | 共通2D契約 + GPU compute / Skia CPU backend + 保持型キャンバス |
+| Luxel.Typography (+ .Icu) / Luxel.Typography.TwoD | GPU非依存のテキストレイアウト・シェーピング・ICU / Scene2D描画アダプタ |
 | Luxel.UI (+ .Generators, .Tailwind) | 宣言的 UI / signals / ソースジェネレーター |
 | Luxel.Controls | コントロール群 + docs 基盤 (Kit) |
 | Luxel.Document (+ Highlight.TextMate, Diagram, MathText) | 文書モデル / ハイライト / 図 / 数式 |
@@ -129,7 +133,9 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 | Luxel.Ecs (+ .Signal) | ECS (Friflo) + signal 連携 |
 | Luxel.RenderGraph | パス合成 / transient aliasing / 自動バリア |
 | Luxel.Resources (+ Imaging, Assets, AssetsGpu, AssetRuntime, Gltf) | リソース DAG / 画像 / glTF / 3D 抽出 |
-| Luxel.Platform / Luxel.Input / Luxel.Audio | Win32 + IME / 入力 / 音声 |
+| Luxel.Platform (+ .Windows, .Silk) | ウィンドウ / クリップボード / IME / 低レベル入力 |
+| Luxel.Input (+ .XInput) | アクションマップ / リバインド / Windowsゲームパッド入力 |
+| Luxel.Audio (+ .Windows) | 音声API / ミキサ / XAudio2バックエンド |
 | Luxel.Framework (+ Scene.UI) | アプリ骨格 / シーン遷移 / UiSurface |
 | Luxel.DevTools (+ .App) | デバッガ / HTTP DebugServer / ネイティブ DevTools |
 | Luxel.Gallery | ドキュメント + デモ + e2e/bench (このリポジトリの玄関) |

@@ -1,17 +1,16 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using HarfBuzzSharp;
-using Luxel.TwoD;
 using HbBuffer = HarfBuzzSharp.Buffer;
 using HbFont = HarfBuzzSharp.Font;
 
 namespace Luxel.Typography;
 
 /// <summary>
-/// OpenType フォントの輪郭をベクター塗りパスとして Scene2D に追加する。
-/// **シェーピングは HarfBuzz** (カーニング/リガチャ/合字/複雑文字対応 — 単純な 1 文字 1 グリフ変換ではない)、
-/// アウトラインは OpenType の glyf/loca テーブルを直接読む (TrueType 輪郭。CFF/OTF は未対応)。
-/// アトラス不要・解像度非依存 (パスのまま GPU ラスタライザで塗る)。TTC は fontIndex で番号指定。
+/// OpenTypeフォントのシェーピング、メトリクス、TrueType輪郭を提供する。
+/// **シェーピングは HarfBuzz** (カーニング/リガチャ/合字/複雑文字対応 — 単純な1文字1グリフ変換ではない)、
+/// アウトラインはOpenTypeのglyf/locaテーブルを直接読む (TrueType輪郭。CFF/OTFは未対応)。
+/// 描画backendとの統合は専用adapter assemblyが担う。TTCはfontIndexで番号指定。
 /// スレッド所有: シェーピングバッファを再利用するため、1 インスタンスは 1 スレッド (UI 島) から使うこと。
 /// </summary>
 public sealed class VectorFont : IDisposable
@@ -22,11 +21,7 @@ public sealed class VectorFont : IDisposable
     private readonly HbFont _font;
     private readonly HbBuffer _buffer = new();
     private readonly GlyfOutlines _glyf;
-    private readonly Dictionary<uint, Outline?> _cache = new();   // glyph id → 輪郭 (フォント単位, 合成解決済み)
-    // (glyph, px, 許容誤差) → 平坦化済み輪郭点列 (px 単位, y-down, baseline 原点) — AP-M4。
-    // 描画は平行移動コピーだけになり、ベジェ平坦化はグリフ×サイズ毎に 1 回きり。
-    private readonly Dictionary<(uint Gid, float Px, float Tol), Vector2[][]> _flat = new();
-    private static readonly bool NoGlyphCache = Environment.GetEnvironmentVariable("NOGFX_NO_GLYPH_CACHE") == "1";
+    private readonly Dictionary<uint, GlyphOutline?> _cache = new();   // glyph id → 輪郭 (フォント単位, 合成解決済み)
     private ColorGlyphs? _color;            // COLR/CPAL (カラー絵文字)。遅延ロード、無ければ null
     private bool _colorLoaded;
     private readonly Dictionary<uint, ColorLayer[]?> _layerCache = new();   // glyph id → レイヤ列 (非カラーは null)
@@ -106,7 +101,7 @@ public sealed class VectorFont : IDisposable
     }
 
     /// <summary>px 高さ (ascent−descent 基準 — 旧実装と同じ規約) → フォント単位のスケール。</summary>
-    private float Scale(float pixelHeight) => pixelHeight / _heightUnits;
+    internal float Scale(float pixelHeight) => pixelHeight / _heightUnits;
 
     /// <summary>テキストを HarfBuzz でシェーピングする (バッファ再利用 — 所有スレッドからのみ)。</summary>
     private HbBuffer Shape(string text)
@@ -116,27 +111,6 @@ public sealed class VectorFont : IDisposable
         _buffer.GuessSegmentProperties();   // 向き/スクリプト/言語を内容から推定
         _font.Shape(_buffer);
         return _buffer;
-    }
-
-    /// <summary>テキストを塗りグリフパスとして scene に追加する。baseline=(x,y), 高さ pixelHeight px。</summary>
-    public float AppendText(Scene2D scene, string text, float x, float y, float pixelHeight, uint color)
-    {
-        if (string.IsNullOrEmpty(text)) return 0;
-        float scale = Scale(pixelHeight);
-        HbBuffer buf = Shape(text);
-        ReadOnlySpan<GlyphInfo> infos = buf.GetGlyphInfoSpan();
-        ReadOnlySpan<GlyphPosition> pos = buf.GetGlyphPositionSpan();
-
-        float penX = x, penY = y;
-        for (int i = 0; i < infos.Length; i++)
-        {
-            float ox = penX + pos[i].XOffset * scale;
-            float oy = penY - pos[i].YOffset * scale;
-            EmitGlyphOrColor(scene, infos[i].Codepoint, ox, oy, pixelHeight, color);
-            penX += pos[i].XAdvance * scale;
-            penY -= pos[i].YAdvance * scale;
-        }
-        return penX - x;   // 描画幅
     }
 
     /// <summary>テキストの自然サイズ (1 行) を返す。幅=シェーピング後の advance 合計、高さ=ascent−descent (=pixelHeight)。</summary>
@@ -167,28 +141,9 @@ public sealed class VectorFont : IDisposable
         var run = new ShapedGlyph[infos.Length];
         for (int i = 0; i < infos.Length; i++)
             run[i] = new ShapedGlyph(infos[i].Codepoint, (int)infos[i].Cluster,
-                pos[i].XAdvance * scale, pos[i].XOffset * scale, pos[i].YOffset * scale);
+                pos[i].XAdvance * scale, pos[i].XOffset * scale, pos[i].YOffset * scale,
+                pos[i].YAdvance * scale);
         return run;
-    }
-
-    /// <summary>グリフ 1 つを塗りパスとして追加する (x = 左基準, baselineY = ベースライン)。</summary>
-    internal void AppendGlyph(Scene2D scene, uint glyphId, float x, float baselineY, float pixelHeight, uint color)
-        => EmitGlyphOrColor(scene, glyphId, x, baselineY, pixelHeight, color);
-
-    /// <summary>カラーグリフ (COLR) はレイヤ毎に色付きパス (AbsoluteColor = テーマ recolor 対象外)、
-    /// 通常グリフは従来どおり呼び出し色 1 パスで描く。</summary>
-    private void EmitGlyphOrColor(Scene2D scene, uint glyphId, float ox, float oy, float pixelHeight, uint color)
-    {
-        if (TryGetColorLayers(glyphId, out ColorLayer[] layers))
-        {
-            foreach (ColorLayer l in layers)
-                if (GetOutline(l.GlyphId) is Outline lo)
-                    EmitGlyphCached(scene, l.GlyphId, lo, ox, oy, pixelHeight,
-                        l.Foreground ? color : l.Rgba, absolute: !l.Foreground);
-            return;
-        }
-        if (GetOutline(glyphId) is Outline o)
-            EmitGlyphCached(scene, glyphId, o, ox, oy, pixelHeight, color);
     }
 
     /// <summary>コードポイントを収載しているか (フォールバック判定用。.notdef は不収載扱い)。</summary>
@@ -217,91 +172,13 @@ public sealed class VectorFont : IDisposable
         return found is not null;
     }
 
-    // ---- 輪郭 (フォント単位, y-up) → Scene2D パス (y-down) ----
-
-    private Outline? GetOutline(uint glyphId)
+    /// <summary>解決済みTrueType輪郭を取得する。描画backend adapterから利用する。</summary>
+    internal GlyphOutline? GetOutline(uint glyphId)
     {
-        if (_cache.TryGetValue(glyphId, out Outline? cached)) return cached;
-        Outline? o = _glyf.Read(glyphId);
-        _cache[glyphId] = o;
-        return o;
-    }
-
-    /// <summary>グリフ線分キャッシュ経由の描画 (AP-M4)。初回のみベジェ平坦化して
-    /// (glyph, px, 許容誤差) でキャッシュし、以後は点列の平行移動コピーだけ。</summary>
-    private void EmitGlyphCached(Scene2D scene, uint glyphId, Outline g, float ox, float oy, float pixelHeight, uint color, bool absolute = false)
-    {
-        if (NoGlyphCache)   // A/B 計測用 (NOGFX_NO_GLYPH_CACHE=1)
-        {
-            EmitGlyph(scene, g, ox, oy, Scale(pixelHeight), color, absolute);
-            return;
-        }
-        (uint, float, float) key = (glyphId, pixelHeight, scene.FlattenTolerance);
-        if (!_flat.TryGetValue(key, out Vector2[][]? flat))
-        {
-            var tmp = new Scene2D { FlattenTolerance = scene.FlattenTolerance };
-            EmitGlyph(tmp, g, 0, 0, Scale(pixelHeight), color, absolute);
-            flat = tmp.ExportContours();
-            _flat[key] = flat;
-        }
-        if (flat.Length == 0) return;
-        scene.BeginFill(color, FillRule.NonZero, absolute).AppendClosedContours(flat, ox, oy).End();
-    }
-
-    private static void EmitGlyph(Scene2D scene, Outline g, float ox, float oy, float scale, uint color, bool absolute = false)
-    {
-        scene.BeginFill(color, FillRule.NonZero, absolute);
-        int start = 0;
-        foreach (int end in g.ContourEnds)   // end = 含む末尾 index
-        {
-            EmitContour(scene, g, start, end, ox, oy, scale);
-            start = end + 1;
-        }
-        scene.End();
-    }
-
-    /// <summary>TrueType の 2 次 B-spline 輪郭 (on/off 点列) をパスへ。連続する off 点の間には
-    /// 暗黙の on 点 (中点) がある。全点 off の輪郭は末尾-先頭の中点から始める。</summary>
-    private static void EmitContour(Scene2D scene, Outline g, int s, int e, float ox, float oy, float scale)
-    {
-        int n = e - s + 1;
-        if (n < 2) return;
-        Vector2 P(int i) => g.Points[s + (i % n + n) % n];
-        bool On(int i) => g.OnCurve[s + (i % n + n) % n];
-        static Vector2 Mid(Vector2 a, Vector2 b) => (a + b) * 0.5f;
-
-        int firstOn = -1;
-        for (int i = 0; i < n; i++)
-            if (On(i)) { firstOn = i; break; }
-
-        Vector2 startPt = firstOn >= 0 ? P(firstOn) : Mid(P(n - 1), P(0));
-        float SX(Vector2 p) => ox + p.X * scale;
-        float SY(Vector2 p) => oy - p.Y * scale;
-
-        scene.MoveTo(SX(startPt), SY(startPt));
-        Vector2? ctrl = null;
-        int begin = firstOn >= 0 ? firstOn + 1 : 0;
-        for (int k = 0; k < (firstOn >= 0 ? n - 1 : n); k++)
-        {
-            Vector2 q = P(begin + k);
-            if (On(begin + k))
-            {
-                if (ctrl is Vector2 c) scene.QuadTo(SX(c), SY(c), SX(q), SY(q));
-                else scene.LineTo(SX(q), SY(q));
-                ctrl = null;
-            }
-            else
-            {
-                if (ctrl is Vector2 c)
-                {
-                    Vector2 m = Mid(c, q);
-                    scene.QuadTo(SX(c), SY(c), SX(m), SY(m));
-                }
-                ctrl = q;
-            }
-        }
-        if (ctrl is Vector2 last) scene.QuadTo(SX(last), SY(last), SX(startPt), SY(startPt));
-        scene.Close();
+        if (_cache.TryGetValue(glyphId, out GlyphOutline? cached)) return cached;
+        GlyphOutline? outline = _glyf.Read(glyphId);
+        _cache[glyphId] = outline;
+        return outline;
     }
 
     public void Dispose()
@@ -316,7 +193,7 @@ public sealed class VectorFont : IDisposable
     }
 
     /// <summary>1 グリフの解決済み輪郭 (フォント単位, y-up)。ContourEnds は各輪郭の末尾 index (含む)。</summary>
-    private sealed record Outline(Vector2[] Points, bool[] OnCurve, int[] ContourEnds);
+    internal sealed record GlyphOutline(Vector2[] Points, bool[] OnCurve, int[] ContourEnds);
 
     /// <summary>
     /// OpenType の glyf/loca/head テーブルを直接読む TrueType 輪郭リーダ。
@@ -350,9 +227,9 @@ public sealed class VectorFont : IDisposable
             return b.Length == 0 ? null : b.AsSpan().ToArray();
         }
 
-        public Outline? Read(uint glyphId) => Read(glyphId, 0);
+        public GlyphOutline? Read(uint glyphId) => Read(glyphId, 0);
 
-        private Outline? Read(uint glyphId, int depth)
+        private GlyphOutline? Read(uint glyphId, int depth)
         {
             if (glyphId >= _numGlyphs || depth > 5) return null;
             (int start, int end) = Loca(glyphId);
@@ -369,7 +246,7 @@ public sealed class VectorFont : IDisposable
             return (ReadU16(_loca, (int)gid * 2) * 2, ReadU16(_loca, ((int)gid + 1) * 2) * 2);
         }
 
-        private static Outline? ReadSimple(ReadOnlySpan<byte> g, int numContours)
+        private static GlyphOutline? ReadSimple(ReadOnlySpan<byte> g, int numContours)
         {
             if (numContours == 0) return null;
             int p = 10;   // numberOfContours(2) + bbox(8)
@@ -410,10 +287,10 @@ public sealed class VectorFont : IDisposable
                 else if ((f & 0x20) == 0) { y += ReadI16(g, p); p += 2; }
                 pts[i].Y = y;
             }
-            return new Outline(pts, on, ends);
+            return new GlyphOutline(pts, on, ends);
         }
 
-        private Outline? ReadComposite(ReadOnlySpan<byte> g, int depth)
+        private GlyphOutline? ReadComposite(ReadOnlySpan<byte> g, int depth)
         {
             var pts = new List<Vector2>();
             var on = new List<bool>();
@@ -435,7 +312,7 @@ public sealed class VectorFont : IDisposable
                 else if ((flags & 0x0080) != 0)                                                        // TWO_BY_TWO
                 { a = F2Dot14(g, p); b = F2Dot14(g, p + 2); c = F2Dot14(g, p + 4); d = F2Dot14(g, p + 6); p += 8; }
 
-                if (Read(childId, depth + 1) is Outline child)
+                if (Read(childId, depth + 1) is GlyphOutline child)
                 {
                     int baseIdx = pts.Count;
                     foreach (Vector2 q in child.Points)
@@ -446,7 +323,7 @@ public sealed class VectorFont : IDisposable
 
                 if ((flags & 0x0020) == 0) break;   // MORE_COMPONENTS
             }
-            return pts.Count == 0 ? null : new Outline(pts.ToArray(), on.ToArray(), ends.ToArray());
+            return pts.Count == 0 ? null : new GlyphOutline(pts.ToArray(), on.ToArray(), ends.ToArray());
         }
 
         private static float F2Dot14(ReadOnlySpan<byte> s, int o) => ReadI16(s, o) / 16384f;
@@ -544,4 +421,10 @@ public sealed class VectorFont : IDisposable
 public readonly record struct ColorLayer(uint GlyphId, uint Rgba, bool Foreground);
 
 /// <summary>シェーピング済みグリフ 1 つ (px 単位)。Cluster = 元テキストの char index (LTR 単調)。</summary>
-internal readonly record struct ShapedGlyph(uint GlyphId, int Cluster, float XAdvance, float XOffset, float YOffset);
+internal readonly record struct ShapedGlyph(
+    uint GlyphId,
+    int Cluster,
+    float XAdvance,
+    float XOffset,
+    float YOffset,
+    float YAdvance = 0);

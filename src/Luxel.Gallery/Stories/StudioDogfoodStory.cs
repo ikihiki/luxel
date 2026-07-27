@@ -10,6 +10,7 @@ using Luxel.Workbench;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Luxel Studio dogfood (ToDo 27 GE-7) — 北極星シナリオの通し実演: ほぼ空のプロジェクトから

@@ -4,11 +4,14 @@
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <!-- Luxel.Diagnostics のみ利用 (GpuDevice/GpuBuffer 等の GPU API は使わない)。
          GPU 関連 (RenderGraph / RenderBuffer 等) は Luxel.AssetsGpu プロジェクトに切り出し済。 -->
-    <ProjectReference Include="..\Luxel\Luxel.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Luxel.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

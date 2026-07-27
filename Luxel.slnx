@@ -8,6 +8,7 @@
     <Project Path="src/Luxel.Assets/Luxel.Assets.csproj" />
     <Project Path="src/Luxel.AssetsGpu/Luxel.AssetsGpu.csproj" />
     <Project Path="src/Luxel.Audio/Luxel.Audio.csproj" />
+    <Project Path="src/Luxel.Audio.Windows/Luxel.Audio.Windows.csproj" />
     <Project Path="src/Luxel.Controls/Luxel.Controls.csproj" />
     <Project Path="src/Luxel.Graphics/Luxel.Graphics.csproj" />
     <Project Path="src/Luxel.Graphics.DirectX12/Luxel.Graphics.DirectX12.csproj" />
@@ -24,7 +25,9 @@
     <Project Path="src/Luxel.Gltf/Luxel.Gltf.csproj" />
     <Project Path="src/Luxel.Highlight.TextMate/Luxel.Highlight.TextMate.csproj" />
     <Project Path="src/Luxel.Imaging/Luxel.Imaging.csproj" />
+    <Project Path="src/Luxel.Input.XInput/Luxel.Input.XInput.csproj" />
     <Project Path="src/Luxel.Input/Luxel.Input.csproj" />
+    <Project Path="src/Luxel.Mathematics/Luxel.Mathematics.csproj" />
     <Project Path="src/Luxel.MathText/Luxel.MathText.csproj" />
     <Project Path="src/Luxel.NodeGraph/Luxel.NodeGraph.csproj" />
     <Project Path="src/Luxel.Player.App/Luxel.Player.App.csproj" />
@@ -39,6 +42,7 @@
     <Project Path="src/Luxel.Physics/Luxel.Physics.csproj" />
     <Project Path="src/Luxel.Platform.Silk/Luxel.Platform.Silk.csproj" />
     <Project Path="src/Luxel.Platform/Luxel.Platform.csproj" />
+    <Project Path="src/Luxel.Platform.Windows/Luxel.Platform.Windows.csproj" />
     <Project Path="src/Luxel.RenderGraph/Luxel.RenderGraph.csproj" />
     <Project Path="src/Luxel.Resources/Luxel.Resources.csproj" />
     <Project Path="src/Luxel.Scene.UI/Luxel.Scene.UI.csproj" />
@@ -46,8 +50,9 @@
     <Project Path="src/Luxel.Scripting.Framework/Luxel.Scripting.Framework.csproj" />
     <Project Path="src/Luxel.Scripting/Luxel.Scripting.csproj" />
     <Project Path="src/Luxel.Strudel/Luxel.Strudel.csproj" />
-    <Project Path="src/Luxel.TwoD.Skia/Luxel.TwoD.Skia.csproj" />
-    <Project Path="src/Luxel.TwoD/Luxel.TwoD.csproj" />
+    <Project Path="src/Luxel.Graphics.TwoD.Skia/Luxel.Graphics.TwoD.Skia.csproj" />
+    <Project Path="src/Luxel.Graphics.TwoD/Luxel.Graphics.TwoD.csproj" />
+    <Project Path="src/Luxel.Typography.TwoD/Luxel.Typography.TwoD.csproj" />
     <Project Path="src/Luxel.Typography.Icu/Luxel.Typography.Icu.csproj" />
     <Project Path="src/Luxel.Typography/Luxel.Typography.csproj" />
     <Project Path="src/Luxel.UI.App/Luxel.UI.App.csproj" />
@@ -55,7 +60,7 @@
     <Project Path="src/Luxel.UI.Tailwind/Luxel.UI.Tailwind.csproj" />
     <Project Path="src/Luxel.UI/Luxel.UI.csproj" />
     <Project Path="src/Luxel.Graphics.Vulkan/Luxel.Graphics.Vulkan.csproj" />
-    <Project Path="src/Luxel/Luxel.csproj" />
+    <Project Path="src/Luxel.Diagnostics/Luxel.Diagnostics.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/LuxelCavern/LuxelCavern.Core/LuxelCavern.Core.csproj" />

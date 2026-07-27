@@ -1,5 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Luxel.Mathematics\Luxel.Mathematics.csproj" />
+    <Using Include="Luxel.Mathematics" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -8,6 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Luxel.Platform\Luxel.Platform.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Graphics\Luxel.Graphics.csproj" />
     <PackageReference Include="coverlet.collector" Version="10.0.1">
       <PrivateAssets>all</PrivateAssets>
@@ -27,8 +37,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Luxel\Luxel.csproj" />
-    <ProjectReference Include="..\..\src\Luxel.TwoD\Luxel.TwoD.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
     <ProjectReference Include="..\..\src\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\..\src\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Controls\Luxel.Controls.csproj" />
@@ -71,7 +82,7 @@
     <ProjectReference Include="..\..\src\Luxel.Particles\Luxel.Particles.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Particles.TwoD\Luxel.Particles.TwoD.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Particles.ThreeD\Luxel.Particles.ThreeD.csproj" />
-    <ProjectReference Include="..\..\src\Luxel.TwoD.Skia\Luxel.TwoD.Skia.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Graphics.TwoD.Skia\Luxel.Graphics.TwoD.Skia.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -84,5 +95,8 @@
 
   <ItemGroup>
     <Using Include="Luxel.Graphics" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Platform" />
   </ItemGroup>
 </Project>

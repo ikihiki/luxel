@@ -1,5 +1,5 @@
-﻿using Luxel.Framework;
-using Luxel.TwoD;
+using Luxel.Framework;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -86,7 +86,7 @@ internal sealed class StoryAppView<TScene> : Widget, IDisposable
         if (_host is null)
         {
             _pacer = new StoryFramePacer();
-            GpuDevice device = ctx.Canvas.Rasterizer.Device;   // GPU はホストのものを借用
+            GpuDevice device = ctx.RequireGpuRasterizer().Device;   // GPU はホストのものを借用
             _host = LuxelHostBuilder.Create()
                 .UseGpuDevice(device)
                 .UseFrameWaiter(_pacer.WaitAsync)

@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace Luxel.UI.Generators;
 
 /// <summary>
-/// <c>[assembly: Luxel.UI.GenerateAssemblyApi("Luxel.TwoD")]</c> の opt-in で、**参照アセンブリの
+/// <c>[assembly: Luxel.UI.GenerateAssemblyApi("Luxel.Graphics.TwoD")]</c> の opt-in で、**参照アセンブリの
 /// 公開型 API を XML doc コメントごと焼き込む** (TypeApiRegistry.Register の module initializer)。
 /// docs の型 API リファレンス (Docs/Api2D 等) が実行時にページを組み立てる — reflection なし、
 /// 手書き一覧なし。対象アセンブリは GenerateDocumentationFile=true が必要 (無いと説明が空になる)。

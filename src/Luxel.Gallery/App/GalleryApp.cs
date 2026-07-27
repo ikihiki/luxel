@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Luxel.Controls;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Luxel.Workbench;
 using static Luxel.Controls.Kit;

@@ -1,7 +1,7 @@
 using System.Numerics;
 using Luxel.Particles;
 using Luxel.Particles.TwoD;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
@@ -22,15 +22,17 @@ public static class ParticleStories
 
     private sealed class ParticleScene : GpuSceneBase
     {
-        private Rasterizer2D _raster = null!;
+        private GpuDeviceRasterizer2D _raster = null!;
         private RetainedCanvas _canvas = null!;
+        private IRasterScene2D _rasterScene = null!;
 
         protected override bool NeedsColorTarget => false;
 
         protected override void OnInit()
         {
-            _raster = Track(new Rasterizer2D(Device));
-            _canvas = Track(new RetainedCanvas(_raster));
+            _raster = Track(new GpuDeviceRasterizer2D(Device));
+            _canvas = Track(new RetainedCanvas());
+            _rasterScene = Track(_raster.CreateScene(_canvas));
 
             // 暗い背景 (パーティクルを映えさせる)
             UiNode bg = _canvas.AddChild(_canvas.Root);
@@ -65,7 +67,7 @@ public static class ParticleStories
         protected override void OnRender(float time)
         {
             using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-            _canvas.Render(cmd, Camera2D.Pixels, W, H, OutBuffer);
+            _rasterScene.Render(Camera2D.Pixels, new GpuRasterTarget2D(cmd, OutBuffer, W, H));
             cmd.Finish();
             Device.MainQueue.SubmitAndWait(cmd);
         }

@@ -1,10 +1,11 @@
 using System.Numerics;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>

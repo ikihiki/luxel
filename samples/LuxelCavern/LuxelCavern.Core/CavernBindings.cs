@@ -5,7 +5,7 @@ namespace LuxelCavern.Core;
 /// <summary>再割当可能なゲーム操作。</summary>
 public enum CavernBind { Left, Right, Jump }
 
-/// <summary>リバインド用に「直近に押された生キー」を 1 つ取り出す口。実窓の入力源 (KeyboardSource) が実装する。</summary>
+/// <summary>リバインド用に「直近に押された生キー」を1つ取り出す口。WindowInputSourceのアダプターが実装する。</summary>
 public interface IKeyCapture
 {
     /// <summary>直近に押されたキーを取り出してクリアする (無ければ null)。</summary>

@@ -1,6 +1,6 @@
 using System.Numerics;
 using Luxel.Ecs;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 
 namespace Luxel.Physics.Gizmos;
 

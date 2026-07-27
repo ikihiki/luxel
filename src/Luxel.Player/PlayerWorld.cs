@@ -1,9 +1,10 @@
 using System.Numerics;
 using Luxel;
 using Luxel.SceneEdit;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Player;
 
 public interface IPlayerWorld

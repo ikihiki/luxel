@@ -1,6 +1,7 @@
-﻿using Luxel.Diagnostics;
+using Luxel.Diagnostics;
 using Luxel.Platform;
-using Luxel.TwoD;
+using Luxel.UI.App;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 
@@ -42,12 +43,19 @@ public sealed class DevToolsApp : IDisposable
 
     private void Run(Func<GpuDevice> createDevice, DevToolsListener listener, EngineCommands commands, int e2ePort)
     {
+        Clipboard? installedClipboard = null;
         try
         {
             using GpuDevice device = createDevice();
             Console.WriteLine($"[devtools] device: {device.Name}");
             using VectorFont font = VectorFont.LoadSystemJapanese();
             using var windows = new WindowSystem(Win32WindowBackend.Create());
+            using var clipboard = new Clipboard(Win32WindowBackend.CreateClipboardBackend());
+            if (PlatformClipboard.Current is null)
+            {
+                PlatformClipboard.Current = clipboard;
+                installedClipboard = clipboard;
+            }
 
             // この島専用のテーマ signal (グローバル UiTheme.Current は購読しない)
             var theme = new Signal<Theme>(Theme.Dark.Compact());
@@ -57,7 +65,7 @@ public sealed class DevToolsApp : IDisposable
 
             var ui = new DevToolsUi(listener, commands, theme);
             manager.CreateUiWindow(
-                new Luxel.Abstraction.WindowDesc("Luxel DevTools", 900, 700) { X = 60, Y = 60 },
+                new Luxel.Platform.Abstraction.WindowDesc("Luxel DevTools", 900, 700) { X = 60, Y = 60 },
                 "devtools", ui.BuildRoot, theme);
 
             // E2E 用の第二 DebugServer (devtools 窓の /windows /winframe と島内入力 op)
@@ -90,6 +98,11 @@ public sealed class DevToolsApp : IDisposable
         catch (Exception e)
         {
             Console.Error.WriteLine($"[devtools] スレッド異常終了: {e}");
+        }
+        finally
+        {
+            if (ReferenceEquals(PlatformClipboard.Current, installedClipboard))
+                PlatformClipboard.Current = null;
         }
     }
 

@@ -6,7 +6,7 @@ namespace Luxel.NodeGraph;
 /// UI レイアウトの <c>Size</c> と衝突しないよう <c>NodeSize</c> と名付ける。</summary>
 public readonly record struct NodeSize(float Width, float Height);
 
-/// <summary>軸並行矩形 (world 座標)。core は Luxel.TwoD/Typography に依存しないため自前の軽量版。</summary>
+/// <summary>軸並行矩形 (world 座標)。core は Luxel.Graphics.TwoD/Typography に依存しないため自前の軽量版。</summary>
 public readonly record struct GraphRect(float X, float Y, float Width, float Height)
 {
     /// <summary>右端 x。</summary>

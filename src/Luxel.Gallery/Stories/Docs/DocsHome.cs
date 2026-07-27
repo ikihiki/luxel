@@ -119,8 +119,9 @@ public static class DocsHome
         app --> ecs[Luxel.Ecs + AssetRuntime]
         controls --> ui[Luxel.UI]
         ui --> anim[Luxel.Animation]
-        ui --> typo[Luxel.Typography]
-        ui --> twod[Luxel.TwoD]
+        ui --> typotwod[Luxel.Typography.TwoD]
+        typotwod --> typo[Luxel.Typography]
+        typotwod --> twod[Luxel.Graphics.TwoD]
         rg --> gpu[Luxel.Graphics — GpuDevice]
         ecs --> rg
         twod --> gpu
@@ -134,7 +135,7 @@ public static class DocsHome
 
         ## 2D とテキスト
 
-        `Luxel.TwoD` は compute ベースのベクターラスタライザ (三角形分割なし) と保持型キャンバス (RetainedCanvas)。`Luxel.Typography` は HarfBuzz シェーピング + 自前 TextLayout、`Luxel.Typography.Icu` が ICU セグメンタを差し込みます。
+        `Luxel.Graphics.TwoD`はbackend-neutralな2D契約、computeベースのGPUベクターラスタライザ、保持型キャンバスを提供します。`Luxel.Typography`はGPU非依存のHarfBuzzシェーピング + 自前TextLayout、`Luxel.Typography.TwoD`はScene2D描画adapter、`Luxel.Typography.Icu`はICUセグメンタを提供します。
 
         ## UI とコントロール
 
@@ -150,15 +151,15 @@ public static class DocsHome
 
         ## ランタイムとツール
 
-        `Luxel.Platform` (Win32 窓 / スワップチェーン / TSF IME / XAudio2)、`Luxel.Input`、`Luxel.Audio`、`Luxel.Framework` (ホストビルダー + シーン遷移)、そして `Luxel.DevTools` (別窓デバッガ + HTTP DebugServer)。この Gallery (`Luxel.Gallery`) 自体が Luxel UI で書かれたドッグフーディングアプリです。
+        `Luxel.Platform` + `.Windows` / `.Silk` (窓 / クリップボード / IME / 低レベル入力)、`Luxel.Input` + `.XInput`、`Luxel.Audio` + `.Windows`、`Luxel.Framework` (ホストビルダー + シーン遷移)、そして `Luxel.DevTools` (別窓デバッガ + HTTP DebugServer)。この Gallery (`Luxel.Gallery`) 自体が Luxel UI で書かれたドッグフーディングアプリです。
 
         ## プロジェクト一覧
 
         | プロジェクト | 役割 |
         | --- | --- |
         | Luxel.Graphics / Luxel.Graphics.Vulkan / Luxel.Graphics.DirectX12 | GPU 抽象とバックエンド |
-        | Luxel.TwoD | 2D ベクターラスタライザ + 保持型キャンバス |
-        | Luxel.Typography (+ .Icu) | テキストレイアウト / シェーピング / ICU |
+        | Luxel.Graphics.TwoD | 2D ベクターラスタライザ + 保持型キャンバス |
+        | Luxel.Typography (+ .Icu) / Luxel.Typography.TwoD | GPU非依存レイアウト・シェーピング・ICU / Scene2D描画adapter |
         | Luxel.UI (+ .Generators, .Tailwind) | 宣言的 UI / signals / ソースジェネレーター |
         | Luxel.Controls | コントロール群 + docs 基盤 (Kit) |
         | Luxel.Document (+ Highlight.TextMate, Diagram, MathText) | ドキュメントモデル / ハイライト / 図 / 数式 |
@@ -166,7 +167,9 @@ public static class DocsHome
         | Luxel.Ecs (+ .Signal) | ECS (Friflo) + signal 連携 |
         | Luxel.RenderGraph | パス合成 / transient aliasing / 自動バリア |
         | Luxel.Resources (+ Imaging, Assets, AssetsGpu, AssetRuntime, Gltf) | リソース DAG / 画像 / glTF / 3D 抽出 |
-        | Luxel.Platform / Luxel.Input / Luxel.Audio | Win32 / 入力 / 音声 |
+        | Luxel.Platform (+ .Windows, .Silk) | ウィンドウ / クリップボード / IME / 低レベル入力 |
+        | Luxel.Input (+ .XInput) | アクションマップ / リバインド / Windowsゲームパッド入力 |
+        | Luxel.Audio (+ .Windows) | 音声API / XAudio2バックエンド |
         | Luxel.Framework (+ Scene.UI) | アプリ骨格 / シーン遷移 |
         | Luxel.DevTools (+ .App) | デバッガ / HTTP DebugServer |
         | Luxel.Gallery | この Gallery (docs + デモ + e2e/bench) |

@@ -1,9 +1,10 @@
-﻿using Luxel.TwoD;
+﻿using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 using Luxel.UI.Styling;
 using TAlign = Luxel.Typography.TextAlign;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Controls;
 
 /// <summary>

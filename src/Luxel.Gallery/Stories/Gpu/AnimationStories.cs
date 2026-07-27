@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Luxel.Animation;
 using Luxel.Animation.ThreeD;
@@ -8,7 +8,7 @@ using Luxel.AssetRuntime;
 using Luxel.Assets;
 using Luxel.Ecs;
 using Luxel.RenderGraph;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
@@ -122,6 +122,7 @@ public static class AnimationStories
             """;
 
         private RetainedCanvas _canvas = null!;
+        private IRasterScene2D _rasterScene = null!;
         private RetainedCanvasAnimationTarget _target = null!;
         private AnimationClip _clip = null!;
         private readonly FixedFrameClock _clock = new() { FrameRate = 60f };
@@ -133,8 +134,9 @@ public static class AnimationStories
 
         protected override void OnInit()
         {
-            var raster = Track(new Rasterizer2D(Device));
-            _canvas = Track(new RetainedCanvas(raster));
+            var raster = Track(new GpuDeviceRasterizer2D(Device));
+            _canvas = Track(new RetainedCanvas());
+            _rasterScene = Track(raster.CreateScene(_canvas));
             var card = _canvas.AddChild(_canvas.Root);
             card.Content = new Scene2D().FillRoundedRect(Color2D.White, 0, 0, 80, 50, 10);
             card.Transform = Affine2D.Translate(0, 40);
@@ -165,7 +167,7 @@ public static class AnimationStories
 
             OutBuffer.Span<byte>((int)(W * H * 4)).Clear();
             using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-            _canvas.Render(cmd, Camera2D.Pixels, W, H, OutBuffer);
+            _rasterScene.Render(Camera2D.Pixels, new GpuRasterTarget2D(cmd, OutBuffer, W, H));
             cmd.Finish();
             Device.MainQueue.SubmitAndWait(cmd);
         }
@@ -175,6 +177,7 @@ public static class AnimationStories
     private sealed class StateMachineScene : GpuSceneBase
     {
         private RetainedCanvas _canvas = null!;
+        private IRasterScene2D _rasterScene = null!;
         private StateMachine _sm = null!;
         private readonly FixedFrameClock _clock = new() { FrameRate = 60f };
         private readonly Queue<string> _pending = new();
@@ -210,8 +213,9 @@ public static class AnimationStories
                 }),
             });
 
-            var raster = Track(new Rasterizer2D(Device));
-            _canvas = Track(new RetainedCanvas(raster));
+            var raster = Track(new GpuDeviceRasterizer2D(Device));
+            _canvas = Track(new RetainedCanvas());
+            _rasterScene = Track(raster.CreateScene(_canvas));
             var card = _canvas.AddChild(_canvas.Root);
             card.Content = new Scene2D().FillRoundedRect(Color2D.White, 0, 0, 80, 50, 10);
             card.Transform = Affine2D.Translate(88, 40);
@@ -241,7 +245,7 @@ public static class AnimationStories
 
             OutBuffer.Span<byte>((int)(W * H * 4)).Clear();
             using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-            _canvas.Render(cmd, Camera2D.Pixels, W, H, OutBuffer);
+            _rasterScene.Render(Camera2D.Pixels, new GpuRasterTarget2D(cmd, OutBuffer, W, H));
             cmd.Finish();
             Device.MainQueue.SubmitAndWait(cmd);
         }

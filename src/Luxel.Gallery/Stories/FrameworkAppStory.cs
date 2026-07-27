@@ -1,5 +1,5 @@
-﻿using Luxel.Framework;
-using Luxel.TwoD;
+using Luxel.Framework;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,7 +26,7 @@ public static class FrameworkAppStories
             Muted("LuxelHostBuilder + GameLoop + GameScene (real app) / GPU: host, Platform: Storybook")
         ]);
 
-    /// <summary>デモアプリの Scene。GPU 資源 (Rasterizer2D/RetainedCanvas/framebuffer) は
+    /// <summary>デモアプリの Scene。GPU 資源 (GpuDeviceRasterizer2D/RetainedCanvas/framebuffer) は
     /// **最初のフレーム内で遅延生成** — フレームは埋め込みホストのスレッドで走るため、
     /// 起動スレッド (BackgroundService) からホストの GPU に触らない。</summary>
     public sealed class StoryAppScene : GameScene, IStoryApp
@@ -35,8 +35,9 @@ public static class FrameworkAppStories
 
         private readonly VectorFont _font;
         private readonly Action<string> _log;
-        private Rasterizer2D? _raster;
+        private GpuDeviceRasterizer2D? _raster;
         private RetainedCanvas? _canvas;
+        private IRasterScene2D? _rasterScene;
         private UiHost? _ui;
         private GpuBuffer? _fb;
         private long _version, _seen;   // fb を描き直すたび進む → 表示側が Touch で再合成
@@ -67,10 +68,11 @@ public static class FrameworkAppStories
         {
             if (_ui is null)
             {
-                _raster = new Rasterizer2D(Device);
-                _canvas = new RetainedCanvas(_raster);
+                _raster = new GpuDeviceRasterizer2D(Device);
+                _canvas = new RetainedCanvas();
+                _rasterScene = _raster.CreateScene(_canvas);
                 _fb = Device.Malloc((ulong)W * H * 4, GpuMemoryKind.DeviceLocal);
-                _ui = new UiHost(_canvas, _font, W, H);
+                _ui = new UiHost(_canvas, _font, W, H, gpuRasterizer: _raster);
                 _ui.SetRoot(BuildUi());
             }
             _ui.Tick(ctx.Time.DeltaSeconds);
@@ -78,10 +80,10 @@ public static class FrameworkAppStories
 
         protected override void OnRender(RenderContext ctx)
         {
-            if (_canvas is null || _fb is null) return;
+            if (_canvas is null || _rasterScene is null || _fb is null) return;
             if (_version > 0 && !_canvas.HasPendingChanges) return;   // 変化なし = 再描画不要
             using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-            _canvas.Render(cmd, Camera2D.Pixels, W, H, _fb);
+            _rasterScene.Render(Camera2D.Pixels, new GpuRasterTarget2D(cmd, _fb, W, H));
             cmd.Finish();
             Device.MainQueue.SubmitAndWait(cmd);
             _version++;
@@ -90,10 +92,11 @@ public static class FrameworkAppStories
         public override Task OnUnloadAsync()
         {
             _ui?.Dispose();
+            _rasterScene?.Dispose();
             _canvas?.Dispose();
             _raster?.Dispose();
             _fb?.Dispose();
-            _ui = null; _canvas = null; _raster = null; _fb = null;
+            _ui = null; _rasterScene = null; _canvas = null; _raster = null; _fb = null;
             return Task.CompletedTask;
         }
 

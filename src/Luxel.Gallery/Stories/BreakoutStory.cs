@@ -1,10 +1,10 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Friflo.Engine.ECS;
 using Luxel.Ecs;
 using Luxel.Framework;
 using Luxel.Particles;
 using Luxel.Particles.TwoD;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +12,7 @@ using static Luxel.Controls.Kit;
 using Phase = Luxel.Framework.Phase;
 using World = Luxel.Ecs.World;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>
@@ -74,8 +75,9 @@ public static class BreakoutStories
         private bool _clickQueued;
 
         // 表示 (保持型キャンバス)
-        private Rasterizer2D? _raster;
+        private GpuDeviceRasterizer2D? _raster;
         private RetainedCanvas? _canvas;
+        private IRasterScene2D? _rasterScene;
         private GpuBuffer? _fb;
         private UiNode? _ballNode, _paddleNode, _scoreNode, _livesNode, _msgNode;
         private readonly List<UiNode> _brickNodes = new();
@@ -143,7 +145,8 @@ public static class BreakoutStories
             if (_canvas is null || _fb is null) return;
             if (_version > 0 && !_canvas.HasPendingChanges) return;
             using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-            _canvas.Render(cmd, Camera2D.Pixels, (uint)FieldW, (uint)FieldH, _fb);
+            _rasterScene!.Render(Camera2D.Pixels,
+                new GpuRasterTarget2D(cmd, _fb, (uint)FieldW, (uint)FieldH));
             cmd.Finish();
             Device.MainQueue.SubmitAndWait(cmd);
             _version++;
@@ -151,10 +154,11 @@ public static class BreakoutStories
 
         public override Task OnUnloadAsync()
         {
+            _rasterScene?.Dispose();
             _canvas?.Dispose();
             _raster?.Dispose();
             _fb?.Dispose();
-            _canvas = null; _raster = null; _fb = null;
+            _rasterScene = null; _canvas = null; _raster = null; _fb = null;
             return Task.CompletedTask;
         }
 
@@ -162,8 +166,9 @@ public static class BreakoutStories
 
         private void InitGpu()
         {
-            _raster = new Rasterizer2D(Device);
-            _canvas = new RetainedCanvas(_raster);
+            _raster = new GpuDeviceRasterizer2D(Device);
+            _canvas = new RetainedCanvas();
+            _rasterScene = _raster.CreateScene(_canvas);
             _fb = Device.Malloc((ulong)FieldW * (ulong)FieldH * 4, GpuMemoryKind.DeviceLocal);
             UiNode root = _canvas.Root;
 

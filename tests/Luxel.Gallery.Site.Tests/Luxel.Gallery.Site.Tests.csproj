@@ -1,4 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Luxel.Mathematics\Luxel.Mathematics.csproj" />
+    <Using Include="Luxel.Mathematics" />
+  </ItemGroup>
+
   <PropertyGroup><IsPackable>false</IsPackable><TargetFramework>net10.0-windows</TargetFramework></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Luxel.Graphics\Luxel.Graphics.csproj" />

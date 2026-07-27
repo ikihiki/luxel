@@ -1,5 +1,5 @@
 using System.Numerics;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 
 namespace LuxelCavern.Core;
 

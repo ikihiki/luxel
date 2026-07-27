@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using Luxel.Abstraction;
+using Luxel.Platform.Abstraction;
 using Luxel.Platform.Silk;
 using Luxel.Graphics.Vulkan;
 
@@ -13,7 +13,7 @@ public sealed class VulkanX11PresentTests
         RequireLinuxDisplay();
         using SilkWindowBackend windowBackend = SilkWindowBackend.Create();
         using var windows = new WindowSystem(windowBackend);
-        NativeWindow window = windows.CreateWindow(new WindowDesc("Luxel Vulkan present", 160, 120));
+        Window window = windows.CreateWindow(new WindowDesc("Luxel Vulkan present", 160, 120));
         PumpUntil(windows, () => window.Width == 160 && window.Height == 120);
 
         IVulkanWindowSurface provider = Assert.IsAssignableFrom<IVulkanWindowSurface>(
@@ -39,7 +39,7 @@ public sealed class VulkanX11PresentTests
         RequireLinuxDisplay();
         using SilkWindowBackend windowBackend = SilkWindowBackend.Create();
         using var windows = new WindowSystem(windowBackend);
-        NativeWindow window = windows.CreateWindow(new WindowDesc("Luxel Vulkan resize", 128, 96));
+        Window window = windows.CreateWindow(new WindowDesc("Luxel Vulkan resize", 128, 96));
         PumpUntil(windows, () => window.Width == 128 && window.Height == 96);
 
         IVulkanWindowSurface provider = Assert.IsAssignableFrom<IVulkanWindowSurface>(

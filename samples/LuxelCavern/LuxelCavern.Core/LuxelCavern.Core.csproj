@@ -7,6 +7,15 @@
   -->
   <!-- 純ロジック (依存は UI/Controls/TwoD/Typography = すべて net10.0)。net10.0 にして
        テスト (Luxel.Tests) と Gallery/exe の両方から参照可能にする。 -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Luxel.Mathematics\Luxel.Mathematics.csproj" />
+    <Using Include="Luxel.Mathematics" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -16,7 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Controls\Luxel.Controls.csproj" />
-    <ProjectReference Include="..\..\..\src\Luxel.TwoD\Luxel.TwoD.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Typography\Luxel.Typography.csproj" />
     <!-- セーブの読み書き抽象 (IFileStore)。%APPDATA% への実 IO は exe が PhysicalFileStore で渡す。 -->
     <ProjectReference Include="..\..\..\src\Luxel.Settings\Luxel.Settings.csproj" />

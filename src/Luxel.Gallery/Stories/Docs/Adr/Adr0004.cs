@@ -26,7 +26,7 @@ public static partial class DocsAdr
 
         ## Decision
 
-        **GPU コンピュートラスタライザ (Vello 風) + 保持型キャンバス (RetainedCanvas)** を自作します (`Luxel.TwoD`)。核心は次の 4 点:
+        **GPU コンピュートラスタライザ (Vello 風) + 保持型キャンバス (RetainedCanvas)** を自作します (`Luxel.Graphics.TwoD`)。核心は次の 4 点:
 
         - **三角形分割しない** — パスを線分のまま GPU に常駐させ、compute シェーダが画素ごとに巻き数/距離で被覆を計算して塗る (NonZero/EvenOdd、距離ベースの画面一定幅ストローク)。framebuffer は bindless バッファなのでバックエンド変更ゼロ
         - **Encode 1 回、ズームはカメラだけ** — ワールド座標で `Encode` したら `Camera2D` を変えるだけで連続拡縮できる (再エンコードも再分割もない)
@@ -37,7 +37,7 @@ public static partial class DocsAdr
 
         ## Alternatives
 
-        - **Skia を製品描画経路に採用** — 実績は最大だが、レンダラが自前 GPU 抽象の外にあり bindless 経路・vk/dx ピクセル一致・部分更新の観測に載らない → 製品経路としては却下。ただし **CPU リファレンスバックエンド (Luxel.TwoD.Skia) として検証用に併用**する
+        - **Skia を製品描画経路に採用** — 実績は最大だが、レンダラが自前 GPU 抽象の外にあり bindless 経路・vk/dx ピクセル一致・部分更新の観測に載らない → 製品経路としては却下。ただし **CPU リファレンスバックエンド (Luxel.Graphics.TwoD.Skia) として検証用に併用**する
         - **三角形分割 (テッセレーション) 方式 (NanoVG / ImDrawList 系)** — ズームや形状変更のたびに再分割が走り、「Encode 1 回でスムーズズーム」が成立しない。曲線の分割粒度と AA 品質のトレードオフも抱える → 却下
         - **Direct2D / バックエンド固有 2D API** — vk 側に対応物がなく、バックエンド中立の規律と矛盾 → 却下
         - **SDF ベース (テキスト/図形を距離場テクスチャ化)** — 小さい字の品質とアトラス管理のコストが重く、任意パス (穴あき・複数パス合成) への一般化が難しい → 却下

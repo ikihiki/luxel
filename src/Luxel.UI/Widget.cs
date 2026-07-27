@@ -1,4 +1,4 @@
-﻿using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 
 namespace Luxel.UI;
@@ -139,6 +139,13 @@ public sealed class UiBuildContext
 {
     public required RetainedCanvas Canvas { get; init; }
     public required VectorFont Font { get; init; }
+
+    /// <summary>GPU専用widgetが明示的に要求するGPU 2D capability。CPU/Skia hostではnull。</summary>
+    public GpuDeviceRasterizer2D? GpuRasterizer { get; init; }
+
+    public GpuDeviceRasterizer2D RequireGpuRasterizer()
+        => GpuRasterizer ?? throw new NotSupportedException(
+            "This widget requires the GPU 2D rasterizer and cannot run with the selected CPU rasterizer.");
 
     /// <summary>この build を所有する UiHost (D&D の <see cref="UiHost.BeginDrag"/> 等、
     /// host サービスへのアクセス用)。SetRoot が設定する。</summary>

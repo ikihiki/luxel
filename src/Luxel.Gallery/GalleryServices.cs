@@ -1,7 +1,7 @@
 ﻿using Luxel.Controls;
 using Luxel.Gallery.Stories;
 using Luxel.Scripting;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -31,7 +31,7 @@ public static class GalleryServices
     private static readonly string[] Usings =
     [
         "System", "System.Linq", "System.Collections.Generic",
-        "Luxel.UI", "Luxel.TwoD", "Luxel.Controls",
+        "Luxel.UI", "Luxel.Graphics.TwoD", "Luxel.Controls",
         "Luxel.Controls.Kit",       // 静的 import — Button/VStack/… が裸で書ける
         "Luxel.UI.Tailwind",
     ];

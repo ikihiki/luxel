@@ -1,8 +1,11 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Luxel.Audio;
 using Luxel.Input;
+using Luxel.Input.XInput;
 using Luxel.Platform;
-using Luxel.TwoD;
+using Luxel.Platform.Windows;
+using Luxel.UI.App;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Luxel.UI.Tailwind;
 using static Luxel.Controls.Kit;
@@ -103,47 +106,62 @@ public static class RealWindowStories
         if (fire > 0.01f) s.FillRoundedRect(Tw.Red500, 22, 212, MathF.Max(6, 340 * fire), 14, 7);
     }
 
-    private static AppWindow? _second;   // プロセスで 1 個 (ストーリー再入時は再利用)
+    private static WindowSystem? _secondWindows;
+    private static WindowManager? _secondManager;
 
     [Story("RealWindow/Platform/SecondWindow", Height = 280, RealWindowOnly = true)]
     public static Widget SecondWindow(StoryContext ctx)
     {
-        Signal<string> state = new(_second is null ? "未作成" : "表示中");
+        Signal<string> state = new(_secondManager is null ? "未作成" : "表示中");
+        void DisposeSecond()
+        {
+            _secondManager?.Dispose();
+            _secondManager = null;
+            _secondWindows?.Dispose();
+            _secondWindows = null;
+        }
         void Open()
         {
-            if (_second is not null) return;
-            // AppWindow = ウィンドウ + 保持型キャンバス + UiHost + スワップチェーンの束。
-            // GPU デバイスとフォントはホスト設備を借りる (ctx.Device / ctx.Font)
-            _second = new AppWindow(ctx.Device, ctx.Font, 480, 320, "Luxel — 2 つ目のウィンドウ");
+            if (_secondManager is not null) return;
+            // UI向けウィンドウ管理は Luxel.UI.App が所有し、Win32はバックエンドとして注入する。
+            _secondWindows = new WindowSystem(Win32WindowBackend.Create());
+            _secondManager = new WindowManager(ctx.Device, ctx.Font, _secondWindows);
             Signal<int> n = new(0);
-            _second.SetRoot(
-                Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))
+            _secondManager.CreateUiWindow(
+                new Luxel.Platform.Abstraction.WindowDesc("Luxel — 2 つ目のウィンドウ", 480, 320),
+                "second-window",
+                () => Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))
                 [VStack(10)[
                     Heading("独立した OS ウィンドウ", 2),
-                    Label("この窓は AppWindow — Gallery とは別の UiHost/キャンバスを持つ"),
+                    Label("この窓は Luxel.UI.App の WindowManager が管理する独立した UiHost を持つ"),
                     HStack(8)[
                         Button(_ => n.Value++, "カウント"),
                         Text($" {n} ", 16, vAlign: Align.Center)]]]);
             state.Value = "表示中";
-            ctx.Log("AppWindow 作成 (480×320)");
+            ctx.Log("WindowManagerで第2ウィンドウを作成 (480×320)");
         }
         void Close()
         {
-            if (_second is null) return;
-            _second.Dispose();
-            _second = null;
+            if (_secondManager is null) return;
+            DisposeSecond();
             state.Value = "破棄済み";
-            ctx.Log("AppWindow 破棄");
+            ctx.Log("第2ウィンドウを破棄");
+        }
+        void TickSecond()
+        {
+            if (_secondManager is null) return;
+            if (_secondManager.RunFrame(1f / 60f)) return;
+            DisposeSecond();
+            state.Value = "閉じました";
         }
         return Frame(VStack(10)[
-            Label("AppWindow — ウィンドウ + キャンバス + UiHost + スワップチェーンを束ねる実行ループ"),
-            Muted("Gallery のフレームごとに Step(1) で駆動。× で閉じた場合も「破棄」で後始末する"),
+            Label("WindowManager — UIウィンドウ、キャンバス、UiHost、提示処理を束ねる実行ループ"),
+            Muted("Gallery のフレームごとに RunFrame を呼び出して駆動します"),
             HStack(8)[
                 Button(_ => Open(), "開く"),
                 Button(_ => Close(), "破棄", variant: Variant.Outline),
                 Text($" 状態: {state}", 13, vAlign: Align.Center)],
-            // 駆動チッカー: 毎フレーム 1 回 Pump + 描画 (閉じた後は no-op)
-            Canvas2D(8, 8, animate: (_, _) => _second?.Step(1))]);
+            Canvas2D(8, 8, animate: (_, _) => TickSecond())]);
     }
 
     /// <summary>0.4 秒のサイン波 (44.1kHz mono 16bit)。立ち上がり/終端フェードでクリックノイズを防ぐ。</summary>

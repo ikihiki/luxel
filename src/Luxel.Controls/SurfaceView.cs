@@ -1,4 +1,4 @@
-﻿using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 
 namespace Luxel.Controls;
@@ -21,6 +21,8 @@ public sealed partial class SurfaceView : Widget, IDisposable
     [UiParam] private readonly Bindable<float> _surfaceHeight = new();
 
     private float? _pendingW, _pendingH;   // 子の論理サイズ (未設定 = サーフェスサイズ)
+    private GpuDeviceRasterizer2D? _rasterizer;
+    private IRasterScene2D? _rasterScene;
     private RetainedCanvas? _childCanvas;
     private GpuDevice? _device;
     private GpuBuffer? _fb;
@@ -68,10 +70,11 @@ public sealed partial class SurfaceView : Widget, IDisposable
         // 子環境は初回のみ生成 (親の再実体化を跨いで生存 — 子の状態は保持される)
         if (Child is null)
         {
-            Rasterizer2D raster = ctx.Canvas.Rasterizer;
-            _device = raster.Device;
-            _childCanvas = new RetainedCanvas(raster);
-            Child = new UiHost(_childCanvas, ctx.Font, PendW, PendH, ctx.Theme);   // 親島とテーマ共有 (同一スレッド)
+            _rasterizer = ctx.RequireGpuRasterizer();
+            _device = _rasterizer.Device;
+            _childCanvas = new RetainedCanvas();
+            _rasterScene = _rasterizer.CreateScene(_childCanvas);
+            Child = new UiHost(_childCanvas, ctx.Font, PendW, PendH, ctx.Theme, _rasterizer);   // 親島とテーマ共有 (同一スレッド)
             if (_pendingRoot is not null) Child.SetRoot(_pendingRoot);
         }
         // fb は親のラスタライズ解像度 (論理 × RenderScale) で持つ — 150% でも子のテキストが鮮明
@@ -135,7 +138,8 @@ public sealed partial class SurfaceView : Widget, IDisposable
     private void RenderChild()
     {
         using GpuCommandBuffer cmd = _device!.MainQueue.StartCommandRecording();
-        _childCanvas!.Render(cmd, new Camera2D { A = _scale, D = _scale }, _pw, _ph, _fb!, transparent: true);
+        _rasterScene!.Render(new Camera2D { A = _scale, D = _scale },
+            new GpuRasterTarget2D(cmd, _fb!, _pw, _ph), transparent: true);
         cmd.Finish();
         _device.MainQueue.SubmitAndWait(cmd);
         _rendered = true;
@@ -171,8 +175,9 @@ public sealed partial class SurfaceView : Widget, IDisposable
     public void Dispose()
     {
         Child?.Dispose();
+        _rasterScene?.Dispose();
         _childCanvas?.Dispose();
         _fb?.Dispose();
-        Child = null; _childCanvas = null; _fb = null;
+        Child = null; _rasterScene = null; _childCanvas = null; _fb = null; _rasterizer = null;
     }
 }

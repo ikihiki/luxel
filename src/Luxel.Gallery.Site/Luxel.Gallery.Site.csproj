@@ -11,6 +11,9 @@
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.116.1" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Luxel.Gallery.Site.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <EmbeddedResource Include="Assets\highlightjs\highlight.min.js" />
     <EmbeddedResource Include="Assets\highlightjs\github-dark.min.css" />
     <EmbeddedResource Include="Assets\highlightjs\LICENSE" />

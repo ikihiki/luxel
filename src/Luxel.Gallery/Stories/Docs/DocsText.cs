@@ -1,4 +1,4 @@
-﻿using Luxel.Controls;
+using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.DocsKit;
@@ -16,7 +16,7 @@ public static class DocsText
         return DocNew(ctx, $$"""
         # テキスト (Luxel.Typography)
 
-        HarfBuzz シェーピング + 自前レイアウトのテキスト基盤です。2D レイヤ (Luxel.TwoD) はテキストを知らない純粋レイヤのままで、フォント依存は Typography に隔離されています。ICU (完全な UAX#14/#29) は `Luxel.Typography.Icu` アダプタ — 使うアプリだけが参照します。
+        `Luxel.Typography` はGPU/2Dに依存しないHarfBuzzシェーピング + 自前レイアウト基盤です。`Luxel.Typography.TwoD`が`VectorFont` / `TextLayout`を`Scene2D`へ出力する拡張を提供し、`Luxel.Graphics.TwoD`自体はテキストを知りません。ICU (完全なUAX#14/#29) は`Luxel.Typography.Icu`アダプタ — 使うアプリだけが参照します。
 
         ## パイプライン
 
@@ -34,6 +34,9 @@ public static class DocsText
         ## TextLayout API
 
         ```csharp
+        using Luxel.Typography;
+        using Luxel.Typography.TwoD;
+
         var layout = new TextLayout(source, new TextLayoutOptions
         {
             MaxWidth = 300,            // ∞ = 折り返しなし
@@ -42,7 +45,7 @@ public static class DocsText
             LineHeight = 1.2f,
         });
         Size size = layout.Size;                  // 計測
-        layout.Draw(scene, x, y);                 // 描画 (色ごとの列挙も提供)
+        layout.Draw(scene, x, y, color);          // 描画 (Luxel.Typography.TwoD拡張)
         int idx = layout.HitTest(px, py);         // 座標 → テキスト位置 (クラスタ吸着)
         Rect caret = layout.CaretRect(idx);       // キャレット矩形
         Rect[] sel = layout.SelectionRects(a, b); // 選択範囲の行別矩形

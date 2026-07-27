@@ -1,10 +1,11 @@
 using System.Numerics;
 using Luxel;
 using Luxel.SceneEdit;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Controls;
 
 /// <summary>移動ギズモのハンドル種別 — v1 から軸分解の形 (2D/3D 両対応原則 4)。
@@ -433,7 +434,7 @@ public sealed class SceneSpace3DAdapter : ISceneSpaceAdapter
         void CheckAxis(SceneHandleKind kind, Vector3 p, Vector3 axis)
         {
             if (Project(p) is not { } a || Project(p + axis * HandleLenWorld) is not { } b) return;
-            float d = DistanceToSegment(local, a, b);
+            float d = Geometry2D.DistancePointToSegment(local, a, b, degenerateLengthSquared: 1e-4f);
             if (d <= bestD) { bestD = d; best = kind; }
         }
     }
@@ -648,12 +649,4 @@ public sealed class SceneSpace3DAdapter : ISceneSpaceAdapter
             c[i] = new Vector3((i & 1) == 0 ? min.X : max.X, (i & 2) == 0 ? min.Y : max.Y, (i & 4) == 0 ? min.Z : max.Z);
     }
 
-    private static float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)
-    {
-        Vector2 ab = b - a;
-        float len2 = ab.LengthSquared();
-        if (len2 < 1e-4f) return (p - a).Length();
-        float t = Math.Clamp(Vector2.Dot(p - a, ab) / len2, 0f, 1f);
-        return (p - (a + ab * t)).Length();
-    }
 }

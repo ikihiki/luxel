@@ -1,8 +1,9 @@
 ﻿using System.Numerics;
 using Luxel.Animation;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Controls;
 
 /// <summary>回転スピナー (アニメ ティックで transform 回転 = 部分更新)。</summary>

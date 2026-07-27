@@ -25,7 +25,7 @@
     <ProjectReference Include="..\..\src\Luxel.Gallery\Luxel.Gallery.csproj" />
   </ItemGroup>
 
-  <!-- GalleryHost (Rasterizer2D) が $(OutDir)shaders/ から SPIR-V を読む — Gallery と同じ targets で出力する -->
+  <!-- GalleryHost (GpuDeviceRasterizer2D) が $(OutDir)shaders/ から SPIR-V を読む — Gallery と同じ targets で出力する -->
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />
 
   <ItemGroup>

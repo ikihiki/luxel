@@ -1,7 +1,7 @@
 ﻿namespace Luxel.Audio;
 
 /// <summary>
-/// オーディオ出力バックエンドの抽象。Windows は <c>Luxel.Platform.XAudio2Backend</c>、
+/// オーディオ出力バックエンドの抽象。Windows は <c>Luxel.Audio.Windows.XAudio2Backend</c>、
 /// headless テストは <see cref="NullAudioBackend"/> を差替える。
 /// </summary>
 public interface IAudioBackend : IDisposable

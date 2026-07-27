@@ -3,6 +3,7 @@ using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.DocsKit;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>docs — GPU 土台の章 (GpuDevice / TwoD / RenderGraph / ThreeD)。
@@ -87,7 +88,7 @@ public static partial class DocsGpu
     {
         ctx.Play(static d => d.Snap());   // 積み重なった GPU デモ 7 本が device lost せず描画される回帰 golden
         return DocNew(ctx, $$"""
-        # 2D ベクター (Luxel.TwoD)
+        # 2D ベクター (Luxel.Graphics.TwoD)
 
         GPU **コンピュートラスタライザ** (Vello 風) による 2D ベクター描画です。パスを三角形分割せず、線分のまま GPU に常駐させ、compute が画素ごとに巻き数/距離で被覆を計算して塗ります。バックエンド変更ゼロ (framebuffer は bindless バッファ)。
 
@@ -105,7 +106,7 @@ public static partial class DocsGpu
         using (var jp = VectorFont.LoadSystemJapanese())
             jp.AppendText(scene, "こんにちは", 50, 120, 28, Color2D.Black);
 
-        using var raster = new Rasterizer2D(device);
+        using var raster = new GpuDeviceRasterizer2D(device);
         using var encoded = raster.Encode(scene);                 // GPU へ 1 回
         raster.Render(cmd, encoded, Camera2D.Pixels, w, h, fb);   // ズームは Camera2D.Create(...)
         ```
@@ -187,21 +188,32 @@ public static partial class DocsGpu
 
         {{StoryRef(ctx, "Demos/3D/Particles")}}
 
-        ## RetainedCanvas — 保持型ツリーと部分更新
+        ## IRasterizer2D / RetainedCanvas — backend切替と部分更新
 
-        UI ライブラリのバックエンドとして、フレーム間で保持するノードツリーを提供します。データは SoA (Transform / Style / Clip / Order / Segment を分離) で、シェーダが per-path 変換を適用するため **移動 = 変換だけ書込、色変更 = スタイルだけ書込** (ジオメトリ不変) になります。
+        `RetainedCanvas` はフレーム間で保持するノードツリーとCPU display-listだけを所有します。描画backendはcomposition rootで `IRasterizer2D` として選び、`CreateScene(canvas)` が同じツリーの変更を追跡するsessionを返します。GPU sessionはTransform / Style / Clip / Order / Segmentを分離したbufferを持つため、**移動 = transformだけ、色変更 = styleだけ**を書き換えます。
 
         ```csharp
-        using var canvas = new RetainedCanvas(raster);
+        using IRasterizer2D raster = useCpu
+            ? new SkiaRasterizer2D()
+            : new GpuDeviceRasterizer2D(device);
+        using var canvas = new RetainedCanvas();
+        using IRasterScene2D rasterScene = raster.CreateScene(canvas);
+
         UiNode panel = canvas.AddChild(canvas.Root);
         panel.Transform = Affine2D.Translate(40, 40);
         panel.Content = new Scene2D().FillRoundedRect(Color2D.White, 0, 0, 400, 240, 16);
 
-        canvas.Render(cmd, Camera2D.Pixels, w, h, fb);    // 初回はフル構築
-        panel.Color = red;                                // 部分更新: スタイルのみ
-        panel.Transform = Affine2D.Translate(40, 80);     // 部分更新: 変換のみ
-        canvas.Render(cmd, Camera2D.Pixels, w, h, fb);    // Segment 書込 0
+        if (raster is GpuDeviceRasterizer2D)
+            rasterScene.Render(Camera2D.Pixels, new GpuRasterTarget2D(cmd, fb, w, h)); // callerがsubmit
+        else
+        {
+            var cpuTarget = new SkiaRasterTarget2D(w, h);
+            rasterScene.Render(Camera2D.Pixels, cpuTarget); // 復帰時に同期RGBAが読める
+            ReadOnlyMemory<byte> rgba = cpuTarget.Pixels;
+        }
         ```
+
+        sessionはrasterizerより先に破棄します。異なるbackendのsession/target混在は例外になります。`GpuDeviceRasterizer2D`はcommand recording・bindless image・retained incremental updateを提供し、`SkiaRasterizer2D`は同期CPU RGBAを提供します。現在のimage shapeはbindless GPU resourceなのでSkiaでは `NotSupportedException` です。
 
         - `UiNode`: ローカル変換 / 色 / 不透明度 / 矩形クリップ / Z / 子 / Content。setter が dirty を伝播
         - クリップは祖先と交差して適用 (スクロール / パネル)

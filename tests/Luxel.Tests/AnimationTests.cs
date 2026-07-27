@@ -859,7 +859,7 @@ public class RetainedCanvasAnimationTargetTests
 
     private sealed class FakeUiNode
     {
-        public Luxel.TwoD.Affine2D Transform = Luxel.TwoD.Affine2D.Identity;
+        public Luxel.Mathematics.Affine2D Transform = Luxel.Mathematics.Affine2D.Identity;
         public uint Color = 0xFFFFFFFFu;
         public float Opacity = 1f;
     }
@@ -869,9 +869,9 @@ public class RetainedCanvasAnimationTargetTests
     {
         // RetainedCanvas が必要なので fake で代用できないため、内部分岐の論理のみ確認。
         // ここでは Affine2D の組み立てロジックを直接検証。
-        var t = Luxel.TwoD.Affine2D.Translate(0, 0);
+        var t = Luxel.Mathematics.Affine2D.Translate(0, 0);
         // translationX を 50 にした場合の効果
-        var expected = new Luxel.TwoD.Affine2D { A = 1, B = 0, C = 0, D = 1, E = 50, F = 0 };
+        var expected = new Luxel.Mathematics.Affine2D { A = 1, B = 0, C = 0, D = 1, E = 50, F = 0 };
         Assert.Equal(expected.E, 50f);
         Assert.Equal(t.A, 1f);
     }
@@ -1068,7 +1068,7 @@ public class BindableStateLayerTests
     {
         public readonly Luxel.UI.Bindable<float> Opacity = new();   // 状態レイヤ検証用の自由な float プロパティ
         protected override void PerformLayout(Luxel.UI.Constraints c, Luxel.UI.LayoutContext ctx) { }
-        protected override void RealizeCore(Luxel.UI.UiBuildContext ctx, Luxel.TwoD.UiNode parent, Luxel.UI.Point worldOrigin) { }
+        protected override void RealizeCore(Luxel.UI.UiBuildContext ctx, Luxel.Graphics.TwoD.UiNode parent, Luxel.UI.Point worldOrigin) { }
     }
 
     [Fact]
@@ -1334,14 +1334,14 @@ public class FluentStateLayerTests
     public void Tw_Blue500_HasExpectedRgb()
     {
         // Tailwind v3 blue-500 = #3B82F6
-        Assert.Equal(Luxel.TwoD.Color2D.Rgba(59, 130, 246), Luxel.UI.Tailwind.Tw.Blue500);
+        Assert.Equal(Luxel.Graphics.TwoD.Color2D.Rgba(59, 130, 246), Luxel.UI.Tailwind.Tw.Blue500);
     }
 
     [Fact]
     public void Tw_Red500_HasExpectedRgb()
     {
         // Tailwind v3 red-500 = #EF4444
-        Assert.Equal(Luxel.TwoD.Color2D.Rgba(239, 68, 68), Luxel.UI.Tailwind.Tw.Red500);
+        Assert.Equal(Luxel.Graphics.TwoD.Color2D.Rgba(239, 68, 68), Luxel.UI.Tailwind.Tw.Red500);
     }
 }
 

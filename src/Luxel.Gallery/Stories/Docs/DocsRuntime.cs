@@ -1,4 +1,4 @@
-﻿using Luxel.Controls;
+using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.DocsKit;
@@ -62,13 +62,13 @@ public static class DocsRuntime
 
     [Story("Docs/Platform", Order = 51)]
     public static Widget Platform(StoryContext ctx) => DocNew(ctx, $$"""
-        # プラットフォーム (Luxel.Platform, Windows)
+        # プラットフォーム (Luxel.Platform)
 
-        実 OS ウィンドウ・スワップチェーン提示・IME を提供します (CsWin32 で Win32/TSF を生成)。オフスクリーン描画 (snap / bench) とはここだけが違います。
+        `Luxel.Platform` がウィンドウ、クリップボード、低レベル入力の共通公開APIを提供します。`Luxel.Platform.Windows` はCsWin32によるWin32/TSF実装、`Luxel.Platform.Silk` はSilk.NET/GLFWによるLinux/X11実装です。オフスクリーン描画 (snap / bench) とはここだけが違います。
 
         ## ウィンドウとマルチウィンドウ
 
-        `Win32Window` (CreateWindowEx + WndProc + PeekMessage) を `WindowSystem` / `WindowManager` が束ねます。ウィンドウは複数持て、インスタンスは GWLP_USERDATA で引く正攻法 — 静的マップがないので**別スレッドの別ウィンドウ** (ネイティブ DevTools) とも共存します。マウス/ホイール/キー/WM_CHAR/リサイズは `UiHost` へ配線されます。第 2 ウィンドウを実際に開くデモは [RealWindow/Platform/SecondWindow](story:RealWindow/Platform/SecondWindow) (実窓専用) へ。
+        `Luxel.Platform.Windows` の `Win32Window` (CreateWindowEx + WndProc + PeekMessage) を共通 `WindowSystem` が公開し、`Luxel.UI.App` の `WindowManager` / `WindowHost` が UI ウィンドウとして束ねます。ウィンドウは複数持て、インスタンスは GWLP_USERDATA で引く正攻法 — 静的マップがないので**別スレッドの別ウィンドウ** (ネイティブ DevTools) とも共存します。マウス/ホイール/キー/WM_CHAR/リサイズは `UiHost` へ配線されます。第 2 ウィンドウを実際に開くデモは [RealWindow/Platform/SecondWindow](story:RealWindow/Platform/SecondWindow) (実窓専用) へ。
 
         ## スワップチェーン提示
 
@@ -76,13 +76,13 @@ public static class DocsRuntime
 
         ## IME (TSF、自前 preedit)
 
-        `TsfTextStore : ITextStoreACP` がフォーカス中のテキスト入力へ橋渡しします。`GetTextExt` がキャレット矩形を返すので変換候補ウィンドウがキャレット位置に出ます。**preedit 下線・変換対象節ハイライト・キャレットは自前描画** (`ImeComposition` モデル) — TSF の文書はフォーカス中ブロックに局所化されています ([Docs/Editor](story:Docs/Editor))。
+        `Luxel.Platform.ITextInputClient` が共通のIME編集面を定義し、Windowsの `TsfTextStore : ITextStoreACP` がフォーカス中のテキスト入力へ橋渡しします。`GetTextExt` がキャレット矩形を返すので変換候補ウィンドウがキャレット位置に出ます。**preedit 下線・変換対象節ハイライト・キャレットは自前描画** (`ImeComposition` モデル) — TSF の文書はフォーカス中ブロックに局所化されています ([Docs/Editor](story:Docs/Editor))。
 
         ## カーソル・右クリック・クリップボード
 
         - `CursorKind` (Arrow / IBeam / Hand / Resize) を `HitTarget.Cursor` で宣言 — hover 先のカーソルが WM_SETCURSOR で反映されます
         - 右クリックは `OnContext` → `ContextMenu.Open` (エディタ標準の切り取り/コピー/貼り付け)
-        - クリップボードは `IClipboard` 抽象 (Win32 実装 + テスト用フェイク)。リッチテキストは plain + markdown の両形式で書き込みます
+        - クリップボードは `Luxel.Platform.Clipboard` + `IClipboardBackend` (`Win32ClipboardBackend` / `SilkClipboardBackend`) としてウィンドウから独立して構成します。リッチテキストは plain + markdown の両形式で書き込みます
         """, toc: true);
 
     [Story("Docs/Input", Order = 52)]
@@ -105,7 +105,7 @@ public static class DocsRuntime
 
         ## ゲーム入力 (Luxel.Input)
 
-        アクションマップ (コンテキスト単位の有効/無効 — 例: gameplay と menu) と **キーバインドの JSON リマップ** (保存/復元の round-trip) を提供します。Framework のフレームループ (`InputBus` / `InputStack`) に統合されます。
+        アクションマップ (コンテキスト単位の有効/無効 — 例: gameplay と menu) と **キーバインドの JSON リマップ** (保存/復元の round-trip) を提供します。Framework のフレームループ (`InputBus` / `InputStack`) に統合されます。Windows固有のXbox互換ゲームパッド入力は `Luxel.Input.XInput` の `XInputSource` に分離されています。
 
         ## programmatic 入力
 
@@ -116,7 +116,7 @@ public static class DocsRuntime
     public static Widget Audio(StoryContext ctx) => DocNew(ctx, $$"""
         # オーディオ (Luxel.Audio)
 
-        `IAudioBackend` (Windows は XAudio2) の上に、SFX ミキサ / BGM ソース / 3D 音源 / バスによる音量カスケードを提供します。**Volume / Pitch / Pan が Signal** なので、UI ともアニメーション (Transition) とも自然につながります。実際に音が鳴るデモは [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone) (実窓専用) へ。
+        `Luxel.Audio` の `IAudioBackend` の上に、SFX ミキサ / BGM ソース / 3D 音源 / バスによる音量カスケードを提供します。Windows固有のXAudio2実装は `Luxel.Audio.Windows` に分離されています。**Volume / Pitch / Pan が Signal** なので、UI ともアニメーション (Transition) とも自然につながります。実際に音が鳴るデモは [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone) (実窓専用) へ。
 
         ## 使い方
 
@@ -238,13 +238,13 @@ public static class DocsRuntime
 
         **DI 統合 (Microsoft.Extensions.Options)**: `ConfigureServices(s => s.AddSettingsOptions<GraphicsSettings>("graphics"))` で設定 POCO を束ねると、任意のサービスが `IOptions<GraphicsSettings>` / `IOptionsMonitor<GraphicsSettings>` を注入して値を読めます (`OnChange` で変更通知)。書き込みたい側は同じキーの `Signal<GraphicsSettings>` を注入します。読み口は標準の Configuration/Options、書き口とファイル永続化は SettingsStore、と役割が分かれます。
 
-        ## AppWindow — 最小構成
+        ## WindowManager — UIウィンドウ管理
 
-        フル DI が要らない小さなアプリは `AppWindow` (device + font + サイズ) に `SetRoot(widget)` して `Run()` するだけです。この Gallery も WindowManager + UiHost の同じ部品でできています。
+        UI向けウィンドウは `Luxel.UI.App.WindowManager` が管理します。`WindowSystem`へWin32などのPlatformバックエンドを注入し、`CreateUiWindow`と`RunFrame`でUiHostの生成・入力・描画・提示を駆動します。
 
         ## ゲームを配布する (publish)
 
-        スタンドアロンゲームは `LuxelHostBuilder` + `GameScene` でループを組み、`WindowSystem`/`NativeWindow`/`GpuSurface` へ提示します。**Framework は窓/提示を持たない**ので、フレーム待ち (`UseFrameWaiter`) を pacer で同期し、`host.Start()` 後にメインループで `pacer.Tick()` (1 フレーム同期実行) → `surface.Present(scene の framebuffer)` します (StoryAppView と同じ TCS inline 方式で GPU キュー安全)。入力は `IInputSource` を登録すると GameLoop が毎フレーム Poll します。
+        スタンドアロンゲームは `LuxelHostBuilder` + `GameScene` でループを組み、`WindowSystem`/`Window`/`GpuSurface` へ提示します。**Framework は窓/提示を持たない**ので、フレーム待ち (`UseFrameWaiter`) を pacer で同期し、`host.Start()` 後にメインループで `pacer.Tick()` (1 フレーム同期実行) → `surface.Present(scene の framebuffer)` します (StoryAppView と同じ TCS inline 方式で GPU キュー安全)。入力は `IInputSource` を登録すると GameLoop が毎フレーム Poll します。
 
         出荷は `dotnet publish -c Release -r win-x64 --self-contained` の self-contained フォルダ配布。出力にはコンパイル済みシェーダ (`shaders/*.spv`/`*.dxil` — `Luxel.Shaders.targets` が自動コピー)・アセット/同梱フォント (csproj の Content)・ネイティブ DLL (glfw / HarfBuzz / Silk.NET) が揃います。アセットは `AppContext.BaseDirectory` (exe の隣) 基準で読むので **cwd 非依存** — リポジトリ外の任意パスへコピーして起動できます。`vulkan-1.dll` は OS/ドライバ側 (同梱しない) なので README に動作要件として明記します。実例は capstone ① `samples/LuxelCavern` (フォルダ publish を vk/dx 両方でリポジトリ外起動まで検証)。
         """, toc: true);

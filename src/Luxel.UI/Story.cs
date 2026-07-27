@@ -79,7 +79,7 @@ public sealed class StoryContext
     private Luxel.Typography.VectorFont? _font;
 
     /// <summary>ホスト所有の GPU デバイスとフォントを結線する (Resources と同じ「借りる」窓口)。
-    /// 実窓ホストだけが呼ぶ — 実窓専用ストーリー (AppWindow の生成等) が使う。</summary>
+    /// 実窓ホストだけが呼ぶ — 実窓専用ストーリー (追加ウィンドウの生成等) が使う。</summary>
     public void SetGpuHost(Luxel.Graphics.GpuDevice device, Luxel.Typography.VectorFont font)
     {
         _device = device;

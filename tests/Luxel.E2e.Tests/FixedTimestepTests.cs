@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Luxel.Ecs;
 using Luxel.Framework;
 using Xunit;
@@ -10,6 +10,10 @@ namespace Luxel.Gallery.E2eTests;
 /// windows ターゲットのこのテストプロジェクトに置く。</summary>
 public class FixedTimestepTests
 {
+    [Fact]
+    public void FixedTimestep_IsOwnedByFrameworkAssembly()
+        => Assert.Equal("Luxel.Framework", typeof(FixedTimestep).Assembly.GetName().Name);
+
     [Fact]
     public void Advance_ExactMultiple_RunsExactSteps()
     {
@@ -94,6 +98,29 @@ public class FixedTimestepTests
         Assert.Equal(0f, acc.Alpha);
         // Reset 後は溜まりが無いので 1/120 では 0 ステップ
         Assert.Equal(0, acc.Advance(1.0 / 120));
+    }
+
+    [Theory]
+    [InlineData(0.016, 1.0, 0.016)]
+    [InlineData(0.016, 0.5, 0.008)]
+    [InlineData(0.016, 2.0, 0.032)]
+    [InlineData(0.016, 0.0, 0.0001)]
+    [InlineData(1.0, 1.0, 0.1)]
+    public void ScaleDt_AppliesTimeScale_AndClamps(double raw, double scale, double expected)
+        => Assert.Equal(expected, FixedTimestep.ScaleDt(raw, scale), precision: 5);
+
+    [Fact]
+    public void TimeScale_Half_Doubles_FramesPerFixedStep()
+    {
+        var fixedStep = new FixedTimestep(fixedDt: 1.0 / 60, maxStepsPerFrame: 8);
+        int totalSteps = 0;
+        for (int i = 0; i < 120; i++)
+        {
+            float dt = FixedTimestep.ScaleDt(1.0 / 60, 0.5);
+            totalSteps += fixedStep.Advance(dt);
+        }
+        Assert.InRange(totalSteps, 58, 62);
+        Assert.Equal(0, fixedStep.DroppedSteps);
     }
 
     // ==================== TransformInterpolationSystem ====================

@@ -37,7 +37,7 @@ public static class DocsRenderingLearn
         **検索キーワード:** triangle / texture / camera / render graph / glTF / blank screen / 真っ黒
 
         > [!IMPORTANT]
-        > `GpuView` と `IGpuScene` はGallery内でデモを表示するためのハーネスです。通常アプリでは `WindowSystem`、`NativeWindow`、`GpuSurface` を使います。
+        > `GpuView` と `IGpuScene` はGallery内でデモを表示するためのハーネスです。通常アプリでは `WindowSystem`、`Window`、`GpuSurface` を使います。
 
         ## どのAPIまで学ぶか
 
@@ -117,7 +117,7 @@ public static class DocsRenderingLearn
         `samples/LuxelTriangle/Program.cs` がstandaloneアプリの外枠です。責務は次の順です。
 
         ```text
-        WindowSystem → NativeWindow → GpuDevice → GpuSurface
+        WindowSystem → Window → GpuDevice → GpuSurface
                      → event loop → Render → Present
         ```
 
@@ -859,7 +859,7 @@ public static class DocsRenderingLearn
         `Scene2D`は「何を描くか」をCPU側で組み立てる最小APIです。次のコードだけで角丸矩形、円、線を含むsceneを作れます。
 
         ```csharp
-        using Luxel.TwoD;
+        using Luxel.Graphics.TwoD;
 
         var scene = new Scene2D();
         scene.FillRoundedRect(0xFF2F6FED, 24, 24, 220, 120, 18);
@@ -867,10 +867,10 @@ public static class DocsRenderingLearn
         scene.StrokeLine(0xFFE7EAF0, 4, 32, 176, 250, 176);
         ```
 
-        GPUへ出すstandalone側は`Rasterizer2D`がsceneをencodeし、commandへrenderを記録します。geometryが変わらないなら`encoded`を毎frame作り直さず保持します。
+        GPUへ出すstandalone側は`GpuDeviceRasterizer2D`がsceneをencodeし、commandへrenderを記録します。geometryが変わらないなら`encoded`を毎frame作り直さず保持します。
 
         ```csharp
-        using var rasterizer = new Rasterizer2D(device);
+        using var rasterizer = new GpuDeviceRasterizer2D(device);
         using var encoded = rasterizer.Encode(scene);
         using GpuCommandBuffer cmd = device.MainQueue.StartCommandRecording();
 
@@ -884,10 +884,10 @@ public static class DocsRenderingLearn
 
         | API | 選ぶ場面 | GPU | 注意点 |
         | --- | --- | --- | --- |
-        | `Scene2D` | shape/pathを直接作る | render時のみ必要 | callerがencode/render寿命を所有 |
-        | `RetainedCanvas` | objectが残りtransform/styleだけ変わる | headless構築可 | `Invalidate()`連打ではなく部分更新を使う |
+        | `Scene2D` | shape/pathを直接作る | backend次第 | `CreateScene`時点のsnapshot。session寿命をcallerが所有 |
+        | `RetainedCanvas` | objectが残りtransform/styleだけ変わる | 不要 | backend-neutral。`Invalidate()`連打ではなく部分更新を使う |
         | UI `Canvas2D` | GalleryやUIへ小さな図を埋め込む | hostが提供 | standalone window APIではない |
-        | `SkiaRenderer` | CI、headless test、CPU参照画像 | 不要 | image shape非対応、AA edgeはGPUと完全一致しない |
+        | `SkiaRasterizer2D` | CI、headless test、CPU参照画像 | 不要 | 同期RGBA target。image shape非対応、AA edgeはGPUと完全一致しない |
 
         retained treeではnodeを保持し、変更箇所だけ更新します。
 
@@ -903,7 +903,7 @@ public static class DocsRenderingLearn
             Console.WriteLine("次のGPU renderで差分を反映する");
         ```
 
-        UI内なら`Canvas2D(draw: scene => ...)`、headlessなら`SkiaRenderer`を使います。stroke widthはscreen pixel、world座標変換はcameraが担当します。透明imageはpremultiplied RGBAを前提にし、Skia pathではGPU bindless imageを描けません。
+        UI内なら`Canvas2D(draw: scene => ...)`、headlessなら`SkiaRasterizer2D`からscene/sessionと`SkiaRasterTarget2D`を作ります。stroke widthはscreen pixel、world座標変換はcameraが担当します。透明imageはpremultiplied RGBAを前提にし、Skia backendではGPU bindless imageを描けません。実window経路はCPU pixelをpresentするupload経路をまだ持たないためGPU固定です。
         """, toc: true);
     }
 

@@ -1,11 +1,11 @@
 ﻿using System.Numerics;
 using Luxel.Animation;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 
 namespace Luxel.Animation.TwoD;
 
 /// <summary>
-/// <see cref="Luxel.TwoD.RetainedCanvas"/> の <see cref="UiNode"/> への <see cref="IAnimationTarget"/> アダプタ。
+/// <see cref="Luxel.Graphics.TwoD.RetainedCanvas"/> の <see cref="UiNode"/> への <see cref="IAnimationTarget"/> アダプタ。
 /// 文字列 path 形式: "{nodeName}/{property}"。サポートする property:
 /// <list type="bullet">
 ///   <item><c>transform</c> (Affine2D)</item>

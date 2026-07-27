@@ -1,7 +1,8 @@
 using Luxel.Resources;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Controls;
 
 /// <summary>
@@ -52,7 +53,7 @@ public sealed partial class ImageBlock : Widget, IDisposable
 
         if (Handle.IsReady && Handle.Value is CpuImage img && img.Width > 0)
         {
-            GpuDevice device = ctx.Canvas.Rasterizer.Device;
+            GpuDevice device = ctx.RequireGpuRasterizer().Device;
             _buf?.Dispose();
             _buf = device.Malloc((ulong)(img.Width * img.Height * 4), GpuMemoryKind.HostMapped);
             img.Pixels.AsSpan(0, img.Width * img.Height * 4).CopyTo(_buf.Span<byte>(img.Width * img.Height * 4));

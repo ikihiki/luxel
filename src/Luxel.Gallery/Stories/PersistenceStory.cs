@@ -2,7 +2,7 @@
 using Friflo.Engine.ECS;
 using Luxel.Ecs;
 using Luxel.Settings;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;

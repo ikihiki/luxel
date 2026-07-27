@@ -2,7 +2,7 @@ using System.Numerics;
 using Luxel.Animation;
 using Luxel.Particles;
 using Luxel.Particles.TwoD;
-using Luxel.TwoD;
+using Luxel.Graphics.TwoD;
 
 namespace Luxel.Tests;
 
