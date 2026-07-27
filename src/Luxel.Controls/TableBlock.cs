@@ -2,6 +2,7 @@ using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Luxel.UI.Styling;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Controls;
 
 /// <summary>

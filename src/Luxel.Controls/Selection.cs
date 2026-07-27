@@ -4,6 +4,7 @@ using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Luxel.UI.Styling;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Controls;
 
 /// <summary>等幅セグメントの単一選択。選択ハイライトは transform スライド (部分更新)。←→ で移動。</summary>

@@ -12,6 +12,7 @@ using static Luxel.Controls.Kit;
 using Phase = Luxel.Framework.Phase;
 using World = Luxel.Ecs.World;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>

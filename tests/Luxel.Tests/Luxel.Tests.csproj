@@ -38,6 +38,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
     <ProjectReference Include="..\..\src\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\..\src\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Controls\Luxel.Controls.csproj" />

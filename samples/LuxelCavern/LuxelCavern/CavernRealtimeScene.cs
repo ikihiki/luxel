@@ -9,6 +9,7 @@ using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using LuxelCavern.Core;
 
+using Luxel.Typography.TwoD;
 namespace LuxelCavern;
 
 /// <summary>

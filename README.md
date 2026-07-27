@@ -125,7 +125,7 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 | Luxel.Mathematics | ベクトル幾何、アフィン変換、カメラ計算、決定的乱数などの純粋数学 |
 | Luxel.Graphics / Luxel.Graphics.Vulkan / Luxel.Graphics.DirectX12 | GPU 抽象とバックエンド |
 | Luxel.Graphics.TwoD / Luxel.Graphics.TwoD.Skia | 共通2D契約 + GPU compute / Skia CPU backend + 保持型キャンバス |
-| Luxel.Typography (+ .Icu) | テキストレイアウト / シェーピング / ICU |
+| Luxel.Typography (+ .Icu) / Luxel.Typography.TwoD | GPU非依存のテキストレイアウト・シェーピング・ICU / Scene2D描画アダプタ |
 | Luxel.UI (+ .Generators, .Tailwind) | 宣言的 UI / signals / ソースジェネレーター |
 | Luxel.Controls | コントロール群 + docs 基盤 (Kit) |
 | Luxel.Document (+ Highlight.TextMate, Diagram, MathText) | 文書モデル / ハイライト / 図 / 数式 |

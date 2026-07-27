@@ -52,6 +52,7 @@
     <Project Path="src/Luxel.Strudel/Luxel.Strudel.csproj" />
     <Project Path="src/Luxel.Graphics.TwoD.Skia/Luxel.Graphics.TwoD.Skia.csproj" />
     <Project Path="src/Luxel.Graphics.TwoD/Luxel.Graphics.TwoD.csproj" />
+    <Project Path="src/Luxel.Typography.TwoD/Luxel.Typography.TwoD.csproj" />
     <Project Path="src/Luxel.Typography.Icu/Luxel.Typography.Icu.csproj" />
     <Project Path="src/Luxel.Typography/Luxel.Typography.csproj" />
     <Project Path="src/Luxel.UI.App/Luxel.UI.App.csproj" />

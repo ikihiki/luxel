@@ -3,6 +3,7 @@ using Luxel.UI;
 using Luxel.UI.Styling;
 using static Luxel.Controls.Kit;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Controls;
 
 /// <summary>単一選択ドロップダウン。選択ラベルを表示し、クリックで候補メニューを開く (オーバーレイ)。</summary>

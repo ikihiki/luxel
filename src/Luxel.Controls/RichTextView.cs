@@ -3,6 +3,7 @@ using Luxel.Typography;
 using Luxel.UI;
 using TAlign = Luxel.Typography.TextAlign;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Controls;
 
 /// <summary>

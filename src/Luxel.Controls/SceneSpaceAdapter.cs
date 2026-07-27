@@ -5,6 +5,7 @@ using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Controls;
 
 /// <summary>移動ギズモのハンドル種別 — v1 から軸分解の形 (2D/3D 両対応原則 4)。

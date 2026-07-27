@@ -1,6 +1,7 @@
 ﻿using Luxel.Diagnostics;
 using Luxel.Graphics.TwoD;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.UI;
 
 /// <summary>

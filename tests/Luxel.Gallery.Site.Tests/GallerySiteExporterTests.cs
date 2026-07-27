@@ -78,6 +78,9 @@ public sealed class GallerySiteExporterTests
         Assert.DoesNotContain("Luxel", TypeApiRegistry.Namespaces);
         Assert.NotNull(TypeApiRegistry.Find("Luxel.Mathematics.OrbitCamera"));
         Assert.NotNull(TypeApiRegistry.Find("Luxel.Mathematics.Xorshift64"));
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.Typography.VectorFont"));
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.Typography.TwoD.TypographyTwoDExtensions"));
+        Assert.Contains("Luxel.Typography.TwoD", TypeApiRegistry.Namespaces);
         Assert.Null(TypeApiRegistry.Find("Luxel.OrbitCamera"));
         Assert.Null(TypeApiRegistry.Find("Luxel.Particles.Xorshift64"));
 

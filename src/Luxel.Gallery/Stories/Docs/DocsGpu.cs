@@ -3,6 +3,7 @@ using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.DocsKit;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>docs — GPU 土台の章 (GpuDevice / TwoD / RenderGraph / ThreeD)。

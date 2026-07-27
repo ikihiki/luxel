@@ -4,6 +4,7 @@ using Luxel.SceneEdit;
 using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 
+using Luxel.Typography.TwoD;
 namespace Luxel.Player;
 
 public interface IPlayerWorld

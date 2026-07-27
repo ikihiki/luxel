@@ -1,6 +1,5 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text;
-using Luxel.Graphics.TwoD;
 
 namespace Luxel.Typography;
 
@@ -312,14 +311,12 @@ public sealed class TextLayout
     public float LineX(int line) => _lines[line].AlignX;
     public float LineJustifyExtra(int line) => _lines[line].JustifyExtra;
 
-    /// <summary>テキスト全体を 1 色で描く (プレーン用)。(x, y) はレイアウトボックス左上。</summary>
-    public void Draw(Scene2D scene, float x, float y, uint color) => DrawFiltered(scene, x, y, color, null);
-
-    /// <summary>指定色の run だけを白で描く (RichTextView の色別ノード用 — node.Color が実色を乗せる)。</summary>
-    public void DrawColorRuns(Scene2D scene, float x, float y, uint runColor)
-        => DrawFiltered(scene, x, y, Color2D.White, runColor);
-
-    private void DrawFiltered(Scene2D scene, float x, float y, uint drawColor, uint? filterRunColor)
+    /// <summary>配置済みグリフを視覚順に列挙する。描画backend adapterから利用する。</summary>
+    internal void VisitGlyphs(
+        float x,
+        float y,
+        uint? filterRunColor,
+        Action<VectorFont, uint, float, float, float> visitor)
     {
         foreach (Line l in _lines)
         {
@@ -339,19 +336,18 @@ public sealed class TextLayout
                 if (!run.IsBox && (filterRunColor is not uint fc || run.Color == fc))
                 {
                     ShapedGlyph sg = run.Glyphs[gr.Glyph];
-                    run.Font.AppendGlyph(scene, sg.GlyphId, penX + sg.XOffset, baseline - sg.YOffset, run.Px, drawColor);
+                    visitor(run.Font, sg.GlyphId, penX + sg.XOffset, baseline - sg.YOffset, run.Px);
                 }
                 penX += Adv(para, gr);
                 if (l.JustifyExtra > 0 && l.JustifyBySpace && IsSpaceChar(para, cluster))
                     penX += l.JustifyExtra;
             }
 
-            // 切り捨て記号 (最終行のみ)
             if (l.Ellipsis && _ellFont is not null && (filterRunColor is not uint efc || _ellColor == efc))
             {
                 foreach (ShapedGlyph g in _ellGlyphs)
                 {
-                    _ellFont.AppendGlyph(scene, g.GlyphId, penX + g.XOffset, baseline - g.YOffset, _ellPx, drawColor);
+                    visitor(_ellFont, g.GlyphId, penX + g.XOffset, baseline - g.YOffset, _ellPx);
                     penX += g.XAdvance;
                 }
             }

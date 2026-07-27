@@ -38,6 +38,8 @@
     <ProjectReference Include="..\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="..\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
     <ProjectReference Include="..\Luxel.Controls\Luxel.Controls.csproj" />

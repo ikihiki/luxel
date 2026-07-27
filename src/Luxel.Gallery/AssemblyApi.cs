@@ -21,6 +21,7 @@ using Luxel.UI;
 [assembly: GenerateAssemblyApi("Luxel.UI.App")]
 // テキスト / ドキュメント
 [assembly: GenerateAssemblyApi("Luxel.Typography")]
+[assembly: GenerateAssemblyApi("Luxel.Typography.TwoD")]
 [assembly: GenerateAssemblyApi("Luxel.Document")]
 [assembly: GenerateAssemblyApi("Luxel.Highlight")]
 [assembly: GenerateAssemblyApi("Luxel.Diagram")]
