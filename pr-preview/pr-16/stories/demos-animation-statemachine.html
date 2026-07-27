@@ -1,0 +1,10 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Demos/Animation/StateMachine</h1></header><figure class="static-capture"><img src="images/demos-animation-statemachine.png" alt="Demos/Animation/StateMachine" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Demos/Animation/StateMachine&quot;, Height = 340, Order = 142)]
+public static Widget StateMachineDemo(StoryContext ctx)
+{
+    var scene = new StateMachineScene();
+    return Frame(VStack(8)[
+        HStack(8)[
+            Button(_ =&gt; { scene.Trigger(&quot;press&quot;); ctx.Log(&quot;trigger: press → jump&quot;); }, &quot;press&quot;),
+            Button(_ =&gt; { scene.Trigger(&quot;done&quot;); ctx.Log(&quot;trigger: done → idle&quot;); }, &quot;done&quot;)],
+        GpuView(256, 128, scene)]);
+}</code></pre></details></article>

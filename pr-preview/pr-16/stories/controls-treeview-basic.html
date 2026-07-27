@@ -1,0 +1,25 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/TreeView/Basic</h1></header><figure class="static-capture"><img src="images/controls-treeview-basic.png" alt="Controls/TreeView/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/TreeView/Basic&quot;, Height = 320)]
+public static Widget TreeViewBasic(StoryContext ctx)
+{
+    // Key は展開/選択の永続キー (再構築をまたいで一意なパス文字列)。
+    // Tag != null の子持ちノードはラベルクリック = 選択 + 展開、開閉はシェブロン
+    List&lt;TreeNode&gt; roots =
+    [
+        new(&quot;docs&quot;, &quot;Docs&quot;,
+        [
+            new(&quot;docs/gpu&quot;, &quot;GPU&quot;,
+            [
+                new(&quot;docs/gpu/device&quot;, &quot;GpuDevice&quot;, Tag: &quot;page&quot;),
+                new(&quot;docs/gpu/2d&quot;, &quot;TwoD&quot;, Tag: &quot;page&quot;),
+            ]),
+            new(&quot;docs/ui&quot;, &quot;UI&quot;, [new(&quot;docs/ui/controls&quot;, &quot;Controls&quot;, Tag: &quot;page&quot;)]),
+        ]),
+        new(&quot;samples&quot;, &quot;Samples&quot;, [new(&quot;samples/gltf&quot;, &quot;GltfBox&quot;, Tag: &quot;page&quot;)]),
+    ];
+    Signal&lt;string&gt; selected = new(&quot;docs/gpu/device&quot;);
+    var expanded = new HashSet&lt;string&gt; { &quot;docs&quot;, &quot;docs/gpu&quot; };
+    ctx.Play(static d =&gt; d.Snap());
+    return Frame(TreeView(roots, expanded: expanded,
+        onSelect: (_, n) =&gt; { selected.Value = n.Key; ctx.Log($&quot;select {n.Key}&quot;); },
+        selected: selected, width: 280));
+}</code></pre></details></article>

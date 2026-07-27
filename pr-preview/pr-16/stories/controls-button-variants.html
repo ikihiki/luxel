@@ -1,0 +1,6 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Button/Variants</h1></header><figure class="static-capture"><img src="images/controls-button-variants.png" alt="Controls/Button/Variants" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/Button/Variants&quot;, Height = 160)]
+public static Widget ButtonVariants() =&gt; Frame(HStack(8)[
+    Button(_ =&gt; { }, &quot;Filled&quot;),
+    Button(_ =&gt; { }, &quot;Tonal&quot;, variant: Variant.Tonal),
+    Button(_ =&gt; { }, &quot;Outline&quot;, variant: Variant.Outline),
+    Button(_ =&gt; { }, &quot;Ghost&quot;, variant: Variant.Ghost)]);</code></pre></details></article>

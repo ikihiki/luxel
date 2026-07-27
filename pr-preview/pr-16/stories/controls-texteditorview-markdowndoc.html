@@ -1,0 +1,41 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/TextEditorView/MarkdownDoc</h1></header><h1 id="document-renderer">Document renderer</h1>
+<p>This is a longer paragraph that wraps across the available width, showing that the read-only Markdown document renderer handles flowing prose — not just short lines.
+日本語の段落も混在できます（フォールバックフォント）。</p>
+<h2 id="features">Features</h2>
+<ul>
+<li><strong>bold</strong>, <em>italic</em>, <code>code</code></li>
+<li>links like <a href="#story=Docs%2FEditor">the editor docs</a></li>
+</ul>
+<blockquote>
+<p>Blockquotes render with a left bar.</p>
+</blockquote>
+<pre><code class="language-csharp">var answer = 42;  // syntax colored, selectable
+</code></pre>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/TextEditorView/MarkdownDoc&quot;, Height = 340, Order = 10)]
+public static Widget MarkdownDocStory(StoryContext ctx)
+{
+    // 文書レンダラを 1 ファクトリで (WS-A / ADR-0012、Kit.Docs() 差し替えの部品):
+    // MarkdownDoc.Create が TextEditorView + MarkdownProvider を read-only + 折返しで束ねる。
+    Signal&lt;string&gt; md = ctx.Signal(&quot;md&quot;,
+        &quot;# Document renderer\n&quot; +
+        &quot;This is a longer paragraph that wraps across the available width, showing that the read-only Markdown document renderer handles flowing prose — not just short lines.\n&quot; +
+        &quot;日本語の段落も混在できます（フォールバックフォント）。\n&quot; +
+        &quot;## Features\n&quot; +
+        &quot;- **bold**, *italic*, `code`\n&quot; +
+        &quot;- links like [the editor docs](story:Docs/Editor)\n&quot; +
+        &quot;&gt; Blockquotes render with a left bar.\n&quot; +
+        &quot;```csharp\n&quot; +
+        &quot;var answer = 42;  // syntax colored, selectable\n&quot; +
+        &quot;```&quot;);
+    (VectorFont? bold, _, _, VectorFont? mono) = EditorFaces.Value;
+    TextEditorView ed = MarkdownDoc.Create(md, () =&gt; UiTheme.T, width: 520f, height: 280f, bold: bold, mono: mono,
+        highlighter: Luxel.Highlight.TextMateHighlighter.Instance, fonts: JpFallback.Value);
+
+    ctx.Play(async d =&gt; await d.Snap(&quot;doc&quot;));
+
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(10)[
+            Heading(&quot;MarkdownDoc — 文書レンダラ (1 ファクトリ)&quot;),
+            Muted(&quot;MarkdownDoc.Create が TextEditorView + MarkdownProvider を read-only + 折返しで束ねる。折返す段落 + 全 Markdown。&quot;),
+            ed]];
+}</code></pre></details></article>

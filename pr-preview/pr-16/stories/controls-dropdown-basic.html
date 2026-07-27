@@ -1,0 +1,4 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Dropdown/Basic</h1></header><figure class="static-capture"><img src="images/controls-dropdown-basic.png" alt="Controls/Dropdown/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/Dropdown/Basic&quot;, Height = 280)]
+public static Widget DropdownBasic() =&gt;
+    Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(24))
+        [Dropdown(&quot;Open menu&quot;, [(&quot;Alpha&quot;, () =&gt; { }), (&quot;Beta&quot;, () =&gt; { }), (&quot;Gamma&quot;, () =&gt; { })])];</code></pre></details></article>

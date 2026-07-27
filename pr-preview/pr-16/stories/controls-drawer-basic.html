@@ -1,0 +1,9 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Drawer/Basic</h1></header><figure class="static-capture"><img src="images/controls-drawer-basic.png" alt="Controls/Drawer/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/Drawer/Basic&quot;, Height = 320)]
+public static Widget DrawerBasic(StoryContext ctx)
+{
+    Signal&lt;bool&gt; open = ctx.Signal(&quot;open&quot;, true);
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(24))
+        [VStack(8)[
+            Button(_ =&gt; open.Value = true, &quot;Open drawer&quot;),
+            Drawer(open, Card(VStack(6)[Heading(&quot;Drawer&quot;, 2), Label(&quot;Right edge panel&quot;)]))]];
+}</code></pre></details></article>

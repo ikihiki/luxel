@@ -1,0 +1,9 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Toast/Basic</h1></header><figure class="static-capture"><img src="images/controls-toast-basic.png" alt="Controls/Toast/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/Toast/Basic&quot;, Height = 320)]
+public static Widget ToastBasic(StoryContext ctx)
+{
+    Signal&lt;bool&gt; open = ctx.Signal(&quot;open&quot;, true);
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(24))
+        [VStack(8)[
+            Button(_ =&gt; open.Value = true, &quot;Show toast&quot;),
+            Toast(open, Card(Label(&quot;Saved successfully&quot;)))]];
+}</code></pre></details></article>

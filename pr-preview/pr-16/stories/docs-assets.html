@@ -1,0 +1,135 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Docs/Assets</h1></header><h1 id="gltf">アセットパイプライン (glTF)</h1>
+<ul>
+<li><a href="#story=Docs%2FAssets&amp;section=%E6%9C%80%E5%B0%8F%E7%B5%8C%E8%B7%AF%3A-%E3%83%AD%E3%83%BC%E3%83%89%E3%81%97%E3%81%A6%E6%8F%8F%E3%81%8F">最小経路: ロードして描く</a></li>
+<li><a href="#story=Docs%2FAssets&amp;section=%E3%82%A2%E3%83%8B%E3%83%A1%E3%83%BC%E3%82%B7%E3%83%A7%E3%83%B3">アニメーション</a></li>
+<li><a href="#story=Docs%2FAssets&amp;section=resourcesystem-%E7%B5%B1%E5%90%88">ResourceSystem 統合</a></li>
+<li><a href="#story=Docs%2FAssets&amp;section=draw-m3%3A-%E3%82%B3%E3%83%B3%E3%83%9D%E3%83%BC%E3%83%8D%E3%83%B3%E3%83%88%E9%A7%86%E5%8B%95%E3%81%AE%E6%8F%8F%E7%94%BB">DRAW-M3: コンポーネント駆動の描画</a></li>
+<li><a href="#story=Docs%2FAssets&amp;section=%E8%A8%AD%E8%A8%88%E3%83%8E%E3%83%BC%E3%83%88">設計ノート</a></li>
+</ul>
+<p>glTF 2.0 (.gltf/.glb) を読み込み、ECS + GPU バッファへ展開して描くまでのパイプラインです。4 つのプロジェクトが層を分担します:</p>
+<figure class="static-capture"><img src="images/mermaid-e75f5c960b0f0bac9315.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
+<ul>
+<li><code>Luxel.Assets</code> — 形式に依存しない CPU 表現 (<code>AssetDocument</code> / <code>AssetMesh</code> / <code>AssetMaterial</code> / <code>AssetAnimation</code> / <code>AssetSkin</code>)。<strong>Resources に依存しない</strong>純データ層</li>
+<li><code>Luxel.Gltf</code> — <code>GltfLoader</code> が glTF/glb を <code>AssetDocument</code> へ。外部 .bin/画像は Resources 経由でも単体でも読める</li>
+<li><code>Luxel.AssetRuntime</code> — <code>SceneBuilder</code> が AssetDocument を <strong>ECS entity + GPU バッファ</strong>へ展開。<code>SceneAnimationPlayer</code> / <code>TransformPropagateSystem</code> / <code>SkinningSystem</code> が毎フレーム駆動</li>
+<li><code>Luxel.AssetsGpu</code> — <code>RenderBuffer&lt;T&gt;</code> / <code>AssetGpuRegistry</code> / Resources Step 群 (URI ロード + キャッシュ + 依存解決)</li>
+</ul>
+<h2 id="section">最小経路: ロードして描く</h2>
+<pre><code class="language-csharp">AssetDocument doc = new GltfLoader().LoadAsync(&quot;Box.gltf&quot;).GetAwaiter().GetResult();
+var world = new Luxel.Ecs.World();
+using SceneAssets assets = SceneBuilder.Build(world, doc, device);   // ECS + GPU バッファ
+TransformPropagateSystem.Run(world);
+
+using var extractor = new SceneRenderExtractor(world, assets);
+extractor.Extract(new ExtractContext(device, frameIndex: 0));
+// extractor.DrawList の (Primitive, InstanceStart, InstanceCount) ごとに
+// assets.Primitives[prim] の vertex/index バッファを bindless で Draw する
+</code></pre>
+<p>シェーダは <code>scene_pbr_lite</code> (頂点 32B: pos+normal+uv、インスタンス 80B: world+baseColor)。<code>DrawIndexed</code> は無いので <strong>index バッファもシェーダが bindless で読み</strong>、<code>indexBufIndex = 0xFFFFFFFF</code> で non-indexed に切り替えます。</p>
+<figure class="static-capture"><a href="#story=Demos%2F3D%2FGltfBox"><img src="images/demos-3d-gltfbox.png" alt="Demos/3D/GltfBox" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<h2 id="section-1">アニメーション</h2>
+<p>ノード TRS アニメーションは <code>SceneAnimationPlayer</code> が時刻 t の値を sample して entity の <code>LocalTransform</code> に書き、<code>TransformPropagateSystem</code> で伝播 → 再 Extract で instance バッファが更新されます:</p>
+<pre><code class="language-csharp">var player = new SceneAnimationPlayer(world, assets, doc.Animations[0]);
+// 毎フレーム: 周期は t % Duration (snap の決定性のため wall-clock は使わない)
+player.Sample(time % doc.Animations[0].Duration);
+TransformPropagateSystem.Run(world);
+extractor.Extract(new ExtractContext(device, frameIndex: frame++));
+</code></pre>
+<figure class="static-capture"><a href="#story=Demos%2F3D%2FGltfAnimated"><img src="images/demos-3d-gltfanimated.png" alt="Demos/3D/GltfAnimated" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<div class="markdown-alert markdown-alert-warning">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p>morph target (Weights チャンネル) は未対応です — <code>SceneAnimationPlayer</code> は skip します。スキニングは <code>SkinningSystem</code> + <code>scene_pbr_skinned</code> シェーダ (頂点 56B: joints/weights 付き) が担います。</p>
+</div>
+<h2 id="resourcesystem">ResourceSystem 統合</h2>
+<p>実アプリでは URI ロード + キャッシュ + 依存解決を Resources に任せます。AssetsGpu の Step 群を登録すると <code>Load&lt;T&gt;</code> の型で変換チェーンが解決されます:</p>
+<pre><code class="language-csharp">var handle = resources.Load&lt;SceneAssets&gt;(&quot;file:///model.glb&quot;);        // glb → doc → ECS+GPU
+var vbuf = resources.Load&lt;GpuBuffer&gt;(&quot;file:///model.glb#mesh/0/vertex&quot;);   // fragment URI で部分ロード
+</code></pre>
+<p><code>#mesh/N/vertex</code> / <code>#materials</code> のような <strong>fragment URI</strong> で primitive 単位の遅延ロードができます。Resources 自体の概念 (RefCount / Republish / Pump) は <a href="#story=Docs%2FResources">Docs/Resources</a> へ。</p>
+<h2 id="draw-m3">DRAW-M3: コンポーネント駆動の描画</h2>
+<p>entity に <code>DrawMesh</code> + <code>DrawInstance</code> + <code>DrawMaterial</code> (+ <code>DrawSkinning</code>) を付けると、<code>DrawableCollector.Collect(world, rg)</code> が RenderGraph への import 済みハンドル束 (<code>DrawItem</code>) を返し、呼び出し側は for-loop で push constant を組んで Draw するだけになります。テクスチャ付きは <code>scene_pbr_tex</code> (material 32B 配列 + bindless texture)、スキニングは <code>scene_pbr_skinned</code> が対になります。</p>
+<h2 id="section-2">設計ノート</h2>
+<ul>
+<li><strong>CPU アセット層は Resources 非依存</strong> — ツール/テストが GPU なしで AssetDocument を扱えます。GPU 化と URI 解決は AssetsGpu 側の Step が担う分離です</li>
+<li><strong>direct-ref モデル</strong> — index ベースの DOM ではなく <code>AssetMeshRef.Mesh</code> のような直接参照で ECS から引きます (中間テーブル無し)</li>
+<li>サンプルモデルはリポジトリの <code>tools/khronos-samples/</code> (Khronos 公式 glTF テストスイート) にあります</li>
+</ul>
+<p>型 API は <a href="#story=Reference%2FLuxel.Assets">Luxel.Assets</a> / <a href="#story=Reference%2FLuxel.AssetsGpu">Luxel.AssetsGpu</a> / <a href="#story=Reference%2FLuxel.AssetRuntime">Luxel.AssetRuntime</a> / <a href="#story=Reference%2FLuxel.Gltf">Luxel.Gltf</a> へ。</p>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Docs/Assets&quot;, Order = 14)]
+public static Widget Assets(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # アセットパイプライン (glTF)
+
+    glTF 2.0 (.gltf/.glb) を読み込み、ECS + GPU バッファへ展開して描くまでのパイプラインです。4 つのプロジェクトが層を分担します:
+
+    ```mermaid
+    graph LR
+    G[Luxel.Gltf&lt;br/&gt;glTF 2.0 ローダ] --&gt; A[Luxel.Assets&lt;br/&gt;CPU アセット表現]
+    A --&gt; R[Luxel.AssetRuntime&lt;br/&gt;ECS 展開 + アニメ/スキニング]
+    A --&gt; P[Luxel.AssetsGpu&lt;br/&gt;GPU アップロード + Resources 統合]
+    R --&gt; RG[RenderGraph 描画]
+    P --&gt; RG
+    ```
+
+    - `Luxel.Assets` — 形式に依存しない CPU 表現 (`AssetDocument` / `AssetMesh` / `AssetMaterial` / `AssetAnimation` / `AssetSkin`)。**Resources に依存しない**純データ層
+    - `Luxel.Gltf` — `GltfLoader` が glTF/glb を `AssetDocument` へ。外部 .bin/画像は Resources 経由でも単体でも読める
+    - `Luxel.AssetRuntime` — `SceneBuilder` が AssetDocument を **ECS entity + GPU バッファ**へ展開。`SceneAnimationPlayer` / `TransformPropagateSystem` / `SkinningSystem` が毎フレーム駆動
+    - `Luxel.AssetsGpu` — `RenderBuffer&lt;T&gt;` / `AssetGpuRegistry` / Resources Step 群 (URI ロード + キャッシュ + 依存解決)
+
+    ## 最小経路: ロードして描く
+
+    ```csharp
+    AssetDocument doc = new GltfLoader().LoadAsync(&quot;Box.gltf&quot;).GetAwaiter().GetResult();
+    var world = new Luxel.Ecs.World();
+    using SceneAssets assets = SceneBuilder.Build(world, doc, device);   // ECS + GPU バッファ
+    TransformPropagateSystem.Run(world);
+
+    using var extractor = new SceneRenderExtractor(world, assets);
+    extractor.Extract(new ExtractContext(device, frameIndex: 0));
+    // extractor.DrawList の (Primitive, InstanceStart, InstanceCount) ごとに
+    // assets.Primitives[prim] の vertex/index バッファを bindless で Draw する
+    ```
+
+    シェーダは `scene_pbr_lite` (頂点 32B: pos+normal+uv、インスタンス 80B: world+baseColor)。`DrawIndexed` は無いので **index バッファもシェーダが bindless で読み**、`indexBufIndex = 0xFFFFFFFF` で non-indexed に切り替えます。
+
+    {{StoryRef(ctx, &quot;Demos/3D/GltfBox&quot;)}}
+
+    ## アニメーション
+
+    ノード TRS アニメーションは `SceneAnimationPlayer` が時刻 t の値を sample して entity の `LocalTransform` に書き、`TransformPropagateSystem` で伝播 → 再 Extract で instance バッファが更新されます:
+
+    ```csharp
+    var player = new SceneAnimationPlayer(world, assets, doc.Animations[0]);
+    // 毎フレーム: 周期は t % Duration (snap の決定性のため wall-clock は使わない)
+    player.Sample(time % doc.Animations[0].Duration);
+    TransformPropagateSystem.Run(world);
+    extractor.Extract(new ExtractContext(device, frameIndex: frame++));
+    ```
+
+    {{StoryRef(ctx, &quot;Demos/3D/GltfAnimated&quot;)}}
+
+    &gt; [!WARNING]
+    &gt; morph target (Weights チャンネル) は未対応です — `SceneAnimationPlayer` は skip します。スキニングは `SkinningSystem` + `scene_pbr_skinned` シェーダ (頂点 56B: joints/weights 付き) が担います。
+
+    ## ResourceSystem 統合
+
+    実アプリでは URI ロード + キャッシュ + 依存解決を Resources に任せます。AssetsGpu の Step 群を登録すると `Load&lt;T&gt;` の型で変換チェーンが解決されます:
+
+    ```csharp
+    var handle = resources.Load&lt;SceneAssets&gt;(&quot;file:///model.glb&quot;);        // glb → doc → ECS+GPU
+    var vbuf = resources.Load&lt;GpuBuffer&gt;(&quot;file:///model.glb#mesh/0/vertex&quot;);   // fragment URI で部分ロード
+    ```
+
+    `#mesh/N/vertex` / `#materials` のような **fragment URI** で primitive 単位の遅延ロードができます。Resources 自体の概念 (RefCount / Republish / Pump) は [Docs/Resources](story:Docs/Resources) へ。
+
+    ## DRAW-M3: コンポーネント駆動の描画
+
+    entity に `DrawMesh` + `DrawInstance` + `DrawMaterial` (+ `DrawSkinning`) を付けると、`DrawableCollector.Collect(world, rg)` が RenderGraph への import 済みハンドル束 (`DrawItem`) を返し、呼び出し側は for-loop で push constant を組んで Draw するだけになります。テクスチャ付きは `scene_pbr_tex` (material 32B 配列 + bindless texture)、スキニングは `scene_pbr_skinned` が対になります。
+
+    ## 設計ノート
+
+    - **CPU アセット層は Resources 非依存** — ツール/テストが GPU なしで AssetDocument を扱えます。GPU 化と URI 解決は AssetsGpu 側の Step が担う分離です
+    - **direct-ref モデル** — index ベースの DOM ではなく `AssetMeshRef.Mesh` のような直接参照で ECS から引きます (中間テーブル無し)
+    - サンプルモデルはリポジトリの `tools/khronos-samples/` (Khronos 公式 glTF テストスイート) にあります
+
+    型 API は [Luxel.Assets](story:Reference/Luxel.Assets) / [Luxel.AssetsGpu](story:Reference/Luxel.AssetsGpu) / [Luxel.AssetRuntime](story:Reference/Luxel.AssetRuntime) / [Luxel.Gltf](story:Reference/Luxel.Gltf) へ。
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

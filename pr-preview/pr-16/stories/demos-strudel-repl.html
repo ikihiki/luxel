@@ -1,0 +1,72 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Demos/Strudel/Repl</h1></header><p>Strudel REPL: 各 ```strudel セルを <strong>Ctrl+Enter</strong> または Run で評価 (再 Run = ホットスワップ)。</p>
+<pre><code class="language-strudel">s(&quot;bd*2 [~ sd] hh*4&quot;).gain(0.9)
+</code></pre>
+<p>別セルは独立スロット — 重ねて鳴る。silence を Run するとそのスロットだけ止まる。</p>
+<pre><code class="language-strudel">note(&quot;c3 eb3 g3 &lt;bb3 c4&gt;&quot;).s(&quot;saw&quot;).slow(2)
+</code></pre>
+<p>例: <code>.every(2, rev)</code> / <code>.jux(fast(2))</code> / <code>.degrade()</code> / <code>cps(0.6)</code> でテンポ。</p>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Demos/Strudel/Repl&quot;, Height = 560, Order = 2031)]
+public static Widget Repl(StoryContext ctx)
+{
+    // 各セルは ```strudel フェンス — 本文キーでキャッシュし同一 StrudelBlock を返す (再描画で状態が消えない)
+    var blocks = new List&lt;StrudelBlock&gt;();   // play が Editor/Ctrl+Enter/診断を叩くための参照
+    var cellByBody = new Dictionary&lt;string, StrudelBlock&gt;();
+    StrudelBlock CellFor(string body)
+    {
+        if (!cellByBody.TryGetValue(body, out StrudelBlock? cell))
+        {
+            cell = new StrudelBlock(body, 560f);
+            cellByBody[body] = cell;
+            blocks.Add(cell);
+        }
+        return cell;
+    }
+
+    Signal&lt;string&gt; src = ctx.Signal(&quot;source&quot;,
+        &quot;Strudel REPL: 各 ```strudel セルを **Ctrl+Enter** または Run で評価 (再 Run = ホットスワップ)。\n\n&quot; +
+        &quot;```strudel\ns(\&quot;bd*2 [~ sd] hh*4\&quot;).gain(0.9)\n```\n\n&quot; +
+        &quot;別セルは独立スロット — 重ねて鳴る。silence を Run するとそのスロットだけ止まる。\n\n&quot; +
+        &quot;```strudel\nnote(\&quot;c3 eb3 g3 &lt;bb3 c4&gt;\&quot;).s(\&quot;saw\&quot;).slow(2)\n```\n\n&quot; +
+        &quot;例: `.every(2, rev)` / `.jux(fast(2))` / `.degrade()` / `cps(0.6)` でテンポ。\n&quot;);
+
+    Signal&lt;float&gt; cps = ctx.Signal(&quot;cps&quot;, 0.5f);
+    var wave = Sparkline(300f, 30f, bars: true);
+
+    // 新スタック: markdown 文書レンダラ + ```strudel フェンスを embed 扱いし StrudelBlock に解決
+    TextEditorView ed = MarkdownDoc.Create(src, () =&gt; UiTheme.T, width: 560f, height: 430f,
+        mono: StoryKit.EditorFaces.Value.Mono, embedKinds: new[] { &quot;strudel&quot; }, fonts: StoryKit.JpFallback.Value);
+    ed.WidgetResolver = key =&gt; key is EmbedRef { Key: &quot;strudel&quot; } r ? CellFor(r.Body) : null;
+
+    var root = new ReplRoot(ed, wave, cps);
+    Func&lt;string&gt; cpsLabel = () =&gt; $&quot;cps {cps.Value:0.00}&quot;;
+    ctx.Play(async d =&gt;
+    {
+        await d.Snap();                                           // 初期 (strudel セル &#215; 2、無音)
+        await d.Expect(() =&gt; blocks.Count &gt;= 2, &quot;```strudel フェンスがライブブロック化&quot;);
+
+        // 診断波線: 2 つ目のブロック末尾に未知メソッドを足す (型付け → Sync → 再診断 → 波線)
+        await d.Click(blocks[1].Editor);
+        await d.Key(Key.End);
+        await d.Type(&quot;.nope()&quot;);
+        await d.Step(1);
+        await d.Expect(() =&gt; blocks[1].DiagnosticCount &gt; 0, &quot;不正記法で診断波線が出る&quot;);
+        await d.Snap(&quot;diag&quot;);
+
+        // Ctrl+Enter: 1 つ目のブロック (正しい記法) を評価 → スロットに反映 (コミットで再構築)
+        await d.Click(blocks[0].Editor);
+        await d.Key(Key.End);
+        await d.Key(Key.Enter, ctrl: true);
+        await d.Step(2);
+        await d.Expect(() =&gt; blocks[0].LastRunOk, &quot;Ctrl+Enter で評価成功&quot;);
+        // 再生囲み (Mark.Box) は実配線済み — ただし Session は process-wide static でサイクル位置が
+        // 走行順に依存するため snap しない (決定的な囲みの絵は Controls/TextEditorView/Strudel に)
+    });
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(spacing: 8)[
+            HStack(spacing: 10)[
+                Slider(cps, min: 0.2f, max: 1.5f, width: 140f),
+                Text(cpsLabel, color: Bind.From(() =&gt; UiTheme.T.Text)),
+                Button(_ =&gt; { Session.Hush(); ctx.Log(&quot;hush&quot;); }, &quot;hush&quot;, variant: Variant.Ghost),
+                wave],
+            root]];
+}</code></pre></details></article>

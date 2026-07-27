@@ -1,0 +1,37 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>RealWindow/Input/Gamepad</h1></header><aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>This story requires a real window and is not available in the static gallery.</pre></aside><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;RealWindow/Input/Gamepad&quot;, Height = 400, RealWindowOnly = true)]
+public static Widget Gamepad(StoryContext ctx)
+{
+    // 物理層: XInput を毎フレーム Poll して差分イベントを bus へ
+    var source = new XInputSource();
+    var bus = new InputBus();
+
+    // アクション層: 意味名 (Move/Look/Jump/Fire) にバインドし、ゲーム側はアクションだけを見る
+    var gameplay = new InputContext(&quot;Gameplay&quot;);
+    Axis2DAction move = gameplay.Add(new Axis2DAction(&quot;Move&quot;));
+    move.AxisPairs.Add((AxisCode.GamepadLeftStickX, AxisCode.GamepadLeftStickY));
+    Axis2DAction look = gameplay.Add(new Axis2DAction(&quot;Look&quot;));
+    look.AxisPairs.Add((AxisCode.GamepadRightStickX, AxisCode.GamepadRightStickY));
+    ButtonAction jump = gameplay.Add(new ButtonAction(&quot;Jump&quot;, KeyCode.GamepadA));
+    Axis1DAction fire = gameplay.Add(new Axis1DAction(&quot;Fire&quot;));
+    fire.Axes.Add(AxisCode.GamepadRightTrigger);
+    ButtonAction[] face =
+    [
+        jump,
+        gameplay.Add(new ButtonAction(&quot;B&quot;, KeyCode.GamepadB)),
+        gameplay.Add(new ButtonAction(&quot;X&quot;, KeyCode.GamepadX)),
+        gameplay.Add(new ButtonAction(&quot;Y&quot;, KeyCode.GamepadY)),
+    ];
+    var stack = new InputStack();
+    stack.Push(gameplay);
+    jump.Triggered += () =&gt; ctx.Log(&quot;Jump (GamepadA)&quot;);
+
+    return Frame(VStack(8)[
+        Label(&quot;XInput → InputBus → InputStack → アクション層 (Move/Look/Jump/Fire)&quot;),
+        Muted(&quot;Xbox 互換コントローラを接続して操作 — 未接続時は Poll が no-op&quot;),
+        Canvas2D(384, 260, animate: (s, _) =&gt;
+        {
+            source.Poll(bus);      // 物理: 差分イベントを enqueue
+            stack.Update(bus);     // アクション: held/axes を進めて各 Action を解決 (bus はここで消費)
+            DrawPad(s, move.Value.Value, look.Value.Value, face, fire.Value.Value);
+        })]);
+}</code></pre></details></article>

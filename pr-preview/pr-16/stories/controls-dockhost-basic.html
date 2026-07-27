@@ -1,0 +1,40 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/DockHost/Basic</h1></header><figure class="static-capture"><img src="images/controls-dockhost-basic.png" alt="Controls/DockHost/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/DockHost/Basic&quot;, Height = 420)]
+public static Widget DockHostBasic(StoryContext ctx)
+{
+    var dirty = ctx.Signal(&quot;dirty&quot;, true);
+    var tree = new Signal&lt;DockTree&gt;(DockTree.Single(&quot;readme&quot;, &quot;main&quot;, &quot;graph&quot;));
+    DockItem Resolve(string id) =&gt; id switch
+    {
+        &quot;readme&quot; =&gt; new DockItem(&quot;readme.md&quot;, () =&gt; Pane(&quot;readme.md — ドキュメント&quot;, 0x22808080), dirty),
+        &quot;main&quot; =&gt; new DockItem(&quot;Main.cs&quot;, () =&gt; Pane(&quot;Main.cs — コード&quot;, 0x2260A060)),
+        _ =&gt; new DockItem(&quot;flow.graph&quot;, () =&gt; Pane(&quot;flow.graph — ノード&quot;, 0x226080C0)),
+    };
+    DockHost host = DockHost(tree, Resolve, width: 640, height: 360);
+
+    ctx.Play(async d =&gt;
+    {
+        await d.Snap();                                        // 1 グループ 3 タブ
+        // &quot;main&quot; タブを右端へドラッグ → 右半分に分割 (ドロップゾーン)
+        var from = host.TabCenter(&quot;main&quot;)!.Value;
+        await d.Drag(from.X, from.Y, host.WorldPos.X + host.Size.Width - 24, host.WorldPos.Y + 180, moves: 12);
+        await d.Expect(() =&gt; tree.Value.Root is DockSplit { Horizontal: true }, &quot;右端ドロップで横分割&quot;);
+        await d.Snap(&quot;docked&quot;);
+        // スプリッタを左へ 120px → 左ペインが縮む
+        var s = (DockSplit)tree.Value.Root;
+        float thick = Luxel.Controls.Splitter.Thickness;
+        float availW = host.Size.Width - thick;
+        float sx = host.WorldPos.X + s.Sizes[0] * availW + thick / 2;
+        float sy = host.WorldPos.Y + 200;
+        await d.Drag(sx, sy, sx - 120, sy);
+        await d.Expect(() =&gt; ((DockSplit)tree.Value.Root).Sizes[0] &lt; 0.45f, &quot;スプリッタで縮む&quot;);
+        await d.Snap(&quot;resized&quot;);
+        // &quot;graph&quot; タブを右グループの帯へドラッグ → グループ間移動
+        var g = host.TabCenter(&quot;graph&quot;)!.Value;
+        var target = host.TabCenter(&quot;main&quot;)!.Value;
+        await d.Drag(g.X, g.Y, target.X + 40, target.Y, moves: 12);
+        await d.Expect(() =&gt; tree.Value.GroupOf(&quot;graph&quot;)!.Id == tree.Value.GroupOf(&quot;main&quot;)!.Id, &quot;帯へドロップでグループ間移動&quot;);
+        await d.Snap(&quot;moved&quot;);
+    });
+
+    return host;
+}</code></pre></details></article>

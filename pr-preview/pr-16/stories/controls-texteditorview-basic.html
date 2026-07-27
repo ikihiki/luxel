@@ -1,0 +1,38 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/TextEditorView/Basic</h1></header><figure class="static-capture"><img src="images/controls-texteditorview-basic.png" alt="Controls/TextEditorView/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/TextEditorView/Basic&quot;, Height = 300)]
+public static Widget Basic(StoryContext ctx)
+{
+    Signal&lt;string&gt; value = ctx.Signal(&quot;text&quot;,
+        &quot;新スタックのテキストエディタ。\nTransaction ベースで undo が正確、\nマルチカーソルが native。&quot;);
+    TextEditorView ed = TextEditorView(value, editorHeight: 200f, editorWidth: 560f);
+
+    ctx.Play(&quot;edit&quot;, async d =&gt;
+    {
+        await d.Snap();                         // 初期テキスト + キャレット
+        await d.Click(ed);                      // フォーカス
+        await d.Key(Key.End);
+        await d.Type(&quot; 折返しも正しい。&quot;);
+        await d.Expect(() =&gt; ed.Text.Contains(&quot;折返し&quot;), &quot;入力が反映される&quot;);
+        await d.Snap(&quot;typed&quot;);
+        await d.Key(Key.A, ctrl: true);         // 全選択
+        await d.Expect(() =&gt; ed.HasSelection, &quot;Ctrl+A で全選択&quot;);
+        await d.Snap(&quot;selected&quot;);
+    });
+    ctx.Play(&quot;undo&quot;, async d =&gt;
+    {
+        await d.Click(ed);
+        await d.Key(Key.End);
+        await d.Type(&quot;XYZ&quot;);
+        await d.Expect(() =&gt; ed.Text.Contains(&quot;XYZ&quot;), &quot;入力される&quot;);
+        await d.Key(Key.Z, ctrl: true);
+        await d.Key(Key.Z, ctrl: true);
+        await d.Key(Key.Z, ctrl: true);
+        await d.Expect(() =&gt; !ed.Text.Contains(&quot;XYZ&quot;), &quot;undo で戻る&quot;);
+        await d.Snap(&quot;undone&quot;);
+    });
+
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(10)[
+            Heading(&quot;TextEditorView (新スタック)&quot;),
+            Muted(&quot;Luxel.Document (Transaction + native 複数レンジ + 装飾) を canvas に載せた薄いビュー。&quot;),
+            ed]];
+}</code></pre></details></article>

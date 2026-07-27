@@ -1,0 +1,8 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Game/Cavern</h1></header><figure class="static-capture"><img src="images/game-cavern.png" alt="Game/Cavern" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Game/Cavern&quot;, Height = 300, Order = 145)]
+public static Widget Cavern(StoryContext ctx, ScriptHostRegistry scripts)
+{
+    // 敵 AI を .csx からコンパイル (ScriptSystem のドッグフーディング — 実ゲームの敵ロジックを csx で書く)
+    ScriptResult r = scripts.GetOrAdd(AiProfile).Run(PatrolAiCsx, new object());
+    var ai = r.ReturnValue as Action&lt;Walker, CavernSim, float&gt;;
+    return ctx.Snap(Frame(GpuView(384, 256, new CavernScene(ai), animated: false)));
+}</code></pre></details></article>

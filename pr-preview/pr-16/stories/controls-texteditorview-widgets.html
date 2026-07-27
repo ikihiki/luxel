@@ -1,0 +1,32 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/TextEditorView/Widgets</h1></header><figure class="static-capture"><img src="images/controls-texteditorview-widgets.png" alt="Controls/TextEditorView/Widgets" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/TextEditorView/Widgets&quot;, Height = 260, Order = 1)]
+public static Widget Widgets(StoryContext ctx)
+{
+    Signal&lt;string&gt; value = ctx.Signal(&quot;text&quot;, &quot;牛乳を買う ◯\n卵を買う ◯\nパンを買う ◯&quot;);
+    TextEditorView ed = TextEditorView(value, editorHeight: 150f, editorWidth: 460f);
+
+    Signal&lt;bool&gt;[] checks = [ctx.Signal(&quot;c0&quot;, false), ctx.Signal(&quot;c1&quot;, false), ctx.Signal(&quot;c2&quot;, true)];
+    Switch[] toggles = [Switch(checks[0]), Switch(checks[1]), Switch(checks[2])];
+    ed.WidgetResolver = key =&gt; key switch
+    {
+        &quot;chk0&quot; =&gt; toggles[0],
+        &quot;chk1&quot; =&gt; toggles[1],
+        &quot;chk2&quot; =&gt; toggles[2],
+        _ =&gt; null,
+    };
+    ed.Providers.Add(new ListDecoProvider());
+
+    ctx.Play(&quot;check&quot;, async d =&gt;
+    {
+        await d.Snap();                                  // 番号 + 行内チェックボックス + 左バー
+        await d.Click(toggles[0]);                       // 行内 widget を押す
+        await d.Step(1);
+        await d.Expect(() =&gt; checks[0].Value, &quot;行内チェックボックスが押せて ON になる&quot;);
+        await d.Snap(&quot;checked&quot;);
+    });
+
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(10)[
+            Heading(&quot;TextEditorView — 行内 widget + 行頭装飾&quot;),
+            Muted(&quot;装飾プロバイダが行頭番号・置換 widget (◯→チェックボックス)・左縦バーを供給。widget は行内でホストされ状態を持つ。&quot;),
+            ed]];
+}</code></pre></details></article>

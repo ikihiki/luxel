@@ -1,0 +1,7 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Text/Styles</h1></header><figure class="static-capture"><img src="images/controls-text-styles.png" alt="Controls/Text/Styles" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/Text/Styles&quot;, Height = 220)]
+public static Widget TextStyles(StoryContext ctx) =&gt; ctx.Snap(Frame(VStack(6)[
+    Text(&quot;Large 28px&quot;, 28, color: Bind.From(() =&gt; UiTheme.T.Text)),
+    Text(&quot;Body 16px&quot;, 16, color: Bind.From(() =&gt; UiTheme.T.Text)),
+    Text(&quot;Muted 13px&quot;, 13, color: Bind.From(() =&gt; UiTheme.T.TextMuted)),
+    Text(&quot;Tailwind colored&quot;, 16, color: Tw.Blue500),
+    Text(&quot;Half opacity&quot;, 16, color: Bind.From(() =&gt; UiTheme.T.Text), opacity: 0.5f)]));</code></pre></details></article>

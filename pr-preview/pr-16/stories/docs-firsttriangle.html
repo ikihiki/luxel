@@ -1,0 +1,18 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Docs/FirstTriangle</h1></header><h1 id="gpu">はじめての GPU 描画</h1>
+<p>このページは既存リンクとの互換入口です。初心者向けの説明と、Gallery helperに依存しない完全なstandaloneサンプルは次へ移動しました。</p>
+<p>→ <a href="#story=Learn%2FRendering%2FOverview">Learn/Rendering/Overview</a></p>
+<p>最短で三角形まで進む場合は <a href="#story=Learn%2FRendering%2FFirstTriangle">Learn/Rendering/FirstTriangle</a> を開いてください。<code>Demos/3D/Triangle</code> はGallery内のoffscreen回帰用で、通常アプリのwindow / surface / present処理は含みません。</p>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Docs/FirstTriangle&quot;, Order = 2)]
+public static Widget FirstTriangle(StoryContext ctx)
+{
+    ctx.Play(static d =&gt; d.Snap());
+    return DocNew(ctx, $&quot;&quot;&quot;
+    # はじめての GPU 描画
+
+    このページは既存リンクとの互換入口です。初心者向けの説明と、Gallery helperに依存しない完全なstandaloneサンプルは次へ移動しました。
+
+    → [Learn/Rendering/Overview](story:Learn/Rendering/Overview)
+
+    最短で三角形まで進む場合は [Learn/Rendering/FirstTriangle](story:Learn/Rendering/FirstTriangle) を開いてください。`Demos/3D/Triangle` はGallery内のoffscreen回帰用で、通常アプリのwindow / surface / present処理は含みません。
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

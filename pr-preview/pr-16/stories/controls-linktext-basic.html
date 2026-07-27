@@ -1,0 +1,5 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/LinkText/Basic</h1></header><figure class="static-capture"><img src="images/controls-linktext-basic.png" alt="Controls/LinkText/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/LinkText/Basic&quot;, Height = 180)]
+public static Widget LinkTextBasic(StoryContext ctx) =&gt; Frame(VStack(8)[
+    LinkText(_ =&gt; ctx.Log(&quot;link click&quot;), &quot;クリックできるリンク&quot;),
+    LinkText(_ =&gt; { }, &quot;アクティブ状態 (active: true)&quot;, active: true),
+    LinkText(_ =&gt; { }, &quot;色とホバー色の指定&quot;, color: Tw.Red500, hoverColor: Tw.Amber500)]);</code></pre></details></article>

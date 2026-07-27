@@ -1,0 +1,72 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Docs/UI</h1></header><h1 id="ui-luxel.ui">宣言的 UI (Luxel.UI)</h1>
+<ul>
+<li><a href="#story=Docs%2FUI&amp;section=dsl-%E2%80%94-%E3%83%99%E3%82%A2%E3%83%95%E3%82%A1%E3%82%AF%E3%83%88%E3%83%AA-%2B-indexer">DSL — ベアファクトリ + indexer</a></li>
+<li><a href="#story=Docs%2FUI&amp;section=signals-%E2%80%94-%E7%B4%B0%E7%B2%92%E5%BA%A6%E3%83%AA%E3%82%A2%E3%82%AF%E3%83%86%E3%82%A3%E3%83%96">Signals — 細粒度リアクティブ</a></li>
+<li><a href="#story=Docs%2FUI&amp;section=%E3%83%AC%E3%82%A4%E3%82%A2%E3%82%A6%E3%83%88-%E2%80%94-flutter-%E9%A2%A8%E3%81%AE%E5%8D%98%E4%B8%80%E3%83%91%E3%82%B9">レイアウト — Flutter 風の単一パス</a></li>
+<li><a href="#story=Docs%2FUI&amp;section=%E5%85%A5%E5%8A%9B%E3%81%A8%E3%82%A8%E3%83%A9%E3%83%BC%E5%A2%83%E7%95%8C">入力とエラー境界</a></li>
+</ul>
+<p>保持型 2D 層 (RetainedCanvas) の上に、<strong>宣言的 C# DSL + signals (細粒度リアクティブ) + 単一パスレイアウト + 入力</strong>を提供します。フレームワークは仮想 DOM を持たず、変わった値だけが保持型キャンバスの部分更新に落ちます。</p>
+<h2 id="dsl-indexer">DSL — ベアファクトリ + indexer</h2>
+<p>構築は <code>Button(...)</code> / <code>VStack(...)</code> などの<strong>ベアファクトリ</strong> (ソースジェネレーターが <code>[UiComponent]</code>/<code>[UiParam]</code> から生成)、子は get-only インデクサ <code>[...]</code>、見た目はすべて省略可能引数。状態レイヤやグリッド配置などの追加宣言は <strong>fluent 拡張</strong> (<code>.When(...)</code> / <code>.Transition(...)</code> / <code>.GridColumn(1)</code>) をチェーンします:</p>
+<pre><code class="language-csharp">var count = new Signal&lt;int&gt;(0);
+Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(16))
+[
+    Grid(columns: [1, 2])[
+        Text($&quot;Count: {count}&quot;, 30).GridRow(0).GridColumnSpan(2),
+        Button(_ =&gt; count.Value--, &quot;- 1&quot;).GridColumn(0),
+        Button(_ =&gt; count.Value++, &quot;+ 1&quot;).GridColumn(1)]
+]
+</code></pre>
+<div class="markdown-alert markdown-alert-note">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>fluent 拡張はジェネリック this で<strong>具象型を返す</strong>ため、<code>When</code> / <code>Transition</code> /
+<code>GridColumn</code> を任意の順でチェーンできます。コールバックの第一引数は
+<strong>発火元コントロール</strong> (sender-first 規約) です。</p>
+</div>
+<h2 id="signals">Signals — 細粒度リアクティブ</h2>
+<p><code>Signal&lt;T&gt;</code> / <code>Computed&lt;T&gt;</code> / <code>Reactive.Effect</code> が反応系の全部です。プロパティを <code>Bind.From(() =&gt; signal.Value)</code> で束縛すると、signal 変化で<strong>その束縛ノードだけ</strong> 再評価されます。色/位置の変化は保持型キャンバスのスタイル/変換書き込みだけで済み、再レイアウトも再実体化も走りません。</p>
+<h2 id="flutter">レイアウト — Flutter 風の単一パス</h2>
+<p><code>Layout(Constraints, parentUsesSize) → Size</code> を 1 回呼び、同じ呼び出しの中で子の Offset を書きます (Measure/Arrange の 2 パスなし)。Grid は Fixed/Star/Auto、寸法は <code>Length</code> (px / % / em / vw) が使えます (<a href="#story=Controls%2FLayout%2FUnits">Controls/Layout/Units</a> / <a href="#story=Controls%2FGrid%2FColumns">Controls/Grid/Columns</a>)。</p>
+<h2 id="section">入力とエラー境界</h2>
+<p><code>UiHost</code> がポインタ/キー/IME を前面優先でディスパッチします (Esc → Tab → フォーカス → フォーカス中コントロール → アプリ全域ショートカットの順)。ユーザーコード (Build / Effect / 入力ハンドラ) の例外は<strong>エラー境界</strong>が捕捉し、該当サブツリーを赤枠の ErrorWidget に縮退させます — アプリ全体は落ちません。</p>
+<p>次: <a href="#story=Docs%2FControls">Docs/Controls</a> (組み込みコントロールと独自コントロール) / <a href="#story=Docs%2FStyling">Docs/Styling</a> (状態別スタイルと Tailwind)。</p>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Docs/UI&quot;, Order = 20)]
+public static Widget Ui(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # 宣言的 UI (Luxel.UI)
+
+    保持型 2D 層 (RetainedCanvas) の上に、**宣言的 C# DSL + signals (細粒度リアクティブ) + 単一パスレイアウト + 入力**を提供します。フレームワークは仮想 DOM を持たず、変わった値だけが保持型キャンバスの部分更新に落ちます。
+
+    ## DSL — ベアファクトリ + indexer
+
+    構築は `Button(...)` / `VStack(...)` などの**ベアファクトリ** (ソースジェネレーターが `[UiComponent]`/`[UiParam]` から生成)、子は get-only インデクサ `[...]`、見た目はすべて省略可能引数。状態レイヤやグリッド配置などの追加宣言は **fluent 拡張** (`.When(...)` / `.Transition(...)` / `.GridColumn(1)`) をチェーンします:
+
+    ```csharp
+    var count = new Signal&lt;int&gt;(0);
+    Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(16))
+    [
+        Grid(columns: [1, 2])[
+            Text($&quot;Count: {count}&quot;, 30).GridRow(0).GridColumnSpan(2),
+            Button(_ =&gt; count.Value--, &quot;- 1&quot;).GridColumn(0),
+            Button(_ =&gt; count.Value++, &quot;+ 1&quot;).GridColumn(1)]
+    ]
+    ```
+
+    &gt; [!NOTE]
+    &gt; fluent 拡張はジェネリック this で**具象型を返す**ため、`When` / `Transition` /
+    &gt; `GridColumn` を任意の順でチェーンできます。コールバックの第一引数は
+    &gt; **発火元コントロール** (sender-first 規約) です。
+
+    ## Signals — 細粒度リアクティブ
+
+    `Signal&lt;T&gt;` / `Computed&lt;T&gt;` / `Reactive.Effect` が反応系の全部です。プロパティを `Bind.From(() =&gt; signal.Value)` で束縛すると、signal 変化で**その束縛ノードだけ** 再評価されます。色/位置の変化は保持型キャンバスのスタイル/変換書き込みだけで済み、再レイアウトも再実体化も走りません。
+
+    ## レイアウト — Flutter 風の単一パス
+
+    `Layout(Constraints, parentUsesSize) → Size` を 1 回呼び、同じ呼び出しの中で子の Offset を書きます (Measure/Arrange の 2 パスなし)。Grid は Fixed/Star/Auto、寸法は `Length` (px / % / em / vw) が使えます ([Controls/Layout/Units](story:Controls/Layout/Units) / [Controls/Grid/Columns](story:Controls/Grid/Columns))。
+
+    ## 入力とエラー境界
+
+    `UiHost` がポインタ/キー/IME を前面優先でディスパッチします (Esc → Tab → フォーカス → フォーカス中コントロール → アプリ全域ショートカットの順)。ユーザーコード (Build / Effect / 入力ハンドラ) の例外は**エラー境界**が捕捉し、該当サブツリーを赤枠の ErrorWidget に縮退させます — アプリ全体は落ちません。
+
+    次: [Docs/Controls](story:Docs/Controls) (組み込みコントロールと独自コントロール) / [Docs/Styling](story:Docs/Styling) (状態別スタイルと Tailwind)。
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

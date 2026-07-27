@@ -1,0 +1,6 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Demos/RenderGraph/Bloom3D</h1></header><figure class="static-capture"><img src="images/demos-rendergraph-bloom3d.png" alt="Demos/RenderGraph/Bloom3D" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Demos/RenderGraph/Bloom3D&quot;, Height = 320, Order = 132)]
+public static Widget Bloom3D(StoryContext ctx)
+{
+    Signal&lt;float&gt; intensity = ctx.Signal(&quot;intensity&quot;, 0.6f, &quot;bloom 合成の強さ (0 = 無効)&quot;);
+    return Frame(GpuView(256, 256, new Bloom3DScene(intensity)));
+}</code></pre></details></article>

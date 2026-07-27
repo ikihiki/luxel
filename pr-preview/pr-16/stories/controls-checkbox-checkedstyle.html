@@ -1,0 +1,4 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/CheckBox/CheckedStyle</h1></header><figure class="static-capture"><img src="images/controls-checkbox-checkedstyle.png" alt="Controls/CheckBox/CheckedStyle" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/CheckBox/CheckedStyle&quot;, Height = 160)]
+public static Widget CheckStyled(StoryContext ctx)
+    =&gt; Frame(Check(ctx.Signal(&quot;checked&quot;, true), &quot;Custom checked color&quot;)
+        .When(WidgetState.Checked, background: Tw.Green500));</code></pre></details></article>

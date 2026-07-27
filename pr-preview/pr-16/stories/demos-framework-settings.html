@@ -1,0 +1,13 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Demos/Framework/Settings</h1></header><figure class="static-capture"><img src="images/demos-framework-settings.png" alt="Demos/Framework/Settings" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Demos/Framework/Settings&quot;, Height = 220, Order = 152)]
+public static Widget Settings(StoryContext ctx)
+{
+    var files = new InMemoryFileStore();
+    files.Write(&quot;settings.json&quot;, &quot;{ \&quot;volume\&quot;: 0.65, \&quot;fullscreen\&quot;: true }&quot;);   // 保存済み設定
+    var store = SettingsStore.LoadFrom(files, &quot;settings.json&quot;);
+
+    return ctx.Snap(Frame(VStack(12)[
+        Muted(&quot;設定は SettingsStore の Signal に直結。Slider/Switch がそのまま双方向バインドし、保存値が反映される。&quot;),
+        HStack(12)[Label(&quot;音量&quot;), Slider(store.Get(&quot;volume&quot;, 0.5f))],
+        HStack(12)[Label(&quot;フルスクリーン&quot;), Switch(store.Get(&quot;fullscreen&quot;, false))]
+    ]));
+}</code></pre></details></article>
