@@ -1,6 +1,6 @@
 ﻿using Luxel.UI;
 
-namespace Luxel.Platform;
+namespace Luxel.Platform.Windows;
 
 /// <summary>Win32 仮想キーコード → Luxel.UI.Key の対応表 (テスト可能, raw ushort)。</summary>
 public static class KeyMap

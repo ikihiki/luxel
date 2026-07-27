@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel\Luxel.csproj" />
     <ProjectReference Include="..\Luxel.TwoD\Luxel.TwoD.csproj" />
@@ -18,5 +19,11 @@
 
   <ItemGroup>
     <Using Include="Luxel.Graphics" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Platform" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Platform.Windows" />
   </ItemGroup>
 </Project>

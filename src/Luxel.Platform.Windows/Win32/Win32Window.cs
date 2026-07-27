@@ -1,10 +1,10 @@
 ﻿using System.Runtime.InteropServices;
-using Luxel.Abstraction;
+using Luxel.Platform.Abstraction;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.WindowsAndMessaging;
 
-namespace Luxel.Platform;
+namespace Luxel.Platform.Windows;
 
 /// <summary>
 /// 生 Win32 ウィンドウ (CsWin32)。<see cref="IWindowBackendWindow"/> 実装。
@@ -31,7 +31,7 @@ internal sealed unsafe class Win32Window : IWindowBackendWindow, IWin32RawKeyInp
             if (_dpiAware) return;
             _dpiAware = true;
             // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4
-            PInvoke.SetProcessDpiAwarenessContext((Windows.Win32.UI.HiDpi.DPI_AWARENESS_CONTEXT)(nint)(-4));
+            PInvoke.SetProcessDpiAwarenessContext((global::Windows.Win32.UI.HiDpi.DPI_AWARENESS_CONTEXT)(nint)(-4));
         }
     }
 

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Luxel.Animation;
 using Luxel.Diagnostics;
 using Luxel.TwoD;
@@ -11,7 +11,7 @@ namespace Luxel.UI;
 /// SetRoot でレイアウト(単一パス)→実体化(UiNode 生成 + signal 束縛)。
 /// 入力 (Click/PointerMove) は前面優先でヒットテストし onClick/hover を発火する。
 /// </summary>
-public sealed class UiHost : IDisposable
+public sealed class UiHost : IDisposable, ITextInputClient
 {
     private readonly RetainedCanvas _canvas;
     private readonly VectorFont _font;
@@ -547,6 +547,15 @@ public sealed class UiHost : IDisposable
     public void InputCommit(string final) => ActiveTextInput?.CommitComposition(final);
     public void InputSetCompositionHighlight(int start, int length, int targetStart, int targetLength)
         => ActiveTextInput?.SetCompositionHighlight(start, length, targetStart, targetLength);
+
+    string ITextInputClient.Text => InputText;
+    (int Start, int Length) ITextInputClient.Selection => InputSelection;
+    void ITextInputClient.Select(int start, int end) => InputSelect(start, end);
+    void ITextInputClient.Replace(int start, int end, string text) => InputReplace(start, end, text);
+    TextInputRect? ITextInputClient.CaretRect
+        => CaretRect is { } rect ? new TextInputRect(rect.X, rect.Y, rect.Width, rect.Height) : null;
+    void ITextInputClient.SetCompositionHighlight(int start, int length, int targetStart, int targetLength)
+        => InputSetCompositionHighlight(start, length, targetStart, targetLength);
 
     /// <summary>文字入力をフォーカス中のテキスト対象へ送る。</summary>
     public void Char(string text) { EmitInput("char", text); Capture(InputKind.Char, text: text); Guard(Current()?.OnText is { } h ? () => h(text) : null, "Char"); }

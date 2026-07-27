@@ -2,7 +2,7 @@
 using Vortice.Multimedia;
 using Vortice.XAudio2;
 
-namespace Luxel.Platform;
+namespace Luxel.Audio.Windows;
 
 /// <summary>
 /// Vortice.XAudio2 経由の XAudio2 バックエンド。

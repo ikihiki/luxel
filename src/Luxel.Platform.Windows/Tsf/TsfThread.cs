@@ -1,10 +1,9 @@
-﻿using Luxel.UI;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.System.Com;
 using Windows.Win32.UI.TextServices;
 
-namespace Luxel.Platform;
+namespace Luxel.Platform.Windows;
 
 /// <summary>
 /// TSF のスレッドレベル資源 (ITfThreadMgr / ITfKeystrokeMgr)。**1 スレッドに 1 つ** — マルチウィンドウでは
@@ -51,13 +50,13 @@ internal sealed unsafe class TsfThread
 
     /// <summary>ウィンドウ (文書) 単位の TSF コンテキストを作る。<paramref name="getScale"/> は
     /// DPI スケール (caret 矩形の論理→物理変換、null = 1)。</summary>
-    public TsfDocument? CreateDocument(Func<UiHost?> getHost, Func<HWND> getHwnd, Func<float>? getScale = null)
+    public TsfDocument? CreateDocument(Func<ITextInputClient?> getClient, Func<HWND> getHwnd, Func<float>? getScale = null)
     {
         if (_mgr is null) return null;
         try
         {
             _mgr.CreateDocumentMgr(out ITfDocumentMgr? doc);
-            var store = new TsfTextStore(getHost, getHwnd, getScale);
+            var store = new TsfTextStore(getClient, getHwnd, getScale);
             doc!.CreateContext(_clientId, 0, store, out ITfContext? ctx, out uint _);
             doc.Push(ctx);
             store.AttachContext(ctx!);

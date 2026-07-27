@@ -1,4 +1,4 @@
-﻿using Luxel.Controls;
+using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.DocsKit;
@@ -82,7 +82,7 @@ public static class DocsStrudel
 
         エディタは各ライブブロックが新スタックの `TextEditorView` (ADR-0006 の Transaction ベース) で、`StrudelCodeLanguage` (`ICodeLanguage` 実装) を挿してあります: `StrudelEval` でパースした `StrudelEvalError` (MiniNotation の位置付きエラーも畳まれる) を `DiagnosticsProvider` 経由で**診断波線** (`Mark.Underline` 波線) に写し (評価するだけで音は出さない)、`.` の直後はメソッド・クォート内は音色を静的補完します。**Ctrl+Enter** はエディタの `OnKeyIntercept` で横取りし、そのブロックを Run (= ホットスワップ) します — 通常の Enter は改行のまま。**再生囲み**: `MiniNotation` がアトムにソース位置 (`SourceSpan`) を刻み、`Hap` に載せて変形を通り抜けさせるので、スケジューラの `ActiveSpans(slot)` で「いま鳴っているトークン」を点クエリし、`Mark.Box` (レイアウト非依存 = 行キャッシュに触れず毎フレーム更新可) で囲みます。
 
-        外部シンセを鳴らすなら `MidiOutSink` (`IEventSink`) が `ScheduledEvent` を note on/off に変換します — Note (無ければ N) → ノート番号、Gain → ベロシティ。PCM に焼けないので絶対秒でメッセージを溜め、ホストが実時間クロックで `Pump(now)` を呼んで送出します (ミキサが窓ループで駆動されるのと同じ構図 — ライブラリは wall-clock を持たず、メッセージ生成は記録用出力で決定的にテストできます)。出力ポートは `IMidiOut` 抽象で、Windows は winmm (`WinMmMidiOut`)、デバイス無し/非 Windows は `NullMidiOut` に自動フォールバックします。
+        外部シンセを鳴らすなら `MidiOutSink` (`IEventSink`) が `ScheduledEvent` を note on/off に変換します — Note (無ければ N) → ノート番号、Gain → ベロシティ。PCM に焼けないので絶対秒でメッセージを溜め、ホストが実時間クロックで `Pump(now)` を呼んで送出します (ミキサが窓ループで駆動されるのと同じ構図 — ライブラリは wall-clock を持たず、メッセージ生成は記録用出力で決定的にテストできます)。出力ポートは `Luxel.Audio.Sequencing.IMidiOut` 抽象で、Windowsのwinmm実装 (`Luxel.Audio.Windows.Sequencing.WinMmMidiOut`) は別バックエンドプロジェクトに分離され、デバイス無しの場合は `NullMidiOut` にフォールバックします。
 
         > [!NOTE]
         > 実装済み: ミニ記法の全記法・scale/chord・filter/delay・wav サンプル (`SampleInstrument`)・MIDI out (`MidiOutSink`)。MIDI の実デバイス送出は実機依存のため、自動テストはメッセージ生成まで (送出は実機スモーク)。

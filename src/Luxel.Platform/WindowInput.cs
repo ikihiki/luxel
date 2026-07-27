@@ -1,4 +1,4 @@
-namespace Luxel;
+namespace Luxel.Platform;
 
 /// <summary>Portable logical keys reported by a window backend.</summary>
 public enum WindowKey

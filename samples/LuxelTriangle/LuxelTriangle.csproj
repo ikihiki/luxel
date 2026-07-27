@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <ProjectReference Include="..\..\src\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Platform\Luxel.Platform.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
   </ItemGroup>
@@ -31,5 +32,11 @@
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />
   <ItemGroup>
     <Using Include="Luxel.Graphics" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Platform" />
+  </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <Using Include="Luxel.Platform.Windows" />
   </ItemGroup>
 </Project>

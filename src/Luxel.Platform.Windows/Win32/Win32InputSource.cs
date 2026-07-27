@@ -1,6 +1,6 @@
 using Luxel.Input;
 
-namespace Luxel.Platform;
+namespace Luxel.Platform.Windows;
 
 /// <summary>
 /// Win32 の keyboard / mouse event を <see cref="IInputSource"/> として <see cref="InputBus"/> に流す実装。

@@ -63,7 +63,7 @@ static int Run(string backend, int frames, string[] args)
 
         int w = CavernRealtimeScene.Width, h = CavernRealtimeScene.Height;
         using var windows = new WindowSystem(Win32WindowBackend.Create());
-        NativeWindow win = windows.CreateWindow(new Luxel.Abstraction.WindowDesc(TitleScreen.GameTitle, w, h));
+        NativeWindow win = windows.CreateWindow(new Luxel.Platform.Abstraction.WindowDesc(TitleScreen.GameTitle, w, h));
         using GpuSurface surface = device.CreateSurface(win.Handle, (uint)Math.Max(1, win.Width), (uint)Math.Max(1, win.Height));
 
         var keyboard = new KeyboardSource();

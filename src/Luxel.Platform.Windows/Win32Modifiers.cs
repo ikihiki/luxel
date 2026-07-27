@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using Luxel.UI;
 
-namespace Luxel.Platform;
+namespace Luxel.Platform.Windows;
 
 /// <summary>Win32 メッセージ処理中に現在の修飾キー状態を <c>GetKeyState</c> で拾う。
 /// デリゲートは WndProc から同期呼び出しされるため、この時点の <c>GetKeyState</c> は

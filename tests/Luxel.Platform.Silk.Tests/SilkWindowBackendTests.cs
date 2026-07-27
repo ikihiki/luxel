@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using Luxel.Abstraction;
+using Luxel.Platform.Abstraction;
 
 namespace Luxel.Platform.Silk.Tests;
 

@@ -1,5 +1,5 @@
 ﻿using Luxel;
-using Luxel.Abstraction;
+using Luxel.Platform.Abstraction;
 using Xunit;
 
 namespace Luxel.Tests;

@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Luxel.Platform\Luxel.Platform.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Graphics\Luxel.Graphics.csproj" />
     <PackageReference Include="coverlet.collector" Version="10.0.1">
       <PrivateAssets>all</PrivateAssets>
@@ -84,5 +85,8 @@
 
   <ItemGroup>
     <Using Include="Luxel.Graphics" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Platform" />
   </ItemGroup>
 </Project>

@@ -160,7 +160,7 @@ public sealed class LuxelHostBuilder
         {
             _inner.Services.AddSingleton<IAudioBackend>(sp =>
             {
-                var xa2 = new Luxel.Platform.XAudio2Backend();
+                var xa2 = new Luxel.Audio.Windows.XAudio2Backend();
                 xa2.Initialize();
                 return xa2;
             });

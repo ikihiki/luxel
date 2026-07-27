@@ -49,7 +49,7 @@ static int Run(string backend, int frames)
 
         int w = RangeRealtimeScene.Width, h = RangeRealtimeScene.Height;
         using var windows = new WindowSystem(Win32WindowBackend.Create());
-        NativeWindow win = windows.CreateWindow(new Luxel.Abstraction.WindowDesc("Luxel Range", w, h));
+        NativeWindow win = windows.CreateWindow(new Luxel.Platform.Abstraction.WindowDesc("Luxel Range", w, h));
         using GpuSurface surface = device.CreateSurface(win.Handle, (uint)Math.Max(1, win.Width), (uint)Math.Max(1, win.Height));
 
         var keyboard = new KeyboardSource();

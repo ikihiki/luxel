@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using Luxel.Input;
 
-namespace Luxel.Platform;
+namespace Luxel.Platform.Windows;
 
 /// <summary>
 /// Windows XInput (Xbox 互換 Gamepad) を <see cref="IInputSource"/> として <see cref="InputBus"/> に流す。

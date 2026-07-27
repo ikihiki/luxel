@@ -1,6 +1,6 @@
-using Luxel.Abstraction;
+using Luxel.Platform.Abstraction;
 
-namespace Luxel;
+namespace Luxel.Platform;
 
 /// <summary>マウスカーソル形状 (OS カーソルへ写像される)。</summary>
 public enum CursorKind
@@ -20,7 +20,7 @@ public enum CursorKind
 /// ウィンドウシステムの公開窓口 (グラフィックデバイスに対するウィンドウ側の窓口)。
 /// バックエンド (Win32 等) を包み、ウィンドウの生成・一覧・メッセージポンプを提供する。
 /// <code>
-/// using var windows = new WindowSystem(Win32WindowBackend.Create());
+/// using var windows = new WindowSystem(Luxel.Platform.Windows.Win32WindowBackend.Create());
 /// NativeWindow main = windows.CreateWindow(new WindowDesc("App", 800, 600));
 /// var swapchain = device.CreateSurface(main.Handle, (uint)main.Width, (uint)main.Height);
 /// while (windows.Pump()) { ...描画して swapchain.Present... }
@@ -73,7 +73,7 @@ public sealed class WindowSystem : IDisposable
 }
 
 /// <summary>
-/// ウィンドウ 1 枚の公開ラッパ。スワップチェーンは <see cref="CreateSwapchain"/> で取得する。
+/// ウィンドウ 1 枚の公開ラッパ。ネイティブハンドル、状態、入力イベント、基本操作を公開する。
 /// 入力/リサイズのイベントはメッセージポンプのスレッドから呼ばれる。
 /// </summary>
 public sealed class NativeWindow : IDisposable

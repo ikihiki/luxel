@@ -1,4 +1,4 @@
-﻿using Luxel.Controls;
+using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.DocsKit;
@@ -62,9 +62,9 @@ public static class DocsRuntime
 
     [Story("Docs/Platform", Order = 51)]
     public static Widget Platform(StoryContext ctx) => DocNew(ctx, $$"""
-        # プラットフォーム (Luxel.Platform, Windows)
+        # プラットフォーム (Luxel.Platform)
 
-        実 OS ウィンドウ・スワップチェーン提示・IME を提供します (CsWin32 で Win32/TSF を生成)。オフスクリーン描画 (snap / bench) とはここだけが違います。
+        `Luxel.Platform` がウィンドウ、クリップボード、低レベル入力の共通公開APIを提供します。`Luxel.Platform.Windows` はCsWin32によるWin32/TSF実装、`Luxel.Platform.Silk` はSilk.NET/GLFWによるLinux/X11実装です。オフスクリーン描画 (snap / bench) とはここだけが違います。
 
         ## ウィンドウとマルチウィンドウ
 
@@ -76,13 +76,13 @@ public static class DocsRuntime
 
         ## IME (TSF、自前 preedit)
 
-        `TsfTextStore : ITextStoreACP` がフォーカス中のテキスト入力へ橋渡しします。`GetTextExt` がキャレット矩形を返すので変換候補ウィンドウがキャレット位置に出ます。**preedit 下線・変換対象節ハイライト・キャレットは自前描画** (`ImeComposition` モデル) — TSF の文書はフォーカス中ブロックに局所化されています ([Docs/Editor](story:Docs/Editor))。
+        `Luxel.Platform.ITextInputClient` が共通のIME編集面を定義し、Windowsの `TsfTextStore : ITextStoreACP` がフォーカス中のテキスト入力へ橋渡しします。`GetTextExt` がキャレット矩形を返すので変換候補ウィンドウがキャレット位置に出ます。**preedit 下線・変換対象節ハイライト・キャレットは自前描画** (`ImeComposition` モデル) — TSF の文書はフォーカス中ブロックに局所化されています ([Docs/Editor](story:Docs/Editor))。
 
         ## カーソル・右クリック・クリップボード
 
         - `CursorKind` (Arrow / IBeam / Hand / Resize) を `HitTarget.Cursor` で宣言 — hover 先のカーソルが WM_SETCURSOR で反映されます
         - 右クリックは `OnContext` → `ContextMenu.Open` (エディタ標準の切り取り/コピー/貼り付け)
-        - クリップボードは `IClipboard` 抽象 (Win32 実装 + テスト用フェイク)。リッチテキストは plain + markdown の両形式で書き込みます
+        - クリップボードは `Luxel.Platform.IClipboard` 抽象 (`Win32Clipboard` / Silk.NET GLFW実装 + テスト用フェイク)。リッチテキストは plain + markdown の両形式で書き込みます
         """, toc: true);
 
     [Story("Docs/Input", Order = 52)]
@@ -116,7 +116,7 @@ public static class DocsRuntime
     public static Widget Audio(StoryContext ctx) => DocNew(ctx, $$"""
         # オーディオ (Luxel.Audio)
 
-        `IAudioBackend` (Windows は XAudio2) の上に、SFX ミキサ / BGM ソース / 3D 音源 / バスによる音量カスケードを提供します。**Volume / Pitch / Pan が Signal** なので、UI ともアニメーション (Transition) とも自然につながります。実際に音が鳴るデモは [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone) (実窓専用) へ。
+        `Luxel.Audio` の `IAudioBackend` の上に、SFX ミキサ / BGM ソース / 3D 音源 / バスによる音量カスケードを提供します。Windows固有のXAudio2実装は `Luxel.Audio.Windows` に分離されています。**Volume / Pitch / Pan が Signal** なので、UI ともアニメーション (Transition) とも自然につながります。実際に音が鳴るデモは [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone) (実窓専用) へ。
 
         ## 使い方
 

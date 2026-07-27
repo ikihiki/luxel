@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using Luxel.Abstraction;
+using Luxel.Platform.Abstraction;
 using Luxel.Platform.Silk;
 using Luxel.TwoD;
 using Luxel.Typography;
@@ -105,6 +105,8 @@ internal sealed class LinuxLuxelApp
         _options.Diagnostic?.Invoke("Creating Silk.NET X11 window.");
         using var windows = new WindowSystem(SilkWindowBackend.Create());
         NativeWindow window = windows.CreateWindow(new WindowDesc(_options.Title, _options.Width, _options.Height));
+
+        PlatformClipboard.Instance = window.GetFeature<IClipboard>();
 
         IVulkanWindowSurface provider = window.GetFeature<IVulkanWindowSurface>()
             ?? throw new PlatformNotSupportedException("The Silk window did not provide a Vulkan surface. Luxel.UI.App requires Linux/X11 Vulkan presentation.");

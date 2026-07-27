@@ -1,8 +1,8 @@
 using Luxel;
-using Luxel.Abstraction;
+using Luxel.Platform.Abstraction;
 using Luxel.Graphics.Vulkan;
 #if LUXEL_WINDOWS
-using Luxel.Platform;
+using Luxel.Platform.Windows;
 #else
 using Luxel.Platform.Silk;
 #endif

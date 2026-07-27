@@ -57,7 +57,7 @@ public sealed class DevToolsApp : IDisposable
 
             var ui = new DevToolsUi(listener, commands, theme);
             manager.CreateUiWindow(
-                new Luxel.Abstraction.WindowDesc("Luxel DevTools", 900, 700) { X = 60, Y = 60 },
+                new Luxel.Platform.Abstraction.WindowDesc("Luxel DevTools", 900, 700) { X = 60, Y = 60 },
                 "devtools", ui.BuildRoot, theme);
 
             // E2E 用の第二 DebugServer (devtools 窓の /windows /winframe と島内入力 op)

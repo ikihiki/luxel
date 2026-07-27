@@ -8,6 +8,7 @@
     <Project Path="src/Luxel.Assets/Luxel.Assets.csproj" />
     <Project Path="src/Luxel.AssetsGpu/Luxel.AssetsGpu.csproj" />
     <Project Path="src/Luxel.Audio/Luxel.Audio.csproj" />
+    <Project Path="src/Luxel.Audio.Windows/Luxel.Audio.Windows.csproj" />
     <Project Path="src/Luxel.Controls/Luxel.Controls.csproj" />
     <Project Path="src/Luxel.Graphics/Luxel.Graphics.csproj" />
     <Project Path="src/Luxel.Graphics.DirectX12/Luxel.Graphics.DirectX12.csproj" />
@@ -39,6 +40,7 @@
     <Project Path="src/Luxel.Physics/Luxel.Physics.csproj" />
     <Project Path="src/Luxel.Platform.Silk/Luxel.Platform.Silk.csproj" />
     <Project Path="src/Luxel.Platform/Luxel.Platform.csproj" />
+    <Project Path="src/Luxel.Platform.Windows/Luxel.Platform.Windows.csproj" />
     <Project Path="src/Luxel.RenderGraph/Luxel.RenderGraph.csproj" />
     <Project Path="src/Luxel.Resources/Luxel.Resources.csproj" />
     <Project Path="src/Luxel.Scene.UI/Luxel.Scene.UI.csproj" />

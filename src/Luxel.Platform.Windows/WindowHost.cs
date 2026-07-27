@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using Luxel.UI;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -6,7 +6,7 @@ using Windows.Win32.UI.Input.Ime;
 using Windows.Win32.UI.Input.KeyboardAndMouse;
 using Windows.Win32.UI.WindowsAndMessaging;
 
-namespace Luxel.Platform;
+namespace Luxel.Platform.Windows;
 
 /// <summary>
 /// ウィンドウ 1 枚分の提示ホスト: <see cref="NativeWindow"/> + スワップチェーン + framebuffer。
@@ -65,7 +65,7 @@ public sealed class WindowHost : IDisposable
         Window = window;
         Content = content;
         _w = Math.Max(1, window.Width); _h = Math.Max(1, window.Height);
-        UiClipboard.Instance ??= new Win32Clipboard();   // OS クリップボード (プロセス 1 回)
+        PlatformClipboard.Instance ??= new Win32Clipboard();   // OS クリップボード (プロセス 1 回)
         Content.Resize(_w / S, _h / S, S);   // content の論理サイズを実クライアント (物理/scale) に同期
         Alloc();
         _surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));

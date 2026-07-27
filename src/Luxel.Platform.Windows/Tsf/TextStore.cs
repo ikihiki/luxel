@@ -1,28 +1,27 @@
-﻿using System.Runtime.InteropServices;
-using Luxel.UI;
+using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.System.Com;
 using Windows.Win32.UI.TextServices;
 using DrawPoint = System.Drawing.Point;
 
-namespace Luxel.Platform;
+namespace Luxel.Platform.Windows;
 
 /// <summary>
-/// TSF の文書ストア。フォーカス中の <see cref="ITextInput"/> (TextField) へ読み書きを委譲する。
+/// TSF の文書ストア。フォーカス中の <see cref="ITextInputClient"/> へ読み書きを委譲する。
 /// 注: 構造的なブリッジ。実 IME での日本語変換挙動は対話(手動)検証が必要 (ヘッドレス検証不可)。
 /// CsWin32 は ITextStoreACP を void 返し(失敗時 throw)で生成するため、未対応は COMException を投げる。
 /// **display attribute (ED-M5)**: <see cref="ITfContextOwnerCompositionSink"/> で合成範囲を追跡し、
 /// <see cref="ITfTextEditSink"/> の OnEndEdit で GUID_PROP_ATTRIBUTE を読んで変換対象節
 /// (TF_ATTR_TARGET_CONVERTED) を特定 — preedit の下線/強調を装飾専用経路
-/// (<see cref="UiHost.InputSetCompositionHighlight"/>) で UI へ流す (preedit 本文は従来どおり SetText)。
+/// (<see cref="ITextInputClient.SetCompositionHighlight"/>) でクライアントへ流す (preedit 本文は従来どおり SetText)。
 /// </summary>
 internal sealed unsafe class TsfTextStore : ITextStoreACP, ITfContextOwnerCompositionSink, ITfTextEditSink
 {
     private const int E_NOTIMPL = unchecked((int)0x80004001);
     private const int TS_E_NOLAYOUT = unchecked((int)0x80040206);
 
-    private readonly Func<UiHost?> _getHost;   // 遅延解決 — content の IME 対象は動的に変わりうる
+    private readonly Func<ITextInputClient?> _getClient;   // 遅延解決 — content の IME 対象は動的に変わりうる
     private readonly Func<HWND> _getHwnd;
     private readonly Func<float> _getScale;    // DPI スケール (caret 矩形: 論理 → 物理クライアント px)
     private ITextStoreACPSink? _sink;
@@ -33,16 +32,16 @@ internal sealed unsafe class TsfTextStore : ITextStoreACP, ITfContextOwnerCompos
     private ITfDisplayAttributeMgr? _daMgr;
     private bool _attrBroken;                           // attribute 読みが失敗したら以後 range 下線のみ
 
-    public TsfTextStore(UiHost host, Func<HWND> getHwnd) : this(() => host, getHwnd) { }
+    public TsfTextStore(ITextInputClient client, Func<HWND> getHwnd) : this(() => client, getHwnd) { }
 
-    public TsfTextStore(Func<UiHost?> getHost, Func<HWND> getHwnd, Func<float>? getScale = null)
-    { _getHost = getHost; _getHwnd = getHwnd; _getScale = getScale ?? (() => 1f); }
+    public TsfTextStore(Func<ITextInputClient?> getClient, Func<HWND> getHwnd, Func<float>? getScale = null)
+    { _getClient = getClient; _getHwnd = getHwnd; _getScale = getScale ?? (() => 1f); }
 
     /// <summary>文書の ITfContext を受け取る (TsfThread.CreateDocument が Push 後に呼ぶ)。</summary>
     public void AttachContext(ITfContext context) => _context = context;
 
-    private UiHost? Host => _getHost();
-    private string Text => Host?.InputText ?? "";   // UI 層 (UiHost) 経由
+    private ITextInputClient? Client => _getClient();
+    private string Text => Client?.Text ?? "";
     private static void Fail(int hr) => throw new COMException(null, hr);
 
     public void AdviseSink(Guid* riid, object punk, uint dwMask) => _sink = punk as ITextStoreACPSink;
@@ -68,7 +67,7 @@ internal sealed unsafe class TsfTextStore : ITextStoreACP, ITfContextOwnerCompos
     {
         pcFetched = 0;
         if (ulCount == 0) return;
-        (int start, int length) = Host?.InputSelection ?? (0, 0);
+        (int start, int length) = Client?.Selection ?? (0, 0);
         pSelection[0].acpStart = start;
         pSelection[0].acpEnd = start + length;
         pSelection[0].style.ase = TsActiveSelEnd.TS_AE_END;
@@ -78,7 +77,7 @@ internal sealed unsafe class TsfTextStore : ITextStoreACP, ITfContextOwnerCompos
 
     public void SetSelection(uint ulCount, TS_SELECTION_ACP* pSelection)
     {
-        if (ulCount > 0) Host?.InputSelect(pSelection[0].acpStart, pSelection[0].acpEnd);
+        if (ulCount > 0) Client?.Select(pSelection[0].acpStart, pSelection[0].acpEnd);
     }
 
     public void GetText(int acpStart, int acpEnd, PWSTR pchPlain, uint cchPlainReq,
@@ -98,7 +97,7 @@ internal sealed unsafe class TsfTextStore : ITextStoreACP, ITfContextOwnerCompos
     public void SetText(uint dwFlags, int acpStart, int acpEnd, PCWSTR pchText, uint cch, TS_TEXTCHANGE* pChange)
     {
         string s = cch > 0 ? new string(pchText.Value, 0, (int)cch) : "";
-        Host?.InputReplace(acpStart, acpEnd, s);
+        Client?.Replace(acpStart, acpEnd, s);
         if (pChange != null) { pChange->acpStart = acpStart; pChange->acpOldEnd = acpEnd; pChange->acpNewEnd = acpStart + s.Length; }
     }
 
@@ -106,8 +105,8 @@ internal sealed unsafe class TsfTextStore : ITextStoreACP, ITfContextOwnerCompos
         out int pacpStart, out int pacpEnd, TS_TEXTCHANGE* pChange)
     {
         string s = cch > 0 ? new string(pchText.Value, 0, (int)cch) : "";
-        (int start, int length) = Host?.InputSelection ?? (0, 0);
-        Host?.InputReplace(start, start + length, s);
+        (int start, int length) = Client?.Selection ?? (0, 0);
+        Client?.Replace(start, start + length, s);
         pacpStart = start; pacpEnd = start + s.Length;
         if (pChange != null) { pChange->acpStart = start; pChange->acpOldEnd = start + length; pChange->acpNewEnd = start + s.Length; }
     }
@@ -118,7 +117,7 @@ internal sealed unsafe class TsfTextStore : ITextStoreACP, ITfContextOwnerCompos
 
     public void GetTextExt(uint vcView, int acpStart, int acpEnd, RECT* prc, BOOL* pfClipped)
     {
-        if (Host?.CaretRect is not Rect c) { Fail(TS_E_NOLAYOUT); return; }
+        if (Client?.CaretRect is not TextInputRect c) { Fail(TS_E_NOLAYOUT); return; }
         float s = _getScale();   // caret は UI 論理 px → 物理クライアント px (候補ウィンドウ位置用)
         var tl = new DrawPoint((int)(c.X * s), (int)(c.Y * s));
         var br = new DrawPoint((int)((c.X + MathF.Max(c.Width, 1)) * s), (int)((c.Y + c.Height) * s));
@@ -165,7 +164,7 @@ internal sealed unsafe class TsfTextStore : ITextStoreACP, ITfContextOwnerCompos
     public void OnEndComposition(ITfCompositionView pComposition)
     {
         _composition = null;
-        try { Host?.InputSetCompositionHighlight(0, 0, 0, 0); } catch { }
+        try { Client?.SetCompositionHighlight(0, 0, 0, 0); } catch { }
     }
 
     // ---- ITfTextEditSink (編集完了ごとに合成範囲 + 変換対象節を読み UI へ流す) ----
@@ -182,10 +181,10 @@ internal sealed unsafe class TsfTextStore : ITextStoreACP, ITfContextOwnerCompos
         comp.GetRange(out ITfRange range);
         if (range is not ITfRangeACP acp) return;
         acp.GetExtent(out int start, out int len);
-        if (len <= 0) { Host?.InputSetCompositionHighlight(0, 0, 0, 0); return; }
+        if (len <= 0) { Client?.SetCompositionHighlight(0, 0, 0, 0); return; }
 
         (int ts, int tl) = _attrBroken ? (0, 0) : ReadTargetSegment(pic, ec, range, start, len);
-        Host?.InputSetCompositionHighlight(start, len, ts, tl);
+        Client?.SetCompositionHighlight(start, len, ts, tl);
     }
 
     /// <summary>GUID_PROP_ATTRIBUTE を列挙して TF_ATTR_TARGET_CONVERTED の範囲 (変換対象節) を得る。</summary>

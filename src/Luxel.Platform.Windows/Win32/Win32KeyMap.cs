@@ -1,4 +1,4 @@
-namespace Luxel.Platform;
+namespace Luxel.Platform.Windows;
 
 internal static class Win32KeyMap
 {

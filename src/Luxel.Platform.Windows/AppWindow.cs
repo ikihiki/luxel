@@ -10,7 +10,7 @@ using Windows.Win32.Foundation;
 using Windows.Win32.UI.Input.Ime;
 using Windows.Win32.UI.Input.KeyboardAndMouse;
 
-namespace Luxel.Platform;
+namespace Luxel.Platform.Windows;
 
 /// <summary>
 /// ウィンドウ + 保持型キャンバス + UiHost + GPU スワップチェーン提示を束ねる実行ループ。

@@ -1,11 +1,11 @@
 ﻿using System.Text.Json;
-using Luxel.Abstraction;
+using Luxel.Platform.Abstraction;
 using Luxel.Diagnostics;
 using Luxel.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 
-namespace Luxel.Platform;
+namespace Luxel.Platform.Windows;
 
 /// <summary>
 /// マルチウィンドウの駆動役: <see cref="WindowSystem"/> + ウィンドウ毎の <see cref="WindowHost"/> + オフスクリーン UI。

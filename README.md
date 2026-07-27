@@ -129,7 +129,9 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 | Luxel.Ecs (+ .Signal) | ECS (Friflo) + signal 連携 |
 | Luxel.RenderGraph | パス合成 / transient aliasing / 自動バリア |
 | Luxel.Resources (+ Imaging, Assets, AssetsGpu, AssetRuntime, Gltf) | リソース DAG / 画像 / glTF / 3D 抽出 |
-| Luxel.Platform / Luxel.Input / Luxel.Audio | Win32 + IME / 入力 / 音声 |
+| Luxel.Platform (+ .Windows, .Silk) | ウィンドウ / クリップボード / IME / 低レベル入力 |
+| Luxel.Input | アクションマップ / リバインド |
+| Luxel.Audio (+ .Windows) | 音声API / ミキサ / XAudio2バックエンド |
 | Luxel.Framework (+ Scene.UI) | アプリ骨格 / シーン遷移 / UiSurface |
 | Luxel.DevTools (+ .App) | デバッガ / HTTP DebugServer / ネイティブ DevTools |
 | Luxel.Gallery | ドキュメント + デモ + e2e/bench (このリポジトリの玄関) |

@@ -175,7 +175,7 @@ public sealed partial class TextField : Widget, ITextInput
             case Key.X when ev.Ctrl: if (CopySelection()) { _ed.Backspace(); Sync(); } return true;
             case Key.V when ev.Ctrl:
                 // 1 行入力: 改行は空白へ潰す。Pattern 規制も通常入力と同じに適用
-                if (UiClipboard.Instance?.GetText() is string p && p.Length > 0)
+                if (PlatformClipboard.Instance?.GetText() is string p && p.Length > 0)
                 {
                     string s = p.Replace("\r", "").Replace('\n', ' ');
                     if (Accepts(Prospective(_ed.SelMin, _ed.SelMax, s))) { _ed.Insert(s); Sync(); }
@@ -189,7 +189,7 @@ public sealed partial class TextField : Widget, ITextInput
 
     private bool CopySelection()
     {
-        if (_ed.SelMax <= _ed.SelMin || UiClipboard.Instance is not IClipboard clip) return false;
+        if (_ed.SelMax <= _ed.SelMin || PlatformClipboard.Instance is not IClipboard clip) return false;
         clip.SetText(_ed.Text[_ed.SelMin.._ed.SelMax]);
         return true;
     }

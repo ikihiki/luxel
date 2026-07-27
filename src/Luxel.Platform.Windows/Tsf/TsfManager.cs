@@ -1,7 +1,6 @@
-﻿using Luxel.UI;
 using Windows.Win32.Foundation;
 
-namespace Luxel.Platform;
+namespace Luxel.Platform.Windows;
 
 /// <summary>
 /// 単一ウィンドウ用の TSF 窓口 (AppWindow が使う)。実体は <see cref="TsfThread"/> (スレッド共有) +
@@ -15,10 +14,10 @@ internal sealed class TsfManager : IDisposable
 
     public bool Active => _doc is not null;
 
-    public TsfManager(UiHost host, Func<HWND> getHwnd)
+    public TsfManager(ITextInputClient client, Func<HWND> getHwnd)
     {
         _thread = TsfThread.Acquire();
-        _doc = _thread?.CreateDocument(() => host, getHwnd);
+        _doc = _thread?.CreateDocument(() => client, getHwnd);
         if (_thread is not null && _doc is null) { _thread.Release(); _thread = null; }
     }
 
@@ -30,7 +29,7 @@ internal sealed class TsfManager : IDisposable
 
     /// <summary>
     /// キー押下をまず TIP に渡す (TestKeyDown→KeyDown)。TIP が消費したら true (=変換に使われた)。
-    /// false なら呼び出し側が UI 層 (UiHost.KeyDown) で処理する。programmatic 注入で擬似テストにも使える。
+    /// false なら呼び出し側が通常のキー入力経路で処理する。programmatic 注入で擬似テストにも使える。
     /// </summary>
     public bool HandleKeyDown(ushort vk, nint lParam) => _thread?.HandleKeyDown(vk, lParam) ?? false;
 

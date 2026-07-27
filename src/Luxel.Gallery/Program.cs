@@ -77,7 +77,7 @@ static int RunApp(Func<GpuDevice> createDevice, int port, int seconds)
     using var manager = new WindowManager(device, font, windows, cmds);
     using var app = new GalleryApp { HostGpu = (device, font) };   // 実窓専用ストーリーの GPU 窓口
 
-    WindowHost galleryWin = manager.CreateUiWindow(new Luxel.Abstraction.WindowDesc("Luxel Gallery", 1280, 840), "gallery", app.BuildRoot);
+    WindowHost galleryWin = manager.CreateUiWindow(new Luxel.Platform.Abstraction.WindowDesc("Luxel Gallery", 1280, 840), "gallery", app.BuildRoot);
     // アプリ全域ショートカット (AP-M5): フォーカス中コントロールが消費しないキーだけ届く
     if (galleryWin.Content is UiContent gc)
         gc.Host.RegisterShortcut(new KeyGesture(Key.D, Ctrl: true), app.ToggleTheme);

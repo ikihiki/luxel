@@ -1,4 +1,4 @@
-using Luxel.Abstraction;
+using Luxel.Platform.Abstraction;
 using Silk.NET.GLFW;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;

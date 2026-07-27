@@ -1,8 +1,8 @@
-﻿using Luxel.TwoD;
+using Luxel.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
 
-namespace Luxel.Platform;
+namespace Luxel.Platform.Windows;
 
 /// <summary>
 /// ウィンドウに表示する中身。ウィンドウは UI と 1:1 ではない —
@@ -17,7 +17,7 @@ public interface IWindowContent : IDisposable
 
     /// <summary>IME (TSF) の対象 UiHost。複数 UI を持つ content はテキストフォーカス中のものを返す。
     /// null は「このウィンドウは IME 不要」。既定は先頭の UI。</summary>
-    UiHost? ImeTarget => Uis.Count > 0 ? Uis[0].Host : null;
+    ITextInputClient? ImeTarget => Uis.Count > 0 ? Uis[0].Host : null;
 
     /// <summary>論理サイズの変更 (物理クライアント px ÷ DPI スケール)。<paramref name="scale"/> は
     /// DPI スケール — content 側 (UiHost) の RenderScale へ伝える (SurfaceView 等の物理解像度確保用)。</summary>
@@ -67,7 +67,7 @@ public sealed class UiContent : IWindowContent
     }
 
     public IReadOnlyList<(string Name, UiHost Host)> Uis => [(Name, Host)];
-    public UiHost? ImeTarget => Host;
+    public ITextInputClient? ImeTarget => Host;
 
     public void Resize(float width, float height, float scale = 1f)
     {

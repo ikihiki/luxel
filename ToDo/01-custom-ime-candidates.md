@@ -6,8 +6,8 @@ IME (TSF) の変換候補リストを OS 任せにせず、TSF のフックで O
 
 ## 背景と現状 (調査結果)
 
-- TSF プラグイン: [src/Luxel.Platform/Tsf/](../src/Luxel.Platform/Tsf/) — `TsfThread` (ITfThreadMgr/ITfKeystrokeMgr、STA、ref-count)、`TsfManager` (per-window)、`TsfTextStore` (ITextStoreACP + ITfContextOwnerCompositionSink + ITfTextEditSink)
-- **候補リストは完全に OS 描画**。`TsfTextStore.GetTextExt` ([TextStore.cs](../src/Luxel.Platform/Tsf/TextStore.cs) ~119) が `Host.CaretRect` を論理→物理 px 変換 + `ClientToScreen` して TSF に返す → OS/TIP がその矩形に候補ウインドウを描く。**`ITfUIElementSink`/`ITfUIElement`/`ITfCandidateListUIElement`/`BeginUIElement` は未実装 (grep 0 件)**
+- TSF プラグイン: [src/Luxel.Platform.Windows/Tsf/](../src/Luxel.Platform.Windows/Tsf/) — `TsfThread` (ITfThreadMgr/ITfKeystrokeMgr、STA、ref-count)、`TsfManager` (per-window)、`TsfTextStore` (ITextStoreACP + ITfContextOwnerCompositionSink + ITfTextEditSink)
+- **候補リストは完全に OS 描画**。`TsfTextStore.GetTextExt` ([TextStore.cs](../src/Luxel.Platform.Windows/Tsf/TextStore.cs) ~119) が `Host.CaretRect` を論理→物理 px 変換 + `ClientToScreen` して TSF に返す → OS/TIP がその矩形に候補ウインドウを描く。**`ITfUIElementSink`/`ITfUIElement`/`ITfCandidateListUIElement`/`BeginUIElement` は未実装 (grep 0 件)**
 - 我々が制御できるもの: caret 矩形 (候補位置)、preedit テキスト (実文書へ挿入)、preedit 装飾 (`ITextInput.SetCompositionHighlight` — 下線/対象節、`ReadTargetSegment` 経由)
 - `ITextInput.CaretRect` (canvas 座標) は既に「候補ウインドウ配置用」として存在 — Popup のアンカーに使える
 

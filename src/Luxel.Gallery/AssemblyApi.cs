@@ -5,7 +5,6 @@ using Luxel.UI;
 
 // コア / GPU 抽象 + バックエンド
 [assembly: GenerateAssemblyApi("Luxel")]
-[assembly: GenerateAssemblyApi("Luxel.Abstraction")]
 [assembly: GenerateAssemblyApi("Luxel.Diagnostics")]
 [assembly: GenerateAssemblyApi("Luxel.Graphics")]
 [assembly: GenerateAssemblyApi("Luxel.Graphics.Abstraction")]
@@ -42,7 +41,11 @@ using Luxel.UI;
 [assembly: GenerateAssemblyApi("Luxel.Imaging")]
 [assembly: GenerateAssemblyApi("Luxel.Input")]
 [assembly: GenerateAssemblyApi("Luxel.Audio")]
+[assembly: GenerateAssemblyApi("Luxel.Audio.Windows")]
 [assembly: GenerateAssemblyApi("Luxel.Platform")]
+[assembly: GenerateAssemblyApi("Luxel.Platform.Abstraction")]
+[assembly: GenerateAssemblyApi("Luxel.Platform.Windows")]
+[assembly: GenerateAssemblyApi("Luxel.Platform.Silk")]
 [assembly: GenerateAssemblyApi("Luxel.Framework")]
 [assembly: GenerateAssemblyApi("Luxel.Scene.UI")]
 [assembly: GenerateAssemblyApi("Luxel.DevTools")]
