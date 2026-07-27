@@ -9,8 +9,35 @@ A .NET 10 facade for creating Luxel UI applications. It owns UI-oriented window 
 using Luxel.UI.App;
 using static Luxel.Controls.Kit;
 
-return LuxelApp.Run(() => Heading("Hello Luxel"));
+LuxelApp.Run(() => Heading("Hello Luxel"));
 ```
+
+For multiple fixed-path screens, use the Minimal-API-style builder. Navigation state and the content host are provided by `Luxel.UI`; `MapScreen` registration and startup integration live in this package.
+
+```csharp
+using Luxel.Controls;
+using Luxel.UI.App;
+using static Luxel.Controls.Kit;
+
+var builder = LuxelApp.CreateBuilder(args);
+builder.Options.Title = "My App";
+
+var app = builder.Build();
+app.MapScreen("/", navigation =>
+    Center()[Button(_ => navigation.Navigate("/settings"), "Settings")]);
+app.MapScreen("/settings", navigation =>
+    Center()[Button(_ => navigation.Back(), "Back")]);
+
+app.Run("/", (navigation, content) =>
+    NavigationView(
+        navigation,
+        [
+            new("/", "Home"),
+            new("/settings", "Settings"),
+        ])[content]);
+```
+
+`NavigationView(navigation, items)[content]` is a regular single-child layout control and can also be used outside `LuxelApp`. `Navigate` pushes a history entry, `Replace` changes the current entry, and `Back` returns to the previous entry. The first version uses exact, ordinal case-sensitive paths, recreates a screen when it is revisited, and does not animate screen changes. The original `LuxelApp.Run(() => widget)` API remains supported.
 
 Packages are published to GitHub Packages when a GitHub Release is published. Release tags may use `vMAJOR.MINOR.PATCH` (for example, `v0.1.0`); the leading `v` is removed from the NuGet version. Maintainers can also run the **Publish NuGet package** workflow manually with an explicit version.
 

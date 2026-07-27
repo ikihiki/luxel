@@ -20,6 +20,9 @@ public static class LuxelApp
         "shaders/raster2d_fine.spv",
     ];
 
+    /// <summary>Creates a builder for fixed-path screen registration.</summary>
+    public static LuxelAppBuilder CreateBuilder(string[]? args = null) => new(args);
+
     public static void Run(Func<Widget> rootFactory, LuxelAppOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(rootFactory);
