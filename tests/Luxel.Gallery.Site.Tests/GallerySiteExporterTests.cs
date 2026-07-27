@@ -188,6 +188,13 @@ public sealed class GallerySiteExporterTests
         ];
         Assert.All(requiredNamespaces, ns => Assert.Contains(ns, TypeApiRegistry.Namespaces));
 
+        Assert.NotNull(StoryRegistry.Find("Demos/UI/Navigation"));
+        Assert.NotNull(StoryRegistry.Find("Controls/NavigationView/Basic"));
+        Assert.NotNull(StoryRegistry.Find("Controls/NavigationView/Overview"));
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.UI.Navigation"));
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.UI.NavigationHost"));
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.UI.NavigationPath"));
+
         string[] existingCategories = StoryRegistry.All
             .Where(story => story.Path.StartsWith("Controls/", StringComparison.Ordinal)
                             && !story.Path.EndsWith("/Overview", StringComparison.Ordinal))
@@ -219,6 +226,8 @@ public sealed class GallerySiteExporterTests
             ?? throw new InvalidOperationException("Docs/Controls is missing.");
         TextEditorView controlsDocument = GallerySnapshots.FindDocument(controls.Build(new StoryContext()))
             ?? throw new InvalidOperationException("Docs/Controls is not a document.");
+        Assert.Contains("Controls/NavigationView/Basic", controlsDocument.DocSource);
+        Assert.Contains("Demos/UI/Navigation", controlsDocument.DocSource);
         Assert.DoesNotContain("Reference/Overview", controlsDocument.DocSource);
         Assert.Contains("Controls/Button/Overview", controlsDocument.DocSource);
     }
