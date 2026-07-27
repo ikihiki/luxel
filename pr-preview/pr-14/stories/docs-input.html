@@ -14,7 +14,7 @@
 <h2 id="section-1">ドラッグ &amp; ドロップ</h2>
 <p><code>UiHost.BeginDrag(payload, ghost)</code> + <code>HitTarget.OnDragOver/OnDrop</code> — ゴーストがポインタに追従し、ドロップ位置インジケータを受け手が描きます。実物は <a href="#story=Controls%2FListView%2FReorder">Controls/ListView/Reorder</a> (行の並べ替え) へ。</p>
 <h2 id="luxel.input">ゲーム入力 (Luxel.Input)</h2>
-<p>アクションマップ (コンテキスト単位の有効/無効 — 例: gameplay と menu) と <strong>キーバインドの JSON リマップ</strong> (保存/復元の round-trip) を提供します。Framework のフレームループ (<code>InputBus</code> / <code>InputStack</code>) に統合されます。</p>
+<p>アクションマップ (コンテキスト単位の有効/無効 — 例: gameplay と menu) と <strong>キーバインドの JSON リマップ</strong> (保存/復元の round-trip) を提供します。Framework のフレームループ (<code>InputBus</code> / <code>InputStack</code>) に統合されます。Windows固有のXbox互換ゲームパッド入力は <code>Luxel.Input.XInput</code> の <code>XInputSource</code> に分離されています。</p>
 <h2 id="programmatic">programmatic 入力</h2>
 <p>ウィンドウなしで <code>host.Click(x, y)</code> / <code>host.Char(&quot;Hi&quot;)</code> / <code>host.KeyDown(Key.Tab)</code> を直接呼べます — ユニットテストや snap 前の状態強制はこの経路です。</p>
 </article>

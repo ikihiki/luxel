@@ -22,7 +22,7 @@
 <h2 id="d-1">3D / レンダーグラフ / リソース</h2>
 <p><code>Luxel.Ecs</code> (Friflo ラッパ) + <code>Luxel.Assets</code>/<code>Luxel.AssetRuntime</code> が 3D シーンと抽出、<code>Luxel.RenderGraph</code> が Setup/Compile/Execute 三相の scene-agnostic なパス合成 (<a href="#story=Demos%2FRenderGraph%2FBlur">Demos/RenderGraph/Blur</a>)。<code>Luxel.Resources</code> + <code>Luxel.Imaging</code> + <code>Luxel.Gltf</code> が (型, uri) キーのリソース DAG を提供します。</p>
 <h2 id="section-2">ランタイムとツール</h2>
-<p><code>Luxel.Platform</code> + <code>.Windows</code> / <code>.Silk</code> (窓 / クリップボード / IME / 低レベル入力)、<code>Luxel.Input</code>、<code>Luxel.Audio</code> + <code>.Windows</code>、<code>Luxel.Framework</code> (ホストビルダー + シーン遷移)、そして <code>Luxel.DevTools</code> (別窓デバッガ + HTTP DebugServer)。この Gallery (<code>Luxel.Gallery</code>) 自体が Luxel UI で書かれたドッグフーディングアプリです。</p>
+<p><code>Luxel.Platform</code> + <code>.Windows</code> / <code>.Silk</code> (窓 / クリップボード / IME / 低レベル入力)、<code>Luxel.Input</code> + <code>.XInput</code>、<code>Luxel.Audio</code> + <code>.Windows</code>、<code>Luxel.Framework</code> (ホストビルダー + シーン遷移)、そして <code>Luxel.DevTools</code> (別窓デバッガ + HTTP DebugServer)。この Gallery (<code>Luxel.Gallery</code>) 自体が Luxel UI で書かれたドッグフーディングアプリです。</p>
 <h2 id="section-3">プロジェクト一覧</h2>
 <table>
 <thead>
@@ -77,8 +77,8 @@
 <td>ウィンドウ / クリップボード / IME / 低レベル入力</td>
 </tr>
 <tr>
-<td>Luxel.Input</td>
-<td>アクションマップ / リバインド</td>
+<td>Luxel.Input (+ .XInput)</td>
+<td>アクションマップ / リバインド / Windowsゲームパッド入力</td>
 </tr>
 <tr>
 <td>Luxel.Audio (+ .Windows)</td>
