@@ -1,7 +1,0 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Apps/Game/Range</h1></header><figure class="static-capture"><img src="images/apps-game-range.png" alt="Apps/Game/Range" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Apps/Game/Range&quot;, Width = 520, Height = 420, Order = 149)]
-public static Widget Range(StoryContext ctx)
-    =&gt; ctx.Snap(VStack(8)[
-        new StoryAppView&lt;RangeScene&gt;(RangeScene.W, RangeScene.H, (s, bctx) =&gt;
-            s.AddSingleton&lt;Action&lt;string&gt;&gt;(ctx.Log)),
-        Muted(&quot;Drag: orbit camera / Click: shoot (CCD) — 薄板ターゲット命中で +100&quot;)
-    ]);</code></pre></details></article>

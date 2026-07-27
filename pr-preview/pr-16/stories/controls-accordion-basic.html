@@ -1,5 +1,0 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Accordion/Basic</h1></header><figure class="static-capture"><img src="images/controls-accordion-basic.png" alt="Controls/Accordion/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/Accordion/Basic&quot;, Height = 280)]
-public static Widget AccordionBasic(StoryContext ctx) =&gt;
-    Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(24))
-        [Accordion(&quot;Details&quot;, VStack(4)[Label(&quot;Hidden line 1&quot;), Label(&quot;Hidden line 2&quot;)],
-                   ctx.Signal(&quot;expanded&quot;, true))];</code></pre></details></article>

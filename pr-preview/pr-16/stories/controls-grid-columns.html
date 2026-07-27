@@ -1,7 +1,0 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Grid/Columns</h1></header><figure class="static-capture"><img src="images/controls-grid-columns.png" alt="Controls/Grid/Columns" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/Grid/Columns&quot;, Height = 240)]
-public static Widget GridColumns() =&gt;
-    Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(16))
-    [Grid(columns: [1, 2, 1])[
-        Box(background: Tw.Blue500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4)).GridColumn(0),
-        Box(background: Tw.Amber500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4)).GridColumn(1),
-        Box(background: Tw.Green500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4)).GridColumn(2)]];</code></pre></details></article>

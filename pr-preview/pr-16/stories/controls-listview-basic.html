@@ -1,8 +1,0 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/ListView/Basic</h1></header><figure class="static-capture"><img src="images/controls-listview-basic.png" alt="Controls/ListView/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/ListView/Basic&quot;, Height = 260)]
-public static Widget ListViewBasic(StoryContext ctx)
-{
-    // EV: コールバックはファクトリの省略可能引数 (第一引数 = 発火元)。items も UI パラメータ
-    ListView lv = ListView(180f, 18f, onSelect: (_, i) =&gt; ctx.Log($&quot;selected: Item {i + 1}&quot;),
-        items: new Signal&lt;IReadOnlyList&lt;string&gt;&gt;(Enumerable.Range(1, 40).Select(i =&gt; $&quot;Item {i}&quot;).ToArray()), width: 260f);
-    return Frame(lv);
-}</code></pre></details></article>

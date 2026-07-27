@@ -1,8 +1,0 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Demos/3D/PhysicsPlayground</h1></header><figure class="static-capture"><img src="images/demos-3d-physicsplayground.png" alt="Demos/3D/PhysicsPlayground" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Demos/3D/PhysicsPlayground&quot;, Height = 320, Order = 128)]
-public static Widget PhysicsPlayground(StoryContext ctx)
-{
-    Luxel.UI.Signal&lt;float&gt; gravity = ctx.Signal(&quot;gravity&quot;, 9.8f, &quot;下向き重力の強さ (m/s&#178;)&quot;);
-    Luxel.UI.Signal&lt;float&gt; bounciness = ctx.Signal(&quot;bounciness&quot;, 2f, &quot;接触の反発上限 (MaximumRecoveryVelocity, m/s)&quot;);
-    Luxel.UI.Signal&lt;bool&gt; reset = ctx.Signal(&quot;reset&quot;, false, &quot;トグルするとシーンを初期状態へ再構築&quot;);
-    return Frame(GpuView(256, 256, new PhysicsScene(gravity, bounciness, reset)));
-}</code></pre></details></article>

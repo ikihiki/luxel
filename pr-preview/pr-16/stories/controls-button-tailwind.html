@@ -1,6 +1,0 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Button/Tailwind</h1></header><figure class="static-capture"><img src="images/controls-button-tailwind.png" alt="Controls/Button/Tailwind" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/Button/Tailwind&quot;, Height = 160)]
-public static Widget ButtonTailwind() =&gt; Frame(
-    Button(_ =&gt; { }, &quot;Hover me&quot;,
-            background: Tw.Blue500, foreground: Tw.White, rounded: 10, width: 180, height: 64)
-        .When(WidgetState.Hover, background: Tw.Red500, scale: 1.08f)
-        .When(WidgetState.Pressed, scale: 0.94f));</code></pre></details></article>

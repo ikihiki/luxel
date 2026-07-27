@@ -1,8 +1,0 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Splitter/Basic</h1></header><figure class="static-capture"><img src="images/controls-splitter-basic.png" alt="Controls/Splitter/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/Splitter/Basic&quot;, Height = 240)]
-public static Widget SplitterBasic(StoryContext ctx) =&gt;
-    // 実アプリではドラッグ量 d でレイアウト変数を更新して chrome を再構築する
-    // (GalleryApp のサイドバー/Log/右パネルがこの形)。ここでは delta を Log に流すのみ
-    Frame(HStack(0)[
-        Box(background: Tw.Blue500, rounded: 6, width: 170, height: 160),
-        Splitter(vertical: true, onResized: (_, d) =&gt; ctx.Log($&quot;drag {d:+0.0;-0.0}px&quot;)),
-        Box(background: Tw.Amber500, rounded: 6, width: 170, height: 160)]);</code></pre></details></article>
