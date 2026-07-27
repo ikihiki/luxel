@@ -142,6 +142,7 @@ internal sealed class TriangleRenderer : IDisposable
         _frame++;
     }
 
+    // docs:begin direct-frame
     private void RenderDirectFrame(DrawArgs3D args)
     {
         using GpuCommandBuffer command = _device.MainQueue.StartCommandRecording();
@@ -156,6 +157,9 @@ internal sealed class TriangleRenderer : IDisposable
         _device.MainQueue.SubmitAndWait(command);
     }
 
+    // docs:end direct-frame
+
+    // docs:begin render-graph-frame
     private void RenderGraphFrame(DrawArgs3D args)
     {
         // One graph is one frame in this tutorial. It owns transients until SubmitAndWait completes.
@@ -214,6 +218,8 @@ internal sealed class TriangleRenderer : IDisposable
         command.Finish();
         _device.MainQueue.SubmitAndWait(command);
     }
+
+    // docs:end render-graph-frame
 
     private void DrawCube(GpuCommandBuffer command, GpuTexture color, GpuTexture depth, DrawArgs3D args)
         => command.BeginRendering(color, depth, 0.025f, 0.035f, 0.06f, 1)

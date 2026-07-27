@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Luxel.Controls;
 using Luxel.UI;
 
@@ -52,9 +52,24 @@ public static class DocsIndex
                 Console.Error.WriteLine($"[gallery] docs index skip '{s.Path}': {e.Message}");
             }
         }
+        // Keep startup diagnostics, while tests use ValidateLinks(map) as a failing CI gate.
+        broken = ValidateLinks(map).Count;
         Console.WriteLine($"[gallery] docs index: {map.Count} pages, {sw.ElapsedMilliseconds}ms"
                           + (broken > 0 ? $", dead links: {broken}" : ""));
         return map;
+    }
+
+    /// <summary>docs index内のinternal story/heading linkを検証し、CIで扱えるerror一覧を返す。</summary>
+    public static IReadOnlyList<string> ValidateLinks(IReadOnlyDictionary<string, DocsPage> pages)
+        => pages.Values.OrderBy(page => page.Path, StringComparer.Ordinal)
+            .SelectMany(page => ValidateLinks(page.Path, page.Text)).ToArray();
+
+    public static IReadOnlyList<string> ValidateLinks(string path, string source)
+    {
+        var errors = new List<string>();
+        foreach (MarkdownLink link in MarkdownDecorations.Links(source))
+            if (LinkBroken(link.Url, source)) errors.Add($"{path}: {link.Url}");
+        return errors;
     }
 
     /// <summary>widget 木から新スタックの docs (<see cref="TextEditorView.DocSource"/> を持つ) を探す。</summary>

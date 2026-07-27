@@ -123,6 +123,98 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Rendering_docs_links_metadata_search_and_sample_sources_are_verified()
+    {
+        string[] routes =
+        [
+            "Overview", "Environment", "ClearColor", "FirstTriangle", "BuffersAndBindings", "Shaders",
+            "Textures", "TransformsAndCamera", "DepthCullingLighting", "FrameLoopAndSynchronization",
+            "FirstRenderGraph", "First2DScene", "StaticGltf", "Debugging", "Shipping",
+        ];
+        StoryInfo[] stories = routes.Select(name => StoryRegistry.Find("Learn/Rendering/" + name)
+            ?? throw new InvalidOperationException($"Rendering Learn route is missing: {name}")).ToArray();
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null);
+
+        Assert.Empty(DocsIndex.ValidateLinks(pages));
+        for (int i = 0; i < stories.Length; i++)
+        {
+            string source = pages[stories[i].Path].Text;
+            Assert.Contains("**難易度:**", source);
+            Assert.Contains("**実行環境:**", source);
+            Assert.Contains("**Backend:**", source);
+            Assert.Contains("**前提知識:**", source);
+            if (i > 0) Assert.Contains("story:" + stories[i - 1].Path, source);
+            if (i + 1 < stories.Length) Assert.Contains("story:" + stories[i + 1].Path, source);
+        }
+        Assert.Contains("story:Apps/Game/Range", pages[stories[^1].Path].Text);
+
+        string overview = pages[stories[0].Path].Text.ToLowerInvariant();
+        foreach (string term in new[] { "triangle", "texture", "camera", "render graph", "gltf", "blank screen", "真っ黒" })
+            Assert.Contains(term, overview);
+
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string actual = File.ReadAllText(Path.Combine(root, "samples", "LuxelTriangle", "TutorialAbi.cs"))
+            .Replace("\r\n", "\n", StringComparison.Ordinal);
+        string expected = ExtractMarkedRegion(actual, "triangle-abi").Trim();
+        string trianglePage = pages["Learn/Rendering/FirstTriangle"].Text;
+        Assert.Contains(expected, trianglePage);
+        Assert.DoesNotContain("docs:begin", trianglePage);
+        Assert.DoesNotContain("docs:end", trianglePage);
+    }
+
+    [Fact]
+    public void Docs_gpu_routes_and_story_source_limitations_are_preserved()
+    {
+        string[] routes = ["GpuDevice", "TwoD", "RenderGraph", "ThreeD", "Assets", "Ecs", "Physics"];
+        foreach (string route in routes)
+            Assert.NotNull(StoryRegistry.Find("Docs/" + route));
+
+        StoryInfo authoring = StoryRegistry.Find("Docs/Authoring")
+            ?? throw new InvalidOperationException("Docs/Authoring is missing.");
+        Assert.Contains("[Story] method本体", authoring.Source);
+        Assert.Contains("完全なsource", authoring.Source);
+        Assert.Contains("SampleSource(path, region)", authoring.Source);
+    }
+
+    [Fact]
+    public void Broken_story_and_heading_links_are_reported()
+    {
+        Assert.Contains("Test/Page: story:Missing/Story",
+            DocsIndex.ValidateLinks("Test/Page", "# Title\n[bad](story:Missing/Story)"));
+        Assert.Contains("Test/Page: #missing-heading",
+            DocsIndex.ValidateLinks("Test/Page", "# Title\n[bad](#missing-heading)"));
+        Assert.Empty(DocsIndex.ValidateLinks("Test/Page", "# Existing Heading\n[ok](#existing-heading)"));
+    }
+
+    [Fact]
+    public void Sample_source_regions_reject_missing_reversed_and_duplicate_markers()
+    {
+        Assert.Equal("line", Luxel.Gallery.Stories.DocsKit.ExtractRegion(
+            "// docs:begin x\nline\n// docs:end x\n", "sample.cs", "x"));
+        Assert.Throws<InvalidOperationException>(() => Luxel.Gallery.Stories.DocsKit.ExtractRegion(
+            "// docs:begin x\nline\n", "sample.cs", "x"));
+        Assert.Throws<InvalidOperationException>(() => Luxel.Gallery.Stories.DocsKit.ExtractRegion(
+            "// docs:begin x\n\n// docs:end x\n", "sample.cs", "x"));
+        Assert.Throws<InvalidOperationException>(() => Luxel.Gallery.Stories.DocsKit.ExtractRegion(
+            "// docs:end x\nline\n// docs:begin x\n", "sample.cs", "x"));
+        Assert.Throws<InvalidOperationException>(() => Luxel.Gallery.Stories.DocsKit.ExtractRegion(
+            "// docs:begin x\na\n// docs:end x\n// docs:begin x\nb\n// docs:end x\n", "sample.cs", "x"));
+    }
+
+    [Fact]
+    public void Rendering_samples_are_in_solution_and_pages_ci_builds_solution()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string solution = File.ReadAllText(Path.Combine(root, "Luxel.slnx"));
+        Assert.Contains("samples/LuxelTriangle/LuxelTriangle.csproj", solution);
+        Assert.Contains("samples/LuxelRange/LuxelRange/LuxelRange.csproj", solution);
+
+        string workflow = File.ReadAllText(Path.Combine(root, ".github", "workflows", "deploy-pages.yml"));
+        Assert.Contains("dotnet build Luxel.slnx --no-restore --configuration Release", workflow);
+        Assert.Contains("--no-build --configuration Release", workflow);
+    }
+
+    [Fact]
     public void Validator_rejects_non_png_capture_files()
     {
         string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-site-invalid-png-" + Guid.NewGuid().ToString("N"));
@@ -161,6 +253,18 @@ public sealed class GallerySiteExporterTests
         {
             if (Directory.Exists(output)) Directory.Delete(output, true);
         }
+    }
+
+    private static string ExtractMarkedRegion(string source, string region)
+    {
+        string begin = $"docs:begin {region}";
+        string end = $"docs:end {region}";
+        int beginAt = source.IndexOf(begin, StringComparison.Ordinal);
+        int contentStart = source.IndexOf('\n', beginAt);
+        int endAt = source.IndexOf(end, contentStart, StringComparison.Ordinal);
+        int endLineStart = source.LastIndexOf('\n', endAt);
+        Assert.True(beginAt >= 0 && contentStart > beginAt && endLineStart > contentStart);
+        return source[(contentStart + 1)..endLineStart];
     }
 
     private static GpuDevice CreateDeviceOrSkip()

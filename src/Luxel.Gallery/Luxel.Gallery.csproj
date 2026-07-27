@@ -6,6 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Luxel.Gallery.Site.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="wwwroot\**" />
     <EmbeddedResource Remove="wwwroot\**" />
     <None Remove="wwwroot\**" />
@@ -63,6 +69,16 @@
 
   <!-- Static glTF beginner story fixture. Gallery単体buildでも取得・hash検証する。 -->
   <Import Project="..\..\assets\Luxel.KhronosBox.targets" />
+
+  <!-- Learn pages quote these real sample files; LogicalName makes lookup independent of cwd/publish layout. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\samples\LuxelTriangle\Program.cs" LogicalName="Luxel.Sample.samples.LuxelTriangle.Program.cs" />
+    <EmbeddedResource Include="..\..\samples\LuxelTriangle\TriangleRenderer.cs" LogicalName="Luxel.Sample.samples.LuxelTriangle.TriangleRenderer.cs" />
+    <EmbeddedResource Include="..\..\samples\LuxelTriangle\TutorialAbi.cs" LogicalName="Luxel.Sample.samples.LuxelTriangle.TutorialAbi.cs" />
+    <EmbeddedResource Include="..\..\shaders\tutorial_triangle.slang" LogicalName="Luxel.Sample.shaders.tutorial_triangle.slang" />
+    <EmbeddedResource Include="..\..\shaders\tutorial_3d.slang" LogicalName="Luxel.Sample.shaders.tutorial_3d.slang" />
+    <EmbeddedResource Include="..\..\shaders\compute_tutorial_postprocess.slang" LogicalName="Luxel.Sample.shaders.compute_tutorial_postprocess.slang" />
+  </ItemGroup>
 
   <!-- Gallery / e2e / publish で共有 BIZ/UDEV フォントを使う。 -->
   <Import Project="..\..\assets\Luxel.FontAssets.targets" />

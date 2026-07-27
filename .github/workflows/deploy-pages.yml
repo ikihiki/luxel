@@ -26,8 +26,10 @@ jobs:
           echo "LIBGL_ALWAYS_SOFTWARE=true" >> "$GITHUB_ENV"
       - name: Restore
         run: dotnet restore Luxel.slnx
-      - name: Test exporter
-        run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --configuration Release
+      - name: Build solution and rendering samples
+        run: dotnet build Luxel.slnx --no-restore --configuration Release
+      - name: Test exporter and documentation contracts
+        run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
       - name: Export static Gallery
         run: dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --configuration Release -- artifacts/gallery-site
       - uses: actions/configure-pages@v5
