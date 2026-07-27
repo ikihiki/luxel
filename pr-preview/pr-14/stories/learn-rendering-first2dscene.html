@@ -6,7 +6,7 @@
 <p><strong>前へ:</strong> <a href="#story=Learn%2FRendering%2FFirstRenderGraph">FirstRenderGraph</a>　 <strong>次:</strong> <a href="#story=Learn%2FRendering%2FStaticGltf">StaticGltf</a></p>
 <figure class="static-capture"><a href="#story=Demos%2F2D%2FShapes"><img src="images/demos-2d-shapes.png" alt="Demos/2D/Shapes" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
 <p><code>Scene2D</code>は「何を描くか」をCPU側で組み立てる最小APIです。次のコードだけで角丸矩形、円、線を含むsceneを作れます。</p>
-<pre><code class="language-csharp">using Luxel.TwoD;
+<pre><code class="language-csharp">using Luxel.Graphics.TwoD;
 
 var scene = new Scene2D();
 scene.FillRoundedRect(0xFF2F6FED, 24, 24, 220, 120, 18);

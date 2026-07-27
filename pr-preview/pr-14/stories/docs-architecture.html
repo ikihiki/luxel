@@ -10,11 +10,11 @@
 <li><a href="#story=Docs%2FArchitecture&amp;section=vk-%2F-dx-%E3%83%94%E3%82%AF%E3%82%BB%E3%83%AB%E4%B8%80%E8%87%B4%E3%81%A8%E3%81%84%E3%81%86%E8%A6%8F%E5%BE%8B">vk / dx ピクセル一致という規律</a></li>
 </ul>
 <p>Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。</p>
-<figure class="static-capture"><img src="images/mermaid-f7c812bd4392fc274b4a.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
+<figure class="static-capture"><img src="images/mermaid-b45aaa4c8fbc90fed3af.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
 <h2 id="gpu">GPU 土台</h2>
 <p><code>Luxel.Graphics</code> が GpuDevice / バッファ / テクスチャ / パイプライン / コマンドの薄い抽象を提供し、<code>Luxel.Graphics.Vulkan</code> と <code>Luxel.Graphics.DirectX12</code> が実装します。全パイプラインが <strong>固定レイアウト</strong> (最大192Bのルート引数 + bindless heap) を共有するため、ディスクリプタセットの管理も PSO のバリアントも存在しません。シェーダは Slang で 1 回書き、SPIR-V / DXIL の両方へコンパイルされます。</p>
 <h2 id="d">2D とテキスト</h2>
-<p><code>Luxel.TwoD</code> は compute ベースのベクターラスタライザ (三角形分割なし) と保持型キャンバス (RetainedCanvas)。<code>Luxel.Typography</code> は HarfBuzz シェーピング + 自前 TextLayout、<code>Luxel.Typography.Icu</code> が ICU セグメンタを差し込みます。</p>
+<p><code>Luxel.Graphics.TwoD</code> は compute ベースのベクターラスタライザ (三角形分割なし) と保持型キャンバス (RetainedCanvas)。<code>Luxel.Typography</code> は HarfBuzz シェーピング + 自前 TextLayout、<code>Luxel.Typography.Icu</code> が ICU セグメンタを差し込みます。</p>
 <h2 id="ui">UI とコントロール</h2>
 <p><code>Luxel.UI</code> が宣言的 DSL (ベアファクトリ + indexer)、Signal/Effect の反応系、単一パスレイアウト。<code>Luxel.Controls</code> が Button から RichTextEditor までのコントロール群、<code>Luxel.UI.Tailwind</code> が Tailwind カラーパレット (Tw)、<code>Luxel.Document</code> + <code>Luxel.Highlight.TextMate</code> + <code>Luxel.Diagram</code> + <code>Luxel.MathText</code> がこの docs ページを支えるドキュメントスタックです。</p>
 <h2 id="section-1">モーション</h2>
@@ -37,7 +37,7 @@
 <td>GPU 抽象とバックエンド</td>
 </tr>
 <tr>
-<td>Luxel.TwoD</td>
+<td>Luxel.Graphics.TwoD</td>
 <td>2D ベクターラスタライザ + 保持型キャンバス</td>
 </tr>
 <tr>
