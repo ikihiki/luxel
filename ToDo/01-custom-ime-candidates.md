@@ -1,8 +1,8 @@
-# 24 — カスタム IME 候補ウインドウ (排他モード対応)
+# 01 — カスタム IME 候補ウインドウ (排他モード対応)
 
 ## 概要
 
-IME (TSF) の変換候補リストを OS 任せにせず、TSF のフックで OS 描画を抑制して**自前で描画**する。排他フルスクリーン (ゲーム) で日本語入力を成立させるのが目的。決定は **ADR-0008** (`ADR/0008-Custom-Ime-Candidates`、**Proposed**) が正。**排他モードが必要になった時点で着手**する (それまで通常ウインドウは OS 描画で十分)。候補の描画は ToDo/23 の Popup を消費する。
+IME (TSF) の変換候補リストを OS 任せにせず、TSF のフックで OS 描画を抑制して**自前で描画**する。排他フルスクリーン (ゲーム) で日本語入力を成立させるのが目的。決定は **ADR-0008** (`ADR/0008-Custom-Ime-Candidates`、**Proposed**) が正。**排他モードが必要になった時点で着手**する (それまで通常ウインドウは OS 描画で十分)。候補の描画は ADR-0007 の Popup placement を利用する。
 
 ## 背景と現状 (調査結果)
 
@@ -36,7 +36,7 @@ void SetCandidates(ImeCandidates? candidates);   // null = 閉じる
 
 ### UI (Luxel.Controls or app)
 
-- 候補リストを **anchored Popup** (ToDo/23、Side=Below、アンカー = `ITextInput.CaretRect`) で描画: 候補行 + 選択強調 + ページ位置 (例 `3/9`)。テーマ統一
+- 候補リストを **anchored Popup** (ADR-0007、Side=Below、アンカー = `ITextInput.CaretRect`) で描画: 候補行 + 選択強調 + ページ位置 (例 `3/9`)。テーマ統一
 - 抑制の切替: **排他フルスクリーン時 (またはオプトイン API) のみ自前描画**。通常ウインドウは OS 描画を既定
 
 ### フォールバック
@@ -48,7 +48,7 @@ void SetCandidates(ImeCandidates? candidates);   // null = 閉じる
 
 1. **P1**: `ImeCandidates` モデル + `ITextInput.SetCandidates` (既定 no-op) + `UiHost.OnImeCandidates` 配線
 2. **P2**: TSF `ITfUIElementSink` の advise + `BeginUIElement`/`UpdateUIElement`/`EndUIElement` 実装、`ITfCandidateListUIElement` 読み取り。抑制フラグ (排他/オプトイン) でゲート
-3. **P3**: 候補 Popup 描画 (ToDo/23 の Popup、CaretRect アンカー、選択 + ページ)。TextEditorView/新スタックに接続
+3. **P3**: 候補 Popup 描画 (ADR-0007 の Popup、CaretRect アンカー、選択 + ページ)。TextEditorView/新スタックに接続
 4. **P4**: 実機検証 — 通常ウインドウ (OS 描画のまま) + 排他モード (自前描画) を MS-IME / Google 日本語入力で手動確認
 
 ## 罠・注意
