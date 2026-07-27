@@ -1,0 +1,55 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/TextEditorView/MultiCursor</h1></header><figure class="static-capture"><img src="images/controls-texteditorview-multicursor.png" alt="Controls/TextEditorView/MultiCursor" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/TextEditorView/MultiCursor&quot;, Height = 260, Order = 5)]
+public static Widget MultiCursor(StoryContext ctx)
+{
+    Signal&lt;string&gt; code = ctx.Signal(&quot;code&quot;, &quot;foo = 1;\nfoo = 2;\nfoo = 3;&quot;);
+    TextEditorView ed = TextEditorView(code, editorHeight: 170f, editorWidth: 460f);
+    ed.ShowLineNumbers = true;
+    (_, _, _, VectorFont mono) = EditorFaces.Value;
+    ed.EditorFont = mono;
+
+    ctx.Play(&quot;ctrl-d&quot;, async d =&gt;
+    {
+        await d.Click(ed);
+        await d.Key(Key.Up); await d.Key(Key.Up); await d.Key(Key.Home);   // 1 行目頭へ
+        await d.Key(Key.D, ctrl: true);                                    // &quot;foo&quot; を選択
+        await d.Key(Key.D, ctrl: true);                                    // 2 つ目
+        await d.Key(Key.D, ctrl: true);                                    // 3 つ目
+        await d.Expect(() =&gt; ed.CursorCount == 3, &quot;Ctrl+D&#215;3 で 3 箇所選択&quot;);
+        await d.Snap(&quot;selected&quot;);
+        await d.Type(&quot;bar&quot;);                                              // 3 箇所同時置換
+        await d.Expect(() =&gt; ed.Text == &quot;bar = 1;\nbar = 2;\nbar = 3;&quot;, &quot;1 打鍵で 3 箇所置換&quot;);
+        await d.Snap(&quot;replaced&quot;);
+    });
+    ctx.Play(&quot;column&quot;, async d =&gt;
+    {
+        await d.Click(ed);
+        await d.Key(Key.Up); await d.Key(Key.Up); await d.Key(Key.Home);   // 1 行目頭へ
+        await d.Key(Key.Down, ctrl: true, alt: true);                      // 下の行へカーソル追加
+        await d.Key(Key.Down, ctrl: true, alt: true);
+        await d.Expect(() =&gt; ed.CursorCount == 3, &quot;Ctrl+Alt+↓ で縦列 3 カーソル&quot;);
+        await d.Snap(&quot;column&quot;);
+        await d.Type(&quot;// &quot;);                                              // 縦列に一括挿入
+        await d.Expect(() =&gt; ed.Text.StartsWith(&quot;// foo&quot;) &amp;&amp; ed.Text.Contains(&quot;// foo = 3&quot;), &quot;縦列に一括挿入&quot;);
+        await d.Snap(&quot;column-typed&quot;);
+    });
+    ctx.Play(&quot;alt-click&quot;, async d =&gt;
+    {
+        // Alt+Click で追加キャレット (ADR-0011: PointerEvent の修飾キー = ポインタからのマルチカーソル)
+        float x = ed.WorldPos.X + 40;
+        await d.Click(x, ed.WorldPos.Y + 16);                             // 1 行目にキャレット
+        await d.Expect(() =&gt; ed.CursorCount == 1, &quot;クリックで単一キャレット&quot;);
+        await d.Click(x, ed.WorldPos.Y + 44, KeyModifiers.Alt);          // Alt+Click で 2 行目に追加
+        await d.Click(x, ed.WorldPos.Y + 72, KeyModifiers.Alt);          // 3 行目にも
+        await d.Expect(() =&gt; ed.CursorCount == 3, &quot;Alt+Click で 3 キャレット&quot;);
+        await d.Snap(&quot;alt-click&quot;);
+        await d.Type(&quot;X&quot;);                                               // 3 箇所同時挿入
+        await d.Expect(() =&gt; ed.CursorCount == 3, &quot;3 キャレット維持で一括挿入&quot;);
+        await d.Snap(&quot;alt-typed&quot;);
+    });
+
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(10)[
+            Heading(&quot;TextEditorView — マルチカーソル&quot;),
+            Muted(&quot;Ctrl+D 次の同一語 / Ctrl+Alt+↑↓ 縦列 / Alt+Click 追加キャレット / Esc 解除。native 複数レンジ = 1 打鍵で全箇所編集・1 undo。&quot;),
+            ed]];
+}</code></pre></details></article>

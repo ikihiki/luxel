@@ -1,0 +1,21 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/ImageView/Basic</h1></header><figure class="static-capture"><img src="images/controls-imageview-basic.png" alt="Controls/ImageView/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/ImageView/Basic&quot;, Height = 260)]
+public static Widget ImageViewBasic()
+{
+    // CPU の RGBA を SetPixels — 実体化前でも可 (pending 保持)。表示は widget サイズへ nearest 拡縮
+    ImageView view = ImageView(192, 144);
+    const int w = 64, h = 48;
+    byte[] px = new byte[w * h * 4];
+    for (int y = 0; y &lt; h; y++)
+    {
+        for (int x = 0; x &lt; w; x++)
+        {
+            int i = (y * w + x) * 4;
+            px[i] = (byte)(x * 255 / w);
+            px[i + 1] = (byte)(y * 255 / h);
+            px[i + 2] = 160;
+            px[i + 3] = 255;
+        }
+    }
+    view.SetPixels(w, h, px);
+    return Frame(view);
+}</code></pre></details></article>
