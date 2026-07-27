@@ -1,1 +1,15 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Text/EllipsisVAlign</h1></header><figure class="static-capture"><img src="images/controls-text-ellipsisvalign.png" alt="Controls/Text/EllipsisVAlign" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Text/EllipsisVAlign</h1></header><figure class="static-capture"><img src="images/controls-text-ellipsisvalign.png" alt="Controls/Text/EllipsisVAlign" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/Text/EllipsisVAlign&quot;, Height = 360)]
+public static Widget TextEllipsisVAlign()
+{
+    const string lng = &quot;The quick brown fox jumps over the lazy dog near the quiet river bank in autumn evenings.&quot;;
+    Widget Case(string title, Widget t) =&gt; VStack(2)[
+        Text(title, 11, color: Bind.From(() =&gt; UiTheme.T.TextMuted)),
+        Border(background: Bind.From(() =&gt; UiTheme.T.Surface), rounded: 6, padding: new Thickness(8), width: 300)[t]];
+    return Frame(VStack(8)[
+        Case(&quot;maxLines: 1 + …&quot;, Text(lng, 13, wrap: TextWrap.Word, maxLines: 1)),
+        Case(&quot;maxLines: 2 + …&quot;, Text(lng + &quot; &quot; + lng, 13, wrap: TextWrap.Word, maxLines: 2)),
+        Case(&quot;VAlign Center (height 70)&quot;, Text(&quot;centered&quot;, 13, wrap: TextWrap.Word, height: 70,
+            verticalAlign: TextVAlign.Center, textAlign: Luxel.Typography.TextAlign.Center)),
+        Case(&quot;VAlign Bottom (height 70)&quot;, Text(&quot;bottom right&quot;, 13, wrap: TextWrap.Word, height: 70,
+            verticalAlign: TextVAlign.Bottom, textAlign: Luxel.Typography.TextAlign.Right))]);
+}</code></pre></details></article>

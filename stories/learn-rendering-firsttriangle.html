@@ -70,4 +70,72 @@ float4 psMain(VertexOut input) : SV_Target =&gt; input.color;
 <li>三角形が崩れる → C# / Slangのstruct sizeとoffsetを確認</li>
 <li>resize後だけ壊れる → queue idle後にtarget/framebufferを再生成したか確認</li>
 </ul>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Rendering/FirstTriangle&quot;, Order = 3)]
+public static Widget FirstTriangle(StoryContext ctx)
+{
+    return DocNew(ctx, $$&quot;&quot;&quot;
+    # はじめての三角形
+
+    {{RenderingMeta(&quot;Beginner&quot;, &quot;Standalone + Gallery&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;ClearColor&quot;, previous: &quot;Learn/Rendering/ClearColor&quot;, next: &quot;Learn/Rendering/BuffersAndBindings&quot;)}}
+
+    {{StoryRef(ctx, &quot;Demos/3D/Triangle&quot;)}}
+
+    上の表示はGalleryのoffscreenデモです。コピーして動かす完全なstandalone実装は次の4ファイルです。
+
+    - `samples/LuxelTriangle/LuxelTriangle.csproj`
+    - `samples/LuxelTriangle/Program.cs`
+    - `samples/LuxelTriangle/TriangleRenderer.cs`
+    - `shaders/tutorial_triangle.slang`
+
+    ## 実sampleのABI
+
+    {{SampleSource(&quot;samples/LuxelTriangle/TutorialAbi.cs&quot;, &quot;triangle-abi&quot;)}}
+
+    ## 描画の4段階
+
+    1. `Malloc(..., HostMapped)`で3頂点を確保し、`Span&lt;Vertex&gt;`へ書く
+    2. `GpuShaderCode.Load(&quot;tutorial_triangle&quot;)`からgraphics pipelineを作る
+    3. commandへpipeline、root arguments、`Draw(3)`を記録する
+    4. submit後、readback framebufferをsurfaceへpresentする
+
+    ```csharp
+    command.BeginRendering(target, null, 0.055f, 0.07f, 0.11f, 1)
+        .SetGraphicsPipeline(pipeline)
+        .SetRootArguments(new DrawArgs { VertexBufferIndex = vertices.BindlessIndex })
+        .Draw(3)
+        .EndRendering()
+        .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+        .CopyTextureToBuffer(target, framebuffer);
+    ```
+
+    Slang側は `SV_VertexID` を使ってbindless bufferから頂点を読むため、vertex-input layout objectはありません。C#の `Vertex` とSlangの `Vertex` はどちらも `float4 position + float4 color = 32 byte` です。
+
+    ```slang
+    struct Vertex { float4 position; float4 color; }
+    struct DrawArgs { uint vertexBufferIndex; }
+    [[vk::push_constant]] DrawArgs g_args;
+    [[vk::binding(0, 0)]] RWByteAddressBuffer g_buffers[];
+
+    [shader(&quot;vertex&quot;)]
+    VertexOut vsMain(uint vertexId : SV_VertexID)
+    {
+        Vertex v = g_buffers[g_args.vertexBufferIndex].Load&lt;Vertex&gt;(vertexId * 32);
+        VertexOut o; o.position = v.position; o.color = v.color; return o;
+    }
+
+    [shader(&quot;pixel&quot;)]
+    float4 psMain(VertexOut input) : SV_Target =&gt; input.color;
+    ```
+
+    つまり最小例のdata flowは`C# Vertex[] → HostMapped buffer → BindlessIndex → root args → SV_VertexID`です。このblockと上のcommand記録を組み合わせれば、サンプルファイルを開かなくても必要なbindingを追えます。
+
+    &gt; [!NOTE]
+    &gt; 入門サンプルは処理順を明確にするため毎フレーム `SubmitAndWait` します。複数frame-in-flightとfenceによる本番向け同期は後続のFrame Loopページで扱います。
+
+    ## 典型的な失敗
+
+    - clear colorだけ見える → pipeline、shader名、root arguments、`Draw(3)`を確認
+    - 三角形が崩れる → C# / Slangのstruct sizeとoffsetを確認
+    - resize後だけ壊れる → queue idle後にtarget/framebufferを再生成したか確認
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

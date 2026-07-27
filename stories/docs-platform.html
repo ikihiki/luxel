@@ -18,4 +18,27 @@
 <li>右クリックは <code>OnContext</code> → <code>ContextMenu.Open</code> (エディタ標準の切り取り/コピー/貼り付け)</li>
 <li>クリップボードは <code>Luxel.Platform.Clipboard</code> + <code>IClipboardBackend</code> (<code>Win32ClipboardBackend</code> / <code>SilkClipboardBackend</code>) としてウィンドウから独立して構成します。リッチテキストは plain + markdown の両形式で書き込みます</li>
 </ul>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Docs/Platform&quot;, Order = 51)]
+public static Widget Platform(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # プラットフォーム (Luxel.Platform)
+
+    `Luxel.Platform` がウィンドウ、クリップボード、低レベル入力の共通公開APIを提供します。`Luxel.Platform.Windows` はCsWin32によるWin32/TSF実装、`Luxel.Platform.Silk` はSilk.NET/GLFWによるLinux/X11実装です。オフスクリーン描画 (snap / bench) とはここだけが違います。
+
+    ## ウィンドウとマルチウィンドウ
+
+    `Luxel.Platform.Windows` の `Win32Window` (CreateWindowEx + WndProc + PeekMessage) を共通 `WindowSystem` が公開し、`Luxel.UI.App` の `WindowManager` / `WindowHost` が UI ウィンドウとして束ねます。ウィンドウは複数持て、インスタンスは GWLP_USERDATA で引く正攻法 — 静的マップがないので**別スレッドの別ウィンドウ** (ネイティブ DevTools) とも共存します。マウス/ホイール/キー/WM_CHAR/リサイズは `UiHost` へ配線されます。第 2 ウィンドウを実際に開くデモは [RealWindow/Platform/SecondWindow](story:RealWindow/Platform/SecondWindow) (実窓専用) へ。
+
+    ## スワップチェーン提示
+
+    compute が書いた RGBA8 framebuffer を swapchain image へ**コピーして present** します (Vulkan = vkCmdCopyBufferToImage、D3D12 = CopyTextureRegion)。framebuffer 幅は 64 の倍数にパディングして D3D12 の 256B 行整列を満たし、可視領域のみ提示。両バックエンド R8G8B8A8 で swizzle 不要、リサイズで再生成します。
+
+    ## IME (TSF、自前 preedit)
+
+    `Luxel.Platform.ITextInputClient` が共通のIME編集面を定義し、Windowsの `TsfTextStore : ITextStoreACP` がフォーカス中のテキスト入力へ橋渡しします。`GetTextExt` がキャレット矩形を返すので変換候補ウィンドウがキャレット位置に出ます。**preedit 下線・変換対象節ハイライト・キャレットは自前描画** (`ImeComposition` モデル) — TSF の文書はフォーカス中ブロックに局所化されています ([Docs/Editor](story:Docs/Editor))。
+
+    ## カーソル・右クリック・クリップボード
+
+    - `CursorKind` (Arrow / IBeam / Hand / Resize) を `HitTarget.Cursor` で宣言 — hover 先のカーソルが WM_SETCURSOR で反映されます
+    - 右クリックは `OnContext` → `ContextMenu.Open` (エディタ標準の切り取り/コピー/貼り付け)
+    - クリップボードは `Luxel.Platform.Clipboard` + `IClipboardBackend` (`Win32ClipboardBackend` / `SilkClipboardBackend`) としてウィンドウから独立して構成します。リッチテキストは plain + markdown の両形式で書き込みます
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

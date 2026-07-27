@@ -1,1 +1,15 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/SurfaceView/Basic</h1></header><figure class="static-capture"><img src="images/controls-surfaceview-basic.png" alt="Controls/SurfaceView/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/SurfaceView/Basic</h1></header><figure class="static-capture"><img src="images/controls-surfaceview-basic.png" alt="Controls/SurfaceView/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/SurfaceView/Basic&quot;, Height = 300)]
+public static Widget SurfaceViewBasic(StoryContext ctx)
+{
+    // iframe 相当の埋め込みサーフェス — 子 RetainedCanvas + 子 UiHost + 専用 framebuffer。
+    // フォーカス/オーバーレイ/状態は子側に閉じ、入力はローカル座標で転送される
+    SurfaceView surface = SurfaceView(320, 200);
+    Signal&lt;bool&gt; on = new(false);
+    surface.SetContent(
+        Border(background: Bind.From(() =&gt; UiTheme.T.Surface), rounded: 10, padding: new Thickness(12))
+        [VStack(8)[
+            Heading(&quot;子 UiHost&quot;, 2),
+            Label(&quot;この矩形の中は独立した UI ツリー&quot;),
+            HStack(8)[Switch(on), Button(_ =&gt; ctx.Log(&quot;child click&quot;), &quot;子のボタン&quot;)]]]);
+    return Frame(surface);
+}</code></pre></details></article>

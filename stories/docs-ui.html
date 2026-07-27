@@ -30,4 +30,43 @@ Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickn
 <h2 id="section">入力とエラー境界</h2>
 <p><code>UiHost</code> がポインタ/キー/IME を前面優先でディスパッチします (Esc → Tab → フォーカス → フォーカス中コントロール → アプリ全域ショートカットの順)。ユーザーコード (Build / Effect / 入力ハンドラ) の例外は<strong>エラー境界</strong>が捕捉し、該当サブツリーを赤枠の ErrorWidget に縮退させます — アプリ全体は落ちません。</p>
 <p>次: <a href="#story=Docs%2FControls">Docs/Controls</a> (組み込みコントロールと独自コントロール) / <a href="#story=Docs%2FStyling">Docs/Styling</a> (状態別スタイルと Tailwind)。</p>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Docs/UI&quot;, Order = 20)]
+public static Widget Ui(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # 宣言的 UI (Luxel.UI)
+
+    保持型 2D 層 (RetainedCanvas) の上に、**宣言的 C# DSL + signals (細粒度リアクティブ) + 単一パスレイアウト + 入力**を提供します。フレームワークは仮想 DOM を持たず、変わった値だけが保持型キャンバスの部分更新に落ちます。
+
+    ## DSL — ベアファクトリ + indexer
+
+    構築は `Button(...)` / `VStack(...)` などの**ベアファクトリ** (ソースジェネレーターが `[UiComponent]`/`[UiParam]` から生成)、子は get-only インデクサ `[...]`、見た目はすべて省略可能引数。状態レイヤやグリッド配置などの追加宣言は **fluent 拡張** (`.When(...)` / `.Transition(...)` / `.GridColumn(1)`) をチェーンします:
+
+    ```csharp
+    var count = new Signal&lt;int&gt;(0);
+    Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(16))
+    [
+        Grid(columns: [1, 2])[
+            Text($&quot;Count: {count}&quot;, 30).GridRow(0).GridColumnSpan(2),
+            Button(_ =&gt; count.Value--, &quot;- 1&quot;).GridColumn(0),
+            Button(_ =&gt; count.Value++, &quot;+ 1&quot;).GridColumn(1)]
+    ]
+    ```
+
+    &gt; [!NOTE]
+    &gt; fluent 拡張はジェネリック this で**具象型を返す**ため、`When` / `Transition` /
+    &gt; `GridColumn` を任意の順でチェーンできます。コールバックの第一引数は
+    &gt; **発火元コントロール** (sender-first 規約) です。
+
+    ## Signals — 細粒度リアクティブ
+
+    `Signal&lt;T&gt;` / `Computed&lt;T&gt;` / `Reactive.Effect` が反応系の全部です。プロパティを `Bind.From(() =&gt; signal.Value)` で束縛すると、signal 変化で**その束縛ノードだけ** 再評価されます。色/位置の変化は保持型キャンバスのスタイル/変換書き込みだけで済み、再レイアウトも再実体化も走りません。
+
+    ## レイアウト — Flutter 風の単一パス
+
+    `Layout(Constraints, parentUsesSize) → Size` を 1 回呼び、同じ呼び出しの中で子の Offset を書きます (Measure/Arrange の 2 パスなし)。Grid は Fixed/Star/Auto、寸法は `Length` (px / % / em / vw) が使えます ([Controls/Layout/Units](story:Controls/Layout/Units) / [Controls/Grid/Columns](story:Controls/Grid/Columns))。
+
+    ## 入力とエラー境界
+
+    `UiHost` がポインタ/キー/IME を前面優先でディスパッチします (Esc → Tab → フォーカス → フォーカス中コントロール → アプリ全域ショートカットの順)。ユーザーコード (Build / Effect / 入力ハンドラ) の例外は**エラー境界**が捕捉し、該当サブツリーを赤枠の ErrorWidget に縮退させます — アプリ全体は落ちません。
+
+    次: [Docs/Controls](story:Docs/Controls) (組み込みコントロールと独自コントロール) / [Docs/Styling](story:Docs/Styling) (状態別スタイルと Tailwind)。
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

@@ -17,4 +17,29 @@
 <p>アクションマップ (コンテキスト単位の有効/無効 — 例: gameplay と menu) と <strong>キーバインドの JSON リマップ</strong> (保存/復元の round-trip) を提供します。Framework のフレームループ (<code>InputBus</code> / <code>InputStack</code>) に統合されます。Windows固有のXbox互換ゲームパッド入力は <code>Luxel.Input.XInput</code> の <code>XInputSource</code> に分離されています。</p>
 <h2 id="programmatic">programmatic 入力</h2>
 <p>ウィンドウなしで <code>host.Click(x, y)</code> / <code>host.Char(&quot;Hi&quot;)</code> / <code>host.KeyDown(Key.Tab)</code> を直接呼べます — ユニットテストや snap 前の状態強制はこの経路です。</p>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Docs/Input&quot;, Order = 52)]
+public static Widget Input(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # 入力
+
+    入力は 2 系統あります — **UI 入力** (UiHost がポインタ/キー/IME をコントロールへ配送) と、**ゲーム入力** (Luxel.Input — アクションマップとリバインド)。ゲーム入力の動くデモは [RealWindow/Input/Gamepad](story:RealWindow/Input/Gamepad) (実窓専用) へ。
+
+    ## UiHost の配送順
+
+    KeyDown は次の順で消費されます: **Esc (オーバーレイのディスミス) → Tab (フォーカス巡回) → フォーカス中コントロール → 未消費のときだけアプリ全域ショートカット**。エディタのタイプや Ctrl+B を奪わないための順序です。
+
+    ## ショートカット (KeyGesture)
+
+    `UiHost.RegisterShortcut(new KeyGesture(Key.D, Ctrl: true), action)` でアプリ全域のキーマップを登録します。この Gallery の `Ctrl+D` (テーマ切替) がこれです。フィールドフォーカス中の Ctrl+A は選択として消費され (奪わない)、Ctrl+D は TextField が消費しないので発火する — という両方向が成立します。
+
+    ## ドラッグ &amp; ドロップ
+
+    `UiHost.BeginDrag(payload, ghost)` + `HitTarget.OnDragOver/OnDrop` — ゴーストがポインタに追従し、ドロップ位置インジケータを受け手が描きます。実物は [Controls/ListView/Reorder](story:Controls/ListView/Reorder) (行の並べ替え) へ。
+
+    ## ゲーム入力 (Luxel.Input)
+
+    アクションマップ (コンテキスト単位の有効/無効 — 例: gameplay と menu) と **キーバインドの JSON リマップ** (保存/復元の round-trip) を提供します。Framework のフレームループ (`InputBus` / `InputStack`) に統合されます。Windows固有のXbox互換ゲームパッド入力は `Luxel.Input.XInput` の `XInputSource` に分離されています。
+
+    ## programmatic 入力
+
+    ウィンドウなしで `host.Click(x, y)` / `host.Char(&quot;Hi&quot;)` / `host.KeyDown(Key.Tab)` を直接呼べます — ユニットテストや snap 前の状態強制はこの経路です。
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

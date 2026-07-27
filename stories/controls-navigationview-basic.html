@@ -1,1 +1,20 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/NavigationView/Basic</h1></header><figure class="static-capture"><img src="images/controls-navigationview-basic.png" alt="Controls/NavigationView/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/NavigationView/Basic</h1></header><figure class="static-capture"><img src="images/controls-navigationview-basic.png" alt="Controls/NavigationView/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/NavigationView/Basic&quot;, Width = 760, Height = 440)]
+public static Widget NavigationViewBasic(StoryContext ctx)
+{
+    string[] paths = [&quot;/&quot;, &quot;/projects&quot;, &quot;/settings&quot;, &quot;/admin&quot;];
+    var navigation = new Navigation(&quot;/&quot;, paths.Contains);
+    var host = new NavigationHost(navigation, (path, nav) =&gt; ShellScreen(path, nav, ctx));
+
+    NavigationView view = NavigationView(
+        navigation,
+        [
+            new(&quot;/&quot;, &quot;Home&quot;),
+            new(&quot;/projects&quot;, &quot;Projects&quot;),
+            new(&quot;/settings&quot;, &quot;Settings&quot;),
+            new(&quot;/admin&quot;, &quot;Admin&quot;, IsEnabled: false),
+        ],
+        width: 680,
+        height: 340)[host];
+
+    return Frame(view);
+}</code></pre></details></article>

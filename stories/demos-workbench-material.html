@@ -1,1 +1,95 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Demos/Workbench/Material</h1></header><figure class="static-capture"><img src="images/demos-workbench-material.png" alt="Demos/Workbench/Material" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Demos/Workbench/Material</h1></header><figure class="static-capture"><img src="images/demos-workbench-material.png" alt="Demos/Workbench/Material" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Demos/Workbench/Material&quot;, Height = 470)]
+public static Widget Material(StoryContext ctx)
+{
+    var fs = new MemoryFileStorage();
+    fs.Write(&quot;mat/wood.graph&quot;, NodeGraphJson.Serialize(SampleMaterial()));
+    fs.Write(&quot;shaders/surface.slang&quot;, &quot;float4 main(float2 uv : TEXCOORD) : SV_Target\n{\n    float3 albedo = tex.Sample(s, uv).rgb;\n    return float4(albedo, 1.0);\n}\n&quot;);
+
+    var ws = new Workspace();
+    ws.RegisterProvider(new MaterialProvider());
+    ws.RegisterProvider(new SlangProvider());
+    var store = new DocumentStore(ws, fs);
+
+    var docs = new Dictionary&lt;string, IEditorDocument&gt;();
+    var tree = new Signal&lt;DockTree&gt;(DockTree.Single());
+    void OpenPath(string path)
+    {
+        if (docs.ContainsKey(path)) { tree.Value = tree.Value.ActivateTab(path); return; }
+        IEditorDocument doc = store.Open(KindOf(path), path);
+        switch (doc)
+        {
+            case TextDocument t: t.Title = System.IO.Path.GetFileName(path); break;
+            case NodeGraphDocument n: n.Title = System.IO.Path.GetFileName(path); break;
+        }
+        docs[path] = doc;
+        tree.Value = tree.Value.AddTab(tree.Value.Groups.First().Id, path);
+    }
+    OpenPath(&quot;mat/wood.graph&quot;);
+
+    Reactive.Effect(() =&gt;
+    {
+        DockGroup? g = tree.Value.Groups.FirstOrDefault();
+        if (g is { Active: &gt;= 0 } &amp;&amp; g.Active &lt; g.Tabs.Count &amp;&amp; docs.TryGetValue(g.Tabs[g.Active], out IEditorDocument? d))
+            ws.Activate(d);
+    });
+
+    var reg = new CommandRegistry();
+    reg.Register(&quot;file.save&quot;, &quot;保存&quot;, () =&gt;
+    {
+        if (ws.Active.Peek() is { } d) { store.Save(d); ctx.Log($&quot;save: {store.BindingOf(d)?.Path}&quot;); }
+    }, enabled: () =&gt; ws.Active.Peek()?.Dirty.Peek() == true, key: &quot;Ctrl+S&quot;, toolbar: true);
+
+    DockItem Resolve(string id) =&gt; new(docs[id].Title, () =&gt; docs[id].CreateView(), docs[id].Dirty);
+    DockHost host = DockHost(tree, Resolve,
+        onCloseTab: (_, id) =&gt; { if (docs.Remove(id, out IEditorDocument? d)) ws.Close(d); });
+    AssetBrowser browser = AssetBrowser(fs, expanded: new HashSet&lt;string&gt; { &quot;mat&quot;, &quot;shaders&quot; },
+        onOpen: (_, path) =&gt; OpenPath(path));
+    Toolbar toolbar = Toolbar(reg);
+    Reactive.Effect(() =&gt; { _ = ws.AnyDirty.Value; _ = ws.Active.Value; toolbar.Refresh(); });
+    StatusBar status = StatusBar(right: [Badge(&quot;エディタ＝構成&quot;, Intent.Success)]);
+    status.Left.SetBase(new Bindable&lt;Widget[]&gt;(() =&gt; ws.Active.Value is { } d &amp;&amp; store.BindingOf(d) is { } b
+        ? [Muted(b.Path), Muted($&quot;kind: {d.Kind}&quot;)] : [Muted(&quot;(未選択)&quot;)]));
+
+    Widget side = Border(background: (Func&lt;uint&gt;)(() =&gt; UiTheme.T.Surface), padding: new Thickness(8, 6, 4, 0),
+                         hAlign: Align.Stretch, vAlign: Align.Stretch)[browser];
+    side.GridColumn(0);
+    toolbar.GridRow(0);
+    host.GridRow(1);
+    status.GridRow(2);
+    Grid main = Grid(rows: [GridLength.Px(34), GridLength.Star(), GridLength.Px(Luxel.Controls.StatusBar.BarH)])[
+        toolbar, host, status];
+    main.GridColumn(1);
+    main.HAlign.SetBase(Align.Stretch);
+    main.VAlign.SetBase(Align.Stretch);
+    Grid root = Grid(columns: [GridLength.Px(170), GridLength.Star()])[side, main];
+    root.HAlign.SetBase(Align.Stretch);
+    root.VAlign.SetBase(Align.Stretch);
+
+    ctx.Play(async d =&gt;
+    {
+        reg.BindShortcuts(d.Host);
+        await d.Snap();                                        // マテリアルグラフ (Texture→Multiply→Output)
+        // 右クリックパレット → Color ノードを追加 (INodeCatalog = ドメインの宣言だけ)
+        var g = (NodeGraphDocument)docs[&quot;mat/wood.graph&quot;];
+        var view = (NodeGraphView)host.ViewOf(&quot;mat/wood.graph&quot;)!;
+        Vector2 empty = view.ClientOf(new Vector2(120, 260));
+        d.Host.ContextClick(empty.X, empty.Y);
+        await d.Step(2);
+        await d.Snap(&quot;palette&quot;);                               // Texture / Color / Multiply / Output
+        await d.Click(empty.X + 40, empty.Y + 44);             // 2 行目 &quot;Color&quot;
+        await d.Expect(() =&gt; view.NodeCount == 4, &quot;パレットからノード追加&quot;);
+        await d.Expect(() =&gt; g.Dirty.Value, &quot;グラフ編集でダーティ&quot;);
+        // Ctrl+S → JSON がストレージへ (NodeGraphJson 往復)
+        await d.Key(Key.S, ctrl: true);
+        await d.Expect(() =&gt; fs.Read(&quot;mat/wood.graph&quot;)!.Contains(&quot;\&quot;color\&quot;&quot;) &amp;&amp; !g.Dirty.Value,
+                       &quot;保存で JSON がストレージへ&quot;);
+        await d.Snap(&quot;saved&quot;);
+        // Slang シェーダ (hlsl 文法) も構成だけで開ける
+        Widget leaf = FindLink(browser, &quot;surface.slang&quot;)!;
+        await d.Click(leaf);
+        await d.Expect(() =&gt; store.DocAt(&quot;shaders/surface.slang&quot;) is not null, &quot;slang を開く&quot;);
+        await d.Snap(&quot;slang&quot;);
+    });
+
+    return root;
+}</code></pre></details></article>

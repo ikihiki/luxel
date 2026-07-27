@@ -31,4 +31,44 @@ dotnet run --project src/Luxel.Gallery -- vk bench &quot;Controls/ListView/Huge&
 <li><strong>デッドリンク検証</strong> — 実窓起動時に docs 全ページの <code>story:</code> / <code>#アンカー</code> を検査し、切れたリンクを stderr に警告します (<code>[gallery] dead link in ...</code>)</li>
 <li><strong>実窓 E2E</strong> — DebugServer の <code>/winframe</code> + <code>/cmd</code> で操作と描画を確認 (<a href="#story=Docs%2FDevTools">Docs/DevTools</a>)</li>
 </ul>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Docs/Contributing&quot;, Order = 92)]
+public static Widget Contributing(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # 貢献者向け — ビルド・テスト・回帰ゲート
+
+    ## ビルドとツール (tools/)
+
+    通常ビルドは Git 管理された `shaders/compiled/` の SPIR-V / DXIL を検証して使うため、Slang/DXC の手動導入は不要です。shader変更時だけ `dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache` を実行すると、固定版ツールを取得・SHA-256検証してcacheを更新します。
+
+    ## テストと E2E 回帰 (play + golden)
+
+    ```powershell
+    dotnet test                                                # 純ロジックのユニットテスト
+    dotnet run --project src/Luxel.Gallery -- vk e2e           # play を実行し golden と比較
+    dotnet run --project src/Luxel.Gallery -- vk e2e &quot;Button&quot;  # 部分一致フィルタ (&quot;パス#play名&quot;)
+    ```
+
+    テストは**ストーリーに同居する play** (本家 Storybook の play 関数相当) です。**golden は play 内の `d.Snap()` だけが生みます** — 初期絵の回帰だけ欲しければ `ctx.Snap(...)` で包む (または `ctx.Play(d =&gt; d.Snap())`) の 1 行、対話テストは `ctx.Play(async d =&gt; { await d.Click(btn); await d.Expect(...); await d.Snap(&quot;clicked&quot;); })` の形で、クロージャからストーリー自身の signal/widget を直接掴めます。名前付きで複数登録でき、**play ごとにストーリーは作り直されます** (独立実行)。play を持たないストーリーは golden を作りません。
+
+    golden は `src/Luxel.Gallery/goldens/{Story}[.{Play}][.{Snap名}].{vk,dx}.png` — **バックエンド別**に持ちます (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。比較はピクセル単位で、スクロールバー端などの極小 AA 差だけ許容します (最大 32px / 最大 5 階調)。それを超える差分は `.actual.png` に書き出されます。
+
+    &gt; [!IMPORTANT]
+    &gt; **verify-before-update** が運用規約です: まず `e2e` で既存 play が不変なことを確認してから、新規/意図的変更分だけ `--update` する。全 golden を無差別に `--update` して差分を握りつぶさないこと。どの play も生成しない golden は STALE として列挙されます — 消し忘れの検出用。
+
+    決定性の仕組み: 固定 dt (1/60s &#215; 8 ステップ) で warmup → シンタックスハイライトの静定待ち → dt=0 で 2 ステップ (アニメ時間を進めずドレイン)。play の操作 (Click/Type/Drag/Key) も固定 dt で刻まれます — **play 内で Task.Delay や wall-clock を使わないこと**。トランジションを挟む操作は `await d.Step(n)` で静定させてから Snap します。オフスクリーンは日本語フォールバックがなく豆腐になりますが、決定的なので回帰検出には有効です。
+
+    ## bench — canvas 更新コストの回帰ゲート
+
+    ```powershell
+    dotnet run --project src/Luxel.Gallery -- vk bench &quot;Demos/2D/Orbit&quot; 300
+    dotnet run --project src/Luxel.Gallery -- vk bench &quot;Controls/TextEditorView/Basic&quot; 300 --type
+    dotnet run --project src/Luxel.Gallery -- vk bench &quot;Controls/ListView/Huge&quot; 300 --wheel 1
+    ```
+
+    フル再構築回数 / 再構築 CPU / アップロードバイト / マネージド確保を区間計測します。期待値 (増分更新の回帰ゲート): **ライブ波形の再生 = フル再構築 0**、エディタのタイプ連打 = 再構築 ~3% (ブロック増減時のみ)、仮想化リストのスクロール = 再構築 0。
+
+    ## その他の検証
+
+    - **vk / dx ピクセル一致** — 新しい描画機能は両バックエンドで検証してから完了
+    - **デッドリンク検証** — 実窓起動時に docs 全ページの `story:` / `#アンカー` を検査し、切れたリンクを stderr に警告します (`[gallery] dead link in ...`)
+    - **実窓 E2E** — DebugServer の `/winframe` + `/cmd` で操作と描画を確認 ([Docs/DevTools](story:Docs/DevTools))
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

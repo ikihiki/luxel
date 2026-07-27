@@ -1,6 +1,7 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Docs/Gallery</h1></header><h1 id="gallery">Gallery — ストーリーの書き方</h1>
 <ul>
 <li><a href="#story-%E5%B1%9E%E6%80%A7%E3%81%A8%E3%83%AC%E3%82%B8%E3%82%B9%E3%83%88%E3%83%AA">[Story] 属性とレジストリ</a></li>
+<li><a href="#story=Docs%2FGallery&amp;section=source%E3%83%93%E3%83%A5%E3%83%BC">Sourceビュー</a></li>
 <li><a href="#story=Docs%2FGallery&amp;section=storycontext-%E2%80%94-%E3%83%9B%E3%82%B9%E3%83%88%E8%A8%AD%E5%82%99%E3%81%AE%E7%AA%93%E5%8F%A3">StoryContext — ホスト設備の窓口</a></li>
 <li><a href="#story=Docs%2FGallery&amp;section=2d-%2F-3d-%E3%83%87%E3%83%A2%E3%81%AE%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC%E5%8C%96">2D / 3D デモのストーリー化</a></li>
 <li><a href="#story=Docs%2FGallery&amp;section=%E5%AE%9F%E7%AA%93%E5%B0%82%E7%94%A8%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC">実窓専用ストーリー</a></li>
@@ -23,8 +24,10 @@
 <ul>
 <li>パスは<strong>スラッシュ区切りの階層</strong> (本家 Storybook の title 相当、深さ任意) — <code>&quot;章/コンポーネント/ストーリー名&quot;</code>。サイドバーはこれをそのまま木にします (章: Docs / Reference / Controls / Demos / Apps / RealWindow)。<code>Width</code>/<code>Height</code> (既定 480×320 — <strong>両方省略するとプレビュー領域いっぱい (fill)</strong>。docs ページはこれで、全画面モードではメイン全面に、snap では 800×480 固定で描かれます)、<code>Theme</code> (&quot;light&quot;/&quot;dark&quot;)、<code>Order</code> (並び順 — Docs 0〜 / デモ 100〜 / コントロール既定 1000 / 機能デモ 2000〜)</li>
 <li>署名は <code>static Widget M()</code> か <code>static Widget M(StoryContext ctx)</code></li>
-<li>収集は<strong>ソースジェネレーター</strong> (reflection なし) — <code>[Story]</code> を走査して module initializer で <code>StoryRegistry.Register</code> を焼き込み、<strong>メソッドの C# ソース</strong>も <code>StoryInfo.Source</code> に保存します (docs の <code>StorySource</code> はこれ)</li>
+<li>収集は<strong>ソースジェネレーター</strong> (reflection なし) — <code>[Story]</code> を走査して module initializer で <code>StoryRegistry.Register</code> を焼き込み、<strong>完全なmethod宣言の C# ソース</strong>も <code>StoryInfo.Source</code> に保存します</li>
 </ul>
+<h2 id="source">Sourceビュー</h2>
+<p>通常のstoryは下部Dockの <strong>Source</strong> タブで、属性・signature・本体を含む <code>[Story]</code> method宣言を読み取り専用・行番号・C#ハイライト付きで確認できます。静的Galleryでは各story末尾の折りたたみ <strong>Story source</strong> に同じ内容が入ります。private helper、別file、shaderは含まれないため、完全な実file/regionを教材にするときは <code>SampleSource(path, region)</code> を使います。Reference/Overviewなどproviderが実行時登録するstoryには対応するmethodがなく、Source unavailableになる場合があります。</p>
 <h2 id="storycontext">StoryContext — ホスト設備の窓口</h2>
 <ul>
 <li><code>ctx.Signal(name, initial, description)</code> — <strong>knob</strong> (右パネルで編集可)。bool / int / float / string / 色 / enum / Length に対応</li>
@@ -52,4 +55,67 @@ dotnet run --project src/Luxel.Gallery -- vk e2e [--update] [フィルタ]   # E
 dotnet run --project src/Luxel.Gallery -- vk bench &lt;story&gt; [frames] [--type|--wheel d]
 </code></pre>
 <p>実窓は <code>Ctrl+D</code> でテーマ切替、ツールバーの「全画面」でプレビューをメイン全面に。サイドバーの検索欄は docs 本文の全文検索です。docs ページの書き方は <a href="#story=Docs%2FAuthoring">Docs/Authoring</a> へ。</p>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Docs/Gallery&quot;, Order = 90)]
+public static Widget Gallery(StoryContext ctx) =&gt; ctx.Snap(DocNew(ctx, $$&quot;&quot;&quot;
+    # Gallery — ストーリーの書き方
+
+    この Gallery は Storybook 相当のカタログ + ドキュメント + 回帰基盤です。「ストーリー」= Widget を返す static メソッド 1 つで、実窓カタログ・snap 回帰・ docs への埋め込みのすべてに同じ実装が使われます。
+
+    ## [Story] 属性とレジストリ
+
+    ```csharp
+    public static class ButtonStories
+    {
+        [Story(&quot;Controls/Button/Primary&quot;, Height = 160)]
+        public static Widget Primary() =&gt; Frame(Button(_ =&gt; { }, &quot;OK&quot;));
+
+        // signal が要るときは StoryContext から — ctx.Signal(...) は自動で knob になる
+        [Story(&quot;Controls/CheckBox/Basic&quot;, Height = 160)]
+        public static Widget Check(StoryContext ctx)
+            =&gt; Frame(Check(ctx.Signal(&quot;checked&quot;, false), &quot;Subscribe&quot;));
+    }
+    ```
+
+    - パスは**スラッシュ区切りの階層** (本家 Storybook の title 相当、深さ任意) — `&quot;章/コンポーネント/ストーリー名&quot;`。サイドバーはこれをそのまま木にします (章: Docs / Reference / Controls / Demos / Apps / RealWindow)。`Width`/`Height` (既定 480&#215;320 — **両方省略するとプレビュー領域いっぱい (fill)**。docs ページはこれで、全画面モードではメイン全面に、snap では 800&#215;480 固定で描かれます)、`Theme` (&quot;light&quot;/&quot;dark&quot;)、`Order` (並び順 — Docs 0〜 / デモ 100〜 / コントロール既定 1000 / 機能デモ 2000〜)
+    - 署名は `static Widget M()` か `static Widget M(StoryContext ctx)`
+    - 収集は**ソースジェネレーター** (reflection なし) — `[Story]` を走査して module initializer で `StoryRegistry.Register` を焼き込み、**完全なmethod宣言の C# ソース**も `StoryInfo.Source` に保存します
+
+    ## Sourceビュー
+
+    通常のstoryは下部Dockの **Source** タブで、属性・signature・本体を含む `[Story]` method宣言を読み取り専用・行番号・C#ハイライト付きで確認できます。静的Galleryでは各story末尾の折りたたみ **Story source** に同じ内容が入ります。private helper、別file、shaderは含まれないため、完全な実file/regionを教材にするときは `SampleSource(path, region)` を使います。Reference/Overviewなどproviderが実行時登録するstoryには対応するmethodがなく、Source unavailableになる場合があります。
+
+    ## StoryContext — ホスト設備の窓口
+
+    - `ctx.Signal(name, initial, description)` — **knob** (右パネルで編集可)。bool / int / float / string / 色 / enum / Length に対応
+    - `ctx.Log(message)` — Log パネルへ (イベントの実演に)
+    - `ctx.Resources` — ホスト所有の ResourceSystem (キャッシュはストーリー横断共有)
+    - `ctx.Navigate(path)` — ストーリー遷移 (docs の story: リンクの実体)
+
+    ## 2D / 3D デモのストーリー化
+
+    描画結果を widget にする受け皿が 2 つあります:
+
+    - **Canvas2D(w, h, draw: / animate:(s, t))** — Scene2D を直接描く (UI と同じ保持型キャンバスの 1 ノード)。`t` は累積秒
+    - **GpuView(w, h, IGpuScene, animated:)** — offscreen に自前 GPU レンダ → bindless バッファ経由でゼロコピー合成。共通下回りは `GpuSceneBase` (Gallery 内)
+
+    &gt; [!WARNING]
+    &gt; IGpuScene の規約: **ctor は引数保持のみ** (確保は全部 Init — 起動時に全ストーリーが Build される + Dispose 後の再 Init に耐える)。**時間は Render 引数の累積秒のみ** (wall-clock 禁止 — snap の決定性)。ターゲット幅は 64 の倍数 (D3D12 の 256B 整列)。knob を絵に反映するシーンは `animated: true` (Render が毎フレーム呼ばれる)。RenderGraph は 1 フレーム使い切り — animated シーンでは Render 内で毎回作る。
+
+    ## 実窓専用ストーリー
+
+    音声再生や実デバイス入力のように offscreen の決定的描画にならない機能は `[Story(&quot;RealWindow/Audio/Tone&quot;, RealWindowOnly = true)]` にします — snap 回帰は SKIP され (golden を作らない)、Gallery アプリでは通常どおり表示されます。実例は [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone)。
+
+    ## パスと章
+
+    ストーリーパスは **ID** (golden ファイル名・`story:` リンク・E2E 参照) であると同時に、本家 Storybook の title と同じく**サイドバーの階層そのもの**です — 表示用の別マップはありません。章はパスの先頭セグメント (Docs / Reference / Controls / Demos / Apps / RealWindow)。整理・改名はパスを変えて golden を `git mv` で追従させます (ピクセルはパス非依存 — 再撮影が要るのは、パス文字列を **リンク/StoryRef の見出しとして描画している他ページ** だけ)。
+
+    ## 実行モード
+
+    ```powershell
+    dotnet run --project src/Luxel.Gallery -- vk [port] [seconds]           # 実窓 (既定 5180)
+    dotnet run --project src/Luxel.Gallery -- vk e2e [--update] [フィルタ]   # E2E 回帰 (play + golden)
+    dotnet run --project src/Luxel.Gallery -- vk bench &lt;story&gt; [frames] [--type|--wheel d]
+    ```
+
+    実窓は `Ctrl+D` でテーマ切替、ツールバーの「全画面」でプレビューをメイン全面に。サイドバーの検索欄は docs 本文の全文検索です。docs ページの書き方は [Docs/Authoring](story:Docs/Authoring) へ。
+    &quot;&quot;&quot;, toc: true));</code></pre></details></article>

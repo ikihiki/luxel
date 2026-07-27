@@ -28,7 +28,7 @@ public static Widget MyPage(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&q
 <h2 id="knobs">埋め込み + Knobs</h2>
 <p><code>StoryRef(ctx, path, knobs: true)</code> でストーリーの下に <strong>Knobs テーブル</strong> (autodoc の Controls 相当) が付きます。操作列を編集すると上の描画が変わります:</p>
 <figure class="static-capture"><a href="#story=Demos%2F2D%2FOrbit"><img src="images/demos-2d-orbit.png" alt="Demos/2D/Orbit" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
-<p><code>StorySource(path)</code> はジェネレーターが公開する <strong>[Story] method本体</strong>をコードフェンスとして差し込みます。private helper、別file、shaderまでは含まれないため「完全なsource」とは呼びません。実行可能sampleを教材の正にする場合は、build時に埋め込んだ実file/regionを表示する<code>SampleSource(path, region)</code>を使います。コントロール個別ページでは <code>DocsApi.ControlApiReference(&quot;Button&quot;)</code> で API リファレンス表が出ます (実例は <a href="#story=Controls%2FButton%2FOverview">Controls/Button/Overview</a>)。</p>
+<p><code>StorySource(path)</code> はジェネレーターが公開する <strong>完全な <code>[Story]</code> method宣言</strong> (属性・signature・本体) をコードフェンスとして差し込みます。同じコードは通常storyでも下部の <strong>Source</strong> タブから確認でき、静的Galleryでは折りたたみSourceとして表示されます。private helper、別file、shaderまでは含まれません。実行可能sampleを教材の正にする場合は、build時に埋め込んだ実file/regionを表示する<code>SampleSource(path, region)</code>を使います。コントロール個別ページでは <code>DocsApi.ControlApiReference(&quot;Button&quot;)</code> で API リファレンス表が出ます (実例は <a href="#story=Controls%2FButton%2FOverview">Controls/Button/Overview</a>)。</p>
 <h2 id="section-1">書けるもの</h2>
 <ul>
 <li>見出し / <strong>強調</strong> / <em>斜体</em> / <code>インラインコード</code></li>
@@ -60,4 +60,108 @@ w = \frac{\alpha + \beta}{\sqrt{x^2 + y^2}}
 <li>StoryRef は 1 ページ 1〜3 個まで (実体化 + snap のコストがかかる)</li>
 <li>snap (オフスクリーン回帰) は日本語フォールバックフォントがなく豆腐になりますが、決定的なので回帰検出には有効です</li>
 </ul>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Docs/Authoring&quot;, Order = 91)]
+public static Widget Authoring(StoryContext ctx)
+{
+    // snap (静定 1 フレーム) の決定性のため画像を同期 preload — 実アプリでは不要
+    _imagePreload ??= ctx.Resources.Load&lt;Luxel.Resources.CpuImage&gt;(SampleImage);
+    try { _imagePreload.Ready.Wait(3000); } catch { /* 失敗時はプレースホルダのまま */ }
+
+    Signal&lt;int&gt; count = ctx.Signal(&quot;count&quot;, 0, &quot;カウンタの現在値 (&#177; ボタンと連動)&quot;);
+    Widget counter = HStack(8)[
+        Button(_ =&gt; { count.Value--; ctx.Log(&quot;counter: -1&quot;); }, &quot;-&quot;),
+        Text($&quot; {count} &quot;, 20, vAlign: Align.Center),
+        Button(_ =&gt; { count.Value++; ctx.Log(&quot;counter: +1&quot;); }, &quot;+&quot;)];
+
+    Widget doc = DocNew(ctx, $$$&quot;&quot;&quot;&quot;
+        # docs ページの書き方
+
+        docs ページは **補完文字列 + markdown** で書きます。リテラル部分は markdown として整形され、hole に `Widget` を置くとその場に**ライブ UI** が埋め込まれます。カラー絵文字 :smile: :rocket: :+1: と &quot;smart quotes&quot; -- SmartyPants も効きます。リンクも張れます: [Docs/Button を開く](story:Docs/Button) / [書けるもの へ](#書けるもの) / [No Graphics API (外部)](https://www.sebastianaaltonen.com/blog/no-graphics-api)
+
+        ## ページの骨格
+
+        `[Story(&quot;Docs/...&quot;)]` + `Kit.Docs` + `WithDocFonts` (日本語/絵文字フォールバック + シンタックスハイライト + mermaid/math widget の配線) が定型です。文字列は `$$&quot;&quot;&quot;` (hole = 波かっこ 2 連) にすると、C# コード例の波かっこ 1 連がそのままリテラルになります:
+
+        ```csharp
+        [Story(&quot;Docs/MyPage&quot;, Order = 50)]
+        public static Widget MyPage(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+            # 見出し
+
+            本文。hole にはライブ UI が置けます: {{Button(_ =&gt; ctx.Log(&quot;hi&quot;), &quot;押す&quot;)}}
+
+            コード例の波かっこはリテラルです: new Args { Count = n }
+
+            {{StoryRef(ctx, &quot;Controls/Button/Variants&quot;, knobs: true)}}
+            &quot;&quot;&quot;, toc: true);
+        ```
+
+        `Order` がサイドバーの並び、`toc: true` で H2/H3 の目次が H1 直後に入ります。ページの H2/H3 はサイドバーのツリーにも出るので、節の粒度 = ナビゲーションの粒度です。
+
+        ## ライブ UI
+
+        下のカウンタは本物です — クリックすると Log パネルに出て、値も動きます:
+
+        {{{counter}}}
+
+        文中への差し込みもできます: 状態 {{{Badge(&quot;Ready&quot;, Intent.Success):inline}}} やボタン {{{Button(_ =&gt; ctx.Log(&quot;inline click&quot;), &quot;押す&quot;, fontSize: 12f):inline}}} が行内に混ざります。
+
+        ## 埋め込み + Knobs
+
+        `StoryRef(ctx, path, knobs: true)` でストーリーの下に **Knobs テーブル** (autodoc の Controls 相当) が付きます。操作列を編集すると上の描画が変わります:
+
+        {{{StoryRef(ctx, &quot;Demos/2D/Orbit&quot;, knobs: true)}}}
+
+        `StorySource(path)` はジェネレーターが公開する **完全な `[Story]` method宣言** (属性・signature・本体) をコードフェンスとして差し込みます。同じコードは通常storyでも下部の **Source** タブから確認でき、静的Galleryでは折りたたみSourceとして表示されます。private helper、別file、shaderまでは含まれません。実行可能sampleを教材の正にする場合は、build時に埋め込んだ実file/regionを表示する`SampleSource(path, region)`を使います。コントロール個別ページでは `DocsApi.ControlApiReference(&quot;Button&quot;)` で API リファレンス表が出ます (実例は [Controls/Button/Overview](story:Controls/Button/Overview))。
+
+        ## 書けるもの
+
+        - 見出し / **強調** / *斜体* / `インラインコード`
+        - リスト・引用・コードブロック・テーブル (markdown のまま)
+        - `&gt; [!TIP]` / `&gt; [!WARNING]` などのコールアウト
+        - hole によるライブ UI と他ストーリーの埋め込み (`StoryRef`、`knobs: true` で操作テーブル)
+        - `story:` リンクでストーリー遷移 (起動時に**デッドリンク検証**が走る)、`#見出し` でページ内スクロール、http(s) は既定ブラウザ
+        - 画像 (Resource システム経由、URI キャッシュ + RefCount):
+
+        ![サンプル画像 (Sparkline golden)]({{{SampleImage}}})
+
+        数式はインライン $E = mc^2$ / $\pi r^2$ (Unicode 正規化) と、$$ ブロック (自前組版):
+
+        $$
+        M = \begin{bmatrix} m_{00} &amp; m_{01} \\ m_{10} &amp; m_{11} \end{bmatrix} ,
+        w = \frac{\alpha + \beta}{\sqrt{x^2 + y^2}}
+        $$
+
+        ダイアグラムは ```mermaid フェンス (flowchart サブセット) — エンジン自身の Scene2D で描画されます:
+
+        ```mermaid
+        flowchart LR
+        app[GalleryApp] --&gt; host[UiHost]
+        host --&gt; canvas[RetainedCanvas]
+        host --&gt;|Load| res(Resources)
+        canvas --&gt;|dispatch| gpu(GPU)
+        ```
+
+        ## 制約と落とし穴
+
+        &gt; [!TIP]
+        &gt; `$` の数が hole の波かっこの数を決めます。docs ページは `$$&quot;&quot;&quot;` で書けば hole は波かっこ 2 連、コード例や TeX の波かっこ 1 連はリテラルです。hole の記法 (2 連) 自体を文章に見せたいページは `$` を 3 つに増やして hole を 3 連にします — このページがそうです。本文に `&quot;&quot;&quot;` を含むときは引用符も 4 連に増やします。
+
+        - hole は**ブロックレベル** (行内は `:inline` 書式指定のみ)。空行も含め、書いた改行がそのまま表示されます — **段落は折り返さず 1 行で書き**、画面幅への折り返しはレイアウトに任せます
+        - テキスト hole (Signal や値) は**構築時の値が焼き込まれ**ます (非リアクティブ)
+        - `DocMarkdown` の hole は生 markdown の差し込み — `StorySource` のように **実行時に組み立てた markdown** を入れる用途に使います
+        - 埋め込みストーリーの knob 名がページ側と衝突したら後勝ち
+        - StoryRef は 1 ページ 1〜3 個まで (実体化 + snap のコストがかかる)
+        - snap (オフスクリーン回帰) は日本語フォールバックフォントがなく豆腐になりますが、決定的なので回帰検出には有効です
+        &quot;&quot;&quot;&quot;, toc: true);
+    // golden ①先頭、②「ライブ UI」見出しへスクロールして**行内 widget** (Badge/Button の :inline hole) を映す
+    ctx.Play(async d =&gt;
+    {
+        await d.Snap();
+        if (doc is TextEditorView tev)
+            foreach (MarkdownHeading h in MarkdownDecorations.Headings(tev.DocSource!))
+                if (h.Text == &quot;ライブ UI&quot;) { tev.ScrollToSource(h.Offset); break; }
+        await d.Step(2);
+        await d.Snap(&quot;inline&quot;);
+    });
+    return doc;
+}</code></pre></details></article>

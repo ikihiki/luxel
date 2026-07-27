@@ -1,1 +1,16 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/TableBlock/Basic</h1></header><figure class="static-capture"><img src="images/controls-tableblock-basic.png" alt="Controls/TableBlock/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/TableBlock/Basic</h1></header><figure class="static-capture"><img src="images/controls-tableblock-basic.png" alt="Controls/TableBlock/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/TableBlock/Basic&quot;, Height = 260)]
+public static Widget TableBlockBasic(StoryContext ctx)
+{
+    // GFM pipe table のブロック widget。セルをクリックして直接編集、Tab/Enter で移動、
+    // 最下段 Enter で行追加 — 編集確定ごとに commit が呼ばれる
+    var payload = new TablePayload(
+        [
+            [&quot;名前&quot;, &quot;値&quot;, &quot;備考&quot;],
+            [&quot;alpha&quot;, &quot;1&quot;, &quot;最初の行&quot;],
+            [&quot;beta&quot;, &quot;2&quot;, &quot;&quot;],
+            [&quot;gamma&quot;, &quot;3&quot;, &quot;最後の行&quot;],
+        ],
+        [TableAlign.Left, TableAlign.Right, TableAlign.Left]);
+    return Frame(TableBlock(payload, 420,
+        p =&gt; ctx.Log($&quot;commit: {p.Rows.Count} 行&quot;)));
+}</code></pre></details></article>

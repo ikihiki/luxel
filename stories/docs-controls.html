@@ -78,4 +78,68 @@ public sealed partial class MyPanel : CompositeControl
 <li>model を <strong>フィールドで持てば再実体化をまたいで位置が生き残る</strong></li>
 <li>平滑スクロール (UiStates) と併用するときは <code>displayOffset</code> に動的値、<code>onDirectChange</code> でドラッグの即時チャネルへ切り替える (ScrollViewer/ListView の形)</li>
 </ul>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Docs/Controls&quot;, Order = 21)]
+public static Widget Controls(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # コントロール (Luxel.Controls)
+
+    Button から RichTextEditor まで 40 超のコントロール群です。**実物はサイドバーの各章にあります** — このページは地図と、独自コントロールの書き方です。各コントロールの引数/イベント/パラメータは、そのカテゴリ直下の `Overview` (例: [Controls/Button/Overview](story:Controls/Button/Overview)) にあります。
+
+    ## カタログ
+
+    - **入力/選択**: [Button](story:Docs/Button) / [CheckBox](story:Controls/CheckBox/Basic) / [Switch](story:Controls/Switch/Basic) / [Slider](story:Controls/Slider/Basic) / [Segmented](story:Controls/Segmented/Basic) / [Radios](story:Controls/Radios/Basic) / [Select](story:Controls/Select/Basic) / [LengthField](story:Controls/LengthField/Basic)
+    - **テキスト**: [TextField](story:Controls/TextField/Basic) / [TextEditorView](story:Controls/TextEditorView/Basic) / [SearchField](story:Controls/SearchField/Basic) / [Markdown 編集 (Live Preview)](story:Controls/TextEditorView/LivePreview) / [RichText 表示](story:Controls/RichText/Basic)
+    - **コンテナ/ナビゲーション**: [Border](story:Controls/Border/Card) / [Grid](story:Controls/Grid/Columns) / [ScrollViewer](story:Controls/ScrollViewer/Basic) / [WrapPanel](story:Controls/WrapPanel/Basic) / [ListView (仮想化)](story:Controls/ListView/Huge) / [NavigationView](story:Controls/NavigationView/Basic) / [Navigation履歴](story:Demos/UI/Navigation)
+    - **オーバーレイ**: [Dialog](story:Controls/Dialog/Basic) / [Toast](story:Controls/Toast/Basic) / [Drawer](story:Controls/Drawer/Basic) / [Tooltip](story:Controls/Tooltip/Basic) / [Dropdown](story:Controls/Dropdown/Basic) / [Tabs](story:Controls/Tabs/Basic) / [Accordion](story:Controls/Accordion/Basic)
+    - **表示**: [Badge/Chip](story:Controls/Kit/Badges) / [Alert](story:Controls/Kit/Alert) / [Spinner](story:Controls/Spinner/Basic) / [Icon](story:Controls/Icon/Kinds) / [Sparkline](story:Controls/Sparkline/Basic)
+
+    ## 横断基盤
+
+    - **テーマ**: `UiTheme.T` (Light/Dark) — Variant &#215; Intent &#215; 状態から配色を解決。`Ctrl+D` で切替
+    - **フォーカス**: Tab 巡回 + FocusRing、キー入力はフォーカス優先で配送
+    - **オーバーレイ**: Dialog/Toast/Drawer は overlay レイヤに実体化 (Esc / 外側クリック)
+    - **仮想化**: ListView は可視行プールだけを実体化 — 10 万行でもスクロール/選択が破綻しません ([Controls/ListView/Huge](story:Controls/ListView/Huge))
+
+    ## CompositeControl — 独自コントロールを書く
+
+    既存コントロールを**宣言的に組み合わせる**基底です。`Build()` がサブツリーを返し、レイアウト/実体化は委譲 — 手書きの PerformLayout/RealizeCore は書きません:
+
+    ```csharp
+    [UiComponent]
+    public sealed partial class MyPanel : CompositeControl
+    {
+        private readonly Signal&lt;string&gt; _query = new(&quot;&quot;);   // 値状態 (細粒度反映)
+        private readonly TextArea _editor;                  // 状態を保つ子はフィールド保持
+
+        protected override Widget Build()                   // 構造だけを宣言
+            =&gt; VStack(spacing: 4)[
+                   HStack(spacing: 6)[Button(_ =&gt; Run(), &quot;Run&quot;)],
+                   _editor];
+
+        protected override void OnRealize(UiBuildContext ctx)
+            =&gt; ctx.AddAnimation(dt =&gt; { Tick(dt); return false; });
+    }
+    ```
+
+    状態は 3 層の規約で持ちます:
+
+    | 層 | 置き場所 | 更新経路 |
+    | --- | --- | --- |
+    | 外部 props | `[UiParam] Bindable&lt;T&gt;` フィールド | 呼び出し側/knobs が束縛 — Effect で細粒度反映 |
+    | 内部の値状態 | `private Signal&lt;T&gt;` | getter 束縛で子へ配線 (Rebuild 不要) |
+    | 内部の構造状態 | private フィールド | 変更したら `Rebuild()` を明示 |
+
+    **状態を保つ子はフィールドに保持して Build() で参照を組み込む**のが鍵です — Rebuild はコンテナだけ作り直し、TextArea 等のインスタンスは生き残ります。実例が SearchField (タイプ → 候補絞り込み = 構造状態 → Rebuild):
+
+    {{StoryRef(ctx, &quot;Controls/SearchField/Basic&quot;)}}
+
+    &gt; [!TIP]
+    &gt; 完全自前描画が要るときだけ従来どおり `Widget` を直接派生します。`[UiComponent] partial` を付ければ生成ファクトリ / DebugProps / knobs が自動で付きます。
+
+    ## スクロールの共通機構 (ScrollModel / ScrollBars)
+
+    スクロールを自前実装するコントロールは `ScrollModel` (クランプ・サム幾何・ドラッグ写像の計算) と `ScrollBars.AttachVertical` (サム描画 + ドラッグ配線) を使います — ScrollViewer / ListView / RichTextEditor は全部この機構の上にあります。
+
+    - **オフセットだけでなく内容長/ビューポート長も Signal** — `SetLengths(contentH, viewH)` を Refresh/レイアウトから毎回呼ぶ (同値なら発火しない)。幅変更で内容高が変わっても、`model.Clamped` を読む effect (content transform) が再実行され、**スクロール位置は保たれたまま**新しい範囲へクランプされる
+    - model を **フィールドで持てば再実体化をまたいで位置が生き残る**
+    - 平滑スクロール (UiStates) と併用するときは `displayOffset` に動的値、`onDirectChange` でドラッグの即時チャネルへ切り替える (ScrollViewer/ListView の形)
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

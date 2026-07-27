@@ -1,1 +1,6 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Demos/Animation/Graph</h1></header><figure class="static-capture"><img src="images/demos-animation-graph.png" alt="Demos/Animation/Graph" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Demos/Animation/Graph</h1></header><figure class="static-capture"><img src="images/demos-animation-graph.png" alt="Demos/Animation/Graph" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Demos/Animation/Graph&quot;, Height = 320, Order = 144)]
+public static Widget Graph(StoryContext ctx)
+{
+    Signal&lt;float&gt; weight = ctx.Signal(&quot;weight&quot;, 0.5f, &quot;Blend: 0 = 上下振動, 1 = 左右振動&quot;);
+    return Frame(GpuView(256, 256, new GraphScene(weight)));
+}</code></pre></details></article>

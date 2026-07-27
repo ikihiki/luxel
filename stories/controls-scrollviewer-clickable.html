@@ -1,1 +1,11 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/ScrollViewer/Clickable</h1></header><figure class="static-capture"><img src="images/controls-scrollviewer-clickable.png" alt="Controls/ScrollViewer/Clickable" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/ScrollViewer/Clickable</h1></header><figure class="static-capture"><img src="images/controls-scrollviewer-clickable.png" alt="Controls/ScrollViewer/Clickable" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/ScrollViewer/Clickable&quot;, Height = 260)]
+public static Widget ScrollClickable(StoryContext ctx)
+{
+    Signal&lt;string&gt; last = ctx.Signal(&quot;lastClicked&quot;, &quot;(none)&quot;);
+    var rows = Enumerable.Range(1, 20)
+        .Select(i =&gt; (Widget)Button(_ =&gt; { last.Value = $&quot;Row {i}&quot;; ctx.Log($&quot;Row {i} clicked&quot;); }, $&quot;Row {i}&quot;, height: 30f))
+        .ToArray();
+    return Frame(VStack(8)[
+        Text($&quot;clicked: {last}&quot;, 14, color: Bind.From(() =&gt; UiTheme.T.Text)),
+        Scroll(160f, width: 240)[VStack(4)[rows]]]);
+}</code></pre></details></article>

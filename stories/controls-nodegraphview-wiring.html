@@ -1,1 +1,47 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/NodeGraphView/Wiring</h1></header><figure class="static-capture"><img src="images/controls-nodegraphview-wiring.png" alt="Controls/NodeGraphView/Wiring" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/NodeGraphView/Wiring</h1></header><figure class="static-capture"><img src="images/controls-nodegraphview-wiring.png" alt="Controls/NodeGraphView/Wiring" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/NodeGraphView/Wiring&quot;, Height = 460, Order = 2)]
+public static Widget Wiring(StoryContext ctx)
+{
+    NodeGraphView ed = NodeGraphView(source: WireGraph(), viewWidth: 620f, viewHeight: 380f);
+
+    ctx.Play(&quot;connect&quot;, async d =&gt;
+    {
+        await d.Snap();                              // 初期: A→B の 1 辺
+        Vector2 from = ed.PortScreen(2, 1);          // B の出力
+        Vector2 to = ed.PortScreen(3, 0);            // C の入力
+        // 進行中ワイヤを互換ポート上で撮る (手動ポインタ列)
+        d.Host.PointerDown(from.X, from.Y);
+        await d.Step(1);
+        d.Host.PointerMove(to.X, to.Y);              // C の入力に重ねる → 緑
+        await d.Step(1);
+        await d.Snap(&quot;dragging&quot;);                    // 緑の進行中ワイヤ (互換ポート上)
+        d.Host.PointerUp(to.X, to.Y);
+        await d.Step(2);
+        await d.Expect(() =&gt; ed.EdgeCount == 2, &quot;互換ポートで接続&quot;);
+        await d.Snap(&quot;connected&quot;);
+    });
+
+    ctx.Play(&quot;disconnect&quot;, async d =&gt;
+    {
+        Vector2 mid = ed.EdgeMidScreen(10);          // A→B の中点
+        await d.Click(mid.X, mid.Y);                 // 辺を選択 (+ フォーカス)
+        await d.Expect(() =&gt; ed.IsEdgeSelected(10), &quot;辺クリックで選択&quot;);
+        await d.Snap(&quot;selected&quot;);
+        await d.Key(Key.Delete);                     // 切断
+        await d.Expect(() =&gt; ed.EdgeCount == 0, &quot;Delete で切断&quot;);
+        await d.Snap(&quot;cut&quot;);
+    });
+
+    ctx.Play(&quot;invalid&quot;, async d =&gt;
+    {
+        Vector2 aOut = ed.PortScreen(1, 0);          // A の出力
+        Vector2 bOut = ed.PortScreen(2, 1);          // B の出力 (同方向 = 不可)
+        await d.Drag(aOut.X, aOut.Y, bOut.X, bOut.Y);
+        await d.Expect(() =&gt; ed.EdgeCount == 1, &quot;同方向ポートは接続不可&quot;);
+    });
+
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(10)[
+            Heading(&quot;NodeGraphView — 配線&quot;),
+            Muted(&quot;ポートからドラッグ → 進行中ワイヤ (緑=可/赤=不可) → 互換ポートで接続。辺クリック選択 → Delete で切断。&quot;),
+            ed]];
+}</code></pre></details></article>

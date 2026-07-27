@@ -76,4 +76,61 @@
 <li><a href="#story=Docs%2FAuthoring">Docs/Authoring</a> — docs ページの書き方 (ADR も同じ仕組み)</li>
 <li><a href="https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions">Documenting Architecture Decisions — Michael Nygard (外部)</a></li>
 </ul>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;ADR/Overview&quot;, Order = 70)]
+public static Widget Overview(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # Architecture Decision Records (ADR)
+
+    ADR は「**なぜそう決めたか**」を 1 決定 1 ページで残す軽量な記録です。コードや docs は *現在の姿* を説明しますが、ADR は *その姿を選んだ理由* と *検討したが捨てた選択肢* を時系列で残します。後から「なぜ X なのか」を掘り起こす時間を無くすのが目的です。
+
+    ## 新しい ADR の追加
+
+    1. [ADR/Template](story:ADR/Template) のコードをコピーする
+    2. 次の連番で `[Story(&quot;ADR/NNNN-短いタイトル&quot;, Order = 71 + 番号)]` を作る (例: 2 本目なら `ADR/0002-...`, `Order = 73`)
+    3. **Status / Context / Decision / Alternatives / Consequences** の各節を埋める
+    4. この索引の「記録一覧」に 1 行追加する
+    5. `dotnet build` — ソースジェネレーターが自動でサイドバーへ登録します
+
+    &gt; [!TIP]
+    &gt; ADR は**不変の記録**です。誤字修正以外は「上書き」ではなく「新しい ADR で置き換え」。決定を変えるときは古い ADR の Status を `Superseded by ADR-NNNN` にし、新しい ADR を追加します。これで決定の履歴が線形に残ります。
+
+    ## ステータスの意味
+
+    | Status | 意味 |
+    | --- | --- |
+    | Proposed | 提案中 (議論・レビュー待ち) |
+    | Accepted | 採用済み (現行の決定) |
+    | Superseded by ADR-NNNN | 後続の ADR に置き換えられた |
+    | Deprecated | もう当てはまらないが記録として残す |
+
+    ## 何を ADR にするか
+
+    目安は「**後で理由を聞かれそうな、後戻りしにくい選択**」です。ライブラリ選定・レイヤ境界・全体を貫く規律 (例: vk/dx ピクセル一致、docs の Gallery 一本化)・重い方針転換など。瑣末なリファクタや局所的な実装詳細は ADR にしません。
+
+    ## 記録一覧
+
+    - [ADR-0001 — アーキテクチャ決定を ADR として Gallery に記録する](story:ADR/0001-Record-Architecture-Decisions) — **Accepted** (2026-07-08)
+    - [ADR-0002 — 3D グラフィック API は「薄い bindless 抽象」を自作する](story:ADR/0002-Thin-Bindless-Gpu-Abstraction) — **Accepted** (2026-07-08)
+    - [ADR-0003 — UI は「宣言的 C# DSL + signals」を自作する](story:ADR/0003-Declarative-Signal-Ui) — **Accepted** (2026-07-08)
+    - [ADR-0004 — 2D はコンピュートラスタライザ + 保持型キャンバス](story:ADR/0004-Compute-Rasterizer-Retained-2D) — **Accepted** (2026-07-08)
+    - [ADR-0005 — ドキュメントとサンプルは Gallery に一本化する](story:ADR/0005-Docs-In-Gallery) — **Accepted** (2026-07-04)
+    - [ADR-0006 — テキストエディタは Transaction ベースの新スタックを新規に作る](story:ADR/0006-Editor-New-Stack) — **Accepted** (2026-07-08)
+    - [ADR-0007 — 浮遊 UI は単一の anchored placement エンジンに統一する](story:ADR/0007-Floating-Ui-Placement) — **Accepted** (2026-07-08)
+    - [ADR-0008 — IME 候補ウインドウを自前描画する (排他モード対応)](story:ADR/0008-Custom-Ime-Candidates) — **Proposed** (2026-07-08)
+    - [ADR-0009 — ノードエディタは汎用の Transaction ベース新スタックとして作る](story:ADR/0009-Node-Editor-Stack) — **Accepted** (2026-07-08)
+    - [ADR-0010 — 複数エディタを束ねる Workbench フレームワークを新規に作る](story:ADR/0010-Workbench-Framework) — **Accepted** (2026-07-09)
+    - [ADR-0011 — PointerEvent にボタンと修飾キーを通す](story:ADR/0011-Pointer-Button-Modifiers) — **Accepted** (2026-07-09)
+    - [ADR-0012 — Markdown/リッチ文書はテキスト新スタックの構成として実装する](story:ADR/0012-Rich-Document-Stack) — **Accepted** (2026-07-09)
+    - [ADR-0013 — メニューは CommandRegistry を単一の真実として全サーフェスを生成する](story:ADR/0013-Menu-Command-System) — **Accepted** (2026-07-09)
+    - [ADR-0014 — Workbench 基盤 UI コントロール群を新設する](story:ADR/0014-Workbench-Ui-Controls) — **Accepted** (2026-07-09)
+    - [ADR-0015 — ゲームプロジェクト/シーン形式はエディタ専用モデル + 一方向コンパイルにする](story:ADR/0015-Game-Project-Scene-Format) — **Accepted** (2026-07-10)
+    - [ADR-0016 — シーンエディタは第 3 の Transaction スタック + 空間アダプタで作る](story:ADR/0016-Scene-Editor-Stack) — **Accepted** (2026-07-11)
+    - [ADR-0017 — プレイインエディタは「都度コンパイル + 停止で破棄」の別インスタンスで動かす](story:ADR/0017-Play-In-Editor) — **Accepted** (2026-07-11)
+    - [ADR-0018 — ゲームの挙動は csx ビヘイビア (状態レス Update) で書く](story:ADR/0018-Csx-Behaviour-Model) — **Accepted** (2026-07-11)
+
+    ## 参考
+
+    - [Docs/Architecture](story:Docs/Architecture) — 現在のレイヤ構成 (ADR は「なぜその構成か」を補う)
+    - [Docs/Contributing](story:Docs/Contributing) — ビルド・テスト・回帰ゲート
+    - [Docs/Authoring](story:Docs/Authoring) — docs ページの書き方 (ADR も同じ仕組み)
+    - [Documenting Architecture Decisions — Michael Nygard (外部)](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

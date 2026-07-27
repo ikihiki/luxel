@@ -90,4 +90,43 @@ surface.Present(framebuffer, stridePixels, width, height);
 <h2 id="resize">Resize</h2>
 <p>resize callbackでは即座にGPU resourceを破棄せず、次のevent-loop iterationでqueueをidleにしてからsurface、render target、framebufferを作り直します。最小化中の0×0では描画を休止します。</p>
 <p>D3D12のtexture readback row pitchは256 byte単位なので、RGBA8のstrideは64 pixel単位へ揃えます。<code>Present</code>には実際のwidthと、揃えたstrideの両方を渡します。</p>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Rendering/ClearColor&quot;, Order = 2)]
+public static Widget ClearColor(StoryContext ctx)
+{
+    return DocNew(ctx, $&quot;&quot;&quot;
+    # ウィンドウとClear Color
+
+    {RenderingMeta(&quot;Beginner&quot;, &quot;Standalone&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;Environment&quot;, previous: &quot;Learn/Rendering/Environment&quot;, next: &quot;Learn/Rendering/FirstTriangle&quot;)}
+
+    `samples/LuxelTriangle/Program.cs` がstandaloneアプリの外枠です。責務は次の順です。
+
+    ```text
+    WindowSystem → Window → GpuDevice → GpuSurface
+                 → event loop → Render → Present
+    ```
+
+    `GpuSurface`へrender targetを直接渡すのではなく、RGBA8のCPU可視framebufferを渡します。サンプルはGPU render targetをclearし、三角形を描き、`CopyTextureToBuffer`でframebufferへコピーします。三角形を外してもclear colorだけは表示されるため、window / surface / presentの切り分けに使えます。
+
+    ```csharp
+    command.BeginRendering(target, null, 0.055f, 0.07f, 0.11f, 1)
+        .EndRendering()
+        .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+        .CopyTextureToBuffer(target, framebuffer);
+    command.Finish();
+    device.MainQueue.SubmitAndWait(command);
+    surface.Present(framebuffer, stridePixels, width, height);
+    ```
+
+    ## 実sampleのframe loop
+
+    次は`Program.cs`からbuild時に埋め込んだ実コードです。説明用コピーではなく、sampleがコンパイルする同じregionを表示しています。
+
+    {SampleSource(&quot;samples/LuxelTriangle/Program.cs&quot;, &quot;standalone-frame-loop&quot;)}
+
+    ## Resize
+
+    resize callbackでは即座にGPU resourceを破棄せず、次のevent-loop iterationでqueueをidleにしてからsurface、render target、framebufferを作り直します。最小化中の0&#215;0では描画を休止します。
+
+    D3D12のtexture readback row pitchは256 byte単位なので、RGBA8のstrideは64 pixel単位へ揃えます。`Present`には実際のwidthと、揃えたstrideの両方を渡します。
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

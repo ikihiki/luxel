@@ -1,1 +1,29 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/TextEditorView/BlockWidgetAuto</h1></header><figure class="static-capture"><img src="images/controls-texteditorview-blockwidgetauto.png" alt="Controls/TextEditorView/BlockWidgetAuto" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/TextEditorView/BlockWidgetAuto</h1></header><figure class="static-capture"><img src="images/controls-texteditorview-blockwidgetauto.png" alt="Controls/TextEditorView/BlockWidgetAuto" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/TextEditorView/BlockWidgetAuto&quot;, Height = 300, Order = 11)]
+public static Widget BlockWidgetAuto(StoryContext ctx)
+{
+    // ブロック widget 自動高さ (WS-A / ADR-0012): Height=0 は「宣言しない」= view が widget の自然高さを
+    // 測って geometry に返し、その高さぶんを確保する (埋め込みライブ UI の前提)。範囲 [11,22) = 中間 1 行。
+    Signal&lt;string&gt; text = ctx.Signal(&quot;text&quot;, &quot;Intro line\nPLACEHOLDER\nOutro line&quot;);
+    TextEditorView ed = TextEditorView(text, editorHeight: 220f, editorWidth: 460f);
+    ed.WrapText = true;
+    ed.WidgetResolver = key =&gt; key as string == &quot;auto&quot;
+        ? Border(background: Bind.From(() =&gt; Styles.WithAlpha(UiTheme.T.Primary, 30)), padding: new Thickness(12))[
+              VStack(4)[
+                  Text(&quot;Auto-height block widget&quot;, color: Bind.From(() =&gt; UiTheme.T.Primary)),
+                  Text(&quot;declares no height (0) —&quot;, color: Bind.From(() =&gt; UiTheme.T.Text)),
+                  Text(&quot;the editor measures its content and reserves it.&quot;, color: Bind.From(() =&gt; UiTheme.T.Text))]]
+        : null;
+
+    ctx.Play(async d =&gt;
+    {
+        ed.SetDecorations(&quot;block&quot;, new DecorationSet([new BlockWidgetDecoration(11, 22, &quot;auto&quot;, 0f)]));
+        await d.Step(3);   // 実測 → 次フレーム採用 の収束を待つ
+        await d.Snap(&quot;auto&quot;);
+    });
+
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(10)[
+            Heading(&quot;TextEditorView — ブロック widget (自動高さ)&quot;),
+            Muted(&quot;Height=0 で widget の自然高さを測って確保。宣言不要 = 埋め込みライブ UI の前提。&quot;),
+            ed]];
+}</code></pre></details></article>

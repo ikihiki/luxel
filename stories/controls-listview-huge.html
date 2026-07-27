@@ -1,1 +1,8 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/ListView/Huge</h1></header><figure class="static-capture"><img src="images/controls-listview-huge.png" alt="Controls/ListView/Huge" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/ListView/Huge</h1></header><figure class="static-capture"><img src="images/controls-listview-huge.png" alt="Controls/ListView/Huge" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/ListView/Huge&quot;, Height = 260)]
+public static Widget ListViewHuge(StoryContext ctx)
+{
+    // 仮想化ゲート (AP-M3): 10 万行でも実体化は可視行プールのみ、スクロール/選択が破綻しない
+    ListView lv = ListView(180f, 18f, onSelect: (_, i) =&gt; ctx.Log($&quot;selected: {i}&quot;),
+        items: new Signal&lt;IReadOnlyList&lt;string&gt;&gt;(Enumerable.Range(1, 100_000).Select(i =&gt; $&quot;Row {i:n0}&quot;).ToArray()), width: 260f);
+    return Frame(lv);
+}</code></pre></details></article>

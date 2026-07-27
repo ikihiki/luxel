@@ -31,4 +31,41 @@
 </div>
 <h2 id="api">どのAPIまで学ぶか</h2>
 <p>R1の三角形、R2のbuffer ABIとshader cache、R3のtexture付きquadからdepth/culling/方向光に続き、R4ではframe loopとRenderGraphへ進みます。<code>--stage graph</code>でdirect描画を1 passへ移し、<code>--stage post</code>でtransient resourceとcompute post-processを追加します。R5では2D、ECSを使わない静的glTF、デバッグ、publishまで進みます。複数frame-in-flightは本番設計として説明しますが、現在の公開queue APIとtutorialはper-frame fenceをまだ提供しません。</p>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Rendering/Overview&quot;, Order = 0)]
+public static Widget Overview(StoryContext ctx)
+{
+    return DocNew(ctx, $&quot;&quot;&quot;
+    # Rendering 学習ガイド
+
+    {RenderingMeta(&quot;Beginner&quot;, &quot;Standalone + Gallery&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;なし&quot;, next: &quot;Learn/Rendering/Environment&quot;)}
+
+    この章は、Gallery のデモを見るだけでなく、自分のウィンドウへ描画できるところまでを順番に進みます。最小アプリの実装はリポジトリの `samples/LuxelTriangle/` が単一の正です。
+
+    ## 15ステップの進み方
+
+    1. [Environment](story:Learn/Rendering/Environment) — OS、GPU、backend、shader cacheを確認
+    2. [ClearColor](story:Learn/Rendering/ClearColor) — window / surface / event loop / resizeを理解
+    3. [FirstTriangle](story:Learn/Rendering/FirstTriangle) — vertex buffer / shader / pipeline / commandを接続
+    4. [BuffersAndBindings](story:Learn/Rendering/BuffersAndBindings) — memory kind、ABI、bindless indexを理解
+    5. [Shaders](story:Learn/Rendering/Shaders) — Slangを追加してSPIR-V/DXIL cacheを更新
+    6. [Textures](story:Learn/Rendering/Textures) — RGBA、UV、sampler、upload lifetimeを理解
+    7. [TransformsAndCamera](story:Learn/Rendering/TransformsAndCamera) — indexed cubeをMVPで動かし、resize時のaspectを保つ
+    8. [DepthCullingLighting](story:Learn/Rendering/DepthCullingLighting) — depth、front face、back-face culling、Lambert光を追加
+    9. [FrameLoopAndSynchronization](story:Learn/Rendering/FrameLoopAndSynchronization) — frameの寿命、submit、present、待機を整理
+    10. [FirstRenderGraph](story:Learn/Rendering/FirstRenderGraph) — passとresource依存を宣言し、post-processへ進む
+    11. [First2DScene](story:Learn/Rendering/First2DScene) — Scene2Dを作り、4つの2D APIを使い分ける
+    12. [StaticGltf](story:Learn/Rendering/StaticGltf) — ECSなしで静的glTFを1 drawする
+    13. [Debugging](story:Learn/Rendering/Debugging) — 真っ黒、shader、resize、asset問題を切り分ける
+    14. [Shipping](story:Learn/Rendering/Shipping) — shader/assetsをpublishし、別cwdからsmokeする
+    15. [Demos/3D/Triangle](story:Demos/3D/Triangle) — Galleryのoffscreen実例を操作
+
+    **検索キーワード:** triangle / texture / camera / render graph / glTF / blank screen / 真っ黒
+
+    &gt; [!IMPORTANT]
+    &gt; `GpuView` と `IGpuScene` はGallery内でデモを表示するためのハーネスです。通常アプリでは `WindowSystem`、`Window`、`GpuSurface` を使います。
+
+    ## どのAPIまで学ぶか
+
+    R1の三角形、R2のbuffer ABIとshader cache、R3のtexture付きquadからdepth/culling/方向光に続き、R4ではframe loopとRenderGraphへ進みます。`--stage graph`でdirect描画を1 passへ移し、`--stage post`でtransient resourceとcompute post-processを追加します。R5では2D、ECSを使わない静的glTF、デバッグ、publishまで進みます。複数frame-in-flightは本番設計として説明しますが、現在の公開queue APIとtutorialはper-frame fenceをまだ提供しません。
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

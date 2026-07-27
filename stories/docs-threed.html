@@ -39,4 +39,48 @@
 <p>Slang/HLSL の既定行列レイアウトは column-major、<code>System.Numerics.Matrix4x4</code> は row-major です。ルート引数で行列を渡すときは <strong>CPU 側で <code>Matrix4x4.Transpose</code></strong> を入れて整えます (per-instance 行列はシェーダ側で Load4 ×4 の行構築なので転置不要)。</p>
 </div>
 <p>アニメーションを ECS へ流す例は <a href="#story=Demos%2FAnimation%2FEcsClip">Demos/Animation/EcsClip</a> と <a href="#story=Demos%2FAnimation%2FGraph">Demos/Animation/Graph</a> へ。</p>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Docs/ThreeD&quot;, Order = 13)]
+public static Widget ThreeD(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # 3D と ECS
+
+    3D は **ECS (Friflo Engine ECS のラッパ = Luxel.Ecs) + 抽出 + レンダーグラフ**の直列で描きます。シーングラフという独立した抽象はありません — 階層は ECS の `Parent`/`Children` コンポーネントが素直に表します。
+
+    ## コンポーネントとシステム
+
+    - `LocalTransform` / `GlobalTransform` — ローカル/ワールド変換。`TransformPropagateSystem.Run(world)` が Parent をたどって伝播
+    - `MeshRef` / `Color3D` / `Visible` — 描画コンポーネント
+    - メッシュは `CubeMesh` 等の頂点プル用バッファ (position + normal)
+
+    ## 抽出 (IRenderExtractor)
+
+    `Render3DExtractSystem` が ECS をクエリし、`InstanceData[]` (mat4 + color の SoA) を bindless バッファへ書きます。シーン層とレンダーグラフ層の橋渡しはこの **Extract 層だけ** — グラフ側は書き上がったバッファを Import するのみです。
+
+    {{StoryRef(ctx, &quot;Demos/3D/EcsCubes&quot;)}}
+
+    ## 描画パターン
+
+    graphics パスの lambda が `BeginRendering(rt, depth, ...)` で RT/Depth を直接管理し、instance 数ぶん `Draw` します。この形のまま合成が伸びます:
+
+    - post-process 連鎖 (forward → blur → 加算合成) → [Demos/RenderGraph/Bloom3D](story:Demos/RenderGraph/Bloom3D)
+    - world-space UI (2D UI を 3D 内の板にサンプリング) → [Demos/3D/WorldSpaceUI](story:Demos/3D/WorldSpaceUI)
+    - shadow map (ライト視点 R32Float → bindless バッファ → 比較) → [Demos/3D/ShadowMap](story:Demos/3D/ShadowMap)
+
+    shadow map も「R32F カラー RT + bindless バッファ経由の Load」— 専用のサンプラ比較ハードウェアに頼らない compute-first の流儀です。
+
+    ## OrbitCamera — 軌道カメラ
+
+    注視点を中心に yaw/pitch/distance で周回する軌道カメラ `OrbitCamera` (`Luxel.Mathematics`) が `ViewProjection` (`view * proj`) を計算します。`Orbit(dYaw, dPitch)` でドラッグ回転 (pitch はジンバルロック手前でクランプ)、`Dolly(factor, min, max)` でズームします。ルート引数へ渡すときは行列レイアウトの罠 (下記) に従い `Matrix4x4.Transpose` を入れます。2D の `CameraRig2D` (追従/シェイク/境界) に対し、3D は v1 では viewProj 算出とドラッグ操作までがスコープです。
+
+    ## 設計ノート: UI に ECS を使わない理由
+
+    - UI は reactive signals + 保持型ツリーのほうが DSL / 部分更新と相性が良い
+    - ラベル 100 個を 100 entity にするとフレーム単位 query のオーバーヘッドが過剰
+    - Bevy も UI は別系統 (bevy_ui)。Luxel でも `Luxel.UI` は signals 系のまま、**3D 側だけ ECS** です
+
+    ## 行列レイアウトの罠
+
+    &gt; [!WARNING]
+    &gt; Slang/HLSL の既定行列レイアウトは column-major、`System.Numerics.Matrix4x4` は row-major です。ルート引数で行列を渡すときは **CPU 側で `Matrix4x4.Transpose`** を入れて整えます (per-instance 行列はシェーダ側で Load4 &#215;4 の行構築なので転置不要)。
+
+    アニメーションを ECS へ流す例は [Demos/Animation/EcsClip](story:Demos/Animation/EcsClip) と [Demos/Animation/Graph](story:Demos/Animation/Graph) へ。
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

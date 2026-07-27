@@ -64,4 +64,88 @@ public sealed class TitleScene(SceneLoopServices loop) : GameScene(loop)
 <h2 id="publish">ゲームを配布する (publish)</h2>
 <p>スタンドアロンゲームは <code>LuxelHostBuilder</code> + <code>GameScene</code> でループを組み、<code>WindowSystem</code>/<code>Window</code>/<code>GpuSurface</code> へ提示します。<strong>Framework は窓/提示を持たない</strong>ので、フレーム待ち (<code>UseFrameWaiter</code>) を pacer で同期し、<code>host.Start()</code> 後にメインループで <code>pacer.Tick()</code> (1 フレーム同期実行) → <code>surface.Present(scene の framebuffer)</code> します (StoryAppView と同じ TCS inline 方式で GPU キュー安全)。入力は <code>IInputSource</code> を登録すると GameLoop が毎フレーム Poll します。</p>
 <p>出荷は <code>dotnet publish -c Release -r win-x64 --self-contained</code> の self-contained フォルダ配布。出力にはコンパイル済みシェーダ (<code>shaders/*.spv</code>/<code>*.dxil</code> — <code>Luxel.Shaders.targets</code> が自動コピー)・アセット/同梱フォント (csproj の Content)・ネイティブ DLL (glfw / HarfBuzz / Silk.NET) が揃います。アセットは <code>AppContext.BaseDirectory</code> (exe の隣) 基準で読むので <strong>cwd 非依存</strong> — リポジトリ外の任意パスへコピーして起動できます。<code>vulkan-1.dll</code> は OS/ドライバ側 (同梱しない) なので README に動作要件として明記します。実例は capstone ① <code>samples/LuxelCavern</code> (フォルダ publish を vk/dx 両方でリポジトリ外起動まで検証)。</p>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Docs/Framework&quot;, Order = 54)]
+public static Widget Framework(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # フレームワーク (Luxel.Framework)
+
+    アプリの骨格です。Microsoft.Extensions.Hosting の DI に GPU / Resources / Audio / Input を統合し、シーンの生成・切り替えとフレームループを一括管理します。
+
+    ## LuxelHostBuilder と GameScene
+
+    ```csharp
+    var host = LuxelHostBuilder.Create(args)
+        .UseVulkan()                    // or UseD3D12()
+        .UseAudio()
+        .UseResources(&quot;./assets&quot;)
+        .AddScene&lt;TitleScene&gt;()         // 起動シーン
+        .Build();
+    await host.RunAsync();
+
+    public sealed class TitleScene(SceneLoopServices loop) : GameScene(loop)
+    {
+        public override Task OnLoadAsync() { /* World/Surface/リソース準備 */ return Task.CompletedTask; }
+        protected override void OnUpdate(UpdateContext ctx) { /* ゲームロジック */ }
+        protected override void OnRender(RenderContext ctx) { /* ctx.RenderGraph へパス追加 */ }
+    }
+    ```
+
+    ## 7 フェーズのフレームループ
+
+    EarlyUpdate → **FixedUpdate** → Update → LateUpdate → PreRender → Render → PostRender。GameScene の virtual フックと **ECS World の system** が同じフェーズ軸で実行されます (`AddWorld(world)` で登録、独自フェーズも Priority で挿入可)。Render フェーズは 1 フレームの RenderGraph を受け取り、パスを積むだけで提示まで面倒を見ます。
+
+    ## FixedUpdate — 固定タイムステップと描画補間
+
+    物理・キャラクター制御・決定的なゲームロジックは**固定刻み**で回します。GameScene が可変 dt を蓄積器に積み、溜まった分だけ `FixedUpdate` を回します — フレームレートが変わっても同じ dt 列なら同じ結果 (決定的) です。1 フレームの実行回数は上限 (`MaxFixedStepsPerFrame`) で頭打ちにして、処理落ち時のスパイラルを防ぎます (超過分は捨てる)。
+
+    ```csharp
+    public sealed class PlayScene(SceneLoopServices loop) : GameScene(loop)
+    {
+        protected override double FixedDeltaSeconds =&gt; 1.0 / 60;   // 物理と揃える
+
+        protected override void OnFixedUpdate(FixedUpdateContext ctx)
+        {
+            // dt は常に ctx.FixedDeltaSeconds (可変 dt は渡さない = 誤用防止)
+            _step.StepFixedOnce();      // 物理を 1 ステップ
+        }
+
+        protected override void OnRender(RenderContext ctx)
+        {
+            TransformInterpolationSystem.Run(_world, Alpha);   // lerp(prev, curr, Alpha)
+        }
+    }
+    ```
+
+    60Hz 表示 + 1/60 固定でも、表示と固定の刻みがずれるとフレーム間で箱がガタつきます。`Alpha` (直近の固定ステップから次までの進捗 [0,1)) を使い、`InterpolatedTransform` (前/現ステップの TRS を保持) を `TransformInterpolationSystem` が `lerp(prev, curr, Alpha)` して `LocalTransform` に書くと、1 ステップ分の遅延と引き換えにガタつきが消えます。効果は [Demos/Framework/DrawInterpolation](story:Demos/Framework/DrawInterpolation) で並べて確認できます。
+
+    ## UiSurface — 複数サーフェスとレート制御
+
+    1 シーンに複数の描画対象 (HUD / ワールド内モニタ / ミニマップ) を持てます。`Kind` は ScreenSpaceOverlay / WorldSpaceQuad / CameraStacked、**`RateHz` でサーフェス毎に更新頻度を独立制御** (60Hz の HUD と 10Hz のミニマップが共存) します。Draw コールバックは RenderGraph のパスとして統合されます。
+
+    ## シーン切替
+
+    `SceneManager.SwitchAsync&lt;TScene&gt;()` — 現シーンの cancel → OnUnloadAsync → 次シーンの OnLoadAsync → RunAsync の順で入れ替わります。
+
+    ## ECS &#215; Signal (Luxel.Ecs.Signal)
+
+    `world.Signal&lt;Position&gt;(entity)` で component を Signal 化できます — component の変更が UI へ自動伝播し、スライダーと entity が直結します。
+
+    ## 永続化 — セーブ/ロード + 設定
+
+    **ゲーム状態のセーブ/ロード** は `WorldSave.Serialize(world)` → JSON 文字列 → `WorldSave.Deserialize(world, json)` で往復します。Friflo 組み込みの component 名→値スキーマを土台にするのでアーキタイプ変更やエンジン更新をまたいで安定です。GPU ハンドルや観測専用の component は `[ComponentKey(null)]` でセーブ対象外にします (例: `DebugName`)。文字列 in/out なのでファイル IO 非依存でテストでき、ファイル層は `IFileStore` (インメモリ/物理) で薄く繋ぎます。効果は [Demos/Framework/SaveLoad](story:Demos/Framework/SaveLoad) で「セーブ → 動かす → ロードで戻る」を確認できます。
+
+    **アプリ設定** は `SettingsStore.LoadFrom(files, &quot;settings.json&quot;)` で読み、`store.Get&lt;T&gt;(key, fallback)` が **`Signal&lt;T&gt;` を返す**のが肝です。設定画面の Slider/Switch にそのまま双方向バインドでき、購読側 (音量 → AudioMixer 等) も `Reactive.Effect` で反応します。`Save()` (または `AutoSave`) でファイルへ書き出し、破損 JSON はパース失敗時に既定値で起動 + `.bak` 退避します (設定破損でゲームが起動しないのを防ぐ)。[Demos/Framework/Settings](story:Demos/Framework/Settings) で保存値 (音量 0.65 / フルスクリーン on) が反映される様子を見られます。
+
+    **読み込みは .NET 標準 Configuration**: 値は `Microsoft.Extensions.Configuration` (JSON ファイル + 環境変数 + コマンドライン) のレイヤで読みます。優先順は **保存済みファイル &lt; 環境変数 (`Graphics__Quality=3`) &lt; コマンドライン (`--Graphics:Quality=3`)** で、ops による上書きが効きます。`LuxelHostBuilder.WithSettings(&quot;MyGame&quot;, envPrefix: &quot;MYGAME_&quot;)` は保存先 `%APPDATA%/MyGame` のファイルを最下層に、環境変数/引数を上層に重ねた config を組みます (非ホストアプリは `LuxelConfiguration.Build(files, ...)` で同じものを作れます)。書き込み (UI での変更) はファイルへ戻り、環境変数は読み取り時の上書きレイヤとして常に勝ちます。
+
+    **DI 統合 (Microsoft.Extensions.Options)**: `ConfigureServices(s =&gt; s.AddSettingsOptions&lt;GraphicsSettings&gt;(&quot;graphics&quot;))` で設定 POCO を束ねると、任意のサービスが `IOptions&lt;GraphicsSettings&gt;` / `IOptionsMonitor&lt;GraphicsSettings&gt;` を注入して値を読めます (`OnChange` で変更通知)。書き込みたい側は同じキーの `Signal&lt;GraphicsSettings&gt;` を注入します。読み口は標準の Configuration/Options、書き口とファイル永続化は SettingsStore、と役割が分かれます。
+
+    ## WindowManager — UIウィンドウ管理
+
+    UI向けウィンドウは `Luxel.UI.App.WindowManager` が管理します。`WindowSystem`へWin32などのPlatformバックエンドを注入し、`CreateUiWindow`と`RunFrame`でUiHostの生成・入力・描画・提示を駆動します。
+
+    ## ゲームを配布する (publish)
+
+    スタンドアロンゲームは `LuxelHostBuilder` + `GameScene` でループを組み、`WindowSystem`/`Window`/`GpuSurface` へ提示します。**Framework は窓/提示を持たない**ので、フレーム待ち (`UseFrameWaiter`) を pacer で同期し、`host.Start()` 後にメインループで `pacer.Tick()` (1 フレーム同期実行) → `surface.Present(scene の framebuffer)` します (StoryAppView と同じ TCS inline 方式で GPU キュー安全)。入力は `IInputSource` を登録すると GameLoop が毎フレーム Poll します。
+
+    出荷は `dotnet publish -c Release -r win-x64 --self-contained` の self-contained フォルダ配布。出力にはコンパイル済みシェーダ (`shaders/*.spv`/`*.dxil` — `Luxel.Shaders.targets` が自動コピー)・アセット/同梱フォント (csproj の Content)・ネイティブ DLL (glfw / HarfBuzz / Silk.NET) が揃います。アセットは `AppContext.BaseDirectory` (exe の隣) 基準で読むので **cwd 非依存** — リポジトリ外の任意パスへコピーして起動できます。`vulkan-1.dll` は OS/ドライバ側 (同梱しない) なので README に動作要件として明記します。実例は capstone ① `samples/LuxelCavern` (フォルダ publish を vk/dx 両方でリポジトリ外起動まで検証)。
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

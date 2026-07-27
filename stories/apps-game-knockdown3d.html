@@ -1,1 +1,7 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Apps/Game/Knockdown3D</h1></header><figure class="static-capture"><img src="images/apps-game-knockdown3d.png" alt="Apps/Game/Knockdown3D" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Apps/Game/Knockdown3D</h1></header><figure class="static-capture"><img src="images/apps-game-knockdown3d.png" alt="Apps/Game/Knockdown3D" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Apps/Game/Knockdown3D&quot;, Width = 520, Height = 420, Order = 148)]
+public static Widget Knockdown(StoryContext ctx)
+    =&gt; ctx.Snap(VStack(8)[
+        new StoryAppView&lt;KnockdownScene&gt;(KnockdownScene.W, KnockdownScene.H, (s, bctx) =&gt;
+            s.AddSingleton&lt;Action&lt;string&gt;&gt;(ctx.Log)),
+        Muted(&quot;Drag: orbit camera / Click: shoot — Physics (Bepu) + ECS 3D + RenderGraph&quot;)
+    ]);</code></pre></details></article>

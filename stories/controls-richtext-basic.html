@@ -1,1 +1,17 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/RichText/Basic</h1></header><figure class="static-capture"><img src="images/controls-richtext-basic.png" alt="Controls/RichText/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/RichText/Basic</h1></header><figure class="static-capture"><img src="images/controls-richtext-basic.png" alt="Controls/RichText/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/RichText/Basic&quot;, Height = 280)]
+public static Widget RichTextBasic()
+{
+    var spans = new[]
+    {
+        new Luxel.Typography.TextSpan(&quot;Rich &quot;, new Luxel.Typography.SpanStyle { Size = 24, Color = Tw.Blue500 }),
+        new Luxel.Typography.TextSpan(&quot;text &quot;, new Luxel.Typography.SpanStyle { Size = 24, Color = Tw.Red500 }),
+        new Luxel.Typography.TextSpan(&quot;mixes sizes, &quot;),
+        new Luxel.Typography.TextSpan(&quot;colors &quot;, new Luxel.Typography.SpanStyle { Color = Tw.Green600 }),
+        new Luxel.Typography.TextSpan(&quot;and 日本語フォールバック。&quot;, new Luxel.Typography.SpanStyle { Size = 14 }),
+        new Luxel.Typography.TextSpan(&quot;\nWrapping works across spans too — the quick brown fox jumps over the lazy dog.&quot;),
+    };
+    RichTextView rtv = RichTextView(spans, wrap: Luxel.Typography.TextWrap.Word);
+    rtv.Fonts = JpFallback.Value;
+    return Frame(Border(background: Bind.From(() =&gt; UiTheme.T.Surface), rounded: 6,
+                        padding: new Thickness(10), width: 380)[rtv]);
+}</code></pre></details></article>

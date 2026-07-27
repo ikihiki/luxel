@@ -1,1 +1,22 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/ListView/Reorder</h1></header><figure class="static-capture"><img src="images/controls-listview-reorder.png" alt="Controls/ListView/Reorder" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/ListView/Reorder</h1></header><figure class="static-capture"><img src="images/controls-listview-reorder.png" alt="Controls/ListView/Reorder" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/ListView/Reorder&quot;, Height = 260)]
+public static Widget ListViewReorder(StoryContext ctx)
+{
+    // D&amp;D 並べ替え (QP-M4): 行をドラッグ → 挿入位置インジケータ → ドロップで OnReorder。
+    // データは items signal が持ち、並べ替えは signal への入れ直しで反映 (コントロールはデータを所有しない)
+    var items = new Signal&lt;IReadOnlyList&lt;string&gt;&gt;(Enumerable.Range(1, 12).Select(i =&gt; $&quot;Track {i}&quot;).ToArray());
+    ListView lv = ListView(180f, 18f,
+        onSelect: (_, i) =&gt; ctx.Log($&quot;selected: {i}&quot;),
+        onReorder: (_, from, to) =&gt;
+        {
+            var next = new List&lt;string&gt;(items.Value);
+            string s = next[from];
+            next.RemoveAt(from);
+            next.Insert(to &gt; from ? to - 1 : to, s);
+            items.Value = next;
+            ctx.Log($&quot;reorder: {from} → {to}&quot;);
+        },
+        items: items, width: 260f);
+    lv.AllowReorder = true;
+    ctx.Play(static d =&gt; d.Snap());
+    return Frame(lv);
+}</code></pre></details></article>

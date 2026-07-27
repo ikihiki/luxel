@@ -100,4 +100,101 @@ present
 <li>復元後に真っ黒 → 0×0時にresourceを作った、<code>resizePending</code>を消し過ぎた、presentを再開していない</li>
 <li>終了時だけdevice lost / validation error → queue idle前にresourceやdeviceをdisposeしている</li>
 </ul>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Rendering/FrameLoopAndSynchronization&quot;, Order = 9)]
+public static Widget FrameLoopAndSynchronization(StoryContext ctx)
+{
+    return DocNew(ctx, $$&quot;&quot;&quot;
+    # Frame loopと同期
+
+    {{RenderingMeta(&quot;Beginner+&quot;, &quot;Standalone&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;DepthCullingLighting&quot;, previous: &quot;Learn/Rendering/DepthCullingLighting&quot;, next: &quot;Learn/Rendering/FirstRenderGraph&quot;)}}
+
+    実コードは `samples/LuxelTriangle/Program.cs` と `samples/LuxelTriangle/TriangleRenderer.cs` です。このページでは、1 frameを「CPUがcommandを記録する期間」だけでなく、GPU完了とpresentまで含む寿命として捉えます。
+
+    ## 実行と期待結果
+
+    ```powershell
+    dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
+    dotnet run --project samples/LuxelTriangle -- vk --stage lighting --frames 3
+    dotnet run --project samples/LuxelTriangle -- vk --stage lighting --size 801x603
+    # Windowsのみ
+    dotnet run --project samples/LuxelTriangle -- dx --stage lighting --frames 3
+    ```
+
+    `--frames 3`は3回のrender、submit完了待ち、presentを行って終了コード0で終了します。通常起動では回転するtexture付きcubeが表示され、resizeしてもaspectとdepthが保たれます。最小化中は描画を休止し、復元後に新しいsizeで再開します。
+
+    ## 1 frameの流れ
+
+    ```text
+    Pump events
+      → resize/minimize判定
+      → per-frame値を更新
+      → commandを記録してFinish
+      → queueへSubmit
+      → GPU完了を確認
+      → CPU可視framebufferをPresent
+      → 次のframe
+    ```
+
+    tutorialの現在の実装は `device.MainQueue.SubmitAndWait(command)` を使います。これは内部的にsubmitしてからqueue全体のidleを待つため、理解しやすく、commandや一時resourceを待機直後に安全に破棄できます。一方、CPUはGPU完了まで毎frame停止し、次frameのcommand記録を重ねられません。動作確認には適していますが、本番向けthroughputの設計ではありません。
+
+    公開されているqueue操作は `Submit`、`SubmitAndWait`、`WaitIdle` です。**現在の公開APIにはper-frame fence、完了値、frame tokenがありません。** したがって、このsampleが複数frameを同時実行している、または`Submit`だけでresource再利用を安全に判定できる、とは説明できません。
+
+    ## Fenceと2〜3 frames-in-flightの本番設計
+
+    一般的なrendererは2または3個のframe slotをringとして持ちます。各slotには、そのframeのcommand allocator/buffer、upload領域、readback/present用buffer、動的descriptorや一時resource、そしてGPU完了を示すfence値をまとめます。
+
+    ```text
+    slot = frameNumber % slotCount
+    slotの前回fence完了を待つ
+    slot専用resourceをreset / 更新
+    commandを記録してsubmit
+    このsubmitのfence値をslotへ保存
+    present
+    ```
+
+    重要なのは「毎frame待つ」のではなく、**再利用しようとするslotの前回GPU処理だけを待つ**ことです。CPUがframe N+1を準備している間にGPUがframe Nを処理でき、2〜3 frame分の揺らぎを吸収できます。slot数を無制限に増やすとlatencyとmemory使用量が増えるため、通常はswap/present側のbufferingと合わせます。
+
+    &gt; [!IMPORTANT]
+    &gt; 上のringは将来の公開fence/frame-token統合を示すarchitectureです。現在の`LuxelTriangle`へそのまま貼れるAPI例ではありません。現行sampleは意図的に`SubmitAndWait`で1 frameずつ完了させます。
+
+    ## 所有権と寿命
+
+    | 対象 | 安全に再利用・破棄できる時点 |
+    | --- | --- |
+    | command buffer / root argument bytes | そのsubmitのGPU完了後 |
+    | upload、dynamic buffer、transient resource | それを読む最後のGPU処理完了後 |
+    | color/depth target、readback framebuffer | 最後に参照したframe完了後 |
+    | pipeline、texture、sampler、mesh buffer | それを参照する全submit完了後 |
+    | window surface | queue idle後、またはsurfaceを使う全frame完了後 |
+
+    `using`のscopeを抜けたことはGPU完了を意味しません。`Submit`は投入だけなので、その直後にcommandが参照するresourceをdisposeしてはいけません。現行sampleでは`SubmitAndWait`または明示的な`WaitIdle`がこの境界です。本番slot方式ではslotのfence完了が境界になります。
+
+    ## Present、VSync、frame pacing
+
+    `GpuSurface.Present(framebuffer, stridePixels, width, height)`はGPUのrender commandではなく、完成したCPU可視framebufferをwindowへ提示する段階です。present前にcopy/computeが完了している必要があるため、sampleは`SubmitAndWait`後に呼びます。D3D12のRGBA8 readback row pitchに合わせ、`stridePixels`は64 pixel単位へ揃えますが、visibleな`width` / `height`は実寸を渡します。
+
+    VSyncはdisplay refreshへ提示を合わせてtearingを抑える一方、present待ちがframe pacingへ影響します。VSyncを切る場合も無制限loopにせず、target frame time、timer、present結果を使ってCPUの生成速度を制御します。simulationのdelta timeは「GPU待機時間そのもの」ではなく、上限を設けた実測値または固定stepを使うと、window移動や一時停止後の大ジャンプを避けられます。
+
+    VulkanとD3D12では内部のswapchain、present mode、fence実装が異なりますが、アプリ側の原則は同じです。**使用中resourceを再利用しない、present対象の処理完了を保証する、CPUを無制限に先行させない**、の3点をbackend共通のframe policyにします。
+
+    ## Resize、最小化、終了
+
+    1. resize callbackでは新しいwidth/heightを保存し、`resizePending`だけを立てる。
+    2. event loopの安全な位置で`MainQueue.WaitIdle()`し、古いsurface依存resourceを使う処理を完了させる。
+    3. widthまたはheightが0ならtargetを作らず、短くsleepしてevent処理だけ続ける。
+    4. 復元または正のsizeへのresizeでsurface、color/depth、framebufferを同じvisible sizeから再生成する。
+    5. 終了時は新規submitを止め、queue idleを待ち、GPU resource、surface、device、window systemの順に寿命を閉じる。
+
+    将来frame slotを導入した場合、resizeでは全slotのfenceを待ってからsurface依存resourceを作り直します。古いsizeのslotと新しいsizeのslotを混ぜません。shutdownでも同じく、未完了slotを待たずにdeviceを破棄してはいけません。
+
+    ## 典型的な失敗
+
+    - 毎frameのCPU使用率が高い → minimize中の0&#215;0 loopやVSync off時の無制限loopを確認
+    - `Submit`へ変えたら時々壊れる → GPU完了前にcommand/resource/framebufferを再利用またはdisposeしている
+    - 2〜3 slotにしたのに毎frame止まる → current slotではなくqueue全体を`WaitIdle`している
+    - latencyが増え続ける → CPU先行数をslot数で制限していない
+    - resize直後に例外・破損 → old frame完了前にsurface依存resourceを破棄した、またはcolor/depth/framebufferのsizeが不一致
+    - 復元後に真っ黒 → 0&#215;0時にresourceを作った、`resizePending`を消し過ぎた、presentを再開していない
+    - 終了時だけdevice lost / validation error → queue idle前にresourceやdeviceをdisposeしている
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

@@ -1,1 +1,66 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/SceneEditorView/Tiles</h1></header><figure class="static-capture"><img src="images/controls-sceneeditorview-tiles.png" alt="Controls/SceneEditorView/Tiles" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/SceneEditorView/Tiles</h1></header><figure class="static-capture"><img src="images/controls-sceneeditorview-tiles.png" alt="Controls/SceneEditorView/Tiles" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/SceneEditorView/Tiles&quot;, Height = 470, Order = 2)]
+public static Widget Tiles(StoryContext ctx)
+{
+    SceneEditorView ed = SceneEditorView(source: TileScene(), viewWidth: 620f, viewHeight: 320f);
+    Signal&lt;string&gt; status = ctx.Signal(&quot;status&quot;, &quot;ツール: 選択 / タイル: 草&quot;);
+
+    Button Tool(string label, SceneTool tool) =&gt; Button(_ =&gt;
+    {
+        ed.Tool = tool;
+        status.Value = $&quot;ツール: {label} / タイル: {ed.ActiveTile}&quot;;
+    }, label);
+    Button Tile(string label, int tile) =&gt; Button(_ =&gt;
+    {
+        ed.ActiveTile = tile;
+        status.Value = $&quot;ツール: {ed.Tool} / タイル: {label}&quot;;
+    }, label);
+
+    Button brush = Tool(&quot;ブラシ&quot;, SceneTool.Brush), rect = Tool(&quot;矩形&quot;, SceneTool.Rect),
+           erase = Tool(&quot;消しゴム&quot;, SceneTool.Eraser), pick = Tool(&quot;スポイト&quot;, SceneTool.Picker),
+           select = Tool(&quot;選択&quot;, SceneTool.Select);
+    Button grass = Tile(&quot;草&quot;, 1), dirt = Tile(&quot;土&quot;, 2), stone = Tile(&quot;石&quot;, 3), gold = Tile(&quot;金&quot;, 4);
+
+    ctx.Play(&quot;brush&quot;, async d =&gt;
+    {
+        await d.Snap();                              // 初期: 地面 1 行 + 石 2 個 + レイヤ境界
+        await d.Click(dirt);
+        await d.Click(brush);
+        Vector2 a = ed.CellClient(2, 3), b = ed.CellClient(8, 5);
+        await d.Drag(a.X, a.Y, b.X, b.Y);            // ブラシで斜めに 1 ストローク
+        await d.Expect(() =&gt; ed.TileAt(2, 3) == 2 &amp;&amp; ed.TileAt(8, 5) == 2 &amp;&amp; ed.TileAt(5, 4) == 2, &quot;ブラシは補間しながら塗る&quot;);
+        await d.Snap(&quot;painted&quot;);
+        await d.Key(Key.Z, ctrl: true);
+        await d.Expect(() =&gt; ed.TileAt(2, 3) == 0 &amp;&amp; ed.TileAt(8, 5) == 0, &quot;ストローク = 1 undo&quot;);
+    });
+
+    ctx.Play(&quot;rect&quot;, async d =&gt;
+    {
+        await d.Click(stone);
+        await d.Click(rect);
+        Vector2 a = ed.CellClient(11, 2), b = ed.CellClient(15, 5);
+        await d.Drag(a.X, a.Y, b.X, b.Y);            // 矩形塗り潰し
+        await d.Expect(() =&gt; ed.TileAt(11, 2) == 3 &amp;&amp; ed.TileAt(15, 5) == 3 &amp;&amp; ed.TileAt(13, 3) == 3, &quot;矩形ツールで塗り潰し&quot;);
+        await d.Snap(&quot;block&quot;);
+    });
+
+    ctx.Play(&quot;pick-erase&quot;, async d =&gt;
+    {
+        await d.Click(pick);
+        Vector2 g = ed.CellClient(0, 8);             // 地面 (草=1) をスポイト
+        await d.Click(g.X, g.Y);
+        await d.Expect(() =&gt; ed.ActiveTile == 1, &quot;スポイトでタイルを取る&quot;);
+        await d.Click(erase);
+        Vector2 a = ed.CellClient(2, 8), b = ed.CellClient(5, 8);
+        await d.Drag(a.X, a.Y, b.X, b.Y);            // 地面を消す
+        await d.Expect(() =&gt; ed.TileAt(3, 8) == 0 &amp;&amp; ed.TileAt(0, 8) == 1, &quot;消しゴムで 0 に&quot;);
+        await d.Snap(&quot;erased&quot;);
+    });
+
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(10)[
+            Heading(&quot;SceneEditorView — タイル描き込み&quot;),
+            Muted(&quot;PaintTiles change (1 ストローク = 1 undo)。ブラシは前回セルから直線補間、矩形は範囲塗り潰し、スポイトはセルのタイルを ActiveTile へ。タイル色はエディタ用プレースホルダ (実アトラスは GE-2 で配線)。&quot;),
+            HStack(6)[select, brush, rect, erase, pick, grass, dirt, stone, gold],
+            Text($&quot;{status}&quot;, 13, color: Bind.From(() =&gt; UiTheme.T.TextMuted)),
+            ed]];
+}</code></pre></details></article>

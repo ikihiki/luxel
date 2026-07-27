@@ -50,4 +50,72 @@ dotnet publish samples/LuxelTriangle/LuxelTriangle.csproj -c Release -o artifact
 <li>publish後だけshader missing → projectが<code>shaders/Luxel.Shaders.targets</code>をimportしているか、publish出力の<code>shaders/</code>を確認する</li>
 </ul>
 <p>shader sourceを変更した場合だけcache regenerationが必要です。このページやC# ABI testだけの変更ではcompiled shaderを更新しません。</p>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Rendering/Shaders&quot;, Order = 5)]
+public static Widget Shaders(StoryContext ctx)
+{
+    return DocNew(ctx, $$&quot;&quot;&quot;
+    # Slang shaderとGit cache
+
+    {{RenderingMeta(&quot;Beginner&quot;, &quot;Standalone build / publish&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;BuffersAndBindings&quot;, previous: &quot;Learn/Rendering/BuffersAndBindings&quot;, next: &quot;Learn/Rendering/Textures&quot;)}}
+
+    Luxelは `shaders/*.slang` を単一のsourceとして、Vulkan用SPIR-VとD3D12用DXILをGit管理します。通常のbuild / publishはcompilerを起動せずcacheを検証・コピーします。
+
+    ## 1. ファイルを追加して分類する
+
+    - `compute*.slang` または `raster2d_*.slang` はcompute。entry pointは `[shader(&quot;compute&quot;)] main`。
+    - それ以外の `.slang` はgraphics。entry pointは `[shader(&quot;vertex&quot;)] vsMain` と `[shader(&quot;pixel&quot;)] psMain`。
+    - SPIR-Vはどちらも1 sourceにつき `compiled/&lt;name&gt;.spv`。
+    - compute DXILは `compiled/&lt;name&gt;.dxil`。
+    - graphics DXILは `compiled/&lt;name&gt;.vs.dxil` と `compiled/&lt;name&gt;.ps.dxil`。
+
+    したがって `shaders/my_effect.slang` をgraphicsとして追加すると、期待生成物は次です。
+
+    ```text
+    shaders/compiled/my_effect.spv
+    shaders/compiled/my_effect.vs.dxil
+    shaders/compiled/my_effect.ps.dxil
+    ```
+
+    compute shaderをgraphics名で追加するとDXIL compileは`vsMain` / `psMain`を探して失敗します。computeとして分類したい場合はfilenameを `compute...` または `raster2d_...` にしてください。
+
+    ## 2. Cacheを再生成する
+
+    repository rootで実行します。固定版Slang/DXCは必要なときだけ`tools/`へ自動取得されます。
+
+    ```powershell
+    dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache
+    git status --short shaders
+    ```
+
+    source、全backend生成物、`shaders/compiled/inputs.sha256`を一緒にcommitします。manifestは全 `.slang` のSHA-256だけでなくschema、Slang/DXC version、SPIR-V/DXIL profileも固定します。`tools/`はlocal cacheでcommitしません。
+
+    ## 3. 通常buildとpublish
+
+    ```powershell
+    dotnet build Luxel.slnx --no-restore
+    dotnet publish samples/LuxelTriangle/LuxelTriangle.csproj -c Release -o artifacts/triangle-publish
+    ```
+
+    `Luxel.Shaders.targets`はbuild前にcache completenessと`inputs.sha256`一致を検証し、出力の`shaders/`へcopyします。publishにも同じcompiled filesが含まれます。`GpuShaderCode.Load(&quot;tutorial_triangle&quot;)`はbackendに応じて `.spv`、`.vs.dxil` / `.ps.dxil`を読みます。
+
+    ## Backend差と固定binding
+
+    Slang sourceは共通です。`[[vk::push_constant]]`のroot argsはVulkanのpush constants、同じbytesはD3D12の`b0` root constantsになります。`g_buffers[]`はVulkanのset 0 / binding 0とD3D12のunbounded UAV tableへ対応し、どちらも同じ`BindlessIndex`で引きます。shader側structのpaddingとroot argsの192 byte / 4 byte条件は両backend共通として扱ってください。
+
+    ## 所有権と寿命
+
+    sourceと`compiled/`はrepositoryが所有し、build output / publish outputは生成先が所有します。runtimeでは`GpuShaderCode.Load`のbytesから作った`GpuPipeline`をrendererが所有し、使用中commandが完了してからdisposeします。`.slang`だけ変更して古いpipeline/cacheを使い続けないでください。
+
+    ## Errorから直す
+
+    - `Slang シェーダキャッシュがありません` → `CompileLuxelShaderCache`を実行する
+    - `キャッシュが不足しています: ...` → filename分類に対応するSPIR-V/DXILを再生成する
+    - `Slang ソースまたはコンパイル設定が Git キャッシュと一致しません` → source変更後のcacheと`inputs.sha256`を再生成・commitする
+    - `entry point &#39;vsMain&#39;/&#39;psMain&#39; not found` → graphics entry名、またはcompute filename分類を直す
+    - `entry point &#39;main&#39; not found` → compute shaderに`main`を定義する
+    - Slang type/layout error → C#側を先に合わせず、両言語のfield順・size・paddingを同じ変更で直す
+    - publish後だけshader missing → projectが`shaders/Luxel.Shaders.targets`をimportしているか、publish出力の`shaders/`を確認する
+
+    shader sourceを変更した場合だけcache regenerationが必要です。このページやC# ABI testだけの変更ではcompiled shaderを更新しません。
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

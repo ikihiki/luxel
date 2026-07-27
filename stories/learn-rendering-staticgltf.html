@@ -39,4 +39,64 @@ command.BeginRendering(color, depth, 0.05f, 0.06f, 0.09f, 1, 1)
     .EndRendering();
 </code></pre>
 <p>ここまでが静的1 primitiveです。scene graphと複数node/ECSは<a href="#story=Docs%2FAssets">Docs/Assets</a>、TRS animationは<a href="#story=Demos%2F3D%2FGltfAnimated">GltfAnimated</a>、skinは<a href="#story=Demos%2F3D%2FGltfSkinned">GltfSkinned</a>、morphは<a href="#story=Demos%2F3D%2FGltfMorph">GltfMorph</a>へ分けて進んでください。</p>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Rendering/StaticGltf&quot;, Order = 12)]
+public static Widget StaticGltf(StoryContext ctx)
+{
+    return DocNew(ctx, $$&quot;&quot;&quot;
+    # ECSなしで静的glTFを描く
+
+    {{RenderingMeta(&quot;Beginner+&quot;, &quot;Gallery / Standalone&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;First2DScene&quot;, previous: &quot;Learn/Rendering/First2DScene&quot;, next: &quot;Learn/Rendering/Debugging&quot;)}}
+
+    {{StoryRef(ctx, &quot;Demos/3D/GltfBox&quot;)}}
+
+    最初の1モデルではECS、animation、skin、morphを使いません。理解する経路はこれだけです。
+
+    ```text
+    Box.gltf → AssetDocument → AssetPrimitive → GpuPrimitive → instance buffer → Draw
+    ```
+
+    `.gltf`が参照する`.bin`やimageはgltf fileのあるdirectoryから解決されます。asset rootではなく、まず絶対pathを確定してloaderへ渡します。
+
+    ```csharp
+    string path = Path.Combine(AppContext.BaseDirectory, &quot;assets&quot;, &quot;Box.gltf&quot;);
+    AssetDocument doc = await new GltfLoader().LoadAsync(path);
+    AssetPrimitive source = doc.Meshes[0].Primitives[0];
+    using GpuPrimitive primitive = GpuAssetFactory.Upload(source, device);
+    ```
+
+    `GpuAssetFactory.Upload`はposition/normal/UVを32-byte vertexへ変換し、indexがあれば`uint` bufferも作ります。次に1 instanceだけ用意します。
+
+    ```csharp
+    using GpuBuffer instances = device.Malloc(
+        (ulong)Marshal.SizeOf&lt;SceneInstanceData&gt;(), GpuMemoryKind.HostMapped);
+    instances.Span&lt;SceneInstanceData&gt;(1)[0] = new SceneInstanceData
+    {
+        World = Matrix4x4.Identity,
+        BaseColor = source.Material?.BaseColorFactor ?? Vector4.One,
+    };
+
+    bool indexed = primitive.IndexBuffer is not null;
+    var args = new DrawArgs
+    {
+        ViewProj = Matrix4x4.Transpose(view * projection),
+        VertexBufIndex = primitive.VertexBuffer.BindlessIndex,
+        IndexBufIndex = indexed ? primitive.IndexBuffer!.BindlessIndex : 0xFFFFFFFFu,
+        InstanceBufIndex = instances.BindlessIndex,
+        InstanceStart = 0,
+    };
+    ```
+
+    最後はdepth target付きpassで`scene_pbr_lite`をbindし、index countまたはvertex countをdrawします。Luxel coreに別の`DrawIndexed`はなく、shaderがindex bufferをpullします。
+
+    ```csharp
+    uint count = (uint)(indexed ? primitive.IndexCount : primitive.VertexCount);
+    command.BeginRendering(color, depth, 0.05f, 0.06f, 0.09f, 1, 1)
+        .SetGraphicsPipeline(pipeline)
+        .SetRootArguments(args)
+        .Draw(count, 1)
+        .EndRendering();
+    ```
+
+    ここまでが静的1 primitiveです。scene graphと複数node/ECSは[Docs/Assets](story:Docs/Assets)、TRS animationは[GltfAnimated](story:Demos/3D/GltfAnimated)、skinは[GltfSkinned](story:Demos/3D/GltfSkinned)、morphは[GltfMorph](story:Demos/3D/GltfMorph)へ分けて進んでください。
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

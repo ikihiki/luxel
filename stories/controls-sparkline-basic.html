@@ -1,1 +1,11 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Sparkline/Basic</h1></header><figure class="static-capture"><img src="images/controls-sparkline-basic.png" alt="Controls/Sparkline/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Sparkline/Basic</h1></header><figure class="static-capture"><img src="images/controls-sparkline-basic.png" alt="Controls/Sparkline/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/Sparkline/Basic&quot;, Height = 260)]
+public static Widget SparklineBasic()
+{
+    float[] vals = Enumerable.Range(0, 40)
+        .Select(i =&gt; MathF.Sin(i * 0.35f) * 0.6f + 1.2f + i % 7 * 0.05f).ToArray();
+    Sparkline line = Sparkline(260, 64);
+    line.SetValues(vals);
+    Sparkline bars = Sparkline(260, 48, bars: true);
+    bars.SetValues(vals, min: 0);
+    return Frame(VStack(8)[line, bars]);
+}</code></pre></details></article>

@@ -60,4 +60,75 @@ public static Widget Depth() =&gt; Frame(GpuView(256, 256, new DepthScene(), ani
 <p>D3D12 の <code>CopyTextureToBuffer</code> は行 256B 整列が必要です。RGBA8 なら <strong>ターゲット幅を 64 の倍数</strong>にしてください (このページのデモはすべて 256)。</p>
 </div>
 <p>次: <a href="#story=Docs%2FTwoD">Docs/TwoD</a> — この GPU 抽象の上に 2D ベクターを載せます。</p>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Docs/GpuDevice&quot;, Order = 10)]
+public static Widget GpuDevice(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # GPU 抽象 (GpuDevice)
+
+    `Luxel.Graphics` は *No Graphics API* の哲学どおり、最新のバインドレス GPU を前提に **ディスクリプタセットも PSO バリアントも持たない**薄い抽象です。実装は `Luxel.Graphics.Vulkan` (Vulkan 1.3) と `Luxel.Graphics.DirectX12` (DirectX 12) — アプリのコードはバックエンド分岐なしの 1 本で書けます。
+
+    ## 固定パイプラインレイアウト
+
+    全パイプラインが同じレイアウトを共有します:
+
+    - **ルート引数** — 小さな構造体を push 定数 (Vulkan) / root 32bit 定数 (D3D12) で inline 渡し。`SetRootArguments(args)` に構造体を渡すだけ
+    - **bindless heap** — すべてのバッファ/テクスチャは作成時に `BindlessIndex` を持ち、シェーダは `g_buffers[index]` / `g_textures[index]` で参照
+
+    レイアウトが 1 つなので、ディスクリプタの束ね直しも PSO の組み合わせ爆発も起きません。「どのリソースを使うか」はルート引数の中の index が全てです。
+
+    ## メモリとバッファ
+
+    `device.Malloc(bytes, GpuMemoryKind)` でバッファを確保します。`HostMapped` は CPU から `Span&lt;T&gt;` で書き込みやすい upload 用、`DeviceLocal` は GPU 専用、`HostCached` は GPU→CPU 読み戻し用です。`HostMapped` は write-combined / uncached の場合があるため、CPU readback は `HostCached` へ GPU copyしてから行います。
+
+    ```csharp
+    using var device = new GpuDevice(VulkanBackend.Create());   // dx も可
+    using var input  = device.Malloc(n * sizeof(float), GpuMemoryKind.HostMapped);
+    using var output = device.Malloc(n * sizeof(float), GpuMemoryKind.HostMapped);
+
+    input.Span&lt;float&gt;(n)[i] = ...;                    // CPU マップへ直接書き込み
+
+    using var pipeline = device.CreateComputePipeline(GpuShaderCode.Load(&quot;compute01&quot;));
+    using var cmd = device.MainQueue.StartCommandRecording();
+    cmd.SetComputePipeline(pipeline)
+       .SetRootArguments(new Args { Input = input.BindlessIndex, Output = output.BindlessIndex, Count = n })
+       .Dispatch((n + 63) / 64)
+       .Barrier(GpuStage.ComputeShader, GpuStage.All);
+    cmd.Finish();
+    device.MainQueue.SubmitAndWait(cmd);
+    // output.Span&lt;float&gt;(n) を読み戻して検証
+    ```
+
+    ## Slang 統一シェーダ
+
+    シェーダは Slang で 1 回書き、SPIR-V (Vulkan) と DXIL (D3D12) の両方へコンパイルします。通常ビルドは Git 管理済みの `shaders/compiled/` を検証して使い、shader変更時だけ `CompileLuxelShaderCache` で両形式を更新します。
+
+    - `g_buffers[index]` は Vulkan では set0/binding0 の storage buffer 配列、D3D12 では u0/space1 の unbounded UAV テーブルに lower される
+    - シェーダはレンダーグラフにもバックエンドにも依存しない
+
+    &gt; [!TIP]
+    &gt; DXIL は `-validator-version 1.7` で出力しています — DXC 既定版の DXIL は OS ランタイムに拒否されることがあります。
+
+    ## コマンドとバリア
+
+    `MainQueue.StartCommandRecording()` → fluent にコマンドを積み → `Finish()` → `SubmitAndWait(cmd)`。同期は `Barrier(srcStage, dstStage)` の **stage バリア**だけ — リソース個別の状態遷移管理はありません (bindless + 単純化された使用パターンが前提)。
+
+    ## 描画 (graphics PSO)
+
+    graphics も同じ流儀です。`CreateGraphicsPipeline(shader, GpuRasterDesc)` で深度テストやブレンドを宣言し、dynamic rendering (`BeginRendering`/`EndRendering`) で RT/Depth を直接指定、頂点は**頂点プル** (頂点レイアウト宣言なし — シェーダが bindless バッファから読む) です。
+
+    {{StoryRef(ctx, &quot;Demos/3D/Depth&quot;)}}
+
+    {{StoryRef(ctx, &quot;Demos/3D/Blend&quot;)}}
+
+    `StorySource` でこのデモの実装をそのまま引用できます:
+
+    {{StorySource(&quot;Demos/3D/Depth&quot;)}}
+
+    ## テクスチャとレンダーターゲット
+
+    `CreateTexture` (ピクセルアップロード) / `CreateSampler` / `CreateRenderTarget` / `CreateDepthTarget`。RT の内容は `CopyTextureToBuffer` で bindless バッファへ書き出し、後段の compute/pixel シェーダが `Load` で読みます — swapchain 提示も docs 内の GpuView 埋め込みも、すべてこの経路です。
+
+    &gt; [!WARNING]
+    &gt; D3D12 の `CopyTextureToBuffer` は行 256B 整列が必要です。RGBA8 なら **ターゲット幅を 64 の倍数**にしてください (このページのデモはすべて 256)。
+
+    次: [Docs/TwoD](story:Docs/TwoD) — この GPU 抽象の上に 2D ベクターを載せます。
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

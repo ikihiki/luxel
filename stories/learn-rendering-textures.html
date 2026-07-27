@@ -45,4 +45,67 @@ Vertex UV + SV_VertexID / index pulling ─────────────�
 <li>色が暗すぎる / 明るすぎる → sRGB decodeを0回または1回に固定し、二重decodeを避ける</li>
 <li>textureをdisposeするとdevice lost → submit完了前にbindless resourceを破棄している</li>
 </ul>
-</article>
+<details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Rendering/Textures&quot;, Order = 6)]
+public static Widget Textures(StoryContext ctx)
+{
+    return DocNew(ctx, $&quot;&quot;&quot;
+    # Texture付きquad
+
+    {RenderingMeta(&quot;Beginner&quot;, &quot;Standalone&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;Shaders&quot;, previous: &quot;Learn/Rendering/Shaders&quot;, next: &quot;Learn/Rendering/TransformsAndCamera&quot;)}
+
+    実行可能な正は `samples/LuxelTriangle/TriangleRenderer.cs`、ABIは `samples/LuxelTriangle/TutorialAbi.cs`、shaderは `shaders/tutorial_3d.slang` です。この段階では4頂点・6 indexのquadへ小さなRGBA checker textureを貼ります。
+
+    ## 実行と期待結果
+
+    ```powershell
+    dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
+    dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter TutorialAbiTests
+    dotnet run --project samples/LuxelTriangle -- vk --stage texture
+    dotnet run --project samples/LuxelTriangle -- vk --stage texture --frames 3
+    # Windowsのみ
+    dotnet run --project samples/LuxelTriangle -- dx --stage texture --frames 3
+    ```
+
+    成功すると暗い背景の中央に、4&#215;4の橙/紫checkerを貼ったquadが表示されます。UV向きを検証するときは一時的に四隅を別色へ変えます。`--frames 3`はsmoke用で、目視確認するときはframes指定なしで起動し、windowを横長・縦長へresizeしてください。
+
+    ## Pixel、色空間、alpha
+
+    `GpuDevice.CreateTexture(width, height, data, GpuFormat.Rgba8Unorm)`へ渡すdataは、**左上から右へ進むtightなRGBA8 row**を上から下へ並べます。公開APIのformatには現在sRGB variantがないため、PNGなどsRGB authored colorを`Rgba8Unorm`として読む場合はshaderで明示的にsRGBからlinearへdecodeし、照明・補間をlinearで行います。`shaders/tutorial_3d.slang`は教材向けの近似として`pow(srgb, 2.2)`で明示decodeし、出力前に逆変換します。製品用の正確な変換ではIEC sRGBの低輝度linear branchも実装してください。decodeを0回か1回に固定し、sRGB formatが追加された将来にhardware decodeとshader decodeを重ねないことが重要です。
+
+    `GpuBlendMode.None`ではalphaは出力値に残るだけで背景とは混ざりません。透過を試すなら`GpuBlendMode.AlphaBlend`を選び、tutorialはstraight alpha（RGBをalphaで事前乗算しない）に統一します。opaque教材ではalphaを1にして、色空間とblendの問題を同時に持ち込まないのが安全です。
+
+    ## UV原点とsampler
+
+    tutorialの規約は **CPU imageの(0,0)とUV(0,0)を左上**、`u`は右、`v`は下です。shaderやasset loaderでさらにVを反転しないでください。上下を示す非対称checkerを使うと、UVの二重反転をすぐ発見できます。
+
+    `CreateSampler`で選べるfilterは現在`Point` / `Linear`、addressは`Clamp` / `Repeat`です。mipmap、anisotropic、border color、mirror addressは公開APIにまだありません。1 pixelの境界を観察するときはPoint、通常表示はLinear、UVを0..1へ収める教材はClamp、2倍以上へ広げる実験だけRepeatを使います。
+
+    ```text
+    CPU RGBA bytes → CreateTexture → bindless texture index ┐
+    CreateSampler  → bindless sampler index ────────────────┼→ tutorial_3d.slang → sampled color
+    Vertex UV + SV_VertexID / index pulling ────────────────┘
+    ```
+
+    quadも固定functionのvertex/index bindingではありません。shaderが`SV_VertexID`からindex bufferをraw loadし、そのindexでvertex bufferのposition / color / UVをpullします。6頂点を複製するのではなく、4頂点をindex列 `0,1,2, 0,2,3` で再利用します。C#とSlangでindex width、vertex stride、UV offsetを一致させてください。
+
+    ## Upload rowとbackend差
+
+    呼び出し側の入力は常に `width * 4` byteのtight rowで、余分なpaddingを含めません。Vulkan backendはこれをstaging copyへ渡します。D3D12 backendは内部で各rowを256 byte境界のfootprintへ詰め直しますが、そのpaddingはAPI利用者のdataへ含めません。これはreadback framebufferの`StridePixels`を64 pixelへ揃える規則とは別です。
+
+    現在の`CreateTexture` uploadは同期的です。methodが戻った時点で呼び出し元の`ReadOnlySpan&lt;byte&gt;`や一時配列は再利用・解放できます。一方、生成された`GpuTexture`と`GpuSampler`、それらの`BindlessIndex`は記録済みcommandが完了するまで生存させます。rendererがtexture / sampler / vertex / index buffer / pipelineを所有し、dispose順は **queue idle → resize resource → pipeline → sampler / texture → index / vertex buffer → device** とします。
+
+    ## Backend差を切り分ける
+
+    Slang source、RGBA channel順、UV規約、bindless indexは共通です。VulkanはSPIR-Vとdescriptor array、D3D12はDXILとdescriptor heapを使い、D3D12だけupload footprintが256 byte row alignmentを要求します。backend画像はdriverの丸めやlinear filteringで数LSB違うことがあるため、pixel-perfect一致ではなく小さなchannel toleranceで比較します。ただし上下反転、R/B交換、1 rowずれは許容差ではなくbugです。
+
+    ## 典型的な失敗
+
+    - quadが白い / 黒い → texture / samplerのbindless indexとroot argsのoffsetを確認
+    - RとBが入れ替わる → uploadがRGBAなのにBGRAとして作っていないか確認
+    - 上下が逆 → CPU row順、UV規約、shaderのV反転を1か所だけにする
+    - 右端から次rowへ色が流れる → 呼び出し側dataからD3D12用256 byte paddingを除く
+    - Vulkanだけ、またはD3D12だけ崩れる → 同じshader cacheを再生成し、両backendのcompiled fileを確認
+    - 色が暗すぎる / 明るすぎる → sRGB decodeを0回または1回に固定し、二重decodeを避ける
+    - textureをdisposeするとdevice lost → submit完了前にbindless resourceを破棄している
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

@@ -1,1 +1,27 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/DocumentTabs/Basic</h1></header><figure class="static-capture"><img src="images/controls-documenttabs-basic.png" alt="Controls/DocumentTabs/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/DocumentTabs/Basic</h1></header><figure class="static-capture"><img src="images/controls-documenttabs-basic.png" alt="Controls/DocumentTabs/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/DocumentTabs/Basic&quot;, Height = 200)]
+public static Widget DocumentTabsBasic(StoryContext ctx)
+{
+    var dirty = ctx.Signal(&quot;dirty&quot;, true);
+    var demo = new TabsDemo(dirty);
+
+    ctx.Play(async d =&gt;
+    {
+        await d.Snap();                                       // readme アクティブ + ダーティ ●
+        await d.Click(demo.Strip!.TabCenterOf(&quot;main&quot;)!.Value.X, demo.Strip.TabCenterOf(&quot;main&quot;)!.Value.Y);
+        await d.Expect(() =&gt; demo.ActiveId == &quot;main&quot;, &quot;クリックでアクティブ切替&quot;);
+        await d.Snap(&quot;active&quot;);
+        var close = demo.Strip!.CloseCenterOf(&quot;graph&quot;)!.Value;
+        await d.Click(close.X, close.Y);                      // &#215; で閉じ要求 → デモが除去
+        await d.Expect(() =&gt; demo.Items.Count == 2 &amp;&amp; demo.Log == &quot;close:graph&quot;, &quot;&#215; で閉じる&quot;);
+        var from = demo.Strip!.TabCenterOf(&quot;main&quot;)!.Value;
+        var to = demo.Strip.TabCenterOf(&quot;readme&quot;)!.Value;
+        await d.Drag(from.X, from.Y, to.X - 20, to.Y);        // D&amp;D で先頭へ並べ替え
+        await d.Expect(() =&gt; demo.Items[0].Id == &quot;main&quot;, &quot;D&amp;D 並べ替え&quot;);
+        await d.Snap(&quot;reordered&quot;);
+    });
+
+    return VStack(10)[
+        Heading(&quot;DocumentTabs — ダーティ ● / &#215; 閉じ / D&amp;D 並べ替え&quot;),
+        Muted(&quot;タブをドラッグすると並べ替え。readme.md はダーティ (●)。&quot;),
+        demo];
+}</code></pre></details></article>

@@ -1,1 +1,24 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Toolbar/Basic</h1></header><figure class="static-capture"><img src="images/controls-toolbar-basic.png" alt="Controls/Toolbar/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure></article>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Toolbar/Basic</h1></header><figure class="static-capture"><img src="images/controls-toolbar-basic.png" alt="Controls/Toolbar/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/Toolbar/Basic&quot;, Height = 200)]
+public static Widget ToolbarBasic(StoryContext ctx)
+{
+    string ran = &quot;&quot;;
+    CommandRegistry reg = DemoRegistry(id =&gt; { ran = id; ctx.Log($&quot;run: {id}&quot;); },
+                                       saveEnabled: () =&gt; false);
+    var docContrib = new[] { new CommandContribution(
+        new Command(&quot;graph.run&quot;, &quot;▶ 実行&quot;, () =&gt; { ran = &quot;graph.run&quot;; ctx.Log(&quot;run: graph.run&quot;); }),
+        Toolbar: true, Order: -1) };
+    Toolbar tb = Toolbar(reg, contributions: () =&gt; docContrib);
+
+    ctx.Play(async d =&gt;
+    {
+        await d.Snap();                                     // ▶ 実行 / 新規ファイル / 保存 (灰)
+        Widget run = FindByDetail(tb, &quot;▶ 実行&quot;)!;
+        await d.Click(run);
+        await d.Expect(() =&gt; ran == &quot;graph.run&quot;, &quot;ツールバーでコマンド実行&quot;);
+    });
+
+    return VStack(10)[
+        Heading(&quot;Toolbar — 掲載コマンドのボタン列&quot;),
+        Muted(&quot;寄与 (▶ 実行) + 登録分。保存は enablement=false でグレー非活性。&quot;),
+        tb];
+}</code></pre></details></article>
