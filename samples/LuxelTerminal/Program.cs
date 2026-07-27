@@ -1,3 +1,4 @@
+using System.Numerics;
 using Luxel.Terminal.Session;
 using Luxel.Terminal.UI;
 using Luxel.Typography;
@@ -30,6 +31,9 @@ var terminal = new TerminalView(session, fonts, ownsSession: true, ownsFonts: tr
 {
     CellWidth = sample.CellWidth,
     CellHeight = sample.CellHeight,
+    GlyphOffset = new Vector2(sample.GlyphOffsetX, sample.GlyphOffsetY),
+    GlyphScale = sample.GlyphScale,
+    GlyphAdvanceScale = sample.GlyphAdvanceScale,
     FontSize = sample.FontSize,
 };
 
@@ -73,14 +77,20 @@ file sealed record TerminalSampleOptions
     public int Width { get; init; } = 1100;
     public int Height { get; init; } = 700;
     public float FontSize { get; init; } = 16;
-    public float CellWidth { get; init; } = 9;
+    public float CellWidth { get; init; }
     public float CellHeight { get; init; } = 19;
+    public float GlyphOffsetX { get; init; }
+    public float GlyphOffsetY { get; init; }
+    public float GlyphScale { get; init; } = 1;
+    public float GlyphAdvanceScale { get; init; } = 1;
 
     public static TerminalSampleOptions Parse(string[] args)
     {
         string? Value(string name) => args.Select((v, i) => (v, i)).FirstOrDefault(x => x.v == name && x.i + 1 < args.Length) is var hit && hit.v is not null ? args[hit.i + 1] : null;
         int Int(string name, int fallback) => int.TryParse(Value(name), out int v) && v > 0 ? v : fallback;
-        float Float(string name, float fallback) => float.TryParse(Value(name), out float v) && v > 0 ? v : fallback;
+        float PositiveFloat(string name, float fallback) => float.TryParse(Value(name), out float v) && v > 0 ? v : fallback;
+        float AnyFloat(string name, float fallback) => float.TryParse(Value(name), out float v) && float.IsFinite(v) ? v : fallback;
+        float NonNegativeFloat(string name, float fallback) => float.TryParse(Value(name), out float v) && float.IsFinite(v) && v >= 0 ? v : fallback;
         string shell = Value("--shell") ?? (OperatingSystem.IsWindows()
             ? Environment.GetEnvironmentVariable("COMSPEC") ?? "cmd.exe"
             : Environment.GetEnvironmentVariable("SHELL") ?? "/bin/sh");
@@ -95,8 +105,10 @@ file sealed record TerminalSampleOptions
             FontPath = Value("--font") ?? Environment.GetEnvironmentVariable("LUXEL_TERMINAL_FONT"),
             NerdFontPath = Value("--nerd-font") ?? Environment.GetEnvironmentVariable("LUXEL_TERMINAL_NERD_FONT"),
             Columns = Int("--columns", 120), Rows = Int("--rows", 32), Scrollback = Int("--scrollback", 10_000),
-            Width = Int("--width", 1100), Height = Int("--height", 700), FontSize = Float("--font-size", 16),
-            CellWidth = Float("--cell-width", 9), CellHeight = Float("--cell-height", 19),
+            Width = Int("--width", 1100), Height = Int("--height", 700), FontSize = PositiveFloat("--font-size", 16),
+            CellWidth = NonNegativeFloat("--cell-width", 0), CellHeight = PositiveFloat("--cell-height", 19),
+            GlyphOffsetX = AnyFloat("--glyph-offset-x", 0), GlyphOffsetY = AnyFloat("--glyph-offset-y", 0),
+            GlyphScale = PositiveFloat("--glyph-scale", 1), GlyphAdvanceScale = PositiveFloat("--advance-scale", 1),
         };
     }
 }

@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Text;
 using Luxel.Graphics.TwoD;
 using Luxel.Platform;
@@ -37,9 +38,18 @@ public sealed class TerminalView : Widget, IDisposable, IAsyncDisposable
         _session.Updated += OnSessionUpdated;
     }
 
-    public float CellWidth { get; set; } = 9;
+    /// <summary>Cell width override. Zero selects the primary font's "0" advance.</summary>
+    public float CellWidth { get; set; }
     public float CellHeight { get; set; } = 18;
     public float FontSize { get; set; } = 16;
+    public TextBoxHorizontalAlignment GlyphHorizontalAlignment { get; set; } = TextBoxHorizontalAlignment.Center;
+    public TextBoxVerticalAlignment GlyphVerticalAlignment { get; set; } = TextBoxVerticalAlignment.Center;
+    /// <summary>Logical-pixel adjustment applied by the box-based text drawing API.</summary>
+    public Vector2 GlyphOffset { get; set; }
+    /// <summary>Uniform visual glyph scale applied inside each cell.</summary>
+    public float GlyphScale { get; set; } = 1f;
+    /// <summary>HarfBuzz advance multiplier for multi-glyph cell clusters and IME text.</summary>
+    public float GlyphAdvanceScale { get; set; } = 1f;
     public TerminalPalette Palette { get; set; } = new();
     public TerminalSelection? Selection { get; private set; }
     public int ScrollOffset => _scrollOffset;
@@ -51,7 +61,7 @@ public sealed class TerminalView : Widget, IDisposable, IAsyncDisposable
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
         TerminalSnapshot snapshot = _session.Snapshot();
-        float cellW = MathF.Max(1, CellWidth), cellH = MathF.Max(1, CellHeight);
+        float cellW = ResolveCellWidth(), cellH = ResolveCellHeight();
         Size desired = new(snapshot.Columns * cellW, snapshot.Rows * cellH);
         Size = c.Constrain(desired);
         int columns = Math.Max(1, (int)MathF.Floor(Size.Width / cellW));
@@ -65,7 +75,7 @@ public sealed class TerminalView : Widget, IDisposable, IAsyncDisposable
     }
 
     public override float MaxIntrinsicWidth(float height, LayoutContext ctx)
-        => _session.Snapshot().Columns * MathF.Max(1, CellWidth);
+        => _session.Snapshot().Columns * ResolveCellWidth();
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {
@@ -109,11 +119,12 @@ public sealed class TerminalView : Widget, IDisposable, IAsyncDisposable
     public Scene2D Render(TerminalSnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
-        float cellW = MathF.Max(1, CellWidth), cellH = MathF.Max(1, CellHeight);
+        float cellW = ResolveCellWidth(), cellH = ResolveCellHeight();
         int visibleRows = Math.Max(1, _rows == 0 ? snapshot.Rows : _rows);
         IReadOnlyList<IReadOnlyList<TerminalCell>> lines = TerminalViewport.VisibleLines(snapshot, visibleRows, _scrollOffset);
         int total = snapshot.Scrollback.Count + snapshot.Lines.Count;
         int visibleStart = Math.Max(0, total - lines.Count - Math.Clamp(_scrollOffset, 0, Math.Max(0, total - lines.Count)));
+        TextDrawOptions textOptions = CellTextOptions();
         var scene = new Scene2D();
         scene.FillRect(Palette.Background, 0, 0, Size.Width, Size.Height);
 
@@ -136,10 +147,7 @@ public sealed class TerminalView : Widget, IDisposable, IAsyncDisposable
                 if ((cell.Attributes.Style & TerminalStyle.Hidden) == 0 && !string.IsNullOrWhiteSpace(cell.Text))
                 {
                     VectorFont font = _fonts.Resolver.Resolve(cell.Text);
-                    float measured = font.Measure(cell.Text, FontSize).width;
-                    float glyphX = x + MathF.Max(0, (w - measured) * 0.5f);
-                    float baseline = y + (cellH - FontSize) * 0.5f + font.Ascent(FontSize);
-                    font.AppendText(scene, cell.Text, glyphX, baseline, FontSize, foreground);
+                    font.AppendText(scene, cell.Text, new TextRect(x, y, w, cellH), FontSize, foreground, textOptions);
                 }
                 if ((cell.Attributes.Style & TerminalStyle.Underline) != 0)
                 {
@@ -220,6 +228,24 @@ public sealed class TerminalView : Widget, IDisposable, IAsyncDisposable
         return _session.ResizeAsync(_columns, _rows, cancellationToken);
     }
 
+    public float ResolveCellWidth()
+    {
+        if (CellWidth > 0) return MathF.Max(1, CellWidth);
+        float advanceScale = float.IsFinite(GlyphAdvanceScale) && GlyphAdvanceScale > 0 ? GlyphAdvanceScale : 1;
+        return MathF.Max(1, _fonts.Primary.Measure("0", FontSize).width * advanceScale);
+    }
+
+    public float ResolveCellHeight() => MathF.Max(1, CellHeight);
+
+    private TextDrawOptions CellTextOptions() => new()
+    {
+        HorizontalAlignment = GlyphHorizontalAlignment,
+        VerticalAlignment = GlyphVerticalAlignment,
+        Offset = GlyphOffset,
+        GlyphScale = GlyphScale,
+        AdvanceScale = GlyphAdvanceScale,
+    };
+
     private void OnSessionUpdated() => Interlocked.Exchange(ref _sessionDirty, 1);
 
     private void OnScroll(float delta) => ScrollBy(delta > 0 ? 3 : delta < 0 ? -3 : 0);
@@ -243,8 +269,8 @@ public sealed class TerminalView : Widget, IDisposable, IAsyncDisposable
         int total = snapshot.Scrollback.Count + snapshot.Lines.Count;
         int rows = Math.Max(1, _rows);
         int start = Math.Max(0, total - rows - Math.Clamp(_scrollOffset, 0, Math.Max(0, total - rows)));
-        int line = Math.Clamp(start + (int)(y / MathF.Max(1, CellHeight)), 0, Math.Max(0, total - 1));
-        int column = Math.Clamp((int)(x / MathF.Max(1, CellWidth)), 0, snapshot.Columns);
+        int line = Math.Clamp(start + (int)(y / ResolveCellHeight()), 0, Math.Max(0, total - 1));
+        int column = Math.Clamp((int)(x / ResolveCellWidth()), 0, snapshot.Columns);
         return new TerminalPoint(line, column);
     }
 
@@ -265,8 +291,8 @@ public sealed class TerminalView : Widget, IDisposable, IAsyncDisposable
         float x = snapshot.Cursor.Column * cellW, y = snapshot.Cursor.Row * cellH, width = cells * cellW;
         scene.FillRect(Palette.ImeBackground, x, y, width, cellH);
         VectorFont font = _fonts.Resolver.Resolve(_composition.Text);
-        float baseline = y + (cellH - FontSize) * 0.5f + font.Ascent(FontSize);
-        font.AppendText(scene, _composition.Text, x, baseline, FontSize, Palette.Foreground);
+        font.AppendText(scene, _composition.Text, new TextRect(x, y, width, cellH), FontSize, Palette.Foreground,
+            CellTextOptions() with { HorizontalAlignment = TextBoxHorizontalAlignment.Left });
         scene.FillRect(Palette.ImeUnderline, x, y + cellH - 2, width, 1);
     }
 
@@ -334,7 +360,7 @@ public sealed class TerminalView : Widget, IDisposable, IAsyncDisposable
         public void Replace(int start, int end, string s) => owner.SetComposition(new ImeComposition(s, s.Length));
         public void SetComposition(ImeComposition comp) => owner.SetComposition(comp);
         public void CommitComposition(string final) => owner.CommitComposition(final);
-        public Rect CaretRect => new(owner.WorldPos.X + owner._session.Snapshot().Cursor.Column * owner.CellWidth,
-            owner.WorldPos.Y + owner._session.Snapshot().Cursor.Row * owner.CellHeight, owner.CellWidth, owner.CellHeight);
+        public Rect CaretRect => new(owner.WorldPos.X + owner._session.Snapshot().Cursor.Column * owner.ResolveCellWidth(),
+            owner.WorldPos.Y + owner._session.Snapshot().Cursor.Row * owner.ResolveCellHeight(), owner.ResolveCellWidth(), owner.ResolveCellHeight());
     }
 }

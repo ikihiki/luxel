@@ -1,5 +1,7 @@
 using System.Text;
 using System.Threading.Channels;
+using Luxel.Graphics.TwoD;
+using Luxel.Typography.TwoD;
 using Luxel.Terminal.Input;
 using Luxel.Terminal.Screen;
 using Luxel.Terminal.Session;
@@ -68,6 +70,51 @@ public sealed class TerminalUiTests
         Assert.Equal(0xFF0000FFu, palette.Resolve(TerminalColor.Rgb(255, 0, 0), true));
         Assert.NotEqual(palette.Resolve(TerminalColor.Indexed(16), true), palette.Resolve(TerminalColor.Indexed(231), true));
         Assert.NotEqual(palette.Resolve(TerminalColor.Indexed(232), true), palette.Resolve(TerminalColor.Indexed(255), true));
+    }
+
+    [Fact]
+    public void BoxTextDrawing_AppliesAlignmentAndOffsetInsideDrawingApi()
+    {
+        using VectorFont font = LoadTestFont();
+        var baseline = new Scene2D();
+        var adjusted = new Scene2D();
+        var box = new TextRect(10, 20, 40, 24);
+        font.AppendText(baseline, "A", box, 16, 0xffffffff, new TextDrawOptions
+        {
+            HorizontalAlignment = TextBoxHorizontalAlignment.Center,
+            VerticalAlignment = TextBoxVerticalAlignment.Center,
+        });
+        font.AppendText(adjusted, "A", box, 16, 0xffffffff, new TextDrawOptions
+        {
+            HorizontalAlignment = TextBoxHorizontalAlignment.Center,
+            VerticalAlignment = TextBoxVerticalAlignment.Center,
+            Offset = new System.Numerics.Vector2(2, 3),
+        });
+
+        System.Numerics.Vector2[] first = baseline.ExportContours().SelectMany(static points => points).ToArray();
+        System.Numerics.Vector2[] second = adjusted.ExportContours().SelectMany(static points => points).ToArray();
+        Assert.Equal(first.Length, second.Length);
+        for (int i = 0; i < first.Length; i++)
+        {
+            Assert.Equal(first[i].X + 2, second[i].X, 3);
+            Assert.Equal(first[i].Y + 3, second[i].Y, 3);
+        }
+    }
+
+    [Fact]
+    public async Task TerminalView_AutoCellWidthUsesPrimaryAdvanceAndSupportsFineAdjustment()
+    {
+        var pty = new FakePty();
+        await using var session = new TerminalSession(pty, 4, 2);
+        using VectorFont font = LoadTestFont();
+        using var fonts = new TerminalFontSet(font);
+        await using var view = new TerminalView(session, fonts) { FontSize = 16, CellWidth = 0 };
+        float natural = font.Measure("0", 16).width;
+        Assert.Equal(natural, view.ResolveCellWidth(), 3);
+        view.GlyphAdvanceScale = 0.9f;
+        Assert.Equal(natural * 0.9f, view.ResolveCellWidth(), 3);
+        view.CellWidth = 10;
+        Assert.Equal(10, view.ResolveCellWidth());
     }
 
     [Fact]
