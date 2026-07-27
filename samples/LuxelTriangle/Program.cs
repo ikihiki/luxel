@@ -23,6 +23,7 @@ return exitCode;
 return Run(backend, frameLimit, stage, initialWidth, initialHeight);
 #endif
 
+// docs:begin standalone-frame-loop
 static int Run(string backend, int? frameLimit, TutorialStage stage, int initialWidth, int initialHeight)
 {
     try
@@ -89,6 +90,8 @@ static int Run(string backend, int? frameLimit, TutorialStage stage, int initial
         return 1;
     }
 }
+
+// docs:end standalone-frame-loop
 
 static GpuDevice CreateDevice(string backend, NativeWindow window)
 {

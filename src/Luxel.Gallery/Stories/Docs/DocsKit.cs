@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Luxel.Controls;
 using Luxel.Typography;
 using Luxel.UI;
@@ -49,12 +49,63 @@ internal static class DocsKit
         return new DocEmbed(VStack(6)[parts.ToArray()], DocEmbedKind.StoryRef, path);
     }
 
-    /// <summary>ストーリーの C# ソース (storysource — ジェネレーターが焼き込み) をコードフェンスとして
-    /// 差し込む生 markdown hole。ページ本体のシンタックスハイライトがそのまま効く。</summary>
+    /// <summary>Story methodの公開された本体だけを表示する。private helperや外部sampleを含む「完全なsource」ではない。
+    /// 実行可能sampleは<see cref="SampleSource"/>で実ファイルから引用する。</summary>
     internal static DocMarkdown StorySource(string path)
         => StoryRegistry.Find(path) is { Source.Length: > 0 } s
             ? new DocMarkdown($"```csharp\n{s.Source}\n```")
             : new DocMarkdown($"```\n(ソースなし: {path})\n```");
+
+    /// <summary>実sample fileをGallery assemblyから読み、任意regionをcode fenceとして表示する。
+    /// source fileが唯一の正で、native/static/publishのcwdに依存しない。</summary>
+    internal static DocMarkdown SampleSource(string relativePath, string? region = null, string? language = null)
+    {
+        string resource = "Luxel.Sample." + relativePath.Replace('\\', '.').Replace('/', '.');
+        using Stream stream = typeof(DocsKit).Assembly.GetManifestResourceStream(resource)
+            ?? throw new InvalidOperationException($"Embedded sample source not found: {relativePath} ({resource})");
+        using var reader = new StreamReader(stream);
+        string source = reader.ReadToEnd().Replace("\r\n", "\n", StringComparison.Ordinal);
+        if (region is not null) source = ExtractRegion(source, relativePath, region);
+        language ??= Path.GetExtension(relativePath).ToLowerInvariant() switch
+        {
+            ".cs" => "csharp",
+            ".slang" => "slang",
+            ".ps1" => "powershell",
+            _ => "text",
+        };
+        return new DocMarkdown($"```{language}\n{source.TrimEnd()}\n```");
+    }
+
+    internal static string ExtractRegion(string source, string path, string region)
+    {
+        string begin = $"docs:begin {region}";
+        string end = $"docs:end {region}";
+        int beginAt = source.IndexOf(begin, StringComparison.Ordinal);
+        int endAt = source.IndexOf(end, StringComparison.Ordinal);
+        bool duplicateBegin = beginAt >= 0 && source.IndexOf(begin, beginAt + begin.Length, StringComparison.Ordinal) >= 0;
+        bool duplicateEnd = endAt >= 0 && source.IndexOf(end, endAt + end.Length, StringComparison.Ordinal) >= 0;
+        if (beginAt < 0 || endAt < 0 || endAt <= beginAt || duplicateBegin || duplicateEnd)
+            throw new InvalidOperationException($"Sample source region '{region}' is invalid or duplicated in {path}.");
+        int contentStart = source.IndexOf('\n', beginAt);
+        int endLineStart = source.LastIndexOf('\n', endAt);
+        if (contentStart < 0 || endLineStart <= contentStart)
+            throw new InvalidOperationException($"Sample source region '{region}' is empty in {path}.");
+        string content = source[(contentStart + 1)..endLineStart];
+        if (string.IsNullOrWhiteSpace(content))
+            throw new InvalidOperationException($"Sample source region '{region}' is empty in {path}.");
+        return content;
+    }
+
+    /// <summary>Rendering Learnページの統一metadata。テストが同じ表示を機械検証する。</summary>
+    internal static DocMarkdown RenderingMeta(string difficulty, string environment, string backend, string prerequisites,
+        string? previous = null, string? next = null)
+    {
+        string navigation = previous is null && next is null ? "" : "\n\n"
+            + (previous is null ? "" : $"**前へ:** [{previous.Split('/')[^1]}](story:{previous})")
+            + (previous is not null && next is not null ? "　 " : "")
+            + (next is null ? "" : $"**次:** [{next.Split('/')[^1]}](story:{next})");
+        return new DocMarkdown($"**難易度:** {difficulty}　 **実行環境:** {environment}　 **Backend:** {backend}　 **前提知識:** {prerequisites}{navigation}");
+    }
 
     /// <summary>新スタック (テキストスタック / ADR-0012) の docs ページ。<see cref="MarkdownDoc.FromDoc"/> で
     /// 既存の <c>Docs($"...")</c> 記法をそのまま描き、日本語フォント・シンタックスハイライト・mermaid/数式

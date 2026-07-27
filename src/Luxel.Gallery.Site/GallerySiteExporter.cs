@@ -86,6 +86,9 @@ public static partial class GallerySiteExporter
             string body;
             if (document is not null)
             {
+                IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, document.DocSource!);
+                if (linkErrors.Count > 0)
+                    throw new InvalidDataException("Broken documentation links: " + string.Join(", ", linkErrors));
                 string md = ReplaceEmbeds(document.DocSource!, document.DocEmbeds, host, imagesDir, repositoryRoot,
                     imageCache, ref unavailable, ref errors);
                 md = RewriteLocalImages(md, imagesDir, repositoryRoot);

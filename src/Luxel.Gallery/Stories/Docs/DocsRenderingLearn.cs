@@ -12,7 +12,7 @@ public static class DocsRenderingLearn
         return DocNew(ctx, $"""
         # Rendering 学習ガイド
 
-        **難易度:** Beginner　 **実行環境:** Standalone + Gallery　 **Backend:** Vulkan / DirectX 12
+        {RenderingMeta("Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "なし", next: "Learn/Rendering/Environment")}
 
         この章は、Gallery のデモを見るだけでなく、自分のウィンドウへ描画できるところまでを順番に進みます。最小アプリの実装はリポジトリの `samples/LuxelTriangle/` が単一の正です。
 
@@ -34,6 +34,8 @@ public static class DocsRenderingLearn
         14. [Shipping](story:Learn/Rendering/Shipping) — shader/assetsをpublishし、別cwdからsmokeする
         15. [Demos/3D/Triangle](story:Demos/3D/Triangle) — Galleryのoffscreen実例を操作
 
+        **検索キーワード:** triangle / texture / camera / render graph / glTF / blank screen / 真っ黒
+
         > [!IMPORTANT]
         > `GpuView` と `IGpuScene` はGallery内でデモを表示するためのハーネスです。通常アプリでは `WindowSystem`、`NativeWindow`、`GpuSurface` を使います。
 
@@ -49,9 +51,7 @@ public static class DocsRenderingLearn
         return DocNew(ctx, $$"""
         # レンダリング環境を確認する
 
-        **難易度:** Beginner　 **実行環境:** Standalone　 **Backend:** Vulkan / DirectX 12
-
-        **前提:** [Overview](story:Learn/Rendering/Overview)　 **次:** [ClearColor](story:Learn/Rendering/ClearColor)
+        {{RenderingMeta("Beginner", "Standalone", "Vulkan / DirectX 12", "Overview", previous: "Learn/Rendering/Overview", next: "Learn/Rendering/ClearColor")}}
 
         ## 対応backend
 
@@ -112,9 +112,7 @@ public static class DocsRenderingLearn
         return DocNew(ctx, $"""
         # ウィンドウとClear Color
 
-        **難易度:** Beginner　 **実行環境:** Standalone　 **Backend:** Vulkan / DirectX 12
-
-        **前提:** [Environment](story:Learn/Rendering/Environment)　 **次:** [FirstTriangle](story:Learn/Rendering/FirstTriangle)
+        {RenderingMeta("Beginner", "Standalone", "Vulkan / DirectX 12", "Environment", previous: "Learn/Rendering/Environment", next: "Learn/Rendering/FirstTriangle")}
 
         `samples/LuxelTriangle/Program.cs` がstandaloneアプリの外枠です。責務は次の順です。
 
@@ -135,6 +133,12 @@ public static class DocsRenderingLearn
         surface.Present(framebuffer, stridePixels, width, height);
         ```
 
+        ## 実sampleのframe loop
+
+        次は`Program.cs`からbuild時に埋め込んだ実コードです。説明用コピーではなく、sampleがコンパイルする同じregionを表示しています。
+
+        {SampleSource("samples/LuxelTriangle/Program.cs", "standalone-frame-loop")}
+
         ## Resize
 
         resize callbackでは即座にGPU resourceを破棄せず、次のevent-loop iterationでqueueをidleにしてからsurface、render target、framebufferを作り直します。最小化中の0×0では描画を休止します。
@@ -149,9 +153,7 @@ public static class DocsRenderingLearn
         return DocNew(ctx, $$"""
         # はじめての三角形
 
-        **難易度:** Beginner　 **実行環境:** Standalone + Gallery　 **Backend:** Vulkan / DirectX 12
-
-        **前提:** [ClearColor](story:Learn/Rendering/ClearColor)　 **次:** [BuffersAndBindings](story:Learn/Rendering/BuffersAndBindings)
+        {{RenderingMeta("Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "ClearColor", previous: "Learn/Rendering/ClearColor", next: "Learn/Rendering/BuffersAndBindings")}}
 
         {{StoryRef(ctx, "Demos/3D/Triangle")}}
 
@@ -161,6 +163,10 @@ public static class DocsRenderingLearn
         - `samples/LuxelTriangle/Program.cs`
         - `samples/LuxelTriangle/TriangleRenderer.cs`
         - `shaders/tutorial_triangle.slang`
+
+        ## 実sampleのABI
+
+        {{SampleSource("samples/LuxelTriangle/TutorialAbi.cs", "triangle-abi")}}
 
         ## 描画の4段階
 
@@ -217,9 +223,7 @@ public static class DocsRenderingLearn
         return DocNew(ctx, $$"""
         # バッファ、ABI、bindless binding
 
-        **難易度:** Beginner　 **実行環境:** Standalone + Gallery　 **Backend:** Vulkan / DirectX 12
-
-        **前提:** [FirstTriangle](story:Learn/Rendering/FirstTriangle)　 **次:** [Shaders](story:Learn/Rendering/Shaders)
+        {{RenderingMeta("Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "FirstTriangle", previous: "Learn/Rendering/FirstTriangle", next: "Learn/Rendering/Shaders")}}
 
         このページの実コードは `samples/LuxelTriangle/TutorialAbi.cs`、`TriangleRenderer.cs`、`shaders/tutorial_triangle.slang` です。確認コマンド:
 
@@ -312,9 +316,7 @@ public static class DocsRenderingLearn
         return DocNew(ctx, $$"""
         # Slang shaderとGit cache
 
-        **難易度:** Beginner　 **実行環境:** Standalone build / publish　 **Backend:** Vulkan / DirectX 12
-
-        **前提:** [BuffersAndBindings](story:Learn/Rendering/BuffersAndBindings)　 **次:** [Textures](story:Learn/Rendering/Textures)
+        {{RenderingMeta("Beginner", "Standalone build / publish", "Vulkan / DirectX 12", "BuffersAndBindings", previous: "Learn/Rendering/BuffersAndBindings", next: "Learn/Rendering/Textures")}}
 
         Luxelは `shaders/*.slang` を単一のsourceとして、Vulkan用SPIR-VとD3D12用DXILをGit管理します。通常のbuild / publishはcompilerを起動せずcacheを検証・コピーします。
 
@@ -384,9 +386,7 @@ public static class DocsRenderingLearn
         return DocNew(ctx, $"""
         # Texture付きquad
 
-        **難易度:** Beginner　 **実行環境:** Standalone　 **Backend:** Vulkan / DirectX 12
-
-        **前提:** [Shaders](story:Learn/Rendering/Shaders)　 **次:** [TransformsAndCamera](story:Learn/Rendering/TransformsAndCamera)
+        {RenderingMeta("Beginner", "Standalone", "Vulkan / DirectX 12", "Shaders", previous: "Learn/Rendering/Shaders", next: "Learn/Rendering/TransformsAndCamera")}
 
         実行可能な正は `samples/LuxelTriangle/TriangleRenderer.cs`、ABIは `samples/LuxelTriangle/TutorialAbi.cs`、shaderは `shaders/tutorial_3d.slang` です。この段階では4頂点・6 indexのquadへ小さなRGBA checker textureを貼ります。
 
@@ -451,9 +451,7 @@ public static class DocsRenderingLearn
         return DocNew(ctx, $"""
         # Transformとcameraでindexed cubeを描く
 
-        **難易度:** Beginner+　 **実行環境:** Standalone　 **Backend:** Vulkan / DirectX 12
-
-        **前提:** [Textures](story:Learn/Rendering/Textures)　 **次:** [DepthCullingLighting](story:Learn/Rendering/DepthCullingLighting)
+        {RenderingMeta("Beginner+", "Standalone", "Vulkan / DirectX 12", "Textures", previous: "Learn/Rendering/Textures", next: "Learn/Rendering/DepthCullingLighting")}
 
         実コードは `samples/LuxelTriangle/TriangleRenderer.cs`、共有ABIは `samples/LuxelTriangle/TutorialAbi.cs`、vertex pullingとMVPは `shaders/tutorial_3d.slang` を参照します。texture付きquadを24頂点・36 indexのcubeへ広げ、model / view / projectionをroot argumentsから渡します。
 
@@ -535,9 +533,7 @@ public static class DocsRenderingLearn
         return DocNew(ctx, $"""
         # Depth、culling、方向光
 
-        **難易度:** Beginner+　 **実行環境:** Standalone　 **Backend:** Vulkan / DirectX 12
-
-        **前提:** [TransformsAndCamera](story:Learn/Rendering/TransformsAndCamera)　 **次:** [FrameLoopAndSynchronization](story:Learn/Rendering/FrameLoopAndSynchronization)
+        {RenderingMeta("Beginner+", "Standalone", "Vulkan / DirectX 12", "TransformsAndCamera", previous: "Learn/Rendering/TransformsAndCamera", next: "Learn/Rendering/FrameLoopAndSynchronization")}
 
         完成形は `samples/LuxelTriangle/TriangleRenderer.cs`と`samples/LuxelTriangle/TutorialAbi.cs`、shaderは `shaders/tutorial_3d.slang` です。indexed cubeへD32 depth target、back-face culling、最小のdirectional Lambert lightを追加します。
 
@@ -617,9 +613,7 @@ public static class DocsRenderingLearn
         return DocNew(ctx, $$"""
         # Frame loopと同期
 
-        **難易度:** Beginner+　 **実行環境:** Standalone　 **Backend:** Vulkan / DirectX 12
-
-        **前提:** [DepthCullingLighting](story:Learn/Rendering/DepthCullingLighting)　 **次:** [FirstRenderGraph](story:Learn/Rendering/FirstRenderGraph)
+        {{RenderingMeta("Beginner+", "Standalone", "Vulkan / DirectX 12", "DepthCullingLighting", previous: "Learn/Rendering/DepthCullingLighting", next: "Learn/Rendering/FirstRenderGraph")}}
 
         実コードは `samples/LuxelTriangle/Program.cs` と `samples/LuxelTriangle/TriangleRenderer.cs` です。このページでは、1 frameを「CPUがcommandを記録する期間」だけでなく、GPU完了とpresentまで含む寿命として捉えます。
 
@@ -718,9 +712,7 @@ public static class DocsRenderingLearn
         return DocNew(ctx, $$"""
         # はじめてのRenderGraph
 
-        **難易度:** Beginner+　 **実行環境:** Standalone + DevTools　 **Backend:** Vulkan / DirectX 12
-
-        **前提:** [FrameLoopAndSynchronization](story:Learn/Rendering/FrameLoopAndSynchronization)　 **次:** [First2DScene](story:Learn/Rendering/First2DScene)
+        {{RenderingMeta("Beginner+", "Standalone + DevTools", "Vulkan / DirectX 12", "FrameLoopAndSynchronization", previous: "Learn/Rendering/FrameLoopAndSynchronization", next: "Learn/Rendering/First2DScene")}}
 
         sampleは `samples/LuxelTriangle/Program.cs`、`samples/LuxelTriangle/TriangleRenderer.cs`、`samples/LuxelTriangle/TutorialAbi.cs`、scene shaderの`shaders/tutorial_3d.slang`、post-process shaderの`shaders/compute_tutorial_postprocess.slang`です。RenderGraph本体は`src/Luxel.RenderGraph/`にあります。
 
@@ -744,6 +736,12 @@ public static class DocsRenderingLearn
         ```powershell
         dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache
         ```
+
+        ## 実sampleのgraph実装
+
+        以下は`TriangleRenderer.cs`の実regionです。Learnページ側に別実装を複製せず、solutionでbuildされるsourceを表示します。
+
+        {{SampleSource("samples/LuxelTriangle/TriangleRenderer.cs", "render-graph-frame")}}
 
         ## direct → graph → post
 
@@ -854,9 +852,7 @@ public static class DocsRenderingLearn
         return DocNew(ctx, $$"""
         # はじめての2Dシーン
 
-        **難易度:** Beginner　 **実行環境:** Gallery / Standalone / Headless　 **Backend:** Vulkan / DirectX 12 / Skia CPU
-
-        **前提:** [FirstRenderGraph](story:Learn/Rendering/FirstRenderGraph)　 **次:** [StaticGltf](story:Learn/Rendering/StaticGltf)
+        {{RenderingMeta("Beginner", "Gallery / Standalone / Headless", "Vulkan / DirectX 12 / Skia CPU", "FirstRenderGraph", previous: "Learn/Rendering/FirstRenderGraph", next: "Learn/Rendering/StaticGltf")}}
 
         {{StoryRef(ctx, "Demos/2D/Shapes")}}
 
@@ -917,9 +913,7 @@ public static class DocsRenderingLearn
         return DocNew(ctx, $$"""
         # ECSなしで静的glTFを描く
 
-        **難易度:** Beginner+　 **実行環境:** Gallery / Standalone　 **Backend:** Vulkan / DirectX 12
-
-        **前提:** [First2DScene](story:Learn/Rendering/First2DScene)　 **次:** [Debugging](story:Learn/Rendering/Debugging)
+        {{RenderingMeta("Beginner+", "Gallery / Standalone", "Vulkan / DirectX 12", "First2DScene", previous: "Learn/Rendering/First2DScene", next: "Learn/Rendering/Debugging")}}
 
         {{StoryRef(ctx, "Demos/3D/GltfBox")}}
 
@@ -981,9 +975,7 @@ public static class DocsRenderingLearn
         return DocNew(ctx, $$"""
         # レンダリングをデバッグする
 
-        **難易度:** Beginner　 **実行環境:** Standalone / Gallery / DevTools　 **Backend:** Vulkan / DirectX 12
-
-        **前提:** [StaticGltf](story:Learn/Rendering/StaticGltf)　 **次:** [Shipping](story:Learn/Rendering/Shipping)
+        {{RenderingMeta("Beginner", "Standalone / Gallery / DevTools", "Vulkan / DirectX 12", "StaticGltf", previous: "Learn/Rendering/StaticGltf", next: "Learn/Rendering/Shipping")}}
 
         ## 起動しない
 
@@ -1033,9 +1025,9 @@ public static class DocsRenderingLearn
         return DocNew(ctx, $$"""
         # Publishして別ディレクトリから起動する
 
-        **難易度:** Beginner+　 **実行環境:** Published standalone app　 **Backend:** Vulkan / DirectX 12
+        {{RenderingMeta("Beginner+", "Published standalone app", "Vulkan / DirectX 12", "Debugging", previous: "Learn/Rendering/Debugging", next: "Apps/Game/Range")}}
 
-        **前提:** [Debugging](story:Learn/Rendering/Debugging)　 **次:** このページが初心者経路の終点です。3D capstoneは[Apps/Game/Range](story:Apps/Game/Range)
+        このページが初心者経路の終点です。次は3D capstoneの[Apps/Game/Range](story:Apps/Game/Range)へ進めます。
 
         executable projectが`shaders/Luxel.Shaders.targets`をimportすると、compiled shaderはbuild/publishの`shaders/`へ入ります。loose assetは`Content`として出力とpublishの両方へ含めます。
 

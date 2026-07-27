@@ -10,6 +10,7 @@ public static class TutorialAbi
     public const int DrawArgs3DSize = 176;
     public const int PostProcessArgsSize = 20;
 
+    // docs:begin triangle-abi
     [StructLayout(LayoutKind.Sequential)]
     public struct Vertex
     {
@@ -22,6 +23,8 @@ public static class TutorialAbi
     {
         public uint VertexBufferIndex;
     }
+
+    // docs:end triangle-abi
 
     [StructLayout(LayoutKind.Sequential)]
     public struct Vertex3D
