@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsUi
 {
-    [Story("Docs/UI", Order = 20)]
+    [Story("Reference/Guides/UI", Order = 20)]
     public static Widget Ui(StoryContext ctx) => DocNew(ctx, $$"""
         # 宣言的 UI (Luxel.UI)
 
@@ -47,10 +47,10 @@ public static class DocsUi
 
         `UiHost` がポインタ/キー/IME を前面優先でディスパッチします (Esc → Tab → フォーカス → フォーカス中コントロール → アプリ全域ショートカットの順)。ユーザーコード (Build / Effect / 入力ハンドラ) の例外は**エラー境界**が捕捉し、該当サブツリーを赤枠の ErrorWidget に縮退させます — アプリ全体は落ちません。
 
-        次: [Docs/Controls](story:Docs/Controls) (組み込みコントロールと独自コントロール) / [Docs/Styling](story:Docs/Styling) (状態別スタイルと Tailwind)。
+        次: [Reference/Guides/Controls](story:Reference/Guides/Controls) (組み込みコントロールと独自コントロール) / [Reference/Guides/Styling](story:Reference/Guides/Styling) (状態別スタイルと Tailwind)。
         """, toc: true);
 
-    [Story("Docs/Controls", Order = 21)]
+    [Story("Reference/Guides/Controls", Order = 21)]
     public static Widget Controls(StoryContext ctx) => DocNew(ctx, $$"""
         # コントロール (Luxel.Controls)
 
@@ -58,9 +58,9 @@ public static class DocsUi
 
         ## カタログ
 
-        - **入力/選択**: [Button](story:Docs/Button) / [CheckBox](story:Controls/CheckBox/Basic) / [Switch](story:Controls/Switch/Basic) / [Slider](story:Controls/Slider/Basic) / [Segmented](story:Controls/Segmented/Basic) / [Radios](story:Controls/Radios/Basic) / [Select](story:Controls/Select/Basic) / [LengthField](story:Controls/LengthField/Basic)
+        - **入力/選択**: [Button](story:Reference/Guides/Button) / [CheckBox](story:Controls/CheckBox/Basic) / [Switch](story:Controls/Switch/Basic) / [Slider](story:Controls/Slider/Basic) / [Segmented](story:Controls/Segmented/Basic) / [Radios](story:Controls/Radios/Basic) / [Select](story:Controls/Select/Basic) / [LengthField](story:Controls/LengthField/Basic)
         - **テキスト**: [TextField](story:Controls/TextField/Basic) / [TextEditorView](story:Controls/TextEditorView/Basic) / [SearchField](story:Controls/SearchField/Basic) / [Markdown 編集 (Live Preview)](story:Controls/TextEditorView/LivePreview) / [RichText 表示](story:Controls/RichText/Basic)
-        - **コンテナ/ナビゲーション**: [Border](story:Controls/Border/Card) / [Grid](story:Controls/Grid/Columns) / [ScrollViewer](story:Controls/ScrollViewer/Basic) / [WrapPanel](story:Controls/WrapPanel/Basic) / [ListView (仮想化)](story:Controls/ListView/Huge) / [NavigationView](story:Controls/NavigationView/Basic) / [Navigation履歴](story:Demos/UI/Navigation)
+        - **コンテナ/ナビゲーション**: [Border](story:Controls/Border/Card) / [Grid](story:Controls/Grid/Columns) / [ScrollViewer](story:Controls/ScrollViewer/Basic) / [WrapPanel](story:Controls/WrapPanel/Basic) / [ListView (仮想化)](story:Controls/ListView/Huge) / [NavigationView](story:Controls/NavigationView/Basic) / [Navigation履歴](story:Examples/UI/Navigation)
         - **オーバーレイ**: [Dialog](story:Controls/Dialog/Basic) / [Toast](story:Controls/Toast/Basic) / [Drawer](story:Controls/Drawer/Basic) / [Tooltip](story:Controls/Tooltip/Basic) / [Dropdown](story:Controls/Dropdown/Basic) / [Tabs](story:Controls/Tabs/Basic) / [Accordion](story:Controls/Accordion/Basic)
         - **表示**: [Badge/Chip](story:Controls/Kit/Badges) / [Alert](story:Controls/Kit/Alert) / [Spinner](story:Controls/Spinner/Basic) / [Icon](story:Controls/Icon/Kinds) / [Sparkline](story:Controls/Sparkline/Basic)
 
@@ -116,7 +116,7 @@ public static class DocsUi
         - 平滑スクロール (UiStates) と併用するときは `displayOffset` に動的値、`onDirectChange` でドラッグの即時チャネルへ切り替える (ScrollViewer/ListView の形)
         """, toc: true);
 
-    [Story("Docs/Styling", Order = 23)]
+    [Story("Reference/Guides/Styling", Order = 23)]
     public static Widget Styling(StoryContext ctx) => DocNew(ctx, $$"""
         # スタイリングと Tailwind
 
@@ -159,12 +159,12 @@ public static class DocsUi
 
         状態切替は瞬時が既定で、`.Transition(duration, curve, プロパティ群)` を宣言したプロパティだけが補間されます。方向別 (`TransitionTo` / `TransitionBetween`) の指定もできます — 実物で確かめてください:
 
-        {{StoryRef(ctx, "Demos/Animation/Transitions")}}
+        {{StoryRef(ctx, "Examples/Animation/Transitions")}}
 
         設計ノート: 状態別スタイルを「引数と同名の型付き宣言」にしたのは Tailwind の hover: / MUI sx / Flutter WidgetState と同じ発想です。テーマを経由しない一発指定と、テーマ経由の既定解決が同居し、どちらもトランジションに乗ります。
         """, toc: true);
 
-    [Story("Docs/Button", Order = 22)]
+    [Story("Reference/Guides/Button", Order = 22)]
     public static Widget ButtonDocs(StoryContext ctx) => DocNew(ctx, $$"""
         # Button
 
@@ -189,7 +189,7 @@ public static class DocsUi
         Button(_ => ctx.Log("clicked"), "OK", variant: Variant.Tonal, intent: Intent.Success)
         ```
 
-        コールバックの第一引数は**発火元の Button 自身** (sender-first 規約) です。入門は [GettingStarted](story:Docs/GettingStarted)、状態別スタイルと Tailwind は [Docs/Styling](story:Docs/Styling) へ。
+        コールバックの第一引数は**発火元の Button 自身** (sender-first 規約) です。入門は [GettingStarted](story:Reference/Guides/GettingStarted)、状態別スタイルと Tailwind は [Reference/Guides/Styling](story:Reference/Guides/Styling) へ。
 
         ## API
 

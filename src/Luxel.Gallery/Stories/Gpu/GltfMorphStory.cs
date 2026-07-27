@@ -33,7 +33,7 @@ public static class GltfMorphStories
         public uint VertexCount;
     }
 
-    [Story("Demos/3D/GltfMorph", Height = 320, Order = 128)]
+    [Story("Examples/3D/GltfMorph", Height = 320, Order = 128)]
     public static Widget GltfMorph(StoryContext ctx) => ctx.Snap(Frame(GpuView(256, 256, new MorphScene())));
 
     private sealed class MorphScene : GpuSceneBase

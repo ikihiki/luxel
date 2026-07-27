@@ -30,7 +30,7 @@ public static class FixedTimestepStories
     private const int Ratio = 4;          // 表示レート / 固定レート (1 ステップ = 4 表示フレーム)
     private const int Warmup = Ratio, CaptureN = 16;
 
-    [Story("Demos/Framework/DrawInterpolation", Height = 300, Order = 149)]
+    [Story("Examples/Framework/DrawInterpolation", Height = 300, Order = 149)]
     public static Widget DrawInterpolation(StoryContext ctx)
     {
         // 実物の蓄積器で決定的にシミュレーション (固定ステップ = StopDist/step、表示 = その 4 倍レート)。

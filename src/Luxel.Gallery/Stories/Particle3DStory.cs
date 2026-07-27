@@ -12,11 +12,11 @@ namespace Luxel.Gallery.Stories;
 /// (<c>billboard.slang</c> がインスタンス quad を right/up 軸で展開)。<see cref="ParticleSystem"/> は
 /// <c>Spherical</c> 放出 + 重力で、固定シード + 固定 dt を事前実行。<see cref="OrbitCamera"/> で見下ろす。
 /// 深度テストあり・書き込み無し + アルファブレンド。Skia CPU では描けないので golden は vk のみ。
-/// docs の Docs/TwoD 「パーティクル」節から参照される。
+/// docs の Reference/Guides/TwoD 「パーティクル」節から参照される。
 /// </summary>
 public static class Particle3DStories
 {
-    [Story("Demos/3D/Particles", Height = 300, Order = 128)]
+    [Story("Examples/3D/Particles", Height = 300, Order = 128)]
     public static Widget Particles(StoryContext ctx) => ctx.Snap(Frame(GpuView(256, 256, new Particle3DScene(), animated: false)));
 
     private sealed class Particle3DScene : GpuSceneBase

@@ -11,7 +11,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>Kit 複合/表示系コントロールとトランジションのストーリー。</summary>
 public static class MiscControlStories
 {
-    [Story("Demos/Animation/Transitions", Height = 200)]
+    [Story("Examples/Animation/Transitions", Height = 200)]
     public static Widget TransitionStates(StoryContext ctx) => ctx.Snap(Frame(
         // 状態レイヤは生成された When (引数はファクトリと同名 — Stateable のみ)、
         // トランジションは fluent Transition 系で「どのプロパティ群を」独立に宣言する (GN):

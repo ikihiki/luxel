@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("ADR/0006-Editor-New-Stack", Order = 77)]
+    [Story("Internals/ADR/0006-Editor-New-Stack", Order = 77)]
     public static Widget Adr0006(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0006 — テキストエディタは Transaction ベースの新スタックを新規に作る
 
@@ -38,14 +38,14 @@ public static partial class DocsAdr
         - **具体エディタは構成**で作る — `CodeEditorView` = view + ガター + syntax/診断/検索プロバイダ + 補完 chrome。Strudel ブロック = view + インライン widget + 再生囲みプロバイダ
         - **トークナイザ/言語契約は新スタック側に持つ** (model 非依存の `SyntaxToken`/`TokenKind` は再利用可)。既存の TextMate/Roslyn 実装は薄いアダプタで橋渡しし、新スタックは旧 Luxel.Document モデルに依存しない
 
-        実装計画は ToDo/22 (段階 S1〜S8)。旧 07 のマルチカーソル + 矩形選択は S7 に畳んだ (native モデルではほぼコマンド追加で済む)。現在の姿は [Docs/Editor](story:Docs/Editor) が正。
+        実装計画は ToDo/22 (段階 S1〜S8)。旧 07 のマルチカーソル + 矩形選択は S7 に畳んだ (native モデルではほぼコマンド追加で済む)。現在の姿は [Reference/Guides/Editor](story:Reference/Guides/Editor) が正。
 
         ## Alternatives
 
         - **既存コントロールの段階移行 (当初案)** — プライマリ/セカンダリ分裂と写像 2 系統を制約として抱え込み、単一カーソル前提の undo ハックも要る。加えて 3 コントロール共有の engine を触るため波及が広い。要件が新機能である以上、綺麗な新スタックの方が良い → 却下
         - **DocumentEditor を native 複数レンジへ改修** — RichTextEditor のブロックモデル・IME/TSF ブリッジ・879 本のテストに波及する大手術 → 却下
         - **CodeEditor を機能ごとに増築し続ける** — 要件の組み合わせのたびに描画パスが増殖し、等幅前提の負債も残る (元の課題そのもの) → 却下
-        - **既存エディタコンポーネントの移植 (AvaloniaEdit 等)** — 自前レンダラ前提で RetainedCanvas に載らない ([ADR-0003](story:ADR/0003-Declarative-Signal-Ui) と同じ力学) → 却下
+        - **既存エディタコンポーネントの移植 (AvaloniaEdit 等)** — 自前レンダラ前提で RetainedCanvas に載らない ([ADR-0003](story:Internals/ADR/0003-Declarative-Signal-Ui) と同じ力学) → 却下
 
         ## Consequences
 

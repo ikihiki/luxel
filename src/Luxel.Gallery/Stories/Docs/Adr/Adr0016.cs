@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("ADR/0016-Scene-Editor-Stack", Order = 87)]
+    [Story("Internals/ADR/0016-Scene-Editor-Stack", Order = 87)]
     public static Widget Adr0016(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0016 — シーンエディタは第 3 の Transaction スタック + 空間アダプタで作る
 
@@ -17,7 +17,7 @@ public static partial class DocsAdr
 
         ## Context
 
-        ゲームエディタ (Luxel Studio、[ADR-0015](story:ADR/0015-Game-Project-Scene-Format)) の中心はシーン編集 — エンティティの選択/移動/複製/削除、タイル描き込み、undo/redo です。リポジトリには実証済みの編集アーキテクチャが 2 本あります: テキスト ([ADR-0006](story:ADR/0006-Editor-New-Stack)) とノードグラフ ([ADR-0009](story:ADR/0009-Node-Editor-Stack))。どちらも「不変スナップショット + Transaction + 1 tx = 1 undo + 安定 id」の同じ骨格です。
+        ゲームエディタ (Luxel Studio、[ADR-0015](story:Internals/ADR/0015-Game-Project-Scene-Format)) の中心はシーン編集 — エンティティの選択/移動/複製/削除、タイル描き込み、undo/redo です。リポジトリには実証済みの編集アーキテクチャが 2 本あります: テキスト ([ADR-0006](story:Internals/ADR/0006-Editor-New-Stack)) とノードグラフ ([ADR-0009](story:Internals/ADR/0009-Node-Editor-Stack))。どちらも「不変スナップショット + Transaction + 1 tx = 1 undo + 安定 id」の同じ骨格です。
 
         加えて 2D/3D 両対応の制約 (2026-07-10 決定) がある: 実装は 2D 先行 (M11) だが、3D (M12) をシェルの作り直しなしに足せる形にする必要があります。2D と 3D ではカメラの型 (pan/zoom vs 軌道)、ヒットテスト (矩形 vs レイピック)、座標型 (Vector2 vs Vector3) が違います。
 

@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("ADR/0014-Workbench-Ui-Controls", Order = 85)]
+    [Story("Internals/ADR/0014-Workbench-Ui-Controls", Order = 85)]
     public static Widget Adr0014(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0014 — Workbench 基盤 UI コントロール群を新設する
 
@@ -17,7 +17,7 @@ public static partial class DocsAdr
 
         ## Context
 
-        Workbench ([ADR-0010](story:ADR/0010-Workbench-Framework)) のシェルに必要な**内容/レイアウト系コントロール**が未実装です。調査の結果、次が「無い」と判明しました: 複数ドキュメントの `DocumentTabs`、ドッキングを描く `DockHost`、型/ECS を反映する `PropertyGrid`/Inspector、`StatusBar`、VFS 連動の `AssetBrowser`。
+        Workbench ([ADR-0010](story:Internals/ADR/0010-Workbench-Framework)) のシェルに必要な**内容/レイアウト系コントロール**が未実装です。調査の結果、次が「無い」と判明しました: 複数ドキュメントの `DocumentTabs`、ドッキングを描く `DockHost`、型/ECS を反映する `PropertyGrid`/Inspector、`StatusBar`、VFS 連動の `AssetBrowser`。
 
         既存に**種**はあります — `Tabs` (ビュー切替専用)・`Splitter`・`KnobsTable`/`TypeApiTable`・`TreeView` — が、複数ドキュメント/ドッキング/インスペクションの用途にはそのまま使えません。これらを WS-D (具体エディタ作成) に埋め込まず、**再利用可能なコントロールとして独立に切り出す**判断です (Inspector は将来のシーン/レベルエディタの前提でもあるため)。
 
@@ -25,13 +25,13 @@ public static partial class DocsAdr
 
         `Luxel.Controls` に基盤コントロールを新設します:
 
-        - **`DocumentTabs`** — 複数ドキュメントのタブ帯 { ダーティ点, × 閉じ, オーバーフロー, D&D 並べ替え }。既存 `Tabs` を汎用化。D&D は [ADR-0011](story:ADR/0011-Pointer-Button-Modifiers) が前提
-        - **`DockHost`** — `DockTree` ([ADR-0010](story:ADR/0010-Workbench-Framework)) を描く container。ペイン分割 (`Splitter`)・ドラッグの**ドロップゾーン**・窓内フローティング (Overlay 層、[ADR-0007](story:ADR/0007-Floating-Ui-Placement))
+        - **`DocumentTabs`** — 複数ドキュメントのタブ帯 { ダーティ点, × 閉じ, オーバーフロー, D&D 並べ替え }。既存 `Tabs` を汎用化。D&D は [ADR-0011](story:Internals/ADR/0011-Pointer-Button-Modifiers) が前提
+        - **`DockHost`** — `DockTree` ([ADR-0010](story:Internals/ADR/0010-Workbench-Framework)) を描く container。ペイン分割 (`Splitter`)・ドラッグの**ドロップゾーン**・窓内フローティング (Overlay 層、[ADR-0007](story:Internals/ADR/0007-Floating-Ui-Placement))
         - **`PropertyGrid` / Inspector** — target (型 / ECS コンポーネント / config オブジェクト) を反映し、型別エディタ (Slider/TextField/ColorPicker/Switch/Select/ベクトル) を行に並べる。グループ化 + 束縛。`KnobsTable`/`TypeApiTable` を土台に
         - **`StatusBar`** — 下部ステータス帯 (セグメント + ライブ `Signal`)
-        - **`AssetBrowser` / FileTree** — `TreeView` を VFS ([ADR-0012](story:ADR/0012-Rich-Document-Stack) の Write を含む `IDocumentStore`) に結線 (+サムネイルグリッド)
+        - **`AssetBrowser` / FileTree** — `TreeView` を VFS ([ADR-0012](story:Internals/ADR/0012-Rich-Document-Stack) の Write を含む `IDocumentStore`) に結線 (+サムネイルグリッド)
 
-        **コマンド駆動サーフェス** (MenuBar / コマンドパレット / ツールバー) は [ADR-0013](story:ADR/0013-Menu-Command-System) 側に置き、この ADR は内容/レイアウト系に集中します。ヒエラルキー/アウトライナは `TreeView` 流用で新規不要です。
+        **コマンド駆動サーフェス** (MenuBar / コマンドパレット / ツールバー) は [ADR-0013](story:Internals/ADR/0013-Menu-Command-System) 側に置き、この ADR は内容/レイアウト系に集中します。ヒエラルキー/アウトライナは `TreeView` 流用で新規不要です。
 
         実装計画は ToDo/26。
 
@@ -46,7 +46,7 @@ public static partial class DocsAdr
         - ✅ 複数ドキュメント・ドッキング・インスペクションが**再利用可能なコントロール**として揃う
         - ✅ `PropertyGrid` が将来の 2D/3D シーンエディタ (ビューポート系) の土台になる
         - ✅ 既存の種 (`Tabs`/`Splitter`/`KnobsTable`/`TreeView`) を活かせて新規コードを絞れる
-        - ⚠️ `DockHost` の D&D/ドロップゾーンは実装が重く、[ADR-0011](story:ADR/0011-Pointer-Button-Modifiers) と**端レイアウトの golden 検証**が要る
+        - ⚠️ `DockHost` の D&D/ドロップゾーンは実装が重く、[ADR-0011](story:Internals/ADR/0011-Pointer-Button-Modifiers) と**端レイアウトの golden 検証**が要る
         - ⚠️ `PropertyGrid` の型別エディタは、対応型を増やすたびに保守が要る
         """, toc: true);
 }

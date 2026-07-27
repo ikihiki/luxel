@@ -13,11 +13,11 @@ namespace Luxel.Gallery.Stories;
 /// 右: 連続放出の噴水 (円パーティクル)。<see cref="ParticleSystem"/> を固定シード + 固定 dt で一定ステップ
 /// 事前実行し、<see cref="ParticleNode"/> (RetainedCanvas 統合、per-particle 色) で描く。決定的なので golden 安定。
 /// Image と違い塗りなので原理的には Skia でも出るが、GPU/Skia の AA 差を避け golden は vk のみ。
-/// docs の Docs/TwoD 「パーティクル」節から参照される。
+/// docs の Reference/Guides/TwoD 「パーティクル」節から参照される。
 /// </summary>
 public static class ParticleStories
 {
-    [Story("Demos/2D/Particles", Height = 260, Order = 121)]
+    [Story("Examples/2D/Particles", Height = 260, Order = 121)]
     public static Widget Particles(StoryContext ctx) => ctx.Snap(Frame(GpuView(384, 192, new ParticleScene(), animated: false)));
 
     private sealed class ParticleScene : GpuSceneBase

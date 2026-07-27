@@ -11,7 +11,7 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 |---|---|---|---|---|
 | 01 | [01-custom-ime-candidates.md](01-custom-ime-candidates.md) | カスタム IME 候補ウインドウ (TSF ITfUIElementSink で OS 抑制 + 自前 Popup 描画、排他モード対応。ADR-0008 Proposed) | 中 | **高** (実 IME 依存) |
 
-完了したタスクの MD は規約どおり削除する。仕様は Gallery の Docs/ADR ストーリー、経緯は git 履歴を参照。
+完了したタスクの MD は規約どおり削除する。仕様は Gallery の Reference/Guides/ADR ストーリー、経緯は git 履歴を参照。
 
 ## 将来タスクの候補 (2026-07-06 ギャップ分析の残り)
 

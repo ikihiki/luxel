@@ -29,7 +29,7 @@ public sealed class StoryGeneratorTests
     public void Source_DedentsBlockBodyAndPreservesParametersAndComments()
     {
         const string story = """
-            [Story("Demos/Block")]
+            [Story("Examples/Block")]
             internal static Widget Block(StoryContext ctx, DemoService service)
             {
                 // source contract
@@ -45,6 +45,17 @@ public sealed class StoryGeneratorTests
         Assert.Contains("// source contract", source);
         Assert.Contains("line 1", source);
         Assert.Contains("line 2", source);
+    }
+
+    [Fact]
+    public void SampleBundle_IsEmittedIntoStoryInfo()
+    {
+        GeneratorDriverRunResult result = Run("""
+            [Story("Build/Triangle", SampleBundle = "rendering.triangle")]
+            public static Widget Triangle() => new Widget();
+            """);
+        string generated = Assert.Single(result.GeneratedTrees).ToString();
+        Assert.Contains("\"rendering.triangle\"", generated);
     }
 
     [Fact]
@@ -86,6 +97,7 @@ public sealed class StoryGeneratorTests
                     public int Order { get; set; }
                     public string? Theme { get; set; }
                     public bool RealWindowOnly { get; set; }
+                    public string? SampleBundle { get; set; }
                 }
                 public class Widget
                 {
@@ -96,7 +108,7 @@ public sealed class StoryGeneratorTests
                     public T Require<T>() => default!;
                 }
                 public sealed record StoryInfo(string Path, int Width, int Height, string? Theme,
-                    Func<StoryContext, Widget> Build, int Order = 1000, string? Source = null, bool RealWindowOnly = false);
+                    Func<StoryContext, Widget> Build, int Order = 1000, string? Source = null, bool RealWindowOnly = false, string? SampleBundle = null);
                 public static class StoryRegistry { public static void Register(StoryInfo story) { } }
                 public sealed class DemoService { public string Name => "demo"; }
                 public static class Stories

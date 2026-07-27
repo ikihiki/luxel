@@ -19,7 +19,7 @@ public sealed class GallerySiteExporterTests
     public void Slug_is_stable_and_relative_safe()
     {
         Assert.Equal("controls-button-primary", GallerySiteExporter.Slug("Controls/Button/Primary"));
-        Assert.DoesNotContain('/', GallerySiteExporter.Slug("Docs/はじめに"));
+        Assert.DoesNotContain('/', GallerySiteExporter.Slug("Reference/Guides/はじめに"));
     }
 
     [Fact]
@@ -189,7 +189,7 @@ public sealed class GallerySiteExporterTests
     public void Focused_export_is_complete_and_deterministic()
     {
         string root = GallerySiteExporter.FindRepositoryRoot();
-        StoryInfo story = StoryRegistry.Find("Learn/Rendering/Shaders")
+        StoryInfo story = StoryRegistry.Find("Learn/Rendering/Basics/Shaders")
             ?? StoryRegistry.All.First(s => !s.RealWindowOnly);
         StoryInfo imageStory = StoryRegistry.Find("Controls/Button/Intents")
             ?? StoryRegistry.All.First(s => !s.RealWindowOnly && s.Path != story.Path);
@@ -219,7 +219,6 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("aria-current','page'", script);
             Assert.Contains("!hasSavedOpen()&&!prefix", script);
             Assert.Contains("if(!expandAll)details.addEventListener", script);
-            Assert.Contains("(x.aliases||[]).includes(requested)", script);
             Assert.True(File.Exists(Path.Combine(a, "vendor", "highlightjs", "highlight.min.js")));
             Assert.True(File.Exists(Path.Combine(a, "vendor", "highlightjs", "github-dark.min.css")));
             Assert.True(File.Exists(Path.Combine(a, "licenses", "highlight.js-LICENSE.txt")));
@@ -269,7 +268,7 @@ public sealed class GallerySiteExporterTests
         ];
         Assert.All(requiredNamespaces, ns => Assert.Contains(ns, TypeApiRegistry.Namespaces));
 
-        Assert.NotNull(StoryRegistry.Find("Demos/UI/Navigation"));
+        Assert.NotNull(StoryRegistry.Find("Examples/UI/Navigation"));
         Assert.NotNull(StoryRegistry.Find("Controls/NavigationView/Basic"));
         Assert.NotNull(StoryRegistry.Find("Controls/NavigationView/Overview"));
         Assert.NotNull(TypeApiRegistry.Find("Luxel.UI.Navigation"));
@@ -303,12 +302,12 @@ public sealed class GallerySiteExporterTests
         foreach (string special in new[] { "Layout", "Kit", "CommandPalette" })
             Assert.NotNull(StoryRegistry.Find($"Controls/{special}/Overview"));
 
-        StoryInfo controls = StoryRegistry.Find("Docs/Controls")
-            ?? throw new InvalidOperationException("Docs/Controls is missing.");
+        StoryInfo controls = StoryRegistry.Find("Reference/Guides/Controls")
+            ?? throw new InvalidOperationException("Reference/Guides/Controls is missing.");
         TextEditorView controlsDocument = GallerySnapshots.FindDocument(controls.Build(new StoryContext()))
-            ?? throw new InvalidOperationException("Docs/Controls is not a document.");
+            ?? throw new InvalidOperationException("Reference/Guides/Controls is not a document.");
         Assert.Contains("Controls/NavigationView/Basic", controlsDocument.DocSource);
-        Assert.Contains("Demos/UI/Navigation", controlsDocument.DocSource);
+        Assert.Contains("Examples/UI/Navigation", controlsDocument.DocSource);
         Assert.DoesNotContain("Reference/Overview", controlsDocument.DocSource);
         Assert.Contains("Controls/Button/Overview", controlsDocument.DocSource);
     }
@@ -344,17 +343,11 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
-    public void Legacy_two_d_routes_resolve_without_duplicate_sidebar_entries()
+    public void Old_demo_routes_are_not_kept_as_aliases()
     {
-        string[] names = ["CameraRig", "Sprites", "Tilemap", "Particles", "ParticleView", "Gizmos2D"];
-        foreach (string name in names)
-        {
-            StoryInfo canonical = StoryRegistry.Find($"Demos/2D/{name}")
-                ?? throw new InvalidOperationException($"Canonical 2D story is missing: {name}");
-            Assert.Same(canonical, StoryRegistry.Find($"Demos/TwoD/{name}"));
-            Assert.Contains($"Demos/TwoD/{name}", StoryRegistry.AliasesFor(canonical.Path));
-        }
-        Assert.DoesNotContain(StoryRegistry.All, story => story.Path.StartsWith("Demos/TwoD/", StringComparison.Ordinal));
+        Assert.Null(StoryRegistry.Find("Demos/2D/CameraRig"));
+        Assert.NotNull(StoryRegistry.Find("Examples/2D/CameraRig"));
+        Assert.Empty(StoryRegistry.AliasesFor("Examples/2D/CameraRig"));
     }
 
     [Fact]
@@ -362,14 +355,18 @@ public sealed class GallerySiteExporterTests
     {
         string[] routes =
         [
-            "Overview", "Environment", "ClearColor", "FirstTriangle", "BuffersAndBindings", "Shaders",
-            "Textures", "TransformsAndCamera", "DepthCullingLighting", "FrameLoopAndSynchronization",
-            "FirstRenderGraph", "First2DScene", "StaticGltf", "Debugging", "Shipping",
+            "Learn/Rendering/Basics/Overview", "Learn/Rendering/Basics/Environment",
+            "Learn/Rendering/Basics/ClearColor", "Learn/Rendering/Basics/FirstTriangle",
+            "Learn/Rendering/Basics/BuffersAndBindings", "Learn/Rendering/Basics/Shaders",
+            "Learn/Rendering/Basics/FrameLoopAndSynchronization", "Learn/Rendering/ThreeD/Textures",
+            "Learn/Rendering/ThreeD/TransformsAndCamera", "Learn/Rendering/ThreeD/DepthCullingLighting",
+            "Learn/Rendering/ThreeD/FirstRenderGraph", "Learn/Rendering/ThreeD/StaticGltf",
+            "Learn/Rendering/ThreeD/Debugging", "Learn/Rendering/ThreeD/Shipping",
         ];
 
         for (int i = 0; i < routes.Length; i++)
         {
-            string path = "Learn/Rendering/" + routes[i];
+            string path = routes[i];
             StoryInfo story = StoryRegistry.Find(path)
                 ?? throw new InvalidOperationException($"Rendering Learn route is missing: {path}");
             Widget root = story.Build(new StoryContext());
@@ -386,11 +383,15 @@ public sealed class GallerySiteExporterTests
     {
         string[] routes =
         [
-            "Overview", "Environment", "ClearColor", "FirstTriangle", "BuffersAndBindings", "Shaders",
-            "Textures", "TransformsAndCamera", "DepthCullingLighting", "FrameLoopAndSynchronization",
-            "FirstRenderGraph", "First2DScene", "StaticGltf", "Debugging", "Shipping",
+            "Learn/Rendering/Basics/Overview", "Learn/Rendering/Basics/Environment",
+            "Learn/Rendering/Basics/ClearColor", "Learn/Rendering/Basics/FirstTriangle",
+            "Learn/Rendering/Basics/BuffersAndBindings", "Learn/Rendering/Basics/Shaders",
+            "Learn/Rendering/Basics/FrameLoopAndSynchronization", "Learn/Rendering/ThreeD/Textures",
+            "Learn/Rendering/ThreeD/TransformsAndCamera", "Learn/Rendering/ThreeD/DepthCullingLighting",
+            "Learn/Rendering/ThreeD/FirstRenderGraph", "Learn/Rendering/ThreeD/StaticGltf",
+            "Learn/Rendering/ThreeD/Debugging", "Learn/Rendering/ThreeD/Shipping",
         ];
-        StoryInfo[] stories = routes.Select(name => StoryRegistry.Find("Learn/Rendering/" + name)
+        StoryInfo[] stories = routes.Select(name => StoryRegistry.Find(name)
             ?? throw new InvalidOperationException($"Rendering Learn route is missing: {name}")).ToArray();
         Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null);
 
@@ -415,7 +416,7 @@ public sealed class GallerySiteExporterTests
         string actual = File.ReadAllText(Path.Combine(root, "samples", "LuxelTriangle", "TutorialAbi.cs"))
             .Replace("\r\n", "\n", StringComparison.Ordinal);
         string expected = ExtractMarkedRegion(actual, "triangle-abi").Trim();
-        string trianglePage = pages["Learn/Rendering/FirstTriangle"].Text;
+        string trianglePage = pages["Learn/Rendering/Basics/FirstTriangle"].Text;
         Assert.Contains(expected, trianglePage);
         Assert.DoesNotContain("docs:begin", trianglePage);
         Assert.DoesNotContain("docs:end", trianglePage);
@@ -426,13 +427,88 @@ public sealed class GallerySiteExporterTests
     {
         string[] routes = ["GpuDevice", "TwoD", "RenderGraph", "ThreeD", "Assets", "Ecs", "Physics"];
         foreach (string route in routes)
-            Assert.NotNull(StoryRegistry.Find("Docs/" + route));
+            Assert.NotNull(StoryRegistry.Find("Reference/Guides/" + route));
 
-        StoryInfo authoring = StoryRegistry.Find("Docs/Authoring")
-            ?? throw new InvalidOperationException("Docs/Authoring is missing.");
+        StoryInfo authoring = StoryRegistry.Find("Internals/Authoring")
+            ?? throw new InvalidOperationException("Internals/Authoring is missing.");
         Assert.Contains("完全な `[Story]` method宣言", authoring.Source);
         Assert.Contains("下部の **Source** タブ", authoring.Source);
         Assert.Contains("SampleSource(path, region)", authoring.Source);
+    }
+
+    [Fact]
+    public void Start_courses_and_sample_bundles_are_registered_and_link_clean()
+    {
+        Assert.Equal("Start", StoryRegistry.All[0].Component);
+        Assert.NotNull(StoryRegistry.Find("Start/Welcome"));
+        Assert.NotNull(StoryRegistry.Find("Learn/Rendering/TwoD/Overview"));
+        Assert.NotNull(StoryRegistry.Find("Learn/Rendering/RasterizerInternals/Overview"));
+        foreach (string route in new[] { "Learn/Input/Overview", "Learn/Input/ActionsAndContexts", "Learn/Input/PlatformsAndTesting",
+                     "Learn/Audio/Overview", "Learn/Audio/ClipsSourcesAndBuses", "Learn/Audio/SpatialStreamingAndTesting",
+                     "Learn/Resources/Overview", "Learn/Resources/PipelinesAndDag", "Learn/Resources/ReloadAndLifetime",
+                     "Build/Blocks/Input/Actions", "Build/Blocks/Audio/Tone", "Build/Blocks/Resources/Pipeline" })
+            Assert.NotNull(StoryRegistry.Find(route));
+        string[] diagnostics = ["InputPaths", "EncodedScene", "Bounds", "TileBins", "Coverage", "Stroke", "Composite", "Dispatch", "RetainedUpdates"];
+        foreach (string diagnostic in diagnostics)
+            Assert.NotNull(StoryRegistry.Find("Examples/2D/Rasterizer/" + diagnostic));
+        Assert.NotNull(StoryRegistry.Find("Build/Recipes/TriangleApp"));
+        Assert.Contains(StoryRegistry.All, story => story.Path.StartsWith("Examples/", StringComparison.Ordinal));
+        Assert.DoesNotContain(StoryRegistry.All, story => story.Path.StartsWith("Demos/", StringComparison.Ordinal));
+        Assert.Empty(DocsIndex.ValidateLinks(DocsIndex.Build(StoryRegistry.All, resources: null)));
+    }
+
+    [Fact]
+    public void Sample_bundle_graph_and_files_are_valid()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        HashSet<string> ids = SampleBundleRegistry.All.Select(bundle => bundle.Id).ToHashSet(StringComparer.Ordinal);
+        Assert.NotEmpty(ids);
+        var visiting = new HashSet<string>(StringComparer.Ordinal);
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        void Visit(string id)
+        {
+            Assert.True(visiting.Add(id), $"Sample bundle dependency cycle includes '{id}'.");
+            SampleBundleInfo bundle = SampleBundleRegistry.Find(id)!;
+            foreach (string dependency in bundle.Dependencies ?? [])
+            {
+                Assert.Contains(dependency, ids);
+                if (!visited.Contains(dependency)) Visit(dependency);
+            }
+            visiting.Remove(id);
+            visited.Add(id);
+        }
+
+        foreach (SampleBundleInfo bundle in SampleBundleRegistry.All)
+        {
+            Visit(bundle.Id);
+            foreach (SampleFileInfo file in bundle.Files)
+            {
+                Assert.True(File.Exists(Path.Combine(root, file.Path)), file.Path);
+                _ = Luxel.Gallery.Stories.DocsKit.SampleSource(file.Path, file.Region, file.Language);
+            }
+        }
+        StoryInfo triangle = StoryRegistry.Find("Build/Recipes/TriangleApp")!;
+        Assert.Equal("rendering.triangle", triangle.SampleBundle);
+        Assert.NotNull(SampleBundleRegistry.Find(triangle.SampleBundle));
+    }
+
+    [Fact]
+    public void Runtime_sample_bundles_are_connected_to_learn_and_build_pages()
+    {
+        (string Bundle, string Learn, string Build)[] cases =
+        [
+            ("input.actions", "Learn/Input/Overview", "Build/Blocks/Input/Actions"),
+            ("audio.tone", "Learn/Audio/Overview", "Build/Blocks/Audio/Tone"),
+            ("resources.pipeline", "Learn/Resources/Overview", "Build/Blocks/Resources/Pipeline"),
+        ];
+        foreach (var item in cases)
+        {
+            SampleBundleInfo bundle = SampleBundleRegistry.Find(item.Bundle)!;
+            Assert.Equal(SampleCopyLevel.StandaloneProject, bundle.CopyLevel);
+            Assert.False(string.IsNullOrWhiteSpace(bundle.SmokeCommand));
+            Assert.Equal(item.Bundle, StoryRegistry.Find(item.Learn)!.SampleBundle);
+            Assert.Equal(item.Bundle, StoryRegistry.Find(item.Build)!.SampleBundle);
+        }
     }
 
     [Fact]
@@ -505,8 +581,8 @@ public sealed class GallerySiteExporterTests
     public void Mermaid_fence_is_exported_as_png()
     {
         string root = GallerySiteExporter.FindRepositoryRoot();
-        StoryInfo story = StoryRegistry.Find("Docs/Architecture")
-            ?? throw new InvalidOperationException("Docs/Architecture story is missing.");
+        StoryInfo story = StoryRegistry.Find("Internals/Architecture")
+            ?? throw new InvalidOperationException("Internals/Architecture story is missing.");
         string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-site-mermaid-" + Guid.NewGuid().ToString("N"));
         try
         {

@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("ADR/0013-Menu-Command-System", Order = 84)]
+    [Story("Internals/ADR/0013-Menu-Command-System", Order = 84)]
     public static Widget Adr0013(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0013 — メニューは CommandRegistry を単一の真実とし、全サーフェスをその純粋ビューとして生成する
 
@@ -17,7 +17,7 @@ public static partial class DocsAdr
 
         ## Context
 
-        Workbench ([ADR-0010](story:ADR/0010-Workbench-Framework)) にメニュー/コマンド起動の面が要ります。現状 `MenuBar`・コマンドパレット・汎用ツールバーは無く、あるのは `ContextMenu` と浮遊 UI 配置エンジン ([ADR-0007](story:ADR/0007-Floating-Ui-Placement)) だけです。
+        Workbench ([ADR-0010](story:Internals/ADR/0010-Workbench-Framework)) にメニュー/コマンド起動の面が要ります。現状 `MenuBar`・コマンドパレット・汎用ツールバーは無く、あるのは `ContextMenu` と浮遊 UI 配置エンジン ([ADR-0007](story:Internals/ADR/0007-Floating-Ui-Placement)) だけです。
 
         ゲームエンジンのエディタを調査すると、メニューの表現には共通の作法があります: **メニュー/ツールバー/キーマップ/検索を単一のコマンド定義から生成し、寄与 (contribution) で拡張する**。Unity は `[MenuItem("パス")]`、Unreal は `UToolMenus` + `FUICommandInfo` (メニュー/ツールバー/キーが同じコマンドを参照)、Blender はオペレータ (`bpy.ops`、メニュー/キー/F3 検索が共有)。いずれもメニューバーは薄く、発見性はコマンドパレット/検索が担います。
 
@@ -30,7 +30,7 @@ public static partial class DocsAdr
         - **コマンド** { id, タイトル, キーバインド, enablement, run(ctx) } を登録し、**`MenuBar` / `ContextMenu` / `CommandPalette` / `Toolbar` / Keymap** はすべてこの Registry のビュー
         - **寄与モデル** — 項目はパス文字列 (例 `"Edit/Find"`) + コマンド id で登録し、パスがそのまま階層になる (Unity 流)。**共通メニュー (Workbench) + アクティブ `IEditorDocument` の文脈メニュー節を合成**する (Unreal の per-editor 流)
         - **発見性の主役はコマンドパレット** (Blender の F3 相当)。メニューバーは薄く保つ
-        - `IEditorDocument` ([ADR-0010](story:ADR/0010-Workbench-Framework)) に「メニュー/ツールバー寄与」の面を 1 本追加する
+        - `IEditorDocument` ([ADR-0010](story:Internals/ADR/0010-Workbench-Framework)) に「メニュー/ツールバー寄与」の面を 1 本追加する
 
         実装計画は ToDo/26。
 

@@ -11,13 +11,13 @@ namespace Luxel.Gallery.Stories;
 /// <summary>
 /// <c>ParticleView</c> ([UiComponent]) のデモ — パーティクルを UI ツリーに直接埋め込み、widget の
 /// <c>AddAnimation</c> Tick で駆動する (ゲームの ECS system 呼び出しに対する UI 埋め込み版)。
-/// play は固定シード + 固定 dt で <c>Step</c> → <c>Snap</c> なので golden 決定的。docs の Docs/TwoD 参照。
+/// play は固定シード + 固定 dt で <c>Step</c> → <c>Snap</c> なので golden 決定的。docs の Reference/Guides/TwoD 参照。
 /// </summary>
 public static class ParticleViewStories
 {
     private const float VW = 360, VH = 168;
 
-    [Story("Demos/2D/ParticleView", Height = 240, Order = 122)]
+    [Story("Examples/2D/ParticleView", Height = 240, Order = 122)]
     public static Widget View(StoryContext ctx)
     {
         var cfg = new ParticleConfig(

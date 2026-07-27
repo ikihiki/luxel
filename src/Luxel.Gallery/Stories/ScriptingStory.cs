@@ -111,7 +111,7 @@ public static class ScriptingStory
         public void Dispose() => (_output as IDisposable)?.Dispose();
     }
 
-    [Story("Demos/Scripting/LiveCsx", Height = 520, Order = 2032)]
+    [Story("Examples/Scripting/LiveCsx", Height = 520, Order = 2032)]
     public static Widget LiveCsx(StoryContext ctx, ScriptHost host, ICodeLanguage lang)
     {
         var block = new CsxBlock(
@@ -159,7 +159,7 @@ public static class ScriptingStory
     }
 
 
-    [Story("Demos/Scripting/Repl", Height = 460, Order = 2033)]
+    [Story("Examples/Scripting/Repl", Height = 460, Order = 2033)]
     public static Widget Repl(StoryContext ctx, ScriptHost host)
     {
         var repl = new ReplConsole(460, host, new ScriptGlobals { Ctx = ctx });
@@ -254,7 +254,7 @@ public static class ScriptingStory
         public void Dispose() => (_output as IDisposable)?.Dispose();
     }
 
-    [Story("Demos/Scripting/Notebook", Height = 620, Order = 2034)]
+    [Story("Examples/Scripting/Notebook", Height = 620, Order = 2034)]
     public static Widget Notebook(StoryContext ctx, ScriptHost host, ICodeLanguage lang)
     {
         // resolver は再描画毎に呼ばれる — 本文キーでキャッシュし**同一インスタンス**を返す

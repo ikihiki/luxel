@@ -18,7 +18,7 @@ public static class PersistenceStories
     private const float CW = 460, RowH = 56, Box = 22;
 
     /// <summary>セーブ → 箱を動かす → ロードで元に戻る、を 3 行で見せる (① と ③ が一致)。</summary>
-    [Story("Demos/Framework/SaveLoad", Height = 300, Order = 151)]
+    [Story("Examples/Framework/SaveLoad", Height = 300, Order = 151)]
     public static Widget SaveLoad(StoryContext ctx)
     {
         float[] start = { 40, 140, 240, 340 };
@@ -48,7 +48,7 @@ public static class PersistenceStories
     }
 
     /// <summary>設定は SettingsStore の Signal に直結 — 保存済みの値 (0.65 / on) が Slider/Switch に反映される。</summary>
-    [Story("Demos/Framework/Settings", Height = 220, Order = 152)]
+    [Story("Examples/Framework/Settings", Height = 220, Order = 152)]
     public static Widget Settings(StoryContext ctx)
     {
         var files = new InMemoryFileStore();

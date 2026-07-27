@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("ADR/0003-Declarative-Signal-Ui", Order = 74)]
+    [Story("Internals/ADR/0003-Declarative-Signal-Ui", Order = 74)]
     public static Widget Adr0003(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0003 — UI は「宣言的 C# DSL + signals」を自作する
 
@@ -17,7 +17,7 @@ public static partial class DocsAdr
 
         ## Context
 
-        Luxel は自前の GPU 抽象 ([ADR-0002](story:ADR/0002-Thin-Bindless-Gpu-Abstraction)) と保持型 2D 層 (RetainedCanvas) の上に UI 層を必要としていました。要件と力学:
+        Luxel は自前の GPU 抽象 ([ADR-0002](story:Internals/ADR/0002-Thin-Bindless-Gpu-Abstraction)) と保持型 2D 層 (RetainedCanvas) の上に UI 層を必要としていました。要件と力学:
 
         - **描画先が自前** — 描画は RetainedCanvas の部分更新に落としたい。既存 UI フレームワークは自分のレンダラ (Skia / Direct2D / 合成ツリー) を前提にしており、そのまま載らない
         - **エンジンとの一体性** — docs・Gallery・ゲーム内 UI・ツール (DevTools) まで全部この UI で書く (ドッグフーディング)。エンジンの Signal/アニメーション/リソース系と反応系を共有したい
@@ -33,7 +33,7 @@ public static partial class DocsAdr
         - **単一パスレイアウト** — Flutter 風の `Layout(Constraints, parentUsesSize) → Size` 1 回で、同じ呼び出し内に子 Offset を書く (Measure/Arrange の 2 パスなし)
         - **状態 3 層の規約** — 外部 props は `[UiParam] Bindable<T>`、内部の値状態は `Signal<T>` (細粒度反映)、内部の構造状態は plain フィールド + 明示 `Rebuild()`。値の変化と構造の変化を型で区別する
 
-        現在の姿は [Docs/UI](story:Docs/UI) / [Docs/Controls](story:Docs/Controls) / [Docs/Styling](story:Docs/Styling) へ。
+        現在の姿は [Reference/Guides/UI](story:Reference/Guides/UI) / [Reference/Guides/Controls](story:Reference/Guides/Controls) / [Reference/Guides/Styling](story:Reference/Guides/Styling) へ。
 
         ## Alternatives
 

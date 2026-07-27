@@ -8,7 +8,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>Navigation state and the NavigationView shell.</summary>
 public static class NavigationStories
 {
-    [Story("Demos/UI/Navigation", Width = 680, Height = 380)]
+    [Story("Examples/UI/Navigation", Width = 680, Height = 380)]
     public static Widget NavigationHistory(StoryContext ctx)
     {
         string[] paths = ["/", "/details", "/saved"];

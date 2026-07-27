@@ -8,7 +8,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>RenderGraph and 3D/ECS learning units.</summary>
 public static partial class DocsGpu
 {
-    [Story("Docs/RenderGraph", Order = 12)]
+    [Story("Reference/Guides/RenderGraph", Order = 12)]
     public static Widget RenderGraphDocs(StoryContext ctx) => DocNew(ctx, $$"""
         # レンダーグラフ (Luxel.RenderGraph)
 
@@ -54,11 +54,11 @@ public static partial class DocsGpu
 
         Transient は同形 (バッファはサイズ、テクスチャは幅・高さ・フォーマット・種別) で寿命が重ならなければ **物理リソースを共有** (interval scheduling) します。実物:
 
-        {{StoryRef(ctx, "Demos/RenderGraph/Blur")}}
+        {{StoryRef(ctx, "Examples/RenderGraph/Blur")}}
 
         下のデモは反復ブラー 4 段 + 誰も読まないパス — 論理 5 transient が物理 2 本に alias され、DeadPass がカリングされる様子が **Log パネル**に出ます (`PhysicalTransientBufferCount` / `IsAliased` / `IsPassCulled` で観測):
 
-        {{StoryRef(ctx, "Demos/RenderGraph/Aliasing")}}
+        {{StoryRef(ctx, "Examples/RenderGraph/Aliasing")}}
 
         ## 自動バリアと ResourceUsage
 
@@ -77,10 +77,10 @@ public static partial class DocsGpu
 
         両者は直交します。併用パターン: ResourceSystem でロードした `GpuTexture` を `ImportTexture` で External として取り込む。
 
-        次: [Docs/ThreeD](story:Docs/ThreeD) — ECS と組み合わせて 3D を描きます。
+        次: [Reference/Guides/ThreeD](story:Reference/Guides/ThreeD) — ECS と組み合わせて 3D を描きます。
         """, toc: true);
 
-    [Story("Docs/ThreeD", Order = 13)]
+    [Story("Reference/Guides/ThreeD", Order = 13)]
     public static Widget ThreeD(StoryContext ctx) => DocNew(ctx, $$"""
         # 3D と ECS
 
@@ -96,15 +96,15 @@ public static partial class DocsGpu
 
         `Render3DExtractSystem` が ECS をクエリし、`InstanceData[]` (mat4 + color の SoA) を bindless バッファへ書きます。シーン層とレンダーグラフ層の橋渡しはこの **Extract 層だけ** — グラフ側は書き上がったバッファを Import するのみです。
 
-        {{StoryRef(ctx, "Demos/3D/EcsCubes")}}
+        {{StoryRef(ctx, "Examples/3D/EcsCubes")}}
 
         ## 描画パターン
 
         graphics パスの lambda が `BeginRendering(rt, depth, ...)` で RT/Depth を直接管理し、instance 数ぶん `Draw` します。この形のまま合成が伸びます:
 
-        - post-process 連鎖 (forward → blur → 加算合成) → [Demos/RenderGraph/Bloom3D](story:Demos/RenderGraph/Bloom3D)
-        - world-space UI (2D UI を 3D 内の板にサンプリング) → [Demos/3D/WorldSpaceUI](story:Demos/3D/WorldSpaceUI)
-        - shadow map (ライト視点 R32Float → bindless バッファ → 比較) → [Demos/3D/ShadowMap](story:Demos/3D/ShadowMap)
+        - post-process 連鎖 (forward → blur → 加算合成) → [Examples/RenderGraph/Bloom3D](story:Examples/RenderGraph/Bloom3D)
+        - world-space UI (2D UI を 3D 内の板にサンプリング) → [Examples/3D/WorldSpaceUI](story:Examples/3D/WorldSpaceUI)
+        - shadow map (ライト視点 R32Float → bindless バッファ → 比較) → [Examples/3D/ShadowMap](story:Examples/3D/ShadowMap)
 
         shadow map も「R32F カラー RT + bindless バッファ経由の Load」— 専用のサンプラ比較ハードウェアに頼らない compute-first の流儀です。
 
@@ -123,6 +123,6 @@ public static partial class DocsGpu
         > [!WARNING]
         > Slang/HLSL の既定行列レイアウトは column-major、`System.Numerics.Matrix4x4` は row-major です。ルート引数で行列を渡すときは **CPU 側で `Matrix4x4.Transpose`** を入れて整えます (per-instance 行列はシェーダ側で Load4 ×4 の行構築なので転置不要)。
 
-        アニメーションを ECS へ流す例は [Demos/Animation/EcsClip](story:Demos/Animation/EcsClip) と [Demos/Animation/Graph](story:Demos/Animation/Graph) へ。
+        アニメーションを ECS へ流す例は [Examples/Animation/EcsClip](story:Examples/Animation/EcsClip) と [Examples/Animation/Graph](story:Examples/Animation/Graph) へ。
         """, toc: true);
 }
