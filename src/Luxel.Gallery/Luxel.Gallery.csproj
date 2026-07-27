@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Luxel.Gallery.Site.Tests</_Parameter1>
     </AssemblyAttribute>
@@ -22,8 +23,8 @@
     <ProjectReference Include="..\Luxel.Document\Luxel.Document.csproj" />
     <ProjectReference Include="..\Luxel.Platform\Luxel.Platform.csproj" />
     <ProjectReference Include="..\Luxel\Luxel.csproj" />
-    <ProjectReference Include="..\Luxel.Vulkan\Luxel.Vulkan.csproj" />
-    <ProjectReference Include="..\Luxel.D3D12\Luxel.D3D12.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
     <ProjectReference Include="..\Luxel.TwoD\Luxel.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
@@ -86,4 +87,7 @@
   <!-- Slang シェーダ (Rasterizer2D 用) -->
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />
 
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
 </Project>

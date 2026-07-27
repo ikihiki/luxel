@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel\Luxel.csproj" />
     <PackageReference Include="Silk.NET.Windowing" Version="2.23.0" />
   </ItemGroup>
@@ -14,5 +15,8 @@
              Link="libglfw.so.3.3"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
   </ItemGroup>
 </Project>

@@ -9,7 +9,8 @@
     <Project Path="src/Luxel.AssetsGpu/Luxel.AssetsGpu.csproj" />
     <Project Path="src/Luxel.Audio/Luxel.Audio.csproj" />
     <Project Path="src/Luxel.Controls/Luxel.Controls.csproj" />
-    <Project Path="src/Luxel.D3D12/Luxel.D3D12.csproj" />
+    <Project Path="src/Luxel.Graphics/Luxel.Graphics.csproj" />
+    <Project Path="src/Luxel.Graphics.DirectX12/Luxel.Graphics.DirectX12.csproj" />
     <Project Path="src/Luxel.DevTools.App/Luxel.DevTools.App.csproj" />
     <Project Path="src/Luxel.DevTools/Luxel.DevTools.csproj" />
     <Project Path="src/Luxel.Diagram/Luxel.Diagram.csproj" />
@@ -53,7 +54,7 @@
     <Project Path="src/Luxel.UI.Generators/Luxel.UI.Generators.csproj" />
     <Project Path="src/Luxel.UI.Tailwind/Luxel.UI.Tailwind.csproj" />
     <Project Path="src/Luxel.UI/Luxel.UI.csproj" />
-    <Project Path="src/Luxel.Vulkan/Luxel.Vulkan.csproj" />
+    <Project Path="src/Luxel.Graphics.Vulkan/Luxel.Graphics.Vulkan.csproj" />
     <Project Path="src/Luxel/Luxel.csproj" />
   </Folder>
   <Folder Name="/samples/">

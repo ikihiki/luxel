@@ -121,16 +121,16 @@ public static class DocsHome
         ui --> anim[Luxel.Animation]
         ui --> typo[Luxel.Typography]
         ui --> twod[Luxel.TwoD]
-        rg --> gpu[Luxel — GpuDevice]
+        rg --> gpu[Luxel.Graphics — GpuDevice]
         ecs --> rg
         twod --> gpu
-        gpu --> vk(Luxel.Vulkan)
-        gpu --> dx(Luxel.D3D12)
+        gpu --> vk(Luxel.Graphics.Vulkan)
+        gpu --> dx(Luxel.Graphics.DirectX12)
         ```
 
         ## GPU 土台
 
-        `Luxel` (コア) が GpuDevice / バッファ / テクスチャ / パイプライン / コマンドの薄い抽象を提供し、`Luxel.Vulkan` と `Luxel.D3D12` が実装します。全パイプラインが **固定レイアウト** (最大192Bのルート引数 + bindless heap) を共有するため、ディスクリプタセットの管理も PSO のバリアントも存在しません。シェーダは Slang で 1 回書き、SPIR-V / DXIL の両方へコンパイルされます。
+        `Luxel.Graphics` が GpuDevice / バッファ / テクスチャ / パイプライン / コマンドの薄い抽象を提供し、`Luxel.Graphics.Vulkan` と `Luxel.Graphics.DirectX12` が実装します。全パイプラインが **固定レイアウト** (最大192Bのルート引数 + bindless heap) を共有するため、ディスクリプタセットの管理も PSO のバリアントも存在しません。シェーダは Slang で 1 回書き、SPIR-V / DXIL の両方へコンパイルされます。
 
         ## 2D とテキスト
 
@@ -156,7 +156,7 @@ public static class DocsHome
 
         | プロジェクト | 役割 |
         | --- | --- |
-        | Luxel / Luxel.Vulkan / Luxel.D3D12 | GPU 抽象とバックエンド |
+        | Luxel.Graphics / Luxel.Graphics.Vulkan / Luxel.Graphics.DirectX12 | GPU 抽象とバックエンド |
         | Luxel.TwoD | 2D ベクターラスタライザ + 保持型キャンバス |
         | Luxel.Typography (+ .Icu) | テキストレイアウト / シェーピング / ICU |
         | Luxel.UI (+ .Generators, .Tailwind) | 宣言的 UI / signals / ソースジェネレーター |

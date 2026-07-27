@@ -68,7 +68,7 @@ public sealed class WindowHost : IDisposable
         UiClipboard.Instance ??= new Win32Clipboard();   // OS クリップボード (プロセス 1 回)
         Content.Resize(_w / S, _h / S, S);   // content の論理サイズを実クライアント (物理/scale) に同期
         Alloc();
-        _surface = window.CreateSwapchain(device);
+        _surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
         // TSF: content が IME 対象を持つウィンドウだけ文書を作る (スレッド資源は共有・参照カウント)
         if (content.ImeTarget is not null)
         {

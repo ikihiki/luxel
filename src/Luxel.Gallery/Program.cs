@@ -17,8 +17,8 @@ string backend = (args.Length > 0 ? args[0] : "vk").ToLowerInvariant();
 
 GpuDevice CreateDevice() => backend switch
 {
-    "vk" or "vulkan" => new GpuDevice(Luxel.Vulkan.VulkanBackend.Create()),
-    "dx" or "d3d12" => new GpuDevice(Luxel.D3D12.D3D12Backend.Create()),
+    "vk" or "vulkan" => new GpuDevice(Luxel.Graphics.Vulkan.VulkanBackend.Create()),
+    "dx" or "d3d12" => new GpuDevice(Luxel.Graphics.DirectX12.D3D12Backend.Create()),
     _ => throw new ArgumentException($"未知のバックエンド: {backend} (vk / dx)"),
 };
 

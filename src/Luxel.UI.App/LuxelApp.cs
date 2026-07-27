@@ -4,7 +4,7 @@ using Luxel.Platform.Silk;
 using Luxel.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
-using Luxel.Vulkan;
+using Luxel.Graphics.Vulkan;
 
 namespace Luxel.UI.App;
 
@@ -116,7 +116,7 @@ internal sealed class LinuxLuxelApp
             Presentation = VulkanPresentationMode.Window,
             WindowSurface = provider,
         }));
-        using GpuSurface surface = window.CreateSwapchain(device);
+        using GpuSurface surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
         using var rasterizer = new Rasterizer2D(device);
         using var canvas = new RetainedCanvas(rasterizer);
         using VectorFont font = _options.FontFactory?.Invoke()

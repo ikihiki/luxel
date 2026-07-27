@@ -53,14 +53,14 @@ public sealed class LuxelHostBuilder
     /// <summary>Vulkan バックエンドを使う。<see cref="GpuDevice"/> を DI に singleton 登録する factory を保持。</summary>
     public LuxelHostBuilder UseVulkan()
     {
-        _deviceFactory = () => new GpuDevice(Luxel.Vulkan.VulkanBackend.Create());
+        _deviceFactory = () => new GpuDevice(Luxel.Graphics.Vulkan.VulkanBackend.Create());
         return this;
     }
 
     /// <summary>D3D12 バックエンドを使う。</summary>
     public LuxelHostBuilder UseD3D12()
     {
-        _deviceFactory = () => new GpuDevice(Luxel.D3D12.D3D12Backend.Create());
+        _deviceFactory = () => new GpuDevice(Luxel.Graphics.DirectX12.D3D12Backend.Create());
         return this;
     }
 

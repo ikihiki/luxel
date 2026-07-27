@@ -92,7 +92,7 @@ public static class DocsRenderingLearn
             "dx" or "d3d12" => new GpuDevice(D3D12Backend.Create()),
             _ => new GpuDevice(VulkanBackend.Create()),
         };
-        using GpuSurface surface = window.CreateSwapchain(device);
+        using GpuSurface surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
         ```
 
         Linuxではwindowが提供する`IVulkanWindowSurface`を`VulkanBackendOptions.WindowSurface`へ渡します。device、surface、window systemは`using`で所有者を明確にし、終了前にqueueをidleにします。

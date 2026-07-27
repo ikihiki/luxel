@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel\Luxel.csproj" />
     <ProjectReference Include="..\Luxel.Framework\Luxel.Framework.csproj" />
     <ProjectReference Include="..\Luxel.DevTools\Luxel.DevTools.csproj" />
@@ -20,4 +21,7 @@
     <InternalsVisibleTo Include="Luxel.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
 </Project>

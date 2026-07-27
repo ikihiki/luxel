@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <InternalsVisibleTo Include="Luxel.Tests" />
     <ProjectReference Include="..\Luxel.Typography\Luxel.Typography.csproj" />
     <ProjectReference Include="..\Luxel.TwoD\Luxel.TwoD.csproj" />
@@ -24,4 +25,7 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
 </Project>

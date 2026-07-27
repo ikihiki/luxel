@@ -13,14 +13,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel.Player\Luxel.Player.csproj" />
     <ProjectReference Include="..\Luxel.Platform\Luxel.Platform.csproj" />
-    <ProjectReference Include="..\Luxel.Vulkan\Luxel.Vulkan.csproj" />
-    <ProjectReference Include="..\Luxel.D3D12\Luxel.D3D12.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
     <ProjectReference Include="..\Luxel.Framework\Luxel.Framework.csproj" />
   </ItemGroup>
 
   <!-- Slang シェーダ (Rasterizer2D 用) を出力/publish の shaders/ へ -->
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />
 
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
 </Project>

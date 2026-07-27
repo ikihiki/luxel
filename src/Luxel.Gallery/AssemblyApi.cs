@@ -1,14 +1,16 @@
-﻿// 型 API リファレンスの対象 (Docs/Api* が TypeApiRegistry から実行時にページを組み立てる)。
+// 型 API リファレンスの対象 (Docs/Api* が TypeApiRegistry から実行時にページを組み立てる)。
 // 追加したい名前空間はここに並べる — 対象アセンブリは GenerateDocumentationFile=true が必要
 // (Directory.Build.props で全プロジェクト有効)。
 using Luxel.UI;
 
-// コア (GPU 抽象 + バックエンド)
+// コア / GPU 抽象 + バックエンド
 [assembly: GenerateAssemblyApi("Luxel")]
 [assembly: GenerateAssemblyApi("Luxel.Abstraction")]
 [assembly: GenerateAssemblyApi("Luxel.Diagnostics")]
-[assembly: GenerateAssemblyApi("Luxel.Vulkan")]
-[assembly: GenerateAssemblyApi("Luxel.D3D12")]
+[assembly: GenerateAssemblyApi("Luxel.Graphics")]
+[assembly: GenerateAssemblyApi("Luxel.Graphics.Abstraction")]
+[assembly: GenerateAssemblyApi("Luxel.Graphics.Vulkan")]
+[assembly: GenerateAssemblyApi("Luxel.Graphics.DirectX12")]
 // 2D
 [assembly: GenerateAssemblyApi("Luxel.TwoD")]
 // UI

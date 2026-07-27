@@ -1,8 +1,8 @@
-﻿namespace Luxel.Abstraction;
+namespace Luxel.Abstraction;
 
 /// <summary>
 /// ウィンドウシステムのバックエンド (Win32 / 将来の他 OS) が実装する低レベル抽象。
-/// <see cref="IGpuBackend"/> と同じ流儀: 公開 API (<see cref="WindowSystem"/>/<see cref="NativeWindow"/>) は
+/// GPU バックエンド抽象と同じ流儀: 公開 API (<see cref="WindowSystem"/>/<see cref="NativeWindow"/>) は
 /// このインターフェイスのみに依存し、OS 具象 (CsWin32 等) はバックエンドプロジェクトに隔離する。
 /// マルチウィンドウ前提 — <see cref="Pump"/> は呼び出しスレッドの全ウィンドウのメッセージを処理する。
 /// </summary>
@@ -32,7 +32,7 @@ public readonly record struct WindowDesc(string Title, int Width, int Height)
 /// </summary>
 public interface IWindowBackendWindow : IDisposable
 {
-    /// <summary>ネイティブハンドル (Win32=HWND)。<see cref="IGpuBackend.CreateSurface"/> に渡す。</summary>
+    /// <summary>ネイティブハンドル (Win32=HWND)。グラフィックデバイスの surface 生成 API に渡す。</summary>
     nint Handle { get; }
 
     /// <summary>クライアント領域の幅/高さ (物理 px)。</summary>

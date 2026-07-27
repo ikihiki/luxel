@@ -32,7 +32,7 @@ public static class LuxelHostDevToolsExtensions
 
     /// <summary>コマンドライン引数から <see cref="DevToolsOptions.Parse"/> して結線する糖衣。</summary>
     public static LuxelHostBuilder WithDevTools(this LuxelHostBuilder builder, string[] args,
-        Func<Luxel.GpuDevice>? nativeDeviceFactory = null)
+        Func<Luxel.Graphics.GpuDevice>? nativeDeviceFactory = null)
         => builder.WithDevTools(DevToolsOptions.Parse(args, nativeDeviceFactory));
 }
 

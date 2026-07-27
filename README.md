@@ -119,7 +119,7 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 
 | プロジェクト | 役割 |
 | --- | --- |
-| Luxel / Luxel.Vulkan / Luxel.D3D12 | GPU 抽象とバックエンド |
+| Luxel.Graphics / Luxel.Graphics.Vulkan / Luxel.Graphics.DirectX12 | GPU 抽象とバックエンド |
 | Luxel.TwoD | 2D ベクターラスタライザ + 保持型キャンバス |
 | Luxel.Typography (+ .Icu) | テキストレイアウト / シェーピング / ICU |
 | Luxel.UI (+ .Generators, .Tailwind) | 宣言的 UI / signals / ソースジェネレーター |

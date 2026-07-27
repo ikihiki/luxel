@@ -14,10 +14,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\LuxelRange.Core\LuxelRange.Core.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Platform\Luxel.Platform.csproj" />
-    <ProjectReference Include="..\..\..\src\Luxel.Vulkan\Luxel.Vulkan.csproj" />
-    <ProjectReference Include="..\..\..\src\Luxel.D3D12\Luxel.D3D12.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\..\..\src\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
     <!-- 実時間ゲームループ (GameScene/LuxelHostBuilder) + 入力 -->
     <ProjectReference Include="..\..\..\src\Luxel.Framework\Luxel.Framework.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Input\Luxel.Input.csproj" />
@@ -95,4 +96,7 @@
   <!-- Slang シェーダを出力/publish の shaders/ へ。targets 側が publish コピーも面倒を見る。 -->
   <Import Project="..\..\..\shaders\Luxel.Shaders.targets" />
 
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
 </Project>

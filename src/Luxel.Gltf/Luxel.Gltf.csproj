@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel.Assets\Luxel.Assets.csproj" />
     <ProjectReference Include="..\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
     <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />
@@ -21,4 +22,7 @@
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
 </Project>

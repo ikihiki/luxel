@@ -10,7 +10,7 @@ string? filter = args.SkipWhile(a => a != "--filter").Skip(1).FirstOrDefault();
 IReadOnlyList<StoryInfo> stories = filter is null ? StoryRegistry.All
     : StoryRegistry.All.Where(s => s.Path.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToArray();
 
-using var device = new GpuDevice(Luxel.Vulkan.VulkanBackend.Create());
+using var device = new GpuDevice(Luxel.Graphics.Vulkan.VulkanBackend.Create());
 using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
 using var host = new GalleryHost(device, font);
 SiteExportReport report = GallerySiteExporter.Export(host, stories, output, GallerySiteExporter.FindRepositoryRoot());
