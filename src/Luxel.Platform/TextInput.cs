@@ -13,7 +13,7 @@ public interface IWindowTextInputContext : IDisposable
 /// <summary>バックエンド固有の入力メソッドコンテキストを生成するオプション機能。</summary>
 public interface IWindowTextInputContextFactory
 {
-    IWindowTextInputContext Create(NativeWindow window, Func<ITextInputClient?> getClient, Func<float>? getScale = null);
+    IWindowTextInputContext Create(Window window, Func<ITextInputClient?> getClient, Func<float>? getScale = null);
 }
 
 /// <summary>

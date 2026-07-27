@@ -104,9 +104,9 @@ internal sealed class LinuxLuxelApp
     {
         _options.Diagnostic?.Invoke("Creating Silk.NET X11 window.");
         using var windows = new WindowSystem(SilkWindowBackend.Create());
-        NativeWindow window = windows.CreateWindow(new WindowDesc(_options.Title, _options.Width, _options.Height));
-
-        PlatformClipboard.Instance = window.GetFeature<IClipboard>();
+        using var clipboard = new Clipboard(SilkWindowBackend.CreateClipboardBackend());
+        PlatformClipboard.Current = clipboard;
+        Window window = windows.CreateWindow(new WindowDesc(_options.Title, _options.Width, _options.Height));
 
         IVulkanWindowSurface provider = window.GetFeature<IVulkanWindowSurface>()
             ?? throw new PlatformNotSupportedException("The Silk window did not provide a Vulkan surface. Luxel.UI.App requires Linux/X11 Vulkan presentation.");
@@ -192,6 +192,7 @@ internal sealed class LinuxLuxelApp
         }
         finally
         {
+            if (ReferenceEquals(PlatformClipboard.Current, clipboard)) PlatformClipboard.Current = null;
             device.MainQueue.WaitIdle();
             framebuffer?.Dispose();
         }
@@ -199,7 +200,7 @@ internal sealed class LinuxLuxelApp
 
     private static int Align(int value, int alignment) => checked((value + alignment - 1) / alignment * alignment);
 
-    private static void WireInput(NativeWindow window, UiHost host)
+    private static void WireInput(Window window, UiHost host)
     {
         window.PointerMoved += input => host.PointerMove(input.X, input.Y, LuxelInput.MapModifiers(input.Modifiers));
         window.PointerDown += input =>

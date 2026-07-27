@@ -31,13 +31,13 @@ public sealed class SilkWindowBackendTests
         using SilkWindowBackend backend = SilkWindowBackend.Create();
         using var windows = new WindowSystem(backend);
         string suffix = Guid.NewGuid().ToString("N");
-        NativeWindow first = windows.CreateWindow(new WindowDesc($"Luxel Silk A {suffix}", 320, 220)
+        Window first = windows.CreateWindow(new WindowDesc($"Luxel Silk A {suffix}", 320, 220)
         {
             X = 80,
             Y = 90,
             Visible = false,
         });
-        NativeWindow second = windows.CreateWindow(new WindowDesc($"Luxel Silk B {suffix}", 280, 180)
+        Window second = windows.CreateWindow(new WindowDesc($"Luxel Silk B {suffix}", 280, 180)
         {
             X = 440,
             Y = 90,

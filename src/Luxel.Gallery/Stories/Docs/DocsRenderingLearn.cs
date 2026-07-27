@@ -37,7 +37,7 @@ public static class DocsRenderingLearn
         **検索キーワード:** triangle / texture / camera / render graph / glTF / blank screen / 真っ黒
 
         > [!IMPORTANT]
-        > `GpuView` と `IGpuScene` はGallery内でデモを表示するためのハーネスです。通常アプリでは `WindowSystem`、`NativeWindow`、`GpuSurface` を使います。
+        > `GpuView` と `IGpuScene` はGallery内でデモを表示するためのハーネスです。通常アプリでは `WindowSystem`、`Window`、`GpuSurface` を使います。
 
         ## どのAPIまで学ぶか
 
@@ -117,7 +117,7 @@ public static class DocsRenderingLearn
         `samples/LuxelTriangle/Program.cs` がstandaloneアプリの外枠です。責務は次の順です。
 
         ```text
-        WindowSystem → NativeWindow → GpuDevice → GpuSurface
+        WindowSystem → Window → GpuDevice → GpuSurface
                      → event loop → Render → Present
         ```
 

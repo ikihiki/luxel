@@ -69,7 +69,7 @@ static int Run(string folder, string backend, int frames)
 
         int w = game.Project.WindowWidth, h = game.Project.WindowHeight;
         using var windows = new WindowSystem(Win32WindowBackend.Create());
-        NativeWindow win = windows.CreateWindow(new Luxel.Platform.Abstraction.WindowDesc(game.Project.Name, w, h));
+        Window win = windows.CreateWindow(new Luxel.Platform.Abstraction.WindowDesc(game.Project.Name, w, h));
         using GpuSurface surface = device.CreateSurface(win.Handle, (uint)Math.Max(1, win.Width), (uint)Math.Max(1, win.Height));
 
         // 生キー → world.KeysDown (csx が world.KeysDown.Contains("Right") 等で読む)

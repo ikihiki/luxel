@@ -3,7 +3,7 @@ using Luxel.UI;
 namespace Luxel.UI.App;
 
 /// <summary>
-/// ウィンドウ 1 枚分の提示ホスト: <see cref="NativeWindow"/> + スワップチェーン + framebuffer。
+/// ウィンドウ 1 枚分の提示ホスト: <see cref="Window"/> + スワップチェーン + framebuffer。
 /// 中身は <see cref="IWindowContent"/> に委譲する (UI 1 つ / 複数 UI 合成 / 3D — ウィンドウは UI と 1:1 ではない)。
 /// framebuffer 幅は 64 の倍数にパディング (D3D12 の 256B 行整列)、可視領域のみ present。
 /// リモート検証用に最新フレームの tight RGBA を保持する (内容ハッシュで rev 管理、Gallery と同じ流儀)。
@@ -42,7 +42,7 @@ public sealed class WindowHost : IDisposable
     public bool RenderedThisFrame { get; private set; }
 
     public int Id { get; }
-    public NativeWindow Window { get; }
+    public Window Window { get; }
     public IWindowContent Content { get; }
 
     private static int Align(int v, int a) => (v + a - 1) / a * a;
@@ -50,18 +50,17 @@ public sealed class WindowHost : IDisposable
     /// <summary>DPI スケール (論理 px × S = 物理 px)。</summary>
     private float S => Window.Scale;
 
-    public WindowHost(int id, GpuDevice device, NativeWindow window, IWindowContent content)
+    public WindowHost(int id, GpuDevice device, Window window, IWindowContent content)
     {
         Id = id;
         _device = device;
         Window = window;
         Content = content;
         _w = Math.Max(1, window.Width); _h = Math.Max(1, window.Height);
-        PlatformClipboard.Instance ??= window.GetFeature<IClipboard>();
         Content.Resize(_w / S, _h / S, S);   // content の論理サイズを実クライアント (物理/scale) に同期
         Alloc();
         _surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
-        _textInput = window.GetFeature<IWindowTextInputContextFactory>()?.Create(window, () => Content.ImeTarget, () => S)
+        _textInput = window.CreateTextInputContext(() => Content.ImeTarget, () => S)
             ?? NoWindowTextInputContext.Instance;
         Wire();
     }

@@ -2,7 +2,7 @@ namespace Luxel.Platform.Abstraction;
 
 /// <summary>
 /// ウィンドウシステムのバックエンド (Win32 / 将来の他 OS) が実装する低レベル抽象。
-/// GPU バックエンド抽象と同じ流儀: 公開 API (<see cref="WindowSystem"/>/<see cref="NativeWindow"/>) は
+/// GPU バックエンド抽象と同じ流儀: 公開 API (<see cref="WindowSystem"/>/<see cref="Window"/>) は
 /// このインターフェイスのみに依存し、OS 具象 (CsWin32 等) はバックエンドプロジェクトに隔離する。
 /// マルチウィンドウ前提 — <see cref="Pump"/> は呼び出しスレッドの全ウィンドウのメッセージを処理する。
 /// </summary>
@@ -16,6 +16,14 @@ public interface IWindowBackend : IDisposable
 
     /// <summary>保留メッセージを処理する。生存ウィンドウが 1 つでも残っていれば true。</summary>
     bool Pump();
+}
+
+/// <summary>プロセス共有クリップボードの低レベルバックエンド。</summary>
+public interface IClipboardBackend : IDisposable
+{
+    string Name { get; }
+    string? GetText();
+    void SetText(string text);
 }
 
 /// <summary>ウィンドウ生成パラメータ。X/Y 省略 (null) は OS 既定位置。</summary>

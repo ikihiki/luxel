@@ -35,7 +35,7 @@ static int Run(string backend, int? frameLimit, TutorialStage stage, int initial
             throw new PlatformNotSupportedException("DirectX 12 は Windows でのみ利用できます。Linux では 'vk' を指定してください。");
         using var windows = new WindowSystem(SilkWindowBackend.Create());
 #endif
-        NativeWindow window = windows.CreateWindow(new WindowDesc($"Luxel — 3D Tutorial ({stage})", initialWidth, initialHeight));
+        Window window = windows.CreateWindow(new WindowDesc($"Luxel — 3D Tutorial ({stage})", initialWidth, initialHeight));
         using GpuDevice device = CreateDevice(backend, window);
         using GpuSurface surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
         using var renderer = new TriangleRenderer(device, stage);
@@ -93,7 +93,7 @@ static int Run(string backend, int? frameLimit, TutorialStage stage, int initial
 
 // docs:end standalone-frame-loop
 
-static GpuDevice CreateDevice(string backend, NativeWindow window)
+static GpuDevice CreateDevice(string backend, Window window)
 {
 #if LUXEL_WINDOWS
     return backend switch

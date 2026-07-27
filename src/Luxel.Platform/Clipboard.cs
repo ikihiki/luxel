@@ -1,15 +1,23 @@
+using Luxel.Platform.Abstraction;
+
 namespace Luxel.Platform;
 
-/// <summary>クリップボード抽象 (OS API は Platform 層が実装、テストはフェイクを差す)。</summary>
-public interface IClipboard
+/// <summary>OS固有バックエンドを包む、プロセス共有クリップボードの公開API。</summary>
+public sealed class Clipboard : IDisposable
 {
-    string? GetText();
-    void SetText(string text);
+    private readonly IClipboardBackend _backend;
+
+    public Clipboard(IClipboardBackend backend)
+        => _backend = backend ?? throw new ArgumentNullException(nameof(backend));
+
+    public string Name => _backend.Name;
+    public string? GetText() => _backend.GetText();
+    public void SetText(string text) => _backend.SetText(text ?? string.Empty);
+    public void Dispose() => _backend.Dispose();
 }
 
-/// <summary>プロセス共有のクリップボード (OS クリップボードは本質的にグローバル)。
-/// 具体的なプラットフォームバックエンドが起動時に実装を設定する。null = 貼り付け/コピー無効。</summary>
+/// <summary>UIコントロールが使用する現在のプロセス共有クリップボード。nullならコピー/貼り付け無効。</summary>
 public static class PlatformClipboard
 {
-    public static IClipboard? Instance { get; set; }
+    public static Clipboard? Current { get; set; }
 }

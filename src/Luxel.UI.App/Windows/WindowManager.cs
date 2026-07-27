@@ -58,7 +58,7 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
     /// ポンプスレッド (app スレッド) から呼ぶ。</summary>
     public WindowHost CreateWindow(in WindowDesc desc, IWindowContent content)
     {
-        NativeWindow win = _windows.CreateWindow(desc);
+        Window win = _windows.CreateWindow(desc);
         // 論理サイズ同期は WindowHost ctor が行う (物理クライアント ÷ DPI スケール)
         var host = new WindowHost(_nextId++, _device, win, content);
         foreach ((string name, UiHost ui) in content.Uis) UiRegistry.Register(name, ui);

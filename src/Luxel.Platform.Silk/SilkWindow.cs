@@ -7,7 +7,7 @@ using Silk.NET.Windowing;
 
 namespace Luxel.Platform.Silk;
 
-internal sealed unsafe class SilkWindow : IWindowBackendWindow, IVulkanWindowSurface, IClipboard
+internal sealed unsafe class SilkWindow : IWindowBackendWindow, IVulkanWindowSurface
 {
     private readonly SilkWindowBackend _backend;
     private readonly IWindow _window;
@@ -136,18 +136,6 @@ internal sealed unsafe class SilkWindow : IWindowBackendWindow, IVulkanWindowSur
         ulong surface = _vkSurface.Create<byte>(new VkHandle(instanceHandle), null).Handle;
         if (surface == 0) throw new InvalidOperationException("Silk.NET/GLFW returned a null VkSurfaceKHR.");
         return surface;
-    }
-
-    public string? GetText()
-    {
-        VerifyUsable();
-        return _glfw.GetClipboardString(_handle);
-    }
-
-    public void SetText(string text)
-    {
-        VerifyUsable();
-        _glfw.SetClipboardString(_handle, text ?? string.Empty);
     }
 
     public Action<int, int>? Resized { get; set; }

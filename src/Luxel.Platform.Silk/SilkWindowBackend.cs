@@ -6,6 +6,23 @@ using Silk.NET.Windowing.Glfw;
 
 namespace Luxel.Platform.Silk;
 
+/// <summary>Process-level GLFW clipboard backend, independent from any Luxel window.</summary>
+public sealed unsafe class SilkClipboardBackend : IClipboardBackend
+{
+    private readonly Glfw _glfw;
+
+    public SilkClipboardBackend()
+    {
+        GlfwWindowing.Use();
+        _glfw = GlfwProvider.GLFW.Value;
+    }
+
+    public string Name => "Silk.NET GLFW";
+    public string? GetText() => _glfw.GetClipboardString(null);
+    public void SetText(string text) => _glfw.SetClipboardString(null, text ?? string.Empty);
+    public void Dispose() { }
+}
+
 /// <summary>Linux/X11 window backend implemented with Silk.NET Windowing and GLFW.</summary>
 public sealed unsafe class SilkWindowBackend : IWindowBackend
 {
@@ -61,6 +78,9 @@ public sealed unsafe class SilkWindowBackend : IWindowBackend
         }
     }
 
+    /// <summary>Creates the process-level GLFW clipboard backend.</summary>
+    public static IClipboardBackend CreateClipboardBackend() => new SilkClipboardBackend();
+
     public string Name => "Silk.NET GLFW/X11";
 
     public IWindowBackendWindow CreateWindow(in WindowDesc desc)
@@ -85,7 +105,7 @@ public sealed unsafe class SilkWindowBackend : IWindowBackend
                 options.Position = new Vector2D<int>(desc.X ?? defaultPosition.X, desc.Y ?? defaultPosition.Y);
             }
 
-            IWindow created = Window.Create(options);
+            IWindow created = global::Silk.NET.Windowing.Window.Create(options);
             native = created;
             if (!GlfwWindowing.IsViewGlfw(created))
             {

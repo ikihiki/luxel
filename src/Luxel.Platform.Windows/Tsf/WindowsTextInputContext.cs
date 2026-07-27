@@ -3,18 +3,16 @@ namespace Luxel.Platform.Windows;
 /// <summary>Connects a platform window to the Windows Text Services Framework.</summary>
 public sealed class WindowsTextInputContext : IWindowTextInputContext
 {
-    private readonly NativeWindow _window;
+    private readonly Window _window;
     private TsfThread? _thread;
     private TsfDocument? _document;
     private bool _keyEatenByTip;
 
-    public WindowsTextInputContext(NativeWindow window, Func<ITextInputClient?> getClient, Func<float>? getScale = null)
+    public WindowsTextInputContext(Window window, Func<ITextInputClient?> getClient, Func<float>? getScale = null)
     {
         ArgumentNullException.ThrowIfNull(window);
         ArgumentNullException.ThrowIfNull(getClient);
         _window = window;
-        if (getClient() is null) return;
-
         _thread = TsfThread.Acquire();
         _document = _thread?.CreateDocument(getClient, () => new global::Windows.Win32.Foundation.HWND(window.Handle), getScale);
         if (_thread is not null && _document is null)

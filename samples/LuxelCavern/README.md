@@ -50,7 +50,7 @@ dotnet run --project samples/LuxelCavern/LuxelCavern -- vk --frames 30   # 30 �
 
 - **音量**: `CavernAudio` が設定値を `AudioBus.Volume` へ束ね、次フレームから発音に効く。
 - **キーバインド**: キーバインド行で **Enter** → 次に押したキーを割り当て (Esc でキャンセル)。生キーの取得は
-  `IKeyCapture` (実窓の `KeyboardSource` が実装)、`CavernBindings.Apply` がプライマリキー + 固定セカンダリ (矢印)
+  `IKeyCapture` (`WindowInputSource` の直近キーをアダプターが公開)、`CavernBindings.Apply` がプライマリキー + 固定セカンダリ (矢印)
   を `Axis1DAction`/`ButtonAction` へ反映する (純ロジック、`CavernBindingsTests` が担保)。
 
 ## 配布 (publish)

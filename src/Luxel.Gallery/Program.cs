@@ -72,6 +72,8 @@ static int RunApp(Func<GpuDevice> createDevice, int port, int seconds)
     UiTheme.Current.Value = Theme.Light.Compact();   // ギャラリーは高密度テーマ (snap は既定テーマのまま)
     using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);   // 実窓も同梱フォント (golden と字形一致)
     using var windows = new WindowSystem(Win32WindowBackend.Create());
+    using var clipboard = new Clipboard(Win32WindowBackend.CreateClipboardBackend());
+    PlatformClipboard.Current = clipboard;
 
     var cmds = new EngineCommands();
     using var listener = new DevToolsListener(cmds);

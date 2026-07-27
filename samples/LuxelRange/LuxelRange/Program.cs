@@ -49,12 +49,10 @@ static int Run(string backend, int frames)
 
         int w = RangeRealtimeScene.Width, h = RangeRealtimeScene.Height;
         using var windows = new WindowSystem(Win32WindowBackend.Create());
-        NativeWindow win = windows.CreateWindow(new Luxel.Platform.Abstraction.WindowDesc("Luxel Range", w, h));
+        Window win = windows.CreateWindow(new Luxel.Platform.Abstraction.WindowDesc("Luxel Range", w, h));
         using GpuSurface surface = device.CreateSurface(win.Handle, (uint)Math.Max(1, win.Width), (uint)Math.Max(1, win.Height));
 
-        var keyboard = new KeyboardSource();
-        win.KeyDown += input => keyboard.Down(input.Key);
-        win.KeyUp += input => keyboard.Up(input.Key);
+        using WindowInputSource input = win.CreateInputSource("range-window");
 
         // ハイスコアは %APPDATA%/LuxelRange/ へ (リポジトリ非依存の実ユーザ書込パス)。
         string saveDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LuxelRange");
@@ -68,7 +66,7 @@ static int Run(string backend, int frames)
             .ConfigureServices(s =>
             {
                 s.AddSingleton<IFileStore>(fileStore);
-                s.AddSingleton<IInputSource>(keyboard);
+                s.AddSingleton<IInputSource>(input);
                 s.AddSingleton(sp => new RangeGame(sp.GetRequiredService<IFileStore>()));
                 s.AddSingleton<RangeRealtimeScene>();
             })
@@ -126,35 +124,4 @@ sealed class FramePacer
     }
 
     public void Tick() => Interlocked.Exchange(ref _tcs, null)?.TrySetResult();
-}
-
-/// <summary>Win32 のキーイベントを <see cref="InputBus"/> へ流す入力源 (GameLoop が毎フレーム Poll)。</summary>
-sealed class KeyboardSource : IInputSource
-{
-    private readonly List<(KeyCode Key, bool Down)> _pending = new();
-    public string Name => "range-keyboard";
-
-    public void Down(WindowKey key) { if (Map(key) is { } k) lock (_pending) _pending.Add((k, true)); }
-    public void Up(WindowKey key) { if (Map(key) is { } k) lock (_pending) _pending.Add((k, false)); }
-
-    public void Poll(InputBus bus)
-    {
-        lock (_pending)
-        {
-            foreach ((KeyCode k, bool d) in _pending) bus.EnqueueKey(k, d);
-            _pending.Clear();
-        }
-    }
-
-    private static KeyCode? Map(WindowKey key) => key switch
-    {
-        WindowKey.Space => KeyCode.Space,
-        WindowKey.Enter => KeyCode.Enter,
-        WindowKey.Escape => KeyCode.Escape,
-        WindowKey.Left => KeyCode.Left,
-        WindowKey.Right => KeyCode.Right,
-        WindowKey.Up => KeyCode.Up,
-        WindowKey.Down => KeyCode.Down,
-        _ => null,
-    };
 }

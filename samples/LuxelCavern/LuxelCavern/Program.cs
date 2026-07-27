@@ -63,12 +63,11 @@ static int Run(string backend, int frames, string[] args)
 
         int w = CavernRealtimeScene.Width, h = CavernRealtimeScene.Height;
         using var windows = new WindowSystem(Win32WindowBackend.Create());
-        NativeWindow win = windows.CreateWindow(new Luxel.Platform.Abstraction.WindowDesc(TitleScreen.GameTitle, w, h));
+        Window win = windows.CreateWindow(new Luxel.Platform.Abstraction.WindowDesc(TitleScreen.GameTitle, w, h));
         using GpuSurface surface = device.CreateSurface(win.Handle, (uint)Math.Max(1, win.Width), (uint)Math.Max(1, win.Height));
 
-        var keyboard = new KeyboardSource();
-        win.KeyDown += input => keyboard.Down(input.Key);
-        win.KeyUp += input => keyboard.Up(input.Key);
+        using WindowInputSource input = win.CreateInputSource("cavern-window");
+        var keyCapture = new KeyCapture(input);
 
         // セーブは %APPDATA%/LuxelCavern/ に置く (checklist 6: 実ユーザ書込パス、リポジトリ非依存)。
         string saveDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LuxelCavern");
@@ -86,8 +85,8 @@ static int Run(string backend, int frames, string[] args)
             .ConfigureServices(s =>
             {
                 s.AddSingleton(font);
-                s.AddSingleton<IInputSource>(keyboard);
-                s.AddSingleton<IKeyCapture>(keyboard);
+                s.AddSingleton<IInputSource>(input);
+                s.AddSingleton<IKeyCapture>(keyCapture);
                 s.AddSingleton<IFileStore>(fileStore);
                 s.AddSingleton<CavernRealtimeScene>();
             })
@@ -132,42 +131,10 @@ static int Run(string backend, int frames, string[] args)
     }
 }
 
-/// <summary>Win32 のキーイベントを <see cref="InputBus"/> へ流す入力源 (GameLoop が毎フレーム Poll)。
-/// <see cref="IKeyCapture"/> も実装し、設定画面のリバインドで「直近に押された生キー」を取り出せる。</summary>
-sealed class KeyboardSource : IInputSource, IKeyCapture
+/// <summary>WindowInputSourceの直近キーをCavernのリバインド契約へ公開する。</summary>
+sealed class KeyCapture(WindowInputSource source) : IKeyCapture
 {
-    private readonly List<(KeyCode Key, bool Down)> _pending = new();
-    private KeyCode? _lastPressed;
-    public string Name => "cavern-keyboard";
-
-    public void Down(WindowKey key) { if (Map(key) is { } k) lock (_pending) { _pending.Add((k, true)); _lastPressed = k; } }
-    public void Up(WindowKey key) { if (Map(key) is { } k) lock (_pending) _pending.Add((k, false)); }
-
-    /// <summary>リバインド用: 直近に押されたキーを取り出してクリア。</summary>
-    public KeyCode? TakePressed() { lock (_pending) { KeyCode? k = _lastPressed; _lastPressed = null; return k; } }
-
-    public void Poll(InputBus bus)
-    {
-        lock (_pending)
-        {
-            foreach ((KeyCode k, bool d) in _pending) bus.EnqueueKey(k, d);
-            _pending.Clear();
-        }
-    }
-
-    private static KeyCode? Map(WindowKey key) => key switch
-    {
-        >= WindowKey.A and <= WindowKey.Z => (KeyCode)((int)KeyCode.A + ((int)key - (int)WindowKey.A)),
-        WindowKey.F1 => KeyCode.F1,   // DevTools オーバーレイ切替
-        WindowKey.Space => KeyCode.Space,
-        WindowKey.Enter => KeyCode.Enter,
-        WindowKey.Escape => KeyCode.Escape,
-        WindowKey.Left => KeyCode.Left,
-        WindowKey.Right => KeyCode.Right,
-        WindowKey.Up => KeyCode.Up,
-        WindowKey.Down => KeyCode.Down,
-        _ => null,
-    };
+    public KeyCode? TakePressed() => source.TakePressed();
 }
 
 /// <summary>メインスレッドの <see cref="Tick"/> で GameLoop の 1 フレームを同期的に進めるペーサ

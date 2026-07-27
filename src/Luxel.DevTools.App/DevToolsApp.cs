@@ -43,12 +43,19 @@ public sealed class DevToolsApp : IDisposable
 
     private void Run(Func<GpuDevice> createDevice, DevToolsListener listener, EngineCommands commands, int e2ePort)
     {
+        Clipboard? installedClipboard = null;
         try
         {
             using GpuDevice device = createDevice();
             Console.WriteLine($"[devtools] device: {device.Name}");
             using VectorFont font = VectorFont.LoadSystemJapanese();
             using var windows = new WindowSystem(Win32WindowBackend.Create());
+            using var clipboard = new Clipboard(Win32WindowBackend.CreateClipboardBackend());
+            if (PlatformClipboard.Current is null)
+            {
+                PlatformClipboard.Current = clipboard;
+                installedClipboard = clipboard;
+            }
 
             // この島専用のテーマ signal (グローバル UiTheme.Current は購読しない)
             var theme = new Signal<Theme>(Theme.Dark.Compact());
@@ -91,6 +98,11 @@ public sealed class DevToolsApp : IDisposable
         catch (Exception e)
         {
             Console.Error.WriteLine($"[devtools] スレッド異常終了: {e}");
+        }
+        finally
+        {
+            if (ReferenceEquals(PlatformClipboard.Current, installedClipboard))
+                PlatformClipboard.Current = null;
         }
     }
 

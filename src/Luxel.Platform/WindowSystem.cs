@@ -21,7 +21,7 @@ public enum CursorKind
 /// バックエンド (Win32 等) を包み、ウィンドウの生成・一覧・メッセージポンプを提供する。
 /// <code>
 /// using var windows = new WindowSystem(Luxel.Platform.Windows.Win32WindowBackend.Create());
-/// NativeWindow main = windows.CreateWindow(new WindowDesc("App", 800, 600));
+/// Window main = windows.CreateWindow(new WindowDesc("App", 800, 600));
 /// var swapchain = device.CreateSurface(main.Handle, (uint)main.Width, (uint)main.Height);
 /// while (windows.Pump()) { ...描画して swapchain.Present... }
 /// </code>
@@ -29,7 +29,7 @@ public enum CursorKind
 public sealed class WindowSystem : IDisposable
 {
     private readonly IWindowBackend _backend;
-    private readonly List<NativeWindow> _windows = new();
+    private readonly List<Window> _windows = new();
     private bool _disposed;
 
     public WindowSystem(IWindowBackend backend) => _backend = backend;
@@ -37,16 +37,16 @@ public sealed class WindowSystem : IDisposable
     public string Name => _backend.Name;
 
     /// <summary>生存ウィンドウのスナップショット (閉じたものは Pump で除去済み)。</summary>
-    public IReadOnlyList<NativeWindow> Windows
+    public IReadOnlyList<Window> Windows
     {
         get { Prune(); return _windows.ToArray(); }
     }
 
     /// <summary>ウィンドウを生成する。メッセージポンプと同じスレッドから呼ぶこと。</summary>
-    public NativeWindow CreateWindow(in WindowDesc desc)
+    public Window CreateWindow(in WindowDesc desc)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        var win = new NativeWindow(_backend.CreateWindow(desc), desc.Title);
+        var win = new Window(_backend.CreateWindow(desc), desc.Title);
         _windows.Add(win);
         return win;
     }
@@ -66,22 +66,36 @@ public sealed class WindowSystem : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        foreach (NativeWindow w in _windows) w.Dispose();
+        foreach (Window w in _windows) w.Dispose();
         _windows.Clear();
         _backend.Dispose();
     }
+}
+
+/// <summary>ウィンドウ入力をまとめて受け取るハンドラ。必要なメソッドだけ実装できる。</summary>
+public interface IWindowInputHandler
+{
+    void PointerMoved(WindowPointerEvent input) { }
+    void PointerDown(WindowPointerEvent input) { }
+    void PointerUp(WindowPointerEvent input) { }
+    void Wheel(WindowWheelEvent input) { }
+    void KeyDown(WindowKeyEvent input) { }
+    void KeyUp(WindowKeyEvent input) { }
+    void TextInput(string text) { }
 }
 
 /// <summary>
 /// ウィンドウ 1 枚の公開ラッパ。ネイティブハンドル、状態、入力イベント、基本操作を公開する。
 /// 入力/リサイズのイベントはメッセージポンプのスレッドから呼ばれる。
 /// </summary>
-public sealed class NativeWindow : IDisposable
+public sealed class Window : IDisposable
 {
     private readonly IWindowBackendWindow _win;
+    private readonly object _inputGate = new();
+    private readonly List<IWindowInputHandler> _inputHandlers = new();
     private string _title;
 
-    internal NativeWindow(IWindowBackendWindow win, string title)
+    internal Window(IWindowBackendWindow win, string title)
     {
         _win = win;
         _title = title;
@@ -90,13 +104,13 @@ public sealed class NativeWindow : IDisposable
         _win.Moved = (x, y) => Moved?.Invoke(x, y);
         _win.Closed = () => Closed?.Invoke();
         _win.FocusChanged = f => FocusChanged?.Invoke(f);
-        _win.PointerMoved = input => PointerMoved?.Invoke(input);
-        _win.PointerDown = input => PointerDown?.Invoke(input);
-        _win.PointerUp = input => PointerUp?.Invoke(input);
-        _win.Wheel = input => Wheel?.Invoke(input);
-        _win.KeyDown = input => KeyDown?.Invoke(input);
-        _win.KeyUp = input => KeyUp?.Invoke(input);
-        _win.TextInput = text => TextInput?.Invoke(text);
+        _win.PointerMoved = input => Dispatch(input, PointerMoved, static (h, value) => h.PointerMoved(value));
+        _win.PointerDown = input => Dispatch(input, PointerDown, static (h, value) => h.PointerDown(value));
+        _win.PointerUp = input => Dispatch(input, PointerUp, static (h, value) => h.PointerUp(value));
+        _win.Wheel = input => Dispatch(input, Wheel, static (h, value) => h.Wheel(value));
+        _win.KeyDown = input => Dispatch(input, KeyDown, static (h, value) => h.KeyDown(value));
+        _win.KeyUp = input => Dispatch(input, KeyUp, static (h, value) => h.KeyUp(value));
+        _win.TextInput = text => Dispatch(text, TextInput, static (h, value) => h.TextInput(value));
     }
 
     /// <summary>クライアント領域のカーソル形状の問い合わせ先 (WM_SETCURSOR 相当で呼ばれる)。null = 矢印。</summary>
@@ -133,6 +147,37 @@ public sealed class NativeWindow : IDisposable
     /// <summary>Gets an optional backend-specific feature without adding it to the portable window ABI.</summary>
     public TFeature? GetFeature<TFeature>() where TFeature : class => _win as TFeature;
 
+    /// <summary>入力ハンドラを登録する。同じインスタンスの重複登録は無視する。</summary>
+    public void AddInputHandler(IWindowInputHandler handler)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        lock (_inputGate)
+            if (!_inputHandlers.Contains(handler)) _inputHandlers.Add(handler);
+    }
+
+    /// <summary>登録済みの入力ハンドラを解除する。</summary>
+    public bool RemoveInputHandler(IWindowInputHandler handler)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        lock (_inputGate) return _inputHandlers.Remove(handler);
+    }
+
+    /// <summary>このウィンドウ用のOS入力メソッドコンテキストを生成する。非対応ならnull。</summary>
+    public IWindowTextInputContext? CreateTextInputContext(
+        Func<ITextInputClient?> getClient, Func<float>? getScale = null)
+    {
+        ArgumentNullException.ThrowIfNull(getClient);
+        return (_win as IWindowTextInputContextFactory)?.Create(this, getClient, getScale);
+    }
+
+    private void Dispatch<T>(T value, Action<T>? observers, Action<IWindowInputHandler, T> dispatch)
+    {
+        observers?.Invoke(value);
+        IWindowInputHandler[] handlers;
+        lock (_inputGate) handlers = _inputHandlers.ToArray();
+        foreach (IWindowInputHandler handler in handlers) dispatch(handler, value);
+    }
+
     public void SetTitle(string title) { _title = title; _win.SetTitle(title); }
     public void SetBounds(int? x = null, int? y = null, int? clientWidth = null, int? clientHeight = null)
         => _win.SetBounds(x, y, clientWidth, clientHeight);
@@ -141,5 +186,9 @@ public sealed class NativeWindow : IDisposable
     public void Focus() => _win.Focus();
     public void Close() => _win.Close();
 
-    public void Dispose() => _win.Dispose();
+    public void Dispose()
+    {
+        lock (_inputGate) _inputHandlers.Clear();
+        _win.Dispose();
+    }
 }

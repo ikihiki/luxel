@@ -683,7 +683,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
             case Key.C when ev.Ctrl: CopySelection(); return true;
             case Key.X when ev.Ctrl: if (CopySelection()) Apply(EditCommands.DeleteBackward(_state)); return true;
             case Key.V when ev.Ctrl:
-                if (PlatformClipboard.Instance?.GetText() is { Length: > 0 } paste) Apply(EditCommands.InsertText(_state, paste));
+                if (PlatformClipboard.Current?.GetText() is { Length: > 0 } paste) Apply(EditCommands.InsertText(_state, paste));
                 return true;
             default: return false;
         }
@@ -762,7 +762,7 @@ public sealed partial class TextEditorView : Widget, ITextInput
     private bool CopySelection()
     {
         SelectionRange m = _state.Selection.Main;
-        if (m.Empty || PlatformClipboard.Instance is not { } clip) return false;
+        if (m.Empty || PlatformClipboard.Current is not { } clip) return false;
         clip.SetText(_state.Doc.Slice(m.From, m.To));
         return true;
     }

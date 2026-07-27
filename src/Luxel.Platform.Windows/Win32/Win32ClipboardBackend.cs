@@ -1,3 +1,4 @@
+using Luxel.Platform.Abstraction;
 using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -5,10 +6,12 @@ using Windows.Win32.System.Memory;
 
 namespace Luxel.Platform.Windows;
 
-/// <summary>Win32 クリップボード (CF_UNICODETEXT)。<see cref="PlatformClipboard.Instance"/> へ登録して使う。</summary>
-public sealed unsafe class Win32Clipboard : IClipboard
+/// <summary>Win32クリップボードバックエンド (CF_UNICODETEXT)。</summary>
+public sealed unsafe class Win32ClipboardBackend : IClipboardBackend
 {
     private const uint CF_UNICODETEXT = 13;
+
+    public string Name => "Win32";
 
     public string? GetText()
     {
@@ -25,6 +28,8 @@ public sealed unsafe class Win32Clipboard : IClipboard
         }
         finally { PInvoke.CloseClipboard(); }
     }
+
+    public void Dispose() { }
 
     public void SetText(string text)
     {
