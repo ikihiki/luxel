@@ -28,7 +28,7 @@ dotnet test                                            # ユニットテスト
 <p><code>vk</code> を <code>dx</code> に変えると DirectX 12 で動きます。両バックエンドは<strong>ピクセル一致</strong>が開発規律です (golden はバックエンド別に保持)。</p>
 <h2 id="ui">最初の UI</h2>
 <p>宣言的 UI はベアファクトリ + indexer の DSL で書きます。下のカウンタは本物です — クリックすると右の Log パネルに出て、値も動きます:</p>
-<figure class="static-capture"><img src="images/embed-7b6fe533185212a406e6.png" alt="Documentation embed 1" loading="lazy"><figcaption>Static widget capture — not interactive</figcaption></figure>
+<figure class="static-capture"><img src="images/embed-892a43984b3111f92d6d.png" alt="Documentation embed 1" loading="lazy"><figcaption>Static widget capture — not interactive</figcaption></figure>
 <pre><code class="language-csharp">Signal&lt;int&gt; count = ctx.Signal(&quot;count&quot;, 0);   // knob にもなる状態
 Widget ui = HStack(8)[
     Button(_ =&gt; count.Value--, &quot;-&quot;),
