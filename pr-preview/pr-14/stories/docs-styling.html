@@ -1,9 +1,9 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Docs/Styling</h1></header><h1 id="tailwind">スタイリングと Tailwind</h1>
 <ul>
-<li><a href="#%E7%8A%B6%E6%85%8B%E3%83%AC%E3%82%A4%E3%83%A4-hover-/-pressed-/-checked-%E2%80%A6">状態レイヤ (hover / pressed / checked …)</a></li>
-<li><a href="#%E3%82%AB%E3%83%A9%E3%83%BC%E3%83%91%E3%83%AC%E3%83%83%E3%83%88-luxel.ui.tailwind">カラーパレット (Luxel.UI.Tailwind)</a></li>
-<li><a href="#%E3%83%A6%E3%83%BC%E3%82%B6%E3%83%BC%E5%AE%9A%E7%BE%A9%E3%83%86%E3%83%BC%E3%83%9E">ユーザー定義テーマ</a></li>
-<li><a href="#%E7%8A%B6%E6%85%8B%E9%81%B7%E7%A7%BB%E3%81%AE%E8%A3%9C%E9%96%93-transition">状態遷移の補間 (Transition)</a></li>
+<li><a href="#story=Docs%2FStyling&amp;section=%E7%8A%B6%E6%85%8B%E3%83%AC%E3%82%A4%E3%83%A4-hover-%2F-pressed-%2F-checked-%E2%80%A6">状態レイヤ (hover / pressed / checked …)</a></li>
+<li><a href="#story=Docs%2FStyling&amp;section=%E3%82%AB%E3%83%A9%E3%83%BC%E3%83%91%E3%83%AC%E3%83%83%E3%83%88-luxel.ui.tailwind">カラーパレット (Luxel.UI.Tailwind)</a></li>
+<li><a href="#story=Docs%2FStyling&amp;section=%E3%83%A6%E3%83%BC%E3%82%B6%E3%83%BC%E5%AE%9A%E7%BE%A9%E3%83%86%E3%83%BC%E3%83%9E">ユーザー定義テーマ</a></li>
+<li><a href="#story=Docs%2FStyling&amp;section=%E7%8A%B6%E6%85%8B%E9%81%B7%E7%A7%BB%E3%81%AE%E8%A3%9C%E9%96%93-transition">状態遷移の補間 (Transition)</a></li>
 </ul>
 <p>コントロールの見た目は 3 つの層で決まります: <strong>① テーマ既定</strong> (Variant × Intent) → <strong>② ファクトリ引数</strong> (background 等の個別指定) → <strong>③ 状態レイヤ</strong> (fluent <code>.When(state, ...)</code> の override)。後の層ほど強く、CSS の specificity と同じ感覚です。</p>
 <h2 id="hover-pressed-checked">状態レイヤ (hover / pressed / checked …)</h2>

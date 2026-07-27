@@ -1,20 +1,21 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Luxel.Typography</h1></header><h1 id="luxel.typography">Luxel.Typography</h1>
 <ul>
-<li><a href="#colorlayer">ColorLayer</a></li>
-<li><a href="#fontcollection">FontCollection</a></li>
-<li><a href="#itextsegmenter">ITextSegmenter</a></li>
-<li><a href="#linebreakkind">LineBreakKind</a></li>
-<li><a href="#simplesegmenter">SimpleSegmenter</a></li>
-<li><a href="#spanstyle">SpanStyle</a></li>
-<li><a href="#textalign">TextAlign</a></li>
-<li><a href="#textlayout">TextLayout</a></li>
-<li><a href="#textlayoutoptions">TextLayoutOptions</a></li>
-<li><a href="#textrect">TextRect</a></li>
-<li><a href="#textsegmenter">TextSegmenter</a></li>
-<li><a href="#textspan">TextSpan</a></li>
-<li><a href="#textvalign">TextVAlign</a></li>
-<li><a href="#textwrap">TextWrap</a></li>
-<li><a href="#vectorfont">VectorFont</a></li>
+<li><a href="#story=Reference%2FLuxel.Typography&amp;section=colorlayer">ColorLayer</a></li>
+<li><a href="#story=Reference%2FLuxel.Typography&amp;section=fontcollection">FontCollection</a></li>
+<li><a href="#story=Reference%2FLuxel.Typography&amp;section=itextsegmenter">ITextSegmenter</a></li>
+<li><a href="#story=Reference%2FLuxel.Typography&amp;section=icusegmenter">IcuSegmenter</a></li>
+<li><a href="#story=Reference%2FLuxel.Typography&amp;section=linebreakkind">LineBreakKind</a></li>
+<li><a href="#story=Reference%2FLuxel.Typography&amp;section=simplesegmenter">SimpleSegmenter</a></li>
+<li><a href="#story=Reference%2FLuxel.Typography&amp;section=spanstyle">SpanStyle</a></li>
+<li><a href="#story=Reference%2FLuxel.Typography&amp;section=textalign">TextAlign</a></li>
+<li><a href="#story=Reference%2FLuxel.Typography&amp;section=textlayout">TextLayout</a></li>
+<li><a href="#story=Reference%2FLuxel.Typography&amp;section=textlayoutoptions">TextLayoutOptions</a></li>
+<li><a href="#story=Reference%2FLuxel.Typography&amp;section=textrect">TextRect</a></li>
+<li><a href="#story=Reference%2FLuxel.Typography&amp;section=textsegmenter">TextSegmenter</a></li>
+<li><a href="#story=Reference%2FLuxel.Typography&amp;section=textspan">TextSpan</a></li>
+<li><a href="#story=Reference%2FLuxel.Typography&amp;section=textvalign">TextVAlign</a></li>
+<li><a href="#story=Reference%2FLuxel.Typography&amp;section=textwrap">TextWrap</a></li>
+<li><a href="#story=Reference%2FLuxel.Typography&amp;section=vectorfont">VectorFont</a></li>
 </ul>
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="colorlayer">ColorLayer</h2>
@@ -23,6 +24,8 @@
 <section class="api-reference"><p class="api-summary">class — 優先順フォント列。グリフ未収載の文字を次候補へフォールバックする (例: [UI フォント, 日本語フォント])。 フォントの寿命は所有しない (呼び出し側が Dispose を管理)。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>FontCollection</code></th><td><code>(VectorFont[] fonts)</code></td><td></td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>FontFor</code></th><td><code>(int codepoint, VectorFont preferred) → VectorFont</code></td><td>コードポイントを収載する最初のフォント (どれも無ければ先頭 = .notdef 豆腐)。 があればそれを最優先候補にする。</td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Fonts</code></th><td><code>IReadOnlyList&lt;VectorFont&gt; (get)</code></td><td></td></tr><tr><th scope="row"><code>Primary</code></th><td><code>VectorFont (get)</code></td><td></td></tr></tbody></table></div></section>
 <h2 id="itextsegmenter">ITextSegmenter</h2>
 <section class="api-reference"><p class="api-summary">interface — テキスト分割判定の差し込み点 (UAX#14/#29 相当)。標準は SimpleSegmenter (依存ゼロの実用部分集合)。 完全版が必要なアプリは icu-dotnet アダプタ (Luxel.Typography.Icu, TX-M5) を Default か TextLayoutOptions.Segmenter に差す。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>GetLineBreaks</code></th><td><code>(ReadOnlySpan&lt;char&gt; text, Span&lt;LineBreakKind&gt; breaks) → void</code></td><td>段落内の各位置の折り返し可否を書き込む (breaks.Length == text.Length)。 breaks[i] は「text[i] の直後で折れるか」。</td></tr><tr><th scope="row"><code>GetGraphemeBoundaries</code></th><td><code>(string text) → int[]</code></td><td>グラフェムクラスタ境界 (UAX#29)。戻り値は昇順の開始 index 列 (先頭 0、末尾 text.Length を含む)。</td></tr><tr><th scope="row"><code>GetWordAt</code></th><td><code>(string text, int index) → (int start, int end)</code></td><td>index を含む単語の範囲 (ダブルクリック選択用)。</td></tr></tbody></table></div></section>
+<h2 id="icusegmenter">IcuSegmenter</h2>
+<section class="api-reference"><p class="api-summary">class — icu-dotnet (icu.net) の BreakIterator による ITextSegmenter 実装 — **完全な UAX#14 (LINE) / UAX#29 (CHARACTER/WORD)**。NBSP・数値と単位・絵文字 ZWJ 列などの 規則が SimpleSegmenter の部分集合より正確になる。 差し込み方: app 起動時 (UI スレッド起動前) に if (IcuSegmenter.IsAvailable) TextSegmenter.Default = new IcuSegmenter(); ネイティブ ICU (icuuc/icuin) が必要 — このアダプタプロジェクトだけが依存し、コアは依存ゼロのまま。 snap/golden は SimpleSegmenter で固定する (ICU バージョンで折返し位置が変わり環境依存になるため)。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>IcuSegmenter</code></th><td><code>(string locale)</code></td><td></td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>GetLineBreaks</code></th><td><code>(ReadOnlySpan&lt;char&gt; text, Span&lt;LineBreakKind&gt; breaks) → void</code></td><td></td></tr><tr><th scope="row"><code>GetGraphemeBoundaries</code></th><td><code>(string text) → int[]</code></td><td></td></tr><tr><th scope="row"><code>GetWordAt</code></th><td><code>(string text, int index) → (int start, int end)</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>IsAvailable</code></th><td><code>bool (get)</code></td><td>ネイティブ ICU が解決できるか (失敗時は SimpleSegmenter のまま運用する)。</td></tr><tr><th scope="row"><code>UnavailableReason</code></th><td><code>string (get)</code></td><td>解決失敗時の理由 (診断用)。成功時は null。</td></tr></tbody></table></div></section>
 <h2 id="linebreakkind">LineBreakKind</h2>
 <section class="api-reference"><p class="api-summary">enum — char 境界の折り返し可否 (位置 i = 「text[i] の後で折れるか」)。</p><h3>値</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Prohibited</code></th><td><code></code></td><td>禁止 (サロゲート内・禁則)。緊急折返しでも折らない。</td></tr><tr><th scope="row"><code>CharAllowed</code></th><td><code></code></td><td>Char モード / Word の緊急折返しでのみ折れる (ラテン語中など)。</td></tr><tr><th scope="row"><code>Allowed</code></th><td><code></code></td><td>語境界 (空白後・CJK 境界・ハイフン後) — Word モードの優先点。</td></tr><tr><th scope="row"><code>Mandatory</code></th><td><code></code></td><td>強制改行 (\n)。</td></tr></tbody></table></div></section>
 <h2 id="simplesegmenter">SimpleSegmenter</h2>

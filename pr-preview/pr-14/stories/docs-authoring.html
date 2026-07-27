@@ -1,12 +1,12 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Docs/Authoring</h1></header><h1 id="docs">docs ページの書き方</h1>
 <ul>
-<li><a href="#%E3%83%9A%E3%83%BC%E3%82%B8%E3%81%AE%E9%AA%A8%E6%A0%BC">ページの骨格</a></li>
-<li><a href="#%E3%83%A9%E3%82%A4%E3%83%96-ui">ライブ UI</a></li>
-<li><a href="#%E5%9F%8B%E3%82%81%E8%BE%BC%E3%81%BF-+-knobs">埋め込み + Knobs</a></li>
-<li><a href="#%E6%9B%B8%E3%81%91%E3%82%8B%E3%82%82%E3%81%AE">書けるもの</a></li>
-<li><a href="#%E5%88%B6%E7%B4%84%E3%81%A8%E8%90%BD%E3%81%A8%E3%81%97%E7%A9%B4">制約と落とし穴</a></li>
+<li><a href="#story=Docs%2FAuthoring&amp;section=%E3%83%9A%E3%83%BC%E3%82%B8%E3%81%AE%E9%AA%A8%E6%A0%BC">ページの骨格</a></li>
+<li><a href="#story=Docs%2FAuthoring&amp;section=%E3%83%A9%E3%82%A4%E3%83%96-ui">ライブ UI</a></li>
+<li><a href="#story=Docs%2FAuthoring&amp;section=%E5%9F%8B%E3%82%81%E8%BE%BC%E3%81%BF-%2B-knobs">埋め込み + Knobs</a></li>
+<li><a href="#story=Docs%2FAuthoring&amp;section=%E6%9B%B8%E3%81%91%E3%82%8B%E3%82%82%E3%81%AE">書けるもの</a></li>
+<li><a href="#story=Docs%2FAuthoring&amp;section=%E5%88%B6%E7%B4%84%E3%81%A8%E8%90%BD%E3%81%A8%E3%81%97%E7%A9%B4">制約と落とし穴</a></li>
 </ul>
-<p>docs ページは <strong>補完文字列 + markdown</strong> で書きます。リテラル部分は markdown として整形され、hole に <code>Widget</code> を置くとその場に<strong>ライブ UI</strong> が埋め込まれます。カラー絵文字 :smile: :rocket: :+1: と &quot;smart quotes&quot; -- SmartyPants も効きます。リンクも張れます: <a href="#story=Docs%2FButton">Docs/Button を開く</a> / <a href="#%E6%9B%B8%E3%81%91%E3%82%8B%E3%82%82%E3%81%AE">書けるもの へ</a> / <a href="https://www.sebastianaaltonen.com/blog/no-graphics-api">No Graphics API (外部)</a></p>
+<p>docs ページは <strong>補完文字列 + markdown</strong> で書きます。リテラル部分は markdown として整形され、hole に <code>Widget</code> を置くとその場に<strong>ライブ UI</strong> が埋め込まれます。カラー絵文字 :smile: :rocket: :+1: と &quot;smart quotes&quot; -- SmartyPants も効きます。リンクも張れます: <a href="#story=Docs%2FButton">Docs/Button を開く</a> / <a href="#story=Docs%2FAuthoring&amp;section=%E6%9B%B8%E3%81%91%E3%82%8B%E3%82%82%E3%81%AE">書けるもの へ</a> / <a href="https://www.sebastianaaltonen.com/blog/no-graphics-api">No Graphics API (外部)</a></p>
 <h2 id="section">ページの骨格</h2>
 <p><code>[Story(&quot;Docs/...&quot;)]</code> + <code>Kit.Docs</code> + <code>WithDocFonts</code> (日本語/絵文字フォールバック + シンタックスハイライト + mermaid/math widget の配線) が定型です。文字列は <code>$$&quot;&quot;&quot;</code> (hole = 波かっこ 2 連) にすると、C# コード例の波かっこ 1 連がそのままリテラルになります:</p>
 <pre><code class="language-csharp">[Story(&quot;Docs/MyPage&quot;, Order = 50)]

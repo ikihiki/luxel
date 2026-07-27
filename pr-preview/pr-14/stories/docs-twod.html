@@ -1,15 +1,15 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Docs/TwoD</h1></header><h1 id="d-luxel.twod">2D ベクター (Luxel.TwoD)</h1>
 <ul>
-<li><a href="#%E6%8F%8F%E3%81%91%E3%82%8B%E3%82%82%E3%81%AE">描けるもの</a></li>
-<li><a href="#scene2d-%E3%81%A8%E3%83%91%E3%82%B9%E6%A7%8B%E7%AF%89">Scene2D とパス構築</a></li>
-<li><a href="#camera2d-%E2%80%94-%E3%82%B9%E3%83%A0%E3%83%BC%E3%82%BA%E3%82%BA%E3%83%BC%E3%83%A0">Camera2D — スムーズズーム</a></li>
-<li><a href="#camerarig2d-%E2%80%94-%E8%BF%BD%E5%BE%93%E3%82%AB%E3%83%A1%E3%83%A9-%E3%82%B2%E3%83%BC%E3%83%A0%E3%83%95%E3%82%A3%E3%83%BC%E3%83%AB">CameraRig2D — 追従カメラ (ゲームフィール)</a></li>
-<li><a href="#%E3%82%B9%E3%83%97%E3%83%A9%E3%82%A4%E3%83%88%E3%82%A2%E3%83%88%E3%83%A9%E3%82%B9-%E2%80%94-1-%E3%83%86%E3%82%AF%E3%82%B9%E3%83%81%E3%83%A3%E3%81%AB%E8%A4%87%E6%95%B0%E3%82%B9%E3%83%97%E3%83%A9%E3%82%A4%E3%83%88">スプライトアトラス — 1 テクスチャに複数スプライト</a></li>
-<li><a href="#%E3%82%BF%E3%82%A4%E3%83%AB%E3%83%9E%E3%83%83%E3%83%97-%E2%80%94-%E3%82%B0%E3%83%AA%E3%83%83%E3%83%89%E6%8F%8F%E7%94%BB-+-aabb-%E8%A1%9D%E7%AA%81">タイルマップ — グリッド描画 + AABB 衝突</a></li>
-<li><a href="#%E3%83%91%E3%83%BC%E3%83%86%E3%82%A3%E3%82%AF%E3%83%AB-%E2%80%94-%E6%A8%99%E6%BA%96-vfx-%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0">パーティクル — 標準 VFX システム</a></li>
-<li><a href="#retainedcanvas-%E2%80%94-%E4%BF%9D%E6%8C%81%E5%9E%8B%E3%83%84%E3%83%AA%E3%83%BC%E3%81%A8%E9%83%A8%E5%88%86%E6%9B%B4%E6%96%B0">RetainedCanvas — 保持型ツリーと部分更新</a></li>
-<li><a href="#%E8%A8%AD%E8%A8%88%E3%83%8E%E3%83%BC%E3%83%88:-%E5%A2%97%E5%88%86%E6%9B%B4%E6%96%B0-%E2%80%94-%E3%80%8Cslot-%E6%8D%AE%E3%81%88%E7%BD%AE%E3%81%8D%E3%80%81%E3%83%AC%E3%83%B3%E3%82%B8%E3%81%AF%E5%AE%B9%E9%87%8F%E4%BB%98%E3%81%8D%E3%80%8D">設計ノート: 増分更新 — 「slot 据え置き、レンジは容量付き」</a></li>
-<li><a href="#%E4%BB%8A%E5%BE%8C">今後</a></li>
+<li><a href="#story=Docs%2FTwoD&amp;section=%E6%8F%8F%E3%81%91%E3%82%8B%E3%82%82%E3%81%AE">描けるもの</a></li>
+<li><a href="#story=Docs%2FTwoD&amp;section=scene2d-%E3%81%A8%E3%83%91%E3%82%B9%E6%A7%8B%E7%AF%89">Scene2D とパス構築</a></li>
+<li><a href="#story=Docs%2FTwoD&amp;section=camera2d-%E2%80%94-%E3%82%B9%E3%83%A0%E3%83%BC%E3%82%BA%E3%82%BA%E3%83%BC%E3%83%A0">Camera2D — スムーズズーム</a></li>
+<li><a href="#story=Docs%2FTwoD&amp;section=camerarig2d-%E2%80%94-%E8%BF%BD%E5%BE%93%E3%82%AB%E3%83%A1%E3%83%A9-%E3%82%B2%E3%83%BC%E3%83%A0%E3%83%95%E3%82%A3%E3%83%BC%E3%83%AB">CameraRig2D — 追従カメラ (ゲームフィール)</a></li>
+<li><a href="#story=Docs%2FTwoD&amp;section=%E3%82%B9%E3%83%97%E3%83%A9%E3%82%A4%E3%83%88%E3%82%A2%E3%83%88%E3%83%A9%E3%82%B9-%E2%80%94-1-%E3%83%86%E3%82%AF%E3%82%B9%E3%83%81%E3%83%A3%E3%81%AB%E8%A4%87%E6%95%B0%E3%82%B9%E3%83%97%E3%83%A9%E3%82%A4%E3%83%88">スプライトアトラス — 1 テクスチャに複数スプライト</a></li>
+<li><a href="#story=Docs%2FTwoD&amp;section=%E3%82%BF%E3%82%A4%E3%83%AB%E3%83%9E%E3%83%83%E3%83%97-%E2%80%94-%E3%82%B0%E3%83%AA%E3%83%83%E3%83%89%E6%8F%8F%E7%94%BB-%2B-aabb-%E8%A1%9D%E7%AA%81">タイルマップ — グリッド描画 + AABB 衝突</a></li>
+<li><a href="#story=Docs%2FTwoD&amp;section=%E3%83%91%E3%83%BC%E3%83%86%E3%82%A3%E3%82%AF%E3%83%AB-%E2%80%94-%E6%A8%99%E6%BA%96-vfx-%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0">パーティクル — 標準 VFX システム</a></li>
+<li><a href="#story=Docs%2FTwoD&amp;section=retainedcanvas-%E2%80%94-%E4%BF%9D%E6%8C%81%E5%9E%8B%E3%83%84%E3%83%AA%E3%83%BC%E3%81%A8%E9%83%A8%E5%88%86%E6%9B%B4%E6%96%B0">RetainedCanvas — 保持型ツリーと部分更新</a></li>
+<li><a href="#story=Docs%2FTwoD&amp;section=%E8%A8%AD%E8%A8%88%E3%83%8E%E3%83%BC%E3%83%88%3A-%E5%A2%97%E5%88%86%E6%9B%B4%E6%96%B0-%E2%80%94-%E3%80%8Cslot-%E6%8D%AE%E3%81%88%E7%BD%AE%E3%81%8D%E3%80%81%E3%83%AC%E3%83%B3%E3%82%B8%E3%81%AF%E5%AE%B9%E9%87%8F%E4%BB%98%E3%81%8D%E3%80%8D">設計ノート: 増分更新 — 「slot 据え置き、レンジは容量付き」</a></li>
+<li><a href="#story=Docs%2FTwoD&amp;section=%E4%BB%8A%E5%BE%8C">今後</a></li>
 </ul>
 <p>GPU <strong>コンピュートラスタライザ</strong> (Vello 風) による 2D ベクター描画です。パスを三角形分割せず、線分のまま GPU に常駐させ、compute が画素ごとに巻き数/距離で被覆を計算して塗ります。バックエンド変更ゼロ (framebuffer は bindless バッファ)。</p>
 <h2 id="section">描けるもの</h2>
