@@ -53,6 +53,7 @@
     <Project Path="src/Luxel.Graphics.TwoD.Skia/Luxel.Graphics.TwoD.Skia.csproj" />
     <Project Path="src/Luxel.Graphics.TwoD/Luxel.Graphics.TwoD.csproj" />
     <Project Path="src/Luxel.Typography.TwoD/Luxel.Typography.TwoD.csproj" />
+    <Project Path="src/Luxel.Terminal/Luxel.Terminal.csproj" />
     <Project Path="src/Luxel.Typography.Icu/Luxel.Typography.Icu.csproj" />
     <Project Path="src/Luxel.Typography/Luxel.Typography.csproj" />
     <Project Path="src/Luxel.UI.App/Luxel.UI.App.csproj" />
@@ -77,6 +78,7 @@
     <Project Path="tests/Luxel.Vulkan.Present.Tests/Luxel.Vulkan.Present.Tests.csproj" />
     <Project Path="tests/Luxel.UI.Generators.Tests/Luxel.UI.Generators.Tests.csproj" />
     <Project Path="tests/Luxel.UI.App.Tests/Luxel.UI.App.Tests.csproj" />
+    <Project Path="tests/Luxel.Terminal.Tests/Luxel.Terminal.Tests.csproj" />
     <Project Path="tests/Luxel.Tests/Luxel.Tests.csproj" />
   </Folder>
 </Solution>
