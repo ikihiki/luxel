@@ -1,13 +1,10 @@
 using System.Text;
 using System.Threading.Channels;
-using System.Numerics;
-using Luxel.Graphics.TwoD;
 using Luxel.Terminal.Input;
 using Luxel.Terminal.Screen;
 using Luxel.Terminal.Session;
 using Luxel.Terminal.UI;
 using Luxel.Typography;
-using Luxel.Typography.TwoD;
 using Luxel.UI;
 
 namespace Luxel.Terminal.UI.Tests;
@@ -33,31 +30,6 @@ public sealed class TerminalUiTests
     {
         Rune rune = text.EnumerateRunes().Single();
         Assert.Equal(expected, TerminalCellWidth.GetWidth(rune));
-    }
-
-    [Theory]
-    [InlineData("\uE0B0", true)]
-    [InlineData("\uE0B6", true)]
-    [InlineData("\uE0D4", true)]
-    [InlineData("\uE0A0", false)]
-    [InlineData("\uF000", false)]
-    [InlineData("A", false)]
-    public void GlyphWarpPolicy_OnlyMatchesCellJoiningPowerlineGlyphs(string text, bool expected)
-        => Assert.Equal(expected, TerminalGlyphWarpPolicy.IsPowerlineSeparator(text));
-
-    [Fact]
-    public void WarpedPowerlineGlyph_FillsRequestedRectangleFromActualOutlineBounds()
-    {
-        using VectorFont font = LoadPowerlineFont();
-        var scene = new Scene2D();
-        Assert.True(font.TryAppendSingleGlyphWarped(scene, "\uE0B0", 2, 3, 12, 20, 16, Color2D.White));
-
-        Vector2[] points = scene.ExportContours().SelectMany(static contour => contour).ToArray();
-        Assert.NotEmpty(points);
-        Assert.Equal(2, points.Min(static point => point.X), 3);
-        Assert.Equal(14, points.Max(static point => point.X), 3);
-        Assert.Equal(3, points.Min(static point => point.Y), 3);
-        Assert.Equal(23, points.Max(static point => point.Y), 3);
     }
 
     [Fact]
@@ -143,12 +115,6 @@ public sealed class TerminalUiTests
     {
         string path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../assets/fonts/BIZUDGothic-Regular.ttf"));
         return File.Exists(path) ? VectorFont.Load(path) : VectorFont.LoadSystem();
-    }
-
-    private static VectorFont LoadPowerlineFont()
-    {
-        string path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../assets/fonts/UDEVGothic-Regular.ttf"));
-        return File.Exists(path) ? VectorFont.Load(path) : throw new FileNotFoundException("Powerline test font was not found.", path);
     }
 
     private static TerminalSnapshot Snapshot(string[] history, string[] screen)

@@ -1,5 +1,4 @@
 using System.Numerics;
-using System.Text;
 using System.Runtime.CompilerServices;
 using Luxel.Graphics.TwoD;
 
@@ -40,41 +39,6 @@ public static class TypographyTwoDExtensions
             penY -= glyph.YAdvance;
         }
         return penX - x;
-    }
-
-    /// <summary>単一Runeの実グリフ輪郭を指定矩形へ非等方scale/translateして追加する。
-    /// Powerline separatorなど、セル境界へ隙間なく接続する記号向け。複数Rune、カラー/空輪郭はfalse。</summary>
-    public static bool TryAppendSingleGlyphWarped(
-        this VectorFont font,
-        Scene2D scene,
-        string text,
-        float targetX,
-        float targetY,
-        float targetWidth,
-        float targetHeight,
-        float pixelHeight,
-        uint color)
-    {
-        ArgumentNullException.ThrowIfNull(font);
-        ArgumentNullException.ThrowIfNull(scene);
-        if (targetWidth <= 0 || targetHeight <= 0 || pixelHeight <= 0) return false;
-
-        var runes = text.EnumerateRunes();
-        if (!runes.MoveNext()) return false;
-        Rune rune = runes.Current;
-        if (runes.MoveNext() || !font.TryGetGlyph(rune.Value, out uint glyphId)) return false;
-        if (font.TryGetColorLayers(glyphId, out _)) return false;
-        if (font.GetOutline(glyphId) is not VectorFont.GlyphOutline outline) return false;
-
-        Vector2[][] contours = GetGlyphContours(font, glyphId, outline, pixelHeight, scene.FlattenTolerance);
-        if (!TryBounds(contours, out Vector2 min, out Vector2 max)) return false;
-        float sourceWidth = max.X - min.X, sourceHeight = max.Y - min.Y;
-        if (sourceWidth <= float.Epsilon || sourceHeight <= float.Epsilon) return false;
-
-        float sx = targetWidth / sourceWidth, sy = targetHeight / sourceHeight;
-        var transform = new Matrix3x2(sx, 0, 0, sy, targetX - min.X * sx, targetY - min.Y * sy);
-        scene.BeginFill(color).AppendClosedContours(contours, transform).End();
-        return true;
     }
 
     /// <summary>レイアウト済みテキスト全体を1色で描く。(x,y)はレイアウトボックス左上。</summary>
@@ -136,41 +100,19 @@ public static class TypographyTwoDExtensions
             return;
         }
 
-        Vector2[][] contours = GetGlyphContours(font, glyphId, outline, pixelHeight, scene.FlattenTolerance);
-        if (contours.Length > 0)
-            scene.BeginFill(color, FillRule.NonZero, absolute).AppendClosedContours(contours, x, y).End();
-    }
-
-    private static Vector2[][] GetGlyphContours(
-        VectorFont font,
-        uint glyphId,
-        VectorFont.GlyphOutline outline,
-        float pixelHeight,
-        float tolerance)
-    {
-        var key = (glyphId, pixelHeight, tolerance);
+        var key = (glyphId, pixelHeight, scene.FlattenTolerance);
         Dictionary<(uint GlyphId, float PixelHeight, float Tolerance), Vector2[][]> cache =
             GlyphCaches.GetOrCreateValue(font).Contours;
-        if (cache.TryGetValue(key, out Vector2[][]? contours)) return contours;
-
-        var temporary = new Scene2D { FlattenTolerance = tolerance };
-        EmitGlyph(temporary, outline, 0, 0, font.Scale(pixelHeight), Color2D.White, absolute: false);
-        contours = temporary.ExportContours();
-        cache[key] = contours;
-        return contours;
-    }
-
-    private static bool TryBounds(Vector2[][] contours, out Vector2 min, out Vector2 max)
-    {
-        min = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
-        max = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
-        bool any = false;
-        foreach (Vector2[] contour in contours)
-        foreach (Vector2 point in contour)
+        if (!cache.TryGetValue(key, out Vector2[][]? contours))
         {
-            min = Vector2.Min(min, point); max = Vector2.Max(max, point); any = true;
+            var temporary = new Scene2D { FlattenTolerance = scene.FlattenTolerance };
+            EmitGlyph(temporary, outline, 0, 0, font.Scale(pixelHeight), color, absolute);
+            contours = temporary.ExportContours();
+            cache[key] = contours;
         }
-        return any;
+
+        if (contours.Length > 0)
+            scene.BeginFill(color, FillRule.NonZero, absolute).AppendClosedContours(contours, x, y).End();
     }
 
     private static void EmitGlyph(
