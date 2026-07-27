@@ -1,4 +1,4 @@
-﻿using Luxel.DevTools;
+using Luxel.DevTools;
 using Luxel.UI;
 
 namespace Luxel.Gallery;
@@ -38,20 +38,34 @@ public static class E2e
 
         var sw = new System.Diagnostics.Stopwatch();
         var c = new Counters();
-        int plays = 0, playFailed = 0, noPlay = 0, skipped = 0;
+        int plays = 0, playFailed = 0, storyFailed = 0, noPlay = 0, skipped = 0;
         double msBuild = 0, msPlay = 0;
 
         foreach (StoryInfo story in stories)
         {
             if (story.RealWindowOnly) { skipped++; continue; }
 
-            // play の有無はまず 1 回構築して調べる (構築は数十 ms — 全ストーリー許容)
+            // play の有無はまず 1 回構築して調べる。構築/Tick/描画の失敗は story 単位で
+            // 記録して次へ進み、1 ページの不具合で全 traversal を止めない。
+            IReadOnlyList<StoryPlay>? registered;
             sw.Restart();
-            host.SelectForE2e(story);
-            Warmup(host);
-            ResetPointer(host);
-            msBuild += sw.Elapsed.TotalMilliseconds;
-            IReadOnlyList<StoryPlay>? registered = host.Context?.Plays;
+            try
+            {
+                host.SelectForE2e(story);
+                Warmup(host);
+                ResetPointer(host);
+                registered = host.Context?.Plays;
+            }
+            catch (Exception error)
+            {
+                storyFailed++;
+                Console.Error.WriteLine($"  STORY ERROR {story.Path}: {error.GetType().Name}: {error.Message}");
+                continue;
+            }
+            finally
+            {
+                msBuild += sw.Elapsed.TotalMilliseconds;
+            }
             if (registered is null or { Count: 0 }) { noPlay++; continue; }
 
             for (int pi = 0; pi < registered.Count; pi++)
@@ -63,10 +77,22 @@ public static class E2e
                 if (pi > 0)   // play ごとに作り直し (独立実行)。最初の play は探索時の構築を使う
                 {
                     sw.Restart();
-                    host.SelectForE2e(story);
-                    Warmup(host);
-                    ResetPointer(host);
-                    msBuild += sw.Elapsed.TotalMilliseconds;
+                    try
+                    {
+                        host.SelectForE2e(story);
+                        Warmup(host);
+                        ResetPointer(host);
+                    }
+                    catch (Exception error)
+                    {
+                        storyFailed++;
+                        Console.Error.WriteLine($"  STORY ERROR {testId}: {error.GetType().Name}: {error.Message}");
+                        break;
+                    }
+                    finally
+                    {
+                        msBuild += sw.Elapsed.TotalMilliseconds;
+                    }
                 }
                 StoryPlay play = host.Context!.Plays[pi];
 
@@ -112,12 +138,12 @@ public static class E2e
         if (times)
             Console.WriteLine($"--times: 構築+warmup {msBuild:0}ms / play 実行 (撮影込み) {msPlay:0}ms");
 
-        string note = $" (play なし={noPlay}, 実窓専用 skip={skipped})";
+        string note = $" (story error={storyFailed}, play なし={noPlay}, 実窓専用 skip={skipped})";
         Console.WriteLine(update
             ? $"e2e: plays={plays} snaps={c.Snaps} 更新={c.Updated}{note}"
             : $"e2e: plays={plays} passed={plays - playFailed} failed={playFailed} " +
               $"(snap {c.Snaps} 枚中 diff {c.SnapFailed}){note}");
-        return update || (playFailed == 0) ? 0 : 1;
+        return update || (playFailed == 0 && storyFailed == 0) ? 0 : 1;
     }
 
     /// <summary>1 play を実行する (dotnet test アダプタ用 — 検証のみ、golden は更新しない)。

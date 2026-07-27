@@ -13,9 +13,17 @@ public sealed class LuxelAppTests
         var options = new LuxelAppOptions();
         LuxelApp.ValidateOptions(options);
         Assert.Equal("Luxel", options.Title);
+        Assert.Equal("app", options.UiName);
         Assert.True(options.Width > 0);
         Assert.True(options.Height > 0);
+        Assert.Equal(LuxelWindowBackend.Auto, options.WindowBackend);
+        Assert.Equal(LuxelGraphicsBackend.Auto, options.GraphicsBackend);
+        Assert.Equal(OperatingSystem.IsWindows() ? LuxelWindowBackend.Win32 : LuxelWindowBackend.SilkX11,
+            LuxelApp.ResolveWindowBackend(options.WindowBackend));
+        Assert.Equal(OperatingSystem.IsWindows() ? LuxelGraphicsBackend.Direct3D12 : LuxelGraphicsBackend.Vulkan,
+            LuxelApp.ResolveGraphicsBackend(options.GraphicsBackend));
         Assert.Null(options.RunFrames);
+        Assert.Null(options.RunDuration);
         Assert.True(options.EnableValidation);
     }
 
@@ -31,19 +39,31 @@ public sealed class LuxelAppTests
     }
 
     [Fact]
-    public void Assets_ContainExactlyRasterizerSpirvAndLicensedFont()
+    public void Options_RejectInvalidRunDurationAndUiName()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => LuxelApp.ValidateOptions(
+            new LuxelAppOptions { RunDuration = TimeSpan.Zero }));
+        Assert.Throws<ArgumentException>(() => LuxelApp.ValidateOptions(
+            new LuxelAppOptions { UiName = " " }));
+    }
+
+    [Fact]
+    public void Assets_ContainExactlyRasterizerShadersAndLicensedFont()
     {
         LuxelApp.ValidateAssets(AppContext.BaseDirectory, requireBundledFont: true);
 
         string shaderDirectory = Path.Combine(AppContext.BaseDirectory, "shaders");
-        string[] shaders = Directory.GetFiles(shaderDirectory, "*.spv")
+        string[] shaders = Directory.GetFiles(shaderDirectory, "raster2d_*.*")
             .Select(Path.GetFileName)
             .Order(StringComparer.Ordinal)
             .ToArray()!;
         Assert.Equal(
         [
+            "raster2d_bin.dxil",
             "raster2d_bin.spv",
+            "raster2d_bounds.dxil",
             "raster2d_bounds.spv",
+            "raster2d_fine.dxil",
             "raster2d_fine.spv",
         ], shaders);
         Assert.True(File.Exists(Path.Combine(AppContext.BaseDirectory, "assets", "fonts", "BIZUDGothic-Regular.ttf")));
@@ -67,6 +87,17 @@ public sealed class LuxelAppTests
         {
             Directory.Delete(empty, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Windows_backends_fail_clearly_outside_Windows()
+    {
+        if (OperatingSystem.IsWindows()) return;
+
+        Assert.Throws<PlatformNotSupportedException>(
+            () => Luxel.Platform.Windows.Win32WindowBackend.Create());
+        Assert.Throws<PlatformNotSupportedException>(
+            () => Luxel.Graphics.DirectX12.D3D12Backend.Create());
     }
 
     [Fact]

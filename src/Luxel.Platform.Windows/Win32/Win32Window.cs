@@ -292,8 +292,23 @@ public sealed class Win32WindowBackend : IWindowBackend
     private Win32WindowBackend() { }
 
     /// <summary>Creates the process-level Win32 clipboard backend.</summary>
-    public static IClipboardBackend CreateClipboardBackend() => new Win32ClipboardBackend();
-    public static Win32WindowBackend Create() => new();
+    public static IClipboardBackend CreateClipboardBackend()
+    {
+        EnsureWindows();
+        return new Win32ClipboardBackend();
+    }
+
+    public static Win32WindowBackend Create()
+    {
+        EnsureWindows();
+        return new Win32WindowBackend();
+    }
+
+    private static void EnsureWindows()
+    {
+        if (!OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException("Luxel.Platform.Windows is available only on Windows.");
+    }
 
     public string Name => "Win32";
 

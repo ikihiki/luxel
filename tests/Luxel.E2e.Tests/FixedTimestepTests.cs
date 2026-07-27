@@ -6,8 +6,8 @@ using Xunit;
 namespace Luxel.Gallery.E2eTests;
 
 /// <summary>FixedUpdate の蓄積器 (<see cref="FixedTimestep"/>) と描画補間 (<see cref="TransformInterpolationSystem"/>) の
-/// 決定的な単体テスト (GPU 不要)。<see cref="FixedTimestep"/> は Luxel.Framework (net10.0-windows) にあるため、
-/// windows ターゲットのこのテストプロジェクトに置く。</summary>
+/// 決定的な単体テスト (GPU 不要)。<see cref="FixedTimestep"/> は Luxel.Framework (net10.0) にあるため、
+/// Gallery E2Eと同じこのテストプロジェクトに置く。</summary>
 public class FixedTimestepTests
 {
     [Fact]

@@ -13,7 +13,7 @@ Luxel エンジンで作ったスタンドアロンの 2D 探索アクション�
   `CavernResources`/`EmbeddedResourceSource` (スキーム `res://`) 経由でロードする (single-file publish 対応)。
   GPU/実窓に非依存で**決定的** — Gallery の `Game/Cavern` ストーリーが play/golden を維持し、
   単体テスト (`tests/Luxel.Tests/CavernSimTests` 他) が守る。
-- **`LuxelCavern`** (net10.0-windows, WinExe): `CavernRealtimeScene : GameScene` を
+- **`LuxelCavern`** (net10.0, WinExe): `CavernRealtimeScene : GameScene` を
   `LuxelHostBuilder` + `GameLoop` で駆動し、`WindowSystem`/`GpuSurface` へ提示する薄い層。
 
 ## 実行

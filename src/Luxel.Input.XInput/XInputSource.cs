@@ -27,6 +27,7 @@ public sealed class XInputSource : IInputSource
 
     public void Poll(InputBus bus)
     {
+        if (!OperatingSystem.IsWindows()) return;
         if (XInputGetState(_userIndex, out XINPUT_STATE state) != 0)
         {
             // 切断: 前 tick で押されていたボタン/軸を全て 0 に戻す (KeyUp / Axis 0 で emit)

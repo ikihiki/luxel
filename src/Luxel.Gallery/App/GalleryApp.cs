@@ -26,6 +26,7 @@ public sealed class GalleryApp : IDisposable
     private const float SurfW = 2560, SurfH = 1440;
 
     private readonly SurfaceView _preview = SurfaceView(SurfW, SurfH);
+    private Exception? _pendingStoryError;
     // ストーリーへ StoryContext.Resources として配布 (キャッシュ共有、Pump は Update が叩く)
     private readonly Luxel.Resources.ResourceSystem _resources = new(
         sources: Luxel.Resources.ResourceSystemDefaults.BuiltinSources(assetRoot: Environment.CurrentDirectory),
@@ -66,7 +67,11 @@ public sealed class GalleryApp : IDisposable
     private readonly object _editGate = new();
     private readonly List<(Widget W, string Name, string Type, string Value)> _propEdits = new();
 
-    public GalleryApp() => WireStateForcing();   // Effect は生涯 1 組 (BuildRoot 毎に張ると累積する)
+    public GalleryApp()
+    {
+        _preview.ContentError = error => _pendingStoryError ??= error;
+        WireStateForcing();   // Effect は生涯 1 組 (BuildRoot 毎に張ると累積する)
+    }
 
 
     public StoryContext? Context => _ctx;
@@ -154,6 +159,11 @@ public sealed class GalleryApp : IDisposable
     public void Update()
     {
         _resources.Pump();
+        if (_pendingStoryError is { } storyError)
+        {
+            _pendingStoryError = null;
+            ShowStoryError(_currentStory?.Path ?? "(unknown)", storyError);
+        }
         // play のフレーム待ちを進める (SetResult の継続 = play 本体がこのスレッドで再開する)
         if (_playWait is { } pw && --_playFramesLeft <= 0)
         {
@@ -200,7 +210,7 @@ public sealed class GalleryApp : IDisposable
     }
 
     // ---- Workbench 化した chrome (ToDo 26 WS-D ドッグフード): レイアウトの真実 = DockTree。
-    //      サイドバー/プレビュー/下ペイン (Log/Knobs/Interactions/Console のタブ)/Props が
+    //      サイドバー/プレビュー/下ペイン (Log/Knobs/Interactions/Console/Source のタブ)/Props が
     //      「ドックされたパネル」になり、下ペインのタブは D&D で動かせる。単一タブのペインは
     //      タブ帯を隠して従来 chrome と同じ見え方 (golden 中立)。ペイン内容は SetRoot ごとに
     //      Build し直す Pane (CompositeControl) — 従来の「_dirty → 全再構築」の意味論を保つ。----
@@ -219,7 +229,7 @@ public sealed class GalleryApp : IDisposable
     private static readonly (string Id, string Title)[] PaneDefs =
     [
         ("stories", "Stories"), ("preview", "プレビュー"), ("log", "Log"), ("knobs", "Knobs"),
-        ("interactions", "Interactions"), ("console", "Console"), ("props", "Props"),
+        ("interactions", "Interactions"), ("console", "Console"), ("source", "Source"), ("props", "Props"),
     ];
 
     private void EnsureDock()
@@ -245,22 +255,23 @@ public sealed class GalleryApp : IDisposable
                 "knobs" => BuildKnobsPane,
                 "interactions" => BuildInteractionsPane,
                 "console" => BuildConsolePane,
+                "source" => BuildSourcePane,
                 "props" => BuildPropsPane,
                 _ => () => Spacer(),
             } });
     }
 
-    /// <summary>通常レイアウト: H[stories | V[preview | 下ペイン(4 タブ)] | props]。
+    /// <summary>通常レイアウト: H[stories | V[preview | 下ペイン(5 タブ)] | props]。
     /// 割合は現在のペイン寸法 px から。</summary>
     private DockTree NormalTree()
     {
-        DockTree t = DockTree.Single("preview", "stories", "props", "log", "knobs", "interactions", "console");
+        DockTree t = DockTree.Single("preview", "stories", "props", "log", "knobs", "interactions", "console", "source");
         int pg = t.GroupOf("preview")!.Id;
         t = t.Dock("stories", pg, DockSide.Left);
         t = t.Dock("props", pg, DockSide.Right);
         t = t.Dock("log", pg, DockSide.Bottom);
         int bottom = t.GroupOf("log")!.Id;
-        t = t.MoveTab("knobs", bottom).MoveTab("interactions", bottom).MoveTab("console", bottom);
+        t = t.MoveTab("knobs", bottom).MoveTab("interactions", bottom).MoveTab("console", bottom).MoveTab("source", bottom);
         t = t.ActivateTab("log");
         // サイズ: 外側 H (sidebar | main | props) と内側 V (preview | bottom)
         float availW = MathF.Max(1, _winW - 12 - Split.Thickness * 2);
@@ -485,6 +496,27 @@ public sealed class GalleryApp : IDisposable
             new Stories.ScriptGlobals(() => _ctx),
             initial: "");
         return _console;
+    }
+
+    private Widget BuildSourcePane()
+        => BuildStorySourcePane(_currentStory, MathF.Max(140, MainW()) - 32, BottomInnerH());
+
+    /// <summary>選択ストーリーの生成済み method source を読み取り専用コードビューとして構築する。</summary>
+    internal static Widget BuildStorySourcePane(StoryInfo? story, float width = 640f, float height = 240f)
+    {
+        if (string.IsNullOrWhiteSpace(story?.Source))
+            return Text("Source unavailable for this generated or manually registered story.", 12,
+                color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8));
+
+        TextEditorView editor = TextEditorView(new Signal<string>(story.Source),
+            editorHeight: MathF.Max(40, height), editorWidth: MathF.Max(80, width));
+        editor.ReadOnly = true;
+        editor.Fill = true;
+        editor.ShowLineNumbers = true;
+        editor.EditorFont = Stories.StoryKit.EditorFaces.Value.Mono;
+        editor.Providers.Add(new SyntaxHighlightProvider(
+            Luxel.Highlight.TextMateHighlighter.Instance, "csharp", () => UiTheme.T));
+        return editor;
     }
 
     private Widget BuildPropsPane()
@@ -752,15 +784,31 @@ public sealed class GalleryApp : IDisposable
         }
         catch (Exception e)
         {
-            Console.Error.WriteLine($"[gallery] story error '{story.Path}': {e}");   // スタック付き (診断用)
-            _storyRoot = Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))[
-                Text($"story error: {e.Message}", 14, color: Color2D.Rgba(220, 60, 60))];
-            _preview.SetContent(_storyRoot, pw, ph);
+            ShowStoryError(story.Path, e, pw, ph);
         }
         _logCount = -1;   // 新 StoryContext → Log リストを作り直させる
         _selected = null;     // Props 選択は旧ストーリーの widget なのでクリア
         _dirty = true;        // knobs/props パネルが変わるので chrome を再構築 (SurfaceView は再利用)
         _statesDirty = true;  // 強制中の状態を新ストーリーへ再適用
+    }
+
+    private void ShowStoryError(string path, Exception error, int? width = null, int? height = null)
+    {
+        Console.Error.WriteLine($"[gallery] story error '{path}': {error}");   // スタック付き (診断用)
+        _storyRoot = Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))[
+            VStack(spacing: 8)[
+                Text("Story error", 18, color: Color2D.Rgba(220, 60, 60)),
+                Text($"{error.GetType().Name}: {error.Message}", 14, color: Color2D.Rgba(220, 60, 60))
+            ]];
+        (int pw, int ph) = width.HasValue && height.HasValue
+            ? (width.Value, height.Value)
+            : _currentStory is { } story ? PreviewSize(story) : ((int)PreviewW, (int)PreviewH);
+        try { _preview.SetContent(_storyRoot, pw, ph); }
+        catch (Exception fallbackError)
+        {
+            Console.Error.WriteLine($"[gallery] failed to install error view for '{path}': {fallbackError}");
+        }
+        _dirty = true;
     }
 
     public void SelectByPath(string path)

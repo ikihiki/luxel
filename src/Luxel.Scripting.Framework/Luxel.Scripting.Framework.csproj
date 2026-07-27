@@ -2,13 +2,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Scripting\Luxel.Scripting.csproj" />
-    <!-- Luxel.Ecs (net10.0) のみ参照。Luxel.Framework は net10.0-windows なので参照せず、
+    <!-- Luxel.Ecs (net10.0) のみ参照。Luxel.Framework は net10.0 なので参照せず、
          フェーズ名は文字列定数で持つ (Framework.Phase の Name と一致させる)。 -->
     <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>

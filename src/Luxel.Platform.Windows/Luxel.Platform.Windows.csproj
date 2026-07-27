@@ -9,9 +9,11 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFramework>net10.0-windows</TargetFramework>
+
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- This assembly is intentionally Windows-only at runtime while sharing the repository-wide net10.0 TFM. -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 

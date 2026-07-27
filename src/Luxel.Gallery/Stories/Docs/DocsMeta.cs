@@ -65,7 +65,7 @@ public static class DocsMeta
 
             {{{StoryRef(ctx, "Demos/2D/Orbit", knobs: true)}}}
 
-            `StorySource(path)` はジェネレーターが公開する **[Story] method本体**をコードフェンスとして差し込みます。private helper、別file、shaderまでは含まれないため「完全なsource」とは呼びません。実行可能sampleを教材の正にする場合は、build時に埋め込んだ実file/regionを表示する`SampleSource(path, region)`を使います。コントロール個別ページでは `DocsApi.ControlApiReference("Button")` で API リファレンス表が出ます (実例は [Controls/Button/Overview](story:Controls/Button/Overview))。
+            `StorySource(path)` はジェネレーターが公開する **完全な `[Story]` method宣言** (属性・signature・本体) をコードフェンスとして差し込みます。同じコードは通常storyでも下部の **Source** タブから確認でき、静的Galleryでは折りたたみSourceとして表示されます。private helper、別file、shaderまでは含まれません。実行可能sampleを教材の正にする場合は、build時に埋め込んだ実file/regionを表示する`SampleSource(path, region)`を使います。コントロール個別ページでは `DocsApi.ControlApiReference("Button")` で API リファレンス表が出ます (実例は [Controls/Button/Overview](story:Controls/Button/Overview))。
 
             ## 書けるもの
 
@@ -143,7 +143,11 @@ public static class DocsMeta
 
         - パスは**スラッシュ区切りの階層** (本家 Storybook の title 相当、深さ任意) — `"章/コンポーネント/ストーリー名"`。サイドバーはこれをそのまま木にします (章: Docs / Reference / Controls / Demos / Apps / RealWindow)。`Width`/`Height` (既定 480×320 — **両方省略するとプレビュー領域いっぱい (fill)**。docs ページはこれで、全画面モードではメイン全面に、snap では 800×480 固定で描かれます)、`Theme` ("light"/"dark")、`Order` (並び順 — Docs 0〜 / デモ 100〜 / コントロール既定 1000 / 機能デモ 2000〜)
         - 署名は `static Widget M()` か `static Widget M(StoryContext ctx)`
-        - 収集は**ソースジェネレーター** (reflection なし) — `[Story]` を走査して module initializer で `StoryRegistry.Register` を焼き込み、**メソッドの C# ソース**も `StoryInfo.Source` に保存します (docs の `StorySource` はこれ)
+        - 収集は**ソースジェネレーター** (reflection なし) — `[Story]` を走査して module initializer で `StoryRegistry.Register` を焼き込み、**完全なmethod宣言の C# ソース**も `StoryInfo.Source` に保存します
+
+        ## Sourceビュー
+
+        通常のstoryは下部Dockの **Source** タブで、属性・signature・本体を含む `[Story]` method宣言を読み取り専用・行番号・C#ハイライト付きで確認できます。静的Galleryでは各story末尾の折りたたみ **Story source** に同じ内容が入ります。private helper、別file、shaderは含まれないため、完全な実file/regionを教材にするときは `SampleSource(path, region)` を使います。Reference/Overviewなどproviderが実行時登録するstoryには対応するmethodがなく、Source unavailableになる場合があります。
 
         ## StoryContext — ホスト設備の窓口
 

@@ -4,7 +4,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>14</LangVersion>
@@ -25,7 +25,9 @@
     <ProjectReference Include="..\Luxel.Platform\Luxel.Platform.csproj" />
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel.Platform.Silk\Luxel.Platform.Silk.csproj" />
+    <ProjectReference Include="..\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.Typography\Luxel.Typography.csproj" />
     <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
@@ -38,6 +40,12 @@
     <Content Include="..\..\shaders\compiled\raster2d_bin.spv" Link="shaders\raster2d_bin.spv" Pack="false"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\shaders\compiled\raster2d_fine.spv" Link="shaders\raster2d_fine.spv" Pack="false"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\shaders\compiled\raster2d_bounds.dxil" Link="shaders\raster2d_bounds.dxil" Pack="false"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\shaders\compiled\raster2d_bin.dxil" Link="shaders\raster2d_bin.dxil" Pack="false"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\shaders\compiled\raster2d_fine.dxil" Link="shaders\raster2d_fine.dxil" Pack="false"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\assets\fonts\BIZUDGothic-Regular.ttf" Link="assets\fonts\BIZUDGothic-Regular.ttf" Pack="false"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
@@ -52,7 +60,7 @@
     <PackageReference Include="Silk.NET.Vulkan.Extensions.EXT" Version="2.23.0" />
     <PackageReference Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.23.0" />
     <PackageReference Include="HarfBuzzSharp" Version="14.2.0" />
-    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.0" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.0" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
   </ItemGroup>
 
   <Target Name="ValidateLuxelUiAppShaderCache" BeforeTargets="BeforeBuild">

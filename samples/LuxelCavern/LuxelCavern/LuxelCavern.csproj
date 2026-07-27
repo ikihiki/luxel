@@ -14,7 +14,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+
     <AssemblyName>LuxelCavern</AssemblyName>
   </PropertyGroup>
 

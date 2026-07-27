@@ -7,10 +7,14 @@ public sealed class LuxelUiApplication
 {
     private readonly Dictionary<string, ScreenRoute> _routes = new(StringComparer.Ordinal);
     private readonly LuxelAppOptions _options;
+    private readonly LuxelAppLifecycle _lifecycle;
     private bool _running;
 
-    internal LuxelUiApplication(LuxelAppOptions options)
-        => _options = options ?? throw new ArgumentNullException(nameof(options));
+    internal LuxelUiApplication(LuxelAppOptions options, LuxelAppLifecycle lifecycle)
+    {
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _lifecycle = lifecycle ?? throw new ArgumentNullException(nameof(lifecycle));
+    }
 
     /// <summary>Registers a screen that does not require navigation state.</summary>
     public LuxelUiApplication MapScreen(string path, Func<Widget> handler)
@@ -64,6 +68,6 @@ public sealed class LuxelUiApplication
     {
         if (_running) throw new InvalidOperationException("A Luxel UI application can only be run once.");
         _running = true;
-        LuxelApp.Run(() => CreateRoot(initialPath, shellFactory), _options);
+        LuxelApp.Run(() => CreateRoot(initialPath, shellFactory), _options, _lifecycle);
     }
 }

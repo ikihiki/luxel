@@ -10,6 +10,9 @@ namespace Luxel.UI.App;
 /// TSF (実 IME): スレッド共有の <see cref="TsfThread"/> + この窓の <see cref="TsfDocument"/> を持ち、
 /// WM_SETFOCUS で IME フォーカス文書を切り替える。初期化失敗時は WM_CHAR フォールバック。
 /// </summary>
+internal sealed record WindowRemoteInfo(
+    string Title, int X, int Y, int Width, int Height, float Scale, bool Visible, bool Focused);
+
 public sealed class WindowHost : IDisposable
 {
     private readonly GpuDevice _device;
@@ -41,6 +44,8 @@ public sealed class WindowHost : IDisposable
     /// (present は vsync でブロックするため、描画した周回はスリープ不要)。</summary>
     public bool RenderedThisFrame { get; private set; }
 
+    internal WindowRemoteInfo RemoteInfo { get; private set; }
+
     public int Id { get; }
     public Window Window { get; }
     public IWindowContent Content { get; }
@@ -58,6 +63,7 @@ public sealed class WindowHost : IDisposable
         Content = content;
         _w = Math.Max(1, window.Width); _h = Math.Max(1, window.Height);
         Content.Resize(_w / S, _h / S, S);   // content の論理サイズを実クライアント (物理/scale) に同期
+        RemoteInfo = CaptureRemoteInfo();
         Alloc();
         _surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
         _textInput = window.CreateTextInputContext(() => Content.ImeTarget, () => S)
@@ -108,6 +114,7 @@ public sealed class WindowHost : IDisposable
     {
         RenderedThisFrame = false;
         if (Window.IsClosed) return;
+        RemoteInfo = CaptureRemoteInfo();
         if (_resizePending)
         {
             _device.MainQueue.WaitIdle();
@@ -170,6 +177,10 @@ public sealed class WindowHost : IDisposable
         _rendered = true;
         _fbDirtySinceCapture = true;
     }
+
+    private WindowRemoteInfo CaptureRemoteInfo()
+        => new(Window.Title, Window.X, Window.Y, Window.Width, Window.Height,
+            Window.Scale, Window.IsVisible, Window.IsFocused);
 
     /// <summary>framebuffer を READBACK staging へ GPU コピーし、キャッシュ可能メモリから tight RGBA へ
     /// 詰め替えて FNV ハッシュで rev を進める。**WC メモリ (_fb) は CPU で読まない** — 直接読みは

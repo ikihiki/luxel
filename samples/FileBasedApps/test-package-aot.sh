@@ -34,7 +34,9 @@ set -e
 [[ $status -eq 0 ]] || exit "$status"
 
 # Silk.NET 2.23 emits known loader/platform-discovery warnings but the explicit GLFW path is runtime-smoked below.
-unexpected="$(grep -E 'IL[0-9]{4}' "$LOG" | grep -Ev 'Silk\.NET\.(Windowing\.Window\.TryAdd|Core\.Loader\.DefaultPathResolver)|Microsoft\.Extensions\.DependencyModel\.DependencyContext' || true)"
+# The cross-platform facade also carries the Windows backend. Native AOT analyzes its generated COM P/Invoke even
+# though OperatingSystem.IsWindows() makes that path unreachable in this linux-x64 fixture.
+unexpected="$(grep -E 'IL[0-9]{4}' "$LOG" | grep -Ev 'Silk\.NET\.(Windowing\.Window\.TryAdd|Core\.Loader\.DefaultPathResolver)|Microsoft\.Extensions\.DependencyModel\.DependencyContext|Windows\.Win32\.PInvoke\.CoCreateInstance' || true)"
 if [[ -n "$unexpected" ]]; then
   echo "unexpected Native AOT warning(s):" >&2
   echo "$unexpected" >&2

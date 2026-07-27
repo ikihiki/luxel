@@ -29,6 +29,8 @@ public sealed class DevToolsApp : IDisposable
     public static DevToolsApp Launch(Func<GpuDevice> createDevice, DevToolsListener listener,
                                      EngineCommands commands, int e2ePort = 0)
     {
+        if (!OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException("The native DevTools window currently requires Windows.");
         var app = new DevToolsApp();
         var thread = new Thread(() => app.Run(createDevice, listener, commands, e2ePort))
         {

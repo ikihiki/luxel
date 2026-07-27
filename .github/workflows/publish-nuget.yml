@@ -1,6 +1,8 @@
 name: Publish NuGet package
 
 on:
+  push:
+    branches: [main]
   release:
     types: [published]
   workflow_dispatch:
@@ -34,15 +36,22 @@ jobs:
         id: package
         shell: bash
         env:
+          EVENT_NAME: ${{ github.event_name }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
           MANUAL_VERSION: ${{ inputs.version }}
         run: |
-          version="${MANUAL_VERSION:-${RELEASE_TAG#v}}"
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            base_version="$(sed -n 's:.*<Version>\([^<]*\)</Version>.*:\1:p' src/Luxel.UI.App/Luxel.UI.App.csproj | head -n 1)"
+            version="${base_version}-ci.${GITHUB_RUN_NUMBER}"
+          else
+            version="${MANUAL_VERSION:-${RELEASE_TAG#v}}"
+          fi
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
             echo "Invalid NuGet package version: $version" >&2
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Publishing Luxel.UI.App $version" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Restore
         run: dotnet restore src/Luxel.UI.App/Luxel.UI.App.csproj
@@ -55,6 +64,31 @@ jobs:
           --output artifacts/packages
           -p:Version=${{ steps.package.outputs.version }}
           -p:ContinuousIntegrationBuild=true
+
+      - name: Verify package from a clean consumer project
+        shell: bash
+        run: |
+          consumer="$(mktemp -d)"
+          dotnet new console --framework net10.0 --output "$consumer" --no-restore
+          dotnet add "$consumer" package Luxel.UI.App --version "${{ steps.package.outputs.version }}" --no-restore
+          cat > "$consumer/Program.cs" <<'EOF'
+          using Luxel.UI;
+          using Luxel.UI.App;
+          using static Luxel.Controls.Kit;
+
+          Widget root = Heading("Hello from GitHub Packages");
+          var builder = LuxelApp.CreateBuilder([]);
+          var app = builder.Build();
+          app.MapScreen("/", _ => root);
+          Console.WriteLine(builder.Options.Title);
+          EOF
+          dotnet restore "$consumer" \
+            --source "$GITHUB_WORKSPACE/artifacts/packages" \
+            --source "https://api.nuget.org/v3/index.json"
+          dotnet build "$consumer" --configuration Release --no-restore
+          test -f "$consumer/bin/Release/net10.0/shaders/raster2d_fine.spv"
+          test -f "$consumer/bin/Release/net10.0/shaders/raster2d_fine.dxil"
+          test -f "$consumer/bin/Release/net10.0/assets/fonts/BIZUDGothic-Regular.ttf"
 
       - name: Publish to GitHub Packages
         run: >-

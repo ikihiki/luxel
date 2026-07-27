@@ -32,6 +32,12 @@ for (int i = 0; i < args.Length; i++)
     // DevTools 系フラグ (--devtools[ port] / --devtools-native) は DevToolsOptions.Parse が解釈する。
 }
 
+if (!OperatingSystem.IsWindows())
+{
+    Console.Error.WriteLine("The LuxelCavern native sample currently requires Windows.");
+    return 3;
+}
+
 int exit = 1;
 var thread = new Thread(() => exit = Run(backend, frames, args)) { Name = "LuxelCavern-Main" };
 thread.SetApartmentState(ApartmentState.STA);

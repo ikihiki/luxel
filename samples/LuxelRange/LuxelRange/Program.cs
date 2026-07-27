@@ -27,6 +27,12 @@ for (int i = 0; i < args.Length; i++)
     else if (a == "--frames" && i + 1 < args.Length && int.TryParse(args[i + 1], out int n)) { frames = Math.Max(1, n); i++; }
 }
 
+if (!OperatingSystem.IsWindows())
+{
+    Console.Error.WriteLine("The LuxelRange native sample currently requires Windows.");
+    return 3;
+}
+
 int exit = 1;
 var thread = new Thread(() => exit = Run(backend, frames)) { Name = "LuxelRange-Main" };
 thread.SetApartmentState(ApartmentState.STA);

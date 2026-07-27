@@ -19,6 +19,17 @@ public sealed class NavigationTests
     }
 
     [Fact]
+    public void Builder_RegistersRuntimeLifecycleHooks()
+    {
+        LuxelAppBuilder builder = LuxelApp.CreateBuilder()
+            .ConfigureRuntime(_ => { })
+            .OnStarted(_ => { })
+            .OnFrame((_, _) => { });
+
+        Assert.IsType<LuxelUiApplication>(builder.Build());
+    }
+
+    [Fact]
     public void MapScreen_NormalizesAndRejectsDuplicates()
     {
         LuxelUiApplication app = LuxelApp.CreateBuilder().Build();

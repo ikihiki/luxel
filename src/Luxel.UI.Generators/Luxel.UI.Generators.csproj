@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Roslyn ソースジェネレーター (コンパイラ内で動くため netstandard2.0 / AnyCPU 必須) -->
+    <!-- Roslyn source generators target netstandard2.0 for broad compiler-host compatibility. -->
     <TargetFramework>netstandard2.0</TargetFramework>
     <Platforms>AnyCPU;x64</Platforms>
     <PlatformTarget>AnyCPU</PlatformTarget>
