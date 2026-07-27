@@ -1,43 +1,60 @@
-name: Deploy Gallery Pages
+name: Preview Gallery Pages
 
 on:
-  workflow_dispatch:
-  push:
-    branches: [main]
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: gallery-pages-branch
   cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  preview:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-dotnet@v4
+        if: github.event.action != 'closed'
         with:
           dotnet-version: 10.0.x
+
       - name: Install and select lavapipe
+        if: github.event.action != 'closed'
         run: |
           sudo apt-get update
           sudo apt-get install -y libvulkan1 mesa-vulkan-drivers vulkan-tools
           echo "VK_ICD_FILENAMES=$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)" >> "$GITHUB_ENV"
           echo "LIBGL_ALWAYS_SOFTWARE=true" >> "$GITHUB_ENV"
+
       - name: Restore
+        if: github.event.action != 'closed'
         run: dotnet restore Luxel.slnx
+
       - name: Build solution and rendering samples
+        if: github.event.action != 'closed'
         run: dotnet build Luxel.slnx --no-restore --configuration Release
+
       - name: Test exporter and documentation contracts
+        if: github.event.action != 'closed'
         run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
+
       - name: Export static Gallery
+        if: github.event.action != 'closed'
         run: dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --configuration Release -- artifacts/gallery-site
-      - name: Deploy production Gallery
-        uses: JamesIves/github-pages-deploy-action@v4.8.0
+
+      - name: Deploy PR preview
+        uses: rossjrw/pr-preview-action@v1.8.1
         with:
-          branch: gh-pages
-          folder: artifacts/gallery-site
-          clean-exclude: pr-preview
-          force: false
+          source-dir: artifacts/gallery-site
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview
+          action: auto
+          wait-for-pages-deployment: true
+          comment: true
+          qr-code: false

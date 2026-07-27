@@ -84,7 +84,7 @@ public static partial class DocsGpu
         - **direct-ref モデル** — index ベースの DOM ではなく `AssetMeshRef.Mesh` のような直接参照で ECS から引きます (中間テーブル無し)
         - サンプルモデルはリポジトリの `tools/khronos-samples/` (Khronos 公式 glTF テストスイート) にあります
 
-        型 API の一覧は [Reference/ThreeD](story:Reference/ThreeD) へ。
+        型 API は [Luxel.Assets](story:Reference/Luxel.Assets) / [Luxel.AssetsGpu](story:Reference/Luxel.AssetsGpu) / [Luxel.AssetRuntime](story:Reference/Luxel.AssetRuntime) / [Luxel.Gltf](story:Reference/Luxel.Gltf) へ。
         """, toc: true);
 
     [Story("Docs/Ecs", Order = 15)]
@@ -142,7 +142,7 @@ public static partial class DocsGpu
         - **UI には ECS を使いません** — UI は signals + 保持型ツリー ([Docs/UI](story:Docs/UI))。3D 側だけ ECS です (理由は [Docs/ThreeD](story:Docs/ThreeD) の設計ノート)
         - ラッパを薄く保つのは、Friflo の archetype API (`ArchetypeQuery` / `ForEachEntity`) がそのまま最速経路だからです。Luxel が足すのは Phase 規約・DelegateSystem・Signal ブリッジ・perf 収集だけ
 
-        物理 (剛体/衝突) を entity に付けるには [Docs/Physics](story:Docs/Physics) へ。型 API の一覧は [Reference/ThreeD](story:Reference/ThreeD) へ。
+        物理 (剛体/衝突) を entity に付けるには [Docs/Physics](story:Docs/Physics) へ。型 API は [Luxel.Ecs](story:Reference/Luxel.Ecs) / [Luxel.Ecs.Signal](story:Reference/Luxel.Ecs.Signal) へ。
         """, toc: true);
 
     [Story("Docs/Physics", Order = 16)]
@@ -302,6 +302,6 @@ public static partial class DocsGpu
 
         `ThreadCount > 0` は浮動小数の加算順がスレッドスケジューリングで変わり、実行ごとに結果が揺れます (Bepu 2.4 の仕様)。だから既定は単スレッド = 決定的で、マルチスレッドは速度と引き換えの opt-in。Bepu 2.5 系は決定性オプションが改善されているため、バージョン更新時に「固定スレッド数なら決定的」へ緩められる可能性があります。
 
-        型 API の一覧は [Reference/ThreeD](story:Reference/ThreeD) へ。
+        型 API は [Luxel.Physics](story:Reference/Luxel.Physics) へ。
         """, toc: true);
 }

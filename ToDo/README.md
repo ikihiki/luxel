@@ -45,7 +45,7 @@ dotnet run --project src/Luxel.Gallery -- vk e2e --update "部分一致フィル
 
 - instance ctor は書かない (ジェネレーターが生成、自前 ctor は NGUI002)。パラメータは `[UiParam] private readonly Bindable<T> _x = 既定値;` をクラス先頭にファクトリ引数順で宣言。読みは `X.Get()`。
 - live データは `Bindable<Signal<T>>`。イベントは `[UiEvent]` public フィールド。
-- 新しい [UiComponent] を足すと Reference/Overview の自動生成 API ページの golden が変わる → e2e --update 対象に含める。
+- 新しい [UiComponent] を足すと `Controls/<コントロール>/Overview` の自動生成 API ページが増える。新規 story の e2e/golden 対象を確認する。
 
 ### ドキュメント規約
 
