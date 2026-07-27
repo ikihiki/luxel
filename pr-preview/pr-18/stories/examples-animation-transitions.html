@@ -1,0 +1,17 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/Animation/Transitions</h1></header><figure class="static-capture"><img src="images/examples-animation-transitions.png" alt="Examples/Animation/Transitions" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/Animation/Transitions&quot;, Height = 200)]
+public static Widget TransitionStates(StoryContext ctx) =&gt; ctx.Snap(Frame(
+    // 状態レイヤは生成された When (引数はファクトリと同名 — Stateable のみ)、
+    // トランジションは fluent Transition 系で「どのプロパティ群を」独立に宣言する (GN):
+    //   Background は 400ms 既定 / hover へは 80ms で入り / 押下・解放 (pressed→hover) は即時。
+    //   Scale は無指定 = 瞬時。
+    Button(_ =&gt; ctx.Log(&quot;click&quot;), &quot;Hover / Press&quot;,
+            background: Tw.Blue500, foreground: Tw.White, rounded: 10, width: 200, height: 64)
+        // transform 成分 (TF): squash &amp; stretch — X と Y で別カーブ/別 duration
+        .When(WidgetState.Hover, background: Tw.Red500, scaleX: 1.12f, scaleY: 0.94f, rotate: 0.03f)
+        .When(WidgetState.Pressed, background: Tw.Green500)
+        .Transition(0.4f, CubicBezierCurve.EaseInOut, ButtonProps.Background)
+        .Transition(0.12f, Transform.ScaleX)
+        .Transition(0.30f, CubicBezierCurve.EaseInOut, Transform.ScaleY)
+        .TransitionTo(WidgetState.Hover, 0.08f, ButtonProps.Background)
+        .TransitionTo(WidgetState.Pressed, 0f)
+        .TransitionBetween(WidgetState.Pressed, WidgetState.Hover, 0f)));</code></pre></details></article>

@@ -1,0 +1,58 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Rendering/TwoD/Backends</h1></header><h1 id="gpu-skia-backend">GPU と Skia backend</h1>
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Gallery / Standalone / Headless　 <strong>Backend:</strong> Vulkan / DirectX 12 / Skia CPU　 <strong>前提知識:</strong> Camera2D</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FRendering%2FTwoD%2FCamera">Camera</a>　 <strong>次:</strong> <a href="#story=Learn%2FRendering%2FTwoD%2FRetainedCanvas">RetainedCanvas</a></p>
+<p>アプリは <code>IRasterizer2D</code> に依存し、backend 固有機能は <code>Rasterizer2DCapabilities</code> で確認します。GPU は compute rasterizer、headless test は Skia CPU を選べます。</p>
+<pre><code class="language-csharp">namespace Luxel.Graphics.TwoD;
+
+/// &lt;summary&gt;2Dラスタライザが提供する機能。&lt;/summary&gt;
+[Flags]
+public enum Rasterizer2DCapabilities
+{
+    None = 0,
+    GpuCommandRecording = 1 &lt;&lt; 0,
+    CpuRgbaTarget = 1 &lt;&lt; 1,
+    BindlessImages = 1 &lt;&lt; 2,
+    RetainedIncrementalUpdates = 1 &lt;&lt; 3,
+}
+
+/// &lt;summary&gt;
+/// バックエンド非依存の2Dラスタライザ。作成したsessionはrasterizerより先に破棄し、
+/// rasterizer/sessionは同時に複数スレッドから使用しない。
+/// &lt;/summary&gt;
+public interface IRasterizer2D : IDisposable
+{
+    string Name { get; }
+    Rasterizer2DCapabilities Capabilities { get; }
+    IRasterScene2D CreateScene(Scene2D scene);
+    IRasterScene2D CreateScene(RetainedCanvas canvas);
+}
+
+/// &lt;summary&gt;ラスタライザが所有するエンコード済みシーン/session。&lt;/summary&gt;
+public interface IRasterScene2D : IDisposable
+{
+    IRasterizer2D Rasterizer { get; }
+    void Render(Camera2D camera, IRasterTarget2D target, bool transparent = false);
+}
+
+/// &lt;summary&gt;ラスタライザ固有の出力先を表す共通契約。&lt;/summary&gt;
+public interface IRasterTarget2D
+{
+    uint Width { get; }
+    uint Height { get; }
+}
+
+internal interface IRetainedCanvasSink
+{
+    void FullSync(RetainedCanvas canvas);
+    void WriteTransform(int index, GpuTransform value);
+    void WriteStyle(int index, GpuStyle value);
+    void WriteClip(int index, GpuClip value);
+    void WriteSegment(int index, GpuSegment value);
+    void WritePath(int index, GpuPath value);
+    void WriteOrder(uint[] order);
+}
+</code></pre>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Rendering/TwoD/Backends&quot;, Order = 5)]
+public static Widget Backends(StoryContext ctx) =&gt; Page(ctx, &quot;Learn/Rendering/TwoD/Backends&quot;, &quot;GPU と Skia backend&quot;, &quot;Camera2D&quot;,
+    &quot;アプリは `IRasterizer2D` に依存し、backend 固有機能は `Rasterizer2DCapabilities` で確認します。GPU は compute rasterizer、headless test は Skia CPU を選べます。&quot;,
+    &quot;src/Luxel.Graphics.TwoD/IRasterizer2D.cs&quot;, &quot;Learn/Rendering/TwoD/Camera&quot;, &quot;Learn/Rendering/TwoD/RetainedCanvas&quot;);</code></pre></details></article>

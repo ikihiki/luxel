@@ -1,0 +1,8 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Luxel.Typography.TwoD</h1></header><h1 id="luxel.typography.twod">Luxel.Typography.TwoD</h1>
+<ul>
+<li><a href="#story=Reference%2FLuxel.Typography.TwoD&amp;section=typographytwodextensions">TypographyTwoDExtensions</a></li>
+</ul>
+<p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
+<h2 id="typographytwodextensions">TypographyTwoDExtensions</h2>
+<section class="api-reference"><p class="api-summary">class — Typographyのシェーピング／レイアウト結果をScene2Dへ出力するアダプタ。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>AppendText</code></th><td><code>(VectorFont font, Scene2D scene, string text, float x, float y, float pixelHeight, uint color) → float</code></td><td>テキストを塗りグリフパスとしてsceneへ追加する。baseline=(x,y)。</td></tr><tr><th scope="row"><code>Draw</code></th><td><code>(TextLayout layout, Scene2D scene, float x, float y, uint color) → void</code></td><td>レイアウト済みテキスト全体を1色で描く。(x,y)はレイアウトボックス左上。</td></tr><tr><th scope="row"><code>DrawColorRuns</code></th><td><code>(TextLayout layout, Scene2D scene, float x, float y, uint runColor) → void</code></td><td>指定色のrunだけを白で描く。保持型UIの色別ノード分割で使用する。</td></tr></tbody></table></div></section>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p></article>

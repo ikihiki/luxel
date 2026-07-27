@@ -1,0 +1,33 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/3D/PhysicsGizmos</h1></header><figure class="static-capture"><img src="images/examples-3d-physicsgizmos.png" alt="Examples/3D/PhysicsGizmos" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/3D/PhysicsGizmos&quot;, Height = 340, Order = 129)]
+public static Widget PhysicsGizmosDemo(StoryContext ctx) =&gt; ctx.Snap(Frame(Canvas2D(W, H, draw: s =&gt;
+{
+    s.FillRect(Color2D.Rgba(20, 24, 30), 0, 0, W, H);
+
+    using var world = new Luxel.Ecs.World();
+    // 床 (静的)
+    world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, -0.5f, 0)),
+        Collider.Box(6, 1, 6), new StaticBody());
+    // 動的な箱 (通常)
+    world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(-1.4f, 0.6f, 0.8f)),
+        Collider.Box(1.2f, 1.2f, 1.2f), RigidBody.Dynamic());
+    // 動的な箱 (回転) — OBB ワイヤが姿勢に追従することを見せる
+    world.CreateEntity(new LocalTransform(
+            Matrix4x4.CreateFromYawPitchRoll(0.6f, 0.3f, 0.2f) * Matrix4x4.CreateTranslation(0.2f, 1.5f, -0.6f)),
+        Collider.Box(1f, 1f, 1f), RigidBody.Dynamic());
+    // CCD 有効の弾 (球 → 外接ボックス、赤で色分け)
+    world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(1.7f, 0.5f, 1.2f)),
+        Collider.Sphere(0.5f), RigidBody.Dynamic(ccd: true));
+
+    DebugDraw.Reset();
+    DebugDraw.Enable(PhysicsGizmos.Colliders);
+    PhysicsGizmos.DrawColliders(world,
+        dynamicColor: Color2D.Rgba(110, 220, 130),   // 動的 = 緑
+        staticColor: Color2D.Rgba(150, 156, 170),    // 静的 = 灰
+        ccdColor: Color2D.Rgba(240, 96, 96),         // CCD = 赤
+        triggerColor: Color2D.Rgba(90, 200, 240),    // トリガー = シアン (この絵には無し)
+        width: 1.6f);
+
+    Font.Value.AppendText(s, &quot;physics colliders  —  dynamic / static / CCD&quot;, 16, 20, 15, Color2D.Rgba(210, 214, 222));
+
+    DebugDraw.Flush(s, Iso, (sc, t, x, y, h, c) =&gt; Font.Value.AppendText(sc, t, x, y, h, c));
+})));</code></pre></details></article>
