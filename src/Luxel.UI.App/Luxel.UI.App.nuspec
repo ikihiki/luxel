@@ -27,6 +27,7 @@
   <files>
     <file src="README.md" target="" />
     <file src="bin\$configuration$\net10.0\Luxel*.dll" target="lib\net10.0" />
+    <file src="..\Luxel.Terminal.Linux\bin\$configuration$\net10.0\libluxelpty.so" target="runtimes\linux-x64\native" />
     <file src="..\Luxel.UI.Generators\bin\$configuration$\netstandard2.0\Luxel.UI.Generators.dll" target="analyzers\dotnet\cs" />
     <file src="buildTransitive\Luxel.UI.App.targets" target="buildTransitive" />
     <file src="..\..\shaders\compiled\raster2d_*.spv" target="contentFiles\any\any\shaders" />

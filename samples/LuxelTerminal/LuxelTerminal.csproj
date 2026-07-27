@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>LuxelTerminal</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <DefineConstants>$(DefineConstants);LUXEL_WINDOWS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Luxel.UI.App\Luxel.UI.App.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Terminal\Luxel.Terminal.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Terminal.UI\Luxel.Terminal.UI.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <ProjectReference Include="..\..\src\Luxel.Terminal.Windows\Luxel.Terminal.Windows.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <ProjectReference Include="..\..\src\Luxel.Terminal.Linux\Luxel.Terminal.Linux.csproj" />
+  </ItemGroup>
+</Project>

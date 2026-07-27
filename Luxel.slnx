@@ -70,6 +70,7 @@
     <Project Path="samples/LuxelCavern/LuxelCavern.Core/LuxelCavern.Core.csproj" />
     <Project Path="samples/LuxelCavern/LuxelCavern/LuxelCavern.csproj" />
     <Project Path="samples/LuxelRange/LuxelRange.Core/LuxelRange.Core.csproj" />
+    <Project Path="samples/LuxelTerminal/LuxelTerminal.csproj" />
     <Project Path="samples/LuxelTriangle/LuxelTriangle.csproj" />
     <Project Path="samples/LuxelRange/LuxelRange/LuxelRange.csproj" />
   </Folder>

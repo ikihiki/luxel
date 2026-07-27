@@ -31,6 +31,10 @@
     <ProjectReference Include="..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.Typography\Luxel.Typography.csproj" />
     <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\Luxel.Terminal\Luxel.Terminal.csproj" />
+    <ProjectReference Include="..\Luxel.Terminal.UI\Luxel.Terminal.UI.csproj" />
+    <ProjectReference Include="..\Luxel.Terminal.Linux\Luxel.Terminal.Linux.csproj" />
+    <ProjectReference Include="..\Luxel.Terminal.Windows\Luxel.Terminal.Windows.csproj" />
     <ProjectReference Include="..\Luxel.Controls\Luxel.Controls.csproj" />
   </ItemGroup>
 
