@@ -1,6 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk" TreatAsLocalProperty="PublishAot;PublishTrimmed;PublishSingleFile;SelfContained">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <PublishAot Condition="'$(LuxelTerminalAot)' == 'true'">true</PublishAot>
     <AssemblyName>LuxelTerminal</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">

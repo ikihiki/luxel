@@ -11,4 +11,11 @@ Use `--nerd-font` when the primary monospace font and Nerd Font fallback are sep
 
 For oh-my-posh, initialize it normally from `.bashrc` or `.zshrc`; the sample does not inject shell scripts. It supplies `TERM=xterm-256color`, `COLORTERM=truecolor`, and `TERM_PROGRAM=Luxel.Terminal` unless explicitly overridden by the launch options.
 
+Publish a Linux Native AOT build without propagating AOT properties into the source-generator project:
+
+```bash
+dotnet publish samples/LuxelTerminal/LuxelTerminal.csproj -c Release -r linux-x64 \
+  -p:LuxelTerminalAot=true -p:TrimmerSingleWarn=false -o artifacts/terminal-linux-x64-aot
+```
+
 The initial Linux support target is glibc x64/X11. The built-in typography renderer currently supports TTF/TTC outlines; use a TTF Nerd Font rather than CFF/CFF2 OTF.

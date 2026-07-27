@@ -46,6 +46,7 @@ jobs:
           dotnet-version: 10.0.x
       - run: dotnet test tests/Luxel.Terminal.Linux.Tests/Luxel.Terminal.Linux.Tests.csproj -c Release
       - run: dotnet publish samples/LuxelTerminal/LuxelTerminal.csproj -c Release -r linux-x64 -o artifacts/terminal-linux-x64
+      - run: dotnet publish samples/LuxelTerminal/LuxelTerminal.csproj -c Release -r linux-x64 -p:LuxelTerminalAot=true -p:TrimmerSingleWarn=false -o artifacts/terminal-linux-x64-aot
 
   windows-conpty:
     runs-on: windows-2025
