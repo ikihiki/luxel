@@ -1,8 +1,0 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/Embeds/Math</h1></header><figure class="static-capture"><img src="images/examples-embeds-math.png" alt="Examples/Embeds/Math" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/Embeds/Math&quot;, Height = 300, Order = 2010)]
-public static Widget Basic(StoryContext ctx) =&gt;
-    ctx.Snap(Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(24))[
-        VStack(20)[
-            Luxel.MathText.Factories.MathBlockView(&quot;&quot;&quot;w = \frac{\alpha + \beta}{\sqrt{x^2 + y^2}}&quot;&quot;&quot;),
-            Luxel.MathText.Factories.MathBlockView(
-                &quot;&quot;&quot;M = \begin{bmatrix} m_{00} &amp; m_{01} \\ m_{10} &amp; m_{11} \end{bmatrix}&quot;&quot;&quot;),
-            Luxel.MathText.Factories.MathBlockView(&quot;&quot;&quot;\vec{p}&#39; = \sum_{i} w_i M_i \vec{p}&quot;&quot;&quot;)]]);</code></pre></details></article>

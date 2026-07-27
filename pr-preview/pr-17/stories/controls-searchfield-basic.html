@@ -1,7 +1,0 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/SearchField/Basic</h1></header><figure class="static-capture"><img src="images/controls-searchfield-basic.png" alt="Controls/SearchField/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/SearchField/Basic&quot;, Height = 320)]
-public static Widget SearchFieldBasic(StoryContext ctx)
-{
-    // CompositeControl の見本: タイプで候補が絞り込まれ (構造状態 → Rebuild)、行クリックで確定
-    string[] langs = [&quot;C#&quot;, &quot;C++&quot;, &quot;Rust&quot;, &quot;Go&quot;, &quot;TypeScript&quot;, &quot;Python&quot;, &quot;Ruby&quot;, &quot;Swift&quot;, &quot;Kotlin&quot;, &quot;Zig&quot;];
-    return Frame(SearchField(ctx.Signal(&quot;query&quot;, &quot;&quot;), langs));
-}</code></pre></details></article>
