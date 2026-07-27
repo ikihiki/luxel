@@ -42,7 +42,7 @@ public static class WorkbenchFilesStory
         _ => "text",
     };
 
-    [Story("Demos/Workbench/Files", Height = 470)]
+    [Story("Examples/Workbench/Files", Height = 470)]
     public static Widget Files(StoryContext ctx)
     {
         // ---- ストレージ (デモはメモリ — 決定的。実機は PhysicalFileStorage) ----

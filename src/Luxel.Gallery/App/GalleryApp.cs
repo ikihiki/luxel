@@ -347,7 +347,7 @@ public sealed class GalleryApp : IDisposable
         // 末尾セグメント = ストーリー、手前 = フォルダ (章/コンポーネント/…、深さ任意)。
         // 表示層のマップは持たない — 章替え/整理はパス改名 (+ golden の git mv) で行う。
         var roots = new List<TreeNode>();
-        var folders = new Dictionary<string, List<TreeNode>>();   // "Demos/2D" → 子リスト
+        var folders = new Dictionary<string, List<TreeNode>>();   // "Examples/2D" → 子リスト
         foreach (StoryInfo s in StoryRegistry.All)
         {
             string[] seg = s.Path.Split('/');
@@ -504,8 +504,13 @@ public sealed class GalleryApp : IDisposable
     /// <summary>選択ストーリーの生成済み method source を読み取り専用コードビューとして構築する。</summary>
     internal static Widget BuildStorySourcePane(StoryInfo? story, float width = 640f, float height = 240f)
     {
-        if (string.IsNullOrWhiteSpace(story?.Source))
-            return Text("Source unavailable for this generated or manually registered story.", 12,
+        if (story is null)
+            return Text("No story selected.", 12, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8));
+        SampleBundleInfo? bundle = SampleBundleRegistry.Find(story.SampleBundle);
+        if (string.IsNullOrWhiteSpace(story.Source))
+            return Text(bundle is null
+                    ? "Source unavailable. Gallery harness required; no standalone sample bundle is registered."
+                    : $"Run this sample ({bundle.CopyLevel}): {bundle.RunCommand}", 12,
                 color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8));
 
         TextEditorView editor = TextEditorView(new Signal<string>(story.Source),
@@ -516,7 +521,12 @@ public sealed class GalleryApp : IDisposable
         editor.EditorFont = Stories.StoryKit.EditorFaces.Value.Mono;
         editor.Providers.Add(new SyntaxHighlightProvider(
             Luxel.Highlight.TextMateHighlighter.Instance, "csharp", () => UiTheme.T));
-        return editor;
+        if (bundle is null) return editor;
+        string files = string.Join(" · ", bundle.Files.Select(file => file.Path));
+        return VStack(6)[
+            Text($"Run this sample · {bundle.CopyLevel} · {bundle.RunCommand}", 12, color: Bind.From(() => UiTheme.T.TextMuted)),
+            Text(files, 10, color: Bind.From(() => UiTheme.T.TextMuted)),
+            editor];
     }
 
     private Widget BuildPropsPane()

@@ -78,7 +78,7 @@
     <ProjectReference Include="..\Luxel.Workbench\Luxel.Workbench.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.TwoD.Skia\Luxel.Graphics.TwoD.Skia.csproj" />
     <ProjectReference Include="..\Luxel.Typography.Icu\Luxel.Typography.Icu.csproj" />
-    <!-- 型 API リファレンス (Docs/Api*) の対象 — Gallery はドキュメントハブとして全域を参照する -->
+    <!-- 型 API リファレンス (Reference/Guides/Api*) の対象 — Gallery はドキュメントハブとして全域を参照する -->
     <ProjectReference Include="..\Luxel.Framework\Luxel.Framework.csproj" />
     <ProjectReference Include="..\Luxel.Scene.UI\Luxel.Scene.UI.csproj" />
     <ProjectReference Include="..\Luxel.Ecs.Signal\Luxel.Ecs.Signal.csproj" />
@@ -94,6 +94,25 @@
 
   <!-- Learn pages quote these real sample files; LogicalName makes lookup independent of cwd/publish layout. -->
   <ItemGroup>
+    <EmbeddedResource Include="..\..\src\Luxel.Graphics.TwoD\Scene2D.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.Scene2D.cs" />
+    <EmbeddedResource Include="..\..\src\Luxel.Graphics.TwoD\PathEncoder.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.PathEncoder.cs" />
+    <EmbeddedResource Include="..\..\src\Luxel.Graphics.TwoD\Primitives.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.Primitives.cs" />
+    <EmbeddedResource Include="..\..\src\Luxel.Graphics.TwoD\IRasterizer2D.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.IRasterizer2D.cs" />
+    <EmbeddedResource Include="..\..\src\Luxel.Graphics.TwoD\Retained\RetainedCanvas.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.Retained.RetainedCanvas.cs" />
+    <EmbeddedResource Include="..\..\src\Luxel.Graphics.TwoD\GpuDeviceRasterizer2D.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.GpuDeviceRasterizer2D.cs" />
+    <EmbeddedResource Include="..\..\shaders\raster2d_bounds.slang" LogicalName="Luxel.Sample.shaders.raster2d_bounds.slang" />
+    <EmbeddedResource Include="..\..\shaders\raster2d_bin.slang" LogicalName="Luxel.Sample.shaders.raster2d_bin.slang" />
+    <EmbeddedResource Include="..\..\shaders\raster2d_fine.slang" LogicalName="Luxel.Sample.shaders.raster2d_fine.slang" />
+    <EmbeddedResource Include="..\..\tests\Luxel.Tests\TwoDTests.cs" LogicalName="Luxel.Sample.tests.Luxel.Tests.TwoDTests.cs" />
+    <EmbeddedResource Include="..\..\samples\LuxelInput\LuxelInput.csproj" LogicalName="Luxel.Sample.samples.LuxelInput.LuxelInput.csproj" />
+    <EmbeddedResource Include="..\..\samples\LuxelInput\Program.cs" LogicalName="Luxel.Sample.samples.LuxelInput.Program.cs" />
+    <EmbeddedResource Include="..\..\samples\LuxelAudio\LuxelAudio.csproj" LogicalName="Luxel.Sample.samples.LuxelAudio.LuxelAudio.csproj" />
+    <EmbeddedResource Include="..\..\samples\LuxelAudio\Program.cs" LogicalName="Luxel.Sample.samples.LuxelAudio.Program.cs" />
+    <EmbeddedResource Include="..\..\samples\LuxelResources\LuxelResources.csproj" LogicalName="Luxel.Sample.samples.LuxelResources.LuxelResources.csproj" />
+    <EmbeddedResource Include="..\..\samples\LuxelResources\Program.cs" LogicalName="Luxel.Sample.samples.LuxelResources.Program.cs" />
+    <EmbeddedResource Include="..\..\samples\LuxelTwoD\LuxelTwoD.csproj" LogicalName="Luxel.Sample.samples.LuxelTwoD.LuxelTwoD.csproj" />
+    <EmbeddedResource Include="..\..\samples\LuxelTwoD\Program.cs" LogicalName="Luxel.Sample.samples.LuxelTwoD.Program.cs" />
+    <EmbeddedResource Include="..\..\samples\LuxelTriangle\LuxelTriangle.csproj" LogicalName="Luxel.Sample.samples.LuxelTriangle.LuxelTriangle.csproj" />
     <EmbeddedResource Include="..\..\samples\LuxelTriangle\Program.cs" LogicalName="Luxel.Sample.samples.LuxelTriangle.Program.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelTriangle\TriangleRenderer.cs" LogicalName="Luxel.Sample.samples.LuxelTriangle.TriangleRenderer.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelTriangle\TutorialAbi.cs" LogicalName="Luxel.Sample.samples.LuxelTriangle.TutorialAbi.cs" />

@@ -8,7 +8,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>継続 REPL コンソール — 行を投入すると前の行で宣言した変数が次に見える。DevTools の
 /// スクリプトコンソール相当。1 行 = 1 Submit で、状態は <see cref="ScriptSession"/> が保つ。
-/// <para>ストーリー (Demos/Scripting/Repl) と Gallery 下ペインの「Console」タブの両方が使う共有部品。
+/// <para>ストーリー (Examples/Scripting/Repl) と Gallery 下ペインの「Console」タブの両方が使う共有部品。
 /// <see cref="ScriptGlobals"/> を差し替えて Log の宛先 (現在のストーリー) を注入する。</para></summary>
 internal sealed class ReplConsole : CompositeControl
 {

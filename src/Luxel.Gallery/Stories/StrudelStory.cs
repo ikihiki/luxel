@@ -192,7 +192,7 @@ public static class StrudelStory
         public void Dispose() => Session.Release(_slot, this);
     }
 
-    [Story("Demos/Strudel/Repl", Height = 560, Order = 2031)]
+    [Story("Examples/Strudel/Repl", Height = 560, Order = 2031)]
     public static Widget Repl(StoryContext ctx)
     {
         // 各セルは ```strudel フェンス — 本文キーでキャッシュし同一 StrudelBlock を返す (再描画で状態が消えない)

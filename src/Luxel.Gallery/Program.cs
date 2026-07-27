@@ -100,7 +100,7 @@ builder.OnStarted(runtime =>
     Console.WriteLine($"=== Luxel.Gallery app (device: {runtime.Device.Name}) ===");
     if (runtime.MainWindow.Content is UiContent content)
         content.Host.RegisterShortcut(new KeyGesture(Key.D, Ctrl: true), gallery.ToggleTheme);
-    if (StoryRegistry.All.Count > 0) gallery.Select(StoryRegistry.All[0]);
+    gallery.SelectByPath("Start/Welcome");
     runtime.Commands.Register("story.select", value =>
     {
         if (value is System.Text.Json.JsonElement element && element.TryGetProperty("id", out var id))

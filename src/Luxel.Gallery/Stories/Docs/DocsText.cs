@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsText
 {
-    [Story("Docs/Typography", Order = 40)]
+    [Story("Reference/Guides/Typography", Order = 40)]
     public static Widget Typography(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());   // 新スタック: mermaid フェンス + コードブロックの描画 golden
@@ -74,18 +74,18 @@ public static class DocsText
 
         キャレットの単位は**グラフェム境界**。fi 合字のように 1 グリフに複数グラフェムが入る場合はグリフ advance を按分します (HarfBuzz 推奨の近似)。HitTest はクラスタ矩形の中央で左右に吸着し、選択は行ごとの矩形列です。
 
-        次: [Docs/Editor](story:Docs/Editor) — この上に載る文書モデルとエディタへ。
+        次: [Reference/Guides/Editor](story:Reference/Guides/Editor) — この上に載る文書モデルとエディタへ。
         """, toc: true);
     }
 
-    [Story("Docs/Editor", Order = 41)]
+    [Story("Reference/Guides/Editor", Order = 41)]
     public static Widget Editor(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());   // 新スタック解説ページ (見出し/mermaid/コードの描画 golden)
         return DocNew(ctx, $$"""
         # ドキュメントとエディタ (Luxel.Document)
 
-        テキスト編集は 2 層です。**Luxel.Document** が canvas 非依存のエディタコア (状態・編集・装飾・幾何)、**Luxel.Controls の `TextEditorView`** が塗り・入力・IME を足す薄いビュー。CodeMirror 6 に倣った設計です (決定は [ADR-0006](story:ADR/0006-Editor-New-Stack))。コアの全意味論が UI/GPU なしで単体テストできます。
+        テキスト編集は 2 層です。**Luxel.Document** が canvas 非依存のエディタコア (状態・編集・装飾・幾何)、**Luxel.Controls の `TextEditorView`** が塗り・入力・IME を足す薄いビュー。CodeMirror 6 に倣った設計です (決定は [ADR-0006](story:Internals/ADR/0006-Editor-New-Stack))。コアの全意味論が UI/GPU なしで単体テストできます。
 
         ```mermaid
         flowchart TB
@@ -121,7 +121,7 @@ public static class DocsText
 
         ## TextEditorView — 薄いビュー
 
-        canvas がないとできないことだけを持ちます: 色別ノードでの塗り・入力配線・行内 widget のホスト・IME/TSF。補完/ホバーのポップアップは [ADR-0007](story:ADR/0007-Floating-Ui-Placement) の anchored placement で `CaretRect` にアンカーし画面端でフリップします。実物: [Controls/TextEditorView/Code](story:Controls/TextEditorView/Code) (色分け+波線+ガター) / [Widgets](story:Controls/TextEditorView/Widgets) (行内 widget) / [Strudel](story:Controls/TextEditorView/Strudel) (再生囲み)。Strudel REPL の各ライブブロックもこの `TextEditorView` です。
+        canvas がないとできないことだけを持ちます: 色別ノードでの塗り・入力配線・行内 widget のホスト・IME/TSF。補完/ホバーのポップアップは [ADR-0007](story:Internals/ADR/0007-Floating-Ui-Placement) の anchored placement で `CaretRect` にアンカーし画面端でフリップします。実物: [Controls/TextEditorView/Code](story:Controls/TextEditorView/Code) (色分け+波線+ガター) / [Widgets](story:Controls/TextEditorView/Widgets) (行内 widget) / [Strudel](story:Controls/TextEditorView/Strudel) (再生囲み)。Strudel REPL の各ライブブロックもこの `TextEditorView` です。
 
         ## コード編集 — 色分け・診断・補完
 

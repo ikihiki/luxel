@@ -32,7 +32,7 @@ public static class PhysicsMeshStories
 
     private static float Height(float x, float z) => 0.5f * MathF.Sin(x * 0.9f) * MathF.Cos(z * 0.9f);
 
-    [Story("Demos/3D/PhysicsMesh", Height = 340, Order = 131)]
+    [Story("Examples/3D/PhysicsMesh", Height = 340, Order = 131)]
     public static Widget PhysicsMeshDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(W, H, draw: s =>
     {
         s.FillRect(Color2D.Rgba(20, 24, 30), 0, 0, W, H);

@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>
 /// GPU 抽象の基礎デモ — 固定パイプラインレイアウト (最大192Bのルート引数 + bindless heap) の上で
-/// 深度テスト / アルファブレンドがどう書けるかを示す。docs の Docs/GpuDevice から参照される。
+/// 深度テスト / アルファブレンドがどう書けるかを示す。docs の Reference/Guides/GpuDevice から参照される。
 /// </summary>
 public static class GpuBasicsStories
 {
@@ -39,10 +39,10 @@ public static class GpuBasicsStories
         return vb;
     }
 
-    [Story("Demos/3D/Depth", Height = 320, Order = 100)]
+    [Story("Examples/3D/Depth", Height = 320, Order = 100)]
     public static Widget Depth() => Frame(GpuView(256, 256, new DepthScene(), animated: false));
 
-    [Story("Demos/3D/Blend", Height = 320, Order = 101)]
+    [Story("Examples/3D/Blend", Height = 320, Order = 101)]
     public static Widget Blend() => Frame(GpuView(256, 256, new BlendScene(), animated: false));
 
     /// <summary>深度テスト: 手前 (緑, z=0.3) → 奥 (赤, z=0.7) の順に描く。描画順だけなら

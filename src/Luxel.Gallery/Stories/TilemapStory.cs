@@ -11,11 +11,11 @@ namespace Luxel.Gallery.Stories;
 /// 描き、ズーム/スクロールする <see cref="Camera2D"/> でワールドを覗く。地面 (grass/dirt)・浮き床・壁柱を配置。
 /// プレイヤー (箱) は壁へ右移動する意図量 (アウトライン) と <see cref="TileMap.Sweep"/> で切り詰めた解決位置
 /// (塗り) を並べ、AABB グリッド衝突が壁の手前で止めるのを可視化する。アトラスは手続き生成 (決定的)。
-/// docs の Docs/TwoD 「タイルマップ」節から参照される。
+/// docs の Reference/Guides/TwoD 「タイルマップ」節から参照される。
 /// </summary>
 public static class TilemapStories
 {
-    [Story("Demos/2D/Tilemap", Height = 260, Order = 120)]
+    [Story("Examples/2D/Tilemap", Height = 260, Order = 120)]
     public static Widget Tilemap(StoryContext ctx) => ctx.Snap(Frame(GpuView(384, 192, new TilemapScene(), animated: false)));
 
     private sealed class TilemapScene : GpuSceneBase

@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("ADR/0015-Game-Project-Scene-Format", Order = 86)]
+    [Story("Internals/ADR/0015-Game-Project-Scene-Format", Order = 86)]
     public static Widget Adr0015(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0015 — ゲームプロジェクト/シーン形式はエディタ専用モデル + 一方向コンパイルにする
 

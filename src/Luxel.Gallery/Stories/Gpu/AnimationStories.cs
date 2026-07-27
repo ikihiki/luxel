@@ -19,7 +19,7 @@ namespace Luxel.Gallery.Stories;
 /// アニメーションシステムのデモ — Curve × Tween の 2 段分解、コード DSL (Sequence/Parallel)、
 /// AnimationClip (CSS @keyframes 由来含む)、StateMachine、AnimationGraph (BlendNode)。
 /// すべて絶対時刻モデル (FixedFrameClock) — 時間はストーリーの累積秒から決める (snap 決定的)。
-/// docs の Docs/Animation から参照される。
+/// docs の Reference/Guides/Animation から参照される。
 /// </summary>
 public static class AnimationStories
 {
@@ -34,7 +34,7 @@ public static class AnimationStories
 
     /// <summary>コード DSL: Sequence(Parallel(slide+fade), Parallel(slide+fade))。
     /// Signal へ SignalAnimationTarget 経由で書き、ループ毎に Play し直す。</summary>
-    [Story("Demos/Animation/Tween", Height = 300, Order = 140)]
+    [Story("Examples/Animation/Tween", Height = 300, Order = 140)]
     public static Widget Tween()
     {
         var xA = new Signal<float>(-150f);
@@ -78,12 +78,12 @@ public static class AnimationStories
     }
 
     /// <summary>CSS @keyframes → AnimationClip → RetainedCanvas ノードへ適用 (ループ再生)。</summary>
-    [Story("Demos/Animation/CssKeyframes", Height = 300, Order = 141)]
+    [Story("Examples/Animation/CssKeyframes", Height = 300, Order = 141)]
     public static Widget CssKeyframes(StoryContext ctx) => ctx.Snap(Frame(GpuView(256, 128, new CssClipScene())));
 
     /// <summary>StateMachine (idle ⇄ jump、crossfade 0.15s)。ボタンで Trigger を送る —
     /// press でジャンプ (黄)、done で idle (青) へ戻る。</summary>
-    [Story("Demos/Animation/StateMachine", Height = 340, Order = 142)]
+    [Story("Examples/Animation/StateMachine", Height = 340, Order = 142)]
     public static Widget StateMachineDemo(StoryContext ctx)
     {
         var scene = new StateMachineScene();
@@ -96,12 +96,12 @@ public static class AnimationStories
 
     /// <summary>AnimationClip (translation + rotation) を EcsAnimationTarget で
     /// LocalTransform へ書き、毎フレーム propagate → extract → 描画。</summary>
-    [Story("Demos/Animation/EcsClip", Height = 320, Order = 143)]
+    [Story("Examples/Animation/EcsClip", Height = 320, Order = 143)]
     public static Widget EcsClip() => Frame(GpuView(256, 256, new EcsClipScene()));
 
     /// <summary>AnimationGraph: BlendNode(上下振動, 左右振動)。weight は knob —
     /// 0 で上下のみ、1 で左右のみ、中間で混合。</summary>
-    [Story("Demos/Animation/Graph", Height = 320, Order = 144)]
+    [Story("Examples/Animation/Graph", Height = 320, Order = 144)]
     public static Widget Graph(StoryContext ctx)
     {
         Signal<float> weight = ctx.Signal("weight", 0.5f, "Blend: 0 = 上下振動, 1 = 左右振動");

@@ -3,7 +3,7 @@
 namespace Luxel.Controls;
 
 /// <summary>
-/// 検索フィールド — **CompositeControl の見本** (書き方は Gallery の Docs/Controls 参照)。
+/// 検索フィールド — **CompositeControl の見本** (書き方は Gallery の Reference/Guides/Controls 参照)。
 /// TextField + クリアボタン + 絞り込み候補リストを Build() で宣言的に組み合わせる。
 /// 状態 3 層の実演:
 /// - 値状態: query signal (呼び出し側と共有、TextField と双方向) — 細粒度反映

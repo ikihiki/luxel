@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("ADR/0007-Floating-Ui-Placement", Order = 78)]
+    [Story("Internals/ADR/0007-Floating-Ui-Placement", Order = 78)]
     public static Widget Adr0007(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0007 — 浮遊 UI は単一の anchored placement エンジンに統一する
 
@@ -24,7 +24,7 @@ public static partial class DocsAdr
         - CodeEditor の補完ポップアップ/ツールチップは**エディタの content 内の素の Scene2D ノード** — エディタのクリップに閉じ込められて画面外へ出られず、端でフリップもしない
         - 画面端での挙動 (方向を変える) を各コントロールが個別に持つ/持たないため一貫しない
 
-        新スタックの補完ポップアップ ([ADR-0006](story:ADR/0006-Editor-New-Stack) の S6c) を機に、**全ての浮遊 UI が同じ規則で端に反応する**土台を作りたい、という力学です。
+        新スタックの補完ポップアップ ([ADR-0006](story:Internals/ADR/0006-Editor-New-Stack) の S6c) を機に、**全ての浮遊 UI が同じ規則で端に反応する**土台を作りたい、という力学です。
 
         ## Decision
 
@@ -34,9 +34,9 @@ public static partial class DocsAdr
         - **純粋なソルバ** `Solve(Rect anchor, Size content, Rect viewport) → (Rect rect, PopupSide actualSide, Size constrained)` — ①希望 side に置く ②入らなければ反対 side へ**フリップ** ③交差軸で画面内へ**シフト** ④viewport を超えるなら**サイズをクランプ** (中身はスクロール)。canvas 非依存で単体テスト可能
         - **2 つの配置ファミリ**を明確に分ける: **anchored** (トリガー/キャレットに紐づく — Side/Align/Flip/Shift) と **region** (ダイアログ/ドロワー/トースト — Center/Edge/Corner、既存踏襲)
         - **移行**: ContextMenu・Select/Dropdown/ColorPicker・**CodeEditor 補完ポップアップ + ツールチップ**をこのエンジンへ。ポップアップは Z=1000 のオーバーレイ層へ昇格し、トリガーの WorldPos 矩形または `ITextInput.CaretRect` にアンカーする (エディタのクリップから出て、画面端でフリップする)
-        - **IME 候補ウインドウ** ([ADR-0008](story:ADR/0008-Custom-Ime-Candidates)) も、自前描画する場合はこの Popup として CaretRect にアンカーする — 浮遊 UI の一消費者になる
+        - **IME 候補ウインドウ** ([ADR-0008](story:Internals/ADR/0008-Custom-Ime-Candidates)) も、自前描画する場合はこの Popup として CaretRect にアンカーする — 浮遊 UI の一消費者になる
 
-        実装計画は ToDo/23。現在の姿は [Docs/UI](story:Docs/UI) が正。
+        実装計画は ToDo/23。現在の姿は [Reference/Guides/UI](story:Reference/Guides/UI) が正。
 
         ## Alternatives
 

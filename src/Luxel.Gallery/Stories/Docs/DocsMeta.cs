@@ -14,7 +14,7 @@ public static class DocsMeta
 
     private static Luxel.Resources.ResourceHandle<Luxel.Resources.CpuImage>? _imagePreload;
 
-    [Story("Docs/Authoring", Order = 91)]
+    [Story("Internals/Authoring", Order = 91)]
     public static Widget Authoring(StoryContext ctx)
     {
         // snap (静定 1 フレーム) の決定性のため画像を同期 preload — 実アプリでは不要
@@ -30,14 +30,14 @@ public static class DocsMeta
         Widget doc = DocNew(ctx, $$$""""
             # docs ページの書き方
 
-            docs ページは **補完文字列 + markdown** で書きます。リテラル部分は markdown として整形され、hole に `Widget` を置くとその場に**ライブ UI** が埋め込まれます。カラー絵文字 :smile: :rocket: :+1: と "smart quotes" -- SmartyPants も効きます。リンクも張れます: [Docs/Button を開く](story:Docs/Button) / [書けるもの へ](#書けるもの) / [No Graphics API (外部)](https://www.sebastianaaltonen.com/blog/no-graphics-api)
+            docs ページは **補完文字列 + markdown** で書きます。リテラル部分は markdown として整形され、hole に `Widget` を置くとその場に**ライブ UI** が埋め込まれます。カラー絵文字 :smile: :rocket: :+1: と "smart quotes" -- SmartyPants も効きます。リンクも張れます: [Reference/Guides/Button を開く](story:Reference/Guides/Button) / [書けるもの へ](#書けるもの) / [No Graphics API (外部)](https://www.sebastianaaltonen.com/blog/no-graphics-api)
 
             ## ページの骨格
 
-            `[Story("Docs/...")]` + `Kit.Docs` + `WithDocFonts` (日本語/絵文字フォールバック + シンタックスハイライト + mermaid/math widget の配線) が定型です。文字列は `$$"""` (hole = 波かっこ 2 連) にすると、C# コード例の波かっこ 1 連がそのままリテラルになります:
+            `[Story("Reference/Guides/...")]` + `Kit.Docs` + `WithDocFonts` (日本語/絵文字フォールバック + シンタックスハイライト + mermaid/math widget の配線) が定型です。文字列は `$$"""` (hole = 波かっこ 2 連) にすると、C# コード例の波かっこ 1 連がそのままリテラルになります:
 
             ```csharp
-            [Story("Docs/MyPage", Order = 50)]
+            [Story("Reference/Guides/MyPage", Order = 50)]
             public static Widget MyPage(StoryContext ctx) => DocNew(ctx, $$"""
                 # 見出し
 
@@ -63,7 +63,7 @@ public static class DocsMeta
 
             `StoryRef(ctx, path, knobs: true)` でストーリーの下に **Knobs テーブル** (autodoc の Controls 相当) が付きます。操作列を編集すると上の描画が変わります:
 
-            {{{StoryRef(ctx, "Demos/2D/Orbit", knobs: true)}}}
+            {{{StoryRef(ctx, "Examples/2D/Orbit", knobs: true)}}}
 
             `StorySource(path)` はジェネレーターが公開する **完全な `[Story]` method宣言** (属性・signature・本体) をコードフェンスとして差し込みます。同じコードは通常storyでも下部の **Source** タブから確認でき、静的Galleryでは折りたたみSourceとして表示されます。private helper、別file、shaderまでは含まれません。実行可能sampleを教材の正にする場合は、build時に埋め込んだ実file/regionを表示する`SampleSource(path, region)`を使います。コントロール個別ページでは `DocsApi.ControlApiReference("Button")` で API リファレンス表が出ます (実例は [Controls/Button/Overview](story:Controls/Button/Overview))。
 
@@ -120,7 +120,7 @@ public static class DocsMeta
         return doc;
     }
 
-    [Story("Docs/Gallery", Order = 90)]
+    [Story("Internals/Gallery", Order = 90)]
     public static Widget Gallery(StoryContext ctx) => ctx.Snap(DocNew(ctx, $$"""
         # Gallery — ストーリーの書き方
 
@@ -182,10 +182,10 @@ public static class DocsMeta
         dotnet run --project src/Luxel.Gallery -- vk bench <story> [frames] [--type|--wheel d]
         ```
 
-        実窓は `Ctrl+D` でテーマ切替、ツールバーの「全画面」でプレビューをメイン全面に。サイドバーの検索欄は docs 本文の全文検索です。docs ページの書き方は [Docs/Authoring](story:Docs/Authoring) へ。
+        実窓は `Ctrl+D` でテーマ切替、ツールバーの「全画面」でプレビューをメイン全面に。サイドバーの検索欄は docs 本文の全文検索です。docs ページの書き方は [Internals/Authoring](story:Internals/Authoring) へ。
         """, toc: true));
 
-    [Story("Docs/Contributing", Order = 92)]
+    [Story("Internals/Contributing", Order = 92)]
     public static Widget Contributing(StoryContext ctx) => DocNew(ctx, $$"""
         # 貢献者向け — ビルド・テスト・回帰ゲート
 
@@ -213,7 +213,7 @@ public static class DocsMeta
         ## bench — canvas 更新コストの回帰ゲート
 
         ```powershell
-        dotnet run --project src/Luxel.Gallery -- vk bench "Demos/2D/Orbit" 300
+        dotnet run --project src/Luxel.Gallery -- vk bench "Examples/2D/Orbit" 300
         dotnet run --project src/Luxel.Gallery -- vk bench "Controls/TextEditorView/Basic" 300 --type
         dotnet run --project src/Luxel.Gallery -- vk bench "Controls/ListView/Huge" 300 --wheel 1
         ```
@@ -224,6 +224,6 @@ public static class DocsMeta
 
         - **vk / dx ピクセル一致** — 新しい描画機能は両バックエンドで検証してから完了
         - **デッドリンク検証** — 実窓起動時に docs 全ページの `story:` / `#アンカー` を検査し、切れたリンクを stderr に警告します (`[gallery] dead link in ...`)
-        - **実窓 E2E** — DebugServer の `/winframe` + `/cmd` で操作と描画を確認 ([Docs/DevTools](story:Docs/DevTools))
+        - **実窓 E2E** — DebugServer の `/winframe` + `/cmd` で操作と描画を確認 ([Reference/Guides/DevTools](story:Reference/Guides/DevTools))
         """, toc: true);
 }

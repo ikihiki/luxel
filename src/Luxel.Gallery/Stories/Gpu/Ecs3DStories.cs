@@ -13,7 +13,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>
 /// ECS + 3D forward + RenderGraph のデモ — World にキューブ entity を作り、
 /// Render3DExtractSystem (IRenderExtractor) が ECS をクエリして instance バッファへ書き、
-/// graphics パスが bindless で描く。docs の Docs/ThreeD / Docs/RenderGraph から参照される。
+/// graphics パスが bindless で描く。docs の Reference/Guides/ThreeD / Reference/Guides/RenderGraph から参照される。
 /// </summary>
 public static class Ecs3DStories
 {
@@ -65,22 +65,22 @@ public static class Ecs3DStories
     }
 
     /// <summary>5×5 グリッドのキューブ world + カメラ周回。ECS 抽出 → RenderGraph 1 パス。</summary>
-    [Story("Demos/3D/EcsCubes", Height = 320, Order = 122)]
+    [Story("Examples/3D/EcsCubes", Height = 320, Order = 122)]
     public static Widget EcsCubes() => Frame(GpuView(256, 256, new EcsCubesScene()));
 
     /// <summary>world-space UI — Scene2D を bindless バッファへラスタライズし、3D 空間内の
     /// quad がピクセルシェーダでサンプリングする。Compute→PixelShader のバリアは RG が自動挿入。</summary>
-    [Story("Demos/3D/WorldSpaceUI", Height = 320, Order = 123)]
+    [Story("Examples/3D/WorldSpaceUI", Height = 320, Order = 123)]
     public static Widget WorldSpaceUi() => Frame(GpuView(256, 256, new WorldSpaceUiScene()));
 
     /// <summary>shadow map — ライト視点で R32Float RT に NDC z を書き、メイン視点パスが
     /// bindless バッファ経由で読み比較して影を落とす (床 + 浮遊キューブ 5 個)。</summary>
-    [Story("Demos/3D/ShadowMap", Height = 320, Order = 124)]
+    [Story("Examples/3D/ShadowMap", Height = 320, Order = 124)]
     public static Widget ShadowMap(StoryContext ctx) => ctx.Snap(Frame(GpuView(256, 256, new ShadowMapScene(), animated: false)));
 
     /// <summary>3D forward + post-process bloom を 1 つの RenderGraph で —
     /// Render3D (graphics) → BlurH → BlurV → BloomCombine (compute)。intensity は knob。</summary>
-    [Story("Demos/RenderGraph/Bloom3D", Height = 320, Order = 132)]
+    [Story("Examples/RenderGraph/Bloom3D", Height = 320, Order = 132)]
     public static Widget Bloom3D(StoryContext ctx)
     {
         Signal<float> intensity = ctx.Signal("intensity", 0.6f, "bloom 合成の強さ (0 = 無効)");

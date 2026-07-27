@@ -14,7 +14,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>
 /// アセットパイプラインのデモ — glTF を <see cref="GltfLoader"/> で AssetDocument に読み、
 /// <see cref="SceneBuilder"/> で ECS + GPU バッファへ展開し、<see cref="SceneRenderExtractor"/> が
-/// instance バッファを作って scene_pbr_lite シェーダで描く。docs の Docs/Assets から参照される。
+/// instance バッファを作って scene_pbr_lite シェーダで描く。docs の Reference/Guides/Assets から参照される。
 /// </summary>
 public static class AssetStories
 {
@@ -29,7 +29,7 @@ public static class AssetStories
     }
 
     /// <summary>Box.gltf → AssetDocument → AssetPrimitive → GPU buffers → 1 draw。ECSなしの静的最小経路。</summary>
-    [Story("Demos/3D/GltfBox", Height = 320, Order = 125)]
+    [Story("Examples/3D/GltfBox", Height = 320, Order = 125)]
     public static Widget GltfBox() => Frame(GpuView(256, 256, new StaticGltfScene("Box.gltf"), animated: false));
 
     /// <summary>静的primitiveを直接uploadし、1件のinstance bufferで描く。ECS/animation/skin/morphは使わない。</summary>
@@ -103,7 +103,7 @@ public static class AssetStories
 
     /// <summary>BoxAnimated.glb — ノード TRS アニメーションを SceneAnimationPlayer が毎フレーム
     /// sample → TransformPropagate → 再 Extract して描く (スキニングなしのアニメーション経路)。</summary>
-    [Story("Demos/3D/GltfAnimated", Height = 320, Order = 126)]
+    [Story("Examples/3D/GltfAnimated", Height = 320, Order = 126)]
     public static Widget GltfAnimated(StoryContext ctx) => ctx.Snap(Frame(GpuView(256, 256, new GltfScene("BoxAnimated.glb", animate: true))));
 
     /// <summary>khronos-samples の glTF を読み、SceneBuilder → SceneRenderExtractor → 描画。

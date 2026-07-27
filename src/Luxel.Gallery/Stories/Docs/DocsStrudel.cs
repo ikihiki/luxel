@@ -8,11 +8,11 @@ namespace Luxel.Gallery.Stories;
 /// <summary>Docs: Strudel (パターン言語 + シーケンシング層) の概念ページ。</summary>
 public static class DocsStrudel
 {
-    [Story("Docs/Strudel", Order = 55)]
+    [Story("Reference/Guides/Strudel", Order = 55)]
     public static Widget Strudel(StoryContext ctx) => ctx.Snap(DocNew(ctx, $$"""
         # ライブコーディング (Luxel.Strudel)
 
-        [Strudel](https://strudel.cc) (TidalCycles の JS 版) のパターン言語を C# で実装したものです。実演は {{StoryRef(ctx, "Demos/Strudel/Repl")}} へ。2 層に分かれます:
+        [Strudel](https://strudel.cc) (TidalCycles の JS 版) のパターン言語を C# で実装したものです。実演は {{StoryRef(ctx, "Examples/Strudel/Repl")}} へ。2 層に分かれます:
 
         - **Luxel.Strudel** — パターン言語 (有理数時間のクエリモデル + ミニ記法 + チェーン式評価)
         - **Luxel.Audio.Sequencing** — 汎用シーケンシング層 (イベント表現 + サンプル精度ミキサ)。Strudel を知らず、ゲームの効果音シーケンスにも使えます

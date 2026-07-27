@@ -10,7 +10,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>
 /// 2D ベクターの描画デモ — compute ラスタライザ (三角形分割なし) が塗る EvenOdd パス、
-/// ストローク、ベクターテキスト (日本語含む)。docs の Docs/TwoD から参照される。
+/// ストローク、ベクターテキスト (日本語含む)。docs の Reference/Guides/TwoD から参照される。
 /// </summary>
 public static class Vector2DStories
 {
@@ -19,7 +19,7 @@ public static class Vector2DStories
 
     /// <summary>EvenOdd の穴あきリング + 塗り/ストローク/ベクターテキスト。
     /// パスは三角形分割されず、GPU compute がそのまま塗る。</summary>
-    [Story("Demos/2D/VectorPaths", Height = 320, Order = 112)]
+    [Story("Examples/2D/VectorPaths", Height = 320, Order = 112)]
     public static Widget VectorPaths(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(256, 256, draw: s =>
     {
         s.FillRect(Color2D.Rgba(245, 245, 248), 0, 0, 256, 256);   // 背景
@@ -35,7 +35,7 @@ public static class Vector2DStories
 
     /// <summary>地図風シーン (日本語ラベル) + ズーム knob。ベクターなので拡大しても
     /// エッジが崩れない (実アプリでは Camera2D — 再エンコードなしのスムーズズーム)。</summary>
-    [Story("Demos/2D/Map", Width = 560, Height = 460, Order = 113)]
+    [Story("Examples/2D/Map", Width = 560, Height = 460, Order = 113)]
     public static Widget Map(StoryContext ctx)
     {
         Signal<float> zoom = ctx.Signal("zoom", 1f, "拡大率 (1 = 等倍、(300,150) 中心)");

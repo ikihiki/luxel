@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("ADR/0004-Compute-Rasterizer-Retained-2D", Order = 75)]
+    [Story("Internals/ADR/0004-Compute-Rasterizer-Retained-2D", Order = 75)]
     public static Widget Adr0004(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0004 — 2D はコンピュートラスタライザ + 保持型キャンバス
 
@@ -17,7 +17,7 @@ public static partial class DocsAdr
 
         ## Context
 
-        UI ([ADR-0003](story:ADR/0003-Declarative-Signal-Ui))・docs・2D ゲームの土台として、GPU 抽象 ([ADR-0002](story:ADR/0002-Thin-Bindless-Gpu-Abstraction)) の上に 2D ベクター描画層が必要でした。要件と力学:
+        UI ([ADR-0003](story:Internals/ADR/0003-Declarative-Signal-Ui))・docs・2D ゲームの土台として、GPU 抽象 ([ADR-0002](story:Internals/ADR/0002-Thin-Bindless-Gpu-Abstraction)) の上に 2D ベクター描画層が必要でした。要件と力学:
 
         - **ベクター品質** — テキスト (TTF 輪郭、日本語) と図形をズームしてもエッジが崩れないこと。docs のダイアグラム・数式・エディタまでこの層で描く
         - **部分更新が主戦場** — UI の定常フレームは「動いたものだけ」を書きたい (移動 = 変換だけ、色変更 = スタイルだけ)。bench 回帰ゲート (タイプ連打で再構築 ~3% 等) の土台になる
@@ -33,7 +33,7 @@ public static partial class DocsAdr
         - **保持型ツリー + SoA** — `RetainedCanvas` がフレーム間で保持するノードツリーを提供し、データを Transform / Style / Clip / Order / Segment に分離して持つ。シェーダが per-path 変換を適用するため**移動 = 変換だけ書込、色変更 = スタイルだけ書込** (ジオメトリ不変)
         - **増分更新は「slot 据え置き、レンジは容量付き」** — Content 差し替えは容量内なら in-place、伸びたら末尾追記、空きが閾値を超えたときだけコンパクション。定常フレームのコストは O(変わったノード)
 
-        現在の姿は [Docs/TwoD](story:Docs/TwoD) へ。部分更新量は `LastTransformWrites` 等で観測でき、bench が回帰を監視します。
+        現在の姿は [Reference/Guides/TwoD](story:Reference/Guides/TwoD) へ。部分更新量は `LastTransformWrites` 等で観測でき、bench が回帰を監視します。
 
         ## Alternatives
 

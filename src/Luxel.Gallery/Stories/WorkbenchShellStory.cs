@@ -47,7 +47,7 @@ public static class WorkbenchShellStory
         [new GraphEdge(10, new PortId(1, 0), new PortId(2, 0)),
          new GraphEdge(11, new PortId(2, 1), new PortId(3, 0))]);
 
-    [Story("Demos/Workbench/Shell", Height = 470)]
+    [Story("Examples/Workbench/Shell", Height = 470)]
     public static Widget Shell(StoryContext ctx)
     {
         // ---- ドキュメント 4 種 (エディタ＝構成: 同じ TextDocument でも viewFactory が違うだけ) ----
