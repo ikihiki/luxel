@@ -1,0 +1,50 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>ADR/0005-Docs-In-Gallery</h1></header><h1 id="adr-0005-gallery">ADR-0005 — ドキュメントとサンプルは Gallery に一本化する</h1>
+<ul>
+<li><p><a href="#context">Context</a></p>
+</li>
+<li><p><a href="#decision">Decision</a></p>
+</li>
+<li><p><a href="#alternatives">Alternatives</a></p>
+</li>
+<li><p><a href="#consequences">Consequences</a></p>
+</li>
+<li><p><strong>Status</strong>: Accepted</p>
+</li>
+<li><p><strong>Date</strong>: 2026-07-04</p>
+</li>
+<li><p><strong>Deciders</strong>: ikihiki</p>
+</li>
+</ul>
+<h2 id="context">Context</h2>
+<p>当初、ドキュメントはリポジトリの <code>docs/</code> (計画 MD 17 本)、サンプルは <code>src/Luxel.Samples</code> (CLI サンプル群) に分かれていました。ここに次の力学が働いていました:</p>
+<ul>
+<li><strong>乖離</strong> — MD のコード例・API 説明は実装の変化に追従せず、静かに古びる。CLI サンプルも回帰テストに乗っておらず、壊れても気づけない</li>
+<li><strong>重複</strong> — 同じ機能の説明が計画 MD・サンプル・Gallery のストーリーに三重化し、どれが正か曖昧になる</li>
+<li>一方で Gallery には<strong>ストーリー = 実行可能な実例 + snap/e2e 回帰 + ソース焼き込み (StorySource)</strong> という基盤がすでにあり、docs ページ (markdown + ライブ UI 埋め込み) の仕組みも育っていた</li>
+</ul>
+<h2 id="decision">Decision</h2>
+<p><code>docs/</code> と <code>Luxel.Samples</code> を<strong>完全削除</strong>し、ドキュメント・サンプル・回帰テストのすべてを <strong>Luxel.Gallery に一本化</strong>します:</p>
+<ul>
+<li><strong>ドキュメント</strong> = Gallery の Docs 章 (<code>Stories/Docs/Docs*.cs</code>) — markdown + hole によるライブ UI 埋め込み。計画 MD の「設計ノート」は現在形の仕様として吸収する</li>
+<li><strong>サンプル</strong> = 説明的デモストーリー — <code>StoryRef</code> で docs に埋め込み、<code>StorySource</code> (ジェネレーターがソースを焼き込む) で手書きコピーの乖離を根絶する</li>
+<li><strong>API リファレンスは実行時生成</strong> — <code>[UiComponent]</code> 由来のコントロール API と、<code>GenerateAssemblyApi</code> が XML doc ごと焼き込む型 API (Reference 章)。手書き一覧は作らない</li>
+<li><strong>検証を docs にも敷く</strong> — 起動時のデッドリンク検証 (<code>story:</code> / <code>#アンカー</code>)、play + golden の E2E 回帰、bench。docs ページも「テストされる成果物」にする</li>
+<li>今後の<strong>計画文書はリポジトリに置かない</strong> — <code>docs/</code> を復活させない</li>
+</ul>
+<h2 id="alternatives">Alternatives</h2>
+<ul>
+<li><strong><code>docs/</code> の markdown を維持</strong> — GitHub 上で読める利点はあるが、コード例の乖離・リンク切れ・実行不能という核心の課題が残る → 却下</li>
+<li><strong>静的サイトジェネレーター (DocFX / Docusaurus 等)</strong> — 別ツールチェーンの保守が増える上、ライブ UI 埋め込み (本物のカウンタ・knobs・GPU デモ) ができない。エンジンのドキュメントスタック (RichTextEditor / mermaid / 数式) のドッグフーディング機会も失う → 却下</li>
+<li><strong>XML doc コメントのみ</strong> — API 表は賄えるが、章立てのガイド・設計解説・動く実例は表現できない → 却下 (XML doc は Reference 章の材料として併用)</li>
+<li><strong>Luxel.Samples を回帰テスト化して存続</strong> — テストを敷いてもストーリーとの重複は残る。「実例は全部ストーリー」に寄せる方が一本化される → 却下</li>
+</ul>
+<h2 id="consequences">Consequences</h2>
+<ul>
+<li>✅ 正が 1 か所 — 実例は実行可能で golden 回帰に守られ、<code>StorySource</code> によりドキュメント上のコードが実装と乖離しない。リンク切れは起動時に検出される</li>
+<li>✅ docs 執筆がエンジン自身への品質圧になる — RichTextEditor・mermaid・数式・全文検索は docs の必要から鍛えられた (ドッグフーディング)</li>
+<li>✅ この ADR 章もタダ乗りできた (<a href="#story=ADR%2F0001-Record-Architecture-Decisions">ADR-0001</a>) — 検索・リンク検証・テーマ・回帰が最初から付いてくる</li>
+<li>⚠️ <strong>GitHub 上でそのまま読めない</strong> — docs を読むには Gallery を起動する (かソースを読む)。公開ドキュメントが必要になったら書き出し手段の検討が要る</li>
+<li>⚠️ 執筆に C# ビルドが要り、raw string の規約 (<code>$</code> の数 = hole の波かっこ数、段落は 1 ソース行、本文に引用符 3 連を含むページは区切りを 4 連に) を覚える必要がある</li>
+<li>⚠️ 計画文書のリポジトリ内の置き場が無くなる — 意図的な制約 (現在形の仕様として docs に吸収するか、リポジトリ外へ)</li>
+</ul>
+</article>

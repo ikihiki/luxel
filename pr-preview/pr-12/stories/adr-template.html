@@ -1,0 +1,43 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>ADR/Template</h1></header><h1 id="adr">ADR テンプレート</h1>
+<ul>
+<li><a href="#%E5%90%84%E7%AF%80%E3%81%AE%E6%9B%B8%E3%81%8D%E6%96%B9">各節の書き方</a></li>
+</ul>
+<p>新しい ADR はこの雛形を複製して作ります。<code>[Story(&quot;ADR/NNNN-...&quot;, Order = 71 + 番号)]</code> で登録し、下の 5 節を埋めてください。<strong>1 ファイル 1 ADR</strong> — <code>Stories/Docs/Adr/AdrNNNN.cs</code> を新規に作り (<code>partial class DocsAdr</code>)、そこに書くのが定位置です。</p>
+<pre><code class="language-csharp">[Story(&quot;ADR/0002-example-decision&quot;, Order = 73)]
+public static Widget Adr0002(StoryContext ctx) =&gt; WithDocFonts(Docs(ctx, $$&quot;&quot;&quot;
+    # ADR-0002 — 決定の短いタイトル
+
+    - **Status**: Proposed
+    - **Date**: 2026-07-08
+    - **Deciders**: (関係者)
+
+    ## Context
+
+    どんな力学 (制約・要件・課題) があってこの決定が必要になったか。中立的に、まだ結論は書かない。
+
+    ## Decision
+
+    何を採用するか。能動態で「〜する」と言い切る。
+
+    ## Alternatives
+
+    検討したが採らなかった案と、却下の理由。
+
+    ## Consequences
+
+    この決定で何が良くなり、何を引き受けるか (正負の両方を書く)。
+    &quot;&quot;&quot;, toc: true, fences: DocsFences));
+</code></pre>
+<h2 id="section">各節の書き方</h2>
+<ul>
+<li><strong>Status / Date / Deciders</strong> — 現在の状態・決定日 (絶対日付)・関与者。決定が置き換わったら Status を <code>Superseded by ADR-NNNN</code> に更新する</li>
+<li><strong>Context</strong> — 決定に至った <em>力学</em>。制約・要件・トレードオフを中立に。ここに結論は書かない</li>
+<li><strong>Decision</strong> — 採用する内容を能動態で 1〜数文</li>
+<li><strong>Alternatives</strong> — 検討して却下した案と理由 (これが後の再検討を助ける)</li>
+<li><strong>Consequences</strong> — 得られるもの (✅) と引き受けるもの (⚠️) の両方</li>
+</ul>
+<div class="markdown-alert markdown-alert-tip">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>Tip</p>
+<p>節タイトル (H2) はサイドバーのツリーにも出ます。上の 5 節を固定にしておくと、どの ADR も同じ骨格で読めます。</p>
+</div>
+</article>

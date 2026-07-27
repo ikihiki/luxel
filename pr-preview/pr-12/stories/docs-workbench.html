@@ -1,0 +1,44 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Docs/Workbench</h1></header><h1 id="workbench-luxel.workbench">Workbench (Luxel.Workbench)</h1>
+<ul>
+<li><a href="#ieditordocument-%E2%80%94-1-%E3%83%89%E3%82%AD%E3%83%A5%E3%83%A1%E3%83%B3%E3%83%88%E3%81%AE%E4%B8%8D%E9%80%8F%E6%98%8E%E3%83%8F%E3%83%B3%E3%83%89%E3%83%AB">IEditorDocument — 1 ドキュメントの不透明ハンドル</a></li>
+<li><a href="#workspace-%E3%81%A8-docktree">Workspace と DockTree</a></li>
+<li><a href="#idocumentstore-%E2%80%94-%E5%AE%9F%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%81%AE-open/save">IDocumentStore — 実ファイルの open/save</a></li>
+<li><a href="#%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89-adr-0013">コマンド (ADR-0013)</a></li>
+<li><a href="#%E7%B5%84%E3%81%BF%E7%AB%8B%E3%81%A6%E4%BE%8B">組み立て例</a></li>
+</ul>
+<p>複数のエディタを「<strong>開いて・並べて・保存する</strong>」シェルのフレームワークです。エディタは特定型をハードコードせず<strong>構成</strong>として載せます — テキスト (<a href="#story=Docs%2FEditor">Docs/Editor</a>)・ノード (<a href="#story=Docs%2FNodeEditor">Docs/NodeEditor</a>)・Inspector が同じ契約で並び、内部モデルは統一しません。決定は <a href="#story=ADR%2F0010-Workbench-Framework">ADR-0010</a> (コア) / <a href="#story=ADR%2F0013-Menu-Command-System">ADR-0013</a> (コマンド) / <a href="#story=ADR%2F0014-Workbench-Ui-Controls">ADR-0014</a> (基盤 UI)。</p>
+<figure class="static-capture"><img src="images/mermaid-a404a152e317328ab4d1.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
+<h2 id="ieditordocument-1">IEditorDocument — 1 ドキュメントの不透明ハンドル</h2>
+<p>{ Kind, Title, <code>Signal&lt;bool&gt;</code> Dirty, <code>CreateView()</code>, CanUndo/Redo + Undo/Redo, Serialize/LoadFrom, Contributions }。各エディタスタックがこれを実装するアダプタを持ち、シェルは契約だけを見ます。標準アダプタ (Luxel.Controls):</p>
+<ul>
+<li><strong><code>TextDocument</code></strong> — Code / Markdown / Strudel は <strong>viewFactory の構成差だけ</strong> (プロバイダ/言語サービス/フォント)。真実は <code>Signal&lt;string&gt;</code>、undo はビューへ委譲</li>
+<li><strong><code>NodeGraphDocument</code></strong> — 直列化は <code>NodeGraphJson</code> の JSON 往復。ドメインは <code>INodeCatalog</code> を configure で渡す</li>
+<li><strong><code>ObjectDocument&lt;T&gt;</code></strong> — 設定/コンポーネントを <a href="#story=Controls%2FPropertyGrid%2FBasic">PropertyGrid</a> で Inspector 編集。直列化は JSON、undo は<strong>プロパティ変更単位</strong></li>
+</ul>
+<h2 id="workspace-docktree">Workspace と DockTree</h2>
+<ul>
+<li><strong><code>Workspace</code></strong> — 開いている doc 群・<code>Signal</code> のアクティブ・<strong>ダーティ集約</strong> (<code>Computed&lt;bool&gt;</code> AnyDirty、開閉にも各 doc の Dirty にも追従)・undo/redo のアクティブ doc への委譲。「保存しますか」はシェルの責務</li>
+<li><strong><code>DockTree</code></strong> — 領域 + タブグループの<strong>不変</strong>再帰木 (レイアウトの真実)。分割 <code>Dock(tab, group, side)</code>・移動 <code>MoveTab</code>・<strong>窓内フローティング</strong> (<code>Float</code>/<code>MoveFloat</code>)・JSON 直列化。空グループは畳み、同方向の入れ子は平坦化</li>
+<li><strong><code>DockHost</code></strong> — ツリーを描く container。タブ帯 = <a href="#story=Controls%2FDocumentTabs%2FBasic">DocumentTabs</a> (ダーティ ●・×・D&amp;D)、分割 = Splitter、<strong>端 25% へのドロップで分割</strong>、フロートはつかみバーで移動。すべて tree signal を書き換えて自動再構築</li>
+</ul>
+<p>実物: <a href="#story=Controls%2FDockHost%2FBasic">Controls/DockHost/Basic</a> (ドラッグ分割/リサイズ/グループ間移動) / <a href="#story=Controls%2FDockHost%2FFloating">Floating</a> (窓内フローティング)。</p>
+<h2 id="idocumentstore-opensave">IDocumentStore — 実ファイルの open/save</h2>
+<p>doc ↔ path の結線と永続化。低レベル FS は <code>IFileStorage</code> (Exists/Read/Write/Watch/List — メモリ実装と実ディスク実装)。<strong>外部変更検知</strong>は自書込エコーを保存点比較で無視し、<code>DocumentBinding.ExternalChange</code> signal で「再読込しますか」をシェルに委ねます。<a href="#story=Controls%2FAssetBrowser%2FBasic">AssetBrowser</a> がファイルツリー → open の入口。</p>
+<h2 id="adr-0013">コマンド (ADR-0013)</h2>
+<p><strong><code>CommandRegistry</code> がコマンドの単一の真実</strong>: { id, タイトル, キーバインド, enablement, run }。メニュー項目は<strong>パス文字列</strong> (&quot;File/保存&quot;) の寄与で登録し、<a href="#story=Controls%2FMenuBar%2FBasic">MenuBar</a> / <a href="#story=Controls%2FCommandPalette%2FBasic">CommandPalette</a> (発見性の主役、↑↓/Enter) / <a href="#story=Controls%2FToolbar%2FBasic">Toolbar</a> / Keymap (<code>BindShortcuts</code> — フォーカスが消費しないキーだけ届く) はその純粋ビューです。アクティブ doc は <code>IEditorDocument.Contributions</code> で文脈メニュー/ツールバー/キーを寄与できます。</p>
+<h2 id="section">組み立て例</h2>
+<pre><code class="language-csharp">var ws = new Workspace();
+ws.RegisterProvider(new TextProvider(&quot;code&quot;, CodeView));   // 拡張子 → kind はシェルが解決
+var store = new DocumentStore(ws, new PhysicalFileStorage(root));
+var tree = new Signal&lt;DockTree&gt;(DockTree.Single());
+var reg = new CommandRegistry();
+reg.Register(&quot;file.save&quot;, &quot;保存&quot;, () =&gt; store.Save(ws.Active.Peek()!),
+    enabled: () =&gt; ws.Active.Peek()?.Dirty.Peek() == true, key: &quot;Ctrl+S&quot;, toolbar: true);
+// AssetBrowser.OnOpen → store.Open → tree.AddTab、DockHost が描く
+</code></pre>
+<p>実物 (フル構成のシェル): <a href="#story=Demos%2FWorkbench%2FShell">Demos/Workbench/Shell</a> (4 エディタ + メニュー/キーマップ) / <a href="#story=Demos%2FWorkbench%2FFiles">Files</a> (実ファイル open/save/外部変更) / <a href="#story=Demos%2FWorkbench%2FMaterial">Material</a> (<strong>新ドメインを構成だけで追加</strong> — マテリアルグラフ + Slang) / <a href="#story=Demos%2FWorkbench%2FInspector">Inspector</a> (PropertyGrid エディタ)。</p>
+<div class="markdown-alert markdown-alert-note">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p><strong>Gallery 自身がドッグフード</strong>です — この画面のサイドバー/プレビュー/下ペイン (Log/Knobs/Interactions/Console のタブ)/Props は DockTree + DockHost で組まれており、下ペインのタブは D&amp;D で動かせます。単一タブのペインはタブ帯を隠して従来の chrome と同じ見た目にしています (<code>hideSingleTabStrip</code>)。</p>
+</div>
+</article>

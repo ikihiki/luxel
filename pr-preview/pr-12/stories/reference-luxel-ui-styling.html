@@ -1,0 +1,17 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Luxel.UI.Styling</h1></header><h1 id="luxel.ui.styling">Luxel.UI.Styling</h1>
+<ul>
+<li><a href="#islotpart">ISlotPart</a></li>
+<li><a href="#islotted%3Ctkey%3E">ISlotted<TKey></a></li>
+<li><a href="#slotpart%3Ctkey%3E">SlotPart<TKey></a></li>
+<li><a href="#styleapply">StyleApply</a></li>
+</ul>
+<p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
+<h2 id="islotpart">ISlotPart</h2>
+<section class="api-reference"><p class="api-summary">interface — Slot 上書きの宣言。Slider()[SliderSlot.Knob(() =&gt; Circle())] のように control の indexer 経由で渡し、内部の primitives (knob/track 等) を上書きする。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>ApplyTo</code></th><td><code>(Widget widget) → void</code></td><td></td></tr></tbody></table></div></section>
+<h2 id="islotted">ISlotted<TKey></h2>
+<section class="api-reference"><p class="api-summary">interface — Slot を受け取る能力を持つ widget の marker interface。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>SetSlot</code></th><td><code>(TKey key, Func&lt;Widget&gt; template) → void</code></td><td></td></tr></tbody></table></div></section>
+<h2 id="slotpart">SlotPart<TKey></h2>
+<section class="api-reference"><p class="api-summary">class — ISlotPart の汎用実装。typed key で widget の slot dictionary に書き込む。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>SlotPart</code></th><td><code>(TKey key, Func&lt;Widget&gt; template)</code></td><td>ISlotPart の汎用実装。typed key で widget の slot dictionary に書き込む。</td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>ApplyTo</code></th><td><code>(Widget widget) → void</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Key</code></th><td><code>TKey (get)</code></td><td></td></tr><tr><th scope="row"><code>Template</code></th><td><code>Func&lt;Widget&gt; (get)</code></td><td></td></tr></tbody></table></div></section>
+<h2 id="styleapply">StyleApply</h2>
+<section class="api-reference"><p class="api-summary">class — StateStyle ベース Widget が共通で使う適用ヘルパ (Button/Border などで共有)。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>MultiplyAlpha</code></th><td><code>(uint rgba, float opacity) → uint</code></td><td>RGBA の Alpha 成分を opacity (0..1) で掛けた色を返す (RGB はそのまま)。</td></tr></tbody></table></div></section>
+</article>
