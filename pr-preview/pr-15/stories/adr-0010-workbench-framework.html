@@ -1,0 +1,47 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>ADR/0010-Workbench-Framework</h1></header><h1 id="adr-0010-workbench">ADR-0010 — 複数エディタを束ねる Workbench フレームワークを新規に作る</h1>
+<ul>
+<li><p><a href="#story=ADR%2F0010-Workbench-Framework&amp;section=context">Context</a></p>
+</li>
+<li><p><a href="#story=ADR%2F0010-Workbench-Framework&amp;section=decision">Decision</a></p>
+</li>
+<li><p><a href="#story=ADR%2F0010-Workbench-Framework&amp;section=alternatives">Alternatives</a></p>
+</li>
+<li><p><a href="#story=ADR%2F0010-Workbench-Framework&amp;section=consequences">Consequences</a></p>
+</li>
+<li><p><strong>Status</strong>: Accepted</p>
+</li>
+<li><p><strong>Date</strong>: 2026-07-09</p>
+</li>
+<li><p><strong>Deciders</strong>: ikihiki</p>
+</li>
+</ul>
+<h2 id="context">Context</h2>
+<p>Luxel には成熟した<strong>編集コンポーネント</strong>が育ちました — テキスト新スタック (<a href="#story=ADR%2F0006-Editor-New-Stack">ADR-0006</a>、<code>Luxel.Document</code> + <code>TextEditorView</code>) とノード新スタック (<a href="#story=ADR%2F0009-Node-Editor-Stack">ADR-0009</a>、<code>Luxel.NodeGraph</code> + <code>NodeGraphView</code>)。さらにリッチ文書スタック (<a href="#story=ADR%2F0012-Rich-Document-Stack">ADR-0012</a>) を新設予定です。</p>
+<p>しかしこれらを「<strong>開いて・並べて・保存する</strong>」アプリ/シェル層がありません。唯一のシェルは Gallery (Storybook 風・単一ドキュメントのプレビュー) で、複数ドキュメントのタブ・ドッキング・ファイル連動・コマンド起動・保存経路が全面的に未実装です。一方で各エディタスタックは<strong>内部モデルを意図的に分離</strong>しています (<a href="#story=ADR%2F0006-Editor-New-Stack">ADR-0006</a> / <a href="#story=ADR%2F0009-Node-Editor-Stack">ADR-0009</a>)。シェルはそこに手を出さず、各エディタを不透明に束ねたい、という力学です。</p>
+<h2 id="decision">Decision</h2>
+<p>canvas 非依存の新プロジェクト <strong><code>Luxel.Workbench</code></strong> を作り、複数エディタを 1 シェルに束ねます。エディタは特定型をハードコードせず「<strong>構成</strong>」として載せます。核心:</p>
+<ul>
+<li><strong><code>IEditorDocument</code></strong> — 1 ドキュメントの<strong>不透明ハンドル</strong> { Kind, Title, <code>Signal&lt;bool&gt;</code> Dirty, <code>Widget CreateView()</code>, CanUndo/Redo + Undo/Redo, Serialize/LoadFrom }。各スタックはこれを実装するアダプタを持ち、<strong>内部モデル (EditorState/NodeGraphState/…) は統一しない</strong></li>
+<li><strong><code>IDocumentProvider</code></strong> — Kind ↔ (new / open / serialize) の工場。ドメインが登録する (Unity の <code>[MenuItem]</code>・Unreal の asset editor 流)</li>
+<li><strong><code>Workspace</code></strong> — 開いている doc 群・アクティブ doc・ダーティ集約・undo を各 doc へ委譲</li>
+<li><strong><code>DockTree</code></strong> — 領域 + タブグループの再帰木 (直列化/復元可、<strong>本格ドッキング</strong>)。この木を描く UI は <a href="#story=ADR%2F0014-Workbench-Ui-Controls">ADR-0014</a> の <code>DockHost</code></li>
+<li><strong><code>IDocumentStore</code></strong> — open / save / saveAs / watch (読み取り専用の <code>Luxel.Resources</code> VFS に Write を足すか新規に切る) + ダーティ・外部変更検知</li>
+</ul>
+<p>ドッグフードは <strong><code>GalleryApp</code> を Workbench で再構築</strong>します。既定レイアウトを現 chrome (サイドバー｜プレビュー｜下ペイン｜右パネル) の再現にして <strong>golden 中立</strong>で移行します (<a href="#story=ADR%2F0007-Floating-Ui-Placement">ADR-0007</a> の「既存挙動を同等に写して diff 0」と同じ手口)。本格ドッキングの D&amp;D は <a href="#story=ADR%2F0011-Pointer-Button-Modifiers">ADR-0011</a> を、UI コントロールは <a href="#story=ADR%2F0014-Workbench-Ui-Controls">ADR-0014</a> を、メニュー/コマンドは <a href="#story=ADR%2F0013-Menu-Command-System">ADR-0013</a> を、文書レンダラは <a href="#story=ADR%2F0012-Rich-Document-Stack">ADR-0012</a> を前提とします。</p>
+<p>実装計画は ToDo/26。</p>
+<h2 id="alternatives">Alternatives</h2>
+<ul>
+<li><strong>各エディタスタックを generic で統一</strong> — <a href="#story=ADR%2F0006-Editor-New-Stack">ADR-0006</a> / <a href="#story=ADR%2F0009-Node-Editor-Stack">ADR-0009</a> の意図的なモデル分離に反し、共通化のためのインスタンス churn を生む → 却下 (不透明 host に留める)</li>
+<li><strong>Gallery のシェルを流用</strong> — 単一ドキュメント前提で、複数 doc・ドッキング・保存に再設計が要る → 参考に留め新規</li>
+<li><strong>既存 IDE を組込 (VS Code webview 等)</strong> — 自前レンダラに載らず別ランタイムを抱える (<a href="#story=ADR%2F0003-Declarative-Signal-Ui">ADR-0003</a> と同じ力学) → 却下</li>
+</ul>
+<h2 id="consequences">Consequences</h2>
+<ul>
+<li>✅ Text / Node / RichDoc / Code が 1 シェルに載り、エディタが構成として安く量産できる (1 スタックの横展開)</li>
+<li>✅ 内部モデルを触らないので既存スタックは無回帰</li>
+<li>✅ Gallery 自身が最大のドッグフード — docs をタブで開き、ドックに並べる</li>
+<li>⚠️ 本格ドッキング + 保存経路 + 複数 doc は<strong>新規コード量が大きい</strong> (だからこそ ADR-0011〜0014 に分割した)</li>
+<li>⚠️ Gallery 移行は golden 面積が広い — 既定レイアウト再現で中立化する規律が要る</li>
+<li>⚠️ <code>IEditorDocument</code> の serialize 契約を各スタックで満たす必要がある (ノード = JSON 往復、テキスト = 文字列、リッチ文書 = ブロック)</li>
+</ul>
+</article>
