@@ -10,23 +10,37 @@ using static Luxel.Controls.Kit;
 int? frames = ParseFrames(args)
     ?? (int.TryParse(Environment.GetEnvironmentVariable("LUXEL_RUN_FRAMES"), out int value) ? value : null);
 
-LuxelApp.Run(
-    () => Center()[
-        Card(VStack(12)[
-            Heading("Hello, Luxel!"),
-            Text("A .NET 10 file-based Linux UI app."),
-            Button(onClick: _ => Console.WriteLine("Hello from Luxel."), text: "It works")
-        ])
-    ],
-    new LuxelAppOptions
-    {
-        Title = "Hello Luxel",
-        Width = 640,
-        Height = 400,
-        Theme = Theme.Dark,
-        RunFrames = frames,
-        Diagnostic = Console.WriteLine,
-    });
+LuxelAppBuilder builder = LuxelApp.CreateBuilder(args);
+builder.Options.Title = "Hello Luxel";
+builder.Options.Width = 640;
+builder.Options.Height = 400;
+builder.Options.Theme = Theme.Dark;
+builder.Options.RunFrames = frames;
+builder.Options.Diagnostic = Console.WriteLine;
+
+LuxelUiApplication app = builder.Build();
+app.MapScreen("/", navigation => Center()[
+    Card(VStack(12)[
+        Heading("Hello, Luxel!"),
+        Text("A .NET 10 file-based Linux UI app."),
+        Button(_ => navigation.Navigate("/settings"), "Open settings")
+    ])
+]);
+app.MapScreen("/settings", navigation => Center()[
+    Card(VStack(12)[
+        Heading("Settings"),
+        Text("This screen was registered with MapScreen."),
+        Button(_ => navigation.Back(), "Back")
+    ])
+]);
+
+app.Run("/", (navigation, content) =>
+    NavigationView(
+        navigation,
+        [
+            new("/", "Home"),
+            new("/settings", "Settings"),
+        ])[content]);
 
 static int? ParseFrames(string[] arguments)
 {
