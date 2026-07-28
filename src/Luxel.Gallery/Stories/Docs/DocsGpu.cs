@@ -14,7 +14,19 @@ public static partial class DocsGpu
     public static Widget GpuDevice(StoryContext ctx) => DocNew(ctx, $$"""
         # GPU 抽象 (GpuDevice)
 
-        `Luxel.Graphics` は *No Graphics API* の哲学どおり、最新のバインドレス GPU を前提に **ディスクリプタセットも PSO バリアントも持たない**薄い抽象です。実装は `Luxel.Graphics.Vulkan` (Vulkan 1.3) と `Luxel.Graphics.DirectX12` (DirectX 12) — アプリのコードはバックエンド分岐なしの 1 本で書けます。
+        `Luxel.Graphics` は *No Graphics API* の原則を、resource・arguments・pass・dependency の **portable semantics** と backend-specific lowering に分けた薄い抽象です。アプリのコードは backend 分岐を持たず、Vulkan / DirectX 12 は bindless・GPUVA・明示 barrier を fast path として使います。native WebGPU は同じ意味論を bind groups、argument ring、pass segmentation へ lower する明示 opt-in backend として追加する方針です。
+
+        ## backend と capability
+
+        | backend | 対象と位置づけ | 主な lowering |
+        | --- | --- | --- |
+        | Vulkan 1.3 | native desktop、既存 backend | descriptor indexing / BDA、push constants、synchronization2 |
+        | DirectX 12 | native Windows、既存 backend | descriptor heap / GPUVA、root constants、transition/UAV barrier |
+        | WebGPU | native Windows・Linux/X11、明示 opt-in | fixed bind groups、argument ring、pass/encoder segmentation |
+
+        WebGPU は browser 互換モードや自動 fallback ではありません。対象範囲、portable baseline に含めない機能、required limits と診断契約は [Reference/Guides/WebGPU](story:Reference/Guides/WebGPU) を参照してください。
+
+        以下の固定 bindless layout と `Span<T>` の例は Vulkan / DirectX 12 の既存 fast path を説明します。portable contract では native address/index/map 方法ではなく logical resource references と Upload / DeviceLocal / Readback のデータフローを扱います。
 
         ## 固定パイプラインレイアウト
 
