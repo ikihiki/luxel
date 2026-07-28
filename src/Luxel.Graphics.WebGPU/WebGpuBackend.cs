@@ -1,8 +1,10 @@
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Text;
 using Luxel.Graphics.Abstraction;
 using Silk.NET.Core.Native;
 using Silk.NET.WebGPU;
+using Silk.NET.WebGPU.Extensions.WGPU;
 using WgpuBuffer = Silk.NET.WebGPU.Buffer;
 using WebGpuApi = Silk.NET.WebGPU.WebGPU;
 
@@ -20,17 +22,21 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
     private static readonly ErrorCallback ErrorCallback = OnError;
     private readonly object _sync = new();
     private readonly List<WebGpuBuffer> _buffers = [];
+    private readonly List<ArenaRange> _freeArenaRanges = [new(0, ArenaSize)];
+    private readonly ConcurrentQueue<string> _validationErrors = new();
     private WebGpuApi _api = null!;
     private Instance* _instance;
     private Adapter* _adapter;
     private Device* _device;
     private Queue* _queue;
     private WgpuBuffer* _arena;
-    private BindGroupLayout* _bindGroupLayout;
-    private PipelineLayout* _pipelineLayout;
-    private ulong _nextArenaOffset;
-    private int _nextTextureIndex;
-    private int _nextSamplerIndex;
+    private BindGroupLayout* _computeBindGroupLayout;
+    private BindGroupLayout* _graphicsBindGroupLayout;
+    private PipelineLayout* _computePipelineLayout;
+    private PipelineLayout* _graphicsPipelineLayout;
+    private Wgpu _native = null!;
+    private GCHandle _errorHandle;
+    private int _activeCommands;
     private bool _disposed;
 
     private WebGpuBackend() { }
@@ -42,9 +48,8 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
     internal WebGpuApi Api => _api;
     internal Device* Device => _device;
     internal WgpuBuffer* Arena => _arena;
-    internal BindGroupLayout* BindGroupLayout => _bindGroupLayout;
-    internal PipelineLayout* PipelineLayout => _pipelineLayout;
-    internal IReadOnlyList<WebGpuBuffer> Buffers => _buffers;
+    internal IReadOnlyList<WebGpuBuffer> Buffers { get { ThrowIfDisposed(); return _buffers; } }
+    internal bool IsDisposed => _disposed;
 
     public static WebGpuBackend Create()
     {
@@ -71,7 +76,6 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
 
         var adapterState = new AdapterRequestState();
         var adapterHandle = GCHandle.Alloc(adapterState);
-        try
         {
             var options = new RequestAdapterOptions
             {
@@ -84,7 +88,6 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
                 throw new WebGpuUnavailableException($"No WebGPU adapter is available: {adapterState.Message ?? adapterState.Status.ToString()}.");
             _adapter = adapterState.Adapter;
         }
-        finally { adapterHandle.Free(); }
 
         var properties = new AdapterProperties();
         _api.AdapterGetProperties(_adapter, &properties);
@@ -93,7 +96,6 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
 
         var deviceState = new DeviceRequestState();
         var deviceHandle = GCHandle.Alloc(deviceState);
-        try
         {
             var descriptor = new DeviceDescriptor();
             _api.AdapterRequestDevice(_adapter, in descriptor, new PfnRequestDeviceCallback(DeviceCallback), (void*)GCHandle.ToIntPtr(deviceHandle));
@@ -102,9 +104,11 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
                 throw new WebGpuUnavailableException($"WebGPU device creation failed: {deviceState.Message ?? deviceState.Status.ToString()}.");
             _device = deviceState.Device;
         }
-        finally { deviceHandle.Free(); }
 
-        _api.DeviceSetUncapturedErrorCallback(_device, new PfnErrorCallback(ErrorCallback), null);
+        if (!_api.TryGetDeviceExtension(_device, out _native!))
+            throw new WebGpuUnavailableException("The wgpu-native DevicePoll extension is unavailable.");
+        _errorHandle = GCHandle.Alloc(this);
+        _api.DeviceSetUncapturedErrorCallback(_device, new PfnErrorCallback(ErrorCallback), (void*)GCHandle.ToIntPtr(_errorHandle));
         _queue = _api.DeviceGetQueue(_device);
         if (_queue == null) throw new WebGpuUnavailableException("The WebGPU device did not expose a default queue.");
 
@@ -122,12 +126,20 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
 
     private void CreateFixedLayout()
     {
+        CreateFixedLayout(BufferBindingType.Storage, ShaderStage.Compute, out _computeBindGroupLayout, out _computePipelineLayout);
+        CreateFixedLayout(BufferBindingType.ReadOnlyStorage, ShaderStage.Vertex | ShaderStage.Fragment,
+            out _graphicsBindGroupLayout, out _graphicsPipelineLayout);
+    }
+
+    private void CreateFixedLayout(BufferBindingType arenaType, ShaderStage arenaVisibility,
+        out BindGroupLayout* bindGroupLayout, out PipelineLayout* pipelineLayout)
+    {
         var entries = stackalloc BindGroupLayoutEntry[2];
         entries[0] = new BindGroupLayoutEntry
         {
             Binding = 0,
-            Visibility = ShaderStage.Fragment | ShaderStage.Compute,
-            Buffer = new BufferBindingLayout { Type = BufferBindingType.Storage, MinBindingSize = 4 },
+            Visibility = arenaVisibility,
+            Buffer = new BufferBindingLayout { Type = arenaType, MinBindingSize = 4 },
         };
         entries[1] = new BindGroupLayoutEntry
         {
@@ -136,13 +148,13 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
             Buffer = new BufferBindingLayout { Type = BufferBindingType.Uniform, HasDynamicOffset = true, MinBindingSize = 256 },
         };
         var layoutDescriptor = new BindGroupLayoutDescriptor { EntryCount = 2, Entries = entries };
-        _bindGroupLayout = _api.DeviceCreateBindGroupLayout(_device, in layoutDescriptor);
-        if (_bindGroupLayout == null) throw new InvalidOperationException("Failed to create the fixed WebGPU bind group layout.");
+        bindGroupLayout = _api.DeviceCreateBindGroupLayout(_device, in layoutDescriptor);
+        if (bindGroupLayout == null) throw new InvalidOperationException("Failed to create a fixed WebGPU bind group layout.");
 
-        var layout = _bindGroupLayout;
+        var layout = bindGroupLayout;
         var pipelineDescriptor = new PipelineLayoutDescriptor { BindGroupLayoutCount = 1, BindGroupLayouts = &layout };
-        _pipelineLayout = _api.DeviceCreatePipelineLayout(_device, in pipelineDescriptor);
-        if (_pipelineLayout == null) throw new InvalidOperationException("Failed to create the fixed WebGPU pipeline layout.");
+        pipelineLayout = _api.DeviceCreatePipelineLayout(_device, in pipelineDescriptor);
+        if (pipelineLayout == null) throw new InvalidOperationException("Failed to create a fixed WebGPU pipeline layout.");
     }
 
     public IGpuBackendBuffer CreateBuffer(ulong size, GpuMemoryKind kind)
@@ -151,19 +163,28 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         if (size == 0) throw new ArgumentOutOfRangeException(nameof(size));
         lock (_sync)
         {
-            ulong offset = AlignUp(_nextArenaOffset, ArenaAlignment);
-            ulong allocationSize = AlignUp(size, 4);
-            if (offset + allocationSize > ArenaSize)
-                throw new OutOfMemoryException($"WebGPU storage arena exhausted ({ArenaSize} bytes).");
-            _nextArenaOffset = offset + allocationSize;
-            var buffer = new WebGpuBuffer(this, size, offset, checked((uint)(offset / ArenaAlignment)), kind);
-            _buffers.Add(buffer);
-            return buffer;
+            ulong physicalSize = CheckedAlignUp(size, 4);
+            ulong allocationSize = CheckedAlignUp(physicalSize, ArenaAlignment);
+            for (int i = 0; i < _freeArenaRanges.Count; i++)
+            {
+                ArenaRange range = _freeArenaRanges[i];
+                if (range.Size < allocationSize) continue;
+                ulong offset = range.Offset;
+                if (range.Size == allocationSize) _freeArenaRanges.RemoveAt(i);
+                else _freeArenaRanges[i] = new ArenaRange(checked(offset + allocationSize), range.Size - allocationSize);
+                var buffer = new WebGpuBuffer(this, size, physicalSize, allocationSize, offset,
+                    checked((uint)(offset / ArenaAlignment)), kind);
+                _buffers.Add(buffer);
+                return buffer;
+            }
+            throw new OutOfMemoryException($"WebGPU storage arena exhausted ({ArenaSize} bytes).");
         }
     }
 
     public IGpuBackendPipeline CreateComputePipeline(ReadOnlySpan<byte> shaderBlob, string entryPoint)
     {
+        ThrowIfDisposed();
+        DrainValidationErrors();
         var module = CreateShaderModule(shaderBlob);
         try
         {
@@ -171,12 +192,14 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
             {
                 var descriptor = new ComputePipelineDescriptor
                 {
-                    Layout = _pipelineLayout,
+                    Layout = _computePipelineLayout,
                     Compute = new ProgrammableStageDescriptor { Module = module, EntryPoint = entry },
                 };
                 var pipeline = _api.DeviceCreateComputePipeline(_device, in descriptor);
+                try { ProcessEventsAndThrowValidationErrors("compute pipeline creation"); }
+                catch { if (pipeline != null) _api.ComputePipelineRelease(pipeline); throw; }
                 if (pipeline == null) throw new InvalidOperationException("Failed to create WebGPU compute pipeline. Check WGSL and the fixed ABI.");
-                return new WebGpuPipeline(_api, pipeline);
+                return new WebGpuPipeline(this, pipeline);
             }
         }
         finally { _api.ShaderModuleRelease(module); }
@@ -185,6 +208,8 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
     public IGpuBackendPipeline CreateGraphicsPipeline(ReadOnlySpan<byte> vsBlob, string vsEntry,
         ReadOnlySpan<byte> psBlob, string psEntry, GpuRasterDesc raster)
     {
+        ThrowIfDisposed();
+        DrainValidationErrors();
         var vs = CreateShaderModule(vsBlob);
         var ps = CreateShaderModule(psBlob);
         try
@@ -203,7 +228,7 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
                 var depth = CreateDepthState(raster);
                 var descriptor = new RenderPipelineDescriptor
                 {
-                    Layout = _pipelineLayout,
+                    Layout = _graphicsPipelineLayout,
                     Vertex = new VertexState { Module = vs, EntryPoint = vsName },
                     Primitive = new PrimitiveState
                     {
@@ -216,8 +241,10 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
                     Fragment = &fragment,
                 };
                 var pipeline = _api.DeviceCreateRenderPipeline(_device, in descriptor);
+                try { ProcessEventsAndThrowValidationErrors("graphics pipeline creation"); }
+                catch { if (pipeline != null) _api.RenderPipelineRelease(pipeline); throw; }
                 if (pipeline == null) throw new InvalidOperationException("Failed to create WebGPU render pipeline. Check WGSL and the fixed ABI.");
-                return new WebGpuPipeline(_api, pipeline);
+                return new WebGpuPipeline(this, pipeline);
             }
         }
         finally
@@ -235,40 +262,25 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
 
     public IGpuBackendTexture CreateSampledTexture(uint width, uint height, GpuFormat format, ReadOnlySpan<byte> data)
     {
-        var texture = CreateTexture(width, height, format, TextureUsage.TextureBinding | TextureUsage.CopyDst, (uint)Interlocked.Increment(ref _nextTextureIndex));
-        uint bytesPerPixel = 4;
-        uint bytesPerRow = width * bytesPerPixel;
-        if ((ulong)data.Length < (ulong)bytesPerRow * height) throw new ArgumentException("Texture data is too small.", nameof(data));
-        var destination = new ImageCopyTexture { Texture = texture.Handle, Aspect = TextureAspect.All };
-        var layout = new TextureDataLayout { BytesPerRow = bytesPerRow, RowsPerImage = height };
-        var extent = new Extent3D { Width = width, Height = height, DepthOrArrayLayers = 1 };
-        fixed (byte* source = data)
-            _api.QueueWriteTexture(_queue, in destination, source, (nuint)data.Length, in layout, in extent);
-        return texture;
+        ThrowIfDisposed();
+        throw new NotSupportedException("The current WebGPU fixed ABI does not expose sampled textures. Use render targets/readback only.");
     }
 
     public IGpuBackendSampler CreateSampler(GpuSamplerFilter filter, GpuSamplerAddress address = GpuSamplerAddress.Clamp)
     {
-        var mode = address == GpuSamplerAddress.Repeat ? AddressMode.Repeat : AddressMode.ClampToEdge;
-        var minMag = filter == GpuSamplerFilter.Point ? FilterMode.Nearest : FilterMode.Linear;
-        var descriptor = new SamplerDescriptor
-        {
-            AddressModeU = mode, AddressModeV = mode, AddressModeW = mode,
-            MinFilter = minMag, MagFilter = minMag,
-            MipmapFilter = filter == GpuSamplerFilter.Point ? MipmapFilterMode.Nearest : MipmapFilterMode.Linear,
-            LodMaxClamp = 32,
-            MaxAnisotropy = 1,
-        };
-        var sampler = _api.DeviceCreateSampler(_device, in descriptor);
-        if (sampler == null) throw new InvalidOperationException("Failed to create WebGPU sampler.");
-        return new WebGpuSampler(_api, sampler, (uint)Interlocked.Increment(ref _nextSamplerIndex));
+        ThrowIfDisposed();
+        throw new NotSupportedException("The current WebGPU fixed ABI does not expose samplers.");
     }
 
     public IGpuBackendSurface CreateSurface(nint windowHandle, uint width, uint height)
-        => throw new PlatformNotSupportedException("Luxel WebGPU currently supports headless/offscreen operation only; window surfaces are not implemented.");
+    {
+        ThrowIfDisposed();
+        throw new PlatformNotSupportedException("Luxel WebGPU currently supports headless/offscreen operation only; window surfaces are not implemented.");
+    }
 
     private WebGpuTexture CreateTexture(uint width, uint height, GpuFormat format, TextureUsage usage, uint bindlessIndex = 0)
     {
+        ThrowIfDisposed();
         if (width == 0 || height == 0) throw new ArgumentOutOfRangeException(nameof(width));
         var descriptor = new TextureDescriptor
         {
@@ -291,7 +303,7 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         };
         var view = _api.TextureCreateView(texture, in viewDescriptor);
         if (view == null) { _api.TextureRelease(texture); throw new InvalidOperationException("Failed to create WebGPU texture view."); }
-        return new WebGpuTexture(_api, texture, view, width, height, format, bindlessIndex);
+        return new WebGpuTexture(this, texture, view, width, height, format, bindlessIndex);
     }
 
     private ShaderModule* CreateShaderModule(ReadOnlySpan<byte> shaderBlob)
@@ -312,20 +324,67 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         }
     }
 
-    internal BindGroup* CreateCommandBindGroup(WgpuBuffer* rootBuffer)
+    internal BindGroup* CreateCommandBindGroup(WgpuBuffer* rootBuffer, bool compute)
     {
         var entries = stackalloc BindGroupEntry[2];
         entries[0] = new BindGroupEntry { Binding = 0, Buffer = _arena, Size = ArenaSize };
         entries[1] = new BindGroupEntry { Binding = 1, Buffer = rootBuffer, Size = 256 };
-        var descriptor = new BindGroupDescriptor { Layout = _bindGroupLayout, EntryCount = 2, Entries = entries };
+        var descriptor = new BindGroupDescriptor
+        {
+            Layout = compute ? _computeBindGroupLayout : _graphicsBindGroupLayout,
+            EntryCount = 2,
+            Entries = entries,
+        };
         var group = _api.DeviceCreateBindGroup(_device, in descriptor);
         if (group == null) throw new InvalidOperationException("Failed to create WebGPU command bind group.");
         return group;
     }
 
-    internal void RemoveBuffer(WebGpuBuffer buffer)
+    internal bool TryRetireBuffer(WebGpuBuffer buffer, ulong offset, ulong size)
     {
-        lock (_sync) _buffers.Remove(buffer);
+        lock (_sync)
+        {
+            if (_activeCommands != 0) return false;
+            _buffers.Remove(buffer);
+            int index = 0;
+            while (index < _freeArenaRanges.Count && _freeArenaRanges[index].Offset < offset) index++;
+            _freeArenaRanges.Insert(index, new ArenaRange(offset, size));
+            if (index > 0 && checked(_freeArenaRanges[index - 1].Offset + _freeArenaRanges[index - 1].Size) == offset)
+            {
+                ArenaRange previous = _freeArenaRanges[index - 1];
+                _freeArenaRanges[index - 1] = new ArenaRange(previous.Offset, checked(previous.Size + size));
+                _freeArenaRanges.RemoveAt(index--);
+            }
+            if (index + 1 < _freeArenaRanges.Count && checked(_freeArenaRanges[index].Offset + _freeArenaRanges[index].Size) == _freeArenaRanges[index + 1].Offset)
+            {
+                ArenaRange current = _freeArenaRanges[index];
+                _freeArenaRanges[index] = new ArenaRange(current.Offset, checked(current.Size + _freeArenaRanges[index + 1].Size));
+                _freeArenaRanges.RemoveAt(index + 1);
+            }
+            return true;
+        }
+    }
+
+    internal void RegisterCommand()
+    {
+        lock (_sync)
+        {
+            ThrowIfDisposed();
+            checked { _activeCommands++; }
+        }
+    }
+
+    internal void CompleteCommand()
+    {
+        WebGpuBuffer[] buffers;
+        lock (_sync)
+        {
+            if (_activeCommands <= 0) return;
+            _activeCommands--;
+            if (_activeCommands != 0) return;
+            buffers = _buffers.ToArray();
+        }
+        foreach (WebGpuBuffer buffer in buffers) buffer.TryRetire();
     }
 
     private void PumpUntil(Func<bool> done, string operation)
@@ -339,22 +398,49 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
     }
 
     private static void OnAdapter(RequestAdapterStatus status, Adapter* adapter, byte* message, void* userData)
-    {
-        var state = (AdapterRequestState)GCHandle.FromIntPtr((nint)userData).Target!;
-        state.Status = status; state.Adapter = adapter; state.Message = Marshal.PtrToStringUTF8((nint)message); state.Completed = true;
-    }
+        => CompleteRequest<AdapterRequestState>(userData, state => { state.Status = status; state.Adapter = adapter; state.Message = Marshal.PtrToStringUTF8((nint)message); state.Completed = true; });
 
     private static void OnDevice(RequestDeviceStatus status, Device* device, byte* message, void* userData)
+        => CompleteRequest<DeviceRequestState>(userData, state => { state.Status = status; state.Device = device; state.Message = Marshal.PtrToStringUTF8((nint)message); state.Completed = true; });
+
+    private static void CompleteRequest<T>(void* userData, Action<T> complete) where T : class
     {
-        var state = (DeviceRequestState)GCHandle.FromIntPtr((nint)userData).Target!;
-        state.Status = status; state.Device = device; state.Message = Marshal.PtrToStringUTF8((nint)message); state.Completed = true;
+        GCHandle handle = GCHandle.FromIntPtr((nint)userData);
+        try { if (handle.Target is T state) complete(state); }
+        catch (Exception exception) { Console.Error.WriteLine($"WebGPU callback failed: {exception}"); }
+        finally { handle.Free(); }
     }
 
     private static void OnError(ErrorType type, byte* message, void* userData)
-        => Console.Error.WriteLine($"[WebGPU {type}] {Marshal.PtrToStringUTF8((nint)message)}");
+    {
+        if (userData == null) return;
+        try
+        {
+            if (GCHandle.FromIntPtr((nint)userData).Target is WebGpuBackend backend)
+                backend._validationErrors.Enqueue($"{type}: {Marshal.PtrToStringUTF8((nint)message)}");
+        }
+        catch (Exception exception) { Console.Error.WriteLine($"WebGPU error callback failed: {exception}"); }
+    }
 
+    internal void ProcessEventsAndThrowValidationErrors(string operation)
+    {
+        ThrowIfDisposed();
+        _native.DevicePoll(_device, false, null);
+        if (_validationErrors.IsEmpty) return;
+        var messages = new List<string>();
+        while (_validationErrors.TryDequeue(out string? message)) messages.Add(message);
+        throw new InvalidOperationException($"WebGPU {operation} failed: {string.Join(" | ", messages)}");
+    }
+
+    private void DrainValidationErrors() { while (_validationErrors.TryDequeue(out _)) { } }
+    internal void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
     internal static byte[] Utf8(string value) => Encoding.UTF8.GetBytes(value + '\0');
-    internal static ulong AlignUp(ulong value, ulong alignment) => (value + alignment - 1) & ~(alignment - 1);
+    internal static ulong AlignUp(ulong value, ulong alignment) => CheckedAlignUp(value, alignment);
+    internal static ulong CheckedAlignUp(ulong value, ulong alignment)
+    {
+        if (alignment == 0 || (alignment & (alignment - 1)) != 0) throw new ArgumentOutOfRangeException(nameof(alignment));
+        return checked(value + alignment - 1) & ~(alignment - 1);
+    }
 
     internal static TextureFormat MapFormat(GpuFormat format) => format switch
     {
@@ -388,19 +474,25 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
     {
         if (_disposed) return;
         _disposed = true;
-        if (MainQueue is WebGpuQueue queue) queue.WaitIdle();
+        if (_device != null && MainQueue is WebGpuQueue queue) queue.WaitIdleForDispose();
+        lock (_sync) _activeCommands = 0;
         foreach (var buffer in _buffers.ToArray()) buffer.Dispose();
         _buffers.Clear();
-        if (_pipelineLayout != null) _api.PipelineLayoutRelease(_pipelineLayout);
-        if (_bindGroupLayout != null) _api.BindGroupLayoutRelease(_bindGroupLayout);
+        if (_computePipelineLayout != null) _api.PipelineLayoutRelease(_computePipelineLayout);
+        if (_graphicsPipelineLayout != null) _api.PipelineLayoutRelease(_graphicsPipelineLayout);
+        if (_computeBindGroupLayout != null) _api.BindGroupLayoutRelease(_computeBindGroupLayout);
+        if (_graphicsBindGroupLayout != null) _api.BindGroupLayoutRelease(_graphicsBindGroupLayout);
         if (_arena != null) { _api.BufferDestroy(_arena); _api.BufferRelease(_arena); }
         if (_queue != null) _api.QueueRelease(_queue);
-        if (_device != null) _api.DeviceRelease(_device);
+        if (_device != null) { _api.DeviceSetUncapturedErrorCallback(_device, default, null); _api.DeviceRelease(_device); }
+        if (_errorHandle.IsAllocated) _errorHandle.Free();
         if (_adapter != null) _api.AdapterRelease(_adapter);
         if (_instance != null) _api.InstanceRelease(_instance);
         _api?.Dispose();
         _instance = null; _adapter = null; _device = null; _queue = null;
     }
+
+    private readonly record struct ArenaRange(ulong Offset, ulong Size);
 
     private sealed class AdapterRequestState
     {

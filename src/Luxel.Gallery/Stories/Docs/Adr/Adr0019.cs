@@ -36,6 +36,8 @@ public static partial class DocsAdr
 
         初期対象は native Windows と Linux/X11 の明示 opt-in です。browser/WASM と macOS は初期スコープ外で、既定 backend は変更しません。利用者向けの設計契約は [Reference/Guides/WebGPU](story:Reference/Guides/WebGPU) に記録します。
 
+        現在のheadless実装ではbuffer arena/root uniformの固定ABIだけを提供します。sampled texture/samplerはshader package側のbinding metadataとbind-group mappingが完成するまでcapabilityを偽装せず、WebGPU backendでの作成を明示的に拒否します。
+
         ## Alternatives
 
         - **ADR-0002 を上書きして WebGPU の却下理由を消す** — 当時の制約と判断が失われるため却下。履歴は残し、この ADR で Amends する

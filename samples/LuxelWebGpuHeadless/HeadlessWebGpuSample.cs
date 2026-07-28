@@ -37,6 +37,9 @@ public static class HeadlessWebGpuSample
         if (computeValue != ExpectedComputeValue)
             throw new InvalidOperationException($"Compute validation failed: expected 0x{ExpectedComputeValue:x8}, got 0x{computeValue:x8}.");
 
+        using var vertices = device.Malloc(3 * 2 * sizeof(float), GpuMemoryKind.HostMapped);
+        float[] positions = [-0.8f, -0.8f, 0.8f, -0.8f, 0.0f, 0.8f];
+        positions.CopyTo(vertices.Span<float>());
         using var target = device.CreateRenderTarget(TargetSize, TargetSize, GpuFormat.Rgba8Unorm);
         using var readback = device.Malloc(TargetSize * TargetSize * 4, GpuMemoryKind.HostCached);
         using var graphicsPipeline = device.CreateGraphicsPipeline(
@@ -45,7 +48,8 @@ public static class HeadlessWebGpuSample
         using (GpuCommandBuffer commands = device.MainQueue.StartCommandRecording())
         {
             if (!setPipelineAfterBeginRendering) commands.SetGraphicsPipeline(graphicsPipeline);
-            commands.BeginRendering(target);
+            commands.SetRootArguments(new RootArguments(vertices.BindlessIndex, 0, 0, 0))
+                .BeginRendering(target);
             if (setPipelineAfterBeginRendering) commands.SetGraphicsPipeline(graphicsPipeline);
             commands.Draw(3).EndRendering().CopyTextureToBuffer(target, readback);
             commands.Finish();
@@ -80,17 +84,15 @@ public static class HeadlessWebGpuSample
         """;
 
     private const string TriangleShader = """
-        struct Root { values: vec4<u32> }
-        @group(0) @binding(0) var<storage, read_write> arena: array<u32>;
+        struct Root { buffer_index: u32, pad0: u32, pad1: u32, pad2: u32 }
+        @group(0) @binding(0) var<storage, read> arena: array<u32>;
         @group(0) @binding(1) var<uniform> root: Root;
 
         @vertex
         fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4<f32> {
-            var positions = array<vec2<f32>, 3>(
-                vec2<f32>(-0.8, -0.8),
-                vec2<f32>( 0.8, -0.8),
-                vec2<f32>( 0.0,  0.8));
-            return vec4<f32>(positions[vertex_index], 0.0, 1.0);
+            let word = root.buffer_index * 64u + vertex_index * 2u;
+            let position = vec2<f32>(bitcast<f32>(arena[word]), bitcast<f32>(arena[word + 1u]));
+            return vec4<f32>(position, 0.0, 1.0);
         }
 
         @fragment

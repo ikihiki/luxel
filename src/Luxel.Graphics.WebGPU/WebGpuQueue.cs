@@ -23,23 +23,46 @@ internal sealed unsafe class WebGpuQueue : IGpuBackendQueue
             throw new WebGpuUnavailableException("The wgpu-native DevicePoll extension is unavailable.");
     }
 
-    public IGpuBackendCommandBuffer StartCommandRecording() => new WebGpuCommandBuffer(_backend);
+    public IGpuBackendCommandBuffer StartCommandRecording()
+    {
+        _backend.ThrowIfDisposed();
+        return new WebGpuCommandBuffer(_backend);
+    }
 
     public void Submit(IGpuBackendCommandBuffer commandBuffer)
     {
-        if (commandBuffer is not WebGpuCommandBuffer command || command.Handle == null)
-            throw new ArgumentException("A finished WebGPU command buffer is required.", nameof(commandBuffer));
+        _backend.ThrowIfDisposed();
+        if (commandBuffer is not WebGpuCommandBuffer command || !ReferenceEquals(command.Owner, _backend))
+            throw new ArgumentException("Command buffer belongs to another backend.", nameof(commandBuffer));
+        if (command.IsDisposed) throw new ObjectDisposedException(nameof(commandBuffer));
+        if (!command.IsFinished) throw new ArgumentException("A finished WebGPU command buffer is required.", nameof(commandBuffer));
+        command.MarkSubmitted();
         lock (_sync)
         {
-            foreach (var buffer in _backend.Buffers) buffer.Upload(_api, _queue, _backend.Arena);
-            command.UploadRoots(_queue);
-            var handle = command.Handle;
-            _api.QueueSubmit(_queue, 1, &handle);
-            ReadBackHostCachedBuffers();
+            try
+            {
+                foreach (var buffer in _backend.Buffers.ToArray()) buffer.Upload(_api, _queue, _backend.Arena);
+                command.UploadRoots(_queue);
+                var handle = command.Handle;
+                _api.QueueSubmit(_queue, 1, &handle);
+                ReadBackHostCachedBuffers();
+                _backend.ProcessEventsAndThrowValidationErrors("queue submission");
+            }
+            finally { command.ReleaseReferencesAfterSubmit(); }
         }
     }
 
     public void WaitIdle()
+    {
+        _backend.ThrowIfDisposed();
+        lock (_sync)
+        {
+            _native.DevicePoll(_backend.Device, true, null);
+            _backend.ProcessEventsAndThrowValidationErrors("queue wait");
+        }
+    }
+
+    internal void WaitIdleForDispose()
     {
         lock (_sync) _native.DevicePoll(_backend.Device, true, null);
     }
@@ -55,7 +78,7 @@ internal sealed unsafe class WebGpuQueue : IGpuBackendQueue
         {
             totalSize = WebGpuBackend.AlignUp(totalSize, 4);
             offsets[i] = totalSize;
-            totalSize += WebGpuBackend.AlignUp(buffers[i].Size, 4);
+            totalSize = checked(totalSize + WebGpuBackend.AlignUp(buffers[i].Size, 4));
         }
 
         var readbackDescriptor = new BufferDescriptor { Size = totalSize, Usage = BufferUsage.MapRead | BufferUsage.CopyDst };
@@ -80,19 +103,15 @@ internal sealed unsafe class WebGpuQueue : IGpuBackendQueue
 
             var state = new MapState();
             var gcHandle = GCHandle.Alloc(state);
-            try
-            {
-                _api.BufferMapAsync(readback, MapMode.Read, 0, (nuint)totalSize, new PfnBufferMapCallback(MapCallback), (void*)GCHandle.ToIntPtr(gcHandle));
-                for (int i = 0; i < 1000 && !state.Completed; i++)
-                    _native.DevicePoll(_backend.Device, true, null);
-                if (!state.Completed) throw new TimeoutException("Timed out mapping WebGPU readback buffer.");
-                if (state.Status != BufferMapAsyncStatus.Success) throw new InvalidOperationException($"WebGPU readback mapping failed: {state.Status}.");
-                byte* mapped = (byte*)_api.BufferGetConstMappedRange(readback, 0, (nuint)totalSize);
-                if (mapped == null) throw new InvalidOperationException("WebGPU returned a null readback mapping.");
-                for (int i = 0; i < buffers.Length; i++) buffers[i].CopyFromMapped(mapped + offsets[i]);
-                _api.BufferUnmap(readback);
-            }
-            finally { gcHandle.Free(); }
+            _api.BufferMapAsync(readback, MapMode.Read, 0, (nuint)totalSize, new PfnBufferMapCallback(MapCallback), (void*)GCHandle.ToIntPtr(gcHandle));
+            for (int i = 0; i < 1000 && !state.Completed; i++)
+                _native.DevicePoll(_backend.Device, true, null);
+            if (!state.Completed) throw new TimeoutException("Timed out mapping WebGPU readback buffer.");
+            if (state.Status != BufferMapAsyncStatus.Success) throw new InvalidOperationException($"WebGPU readback mapping failed: {state.Status}.");
+            byte* mapped = (byte*)_api.BufferGetConstMappedRange(readback, 0, (nuint)totalSize);
+            if (mapped == null) throw new InvalidOperationException("WebGPU returned a null readback mapping.");
+            for (int i = 0; i < buffers.Length; i++) buffers[i].CopyFromMapped(mapped + offsets[i]);
+            _api.BufferUnmap(readback);
         }
         finally
         {
@@ -103,9 +122,17 @@ internal sealed unsafe class WebGpuQueue : IGpuBackendQueue
 
     private static void OnMapped(BufferMapAsyncStatus status, void* userData)
     {
-        var state = (MapState)GCHandle.FromIntPtr((nint)userData).Target!;
-        state.Status = status;
-        state.Completed = true;
+        GCHandle handle = GCHandle.FromIntPtr((nint)userData);
+        try
+        {
+            if (handle.Target is MapState state)
+            {
+                state.Status = status;
+                state.Completed = true;
+            }
+        }
+        catch (Exception exception) { Console.Error.WriteLine($"WebGPU map callback failed: {exception}"); }
+        finally { handle.Free(); }
     }
 
     private sealed class MapState

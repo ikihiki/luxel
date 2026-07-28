@@ -28,7 +28,9 @@ public static partial class DocsGpu
 
         WebGPU は「どの環境でも動く互換モード」ではありません。adapter が必要な limit を満たさない、native runtime と binding の ABI が一致しない、対象 shader artifact が無い、といった場合は backend 作成または pipeline 作成で明示的に失敗します。
 
-        `samples/LuxelWebGpuHeadless`は公開`GpuDevice` APIでWGSL compute、offscreen triangle、`HostCached` readbackを実行して結果を自己検証します。windowed `LuxelTriangle`へ未実装のselectorを追加せず、現在利用可能なheadless経路だけを示します。
+        `samples/LuxelWebGpuHeadless`は公開`GpuDevice` APIでWGSL compute、storage arenaからのvertex pulling、offscreen triangle、`HostCached` readbackを実行して結果を自己検証します。windowed `LuxelTriangle`へ未実装のselectorを追加せず、現在利用可能なheadless経路だけを示します。
+
+        **現時点の実装制限:** 固定ABIはbuffer arenaとroot uniformのみです。shader packageにsampled texture/samplerのbinding metadataがまだ無いため、WebGPUの`CreateTexture` / `CreateSampler`はshader-visibleなbindless indexを装わず`NotSupportedException`で明示的に拒否します。`Examples/3D/TexturedQuad`をWebGPU対応済みとは扱いません。
 
         {{SampleBundle("rendering.webgpu-headless")}}
 
@@ -113,6 +115,7 @@ public static partial class DocsGpu
         | WebGPU usage scope 違反 | 競合 access と必要な pass split を報告 |
         | uncaptured error / device lost | backend、adapter、最後の operation/object label を保持して公開 |
         | native runtime / binding 不一致 | runtime/version/RID と不足 symbol を起動時に報告 |
+        | sampled texture / sampler | 現固定ABIでは未対応。作成時に`NotSupportedException` |
 
         backend 作成時に adapter 名、backend type、driver/runtime version、limits を記録し、GPU object と pass/pipeline には label を付けます。「device creation failed」の一文だけで終わらせず、どの契約を満たせなかったかを診断の中心にします。
 

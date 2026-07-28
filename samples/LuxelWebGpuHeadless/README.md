@@ -1,7 +1,6 @@
 # LuxelWebGpuHeadless
 
-ウィンドウやsurfaceを作らず、公開`GpuDevice` APIだけでWebGPUのWGSL compute、offscreen triangle、
-`GpuMemoryKind.HostCached` readbackを実行・検証するconsole sampleです。
+ウィンドウやsurfaceを作らず、公開`GpuDevice` APIだけでWebGPUのWGSL compute、storage arenaからのvertex pulling、offscreen triangle、`GpuMemoryKind.HostCached` readbackを実行・検証するconsole sampleです。sampled texture/samplerは現在の固定ABIでは未対応です。
 
 ```bash
 dotnet run --project samples/LuxelWebGpuHeadless -c Release

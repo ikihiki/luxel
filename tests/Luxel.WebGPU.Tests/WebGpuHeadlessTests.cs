@@ -1,3 +1,4 @@
+using System.Text;
 using Luxel.Graphics;
 using Luxel.Graphics.WebGPU;
 using LuxelWebGpuHeadless;
@@ -54,6 +55,173 @@ public sealed class WebGpuHeadlessTests
         Assert.True(result.Blue < 30);
         Assert.True(result.Alpha > 200);
     }
+
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(5)]
+    public void OddSizedBuffers_UploadCopyAndReadBackLogicalBytes(int size)
+    {
+        using var device = TryCreate();
+        if (device is null) return;
+        using var source = device.Malloc((ulong)size, GpuMemoryKind.HostMapped);
+        using var destination = device.Malloc((ulong)size, GpuMemoryKind.HostCached);
+        for (int i = 0; i < size; i++) source.Span<byte>()[i] = (byte)(0xa0 + i);
+
+        using var commands = device.MainQueue.StartCommandRecording();
+        commands.CopyBuffer(source, destination, (ulong)size);
+        commands.Finish();
+        device.MainQueue.Submit(commands);
+
+        Assert.Equal(source.Span<byte>().ToArray(), destination.Span<byte>().ToArray());
+    }
+
+    [Fact]
+    public void ZeroSizedBuffer_IsRejected()
+    {
+        using var device = TryCreate();
+        if (device is null) return;
+        Assert.Throws<ArgumentOutOfRangeException>(() => device.Malloc(0));
+    }
+
+    [Fact]
+    public void Arena_ReusesDisposedRangesUnderAllocationChurn()
+    {
+        using var device = TryCreate();
+        if (device is null) return;
+        uint firstIndex = uint.MaxValue;
+        for (int i = 0; i < 96; i++)
+        {
+            using var buffer = device.Malloc(1024 * 1024, GpuMemoryKind.DeviceLocal);
+            if (i == 0) firstIndex = buffer.BindlessIndex;
+            else Assert.Equal(firstIndex, buffer.BindlessIndex);
+        }
+    }
+
+    [Fact]
+    public void ForeignAndDisposedObjects_AreRejectedBeforeNativeCalls()
+    {
+        using var first = TryCreate();
+        using var second = TryCreate();
+        if (first is null || second is null) return;
+        using var firstBuffer = first.Malloc(4);
+        using var secondBuffer = second.Malloc(4, GpuMemoryKind.HostCached);
+        using var commands = first.MainQueue.StartCommandRecording();
+        Assert.Throws<ArgumentException>(() => commands.CopyBuffer(firstBuffer, secondBuffer, 4));
+
+        using var foreignCommands = second.MainQueue.StartCommandRecording();
+        foreignCommands.Finish();
+        Assert.Throws<ArgumentException>(() => first.MainQueue.Submit(foreignCommands));
+
+        using var disposedBuffer = first.Malloc(4);
+        disposedBuffer.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => commands.CopyBuffer(disposedBuffer, firstBuffer, 4));
+
+        using var foreignTarget = second.CreateRenderTarget(1, 1);
+        Assert.Throws<ArgumentException>(() => commands.BeginRendering(foreignTarget));
+        using var target = first.CreateRenderTarget(1, 1);
+        target.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => commands.BeginRendering(target));
+
+        var shader = new GpuShaderCode { Wgsl = Encoding.UTF8.GetBytes(ValidComputeShader) };
+        using var foreignPipeline = second.CreateComputePipeline(shader);
+        Assert.Throws<ArgumentException>(() => commands.SetComputePipeline(foreignPipeline));
+        using var disposedPipeline = first.CreateComputePipeline(shader);
+        disposedPipeline.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => commands.SetComputePipeline(disposedPipeline));
+    }
+
+    [Fact]
+    public void DisposedBackend_RejectsQueueEntrypoints()
+    {
+        var device = TryCreate();
+        if (device is null) return;
+        GpuQueue queue = device.MainQueue;
+        device.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => queue.StartCommandRecording());
+        Assert.Throws<ObjectDisposedException>(() => queue.WaitIdle());
+    }
+
+    [Fact]
+    public void TextureCopy_HeightOneAcceptsTightRow()
+    {
+        using var device = TryCreate();
+        if (device is null) return;
+        using var target = device.CreateRenderTarget(1, 1);
+        using var readback = device.Malloc(4, GpuMemoryKind.HostCached);
+        using var commands = device.MainQueue.StartCommandRecording();
+        commands.BeginRendering(target, r: 0.25f, g: 0.5f, b: 0.75f).EndRendering()
+            .CopyTextureToBuffer(target, readback);
+        commands.Finish();
+        device.MainQueue.Submit(commands);
+        Assert.InRange(readback.Span<byte>()[0], 62, 65);
+    }
+
+    [Fact]
+    public void TextureCopy_PaddedRowsUseFinalRowFootprintAndRejectNarrowStride()
+    {
+        using var device = TryCreate();
+        if (device is null) return;
+        using var target = device.CreateRenderTarget(1, 2);
+        using var widerTarget = device.CreateRenderTarget(2, 1);
+        using var exact = device.Malloc(260, GpuMemoryKind.HostCached);
+        using var tooSmall = device.Malloc(259, GpuMemoryKind.HostCached);
+        using var commands = device.MainQueue.StartCommandRecording();
+        Assert.Throws<ArgumentException>(() => commands.CopyTextureToBuffer(target, exact, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => commands.CopyTextureToBuffer(widerTarget, exact, 1));
+        Assert.Throws<ArgumentException>(() => commands.CopyTextureToBuffer(target, tooSmall, 64));
+        commands.CopyTextureToBuffer(target, exact, 64);
+    }
+
+    [Fact]
+    public void DisposedRecordedBuffer_IsNotReusedUntilSynchronousSubmitCompletes()
+    {
+        using var device = TryCreate();
+        if (device is null) return;
+        var source = device.Malloc(4, GpuMemoryKind.HostMapped);
+        source.Span<uint>()[0] = 0xdecafbad;
+        uint sourceIndex = source.BindlessIndex;
+        using var destination = device.Malloc(4, GpuMemoryKind.HostCached);
+        using var commands = device.MainQueue.StartCommandRecording();
+        commands.CopyBuffer(source, destination, 4);
+        source.Dispose();
+        using var interim = device.Malloc(4);
+        Assert.NotEqual(sourceIndex, interim.BindlessIndex);
+        commands.Finish();
+        device.MainQueue.Submit(commands);
+        Assert.Equal(0xdecafbadu, destination.Span<uint>()[0]);
+        interim.Dispose();
+        using var reused = device.Malloc(4);
+        Assert.Equal(sourceIndex, reused.BindlessIndex);
+    }
+
+    [Fact]
+    public void InvalidWgsl_IsSurfacedAsManagedException()
+    {
+        using var device = TryCreate();
+        if (device is null) return;
+        var invalid = new GpuShaderCode { Wgsl = Encoding.UTF8.GetBytes("this is not wgsl") };
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => device.CreateComputePipeline(invalid));
+        Assert.Contains("WebGPU", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void SampledTextureAndSampler_AreExplicitlyUnsupported()
+    {
+        using var device = TryCreate();
+        if (device is null) return;
+        Assert.Throws<NotSupportedException>(() => device.CreateTexture(1, 1, new byte[4]));
+        Assert.Throws<NotSupportedException>(() => device.CreateSampler());
+    }
+
+    private const string ValidComputeShader = """
+        struct Root { values: vec4<u32> }
+        @group(0) @binding(0) var<storage, read_write> arena: array<u32>;
+        @group(0) @binding(1) var<uniform> root: Root;
+        @compute @workgroup_size(1) fn main() { }
+        """;
 
     private static GpuDevice? TryCreate()
     {
