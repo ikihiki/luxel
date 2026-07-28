@@ -293,10 +293,21 @@ public sealed record StoryInfo(string Path, int Width, int Height, string? Theme
 /// <summary>全アセンブリのストーリー登録先。ソースジェネレーターが module initializer から Register する。</summary>
 public enum SampleCopyLevel { Snippet, Block, Recipe, StandaloneProject, GalleryOnly }
 public enum SampleFileKind { Project, CSharp, Shader, Asset, Generated }
-public sealed record SampleFileInfo(string Path, SampleFileKind Kind, string? Region = null, string? Language = null);
+public enum SampleFileMode { Whole, Region, Generated, Glob }
+public enum SampleMergeRule { Error, KeepFirst, Replace, Append }
+public sealed record SampleFileInfo(string Path, SampleFileKind Kind, string? Region = null, string? Language = null,
+    string? Destination = null, SampleFileMode Mode = SampleFileMode.Whole, string? Wrapper = null,
+    string? AssetGlob = null, SampleMergeRule MergeRule = SampleMergeRule.Error)
+{
+    public string OutputPath => Destination ?? Path;
+    public SampleFileMode EffectiveMode => AssetGlob is not null ? SampleFileMode.Glob
+        : Kind == SampleFileKind.Generated ? SampleFileMode.Generated : Mode;
+}
 public sealed record SampleBundleInfo(string Id, string Name, string Description, string Difficulty, SampleCopyLevel CopyLevel,
     IReadOnlyList<SampleFileInfo> Files, IReadOnlyList<string>? Dependencies = null, IReadOnlyList<string>? Requirements = null,
-    string? ExportSymbol = null, string? RunCommand = null, string? SmokeCommand = null);
+    string? ExportSymbol = null, string? RunCommand = null, string? SmokeCommand = null,
+    IReadOnlyList<string>? Platforms = null, int TimeoutSeconds = 300, int ExpectedExitCode = 0,
+    string? ExpectedStdoutMarker = null, IReadOnlyList<string>? ExpectedArtifacts = null);
 
 public static class SampleBundleRegistry
 {

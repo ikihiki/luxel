@@ -27,6 +27,21 @@ internal static class RenderingCourseCatalog
         "Learn/Rendering/RasterizerInternals/Validation",
     ];
 
+    internal static readonly string[] ApplicationRoute = Routes
+        .Skip(1)
+        .TakeWhile(route => !route.StartsWith("Learn/Rendering/TwoD/", StringComparison.Ordinal))
+        .ToArray();
+
+    internal static string ApplicationRouteMarkdown()
+    {
+        var lines = ApplicationRoute.Select((route, index) =>
+        {
+            string label = route[(route.LastIndexOf('/') + 1)..];
+            return $"{index + 1}. [{label}](story:{route})";
+        });
+        return string.Join("\n", lines.Append($"{ApplicationRoute.Length + 1}. [Gallery Triangle](story:Examples/3D/Triangle)"));
+    }
+
     internal static (string? Previous, string? Next) Navigation(string path)
     {
         int index = Array.IndexOf(Routes, path);

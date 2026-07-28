@@ -17,6 +17,10 @@ public static partial class DocsAdr
 
         ## Context
 
+        > [!NOTE]
+        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+
+
         IME (TSF) の**変換候補リスト**は現状 OS/TIP が描画し、我々は `CaretRect` (`GetTextExt`) で位置を渡すだけです。preedit テキスト・下線・変換対象節の強調は既に自前 (`ITextInput` 経由) ですが、候補リストだけ OS 任せです。
 
         排他フルスクリーン (ゲーム) では OS の候補ウインドウがスワップチェーン上に出ない/破綻することがあり、エンジン内で候補を描けないと日本語入力が実質使えません。TSF の `ITfUIElementSink` / `ITfCandidateListUIElement` を使ったフックは未実装です。

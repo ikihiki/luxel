@@ -15,19 +15,25 @@ public static class BuildStories
         {SampleBundle("rendering.app-host")}
         """, toc: true);
 
-    [Story("Build/Blocks/ThreeD/Triangle", Order = 1, SampleBundle = "rendering.triangle")]
-    public static Widget Triangle(StoryContext ctx) => DocNew(ctx, $"""
-        # Block: Triangle
+    [Story("Build/Blocks/Framework/FixedTimestep", Order = 2, SampleBundle = "framework.fixed-timestep")]
+    public static Widget FrameworkTiming(StoryContext ctx) => DocNew(ctx, $"""
+        # Block: Framework fixed timestep
 
-        C# ABI、vertex buffer、graphics pipeline、Slang shader を一つの検証済み bundle として扱います。
+        GPUやwindowを使わず、可変frame dtからbounded fixed updatesとinterpolation alphaを得るblockです。
 
-        {StoryRef(ctx, "Examples/3D/Triangle")}
-
-        {SampleBundle("rendering.triangle")}
+        {SampleBundle("framework.fixed-timestep")}
         """, toc: true);
 
+    [Story("Build/Blocks/UI/HeadlessTree", Order = 3, SampleBundle = "ui.headless-tree")]
+    public static Widget UiHeadlessTree(StoryContext ctx) => DocNew(ctx, $"""
+        # Block: Headless reactive UI tree
 
-    [Story("Build/Blocks/Input/Actions", Order = 2, SampleBundle = "input.actions")]
+        `Signal`、`CompositeControl`、generated `Kit` factories、LayoutだけでBuild invalidationを検証するclean-consumer blockです。
+
+        {SampleBundle("ui.headless-tree")}
+        """, toc: true);
+
+    [Story("Build/Blocks/Input/Actions", Order = 4, SampleBundle = "input.actions")]
     public static Widget InputActions(StoryContext ctx) => DocNew(ctx, $"""
         # Block: Input actions
 
@@ -36,7 +42,7 @@ public static class BuildStories
         {SampleBundle("input.actions")}
         """, toc: true);
 
-    [Story("Build/Blocks/Audio/Tone", Order = 3, SampleBundle = "audio.tone")]
+    [Story("Build/Blocks/Audio/Tone", Order = 5, SampleBundle = "audio.tone")]
     public static Widget AudioTone(StoryContext ctx) => DocNew(ctx, $"""
         # Block: Audio tone
 
@@ -45,13 +51,43 @@ public static class BuildStories
         {SampleBundle("audio.tone")}
         """, toc: true);
 
-    [Story("Build/Blocks/Resources/Pipeline", Order = 4, SampleBundle = "resources.pipeline")]
+    [Story("Build/Blocks/Resources/Pipeline", Order = 6, SampleBundle = "resources.pipeline")]
     public static Widget ResourcePipeline(StoryContext ctx) => DocNew(ctx, $"""
         # Block: Resource pipeline
 
         Memory VFSとtyped conversion stepによる最小resource DAGです。
 
         {SampleBundle("resources.pipeline")}
+        """, toc: true);
+
+    [Story("Build/Recipes/Cavern2D", Order = 7, SampleBundle = "game.cavern")]
+    public static Widget Cavern2D(StoryContext ctx) => DocNew(ctx, $"""
+        # Recipe: Cavern 2D game
+
+        Framework、UI、2D、input、audio、resources、particles、settingsを統合したrepository capstoneです。
+
+        {StoryRef(ctx, "Game/Cavern")}
+        {SampleBundle("game.cavern")}
+        """, toc: true);
+
+    [Story("Build/Recipes/Range3D", Order = 8, SampleBundle = "game.range")]
+    public static Widget Range3D(StoryContext ctx) => DocNew(ctx, $"""
+        # Recipe: Range 3D game
+
+        ECS、physics、glTF、GPU asset extraction、particlesを統合したrepository capstoneです。
+
+        {StoryRef(ctx, "Apps/Game/Range")}
+        {SampleBundle("game.range")}
+        """, toc: true);
+
+    [Story("Build/Blocks/Scripting/HotReload", Order = 9, SampleBundle = "scripting.gallery")]
+    public static Widget ScriptHotReload(StoryContext ctx) => DocNew(ctx, $"""
+        # Block: Script hot reload
+
+        Galleryで検証される`ScriptHost`、diagnostics、successful-swap、cancellationの接続例です。
+
+        {StoryRef(ctx, "Examples/Scripting/HotReload")}
+        {SampleBundle("scripting.gallery")}
         """, toc: true);
 
     [Story("Build/Recipes/TriangleApp", Order = 10, SampleBundle = "rendering.triangle")]
@@ -72,32 +108,14 @@ public static class BuildStories
         {SampleBundle("rendering.3d")}
         """, toc: true);
 
-    [Story("Build/Recipes/TwoDCanvasApp", Order = 12, SampleBundle = "rendering.2d")]
-    public static Widget TwoDCanvasApp(StoryContext ctx) => DocNew(ctx, $$"""
-        # Recipe: 2D Canvas App
+    [Story("Build/Recipes/HeadlessScene2D", Order = 12, SampleBundle = "rendering.2d")]
+    public static Widget HeadlessScene2D(StoryContext ctx) => DocNew(ctx, $$"""
+        # Recipe: Headless Scene2D Render
 
-        [2D コース](story:Learn/Rendering/TwoD/Overview)で Scene2D、Camera2D、input、retained canvas を順に追加します。standalone bundle は App Host と同じ lifecycle 契約を使います。
+        静的な `Scene2D` を `Camera2D.Pixels` で一度だけSkia CPU rasterizerへ描画し、決定的なpixel hashを検証するstandalone recipeです。input、retained canvas、interactive cameraはこのbundleには含まれません。
 
         {{StoryRef(ctx, "Examples/2D/VectorPaths")}}
 
         {{SampleBundle("rendering.2d")}}
-        """, toc: true);
-
-    [Story("Build/Recipes/MiniGame2D", Order = 13)]
-    public static Widget MiniGame2D(StoryContext ctx) => DocNew(ctx, $$"""
-        # Recipe: Mini Game 2D
-
-        2D canvas、input、retained UI、sprite/tilemap を組み合わせる統合例です。
-
-        → [2D examples](story:Examples/2D/Tilemap)
-        """, toc: true);
-
-    [Story("Build/Recipes/Viewer3D", Order = 14, SampleBundle = "rendering.3d")]
-    public static Widget Viewer3D(StoryContext ctx) => DocNew(ctx, $"""
-        # Recipe: 3D Viewer
-
-        App Host、camera、depth/lighting、RenderGraph、asset loader、UI overlay の接続順を学ぶための完成形です。
-
-        {SampleBundle("rendering.3d")}
         """, toc: true);
 }

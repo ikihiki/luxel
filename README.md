@@ -65,13 +65,13 @@ eng/desktop/url.sh
 dotnet build
 dotnet run --project src/Luxel.Gallery -- vk            # Gallery (実ウィンドウ。dx も可)
 dotnet run --project src/Luxel.Gallery -- vk e2e        # play + golden 回帰 (--update で更新)
-dotnet run --project src/Luxel.Gallery -- vk bench "Button/Counter" 300 --type
+dotnet run --project src/Luxel.Gallery -- vk bench "Controls/Button/Counter" 300 --type
 dotnet test                                             # ユニットテスト
 ```
 
-Gallery のサイドバー **Docs 章**が本体ドキュメント (入門 → アーキテクチャ → サブシステム別 →
-貢献者向け)。**GPU / 2D / 3D / RenderGraph / Animation 章**が動くデモ。左上の検索欄で
-docs 本文を全文検索できる。
+Gallery のサイドバー **Start/Welcome** を唯一の入口とし、そこから **Learn** の順序付きコース、
+**Build** のコピー可能bundle、**Examples** の動く実例、**Reference** の詳細APIへ進む。READMEは起動方法だけを扱い、
+学習順序と現在の機能範囲はGallery側を正とする。左上の検索欄で本文を全文検索できる。
 
 ### Linux headless Vulkan
 

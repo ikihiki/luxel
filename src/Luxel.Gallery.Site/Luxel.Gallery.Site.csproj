@@ -19,7 +19,8 @@
     <EmbeddedResource Include="Assets\highlightjs\LICENSE" />
   </ItemGroup>
 
-  <Import Project="..\..\assets\Luxel.KhronosBox.targets" />
+  <!-- Luxel.Gallery owns the shared Khronos Box acquisition target. Importing it here as well lets
+       parallel solution builds race while downloading the same cache files. -->
   <Import Project="..\..\assets\Luxel.FontAssets.targets" />
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />
   <ItemGroup>

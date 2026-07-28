@@ -68,6 +68,8 @@
     <Project Path="samples/LuxelRange/LuxelRange.Core/LuxelRange.Core.csproj" />
     <Project Path="samples/LuxelTriangle/LuxelTriangle.csproj" />
     <Project Path="samples/LuxelTwoD/LuxelTwoD.csproj" />
+    <Project Path="samples/LuxelFramework/LuxelFramework.csproj" />
+    <Project Path="samples/LuxelUiHeadless/LuxelUiHeadless.csproj" />
     <Project Path="samples/LuxelInput/LuxelInput.csproj" />
     <Project Path="samples/LuxelAudio/LuxelAudio.csproj" />
     <Project Path="samples/LuxelResources/LuxelResources.csproj" />

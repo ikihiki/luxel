@@ -17,6 +17,10 @@ public static partial class DocsAdr
 
         ## Context
 
+        > [!NOTE]
+        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+
+
         浮遊 UI (ダイアログ・トースト・ドロワー・ドロップダウン・Select・ColorPicker・コンテキストメニュー・補完ポップアップ・ホバーツールチップ・IME 候補) が増え、配置ロジックが散らばっています。
 
         - オーバーレイ層 (`OverlayEntry` / `UiHost.Place`、Z=1000) に anchor + フリップ/クランプはあるが、**下↔上のフリップと X のクランプだけ**。水平フリップ・shift-to-fit・左右 side 配置・画面より高いときの max-height/スクロールが無い

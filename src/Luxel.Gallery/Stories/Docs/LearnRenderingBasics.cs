@@ -16,23 +16,11 @@ public static partial class DocsRenderingLearn
 
         この章は、Gallery のデモを見るだけでなく、自分のウィンドウへ描画できるところまでを順番に進みます。最小アプリの実装はリポジトリの `samples/LuxelTriangle/` が単一の正です。
 
-        ## 15ステップの進み方
+        ## 推奨アプリ構築ルート
 
-        1. [Environment](story:Learn/Rendering/Basics/Environment) — OS、GPU、backend、shader cacheを確認
-        2. [ClearColor](story:Learn/Rendering/Basics/ClearColor) — window / surface / event loop / resizeを理解
-        3. [FirstTriangle](story:Learn/Rendering/Basics/FirstTriangle) — vertex buffer / shader / pipeline / commandを接続
-        4. [BuffersAndBindings](story:Learn/Rendering/Basics/BuffersAndBindings) — memory kind、ABI、bindless indexを理解
-        5. [Shaders](story:Learn/Rendering/Basics/Shaders) — Slangを追加してSPIR-V/DXIL cacheを更新
-        6. [Textures](story:Learn/Rendering/ThreeD/Textures) — RGBA、UV、sampler、upload lifetimeを理解
-        7. [TransformsAndCamera](story:Learn/Rendering/ThreeD/TransformsAndCamera) — indexed cubeをMVPで動かし、resize時のaspectを保つ
-        8. [DepthCullingLighting](story:Learn/Rendering/ThreeD/DepthCullingLighting) — depth、front face、back-face culling、Lambert光を追加
-        9. [FrameLoopAndSynchronization](story:Learn/Rendering/Basics/FrameLoopAndSynchronization) — frameの寿命、submit、present、待機を整理
-        10. [FirstRenderGraph](story:Learn/Rendering/ThreeD/FirstRenderGraph) — passとresource依存を宣言し、post-processへ進む
-        11. [First2DScene](story:Learn/Rendering/TwoD/Overview) — Scene2Dを作り、4つの2D APIを使い分ける
-        12. [StaticGltf](story:Learn/Rendering/ThreeD/StaticGltf) — ECSなしで静的glTFを1 drawする
-        13. [Debugging](story:Learn/Rendering/ThreeD/Debugging) — 真っ黒、shader、resize、asset問題を切り分ける
-        14. [Shipping](story:Learn/Rendering/ThreeD/Shipping) — shader/assetsをpublishし、別cwdからsmokeする
-        15. [Examples/3D/Triangle](story:Examples/3D/Triangle) — Galleryのoffscreen実例を操作
+        BasicsからThreeDの順序はcourse catalogから生成されます。2DとRasterizer Internalsは、このルートを終えた後に目的に応じて選ぶ独立トラックです。
+
+        {RenderingCourseCatalog.ApplicationRouteMarkdown()}
 
         **検索キーワード:** triangle / texture / camera / render graph / glTF / blank screen / 真っ黒
 
@@ -85,18 +73,13 @@ public static partial class DocsRenderingLearn
 
         生成物と `inputs.sha256` をshader sourceと一緒にコミットします。
 
-        ## Backendとdeviceを作る最小コード
+        ## Backendとdeviceを作る実コード
 
-        ```csharp
-        using GpuDevice device = backend switch
-        {
-            "dx" or "d3d12" => new GpuDevice(D3D12Backend.Create()),
-            _ => new GpuDevice(VulkanBackend.Create()),
-        };
-        using GpuSurface surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
-        ```
+        次は`LuxelTriangle`が実際にコンパイルするWindows/Linux両方のbackend選択です。Linuxではwindowが提供する`IVulkanWindowSurface`を`VulkanBackendOptions.WindowSurface`へ渡します。
 
-        Linuxではwindowが提供する`IVulkanWindowSurface`を`VulkanBackendOptions.WindowSurface`へ渡します。device、surface、window systemは`using`で所有者を明確にし、終了前にqueueをidleにします。
+        {{SampleSource("samples/LuxelTriangle/Program.cs", "device-and-surface-backend")}}
+
+        surface生成と所有権を含む完全なevent loopは次のClear Colorページにあります。device、surface、window systemは`using`で所有者を明確にし、終了前にqueueをidleにします。
 
         ## 典型的な失敗
 

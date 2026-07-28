@@ -104,6 +104,15 @@
     <EmbeddedResource Include="..\..\shaders\raster2d_bin.slang" LogicalName="Luxel.Sample.shaders.raster2d_bin.slang" />
     <EmbeddedResource Include="..\..\shaders\raster2d_fine.slang" LogicalName="Luxel.Sample.shaders.raster2d_fine.slang" />
     <EmbeddedResource Include="..\..\tests\Luxel.Tests\TwoDTests.cs" LogicalName="Luxel.Sample.tests.Luxel.Tests.TwoDTests.cs" />
+    <EmbeddedResource Include="..\..\samples\LuxelCavern\LuxelCavern\LuxelCavern.csproj" LogicalName="Luxel.Sample.samples.LuxelCavern.LuxelCavern.LuxelCavern.csproj" />
+    <EmbeddedResource Include="..\..\samples\LuxelCavern\LuxelCavern\CavernRealtimeScene.cs" LogicalName="Luxel.Sample.samples.LuxelCavern.LuxelCavern.CavernRealtimeScene.cs" />
+    <EmbeddedResource Include="..\..\samples\LuxelRange\LuxelRange\LuxelRange.csproj" LogicalName="Luxel.Sample.samples.LuxelRange.LuxelRange.LuxelRange.csproj" />
+    <EmbeddedResource Include="..\..\samples\LuxelRange\LuxelRange\RangeRealtimeScene.cs" LogicalName="Luxel.Sample.samples.LuxelRange.LuxelRange.RangeRealtimeScene.cs" />
+    <EmbeddedResource Include="Stories\ScriptingStory.cs" LogicalName="Luxel.Sample.src.Luxel.Gallery.Stories.ScriptingStory.cs" />
+    <EmbeddedResource Include="..\..\samples\LuxelFramework\LuxelFramework.csproj" LogicalName="Luxel.Sample.samples.LuxelFramework.LuxelFramework.csproj" />
+    <EmbeddedResource Include="..\..\samples\LuxelFramework\Program.cs" LogicalName="Luxel.Sample.samples.LuxelFramework.Program.cs" />
+    <EmbeddedResource Include="..\..\samples\LuxelUiHeadless\LuxelUiHeadless.csproj" LogicalName="Luxel.Sample.samples.LuxelUiHeadless.LuxelUiHeadless.csproj" />
+    <EmbeddedResource Include="..\..\samples\LuxelUiHeadless\Program.cs" LogicalName="Luxel.Sample.samples.LuxelUiHeadless.Program.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelInput\LuxelInput.csproj" LogicalName="Luxel.Sample.samples.LuxelInput.LuxelInput.csproj" />
     <EmbeddedResource Include="..\..\samples\LuxelInput\Program.cs" LogicalName="Luxel.Sample.samples.LuxelInput.Program.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelAudio\LuxelAudio.csproj" LogicalName="Luxel.Sample.samples.LuxelAudio.LuxelAudio.csproj" />

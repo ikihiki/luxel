@@ -228,7 +228,7 @@ public static partial class DocsGpu
         - パス数が変わるときだけ order を再構成 (軽量パス)
         - 定常フレームのコストは O(変わったノード) — 回帰は bench で監視 (使い方は Gallery の Docs 章の Contributing ページへ)
 
-        ## 今後
+        ## GPU rasterizerの現在構成
 
         現行 GPU pipeline は **bounds → 16×16 tile bin → fine raster** の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4×4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は [Rasterizer Internals](story:Learn/Rendering/RasterizerInternals/Overview) へ進んでください。
 
