@@ -429,7 +429,10 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("dotnet run --file samples/ClearColor.cs", clearColorPage);
         Assert.DoesNotContain("dotnet run --file samples/ClearColor.cs -- vk", clearColorPage);
         Assert.Contains("VulkanBackend", clearColorPage);
-        Assert.Contains("clear-color.ppm", clearColorPage);
+        Assert.Contains("clear-color.png", clearColorPage);
+        Assert.Contains("SixLabors.ImageSharp", clearColorPage);
+        Assert.Contains("SaveAsPng", clearColorPage);
+        Assert.DoesNotContain("clear-color.ppm", clearColorPage);
         Assert.Contains("800×600", clearColorPage);
         Assert.DoesNotContain("--size", clearColorPage);
         Assert.DoesNotContain("WindowSystem", clearColorPage);
@@ -581,7 +584,11 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("const int height = 600;", clearColor);
             Assert.DoesNotContain("--size", clearColor);
             Assert.Contains("clear-color: offline", clearColor);
-            Assert.Contains("WritePpm", clearColor);
+            Assert.Contains("#:package SixLabors.ImageSharp@3.1.12", clearColor);
+            Assert.Contains("Image.LoadPixelData<Rgba32>", clearColor);
+            Assert.Contains("SaveAsPng", clearColor);
+            Assert.DoesNotContain("WritePpm", clearColor);
+            Assert.DoesNotContain("clear-color.ppm", clearColor);
             Assert.DoesNotContain("Luxel.Platform", clearColor);
             Assert.DoesNotContain("WindowSystem", clearColor);
             Assert.DoesNotContain("GpuSurface", clearColor);

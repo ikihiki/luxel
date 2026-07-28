@@ -10,7 +10,7 @@ public static class BuildStories
     public static Widget OfflineClearColor(StoryContext ctx) => DocNew(ctx, $"""
         # Block: Offline Clear Color
 
-        `samples/ClearColor.cs`としてそのまま実行できる、Vulkan device、800×600のoffscreen render target、clear、readback、PPM保存、disposeの最小blockです。`VulkanBackend`と描画サイズを固定し、window、surface、event loopを含まないため、GPU描画とreadbackだけを独立して検証できます。
+        `samples/ClearColor.cs`としてそのまま実行できる、Vulkan device、800×600のoffscreen render target、clear、readback、ImageSharpによるPNG保存、disposeの最小blockです。`VulkanBackend`と描画サイズを固定し、window、surface、event loopを含まないため、GPU描画とreadbackだけを独立して検証できます。
 
         {SampleBundle("rendering.clear-color")}
         """, toc: true);

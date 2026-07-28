@@ -89,15 +89,15 @@ internal static class SampleBundles
             Platforms: ["Windows", "Linux", "macOS"], ExpectedStdoutMarker: "resources: status=Ready, value=HELLO RESOURCES"));
         SampleBundleRegistry.Register(new SampleBundleInfo(
             "rendering.clear-color", "File-based offline Clear Color",
-            "A complete single-file GPU sample that clears an offscreen target, reads it back and writes a PPM image without creating a window.", "Beginner",
+            "A complete single-file GPU sample that clears an offscreen target, reads it back and writes a PNG with ImageSharp without creating a window.", "Beginner",
             SampleCopyLevel.Block,
             [new("samples/ClearColor.cs", SampleFileKind.CSharp)],
             Dependencies: ["support.source-tree"],
-            Requirements: [".NET 10", "Vulkan 1.3"], ExportSymbol: "ClearColor.cs",
+            Requirements: [".NET 10", "Vulkan 1.3", "SixLabors.ImageSharp 3.1.12"], ExportSymbol: "ClearColor.cs",
             RunCommand: "dotnet run --file samples/ClearColor.cs",
-            SmokeCommand: "dotnet run --file samples/ClearColor.cs -- --output clear-color.ppm",
+            SmokeCommand: "dotnet run --file samples/ClearColor.cs -- --output clear-color.png",
             Platforms: ["Windows", "Linux"], TimeoutSeconds: 300,
-            ExpectedStdoutMarker: "clear-color: offline", ExpectedArtifacts: ["clear-color.ppm"],
+            ExpectedStdoutMarker: "clear-color: offline", ExpectedArtifacts: ["clear-color.png"],
             BuildEntry: "samples/ClearColor.cs"));
         SampleBundleRegistry.Register(new SampleBundleInfo(
             "rendering.triangle", "Triangle renderer",

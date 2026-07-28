@@ -110,14 +110,14 @@ public static partial class DocsRenderingLearn
         ```text
         GpuDevice → offscreen render targetをclear
                   → host-mapped bufferへreadback
-                  → clear-color.ppmへ保存
+                  → ImageSharpでclear-color.pngへ保存
         ```
 
-        `BeginRendering`のclear値だけでRGBA8 render targetを塗り、`ColorOutput → Copy` barrier後に`CopyTextureToBuffer`でCPU可視bufferへreadbackします。出力は汎用的に確認できるbinary PPMです。
+        `BeginRendering`のclear値だけでRGBA8 render targetを塗り、`ColorOutput → Copy` barrier後に`CopyTextureToBuffer`でCPU可視bufferへreadbackします。画像保存は手書きencoderではなく、外部ライブラリの`SixLabors.ImageSharp`でPNGへ変換します。
 
         ## Row pitchと出力
 
-        描画サイズは教材とsmoke結果を一定にするため **800×600** に固定しています。Vulkanの`BufferRowLength`へ800 pixelを渡してRGBA8を密にreadbackし、PPMへ保存するときにRGBへ変換します。保存先だけは`--output result.ppm`で指定できます。
+        描画サイズは教材とsmoke結果を一定にするため **800×600** に固定しています。Vulkanの`BufferRowLength`へ800 pixelを渡してRGBA8を密にreadbackし、`Image.LoadPixelData<Rgba32>`と`SaveAsPng`で保存します。保存先だけは`--output result.png`で指定できます。
 
         window、event loop、resize、surfaceは後続のinteractive sample側の責務であり、このsampleには含めません。
 
