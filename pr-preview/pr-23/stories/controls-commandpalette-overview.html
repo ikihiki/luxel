@@ -1,9 +1,0 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/CommandPalette/Overview</h1></header><h1 id="commandpalette">CommandPalette</h1>
-<p><code>CommandPalette</code> は <code>[UiComponent]</code> ではなく、前面overlayへパレットを開くstatic APIです。</p>
-<pre><code class="language-csharp">CommandPalette.PaletteView CommandPalette.Open(
-    UiBuildContext ctx,
-    CommandRegistry registry,
-    IReadOnlyList&lt;CommandContribution&gt;? contributions = null)
-</code></pre>
-<p>戻り値の <code>PaletteView</code> はplay/testで現在の絞り込み結果 (<code>Filtered</code>) と入力欄 (<code>Field</code>) を参照できます。実例は <a href="#story=Controls%2FCommandPalette%2FBasic">Basic</a> へ。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p></article>

@@ -1,8 +1,0 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/ScrollViewer/Basic</h1></header><figure class="static-capture"><img src="images/controls-scrollviewer-basic.png" alt="Controls/ScrollViewer/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/ScrollViewer/Basic&quot;, Height = 240)]
-public static Widget ScrollBasic(StoryContext ctx)
-{
-    var rows = Enumerable.Range(1, 20).Select(i =&gt; (Widget)Label($&quot;Row {i}&quot;)).ToArray();
-    ctx.Play(static d =&gt; d.Snap());
-    return Frame(Border(background: Bind.From(() =&gt; UiTheme.T.Surface), rounded: 8, padding: new Thickness(8), clip: true)
-        [Scroll(160f, width: 240)[VStack(4)[rows]]]);
-}</code></pre></details></article>
