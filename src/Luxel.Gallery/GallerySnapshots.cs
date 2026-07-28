@@ -37,6 +37,13 @@ public static class GallerySnapshots
         }
     }
 
+    /// <summary>Captures the already selected and stabilized story without rebuilding it.</summary>
+    public static GallerySnapshotResult CaptureCurrent(GalleryHost host, string id)
+    {
+        try { return Snapshot(host, id); }
+        catch (Exception e) { return new(id, GallerySnapshotStatus.Error, Error: $"{e.GetType().Name}: {e.Message}"); }
+    }
+
     public static GallerySnapshotResult CaptureWidget(GalleryHost host, string id, Widget widget,
         int width = 800, int height = 480, bool dark = false)
     {

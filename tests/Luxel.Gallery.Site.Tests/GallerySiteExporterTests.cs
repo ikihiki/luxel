@@ -17,6 +17,77 @@ public sealed class GallerySiteExporterTests
         => System.Runtime.CompilerServices.RuntimeHelpers.RunModuleConstructor(typeof(Luxel.Gallery.Stories.DocsApi).Module.ModuleHandle);
 
     [Fact]
+    public void Static_gallery_includes_an_accessible_ipad_review_workspace()
+    {
+        string html = GallerySiteExporter.IndexHtml;
+        string css = GallerySiteExporter.SiteCss;
+
+        Assert.Contains("id=\"review-panel\"", html);
+        Assert.Contains("aria-label=\"ギャラリーフィードバック\"", html);
+        Assert.Contains("id=\"review-comment\"", html);
+        Assert.Contains("id=\"review-import\"", html);
+        Assert.Contains("role=\"toolbar\"", html);
+        Assert.Contains("class=\"icon-button\"", html);
+        Assert.Contains("aria-label=\"全件をコピー\"", html);
+        Assert.Contains("class=\"review-comment-label\" for=\"review-comment\">フィードバック</label>", html);
+        Assert.True(html.IndexOf("class=\"review-actions\"", StringComparison.Ordinal)
+            < html.IndexOf("id=\"review-comment\"", StringComparison.Ordinal));
+        Assert.Contains("viewport-fit=cover", html);
+        Assert.Contains("@media(max-width:820px),(orientation:portrait)", css);
+        Assert.Contains("grid-template-columns:310px minmax(0,1fr) minmax(320px,390px)", css);
+        Assert.Contains(".review-actions{display:flex;flex-wrap:nowrap", css);
+        Assert.Contains(".review-actions>.icon-button{flex:1 1 0}", css);
+        Assert.Contains(".review-comment-label{display:block;margin:3px 0 2px", css);
+        Assert.DoesNotContain("Start/Welcome", html);
+        Assert.DoesNotContain("現在のストーリーを開く", html);
+        Assert.DoesNotContain("この端末に自動保存します。", html);
+        Assert.DoesNotContain("下書きはこのSafari内だけに保存され、端末間では同期されません。", html);
+        Assert.Contains("env(safe-area-inset-bottom)", css);
+        Assert.Contains("prefers-reduced-motion", css);
+    }
+
+    [Fact]
+    public void Review_panel_stays_fixed_while_the_complete_story_remains_scrollable()
+    {
+        string css = GallerySiteExporter.SiteCss;
+
+        Assert.Contains("html,body{height:100%;overflow:hidden", css);
+        Assert.Contains("main{min-width:0;height:100vh;height:100dvh", css);
+        Assert.Contains("overflow-y:auto;overscroll-behavior:contain", css);
+        Assert.Contains("#review-panel{display:none;position:sticky", css);
+        Assert.Contains("height:100dvh;overflow:hidden", css);
+        Assert.Contains("body.review-open #review-panel{display:flex;flex-direction:column}", css);
+        Assert.Contains("#review-comment{flex:1 1 160px;min-height:80px", css);
+        Assert.Contains("bottom:var(--keyboard-inset,0px)", css);
+        Assert.Contains("height:min(44dvh,340px)", css);
+        Assert.Contains("body.review-keyboard #review-panel{height:min(34vh,220px)", css);
+        Assert.Contains("var(--visual-viewport-height,100dvh)*.38", css);
+        string script = GallerySiteExporter.ClientScript;
+        Assert.Contains("function syncVisualViewport()", script);
+        Assert.Contains("document.body.classList.add('review-keyboard')", script);
+        Assert.Contains("window.visualViewport?.addEventListener('resize',syncVisualViewport)", script);
+        Assert.DoesNotContain("reviewComment.focus", script);
+        Assert.DoesNotContain("#review-panel{display:none;position:sticky;top:0;height:100vh;height:100dvh;overflow:auto", css);
+    }
+
+    [Fact]
+    public void Review_drafts_are_path_scoped_exportable_and_do_not_embed_credentials()
+    {
+        string script = GallerySiteExporter.ClientScript;
+
+        Assert.Contains("reviewKey='luxel-gallery-review:v1:'+location.pathname", script);
+        Assert.Contains("stories[activeReviewPath]", script);
+        Assert.Contains("addEventListener('pagehide',saveCurrentReview)", script);
+        Assert.Contains("function reviewMarkdown()", script);
+        Assert.Contains("luxel-gallery-feedback.json", script);
+        Assert.Contains("JSON.parse(await file.text())", script);
+        Assert.Contains("encodeURIComponent(body)", script);
+        Assert.Contains("https://github.com/ikihiki/luxel/issues/new", script);
+        Assert.DoesNotContain("github_pat_", script, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Authorization", script, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Slug_is_stable_and_relative_safe()
     {
         Assert.Equal("controls-button-primary", GallerySiteExporter.Slug("Controls/Button/Primary"));
@@ -122,6 +193,32 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Runtime_story_export_realizes_the_main_story_only_once()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-single-realization-" + Guid.NewGuid().ToString("N"));
+        var story = new StoryInfo("Test/SingleRealization/" + Guid.NewGuid().ToString("N"), 160, 80, null,
+            _ => Luxel.Controls.Kit.Text("single realization"));
+        StoryRegistry.Register(story);
+        try
+        {
+            using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
+            using var rasterizer = new Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D();
+            using var host = new GalleryHost(rasterizer, font);
+
+            SiteExportReport report = GallerySiteExporter.Export(host, [story], output, root);
+
+            Assert.Equal(1, report.Stories);
+            Assert.Equal(1, host.StorySelectionCount);
+            Assert.True(File.Exists(Path.Combine(output, "images", GallerySiteExporter.Slug(story.Path) + ".png")));
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+        }
+    }
+
+    [Fact]
     public void Native_story_source_pane_uses_read_only_highlighted_editor_or_placeholder()
     {
         const string source = "[Story(\"Test/Source\")]\npublic static Widget Source() => Text(\"hello\");";
@@ -215,7 +312,7 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("powershell:'shell'", script);
             Assert.Contains("treeFor(filtered)", script);
             Assert.Contains("details.tree-folder", script);
-            Assert.Contains("localStorage.setItem(openKey", script);
+            Assert.Contains("safeSet(openKey", script);
             Assert.Contains("renderLevel(child,path,open,expandAll)", script);
             Assert.Contains("aria-current','page'", script);
             Assert.Contains("!hasSavedOpen()&&!prefix", script);
@@ -762,7 +859,7 @@ public sealed class GallerySiteExporterTests
 
         string workflow = File.ReadAllText(Path.Combine(root, ".github", "workflows", "deploy-pages.yml"));
         Assert.Contains("dotnet build Luxel.slnx --no-restore --configuration Release", workflow);
-        Assert.Contains("--no-build --configuration Release", workflow);
+        Assert.Contains("dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --no-build --configuration Release -- artifacts/gallery-site", workflow);
         Assert.Contains("JamesIves/github-pages-deploy-action@v4.8.0", workflow);
         Assert.Contains("clean-exclude: pr-preview", workflow);
         Assert.Contains("force: false", workflow);
@@ -773,6 +870,7 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("rossjrw/pr-preview-action@v1.8.1", preview);
         Assert.Contains("source-dir: artifacts/gallery-site", preview);
         Assert.Contains("wait-for-pages-deployment: true", preview);
+        Assert.Contains("dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --no-build --configuration Release -- artifacts/gallery-site", preview);
         Assert.Contains("pull-requests: write", preview);
     }
 

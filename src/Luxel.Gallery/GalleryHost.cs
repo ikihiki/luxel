@@ -78,6 +78,7 @@ public sealed class GalleryHost : IDisposable
         Commands.Register("ui.set", a => { if (a is JsonElement el) EngineDiagnostics.Emit("Luxel.UiSetRequest", el); });
     }
 
+    internal int StorySelectionCount { get; private set; }
     public string? CurrentId => _story?.Path;
     public (int w, int h) Size => (_w, _h);
     public bool Dark => _dark;
@@ -129,6 +130,7 @@ public sealed class GalleryHost : IDisposable
 
     private void SelectCore(StoryInfo story, bool e2e)
     {
+        StorySelectionCount++;
         var sw = System.Diagnostics.Stopwatch.StartNew();
         TearDown();
         _story = story;

@@ -65,15 +65,24 @@ public static class SampleBundleVerifier
             RedirectStandardError = true,
             UseShellExecute = false,
         };
+        // MSBuild worker nodes inherit redirected stdout/stderr handles. With node reuse enabled they can
+        // outlive the dotnet command, so ReadToEndAsync never observes EOF even though the command exited.
+        // Verification uses isolated temp trees and gains nothing from persistent build servers.
+        start.Environment["MSBUILDDISABLENODEREUSE"] = "1";
+        start.Environment["DOTNET_CLI_DO_NOT_USE_MSBUILD_SERVER"] = "1";
         foreach (string argument in arguments) start.ArgumentList.Add(argument);
         using Process process = Process.Start(start) ?? throw new InvalidOperationException("Could not start dotnet.");
         Task<string> stdout = process.StandardOutput.ReadToEndAsync();
         Task<string> stderr = process.StandardError.ReadToEndAsync();
-        try { await process.WaitForExitAsync(timeout.Token); }
+        try
+        {
+            await Task.WhenAll(process.WaitForExitAsync(timeout.Token), stdout, stderr).WaitAsync(timeout.Token);
+        }
         catch (OperationCanceledException)
         {
-            process.Kill(entireProcessTree: true);
-            await Task.WhenAll(stdout, stderr);
+            if (!process.HasExited) process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync(CancellationToken.None);
+            if (cancellationToken.IsCancellationRequested) throw;
             throw new TimeoutException($"Bundle '{bundle.Id}' exceeded {bundle.TimeoutSeconds}s.");
         }
         return (await stdout, await stderr, process.ExitCode);

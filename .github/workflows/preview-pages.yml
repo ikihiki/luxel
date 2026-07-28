@@ -46,7 +46,7 @@ jobs:
 
       - name: Export static Gallery
         if: github.event.action != 'closed'
-        run: dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --configuration Release -- artifacts/gallery-site
+        run: dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --no-build --configuration Release -- artifacts/gallery-site
 
       - name: Deploy PR preview
         uses: rossjrw/pr-preview-action@v1.8.1

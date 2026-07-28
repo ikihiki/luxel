@@ -1,0 +1,51 @@
+name: Gallery feedback
+description: Report visual, documentation, or usability feedback from the static Gallery.
+title: "Gallery feedback: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reviewing the Luxel Gallery. The in-page feedback panel can prefill a regular issue, or you can paste its Markdown export here.
+  - type: input
+    id: gallery-url
+    attributes:
+      label: Gallery URL
+      description: Paste the production or PR-preview URL, including the story hash.
+      placeholder: https://…/#story=Controls%2FButton%2FPrimary
+    validations:
+      required: true
+  - type: input
+    id: story
+    attributes:
+      label: Story path
+      placeholder: Controls/Button/Primary
+    validations:
+      required: true
+  - type: dropdown
+    id: status
+    attributes:
+      label: Review status
+      options:
+        - Needs change
+        - Reviewed
+        - Not checked
+    validations:
+      required: true
+  - type: textarea
+    id: feedback
+    attributes:
+      label: Feedback
+      description: Describe the visual, documentation, or usability issue and the desired result.
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      placeholder: iPad Pro 11-inch, Safari, landscape
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add screenshots, a PR number, or a consolidated Markdown review if useful.
