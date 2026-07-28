@@ -66,23 +66,34 @@ public static partial class GallerySiteExporter
                 }
                 else
                 {
-                    (imageUrl, status, error, imageHash) = EnsureStoryImage(host, story, imagesDir, repositoryRoot, imageCache);
+                    // CI renders through lavapipe, so rebuilding and stabilizing a story twice is especially
+                    // expensive. Realize once, inspect the current root, and capture that same stabilized frame.
+                    byte[]? png = FindGolden(story.Path, repositoryRoot) is { } golden ? File.ReadAllBytes(golden) : null;
+                    string? realizationError = null;
                     try
                     {
                         host.SelectExact(story.Path);
                         GallerySnapshots.Stabilize(host);
+                        if (png is null)
+                        {
+                            GallerySnapshotResult capture = GallerySnapshots.CaptureCurrent(host, story.Path);
+                            png = capture.Png;
+                            realizationError = capture.Error;
+                        }
                         document = GallerySnapshots.FindDocument(host.CurrentRoot);
-                    }
-                    catch (Exception e) when (imageUrl is not null)
-                    {
-                        // A checked-in Vulkan golden is still a valid canonical static preview even if optional
-                        // runtime assets needed to realize the live story are absent in the exporter environment.
-                        error = $"Live realization unavailable; canonical golden used. {e.GetType().Name}: {e.Message}";
                     }
                     catch (Exception e)
                     {
-                        status = "error";
-                        error = $"{e.GetType().Name}: {e.Message}";
+                        realizationError = $"{e.GetType().Name}: {e.Message}";
+                    }
+
+                    (imageUrl, status, error, imageHash) = StoreStoryImage(
+                        story, imagesDir, imageCache, png, realizationError);
+                    if (png is not null && realizationError is not null)
+                    {
+                        // Preserve an already available golden or runtime capture if optional document
+                        // introspection fails after the frame is ready.
+                        error = "Live document introspection unavailable; static capture preserved. " + realizationError;
                     }
                 }
 
@@ -144,6 +155,14 @@ public static partial class GallerySiteExporter
             png = result.Png;
             error = result.Error;
         }
+        return StoreStoryImage(story, imagesDir, cache, png, error);
+    }
+
+    private static (string? Url, string Status, string? Error, string Hash) StoreStoryImage(StoryInfo story,
+        string imagesDir, Dictionary<string, (string? Url, string Status, string? Error, string Hash)> cache,
+        byte[]? png, string? error)
+    {
+        if (cache.TryGetValue(story.Path, out var cached)) return cached;
         if (png is null) return cache[story.Path] = (null, "error", error ?? "Capture failed.", "");
         string file = Slug(story.Path) + ".png";
         File.WriteAllBytes(Path.Combine(imagesDir, file), png);

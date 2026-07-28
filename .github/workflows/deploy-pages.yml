@@ -33,7 +33,7 @@ jobs:
       - name: Test exporter and documentation contracts
         run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
       - name: Export static Gallery
-        run: dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --configuration Release -- artifacts/gallery-site
+        run: dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --no-build --configuration Release -- artifacts/gallery-site
       - name: Deploy production Gallery
         uses: JamesIves/github-pages-deploy-action@v4.8.0
         with:

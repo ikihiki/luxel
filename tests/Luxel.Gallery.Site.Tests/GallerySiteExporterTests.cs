@@ -173,6 +173,32 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Runtime_story_export_realizes_the_main_story_only_once()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-single-realization-" + Guid.NewGuid().ToString("N"));
+        var story = new StoryInfo("Test/SingleRealization/" + Guid.NewGuid().ToString("N"), 160, 80, null,
+            _ => Luxel.Controls.Kit.Text("single realization"));
+        StoryRegistry.Register(story);
+        try
+        {
+            using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
+            using var rasterizer = new Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D();
+            using var host = new GalleryHost(rasterizer, font);
+
+            SiteExportReport report = GallerySiteExporter.Export(host, [story], output, root);
+
+            Assert.Equal(1, report.Stories);
+            Assert.Equal(1, host.StorySelectionCount);
+            Assert.True(File.Exists(Path.Combine(output, "images", GallerySiteExporter.Slug(story.Path) + ".png")));
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+        }
+    }
+
+    [Fact]
     public void Native_story_source_pane_uses_read_only_highlighted_editor_or_placeholder()
     {
         const string source = "[Story(\"Test/Source\")]\npublic static Widget Source() => Text(\"hello\");";
@@ -813,7 +839,7 @@ public sealed class GallerySiteExporterTests
 
         string workflow = File.ReadAllText(Path.Combine(root, ".github", "workflows", "deploy-pages.yml"));
         Assert.Contains("dotnet build Luxel.slnx --no-restore --configuration Release", workflow);
-        Assert.Contains("--no-build --configuration Release", workflow);
+        Assert.Contains("dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --no-build --configuration Release -- artifacts/gallery-site", workflow);
         Assert.Contains("JamesIves/github-pages-deploy-action@v4.8.0", workflow);
         Assert.Contains("clean-exclude: pr-preview", workflow);
         Assert.Contains("force: false", workflow);
@@ -824,6 +850,7 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("rossjrw/pr-preview-action@v1.8.1", preview);
         Assert.Contains("source-dir: artifacts/gallery-site", preview);
         Assert.Contains("wait-for-pages-deployment: true", preview);
+        Assert.Contains("dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --no-build --configuration Release -- artifacts/gallery-site", preview);
         Assert.Contains("pull-requests: write", preview);
     }
 
