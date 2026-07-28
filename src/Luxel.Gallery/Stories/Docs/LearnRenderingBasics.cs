@@ -97,12 +97,12 @@ public static partial class DocsRenderingLearn
         return DocNew(ctx, $"""
         # オフラインClear Color
 
-        {RenderingCourseCatalog.Meta("Learn/Rendering/Basics/ClearColor", "Beginner", "File-based offline app", "Vulkan / DirectX 12", "Environment")}
+        {RenderingCourseCatalog.Meta("Learn/Rendering/Basics/ClearColor", "Beginner", "File-based offline app", "Vulkan 1.3", "Environment")}
 
-        `samples/ClearColor.cs` はプロジェクトファイルもwindow systemも必要としない、1ファイルのオフラインGPU sampleです。ファイル先頭の `#:project` が必要なLuxel projectを参照するため、チェックアウト後にそのまま実行できます。
+        `samples/ClearColor.cs` はプロジェクトファイルもwindow systemも必要としない、1ファイルのオフラインGPU sampleです。backendは`VulkanBackend`に固定し、ファイル先頭の `#:project` もLuxel.GraphicsとLuxel.Graphics.Vulkanだけを参照します。
 
         ```powershell
-        dotnet run --file samples/ClearColor.cs -- vk
+        dotnet run --file samples/ClearColor.cs
         ```
 
         shader、vertex buffer、graphics pipeline、surface、presentは使いません。処理は次の順です。
@@ -117,7 +117,7 @@ public static partial class DocsRenderingLearn
 
         ## Row pitchと出力
 
-        D3D12のtexture readback row pitchは256 byte単位なので、GPU側のRGBA8 strideは64 pixel単位へ揃えます。PPMへ保存するときは各rowのpaddingを除去してRGBへ変換します。`--size 801x603`で任意サイズ、`--output result.ppm`で保存先を指定できます。
+        Vulkanの`BufferRowLength`へ画像widthを渡してRGBA8を密にreadbackし、PPMへ保存するときにRGBへ変換します。`--size 801x603`で任意サイズ、`--output result.ppm`で保存先を指定できます。
 
         window、event loop、resize、surfaceは後続のinteractive sample側の責務であり、このsampleには含めません。
 

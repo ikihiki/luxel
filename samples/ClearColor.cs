@@ -1,6 +1,5 @@
 #:project ../src/Luxel.Graphics/Luxel.Graphics.csproj
 #:project ../src/Luxel.Graphics.Vulkan/Luxel.Graphics.Vulkan.csproj
-#:project ../src/Luxel.Graphics.DirectX12/Luxel.Graphics.DirectX12.csproj
 #:property TargetFramework=net10.0
 
 using System.Security.Cryptography;
@@ -8,14 +7,13 @@ using System.Text;
 using Luxel.Graphics;
 using Luxel.Graphics.Vulkan;
 
-string backend = args.FirstOrDefault(argument => argument is "vk" or "vulkan" or "dx" or "d3d12")?.ToLowerInvariant() ?? "vk";
 (int width, int height) = ParseSize(args);
 string outputPath = ParseOutput(args);
 
 try
 {
-    using GpuDevice device = CreateDevice(backend);
-    uint stridePixels = (uint)Align(width, 64); // D3D12 RGBA8 readback rows must be aligned to 256 bytes.
+    using GpuDevice device = new(VulkanBackend.Create(enableValidation: false));
+    uint stridePixels = (uint)width;
     using GpuTexture target = device.CreateRenderTarget((uint)width, (uint)height, GpuFormat.Rgba8Unorm);
     using GpuBuffer readback = device.Malloc(checked((ulong)stridePixels * (uint)height * 4), GpuMemoryKind.HostMapped);
 
@@ -32,24 +30,13 @@ try
     byte[] rgba = CopyTightlyPacked(readback, stridePixels, width, height);
     WritePpm(outputPath, rgba, width, height);
     string sha256 = Convert.ToHexStringLower(SHA256.HashData(rgba));
-    Console.WriteLine($"clear-color: offline, backend={backend}, device={device.Name}, size={width}x{height}, output={outputPath}, sha256={sha256}");
+    Console.WriteLine($"clear-color: offline, backend=vulkan, device={device.Name}, size={width}x{height}, output={outputPath}, sha256={sha256}");
     return 0;
 }
 catch (Exception exception)
 {
     Console.Error.WriteLine(exception);
     return 1;
-}
-
-static GpuDevice CreateDevice(string backend)
-{
-    if (backend is "dx" or "d3d12")
-    {
-        if (!OperatingSystem.IsWindows())
-            throw new PlatformNotSupportedException("DirectX 12 is available only on Windows. Use 'vk' on this platform.");
-        return new GpuDevice(Luxel.Graphics.DirectX12.D3D12Backend.Create());
-    }
-    return new GpuDevice(VulkanBackend.Create(enableValidation: false));
 }
 
 static byte[] CopyTightlyPacked(GpuBuffer readback, uint stridePixels, int width, int height)
@@ -110,5 +97,3 @@ static string ParseOutput(string[] arguments)
     }
     return "clear-color.ppm";
 }
-
-static int Align(int value, int alignment) => (value + alignment - 1) / alignment * alignment;

@@ -93,9 +93,9 @@ internal static class SampleBundles
             SampleCopyLevel.Block,
             [new("samples/ClearColor.cs", SampleFileKind.CSharp)],
             Dependencies: ["support.source-tree"],
-            Requirements: [".NET 10", "Vulkan 1.3 or DirectX 12"], ExportSymbol: "ClearColor.cs",
-            RunCommand: "dotnet run --file samples/ClearColor.cs -- vk",
-            SmokeCommand: "dotnet run --file samples/ClearColor.cs -- vk --size 64x48 --output clear-color.ppm",
+            Requirements: [".NET 10", "Vulkan 1.3"], ExportSymbol: "ClearColor.cs",
+            RunCommand: "dotnet run --file samples/ClearColor.cs",
+            SmokeCommand: "dotnet run --file samples/ClearColor.cs -- --size 64x48 --output clear-color.ppm",
             Platforms: ["Windows", "Linux"], TimeoutSeconds: 300,
             ExpectedStdoutMarker: "clear-color: offline", ExpectedArtifacts: ["clear-color.ppm"],
             BuildEntry: "samples/ClearColor.cs"));

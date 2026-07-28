@@ -426,7 +426,9 @@ public sealed class GallerySiteExporterTests
         Assert.Equal("rendering.clear-color", clearColor.SampleBundle);
         string clearColorPage = pages[clearColor.Path].Text;
         Assert.Contains("samples/ClearColor.cs", clearColorPage);
-        Assert.Contains("dotnet run --file samples/ClearColor.cs -- vk", clearColorPage);
+        Assert.Contains("dotnet run --file samples/ClearColor.cs", clearColorPage);
+        Assert.DoesNotContain("dotnet run --file samples/ClearColor.cs -- vk", clearColorPage);
+        Assert.Contains("VulkanBackend", clearColorPage);
         Assert.Contains("clear-color.ppm", clearColorPage);
         Assert.DoesNotContain("WindowSystem", clearColorPage);
         Assert.DoesNotContain("GpuSurface", clearColorPage);
@@ -570,6 +572,9 @@ public sealed class GallerySiteExporterTests
             Assert.Contains(files, path => string.Equals(path, clearColorPath, StringComparison.Ordinal));
             string clearColor = File.ReadAllText(clearColorPath);
             Assert.Contains("#:project ../src/Luxel.Graphics/Luxel.Graphics.csproj", clearColor);
+            Assert.Contains("#:project ../src/Luxel.Graphics.Vulkan/Luxel.Graphics.Vulkan.csproj", clearColor);
+            Assert.DoesNotContain("Luxel.Graphics.DirectX12", clearColor);
+            Assert.Contains("new(VulkanBackend.Create", clearColor);
             Assert.Contains("clear-color: offline", clearColor);
             Assert.Contains("WritePpm", clearColor);
             Assert.DoesNotContain("Luxel.Platform", clearColor);
