@@ -95,7 +95,7 @@ internal static class SampleBundles
             Dependencies: ["support.source-tree"],
             Requirements: [".NET 10", "Vulkan 1.3"], ExportSymbol: "ClearColor.cs",
             RunCommand: "dotnet run --file samples/ClearColor.cs",
-            SmokeCommand: "dotnet run --file samples/ClearColor.cs -- --size 64x48 --output clear-color.ppm",
+            SmokeCommand: "dotnet run --file samples/ClearColor.cs -- --output clear-color.ppm",
             Platforms: ["Windows", "Linux"], TimeoutSeconds: 300,
             ExpectedStdoutMarker: "clear-color: offline", ExpectedArtifacts: ["clear-color.ppm"],
             BuildEntry: "samples/ClearColor.cs"));

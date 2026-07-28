@@ -117,7 +117,7 @@ public static partial class DocsRenderingLearn
 
         ## Row pitchと出力
 
-        Vulkanの`BufferRowLength`へ画像widthを渡してRGBA8を密にreadbackし、PPMへ保存するときにRGBへ変換します。`--size 801x603`で任意サイズ、`--output result.ppm`で保存先を指定できます。
+        描画サイズは教材とsmoke結果を一定にするため **800×600** に固定しています。Vulkanの`BufferRowLength`へ800 pixelを渡してRGBA8を密にreadbackし、PPMへ保存するときにRGBへ変換します。保存先だけは`--output result.ppm`で指定できます。
 
         window、event loop、resize、surfaceは後続のinteractive sample側の責務であり、このsampleには含めません。
 

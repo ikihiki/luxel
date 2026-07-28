@@ -7,7 +7,8 @@ using System.Text;
 using Luxel.Graphics;
 using Luxel.Graphics.Vulkan;
 
-(int width, int height) = ParseSize(args);
+const int width = 800;
+const int height = 600;
 string outputPath = ParseOutput(args);
 
 try
@@ -68,24 +69,6 @@ static void WritePpm(string path, ReadOnlySpan<byte> rgba, int width, int height
         }
         stream.Write(rgbRow);
     }
-}
-
-static (int Width, int Height) ParseSize(string[] arguments)
-{
-    for (int index = 0; index < arguments.Length; index++)
-    {
-        string? value = null;
-        if (arguments[index] == "--size" && index + 1 < arguments.Length) value = arguments[index + 1];
-        else if (arguments[index].StartsWith("--size=", StringComparison.Ordinal)) value = arguments[index]["--size=".Length..];
-        if (value is null) continue;
-
-        string[] parts = value.Split('x', 'X');
-        if (parts.Length == 2 && int.TryParse(parts[0], out int width) && int.TryParse(parts[1], out int height)
-            && width > 0 && height > 0)
-            return (width, height);
-        throw new ArgumentException("--size must be a positive WIDTHxHEIGHT value, for example 801x603.");
-    }
-    return (800, 600);
 }
 
 static string ParseOutput(string[] arguments)

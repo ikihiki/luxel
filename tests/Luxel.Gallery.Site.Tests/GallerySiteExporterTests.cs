@@ -430,6 +430,8 @@ public sealed class GallerySiteExporterTests
         Assert.DoesNotContain("dotnet run --file samples/ClearColor.cs -- vk", clearColorPage);
         Assert.Contains("VulkanBackend", clearColorPage);
         Assert.Contains("clear-color.ppm", clearColorPage);
+        Assert.Contains("800×600", clearColorPage);
+        Assert.DoesNotContain("--size", clearColorPage);
         Assert.DoesNotContain("WindowSystem", clearColorPage);
         Assert.DoesNotContain("GpuSurface", clearColorPage);
         Assert.DoesNotContain("samples/LuxelTriangle/Program.cs", clearColorPage);
@@ -575,6 +577,9 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("#:project ../src/Luxel.Graphics.Vulkan/Luxel.Graphics.Vulkan.csproj", clearColor);
             Assert.DoesNotContain("Luxel.Graphics.DirectX12", clearColor);
             Assert.Contains("new(VulkanBackend.Create", clearColor);
+            Assert.Contains("const int width = 800;", clearColor);
+            Assert.Contains("const int height = 600;", clearColor);
+            Assert.DoesNotContain("--size", clearColor);
             Assert.Contains("clear-color: offline", clearColor);
             Assert.Contains("WritePpm", clearColor);
             Assert.DoesNotContain("Luxel.Platform", clearColor);
