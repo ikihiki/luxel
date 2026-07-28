@@ -41,4 +41,5 @@
              Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows))) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'Arm64'"
              Link="wgpu_native.dll" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <Import Project="..\..\shaders\Luxel.Shaders.targets" />
 </Project>

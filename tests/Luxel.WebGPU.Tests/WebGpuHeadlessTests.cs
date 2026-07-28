@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Luxel.Graphics;
 using Luxel.Graphics.WebGPU;
 using LuxelWebGpuHeadless;
@@ -195,6 +196,37 @@ public sealed class WebGpuHeadlessTests
         interim.Dispose();
         using var reused = device.Malloc(4);
         Assert.Equal(sourceIndex, reused.BindlessIndex);
+    }
+
+    [Fact]
+    public void TrackedShaderManifest_AllArtifactsCreateWebGpuPipelines()
+    {
+        using var device = TryCreate();
+        if (device is null) return;
+
+        string shaderDirectory = Path.Combine(AppContext.BaseDirectory, "shaders");
+        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllBytes(
+            Path.Combine(shaderDirectory, "webgpu-shaders.json")));
+        JsonElement shaders = manifest.RootElement.GetProperty("shaders");
+        Assert.Equal(22, shaders.GetArrayLength());
+
+        foreach (JsonElement shader in shaders.EnumerateArray())
+        {
+            string name = shader.GetProperty("name").GetString()!;
+            JsonElement entries = shader.GetProperty("entries");
+            GpuShaderCode code = GpuShaderCode.Load(name, shaderDirectory);
+            Assert.NotNull(code.Wgsl);
+            if (entries.EnumerateArray().Any(entry => entry.GetProperty("stage").GetString() == "compute"))
+            {
+                using GpuPipeline pipeline = device.CreateComputePipeline(code);
+                Assert.True(pipeline.IsCompute);
+            }
+            else
+            {
+                using GpuPipeline pipeline = device.CreateGraphicsPipeline(code, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+                Assert.False(pipeline.IsCompute);
+            }
+        }
     }
 
     [Fact]

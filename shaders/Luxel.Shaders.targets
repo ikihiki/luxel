@@ -7,7 +7,11 @@
     <SlangVersion Condition="'$(SlangVersion)' == ''">2026.14</SlangVersion>
     <SlangSpirvProfile Condition="'$(SlangSpirvProfile)' == ''">spirv_1_6</SlangSpirvProfile>
     <SlangDxilProfile Condition="'$(SlangDxilProfile)' == ''">sm_6_6</SlangDxilProfile>
-    <SlangCacheSchema Condition="'$(SlangCacheSchema)' == ''">2</SlangCacheSchema>
+    <SlangWgslGeneratorProject>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\eng\Luxel.ShaderWgslGen\Luxel.ShaderWgslGen.csproj'))</SlangWgslGeneratorProject>
+    <SlangWgslGeneratorSource>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\eng\Luxel.ShaderWgslGen\Program.cs'))</SlangWgslGeneratorSource>
+    <SlangWgslIntermediateDir>$([System.IO.Path]::GetFullPath('$(BaseIntermediateOutputPath)luxel-shaders/wgsl'))$([System.IO.Path]::DirectorySeparatorChar)</SlangWgslIntermediateDir>
+    <SlangWgslManifestName>webgpu-shaders.json</SlangWgslManifestName>
+    <SlangCacheSchema Condition="'$(SlangCacheSchema)' == ''">3</SlangCacheSchema>
     <SlangCacheDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)compiled'))$([System.IO.Path]::DirectorySeparatorChar)</SlangCacheDir>
     <SlangCacheManifest>$(SlangCacheDir)inputs.sha256</SlangCacheManifest>
     <SlangCurrentManifest>$(BaseIntermediateOutputPath)luxel-shaders/inputs.sha256</SlangCurrentManifest>
@@ -52,20 +56,22 @@
         Exclude="$(MSBuildThisFileDirectory)compute*.slang;$(MSBuildThisFileDirectory)raster2d_*.slang" />
 
     <_ExpectedCachedShader Include="@(SlangShader->'$(SlangCacheDir)%(Filename).spv')" />
+    <_ExpectedCachedShader Include="@(SlangShader->'$(SlangCacheDir)%(Filename).wgsl')" />
     <_ExpectedCachedShader Include="@(SlangDxilShader->'$(SlangCacheDir)%(Filename).dxil')" />
     <_ExpectedCachedShader Include="@(SlangGraphicsShader->'$(SlangCacheDir)%(Filename).vs.dxil')" />
     <_ExpectedCachedShader Include="@(SlangGraphicsShader->'$(SlangCacheDir)%(Filename).ps.dxil')" />
+    <_ExpectedCachedShader Include="$(SlangCacheDir)$(SlangWgslManifestName)" />
   </ItemGroup>
 
   <Target Name="WriteCurrentSlangCacheManifest">
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(SlangCurrentManifest)'))" />
-    <GetFileHash Files="@(SlangShader)" Algorithm="SHA256">
+    <GetFileHash Files="@(SlangShader);$(SlangWgslGeneratorSource)" Algorithm="SHA256">
       <Output TaskParameter="Items" ItemName="_SlangSourceHash" />
     </GetFileHash>
     <WriteLinesToFile
         File="$(SlangCurrentManifest)"
         Overwrite="true"
-        Lines="schema|$(SlangCacheSchema);slang|$(SlangVersion);dxc|$(DxcVersion);spirv-profile|$(SlangSpirvProfile);dxil-profile|$(SlangDxilProfile);@(_SlangSourceHash->'%(Filename)%(Extension)|%(FileHash)')" />
+        Lines="schema|$(SlangCacheSchema);slang|$(SlangVersion);dxc|$(DxcVersion);spirv-profile|$(SlangSpirvProfile);dxil-profile|$(SlangDxilProfile);wgsl-target|wgsl;wgsl-abi|arena256-root256-fixed16x16;@(_SlangSourceHash->'%(Filename)%(Extension)|%(FileHash)')" />
   </Target>
 
   <Target Name="ValidateSlangShaderCache" DependsOnTargets="WriteCurrentSlangCacheManifest">
@@ -160,6 +166,27 @@
     <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangShader.FullPath)&quot; -target spirv -emit-spirv-directly -profile $(SlangSpirvProfile) -force-glsl-scalar-layout -fvk-use-entrypoint-name -o &quot;$(SlangCacheDir)%(SlangShader.Filename).spv&quot;" />
   </Target>
 
+  <Target Name="BuildSlangWgslGenerator">
+    <Exec Command="dotnet build &quot;$(SlangWgslGeneratorProject)&quot; --configuration Release --nologo --verbosity quiet" />
+    <PropertyGroup>
+      <SlangWgslGeneratorDll>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\eng\Luxel.ShaderWgslGen\bin\Release\net10.0\Luxel.ShaderWgslGen.dll'))</SlangWgslGeneratorDll>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="CompileSlangWgslCache"
+          DependsOnTargets="AcquireSlangCompiler;BuildSlangWgslGenerator"
+          Inputs="@(SlangShader);$(SlangCompilerInputs);$(SlangWgslGeneratorSource)"
+          Outputs="@(SlangShader->'$(SlangCacheDir)%(Filename).wgsl');$(SlangCacheDir)$(SlangWgslManifestName)">
+    <MakeDir Directories="$(SlangCacheDir);$(SlangWgslIntermediateDir)" />
+    <Message Importance="high" Text="Slang -> WGSL compute cache: %(SlangDxilShader.Filename).slang" />
+    <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangDxilShader.FullPath)&quot; -target wgsl -o &quot;$(SlangWgslIntermediateDir)%(SlangDxilShader.Filename).wgsl&quot;" />
+    <Exec Command="dotnet &quot;$(SlangWgslGeneratorDll)&quot; &quot;$(SlangWgslIntermediateDir)%(SlangDxilShader.Filename).wgsl&quot; &quot;$(SlangCacheDir)%(SlangDxilShader.Filename).wgsl&quot; compute" />
+    <Message Importance="high" Text="Slang -> WGSL graphics cache: %(SlangGraphicsShader.Filename).slang" />
+    <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangGraphicsShader.FullPath)&quot; -target wgsl -o &quot;$(SlangWgslIntermediateDir)%(SlangGraphicsShader.Filename).wgsl&quot;" />
+    <Exec Command="dotnet &quot;$(SlangWgslGeneratorDll)&quot; &quot;$(SlangWgslIntermediateDir)%(SlangGraphicsShader.Filename).wgsl&quot; &quot;$(SlangCacheDir)%(SlangGraphicsShader.Filename).wgsl&quot; graphics" />
+    <Exec Command="dotnet &quot;$(SlangWgslGeneratorDll)&quot; --manifest &quot;$(MSBuildThisFileDirectory)&quot; &quot;$(SlangCacheDir)&quot; &quot;$(SlangCacheDir)$(SlangWgslManifestName)&quot;" />
+  </Target>
+
   <Target Name="CompileSlangDxilCache"
           DependsOnTargets="AcquireDxcCompiler"
           Inputs="@(SlangDxilShader);$(SlangCompilerInputs)"
@@ -183,7 +210,7 @@
   </Target>
 
   <Target Name="CompileLuxelShaderCache"
-          DependsOnTargets="CompileSlangSpirvCache;CompileSlangDxilCache;CompileSlangGraphicsDxilCache;WriteCurrentSlangCacheManifest">
+          DependsOnTargets="CompileSlangSpirvCache;CompileSlangWgslCache;CompileSlangDxilCache;CompileSlangGraphicsDxilCache;WriteCurrentSlangCacheManifest">
     <Copy SourceFiles="$(SlangCurrentManifest)" DestinationFiles="$(SlangCacheManifest)" />
     <Message Importance="high" Text="Slang shader cache updated: $(SlangCacheDir)" />
   </Target>
