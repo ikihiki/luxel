@@ -423,10 +423,13 @@ public sealed class GallerySiteExporterTests
         Assert.DoesNotContain("docs:end", trianglePage);
 
         StoryInfo clearColor = stories.Single(story => story.Path == "Learn/Rendering/Basics/ClearColor");
-        Assert.Equal("rendering.app-host", clearColor.SampleBundle);
+        Assert.Equal("rendering.clear-color", clearColor.SampleBundle);
         string clearColorPage = pages[clearColor.Path].Text;
         Assert.Contains("samples/ClearColor.cs", clearColorPage);
         Assert.Contains("dotnet run --file samples/ClearColor.cs -- vk", clearColorPage);
+        Assert.Contains("clear-color.ppm", clearColorPage);
+        Assert.DoesNotContain("WindowSystem", clearColorPage);
+        Assert.DoesNotContain("GpuSurface", clearColorPage);
         Assert.DoesNotContain("samples/LuxelTriangle/Program.cs", clearColorPage);
         Assert.DoesNotContain("standalone-frame-loop", clearColorPage);
         string clearColorSource = File.ReadAllText(Path.Combine(root, "samples", "ClearColor.cs"))
@@ -559,21 +562,25 @@ public sealed class GallerySiteExporterTests
             if (Directory.Exists(output)) Directory.Delete(output, recursive: true);
         }
 
-        string appHostOutput = Path.Combine(Path.GetTempPath(), "luxel-bundle-app-host-" + Guid.NewGuid().ToString("N"));
+        string clearColorOutput = Path.Combine(Path.GetTempPath(), "luxel-bundle-clear-color-" + Guid.NewGuid().ToString("N"));
         try
         {
-            IReadOnlyList<string> files = SampleBundleMaterializer.Materialize(root, "rendering.app-host", appHostOutput);
-            string clearColorPath = Path.Combine(appHostOutput, "samples", "ClearColor.cs");
+            IReadOnlyList<string> files = SampleBundleMaterializer.Materialize(root, "rendering.clear-color", clearColorOutput);
+            string clearColorPath = Path.Combine(clearColorOutput, "samples", "ClearColor.cs");
             Assert.Contains(files, path => string.Equals(path, clearColorPath, StringComparison.Ordinal));
             string clearColor = File.ReadAllText(clearColorPath);
             Assert.Contains("#:project ../src/Luxel.Graphics/Luxel.Graphics.csproj", clearColor);
-            Assert.Contains("clear-color: {renderedFrames} frame(s)", clearColor);
-            Assert.False(File.Exists(Path.Combine(appHostOutput, "samples", "LuxelTriangle", "TriangleRenderer.cs")));
-            Assert.False(File.Exists(Path.Combine(appHostOutput, "samples", "LuxelTriangle", "TutorialAbi.cs")));
+            Assert.Contains("clear-color: offline", clearColor);
+            Assert.Contains("WritePpm", clearColor);
+            Assert.DoesNotContain("Luxel.Platform", clearColor);
+            Assert.DoesNotContain("WindowSystem", clearColor);
+            Assert.DoesNotContain("GpuSurface", clearColor);
+            Assert.False(File.Exists(Path.Combine(clearColorOutput, "samples", "LuxelTriangle", "TriangleRenderer.cs")));
+            Assert.False(File.Exists(Path.Combine(clearColorOutput, "samples", "LuxelTriangle", "TutorialAbi.cs")));
         }
         finally
         {
-            if (Directory.Exists(appHostOutput)) Directory.Delete(appHostOutput, recursive: true);
+            if (Directory.Exists(clearColorOutput)) Directory.Delete(clearColorOutput, recursive: true);
         }
 
         string uiOutput = Path.Combine(Path.GetTempPath(), "luxel-bundle-ui-" + Guid.NewGuid().ToString("N"));
@@ -605,12 +612,21 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
-    public async Task File_based_app_host_restores_and_builds_from_a_materialized_temp_directory()
+    public async Task File_based_offline_clear_color_restores_and_builds_from_a_materialized_temp_directory()
     {
         SampleVerificationResult result = await SampleBundleVerifier.VerifyAsync(
-            GallerySiteExporter.FindRepositoryRoot(), "rendering.app-host", runSmoke: false);
+            GallerySiteExporter.FindRepositoryRoot(), "rendering.clear-color", runSmoke: false);
         Assert.Equal(Path.Combine("samples", "ClearColor.cs"), result.Project);
         Assert.Contains("ClearColor.cs", result.Stdout, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Offline_clear_color_bundle_renders_an_image_without_a_window()
+    {
+        SampleVerificationResult result = await SampleBundleVerifier.VerifyAsync(
+            GallerySiteExporter.FindRepositoryRoot(), "rendering.clear-color");
+        Assert.Contains("clear-color: offline", result.Stdout, StringComparison.Ordinal);
+        Assert.DoesNotContain("DISPLAY", result.Stderr, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

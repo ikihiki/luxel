@@ -91,36 +91,37 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Rendering/Basics/ClearColor", Order = 2, SampleBundle = "rendering.app-host")]
+    [Story("Learn/Rendering/Basics/ClearColor", Order = 2, SampleBundle = "rendering.clear-color")]
     public static Widget ClearColor(StoryContext ctx)
     {
         return DocNew(ctx, $"""
-        # ウィンドウとClear Color
+        # オフラインClear Color
 
-        {RenderingCourseCatalog.Meta("Learn/Rendering/Basics/ClearColor", "Beginner", "File-based standalone app", "Vulkan / DirectX 12", "Environment")}
+        {RenderingCourseCatalog.Meta("Learn/Rendering/Basics/ClearColor", "Beginner", "File-based offline app", "Vulkan / DirectX 12", "Environment")}
 
-        `samples/ClearColor.cs` はプロジェクトファイルを必要としない、1ファイルの実行可能アプリです。ファイル先頭の `#:project` が必要なLuxel projectを参照するため、チェックアウト後にそのまま実行できます。
+        `samples/ClearColor.cs` はプロジェクトファイルもwindow systemも必要としない、1ファイルのオフラインGPU sampleです。ファイル先頭の `#:project` が必要なLuxel projectを参照するため、チェックアウト後にそのまま実行できます。
 
         ```powershell
         dotnet run --file samples/ClearColor.cs -- vk
         ```
 
-        処理は次の順です。shader、vertex buffer、graphics pipelineはまだ使いません。
+        shader、vertex buffer、graphics pipeline、surface、presentは使いません。処理は次の順です。
 
         ```text
-        WindowSystem → Window → GpuDevice → GpuSurface
-                     → clear render target → readback → Present
+        GpuDevice → offscreen render targetをclear
+                  → host-mapped bufferへreadback
+                  → clear-color.ppmへ保存
         ```
 
-        `GpuSurface`へrender targetを直接渡すのではなく、RGBA8のCPU可視framebufferを渡します。アプリはGPU render targetをclearし、`ColorOutput → Copy` barrier後に`CopyTextureToBuffer`でreadbackし、そのbufferをsurfaceへpresentします。この段階を独立させることで、triangleやshaderに進む前にwindow / device / surface / resize / presentを切り分けられます。
+        `BeginRendering`のclear値だけでRGBA8 render targetを塗り、`ColorOutput → Copy` barrier後に`CopyTextureToBuffer`でCPU可視bufferへreadbackします。出力は汎用的に確認できるbinary PPMです。
 
-        ## Resizeと所有権
+        ## Row pitchと出力
 
-        resize callbackでは即座にGPU resourceを破棄せず、次のevent-loop iterationでqueueをidleにしてからsurface、render target、framebufferを作り直します。最小化中の0×0では描画を休止します。
+        D3D12のtexture readback row pitchは256 byte単位なので、GPU側のRGBA8 strideは64 pixel単位へ揃えます。PPMへ保存するときは各rowのpaddingを除去してRGBへ変換します。`--size 801x603`で任意サイズ、`--output result.ppm`で保存先を指定できます。
 
-        D3D12のtexture readback row pitchは256 byte単位なので、RGBA8のstrideは64 pixel単位へ揃えます。`Present`には実際のwidthと、揃えたstrideの両方を渡します。`--frames 1`は実際に1回clear/readback/presentした後に終了するsmoke用optionです。
+        window、event loop、resize、surfaceは後続のinteractive sample側の責務であり、このsampleには含めません。
 
-        {SampleBundle("rendering.app-host")}
+        {SampleBundle("rendering.clear-color")}
         """, toc: true);
     }
 

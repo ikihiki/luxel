@@ -6,13 +6,13 @@ namespace Luxel.Gallery.Stories;
 
 public static class BuildStories
 {
-    [Story("Build/Blocks/AppHost", Order = 0, SampleBundle = "rendering.app-host")]
-    public static Widget AppHost(StoryContext ctx) => DocNew(ctx, $"""
-        # Block: App Host
+    [Story("Build/Blocks/Rendering/OfflineClearColor", Order = 0, SampleBundle = "rendering.clear-color")]
+    public static Widget OfflineClearColor(StoryContext ctx) => DocNew(ctx, $"""
+        # Block: Offline Clear Color
 
-        `samples/ClearColor.cs`としてそのまま実行できる、window、device、surface、resize、clear/readback/present、frame loop、disposeの共通骨格です。shaderなしの完成アプリとして動作し、後続のrendering recipeは同じ所有権とresize規約を引き継ぎます。
+        `samples/ClearColor.cs`としてそのまま実行できる、device、offscreen render target、clear、readback、PPM保存、disposeの最小blockです。window、surface、event loopを含まないため、GPU描画とreadbackだけを独立して検証できます。
 
-        {SampleBundle("rendering.app-host")}
+        {SampleBundle("rendering.clear-color")}
         """, toc: true);
 
     [Story("Build/Blocks/Framework/FixedTimestep", Order = 2, SampleBundle = "framework.fixed-timestep")]
@@ -94,7 +94,7 @@ public static class BuildStories
     public static Widget TriangleApp(StoryContext ctx) => DocNew(ctx, $"""
         # Recipe: Triangle App
 
-        `rendering.app-host + rendering.triangle` の最小 recipe です。表示されるファイルは実際の `LuxelTriangle` project が build しているものです。
+        windowとpresentを含む最小triangle recipeです。表示されるファイルは実際の `LuxelTriangle` project が build しているものです。
 
         {SampleBundle("rendering.triangle")}
         """, toc: true);

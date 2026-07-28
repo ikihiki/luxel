@@ -88,16 +88,17 @@ internal static class SampleBundles
             RunCommand: "dotnet run --project samples/LuxelResources", SmokeCommand: "dotnet run --project samples/LuxelResources",
             Platforms: ["Windows", "Linux", "macOS"], ExpectedStdoutMarker: "resources: status=Ready, value=HELLO RESOURCES"));
         SampleBundleRegistry.Register(new SampleBundleInfo(
-            "rendering.app-host", "File-based Clear Color app",
-            "A complete single-file app with window, GPU device, surface, resize, clear, readback, present and deterministic shutdown.", "Beginner",
+            "rendering.clear-color", "File-based offline Clear Color",
+            "A complete single-file GPU sample that clears an offscreen target, reads it back and writes a PPM image without creating a window.", "Beginner",
             SampleCopyLevel.Block,
             [new("samples/ClearColor.cs", SampleFileKind.CSharp)],
             Dependencies: ["support.source-tree"],
-            Requirements: [".NET 10", "Vulkan 1.3 or DirectX 12", "Linux: X11 DISPLAY"], ExportSymbol: "ClearColorFrame",
+            Requirements: [".NET 10", "Vulkan 1.3 or DirectX 12"], ExportSymbol: "ClearColor.cs",
             RunCommand: "dotnet run --file samples/ClearColor.cs -- vk",
-            SmokeCommand: "dotnet run --file samples/ClearColor.cs -- vk --frames 1",
+            SmokeCommand: "dotnet run --file samples/ClearColor.cs -- vk --size 64x48 --output clear-color.ppm",
             Platforms: ["Windows", "Linux"], TimeoutSeconds: 300,
-            ExpectedStdoutMarker: "clear-color: 1 frame(s)", BuildEntry: "samples/ClearColor.cs"));
+            ExpectedStdoutMarker: "clear-color: offline", ExpectedArtifacts: ["clear-color.ppm"],
+            BuildEntry: "samples/ClearColor.cs"));
         SampleBundleRegistry.Register(new SampleBundleInfo(
             "rendering.triangle", "Triangle renderer",
             "A complete standalone C#/Slang triangle recipe.", "Beginner",

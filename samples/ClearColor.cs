@@ -1,140 +1,86 @@
 #:project ../src/Luxel.Graphics/Luxel.Graphics.csproj
 #:project ../src/Luxel.Graphics.Vulkan/Luxel.Graphics.Vulkan.csproj
 #:project ../src/Luxel.Graphics.DirectX12/Luxel.Graphics.DirectX12.csproj
-#:project ../src/Luxel.Platform/Luxel.Platform.csproj
-#:project ../src/Luxel.Platform.Silk/Luxel.Platform.Silk.csproj
-#:project ../src/Luxel.Platform.Windows/Luxel.Platform.Windows.csproj
 #:property TargetFramework=net10.0
 
+using System.Security.Cryptography;
+using System.Text;
 using Luxel.Graphics;
 using Luxel.Graphics.Vulkan;
-using Luxel.Platform;
-using Luxel.Platform.Abstraction;
-using Luxel.Platform.Silk;
-using Luxel.Platform.Windows;
 
 string backend = args.FirstOrDefault(argument => argument is "vk" or "vulkan" or "dx" or "d3d12")?.ToLowerInvariant() ?? "vk";
-int? frameLimit = ParseFrameLimit(args);
-(int initialWidth, int initialHeight) = ParseSize(args);
+(int width, int height) = ParseSize(args);
+string outputPath = ParseOutput(args);
 
-if (OperatingSystem.IsWindows())
+try
 {
-    int exitCode = 1;
-    var thread = new Thread(() => exitCode = Run(backend, frameLimit, initialWidth, initialHeight))
+    using GpuDevice device = CreateDevice(backend);
+    uint stridePixels = (uint)Align(width, 64); // D3D12 RGBA8 readback rows must be aligned to 256 bytes.
+    using GpuTexture target = device.CreateRenderTarget((uint)width, (uint)height, GpuFormat.Rgba8Unorm);
+    using GpuBuffer readback = device.Malloc(checked((ulong)stridePixels * (uint)height * 4), GpuMemoryKind.HostMapped);
+
+    using (GpuCommandBuffer command = device.MainQueue.StartCommandRecording())
     {
-        Name = "LuxelClearColor-Main",
-    };
-    thread.SetApartmentState(ApartmentState.STA);
-    thread.Start();
-    thread.Join();
-    return exitCode;
-}
-
-return Run(backend, frameLimit, initialWidth, initialHeight);
-
-static int Run(string backend, int? frameLimit, int initialWidth, int initialHeight)
-{
-    try
-    {
-        using WindowSystem windows = CreateWindowSystem();
-        Window window = windows.CreateWindow(new WindowDesc("Luxel — Clear Color", initialWidth, initialHeight));
-        using GpuDevice device = CreateDevice(backend, window);
-        using GpuSurface surface = device.CreateSurface(
-            window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
-        using var frame = new ClearColorFrame(device);
-
-        int width = Math.Max(0, window.Width);
-        int height = Math.Max(0, window.Height);
-        bool resizePending = true;
-        window.Resized += (newWidth, newHeight) =>
-        {
-            width = Math.Max(0, newWidth);
-            height = Math.Max(0, newHeight);
-            resizePending = true;
-        };
-
-        int renderedFrames = 0;
-        while (windows.Pump())
-        {
-            if (resizePending)
-            {
-                device.MainQueue.WaitIdle();
-                if (width > 0 && height > 0)
-                    surface.Resize((uint)width, (uint)height);
-                frame.Resize(width, height);
-                resizePending = false;
-            }
-
-            if (width == 0 || height == 0)
-            {
-                Thread.Sleep(10);
-                continue;
-            }
-
-            frame.Render();
-            surface.Present(frame.Framebuffer, frame.StridePixels, (uint)width, (uint)height);
-            renderedFrames++;
-
-            if (frameLimit is int limit && renderedFrames >= limit)
-            {
-                window.Close();
-                windows.Pump();
-                break;
-            }
-        }
-
-        device.MainQueue.WaitIdle();
-        Console.WriteLine($"clear-color: {renderedFrames} frame(s), backend={backend}, device={device.Name}, size={width}x{height}");
-        return 0;
-    }
-    catch (Exception exception)
-    {
-        Console.Error.WriteLine(exception);
-        return 1;
-    }
-}
-
-static WindowSystem CreateWindowSystem()
-{
-    if (OperatingSystem.IsWindows())
-        return new WindowSystem(Win32WindowBackend.Create());
-    return new WindowSystem(SilkWindowBackend.Create());
-}
-
-static GpuDevice CreateDevice(string backend, Window window)
-{
-    if (OperatingSystem.IsWindows())
-    {
-        return backend switch
-        {
-            "dx" or "d3d12" => new GpuDevice(Luxel.Graphics.DirectX12.D3D12Backend.Create()),
-            _ => new GpuDevice(VulkanBackend.Create()),
-        };
+        command.BeginRendering(target, null, 0.055f, 0.07f, 0.11f, 1)
+            .EndRendering()
+            .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+            .CopyTextureToBuffer(target, readback, stridePixels);
+        command.Finish();
+        device.MainQueue.SubmitAndWait(command);
     }
 
+    byte[] rgba = CopyTightlyPacked(readback, stridePixels, width, height);
+    WritePpm(outputPath, rgba, width, height);
+    string sha256 = Convert.ToHexStringLower(SHA256.HashData(rgba));
+    Console.WriteLine($"clear-color: offline, backend={backend}, device={device.Name}, size={width}x{height}, output={outputPath}, sha256={sha256}");
+    return 0;
+}
+catch (Exception exception)
+{
+    Console.Error.WriteLine(exception);
+    return 1;
+}
+
+static GpuDevice CreateDevice(string backend)
+{
     if (backend is "dx" or "d3d12")
-        throw new PlatformNotSupportedException("DirectX 12 is available only on Windows. Use 'vk' on Linux.");
-    IVulkanWindowSurface provider = window.GetFeature<IVulkanWindowSurface>()
-        ?? throw new PlatformNotSupportedException("The Linux/X11 window did not provide a Vulkan surface.");
-    return new GpuDevice(VulkanBackend.Create(new VulkanBackendOptions
     {
-        Presentation = VulkanPresentationMode.Window,
-        WindowSurface = provider,
-    }));
+        if (!OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException("DirectX 12 is available only on Windows. Use 'vk' on this platform.");
+        return new GpuDevice(Luxel.Graphics.DirectX12.D3D12Backend.Create());
+    }
+    return new GpuDevice(VulkanBackend.Create(enableValidation: false));
 }
 
-static int? ParseFrameLimit(string[] arguments)
+static byte[] CopyTightlyPacked(GpuBuffer readback, uint stridePixels, int width, int height)
 {
-    for (int index = 0; index < arguments.Length; index++)
+    ReadOnlySpan<byte> mapped = readback.Span<byte>();
+    int sourceStride = checked((int)stridePixels * 4);
+    int destinationStride = checked(width * 4);
+    byte[] pixels = new byte[checked(destinationStride * height)];
+    for (int y = 0; y < height; y++)
+        mapped.Slice(y * sourceStride, destinationStride).CopyTo(pixels.AsSpan(y * destinationStride, destinationStride));
+    return pixels;
+}
+
+static void WritePpm(string path, ReadOnlySpan<byte> rgba, int width, int height)
+{
+    string? directory = Path.GetDirectoryName(Path.GetFullPath(path));
+    if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+    using FileStream stream = File.Create(path);
+    stream.Write(Encoding.ASCII.GetBytes($"P6\n{width} {height}\n255\n"));
+    byte[] rgbRow = new byte[checked(width * 3)];
+    for (int y = 0; y < height; y++)
     {
-        if (arguments[index] == "--frames" && index + 1 < arguments.Length
-            && int.TryParse(arguments[index + 1], out int frames))
-            return Math.Max(1, frames);
-        if (arguments[index].StartsWith("--frames=", StringComparison.Ordinal)
-            && int.TryParse(arguments[index]["--frames=".Length..], out frames))
-            return Math.Max(1, frames);
+        ReadOnlySpan<byte> source = rgba.Slice(checked(y * width * 4), width * 4);
+        for (int x = 0; x < width; x++)
+        {
+            rgbRow[x * 3] = source[x * 4];
+            rgbRow[x * 3 + 1] = source[x * 4 + 1];
+            rgbRow[x * 3 + 2] = source[x * 4 + 2];
+        }
+        stream.Write(rgbRow);
     }
-    return null;
 }
 
 static (int Width, int Height) ParseSize(string[] arguments)
@@ -155,46 +101,14 @@ static (int Width, int Height) ParseSize(string[] arguments)
     return (800, 600);
 }
 
-sealed class ClearColorFrame(GpuDevice device) : IDisposable
+static string ParseOutput(string[] arguments)
 {
-    private GpuTexture? _target;
-    private GpuBuffer? _framebuffer;
-
-    public GpuBuffer Framebuffer
-        => _framebuffer ?? throw new InvalidOperationException("Resize must be called with a positive size before rendering.");
-    public uint StridePixels { get; private set; }
-
-    public void Resize(int width, int height)
+    for (int index = 0; index < arguments.Length; index++)
     {
-        _framebuffer?.Dispose();
-        _framebuffer = null;
-        _target?.Dispose();
-        _target = null;
-        StridePixels = 0;
-
-        if (width <= 0 || height <= 0) return;
-        StridePixels = (uint)Align(width, 64); // D3D12 RGBA8 readback rows must be aligned to 256 bytes.
-        _target = device.CreateRenderTarget((uint)width, (uint)height, GpuFormat.Rgba8Unorm);
-        _framebuffer = device.Malloc(checked((ulong)StridePixels * (uint)height * 4), GpuMemoryKind.HostMapped);
+        if (arguments[index] == "--output" && index + 1 < arguments.Length) return arguments[index + 1];
+        if (arguments[index].StartsWith("--output=", StringComparison.Ordinal)) return arguments[index]["--output=".Length..];
     }
-
-    public void Render()
-    {
-        if (_target is null || _framebuffer is null) return;
-        using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
-        command.BeginRendering(_target, null, 0.055f, 0.07f, 0.11f, 1)
-            .EndRendering()
-            .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
-            .CopyTextureToBuffer(_target, _framebuffer, StridePixels);
-        command.Finish();
-        device.MainQueue.SubmitAndWait(command);
-    }
-
-    public void Dispose()
-    {
-        _framebuffer?.Dispose();
-        _target?.Dispose();
-    }
-
-    private static int Align(int value, int alignment) => (value + alignment - 1) / alignment * alignment;
+    return "clear-color.ppm";
 }
+
+static int Align(int value, int alignment) => (value + alignment - 1) / alignment * alignment;
