@@ -10,7 +10,7 @@ public static class BuildStories
     public static Widget AppHost(StoryContext ctx) => DocNew(ctx, $"""
         # Block: App Host
 
-        window、device、surface、resize、frame loop、dispose を一度だけ用意する共通骨格です。他の rendering block はこの host の接続点へ追加します。
+        `samples/ClearColor.cs`としてそのまま実行できる、window、device、surface、resize、clear/readback/present、frame loop、disposeの共通骨格です。shaderなしの完成アプリとして動作し、後続のrendering recipeは同じ所有権とresize規約を引き継ぎます。
 
         {SampleBundle("rendering.app-host")}
         """, toc: true);

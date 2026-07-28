@@ -91,44 +91,36 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Rendering/Basics/ClearColor", Order = 2)]
+    [Story("Learn/Rendering/Basics/ClearColor", Order = 2, SampleBundle = "rendering.app-host")]
     public static Widget ClearColor(StoryContext ctx)
     {
         return DocNew(ctx, $"""
         # ウィンドウとClear Color
 
-        {RenderingCourseCatalog.Meta("Learn/Rendering/Basics/ClearColor", "Beginner", "Standalone", "Vulkan / DirectX 12", "Environment")}
+        {RenderingCourseCatalog.Meta("Learn/Rendering/Basics/ClearColor", "Beginner", "File-based standalone app", "Vulkan / DirectX 12", "Environment")}
 
-        `samples/LuxelTriangle/Program.cs` がstandaloneアプリの外枠です。責務は次の順です。
+        `samples/ClearColor.cs` はプロジェクトファイルを必要としない、1ファイルの実行可能アプリです。ファイル先頭の `#:project` が必要なLuxel projectを参照するため、チェックアウト後にそのまま実行できます。
+
+        ```powershell
+        dotnet run --file samples/ClearColor.cs -- vk
+        ```
+
+        処理は次の順です。shader、vertex buffer、graphics pipelineはまだ使いません。
 
         ```text
         WindowSystem → Window → GpuDevice → GpuSurface
-                     → event loop → Render → Present
+                     → clear render target → readback → Present
         ```
 
-        `GpuSurface`へrender targetを直接渡すのではなく、RGBA8のCPU可視framebufferを渡します。サンプルはGPU render targetをclearし、三角形を描き、`CopyTextureToBuffer`でframebufferへコピーします。三角形を外してもclear colorだけは表示されるため、window / surface / presentの切り分けに使えます。
+        `GpuSurface`へrender targetを直接渡すのではなく、RGBA8のCPU可視framebufferを渡します。アプリはGPU render targetをclearし、`ColorOutput → Copy` barrier後に`CopyTextureToBuffer`でreadbackし、そのbufferをsurfaceへpresentします。この段階を独立させることで、triangleやshaderに進む前にwindow / device / surface / resize / presentを切り分けられます。
 
-        ```csharp
-        command.BeginRendering(target, null, 0.055f, 0.07f, 0.11f, 1)
-            .EndRendering()
-            .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
-            .CopyTextureToBuffer(target, framebuffer);
-        command.Finish();
-        device.MainQueue.SubmitAndWait(command);
-        surface.Present(framebuffer, stridePixels, width, height);
-        ```
-
-        ## 実sampleのframe loop
-
-        次は`Program.cs`からbuild時に埋め込んだ実コードです。説明用コピーではなく、sampleがコンパイルする同じregionを表示しています。
-
-        {SampleSource("samples/LuxelTriangle/Program.cs", "standalone-frame-loop")}
-
-        ## Resize
+        ## Resizeと所有権
 
         resize callbackでは即座にGPU resourceを破棄せず、次のevent-loop iterationでqueueをidleにしてからsurface、render target、framebufferを作り直します。最小化中の0×0では描画を休止します。
 
-        D3D12のtexture readback row pitchは256 byte単位なので、RGBA8のstrideは64 pixel単位へ揃えます。`Present`には実際のwidthと、揃えたstrideの両方を渡します。
+        D3D12のtexture readback row pitchは256 byte単位なので、RGBA8のstrideは64 pixel単位へ揃えます。`Present`には実際のwidthと、揃えたstrideの両方を渡します。`--frames 1`は実際に1回clear/readback/presentした後に終了するsmoke用optionです。
+
+        {SampleBundle("rendering.app-host")}
         """, toc: true);
     }
 
