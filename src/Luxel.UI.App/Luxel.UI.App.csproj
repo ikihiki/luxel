@@ -40,17 +40,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\..\shaders\compiled\raster2d_bounds.spv" Link="shaders\raster2d_bounds.spv" Pack="false"
-             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\shaders\compiled\raster2d_bin.spv" Link="shaders\raster2d_bin.spv" Pack="false"
-             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\shaders\compiled\raster2d_fine.spv" Link="shaders\raster2d_fine.spv" Pack="false"
-             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\shaders\compiled\raster2d_bounds.dxil" Link="shaders\raster2d_bounds.dxil" Pack="false"
-             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\shaders\compiled\raster2d_bin.dxil" Link="shaders\raster2d_bin.dxil" Pack="false"
-             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\shaders\compiled\raster2d_fine.dxil" Link="shaders\raster2d_fine.dxil" Pack="false"
+    <Content Include="..\..\shaders\compiled\*.spv;..\..\shaders\compiled\*.dxil;..\..\shaders\compiled\*.wgsl;..\..\shaders\compiled\webgpu-shaders.json"
+             Link="shaders\%(Filename)%(Extension)" Pack="false"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\assets\fonts\BIZUDGothic-Regular.ttf" Link="assets\fonts\BIZUDGothic-Regular.ttf" Pack="false"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

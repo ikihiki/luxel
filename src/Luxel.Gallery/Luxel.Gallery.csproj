@@ -140,8 +140,7 @@
   <!-- Gallery / e2e / publish で共有 BIZ/UDEV フォントを使う。 -->
   <Import Project="..\..\assets\Luxel.FontAssets.targets" />
 
-  <!-- Slang シェーダ (GpuDeviceRasterizer2D 用) -->
-  <Import Project="..\..\shaders\Luxel.Shaders.targets" />
+  <!-- Luxel.UI.App project content supplies and validates the complete compiled shader cache. -->
 
   <ItemGroup>
     <Using Include="Luxel.Graphics" />

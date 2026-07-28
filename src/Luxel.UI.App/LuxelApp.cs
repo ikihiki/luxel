@@ -20,6 +20,9 @@ public static class LuxelApp
         "shaders/raster2d_bounds.spv",
         "shaders/raster2d_bin.spv",
         "shaders/raster2d_fine.spv",
+        "shaders/raster2d_bounds.wgsl",
+        "shaders/raster2d_bin.wgsl",
+        "shaders/raster2d_fine.wgsl",
         "shaders/raster2d_bounds.dxil",
         "shaders/raster2d_bin.dxil",
         "shaders/raster2d_fine.dxil",
@@ -96,8 +99,8 @@ public static class LuxelApp
             throw new PlatformNotSupportedException("The Silk.NET X11 window backend is only available on Linux.");
         if (graphics == LuxelGraphicsBackend.Direct3D12 && !OperatingSystem.IsWindows())
             throw new PlatformNotSupportedException("Direct3D 12 is only available on Windows.");
-        if (window == LuxelWindowBackend.SilkX11 && graphics != LuxelGraphicsBackend.Vulkan)
-            throw new PlatformNotSupportedException("The Silk.NET X11 window backend currently requires Vulkan.");
+        if (window == LuxelWindowBackend.SilkX11 && graphics is not (LuxelGraphicsBackend.Vulkan or LuxelGraphicsBackend.WebGpu))
+            throw new PlatformNotSupportedException("The Silk.NET X11 window backend requires Vulkan or WebGPU.");
     }
 
     internal static void ValidateAssets(string baseDirectory, bool requireBundledFont)

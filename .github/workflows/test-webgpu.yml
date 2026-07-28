@@ -8,7 +8,10 @@ on:
       - 'src/Luxel.Gallery/SampleBundles.cs'
       - 'src/Luxel.Gallery/Stories/Docs/DocsGpuWebGpu.cs'
       - 'samples/LuxelWebGpuHeadless/**'
+      - 'samples/LuxelTriangle/**'
       - 'tests/Luxel.WebGPU.Tests/**'
+      - 'tests/Luxel.WebGPU.Present.Tests/**'
+      - 'shaders/**'
       - 'src/**/*.csproj'
       - 'tests/**/*.csproj'
       - 'samples/**/*.csproj'
@@ -28,33 +31,60 @@ jobs:
       LUXEL_WEBGPU_REQUIRE_ADAPTER: '1'
       WGPU_BACKEND: vulkan
       WGPU_ADAPTER_NAME: llvmpipe
+      DISPLAY: ':99'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - name: Install Mesa lavapipe
+      - name: Install Mesa lavapipe and X11 display
         run: |
           sudo apt-get update
-          sudo apt-get install -y mesa-vulkan-drivers vulkan-tools
+          sudo apt-get install -y mesa-vulkan-drivers vulkan-tools xvfb openbox x11-utils
           LVP_ICD="$(find /usr/share/vulkan/icd.d -maxdepth 1 -name 'lvp_icd*.json' -print -quit)"
           test -n "$LVP_ICD"
           echo "VK_ICD_FILENAMES=$LVP_ICD" >> "$GITHUB_ENV"
           echo "Using lavapipe ICD: $LVP_ICD"
+          Xvfb "$DISPLAY" -screen 0 1280x720x24 > /tmp/luxel-xvfb.log 2>&1 &
+          for attempt in {1..20}; do
+            if xdpyinfo -display "$DISPLAY" >/dev/null 2>&1; then
+              openbox > /tmp/luxel-openbox.log 2>&1 &
+              exit 0
+            fi
+            sleep 0.25
+          done
+          cat /tmp/luxel-xvfb.log
+          exit 1
       - name: Validate project dependency graph
         run: python3 eng/check-project-dependencies.py
+      - name: Validate shader cache
+        run: dotnet msbuild shaders/Luxel.ShaderCache.proj -t:ValidateSlangShaderCache
       - name: Restore WebGPU projects and wgpu-native runtime
-        run: dotnet restore tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj
-      - name: Build WebGPU tests and headless sample
+        run: |
+          dotnet restore tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj
+          dotnet restore tests/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj
+          dotnet restore tests/Luxel.UI.App.Tests/Luxel.UI.App.Tests.csproj
+          dotnet restore samples/LuxelTriangle/LuxelTriangle.csproj
+      - name: Build WebGPU tests and samples
         run: |
           dotnet build tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-restore
-          dotnet build samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj -c Release --no-restore
+          dotnet build tests/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj -c Release --no-restore
+          dotnet build tests/Luxel.UI.App.Tests/Luxel.UI.App.Tests.csproj -c Release --no-restore
+          dotnet build samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj -c Release
+          dotnet build samples/LuxelTriangle/LuxelTriangle.csproj -c Release --no-restore
           test -f tests/Luxel.WebGPU.Tests/bin/Release/net10.0/libwgpu_native.so
+          test -f tests/Luxel.WebGPU.Present.Tests/bin/Release/net10.0/libwgpu_native.so
+          test -f tests/Luxel.UI.App.Tests/bin/Release/net10.0/libwgpu_native.so
           test -f samples/LuxelWebGpuHeadless/bin/Release/net10.0/libwgpu_native.so
       - name: Test WebGPU with required software adapter
-        run: dotnet test tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-build
-      - name: Run headless WebGPU sample
-        run: dotnet run --project samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj -c Release --no-build
+        run: |
+          dotnet test tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-build
+          dotnet test tests/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj -c Release --no-build
+          dotnet test tests/Luxel.UI.App.Tests/Luxel.UI.App.Tests.csproj -c Release --no-build
+      - name: Run WebGPU samples
+        run: |
+          dotnet run --project samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj -c Release --no-build
+          dotnet run --project samples/LuxelTriangle/LuxelTriangle.csproj -c Release --no-build -- webgpu --frames 3 --stage triangle
 
   windows-build-and-tests:
     runs-on: windows-2025

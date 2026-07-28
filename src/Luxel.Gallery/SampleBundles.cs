@@ -14,7 +14,8 @@ internal static class SampleBundles
             SampleCopyLevel.GalleryOnly,
             [new("Directory.Build.props", SampleFileKind.Asset),
              new("src", SampleFileKind.Asset, Destination: "src", AssetGlob: "*", Mode: SampleFileMode.Glob),
-             new("shaders", SampleFileKind.Asset, Destination: "shaders", AssetGlob: "*", Mode: SampleFileMode.Glob)]));
+             new("shaders", SampleFileKind.Asset, Destination: "shaders", AssetGlob: "*", Mode: SampleFileMode.Glob),
+             new("eng/Luxel.ShaderWgslGen", SampleFileKind.Asset, Destination: "eng/Luxel.ShaderWgslGen", AssetGlob: "*", Mode: SampleFileMode.Glob)]));
         SampleBundleRegistry.Register(new SampleBundleInfo(
             "game.cavern", "Luxel Cavern capstone",
             "Repository recipe integrating Framework, UI, 2D, input, audio, resources, particles and settings.", "Advanced",
