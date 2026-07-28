@@ -436,6 +436,24 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Terminal_docs_cover_platforms_usage_and_rendering_adjustments()
+    {
+        StoryInfo story = StoryRegistry.Find("Docs/Terminal")
+            ?? throw new InvalidOperationException("Docs/Terminal is missing.");
+        Dictionary<string, DocsPage> pages = DocsIndex.Build([story], resources: null);
+        DocsPage page = pages[story.Path];
+
+        Assert.Contains("WindowsConPty", page.Text);
+        Assert.Contains("LinuxPty", page.Text);
+        Assert.Contains("TerminalSession", page.Text);
+        Assert.Contains("TerminalView", page.Text);
+        Assert.Contains("GlyphAdvanceScale", page.Text);
+        Assert.Contains("delayed wrap", page.Text);
+        Assert.Contains("samples/LuxelTerminal", page.Text);
+        Assert.Empty(DocsIndex.ValidateLinks(pages));
+    }
+
+    [Fact]
     public void Broken_story_and_heading_links_are_reported()
     {
         Assert.Contains("Test/Page: story:Missing/Story",
