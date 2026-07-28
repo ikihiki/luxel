@@ -53,34 +53,25 @@ const int width = 800;
 const int height = 600;
 const string outputPath = &quot;clear-color.png&quot;;
 
-try
-{
-    using GpuDevice device = new(VulkanBackend.Create(enableValidation: false));
-    using GpuTexture target = device.CreateRenderTarget((uint)width, (uint)height, GpuFormat.Rgba8Unorm);
-    using GpuBuffer readback = device.Malloc(checked((ulong)width * height * 4), GpuMemoryKind.HostMapped);
+using GpuDevice device = new(VulkanBackend.Create(enableValidation: false));
+using GpuTexture target = device.CreateRenderTarget((uint)width, (uint)height, GpuFormat.Rgba8Unorm);
+using GpuBuffer readback = device.Malloc(checked((ulong)width * height * 4), GpuMemoryKind.HostMapped);
 
-    using (GpuCommandBuffer command = device.MainQueue.StartCommandRecording())
-    {
-        command.BeginRendering(target, null, 0.055f, 0.07f, 0.11f, 1)
-            .EndRendering()
-            .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
-            .CopyTextureToBuffer(target, readback, (uint)width);
-        command.Finish();
-        device.MainQueue.SubmitAndWait(command);
-    }
-
-    ReadOnlySpan&lt;byte&gt; rgba = readback.Span&lt;byte&gt;(width * height * 4);
-    using (Image&lt;Rgba32&gt; image = Image.LoadPixelData&lt;Rgba32&gt;(rgba, width, height))
-        image.SaveAsPng(outputPath);
-    string sha256 = Convert.ToHexStringLower(SHA256.HashData(rgba));
-    Console.WriteLine($&quot;clear-color: offline, backend=vulkan, device={device.Name}, size={width}x{height}, output={outputPath}, sha256={sha256}&quot;);
-    return 0;
-}
-catch (Exception exception)
+using (GpuCommandBuffer command = device.MainQueue.StartCommandRecording())
 {
-    Console.Error.WriteLine(exception);
-    return 1;
+    command.BeginRendering(target, null, 0.055f, 0.07f, 0.11f, 1)
+        .EndRendering()
+        .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+        .CopyTextureToBuffer(target, readback, (uint)width);
+    command.Finish();
+    device.MainQueue.SubmitAndWait(command);
 }
+
+ReadOnlySpan&lt;byte&gt; rgba = readback.Span&lt;byte&gt;(width * height * 4);
+using (Image&lt;Rgba32&gt; image = Image.LoadPixelData&lt;Rgba32&gt;(rgba, width, height))
+    image.SaveAsPng(outputPath);
+string sha256 = Convert.ToHexStringLower(SHA256.HashData(rgba));
+Console.WriteLine($&quot;clear-color: offline, backend=vulkan, device={device.Name}, size={width}x{height}, output={outputPath}, sha256={sha256}&quot;);
 </code></pre>
 <details class="sample-bundle"><summary>Run this sample — Block</summary><p>A complete single-file GPU sample that clears an offscreen target, reads it back and writes a PNG with ImageSharp without creating a window.</p><p><strong>Requirements:</strong> .NET 10 / Vulkan 1.3 / SixLabors.ImageSharp 3.1.12</p><p><strong>Platforms:</strong> Windows / Linux</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>clear-color: offline</code></p><ul><li><code>samples/ClearColor.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --file samples/ClearColor.cs</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --file samples/ClearColor.cs</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Rendering/Basics/ClearColor&quot;, Order = 2, SampleBundle = &quot;rendering.clear-color&quot;)]
 public static Widget ClearColor(StoryContext ctx)
