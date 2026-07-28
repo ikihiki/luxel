@@ -35,8 +35,13 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("viewport-fit=cover", html);
         Assert.Contains("@media(max-width:820px),(orientation:portrait)", css);
         Assert.Contains("grid-template-columns:310px minmax(0,1fr) minmax(320px,390px)", css);
-        Assert.Contains("grid-template-columns:repeat(8,minmax(36px,1fr))", css);
-        Assert.Contains(".review-comment-label{display:block;margin:5px 0 2px", css);
+        Assert.Contains(".review-actions{display:flex;flex-wrap:nowrap", css);
+        Assert.Contains(".review-actions>.icon-button{flex:1 1 0}", css);
+        Assert.Contains(".review-comment-label{display:block;margin:3px 0 2px", css);
+        Assert.DoesNotContain("Start/Welcome", html);
+        Assert.DoesNotContain("現在のストーリーを開く", html);
+        Assert.DoesNotContain("この端末に自動保存します。", html);
+        Assert.DoesNotContain("下書きはこのSafari内だけに保存され、端末間では同期されません。", html);
         Assert.Contains("env(safe-area-inset-bottom)", css);
         Assert.Contains("prefers-reduced-motion", css);
     }
@@ -54,9 +59,9 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("body.review-open #review-panel{display:flex;flex-direction:column}", css);
         Assert.Contains("#review-comment{flex:1 1 160px;min-height:80px", css);
         Assert.Contains("bottom:var(--keyboard-inset,0px)", css);
-        Assert.Contains("height:min(52dvh,420px)", css);
-        Assert.Contains("body.review-keyboard #review-panel{height:min(42vh,280px)", css);
-        Assert.Contains("var(--visual-viewport-height,100dvh)*.46", css);
+        Assert.Contains("height:min(44dvh,340px)", css);
+        Assert.Contains("body.review-keyboard #review-panel{height:min(34vh,220px)", css);
+        Assert.Contains("var(--visual-viewport-height,100dvh)*.38", css);
         string script = GallerySiteExporter.ClientScript;
         Assert.Contains("function syncVisualViewport()", script);
         Assert.Contains("document.body.classList.add('review-keyboard')", script);
