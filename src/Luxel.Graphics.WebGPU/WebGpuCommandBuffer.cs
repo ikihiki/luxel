@@ -13,12 +13,15 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
     private WgpuBuffer* _rootBuffer;
     private BindGroup* _computeBindGroup;
     private BindGroup* _graphicsBindGroup;
+    private BindGroup* _resourceBindGroup;
     private ComputePassEncoder* _computePass;
     private RenderPassEncoder* _renderPass;
     private WebGpuPipeline? _graphicsPipeline;
     private CommandBuffer* _commandBuffer;
     private readonly List<nint> _temporaryBuffers = [];
     private readonly HashSet<WebGpuBuffer> _referencedBuffers = [];
+    private readonly List<WebGpuTexture> _referencedTextures = [];
+    private readonly List<WebGpuSampler> _referencedSamplers = [];
     private readonly byte[] _rootData = new byte[WebGpuBackend.RootBufferSize];
     private uint _rootOffset;
     private uint _currentRootOffset;
@@ -39,6 +42,7 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
         if (_rootBuffer == null) throw new InvalidOperationException("Failed to create WebGPU root constant buffer.");
         _computeBindGroup = backend.CreateCommandBindGroup(_rootBuffer, true);
         _graphicsBindGroup = backend.CreateCommandBindGroup(_rootBuffer, false);
+        _resourceBindGroup = backend.CreateResourceBindGroup(_referencedTextures, _referencedSamplers);
         backend.RegisterCommand();
     }
 
@@ -82,6 +86,7 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
         if (_computePass == null) throw new InvalidOperationException("SetComputePipeline must be called before Dispatch.");
         uint dynamicOffset = _currentRootOffset;
         _api.ComputePassEncoderSetBindGroup(_computePass, 0, _computeBindGroup, 1, in dynamicOffset);
+        _api.ComputePassEncoderSetBindGroup(_computePass, 1, _resourceBindGroup, 0, null);
         _api.ComputePassEncoderDispatchWorkgroups(_computePass, groupCountX, groupCountY, groupCountZ);
     }
 
@@ -148,6 +153,7 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
         if (_graphicsPipeline is null) throw new InvalidOperationException("SetGraphicsPipeline must be called before Draw.");
         uint dynamicOffset = _currentRootOffset;
         _api.RenderPassEncoderSetBindGroup(_renderPass, 0, _graphicsBindGroup, 1, in dynamicOffset);
+        _api.RenderPassEncoderSetBindGroup(_renderPass, 1, _resourceBindGroup, 0, null);
         _api.RenderPassEncoderDraw(_renderPass, vertexCount, instanceCount, 0, 0);
     }
 
@@ -270,8 +276,15 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
 
     internal void ReleaseReferencesAfterSubmit()
     {
+        if (_resourceBindGroup != null && !_backend.IsDisposed)
+            _api.BindGroupRelease(_resourceBindGroup);
+        _resourceBindGroup = null;
         foreach (WebGpuBuffer buffer in _referencedBuffers) buffer.ReleaseReference();
+        foreach (WebGpuTexture texture in _referencedTextures) texture.ReleaseReference();
+        foreach (WebGpuSampler sampler in _referencedSamplers) sampler.ReleaseReference();
         _referencedBuffers.Clear();
+        _referencedTextures.Clear();
+        _referencedSamplers.Clear();
         CompleteBackendCommand();
     }
 

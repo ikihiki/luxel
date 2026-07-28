@@ -95,7 +95,7 @@ Gallery のサイドバー **Start/Welcome** を唯一の入口とし、そこ�
 ### Headless WebGPU
 
 WebGPU backendは現在headless/offscreen専用です。公開`GpuDevice` APIでinline WGSL compute、offscreen triangle、
-storage arenaからのvertex pulling、`HostCached` readbackを自己検証する最小sampleを実行できます。surfaceと既存windowed hostのselectorは未実装です。sampled texture/samplerは現在の固定ABIでは未対応で、WebGPU backendは作成時に明示的に拒否します。
+storage arenaからのvertex pulling、sampled checkerboard、`HostCached` readbackを自己検証する最小sampleを実行できます。固定portable ABIはgroup 0のbuffer arena/root uniformと、group 1のsampled texture 16 slot + sampler 16 slotです。logical indexは各tableの`0..15`で、上限超過やadapter/device limit不足は明示的に失敗します。surfaceと既存windowed hostのselectorは未実装です。
 
 ```bash
 dotnet run --project samples/LuxelWebGpuHeadless -c Release

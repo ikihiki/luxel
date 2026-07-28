@@ -1,6 +1,6 @@
 # LuxelWebGpuHeadless
 
-ウィンドウやsurfaceを作らず、公開`GpuDevice` APIだけでWebGPUのWGSL compute、storage arenaからのvertex pulling、offscreen triangle、`GpuMemoryKind.HostCached` readbackを実行・検証するconsole sampleです。sampled texture/samplerは現在の固定ABIでは未対応です。
+ウィンドウやsurfaceを作らず、公開`GpuDevice` APIだけでWebGPUのWGSL compute、storage arenaからのvertex pulling、sampled checkerboardを使うoffscreen triangle、`GpuMemoryKind.HostCached` readbackを実行・検証するconsole sampleです。root argumentsのtexture/sampler logical indexをportableな固定`switch`で選択し、範囲外indexがmagenta sentinelになることも検証します。
 
 ```bash
 dotnet run --project samples/LuxelWebGpuHeadless -c Release
@@ -9,10 +9,10 @@ dotnet run --project samples/LuxelWebGpuHeadless -c Release
 LinuxでMesa lavapipeを明示する例:
 
 ```bash
-VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json \
+VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 WGPU_BACKEND=vulkan LUXEL_WEBGPU_FORCE_FALLBACK_ADAPTER=1 \
   dotnet run --project samples/LuxelWebGpuHeadless -c Release
 ```
 
-成功時はdevice名、compute値、triangle中央pixel、`status=pass`を1行で出力します。wgpu-native runtimeまたは
+成功時はdevice名、compute値、checkerboardからsampleしたtriangle中央pixel、`status=pass`を1行で出力します。wgpu-native runtimeまたは
 adapterが無い場合は非zeroで終了します。これはheadless/offscreen専用であり、windowed sampleのbackend selectorではありません。

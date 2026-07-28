@@ -36,7 +36,7 @@ public static partial class DocsAdr
 
         初期対象は native Windows と Linux/X11 の明示 opt-in です。browser/WASM と macOS は初期スコープ外で、既定 backend は変更しません。利用者向けの設計契約は [Reference/Guides/WebGPU](story:Reference/Guides/WebGPU) に記録します。
 
-        現在のheadless実装ではbuffer arena/root uniformの固定ABIだけを提供します。sampled texture/samplerはshader package側のbinding metadataとbind-group mappingが完成するまでcapabilityを偽装せず、WebGPU backendでの作成を明示的に拒否します。
+        現在のheadless実装は、group 0のbuffer arena/root uniformと、group 1のsampled texture 16 slot + sampler 16 slotからなる固定portable ABIを提供します。両resource kindのlogical indexは独立した`0..15`で、全pipelineが同じlayoutを使います。non-uniform indexing featureには依存せずWGSLの固定`switch`へlowerし、範囲外indexは明示的なdiagnostic結果にします。17個目のlive resource、必要limit不足、unsupported sampled formatはfail-fastし、recorded/in-flight bind groupが保持するresourceは完了までslot/native lifetimeを延長します。shader package全体のbinding metadataとunbounded runtime resource arrayは引き続き未対応です。
 
         ## Alternatives
 

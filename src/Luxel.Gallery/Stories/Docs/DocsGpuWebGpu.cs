@@ -28,9 +28,9 @@ public static partial class DocsGpu
 
         WebGPU は「どの環境でも動く互換モード」ではありません。adapter が必要な limit を満たさない、native runtime と binding の ABI が一致しない、対象 shader artifact が無い、といった場合は backend 作成または pipeline 作成で明示的に失敗します。
 
-        `samples/LuxelWebGpuHeadless`は公開`GpuDevice` APIでWGSL compute、storage arenaからのvertex pulling、offscreen triangle、`HostCached` readbackを実行して結果を自己検証します。windowed `LuxelTriangle`へ未実装のselectorを追加せず、現在利用可能なheadless経路だけを示します。
+        `samples/LuxelWebGpuHeadless`は公開`GpuDevice` APIでWGSL compute、storage arenaからのvertex pulling、sampled checkerboardを使うoffscreen triangle、`HostCached` readbackを実行して結果を自己検証します。windowed `LuxelTriangle`へ未実装のselectorを追加せず、現在利用可能なheadless経路だけを示します。
 
-        **現時点の実装制限:** 固定ABIはbuffer arenaとroot uniformのみです。shader packageにsampled texture/samplerのbinding metadataがまだ無いため、WebGPUの`CreateTexture` / `CreateSampler`はshader-visibleなbindless indexを装わず`NotSupportedException`で明示的に拒否します。`Examples/3D/TexturedQuad`をWebGPU対応済みとは扱いません。
+        **現時点の実装制限:** sampled resourceは固定portable ABIです。sampled textureとsamplerは各16個、textureはfilterableなRGBA8/BGRA8・2D・1 mipに限定されます。shader package全体のbinding metadata移行とunbounded runtime arrayは未実装なので、shaderは下記の固定bindingとlogical index loweringを明示する必要があります。`Examples/3D/TexturedQuad`全体をWebGPU対応済みとはまだ扱いません。
 
         {{SampleBundle("rendering.webgpu-headless")}}
 
@@ -76,6 +76,21 @@ public static partial class DocsGpu
 
         generation が古い ref、破棄済み resource、宣言 usage と shader access の不一致は submit 後の不定動作にせず、可能な限り pipeline/pass 構築時に診断します。
 
+        ### 現行の固定 WebGPU ABI
+
+        すべてのcompute/graphics pipelineは同じ2 bind-group layoutを使います。
+
+        | group / binding | 内容 |
+        | --- | --- |
+        | group 0 / binding 0 | 64 MiB buffer arena。computeはread-write、graphicsはread-only |
+        | group 0 / binding 1 | 256-byte dynamic root uniform |
+        | group 1 / binding 0..15 | filterable `texture_2d<f32>` sampled texture slot |
+        | group 1 / binding 16..31 | filtering sampler slot 0..15 |
+
+        `GpuTexture.BindlessIndex`と`GpuSampler.BindlessIndex`はそれぞれ独立したstable logical index `0..15`です。17個目のlive resourceは暗黙にevictせず作成時に失敗し、dispose済みslotはrecorded/in-flight bind groupが参照しなくなってから再利用します。空slotにはbind groupを完全にする内部fallback resourceを置きますが、範囲外logical indexをfallback sampleへ黙って変換してはいけません。
+
+        現行baselineはnon-uniform indexing featureを要求せず、WGSL生成時に固定`switch`へlowerします。`switch`のdefaultは明示的なdiagnostic結果にし、headless sampleは範囲外indexがmagenta sentinelになることを検証します。adapter/device作成時には`maxBindGroups >= 2`、group当たり32 binding、stage当たりsampled texture/sampler各16を検査します。
+
         ## upload / readback
 
         共通契約は map 方法ではなくデータフローを表します。
@@ -115,7 +130,7 @@ public static partial class DocsGpu
         | WebGPU usage scope 違反 | 競合 access と必要な pass split を報告 |
         | uncaptured error / device lost | backend、adapter、最後の operation/object label を保持して公開 |
         | native runtime / binding 不一致 | runtime/version/RID と不足 symbol を起動時に報告 |
-        | sampled texture / sampler | 現固定ABIでは未対応。作成時に`NotSupportedException` |
+        | sampled texture / sampler | RGBA8/BGRA8 2D textureとfiltering samplerを各16 slot。17個目、unsupported format、invalid dataは作成時に明示失敗 |
 
         backend 作成時に adapter 名、backend type、driver/runtime version、limits を記録し、GPU object と pass/pipeline には label を付けます。「device creation failed」の一文だけで終わらせず、どの契約を満たせなかったかを診断の中心にします。
 

@@ -51,8 +51,8 @@ public sealed class WebGpuHeadlessTests
 
         Assert.Equal(HeadlessWebGpuSample.ExpectedComputeValue, result.ComputeValue);
         Assert.True(result.Red > 200);
-        Assert.True(result.Green < 30);
-        Assert.True(result.Blue < 30);
+        Assert.True(result.Green > 200);
+        Assert.True(result.Blue > 200);
         Assert.True(result.Alpha > 200);
     }
 
@@ -208,12 +208,82 @@ public sealed class WebGpuHeadlessTests
     }
 
     [Fact]
-    public void SampledTextureAndSampler_AreExplicitlyUnsupported()
+    public void SampledTextureAndSampler_ExposeStableLogicalIndicesAndValidateDispose()
     {
         using var device = TryCreate();
         if (device is null) return;
-        Assert.Throws<NotSupportedException>(() => device.CreateTexture(1, 1, new byte[4]));
-        Assert.Throws<NotSupportedException>(() => device.CreateSampler());
+        using var firstTexture = device.CreateTexture(1, 1, new byte[] { 255, 0, 0, 255 });
+        using var secondTexture = device.CreateTexture(1, 1, new byte[] { 0, 255, 0, 255 });
+        using var firstSampler = device.CreateSampler(GpuSamplerFilter.Point);
+        using var secondSampler = device.CreateSampler(GpuSamplerFilter.Linear, GpuSamplerAddress.Repeat);
+        Assert.Equal(0u, firstTexture.BindlessIndex);
+        Assert.Equal(1u, secondTexture.BindlessIndex);
+        Assert.Equal(0u, firstSampler.BindlessIndex);
+        Assert.Equal(1u, secondSampler.BindlessIndex);
+
+        firstTexture.Dispose();
+        firstSampler.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => firstTexture.BindlessIndex);
+        Assert.Throws<ObjectDisposedException>(() => firstSampler.BindlessIndex);
+        using var reusedTexture = device.CreateTexture(1, 1, new byte[] { 0, 0, 255, 255 });
+        using var reusedSampler = device.CreateSampler(GpuSamplerFilter.Point);
+        Assert.Equal(0u, reusedTexture.BindlessIndex);
+        Assert.Equal(0u, reusedSampler.BindlessIndex);
+    }
+
+    [Fact]
+    public void SampledResourceTables_RejectTheSeventeenthLiveResource()
+    {
+        using var device = TryCreate();
+        if (device is null) return;
+        var textures = new List<GpuTexture>();
+        var samplers = new List<GpuSampler>();
+        try
+        {
+            for (int i = 0; i < WebGpuBackend.MaxSampledTextures; i++)
+                textures.Add(device.CreateTexture(1, 1, new byte[] { (byte)i, 0, 0, 255 }));
+            for (int i = 0; i < WebGpuBackend.MaxSamplers; i++)
+                samplers.Add(device.CreateSampler(GpuSamplerFilter.Point));
+
+            InvalidOperationException textureError = Assert.Throws<InvalidOperationException>(
+                () => device.CreateTexture(1, 1, new byte[] { 0, 0, 0, 255 }));
+            InvalidOperationException samplerError = Assert.Throws<InvalidOperationException>(
+                () => device.CreateSampler(GpuSamplerFilter.Point));
+            Assert.Contains("16", textureError.Message, StringComparison.Ordinal);
+            Assert.Contains("16", samplerError.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            foreach (GpuTexture texture in textures) texture.Dispose();
+            foreach (GpuSampler sampler in samplers) sampler.Dispose();
+        }
+    }
+
+    [Fact]
+    public void DisposedSampledResources_AreNotReusedWhileRecordedBindGroupIsAlive()
+    {
+        using var device = TryCreate();
+        if (device is null) return;
+        var texture = device.CreateTexture(1, 1, new byte[] { 255, 255, 255, 255 });
+        var sampler = device.CreateSampler(GpuSamplerFilter.Point);
+        uint textureIndex = texture.BindlessIndex;
+        uint samplerIndex = sampler.BindlessIndex;
+        var commands = device.MainQueue.StartCommandRecording();
+        texture.Dispose();
+        sampler.Dispose();
+
+        using var interimTexture = device.CreateTexture(1, 1, new byte[] { 0, 0, 0, 255 });
+        using var interimSampler = device.CreateSampler(GpuSamplerFilter.Point);
+        Assert.NotEqual(textureIndex, interimTexture.BindlessIndex);
+        Assert.NotEqual(samplerIndex, interimSampler.BindlessIndex);
+
+        commands.Dispose();
+        interimTexture.Dispose();
+        interimSampler.Dispose();
+        using var reusedTexture = device.CreateTexture(1, 1, new byte[] { 255, 0, 255, 255 });
+        using var reusedSampler = device.CreateSampler(GpuSamplerFilter.Point);
+        Assert.Equal(textureIndex, reusedTexture.BindlessIndex);
+        Assert.Equal(samplerIndex, reusedSampler.BindlessIndex);
     }
 
     private const string ValidComputeShader = """

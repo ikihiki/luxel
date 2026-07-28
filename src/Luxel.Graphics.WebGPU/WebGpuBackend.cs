@@ -16,6 +16,10 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
     internal const ulong ArenaSize = 64UL * 1024 * 1024;
     internal const uint ArenaAlignment = 256;
     internal const ulong RootBufferSize = 64UL * 1024;
+    public const uint MaxSampledTextures = 16;
+    public const uint MaxSamplers = 16;
+    internal const uint SampledTextureBindingBase = 0;
+    internal const uint SamplerBindingBase = MaxSampledTextures;
 
     private static readonly RequestAdapterCallback AdapterCallback = OnAdapter;
     private static readonly RequestDeviceCallback DeviceCallback = OnDevice;
@@ -23,6 +27,8 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
     private readonly object _sync = new();
     private readonly List<WebGpuBuffer> _buffers = [];
     private readonly List<ArenaRange> _freeArenaRanges = [new(0, ArenaSize)];
+    private readonly WebGpuTexture?[] _sampledTextures = new WebGpuTexture[MaxSampledTextures];
+    private readonly WebGpuSampler?[] _samplers = new WebGpuSampler[MaxSamplers];
     private readonly ConcurrentQueue<string> _validationErrors = new();
     private WebGpuApi _api = null!;
     private Instance* _instance;
@@ -32,8 +38,12 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
     private WgpuBuffer* _arena;
     private BindGroupLayout* _computeBindGroupLayout;
     private BindGroupLayout* _graphicsBindGroupLayout;
+    private BindGroupLayout* _resourceBindGroupLayout;
     private PipelineLayout* _computePipelineLayout;
     private PipelineLayout* _graphicsPipelineLayout;
+    private Texture* _fallbackTexture;
+    private TextureView* _fallbackTextureView;
+    private Sampler* _fallbackSampler;
     private Wgpu _native = null!;
     private GCHandle _errorHandle;
     private int _activeCommands;
@@ -49,6 +59,7 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
     internal Device* Device => _device;
     internal WgpuBuffer* Arena => _arena;
     internal IReadOnlyList<WebGpuBuffer> Buffers { get { ThrowIfDisposed(); return _buffers; } }
+    internal bool CanReleaseNativeResources => _device != null;
     internal bool IsDisposed => _disposed;
 
     public static WebGpuBackend Create()
@@ -93,6 +104,7 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         _api.AdapterGetProperties(_adapter, &properties);
         string adapterName = Marshal.PtrToStringUTF8((nint)properties.Name) ?? "unknown adapter";
         Name = $"WebGPU / {adapterName}";
+        ValidateAdapterLimits();
 
         var deviceState = new DeviceRequestState();
         var deviceHandle = GCHandle.Alloc(deviceState);
@@ -104,6 +116,7 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
                 throw new WebGpuUnavailableException($"WebGPU device creation failed: {deviceState.Message ?? deviceState.Status.ToString()}.");
             _device = deviceState.Device;
         }
+        ValidateDeviceLimits();
 
         if (!_api.TryGetDeviceExtension(_device, out _native!))
             throw new WebGpuUnavailableException("The wgpu-native DevicePoll extension is unavailable.");
@@ -120,15 +133,49 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         _arena = _api.DeviceCreateBuffer(_device, in arenaDescriptor);
         if (_arena == null) throw new InvalidOperationException("Failed to create the WebGPU storage arena.");
 
+        CreateFallbackResources();
         CreateFixedLayout();
         MainQueue = new WebGpuQueue(this, _queue, _sync);
     }
 
     private void CreateFixedLayout()
     {
+        CreateResourceBindGroupLayout();
         CreateFixedLayout(BufferBindingType.Storage, ShaderStage.Compute, out _computeBindGroupLayout, out _computePipelineLayout);
         CreateFixedLayout(BufferBindingType.ReadOnlyStorage, ShaderStage.Vertex | ShaderStage.Fragment,
             out _graphicsBindGroupLayout, out _graphicsPipelineLayout);
+    }
+
+    private void CreateResourceBindGroupLayout()
+    {
+        const int count = (int)(MaxSampledTextures + MaxSamplers);
+        var entries = stackalloc BindGroupLayoutEntry[count];
+        for (uint i = 0; i < MaxSampledTextures; i++)
+        {
+            entries[i] = new BindGroupLayoutEntry
+            {
+                Binding = SampledTextureBindingBase + i,
+                Visibility = ShaderStage.Vertex | ShaderStage.Fragment | ShaderStage.Compute,
+                Texture = new TextureBindingLayout
+                {
+                    SampleType = TextureSampleType.Float,
+                    ViewDimension = TextureViewDimension.Dimension2D,
+                },
+            };
+        }
+        for (uint i = 0; i < MaxSamplers; i++)
+        {
+            entries[MaxSampledTextures + i] = new BindGroupLayoutEntry
+            {
+                Binding = SamplerBindingBase + i,
+                Visibility = ShaderStage.Vertex | ShaderStage.Fragment | ShaderStage.Compute,
+                Sampler = new SamplerBindingLayout { Type = SamplerBindingType.Filtering },
+            };
+        }
+        var descriptor = new BindGroupLayoutDescriptor { EntryCount = count, Entries = entries };
+        _resourceBindGroupLayout = _api.DeviceCreateBindGroupLayout(_device, in descriptor);
+        if (_resourceBindGroupLayout == null)
+            throw new InvalidOperationException("Failed to create the WebGPU sampled-resource bind group layout.");
     }
 
     private void CreateFixedLayout(BufferBindingType arenaType, ShaderStage arenaVisibility,
@@ -151,8 +198,8 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         bindGroupLayout = _api.DeviceCreateBindGroupLayout(_device, in layoutDescriptor);
         if (bindGroupLayout == null) throw new InvalidOperationException("Failed to create a fixed WebGPU bind group layout.");
 
-        var layout = bindGroupLayout;
-        var pipelineDescriptor = new PipelineLayoutDescriptor { BindGroupLayoutCount = 1, BindGroupLayouts = &layout };
+        var layouts = stackalloc BindGroupLayout*[2] { bindGroupLayout, _resourceBindGroupLayout };
+        var pipelineDescriptor = new PipelineLayoutDescriptor { BindGroupLayoutCount = 2, BindGroupLayouts = layouts };
         pipelineLayout = _api.DeviceCreatePipelineLayout(_device, in pipelineDescriptor);
         if (pipelineLayout == null) throw new InvalidOperationException("Failed to create a fixed WebGPU pipeline layout.");
     }
@@ -263,13 +310,62 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
     public IGpuBackendTexture CreateSampledTexture(uint width, uint height, GpuFormat format, ReadOnlySpan<byte> data)
     {
         ThrowIfDisposed();
-        throw new NotSupportedException("The current WebGPU fixed ABI does not expose sampled textures. Use render targets/readback only.");
+        if (width == 0 || height == 0) throw new ArgumentOutOfRangeException(nameof(width));
+        if (format is not (GpuFormat.Rgba8Unorm or GpuFormat.Bgra8Unorm))
+            throw new NotSupportedException("The portable WebGPU sampled-texture ABI supports RGBA8/BGRA8 filterable 2D textures only.");
+        int expectedBytes = checked((int)(width * height * 4));
+        if (data.Length != expectedBytes)
+            throw new ArgumentException($"Sampled texture data must contain exactly {expectedBytes} bytes.", nameof(data));
+
+        lock (_sync)
+        {
+            uint index = FindFreeSlot(_sampledTextures, "sampled texture", MaxSampledTextures);
+            var texture = (WebGpuTexture)CreateTexture(width, height, format,
+                TextureUsage.TextureBinding | TextureUsage.CopyDst, index);
+            try
+            {
+                var destination = new ImageCopyTexture { Texture = texture.Handle, Aspect = TextureAspect.All };
+                var layout = new TextureDataLayout { BytesPerRow = checked(width * 4), RowsPerImage = height };
+                var extent = new Extent3D { Width = width, Height = height, DepthOrArrayLayers = 1 };
+                fixed (byte* source = data)
+                    _api.QueueWriteTexture(_queue, in destination, source, (nuint)data.Length, in layout, in extent);
+                ProcessEventsAndThrowValidationErrors("sampled texture upload");
+                _sampledTextures[index] = texture;
+                return texture;
+            }
+            catch
+            {
+                texture.DisposeNative();
+                throw;
+            }
+        }
     }
 
     public IGpuBackendSampler CreateSampler(GpuSamplerFilter filter, GpuSamplerAddress address = GpuSamplerAddress.Clamp)
     {
         ThrowIfDisposed();
-        throw new NotSupportedException("The current WebGPU fixed ABI does not expose samplers.");
+        lock (_sync)
+        {
+            uint index = FindFreeSlot(_samplers, "sampler", MaxSamplers);
+            AddressMode addressMode = address == GpuSamplerAddress.Repeat ? AddressMode.Repeat : AddressMode.ClampToEdge;
+            FilterMode filterMode = filter == GpuSamplerFilter.Linear ? FilterMode.Linear : FilterMode.Nearest;
+            var descriptor = new SamplerDescriptor
+            {
+                AddressModeU = addressMode,
+                AddressModeV = addressMode,
+                AddressModeW = addressMode,
+                MagFilter = filterMode,
+                MinFilter = filterMode,
+                MipmapFilter = filter == GpuSamplerFilter.Linear ? MipmapFilterMode.Linear : MipmapFilterMode.Nearest,
+                LodMaxClamp = 32,
+                MaxAnisotropy = 1,
+            };
+            Sampler* handle = _api.DeviceCreateSampler(_device, in descriptor);
+            if (handle == null) throw new InvalidOperationException("Failed to create WebGPU sampler.");
+            var sampler = new WebGpuSampler(this, handle, index);
+            _samplers[index] = sampler;
+            return sampler;
+        }
     }
 
     public IGpuBackendSurface CreateSurface(nint windowHandle, uint width, uint height)
@@ -303,7 +399,8 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         };
         var view = _api.TextureCreateView(texture, in viewDescriptor);
         if (view == null) { _api.TextureRelease(texture); throw new InvalidOperationException("Failed to create WebGPU texture view."); }
-        return new WebGpuTexture(this, texture, view, width, height, format, bindlessIndex);
+        return new WebGpuTexture(this, texture, view, width, height, format, bindlessIndex,
+            (usage & TextureUsage.TextureBinding) != 0);
     }
 
     private ShaderModule* CreateShaderModule(ReadOnlySpan<byte> shaderBlob)
@@ -321,6 +418,168 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
             var module = _api.DeviceCreateShaderModule(_device, in descriptor);
             if (module == null) throw new InvalidOperationException("Failed to create WebGPU WGSL shader module.");
             return module;
+        }
+    }
+
+    private void ValidateAdapterLimits()
+    {
+        var supported = new SupportedLimits();
+        if (!_api.AdapterGetLimits(_adapter, &supported))
+            throw new WebGpuUnavailableException("WebGPU adapter limits could not be queried.");
+        ValidatePortableLimits(supported.Limits, "adapter");
+    }
+
+    private void ValidateDeviceLimits()
+    {
+        var supported = new SupportedLimits();
+        if (!_api.DeviceGetLimits(_device, &supported))
+            throw new WebGpuUnavailableException("WebGPU device limits could not be queried.");
+        ValidatePortableLimits(supported.Limits, "device");
+    }
+
+    private static void ValidatePortableLimits(Limits limits, string source)
+    {
+        if (limits.MaxBindGroups < 2 ||
+            limits.MaxBindingsPerBindGroup < MaxSampledTextures + MaxSamplers ||
+            limits.MaxSampledTexturesPerShaderStage < MaxSampledTextures ||
+            limits.MaxSamplersPerShaderStage < MaxSamplers)
+        {
+            throw new WebGpuUnavailableException(
+                $"WebGPU {source} does not satisfy the fixed portable sampled-resource ABI: " +
+                $"bindGroups={limits.MaxBindGroups}/2, bindingsPerGroup={limits.MaxBindingsPerBindGroup}/{MaxSampledTextures + MaxSamplers}, " +
+                $"sampledTexturesPerStage={limits.MaxSampledTexturesPerShaderStage}/{MaxSampledTextures}, " +
+                $"samplersPerStage={limits.MaxSamplersPerShaderStage}/{MaxSamplers}.");
+        }
+    }
+
+    private void CreateFallbackResources()
+    {
+        var textureDescriptor = new TextureDescriptor
+        {
+            Usage = TextureUsage.TextureBinding | TextureUsage.CopyDst,
+            Dimension = TextureDimension.Dimension2D,
+            Size = new Extent3D { Width = 1, Height = 1, DepthOrArrayLayers = 1 },
+            Format = TextureFormat.Rgba8Unorm,
+            MipLevelCount = 1,
+            SampleCount = 1,
+        };
+        _fallbackTexture = _api.DeviceCreateTexture(_device, in textureDescriptor);
+        if (_fallbackTexture == null) throw new InvalidOperationException("Failed to create the WebGPU fallback texture.");
+        var viewDescriptor = new TextureViewDescriptor
+        {
+            Format = TextureFormat.Rgba8Unorm,
+            Dimension = TextureViewDimension.Dimension2D,
+            MipLevelCount = 1,
+            ArrayLayerCount = 1,
+            Aspect = TextureAspect.All,
+        };
+        _fallbackTextureView = _api.TextureCreateView(_fallbackTexture, in viewDescriptor);
+        if (_fallbackTextureView == null) throw new InvalidOperationException("Failed to create the WebGPU fallback texture view.");
+        uint pixel = 0xffff00ff;
+        var destination = new ImageCopyTexture { Texture = _fallbackTexture, Aspect = TextureAspect.All };
+        var layout = new TextureDataLayout { BytesPerRow = 4, RowsPerImage = 1 };
+        var extent = new Extent3D { Width = 1, Height = 1, DepthOrArrayLayers = 1 };
+        _api.QueueWriteTexture(_queue, in destination, &pixel, sizeof(uint), in layout, in extent);
+
+        var samplerDescriptor = new SamplerDescriptor
+        {
+            AddressModeU = AddressMode.ClampToEdge,
+            AddressModeV = AddressMode.ClampToEdge,
+            AddressModeW = AddressMode.ClampToEdge,
+            MagFilter = FilterMode.Nearest,
+            MinFilter = FilterMode.Nearest,
+            MipmapFilter = MipmapFilterMode.Nearest,
+            LodMaxClamp = 32,
+            MaxAnisotropy = 1,
+        };
+        _fallbackSampler = _api.DeviceCreateSampler(_device, in samplerDescriptor);
+        if (_fallbackSampler == null) throw new InvalidOperationException("Failed to create the WebGPU fallback sampler.");
+    }
+
+    private static uint FindFreeSlot<T>(T?[] slots, string resourceName, uint limit) where T : class
+    {
+        for (uint i = 0; i < slots.Length; i++)
+            if (slots[i] is null) return i;
+        throw new InvalidOperationException($"WebGPU {resourceName} table is full; the fixed portable limit is {limit}.");
+    }
+
+    internal BindGroup* CreateResourceBindGroup(List<WebGpuTexture> textureReferences, List<WebGpuSampler> samplerReferences)
+    {
+        lock (_sync)
+        {
+            ThrowIfDisposed();
+            const int count = (int)(MaxSampledTextures + MaxSamplers);
+            var entries = stackalloc BindGroupEntry[count];
+            try
+            {
+                for (uint i = 0; i < MaxSampledTextures; i++)
+                {
+                    WebGpuTexture? texture = _sampledTextures[i];
+                    if (texture is not null)
+                    {
+                        texture.AddReference();
+                        textureReferences.Add(texture);
+                    }
+                    entries[i] = new BindGroupEntry
+                    {
+                        Binding = SampledTextureBindingBase + i,
+                        TextureView = texture is null ? _fallbackTextureView : texture.View,
+                    };
+                }
+                for (uint i = 0; i < MaxSamplers; i++)
+                {
+                    WebGpuSampler? sampler = _samplers[i];
+                    if (sampler is not null)
+                    {
+                        sampler.AddReference();
+                        samplerReferences.Add(sampler);
+                    }
+                    entries[MaxSampledTextures + i] = new BindGroupEntry
+                    {
+                        Binding = SamplerBindingBase + i,
+                        Sampler = sampler is null ? _fallbackSampler : sampler.Handle,
+                    };
+                }
+                var descriptor = new BindGroupDescriptor
+                {
+                    Layout = _resourceBindGroupLayout,
+                    EntryCount = count,
+                    Entries = entries,
+                };
+                BindGroup* group = _api.DeviceCreateBindGroup(_device, in descriptor);
+                if (group == null) throw new InvalidOperationException("Failed to create the WebGPU sampled-resource bind group.");
+                return group;
+            }
+            catch
+            {
+                foreach (WebGpuTexture texture in textureReferences) texture.ReleaseReference();
+                foreach (WebGpuSampler sampler in samplerReferences) sampler.ReleaseReference();
+                textureReferences.Clear();
+                samplerReferences.Clear();
+                throw;
+            }
+        }
+    }
+
+    internal bool TryRetireTexture(WebGpuTexture texture, uint index)
+    {
+        lock (_sync)
+        {
+            if (_sampledTextures[index] is not null && ReferenceEquals(_sampledTextures[index], texture))
+                _sampledTextures[index] = null;
+            texture.DisposeNative();
+            return true;
+        }
+    }
+
+    internal bool TryRetireSampler(WebGpuSampler sampler, uint index)
+    {
+        lock (_sync)
+        {
+            if (_samplers[index] is not null && ReferenceEquals(_samplers[index], sampler))
+                _samplers[index] = null;
+            sampler.DisposeNative();
+            return true;
         }
     }
 
@@ -478,10 +737,16 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         lock (_sync) _activeCommands = 0;
         foreach (var buffer in _buffers.ToArray()) buffer.Dispose();
         _buffers.Clear();
+        foreach (WebGpuTexture? texture in _sampledTextures.ToArray()) texture?.Dispose();
+        foreach (WebGpuSampler? sampler in _samplers.ToArray()) sampler?.Dispose();
         if (_computePipelineLayout != null) _api.PipelineLayoutRelease(_computePipelineLayout);
         if (_graphicsPipelineLayout != null) _api.PipelineLayoutRelease(_graphicsPipelineLayout);
         if (_computeBindGroupLayout != null) _api.BindGroupLayoutRelease(_computeBindGroupLayout);
         if (_graphicsBindGroupLayout != null) _api.BindGroupLayoutRelease(_graphicsBindGroupLayout);
+        if (_resourceBindGroupLayout != null) _api.BindGroupLayoutRelease(_resourceBindGroupLayout);
+        if (_fallbackSampler != null) _api.SamplerRelease(_fallbackSampler);
+        if (_fallbackTextureView != null) _api.TextureViewRelease(_fallbackTextureView);
+        if (_fallbackTexture != null) { _api.TextureDestroy(_fallbackTexture); _api.TextureRelease(_fallbackTexture); }
         if (_arena != null) { _api.BufferDestroy(_arena); _api.BufferRelease(_arena); }
         if (_queue != null) _api.QueueRelease(_queue);
         if (_device != null) { _api.DeviceSetUncapturedErrorCallback(_device, default, null); _api.DeviceRelease(_device); }
