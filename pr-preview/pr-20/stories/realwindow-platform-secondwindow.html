@@ -1,0 +1,54 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>RealWindow/Platform/SecondWindow</h1></header><aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>This story requires a real window and is not available in the static gallery.</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;RealWindow/Platform/SecondWindow&quot;, Height = 280, RealWindowOnly = true)]
+public static Widget SecondWindow(StoryContext ctx)
+{
+    Signal&lt;string&gt; state = new(_secondManager is null ? &quot;未作成&quot; : &quot;表示中&quot;);
+    void DisposeSecond()
+    {
+        _secondManager?.Dispose();
+        _secondManager = null;
+        _secondWindows?.Dispose();
+        _secondWindows = null;
+    }
+    void Open()
+    {
+        if (_secondManager is not null) return;
+        // UI向けウィンドウ管理は Luxel.UI.App が所有し、Win32はバックエンドとして注入する。
+        _secondWindows = new WindowSystem(Win32WindowBackend.Create());
+        _secondManager = new WindowManager(ctx.Device, ctx.Font, _secondWindows);
+        Signal&lt;int&gt; n = new(0);
+        _secondManager.CreateUiWindow(
+            new Luxel.Platform.Abstraction.WindowDesc(&quot;Luxel — 2 つ目のウィンドウ&quot;, 480, 320),
+            &quot;second-window&quot;,
+            () =&gt; Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))
+            [VStack(10)[
+                Heading(&quot;独立した OS ウィンドウ&quot;, 2),
+                Label(&quot;この窓は Luxel.UI.App の WindowManager が管理する独立した UiHost を持つ&quot;),
+                HStack(8)[
+                    Button(_ =&gt; n.Value++, &quot;カウント&quot;),
+                    Text($&quot; {n} &quot;, 16, vAlign: Align.Center)]]]);
+        state.Value = &quot;表示中&quot;;
+        ctx.Log(&quot;WindowManagerで第2ウィンドウを作成 (480&#215;320)&quot;);
+    }
+    void Close()
+    {
+        if (_secondManager is null) return;
+        DisposeSecond();
+        state.Value = &quot;破棄済み&quot;;
+        ctx.Log(&quot;第2ウィンドウを破棄&quot;);
+    }
+    void TickSecond()
+    {
+        if (_secondManager is null) return;
+        if (_secondManager.RunFrame(1f / 60f)) return;
+        DisposeSecond();
+        state.Value = &quot;閉じました&quot;;
+    }
+    return Frame(VStack(10)[
+        Label(&quot;WindowManager — UIウィンドウ、キャンバス、UiHost、提示処理を束ねる実行ループ&quot;),
+        Muted(&quot;Gallery のフレームごとに RunFrame を呼び出して駆動します&quot;),
+        HStack(8)[
+            Button(_ =&gt; Open(), &quot;開く&quot;),
+            Button(_ =&gt; Close(), &quot;破棄&quot;, variant: Variant.Outline),
+            Text($&quot; 状態: {state}&quot;, 13, vAlign: Align.Center)],
+        Canvas2D(8, 8, animate: (_, _) =&gt; TickSecond())]);
+}</code></pre></details></article>
