@@ -283,7 +283,10 @@ public sealed class GallerySiteExporterTests
         string[] overviewCategories = StoryRegistry.All
             .Where(story => story.Path.StartsWith("Controls/", StringComparison.Ordinal)
                             && story.Path.EndsWith("/Overview", StringComparison.Ordinal))
-            .Select(story => story.Path.Split('/')[1]).Order(StringComparer.Ordinal).ToArray();
+            .Select(story => story.Path.Split('/')[1])
+            // Terminal is an integration guide at the requested Controls route, not a Luxel.Controls catalog entry.
+            .Where(category => category != "Terminal")
+            .Order(StringComparer.Ordinal).ToArray();
         Assert.Equal(existingCategories, overviewCategories);
 
         var mapped = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -435,6 +438,55 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("完全な `[Story]` method宣言", authoring.Source);
         Assert.Contains("下部の **Source** タブ", authoring.Source);
         Assert.Contains("SampleSource(path, region)", authoring.Source);
+    }
+
+    [Fact]
+    public void Terminal_api_references_are_generated_under_reference()
+    {
+        string[] namespaces =
+        [
+            "Luxel.Terminal.Input",
+            "Luxel.Terminal.Parsing",
+            "Luxel.Terminal.Screen",
+            "Luxel.Terminal.Session",
+            "Luxel.Terminal.UI",
+            "Luxel.Terminal.Windows",
+            "Luxel.Terminal.Linux",
+        ];
+        foreach (string ns in namespaces)
+        {
+            Assert.Contains(ns, TypeApiRegistry.Namespaces);
+            StoryInfo story = StoryRegistry.Find("Reference/" + ns)
+                ?? throw new InvalidOperationException($"Terminal API reference is missing: {ns}");
+            TextEditorView document = GallerySnapshots.FindDocument(story.Build(new StoryContext()))
+                ?? throw new InvalidOperationException($"Terminal API reference is not a document: {ns}");
+            Assert.Contains($"# {ns}", document.DocSource);
+            Assert.NotEmpty(document.DocEmbeds);
+            Assert.All(document.DocEmbeds, embed => Assert.Equal(DocEmbedKind.TypeApiTable, embed.Kind));
+        }
+
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.Terminal.Session.TerminalSession"));
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.Terminal.UI.TerminalView"));
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.Terminal.Windows.WindowsConPty"));
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.Terminal.Linux.LinuxPty"));
+    }
+
+    [Fact]
+    public void Terminal_docs_cover_platforms_usage_and_rendering_adjustments()
+    {
+        StoryInfo story = StoryRegistry.Find("Controls/Terminal/Overview")
+            ?? throw new InvalidOperationException("Controls/Terminal/Overview is missing.");
+        Dictionary<string, DocsPage> pages = DocsIndex.Build([story], resources: null);
+        DocsPage page = pages[story.Path];
+
+        Assert.Contains("WindowsConPty", page.Text);
+        Assert.Contains("LinuxPty", page.Text);
+        Assert.Contains("TerminalSession", page.Text);
+        Assert.Contains("TerminalView", page.Text);
+        Assert.Contains("GlyphAdvanceScale", page.Text);
+        Assert.Contains("delayed wrap", page.Text);
+        Assert.Contains("samples/LuxelTerminal", page.Text);
+        Assert.Empty(DocsIndex.ValidateLinks(pages));
     }
 
     [Fact]

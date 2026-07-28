@@ -53,6 +53,10 @@
     <Project Path="src/Luxel.Graphics.TwoD.Skia/Luxel.Graphics.TwoD.Skia.csproj" />
     <Project Path="src/Luxel.Graphics.TwoD/Luxel.Graphics.TwoD.csproj" />
     <Project Path="src/Luxel.Typography.TwoD/Luxel.Typography.TwoD.csproj" />
+    <Project Path="src/Luxel.Terminal.Linux/Luxel.Terminal.Linux.csproj" />
+    <Project Path="src/Luxel.Terminal.Windows/Luxel.Terminal.Windows.csproj" />
+    <Project Path="src/Luxel.Terminal/Luxel.Terminal.csproj" />
+    <Project Path="src/Luxel.Terminal.UI/Luxel.Terminal.UI.csproj" />
     <Project Path="src/Luxel.Typography.Icu/Luxel.Typography.Icu.csproj" />
     <Project Path="src/Luxel.Typography/Luxel.Typography.csproj" />
     <Project Path="src/Luxel.UI.App/Luxel.UI.App.csproj" />
@@ -66,6 +70,7 @@
     <Project Path="samples/LuxelCavern/LuxelCavern.Core/LuxelCavern.Core.csproj" />
     <Project Path="samples/LuxelCavern/LuxelCavern/LuxelCavern.csproj" />
     <Project Path="samples/LuxelRange/LuxelRange.Core/LuxelRange.Core.csproj" />
+    <Project Path="samples/LuxelTerminal/LuxelTerminal.csproj" />
     <Project Path="samples/LuxelTriangle/LuxelTriangle.csproj" />
     <Project Path="samples/LuxelTwoD/LuxelTwoD.csproj" />
     <Project Path="samples/LuxelFramework/LuxelFramework.csproj" />
@@ -83,6 +88,10 @@
     <Project Path="tests/Luxel.Vulkan.Present.Tests/Luxel.Vulkan.Present.Tests.csproj" />
     <Project Path="tests/Luxel.UI.Generators.Tests/Luxel.UI.Generators.Tests.csproj" />
     <Project Path="tests/Luxel.UI.App.Tests/Luxel.UI.App.Tests.csproj" />
+    <Project Path="tests/Luxel.Terminal.Linux.Tests/Luxel.Terminal.Linux.Tests.csproj" />
+    <Project Path="tests/Luxel.Terminal.Windows.Tests/Luxel.Terminal.Windows.Tests.csproj" />
+    <Project Path="tests/Luxel.Terminal.Tests/Luxel.Terminal.Tests.csproj" />
+    <Project Path="tests/Luxel.Terminal.UI.Tests/Luxel.Terminal.UI.Tests.csproj" />
     <Project Path="tests/Luxel.Tests/Luxel.Tests.csproj" />
   </Folder>
 </Solution>

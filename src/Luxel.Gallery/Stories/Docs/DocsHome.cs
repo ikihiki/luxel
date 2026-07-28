@@ -68,6 +68,7 @@ public static class DocsHome
             - 全体像とレイヤ構成 → [Internals/Architecture](story:Internals/Architecture)
             - GPU 描画の最初の一歩 (standalone) → [Learn/Rendering/Basics/Overview](story:Learn/Rendering/Basics/Overview)
             - コントロールの型見本 (Variant/Intent/API 表) → [Reference/Guides/Button](story:Reference/Guides/Button)
+            - Windows/Linux対応の端末エミュレータ → [Controls/Terminal/Overview](story:Controls/Terminal/Overview)
             - この docs ページ自体の書き方 → [Internals/Authoring](story:Internals/Authoring)
             - サイドバーの **GPU / 2D / 3D / RenderGraph / Animation** 章に、各サブシステムの動くデモが並んでいます。左上の検索欄は docs 本文の全文検索です
 
@@ -117,7 +118,11 @@ public static class DocsHome
         app[アプリ / Gallery / Framework] --> controls[Luxel.Controls]
         app --> rg[Luxel.RenderGraph]
         app --> ecs[Luxel.Ecs + AssetRuntime]
+        app --> terminalui[Luxel.Terminal.UI]
         controls --> ui[Luxel.UI]
+        terminalui --> ui
+        terminalui --> terminal[Luxel.Terminal]
+        terminal --> pty[ConPTY / Unix PTY]
         ui --> anim[Luxel.Animation]
         ui --> typotwod[Luxel.Typography.TwoD]
         typotwod --> typo[Luxel.Typography]
@@ -141,6 +146,10 @@ public static class DocsHome
 
         `Luxel.UI` が宣言的 DSL (ベアファクトリ + indexer)、Signal/Effect の反応系、単一パスレイアウト。`Luxel.Controls` が Button から RichTextEditor までのコントロール群、`Luxel.UI.Tailwind` が Tailwind カラーパレット (Tw)、`Luxel.Document` + `Luxel.Highlight.TextMate` + `Luxel.Diagram` + `Luxel.MathText` がこの docs ページを支えるドキュメントスタックです。
 
+        ## 端末
+
+        `Luxel.Terminal`がUI非依存のVT/ANSI parser、screen、scrollback、入力encode、sessionを提供し、`.Windows`のConPTYと`.Linux`のUnix PTYを`ITerminalPty`の後ろへ分離します。`Luxel.Terminal.UI`の`TerminalView`は`Luxel.Controls`に依存せず、font fallback、selection、clipboard、IME、resize reflowを担当します。導入と調整方法は [Controls/Terminal/Overview](story:Controls/Terminal/Overview) へ。
+
         ## モーション
 
         `Luxel.Animation` が Curve × Tween の 2 段分解による中核 IR。ターゲットアダプタ (`.UI` = Signal、`.TwoD` = RetainedCanvas、`.ThreeD` = ECS) が書き込み先を分離します。実例はサイドバーの Animation 章へ ([Examples/Animation/Tween](story:Examples/Animation/Tween) など)。
@@ -162,6 +171,7 @@ public static class DocsHome
         | Luxel.Typography (+ .Icu) / Luxel.Typography.TwoD | GPU非依存レイアウト・シェーピング・ICU / Scene2D描画adapter |
         | Luxel.UI (+ .Generators, .Tailwind) | 宣言的 UI / signals / ソースジェネレーター |
         | Luxel.Controls | コントロール群 + docs 基盤 (Kit) |
+        | Luxel.Terminal (+ .UI, .Windows, .Linux) | VT/ANSI端末コア / UI widget / ConPTY・Unix PTY backend |
         | Luxel.Document (+ Highlight.TextMate, Diagram, MathText) | ドキュメントモデル / ハイライト / 図 / 数式 |
         | Luxel.Animation (+ .UI, .TwoD, .ThreeD) | アニメーション IR + ターゲットアダプタ |
         | Luxel.Ecs (+ .Signal) | ECS (Friflo) + signal 連携 |

@@ -49,6 +49,14 @@ using Luxel.UI;
 [assembly: GenerateAssemblyApi("Luxel.Physics.Gizmos")]
 [assembly: GenerateAssemblyApi("Luxel.SceneEdit")]
 [assembly: GenerateAssemblyApi("Luxel.Workbench")]
+// 端末
+[assembly: GenerateAssemblyApi("Luxel.Terminal.Input")]
+[assembly: GenerateAssemblyApi("Luxel.Terminal.Parsing")]
+[assembly: GenerateAssemblyApi("Luxel.Terminal.Screen")]
+[assembly: GenerateAssemblyApi("Luxel.Terminal.Session")]
+[assembly: GenerateAssemblyApi("Luxel.Terminal.UI")]
+[assembly: GenerateAssemblyApi("Luxel.Terminal.Windows")]
+[assembly: GenerateAssemblyApi("Luxel.Terminal.Linux")]
 // ランタイム
 [assembly: GenerateAssemblyApi("Luxel.Resources")]
 [assembly: GenerateAssemblyApi("Luxel.Imaging")]

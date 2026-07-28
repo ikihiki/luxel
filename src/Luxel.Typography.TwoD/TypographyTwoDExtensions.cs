@@ -4,6 +4,25 @@ using Luxel.Graphics.TwoD;
 
 namespace Luxel.Typography.TwoD;
 
+/// <summary>Horizontal placement inside a text drawing box.</summary>
+public enum TextBoxHorizontalAlignment { Left, Center, Right }
+
+/// <summary>Vertical placement inside a text drawing box.</summary>
+public enum TextBoxVerticalAlignment { Top, Center, Bottom }
+
+/// <summary>Fine-grained placement controls for box-based vector text drawing.</summary>
+public sealed record TextDrawOptions
+{
+    public TextBoxHorizontalAlignment HorizontalAlignment { get; init; } = TextBoxHorizontalAlignment.Left;
+    public TextBoxVerticalAlignment VerticalAlignment { get; init; } = TextBoxVerticalAlignment.Top;
+    /// <summary>Logical-pixel offset applied after alignment.</summary>
+    public Vector2 Offset { get; init; }
+    /// <summary>Uniform visual glyph scale. The box itself is not resized.</summary>
+    public float GlyphScale { get; init; } = 1f;
+    /// <summary>Multiplier applied to HarfBuzz advances between glyphs.</summary>
+    public float AdvanceScale { get; init; } = 1f;
+}
+
 /// <summary>Typographyのシェーピング／レイアウト結果をScene2Dへ出力するアダプタ。</summary>
 public static class TypographyTwoDExtensions
 {
@@ -29,16 +48,50 @@ public static class TypographyTwoDExtensions
         ArgumentNullException.ThrowIfNull(scene);
         if (string.IsNullOrEmpty(text)) return 0;
 
-        float penX = x;
-        float penY = y;
-        foreach (ShapedGlyph glyph in font.ShapeRun(text, pixelHeight))
+        ShapedGlyph[] glyphs = font.ShapeRun(text, pixelHeight);
+        AppendShaped(font, scene, glyphs, x, y, pixelHeight, color, advanceScale: 1);
+        return MeasureAdvance(glyphs, advanceScale: 1);
+    }
+
+    /// <summary>Draws text inside a box. Alignment, offset, glyph scale, and advance scale are
+    /// resolved here so callers do not need to reverse-calculate baselines or measured origins.</summary>
+    public static float AppendText(
+        this VectorFont font,
+        Scene2D scene,
+        string text,
+        TextRect box,
+        float pixelHeight,
+        uint color,
+        TextDrawOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(font);
+        ArgumentNullException.ThrowIfNull(scene);
+        if (string.IsNullOrEmpty(text)) return 0;
+        options ??= new TextDrawOptions();
+        if (!float.IsFinite(options.GlyphScale) || options.GlyphScale <= 0)
+            throw new ArgumentOutOfRangeException(nameof(options), "GlyphScale must be finite and greater than zero.");
+        if (!float.IsFinite(options.AdvanceScale) || options.AdvanceScale <= 0)
+            throw new ArgumentOutOfRangeException(nameof(options), "AdvanceScale must be finite and greater than zero.");
+
+        float scaledHeight = pixelHeight * options.GlyphScale;
+        ShapedGlyph[] glyphs = font.ShapeRun(text, scaledHeight);
+        float width = MeasureAdvance(glyphs, options.AdvanceScale);
+        float originX = options.HorizontalAlignment switch
         {
-            AppendGlyph(font, scene, glyph.GlyphId,
-                penX + glyph.XOffset, penY - glyph.YOffset, pixelHeight, color);
-            penX += glyph.XAdvance;
-            penY -= glyph.YAdvance;
-        }
-        return penX - x;
+            TextBoxHorizontalAlignment.Center => box.X + MathF.Max(0, box.Width - width) * 0.5f,
+            TextBoxHorizontalAlignment.Right => box.X + MathF.Max(0, box.Width - width),
+            _ => box.X,
+        };
+        float top = options.VerticalAlignment switch
+        {
+            TextBoxVerticalAlignment.Center => box.Y + MathF.Max(0, box.Height - scaledHeight) * 0.5f,
+            TextBoxVerticalAlignment.Bottom => box.Y + MathF.Max(0, box.Height - scaledHeight),
+            _ => box.Y,
+        };
+        originX += options.Offset.X;
+        float baseline = top + font.Ascent(scaledHeight) + options.Offset.Y;
+        AppendShaped(font, scene, glyphs, originX, baseline, scaledHeight, color, options.AdvanceScale);
+        return width;
     }
 
     /// <summary>レイアウト済みテキスト全体を1色で描く。(x,y)はレイアウトボックス左上。</summary>
@@ -57,6 +110,33 @@ public static class TypographyTwoDExtensions
         ArgumentNullException.ThrowIfNull(scene);
         layout.VisitGlyphs(x, y, runColor,
             (font, glyphId, gx, gy, px) => AppendGlyph(font, scene, glyphId, gx, gy, px, Color2D.White));
+    }
+
+    private static float MeasureAdvance(ReadOnlySpan<ShapedGlyph> glyphs, float advanceScale)
+    {
+        float width = 0;
+        foreach (ref readonly ShapedGlyph glyph in glyphs) width += glyph.XAdvance * advanceScale;
+        return width;
+    }
+
+    private static void AppendShaped(
+        VectorFont font,
+        Scene2D scene,
+        ReadOnlySpan<ShapedGlyph> glyphs,
+        float x,
+        float baselineY,
+        float pixelHeight,
+        uint color,
+        float advanceScale)
+    {
+        float penX = x, penY = baselineY;
+        foreach (ref readonly ShapedGlyph glyph in glyphs)
+        {
+            AppendGlyph(font, scene, glyph.GlyphId,
+                penX + glyph.XOffset, penY - glyph.YOffset, pixelHeight, color);
+            penX += glyph.XAdvance * advanceScale;
+            penY -= glyph.YAdvance;
+        }
     }
 
     private static void AppendGlyph(

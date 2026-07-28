@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Linux pseudo-terminal backend for Luxel.Terminal.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Terminal\Luxel.Terminal.csproj" />
+  </ItemGroup>
+  <PropertyGroup>
+    <LuxelPtyNativeDir>$(BaseIntermediateOutputPath)native</LuxelPtyNativeDir>
+    <LuxelPtyNativeLibrary>$(LuxelPtyNativeDir)/libluxelpty.so</LuxelPtyNativeLibrary>
+  </PropertyGroup>
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <None Include="$(LuxelPtyNativeLibrary)" Link="libluxelpty.so" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="BuildLuxelPtyNative" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('Linux'))"
+          Inputs="$(MSBuildProjectDirectory)/luxelpty.c" Outputs="$(LuxelPtyNativeLibrary)">
+    <MakeDir Directories="$(LuxelPtyNativeDir)" />
+    <Exec Command="cc -shared -fPIC -O2 -Wall -Wextra -Werror -o &quot;$(LuxelPtyNativeLibrary)&quot; &quot;$(MSBuildProjectDirectory)/luxelpty.c&quot; -lutil" />
+  </Target>
+</Project>

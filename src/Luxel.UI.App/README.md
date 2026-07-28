@@ -47,6 +47,17 @@ builder.OnFrame((runtime, dt) => shell.Update(dt));
 
 `NavigationView(navigation, items)[content]` is a regular single-child layout control and can also be used outside `LuxelApp`. `Navigate` pushes a history entry, `Replace` changes the current entry, and `Back` returns to the previous entry. The first version uses exact, ordinal case-sensitive paths, recreates a screen when it is revisited, and does not animate screen changes. The original `LuxelApp.Run(() => widget)` API remains supported.
 
+## Terminal emulator
+
+The facade package also carries the optional, Controls-independent terminal assemblies:
+
+- `Luxel.Terminal`: VT/ANSI parser, screen/scrollback model, input encoding, and session contract.
+- `Luxel.Terminal.UI`: fixed-cell `TerminalView`, Nerd Font fallback, selection, clipboard, IME overlay, and resize handling.
+- `Luxel.Terminal.Windows`: Windows ConPTY backend.
+- `Luxel.Terminal.Linux`: glibc x64 Unix PTY backend.
+
+`Luxel.Controls` and `Luxel.Terminal*` do not reference each other. Applications compose both at the root when needed. See `samples/LuxelTerminal` for a complete shell host, Nerd Font configuration, and oh-my-posh usage. The renderer accepts TTF/TTC Nerd Fonts and supports BMP/supplementary private-use glyphs, 256 colors, and True Color.
+
 ## Install from GitHub Packages
 
 Every update to `main` publishes a preview package named `0.1.0-ci.<run-number>`. Publishing a GitHub Release creates the stable version from its `vMAJOR.MINOR.PATCH` tag, and maintainers can also run the **Publish NuGet package** workflow with an explicit version. The workflow builds the package and verifies it from a clean consumer project before publishing.
