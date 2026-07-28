@@ -20,15 +20,16 @@ public static class SampleBundleVerifier
         try
         {
             SampleBundleMaterializer.Materialize(repositoryRoot, bundleId, root);
-            SampleFileInfo projectFile = SampleBundleMaterializer.DependencyClosure(bundleId)
-                .SelectMany(item => item.Files).LastOrDefault(file => file.Kind == SampleFileKind.Project && file.Path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
-                ?? throw new InvalidOperationException($"Bundle '{bundleId}' does not declare a project file.");
-            string project = projectFile.OutputPath;
-            (string restoreOut, string restoreErr, int restoreExit) = await RunDotnet(root, ["restore", project], bundle, cancellationToken);
+            string buildEntry = bundle.BuildEntry ?? SampleBundleMaterializer.DependencyClosure(bundleId)
+                .SelectMany(item => item.Files)
+                .LastOrDefault(file => file.Kind == SampleFileKind.Project && file.Path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+                ?.OutputPath
+                ?? throw new InvalidOperationException($"Bundle '{bundleId}' does not declare a build entry or project file.");
+            (string restoreOut, string restoreErr, int restoreExit) = await RunDotnet(root, ["restore", buildEntry], bundle, cancellationToken);
             if (restoreExit != 0) throw new InvalidOperationException($"Bundle '{bundleId}' clean restore failed.\n{restoreOut}\n{restoreErr}");
-            (string buildOut, string buildErr, int buildExit) = await RunDotnet(root, ["build", project, "--configuration", "Release", "--no-restore"], bundle, cancellationToken);
-            if (buildExit != 0) throw new InvalidOperationException($"Bundle '{bundleId}' clean build failed.\n{buildErr}");
-            if (!runSmoke) return new SampleVerificationResult(bundleId, root, project, buildOut, buildErr);
+            (string buildOut, string buildErr, int buildExit) = await RunDotnet(root, ["build", buildEntry, "--configuration", "Release", "--no-restore"], bundle, cancellationToken);
+            if (buildExit != 0) throw new InvalidOperationException($"Bundle '{bundleId}' clean build failed.\n{buildOut}\n{buildErr}");
+            if (!runSmoke) return new SampleVerificationResult(bundleId, root, buildEntry, buildOut, buildErr);
             string[] smoke = ParseDotnet(bundle.SmokeCommand ?? throw new InvalidOperationException($"Bundle '{bundleId}' has no smoke command."));
             (string stdout, string stderr, int exitCode) = await RunDotnet(root, smoke, bundle, cancellationToken);
             if (exitCode != bundle.ExpectedExitCode)
@@ -37,7 +38,7 @@ public static class SampleBundleVerifier
                 throw new InvalidOperationException($"Bundle '{bundleId}' stdout did not contain '{marker}'.\n{stdout}");
             foreach (string artifact in bundle.ExpectedArtifacts ?? [])
                 if (!File.Exists(Path.Combine(root, artifact))) throw new FileNotFoundException($"Expected bundle artifact is missing: {artifact}");
-            return new SampleVerificationResult(bundleId, root, project, stdout, stderr);
+            return new SampleVerificationResult(bundleId, root, buildEntry, stdout, stderr);
         }
         finally
         {
