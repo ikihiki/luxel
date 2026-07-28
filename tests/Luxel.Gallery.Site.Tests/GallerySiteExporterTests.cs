@@ -589,6 +589,8 @@ public sealed class GallerySiteExporterTests
             Assert.DoesNotContain("--output", clearColor);
             Assert.DoesNotContain("ParseOutput", clearColor);
             Assert.DoesNotContain("CopyTightlyPacked", clearColor);
+            Assert.DoesNotContain("try", clearColor);
+            Assert.DoesNotContain("catch", clearColor);
             Assert.Contains("readback.Span<byte>(width * height * 4)", clearColor);
             Assert.Contains("clear-color: offline", clearColor);
             Assert.Contains("#:package SixLabors.ImageSharp@3.1.12", clearColor);
