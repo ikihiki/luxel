@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsGpu
 {
-    [Story("Reference/Guides/WebGPU", Order = 17)]
+    [Story("Reference/Guides/WebGPU", Order = 17, SampleBundle = "rendering.webgpu-headless")]
     public static Widget WebGpu(StoryContext ctx) => DocNew(ctx, $$"""
         # WebGPU backend 設計ガイド
 
@@ -19,14 +19,18 @@ public static partial class DocsGpu
 
         | 項目 | 契約 |
         | --- | --- |
-        | 対象 | native desktop の Windows と Linux/X11 |
-        | 選択 | 明示 opt-in。CLI/host 接続時の名前は `webgpu`、短縮形は `wgpu` |
+        | 対象 | native desktop の Windows と Linux。現在はheadless/offscreenのみ |
+        | 選択 | `WebGpuBackend.Create()`を明示して`GpuDevice`へ渡すopt-in。既存windowed hostのselectorには未接続 |
         | 既定 | Windows / Linux の既定 backend は変更しない |
-        | surface | Win32 / X11 native handle を backend-neutral descriptor から lower する |
-        | 初期スコープ外 | browser/WASM、macOS、未検証 RID、未検証 Native AOT |
-        | 対応判定 | required feature/limit と shader package を検査し、代表 offscreen/present 回帰が通ること |
+        | surface | 未実装。`CreateSurface`は`PlatformNotSupportedException` |
+        | 初期スコープ外 | surface/present、browser/WASM、macOS、未検証 RID、未検証 Native AOT |
+        | 対応判定 | required feature/limit と shader package を検査し、代表headless/offscreen回帰が通ること |
 
         WebGPU は「どの環境でも動く互換モード」ではありません。adapter が必要な limit を満たさない、native runtime と binding の ABI が一致しない、対象 shader artifact が無い、といった場合は backend 作成または pipeline 作成で明示的に失敗します。
+
+        `samples/LuxelWebGpuHeadless`は公開`GpuDevice` APIでWGSL compute、offscreen triangle、`HostCached` readbackを実行して結果を自己検証します。windowed `LuxelTriangle`へ未実装のselectorを追加せず、現在利用可能なheadless経路だけを示します。
+
+        {{SampleBundle("rendering.webgpu-headless")}}
 
         ## No Graphics API 原則との対応
 

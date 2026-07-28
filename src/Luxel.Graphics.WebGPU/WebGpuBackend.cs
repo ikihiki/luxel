@@ -73,7 +73,11 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         var adapterHandle = GCHandle.Alloc(adapterState);
         try
         {
-            var options = new RequestAdapterOptions { PowerPreference = PowerPreference.HighPerformance };
+            var options = new RequestAdapterOptions
+            {
+                PowerPreference = PowerPreference.HighPerformance,
+                ForceFallbackAdapter = Environment.GetEnvironmentVariable("LUXEL_WEBGPU_FORCE_FALLBACK_ADAPTER") is "1" or "true" or "True",
+            };
             _api.InstanceRequestAdapter(_instance, in options, new PfnRequestAdapterCallback(AdapterCallback), (void*)GCHandle.ToIntPtr(adapterHandle));
             PumpUntil(adapterState.Done, "adapter request");
             if (adapterState.Status != RequestAdapterStatus.Success || adapterState.Adapter == null)

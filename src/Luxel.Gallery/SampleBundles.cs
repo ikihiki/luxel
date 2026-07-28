@@ -88,6 +88,17 @@ internal static class SampleBundles
             RunCommand: "dotnet run --project samples/LuxelResources", SmokeCommand: "dotnet run --project samples/LuxelResources",
             Platforms: ["Windows", "Linux", "macOS"], ExpectedStdoutMarker: "resources: status=Ready, value=HELLO RESOURCES"));
         SampleBundleRegistry.Register(new SampleBundleInfo(
+            "rendering.webgpu-headless", "Headless WebGPU compute and triangle",
+            "Public GpuDevice API recipe covering inline WGSL compute, offscreen rendering and HostCached readback validation.", "Beginner",
+            SampleCopyLevel.StandaloneProject,
+            [new("samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj", SampleFileKind.Project),
+             new("samples/LuxelWebGpuHeadless/Program.cs", SampleFileKind.CSharp),
+             new("samples/LuxelWebGpuHeadless/HeadlessWebGpuSample.cs", SampleFileKind.CSharp)],
+            Dependencies: ["support.source-tree"], Requirements: [".NET 10", "wgpu-native 2.23.0 runtime", "Vulkan adapter; Mesa lavapipe supported on Linux"],
+            ExportSymbol: "HeadlessWebGpuSample", RunCommand: "dotnet run --project samples/LuxelWebGpuHeadless -c Release",
+            SmokeCommand: "dotnet run --project samples/LuxelWebGpuHeadless -c Release", Platforms: ["Windows", "Linux"],
+            ExpectedStdoutMarker: "status=pass"));
+        SampleBundleRegistry.Register(new SampleBundleInfo(
             "rendering.app-host", "Standalone app host",
             "Window, GPU device, surface, resize, frame loop and deterministic shutdown.", "Beginner",
             SampleCopyLevel.Block,

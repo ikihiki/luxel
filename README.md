@@ -92,6 +92,18 @@ Gallery のサイドバー **Start/Welcome** を唯一の入口とし、そこ�
 **Build** のコピー可能bundle、**Examples** の動く実例、**Reference** の詳細APIへ進む。READMEは起動方法だけを扱い、
 学習順序と現在の機能範囲はGallery側を正とする。左上の検索欄で本文を全文検索できる。
 
+### Headless WebGPU
+
+WebGPU backendは現在headless/offscreen専用です。公開`GpuDevice` APIでinline WGSL compute、offscreen triangle、
+`HostCached` readbackを自己検証する最小sampleを実行できます。surfaceと既存windowed hostのselectorは未実装です。
+
+```bash
+dotnet run --project samples/LuxelWebGpuHeadless -c Release
+```
+
+LinuxのCI相当ではMesa lavapipeを選びます。詳細は`samples/LuxelWebGpuHeadless/README.md`とGalleryの
+`Reference/Guides/WebGPU`を参照してください。
+
 ### Linux headless Vulkan
 
 Linux では `VulkanBackend.Create()` が既定で WSI/swapchain extensions を読み込まない headless mode を

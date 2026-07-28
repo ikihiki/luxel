@@ -1,0 +1,71 @@
+name: Test WebGPU
+
+on:
+  pull_request:
+    paths:
+      - 'src/Luxel.Graphics/**'
+      - 'src/Luxel.Graphics.WebGPU/**'
+      - 'src/Luxel.Gallery/SampleBundles.cs'
+      - 'src/Luxel.Gallery/Stories/Docs/DocsGpuWebGpu.cs'
+      - 'samples/LuxelWebGpuHeadless/**'
+      - 'tests/Luxel.WebGPU.Tests/**'
+      - 'src/**/*.csproj'
+      - 'tests/**/*.csproj'
+      - 'samples/**/*.csproj'
+      - 'Luxel.slnx'
+      - 'eng/check-project-dependencies.py'
+      - '.github/workflows/test-webgpu.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-lavapipe:
+    runs-on: ubuntu-24.04
+    env:
+      LUXEL_WEBGPU_FORCE_FALLBACK_ADAPTER: '1'
+      LUXEL_WEBGPU_REQUIRE_ADAPTER: '1'
+      WGPU_BACKEND: vulkan
+      WGPU_ADAPTER_NAME: llvmpipe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Install Mesa lavapipe
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mesa-vulkan-drivers vulkan-tools
+          LVP_ICD="$(find /usr/share/vulkan/icd.d -maxdepth 1 -name 'lvp_icd*.json' -print -quit)"
+          test -n "$LVP_ICD"
+          echo "VK_ICD_FILENAMES=$LVP_ICD" >> "$GITHUB_ENV"
+          echo "Using lavapipe ICD: $LVP_ICD"
+      - name: Validate project dependency graph
+        run: python3 eng/check-project-dependencies.py
+      - name: Restore WebGPU projects and wgpu-native runtime
+        run: dotnet restore tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj
+      - name: Build WebGPU tests and headless sample
+        run: |
+          dotnet build tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-restore
+          dotnet build samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj -c Release --no-restore
+          test -f tests/Luxel.WebGPU.Tests/bin/Release/net10.0/libwgpu_native.so
+          test -f samples/LuxelWebGpuHeadless/bin/Release/net10.0/libwgpu_native.so
+      - name: Test WebGPU with required software adapter
+        run: dotnet test tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-build
+      - name: Run headless WebGPU sample
+        run: dotnet run --project samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj -c Release --no-build
+
+  windows-build-and-tests:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj
+      - name: Build
+        run: dotnet build tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-restore
+      - name: Test when an adapter is available
+        run: dotnet test tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-build
