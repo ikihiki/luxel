@@ -15,37 +15,39 @@
 <p>shader、vertex buffer、graphics pipeline、surface、presentは使いません。処理は次の順です。</p>
 <pre><code class="language-text">GpuDevice → offscreen render targetをclear
           → host-mapped bufferへreadback
-          → clear-color.ppmへ保存
+          → ImageSharpでclear-color.pngへ保存
 </code></pre>
-<p><code>BeginRendering</code>のclear値だけでRGBA8 render targetを塗り、<code>ColorOutput → Copy</code> barrier後に<code>CopyTextureToBuffer</code>でCPU可視bufferへreadbackします。出力は汎用的に確認できるbinary PPMです。</p>
+<p><code>BeginRendering</code>のclear値だけでRGBA8 render targetを塗り、<code>ColorOutput → Copy</code> barrier後に<code>CopyTextureToBuffer</code>でCPU可視bufferへreadbackします。画像保存は手書きencoderではなく、外部ライブラリの<code>SixLabors.ImageSharp</code>でPNGへ変換します。</p>
 <h2 id="row-pitch">Row pitchと出力</h2>
-<p>描画サイズは教材とsmoke結果を一定にするため <strong>800×600</strong> に固定しています。Vulkanの<code>BufferRowLength</code>へ800 pixelを渡してRGBA8を密にreadbackし、PPMへ保存するときにRGBへ変換します。保存先だけは<code>--output result.ppm</code>で指定できます。</p>
+<p>描画サイズは教材とsmoke結果を一定にするため <strong>800×600</strong> に固定しています。Vulkanの<code>BufferRowLength</code>へ800 pixelを渡してRGBA8を密にreadbackし、<code>Image.LoadPixelData&lt;Rgba32&gt;</code>と<code>SaveAsPng</code>で保存します。保存先だけは<code>--output result.png</code>で指定できます。</p>
 <p>window、event loop、resize、surfaceは後続のinteractive sample側の責務であり、このsampleには含めません。</p>
 <h2 id="file-based-offline-clear-color">コピーして動かす — File-based offline Clear Color</h2>
 <blockquote>
 <p><strong>Block</strong> · 難易度: Beginner · 依存 bundle: <code>support.source-tree</code></p>
 </blockquote>
-<p>A complete single-file GPU sample that clears an offscreen target, reads it back and writes a PPM image without creating a window.</p>
-<p><strong>必要条件:</strong> .NET 10 / Vulkan 1.3
+<p>A complete single-file GPU sample that clears an offscreen target, reads it back and writes a PNG with ImageSharp without creating a window.</p>
+<p><strong>必要条件:</strong> .NET 10 / Vulkan 1.3 / SixLabors.ImageSharp 3.1.12
 <strong>Platform:</strong> Windows / Linux
 <strong>検証契約:</strong> exit <code>0</code> / timeout <code>300s</code> / stdout <code>clear-color: offline</code>
-<strong>生成物:</strong> <code>clear-color.ppm</code>
+<strong>生成物:</strong> <code>clear-color.png</code>
 <strong>接続点:</strong> <code>ClearColor.cs</code></p>
 <p><strong>Run</strong></p>
 <pre><code class="language-powershell">dotnet run --file samples/ClearColor.cs
 </code></pre>
 <p><strong>Smoke test</strong></p>
-<pre><code class="language-powershell">dotnet run --file samples/ClearColor.cs -- --output clear-color.ppm
+<pre><code class="language-powershell">dotnet run --file samples/ClearColor.cs -- --output clear-color.png
 </code></pre>
 <h3 id="samplesclearcolor.cs-csharp"><code>samples/ClearColor.cs</code> (CSharp)</h3>
 <pre><code class="language-csharp">#:project ../src/Luxel.Graphics/Luxel.Graphics.csproj
 #:project ../src/Luxel.Graphics.Vulkan/Luxel.Graphics.Vulkan.csproj
+#:package SixLabors.ImageSharp@3.1.12
 #:property TargetFramework=net10.0
 
 using System.Security.Cryptography;
-using System.Text;
 using Luxel.Graphics;
 using Luxel.Graphics.Vulkan;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 const int width = 800;
 const int height = 600;
@@ -69,7 +71,8 @@ try
     }
 
     byte[] rgba = CopyTightlyPacked(readback, stridePixels, width, height);
-    WritePpm(outputPath, rgba, width, height);
+    using (Image&lt;Rgba32&gt; image = Image.LoadPixelData&lt;Rgba32&gt;(rgba, width, height))
+        image.SaveAsPng(outputPath);
     string sha256 = Convert.ToHexStringLower(SHA256.HashData(rgba));
     Console.WriteLine($&quot;clear-color: offline, backend=vulkan, device={device.Name}, size={width}x{height}, output={outputPath}, sha256={sha256}&quot;);
     return 0;
@@ -91,26 +94,6 @@ static byte[] CopyTightlyPacked(GpuBuffer readback, uint stridePixels, int width
     return pixels;
 }
 
-static void WritePpm(string path, ReadOnlySpan&lt;byte&gt; rgba, int width, int height)
-{
-    string? directory = Path.GetDirectoryName(Path.GetFullPath(path));
-    if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-    using FileStream stream = File.Create(path);
-    stream.Write(Encoding.ASCII.GetBytes($&quot;P6\n{width} {height}\n255\n&quot;));
-    byte[] rgbRow = new byte[checked(width * 3)];
-    for (int y = 0; y &lt; height; y++)
-    {
-        ReadOnlySpan&lt;byte&gt; source = rgba.Slice(checked(y * width * 4), width * 4);
-        for (int x = 0; x &lt; width; x++)
-        {
-            rgbRow[x * 3] = source[x * 4];
-            rgbRow[x * 3 + 1] = source[x * 4 + 1];
-            rgbRow[x * 3 + 2] = source[x * 4 + 2];
-        }
-        stream.Write(rgbRow);
-    }
-}
-
 static string ParseOutput(string[] arguments)
 {
     for (int index = 0; index &lt; arguments.Length; index++)
@@ -118,10 +101,10 @@ static string ParseOutput(string[] arguments)
         if (arguments[index] == &quot;--output&quot; &amp;&amp; index + 1 &lt; arguments.Length) return arguments[index + 1];
         if (arguments[index].StartsWith(&quot;--output=&quot;, StringComparison.Ordinal)) return arguments[index][&quot;--output=&quot;.Length..];
     }
-    return &quot;clear-color.ppm&quot;;
+    return &quot;clear-color.png&quot;;
 }
 </code></pre>
-<details class="sample-bundle"><summary>Run this sample — Block</summary><p>A complete single-file GPU sample that clears an offscreen target, reads it back and writes a PPM image without creating a window.</p><p><strong>Requirements:</strong> .NET 10 / Vulkan 1.3</p><p><strong>Platforms:</strong> Windows / Linux</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>clear-color: offline</code></p><ul><li><code>samples/ClearColor.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --file samples/ClearColor.cs</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --file samples/ClearColor.cs -- --output clear-color.ppm</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Rendering/Basics/ClearColor&quot;, Order = 2, SampleBundle = &quot;rendering.clear-color&quot;)]
+<details class="sample-bundle"><summary>Run this sample — Block</summary><p>A complete single-file GPU sample that clears an offscreen target, reads it back and writes a PNG with ImageSharp without creating a window.</p><p><strong>Requirements:</strong> .NET 10 / Vulkan 1.3 / SixLabors.ImageSharp 3.1.12</p><p><strong>Platforms:</strong> Windows / Linux</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>clear-color: offline</code></p><ul><li><code>samples/ClearColor.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --file samples/ClearColor.cs</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --file samples/ClearColor.cs -- --output clear-color.png</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Rendering/Basics/ClearColor&quot;, Order = 2, SampleBundle = &quot;rendering.clear-color&quot;)]
 public static Widget ClearColor(StoryContext ctx)
 {
     return DocNew(ctx, $&quot;&quot;&quot;
@@ -140,14 +123,14 @@ public static Widget ClearColor(StoryContext ctx)
     ```text
     GpuDevice → offscreen render targetをclear
               → host-mapped bufferへreadback
-              → clear-color.ppmへ保存
+              → ImageSharpでclear-color.pngへ保存
     ```
 
-    `BeginRendering`のclear値だけでRGBA8 render targetを塗り、`ColorOutput → Copy` barrier後に`CopyTextureToBuffer`でCPU可視bufferへreadbackします。出力は汎用的に確認できるbinary PPMです。
+    `BeginRendering`のclear値だけでRGBA8 render targetを塗り、`ColorOutput → Copy` barrier後に`CopyTextureToBuffer`でCPU可視bufferへreadbackします。画像保存は手書きencoderではなく、外部ライブラリの`SixLabors.ImageSharp`でPNGへ変換します。
 
     ## Row pitchと出力
 
-    描画サイズは教材とsmoke結果を一定にするため **800&#215;600** に固定しています。Vulkanの`BufferRowLength`へ800 pixelを渡してRGBA8を密にreadbackし、PPMへ保存するときにRGBへ変換します。保存先だけは`--output result.ppm`で指定できます。
+    描画サイズは教材とsmoke結果を一定にするため **800&#215;600** に固定しています。Vulkanの`BufferRowLength`へ800 pixelを渡してRGBA8を密にreadbackし、`Image.LoadPixelData&lt;Rgba32&gt;`と`SaveAsPng`で保存します。保存先だけは`--output result.png`で指定できます。
 
     window、event loop、resize、surfaceは後続のinteractive sample側の責務であり、このsampleには含めません。
 
