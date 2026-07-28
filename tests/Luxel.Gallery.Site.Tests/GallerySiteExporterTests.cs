@@ -441,6 +441,37 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Terminal_api_references_are_generated_under_reference()
+    {
+        string[] namespaces =
+        [
+            "Luxel.Terminal.Input",
+            "Luxel.Terminal.Parsing",
+            "Luxel.Terminal.Screen",
+            "Luxel.Terminal.Session",
+            "Luxel.Terminal.UI",
+            "Luxel.Terminal.Windows",
+            "Luxel.Terminal.Linux",
+        ];
+        foreach (string ns in namespaces)
+        {
+            Assert.Contains(ns, TypeApiRegistry.Namespaces);
+            StoryInfo story = StoryRegistry.Find("Reference/" + ns)
+                ?? throw new InvalidOperationException($"Terminal API reference is missing: {ns}");
+            TextEditorView document = GallerySnapshots.FindDocument(story.Build(new StoryContext()))
+                ?? throw new InvalidOperationException($"Terminal API reference is not a document: {ns}");
+            Assert.Contains($"# {ns}", document.DocSource);
+            Assert.NotEmpty(document.DocEmbeds);
+            Assert.All(document.DocEmbeds, embed => Assert.Equal(DocEmbedKind.TypeApiTable, embed.Kind));
+        }
+
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.Terminal.Session.TerminalSession"));
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.Terminal.UI.TerminalView"));
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.Terminal.Windows.WindowsConPty"));
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.Terminal.Linux.LinuxPty"));
+    }
+
+    [Fact]
     public void Terminal_docs_cover_platforms_usage_and_rendering_adjustments()
     {
         StoryInfo story = StoryRegistry.Find("Controls/Terminal/Overview")
