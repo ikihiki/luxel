@@ -12,7 +12,7 @@ namespace Luxel.Gallery.Stories;
 /// </summary>
 public static class InputReplayStories
 {
-    [Story("Demos/Framework/InputReplay", Height = 300, Order = 153)]
+    [Story("Examples/Framework/InputReplay", Height = 300, Order = 153)]
     public static Widget InputReplay(StoryContext ctx)
     {
         var count = new Signal<int>(0);

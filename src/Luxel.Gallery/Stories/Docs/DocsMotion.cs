@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsMotion
 {
-    [Story("Docs/Animation", Order = 30)]
+    [Story("Reference/Guides/Animation", Order = 30)]
     public static Widget Animation(StoryContext ctx) => DocNew(ctx, $$"""
         # アニメーション (Luxel.Animation)
 
@@ -53,14 +53,14 @@ public static class DocsMotion
         // 毎フレーム: clock を進めて player.Update(clock) — 絶対時刻モデル
         ```
 
-        実物 (2 枚のカードが slide-in + fade-in): {{StoryRef(ctx, "Demos/Animation/Tween")}}
+        実物 (2 枚のカードが slide-in + fade-in): {{StoryRef(ctx, "Examples/Animation/Tween")}}
 
         ## AnimationClip と Importer
 
         キーフレームの束は `AnimationClip` に正規化されます。コードで組む (`Tracks.Vector3(path, kind, keyframes)`) ほか、**Importer** が外部形式を落とし込みます:
 
-        - **CSS @keyframes** — `CssKeyframesImporter.Parse(css)` → opacity / translate / color の Track 群 ([Demos/Animation/CssKeyframes](story:Demos/Animation/CssKeyframes))
-        - **glTF** — animations[] → translation/rotation/scale の Track。**skin (スケルタル)** — JOINTS_0/WEIGHTS_0 + inverse bind matrix から GPU 頂点スキニング ({{StoryRef(ctx, "Demos/3D/GltfSkinned")}})。**morph target (ブレンドシェイプ)** — 位置/法線デルタを weights channel の重みで頂点加算 ({{StoryRef(ctx, "Demos/3D/GltfMorph")}})。どちらも GPU 頂点シェーダで解決
+        - **CSS @keyframes** — `CssKeyframesImporter.Parse(css)` → opacity / translate / color の Track 群 ([Examples/Animation/CssKeyframes](story:Examples/Animation/CssKeyframes))
+        - **glTF** — animations[] → translation/rotation/scale の Track。**skin (スケルタル)** — JOINTS_0/WEIGHTS_0 + inverse bind matrix から GPU 頂点スキニング ({{StoryRef(ctx, "Examples/3D/GltfSkinned")}})。**morph target (ブレンドシェイプ)** — 位置/法線デルタを weights channel の重みで頂点加算 ({{StoryRef(ctx, "Examples/3D/GltfMorph")}})。どちらも GPU 頂点シェーダで解決
         - 拡張点は `IAnimationImporter` — Lottie subset 等はここに載せます。パース警告は既定 Warn (Strict / Lenient に切替可)
 
         Track の `TargetPath` ("card/opacity" 等) をアダプタの `Bind(name, 対象)` が解決します。
@@ -69,9 +69,9 @@ public static class DocsMotion
 
         Clip の上には合成レイヤが載ります:
 
-        - **AnimationGraph** — Clip / Blend / Add の DAG。`BlendNode.Weight` で 2 クリップを混合 ([Demos/Animation/Graph](story:Demos/Animation/Graph) — weight は knob)
-        - **StateMachine** — Trigger 名で状態切替、crossfade 秒指定 ([Demos/Animation/StateMachine](story:Demos/Animation/StateMachine) — ボタンで Trigger)
-        - ECS への適用は [Demos/Animation/EcsClip](story:Demos/Animation/EcsClip) — Clip → LocalTransform → propagate → extract → 描画
+        - **AnimationGraph** — Clip / Blend / Add の DAG。`BlendNode.Weight` で 2 クリップを混合 ([Examples/Animation/Graph](story:Examples/Animation/Graph) — weight は knob)
+        - **StateMachine** — Trigger 名で状態切替、crossfade 秒指定 ([Examples/Animation/StateMachine](story:Examples/Animation/StateMachine) — ボタンで Trigger)
+        - ECS への適用は [Examples/Animation/EcsClip](story:Examples/Animation/EcsClip) — Clip → LocalTransform → propagate → extract → 描画
 
         ## 絶対時刻モデル (frame-driven)
 
@@ -80,10 +80,10 @@ public static class DocsMotion
         > [!TIP]
         > wall-clock は使いません。ストーリーやアプリのフレームループが持つ累積秒から clock を組み立てるのが規約です (Gallery のデモは全てこの形)。
 
-        次: [Docs/Transitions](story:Docs/Transitions) — 「値を変えるだけで補間される」層へ。
+        次: [Reference/Guides/Transitions](story:Reference/Guides/Transitions) — 「値を変えるだけで補間される」層へ。
         """, toc: true);
 
-    [Story("Docs/Transitions", Order = 31)]
+    [Story("Reference/Guides/Transitions", Order = 31)]
     public static Widget Transitions(StoryContext ctx) => DocNew(ctx, $$"""
         # UI トランジション
 
@@ -131,7 +131,7 @@ public static class DocsMotion
             .TransitionBetween(WidgetState.Pressed, WidgetState.Hover, 0f);        // 離した瞬間は即時
         ```
 
-        解決は TransitionTable の (from, to, prop) ルールで、**具体的な指定が勝ちます** (pair > to > from > プロパティ既定 > 全体既定。to = enter が from = leave より優先 — CSS の「遷移先のルールが適用される」慣習と同じ)。実物は [Demos/Animation/Transitions](story:Demos/Animation/Transitions) へ。
+        解決は TransitionTable の (from, to, prop) ルールで、**具体的な指定が勝ちます** (pair > to > from > プロパティ既定 > 全体既定。to = enter が from = leave より優先 — CSS の「遷移先のルールが適用される」慣習と同じ)。実物は [Examples/Animation/Transitions](story:Examples/Animation/Transitions) へ。
 
         ## 動的状態 — スクロールも選択移動も同じ機械で
 

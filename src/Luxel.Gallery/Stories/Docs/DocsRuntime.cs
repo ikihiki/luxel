@@ -9,9 +9,11 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsRuntime
 {
-    [Story("Docs/Resources", Order = 50)]
+    [Story("Reference/Guides/Resources", Order = 50)]
     public static Widget Resources(StoryContext ctx) => DocNew(ctx, $$"""
         # リソース (Luxel.Resources)
+
+        初めて使う場合は [Resources Learn](story:Learn/Resources/Overview)、コピー可能な最小構成は [Build/Blocks/Resources/Pipeline](story:Build/Blocks/Resources/Pipeline) から始めてください。
 
         アセットのロードは **(型, uri) をキーとするノードキャッシュ**の上で動きます。同じ (型, uri) は常に同じノードを共有し、参照カウントとリロードをシステムが管理します。
 
@@ -57,10 +59,10 @@ public static class DocsRuntime
 
         ## RenderGraph との関係
 
-        混同注意 — Resources は**多フレーム寿命のアセット** ((型, uri) DAG)、RenderGraph は **1 フレームのパス合成** ((pass, resource) DAG) です。併用は「Resources でロードした GpuTexture を `ImportTexture` で External として取り込む」形 ([Docs/RenderGraph](story:Docs/RenderGraph) の対比表も参照)。
+        混同注意 — Resources は**多フレーム寿命のアセット** ((型, uri) DAG)、RenderGraph は **1 フレームのパス合成** ((pass, resource) DAG) です。併用は「Resources でロードした GpuTexture を `ImportTexture` で External として取り込む」形 ([Reference/Guides/RenderGraph](story:Reference/Guides/RenderGraph) の対比表も参照)。
         """, toc: true);
 
-    [Story("Docs/Platform", Order = 51)]
+    [Story("Reference/Guides/Platform", Order = 51)]
     public static Widget Platform(StoryContext ctx) => DocNew(ctx, $$"""
         # プラットフォーム (Luxel.Platform)
 
@@ -76,7 +78,7 @@ public static class DocsRuntime
 
         ## IME (TSF、自前 preedit)
 
-        `Luxel.Platform.ITextInputClient` が共通のIME編集面を定義し、Windowsの `TsfTextStore : ITextStoreACP` がフォーカス中のテキスト入力へ橋渡しします。`GetTextExt` がキャレット矩形を返すので変換候補ウィンドウがキャレット位置に出ます。**preedit 下線・変換対象節ハイライト・キャレットは自前描画** (`ImeComposition` モデル) — TSF の文書はフォーカス中ブロックに局所化されています ([Docs/Editor](story:Docs/Editor))。
+        `Luxel.Platform.ITextInputClient` が共通のIME編集面を定義し、Windowsの `TsfTextStore : ITextStoreACP` がフォーカス中のテキスト入力へ橋渡しします。`GetTextExt` がキャレット矩形を返すので変換候補ウィンドウがキャレット位置に出ます。**preedit 下線・変換対象節ハイライト・キャレットは自前描画** (`ImeComposition` モデル) — TSF の文書はフォーカス中ブロックに局所化されています ([Reference/Guides/Editor](story:Reference/Guides/Editor))。
 
         ## カーソル・右クリック・クリップボード
 
@@ -85,9 +87,11 @@ public static class DocsRuntime
         - クリップボードは `Luxel.Platform.Clipboard` + `IClipboardBackend` (`Win32ClipboardBackend` / `SilkClipboardBackend`) としてウィンドウから独立して構成します。リッチテキストは plain + markdown の両形式で書き込みます
         """, toc: true);
 
-    [Story("Docs/Input", Order = 52)]
+    [Story("Reference/Guides/Input", Order = 52)]
     public static Widget Input(StoryContext ctx) => DocNew(ctx, $$"""
         # 入力
+
+        ゲーム入力を順に学ぶ場合は [Input Learn](story:Learn/Input/Overview)、コピー可能な最小構成は [Build/Blocks/Input/Actions](story:Build/Blocks/Input/Actions) から始めてください。
 
         入力は 2 系統あります — **UI 入力** (UiHost がポインタ/キー/IME をコントロールへ配送) と、**ゲーム入力** (Luxel.Input — アクションマップとリバインド)。ゲーム入力の動くデモは [RealWindow/Input/Gamepad](story:RealWindow/Input/Gamepad) (実窓専用) へ。
 
@@ -112,9 +116,11 @@ public static class DocsRuntime
         ウィンドウなしで `host.Click(x, y)` / `host.Char("Hi")` / `host.KeyDown(Key.Tab)` を直接呼べます — ユニットテストや snap 前の状態強制はこの経路です。
         """, toc: true);
 
-    [Story("Docs/Audio", Order = 53)]
+    [Story("Reference/Guides/Audio", Order = 53)]
     public static Widget Audio(StoryContext ctx) => DocNew(ctx, $$"""
         # オーディオ (Luxel.Audio)
+
+        初めて使う場合は [Audio Learn](story:Learn/Audio/Overview)、headlessで動く最小構成は [Build/Blocks/Audio/Tone](story:Build/Blocks/Audio/Tone) から始めてください。
 
         `Luxel.Audio` の `IAudioBackend` の上に、SFX ミキサ / BGM ソース / 3D 音源 / バスによる音量カスケードを提供します。Windows固有のXAudio2実装は `Luxel.Audio.Windows` に分離されています。**Volume / Pitch / Pan が Signal** なので、UI ともアニメーション (Transition) とも自然につながります。実際に音が鳴るデモは [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone) (実窓専用) へ。
 
@@ -163,7 +169,7 @@ public static class DocsRuntime
         > SFX は全展開クリップ (`AudioClip`)、BGM は `StreamingVoice`。Doppler と mp3 は将来枠。Tick/Update/Pump を呼ばないと Signal の変更やキュー補充が反映されません。
         """, toc: true);
 
-    [Story("Docs/Framework", Order = 54)]
+    [Story("Reference/Guides/Framework", Order = 54)]
     public static Widget Framework(StoryContext ctx) => DocNew(ctx, $$"""
         # フレームワーク (Luxel.Framework)
 
@@ -214,7 +220,7 @@ public static class DocsRuntime
         }
         ```
 
-        60Hz 表示 + 1/60 固定でも、表示と固定の刻みがずれるとフレーム間で箱がガタつきます。`Alpha` (直近の固定ステップから次までの進捗 [0,1)) を使い、`InterpolatedTransform` (前/現ステップの TRS を保持) を `TransformInterpolationSystem` が `lerp(prev, curr, Alpha)` して `LocalTransform` に書くと、1 ステップ分の遅延と引き換えにガタつきが消えます。効果は [Demos/Framework/DrawInterpolation](story:Demos/Framework/DrawInterpolation) で並べて確認できます。
+        60Hz 表示 + 1/60 固定でも、表示と固定の刻みがずれるとフレーム間で箱がガタつきます。`Alpha` (直近の固定ステップから次までの進捗 [0,1)) を使い、`InterpolatedTransform` (前/現ステップの TRS を保持) を `TransformInterpolationSystem` が `lerp(prev, curr, Alpha)` して `LocalTransform` に書くと、1 ステップ分の遅延と引き換えにガタつきが消えます。効果は [Examples/Framework/DrawInterpolation](story:Examples/Framework/DrawInterpolation) で並べて確認できます。
 
         ## UiSurface — 複数サーフェスとレート制御
 
@@ -230,9 +236,9 @@ public static class DocsRuntime
 
         ## 永続化 — セーブ/ロード + 設定
 
-        **ゲーム状態のセーブ/ロード** は `WorldSave.Serialize(world)` → JSON 文字列 → `WorldSave.Deserialize(world, json)` で往復します。Friflo 組み込みの component 名→値スキーマを土台にするのでアーキタイプ変更やエンジン更新をまたいで安定です。GPU ハンドルや観測専用の component は `[ComponentKey(null)]` でセーブ対象外にします (例: `DebugName`)。文字列 in/out なのでファイル IO 非依存でテストでき、ファイル層は `IFileStore` (インメモリ/物理) で薄く繋ぎます。効果は [Demos/Framework/SaveLoad](story:Demos/Framework/SaveLoad) で「セーブ → 動かす → ロードで戻る」を確認できます。
+        **ゲーム状態のセーブ/ロード** は `WorldSave.Serialize(world)` → JSON 文字列 → `WorldSave.Deserialize(world, json)` で往復します。Friflo 組み込みの component 名→値スキーマを土台にするのでアーキタイプ変更やエンジン更新をまたいで安定です。GPU ハンドルや観測専用の component は `[ComponentKey(null)]` でセーブ対象外にします (例: `DebugName`)。文字列 in/out なのでファイル IO 非依存でテストでき、ファイル層は `IFileStore` (インメモリ/物理) で薄く繋ぎます。効果は [Examples/Framework/SaveLoad](story:Examples/Framework/SaveLoad) で「セーブ → 動かす → ロードで戻る」を確認できます。
 
-        **アプリ設定** は `SettingsStore.LoadFrom(files, "settings.json")` で読み、`store.Get<T>(key, fallback)` が **`Signal<T>` を返す**のが肝です。設定画面の Slider/Switch にそのまま双方向バインドでき、購読側 (音量 → AudioMixer 等) も `Reactive.Effect` で反応します。`Save()` (または `AutoSave`) でファイルへ書き出し、破損 JSON はパース失敗時に既定値で起動 + `.bak` 退避します (設定破損でゲームが起動しないのを防ぐ)。[Demos/Framework/Settings](story:Demos/Framework/Settings) で保存値 (音量 0.65 / フルスクリーン on) が反映される様子を見られます。
+        **アプリ設定** は `SettingsStore.LoadFrom(files, "settings.json")` で読み、`store.Get<T>(key, fallback)` が **`Signal<T>` を返す**のが肝です。設定画面の Slider/Switch にそのまま双方向バインドでき、購読側 (音量 → AudioMixer 等) も `Reactive.Effect` で反応します。`Save()` (または `AutoSave`) でファイルへ書き出し、破損 JSON はパース失敗時に既定値で起動 + `.bak` 退避します (設定破損でゲームが起動しないのを防ぐ)。[Examples/Framework/Settings](story:Examples/Framework/Settings) で保存値 (音量 0.65 / フルスクリーン on) が反映される様子を見られます。
 
         **読み込みは .NET 標準 Configuration**: 値は `Microsoft.Extensions.Configuration` (JSON ファイル + 環境変数 + コマンドライン) のレイヤで読みます。優先順は **保存済みファイル < 環境変数 (`Graphics__Quality=3`) < コマンドライン (`--Graphics:Quality=3`)** で、ops による上書きが効きます。`LuxelHostBuilder.WithSettings("MyGame", envPrefix: "MYGAME_")` は保存先 `%APPDATA%/MyGame` のファイルを最下層に、環境変数/引数を上層に重ねた config を組みます (非ホストアプリは `LuxelConfiguration.Build(files, ...)` で同じものを作れます)。書き込み (UI での変更) はファイルへ戻り、環境変数は読み取り時の上書きレイヤとして常に勝ちます。
 
@@ -249,7 +255,7 @@ public static class DocsRuntime
         出荷は `dotnet publish -c Release -r win-x64 --self-contained` の self-contained フォルダ配布。出力にはコンパイル済みシェーダ (`shaders/*.spv`/`*.dxil` — `Luxel.Shaders.targets` が自動コピー)・アセット/同梱フォント (csproj の Content)・ネイティブ DLL (glfw / HarfBuzz / Silk.NET) が揃います。アセットは `AppContext.BaseDirectory` (exe の隣) 基準で読むので **cwd 非依存** — リポジトリ外の任意パスへコピーして起動できます。`vulkan-1.dll` は OS/ドライバ側 (同梱しない) なので README に動作要件として明記します。実例は capstone ① `samples/LuxelCavern` (フォルダ publish を vk/dx 両方でリポジトリ外起動まで検証)。
         """, toc: true);
 
-    [Story("Docs/DevTools", Order = 55)]
+    [Story("Reference/Guides/DevTools", Order = 55)]
     public static Widget DevTools(StoryContext ctx) => DocNew(ctx, $$"""
         # DevTools (Luxel.DevTools)
 
@@ -268,7 +274,7 @@ public static class DocsRuntime
 
         ## パネル
 
-        Frame (画面ミラー) / Trees (widget ツリー) / Log / Stat (fps・ヒープ・GC の Sparkline ダッシュボード) / ECS (ライブ component 値) / Res (リソース依存グラフ) / GPU / Graph (RenderGraph の DAG を[読み取り専用](story:Docs/NodeEditor)のノードグラフで可視化 — パス = ノード / リソース依存 = 辺、pan/zoom で閲覧) / Audio / Input / Surf。操作は pause / resume / step (`engine.*` コマンドの Enqueue)。
+        Frame (画面ミラー) / Trees (widget ツリー) / Log / Stat (fps・ヒープ・GC の Sparkline ダッシュボード) / ECS (ライブ component 値) / Res (リソース依存グラフ) / GPU / Graph (RenderGraph の DAG を[読み取り専用](story:Reference/Guides/NodeEditor)のノードグラフで可視化 — パス = ノード / リソース依存 = 辺、pan/zoom で閲覧) / Audio / Input / Surf。操作は pause / resume / step (`engine.*` コマンドの Enqueue)。
 
         ## HTTP DebugServer
 
@@ -291,7 +297,7 @@ public static class DocsRuntime
 
         ### DebugDraw / gizmo — ゲーム画面上のオーバーレイ
 
-        `DebugDraw.Line/Rect/Circle/Text` はワールド空間に即時モードで積み、`Flush(scene, worldToScreen, textDrawer)` で最前面オーバーレイへ流します。`worldToScreen` 委譲で 2D=恒等・3D=viewProj の両対応。カテゴリ (kind) 単位で `Enable/Disable` でき、DevTools の `gizmo.enable {kind,on}` コマンドからトグルします (既定 off、OFF カテゴリはゼロ割り当てで抜ける)。この上に標準 gizmo (`Gizmos2D` = タイル衝突/Sweep/CameraRig、`ParticleGizmos.Emitter` = エミッタ位置 + alive 数、`PhysicsGizmos.DrawColliders` = コライダーワイヤの動的/静的/CCD/トリガー色分け、`PhysicsGizmos.ContactMarkers` = 接触中ペアのインジケータ) が載ります。実演は {{StoryRef(ctx, "Demos/2D/Gizmos2D")}} / {{StoryRef(ctx, "Demos/3D/PhysicsGizmos")}} / {{StoryRef(ctx, "Demos/3D/PhysicsTrigger")}}。
+        `DebugDraw.Line/Rect/Circle/Text` はワールド空間に即時モードで積み、`Flush(scene, worldToScreen, textDrawer)` で最前面オーバーレイへ流します。`worldToScreen` 委譲で 2D=恒等・3D=viewProj の両対応。カテゴリ (kind) 単位で `Enable/Disable` でき、DevTools の `gizmo.enable {kind,on}` コマンドからトグルします (既定 off、OFF カテゴリはゼロ割り当てで抜ける)。この上に標準 gizmo (`Gizmos2D` = タイル衝突/Sweep/CameraRig、`ParticleGizmos.Emitter` = エミッタ位置 + alive 数、`PhysicsGizmos.DrawColliders` = コライダーワイヤの動的/静的/CCD/トリガー色分け、`PhysicsGizmos.ContactMarkers` = 接触中ペアのインジケータ) が載ります。実演は {{StoryRef(ctx, "Examples/2D/Gizmos2D")}} / {{StoryRef(ctx, "Examples/3D/PhysicsGizmos")}} / {{StoryRef(ctx, "Examples/3D/PhysicsTrigger")}}。
 
         ### timescale — スローモーション
 
@@ -313,11 +319,11 @@ public static class DocsRuntime
         signal は所有する島 (スレッド) のみが触り、スレッド間は Listener (volatile/lock 済) と EngineCommands (ConcurrentQueue) だけ — [ThreadStatic] やグローバル可変状態は使いません。テーマも UiHost 単位の signal 所有です (DevTools 島は自前テーマを持つ)。
         """, toc: true);
 
-    [Story("Docs/Scripting", Order = 56)]
+    [Story("Reference/Guides/Scripting", Order = 56)]
     public static Widget Scripting(StoryContext ctx) => ctx.Snap(DocNew(ctx, $$"""
         # スクリプト (Luxel.Scripting)
 
-        **言語はエンジンと同じ C#** です (別言語を持ち込みません)。[Roslyn Scripting](https://github.com/dotnet/roslyn) を `ScriptHost` で薄く包み、`.csx` 意味論 (最後の式が戻り値、globals のメンバーが裸で見える) で実行します。書き手は開発者自身なのでフルトラストで、pure-C#・型付き・決定的というリポジトリの方針とそのまま噛み合います。実演は {{StoryRef(ctx, "Demos/Scripting/LiveCsx")}} へ。
+        **言語はエンジンと同じ C#** です (別言語を持ち込みません)。[Roslyn Scripting](https://github.com/dotnet/roslyn) を `ScriptHost` で薄く包み、`.csx` 意味論 (最後の式が戻り値、globals のメンバーが裸で見える) で実行します。書き手は開発者自身なのでフルトラストで、pure-C#・型付き・決定的というリポジトリの方針とそのまま噛み合います。実演は {{StoryRef(ctx, "Examples/Scripting/LiveCsx")}} へ。
 
         ## ScriptHost — コンパイルと実行
 
@@ -337,7 +343,7 @@ public static class DocsRuntime
         ## 機能させる面 (3 つ)
 
         1. **Gallery/docs のライブブロック** (実装済み) — エディタで編集 → Run → 返した `Widget`/`IGpuScene` をその場に実体化。コンパイルエラー/実行時例外は行番号付きでインライン表示、ブロックが落ちてもページは落ちない (ErrorBoundary)
-        2. **継続 REPL コンソール** (実装済み) — `ScriptHost.OpenSession(globals)` → `ScriptSession.Submit(line)`。**前の行で宣言した変数/using が次の行で見える** (Roslyn の `ContinueWith`)。実行中アプリへ 1 行ずつ投げて Signal を突く運用デバッグの土台。実演は {{StoryRef(ctx, "Demos/Scripting/Repl")}} へ
+        2. **継続 REPL コンソール** (実装済み) — `ScriptHost.OpenSession(globals)` → `ScriptSession.Submit(line)`。**前の行で宣言した変数/using が次の行で見える** (Roslyn の `ContinueWith`)。実行中アプリへ 1 行ずつ投げて Signal を突く運用デバッグの土台。実演は {{StoryRef(ctx, "Examples/Scripting/Repl")}} へ
         3. **Framework アプリのゲームロジック** (実装済み) — `.csx` を World/Phase フックへ登録し、ファイル監視でホットリロード (`Luxel.Scripting.Framework` の `ScriptSystem`、下記)
 
         ## ScriptSystem — .csx ゲームロジック + hot reload

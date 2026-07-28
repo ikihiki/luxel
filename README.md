@@ -65,13 +65,13 @@ eng/desktop/url.sh
 dotnet build
 dotnet run --project src/Luxel.Gallery -- vk            # Gallery (実ウィンドウ。dx も可)
 dotnet run --project src/Luxel.Gallery -- vk e2e        # play + golden 回帰 (--update で更新)
-dotnet run --project src/Luxel.Gallery -- vk bench "Button/Counter" 300 --type
+dotnet run --project src/Luxel.Gallery -- vk bench "Controls/Button/Counter" 300 --type
 dotnet test                                             # ユニットテスト
 ```
 
-Gallery のサイドバー **Docs 章**が本体ドキュメント (入門 → アーキテクチャ → サブシステム別 →
-貢献者向け)。**GPU / 2D / 3D / RenderGraph / Animation 章**が動くデモ。左上の検索欄で
-docs 本文を全文検索できる。
+Gallery のサイドバー **Start/Welcome** を唯一の入口とし、そこから **Learn** の順序付きコース、
+**Build** のコピー可能bundle、**Examples** の動く実例、**Reference** の詳細APIへ進む。READMEは起動方法だけを扱い、
+学習順序と現在の機能範囲はGallery側を正とする。左上の検索欄で本文を全文検索できる。
 
 ### Linux headless Vulkan
 
@@ -97,25 +97,25 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 各節の詳細と実例は Gallery 内 Docs 章の該当ページへ。
 
 - **GPU 抽象** — 固定レイアウト + bindless、Slang 統一シェーダ、stage バリアのみの同期、
-  深度/ブレンド/テクスチャ (→ Docs/GpuDevice)
+  深度/ブレンド/テクスチャ (→ Reference/Guides/GpuDevice)
 - **2D ベクター** — backend-neutralな`IRasterizer2D`からGPU computeまたはSkia CPU RGBAを選択。
-  EvenOdd/ストローク/日本語ベクターテキスト、Camera2D、保持型キャンバスのGPU増分更新 (→ Docs/TwoD)
+  EvenOdd/ストローク/日本語ベクターテキスト、Camera2D、保持型キャンバスのGPU増分更新 (→ Reference/Guides/TwoD)
 - **レンダーグラフ** — Setup/Compile/Execute 三相、transient aliasing、デッドパスカリング、
-  自動バリア。scene-agnostic (→ Docs/RenderGraph)
+  自動バリア。scene-agnostic (→ Reference/Guides/RenderGraph)
 - **3D + ECS** — Friflo ECS + Transform 伝播 + IRenderExtractor、forward/bloom/shadow map/
-  world-space UI (→ Docs/ThreeD)
+  world-space UI (→ Reference/Guides/ThreeD)
 - **宣言的 UI** — ベアファクトリ + indexer の DSL、signals 細粒度更新、単一パスレイアウト、
-  エラー境界 (→ Docs/UI)。コントロール 40 超 + CompositeControl (→ Docs/Controls)、
-  StateStyle/Tailwind utility (→ Docs/Styling)
+  エラー境界 (→ Reference/Guides/UI)。コントロール 40 超 + CompositeControl (→ Reference/Guides/Controls)、
+  StateStyle/Tailwind utility (→ Reference/Guides/Styling)
 - **テキストとエディタ** — HarfBuzz + 自前 TextLayout (禁則/Justify/ICU 差し込み)、
-  RichDocument + Markdig の WYSIWYG hybrid エディタ、埋め込みブロック (→ Docs/Typography,
-  Docs/Editor)
+  RichDocument + Markdig の WYSIWYG hybrid エディタ、埋め込みブロック (→ Reference/Guides/Typography,
+  Reference/Guides/Editor)
 - **アニメーション** — 3 層 IR (Clip/Track/Player) + UI/2D/3D アダプタ、コード DSL、
-  CSS @keyframes、Graph/StateMachine、CSS transition 相当の暗黙補間 (→ Docs/Animation,
-  Docs/Transitions)
+  CSS @keyframes、Graph/StateMachine、CSS transition 相当の暗黙補間 (→ Reference/Guides/Animation,
+  Reference/Guides/Transitions)
 - **ランタイム** — (型,uri) リソース DAG、Win32 窓 + TSF IME、XAudio2、
   LuxelHostBuilder + 7 フェーズループ + UiSurface、ネイティブ DevTools + HTTP DebugServer
-  (→ Docs/Resources, Docs/Platform, Docs/Audio, Docs/Framework, Docs/DevTools)
+  (→ Reference/Guides/Resources, Reference/Guides/Platform, Reference/Guides/Audio, Reference/Guides/Framework, Reference/Guides/DevTools)
 
 ## プロジェクト構成
 
@@ -140,7 +140,7 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 | Luxel.DevTools (+ .App) | デバッガ / HTTP DebugServer / ネイティブ DevTools |
 | Luxel.Gallery | ドキュメント + デモ + e2e/bench (このリポジトリの玄関) |
 
-初心者向けGPU経路は Gallery の `Learn/Rendering/Overview` から始まり、`FirstTriangle` →
+初心者向けGPU経路は Gallery の `Learn/Rendering/Basics/Overview` から始まり、`FirstTriangle` →
 `BuffersAndBindings` → `Shaders` の順で、standalone sample、bindless buffer ABI、shader cache更新を扱う。
 `GpuMemoryKind` はCPU write向け`HostMapped`、GPU専用`DeviceLocal`、CPU readback向け`HostCached`の3種類。
 

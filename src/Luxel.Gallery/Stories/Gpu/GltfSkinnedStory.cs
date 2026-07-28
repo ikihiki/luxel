@@ -32,7 +32,7 @@ public static class GltfSkinnedStories
     }
 
     /// <summary>RiggedSimple.glb (2 ボーンの曲がる棒) を、アニメの途中ポーズで描く。</summary>
-    [Story("Demos/3D/GltfSkinned", Height = 320, Order = 127)]
+    [Story("Examples/3D/GltfSkinned", Height = 320, Order = 127)]
     public static Widget GltfSkinned(StoryContext ctx) => ctx.Snap(Frame(GpuView(256, 256, new SkinnedScene("RiggedSimple.glb"))));
 
     private sealed class SkinnedScene(string file) : GpuSceneBase

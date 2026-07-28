@@ -33,7 +33,7 @@ public static class WorkbenchInspectorStory
         public IEditorDocument CreateNew() => new ObjectDocument<SparkConfig>("config", "無題", new SparkConfig());
     }
 
-    [Story("Demos/Workbench/Inspector", Height = 470)]
+    [Story("Examples/Workbench/Inspector", Height = 470)]
     public static Widget Inspector(StoryContext ctx)
     {
         var fs = new MemoryFileStorage();

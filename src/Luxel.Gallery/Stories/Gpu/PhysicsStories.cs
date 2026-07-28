@@ -16,7 +16,7 @@ namespace Luxel.Gallery.Stories;
 /// 物理 (Luxel.Physics = BepuPhysics v2) のデモ — Collider + RigidBody を持つ entity を
 /// PhysicsStepSystem が毎フレーム進めて LocalTransform を書き、既存の
 /// TransformPropagate → Render3DExtract → cube_forward がそのまま描く (シェーダ変更ゼロ)。
-/// 単スレッド固定タイムステップなので snap でも決定的。docs の Docs/Physics から参照される。
+/// 単スレッド固定タイムステップなので snap でも決定的。docs の Reference/Guides/Physics から参照される。
 /// </summary>
 public static class PhysicsStories
 {
@@ -30,11 +30,11 @@ public static class PhysicsStories
     }
 
     /// <summary>箱タワーが崩れて積み上がる — 物理パイプラインの最小構成。</summary>
-    [Story("Demos/3D/PhysicsFalling", Height = 320, Order = 127)]
+    [Story("Examples/3D/PhysicsFalling", Height = 320, Order = 127)]
     public static Widget PhysicsFalling(StoryContext ctx) => ctx.Snap(Frame(GpuView(256, 256, new PhysicsScene())));
 
     /// <summary>knob で重力/跳ね返りを実行時に変更、reset トグルで決定的な初期状態へ再構築。</summary>
-    [Story("Demos/3D/PhysicsPlayground", Height = 320, Order = 128)]
+    [Story("Examples/3D/PhysicsPlayground", Height = 320, Order = 128)]
     public static Widget PhysicsPlayground(StoryContext ctx)
     {
         Luxel.UI.Signal<float> gravity = ctx.Signal("gravity", 9.8f, "下向き重力の強さ (m/s²)");

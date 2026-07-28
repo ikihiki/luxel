@@ -10,7 +10,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>
 /// RenderGraph のデモ — Setup/Compile/Execute 三相、transient バッファの aliasing、
 /// デッドパスカリング。グラフ層は scene-agnostic (GpuDeviceRasterizer2D / Scene2D を知らない —
-/// ImportBuffer / CreateBuffer だけ)。docs の Docs/RenderGraph から参照される。
+/// ImportBuffer / CreateBuffer だけ)。docs の Reference/Guides/RenderGraph から参照される。
 /// </summary>
 public static class RenderGraphStories
 {
@@ -30,13 +30,13 @@ public static class RenderGraphStories
 
     /// <summary>UI → 分離ガウシアン (BlurH → BlurV) → 左右分割合成。
     /// 左半分 = 元の UI、右半分 = ブラー結果。中間バッファは transient。</summary>
-    [Story("Demos/RenderGraph/Blur", Height = 320, Order = 130)]
+    [Story("Examples/RenderGraph/Blur", Height = 320, Order = 130)]
     public static Widget Blur(StoryContext ctx) => ctx.Snap(Frame(GpuView(256, 256, new BlurScene(stages: 1), animated: false)));
 
     /// <summary>反復ブラー 4 段 + 誰も読まないパスで **transient aliasing** と
     /// **デッドパスカリング** を実証。コンパイル結果 (物理バッファ数/実行パス数/alias) は
     /// Log パネルに出る。</summary>
-    [Story("Demos/RenderGraph/Aliasing", Height = 320, Order = 131)]
+    [Story("Examples/RenderGraph/Aliasing", Height = 320, Order = 131)]
     public static Widget Aliasing(StoryContext ctx)
         => Frame(GpuView(256, 256, new BlurScene(stages: 2, addDeadPass: true, log: ctx.Log), animated: false));
 

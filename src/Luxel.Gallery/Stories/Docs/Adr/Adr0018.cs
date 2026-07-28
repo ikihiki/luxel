@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("ADR/0018-Csx-Behaviour-Model", Order = 89)]
+    [Story("Internals/ADR/0018-Csx-Behaviour-Model", Order = 89)]
     public static Widget Adr0018(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0018 — ゲームの挙動は csx ビヘイビア (状態レス Update) で書く
 
@@ -17,7 +17,11 @@ public static partial class DocsAdr
 
         ## Context
 
-        Luxel Studio ([ADR-0015](story:ADR/0015-Game-Project-Scene-Format)) の北極星は「C# ソリューション無しでゲームを 1 本出す」— エンティティの挙動をプロジェクトデータの一部として書ける仕組みが要ります。エンジンには `ScriptHost` (Roslyn csx、診断付き) と、capstone で実証した「コンパイル失敗で旧ロジック維持 + 診断公開」の運用があります。制約は: 決定性 (固定 dt・wall-clock 禁止 — golden/リプレイ)、ホットリロード (GE-5)、同じスクリプトを複数エンティティで共有できること。
+        > [!NOTE]
+        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+
+
+        Luxel Studio ([ADR-0015](story:Internals/ADR/0015-Game-Project-Scene-Format)) の北極星は「C# ソリューション無しでゲームを 1 本出す」— エンティティの挙動をプロジェクトデータの一部として書ける仕組みが要ります。エンジンには `ScriptHost` (Roslyn csx、診断付き) と、capstone で実証した「コンパイル失敗で旧ロジック維持 + 診断公開」の運用があります。制約は: 決定性 (固定 dt・wall-clock 禁止 — golden/リプレイ)、ホットリロード (GE-5)、同じスクリプトを複数エンティティで共有できること。
 
         ## Decision
 
@@ -30,7 +34,7 @@ public static partial class DocsAdr
 
         ## Alternatives
 
-        - **per-entity スクリプトインスタンス (スクリプトが状態を持つ)** — セーブ/リプレイ/プレイインエディタの破棄契約 ([ADR-0017 予定](story:ADR/Overview)) と衝突し、状態の在り処が二重になる → 却下 (状態はコンポーネント)
+        - **per-entity スクリプトインスタンス (スクリプトが状態を持つ)** — セーブ/リプレイ/プレイインエディタの破棄契約 ([ADR-0017 予定](story:Internals/ADR/Overview)) と衝突し、状態の在り処が二重になる → 却下 (状態はコンポーネント)
         - **ScriptSystem (Luxel.Scripting.Framework) の流用** — ECS のシステム単位で per-entity ビヘイビアの形でない → 却下 (ScriptHost 直結、失敗契約だけ踏襲)
         - **ビジュアルスクリプティング (NodeGraph)** — 資産はあるが v1 スコープ外 (ToDo/27) → 見送り
         - **C# クラス (コンパイル済みアセンブリ) のプラグイン** — 「エディタだけで完走」に反する → 却下

@@ -33,7 +33,7 @@ public static class PhysicsGizmosStories
         return new Vector2(sx, sy);
     }
 
-    [Story("Demos/3D/PhysicsGizmos", Height = 340, Order = 129)]
+    [Story("Examples/3D/PhysicsGizmos", Height = 340, Order = 129)]
     public static Widget PhysicsGizmosDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(W, H, draw: s =>
     {
         s.FillRect(Color2D.Rgba(20, 24, 30), 0, 0, W, H);
@@ -69,7 +69,7 @@ public static class PhysicsGizmosStories
 
     /// <summary>接触イベント + トリガー (タスク 04 / Q15) — ゴールゾーン (トリガー) を球が落下で通過し、
     /// 通過回数を数える。床に着いた球は接触インジケータ (十字) で示す。物理を固定 dt で回すので決定的。</summary>
-    [Story("Demos/3D/PhysicsTrigger", Height = 340, Order = 130)]
+    [Story("Examples/3D/PhysicsTrigger", Height = 340, Order = 130)]
     public static Widget PhysicsTriggerDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(W, H, draw: s =>
     {
         s.FillRect(Color2D.Rgba(20, 24, 30), 0, 0, W, H);

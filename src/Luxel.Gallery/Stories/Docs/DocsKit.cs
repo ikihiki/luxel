@@ -1,3 +1,4 @@
+using System.Text;
 using System.Diagnostics;
 using Luxel.Controls;
 using Luxel.Typography;
@@ -70,10 +71,44 @@ internal static class DocsKit
         {
             ".cs" => "csharp",
             ".slang" => "slang",
+            ".csproj" => "xml",
             ".ps1" => "powershell",
             _ => "text",
         };
         return new DocMarkdown($"```{language}\n{source.TrimEnd()}\n```");
+    }
+
+    /// <summary>検証済み sample bundle の依存、実行コマンド、実ファイルをまとめて表示する。</summary>
+    internal static DocMarkdown SampleBundle(string id)
+    {
+        SampleBundleInfo bundle = SampleBundleRegistry.Find(id)
+            ?? throw new InvalidOperationException($"Unknown sample bundle: {id}");
+        string dependencies = bundle.Dependencies is { Count: > 0 }
+            ? string.Join(", ", bundle.Dependencies.Select(x => $"`{x}`")) : "なし";
+        string requirements = bundle.Requirements is { Count: > 0 }
+            ? string.Join(" / ", bundle.Requirements) : "なし";
+        var text = new StringBuilder();
+        text.AppendLine($"## コピーして動かす — {bundle.Name}");
+        text.AppendLine();
+        text.AppendLine($"> **{bundle.CopyLevel}** · 難易度: {bundle.Difficulty} · 依存 bundle: {dependencies}");
+        text.AppendLine();
+        text.AppendLine(bundle.Description);
+        text.AppendLine();
+        text.AppendLine($"**必要条件:** {requirements}");
+        if (bundle.Platforms is { Count: > 0 }) text.AppendLine($"  **Platform:** {string.Join(" / ", bundle.Platforms)}");
+        text.AppendLine($"  **検証契約:** exit `{bundle.ExpectedExitCode}` / timeout `{bundle.TimeoutSeconds}s`"
+            + (bundle.ExpectedStdoutMarker is null ? "" : $" / stdout `{bundle.ExpectedStdoutMarker}`"));
+        if (bundle.ExpectedArtifacts is { Count: > 0 }) text.AppendLine($"  **生成物:** {string.Join(", ", bundle.ExpectedArtifacts.Select(x => $"`{x}`"))}");
+        if (bundle.ExportSymbol is not null) text.AppendLine($"  **接続点:** `{bundle.ExportSymbol}`");
+        if (bundle.RunCommand is not null) text.AppendLine($"\n**Run**\n```powershell\n{bundle.RunCommand}\n```");
+        if (bundle.SmokeCommand is not null) text.AppendLine($"\n**Smoke test**\n```powershell\n{bundle.SmokeCommand}\n```");
+        foreach (SampleFileInfo file in bundle.Files)
+        {
+            text.AppendLine($"\n### `{file.Path}` ({file.Kind})\n");
+            if (file.Kind == SampleFileKind.Asset) text.AppendLine("Binary asset — bundle materialization preserves the original bytes.");
+            else text.AppendLine(SampleSource(file.Path, file.Region, file.Language).Markdown);
+        }
+        return new DocMarkdown(text.ToString());
     }
 
     internal static string ExtractRegion(string source, string path, string region)

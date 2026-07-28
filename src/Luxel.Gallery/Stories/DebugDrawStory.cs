@@ -19,7 +19,7 @@ public static class DebugDrawStories
     private static readonly Lazy<VectorFont> Font = new(() => Luxel.Gallery.GalleryFonts.Load(Luxel.Gallery.GalleryFonts.Regular));
     private const float W = 460, H = 260;
 
-    [Story("Demos/Framework/Gizmos", Height = 300, Order = 150)]
+    [Story("Examples/Framework/Gizmos", Height = 300, Order = 150)]
     public static Widget Gizmos(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(W, H, draw: s =>
     {
         s.FillRect(Color2D.Rgba(24, 28, 36), 0, 0, W, H);   // 暗い背景 (ゲーム画面のつもり)

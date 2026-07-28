@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+  <ItemGroup><ProjectReference Include="..\..\src\Luxel.Controls\Luxel.Controls.csproj" /></ItemGroup>
+  <ItemGroup><Content Include="..\..\assets\fonts\BIZUDGothic-Regular.ttf" Link="fonts\BIZUDGothic-Regular.ttf" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+</Project>

@@ -10,7 +10,7 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static partial class DocsGpu
 {
-    [Story("Docs/GpuDevice", Order = 10)]
+    [Story("Reference/Guides/GpuDevice", Order = 10)]
     public static Widget GpuDevice(StoryContext ctx) => DocNew(ctx, $$"""
         # GPU 抽象 (GpuDevice)
 
@@ -65,13 +65,13 @@ public static partial class DocsGpu
 
         graphics も同じ流儀です。`CreateGraphicsPipeline(shader, GpuRasterDesc)` で深度テストやブレンドを宣言し、dynamic rendering (`BeginRendering`/`EndRendering`) で RT/Depth を直接指定、頂点は**頂点プル** (頂点レイアウト宣言なし — シェーダが bindless バッファから読む) です。
 
-        {{StoryRef(ctx, "Demos/3D/Depth")}}
+        {{StoryRef(ctx, "Examples/3D/Depth")}}
 
-        {{StoryRef(ctx, "Demos/3D/Blend")}}
+        {{StoryRef(ctx, "Examples/3D/Blend")}}
 
         `StorySource` でこのデモの実装をそのまま引用できます:
 
-        {{StorySource("Demos/3D/Depth")}}
+        {{StorySource("Examples/3D/Depth")}}
 
         ## テクスチャとレンダーターゲット
 
@@ -80,10 +80,10 @@ public static partial class DocsGpu
         > [!WARNING]
         > D3D12 の `CopyTextureToBuffer` は行 256B 整列が必要です。RGBA8 なら **ターゲット幅を 64 の倍数**にしてください (このページのデモはすべて 256)。
 
-        次: [Docs/TwoD](story:Docs/TwoD) — この GPU 抽象の上に 2D ベクターを載せます。
+        次: [Reference/Guides/TwoD](story:Reference/Guides/TwoD) — この GPU 抽象の上に 2D ベクターを載せます。
         """, toc: true);
 
-    [Story("Docs/TwoD", Order = 11)]
+    [Story("Reference/Guides/TwoD", Order = 11)]
     public static Widget TwoD(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());   // 積み重なった GPU デモ 7 本が device lost せず描画される回帰 golden
@@ -96,7 +96,7 @@ public static partial class DocsGpu
 
         塗り (NonZero/EvenOdd — 穴あき対応)、複数パス合成、ストローク (距離ベース・画面一定幅)、**ベクターテキスト** (TTF 輪郭 → パス → 塗り、日本語対応)、角丸:
 
-        {{StoryRef(ctx, "Demos/2D/VectorPaths")}}
+        {{StoryRef(ctx, "Examples/2D/VectorPaths")}}
 
         ## Scene2D とパス構築
 
@@ -115,13 +115,13 @@ public static partial class DocsGpu
 
         ワールド座標で 1 回 `Encode` したら、`Camera2D` を変えるだけで連続拡縮できます — 再エンコードも再三角形分割もありません。ベクターなので拡大してもエッジが崩れないことを knob で確かめられます:
 
-        {{StoryRef(ctx, "Demos/2D/Map", knobs: true)}}
+        {{StoryRef(ctx, "Examples/2D/Map", knobs: true)}}
 
         ## CameraRig2D — 追従カメラ (ゲームフィール)
 
         低レベルの `Camera2D` (ズーム/パン affine) の上に、ゲーム向けの高レベルコントローラ `CameraRig2D` があります。毎フレーム追従対象 (`Target`) を与えて `Update(dt, viewportW, viewportH)` し、`Camera(w, h)` で `Camera2D` を得ます。**デッドゾーン** (中央のこの矩形内では動かない)・**指数平滑** (フレームレート非依存の `1 - exp(-dt/tau)`、`* 0.1f` 方式は dt 依存なので使わない)・**ワールド境界クランプ** (画面端が `WorldBounds` を出ない、ワールドが画面より小さい軸は中央固定)・**画面シェイク** (`Shake(amp, duration, seed)`、固定シード xorshift なので golden 決定的) を持ちます。追従はターゲットが動いた後 = LateUpdate が定位置です。
 
-        {{StoryRef(ctx, "Demos/2D/CameraRig")}}
+        {{StoryRef(ctx, "Examples/2D/CameraRig")}}
 
         ## スプライトアトラス — 1 テクスチャに複数スプライト
 
@@ -139,7 +139,7 @@ public static partial class DocsGpu
 
         GPU 側は `GpuPath` の image シェイプ (`ImageSubRect`) がアトラスの**サブ矩形**を直接サンプリングします — `srcStride` = アトラス全幅 (行ピッチ)、`srcX/srcY` = サブ矩形原点、`srcW/srcH` = サイズ。clamp 付きサンプリングでサブ矩形境界に閉じるため、隣接スプライトへ滲みません (1:1 表示は nearest 相当)。image シェイプは GPU 専用 (Skia CPU バックエンドは非対応) です。
 
-        {{StoryRef(ctx, "Demos/2D/Sprites")}}
+        {{StoryRef(ctx, "Examples/2D/Sprites")}}
 
         ## タイルマップ — グリッド描画 + AABB 衝突
 
@@ -158,7 +158,7 @@ public static partial class DocsGpu
 
         下のデモは壁柱へ右移動するプレイヤー (赤) が `Sweep` で壁の手前に切り詰められる様子です (アウトラインが意図した移動先):
 
-        {{StoryRef(ctx, "Demos/2D/Tilemap")}}
+        {{StoryRef(ctx, "Examples/2D/Tilemap")}}
 
         ## パーティクル — 標準 VFX システム
 
@@ -180,13 +180,13 @@ public static partial class DocsGpu
         node.Sync();                                      // 生存パーティクルを描き直す
         ```
 
-        {{StoryRef(ctx, "Demos/2D/Particles")}}
+        {{StoryRef(ctx, "Examples/2D/Particles")}}
 
         3D は `Luxel.Particles.ThreeD` の `ParticleBillboards` — 生存パーティクルを `RenderBuffer<T>` の instance 配列に詰め、`billboard.slang` が SV_InstanceID から各粒子をカメラ向きの quad (right/up 軸で展開) に開きます。深度テストあり・書き込み無し + アルファブレンドで、描画順は発生順 (半透明ソートは v1 でやらない割り切り)。`Spherical: true` の設定で +Y 軸まわりの円錐 (π で全球) に 3D 放出します。
 
         設定は JSON からも読めます (`ParticleConfigJson.FromJson`、リソース DAG なら `resources.Load<ParticleConfig>("explosion.particle.json")`)。DAG の watch/reload に乗るので「JSON 保存 → 実行中のゲームでエフェクトが変わる」ライブ編集が既存機構のタダ乗りで成立します。
 
-        {{StoryRef(ctx, "Demos/3D/Particles")}}
+        {{StoryRef(ctx, "Examples/3D/Particles")}}
 
         ## IRasterizer2D / RetainedCanvas — backend切替と部分更新
 
@@ -228,11 +228,11 @@ public static partial class DocsGpu
         - パス数が変わるときだけ order を再構成 (軽量パス)
         - 定常フレームのコストは O(変わったノード) — 回帰は bench で監視 (使い方は Gallery の Docs 章の Contributing ページへ)
 
-        ## 今後
+        ## GPU rasterizerの現在構成
 
-        タイル binning (現状は画素×線分のブルートフォース + bbox 早期スキップ)、解析的 AA (現状 4x4 スーパーサンプル)。
+        現行 GPU pipeline は **bounds → 16×16 tile bin → fine raster** の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4×4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は [Rasterizer Internals](story:Learn/Rendering/RasterizerInternals/Overview) へ進んでください。
 
-        次: [Docs/RenderGraph](story:Docs/RenderGraph) — 多段パスの合成へ。
+        次: [Reference/Guides/RenderGraph](story:Reference/Guides/RenderGraph) — 多段パスの合成へ。
         """, toc: true);
     }
 }

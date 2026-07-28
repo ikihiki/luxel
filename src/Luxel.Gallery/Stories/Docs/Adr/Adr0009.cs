@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("ADR/0009-Node-Editor-Stack", Order = 80)]
+    [Story("Internals/ADR/0009-Node-Editor-Stack", Order = 80)]
     public static Widget Adr0009(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0009 — ノードエディタは汎用の Transaction ベース新スタックとして作る
 
@@ -17,19 +17,23 @@ public static partial class DocsAdr
 
         ## Context
 
+        > [!NOTE]
+        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+
+
         ノードグラフ (ノード + ポート + 接続線を空間上で編集する UI) が欲しくなりました。将来の用途はアニメーションブレンド・シェーダ/マテリアル・オーディオパッチ・レンダーグラフ可視化など複数あり、**特定ドメインに縛らない汎用のノード編集キャンバス** (TouchDesigner / Blueprint 流の土台) を最初に据えたい、という力学です。
 
         既存資産には近いものが 3 つありますが、いずれもそのままエディタの土台にはなりません:
 
         - **`Luxel.Diagram`** — measure → layout → 描画の**一方向レンダラ**。編集可能なモデル・ポート・ドラッグが無く、辺は直線。ただし階層ランク配置 (`DiagramLayout.Arrange`) は自動整列に**再利用**できる
         - **`Luxel.Animation/Graph`** — 実行時評価 DAG (`GraphNode.Evaluate`)。接続は blend ノード内の親子参照で暗黙、座標もポートも無く、空間エディタのモデルではない
-        - **`Luxel.Document` (テキスト新スタック、[ADR-0006](story:ADR/0006-Editor-New-Stack))** — こちらは**アーキテクチャの手本**になる: 不変状態 + Transaction + 純射影ジオメトリ + 薄い view が、canvas 非依存で headless テスト可能という Luxel の強みをそのまま出せている
+        - **`Luxel.Document` (テキスト新スタック、[ADR-0006](story:Internals/ADR/0006-Editor-New-Stack))** — こちらは**アーキテクチャの手本**になる: 不変状態 + Transaction + 純射影ジオメトリ + 薄い view が、canvas 非依存で headless テスト可能という Luxel の強みをそのまま出せている
 
-        また描画・入力の素材は既に揃っています — `Scene2D.CubicTo` (接続線のベジェ)・`AddHit` のドラッグフック・`Affine2D` コンテナ変換 (pan/zoom)・`PopupPlacer` ([ADR-0007](story:ADR/0007-Floating-Ui-Placement) のノード追加パレット)・`DiagramLayout` (自動整列)。
+        また描画・入力の素材は既に揃っています — `Scene2D.CubicTo` (接続線のベジェ)・`AddHit` のドラッグフック・`Affine2D` コンテナ変換 (pan/zoom)・`PopupPlacer` ([ADR-0007](story:Internals/ADR/0007-Floating-Ui-Placement) のノード追加パレット)・`DiagramLayout` (自動整列)。
 
         ## Decision
 
-        テキスト新スタック ([ADR-0006](story:ADR/0006-Editor-New-Stack)) と**同じ骨格**で、canvas 非依存の新プロジェクト **`Luxel.NodeGraph`** を新規に作り、その上に薄い view `NodeGraphView` ([UiComponent]) を載せます。既存の Diagram / Animation.Graph は触らず並置します (Diagram の配置アルゴリズムだけ参照)。
+        テキスト新スタック ([ADR-0006](story:Internals/ADR/0006-Editor-New-Stack)) と**同じ骨格**で、canvas 非依存の新プロジェクト **`Luxel.NodeGraph`** を新規に作り、その上に薄い view `NodeGraphView` ([UiComponent]) を載せます。既存の Diagram / Animation.Graph は触らず並置します (Diagram の配置アルゴリズムだけ参照)。
 
         - **不変状態 + Transaction** — `NodeGraphDoc` (ノード/ポート/辺、不変・id 索引) + `GraphSelection` + `GraphViewport` (pan/zoom) を束ねた不変スナップショット `NodeGraphState`。編集は `GraphTransaction` が変更列 (`GraphChange`: ノード追加/削除/移動・辺接続/切断・ノードデータ更新) を 1 つに束ね、**1 Transaction = 1 undo**。反転変更で undo
         - **id は安定 → 位置写像は不要** — テキストのオフセットと違いノード/ポートは安定 id を持つので、`ChangeSet.MapPos` に相当する座標写像が要らない (テキストスタックからの**意図的な簡約**)。選択・装飾は id 参照で編集を生き延びる
@@ -53,7 +57,7 @@ public static partial class DocsAdr
         - ✅ ドメイン非依存 → アニメブレンド・シェーダ・オーディオパッチ・レンダーグラフ可視化が後から同じ control に載る (1 つ作れば横展開)
         - ✅ 安定 id によりテキストの座標写像を持たずに済み、コアがテキストスタックより単純
         - ⚠️ 新プロジェクト + view の表面積が増える (既存 Diagram / Animation.Graph と概念が近く、使い分けの説明が要る)
-        - ⚠️ PointerEvent に修飾キーが無い制約で、追加クリック選択の操作感はフレームワーク拡張まで範囲選択で代替 (マルチカーソル / [ADR-0008](story:ADR/0008-Custom-Ime-Candidates) と共有の穴)
+        - ⚠️ PointerEvent に修飾キーが無い制約で、追加クリック選択の操作感はフレームワーク拡張まで範囲選択で代替 (マルチカーソル / [ADR-0008](story:Internals/ADR/0008-Custom-Ime-Candidates) と共有の穴)
         - ⚠️ pan/zoom がコンテナ変換 1 枚の共有ワールドなので、入れ子で独立ズームが要る規模になったら `SurfaceView` 化の再検討が要る
         """, toc: true);
 }

@@ -8,7 +8,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>glTF assets, ECS, and physics learning units.</summary>
 public static partial class DocsGpu
 {
-    [Story("Docs/Assets", Order = 14)]
+    [Story("Reference/Guides/Assets", Order = 14)]
     public static Widget Assets(StoryContext ctx) => DocNew(ctx, $$"""
         # アセットパイプライン (glTF)
 
@@ -44,7 +44,7 @@ public static partial class DocsGpu
 
         シェーダは `scene_pbr_lite` (頂点 32B: pos+normal+uv、インスタンス 80B: world+baseColor)。`DrawIndexed` は無いので **index バッファもシェーダが bindless で読み**、`indexBufIndex = 0xFFFFFFFF` で non-indexed に切り替えます。
 
-        {{StoryRef(ctx, "Demos/3D/GltfBox")}}
+        {{StoryRef(ctx, "Examples/3D/GltfBox")}}
 
         ## アニメーション
 
@@ -58,7 +58,7 @@ public static partial class DocsGpu
         extractor.Extract(new ExtractContext(device, frameIndex: frame++));
         ```
 
-        {{StoryRef(ctx, "Demos/3D/GltfAnimated")}}
+        {{StoryRef(ctx, "Examples/3D/GltfAnimated")}}
 
         > [!WARNING]
         > morph target (Weights チャンネル) は未対応です — `SceneAnimationPlayer` は skip します。スキニングは `SkinningSystem` + `scene_pbr_skinned` シェーダ (頂点 56B: joints/weights 付き) が担います。
@@ -72,7 +72,7 @@ public static partial class DocsGpu
         var vbuf = resources.Load<GpuBuffer>("file:///model.glb#mesh/0/vertex");   // fragment URI で部分ロード
         ```
 
-        `#mesh/N/vertex` / `#materials` のような **fragment URI** で primitive 単位の遅延ロードができます。Resources 自体の概念 (RefCount / Republish / Pump) は [Docs/Resources](story:Docs/Resources) へ。
+        `#mesh/N/vertex` / `#materials` のような **fragment URI** で primitive 単位の遅延ロードができます。Resources 自体の概念 (RefCount / Republish / Pump) は [Reference/Guides/Resources](story:Reference/Guides/Resources) へ。
 
         ## DRAW-M3: コンポーネント駆動の描画
 
@@ -87,11 +87,11 @@ public static partial class DocsGpu
         型 API は [Luxel.Assets](story:Reference/Luxel.Assets) / [Luxel.AssetsGpu](story:Reference/Luxel.AssetsGpu) / [Luxel.AssetRuntime](story:Reference/Luxel.AssetRuntime) / [Luxel.Gltf](story:Reference/Luxel.Gltf) へ。
         """, toc: true);
 
-    [Story("Docs/Ecs", Order = 15)]
+    [Story("Reference/Guides/Ecs", Order = 15)]
     public static Widget Ecs(StoryContext ctx) => DocNew(ctx, $$"""
         # ECS (Luxel.Ecs)
 
-        Friflo Engine ECS の薄いラッパです。3D シーン ([Docs/ThreeD](story:Docs/ThreeD)) とアセット展開 ([Docs/Assets](story:Docs/Assets)) の土台ですが、単体でも使えます。高度な操作は `world.Store` (生の Friflo `EntityStore`) を直接触ってかまいません。
+        Friflo Engine ECS の薄いラッパです。3D シーン ([Reference/Guides/ThreeD](story:Reference/Guides/ThreeD)) とアセット展開 ([Reference/Guides/Assets](story:Reference/Guides/Assets)) の土台ですが、単体でも使えます。高度な操作は `world.Store` (生の Friflo `EntityStore`) を直接触ってかまいません。
 
         ## Entity とクエリ
 
@@ -135,17 +135,17 @@ public static partial class DocsGpu
         sig.Value = new Color3D(newColor);   // Friflo の変更通知で UI 側の監視者にも伝わる
         ```
 
-        UI から entity を編集する例は [Demos/Animation/EcsClip](story:Demos/Animation/EcsClip) にあります。
+        UI から entity を編集する例は [Examples/Animation/EcsClip](story:Examples/Animation/EcsClip) にあります。
 
         ## 設計ノート
 
-        - **UI には ECS を使いません** — UI は signals + 保持型ツリー ([Docs/UI](story:Docs/UI))。3D 側だけ ECS です (理由は [Docs/ThreeD](story:Docs/ThreeD) の設計ノート)
+        - **UI には ECS を使いません** — UI は signals + 保持型ツリー ([Reference/Guides/UI](story:Reference/Guides/UI))。3D 側だけ ECS です (理由は [Reference/Guides/ThreeD](story:Reference/Guides/ThreeD) の設計ノート)
         - ラッパを薄く保つのは、Friflo の archetype API (`ArchetypeQuery` / `ForEachEntity`) がそのまま最速経路だからです。Luxel が足すのは Phase 規約・DelegateSystem・Signal ブリッジ・perf 収集だけ
 
-        物理 (剛体/衝突) を entity に付けるには [Docs/Physics](story:Docs/Physics) へ。型 API は [Luxel.Ecs](story:Reference/Luxel.Ecs) / [Luxel.Ecs.Signal](story:Reference/Luxel.Ecs.Signal) へ。
+        物理 (剛体/衝突) を entity に付けるには [Reference/Guides/Physics](story:Reference/Guides/Physics) へ。型 API は [Luxel.Ecs](story:Reference/Luxel.Ecs) / [Luxel.Ecs.Signal](story:Reference/Luxel.Ecs.Signal) へ。
         """, toc: true);
 
-    [Story("Docs/Physics", Order = 16)]
+    [Story("Reference/Guides/Physics", Order = 16)]
     public static Widget Physics(StoryContext ctx) => DocNew(ctx, $$"""
         # 物理 (Luxel.Physics)
 
@@ -180,7 +180,7 @@ public static partial class DocsGpu
 
         流れ: **Attach** (未発行 entity に body を発行 — 初期 pose は LocalTransform の分解) → **Step** → **Write-back** (`LocalTransform = Scale(RenderScale) × Rotation × Translation`)。描画側 (TransformPropagate → Render3DExtract → cube_forward) は物理を知りません。
 
-        {{StoryRef(ctx, "Demos/3D/PhysicsFalling")}}
+        {{StoryRef(ctx, "Examples/3D/PhysicsFalling")}}
 
         > [!TIP]
         > 形状は `Collider.Box / Sphere / Capsule`。v1 の描画は MeshRef.Cube の近似表示 (Box = Size、Sphere = 外接 2r、Capsule = (2r, len+2r, 2r)) です。`ScheduleRoot` に載せる場合の規約位置は `Phase.Update`。
@@ -194,7 +194,7 @@ public static partial class DocsGpu
         physics.Bounciness = 5f;                      // よく跳ねる
         ```
 
-        {{StoryRef(ctx, "Demos/3D/PhysicsPlayground")}}
+        {{StoryRef(ctx, "Examples/3D/PhysicsPlayground")}}
 
         ## レイキャスト
 
@@ -217,7 +217,7 @@ public static partial class DocsGpu
         > [!NOTE]
         > 既定 (`ccd: false`) でも Bepu は速度に応じた**投機マージン**で大抵のトンネリングを防ぎます。CCD が本当に効くのは、投機マージンを絞った構成 (`AddDynamic` の `maxSpeculativeMargin`) や、極端な速度 + 薄い壁 + 回転を伴う掃引です。掃引コストと引き換えなので、弾など必要なボディにだけ付けます。
 
-        コライダーの可視化 (動的/静的/CCD の色分けワイヤ) は物理 gizmo で行えます — {{StoryRef(ctx, "Demos/3D/PhysicsGizmos")}}。
+        コライダーの可視化 (動的/静的/CCD の色分けワイヤ) は物理 gizmo で行えます — {{StoryRef(ctx, "Examples/3D/PhysicsGizmos")}}。
 
         ## 接触イベント + トリガー
 
@@ -239,7 +239,7 @@ public static partial class DocsGpu
             Collider.Box(2, 2, 2), new Trigger());   // ゴールゾーン
         ```
 
-        {{StoryRef(ctx, "Demos/3D/PhysicsTrigger")}}
+        {{StoryRef(ctx, "Examples/3D/PhysicsTrigger")}}
 
         > [!NOTE]
         > 接触点の詳細 (位置/法線/深度) は v1 では公開しません — Begin/End で十分な用途 (判定・カウント) を先に。接触中ペアの可視化は `PhysicsStepSystem.TrackCurrentContacts` を有効にして `CurrentContacts` を gizmo で描きます (sleep した body は narrow phase が止まるため出ません)。マルチスレッド (`ThreadCount > 0`) の接触イベントは v1 未対応 (既定の単スレッドで使う)。
@@ -263,7 +263,7 @@ public static partial class DocsGpu
             HullCollider.Dynamic(points, mass: 1f));
         ```
 
-        {{StoryRef(ctx, "Demos/3D/PhysicsMesh")}}
+        {{StoryRef(ctx, "Examples/3D/PhysicsMesh")}}
 
         > [!WARNING]
         > **三角形の winding** で衝突面 (法線の向き) が決まります — Bepu メッシュは片面で、法線と逆側から来た物体は貫通します。地形の上面へ物体を載せるなら、上向き法線になる巻き方にしてください (向きが逆なら 2 頂点を入れ替え)。glTF の座標系/スケールは描画と同じ変換を渡さないと絵と当たりがずれます。

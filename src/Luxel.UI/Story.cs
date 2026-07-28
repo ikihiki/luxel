@@ -28,6 +28,8 @@ public sealed class StoryAttribute(string path) : Attribute
     /// <summary>true = 実ウィンドウ専用 (音声再生・実デバイス入力など)。snap 回帰は SKIP し、
     /// Gallery アプリでは通常どおり表示される。golden は作らない。</summary>
     public bool RealWindowOnly { get; set; }
+    /// <summary>実行可能なコピー単位を記述する SampleBundle の ID。未指定は Gallery harness 専用。</summary>
+    public string? SampleBundle { get; set; }
 }
 
 /// <summary>
@@ -280,7 +282,7 @@ public sealed class StoryKnob
 /// <paramref name="Source"/> は属性・signature・本体を含む [Story] メソッド宣言の C# ソース
 /// (storysource — GalleryのSourceビュー／docsの「コードを見る」用、ジェネレーターが焼き込む)。<paramref name="RealWindowOnly"/> は snap 回帰の対象外 (実窓専用)。</summary>
 public sealed record StoryInfo(string Path, int Width, int Height, string? Theme, Func<StoryContext, Widget> Build,
-                               int Order = 1000, string? Source = null, bool RealWindowOnly = false)
+                               int Order = 1000, string? Source = null, bool RealWindowOnly = false, string? SampleBundle = null)
 {
     /// <summary>パスの先頭セグメント (章 — サイドバーのトップレベル)。</summary>
     public string Component => Path.IndexOf('/') is >= 0 and var i ? Path[..i] : Path;
@@ -289,6 +291,32 @@ public sealed record StoryInfo(string Path, int Width, int Height, string? Theme
 }
 
 /// <summary>全アセンブリのストーリー登録先。ソースジェネレーターが module initializer から Register する。</summary>
+public enum SampleCopyLevel { Snippet, Block, Recipe, StandaloneProject, GalleryOnly }
+public enum SampleFileKind { Project, CSharp, Shader, Asset, Generated }
+public enum SampleFileMode { Whole, Region, Generated, Glob }
+public enum SampleMergeRule { Error, KeepFirst, Replace, Append }
+public sealed record SampleFileInfo(string Path, SampleFileKind Kind, string? Region = null, string? Language = null,
+    string? Destination = null, SampleFileMode Mode = SampleFileMode.Whole, string? Wrapper = null,
+    string? AssetGlob = null, SampleMergeRule MergeRule = SampleMergeRule.Error)
+{
+    public string OutputPath => Destination ?? Path;
+    public SampleFileMode EffectiveMode => AssetGlob is not null ? SampleFileMode.Glob
+        : Kind == SampleFileKind.Generated ? SampleFileMode.Generated : Mode;
+}
+public sealed record SampleBundleInfo(string Id, string Name, string Description, string Difficulty, SampleCopyLevel CopyLevel,
+    IReadOnlyList<SampleFileInfo> Files, IReadOnlyList<string>? Dependencies = null, IReadOnlyList<string>? Requirements = null,
+    string? ExportSymbol = null, string? RunCommand = null, string? SmokeCommand = null,
+    IReadOnlyList<string>? Platforms = null, int TimeoutSeconds = 300, int ExpectedExitCode = 0,
+    string? ExpectedStdoutMarker = null, IReadOnlyList<string>? ExpectedArtifacts = null);
+
+public static class SampleBundleRegistry
+{
+    private static readonly Dictionary<string, SampleBundleInfo> Bundles = new(StringComparer.Ordinal);
+    public static IReadOnlyCollection<SampleBundleInfo> All => Bundles.Values;
+    public static void Register(SampleBundleInfo bundle) { ArgumentNullException.ThrowIfNull(bundle); Bundles[bundle.Id] = bundle; }
+    public static SampleBundleInfo? Find(string? id) => id is not null && Bundles.TryGetValue(id, out var bundle) ? bundle : null;
+}
+
 public static class StoryRegistry
 {
     private static readonly object Gate = new();
@@ -296,6 +324,12 @@ public static class StoryRegistry
     private static readonly List<Action> Providers = new();
     private static readonly HashSet<Action> FailedProviders = new();
     private static readonly Dictionary<string, string> Aliases = new(StringComparer.Ordinal);
+    private static readonly IReadOnlyDictionary<string, int> ComponentOrder = new Dictionary<string, int>(StringComparer.Ordinal)
+    {
+        ["Start"] = 0, ["Learn"] = 10, ["Build"] = 20, ["Examples"] = 30,
+        ["Controls"] = 40, ["Apps"] = 50, ["Game"] = 60, ["Reference"] = 70,
+        ["Internals"] = 80, ["RealWindow"] = 90, ["ADR"] = 100, ["Docs"] = 110,
+    };
 
     public static void Register(StoryInfo story)
     {
@@ -338,7 +372,8 @@ public static class StoryRegistry
             lock (Gate)
                 return Stories
                     .GroupBy(s => s.Component)
-                    .OrderBy(g => g.Min(s => s.Order))
+                    .OrderBy(g => ComponentOrder.GetValueOrDefault(g.Key, 1000))
+                    .ThenBy(g => g.Min(s => s.Order))
                     .ThenBy(g => g.Key, StringComparer.Ordinal)
                     .SelectMany(g => g.OrderBy(s => s.Order).ThenBy(s => s.Path, StringComparer.Ordinal))
                     .ToArray();

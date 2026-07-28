@@ -11,11 +11,11 @@ namespace Luxel.Gallery.Stories;
 /// 上段: 4 セルを別々のスプライトとして拡大描画 (各セルが別領域からサンプリングされる証拠)。
 /// 下段: フレーム列 (フィルムストリップ) + <see cref="SpriteAnimation"/> で選んだ現フレームを拡大。
 /// アトラスは手続き生成 (外部アセット不要・決定的)。Image シェイプは GPU 専用 (Skia CPU は非対応) のため
-/// golden は vk/dx のみ。docs の Docs/TwoD 「スプライトアトラス」節から参照される。
+/// golden は vk/dx のみ。docs の Reference/Guides/TwoD 「スプライトアトラス」節から参照される。
 /// </summary>
 public static class SpriteStories
 {
-    [Story("Demos/2D/Sprites", Height = 260, Order = 119)]
+    [Story("Examples/2D/Sprites", Height = 260, Order = 119)]
     public static Widget Sprites(StoryContext ctx) => ctx.Snap(Frame(GpuView(384, 192, new SpriteScene(), animated: false)));
 
     private sealed class SpriteScene : GpuSceneBase

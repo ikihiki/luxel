@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("ADR/0012-Rich-Document-Stack", Order = 83)]
+    [Story("Internals/ADR/0012-Rich-Document-Stack", Order = 83)]
     public static Widget Adr0012(StoryContext ctx) => DocNew(ctx, $$"""
         # ADR-0012 — Markdown/リッチ文書はテキスト新スタックの構成として実装し、RichTextEditor を置き換える
 
@@ -17,17 +17,21 @@ public static partial class DocsAdr
 
         ## Context
 
-        `RichTextEditor` (旧 `DocumentEditor` スタック) は「旧エディタ」ではなく、**現役の Docs 描画エンジン**です。`Kit.Docs()` ファクトリが返す型がこれで、Gallery の全ドキュメント (Docs/ADR の 11 モジュール) がこれで描かれています。中身はブロックモデル (Block→Line→UiNode) + 埋め込みライブ UI + mermaid (`Luxel.Diagram`) + 数式 (`Luxel.MathText`) + シンタックス fence (`Luxel.Highlight.TextMate`) + 全文検索アンカーで、docs の Gallery 一本化 ([ADR-0005](story:ADR/0005-Docs-In-Gallery)) の土台そのものです。Workbench 化 ([ADR-0010](story:ADR/0010-Workbench-Framework)) と旧スタック整理 (`CodeEditor` 削除) に合わせ、この文書役を新スタックの流儀に揃えたい。
+        > [!NOTE]
+        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
 
-        当初は「別の Transaction ベース リッチ文書スタックを新規に作る」案でした。しかしテキスト新スタック ([ADR-0006](story:ADR/0006-Editor-New-Stack)) は **CodeMirror 6 流**で、CM6 / Obsidian の Live Preview はまさに「下地はテキスト (行)、表示はブロック装飾、編集はブロック単位コマンド」で Markdown を成立させています。核心は — **ブロックはデータモデルではなく、行テキストをパースした射影**である点。ならば別スタック (別のブロックモデル) はモデルの二重化で、テキストスタックの構成として載せるのが筋だ、という力学です。
+
+        `RichTextEditor` (旧 `DocumentEditor` スタック) は「旧エディタ」ではなく、**現役の Docs 描画エンジン**です。`Kit.Docs()` ファクトリが返す型がこれで、Gallery の全ドキュメント (Reference/Guides/ADR の 11 モジュール) がこれで描かれています。中身はブロックモデル (Block→Line→UiNode) + 埋め込みライブ UI + mermaid (`Luxel.Diagram`) + 数式 (`Luxel.MathText`) + シンタックス fence (`Luxel.Highlight.TextMate`) + 全文検索アンカーで、docs の Gallery 一本化 ([ADR-0005](story:Internals/ADR/0005-Docs-In-Gallery)) の土台そのものです。Workbench 化 ([ADR-0010](story:Internals/ADR/0010-Workbench-Framework)) と旧スタック整理 (`CodeEditor` 削除) に合わせ、この文書役を新スタックの流儀に揃えたい。
+
+        当初は「別の Transaction ベース リッチ文書スタックを新規に作る」案でした。しかしテキスト新スタック ([ADR-0006](story:Internals/ADR/0006-Editor-New-Stack)) は **CodeMirror 6 流**で、CM6 / Obsidian の Live Preview はまさに「下地はテキスト (行)、表示はブロック装飾、編集はブロック単位コマンド」で Markdown を成立させています。核心は — **ブロックはデータモデルではなく、行テキストをパースした射影**である点。ならば別スタック (別のブロックモデル) はモデルの二重化で、テキストスタックの構成として載せるのが筋だ、という力学です。
 
         ## Decision
 
-        Markdown/リッチ文書を、別プロジェクトを作らず**テキスト新スタック ([ADR-0006](story:ADR/0006-Editor-New-Stack)) の構成**として実装します。
+        Markdown/リッチ文書を、別プロジェクトを作らず**テキスト新スタック ([ADR-0006](story:Internals/ADR/0006-Editor-New-Stack)) の構成**として実装します。
 
         - **ブロックはテキストの射影** — 編集はテキストの `ChangeSet` のまま。ブロック意味論は「ブロック単位コマンド」(移動/インデント/見出し化/リスト継続/セクション折畳) で表現する。ブロック = 解決した行レンジで、安定 id も別データ構造も要らない (テキストから毎回パース。`ChangeSet.MapPos` が装飾もブロックも編集を生き延びさせる)
         - **表示は行/ブロック/widget 装飾** — Line 背景 / LinePrefix (リスト記号・引用バー) / Block (行グループ背景・縦バー・Indent) / Mark (インライン装飾) / Widget (表・mermaid・数式・埋め込みライブ UI を block/inline で置換)。全文検索はテキストが下地なので native、TOC は見出し行から導出
-        - **read-only モード = Docs レンダラ** (`Kit.Docs()` の差し替え先。Docs/ADR 全 11 モジュールを移行)。**編集モード = Markdown ハイブリッド/Live Preview エディタ** (同じ機構の編集可版)
+        - **read-only モード = Docs レンダラ** (`Kit.Docs()` の差し替え先。Reference/Guides/ADR 全 11 モジュールを移行)。**編集モード = Markdown ハイブリッド/Live Preview エディタ** (同じ機構の編集可版)
 
         テキストスタックに足す小さな拡張:
 
@@ -44,11 +48,11 @@ public static partial class DocsAdr
 
         - **別の Transaction ベース リッチ文書スタックを新規に作る** (当初案) — テキストスタックが CM6 流でブロックを射影として扱えるため、別スタックはモデルの二重化になる。ブロックは安定 id を要さずテキストから再パースできる → 却下 (テキストスタックの構成に統合)
         - **`RichTextEditor` をレンダラとして存続** — 新スタック統一の方針に反する → 却下
-        - **完全削除して Docs 描画を廃止** — [ADR-0005](story:ADR/0005-Docs-In-Gallery) (docs の Gallery 一本化) を壊す → 却下
+        - **完全削除して Docs 描画を廃止** — [ADR-0005](story:Internals/ADR/0005-Docs-In-Gallery) (docs の Gallery 一本化) を壊す → 却下
 
         ## Consequences
 
-        - ✅ 編集スタックが **2 つ (テキスト/ノード) に集約** — Markdown/Docs/コード/Strudel が全てテキストスタックの構成になり、保守面積が最小
+        - ✅ 編集スタックが **2 つ (テキスト/ノード) に集約** — Markdown/Reference/Guides/コード/Strudel が全てテキストスタックの構成になり、保守面積が最小
         - ✅ ブロック編集がテキストの `ChangeSet` で表現され、マルチカーソル/バッチ undo/`MapPos` をそのまま享受
         - ✅ Docs レンダラも同じ機構で描け、全文検索が native。別プロジェクト (`Luxel.RichText.Editor`) が不要になり ADR-0010〜0014 のコード量が減る
         - ⚠️ テキストスタックに font-variant Mark / ブロック widget / Markdown プロバイダを足す (ジオメトリの mixed-weight ラン対応)

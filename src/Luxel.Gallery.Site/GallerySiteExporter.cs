@@ -13,7 +13,7 @@ namespace Luxel.Gallery.Site;
 
 public sealed record SiteExportReport(int Stories, int Images, int Unavailable, int Errors);
 public sealed record SiteStory(string Path, string Name, string Component, string Fragment, string? Image,
-    string Status, string? Error, string ImageSha256, string SearchText, IReadOnlyList<string> Aliases);
+    string Status, string? Error, string ImageSha256, string SearchText, IReadOnlyList<string> Aliases, SampleBundleInfo? Bundle);
 
 public static partial class GallerySiteExporter
 {
@@ -113,7 +113,7 @@ public static partial class GallerySiteExporter
                 Console.Error.WriteLine($"[gallery-site] story export error '{story.Path}': {e}");
             }
 
-            string fragment = $"<article class=\"story\"><header><p class=\"static-badge\">Static capture — not interactive</p><h1>{H(story.Path)}</h1></header>{body}{StorySourceHtml(story.Source)}</article>";
+            string fragment = $"<article class=\"story\"><header><p class=\"static-badge\">Static capture — not interactive</p><h1>{H(story.Path)}</h1></header>{body}{BundleHtml(SampleBundleRegistry.Find(story.SampleBundle))}{StorySourceHtml(story.Source)}</article>";
             File.WriteAllText(Path.Combine(output, fragmentUrl.Replace('/', Path.DirectorySeparatorChar)), fragment, new UTF8Encoding(false));
             if (status == "unavailable") unavailable++;
             if (status == "error") errors++;
@@ -121,7 +121,7 @@ public static partial class GallerySiteExporter
                 + (document?.DocSource is { } source ? "\n" + source : "")
                 + (story.Source is { Length: > 0 } code ? "\n" + code : "");
             manifest.Add(new SiteStory(story.Path, story.Name, story.Component, fragmentUrl, imageUrl, status, error,
-                imageHash, searchText, StoryRegistry.AliasesFor(story.Path)));
+                imageHash, searchText, Array.Empty<string>(), SampleBundleRegistry.Find(story.SampleBundle)));
         }
 
         File.WriteAllText(Path.Combine(output, "manifest.json"), JsonSerializer.Serialize(manifest, Json) + "\n", new UTF8Encoding(false));
@@ -397,6 +397,19 @@ public static partial class GallerySiteExporter
     }
     private static string GoldenName(string path) { var sb = new StringBuilder(path.Length); foreach (char c in path) sb.Append(char.IsLetterOrDigit(c) ? c : '_'); return sb.ToString(); }
     private static string H(string value) => WebUtility.HtmlEncode(value);
+    internal static string BundleHtml(SampleBundleInfo? bundle)
+    {
+        if (bundle is null) return "<p class=\"sample-level gallery-only\">GalleryOnly — this Story source requires the Gallery harness.</p>";
+        string files = string.Join("", bundle.Files.Select(file => $"<li><code>{H(file.Path)}</code> <span>{H(file.Kind.ToString())}</span></li>"));
+        string requirements = bundle.Requirements is null ? "" : $"<p><strong>Requirements:</strong> {H(string.Join(" / ", bundle.Requirements))}</p>";
+        string command = bundle.RunCommand is null ? "" : $"<p><strong>Run</strong></p><pre><code class=\"language-shell\">{H(bundle.RunCommand)}</code></pre>";
+        string smoke = bundle.SmokeCommand is null ? "" : $"<p><strong>Smoke test</strong></p><pre><code class=\"language-shell\">{H(bundle.SmokeCommand)}</code></pre>";
+        string platforms = bundle.Platforms is null ? "" : $"<p><strong>Platforms:</strong> {H(string.Join(" / ", bundle.Platforms))}</p>";
+        string contract = $"<p><strong>Verification:</strong> exit {bundle.ExpectedExitCode}, timeout {bundle.TimeoutSeconds}s"
+            + (bundle.ExpectedStdoutMarker is null ? "" : $", stdout <code>{H(bundle.ExpectedStdoutMarker)}</code>") + "</p>";
+        return $"<details class=\"sample-bundle\"><summary>Run this sample — {H(bundle.CopyLevel.ToString())}</summary><p>{H(bundle.Description)}</p>{requirements}{platforms}{contract}<ul>{files}</ul>{command}{smoke}</details>";
+    }
+
     internal static string StorySourceHtml(string? source)
     {
         if (string.IsNullOrWhiteSpace(source)) return "";

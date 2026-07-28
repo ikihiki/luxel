@@ -2,7 +2,7 @@
 
 Luxelの初心者向けRenderingガイドを終えた後に進む、Windows向けstandalone 3D capstoneです。実ウィンドウとsurfaceへの提示だけでなく、ECS、terrain、camera、物理、静的/skin付き3D描画、glTF animation、billboard particle、入力、設定、audioを1本のアプリで接続します。
 
-Galleryでは `Apps/Game/Range`、基礎となる静的1モデルの経路は `Learn/Rendering/StaticGltf`、配布手順は `Learn/Rendering/Shipping` を参照してください。
+Galleryでは `Apps/Game/Range`、基礎となる静的1モデルの経路は `Learn/Rendering/ThreeD/StaticGltf`、配布手順は `Learn/Rendering/ThreeD/Shipping` を参照してください。
 
 ## Project構成
 
@@ -49,7 +49,7 @@ runtimeは次のように**executableの場所**を基準に解決します。pr
 string fox = Path.Combine(AppContext.BaseDirectory, "assets", "Fox.glb");
 ```
 
-静的モデルの`file → AssetDocument → AssetPrimitive → GPU buffers → one draw`を先に理解したい場合はGalleryの`Learn/Rendering/StaticGltf`から始めてください。Rangeではその先のECS scene、animation、skinningまで使用します。
+静的モデルの`file → AssetDocument → AssetPrimitive → GPU buffers → one draw`を先に理解したい場合はGalleryの`Learn/Rendering/ThreeD/StaticGltf`から始めてください。Rangeではその先のECS scene、animation、skinningまで使用します。
 
 ## Publish
 

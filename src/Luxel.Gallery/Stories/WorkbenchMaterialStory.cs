@@ -76,7 +76,7 @@ public static class WorkbenchMaterialStory
         _ => "slang",
     };
 
-    [Story("Demos/Workbench/Material", Height = 470)]
+    [Story("Examples/Workbench/Material", Height = 470)]
     public static Widget Material(StoryContext ctx)
     {
         var fs = new MemoryFileStorage();

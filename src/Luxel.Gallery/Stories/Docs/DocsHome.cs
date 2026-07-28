@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsHome
 {
-    [Story("Docs/GettingStarted", Order = 0)]   // 章立て: Docs を先頭、入門を最初に
+    [Story("Reference/Guides/GettingStarted", Order = 0)]   // 章立て: Docs を先頭、入門を最初に
     public static Widget GettingStarted(StoryContext ctx)
     {
         Signal<int> count = ctx.Signal("count", 0, "カウンタの現在値 (± ボタンと連動)");
@@ -65,11 +65,11 @@ public static class DocsHome
 
             ## ドキュメントの歩き方
 
-            - 全体像とレイヤ構成 → [Docs/Architecture](story:Docs/Architecture)
-            - GPU 描画の最初の一歩 (standalone) → [Learn/Rendering/Overview](story:Learn/Rendering/Overview)
-            - コントロールの型見本 (Variant/Intent/API 表) → [Docs/Button](story:Docs/Button)
+            - 全体像とレイヤ構成 → [Internals/Architecture](story:Internals/Architecture)
+            - GPU 描画の最初の一歩 (standalone) → [Learn/Rendering/Basics/Overview](story:Learn/Rendering/Basics/Overview)
+            - コントロールの型見本 (Variant/Intent/API 表) → [Reference/Guides/Button](story:Reference/Guides/Button)
             - Windows/Linux対応の端末エミュレータ → [Controls/Terminal/Overview](story:Controls/Terminal/Overview)
-            - この docs ページ自体の書き方 → [Docs/Authoring](story:Docs/Authoring)
+            - この docs ページ自体の書き方 → [Internals/Authoring](story:Internals/Authoring)
             - サイドバーの **GPU / 2D / 3D / RenderGraph / Animation** 章に、各サブシステムの動くデモが並んでいます。左上の検索欄は docs 本文の全文検索です
 
             > [!TIP]
@@ -89,7 +89,7 @@ public static class DocsHome
         return doc;
     }
 
-    [Story("Docs/FirstTriangle", Order = 2)]
+    [Story("Reference/Guides/FirstTriangle", Order = 2)]
     public static Widget FirstTriangle(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());
@@ -98,13 +98,13 @@ public static class DocsHome
 
         このページは既存リンクとの互換入口です。初心者向けの説明と、Gallery helperに依存しない完全なstandaloneサンプルは次へ移動しました。
 
-        → [Learn/Rendering/Overview](story:Learn/Rendering/Overview)
+        → [Learn/Rendering/Basics/Overview](story:Learn/Rendering/Basics/Overview)
 
-        最短で三角形まで進む場合は [Learn/Rendering/FirstTriangle](story:Learn/Rendering/FirstTriangle) を開いてください。`Demos/3D/Triangle` はGallery内のoffscreen回帰用で、通常アプリのwindow / surface / present処理は含みません。
+        最短で三角形まで進む場合は [Learn/Rendering/Basics/FirstTriangle](story:Learn/Rendering/Basics/FirstTriangle) を開いてください。`Examples/3D/Triangle` はGallery内のoffscreen回帰用で、通常アプリのwindow / surface / present処理は含みません。
         """, toc: true);
     }
 
-    [Story("Docs/Architecture", Order = 1)]
+    [Story("Internals/Architecture", Order = 1)]
     public static Widget Architecture(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());   // 新スタック: 全体像 mermaid 図の描画 golden (ライブ埋め込み無し=安全)
@@ -152,11 +152,11 @@ public static class DocsHome
 
         ## モーション
 
-        `Luxel.Animation` が Curve × Tween の 2 段分解による中核 IR。ターゲットアダプタ (`.UI` = Signal、`.TwoD` = RetainedCanvas、`.ThreeD` = ECS) が書き込み先を分離します。実例はサイドバーの Animation 章へ ([Demos/Animation/Tween](story:Demos/Animation/Tween) など)。
+        `Luxel.Animation` が Curve × Tween の 2 段分解による中核 IR。ターゲットアダプタ (`.UI` = Signal、`.TwoD` = RetainedCanvas、`.ThreeD` = ECS) が書き込み先を分離します。実例はサイドバーの Animation 章へ ([Examples/Animation/Tween](story:Examples/Animation/Tween) など)。
 
         ## 3D / レンダーグラフ / リソース
 
-        `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、`Luxel.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成 ([Demos/RenderGraph/Blur](story:Demos/RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` + `Luxel.Gltf` が (型, uri) キーのリソース DAG を提供します。
+        `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、`Luxel.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成 ([Examples/RenderGraph/Blur](story:Examples/RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` + `Luxel.Gltf` が (型, uri) キーのリソース DAG を提供します。
 
         ## ランタイムとツール
 
