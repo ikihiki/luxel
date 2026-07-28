@@ -1,0 +1,47 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/NodeGraphView/Widgets</h1></header><figure class="static-capture"><img src="images/controls-nodegraphview-widgets.png" alt="Controls/NodeGraphView/Widgets" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/NodeGraphView/Widgets&quot;, Height = 470, Order = 3)]
+public static Widget Widgets(StoryContext ctx)
+{
+    Signal&lt;float&gt; vol = ctx.Signal(&quot;vol&quot;, 0.6f);
+    const string sliderKey = &quot;gain-slider&quot;;
+
+    var doc = NodeGraphDoc.Of(
+        [NumNode(1, &quot;gain&quot;, &quot;Gain&quot;, new Vector2(60, 60), hasIn: true, hasOut: true),
+         NumNode(2, &quot;out&quot;, &quot;Output&quot;, new Vector2(380, 90), hasIn: true, hasOut: false)],
+        [new GraphEdge(10, new PortId(1, 1), new PortId(2, 0))]);
+
+    NodeGraphView ed = NodeGraphView(source: doc, viewWidth: 620f, viewHeight: 390f);
+    // ノード内インライン widget: Gain ノードにスライダ
+    ed.WidgetResolver = key =&gt; Equals(key, sliderKey) ? Slider(vol) : null;
+    ed.SetDecorations(&quot;inline&quot;, new GraphDecorationSet([new NodeInlineDecoration(1, 150, 24, sliderKey)]));
+    // 右クリック追加パレット
+    ed.NodeCatalog = new NodeCatalog(
+        new NodeCatalogEntry(&quot;gain&quot;, &quot;Gain&quot;, (id, pos) =&gt; NumNode(id, &quot;gain&quot;, &quot;Gain&quot;, pos, true, true)),
+        new NodeCatalogEntry(&quot;out&quot;, &quot;Output&quot;, (id, pos) =&gt; NumNode(id, &quot;out&quot;, &quot;Output&quot;, pos, true, false)));
+
+    ctx.Play(&quot;inline&quot;, async d =&gt;
+    {
+        await d.Snap();                              // Gain ノードにスライダ (値 0.6)
+        Vector2 c = ed.SlotScreenCenter(sliderKey);
+        await d.Click(c.X + 30, c.Y);                // スライダを叩く → 値が動く
+        await d.Expect(() =&gt; Math.Abs(vol.Peek() - 0.6f) &gt; 0.01f, &quot;ノード内スライダが反応&quot;);
+        await d.Snap(&quot;slid&quot;);
+    });
+
+    ctx.Play(&quot;palette&quot;, async d =&gt;
+    {
+        await d.Expect(() =&gt; ed.NodeCount == 2, &quot;初期 2 ノード&quot;);
+        Vector2 empty = ed.ClientOf(new Vector2(180, 250));
+        d.Host.ContextClick(empty.X, empty.Y);       // 右クリック → パレット
+        await d.Step(2);
+        await d.Snap(&quot;palette&quot;);                     // Gain / Output のメニュー
+        await d.Click(empty.X + 50, empty.Y + 18);   // 先頭 &quot;Gain&quot; を選ぶ
+        await d.Expect(() =&gt; ed.NodeCount == 3, &quot;パレットからノード追加&quot;);
+        await d.Snap(&quot;added&quot;);
+    });
+
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(10)[
+            Heading(&quot;NodeGraphView — ノード内 UI + パレット&quot;),
+            Muted(&quot;NodeInlineDecoration + WidgetResolver でノード内にスライダをホスト。右クリックで INodeCatalog のパレット追加 (PopupPlacer)。&quot;),
+            ed]];
+}</code></pre></details></article>

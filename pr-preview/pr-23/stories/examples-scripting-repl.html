@@ -1,0 +1,21 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/Scripting/Repl</h1></header><figure class="static-capture"><img src="images/examples-scripting-repl.png" alt="Examples/Scripting/Repl" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/Scripting/Repl&quot;, Height = 460, Order = 2033)]
+public static Widget Repl(StoryContext ctx, ScriptHost host)
+{
+    var repl = new ReplConsole(460, host, new ScriptGlobals { Ctx = ctx });
+    ctx.Play(async d =&gt;
+    {
+        await d.Snap();
+        repl.SetInput(&quot;var a = 21;&quot;);
+        await d.Click(repl.SubmitButton);
+        repl.SetInput(&quot;a * 2&quot;);                  // 前の行の変数が見える
+        await d.Click(repl.SubmitButton);
+        await d.Step(2);
+        await d.Snap(&quot;session&quot;);
+        await d.Expect(() =&gt; repl.LastOutput == &quot;42&quot;, &quot;継続セッションで状態が残る&quot;);
+    });
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(10)[
+            Heading(&quot;REPL コンソール (継続セッション)&quot;),
+            Muted(&quot;行を投入すると前の行で宣言した変数が次に見える — DevTools のスクリプトコンソール相当。&quot;),
+            repl]];
+}</code></pre></details></article>
