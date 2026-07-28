@@ -16,6 +16,10 @@
 </li>
 </ul>
 <h2 id="context">Context</h2>
+<div class="markdown-alert markdown-alert-note">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p><code>ToDo/22</code>〜<code>ToDo/27</code> はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする <code>Reference/Guides/*</code> とLearnページを正とします。</p>
+</div>
 <p>IME (TSF) の<strong>変換候補リスト</strong>は現状 OS/TIP が描画し、我々は <code>CaretRect</code> (<code>GetTextExt</code>) で位置を渡すだけです。preedit テキスト・下線・変換対象節の強調は既に自前 (<code>ITextInput</code> 経由) ですが、候補リストだけ OS 任せです。</p>
 <p>排他フルスクリーン (ゲーム) では OS の候補ウインドウがスワップチェーン上に出ない/破綻することがあり、エンジン内で候補を描けないと日本語入力が実質使えません。TSF の <code>ITfUIElementSink</code> / <code>ITfCandidateListUIElement</code> を使ったフックは未実装です。</p>
 <h2 id="decision">Decision</h2>
@@ -49,6 +53,10 @@ public static Widget Adr0008(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - **Deciders**: ikihiki
 
     ## Context
+
+    &gt; [!NOTE]
+    &gt; `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+
 
     IME (TSF) の**変換候補リスト**は現状 OS/TIP が描画し、我々は `CaretRect` (`GetTextExt`) で位置を渡すだけです。preedit テキスト・下線・変換対象節の強調は既に自前 (`ITextInput` 経由) ですが、候補リストだけ OS 任せです。
 

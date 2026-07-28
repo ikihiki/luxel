@@ -1,28 +1,28 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Rendering/Basics/Overview</h1></header><h1 id="rendering">Rendering 学習ガイド</h1>
 <ul>
-<li><a href="#story=Learn%2FRendering%2FBasics%2FOverview&amp;section=15%E3%82%B9%E3%83%86%E3%83%83%E3%83%97%E3%81%AE%E9%80%B2%E3%81%BF%E6%96%B9">15ステップの進み方</a></li>
+<li><a href="#story=Learn%2FRendering%2FBasics%2FOverview&amp;section=%E6%8E%A8%E5%A5%A8%E3%82%A2%E3%83%97%E3%83%AA%E6%A7%8B%E7%AF%89%E3%83%AB%E3%83%BC%E3%83%88">推奨アプリ構築ルート</a></li>
 <li><a href="#story=Learn%2FRendering%2FBasics%2FOverview&amp;section=%E3%81%A9%E3%81%AEapi%E3%81%BE%E3%81%A7%E5%AD%A6%E3%81%B6%E3%81%8B">どのAPIまで学ぶか</a></li>
 </ul>
 <p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone + Gallery　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> なし</p>
 <p><strong>次:</strong> <a href="#story=Learn%2FRendering%2FBasics%2FEnvironment">Environment</a></p>
 <p>この章は、Gallery のデモを見るだけでなく、自分のウィンドウへ描画できるところまでを順番に進みます。最小アプリの実装はリポジトリの <code>samples/LuxelTriangle/</code> が単一の正です。</p>
-<h2 id="section">15ステップの進み方</h2>
+<h2 id="section">推奨アプリ構築ルート</h2>
+<p>BasicsからThreeDの順序はcourse catalogから生成されます。2DとRasterizer Internalsは、このルートを終えた後に目的に応じて選ぶ独立トラックです。</p>
 <ol>
-<li><a href="#story=Learn%2FRendering%2FBasics%2FEnvironment">Environment</a> — OS、GPU、backend、shader cacheを確認</li>
-<li><a href="#story=Learn%2FRendering%2FBasics%2FClearColor">ClearColor</a> — window / surface / event loop / resizeを理解</li>
-<li><a href="#story=Learn%2FRendering%2FBasics%2FFirstTriangle">FirstTriangle</a> — vertex buffer / shader / pipeline / commandを接続</li>
-<li><a href="#story=Learn%2FRendering%2FBasics%2FBuffersAndBindings">BuffersAndBindings</a> — memory kind、ABI、bindless indexを理解</li>
-<li><a href="#story=Learn%2FRendering%2FBasics%2FShaders">Shaders</a> — Slangを追加してSPIR-V/DXIL cacheを更新</li>
-<li><a href="#story=Learn%2FRendering%2FThreeD%2FTextures">Textures</a> — RGBA、UV、sampler、upload lifetimeを理解</li>
-<li><a href="#story=Learn%2FRendering%2FThreeD%2FTransformsAndCamera">TransformsAndCamera</a> — indexed cubeをMVPで動かし、resize時のaspectを保つ</li>
-<li><a href="#story=Learn%2FRendering%2FThreeD%2FDepthCullingLighting">DepthCullingLighting</a> — depth、front face、back-face culling、Lambert光を追加</li>
-<li><a href="#story=Learn%2FRendering%2FBasics%2FFrameLoopAndSynchronization">FrameLoopAndSynchronization</a> — frameの寿命、submit、present、待機を整理</li>
-<li><a href="#story=Learn%2FRendering%2FThreeD%2FFirstRenderGraph">FirstRenderGraph</a> — passとresource依存を宣言し、post-processへ進む</li>
-<li><a href="#story=Learn%2FRendering%2FTwoD%2FOverview">First2DScene</a> — Scene2Dを作り、4つの2D APIを使い分ける</li>
-<li><a href="#story=Learn%2FRendering%2FThreeD%2FStaticGltf">StaticGltf</a> — ECSなしで静的glTFを1 drawする</li>
-<li><a href="#story=Learn%2FRendering%2FThreeD%2FDebugging">Debugging</a> — 真っ黒、shader、resize、asset問題を切り分ける</li>
-<li><a href="#story=Learn%2FRendering%2FThreeD%2FShipping">Shipping</a> — shader/assetsをpublishし、別cwdからsmokeする</li>
-<li><a href="#story=Examples%2F3D%2FTriangle">Examples/3D/Triangle</a> — Galleryのoffscreen実例を操作</li>
+<li><a href="#story=Learn%2FRendering%2FBasics%2FEnvironment">Environment</a></li>
+<li><a href="#story=Learn%2FRendering%2FBasics%2FClearColor">ClearColor</a></li>
+<li><a href="#story=Learn%2FRendering%2FBasics%2FFirstTriangle">FirstTriangle</a></li>
+<li><a href="#story=Learn%2FRendering%2FBasics%2FBuffersAndBindings">BuffersAndBindings</a></li>
+<li><a href="#story=Learn%2FRendering%2FBasics%2FShaders">Shaders</a></li>
+<li><a href="#story=Learn%2FRendering%2FBasics%2FFrameLoopAndSynchronization">FrameLoopAndSynchronization</a></li>
+<li><a href="#story=Learn%2FRendering%2FThreeD%2FTextures">Textures</a></li>
+<li><a href="#story=Learn%2FRendering%2FThreeD%2FTransformsAndCamera">TransformsAndCamera</a></li>
+<li><a href="#story=Learn%2FRendering%2FThreeD%2FDepthCullingLighting">DepthCullingLighting</a></li>
+<li><a href="#story=Learn%2FRendering%2FThreeD%2FFirstRenderGraph">FirstRenderGraph</a></li>
+<li><a href="#story=Learn%2FRendering%2FThreeD%2FStaticGltf">StaticGltf</a></li>
+<li><a href="#story=Learn%2FRendering%2FThreeD%2FDebugging">Debugging</a></li>
+<li><a href="#story=Learn%2FRendering%2FThreeD%2FShipping">Shipping</a></li>
+<li><a href="#story=Examples%2F3D%2FTriangle">Gallery Triangle</a></li>
 </ol>
 <p><strong>検索キーワード:</strong> triangle / texture / camera / render graph / glTF / blank screen / 真っ黒</p>
 <div class="markdown-alert markdown-alert-important">
@@ -41,23 +41,11 @@ public static Widget Overview(StoryContext ctx)
 
     この章は、Gallery のデモを見るだけでなく、自分のウィンドウへ描画できるところまでを順番に進みます。最小アプリの実装はリポジトリの `samples/LuxelTriangle/` が単一の正です。
 
-    ## 15ステップの進み方
+    ## 推奨アプリ構築ルート
 
-    1. [Environment](story:Learn/Rendering/Basics/Environment) — OS、GPU、backend、shader cacheを確認
-    2. [ClearColor](story:Learn/Rendering/Basics/ClearColor) — window / surface / event loop / resizeを理解
-    3. [FirstTriangle](story:Learn/Rendering/Basics/FirstTriangle) — vertex buffer / shader / pipeline / commandを接続
-    4. [BuffersAndBindings](story:Learn/Rendering/Basics/BuffersAndBindings) — memory kind、ABI、bindless indexを理解
-    5. [Shaders](story:Learn/Rendering/Basics/Shaders) — Slangを追加してSPIR-V/DXIL cacheを更新
-    6. [Textures](story:Learn/Rendering/ThreeD/Textures) — RGBA、UV、sampler、upload lifetimeを理解
-    7. [TransformsAndCamera](story:Learn/Rendering/ThreeD/TransformsAndCamera) — indexed cubeをMVPで動かし、resize時のaspectを保つ
-    8. [DepthCullingLighting](story:Learn/Rendering/ThreeD/DepthCullingLighting) — depth、front face、back-face culling、Lambert光を追加
-    9. [FrameLoopAndSynchronization](story:Learn/Rendering/Basics/FrameLoopAndSynchronization) — frameの寿命、submit、present、待機を整理
-    10. [FirstRenderGraph](story:Learn/Rendering/ThreeD/FirstRenderGraph) — passとresource依存を宣言し、post-processへ進む
-    11. [First2DScene](story:Learn/Rendering/TwoD/Overview) — Scene2Dを作り、4つの2D APIを使い分ける
-    12. [StaticGltf](story:Learn/Rendering/ThreeD/StaticGltf) — ECSなしで静的glTFを1 drawする
-    13. [Debugging](story:Learn/Rendering/ThreeD/Debugging) — 真っ黒、shader、resize、asset問題を切り分ける
-    14. [Shipping](story:Learn/Rendering/ThreeD/Shipping) — shader/assetsをpublishし、別cwdからsmokeする
-    15. [Examples/3D/Triangle](story:Examples/3D/Triangle) — Galleryのoffscreen実例を操作
+    BasicsからThreeDの順序はcourse catalogから生成されます。2DとRasterizer Internalsは、このルートを終えた後に目的に応じて選ぶ独立トラックです。
+
+    {RenderingCourseCatalog.ApplicationRouteMarkdown()}
 
     **検索キーワード:** triangle / texture / camera / render graph / glTF / blank screen / 真っ黒
 

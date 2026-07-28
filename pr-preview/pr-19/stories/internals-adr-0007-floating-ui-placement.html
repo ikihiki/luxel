@@ -16,6 +16,10 @@
 </li>
 </ul>
 <h2 id="context">Context</h2>
+<div class="markdown-alert markdown-alert-note">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p><code>ToDo/22</code>〜<code>ToDo/27</code> はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする <code>Reference/Guides/*</code> とLearnページを正とします。</p>
+</div>
 <p>浮遊 UI (ダイアログ・トースト・ドロワー・ドロップダウン・Select・ColorPicker・コンテキストメニュー・補完ポップアップ・ホバーツールチップ・IME 候補) が増え、配置ロジックが散らばっています。</p>
 <ul>
 <li>オーバーレイ層 (<code>OverlayEntry</code> / <code>UiHost.Place</code>、Z=1000) に anchor + フリップ/クランプはあるが、<strong>下↔上のフリップと X のクランプだけ</strong>。水平フリップ・shift-to-fit・左右 side 配置・画面より高いときの max-height/スクロールが無い</li>
@@ -57,6 +61,10 @@ public static Widget Adr0007(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - **Deciders**: ikihiki
 
     ## Context
+
+    &gt; [!NOTE]
+    &gt; `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+
 
     浮遊 UI (ダイアログ・トースト・ドロワー・ドロップダウン・Select・ColorPicker・コンテキストメニュー・補完ポップアップ・ホバーツールチップ・IME 候補) が増え、配置ロジックが散らばっています。
 

@@ -13,8 +13,10 @@
 <blockquote>
 <p><strong>Recipe</strong> · 難易度: Beginner · 依存 bundle: <code>rendering.app-host</code></p>
 </blockquote>
-<p>A compiled C#/Slang triangle block that plugs into the standalone app host.</p>
+<p>A complete triangle recipe: standalone app host plus the compiled C#/Slang renderer.</p>
 <p><strong>必要条件:</strong> Luxel.Graphics / Luxel.Platform
+<strong>Platform:</strong> Windows / Linux
+<strong>検証契約:</strong> exit <code>0</code> / timeout <code>180s</code> / stdout <code>tutorial-3d: 1 frame(s), stage=Triangle</code>
 <strong>接続点:</strong> <code>TriangleRenderer</code></p>
 <p><strong>Run</strong></p>
 <pre><code class="language-powershell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle
@@ -384,7 +386,7 @@ float4 psMain(VSOut input) : SV_Target
     return input.color;
 }
 </code></pre>
-<details class="sample-bundle"><summary>Run this sample — Recipe</summary><p>A compiled C#/Slang triangle block that plugs into the standalone app host.</p><p><strong>Requirements:</strong> Luxel.Graphics / Luxel.Platform</p><ul><li><code>samples/LuxelTriangle/TutorialAbi.cs</code> <span>CSharp</span></li><li><code>samples/LuxelTriangle/TriangleRenderer.cs</code> <span>CSharp</span></li><li><code>shaders/tutorial_triangle.slang</code> <span>Shader</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle --frames 1</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Recipes/TriangleApp&quot;, Order = 10, SampleBundle = &quot;rendering.triangle&quot;)]
+<details class="sample-bundle"><summary>Run this sample — Recipe</summary><p>A complete triangle recipe: standalone app host plus the compiled C#/Slang renderer.</p><p><strong>Requirements:</strong> Luxel.Graphics / Luxel.Platform</p><p><strong>Platforms:</strong> Windows / Linux</p><p><strong>Verification:</strong> exit 0, timeout 180s, stdout <code>tutorial-3d: 1 frame(s), stage=Triangle</code></p><ul><li><code>samples/LuxelTriangle/TutorialAbi.cs</code> <span>CSharp</span></li><li><code>samples/LuxelTriangle/TriangleRenderer.cs</code> <span>CSharp</span></li><li><code>shaders/tutorial_triangle.slang</code> <span>Shader</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle --frames 1</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Recipes/TriangleApp&quot;, Order = 10, SampleBundle = &quot;rendering.triangle&quot;)]
 public static Widget TriangleApp(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
     # Recipe: Triangle App
 
