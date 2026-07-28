@@ -117,7 +117,7 @@ public static partial class DocsRenderingLearn
 
         ## Row pitchと出力
 
-        描画サイズは教材とsmoke結果を一定にするため **800×600** に固定しています。Vulkanの`BufferRowLength`へ800 pixelを渡してRGBA8を密にreadbackし、`Image.LoadPixelData<Rgba32>`と`SaveAsPng`で保存します。保存先だけは`--output result.png`で指定できます。
+        描画サイズは教材とsmoke結果を一定にするため **800×600**、出力先は **`clear-color.png`** に固定しています。Vulkanの`BufferRowLength`へ800 pixelを渡すためreadbackは最初から密に格納され、mapped spanをそのまま`Image.LoadPixelData<Rgba32>`と`SaveAsPng`へ渡せます。row padding除去用の中間copyは不要です。
 
         window、event loop、resize、surfaceは後続のinteractive sample側の責務であり、このsampleには含めません。
 

@@ -435,6 +435,8 @@ public sealed class GallerySiteExporterTests
         Assert.DoesNotContain("clear-color.ppm", clearColorPage);
         Assert.Contains("800×600", clearColorPage);
         Assert.DoesNotContain("--size", clearColorPage);
+        Assert.DoesNotContain("--output", clearColorPage);
+        Assert.Contains("中間copyは不要", clearColorPage);
         Assert.DoesNotContain("WindowSystem", clearColorPage);
         Assert.DoesNotContain("GpuSurface", clearColorPage);
         Assert.DoesNotContain("samples/LuxelTriangle/Program.cs", clearColorPage);
@@ -582,7 +584,12 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("new(VulkanBackend.Create", clearColor);
             Assert.Contains("const int width = 800;", clearColor);
             Assert.Contains("const int height = 600;", clearColor);
+            Assert.Contains("const string outputPath = \"clear-color.png\";", clearColor);
             Assert.DoesNotContain("--size", clearColor);
+            Assert.DoesNotContain("--output", clearColor);
+            Assert.DoesNotContain("ParseOutput", clearColor);
+            Assert.DoesNotContain("CopyTightlyPacked", clearColor);
+            Assert.Contains("readback.Span<byte>(width * height * 4)", clearColor);
             Assert.Contains("clear-color: offline", clearColor);
             Assert.Contains("#:package SixLabors.ImageSharp@3.1.12", clearColor);
             Assert.Contains("Image.LoadPixelData<Rgba32>", clearColor);
