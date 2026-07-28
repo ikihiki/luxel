@@ -35,6 +35,22 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Review_panel_stays_fixed_while_the_complete_story_remains_scrollable()
+    {
+        string css = GallerySiteExporter.SiteCss;
+
+        Assert.Contains("html,body{height:100%;overflow:hidden", css);
+        Assert.Contains("main{min-width:0;height:100vh;height:100dvh", css);
+        Assert.Contains("overflow-y:auto;overscroll-behavior:contain", css);
+        Assert.Contains("#review-panel{display:none;position:sticky", css);
+        Assert.Contains("height:100dvh;overflow:hidden", css);
+        Assert.Contains("body.review-open #review-panel{display:flex;flex-direction:column}", css);
+        Assert.Contains("#review-comment{flex:1 1 160px;min-height:80px", css);
+        Assert.Contains("body.review-open main{padding-bottom:calc(74dvh + 32px)}", css);
+        Assert.DoesNotContain("#review-panel{display:none;position:sticky;top:0;height:100vh;height:100dvh;overflow:auto", css);
+    }
+
+    [Fact]
     public void Review_drafts_are_path_scoped_exportable_and_do_not_embed_credentials()
     {
         string script = GallerySiteExporter.ClientScript;
