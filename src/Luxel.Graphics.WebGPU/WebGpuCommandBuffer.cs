@@ -78,8 +78,9 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
     public void SetGraphicsPipeline(IGpuBackendPipeline pipeline)
     {
         EnsureRecording();
-        EndPasses();
         _graphicsPipeline = RequirePipeline(pipeline, false);
+        if (_computePass != null) EndComputePass();
+        if (_renderPass != null) _api.RenderPassEncoderSetPipeline(_renderPass, _graphicsPipeline.Render);
     }
 
     public void BeginRendering(IGpuBackendTexture color, IGpuBackendTexture? depth,
@@ -87,7 +88,6 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
     {
         EnsureRecording();
         EndPasses();
-        if (_graphicsPipeline is null) throw new InvalidOperationException("SetGraphicsPipeline must be called before BeginRendering.");
         var colorTexture = RequireTexture(color);
         var colorAttachment = new RenderPassColorAttachment
         {
@@ -118,7 +118,7 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
             DepthStencilAttachment = depth is null ? null : &depthAttachment,
         };
         _renderPass = _api.CommandEncoderBeginRenderPass(_encoder, in descriptor);
-        _api.RenderPassEncoderSetPipeline(_renderPass, _graphicsPipeline.Render);
+        if (_graphicsPipeline is not null) _api.RenderPassEncoderSetPipeline(_renderPass, _graphicsPipeline.Render);
         _api.RenderPassEncoderSetViewport(_renderPass, 0, 0, colorTexture.Width, colorTexture.Height, 0, 1);
         _api.RenderPassEncoderSetScissorRect(_renderPass, 0, 0, colorTexture.Width, colorTexture.Height);
     }
@@ -135,6 +135,7 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
     {
         EnsureRecording();
         if (_renderPass == null) throw new InvalidOperationException("BeginRendering must be called before Draw.");
+        if (_graphicsPipeline is null) throw new InvalidOperationException("SetGraphicsPipeline must be called before Draw.");
         uint dynamicOffset = _currentRootOffset;
         _api.RenderPassEncoderSetBindGroup(_renderPass, 0, _bindGroup, 1, in dynamicOffset);
         _api.RenderPassEncoderDraw(_renderPass, vertexCount, instanceCount, 0, 0);
@@ -194,14 +195,16 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
         _finished = true;
     }
 
+    private void EndComputePass()
+    {
+        _api.ComputePassEncoderEnd(_computePass);
+        _api.ComputePassEncoderRelease(_computePass);
+        _computePass = null;
+    }
+
     private void EndPasses()
     {
-        if (_computePass != null)
-        {
-            _api.ComputePassEncoderEnd(_computePass);
-            _api.ComputePassEncoderRelease(_computePass);
-            _computePass = null;
-        }
+        if (_computePass != null) EndComputePass();
         if (_renderPass != null)
         {
             _api.RenderPassEncoderEnd(_renderPass);

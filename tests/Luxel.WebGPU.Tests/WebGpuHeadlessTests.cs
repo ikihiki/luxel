@@ -56,8 +56,10 @@ public sealed unsafe class WebGpuHeadlessTests
         Assert.Equal(0xc0ffee42u, ((uint*)output.MappedPointer)[0]);
     }
 
-    [Fact]
-    public void TriangleRender_ReadsBackRedCenterPixel()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TriangleRender_ReadsBackRedCenterPixel(bool setPipelineAfterBeginRendering)
     {
         using var backend = TryCreate();
         if (backend is null) return;
@@ -68,8 +70,9 @@ public sealed unsafe class WebGpuHeadlessTests
             GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
 
         using var commands = backend.MainQueue.StartCommandRecording();
-        commands.SetGraphicsPipeline(pipeline);
+        if (!setPipelineAfterBeginRendering) commands.SetGraphicsPipeline(pipeline);
         commands.BeginRendering(target, null, 0, 0, 0, 1, 1);
+        if (setPipelineAfterBeginRendering) commands.SetGraphicsPipeline(pipeline);
         commands.Draw(3, 1);
         commands.EndRendering();
         commands.CopyTextureToBuffer(target, readback, 0);

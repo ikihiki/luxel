@@ -36,8 +36,7 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
     private WebGpuBackend() { }
 
     public string Name { get; private set; } = "WebGPU";
-    // Parent change adds the named enum value. Numeric fallback keeps this branch independent.
-    public GpuBackendKind Kind => (GpuBackendKind)2;
+    public GpuBackendKind Kind => GpuBackendKind.WebGpu;
     public IGpuBackendQueue MainQueue { get; private set; } = null!;
 
     internal WebGpuApi Api => _api;
