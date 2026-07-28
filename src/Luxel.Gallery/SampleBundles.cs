@@ -88,25 +88,29 @@ internal static class SampleBundles
             RunCommand: "dotnet run --project samples/LuxelResources", SmokeCommand: "dotnet run --project samples/LuxelResources",
             Platforms: ["Windows", "Linux", "macOS"], ExpectedStdoutMarker: "resources: status=Ready, value=HELLO RESOURCES"));
         SampleBundleRegistry.Register(new SampleBundleInfo(
-            "rendering.app-host", "Standalone app host",
-            "Window, GPU device, surface, resize, frame loop and deterministic shutdown.", "Beginner",
+            "rendering.app-host", "File-based Clear Color app",
+            "A complete single-file app with window, GPU device, surface, resize, clear, readback, present and deterministic shutdown.", "Beginner",
             SampleCopyLevel.Block,
-            [new("samples/LuxelTriangle/LuxelTriangle.csproj", SampleFileKind.Project),
-             new("samples/LuxelTriangle/Program.cs", SampleFileKind.CSharp, "standalone-frame-loop")],
-            Dependencies: ["support.source-tree"], Requirements: [".NET 10", "Vulkan 1.3 or DirectX 12"], ExportSymbol: "Program",
-            RunCommand: "dotnet run --project samples/LuxelTriangle -- vk --stage triangle",
-            SmokeCommand: "dotnet run --project samples/LuxelTriangle -- vk --stage triangle --frames 1"));
+            [new("samples/ClearColor.cs", SampleFileKind.CSharp)],
+            Dependencies: ["support.source-tree"],
+            Requirements: [".NET 10", "Vulkan 1.3 or DirectX 12", "Linux: X11 DISPLAY"], ExportSymbol: "ClearColorFrame",
+            RunCommand: "dotnet run --file samples/ClearColor.cs -- vk",
+            SmokeCommand: "dotnet run --file samples/ClearColor.cs -- vk --frames 1",
+            Platforms: ["Windows", "Linux"], TimeoutSeconds: 300,
+            ExpectedStdoutMarker: "clear-color: 1 frame(s)", BuildEntry: "samples/ClearColor.cs"));
         SampleBundleRegistry.Register(new SampleBundleInfo(
             "rendering.triangle", "Triangle renderer",
-            "A complete triangle recipe: standalone app host plus the compiled C#/Slang renderer.", "Beginner",
+            "A complete standalone C#/Slang triangle recipe.", "Beginner",
             SampleCopyLevel.Recipe,
-            [new("samples/LuxelTriangle/TutorialAbi.cs", SampleFileKind.CSharp, "triangle-abi"),
+            [new("samples/LuxelTriangle/LuxelTriangle.csproj", SampleFileKind.Project),
+             new("samples/LuxelTriangle/Program.cs", SampleFileKind.CSharp),
+             new("samples/LuxelTriangle/TutorialAbi.cs", SampleFileKind.CSharp, "triangle-abi"),
              new("samples/LuxelTriangle/TriangleRenderer.cs", SampleFileKind.CSharp),
              new("shaders/tutorial_triangle.slang", SampleFileKind.Shader)],
-            Dependencies: ["rendering.app-host"], Requirements: ["Luxel.Graphics", "Luxel.Platform"],
+            Dependencies: ["support.source-tree"], Requirements: ["Luxel.Graphics", "Luxel.Platform"],
             ExportSymbol: "TriangleRenderer", RunCommand: "dotnet run --project samples/LuxelTriangle -- vk --stage triangle",
             SmokeCommand: "dotnet run --project samples/LuxelTriangle -- vk --stage triangle --frames 1",
-            Platforms: ["Windows", "Linux"], TimeoutSeconds: 180, ExpectedStdoutMarker: "tutorial-3d: 1 frame(s), stage=Triangle"));
+            Platforms: ["Windows", "Linux"], TimeoutSeconds: 300, ExpectedStdoutMarker: "tutorial-3d: 1 frame(s), stage=Triangle"));
         SampleBundleRegistry.Register(new SampleBundleInfo(
             "rendering.2d", "Standalone 2D canvas",
             "A backend-neutral Scene2D rendered by the Skia CPU rasterizer with deterministic output.", "Beginner",
