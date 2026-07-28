@@ -307,8 +307,7 @@ public sealed record SampleBundleInfo(string Id, string Name, string Description
     IReadOnlyList<SampleFileInfo> Files, IReadOnlyList<string>? Dependencies = null, IReadOnlyList<string>? Requirements = null,
     string? ExportSymbol = null, string? RunCommand = null, string? SmokeCommand = null,
     IReadOnlyList<string>? Platforms = null, int TimeoutSeconds = 300, int ExpectedExitCode = 0,
-    string? ExpectedStdoutMarker = null, IReadOnlyList<string>? ExpectedArtifacts = null,
-    string? BuildEntry = null);
+    string? ExpectedStdoutMarker = null, IReadOnlyList<string>? ExpectedArtifacts = null);
 
 public static class SampleBundleRegistry
 {

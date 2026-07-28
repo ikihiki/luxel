@@ -421,17 +421,6 @@ public sealed class GallerySiteExporterTests
         Assert.Contains(expected, trianglePage);
         Assert.DoesNotContain("docs:begin", trianglePage);
         Assert.DoesNotContain("docs:end", trianglePage);
-
-        StoryInfo clearColor = stories.Single(story => story.Path == "Learn/Rendering/Basics/ClearColor");
-        Assert.Equal("rendering.app-host", clearColor.SampleBundle);
-        string clearColorPage = pages[clearColor.Path].Text;
-        Assert.Contains("samples/ClearColor.cs", clearColorPage);
-        Assert.Contains("dotnet run --file samples/ClearColor.cs -- vk", clearColorPage);
-        Assert.DoesNotContain("samples/LuxelTriangle/Program.cs", clearColorPage);
-        Assert.DoesNotContain("standalone-frame-loop", clearColorPage);
-        string clearColorSource = File.ReadAllText(Path.Combine(root, "samples", "ClearColor.cs"))
-            .Replace("\r\n", "\n", StringComparison.Ordinal);
-        Assert.Contains(clearColorSource.Trim(), clearColorPage);
     }
 
     [Fact]
@@ -559,23 +548,6 @@ public sealed class GallerySiteExporterTests
             if (Directory.Exists(output)) Directory.Delete(output, recursive: true);
         }
 
-        string appHostOutput = Path.Combine(Path.GetTempPath(), "luxel-bundle-app-host-" + Guid.NewGuid().ToString("N"));
-        try
-        {
-            IReadOnlyList<string> files = SampleBundleMaterializer.Materialize(root, "rendering.app-host", appHostOutput);
-            string clearColorPath = Path.Combine(appHostOutput, "samples", "ClearColor.cs");
-            Assert.Contains(files, path => string.Equals(path, clearColorPath, StringComparison.Ordinal));
-            string clearColor = File.ReadAllText(clearColorPath);
-            Assert.Contains("#:project ../src/Luxel.Graphics/Luxel.Graphics.csproj", clearColor);
-            Assert.Contains("clear-color: {renderedFrames} frame(s)", clearColor);
-            Assert.False(File.Exists(Path.Combine(appHostOutput, "samples", "LuxelTriangle", "TriangleRenderer.cs")));
-            Assert.False(File.Exists(Path.Combine(appHostOutput, "samples", "LuxelTriangle", "TutorialAbi.cs")));
-        }
-        finally
-        {
-            if (Directory.Exists(appHostOutput)) Directory.Delete(appHostOutput, recursive: true);
-        }
-
         string uiOutput = Path.Combine(Path.GetTempPath(), "luxel-bundle-ui-" + Guid.NewGuid().ToString("N"));
         try
         {
@@ -602,15 +574,6 @@ public sealed class GallerySiteExporterTests
         {
             if (Directory.Exists(conflictOutput)) Directory.Delete(conflictOutput, recursive: true);
         }
-    }
-
-    [Fact]
-    public async Task File_based_app_host_restores_and_builds_from_a_materialized_temp_directory()
-    {
-        SampleVerificationResult result = await SampleBundleVerifier.VerifyAsync(
-            GallerySiteExporter.FindRepositoryRoot(), "rendering.app-host", runSmoke: false);
-        Assert.Equal(Path.Combine("samples", "ClearColor.cs"), result.Project);
-        Assert.Contains("ClearColor.cs", result.Stdout, StringComparison.Ordinal);
     }
 
     [Fact]
