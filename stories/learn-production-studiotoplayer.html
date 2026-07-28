@@ -1,0 +1,13 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Production/StudioToPlayer</h1></header><h1 id="studio-to-player-workflow">Studio to Player workflow</h1>
+<p>Studioでproject/sceneを編集し、PlayerのPlay-in-Editorで同じdataを実行し、standalone hostへ渡します。editor-only stateをscene dataへ混ぜず、保存前にruntime schemaへ変換します。</p>
+<figure class="static-capture"><a href="#story=Apps%2FStudio%2FShell"><img src="images/apps-studio-shell.png" alt="Apps/Studio/Shell" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<figure class="static-capture"><a href="#story=Apps%2FPlayer%2FPlayInEditor"><img src="images/apps-player-playineditor.png" alt="Apps/Player/PlayInEditor" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Production/StudioToPlayer&quot;, Order = 0)]
+public static Widget StudioToPlayer(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # Studio to Player workflow
+
+    Studioでproject/sceneを編集し、PlayerのPlay-in-Editorで同じdataを実行し、standalone hostへ渡します。editor-only stateをscene dataへ混ぜず、保存前にruntime schemaへ変換します。
+
+    {{StoryRef(ctx, &quot;Apps/Studio/Shell&quot;)}}
+    {{StoryRef(ctx, &quot;Apps/Player/PlayInEditor&quot;)}}
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

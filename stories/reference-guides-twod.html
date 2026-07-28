@@ -9,7 +9,7 @@
 <li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=%E3%83%91%E3%83%BC%E3%83%86%E3%82%A3%E3%82%AF%E3%83%AB-%E2%80%94-%E6%A8%99%E6%BA%96-vfx-%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0">パーティクル — 標準 VFX システム</a></li>
 <li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=irasterizer2d-%2F-retainedcanvas-%E2%80%94-backend%E5%88%87%E6%9B%BF%E3%81%A8%E9%83%A8%E5%88%86%E6%9B%B4%E6%96%B0">IRasterizer2D / RetainedCanvas — backend切替と部分更新</a></li>
 <li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=%E8%A8%AD%E8%A8%88%E3%83%8E%E3%83%BC%E3%83%88%3A-%E5%A2%97%E5%88%86%E6%9B%B4%E6%96%B0-%E2%80%94-%E3%80%8Cslot-%E6%8D%AE%E3%81%88%E7%BD%AE%E3%81%8D%E3%80%81%E3%83%AC%E3%83%B3%E3%82%B8%E3%81%AF%E5%AE%B9%E9%87%8F%E4%BB%98%E3%81%8D%E3%80%8D">設計ノート: 増分更新 — 「slot 据え置き、レンジは容量付き」</a></li>
-<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=%E4%BB%8A%E5%BE%8C">今後</a></li>
+<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=gpu-rasterizer%E3%81%AE%E7%8F%BE%E5%9C%A8%E6%A7%8B%E6%88%90">GPU rasterizerの現在構成</a></li>
 </ul>
 <p>GPU <strong>コンピュートラスタライザ</strong> (Vello 風) による 2D ベクター描画です。パスを三角形分割せず、線分のまま GPU に常駐させ、compute が画素ごとに巻き数/距離で被覆を計算して塗ります。バックエンド変更ゼロ (framebuffer は bindless バッファ)。</p>
 <h2 id="section">描けるもの</h2>
@@ -108,7 +108,7 @@ else
 <li>パス数が変わるときだけ order を再構成 (軽量パス)</li>
 <li>定常フレームのコストは O(変わったノード) — 回帰は bench で監視 (使い方は Gallery の Docs 章の Contributing ページへ)</li>
 </ul>
-<h2 id="section-2">今後</h2>
+<h2 id="gpu-rasterizer">GPU rasterizerの現在構成</h2>
 <p>現行 GPU pipeline は <strong>bounds → 16×16 tile bin → fine raster</strong> の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4×4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は <a href="#story=Learn%2FRendering%2FRasterizerInternals%2FOverview">Rasterizer Internals</a> へ進んでください。</p>
 <p>次: <a href="#story=Reference%2FGuides%2FRenderGraph">Reference/Guides/RenderGraph</a> — 多段パスの合成へ。</p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/TwoD&quot;, Order = 11)]
@@ -256,7 +256,7 @@ public static Widget TwoD(StoryContext ctx)
     - パス数が変わるときだけ order を再構成 (軽量パス)
     - 定常フレームのコストは O(変わったノード) — 回帰は bench で監視 (使い方は Gallery の Docs 章の Contributing ページへ)
 
-    ## 今後
+    ## GPU rasterizerの現在構成
 
     現行 GPU pipeline は **bounds → 16&#215;16 tile bin → fine raster** の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4&#215;4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は [Rasterizer Internals](story:Learn/Rendering/RasterizerInternals/Overview) へ進んでください。
 

@@ -16,6 +16,10 @@
 </li>
 </ul>
 <h2 id="context">Context</h2>
+<div class="markdown-alert markdown-alert-note">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p><code>ToDo/22</code>〜<code>ToDo/27</code> はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする <code>Reference/Guides/*</code> とLearnページを正とします。</p>
+</div>
 <p>テキスト編集系コントロールに、性質の異なる要件が<strong>同一エディタの同一行で同時に</strong>求められるようになりました: 標準的な編集作業、Strudel の行内 UI コントロール配置と「いま鳴らしているシーケンス」を示す文字の囲み、C# 診断の下線・波線、コードエディタの行内色分けです。</p>
 <p>既存のエディタ (TextArea / CodeEditor / RichTextEditor) は共有エンジン DocumentEditor の上に建っており、その中核は<strong>単一 Caret/Anchor</strong> です。当初はこの資産を活かす「三層への段階移行」を検討しましたが、詰めると <strong>単一カーソル制約に由来する 2 つの匂い</strong>が避けられないと分かりました:</p>
 <ul>
@@ -62,6 +66,10 @@ public static Widget Adr0006(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - **Deciders**: ikihiki
 
     ## Context
+
+    &gt; [!NOTE]
+    &gt; `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+
 
     テキスト編集系コントロールに、性質の異なる要件が**同一エディタの同一行で同時に**求められるようになりました: 標準的な編集作業、Strudel の行内 UI コントロール配置と「いま鳴らしているシーケンス」を示す文字の囲み、C# 診断の下線・波線、コードエディタの行内色分けです。
 

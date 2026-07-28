@@ -10,10 +10,12 @@
 <p>Memory VFSとtyped conversion stepによる最小resource DAGです。</p>
 <h2 id="resource-pipeline">コピーして動かす — Resource pipeline</h2>
 <blockquote>
-<p><strong>StandaloneProject</strong> · 難易度: Beginner · 依存 bundle: なし</p>
+<p><strong>Block</strong> · 難易度: Beginner · 依存 bundle: <code>support.source-tree</code></p>
 </blockquote>
 <p>Memory VFS and a typed byte[] to TextAsset step demonstrate loading, caching and ownership without GPU or disk.</p>
 <p><strong>必要条件:</strong> .NET 10 / Headless on all supported .NET OS
+<strong>Platform:</strong> Windows / Linux / macOS
+<strong>検証契約:</strong> exit <code>0</code> / timeout <code>300s</code> / stdout <code>resources: status=Ready, value=HELLO RESOURCES</code>
 <strong>接続点:</strong> <code>ResourceSystem</code></p>
 <p><strong>Run</strong></p>
 <pre><code class="language-powershell">dotnet run --project samples/LuxelResources
@@ -52,7 +54,7 @@ sealed class Utf8TextStep : IResourceStep&lt;byte[], TextAsset&gt;
         =&gt; Task.FromResult(new TextAsset(Encoding.UTF8.GetString(input).ToUpperInvariant()));
 }
 </code></pre>
-<details class="sample-bundle"><summary>Run this sample — StandaloneProject</summary><p>Memory VFS and a typed byte[] to TextAsset step demonstrate loading, caching and ownership without GPU or disk.</p><p><strong>Requirements:</strong> .NET 10 / Headless on all supported .NET OS</p><ul><li><code>samples/LuxelResources/LuxelResources.csproj</code> <span>Project</span></li><li><code>samples/LuxelResources/Program.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelResources</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelResources</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Blocks/Resources/Pipeline&quot;, Order = 4, SampleBundle = &quot;resources.pipeline&quot;)]
+<details class="sample-bundle"><summary>Run this sample — Block</summary><p>Memory VFS and a typed byte[] to TextAsset step demonstrate loading, caching and ownership without GPU or disk.</p><p><strong>Requirements:</strong> .NET 10 / Headless on all supported .NET OS</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>resources: status=Ready, value=HELLO RESOURCES</code></p><ul><li><code>samples/LuxelResources/LuxelResources.csproj</code> <span>Project</span></li><li><code>samples/LuxelResources/Program.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelResources</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelResources</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Blocks/Resources/Pipeline&quot;, Order = 6, SampleBundle = &quot;resources.pipeline&quot;)]
 public static Widget ResourcePipeline(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
     # Block: Resource pipeline
 

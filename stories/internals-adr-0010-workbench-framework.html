@@ -16,6 +16,10 @@
 </li>
 </ul>
 <h2 id="context">Context</h2>
+<div class="markdown-alert markdown-alert-note">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p><code>ToDo/22</code>〜<code>ToDo/27</code> はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする <code>Reference/Guides/*</code> とLearnページを正とします。</p>
+</div>
 <p>Luxel には成熟した<strong>編集コンポーネント</strong>が育ちました — テキスト新スタック (<a href="#story=Internals%2FADR%2F0006-Editor-New-Stack">ADR-0006</a>、<code>Luxel.Document</code> + <code>TextEditorView</code>) とノード新スタック (<a href="#story=Internals%2FADR%2F0009-Node-Editor-Stack">ADR-0009</a>、<code>Luxel.NodeGraph</code> + <code>NodeGraphView</code>)。さらにリッチ文書スタック (<a href="#story=Internals%2FADR%2F0012-Rich-Document-Stack">ADR-0012</a>) を新設予定です。</p>
 <p>しかしこれらを「<strong>開いて・並べて・保存する</strong>」アプリ/シェル層がありません。唯一のシェルは Gallery (Storybook 風・単一ドキュメントのプレビュー) で、複数ドキュメントのタブ・ドッキング・ファイル連動・コマンド起動・保存経路が全面的に未実装です。一方で各エディタスタックは<strong>内部モデルを意図的に分離</strong>しています (<a href="#story=Internals%2FADR%2F0006-Editor-New-Stack">ADR-0006</a> / <a href="#story=Internals%2FADR%2F0009-Node-Editor-Stack">ADR-0009</a>)。シェルはそこに手を出さず、各エディタを不透明に束ねたい、という力学です。</p>
 <h2 id="decision">Decision</h2>
@@ -53,6 +57,10 @@ public static Widget Adr0010(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - **Deciders**: ikihiki
 
     ## Context
+
+    &gt; [!NOTE]
+    &gt; `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+
 
     Luxel には成熟した**編集コンポーネント**が育ちました — テキスト新スタック ([ADR-0006](story:Internals/ADR/0006-Editor-New-Stack)、`Luxel.Document` + `TextEditorView`) とノード新スタック ([ADR-0009](story:Internals/ADR/0009-Node-Editor-Stack)、`Luxel.NodeGraph` + `NodeGraphView`)。さらにリッチ文書スタック ([ADR-0012](story:Internals/ADR/0012-Rich-Document-Stack)) を新設予定です。
 

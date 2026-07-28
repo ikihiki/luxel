@@ -16,6 +16,10 @@
 </li>
 </ul>
 <h2 id="context">Context</h2>
+<div class="markdown-alert markdown-alert-note">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p><code>ToDo/22</code>〜<code>ToDo/27</code> はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする <code>Reference/Guides/*</code> とLearnページを正とします。</p>
+</div>
 <p>Workbench (<a href="#story=Internals%2FADR%2F0010-Workbench-Framework">ADR-0010</a>) のシェルに必要な<strong>内容/レイアウト系コントロール</strong>が未実装です。調査の結果、次が「無い」と判明しました: 複数ドキュメントの <code>DocumentTabs</code>、ドッキングを描く <code>DockHost</code>、型/ECS を反映する <code>PropertyGrid</code>/Inspector、<code>StatusBar</code>、VFS 連動の <code>AssetBrowser</code>。</p>
 <p>既存に<strong>種</strong>はあります — <code>Tabs</code> (ビュー切替専用)・<code>Splitter</code>・<code>KnobsTable</code>/<code>TypeApiTable</code>・<code>TreeView</code> — が、複数ドキュメント/ドッキング/インスペクションの用途にはそのまま使えません。これらを WS-D (具体エディタ作成) に埋め込まず、<strong>再利用可能なコントロールとして独立に切り出す</strong>判断です (Inspector は将来のシーン/レベルエディタの前提でもあるため)。</p>
 <h2 id="decision">Decision</h2>
@@ -52,6 +56,10 @@ public static Widget Adr0014(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - **Deciders**: ikihiki
 
     ## Context
+
+    &gt; [!NOTE]
+    &gt; `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+
 
     Workbench ([ADR-0010](story:Internals/ADR/0010-Workbench-Framework)) のシェルに必要な**内容/レイアウト系コントロール**が未実装です。調査の結果、次が「無い」と判明しました: 複数ドキュメントの `DocumentTabs`、ドッキングを描く `DockHost`、型/ECS を反映する `PropertyGrid`/Inspector、`StatusBar`、VFS 連動の `AssetBrowser`。
 
