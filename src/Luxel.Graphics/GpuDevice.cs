@@ -28,12 +28,16 @@ public sealed class GpuDevice : IDisposable
     /// <summary>主キュー。</summary>
     public GpuQueue MainQueue { get; }
 
-    /// <summary>ウィンドウ(HWND)へのスワップチェーン提示面を生成する。</summary>
-    public GpuSurface CreateSurface(nint windowHandle, uint width, uint height)
+    /// <summary>ネイティブウィンドウへのスワップチェーン提示面を生成する。</summary>
+    public GpuSurface CreateSurface(in NativeSurfaceDescriptor descriptor, uint width, uint height)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return new GpuSurface(_backend.CreateSurface(windowHandle, width, height));
+        return new GpuSurface(_backend.CreateSurface(in descriptor, width, height));
     }
+
+    /// <summary>Win32 HWND から提示面を生成する互換オーバーロード。</summary>
+    public GpuSurface CreateSurface(nint windowHandle, uint width, uint height)
+        => CreateSurface(NativeSurfaceDescriptor.Win32(windowHandle), width, height);
 
     /// <summary><c>gpuMalloc</c>。GPU メモリを確保し、CPU ポインタと GPU アドレスを持つバッファを返す。</summary>
     public GpuBuffer Malloc(ulong sizeInBytes, GpuMemoryKind kind = GpuMemoryKind.HostMapped)

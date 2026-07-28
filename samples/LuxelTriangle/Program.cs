@@ -7,7 +7,7 @@ using Luxel.Platform.Windows;
 using Luxel.Platform.Silk;
 #endif
 
-string backend = args.FirstOrDefault(a => a is "vk" or "vulkan" or "dx" or "d3d12")?.ToLowerInvariant() ?? "vk";
+string backend = args.FirstOrDefault(a => a is "vk" or "vulkan" or "dx" or "d3d12" or "webgpu" or "wgpu")?.ToLowerInvariant() ?? "vk";
 int? frameLimit = ParseFrameLimit(args);
 TutorialStage stage = ParseStage(args);
 (int initialWidth, int initialHeight) = ParseSize(args);
@@ -37,7 +37,7 @@ static int Run(string backend, int? frameLimit, TutorialStage stage, int initial
 #endif
         Window window = windows.CreateWindow(new WindowDesc($"Luxel — 3D Tutorial ({stage})", initialWidth, initialHeight));
         using GpuDevice device = CreateDevice(backend, window);
-        using GpuSurface surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
+        using GpuSurface surface = device.CreateSurface(window.GetFeature<INativeSurfaceProvider>()!.SurfaceDescriptor, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
         using var renderer = new TriangleRenderer(device, stage);
 
         int width = Math.Max(0, window.Width);
@@ -100,9 +100,12 @@ static GpuDevice CreateDevice(string backend, Window window)
     return backend switch
     {
         "dx" or "d3d12" => new GpuDevice(Luxel.Graphics.DirectX12.D3D12Backend.Create()),
+        "webgpu" or "wgpu" => new GpuDevice(Luxel.Graphics.WebGPU.WebGpuBackend.Create()),
         _ => new GpuDevice(VulkanBackend.Create()),
     };
 #else
+    if (backend is "webgpu" or "wgpu")
+        return new GpuDevice(Luxel.Graphics.WebGPU.WebGpuBackend.Create());
     IVulkanWindowSurface provider = window.GetFeature<IVulkanWindowSurface>()
         ?? throw new PlatformNotSupportedException("Linux/X11 window did not provide a Vulkan surface.");
     return new GpuDevice(VulkanBackend.Create(new VulkanBackendOptions

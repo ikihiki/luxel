@@ -16,7 +16,7 @@ public sealed class WebGpuHeadlessTests
         using var device = TryCreate();
         if (device is null) return;
         Assert.Contains("WebGPU", device.Name, StringComparison.OrdinalIgnoreCase);
-        Assert.Throws<PlatformNotSupportedException>(() => device.CreateSurface(0, 64, 64));
+        Assert.Throws<ArgumentException>(() => device.CreateSurface(0, 64, 64));
     }
 
     [Fact]

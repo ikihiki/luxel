@@ -40,8 +40,8 @@ public interface IGpuBackend : IDisposable
     /// <summary>サンプラを生成する。</summary>
     IGpuBackendSampler CreateSampler(GpuSamplerFilter filter, GpuSamplerAddress address = GpuSamplerAddress.Clamp);
 
-    /// <summary>ウィンドウ(HWND)へのスワップチェーン提示面を生成する。</summary>
-    IGpuBackendSurface CreateSurface(nint windowHandle, uint width, uint height);
+    /// <summary>ネイティブウィンドウへのスワップチェーン提示面を生成する。</summary>
+    IGpuBackendSurface CreateSurface(in NativeSurfaceDescriptor descriptor, uint width, uint height);
 }
 
 /// <summary>スワップチェーン提示面。RGBA8 バッファをバックバッファへコピーして present する。</summary>

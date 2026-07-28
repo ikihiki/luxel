@@ -94,8 +94,8 @@ Gallery のサイドバー **Start/Welcome** を唯一の入口とし、そこ�
 
 ### Headless WebGPU
 
-WebGPU backendは現在headless/offscreen専用です。公開`GpuDevice` APIでinline WGSL compute、offscreen triangle、
-storage arenaからのvertex pulling、sampled checkerboard、`HostCached` readbackを自己検証する最小sampleを実行できます。固定portable ABIはgroup 0のbuffer arena/root uniformと、group 1のsampled texture 16 slot + sampler 16 slotです。logical indexは各tableの`0..15`で、上限超過やadapter/device limit不足は明示的に失敗します。surfaceと既存windowed hostのselectorは未実装です。
+WebGPU backendはheadless/offscreenに加えて、明示的opt-inでWin32 HWNDとLinux X11/Xlib windowへpresentできます。公開`GpuDevice` APIでinline WGSL compute、offscreen triangle、
+storage arenaからのvertex pulling、sampled checkerboard、`HostCached` readbackを自己検証する最小sampleを実行できます。固定portable ABIはgroup 0のbuffer arena/root uniformと、group 1のsampled texture 16 slot + sampler 16 slotです。logical indexは各tableの`0..15`で、上限超過やadapter/device limit不足は明示的に失敗します。windowed surfaceはRGBA arena bufferをfullscreen WGSL blitでsurface formatへ変換し、resize/lost/outdatedを再configureします。Auto backendの既定値は従来どおりで、WebGPUは`webgpu|wgpu`の明示指定です。
 
 ```bash
 dotnet run --project samples/LuxelWebGpuHeadless -c Release

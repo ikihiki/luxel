@@ -35,8 +35,9 @@ int frames = 0;
 for (int i = 0; i < args.Length; i++)
 {
     string a = args[i];
-    if (a.Equals("vk", StringComparison.OrdinalIgnoreCase)) backend = "vk";
-    else if (a.Equals("dx", StringComparison.OrdinalIgnoreCase)) backend = "dx";
+    if (a.Equals("vk", StringComparison.OrdinalIgnoreCase) || a.Equals("vulkan", StringComparison.OrdinalIgnoreCase)) backend = "vk";
+    else if (a.Equals("dx", StringComparison.OrdinalIgnoreCase) || a.Equals("d3d12", StringComparison.OrdinalIgnoreCase)) backend = "dx";
+    else if (a.Equals("webgpu", StringComparison.OrdinalIgnoreCase) || a.Equals("wgpu", StringComparison.OrdinalIgnoreCase)) backend = "webgpu";
     else if (a == "--frames" && i + 1 < args.Length && int.TryParse(args[i + 1], out int n)) { frames = Math.Max(1, n); i++; }
     else folder ??= a;
 }
@@ -69,14 +70,19 @@ static int Run(string folder, string backend, int frames)
         PlayerGame game = PlayerLoader.LoadStart(fs);
         foreach (string d in game.World.Behaviours!.Diagnostics) Console.Error.WriteLine($"[csx] {d}");
 
-        using var device = new GpuDevice(backend == "dx" ? Luxel.Graphics.DirectX12.D3D12Backend.Create() : Luxel.Graphics.Vulkan.VulkanBackend.Create());
+        using var device = new GpuDevice(backend switch
+        {
+            "dx" => Luxel.Graphics.DirectX12.D3D12Backend.Create(),
+            "webgpu" => Luxel.Graphics.WebGPU.WebGpuBackend.Create(),
+            _ => Luxel.Graphics.Vulkan.VulkanBackend.Create(),
+        });
         Console.WriteLine($"=== {game.Project.Name} (Luxel.Player, backend: {backend}, device: {device.Name}) ===");
         using VectorFont font = VectorFont.LoadSystem();
 
         int w = game.Project.WindowWidth, h = game.Project.WindowHeight;
         using var windows = new WindowSystem(Win32WindowBackend.Create());
         Window win = windows.CreateWindow(new Luxel.Platform.Abstraction.WindowDesc(game.Project.Name, w, h));
-        using GpuSurface surface = device.CreateSurface(win.Handle, (uint)Math.Max(1, win.Width), (uint)Math.Max(1, win.Height));
+        using GpuSurface surface = device.CreateSurface(win.GetFeature<INativeSurfaceProvider>()!.SurfaceDescriptor, (uint)Math.Max(1, win.Width), (uint)Math.Max(1, win.Height));
 
         // 生キー → world.KeysDown (csx が world.KeysDown.Contains("Right") 等で読む)
         var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

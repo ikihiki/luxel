@@ -65,7 +65,9 @@ public sealed class WindowHost : IDisposable
         Content.Resize(_w / S, _h / S, S);   // content の論理サイズを実クライアント (物理/scale) に同期
         RemoteInfo = CaptureRemoteInfo();
         Alloc();
-        _surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
+        INativeSurfaceProvider surfaceProvider = window.GetFeature<INativeSurfaceProvider>()
+            ?? throw new PlatformNotSupportedException("The window backend did not provide native surface handles.");
+        _surface = device.CreateSurface(surfaceProvider.SurfaceDescriptor, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
         _textInput = window.CreateTextInputContext(() => Content.ImeTarget, () => S)
             ?? NoWindowTextInputContext.Instance;
         Wire();

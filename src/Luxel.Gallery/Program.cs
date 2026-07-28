@@ -12,7 +12,7 @@ using Luxel.UI;
 // 使い方:
 //   dotnet run --project src/Luxel.Gallery -- [auto|vk|dx] [port] [seconds]   ネイティブ app (環境自動検出, 既定 port=5180, 常駐)
 //   dotnet run --project src/Luxel.Gallery -- <backend> e2e [--update]     play + golden 回帰 (offscreen)
-//   backend: auto (既定) | vk | dx
+//   backend: auto (既定) | vk | dx | webgpu
 // リモート検証 (AI): DevTools — GET /windows /winframe?id=1 /trees, POST /cmd
 //   (UI 入力は {op, ui:"gallery"|"story", x, y}、ウィンドウ操作は window.*)
 string backend = (args.Length > 0 ? args[0] : "auto").ToLowerInvariant();
@@ -27,7 +27,8 @@ GpuDevice CreateDevice() => backend switch
     "auto" => new GpuDevice(Luxel.Graphics.Vulkan.VulkanBackend.Create()),
     "vk" or "vulkan" => new GpuDevice(Luxel.Graphics.Vulkan.VulkanBackend.Create()),
     "dx" or "d3d12" => new GpuDevice(Luxel.Graphics.DirectX12.D3D12Backend.Create()),
-    _ => throw new ArgumentException($"未知のバックエンド: {backend} (vk / dx)"),
+    "webgpu" or "wgpu" => new GpuDevice(Luxel.Graphics.WebGPU.WebGpuBackend.Create()),
+    _ => throw new ArgumentException($"未知のバックエンド: {backend} (vk / dx / webgpu)"),
 };
 
 if (args.Length > 1 && args[1] is "e2e" or "snap")
@@ -88,7 +89,8 @@ builder.Options.GraphicsBackend = backend switch
     "auto" => LuxelGraphicsBackend.Auto,
     "vk" or "vulkan" => LuxelGraphicsBackend.Vulkan,
     "dx" or "d3d12" => LuxelGraphicsBackend.Direct3D12,
-    _ => throw new ArgumentException($"未知のバックエンド: {backend} (auto / vk / dx)"),
+    "webgpu" or "wgpu" => LuxelGraphicsBackend.WebGpu,
+    _ => throw new ArgumentException($"未知のバックエンド: {backend} (auto / vk / dx / webgpu)"),
 };
 builder.ConfigureRuntime(runtime =>
 {

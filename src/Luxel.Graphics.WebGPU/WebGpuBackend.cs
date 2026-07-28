@@ -10,7 +10,7 @@ using WebGpuApi = Silk.NET.WebGPU.WebGPU;
 
 namespace Luxel.Graphics.WebGPU;
 
-/// <summary>wgpu-native based headless/offscreen WebGPU backend.</summary>
+/// <summary>wgpu-native based WebGPU backend supporting offscreen work and Win32/Xlib presentation.</summary>
 public sealed unsafe class WebGpuBackend : IGpuBackend
 {
     internal const ulong ArenaSize = 64UL * 1024 * 1024;
@@ -58,6 +58,10 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
     internal WebGpuApi Api => _api;
     internal Device* Device => _device;
     internal WgpuBuffer* Arena => _arena;
+    internal Instance* Instance => _instance;
+    internal Adapter* Adapter => _adapter;
+    internal Queue* Queue => _queue;
+    internal object Sync => _sync;
     internal IReadOnlyList<WebGpuBuffer> Buffers { get { ThrowIfDisposed(); return _buffers; } }
     internal bool CanReleaseNativeResources => _device != null;
     internal bool IsDisposed => _disposed;
@@ -368,10 +372,10 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         }
     }
 
-    public IGpuBackendSurface CreateSurface(nint windowHandle, uint width, uint height)
+    public IGpuBackendSurface CreateSurface(in NativeSurfaceDescriptor descriptor, uint width, uint height)
     {
         ThrowIfDisposed();
-        throw new PlatformNotSupportedException("Luxel WebGPU currently supports headless/offscreen operation only; window surfaces are not implemented.");
+        return new WebGpuSurface(this, in descriptor, width, height);
     }
 
     private WebGpuTexture CreateTexture(uint width, uint height, GpuFormat format, TextureUsage usage, uint bindlessIndex = 0)

@@ -19,6 +19,8 @@ public enum LuxelGraphicsBackend
     Auto,
     Vulkan,
     Direct3D12,
+    /// <summary>Explicit opt-in to the native WebGPU backend. Auto never selects this.</summary>
+    WebGpu,
 }
 
 /// <summary>Configuration for the environment-aware Luxel UI application host.</summary>

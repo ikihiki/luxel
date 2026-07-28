@@ -87,6 +87,7 @@
     <Project Path="tests/Luxel.E2e.Tests/Luxel.E2e.Tests.csproj" />
     <Project Path="tests/Luxel.Platform.Silk.Tests/Luxel.Platform.Silk.Tests.csproj" />
     <Project Path="tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj" />
+    <Project Path="tests/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj" />
     <Project Path="tests/Luxel.Vulkan.Tests/Luxel.Vulkan.Tests.csproj" />
     <Project Path="tests/Luxel.Vulkan.Present.Tests/Luxel.Vulkan.Present.Tests.csproj" />
     <Project Path="tests/Luxel.UI.Generators.Tests/Luxel.UI.Generators.Tests.csproj" />

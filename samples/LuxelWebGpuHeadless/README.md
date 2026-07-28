@@ -15,4 +15,4 @@ WGPU_BACKEND=vulkan LUXEL_WEBGPU_FORCE_FALLBACK_ADAPTER=1 \
 ```
 
 成功時はdevice名、compute値、checkerboardからsampleしたtriangle中央pixel、`status=pass`を1行で出力します。wgpu-native runtimeまたは
-adapterが無い場合は非zeroで終了します。これはheadless/offscreen専用であり、windowed sampleのbackend selectorではありません。
+adapterが無い場合は非zeroで終了します。このsample自体はheadless/offscreen検証用です。windowed WebGPU plumbingは`Luxel.WebGPU.Present.Tests`（X11 present/resize）と各appの`webgpu|wgpu`明示selectorで検証します。既存LuxelTriangle/UI rasterizerの全WGSL shader-cache移植は別作業です。

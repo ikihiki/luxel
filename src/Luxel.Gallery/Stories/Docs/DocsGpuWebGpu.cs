@@ -19,16 +19,16 @@ public static partial class DocsGpu
 
         | 項目 | 契約 |
         | --- | --- |
-        | 対象 | native desktop の Windows と Linux。現在はheadless/offscreenのみ |
-        | 選択 | `WebGpuBackend.Create()`を明示して`GpuDevice`へ渡すopt-in。既存windowed hostのselectorには未接続 |
+        | 対象 | native desktop の Windows と Linux。headless/offscreenとWin32 HWND / Linux X11(Xlib) surface |
+        | 選択 | `WebGpuBackend.Create()`またはwindowed hostの`webgpu|wgpu`明示opt-in |
         | 既定 | Windows / Linux の既定 backend は変更しない |
-        | surface | 未実装。`CreateSurface`は`PlatformNotSupportedException` |
-        | 初期スコープ外 | surface/present、browser/WASM、macOS、未検証 RID、未検証 Native AOT |
+        | surface | configure/acquire/present、resize、lost/outdated再configure。RGBA arena bufferはfullscreen WGSL blitでsurface formatへ変換 |
+        | 初期スコープ外 | browser/WASM、macOS、未検証 RID、未検証 Native AOT、既存shader cache全体のWGSL移植 |
         | 対応判定 | required feature/limit と shader package を検査し、代表headless/offscreen回帰が通ること |
 
         WebGPU は「どの環境でも動く互換モード」ではありません。adapter が必要な limit を満たさない、native runtime と binding の ABI が一致しない、対象 shader artifact が無い、といった場合は backend 作成または pipeline 作成で明示的に失敗します。
 
-        `samples/LuxelWebGpuHeadless`は公開`GpuDevice` APIでWGSL compute、storage arenaからのvertex pulling、sampled checkerboardを使うoffscreen triangle、`HostCached` readbackを実行して結果を自己検証します。windowed `LuxelTriangle`へ未実装のselectorを追加せず、現在利用可能なheadless経路だけを示します。
+        `samples/LuxelWebGpuHeadless`は公開`GpuDevice` APIでWGSL compute、storage arenaからのvertex pulling、sampled checkerboardを使うoffscreen triangle、`HostCached` readbackを実行して結果を自己検証します。windowed plumbingは`Luxel.WebGPU.Present.Tests`のX11 present/resizeで検証します。`LuxelTriangle`等は`webgpu|wgpu`を受け付けますが、既存shader cache全体のWGSL移植は別laneです。
 
         **現時点の実装制限:** sampled resourceは固定portable ABIです。sampled textureとsamplerは各16個、textureはfilterableなRGBA8/BGRA8・2D・1 mipに限定されます。shader package全体のbinding metadata移行とunbounded runtime arrayは未実装なので、shaderは下記の固定bindingとlogical index loweringを明示する必要があります。`Examples/3D/TexturedQuad`全体をWebGPU対応済みとはまだ扱いません。
 

@@ -56,7 +56,7 @@ static int Run(string backend, int frames)
         int w = RangeRealtimeScene.Width, h = RangeRealtimeScene.Height;
         using var windows = new WindowSystem(Win32WindowBackend.Create());
         Window win = windows.CreateWindow(new Luxel.Platform.Abstraction.WindowDesc("Luxel Range", w, h));
-        using GpuSurface surface = device.CreateSurface(win.Handle, (uint)Math.Max(1, win.Width), (uint)Math.Max(1, win.Height));
+        using GpuSurface surface = device.CreateSurface(win.GetFeature<INativeSurfaceProvider>()!.SurfaceDescriptor, (uint)Math.Max(1, win.Width), (uint)Math.Max(1, win.Height));
 
         using WindowInputSource input = win.CreateInputSource("range-window");
 

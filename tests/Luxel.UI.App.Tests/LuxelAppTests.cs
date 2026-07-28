@@ -22,6 +22,7 @@ public sealed class LuxelAppTests
             LuxelApp.ResolveWindowBackend(options.WindowBackend));
         Assert.Equal(OperatingSystem.IsWindows() ? LuxelGraphicsBackend.Direct3D12 : LuxelGraphicsBackend.Vulkan,
             LuxelApp.ResolveGraphicsBackend(options.GraphicsBackend));
+        Assert.Equal(LuxelGraphicsBackend.WebGpu, Enum.Parse<LuxelGraphicsBackend>("WebGpu"));
         Assert.Null(options.RunFrames);
         Assert.Null(options.RunDuration);
         Assert.True(options.EnableValidation);

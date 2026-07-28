@@ -166,30 +166,26 @@ internal sealed class EnvironmentLuxelApp
             var desc = new WindowDesc(_options.Title, _options.Width, _options.Height);
             IGpuBackend backend;
             if (windowBackend == LuxelWindowBackend.SilkX11)
-            {
                 bootstrapWindow = windows.CreateWindow(desc);
-                IVulkanWindowSurface provider = bootstrapWindow.GetFeature<IVulkanWindowSurface>()
-                    ?? throw new PlatformNotSupportedException("The Silk window did not provide a Vulkan surface.");
-                backend = VulkanBackend.Create(new VulkanBackendOptions
+
+            backend = graphicsBackend switch
+            {
+                LuxelGraphicsBackend.WebGpu => Luxel.Graphics.WebGPU.WebGpuBackend.Create(),
+                LuxelGraphicsBackend.Vulkan when windowBackend == LuxelWindowBackend.SilkX11 => VulkanBackend.Create(new VulkanBackendOptions
                 {
                     EnableValidation = _options.EnableValidation,
                     Presentation = VulkanPresentationMode.Window,
-                    WindowSurface = provider,
-                });
-            }
-            else
-            {
-                backend = graphicsBackend switch
+                    WindowSurface = bootstrapWindow!.GetFeature<IVulkanWindowSurface>()
+                        ?? throw new PlatformNotSupportedException("The Silk window did not provide a Vulkan surface."),
+                }),
+                LuxelGraphicsBackend.Vulkan => VulkanBackend.Create(new VulkanBackendOptions
                 {
-                    LuxelGraphicsBackend.Vulkan => VulkanBackend.Create(new VulkanBackendOptions
-                    {
-                        EnableValidation = _options.EnableValidation,
-                        Presentation = VulkanPresentationMode.Win32,
-                    }),
-                    LuxelGraphicsBackend.Direct3D12 => D3D12Backend.Create(),
-                    _ => throw new UnreachableException(),
-                };
-            }
+                    EnableValidation = _options.EnableValidation,
+                    Presentation = VulkanPresentationMode.Win32,
+                }),
+                LuxelGraphicsBackend.Direct3D12 => D3D12Backend.Create(),
+                _ => throw new UnreachableException(),
+            };
 
             using var device = new GpuDevice(backend);
             using VectorFont font = _options.FontFactory?.Invoke()
