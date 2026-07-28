@@ -68,7 +68,7 @@ public static class DocsHome
             - 全体像とレイヤ構成 → [Docs/Architecture](story:Docs/Architecture)
             - GPU 描画の最初の一歩 (standalone) → [Learn/Rendering/Overview](story:Learn/Rendering/Overview)
             - コントロールの型見本 (Variant/Intent/API 表) → [Docs/Button](story:Docs/Button)
-            - Windows/Linux対応の端末エミュレータ → [Docs/Terminal](story:Docs/Terminal)
+            - Windows/Linux対応の端末エミュレータ → [Controls/Terminal/Overview](story:Controls/Terminal/Overview)
             - この docs ページ自体の書き方 → [Docs/Authoring](story:Docs/Authoring)
             - サイドバーの **GPU / 2D / 3D / RenderGraph / Animation** 章に、各サブシステムの動くデモが並んでいます。左上の検索欄は docs 本文の全文検索です
 
@@ -148,7 +148,7 @@ public static class DocsHome
 
         ## 端末
 
-        `Luxel.Terminal`がUI非依存のVT/ANSI parser、screen、scrollback、入力encode、sessionを提供し、`.Windows`のConPTYと`.Linux`のUnix PTYを`ITerminalPty`の後ろへ分離します。`Luxel.Terminal.UI`の`TerminalView`は`Luxel.Controls`に依存せず、font fallback、selection、clipboard、IME、resize reflowを担当します。導入と調整方法は [Docs/Terminal](story:Docs/Terminal) へ。
+        `Luxel.Terminal`がUI非依存のVT/ANSI parser、screen、scrollback、入力encode、sessionを提供し、`.Windows`のConPTYと`.Linux`のUnix PTYを`ITerminalPty`の後ろへ分離します。`Luxel.Terminal.UI`の`TerminalView`は`Luxel.Controls`に依存せず、font fallback、selection、clipboard、IME、resize reflowを担当します。導入と調整方法は [Controls/Terminal/Overview](story:Controls/Terminal/Overview) へ。
 
         ## モーション
 

@@ -283,7 +283,10 @@ public sealed class GallerySiteExporterTests
         string[] overviewCategories = StoryRegistry.All
             .Where(story => story.Path.StartsWith("Controls/", StringComparison.Ordinal)
                             && story.Path.EndsWith("/Overview", StringComparison.Ordinal))
-            .Select(story => story.Path.Split('/')[1]).Order(StringComparer.Ordinal).ToArray();
+            .Select(story => story.Path.Split('/')[1])
+            // Terminal is an integration guide at the requested Controls route, not a Luxel.Controls catalog entry.
+            .Where(category => category != "Terminal")
+            .Order(StringComparer.Ordinal).ToArray();
         Assert.Equal(existingCategories, overviewCategories);
 
         var mapped = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -438,8 +441,8 @@ public sealed class GallerySiteExporterTests
     [Fact]
     public void Terminal_docs_cover_platforms_usage_and_rendering_adjustments()
     {
-        StoryInfo story = StoryRegistry.Find("Docs/Terminal")
-            ?? throw new InvalidOperationException("Docs/Terminal is missing.");
+        StoryInfo story = StoryRegistry.Find("Controls/Terminal/Overview")
+            ?? throw new InvalidOperationException("Controls/Terminal/Overview is missing.");
         Dictionary<string, DocsPage> pages = DocsIndex.Build([story], resources: null);
         DocsPage page = pages[story.Path];
 

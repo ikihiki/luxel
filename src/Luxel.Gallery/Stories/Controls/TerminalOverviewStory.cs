@@ -4,11 +4,11 @@ using static Luxel.Gallery.Stories.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
-/// <summary>docs — cross-platform terminal emulator.</summary>
-public static class DocsTerminal
+/// <summary>Terminal control overview and integration guide.</summary>
+public static class TerminalOverviewStory
 {
-    [Story("Docs/Terminal", Order = 42)]
-    public static Widget Terminal(StoryContext ctx)
+    [Story("Controls/Terminal/Overview", Order = 0)]
+    public static Widget Overview(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());
         return DocNew(ctx, $$"""
