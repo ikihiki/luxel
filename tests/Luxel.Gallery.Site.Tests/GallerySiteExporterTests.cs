@@ -26,10 +26,17 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("aria-label=\"ギャラリーフィードバック\"", html);
         Assert.Contains("id=\"review-comment\"", html);
         Assert.Contains("id=\"review-import\"", html);
+        Assert.Contains("role=\"toolbar\"", html);
+        Assert.Contains("class=\"icon-button\"", html);
+        Assert.Contains("aria-label=\"全件をコピー\"", html);
+        Assert.Contains("class=\"review-comment-label\" for=\"review-comment\">フィードバック</label>", html);
+        Assert.True(html.IndexOf("class=\"review-actions\"", StringComparison.Ordinal)
+            < html.IndexOf("id=\"review-comment\"", StringComparison.Ordinal));
         Assert.Contains("viewport-fit=cover", html);
         Assert.Contains("@media(max-width:820px),(orientation:portrait)", css);
         Assert.Contains("grid-template-columns:310px minmax(0,1fr) minmax(320px,390px)", css);
-        Assert.Contains("min-height:44px", css);
+        Assert.Contains("grid-template-columns:repeat(8,minmax(36px,1fr))", css);
+        Assert.Contains(".review-comment-label{display:block;margin:5px 0 2px", css);
         Assert.Contains("env(safe-area-inset-bottom)", css);
         Assert.Contains("prefers-reduced-motion", css);
     }
@@ -46,7 +53,15 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("height:100dvh;overflow:hidden", css);
         Assert.Contains("body.review-open #review-panel{display:flex;flex-direction:column}", css);
         Assert.Contains("#review-comment{flex:1 1 160px;min-height:80px", css);
-        Assert.Contains("body.review-open main{padding-bottom:calc(74dvh + 32px)}", css);
+        Assert.Contains("bottom:var(--keyboard-inset,0px)", css);
+        Assert.Contains("height:min(52dvh,420px)", css);
+        Assert.Contains("body.review-keyboard #review-panel{height:min(42vh,280px)", css);
+        Assert.Contains("var(--visual-viewport-height,100dvh)*.46", css);
+        string script = GallerySiteExporter.ClientScript;
+        Assert.Contains("function syncVisualViewport()", script);
+        Assert.Contains("document.body.classList.add('review-keyboard')", script);
+        Assert.Contains("window.visualViewport?.addEventListener('resize',syncVisualViewport)", script);
+        Assert.DoesNotContain("reviewComment.focus", script);
         Assert.DoesNotContain("#review-panel{display:none;position:sticky;top:0;height:100vh;height:100dvh;overflow:auto", css);
     }
 
