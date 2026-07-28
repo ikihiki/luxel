@@ -1,0 +1,79 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Build/Blocks/UI/HeadlessTree</h1></header><h1 id="block-headless-reactive-ui-tree">Block: Headless reactive UI tree</h1>
+<ul>
+<li><a href="#story=Build%2FBlocks%2FUI%2FHeadlessTree&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-headless-reactive-widget-tree">コピーして動かす — Headless reactive widget tree</a>
+<ul>
+<li><a href="#story=Build%2FBlocks%2FUI%2FHeadlessTree&amp;section=%60samples%2Fluxeluiheadless%2Fluxeluiheadless.csproj%60-project"><code>samples/LuxelUiHeadless/LuxelUiHeadless.csproj</code> (Project)</a></li>
+<li><a href="#story=Build%2FBlocks%2FUI%2FHeadlessTree&amp;section=%60samples%2Fluxeluiheadless%2Fprogram.cs%60-csharp"><code>samples/LuxelUiHeadless/Program.cs</code> (CSharp)</a></li>
+<li><a href="#story=Build%2FBlocks%2FUI%2FHeadlessTree&amp;section=%60assets%2Ffonts%2Fbizudgothic-regular.ttf%60-asset"><code>assets/fonts/BIZUDGothic-Regular.ttf</code> (Asset)</a></li>
+</ul>
+</li>
+</ul>
+<p><code>Signal</code>、<code>CompositeControl</code>、generated <code>Kit</code> factories、LayoutだけでBuild invalidationを検証するclean-consumer blockです。</p>
+<h2 id="headless-reactive-widget-tree">コピーして動かす — Headless reactive widget tree</h2>
+<blockquote>
+<p><strong>Block</strong> · 難易度: Beginner · 依存 bundle: <code>support.source-tree</code></p>
+</blockquote>
+<p>CompositeControl tracks a Signal read during Build, invalidates its root, and rebuilds a declarative StackPanel on the next layout.</p>
+<p><strong>必要条件:</strong> .NET 10 / Bundled font / Headless on all supported .NET OS
+<strong>Platform:</strong> Windows / Linux / macOS
+<strong>検証契約:</strong> exit <code>0</code> / timeout <code>300s</code> / stdout <code>ui: builds=2, children=1-&gt;3, invalidated=True</code>
+<strong>接続点:</strong> <code>CompositeControl</code></p>
+<p><strong>Run</strong></p>
+<pre><code class="language-powershell">dotnet run --project samples/LuxelUiHeadless
+</code></pre>
+<p><strong>Smoke test</strong></p>
+<pre><code class="language-powershell">dotnet run --project samples/LuxelUiHeadless
+</code></pre>
+<h3 id="samplesluxeluiheadlessluxeluiheadless.csproj-project"><code>samples/LuxelUiHeadless/LuxelUiHeadless.csproj</code> (Project)</h3>
+<pre><code class="language-xml">&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;
+  &lt;PropertyGroup&gt;&lt;OutputType&gt;Exe&lt;/OutputType&gt;&lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;&lt;Nullable&gt;enable&lt;/Nullable&gt;&lt;/PropertyGroup&gt;
+  &lt;ItemGroup&gt;&lt;ProjectReference Include=&quot;..\..\src\Luxel.Controls\Luxel.Controls.csproj&quot; /&gt;&lt;/ItemGroup&gt;
+  &lt;ItemGroup&gt;&lt;Content Include=&quot;..\..\assets\fonts\BIZUDGothic-Regular.ttf&quot; Link=&quot;fonts\BIZUDGothic-Regular.ttf&quot; CopyToOutputDirectory=&quot;PreserveNewest&quot; /&gt;&lt;/ItemGroup&gt;
+&lt;/Project&gt;
+</code></pre>
+<h3 id="samplesluxeluiheadlessprogram.cs-csharp"><code>samples/LuxelUiHeadless/Program.cs</code> (CSharp)</h3>
+<pre><code class="language-csharp">using Luxel.Controls;
+using Luxel.Typography;
+using Luxel.UI;
+using static Luxel.Controls.Kit;
+
+// docs:begin ui-headless-tree
+using VectorFont font = VectorFont.Load(Path.Combine(AppContext.BaseDirectory, &quot;fonts&quot;, &quot;BIZUDGothic-Regular.ttf&quot;));
+var context = new LayoutContext { Font = font };
+var counter = new CounterTree();
+counter.Layout(Constraints.LooseW(240, 240), context);
+int firstChildren = ((StackPanel)counter.Root!).ChildCount;
+
+counter.Count.Value = 3;
+bool invalidated = counter.Root is null;
+counter.Layout(Constraints.LooseW(240, 240), context);
+int secondChildren = ((StackPanel)counter.Root!).ChildCount;
+
+Console.WriteLine($&quot;ui: builds={counter.Builds}, children={firstChildren}-&gt;{secondChildren}, invalidated={invalidated}&quot;);
+// docs:end ui-headless-tree
+
+return counter.Builds == 2 &amp;&amp; firstChildren == 1 &amp;&amp; secondChildren == 3 &amp;&amp; invalidated ? 0 : 1;
+
+sealed class CounterTree : CompositeControl
+{
+    internal Signal&lt;int&gt; Count { get; } = new(1);
+    internal int Builds { get; private set; }
+
+    protected override Widget Build()
+    {
+        Builds++;
+        Widget[] rows = Enumerable.Range(1, Count.Value).Select(i =&gt; (Widget)Text($&quot;row {i}&quot;)).ToArray();
+        return VStack(spacing: 2)[rows];
+    }
+}
+</code></pre>
+<h3 id="assetsfontsbizudgothic-regular.ttf-asset"><code>assets/fonts/BIZUDGothic-Regular.ttf</code> (Asset)</h3>
+<p>Binary asset — bundle materialization preserves the original bytes.</p>
+<details class="sample-bundle"><summary>Run this sample — Block</summary><p>CompositeControl tracks a Signal read during Build, invalidates its root, and rebuilds a declarative StackPanel on the next layout.</p><p><strong>Requirements:</strong> .NET 10 / Bundled font / Headless on all supported .NET OS</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>ui: builds=2, children=1-&gt;3, invalidated=True</code></p><ul><li><code>samples/LuxelUiHeadless/LuxelUiHeadless.csproj</code> <span>Project</span></li><li><code>samples/LuxelUiHeadless/Program.cs</code> <span>CSharp</span></li><li><code>assets/fonts/BIZUDGothic-Regular.ttf</code> <span>Asset</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelUiHeadless</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelUiHeadless</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Blocks/UI/HeadlessTree&quot;, Order = 3, SampleBundle = &quot;ui.headless-tree&quot;)]
+public static Widget UiHeadlessTree(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+    # Block: Headless reactive UI tree
+
+    `Signal`、`CompositeControl`、generated `Kit` factories、LayoutだけでBuild invalidationを検証するclean-consumer blockです。
+
+    {SampleBundle(&quot;ui.headless-tree&quot;)}
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

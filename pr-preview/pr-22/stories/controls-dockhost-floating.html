@@ -1,0 +1,41 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/DockHost/Floating</h1></header><figure class="static-capture"><img src="images/controls-dockhost-floating.png" alt="Controls/DockHost/Floating" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/DockHost/Floating&quot;, Height = 420)]
+public static Widget DockHostFloating(StoryContext ctx)
+{
+    // &quot;graph&quot; を最初から窓内フロートにしたレイアウト
+    var tree = new Signal&lt;DockTree&gt;(
+        DockTree.Single(&quot;readme&quot;, &quot;main&quot;, &quot;graph&quot;).Float(&quot;graph&quot;, 300, 120, 260, 190));
+    DockItem Resolve(string id) =&gt; id switch
+    {
+        &quot;readme&quot; =&gt; new DockItem(&quot;readme.md&quot;, () =&gt; Pane(&quot;readme.md — ドキュメント&quot;, 0x22808080)),
+        &quot;main&quot; =&gt; new DockItem(&quot;Main.cs&quot;, () =&gt; Pane(&quot;Main.cs — コード&quot;, 0x2260A060)),
+        _ =&gt; new DockItem(&quot;flow.graph&quot;, () =&gt; Pane(&quot;flow.graph — ノード&quot;, 0x226080C0)),
+    };
+    DockHost host = DockHost(tree, Resolve, width: 640, height: 360);
+
+    ctx.Play(async d =&gt;
+    {
+        await d.Snap();                                   // ドックの上にフロートが浮く
+        // つかみバーをドラッグ → フロートが動く (背面ドックのヒットに勝つ = ヒットレイヤ)
+        DockFloat fl = tree.Value.Floats[0];
+        float gx = host.WorldPos.X + fl.X + fl.W / 2 - 20;
+        float gy = host.WorldPos.Y + fl.Y + 7;
+        await d.Drag(gx, gy, gx - 120, gy - 60);
+        await d.Expect(() =&gt; tree.Value.Floats[0].X &lt; 300 &amp;&amp; tree.Value.Floats[0].Y &lt; 120, &quot;つかみバーで移動&quot;);
+        await d.Snap(&quot;moved&quot;);
+        // ドックのタブ &quot;main&quot; をフロートの帯へドラッグ → フロートへ移動 (分割しない)
+        var from = host.TabCenter(&quot;main&quot;)!.Value;
+        var to = host.TabCenter(&quot;graph&quot;)!.Value;
+        await d.Drag(from.X, from.Y, to.X + 50, to.Y, moves: 12);
+        int floatGid = tree.Value.Floats[0].Group.Id;
+        await d.Expect(() =&gt; tree.Value.GroupOf(&quot;main&quot;)!.Id == floatGid, &quot;帯ドロップでフロートへ移動&quot;);
+        await d.Snap(&quot;gathered&quot;);
+        // フロートのタブ &quot;graph&quot; をドック右端へ → フロートから出て横分割
+        var g = host.TabCenter(&quot;graph&quot;)!.Value;
+        await d.Drag(g.X, g.Y, host.WorldPos.X + host.Size.Width - 20, host.WorldPos.Y + 200, moves: 12);
+        await d.Expect(() =&gt; tree.Value.Root is DockSplit { Horizontal: true }
+                          &amp;&amp; tree.Value.FloatOf(tree.Value.GroupOf(&quot;graph&quot;)!.Id) is null, &quot;フロートからドックへ分割&quot;);
+        await d.Snap(&quot;redocked&quot;);
+    });
+
+    return host;
+}</code></pre></details></article>

@@ -1,0 +1,136 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Internals/ADR/Overview</h1></header><h1 id="architecture-decision-records-adr">Architecture Decision Records (ADR)</h1>
+<ul>
+<li><a href="#story=Internals%2FADR%2FOverview&amp;section=%E6%96%B0%E3%81%97%E3%81%84-adr-%E3%81%AE%E8%BF%BD%E5%8A%A0">新しい ADR の追加</a></li>
+<li><a href="#story=Internals%2FADR%2FOverview&amp;section=%E3%82%B9%E3%83%86%E3%83%BC%E3%82%BF%E3%82%B9%E3%81%AE%E6%84%8F%E5%91%B3">ステータスの意味</a></li>
+<li><a href="#story=Internals%2FADR%2FOverview&amp;section=%E4%BD%95%E3%82%92-adr-%E3%81%AB%E3%81%99%E3%82%8B%E3%81%8B">何を ADR にするか</a></li>
+<li><a href="#story=Internals%2FADR%2FOverview&amp;section=%E8%A8%98%E9%8C%B2%E4%B8%80%E8%A6%A7">記録一覧</a></li>
+<li><a href="#story=Internals%2FADR%2FOverview&amp;section=%E5%8F%82%E8%80%83">参考</a></li>
+</ul>
+<p>ADR は「<strong>なぜそう決めたか</strong>」を 1 決定 1 ページで残す軽量な記録です。コードや docs は <em>現在の姿</em> を説明しますが、ADR は <em>その姿を選んだ理由</em> と <em>検討したが捨てた選択肢</em> を時系列で残します。後から「なぜ X なのか」を掘り起こす時間を無くすのが目的です。</p>
+<h2 id="adr">新しい ADR の追加</h2>
+<ol>
+<li><a href="#story=Internals%2FADR%2FTemplate">Internals/ADR/Template</a> のコードをコピーする</li>
+<li>次の連番で <code>[Story(&quot;Internals/ADR/NNNN-短いタイトル&quot;, Order = 71 + 番号)]</code> を作る (例: 2 本目なら <code>Internals/ADR/0002-...</code>, <code>Order = 73</code>)</li>
+<li><strong>Status / Context / Decision / Alternatives / Consequences</strong> の各節を埋める</li>
+<li>この索引の「記録一覧」に 1 行追加する</li>
+<li><code>dotnet build</code> — ソースジェネレーターが自動でサイドバーへ登録します</li>
+</ol>
+<div class="markdown-alert markdown-alert-tip">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>Tip</p>
+<p>ADR は<strong>不変の記録</strong>です。誤字修正以外は「上書き」ではなく「新しい ADR で置き換え」。決定を変えるときは古い ADR の Status を <code>Superseded by ADR-NNNN</code> にし、新しい ADR を追加します。これで決定の履歴が線形に残ります。</p>
+</div>
+<h2 id="section">ステータスの意味</h2>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>意味</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Proposed</td>
+<td>提案中 (議論・レビュー待ち)</td>
+</tr>
+<tr>
+<td>Accepted</td>
+<td>採用済み (現行の決定)</td>
+</tr>
+<tr>
+<td>Superseded by ADR-NNNN</td>
+<td>後続の ADR に置き換えられた</td>
+</tr>
+<tr>
+<td>Deprecated</td>
+<td>もう当てはまらないが記録として残す</td>
+</tr>
+</tbody>
+</table>
+<h2 id="adr-1">何を ADR にするか</h2>
+<p>目安は「<strong>後で理由を聞かれそうな、後戻りしにくい選択</strong>」です。ライブラリ選定・レイヤ境界・全体を貫く規律 (例: vk/dx ピクセル一致、docs の Gallery 一本化)・重い方針転換など。瑣末なリファクタや局所的な実装詳細は ADR にしません。</p>
+<h2 id="section-1">記録一覧</h2>
+<ul>
+<li><a href="#story=Internals%2FADR%2F0001-Record-Architecture-Decisions">ADR-0001 — アーキテクチャ決定を ADR として Gallery に記録する</a> — <strong>Accepted</strong> (2026-07-08)</li>
+<li><a href="#story=Internals%2FADR%2F0002-Thin-Bindless-Gpu-Abstraction">ADR-0002 — 3D グラフィック API は「薄い bindless 抽象」を自作する</a> — <strong>Accepted</strong> (2026-07-08)</li>
+<li><a href="#story=Internals%2FADR%2F0003-Declarative-Signal-Ui">ADR-0003 — UI は「宣言的 C# DSL + signals」を自作する</a> — <strong>Accepted</strong> (2026-07-08)</li>
+<li><a href="#story=Internals%2FADR%2F0004-Compute-Rasterizer-Retained-2D">ADR-0004 — 2D はコンピュートラスタライザ + 保持型キャンバス</a> — <strong>Accepted</strong> (2026-07-08)</li>
+<li><a href="#story=Internals%2FADR%2F0005-Docs-In-Gallery">ADR-0005 — ドキュメントとサンプルは Gallery に一本化する</a> — <strong>Accepted</strong> (2026-07-04)</li>
+<li><a href="#story=Internals%2FADR%2F0006-Editor-New-Stack">ADR-0006 — テキストエディタは Transaction ベースの新スタックを新規に作る</a> — <strong>Accepted</strong> (2026-07-08)</li>
+<li><a href="#story=Internals%2FADR%2F0007-Floating-Ui-Placement">ADR-0007 — 浮遊 UI は単一の anchored placement エンジンに統一する</a> — <strong>Accepted</strong> (2026-07-08)</li>
+<li><a href="#story=Internals%2FADR%2F0008-Custom-Ime-Candidates">ADR-0008 — IME 候補ウインドウを自前描画する (排他モード対応)</a> — <strong>Proposed</strong> (2026-07-08)</li>
+<li><a href="#story=Internals%2FADR%2F0009-Node-Editor-Stack">ADR-0009 — ノードエディタは汎用の Transaction ベース新スタックとして作る</a> — <strong>Accepted</strong> (2026-07-08)</li>
+<li><a href="#story=Internals%2FADR%2F0010-Workbench-Framework">ADR-0010 — 複数エディタを束ねる Workbench フレームワークを新規に作る</a> — <strong>Accepted</strong> (2026-07-09)</li>
+<li><a href="#story=Internals%2FADR%2F0011-Pointer-Button-Modifiers">ADR-0011 — PointerEvent にボタンと修飾キーを通す</a> — <strong>Accepted</strong> (2026-07-09)</li>
+<li><a href="#story=Internals%2FADR%2F0012-Rich-Document-Stack">ADR-0012 — Markdown/リッチ文書はテキスト新スタックの構成として実装する</a> — <strong>Accepted</strong> (2026-07-09)</li>
+<li><a href="#story=Internals%2FADR%2F0013-Menu-Command-System">ADR-0013 — メニューは CommandRegistry を単一の真実として全サーフェスを生成する</a> — <strong>Accepted</strong> (2026-07-09)</li>
+<li><a href="#story=Internals%2FADR%2F0014-Workbench-Ui-Controls">ADR-0014 — Workbench 基盤 UI コントロール群を新設する</a> — <strong>Accepted</strong> (2026-07-09)</li>
+<li><a href="#story=Internals%2FADR%2F0015-Game-Project-Scene-Format">ADR-0015 — ゲームプロジェクト/シーン形式はエディタ専用モデル + 一方向コンパイルにする</a> — <strong>Accepted</strong> (2026-07-10)</li>
+<li><a href="#story=Internals%2FADR%2F0016-Scene-Editor-Stack">ADR-0016 — シーンエディタは第 3 の Transaction スタック + 空間アダプタで作る</a> — <strong>Accepted</strong> (2026-07-11)</li>
+<li><a href="#story=Internals%2FADR%2F0017-Play-In-Editor">ADR-0017 — プレイインエディタは「都度コンパイル + 停止で破棄」の別インスタンスで動かす</a> — <strong>Accepted</strong> (2026-07-11)</li>
+<li><a href="#story=Internals%2FADR%2F0018-Csx-Behaviour-Model">ADR-0018 — ゲームの挙動は csx ビヘイビア (状態レス Update) で書く</a> — <strong>Accepted</strong> (2026-07-11)</li>
+</ul>
+<h2 id="section-2">参考</h2>
+<ul>
+<li><a href="#story=Internals%2FArchitecture">Internals/Architecture</a> — 現在のレイヤ構成 (ADR は「なぜその構成か」を補う)</li>
+<li><a href="#story=Internals%2FContributing">Internals/Contributing</a> — ビルド・テスト・回帰ゲート</li>
+<li><a href="#story=Internals%2FAuthoring">Internals/Authoring</a> — docs ページの書き方 (ADR も同じ仕組み)</li>
+<li><a href="https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions">Documenting Architecture Decisions — Michael Nygard (外部)</a></li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/Overview&quot;, Order = 70)]
+public static Widget Overview(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # Architecture Decision Records (ADR)
+
+    ADR は「**なぜそう決めたか**」を 1 決定 1 ページで残す軽量な記録です。コードや docs は *現在の姿* を説明しますが、ADR は *その姿を選んだ理由* と *検討したが捨てた選択肢* を時系列で残します。後から「なぜ X なのか」を掘り起こす時間を無くすのが目的です。
+
+    ## 新しい ADR の追加
+
+    1. [Internals/ADR/Template](story:Internals/ADR/Template) のコードをコピーする
+    2. 次の連番で `[Story(&quot;Internals/ADR/NNNN-短いタイトル&quot;, Order = 71 + 番号)]` を作る (例: 2 本目なら `Internals/ADR/0002-...`, `Order = 73`)
+    3. **Status / Context / Decision / Alternatives / Consequences** の各節を埋める
+    4. この索引の「記録一覧」に 1 行追加する
+    5. `dotnet build` — ソースジェネレーターが自動でサイドバーへ登録します
+
+    &gt; [!TIP]
+    &gt; ADR は**不変の記録**です。誤字修正以外は「上書き」ではなく「新しい ADR で置き換え」。決定を変えるときは古い ADR の Status を `Superseded by ADR-NNNN` にし、新しい ADR を追加します。これで決定の履歴が線形に残ります。
+
+    ## ステータスの意味
+
+    | Status | 意味 |
+    | --- | --- |
+    | Proposed | 提案中 (議論・レビュー待ち) |
+    | Accepted | 採用済み (現行の決定) |
+    | Superseded by ADR-NNNN | 後続の ADR に置き換えられた |
+    | Deprecated | もう当てはまらないが記録として残す |
+
+    ## 何を ADR にするか
+
+    目安は「**後で理由を聞かれそうな、後戻りしにくい選択**」です。ライブラリ選定・レイヤ境界・全体を貫く規律 (例: vk/dx ピクセル一致、docs の Gallery 一本化)・重い方針転換など。瑣末なリファクタや局所的な実装詳細は ADR にしません。
+
+    ## 記録一覧
+
+    - [ADR-0001 — アーキテクチャ決定を ADR として Gallery に記録する](story:Internals/ADR/0001-Record-Architecture-Decisions) — **Accepted** (2026-07-08)
+    - [ADR-0002 — 3D グラフィック API は「薄い bindless 抽象」を自作する](story:Internals/ADR/0002-Thin-Bindless-Gpu-Abstraction) — **Accepted** (2026-07-08)
+    - [ADR-0003 — UI は「宣言的 C# DSL + signals」を自作する](story:Internals/ADR/0003-Declarative-Signal-Ui) — **Accepted** (2026-07-08)
+    - [ADR-0004 — 2D はコンピュートラスタライザ + 保持型キャンバス](story:Internals/ADR/0004-Compute-Rasterizer-Retained-2D) — **Accepted** (2026-07-08)
+    - [ADR-0005 — ドキュメントとサンプルは Gallery に一本化する](story:Internals/ADR/0005-Docs-In-Gallery) — **Accepted** (2026-07-04)
+    - [ADR-0006 — テキストエディタは Transaction ベースの新スタックを新規に作る](story:Internals/ADR/0006-Editor-New-Stack) — **Accepted** (2026-07-08)
+    - [ADR-0007 — 浮遊 UI は単一の anchored placement エンジンに統一する](story:Internals/ADR/0007-Floating-Ui-Placement) — **Accepted** (2026-07-08)
+    - [ADR-0008 — IME 候補ウインドウを自前描画する (排他モード対応)](story:Internals/ADR/0008-Custom-Ime-Candidates) — **Proposed** (2026-07-08)
+    - [ADR-0009 — ノードエディタは汎用の Transaction ベース新スタックとして作る](story:Internals/ADR/0009-Node-Editor-Stack) — **Accepted** (2026-07-08)
+    - [ADR-0010 — 複数エディタを束ねる Workbench フレームワークを新規に作る](story:Internals/ADR/0010-Workbench-Framework) — **Accepted** (2026-07-09)
+    - [ADR-0011 — PointerEvent にボタンと修飾キーを通す](story:Internals/ADR/0011-Pointer-Button-Modifiers) — **Accepted** (2026-07-09)
+    - [ADR-0012 — Markdown/リッチ文書はテキスト新スタックの構成として実装する](story:Internals/ADR/0012-Rich-Document-Stack) — **Accepted** (2026-07-09)
+    - [ADR-0013 — メニューは CommandRegistry を単一の真実として全サーフェスを生成する](story:Internals/ADR/0013-Menu-Command-System) — **Accepted** (2026-07-09)
+    - [ADR-0014 — Workbench 基盤 UI コントロール群を新設する](story:Internals/ADR/0014-Workbench-Ui-Controls) — **Accepted** (2026-07-09)
+    - [ADR-0015 — ゲームプロジェクト/シーン形式はエディタ専用モデル + 一方向コンパイルにする](story:Internals/ADR/0015-Game-Project-Scene-Format) — **Accepted** (2026-07-10)
+    - [ADR-0016 — シーンエディタは第 3 の Transaction スタック + 空間アダプタで作る](story:Internals/ADR/0016-Scene-Editor-Stack) — **Accepted** (2026-07-11)
+    - [ADR-0017 — プレイインエディタは「都度コンパイル + 停止で破棄」の別インスタンスで動かす](story:Internals/ADR/0017-Play-In-Editor) — **Accepted** (2026-07-11)
+    - [ADR-0018 — ゲームの挙動は csx ビヘイビア (状態レス Update) で書く](story:Internals/ADR/0018-Csx-Behaviour-Model) — **Accepted** (2026-07-11)
+
+    ## 参考
+
+    - [Internals/Architecture](story:Internals/Architecture) — 現在のレイヤ構成 (ADR は「なぜその構成か」を補う)
+    - [Internals/Contributing](story:Internals/Contributing) — ビルド・テスト・回帰ゲート
+    - [Internals/Authoring](story:Internals/Authoring) — docs ページの書き方 (ADR も同じ仕組み)
+    - [Documenting Architecture Decisions — Michael Nygard (外部)](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

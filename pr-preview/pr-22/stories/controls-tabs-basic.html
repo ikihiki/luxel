@@ -1,0 +1,5 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Tabs/Basic</h1></header><figure class="static-capture"><img src="images/controls-tabs-basic.png" alt="Controls/Tabs/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/Tabs/Basic&quot;, Height = 260)]
+public static Widget TabsBasic(StoryContext ctx)
+    =&gt; ctx.Snap(Frame(Tabs([&quot;One&quot;, &quot;Two&quot;, &quot;Three&quot;],
+        [Label(&quot;Content of tab one&quot;), Label(&quot;Content of tab two&quot;), Label(&quot;Content of tab three&quot;)],
+        ctx.Signal(&quot;selected&quot;, 0), width: 380, height: 160)));</code></pre></details></article>

@@ -1,0 +1,9 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Tabs/Event</h1></header><figure class="static-capture"><img src="images/controls-tabs-event.png" alt="Controls/Tabs/Event" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/Tabs/Event&quot;, Height = 260)]
+public static Widget TabsEvnet(StoryContext ctx)
+=&gt; Frame(Tabs([&quot;One&quot;, &quot;Two&quot;, &quot;Three&quot;],
+    [
+        Button(_ =&gt; ctx.Log(&quot;Content of tab one clicked&quot;), &quot;Content of tab one&quot;, margin: new Thickness(0,0,0,0)),
+        Button(_ =&gt; ctx.Log(&quot;Content of tab two clicked&quot;), &quot;Content of tab two&quot;, margin: new Thickness(10,0,0,0)),
+        Button(_ =&gt; ctx.Log(&quot;Content of tab three clicked&quot;), &quot;Content of tab three&quot;, margin: new Thickness(20,0,0,0))
+    ],
+    ctx.Signal(&quot;selected&quot;, 0), width: 380, height: 160));</code></pre></details></article>
