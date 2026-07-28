@@ -23,6 +23,25 @@ dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site --filter C
 Ubuntu/lavapipe上のtestとexportを行い、公式GitHub Pages actionsでdeployする。初回のみrepositoryの
 **Settings → Pages → Source**を**GitHub Actions**へ設定する。
 
+### iPadでフィードバックを書く
+
+GitHub Pages版には、ストーリーを見ながら同じページ内で記入できるフィードバックパネルがある。
+iPad横向きでは本文とパネルを左右に表示し、縦向きでは画面下のシートとして開く。左上の
+**ストーリー** ボタンで一覧を隠すと、プレビューと入力欄の幅を広く使える。
+
+1. 右上の **フィードバック** を開く。
+2. ストーリーごとに状態（未確認・確認済み・要修正）とコメントを記録する。
+3. 必要に応じて **前のコメント** / **次のコメント** で、記入済みストーリーだけを移動する。
+4. 終了時に **全件をコピー** または **Markdown保存** でレビューを取り出す。
+5. **JSONバックアップ** も保存しておくと、後から **JSON復元** で下書きを戻せる。
+6. ストーリー単位で提出する場合は **この内容でIssueを開く** を使う。
+
+下書きはSafariの`localStorage`へ自動保存される。保存範囲には配信パスを含むため、本番Galleryと
+`pr-preview/...`ごとの下書きは混ざらない。一方で、下書きは同じブラウザ・同じ端末内だけのデータであり、
+端末間同期されず、Safariのサイトデータを消去すると失われる。長いレビューではMarkdownとJSONを
+定期的に保存すること。GitHub Pagesへ認証情報やGitHub tokenは埋め込んでいないため、最終送信は
+GitHubのIssue画面で確認して行う。
+
 [Sebastian Aaltonen の *No Graphics API*](https://www.sebastianaaltonen.com/blog/no-graphics-api)
 の設計を C# で提供する薄いグラフィックエンジン。最新のバインドレス GPU が備える機能
 (64bit ポインタ / bindless / dynamic rendering / stage バリア) の上に、ディスクリプタセットや

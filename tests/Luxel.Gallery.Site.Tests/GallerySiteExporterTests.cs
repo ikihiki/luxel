@@ -17,6 +17,41 @@ public sealed class GallerySiteExporterTests
         => System.Runtime.CompilerServices.RuntimeHelpers.RunModuleConstructor(typeof(Luxel.Gallery.Stories.DocsApi).Module.ModuleHandle);
 
     [Fact]
+    public void Static_gallery_includes_an_accessible_ipad_review_workspace()
+    {
+        string html = GallerySiteExporter.IndexHtml;
+        string css = GallerySiteExporter.SiteCss;
+
+        Assert.Contains("id=\"review-panel\"", html);
+        Assert.Contains("aria-label=\"ギャラリーフィードバック\"", html);
+        Assert.Contains("id=\"review-comment\"", html);
+        Assert.Contains("id=\"review-import\"", html);
+        Assert.Contains("viewport-fit=cover", html);
+        Assert.Contains("@media(max-width:820px),(orientation:portrait)", css);
+        Assert.Contains("grid-template-columns:310px minmax(0,1fr) minmax(320px,390px)", css);
+        Assert.Contains("min-height:44px", css);
+        Assert.Contains("env(safe-area-inset-bottom)", css);
+        Assert.Contains("prefers-reduced-motion", css);
+    }
+
+    [Fact]
+    public void Review_drafts_are_path_scoped_exportable_and_do_not_embed_credentials()
+    {
+        string script = GallerySiteExporter.ClientScript;
+
+        Assert.Contains("reviewKey='luxel-gallery-review:v1:'+location.pathname", script);
+        Assert.Contains("stories[activeReviewPath]", script);
+        Assert.Contains("addEventListener('pagehide',saveCurrentReview)", script);
+        Assert.Contains("function reviewMarkdown()", script);
+        Assert.Contains("luxel-gallery-feedback.json", script);
+        Assert.Contains("JSON.parse(await file.text())", script);
+        Assert.Contains("encodeURIComponent(body)", script);
+        Assert.Contains("https://github.com/ikihiki/luxel/issues/new", script);
+        Assert.DoesNotContain("github_pat_", script, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Authorization", script, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Slug_is_stable_and_relative_safe()
     {
         Assert.Equal("controls-button-primary", GallerySiteExporter.Slug("Controls/Button/Primary"));
@@ -215,7 +250,7 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("powershell:'shell'", script);
             Assert.Contains("treeFor(filtered)", script);
             Assert.Contains("details.tree-folder", script);
-            Assert.Contains("localStorage.setItem(openKey", script);
+            Assert.Contains("safeSet(openKey", script);
             Assert.Contains("renderLevel(child,path,open,expandAll)", script);
             Assert.Contains("aria-current','page'", script);
             Assert.Contains("!hasSavedOpen()&&!prefix", script);
