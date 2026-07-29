@@ -16,6 +16,38 @@ public static class DocsApi
     internal static void RegisterReferenceProvider()
         => StoryRegistry.RegisterProvider(RegisterReferenceStories);
 
+    /// <summary>明示 StoryCatalog 用の API/reference story 登録。</summary>
+    internal static void RegisterReferenceStories(StoryCatalogBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        RuntimeHelpers.RunModuleConstructor(typeof(Luxel.Controls.Kit).Module.ModuleHandle);
+        var categories = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (string ns in TypeApiRegistry.Namespaces)
+            builder.Add(new StoryInfo($"Reference/{ns}", 0, 0, null,
+                ctx => NamespacePage(ctx, ns), Order: 60), replaceGenerated: true);
+
+        foreach (ControlApi api in ControlApiRegistry.All)
+        {
+            if (api.Namespace != "Luxel.Controls") continue;
+            string? category = ExistingControlCategory(api.Name);
+            if (category is null || !categories.Add(category)) continue;
+            builder.Add(new StoryInfo($"Controls/{category}/Overview", 0, 0, null,
+                ctx => ControlPage(ctx, api), Order: 0), replaceGenerated: true);
+        }
+
+        RegisterSpecialControlPage(builder, categories, "Layout", LayoutPage);
+        RegisterSpecialControlPage(builder, categories, "Kit", KitPage);
+        RegisterSpecialControlPage(builder, categories, "CommandPalette", CommandPalettePage);
+    }
+
+    private static void RegisterSpecialControlPage(StoryCatalogBuilder builder, HashSet<string> categories,
+        string category, Func<StoryContext, Widget> build)
+    {
+        if (!categories.Add(category)) return;
+        builder.Add(new StoryInfo($"Controls/{category}/Overview", 0, 0, null, build, Order: 0), replaceGenerated: true);
+    }
+
     private static void RegisterReferenceStories()
     {
         RuntimeHelpers.RunModuleConstructor(typeof(Luxel.Controls.Kit).Module.ModuleHandle);

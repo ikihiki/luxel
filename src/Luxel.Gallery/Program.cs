@@ -15,6 +15,7 @@ using Luxel.UI;
 //   backend: auto (既定) | vk | dx | webgpu
 // リモート検証 (AI): DevTools — GET /windows /winframe?id=1 /trees, POST /cmd
 //   (UI 入力は {op, ui:"gallery"|"story", x, y}、ウィンドウ操作は window.*)
+StoryCatalog catalog = GalleryStoryProject.CreateCatalog();
 string backend = (args.Length > 0 ? args[0] : "auto").ToLowerInvariant();
 
 string rasterizerBackend = args.SkipWhile(a => a != "--rasterizer").Skip(1).FirstOrDefault()?.ToLowerInvariant() ?? "gpu";
@@ -41,13 +42,13 @@ if (args.Length > 1 && args[1] is "e2e" or "snap")
     {
         Console.WriteLine("=== Luxel.Gallery e2e with SkiaSharp CPU rasterizer ===");
         using var rasterizer = new SkiaRasterizer2D();
-        using var host = new GalleryHost(rasterizer, font);
-        return E2e.Run(host, StoryRegistry.All, "skia", args.Contains("--update"), filter, args.Contains("--times"));
+        using var host = new GalleryHost(rasterizer, font, catalog);
+        return E2e.Run(host, catalog.All, "skia", args.Contains("--update"), filter, args.Contains("--times"));
     }
     using GpuDevice device = CreateDevice();
     Console.WriteLine($"=== Luxel.Gallery e2e on '{backend}' (device: {device.Name}) ===");
-    using var gpuHost = new GalleryHost(device, font);
-    return E2e.Run(gpuHost, StoryRegistry.All, backend, args.Contains("--update"), filter, args.Contains("--times"));
+    using var gpuHost = new GalleryHost(device, font, catalog);
+    return E2e.Run(gpuHost, catalog.All, backend, args.Contains("--update"), filter, args.Contains("--times"));
 }
 
 // canvas 更新コストのマイクロベンチ: -- vk bench <story> [frames] [--type] [--click x y] [--wheel d]
@@ -58,7 +59,7 @@ if (args.Length > 2 && args[1] == "bench")
     using GpuDevice device = CreateDevice();
     Console.WriteLine($"=== Luxel.Gallery bench on '{backend}' (device: {device.Name}) ===");
     using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);   // 同梱フォント
-    using var host = new GalleryHost(device, font);
+    using var host = new GalleryHost(device, font, catalog);
     int frames = args.Length > 3 && int.TryParse(args[3], out int f) ? f : 300;
     (float x, float y)? click = null;
     int ci = Array.IndexOf(args, "--click");
@@ -74,7 +75,7 @@ if (args.Length > 2 && args[1] == "bench")
 int port = args.Length > 1 && int.TryParse(args[1], out int p) ? p : 5180;
 int seconds = args.Length > 2 && int.TryParse(args[2], out int s) ? s : 0;   // 0 = 常駐
 
-var gallery = new GalleryApp();
+var gallery = new GalleryApp(catalog);
 bool storyRegistered = false;
 LuxelAppBuilder builder = LuxelApp.CreateBuilder(args);
 builder.Options.Title = "Luxel Gallery";
@@ -112,7 +113,7 @@ builder.OnStarted(runtime =>
     DevToolsListener listener = runtime.Own(new DevToolsListener(runtime.Commands));
     var server = runtime.Own(new DebugServer(listener, port, windows: runtime.WindowManager));
     server.Start();
-    Console.WriteLine($"Gallery URL: {server.Url} (stories: {StoryRegistry.All.Count})");
+    Console.WriteLine($"Gallery URL: {server.Url} (stories: {catalog.All.Count})");
 });
 builder.OnFrame((runtime, _) =>
 {

@@ -20,7 +20,8 @@ public static class DocsIndex
 {
     /// <summary>全ストーリーから path → DocsPage の辞書を作る (起動時に 1 回)。</summary>
     public static Dictionary<string, DocsPage> Build(IReadOnlyList<StoryInfo> stories,
-                                                     Luxel.Resources.ResourceSystem? resources)
+                                                     Luxel.Resources.ResourceSystem? resources,
+                                                     StoryCatalog? catalog = null)
     {
         var sw = Stopwatch.StartNew();
         var map = new Dictionary<string, DocsPage>();
@@ -42,7 +43,7 @@ public static class DocsIndex
                         .ToList();
                     map[s.Path] = new DocsPage(s.Path, src, heads);
                     foreach (MarkdownLink l in MarkdownDecorations.Links(src))
-                        if (LinkBroken(l.Url, src))
+                        if (LinkBroken(l.Url, src, catalog))
                         { broken++; Console.Error.WriteLine($"[gallery] dead link in '{s.Path}': {l.Url}"); }
                 }
             }
@@ -82,9 +83,13 @@ public static class DocsIndex
     }
 
     // 新スタック docs のリンク検証: story: (レジストリ) と #アンカー (見出し slug)。外部リンクは検証しない。
-    private static bool LinkBroken(string url, string src)
+    private static bool LinkBroken(string url, string src, StoryCatalog? catalog = null)
     {
-        if (url.StartsWith("story:")) return StoryRegistry.Find(url["story:".Length..]) is null;
+        if (url.StartsWith("story:"))
+        {
+            string path = url["story:".Length..];
+            return (catalog?.Find(path) ?? StoryRegistry.Find(path)) is null;
+        }
         if (url.StartsWith("#")) return !MarkdownDecorations.Headings(src).Any(h => MarkdownDoc.Slug(h.Text) == url[1..]);
         return false;
     }

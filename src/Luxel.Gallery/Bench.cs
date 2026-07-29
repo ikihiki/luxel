@@ -1,4 +1,4 @@
-﻿using Luxel.UI;
+using Luxel.UI;
 
 namespace Luxel.Gallery;
 
@@ -17,7 +17,7 @@ public static class Bench
 
     public static int Run(GalleryHost host, string storyPath, int frames, bool type, (float x, float y)? click, float wheel = 0)
     {
-        if (StoryRegistry.Find(storyPath) is null)
+        if (!host.ContainsStory(storyPath))
         {
             Console.Error.WriteLine($"bench: ストーリーが見つかりません: {storyPath}");
             return 1;

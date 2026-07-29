@@ -25,6 +25,7 @@ public sealed class GalleryApp : IDisposable
     // 大型モニタの最大化まで追従できるよう余裕を持たせる (DeviceLocal ~14MB×scale²)
     private const float SurfW = 2560, SurfH = 1440;
 
+    private readonly StoryCatalog _catalog;
     private readonly SurfaceView _preview = SurfaceView(SurfW, SurfH);
     private Exception? _pendingStoryError;
     // ストーリーへ StoryContext.Resources として配布 (キャッシュ共有、Pump は Update が叩く)
@@ -67,8 +68,9 @@ public sealed class GalleryApp : IDisposable
     private readonly object _editGate = new();
     private readonly List<(Widget W, string Name, string Type, string Value)> _propEdits = new();
 
-    public GalleryApp()
+    public GalleryApp(StoryCatalog catalog)
     {
+        _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _preview.ContentError = error => _pendingStoryError ??= error;
         WireStateForcing();   // Effect は生涯 1 組 (BuildRoot 毎に張ると累積する)
     }
@@ -204,7 +206,7 @@ public sealed class GalleryApp : IDisposable
     /// メインは行 [ツールバー | プレビュー(Star) | Splitter | Log]。Splitter のドラッグ確定で寸法を更新して再構築する。</summary>
     public Widget BuildRoot()
     {
-        _docsIndex ??= DocsIndex.Build(StoryRegistry.All, _resources);
+        _docsIndex ??= DocsIndex.Build(_catalog.All, _resources, _catalog);
         EnsureDock();
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(6))[_dockHost!];
     }
@@ -342,13 +344,13 @@ public sealed class GalleryApp : IDisposable
         // 展開状態 (_treeExpanded) は GalleryApp が所有 — chrome 再構築をまたいで保持。
         // 初回は全 Component を展開 (従来の全件表示と同じ見え方から始める)。
         // 見出し (TOC) は DocsIndex から全ページ分を常設 (Tag = (StoryInfo, ブロック index))
-        _docsIndex ??= DocsIndex.Build(StoryRegistry.All, _resources);
+        _docsIndex ??= DocsIndex.Build(_catalog.All, _resources, _catalog);
         // 本家 Storybook と同じく、**パスのスラッシュ区切りがそのまま階層** (title 相当)。
         // 末尾セグメント = ストーリー、手前 = フォルダ (章/コンポーネント/…、深さ任意)。
         // 表示層のマップは持たない — 章替え/整理はパス改名 (+ golden の git mv) で行う。
         var roots = new List<TreeNode>();
         var folders = new Dictionary<string, List<TreeNode>>();   // "Examples/2D" → 子リスト
-        foreach (StoryInfo s in StoryRegistry.All)
+        foreach (StoryInfo s in _catalog.All)
         {
             string[] seg = s.Path.Split('/');
             List<TreeNode> level = roots;
@@ -823,7 +825,7 @@ public sealed class GalleryApp : IDisposable
 
     public void SelectByPath(string path)
     {
-        if (StoryRegistry.Find(path) is { } s) Select(s);
+        if (_catalog.Find(path) is { } s) Select(s);
     }
 
     public void Dispose()

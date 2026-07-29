@@ -15,6 +15,7 @@ namespace Luxel.Gallery;
 /// </summary>
 public sealed class GalleryHost : IDisposable
 {
+    private readonly StoryCatalog? _catalog;
     private readonly GpuDevice? _device;
     private readonly VectorFont _font;
     private readonly IRasterizer2D _raster;
@@ -44,14 +45,15 @@ public sealed class GalleryHost : IDisposable
     private long _frameRev;
     private ulong _frameHash;
 
-    public GalleryHost(GpuDevice device, VectorFont font)
-        : this(new GpuDeviceRasterizer2D(device), font, device) { }
+    public GalleryHost(GpuDevice device, VectorFont font, StoryCatalog? catalog = null)
+        : this(new GpuDeviceRasterizer2D(device), font, device, catalog) { }
 
-    public GalleryHost(IRasterizer2D rasterizer, VectorFont font)
-        : this(rasterizer, font, rasterizer is GpuDeviceRasterizer2D gpu ? gpu.Device : null) { }
+    public GalleryHost(IRasterizer2D rasterizer, VectorFont font, StoryCatalog? catalog = null)
+        : this(rasterizer, font, rasterizer is GpuDeviceRasterizer2D gpu ? gpu.Device : null, catalog) { }
 
-    private GalleryHost(IRasterizer2D rasterizer, VectorFont font, GpuDevice? device)
+    private GalleryHost(IRasterizer2D rasterizer, VectorFont font, GpuDevice? device, StoryCatalog? catalog)
     {
+        _catalog = catalog;
         _device = device;
         _font = font;
         _raster = rasterizer ?? throw new ArgumentNullException(nameof(rasterizer));
@@ -92,15 +94,19 @@ public sealed class GalleryHost : IDisposable
     /// <summary>ストーリーを選択して実体化する (既存は破棄)。ギャラリースレッドから呼ぶ。</summary>
     public void Select(string path)
     {
-        StoryInfo? story = StoryRegistry.Find(path);
+        StoryInfo? story = FindStory(path);
         if (story is null) return;
         SelectCore(story, e2e: false);
     }
 
     /// <summary>Selects exactly one registered story or throws instead of silently retaining the previous story.</summary>
     public void SelectExact(string path)
-        => SelectForE2e(StoryRegistry.Find(path)
+        => SelectForE2e(FindStory(path)
             ?? throw new KeyNotFoundException($"Story not found: {path}"));
+
+    public bool ContainsStory(string path) => FindStory(path) is not null;
+
+    private StoryInfo? FindStory(string path) => _catalog?.Find(path) ?? StoryRegistry.Find(path);
 
     /// <summary>The currently realized widget tree. Intended for deterministic export/introspection.</summary>
     public Widget? CurrentRoot => _root;

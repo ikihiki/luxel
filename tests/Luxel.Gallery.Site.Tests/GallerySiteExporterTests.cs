@@ -17,6 +17,18 @@ public sealed class GallerySiteExporterTests
         => System.Runtime.CompilerServices.RuntimeHelpers.RunModuleConstructor(typeof(Luxel.Gallery.Stories.DocsApi).Module.ModuleHandle);
 
     [Fact]
+    public void Gallery_story_project_registers_an_explicit_isolated_catalog()
+    {
+        StoryCatalog catalog = GalleryStoryProject.CreateCatalog();
+        var empty = new StoryCatalogBuilder().Build();
+
+        Assert.NotNull(catalog.Find("Start/Welcome"));
+        Assert.NotNull(catalog.Find("Controls/Button/Primary"));
+        Assert.NotNull(catalog.Find("Controls/Button/Overview"));
+        Assert.Null(empty.Find("Start/Welcome"));
+    }
+
+    [Fact]
     public void Browser_webgpu_bundle_contains_publishable_source_and_gallery_run_link()
     {
         SampleBundleInfo bundle = Assert.IsType<SampleBundleInfo>(SampleBundleRegistry.Find("rendering.webgpu-browser"));
