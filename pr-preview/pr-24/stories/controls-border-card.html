@@ -1,0 +1,8 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Border/Card</h1></header><figure class="static-capture"><img src="images/controls-border-card.png" alt="Controls/Border/Card" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/Border/Card&quot;, Height = 220)]
+public static Widget BorderCard() =&gt; Frame(
+    Border(background: Bind.From(() =&gt; UiTheme.T.Surface), rounded: 12, padding: new Thickness(20))
+        [VStack(6)[
+            Heading(&quot;Card title&quot;, 2),
+            Muted(&quot;Supporting description text&quot;),
+            Spacer(height: 8f),
+            Button(_ =&gt; { }, &quot;Action&quot;)]]);</code></pre></details></article>

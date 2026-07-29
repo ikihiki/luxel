@@ -1,0 +1,15 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/ECSPhysics/CollisionsAndGizmos</h1></header><h1 id="collisions-triggers-and-gizmos">Collisions, triggers, and gizmos</h1>
+<p>collision responseとtrigger eventを分離し、mesh colliderは静的geometryへ限定します。まずprimitive falling、次にtrigger、最後にmeshとgizmoでshape/normal/contactを可視化します。</p>
+<figure class="static-capture"><a href="#story=Examples%2F3D%2FPhysicsTrigger"><img src="images/examples-3d-physicstrigger.png" alt="Examples/3D/PhysicsTrigger" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<figure class="static-capture"><a href="#story=Examples%2F3D%2FPhysicsMesh"><img src="images/examples-3d-physicsmesh.png" alt="Examples/3D/PhysicsMesh" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<figure class="static-capture"><a href="#story=Examples%2F3D%2FPhysicsGizmos"><img src="images/examples-3d-physicsgizmos.png" alt="Examples/3D/PhysicsGizmos" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/ECSPhysics/CollisionsAndGizmos&quot;, Order = 1)]
+public static Widget Physics(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # Collisions, triggers, and gizmos
+
+    collision responseとtrigger eventを分離し、mesh colliderは静的geometryへ限定します。まずprimitive falling、次にtrigger、最後にmeshとgizmoでshape/normal/contactを可視化します。
+
+    {{StoryRef(ctx, &quot;Examples/3D/PhysicsTrigger&quot;)}}
+    {{StoryRef(ctx, &quot;Examples/3D/PhysicsMesh&quot;)}}
+    {{StoryRef(ctx, &quot;Examples/3D/PhysicsGizmos&quot;)}}
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

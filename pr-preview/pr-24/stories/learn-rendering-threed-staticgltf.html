@@ -1,0 +1,102 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Rendering/ThreeD/StaticGltf</h1></header><h1 id="ecsgltf">ECSなしで静的glTFを描く</h1>
+<p><strong>難易度:</strong> Beginner+　 <strong>実行環境:</strong> Gallery / Standalone　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> FirstRenderGraph</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FRendering%2FThreeD%2FFirstRenderGraph">FirstRenderGraph</a>　 <strong>次:</strong> <a href="#story=Learn%2FRendering%2FThreeD%2FDebugging">Debugging</a></p>
+<figure class="static-capture"><a href="#story=Examples%2F3D%2FGltfBox"><img src="images/examples-3d-gltfbox.png" alt="Examples/3D/GltfBox" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<p>最初の1モデルではECS、animation、skin、morphを使いません。理解する経路はこれだけです。</p>
+<pre><code class="language-text">Box.gltf → AssetDocument → AssetPrimitive → GpuPrimitive → instance buffer → Draw
+</code></pre>
+<p><code>.gltf</code>が参照する<code>.bin</code>やimageはgltf fileのあるdirectoryから解決されます。asset rootではなく、まず絶対pathを確定してloaderへ渡します。</p>
+<pre><code class="language-csharp">string path = Path.Combine(AppContext.BaseDirectory, &quot;assets&quot;, &quot;Box.gltf&quot;);
+AssetDocument doc = await new GltfLoader().LoadAsync(path);
+AssetPrimitive source = doc.Meshes[0].Primitives[0];
+using GpuPrimitive primitive = GpuAssetFactory.Upload(source, device);
+</code></pre>
+<p><code>GpuAssetFactory.Upload</code>はposition/normal/UVを32-byte vertexへ変換し、indexがあれば<code>uint</code> bufferも作ります。次に1 instanceだけ用意します。</p>
+<pre><code class="language-csharp">using GpuBuffer instances = device.Malloc(
+    (ulong)Marshal.SizeOf&lt;SceneInstanceData&gt;(), GpuMemoryKind.HostMapped);
+instances.Span&lt;SceneInstanceData&gt;(1)[0] = new SceneInstanceData
+{
+    World = Matrix4x4.Identity,
+    BaseColor = source.Material?.BaseColorFactor ?? Vector4.One,
+};
+
+bool indexed = primitive.IndexBuffer is not null;
+var args = new DrawArgs
+{
+    ViewProj = Matrix4x4.Transpose(view * projection),
+    VertexBufIndex = primitive.VertexBuffer.BindlessIndex,
+    IndexBufIndex = indexed ? primitive.IndexBuffer!.BindlessIndex : 0xFFFFFFFFu,
+    InstanceBufIndex = instances.BindlessIndex,
+    InstanceStart = 0,
+};
+</code></pre>
+<p>最後はdepth target付きpassで<code>scene_pbr_lite</code>をbindし、index countまたはvertex countをdrawします。Luxel coreに別の<code>DrawIndexed</code>はなく、shaderがindex bufferをpullします。</p>
+<pre><code class="language-csharp">uint count = (uint)(indexed ? primitive.IndexCount : primitive.VertexCount);
+command.BeginRendering(color, depth, 0.05f, 0.06f, 0.09f, 1, 1)
+    .SetGraphicsPipeline(pipeline)
+    .SetRootArguments(args)
+    .Draw(count, 1)
+    .EndRendering();
+</code></pre>
+<p>ここまでが静的1 primitiveです。scene graphと複数node/ECSは<a href="#story=Reference%2FGuides%2FAssets">Reference/Guides/Assets</a>、TRS animationは<a href="#story=Examples%2F3D%2FGltfAnimated">GltfAnimated</a>、skinは<a href="#story=Examples%2F3D%2FGltfSkinned">GltfSkinned</a>、morphは<a href="#story=Examples%2F3D%2FGltfMorph">GltfMorph</a>へ分けて進んでください。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Rendering/ThreeD/StaticGltf&quot;, Order = 12)]
+public static Widget StaticGltf(StoryContext ctx)
+{
+    return DocNew(ctx, $$&quot;&quot;&quot;
+    # ECSなしで静的glTFを描く
+
+    {{RenderingCourseCatalog.Meta(&quot;Learn/Rendering/ThreeD/StaticGltf&quot;, &quot;Beginner+&quot;, &quot;Gallery / Standalone&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;FirstRenderGraph&quot;)}}
+
+    {{StoryRef(ctx, &quot;Examples/3D/GltfBox&quot;)}}
+
+    最初の1モデルではECS、animation、skin、morphを使いません。理解する経路はこれだけです。
+
+    ```text
+    Box.gltf → AssetDocument → AssetPrimitive → GpuPrimitive → instance buffer → Draw
+    ```
+
+    `.gltf`が参照する`.bin`やimageはgltf fileのあるdirectoryから解決されます。asset rootではなく、まず絶対pathを確定してloaderへ渡します。
+
+    ```csharp
+    string path = Path.Combine(AppContext.BaseDirectory, &quot;assets&quot;, &quot;Box.gltf&quot;);
+    AssetDocument doc = await new GltfLoader().LoadAsync(path);
+    AssetPrimitive source = doc.Meshes[0].Primitives[0];
+    using GpuPrimitive primitive = GpuAssetFactory.Upload(source, device);
+    ```
+
+    `GpuAssetFactory.Upload`はposition/normal/UVを32-byte vertexへ変換し、indexがあれば`uint` bufferも作ります。次に1 instanceだけ用意します。
+
+    ```csharp
+    using GpuBuffer instances = device.Malloc(
+        (ulong)Marshal.SizeOf&lt;SceneInstanceData&gt;(), GpuMemoryKind.HostMapped);
+    instances.Span&lt;SceneInstanceData&gt;(1)[0] = new SceneInstanceData
+    {
+        World = Matrix4x4.Identity,
+        BaseColor = source.Material?.BaseColorFactor ?? Vector4.One,
+    };
+
+    bool indexed = primitive.IndexBuffer is not null;
+    var args = new DrawArgs
+    {
+        ViewProj = Matrix4x4.Transpose(view * projection),
+        VertexBufIndex = primitive.VertexBuffer.BindlessIndex,
+        IndexBufIndex = indexed ? primitive.IndexBuffer!.BindlessIndex : 0xFFFFFFFFu,
+        InstanceBufIndex = instances.BindlessIndex,
+        InstanceStart = 0,
+    };
+    ```
+
+    最後はdepth target付きpassで`scene_pbr_lite`をbindし、index countまたはvertex countをdrawします。Luxel coreに別の`DrawIndexed`はなく、shaderがindex bufferをpullします。
+
+    ```csharp
+    uint count = (uint)(indexed ? primitive.IndexCount : primitive.VertexCount);
+    command.BeginRendering(color, depth, 0.05f, 0.06f, 0.09f, 1, 1)
+        .SetGraphicsPipeline(pipeline)
+        .SetRootArguments(args)
+        .Draw(count, 1)
+        .EndRendering();
+    ```
+
+    ここまでが静的1 primitiveです。scene graphと複数node/ECSは[Reference/Guides/Assets](story:Reference/Guides/Assets)、TRS animationは[GltfAnimated](story:Examples/3D/GltfAnimated)、skinは[GltfSkinned](story:Examples/3D/GltfSkinned)、morphは[GltfMorph](story:Examples/3D/GltfMorph)へ分けて進んでください。
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

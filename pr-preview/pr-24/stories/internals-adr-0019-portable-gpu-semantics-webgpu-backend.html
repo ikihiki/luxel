@@ -1,0 +1,102 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Internals/ADR/0019-Portable-Gpu-Semantics-WebGPU-Backend</h1></header><h1 id="adr-0019-portable-gpu-semantics-webgpu-backend">ADR-0019 — portable GPU semantics として WebGPU backend を追加する</h1>
+<ul>
+<li><p><a href="#story=Internals%2FADR%2F0019-Portable-Gpu-Semantics-WebGPU-Backend&amp;section=context">Context</a></p>
+</li>
+<li><p><a href="#story=Internals%2FADR%2F0019-Portable-Gpu-Semantics-WebGPU-Backend&amp;section=decision">Decision</a></p>
+</li>
+<li><p><a href="#story=Internals%2FADR%2F0019-Portable-Gpu-Semantics-WebGPU-Backend&amp;section=alternatives">Alternatives</a></p>
+</li>
+<li><p><a href="#story=Internals%2FADR%2F0019-Portable-Gpu-Semantics-WebGPU-Backend&amp;section=consequences">Consequences</a></p>
+</li>
+<li><p><strong>Status</strong>: Accepted</p>
+</li>
+<li><p><strong>Date</strong>: 2026-07-28</p>
+</li>
+<li><p><strong>Deciders</strong>: ikihiki</p>
+</li>
+<li><p><strong>Amends</strong>: <a href="#story=Internals%2FADR%2F0002-Thin-Bindless-Gpu-Abstraction">ADR-0002</a></p>
+</li>
+</ul>
+<h2 id="context">Context</h2>
+<p><a href="#story=Internals%2FADR%2F0002-Thin-Bindless-Gpu-Abstraction">ADR-0002</a> は Vulkan / DirectX 12 の共通部分を、固定 root arguments、bindless resources、vertex pulling、one-shot command recording、stage barrierへ絞ることで、薄い GPU 抽象を成立させました。一方、その決定は GPU virtual address、永続 map、ユーザー書換 descriptor heap、明示 barrierを portable baseline とみなし、WebGPU 系を「最大公約数」の抽象として却下していました。</p>
+<p>native desktop WebGPU を追加するには、それらの native mechanism を sentinel や疑似 GPUVA で模倣するのではなく、上位層が必要とする意味論と backend-specific fast path を分離する必要があります。守るべき <em>No Graphics API</em> の原則は、特定 API の命令形ではなく、transient recording、data-oriented な単一 argument block、vertex pulling、明示的な pass、アプリから descriptor 管理を隠すこと、論理依存と tooling-first diagnostics です。</p>
+<h2 id="decision">Decision</h2>
+<p><code>Luxel.Graphics</code> の共通契約を <strong>portable semantic model</strong> として定義し、その lowering の一つとして native desktop WebGPU backend を追加します。ADR-0002 の薄い抽象という方向性は維持し、native mechanism を共通 API の必須条件とした部分を次のように修正します。</p>
+<ul>
+<li><strong>resource</strong> — declared usage を持つ opaque allocation と stable logical ID。<code>DeviceAddress</code>、persistent pointer、native bindless index は capability-specific extension とし、portable API で sentinel 値を返さない</li>
+<li><strong>arguments</strong> — 最大 192 bytes の単一 typed/raw data block と、manifest で識別できる logical resource references。WebGPU baseline は frame-local uniform/storage argument ring、Immediate Data は capability-gated optimization</li>
+<li><strong>memory flow</strong> — <code>Upload</code> / <code>DeviceLocal</code> / <code>Readback</code> を契約とする。WebGPU は CPU shadow/staging + <code>writeBuffer</code>/copy と async map に lower し、永続 map を要求しない</li>
+<li><strong>pass</strong> — attachments、load/store、resource access set を明示する。portable pipeline state は baked state とし、Vulkan/D3D12 の extended dynamic state は任意最適化</li>
+<li><strong>synchronization</strong> — producer/consumer dependency を共通意味論とする。Vulkan は synchronization2 barrier、D3D12 は transition/UAV barrier、WebGPU は pass/encoder segmentation と usage validation に lower する</li>
+<li><strong>pipeline / shader</strong> — entry points、portable baked state、specialization values、backend artifacts、argument/resource metadata、required features/limits をまとめた shader package を使う。WebGPU の正式 artifact は WGSL とする</li>
+<li><strong>diagnostics</strong> — unsupported feature/limit は backend または pipeline 作成時に fail-fast し、required/actual、adapter、shader/pipeline label、logical ID を含める</li>
+</ul>
+<p>初期対象は native Windows と Linux/X11 の明示 opt-in です。browser/WASM と macOS は初期スコープ外で、既定 backend は変更しません。利用者向けの設計契約は <a href="#story=Reference%2FGuides%2FWebGPU">Reference/Guides/WebGPU</a> に記録します。</p>
+<p>現在のheadless実装は、group 0のbuffer arena/root uniformと、group 1のsampled texture 16 slot + sampler 16 slotからなる固定portable ABIを提供します。両resource kindのlogical indexは独立した<code>0..15</code>で、全pipelineが同じlayoutを使います。non-uniform indexing featureには依存せずWGSLの固定<code>switch</code>へlowerし、範囲外indexは明示的なdiagnostic結果にします。17個目のlive resource、必要limit不足、unsupported sampled formatはfail-fastし、recorded/in-flight bind groupが保持するresourceは完了までslot/native lifetimeを延長します。shader package全体のbinding metadataとunbounded runtime resource arrayは引き続き未対応です。</p>
+<h2 id="alternatives">Alternatives</h2>
+<ul>
+<li><strong>ADR-0002 を上書きして WebGPU の却下理由を消す</strong> — 当時の制約と判断が失われるため却下。履歴は残し、この ADR で Amends する</li>
+<li><strong>GPUVA / bindless index / persistent map を WebGPU 上で疑似再現する</strong> — sentinel、巨大 arena、暗黙 copy が共通 API の意味を曖昧にし、backend の制約が上位へ漏れるため却下</li>
+<li><strong>WebGPU 専用の別グラフィック API を上位層へ公開する</strong> — RenderGraph / TwoD / UI が backend 分岐を持つことになり、薄い共通契約を壊すため却下</li>
+<li><strong>browser/WASM まで初期対象に含める</strong> — surface、配布、非同期実行、shader/toolchain の検証範囲が増え、native backend の契約確立を妨げるため見送り</li>
+<li><strong>WebGPU を既定 backend にする</strong> — Vulkan/D3D12 の既存回帰と配布契約を不要に変えるため却下。初期は明示 opt-in とする</li>
+</ul>
+<h2 id="consequences">Consequences</h2>
+<ul>
+<li>✅ 上位コードは logical resources、argument block、pass、dependency の同じ意味論で Vulkan / DirectX 12 / WebGPU を扱える</li>
+<li>✅ Vulkan/D3D12 は GPUVA、persistent mapping、bindless heap を fast path として維持できる</li>
+<li>✅ shader metadata、logical IDs、labels、required limits が backend をまたぐ診断と tooling の基盤になる</li>
+<li>⚠️ 共通 GPU API と shader ABI の移行が必要で、既存 backend の pixel / root argument / one-shot command 回帰を継続して守る必要がある</li>
+<li>⚠️ WebGPU では root argument ring、bind-group cache、upload/readback lifecycle、pass split の実装コストを backend が引き受ける</li>
+<li>⚠️ WebGPU の feature/limit と採用 native implementation の対応範囲により、pipeline が明示的に利用不能になる場合がある</li>
+<li>⚠️ native Windows/Linux 以外、Immediate Data、unbounded runtime resource arrays、永続 CPU/GPU 同時 map は portable baseline に含まれない</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0019-Portable-Gpu-Semantics-WebGPU-Backend&quot;, Order = 90)]
+public static Widget Adr0019(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # ADR-0019 — portable GPU semantics として WebGPU backend を追加する
+
+    - **Status**: Accepted
+    - **Date**: 2026-07-28
+    - **Deciders**: ikihiki
+    - **Amends**: [ADR-0002](story:Internals/ADR/0002-Thin-Bindless-Gpu-Abstraction)
+
+    ## Context
+
+    [ADR-0002](story:Internals/ADR/0002-Thin-Bindless-Gpu-Abstraction) は Vulkan / DirectX 12 の共通部分を、固定 root arguments、bindless resources、vertex pulling、one-shot command recording、stage barrierへ絞ることで、薄い GPU 抽象を成立させました。一方、その決定は GPU virtual address、永続 map、ユーザー書換 descriptor heap、明示 barrierを portable baseline とみなし、WebGPU 系を「最大公約数」の抽象として却下していました。
+
+    native desktop WebGPU を追加するには、それらの native mechanism を sentinel や疑似 GPUVA で模倣するのではなく、上位層が必要とする意味論と backend-specific fast path を分離する必要があります。守るべき *No Graphics API* の原則は、特定 API の命令形ではなく、transient recording、data-oriented な単一 argument block、vertex pulling、明示的な pass、アプリから descriptor 管理を隠すこと、論理依存と tooling-first diagnostics です。
+
+    ## Decision
+
+    `Luxel.Graphics` の共通契約を **portable semantic model** として定義し、その lowering の一つとして native desktop WebGPU backend を追加します。ADR-0002 の薄い抽象という方向性は維持し、native mechanism を共通 API の必須条件とした部分を次のように修正します。
+
+    - **resource** — declared usage を持つ opaque allocation と stable logical ID。`DeviceAddress`、persistent pointer、native bindless index は capability-specific extension とし、portable API で sentinel 値を返さない
+    - **arguments** — 最大 192 bytes の単一 typed/raw data block と、manifest で識別できる logical resource references。WebGPU baseline は frame-local uniform/storage argument ring、Immediate Data は capability-gated optimization
+    - **memory flow** — `Upload` / `DeviceLocal` / `Readback` を契約とする。WebGPU は CPU shadow/staging + `writeBuffer`/copy と async map に lower し、永続 map を要求しない
+    - **pass** — attachments、load/store、resource access set を明示する。portable pipeline state は baked state とし、Vulkan/D3D12 の extended dynamic state は任意最適化
+    - **synchronization** — producer/consumer dependency を共通意味論とする。Vulkan は synchronization2 barrier、D3D12 は transition/UAV barrier、WebGPU は pass/encoder segmentation と usage validation に lower する
+    - **pipeline / shader** — entry points、portable baked state、specialization values、backend artifacts、argument/resource metadata、required features/limits をまとめた shader package を使う。WebGPU の正式 artifact は WGSL とする
+    - **diagnostics** — unsupported feature/limit は backend または pipeline 作成時に fail-fast し、required/actual、adapter、shader/pipeline label、logical ID を含める
+
+    初期対象は native Windows と Linux/X11 の明示 opt-in です。browser/WASM と macOS は初期スコープ外で、既定 backend は変更しません。利用者向けの設計契約は [Reference/Guides/WebGPU](story:Reference/Guides/WebGPU) に記録します。
+
+    現在のheadless実装は、group 0のbuffer arena/root uniformと、group 1のsampled texture 16 slot + sampler 16 slotからなる固定portable ABIを提供します。両resource kindのlogical indexは独立した`0..15`で、全pipelineが同じlayoutを使います。non-uniform indexing featureには依存せずWGSLの固定`switch`へlowerし、範囲外indexは明示的なdiagnostic結果にします。17個目のlive resource、必要limit不足、unsupported sampled formatはfail-fastし、recorded/in-flight bind groupが保持するresourceは完了までslot/native lifetimeを延長します。shader package全体のbinding metadataとunbounded runtime resource arrayは引き続き未対応です。
+
+    ## Alternatives
+
+    - **ADR-0002 を上書きして WebGPU の却下理由を消す** — 当時の制約と判断が失われるため却下。履歴は残し、この ADR で Amends する
+    - **GPUVA / bindless index / persistent map を WebGPU 上で疑似再現する** — sentinel、巨大 arena、暗黙 copy が共通 API の意味を曖昧にし、backend の制約が上位へ漏れるため却下
+    - **WebGPU 専用の別グラフィック API を上位層へ公開する** — RenderGraph / TwoD / UI が backend 分岐を持つことになり、薄い共通契約を壊すため却下
+    - **browser/WASM まで初期対象に含める** — surface、配布、非同期実行、shader/toolchain の検証範囲が増え、native backend の契約確立を妨げるため見送り
+    - **WebGPU を既定 backend にする** — Vulkan/D3D12 の既存回帰と配布契約を不要に変えるため却下。初期は明示 opt-in とする
+
+    ## Consequences
+
+    - ✅ 上位コードは logical resources、argument block、pass、dependency の同じ意味論で Vulkan / DirectX 12 / WebGPU を扱える
+    - ✅ Vulkan/D3D12 は GPUVA、persistent mapping、bindless heap を fast path として維持できる
+    - ✅ shader metadata、logical IDs、labels、required limits が backend をまたぐ診断と tooling の基盤になる
+    - ⚠️ 共通 GPU API と shader ABI の移行が必要で、既存 backend の pixel / root argument / one-shot command 回帰を継続して守る必要がある
+    - ⚠️ WebGPU では root argument ring、bind-group cache、upload/readback lifecycle、pass split の実装コストを backend が引き受ける
+    - ⚠️ WebGPU の feature/limit と採用 native implementation の対応範囲により、pipeline が明示的に利用不能になる場合がある
+    - ⚠️ native Windows/Linux 以外、Immediate Data、unbounded runtime resource arrays、永続 CPU/GPU 同時 map は portable baseline に含まれない
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

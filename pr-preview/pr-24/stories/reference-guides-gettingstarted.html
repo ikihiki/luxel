@@ -1,0 +1,132 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Guides/GettingStarted</h1></header><h1 id="luxel">Luxel を始める</h1>
+<ul>
+<li><a href="#story=Reference%2FGuides%2FGettingStarted&amp;section=%E5%BF%85%E8%A6%81%E7%92%B0%E5%A2%83">必要環境</a></li>
+<li><a href="#story=Reference%2FGuides%2FGettingStarted&amp;section=%E3%83%93%E3%83%AB%E3%83%89%E3%81%A8-gallery-%E3%81%AE%E8%B5%B7%E5%8B%95">ビルドと Gallery の起動</a></li>
+<li><a href="#story=Reference%2FGuides%2FGettingStarted&amp;section=%E6%9C%80%E5%88%9D%E3%81%AE-ui">最初の UI</a></li>
+<li><a href="#story=Reference%2FGuides%2FGettingStarted&amp;section=%E3%83%89%E3%82%AD%E3%83%A5%E3%83%A1%E3%83%B3%E3%83%88%E3%81%AE%E6%AD%A9%E3%81%8D%E6%96%B9">ドキュメントの歩き方</a></li>
+</ul>
+<p>Luxel は <a href="https://www.sebastianaaltonen.com/blog/no-graphics-api">Sebastian Aaltonen の <em>No Graphics API</em></a> の原則を C# で実装した薄いグラフィックエンジンです。resource・単一 argument block・明示 pass・producer/consumer dependency を portable semantics とし、descriptor 管理や native synchronization は backend lowering に閉じ込めます。その上に 2D ベクター・宣言的 UI・アニメーション・レンダーグラフを積み上げています。</p>
+<ul>
+<li><strong>バックエンド</strong>: Vulkan 1.3 + DirectX 12。native WebGPU は Windows/Linux の明示 opt-in として追加する方針</li>
+<li><strong>シェーダ</strong>: shader package が entry/metadata と SPIR-V (Vulkan) / DXIL (D3D12) / portable WGSL (WebGPU) artifact を束ねる</li>
+<li><strong>核心</strong>: 最大192Bの単一 root argument block + logical resource references。Vulkan/D3D12 は bindless/GPUVA、WebGPU は argument ring/fixed bind groups へ lower する</li>
+</ul>
+<h2 id="section">必要環境</h2>
+<ul>
+<li>.NET SDK (net10.0)</li>
+<li>選択する backend に対応する GPU/ドライバと native runtime (通常起動は Vulkan または DirectX 12)</li>
+<li>WebGPU の対象・選択・required limits は <a href="#story=Reference%2FGuides%2FWebGPU">Reference/Guides/WebGPU</a> を参照</li>
+<li>通常ビルドは Git 管理済み shader cache を使用。shader compiler/translator は cache 更新時だけ取得</li>
+</ul>
+<h2 id="gallery">ビルドと Gallery の起動</h2>
+<p>機能の実例・ドキュメント・回帰テストはすべてこの <strong>Gallery</strong> に集約されています:</p>
+<pre><code class="language-powershell">dotnet build
+dotnet run --project src/Luxel.Gallery -- vk           # この Gallery (実ウィンドウ)
+dotnet run --project src/Luxel.Gallery -- vk e2e       # play + golden 回帰 (--update で更新)
+dotnet run --project src/Luxel.Gallery -- vk bench &quot;Controls/Button/Counter&quot; 300 --type
+dotnet test                                            # ユニットテスト
+</code></pre>
+<p><code>vk</code> を <code>dx</code> に変えると DirectX 12 で動きます。両バックエンドは<strong>ピクセル一致</strong>が開発規律です (golden はバックエンド別に保持)。</p>
+<h2 id="ui">最初の UI</h2>
+<p>宣言的 UI はベアファクトリ + indexer の DSL で書きます。下のカウンタは本物です — クリックすると右の Log パネルに出て、値も動きます:</p>
+<figure class="static-capture"><img src="images/embed-892a43984b3111f92d6d.png" alt="Documentation embed 1" loading="lazy"><figcaption>Static widget capture — not interactive</figcaption></figure>
+<pre><code class="language-csharp">Signal&lt;int&gt; count = ctx.Signal(&quot;count&quot;, 0);   // knob にもなる状態
+Widget ui = HStack(8)[
+    Button(_ =&gt; count.Value--, &quot;-&quot;),
+    Text($&quot; {count} &quot;, 20, vAlign: Align.Center),
+    Button(_ =&gt; count.Value++, &quot;+&quot;)];
+</code></pre>
+<p><code>Signal&lt;T&gt;</code> が状態、<code>Button(...)</code> などのファクトリが widget、子は <code>[...]</code> で入れ子にします。Signal を読むテキストは変更時に自動で部分更新されます。</p>
+<h2 id="section-1">ドキュメントの歩き方</h2>
+<ul>
+<li>全体像とレイヤ構成 → <a href="#story=Internals%2FArchitecture">Internals/Architecture</a></li>
+<li>GPU 描画の最初の一歩 (standalone) → <a href="#story=Learn%2FRendering%2FBasics%2FOverview">Learn/Rendering/Basics/Overview</a></li>
+<li>コントロールの型見本 (Variant/Intent/API 表) → <a href="#story=Reference%2FGuides%2FButton">Reference/Guides/Button</a></li>
+<li>Windows/Linux対応の端末エミュレータ → <a href="#story=Controls%2FTerminal%2FOverview">Controls/Terminal/Overview</a></li>
+<li>この docs ページ自体の書き方 → <a href="#story=Internals%2FAuthoring">Internals/Authoring</a></li>
+<li>サイドバーの <strong>GPU / 2D / 3D / RenderGraph / Animation</strong> 章に、各サブシステムの動くデモが並んでいます。左上の検索欄は docs 本文の全文検索です</li>
+</ul>
+<div class="markdown-alert markdown-alert-tip">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>Tip</p>
+<p><code>Ctrl+D</code> でライト/ダークテーマを切り替えられます。右パネルの Knobs はストーリーが公開している調整パラメータです — このページのカウンタも編集できます。</p>
+</div>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/GettingStarted&quot;, Order = 0)]   // 章立て: Docs を先頭、入門を最初に
+public static Widget GettingStarted(StoryContext ctx)
+{
+    Signal&lt;int&gt; count = ctx.Signal(&quot;count&quot;, 0, &quot;カウンタの現在値 (&#177; ボタンと連動)&quot;);
+    Widget counter = HStack(8)[
+        Button(_ =&gt; { count.Value--; ctx.Log(&quot;counter: -1&quot;); }, &quot;-&quot;),
+        Text($&quot; {count} &quot;, 20, vAlign: Align.Center),
+        Button(_ =&gt; { count.Value++; ctx.Log(&quot;counter: +1&quot;); }, &quot;+&quot;)];
+
+    Widget doc = DocNew(ctx, $$&quot;&quot;&quot;
+        # Luxel を始める
+
+        Luxel は [Sebastian Aaltonen の *No Graphics API*](https://www.sebastianaaltonen.com/blog/no-graphics-api) の原則を C# で実装した薄いグラフィックエンジンです。resource・単一 argument block・明示 pass・producer/consumer dependency を portable semantics とし、descriptor 管理や native synchronization は backend lowering に閉じ込めます。その上に 2D ベクター・宣言的 UI・アニメーション・レンダーグラフを積み上げています。
+
+        - **バックエンド**: Vulkan 1.3 + DirectX 12。native WebGPU は Windows/Linux の明示 opt-in として追加する方針
+        - **シェーダ**: shader package が entry/metadata と SPIR-V (Vulkan) / DXIL (D3D12) / portable WGSL (WebGPU) artifact を束ねる
+        - **核心**: 最大192Bの単一 root argument block + logical resource references。Vulkan/D3D12 は bindless/GPUVA、WebGPU は argument ring/fixed bind groups へ lower する
+
+        ## 必要環境
+
+        - .NET SDK (net10.0)
+        - 選択する backend に対応する GPU/ドライバと native runtime (通常起動は Vulkan または DirectX 12)
+        - WebGPU の対象・選択・required limits は [Reference/Guides/WebGPU](story:Reference/Guides/WebGPU) を参照
+        - 通常ビルドは Git 管理済み shader cache を使用。shader compiler/translator は cache 更新時だけ取得
+
+        ## ビルドと Gallery の起動
+
+        機能の実例・ドキュメント・回帰テストはすべてこの **Gallery** に集約されています:
+
+        ```powershell
+        dotnet build
+        dotnet run --project src/Luxel.Gallery -- vk           # この Gallery (実ウィンドウ)
+        dotnet run --project src/Luxel.Gallery -- vk e2e       # play + golden 回帰 (--update で更新)
+        dotnet run --project src/Luxel.Gallery -- vk bench &quot;Controls/Button/Counter&quot; 300 --type
+        dotnet test                                            # ユニットテスト
+        ```
+
+        `vk` を `dx` に変えると DirectX 12 で動きます。両バックエンドは**ピクセル一致**が開発規律です (golden はバックエンド別に保持)。
+
+        ## 最初の UI
+
+        宣言的 UI はベアファクトリ + indexer の DSL で書きます。下のカウンタは本物です — クリックすると右の Log パネルに出て、値も動きます:
+
+        {{counter}}
+
+        ```csharp
+        Signal&lt;int&gt; count = ctx.Signal(&quot;count&quot;, 0);   // knob にもなる状態
+        Widget ui = HStack(8)[
+            Button(_ =&gt; count.Value--, &quot;-&quot;),
+            Text($&quot; {count} &quot;, 20, vAlign: Align.Center),
+            Button(_ =&gt; count.Value++, &quot;+&quot;)];
+        ```
+
+        `Signal&lt;T&gt;` が状態、`Button(...)` などのファクトリが widget、子は `[...]` で入れ子にします。Signal を読むテキストは変更時に自動で部分更新されます。
+
+        ## ドキュメントの歩き方
+
+        - 全体像とレイヤ構成 → [Internals/Architecture](story:Internals/Architecture)
+        - GPU 描画の最初の一歩 (standalone) → [Learn/Rendering/Basics/Overview](story:Learn/Rendering/Basics/Overview)
+        - コントロールの型見本 (Variant/Intent/API 表) → [Reference/Guides/Button](story:Reference/Guides/Button)
+        - Windows/Linux対応の端末エミュレータ → [Controls/Terminal/Overview](story:Controls/Terminal/Overview)
+        - この docs ページ自体の書き方 → [Internals/Authoring](story:Internals/Authoring)
+        - サイドバーの **GPU / 2D / 3D / RenderGraph / Animation** 章に、各サブシステムの動くデモが並んでいます。左上の検索欄は docs 本文の全文検索です
+
+        &gt; [!TIP]
+        &gt; `Ctrl+D` でライト/ダークテーマを切り替えられます。右パネルの Knobs はストーリーが公開している調整パラメータです — このページのカウンタも編集できます。
+        &quot;&quot;&quot;, toc: true);
+
+    // golden ①先頭 (見出し/TOC)、②「最初の UI」見出しへスクロールして埋め込みカウンタ (hole) を映す
+    ctx.Play(async d =&gt;
+    {
+        await d.Snap();
+        if (doc is TextEditorView tev)
+            foreach (MarkdownHeading h in MarkdownDecorations.Headings(tev.DocSource!))
+                if (h.Text == &quot;最初の UI&quot;) { tev.ScrollToSource(h.Offset); break; }
+        await d.Step(2);
+        await d.Snap(&quot;counter&quot;);
+    });
+    return doc;
+}</code></pre></details></article>
