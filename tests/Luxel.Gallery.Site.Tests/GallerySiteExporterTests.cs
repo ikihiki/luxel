@@ -326,11 +326,19 @@ public sealed class GallerySiteExporterTests
             using var rasterizer = new Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D();
             using var host = new GalleryHost(rasterizer, font);
 
-            Assert.Throws<InvalidOperationException>(() => GallerySiteExporter.Export(host, [story], output, root));
+            GallerySiteExporter.Export(host, [story], output, root);
+            SiteStory fallback = Assert.Single(JsonSerializer.Deserialize<SiteStory[]>(
+                File.ReadAllText(Path.Combine(output, "manifest.json")),
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })!);
+            Assert.NotEqual("runtime", fallback.Status);
+            Assert.DoesNotContain("data-luxel-runtime-story", File.ReadAllText(Path.Combine(output, fallback.Fragment)));
+            int fallbackRealizations = host.StorySelectionCount;
+            Assert.True(fallbackRealizations > 0);
+
             FileNotFoundException error = Assert.Throws<FileNotFoundException>(
                 () => GallerySiteExporter.Export(host, [story], output, root, incomplete));
             Assert.Contains("required app file is missing", error.Message);
-            Assert.Equal(0, host.StorySelectionCount);
+            Assert.Equal(fallbackRealizations, host.StorySelectionCount);
         }
         finally
         {
