@@ -110,6 +110,20 @@ public interface IGpuBackendQueue
     void WaitIdle();
 }
 
+/// <summary>
+/// Promise ベースの GPU キュー完了を公開する additive API。
+/// ブラウザ WebGPU では同期 <see cref="IGpuBackendQueue.Submit"/> はアップロード、エンコード済みコマンドの投入開始までを行い、
+/// <see cref="SubmitAsync"/> または <see cref="WaitIdleAsync"/> の完了後に HostCached バッファが可視になる。
+/// </summary>
+public interface IAsyncGpuBackendQueue : IGpuBackendQueue
+{
+    /// <summary>コマンドを投入し、GPU 完了と HostCached バッファの読み戻しまで非同期に待つ。</summary>
+    ValueTask SubmitAsync(IGpuBackendCommandBuffer commandBuffer, CancellationToken cancellationToken = default);
+
+    /// <summary>それまでに投入した処理と読み戻しの完了を非同期に待つ。</summary>
+    ValueTask WaitIdleAsync(CancellationToken cancellationToken = default);
+}
+
 /// <summary>バックエンドのコマンドバッファ。記録 API を提供する。</summary>
 public interface IGpuBackendCommandBuffer : IDisposable
 {
