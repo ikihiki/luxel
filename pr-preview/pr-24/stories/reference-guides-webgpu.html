@@ -8,6 +8,17 @@
 <li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpuheadless%2Fheadlesswebgpusample.cs%60-csharp"><code>samples/LuxelWebGpuHeadless/HeadlessWebGpuSample.cs</code> (CSharp)</a></li>
 </ul>
 </li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-browser-wasm-webgpu-canvas">コピーして動かす — Browser-WASM WebGPU canvas</a>
+<ul>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpubrowser%2Fluxelwebgpubrowser.csproj%60-project"><code>samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj</code> (Project)</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpubrowser%2Fprogram.cs%60-csharp"><code>samples/LuxelWebGpuBrowser/Program.cs</code> (CSharp)</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpubrowser%2Freadme.md%60-asset"><code>samples/LuxelWebGpuBrowser/README.md</code> (Asset)</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpubrowser%2Fwwwroot%2Findex.html%60-asset"><code>samples/LuxelWebGpuBrowser/wwwroot/index.html</code> (Asset)</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpubrowser%2Fwwwroot%2Fmain.js%60-asset"><code>samples/LuxelWebGpuBrowser/wwwroot/main.js</code> (Asset)</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpubrowser%2Fshaders%2Fcompute.wgsl%60-shader"><code>samples/LuxelWebGpuBrowser/Shaders/compute.wgsl</code> (Shader)</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpubrowser%2Fshaders%2Ftriangle.wgsl%60-shader"><code>samples/LuxelWebGpuBrowser/Shaders/triangle.wgsl</code> (Shader)</a></li>
+</ul>
+</li>
 <li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=no-graphics-api-%E5%8E%9F%E5%89%87%E3%81%A8%E3%81%AE%E5%AF%BE%E5%BF%9C">No Graphics API 原則との対応</a>
 <ul>
 <li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=portable-baseline-%E3%81%AB%E3%81%97%E3%81%AA%E3%81%84%E3%82%82%E3%81%AE">portable baseline にしないもの</a></li>
@@ -25,7 +36,7 @@
 <li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%E5%88%B6%E9%99%90%E3%81%A8-diagnostics">制限と diagnostics</a></li>
 <li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%E9%96%A2%E9%80%A3%E3%81%99%E3%82%8B-backend-neutral-stories">関連する backend-neutral stories</a></li>
 </ul>
-<p>このページは native WebGPU backend が満たす<strong>設計契約と対応範囲</strong>を定義します。特定の build や platform が利用可能かどうかは、adapter/device 作成、required feature/limit 検査、代表 story の回帰ゲートで判定します。この文書だけを根拠に「対応済み」または「実装進行中」とは扱いません。</p>
+<p>このページは native と browser/WASM の WebGPU backend が満たす<strong>設計契約と対応範囲</strong>を定義します。特定の build や platform が利用可能かどうかは、adapter/device 作成、required feature/limit 検査、代表 story の回帰ゲートで判定します。この文書だけを根拠に「対応済み」または「実装進行中」とは扱いません。</p>
 <p>背景となる決定は <a href="#story=Internals%2FADR%2F0019-Portable-Gpu-Semantics-WebGPU-Backend">ADR-0019</a>、共通 API の入口は <a href="#story=Reference%2FGuides%2FGpuDevice">Reference/Guides/GpuDevice</a>、pass 間依存は <a href="#story=Reference%2FGuides%2FRenderGraph">Reference/Guides/RenderGraph</a> を参照してください。</p>
 <h2 id="backend">対象と backend 選択</h2>
 <table>
@@ -38,7 +49,7 @@
 <tbody>
 <tr>
 <td>対象</td>
-<td>native desktop の Windows と Linux。headless/offscreenとWin32 HWND / Linux X11(Xlib) surface</td>
+<td>native desktop の Windows/Linux と、secure context (HTTPSまたはlocalhost) のbrowser-WASM</td>
 </tr>
 <tr>
 <td>選択</td>
@@ -54,7 +65,7 @@
 </tr>
 <tr>
 <td>初期スコープ外</td>
-<td>browser/WASM、macOS、未検証 RID、未検証 Native AOT、固定portable ABI外のshader resource model</td>
+<td>macOS、未検証 RID、未検証 Native AOT、固定portable ABI外のshader resource model</td>
 </tr>
 <tr>
 <td>対応判定</td>
@@ -63,7 +74,7 @@
 </tbody>
 </table>
 <p>WebGPU は「どの環境でも動く互換モード」ではありません。adapter が必要な limit を満たさない、native runtime と binding の ABI が一致しない、対象 shader artifact が無い、といった場合は backend 作成または pipeline 作成で明示的に失敗します。</p>
-<p><code>samples/LuxelWebGpuHeadless</code>は公開<code>GpuDevice</code> APIでWGSL compute、storage arenaからのvertex pulling、sampled checkerboardを使うoffscreen triangle、<code>HostCached</code> readbackを実行して結果を自己検証します。windowed plumbingは<code>Luxel.WebGPU.Present.Tests</code>のX11 present/resizeと、<code>LuxelTriangle webgpu --frames 3 --stage triangle</code>で検証します。Git管理された22本のshader cacheはすべてWGSLを含み、<code>GpuShaderCode.Load</code>がbackendに応じて選択します。</p>
+<p><code>samples/LuxelWebGpuHeadless</code>はnativeの公開<code>GpuDevice</code> APIでWGSL compute、storage arenaからのvertex pulling、sampled checkerboardを使うoffscreen triangle、<code>HostCached</code> readbackを実行して結果を自己検証します。windowed plumbingは<code>Luxel.WebGPU.Present.Tests</code>のX11 present/resizeと、<code>LuxelTriangle webgpu --frames 3 --stage triangle</code>で検証します。Git管理された22本のshader cacheはすべてWGSLを含み、<code>GpuShaderCode.Load</code>がbackendに応じて選択します。</p>
 <p><strong>現時点の実装制限:</strong> sampled resourceは固定portable ABIです。sampled textureとsamplerは各16個、textureはfilterableなRGBA8/BGRA8・2D・1 mipに限定されます。shader package全体のbinding metadata移行とunbounded runtime arrayは未実装なので、shaderは下記の固定bindingとlogical index loweringを明示する必要があります。未検証のstoryやplatformをWGSL artifactの存在だけで対応済みとは扱いません。</p>
 <h2 id="headless-webgpu-compute-and-triangle">コピーして動かす — Headless WebGPU compute and triangle</h2>
 <blockquote>
@@ -280,6 +291,530 @@ public static class HeadlessWebGpuSample
     }
 }
 </code></pre>
+<p><code>samples/LuxelWebGpuBrowser</code>は<code>Microsoft.NET.Sdk.WebAssembly</code>/<code>net10.0</code>で、<code>Luxel.Platform.Web</code>のcanvas window、Promiseをawaitするbrowser backend、embedded fixed-ABI WGSL compute、textured offscreen render/readback、canvas present、<code>requestAnimationFrame</code> loopとresize/pointer/key counterを実行します。DOM/WebGPU objectはJavaScript registryに保持し、managed側はinteger handleだけを保持します。配信はHTTPSまたはlocalhostが必要です。Pages版は相対URLだけを使うためsubpathでも動作します。</p>
+<p><a href="samples/webgpu-browser/">Pagesでbrowser sampleを実行</a></p>
+<h2 id="browser-wasm-webgpu-canvas">コピーして動かす — Browser-WASM WebGPU canvas</h2>
+<blockquote>
+<p><strong>StandaloneProject</strong> · 難易度: Intermediate · 依存 bundle: <code>support.source-tree</code></p>
+</blockquote>
+<p>Browser-WASM recipe covering async WebGPU initialization, fixed-ABI embedded WGSL compute, textured offscreen rendering, canvas presentation and DOM input/resize events.</p>
+<p><strong>必要条件:</strong> .NET 10 / wasm-tools workload / WebGPU browser / HTTPS or localhost
+<strong>Platform:</strong> Browser/WASM
+<strong>検証契約:</strong> exit <code>0</code> / timeout <code>240s</code> / stdout <code>data-status=pass</code>
+<strong>接続点:</strong> <code>LuxelWebGpuBrowser.Program</code></p>
+<p><strong>Run</strong></p>
+<pre><code class="language-powershell">dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release
+</code></pre>
+<p><strong>Smoke test</strong></p>
+<pre><code class="language-powershell">dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release
+</code></pre>
+<h3 id="samplesluxelwebgpubrowserluxelwebgpubrowser.csproj-project"><code>samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj</code> (Project)</h3>
+<pre><code class="language-xml">&lt;Project Sdk=&quot;Microsoft.NET.Sdk.WebAssembly&quot;&gt;
+  &lt;PropertyGroup&gt;
+    &lt;OutputType&gt;Exe&lt;/OutputType&gt;
+    &lt;TargetFramework&gt;net10.0&lt;/TargetFramework&gt;
+    &lt;RuntimeIdentifier&gt;browser-wasm&lt;/RuntimeIdentifier&gt;
+    &lt;WasmMainJSPath&gt;wwwroot/main.js&lt;/WasmMainJSPath&gt;
+  &lt;/PropertyGroup&gt;
+  &lt;ItemGroup&gt;
+    &lt;ProjectReference Include=&quot;..\..\src\Luxel.Graphics\Luxel.Graphics.csproj&quot; /&gt;
+    &lt;ProjectReference Include=&quot;..\..\src\Luxel.Graphics.WebGPU.Browser\Luxel.Graphics.WebGPU.Browser.csproj&quot; /&gt;
+    &lt;ProjectReference Include=&quot;..\..\src\Luxel.Platform\Luxel.Platform.csproj&quot; /&gt;
+    &lt;ProjectReference Include=&quot;..\..\src\Luxel.Platform.Web\Luxel.Platform.Web.csproj&quot; /&gt;
+  &lt;/ItemGroup&gt;
+  &lt;ItemGroup&gt;
+    &lt;EmbeddedResource Include=&quot;Shaders\*.wgsl&quot; /&gt;
+    &lt;Content Include=&quot;..\..\src\Luxel.Graphics.WebGPU.Browser\wwwroot\luxel-webgpu-browser.js&quot;
+             Link=&quot;wwwroot\luxel-webgpu-browser.js&quot; CopyToOutputDirectory=&quot;PreserveNewest&quot; CopyToPublishDirectory=&quot;PreserveNewest&quot; /&gt;
+    &lt;Content Include=&quot;..\..\src\Luxel.Platform.Web\wwwroot\luxel-platform-web.js&quot;
+             Link=&quot;wwwroot\luxel-platform-web.js&quot; CopyToOutputDirectory=&quot;PreserveNewest&quot; CopyToPublishDirectory=&quot;PreserveNewest&quot; /&gt;
+  &lt;/ItemGroup&gt;
+&lt;/Project&gt;
+</code></pre>
+<h3 id="samplesluxelwebgpubrowserprogram.cs-csharp"><code>samples/LuxelWebGpuBrowser/Program.cs</code> (CSharp)</h3>
+<pre><code class="language-csharp">using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.JavaScript;
+using System.Runtime.Versioning;
+using System.Text;
+using Luxel.Graphics;
+using Luxel.Graphics.Abstraction;
+using Luxel.Graphics.WebGPU.Browser;
+using Luxel.Platform;
+using Luxel.Platform.Abstraction;
+using Luxel.Platform.Web;
+
+namespace LuxelWebGpuBrowser;
+
+[SupportedOSPlatform(&quot;browser&quot;)]
+public static partial class Program
+{
+    private const uint ExpectedCompute = 0xc0ffee42;
+    private const uint TargetWidth = 768;
+    private const uint TargetHeight = 432;
+
+    public static async Task Main()
+    {
+        try
+        {
+            using WebWindowBackend web = await WebWindowBackend.CreateAsync(new WebWindowBackendOptions
+            {
+                // JSHost.ImportAsync resolves relative URLs from the _framework runtime module.
+                ModuleUrl = &quot;../luxel-platform-web.js&quot;,
+                Canvases = [new WebCanvasOptions(&quot;#luxel-canvas&quot;) { SurfaceToken = &quot;#luxel-canvas&quot; }],
+            });
+            using var windows = new WindowSystem(web);
+            Window window = windows.CreateWindow(new WindowDesc(&quot;Luxel browser WebGPU&quot;, (int)TargetWidth, (int)TargetHeight));
+            int pointerEvents = 0, keyEvents = 0, resizeEvents = 0;
+            window.PointerMoved += _ =&gt; pointerEvents++;
+            window.PointerDown += _ =&gt; pointerEvents++;
+            window.PointerUp += _ =&gt; pointerEvents++;
+            window.KeyDown += _ =&gt; keyEvents++;
+            window.KeyUp += _ =&gt; keyEvents++;
+            window.Resized += (_, _) =&gt; resizeEvents++;
+
+            using BrowserWebGpuBackend gpu = await BrowserWebGpuBackend.CreateAsync();
+            using BrowserWebGpuSurface surface = gpu.CreateCanvasSurface(&quot;#luxel-canvas&quot;, (uint)window.Width, (uint)window.Height);
+            using IGpuBackendBuffer compute = gpu.CreateBuffer(256, GpuMemoryKind.HostCached);
+            using IGpuBackendPipeline computePipeline = gpu.CreateComputePipeline(Shader(&quot;compute.wgsl&quot;), &quot;main&quot;);
+            using (IGpuBackendCommandBuffer command = gpu.MainQueue.StartCommandRecording())
+            {
+                command.SetComputePipeline(computePipeline);
+                command.SetRootConstants(Bytes(new ComputeRoot(compute.BindlessIndex, ExpectedCompute)));
+                command.Dispatch(1, 1, 1);
+                command.Finish();
+                await gpu.AsyncQueue.SubmitAsync(command);
+            }
+            uint computeValue = Read&lt;uint&gt;(compute);
+            if (computeValue != ExpectedCompute) throw new InvalidOperationException($&quot;Compute result was 0x{computeValue:x8}.&quot;);
+
+            using IGpuBackendBuffer vertices = gpu.CreateBuffer(6 * sizeof(float), GpuMemoryKind.HostMapped);
+            Write(vertices, new float[] { -0.82f, -0.82f, 0.82f, -0.82f, 0f, 0.82f });
+            byte[] checker = [255,255,255,255, 20,40,120,255, 20,40,120,255, 255,255,255,255];
+            using IGpuBackendTexture texture = gpu.CreateSampledTexture(2, 2, GpuFormat.Rgba8Unorm, checker);
+            using IGpuBackendSampler sampler = gpu.CreateSampler(GpuSamplerFilter.Point);
+            using IGpuBackendTexture target = gpu.CreateRenderTarget(TargetWidth, TargetHeight, GpuFormat.Rgba8Unorm);
+            using IGpuBackendBuffer pixels = gpu.CreateBuffer(TargetWidth * TargetHeight * 4, GpuMemoryKind.HostCached);
+            using IGpuBackendPipeline graphics = gpu.CreateGraphicsPipeline(Shader(&quot;triangle.wgsl&quot;), &quot;vs_main&quot;, Shader(&quot;triangle.wgsl&quot;), &quot;fs_main&quot;, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+            using (IGpuBackendCommandBuffer command = gpu.MainQueue.StartCommandRecording())
+            {
+                command.SetGraphicsPipeline(graphics);
+                command.SetRootConstants(Bytes(new GraphicsRoot(vertices.BindlessIndex, texture.BindlessIndex, sampler.BindlessIndex)));
+                command.BeginRendering(target, null, 0.04f, 0.07f, 0.12f, 1f, 1f);
+                command.Draw(3, 1);
+                command.EndRendering();
+                command.CopyTextureToBuffer(target, pixels, TargetWidth);
+                command.Finish();
+                await gpu.AsyncQueue.SubmitAsync(command);
+            }
+            int center = checked((int)((TargetHeight / 2 * TargetWidth + TargetWidth / 2) * 4));
+            byte red, green, blue, alpha;
+            {
+                Span&lt;byte&gt; data = Mapped(pixels);
+                red = data[center]; green = data[center + 1]; blue = data[center + 2]; alpha = data[center + 3];
+            }
+            if (red &lt; 180 || green &lt; 180 || blue &lt; 180)
+                throw new InvalidOperationException($&quot;Center pixel was rgba({red},{green},{blue},{alpha}).&quot;);
+            surface.Present(pixels, TargetWidth, TargetWidth, TargetHeight);
+
+            while (windows.Pump())
+            {
+                surface.Resize((uint)window.Width, (uint)window.Height);
+                surface.Present(pixels, TargetWidth, TargetWidth, TargetHeight);
+                SetStatus(&quot;pass&quot;, $&quot;browser-webgpu: status=pass\ndevice={gpu.Name}\ncompute=0x{computeValue:x8}; center=rgba({red},{green},{blue},{alpha})\nframes=1+; resize={resizeEvents}; pointer={pointerEvents}; key={keyEvents}&quot;);
+                await NextFrame();
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus(&quot;fail&quot;, $&quot;browser-webgpu: status=fail, error={ex.Message}&quot;);
+            Console.Error.WriteLine(ex);
+            throw;
+        }
+    }
+
+    private static byte[] Shader(string name)
+    {
+        string suffix = &quot;.Shaders.&quot; + name;
+        string resource = Assembly.GetExecutingAssembly().GetManifestResourceNames().Single(n =&gt; n.EndsWith(suffix, StringComparison.Ordinal));
+        using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resource)!;
+        using var memory = new MemoryStream(); stream.CopyTo(memory); return memory.ToArray();
+    }
+    private static byte[] Bytes&lt;T&gt;(T value) where T : unmanaged { T[] one = [value]; return MemoryMarshal.AsBytes(one.AsSpan()).ToArray(); }
+    private static unsafe Span&lt;byte&gt; Mapped(IGpuBackendBuffer buffer) =&gt; new(buffer.MappedPointer, checked((int)buffer.Size));
+    private static T Read&lt;T&gt;(IGpuBackendBuffer buffer) where T : unmanaged =&gt; MemoryMarshal.Read&lt;T&gt;(Mapped(buffer));
+    private static void Write&lt;T&gt;(IGpuBackendBuffer buffer, ReadOnlySpan&lt;T&gt; values) where T : unmanaged =&gt; MemoryMarshal.AsBytes(values).CopyTo(Mapped(buffer));
+    private readonly record struct ComputeRoot(uint BufferIndex, uint Value, uint Pad0 = 0, uint Pad1 = 0);
+    private readonly record struct GraphicsRoot(uint BufferIndex, uint TextureIndex, uint SamplerIndex, uint Pad0 = 0);
+
+    [JSImport(&quot;nextFrame&quot;, &quot;luxel-browser-host&quot;)] private static partial Task&lt;double&gt; NextFrame();
+    [JSImport(&quot;setStatus&quot;, &quot;luxel-browser-host&quot;)] private static partial void SetStatus(string state, string summary);
+}
+</code></pre>
+<h3 id="samplesluxelwebgpubrowserreadme.md-asset"><code>samples/LuxelWebGpuBrowser/README.md</code> (Asset)</h3>
+<p>Binary asset — bundle materialization preserves the original bytes.</p>
+<h3 id="samplesluxelwebgpubrowserwwwrootindex.html-asset"><code>samples/LuxelWebGpuBrowser/wwwroot/index.html</code> (Asset)</h3>
+<p>Binary asset — bundle materialization preserves the original bytes.</p>
+<h3 id="samplesluxelwebgpubrowserwwwrootmain.js-asset"><code>samples/LuxelWebGpuBrowser/wwwroot/main.js</code> (Asset)</h3>
+<p>Binary asset — bundle materialization preserves the original bytes.</p>
+<h3 id="samplesluxelwebgpubrowsershaderscompute.wgsl-shader"><code>samples/LuxelWebGpuBrowser/Shaders/compute.wgsl</code> (Shader)</h3>
+<pre><code class="language-text">struct Root { buffer_index: u32, value: u32, pad0: u32, pad1: u32 }
+@group(0) @binding(0) var&lt;storage, read_write&gt; arena: array&lt;u32&gt;;
+@group(0) @binding(1) var&lt;uniform&gt; root: Root;
+@compute @workgroup_size(1)
+fn main() { arena[root.buffer_index * 64u] = root.value; }
+</code></pre>
+<h3 id="samplesluxelwebgpubrowsershaderstriangle.wgsl-shader"><code>samples/LuxelWebGpuBrowser/Shaders/triangle.wgsl</code> (Shader)</h3>
+<pre><code class="language-text">struct Root { buffer_index: u32, texture_index: u32, sampler_index: u32, pad0: u32 }
+@group(0) @binding(0) var&lt;storage, read&gt; arena: array&lt;u32&gt;;
+@group(0) @binding(1) var&lt;uniform&gt; root: Root;
+@group(1) @binding(0) var sampled_texture_0: texture_2d&lt;f32&gt;;
+@group(1) @binding(1) var sampled_texture_1: texture_2d&lt;f32&gt;;
+@group(1) @binding(2) var sampled_texture_2: texture_2d&lt;f32&gt;;
+@group(1) @binding(3) var sampled_texture_3: texture_2d&lt;f32&gt;;
+@group(1) @binding(4) var sampled_texture_4: texture_2d&lt;f32&gt;;
+@group(1) @binding(5) var sampled_texture_5: texture_2d&lt;f32&gt;;
+@group(1) @binding(6) var sampled_texture_6: texture_2d&lt;f32&gt;;
+@group(1) @binding(7) var sampled_texture_7: texture_2d&lt;f32&gt;;
+@group(1) @binding(8) var sampled_texture_8: texture_2d&lt;f32&gt;;
+@group(1) @binding(9) var sampled_texture_9: texture_2d&lt;f32&gt;;
+@group(1) @binding(10) var sampled_texture_10: texture_2d&lt;f32&gt;;
+@group(1) @binding(11) var sampled_texture_11: texture_2d&lt;f32&gt;;
+@group(1) @binding(12) var sampled_texture_12: texture_2d&lt;f32&gt;;
+@group(1) @binding(13) var sampled_texture_13: texture_2d&lt;f32&gt;;
+@group(1) @binding(14) var sampled_texture_14: texture_2d&lt;f32&gt;;
+@group(1) @binding(15) var sampled_texture_15: texture_2d&lt;f32&gt;;
+@group(1) @binding(16) var sampled_sampler_0: sampler;
+@group(1) @binding(17) var sampled_sampler_1: sampler;
+@group(1) @binding(18) var sampled_sampler_2: sampler;
+@group(1) @binding(19) var sampled_sampler_3: sampler;
+@group(1) @binding(20) var sampled_sampler_4: sampler;
+@group(1) @binding(21) var sampled_sampler_5: sampler;
+@group(1) @binding(22) var sampled_sampler_6: sampler;
+@group(1) @binding(23) var sampled_sampler_7: sampler;
+@group(1) @binding(24) var sampled_sampler_8: sampler;
+@group(1) @binding(25) var sampled_sampler_9: sampler;
+@group(1) @binding(26) var sampled_sampler_10: sampler;
+@group(1) @binding(27) var sampled_sampler_11: sampler;
+@group(1) @binding(28) var sampled_sampler_12: sampler;
+@group(1) @binding(29) var sampled_sampler_13: sampler;
+@group(1) @binding(30) var sampled_sampler_14: sampler;
+@group(1) @binding(31) var sampled_sampler_15: sampler;
+fn sample_selected(t: u32, smp: u32) -&gt; vec4&lt;f32&gt; {
+  switch t {
+    case 0u: { switch smp {
+      case 0u: { return textureSample(sampled_texture_0, sampled_sampler_0, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 1u: { return textureSample(sampled_texture_0, sampled_sampler_1, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 2u: { return textureSample(sampled_texture_0, sampled_sampler_2, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 3u: { return textureSample(sampled_texture_0, sampled_sampler_3, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 4u: { return textureSample(sampled_texture_0, sampled_sampler_4, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 5u: { return textureSample(sampled_texture_0, sampled_sampler_5, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 6u: { return textureSample(sampled_texture_0, sampled_sampler_6, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 7u: { return textureSample(sampled_texture_0, sampled_sampler_7, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 8u: { return textureSample(sampled_texture_0, sampled_sampler_8, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 9u: { return textureSample(sampled_texture_0, sampled_sampler_9, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 10u: { return textureSample(sampled_texture_0, sampled_sampler_10, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 11u: { return textureSample(sampled_texture_0, sampled_sampler_11, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 12u: { return textureSample(sampled_texture_0, sampled_sampler_12, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 13u: { return textureSample(sampled_texture_0, sampled_sampler_13, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 14u: { return textureSample(sampled_texture_0, sampled_sampler_14, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 15u: { return textureSample(sampled_texture_0, sampled_sampler_15, vec2&lt;f32&gt;(0.25, 0.25)); }
+      default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+    } }
+    case 1u: { switch smp {
+      case 0u: { return textureSample(sampled_texture_1, sampled_sampler_0, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 1u: { return textureSample(sampled_texture_1, sampled_sampler_1, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 2u: { return textureSample(sampled_texture_1, sampled_sampler_2, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 3u: { return textureSample(sampled_texture_1, sampled_sampler_3, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 4u: { return textureSample(sampled_texture_1, sampled_sampler_4, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 5u: { return textureSample(sampled_texture_1, sampled_sampler_5, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 6u: { return textureSample(sampled_texture_1, sampled_sampler_6, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 7u: { return textureSample(sampled_texture_1, sampled_sampler_7, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 8u: { return textureSample(sampled_texture_1, sampled_sampler_8, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 9u: { return textureSample(sampled_texture_1, sampled_sampler_9, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 10u: { return textureSample(sampled_texture_1, sampled_sampler_10, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 11u: { return textureSample(sampled_texture_1, sampled_sampler_11, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 12u: { return textureSample(sampled_texture_1, sampled_sampler_12, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 13u: { return textureSample(sampled_texture_1, sampled_sampler_13, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 14u: { return textureSample(sampled_texture_1, sampled_sampler_14, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 15u: { return textureSample(sampled_texture_1, sampled_sampler_15, vec2&lt;f32&gt;(0.25, 0.25)); }
+      default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+    } }
+    case 2u: { switch smp {
+      case 0u: { return textureSample(sampled_texture_2, sampled_sampler_0, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 1u: { return textureSample(sampled_texture_2, sampled_sampler_1, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 2u: { return textureSample(sampled_texture_2, sampled_sampler_2, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 3u: { return textureSample(sampled_texture_2, sampled_sampler_3, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 4u: { return textureSample(sampled_texture_2, sampled_sampler_4, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 5u: { return textureSample(sampled_texture_2, sampled_sampler_5, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 6u: { return textureSample(sampled_texture_2, sampled_sampler_6, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 7u: { return textureSample(sampled_texture_2, sampled_sampler_7, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 8u: { return textureSample(sampled_texture_2, sampled_sampler_8, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 9u: { return textureSample(sampled_texture_2, sampled_sampler_9, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 10u: { return textureSample(sampled_texture_2, sampled_sampler_10, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 11u: { return textureSample(sampled_texture_2, sampled_sampler_11, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 12u: { return textureSample(sampled_texture_2, sampled_sampler_12, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 13u: { return textureSample(sampled_texture_2, sampled_sampler_13, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 14u: { return textureSample(sampled_texture_2, sampled_sampler_14, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 15u: { return textureSample(sampled_texture_2, sampled_sampler_15, vec2&lt;f32&gt;(0.25, 0.25)); }
+      default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+    } }
+    case 3u: { switch smp {
+      case 0u: { return textureSample(sampled_texture_3, sampled_sampler_0, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 1u: { return textureSample(sampled_texture_3, sampled_sampler_1, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 2u: { return textureSample(sampled_texture_3, sampled_sampler_2, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 3u: { return textureSample(sampled_texture_3, sampled_sampler_3, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 4u: { return textureSample(sampled_texture_3, sampled_sampler_4, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 5u: { return textureSample(sampled_texture_3, sampled_sampler_5, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 6u: { return textureSample(sampled_texture_3, sampled_sampler_6, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 7u: { return textureSample(sampled_texture_3, sampled_sampler_7, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 8u: { return textureSample(sampled_texture_3, sampled_sampler_8, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 9u: { return textureSample(sampled_texture_3, sampled_sampler_9, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 10u: { return textureSample(sampled_texture_3, sampled_sampler_10, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 11u: { return textureSample(sampled_texture_3, sampled_sampler_11, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 12u: { return textureSample(sampled_texture_3, sampled_sampler_12, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 13u: { return textureSample(sampled_texture_3, sampled_sampler_13, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 14u: { return textureSample(sampled_texture_3, sampled_sampler_14, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 15u: { return textureSample(sampled_texture_3, sampled_sampler_15, vec2&lt;f32&gt;(0.25, 0.25)); }
+      default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+    } }
+    case 4u: { switch smp {
+      case 0u: { return textureSample(sampled_texture_4, sampled_sampler_0, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 1u: { return textureSample(sampled_texture_4, sampled_sampler_1, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 2u: { return textureSample(sampled_texture_4, sampled_sampler_2, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 3u: { return textureSample(sampled_texture_4, sampled_sampler_3, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 4u: { return textureSample(sampled_texture_4, sampled_sampler_4, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 5u: { return textureSample(sampled_texture_4, sampled_sampler_5, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 6u: { return textureSample(sampled_texture_4, sampled_sampler_6, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 7u: { return textureSample(sampled_texture_4, sampled_sampler_7, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 8u: { return textureSample(sampled_texture_4, sampled_sampler_8, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 9u: { return textureSample(sampled_texture_4, sampled_sampler_9, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 10u: { return textureSample(sampled_texture_4, sampled_sampler_10, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 11u: { return textureSample(sampled_texture_4, sampled_sampler_11, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 12u: { return textureSample(sampled_texture_4, sampled_sampler_12, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 13u: { return textureSample(sampled_texture_4, sampled_sampler_13, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 14u: { return textureSample(sampled_texture_4, sampled_sampler_14, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 15u: { return textureSample(sampled_texture_4, sampled_sampler_15, vec2&lt;f32&gt;(0.25, 0.25)); }
+      default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+    } }
+    case 5u: { switch smp {
+      case 0u: { return textureSample(sampled_texture_5, sampled_sampler_0, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 1u: { return textureSample(sampled_texture_5, sampled_sampler_1, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 2u: { return textureSample(sampled_texture_5, sampled_sampler_2, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 3u: { return textureSample(sampled_texture_5, sampled_sampler_3, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 4u: { return textureSample(sampled_texture_5, sampled_sampler_4, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 5u: { return textureSample(sampled_texture_5, sampled_sampler_5, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 6u: { return textureSample(sampled_texture_5, sampled_sampler_6, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 7u: { return textureSample(sampled_texture_5, sampled_sampler_7, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 8u: { return textureSample(sampled_texture_5, sampled_sampler_8, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 9u: { return textureSample(sampled_texture_5, sampled_sampler_9, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 10u: { return textureSample(sampled_texture_5, sampled_sampler_10, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 11u: { return textureSample(sampled_texture_5, sampled_sampler_11, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 12u: { return textureSample(sampled_texture_5, sampled_sampler_12, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 13u: { return textureSample(sampled_texture_5, sampled_sampler_13, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 14u: { return textureSample(sampled_texture_5, sampled_sampler_14, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 15u: { return textureSample(sampled_texture_5, sampled_sampler_15, vec2&lt;f32&gt;(0.25, 0.25)); }
+      default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+    } }
+    case 6u: { switch smp {
+      case 0u: { return textureSample(sampled_texture_6, sampled_sampler_0, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 1u: { return textureSample(sampled_texture_6, sampled_sampler_1, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 2u: { return textureSample(sampled_texture_6, sampled_sampler_2, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 3u: { return textureSample(sampled_texture_6, sampled_sampler_3, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 4u: { return textureSample(sampled_texture_6, sampled_sampler_4, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 5u: { return textureSample(sampled_texture_6, sampled_sampler_5, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 6u: { return textureSample(sampled_texture_6, sampled_sampler_6, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 7u: { return textureSample(sampled_texture_6, sampled_sampler_7, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 8u: { return textureSample(sampled_texture_6, sampled_sampler_8, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 9u: { return textureSample(sampled_texture_6, sampled_sampler_9, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 10u: { return textureSample(sampled_texture_6, sampled_sampler_10, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 11u: { return textureSample(sampled_texture_6, sampled_sampler_11, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 12u: { return textureSample(sampled_texture_6, sampled_sampler_12, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 13u: { return textureSample(sampled_texture_6, sampled_sampler_13, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 14u: { return textureSample(sampled_texture_6, sampled_sampler_14, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 15u: { return textureSample(sampled_texture_6, sampled_sampler_15, vec2&lt;f32&gt;(0.25, 0.25)); }
+      default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+    } }
+    case 7u: { switch smp {
+      case 0u: { return textureSample(sampled_texture_7, sampled_sampler_0, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 1u: { return textureSample(sampled_texture_7, sampled_sampler_1, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 2u: { return textureSample(sampled_texture_7, sampled_sampler_2, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 3u: { return textureSample(sampled_texture_7, sampled_sampler_3, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 4u: { return textureSample(sampled_texture_7, sampled_sampler_4, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 5u: { return textureSample(sampled_texture_7, sampled_sampler_5, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 6u: { return textureSample(sampled_texture_7, sampled_sampler_6, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 7u: { return textureSample(sampled_texture_7, sampled_sampler_7, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 8u: { return textureSample(sampled_texture_7, sampled_sampler_8, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 9u: { return textureSample(sampled_texture_7, sampled_sampler_9, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 10u: { return textureSample(sampled_texture_7, sampled_sampler_10, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 11u: { return textureSample(sampled_texture_7, sampled_sampler_11, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 12u: { return textureSample(sampled_texture_7, sampled_sampler_12, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 13u: { return textureSample(sampled_texture_7, sampled_sampler_13, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 14u: { return textureSample(sampled_texture_7, sampled_sampler_14, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 15u: { return textureSample(sampled_texture_7, sampled_sampler_15, vec2&lt;f32&gt;(0.25, 0.25)); }
+      default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+    } }
+    case 8u: { switch smp {
+      case 0u: { return textureSample(sampled_texture_8, sampled_sampler_0, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 1u: { return textureSample(sampled_texture_8, sampled_sampler_1, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 2u: { return textureSample(sampled_texture_8, sampled_sampler_2, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 3u: { return textureSample(sampled_texture_8, sampled_sampler_3, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 4u: { return textureSample(sampled_texture_8, sampled_sampler_4, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 5u: { return textureSample(sampled_texture_8, sampled_sampler_5, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 6u: { return textureSample(sampled_texture_8, sampled_sampler_6, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 7u: { return textureSample(sampled_texture_8, sampled_sampler_7, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 8u: { return textureSample(sampled_texture_8, sampled_sampler_8, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 9u: { return textureSample(sampled_texture_8, sampled_sampler_9, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 10u: { return textureSample(sampled_texture_8, sampled_sampler_10, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 11u: { return textureSample(sampled_texture_8, sampled_sampler_11, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 12u: { return textureSample(sampled_texture_8, sampled_sampler_12, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 13u: { return textureSample(sampled_texture_8, sampled_sampler_13, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 14u: { return textureSample(sampled_texture_8, sampled_sampler_14, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 15u: { return textureSample(sampled_texture_8, sampled_sampler_15, vec2&lt;f32&gt;(0.25, 0.25)); }
+      default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+    } }
+    case 9u: { switch smp {
+      case 0u: { return textureSample(sampled_texture_9, sampled_sampler_0, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 1u: { return textureSample(sampled_texture_9, sampled_sampler_1, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 2u: { return textureSample(sampled_texture_9, sampled_sampler_2, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 3u: { return textureSample(sampled_texture_9, sampled_sampler_3, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 4u: { return textureSample(sampled_texture_9, sampled_sampler_4, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 5u: { return textureSample(sampled_texture_9, sampled_sampler_5, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 6u: { return textureSample(sampled_texture_9, sampled_sampler_6, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 7u: { return textureSample(sampled_texture_9, sampled_sampler_7, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 8u: { return textureSample(sampled_texture_9, sampled_sampler_8, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 9u: { return textureSample(sampled_texture_9, sampled_sampler_9, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 10u: { return textureSample(sampled_texture_9, sampled_sampler_10, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 11u: { return textureSample(sampled_texture_9, sampled_sampler_11, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 12u: { return textureSample(sampled_texture_9, sampled_sampler_12, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 13u: { return textureSample(sampled_texture_9, sampled_sampler_13, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 14u: { return textureSample(sampled_texture_9, sampled_sampler_14, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 15u: { return textureSample(sampled_texture_9, sampled_sampler_15, vec2&lt;f32&gt;(0.25, 0.25)); }
+      default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+    } }
+    case 10u: { switch smp {
+      case 0u: { return textureSample(sampled_texture_10, sampled_sampler_0, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 1u: { return textureSample(sampled_texture_10, sampled_sampler_1, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 2u: { return textureSample(sampled_texture_10, sampled_sampler_2, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 3u: { return textureSample(sampled_texture_10, sampled_sampler_3, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 4u: { return textureSample(sampled_texture_10, sampled_sampler_4, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 5u: { return textureSample(sampled_texture_10, sampled_sampler_5, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 6u: { return textureSample(sampled_texture_10, sampled_sampler_6, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 7u: { return textureSample(sampled_texture_10, sampled_sampler_7, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 8u: { return textureSample(sampled_texture_10, sampled_sampler_8, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 9u: { return textureSample(sampled_texture_10, sampled_sampler_9, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 10u: { return textureSample(sampled_texture_10, sampled_sampler_10, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 11u: { return textureSample(sampled_texture_10, sampled_sampler_11, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 12u: { return textureSample(sampled_texture_10, sampled_sampler_12, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 13u: { return textureSample(sampled_texture_10, sampled_sampler_13, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 14u: { return textureSample(sampled_texture_10, sampled_sampler_14, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 15u: { return textureSample(sampled_texture_10, sampled_sampler_15, vec2&lt;f32&gt;(0.25, 0.25)); }
+      default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+    } }
+    case 11u: { switch smp {
+      case 0u: { return textureSample(sampled_texture_11, sampled_sampler_0, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 1u: { return textureSample(sampled_texture_11, sampled_sampler_1, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 2u: { return textureSample(sampled_texture_11, sampled_sampler_2, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 3u: { return textureSample(sampled_texture_11, sampled_sampler_3, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 4u: { return textureSample(sampled_texture_11, sampled_sampler_4, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 5u: { return textureSample(sampled_texture_11, sampled_sampler_5, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 6u: { return textureSample(sampled_texture_11, sampled_sampler_6, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 7u: { return textureSample(sampled_texture_11, sampled_sampler_7, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 8u: { return textureSample(sampled_texture_11, sampled_sampler_8, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 9u: { return textureSample(sampled_texture_11, sampled_sampler_9, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 10u: { return textureSample(sampled_texture_11, sampled_sampler_10, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 11u: { return textureSample(sampled_texture_11, sampled_sampler_11, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 12u: { return textureSample(sampled_texture_11, sampled_sampler_12, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 13u: { return textureSample(sampled_texture_11, sampled_sampler_13, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 14u: { return textureSample(sampled_texture_11, sampled_sampler_14, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 15u: { return textureSample(sampled_texture_11, sampled_sampler_15, vec2&lt;f32&gt;(0.25, 0.25)); }
+      default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+    } }
+    case 12u: { switch smp {
+      case 0u: { return textureSample(sampled_texture_12, sampled_sampler_0, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 1u: { return textureSample(sampled_texture_12, sampled_sampler_1, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 2u: { return textureSample(sampled_texture_12, sampled_sampler_2, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 3u: { return textureSample(sampled_texture_12, sampled_sampler_3, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 4u: { return textureSample(sampled_texture_12, sampled_sampler_4, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 5u: { return textureSample(sampled_texture_12, sampled_sampler_5, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 6u: { return textureSample(sampled_texture_12, sampled_sampler_6, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 7u: { return textureSample(sampled_texture_12, sampled_sampler_7, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 8u: { return textureSample(sampled_texture_12, sampled_sampler_8, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 9u: { return textureSample(sampled_texture_12, sampled_sampler_9, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 10u: { return textureSample(sampled_texture_12, sampled_sampler_10, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 11u: { return textureSample(sampled_texture_12, sampled_sampler_11, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 12u: { return textureSample(sampled_texture_12, sampled_sampler_12, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 13u: { return textureSample(sampled_texture_12, sampled_sampler_13, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 14u: { return textureSample(sampled_texture_12, sampled_sampler_14, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 15u: { return textureSample(sampled_texture_12, sampled_sampler_15, vec2&lt;f32&gt;(0.25, 0.25)); }
+      default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+    } }
+    case 13u: { switch smp {
+      case 0u: { return textureSample(sampled_texture_13, sampled_sampler_0, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 1u: { return textureSample(sampled_texture_13, sampled_sampler_1, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 2u: { return textureSample(sampled_texture_13, sampled_sampler_2, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 3u: { return textureSample(sampled_texture_13, sampled_sampler_3, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 4u: { return textureSample(sampled_texture_13, sampled_sampler_4, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 5u: { return textureSample(sampled_texture_13, sampled_sampler_5, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 6u: { return textureSample(sampled_texture_13, sampled_sampler_6, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 7u: { return textureSample(sampled_texture_13, sampled_sampler_7, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 8u: { return textureSample(sampled_texture_13, sampled_sampler_8, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 9u: { return textureSample(sampled_texture_13, sampled_sampler_9, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 10u: { return textureSample(sampled_texture_13, sampled_sampler_10, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 11u: { return textureSample(sampled_texture_13, sampled_sampler_11, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 12u: { return textureSample(sampled_texture_13, sampled_sampler_12, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 13u: { return textureSample(sampled_texture_13, sampled_sampler_13, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 14u: { return textureSample(sampled_texture_13, sampled_sampler_14, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 15u: { return textureSample(sampled_texture_13, sampled_sampler_15, vec2&lt;f32&gt;(0.25, 0.25)); }
+      default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+    } }
+    case 14u: { switch smp {
+      case 0u: { return textureSample(sampled_texture_14, sampled_sampler_0, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 1u: { return textureSample(sampled_texture_14, sampled_sampler_1, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 2u: { return textureSample(sampled_texture_14, sampled_sampler_2, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 3u: { return textureSample(sampled_texture_14, sampled_sampler_3, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 4u: { return textureSample(sampled_texture_14, sampled_sampler_4, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 5u: { return textureSample(sampled_texture_14, sampled_sampler_5, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 6u: { return textureSample(sampled_texture_14, sampled_sampler_6, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 7u: { return textureSample(sampled_texture_14, sampled_sampler_7, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 8u: { return textureSample(sampled_texture_14, sampled_sampler_8, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 9u: { return textureSample(sampled_texture_14, sampled_sampler_9, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 10u: { return textureSample(sampled_texture_14, sampled_sampler_10, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 11u: { return textureSample(sampled_texture_14, sampled_sampler_11, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 12u: { return textureSample(sampled_texture_14, sampled_sampler_12, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 13u: { return textureSample(sampled_texture_14, sampled_sampler_13, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 14u: { return textureSample(sampled_texture_14, sampled_sampler_14, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 15u: { return textureSample(sampled_texture_14, sampled_sampler_15, vec2&lt;f32&gt;(0.25, 0.25)); }
+      default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+    } }
+    case 15u: { switch smp {
+      case 0u: { return textureSample(sampled_texture_15, sampled_sampler_0, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 1u: { return textureSample(sampled_texture_15, sampled_sampler_1, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 2u: { return textureSample(sampled_texture_15, sampled_sampler_2, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 3u: { return textureSample(sampled_texture_15, sampled_sampler_3, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 4u: { return textureSample(sampled_texture_15, sampled_sampler_4, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 5u: { return textureSample(sampled_texture_15, sampled_sampler_5, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 6u: { return textureSample(sampled_texture_15, sampled_sampler_6, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 7u: { return textureSample(sampled_texture_15, sampled_sampler_7, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 8u: { return textureSample(sampled_texture_15, sampled_sampler_8, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 9u: { return textureSample(sampled_texture_15, sampled_sampler_9, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 10u: { return textureSample(sampled_texture_15, sampled_sampler_10, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 11u: { return textureSample(sampled_texture_15, sampled_sampler_11, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 12u: { return textureSample(sampled_texture_15, sampled_sampler_12, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 13u: { return textureSample(sampled_texture_15, sampled_sampler_13, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 14u: { return textureSample(sampled_texture_15, sampled_sampler_14, vec2&lt;f32&gt;(0.25, 0.25)); }
+      case 15u: { return textureSample(sampled_texture_15, sampled_sampler_15, vec2&lt;f32&gt;(0.25, 0.25)); }
+      default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+    } }
+    default: { return vec4&lt;f32&gt;(1.0, 0.0, 1.0, 1.0); }
+  }
+}
+@vertex fn vs_main(@builtin(vertex_index) i: u32) -&gt; @builtin(position) vec4&lt;f32&gt; {
+  let word = root.buffer_index * 64u + i * 2u;
+  return vec4&lt;f32&gt;(bitcast&lt;f32&gt;(arena[word]), bitcast&lt;f32&gt;(arena[word + 1u]), 0.0, 1.0);
+}
+@fragment fn fs_main() -&gt; @location(0) vec4&lt;f32&gt; { return sample_selected(root.texture_index, root.sampler_index); }
+</code></pre>
 <h2 id="no-graphics-api">No Graphics API 原則との対応</h2>
 <p>WebGPU 上で GPUVA API を字義どおり再現するのではなく、上位層が必要とする意味論を backend ごとに lower します。</p>
 <table>
@@ -456,11 +991,11 @@ public static class HeadlessWebGpuSample
 <li><a href="#story=Reference%2FGuides%2FTwoD">Reference/Guides/TwoD</a> — compute raster、text、logical buffer/texture refs</li>
 </ul>
 <p>これらの story が選択した環境で通ることと、required tests/goldens が揃うことを、backend 対応を表明するためのゲートにします。</p>
-<details class="sample-bundle"><summary>Run this sample — StandaloneProject</summary><p>Public GpuDevice API recipe covering inline WGSL compute, offscreen rendering and HostCached readback validation.</p><p><strong>Requirements:</strong> .NET 10 / wgpu-native 2.23.0 runtime / Vulkan adapter; Mesa lavapipe supported on Linux</p><p><strong>Platforms:</strong> Windows / Linux</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>status=pass</code></p><ul><li><code>samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj</code> <span>Project</span></li><li><code>samples/LuxelWebGpuHeadless/Program.cs</code> <span>CSharp</span></li><li><code>samples/LuxelWebGpuHeadless/HeadlessWebGpuSample.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelWebGpuHeadless -c Release</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelWebGpuHeadless -c Release</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/WebGPU&quot;, Order = 17, SampleBundle = &quot;rendering.webgpu-headless&quot;)]
+<details class="sample-bundle"><summary>Run this sample — StandaloneProject</summary><p>Browser-WASM recipe covering async WebGPU initialization, fixed-ABI embedded WGSL compute, textured offscreen rendering, canvas presentation and DOM input/resize events.</p><p><strong>Requirements:</strong> .NET 10 / wasm-tools workload / WebGPU browser / HTTPS or localhost</p><p><strong>Platforms:</strong> Browser/WASM</p><p><strong>Verification:</strong> exit 0, timeout 240s, stdout <code>data-status=pass</code></p><ul><li><code>samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj</code> <span>Project</span></li><li><code>samples/LuxelWebGpuBrowser/Program.cs</code> <span>CSharp</span></li><li><code>samples/LuxelWebGpuBrowser/README.md</code> <span>Asset</span></li><li><code>samples/LuxelWebGpuBrowser/wwwroot/index.html</code> <span>Asset</span></li><li><code>samples/LuxelWebGpuBrowser/wwwroot/main.js</code> <span>Asset</span></li><li><code>samples/LuxelWebGpuBrowser/Shaders/compute.wgsl</code> <span>Shader</span></li><li><code>samples/LuxelWebGpuBrowser/Shaders/triangle.wgsl</code> <span>Shader</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/WebGPU&quot;, Order = 17, SampleBundle = &quot;rendering.webgpu-browser&quot;)]
 public static Widget WebGpu(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
     # WebGPU backend 設計ガイド
 
-    このページは native WebGPU backend が満たす**設計契約と対応範囲**を定義します。特定の build や platform が利用可能かどうかは、adapter/device 作成、required feature/limit 検査、代表 story の回帰ゲートで判定します。この文書だけを根拠に「対応済み」または「実装進行中」とは扱いません。
+    このページは native と browser/WASM の WebGPU backend が満たす**設計契約と対応範囲**を定義します。特定の build や platform が利用可能かどうかは、adapter/device 作成、required feature/limit 検査、代表 story の回帰ゲートで判定します。この文書だけを根拠に「対応済み」または「実装進行中」とは扱いません。
 
     背景となる決定は [ADR-0019](story:Internals/ADR/0019-Portable-Gpu-Semantics-WebGPU-Backend)、共通 API の入口は [Reference/Guides/GpuDevice](story:Reference/Guides/GpuDevice)、pass 間依存は [Reference/Guides/RenderGraph](story:Reference/Guides/RenderGraph) を参照してください。
 
@@ -468,20 +1003,26 @@ public static Widget WebGpu(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&q
 
     | 項目 | 契約 |
     | --- | --- |
-    | 対象 | native desktop の Windows と Linux。headless/offscreenとWin32 HWND / Linux X11(Xlib) surface |
+    | 対象 | native desktop の Windows/Linux と、secure context (HTTPSまたはlocalhost) のbrowser-WASM |
     | 選択 | `WebGpuBackend.Create()`またはwindowed hostの`webgpu|wgpu`明示opt-in |
     | 既定 | Windows / Linux の既定 backend は変更しない |
     | surface | configure/acquire/present、resize、lost/outdated再configure。RGBA arena bufferはfullscreen WGSL blitでsurface formatへ変換 |
-    | 初期スコープ外 | browser/WASM、macOS、未検証 RID、未検証 Native AOT、固定portable ABI外のshader resource model |
+    | 初期スコープ外 | macOS、未検証 RID、未検証 Native AOT、固定portable ABI外のshader resource model |
     | 対応判定 | required feature/limit と shader package を検査し、代表headless/offscreen回帰が通ること |
 
     WebGPU は「どの環境でも動く互換モード」ではありません。adapter が必要な limit を満たさない、native runtime と binding の ABI が一致しない、対象 shader artifact が無い、といった場合は backend 作成または pipeline 作成で明示的に失敗します。
 
-    `samples/LuxelWebGpuHeadless`は公開`GpuDevice` APIでWGSL compute、storage arenaからのvertex pulling、sampled checkerboardを使うoffscreen triangle、`HostCached` readbackを実行して結果を自己検証します。windowed plumbingは`Luxel.WebGPU.Present.Tests`のX11 present/resizeと、`LuxelTriangle webgpu --frames 3 --stage triangle`で検証します。Git管理された22本のshader cacheはすべてWGSLを含み、`GpuShaderCode.Load`がbackendに応じて選択します。
+    `samples/LuxelWebGpuHeadless`はnativeの公開`GpuDevice` APIでWGSL compute、storage arenaからのvertex pulling、sampled checkerboardを使うoffscreen triangle、`HostCached` readbackを実行して結果を自己検証します。windowed plumbingは`Luxel.WebGPU.Present.Tests`のX11 present/resizeと、`LuxelTriangle webgpu --frames 3 --stage triangle`で検証します。Git管理された22本のshader cacheはすべてWGSLを含み、`GpuShaderCode.Load`がbackendに応じて選択します。
 
     **現時点の実装制限:** sampled resourceは固定portable ABIです。sampled textureとsamplerは各16個、textureはfilterableなRGBA8/BGRA8・2D・1 mipに限定されます。shader package全体のbinding metadata移行とunbounded runtime arrayは未実装なので、shaderは下記の固定bindingとlogical index loweringを明示する必要があります。未検証のstoryやplatformをWGSL artifactの存在だけで対応済みとは扱いません。
 
     {{SampleBundle(&quot;rendering.webgpu-headless&quot;)}}
+
+    `samples/LuxelWebGpuBrowser`は`Microsoft.NET.Sdk.WebAssembly`/`net10.0`で、`Luxel.Platform.Web`のcanvas window、Promiseをawaitするbrowser backend、embedded fixed-ABI WGSL compute、textured offscreen render/readback、canvas present、`requestAnimationFrame` loopとresize/pointer/key counterを実行します。DOM/WebGPU objectはJavaScript registryに保持し、managed側はinteger handleだけを保持します。配信はHTTPSまたはlocalhostが必要です。Pages版は相対URLだけを使うためsubpathでも動作します。
+
+    [Pagesでbrowser sampleを実行](samples/webgpu-browser/)
+
+    {{SampleBundle(&quot;rendering.webgpu-browser&quot;)}}
 
     ## No Graphics API 原則との対応
 
