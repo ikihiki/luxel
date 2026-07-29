@@ -125,6 +125,13 @@
     <EmbeddedResource Include="..\..\samples\LuxelResources\Program.cs" LogicalName="Luxel.Sample.samples.LuxelResources.Program.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelTwoD\LuxelTwoD.csproj" LogicalName="Luxel.Sample.samples.LuxelTwoD.LuxelTwoD.csproj" />
     <EmbeddedResource Include="..\..\samples\LuxelTwoD\Program.cs" LogicalName="Luxel.Sample.samples.LuxelTwoD.Program.cs" />
+    <EmbeddedResource Include="..\..\samples\LuxelWebGpuBrowser\LuxelWebGpuBrowser.csproj" LogicalName="Luxel.Sample.samples.LuxelWebGpuBrowser.LuxelWebGpuBrowser.csproj" />
+    <EmbeddedResource Include="..\..\samples\LuxelWebGpuBrowser\Program.cs" LogicalName="Luxel.Sample.samples.LuxelWebGpuBrowser.Program.cs" />
+    <EmbeddedResource Include="..\..\samples\LuxelWebGpuBrowser\README.md" LogicalName="Luxel.Sample.samples.LuxelWebGpuBrowser.README.md" />
+    <EmbeddedResource Include="..\..\samples\LuxelWebGpuBrowser\wwwroot\index.html" LogicalName="Luxel.Sample.samples.LuxelWebGpuBrowser.wwwroot.index.html" />
+    <EmbeddedResource Include="..\..\samples\LuxelWebGpuBrowser\wwwroot\main.js" LogicalName="Luxel.Sample.samples.LuxelWebGpuBrowser.wwwroot.main.js" />
+    <EmbeddedResource Include="..\..\samples\LuxelWebGpuBrowser\Shaders\compute.wgsl" LogicalName="Luxel.Sample.samples.LuxelWebGpuBrowser.Shaders.compute.wgsl" />
+    <EmbeddedResource Include="..\..\samples\LuxelWebGpuBrowser\Shaders\triangle.wgsl" LogicalName="Luxel.Sample.samples.LuxelWebGpuBrowser.Shaders.triangle.wgsl" />
     <EmbeddedResource Include="..\..\samples\LuxelWebGpuHeadless\LuxelWebGpuHeadless.csproj" LogicalName="Luxel.Sample.samples.LuxelWebGpuHeadless.LuxelWebGpuHeadless.csproj" />
     <EmbeddedResource Include="..\..\samples\LuxelWebGpuHeadless\Program.cs" LogicalName="Luxel.Sample.samples.LuxelWebGpuHeadless.Program.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelWebGpuHeadless\HeadlessWebGpuSample.cs" LogicalName="Luxel.Sample.samples.LuxelWebGpuHeadless.HeadlessWebGpuSample.cs" />

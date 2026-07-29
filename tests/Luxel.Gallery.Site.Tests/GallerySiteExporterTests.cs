@@ -21,15 +21,15 @@ public sealed class GallerySiteExporterTests
     {
         SampleBundleInfo bundle = Assert.IsType<SampleBundleInfo>(SampleBundleRegistry.Find("rendering.webgpu-browser"));
         Assert.Equal(SampleCopyLevel.StandaloneProject, bundle.CopyLevel);
-        Assert.Contains(bundle.Files, file => file.SourcePath == "samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj");
-        Assert.Contains(bundle.Files, file => file.SourcePath == "samples/LuxelWebGpuBrowser/wwwroot/main.js");
-        Assert.Contains(bundle.Files, file => file.SourcePath.EndsWith("compute.wgsl", StringComparison.Ordinal));
-        Assert.Contains(bundle.Files, file => file.SourcePath.EndsWith("triangle.wgsl", StringComparison.Ordinal));
+        Assert.Contains(bundle.Files, file => file.Path == "samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj");
+        Assert.Contains(bundle.Files, file => file.Path == "samples/LuxelWebGpuBrowser/wwwroot/main.js");
+        Assert.Contains(bundle.Files, file => file.Path.EndsWith("compute.wgsl", StringComparison.Ordinal));
+        Assert.Contains(bundle.Files, file => file.Path.EndsWith("triangle.wgsl", StringComparison.Ordinal));
         Assert.Contains("dotnet publish", bundle.RunCommand);
 
         StoryInfo guide = Assert.Single(StoryRegistry.All.Where(story => story.Path == "Reference/Guides/WebGPU"));
         Assert.Equal("rendering.webgpu-browser", guide.SampleBundle);
-        Assert.Contains("../samples/webgpu-browser/", File.ReadAllText(Path.Combine(
+        Assert.Contains("(samples/webgpu-browser/)", File.ReadAllText(Path.Combine(
             GallerySiteExporter.FindRepositoryRoot(), "src", "Luxel.Gallery", "Stories", "Docs", "DocsGpuWebGpu.cs")));
     }
 

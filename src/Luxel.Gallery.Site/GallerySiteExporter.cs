@@ -20,7 +20,8 @@ public static partial class GallerySiteExporter
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
-    public static SiteExportReport Export(GalleryHost host, IReadOnlyList<StoryInfo> stories, string output, string repositoryRoot)
+    public static SiteExportReport Export(GalleryHost host, IReadOnlyList<StoryInfo> stories, string output, string repositoryRoot,
+        string? browserWebGpuRoot = null)
     {
         if (Directory.Exists(output)) Directory.Delete(output, recursive: true);
         Directory.CreateDirectory(output);
@@ -137,6 +138,8 @@ public static partial class GallerySiteExporter
 
         File.WriteAllText(Path.Combine(output, "manifest.json"), JsonSerializer.Serialize(manifest, Json) + "\n", new UTF8Encoding(false));
         File.WriteAllText(Path.Combine(output, "index.html"), Index, new UTF8Encoding(false));
+        if (browserWebGpuRoot is not null)
+            CopyDirectory(browserWebGpuRoot, Path.Combine(output, "samples", "webgpu-browser"));
         Validate(output);
         return new(stories.Count, Directory.GetFiles(imagesDir, "*.png").Length, unavailable, errors);
     }
@@ -343,7 +346,8 @@ public static partial class GallerySiteExporter
                 string baseDirectory = Path.GetRelativePath(output, file).StartsWith("stories" + Path.DirectorySeparatorChar, StringComparison.Ordinal)
                     ? output : Path.GetDirectoryName(file)!;
                 string full = Path.GetFullPath(Path.Combine(baseDirectory, path));
-                if (!File.Exists(full)) throw new FileNotFoundException($"Missing local reference '{value}' in {file}", full);
+                bool exists = File.Exists(full) || Directory.Exists(full) && File.Exists(Path.Combine(full, "index.html"));
+                if (!exists) throw new FileNotFoundException($"Missing local reference '{value}' in {file}", full);
             }
         }
     }
@@ -370,6 +374,21 @@ public static partial class GallerySiteExporter
         if (!full.StartsWith(Path.GetFullPath(output) + Path.DirectorySeparatorChar, StringComparison.Ordinal))
             throw new InvalidDataException($"Reference escapes output for {kind}: {relative}");
         if (!File.Exists(full)) throw new FileNotFoundException($"Missing {kind}: {relative}", full);
+    }
+
+    private static void CopyDirectory(string source, string destination)
+    {
+        if (!Directory.Exists(source))
+            throw new DirectoryNotFoundException($"Browser WebGPU publish root is missing: {source}");
+        foreach (string directory in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
+            Directory.CreateDirectory(Path.Combine(destination, Path.GetRelativePath(source, directory)));
+        Directory.CreateDirectory(destination);
+        foreach (string file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        {
+            string target = Path.Combine(destination, Path.GetRelativePath(source, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(file, target, overwrite: true);
+        }
     }
 
     private static void CopyRuntimeAsset(string relativePath, string destination)

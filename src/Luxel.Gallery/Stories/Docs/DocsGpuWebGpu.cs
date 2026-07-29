@@ -36,7 +36,7 @@ public static partial class DocsGpu
 
         `samples/LuxelWebGpuBrowser`は`Microsoft.NET.Sdk.WebAssembly`/`net10.0`で、`Luxel.Platform.Web`のcanvas window、Promiseをawaitするbrowser backend、embedded fixed-ABI WGSL compute、textured offscreen render/readback、canvas present、`requestAnimationFrame` loopとresize/pointer/key counterを実行します。DOM/WebGPU objectはJavaScript registryに保持し、managed側はinteger handleだけを保持します。配信はHTTPSまたはlocalhostが必要です。Pages版は相対URLだけを使うためsubpathでも動作します。
 
-        [Pagesでbrowser sampleを実行](../samples/webgpu-browser/)
+        [Pagesでbrowser sampleを実行](samples/webgpu-browser/)
 
         {{SampleBundle("rendering.webgpu-browser")}}
 
