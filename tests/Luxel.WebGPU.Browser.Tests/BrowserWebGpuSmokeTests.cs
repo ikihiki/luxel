@@ -224,7 +224,8 @@ public sealed class BrowserWebGpuSmokeTests
         Assert.InRange(Math.Abs(box[3] - box[8]), 0, 1);
         Assert.InRange(Math.Abs(box[4] - box[2] * box[6]), 0, 1);
         Assert.InRange(Math.Abs(box[5] - box[3] * box[6]), 0, 1);
-        Assert.Null(await canvas.GetAttributeAsync("style"));
+        string[] inlineSize = await canvas.EvaluateAsync<string[]>("canvas => [canvas.style.width, canvas.style.height]");
+        Assert.Equal([string.Empty, string.Empty], inlineSize);
     }
 
     private static async Task AssertCanvasContainsCanonicalRgbAsync(ILocator canvas)
