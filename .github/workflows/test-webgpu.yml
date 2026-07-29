@@ -93,6 +93,8 @@ jobs:
   windows-build-and-tests:
     runs-on: windows-2025
     env:
+      LUXEL_WEBGPU_FORCE_FALLBACK_ADAPTER: '1'
+      LUXEL_WEBGPU_REQUIRE_ADAPTER: '1'
       WGPU_BACKEND: dx12
       WGPU_DX12_COMPILER: fxc
     steps:
