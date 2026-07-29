@@ -134,7 +134,6 @@ export function createWindow(selector, title, width, height, visible) {
         if (state.canvas === canvas) throw new Error(`Canvas '${selector}' is already assigned to a Luxel window.`);
     }
 
-    const ratio = globalThis.devicePixelRatio || 1;
     const id = nextWindowId++;
     const state = {
         id,
@@ -143,23 +142,19 @@ export function createWindow(selector, title, width, height, visible) {
         resizeObserver: null,
         previousDisplay: canvas.style.display,
         closePending: false,
-        lastWidth: width,
-        lastHeight: height,
-        lastRatio: ratio,
+        lastWidth: null,
+        lastHeight: null,
+        lastRatio: null,
     };
     windows.set(id, state);
 
     if (!canvas.hasAttribute("tabindex")) canvas.tabIndex = 0;
-    canvas.width = Math.max(1, width);
-    canvas.height = Math.max(1, height);
-    canvas.style.width = `${Math.max(1, width) / ratio}px`;
-    canvas.style.height = `${Math.max(1, height) / ratio}px`;
     canvas.style.display = visible
         ? (state.previousDisplay === "none" ? "" : state.previousDisplay)
         : "none";
     setTitle(id, title);
     installEvents(state);
-    enqueue(id, EventKind.resize, [ratio], [canvas.width, canvas.height]);
+    emitResize(state);
     return id;
 }
 
@@ -182,18 +177,15 @@ export function setTitle(windowId, title) {
 export function setBounds(windowId, width, height, setWidth, setHeight) {
     const state = requireWindow(windowId);
     const ratio = globalThis.devicePixelRatio || 1;
-    if (setWidth) {
-        state.canvas.width = Math.max(1, width);
-        state.canvas.style.width = `${Math.max(1, width) / ratio}px`;
-    }
-    if (setHeight) {
-        state.canvas.height = Math.max(1, height);
-        state.canvas.style.height = `${Math.max(1, height) / ratio}px`;
-    }
-    state.lastWidth = state.canvas.width;
-    state.lastHeight = state.canvas.height;
+    const nextWidth = setWidth ? Math.max(1, width) : state.canvas.width;
+    const nextHeight = setHeight ? Math.max(1, height) : state.canvas.height;
+    if (state.canvas.width !== nextWidth) state.canvas.width = nextWidth;
+    if (state.canvas.height !== nextHeight) state.canvas.height = nextHeight;
+    if (state.lastWidth === nextWidth && state.lastHeight === nextHeight && state.lastRatio === ratio) return;
+    state.lastWidth = nextWidth;
+    state.lastHeight = nextHeight;
     state.lastRatio = ratio;
-    enqueue(windowId, EventKind.resize, [ratio], [state.canvas.width, state.canvas.height]);
+    enqueue(windowId, EventKind.resize, [ratio], [nextWidth, nextHeight]);
 }
 
 export function showWindow(windowId) {

@@ -371,15 +371,18 @@ public static partial class Program
             using var windows = new WindowSystem(web);
             Window window = windows.CreateWindow(new WindowDesc(&quot;Luxel browser WebGPU&quot;, (int)TargetWidth, (int)TargetHeight));
             int pointerEvents = 0, keyEvents = 0, resizeEvents = 0;
+            bool resizePending = false;
             window.PointerMoved += _ =&gt; pointerEvents++;
             window.PointerDown += _ =&gt; pointerEvents++;
             window.PointerUp += _ =&gt; pointerEvents++;
             window.KeyDown += _ =&gt; keyEvents++;
             window.KeyUp += _ =&gt; keyEvents++;
-            window.Resized += (_, _) =&gt; resizeEvents++;
+            window.Resized += (_, _) =&gt; { resizeEvents++; resizePending = true; };
+            windows.Pump();
 
             using BrowserWebGpuBackend gpu = await BrowserWebGpuBackend.CreateAsync();
             using BrowserWebGpuSurface surface = gpu.CreateCanvasSurface(&quot;#luxel-canvas&quot;, (uint)window.Width, (uint)window.Height);
+            resizePending = false;
             using IGpuBackendBuffer compute = gpu.CreateBuffer(256, GpuMemoryKind.HostCached);
             using IGpuBackendPipeline computePipeline = gpu.CreateComputePipeline(Shader(&quot;compute.wgsl&quot;), &quot;main&quot;);
             using (IGpuBackendCommandBuffer command = gpu.MainQueue.StartCommandRecording())
@@ -419,12 +422,16 @@ public static partial class Program
             if (alpha &lt; 240 || red + green + blue &lt; 180)
                 throw new InvalidOperationException($&quot;Center pixel was rgba({red},{green},{blue},{alpha}).&quot;);
             surface.Present(pixels, TargetWidth, TargetWidth, TargetHeight);
+            SetStatus(&quot;pass&quot;, $&quot;browser-webgpu: status=pass\nstory={CanonicalTriangleRecipe.Story}\nshader={CanonicalTriangleRecipe.Shader}\nvertexSize={CanonicalTriangleRecipe.VertexSize}; rootSize={CanonicalTriangleRecipe.DrawArgsSize}\ncanvas={CanonicalTriangleRecipe.Width}x{CanonicalTriangleRecipe.Height}\nrecipe={CanonicalTriangleRecipe.Recipe}\nhash={CanonicalTriangleRecipe.ShaderSha256}\ndevice={gpu.Name}\ncompute=0x{computeValue:x8}; center=rgba({red},{green},{blue},{alpha})\nframes=1+; resize={resizeEvents}; pointer={pointerEvents}; key={keyEvents}&quot;);
 
             while (windows.Pump())
             {
-                surface.Resize((uint)window.Width, (uint)window.Height);
-                surface.Present(pixels, TargetWidth, TargetWidth, TargetHeight);
-                SetStatus(&quot;pass&quot;, $&quot;browser-webgpu: status=pass\nstory={CanonicalTriangleRecipe.Story}\nshader={CanonicalTriangleRecipe.Shader}\nvertexSize={CanonicalTriangleRecipe.VertexSize}; rootSize={CanonicalTriangleRecipe.DrawArgsSize}\ncanvas={CanonicalTriangleRecipe.Width}x{CanonicalTriangleRecipe.Height}\nrecipe={CanonicalTriangleRecipe.Recipe}\nhash={CanonicalTriangleRecipe.ShaderSha256}\ndevice={gpu.Name}\ncompute=0x{computeValue:x8}; center=rgba({red},{green},{blue},{alpha})\nframes=1+; resize={resizeEvents}; pointer={pointerEvents}; key={keyEvents}&quot;);
+                if (resizePending)
+                {
+                    surface.Resize((uint)window.Width, (uint)window.Height);
+                    surface.Present(pixels, TargetWidth, TargetWidth, TargetHeight);
+                    resizePending = false;
+                }
                 await NextFrame();
             }
         }
