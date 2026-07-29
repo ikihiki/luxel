@@ -59,6 +59,21 @@ public sealed class StoryGeneratorTests
     }
 
     [Fact]
+    public void Runtime_descriptor_metadata_is_emitted_without_building_the_story()
+    {
+        GeneratorDriverRunResult result = Run("""
+            [Story("Controls/Demo/Basic", RuntimeBundleId = "webgpu-browser-v1", Args = nameof(Args), CapabilityNote = "fixture")]
+            public static Widget Demo() => new Widget();
+            public static System.Collections.Generic.IReadOnlyList<StoryArgDefinition> Args() => System.Array.Empty<StoryArgDefinition>();
+            """);
+
+        string generated = Assert.Single(result.GeneratedTrees).ToString();
+        Assert.Contains("RuntimeBundleId: \"webgpu-browser-v1\"", generated, StringComparison.Ordinal);
+        Assert.Contains("ArgDefinitions: global::Luxel.UI.Stories.Args()", generated, StringComparison.Ordinal);
+        Assert.Contains("CapabilityNote: \"fixture\"", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void InvalidStorySignature_ReportsNgui010()
     {
         GeneratorDriverRunResult result = Run("""
@@ -98,6 +113,9 @@ public sealed class StoryGeneratorTests
                     public string? Theme { get; set; }
                     public bool RealWindowOnly { get; set; }
                     public string? SampleBundle { get; set; }
+                    public string? RuntimeBundleId { get; set; }
+                    public string? Args { get; set; }
+                    public string? CapabilityNote { get; set; }
                 }
                 public class Widget
                 {
@@ -107,8 +125,11 @@ public sealed class StoryGeneratorTests
                 {
                     public T Require<T>() => default!;
                 }
+                public sealed record StoryArgDefinition(string Name);
                 public sealed record StoryInfo(string Path, int Width, int Height, string? Theme,
-                    Func<StoryContext, Widget> Build, int Order = 1000, string? Source = null, bool RealWindowOnly = false, string? SampleBundle = null);
+                    Func<StoryContext, Widget> Build, int Order = 1000, string? Source = null, bool RealWindowOnly = false, string? SampleBundle = null,
+                    string? RuntimeBundleId = null, System.Collections.Generic.IReadOnlyList<StoryArgDefinition>? ArgDefinitions = null,
+                    string? CapabilityNote = null);
                 public static class StoryRegistry { public static void Register(StoryInfo story) { } }
                 public sealed class DemoService { public string Name => "demo"; }
                 public static class Stories

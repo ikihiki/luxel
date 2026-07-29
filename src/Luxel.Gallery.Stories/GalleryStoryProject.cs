@@ -8,8 +8,18 @@ public static class GalleryStoryProject
     public static void Register(StoryCatalogBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        Luxel.UI.Generated.StoryRegistration_Luxel_Gallery_Stories.Register(builder);
-        Stories.DocsApi.RegisterReferenceStories(builder);
+        CoreUiStoryProject.Register(builder);
+
+        var fullBuilder = new StoryCatalogBuilder();
+        Luxel.UI.Generated.StoryRegistration_Luxel_Gallery_Stories.Register(fullBuilder);
+        Stories.DocsApi.RegisterReferenceStories(fullBuilder);
+        foreach (StoryInfo story in fullBuilder.Build().All)
+        {
+            // CoreUi owns every production component's exact canonical Overview/Basic fallback.
+            // Other duplicates are composition errors rather than silently disappearing across projects.
+            if (CoreUiStoryProject.IsProductionCanonicalPath(story.Path)) continue;
+            builder.Add(story);
+        }
     }
 
     public static StoryCatalog CreateCatalog()

@@ -32,6 +32,10 @@ public sealed class StoryAttribute(string path) : Attribute
     public string? SampleBundle { get; set; }
     /// <summary>Browser runtime bundle that can execute this canonical story path.</summary>
     public string? RuntimeBundleId { get; set; }
+    /// <summary>Human-readable deterministic fixture/capability note exported with runtime descriptors.</summary>
+    public string? CapabilityNote { get; set; }
+    /// <summary>Optional static schema provider method on the declaring story type.</summary>
+    public string? Args { get; set; }
 }
 
 /// <summary>
@@ -46,9 +50,13 @@ public sealed class StoryContext
     private readonly Luxel.Resources.ResourceSystem? _resources;
     private long _logSeq;
     private const int LogCapacity = 200;
-    private readonly StoryArgs _args;
+    private StoryArgs _args;
     private readonly List<StoryArgDefinition> _argDefinitions = new();
     private readonly HashSet<string> _argNames = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, StoryKnob> _argKnobs = new(StringComparer.Ordinal);
+
+    /// <summary>Raised with the full canonical snapshot whenever a declared arg changes.</summary>
+    public event Action<StoryArgs>? ArgsChanged;
 
     public StoryContext(Luxel.Resources.ResourceSystem? resources = null, StoryArgs? args = null)
     {
@@ -61,6 +69,25 @@ public sealed class StoryContext
 
     /// <summary>build 中に宣言された public args schema。</summary>
     public IReadOnlyList<StoryArgDefinition> ArgDefinitions => _argDefinitions;
+
+    /// <summary>Applies a full canonical snapshot to already-declared args without rebuilding the iframe.</summary>
+    public IReadOnlyList<string> ApplyArgs(StoryArgs args)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+        var errors = new List<string>();
+        foreach ((string name, JsonElement value) in args.Values)
+        {
+            if (!_argKnobs.TryGetValue(name, out StoryKnob? knob))
+            {
+                errors.Add($"Unknown story arg '{name}'.");
+                continue;
+            }
+            try { knob.Set(value); }
+            catch (Exception error) when (error is FormatException or InvalidCastException or JsonException)
+            { errors.Add($"{name}: {error.Message}"); }
+        }
+        return errors;
+    }
 
     private IServiceProvider? _services;
 
@@ -180,25 +207,33 @@ public sealed class StoryContext
         T initial = defaultValue;
         if (_args.TryGet(name, out JsonElement incoming))
         {
-            try { initial = WidgetDebugCodec.Coerce<T>(incoming); }
-            catch (Exception error) when (error is FormatException or InvalidCastException or JsonException)
+            try { initial = options?.Parser is { } parser ? parser(incoming) : WidgetDebugCodec.Coerce<T>(incoming); }
+            catch (Exception error) when (error is FormatException or InvalidCastException or JsonException or ArgumentException)
             {
                 Log($"arg '{name}' was ignored: {error.Message}");
             }
         }
 
         var signal = new Signal<T>(initial);
-        StoryKnob knob = StoryKnob.For(name, signal, options?.Description);
+        StoryKnob knob = StoryKnob.For(name, signal, options?.Description, options?.Parser);
         _knobs.Add(knob);
+        _argKnobs.Add(name, knob);
+        IReadOnlyList<string>? choices = typeof(T).IsEnum ? Enum.GetNames(typeof(T)) : null;
         _argDefinitions.Add(new StoryArgDefinition(
             name,
             knob.Type,
-            JsonSerializer.SerializeToElement(defaultValue),
+            StoryArgCodec.Serialize(defaultValue),
             options?.Description,
             options?.Order ?? 1000,
             options?.Min,
             options?.Max,
-            options?.Step));
+            options?.Step,
+            choices));
+        signal.Changed += value =>
+        {
+            _args = _args.With(name, StoryArgCodec.Serialize(value));
+            ArgsChanged?.Invoke(_args);
+        };
         return signal;
     }
 
@@ -247,6 +282,13 @@ public sealed class StoryContext
     }
 }
 
+/// <summary>Reflection-free reactive host used by generated component Basics in component assemblies.</summary>
+public sealed class GeneratedComponentStoryPreview(Func<Widget> build) : CompositeControl
+{
+    private readonly Func<Widget> _build = build ?? throw new ArgumentNullException(nameof(build));
+    protected override Widget Build() => _build();
+}
+
 /// <summary>ストーリーのイベントログ 1 件。Seq はストーリー実体化ごとの連番 (フロントの差分表示用)。</summary>
 public readonly record struct StoryLogEntry(long Seq, string Time, string Message);
 
@@ -283,28 +325,22 @@ public sealed class StoryKnob
             _ => JsonSerializer.SerializeToElement(v),   // color/string は文字列のまま (Coerce が解釈)
         });
 
-    internal static StoryKnob For<T>(string name, Signal<T> sig, string? description = null)
+    internal static StoryKnob For<T>(string name, Signal<T> sig, string? description = null,
+        Func<JsonElement, T>? parser = null)
     {
-        // enum: DebugProps と同じ "enum:A|B|C" 型ヒント。書き込みは名前の TryParse (不正値は無視)
+        // enum: DebugProps と同じ "enum:A|B|C" 型ヒント。書き込みは canonical name。
         if (typeof(T).IsEnum)
             return new StoryKnob(name, $"enum:{string.Join('|', Enum.GetNames(typeof(T)))}", description,
                 () => sig.Value?.ToString() ?? "",
-                el =>
-                {
-                    if (el.ValueKind == JsonValueKind.String
-                        && Enum.TryParse(typeof(T), el.GetString(), ignoreCase: true, out object? v))
-                        sig.Value = (T)v;
-                });
+                el => sig.Value = parser is not null ? parser(el) : WidgetDebugCodec.Coerce<T>(el));
         // Length: CSS 風文字列 ("120px" "50%" "1.5em" ...) で往復
         if (typeof(T) == typeof(Length))
             return new StoryKnob(name, "length", description,
                 () => sig.Value!.ToString()!,
-                el =>
-                {
-                    if (el.ValueKind == JsonValueKind.String
-                        && Length.TryParse(el.GetString(), null, out Length l))
-                        sig.Value = (T)(object)l;
-                });
+                el => sig.Value = parser is not null ? parser(el) : WidgetDebugCodec.Coerce<T>(el));
+        if (parser is not null)
+            return new StoryKnob(name, "string", description,
+                () => sig.Value?.ToString() ?? "", el => sig.Value = parser(el));
 
         string type =
             typeof(T) == typeof(uint) ? "color" :
@@ -322,6 +358,20 @@ public sealed class StoryKnob
     }
 }
 
+/// <summary>Source-generated identity for one production <c>[UiComponent]</c> Overview/Basic pair.</summary>
+public sealed record GeneratedComponentStoryDescriptor(
+    string ComponentType,
+    string Category,
+    string OverviewPath,
+    string BasicPath);
+
+/// <summary>Controls exact-path composition. Only authored stories may explicitly replace generated component fallbacks.</summary>
+public enum StoryRegistrationKind
+{
+    Authored,
+    GeneratedComponentFallback,
+}
+
 /// <summary>登録済みストーリー 1 件。<see cref="Build"/> は選択のたびに新しい widget ツリーを作る。
 /// <paramref name="Width"/>/<paramref name="Height"/> が 0,0 = fill (ホストがプレビュー領域
 /// いっぱいに表示する — 属性で両方省略したストーリー)。
@@ -330,7 +380,10 @@ public sealed class StoryKnob
 /// (storysource — GalleryのSourceビュー／docsの「コードを見る」用、ジェネレーターが焼き込む)。<paramref name="RealWindowOnly"/> は snap 回帰の対象外 (実窓専用)。</summary>
 public sealed record StoryInfo(string Path, int Width, int Height, string? Theme, Func<StoryContext, Widget> Build,
                                int Order = 1000, string? Source = null, bool RealWindowOnly = false, string? SampleBundle = null,
-                               Func<StoryContext, StoryResult>? ResultBuild = null, string? RuntimeBundleId = null)
+                               Func<StoryContext, StoryResult>? ResultBuild = null, string? RuntimeBundleId = null,
+                               IReadOnlyList<StoryArgDefinition>? ArgDefinitions = null, string? CapabilityNote = null,
+                               StoryRegistrationKind RegistrationKind = StoryRegistrationKind.Authored,
+                               GeneratedComponentStoryDescriptor? ProductionComponent = null)
 {
     /// <summary>Widget/Markdown を区別した semantic build。既存 Widget Story は暗黙変換で統一される。</summary>
     public StoryResult BuildResult(StoryContext context) => ResultBuild?.Invoke(context) ?? Build(context);

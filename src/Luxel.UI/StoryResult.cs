@@ -39,7 +39,29 @@ public sealed class StoryArgs
 
     public bool TryGet(string name, out JsonElement value) => _values.TryGetValue(name, out value);
 
-    public string ToJson() => JsonSerializer.Serialize(_values);
+    public StoryArgs With(string name, JsonElement value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        var copy = new Dictionary<string, JsonElement>(_values, StringComparer.Ordinal) { [name] = value.Clone() };
+        return new StoryArgs(copy);
+    }
+
+    public StoryArgs WithDefaults(IReadOnlyList<StoryArgDefinition> definitions)
+    {
+        var values = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (StoryArgDefinition definition in definitions) values[definition.Name] = definition.DefaultValue.Clone();
+        foreach ((string name, JsonElement value) in _values) values[name] = value.Clone();
+        return new StoryArgs(values);
+    }
+
+    public StoryArgs WithoutDefaults(IReadOnlyList<StoryArgDefinition> definitions)
+    {
+        var defaults = definitions.ToDictionary(definition => definition.Name, StringComparer.Ordinal);
+        return new StoryArgs(_values.Where(pair => !defaults.TryGetValue(pair.Key, out StoryArgDefinition? definition)
+            || !StoryArgCodec.CanonicalEquals(pair.Value, definition.DefaultValue)));
+    }
+
+    public string ToJson() => StoryArgCodec.SerializeObject(_values);
 
     public static StoryArgs Parse(string? json)
     {
@@ -71,7 +93,15 @@ public sealed record StoryArgDefinition(
     int Order = 1000,
     double? Min = null,
     double? Max = null,
-    double? Step = null);
+    double? Step = null,
+    IReadOnlyList<string>? Options = null)
+{
+    /// <summary>Creates a canonical static schema entry without building the story.</summary>
+    public static StoryArgDefinition Create<T>(string name, string type, T defaultValue,
+        string? description = null, int order = 1000, double? min = null, double? max = null,
+        double? step = null, IReadOnlyList<string>? options = null)
+        => new(name, type, StoryArgCodec.Serialize(defaultValue), description, order, min, max, step, options);
+}
 
 public sealed class StoryArgOptions<T>
 {
@@ -80,6 +110,78 @@ public sealed class StoryArgOptions<T>
     public double? Min { get; init; }
     public double? Max { get; init; }
     public double? Step { get; init; }
+    /// <summary>Optional compile-time generated parser for safe IParsable values.</summary>
+    public Func<JsonElement, T>? Parser { get; init; }
+}
+
+/// <summary>Canonical story arg encoding shared by schema, URLs, manifests and browser messages.</summary>
+public static class StoryArgCodec
+{
+    public static JsonElement Serialize<T>(T value)
+    {
+        // Story schemas are created during explicit catalog registration, including browser-WASM where
+        // reflection-based System.Text.Json metadata is intentionally unavailable. Keep supported wire
+        // primitives fully reflection-free.
+        object? boxed = value;
+        return boxed switch
+        {
+            null => ParseElement("null"),
+            Length length => StringElement(length.ToString()),
+            Enum enumeration => StringElement(enumeration.ToString()),
+            uint color => StringElement(WidgetDebugCodec.FormatColor(color)),
+            string text => StringElement(text),
+            bool boolean => ParseElement(boolean ? "true" : "false"),
+            byte number => NumberElement(number),
+            sbyte number => NumberElement(number),
+            short number => NumberElement(number),
+            ushort number => NumberElement(number),
+            int number => NumberElement(number),
+            long number => NumberElement(number),
+            ulong number => NumberElement(number),
+            float number => NumberElement(number),
+            double number => NumberElement(number),
+            decimal number => NumberElement(number),
+            _ => throw new NotSupportedException($"Story arg schema type '{typeof(T).Name}' requires an explicit wire parser."),
+        };
+    }
+
+    private static JsonElement StringElement(string value)
+        => ParseElement("\"" + JsonEncodedText.Encode(value).ToString() + "\"");
+
+    private static JsonElement NumberElement<TNumber>(TNumber value) where TNumber : IFormattable
+        => ParseElement(value.ToString(null, System.Globalization.CultureInfo.InvariantCulture));
+
+    private static JsonElement ParseElement(string json)
+    {
+        using JsonDocument document = JsonDocument.Parse(json);
+        return document.RootElement.Clone();
+    }
+
+    public static bool CanonicalEquals(JsonElement left, JsonElement right)
+        => string.Equals(CanonicalJson(left), CanonicalJson(right), StringComparison.Ordinal);
+
+    internal static string SerializeObject(IEnumerable<KeyValuePair<string, JsonElement>> values)
+    {
+        using var stream = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream))
+        {
+            writer.WriteStartObject();
+            foreach ((string name, JsonElement value) in values.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+            {
+                writer.WritePropertyName(name);
+                value.WriteTo(writer);
+            }
+            writer.WriteEndObject();
+        }
+        return Encoding.UTF8.GetString(stream.ToArray());
+    }
+
+    private static string CanonicalJson(JsonElement value)
+    {
+        if (value.ValueKind != JsonValueKind.Object) return value.GetRawText();
+        return SerializeObject(value.EnumerateObject()
+            .Select(property => KeyValuePair.Create(property.Name, property.Value)));
+    }
 }
 
 /// <summary>
@@ -109,6 +211,17 @@ public sealed class StoryResult
         Kind = StoryResultKind.Widget;
         Widget = widget;
     }
+
+    private StoryResult(string markdown, IReadOnlyList<StoryReference> references)
+    {
+        Kind = StoryResultKind.Markdown;
+        _markdown = new StringBuilder(markdown ?? string.Empty);
+        _references = new List<StoryReference>(references);
+    }
+
+    /// <summary>Creates semantic Markdown with pre-authored luxel-story fence placeholders.</summary>
+    public static StoryResult FromMarkdown(string markdown, params StoryReference[] references)
+        => new(markdown, references ?? Array.Empty<StoryReference>());
 
     public static implicit operator StoryResult(Widget widget) => new(widget);
 

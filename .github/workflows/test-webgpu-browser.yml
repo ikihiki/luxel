@@ -22,10 +22,13 @@ on:
       - 'assets/fonts/**'
       - 'tests/Luxel.WebGPU.Browser.Tests/**'
       - 'tests/Luxel.Gallery.Site.Tests/**'
+      - 'src/Luxel.Gallery.RuntimeManifest/**'
+      - 'src/Luxel.Gallery.Stories.CoreUi/**'
+      - 'src/Luxel.UI.Generators/**'
+      - 'eng/check-project-dependencies.py'
       - 'src/Luxel.Gallery.Site/**'
       - 'src/Luxel.Gallery.Stories/SampleBundles.cs'
       - 'src/Luxel.Gallery.Stories/Stories/GpuStories.cs'
-      - 'src/Luxel.Gallery.Stories/Stories/Controls/InputControlStories.cs'
       - 'src/Luxel.Gallery.Stories/Stories/Docs/DocsGpuWebGpu.cs'
       - 'src/Luxel.Gallery.Stories/Stories/Docs/LearnRenderingBasics.cs'
       - 'src/Luxel.Gallery.Stories/Stories/Docs/Adr/Adr0019.cs'
@@ -60,8 +63,12 @@ jobs:
         run: dotnet restore Luxel.slnx
       - name: Build solution and browser tests
         run: dotnet build Luxel.slnx --no-restore --configuration Release
+      - name: Test generators and generated production inventory
+        run: dotnet test tests/Luxel.UI.Generators.Tests/Luxel.UI.Generators.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test exporter and documentation contracts
         run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
+      - name: Test browser managed and source contracts
+        run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release --filter 'FullyQualifiedName!~BrowserWebGpuSmokeTests'
       - name: Publish browser sample
         run: dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj --no-restore --configuration Release
       - name: Export static Gallery with browser WebGPU sample
@@ -70,7 +77,15 @@ jobs:
         run: |
           test -f artifacts/gallery-site/samples/webgpu-browser/index.html
           test -f artifacts/gallery-site/samples/webgpu-browser/browser-runtime-manifest.json
-          grep -q '"bundleId": "webgpu-browser-v1"' artifacts/gallery-site/samples/webgpu-browser/browser-runtime-manifest.json
+          python3 - <<'PY'
+          import json
+          manifest = json.load(open('artifacts/gallery-site/samples/webgpu-browser/browser-runtime-manifest.json'))
+          production = [story for story in manifest['stories'] if story.get('componentType')]
+          assert manifest['bundleId'] == 'webgpu-browser-v1'
+          assert manifest['protocolVersion'] == 2
+          assert len(production) == len({story['componentType'] for story in production}) == 60
+          assert all(story['path'].endswith('/Basic') and isinstance(story['args'], list) for story in production)
+          PY
           test -f artifacts/gallery-site/samples/webgpu-browser/_framework/dotnet.js
           ! grep -R -E '(src|href)="/' artifacts/gallery-site/samples/webgpu-browser/index.html artifacts/gallery-site/samples/webgpu-browser/main.js
       - name: Install Playwright Chromium

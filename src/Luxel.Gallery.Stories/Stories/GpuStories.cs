@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using Luxel.Controls;
 using Luxel.Resources;
 using Luxel.Graphics.TwoD;
@@ -51,7 +51,8 @@ public static class GpuStories
 
     // ---- 3D: offscreen 自前レンダ → image 合成 ----
 
-    [Story(CanonicalTriangleRecipe.Story, Height = CanonicalTriangleRecipe.Width, Order = 120, RuntimeBundleId = "webgpu-browser-v1")]
+    [Story(CanonicalTriangleRecipe.Story, Width = CanonicalTriangleRecipe.Width, Height = CanonicalTriangleRecipe.Height, Order = 120,
+        RuntimeBundleId = "webgpu-browser-v1", CapabilityNote = "Specialized browser WebGPU validation route.")]
     public static Widget Triangle(StoryContext ctx)
         => ctx.Snap(Frame(GpuView(CanonicalTriangleRecipe.Width, CanonicalTriangleRecipe.Height, new TriangleScene())));
 

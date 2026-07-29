@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <Compile Include="..\..\samples\CanonicalTriangleRecipe.cs" Link="CanonicalTriangleRecipe.cs" />
+    <ProjectReference Include="..\Luxel.Gallery.Stories.CoreUi\Luxel.Gallery.Stories.CoreUi.csproj" />
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
   </ItemGroup>
 

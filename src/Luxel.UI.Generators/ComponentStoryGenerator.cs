@@ -50,6 +50,8 @@ public sealed class ComponentStoryGenerator : IIncrementalGenerator
         public string Name = "";
         public string Type = "";
         public string Default = "";
+        public string TypeHint = "string";
+        public string[] Options = Array.Empty<string>();
         public string? Apply;
         public string? Description;
         public int Order;
@@ -177,6 +179,10 @@ public sealed class ComponentStoryGenerator : IIncrementalGenerator
                 Name = publicName,
                 Type = typeFq,
                 Default = Constant(defaultValue, argType),
+                TypeHint = ArgTypeHint(argType),
+                Options = argType.TypeKind == TypeKind.Enum
+                    ? ((INamedTypeSymbol)argType).GetMembers().OfType<IFieldSymbol>().Where(field => field.HasConstantValue).Select(field => field.Name).ToArray()
+                    : Array.Empty<string>(),
                 Apply = apply,
                 Description = NamedString(argAttribute, "Description"),
                 Order = NamedInt(argAttribute, "Order", 1000),
@@ -264,6 +270,25 @@ public sealed class ComponentStoryGenerator : IIncrementalGenerator
         return false;
     }
 
+    private static string ArgTypeHint(ITypeSymbol type)
+    {
+        if (type.TypeKind == TypeKind.Enum)
+        {
+            string names = string.Join("|", ((INamedTypeSymbol)type).GetMembers().OfType<IFieldSymbol>()
+                .Where(field => field.HasConstantValue).Select(field => field.Name));
+            return "enum:" + names;
+        }
+        if (type.ToDisplayString() == "Luxel.UI.Length") return "length";
+        return type.SpecialType switch
+        {
+            SpecialType.System_UInt32 => "color",
+            SpecialType.System_Int32 => "int",
+            SpecialType.System_Single or SpecialType.System_Double => "float",
+            SpecialType.System_Boolean => "bool",
+            _ => "string",
+        };
+    }
+
     private static ITypeSymbol? DefaultType(TypedConstant constant) => constant.Type is { SpecialType: not SpecialType.System_Object } type ? type : null;
 
     private static bool IsCompatible(TypedConstant value, ITypeSymbol target)
@@ -332,15 +357,19 @@ public sealed class ComponentStoryGenerator : IIncrementalGenerator
         source.AppendLine("{");
         source.Append("    public static class ComponentStoryRegistration_").AppendLine(Sanitize(assemblyName));
         source.AppendLine("    {");
-        source.AppendLine("        [global::System.Runtime.CompilerServices.ModuleInitializer]");
-        source.AppendLine("        internal static void Init()");
-        source.AppendLine("        {");
-        source.AppendLine("            var builder = new global::Luxel.UI.StoryCatalogBuilder();");
-        source.AppendLine("            Register(builder);");
-        source.AppendLine("            foreach (global::Luxel.UI.StoryInfo story in builder.Build().All)");
-        source.AppendLine("                global::Luxel.UI.StoryRegistry.Register(story);");
-        source.AppendLine("        }");
-        source.AppendLine();
+        // CoreUi uses explicit catalog composition; do not eagerly construct schemas in browser-WASM.
+        if (assemblyName != "Luxel.Gallery.Stories.CoreUi")
+        {
+            source.AppendLine("        [global::System.Runtime.CompilerServices.ModuleInitializer]");
+            source.AppendLine("        internal static void Init()");
+            source.AppendLine("        {");
+            source.AppendLine("            var builder = new global::Luxel.UI.StoryCatalogBuilder();");
+            source.AppendLine("            Register(builder);");
+            source.AppendLine("            foreach (global::Luxel.UI.StoryInfo story in builder.Build().All)");
+            source.AppendLine("                global::Luxel.UI.StoryRegistry.Register(story);");
+            source.AppendLine("        }");
+            source.AppendLine();
+        }
         source.AppendLine("        public static void Register(global::Luxel.UI.StoryCatalogBuilder builder)");
         source.AppendLine("        {");
         source.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(builder);");
@@ -352,14 +381,43 @@ public sealed class ComponentStoryGenerator : IIncrementalGenerator
                 .Append(story.Theme is null ? "null" : Literal(story.Theme)).Append(", static ctx => Build_").Append(i).Append("(ctx), ")
                 .Append(story.Order).Append(", ").Append(Literal(story.Source)).Append(", ").Append(story.RealWindowOnly ? "true" : "false")
                 .Append(", ").Append(story.SampleBundle is null ? "null" : Literal(story.SampleBundle))
-                .Append(story.RuntimeBundleId is null ? "" : ", RuntimeBundleId: " + Literal(story.RuntimeBundleId)).AppendLine("));");
+                .Append(story.RuntimeBundleId is null ? "" : ", RuntimeBundleId: " + Literal(story.RuntimeBundleId))
+                .Append(", ArgDefinitions: Args_").Append(i).AppendLine("));");
         }
         source.AppendLine("        }");
 
-        for (int i = 0; i < valid.Count; i++) EmitBuilder(source, valid[i], i);
+        for (int i = 0; i < valid.Count; i++)
+        {
+            EmitArgs(source, valid[i], i);
+            EmitBuilder(source, valid[i], i);
+        }
         source.AppendLine("    }");
         source.AppendLine("}");
         context.AddSource("ComponentStories.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
+    }
+
+    private static void EmitArgs(StringBuilder source, StoryModel story, int index)
+    {
+        source.AppendLine();
+        source.Append("        private static readonly global::Luxel.UI.StoryArgDefinition[] Args_").Append(index).AppendLine(" =");
+        source.AppendLine("        [");
+        foreach (ArgModel arg in story.Args.OrderBy(static arg => arg.Order).ThenBy(static arg => arg.Name, StringComparer.Ordinal))
+        {
+            source.Append("            global::Luxel.UI.StoryArgDefinition.Create<").Append(arg.Type).Append(">(")
+                .Append(Literal(arg.Name)).Append(", ").Append(Literal(arg.TypeHint)).Append(", ").Append(arg.Default);
+            if (arg.Description is not null || arg.Order != 1000 || arg.Min.HasValue || arg.Max.HasValue || arg.Step.HasValue)
+            {
+                source.Append(", description: ").Append(arg.Description is null ? "null" : Literal(arg.Description))
+                    .Append(", order: ").Append(arg.Order)
+                    .Append(", min: ").Append(arg.Min?.ToString("R", CultureInfo.InvariantCulture) ?? "null")
+                    .Append(", max: ").Append(arg.Max?.ToString("R", CultureInfo.InvariantCulture) ?? "null")
+                    .Append(", step: ").Append(arg.Step?.ToString("R", CultureInfo.InvariantCulture) ?? "null");
+            }
+            if (arg.Options.Length > 0)
+                source.Append(", options: new string[] { ").Append(string.Join(", ", arg.Options.Select(Literal))).Append(" }");
+            source.AppendLine("),");
+        }
+        source.AppendLine("        ];");
     }
 
     private static void EmitBuilder(StringBuilder source, StoryModel story, int index)

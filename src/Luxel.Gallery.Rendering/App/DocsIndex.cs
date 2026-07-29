@@ -54,22 +54,24 @@ public static class DocsIndex
             }
         }
         // Keep startup diagnostics, while tests use ValidateLinks(map) as a failing CI gate.
-        broken = ValidateLinks(map).Count;
+        broken = ValidateLinks(map, catalog).Count;
         Console.WriteLine($"[gallery] docs index: {map.Count} pages, {sw.ElapsedMilliseconds}ms"
                           + (broken > 0 ? $", dead links: {broken}" : ""));
         return map;
     }
 
     /// <summary>docs index内のinternal story/heading linkを検証し、CIで扱えるerror一覧を返す。</summary>
-    public static IReadOnlyList<string> ValidateLinks(IReadOnlyDictionary<string, DocsPage> pages)
+    public static IReadOnlyList<string> ValidateLinks(IReadOnlyDictionary<string, DocsPage> pages,
+                                                       StoryCatalog? catalog = null)
         => pages.Values.OrderBy(page => page.Path, StringComparer.Ordinal)
-            .SelectMany(page => ValidateLinks(page.Path, page.Text)).ToArray();
+            .SelectMany(page => ValidateLinks(page.Path, page.Text, catalog)).ToArray();
 
-    public static IReadOnlyList<string> ValidateLinks(string path, string source)
+    public static IReadOnlyList<string> ValidateLinks(string path, string source,
+                                                       StoryCatalog? catalog = null)
     {
         var errors = new List<string>();
         foreach (MarkdownLink link in MarkdownDecorations.Links(source))
-            if (LinkBroken(link.Url, source)) errors.Add($"{path}: {link.Url}");
+            if (LinkBroken(link.Url, source, catalog)) errors.Add($"{path}: {link.Url}");
         return errors;
     }
 

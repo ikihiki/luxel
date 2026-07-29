@@ -34,7 +34,7 @@ public sealed class ComponentStoryRuntimeTests
     [Fact]
     public void ButtonPlaygroundDeclaresTypedArgsAndAppliesChanges()
     {
-        StoryInfo story = Assert.Single(StoryRegistry.All, item => item.Path == "Controls/Button/Playground");
+        StoryInfo story = Assert.IsType<StoryInfo>(CoreUiStoryProject.CreateCatalog().Find("Controls/Button/Playground"));
         var context = new StoryContext();
         var preview = Assert.IsType<ComponentStoryPreview>(story.Build(context));
         Assert.Collection(context.ArgDefinitions,

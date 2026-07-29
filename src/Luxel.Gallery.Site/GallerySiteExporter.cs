@@ -13,13 +13,17 @@ namespace Luxel.Gallery.Site;
 
 public sealed record SiteExportReport(int Stories, int Images, int Unavailable, int Errors);
 public sealed record SiteStory(string Path, string Name, string Component, string Fragment, string? Image,
-    string Status, string? Error, string ImageSha256, string SearchText, IReadOnlyList<string> Aliases, SampleBundleInfo? Bundle);
+    string Status, string? Error, string ImageSha256, string SearchText, IReadOnlyList<string> Aliases,
+    SampleBundleInfo? Bundle, IReadOnlyList<StoryArgDefinition> Args);
 
 public static partial class GallerySiteExporter
 {
     private const string BrowserRuntimeBaseUrl = "samples/webgpu-browser/";
-    private const int BrowserProtocolVersion = 1;
-    private sealed record BrowserBundleManifest(string BundleId, int ProtocolVersion, string EntryUrl, IReadOnlyList<string> Stories);
+    private const int BrowserProtocolVersion = 2;
+    private sealed record BrowserRuntimeStory(string Path, int Width, int Height,
+        IReadOnlyList<StoryArgDefinition> Args, string? CapabilityNote, string? ComponentType);
+    private sealed record BrowserBundleManifest(string BundleId, int ProtocolVersion, string EntryUrl,
+        IReadOnlyList<BrowserRuntimeStory> Stories);
     private static readonly string[] BrowserRuntimeRequiredFiles = ["index.html", "main.js", "browser-runtime-manifest.json", Path.Combine("_framework", "dotnet.js")];
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
@@ -54,9 +58,7 @@ public static partial class GallerySiteExporter
         var storyByPath = stories.ToDictionary(story => story.Path, StringComparer.Ordinal);
 
         if (browserBundle is not null)
-            foreach (StoryInfo story in stories.Where(story => story.RuntimeBundleId == browserBundle.BundleId))
-                if (!browserBundle.Stories.Contains(story.Path, StringComparer.Ordinal))
-                    throw new InvalidDataException($"Browser runtime bundle '{browserBundle.BundleId}' does not declare registered story '{story.Path}'.");
+            ValidateBrowserBundle(stories, browserBundle);
 
         var manifest = new List<SiteStory>();
         var imageCache = new Dictionary<string, (string? Url, string Status, string? Error, string Hash)>(StringComparer.Ordinal);
@@ -77,7 +79,7 @@ public static partial class GallerySiteExporter
                 if (CanRunInBrowser(story, browserBundle))
                 {
                     status = "runtime";
-                    body = RuntimeStory(story, StoryArgs.Empty, browserBundle!, embedded: false);
+                    body = RuntimeStory(story, StoryArgs.Empty, browserBundle!, embedded: false, story.Path + "#top");
                 }
                 else if (story.ResultBuild is not null)
                 {
@@ -179,7 +181,8 @@ public static partial class GallerySiteExporter
                 + (document?.DocSource is { } source ? "\n" + source : "")
                 + (story.Source is { Length: > 0 } code ? "\n" + code : "");
             manifest.Add(new SiteStory(story.Path, story.Name, story.Component, fragmentUrl, imageUrl, status, error,
-                imageHash, searchText, Array.Empty<string>(), SampleBundleRegistry.Find(story.SampleBundle)));
+                imageHash, searchText, Array.Empty<string>(), SampleBundleRegistry.Find(story.SampleBundle),
+                story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>()));
         }
 
         File.WriteAllText(Path.Combine(output, "manifest.json"), JsonSerializer.Serialize(manifest, Json) + "\n", new UTF8Encoding(false));
@@ -232,7 +235,8 @@ public static partial class GallerySiteExporter
                 html = TypeApiHtml(embed.Reference);
             else if (embed.Kind == DocEmbedKind.StoryRef && embed.Reference is { } runtimePath
                      && StoryRegistry.Find(runtimePath) is { } runtimeStory && CanRunInBrowser(runtimeStory, browserBundle))
-                html = RuntimeStory(runtimeStory, StoryArgs.Empty, browserBundle!, embedded: true);
+                html = RuntimeStory(runtimeStory, StoryArgs.Empty, browserBundle!, embedded: true,
+                    containingStoryPath + "#doc-" + i);
             else if (embed.Kind == DocEmbedKind.StoryRef && embed.Reference is { } path && StoryRegistry.Find(path) is { } story)
             {
                 var result = EnsureStoryImage(host, story, imagesDir, repositoryRoot, cache);
@@ -290,7 +294,8 @@ public static partial class GallerySiteExporter
                 }
                 else if (CanRunInBrowser(referenced, browserBundle))
                 {
-                    html = RuntimeStory(referenced, reference.Args, browserBundle!, embedded: true);
+                    html = RuntimeStory(referenced, reference.Args, browserBundle!, embedded: true,
+                        storyPath + "#ref-" + i);
                 }
                 else if (referenced.ResultBuild is not null)
                 {
@@ -502,20 +507,113 @@ public static partial class GallerySiteExporter
         if (!File.Exists(full)) throw new FileNotFoundException($"Missing {kind}: {relative}", full);
     }
 
-    private static bool CanRunInBrowser(StoryInfo story, BrowserBundleManifest? bundle)
-        => bundle is not null && story.RuntimeBundleId == bundle.BundleId && bundle.Stories.Contains(story.Path, StringComparer.Ordinal);
-
-    private static string RuntimeStory(StoryInfo story, StoryArgs args, BrowserBundleManifest bundle, bool embedded)
+    private static void ValidateBrowserBundle(IReadOnlyList<StoryInfo> stories, BrowserBundleManifest bundle)
     {
-        string argsJson = args.ToJson();
-        string instance = Slug(story.Path) + "-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(argsJson))).ToLowerInvariant()[..12];
+        var runtimeByPath = bundle.Stories.ToDictionary(story => story.Path, StringComparer.Ordinal);
+        foreach (StoryInfo story in stories.Where(story => story.RuntimeBundleId == bundle.BundleId))
+        {
+            if (!runtimeByPath.TryGetValue(story.Path, out BrowserRuntimeStory? runtime))
+                throw new InvalidDataException($"Browser runtime bundle '{bundle.BundleId}' does not declare registered story '{story.Path}'.");
+            if (runtime.Width != story.Width || runtime.Height != story.Height)
+                throw new InvalidDataException(
+                    $"Browser runtime descriptor size for '{story.Path}' is {runtime.Width}x{runtime.Height}; catalog requires {story.Width}x{story.Height}.");
+
+            IReadOnlyList<StoryArgDefinition> schema = story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>();
+            if (!string.Equals(JsonSerializer.Serialize(runtime.Args, Json), JsonSerializer.Serialize(schema, Json), StringComparison.Ordinal))
+                throw new InvalidDataException($"Browser runtime descriptor args for '{story.Path}' do not match the catalog schema.");
+            if (!string.Equals(runtime.CapabilityNote, story.CapabilityNote, StringComparison.Ordinal))
+                throw new InvalidDataException($"Browser runtime descriptor capability note for '{story.Path}' does not match the catalog.");
+            if (!string.Equals(runtime.ComponentType, story.ProductionComponent?.ComponentType, StringComparison.Ordinal))
+                throw new InvalidDataException($"Browser runtime descriptor component identity for '{story.Path}' does not match the catalog.");
+        }
+    }
+
+    private static bool CanRunInBrowser(StoryInfo story, BrowserBundleManifest? bundle)
+        => bundle is not null && story.RuntimeBundleId == bundle.BundleId
+            && bundle.Stories.Any(runtime => runtime.Path == story.Path);
+
+    private static string RuntimeStory(StoryInfo story, StoryArgs args, BrowserBundleManifest bundle, bool embedded,
+        string location)
+    {
+        IReadOnlyList<StoryArgDefinition> schema = story.ArgDefinitions
+            ?? bundle.Stories.First(runtime => runtime.Path == story.Path).Args;
+        StoryArgs seeded = args.WithDefaults(schema);
+        string argsJson = seeded.ToJson();
+        string instanceSeed = location + "|" + story.Path;
+        string instance = Slug(story.Path) + "-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(instanceSeed))).ToLowerInvariant()[..12];
         string entry = bundle.EntryUrl == "./" ? "" : bundle.EntryUrl.TrimStart('.', '/').TrimEnd('/') + "/";
         string url = BrowserRuntimeBaseUrl + entry + "?story=" + Uri.EscapeDataString(story.Path)
             + "&amp;args=" + Uri.EscapeDataString(argsJson) + "&amp;instance=" + Uri.EscapeDataString(instance);
         string modifier = embedded ? " runtime-story-embedded" : "";
         string title = embedded ? $"Interactive {story.Name}" : $"Interactive {story.Path}";
-        return $"<section class=\"runtime-story{modifier}\" data-runtime-kind=\"{H(bundle.BundleId)}\"><div class=\"runtime-frame\"><iframe src=\"{url}\" data-luxel-runtime-story=\"{H(story.Path)}\" data-luxel-runtime-instance=\"{instance}\" title=\"{H(title)}\" loading=\"eager\" allow=\"webgpu\"></iframe></div></section>";
+        return $"<section class=\"runtime-story{modifier}\" data-runtime-kind=\"{H(bundle.BundleId)}\" data-luxel-runtime-location=\"{H(location)}\" data-luxel-runtime-story=\"{H(story.Path)}\" data-luxel-runtime-instance=\"{instance}\" data-luxel-runtime-args=\"{H(argsJson)}\" data-luxel-runtime-schema=\"{H(JsonSerializer.Serialize(schema, Json))}\" data-luxel-runtime-revision=\"0\">{ArgsTable(story, schema, seeded, instance)}<div class=\"runtime-frame\"><iframe src=\"{url}\" data-luxel-runtime-story=\"{H(story.Path)}\" data-luxel-runtime-instance=\"{instance}\" title=\"{H(title)}\" loading=\"eager\" allow=\"webgpu; clipboard-read; clipboard-write\"></iframe></div><p class=\"runtime-status\" role=\"status\" aria-live=\"polite\">Loading interactive story…</p></section>";
     }
+
+    private static string ArgsTable(StoryInfo story, IReadOnlyList<StoryArgDefinition> schema, StoryArgs values,
+        string instance)
+    {
+        if (schema.Count == 0) return string.Empty;
+        var html = new StringBuilder();
+        html.Append("<section class=\"args-panel\" aria-labelledby=\"").Append(instance).Append("-args\"><h2 id=\"")
+            .Append(instance).Append("-args\">Args</h2><table class=\"args-table\"><thead><tr>")
+            .Append("<th scope=\"col\">Name</th><th scope=\"col\">Control</th><th scope=\"col\">Default</th>")
+            .Append("<th scope=\"col\">Description</th><th scope=\"col\">Constraints</th><th scope=\"col\">Reset</th>")
+            .Append("</tr></thead><tbody>");
+        foreach (StoryArgDefinition arg in schema.OrderBy(arg => arg.Order).ThenBy(arg => arg.Name, StringComparer.Ordinal))
+        {
+            JsonElement value = values.TryGet(arg.Name, out JsonElement incoming) ? incoming : arg.DefaultValue;
+            string inputId = instance + "-arg-" + Slug(arg.Name);
+            html.Append("<tr data-arg-row=\"").Append(H(arg.Name)).Append("\"><th scope=\"row\"><code>")
+                .Append(H(arg.Name)).Append("</code></th><td>").Append(ArgControl(arg, value, inputId))
+                .Append("</td><td><code>").Append(H(ArgText(arg.DefaultValue))).Append("</code></td><td>")
+                .Append(H(arg.Description ?? string.Empty)).Append("</td><td>").Append(H(ArgConstraints(arg)))
+                .Append("</td><td><button type=\"button\" class=\"arg-reset\" data-arg-reset=\"").Append(H(arg.Name))
+                .Append("\">Reset <span class=\"visually-hidden\">").Append(H(arg.Name)).Append("</span></button></td></tr>");
+        }
+        html.Append("</tbody></table><p class=\"args-status\" role=\"status\" aria-live=\"polite\"></p></section>");
+        return html.ToString();
+    }
+
+    private static string ArgControl(StoryArgDefinition arg, JsonElement value, string inputId)
+    {
+        string text = ArgText(value);
+        string label = $"<label class=\"visually-hidden\" for=\"{inputId}\">{H(arg.Name)}</label>";
+        if (arg.Type == "bool")
+            return label + $"<input id=\"{inputId}\" data-arg-control=\"{H(arg.Name)}\" type=\"checkbox\"{(value.ValueKind == JsonValueKind.True ? " checked" : "")}>";
+        if (arg.Type is "int" or "float")
+            return label + $"<input id=\"{inputId}\" data-arg-control=\"{H(arg.Name)}\" type=\"number\" value=\"{H(text)}\"{NumberAttributes(arg)}>";
+        if (arg.Type.StartsWith("enum:", StringComparison.Ordinal) || arg.Options is { Count: > 0 })
+        {
+            IEnumerable<string> options = arg.Options ?? arg.Type.Substring(5).Split('|');
+            return label + $"<select id=\"{inputId}\" data-arg-control=\"{H(arg.Name)}\">"
+                + string.Concat(options.Select(option => $"<option value=\"{H(option)}\"{(option == text ? " selected" : "")}>{H(option)}</option>")) + "</select>";
+        }
+        if (arg.Type == "color")
+        {
+            string color = text.StartsWith('#') && text.Length == 7 ? text : "#000000";
+            return $"<div class=\"arg-color\">{label}<input id=\"{inputId}\" data-arg-control=\"{H(arg.Name)}\" type=\"color\" value=\"{H(color)}\"><label class=\"visually-hidden\" for=\"{inputId}-text\">{H(arg.Name)} color text</label><input id=\"{inputId}-text\" data-arg-control=\"{H(arg.Name)}\" data-color-text type=\"text\" value=\"{H(text)}\" pattern=\"#[0-9a-fA-F]{{6}}\"></div>";
+        }
+        return label + $"<input id=\"{inputId}\" data-arg-control=\"{H(arg.Name)}\" type=\"text\" value=\"{H(text)}\"{(arg.Type == "length" ? " inputmode=\"decimal\" placeholder=\"e.g. 120px or 50%\"" : "")}>";
+    }
+
+    private static string NumberAttributes(StoryArgDefinition arg)
+        => (arg.Min is { } min ? $" min=\"{min.ToString(System.Globalization.CultureInfo.InvariantCulture)}\"" : string.Empty)
+            + (arg.Max is { } max ? $" max=\"{max.ToString(System.Globalization.CultureInfo.InvariantCulture)}\"" : string.Empty)
+            + (arg.Step is { } step ? $" step=\"{step.ToString(System.Globalization.CultureInfo.InvariantCulture)}\"" : string.Empty);
+
+    private static string ArgConstraints(StoryArgDefinition arg)
+    {
+        var values = new List<string>();
+        if (arg.Min is { } min) values.Add("min " + min.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (arg.Max is { } max) values.Add("max " + max.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (arg.Step is { } step) values.Add("step " + step.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (arg.Options is { Count: > 0 }) values.Add(string.Join(" | ", arg.Options));
+        return string.Join(", ", values);
+    }
+
+    private static string ArgText(JsonElement value) => value.ValueKind == JsonValueKind.String
+        ? value.GetString() ?? string.Empty
+        : value.ToString();
 
     private static BrowserBundleManifest LoadBrowserBundle(string source)
     {
@@ -526,7 +624,15 @@ public static partial class GallerySiteExporter
         if (manifest.ProtocolVersion != BrowserProtocolVersion)
             throw new InvalidDataException($"Browser runtime protocol {manifest.ProtocolVersion} is unsupported; expected {BrowserProtocolVersion}.");
         if (string.IsNullOrWhiteSpace(manifest.BundleId) || manifest.Stories.Count == 0)
-            throw new InvalidDataException("Browser runtime bundle manifest must declare a bundle id and canonical story paths.");
+            throw new InvalidDataException("Browser runtime bundle manifest must declare a bundle id and canonical story descriptors.");
+        if (manifest.Stories.Any(story => string.IsNullOrWhiteSpace(story.Path) || story.Args is null))
+            throw new InvalidDataException("Browser runtime story descriptors require a canonical path and args schema.");
+        string[] duplicates = manifest.Stories.GroupBy(story => story.Path, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1).Select(group => group.Key).Order(StringComparer.Ordinal).ToArray();
+        if (duplicates.Length > 0)
+            throw new InvalidDataException("Browser runtime story descriptors contain duplicate paths: " + string.Join(", ", duplicates));
+        if (manifest.Stories.Any(story => story.ComponentType is not null && !story.Path.EndsWith("/Basic", StringComparison.Ordinal)))
+            throw new InvalidDataException("Production component runtime descriptors must identify exact canonical /Basic paths.");
         if (Path.IsPathRooted(manifest.EntryUrl) || Uri.TryCreate(manifest.EntryUrl, UriKind.Absolute, out _))
             throw new InvalidDataException("Browser runtime entry URL must be relative.");
         return manifest;
@@ -656,11 +762,21 @@ const nav=document.querySelector('#stories'),content=document.querySelector('#co
 const sidebar=document.querySelector('#sidebar'),sidebarToggle=document.querySelector('#sidebar-toggle'),reviewPanel=document.querySelector('#review-panel'),reviewToggle=document.querySelector('#review-toggle'),reviewClose=document.querySelector('#review-close');
 const reviewStatus=document.querySelector('#review-status'),reviewComment=document.querySelector('#review-comment'),reviewSaveState=document.querySelector('#review-save-state'),reviewFallback=document.querySelector('#review-export-fallback');
 let stories=[],activeReviewPath=null,storageAvailable=true;
-const runtimeProtocolVersion=1;
-window.addEventListener('message',event=>{const message=event.data;if(event.origin!==location.origin||!message?.luxelGallery||message.protocolVersion!==runtimeProtocolVersion)return;const frame=[...document.querySelectorAll('iframe[data-luxel-runtime-instance]')].find(candidate=>candidate.contentWindow===event.source&&candidate.dataset.luxelRuntimeInstance===message.instanceId&&candidate.dataset.luxelRuntimeStory===message.story);if(!frame)return;frame.dataset.runtimeStatus=message.type;frame.dispatchEvent(new CustomEvent('luxel-runtime-message',{detail:message}))});
+const runtimeProtocolVersion=2;
+function parseObject(value,fallback={}){try{const parsed=typeof value==='string'?JSON.parse(value):value;return parsed&&!Array.isArray(parsed)&&typeof parsed==='object'?parsed:fallback}catch{return fallback}}
+function runtimeSchema(section){try{return JSON.parse(section.dataset.luxelRuntimeSchema||'[]')}catch{return[]}}
+function runtimeArgs(section){return parseObject(section.dataset.luxelRuntimeArgs,{})}
+function runtimeStatus(section,text,error=false){const target=section.querySelector('.runtime-status'),argsStatus=section.querySelector('.args-status');if(target){target.textContent=text;target.setAttribute('role',error?'alert':'status')}if(argsStatus)argsStatus.textContent=text}
+function controlValue(control,definition){if(definition?.type==='bool')return control.checked;if(definition?.type==='int')return Number.parseInt(control.value,10);if(definition?.type==='float')return Number(control.value);return control.value}
+function writeRuntimeControls(section,args){for(const control of section.querySelectorAll('[data-arg-control]')){const name=control.dataset.argControl,value=args[name];if(control.type==='checkbox')control.checked=!!value;else if(value!==undefined)control.value=String(value)}}
+function runtimeNonDefaults(section,args){const result={};for(const definition of runtimeSchema(section)){const value=args[definition.name];if(JSON.stringify(value)!==JSON.stringify(definition.defaultValue))result[definition.name]=value}return result}
+function persistRuntimeHash(){const params=new URLSearchParams(location.hash.slice(1)),embeds={};let top=null;for(const section of content.querySelectorAll('.runtime-story[data-luxel-runtime-location]')){const values=runtimeNonDefaults(section,runtimeArgs(section));if(section.dataset.luxelRuntimeLocation.endsWith('#top'))top=values;else if(Object.keys(values).length)embeds[section.dataset.luxelRuntimeLocation]=values}if(top&&Object.keys(top).length)params.set('args',JSON.stringify(top));else params.delete('args');if(Object.keys(embeds).length)params.set('embeds',JSON.stringify(embeds));else params.delete('embeds');history.replaceState(null,'','#'+params.toString())}
+function postRuntimeArgs(section){const frame=section.querySelector('iframe'),revision=Number(section.dataset.luxelRuntimeRevision||0)+1,requestId=crypto.randomUUID();section.dataset.luxelRuntimeRevision=String(revision);section.dataset.luxelRuntimeRequest=requestId;frame?.contentWindow?.postMessage({luxelGallery:true,protocolVersion:runtimeProtocolVersion,type:'set-args',story:section.dataset.luxelRuntimeStory,instanceId:section.dataset.luxelRuntimeInstance,revision,requestId,args:runtimeArgs(section)},location.origin);runtimeStatus(section,'Updating args…')}
+function initializeRuntime(root){const state=route();for(const section of root.querySelectorAll('.runtime-story[data-luxel-runtime-instance]')){const frame=section.querySelector('iframe'),schema=runtimeSchema(section),locationKey=section.dataset.luxelRuntimeLocation;let args=runtimeArgs(section),override=locationKey.endsWith('#top')?state.args:state.embeds[locationKey];args={...args,...override};section.dataset.luxelRuntimeArgs=JSON.stringify(args);writeRuntimeControls(section,args);for(const control of section.querySelectorAll('[data-arg-control]')){control.disabled=true;const update=()=>{const definition=schema.find(value=>value.name===control.dataset.argControl);if(!definition||!control.checkValidity())return runtimeStatus(section,'Invalid value for '+control.dataset.argControl,true);const next=runtimeArgs(section);next[definition.name]=controlValue(control,definition);section.dataset.luxelRuntimeArgs=JSON.stringify(next);writeRuntimeControls(section,next);postRuntimeArgs(section)};control.addEventListener(control.type==='text'||control.type==='number'?'change':'input',update)}for(const reset of section.querySelectorAll('[data-arg-reset]'))reset.addEventListener('click',()=>{const definition=schema.find(value=>value.name===reset.dataset.argReset);if(!definition)return;const next=runtimeArgs(section);next[definition.name]=definition.defaultValue;section.dataset.luxelRuntimeArgs=JSON.stringify(next);writeRuntimeControls(section,next);postRuntimeArgs(section);section.querySelector('[data-arg-control="'+CSS.escape(definition.name)+'"]')?.focus()});if(frame&&JSON.stringify(args)!==frame.dataset.initialArgs){const url=new URL(frame.getAttribute('src'),location.href);url.searchParams.set('args',JSON.stringify(args));frame.src=url.href;frame.dataset.initialArgs=JSON.stringify(args)}}}
+window.addEventListener('message',event=>{const message=event.data;if(event.origin!==location.origin||!message?.luxelGallery||message.protocolVersion!==runtimeProtocolVersion||!Number.isSafeInteger(message.revision))return;const frame=[...document.querySelectorAll('iframe[data-luxel-runtime-instance]')].find(candidate=>candidate.contentWindow===event.source&&candidate.dataset.luxelRuntimeInstance===message.instanceId&&candidate.dataset.luxelRuntimeStory===message.story);if(!frame)return;const section=frame.closest('.runtime-story');if(!section||message.revision<Number(section.dataset.luxelRuntimeRevision||0))return;if(message.requestId&&message.source==='parent'&&section.dataset.luxelRuntimeRequest!==message.requestId)return;frame.dataset.runtimeStatus=message.type;if(message.type==='ready'||message.type==='args-changed'){section.dataset.luxelRuntimeRevision=String(message.revision);section.dataset.luxelRuntimeArgs=JSON.stringify(message.args||{});writeRuntimeControls(section,message.args||{});for(const control of section.querySelectorAll('[data-arg-control]'))control.disabled=false;runtimeStatus(section,message.type==='ready'?'Interactive story ready.':'Args updated.');persistRuntimeHash()}else if(message.type==='arg-error'){runtimeStatus(section,(message.errors||['Arg update failed.']).join(' '),true);section.querySelector('[data-arg-control]')?.focus()}else if(message.type==='story-error')runtimeStatus(section,message.error||'Story runtime failed.',true);frame.dispatchEvent(new CustomEvent('luxel-runtime-message',{detail:message}))});
 const languageAliases={slang:'cpp',hlsl:'cpp',powershell:'shell',pwsh:'shell',csharp:'cs'},openKey='luxel-gallery-tree-open',reviewKey='luxel-gallery-review:v1:'+location.pathname,reviewUiKey='luxel-gallery-review-ui:'+location.pathname,sidebarUiKey='luxel-gallery-sidebar-ui:'+location.pathname;
 function highlight(root){if(typeof hljs==='undefined')return;for(const code of root.querySelectorAll('pre code')){const match=[...code.classList].find(x=>x.startsWith('language-'));const requested=match?.slice(9).toLowerCase();const language=languageAliases[requested]||requested;if(language&&hljs.getLanguage(language)){if(match)code.classList.replace(match,'language-'+language)}else if(requested){code.classList.add('no-highlight')}hljs.highlightElement(code)}}
-const route=()=>{const p=new URLSearchParams(location.hash.slice(1));return{story:p.get('story')||stories[0]?.path,section:p.get('section')}};
+const route=()=>{const p=new URLSearchParams(location.hash.slice(1));return{story:p.get('story')||stories[0]?.path,section:p.get('section'),args:parseObject(p.get('args'),{}),embeds:parseObject(p.get('embeds'),{})}};
 const key=()=>route().story;
 const storyHash=path=>'#story='+encodeURIComponent(path);
 function safeGet(name){try{return localStorage.getItem(name)}catch{storageAvailable=false;return null}}
@@ -688,7 +804,7 @@ async function copyReviews(){const markdown=reviewMarkdown();try{await navigator
 function openIssue(){saveCurrentReview();const note=readReviewStore().stories[activeReviewPath]||{status:'unchecked',comment:''};const title='Gallery feedback: '+activeReviewPath;const body=['## Story','',activeReviewPath,'','## Status','',statusLabel(note.status),'','## Gallery URL','',currentStoryUrl(activeReviewPath),'','## Feedback','',note.comment.trim()||'（コメントを記入してください）'].join('\n');open('https://github.com/ikihiki/luxel/issues/new?title='+encodeURIComponent(title)+'&body='+encodeURIComponent(body),'_blank','noopener')}
 function syncVisualViewport(){const viewport=window.visualViewport,height=viewport?.height||innerHeight,offset=viewport?.offsetTop||0,inset=Math.max(0,document.documentElement.clientHeight-height-offset);document.documentElement.style.setProperty('--visual-viewport-height',height+'px');document.documentElement.style.setProperty('--keyboard-inset',inset+'px')}function setReviewOpen(open){document.body.classList.toggle('review-open',open);reviewToggle.setAttribute('aria-expanded',String(open));reviewPanel.setAttribute('aria-hidden',String(!open));safeSet(reviewUiKey,open?'open':'closed');if(!open&&reviewPanel.contains(document.activeElement))reviewToggle.focus()}
 function setSidebarOpen(open){document.body.classList.toggle('sidebar-collapsed',!open);sidebarToggle.setAttribute('aria-expanded',String(open));sidebar.setAttribute('aria-hidden',String(!open));safeSet(sidebarUiKey,open?'open':'closed')}
-async function show(){saveCurrentReview();const requested=key();const s=stories.find(x=>x.path===requested||(x.aliases||[]).includes(requested))||stories[0];if(!s)return;const r=await fetch(s.fragment);content.innerHTML=r.ok?await r.text():'<p>ページを読み込めませんでした。</p>';document.body.classList.toggle('runtime-active',!!content.querySelector('.runtime-page'));highlight(content);setActive(s.path);reveal(s.path);loadReview(s.path);document.title=s.path+' — Luxel Gallery';const section=route().section;if(section)requestAnimationFrame(()=>document.getElementById(section)?.scrollIntoView());else content.scrollTo?.(0,0);if(matchMedia('(max-width: 1180px)').matches)setSidebarOpen(false)}
+async function show(){saveCurrentReview();const requested=key();const s=stories.find(x=>x.path===requested||(x.aliases||[]).includes(requested))||stories[0];if(!s)return;const r=await fetch(s.fragment);content.innerHTML=r.ok?await r.text():'<p>ページを読み込めませんでした。</p>';document.body.classList.toggle('runtime-active',!!content.querySelector('.runtime-page'));highlight(content);initializeRuntime(content);setActive(s.path);reveal(s.path);loadReview(s.path);document.title=s.path+' — Luxel Gallery';const section=route().section;if(section)requestAnimationFrame(()=>document.getElementById(section)?.scrollIntoView());else content.scrollTo?.(0,0);if(matchMedia('(max-width: 1180px)').matches)setSidebarOpen(false)}
 function draw(q=''){nav.innerHTML='';const needle=q.trim().toLowerCase();const filtered=stories.filter(x=>(x.searchText||x.path).toLowerCase().includes(needle));nav.append(renderLevel(treeFor(filtered),'',savedOpen(),needle.length>0));const current=key();if(current){setActive(current);reveal(current)}}
 const saved=safeGet('luxel-gallery-theme');if(saved==='light')document.documentElement.dataset.theme='light';
 theme.addEventListener('click',()=>{const light=document.documentElement.dataset.theme!=='light';document.documentElement.dataset.theme=light?'light':'';safeSet('luxel-gallery-theme',light?'light':'dark')});
@@ -701,9 +817,9 @@ fetch('manifest.json').then(r=>r.json()).then(x=>{stories=x;draw();show()}).catc
 """;
     private const string StorySourceCss = """
 .story-source{margin-top:28px;border-top:1px solid var(--line);padding-top:14px}.story-source summary{cursor:pointer;color:var(--link);font-weight:650;padding:8px 0}.story-source pre{max-width:100%;overflow-x:auto;background:var(--code);border:1px solid var(--line);border-radius:8px;padding:14px}.story-source code{white-space:pre;font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}
-.runtime-story{width:100%;height:100%;margin:0}.runtime-frame,.runtime-frame iframe{display:block;width:100%;height:100%;margin:0;padding:0;border:0;background:#10151d}.runtime-frame{overflow:hidden}.runtime-page{width:100%;max-width:none;height:100%;margin:0}.runtime-story-embedded{height:min(70vh,720px);min-height:360px;margin:18px 0 28px}
+.runtime-story{display:flex;flex-direction:column;width:100%;height:100%;margin:0}.runtime-frame,.runtime-frame iframe{display:block;width:100%;height:100%;margin:0;padding:0;border:0;background:#10151d}.runtime-frame{flex:1 1 auto;min-height:240px;overflow:hidden}.runtime-page{width:100%;max-width:none;height:100%;margin:0}.runtime-story-embedded{height:min(78vh,820px);min-height:460px;margin:18px 0 28px;border:1px solid var(--line);border-radius:10px;overflow:hidden}.runtime-status{flex:none;min-height:24px;margin:0;padding:4px 10px;color:var(--muted);background:var(--panel);font-size:12px}.args-panel{flex:none;padding:12px 14px;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto}.args-panel h2{margin:0 0 8px;font-size:16px}.args-table{width:100%;border-collapse:collapse;font-size:13px}.args-table th,.args-table td{padding:7px 8px;text-align:left;vertical-align:middle;border-top:1px solid var(--line)}.args-table thead th{border-top:0;color:var(--muted)}.args-table input:not([type=checkbox]),.args-table select{width:100%;min-width:90px;min-height:34px;padding:5px 7px;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:6px}.args-table input[type=checkbox]{width:22px;height:22px}.arg-color{display:grid;grid-template-columns:42px minmax(100px,1fr);gap:6px}.arg-color input[type=color]{min-width:42px;padding:2px}.arg-reset{min-height:34px;padding:4px 9px}.args-status{min-height:20px;margin:6px 0 0;color:var(--muted);font-size:12px}
 body.runtime-active main{padding:0;overflow:hidden}body.runtime-active main>.runtime-page{height:100%}
-@media(max-width:600px){.runtime-story-embedded{height:60vh;min-height:280px;margin:12px 0 22px}}
+@media(max-width:600px){.runtime-story-embedded{height:72vh;min-height:420px;margin:12px 0 22px}.args-table th:nth-child(4),.args-table td:nth-child(4),.args-table th:nth-child(5),.args-table td:nth-child(5){display:none}}
 """;
     private const string Css = """
 :root{color-scheme:dark;--bg:#10131a;--panel:#171b24;--text:#e7eaf0;--muted:#9eabc1;--line:#303746;--link:#84b8ff;--code:#090b10;--active:#283044;--danger:#ffaaa2;background:var(--bg);color:var(--text);font:15px/1.65 system-ui,sans-serif}:root[data-theme=light]{color-scheme:light;--bg:#f7f8fb;--panel:#fff;--text:#1d2430;--muted:#657086;--line:#d8dde7;--link:#155fc4;--code:#eef1f6;--active:#e2e9f6;--danger:#a42820}*{box-sizing:border-box}html,body{height:100%;overflow:hidden;background:var(--bg)}body{margin:0;display:grid;grid-template-columns:310px minmax(0,1fr);height:100vh;height:100dvh;color:var(--text)}body.review-open{grid-template-columns:310px minmax(0,1fr) minmax(320px,390px)}button,select,textarea,input{font:inherit}button,.button-label,select{min-height:44px;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer}.floating-toggle{position:fixed;z-index:30;top:max(8px,env(safe-area-inset-top));padding:7px 12px;box-shadow:0 2px 12px #0005}#sidebar-toggle{left:max(8px,env(safe-area-inset-left))}#review-toggle{right:max(8px,env(safe-area-inset-right))}#sidebar{position:sticky;top:0;height:100vh;height:100dvh;overflow:auto;padding:64px 20px 20px max(20px,env(safe-area-inset-left));border-right:1px solid var(--line);background:var(--panel);z-index:20}body.sidebar-collapsed{grid-template-columns:minmax(0,1fr)}body.sidebar-collapsed.review-open{grid-template-columns:minmax(0,1fr) minmax(320px,390px)}body.sidebar-collapsed #sidebar{display:none}#sidebar h1{font-size:20px;margin-bottom:0}#sidebar h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 8px 4px}#theme{padding:6px 10px;margin-bottom:12px;background:transparent}#search{width:100%;min-height:44px;padding:9px;background:var(--bg);color:inherit;border:1px solid var(--line);border-radius:8px}.tree-level{list-style:none;padding-left:14px;margin:4px 0}.tree-level:first-child{padding-left:0}.tree-level li{margin:2px 0}.tree-folder>summary{cursor:pointer;padding:8px;border-radius:6px;font-weight:650}.tree-folder>a,.tree-level a{display:block;color:var(--text);text-decoration:none;padding:8px;border-radius:6px}.tree-folder>a{margin-left:18px}.tree-level a:hover,.tree-level a.active,.tree-folder>summary:hover{background:var(--active)}main{min-width:0;height:100vh;height:100dvh;padding:64px clamp(20px,4vw,64px) 64px;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}.story{max-width:1040px;margin:auto}.story h1{font-size:clamp(28px,4vw,46px);line-height:1.15}.story h2{margin-top:38px;border-bottom:1px solid var(--line)}.story h3{margin-top:28px}.story a{color:var(--link)}.story img{display:block;max-width:100%;height:auto;margin:auto;border:1px solid var(--line);border-radius:8px}.static-badge,.sample-level{color:var(--muted);font-weight:650}.static-capture figcaption{color:var(--muted);text-align:center}.capture-unavailable,.capture-error{border:1px solid var(--line);border-left:4px solid #d77;padding:18px;border-radius:8px}.capture-unavailable pre,.capture-error pre{white-space:pre-wrap}.story pre{max-width:100%;overflow:auto;background:var(--code);padding:14px;border-radius:8px}.story code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.story table{display:block;max-width:100%;overflow:auto;border-collapse:collapse}.story th,.story td{padding:7px 10px;border:1px solid var(--line);vertical-align:top}.story blockquote{margin-left:0;padding-left:16px;border-left:3px solid var(--line);color:var(--muted)}.api-table code{white-space:nowrap}.api-anchor{opacity:.55;text-decoration:none}.sample-bundle{margin-top:24px;border:1px solid var(--line);border-radius:10px;padding:10px 14px}.sample-bundle summary{cursor:pointer;color:var(--link);font-weight:700}.sample-bundle li{margin:4px 0}.sample-bundle li span{color:var(--muted)}

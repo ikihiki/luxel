@@ -60,10 +60,16 @@ public static class InputControlStories
             .When(WidgetState.Hover, background: Tw.Red500, scale: 1.08f)
             .When(WidgetState.Pressed, scale: 0.94f));
 
-    [Story("Controls/Button/Counter", Height = 160, RuntimeBundleId = "webgpu-browser-v1")]
+    public static IReadOnlyList<StoryArgDefinition> CounterArgs() =>
+    [
+        StoryArgDefinition.Create("count", "int", 0, "Current counter value.", min: -999, max: 999, step: 1),
+    ];
+
+    [Story("Controls/Button/Counter", Height = 160, RuntimeBundleId = "webgpu-browser-v1", Args = nameof(CounterArgs))]
     public static Widget ButtonCounter(StoryContext ctx)
     {
-        CanonicalCounterRecipe.Result recipe = CanonicalCounterRecipe.Build(ctx.Signal("count", 0));
+        CanonicalCounterRecipe.Result recipe = CanonicalCounterRecipe.Build(ctx.Arg("count", 0,
+            new StoryArgOptions<int> { Description = "Current counter value.", Min = -999, Max = 999, Step = 1 }));
         // play: クリック → signal 反映 → クリック後の絵 (E2E の対話ショーケース)
         ctx.Play(async d =>
         {

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
+    <ProjectReference Include="..\Luxel.Controls\Luxel.Controls.csproj" />
+    <ProjectReference Include="..\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
+    <ProjectReference Include="..\Luxel.Animation\Luxel.Animation.csproj" />
+    <ProjectReference Include="..\Luxel.Animation.UI\Luxel.Animation.UI.csproj" />
+    <ProjectReference Include="..\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
+    <ProjectReference Include="..\Luxel.Diagram\Luxel.Diagram.csproj" />
+    <ProjectReference Include="..\Luxel.MathText\Luxel.MathText.csproj" />
+    <ProjectReference Include="..\Luxel.Particles.UI\Luxel.Particles.UI.csproj" />
+    <ProjectReference Include="..\Luxel.NodeGraph\Luxel.NodeGraph.csproj" />
+    <ProjectReference Include="..\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
+    <ProjectReference Include="..\Luxel.Workbench\Luxel.Workbench.csproj" />
+    <ProjectReference Include="..\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+    <ProjectReference Include="..\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\Luxel.UI.Generators\Luxel.UI.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU"
+                      GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Luxel.Gallery.Site.Tests" />
+  </ItemGroup>
+</Project>

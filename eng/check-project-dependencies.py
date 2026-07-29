@@ -46,4 +46,33 @@ for source in terminals:
 if violations:
     for path in violations: print("Forbidden Controls/Terminal dependency:\n  " + "\n  -> ".join(map(display, path)), file=sys.stderr)
     sys.exit(1)
+
+by_stem = {p.stem: p for p in graph}
+def forbid_closure(source_stem: str, forbidden, label: str):
+    source = by_stem.get(source_stem)
+    if source is None: return
+    path = find_path(source, lambda p: forbidden(p.stem))
+    if path:
+        print(f"Forbidden {label} dependency:\n  " + "\n  -> ".join(map(display, path)), file=sys.stderr)
+        sys.exit(1)
+
+forbid_closure("Luxel.Gallery", lambda stem: stem in {
+    "Luxel.Gallery.Host", "Luxel.Gallery.Site", "Luxel.Gallery.Stories", "Luxel.Gallery.Stories.CoreUi"
+}, "Gallery core reverse")
+forbid_closure("Luxel.Gallery.Site", lambda stem: stem == "Luxel.Gallery.Host", "Site/Host")
+
+native_heavy = lambda stem: (
+    stem in {"Luxel.Platform.Windows", "Luxel.Input.XInput", "Luxel.Audio", "Luxel.Audio.Windows",
+             "Luxel.Graphics.Vulkan", "Luxel.Graphics.DirectX12", "Luxel.Graphics.TwoD.Skia",
+             "Luxel.Typography.Icu"}
+    or stem.startswith("Luxel.Terminal")
+    or stem.startswith("Luxel.Scripting")
+)
+browser_forbidden = lambda stem: native_heavy(stem) or stem in {
+    "Luxel.Gallery.Host", "Luxel.Gallery.Site", "Luxel.Gallery.Stories"
+}
+forbid_closure("Luxel.Gallery.Stories.CoreUi", browser_forbidden, "CoreUi browser closure")
+forbid_closure("LuxelWebGpuBrowser", browser_forbidden, "browser host closure")
+forbid_closure("Luxel.Gallery.RuntimeManifest", browser_forbidden, "runtime manifest closure")
+
 print(f"Project dependency graph OK ({len(graph)} projects).")

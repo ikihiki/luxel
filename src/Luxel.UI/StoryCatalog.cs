@@ -43,12 +43,39 @@ public sealed class StoryCatalogBuilder
     private readonly List<Action<StoryCatalogBuilder>> _providers = new();
     private bool _built;
 
+    public bool ContainsPath(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return _stories.ContainsKey(path);
+    }
+
     public StoryCatalogBuilder Add(StoryInfo story, bool replaceGenerated = false)
     {
         ObjectDisposedException.ThrowIf(_built, this);
         ArgumentNullException.ThrowIfNull(story);
-        if (_stories.ContainsKey(story.Path) && !replaceGenerated)
-            throw new InvalidOperationException($"Story '{story.Path}' is registered more than once.");
+        if (_stories.TryGetValue(story.Path, out StoryInfo? existing))
+        {
+            if (!replaceGenerated)
+                throw new InvalidOperationException($"Story '{story.Path}' is registered more than once.");
+            if (existing.RegistrationKind != StoryRegistrationKind.GeneratedComponentFallback
+                || story.RegistrationKind != StoryRegistrationKind.Authored
+                || existing.ProductionComponent is null)
+                throw new InvalidOperationException(
+                    $"Story '{story.Path}' can only replace an exact generated component fallback with an authored story.");
+            if (story.ProductionComponent is not null && story.ProductionComponent != existing.ProductionComponent)
+                throw new InvalidOperationException(
+                    $"Story '{story.Path}' attempted to replace a fallback for another production component.");
+
+            // The authored implementation replaces only the renderer/source. Canonical production identity,
+            // browser ownership and the generated static schema remain authoritative for URLs/manifests.
+            story = story with
+            {
+                RuntimeBundleId = story.RuntimeBundleId ?? existing.RuntimeBundleId,
+                ArgDefinitions = story.ArgDefinitions ?? existing.ArgDefinitions,
+                CapabilityNote = story.CapabilityNote ?? existing.CapabilityNote,
+                ProductionComponent = existing.ProductionComponent,
+            };
+        }
         _stories[story.Path] = story;
         return this;
     }
