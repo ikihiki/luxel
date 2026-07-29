@@ -2,6 +2,7 @@
 <ul>
 <li><a href="#story=Build%2FRecipes%2FTriangleApp&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-triangle-renderer">コピーして動かす — Triangle renderer</a>
 <ul>
+<li><a href="#story=Build%2FRecipes%2FTriangleApp&amp;section=%60samples%2Fcanonicaltrianglerecipe.cs%60-csharp"><code>samples/CanonicalTriangleRecipe.cs</code> (CSharp)</a></li>
 <li><a href="#story=Build%2FRecipes%2FTriangleApp&amp;section=%60samples%2Fluxeltriangle%2Ftutorialabi.cs%60-csharp"><code>samples/LuxelTriangle/TutorialAbi.cs</code> (CSharp)</a></li>
 <li><a href="#story=Build%2FRecipes%2FTriangleApp&amp;section=%60samples%2Fluxeltriangle%2Ftrianglerenderer.cs%60-csharp"><code>samples/LuxelTriangle/TriangleRenderer.cs</code> (CSharp)</a></li>
 <li><a href="#story=Build%2FRecipes%2FTriangleApp&amp;section=%60shaders%2Ftutorial_triangle.slang%60-shader"><code>shaders/tutorial_triangle.slang</code> (Shader)</a></li>
@@ -23,6 +24,42 @@
 </code></pre>
 <p><strong>Smoke test</strong></p>
 <pre><code class="language-powershell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle --frames 1
+</code></pre>
+<h3 id="samplescanonicaltrianglerecipe.cs-csharp"><code>samples/CanonicalTriangleRecipe.cs</code> (CSharp)</h3>
+<pre><code class="language-csharp">using System.Runtime.InteropServices;
+
+/// &lt;summary&gt;The canonical first-triangle data and identity shared by native and browser samples.&lt;/summary&gt;
+public static class CanonicalTriangleRecipe
+{
+    public const string Story = &quot;Examples/3D/Triangle&quot;;
+    public const string Shader = &quot;tutorial_triangle&quot;;
+    public const string Recipe = &quot;canonical-triangle-v1&quot;;
+    public const string ShaderSha256 = &quot;4c3a36aa594306d963f00f1c0e6c5d7c62b1543748bfc882d72d0de8cf9a2cdd&quot;;
+    public const int Width = 320;
+    public const int Height = 240;
+    public const int VertexSize = 32;
+    public const int DrawArgsSize = 4;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Vertex
+    {
+        public float Px, Py, Pz, Pw;
+        public float R, G, B, A;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct DrawArgs
+    {
+        public uint VertexBufferIndex;
+    }
+
+    public static Vertex[] CreateVertices() =&gt;
+    [
+        new() { Px = 0, Py = -0.72f, Pz = 0, Pw = 1, R = 1, G = 0.18f, B = 0.18f, A = 1 },
+        new() { Px = 0.72f, Py = 0.62f, Pz = 0, Pw = 1, R = 0.18f, G = 1, B = 0.28f, A = 1 },
+        new() { Px = -0.72f, Py = 0.62f, Pz = 0, Pw = 1, R = 0.2f, G = 0.42f, B = 1, A = 1 },
+    ];
+}
 </code></pre>
 <h3 id="samplesluxeltriangletutorialabi.cs-csharp"><code>samples/LuxelTriangle/TutorialAbi.cs</code> (CSharp)</h3>
 <pre><code class="language-csharp">    [StructLayout(LayoutKind.Sequential)]
@@ -72,10 +109,10 @@ internal sealed class TriangleRenderer : IDisposable
 
         if (stage == TutorialStage.Triangle)
         {
-            TutorialAbi.Vertex[] vertices = CreateTriangleVertices();
+            CanonicalTriangleRecipe.Vertex[] vertices = CanonicalTriangleRecipe.CreateVertices();
             _indexCount = 3;
-            _vertices = device.Malloc(checked((ulong)vertices.Length * TutorialAbi.VertexSize), GpuMemoryKind.HostMapped);
-            vertices.CopyTo(_vertices.Span&lt;TutorialAbi.Vertex&gt;(vertices.Length));
+            _vertices = device.Malloc(checked((ulong)vertices.Length * CanonicalTriangleRecipe.VertexSize), GpuMemoryKind.HostMapped);
+            vertices.CopyTo(_vertices.Span&lt;CanonicalTriangleRecipe.Vertex&gt;(vertices.Length));
             _indices = device.Malloc(sizeof(uint), GpuMemoryKind.HostMapped); // Unused by the first-triangle stage.
         }
         else
@@ -98,7 +135,7 @@ internal sealed class TriangleRenderer : IDisposable
         raster.CullMode = stage is TutorialStage.Lighting or TutorialStage.Graph or TutorialStage.PostProcess
             ? GpuCullMode.Back : GpuCullMode.None;
         raster.FrontFace = GpuFrontFace.CounterClockwise;
-        string shader = stage == TutorialStage.Triangle ? &quot;tutorial_triangle&quot; : &quot;tutorial_3d&quot;;
+        string shader = stage == TutorialStage.Triangle ? CanonicalTriangleRecipe.Shader : &quot;tutorial_3d&quot;;
         _pipeline = device.CreateGraphicsPipeline(GpuShaderCode.Load(shader), raster);
         _postPipeline = device.CreateComputePipeline(GpuShaderCode.Load(&quot;compute_tutorial_postprocess&quot;));
     }
@@ -137,7 +174,7 @@ internal sealed class TriangleRenderer : IDisposable
 
         if (_stage == TutorialStage.Triangle)
         {
-            var triangleArgs = new TutorialAbi.DrawArgs { VertexBufferIndex = _vertices.BindlessIndex };
+            var triangleArgs = new CanonicalTriangleRecipe.DrawArgs { VertexBufferIndex = _vertices.BindlessIndex };
             using GpuCommandBuffer triangleCommand = _device.MainQueue.StartCommandRecording();
             triangleCommand.BeginRendering(_target, null, 0.055f, 0.07f, 0.11f, 1)
                 .SetGraphicsPipeline(_pipeline)
@@ -286,13 +323,6 @@ internal sealed class TriangleRenderer : IDisposable
     private static bool UsesDepth(TutorialStage stage)
         =&gt; stage is TutorialStage.Transform or TutorialStage.Lighting or TutorialStage.Graph or TutorialStage.PostProcess;
 
-    private static TutorialAbi.Vertex[] CreateTriangleVertices() =&gt;
-    [
-        new() { Px = 0, Py = -0.72f, Pz = 0, Pw = 1, R = 1, G = 0.18f, B = 0.18f, A = 1 },
-        new() { Px = 0.72f, Py = 0.62f, Pz = 0, Pw = 1, R = 0.18f, G = 1, B = 0.28f, A = 1 },
-        new() { Px = -0.72f, Py = 0.62f, Pz = 0, Pw = 1, R = 0.2f, G = 0.42f, B = 1, A = 1 },
-    ];
-
     private static Vertex3D V(float x, float y, float z, Vector3 normal, float u, float v)
         =&gt; new() { Position = new Vector3(x, y, z), Normal = normal, Uv = new Vector2(u, v) };
 
@@ -386,7 +416,7 @@ float4 psMain(VSOut input) : SV_Target
     return input.color;
 }
 </code></pre>
-<details class="sample-bundle"><summary>Run this sample — Recipe</summary><p>A complete triangle recipe: standalone app host plus the compiled C#/Slang renderer.</p><p><strong>Requirements:</strong> Luxel.Graphics / Luxel.Platform</p><p><strong>Platforms:</strong> Windows / Linux</p><p><strong>Verification:</strong> exit 0, timeout 180s, stdout <code>tutorial-3d: 1 frame(s), stage=Triangle</code></p><ul><li><code>samples/LuxelTriangle/TutorialAbi.cs</code> <span>CSharp</span></li><li><code>samples/LuxelTriangle/TriangleRenderer.cs</code> <span>CSharp</span></li><li><code>shaders/tutorial_triangle.slang</code> <span>Shader</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle --frames 1</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Recipes/TriangleApp&quot;, Order = 10, SampleBundle = &quot;rendering.triangle&quot;)]
+<details class="sample-bundle"><summary>Run this sample — Recipe</summary><p>A complete triangle recipe: standalone app host plus the compiled C#/Slang renderer.</p><p><strong>Requirements:</strong> Luxel.Graphics / Luxel.Platform</p><p><strong>Platforms:</strong> Windows / Linux</p><p><strong>Verification:</strong> exit 0, timeout 180s, stdout <code>tutorial-3d: 1 frame(s), stage=Triangle</code></p><ul><li><code>samples/CanonicalTriangleRecipe.cs</code> <span>CSharp</span></li><li><code>samples/LuxelTriangle/TutorialAbi.cs</code> <span>CSharp</span></li><li><code>samples/LuxelTriangle/TriangleRenderer.cs</code> <span>CSharp</span></li><li><code>shaders/tutorial_triangle.slang</code> <span>Shader</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle --frames 1</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Recipes/TriangleApp&quot;, Order = 10, SampleBundle = &quot;rendering.triangle&quot;)]
 public static Widget TriangleApp(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
     # Recipe: Triangle App
 
