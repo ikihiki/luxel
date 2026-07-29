@@ -6,6 +6,18 @@ using static Luxel.Gallery.Stories.StoryKit;
 
 namespace Luxel.Gallery.Stories;
 
+[ComponentStory(typeof(Luxel.Controls.Button), "Controls/Button/Playground", Factory = typeof(Kit),
+    Template = nameof(Template), Height = 160)]
+[ComponentArg(nameof(Luxel.Controls.Button.Text), "Click me", Description = "Button label", Order = 10)]
+[ComponentArg(nameof(Luxel.Controls.Button.Variant), Variant.Filled, Description = "Visual variant", Order = 20)]
+[ComponentArg("Disabled", false, Apply = nameof(ApplyDisabled), Description = "Disable interaction", Order = 30)]
+internal static class ButtonPlaygroundStory
+{
+    internal static void ApplyDisabled(Button button, bool disabled) => button.Enabled = !disabled;
+
+    internal static Widget Template(Button button) => Frame(button);
+}
+
 /// <summary>入力/選択系コントロールのストーリー。ctx.Signal(...) は自動で knob になる。</summary>
 public static class InputControlStories
 {
