@@ -1,4 +1,18 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/PropertyGrid/Overview</h1></header><h1 id="propertygrid">PropertyGrid</h1>
-<p><code>Luxel.Controls</code> のコントロール API です。コンストラクタ引数・イベント・パラメータは <code>[UiComponent]</code> のソースと XML doc コメントから生成されます。</p>
-<section class="api-reference"><p class="api-summary">Inspector (ADR-0014): 対象オブジェクト (config / ECS コンポーネント / 任意の型) の public 読み書きメンバーを反映し、型別エディタを行に並べる — bool=Check / enum=Select / uint=ColorPicker / float=[PropertyRange で Slider、無ければ数値 TextField] / int,string=TextField / Vector2,3=軸別数値 / Length=LengthField。 [PropertyGroup] でグループ見出し、[PropertyIgnore] で除外。編集は対象へ即書き込み + OnChanged 通知 (boxed struct は箱へ書く — ECS へ戻すのはシェルの責務)。 外部から対象が変わったら Refresh。</p><h3>イベント</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>OnChanged</code></th><td><code>UiEvent&lt;PropertyGrid, string, object&gt;</code></td><td>編集通知 (第一引数 = 発火元, メンバー名, 新しい値)。対象へは書き込み済み。</td></tr></tbody></table></div><h3>パラメータ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Target</code></th><td><code>object</code></td><td>編集対象 (null = 空表示)。</td></tr><tr><th scope="row"><code>Width</code></th><td><code>float</code></td><td>全幅 (px)。</td></tr></tbody></table></div></section>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p></article>
+<article class="story document-page"><h1 id="propertygrid">PropertyGrid</h1>
+<p>Inspector (ADR-0014): 対象オブジェクト (config / ECS コンポーネント / 任意の型) の public 読み書きメンバーを反映し、型別エディタを行に並べる — bool=Check / enum=Select / uint=ColorPicker / float=[PropertyRange で Slider、無ければ数値 TextField] / int,string=TextField / Vector2,3=軸別数値 / Length=LengthField。 [PropertyGroup] でグループ見出し、[PropertyIgnore] で除外。編集は対象へ即書き込み + OnChanged 通知 (boxed struct は箱へ書く — ECS へ戻すのはシェルの責務)。 外部から対象が変わったら Refresh。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Controls/PropertyGrid/Overview#ref-0" data-luxel-runtime-story="Controls/PropertyGrid/Basic" data-luxel-runtime-instance="controls-propertygrid-basic-8b03347ad4c7" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Controls%2FPropertyGrid%2FBasic&amp;args=%7B%7D&amp;instance=controls-propertygrid-basic-8b03347ad4c7" data-luxel-runtime-story="Controls/PropertyGrid/Basic" data-luxel-runtime-instance="controls-propertygrid-basic-8b03347ad4c7" title="Interactive Basic" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<h2 id="implementation">Implementation</h2>
+<pre><code class="language-csharp">PropertyGrid()
+</code></pre>
+<h2 id="patterns-and-variants">Patterns and variants</h2>
+<ul>
+<li>Basic typed factory usage</li>
+<li>Representative editable scalar args</li>
+<li>Inherited layout args: width, height, alignment and transforms when supported</li>
+<li>Deterministic browser fixture/fallback for capability inputs</li>
+</ul>
+<h2 id="events-parameters-and-api">Events, parameters and API</h2>
+<p><strong>Events:</strong> <code>OnChanged</code></p>
+<p><strong>Component parameters:</strong> <code>Target</code>, <code>Width</code></p>
+<p>See <code>ControlApiRegistry</code> / the generated API table for the complete inherited API.</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">Generated overview for global::Luxel.Controls.PropertyGrid</code></pre></details></article>

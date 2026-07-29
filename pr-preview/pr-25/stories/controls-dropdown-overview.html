@@ -1,4 +1,18 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Dropdown/Overview</h1></header><h1 id="dropdown">Dropdown</h1>
-<p><code>Luxel.Controls</code> のコントロール API です。コンストラクタ引数・イベント・パラメータは <code>[UiComponent]</code> のソースと XML doc コメントから生成されます。</p>
-<section class="api-reference"><p class="api-summary">ボタン + ドロップダウンメニュー (アンカー下, 外側クリック/Esc で閉じる)。</p><h3>パラメータ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Label</code></th><td><code>string</code></td><td>トリガーボタンのラベル。</td></tr><tr><th scope="row"><code>Items</code></th><td><code>(string label, Action onClick)[]</code></td><td>メニュー項目 (ラベル + クリック時アクション) の列。</td></tr></tbody></table></div></section>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p></article>
+<article class="story document-page"><h1 id="dropdown">Dropdown</h1>
+<p>ボタン + ドロップダウンメニュー (アンカー下, 外側クリック/Esc で閉じる)。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Controls/Dropdown/Overview#ref-0" data-luxel-runtime-story="Controls/Dropdown/Basic" data-luxel-runtime-instance="controls-dropdown-basic-ab0980dc4c7e" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Controls%2FDropdown%2FBasic&amp;args=%7B%7D&amp;instance=controls-dropdown-basic-ab0980dc4c7e" data-luxel-runtime-story="Controls/Dropdown/Basic" data-luxel-runtime-instance="controls-dropdown-basic-ab0980dc4c7e" title="Interactive Basic" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<h2 id="implementation">Implementation</h2>
+<pre><code class="language-csharp">Dropdown()
+</code></pre>
+<h2 id="patterns-and-variants">Patterns and variants</h2>
+<ul>
+<li>Basic typed factory usage</li>
+<li>Representative editable scalar args</li>
+<li>Inherited layout args: width, height, alignment and transforms when supported</li>
+<li>Deterministic browser fixture/fallback for capability inputs</li>
+</ul>
+<h2 id="events-parameters-and-api">Events, parameters and API</h2>
+<p><strong>Events:</strong> No declared events</p>
+<p><strong>Component parameters:</strong> <code>Label</code>, <code>Items</code></p>
+<p>See <code>ControlApiRegistry</code> / the generated API table for the complete inherited API.</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">Generated overview for global::Luxel.Controls.Dropdown</code></pre></details></article>

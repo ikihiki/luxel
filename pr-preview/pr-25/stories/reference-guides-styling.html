@@ -1,38 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Guides/Styling</h1></header><h1 id="tailwind">スタイリングと Tailwind</h1>
-<ul>
-<li><a href="#story=Reference%2FGuides%2FStyling&amp;section=%E7%8A%B6%E6%85%8B%E3%83%AC%E3%82%A4%E3%83%A4-hover-%2F-pressed-%2F-checked-%E2%80%A6">状態レイヤ (hover / pressed / checked …)</a></li>
-<li><a href="#story=Reference%2FGuides%2FStyling&amp;section=%E3%82%AB%E3%83%A9%E3%83%BC%E3%83%91%E3%83%AC%E3%83%83%E3%83%88-luxel.ui.tailwind">カラーパレット (Luxel.UI.Tailwind)</a></li>
-<li><a href="#story=Reference%2FGuides%2FStyling&amp;section=%E3%83%A6%E3%83%BC%E3%82%B6%E3%83%BC%E5%AE%9A%E7%BE%A9%E3%83%86%E3%83%BC%E3%83%9E">ユーザー定義テーマ</a></li>
-<li><a href="#story=Reference%2FGuides%2FStyling&amp;section=%E7%8A%B6%E6%85%8B%E9%81%B7%E7%A7%BB%E3%81%AE%E8%A3%9C%E9%96%93-transition">状態遷移の補間 (Transition)</a></li>
-</ul>
-<p>コントロールの見た目は 3 つの層で決まります: <strong>① テーマ既定</strong> (Variant × Intent) → <strong>② ファクトリ引数</strong> (background 等の個別指定) → <strong>③ 状態レイヤ</strong> (fluent <code>.When(state, ...)</code> の override)。後の層ほど強く、CSS の specificity と同じ感覚です。</p>
-<h2 id="hover-pressed-checked">状態レイヤ (hover / pressed / checked …)</h2>
-<p>状態別の見た目は生成された <code>.When(state, ...)</code> 拡張で宣言します — 引数はファクトリと同名で、該当状態のスタイルが既定へ<strong>後勝ちマージ</strong>されます:</p>
-<pre><code class="language-csharp">Button(_ =&gt; { }, &quot;Hover me&quot;,
-        background: Tw.Blue500, foreground: Tw.White, rounded: 10, width: 180, height: 64)
-    .When(WidgetState.Hover, background: Tw.Red500, scale: 1.08f)
-    .When(WidgetState.Pressed, scale: 0.94f);
-</code></pre>
-<figure class="static-capture"><a href="#story=Controls%2FButton%2FTailwind"><img src="images/controls-button-tailwind.png" alt="Controls/Button/Tailwind" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
-<h2 id="luxel.ui.tailwind">カラーパレット (Luxel.UI.Tailwind)</h2>
-<p><code>Tw.Blue500</code> など Tailwind のカラーパレット定数を別アセンブリで提供します。HTML の class 属性との対応で読めます — <code>class=&quot;bg-blue-500 hover:bg-red-500&quot;</code> ≒ <code>background: Tw.Blue500</code> + <code>.When(WidgetState.Hover, background: Tw.Red500)</code>。CheckBox の Checked などコントロール固有状態にも同じ形で効きます (<a href="#story=Controls%2FCheckBox%2FCheckedStyle">Controls/CheckBox/CheckedStyle</a>)。</p>
-<h2 id="section">ユーザー定義テーマ</h2>
-<p><code>Luxel.UI</code> 本体はテーマ型を強制しません — アプリが record で自由に定義し、ファクトリ引数へ流し込みます。組み込みコントロールの既定配色だけは <code>Luxel.Controls</code> の <code>UiTheme</code> (Light/Dark) が持ちます:</p>
-<pre><code class="language-csharp">// 自分のアプリで自由命名 — Luxel.UI 本体は Theme 型を強制しない
-public sealed record AppTheme
-{
-    public required uint Primary { get; init; }
-    public required uint Surface { get; init; }
-    public required float RoundedMd { get; init; }
-}
-var theme = new AppTheme { Primary = Tw.Blue500, Surface = Tw.Slate50, RoundedMd = 6f };
-Button(_ =&gt; { }, &quot;OK&quot;, background: theme.Primary, rounded: theme.RoundedMd);
-</code></pre>
-<h2 id="transition">状態遷移の補間 (Transition)</h2>
-<p>状態切替は瞬時が既定で、<code>.Transition(duration, curve, プロパティ群)</code> を宣言したプロパティだけが補間されます。方向別 (<code>TransitionTo</code> / <code>TransitionBetween</code>) の指定もできます — 実物で確かめてください:</p>
-<figure class="static-capture"><a href="#story=Examples%2FAnimation%2FTransitions"><img src="images/examples-animation-transitions.png" alt="Examples/Animation/Transitions" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
-<p>設計ノート: 状態別スタイルを「引数と同名の型付き宣言」にしたのは Tailwind の hover: / MUI sx / Flutter WidgetState と同じ発想です。テーマを経由しない一発指定と、テーマ経由の既定解決が同居し、どちらもトランジションに乗ります。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Styling&quot;, Order = 23)]
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Guides/Styling</h1></header><aside class="capture-error" data-capture-status="error"><strong>Static capture error</strong><pre>InvalidDataException: Broken documentation links: Reference/Guides/Styling: story:Controls/CheckBox/CheckedStyle</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Styling&quot;, Order = 23)]
 public static Widget Styling(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
     # スタイリングと Tailwind
 

@@ -6,8 +6,8 @@
 </ul>
 <p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone + Gallery　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> ClearColor</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FRendering%2FBasics%2FClearColor">ClearColor</a>　 <strong>次:</strong> <a href="#story=Learn%2FRendering%2FBasics%2FBuffersAndBindings">BuffersAndBindings</a></p>
-<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F3D%2FTriangle&amp;args=%7B%7D&amp;instance=examples-3d-triangle-44136fa355b3" data-luxel-runtime-story="Examples/3D/Triangle" data-luxel-runtime-instance="examples-3d-triangle-44136fa355b3" title="Interactive Triangle" loading="eager" allow="webgpu"></iframe></div></section>
-<p>Galleryアプリ内では上の表示をnative offscreenデモとして実行します。静的GalleryとPagesでは同じ場所にbrowser-WASM WebGPU runtimeを埋め込み、<code>Examples/3D/Triangle</code>とこのガイドの両方から、320×240（4:3）のcanonical triangle recipeを実行します。静止画captureではなく、iframe内のcanvasが実際に描画して<code>pass</code>になることをPlaywright E2Eで検証します。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Rendering/Basics/FirstTriangle#doc-0" data-luxel-runtime-story="Examples/3D/Triangle" data-luxel-runtime-instance="examples-3d-triangle-c432c7bc6119" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F3D%2FTriangle&amp;args=%7B%7D&amp;instance=examples-3d-triangle-c432c7bc6119" data-luxel-runtime-story="Examples/3D/Triangle" data-luxel-runtime-instance="examples-3d-triangle-c432c7bc6119" title="Interactive Triangle" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<p>Galleryアプリ内では上の表示をnative offscreenデモとして実行します。静的GalleryとPagesでは同じ場所にbrowser-WASM WebGPU runtimeを埋め込み、<code>Examples/3D/Triangle</code>とこのガイドの両方から、320×240（4:3）のcanonical triangle recipeを実行します。browser hostのsource/manifest契約、WASM publish、静的Gallery export、subpath-safe URLをCIで検証します。browser上の実行自体は自動テストの対象外です。</p>
 <p>コピーして動かす完全なstandalone実装は次の4ファイルです。</p>
 <ul>
 <li><code>samples/LuxelTriangle/LuxelTriangle.csproj</code></li>
@@ -81,7 +81,7 @@ public static Widget FirstTriangle(StoryContext ctx)
 
     {{StoryRef(ctx, &quot;Examples/3D/Triangle&quot;)}}
 
-    Galleryアプリ内では上の表示をnative offscreenデモとして実行します。静的GalleryとPagesでは同じ場所にbrowser-WASM WebGPU runtimeを埋め込み、`Examples/3D/Triangle`とこのガイドの両方から、320&#215;240（4:3）のcanonical triangle recipeを実行します。静止画captureではなく、iframe内のcanvasが実際に描画して`pass`になることをPlaywright E2Eで検証します。
+    Galleryアプリ内では上の表示をnative offscreenデモとして実行します。静的GalleryとPagesでは同じ場所にbrowser-WASM WebGPU runtimeを埋め込み、`Examples/3D/Triangle`とこのガイドの両方から、320&#215;240（4:3）のcanonical triangle recipeを実行します。browser hostのsource/manifest契約、WASM publish、静的Gallery export、subpath-safe URLをCIで検証します。browser上の実行自体は自動テストの対象外です。
 
     コピーして動かす完全なstandalone実装は次の4ファイルです。
 

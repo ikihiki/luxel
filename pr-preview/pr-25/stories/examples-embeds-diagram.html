@@ -1,12 +1,1 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/Embeds/Diagram</h1></header><figure class="static-capture"><img src="images/examples-embeds-diagram.png" alt="Examples/Embeds/Diagram" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/Embeds/Diagram&quot;, Height = 300, Order = 2020)]
-public static Widget Basic(StoryContext ctx) =&gt;
-    ctx.Snap(Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
-        Luxel.Diagram.Factories.DiagramBlock(&quot;&quot;&quot;
-            flowchart LR
-            app[GalleryApp] --&gt; host[UiHost]
-            host --&gt; canvas[RetainedCanvas]
-            host --&gt;|Load| res(Resources)
-            canvas --&gt;|dispatch| gpu{GPU}
-            gpu --&gt; vk[Vulkan]
-            gpu --&gt; dx[D3D12]
-            &quot;&quot;&quot;)]);</code></pre></details></article>
+<article class="story runtime-page"><section class="runtime-story" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Examples/Embeds/Diagram#top" data-luxel-runtime-story="Examples/Embeds/Diagram" data-luxel-runtime-instance="examples-embeds-diagram-676192874195" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2FEmbeds%2FDiagram&amp;args=%7B%7D&amp;instance=examples-embeds-diagram-676192874195" data-luxel-runtime-story="Examples/Embeds/Diagram" data-luxel-runtime-instance="examples-embeds-diagram-676192874195" title="Interactive Examples/Embeds/Diagram" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section></article>

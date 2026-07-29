@@ -1,4 +1,18 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/DockHost/Overview</h1></header><h1 id="dockhost">DockHost</h1>
-<p><code>Luxel.Controls</code> のコントロール API です。コンストラクタ引数・イベント・パラメータは <code>[UiComponent]</code> のソースと XML doc コメントから生成されます。</p>
-<section class="api-reference"><p class="api-summary">DockTree (ADR-0010) を描く container (ADR-0014)。分割 = Splitter、 葉 = DocumentTabs + アクティブタブのビュー。タブの操作 (クリック/並べ替え/ グループ間移動/端へのドロップ分割) は tree signal を書き換え、TrackBuild が自動で組み直す — レイアウトの真実は常に DockTree。&#215; は OnCloseTab をシェルへ返す (ダーティ確認の後 tree から外すのはシェルの責務。既定 =true なら自動で外す)。</p><h3>イベント</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>OnCloseTab</code></th><td><code>UiEvent&lt;DockHost, string&gt;</code></td><td>タブの &#215; が押された (id)。</td></tr></tbody></table></div><h3>パラメータ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Tree</code></th><td><code>Signal&lt;DockTree&gt;</code></td><td>レイアウトの真実 (シェルが所有)。DockHost は読み書きする。</td></tr><tr><th scope="row"><code>Resolve</code></th><td><code>Func&lt;string, DockItem&gt;</code></td><td>タブ id → 表示情報。</td></tr><tr><th scope="row"><code>CloseRemoves</code></th><td><code>bool</code></td><td>&#215; で自動的に tree から外す (false = OnCloseTab だけ発火しシェルが外す)。</td></tr><tr><th scope="row"><code>HideSingleTabStrip</code></th><td><code>bool</code></td><td>タブ 1 つのグループはタブ帯を出さない (固定ペイン風の chrome 用 — 内容ドロップゾーンは生きるので他のタブをドックして分割はできる)。</td></tr></tbody></table></div></section>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p></article>
+<article class="story document-page"><h1 id="dockhost">DockHost</h1>
+<p>DockTree (ADR-0010) を描く container (ADR-0014)。分割 = Splitter、 葉 = DocumentTabs + アクティブタブのビュー。タブの操作 (クリック/並べ替え/ グループ間移動/端へのドロップ分割) は tree signal を書き換え、TrackBuild が自動で組み直す — レイアウトの真実は常に DockTree。× は OnCloseTab をシェルへ返す (ダーティ確認の後 tree から外すのはシェルの責務。既定 =true なら自動で外す)。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Controls/DockHost/Overview#ref-0" data-luxel-runtime-story="Controls/DockHost/Basic" data-luxel-runtime-instance="controls-dockhost-basic-3a01b3fc24a2" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Controls%2FDockHost%2FBasic&amp;args=%7B%7D&amp;instance=controls-dockhost-basic-3a01b3fc24a2" data-luxel-runtime-story="Controls/DockHost/Basic" data-luxel-runtime-instance="controls-dockhost-basic-3a01b3fc24a2" title="Interactive Basic" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<h2 id="implementation">Implementation</h2>
+<pre><code class="language-csharp">DockHost()
+</code></pre>
+<h2 id="patterns-and-variants">Patterns and variants</h2>
+<ul>
+<li>Basic typed factory usage</li>
+<li>Representative editable scalar args</li>
+<li>Inherited layout args: width, height, alignment and transforms when supported</li>
+<li>Deterministic browser fixture/fallback for capability inputs</li>
+</ul>
+<h2 id="events-parameters-and-api">Events, parameters and API</h2>
+<p><strong>Events:</strong> <code>OnCloseTab</code></p>
+<p><strong>Component parameters:</strong> <code>Tree</code>, <code>Resolve</code>, <code>CloseRemoves</code>, <code>HideSingleTabStrip</code></p>
+<p>See <code>ControlApiRegistry</code> / the generated API table for the complete inherited API.</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">Generated overview for global::Luxel.Controls.DockHost</code></pre></details></article>
