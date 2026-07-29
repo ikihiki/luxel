@@ -58,6 +58,8 @@ jobs:
         if: github.event.action != 'closed'
         run: |
           test -f artifacts/gallery-site/samples/webgpu-browser/index.html
+          test -f artifacts/gallery-site/samples/webgpu-browser/browser-runtime-manifest.json
+          grep -q '"bundleId": "webgpu-browser-v1"' artifacts/gallery-site/samples/webgpu-browser/browser-runtime-manifest.json
           test -f artifacts/gallery-site/samples/webgpu-browser/_framework/dotnet.js
           ! grep -R -E '(src|href)="/' artifacts/gallery-site/samples/webgpu-browser/index.html artifacts/gallery-site/samples/webgpu-browser/main.js
       - name: Install Playwright Chromium

@@ -61,7 +61,7 @@ public sealed class ComponentStoryGenerator : IIncrementalGenerator
     {
         public string Path = "";
         public int Width, Height, Order;
-        public string? Theme, SampleBundle, Template;
+        public string? Theme, SampleBundle, RuntimeBundleId, Template;
         public bool RealWindowOnly;
         public string StoryType = "";
         public string ComponentType = "";
@@ -119,6 +119,7 @@ public sealed class ComponentStoryGenerator : IIncrementalGenerator
                 case "Theme": model.Theme = named.Value.Value as string; break;
                 case "RealWindowOnly" when named.Value.Value is bool value: model.RealWindowOnly = value; break;
                 case "SampleBundle": model.SampleBundle = named.Value.Value as string; break;
+                case "RuntimeBundleId": model.RuntimeBundleId = named.Value.Value as string; break;
             }
         }
         NormalizeSize(model);
@@ -350,7 +351,8 @@ public sealed class ComponentStoryGenerator : IIncrementalGenerator
                 .Append(Literal(story.Path)).Append(", ").Append(story.Width).Append(", ").Append(story.Height).Append(", ")
                 .Append(story.Theme is null ? "null" : Literal(story.Theme)).Append(", static ctx => Build_").Append(i).Append("(ctx), ")
                 .Append(story.Order).Append(", ").Append(Literal(story.Source)).Append(", ").Append(story.RealWindowOnly ? "true" : "false")
-                .Append(", ").Append(story.SampleBundle is null ? "null" : Literal(story.SampleBundle)).AppendLine("));");
+                .Append(", ").Append(story.SampleBundle is null ? "null" : Literal(story.SampleBundle))
+                .Append(story.RuntimeBundleId is null ? "" : ", RuntimeBundleId: " + Literal(story.RuntimeBundleId)).AppendLine("));");
         }
         source.AppendLine("        }");
 

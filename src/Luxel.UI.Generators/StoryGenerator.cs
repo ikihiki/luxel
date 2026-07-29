@@ -28,6 +28,7 @@ public sealed class StoryGenerator : IIncrementalGenerator
         public readonly int Width, Height, Order;
         public readonly string? Theme;
         public readonly string? SampleBundle;
+        public readonly string? RuntimeBundleId;
         public readonly string MethodFq;    // global::Ns.Type.Method
         public readonly string Source;      // メソッドの C# ソース (storysource)
         /// <summary>引数の並び。各要素は "ctx" (= StoryContext) か、DI 解決するグローバル修飾型名。</summary>
@@ -35,16 +36,16 @@ public sealed class StoryGenerator : IIncrementalGenerator
         public readonly bool Valid;
         public readonly bool RealWindowOnly;
         public readonly bool ReturnsStoryResult;
-        public StoryModel(string path, int w, int h, int order, string? theme, string methodFq, string source, string[] paramz, bool valid, bool realWindowOnly, string? sampleBundle, bool returnsStoryResult)
-        { Path = path; Width = w; Height = h; Order = order; Theme = theme; MethodFq = methodFq; Source = source; Params = paramz; Valid = valid; RealWindowOnly = realWindowOnly; SampleBundle = sampleBundle; ReturnsStoryResult = returnsStoryResult; }
+        public StoryModel(string path, int w, int h, int order, string? theme, string methodFq, string source, string[] paramz, bool valid, bool realWindowOnly, string? sampleBundle, string? runtimeBundleId, bool returnsStoryResult)
+        { Path = path; Width = w; Height = h; Order = order; Theme = theme; MethodFq = methodFq; Source = source; Params = paramz; Valid = valid; RealWindowOnly = realWindowOnly; SampleBundle = sampleBundle; RuntimeBundleId = runtimeBundleId; ReturnsStoryResult = returnsStoryResult; }
         public bool Equals(StoryModel? o) => o is not null && Path == o.Path && Width == o.Width && Height == o.Height
             && Order == o.Order && Theme == o.Theme && MethodFq == o.MethodFq && Source == o.Source
             && Params.Length == o.Params.Length && ParamsEqual(o) && Valid == o.Valid && RealWindowOnly == o.RealWindowOnly
-            && SampleBundle == o.SampleBundle && ReturnsStoryResult == o.ReturnsStoryResult;
+            && SampleBundle == o.SampleBundle && RuntimeBundleId == o.RuntimeBundleId && ReturnsStoryResult == o.ReturnsStoryResult;
         private bool ParamsEqual(StoryModel o) { for (int i = 0; i < Params.Length; i++) if (Params[i] != o.Params[i]) return false; return true; }
         public override bool Equals(object? obj) => Equals(obj as StoryModel);
         public override int GetHashCode()
-        { unchecked { return ((((((Path.GetHashCode() * 397 ^ MethodFq.GetHashCode()) * 397 ^ Width * 31 + Height) * 397 ^ Order) * 397 ^ Source.GetHashCode()) * 397 ^ (SampleBundle?.GetHashCode() ?? 0)) * 4 + (Params.Length << 1)) + (RealWindowOnly ? 1 : 0); } }
+        { unchecked { return (((((((Path.GetHashCode() * 397 ^ MethodFq.GetHashCode()) * 397 ^ Width * 31 + Height) * 397 ^ Order) * 397 ^ Source.GetHashCode()) * 397 ^ (SampleBundle?.GetHashCode() ?? 0)) * 397 ^ (RuntimeBundleId?.GetHashCode() ?? 0)) * 4 + (Params.Length << 1)) + (RealWindowOnly ? 1 : 0); } }
     }
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -61,7 +62,7 @@ public sealed class StoryGenerator : IIncrementalGenerator
 
                     string path = attr.ConstructorArguments.Length == 1 && attr.ConstructorArguments[0].Value is string p ? p : m.Name;
                     int w = 0, h = 0, order = 1000; string? theme = null; bool realWindowOnly = false;
-                    string? sampleBundle = null;
+                    string? sampleBundle = null, runtimeBundleId = null;
                     foreach (KeyValuePair<string, TypedConstant> na in attr.NamedArguments)
                     {
                         if (na.Key == "Width" && na.Value.Value is int wi) w = wi;
@@ -70,6 +71,7 @@ public sealed class StoryGenerator : IIncrementalGenerator
                         if (na.Key == "Theme" && na.Value.Value is string th) theme = th;
                         if (na.Key == "RealWindowOnly" && na.Value.Value is bool rw) realWindowOnly = rw;
                         if (na.Key == "SampleBundle" && na.Value.Value is string sb) sampleBundle = sb;
+                        if (na.Key == "RuntimeBundleId" && na.Value.Value is string rb) runtimeBundleId = rb;
                     }
                     // Width/Height を両方省略 = fill (0,0 — ホストがプレビュー領域いっぱいに表示)。
                     // 片方だけの指定は従来既定 (480×320) で補完する。
@@ -95,7 +97,7 @@ public sealed class StoryGenerator : IIncrementalGenerator
                     string fq = m.ContainingType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + m.Name;
                     // storysource: メソッド宣言のソースをそのまま焼き込む (先頭の共通インデントは剥がす)
                     string source = Dedent(((MethodDeclarationSyntax)ctx.Node).ToString());
-                    return new StoryModel(path, w, h, order, theme, fq, source, paramz, valid, realWindowOnly, sampleBundle, returnsStoryResult);
+                    return new StoryModel(path, w, h, order, theme, fq, source, paramz, valid, realWindowOnly, sampleBundle, runtimeBundleId, returnsStoryResult);
                 })
             .Where(static s => s is not null)
             .Collect();
@@ -165,6 +167,7 @@ public sealed class StoryGenerator : IIncrementalGenerator
               .Append(", ").Append(s.RealWindowOnly ? "true" : "false")
               .Append(", ").Append(s.SampleBundle is null ? "null" : Literal(s.SampleBundle));
             if (s.ReturnsStoryResult) sb.Append(", ResultBuild: ").Append(semanticBuilder);
+            if (s.RuntimeBundleId is not null) sb.Append(", RuntimeBundleId: ").Append(Literal(s.RuntimeBundleId));
             sb.AppendLine("));");
         }
         sb.AppendLine("        }");

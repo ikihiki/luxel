@@ -108,6 +108,7 @@ internal static class SampleBundles
              new("samples/LuxelWebGpuBrowser/README.md", SampleFileKind.Asset),
              new("samples/LuxelWebGpuBrowser/wwwroot/index.html", SampleFileKind.Asset),
              new("samples/LuxelWebGpuBrowser/wwwroot/main.js", SampleFileKind.Asset),
+             new("samples/LuxelWebGpuBrowser/wwwroot/browser-runtime-manifest.json", SampleFileKind.Asset),
              new("samples/LuxelWebGpuBrowser/Shaders/compute.wgsl", SampleFileKind.Shader),
              new("samples/CanonicalTriangleRecipe.cs", SampleFileKind.CSharp),
              new("shaders/compiled/tutorial_triangle.wgsl", SampleFileKind.Shader)],

@@ -51,7 +51,7 @@ public static class GpuStories
 
     // ---- 3D: offscreen 自前レンダ → image 合成 ----
 
-    [Story(CanonicalTriangleRecipe.Story, Height = CanonicalTriangleRecipe.Width, Order = 120)]
+    [Story(CanonicalTriangleRecipe.Story, Height = CanonicalTriangleRecipe.Width, Order = 120, RuntimeBundleId = "webgpu-browser-v1")]
     public static Widget Triangle(StoryContext ctx)
         => ctx.Snap(Frame(GpuView(CanonicalTriangleRecipe.Width, CanonicalTriangleRecipe.Height, new TriangleScene())));
 

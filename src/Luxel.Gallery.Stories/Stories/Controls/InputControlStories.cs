@@ -60,7 +60,7 @@ public static class InputControlStories
             .When(WidgetState.Hover, background: Tw.Red500, scale: 1.08f)
             .When(WidgetState.Pressed, scale: 0.94f));
 
-    [Story("Controls/Button/Counter", Height = 160)]
+    [Story("Controls/Button/Counter", Height = 160, RuntimeBundleId = "webgpu-browser-v1")]
     public static Widget ButtonCounter(StoryContext ctx)
     {
         CanonicalCounterRecipe.Result recipe = CanonicalCounterRecipe.Build(ctx.Signal("count", 0));

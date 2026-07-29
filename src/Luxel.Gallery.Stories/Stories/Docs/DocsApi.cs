@@ -32,8 +32,12 @@ public static class DocsApi
             if (api.Namespace != "Luxel.Controls") continue;
             string? category = ExistingControlCategory(api.Name);
             if (category is null || !categories.Add(category)) continue;
-            builder.Add(new StoryInfo($"Controls/{category}/Overview", 0, 0, null,
-                ctx => ControlPage(ctx, api), Order: 0), replaceGenerated: true);
+            builder.Add(api.Name == "Button"
+                ? new StoryInfo("Controls/Button/Overview", 0, 0, null,
+                    ctx => ControlPage(ctx, api), Order: 0,
+                    ResultBuild: static _ => ButtonOverview())
+                : new StoryInfo($"Controls/{category}/Overview", 0, 0, null,
+                    ctx => ControlPage(ctx, api), Order: 0), replaceGenerated: true);
         }
 
         RegisterSpecialControlPage(builder, categories, "Layout", LayoutPage);
@@ -108,6 +112,19 @@ public static class DocsApi
         }
         return DocNew(ctx, s, toc: true);
     }
+
+    private static StoryResult ButtonOverview() => $$"""
+        # Button
+
+        `Button` executes an action in response to pointer activation. The browser bundle currently hosts
+        the canonical interactive counter story; component-playground hosting remains native until the
+        generated component catalog can be linked into the browser-safe dependency closure.
+
+        {{StoryReference.To("Controls/Button/Counter", new { count = 0 })}}
+
+        The interactive reference above is isolated in its own browser runtime iframe; the surrounding
+        overview remains semantic HTML.
+        """;
 
     private static Widget ControlPage(StoryContext ctx, ControlApi api)
     {

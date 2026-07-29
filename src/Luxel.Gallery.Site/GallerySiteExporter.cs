@@ -17,16 +17,10 @@ public sealed record SiteStory(string Path, string Name, string Component, strin
 
 public static partial class GallerySiteExporter
 {
-    private const string BrowserRuntimeEmbedPagePath = "Learn/Rendering/Basics/FirstTriangle";
     private const string BrowserRuntimeBaseUrl = "samples/webgpu-browser/";
-    private sealed record BrowserRuntimeRoute(string StoryPath, string Url, string Title);
-    private static readonly IReadOnlyDictionary<string, BrowserRuntimeRoute> BrowserRuntimeRoutes =
-        new Dictionary<string, BrowserRuntimeRoute>(StringComparer.Ordinal)
-        {
-            ["Examples/3D/Triangle"] = new("Examples/3D/Triangle", BrowserRuntimeBaseUrl + "?app=triangle", "Interactive WebGPU triangle"),
-            ["Controls/Button/Counter"] = new("Controls/Button/Counter", BrowserRuntimeBaseUrl + "?app=counter", "Interactive button counter"),
-        };
-    private static readonly string[] BrowserRuntimeRequiredFiles = ["index.html", "main.js", Path.Combine("_framework", "dotnet.js")];
+    private const int BrowserProtocolVersion = 1;
+    private sealed record BrowserBundleManifest(string BundleId, int ProtocolVersion, string EntryUrl, IReadOnlyList<string> Stories);
+    private static readonly string[] BrowserRuntimeRequiredFiles = ["index.html", "main.js", "browser-runtime-manifest.json", Path.Combine("_framework", "dotnet.js")];
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
@@ -54,9 +48,15 @@ public static partial class GallerySiteExporter
         File.WriteAllText(Path.Combine(output, "site.css"), Css + StorySourceCss, new UTF8Encoding(false));
         File.WriteAllText(Path.Combine(output, "site.js"), Js, new UTF8Encoding(false));
 
-        bool browserRuntimeEnabled = browserWebGpuRoot is not null;
-        if (browserRuntimeEnabled)
+        BrowserBundleManifest? browserBundle = browserWebGpuRoot is null ? null : LoadBrowserBundle(browserWebGpuRoot);
+        if (browserBundle is not null)
             CopyBrowserRuntime(browserWebGpuRoot!, Path.Combine(output, BrowserRuntimeBaseUrl.Replace('/', Path.DirectorySeparatorChar)));
+        var storyByPath = stories.ToDictionary(story => story.Path, StringComparer.Ordinal);
+
+        if (browserBundle is not null)
+            foreach (StoryInfo story in stories.Where(story => story.RuntimeBundleId == browserBundle.BundleId))
+                if (!browserBundle.Stories.Contains(story.Path, StringComparer.Ordinal))
+                    throw new InvalidDataException($"Browser runtime bundle '{browserBundle.BundleId}' does not declare registered story '{story.Path}'.");
 
         var manifest = new List<SiteStory>();
         var imageCache = new Dictionary<string, (string? Url, string Status, string? Error, string Hash)>(StringComparer.Ordinal);
@@ -74,10 +74,24 @@ public static partial class GallerySiteExporter
             string body = "";
             try
             {
-                if (browserRuntimeEnabled && BrowserRuntimeRoutes.TryGetValue(story.Path, out BrowserRuntimeRoute? runtimeRoute))
+                if (CanRunInBrowser(story, browserBundle))
                 {
                     status = "runtime";
-                    body = RuntimeStory(runtimeRoute, embedded: false);
+                    body = RuntimeStory(story, StoryArgs.Empty, browserBundle!, embedded: false);
+                }
+                else if (story.ResultBuild is not null)
+                {
+                    StoryResult result = story.BuildResult(new StoryContext(args: StoryArgs.Empty));
+                    if (result.Kind == StoryResultKind.Markdown)
+                    {
+                        status = "document";
+                        body = RenderStoryResult(result, story.Path, storyByPath, browserBundle, host, imagesDir, repositoryRoot,
+                            imageCache, new HashSet<string>(StringComparer.Ordinal), 0, ref unavailable, ref errors);
+                    }
+                    else
+                    {
+                        (imageUrl, status, error, imageHash) = EnsureStoryImage(host, story, imagesDir, repositoryRoot, imageCache);
+                    }
                 }
                 else if (story.RealWindowOnly)
                 {
@@ -117,9 +131,9 @@ public static partial class GallerySiteExporter
                     }
                 }
 
-                if (status == "runtime")
+                if (status is "runtime" or "document")
                 {
-                    // The runtime body was selected before any native realization or static capture.
+                    // Semantic HTML/runtime was selected before native realization.
                 }
                 else if (document is not null)
                 {
@@ -127,7 +141,7 @@ public static partial class GallerySiteExporter
                     if (linkErrors.Count > 0)
                         throw new InvalidDataException("Broken documentation links: " + string.Join(", ", linkErrors));
                     string md = ReplaceEmbeds(story.Path, document.DocSource!, document.DocEmbeds, host, imagesDir, repositoryRoot,
-                        imageCache, browserRuntimeEnabled, ref unavailable, ref errors);
+                        imageCache, browserBundle, ref unavailable, ref errors);
                     md = RewriteLocalImages(md, imagesDir, repositoryRoot);
                     md = ReplaceSpecialFences(md, host, imagesDir, ref errors);
                     body = RenderMarkdown(md, story.Path);
@@ -151,6 +165,8 @@ public static partial class GallerySiteExporter
             string fragment;
             if (status == "runtime")
                 fragment = $"<article class=\"story runtime-page\">{body}</article>";
+            else if (status == "document")
+                fragment = $"<article class=\"story document-page\">{body}{BundleHtml(SampleBundleRegistry.Find(story.SampleBundle))}{StorySourceHtml(story.Source)}</article>";
             else
             {
                 string badge = "<p class=\"static-badge\">Static capture — not interactive</p>";
@@ -204,7 +220,7 @@ public static partial class GallerySiteExporter
     private static string ReplaceEmbeds(string containingStoryPath, string md, IReadOnlyList<DocEmbed> embeds, GalleryHost host,
         string imagesDir, string repositoryRoot,
         Dictionary<string, (string? Url, string Status, string? Error, string Hash)> cache,
-        bool browserRuntimeEnabled, ref int unavailable, ref int errors)
+        BrowserBundleManifest? browserBundle, ref int unavailable, ref int errors)
     {
         for (int i = 0; i < embeds.Count; i++)
         {
@@ -214,11 +230,9 @@ public static partial class GallerySiteExporter
                 html = ControlApiHtml(embed.Reference, embed.IncludeInherited);
             else if (embed.Kind == DocEmbedKind.TypeApiTable)
                 html = TypeApiHtml(embed.Reference);
-            else if (browserRuntimeEnabled
-                     && embed.Kind == DocEmbedKind.StoryRef
-                     && containingStoryPath == BrowserRuntimeEmbedPagePath
-                     && embed.Reference == "Examples/3D/Triangle")
-                html = RuntimeStory(BrowserRuntimeRoutes["Examples/3D/Triangle"], embedded: true);
+            else if (embed.Kind == DocEmbedKind.StoryRef && embed.Reference is { } runtimePath
+                     && StoryRegistry.Find(runtimePath) is { } runtimeStory && CanRunInBrowser(runtimeStory, browserBundle))
+                html = RuntimeStory(runtimeStory, StoryArgs.Empty, browserBundle!, embedded: true);
             else if (embed.Kind == DocEmbedKind.StoryRef && embed.Reference is { } path && StoryRegistry.Find(path) is { } story)
             {
                 var result = EnsureStoryImage(host, story, imagesDir, repositoryRoot, cache);
@@ -251,6 +265,69 @@ public static partial class GallerySiteExporter
                    .Replace($"[￼]({DocString.InlineScheme}{i})", html, StringComparison.Ordinal);
         }
         return md;
+    }
+
+    private static string RenderStoryResult(StoryResult result, string storyPath,
+        IReadOnlyDictionary<string, StoryInfo> stories, BrowserBundleManifest? browserBundle, GalleryHost host,
+        string imagesDir, string repositoryRoot,
+        Dictionary<string, (string? Url, string Status, string? Error, string Hash)> cache,
+        HashSet<string> ancestry, int depth, ref int unavailable, ref int errors)
+    {
+        const int maxDepth = 12;
+        if (depth > maxDepth) { errors++; return Unavailable($"Story reference depth exceeded {maxDepth}: {storyPath}", "error"); }
+        if (!ancestry.Add(storyPath)) { errors++; return Unavailable($"Story reference cycle detected: {storyPath}", "error"); }
+        try
+        {
+            string markdown = result.Markdown;
+            for (int i = 0; i < result.References.Count; i++)
+            {
+                StoryReference reference = result.References[i];
+                string html;
+                if (!stories.TryGetValue(reference.Path, out StoryInfo? referenced))
+                {
+                    errors++;
+                    html = Unavailable($"Referenced story was not found: {reference.Path}", "error");
+                }
+                else if (CanRunInBrowser(referenced, browserBundle))
+                {
+                    html = RuntimeStory(referenced, reference.Args, browserBundle!, embedded: true);
+                }
+                else if (referenced.ResultBuild is not null)
+                {
+                    try
+                    {
+                        StoryResult nested = referenced.BuildResult(new StoryContext(args: reference.Args));
+                        html = nested.Kind == StoryResultKind.Markdown
+                            ? $"<section class=\"story-reference story-reference-markdown\" data-story-reference=\"{H(referenced.Path)}\">{RenderStoryResult(nested, referenced.Path, stories, browserBundle, host, imagesDir, repositoryRoot, cache, ancestry, depth + 1, ref unavailable, ref errors)}</section>"
+                            : StaticReference(host, referenced, imagesDir, repositoryRoot, cache, ref unavailable, ref errors);
+                    }
+                    catch (Exception error)
+                    {
+                        errors++;
+                        html = Unavailable($"Referenced story failed: {referenced.Path}: {error.Message}", "error");
+                    }
+                }
+                else
+                {
+                    html = StaticReference(host, referenced, imagesDir, repositoryRoot, cache, ref unavailable, ref errors);
+                }
+
+                markdown = markdown.Replace($"```luxel-story\n{i}\n```", "\n" + html + "\n", StringComparison.Ordinal);
+            }
+            return RenderMarkdown(markdown, storyPath);
+        }
+        finally { ancestry.Remove(storyPath); }
+    }
+
+    private static string StaticReference(GalleryHost host, StoryInfo story, string imagesDir, string repositoryRoot,
+        Dictionary<string, (string? Url, string Status, string? Error, string Hash)> cache,
+        ref int unavailable, ref int errors)
+    {
+        var capture = EnsureStoryImage(host, story, imagesDir, repositoryRoot, cache);
+        if (capture.Url is { } url)
+            return StaticFigure(url, story.Path, "Static embedded story capture", "#story=" + Uri.EscapeDataString(story.Path));
+        if (capture.Status == "unavailable") unavailable++; else errors++;
+        return Unavailable(capture.Error ?? "Embedded story unavailable.", capture.Status);
     }
 
     internal static string RenderMarkdown(string markdown, string storyPath)
@@ -357,16 +434,10 @@ public static partial class GallerySiteExporter
         {
             RequireRelativeFile(output, story.Fragment, "manifest fragment");
             if (story.Image is { } image) RequireRelativeFile(output, image, "manifest image");
-            if (story.Status is not ("captured" or "runtime" or "unavailable" or "error"))
+            if (story.Status is not ("captured" or "runtime" or "document" or "unavailable" or "error"))
                 throw new InvalidDataException($"Unknown capture status '{story.Status}' for {story.Path}.");
-            if (story.Status == "runtime")
-            {
-                if (!BrowserRuntimeRoutes.TryGetValue(story.Path, out BrowserRuntimeRoute? route)
-                    || story.Image is not null || story.ImageSha256.Length != 0)
-                    throw new InvalidDataException($"Invalid runtime manifest entry for {story.Path}.");
-                string fragment = File.ReadAllText(Path.Combine(output, story.Fragment.Replace('/', Path.DirectorySeparatorChar)));
-                RequireRuntimeIframe(fragment, story.Fragment, route);
-            }
+            if (story.Status == "runtime" && (story.Image is not null || story.ImageSha256.Length != 0))
+                throw new InvalidDataException($"Invalid runtime manifest entry for {story.Path}.");
         }
 
         foreach (string png in Directory.GetFiles(output, "*.png", SearchOption.AllDirectories))
@@ -379,9 +450,10 @@ public static partial class GallerySiteExporter
             if (html.Contains("<iframe", StringComparison.Ordinal)
                 && html.Contains("data-luxel-runtime-story", StringComparison.Ordinal))
             {
-                string? storyPath = BrowserRuntimeRoutes.Keys.FirstOrDefault(path => html.Contains($"data-luxel-runtime-story=\"{path}\"", StringComparison.Ordinal));
-                if (storyPath is null) throw new InvalidDataException($"Unknown runtime story iframe: {file}");
-                RequireRuntimeIframe(html, Path.GetRelativePath(output, file), BrowserRuntimeRoutes[storyPath]);
+                if (!html.Contains("?story=", StringComparison.Ordinal))
+                    throw new InvalidDataException($"Runtime story iframe is missing canonical story routing: {file}");
+                if (html.Contains("src=\"/samples/webgpu-browser/", StringComparison.Ordinal))
+                    throw new InvalidDataException($"Runtime story iframe uses a root-absolute source: {file}");
                 foundRuntimeIframe = true;
             }
             if (html.Contains("language-luxel-ui", StringComparison.Ordinal)
@@ -404,15 +476,6 @@ public static partial class GallerySiteExporter
         if (foundRuntimeIframe)
             foreach (string relative in BrowserRuntimeRequiredFiles)
                 RequireRelativeFile(output, BrowserRuntimeBaseUrl + relative.Replace(Path.DirectorySeparatorChar, '/'), "browser runtime app file");
-    }
-
-    private static void RequireRuntimeIframe(string html, string file, BrowserRuntimeRoute route)
-    {
-        string expected = $"<iframe src=\"{route.Url}\" data-luxel-runtime-story=\"{route.StoryPath}\"";
-        if (!html.Contains(expected, StringComparison.Ordinal))
-            throw new InvalidDataException($"Runtime story iframe is missing its exact mapped source and story marker: {file}");
-        if (html.Contains("src=\"/samples/webgpu-browser/", StringComparison.Ordinal))
-            throw new InvalidDataException($"Runtime story iframe uses a root-absolute source: {file}");
     }
 
     private static void ValidatePng(string path)
@@ -439,11 +502,34 @@ public static partial class GallerySiteExporter
         if (!File.Exists(full)) throw new FileNotFoundException($"Missing {kind}: {relative}", full);
     }
 
-    private static string RuntimeStory(BrowserRuntimeRoute route, bool embedded)
+    private static bool CanRunInBrowser(StoryInfo story, BrowserBundleManifest? bundle)
+        => bundle is not null && story.RuntimeBundleId == bundle.BundleId && bundle.Stories.Contains(story.Path, StringComparer.Ordinal);
+
+    private static string RuntimeStory(StoryInfo story, StoryArgs args, BrowserBundleManifest bundle, bool embedded)
     {
-        string heading = embedded ? "Interactive tutorial triangle" : route.Title;
+        string argsJson = args.ToJson();
+        string instance = Slug(story.Path) + "-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(argsJson))).ToLowerInvariant()[..12];
+        string entry = bundle.EntryUrl == "./" ? "" : bundle.EntryUrl.TrimStart('.', '/').TrimEnd('/') + "/";
+        string url = BrowserRuntimeBaseUrl + entry + "?story=" + Uri.EscapeDataString(story.Path)
+            + "&amp;args=" + Uri.EscapeDataString(argsJson) + "&amp;instance=" + Uri.EscapeDataString(instance);
         string modifier = embedded ? " runtime-story-embedded" : "";
-        return $"<section class=\"runtime-story{modifier}\" data-runtime-kind=\"webgpu-browser\"><div class=\"runtime-frame\"><iframe src=\"{route.Url}\" data-luxel-runtime-story=\"{H(route.StoryPath)}\" title=\"{H(heading)}\" loading=\"eager\" allow=\"webgpu\"></iframe></div></section>";
+        string title = embedded ? $"Interactive {story.Name}" : $"Interactive {story.Path}";
+        return $"<section class=\"runtime-story{modifier}\" data-runtime-kind=\"{H(bundle.BundleId)}\"><div class=\"runtime-frame\"><iframe src=\"{url}\" data-luxel-runtime-story=\"{H(story.Path)}\" data-luxel-runtime-instance=\"{instance}\" title=\"{H(title)}\" loading=\"eager\" allow=\"webgpu\"></iframe></div></section>";
+    }
+
+    private static BrowserBundleManifest LoadBrowserBundle(string source)
+    {
+        string path = Path.Combine(source, "browser-runtime-manifest.json");
+        if (!File.Exists(path)) throw new FileNotFoundException("Browser runtime bundle manifest is missing.", path);
+        BrowserBundleManifest manifest = JsonSerializer.Deserialize<BrowserBundleManifest>(File.ReadAllText(path), Json)
+            ?? throw new InvalidDataException("Browser runtime bundle manifest is empty.");
+        if (manifest.ProtocolVersion != BrowserProtocolVersion)
+            throw new InvalidDataException($"Browser runtime protocol {manifest.ProtocolVersion} is unsupported; expected {BrowserProtocolVersion}.");
+        if (string.IsNullOrWhiteSpace(manifest.BundleId) || manifest.Stories.Count == 0)
+            throw new InvalidDataException("Browser runtime bundle manifest must declare a bundle id and canonical story paths.");
+        if (Path.IsPathRooted(manifest.EntryUrl) || Uri.TryCreate(manifest.EntryUrl, UriKind.Absolute, out _))
+            throw new InvalidDataException("Browser runtime entry URL must be relative.");
+        return manifest;
     }
 
     private static void CopyBrowserRuntime(string source, string destination)
@@ -570,6 +656,8 @@ const nav=document.querySelector('#stories'),content=document.querySelector('#co
 const sidebar=document.querySelector('#sidebar'),sidebarToggle=document.querySelector('#sidebar-toggle'),reviewPanel=document.querySelector('#review-panel'),reviewToggle=document.querySelector('#review-toggle'),reviewClose=document.querySelector('#review-close');
 const reviewStatus=document.querySelector('#review-status'),reviewComment=document.querySelector('#review-comment'),reviewSaveState=document.querySelector('#review-save-state'),reviewFallback=document.querySelector('#review-export-fallback');
 let stories=[],activeReviewPath=null,storageAvailable=true;
+const runtimeProtocolVersion=1;
+window.addEventListener('message',event=>{const message=event.data;if(event.origin!==location.origin||!message?.luxelGallery||message.protocolVersion!==runtimeProtocolVersion)return;const frame=[...document.querySelectorAll('iframe[data-luxel-runtime-instance]')].find(candidate=>candidate.contentWindow===event.source&&candidate.dataset.luxelRuntimeInstance===message.instanceId&&candidate.dataset.luxelRuntimeStory===message.story);if(!frame)return;frame.dataset.runtimeStatus=message.type;frame.dispatchEvent(new CustomEvent('luxel-runtime-message',{detail:message}))});
 const languageAliases={slang:'cpp',hlsl:'cpp',powershell:'shell',pwsh:'shell',csharp:'cs'},openKey='luxel-gallery-tree-open',reviewKey='luxel-gallery-review:v1:'+location.pathname,reviewUiKey='luxel-gallery-review-ui:'+location.pathname,sidebarUiKey='luxel-gallery-sidebar-ui:'+location.pathname;
 function highlight(root){if(typeof hljs==='undefined')return;for(const code of root.querySelectorAll('pre code')){const match=[...code.classList].find(x=>x.startsWith('language-'));const requested=match?.slice(9).toLowerCase();const language=languageAliases[requested]||requested;if(language&&hljs.getLanguage(language)){if(match)code.classList.replace(match,'language-'+language)}else if(requested){code.classList.add('no-highlight')}hljs.highlightElement(code)}}
 const route=()=>{const p=new URLSearchParams(location.hash.slice(1));return{story:p.get('story')||stories[0]?.path,section:p.get('section')}};

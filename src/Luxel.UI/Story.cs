@@ -30,6 +30,8 @@ public sealed class StoryAttribute(string path) : Attribute
     public bool RealWindowOnly { get; set; }
     /// <summary>実行可能なコピー単位を記述する SampleBundle の ID。未指定は Gallery harness 専用。</summary>
     public string? SampleBundle { get; set; }
+    /// <summary>Browser runtime bundle that can execute this canonical story path.</summary>
+    public string? RuntimeBundleId { get; set; }
 }
 
 /// <summary>

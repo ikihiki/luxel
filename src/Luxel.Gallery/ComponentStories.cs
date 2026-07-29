@@ -20,6 +20,7 @@ public sealed class ComponentStoryAttribute(Type componentType, string path) : A
     public int Order { get; set; } = 1000;
     public bool RealWindowOnly { get; set; }
     public string? SampleBundle { get; set; }
+    public string? RuntimeBundleId { get; set; }
 }
 
 /// <summary>

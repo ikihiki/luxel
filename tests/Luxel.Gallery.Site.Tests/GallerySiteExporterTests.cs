@@ -25,6 +25,8 @@ public sealed class GallerySiteExporterTests
         Assert.NotNull(catalog.Find("Start/Welcome"));
         Assert.NotNull(catalog.Find("Controls/Button/Primary"));
         Assert.NotNull(catalog.Find("Controls/Button/Overview"));
+        Assert.Equal("webgpu-browser-v1", catalog.Find("Examples/3D/Triangle")?.RuntimeBundleId);
+        Assert.Equal("webgpu-browser-v1", catalog.Find("Controls/Button/Counter")?.RuntimeBundleId);
         Assert.Null(empty.Find("Start/Welcome"));
     }
 
@@ -247,16 +249,86 @@ public sealed class GallerySiteExporterTests
         }
     }
 
+    [Fact]
+    public void Markdown_story_references_detect_cycles_without_native_realization()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-markdown-cycle-" + Guid.NewGuid().ToString("N"));
+        StoryInfo a = new("Test/Markdown/A", 0, 0, null, _ => Luxel.Controls.Kit.Text("native A"),
+            ResultBuild: static _ => ReferenceMarkdown("A", "Test/Markdown/B"));
+        StoryInfo b = new("Test/Markdown/B", 0, 0, null, _ => Luxel.Controls.Kit.Text("native B"),
+            ResultBuild: static _ => ReferenceMarkdown("B", "Test/Markdown/A"));
+        var builder = new StoryCatalogBuilder();
+        builder.Add(a).Add(b);
+        StoryCatalog catalog = builder.Build();
+        try
+        {
+            using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
+            using var rasterizer = new Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D();
+            using var host = new GalleryHost(rasterizer, font, catalog);
+
+            SiteExportReport report = GallerySiteExporter.Export(host, [a, b], output, root);
+
+            Assert.True(report.Errors >= 2);
+            string fragment = File.ReadAllText(Path.Combine(output, "stories", "test-markdown-a.html"));
+            Assert.Contains("Story reference cycle detected", fragment);
+            Assert.Contains("story-reference-markdown", fragment);
+            Assert.Equal(0, host.StorySelectionCount);
+            GallerySiteExporter.Validate(output);
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+        }
+    }
+
+    [Fact]
+    public void Button_overview_exports_semantic_html_with_only_its_reference_as_an_iframe()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-button-overview-" + Guid.NewGuid().ToString("N"));
+        string browserRoot = CreateBrowserRuntimeRoot();
+        StoryCatalog catalog = GalleryStoryProject.CreateCatalog();
+        StoryInfo overview = Assert.IsType<StoryInfo>(catalog.Find("Controls/Button/Overview"));
+        Assert.NotNull(overview.ResultBuild);
+        StoryInfo counter = Assert.IsType<StoryInfo>(catalog.Find("Controls/Button/Counter"));
+        try
+        {
+            using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
+            using var rasterizer = new Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D();
+            using var host = new GalleryHost(rasterizer, font, catalog);
+
+            SiteExportReport report = GallerySiteExporter.Export(host, [overview, counter], output, root, browserRoot);
+
+            Assert.Equal(2, report.Stories);
+            string fragment = File.ReadAllText(Path.Combine(output, "stories", "controls-button-overview.html"));
+            Assert.Contains("<h1 id=\"button\">Button</h1>", fragment);
+            Assert.Contains("surrounding", fragment);
+            Assert.Single(System.Text.RegularExpressions.Regex.Matches(fragment, "<iframe").Cast<System.Text.RegularExpressions.Match>());
+            Assert.Contains("story=Controls%2FButton%2FCounter", fragment);
+            Assert.Contains("args=%7B%22count%22%3A0%7D", fragment);
+            Assert.DoesNotContain("Static capture — not interactive", fragment);
+            Assert.Equal(0, host.StorySelectionCount);
+            GallerySiteExporter.Validate(output);
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+            if (Directory.Exists(browserRoot)) Directory.Delete(browserRoot, true);
+        }
+    }
+
     [Theory]
-    [InlineData("Examples/3D/Triangle", "examples-3d-triangle.html", "?app=triangle")]
-    [InlineData("Controls/Button/Counter", "controls-button-counter.html", "?app=counter")]
-    public void Browser_stories_export_as_runtime_without_native_realization_or_static_capture(string storyPath, string fragmentName, string query)
+    [InlineData("Examples/3D/Triangle", "examples-3d-triangle.html")]
+    [InlineData("Controls/Button/Counter", "controls-button-counter.html")]
+    public void Browser_stories_export_as_runtime_without_native_realization_or_static_capture(string storyPath, string fragmentName)
     {
         string root = GallerySiteExporter.FindRepositoryRoot();
         string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-runtime-" + Guid.NewGuid().ToString("N"));
         string browserRoot = CreateBrowserRuntimeRoot();
         var story = new StoryInfo(storyPath, 320, 240, null,
-            _ => throw new InvalidOperationException("runtime story must not be realized"), RealWindowOnly: true);
+            _ => throw new InvalidOperationException("runtime story must not be realized"), RealWindowOnly: true,
+            RuntimeBundleId: "webgpu-browser-v1");
         try
         {
             using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
@@ -276,7 +348,8 @@ public sealed class GallerySiteExporterTests
             Assert.Empty(entry.ImageSha256);
 
             string fragment = File.ReadAllText(Path.Combine(output, "stories", fragmentName));
-            Assert.Contains($"<iframe src=\"samples/webgpu-browser/{query}\" data-luxel-runtime-story=\"{storyPath}\"", fragment);
+            Assert.Contains($"<iframe src=\"samples/webgpu-browser/?story={Uri.EscapeDataString(storyPath)}&amp;args=%7B%7D&amp;instance=", fragment);
+            Assert.Contains($"data-luxel-runtime-story=\"{storyPath}\"", fragment);
             Assert.Contains("<article class=\"story runtime-page\">", fragment);
             Assert.Contains("allow=\"webgpu\"", fragment);
             Assert.DoesNotContain("Runtime WebAssembly — interactive", fragment);
@@ -314,9 +387,10 @@ public sealed class GallerySiteExporterTests
             GallerySiteExporter.Export(host, [story], output, root, browserRoot);
 
             string fragment = File.ReadAllText(Path.Combine(output, "stories", "learn-rendering-basics-firsttriangle.html"));
-            Assert.Contains("<iframe src=\"samples/webgpu-browser/?app=triangle\" data-luxel-runtime-story=\"Examples/3D/Triangle\"", fragment);
+            Assert.Contains("<iframe src=\"samples/webgpu-browser/?story=Examples%2F3D%2FTriangle&amp;args=%7B%7D&amp;instance=", fragment);
+            Assert.Contains("data-luxel-runtime-story=\"Examples/3D/Triangle\"", fragment);
             Assert.Contains("runtime-story-embedded", fragment);
-            Assert.Contains("title=\"Interactive tutorial triangle\"", fragment);
+            Assert.Contains("title=\"Interactive Triangle\"", fragment);
             Assert.DoesNotContain("runtime-caption", fragment);
             Assert.DoesNotContain("Static embedded story capture", fragment);
             Assert.False(File.Exists(Path.Combine(output, "images", "examples-3d-triangle.png")));
@@ -356,7 +430,7 @@ public sealed class GallerySiteExporterTests
 
             FileNotFoundException error = Assert.Throws<FileNotFoundException>(
                 () => GallerySiteExporter.Export(host, [story], output, root, incomplete));
-            Assert.Contains("required app file is missing", error.Message);
+            Assert.Contains("bundle manifest is missing", error.Message);
             Assert.Equal(fallbackRealizations, host.StorySelectionCount);
         }
         finally
@@ -1076,6 +1150,12 @@ public sealed class GallerySiteExporterTests
         }
     }
 
+    private static StoryResult ReferenceMarkdown(string title, string path)
+    {
+        StoryResult result = $"# {title}\n\n{StoryReference.To(path)}";
+        return result;
+    }
+
     private static string CreateBrowserRuntimeRoot()
     {
         string root = Path.Combine(Path.GetTempPath(), "luxel-browser-runtime-" + Guid.NewGuid().ToString("N"));
@@ -1083,6 +1163,8 @@ public sealed class GallerySiteExporterTests
         File.WriteAllText(Path.Combine(root, "index.html"),
             "<!doctype html><html><body><script type=\"module\" src=\"./main.js\"></script></body></html>");
         File.WriteAllText(Path.Combine(root, "main.js"), "import './_framework/dotnet.js';\n");
+        File.WriteAllText(Path.Combine(root, "browser-runtime-manifest.json"),
+            "{\"bundleId\":\"webgpu-browser-v1\",\"protocolVersion\":1,\"entryUrl\":\"./\",\"stories\":[\"Controls/Button/Counter\",\"Examples/3D/Triangle\"]}");
         File.WriteAllText(Path.Combine(root, "_framework", "dotnet.js"), "export const dotnet = {};\n");
         return root;
     }

@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
+using System.Text.Json;
 using Luxel.Controls;
 using Luxel.Graphics;
 using Luxel.Graphics.Abstraction;
@@ -22,19 +23,21 @@ public static partial class Program
 
     public static async Task Main()
     {
-        string app = GetApp();
+        string story = GetStory();
         try
         {
-            switch (app)
+            IReadOnlyDictionary<string, Func<Task>> routes = new Dictionary<string, Func<Task>>(StringComparer.Ordinal)
             {
-                case "triangle": await RunTriangle(); break;
-                case "counter": await RunCounter(); break;
-                default: throw new InvalidOperationException($"Unknown browser app '{app}'. Expected triangle or counter.");
-            }
+                [CanonicalCounterRecipe.Story] = RunCounter,
+                [CanonicalTriangleRecipe.Story] = RunTriangle,
+            };
+            if (!routes.TryGetValue(story, out Func<Task>? run))
+                throw new InvalidOperationException($"Unsupported browser story '{story}'.");
+            await run();
         }
         catch (Exception ex)
         {
-            SetStatus("fail", $"browser-webgpu: status=fail, app={app}, error={ex.Message}");
+            SetStatus("fail", $"browser-webgpu: status=fail, story={story}, error={ex.Message}");
             Console.Error.WriteLine(ex);
             throw;
         }
@@ -53,7 +56,7 @@ public static partial class Program
         using var font = new VectorFont(Resource("BIZUDGothic-Regular.ttf"));
         using var canvas = new RetainedCanvas();
         using IRasterScene2D scene = raster.CreateScene(canvas);
-        CanonicalCounterRecipe.Result recipe = CanonicalCounterRecipe.Build();
+        CanonicalCounterRecipe.Result recipe = CanonicalCounterRecipe.Build(new Signal<int>(GetCounterSeed()));
         using var ui = new UiHost(canvas, font, window.Width, window.Height, gpuRasterizer: raster);
         ui.SetRoot(recipe.Root);
 
@@ -84,7 +87,7 @@ public static partial class Program
         }
 
         await RenderAsync();
-        SetStatus("pass", $"browser-webgpu: status=pass\nstory={CanonicalCounterRecipe.Story}\napp=counter\ncount=0\nrecipe={CanonicalCounterRecipe.Recipe}\ndevice={device.Name}");
+        SetStatus("pass", $"browser-webgpu: status=pass\nstory={CanonicalCounterRecipe.Story}\ncount={recipe.Count.Value}\nrecipe={CanonicalCounterRecipe.Recipe}\ndevice={device.Name}");
         while (windows.Pump())
         {
             if (resizePending)
@@ -145,8 +148,15 @@ public static partial class Program
         Span<byte> data = Mapped(pixels); byte red = data[center], green = data[center + 1], blue = data[center + 2], alpha = data[center + 3];
         if (alpha < 240 || red + green + blue < 180) throw new InvalidOperationException($"Center pixel was rgba({red},{green},{blue},{alpha}).");
         surface.Present(pixels, width, width, height);
-        SetStatus("pass", $"browser-webgpu: status=pass\nstory={CanonicalTriangleRecipe.Story}\napp=triangle\nshader={CanonicalTriangleRecipe.Shader}\nvertexSize={CanonicalTriangleRecipe.VertexSize}; rootSize={CanonicalTriangleRecipe.DrawArgsSize}\ncanvas={width}x{height}\nrecipe={CanonicalTriangleRecipe.Recipe}\nhash={CanonicalTriangleRecipe.ShaderSha256}\ndevice={gpu.Name}\ncompute=0x{computeValue:x8}; center=rgba({red},{green},{blue},{alpha})\nframes=1+; resize={resizeEvents}; pointer={pointerEvents}; key={keyEvents}");
+        SetStatus("pass", $"browser-webgpu: status=pass\nstory={CanonicalTriangleRecipe.Story}\nshader={CanonicalTriangleRecipe.Shader}\nvertexSize={CanonicalTriangleRecipe.VertexSize}; rootSize={CanonicalTriangleRecipe.DrawArgsSize}\ncanvas={width}x{height}\nrecipe={CanonicalTriangleRecipe.Recipe}\nhash={CanonicalTriangleRecipe.ShaderSha256}\ndevice={gpu.Name}\ncompute=0x{computeValue:x8}; center=rgba({red},{green},{blue},{alpha})\nframes=1+; resize={resizeEvents}; pointer={pointerEvents}; key={keyEvents}");
         while (windows.Pump()) { if (resizePending) { surface.Resize((uint)window.Width, (uint)window.Height); surface.Present(pixels, width, width, height); resizePending = false; } await NextFrame(); }
+    }
+
+    private static int GetCounterSeed()
+    {
+        using JsonDocument document = JsonDocument.Parse(GetArgsJson());
+        return document.RootElement.TryGetProperty("count", out JsonElement count) && count.TryGetInt32(out int value)
+            ? value : 0;
     }
 
     private static async Task<WebWindowBackend> CreateWindowBackend() => await WebWindowBackend.CreateAsync(new WebWindowBackendOptions
@@ -175,7 +185,8 @@ public static partial class Program
     private static void Write<T>(IGpuBackendBuffer buffer, ReadOnlySpan<T> values) where T : unmanaged => MemoryMarshal.AsBytes(values).CopyTo(Mapped(buffer));
     private readonly record struct ComputeRoot(uint BufferIndex, uint Value, uint Pad0 = 0, uint Pad1 = 0);
 
-    [JSImport("getApp", "luxel-browser-host")] private static partial string GetApp();
+    [JSImport("getArgsJson", "luxel-browser-host")] private static partial string GetArgsJson();
+    [JSImport("getStory", "luxel-browser-host")] private static partial string GetStory();
     [JSImport("nextFrame", "luxel-browser-host")] private static partial Task<double> NextFrame();
     [JSImport("setStatus", "luxel-browser-host")] private static partial void SetStatus(string state, string summary);
     [JSImport("setCounterState", "luxel-browser-host")] private static partial void SetCounterState(int count, int renderRevision, int presentedCount, int pointerDownCount, int pointerUpCount, float minusX, float minusY, float minusW, float minusH, float plusX, float plusY, float plusW, float plusH);

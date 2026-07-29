@@ -124,9 +124,8 @@ public sealed class BrowserWebGpuSmokeTests
         var errors = new List<string>();
         page.Console += (_, message) => { if (message.Type == "error") errors.Add(message.Text); };
         page.PageError += (_, error) => errors.Add(error);
-        await page.GotoAsync($"http://127.0.0.1:{port}/?app=counter", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+        await page.GotoAsync($"http://127.0.0.1:{port}/?story=Controls%2FButton%2FCounter", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
         await page.WaitForFunctionAsync("() => globalThis.luxelBrowserState?.state === 'pass' && globalThis.luxelBrowserState?.plusBounds", null, new PageWaitForFunctionOptions { Timeout = 90_000 });
-        Assert.Equal("counter", await page.EvaluateAsync<string>("() => globalThis.luxelBrowserState.app"));
         Assert.Equal("Controls/Button/Counter", await page.EvaluateAsync<string>("() => globalThis.luxelBrowserState.story"));
         Assert.Equal(0, await page.EvaluateAsync<int>("() => globalThis.luxelBrowserState.count"));
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
@@ -210,10 +209,10 @@ public sealed class BrowserWebGpuSmokeTests
                 new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
 
             const string runtimeSelector =
-                "iframe[src='samples/webgpu-browser/?app=triangle'][data-luxel-runtime-story='Examples/3D/Triangle']";
+                "iframe[src^='samples/webgpu-browser/?story=Examples%2F3D%2FTriangle'][data-luxel-runtime-story='Examples/3D/Triangle']";
             ILocator runtime = page.Locator(runtimeSelector);
             await runtime.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 30_000 });
-            Assert.Equal("samples/webgpu-browser/?app=triangle", await runtime.GetAttributeAsync("src"));
+            Assert.StartsWith("samples/webgpu-browser/?story=Examples%2F3D%2FTriangle", await runtime.GetAttributeAsync("src"));
 
             IElementHandle runtimeElement = await runtime.ElementHandleAsync()
                 ?? throw new InvalidOperationException("Runtime iframe element was unavailable.");
@@ -290,7 +289,7 @@ public sealed class BrowserWebGpuSmokeTests
         page.PageError += (_, error) => errors.Add(error);
         page.Request += (_, request) => requests.Add(request.Url);
         await page.GotoAsync($"http://127.0.0.1:{port}/{prefix}#story=Controls%2FButton%2FCounter", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
-        ILocator runtime = page.Locator("iframe[src='samples/webgpu-browser/?app=counter'][data-luxel-runtime-story='Controls/Button/Counter']");
+        ILocator runtime = page.Locator("iframe[src='samples/webgpu-browser/?story=Controls%2FButton%2FCounter'][data-luxel-runtime-story='Controls/Button/Counter']");
         await runtime.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 30_000 });
         IFrame child = await (await runtime.ElementHandleAsync())!.ContentFrameAsync() ?? throw new InvalidOperationException("Counter runtime iframe was unavailable.");
         await child.WaitForFunctionAsync("() => globalThis.luxelBrowserState?.state === 'pass' && globalThis.luxelBrowserState?.plusBounds", null, new FrameWaitForFunctionOptions { Timeout = 90_000 });
