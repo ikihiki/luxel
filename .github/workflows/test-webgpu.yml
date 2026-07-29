@@ -92,6 +92,9 @@ jobs:
 
   windows-build-and-tests:
     runs-on: windows-2025
+    env:
+      WGPU_BACKEND: dx12
+      WGPU_DX12_COMPILER: fxc
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
