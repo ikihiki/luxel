@@ -73,9 +73,12 @@ public sealed class BrowserWebGpuSmokeTests
         Assert.True(File.Exists(Path.Combine(galleryRoot, "samples", "webgpu-browser", "index.html")),
             $"Browser WebGPU sample was not copied into the Gallery: {galleryRoot}");
 
+        string serverRoot = Path.GetDirectoryName(galleryRoot)
+            ?? throw new InvalidOperationException($"Gallery root has no parent directory: {galleryRoot}");
+        string prefix = Uri.EscapeDataString(Path.GetFileName(galleryRoot)) + "/";
         int port = GetFreePort();
-        using var server = new StaticServer(StartServer(galleryRoot, port));
-        await WaitForServerAsync(port);
+        using var server = new StaticServer(StartServer(serverRoot, port));
+        await WaitForServerAsync(port, prefix);
         using IPlaywright playwright = await Playwright.CreateAsync();
         await using IBrowser browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
@@ -87,8 +90,10 @@ public sealed class BrowserWebGpuSmokeTests
             ViewportSize = new ViewportSize { Width = 1100, Height = 800 },
         });
         var errors = new List<string>();
+        var requests = new List<string>();
         page.Console += (_, message) => { if (message.Type == "error") errors.Add(message.Text); };
         page.PageError += (_, error) => errors.Add(error);
+        page.Request += (_, request) => requests.Add(request.Url);
 
         foreach (string storyPath in new[]
         {
@@ -97,7 +102,7 @@ public sealed class BrowserWebGpuSmokeTests
         })
         {
             string route = Uri.EscapeDataString(storyPath);
-            await page.GotoAsync($"http://127.0.0.1:{port}/#story={route}",
+            await page.GotoAsync($"http://127.0.0.1:{port}/{prefix}#story={route}",
                 new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
 
             const string runtimeSelector =
@@ -107,31 +112,41 @@ public sealed class BrowserWebGpuSmokeTests
             Assert.Equal("samples/webgpu-browser/", await runtime.GetAttributeAsync("src"));
 
             IFrameLocator frame = page.FrameLocator(runtimeSelector);
-            await frame.Locator("#status[data-status='pass']").WaitForAsync(
+            ILocator status = frame.Locator("#status[data-status='pass']");
+            await status.WaitForAsync(
                 new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 90_000 });
+            string summary = await status.InnerTextAsync();
+            Assert.Contains("story=Examples/3D/Triangle", summary);
+            Assert.Contains("shader=tutorial_triangle", summary);
+            Assert.Contains("vertexSize=32; rootSize=4", summary);
+            Assert.Contains("canvas=320x240", summary);
+            Assert.Contains("recipe=canonical-triangle-v1", summary);
+            Assert.Contains("hash=4c3a36aa594306d963f00f1c0e6c5d7c62b1543748bfc882d72d0de8cf9a2cdd", summary);
             ILocator canvas = frame.Locator("#luxel-canvas");
             Assert.Equal("320", await canvas.GetAttributeAsync("width"));
             Assert.Equal("240", await canvas.GetAttributeAsync("height"));
-            await AssertCanvasContainsRenderedPixelsAsync(canvas);
+            await AssertCanvasContainsCanonicalRgbAsync(canvas);
         }
 
         Assert.Empty(errors);
+        Assert.DoesNotContain(requests, url => new Uri(url).AbsolutePath.EndsWith(".png", StringComparison.OrdinalIgnoreCase));
     }
 
-    private static async Task AssertCanvasContainsRenderedPixelsAsync(ILocator canvas)
+    private static async Task AssertCanvasContainsCanonicalRgbAsync(ILocator canvas)
     {
         byte[] screenshot = await canvas.ScreenshotAsync();
         using Image<Rgba32> image = Image.Load<Rgba32>(screenshot);
         Assert.Equal(4 * image.Height, 3 * image.Width);
-        Rgba32 background = image[4, 4];
-        for (int y = image.Height / 4; y < image.Height * 3 / 4; y += 4)
-        for (int x = image.Width / 4; x < image.Width * 3 / 4; x += 4)
+        bool red = false, green = false, blue = false;
+        for (int y = image.Height / 5; y < image.Height * 4 / 5; y += 3)
+        for (int x = image.Width / 5; x < image.Width * 4 / 5; x += 3)
         {
             Rgba32 pixel = image[x, y];
-            if (Math.Abs(pixel.R - background.R) + Math.Abs(pixel.G - background.G) + Math.Abs(pixel.B - background.B) > 60)
-                return;
+            red |= pixel.R > 100 && pixel.R > pixel.G + 25 && pixel.R > pixel.B + 25;
+            green |= pixel.G > 100 && pixel.G > pixel.R + 25 && pixel.G > pixel.B + 25;
+            blue |= pixel.B > 100 && pixel.B > pixel.R + 25 && pixel.B > pixel.G + 25;
         }
-        Assert.Fail("Canvas screenshot contained only the background color.");
+        Assert.True(red && green && blue, $"Canvas did not contain canonical RGB regions (red={red}, green={green}, blue={blue}).");
     }
 
     private static string RequireDirectoryEnvironmentVariable(string name)
@@ -181,12 +196,12 @@ public sealed class BrowserWebGpuSmokeTests
         listener.Start(); int port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port; listener.Stop(); return port;
     }
 
-    private static async Task WaitForServerAsync(int port)
+    private static async Task WaitForServerAsync(int port, string relativePath = "")
     {
         using var client = new HttpClient();
         for (int attempt = 0; attempt < 80; attempt++)
         {
-            try { using HttpResponseMessage response = await client.GetAsync($"http://127.0.0.1:{port}/"); if (response.IsSuccessStatusCode) return; }
+            try { using HttpResponseMessage response = await client.GetAsync($"http://127.0.0.1:{port}/{relativePath}"); if (response.IsSuccessStatusCode) return; }
             catch (HttpRequestException) { }
             await Task.Delay(100);
         }

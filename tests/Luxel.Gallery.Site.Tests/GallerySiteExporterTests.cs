@@ -263,7 +263,8 @@ public sealed class GallerySiteExporterTests
 
             string fragment = File.ReadAllText(Path.Combine(output, "stories", "examples-3d-triangle.html"));
             Assert.Contains("<iframe src=\"samples/webgpu-browser/\" data-luxel-runtime-story=\"Examples/3D/Triangle\"", fragment);
-            Assert.Contains("Live browser WebGPU runtime — interactive", fragment);
+            Assert.Contains("Runtime WebAssembly — interactive", fragment);
+            Assert.Contains("allow=\"webgpu\"", fragment);
             Assert.DoesNotContain("Static capture — not interactive", fragment);
             Assert.DoesNotContain("src=\"/samples/webgpu-browser/", fragment);
             Assert.Empty(Directory.GetFiles(Path.Combine(output, "images"), "*.png"));

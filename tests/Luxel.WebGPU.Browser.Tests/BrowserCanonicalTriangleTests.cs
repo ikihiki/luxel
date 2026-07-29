@@ -23,7 +23,9 @@ public sealed class BrowserCanonicalTriangleTests
         Assert.Contains("aspect-ratio:4/3", html);
         Assert.Contains($"data-story=\"{CanonicalTriangleRecipe.Story}\"", html);
         Assert.Contains($"data-shader=\"{CanonicalTriangleRecipe.Shader}\"", html);
-        Assert.Contains($"data-sizes=\"{CanonicalTriangleRecipe.Width}x{CanonicalTriangleRecipe.Height}\"", html);
+        Assert.Contains($"data-vertex-size=\"{CanonicalTriangleRecipe.VertexSize}\"", html);
+        Assert.Contains($"data-root-size=\"{CanonicalTriangleRecipe.DrawArgsSize}\"", html);
+        Assert.Contains($"data-canvas=\"{CanonicalTriangleRecipe.Width}x{CanonicalTriangleRecipe.Height}\"", html);
         Assert.Contains($"data-recipe=\"{CanonicalTriangleRecipe.Recipe}\"", html);
         Assert.Contains($"data-hash=\"{CanonicalTriangleRecipe.ShaderSha256}\"", html);
         Assert.Contains("data-status=\"loading\"", html);

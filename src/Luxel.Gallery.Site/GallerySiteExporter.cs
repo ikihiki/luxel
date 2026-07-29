@@ -48,11 +48,9 @@ public static partial class GallerySiteExporter
         File.WriteAllText(Path.Combine(output, "site.css"), Css + StorySourceCss, new UTF8Encoding(false));
         File.WriteAllText(Path.Combine(output, "site.js"), Js, new UTF8Encoding(false));
 
-        bool requiresBrowserRuntime = stories.Any(story => story.Path is BrowserRuntimeStoryPath or BrowserRuntimeEmbedPagePath);
-        if (requiresBrowserRuntime && browserWebGpuRoot is null)
-            throw new InvalidOperationException("Browser WebGPU publish root is required when exporting the runtime triangle story or tutorial embed.");
-        if (browserWebGpuRoot is not null)
-            CopyBrowserRuntime(browserWebGpuRoot, Path.Combine(output, BrowserRuntimeUrl.Replace('/', Path.DirectorySeparatorChar)));
+        bool browserRuntimeEnabled = browserWebGpuRoot is not null;
+        if (browserRuntimeEnabled)
+            CopyBrowserRuntime(browserWebGpuRoot!, Path.Combine(output, BrowserRuntimeUrl.Replace('/', Path.DirectorySeparatorChar)));
 
         var manifest = new List<SiteStory>();
         var imageCache = new Dictionary<string, (string? Url, string Status, string? Error, string Hash)>(StringComparer.Ordinal);
@@ -70,7 +68,7 @@ public static partial class GallerySiteExporter
             string body = "";
             try
             {
-                if (story.Path == BrowserRuntimeStoryPath)
+                if (browserRuntimeEnabled && story.Path == BrowserRuntimeStoryPath)
                 {
                     status = "runtime";
                     body = RuntimeStory(BrowserRuntimeStoryPath, embedded: false);
@@ -123,7 +121,7 @@ public static partial class GallerySiteExporter
                     if (linkErrors.Count > 0)
                         throw new InvalidDataException("Broken documentation links: " + string.Join(", ", linkErrors));
                     string md = ReplaceEmbeds(story.Path, document.DocSource!, document.DocEmbeds, host, imagesDir, repositoryRoot,
-                        imageCache, ref unavailable, ref errors);
+                        imageCache, browserRuntimeEnabled, ref unavailable, ref errors);
                     md = RewriteLocalImages(md, imagesDir, repositoryRoot);
                     md = ReplaceSpecialFences(md, host, imagesDir, ref errors);
                     body = RenderMarkdown(md, story.Path);
@@ -145,7 +143,7 @@ public static partial class GallerySiteExporter
             }
 
             string badge = status == "runtime"
-                ? "<p class=\"runtime-badge\">Live browser WebGPU runtime — interactive</p>"
+                ? "<p class=\"runtime-badge\">Runtime WebAssembly — interactive</p>"
                 : "<p class=\"static-badge\">Static capture — not interactive</p>";
             string fragment = $"<article class=\"story\"><header>{badge}<h1>{H(story.Path)}</h1></header>{body}{BundleHtml(SampleBundleRegistry.Find(story.SampleBundle))}{StorySourceHtml(story.Source)}</article>";
             File.WriteAllText(Path.Combine(output, fragmentUrl.Replace('/', Path.DirectorySeparatorChar)), fragment, new UTF8Encoding(false));
@@ -196,7 +194,7 @@ public static partial class GallerySiteExporter
     private static string ReplaceEmbeds(string containingStoryPath, string md, IReadOnlyList<DocEmbed> embeds, GalleryHost host,
         string imagesDir, string repositoryRoot,
         Dictionary<string, (string? Url, string Status, string? Error, string Hash)> cache,
-        ref int unavailable, ref int errors)
+        bool browserRuntimeEnabled, ref int unavailable, ref int errors)
     {
         for (int i = 0; i < embeds.Count; i++)
         {
@@ -206,7 +204,8 @@ public static partial class GallerySiteExporter
                 html = ControlApiHtml(embed.Reference, embed.IncludeInherited);
             else if (embed.Kind == DocEmbedKind.TypeApiTable)
                 html = TypeApiHtml(embed.Reference);
-            else if (embed.Kind == DocEmbedKind.StoryRef
+            else if (browserRuntimeEnabled
+                     && embed.Kind == DocEmbedKind.StoryRef
                      && containingStoryPath == BrowserRuntimeEmbedPagePath
                      && embed.Reference == BrowserRuntimeStoryPath)
                 html = RuntimeStory(BrowserRuntimeStoryPath, embedded: true);
@@ -430,7 +429,7 @@ public static partial class GallerySiteExporter
     private static string RuntimeStory(string path, bool embedded)
     {
         string heading = embedded ? "Interactive tutorial triangle" : "Interactive WebGPU triangle";
-        return $"<section class=\"runtime-story\" data-runtime-kind=\"webgpu-browser\"><div class=\"runtime-frame\"><iframe src=\"{BrowserRuntimeUrl}\" data-luxel-runtime-story=\"{H(path)}\" title=\"{H(heading)}\" loading=\"eager\" allow=\"fullscreen\"></iframe></div><p class=\"runtime-caption\"><strong>{H(heading)}</strong> — rendered live by the copied browser WebGPU application.</p></section>";
+        return $"<section class=\"runtime-story\" data-runtime-kind=\"webgpu-browser\"><div class=\"runtime-frame\"><iframe src=\"{BrowserRuntimeUrl}\" data-luxel-runtime-story=\"{H(path)}\" title=\"{H(heading)}\" loading=\"eager\" allow=\"webgpu\"></iframe></div><p class=\"runtime-caption\" role=\"status\"><strong>{H(heading)}</strong> — loading the browser WebGPU application; its status appears inside the frame.</p></section>";
     }
 
     private static void CopyBrowserRuntime(string source, string destination)
