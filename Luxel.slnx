@@ -43,6 +43,7 @@
     <Project Path="src/Luxel.Physics/Luxel.Physics.csproj" />
     <Project Path="src/Luxel.Platform.Silk/Luxel.Platform.Silk.csproj" />
     <Project Path="src/Luxel.Platform/Luxel.Platform.csproj" />
+    <Project Path="src/Luxel.Platform.Web/Luxel.Platform.Web.csproj" />
     <Project Path="src/Luxel.Platform.Windows/Luxel.Platform.Windows.csproj" />
     <Project Path="src/Luxel.RenderGraph/Luxel.RenderGraph.csproj" />
     <Project Path="src/Luxel.Resources/Luxel.Resources.csproj" />
@@ -92,6 +93,7 @@
     <Project Path="tests/Luxel.Vulkan.Present.Tests/Luxel.Vulkan.Present.Tests.csproj" />
     <Project Path="tests/Luxel.UI.Generators.Tests/Luxel.UI.Generators.Tests.csproj" />
     <Project Path="tests/Luxel.UI.App.Tests/Luxel.UI.App.Tests.csproj" />
+    <Project Path="tests/Luxel.Platform.Web.Tests/Luxel.Platform.Web.Tests.csproj" />
     <Project Path="tests/Luxel.Terminal.Linux.Tests/Luxel.Terminal.Linux.Tests.csproj" />
     <Project Path="tests/Luxel.Terminal.Windows.Tests/Luxel.Terminal.Windows.Tests.csproj" />
     <Project Path="tests/Luxel.Terminal.Tests/Luxel.Terminal.Tests.csproj" />

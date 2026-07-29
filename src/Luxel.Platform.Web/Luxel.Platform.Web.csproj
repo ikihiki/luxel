@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <SupportedOSPlatformVersion>browser</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Platform\Luxel.Platform.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="wwwroot\luxel-platform-web.js"
+          CopyToOutputDirectory="PreserveNewest"
+          Pack="true"
+          PackagePath="wwwroot\luxel-platform-web.js" />
+  </ItemGroup>
+</Project>
