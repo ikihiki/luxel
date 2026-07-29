@@ -321,13 +321,24 @@ public static class HeadlessWebGpuSample
     &lt;Compile Include=&quot;..\CanonicalTriangleRecipe.cs&quot; Link=&quot;CanonicalTriangleRecipe.cs&quot; /&gt;
   &lt;/ItemGroup&gt;
   &lt;ItemGroup&gt;
+    &lt;ProjectReference Include=&quot;..\..\src\Luxel.Controls\Luxel.Controls.csproj&quot; /&gt;
+    &lt;ProjectReference Include=&quot;..\..\src\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj&quot; /&gt;
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.Graphics\Luxel.Graphics.csproj&quot; /&gt;
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.Graphics.WebGPU.Browser\Luxel.Graphics.WebGPU.Browser.csproj&quot; /&gt;
+    &lt;ProjectReference Include=&quot;..\..\src\Luxel.Typography\Luxel.Typography.csproj&quot; /&gt;
+    &lt;ProjectReference Include=&quot;..\..\src\Luxel.UI\Luxel.UI.csproj&quot; /&gt;
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.Platform\Luxel.Platform.csproj&quot; /&gt;
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.Platform.Web\Luxel.Platform.Web.csproj&quot; /&gt;
   &lt;/ItemGroup&gt;
   &lt;ItemGroup&gt;
+    &lt;PackageReference Include=&quot;HarfBuzzSharp.NativeAssets.WebAssembly&quot; Version=&quot;14.2.0&quot; /&gt;
+  &lt;/ItemGroup&gt;
+  &lt;ItemGroup&gt;
     &lt;EmbeddedResource Include=&quot;Shaders\compute.wgsl&quot; /&gt;
+    &lt;EmbeddedResource Include=&quot;..\..\shaders\compiled\raster2d_bounds.wgsl&quot; Link=&quot;Shaders\raster2d_bounds.wgsl&quot; /&gt;
+    &lt;EmbeddedResource Include=&quot;..\..\shaders\compiled\raster2d_bin.wgsl&quot; Link=&quot;Shaders\raster2d_bin.wgsl&quot; /&gt;
+    &lt;EmbeddedResource Include=&quot;..\..\shaders\compiled\raster2d_fine.wgsl&quot; Link=&quot;Shaders\raster2d_fine.wgsl&quot; /&gt;
+    &lt;EmbeddedResource Include=&quot;..\..\assets\fonts\BIZUDGothic-Regular.ttf&quot; Link=&quot;Fonts\BIZUDGothic-Regular.ttf&quot; /&gt;
     &lt;EmbeddedResource Include=&quot;..\..\shaders\compiled\tutorial_triangle.wgsl&quot; Link=&quot;Shaders\tutorial_triangle.wgsl&quot; /&gt;
     &lt;Content Include=&quot;..\..\src\Luxel.Graphics.WebGPU.Browser\wwwroot\luxel-webgpu-browser.js&quot;
              Link=&quot;wwwroot\luxel-webgpu-browser.js&quot; CopyToOutputDirectory=&quot;PreserveNewest&quot; CopyToPublishDirectory=&quot;PreserveNewest&quot; /&gt;
@@ -341,13 +352,16 @@ public static class HeadlessWebGpuSample
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
-using System.Text;
+using Luxel.Controls;
 using Luxel.Graphics;
 using Luxel.Graphics.Abstraction;
+using Luxel.Graphics.TwoD;
 using Luxel.Graphics.WebGPU.Browser;
 using Luxel.Platform;
 using Luxel.Platform.Abstraction;
 using Luxel.Platform.Web;
+using Luxel.Typography;
+using Luxel.UI;
 
 namespace LuxelWebGpuBrowser;
 
@@ -355,98 +369,153 @@ namespace LuxelWebGpuBrowser;
 public static partial class Program
 {
     private const uint ExpectedCompute = 0xc0ffee42;
-    private const uint TargetWidth = CanonicalTriangleRecipe.Width;
-    private const uint TargetHeight = CanonicalTriangleRecipe.Height;
 
     public static async Task Main()
     {
+        string app = GetApp();
         try
         {
-            using WebWindowBackend web = await WebWindowBackend.CreateAsync(new WebWindowBackendOptions
+            switch (app)
             {
-                // JSHost.ImportAsync resolves relative URLs from the _framework runtime module.
-                ModuleUrl = &quot;../luxel-platform-web.js&quot;,
-                Canvases = [new WebCanvasOptions(&quot;#luxel-canvas&quot;) { SurfaceToken = &quot;#luxel-canvas&quot; }],
-            });
-            using var windows = new WindowSystem(web);
-            Window window = windows.CreateWindow(new WindowDesc(&quot;Luxel browser WebGPU&quot;, (int)TargetWidth, (int)TargetHeight));
-            int pointerEvents = 0, keyEvents = 0, resizeEvents = 0;
-            bool resizePending = false;
-            window.PointerMoved += _ =&gt; pointerEvents++;
-            window.PointerDown += _ =&gt; pointerEvents++;
-            window.PointerUp += _ =&gt; pointerEvents++;
-            window.KeyDown += _ =&gt; keyEvents++;
-            window.KeyUp += _ =&gt; keyEvents++;
-            window.Resized += (_, _) =&gt; { resizeEvents++; resizePending = true; };
-            windows.Pump();
-
-            using BrowserWebGpuBackend gpu = await BrowserWebGpuBackend.CreateAsync();
-            using BrowserWebGpuSurface surface = gpu.CreateCanvasSurface(&quot;#luxel-canvas&quot;, (uint)window.Width, (uint)window.Height);
-            resizePending = false;
-            using IGpuBackendBuffer compute = gpu.CreateBuffer(256, GpuMemoryKind.HostCached);
-            using IGpuBackendPipeline computePipeline = gpu.CreateComputePipeline(Shader(&quot;compute.wgsl&quot;), &quot;main&quot;);
-            using (IGpuBackendCommandBuffer command = gpu.MainQueue.StartCommandRecording())
-            {
-                command.SetComputePipeline(computePipeline);
-                command.SetRootConstants(Bytes(new ComputeRoot(compute.BindlessIndex, ExpectedCompute)));
-                command.Dispatch(1, 1, 1);
-                command.Finish();
-                await gpu.AsyncQueue.SubmitAsync(command);
-            }
-            uint computeValue = Read&lt;uint&gt;(compute);
-            if (computeValue != ExpectedCompute) throw new InvalidOperationException($&quot;Compute result was 0x{computeValue:x8}.&quot;);
-
-            CanonicalTriangleRecipe.Vertex[] triangleVertices = CanonicalTriangleRecipe.CreateVertices();
-            using IGpuBackendBuffer vertices = gpu.CreateBuffer((ulong)(triangleVertices.Length * CanonicalTriangleRecipe.VertexSize), GpuMemoryKind.HostMapped);
-            Write(vertices, triangleVertices);
-            using IGpuBackendTexture target = gpu.CreateRenderTarget(TargetWidth, TargetHeight, GpuFormat.Rgba8Unorm);
-            using IGpuBackendBuffer pixels = gpu.CreateBuffer(TargetWidth * TargetHeight * 4, GpuMemoryKind.HostCached);
-            using IGpuBackendPipeline graphics = gpu.CreateGraphicsPipeline(Shader(&quot;tutorial_triangle.wgsl&quot;), &quot;vsMain&quot;, Shader(&quot;tutorial_triangle.wgsl&quot;), &quot;psMain&quot;, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
-            using (IGpuBackendCommandBuffer command = gpu.MainQueue.StartCommandRecording())
-            {
-                command.SetGraphicsPipeline(graphics);
-                command.SetRootConstants(Bytes(new CanonicalTriangleRecipe.DrawArgs { VertexBufferIndex = vertices.BindlessIndex }));
-                command.BeginRendering(target, null, 0.04f, 0.07f, 0.12f, 1f, 1f);
-                command.Draw(3, 1);
-                command.EndRendering();
-                command.CopyTextureToBuffer(target, pixels, TargetWidth);
-                command.Finish();
-                await gpu.AsyncQueue.SubmitAsync(command);
-            }
-            int center = checked((int)((TargetHeight / 2 * TargetWidth + TargetWidth / 2) * 4));
-            byte red, green, blue, alpha;
-            {
-                Span&lt;byte&gt; data = Mapped(pixels);
-                red = data[center]; green = data[center + 1]; blue = data[center + 2]; alpha = data[center + 3];
-            }
-            if (alpha &lt; 240 || red + green + blue &lt; 180)
-                throw new InvalidOperationException($&quot;Center pixel was rgba({red},{green},{blue},{alpha}).&quot;);
-            surface.Present(pixels, TargetWidth, TargetWidth, TargetHeight);
-            SetStatus(&quot;pass&quot;, $&quot;browser-webgpu: status=pass\nstory={CanonicalTriangleRecipe.Story}\nshader={CanonicalTriangleRecipe.Shader}\nvertexSize={CanonicalTriangleRecipe.VertexSize}; rootSize={CanonicalTriangleRecipe.DrawArgsSize}\ncanvas={CanonicalTriangleRecipe.Width}x{CanonicalTriangleRecipe.Height}\nrecipe={CanonicalTriangleRecipe.Recipe}\nhash={CanonicalTriangleRecipe.ShaderSha256}\ndevice={gpu.Name}\ncompute=0x{computeValue:x8}; center=rgba({red},{green},{blue},{alpha})\nframes=1+; resize={resizeEvents}; pointer={pointerEvents}; key={keyEvents}&quot;);
-
-            while (windows.Pump())
-            {
-                if (resizePending)
-                {
-                    surface.Resize((uint)window.Width, (uint)window.Height);
-                    surface.Present(pixels, TargetWidth, TargetWidth, TargetHeight);
-                    resizePending = false;
-                }
-                await NextFrame();
+                case &quot;triangle&quot;: await RunTriangle(); break;
+                case &quot;counter&quot;: await RunCounter(); break;
+                default: throw new InvalidOperationException($&quot;Unknown browser app '{app}'. Expected triangle or counter.&quot;);
             }
         }
         catch (Exception ex)
         {
-            SetStatus(&quot;fail&quot;, $&quot;browser-webgpu: status=fail, error={ex.Message}&quot;);
+            SetStatus(&quot;fail&quot;, $&quot;browser-webgpu: status=fail, app={app}, error={ex.Message}&quot;);
             Console.Error.WriteLine(ex);
             throw;
         }
     }
 
-    private static byte[] Shader(string name)
+    private static async Task RunCounter()
     {
-        string suffix = &quot;.Shaders.&quot; + name;
-        string resource = Assembly.GetExecutingAssembly().GetManifestResourceNames().Single(n =&gt; n.EndsWith(suffix, StringComparison.Ordinal));
+        using WebWindowBackend web = await CreateWindowBackend();
+        using var windows = new WindowSystem(web);
+        Window window = windows.CreateWindow(new WindowDesc(&quot;Luxel Counter&quot;, 640, 360));
+        windows.Pump();
+        using BrowserWebGpuBackend backend = await BrowserWebGpuBackend.CreateAsync();
+        using var device = new GpuDevice(backend);
+        using GpuSurface surface = device.CreateCanvasSurface(&quot;#luxel-canvas&quot;, (uint)window.Width, (uint)window.Height);
+        using var raster = new GpuDeviceRasterizer2D(device, RasterShader);
+        using var font = new VectorFont(Resource(&quot;BIZUDGothic-Regular.ttf&quot;));
+        using var canvas = new RetainedCanvas();
+        using IRasterScene2D scene = raster.CreateScene(canvas);
+        CanonicalCounterRecipe.Result recipe = CanonicalCounterRecipe.Build();
+        using var ui = new UiHost(canvas, font, window.Width, window.Height, gpuRasterizer: raster);
+        ui.SetRoot(recipe.Root);
+
+        GpuBuffer framebuffer = device.Malloc(checked((ulong)window.Width * (uint)window.Height * 4), GpuMemoryKind.DeviceLocal);
+        bool resizePending = false;
+        int resizeWidth = window.Width, resizeHeight = window.Height;
+        int pointerDownCount = 0, pointerUpCount = 0, renderRevision = 0, presentedCount = 0;
+        window.Resized += (w, h) =&gt; { resizePending = true; resizeWidth = Math.Max(1, w); resizeHeight = Math.Max(1, h); };
+        window.PointerMoved += e =&gt; ui.PointerMove(e.X, e.Y);
+        window.PointerDown += e =&gt; { pointerDownCount++; ui.PointerDown(e.X, e.Y, MapButton(e.Button)); PublishCounterState(); };
+        window.PointerUp += e =&gt; { pointerUpCount++; ui.PointerUp(e.X, e.Y, MapButton(e.Button)); PublishCounterState(); };
+
+        void PublishCounterState() =&gt; SetCounterState(recipe.Count.Value, renderRevision, presentedCount,
+            pointerDownCount, pointerUpCount,
+            recipe.Minus.WorldPos.X, recipe.Minus.WorldPos.Y, recipe.Minus.Size.Width, recipe.Minus.Size.Height,
+            recipe.Plus.WorldPos.X, recipe.Plus.WorldPos.Y, recipe.Plus.Size.Width, recipe.Plus.Size.Height);
+
+        async Task RenderAsync()
+        {
+            using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
+            scene.Render(Camera2D.Pixels, new GpuRasterTarget2D(command, framebuffer, (uint)window.Width, (uint)window.Height));
+            command.Finish();
+            await device.MainQueue.SubmitAsync(command);
+            surface.Present(framebuffer, (uint)window.Width, (uint)window.Width, (uint)window.Height);
+            renderRevision++;
+            presentedCount = recipe.Count.Value;
+            PublishCounterState();
+        }
+
+        await RenderAsync();
+        SetStatus(&quot;pass&quot;, $&quot;browser-webgpu: status=pass\nstory={CanonicalCounterRecipe.Story}\napp=counter\ncount=0\nrecipe={CanonicalCounterRecipe.Recipe}\ndevice={device.Name}&quot;);
+        while (windows.Pump())
+        {
+            if (resizePending)
+            {
+                await device.MainQueue.WaitIdleAsync();
+                framebuffer.Dispose();
+                framebuffer = device.Malloc(checked((ulong)resizeWidth * (uint)resizeHeight * 4), GpuMemoryKind.DeviceLocal);
+                surface.Resize((uint)resizeWidth, (uint)resizeHeight);
+                ui.Resize(resizeWidth, resizeHeight);
+                resizePending = false;
+            }
+            ui.Tick(1f / 60f);
+            if (resizePending || canvas.HasPendingChanges) await RenderAsync();
+            await NextFrame();
+        }
+        framebuffer.Dispose();
+    }
+
+    private static async Task RunTriangle()
+    {
+        uint width = CanonicalTriangleRecipe.Width, height = CanonicalTriangleRecipe.Height;
+        using WebWindowBackend web = await CreateWindowBackend();
+        using var windows = new WindowSystem(web);
+        Window window = windows.CreateWindow(new WindowDesc(&quot;Luxel browser WebGPU&quot;, (int)width, (int)height));
+        int pointerEvents = 0, keyEvents = 0, resizeEvents = 0;
+        bool resizePending = false;
+        window.PointerMoved += _ =&gt; pointerEvents++;
+        window.PointerDown += _ =&gt; pointerEvents++;
+        window.PointerUp += _ =&gt; pointerEvents++;
+        window.KeyDown += _ =&gt; keyEvents++;
+        window.KeyUp += _ =&gt; keyEvents++;
+        window.Resized += (_, _) =&gt; { resizeEvents++; resizePending = true; };
+        windows.Pump();
+        using BrowserWebGpuBackend gpu = await BrowserWebGpuBackend.CreateAsync();
+        using BrowserWebGpuSurface surface = gpu.CreateCanvasSurface(&quot;#luxel-canvas&quot;, (uint)window.Width, (uint)window.Height);
+        resizePending = false;
+        using IGpuBackendBuffer compute = gpu.CreateBuffer(256, GpuMemoryKind.HostCached);
+        using IGpuBackendPipeline computePipeline = gpu.CreateComputePipeline(Resource(&quot;compute.wgsl&quot;), &quot;main&quot;);
+        using (IGpuBackendCommandBuffer command = gpu.MainQueue.StartCommandRecording())
+        {
+            command.SetComputePipeline(computePipeline); command.SetRootConstants(Bytes(new ComputeRoot(compute.BindlessIndex, ExpectedCompute)));
+            command.Dispatch(1, 1, 1); command.Finish(); await gpu.AsyncQueue.SubmitAsync(command);
+        }
+        uint computeValue = Read&lt;uint&gt;(compute);
+        CanonicalTriangleRecipe.Vertex[] triangleVertices = CanonicalTriangleRecipe.CreateVertices();
+        using IGpuBackendBuffer vertices = gpu.CreateBuffer((ulong)(triangleVertices.Length * CanonicalTriangleRecipe.VertexSize), GpuMemoryKind.HostMapped);
+        Write(vertices, triangleVertices);
+        using IGpuBackendTexture target = gpu.CreateRenderTarget(width, height, GpuFormat.Rgba8Unorm);
+        using IGpuBackendBuffer pixels = gpu.CreateBuffer(width * height * 4, GpuMemoryKind.HostCached);
+        using IGpuBackendPipeline graphics = gpu.CreateGraphicsPipeline(Resource(&quot;tutorial_triangle.wgsl&quot;), &quot;vsMain&quot;, Resource(&quot;tutorial_triangle.wgsl&quot;), &quot;psMain&quot;, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+        using (IGpuBackendCommandBuffer command = gpu.MainQueue.StartCommandRecording())
+        {
+            command.SetGraphicsPipeline(graphics); command.SetRootConstants(Bytes(new CanonicalTriangleRecipe.DrawArgs { VertexBufferIndex = vertices.BindlessIndex }));
+            command.BeginRendering(target, null, 0.04f, 0.07f, 0.12f, 1f, 1f); command.Draw(3, 1); command.EndRendering();
+            command.CopyTextureToBuffer(target, pixels, width); command.Finish(); await gpu.AsyncQueue.SubmitAsync(command);
+        }
+        int center = checked((int)((height / 2 * width + width / 2) * 4));
+        Span&lt;byte&gt; data = Mapped(pixels); byte red = data[center], green = data[center + 1], blue = data[center + 2], alpha = data[center + 3];
+        if (alpha &lt; 240 || red + green + blue &lt; 180) throw new InvalidOperationException($&quot;Center pixel was rgba({red},{green},{blue},{alpha}).&quot;);
+        surface.Present(pixels, width, width, height);
+        SetStatus(&quot;pass&quot;, $&quot;browser-webgpu: status=pass\nstory={CanonicalTriangleRecipe.Story}\napp=triangle\nshader={CanonicalTriangleRecipe.Shader}\nvertexSize={CanonicalTriangleRecipe.VertexSize}; rootSize={CanonicalTriangleRecipe.DrawArgsSize}\ncanvas={width}x{height}\nrecipe={CanonicalTriangleRecipe.Recipe}\nhash={CanonicalTriangleRecipe.ShaderSha256}\ndevice={gpu.Name}\ncompute=0x{computeValue:x8}; center=rgba({red},{green},{blue},{alpha})\nframes=1+; resize={resizeEvents}; pointer={pointerEvents}; key={keyEvents}&quot;);
+        while (windows.Pump()) { if (resizePending) { surface.Resize((uint)window.Width, (uint)window.Height); surface.Present(pixels, width, width, height); resizePending = false; } await NextFrame(); }
+    }
+
+    private static async Task&lt;WebWindowBackend&gt; CreateWindowBackend() =&gt; await WebWindowBackend.CreateAsync(new WebWindowBackendOptions
+    {
+        ModuleUrl = &quot;../luxel-platform-web.js&quot;,
+        Canvases = [new WebCanvasOptions(&quot;#luxel-canvas&quot;) { SurfaceToken = &quot;#luxel-canvas&quot; }],
+    });
+
+    private static PointerButton MapButton(WindowPointerButton button) =&gt; button switch
+    {
+        WindowPointerButton.Middle =&gt; PointerButton.Middle,
+        WindowPointerButton.Right =&gt; PointerButton.Right,
+        _ =&gt; PointerButton.Left,
+    };
+
+    private static GpuShaderCode RasterShader(string name) =&gt; new() { Wgsl = Resource(name + &quot;.wgsl&quot;) };
+    private static byte[] Resource(string name)
+    {
+        string resource = Assembly.GetExecutingAssembly().GetManifestResourceNames().Single(n =&gt; n.EndsWith(&quot;.&quot; + name, StringComparison.Ordinal));
         using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resource)!;
         using var memory = new MemoryStream(); stream.CopyTo(memory); return memory.ToArray();
     }
@@ -456,8 +525,10 @@ public static partial class Program
     private static void Write&lt;T&gt;(IGpuBackendBuffer buffer, ReadOnlySpan&lt;T&gt; values) where T : unmanaged =&gt; MemoryMarshal.AsBytes(values).CopyTo(Mapped(buffer));
     private readonly record struct ComputeRoot(uint BufferIndex, uint Value, uint Pad0 = 0, uint Pad1 = 0);
 
+    [JSImport(&quot;getApp&quot;, &quot;luxel-browser-host&quot;)] private static partial string GetApp();
     [JSImport(&quot;nextFrame&quot;, &quot;luxel-browser-host&quot;)] private static partial Task&lt;double&gt; NextFrame();
     [JSImport(&quot;setStatus&quot;, &quot;luxel-browser-host&quot;)] private static partial void SetStatus(string state, string summary);
+    [JSImport(&quot;setCounterState&quot;, &quot;luxel-browser-host&quot;)] private static partial void SetCounterState(int count, int renderRevision, int presentedCount, int pointerDownCount, int pointerUpCount, float minusX, float minusY, float minusW, float minusH, float plusX, float plusY, float plusW, float plusH);
 }
 </code></pre>
 <h3 id="samplesluxelwebgpubrowserreadme.md-asset"><code>samples/LuxelWebGpuBrowser/README.md</code> (Asset)</h3>
