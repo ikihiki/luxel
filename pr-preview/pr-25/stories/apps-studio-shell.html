@@ -1,0 +1,201 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Apps/Studio/Shell</h1></header><figure class="static-capture"><img src="images/apps-studio-shell.png" alt="Apps/Studio/Shell" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Apps/Studio/Shell&quot;, Height = 720, Order = 154)]
+public static Widget Shell(StoryContext ctx)
+{
+    var storage = new MemoryFileStorage();
+    SeedProject(storage);
+
+    var ws = new Workspace();
+    var store = new DocumentStore(ws, storage);
+    var lang = new CsharpCodeLanguage(new ScriptWorkspace(
+        [typeof(PlayerEntity).Assembly, typeof(SceneValue).Assembly, typeof(Vector2).Assembly, typeof(object).Assembly],
+        [&quot;System&quot;, &quot;System.Numerics&quot;, &quot;Luxel.Player&quot;, &quot;Luxel.SceneEdit&quot;],
+        typeof(BehaviourGlobals)));
+    ws.RegisterProvider(new CsxDocumentProvider(lang));
+    IEditorDocument script = store.Open(&quot;csx&quot;, &quot;scripts/runner3d.csx&quot;);
+    TextDocument scriptDoc = (TextDocument)script;
+
+    SceneEditorView sceneEditor = SceneEditorView(
+        source: SceneJson.Deserialize(storage.Read(&quot;scenes/arena.scene.json&quot;)!),
+        viewWidth: 420f, viewHeight: 380f);
+    SceneInspector inspector = SceneInspector(editor: sceneEditor, schemas: SceneSchemas.BuiltIns(), width: 230f);
+    AssetBrowser assets = AssetBrowser(storage: storage,
+        expanded: new HashSet&lt;string&gt; { &quot;scenes&quot;, &quot;scripts&quot;, &quot;assets&quot; },
+        onOpen: (_, path) =&gt; { if (path.EndsWith(&quot;.csx&quot;, StringComparison.Ordinal)) store.Open(&quot;csx&quot;, path); });
+
+    Signal&lt;string&gt; problems = ctx.Signal(&quot;studioShellProblems&quot;, &quot;問題なし&quot;);
+    Signal&lt;string&gt; status = ctx.Signal(&quot;studioShellStatus&quot;, &quot;Ready&quot;);
+    Signal&lt;bool&gt; paused = ctx.Signal(&quot;studioShellPaused&quot;, false);
+    PlayerGame? game = null;
+    MemoryFileSystem? runningFs = null;
+
+    MemoryFileSystem ToFs()
+    {
+        var fs = new MemoryFileSystem();
+        foreach (string path in storage.List())
+            fs.Set(path, Encoding.UTF8.GetBytes(storage.Read(path)!));
+        return fs;
+    }
+
+    void SaveScene()
+    {
+        storage.Write(&quot;scenes/arena.scene.json&quot;, SceneJson.Serialize(sceneEditor.Scene.Doc));
+        status.Value = &quot;Scene saved&quot;;
+    }
+
+    void SaveScript()
+    {
+        store.Save(script);
+        runningFs?.Set(&quot;scripts/runner3d.csx&quot;, Encoding.UTF8.GetBytes(storage.Read(&quot;scripts/runner3d.csx&quot;)!));
+        status.Value = &quot;Script saved&quot;;
+    }
+
+    void RefreshProblems()
+    {
+        IReadOnlyList&lt;string&gt; diags = game?.World.Behaviours?.Diagnostics ?? [];
+        List&lt;string&gt; all = diags.ToList();
+        if (!storage.Exists(&quot;assets/cube.glb&quot;)) all.Add(&quot;AssetRef missing: res://assets/cube.glb&quot;);
+        problems.Value = all.Count == 0 ? &quot;問題なし&quot; : string.Join(&quot;\n&quot;, all);
+    }
+
+    void Play()
+    {
+        SaveScene();
+        SaveScript();
+        runningFs = ToFs();
+        game = PlayerLoader.LoadStart(runningFs);
+        paused.Value = false;
+        status.Value = &quot;Playing: title -&gt; arena&quot;;
+        RefreshProblems();
+    }
+
+    void ReloadScript()
+    {
+        SaveScript();
+        game?.World.Behaviours?.Reload(&quot;res://scripts/runner3d.csx&quot;);
+        RefreshProblems();
+        status.Value = problems.Value == &quot;問題なし&quot; ? &quot;Reloaded&quot; : &quot;Reloaded with problems&quot;;
+    }
+
+    void AddBeacon()
+    {
+        sceneEditor.ApplyEdit(new AddEntity(SceneEntity.Of(
+            SceneCommands.NextEntityId(sceneEditor.Scene.Doc), &quot;Beacon&quot;,
+            T3(0, 1.1f, -1.6f, 0.35f, 0.35f, 0.35f),
+            Mesh(&quot;res://assets/cube.glb&quot;))));
+        status.Value = &quot;Beacon added&quot;;
+    }
+
+    var reg = new CommandRegistry();
+    reg.Register(&quot;file.new&quot;, &quot;New Scene&quot;, () =&gt; status.Value = &quot;New scene mock&quot;, menuPath: &quot;File/New&quot;, order: 0);
+    reg.Register(&quot;file.open&quot;, &quot;Open Project&quot;, () =&gt; status.Value = &quot;Open project mock&quot;, menuPath: &quot;File/Open&quot;, order: 1);
+    reg.Register(&quot;file.save&quot;, &quot;Save&quot;, () =&gt; { SaveScene(); SaveScript(); }, key: &quot;Ctrl+S&quot;, menuPath: &quot;File/Save&quot;, order: 2, toolbar: true);
+    reg.Register(&quot;project.play&quot;, &quot;Play&quot;, Play, key: &quot;F5&quot;, menuPath: &quot;Run/Play&quot;, order: 10, toolbar: true);
+    reg.Register(&quot;project.pause&quot;, &quot;Pause&quot;, () =&gt; { paused.Value = true; status.Value = &quot;Paused&quot;; }, enabled: () =&gt; game is not null, menuPath: &quot;Run/Pause&quot;, order: 11, toolbar: true);
+    reg.Register(&quot;project.step&quot;, &quot;Step&quot;, () =&gt; { game?.World.Update(1f / 60f); game?.ApplySceneRequest(); RefreshProblems(); }, enabled: () =&gt; game is not null, menuPath: &quot;Run/Step&quot;, order: 12, toolbar: true);
+    reg.Register(&quot;project.stop&quot;, &quot;Stop&quot;, () =&gt; { game = null; status.Value = &quot;Stopped&quot;; }, enabled: () =&gt; game is not null, menuPath: &quot;Run/Stop&quot;, order: 13, toolbar: true);
+    reg.Register(&quot;project.ship&quot;, &quot;Ship (mock)&quot;, () =&gt; status.Value = &quot;Ship command mock: samples/StudioShell&quot;, menuPath: &quot;File/Ship&quot;, order: 20, toolbar: true);
+    reg.Register(&quot;scene.addBeacon&quot;, &quot;Scene: Add Beacon&quot;, AddBeacon, menuPath: &quot;Scene/Add Beacon&quot;, order: 30);
+    reg.Register(&quot;scene.save&quot;, &quot;Scene: Save&quot;, SaveScene, menuPath: &quot;Scene/Save Scene&quot;, order: 31);
+    reg.Register(&quot;script.reload&quot;, &quot;Script: Save + Reload&quot;, ReloadScript, key: &quot;Ctrl+Enter&quot;, menuPath: &quot;Script/Reload&quot;, order: 40, toolbar: true);
+    reg.Register(&quot;problems.next&quot;, &quot;Problems: Jump Next&quot;, () =&gt; status.Value = problems.Peek() == &quot;問題なし&quot; ? &quot;No problems&quot; : &quot;Jumped to first problem&quot;, menuPath: &quot;Problems/Next&quot;, order: 50);
+
+    var tree = new Signal&lt;DockTree&gt;(DockTree.Single(&quot;scene&quot;));
+    tree.Value = tree.Value.Dock(&quot;inspector&quot;, tree.Value.GroupOf(&quot;scene&quot;)!.Id, DockSide.Right);
+    tree.Value = tree.Value.Dock(&quot;player&quot;, tree.Value.GroupOf(&quot;scene&quot;)!.Id, DockSide.Bottom);
+    tree.Value = tree.Value.Dock(&quot;script&quot;, tree.Value.GroupOf(&quot;scene&quot;)!.Id, DockSide.Right);
+    tree.Value = tree.Value.Dock(&quot;assets&quot;, tree.Value.GroupOf(&quot;inspector&quot;)!.Id, DockSide.Bottom);
+    tree.Value = tree.Value.Dock(&quot;problems&quot;, tree.Value.GroupOf(&quot;player&quot;)!.Id, DockSide.Bottom);
+
+    DockItem Resolve(string id) =&gt; id switch
+    {
+        &quot;scene&quot; =&gt; new DockItem(&quot;arena.scene.json&quot;, () =&gt; sceneEditor),
+        &quot;inspector&quot; =&gt; new DockItem(&quot;Inspector&quot;, () =&gt; inspector),
+        &quot;assets&quot; =&gt; new DockItem(&quot;Assets&quot;, () =&gt; assets),
+        &quot;script&quot; =&gt; new DockItem(script.Title, () =&gt; script.CreateView(), script.Dirty),
+        &quot;player&quot; =&gt; new DockItem(&quot;Play View&quot;, PlayerView),
+        &quot;problems&quot; =&gt; new DockItem(&quot;Problems&quot;, ProblemsView),
+        _ =&gt; new DockItem(id, () =&gt; Muted(id)),
+    };
+
+    Widget PlayerView() =&gt; Border(background: Bind.From(() =&gt; UiTheme.T.Surface), padding: new Thickness(8))[
+        VStack(6)[
+            HStack(6)[Badge(&quot;Play View&quot;, Intent.Primary),
+                      Text($&quot;{status}&quot;, 12, color: Bind.From(() =&gt; UiTheme.T.TextMuted))],
+            Canvas2D(520f, 320f, animate: (s, _) =&gt;
+            {
+                if (game is null)
+                {
+                    s.FillRect(TilePalette.Pack(18, 23, 31), 0, 0, 520, 320);
+                    Font.Value.AppendText(s, &quot;(Play View overlay: stopped)&quot;, 170, 164, 13, TilePalette.Pack(150, 158, 174));
+                    return;
+                }
+                if (!paused.Peek())
+                {
+                    game.World.Update(1f / 60f);
+                    game.ApplySceneRequest();
+                    RefreshProblems();
+                }
+                game.World.Render(s, 520, 320, Font.Value);
+                s.FillRect(TilePalette.Pack(8, 11, 16, 180), 10, 10, 170, 24);
+                Font.Value.AppendText(s, $&quot;Overlay: {game.ScenePath}&quot;, 16, 27, 11, TilePalette.Pack(220, 226, 238));
+            })]];
+
+    Widget ProblemsView() =&gt; Border(background: Bind.From(() =&gt; UiTheme.T.Surface), padding: new Thickness(8))[
+        VStack(6)[
+            HStack(6)[Badge(&quot;Problems&quot;, Intent.Primary),
+                      Text($&quot;{status}&quot;, 12, color: Bind.From(() =&gt; UiTheme.T.TextMuted))],
+            Text($&quot;{problems}&quot;, 12, color: Bind.From(() =&gt; problems.Value == &quot;問題なし&quot; ? UiTheme.T.TextMuted : UiTheme.T.Danger))]];
+
+    MenuBar menuBar = MenuBar(reg, contributions: () =&gt; ws.Active.Value?.Contributions ?? []);
+    Toolbar toolbar = Toolbar(reg, contributions: () =&gt; ws.Active.Value?.Contributions ?? []);
+    DockHost host = DockHost(tree, Resolve, closeRemoves: false);
+    StatusBar statusBar = StatusBar(
+        left: [Muted(&quot;Studio Shell&quot;), Muted($&quot;{status}&quot;)],
+        right: [Badge(&quot;Ready&quot;, Intent.Success)]);
+    var palette = new PaletteOpener { OnOpen = c =&gt; CommandPalette.Open(c, reg, ws.Active.Value?.Contributions ?? []) };
+
+    Reactive.Effect(() =&gt; { _ = script.Dirty.Value; _ = problems.Value; toolbar.Refresh(); });
+
+    ctx.Play(&quot;shell&quot;, async d =&gt;
+    {
+        reg.BindShortcuts(d.Host);
+        await d.Snap();
+        reg.Run(&quot;scene.addBeacon&quot;);
+        reg.Run(&quot;file.save&quot;);
+        await d.Expect(() =&gt; storage.Read(&quot;scenes/arena.scene.json&quot;)!.Contains(&quot;Beacon&quot;), &quot;Scene command -&gt; save&quot;);
+        reg.Run(&quot;project.play&quot;);
+        await d.Step(28);
+        await d.Expect(() =&gt; game!.World is Player3DWorld, &quot;2D title csx requests 3D arena&quot;);
+        await d.Expect(() =&gt; game!.World.Find(&quot;Beacon&quot;) is not null, &quot;saved scene is loaded into Player&quot;);
+        await d.Snap(&quot;playing&quot;);
+        var scriptTab = host.TabCenter(&quot;script&quot;)!.Value;
+        await d.Click(scriptTab.X, scriptTab.Y);
+        TextEditorView scriptView = (TextEditorView)host.ViewOf(&quot;script&quot;)!;
+        scriptDoc.Text.Value = scriptDoc.Text.Peek().Replace(&quot;1.0f * dt&quot;, &quot;BROKEN * dt&quot;, StringComparison.Ordinal);
+        scriptView.SetSearch(&quot;BROKEN&quot;);
+        reg.Run(&quot;script.reload&quot;);
+        await d.Step(1);
+        await d.Expect(() =&gt; problems.Peek() != &quot;問題なし&quot;, &quot;compile diagnostics appear in Problems&quot;);
+        await d.Snap(&quot;problems&quot;);
+        scriptDoc.Text.Value = scriptDoc.Text.Peek().Replace(&quot;BROKEN * dt&quot;, &quot;1.0f * dt&quot;, StringComparison.Ordinal);
+        scriptView.SetSearch(&quot;1.0f&quot;);
+        reg.Run(&quot;script.reload&quot;);
+        await d.Expect(() =&gt; problems.Peek() == &quot;問題なし&quot;, &quot;fix + reload clears Problems&quot;);
+        reg.Run(&quot;project.ship&quot;);
+        await d.Expect(() =&gt; status.Peek().Contains(&quot;Ship command mock&quot;), &quot;Ship command is routed&quot;);
+        await d.Snap(&quot;fixed&quot;);
+    });
+
+    menuBar.GridRow(0);
+    toolbar.GridRow(1);
+    palette.GridRow(1);
+    palette.HAlign.SetBase(Align.End);
+    host.GridRow(2);
+    statusBar.GridRow(3);
+    Grid shell = Grid(rows: [GridLength.Px(Luxel.Controls.MenuBar.BarH), GridLength.Px(34),
+                             GridLength.Star(), GridLength.Px(Luxel.Controls.StatusBar.BarH)])[
+        menuBar, toolbar, palette, host, statusBar];
+    shell.HAlign.SetBase(Align.Stretch);
+    shell.VAlign.SetBase(Align.Stretch);
+    return shell;
+}</code></pre></details></article>

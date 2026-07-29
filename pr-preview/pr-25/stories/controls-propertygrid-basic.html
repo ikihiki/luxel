@@ -1,0 +1,21 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/PropertyGrid/Basic</h1></header><figure class="static-capture"><img src="images/controls-propertygrid-basic.png" alt="Controls/PropertyGrid/Basic" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/PropertyGrid/Basic&quot;, Height = 420)]
+public static Widget PropertyGridBasic(StoryContext ctx)
+{
+    var cfg = new ParticleConfig();
+    string lastChange = &quot;&quot;;
+    PropertyGrid grid = PropertyGrid(cfg, width: 330,
+        onChanged: (_, name, v) =&gt; { lastChange = $&quot;{name}={v}&quot;; ctx.Log($&quot;changed: {name} = {v}&quot;); });
+
+    ctx.Play(async d =&gt;
+    {
+        await d.Snap();                                    // 型別エディタ + グループ見出し
+        await d.Click(grid.EditorOf(&quot;Visible&quot;)!);          // Check をクリック → 対象へ即書き込み
+        await d.Expect(() =&gt; !cfg.Visible &amp;&amp; lastChange == &quot;Visible=False&quot;, &quot;編集が対象へ書き戻る&quot;);
+        await d.Snap(&quot;edited&quot;);
+    });
+
+    return VStack(10)[
+        Heading(&quot;PropertyGrid — 型別エディタで対象を編集&quot;),
+        Muted(&quot;bool=Check / 範囲 float=Slider / uint=ColorPicker / enum=Select / Vector2=軸別 / [PropertyGroup] 見出し&quot;),
+        grid];
+}</code></pre></details></article>

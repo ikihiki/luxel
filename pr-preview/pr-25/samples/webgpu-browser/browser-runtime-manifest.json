@@ -1,0 +1,9 @@
+{
+  "bundleId": "webgpu-browser-v1",
+  "protocolVersion": 1,
+  "entryUrl": "./",
+  "stories": [
+    "Examples/3D/Triangle",
+    "Controls/Button/Counter"
+  ]
+}
