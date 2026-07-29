@@ -289,8 +289,15 @@ public sealed class BrowserWebGpuSmokeTests
         page.PageError += (_, error) => errors.Add(error);
         page.Request += (_, request) => requests.Add(request.Url);
         await page.GotoAsync($"http://127.0.0.1:{port}/{prefix}#story=Controls%2FButton%2FCounter", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
-        ILocator runtime = page.Locator("iframe[src='samples/webgpu-browser/?story=Controls%2FButton%2FCounter'][data-luxel-runtime-story='Controls/Button/Counter']");
+        const string runtimeSelector =
+            "iframe[src^='samples/webgpu-browser/?story=Controls%2FButton%2FCounter'][data-luxel-runtime-story='Controls/Button/Counter']";
+        ILocator runtime = page.Locator(runtimeSelector);
         await runtime.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 30_000 });
+        string runtimeSource = await runtime.GetAttributeAsync("src")
+            ?? throw new InvalidOperationException("Counter runtime iframe had no src.");
+        Assert.StartsWith("samples/webgpu-browser/?story=Controls%2FButton%2FCounter", runtimeSource);
+        Assert.Contains("&args=", runtimeSource, StringComparison.Ordinal);
+        Assert.Contains("&instance=", runtimeSource, StringComparison.Ordinal);
         IFrame child = await (await runtime.ElementHandleAsync())!.ContentFrameAsync() ?? throw new InvalidOperationException("Counter runtime iframe was unavailable.");
         await child.WaitForFunctionAsync("() => globalThis.luxelBrowserState?.state === 'pass' && globalThis.luxelBrowserState?.plusBounds", null, new FrameWaitForFunctionOptions { Timeout = 90_000 });
         Assert.Equal(0, await child.EvaluateAsync<int>("() => globalThis.luxelBrowserState.count"));
