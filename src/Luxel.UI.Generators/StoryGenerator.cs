@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -34,11 +34,13 @@ public sealed class StoryGenerator : IIncrementalGenerator
         public readonly string[] Params;
         public readonly bool Valid;
         public readonly bool RealWindowOnly;
-        public StoryModel(string path, int w, int h, int order, string? theme, string methodFq, string source, string[] paramz, bool valid, bool realWindowOnly, string? sampleBundle)
-        { Path = path; Width = w; Height = h; Order = order; Theme = theme; MethodFq = methodFq; Source = source; Params = paramz; Valid = valid; RealWindowOnly = realWindowOnly; SampleBundle = sampleBundle; }
+        public readonly bool ReturnsStoryResult;
+        public StoryModel(string path, int w, int h, int order, string? theme, string methodFq, string source, string[] paramz, bool valid, bool realWindowOnly, string? sampleBundle, bool returnsStoryResult)
+        { Path = path; Width = w; Height = h; Order = order; Theme = theme; MethodFq = methodFq; Source = source; Params = paramz; Valid = valid; RealWindowOnly = realWindowOnly; SampleBundle = sampleBundle; ReturnsStoryResult = returnsStoryResult; }
         public bool Equals(StoryModel? o) => o is not null && Path == o.Path && Width == o.Width && Height == o.Height
             && Order == o.Order && Theme == o.Theme && MethodFq == o.MethodFq && Source == o.Source
-            && Params.Length == o.Params.Length && ParamsEqual(o) && Valid == o.Valid && RealWindowOnly == o.RealWindowOnly && SampleBundle == o.SampleBundle;
+            && Params.Length == o.Params.Length && ParamsEqual(o) && Valid == o.Valid && RealWindowOnly == o.RealWindowOnly
+            && SampleBundle == o.SampleBundle && ReturnsStoryResult == o.ReturnsStoryResult;
         private bool ParamsEqual(StoryModel o) { for (int i = 0; i < Params.Length; i++) if (Params[i] != o.Params[i]) return false; return true; }
         public override bool Equals(object? obj) => Equals(obj as StoryModel);
         public override int GetHashCode()
@@ -78,6 +80,7 @@ public sealed class StoryGenerator : IIncrementalGenerator
                     }
 
                     bool returnsWidget = IsWidget(m.ReturnType);
+                    bool returnsStoryResult = m.ReturnType.ToDisplayString() == "Luxel.UI.StoryResult";
                     // 引数: StoryContext は "ctx"、その他は DI 解決するグローバル修飾型名 (minimal API 風)
                     var paramz = new string[m.Parameters.Length];
                     for (int pi = 0; pi < m.Parameters.Length; pi++)
@@ -87,12 +90,12 @@ public sealed class StoryGenerator : IIncrementalGenerator
                             ? "ctx"
                             : pt.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                     }
-                    bool valid = m.IsStatic && returnsWidget && m.ContainingType is not null;
+                    bool valid = m.IsStatic && (returnsWidget || returnsStoryResult) && m.ContainingType is not null;
 
                     string fq = m.ContainingType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + m.Name;
                     // storysource: メソッド宣言のソースをそのまま焼き込む (先頭の共通インデントは剥がす)
                     string source = Dedent(((MethodDeclarationSyntax)ctx.Node).ToString());
-                    return new StoryModel(path, w, h, order, theme, fq, source, paramz, valid, realWindowOnly, sampleBundle);
+                    return new StoryModel(path, w, h, order, theme, fq, source, paramz, valid, realWindowOnly, sampleBundle, returnsStoryResult);
                 })
             .Where(static s => s is not null)
             .Collect();
@@ -126,34 +129,43 @@ public sealed class StoryGenerator : IIncrementalGenerator
         sb.AppendLine("#nullable enable");
         sb.AppendLine("namespace Luxel.UI.Generated");
         sb.AppendLine("{");
-        sb.Append("    internal static class StoryRegistration_").AppendLine(Sanitize(assemblyName));
+        sb.Append("    public static class StoryRegistration_").AppendLine(Sanitize(assemblyName));
         sb.AppendLine("    {");
         sb.AppendLine("        [global::System.Runtime.CompilerServices.ModuleInitializer]");
         sb.AppendLine("        internal static void Init()");
         sb.AppendLine("        {");
+        sb.AppendLine("            var builder = new global::Luxel.UI.StoryCatalogBuilder();");
+        sb.AppendLine("            Register(builder);");
+        sb.AppendLine("            foreach (global::Luxel.UI.StoryInfo story in builder.Build().All)");
+        sb.AppendLine("                global::Luxel.UI.StoryRegistry.Register(story);");
+        sb.AppendLine("        }");
+        sb.AppendLine();
+        sb.AppendLine("        public static void Register(global::Luxel.UI.StoryCatalogBuilder builder)");
+        sb.AppendLine("        {");
+        sb.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(builder);");
         foreach (StoryModel s in list)
         {
-            // 引数を組み立てる: "ctx" はそのまま、その他は ctx.Require<T>() で DI 解決 (minimal API 風)。
-            // 引数を使わない (0 個) なら `static _ =>`、使うなら `static ctx =>`。
-            string builder;
-            if (s.Params.Length == 0)
-                builder = "static _ => " + s.MethodFq + "()";
-            else
-            {
-                var args = new string[s.Params.Length];
-                for (int i = 0; i < s.Params.Length; i++)
-                    args[i] = s.Params[i] == "ctx" ? "ctx" : "ctx.Require<" + s.Params[i] + ">()";
-                builder = "static ctx => " + s.MethodFq + "(" + string.Join(", ", args) + ")";
-            }
-            sb.Append("            global::Luxel.UI.StoryRegistry.Register(new global::Luxel.UI.StoryInfo(")
+            var args = new string[s.Params.Length];
+            for (int i = 0; i < s.Params.Length; i++)
+                args[i] = s.Params[i] == "ctx" ? "ctx" : "ctx.Require<" + s.Params[i] + ">()";
+            string invocation = s.MethodFq + "(" + string.Join(", ", args) + ")";
+            string semanticBuilder = "static ctx => " + invocation;
+            string widgetBuilder = s.ReturnsStoryResult
+                ? "static ctx => { global::Luxel.UI.StoryResult result = " + invocation
+                    + "; return result.Kind == global::Luxel.UI.StoryResultKind.Widget && result.Widget is not null"
+                    + " ? result.Widget : throw new global::System.InvalidOperationException(\"Markdown story cannot be realized as a Widget. Use StoryInfo.BuildResult.\"); }"
+                : semanticBuilder;
+
+            sb.Append("            builder.Add(new global::Luxel.UI.StoryInfo(")
               .Append(Literal(s.Path)).Append(", ").Append(s.Width).Append(", ").Append(s.Height).Append(", ")
               .Append(s.Theme is null ? "null" : Literal(s.Theme)).Append(", ")
-              .Append(builder)
+              .Append(widgetBuilder)
               .Append(", ").Append(s.Order)
               .Append(", ").Append(Literal(s.Source))
               .Append(", ").Append(s.RealWindowOnly ? "true" : "false")
-              .Append(", ").Append(s.SampleBundle is null ? "null" : Literal(s.SampleBundle))
-              .AppendLine("));");
+              .Append(", ").Append(s.SampleBundle is null ? "null" : Literal(s.SampleBundle));
+            if (s.ReturnsStoryResult) sb.Append(", ResultBuild: ").Append(semanticBuilder);
+            sb.AppendLine("));");
         }
         sb.AppendLine("        }");
         sb.AppendLine("    }");

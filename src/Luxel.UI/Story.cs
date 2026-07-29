@@ -44,8 +44,21 @@ public sealed class StoryContext
     private readonly Luxel.Resources.ResourceSystem? _resources;
     private long _logSeq;
     private const int LogCapacity = 200;
+    private readonly StoryArgs _args;
+    private readonly List<StoryArgDefinition> _argDefinitions = new();
+    private readonly HashSet<string> _argNames = new(StringComparer.Ordinal);
 
-    public StoryContext(Luxel.Resources.ResourceSystem? resources = null) => _resources = resources;
+    public StoryContext(Luxel.Resources.ResourceSystem? resources = null, StoryArgs? args = null)
+    {
+        _resources = resources;
+        _args = args ?? StoryArgs.Empty;
+    }
+
+    /// <summary>この story instance に seed された canonical args。</summary>
+    public StoryArgs Args => _args;
+
+    /// <summary>build 中に宣言された public args schema。</summary>
+    public IReadOnlyList<StoryArgDefinition> ArgDefinitions => _argDefinitions;
 
     private IServiceProvider? _services;
 
@@ -153,6 +166,38 @@ public sealed class StoryContext
         var sig = new Signal<T>(initial);
         _knobs.Add(StoryKnob.For(name, sig, description));
         return sig;
+    }
+
+    /// <summary>外部から seed/share 可能な Storybook arg を宣言する。</summary>
+    public Signal<T> Arg<T>(string name, T defaultValue, StoryArgOptions<T>? options = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (!_argNames.Add(name))
+            throw new InvalidOperationException($"Story arg '{name}' is declared more than once in the same instance.");
+
+        T initial = defaultValue;
+        if (_args.TryGet(name, out JsonElement incoming))
+        {
+            try { initial = WidgetDebugCodec.Coerce<T>(incoming); }
+            catch (Exception error) when (error is FormatException or InvalidCastException or JsonException)
+            {
+                Log($"arg '{name}' was ignored: {error.Message}");
+            }
+        }
+
+        var signal = new Signal<T>(initial);
+        StoryKnob knob = StoryKnob.For(name, signal, options?.Description);
+        _knobs.Add(knob);
+        _argDefinitions.Add(new StoryArgDefinition(
+            name,
+            knob.Type,
+            JsonSerializer.SerializeToElement(defaultValue),
+            options?.Description,
+            options?.Order ?? 1000,
+            options?.Min,
+            options?.Max,
+            options?.Step));
+        return signal;
     }
 
     // ---- knob 編集キュー (KT): エディタの commit は effect 実行中に走るため、signal 書き込みは
@@ -282,8 +327,12 @@ public sealed class StoryKnob
 /// <paramref name="Source"/> は属性・signature・本体を含む [Story] メソッド宣言の C# ソース
 /// (storysource — GalleryのSourceビュー／docsの「コードを見る」用、ジェネレーターが焼き込む)。<paramref name="RealWindowOnly"/> は snap 回帰の対象外 (実窓専用)。</summary>
 public sealed record StoryInfo(string Path, int Width, int Height, string? Theme, Func<StoryContext, Widget> Build,
-                               int Order = 1000, string? Source = null, bool RealWindowOnly = false, string? SampleBundle = null)
+                               int Order = 1000, string? Source = null, bool RealWindowOnly = false, string? SampleBundle = null,
+                               Func<StoryContext, StoryResult>? ResultBuild = null, string? RuntimeBundleId = null)
 {
+    /// <summary>Widget/Markdown を区別した semantic build。既存 Widget Story は暗黙変換で統一される。</summary>
+    public StoryResult BuildResult(StoryContext context) => ResultBuild?.Invoke(context) ?? Build(context);
+
     /// <summary>パスの先頭セグメント (章 — サイドバーのトップレベル)。</summary>
     public string Component => Path.IndexOf('/') is >= 0 and var i ? Path[..i] : Path;
     /// <summary>パスの末尾セグメント (ストーリー名)。</summary>
