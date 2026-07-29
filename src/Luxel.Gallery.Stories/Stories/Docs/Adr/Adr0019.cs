@@ -44,7 +44,7 @@ public static partial class DocsAdr
         - **ADR-0002 を上書きして WebGPU の却下理由を消す** — 当時の制約と判断が失われるため却下。履歴は残し、この ADR で Amends する
         - **GPUVA / bindless index / persistent map を WebGPU 上で疑似再現する** — sentinel、巨大 arena、暗黙 copy が共通 API の意味を曖昧にし、backend の制約が上位へ漏れるため却下
         - **WebGPU 専用の別グラフィック API を上位層へ公開する** — RenderGraph / TwoD / UI が backend 分岐を持つことになり、薄い共通契約を壊すため却下
-        - **browser/WASM まで初期対象に含める** — native契約確立時点では見送った。契約確立後の2026-07-29に、canvas token、async queue、WASM publish、Chromium SwiftShader smokeを独立した追加loweringとして採用
+        - **browser/WASM まで初期対象に含める** — native契約確立時点では見送った。契約確立後の2026-07-29に、canvas token、async queue、managed/source contracts、WASM publish、静的Gallery exportを独立した追加loweringとして採用
         - **WebGPU を既定 backend にする** — Vulkan/D3D12 の既存回帰と配布契約を不要に変えるため却下。初期は明示 opt-in とする
 
         ## Consequences

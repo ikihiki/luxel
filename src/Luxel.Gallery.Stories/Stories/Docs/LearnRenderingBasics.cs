@@ -143,7 +143,7 @@ public static partial class DocsRenderingLearn
 
         {{StoryRef(ctx, "Examples/3D/Triangle")}}
 
-        Galleryアプリ内では上の表示をnative offscreenデモとして実行します。静的GalleryとPagesでは同じ場所にbrowser-WASM WebGPU runtimeを埋め込み、`Examples/3D/Triangle`とこのガイドの両方から、320×240（4:3）のcanonical triangle recipeを実行します。静止画captureではなく、iframe内のcanvasが実際に描画して`pass`になることをPlaywright E2Eで検証します。
+        Galleryアプリ内では上の表示をnative offscreenデモとして実行します。静的GalleryとPagesでは同じ場所にbrowser-WASM WebGPU runtimeを埋め込み、`Examples/3D/Triangle`とこのガイドの両方から、320×240（4:3）のcanonical triangle recipeを実行します。browser hostのsource/manifest契約、WASM publish、静的Gallery export、subpath-safe URLをCIで検証します。browser上の実行自体は自動テストの対象外です。
 
         コピーして動かす完全なstandalone実装は次の4ファイルです。
 

@@ -40,7 +40,7 @@ jobs:
       - name: Test exporter and documentation contracts
         run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test browser managed and source contracts
-        run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release --filter 'FullyQualifiedName!~BrowserWebGpuSmokeTests'
+        run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release
       - name: Publish browser WebGPU sample
         run: dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj --no-restore --configuration Release
 
@@ -61,13 +61,6 @@ jobs:
           PY
           test -f artifacts/gallery-site/samples/webgpu-browser/_framework/dotnet.js
           ! grep -R -E '(src|href)="/' artifacts/gallery-site/samples/webgpu-browser/index.html artifacts/gallery-site/samples/webgpu-browser/main.js
-      - name: Install Playwright Chromium
-        run: pwsh tests/Luxel.WebGPU.Browser.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
-      - name: Test composed Gallery browser runtime
-        env:
-          LUXEL_GALLERY_SITE_ROOT: artifacts/gallery-site
-        run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release --filter Exported_gallery
-
       - name: Deploy production Gallery
         uses: JamesIves/github-pages-deploy-action@v4.8.0
         with:

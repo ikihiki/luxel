@@ -9,8 +9,3 @@ tools/
 
 # snap 回帰の一時出力 (golden 本体はコミットする)
 *.actual.png
-
-# Browser test output
-playwright-report/
-test-results/
-.playwright/

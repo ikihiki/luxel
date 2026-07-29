@@ -94,7 +94,7 @@ Both sides validate same origin, the expected source window, protocol version, c
 - `arg-error`: one or more arg values were rejected.
 - `story-error`: story lookup, build, device setup, or runtime execution failed.
 
-The runtime additionally exposes `globalThis.luxelBrowserState` for Playwright diagnostics and source-contract tests. This is test observability, not the cross-frame protocol.
+The runtime additionally exposes `globalThis.luxelBrowserState` for manual runtime diagnostics and source-contract observability. This is diagnostic state, not the cross-frame protocol.
 
 ## Parent-owned args and hash state
 
