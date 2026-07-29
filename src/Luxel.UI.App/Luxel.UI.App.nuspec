@@ -14,6 +14,9 @@
     <dependencies>
       <group targetFramework="net10.0">
         <dependency id="Silk.NET.Windowing" version="[2.23.0]" />
+        <dependency id="Silk.NET.WebGPU" version="[2.23.0]" />
+        <dependency id="Silk.NET.WebGPU.Extensions.WGPU" version="[2.23.0]" />
+        <dependency id="Silk.NET.WebGPU.Native.WGPU" version="[2.23.0]" />
         <dependency id="Silk.NET.Vulkan" version="[2.23.0]" />
         <dependency id="Silk.NET.Vulkan.Extensions.EXT" version="[2.23.0]" />
         <dependency id="Silk.NET.Vulkan.Extensions.KHR" version="[2.23.0]" />
@@ -30,8 +33,10 @@
     <file src="..\Luxel.Terminal.Linux\bin\$configuration$\net10.0\libluxelpty.so" target="runtimes\linux-x64\native" />
     <file src="..\Luxel.UI.Generators\bin\$configuration$\netstandard2.0\Luxel.UI.Generators.dll" target="analyzers\dotnet\cs" />
     <file src="buildTransitive\Luxel.UI.App.targets" target="buildTransitive" />
-    <file src="..\..\shaders\compiled\raster2d_*.spv" target="contentFiles\any\any\shaders" />
-    <file src="..\..\shaders\compiled\raster2d_*.dxil" target="contentFiles\any\any\shaders" />
+    <file src="..\..\shaders\compiled\*.spv" target="contentFiles\any\any\shaders" />
+    <file src="..\..\shaders\compiled\*.dxil" target="contentFiles\any\any\shaders" />
+    <file src="..\..\shaders\compiled\*.wgsl" target="contentFiles\any\any\shaders" />
+    <file src="..\..\shaders\compiled\webgpu-shaders.json" target="contentFiles\any\any\shaders" />
     <file src="..\..\assets\fonts\BIZUDGothic-Regular.ttf" target="contentFiles\any\any\assets\fonts" />
     <file src="..\..\assets\fonts\BIZUDGothic-OFL.txt" target="contentFiles\any\any\assets\fonts\OFL.txt" />
   </files>

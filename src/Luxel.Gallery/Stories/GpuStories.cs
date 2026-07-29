@@ -51,26 +51,17 @@ public static class GpuStories
 
     // ---- 3D: offscreen 自前レンダ → image 合成 ----
 
-    [Story("Examples/3D/Triangle", Height = 320, Order = 120)]
-    public static Widget Triangle(StoryContext ctx) => ctx.Snap(Frame(GpuView(320, 240, new TriangleScene())));
+    [Story(CanonicalTriangleRecipe.Story, Height = CanonicalTriangleRecipe.Width, Order = 120)]
+    public static Widget Triangle(StoryContext ctx)
+        => ctx.Snap(Frame(GpuView(CanonicalTriangleRecipe.Width, CanonicalTriangleRecipe.Height, new TriangleScene())));
 
     [Story("Examples/3D/TexturedQuad", Height = 320, Order = 121)]
     public static Widget TexturedQuad(StoryContext ctx)
         => ctx.Snap(Frame(GpuView(320, 240, new TexturedScene(ctx.Resources), animated: false)));
 
-    /// <summary>回転する三角形 (サンプル 02 の移植 + 時間で頂点回転)。graphics PSO + dynamic rendering。</summary>
+    /// <summary>The native Gallery path for the shared canonical first-triangle recipe.</summary>
     private sealed class TriangleScene : IGpuScene
     {
-        [StructLayout(LayoutKind.Sequential)]
-        private struct Vertex
-        {
-            public float Px, Py, Pz, Pw;
-            public float R, G, B, A;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct DrawArgs { public uint VertexBufferIndex; }
-
         private GpuDevice? _device;
         private GpuTexture? _target;
         private GpuBuffer? _vb, _out;
@@ -82,34 +73,19 @@ public static class GpuStories
             _device = device;
             _w = (uint)width; _h = (uint)height;
             _target = device.CreateRenderTarget(_w, _h, GpuFormat.Rgba8Unorm);
-            _vb = device.Malloc(3 * 32, GpuMemoryKind.HostMapped);
+            CanonicalTriangleRecipe.Vertex[] vertices = CanonicalTriangleRecipe.CreateVertices();
+            _vb = device.Malloc(checked((ulong)vertices.Length * CanonicalTriangleRecipe.VertexSize), GpuMemoryKind.HostMapped);
+            vertices.CopyTo(_vb.Span<CanonicalTriangleRecipe.Vertex>(vertices.Length));
             _out = device.Malloc(_w * _h * 4, GpuMemoryKind.HostMapped);
-            _pipeline = device.CreateGraphicsPipeline(GpuShaderCode.Load("triangle"),
+            _pipeline = device.CreateGraphicsPipeline(GpuShaderCode.Load(CanonicalTriangleRecipe.Shader),
                 GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
         }
 
         public (int BindlessIndex, int StridePixels) Render(float time)
         {
-            Span<Vertex> v = _vb!.Span<Vertex>(3);
-            for (int i = 0; i < 3; i++)
-            {
-                float a = time + i * (MathF.Tau / 3);
-                v[i] = new Vertex
-                {
-                    Px = MathF.Cos(a) * 0.7f,
-                    Py = MathF.Sin(a) * 0.7f,
-                    Pz = 0,
-                    Pw = 1,
-                    R = i == 0 ? 1 : 0,
-                    G = i == 1 ? 1 : 0,
-                    B = i == 2 ? 1 : 0,
-                    A = 1,
-                };
-            }
-
-            var args = new DrawArgs { VertexBufferIndex = _vb.BindlessIndex };
+            var args = new CanonicalTriangleRecipe.DrawArgs { VertexBufferIndex = _vb!.BindlessIndex };
             using GpuCommandBuffer cmd = _device!.MainQueue.StartCommandRecording();
-            cmd.BeginRendering(_target!, null, 0.09f, 0.1f, 0.12f, 1)
+            cmd.BeginRendering(_target!, null, 0.055f, 0.07f, 0.11f, 1)
                .SetGraphicsPipeline(_pipeline!)
                .SetRootArguments(args)
                .Draw(3)

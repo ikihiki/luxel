@@ -124,6 +124,9 @@ public sealed unsafe class SilkWindowBackend : IWindowBackend
                     "Run with a valid DISPLAY/X11 server (for example DISPLAY=:99); native Wayland support is not implemented yet.");
             }
             nint x11Handle = checked((nint)x11.Window);
+            nint x11Display = (nint)x11.Display;
+            if (x11Display == 0)
+                throw new PlatformNotSupportedException("Silk.NET created an X11 window without an Xlib Display pointer.");
 
             Glfw glfw = GlfwWindowing.GetExistingApi(created)
                 ?? throw new PlatformNotSupportedException("Silk.NET created a window without an accessible GLFW API.");
@@ -133,7 +136,7 @@ public sealed unsafe class SilkWindowBackend : IWindowBackend
                 throw new PlatformNotSupportedException("Silk.NET created a GLFW window without a native GLFW handle.");
             }
 
-            var window = new SilkWindow(this, created, glfw, handle, x11Handle);
+            var window = new SilkWindow(this, created, glfw, handle, x11Display, x11Handle);
             _windows.Add(window);
             native = null;
             return window;

@@ -3,7 +3,19 @@
     <_LuxelUiAppContentRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\contentFiles\any\any'))</_LuxelUiAppContentRoot>
   </PropertyGroup>
   <ItemGroup>
-    <_LuxelUiAppAsset Include="$(_LuxelUiAppContentRoot)\shaders\*.spv" TargetSubPath="shaders\%(Filename)%(Extension)" />
+    <_LuxelUiAppAsset Include="$(_LuxelUiAppContentRoot)\shaders\*" TargetSubPath="shaders\%(Filename)%(Extension)" />
+    <_LuxelUiAppAsset Include="$([System.IO.Path]::Combine('$(NuGetPackageRoot)', 'silk.net.webgpu.native.wgpu', '2.23.0', 'runtimes', 'linux-x64', 'native', 'libwgpu_native.so'))"
+                      Condition="$([MSBuild]::IsOSPlatform('Linux')) and '$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)' == 'X64'"
+                      TargetSubPath="libwgpu_native.so" />
+    <_LuxelUiAppAsset Include="$([System.IO.Path]::Combine('$(NuGetPackageRoot)', 'silk.net.webgpu.native.wgpu', '2.23.0', 'runtimes', 'linux-arm64', 'native', 'libwgpu_native.so'))"
+                      Condition="$([MSBuild]::IsOSPlatform('Linux')) and '$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)' == 'Arm64'"
+                      TargetSubPath="libwgpu_native.so" />
+    <_LuxelUiAppAsset Include="$([System.IO.Path]::Combine('$(NuGetPackageRoot)', 'silk.net.webgpu.native.wgpu', '2.23.0', 'runtimes', 'win-x64', 'native', 'wgpu_native.dll'))"
+                      Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)' == 'X64'"
+                      TargetSubPath="wgpu_native.dll" />
+    <_LuxelUiAppAsset Include="$([System.IO.Path]::Combine('$(NuGetPackageRoot)', 'silk.net.webgpu.native.wgpu', '2.23.0', 'runtimes', 'win-arm64', 'native', 'wgpu_native.dll'))"
+                      Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)' == 'Arm64'"
+                      TargetSubPath="wgpu_native.dll" />
     <_LuxelUiAppAsset Include="$(_LuxelUiAppContentRoot)\assets\fonts\*" TargetSubPath="assets\fonts\%(Filename)%(Extension)" />
     <Content Include="@(_LuxelUiAppAsset)"
              Link="%(_LuxelUiAppAsset.TargetSubPath)"

@@ -40,8 +40,14 @@ public interface IGpuBackend : IDisposable
     /// <summary>サンプラを生成する。</summary>
     IGpuBackendSampler CreateSampler(GpuSamplerFilter filter, GpuSamplerAddress address = GpuSamplerAddress.Clamp);
 
-    /// <summary>ウィンドウ(HWND)へのスワップチェーン提示面を生成する。</summary>
-    IGpuBackendSurface CreateSurface(nint windowHandle, uint width, uint height);
+    /// <summary>ネイティブウィンドウへのスワップチェーン提示面を生成する。</summary>
+    IGpuBackendSurface CreateSurface(in NativeSurfaceDescriptor descriptor, uint width, uint height);
+}
+
+/// <summary>CSS selector/token で browser canvas surface を生成できる additive backend contract。</summary>
+public interface ICanvasGpuBackend
+{
+    IGpuBackendSurface CreateCanvasSurface(string canvasToken, uint width, uint height);
 }
 
 /// <summary>スワップチェーン提示面。RGBA8 バッファをバックバッファへコピーして present する。</summary>
@@ -108,6 +114,20 @@ public interface IGpuBackendQueue
 
     /// <summary>キューが空になるまで待つ。</summary>
     void WaitIdle();
+}
+
+/// <summary>
+/// Promise ベースの GPU キュー完了を公開する additive API。
+/// ブラウザ WebGPU では同期 <see cref="IGpuBackendQueue.Submit"/> はアップロード、エンコード済みコマンドの投入開始までを行い、
+/// <see cref="SubmitAsync"/> または <see cref="WaitIdleAsync"/> の完了後に HostCached バッファが可視になる。
+/// </summary>
+public interface IAsyncGpuBackendQueue : IGpuBackendQueue
+{
+    /// <summary>コマンドを投入し、GPU 完了と HostCached バッファの読み戻しまで非同期に待つ。</summary>
+    ValueTask SubmitAsync(IGpuBackendCommandBuffer commandBuffer, CancellationToken cancellationToken = default);
+
+    /// <summary>それまでに投入した処理と読み戻しの完了を非同期に待つ。</summary>
+    ValueTask WaitIdleAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>バックエンドのコマンドバッファ。記録 API を提供する。</summary>

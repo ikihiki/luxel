@@ -22,9 +22,20 @@ public sealed class LuxelAppTests
             LuxelApp.ResolveWindowBackend(options.WindowBackend));
         Assert.Equal(OperatingSystem.IsWindows() ? LuxelGraphicsBackend.Direct3D12 : LuxelGraphicsBackend.Vulkan,
             LuxelApp.ResolveGraphicsBackend(options.GraphicsBackend));
+        Assert.Equal(LuxelGraphicsBackend.WebGpu, Enum.Parse<LuxelGraphicsBackend>("WebGpu"));
         Assert.Null(options.RunFrames);
         Assert.Null(options.RunDuration);
         Assert.True(options.EnableValidation);
+    }
+
+    [Fact]
+    public void Options_AllowExplicitWebGpuWithNativeWindowBackend()
+    {
+        LuxelApp.ValidateOptions(new LuxelAppOptions
+        {
+            WindowBackend = OperatingSystem.IsWindows() ? LuxelWindowBackend.Win32 : LuxelWindowBackend.SilkX11,
+            GraphicsBackend = LuxelGraphicsBackend.WebGpu,
+        });
     }
 
     [Theory]
@@ -48,12 +59,12 @@ public sealed class LuxelAppTests
     }
 
     [Fact]
-    public void Assets_ContainExactlyRasterizerShadersAndLicensedFont()
+    public void Assets_ContainCompleteShaderCacheAndLicensedFont()
     {
         LuxelApp.ValidateAssets(AppContext.BaseDirectory, requireBundledFont: true);
 
         string shaderDirectory = Path.Combine(AppContext.BaseDirectory, "shaders");
-        string[] shaders = Directory.GetFiles(shaderDirectory, "raster2d_*.*")
+        string[] rasterShaders = Directory.GetFiles(shaderDirectory, "raster2d_*.*")
             .Select(Path.GetFileName)
             .Order(StringComparer.Ordinal)
             .ToArray()!;
@@ -61,11 +72,16 @@ public sealed class LuxelAppTests
         [
             "raster2d_bin.dxil",
             "raster2d_bin.spv",
+            "raster2d_bin.wgsl",
             "raster2d_bounds.dxil",
             "raster2d_bounds.spv",
+            "raster2d_bounds.wgsl",
             "raster2d_fine.dxil",
             "raster2d_fine.spv",
-        ], shaders);
+            "raster2d_fine.wgsl",
+        ], rasterShaders);
+        Assert.Equal(22, Directory.GetFiles(shaderDirectory, "*.wgsl").Length);
+        Assert.True(File.Exists(Path.Combine(shaderDirectory, "webgpu-shaders.json")));
         Assert.True(File.Exists(Path.Combine(AppContext.BaseDirectory, "assets", "fonts", "BIZUDGothic-Regular.ttf")));
         Assert.True(File.Exists(Path.Combine(AppContext.BaseDirectory, "assets", "fonts", "OFL.txt")));
     }
@@ -128,6 +144,23 @@ public sealed class LuxelAppTests
                 Title = "Luxel.UI.App smoke",
                 Width = 200,
                 Height = 120,
+                RunFrames = 1,
+                EnableValidation = true,
+            });
+    }
+
+    [Fact]
+    public void LinuxX11_WebGpuRendersOneActualUiFrame()
+    {
+        RequireLinuxDisplay();
+        LuxelApp.Run(
+            () => Center()[Card(Text("one WebGPU frame"))],
+            new LuxelAppOptions
+            {
+                Title = "Luxel.UI.App WebGPU smoke",
+                Width = 200,
+                Height = 120,
+                GraphicsBackend = LuxelGraphicsBackend.WebGpu,
                 RunFrames = 1,
                 EnableValidation = true,
             });

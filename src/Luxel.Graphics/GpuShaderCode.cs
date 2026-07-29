@@ -1,7 +1,7 @@
-﻿namespace Luxel.Graphics;
+namespace Luxel.Graphics;
 
 /// <summary>
-/// 併存コンパイルされたシェーダ IR を保持する。Vulkan は SPIR-V、D3D12 は DXIL を使う。
+/// 併存コンパイルされたシェーダ IR を保持する。Vulkan は SPIR-V、D3D12 は DXIL、WebGPU は WGSL を使う。
 /// graphics では DXIL は頂点/ピクセルで別 blob (DXC は 1 entry/blob) になる。
 /// </summary>
 public sealed class GpuShaderCode
@@ -18,11 +18,15 @@ public sealed class GpuShaderCode
     /// <summary>D3D12 用 ピクセルシェーダ DXIL。</summary>
     public byte[]? DxilPixel { get; init; }
 
+    /// <summary>WebGPU 用 WGSL。UTF-8テキストとして保持し、compute/graphicsの複数entry pointを含められる。</summary>
+    public byte[]? Wgsl { get; init; }
+
     /// <summary>compute 用: 指定バックエンドの IR。</summary>
     public byte[] ForBackend(GpuBackendKind kind) => kind switch
     {
         GpuBackendKind.Vulkan => SpirV ?? throw Missing(kind, "SPIR-V (.spv)"),
         GpuBackendKind.D3D12 => Dxil ?? throw Missing(kind, "compute DXIL (.dxil)"),
+        GpuBackendKind.WebGpu => Wgsl ?? throw Missing(kind, "WGSL (.wgsl)"),
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
@@ -31,6 +35,7 @@ public sealed class GpuShaderCode
     {
         GpuBackendKind.Vulkan => SpirV ?? throw Missing(kind, "SPIR-V (.spv)"),
         GpuBackendKind.D3D12 => DxilVertex ?? throw Missing(kind, "頂点 DXIL (.vs.dxil)"),
+        GpuBackendKind.WebGpu => Wgsl ?? throw Missing(kind, "WGSL (.wgsl)"),
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
@@ -39,6 +44,7 @@ public sealed class GpuShaderCode
     {
         GpuBackendKind.Vulkan => SpirV ?? throw Missing(kind, "SPIR-V (.spv)"),
         GpuBackendKind.D3D12 => DxilPixel ?? throw Missing(kind, "ピクセル DXIL (.ps.dxil)"),
+        GpuBackendKind.WebGpu => Wgsl ?? throw Missing(kind, "WGSL (.wgsl)"),
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
@@ -47,7 +53,7 @@ public sealed class GpuShaderCode
 
     /// <summary>
     /// 出力ディレクトリ (実行ファイル隣) の shaders/ から
-    /// <c>&lt;baseName&gt;.spv</c> / <c>.dxil</c> / <c>.vs.dxil</c> / <c>.ps.dxil</c> を読み込む。
+    /// <c>&lt;baseName&gt;.spv</c> / <c>.dxil</c> / <c>.vs.dxil</c> / <c>.ps.dxil</c> / <c>.wgsl</c> を読み込む。
     /// </summary>
     public static GpuShaderCode Load(string baseName, string? directory = null)
     {
@@ -63,6 +69,7 @@ public sealed class GpuShaderCode
             Dxil = Read(".dxil"),
             DxilVertex = Read(".vs.dxil"),
             DxilPixel = Read(".ps.dxil"),
+            Wgsl = Read(".wgsl"),
         };
     }
 }

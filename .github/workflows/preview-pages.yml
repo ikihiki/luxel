@@ -23,6 +23,9 @@ jobs:
         if: github.event.action != 'closed'
         with:
           dotnet-version: 10.0.x
+      - name: Install browser WebAssembly workload
+        if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        run: dotnet workload install wasm-tools
 
       - name: Install and select lavapipe
         if: github.event.action != 'closed'
@@ -44,9 +47,27 @@ jobs:
         if: github.event.action != 'closed'
         run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
 
-      - name: Export static Gallery
+      - name: Publish browser WebGPU sample
         if: github.event.action != 'closed'
-        run: dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --no-build --configuration Release -- artifacts/gallery-site
+        run: dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj --no-restore --configuration Release
+
+      - name: Export static Gallery with browser WebGPU sample
+        if: github.event.action != 'closed'
+        run: dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --no-build --configuration Release -- artifacts/gallery-site --browser-webgpu-root samples/LuxelWebGpuBrowser/bin/Release/net10.0/publish/wwwroot
+      - name: Validate subpath-safe browser WebGPU sample
+        if: github.event.action != 'closed'
+        run: |
+          test -f artifacts/gallery-site/samples/webgpu-browser/index.html
+          test -f artifacts/gallery-site/samples/webgpu-browser/_framework/dotnet.js
+          ! grep -R -E '(src|href)="/' artifacts/gallery-site/samples/webgpu-browser/index.html artifacts/gallery-site/samples/webgpu-browser/main.js
+      - name: Install Playwright Chromium
+        if: github.event.action != 'closed'
+        run: pwsh tests/Luxel.WebGPU.Browser.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+      - name: Test composed Gallery browser runtime
+        if: github.event.action != 'closed'
+        env:
+          LUXEL_GALLERY_SITE_ROOT: artifacts/gallery-site
+        run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release --filter Exported_gallery
 
       - name: Deploy PR preview
         uses: rossjrw/pr-preview-action@v1.8.1

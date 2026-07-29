@@ -92,6 +92,30 @@ Gallery のサイドバー **Start/Welcome** を唯一の入口とし、そこ�
 **Build** のコピー可能bundle、**Examples** の動く実例、**Reference** の詳細APIへ進む。READMEは起動方法だけを扱い、
 学習順序と現在の機能範囲はGallery側を正とする。左上の検索欄で本文を全文検索できる。
 
+### Browser-WASM WebGPU
+
+`Luxel.Platform.Web` + `Luxel.Graphics.WebGPU.Browser` の .NET 10 browser-WASM sampleは、async device初期化、embedded fixed-ABI WGSL compute、textured offscreen render/readback、canvas present、`requestAnimationFrame`、resize/pointer/key event counterを実行します。native projectsは参照せず、DOM/WebGPU objectはJavaScript registryに保持します。
+
+```bash
+dotnet workload install wasm-tools
+dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release
+python3 -m http.server 8080 -d samples/LuxelWebGpuBrowser/bin/Release/net10.0/publish/wwwroot
+```
+
+WebGPUはsecure contextが必要です。開発時は`http://localhost:8080/`、remote配信はHTTPSを使用してください。Gallery Pagesでは`/samples/webgpu-browser/`相当のsubpathへAppBundleを配置し、sample内部はrelative URLのみを使います。
+
+### Headless WebGPU
+
+WebGPU backendはheadless/offscreenに加えて、明示的opt-inでWin32 HWNDとLinux X11/Xlib windowへpresentできます。公開`GpuDevice` APIでinline WGSL compute、offscreen triangle、
+storage arenaからのvertex pulling、sampled checkerboard、`HostCached` readbackを自己検証する最小sampleを実行できます。固定portable ABIはgroup 0のbuffer arena/root uniformと、group 1のsampled texture 16 slot + sampler 16 slotです。logical indexは各tableの`0..15`で、上限超過やadapter/device limit不足は明示的に失敗します。windowed surfaceはRGBA arena bufferをfullscreen WGSL blitでsurface formatへ変換し、resize/lost/outdatedを再configureします。Auto backendの既定値は従来どおりで、WebGPUは`webgpu|wgpu`の明示指定です。
+
+```bash
+dotnet run --project samples/LuxelWebGpuHeadless -c Release
+```
+
+LinuxのCI相当ではMesa lavapipeを選びます。詳細は`samples/LuxelWebGpuHeadless/README.md`とGalleryの
+`Reference/Guides/WebGPU`を参照してください。
+
 ### Linux headless Vulkan
 
 Linux では `VulkanBackend.Create()` が既定で WSI/swapchain extensions を読み込まない headless mode を

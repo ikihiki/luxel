@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Silk.NET.WebGPU" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.WebGPU.Extensions.WGPU" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.WebGPU.Native.WGPU" Version="2.23.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(NuGetPackageRoot)silk.net.webgpu.native.wgpu/2.23.0/runtimes/linux-x64/native/libwgpu_native.so"
+             Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux))) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'X64'"
+             Link="libwgpu_native.so" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(NuGetPackageRoot)silk.net.webgpu.native.wgpu/2.23.0/runtimes/linux-arm64/native/libwgpu_native.so"
+             Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux))) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'Arm64'"
+             Link="libwgpu_native.so" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(NuGetPackageRoot)silk.net.webgpu.native.wgpu/2.23.0/runtimes/win-x64/native/wgpu_native.dll"
+             Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows))) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'X64'"
+             Link="wgpu_native.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(NuGetPackageRoot)silk.net.webgpu.native.wgpu/2.23.0/runtimes/win-arm64/native/wgpu_native.dll"
+             Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows))) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'Arm64'"
+             Link="wgpu_native.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
+</Project>

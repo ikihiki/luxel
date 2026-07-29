@@ -31,10 +31,10 @@ internal sealed class TriangleRenderer : IDisposable
 
         if (stage == TutorialStage.Triangle)
         {
-            TutorialAbi.Vertex[] vertices = CreateTriangleVertices();
+            CanonicalTriangleRecipe.Vertex[] vertices = CanonicalTriangleRecipe.CreateVertices();
             _indexCount = 3;
-            _vertices = device.Malloc(checked((ulong)vertices.Length * TutorialAbi.VertexSize), GpuMemoryKind.HostMapped);
-            vertices.CopyTo(_vertices.Span<TutorialAbi.Vertex>(vertices.Length));
+            _vertices = device.Malloc(checked((ulong)vertices.Length * CanonicalTriangleRecipe.VertexSize), GpuMemoryKind.HostMapped);
+            vertices.CopyTo(_vertices.Span<CanonicalTriangleRecipe.Vertex>(vertices.Length));
             _indices = device.Malloc(sizeof(uint), GpuMemoryKind.HostMapped); // Unused by the first-triangle stage.
         }
         else
@@ -57,7 +57,7 @@ internal sealed class TriangleRenderer : IDisposable
         raster.CullMode = stage is TutorialStage.Lighting or TutorialStage.Graph or TutorialStage.PostProcess
             ? GpuCullMode.Back : GpuCullMode.None;
         raster.FrontFace = GpuFrontFace.CounterClockwise;
-        string shader = stage == TutorialStage.Triangle ? "tutorial_triangle" : "tutorial_3d";
+        string shader = stage == TutorialStage.Triangle ? CanonicalTriangleRecipe.Shader : "tutorial_3d";
         _pipeline = device.CreateGraphicsPipeline(GpuShaderCode.Load(shader), raster);
         _postPipeline = device.CreateComputePipeline(GpuShaderCode.Load("compute_tutorial_postprocess"));
     }
@@ -96,7 +96,7 @@ internal sealed class TriangleRenderer : IDisposable
 
         if (_stage == TutorialStage.Triangle)
         {
-            var triangleArgs = new TutorialAbi.DrawArgs { VertexBufferIndex = _vertices.BindlessIndex };
+            var triangleArgs = new CanonicalTriangleRecipe.DrawArgs { VertexBufferIndex = _vertices.BindlessIndex };
             using GpuCommandBuffer triangleCommand = _device.MainQueue.StartCommandRecording();
             triangleCommand.BeginRendering(_target, null, 0.055f, 0.07f, 0.11f, 1)
                 .SetGraphicsPipeline(_pipeline)
@@ -244,13 +244,6 @@ internal sealed class TriangleRenderer : IDisposable
 
     private static bool UsesDepth(TutorialStage stage)
         => stage is TutorialStage.Transform or TutorialStage.Lighting or TutorialStage.Graph or TutorialStage.PostProcess;
-
-    private static TutorialAbi.Vertex[] CreateTriangleVertices() =>
-    [
-        new() { Px = 0, Py = -0.72f, Pz = 0, Pw = 1, R = 1, G = 0.18f, B = 0.18f, A = 1 },
-        new() { Px = 0.72f, Py = 0.62f, Pz = 0, Pw = 1, R = 0.18f, G = 1, B = 0.28f, A = 1 },
-        new() { Px = -0.72f, Py = 0.62f, Pz = 0, Pw = 1, R = 0.2f, G = 0.42f, B = 1, A = 1 },
-    ];
 
     private static Vertex3D V(float x, float y, float z, Vector3 normal, float u, float v)
         => new() { Position = new Vector3(x, y, z), Normal = normal, Uv = new Vector2(u, v) };

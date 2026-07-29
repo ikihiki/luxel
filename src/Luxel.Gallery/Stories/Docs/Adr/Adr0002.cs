@@ -15,6 +15,9 @@ public static partial class DocsAdr
         - **Date**: 2026-07-08 (記録日 — 決定自体はプロジェクト開始時)
         - **Deciders**: ikihiki
 
+        > [!NOTE]
+        > この決定の薄い抽象という方向性を維持しつつ、native mechanism を portable semantics と backend fast path に分離する方針を [ADR-0019](story:Internals/ADR/0019-Portable-Gpu-Semantics-WebGPU-Backend) が **Amends** しています。
+
         ## Context
 
         Luxel は 2D ベクター・宣言的 UI・アニメーション・レンダーグラフを積み上げる土台として、C#/.NET から使える 3D グラフィック API を必要としていました。要件と力学は次のとおりです:

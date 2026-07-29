@@ -14,7 +14,8 @@ internal static class SampleBundles
             SampleCopyLevel.GalleryOnly,
             [new("Directory.Build.props", SampleFileKind.Asset),
              new("src", SampleFileKind.Asset, Destination: "src", AssetGlob: "*", Mode: SampleFileMode.Glob),
-             new("shaders", SampleFileKind.Asset, Destination: "shaders", AssetGlob: "*", Mode: SampleFileMode.Glob)]));
+             new("shaders", SampleFileKind.Asset, Destination: "shaders", AssetGlob: "*", Mode: SampleFileMode.Glob),
+             new("eng/Luxel.ShaderWgslGen", SampleFileKind.Asset, Destination: "eng/Luxel.ShaderWgslGen", AssetGlob: "*", Mode: SampleFileMode.Glob)]));
         SampleBundleRegistry.Register(new SampleBundleInfo(
             "game.cavern", "Luxel Cavern capstone",
             "Repository recipe integrating Framework, UI, 2D, input, audio, resources, particles and settings.", "Advanced",
@@ -88,6 +89,33 @@ internal static class SampleBundles
             RunCommand: "dotnet run --project samples/LuxelResources", SmokeCommand: "dotnet run --project samples/LuxelResources",
             Platforms: ["Windows", "Linux", "macOS"], ExpectedStdoutMarker: "resources: status=Ready, value=HELLO RESOURCES"));
         SampleBundleRegistry.Register(new SampleBundleInfo(
+            "rendering.webgpu-headless", "Headless WebGPU compute and triangle",
+            "Public GpuDevice API recipe covering inline WGSL compute, offscreen rendering and HostCached readback validation.", "Beginner",
+            SampleCopyLevel.StandaloneProject,
+            [new("samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj", SampleFileKind.Project),
+             new("samples/LuxelWebGpuHeadless/Program.cs", SampleFileKind.CSharp),
+             new("samples/LuxelWebGpuHeadless/HeadlessWebGpuSample.cs", SampleFileKind.CSharp)],
+            Dependencies: ["support.source-tree"], Requirements: [".NET 10", "wgpu-native 2.23.0 runtime", "Vulkan adapter; Mesa lavapipe supported on Linux"],
+            ExportSymbol: "HeadlessWebGpuSample", RunCommand: "dotnet run --project samples/LuxelWebGpuHeadless -c Release",
+            SmokeCommand: "dotnet run --project samples/LuxelWebGpuHeadless -c Release", Platforms: ["Windows", "Linux"],
+            ExpectedStdoutMarker: "status=pass"));
+        SampleBundleRegistry.Register(new SampleBundleInfo(
+            "rendering.webgpu-browser", "Browser-WASM WebGPU canvas",
+            "Browser-WASM recipe covering async WebGPU initialization, fixed-ABI embedded WGSL compute, textured offscreen rendering, canvas presentation and DOM input/resize events.", "Intermediate",
+            SampleCopyLevel.StandaloneProject,
+            [new("samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj", SampleFileKind.Project),
+             new("samples/LuxelWebGpuBrowser/Program.cs", SampleFileKind.CSharp),
+             new("samples/LuxelWebGpuBrowser/README.md", SampleFileKind.Asset),
+             new("samples/LuxelWebGpuBrowser/wwwroot/index.html", SampleFileKind.Asset),
+             new("samples/LuxelWebGpuBrowser/wwwroot/main.js", SampleFileKind.Asset),
+             new("samples/LuxelWebGpuBrowser/Shaders/compute.wgsl", SampleFileKind.Shader),
+             new("samples/CanonicalTriangleRecipe.cs", SampleFileKind.CSharp),
+             new("shaders/compiled/tutorial_triangle.wgsl", SampleFileKind.Shader)],
+            Dependencies: ["support.source-tree"], Requirements: [".NET 10", "wasm-tools workload", "WebGPU browser", "HTTPS or localhost"],
+            ExportSymbol: "LuxelWebGpuBrowser.Program", RunCommand: "dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release",
+            SmokeCommand: "dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release", Platforms: ["Browser/WASM"],
+            ExpectedStdoutMarker: "data-status=pass", TimeoutSeconds: 240));
+        SampleBundleRegistry.Register(new SampleBundleInfo(
             "rendering.app-host", "Standalone app host",
             "Window, GPU device, surface, resize, frame loop and deterministic shutdown.", "Beginner",
             SampleCopyLevel.Block,
@@ -100,7 +128,8 @@ internal static class SampleBundles
             "rendering.triangle", "Triangle renderer",
             "A complete triangle recipe: standalone app host plus the compiled C#/Slang renderer.", "Beginner",
             SampleCopyLevel.Recipe,
-            [new("samples/LuxelTriangle/TutorialAbi.cs", SampleFileKind.CSharp, "triangle-abi"),
+            [new("samples/CanonicalTriangleRecipe.cs", SampleFileKind.CSharp),
+             new("samples/LuxelTriangle/TutorialAbi.cs", SampleFileKind.CSharp, "triangle-abi"),
              new("samples/LuxelTriangle/TriangleRenderer.cs", SampleFileKind.CSharp),
              new("shaders/tutorial_triangle.slang", SampleFileKind.Shader)],
             Dependencies: ["rendering.app-host"], Requirements: ["Luxel.Graphics", "Luxel.Platform"],

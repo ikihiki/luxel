@@ -1,0 +1,399 @@
+{
+  "schema": 1,
+  "generator": "Slang 2026.14 \u002B Luxel.ShaderWgslGen",
+  "webGpuAbi": {
+    "arenaGroup": 0,
+    "arenaBinding": 0,
+    "arenaStrideBytes": 256,
+    "rootGroup": 0,
+    "rootBinding": 1,
+    "rootBindingSize": 256,
+    "sampledGroup": 1,
+    "textureCount": 16,
+    "samplerCount": 16
+  },
+  "shaders": [
+    {
+      "name": "billboard",
+      "artifact": "billboard.wgsl",
+      "entries": [
+        {
+          "name": "vsMain",
+          "stage": "vertex"
+        },
+        {
+          "name": "psMain",
+          "stage": "fragment"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "compute01",
+      "artifact": "compute01.wgsl",
+      "entries": [
+        {
+          "name": "main",
+          "stage": "compute"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "compute_bloom_combine",
+      "artifact": "compute_bloom_combine.wgsl",
+      "entries": [
+        {
+          "name": "main",
+          "stage": "compute"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "compute_blur",
+      "artifact": "compute_blur.wgsl",
+      "entries": [
+        {
+          "name": "main",
+          "stage": "compute"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "compute_composite",
+      "artifact": "compute_composite.wgsl",
+      "entries": [
+        {
+          "name": "main",
+          "stage": "compute"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "compute_tutorial_postprocess",
+      "artifact": "compute_tutorial_postprocess.wgsl",
+      "entries": [
+        {
+          "name": "main",
+          "stage": "compute"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "compute_ui_over_3d",
+      "artifact": "compute_ui_over_3d.wgsl",
+      "entries": [
+        {
+          "name": "main",
+          "stage": "compute"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "cube_forward",
+      "artifact": "cube_forward.wgsl",
+      "entries": [
+        {
+          "name": "vsMain",
+          "stage": "vertex"
+        },
+        {
+          "name": "psMain",
+          "stage": "fragment"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "cube_with_shadow",
+      "artifact": "cube_with_shadow.wgsl",
+      "entries": [
+        {
+          "name": "vsMain",
+          "stage": "vertex"
+        },
+        {
+          "name": "psMain",
+          "stage": "fragment"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "raster2d_bin",
+      "artifact": "raster2d_bin.wgsl",
+      "entries": [
+        {
+          "name": "main",
+          "stage": "compute"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "raster2d_bounds",
+      "artifact": "raster2d_bounds.wgsl",
+      "entries": [
+        {
+          "name": "main",
+          "stage": "compute"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "raster2d_fine",
+      "artifact": "raster2d_fine.wgsl",
+      "entries": [
+        {
+          "name": "main",
+          "stage": "compute"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "scene_pbr_lite",
+      "artifact": "scene_pbr_lite.wgsl",
+      "entries": [
+        {
+          "name": "vsMain",
+          "stage": "vertex"
+        },
+        {
+          "name": "psMain",
+          "stage": "fragment"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "scene_pbr_morph",
+      "artifact": "scene_pbr_morph.wgsl",
+      "entries": [
+        {
+          "name": "vsMain",
+          "stage": "vertex"
+        },
+        {
+          "name": "psMain",
+          "stage": "fragment"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "scene_pbr_skinned",
+      "artifact": "scene_pbr_skinned.wgsl",
+      "entries": [
+        {
+          "name": "vsMain",
+          "stage": "vertex"
+        },
+        {
+          "name": "psMain",
+          "stage": "fragment"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "scene_pbr_tex",
+      "artifact": "scene_pbr_tex.wgsl",
+      "entries": [
+        {
+          "name": "vsMain",
+          "stage": "vertex"
+        },
+        {
+          "name": "psMain",
+          "stage": "fragment"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": true
+      }
+    },
+    {
+      "name": "shadow_pass",
+      "artifact": "shadow_pass.wgsl",
+      "entries": [
+        {
+          "name": "vsMain",
+          "stage": "vertex"
+        },
+        {
+          "name": "psMain",
+          "stage": "fragment"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "textured",
+      "artifact": "textured.wgsl",
+      "entries": [
+        {
+          "name": "vsMain",
+          "stage": "vertex"
+        },
+        {
+          "name": "psMain",
+          "stage": "fragment"
+        }
+      ],
+      "abi": {
+        "arena": false,
+        "root": true,
+        "sampledResources": true
+      }
+    },
+    {
+      "name": "triangle",
+      "artifact": "triangle.wgsl",
+      "entries": [
+        {
+          "name": "vsMain",
+          "stage": "vertex"
+        },
+        {
+          "name": "psMain",
+          "stage": "fragment"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "tutorial_3d",
+      "artifact": "tutorial_3d.wgsl",
+      "entries": [
+        {
+          "name": "vsMain",
+          "stage": "vertex"
+        },
+        {
+          "name": "psMain",
+          "stage": "fragment"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": true
+      }
+    },
+    {
+      "name": "tutorial_triangle",
+      "artifact": "tutorial_triangle.wgsl",
+      "entries": [
+        {
+          "name": "vsMain",
+          "stage": "vertex"
+        },
+        {
+          "name": "psMain",
+          "stage": "fragment"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    },
+    {
+      "name": "ui_quad_3d",
+      "artifact": "ui_quad_3d.wgsl",
+      "entries": [
+        {
+          "name": "vsMain",
+          "stage": "vertex"
+        },
+        {
+          "name": "psMain",
+          "stage": "fragment"
+        }
+      ],
+      "abi": {
+        "arena": true,
+        "root": true,
+        "sampledResources": false
+      }
+    }
+  ]
+}

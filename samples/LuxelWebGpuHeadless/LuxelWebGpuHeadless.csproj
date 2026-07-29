@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <PlatformTarget Condition="$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'X64'">x64</PlatformTarget>
+    <PlatformTarget Condition="$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'Arm64'">arm64</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Graphics.WebGPU\Luxel.Graphics.WebGPU.csproj" />
+    <PackageReference Include="Silk.NET.WebGPU.Native.WGPU" Version="2.23.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(NuGetPackageRoot)silk.net.webgpu.native.wgpu/2.23.0/runtimes/linux-x64/native/libwgpu_native.so"
+             Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux))) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'X64'"
+             Link="libwgpu_native.so" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(NuGetPackageRoot)silk.net.webgpu.native.wgpu/2.23.0/runtimes/linux-arm64/native/libwgpu_native.so"
+             Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux))) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'Arm64'"
+             Link="libwgpu_native.so" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(NuGetPackageRoot)silk.net.webgpu.native.wgpu/2.23.0/runtimes/win-x64/native/wgpu_native.dll"
+             Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows))) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'X64'"
+             Link="wgpu_native.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(NuGetPackageRoot)silk.net.webgpu.native.wgpu/2.23.0/runtimes/win-arm64/native/wgpu_native.dll"
+             Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows))) And $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'Arm64'"
+             Link="wgpu_native.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

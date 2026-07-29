@@ -1,6 +1,26 @@
-﻿using Luxel.Graphics.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 namespace Luxel.Controls;
+
+/// <summary>Controls/Button/Counter の Gallery/browser 共通 widget recipe。</summary>
+public static class CanonicalCounterRecipe
+{
+    public const string Story = "Controls/Button/Counter";
+    public const string Recipe = "canonical-counter-v1";
+
+    public sealed record Result(Widget Root, Button Minus, Widget Text, Button Plus, Signal<int> Count);
+
+    public static Result Build(Signal<int>? count = null)
+    {
+        count ??= new Signal<int>(0);
+        Button minus = Kit.Button(_ => count.Value--, "-");
+        Widget text = Kit.Text($" {count} ", 22, color: Bind.From(() => UiTheme.T.Text), vAlign: Align.Center);
+        Button plus = Kit.Button(_ => count.Value++, "+");
+        Widget root = Kit.Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(24))
+            [Kit.Center()[Kit.HStack(8)[minus, text, plus]]];
+        return new Result(root, minus, text, plus, count);
+    }
+}
 
 /// <summary>
 /// 全コントロールのベアファクトリ。<c>using static Luxel.Controls.Kit;</c> で <c>Button(...)</c>/<c>Card(...)</c> 等を直接呼ぶ。

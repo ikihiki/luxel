@@ -21,17 +21,18 @@ public static class DocsHome
         Widget doc = DocNew(ctx, $$"""
             # Luxel を始める
 
-            Luxel は [Sebastian Aaltonen の *No Graphics API*](https://www.sebastianaaltonen.com/blog/no-graphics-api) の設計を C# で実装した薄いグラフィックエンジンです。最新のバインドレス GPU が備える機能 (64bit ポインタ / bindless / dynamic rendering / stage バリア) の上に、ディスクリプタセットや PSO 爆発のない薄い API を構築し、その上に 2D ベクター・宣言的 UI・アニメーション・レンダーグラフを積み上げています。
+            Luxel は [Sebastian Aaltonen の *No Graphics API*](https://www.sebastianaaltonen.com/blog/no-graphics-api) の原則を C# で実装した薄いグラフィックエンジンです。resource・単一 argument block・明示 pass・producer/consumer dependency を portable semantics とし、descriptor 管理や native synchronization は backend lowering に閉じ込めます。その上に 2D ベクター・宣言的 UI・アニメーション・レンダーグラフを積み上げています。
 
-            - **バックエンド**: Vulkan 1.3 (一次) + DirectX 12 (二次)。`IGpuBackend` 抽象で切替
-            - **シェーダ**: Slang で記述し、SPIR-V (Vulkan) と DXIL (D3D12) に併存コンパイル
-            - **核心**: 全パイプライン共通の固定レイアウト = 最大192Bのルート引数 (4B単位のraw bytes) + bindless heap。バッファはルート引数内のbindless indexで参照する
+            - **バックエンド**: Vulkan 1.3 + DirectX 12。native WebGPU は Windows/Linux の明示 opt-in として追加する方針
+            - **シェーダ**: shader package が entry/metadata と SPIR-V (Vulkan) / DXIL (D3D12) / portable WGSL (WebGPU) artifact を束ねる
+            - **核心**: 最大192Bの単一 root argument block + logical resource references。Vulkan/D3D12 は bindless/GPUVA、WebGPU は argument ring/fixed bind groups へ lower する
 
             ## 必要環境
 
             - .NET SDK (net10.0)
-            - Vulkan 対応 GPU/ドライバ (`vulkan-1.dll`)
-            - 通常ビルドは Git 管理済み shader cache を使用。Slang/DXC は shader 更新時だけ MSBuild が取得
+            - 選択する backend に対応する GPU/ドライバと native runtime (通常起動は Vulkan または DirectX 12)
+            - WebGPU の対象・選択・required limits は [Reference/Guides/WebGPU](story:Reference/Guides/WebGPU) を参照
+            - 通常ビルドは Git 管理済み shader cache を使用。shader compiler/translator は cache 更新時だけ取得
 
             ## ビルドと Gallery の起動
 
@@ -111,7 +112,7 @@ public static class DocsHome
         return DocNew(ctx, $$"""
         # アーキテクチャ
 
-        Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。
+        Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。下図は native WebGPU を明示 opt-in lowering として加える目標構成を含みます。
 
         ```mermaid
         flowchart TB
@@ -132,11 +133,12 @@ public static class DocsHome
         twod --> gpu
         gpu --> vk(Luxel.Graphics.Vulkan)
         gpu --> dx(Luxel.Graphics.DirectX12)
+        gpu --> wgpu[Luxel.Graphics.WebGPU — native opt-in target]
         ```
 
         ## GPU 土台
 
-        `Luxel.Graphics` が GpuDevice / バッファ / テクスチャ / パイプライン / コマンドの薄い抽象を提供し、`Luxel.Graphics.Vulkan` と `Luxel.Graphics.DirectX12` が実装します。全パイプラインが **固定レイアウト** (最大192Bのルート引数 + bindless heap) を共有するため、ディスクリプタセットの管理も PSO のバリアントも存在しません。シェーダは Slang で 1 回書き、SPIR-V / DXIL の両方へコンパイルされます。
+        `Luxel.Graphics` が GpuDevice / resource / argument block / pass / dependency の portable semantics を提供し、各 backend が native mechanism へ lower します。Vulkan と DirectX 12 は bindless heap、GPUVA、push/root constants、native barrier を fast path として維持し、native WebGPU は logical refs、fixed bind groups、frame-local argument ring、pass/encoder segmentation を使う明示 opt-in backend として加える方針です。shader package は entry/metadata と SPIR-V / DXIL / portable WGSL artifact を束ねます。詳細は [Reference/Guides/WebGPU](story:Reference/Guides/WebGPU) へ。
 
         ## 2D とテキスト
 
@@ -166,7 +168,7 @@ public static class DocsHome
 
         | プロジェクト | 役割 |
         | --- | --- |
-        | Luxel.Graphics / Luxel.Graphics.Vulkan / Luxel.Graphics.DirectX12 | GPU 抽象とバックエンド |
+        | Luxel.Graphics / Luxel.Graphics.Vulkan / Luxel.Graphics.DirectX12 / Luxel.Graphics.WebGPU (追加方針) | portable GPU semantics と backend lowering |
         | Luxel.Graphics.TwoD | 2D ベクターラスタライザ + 保持型キャンバス |
         | Luxel.Typography (+ .Icu) / Luxel.Typography.TwoD | GPU非依存レイアウト・シェーピング・ICU / Scene2D描画adapter |
         | Luxel.UI (+ .Generators, .Tailwind) | 宣言的 UI / signals / ソースジェネレーター |
@@ -184,9 +186,9 @@ public static class DocsHome
         | Luxel.DevTools (+ .App) | デバッガ / HTTP DebugServer |
         | Luxel.Gallery | この Gallery (docs + デモ + e2e/bench) |
 
-        ## vk / dx ピクセル一致という規律
+        ## backend 回帰という規律
 
-        すべての描画機能は Vulkan と DirectX 12 の両方で動き、e2e回帰は**バックエンド別の golden** と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。新機能はどちらか一方で「たまたま動く」ことを許さない — これが薄い抽象を薄いまま保つための開発規律です。
+        既存の描画機能は Vulkan と DirectX 12 の両方で動き、e2e回帰は**バックエンド別の golden** と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。WebGPU 対応を表明する機能は同じ backend-neutral story を WGSL/manifest、limits、diagnostics を含む専用ゲートで検証します。どれか一つの backend で「たまたま動く」ことを許さず、差を lowering と capability に閉じ込めることが、薄い抽象を保つ開発規律です。
         """, toc: true);
     }
 }

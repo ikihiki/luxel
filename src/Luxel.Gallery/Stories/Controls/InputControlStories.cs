@@ -1,4 +1,4 @@
-﻿using Luxel.Controls;
+using Luxel.Controls;
 using Luxel.UI;
 using Luxel.UI.Tailwind;
 using static Luxel.Controls.Kit;
@@ -51,20 +51,16 @@ public static class InputControlStories
     [Story("Controls/Button/Counter", Height = 160)]
     public static Widget ButtonCounter(StoryContext ctx)
     {
-        Signal<int> count = ctx.Signal("count", 0);
-        Button plus = Button(_ => count.Value++, "+");
+        CanonicalCounterRecipe.Result recipe = CanonicalCounterRecipe.Build(ctx.Signal("count", 0));
         // play: クリック → signal 反映 → クリック後の絵 (E2E の対話ショーケース)
         ctx.Play(async d =>
         {
             await d.Snap();
-            await d.Click(plus);
-            await d.Expect(() => count.Value == 1, "クリックでカウンタが増える");
+            await d.Click(recipe.Plus);
+            await d.Expect(() => recipe.Count.Value == 1, "クリックでカウンタが増える");
             await d.Snap("clicked");
         });
-        return Frame(HStack(8)[
-            Button(_ => count.Value--, "-"),
-            Text($" {count} ", 22, color: Bind.From(() => UiTheme.T.Text), vAlign: Align.Center),
-            plus]);
+        return recipe.Root;
     }
 
     // ---- 入力/選択 ----

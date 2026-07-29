@@ -302,12 +302,12 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         }
     }
 
-    public IGpuBackendSurface CreateSurface(nint windowHandle, uint width, uint height)
+    public IGpuBackendSurface CreateSurface(in NativeSurfaceDescriptor descriptor, uint width, uint height)
     {
         if (_presentation == VulkanPresentationMode.Disabled)
             throw new InvalidOperationException(
                 "この Vulkan backend は headless mode で作成されているため presentation surface を作成できません。");
-        if (windowHandle == 0) throw new ArgumentException("A non-zero native window handle is required.", nameof(windowHandle));
+        if (descriptor.Window == 0) throw new ArgumentException("A non-zero native window handle is required.", nameof(descriptor));
 
         if (_presentation == VulkanPresentationMode.Window)
         {
@@ -320,7 +320,7 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         }
 
         return VulkanSurface.FromWin32(
-            _vk, _instance, _physicalDevice, _device, _queue, _queueFamily, windowHandle, width, height);
+            _vk, _instance, _physicalDevice, _device, _queue, _queueFamily, unchecked((nint)descriptor.Window), width, height);
     }
 
     // ---- 固定 bindless レイアウト --------------------------------------------

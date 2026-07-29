@@ -12,7 +12,7 @@ namespace Luxel.Platform.Windows;
 /// スレッドローカルを持たない (どのスレッドが何枚窓を持っても所有はインスタンスに閉じる)。
 /// メッセージポンプは呼び出しスレッドのキューを処理する (Win32 の意味論どおりスレッド所有)。
 /// </summary>
-internal sealed unsafe class Win32Window : IWindowBackendWindow, IWin32RawKeyInput, IWindowTextInputContextFactory
+internal sealed unsafe class Win32Window : IWindowBackendWindow, IWin32RawKeyInput, IWindowTextInputContextFactory, Luxel.Graphics.INativeSurfaceProvider
 {
     private static readonly WNDPROC _wndProcThunk = StaticWndProc;         // GC で回収されないよう静的保持
     private static readonly object ClassGate = new();                      // クラス登録はプロセスで 1 回
@@ -44,6 +44,8 @@ internal sealed unsafe class Win32Window : IWindowBackendWindow, IWin32RawKeyInp
 
     public HWND Hwnd { get; private set; }
     public nint Handle => (nint)Hwnd.Value;
+    public Luxel.Graphics.NativeSurfaceDescriptor SurfaceDescriptor
+        => Luxel.Graphics.NativeSurfaceDescriptor.Win32(Handle, PInvoke.GetModuleHandle((PCWSTR)null));
     public int Width { get; private set; }
     public int Height { get; private set; }
     public int X { get; private set; }

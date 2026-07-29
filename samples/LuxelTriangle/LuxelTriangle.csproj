@@ -5,6 +5,8 @@
     <AssemblyName>LuxelTriangle</AssemblyName>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PlatformTarget Condition="$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'X64'">x64</PlatformTarget>
+    <PlatformTarget Condition="$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'Arm64'">arm64</PlatformTarget>
   </PropertyGroup>
 
   <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
@@ -14,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\..\src\Luxel.RenderGraph\Luxel.RenderGraph.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Graphics.WebGPU\Luxel.Graphics.WebGPU.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
   </ItemGroup>
 
@@ -28,6 +31,9 @@
   </ItemGroup>
 
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />
+  <ItemGroup>
+    <Compile Include="..\CanonicalTriangleRecipe.cs" Link="CanonicalTriangleRecipe.cs" />
+  </ItemGroup>
   <ItemGroup>
     <Using Include="Luxel.Graphics" />
   </ItemGroup>

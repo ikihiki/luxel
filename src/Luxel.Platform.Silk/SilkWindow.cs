@@ -7,12 +7,13 @@ using Silk.NET.Windowing;
 
 namespace Luxel.Platform.Silk;
 
-internal sealed unsafe class SilkWindow : IWindowBackendWindow, IVulkanWindowSurface
+internal sealed unsafe class SilkWindow : IWindowBackendWindow, IVulkanWindowSurface, INativeSurfaceProvider
 {
     private readonly SilkWindowBackend _backend;
     private readonly IWindow _window;
     private readonly Glfw _glfw;
     private WindowHandle* _handle;
+    private readonly nint _x11Display;
     private readonly nint _x11Handle;
     private readonly IVkSurface _vkSurface;
     private readonly string[] _requiredInstanceExtensions;
@@ -29,12 +30,13 @@ internal sealed unsafe class SilkWindow : IWindowBackendWindow, IVulkanWindowSur
     private bool _closedNotified;
     private CursorKind? _currentCursor;
 
-    public SilkWindow(SilkWindowBackend backend, IWindow window, Glfw glfw, WindowHandle* handle, nint x11Handle)
+    public SilkWindow(SilkWindowBackend backend, IWindow window, Glfw glfw, WindowHandle* handle, nint x11Display, nint x11Handle)
     {
         _backend = backend;
         _window = window;
         _glfw = glfw;
         _handle = handle;
+        _x11Display = x11Display;
         _x11Handle = x11Handle;
         _vkSurface = window.VkSurface
             ?? throw new PlatformNotSupportedException("Silk.NET did not expose a Vulkan surface for the GLFW window.");
@@ -73,6 +75,15 @@ internal sealed unsafe class SilkWindow : IWindowBackendWindow, IVulkanWindowSur
         {
             _backend.VerifyThread();
             return _x11Handle;
+        }
+    }
+
+    public NativeSurfaceDescriptor SurfaceDescriptor
+    {
+        get
+        {
+            VerifyUsable();
+            return NativeSurfaceDescriptor.Xlib(_x11Display, unchecked((ulong)_x11Handle));
         }
     }
 

@@ -17,6 +17,7 @@
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel.Player\Luxel.Player.csproj" />
     <ProjectReference Include="..\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics.WebGPU\Luxel.Graphics.WebGPU.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
     <ProjectReference Include="..\Luxel.Framework\Luxel.Framework.csproj" />
