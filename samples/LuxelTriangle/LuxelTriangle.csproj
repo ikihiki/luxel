@@ -32,6 +32,9 @@
 
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />
   <ItemGroup>
+    <Compile Include="..\CanonicalTriangleRecipe.cs" Link="CanonicalTriangleRecipe.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <Using Include="Luxel.Graphics" />
   </ItemGroup>
   <ItemGroup>

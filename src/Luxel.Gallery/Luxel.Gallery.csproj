@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <Compile Include="..\..\samples\CanonicalTriangleRecipe.cs" Link="CanonicalTriangleRecipe.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Luxel.Mathematics\Luxel.Mathematics.csproj" />
     <Using Include="Luxel.Mathematics" />
   </ItemGroup>
@@ -131,10 +135,11 @@
     <EmbeddedResource Include="..\..\samples\LuxelWebGpuBrowser\wwwroot\index.html" LogicalName="Luxel.Sample.samples.LuxelWebGpuBrowser.wwwroot.index.html" />
     <EmbeddedResource Include="..\..\samples\LuxelWebGpuBrowser\wwwroot\main.js" LogicalName="Luxel.Sample.samples.LuxelWebGpuBrowser.wwwroot.main.js" />
     <EmbeddedResource Include="..\..\samples\LuxelWebGpuBrowser\Shaders\compute.wgsl" LogicalName="Luxel.Sample.samples.LuxelWebGpuBrowser.Shaders.compute.wgsl" />
-    <EmbeddedResource Include="..\..\samples\LuxelWebGpuBrowser\Shaders\triangle.wgsl" LogicalName="Luxel.Sample.samples.LuxelWebGpuBrowser.Shaders.triangle.wgsl" />
+    <EmbeddedResource Include="..\..\shaders\compiled\tutorial_triangle.wgsl" LogicalName="Luxel.Sample.shaders.compiled.tutorial_triangle.wgsl" />
     <EmbeddedResource Include="..\..\samples\LuxelWebGpuHeadless\LuxelWebGpuHeadless.csproj" LogicalName="Luxel.Sample.samples.LuxelWebGpuHeadless.LuxelWebGpuHeadless.csproj" />
     <EmbeddedResource Include="..\..\samples\LuxelWebGpuHeadless\Program.cs" LogicalName="Luxel.Sample.samples.LuxelWebGpuHeadless.Program.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelWebGpuHeadless\HeadlessWebGpuSample.cs" LogicalName="Luxel.Sample.samples.LuxelWebGpuHeadless.HeadlessWebGpuSample.cs" />
+    <EmbeddedResource Include="..\..\samples\CanonicalTriangleRecipe.cs" LogicalName="Luxel.Sample.samples.CanonicalTriangleRecipe.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelTriangle\LuxelTriangle.csproj" LogicalName="Luxel.Sample.samples.LuxelTriangle.LuxelTriangle.csproj" />
     <EmbeddedResource Include="..\..\samples\LuxelTriangle\Program.cs" LogicalName="Luxel.Sample.samples.LuxelTriangle.Program.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelTriangle\TriangleRenderer.cs" LogicalName="Luxel.Sample.samples.LuxelTriangle.TriangleRenderer.cs" />

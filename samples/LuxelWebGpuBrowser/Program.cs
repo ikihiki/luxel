@@ -16,8 +16,8 @@ namespace LuxelWebGpuBrowser;
 public static partial class Program
 {
     private const uint ExpectedCompute = 0xc0ffee42;
-    private const uint TargetWidth = 768;
-    private const uint TargetHeight = 432;
+    private const uint TargetWidth = CanonicalTriangleRecipe.Width;
+    private const uint TargetHeight = CanonicalTriangleRecipe.Height;
 
     public static async Task Main()
     {
@@ -54,18 +54,16 @@ public static partial class Program
             uint computeValue = Read<uint>(compute);
             if (computeValue != ExpectedCompute) throw new InvalidOperationException($"Compute result was 0x{computeValue:x8}.");
 
-            using IGpuBackendBuffer vertices = gpu.CreateBuffer(6 * sizeof(float), GpuMemoryKind.HostMapped);
-            Write(vertices, new float[] { -0.82f, -0.82f, 0.82f, -0.82f, 0f, 0.82f });
-            byte[] checker = [255,255,255,255, 20,40,120,255, 20,40,120,255, 255,255,255,255];
-            using IGpuBackendTexture texture = gpu.CreateSampledTexture(2, 2, GpuFormat.Rgba8Unorm, checker);
-            using IGpuBackendSampler sampler = gpu.CreateSampler(GpuSamplerFilter.Point);
+            CanonicalTriangleRecipe.Vertex[] triangleVertices = CanonicalTriangleRecipe.CreateVertices();
+            using IGpuBackendBuffer vertices = gpu.CreateBuffer((ulong)(triangleVertices.Length * CanonicalTriangleRecipe.VertexSize), GpuMemoryKind.HostMapped);
+            Write(vertices, triangleVertices);
             using IGpuBackendTexture target = gpu.CreateRenderTarget(TargetWidth, TargetHeight, GpuFormat.Rgba8Unorm);
             using IGpuBackendBuffer pixels = gpu.CreateBuffer(TargetWidth * TargetHeight * 4, GpuMemoryKind.HostCached);
-            using IGpuBackendPipeline graphics = gpu.CreateGraphicsPipeline(Shader("triangle.wgsl"), "vs_main", Shader("triangle.wgsl"), "fs_main", GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+            using IGpuBackendPipeline graphics = gpu.CreateGraphicsPipeline(Shader("tutorial_triangle.wgsl"), "vsMain", Shader("tutorial_triangle.wgsl"), "psMain", GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
             using (IGpuBackendCommandBuffer command = gpu.MainQueue.StartCommandRecording())
             {
                 command.SetGraphicsPipeline(graphics);
-                command.SetRootConstants(Bytes(new GraphicsRoot(vertices.BindlessIndex, texture.BindlessIndex, sampler.BindlessIndex)));
+                command.SetRootConstants(Bytes(new CanonicalTriangleRecipe.DrawArgs { VertexBufferIndex = vertices.BindlessIndex }));
                 command.BeginRendering(target, null, 0.04f, 0.07f, 0.12f, 1f, 1f);
                 command.Draw(3, 1);
                 command.EndRendering();
@@ -79,7 +77,7 @@ public static partial class Program
                 Span<byte> data = Mapped(pixels);
                 red = data[center]; green = data[center + 1]; blue = data[center + 2]; alpha = data[center + 3];
             }
-            if (red < 180 || green < 180 || blue < 180)
+            if (alpha < 240 || red + green + blue < 180)
                 throw new InvalidOperationException($"Center pixel was rgba({red},{green},{blue},{alpha}).");
             surface.Present(pixels, TargetWidth, TargetWidth, TargetHeight);
 
@@ -87,7 +85,7 @@ public static partial class Program
             {
                 surface.Resize((uint)window.Width, (uint)window.Height);
                 surface.Present(pixels, TargetWidth, TargetWidth, TargetHeight);
-                SetStatus("pass", $"browser-webgpu: status=pass\ndevice={gpu.Name}\ncompute=0x{computeValue:x8}; center=rgba({red},{green},{blue},{alpha})\nframes=1+; resize={resizeEvents}; pointer={pointerEvents}; key={keyEvents}");
+                SetStatus("pass", $"browser-webgpu: status=pass\nstory={CanonicalTriangleRecipe.Story}\nshader={CanonicalTriangleRecipe.Shader}\nsizes={CanonicalTriangleRecipe.Width}x{CanonicalTriangleRecipe.Height}\nrecipe={CanonicalTriangleRecipe.Recipe}\nhash={CanonicalTriangleRecipe.ShaderSha256}\ndevice={gpu.Name}\ncompute=0x{computeValue:x8}; center=rgba({red},{green},{blue},{alpha})\nframes=1+; resize={resizeEvents}; pointer={pointerEvents}; key={keyEvents}");
                 await NextFrame();
             }
         }
@@ -111,7 +109,6 @@ public static partial class Program
     private static T Read<T>(IGpuBackendBuffer buffer) where T : unmanaged => MemoryMarshal.Read<T>(Mapped(buffer));
     private static void Write<T>(IGpuBackendBuffer buffer, ReadOnlySpan<T> values) where T : unmanaged => MemoryMarshal.AsBytes(values).CopyTo(Mapped(buffer));
     private readonly record struct ComputeRoot(uint BufferIndex, uint Value, uint Pad0 = 0, uint Pad1 = 0);
-    private readonly record struct GraphicsRoot(uint BufferIndex, uint TextureIndex, uint SamplerIndex, uint Pad0 = 0);
 
     [JSImport("nextFrame", "luxel-browser-host")] private static partial Task<double> NextFrame();
     [JSImport("setStatus", "luxel-browser-host")] private static partial void SetStatus(string state, string summary);
