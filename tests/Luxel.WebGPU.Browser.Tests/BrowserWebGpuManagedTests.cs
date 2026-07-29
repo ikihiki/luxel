@@ -82,6 +82,25 @@ public sealed class BrowserWebGpuManagedTests
         Assert.Throws<ArgumentException>(() => command.CopyTextureToBuffer(texture, buffer, 3));
     }
 
+    [Fact]
+    public async Task High_level_async_queue_and_canvas_surface_forward_to_browser_backend()
+    {
+        var interop = new FakeInterop();
+        using var backend = await BrowserWebGpuBackend.CreateAsync(interop);
+        using var device = new GpuDevice(backend);
+        using GpuSurface surface = device.CreateCanvasSurface("#counter", 640, 360);
+        using GpuBuffer pixels = device.Malloc(640u * 360u * 4u, GpuMemoryKind.HostMapped);
+        using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
+        command.Finish();
+        await device.MainQueue.SubmitAsync(command);
+        await device.MainQueue.WaitIdleAsync();
+        surface.Present(pixels, 640, 640, 360);
+
+        Assert.Equal("#counter", interop.LastCanvasToken);
+        Assert.Equal((640, 360), interop.LastCanvasSize);
+        Assert.Equal(1, interop.SurfacePresents);
+    }
+
     private static unsafe nint Pointer(IGpuBackendBuffer buffer) => (nint)buffer.MappedPointer;
     private static unsafe void Fill(IGpuBackendBuffer buffer, byte value, int length) => new Span<byte>(buffer.MappedPointer, length).Fill(value);
     private static unsafe byte[] Read(IGpuBackendBuffer buffer, int length) => new ReadOnlySpan<byte>(buffer.MappedPointer, length).ToArray();
@@ -91,6 +110,8 @@ public sealed class BrowserWebGpuManagedTests
         private int _next = 10;
         public byte[] Readback { get; set; } = [];
         public List<(int Offset, string Data)> Uploads { get; } = [];
+        public string? LastCanvasToken { get; private set; }
+        public (int Width, int Height) LastCanvasSize { get; private set; }
         public int SurfacePresents { get; private set; }
         public List<(int Width, int Height)> SurfaceResizes { get; } = [];
         public Task<string> InitializeAsync() => Task.FromResult(JsonSerializer.Serialize(new { handle = ++_next, name = "WebGPU / fake" }));
@@ -114,7 +135,12 @@ public sealed class BrowserWebGpuManagedTests
         public int Submit(int backend, int command) => 1;
         public Task<string> CompleteAsync(int backend, int serial, string readbacksJson) => Task.FromResult(Convert.ToBase64String(Readback));
         public Task<string> WaitIdleAsync(int backend, string readbacksJson) => Task.FromResult(Convert.ToBase64String(Readback));
-        public int CreateSurface(int backend, string canvasToken, int width, int height) => ++_next;
+        public int CreateSurface(int backend, string canvasToken, int width, int height)
+        {
+            LastCanvasToken = canvasToken;
+            LastCanvasSize = (width, height);
+            return ++_next;
+        }
         public void SurfacePresent(int surface, int sourceOffset, int stride, int width, int height) => SurfacePresents++;
         public void SurfaceResize(int surface, int width, int height) => SurfaceResizes.Add((width, height));
         public void Release(int kind, int handle) { }

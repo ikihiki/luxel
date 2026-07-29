@@ -110,6 +110,62 @@ public sealed class BrowserWebGpuSmokeTests
         Assert.Empty(errors);
     }
 
+    [Fact(Timeout = 120_000)]
+    public async Task Published_sample_counter_clicks_real_canvas_buttons_and_updates_gpu_frame()
+    {
+        string configured = RequireDirectoryEnvironmentVariable("LUXEL_BROWSER_WASM_APPBUNDLE");
+        string appBundle = Path.IsPathRooted(configured) ? Path.GetFullPath(configured) : Path.GetFullPath(configured, FindRepositoryRoot());
+        int port = GetFreePort();
+        using var server = new StaticServer(StartServer(appBundle, port));
+        await WaitForServerAsync(port);
+        using IPlaywright playwright = await Playwright.CreateAsync();
+        await using IBrowser browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true, Args = ChromiumArguments });
+        IPage page = await browser.NewPageAsync(new BrowserNewPageOptions { ViewportSize = new ViewportSize { Width = 900, Height = 650 } });
+        var errors = new List<string>();
+        page.Console += (_, message) => { if (message.Type == "error") errors.Add(message.Text); };
+        page.PageError += (_, error) => errors.Add(error);
+        await page.GotoAsync($"http://127.0.0.1:{port}/?app=counter", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+        await page.WaitForFunctionAsync("() => globalThis.luxelBrowserState?.state === 'pass' && globalThis.luxelBrowserState?.plusBounds", null, new PageWaitForFunctionOptions { Timeout = 90_000 });
+        Assert.Equal("counter", await page.EvaluateAsync<string>("() => globalThis.luxelBrowserState.app"));
+        Assert.Equal("Controls/Button/Counter", await page.EvaluateAsync<string>("() => globalThis.luxelBrowserState.story"));
+        Assert.Equal(0, await page.EvaluateAsync<int>("() => globalThis.luxelBrowserState.count"));
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        ILocator canvas = page.Locator("#luxel-canvas");
+        await AssertCanvasFillsViewportAsync(canvas);
+        byte[] before = await canvas.ScreenshotAsync();
+        using (Image<Rgba32> initial = Image.Load<Rgba32>(before))
+        {
+            Rgba32 background = initial[4, 4];
+            int maxDifference = 0;
+            for (int y = initial.Height / 4; y < initial.Height * 3 / 4; y += 3)
+            for (int x = initial.Width / 4; x < initial.Width * 3 / 4; x += 3)
+            {
+                Rgba32 pixel = initial[x, y];
+                maxDifference = Math.Max(maxDifference, Math.Abs(pixel.R - background.R) + Math.Abs(pixel.G - background.G) + Math.Abs(pixel.B - background.B));
+            }
+            Assert.True(maxDifference > 40, $"Counter canvas contained only its background color (max RGB difference {maxDifference}).");
+        }
+        int initialRevision = await page.EvaluateAsync<int>("() => globalThis.luxelBrowserState.renderRevision");
+
+        double[] plus = await page.EvaluateAsync<double[]>("() => { const s=globalThis.luxelBrowserState, d=devicePixelRatio||1; return [(s.plusBounds.x+s.plusBounds.width/2)/d,(s.plusBounds.y+s.plusBounds.height/2)/d]; }");
+        await page.Mouse.MoveAsync((float)plus[0], (float)plus[1]);
+        await page.Mouse.DownAsync();
+        await page.Mouse.UpAsync();
+        await page.WaitForFunctionAsync("r => { const s=globalThis.luxelBrowserState; return s.count===1 && s.presentedCount===1 && s.renderRevision>r; }", initialRevision);
+        byte[] afterPlus = await canvas.ScreenshotAsync();
+        Assert.False(before.SequenceEqual(afterPlus), "Counter canvas screenshot did not change after plus click.");
+        Assert.True(await page.EvaluateAsync<int>("() => globalThis.luxelBrowserState.pointerDownCount") > 0);
+        Assert.True(await page.EvaluateAsync<int>("() => globalThis.luxelBrowserState.pointerUpCount") > 0);
+
+        double[] minus = await page.EvaluateAsync<double[]>("() => { const s=globalThis.luxelBrowserState, d=devicePixelRatio||1; return [(s.minusBounds.x+s.minusBounds.width/2)/d,(s.minusBounds.y+s.minusBounds.height/2)/d]; }");
+        await page.Mouse.MoveAsync((float)minus[0], (float)minus[1]);
+        await page.Mouse.DownAsync();
+        await page.Mouse.UpAsync();
+        await page.WaitForFunctionAsync("() => { const s=globalThis.luxelBrowserState; return s.count===0 && s.presentedCount===0; }");
+        Assert.Equal(string.Empty, (await page.Locator("body").InnerTextAsync()).Trim());
+        Assert.Empty(errors);
+    }
+
     [Fact(Timeout = 180_000)]
     public async Task Exported_gallery_composes_triangle_runtime_for_story_and_guide()
     {
@@ -154,10 +210,10 @@ public sealed class BrowserWebGpuSmokeTests
                 new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
 
             const string runtimeSelector =
-                "iframe[src='samples/webgpu-browser/'][data-luxel-runtime-story='Examples/3D/Triangle']";
+                "iframe[src='samples/webgpu-browser/?app=triangle'][data-luxel-runtime-story='Examples/3D/Triangle']";
             ILocator runtime = page.Locator(runtimeSelector);
             await runtime.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 30_000 });
-            Assert.Equal("samples/webgpu-browser/", await runtime.GetAttributeAsync("src"));
+            Assert.Equal("samples/webgpu-browser/?app=triangle", await runtime.GetAttributeAsync("src"));
 
             IElementHandle runtimeElement = await runtime.ElementHandleAsync()
                 ?? throw new InvalidOperationException("Runtime iframe element was unavailable.");
@@ -213,6 +269,41 @@ public sealed class BrowserWebGpuSmokeTests
         Assert.Empty(errors);
         Assert.DoesNotContain(requests, url =>
             new Uri(url).AbsolutePath.EndsWith("/images/examples-3d-triangle.png", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact(Timeout = 180_000)]
+    public async Task Exported_gallery_composes_counter_runtime_and_updates_from_canvas_click()
+    {
+        string configured = RequireDirectoryEnvironmentVariable("LUXEL_GALLERY_SITE_ROOT");
+        string galleryRoot = Path.IsPathRooted(configured) ? Path.GetFullPath(configured) : Path.GetFullPath(configured, FindRepositoryRoot());
+        string serverRoot = Path.GetDirectoryName(galleryRoot)!;
+        string prefix = Uri.EscapeDataString(Path.GetFileName(galleryRoot)) + "/";
+        int port = GetFreePort();
+        using var server = new StaticServer(StartServer(serverRoot, port));
+        await WaitForServerAsync(port, prefix);
+        using IPlaywright playwright = await Playwright.CreateAsync();
+        await using IBrowser browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true, Args = ChromiumArguments });
+        IPage page = await browser.NewPageAsync(new BrowserNewPageOptions { ViewportSize = new ViewportSize { Width = 1100, Height = 800 } });
+        var errors = new List<string>();
+        var requests = new List<string>();
+        page.Console += (_, message) => { if (message.Type == "error") errors.Add(message.Text); };
+        page.PageError += (_, error) => errors.Add(error);
+        page.Request += (_, request) => requests.Add(request.Url);
+        await page.GotoAsync($"http://127.0.0.1:{port}/{prefix}#story=Controls%2FButton%2FCounter", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+        ILocator runtime = page.Locator("iframe[src='samples/webgpu-browser/?app=counter'][data-luxel-runtime-story='Controls/Button/Counter']");
+        await runtime.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 30_000 });
+        IFrame child = await (await runtime.ElementHandleAsync())!.ContentFrameAsync() ?? throw new InvalidOperationException("Counter runtime iframe was unavailable.");
+        await child.WaitForFunctionAsync("() => globalThis.luxelBrowserState?.state === 'pass' && globalThis.luxelBrowserState?.plusBounds", null, new FrameWaitForFunctionOptions { Timeout = 90_000 });
+        Assert.Equal(0, await child.EvaluateAsync<int>("() => globalThis.luxelBrowserState.count"));
+        ILocator canvas = child.Locator("#luxel-canvas");
+        await AssertCanvasFillsViewportAsync(canvas);
+        double[] plus = await child.EvaluateAsync<double[]>("() => { const s=globalThis.luxelBrowserState,d=devicePixelRatio||1; return [(s.plusBounds.x+s.plusBounds.width/2)/d,(s.plusBounds.y+s.plusBounds.height/2)/d]; }");
+        await canvas.ClickAsync(new LocatorClickOptions { Position = new Position { X = (float)plus[0], Y = (float)plus[1] } });
+        await child.WaitForFunctionAsync("() => { const s=globalThis.luxelBrowserState; return s.count===1 && s.presentedCount===1; }");
+        Assert.True(await page.Locator("body").EvaluateAsync<bool>("body => body.classList.contains('runtime-active')"));
+        Assert.Equal(string.Empty, (await page.Locator("#content").InnerTextAsync()).Trim());
+        Assert.DoesNotContain(requests, url => url.Contains("controls-button-counter.png", StringComparison.OrdinalIgnoreCase));
+        Assert.Empty(errors);
     }
 
     private static async Task AssertCanvasFillsViewportAsync(ILocator canvas)

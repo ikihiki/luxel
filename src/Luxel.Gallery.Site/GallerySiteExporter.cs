@@ -17,9 +17,15 @@ public sealed record SiteStory(string Path, string Name, string Component, strin
 
 public static partial class GallerySiteExporter
 {
-    private const string BrowserRuntimeStoryPath = "Examples/3D/Triangle";
     private const string BrowserRuntimeEmbedPagePath = "Learn/Rendering/Basics/FirstTriangle";
-    private const string BrowserRuntimeUrl = "samples/webgpu-browser/";
+    private const string BrowserRuntimeBaseUrl = "samples/webgpu-browser/";
+    private sealed record BrowserRuntimeRoute(string StoryPath, string Url, string Title);
+    private static readonly IReadOnlyDictionary<string, BrowserRuntimeRoute> BrowserRuntimeRoutes =
+        new Dictionary<string, BrowserRuntimeRoute>(StringComparer.Ordinal)
+        {
+            ["Examples/3D/Triangle"] = new("Examples/3D/Triangle", BrowserRuntimeBaseUrl + "?app=triangle", "Interactive WebGPU triangle"),
+            ["Controls/Button/Counter"] = new("Controls/Button/Counter", BrowserRuntimeBaseUrl + "?app=counter", "Interactive button counter"),
+        };
     private static readonly string[] BrowserRuntimeRequiredFiles = ["index.html", "main.js", Path.Combine("_framework", "dotnet.js")];
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
@@ -50,7 +56,7 @@ public static partial class GallerySiteExporter
 
         bool browserRuntimeEnabled = browserWebGpuRoot is not null;
         if (browserRuntimeEnabled)
-            CopyBrowserRuntime(browserWebGpuRoot!, Path.Combine(output, BrowserRuntimeUrl.Replace('/', Path.DirectorySeparatorChar)));
+            CopyBrowserRuntime(browserWebGpuRoot!, Path.Combine(output, BrowserRuntimeBaseUrl.Replace('/', Path.DirectorySeparatorChar)));
 
         var manifest = new List<SiteStory>();
         var imageCache = new Dictionary<string, (string? Url, string Status, string? Error, string Hash)>(StringComparer.Ordinal);
@@ -68,10 +74,10 @@ public static partial class GallerySiteExporter
             string body = "";
             try
             {
-                if (browserRuntimeEnabled && story.Path == BrowserRuntimeStoryPath)
+                if (browserRuntimeEnabled && BrowserRuntimeRoutes.TryGetValue(story.Path, out BrowserRuntimeRoute? runtimeRoute))
                 {
                     status = "runtime";
-                    body = RuntimeStory(BrowserRuntimeStoryPath, embedded: false);
+                    body = RuntimeStory(runtimeRoute, embedded: false);
                 }
                 else if (story.RealWindowOnly)
                 {
@@ -211,8 +217,8 @@ public static partial class GallerySiteExporter
             else if (browserRuntimeEnabled
                      && embed.Kind == DocEmbedKind.StoryRef
                      && containingStoryPath == BrowserRuntimeEmbedPagePath
-                     && embed.Reference == BrowserRuntimeStoryPath)
-                html = RuntimeStory(BrowserRuntimeStoryPath, embedded: true);
+                     && embed.Reference == "Examples/3D/Triangle")
+                html = RuntimeStory(BrowserRuntimeRoutes["Examples/3D/Triangle"], embedded: true);
             else if (embed.Kind == DocEmbedKind.StoryRef && embed.Reference is { } path && StoryRegistry.Find(path) is { } story)
             {
                 var result = EnsureStoryImage(host, story, imagesDir, repositoryRoot, cache);
@@ -355,10 +361,11 @@ public static partial class GallerySiteExporter
                 throw new InvalidDataException($"Unknown capture status '{story.Status}' for {story.Path}.");
             if (story.Status == "runtime")
             {
-                if (story.Path != BrowserRuntimeStoryPath || story.Image is not null || story.ImageSha256.Length != 0)
+                if (!BrowserRuntimeRoutes.TryGetValue(story.Path, out BrowserRuntimeRoute? route)
+                    || story.Image is not null || story.ImageSha256.Length != 0)
                     throw new InvalidDataException($"Invalid runtime manifest entry for {story.Path}.");
                 string fragment = File.ReadAllText(Path.Combine(output, story.Fragment.Replace('/', Path.DirectorySeparatorChar)));
-                RequireRuntimeIframe(fragment, story.Fragment);
+                RequireRuntimeIframe(fragment, story.Fragment, route);
             }
         }
 
@@ -372,7 +379,9 @@ public static partial class GallerySiteExporter
             if (html.Contains("<iframe", StringComparison.Ordinal)
                 && html.Contains("data-luxel-runtime-story", StringComparison.Ordinal))
             {
-                RequireRuntimeIframe(html, Path.GetRelativePath(output, file));
+                string? storyPath = BrowserRuntimeRoutes.Keys.FirstOrDefault(path => html.Contains($"data-luxel-runtime-story=\"{path}\"", StringComparison.Ordinal));
+                if (storyPath is null) throw new InvalidDataException($"Unknown runtime story iframe: {file}");
+                RequireRuntimeIframe(html, Path.GetRelativePath(output, file), BrowserRuntimeRoutes[storyPath]);
                 foundRuntimeIframe = true;
             }
             if (html.Contains("language-luxel-ui", StringComparison.Ordinal)
@@ -394,14 +403,14 @@ public static partial class GallerySiteExporter
         }
         if (foundRuntimeIframe)
             foreach (string relative in BrowserRuntimeRequiredFiles)
-                RequireRelativeFile(output, BrowserRuntimeUrl + relative.Replace(Path.DirectorySeparatorChar, '/'), "browser runtime app file");
+                RequireRelativeFile(output, BrowserRuntimeBaseUrl + relative.Replace(Path.DirectorySeparatorChar, '/'), "browser runtime app file");
     }
 
-    private static void RequireRuntimeIframe(string html, string file)
+    private static void RequireRuntimeIframe(string html, string file, BrowserRuntimeRoute route)
     {
-        string expected = $"<iframe src=\"{BrowserRuntimeUrl}\" data-luxel-runtime-story=\"{BrowserRuntimeStoryPath}\"";
+        string expected = $"<iframe src=\"{route.Url}\" data-luxel-runtime-story=\"{route.StoryPath}\"";
         if (!html.Contains(expected, StringComparison.Ordinal))
-            throw new InvalidDataException($"Runtime story iframe is missing its exact relative source and story marker: {file}");
+            throw new InvalidDataException($"Runtime story iframe is missing its exact mapped source and story marker: {file}");
         if (html.Contains("src=\"/samples/webgpu-browser/", StringComparison.Ordinal))
             throw new InvalidDataException($"Runtime story iframe uses a root-absolute source: {file}");
     }
@@ -430,11 +439,11 @@ public static partial class GallerySiteExporter
         if (!File.Exists(full)) throw new FileNotFoundException($"Missing {kind}: {relative}", full);
     }
 
-    private static string RuntimeStory(string path, bool embedded)
+    private static string RuntimeStory(BrowserRuntimeRoute route, bool embedded)
     {
-        string heading = embedded ? "Interactive tutorial triangle" : "Interactive WebGPU triangle";
+        string heading = embedded ? "Interactive tutorial triangle" : route.Title;
         string modifier = embedded ? " runtime-story-embedded" : "";
-        return $"<section class=\"runtime-story{modifier}\" data-runtime-kind=\"webgpu-browser\"><div class=\"runtime-frame\"><iframe src=\"{BrowserRuntimeUrl}\" data-luxel-runtime-story=\"{H(path)}\" title=\"{H(heading)}\" loading=\"eager\" allow=\"webgpu\"></iframe></div></section>";
+        return $"<section class=\"runtime-story{modifier}\" data-runtime-kind=\"webgpu-browser\"><div class=\"runtime-frame\"><iframe src=\"{route.Url}\" data-luxel-runtime-story=\"{H(route.StoryPath)}\" title=\"{H(heading)}\" loading=\"eager\" allow=\"webgpu\"></iframe></div></section>";
     }
 
     private static void CopyBrowserRuntime(string source, string destination)

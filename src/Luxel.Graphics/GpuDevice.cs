@@ -39,6 +39,15 @@ public sealed class GpuDevice : IDisposable
     public GpuSurface CreateSurface(nint windowHandle, uint width, uint height)
         => CreateSurface(NativeSurfaceDescriptor.Win32(windowHandle), width, height);
 
+    /// <summary>browser canvas selector/token から提示面を生成する。対応 backend のみ利用可能。</summary>
+    public GpuSurface CreateCanvasSurface(string canvasToken, uint width, uint height)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_backend is not ICanvasGpuBackend canvas)
+            throw new PlatformNotSupportedException($"Backend {_backend.Name} does not support canvas surfaces.");
+        return new GpuSurface(canvas.CreateCanvasSurface(canvasToken, width, height));
+    }
+
     /// <summary><c>gpuMalloc</c>。GPU メモリを確保し、CPU ポインタと GPU アドレスを持つバッファを返す。</summary>
     public GpuBuffer Malloc(ulong sizeInBytes, GpuMemoryKind kind = GpuMemoryKind.HostMapped)
     {

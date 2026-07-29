@@ -235,13 +235,15 @@ public sealed class GallerySiteExporterTests
         }
     }
 
-    [Fact]
-    public void Browser_triangle_exports_as_runtime_without_native_realization_or_static_capture()
+    [Theory]
+    [InlineData("Examples/3D/Triangle", "examples-3d-triangle.html", "?app=triangle")]
+    [InlineData("Controls/Button/Counter", "controls-button-counter.html", "?app=counter")]
+    public void Browser_stories_export_as_runtime_without_native_realization_or_static_capture(string storyPath, string fragmentName, string query)
     {
         string root = GallerySiteExporter.FindRepositoryRoot();
-        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-runtime-triangle-" + Guid.NewGuid().ToString("N"));
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-runtime-" + Guid.NewGuid().ToString("N"));
         string browserRoot = CreateBrowserRuntimeRoot();
-        var story = new StoryInfo("Examples/3D/Triangle", 320, 240, null,
+        var story = new StoryInfo(storyPath, 320, 240, null,
             _ => throw new InvalidOperationException("runtime story must not be realized"), RealWindowOnly: true);
         try
         {
@@ -261,8 +263,8 @@ public sealed class GallerySiteExporterTests
             Assert.Null(entry.Image);
             Assert.Empty(entry.ImageSha256);
 
-            string fragment = File.ReadAllText(Path.Combine(output, "stories", "examples-3d-triangle.html"));
-            Assert.Contains("<iframe src=\"samples/webgpu-browser/\" data-luxel-runtime-story=\"Examples/3D/Triangle\"", fragment);
+            string fragment = File.ReadAllText(Path.Combine(output, "stories", fragmentName));
+            Assert.Contains($"<iframe src=\"samples/webgpu-browser/{query}\" data-luxel-runtime-story=\"{storyPath}\"", fragment);
             Assert.Contains("<article class=\"story runtime-page\">", fragment);
             Assert.Contains("allow=\"webgpu\"", fragment);
             Assert.DoesNotContain("Runtime WebAssembly — interactive", fragment);
@@ -300,7 +302,7 @@ public sealed class GallerySiteExporterTests
             GallerySiteExporter.Export(host, [story], output, root, browserRoot);
 
             string fragment = File.ReadAllText(Path.Combine(output, "stories", "learn-rendering-basics-firsttriangle.html"));
-            Assert.Contains("<iframe src=\"samples/webgpu-browser/\" data-luxel-runtime-story=\"Examples/3D/Triangle\"", fragment);
+            Assert.Contains("<iframe src=\"samples/webgpu-browser/?app=triangle\" data-luxel-runtime-story=\"Examples/3D/Triangle\"", fragment);
             Assert.Contains("runtime-story-embedded", fragment);
             Assert.Contains("title=\"Interactive tutorial triangle\"", fragment);
             Assert.DoesNotContain("runtime-caption", fragment);

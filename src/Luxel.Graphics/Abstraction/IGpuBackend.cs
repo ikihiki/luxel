@@ -44,6 +44,12 @@ public interface IGpuBackend : IDisposable
     IGpuBackendSurface CreateSurface(in NativeSurfaceDescriptor descriptor, uint width, uint height);
 }
 
+/// <summary>CSS selector/token で browser canvas surface を生成できる additive backend contract。</summary>
+public interface ICanvasGpuBackend
+{
+    IGpuBackendSurface CreateCanvasSurface(string canvasToken, uint width, uint height);
+}
+
 /// <summary>スワップチェーン提示面。RGBA8 バッファをバックバッファへコピーして present する。</summary>
 public interface IGpuBackendSurface : IDisposable
 {
