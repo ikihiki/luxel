@@ -35,6 +35,8 @@
     &lt;AssemblyName&gt;LuxelTriangle&lt;/AssemblyName&gt;
     &lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;
     &lt;Nullable&gt;enable&lt;/Nullable&gt;
+    &lt;PlatformTarget Condition=&quot;$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'X64'&quot;&gt;x64&lt;/PlatformTarget&gt;
+    &lt;PlatformTarget Condition=&quot;$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'Arm64'&quot;&gt;arm64&lt;/PlatformTarget&gt;
   &lt;/PropertyGroup&gt;
 
   &lt;PropertyGroup Condition=&quot;$([MSBuild]::IsOSPlatform('Windows'))&quot;&gt;
@@ -44,6 +46,7 @@
   &lt;ItemGroup&gt;
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.Graphics\Luxel.Graphics.csproj&quot; /&gt;
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.RenderGraph\Luxel.RenderGraph.csproj&quot; /&gt;
+    &lt;ProjectReference Include=&quot;..\..\src\Luxel.Graphics.WebGPU\Luxel.Graphics.WebGPU.csproj&quot; /&gt;
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj&quot; /&gt;
   &lt;/ItemGroup&gt;
 
@@ -58,6 +61,9 @@
   &lt;/ItemGroup&gt;
 
   &lt;Import Project=&quot;..\..\shaders\Luxel.Shaders.targets&quot; /&gt;
+  &lt;ItemGroup&gt;
+    &lt;Compile Include=&quot;..\CanonicalTriangleRecipe.cs&quot; Link=&quot;CanonicalTriangleRecipe.cs&quot; /&gt;
+  &lt;/ItemGroup&gt;
   &lt;ItemGroup&gt;
     &lt;Using Include=&quot;Luxel.Graphics&quot; /&gt;
   &lt;/ItemGroup&gt;
@@ -79,7 +85,7 @@ using Luxel.Platform.Windows;
 using Luxel.Platform.Silk;
 #endif
 
-string backend = args.FirstOrDefault(a =&gt; a is &quot;vk&quot; or &quot;vulkan&quot; or &quot;dx&quot; or &quot;d3d12&quot;)?.ToLowerInvariant() ?? &quot;vk&quot;;
+string backend = args.FirstOrDefault(a =&gt; a is &quot;vk&quot; or &quot;vulkan&quot; or &quot;dx&quot; or &quot;d3d12&quot; or &quot;webgpu&quot; or &quot;wgpu&quot;)?.ToLowerInvariant() ?? &quot;vk&quot;;
 int? frameLimit = ParseFrameLimit(args);
 TutorialStage stage = ParseStage(args);
 (int initialWidth, int initialHeight) = ParseSize(args);
@@ -109,7 +115,7 @@ static int Run(string backend, int? frameLimit, TutorialStage stage, int initial
 #endif
         Window window = windows.CreateWindow(new WindowDesc($&quot;Luxel — 3D Tutorial ({stage})&quot;, initialWidth, initialHeight));
         using GpuDevice device = CreateDevice(backend, window);
-        using GpuSurface surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
+        using GpuSurface surface = device.CreateSurface(window.GetFeature&lt;INativeSurfaceProvider&gt;()!.SurfaceDescriptor, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
         using var renderer = new TriangleRenderer(device, stage);
 
         int width = Math.Max(0, window.Width);
@@ -172,9 +178,12 @@ static GpuDevice CreateDevice(string backend, Window window)
     return backend switch
     {
         &quot;dx&quot; or &quot;d3d12&quot; =&gt; new GpuDevice(Luxel.Graphics.DirectX12.D3D12Backend.Create()),
+        &quot;webgpu&quot; or &quot;wgpu&quot; =&gt; new GpuDevice(Luxel.Graphics.WebGPU.WebGpuBackend.Create()),
         _ =&gt; new GpuDevice(VulkanBackend.Create()),
     };
 #else
+    if (backend is &quot;webgpu&quot; or &quot;wgpu&quot;)
+        return new GpuDevice(Luxel.Graphics.WebGPU.WebGpuBackend.Create());
     IVulkanWindowSurface provider = window.GetFeature&lt;IVulkanWindowSurface&gt;()
         ?? throw new PlatformNotSupportedException(&quot;Linux/X11 window did not provide a Vulkan surface.&quot;);
     return new GpuDevice(VulkanBackend.Create(new VulkanBackendOptions
@@ -340,10 +349,10 @@ internal sealed class TriangleRenderer : IDisposable
 
         if (stage == TutorialStage.Triangle)
         {
-            TutorialAbi.Vertex[] vertices = CreateTriangleVertices();
+            CanonicalTriangleRecipe.Vertex[] vertices = CanonicalTriangleRecipe.CreateVertices();
             _indexCount = 3;
-            _vertices = device.Malloc(checked((ulong)vertices.Length * TutorialAbi.VertexSize), GpuMemoryKind.HostMapped);
-            vertices.CopyTo(_vertices.Span&lt;TutorialAbi.Vertex&gt;(vertices.Length));
+            _vertices = device.Malloc(checked((ulong)vertices.Length * CanonicalTriangleRecipe.VertexSize), GpuMemoryKind.HostMapped);
+            vertices.CopyTo(_vertices.Span&lt;CanonicalTriangleRecipe.Vertex&gt;(vertices.Length));
             _indices = device.Malloc(sizeof(uint), GpuMemoryKind.HostMapped); // Unused by the first-triangle stage.
         }
         else
@@ -366,7 +375,7 @@ internal sealed class TriangleRenderer : IDisposable
         raster.CullMode = stage is TutorialStage.Lighting or TutorialStage.Graph or TutorialStage.PostProcess
             ? GpuCullMode.Back : GpuCullMode.None;
         raster.FrontFace = GpuFrontFace.CounterClockwise;
-        string shader = stage == TutorialStage.Triangle ? &quot;tutorial_triangle&quot; : &quot;tutorial_3d&quot;;
+        string shader = stage == TutorialStage.Triangle ? CanonicalTriangleRecipe.Shader : &quot;tutorial_3d&quot;;
         _pipeline = device.CreateGraphicsPipeline(GpuShaderCode.Load(shader), raster);
         _postPipeline = device.CreateComputePipeline(GpuShaderCode.Load(&quot;compute_tutorial_postprocess&quot;));
     }
@@ -405,7 +414,7 @@ internal sealed class TriangleRenderer : IDisposable
 
         if (_stage == TutorialStage.Triangle)
         {
-            var triangleArgs = new TutorialAbi.DrawArgs { VertexBufferIndex = _vertices.BindlessIndex };
+            var triangleArgs = new CanonicalTriangleRecipe.DrawArgs { VertexBufferIndex = _vertices.BindlessIndex };
             using GpuCommandBuffer triangleCommand = _device.MainQueue.StartCommandRecording();
             triangleCommand.BeginRendering(_target, null, 0.055f, 0.07f, 0.11f, 1)
                 .SetGraphicsPipeline(_pipeline)
@@ -553,13 +562,6 @@ internal sealed class TriangleRenderer : IDisposable
 
     private static bool UsesDepth(TutorialStage stage)
         =&gt; stage is TutorialStage.Transform or TutorialStage.Lighting or TutorialStage.Graph or TutorialStage.PostProcess;
-
-    private static TutorialAbi.Vertex[] CreateTriangleVertices() =&gt;
-    [
-        new() { Px = 0, Py = -0.72f, Pz = 0, Pw = 1, R = 1, G = 0.18f, B = 0.18f, A = 1 },
-        new() { Px = 0.72f, Py = 0.62f, Pz = 0, Pw = 1, R = 0.18f, G = 1, B = 0.28f, A = 1 },
-        new() { Px = -0.72f, Py = 0.62f, Pz = 0, Pw = 1, R = 0.2f, G = 0.42f, B = 1, A = 1 },
-    ];
 
     private static Vertex3D V(float x, float y, float z, Vector3 normal, float u, float v)
         =&gt; new() { Position = new Vector3(x, y, z), Normal = normal, Uv = new Vector2(u, v) };

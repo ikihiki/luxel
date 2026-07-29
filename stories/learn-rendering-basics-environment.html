@@ -60,9 +60,12 @@ dotnet run --project samples/LuxelTriangle -- dx
     return backend switch
     {
         &quot;dx&quot; or &quot;d3d12&quot; =&gt; new GpuDevice(Luxel.Graphics.DirectX12.D3D12Backend.Create()),
+        &quot;webgpu&quot; or &quot;wgpu&quot; =&gt; new GpuDevice(Luxel.Graphics.WebGPU.WebGpuBackend.Create()),
         _ =&gt; new GpuDevice(VulkanBackend.Create()),
     };
 #else
+    if (backend is &quot;webgpu&quot; or &quot;wgpu&quot;)
+        return new GpuDevice(Luxel.Graphics.WebGPU.WebGpuBackend.Create());
     IVulkanWindowSurface provider = window.GetFeature&lt;IVulkanWindowSurface&gt;()
         ?? throw new PlatformNotSupportedException(&quot;Linux/X11 window did not provide a Vulkan surface.&quot;);
     return new GpuDevice(VulkanBackend.Create(new VulkanBackendOptions

@@ -30,6 +30,8 @@
     &lt;AssemblyName&gt;LuxelTriangle&lt;/AssemblyName&gt;
     &lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;
     &lt;Nullable&gt;enable&lt;/Nullable&gt;
+    &lt;PlatformTarget Condition=&quot;$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'X64'&quot;&gt;x64&lt;/PlatformTarget&gt;
+    &lt;PlatformTarget Condition=&quot;$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'Arm64'&quot;&gt;arm64&lt;/PlatformTarget&gt;
   &lt;/PropertyGroup&gt;
 
   &lt;PropertyGroup Condition=&quot;$([MSBuild]::IsOSPlatform('Windows'))&quot;&gt;
@@ -39,6 +41,7 @@
   &lt;ItemGroup&gt;
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.Graphics\Luxel.Graphics.csproj&quot; /&gt;
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.RenderGraph\Luxel.RenderGraph.csproj&quot; /&gt;
+    &lt;ProjectReference Include=&quot;..\..\src\Luxel.Graphics.WebGPU\Luxel.Graphics.WebGPU.csproj&quot; /&gt;
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj&quot; /&gt;
   &lt;/ItemGroup&gt;
 
@@ -53,6 +56,9 @@
   &lt;/ItemGroup&gt;
 
   &lt;Import Project=&quot;..\..\shaders\Luxel.Shaders.targets&quot; /&gt;
+  &lt;ItemGroup&gt;
+    &lt;Compile Include=&quot;..\CanonicalTriangleRecipe.cs&quot; Link=&quot;CanonicalTriangleRecipe.cs&quot; /&gt;
+  &lt;/ItemGroup&gt;
   &lt;ItemGroup&gt;
     &lt;Using Include=&quot;Luxel.Graphics&quot; /&gt;
   &lt;/ItemGroup&gt;
@@ -78,7 +84,7 @@
 #endif
         Window window = windows.CreateWindow(new WindowDesc($&quot;Luxel — 3D Tutorial ({stage})&quot;, initialWidth, initialHeight));
         using GpuDevice device = CreateDevice(backend, window);
-        using GpuSurface surface = device.CreateSurface(window.Handle, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
+        using GpuSurface surface = device.CreateSurface(window.GetFeature&lt;INativeSurfaceProvider&gt;()!.SurfaceDescriptor, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
         using var renderer = new TriangleRenderer(device, stage);
 
         int width = Math.Max(0, window.Width);

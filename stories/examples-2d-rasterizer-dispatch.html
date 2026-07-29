@@ -86,11 +86,16 @@ public class GpuDeviceRasterizer2D : IRasterizer2D
     private uint _boundsCap, _tilesCap;
 
     public GpuDeviceRasterizer2D(GpuDevice device)
+        : this(device, name =&gt; GpuShaderCode.Load(name)) { }
+
+    /// &lt;summary&gt;シェーダ供給元を注入する。browser/AOT の EmbeddedResource 利用など filesystem 非依存 host 向け。&lt;/summary&gt;
+    public GpuDeviceRasterizer2D(GpuDevice device, Func&lt;string, GpuShaderCode&gt; shaderProvider)
     {
-        _device = device;
-        _bounds = device.CreateComputePipeline(GpuShaderCode.Load(&quot;raster2d_bounds&quot;));
-        _bin = device.CreateComputePipeline(GpuShaderCode.Load(&quot;raster2d_bin&quot;));
-        _fine = device.CreateComputePipeline(GpuShaderCode.Load(&quot;raster2d_fine&quot;));
+        _device = device ?? throw new ArgumentNullException(nameof(device));
+        ArgumentNullException.ThrowIfNull(shaderProvider);
+        _bounds = device.CreateComputePipeline(shaderProvider(&quot;raster2d_bounds&quot;));
+        _bin = device.CreateComputePipeline(shaderProvider(&quot;raster2d_bin&quot;));
+        _fine = device.CreateComputePipeline(shaderProvider(&quot;raster2d_fine&quot;));
     }
 
     public string Name =&gt; &quot;GpuDevice&quot;;

@@ -8,12 +8,12 @@
 <li><a href="#story=Internals%2FArchitecture&amp;section=3d-%2F-%E3%83%AC%E3%83%B3%E3%83%80%E3%83%BC%E3%82%B0%E3%83%A9%E3%83%95-%2F-%E3%83%AA%E3%82%BD%E3%83%BC%E3%82%B9">3D / レンダーグラフ / リソース</a></li>
 <li><a href="#story=Internals%2FArchitecture&amp;section=%E3%83%A9%E3%83%B3%E3%82%BF%E3%82%A4%E3%83%A0%E3%81%A8%E3%83%84%E3%83%BC%E3%83%AB">ランタイムとツール</a></li>
 <li><a href="#story=Internals%2FArchitecture&amp;section=%E3%83%97%E3%83%AD%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88%E4%B8%80%E8%A6%A7">プロジェクト一覧</a></li>
-<li><a href="#story=Internals%2FArchitecture&amp;section=vk-%2F-dx-%E3%83%94%E3%82%AF%E3%82%BB%E3%83%AB%E4%B8%80%E8%87%B4%E3%81%A8%E3%81%84%E3%81%86%E8%A6%8F%E5%BE%8B">vk / dx ピクセル一致という規律</a></li>
+<li><a href="#story=Internals%2FArchitecture&amp;section=backend-%E5%9B%9E%E5%B8%B0%E3%81%A8%E3%81%84%E3%81%86%E8%A6%8F%E5%BE%8B">backend 回帰という規律</a></li>
 </ul>
-<p>Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。</p>
-<figure class="static-capture"><img src="images/mermaid-49aa4b3f202c0da23f4d.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
+<p>Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。下図は native WebGPU を明示 opt-in lowering として加える目標構成を含みます。</p>
+<figure class="static-capture"><img src="images/mermaid-44fcfa88cb366d16325e.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
 <h2 id="gpu">GPU 土台</h2>
-<p><code>Luxel.Graphics</code> が GpuDevice / バッファ / テクスチャ / パイプライン / コマンドの薄い抽象を提供し、<code>Luxel.Graphics.Vulkan</code> と <code>Luxel.Graphics.DirectX12</code> が実装します。全パイプラインが <strong>固定レイアウト</strong> (最大192Bのルート引数 + bindless heap) を共有するため、ディスクリプタセットの管理も PSO のバリアントも存在しません。シェーダは Slang で 1 回書き、SPIR-V / DXIL の両方へコンパイルされます。</p>
+<p><code>Luxel.Graphics</code> が GpuDevice / resource / argument block / pass / dependency の portable semantics を提供し、各 backend が native mechanism へ lower します。Vulkan と DirectX 12 は bindless heap、GPUVA、push/root constants、native barrier を fast path として維持し、native WebGPU は logical refs、fixed bind groups、frame-local argument ring、pass/encoder segmentation を使う明示 opt-in backend として加える方針です。shader package は entry/metadata と SPIR-V / DXIL / portable WGSL artifact を束ねます。詳細は <a href="#story=Reference%2FGuides%2FWebGPU">Reference/Guides/WebGPU</a> へ。</p>
 <h2 id="d">2D とテキスト</h2>
 <p><code>Luxel.Graphics.TwoD</code>はbackend-neutralな2D契約、computeベースのGPUベクターラスタライザ、保持型キャンバスを提供します。<code>Luxel.Typography</code>はGPU非依存のHarfBuzzシェーピング + 自前TextLayout、<code>Luxel.Typography.TwoD</code>はScene2D描画adapter、<code>Luxel.Typography.Icu</code>はICUセグメンタを提供します。</p>
 <h2 id="ui">UI とコントロール</h2>
@@ -36,8 +36,8 @@
 </thead>
 <tbody>
 <tr>
-<td>Luxel.Graphics / Luxel.Graphics.Vulkan / Luxel.Graphics.DirectX12</td>
-<td>GPU 抽象とバックエンド</td>
+<td>Luxel.Graphics / Luxel.Graphics.Vulkan / Luxel.Graphics.DirectX12 / Luxel.Graphics.WebGPU (追加方針)</td>
+<td>portable GPU semantics と backend lowering</td>
 </tr>
 <tr>
 <td>Luxel.Graphics.TwoD</td>
@@ -105,8 +105,8 @@
 </tr>
 </tbody>
 </table>
-<h2 id="vk-dx">vk / dx ピクセル一致という規律</h2>
-<p>すべての描画機能は Vulkan と DirectX 12 の両方で動き、e2e回帰は<strong>バックエンド別の golden</strong> と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。新機能はどちらか一方で「たまたま動く」ことを許さない — これが薄い抽象を薄いまま保つための開発規律です。</p>
+<h2 id="backend">backend 回帰という規律</h2>
+<p>既存の描画機能は Vulkan と DirectX 12 の両方で動き、e2e回帰は<strong>バックエンド別の golden</strong> と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。WebGPU 対応を表明する機能は同じ backend-neutral story を WGSL/manifest、limits、diagnostics を含む専用ゲートで検証します。どれか一つの backend で「たまたま動く」ことを許さず、差を lowering と capability に閉じ込めることが、薄い抽象を保つ開発規律です。</p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/Architecture&quot;, Order = 1)]
 public static Widget Architecture(StoryContext ctx)
 {
@@ -114,7 +114,7 @@ public static Widget Architecture(StoryContext ctx)
     return DocNew(ctx, $$&quot;&quot;&quot;
     # アーキテクチャ
 
-    Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。
+    Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。下図は native WebGPU を明示 opt-in lowering として加える目標構成を含みます。
 
     ```mermaid
     flowchart TB
@@ -135,11 +135,12 @@ public static Widget Architecture(StoryContext ctx)
     twod --&gt; gpu
     gpu --&gt; vk(Luxel.Graphics.Vulkan)
     gpu --&gt; dx(Luxel.Graphics.DirectX12)
+    gpu --&gt; wgpu[Luxel.Graphics.WebGPU — native opt-in target]
     ```
 
     ## GPU 土台
 
-    `Luxel.Graphics` が GpuDevice / バッファ / テクスチャ / パイプライン / コマンドの薄い抽象を提供し、`Luxel.Graphics.Vulkan` と `Luxel.Graphics.DirectX12` が実装します。全パイプラインが **固定レイアウト** (最大192Bのルート引数 + bindless heap) を共有するため、ディスクリプタセットの管理も PSO のバリアントも存在しません。シェーダは Slang で 1 回書き、SPIR-V / DXIL の両方へコンパイルされます。
+    `Luxel.Graphics` が GpuDevice / resource / argument block / pass / dependency の portable semantics を提供し、各 backend が native mechanism へ lower します。Vulkan と DirectX 12 は bindless heap、GPUVA、push/root constants、native barrier を fast path として維持し、native WebGPU は logical refs、fixed bind groups、frame-local argument ring、pass/encoder segmentation を使う明示 opt-in backend として加える方針です。shader package は entry/metadata と SPIR-V / DXIL / portable WGSL artifact を束ねます。詳細は [Reference/Guides/WebGPU](story:Reference/Guides/WebGPU) へ。
 
     ## 2D とテキスト
 
@@ -169,7 +170,7 @@ public static Widget Architecture(StoryContext ctx)
 
     | プロジェクト | 役割 |
     | --- | --- |
-    | Luxel.Graphics / Luxel.Graphics.Vulkan / Luxel.Graphics.DirectX12 | GPU 抽象とバックエンド |
+    | Luxel.Graphics / Luxel.Graphics.Vulkan / Luxel.Graphics.DirectX12 / Luxel.Graphics.WebGPU (追加方針) | portable GPU semantics と backend lowering |
     | Luxel.Graphics.TwoD | 2D ベクターラスタライザ + 保持型キャンバス |
     | Luxel.Typography (+ .Icu) / Luxel.Typography.TwoD | GPU非依存レイアウト・シェーピング・ICU / Scene2D描画adapter |
     | Luxel.UI (+ .Generators, .Tailwind) | 宣言的 UI / signals / ソースジェネレーター |
@@ -187,8 +188,8 @@ public static Widget Architecture(StoryContext ctx)
     | Luxel.DevTools (+ .App) | デバッガ / HTTP DebugServer |
     | Luxel.Gallery | この Gallery (docs + デモ + e2e/bench) |
 
-    ## vk / dx ピクセル一致という規律
+    ## backend 回帰という規律
 
-    すべての描画機能は Vulkan と DirectX 12 の両方で動き、e2e回帰は**バックエンド別の golden** と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。新機能はどちらか一方で「たまたま動く」ことを許さない — これが薄い抽象を薄いまま保つための開発規律です。
+    既存の描画機能は Vulkan と DirectX 12 の両方で動き、e2e回帰は**バックエンド別の golden** と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。WebGPU 対応を表明する機能は同じ backend-neutral story を WGSL/manifest、limits、diagnostics を含む専用ゲートで検証します。どれか一つの backend で「たまたま動く」ことを許さず、差を lowering と capability に閉じ込めることが、薄い抽象を保つ開発規律です。
     &quot;&quot;&quot;, toc: true);
 }</code></pre></details></article>
