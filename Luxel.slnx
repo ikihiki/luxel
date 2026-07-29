@@ -78,6 +78,7 @@
     <Project Path="samples/LuxelTwoD/LuxelTwoD.csproj" />
     <Project Path="samples/LuxelFramework/LuxelFramework.csproj" />
     <Project Path="samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj" />
+    <Project Path="samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj" />
     <Project Path="samples/LuxelUiHeadless/LuxelUiHeadless.csproj" />
     <Project Path="samples/LuxelInput/LuxelInput.csproj" />
     <Project Path="samples/LuxelAudio/LuxelAudio.csproj" />

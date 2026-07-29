@@ -100,6 +100,21 @@ internal static class SampleBundles
             SmokeCommand: "dotnet run --project samples/LuxelWebGpuHeadless -c Release", Platforms: ["Windows", "Linux"],
             ExpectedStdoutMarker: "status=pass"));
         SampleBundleRegistry.Register(new SampleBundleInfo(
+            "rendering.webgpu-browser", "Browser-WASM WebGPU canvas",
+            "Browser-WASM recipe covering async WebGPU initialization, fixed-ABI embedded WGSL compute, textured offscreen rendering, canvas presentation and DOM input/resize events.", "Intermediate",
+            SampleCopyLevel.StandaloneProject,
+            [new("samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj", SampleFileKind.Project),
+             new("samples/LuxelWebGpuBrowser/Program.cs", SampleFileKind.CSharp),
+             new("samples/LuxelWebGpuBrowser/README.md", SampleFileKind.Asset),
+             new("samples/LuxelWebGpuBrowser/wwwroot/index.html", SampleFileKind.Asset),
+             new("samples/LuxelWebGpuBrowser/wwwroot/main.js", SampleFileKind.Asset),
+             new("samples/LuxelWebGpuBrowser/Shaders/compute.wgsl", SampleFileKind.Shader),
+             new("samples/LuxelWebGpuBrowser/Shaders/triangle.wgsl", SampleFileKind.Shader)],
+            Dependencies: ["support.source-tree"], Requirements: [".NET 10", "wasm-tools workload", "WebGPU browser", "HTTPS or localhost"],
+            ExportSymbol: "LuxelWebGpuBrowser.Program", RunCommand: "dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release",
+            SmokeCommand: "dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release", Platforms: ["Browser/WASM"],
+            ExpectedStdoutMarker: "data-status=pass", TimeoutSeconds: 240));
+        SampleBundleRegistry.Register(new SampleBundleInfo(
             "rendering.app-host", "Standalone app host",
             "Window, GPU device, surface, resize, frame loop and deterministic shutdown.", "Beginner",
             SampleCopyLevel.Block,

@@ -1,0 +1,49 @@
+name: Test Browser WebGPU
+
+on:
+  pull_request:
+    paths:
+      - 'src/Luxel.Graphics/**'
+      - 'src/Luxel.Graphics.WebGPU.Browser/**'
+      - 'src/Luxel.Platform/**'
+      - 'src/Luxel.Platform.Web/**'
+      - 'samples/LuxelWebGpuBrowser/**'
+      - 'tests/Luxel.WebGPU.Browser.Tests/**'
+      - 'src/Luxel.Gallery/SampleBundles.cs'
+      - 'src/Luxel.Gallery/Stories/Docs/DocsGpuWebGpu.cs'
+      - 'src/Luxel.Gallery/Stories/Docs/Adr/Adr0019.cs'
+      - 'Luxel.slnx'
+      - '.github/workflows/test-webgpu-browser.yml'
+      - '.github/workflows/deploy-pages.yml'
+      - '.github/workflows/preview-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-swiftshader:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Install browser WebAssembly workload
+        run: dotnet workload install wasm-tools
+      - name: Validate project dependency graph
+        run: python3 eng/check-project-dependencies.py
+      - name: Restore
+        run: |
+          dotnet restore samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj
+          dotnet restore tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj
+      - name: Publish browser sample
+        run: dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release --no-restore
+      - name: Build browser tests
+        run: dotnet build tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj -c Release --no-restore
+      - name: Install Playwright Chromium
+        run: pwsh tests/Luxel.WebGPU.Browser.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+      - name: Run browser smoke
+        env:
+          LUXEL_BROWSER_WASM_APPBUNDLE: samples/LuxelWebGpuBrowser/bin/Release/net10.0/publish/wwwroot
+        run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj -c Release --no-build --filter Published_sample

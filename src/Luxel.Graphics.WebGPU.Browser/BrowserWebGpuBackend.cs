@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Luxel.Graphics.Abstraction;
@@ -50,10 +51,12 @@ public sealed class BrowserWebGpuBackend : IGpuBackend
     {
         ArgumentNullException.ThrowIfNull(interop);
         string json = await interop.InitializeAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
-        var result = JsonSerializer.Deserialize<InitializationResult>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web))
-            ?? throw new InvalidOperationException("WebGPU initialization returned no result.");
-        if (result.Handle <= 0) throw new InvalidOperationException("WebGPU initialization returned an invalid backend handle.");
-        return new BrowserWebGpuBackend(interop, result.Handle, result.Name ?? "WebGPU / browser");
+        using JsonDocument document = JsonDocument.Parse(json);
+        JsonElement root = document.RootElement;
+        int handle = root.GetProperty("handle").GetInt32();
+        string? name = root.TryGetProperty("name", out JsonElement nameElement) ? nameElement.GetString() : null;
+        if (handle <= 0) throw new InvalidOperationException("WebGPU initialization returned an invalid backend handle.");
+        return new BrowserWebGpuBackend(interop, handle, name ?? "WebGPU / browser");
     }
 
     public IGpuBackendBuffer CreateBuffer(ulong size, GpuMemoryKind kind)
@@ -95,17 +98,10 @@ public sealed class BrowserWebGpuBackend : IGpuBackend
         ValidateColorFormat(raster.ColorFormat);
         if ((raster.DepthTest || raster.DepthWrite) && raster.DepthFormat != GpuFormat.D32Float)
             throw new NotSupportedException("Browser WebGPU supports D32Float depth targets only.");
-        string rasterJson = JsonSerializer.Serialize(new
-        {
-            colorFormat = (int)raster.ColorFormat,
-            topology = (int)raster.Topology,
-            depthTest = raster.DepthTest,
-            depthWrite = raster.DepthWrite,
-            depthFormat = (int)raster.DepthFormat,
-            blend = (int)raster.Blend,
-            cullMode = (int)raster.CullMode,
-            frontFace = (int)raster.FrontFace,
-        });
+        string rasterJson = string.Create(CultureInfo.InvariantCulture,
+            $"{{\"colorFormat\":{(int)raster.ColorFormat},\"topology\":{(int)raster.Topology}," +
+            $"\"depthTest\":{raster.DepthTest.ToString().ToLowerInvariant()},\"depthWrite\":{raster.DepthWrite.ToString().ToLowerInvariant()}," +
+            $"\"depthFormat\":{(int)raster.DepthFormat},\"blend\":{(int)raster.Blend},\"cullMode\":{(int)raster.CullMode},\"frontFace\":{(int)raster.FrontFace}}}");
         int handle = _interop.CreateGraphicsPipeline(Handle, Convert.ToBase64String(vsBlob), vsEntry,
             Convert.ToBase64String(psBlob), psEntry, rasterJson);
         return new BrowserWebGpuPipeline(this, handle, false);

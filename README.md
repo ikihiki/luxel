@@ -92,6 +92,18 @@ Gallery のサイドバー **Start/Welcome** を唯一の入口とし、そこ�
 **Build** のコピー可能bundle、**Examples** の動く実例、**Reference** の詳細APIへ進む。READMEは起動方法だけを扱い、
 学習順序と現在の機能範囲はGallery側を正とする。左上の検索欄で本文を全文検索できる。
 
+### Browser-WASM WebGPU
+
+`Luxel.Platform.Web` + `Luxel.Graphics.WebGPU.Browser` の .NET 10 browser-WASM sampleは、async device初期化、embedded fixed-ABI WGSL compute、textured offscreen render/readback、canvas present、`requestAnimationFrame`、resize/pointer/key event counterを実行します。native projectsは参照せず、DOM/WebGPU objectはJavaScript registryに保持します。
+
+```bash
+dotnet workload install wasm-tools
+dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release
+python3 -m http.server 8080 -d samples/LuxelWebGpuBrowser/bin/Release/net10.0/publish/wwwroot
+```
+
+WebGPUはsecure contextが必要です。開発時は`http://localhost:8080/`、remote配信はHTTPSを使用してください。Gallery Pagesでは`/samples/webgpu-browser/`相当のsubpathへAppBundleを配置し、sample内部はrelative URLのみを使います。
+
 ### Headless WebGPU
 
 WebGPU backendはheadless/offscreenに加えて、明示的opt-inでWin32 HWNDとLinux X11/Xlib windowへpresentできます。公開`GpuDevice` APIでinline WGSL compute、offscreen triangle、

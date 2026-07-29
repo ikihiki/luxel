@@ -20,6 +20,9 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+      - name: Install browser WebAssembly workload
+        if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        run: dotnet workload install wasm-tools
       - name: Install and select lavapipe
         run: |
           sudo apt-get update
@@ -32,8 +35,19 @@ jobs:
         run: dotnet build Luxel.slnx --no-restore --configuration Release
       - name: Test exporter and documentation contracts
         run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
+      - name: Publish browser WebGPU sample
+        run: dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj --no-restore --configuration Release
+
       - name: Export static Gallery
         run: dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --no-build --configuration Release -- artifacts/gallery-site
+      - name: Add subpath-safe browser WebGPU sample
+        run: |
+          mkdir -p artifacts/gallery-site/samples/webgpu-browser
+          cp -a samples/LuxelWebGpuBrowser/bin/Release/net10.0/publish/wwwroot/. artifacts/gallery-site/samples/webgpu-browser/
+          test -f artifacts/gallery-site/samples/webgpu-browser/index.html
+          test -f artifacts/gallery-site/samples/webgpu-browser/_framework/dotnet.js
+          ! grep -R -E '(src|href)="/' artifacts/gallery-site/samples/webgpu-browser/index.html artifacts/gallery-site/samples/webgpu-browser/main.js
+
       - name: Deploy production Gallery
         uses: JamesIves/github-pages-deploy-action@v4.8.0
         with:

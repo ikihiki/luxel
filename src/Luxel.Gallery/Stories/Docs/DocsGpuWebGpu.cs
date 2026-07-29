@@ -7,11 +7,11 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsGpu
 {
-    [Story("Reference/Guides/WebGPU", Order = 17, SampleBundle = "rendering.webgpu-headless")]
+    [Story("Reference/Guides/WebGPU", Order = 17, SampleBundle = "rendering.webgpu-browser")]
     public static Widget WebGpu(StoryContext ctx) => DocNew(ctx, $$"""
         # WebGPU backend 設計ガイド
 
-        このページは native WebGPU backend が満たす**設計契約と対応範囲**を定義します。特定の build や platform が利用可能かどうかは、adapter/device 作成、required feature/limit 検査、代表 story の回帰ゲートで判定します。この文書だけを根拠に「対応済み」または「実装進行中」とは扱いません。
+        このページは native と browser/WASM の WebGPU backend が満たす**設計契約と対応範囲**を定義します。特定の build や platform が利用可能かどうかは、adapter/device 作成、required feature/limit 検査、代表 story の回帰ゲートで判定します。この文書だけを根拠に「対応済み」または「実装進行中」とは扱いません。
 
         背景となる決定は [ADR-0019](story:Internals/ADR/0019-Portable-Gpu-Semantics-WebGPU-Backend)、共通 API の入口は [Reference/Guides/GpuDevice](story:Reference/Guides/GpuDevice)、pass 間依存は [Reference/Guides/RenderGraph](story:Reference/Guides/RenderGraph) を参照してください。
 
@@ -19,20 +19,26 @@ public static partial class DocsGpu
 
         | 項目 | 契約 |
         | --- | --- |
-        | 対象 | native desktop の Windows と Linux。headless/offscreenとWin32 HWND / Linux X11(Xlib) surface |
+        | 対象 | native desktop の Windows/Linux と、secure context (HTTPSまたはlocalhost) のbrowser-WASM |
         | 選択 | `WebGpuBackend.Create()`またはwindowed hostの`webgpu|wgpu`明示opt-in |
         | 既定 | Windows / Linux の既定 backend は変更しない |
         | surface | configure/acquire/present、resize、lost/outdated再configure。RGBA arena bufferはfullscreen WGSL blitでsurface formatへ変換 |
-        | 初期スコープ外 | browser/WASM、macOS、未検証 RID、未検証 Native AOT、固定portable ABI外のshader resource model |
+        | 初期スコープ外 | macOS、未検証 RID、未検証 Native AOT、固定portable ABI外のshader resource model |
         | 対応判定 | required feature/limit と shader package を検査し、代表headless/offscreen回帰が通ること |
 
         WebGPU は「どの環境でも動く互換モード」ではありません。adapter が必要な limit を満たさない、native runtime と binding の ABI が一致しない、対象 shader artifact が無い、といった場合は backend 作成または pipeline 作成で明示的に失敗します。
 
-        `samples/LuxelWebGpuHeadless`は公開`GpuDevice` APIでWGSL compute、storage arenaからのvertex pulling、sampled checkerboardを使うoffscreen triangle、`HostCached` readbackを実行して結果を自己検証します。windowed plumbingは`Luxel.WebGPU.Present.Tests`のX11 present/resizeと、`LuxelTriangle webgpu --frames 3 --stage triangle`で検証します。Git管理された22本のshader cacheはすべてWGSLを含み、`GpuShaderCode.Load`がbackendに応じて選択します。
+        `samples/LuxelWebGpuHeadless`はnativeの公開`GpuDevice` APIでWGSL compute、storage arenaからのvertex pulling、sampled checkerboardを使うoffscreen triangle、`HostCached` readbackを実行して結果を自己検証します。windowed plumbingは`Luxel.WebGPU.Present.Tests`のX11 present/resizeと、`LuxelTriangle webgpu --frames 3 --stage triangle`で検証します。Git管理された22本のshader cacheはすべてWGSLを含み、`GpuShaderCode.Load`がbackendに応じて選択します。
 
         **現時点の実装制限:** sampled resourceは固定portable ABIです。sampled textureとsamplerは各16個、textureはfilterableなRGBA8/BGRA8・2D・1 mipに限定されます。shader package全体のbinding metadata移行とunbounded runtime arrayは未実装なので、shaderは下記の固定bindingとlogical index loweringを明示する必要があります。未検証のstoryやplatformをWGSL artifactの存在だけで対応済みとは扱いません。
 
         {{SampleBundle("rendering.webgpu-headless")}}
+
+        `samples/LuxelWebGpuBrowser`は`Microsoft.NET.Sdk.WebAssembly`/`net10.0`で、`Luxel.Platform.Web`のcanvas window、Promiseをawaitするbrowser backend、embedded fixed-ABI WGSL compute、textured offscreen render/readback、canvas present、`requestAnimationFrame` loopとresize/pointer/key counterを実行します。DOM/WebGPU objectはJavaScript registryに保持し、managed側はinteger handleだけを保持します。配信はHTTPSまたはlocalhostが必要です。Pages版は相対URLだけを使うためsubpathでも動作します。
+
+        [Pagesでbrowser sampleを実行](../samples/webgpu-browser/)
+
+        {{SampleBundle("rendering.webgpu-browser")}}
 
         ## No Graphics API 原則との対応
 

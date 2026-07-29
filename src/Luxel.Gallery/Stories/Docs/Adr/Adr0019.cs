@@ -13,6 +13,7 @@ public static partial class DocsAdr
 
         - **Status**: Accepted
         - **Date**: 2026-07-28
+        - **Browser/WASM extension accepted**: 2026-07-29
         - **Deciders**: ikihiki
         - **Amends**: [ADR-0002](story:Internals/ADR/0002-Thin-Bindless-Gpu-Abstraction)
 
@@ -34,7 +35,7 @@ public static partial class DocsAdr
         - **pipeline / shader** — entry points、portable baked state、specialization values、backend artifacts、argument/resource metadata、required features/limits をまとめた shader package を使う。WebGPU の正式 artifact は WGSL とする
         - **diagnostics** — unsupported feature/limit は backend または pipeline 作成時に fail-fast し、required/actual、adapter、shader/pipeline label、logical ID を含める
 
-        初期対象は native Windows と Linux/X11 の明示 opt-in です。browser/WASM と macOS は初期スコープ外で、既定 backend は変更しません。利用者向けの設計契約は [Reference/Guides/WebGPU](story:Reference/Guides/WebGPU) に記録します。
+        初期対象は native Windows と Linux/X11 の明示 opt-in とし、2026-07-29 にbrowser/WASMを同じportable semanticsの追加loweringとして採用しました。macOSは引き続きスコープ外で、Auto backendの既定は変更しません。browserではDOM canvasとWebGPU objectをJavaScript registryに保持し、managed側はinteger handleを使います。device/queue/requestAnimationFrameはPromiseをawaitしてmain threadを同期blockせず、配布はrelative URLのWASM AppBundleをHTTPSまたはlocalhostからserveします。利用者向けの設計契約は [Reference/Guides/WebGPU](story:Reference/Guides/WebGPU) に記録します。
 
         現在のheadless実装は、group 0のbuffer arena/root uniformと、group 1のsampled texture 16 slot + sampler 16 slotからなる固定portable ABIを提供します。両resource kindのlogical indexは独立した`0..15`で、全pipelineが同じlayoutを使います。non-uniform indexing featureには依存せずWGSLの固定`switch`へlowerし、範囲外indexは明示的なdiagnostic結果にします。17個目のlive resource、必要limit不足、unsupported sampled formatはfail-fastし、recorded/in-flight bind groupが保持するresourceは完了までslot/native lifetimeを延長します。shader package全体のbinding metadataとunbounded runtime resource arrayは引き続き未対応です。
 
@@ -43,7 +44,7 @@ public static partial class DocsAdr
         - **ADR-0002 を上書きして WebGPU の却下理由を消す** — 当時の制約と判断が失われるため却下。履歴は残し、この ADR で Amends する
         - **GPUVA / bindless index / persistent map を WebGPU 上で疑似再現する** — sentinel、巨大 arena、暗黙 copy が共通 API の意味を曖昧にし、backend の制約が上位へ漏れるため却下
         - **WebGPU 専用の別グラフィック API を上位層へ公開する** — RenderGraph / TwoD / UI が backend 分岐を持つことになり、薄い共通契約を壊すため却下
-        - **browser/WASM まで初期対象に含める** — surface、配布、非同期実行、shader/toolchain の検証範囲が増え、native backend の契約確立を妨げるため見送り
+        - **browser/WASM まで初期対象に含める** — native契約確立時点では見送った。契約確立後の2026-07-29に、canvas token、async queue、WASM publish、Chromium SwiftShader smokeを独立した追加loweringとして採用
         - **WebGPU を既定 backend にする** — Vulkan/D3D12 の既存回帰と配布契約を不要に変えるため却下。初期は明示 opt-in とする
 
         ## Consequences
@@ -54,6 +55,7 @@ public static partial class DocsAdr
         - ⚠️ 共通 GPU API と shader ABI の移行が必要で、既存 backend の pixel / root argument / one-shot command 回帰を継続して守る必要がある
         - ⚠️ WebGPU では root argument ring、bind-group cache、upload/readback lifecycle、pass split の実装コストを backend が引き受ける
         - ⚠️ WebGPU の feature/limit と採用 native implementation の対応範囲により、pipeline が明示的に利用不能になる場合がある
-        - ⚠️ native Windows/Linux 以外、Immediate Data、unbounded runtime resource arrays、永続 CPU/GPU 同時 map は portable baseline に含まれない
+        - ⚠️ macOS、Immediate Data、unbounded runtime resource arrays、永続 CPU/GPU 同時 map は portable baseline に含まれない
+        - ⚠️ browser/WASMはsecure context、WebGPU対応browser、wasm-tools workload、async host lifecycleを必要とする
         """, toc: true);
 }

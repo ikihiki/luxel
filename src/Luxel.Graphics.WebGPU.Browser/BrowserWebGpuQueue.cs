@@ -1,4 +1,4 @@
-using System.Text.Json;
+using System.Text;
 using Luxel.Graphics.Abstraction;
 
 namespace Luxel.Graphics.WebGPU.Browser;
@@ -68,7 +68,16 @@ internal sealed class BrowserWebGpuQueue : IAsyncGpuBackendQueue
         => _backend.SnapshotBuffers().Where(static b => b.Kind == GpuMemoryKind.HostCached).ToArray();
 
     private static string SerializeReadbacks(BrowserWebGpuBuffer[] buffers)
-        => JsonSerializer.Serialize(buffers.Select(static b => new { offset = checked((int)b.Offset), size = checked((int)b.Size) }));
+    {
+        var json = new StringBuilder("[");
+        for (int i = 0; i < buffers.Length; i++)
+        {
+            if (i != 0) json.Append(',');
+            json.Append("{\"offset\":").Append(checked((int)buffers[i].Offset))
+                .Append(",\"size\":").Append(checked((int)buffers[i].Size)).Append('}');
+        }
+        return json.Append(']').ToString();
+    }
 
     private static void ApplyReadbacks(BrowserWebGpuBuffer[] buffers, string base64)
     {
