@@ -17,6 +17,10 @@ public sealed record SiteStory(string Path, string Name, string Component, strin
 
 public static partial class GallerySiteExporter
 {
+    private const string BrowserRuntimeStoryPath = "Examples/3D/Triangle";
+    private const string BrowserRuntimeEmbedPagePath = "Learn/Rendering/Basics/FirstTriangle";
+    private const string BrowserRuntimeUrl = "samples/webgpu-browser/";
+    private static readonly string[] BrowserRuntimeRequiredFiles = ["index.html", "main.js", Path.Combine("_framework", "dotnet.js")];
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
@@ -44,6 +48,12 @@ public static partial class GallerySiteExporter
         File.WriteAllText(Path.Combine(output, "site.css"), Css + StorySourceCss, new UTF8Encoding(false));
         File.WriteAllText(Path.Combine(output, "site.js"), Js, new UTF8Encoding(false));
 
+        bool requiresBrowserRuntime = stories.Any(story => story.Path is BrowserRuntimeStoryPath or BrowserRuntimeEmbedPagePath);
+        if (requiresBrowserRuntime && browserWebGpuRoot is null)
+            throw new InvalidOperationException("Browser WebGPU publish root is required when exporting the runtime triangle story or tutorial embed.");
+        if (browserWebGpuRoot is not null)
+            CopyBrowserRuntime(browserWebGpuRoot, Path.Combine(output, BrowserRuntimeUrl.Replace('/', Path.DirectorySeparatorChar)));
+
         var manifest = new List<SiteStory>();
         var imageCache = new Dictionary<string, (string? Url, string Status, string? Error, string Hash)>(StringComparer.Ordinal);
         int unavailable = 0, errors = 0;
@@ -57,10 +67,15 @@ public static partial class GallerySiteExporter
             string imageHash = "";
             TextEditorView? document = null;
 
-            string body;
+            string body = "";
             try
             {
-                if (story.RealWindowOnly)
+                if (story.Path == BrowserRuntimeStoryPath)
+                {
+                    status = "runtime";
+                    body = RuntimeStory(BrowserRuntimeStoryPath, embedded: false);
+                }
+                else if (story.RealWindowOnly)
                 {
                     status = "unavailable";
                     error = "This story requires a real window and is not available in the static gallery.";
@@ -98,12 +113,16 @@ public static partial class GallerySiteExporter
                     }
                 }
 
-                if (document is not null)
+                if (status == "runtime")
+                {
+                    // The runtime body was selected before any native realization or static capture.
+                }
+                else if (document is not null)
                 {
                     IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, document.DocSource!);
                     if (linkErrors.Count > 0)
                         throw new InvalidDataException("Broken documentation links: " + string.Join(", ", linkErrors));
-                    string md = ReplaceEmbeds(document.DocSource!, document.DocEmbeds, host, imagesDir, repositoryRoot,
+                    string md = ReplaceEmbeds(story.Path, document.DocSource!, document.DocEmbeds, host, imagesDir, repositoryRoot,
                         imageCache, ref unavailable, ref errors);
                     md = RewriteLocalImages(md, imagesDir, repositoryRoot);
                     md = ReplaceSpecialFences(md, host, imagesDir, ref errors);
@@ -125,7 +144,10 @@ public static partial class GallerySiteExporter
                 Console.Error.WriteLine($"[gallery-site] story export error '{story.Path}': {e}");
             }
 
-            string fragment = $"<article class=\"story\"><header><p class=\"static-badge\">Static capture — not interactive</p><h1>{H(story.Path)}</h1></header>{body}{BundleHtml(SampleBundleRegistry.Find(story.SampleBundle))}{StorySourceHtml(story.Source)}</article>";
+            string badge = status == "runtime"
+                ? "<p class=\"runtime-badge\">Live browser WebGPU runtime — interactive</p>"
+                : "<p class=\"static-badge\">Static capture — not interactive</p>";
+            string fragment = $"<article class=\"story\"><header>{badge}<h1>{H(story.Path)}</h1></header>{body}{BundleHtml(SampleBundleRegistry.Find(story.SampleBundle))}{StorySourceHtml(story.Source)}</article>";
             File.WriteAllText(Path.Combine(output, fragmentUrl.Replace('/', Path.DirectorySeparatorChar)), fragment, new UTF8Encoding(false));
             if (status == "unavailable") unavailable++;
             if (status == "error") errors++;
@@ -138,8 +160,6 @@ public static partial class GallerySiteExporter
 
         File.WriteAllText(Path.Combine(output, "manifest.json"), JsonSerializer.Serialize(manifest, Json) + "\n", new UTF8Encoding(false));
         File.WriteAllText(Path.Combine(output, "index.html"), Index, new UTF8Encoding(false));
-        if (browserWebGpuRoot is not null)
-            CopyDirectory(browserWebGpuRoot, Path.Combine(output, "samples", "webgpu-browser"));
         Validate(output);
         return new(stories.Count, Directory.GetFiles(imagesDir, "*.png").Length, unavailable, errors);
     }
@@ -173,8 +193,9 @@ public static partial class GallerySiteExporter
         return cache[story.Path] = ($"images/{file}", "captured", null, hash);
     }
 
-    private static string ReplaceEmbeds(string md, IReadOnlyList<DocEmbed> embeds, GalleryHost host, string imagesDir,
-        string repositoryRoot, Dictionary<string, (string? Url, string Status, string? Error, string Hash)> cache,
+    private static string ReplaceEmbeds(string containingStoryPath, string md, IReadOnlyList<DocEmbed> embeds, GalleryHost host,
+        string imagesDir, string repositoryRoot,
+        Dictionary<string, (string? Url, string Status, string? Error, string Hash)> cache,
         ref int unavailable, ref int errors)
     {
         for (int i = 0; i < embeds.Count; i++)
@@ -185,6 +206,10 @@ public static partial class GallerySiteExporter
                 html = ControlApiHtml(embed.Reference, embed.IncludeInherited);
             else if (embed.Kind == DocEmbedKind.TypeApiTable)
                 html = TypeApiHtml(embed.Reference);
+            else if (embed.Kind == DocEmbedKind.StoryRef
+                     && containingStoryPath == BrowserRuntimeEmbedPagePath
+                     && embed.Reference == BrowserRuntimeStoryPath)
+                html = RuntimeStory(BrowserRuntimeStoryPath, embedded: true);
             else if (embed.Kind == DocEmbedKind.StoryRef && embed.Reference is { } path && StoryRegistry.Find(path) is { } story)
             {
                 var result = EnsureStoryImage(host, story, imagesDir, repositoryRoot, cache);
@@ -323,16 +348,30 @@ public static partial class GallerySiteExporter
         {
             RequireRelativeFile(output, story.Fragment, "manifest fragment");
             if (story.Image is { } image) RequireRelativeFile(output, image, "manifest image");
-            if (story.Status is not ("captured" or "unavailable" or "error"))
+            if (story.Status is not ("captured" or "runtime" or "unavailable" or "error"))
                 throw new InvalidDataException($"Unknown capture status '{story.Status}' for {story.Path}.");
+            if (story.Status == "runtime")
+            {
+                if (story.Path != BrowserRuntimeStoryPath || story.Image is not null || story.ImageSha256.Length != 0)
+                    throw new InvalidDataException($"Invalid runtime manifest entry for {story.Path}.");
+                string fragment = File.ReadAllText(Path.Combine(output, story.Fragment.Replace('/', Path.DirectorySeparatorChar)));
+                RequireRuntimeIframe(fragment, story.Fragment);
+            }
         }
 
         foreach (string png in Directory.GetFiles(output, "*.png", SearchOption.AllDirectories))
             ValidatePng(png);
 
+        bool foundRuntimeIframe = false;
         foreach (string file in Directory.GetFiles(output, "*.html", SearchOption.AllDirectories))
         {
             string html = File.ReadAllText(file);
+            if (html.Contains("<iframe", StringComparison.Ordinal)
+                && html.Contains("data-luxel-runtime-story", StringComparison.Ordinal))
+            {
+                RequireRuntimeIframe(html, Path.GetRelativePath(output, file));
+                foundRuntimeIframe = true;
+            }
             if (html.Contains("language-luxel-ui", StringComparison.Ordinal)
                 || html.Contains("href=\"luxel-ui:", StringComparison.Ordinal))
                 throw new InvalidDataException($"Live placeholder remains: {file}");
@@ -350,6 +389,18 @@ public static partial class GallerySiteExporter
                 if (!exists) throw new FileNotFoundException($"Missing local reference '{value}' in {file}", full);
             }
         }
+        if (foundRuntimeIframe)
+            foreach (string relative in BrowserRuntimeRequiredFiles)
+                RequireRelativeFile(output, BrowserRuntimeUrl + relative.Replace(Path.DirectorySeparatorChar, '/'), "browser runtime app file");
+    }
+
+    private static void RequireRuntimeIframe(string html, string file)
+    {
+        string expected = $"<iframe src=\"{BrowserRuntimeUrl}\" data-luxel-runtime-story=\"{BrowserRuntimeStoryPath}\"";
+        if (!html.Contains(expected, StringComparison.Ordinal))
+            throw new InvalidDataException($"Runtime story iframe is missing its exact relative source and story marker: {file}");
+        if (html.Contains("src=\"/samples/webgpu-browser/", StringComparison.Ordinal))
+            throw new InvalidDataException($"Runtime story iframe uses a root-absolute source: {file}");
     }
 
     private static void ValidatePng(string path)
@@ -374,6 +425,28 @@ public static partial class GallerySiteExporter
         if (!full.StartsWith(Path.GetFullPath(output) + Path.DirectorySeparatorChar, StringComparison.Ordinal))
             throw new InvalidDataException($"Reference escapes output for {kind}: {relative}");
         if (!File.Exists(full)) throw new FileNotFoundException($"Missing {kind}: {relative}", full);
+    }
+
+    private static string RuntimeStory(string path, bool embedded)
+    {
+        string heading = embedded ? "Interactive tutorial triangle" : "Interactive WebGPU triangle";
+        return $"<section class=\"runtime-story\" data-runtime-kind=\"webgpu-browser\"><div class=\"runtime-frame\"><iframe src=\"{BrowserRuntimeUrl}\" data-luxel-runtime-story=\"{H(path)}\" title=\"{H(heading)}\" loading=\"eager\" allow=\"fullscreen\"></iframe></div><p class=\"runtime-caption\"><strong>{H(heading)}</strong> — rendered live by the copied browser WebGPU application.</p></section>";
+    }
+
+    private static void CopyBrowserRuntime(string source, string destination)
+    {
+        if (!Directory.Exists(source))
+            throw new DirectoryNotFoundException($"Browser WebGPU publish root is missing: {source}");
+        foreach (string relative in BrowserRuntimeRequiredFiles)
+        {
+            string required = Path.Combine(source, relative);
+            if (!File.Exists(required))
+                throw new FileNotFoundException($"Browser WebGPU publish root is incomplete; required app file is missing: {relative}", required);
+        }
+        CopyDirectory(source, destination);
+        foreach (string relative in BrowserRuntimeRequiredFiles)
+            if (!File.Exists(Path.Combine(destination, relative)))
+                throw new FileNotFoundException($"Copied browser WebGPU app is incomplete: {relative}", Path.Combine(destination, relative));
     }
 
     private static void CopyDirectory(string source, string destination)
@@ -474,7 +547,7 @@ public static partial class GallerySiteExporter
     private static partial Regex LocalReference();
 
     internal static string IndexHtml => Index;
-    internal static string SiteCss => Css;
+    internal static string SiteCss => Css + StorySourceCss;
 
     internal static string ClientScript => Js;
 
@@ -527,6 +600,8 @@ fetch('manifest.json').then(r=>r.json()).then(x=>{stories=x;draw();show()}).catc
 """;
     private const string StorySourceCss = """
 .story-source{margin-top:28px;border-top:1px solid var(--line);padding-top:14px}.story-source summary{cursor:pointer;color:var(--link);font-weight:650;padding:8px 0}.story-source pre{max-width:100%;overflow-x:auto;background:var(--code);border:1px solid var(--line);border-radius:8px;padding:14px}.story-source code{white-space:pre;font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}
+.runtime-badge{display:inline-block;margin:0 0 8px;padding:3px 9px;border:1px solid #3b8063;border-radius:999px;color:#9de5be;background:#163426}.runtime-story{width:min(100%,960px);margin:18px 0 28px}.runtime-frame{width:100%;aspect-ratio:4/3;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:#10151d;box-shadow:0 12px 30px #0004}.runtime-frame iframe{display:block;width:100%;height:100%;border:0;background:#10151d}.runtime-caption{margin:8px 2px 0;color:var(--muted)}
+@media(max-width:600px){.runtime-story{width:100%;margin:12px 0 22px}.runtime-frame{border-radius:8px}.runtime-caption{font-size:13px}}
 """;
     private const string Css = """
 :root{color-scheme:dark;--bg:#10131a;--panel:#171b24;--text:#e7eaf0;--muted:#9eabc1;--line:#303746;--link:#84b8ff;--code:#090b10;--active:#283044;--danger:#ffaaa2;background:var(--bg);color:var(--text);font:15px/1.65 system-ui,sans-serif}:root[data-theme=light]{color-scheme:light;--bg:#f7f8fb;--panel:#fff;--text:#1d2430;--muted:#657086;--line:#d8dde7;--link:#155fc4;--code:#eef1f6;--active:#e2e9f6;--danger:#a42820}*{box-sizing:border-box}html,body{height:100%;overflow:hidden;background:var(--bg)}body{margin:0;display:grid;grid-template-columns:310px minmax(0,1fr);height:100vh;height:100dvh;color:var(--text)}body.review-open{grid-template-columns:310px minmax(0,1fr) minmax(320px,390px)}button,select,textarea,input{font:inherit}button,.button-label,select{min-height:44px;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer}.floating-toggle{position:fixed;z-index:30;top:max(8px,env(safe-area-inset-top));padding:7px 12px;box-shadow:0 2px 12px #0005}#sidebar-toggle{left:max(8px,env(safe-area-inset-left))}#review-toggle{right:max(8px,env(safe-area-inset-right))}#sidebar{position:sticky;top:0;height:100vh;height:100dvh;overflow:auto;padding:64px 20px 20px max(20px,env(safe-area-inset-left));border-right:1px solid var(--line);background:var(--panel);z-index:20}body.sidebar-collapsed{grid-template-columns:minmax(0,1fr)}body.sidebar-collapsed.review-open{grid-template-columns:minmax(0,1fr) minmax(320px,390px)}body.sidebar-collapsed #sidebar{display:none}#sidebar h1{font-size:20px;margin-bottom:0}#sidebar h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 8px 4px}#theme{padding:6px 10px;margin-bottom:12px;background:transparent}#search{width:100%;min-height:44px;padding:9px;background:var(--bg);color:inherit;border:1px solid var(--line);border-radius:8px}.tree-level{list-style:none;padding-left:14px;margin:4px 0}.tree-level:first-child{padding-left:0}.tree-level li{margin:2px 0}.tree-folder>summary{cursor:pointer;padding:8px;border-radius:6px;font-weight:650}.tree-folder>a,.tree-level a{display:block;color:var(--text);text-decoration:none;padding:8px;border-radius:6px}.tree-folder>a{margin-left:18px}.tree-level a:hover,.tree-level a.active,.tree-folder>summary:hover{background:var(--active)}main{min-width:0;height:100vh;height:100dvh;padding:64px clamp(20px,4vw,64px) 64px;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}.story{max-width:1040px;margin:auto}.story h1{font-size:clamp(28px,4vw,46px);line-height:1.15}.story h2{margin-top:38px;border-bottom:1px solid var(--line)}.story h3{margin-top:28px}.story a{color:var(--link)}.story img{display:block;max-width:100%;height:auto;margin:auto;border:1px solid var(--line);border-radius:8px}.static-badge,.sample-level{color:var(--muted);font-weight:650}.static-capture figcaption{color:var(--muted);text-align:center}.capture-unavailable,.capture-error{border:1px solid var(--line);border-left:4px solid #d77;padding:18px;border-radius:8px}.capture-unavailable pre,.capture-error pre{white-space:pre-wrap}.story pre{max-width:100%;overflow:auto;background:var(--code);padding:14px;border-radius:8px}.story code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.story table{display:block;max-width:100%;overflow:auto;border-collapse:collapse}.story th,.story td{padding:7px 10px;border:1px solid var(--line);vertical-align:top}.story blockquote{margin-left:0;padding-left:16px;border-left:3px solid var(--line);color:var(--muted)}.api-table code{white-space:nowrap}.api-anchor{opacity:.55;text-decoration:none}.sample-bundle{margin-top:24px;border:1px solid var(--line);border-radius:10px;padding:10px 14px}.sample-bundle summary{cursor:pointer;color:var(--link);font-weight:700}.sample-bundle li{margin:4px 0}.sample-bundle li span{color:var(--muted)}

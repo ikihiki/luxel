@@ -236,6 +236,119 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Browser_triangle_exports_as_runtime_without_native_realization_or_static_capture()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-runtime-triangle-" + Guid.NewGuid().ToString("N"));
+        string browserRoot = CreateBrowserRuntimeRoot();
+        var story = new StoryInfo("Examples/3D/Triangle", 320, 240, null,
+            _ => throw new InvalidOperationException("runtime story must not be realized"), RealWindowOnly: true);
+        try
+        {
+            using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
+            using var rasterizer = new Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D();
+            using var host = new GalleryHost(rasterizer, font);
+
+            SiteExportReport report = GallerySiteExporter.Export(host, [story], output, root, browserRoot);
+
+            Assert.Equal(1, report.Stories);
+            Assert.Equal(0, report.Images);
+            Assert.Equal(0, host.StorySelectionCount);
+            SiteStory entry = Assert.Single(JsonSerializer.Deserialize<SiteStory[]>(
+                File.ReadAllText(Path.Combine(output, "manifest.json")),
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })!);
+            Assert.Equal("runtime", entry.Status);
+            Assert.Null(entry.Image);
+            Assert.Empty(entry.ImageSha256);
+
+            string fragment = File.ReadAllText(Path.Combine(output, "stories", "examples-3d-triangle.html"));
+            Assert.Contains("<iframe src=\"samples/webgpu-browser/\" data-luxel-runtime-story=\"Examples/3D/Triangle\"", fragment);
+            Assert.Contains("Live browser WebGPU runtime — interactive", fragment);
+            Assert.DoesNotContain("Static capture — not interactive", fragment);
+            Assert.DoesNotContain("src=\"/samples/webgpu-browser/", fragment);
+            Assert.Empty(Directory.GetFiles(Path.Combine(output, "images"), "*.png"));
+            Assert.True(File.Exists(Path.Combine(output, "samples", "webgpu-browser", "index.html")));
+            Assert.True(File.Exists(Path.Combine(output, "samples", "webgpu-browser", "main.js")));
+            Assert.True(File.Exists(Path.Combine(output, "samples", "webgpu-browser", "_framework", "dotnet.js")));
+            GallerySiteExporter.Validate(output);
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+            if (Directory.Exists(browserRoot)) Directory.Delete(browserRoot, true);
+        }
+    }
+
+    [Fact]
+    public void First_triangle_story_ref_uses_the_browser_runtime_instead_of_a_triangle_capture()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-runtime-embed-" + Guid.NewGuid().ToString("N"));
+        string browserRoot = CreateBrowserRuntimeRoot();
+        StoryInfo story = StoryRegistry.Find("Learn/Rendering/Basics/FirstTriangle")
+            ?? throw new InvalidOperationException("FirstTriangle story is missing.");
+        try
+        {
+            using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
+            using var rasterizer = new Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D();
+            using var host = new GalleryHost(rasterizer, font);
+
+            GallerySiteExporter.Export(host, [story], output, root, browserRoot);
+
+            string fragment = File.ReadAllText(Path.Combine(output, "stories", "learn-rendering-basics-firsttriangle.html"));
+            Assert.Contains("<iframe src=\"samples/webgpu-browser/\" data-luxel-runtime-story=\"Examples/3D/Triangle\"", fragment);
+            Assert.Contains("Interactive tutorial triangle", fragment);
+            Assert.DoesNotContain("Static embedded story capture", fragment);
+            Assert.False(File.Exists(Path.Combine(output, "images", "examples-3d-triangle.png")));
+            GallerySiteExporter.Validate(output);
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+            if (Directory.Exists(browserRoot)) Directory.Delete(browserRoot, true);
+        }
+    }
+
+    [Fact]
+    public void Runtime_triangle_requires_a_complete_copied_browser_application()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-runtime-required-" + Guid.NewGuid().ToString("N"));
+        string incomplete = Path.Combine(Path.GetTempPath(), "luxel-browser-incomplete-" + Guid.NewGuid().ToString("N"));
+        var story = new StoryInfo("Examples/3D/Triangle", 320, 240, null,
+            _ => throw new InvalidOperationException("runtime story must not be realized"));
+        try
+        {
+            Directory.CreateDirectory(incomplete);
+            File.WriteAllText(Path.Combine(incomplete, "index.html"), "<!doctype html>");
+            using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
+            using var rasterizer = new Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D();
+            using var host = new GalleryHost(rasterizer, font);
+
+            Assert.Throws<InvalidOperationException>(() => GallerySiteExporter.Export(host, [story], output, root));
+            FileNotFoundException error = Assert.Throws<FileNotFoundException>(
+                () => GallerySiteExporter.Export(host, [story], output, root, incomplete));
+            Assert.Contains("required app file is missing", error.Message);
+            Assert.Equal(0, host.StorySelectionCount);
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+            if (Directory.Exists(incomplete)) Directory.Delete(incomplete, true);
+        }
+    }
+
+    [Fact]
+    public void Runtime_story_css_preserves_a_responsive_four_by_three_frame()
+    {
+        string css = GallerySiteExporter.SiteCss;
+        Assert.Contains(".runtime-story{width:min(100%,960px)", css);
+        Assert.Contains(".runtime-frame{width:100%;aspect-ratio:4/3", css);
+        Assert.Contains(".runtime-frame iframe{display:block;width:100%;height:100%;border:0", css);
+        Assert.Contains("@media(max-width:600px){.runtime-story{width:100%", css);
+    }
+
+    [Fact]
     public void Native_story_source_pane_uses_read_only_highlighted_editor_or_placeholder()
     {
         const string source = "[Story(\"Test/Source\")]\npublic static Widget Source() => Text(\"hello\");";
@@ -932,6 +1045,17 @@ public sealed class GallerySiteExporterTests
         {
             if (Directory.Exists(output)) Directory.Delete(output, true);
         }
+    }
+
+    private static string CreateBrowserRuntimeRoot()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "luxel-browser-runtime-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(root, "_framework"));
+        File.WriteAllText(Path.Combine(root, "index.html"),
+            "<!doctype html><html><body><script type=\"module\" src=\"./main.js\"></script></body></html>");
+        File.WriteAllText(Path.Combine(root, "main.js"), "import './_framework/dotnet.js';\n");
+        File.WriteAllText(Path.Combine(root, "_framework", "dotnet.js"), "export const dotnet = {};\n");
+        return root;
     }
 
     private static string ExtractMarkedRegion(string source, string region)
