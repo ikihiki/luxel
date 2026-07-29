@@ -16,8 +16,7 @@ public sealed class BrowserWebGpuSmokeTests
     [Fact(Timeout = 120_000)]
     public async Task Published_sample_runs_compute_renders_and_presents_to_canvas()
     {
-        string? configured = Environment.GetEnvironmentVariable("LUXEL_BROWSER_WASM_APPBUNDLE");
-        if (string.IsNullOrWhiteSpace(configured)) return;
+        string configured = RequireDirectoryEnvironmentVariable("LUXEL_BROWSER_WASM_APPBUNDLE");
         string appBundle = Path.IsPathRooted(configured)
             ? Path.GetFullPath(configured)
             : Path.GetFullPath(configured, FindRepositoryRoot());
@@ -61,6 +60,86 @@ public sealed class BrowserWebGpuSmokeTests
         }
         Assert.True(foundDifferent, "Canvas screenshot contained only the background color.");
         Assert.Empty(errors);
+    }
+
+    [Fact(Timeout = 180_000)]
+    public async Task Exported_gallery_composes_triangle_runtime_for_story_and_guide()
+    {
+        string configured = RequireDirectoryEnvironmentVariable("LUXEL_GALLERY_SITE_ROOT");
+        string galleryRoot = Path.IsPathRooted(configured)
+            ? Path.GetFullPath(configured)
+            : Path.GetFullPath(configured, FindRepositoryRoot());
+        Assert.True(File.Exists(Path.Combine(galleryRoot, "index.html")), $"Exported Gallery not found: {galleryRoot}");
+        Assert.True(File.Exists(Path.Combine(galleryRoot, "samples", "webgpu-browser", "index.html")),
+            $"Browser WebGPU sample was not copied into the Gallery: {galleryRoot}");
+
+        int port = GetFreePort();
+        using var server = new StaticServer(StartServer(galleryRoot, port));
+        await WaitForServerAsync(port);
+        using IPlaywright playwright = await Playwright.CreateAsync();
+        await using IBrowser browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true,
+            Args = ChromiumArguments,
+        });
+        IPage page = await browser.NewPageAsync(new BrowserNewPageOptions
+        {
+            ViewportSize = new ViewportSize { Width = 1100, Height = 800 },
+        });
+        var errors = new List<string>();
+        page.Console += (_, message) => { if (message.Type == "error") errors.Add(message.Text); };
+        page.PageError += (_, error) => errors.Add(error);
+
+        foreach (string storyPath in new[]
+        {
+            "Examples/3D/Triangle",
+            "Learn/Rendering/Basics/FirstTriangle",
+        })
+        {
+            string route = Uri.EscapeDataString(storyPath);
+            await page.GotoAsync($"http://127.0.0.1:{port}/#story={route}",
+                new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+
+            const string runtimeSelector =
+                "iframe[src='samples/webgpu-browser/'][data-luxel-runtime-story='Examples/3D/Triangle']";
+            ILocator runtime = page.Locator(runtimeSelector);
+            await runtime.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 30_000 });
+            Assert.Equal("samples/webgpu-browser/", await runtime.GetAttributeAsync("src"));
+
+            IFrameLocator frame = page.FrameLocator(runtimeSelector);
+            await frame.Locator("#status[data-status='pass']").WaitForAsync(
+                new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 90_000 });
+            ILocator canvas = frame.Locator("#luxel-canvas");
+            Assert.Equal("320", await canvas.GetAttributeAsync("width"));
+            Assert.Equal("240", await canvas.GetAttributeAsync("height"));
+            await AssertCanvasContainsRenderedPixelsAsync(canvas);
+        }
+
+        Assert.Empty(errors);
+    }
+
+    private static async Task AssertCanvasContainsRenderedPixelsAsync(ILocator canvas)
+    {
+        byte[] screenshot = await canvas.ScreenshotAsync();
+        using Image<Rgba32> image = Image.Load<Rgba32>(screenshot);
+        Assert.Equal(4 * image.Height, 3 * image.Width);
+        Rgba32 background = image[4, 4];
+        for (int y = image.Height / 4; y < image.Height * 3 / 4; y += 4)
+        for (int x = image.Width / 4; x < image.Width * 3 / 4; x += 4)
+        {
+            Rgba32 pixel = image[x, y];
+            if (Math.Abs(pixel.R - background.R) + Math.Abs(pixel.G - background.G) + Math.Abs(pixel.B - background.B) > 60)
+                return;
+        }
+        Assert.Fail("Canvas screenshot contained only the background color.");
+    }
+
+    private static string RequireDirectoryEnvironmentVariable(string name)
+    {
+        string? value = Environment.GetEnvironmentVariable(name);
+        Assert.False(string.IsNullOrWhiteSpace(value),
+            $"{name} must point to a published/exported directory; the browser test must not pass without its input.");
+        return value!;
     }
 
     private static string FindRepositoryRoot()

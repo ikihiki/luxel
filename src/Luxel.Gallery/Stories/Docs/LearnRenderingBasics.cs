@@ -143,7 +143,9 @@ public static partial class DocsRenderingLearn
 
         {{StoryRef(ctx, "Examples/3D/Triangle")}}
 
-        上の表示はGalleryのoffscreenデモです。コピーして動かす完全なstandalone実装は次の4ファイルです。
+        Galleryアプリ内では上の表示をnative offscreenデモとして実行します。静的GalleryとPagesでは同じ場所にbrowser-WASM WebGPU runtimeを埋め込み、`Examples/3D/Triangle`とこのガイドの両方から、320×240（4:3）のcanonical triangle recipeを実行します。静止画captureではなく、iframe内のcanvasが実際に描画して`pass`になることをPlaywright E2Eで検証します。
+
+        コピーして動かす完全なstandalone実装は次の4ファイルです。
 
         - `samples/LuxelTriangle/LuxelTriangle.csproj`
         - `samples/LuxelTriangle/Program.cs`
