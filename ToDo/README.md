@@ -27,9 +27,9 @@ Luxel エンジンの未完了・保留タスクを、AI が単独セッショ�
 ```powershell
 dotnet build
 dotnet test                                              # ユニット + E2E play アダプタ (GPU なければ E2E は Skip)
-dotnet run --project src/Luxel.Gallery -- vk             # Gallery 実窓 (dx も可)
-dotnet run --project src/Luxel.Gallery -- vk e2e         # E2E play 実行 + golden 比較
-dotnet run --project src/Luxel.Gallery -- vk e2e --update "部分一致フィルタ"   # golden 更新
+dotnet run --project src/Luxel.Gallery.Host -- vk             # Gallery 実窓 (dx も可)
+dotnet run --project src/Luxel.Gallery.Host -- vk e2e         # E2E play 実行 + golden 比較
+dotnet run --project src/Luxel.Gallery.Host -- vk e2e --update "部分一致フィルタ"   # golden 更新
 ```
 
 - 通常ビルドは Git 管理された `shaders/compiled/` を使う。シェーダ更新時は `dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache` が固定 Slang/DXC を `tools/` へ自動取得する。共有フォントは `assets/fonts/` でGit管理し、外部サンプルは固定URL + SHA-256で `tools/` へキャッシュする。
@@ -50,7 +50,7 @@ dotnet run --project src/Luxel.Gallery -- vk e2e --update "部分一致フィル
 ### ドキュメント規約
 
 - 計画 MD をリポジトリに置かない方針 (docs/ は削除済み)。**この ToDo/ フォルダはユーザー指示による例外**。実装が終わったタスクファイルは削除し、仕様は Gallery の Docs ストーリーへ現在形で書く。
-- Docs ページは `src/Luxel.Gallery/Stories/Docs/Docs*.cs`。段落は 1 ソース行 = 1 表示行 (手動改行しない)。hole は `$$` 既定。
+- Docs ページは `src/Luxel.Gallery.Stories/Stories/Docs/Docs*.cs`。段落は 1 ソース行 = 1 表示行 (手動改行しない)。hole は `$$` 既定。
 - 機能追加時は該当 Docs ページに節を足し、デモストーリー (play + golden 付き) を添える。
 
 ### 決定性

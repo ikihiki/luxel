@@ -10,8 +10,8 @@ using Luxel.Typography;
 using Luxel.UI;
 
 // 使い方:
-//   dotnet run --project src/Luxel.Gallery -- [auto|vk|dx] [port] [seconds]   ネイティブ app (環境自動検出, 既定 port=5180, 常駐)
-//   dotnet run --project src/Luxel.Gallery -- <backend> e2e [--update]     play + golden 回帰 (offscreen)
+//   dotnet run --project src/Luxel.Gallery.Host -- [auto|vk|dx] [port] [seconds]   ネイティブ app (環境自動検出, 既定 port=5180, 常駐)
+//   dotnet run --project src/Luxel.Gallery.Host -- <backend> e2e [--update]     play + golden 回帰 (offscreen)
 //   backend: auto (既定) | vk | dx | webgpu
 // リモート検証 (AI): DevTools — GET /windows /winframe?id=1 /trees, POST /cmd
 //   (UI 入力は {op, ui:"gallery"|"story", x, y}、ウィンドウ操作は window.*)

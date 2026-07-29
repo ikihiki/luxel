@@ -82,9 +82,9 @@ eng/desktop/url.sh
 
 ```powershell
 dotnet build
-dotnet run --project src/Luxel.Gallery -- vk            # Gallery (実ウィンドウ。dx も可)
-dotnet run --project src/Luxel.Gallery -- vk e2e        # play + golden 回帰 (--update で更新)
-dotnet run --project src/Luxel.Gallery -- vk bench "Controls/Button/Counter" 300 --type
+dotnet run --project src/Luxel.Gallery.Host -- vk            # Gallery (実ウィンドウ。dx も可)
+dotnet run --project src/Luxel.Gallery.Host -- vk e2e        # play + golden 回帰 (--update で更新)
+dotnet run --project src/Luxel.Gallery.Host -- vk bench "Controls/Button/Counter" 300 --type
 dotnet test                                             # ユニットテスト
 ```
 

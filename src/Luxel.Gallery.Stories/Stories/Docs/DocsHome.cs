@@ -40,9 +40,9 @@ public static class DocsHome
 
             ```powershell
             dotnet build
-            dotnet run --project src/Luxel.Gallery -- vk           # この Gallery (実ウィンドウ)
-            dotnet run --project src/Luxel.Gallery -- vk e2e       # play + golden 回帰 (--update で更新)
-            dotnet run --project src/Luxel.Gallery -- vk bench "Controls/Button/Counter" 300 --type
+            dotnet run --project src/Luxel.Gallery.Host -- vk           # この Gallery (実ウィンドウ)
+            dotnet run --project src/Luxel.Gallery.Host -- vk e2e       # play + golden 回帰 (--update で更新)
+            dotnet run --project src/Luxel.Gallery.Host -- vk bench "Controls/Button/Counter" 300 --type
             dotnet test                                            # ユニットテスト
             ```
 

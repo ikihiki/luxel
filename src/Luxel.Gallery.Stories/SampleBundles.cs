@@ -40,9 +40,9 @@ internal static class SampleBundles
             "scripting.gallery", "Gallery script hot reload",
             "Gallery-hosted ScriptHost recipe covering compilation, diagnostics, cancellation and successful-swap reload.", "Intermediate",
             SampleCopyLevel.Block,
-            [new("src/Luxel.Gallery/Stories/ScriptingStory.cs", SampleFileKind.CSharp)],
+            [new("src/Luxel.Gallery.Stories/Stories/ScriptingStory.cs", SampleFileKind.CSharp)],
             Requirements: ["Luxel.Scripting", "Gallery service provider"], ExportSymbol: "ScriptHost",
-            RunCommand: "dotnet run --project src/Luxel.Gallery -- vk --story Examples/Scripting/HotReload",
+            RunCommand: "dotnet run --project src/Luxel.Gallery.Host -- vk --story Examples/Scripting/HotReload",
             SmokeCommand: "dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter Scripting",
             Platforms: ["Windows", "Linux", "macOS"], TimeoutSeconds: 180));
         SampleBundleRegistry.Register(new SampleBundleInfo(

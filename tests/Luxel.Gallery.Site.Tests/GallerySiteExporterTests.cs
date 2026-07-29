@@ -42,7 +42,7 @@ public sealed class GallerySiteExporterTests
         StoryInfo guide = Assert.Single(StoryRegistry.All.Where(story => story.Path == "Reference/Guides/WebGPU"));
         Assert.Equal("rendering.webgpu-browser", guide.SampleBundle);
         Assert.Contains("(samples/webgpu-browser/)", File.ReadAllText(Path.Combine(
-            GallerySiteExporter.FindRepositoryRoot(), "src", "Luxel.Gallery", "Stories", "Docs", "DocsGpuWebGpu.cs")));
+            GallerySiteExporter.FindRepositoryRoot(), "src", "Luxel.Gallery.Stories", "Stories", "Docs", "DocsGpuWebGpu.cs")));
     }
 
     [Fact]
@@ -384,7 +384,7 @@ public sealed class GallerySiteExporterTests
         var story = new StoryInfo("Test/Source", 100, 100, null,
             _ => Luxel.Controls.Kit.Text("hello"), Source: source);
 
-        TextEditorView editor = Assert.IsType<TextEditorView>(GalleryApp.BuildStorySourcePane(story));
+        TextEditorView editor = Assert.IsType<TextEditorView>(GalleryStorySourcePane.Build(story));
         Assert.True(editor.ReadOnly);
         Assert.True(editor.Fill);
         Assert.True(editor.ShowLineNumbers);
@@ -392,7 +392,7 @@ public sealed class GallerySiteExporterTests
         Assert.Contains(editor.Providers, provider => provider is SyntaxHighlightProvider);
         Assert.Equal(source, editor.Value.Get().Value);
 
-        Text placeholder = Assert.IsType<Text>(GalleryApp.BuildStorySourcePane(
+        Text placeholder = Assert.IsType<Text>(GalleryStorySourcePane.Build(
             new StoryInfo("Test/Generated", 0, 0, null, _ => Luxel.Controls.Kit.Text("generated"))));
         Assert.Contains("Source unavailable", placeholder.DebugDetail, StringComparison.Ordinal);
     }

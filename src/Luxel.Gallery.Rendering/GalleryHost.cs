@@ -141,8 +141,8 @@ public sealed class GalleryHost : IDisposable
         TearDown();
         _story = story;
         // fill (W/H 未指定 = 0,0) は snap/bench の決定性のため 800×480 固定で描く
-        _w = story.Width > 0 ? story.Width : (int)GalleryApp.PreviewW;
-        _h = story.Height > 0 ? story.Height : (int)GalleryApp.PreviewH;
+        _w = story.Width > 0 ? story.Width : 800;
+        _h = story.Height > 0 ? story.Height : 480;
         if (e2e) _dark = string.Equals(story.Theme, "dark", StringComparison.OrdinalIgnoreCase);
         else if (story.Theme is not null) _dark = story.Theme == "dark";
         ApplyTheme();

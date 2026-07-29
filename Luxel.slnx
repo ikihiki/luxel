@@ -24,6 +24,9 @@
     <Project Path="src/Luxel.Framework/Luxel.Framework.csproj" />
     <Project Path="src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj" />
     <Project Path="src/Luxel.Gallery/Luxel.Gallery.csproj" />
+    <Project Path="src/Luxel.Gallery.Host/Luxel.Gallery.Host.csproj" />
+    <Project Path="src/Luxel.Gallery.Rendering/Luxel.Gallery.Rendering.csproj" />
+    <Project Path="src/Luxel.Gallery.Stories/Luxel.Gallery.Stories.csproj" />
     <Project Path="src/Luxel.Gltf/Luxel.Gltf.csproj" />
     <Project Path="src/Luxel.Highlight.TextMate/Luxel.Highlight.TextMate.csproj" />
     <Project Path="src/Luxel.Imaging/Luxel.Imaging.csproj" />

@@ -12,6 +12,8 @@
     <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5"><PrivateAssets>all</PrivateAssets><IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets></PackageReference>
     <ProjectReference Include="..\..\src\Luxel.Gallery.Site\Luxel.Gallery.Site.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Gallery.Rendering\Luxel.Gallery.Rendering.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Gallery.Stories\Luxel.Gallery.Stories.csproj" />
   </ItemGroup>
   <ItemGroup><Using Include="Xunit" /></ItemGroup>
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />

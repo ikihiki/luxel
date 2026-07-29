@@ -503,33 +503,8 @@ public sealed class GalleryApp : IDisposable
     private Widget BuildSourcePane()
         => BuildStorySourcePane(_currentStory, MathF.Max(140, MainW()) - 32, BottomInnerH());
 
-    /// <summary>選択ストーリーの生成済み method source を読み取り専用コードビューとして構築する。</summary>
-    internal static Widget BuildStorySourcePane(StoryInfo? story, float width = 640f, float height = 240f)
-    {
-        if (story is null)
-            return Text("No story selected.", 12, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8));
-        SampleBundleInfo? bundle = SampleBundleRegistry.Find(story.SampleBundle);
-        if (string.IsNullOrWhiteSpace(story.Source))
-            return Text(bundle is null
-                    ? "Source unavailable. Gallery harness required; no standalone sample bundle is registered."
-                    : $"Run this sample ({bundle.CopyLevel}): {bundle.RunCommand}", 12,
-                color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8));
-
-        TextEditorView editor = TextEditorView(new Signal<string>(story.Source),
-            editorHeight: MathF.Max(40, height), editorWidth: MathF.Max(80, width));
-        editor.ReadOnly = true;
-        editor.Fill = true;
-        editor.ShowLineNumbers = true;
-        editor.EditorFont = Stories.StoryKit.EditorFaces.Value.Mono;
-        editor.Providers.Add(new SyntaxHighlightProvider(
-            Luxel.Highlight.TextMateHighlighter.Instance, "csharp", () => UiTheme.T));
-        if (bundle is null) return editor;
-        string files = string.Join(" · ", bundle.Files.Select(file => file.Path));
-        return VStack(6)[
-            Text($"Run this sample · {bundle.CopyLevel} · {bundle.RunCommand}", 12, color: Bind.From(() => UiTheme.T.TextMuted)),
-            Text(files, 10, color: Bind.From(() => UiTheme.T.TextMuted)),
-            editor];
-    }
+    private static Widget BuildStorySourcePane(StoryInfo? story, float width = 640f, float height = 240f)
+        => GalleryStorySourcePane.Build(story, width, height);
 
     private Widget BuildPropsPane()
     {

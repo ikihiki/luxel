@@ -177,9 +177,9 @@ public static class DocsMeta
         ## 実行モード
 
         ```powershell
-        dotnet run --project src/Luxel.Gallery -- vk [port] [seconds]           # 実窓 (既定 5180)
-        dotnet run --project src/Luxel.Gallery -- vk e2e [--update] [フィルタ]   # E2E 回帰 (play + golden)
-        dotnet run --project src/Luxel.Gallery -- vk bench <story> [frames] [--type|--wheel d]
+        dotnet run --project src/Luxel.Gallery.Host -- vk [port] [seconds]           # 実窓 (既定 5180)
+        dotnet run --project src/Luxel.Gallery.Host -- vk e2e [--update] [フィルタ]   # E2E 回帰 (play + golden)
+        dotnet run --project src/Luxel.Gallery.Host -- vk bench <story> [frames] [--type|--wheel d]
         ```
 
         実窓は `Ctrl+D` でテーマ切替、ツールバーの「全画面」でプレビューをメイン全面に。サイドバーの検索欄は docs 本文の全文検索です。docs ページの書き方は [Internals/Authoring](story:Internals/Authoring) へ。
@@ -197,8 +197,8 @@ public static class DocsMeta
 
         ```powershell
         dotnet test                                                # 純ロジックのユニットテスト
-        dotnet run --project src/Luxel.Gallery -- vk e2e           # play を実行し golden と比較
-        dotnet run --project src/Luxel.Gallery -- vk e2e "Button"  # 部分一致フィルタ ("パス#play名")
+        dotnet run --project src/Luxel.Gallery.Host -- vk e2e           # play を実行し golden と比較
+        dotnet run --project src/Luxel.Gallery.Host -- vk e2e "Button"  # 部分一致フィルタ ("パス#play名")
         ```
 
         テストは**ストーリーに同居する play** (本家 Storybook の play 関数相当) です。**golden は play 内の `d.Snap()` だけが生みます** — 初期絵の回帰だけ欲しければ `ctx.Snap(...)` で包む (または `ctx.Play(d => d.Snap())`) の 1 行、対話テストは `ctx.Play(async d => { await d.Click(btn); await d.Expect(...); await d.Snap("clicked"); })` の形で、クロージャからストーリー自身の signal/widget を直接掴めます。名前付きで複数登録でき、**play ごとにストーリーは作り直されます** (独立実行)。play を持たないストーリーは golden を作りません。
@@ -213,9 +213,9 @@ public static class DocsMeta
         ## bench — canvas 更新コストの回帰ゲート
 
         ```powershell
-        dotnet run --project src/Luxel.Gallery -- vk bench "Examples/2D/Orbit" 300
-        dotnet run --project src/Luxel.Gallery -- vk bench "Controls/TextEditorView/Basic" 300 --type
-        dotnet run --project src/Luxel.Gallery -- vk bench "Controls/ListView/Huge" 300 --wheel 1
+        dotnet run --project src/Luxel.Gallery.Host -- vk bench "Examples/2D/Orbit" 300
+        dotnet run --project src/Luxel.Gallery.Host -- vk bench "Controls/TextEditorView/Basic" 300 --type
+        dotnet run --project src/Luxel.Gallery.Host -- vk bench "Controls/ListView/Huge" 300 --wheel 1
         ```
 
         フル再構築回数 / 再構築 CPU / アップロードバイト / マネージド確保を区間計測します。期待値 (増分更新の回帰ゲート): **ライブ波形の再生 = フル再構築 0**、エディタのタイプ連打 = 再構築 ~3% (ブロック増減時のみ)、仮想化リストのスクロール = 再構築 0。

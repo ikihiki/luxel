@@ -8,7 +8,7 @@ public static class GalleryStoryProject
     public static void Register(StoryCatalogBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        Luxel.UI.Generated.StoryRegistration_Luxel_Gallery.Register(builder);
+        Luxel.UI.Generated.StoryRegistration_Luxel_Gallery_Stories.Register(builder);
         Stories.DocsApi.RegisterReferenceStories(builder);
     }
 
