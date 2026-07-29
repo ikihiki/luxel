@@ -22,7 +22,6 @@ public sealed class BrowserWebGpuSurface : IGpuBackendSurface
         ulong required = checked(((ulong)(height - 1) * srcStridePixels + width) * 4);
         if (required > buffer.Size) throw new ArgumentException("Presentation buffer is too small.", nameof(source));
         if (buffer.Kind == GpuMemoryKind.HostMapped) ((BrowserWebGpuQueue)_owner.MainQueue).UploadBuffer(buffer);
-        if (_width != width || _height != height) Resize(width, height);
         _owner.Interop.SurfacePresent(_handle, checked((int)buffer.Offset), checked((int)srcStridePixels), checked((int)width), checked((int)height));
     }
 
@@ -30,6 +29,7 @@ public sealed class BrowserWebGpuSurface : IGpuBackendSurface
     {
         ThrowIfDisposed(); _owner.ThrowIfDisposed();
         _ = checked((int)width); _ = checked((int)height);
+        if (_width == width && _height == height) return;
         _owner.Interop.SurfaceResize(_handle, (int)width, (int)height);
         _width = width; _height = height;
     }

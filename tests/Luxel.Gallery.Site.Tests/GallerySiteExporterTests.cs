@@ -263,9 +263,12 @@ public sealed class GallerySiteExporterTests
 
             string fragment = File.ReadAllText(Path.Combine(output, "stories", "examples-3d-triangle.html"));
             Assert.Contains("<iframe src=\"samples/webgpu-browser/\" data-luxel-runtime-story=\"Examples/3D/Triangle\"", fragment);
-            Assert.Contains("Runtime WebAssembly — interactive", fragment);
+            Assert.Contains("<article class=\"story runtime-page\">", fragment);
             Assert.Contains("allow=\"webgpu\"", fragment);
+            Assert.DoesNotContain("Runtime WebAssembly — interactive", fragment);
             Assert.DoesNotContain("Static capture — not interactive", fragment);
+            Assert.DoesNotContain("<header>", fragment);
+            Assert.DoesNotContain("runtime-caption", fragment);
             Assert.DoesNotContain("src=\"/samples/webgpu-browser/", fragment);
             Assert.Empty(Directory.GetFiles(Path.Combine(output, "images"), "*.png"));
             Assert.True(File.Exists(Path.Combine(output, "samples", "webgpu-browser", "index.html")));
@@ -298,7 +301,9 @@ public sealed class GallerySiteExporterTests
 
             string fragment = File.ReadAllText(Path.Combine(output, "stories", "learn-rendering-basics-firsttriangle.html"));
             Assert.Contains("<iframe src=\"samples/webgpu-browser/\" data-luxel-runtime-story=\"Examples/3D/Triangle\"", fragment);
-            Assert.Contains("Interactive tutorial triangle", fragment);
+            Assert.Contains("runtime-story-embedded", fragment);
+            Assert.Contains("title=\"Interactive tutorial triangle\"", fragment);
+            Assert.DoesNotContain("runtime-caption", fragment);
             Assert.DoesNotContain("Static embedded story capture", fragment);
             Assert.False(File.Exists(Path.Combine(output, "images", "examples-3d-triangle.png")));
             GallerySiteExporter.Validate(output);
@@ -348,13 +353,14 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
-    public void Runtime_story_css_preserves_a_responsive_four_by_three_frame()
+    public void Runtime_story_css_fills_the_available_gallery_viewport()
     {
         string css = GallerySiteExporter.SiteCss;
-        Assert.Contains(".runtime-story{width:min(100%,960px)", css);
-        Assert.Contains(".runtime-frame{width:100%;aspect-ratio:4/3", css);
-        Assert.Contains(".runtime-frame iframe{display:block;width:100%;height:100%;border:0", css);
-        Assert.Contains("@media(max-width:600px){.runtime-story{width:100%", css);
+        Assert.Contains(".runtime-story{width:100%;height:100%;margin:0}", css);
+        Assert.Contains(".runtime-frame,.runtime-frame iframe{display:block;width:100%;height:100%;margin:0;padding:0;border:0", css);
+        Assert.Contains(".runtime-page{width:100%;max-width:none;height:100%;margin:0}", css);
+        Assert.Contains("body.runtime-active main{padding:0;overflow:hidden}", css);
+        Assert.DoesNotContain("aspect-ratio:4/3", css);
     }
 
     [Fact]

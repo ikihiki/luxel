@@ -58,8 +58,8 @@ public sealed class WebWindow : IWindowBackendWindow, IWebCanvasSurfaceProvider
     }
 
     /// <summary>
-    /// X/Y are ignored and remain zero. Width/height are physical backing-store pixels; CSS dimensions
-    /// are updated using the current device-pixel ratio.
+    /// X/Y are ignored and remain zero. Width/height are physical backing-store pixels; CSS layout remains
+    /// owned by the page and its ResizeObserver reports subsequent content-box changes.
     /// </summary>
     public void SetBounds(int? x, int? y, int? clientWidth, int? clientHeight)
     {

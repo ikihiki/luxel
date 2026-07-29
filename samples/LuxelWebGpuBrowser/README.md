@@ -1,6 +1,6 @@
 # Luxel browser WebGPU sample
 
-A .NET 10 browser-WASM sample using `Luxel.Platform.Web`, `Luxel.Graphics.WebGPU.Browser`, and `Luxel.Graphics` abstractions. It asynchronously creates the DOM canvas window and WebGPU device, runs embedded fixed-ABI WGSL compute plus textured offscreen rendering, validates GPU readback, presents to the canvas, and then pumps resize/pointer/key events on `requestAnimationFrame`.
+A .NET 10 browser-WASM sample using `Luxel.Platform.Web`, `Luxel.Graphics.WebGPU.Browser`, and `Luxel.Graphics` abstractions. It asynchronously creates the DOM canvas window and WebGPU device, runs embedded fixed-ABI WGSL compute plus textured offscreen rendering, validates GPU readback, presents to a canvas that fills the browser viewport, and then pumps resize/pointer/key events on `requestAnimationFrame`. Browser layout owns the canvas CSS size; `ResizeObserver` updates its backing-store dimensions only when the content box or device-pixel ratio changes. Pass/debug state is exposed through `globalThis.luxelBrowserState` and a hidden `#status` marker rather than visible page text.
 
 ```bash
 dotnet workload install wasm-tools

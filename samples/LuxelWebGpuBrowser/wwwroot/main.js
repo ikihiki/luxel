@@ -2,11 +2,19 @@ import { dotnet } from "./_framework/dotnet.js";
 import * as webgpu from "./luxel-webgpu-browser.js";
 
 const status = document.getElementById("status");
+const errorOverlay = document.getElementById("error");
+const runtimeState = { state: "loading", summary: "" };
+globalThis.luxelBrowserState = runtimeState;
 const host = {
   nextFrame: () => new Promise(resolve => requestAnimationFrame(resolve)),
   setStatus: (state, summary) => {
+    runtimeState.state = state;
+    runtimeState.summary = summary;
     status.dataset.status = state;
     status.textContent = summary;
+    const failed = state === "fail";
+    errorOverlay.hidden = !failed;
+    errorOverlay.textContent = failed ? summary : "";
   },
 };
 

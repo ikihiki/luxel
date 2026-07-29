@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Luxel browser WebGPU</title>
   <style>
-    :root{color-scheme:dark;background:#10151d;color:#edf4ff;font:16px/1.5 system-ui,sans-serif}body{margin:0;display:grid;min-height:100vh;place-items:center}.card{width:min(92vw,900px)}canvas{display:block;width:100%;aspect-ratio:4/3;background:#10151d;border:1px solid #567;border-radius:10px}#status{margin:.75rem 0;white-space:pre-wrap}code{color:#9ee7ff}
+    :root,html,body,#runtime-root,#luxel-canvas{width:100%;height:100%;margin:0;padding:0}html,body{overflow:hidden;background:#10151d}#runtime-root,#luxel-canvas{display:block}#error{position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:#10151dee;color:#ffb4ac;font:14px/1.5 system-ui,sans-serif;white-space:pre-wrap}#error[hidden]{display:none}
   </style>
 </head>
-<body><main class="card"><h1>Luxel browser WebGPU</h1><canvas id="luxel-canvas" width="320" height="240" tabindex="0"></canvas><p id="status" role="status" data-status="loading" data-story="Examples/3D/Triangle" data-shader="tutorial_triangle" data-vertex-size="32" data-root-size="4" data-canvas="320x240" data-recipe="canonical-triangle-v1" data-hash="4c3a36aa594306d963f00f1c0e6c5d7c62b1543748bfc882d72d0de8cf9a2cdd">Loading .NET and WebGPU…</p><p>Move/click over the canvas or press a key to exercise <code>Luxel.Platform.Web</code>.</p></main><script type="module" src="./main.js"></script></body>
+<body><main id="runtime-root"><canvas id="luxel-canvas" tabindex="0" aria-label="Luxel browser WebGPU"></canvas><div id="status" hidden data-status="loading" data-story="Examples/3D/Triangle" data-shader="tutorial_triangle" data-vertex-size="32" data-root-size="4" data-canvas="320x240" data-recipe="canonical-triangle-v1" data-hash="4c3a36aa594306d963f00f1c0e6c5d7c62b1543748bfc882d72d0de8cf9a2cdd"></div><div id="error" role="alert" hidden></div></main><script type="module" src="./main.js"></script></body>
 </html>

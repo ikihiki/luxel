@@ -41,13 +41,61 @@ public sealed class BrowserWebGpuSmokeTests
         await page.Locator("#luxel-canvas").HoverAsync(new LocatorHoverOptions { Position = new Position { X = 30, Y = 30 } });
         await page.Locator("#luxel-canvas").ClickAsync();
         await page.Keyboard.PressAsync("KeyA");
-        await page.WaitForSelectorAsync("#status[data-status='pass']", new PageWaitForSelectorOptions { Timeout = 90_000 });
-        string summary = await page.Locator("#status").InnerTextAsync();
+        await page.WaitForFunctionAsync("() => globalThis.luxelBrowserState?.state === 'pass'", null,
+            new PageWaitForFunctionOptions { Timeout = 90_000 });
+        string summary = await page.EvaluateAsync<string>("() => globalThis.luxelBrowserState.summary");
         Assert.Contains("compute=0xc0ffee42", summary);
         Assert.Contains("pointer=", summary);
         Assert.Contains("key=", summary);
+        Assert.Equal(string.Empty, (await page.Locator("body").InnerTextAsync()).Trim());
 
-        byte[] screenshot = await page.Locator("#luxel-canvas").ScreenshotAsync();
+        ILocator canvas = page.Locator("#luxel-canvas");
+        await AssertCanvasFillsViewportAsync(canvas);
+        int stableMutations = await page.EvaluateAsync<int>("""
+            () => new Promise(resolve => {
+              const canvas = document.querySelector('#luxel-canvas');
+              let mutations = 0;
+              const observer = new MutationObserver(records => mutations += records.length);
+              observer.observe(canvas, { attributes: true, attributeFilter: ['width', 'height', 'style'] });
+              let frames = 0;
+              const tick = () => ++frames >= 8
+                ? (observer.disconnect(), resolve(mutations))
+                : requestAnimationFrame(tick);
+              requestAnimationFrame(tick);
+            })
+            """);
+        int[] initialBacking = await page.EvaluateAsync<int[]>("() => { const c = document.querySelector('#luxel-canvas'); return [c.width, c.height]; }");
+        await page.EvaluateAsync("""
+            () => {
+              const canvas = document.querySelector('#luxel-canvas');
+              globalThis.__luxelResizeMutations = [];
+              globalThis.__luxelResizeObserver = new MutationObserver(records =>
+                globalThis.__luxelResizeMutations.push(...records.map(record => record.attributeName)));
+              globalThis.__luxelResizeObserver.observe(canvas, { attributes: true, attributeFilter: ['width', 'height', 'style'] });
+            }
+            """);
+        await page.SetViewportSizeAsync(900, 650);
+        await page.WaitForFunctionAsync("""
+            () => {
+              const c = document.querySelector('#luxel-canvas');
+              const dpr = devicePixelRatio || 1;
+              return Math.abs(c.width - innerWidth * dpr) <= 1 && Math.abs(c.height - innerHeight * dpr) <= 1;
+            }
+            """);
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        string[] resizeMutations = await page.EvaluateAsync<string[]>("""
+            () => { globalThis.__luxelResizeObserver.disconnect(); return globalThis.__luxelResizeMutations; }
+            """);
+        int[] resizedBacking = await page.EvaluateAsync<int[]>("() => { const c = document.querySelector('#luxel-canvas'); return [c.width, c.height]; }");
+        Assert.False(initialBacking.SequenceEqual(resizedBacking));
+        Assert.DoesNotContain("style", resizeMutations);
+        Assert.Equal(1, resizeMutations.Count(name => name == "width"));
+        Assert.Equal(1, resizeMutations.Count(name => name == "height"));
+        await AssertCanvasFillsViewportAsync(canvas);
+
+        Assert.Equal(0, stableMutations);
+
+        byte[] screenshot = await canvas.ScreenshotAsync();
         using Image<Rgba32> image = Image.Load<Rgba32>(screenshot);
         Rgba32 background = image[4, 4];
         bool foundDifferent = false;
@@ -111,20 +159,54 @@ public sealed class BrowserWebGpuSmokeTests
             await runtime.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 30_000 });
             Assert.Equal("samples/webgpu-browser/", await runtime.GetAttributeAsync("src"));
 
-            IFrameLocator frame = page.FrameLocator(runtimeSelector);
-            ILocator status = frame.Locator("#status[data-status='pass']");
-            await status.WaitForAsync(
-                new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 90_000 });
-            string summary = await status.InnerTextAsync();
+            IElementHandle runtimeElement = await runtime.ElementHandleAsync()
+                ?? throw new InvalidOperationException("Runtime iframe element was unavailable.");
+            IFrame childFrame = await runtimeElement.ContentFrameAsync()
+                ?? throw new InvalidOperationException("Runtime iframe content frame was unavailable.");
+            await childFrame.WaitForFunctionAsync("() => globalThis.luxelBrowserState?.state === 'pass'", null,
+                new FrameWaitForFunctionOptions { Timeout = 90_000 });
+            string summary = await childFrame.EvaluateAsync<string>("() => globalThis.luxelBrowserState.summary");
             Assert.Contains("story=Examples/3D/Triangle", summary);
             Assert.Contains("shader=tutorial_triangle", summary);
             Assert.Contains("vertexSize=32; rootSize=4", summary);
             Assert.Contains("canvas=320x240", summary);
             Assert.Contains("recipe=canonical-triangle-v1", summary);
             Assert.Contains("hash=4c3a36aa594306d963f00f1c0e6c5d7c62b1543748bfc882d72d0de8cf9a2cdd", summary);
-            ILocator canvas = frame.Locator("#luxel-canvas");
-            Assert.Equal("320", await canvas.GetAttributeAsync("width"));
-            Assert.Equal("240", await canvas.GetAttributeAsync("height"));
+            Assert.Equal(string.Empty, (await childFrame.Locator("body").InnerTextAsync()).Trim());
+
+            LocatorBoundingBoxResult runtimeBox = await runtime.BoundingBoxAsync()
+                ?? throw new InvalidOperationException("Runtime iframe had no bounding box.");
+            ILocator expectedContainer = storyPath == "Examples/3D/Triangle"
+                ? page.Locator("#content")
+                : page.Locator(".runtime-frame");
+            LocatorBoundingBoxResult containerBox = await expectedContainer.BoundingBoxAsync()
+                ?? throw new InvalidOperationException("Runtime container had no bounding box.");
+            Assert.InRange(Math.Abs(runtimeBox.X - containerBox.X), 0, 2);
+            Assert.InRange(Math.Abs(runtimeBox.Y - containerBox.Y), 0, 2);
+            Assert.InRange(Math.Abs(runtimeBox.Width - containerBox.Width), 0, 2);
+            Assert.InRange(Math.Abs(runtimeBox.Height - containerBox.Height), 0, 2);
+            if (storyPath == "Examples/3D/Triangle")
+            {
+                Assert.True(await page.Locator("body").EvaluateAsync<bool>("body => body.classList.contains('runtime-active')"));
+                Assert.Equal(string.Empty, (await page.Locator("#content").InnerTextAsync()).Trim());
+            }
+
+            ILocator canvas = childFrame.Locator("#luxel-canvas");
+            await AssertCanvasFillsViewportAsync(canvas);
+            int stableMutations = await childFrame.EvaluateAsync<int>("""
+                () => new Promise(resolve => {
+                  const canvas = document.querySelector('#luxel-canvas');
+                  let mutations = 0;
+                  const observer = new MutationObserver(records => mutations += records.length);
+                  observer.observe(canvas, { attributes: true, attributeFilter: ['width', 'height', 'style'] });
+                  let frames = 0;
+                  const tick = () => ++frames >= 6
+                    ? (observer.disconnect(), resolve(mutations))
+                    : requestAnimationFrame(tick);
+                  requestAnimationFrame(tick);
+                })
+                """);
+            Assert.Equal(0, stableMutations);
             await AssertCanvasContainsCanonicalRgbAsync(canvas);
         }
 
@@ -133,11 +215,22 @@ public sealed class BrowserWebGpuSmokeTests
             new Uri(url).AbsolutePath.EndsWith("/images/examples-3d-triangle.png", StringComparison.OrdinalIgnoreCase));
     }
 
+    private static async Task AssertCanvasFillsViewportAsync(ILocator canvas)
+    {
+        double[] box = await canvas.EvaluateAsync<double[]>("canvas => { const r = canvas.getBoundingClientRect(); return [r.left, r.top, r.width, r.height, canvas.width, canvas.height, devicePixelRatio || 1, innerWidth, innerHeight]; }");
+        Assert.InRange(Math.Abs(box[0]), 0, 1);
+        Assert.InRange(Math.Abs(box[1]), 0, 1);
+        Assert.InRange(Math.Abs(box[2] - box[7]), 0, 1);
+        Assert.InRange(Math.Abs(box[3] - box[8]), 0, 1);
+        Assert.InRange(Math.Abs(box[4] - box[2] * box[6]), 0, 1);
+        Assert.InRange(Math.Abs(box[5] - box[3] * box[6]), 0, 1);
+        Assert.Null(await canvas.GetAttributeAsync("style"));
+    }
+
     private static async Task AssertCanvasContainsCanonicalRgbAsync(ILocator canvas)
     {
         byte[] screenshot = await canvas.ScreenshotAsync();
         using Image<Rgba32> image = Image.Load<Rgba32>(screenshot);
-        Assert.InRange((double)image.Width / image.Height, 4d / 3d - 0.02, 4d / 3d + 0.02);
         bool red = false, green = false, blue = false;
         for (int y = image.Height / 20; y < image.Height * 19 / 20; y += 3)
         for (int x = image.Width / 20; x < image.Width * 19 / 20; x += 3)

@@ -55,6 +55,23 @@ public sealed class BrowserWebGpuManagedTests
     }
 
     [Fact]
+    public async Task Surface_present_does_not_override_layout_size_and_duplicate_resize_is_ignored()
+    {
+        var interop = new FakeInterop();
+        using var backend = await BrowserWebGpuBackend.CreateAsync(interop);
+        using var surface = backend.CreateCanvasSurface("#canvas", 800, 600);
+        using var pixels = backend.CreateBuffer(320 * 240 * 4, GpuMemoryKind.HostCached);
+
+        surface.Present(pixels, 320, 320, 240);
+        surface.Resize(800, 600);
+        surface.Resize(900, 650);
+        surface.Resize(900, 650);
+
+        Assert.Equal(1, interop.SurfacePresents);
+        Assert.Equal([(900, 650)], interop.SurfaceResizes);
+    }
+
+    [Fact]
     public async Task RootAndTextureReadbackValidationMatchesWebGpuLimits()
     {
         using var backend = await BrowserWebGpuBackend.CreateAsync(new FakeInterop());
@@ -74,6 +91,8 @@ public sealed class BrowserWebGpuManagedTests
         private int _next = 10;
         public byte[] Readback { get; set; } = [];
         public List<(int Offset, string Data)> Uploads { get; } = [];
+        public int SurfacePresents { get; private set; }
+        public List<(int Width, int Height)> SurfaceResizes { get; } = [];
         public Task<string> InitializeAsync() => Task.FromResult(JsonSerializer.Serialize(new { handle = ++_next, name = "WebGPU / fake" }));
         public int CreateComputePipeline(int backend, string wgslBase64, string entryPoint) => ++_next;
         public int CreateGraphicsPipeline(int backend, string vsBase64, string vsEntry, string psBase64, string psEntry, string rasterJson) => ++_next;
@@ -96,8 +115,8 @@ public sealed class BrowserWebGpuManagedTests
         public Task<string> CompleteAsync(int backend, int serial, string readbacksJson) => Task.FromResult(Convert.ToBase64String(Readback));
         public Task<string> WaitIdleAsync(int backend, string readbacksJson) => Task.FromResult(Convert.ToBase64String(Readback));
         public int CreateSurface(int backend, string canvasToken, int width, int height) => ++_next;
-        public void SurfacePresent(int surface, int sourceOffset, int stride, int width, int height) { }
-        public void SurfaceResize(int surface, int width, int height) { }
+        public void SurfacePresent(int surface, int sourceOffset, int stride, int width, int height) => SurfacePresents++;
+        public void SurfaceResize(int surface, int width, int height) => SurfaceResizes.Add((width, height));
         public void Release(int kind, int handle) { }
         public void DisposeBackend(int backend) { }
     }

@@ -19,8 +19,14 @@ public sealed class BrowserCanonicalTriangleTests
         Assert.DoesNotContain("Shaders\\triangle.wgsl", project);
         Assert.Contains("CanonicalTriangleRecipe.CreateVertices()", program);
         Assert.DoesNotContain("checker", program, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("width=\"320\" height=\"240\"", html);
-        Assert.Contains("aspect-ratio:4/3", html);
+        Assert.DoesNotContain("width=\"320\" height=\"240\"", html);
+        Assert.DoesNotContain("aspect-ratio", html);
+        Assert.Contains(":root,html,body,#runtime-root,#luxel-canvas{width:100%;height:100%;margin:0;padding:0}", html);
+        Assert.Contains("<div id=\"status\" hidden", html);
+        Assert.DoesNotContain("<h1>", html);
+        Assert.DoesNotContain("Move/click over", html);
+        Assert.Contains("if (resizePending)", program);
+        Assert.Contains("resizePending = false;", program);
         Assert.Contains($"data-story=\"{CanonicalTriangleRecipe.Story}\"", html);
         Assert.Contains($"data-shader=\"{CanonicalTriangleRecipe.Shader}\"", html);
         Assert.Contains($"data-vertex-size=\"{CanonicalTriangleRecipe.VertexSize}\"", html);
