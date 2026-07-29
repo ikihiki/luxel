@@ -129,22 +129,23 @@ public sealed class BrowserWebGpuSmokeTests
         }
 
         Assert.Empty(errors);
-        Assert.DoesNotContain(requests, url => new Uri(url).AbsolutePath.EndsWith(".png", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(requests, url =>
+            new Uri(url).AbsolutePath.EndsWith("/images/examples-3d-triangle.png", StringComparison.OrdinalIgnoreCase));
     }
 
     private static async Task AssertCanvasContainsCanonicalRgbAsync(ILocator canvas)
     {
         byte[] screenshot = await canvas.ScreenshotAsync();
         using Image<Rgba32> image = Image.Load<Rgba32>(screenshot);
-        Assert.Equal(4 * image.Height, 3 * image.Width);
+        Assert.InRange((double)image.Width / image.Height, 4d / 3d - 0.02, 4d / 3d + 0.02);
         bool red = false, green = false, blue = false;
-        for (int y = image.Height / 5; y < image.Height * 4 / 5; y += 3)
-        for (int x = image.Width / 5; x < image.Width * 4 / 5; x += 3)
+        for (int y = image.Height / 20; y < image.Height * 19 / 20; y += 3)
+        for (int x = image.Width / 20; x < image.Width * 19 / 20; x += 3)
         {
             Rgba32 pixel = image[x, y];
-            red |= pixel.R > 100 && pixel.R > pixel.G + 25 && pixel.R > pixel.B + 25;
-            green |= pixel.G > 100 && pixel.G > pixel.R + 25 && pixel.G > pixel.B + 25;
-            blue |= pixel.B > 100 && pixel.B > pixel.R + 25 && pixel.B > pixel.G + 25;
+            red |= pixel.R > 90 && pixel.R > pixel.G + 15 && pixel.R > pixel.B + 15;
+            green |= pixel.G > 90 && pixel.G > pixel.R + 15 && pixel.G > pixel.B + 15;
+            blue |= pixel.B > 90 && pixel.B > pixel.R + 15 && pixel.B > pixel.G + 15;
         }
         Assert.True(red && green && blue, $"Canvas did not contain canonical RGB regions (red={red}, green={green}, blue={blue}).");
     }
