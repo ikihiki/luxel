@@ -312,6 +312,9 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("<table class=\"args-table\">", fragment);
             Assert.Contains("data-arg-control=\"text\"", fragment);
             Assert.Contains("aria-labelledby=\"controls-button-basic-", fragment);
+            Assert.True(fragment.IndexOf("class=\"runtime-frame\"", StringComparison.Ordinal)
+                < fragment.IndexOf("class=\"args-panel\"", StringComparison.Ordinal),
+                "The embedded preview must appear above its args table.");
             Assert.DoesNotContain("Static capture — not interactive", fragment);
             Assert.Equal(0, host.StorySelectionCount);
             GallerySiteExporter.Validate(output);
@@ -538,8 +541,11 @@ public sealed class GallerySiteExporterTests
         Assert.Contains(".runtime-story{display:flex;flex-direction:column;width:100%;height:100%;margin:0}", css);
         Assert.Contains(".runtime-frame,.runtime-frame iframe{display:block;width:100%;height:100%;margin:0;padding:0;border:0", css);
         Assert.Contains(".runtime-page{width:100%;max-width:none;height:100%;margin:0}", css);
+        Assert.Contains(".runtime-story-embedded{height:auto", css);
+        Assert.Contains(".runtime-story-embedded .runtime-frame{flex:none;height:500px;min-height:500px}", css);
         Assert.Contains("body.runtime-active main{padding:0;overflow:hidden}", css);
         Assert.Contains(".args-panel{flex:none", css);
+        Assert.Contains("border-top:1px solid var(--line)", css);
         Assert.Contains(".args-table", css);
         Assert.DoesNotContain("aspect-ratio:4/3", css);
     }
