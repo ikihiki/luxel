@@ -24,6 +24,9 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("event.source !== parent", script, StringComparison.Ordinal);
         Assert.Contains("event.origin !== location.origin", script, StringComparison.Ordinal);
         Assert.Contains("publishArgsChanged", script, StringComparison.Ordinal);
+        Assert.Contains("publishEvent", program, StringComparison.Ordinal);
+        Assert.Contains("publishEvent", script, StringComparison.Ordinal);
+        Assert.Contains("post(\"event\", { entry })", script, StringComparison.Ordinal);
         Assert.Contains("publishDiagnostics", script, StringComparison.Ordinal);
 
         JsonElement manifest = document.RootElement;

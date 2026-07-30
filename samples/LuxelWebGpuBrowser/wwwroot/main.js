@@ -21,7 +21,7 @@ if (!args || Array.isArray(args) || typeof args !== "object") throw new Error("s
 let revision = 0;
 let setArgsExport = null;
 let pendingSetArgs = null;
-const runtimeState = { state: "loading", summary: "", story, instanceId, args, schema: descriptor.args || [], revision, renderRevision: 0, lastRequestId: null, widgets: [], pointerDownCount: 0, pointerUpCount: 0 };
+const runtimeState = { state: "loading", summary: "", story, instanceId, args, schema: descriptor.args || [], revision, renderRevision: 0, lastRequestId: null, events: [], widgets: [], pointerDownCount: 0, pointerUpCount: 0 };
 const updateCountState = () => {
   if (Number.isFinite(Number(args.count))) runtimeState.count = runtimeState.presentedCount = Number(args.count);
 };
@@ -78,6 +78,12 @@ const host = {
     Object.assign(runtimeState, { args, revision });
     updateCountState();
     post("args-changed", { requestId: null, source: "child" });
+  },
+  publishEvent: entryJson => {
+    const entry = JSON.parse(entryJson);
+    runtimeState.events.push(entry);
+    if (runtimeState.events.length > 200) runtimeState.events.shift();
+    post("event", { entry });
   },
   setReady: (summary, argsJson, schemaJson) => {
     args = parseObject(argsJson, "ready args");

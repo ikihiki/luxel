@@ -58,6 +58,8 @@ public sealed class StoryContext
 
     /// <summary>Raised with the full canonical snapshot whenever a declared arg changes.</summary>
     public event Action<StoryArgs>? ArgsChanged;
+    /// <summary>Raised whenever an action/event entry is appended to this story's Output log.</summary>
+    public event Action<StoryLogEntry>? Logged;
 
     public StoryContext(Luxel.Resources.ResourceSystem? resources = null, StoryArgs? args = null)
     {
@@ -269,11 +271,14 @@ public sealed class StoryContext
     /// <c>Button(_ => ctx.Log("clicked"), ...)</c> のようにハンドラから呼ぶ。直近 200 件を保持。</summary>
     public void Log(string message)
     {
+        StoryLogEntry entry;
         lock (_logGate)
         {
-            _log.Add(new StoryLogEntry(++_logSeq, DateTime.Now.ToString("HH:mm:ss.fff"), message));
+            entry = new StoryLogEntry(++_logSeq, DateTime.Now.ToString("HH:mm:ss.fff"), message);
+            _log.Add(entry);
             if (_log.Count > LogCapacity) _log.RemoveAt(0);
         }
+        Logged?.Invoke(entry);
     }
 
     /// <summary>ログのスナップショット (サーバスレッドから読む)。</summary>

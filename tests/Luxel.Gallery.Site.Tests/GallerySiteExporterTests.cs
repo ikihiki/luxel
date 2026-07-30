@@ -313,6 +313,10 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("class=\"args-panel\"", fragment);
             Assert.Contains("<table class=\"args-table\">", fragment);
             Assert.Contains("data-arg-control=\"text\"", fragment);
+            Assert.Contains("role=\"tablist\"", fragment);
+            Assert.Contains("data-runtime-tab=\"args\"", fragment);
+            Assert.Contains("data-runtime-tab=\"output\"", fragment);
+            Assert.Contains("class=\"output-list\"", fragment);
             Assert.Contains("aria-labelledby=\"controls-button-basic-", fragment);
             Assert.True(fragment.IndexOf("class=\"runtime-frame\"", StringComparison.Ordinal)
                 < fragment.IndexOf("class=\"args-panel\"", StringComparison.Ordinal),
@@ -358,8 +362,10 @@ public sealed class GallerySiteExporterTests
             Assert.Equal(2, firstIds.Length);
             Assert.All(firstIds, id =>
             {
-                Assert.Contains($"aria-labelledby=\"{id}-args\"", first, StringComparison.Ordinal);
-                Assert.Contains($"id=\"{id}-args\"", first, StringComparison.Ordinal);
+                Assert.Contains($"aria-labelledby=\"{id}-args-tab\"", first, StringComparison.Ordinal);
+                Assert.Contains($"id=\"{id}-args-panel\"", first, StringComparison.Ordinal);
+                Assert.Contains($"aria-labelledby=\"{id}-output-tab\"", first, StringComparison.Ordinal);
+                Assert.Contains($"id=\"{id}-output-panel\"", first, StringComparison.Ordinal);
             });
             Assert.Contains("args=%7B%22", first, StringComparison.Ordinal);
 
@@ -386,6 +392,9 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("const runtimeProtocolVersion=2", script, StringComparison.Ordinal);
         Assert.Contains("type:'set-args'", script, StringComparison.Ordinal);
         Assert.Contains("message.type==='args-changed'", script, StringComparison.Ordinal);
+        Assert.Contains("message.type==='event'", script, StringComparison.Ordinal);
+        Assert.Contains("appendRuntimeEvent(section,message.entry)", script, StringComparison.Ordinal);
+        Assert.Contains("activateRuntimeTab(section,next.dataset.runtimeTab,true)", script, StringComparison.Ordinal);
         Assert.Contains("candidate.contentWindow===event.source", script, StringComparison.Ordinal);
         Assert.Contains("event.origin!==location.origin", script, StringComparison.Ordinal);
         Assert.Contains("message.protocolVersion!==runtimeProtocolVersion", script, StringComparison.Ordinal);
@@ -440,6 +449,12 @@ public sealed class GallerySiteExporterTests
             Assert.Contains($"data-luxel-runtime-story=\"{storyPath}\"", fragment);
             Assert.Contains("<article class=\"story runtime-page\">", fragment);
             Assert.Contains("allow=\"webgpu; clipboard-read; clipboard-write\"", fragment);
+            Assert.Contains("role=\"tablist\"", fragment);
+            Assert.Contains("data-runtime-tab=\"args\"", fragment);
+            Assert.Contains("data-runtime-tab=\"output\"", fragment);
+            Assert.Contains("class=\"output-list\"", fragment);
+            if (storyPath == "Examples/3D/Triangle")
+                Assert.Contains("This story has no configurable args.", fragment);
             if (storyPath == "Controls/Button/Counter")
             {
                 Assert.Contains("class=\"args-panel\"", fragment);
@@ -546,7 +561,10 @@ public sealed class GallerySiteExporterTests
         Assert.Contains(".runtime-story-embedded{height:auto", css);
         Assert.Contains(".runtime-story-embedded .runtime-frame{flex:none;height:500px;min-height:500px}", css);
         Assert.Contains("body.runtime-active main{padding:0;overflow:hidden}", css);
-        Assert.Contains(".args-panel{flex:none", css);
+        Assert.Contains(".runtime-panels{flex:none", css);
+        Assert.Contains(".runtime-tabs{display:flex", css);
+        Assert.Contains(".args-panel,.output-panel", css);
+        Assert.Contains(".output-list", css);
         Assert.Contains("border-top:1px solid var(--line)", css);
         Assert.Contains(".args-table", css);
         Assert.DoesNotContain("aspect-ratio:4/3", css);

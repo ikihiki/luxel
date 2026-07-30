@@ -92,13 +92,14 @@ Both sides validate same origin, the expected source window, protocol version, c
 - `ready`: Widget runtime is initialized; includes the canonical args snapshot and schema.
 - `args-changed`: a parent edit was accepted or an in-canvas action changed an arg.
 - `arg-error`: one or more arg values were rejected.
+- `event`: a story action/event called `StoryContext.Log`; includes its sequence, timestamp, and message for the parent-owned Output panel.
 - `story-error`: story lookup, build, device setup, or runtime execution failed.
 
 The runtime additionally exposes `globalThis.luxelBrowserState` for manual runtime diagnostics and source-contract observability. This is diagnostic state, not the cross-frame protocol.
 
 ## Parent-owned args and hash state
 
-The parent document renders an accessible args table with stable labels, control IDs, defaults, descriptions, constraints, reset buttons, and live status regions. Controls remain disabled until the matching iframe reports ready.
+The parent document renders accessible Args and Output tabs. Args contains stable labels, control IDs, defaults, descriptions, constraints, reset buttons, and live status regions; controls remain disabled until the matching iframe reports ready. Output receives the bounded `StoryContext.Log` stream so users can confirm exactly which component events executed.
 
 Non-default state is persisted in the Gallery hash:
 

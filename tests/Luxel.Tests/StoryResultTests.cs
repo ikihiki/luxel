@@ -40,6 +40,20 @@ public sealed class StoryResultTests
     }
 
     [Fact]
+    public void Story_log_notifies_output_subscribers_with_the_recorded_entry()
+    {
+        var context = new StoryContext();
+        StoryLogEntry observed = default;
+        context.Logged += entry => observed = entry;
+
+        context.Log("Button.Clicked");
+
+        Assert.Equal(1, observed.Seq);
+        Assert.Equal("Button.Clicked", observed.Message);
+        Assert.Equal(observed, Assert.Single(context.LogSnapshot()));
+    }
+
+    [Fact]
     public void Catalogs_are_explicit_and_isolated()
     {
         var first = new StoryCatalogBuilder();
