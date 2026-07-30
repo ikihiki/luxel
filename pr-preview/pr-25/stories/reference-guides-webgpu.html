@@ -418,6 +418,7 @@ public static partial class Program
         _activeContext = context;
         _activeStory = path;
         context.ArgsChanged += changed =&gt; PublishArgsChanged(changed.ToJson());
+        context.Logged += entry =&gt; PublishEvent(JsonSerializer.Serialize(entry, BrowserJsonContext.Default.StoryLogEntry));
         StoryResult result = story.BuildResult(context);
         if (result.Kind != StoryResultKind.Widget || result.Widget is null)
             throw new InvalidOperationException($&quot;CoreUi runtime story '{path}' did not build a Widget.&quot;);
@@ -637,6 +638,7 @@ public static partial class Program
     [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
     [JsonSerializable(typeof(BrowserWidgetDiagnostic[]))]
     [JsonSerializable(typeof(StoryArgDefinition[]))]
+    [JsonSerializable(typeof(StoryLogEntry))]
     [JsonSerializable(typeof(SetArgsResponse))]
     private sealed partial class BrowserJsonContext : JsonSerializerContext;
 
@@ -648,6 +650,7 @@ public static partial class Program
     [JSImport(&quot;setStatus&quot;, &quot;luxel-browser-host&quot;)] private static partial void SetStatus(string state, string summary);
     [JSImport(&quot;setReady&quot;, &quot;luxel-browser-host&quot;)] private static partial void SetReady(string summary, string argsJson, string schemaJson);
     [JSImport(&quot;publishArgsChanged&quot;, &quot;luxel-browser-host&quot;)] private static partial void PublishArgsChanged(string argsJson);
+    [JSImport(&quot;publishEvent&quot;, &quot;luxel-browser-host&quot;)] private static partial void PublishEvent(string entryJson);
     [JSImport(&quot;publishDiagnostics&quot;, &quot;luxel-browser-host&quot;)] private static partial void PublishDiagnostics(string widgetsJson);
     [JSImport(&quot;publishFrame&quot;, &quot;luxel-browser-host&quot;)] private static partial void PublishFrame(int revision);
 }
