@@ -44,7 +44,7 @@ internal static class DocsKit
         {
             StoryKnob[] mine = ctx.Knobs.Skip(before).ToArray();
             parts.Add(Divider());
-            parts.Add(KnobsTable(mine, width: 640,
+            parts.Add(global::Luxel.Gallery.UI.Kit.KnobsTable(mine, width: 640,
                 onEdit: (_, k, v) => ctx.QueueKnobEdit(k, v)));
         }
         return new DocEmbed(VStack(6)[parts.ToArray()], DocEmbedKind.StoryRef, path);

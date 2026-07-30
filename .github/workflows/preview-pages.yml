@@ -48,7 +48,7 @@ jobs:
 
       - name: Test generators and generated production inventory
         if: github.event.action != 'closed'
-        run: dotnet test tests/Luxel.UI.Generators.Tests/Luxel.UI.Generators.Tests.csproj --no-restore --no-build --configuration Release
+        run: dotnet test tests/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test exporter and documentation contracts
         if: github.event.action != 'closed'
         run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release

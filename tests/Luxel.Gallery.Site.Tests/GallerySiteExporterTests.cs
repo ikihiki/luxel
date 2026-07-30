@@ -152,9 +152,10 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
-    public void DocString_recognizes_api_tables_for_semantic_export()
+    public void Gallery_api_tables_use_explicit_semantic_doc_embeds()
     {
-        DocString control = $"{Luxel.Controls.Kit.ApiTable("Button", inherited: true)}";
+        var controlTable = Luxel.Gallery.UI.Kit.ApiTable("Button", inherited: true);
+        DocString control = $"{new DocEmbed(controlTable, DocEmbedKind.ControlApiTable, "Button", IncludeInherited: true)}";
         DocEmbed controlEmbed = Assert.Single(control.Embeds);
         Assert.Equal(DocEmbedKind.ControlApiTable, controlEmbed.Kind);
         Assert.Equal("Button", controlEmbed.Reference);
@@ -162,7 +163,8 @@ public sealed class GallerySiteExporterTests
 
         string typeName = TypeApiRegistry.Namespaces.SelectMany(TypeApiRegistry.InNamespace)
             .Select(api => $"{api.Namespace}.{api.Name}").First();
-        DocString type = $"{Luxel.Controls.Kit.TypeApiTable(typeName)}";
+        var typeTable = Luxel.Gallery.UI.Kit.TypeApiTable(typeName);
+        DocString type = $"{new DocEmbed(typeTable, DocEmbedKind.TypeApiTable, typeName)}";
         DocEmbed typeEmbed = Assert.Single(type.Embeds);
         Assert.Equal(DocEmbedKind.TypeApiTable, typeEmbed.Kind);
         Assert.Equal(typeName, typeEmbed.Reference);
@@ -720,7 +722,7 @@ public sealed class GallerySiteExporterTests
 
         var mapped = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["Button"] = "Button", ["CheckBox"] = "Check", ["Knobs"] = "KnobsTable",
+            ["Button"] = "Button", ["CheckBox"] = "Check", ["KnobsTable"] = "KnobsTable",
             ["RichText"] = "RichTextView", ["ScrollViewer"] = "Scroll", ["WrapPanel"] = "Wrap",
         };
         foreach ((string category, string apiName) in mapped)

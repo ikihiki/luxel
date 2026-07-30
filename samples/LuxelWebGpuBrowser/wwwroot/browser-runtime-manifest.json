@@ -303,7 +303,7 @@
         }
       ],
       "capabilityNote": "Direct generated factory with browser-safe scalar args and generated event logging.",
-      "componentType": "global::Luxel.Controls.ApiTable"
+      "componentType": "global::Luxel.Gallery.UI.ApiTable"
     },
     {
       "path": "Controls/AssetBrowser/Basic",
@@ -2130,20 +2130,20 @@
       "componentType": null
     },
     {
-      "path": "Controls/Knobs/Kinds",
-      "width": 480,
-      "height": 240,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
       "path": "Controls/KnobsTable/Basic",
       "width": 480,
       "height": 320,
       "args": [],
       "capabilityNote": "Deterministic explanatory fallback for unsupported capability inputs: Knobs.",
-      "componentType": "global::Luxel.Controls.KnobsTable"
+      "componentType": "global::Luxel.Gallery.UI.KnobsTable"
+    },
+    {
+      "path": "Controls/KnobsTable/Kinds",
+      "width": 480,
+      "height": 240,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
     },
     {
       "path": "Controls/Layout/Units",
@@ -5659,7 +5659,7 @@
         }
       ],
       "capabilityNote": "Direct generated factory with browser-safe scalar args and generated event logging.",
-      "componentType": "global::Luxel.Controls.TypeApiTable"
+      "componentType": "global::Luxel.Gallery.UI.TypeApiTable"
     },
     {
       "path": "Controls/Wrap/Basic",

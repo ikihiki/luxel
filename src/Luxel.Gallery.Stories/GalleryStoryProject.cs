@@ -11,7 +11,7 @@ public static class GalleryStoryProject
         CoreUiStoryProject.Register(builder);
 
         var fullBuilder = new StoryCatalogBuilder();
-        Luxel.UI.Generated.StoryRegistration_Luxel_Gallery_Stories.Register(fullBuilder);
+        Luxel.Gallery.Generated.StoryRegistration_Luxel_Gallery_Stories.Register(fullBuilder);
         Stories.DocsApi.RegisterReferenceStories(fullBuilder);
         foreach (StoryInfo story in fullBuilder.Build().All)
         {

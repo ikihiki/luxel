@@ -1,6 +1,7 @@
 using System.Text.Json;
+using Luxel.UI;
 
-namespace Luxel.UI;
+namespace Luxel.Gallery;
 
 /// <summary>
 /// ギャラリー (Storybook 風カタログ) のストーリー定義。
@@ -313,17 +314,26 @@ public sealed class StoryKnob
     /// <summary>文字列表現から書き込む (エディタ経由 — 型に応じて JSON へ寄せる)。
     /// 数値/bool として解釈できない文字列は <see cref="FormatException"/> (Pump 側が無視する)。</summary>
     public void SetText(string v)
-        => Set(Type switch
+    {
+        try
         {
-            "bool" => JsonSerializer.SerializeToElement(
-                bool.TryParse(v, out bool b) ? b : throw new FormatException(v)),
-            "int" => JsonSerializer.SerializeToElement(
-                int.TryParse(v, out int i) ? i : throw new FormatException(v)),
-            "float" => JsonSerializer.SerializeToElement(
-                float.TryParse(v, System.Globalization.CultureInfo.InvariantCulture, out float f)
-                    ? f : throw new FormatException(v)),
-            _ => JsonSerializer.SerializeToElement(v),   // color/string は文字列のまま (Coerce が解釈)
-        });
+            Set(Type switch
+            {
+                "bool" => JsonSerializer.SerializeToElement(
+                    bool.TryParse(v, out bool b) ? b : throw new FormatException(v)),
+                "int" => JsonSerializer.SerializeToElement(
+                    int.TryParse(v, out int i) ? i : throw new FormatException(v)),
+                "float" => JsonSerializer.SerializeToElement(
+                    float.TryParse(v, System.Globalization.CultureInfo.InvariantCulture, out float f)
+                        ? f : throw new FormatException(v)),
+                _ => JsonSerializer.SerializeToElement(v),   // color/string は文字列のまま (Coerce が解釈)
+            });
+        }
+        catch (FormatException)
+        {
+            // Interactive knob editors ignore incomplete/invalid text and retain the previous value.
+        }
+    }
 
     internal static StoryKnob For<T>(string name, Signal<T> sig, string? description = null,
         Func<JsonElement, T>? parser = null)

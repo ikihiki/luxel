@@ -1,8 +1,9 @@
-﻿using Luxel.Typography;
+using Luxel.Typography;
 using Luxel.UI;
+using Luxel.Controls;
 using static Luxel.Controls.Kit;
 
-namespace Luxel.Controls;
+namespace Luxel.Gallery.UI;
 
 /// <summary>
 /// Knobs の autodoc 風テーブル (Storybook の ArgsTable 相当): 名前 | 型 | 説明 | 操作。
@@ -73,9 +74,9 @@ public sealed partial class KnobsTable : CompositeControl
         if (k.Type == "color")
         {
             // Kit ファクトリが型名を隠すため完全修飾 (CS0119 回避)
-            var col = new Signal<uint>(Luxel.Controls.ColorPicker.TryParseHex(k.Value, out uint c) ? c : 0xFF000000u);
+            var col = new Signal<uint>(global::Luxel.Controls.ColorPicker.TryParseHex(k.Value, out uint c) ? c : 0xFF000000u);
             bool first = true;
-            Reactive.Effect(() => { uint v = col.Value; if (first) { first = false; return; } Commit(Luxel.Controls.ColorPicker.ToHex(v)); });
+            Reactive.Effect(() => { uint v = col.Value; if (first) { first = false; return; } Commit(global::Luxel.Controls.ColorPicker.ToHex(v)); });
             return ColorPicker(col);
         }
         if (k.Type == "length")

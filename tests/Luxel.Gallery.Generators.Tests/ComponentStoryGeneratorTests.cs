@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
-using Luxel.UI.Generators;
+using Luxel.Gallery.Generators;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace Luxel.UI.Generators.Tests;
+namespace Luxel.Gallery.Generators.Tests;
 
 public sealed class ComponentStoryGeneratorTests
 {

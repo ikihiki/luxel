@@ -36,7 +36,7 @@ jobs:
       - name: Build solution and rendering samples
         run: dotnet build Luxel.slnx --no-restore --configuration Release
       - name: Test generators and generated production inventory
-        run: dotnet test tests/Luxel.UI.Generators.Tests/Luxel.UI.Generators.Tests.csproj --no-restore --no-build --configuration Release
+        run: dotnet test tests/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test exporter and documentation contracts
         run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test browser managed and source contracts

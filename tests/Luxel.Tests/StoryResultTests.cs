@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Luxel.UI;
+using Luxel.Gallery;
 
 namespace Luxel.Tests;
 

@@ -1,9 +1,10 @@
 using System.Text.Json;
-using Luxel.UI.Generators;
+using Luxel.Gallery.Generators;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Luxel.Gallery;
 
-namespace Luxel.UI.Generators.Tests;
+namespace Luxel.Gallery.Generators.Tests;
 
 public sealed class GeneratedComponentStoryTests
 {
@@ -89,7 +90,7 @@ public sealed class GeneratedComponentStoryTests
             .Split(Path.PathSeparator).Select(path => MetadataReference.CreateFromFile(path)).ToArray();
         CSharpCompilation compilation = CSharpCompilation.Create("GeneratedComponentStories", [tree], references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-        GeneratorDriver driver = CSharpGeneratorDriver.Create([new WidgetDebugGenerator().AsSourceGenerator()], parseOptions: parseOptions);
+        GeneratorDriver driver = CSharpGeneratorDriver.Create([new GeneratedComponentStoryGenerator().AsSourceGenerator()], parseOptions: parseOptions);
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _);
         GeneratorDriverRunResult result = driver.GetRunResult();
 
@@ -100,7 +101,7 @@ public sealed class GeneratedComponentStoryTests
         Assert.Contains("StoryArgDefinition.Create<string>(\"text\", \"string\", \"Example\"", generated, StringComparison.Ordinal);
         Assert.Contains("global::Demo.Kit.Button(text: arg", generated, StringComparison.Ordinal);
         Assert.Contains("clicked: () => ctx.Log(\"Button.Clicked\")", generated, StringComparison.Ordinal);
-        Assert.Contains("new global::Luxel.UI.StoryCapabilityFallback(\"AssetBrowser\"", generated, StringComparison.Ordinal);
+        Assert.Contains("new global::Luxel.Gallery.StoryCapabilityFallback(\"AssetBrowser\"", generated, StringComparison.Ordinal);
         Assert.Contains("Unsupported capability/constructor inputs use a deterministic fallback: Services.", generated, StringComparison.Ordinal);
         Assert.Contains("StoryResult.FromMarkdown", generated, StringComparison.Ordinal);
         Assert.DoesNotContain("Activator", generated, StringComparison.Ordinal);

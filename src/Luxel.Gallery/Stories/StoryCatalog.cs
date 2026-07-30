@@ -1,4 +1,5 @@
-namespace Luxel.UI;
+using Luxel.UI;
+namespace Luxel.Gallery;
 
 /// <summary>明示登録された Story 群の immutable catalog。</summary>
 public sealed class StoryCatalog

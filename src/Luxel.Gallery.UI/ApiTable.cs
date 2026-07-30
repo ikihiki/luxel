@@ -1,8 +1,9 @@
 ﻿using Luxel.Typography;
 using Luxel.UI;
+using Luxel.Controls;
 using static Luxel.Controls.Kit;
 
-namespace Luxel.Controls;
+namespace Luxel.Gallery.UI;
 
 /// <summary>
 /// コントロール API リファレンス表 (Storybook autodocs の ArgsTable 相当)。ソースジェネレーターが

@@ -2,8 +2,9 @@ using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using Luxel.UI;
 
-namespace Luxel.UI;
+namespace Luxel.Gallery;
 
 public enum StoryResultKind
 {

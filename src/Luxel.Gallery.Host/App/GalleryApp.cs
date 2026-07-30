@@ -448,7 +448,7 @@ public sealed class GalleryApp : IDisposable
         // Knobs (autodoc 風テーブル)。編集は StoryContext のキューへ (Update の PumpKnobEdits が適用)
         float paneW = MathF.Max(140, MainW());
         return Scroll(BottomInnerH(), width: paneW - 32)[
-            KnobsTable(_ctx?.Knobs ?? [], width: paneW - 48,
+            global::Luxel.Gallery.UI.Kit.KnobsTable(_ctx?.Knobs ?? [], width: paneW - 48,
                 onEdit: (_, k, v) => _ctx?.QueueKnobEdit(k, v))];
     }
 

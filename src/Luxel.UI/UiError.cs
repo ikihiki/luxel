@@ -11,7 +11,7 @@ namespace Luxel.UI;
 /// </summary>
 public static class UiError
 {
-    /// <summary>例外を報告する (Console.Error + 診断イベント "error" — DevTools/Gallery の Log に出る)。</summary>
+    /// <summary>例外を報告する (Console.Error + 診断イベント "error" — 診断 UI の Log に出る)。</summary>
     public static void Report(Exception ex, string context)
     {
         Console.Error.WriteLine($"[ui-error] {context}: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");

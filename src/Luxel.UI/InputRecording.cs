@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace Luxel.UI;
 
-/// <summary>記録/リプレイが扱う入力の種類。<see cref="PlayDriver"/> が UiHost へ配送する
+/// <summary>記録/リプレイが扱う入力の種類。UiHost へ配送する
 /// 低レベル操作 (クリックは押下/解放へ分解される) にそのまま対応する。</summary>
 public enum InputKind
 {
@@ -63,7 +63,7 @@ public sealed record InputRecording(int Version, int Frames, IReadOnlyList<Recor
 [JsonSerializable(typeof(InputRecording))]
 internal sealed partial class InputRecordingJsonContext : JsonSerializerContext;
 
-/// <summary>記録を <see cref="PlayDriver"/> の play コード列 (<c>d.Click(...)</c> 等) に起こす。
+/// <summary>記録を 決定的な操作コード列 (<c>d.Click(...)</c> 等) に起こす。
 /// <para>手操作の記録を回帰テスト用 play の下書きに変換するのが狙い — 低レベルな
 /// 押下/移動/解放列を Click / Drag / Type / Key / Wheel へ畳んで読める形にする。</para></summary>
 public static class InputScript

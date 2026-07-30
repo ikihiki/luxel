@@ -1,4 +1,5 @@
-﻿namespace Luxel.UI;
+using Luxel.UI;
+﻿namespace Luxel.Gallery;
 
 /// <summary>play 内の Expect 失敗 / ドライバ操作の失敗。ランナーがテスト失敗として報告する。</summary>
 public sealed class PlayError(string message) : Exception(message);

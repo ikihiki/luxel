@@ -1,5 +1,6 @@
 ﻿using Luxel.UI;
 using Xunit;
+using Luxel.Gallery;
 
 namespace Luxel.Tests;
 

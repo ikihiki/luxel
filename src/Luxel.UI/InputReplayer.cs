@@ -1,8 +1,8 @@
 namespace Luxel.UI;
 
-/// <summary>記録済み入力を<b>決定的</b>に再生する。<see cref="PlayDriver"/> と同じく
+/// <summary>記録済み入力を<b>決定的</b>に再生する。入力ドライバと同じく
 /// 「フレーム前進を外から注入する」形 (step デリゲート) — E2E ランナーなら固定 dt 同期、
-/// Gallery 内再生なら実フレーム待ち、どちらでも同じ記録が同じ結果になる。</summary>
+/// ライブ UI 内再生なら実フレーム待ち、どちらでも同じ記録が同じ結果になる。</summary>
 public static class InputReplayer
 {
     /// <summary>記録を host へ再生する。フレーム f のイベントを配送 → 1 フレーム step、を

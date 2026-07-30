@@ -60,7 +60,7 @@ public static class WidgetDebugCodec
                 throw new FormatException($"'{value}' is not a valid {typeof(T).Name} value.");
             return (T)parsed;
         }
-        throw new InvalidCastException($"Story arg type '{typeof(T).FullName}' requires a generated parser.");
+        throw new InvalidCastException($"Debug arg type '{typeof(T).FullName}' requires a generated parser.");
     }
 
     // ---- JSON → 値の coerce (型別) ----

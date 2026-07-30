@@ -56,8 +56,11 @@ def forbid_closure(source_stem: str, forbidden, label: str):
         print(f"Forbidden {label} dependency:\n  " + "\n  -> ".join(map(display, path)), file=sys.stderr)
         sys.exit(1)
 
+forbid_closure("Luxel.UI", lambda stem: stem.startswith("Luxel.Gallery"), "UI/Gallery reverse")
+forbid_closure("Luxel.UI.Generators", lambda stem: stem.startswith("Luxel.Gallery"), "UI generators/Gallery reverse")
 forbid_closure("Luxel.Gallery", lambda stem: stem in {
-    "Luxel.Gallery.Host", "Luxel.Gallery.Site", "Luxel.Gallery.Stories", "Luxel.Gallery.Stories.CoreUi"
+    "Luxel.Gallery.Generators", "Luxel.Gallery.UI", "Luxel.Gallery.Host", "Luxel.Gallery.Site",
+    "Luxel.Gallery.Stories", "Luxel.Gallery.Stories.CoreUi"
 }, "Gallery core reverse")
 forbid_closure("Luxel.Gallery.Site", lambda stem: stem == "Luxel.Gallery.Host", "Site/Host")
 

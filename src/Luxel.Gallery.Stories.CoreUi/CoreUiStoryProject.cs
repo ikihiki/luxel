@@ -7,10 +7,11 @@ public static class CoreUiStoryProject
 {
     public const string RuntimeBundleId = "webgpu-browser-v1";
     public const int ProductionComponentCount =
-        Luxel.UI.Generated.ComponentStoryRegistration_Luxel_Controls.ComponentCount
-        + Luxel.UI.Generated.ComponentStoryRegistration_Luxel_Diagram.ComponentCount
-        + Luxel.UI.Generated.ComponentStoryRegistration_Luxel_MathText.ComponentCount
-        + Luxel.UI.Generated.ComponentStoryRegistration_Luxel_Particles_UI.ComponentCount;
+        Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Controls.ComponentCount
+        + Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Diagram.ComponentCount
+        + Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_MathText.ComponentCount
+        + Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Particles_UI.ComponentCount
+        + Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Gallery_UI.ComponentCount;
 
     // Keep generated descriptor access lazy. browser-WASM invokes this catalog explicitly; eager
     // type initialization hides useful schema/registrar errors behind TypeInitializationException.
@@ -26,10 +27,11 @@ public static class CoreUiStoryProject
 
     private static GeneratedComponentStoryDescriptor[] CreateProduction() =>
     [
-        .. Luxel.UI.Generated.ComponentStoryRegistration_Luxel_Controls.Descriptors,
-        .. Luxel.UI.Generated.ComponentStoryRegistration_Luxel_Diagram.Descriptors,
-        .. Luxel.UI.Generated.ComponentStoryRegistration_Luxel_MathText.Descriptors,
-        .. Luxel.UI.Generated.ComponentStoryRegistration_Luxel_Particles_UI.Descriptors,
+        .. Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Controls.Descriptors,
+        .. Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Diagram.Descriptors,
+        .. Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_MathText.Descriptors,
+        .. Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Particles_UI.Descriptors,
+        .. Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Gallery_UI.Descriptors,
     ];
 
     public static bool IsProductionCanonicalPath(string path)
@@ -45,16 +47,17 @@ public static class CoreUiStoryProject
 
         // Auto-generated canonical ownership. These registrars live with the component assemblies,
         // invoke direct typed factories, and expose static schemas without executing a story.
-        Luxel.UI.Generated.ComponentStoryRegistration_Luxel_Controls.Register(builder, RuntimeBundleId);
-        Luxel.UI.Generated.ComponentStoryRegistration_Luxel_Diagram.Register(builder, RuntimeBundleId);
-        Luxel.UI.Generated.ComponentStoryRegistration_Luxel_MathText.Register(builder, RuntimeBundleId);
-        Luxel.UI.Generated.ComponentStoryRegistration_Luxel_Particles_UI.Register(builder, RuntimeBundleId);
+        Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Controls.Register(builder, RuntimeBundleId);
+        Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Diagram.Register(builder, RuntimeBundleId);
+        Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_MathText.Register(builder, RuntimeBundleId);
+        Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Particles_UI.Register(builder, RuntimeBundleId);
+        Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Gallery_UI.Register(builder, RuntimeBundleId);
 
         // Handwritten browser-safe implementation/pattern stories and authored component playgrounds.
         // Generated canonical Overview/Basic paths remain the production fallback unless the composition
         // root explicitly calls StoryCatalogBuilder.Add(story, replaceGenerated: true).
         var authoredBuilder = new StoryCatalogBuilder();
-        Luxel.UI.Generated.StoryRegistration_Luxel_Gallery_Stories_CoreUi.Register(authoredBuilder);
+        Luxel.Gallery.Generated.StoryRegistration_Luxel_Gallery_Stories_CoreUi.Register(authoredBuilder);
         Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Gallery_Stories_CoreUi.Register(authoredBuilder);
         foreach (StoryInfo story in authoredBuilder.Build().All)
         {

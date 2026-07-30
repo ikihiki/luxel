@@ -1,7 +1,8 @@
 using Luxel.Graphics.TwoD;
 using Luxel.Typography.TwoD;
+using Luxel.UI;
 
-namespace Luxel.UI;
+namespace Luxel.Gallery;
 
 /// <summary>Deterministic browser-safe explanation used when a component requires an unsupported capability input.</summary>
 public sealed class StoryCapabilityFallback(string component, string explanation) : Widget

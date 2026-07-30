@@ -1,8 +1,9 @@
 ﻿using Luxel.Typography;
 using Luxel.UI;
+using Luxel.Controls;
 using static Luxel.Controls.Kit;
 
-namespace Luxel.Controls;
+namespace Luxel.Gallery.UI;
 
 /// <summary>
 /// 型 API リファレンス表 (<see cref="ApiTable"/> のコントロール以外の型版)。ソースジェネレーター

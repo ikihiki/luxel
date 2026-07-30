@@ -1,10 +1,11 @@
 using System.Collections.Immutable;
-using Luxel.UI.Generators;
+using Luxel.Gallery.Generators;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Luxel.Gallery;
 
-namespace Luxel.UI.Generators.Tests;
+namespace Luxel.Gallery.Generators.Tests;
 
 public sealed class StoryGeneratorTests
 {
@@ -69,7 +70,7 @@ public sealed class StoryGeneratorTests
 
         string generated = Assert.Single(result.GeneratedTrees).ToString();
         Assert.Contains("RuntimeBundleId: \"webgpu-browser-v1\"", generated, StringComparison.Ordinal);
-        Assert.Contains("ArgDefinitions: global::Luxel.UI.Stories.Args()", generated, StringComparison.Ordinal);
+        Assert.Contains("ArgDefinitions: global::Demo.Stories.Args()", generated, StringComparison.Ordinal);
         Assert.Contains("CapabilityNote: \"fixture\"", generated, StringComparison.Ordinal);
     }
 
@@ -102,7 +103,18 @@ public sealed class StoryGeneratorTests
     {
         string source = $$"""
             using System;
+            using Luxel.Gallery;
+            using Luxel.UI;
+
             namespace Luxel.UI
+            {
+                public class Widget
+                {
+                    public Widget(string value = "") { }
+                }
+            }
+
+            namespace Luxel.Gallery
             {
                 [AttributeUsage(AttributeTargets.Method)]
                 public sealed class StoryAttribute(string path) : Attribute
@@ -117,10 +129,6 @@ public sealed class StoryGeneratorTests
                     public string? Args { get; set; }
                     public string? CapabilityNote { get; set; }
                 }
-                public class Widget
-                {
-                    public Widget(string value = "") { }
-                }
                 public sealed class StoryContext
                 {
                     public T Require<T>() => default!;
@@ -131,6 +139,10 @@ public sealed class StoryGeneratorTests
                     string? RuntimeBundleId = null, System.Collections.Generic.IReadOnlyList<StoryArgDefinition>? ArgDefinitions = null,
                     string? CapabilityNote = null);
                 public static class StoryRegistry { public static void Register(StoryInfo story) { } }
+            }
+
+            namespace Demo
+            {
                 public sealed class DemoService { public string Name => "demo"; }
                 public static class Stories
                 {

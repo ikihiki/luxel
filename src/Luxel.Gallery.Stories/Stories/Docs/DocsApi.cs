@@ -184,9 +184,9 @@ public static class DocsApi
         """, toc: true);
 
     internal static DocEmbed ControlApiReference(string name, bool inherited = false, float width = 720f)
-        => new(ApiTable(name, inherited: inherited, width: width), DocEmbedKind.ControlApiTable, name,
+        => new(global::Luxel.Gallery.UI.Kit.ApiTable(name, inherited: inherited, width: width), DocEmbedKind.ControlApiTable, name,
             IncludeInherited: inherited);
 
     internal static DocEmbed TypeApiReference(string name, float width = 760f)
-        => new(TypeApiTable(name, width: width), DocEmbedKind.TypeApiTable, name);
+        => new(global::Luxel.Gallery.UI.Kit.TypeApiTable(name, width: width), DocEmbedKind.TypeApiTable, name);
 }
