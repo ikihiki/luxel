@@ -1,4 +1,240 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Text/Overview</h1></header><h1 id="text">Text</h1>
-<p><code>Luxel.Controls</code> のコントロール API です。コンストラクタ引数・イベント・パラメータは <code>[UiComponent]</code> のソースと XML doc コメントから生成されます。</p>
-<section class="api-reference"><p class="api-summary">テキスト。既定は 1 行互換 (従来どおり)。/TextAlign を指定するか 内容に \n を含むと TextLayout による複数行レイアウト (折り返し/禁則/整列/Justify) になる。 内容は Func`1 で束縛でき、signal 変化で更新される。 色/不透明度/サイズは [UiParam] な Bindable`1 フィールド。 状態別の上書きは生成された .When(WidgetState.Hover, color: ...) が状態レイヤで積む。</p><h3>パラメータ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Content</code></th><td><code>string</code></td><td>テキスト内容。値/Signal/Func/$&quot;...&quot; を受け、内容変化で再ラスタライズされる。</td></tr><tr><th scope="row"><code>FontSize</code></th><td><code>float</code></td><td></td></tr><tr><th scope="row"><code>Color</code></th><td><code>uint (状態対応)</code></td><td>文字色。未設定 → 既定 (濃灰)。テーマ追従は Bind.From(() =&gt; UiTheme.T.Text)。</td></tr><tr><th scope="row"><code>Opacity</code></th><td><code>float</code></td><td></td></tr><tr><th scope="row"><code>Wrap</code></th><td><code>TextWrap</code></td><td>折り返し (既定 None = 1 行互換)。Word=語境界優先、Char=文字単位 (禁則は両方有効)。</td></tr><tr><th scope="row"><code>TextAlign</code></th><td><code>TextAlign</code></td><td>行の水平整列 (既定 Left)。Center/Right/Justify はボックス幅 (Width 指定 or 親の利用可能幅) 内。</td></tr><tr><th scope="row"><code>LineHeight</code></th><td><code>float</code></td><td>行送り倍率 (既定 1.2)。複数行時のみ使用。</td></tr><tr><th scope="row"><code>MaxLines</code></th><td><code>int</code></td><td>最大行数 (0 = 無制限)。超過分は切り捨てて末尾に … を付ける。</td></tr><tr><th scope="row"><code>VerticalAlign</code></th><td><code>TextVAlign</code></td><td>ボックス内の縦整列 (Height 指定時のみ効く)。</td></tr></tbody></table></div></section>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p></article>
+<article class="story document-page"><h1 id="text">Text</h1>
+<p>テキスト。既定は 1 行互換 (従来どおり)。/TextAlign を指定するか 内容に \n を含むと TextLayout による複数行レイアウト (折り返し/禁則/整列/Justify) になる。 内容は Func<code>1 で束縛でき、signal 変化で更新される。 色/不透明度/サイズは [UiParam] な Bindable</code>1 フィールド。 状態別の上書きは生成された .When(WidgetState.Hover, color: ...) が状態レイヤで積む。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Controls/Text/Overview#ref-0" data-luxel-runtime-story="Controls/Text/Basic" data-luxel-runtime-instance="controls-text-basic-2b97a81d701e" data-luxel-runtime-args="{&quot;color&quot;:&quot;#feeadb&quot;,&quot;content&quot;:&quot;Sample&quot;,&quot;fontSize&quot;:16,&quot;hAlign&quot;:&quot;Start&quot;,&quot;height&quot;:&quot;96&quot;,&quot;lineHeight&quot;:0,&quot;maxLines&quot;:1,&quot;opacity&quot;:1,&quot;rotate&quot;:0,&quot;scaleX&quot;:1,&quot;scaleY&quot;:1,&quot;textAlign&quot;:&quot;Left&quot;,&quot;translateX&quot;:0,&quot;translateY&quot;:0,&quot;vAlign&quot;:&quot;Start&quot;,&quot;verticalAlign&quot;:&quot;Top&quot;,&quot;width&quot;:&quot;240&quot;,&quot;wrap&quot;:&quot;None&quot;}" data-luxel-runtime-schema="[
+  {
+    &quot;name&quot;: &quot;content&quot;,
+    &quot;type&quot;: &quot;string&quot;,
+    &quot;defaultValue&quot;: &quot;Sample&quot;,
+    &quot;description&quot;: &quot;\u30C6\u30AD\u30B9\u30C8\u5185\u5BB9\u3002\u5024/Signal/Func/$\u0022...\u0022 \u3092\u53D7\u3051\u3001\u5185\u5BB9\u5909\u5316\u3067\u518D\u30E9\u30B9\u30BF\u30E9\u30A4\u30BA\u3055\u308C\u308B\u3002&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;fontSize&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 16,
+    &quot;description&quot;: &quot;FontSize component parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;color&quot;,
+    &quot;type&quot;: &quot;color&quot;,
+    &quot;defaultValue&quot;: &quot;#feeadb&quot;,
+    &quot;description&quot;: &quot;\u6587\u5B57\u8272\u3002\u672A\u8A2D\u5B9A \u2192 \u65E2\u5B9A (\u6FC3\u7070)\u3002\u30C6\u30FC\u30DE\u8FFD\u5F93\u306F Bind.From(() =\u003E UiTheme.T.Text)\u3002&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;opacity&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 1,
+    &quot;description&quot;: &quot;Opacity component parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;wrap&quot;,
+    &quot;type&quot;: &quot;enum:None|Word|Char&quot;,
+    &quot;defaultValue&quot;: &quot;None&quot;,
+    &quot;description&quot;: &quot;\u6298\u308A\u8FD4\u3057 (\u65E2\u5B9A None = 1 \u884C\u4E92\u63DB)\u3002Word=\u8A9E\u5883\u754C\u512A\u5148\u3001Char=\u6587\u5B57\u5358\u4F4D (\u7981\u5247\u306F\u4E21\u65B9\u6709\u52B9)\u3002&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: [
+      &quot;None&quot;,
+      &quot;Word&quot;,
+      &quot;Char&quot;
+    ]
+  },
+  {
+    &quot;name&quot;: &quot;textAlign&quot;,
+    &quot;type&quot;: &quot;enum:Left|Center|Right|Justify&quot;,
+    &quot;defaultValue&quot;: &quot;Left&quot;,
+    &quot;description&quot;: &quot;\u884C\u306E\u6C34\u5E73\u6574\u5217 (\u65E2\u5B9A Left)\u3002Center/Right/Justify \u306F\u30DC\u30C3\u30AF\u30B9\u5E45 (Width \u6307\u5B9A or \u89AA\u306E\u5229\u7528\u53EF\u80FD\u5E45) \u5185\u3002&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: [
+      &quot;Left&quot;,
+      &quot;Center&quot;,
+      &quot;Right&quot;,
+      &quot;Justify&quot;
+    ]
+  },
+  {
+    &quot;name&quot;: &quot;lineHeight&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 0,
+    &quot;description&quot;: &quot;\u884C\u9001\u308A\u500D\u7387 (\u65E2\u5B9A 1.2)\u3002\u8907\u6570\u884C\u6642\u306E\u307F\u4F7F\u7528\u3002&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;maxLines&quot;,
+    &quot;type&quot;: &quot;int&quot;,
+    &quot;defaultValue&quot;: 1,
+    &quot;description&quot;: &quot;\u6700\u5927\u884C\u6570 (0 = \u7121\u5236\u9650)\u3002\u8D85\u904E\u5206\u306F\u5207\u308A\u6368\u3066\u3066\u672B\u5C3E\u306B \u2026 \u3092\u4ED8\u3051\u308B\u3002&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;verticalAlign&quot;,
+    &quot;type&quot;: &quot;enum:Top|Center|Bottom&quot;,
+    &quot;defaultValue&quot;: &quot;Top&quot;,
+    &quot;description&quot;: &quot;\u30DC\u30C3\u30AF\u30B9\u5185\u306E\u7E26\u6574\u5217 (Height \u6307\u5B9A\u6642\u306E\u307F\u52B9\u304F)\u3002&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: [
+      &quot;Top&quot;,
+      &quot;Center&quot;,
+      &quot;Bottom&quot;
+    ]
+  },
+  {
+    &quot;name&quot;: &quot;hAlign&quot;,
+    &quot;type&quot;: &quot;enum:Start|Center|End|Stretch&quot;,
+    &quot;defaultValue&quot;: &quot;Start&quot;,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: [
+      &quot;Start&quot;,
+      &quot;Center&quot;,
+      &quot;End&quot;,
+      &quot;Stretch&quot;
+    ]
+  },
+  {
+    &quot;name&quot;: &quot;vAlign&quot;,
+    &quot;type&quot;: &quot;enum:Start|Center|End|Stretch&quot;,
+    &quot;defaultValue&quot;: &quot;Start&quot;,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: [
+      &quot;Start&quot;,
+      &quot;Center&quot;,
+      &quot;End&quot;,
+      &quot;Stretch&quot;
+    ]
+  },
+  {
+    &quot;name&quot;: &quot;width&quot;,
+    &quot;type&quot;: &quot;length&quot;,
+    &quot;defaultValue&quot;: &quot;240&quot;,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;height&quot;,
+    &quot;type&quot;: &quot;length&quot;,
+    &quot;defaultValue&quot;: &quot;96&quot;,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;translateX&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 0,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;translateY&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 0,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;scaleX&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 1,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;scaleY&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 1,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;rotate&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 0,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  }
+]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Controls%2FText%2FBasic&amp;args=%7B%22color%22%3A%22%23feeadb%22%2C%22content%22%3A%22Sample%22%2C%22fontSize%22%3A16%2C%22hAlign%22%3A%22Start%22%2C%22height%22%3A%2296%22%2C%22lineHeight%22%3A0%2C%22maxLines%22%3A1%2C%22opacity%22%3A1%2C%22rotate%22%3A0%2C%22scaleX%22%3A1%2C%22scaleY%22%3A1%2C%22textAlign%22%3A%22Left%22%2C%22translateX%22%3A0%2C%22translateY%22%3A0%2C%22vAlign%22%3A%22Start%22%2C%22verticalAlign%22%3A%22Top%22%2C%22width%22%3A%22240%22%2C%22wrap%22%3A%22None%22%7D&amp;instance=controls-text-basic-2b97a81d701e" data-luxel-runtime-story="Controls/Text/Basic" data-luxel-runtime-instance="controls-text-basic-2b97a81d701e" title="Interactive Basic" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels"><div class="runtime-tabs" role="tablist" aria-label="Story controls and output"><button type="button" role="tab" id="controls-text-basic-2b97a81d701e-args-tab" aria-controls="controls-text-basic-2b97a81d701e-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="controls-text-basic-2b97a81d701e-output-tab" aria-controls="controls-text-basic-2b97a81d701e-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button></div><section class="args-panel" id="controls-text-basic-2b97a81d701e-args-panel" role="tabpanel" aria-labelledby="controls-text-basic-2b97a81d701e-args-tab"><table class="args-table"><thead><tr><th scope="col">Name</th><th scope="col">Control</th><th scope="col">Default</th><th scope="col">Description</th><th scope="col">Constraints</th><th scope="col">Reset</th></tr></thead><tbody><tr data-arg-row="color"><th scope="row"><code>color</code></th><td><div class="arg-color"><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-color">color</label><input id="controls-text-basic-2b97a81d701e-arg-color" data-arg-control="color" type="color" value="#feeadb"><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-color-text">color color text</label><input id="controls-text-basic-2b97a81d701e-arg-color-text" data-arg-control="color" data-color-text type="text" value="#feeadb" pattern="#[0-9a-fA-F]{6}"></div></td><td><code>#feeadb</code></td><td>文字色。未設定 → 既定 (濃灰)。テーマ追従は Bind.From(() =&gt; UiTheme.T.Text)。</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="color">Reset <span class="visually-hidden">color</span></button></td></tr><tr data-arg-row="content"><th scope="row"><code>content</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-content">content</label><input id="controls-text-basic-2b97a81d701e-arg-content" data-arg-control="content" type="text" value="Sample"></td><td><code>Sample</code></td><td>テキスト内容。値/Signal/Func/$&quot;...&quot; を受け、内容変化で再ラスタライズされる。</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="content">Reset <span class="visually-hidden">content</span></button></td></tr><tr data-arg-row="fontSize"><th scope="row"><code>fontSize</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-fontsize">fontSize</label><input id="controls-text-basic-2b97a81d701e-arg-fontsize" data-arg-control="fontSize" type="number" value="16"></td><td><code>16</code></td><td>FontSize component parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="fontSize">Reset <span class="visually-hidden">fontSize</span></button></td></tr><tr data-arg-row="hAlign"><th scope="row"><code>hAlign</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-halign">hAlign</label><select id="controls-text-basic-2b97a81d701e-arg-halign" data-arg-control="hAlign"><option value="Start" selected>Start</option><option value="Center">Center</option><option value="End">End</option><option value="Stretch">Stretch</option></select></td><td><code>Start</code></td><td>Inherited layout parameter.</td><td>Start | Center | End | Stretch</td><td><button type="button" class="arg-reset" data-arg-reset="hAlign">Reset <span class="visually-hidden">hAlign</span></button></td></tr><tr data-arg-row="height"><th scope="row"><code>height</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-height">height</label><input id="controls-text-basic-2b97a81d701e-arg-height" data-arg-control="height" type="text" value="96" inputmode="decimal" placeholder="e.g. 120px or 50%"></td><td><code>96</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="height">Reset <span class="visually-hidden">height</span></button></td></tr><tr data-arg-row="lineHeight"><th scope="row"><code>lineHeight</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-lineheight">lineHeight</label><input id="controls-text-basic-2b97a81d701e-arg-lineheight" data-arg-control="lineHeight" type="number" value="0"></td><td><code>0</code></td><td>行送り倍率 (既定 1.2)。複数行時のみ使用。</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="lineHeight">Reset <span class="visually-hidden">lineHeight</span></button></td></tr><tr data-arg-row="maxLines"><th scope="row"><code>maxLines</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-maxlines">maxLines</label><input id="controls-text-basic-2b97a81d701e-arg-maxlines" data-arg-control="maxLines" type="number" value="1"></td><td><code>1</code></td><td>最大行数 (0 = 無制限)。超過分は切り捨てて末尾に … を付ける。</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="maxLines">Reset <span class="visually-hidden">maxLines</span></button></td></tr><tr data-arg-row="opacity"><th scope="row"><code>opacity</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-opacity">opacity</label><input id="controls-text-basic-2b97a81d701e-arg-opacity" data-arg-control="opacity" type="number" value="1"></td><td><code>1</code></td><td>Opacity component parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="opacity">Reset <span class="visually-hidden">opacity</span></button></td></tr><tr data-arg-row="rotate"><th scope="row"><code>rotate</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-rotate">rotate</label><input id="controls-text-basic-2b97a81d701e-arg-rotate" data-arg-control="rotate" type="number" value="0"></td><td><code>0</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="rotate">Reset <span class="visually-hidden">rotate</span></button></td></tr><tr data-arg-row="scaleX"><th scope="row"><code>scaleX</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-scalex">scaleX</label><input id="controls-text-basic-2b97a81d701e-arg-scalex" data-arg-control="scaleX" type="number" value="1"></td><td><code>1</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="scaleX">Reset <span class="visually-hidden">scaleX</span></button></td></tr><tr data-arg-row="scaleY"><th scope="row"><code>scaleY</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-scaley">scaleY</label><input id="controls-text-basic-2b97a81d701e-arg-scaley" data-arg-control="scaleY" type="number" value="1"></td><td><code>1</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="scaleY">Reset <span class="visually-hidden">scaleY</span></button></td></tr><tr data-arg-row="textAlign"><th scope="row"><code>textAlign</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-textalign">textAlign</label><select id="controls-text-basic-2b97a81d701e-arg-textalign" data-arg-control="textAlign"><option value="Left" selected>Left</option><option value="Center">Center</option><option value="Right">Right</option><option value="Justify">Justify</option></select></td><td><code>Left</code></td><td>行の水平整列 (既定 Left)。Center/Right/Justify はボックス幅 (Width 指定 or 親の利用可能幅) 内。</td><td>Left | Center | Right | Justify</td><td><button type="button" class="arg-reset" data-arg-reset="textAlign">Reset <span class="visually-hidden">textAlign</span></button></td></tr><tr data-arg-row="translateX"><th scope="row"><code>translateX</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-translatex">translateX</label><input id="controls-text-basic-2b97a81d701e-arg-translatex" data-arg-control="translateX" type="number" value="0"></td><td><code>0</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="translateX">Reset <span class="visually-hidden">translateX</span></button></td></tr><tr data-arg-row="translateY"><th scope="row"><code>translateY</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-translatey">translateY</label><input id="controls-text-basic-2b97a81d701e-arg-translatey" data-arg-control="translateY" type="number" value="0"></td><td><code>0</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="translateY">Reset <span class="visually-hidden">translateY</span></button></td></tr><tr data-arg-row="vAlign"><th scope="row"><code>vAlign</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-valign">vAlign</label><select id="controls-text-basic-2b97a81d701e-arg-valign" data-arg-control="vAlign"><option value="Start" selected>Start</option><option value="Center">Center</option><option value="End">End</option><option value="Stretch">Stretch</option></select></td><td><code>Start</code></td><td>Inherited layout parameter.</td><td>Start | Center | End | Stretch</td><td><button type="button" class="arg-reset" data-arg-reset="vAlign">Reset <span class="visually-hidden">vAlign</span></button></td></tr><tr data-arg-row="verticalAlign"><th scope="row"><code>verticalAlign</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-verticalalign">verticalAlign</label><select id="controls-text-basic-2b97a81d701e-arg-verticalalign" data-arg-control="verticalAlign"><option value="Top" selected>Top</option><option value="Center">Center</option><option value="Bottom">Bottom</option></select></td><td><code>Top</code></td><td>ボックス内の縦整列 (Height 指定時のみ効く)。</td><td>Top | Center | Bottom</td><td><button type="button" class="arg-reset" data-arg-reset="verticalAlign">Reset <span class="visually-hidden">verticalAlign</span></button></td></tr><tr data-arg-row="width"><th scope="row"><code>width</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-width">width</label><input id="controls-text-basic-2b97a81d701e-arg-width" data-arg-control="width" type="text" value="240" inputmode="decimal" placeholder="e.g. 120px or 50%"></td><td><code>240</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="width">Reset <span class="visually-hidden">width</span></button></td></tr><tr data-arg-row="wrap"><th scope="row"><code>wrap</code></th><td><label class="visually-hidden" for="controls-text-basic-2b97a81d701e-arg-wrap">wrap</label><select id="controls-text-basic-2b97a81d701e-arg-wrap" data-arg-control="wrap"><option value="None" selected>None</option><option value="Word">Word</option><option value="Char">Char</option></select></td><td><code>None</code></td><td>折り返し (既定 None = 1 行互換)。Word=語境界優先、Char=文字単位 (禁則は両方有効)。</td><td>None | Word | Char</td><td><button type="button" class="arg-reset" data-arg-reset="wrap">Reset <span class="visually-hidden">wrap</span></button></td></tr></tbody></table><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="controls-text-basic-2b97a81d701e-output-panel" role="tabpanel" aria-labelledby="controls-text-basic-2b97a81d701e-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<h2 id="implementation">Implementation</h2>
+<pre><code class="language-csharp">Text(content: &quot;Sample&quot;, fontSize: 16f, color: 0xffdbeafeu, opacity: 1f)
+</code></pre>
+<h2 id="patterns-and-variants">Patterns and variants</h2>
+<ul>
+<li>Basic typed factory usage</li>
+<li>Representative editable scalar args</li>
+<li>Inherited layout args: width, height, alignment and transforms when supported</li>
+<li>Deterministic browser fixture/fallback for capability inputs</li>
+</ul>
+<h2 id="events-parameters-and-api">Events, parameters and API</h2>
+<p><strong>Events:</strong> No declared events</p>
+<p><strong>Component parameters:</strong> <code>Content</code>, <code>FontSize</code>, <code>Color</code>, <code>Opacity</code>, <code>Wrap</code>, <code>TextAlign</code>, <code>LineHeight</code>, <code>MaxLines</code>, <code>VerticalAlign</code></p>
+<p>See <code>ControlApiRegistry</code> / the generated API table for the complete inherited API.</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">Generated overview for global::Luxel.Controls.Text</code></pre></details></article>

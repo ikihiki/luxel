@@ -1,4 +1,128 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/ColorPicker/Overview</h1></header><h1 id="colorpicker">ColorPicker</h1>
-<p><code>Luxel.Controls</code> のコントロール API です。コンストラクタ引数・イベント・パラメータは <code>[UiComponent]</code> のソースと XML doc コメントから生成されます。</p>
-<section class="api-reference"><p class="api-summary">カラーピッカー。スウォッチ + hex 表示のトリガーをクリックすると、 パレット + R/G/B スライダー + hex 入力 (正規表現規制) のオーバーレイが開く。 値は RGBA の Signal`1 束縛 — どの経路の編集も即時に部分更新で反映される。</p><h3>パラメータ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Color</code></th><td><code>Signal&lt;uint&gt;</code></td><td>RGBA 色の signal (パレット/スライダー/hex どの経路の編集も書き戻す)。</td></tr></tbody></table></div></section>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p></article>
+<article class="story document-page"><h1 id="colorpicker">ColorPicker</h1>
+<p>カラーピッカー。スウォッチ + hex 表示のトリガーをクリックすると、 パレット + R/G/B スライダー + hex 入力 (正規表現規制) のオーバーレイが開く。 値は RGBA の Signal`1 束縛 — どの経路の編集も即時に部分更新で反映される。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Controls/ColorPicker/Overview#ref-0" data-luxel-runtime-story="Controls/ColorPicker/Basic" data-luxel-runtime-instance="controls-colorpicker-basic-15372774b715" data-luxel-runtime-args="{&quot;hAlign&quot;:&quot;Start&quot;,&quot;height&quot;:&quot;96&quot;,&quot;rotate&quot;:0,&quot;scaleX&quot;:1,&quot;scaleY&quot;:1,&quot;translateX&quot;:0,&quot;translateY&quot;:0,&quot;vAlign&quot;:&quot;Start&quot;,&quot;width&quot;:&quot;240&quot;}" data-luxel-runtime-schema="[
+  {
+    &quot;name&quot;: &quot;hAlign&quot;,
+    &quot;type&quot;: &quot;enum:Start|Center|End|Stretch&quot;,
+    &quot;defaultValue&quot;: &quot;Start&quot;,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: [
+      &quot;Start&quot;,
+      &quot;Center&quot;,
+      &quot;End&quot;,
+      &quot;Stretch&quot;
+    ]
+  },
+  {
+    &quot;name&quot;: &quot;vAlign&quot;,
+    &quot;type&quot;: &quot;enum:Start|Center|End|Stretch&quot;,
+    &quot;defaultValue&quot;: &quot;Start&quot;,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: [
+      &quot;Start&quot;,
+      &quot;Center&quot;,
+      &quot;End&quot;,
+      &quot;Stretch&quot;
+    ]
+  },
+  {
+    &quot;name&quot;: &quot;width&quot;,
+    &quot;type&quot;: &quot;length&quot;,
+    &quot;defaultValue&quot;: &quot;240&quot;,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;height&quot;,
+    &quot;type&quot;: &quot;length&quot;,
+    &quot;defaultValue&quot;: &quot;96&quot;,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;translateX&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 0,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;translateY&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 0,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;scaleX&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 1,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;scaleY&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 1,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;rotate&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 0,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  }
+]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Controls%2FColorPicker%2FBasic&amp;args=%7B%22hAlign%22%3A%22Start%22%2C%22height%22%3A%2296%22%2C%22rotate%22%3A0%2C%22scaleX%22%3A1%2C%22scaleY%22%3A1%2C%22translateX%22%3A0%2C%22translateY%22%3A0%2C%22vAlign%22%3A%22Start%22%2C%22width%22%3A%22240%22%7D&amp;instance=controls-colorpicker-basic-15372774b715" data-luxel-runtime-story="Controls/ColorPicker/Basic" data-luxel-runtime-instance="controls-colorpicker-basic-15372774b715" title="Interactive Basic" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels"><div class="runtime-tabs" role="tablist" aria-label="Story controls and output"><button type="button" role="tab" id="controls-colorpicker-basic-15372774b715-args-tab" aria-controls="controls-colorpicker-basic-15372774b715-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="controls-colorpicker-basic-15372774b715-output-tab" aria-controls="controls-colorpicker-basic-15372774b715-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button></div><section class="args-panel" id="controls-colorpicker-basic-15372774b715-args-panel" role="tabpanel" aria-labelledby="controls-colorpicker-basic-15372774b715-args-tab"><table class="args-table"><thead><tr><th scope="col">Name</th><th scope="col">Control</th><th scope="col">Default</th><th scope="col">Description</th><th scope="col">Constraints</th><th scope="col">Reset</th></tr></thead><tbody><tr data-arg-row="hAlign"><th scope="row"><code>hAlign</code></th><td><label class="visually-hidden" for="controls-colorpicker-basic-15372774b715-arg-halign">hAlign</label><select id="controls-colorpicker-basic-15372774b715-arg-halign" data-arg-control="hAlign"><option value="Start" selected>Start</option><option value="Center">Center</option><option value="End">End</option><option value="Stretch">Stretch</option></select></td><td><code>Start</code></td><td>Inherited layout parameter.</td><td>Start | Center | End | Stretch</td><td><button type="button" class="arg-reset" data-arg-reset="hAlign">Reset <span class="visually-hidden">hAlign</span></button></td></tr><tr data-arg-row="height"><th scope="row"><code>height</code></th><td><label class="visually-hidden" for="controls-colorpicker-basic-15372774b715-arg-height">height</label><input id="controls-colorpicker-basic-15372774b715-arg-height" data-arg-control="height" type="text" value="96" inputmode="decimal" placeholder="e.g. 120px or 50%"></td><td><code>96</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="height">Reset <span class="visually-hidden">height</span></button></td></tr><tr data-arg-row="rotate"><th scope="row"><code>rotate</code></th><td><label class="visually-hidden" for="controls-colorpicker-basic-15372774b715-arg-rotate">rotate</label><input id="controls-colorpicker-basic-15372774b715-arg-rotate" data-arg-control="rotate" type="number" value="0"></td><td><code>0</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="rotate">Reset <span class="visually-hidden">rotate</span></button></td></tr><tr data-arg-row="scaleX"><th scope="row"><code>scaleX</code></th><td><label class="visually-hidden" for="controls-colorpicker-basic-15372774b715-arg-scalex">scaleX</label><input id="controls-colorpicker-basic-15372774b715-arg-scalex" data-arg-control="scaleX" type="number" value="1"></td><td><code>1</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="scaleX">Reset <span class="visually-hidden">scaleX</span></button></td></tr><tr data-arg-row="scaleY"><th scope="row"><code>scaleY</code></th><td><label class="visually-hidden" for="controls-colorpicker-basic-15372774b715-arg-scaley">scaleY</label><input id="controls-colorpicker-basic-15372774b715-arg-scaley" data-arg-control="scaleY" type="number" value="1"></td><td><code>1</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="scaleY">Reset <span class="visually-hidden">scaleY</span></button></td></tr><tr data-arg-row="translateX"><th scope="row"><code>translateX</code></th><td><label class="visually-hidden" for="controls-colorpicker-basic-15372774b715-arg-translatex">translateX</label><input id="controls-colorpicker-basic-15372774b715-arg-translatex" data-arg-control="translateX" type="number" value="0"></td><td><code>0</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="translateX">Reset <span class="visually-hidden">translateX</span></button></td></tr><tr data-arg-row="translateY"><th scope="row"><code>translateY</code></th><td><label class="visually-hidden" for="controls-colorpicker-basic-15372774b715-arg-translatey">translateY</label><input id="controls-colorpicker-basic-15372774b715-arg-translatey" data-arg-control="translateY" type="number" value="0"></td><td><code>0</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="translateY">Reset <span class="visually-hidden">translateY</span></button></td></tr><tr data-arg-row="vAlign"><th scope="row"><code>vAlign</code></th><td><label class="visually-hidden" for="controls-colorpicker-basic-15372774b715-arg-valign">vAlign</label><select id="controls-colorpicker-basic-15372774b715-arg-valign" data-arg-control="vAlign"><option value="Start" selected>Start</option><option value="Center">Center</option><option value="End">End</option><option value="Stretch">Stretch</option></select></td><td><code>Start</code></td><td>Inherited layout parameter.</td><td>Start | Center | End | Stretch</td><td><button type="button" class="arg-reset" data-arg-reset="vAlign">Reset <span class="visually-hidden">vAlign</span></button></td></tr><tr data-arg-row="width"><th scope="row"><code>width</code></th><td><label class="visually-hidden" for="controls-colorpicker-basic-15372774b715-arg-width">width</label><input id="controls-colorpicker-basic-15372774b715-arg-width" data-arg-control="width" type="text" value="240" inputmode="decimal" placeholder="e.g. 120px or 50%"></td><td><code>240</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="width">Reset <span class="visually-hidden">width</span></button></td></tr></tbody></table><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="controls-colorpicker-basic-15372774b715-output-panel" role="tabpanel" aria-labelledby="controls-colorpicker-basic-15372774b715-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<h2 id="implementation">Implementation</h2>
+<pre><code class="language-csharp">ColorPicker()
+</code></pre>
+<h2 id="patterns-and-variants">Patterns and variants</h2>
+<ul>
+<li>Basic typed factory usage</li>
+<li>Representative editable scalar args</li>
+<li>Inherited layout args: width, height, alignment and transforms when supported</li>
+<li>Deterministic browser fixture/fallback for capability inputs</li>
+</ul>
+<h2 id="events-parameters-and-api">Events, parameters and API</h2>
+<p><strong>Events:</strong> No declared events</p>
+<p><strong>Component parameters:</strong> <code>Color</code></p>
+<p>See <code>ControlApiRegistry</code> / the generated API table for the complete inherited API.</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">Generated overview for global::Luxel.Controls.ColorPicker</code></pre></details></article>

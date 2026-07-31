@@ -2,7 +2,7 @@
 <ul>
 <li><a href="#story=Learn%2FScripting%2FOverview&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-gallery-script-hot-reload">コピーして動かす — Gallery script hot reload</a>
 <ul>
-<li><a href="#story=Learn%2FScripting%2FOverview&amp;section=%60src%2Fluxel.gallery%2Fstories%2Fscriptingstory.cs%60-csharp"><code>src/Luxel.Gallery/Stories/ScriptingStory.cs</code> (CSharp)</a></li>
+<li><a href="#story=Learn%2FScripting%2FOverview&amp;section=%60src%2Fluxel.gallery.stories%2Fstories%2Fscriptingstory.cs%60-csharp"><code>src/Luxel.Gallery.Stories/Stories/ScriptingStory.cs</code> (CSharp)</a></li>
 </ul>
 </li>
 </ul>
@@ -18,12 +18,12 @@
 <strong>検証契約:</strong> exit <code>0</code> / timeout <code>180s</code>
 <strong>接続点:</strong> <code>ScriptHost</code></p>
 <p><strong>Run</strong></p>
-<pre><code class="language-powershell">dotnet run --project src/Luxel.Gallery -- vk --story Examples/Scripting/HotReload
+<pre><code class="language-powershell">dotnet run --project src/Luxel.Gallery.Host -- vk --story Examples/Scripting/HotReload
 </code></pre>
 <p><strong>Smoke test</strong></p>
 <pre><code class="language-powershell">dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter Scripting
 </code></pre>
-<h3 id="srcluxel.gallerystoriesscriptingstory.cs-csharp"><code>src/Luxel.Gallery/Stories/ScriptingStory.cs</code> (CSharp)</h3>
+<h3 id="srcluxel.gallery.storiesstoriesscriptingstory.cs-csharp"><code>src/Luxel.Gallery.Stories/Stories/ScriptingStory.cs</code> (CSharp)</h3>
 <pre><code class="language-csharp">using Luxel.Controls;
 using Luxel.Scripting;
 using Luxel.Graphics.TwoD;
@@ -328,7 +328,7 @@ public static class ScriptingStory
     }
 }
 </code></pre>
-<details class="sample-bundle"><summary>Run this sample — Block</summary><p>Gallery-hosted ScriptHost recipe covering compilation, diagnostics, cancellation and successful-swap reload.</p><p><strong>Requirements:</strong> Luxel.Scripting / Gallery service provider</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 180s</p><ul><li><code>src/Luxel.Gallery/Stories/ScriptingStory.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project src/Luxel.Gallery -- vk --story Examples/Scripting/HotReload</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter Scripting</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Scripting/Overview&quot;, Order = 0, SampleBundle = &quot;scripting.gallery&quot;)]
+<details class="sample-bundle"><summary>Run this sample — Block</summary><p>Gallery-hosted ScriptHost recipe covering compilation, diagnostics, cancellation and successful-swap reload.</p><p><strong>Requirements:</strong> Luxel.Scripting / Gallery service provider</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 180s</p><ul><li><code>src/Luxel.Gallery.Stories/Stories/ScriptingStory.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project src/Luxel.Gallery.Host -- vk --story Examples/Scripting/HotReload</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter Scripting</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Scripting/Overview&quot;, Order = 0, SampleBundle = &quot;scripting.gallery&quot;)]
 public static Widget ScriptingOverview(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
     # Scripting overview
 

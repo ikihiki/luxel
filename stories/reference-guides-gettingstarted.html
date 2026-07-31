@@ -21,9 +21,9 @@
 <h2 id="gallery">ビルドと Gallery の起動</h2>
 <p>機能の実例・ドキュメント・回帰テストはすべてこの <strong>Gallery</strong> に集約されています:</p>
 <pre><code class="language-powershell">dotnet build
-dotnet run --project src/Luxel.Gallery -- vk           # この Gallery (実ウィンドウ)
-dotnet run --project src/Luxel.Gallery -- vk e2e       # play + golden 回帰 (--update で更新)
-dotnet run --project src/Luxel.Gallery -- vk bench &quot;Controls/Button/Counter&quot; 300 --type
+dotnet run --project src/Luxel.Gallery.Host -- vk           # この Gallery (実ウィンドウ)
+dotnet run --project src/Luxel.Gallery.Host -- vk e2e       # play + golden 回帰 (--update で更新)
+dotnet run --project src/Luxel.Gallery.Host -- vk bench &quot;Controls/Button/Counter&quot; 300 --type
 dotnet test                                            # ユニットテスト
 </code></pre>
 <p><code>vk</code> を <code>dx</code> に変えると DirectX 12 で動きます。両バックエンドは<strong>ピクセル一致</strong>が開発規律です (golden はバックエンド別に保持)。</p>
@@ -81,9 +81,9 @@ public static Widget GettingStarted(StoryContext ctx)
 
         ```powershell
         dotnet build
-        dotnet run --project src/Luxel.Gallery -- vk           # この Gallery (実ウィンドウ)
-        dotnet run --project src/Luxel.Gallery -- vk e2e       # play + golden 回帰 (--update で更新)
-        dotnet run --project src/Luxel.Gallery -- vk bench &quot;Controls/Button/Counter&quot; 300 --type
+        dotnet run --project src/Luxel.Gallery.Host -- vk           # この Gallery (実ウィンドウ)
+        dotnet run --project src/Luxel.Gallery.Host -- vk e2e       # play + golden 回帰 (--update で更新)
+        dotnet run --project src/Luxel.Gallery.Host -- vk bench &quot;Controls/Button/Counter&quot; 300 --type
         dotnet test                                            # ユニットテスト
         ```
 

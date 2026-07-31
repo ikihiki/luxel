@@ -9,8 +9,8 @@
 <p>通常ビルドは Git 管理された <code>shaders/compiled/</code> の SPIR-V / DXIL を検証して使うため、Slang/DXC の手動導入は不要です。shader変更時だけ <code>dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache</code> を実行すると、固定版ツールを取得・SHA-256検証してcacheを更新します。</p>
 <h2 id="e2e-play-golden">テストと E2E 回帰 (play + golden)</h2>
 <pre><code class="language-powershell">dotnet test                                                # 純ロジックのユニットテスト
-dotnet run --project src/Luxel.Gallery -- vk e2e           # play を実行し golden と比較
-dotnet run --project src/Luxel.Gallery -- vk e2e &quot;Button&quot;  # 部分一致フィルタ (&quot;パス#play名&quot;)
+dotnet run --project src/Luxel.Gallery.Host -- vk e2e           # play を実行し golden と比較
+dotnet run --project src/Luxel.Gallery.Host -- vk e2e &quot;Button&quot;  # 部分一致フィルタ (&quot;パス#play名&quot;)
 </code></pre>
 <p>テストは<strong>ストーリーに同居する play</strong> (本家 Storybook の play 関数相当) です。<strong>golden は play 内の <code>d.Snap()</code> だけが生みます</strong> — 初期絵の回帰だけ欲しければ <code>ctx.Snap(...)</code> で包む (または <code>ctx.Play(d =&gt; d.Snap())</code>) の 1 行、対話テストは <code>ctx.Play(async d =&gt; { await d.Click(btn); await d.Expect(...); await d.Snap(&quot;clicked&quot;); })</code> の形で、クロージャからストーリー自身の signal/widget を直接掴めます。名前付きで複数登録でき、<strong>play ごとにストーリーは作り直されます</strong> (独立実行)。play を持たないストーリーは golden を作りません。</p>
 <p>golden は <code>src/Luxel.Gallery/goldens/{Story}[.{Play}][.{Snap名}].{vk,dx}.png</code> — <strong>バックエンド別</strong>に持ちます (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。比較はピクセル単位で、スクロールバー端などの極小 AA 差だけ許容します (最大 32px / 最大 5 階調)。それを超える差分は <code>.actual.png</code> に書き出されます。</p>
@@ -20,9 +20,9 @@ dotnet run --project src/Luxel.Gallery -- vk e2e &quot;Button&quot;  # 部分一
 </div>
 <p>決定性の仕組み: 固定 dt (1/60s × 8 ステップ) で warmup → シンタックスハイライトの静定待ち → dt=0 で 2 ステップ (アニメ時間を進めずドレイン)。play の操作 (Click/Type/Drag/Key) も固定 dt で刻まれます — <strong>play 内で Task.Delay や wall-clock を使わないこと</strong>。トランジションを挟む操作は <code>await d.Step(n)</code> で静定させてから Snap します。オフスクリーンは日本語フォールバックがなく豆腐になりますが、決定的なので回帰検出には有効です。</p>
 <h2 id="bench-canvas">bench — canvas 更新コストの回帰ゲート</h2>
-<pre><code class="language-powershell">dotnet run --project src/Luxel.Gallery -- vk bench &quot;Examples/2D/Orbit&quot; 300
-dotnet run --project src/Luxel.Gallery -- vk bench &quot;Controls/TextEditorView/Basic&quot; 300 --type
-dotnet run --project src/Luxel.Gallery -- vk bench &quot;Controls/ListView/Huge&quot; 300 --wheel 1
+<pre><code class="language-powershell">dotnet run --project src/Luxel.Gallery.Host -- vk bench &quot;Examples/2D/Orbit&quot; 300
+dotnet run --project src/Luxel.Gallery.Host -- vk bench &quot;Controls/TextEditorView/Basic&quot; 300 --type
+dotnet run --project src/Luxel.Gallery.Host -- vk bench &quot;Controls/ListView/Huge&quot; 300 --wheel 1
 </code></pre>
 <p>フル再構築回数 / 再構築 CPU / アップロードバイト / マネージド確保を区間計測します。期待値 (増分更新の回帰ゲート): <strong>ライブ波形の再生 = フル再構築 0</strong>、エディタのタイプ連打 = 再構築 ~3% (ブロック増減時のみ)、仮想化リストのスクロール = 再構築 0。</p>
 <h2 id="section-1">その他の検証</h2>
@@ -43,8 +43,8 @@ public static Widget Contributing(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&q
 
     ```powershell
     dotnet test                                                # 純ロジックのユニットテスト
-    dotnet run --project src/Luxel.Gallery -- vk e2e           # play を実行し golden と比較
-    dotnet run --project src/Luxel.Gallery -- vk e2e &quot;Button&quot;  # 部分一致フィルタ (&quot;パス#play名&quot;)
+    dotnet run --project src/Luxel.Gallery.Host -- vk e2e           # play を実行し golden と比較
+    dotnet run --project src/Luxel.Gallery.Host -- vk e2e &quot;Button&quot;  # 部分一致フィルタ (&quot;パス#play名&quot;)
     ```
 
     テストは**ストーリーに同居する play** (本家 Storybook の play 関数相当) です。**golden は play 内の `d.Snap()` だけが生みます** — 初期絵の回帰だけ欲しければ `ctx.Snap(...)` で包む (または `ctx.Play(d =&gt; d.Snap())`) の 1 行、対話テストは `ctx.Play(async d =&gt; { await d.Click(btn); await d.Expect(...); await d.Snap(&quot;clicked&quot;); })` の形で、クロージャからストーリー自身の signal/widget を直接掴めます。名前付きで複数登録でき、**play ごとにストーリーは作り直されます** (独立実行)。play を持たないストーリーは golden を作りません。
@@ -59,9 +59,9 @@ public static Widget Contributing(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&q
     ## bench — canvas 更新コストの回帰ゲート
 
     ```powershell
-    dotnet run --project src/Luxel.Gallery -- vk bench &quot;Examples/2D/Orbit&quot; 300
-    dotnet run --project src/Luxel.Gallery -- vk bench &quot;Controls/TextEditorView/Basic&quot; 300 --type
-    dotnet run --project src/Luxel.Gallery -- vk bench &quot;Controls/ListView/Huge&quot; 300 --wheel 1
+    dotnet run --project src/Luxel.Gallery.Host -- vk bench &quot;Examples/2D/Orbit&quot; 300
+    dotnet run --project src/Luxel.Gallery.Host -- vk bench &quot;Controls/TextEditorView/Basic&quot; 300 --type
+    dotnet run --project src/Luxel.Gallery.Host -- vk bench &quot;Controls/ListView/Huge&quot; 300 --wheel 1
     ```
 
     フル再構築回数 / 再構築 CPU / アップロードバイト / マネージド確保を区間計測します。期待値 (増分更新の回帰ゲート): **ライブ波形の再生 = フル再構築 0**、エディタのタイプ連打 = 再構築 ~3% (ブロック増減時のみ)、仮想化リストのスクロール = 再構築 0。

@@ -50,9 +50,9 @@
 <h2 id="section-1">パスと章</h2>
 <p>ストーリーパスは <strong>ID</strong> (golden ファイル名・<code>story:</code> リンク・E2E 参照) であると同時に、本家 Storybook の title と同じく<strong>サイドバーの階層そのもの</strong>です — 表示用の別マップはありません。章はパスの先頭セグメント (Docs / Reference / Controls / Demos / Apps / RealWindow)。整理・改名はパスを変えて golden を <code>git mv</code> で追従させます (ピクセルはパス非依存 — 再撮影が要るのは、パス文字列を <strong>リンク/StoryRef の見出しとして描画している他ページ</strong> だけ)。</p>
 <h2 id="section-2">実行モード</h2>
-<pre><code class="language-powershell">dotnet run --project src/Luxel.Gallery -- vk [port] [seconds]           # 実窓 (既定 5180)
-dotnet run --project src/Luxel.Gallery -- vk e2e [--update] [フィルタ]   # E2E 回帰 (play + golden)
-dotnet run --project src/Luxel.Gallery -- vk bench &lt;story&gt; [frames] [--type|--wheel d]
+<pre><code class="language-powershell">dotnet run --project src/Luxel.Gallery.Host -- vk [port] [seconds]           # 実窓 (既定 5180)
+dotnet run --project src/Luxel.Gallery.Host -- vk e2e [--update] [フィルタ]   # E2E 回帰 (play + golden)
+dotnet run --project src/Luxel.Gallery.Host -- vk bench &lt;story&gt; [frames] [--type|--wheel d]
 </code></pre>
 <p>実窓は <code>Ctrl+D</code> でテーマ切替、ツールバーの「全画面」でプレビューをメイン全面に。サイドバーの検索欄は docs 本文の全文検索です。docs ページの書き方は <a href="#story=Internals%2FAuthoring">Internals/Authoring</a> へ。</p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/Gallery&quot;, Order = 90)]
@@ -112,9 +112,9 @@ public static Widget Gallery(StoryContext ctx) =&gt; ctx.Snap(DocNew(ctx, $$&quo
     ## 実行モード
 
     ```powershell
-    dotnet run --project src/Luxel.Gallery -- vk [port] [seconds]           # 実窓 (既定 5180)
-    dotnet run --project src/Luxel.Gallery -- vk e2e [--update] [フィルタ]   # E2E 回帰 (play + golden)
-    dotnet run --project src/Luxel.Gallery -- vk bench &lt;story&gt; [frames] [--type|--wheel d]
+    dotnet run --project src/Luxel.Gallery.Host -- vk [port] [seconds]           # 実窓 (既定 5180)
+    dotnet run --project src/Luxel.Gallery.Host -- vk e2e [--update] [フィルタ]   # E2E 回帰 (play + golden)
+    dotnet run --project src/Luxel.Gallery.Host -- vk bench &lt;story&gt; [frames] [--type|--wheel d]
     ```
 
     実窓は `Ctrl+D` でテーマ切替、ツールバーの「全画面」でプレビューをメイン全面に。サイドバーの検索欄は docs 本文の全文検索です。docs ページの書き方は [Internals/Authoring](story:Internals/Authoring) へ。
