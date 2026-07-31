@@ -1,4 +1,4 @@
-﻿namespace Luxel.UI;
+namespace Luxel.UI;
 
 /// <summary>依存追跡される signal/computed が実装する。</summary>
 internal interface ISignalSource
@@ -54,6 +54,9 @@ public sealed class Signal<T> : ISignalSource
 
     public Signal(T initial = default!) => _value = initial;
 
+    /// <summary>Raised synchronously after the value changes. Hosts use this for bidirectional story args.</summary>
+    public event Action<T>? Changed;
+
     public T Value
     {
         get { Track(); return _value; }
@@ -62,6 +65,7 @@ public sealed class Signal<T> : ISignalSource
             if (EqualityComparer<T>.Default.Equals(_value, value)) return;
             _value = value;
             Notify();
+            Changed?.Invoke(value);
         }
     }
 

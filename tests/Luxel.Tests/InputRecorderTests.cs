@@ -4,6 +4,7 @@ using Luxel.Typography;
 using Luxel.UI;
 using Xunit;
 using static Luxel.Controls.Kit;
+using Luxel.Gallery;
 
 namespace Luxel.Tests;
 

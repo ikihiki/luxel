@@ -6,6 +6,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
+    <ProjectReference Include="..\Luxel.Gallery.Rendering\Luxel.Gallery.Rendering.csproj" />
+    <ProjectReference Include="..\Luxel.Gallery.Stories\Luxel.Gallery.Stories.csproj" />
     <PackageReference Include="Markdig" Version="0.41.3" />
     <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.0" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.116.1" />
@@ -19,7 +21,7 @@
     <EmbeddedResource Include="Assets\highlightjs\LICENSE" />
   </ItemGroup>
 
-  <!-- Luxel.Gallery owns the shared Khronos Box acquisition target. Importing it here as well lets
+  <!-- Luxel.Gallery.Stories owns the shared Khronos Box acquisition target. Importing it here as well lets
        parallel solution builds race while downloading the same cache files. -->
   <Import Project="..\..\assets\Luxel.FontAssets.targets" />
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />

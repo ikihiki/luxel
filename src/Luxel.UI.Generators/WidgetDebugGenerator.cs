@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
@@ -456,8 +456,6 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         spc.AddSource("LuxelUiComponents.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
-    /// <summary>[UiComponent] 毎に ControlApiRegistry.Register を module initializer で焼き込む。
-    /// メンバー順: ctor 引数 → イベント → 自身の [UiParam] → 基底 (共通) の [UiParam]。</summary>
     private static void EmitControlApi(StringBuilder sb, List<WidgetModel> list, string assemblyName)
     {
         var comps = list.Where(static w => w.IsComponent).ToList();
@@ -467,7 +465,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.AppendLine("namespace Luxel.UI.Generated");
         sb.AppendLine("{");
-        sb.Append("    internal static class ControlApiRegistration_").AppendLine(StoryGenerator.Sanitize(assemblyName));
+        sb.Append("    internal static class ControlApiRegistration_").AppendLine(GeneratedIdentifier.Sanitize(assemblyName));
         sb.AppendLine("    {");
         sb.AppendLine("        [global::System.Runtime.CompilerServices.ModuleInitializer]");
         sb.AppendLine("        internal static void Init()");
@@ -581,7 +579,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
                 BindKind.String => ("string", access + " ?? \"\""),
                 BindKind.Text => ("string", access),   // BindableString.Get() は非 null
                 BindKind.Enum => (f.EnumHint, access + ".ToString()"),
-                // Length は専用ヒント (Gallery が数値+単位コンボの LengthField を出す)
+                // Length は専用ヒント (メタデータ利用側が数値+単位コンボの LengthField を出す)
                 BindKind.Parsable => (f.TypeFq == LengthType ? "length" : "string", access + ".ToString() ?? \"\""),
                 _ => ("string", Codec + ".FormatBoxed(" + access + ")"),
             };

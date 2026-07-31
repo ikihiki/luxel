@@ -22,7 +22,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Luxel.Gallery\Luxel.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Gallery.Host\Luxel.Gallery.Host.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Gallery.Stories\Luxel.Gallery.Stories.csproj" />
   </ItemGroup>
 
   <!-- GalleryHost (GpuDeviceRasterizer2D) が $(OutDir)shaders/ から SPIR-V を読む — Gallery と同じ targets で出力する -->

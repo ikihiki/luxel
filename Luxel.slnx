@@ -22,8 +22,15 @@
     <Project Path="src/Luxel.Document/Luxel.Document.csproj" />
     <Project Path="src/Luxel.Framework.DevTools/Luxel.Framework.DevTools.csproj" />
     <Project Path="src/Luxel.Framework/Luxel.Framework.csproj" />
+    <Project Path="src/Luxel.Gallery.Generators/Luxel.Gallery.Generators.csproj" />
+    <Project Path="src/Luxel.Gallery.RuntimeManifest/Luxel.Gallery.RuntimeManifest.csproj" />
     <Project Path="src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj" />
+    <Project Path="src/Luxel.Gallery.UI/Luxel.Gallery.UI.csproj" />
     <Project Path="src/Luxel.Gallery/Luxel.Gallery.csproj" />
+    <Project Path="src/Luxel.Gallery.Host/Luxel.Gallery.Host.csproj" />
+    <Project Path="src/Luxel.Gallery.Rendering/Luxel.Gallery.Rendering.csproj" />
+    <Project Path="src/Luxel.Gallery.Stories.CoreUi/Luxel.Gallery.Stories.CoreUi.csproj" />
+    <Project Path="src/Luxel.Gallery.Stories/Luxel.Gallery.Stories.csproj" />
     <Project Path="src/Luxel.Gltf/Luxel.Gltf.csproj" />
     <Project Path="src/Luxel.Highlight.TextMate/Luxel.Highlight.TextMate.csproj" />
     <Project Path="src/Luxel.Imaging/Luxel.Imaging.csproj" />
@@ -94,7 +101,7 @@
     <Project Path="tests/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj" />
     <Project Path="tests/Luxel.Vulkan.Tests/Luxel.Vulkan.Tests.csproj" />
     <Project Path="tests/Luxel.Vulkan.Present.Tests/Luxel.Vulkan.Present.Tests.csproj" />
-    <Project Path="tests/Luxel.UI.Generators.Tests/Luxel.UI.Generators.Tests.csproj" />
+    <Project Path="tests/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj" />
     <Project Path="tests/Luxel.UI.App.Tests/Luxel.UI.App.Tests.csproj" />
     <Project Path="tests/Luxel.Platform.Web.Tests/Luxel.Platform.Web.Tests.csproj" />
     <Project Path="tests/Luxel.Terminal.Linux.Tests/Luxel.Terminal.Linux.Tests.csproj" />

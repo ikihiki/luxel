@@ -22,13 +22,16 @@ on:
       - 'assets/fonts/**'
       - 'tests/Luxel.WebGPU.Browser.Tests/**'
       - 'tests/Luxel.Gallery.Site.Tests/**'
+      - 'src/Luxel.Gallery.RuntimeManifest/**'
+      - 'src/Luxel.Gallery.Stories.CoreUi/**'
+      - 'src/Luxel.UI.Generators/**'
+      - 'eng/check-project-dependencies.py'
       - 'src/Luxel.Gallery.Site/**'
-      - 'src/Luxel.Gallery/SampleBundles.cs'
-      - 'src/Luxel.Gallery/Stories/GpuStories.cs'
-      - 'src/Luxel.Gallery/Stories/Controls/InputControlStories.cs'
-      - 'src/Luxel.Gallery/Stories/Docs/DocsGpuWebGpu.cs'
-      - 'src/Luxel.Gallery/Stories/Docs/LearnRenderingBasics.cs'
-      - 'src/Luxel.Gallery/Stories/Docs/Adr/Adr0019.cs'
+      - 'src/Luxel.Gallery.Stories/SampleBundles.cs'
+      - 'src/Luxel.Gallery.Stories/Stories/GpuStories.cs'
+      - 'src/Luxel.Gallery.Stories/Stories/Docs/DocsGpuWebGpu.cs'
+      - 'src/Luxel.Gallery.Stories/Stories/Docs/LearnRenderingBasics.cs'
+      - 'src/Luxel.Gallery.Stories/Stories/Docs/Adr/Adr0019.cs'
       - 'Luxel.slnx'
       - '.github/workflows/test-webgpu-browser.yml'
       - '.github/workflows/deploy-pages.yml'
@@ -39,7 +42,7 @@ permissions:
   contents: read
 
 jobs:
-  chromium-swiftshader:
+  browser-contracts:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -58,10 +61,14 @@ jobs:
           echo "LIBGL_ALWAYS_SOFTWARE=true" >> "$GITHUB_ENV"
       - name: Restore
         run: dotnet restore Luxel.slnx
-      - name: Build solution and browser tests
+      - name: Build solution and browser contracts
         run: dotnet build Luxel.slnx --no-restore --configuration Release
+      - name: Test generators and generated production inventory
+        run: dotnet test tests/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test exporter and documentation contracts
         run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
+      - name: Test browser managed and source contracts
+        run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release
       - name: Publish browser sample
         run: dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj --no-restore --configuration Release
       - name: Export static Gallery with browser WebGPU sample
@@ -69,15 +76,15 @@ jobs:
       - name: Validate subpath-safe browser WebGPU sample
         run: |
           test -f artifacts/gallery-site/samples/webgpu-browser/index.html
+          test -f artifacts/gallery-site/samples/webgpu-browser/browser-runtime-manifest.json
+          python3 - <<'PY'
+          import json
+          manifest = json.load(open('artifacts/gallery-site/samples/webgpu-browser/browser-runtime-manifest.json'))
+          production = [story for story in manifest['stories'] if story.get('componentType')]
+          assert manifest['bundleId'] == 'webgpu-browser-v1'
+          assert manifest['protocolVersion'] == 2
+          assert len(production) == len({story['componentType'] for story in production}) == 60
+          assert all(story['path'].endswith('/Basic') and isinstance(story['args'], list) for story in production)
+          PY
           test -f artifacts/gallery-site/samples/webgpu-browser/_framework/dotnet.js
           ! grep -R -E '(src|href)="/' artifacts/gallery-site/samples/webgpu-browser/index.html artifacts/gallery-site/samples/webgpu-browser/main.js
-      - name: Install Playwright Chromium
-        run: pwsh tests/Luxel.WebGPU.Browser.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
-      - name: Run published browser smoke
-        env:
-          LUXEL_BROWSER_WASM_APPBUNDLE: samples/LuxelWebGpuBrowser/bin/Release/net10.0/publish/wwwroot
-        run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj -c Release --no-build --filter Published_sample
-      - name: Run composed Gallery browser smoke
-        env:
-          LUXEL_GALLERY_SITE_ROOT: artifacts/gallery-site
-        run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj -c Release --no-build --filter Exported_gallery

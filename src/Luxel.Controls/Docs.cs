@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Luxel.UI;
 
@@ -81,13 +81,7 @@ public sealed class DocString
     /// <summary>ブロックレベルのライブ UI (Storybook の Canvas 相当)。
     /// フェンスは行境界だけ保証する (改行は足さない) — 空行は空行として表示される
     /// (改行 = 改行の行指向モデル) ため、区切りの量は書き手のソースがそのまま決める。</summary>
-    public void AppendFormatted(Widget widget) => AppendFormatted(widget switch
-    {
-        ApiTable table => new DocEmbed(table, DocEmbedKind.ControlApiTable, table.Control.Get(),
-            IncludeInherited: table.Inherited.Get()),
-        TypeApiTable table => new DocEmbed(table, DocEmbedKind.TypeApiTable, table.Type.Get()),
-        _ => new DocEmbed(widget),
-    });
+    public void AppendFormatted(Widget widget) => AppendFormatted(new DocEmbed(widget));
 
     /// <summary>Adds a live UI hole with structured metadata for native rendering and static export.</summary>
     public void AppendFormatted(DocEmbed embed)

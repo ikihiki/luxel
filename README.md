@@ -2,8 +2,8 @@
 
 ## 静的Gallery / GitHub Pages
 
-ネイティブGalleryを操作可能な正としつつ、同じ`StoryRegistry.All`からGitHub Pages向けの静的HTML版を生成できる。
-Story preview、`StoryRef`、通常のWidget埋め込み、Mermaid、数式はoffscreen VulkanでPNG化され、静的版では操作できないことを明示する。
+ネイティブGalleryを操作可能な正としつつ、`GalleryStoryProject` が明示構成する immutable `StoryCatalog` からGitHub Pages向けの静的HTML版を生成できる。
+Markdown Overviewは親ページのsemantic HTML、browser-owned Widget Basicはparent-owned args table付きiframe、native-only Widgetはoffscreen captureまたは明示的なunavailable cardとして出力する。production `[UiComponent]` inventoryはsource generatorがexact `Controls/{category}/Overview` / `Basic` pairを生成し、CoreUi browser bundleが60個すべてのBasicを所有する。
 
 ```bash
 # Linux/CIではMesa lavapipe（mesa-vulkan-drivers）を用意する
@@ -82,9 +82,9 @@ eng/desktop/url.sh
 
 ```powershell
 dotnet build
-dotnet run --project src/Luxel.Gallery -- vk            # Gallery (実ウィンドウ。dx も可)
-dotnet run --project src/Luxel.Gallery -- vk e2e        # play + golden 回帰 (--update で更新)
-dotnet run --project src/Luxel.Gallery -- vk bench "Controls/Button/Counter" 300 --type
+dotnet run --project src/Luxel.Gallery.Host -- vk            # Gallery (実ウィンドウ。dx も可)
+dotnet run --project src/Luxel.Gallery.Host -- vk e2e        # play + golden 回帰 (--update で更新)
+dotnet run --project src/Luxel.Gallery.Host -- vk bench "Controls/Button/Counter" 300 --type
 dotnet test                                             # ユニットテスト
 ```
 
@@ -101,6 +101,8 @@ dotnet workload install wasm-tools
 dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release
 python3 -m http.server 8080 -d samples/LuxelWebGpuBrowser/bin/Release/net10.0/publish/wwwroot
 ```
+
+`browser-runtime-manifest.json` はprotocol v2 descriptor（path、viewport、static args schema/defaults、capability note、production component identity）を持つ。親GalleryはHTML args tableを所有し、same-origin `postMessage`でrevision付き`set-args` / `args-changed`を双方向同期してtop-level argsとembed argsをhashへ保存する。詳細は`docs/gallery-runtime-protocol.md`を参照。
 
 WebGPUはsecure contextが必要です。開発時は`http://localhost:8080/`、remote配信はHTTPSを使用してください。Gallery Pagesでは`/samples/webgpu-browser/`相当のsubpathへAppBundleを配置し、sample内部はrelative URLのみを使います。
 

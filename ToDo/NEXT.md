@@ -15,7 +15,7 @@
 ## 完了の定義 (全エントリ共通)
 
 - [ ] `dotnet build` / `dotnet test` が通る (新規ロジックには GPU 不要の単体テスト)
-- [ ] e2e: `dotnet run --project src/Luxel.Gallery -- vk e2e` が通る。golden 差分は意図分のみ (`--update` 後に `git diff --name-only -- goldens` で意図外を戻す — README 参照)
+- [ ] e2e: `dotnet run --project src/Luxel.Gallery.Host -- vk e2e` が通る。golden 差分は意図分のみ (`--update` 後に `git diff --name-only -- goldens` で意図外を戻す — README 参照)
 - [ ] タスク MD 記載のデモストーリー/Docs 追記を実施 (該当があれば)
 - [ ] `dotnet format` 相当のスタイルで綺麗 (リポジトリは dotnet/docs の .editorconfig)
 - [ ] コミット済み (conventional commits 風: `feat(particles): ...` 等、日本語本文可)

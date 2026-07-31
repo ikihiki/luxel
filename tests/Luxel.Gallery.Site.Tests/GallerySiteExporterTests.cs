@@ -13,8 +13,24 @@ namespace Luxel.Gallery.Site.Tests;
 
 public sealed class GallerySiteExporterTests
 {
+    private static readonly StoryCatalog Catalog = GalleryStoryProject.CreateCatalog();
+
     static GallerySiteExporterTests()
         => System.Runtime.CompilerServices.RuntimeHelpers.RunModuleConstructor(typeof(Luxel.Gallery.Stories.DocsApi).Module.ModuleHandle);
+
+    [Fact]
+    public void Gallery_story_project_registers_an_explicit_isolated_catalog()
+    {
+        StoryCatalog catalog = GalleryStoryProject.CreateCatalog();
+        var empty = new StoryCatalogBuilder().Build();
+
+        Assert.NotNull(catalog.Find("Start/Welcome"));
+        Assert.NotNull(catalog.Find("Controls/Button/Primary"));
+        Assert.NotNull(catalog.Find("Controls/Button/Overview"));
+        Assert.Equal("webgpu-browser-v1", catalog.Find("Examples/3D/Triangle")?.RuntimeBundleId);
+        Assert.Equal("webgpu-browser-v1", catalog.Find("Controls/Button/Counter")?.RuntimeBundleId);
+        Assert.Null(empty.Find("Start/Welcome"));
+    }
 
     [Fact]
     public void Browser_webgpu_bundle_contains_publishable_source_and_gallery_run_link()
@@ -27,10 +43,10 @@ public sealed class GallerySiteExporterTests
         Assert.Contains(bundle.Files, file => file.Path.EndsWith("triangle.wgsl", StringComparison.Ordinal));
         Assert.Contains("dotnet publish", bundle.RunCommand);
 
-        StoryInfo guide = Assert.Single(StoryRegistry.All.Where(story => story.Path == "Reference/Guides/WebGPU"));
+        StoryInfo guide = Assert.Single(Catalog.All.Where(story => story.Path == "Reference/Guides/WebGPU"));
         Assert.Equal("rendering.webgpu-browser", guide.SampleBundle);
         Assert.Contains("(samples/webgpu-browser/)", File.ReadAllText(Path.Combine(
-            GallerySiteExporter.FindRepositoryRoot(), "src", "Luxel.Gallery", "Stories", "Docs", "DocsGpuWebGpu.cs")));
+            GallerySiteExporter.FindRepositoryRoot(), "src", "Luxel.Gallery.Stories", "Stories", "Docs", "DocsGpuWebGpu.cs")));
     }
 
     [Fact]
@@ -136,9 +152,10 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
-    public void DocString_recognizes_api_tables_for_semantic_export()
+    public void Gallery_api_tables_use_explicit_semantic_doc_embeds()
     {
-        DocString control = $"{Luxel.Controls.Kit.ApiTable("Button", inherited: true)}";
+        var controlTable = Luxel.Gallery.UI.Kit.ApiTable("Button", inherited: true);
+        DocString control = $"{new DocEmbed(controlTable, DocEmbedKind.ControlApiTable, "Button", IncludeInherited: true)}";
         DocEmbed controlEmbed = Assert.Single(control.Embeds);
         Assert.Equal(DocEmbedKind.ControlApiTable, controlEmbed.Kind);
         Assert.Equal("Button", controlEmbed.Reference);
@@ -146,7 +163,8 @@ public sealed class GallerySiteExporterTests
 
         string typeName = TypeApiRegistry.Namespaces.SelectMany(TypeApiRegistry.InNamespace)
             .Select(api => $"{api.Namespace}.{api.Name}").First();
-        DocString type = $"{Luxel.Controls.Kit.TypeApiTable(typeName)}";
+        var typeTable = Luxel.Gallery.UI.Kit.TypeApiTable(typeName);
+        DocString type = $"{new DocEmbed(typeTable, DocEmbedKind.TypeApiTable, typeName)}";
         DocEmbed typeEmbed = Assert.Single(type.Embeds);
         Assert.Equal(DocEmbedKind.TypeApiTable, typeEmbed.Kind);
         Assert.Equal(typeName, typeEmbed.Reference);
@@ -235,16 +253,178 @@ public sealed class GallerySiteExporterTests
         }
     }
 
+    [Fact]
+    public void Markdown_story_references_detect_cycles_without_native_realization()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-markdown-cycle-" + Guid.NewGuid().ToString("N"));
+        StoryInfo a = new("Test/Markdown/A", 0, 0, null, _ => Luxel.Controls.Kit.Text("native A"),
+            ResultBuild: static _ => ReferenceMarkdown("A", "Test/Markdown/B"));
+        StoryInfo b = new("Test/Markdown/B", 0, 0, null, _ => Luxel.Controls.Kit.Text("native B"),
+            ResultBuild: static _ => ReferenceMarkdown("B", "Test/Markdown/A"));
+        var builder = new StoryCatalogBuilder();
+        builder.Add(a).Add(b);
+        StoryCatalog catalog = builder.Build();
+        try
+        {
+            using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
+            using var rasterizer = new Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D();
+            using var host = new GalleryHost(rasterizer, font, catalog);
+
+            SiteExportReport report = GallerySiteExporter.Export(host, [a, b], output, root);
+
+            Assert.True(report.Errors >= 2);
+            string fragment = File.ReadAllText(Path.Combine(output, "stories", "test-markdown-a.html"));
+            Assert.Contains("Story reference cycle detected", fragment);
+            Assert.Contains("story-reference-markdown", fragment);
+            Assert.Equal(0, host.StorySelectionCount);
+            GallerySiteExporter.Validate(output);
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+        }
+    }
+
+    [Fact]
+    public void Button_overview_exports_semantic_html_with_only_its_reference_as_an_iframe()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-button-overview-" + Guid.NewGuid().ToString("N"));
+        string browserRoot = CreateBrowserRuntimeRoot();
+        StoryCatalog catalog = GalleryStoryProject.CreateCatalog();
+        StoryInfo overview = Assert.IsType<StoryInfo>(catalog.Find("Controls/Button/Overview"));
+        Assert.NotNull(overview.ResultBuild);
+        StoryInfo basic = Assert.IsType<StoryInfo>(catalog.Find("Controls/Button/Basic"));
+        try
+        {
+            using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
+            using var rasterizer = new Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D();
+            using var host = new GalleryHost(rasterizer, font, catalog);
+
+            SiteExportReport report = GallerySiteExporter.Export(host, [overview, basic], output, root, browserRoot);
+
+            Assert.Equal(2, report.Stories);
+            string fragment = File.ReadAllText(Path.Combine(output, "stories", "controls-button-overview.html"));
+            Assert.Contains("<h1 id=\"button\">Button</h1>", fragment);
+            Assert.Contains("## Implementation", overview.BuildResult(new StoryContext()).Markdown, StringComparison.Ordinal);
+            Assert.Single(System.Text.RegularExpressions.Regex.Matches(fragment, "<iframe").Cast<System.Text.RegularExpressions.Match>());
+            Assert.Contains("story=Controls%2FButton%2FBasic", fragment);
+            Assert.Contains("class=\"args-panel\"", fragment);
+            Assert.Contains("<table class=\"args-table\">", fragment);
+            Assert.Contains("data-arg-control=\"text\"", fragment);
+            Assert.Contains("role=\"tablist\"", fragment);
+            Assert.Contains("data-runtime-tab=\"args\"", fragment);
+            Assert.Contains("data-runtime-tab=\"output\"", fragment);
+            Assert.Contains("class=\"output-list\"", fragment);
+            Assert.Contains("aria-labelledby=\"controls-button-basic-", fragment);
+            Assert.True(fragment.IndexOf("class=\"runtime-frame\"", StringComparison.Ordinal)
+                < fragment.IndexOf("class=\"args-panel\"", StringComparison.Ordinal),
+                "The embedded preview must appear above its args table.");
+            Assert.DoesNotContain("Static capture — not interactive", fragment);
+            Assert.Equal(0, host.StorySelectionCount);
+            GallerySiteExporter.Validate(output);
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+            if (Directory.Exists(browserRoot)) Directory.Delete(browserRoot, true);
+        }
+    }
+
+    [Fact]
+    public void Duplicate_runtime_references_have_distinct_stable_instance_and_accessible_args_ids()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-duplicate-runtime-" + Guid.NewGuid().ToString("N"));
+        string browserRoot = CreateBrowserRuntimeRoot();
+        StoryInfo basic = Assert.IsType<StoryInfo>(CoreUiStoryProject.CreateCatalog().Find("Controls/Button/Basic"));
+        var document = new StoryInfo("Test/DuplicateRuntimeRefs", 0, 0, null,
+            _ => throw new InvalidOperationException("semantic document must not build a native Widget"),
+            ResultBuild: static _ => StoryResult.FromMarkdown(
+                "# Duplicate runtime refs\n\n```luxel-story\n0\n```\n\n```luxel-story\n1\n```",
+                StoryReference.To("Controls/Button/Basic", new { text = "First" }),
+                StoryReference.To("Controls/Button/Basic", new { text = "Second" })));
+        var builder = new StoryCatalogBuilder();
+        builder.Add(document).Add(basic);
+        StoryCatalog catalog = builder.Build();
+        try
+        {
+            using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
+            using var rasterizer = new Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D();
+            using var host = new GalleryHost(rasterizer, font, catalog);
+
+            GallerySiteExporter.Export(host, [document, basic], output, root, browserRoot);
+            string first = File.ReadAllText(Path.Combine(output, "stories", "test-duplicateruntimerefs.html"));
+            string[] firstIds = System.Text.RegularExpressions.Regex.Matches(first,
+                    "data-luxel-runtime-instance=\"([^\"]+)\"")
+                .Select(match => match.Groups[1].Value).Distinct(StringComparer.Ordinal).ToArray();
+            Assert.Equal(2, firstIds.Length);
+            Assert.All(firstIds, id =>
+            {
+                Assert.Contains($"aria-labelledby=\"{id}-args-tab\"", first, StringComparison.Ordinal);
+                Assert.Contains($"id=\"{id}-args-panel\"", first, StringComparison.Ordinal);
+                Assert.Contains($"aria-labelledby=\"{id}-output-tab\"", first, StringComparison.Ordinal);
+                Assert.Contains($"id=\"{id}-output-panel\"", first, StringComparison.Ordinal);
+            });
+            Assert.Contains("args=%7B%22", first, StringComparison.Ordinal);
+
+            GallerySiteExporter.Export(host, [document, basic], output, root, browserRoot);
+            string second = File.ReadAllText(Path.Combine(output, "stories", "test-duplicateruntimerefs.html"));
+            string[] secondIds = System.Text.RegularExpressions.Regex.Matches(second,
+                    "data-luxel-runtime-instance=\"([^\"]+)\"")
+                .Select(match => match.Groups[1].Value).Distinct(StringComparer.Ordinal).ToArray();
+            Assert.Equal(firstIds, secondIds);
+            Assert.Equal(0, host.StorySelectionCount);
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+            if (Directory.Exists(browserRoot)) Directory.Delete(browserRoot, true);
+        }
+    }
+
+    [Fact]
+    public void Client_protocol_is_bidirectional_revisioned_source_checked_and_hash_persistent()
+    {
+        string script = GallerySiteExporter.ClientScript;
+
+        Assert.Contains("const runtimeProtocolVersion=2", script, StringComparison.Ordinal);
+        Assert.Contains("type:'set-args'", script, StringComparison.Ordinal);
+        Assert.Contains("message.type==='args-changed'", script, StringComparison.Ordinal);
+        Assert.Contains("message.type==='event'", script, StringComparison.Ordinal);
+        Assert.Contains("appendRuntimeEvent(section,message.entry)", script, StringComparison.Ordinal);
+        Assert.Contains("activateRuntimeTab(section,next.dataset.runtimeTab,true)", script, StringComparison.Ordinal);
+        Assert.Contains("candidate.contentWindow===event.source", script, StringComparison.Ordinal);
+        Assert.Contains("event.origin!==location.origin", script, StringComparison.Ordinal);
+        Assert.Contains("message.protocolVersion!==runtimeProtocolVersion", script, StringComparison.Ordinal);
+        Assert.Contains("message.revision<Number(section.dataset.luxelRuntimeRevision", script, StringComparison.Ordinal);
+        Assert.Contains("section.dataset.luxelRuntimeRequest!==message.requestId", script, StringComparison.Ordinal);
+        Assert.Contains("params.set('args',JSON.stringify(top))", script, StringComparison.Ordinal);
+        Assert.Contains("params.set('embeds',JSON.stringify(embeds))", script, StringComparison.Ordinal);
+        Assert.Contains("history.replaceState(null,'','#'+params.toString())", script, StringComparison.Ordinal);
+    }
+
     [Theory]
-    [InlineData("Examples/3D/Triangle", "examples-3d-triangle.html", "?app=triangle")]
-    [InlineData("Controls/Button/Counter", "controls-button-counter.html", "?app=counter")]
-    public void Browser_stories_export_as_runtime_without_native_realization_or_static_capture(string storyPath, string fragmentName, string query)
+    [InlineData("Examples/3D/Triangle", "examples-3d-triangle.html")]
+    [InlineData("Controls/Button/Counter", "controls-button-counter.html")]
+    public void Browser_stories_export_as_runtime_without_native_realization_or_static_capture(string storyPath, string fragmentName)
     {
         string root = GallerySiteExporter.FindRepositoryRoot();
         string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-runtime-" + Guid.NewGuid().ToString("N"));
         string browserRoot = CreateBrowserRuntimeRoot();
-        var story = new StoryInfo(storyPath, 320, 240, null,
-            _ => throw new InvalidOperationException("runtime story must not be realized"), RealWindowOnly: true);
+        StoryInfo descriptor = storyPath == "Examples/3D/Triangle"
+            ? new StoryInfo(storyPath, 320, 240, null,
+                _ => throw new InvalidOperationException("runtime story must not be realized"), RealWindowOnly: true,
+                RuntimeBundleId: CoreUiStoryProject.RuntimeBundleId,
+                ArgDefinitions: Array.Empty<StoryArgDefinition>(),
+                CapabilityNote: "Specialized browser WebGPU validation route.")
+            : Assert.IsType<StoryInfo>(CoreUiStoryProject.CreateCatalog().Find(storyPath));
+        StoryInfo story = descriptor with
+        {
+            Build = _ => throw new InvalidOperationException("runtime story must not be realized"),
+            ResultBuild = null,
+        };
         try
         {
             using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
@@ -264,9 +444,25 @@ public sealed class GallerySiteExporterTests
             Assert.Empty(entry.ImageSha256);
 
             string fragment = File.ReadAllText(Path.Combine(output, "stories", fragmentName));
-            Assert.Contains($"<iframe src=\"samples/webgpu-browser/{query}\" data-luxel-runtime-story=\"{storyPath}\"", fragment);
+            Assert.Contains($"<iframe src=\"samples/webgpu-browser/?story={Uri.EscapeDataString(storyPath)}&amp;args=", fragment);
+            Assert.Contains("&amp;instance=", fragment);
+            Assert.Contains($"data-luxel-runtime-story=\"{storyPath}\"", fragment);
             Assert.Contains("<article class=\"story runtime-page\">", fragment);
-            Assert.Contains("allow=\"webgpu\"", fragment);
+            Assert.Contains("allow=\"webgpu; clipboard-read; clipboard-write\"", fragment);
+            Assert.Contains("role=\"tablist\"", fragment);
+            Assert.Contains("data-runtime-tab=\"args\"", fragment);
+            Assert.Contains("data-runtime-tab=\"output\"", fragment);
+            Assert.Contains("class=\"output-list\"", fragment);
+            if (storyPath == "Examples/3D/Triangle")
+                Assert.Contains("This story has no configurable args.", fragment);
+            if (storyPath == "Controls/Button/Counter")
+            {
+                Assert.Contains("class=\"args-panel\"", fragment);
+                Assert.Contains("data-arg-control=\"count\"", fragment);
+                Assert.Single(entry.Args);
+                Assert.Equal("count", entry.Args[0].Name);
+                Assert.Equal(0, entry.Args[0].DefaultValue.GetInt32());
+            }
             Assert.DoesNotContain("Runtime WebAssembly — interactive", fragment);
             Assert.DoesNotContain("Static capture — not interactive", fragment);
             Assert.DoesNotContain("<header>", fragment);
@@ -291,7 +487,7 @@ public sealed class GallerySiteExporterTests
         string root = GallerySiteExporter.FindRepositoryRoot();
         string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-runtime-embed-" + Guid.NewGuid().ToString("N"));
         string browserRoot = CreateBrowserRuntimeRoot();
-        StoryInfo story = StoryRegistry.Find("Learn/Rendering/Basics/FirstTriangle")
+        StoryInfo story = Catalog.Find("Learn/Rendering/Basics/FirstTriangle")
             ?? throw new InvalidOperationException("FirstTriangle story is missing.");
         try
         {
@@ -302,9 +498,10 @@ public sealed class GallerySiteExporterTests
             GallerySiteExporter.Export(host, [story], output, root, browserRoot);
 
             string fragment = File.ReadAllText(Path.Combine(output, "stories", "learn-rendering-basics-firsttriangle.html"));
-            Assert.Contains("<iframe src=\"samples/webgpu-browser/?app=triangle\" data-luxel-runtime-story=\"Examples/3D/Triangle\"", fragment);
+            Assert.Contains("<iframe src=\"samples/webgpu-browser/?story=Examples%2F3D%2FTriangle&amp;args=%7B%7D&amp;instance=", fragment);
+            Assert.Contains("data-luxel-runtime-story=\"Examples/3D/Triangle\"", fragment);
             Assert.Contains("runtime-story-embedded", fragment);
-            Assert.Contains("title=\"Interactive tutorial triangle\"", fragment);
+            Assert.Contains("title=\"Interactive Triangle\"", fragment);
             Assert.DoesNotContain("runtime-caption", fragment);
             Assert.DoesNotContain("Static embedded story capture", fragment);
             Assert.False(File.Exists(Path.Combine(output, "images", "examples-3d-triangle.png")));
@@ -344,7 +541,7 @@ public sealed class GallerySiteExporterTests
 
             FileNotFoundException error = Assert.Throws<FileNotFoundException>(
                 () => GallerySiteExporter.Export(host, [story], output, root, incomplete));
-            Assert.Contains("required app file is missing", error.Message);
+            Assert.Contains("bundle manifest is missing", error.Message);
             Assert.Equal(fallbackRealizations, host.StorySelectionCount);
         }
         finally
@@ -358,10 +555,18 @@ public sealed class GallerySiteExporterTests
     public void Runtime_story_css_fills_the_available_gallery_viewport()
     {
         string css = GallerySiteExporter.SiteCss;
-        Assert.Contains(".runtime-story{width:100%;height:100%;margin:0}", css);
+        Assert.Contains(".runtime-story{display:flex;flex-direction:column;width:100%;height:100%;margin:0}", css);
         Assert.Contains(".runtime-frame,.runtime-frame iframe{display:block;width:100%;height:100%;margin:0;padding:0;border:0", css);
         Assert.Contains(".runtime-page{width:100%;max-width:none;height:100%;margin:0}", css);
+        Assert.Contains(".runtime-story-embedded{height:auto", css);
+        Assert.Contains(".runtime-story-embedded .runtime-frame{flex:none;height:500px;min-height:500px}", css);
         Assert.Contains("body.runtime-active main{padding:0;overflow:hidden}", css);
+        Assert.Contains(".runtime-panels{flex:none", css);
+        Assert.Contains(".runtime-tabs{display:flex", css);
+        Assert.Contains(".args-panel,.output-panel", css);
+        Assert.Contains(".output-list", css);
+        Assert.Contains("border-top:1px solid var(--line)", css);
+        Assert.Contains(".args-table", css);
         Assert.DoesNotContain("aspect-ratio:4/3", css);
     }
 
@@ -372,7 +577,7 @@ public sealed class GallerySiteExporterTests
         var story = new StoryInfo("Test/Source", 100, 100, null,
             _ => Luxel.Controls.Kit.Text("hello"), Source: source);
 
-        TextEditorView editor = Assert.IsType<TextEditorView>(GalleryApp.BuildStorySourcePane(story));
+        TextEditorView editor = Assert.IsType<TextEditorView>(GalleryStorySourcePane.Build(story));
         Assert.True(editor.ReadOnly);
         Assert.True(editor.Fill);
         Assert.True(editor.ShowLineNumbers);
@@ -380,7 +585,7 @@ public sealed class GallerySiteExporterTests
         Assert.Contains(editor.Providers, provider => provider is SyntaxHighlightProvider);
         Assert.Equal(source, editor.Value.Get().Value);
 
-        Text placeholder = Assert.IsType<Text>(GalleryApp.BuildStorySourcePane(
+        Text placeholder = Assert.IsType<Text>(GalleryStorySourcePane.Build(
             new StoryInfo("Test/Generated", 0, 0, null, _ => Luxel.Controls.Kit.Text("generated"))));
         Assert.Contains("Source unavailable", placeholder.DebugDetail, StringComparison.Ordinal);
     }
@@ -434,10 +639,10 @@ public sealed class GallerySiteExporterTests
     public void Focused_export_is_complete_and_deterministic()
     {
         string root = GallerySiteExporter.FindRepositoryRoot();
-        StoryInfo story = StoryRegistry.Find("Learn/Rendering/Basics/Shaders")
-            ?? StoryRegistry.All.First(s => !s.RealWindowOnly);
-        StoryInfo imageStory = StoryRegistry.Find("Controls/Button/Intents")
-            ?? StoryRegistry.All.First(s => !s.RealWindowOnly && s.Path != story.Path);
+        StoryInfo story = Catalog.Find("Learn/Rendering/Basics/Shaders")
+            ?? Catalog.All.First(s => !s.RealWindowOnly);
+        StoryInfo imageStory = Catalog.Find("Controls/Button/Intents")
+            ?? Catalog.All.First(s => !s.RealWindowOnly && s.Path != story.Path);
         string a = Path.Combine(Path.GetTempPath(), "luxel-gallery-site-a-" + Guid.NewGuid().ToString("N"));
         string b = Path.Combine(Path.GetTempPath(), "luxel-gallery-site-b-" + Guid.NewGuid().ToString("N"));
         try
@@ -492,11 +697,11 @@ public sealed class GallerySiteExporterTests
     {
         string[] legacy = ["Overview", "Ui", "TwoD", "Core", "Text", "Animation", "ThreeD", "Runtime"];
         foreach (string path in legacy)
-            Assert.Null(StoryRegistry.Find("Reference/" + path));
+            Assert.Null(Catalog.Find("Reference/" + path));
 
         foreach (string ns in TypeApiRegistry.Namespaces)
         {
-            StoryInfo story = StoryRegistry.Find("Reference/" + ns)
+            StoryInfo story = Catalog.Find("Reference/" + ns)
                 ?? throw new InvalidOperationException($"Namespace reference is missing: {ns}");
             TextEditorView document = GallerySnapshots.FindDocument(story.Build(new StoryContext()))
                 ?? throw new InvalidOperationException($"Namespace reference is not a document: {ns}");
@@ -513,18 +718,18 @@ public sealed class GallerySiteExporterTests
         ];
         Assert.All(requiredNamespaces, ns => Assert.Contains(ns, TypeApiRegistry.Namespaces));
 
-        Assert.NotNull(StoryRegistry.Find("Examples/UI/Navigation"));
-        Assert.NotNull(StoryRegistry.Find("Controls/NavigationView/Basic"));
-        Assert.NotNull(StoryRegistry.Find("Controls/NavigationView/Overview"));
+        Assert.NotNull(Catalog.Find("Examples/UI/Navigation"));
+        Assert.NotNull(Catalog.Find("Controls/NavigationView/Basic"));
+        Assert.NotNull(Catalog.Find("Controls/NavigationView/Overview"));
         Assert.NotNull(TypeApiRegistry.Find("Luxel.UI.Navigation"));
         Assert.NotNull(TypeApiRegistry.Find("Luxel.UI.NavigationHost"));
         Assert.NotNull(TypeApiRegistry.Find("Luxel.UI.NavigationPath"));
 
-        string[] existingCategories = StoryRegistry.All
+        string[] existingCategories = Catalog.All
             .Where(story => story.Path.StartsWith("Controls/", StringComparison.Ordinal)
                             && !story.Path.EndsWith("/Overview", StringComparison.Ordinal))
             .Select(story => story.Path.Split('/')[1]).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
-        string[] overviewCategories = StoryRegistry.All
+        string[] overviewCategories = Catalog.All
             .Where(story => story.Path.StartsWith("Controls/", StringComparison.Ordinal)
                             && story.Path.EndsWith("/Overview", StringComparison.Ordinal))
             .Select(story => story.Path.Split('/')[1])
@@ -535,22 +740,32 @@ public sealed class GallerySiteExporterTests
 
         var mapped = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["Button"] = "Button", ["CheckBox"] = "Check", ["Knobs"] = "KnobsTable",
+            ["Button"] = "Button", ["CheckBox"] = "Check", ["KnobsTable"] = "KnobsTable",
             ["RichText"] = "RichTextView", ["ScrollViewer"] = "Scroll", ["WrapPanel"] = "Wrap",
         };
         foreach ((string category, string apiName) in mapped)
         {
-            StoryInfo story = StoryRegistry.Find($"Controls/{category}/Overview")
+            StoryInfo story = Catalog.Find($"Controls/{category}/Overview")
                 ?? throw new InvalidOperationException($"Control overview is missing: {category}");
-            TextEditorView document = GallerySnapshots.FindDocument(story.Build(new StoryContext()))
-                ?? throw new InvalidOperationException($"Control overview is not a document: {category}");
-            Assert.Contains(document.DocEmbeds,
-                embed => embed.Kind == DocEmbedKind.ControlApiTable && embed.Reference == apiName);
+            StoryResult result = story.BuildResult(new StoryContext());
+            if (result.Kind == StoryResultKind.Markdown)
+            {
+                Assert.Contains($"# {category}", result.Markdown, StringComparison.Ordinal);
+                Assert.Contains("Events, parameters and API", result.Markdown, StringComparison.Ordinal);
+                Assert.Contains(result.References, reference => reference.Path == $"Controls/{category}/Basic");
+            }
+            else
+            {
+                TextEditorView document = GallerySnapshots.FindDocument(result.Widget!)
+                    ?? throw new InvalidOperationException($"Control overview is not a document: {category}");
+                Assert.Contains(document.DocEmbeds,
+                    embed => embed.Kind == DocEmbedKind.ControlApiTable && embed.Reference == apiName);
+            }
         }
         foreach (string special in new[] { "Layout", "Kit", "CommandPalette" })
-            Assert.NotNull(StoryRegistry.Find($"Controls/{special}/Overview"));
+            Assert.NotNull(Catalog.Find($"Controls/{special}/Overview"));
 
-        StoryInfo controls = StoryRegistry.Find("Reference/Guides/Controls")
+        StoryInfo controls = Catalog.Find("Reference/Guides/Controls")
             ?? throw new InvalidOperationException("Reference/Guides/Controls is missing.");
         TextEditorView controlsDocument = GallerySnapshots.FindDocument(controls.Build(new StoryContext()))
             ?? throw new InvalidOperationException("Reference/Guides/Controls is not a document.");
@@ -561,12 +776,12 @@ public sealed class GallerySiteExporterTests
     }
 
     [SkippableFact]
-    public void Api_tables_export_as_semantic_html_instead_of_embed_pngs()
+    public void Generated_overview_iframes_and_api_tables_export_as_semantic_html()
     {
         string root = GallerySiteExporter.FindRepositoryRoot();
-        StoryInfo control = StoryRegistry.Find("Controls/Button/Overview")
+        StoryInfo control = Catalog.Find("Controls/Button/Overview")
             ?? throw new InvalidOperationException("Controls/Button/Overview is missing.");
-        StoryInfo type = StoryRegistry.Find("Reference/Luxel.UI")
+        StoryInfo type = Catalog.Find("Reference/Luxel.UI")
             ?? throw new InvalidOperationException("Reference/Luxel.UI is missing.");
         string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-api-html-" + Guid.NewGuid().ToString("N"));
         try
@@ -578,8 +793,8 @@ public sealed class GallerySiteExporterTests
 
             string controlHtml = File.ReadAllText(Path.Combine(output, "stories", "controls-button-overview.html"));
             string typeHtml = File.ReadAllText(Path.Combine(output, "stories", "reference-luxel-ui.html"));
-            Assert.Contains("<table class=\"api-table\">", controlHtml);
-            Assert.Contains("OnClick", controlHtml);
+            Assert.Contains("Events, parameters and API", controlHtml);
+            Assert.Contains("Controls/Button/Basic", controlHtml);
             Assert.Contains("<table class=\"api-table\">", typeHtml);
             Assert.DoesNotContain("Static widget capture", controlHtml + typeHtml);
             Assert.Empty(Directory.GetFiles(Path.Combine(output, "images"), "embed-*.png"));
@@ -593,9 +808,9 @@ public sealed class GallerySiteExporterTests
     [Fact]
     public void Old_demo_routes_are_not_kept_as_aliases()
     {
-        Assert.Null(StoryRegistry.Find("Demos/2D/CameraRig"));
-        Assert.NotNull(StoryRegistry.Find("Examples/2D/CameraRig"));
-        Assert.Empty(StoryRegistry.AliasesFor("Examples/2D/CameraRig"));
+        Assert.Null(Catalog.Find("Demos/2D/CameraRig"));
+        Assert.NotNull(Catalog.Find("Examples/2D/CameraRig"));
+        Assert.Empty(Catalog.AliasesFor("Examples/2D/CameraRig"));
     }
 
     [Fact]
@@ -615,7 +830,7 @@ public sealed class GallerySiteExporterTests
         for (int i = 0; i < routes.Length; i++)
         {
             string path = routes[i];
-            StoryInfo story = StoryRegistry.Find(path)
+            StoryInfo story = Catalog.Find(path)
                 ?? throw new InvalidOperationException($"Rendering Learn route is missing: {path}");
             Widget root = story.Build(new StoryContext());
             TextEditorView document = GallerySnapshots.FindDocument(root)
@@ -639,7 +854,7 @@ public sealed class GallerySiteExporterTests
             "Learn/Rendering/ThreeD/FirstRenderGraph", "Learn/Rendering/ThreeD/StaticGltf",
             "Learn/Rendering/ThreeD/Debugging", "Learn/Rendering/ThreeD/Shipping",
         ];
-        StoryInfo[] stories = routes.Select(name => StoryRegistry.Find(name)
+        StoryInfo[] stories = routes.Select(name => Catalog.Find(name)
             ?? throw new InvalidOperationException($"Rendering Learn route is missing: {name}")).ToArray();
         Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null);
 
@@ -675,9 +890,9 @@ public sealed class GallerySiteExporterTests
     {
         string[] routes = ["GpuDevice", "TwoD", "RenderGraph", "ThreeD", "Assets", "Ecs", "Physics"];
         foreach (string route in routes)
-            Assert.NotNull(StoryRegistry.Find("Reference/Guides/" + route));
+            Assert.NotNull(Catalog.Find("Reference/Guides/" + route));
 
-        StoryInfo authoring = StoryRegistry.Find("Internals/Authoring")
+        StoryInfo authoring = Catalog.Find("Internals/Authoring")
             ?? throw new InvalidOperationException("Internals/Authoring is missing.");
         Assert.Contains("完全な `[Story]` method宣言", authoring.Source);
         Assert.Contains("下部の **Source** タブ", authoring.Source);
@@ -700,7 +915,7 @@ public sealed class GallerySiteExporterTests
         foreach (string ns in namespaces)
         {
             Assert.Contains(ns, TypeApiRegistry.Namespaces);
-            StoryInfo story = StoryRegistry.Find("Reference/" + ns)
+            StoryInfo story = Catalog.Find("Reference/" + ns)
                 ?? throw new InvalidOperationException($"Terminal API reference is missing: {ns}");
             TextEditorView document = GallerySnapshots.FindDocument(story.Build(new StoryContext()))
                 ?? throw new InvalidOperationException($"Terminal API reference is not a document: {ns}");
@@ -718,7 +933,7 @@ public sealed class GallerySiteExporterTests
     [Fact]
     public void Terminal_docs_cover_platforms_usage_and_rendering_adjustments()
     {
-        StoryInfo story = StoryRegistry.Find("Controls/Terminal/Overview")
+        StoryInfo story = Catalog.Find("Controls/Terminal/Overview")
             ?? throw new InvalidOperationException("Controls/Terminal/Overview is missing.");
         Dictionary<string, DocsPage> pages = DocsIndex.Build([story], resources: null);
         DocsPage page = pages[story.Path];
@@ -736,22 +951,22 @@ public sealed class GallerySiteExporterTests
     [Fact]
     public void Start_courses_and_sample_bundles_are_registered_and_link_clean()
     {
-        Assert.Equal("Start", StoryRegistry.All[0].Component);
-        Assert.NotNull(StoryRegistry.Find("Start/Welcome"));
-        Assert.NotNull(StoryRegistry.Find("Learn/Rendering/TwoD/Overview"));
-        Assert.NotNull(StoryRegistry.Find("Learn/Rendering/RasterizerInternals/Overview"));
+        Assert.Equal("Start", Catalog.All[0].Component);
+        Assert.NotNull(Catalog.Find("Start/Welcome"));
+        Assert.NotNull(Catalog.Find("Learn/Rendering/TwoD/Overview"));
+        Assert.NotNull(Catalog.Find("Learn/Rendering/RasterizerInternals/Overview"));
         foreach (string route in new[] { "Learn/Input/Overview", "Learn/Input/ActionsAndContexts", "Learn/Input/PlatformsAndTesting",
                      "Learn/Audio/Overview", "Learn/Audio/ClipsSourcesAndBuses", "Learn/Audio/SpatialStreamingAndTesting",
                      "Learn/Resources/Overview", "Learn/Resources/PipelinesAndDag", "Learn/Resources/ReloadAndLifetime",
                      "Build/Blocks/Input/Actions", "Build/Blocks/Audio/Tone", "Build/Blocks/Resources/Pipeline" })
-            Assert.NotNull(StoryRegistry.Find(route));
+            Assert.NotNull(Catalog.Find(route));
         string[] diagnostics = ["InputPaths", "EncodedScene", "Bounds", "TileBins", "Coverage", "Stroke", "Composite", "Dispatch", "RetainedUpdates"];
         foreach (string diagnostic in diagnostics)
-            Assert.NotNull(StoryRegistry.Find("Examples/2D/Rasterizer/" + diagnostic));
-        Assert.NotNull(StoryRegistry.Find("Build/Recipes/TriangleApp"));
-        Assert.Contains(StoryRegistry.All, story => story.Path.StartsWith("Examples/", StringComparison.Ordinal));
-        Assert.DoesNotContain(StoryRegistry.All, story => story.Path.StartsWith("Demos/", StringComparison.Ordinal));
-        Assert.Empty(DocsIndex.ValidateLinks(DocsIndex.Build(StoryRegistry.All, resources: null)));
+            Assert.NotNull(Catalog.Find("Examples/2D/Rasterizer/" + diagnostic));
+        Assert.NotNull(Catalog.Find("Build/Recipes/TriangleApp"));
+        Assert.Contains(Catalog.All, story => story.Path.StartsWith("Examples/", StringComparison.Ordinal));
+        Assert.DoesNotContain(Catalog.All, story => story.Path.StartsWith("Demos/", StringComparison.Ordinal));
+        Assert.Empty(DocsIndex.ValidateLinks(DocsIndex.Build(Catalog.All, resources: null, Catalog), Catalog));
     }
 
     [Fact]
@@ -786,7 +1001,7 @@ public sealed class GallerySiteExporterTests
                     _ = Luxel.Gallery.Stories.DocsKit.SampleSource(file.Path, file.Region, file.Language);
             }
         }
-        StoryInfo triangle = StoryRegistry.Find("Build/Recipes/TriangleApp")!;
+        StoryInfo triangle = Catalog.Find("Build/Recipes/TriangleApp")!;
         Assert.Equal("rendering.triangle", triangle.SampleBundle);
         Assert.NotNull(SampleBundleRegistry.Find(triangle.SampleBundle));
     }
@@ -795,7 +1010,7 @@ public sealed class GallerySiteExporterTests
     public void Rendering_overview_follows_catalog_and_build_paths_match_copy_levels()
     {
         Dictionary<string, DocsPage> pages = DocsIndex.Build(
-            [StoryRegistry.Find("Learn/Rendering/Basics/Overview")!], resources: null);
+            [Catalog.Find("Learn/Rendering/Basics/Overview")!], resources: null);
         string overview = pages["Learn/Rendering/Basics/Overview"].Text;
         int previous = -1;
         foreach (string route in RenderingCourseCatalog.ApplicationRoute)
@@ -807,23 +1022,23 @@ public sealed class GallerySiteExporterTests
         Assert.True(overview.IndexOf("story:Examples/3D/Triangle", StringComparison.Ordinal) > previous);
         Assert.Contains("独立トラック", overview);
 
-        foreach (StoryInfo story in StoryRegistry.All.Where(story => story.Path.StartsWith("Build/Blocks/", StringComparison.Ordinal)))
+        foreach (StoryInfo story in Catalog.All.Where(story => story.Path.StartsWith("Build/Blocks/", StringComparison.Ordinal)))
         {
             Assert.False(string.IsNullOrWhiteSpace(story.SampleBundle), story.Path);
             Assert.Equal(SampleCopyLevel.Block, SampleBundleRegistry.Find(story.SampleBundle!)!.CopyLevel);
         }
-        foreach (StoryInfo story in StoryRegistry.All.Where(story => story.Path.StartsWith("Build/Recipes/", StringComparison.Ordinal)))
+        foreach (StoryInfo story in Catalog.All.Where(story => story.Path.StartsWith("Build/Recipes/", StringComparison.Ordinal)))
         {
             Assert.False(string.IsNullOrWhiteSpace(story.SampleBundle), story.Path);
             Assert.Contains(SampleBundleRegistry.Find(story.SampleBundle!)!.CopyLevel,
                 new[] { SampleCopyLevel.Recipe, SampleCopyLevel.StandaloneProject });
         }
 
-        Assert.Null(StoryRegistry.Find("Build/Blocks/ThreeD/Triangle"));
-        Assert.Null(StoryRegistry.Find("Build/Recipes/TwoDCanvasApp"));
-        Assert.Null(StoryRegistry.Find("Build/Recipes/MiniGame2D"));
-        Assert.Null(StoryRegistry.Find("Build/Recipes/Viewer3D"));
-        Assert.NotNull(StoryRegistry.Find("Build/Recipes/HeadlessScene2D"));
+        Assert.Null(Catalog.Find("Build/Blocks/ThreeD/Triangle"));
+        Assert.Null(Catalog.Find("Build/Recipes/TwoDCanvasApp"));
+        Assert.Null(Catalog.Find("Build/Recipes/MiniGame2D"));
+        Assert.Null(Catalog.Find("Build/Recipes/Viewer3D"));
+        Assert.NotNull(Catalog.Find("Build/Recipes/HeadlessScene2D"));
     }
 
     [Fact]
@@ -905,8 +1120,8 @@ public sealed class GallerySiteExporterTests
             SampleBundleInfo bundle = SampleBundleRegistry.Find(item.Bundle)!;
             Assert.Equal(SampleCopyLevel.Block, bundle.CopyLevel);
             Assert.False(string.IsNullOrWhiteSpace(bundle.SmokeCommand));
-            Assert.Equal(item.Bundle, StoryRegistry.Find(item.Learn)!.SampleBundle);
-            Assert.Equal(item.Bundle, StoryRegistry.Find(item.Build)!.SampleBundle);
+            Assert.Equal(item.Bundle, Catalog.Find(item.Learn)!.SampleBundle);
+            Assert.Equal(item.Bundle, Catalog.Find(item.Build)!.SampleBundle);
         }
     }
 
@@ -924,13 +1139,13 @@ public sealed class GallerySiteExporterTests
         ];
         foreach ((string route, string bundle) in pages)
         {
-            StoryInfo story = StoryRegistry.Find(route) ?? throw new InvalidOperationException(route);
+            StoryInfo story = Catalog.Find(route) ?? throw new InvalidOperationException(route);
             Assert.Equal(bundle, story.SampleBundle);
             Assert.NotNull(SampleBundleRegistry.Find(bundle));
         }
-        Assert.NotNull(StoryRegistry.Find("Learn/Framework/ScenesAndServices"));
-        Assert.NotNull(StoryRegistry.Find("Learn/UI/BuildAndReconciliation"));
-        Assert.Empty(DocsIndex.ValidateLinks(DocsIndex.Build(StoryRegistry.All, resources: null)));
+        Assert.NotNull(Catalog.Find("Learn/Framework/ScenesAndServices"));
+        Assert.NotNull(Catalog.Find("Learn/UI/BuildAndReconciliation"));
+        Assert.Empty(DocsIndex.ValidateLinks(DocsIndex.Build(Catalog.All, resources: null, Catalog), Catalog));
     }
 
     [Fact]
@@ -945,7 +1160,7 @@ public sealed class GallerySiteExporterTests
             "Learn/Production/StudioToPlayer", "Learn/Production/Workbench", "Learn/Production/ValidateAndShip",
             "Build/Recipes/Cavern2D", "Build/Recipes/Range3D", "Build/Blocks/Scripting/HotReload",
         ];
-        StoryInfo[] stories = routes.Select(route => StoryRegistry.Find(route)
+        StoryInfo[] stories = routes.Select(route => Catalog.Find(route)
             ?? throw new InvalidOperationException(route)).ToArray();
         Assert.Empty(DocsIndex.ValidateLinks(DocsIndex.Build(stories, resources: null)));
     }
@@ -962,7 +1177,7 @@ public sealed class GallerySiteExporterTests
             ("Examples/Resources/DependencyDag", "resources.pipeline"), ("Examples/Resources/Reload", "resources.pipeline"),
             ("Examples/Resources/Lifetime", "resources.pipeline"),
         ];
-        StoryInfo[] stories = examples.Select(item => StoryRegistry.Find(item.Route)!).ToArray();
+        StoryInfo[] stories = examples.Select(item => Catalog.Find(item.Route)!).ToArray();
         Assert.DoesNotContain(stories, story => story is null);
         for (int i = 0; i < examples.Length; i++) Assert.Equal(examples[i].Bundle, stories[i].SampleBundle);
         Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null);
@@ -1042,7 +1257,7 @@ public sealed class GallerySiteExporterTests
     public void Mermaid_fence_is_exported_as_png()
     {
         string root = GallerySiteExporter.FindRepositoryRoot();
-        StoryInfo story = StoryRegistry.Find("Internals/Architecture")
+        StoryInfo story = Catalog.Find("Internals/Architecture")
             ?? throw new InvalidOperationException("Internals/Architecture story is missing.");
         string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-site-mermaid-" + Guid.NewGuid().ToString("N"));
         try
@@ -1064,6 +1279,12 @@ public sealed class GallerySiteExporterTests
         }
     }
 
+    private static StoryResult ReferenceMarkdown(string title, string path)
+    {
+        StoryResult result = $"# {title}\n\n{StoryReference.To(path)}";
+        return result;
+    }
+
     private static string CreateBrowserRuntimeRoot()
     {
         string root = Path.Combine(Path.GetTempPath(), "luxel-browser-runtime-" + Guid.NewGuid().ToString("N"));
@@ -1071,6 +1292,8 @@ public sealed class GallerySiteExporterTests
         File.WriteAllText(Path.Combine(root, "index.html"),
             "<!doctype html><html><body><script type=\"module\" src=\"./main.js\"></script></body></html>");
         File.WriteAllText(Path.Combine(root, "main.js"), "import './_framework/dotnet.js';\n");
+        File.Copy(Path.Combine(GallerySiteExporter.FindRepositoryRoot(), "samples", "LuxelWebGpuBrowser", "wwwroot",
+            "browser-runtime-manifest.json"), Path.Combine(root, "browser-runtime-manifest.json"));
         File.WriteAllText(Path.Combine(root, "_framework", "dotnet.js"), "export const dotnet = {};\n");
         return root;
     }
