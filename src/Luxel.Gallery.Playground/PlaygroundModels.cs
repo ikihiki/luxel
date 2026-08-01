@@ -43,6 +43,11 @@ public sealed record PlaygroundDraft(
     }
 }
 
+public static class PlaygroundContract
+{
+    public const string StoryPath = "Examples/Scripting/Playground";
+}
+
 public static class PlaygroundTemplates
 {
     public static PlaygroundTemplate Button { get; } = new(

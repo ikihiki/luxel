@@ -5,9 +5,10 @@ async function openPlayground(page) {
   page.on('console', message => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
-  await page.goto('/index.html#playground');
+  await page.goto('/index.html#story=Examples%2FScripting%2FPlayground');
   const root = page.locator('[data-playground]');
   await expect(root).toBeVisible();
+  await expect(page.locator('#stories a.active')).toHaveText('Playground');
   await expect(root.locator('[data-playground-status]')).toHaveText('Ready');
   return { root, consoleErrors };
 }

@@ -1,5 +1,6 @@
 ﻿using Luxel.Controls;
 using Luxel.Scripting;
+using Luxel.Gallery.Playground;
 using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Luxel.UI.Tailwind;
@@ -109,6 +110,22 @@ public static class ScriptingStory
         public override string? DebugDetail => $"csx ({_code.Value.Length} 文字)";
 
         public void Dispose() => (_output as IDisposable)?.Dispose();
+    }
+
+    [Story(PlaygroundContract.StoryPath, Height = 620, Order = 2031)]
+    public static Widget Playground(StoryContext ctx, ScriptHost host, ICodeLanguage lang)
+    {
+        var block = new CsxBlock(
+            "// Edit this C# and run it as a normal Gallery Story.\n" +
+            "var label = \"Click me\";\n" +
+            "Button(_ => Log(\"clicked\"), label)",
+            maxWidth: 560, ctx, host, lang);
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("C# Playground"),
+                Muted("Edit and run a Luxel Widget inside the Gallery. The native Gallery uses ScriptHost; the web Gallery uses the browser Roslyn runtime."),
+                block]];
     }
 
     [Story("Examples/Scripting/LiveCsx", Height = 520, Order = 2032)]

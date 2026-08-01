@@ -1,4 +1,7 @@
+using System.Text.Json;
 using Luxel.Gallery;
+using Luxel.Gallery.Playground;
+using Luxel.Gallery.Stories;
 using Luxel.Gallery.Site;
 using Luxel.Graphics.TwoD.Skia;
 using Luxel.Typography;
@@ -8,18 +11,19 @@ namespace Luxel.Gallery.Site.Tests;
 public sealed class PlaygroundSiteExporterTests
 {
     [Fact]
-    public void Gallery_shell_links_playground_route_and_independent_assets()
+    public void Gallery_shell_loads_playground_through_the_normal_story_route()
     {
         string html = GallerySiteExporter.IndexHtml;
         string script = GallerySiteExporter.ClientScript;
 
-        Assert.Contains("href=\"#playground\">Playground</a>", html);
         Assert.Contains("href=\"playground.css\"", html);
         Assert.Contains("src=\"playground.js\"", html);
         Assert.Contains("src=\"playground-site.js\"", html);
-        Assert.Contains("location.hash==='#playground'", script);
-        Assert.Contains("fetch('playground.html')", script);
+        Assert.DoesNotContain("href=\"#playground\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("location.hash==='#playground'", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("fetch('playground.html')", script, StringComparison.Ordinal);
         Assert.Contains("LuxelGalleryPlayground?.bindAll(content)", script);
+        Assert.Contains("const storyHash=path=>'#story='+encodeURIComponent(path)", script);
     }
 
     [Fact]
@@ -61,19 +65,21 @@ public sealed class PlaygroundSiteExporterTests
     }
 
     [Fact]
-    public void Export_without_runtime_still_writes_playground_with_clear_unavailable_state()
+    public void Export_without_runtime_writes_playground_as_a_normal_story_with_clear_unavailable_state()
     {
         string output = Temp("without-runtime");
         try
         {
             Export(output, playgroundRoot: null);
 
-            string fragment = File.ReadAllText(Path.Combine(output, "playground.html"));
+            string fragment = ReadPlaygroundFragment(output);
             Assert.Contains("data-playground", fragment);
             Assert.Contains("Button.csx", fragment);
             Assert.Contains("Playground runtime unavailable", fragment);
             Assert.Contains("data-playground-run disabled", fragment);
             Assert.DoesNotContain("samples/luxel-playground/", fragment);
+            Assert.False(File.Exists(Path.Combine(output, "playground.html")));
+            AssertManifestContainsPlayground(output);
             Assert.True(File.Exists(Path.Combine(output, "playground.css")));
             Assert.True(File.Exists(Path.Combine(output, "playground.js")));
             Assert.True(File.Exists(Path.Combine(output, "playground-site.js")));
@@ -91,8 +97,9 @@ public sealed class PlaygroundSiteExporterTests
         {
             Export(output, runtime);
 
-            string fragment = File.ReadAllText(Path.Combine(output, "playground.html"));
+            string fragment = ReadPlaygroundFragment(output);
             Assert.Contains("data-playground-runtime-url=\"samples/luxel-playground/\"", fragment);
+            AssertManifestContainsPlayground(output);
             Assert.DoesNotContain("src=\"/samples/luxel-playground/", fragment);
             Assert.True(File.Exists(Path.Combine(output, "samples", "luxel-playground", "index.html")));
             Assert.True(File.Exists(Path.Combine(output, "samples", "luxel-playground", "_framework", "dotnet.js")));
@@ -123,10 +130,26 @@ public sealed class PlaygroundSiteExporterTests
 
     private static void Export(string output, string? playgroundRoot)
     {
+        StoryInfo story = GalleryStoryProject.CreateCatalog().Find(PlaygroundContract.StoryPath)
+            ?? throw new InvalidOperationException("The Playground Story was not registered.");
+        var builder = new StoryCatalogBuilder();
+        builder.Add(story);
         using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
         using var rasterizer = new SkiaRasterizer2D();
-        using var host = new GalleryHost(rasterizer, font, new StoryCatalogBuilder().Build());
-        GallerySiteExporter.Export(host, [], output, GallerySiteExporter.FindRepositoryRoot(), playgroundBrowserRoot: playgroundRoot);
+        using var host = new GalleryHost(rasterizer, font, builder.Build());
+        GallerySiteExporter.Export(host, [story], output, GallerySiteExporter.FindRepositoryRoot(), playgroundBrowserRoot: playgroundRoot);
+    }
+
+    private static string ReadPlaygroundFragment(string output)
+        => File.ReadAllText(Path.Combine(output, "stories", GallerySiteExporter.Slug(PlaygroundContract.StoryPath) + ".html"));
+
+    private static void AssertManifestContainsPlayground(string output)
+    {
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(Path.Combine(output, "manifest.json")));
+        JsonElement story = Assert.Single(document.RootElement.EnumerateArray().ToArray());
+        Assert.Equal(PlaygroundContract.StoryPath, story.GetProperty("path").GetString());
+        Assert.Equal("document", story.GetProperty("status").GetString());
+        Assert.Equal("stories/examples-scripting-playground.html", story.GetProperty("fragment").GetString());
     }
 
     private static string CreateRuntimeRoot()

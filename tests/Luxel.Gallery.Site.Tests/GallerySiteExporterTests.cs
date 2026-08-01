@@ -27,9 +27,24 @@ public sealed class GallerySiteExporterTests
         Assert.NotNull(catalog.Find("Start/Welcome"));
         Assert.NotNull(catalog.Find("Controls/Button/Primary"));
         Assert.NotNull(catalog.Find("Controls/Button/Overview"));
+        Assert.NotNull(catalog.Find("Examples/Scripting/Playground"));
         Assert.Equal("webgpu-browser-v1", catalog.Find("Examples/3D/Triangle")?.RuntimeBundleId);
         Assert.Equal("webgpu-browser-v1", catalog.Find("Controls/Button/Counter")?.RuntimeBundleId);
         Assert.Null(empty.Find("Start/Welcome"));
+    }
+
+    [Fact]
+    public void Playground_is_a_buildable_native_story()
+    {
+        StoryInfo story = Assert.IsType<StoryInfo>(Catalog.Find("Examples/Scripting/Playground"));
+        var context = new StoryContext();
+        context.SetServices(GalleryServices.Provider);
+
+        Widget widget = story.Build(context);
+
+        Assert.NotNull(widget);
+        Assert.Equal("Examples/Scripting/Playground", story.Path);
+        (widget as IDisposable)?.Dispose();
     }
 
     [Fact]

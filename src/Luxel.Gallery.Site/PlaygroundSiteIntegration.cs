@@ -14,7 +14,7 @@ public static partial class GallerySiteExporter
 
     private sealed record PlaygroundRuntimeManifest(string Protocol, int ProtocolVersion, string EntryUrl);
 
-    private static void ExportPlayground(string output, string? runtimeRoot)
+    private static PlaygroundRuntimeManifest? ExportPlaygroundAssets(string output, string? runtimeRoot)
     {
         PlaygroundRuntimeManifest? runtime = runtimeRoot is null ? null : LoadPlaygroundRuntime(runtimeRoot);
         if (runtime is not null)
@@ -23,10 +23,10 @@ public static partial class GallerySiteExporter
         File.WriteAllText(Path.Combine(output, "playground.css"), PlaygroundAssets.ReadStyle(), new UTF8Encoding(false));
         File.WriteAllText(Path.Combine(output, "playground.js"), PlaygroundAssets.ReadScript(), new UTF8Encoding(false));
         File.WriteAllText(Path.Combine(output, "playground-site.js"), PlaygroundBridgeScript, new UTF8Encoding(false));
-        File.WriteAllText(Path.Combine(output, "playground.html"), PlaygroundFragment(runtime), new UTF8Encoding(false));
+        return runtime;
     }
 
-    private static string PlaygroundFragment(PlaygroundRuntimeManifest? runtime)
+    private static string PlaygroundStoryFragment(PlaygroundRuntimeManifest? runtime)
     {
         var state = new PlaygroundState { Draft = PlaygroundTemplates.Button.CreateDraft() };
         string markup = PlaygroundWorkspace.Render(state, "gallery-playground");
@@ -39,7 +39,7 @@ public static partial class GallerySiteExporter
             markup = markup.Replace(">Ready</p>", ">Playground runtime unavailable. Publish and pass --playground-browser-root to enable execution.</p>", StringComparison.Ordinal)
                 .Replace("data-playground-run>", "data-playground-run disabled>", StringComparison.Ordinal);
         }
-        return $"<article class=\"playground-page\">{markup}</article>";
+        return $"<header><h1>C# Playground</h1></header><div class=\"playground-page\">{markup}</div>";
     }
 
     private static PlaygroundRuntimeManifest LoadPlaygroundRuntime(string source)
