@@ -16,9 +16,7 @@ namespace Luxel.Scripting.Roslyn.Web;
 public sealed class WebScriptLanguageService : IDisposable
 {
     private readonly AdhocWorkspace _workspace;
-    private readonly DocumentId _documentId;
-    private readonly CompletionService _completion;
-    private readonly QuickInfoService _quickInfo;
+    private readonly ProjectId _projectId;
 
     public WebScriptLanguageService(IEnumerable<MetadataReferenceImage> references)
     {
@@ -33,8 +31,9 @@ public sealed class WebScriptLanguageService : IDisposable
         }).ToImmutableArray();
 
         _workspace = new AdhocWorkspace(MefHostServices.Create(MefHostServices.DefaultAssemblies));
+        _projectId = ProjectId.CreateNewId();
         ProjectInfo projectInfo = ProjectInfo.Create(
-            ProjectId.CreateNewId(),
+            _projectId,
             VersionStamp.Create(),
             "Luxel Playground",
             "Luxel.Playground.LanguageServices",
@@ -44,33 +43,29 @@ public sealed class WebScriptLanguageService : IDisposable
                 nullableContextOptions: NullableContextOptions.Enable),
             parseOptions: new CSharpParseOptions(LanguageVersion.CSharp13, DocumentationMode.Parse),
             metadataReferences: metadataReferences);
-        Project project = _workspace.AddProject(projectInfo);
-        RoslynDocument document = _workspace.AddDocument(DocumentInfo.Create(
-            DocumentId.CreateNewId(project.Id),
-            WebScriptCompiler.ScriptFileName,
-            loader: TextLoader.From(TextAndVersion.Create(SourceText.From(WebScriptCompiler.Wrap("")), VersionStamp.Create())),
-            filePath: WebScriptCompiler.ScriptFileName));
-        _documentId = document.Id;
-        _completion = CompletionService.GetService(document)
-            ?? throw new InvalidOperationException("Roslyn C# completion services are unavailable.");
-        _quickInfo = QuickInfoService.GetService(document)
-            ?? throw new InvalidOperationException("Roslyn C# QuickInfo services are unavailable.");
+        _workspace.AddProject(projectInfo);
     }
 
-    public async Task<WebCompletionResult> CompleteAsync(string source, int position, int revision = 0, CancellationToken cancellationToken = default)
+    public Task<WebCompletionResult> CompleteAsync(string source, int position, int revision = 0, CancellationToken cancellationToken = default)
+        => CompleteAsync(WebScriptProject.FromSource(source), WebScriptCompiler.ScriptFileName, position, revision, cancellationToken);
+
+    public async Task<WebCompletionResult> CompleteAsync(
+        WebScriptProject project,
+        string fileName,
+        int position,
+        int revision = 0,
+        CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        position = Math.Clamp(position, 0, source.Length);
-        (RoslynDocument document, int bodyStart) = WithSource(source);
-        CompletionList? list = await _completion.GetCompletionsAsync(document, bodyStart + position, cancellationToken: cancellationToken);
+        (RoslynDocument document, int bodyStart, int sourceLength) = WithProject(project, fileName);
+        position = Math.Clamp(position, 0, sourceLength);
+        CompletionService completion = CompletionService.GetService(document)
+            ?? throw new InvalidOperationException("Roslyn C# completion services are unavailable.");
+        CompletionList? list = await completion.GetCompletionsAsync(document, bodyStart + position, cancellationToken: cancellationToken);
         if (list is null)
             return new WebCompletionResult(revision, position, 0, []);
 
-        int replacementStart = Math.Clamp(list.Span.Start - bodyStart, 0, source.Length);
-        int replacementLength = Math.Clamp(list.Span.Length, 0, source.Length - replacementStart);
-        // Resolving a CompletionChange for every item is prohibitively expensive under the WASM
-        // interpreter. Monaco requests the common identifier insertion here; richer edits can be
-        // added later as an explicit completion-item resolve request.
+        int replacementStart = Math.Clamp(list.Span.Start - bodyStart, 0, sourceLength);
+        int replacementLength = Math.Clamp(list.Span.Length, 0, sourceLength - replacementStart);
         var items = new List<WebCompletionItem>(Math.Min(list.ItemsList.Count, 200));
         foreach (Microsoft.CodeAnalysis.Completion.CompletionItem item in list.ItemsList.Take(200))
         {
@@ -84,12 +79,21 @@ public sealed class WebScriptLanguageService : IDisposable
         return new WebCompletionResult(revision, replacementStart, replacementLength, items);
     }
 
-    public async Task<WebHoverResult?> HoverAsync(string source, int position, int revision = 0, CancellationToken cancellationToken = default)
+    public Task<WebHoverResult?> HoverAsync(string source, int position, int revision = 0, CancellationToken cancellationToken = default)
+        => HoverAsync(WebScriptProject.FromSource(source), WebScriptCompiler.ScriptFileName, position, revision, cancellationToken);
+
+    public async Task<WebHoverResult?> HoverAsync(
+        WebScriptProject project,
+        string fileName,
+        int position,
+        int revision = 0,
+        CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        position = Math.Clamp(position, 0, source.Length);
-        (RoslynDocument document, int bodyStart) = WithSource(source);
-        QuickInfoItem? item = await _quickInfo.GetQuickInfoAsync(document, bodyStart + position, cancellationToken);
+        (RoslynDocument document, int bodyStart, int sourceLength) = WithProject(project, fileName);
+        position = Math.Clamp(position, 0, sourceLength);
+        QuickInfoService quickInfo = QuickInfoService.GetService(document)
+            ?? throw new InvalidOperationException("Roslyn C# QuickInfo services are unavailable.");
+        QuickInfoItem? item = await quickInfo.GetQuickInfoAsync(document, bodyStart + position, cancellationToken);
         if (item is null)
             return null;
 
@@ -99,61 +103,73 @@ public sealed class WebScriptLanguageService : IDisposable
         if (markdown.Length == 0)
             return null;
 
-        int start = Math.Clamp(item.Span.Start - bodyStart, 0, source.Length);
-        int length = Math.Clamp(item.Span.Length, 0, source.Length - start);
+        int start = Math.Clamp(item.Span.Start - bodyStart, 0, sourceLength);
+        int length = Math.Clamp(item.Span.Length, 0, sourceLength - start);
         return new WebHoverResult(revision, markdown, start, length);
     }
 
-    public async Task<WebAnalysisResult> AnalyzeAsync(string source, int revision = 0, CancellationToken cancellationToken = default)
+    public Task<WebAnalysisResult> AnalyzeAsync(string source, int revision = 0, CancellationToken cancellationToken = default)
+        => AnalyzeAsync(WebScriptProject.FromSource(source), revision, cancellationToken);
+
+    public async Task<WebAnalysisResult> AnalyzeAsync(
+        WebScriptProject project,
+        int revision = 0,
+        CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        (RoslynDocument document, _) = WithSource(source);
+        (RoslynDocument document, _, _) = WithProject(project, project.EntryDocument.FileName);
         Compilation? compilation = await document.Project.GetCompilationAsync(cancellationToken);
         if (compilation is null)
             return new WebAnalysisResult(revision, []);
 
         WebScriptDiagnostic[] diagnostics = compilation.GetDiagnostics()
             .Where(diagnostic => diagnostic.Severity is DiagnosticSeverity.Warning or DiagnosticSeverity.Error)
-            .Select(MapDiagnostic)
+            .Select(WebScriptCompiler.MapDiagnostic)
             .Take(200)
             .ToArray();
         return new WebAnalysisResult(revision, diagnostics);
     }
 
-    private (RoslynDocument Document, int BodyStart) WithSource(string source)
+    private (RoslynDocument Document, int BodyStart, int SourceLength) WithProject(WebScriptProject project, string fileName)
     {
-        string generated = WebScriptCompiler.Wrap(source);
-        int bodyStart = FindBodyStart(generated);
-        Solution solution = _workspace.CurrentSolution.WithDocumentText(
-            _documentId,
-            SourceText.From(generated),
-            PreservationMode.PreserveIdentity);
+        IReadOnlyList<WebScriptDocument> documents = WebScriptCompiler.CSharpDocuments(project);
+        WebScriptDocument target = documents.FirstOrDefault(document =>
+            string.Equals(document.FileName, fileName, StringComparison.OrdinalIgnoreCase))
+            ?? throw new ArgumentException($"C# document '{fileName}' is not part of the project.", nameof(fileName));
+
+        Solution solution = _workspace.CurrentSolution;
+        foreach (DocumentId documentId in solution.GetProject(_projectId)!.DocumentIds)
+            solution = solution.RemoveDocument(documentId);
+
+        DocumentId? targetId = null;
+        int bodyStart = 0;
+        foreach (WebScriptDocument sourceDocument in documents)
+        {
+            bool isEntry = ReferenceEquals(sourceDocument, project.EntryDocument);
+            string text = isEntry
+                ? WebScriptCompiler.Wrap(sourceDocument.Source, sourceDocument.FileName)
+                : sourceDocument.Source;
+            var documentId = DocumentId.CreateNewId(_projectId, sourceDocument.FileName);
+            solution = solution.AddDocument(documentId, sourceDocument.FileName, SourceText.From(text), filePath: sourceDocument.FileName);
+            if (string.Equals(sourceDocument.FileName, target.FileName, StringComparison.OrdinalIgnoreCase))
+            {
+                targetId = documentId;
+                bodyStart = isEntry ? FindBodyStart(text, sourceDocument.FileName) : 0;
+            }
+        }
+
         if (!_workspace.TryApplyChanges(solution))
-            throw new InvalidOperationException("Roslyn rejected the Playground document update.");
-        return (_workspace.CurrentSolution.GetDocument(_documentId)!, bodyStart);
+            throw new InvalidOperationException("Roslyn rejected the Playground project update.");
+        return (_workspace.CurrentSolution.GetDocument(targetId!)!, bodyStart, target.Source.Length);
     }
 
-    private static int FindBodyStart(string generated)
+    private static int FindBodyStart(string generated, string fileName)
     {
-        const string marker = "#line 1 \"" + WebScriptCompiler.ScriptFileName + "\"\n";
+        string escaped = fileName.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
+        string marker = "#line 1 \"" + escaped + "\"\n";
         int markerStart = generated.IndexOf(marker, StringComparison.Ordinal);
         if (markerStart < 0)
             throw new InvalidOperationException("The generated Playground source is missing its source mapping marker.");
         return markerStart + marker.Length;
-    }
-
-    private static WebScriptDiagnostic MapDiagnostic(Diagnostic diagnostic)
-    {
-        FileLinePositionSpan span = diagnostic.Location.GetMappedLineSpan();
-        bool sourceLocation = diagnostic.Location.IsInSource && span.Path == WebScriptCompiler.ScriptFileName;
-        int length = diagnostic.Location.IsInSource ? Math.Max(1, diagnostic.Location.SourceSpan.Length) : 1;
-        return new WebScriptDiagnostic(
-            diagnostic.Id,
-            diagnostic.GetMessage(),
-            diagnostic.Severity == DiagnosticSeverity.Error ? WebScriptDiagnosticSeverity.Error : WebScriptDiagnosticSeverity.Warning,
-            sourceLocation ? span.StartLinePosition.Line + 1 : null,
-            sourceLocation ? span.StartLinePosition.Character + 1 : null,
-            length);
     }
 
     public void Dispose() => _workspace.Dispose();

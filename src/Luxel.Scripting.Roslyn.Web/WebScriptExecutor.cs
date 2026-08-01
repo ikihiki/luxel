@@ -7,7 +7,7 @@ namespace Luxel.Scripting.Roslyn.Web;
 
 public sealed class WebScriptExecutor
 {
-    private static readonly Regex ScriptLine = new(Regex.Escape(WebScriptCompiler.ScriptFileName) + @":line (\d+)", RegexOptions.Compiled);
+    private static readonly Regex ScriptLine = new(@" in (?<file>.+):line (?<line>\d+)", RegexOptions.Compiled);
 
     public WebScriptExecution Execute(ReadOnlyMemory<byte> peImage, ReadOnlyMemory<byte> pdbImage = default)
     {
@@ -68,12 +68,18 @@ public sealed class WebScriptExecutor
     private static WebScriptExecution RuntimeFailure(Exception exception)
     {
         Match match = ScriptLine.Match(exception.StackTrace ?? string.Empty);
-        int? line = match.Success && int.TryParse(match.Groups[1].Value, out int parsed) ? parsed : null;
-        return Failure("runtime", exception.Message, exception.GetType().FullName, line);
+        int? line = match.Success && int.TryParse(match.Groups["line"].Value, out int parsed) ? parsed : null;
+        string? fileName = match.Success ? match.Groups["file"].Value : null;
+        return Failure("runtime", exception.Message, exception.GetType().FullName, line, fileName);
     }
 
-    private static WebScriptExecution Failure(string kind, string message, string? exceptionType = null, int? line = null)
-        => new(false, Failure: new WebScriptFailure(kind, message, exceptionType, line));
+    private static WebScriptExecution Failure(
+        string kind,
+        string message,
+        string? exceptionType = null,
+        int? line = null,
+        string? fileName = null)
+        => new(false, Failure: new WebScriptFailure(kind, message, exceptionType, line, fileName));
 }
 
 public sealed class InProcessWebScriptWorkerController(WebScriptCompiler compiler, WebScriptExecutor executor) : IWebScriptWorkerController
@@ -81,7 +87,7 @@ public sealed class InProcessWebScriptWorkerController(WebScriptCompiler compile
     public Task<WebScriptCompilation> CompileAsync(CompileScriptRequest request, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(compiler.Compile(request.Source));
+        return Task.FromResult(compiler.Compile(request.Project ?? WebScriptProject.FromSource(request.Source)));
     }
 
     public Task<WebScriptExecution> ExecuteAsync(ExecuteScriptRequest request, CancellationToken cancellationToken = default)

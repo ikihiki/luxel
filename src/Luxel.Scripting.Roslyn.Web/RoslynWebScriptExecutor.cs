@@ -19,8 +19,14 @@ public sealed class RoslynWebScriptExecutor(IWebScriptWorkerController controlle
         WebScriptCompilation compilation;
         try
         {
+            var project = new WebScriptProject(
+                new WebScriptDocument(request.FileName, request.Source),
+                request.Files
+                    .Where(file => string.Equals(Path.GetExtension(file.FileName), ".cs", StringComparison.OrdinalIgnoreCase))
+                    .Select(file => new WebScriptDocument(file.FileName, file.Source))
+                    .ToArray());
             compilation = await controller.CompileAsync(
-                new CompileScriptRequest(revision, request.Source), cancellationToken).ConfigureAwait(false);
+                new CompileScriptRequest(revision, request.Source, project), cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -74,7 +80,9 @@ public sealed class RoslynWebScriptExecutor(IWebScriptWorkerController controlle
                     Kind = ScriptFailureKind.Runtime,
                     Message = failure.Message,
                     Type = failure.ExceptionType,
-                    StackTrace = failure.Line is { } line ? $"{request.FileName}:line {line}" : null,
+                    StackTrace = failure.Line is { } line
+                        ? $"{failure.FileName ?? request.FileName}:line {line}"
+                        : null,
                 },
             };
         }
@@ -100,7 +108,7 @@ public sealed class RoslynWebScriptExecutor(IWebScriptWorkerController controlle
         Span = diagnostic.Line is { } line && diagnostic.Column is { } column
             ? new ScriptSourceSpan
             {
-                FileName = WebScriptCompiler.ScriptFileName,
+                FileName = diagnostic.FileName ?? WebScriptCompiler.ScriptFileName,
                 StartLine = line,
                 StartColumn = column,
                 EndLine = line,

@@ -67,6 +67,40 @@ public sealed class WebScriptPipelineTests
     }
 
     [Fact]
+    public void Compile_ProjectCanReferenceSupportCSharpAndIgnoresSlang()
+    {
+        var project = new WebScriptProject(
+            new WebScriptDocument("entry.csx", "return Support.Create();"),
+            [
+                new WebScriptDocument(
+                    "support.cs",
+                    "using System; using Luxel.Controls; using Luxel.UI; public static class Support { public static Widget Create() => (Widget)Activator.CreateInstance(typeof(Text), nonPublic: true)!; }"),
+                new WebScriptDocument("shader.slang", "this is not C#"),
+            ]);
+
+        WebScriptCompilation compilation = CreateCompiler().Compile(project);
+
+        Assert.True(compilation.Success, Format(compilation.Diagnostics));
+        WebScriptExecution execution = new WebScriptExecutor().Execute(compilation.PeImage!, compilation.PdbImage!);
+        Assert.True(execution.Success, execution.Failure?.Message);
+        Assert.IsType<Text>(execution.Widget);
+    }
+
+    [Fact]
+    public void Compile_SupportDiagnosticPreservesFileNameAndLine()
+    {
+        var project = new WebScriptProject(
+            new WebScriptDocument("entry.csx", "return Support.Create();"),
+            [new WebScriptDocument("support.cs", "public static class Support\n{\n    public static Luxel.UI.Widget Create() => missingName;\n}")]);
+
+        WebScriptCompilation compilation = CreateCompiler().Compile(project);
+
+        WebScriptDiagnostic diagnostic = Assert.Single(compilation.Diagnostics, item => item.Id == "CS0103");
+        Assert.Equal("support.cs", diagnostic.FileName);
+        Assert.Equal(3, diagnostic.Line);
+    }
+
+    [Fact]
     public void RuntimeFailure_IsStructuredAndMapsLine()
     {
         WebScriptCompilation compilation = CreateCompiler().Compile("var value = 1;\nthrow new InvalidOperationException(\"boom\");");
@@ -163,6 +197,48 @@ public sealed class WebScriptPipelineTests
     }
 
     [Fact]
+    public async Task CommonExecutor_CompilesCSharpFilesExcludesSlangAndPreservesFileDiagnostics()
+    {
+        WebScriptCompiler compiler = CreateCompiler();
+        var executor = new RoslynWebScriptExecutor(
+            new InProcessWebScriptWorkerController(compiler, new WebScriptExecutor()));
+
+        ScriptExecutionResult success = await executor.ExecuteAsync(new ScriptExecutionRequest
+        {
+            FileName = "entry.csx",
+            Source = "return Support.Create();",
+            Files =
+            [
+                new ScriptDocument
+                {
+                    FileName = "support.cs",
+                    Source = "using System; using Luxel.Controls; using Luxel.UI; public static class Support { public static Widget Create() => (Widget)Activator.CreateInstance(typeof(Text), nonPublic: true)!; }",
+                },
+                new ScriptDocument { FileName = "shader.slang", Source = "this is not C#" },
+            ],
+        });
+        Assert.Equal(ScriptExecutionOutcome.Succeeded, success.Outcome);
+
+        ScriptExecutionResult failure = await executor.ExecuteAsync(new ScriptExecutionRequest
+        {
+            FileName = "entry.csx",
+            Source = "return Support.Create();",
+            Files =
+            [
+                new ScriptDocument
+                {
+                    FileName = "support.cs",
+                    Source = "public static class Support { public static Luxel.UI.Widget Create() => missingName; }",
+                },
+            ],
+        });
+
+        Assert.Equal(ScriptExecutionOutcome.CompilationFailed, failure.Outcome);
+        ScriptExecutionDiagnostic diagnostic = Assert.Single(failure.Diagnostics, item => item.Code == "CS0103");
+        Assert.Equal("support.cs", diagnostic.Span?.FileName);
+    }
+
+    [Fact]
     public async Task LanguageService_ProvidesSemanticLuxelCompletion()
     {
         using var service = new WebScriptLanguageService(References());
@@ -188,6 +264,43 @@ public sealed class WebScriptPipelineTests
         Assert.Equal(8, hover.Revision);
         Assert.Contains("Button", hover.Markdown, StringComparison.Ordinal);
         Assert.True(hover.Length > 0);
+    }
+
+    [Fact]
+    public async Task LanguageService_UsesSupportDocumentsForCompletionAndHover()
+    {
+        using var service = new WebScriptLanguageService(References());
+        const string entry = "return Support.";
+        const string support = "public static class Support { public static Luxel.UI.Widget Create() => null!; }";
+        var project = new WebScriptProject(
+            new WebScriptDocument("entry.csx", entry),
+            [new WebScriptDocument("support.cs", support)]);
+
+        WebCompletionResult completion = await service.CompleteAsync(project, "entry.csx", entry.Length, revision: 10);
+        int hoverPosition = support.IndexOf("Create", StringComparison.Ordinal) + 2;
+        WebHoverResult? hover = await service.HoverAsync(project, "support.cs", hoverPosition, revision: 11);
+
+        Assert.Equal(10, completion.Revision);
+        Assert.Contains(completion.Items, item => item.Label == "Create");
+        Assert.NotNull(hover);
+        Assert.Equal(11, hover.Revision);
+        Assert.Contains("Create", hover.Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task LanguageService_MapsSupportDiagnosticsToTheirDocument()
+    {
+        using var service = new WebScriptLanguageService(References());
+        var project = new WebScriptProject(
+            new WebScriptDocument("entry.csx", "return Support.Create();"),
+            [new WebScriptDocument("support.cs", "public static class Support\n{\n    public static Luxel.UI.Widget Create() => missingName;\n}")]);
+
+        WebAnalysisResult analysis = await service.AnalyzeAsync(project, revision: 12);
+
+        WebScriptDiagnostic diagnostic = Assert.Single(analysis.Diagnostics, item => item.Id == "CS0103");
+        Assert.Equal(12, analysis.Revision);
+        Assert.Equal("support.cs", diagnostic.FileName);
+        Assert.Equal(3, diagnostic.Line);
     }
 
     [Fact]

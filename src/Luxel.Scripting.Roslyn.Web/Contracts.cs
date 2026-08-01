@@ -20,13 +20,26 @@ public static class WebScriptOutput
 
 public sealed record MetadataReferenceImage(string FileName, ReadOnlyMemory<byte> Image);
 
+/// <summary>A source document supplied to the browser-compatible Roslyn pipeline.</summary>
+public sealed record WebScriptDocument(string FileName, string Source);
+
+/// <summary>An entry script body and its optional supporting source documents.</summary>
+public sealed record WebScriptProject(
+    WebScriptDocument EntryDocument,
+    IReadOnlyList<WebScriptDocument> Documents)
+{
+    public static WebScriptProject FromSource(string source, string fileName = WebScriptCompiler.ScriptFileName)
+        => new(new WebScriptDocument(fileName, source), []);
+}
+
 public sealed record WebScriptDiagnostic(
     string Id,
     string Message,
     WebScriptDiagnosticSeverity Severity,
     int? Line = null,
     int? Column = null,
-    int Length = 1);
+    int Length = 1,
+    string? FileName = null);
 
 public enum WebScriptDiagnosticSeverity { Info, Warning, Error }
 
@@ -90,7 +103,8 @@ public sealed record WebScriptFailure(
     string Kind,
     string Message,
     string? ExceptionType = null,
-    int? Line = null);
+    int? Line = null,
+    string? FileName = null);
 
 public sealed record WebCompletionItem(
     string Label,
@@ -117,7 +131,10 @@ public sealed record WebAnalysisResult(
 
 // Transport-neutral records for a future browser worker/preview boundary.
 public abstract record WebScriptWorkerMessage(long Revision);
-public sealed record CompileScriptRequest(long Revision, string Source) : WebScriptWorkerMessage(Revision);
+public sealed record CompileScriptRequest(
+    long Revision,
+    string Source,
+    WebScriptProject? Project = null) : WebScriptWorkerMessage(Revision);
 public sealed record CompileScriptResponse(long Revision, WebScriptCompilation Compilation) : WebScriptWorkerMessage(Revision);
 public sealed record ExecuteScriptRequest(long Revision, byte[] PeImage, byte[]? PdbImage) : WebScriptWorkerMessage(Revision);
 public sealed record ExecuteScriptResponse(long Revision, WebScriptExecution Execution) : WebScriptWorkerMessage(Revision);
