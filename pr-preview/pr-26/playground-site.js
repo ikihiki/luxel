@@ -84,12 +84,13 @@
     frame.setAttribute("allow", "webgpu");
     frame.setAttribute("sandbox", "allow-scripts allow-same-origin");
     const session = { frame, instanceId, revision, detail, ready: false, timeout: null };
+    const startupTimeoutMs = Number(root.dataset.playgroundStartupTimeoutMs || 30000);
     session.timeout = setTimeout(() => {
       if (sessions.get(root) !== session) return;
       destroy(root);
       status(root, "Timed out", true);
-      appendDiagnostics(root, [], { message: "Script execution exceeded the 5 second timeout." });
-    }, 5000);
+      appendDiagnostics(root, [], { message: "Playground runtime did not become ready within 30 seconds." });
+    }, startupTimeoutMs);
     sessions.set(root, session);
     renderPreview(root, frame);
     status(root, "Starting fresh runtime…");
@@ -98,6 +99,14 @@
     return session;
   }
   function postExecute(root, session) {
+    if (session.timeout) clearTimeout(session.timeout);
+    const executionTimeoutMs = Number(root.dataset.playgroundExecutionTimeoutMs || 5000);
+    session.timeout = setTimeout(() => {
+      if (sessions.get(root) !== session) return;
+      destroy(root);
+      status(root, "Timed out", true);
+      appendDiagnostics(root, [], { message: "Script execution exceeded the 5 second timeout." });
+    }, executionTimeoutMs);
     session.frame.contentWindow?.postMessage({
       protocol,
       protocolVersion: Number(root.dataset.playgroundProtocol),
