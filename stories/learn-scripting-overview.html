@@ -26,6 +26,7 @@
 <h3 id="srcluxel.gallery.storiesstoriesscriptingstory.cs-csharp"><code>src/Luxel.Gallery.Stories/Stories/ScriptingStory.cs</code> (CSharp)</h3>
 <pre><code class="language-csharp">using Luxel.Controls;
 using Luxel.Scripting;
+using Luxel.Gallery.Playground;
 using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Luxel.UI.Tailwind;
@@ -135,6 +136,22 @@ public static class ScriptingStory
         public override string? DebugDetail =&gt; $&quot;csx ({_code.Value.Length} 文字)&quot;;
 
         public void Dispose() =&gt; (_output as IDisposable)?.Dispose();
+    }
+
+    [Story(PlaygroundContract.StoryPath, Height = 620, Order = 2031)]
+    public static Widget Playground(StoryContext ctx, ScriptHost host, ICodeLanguage lang)
+    {
+        var block = new CsxBlock(
+            &quot;// Edit this C# and run it as a normal Gallery Story.\n&quot; +
+            &quot;var label = \&quot;Click me\&quot;;\n&quot; +
+            &quot;Button(_ =&gt; Log(\&quot;Button clicked.\&quot;), label)&quot;,
+            maxWidth: 560, ctx, host, lang);
+
+        return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading(&quot;C# Playground&quot;),
+                Muted(&quot;Edit and run a Luxel Widget inside the Gallery. The native Gallery uses ScriptHost; the web Gallery uses the browser Roslyn runtime.&quot;),
+                block]];
     }
 
     [Story(&quot;Examples/Scripting/LiveCsx&quot;, Height = 520, Order = 2032)]
