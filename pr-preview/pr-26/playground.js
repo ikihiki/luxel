@@ -5,6 +5,7 @@
   // executor bridge. It is never placed in a URL, DOM attribute, telemetry, or console output.
   const memoryDrafts = new Map();
   const states = new WeakMap();
+  const modelRoots = new Map();
   const storagePrefix = "luxel.playground.draft.v1:";
   const markerOwner = "luxel-roslyn";
 
@@ -40,37 +41,58 @@
     emit(root, "luxel-playground:draft-changed", { fileName: source.dataset.fileName, source: value });
   }
 
+  function languageRequest(root, kind, source, position = null, revision = 0) {
+    return new Promise((resolve, reject) => emit(root, "luxel-playground:language-request", {
+      kind, source, position, revision, resolve, reject
+    }));
+  }
+
+  function completionKind(monaco, kind) {
+    const value = String(kind || "").toLowerCase();
+    if (value.includes("method") || value.includes("extensionmethod")) return monaco.languages.CompletionItemKind.Method;
+    if (value.includes("property")) return monaco.languages.CompletionItemKind.Property;
+    if (value.includes("field")) return monaco.languages.CompletionItemKind.Field;
+    if (value.includes("class") || value.includes("type")) return monaco.languages.CompletionItemKind.Class;
+    if (value.includes("namespace")) return monaco.languages.CompletionItemKind.Module;
+    if (value.includes("keyword")) return monaco.languages.CompletionItemKind.Keyword;
+    return monaco.languages.CompletionItemKind.Text;
+  }
+
   function registerLanguageSupport(monaco) {
     if (window.LuxelPlaygroundLanguageRegistered) return;
     window.LuxelPlaygroundLanguageRegistered = true;
-    const items = [
-      ["Kit.Button", "Kit.Button(_ => Log(\"Button clicked.\"), \"Click me\")", "Create a Luxel button Widget."],
-      ["Kit.Text", "Kit.Text(\"Hello Luxel\")", "Create a Luxel text Widget."],
-      ["Kit.VStack", "Kit.VStack(8)[${1:children}]", "Arrange child Widgets vertically."],
-      ["Kit.HStack", "Kit.HStack(8)[${1:children}]", "Arrange child Widgets horizontally."],
-      ["Log", "Log(${1:\"message\"})", "Write a message to the Playground Output panel."]
-    ];
     monaco.languages.registerCompletionItemProvider("csharp", {
-      triggerCharacters: ["."],
-      provideCompletionItems(model, position) {
-        const word = model.getWordUntilPosition(position);
-        return { suggestions: items.map(([label, insertText, documentation]) => ({
-          label,
-          insertText,
-          documentation,
-          detail: "Luxel Playground API",
-          kind: monaco.languages.CompletionItemKind.Function,
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          range: new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn)
+      triggerCharacters: [".", " "],
+      async provideCompletionItems(model, position) {
+        const root = modelRoots.get(model.uri.toString());
+        if (!root) return { suggestions: [] };
+        const offset = model.getOffsetAt(position);
+        const revision = model.getVersionId();
+        const result = await languageRequest(root, "completion", model.getValue(), offset, revision).catch(() => null);
+        if (!result?.items || result.revision !== model.getVersionId()) return { suggestions: [] };
+        const start = model.getPositionAt(Number(result.replacementStart || offset));
+        const end = model.getPositionAt(Number(result.replacementStart || offset) + Number(result.replacementLength || 0));
+        const range = new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column);
+        return { suggestions: result.items.map(item => ({
+          label: item.label,
+          insertText: item.insertText || item.label,
+          documentation: item.documentation || undefined,
+          detail: item.detail || "Roslyn C#",
+          kind: completionKind(monaco, item.kind),
+          range
         })) };
       }
     });
-    const hover = new Map(items.map(([label, , documentation]) => [label.split(".").at(-1), `**${label}**\n\n${documentation}`]));
     monaco.languages.registerHoverProvider("csharp", {
-      provideHover(model, position) {
-        const word = model.getWordAtPosition(position)?.word;
-        const value = word ? hover.get(word) : null;
-        return value ? { contents: [{ value }] } : null;
+      async provideHover(model, position) {
+        const root = modelRoots.get(model.uri.toString());
+        if (!root) return null;
+        const revision = model.getVersionId();
+        const result = await languageRequest(root, "hover", model.getValue(), model.getOffsetAt(position), revision).catch(() => null);
+        if (!result?.markdown || result.revision !== model.getVersionId()) return null;
+        const start = model.getPositionAt(Number(result.start || 0));
+        const end = model.getPositionAt(Number(result.start || 0) + Number(result.length || 0));
+        return { range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column), contents: [{ value: `\`\`\`csharp\n${result.markdown}\n\`\`\`` }] };
       }
     });
   }
@@ -84,6 +106,7 @@
       registerLanguageSupport(monaco);
       const uri = monaco.Uri.parse(`inmemory://luxel/${encodeURIComponent(state.source.dataset.fileName || "script.csx")}`);
       const model = monaco.editor.createModel(state.source.value, "csharp", uri);
+      modelRoots.set(model.uri.toString(), root);
       const editor = monaco.editor.create(mount, {
         model,
         theme: "vs-dark",
@@ -100,7 +123,19 @@
       state.monaco = monaco;
       state.model = model;
       state.editor = editor;
-      state.changeSubscription = model.onDidChangeContent(() => changed(root, state.source, model.getValue()));
+      const analyze = () => {
+        const revision = model.getVersionId();
+        return languageRequest(root, "analysis", model.getValue(), null, revision).then(result => {
+          if (states.get(root) === state && result?.revision === model.getVersionId() && result?.diagnostics)
+            setDiagnostics(root, result.diagnostics);
+        }).catch(() => {});
+      };
+      state.changeSubscription = model.onDidChangeContent(() => {
+        changed(root, state.source, model.getValue());
+        clearTimeout(state.analysisTimer);
+        state.analysisTimer = setTimeout(analyze, 450);
+      });
+      state.analysisTimer = setTimeout(analyze, 0);
       root.querySelector("[data-playground-editor-host]")?.classList.add("monaco-ready");
       root.dataset.playgroundEditor = "monaco";
       emit(root, "luxel-playground:editor-ready", { editor: "monaco", language: model.getLanguageId() });
@@ -164,7 +199,7 @@
     const initialSource = source.value;
     const persisted = loadDraft(root);
     if (persisted !== null) source.value = persisted;
-    const state = { source, initialSource, monaco: null, model: null, editor: null, changeSubscription: null };
+    const state = { source, initialSource, monaco: null, model: null, editor: null, changeSubscription: null, analysisTimer: null };
     states.set(root, state);
 
     source.addEventListener("input", () => changed(root, source, source.value));
@@ -193,8 +228,10 @@
 
   function dispose(root) {
     const state = states.get(root);
+    if (state?.analysisTimer) clearTimeout(state.analysisTimer);
     state?.changeSubscription?.dispose();
     state?.editor?.dispose();
+    if (state?.model) modelRoots.delete(state.model.uri.toString());
     state?.model?.dispose();
     states.delete(root);
   }

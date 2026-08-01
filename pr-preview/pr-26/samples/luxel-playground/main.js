@@ -7,11 +7,15 @@ const query = new URLSearchParams(location.search);
 const instanceId = query.get("instance") || crypto.randomUUID();
 const requestedParentOrigin = query.get("parentOrigin") || location.origin;
 const parentOrigin = new URL(requestedParentOrigin, location.href).origin;
+const mode = query.get("mode") === "language" ? "language" : "preview";
 const status = document.getElementById("status");
 const errorOverlay = document.getElementById("error");
 let latestRevision = 0;
 let ready = false;
 let runExport = null;
+let completeExport = null;
+let hoverExport = null;
+let analyzeExport = null;
 let pendingRun = null;
 const pendingDiagnostics = new Map();
 
@@ -63,11 +67,30 @@ function applyRun(message) {
   }
 }
 
-window.addEventListener("message", event => {
+window.addEventListener("message", async event => {
   const message = event.data;
   if (event.source !== parent || event.origin !== parentOrigin) return;
   if (!message || message.protocol !== protocol || message.protocolVersion !== protocolVersion) return;
-  if (message.instanceId !== instanceId || message.type !== "run") return;
+  if (message.instanceId !== instanceId) return;
+  if (mode === "language" && message.type === "language-request") {
+    if (!ready || !Number.isSafeInteger(message.requestId) || typeof message.source !== "string") return;
+    try {
+      let json;
+      if (message.kind === "completion" && Number.isInteger(message.position))
+        json = await completeExport(message.source, message.position, message.revision || 0);
+      else if (message.kind === "hover" && Number.isInteger(message.position))
+        json = await hoverExport(message.source, message.position, message.revision || 0);
+      else if (message.kind === "analysis")
+        json = await analyzeExport(message.source, message.revision || 0);
+      else
+        throw new Error(`Unsupported language request '${message.kind}'.`);
+      post("language-response", message.revision || 0, { requestId: message.requestId, kind: message.kind, result: JSON.parse(json) });
+    } catch (error) {
+      post("language-response", message.revision || 0, { requestId: message.requestId, kind: message.kind, error: String(error?.message || error) });
+    }
+    return;
+  }
+  if (mode !== "preview" || message.type !== "run") return;
   if (!Number.isSafeInteger(message.revision) || message.revision <= latestRevision || message.revision > 2147483647) return;
   if (typeof message.source !== "string") return;
   latestRevision = message.revision;
@@ -76,6 +99,13 @@ window.addEventListener("message", event => {
 });
 
 const host = {
+  getMode: () => mode,
+  setLanguageReady: () => {
+    ready = true;
+    state.ready = true;
+    status.textContent = "Playground language services ready";
+    post("language-ready", 0, { capabilities: { completion: true, hover: true, diagnostics: true } });
+  },
   getBaseUrl: () => new URL("./", location.href).href,
   nextFrame: () => new Promise(resolve => requestAnimationFrame(resolve)),
   setReady: deviceName => {
@@ -111,8 +141,14 @@ try {
   runtime.setModuleImports("./luxel-webgpu-browser.js", webgpu);
   runtime.setModuleImports("luxel-playground-host", host);
   const exports = await runtime.getAssemblyExports("LuxelPlaygroundBrowser.dll");
-  runExport = exports?.LuxelPlaygroundBrowser?.Program?.Run || exports?.Program?.Run;
-  if (typeof runExport !== "function") throw new Error("Managed playground Run export was not found.");
+  const program = exports?.LuxelPlaygroundBrowser?.Program || exports?.Program;
+  runExport = program?.Run;
+  completeExport = program?.Complete;
+  hoverExport = program?.Hover;
+  analyzeExport = program?.Analyze;
+  if (mode === "preview" && typeof runExport !== "function") throw new Error("Managed playground Run export was not found.");
+  if (mode === "language" && [completeExport, hoverExport, analyzeExport].some(value => typeof value !== "function"))
+    throw new Error("Managed Playground language-service exports were not found.");
   runtime.runMain().catch(error => {
     host.setFatalError(error?.stack || error);
     console.error(error);

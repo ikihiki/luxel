@@ -1,6 +1,8 @@
 (() => {
   "use strict";
   const protocol = "luxel-playground";
+  const languageSessions = new Map();
+  let nextLanguageRequestId = 1;
   const sessions = new Map();
 
   function text(target, value) { if (target) target.textContent = value ?? ""; }
@@ -118,9 +120,73 @@
     }, location.origin);
     status(root, "Running…");
   }
+  function handleLanguageMessage(root, session, message) {
+    if (!message || message.protocol !== protocol || !Number.isSafeInteger(message.revision)) return;
+    if (message.protocolVersion !== Number(root.dataset.playgroundProtocol) || message.instanceId !== session.instanceId) return;
+    if (message.type === "language-ready") {
+      session.ready = true;
+      root.dataset.playgroundLanguageService = "roslyn-worker";
+      for (const request of session.queue.splice(0)) session.worker.postMessage(request);
+    } else if (message.type === "language-response" && Number.isSafeInteger(message.requestId)) {
+      const pending = session.pending.get(message.requestId);
+      if (!pending) return;
+      session.pending.delete(message.requestId);
+      clearTimeout(pending.timeout);
+      if (message.error || message.result?.error) pending.reject(new Error(message.error || message.result.error));
+      else pending.resolve(message.result);
+    }
+  }
+  function createLanguageSession(root) {
+    const runtimeUrl = root.dataset.playgroundRuntimeUrl;
+    if (!runtimeUrl || languageSessions.has(root)) return languageSessions.get(root) || null;
+    const instanceId = crypto.randomUUID();
+    const url = new URL("language-worker.js", new URL(runtimeUrl, location.href));
+    url.searchParams.set("instance", instanceId);
+    const worker = new Worker(url, { type: "module", name: "luxel-playground-roslyn" });
+    const session = { worker, instanceId, ready: false, queue: [], pending: new Map() };
+    worker.addEventListener("message", event => handleLanguageMessage(root, session, event.data));
+    worker.addEventListener("error", event => {
+      for (const pending of session.pending.values()) { clearTimeout(pending.timeout); pending.reject(new Error(event.message || "Roslyn worker failed.")); }
+      session.pending.clear();
+    });
+    languageSessions.set(root, session);
+    return session;
+  }
+  function postLanguageRequest(root, detail) {
+    const session = createLanguageSession(root);
+    if (!session) { detail.reject?.(new Error("Playground language services are unavailable.")); return; }
+    const requestId = nextLanguageRequestId++;
+    const request = {
+      protocol,
+      protocolVersion: Number(root.dataset.playgroundProtocol),
+      type: "language-request",
+      instanceId: session.instanceId,
+      revision: Number.isSafeInteger(detail.revision) ? detail.revision : Number(root.dataset.languageRevision || "0") + 1,
+      requestId,
+      kind: detail.kind,
+      source: detail.source,
+      position: detail.position
+    };
+    root.dataset.languageRevision = String(request.revision);
+    const timeout = setTimeout(() => {
+      const pending = session.pending.get(requestId);
+      if (!pending) return;
+      session.pending.delete(requestId);
+      pending.reject(new Error("Roslyn language service request timed out."));
+    }, 30000);
+    session.pending.set(requestId, {
+      resolve: detail.resolve || (() => {}),
+      reject: detail.reject || (() => {}),
+      timeout
+    });
+    if (session.ready) session.worker.postMessage(request);
+    else session.queue.push(request);
+  }
   function bind(root) {
     if (root.dataset.playgroundSiteBound === "true") return;
     root.dataset.playgroundSiteBound = "true";
+    createLanguageSession(root);
+    root.addEventListener("luxel-playground:language-request", event => postLanguageRequest(root, event.detail));
     root.addEventListener("luxel-playground:execute", event => createSession(root, event.detail));
     root.addEventListener("luxel-playground:cancel", () => {
       const session = sessions.get(root);
@@ -135,6 +201,15 @@
       appendOutput(root, []);
       status(root, root.dataset.playgroundRuntimeUrl ? "Ready" : "Playground runtime unavailable.", !root.dataset.playgroundRuntimeUrl);
     });
+  }
+  function dispose(root) {
+    destroy(root);
+    const language = languageSessions.get(root);
+    if (language) {
+      language.worker.terminate();
+      for (const pending of language.pending.values()) { clearTimeout(pending.timeout); pending.reject(new Error("Playground was disposed.")); }
+      languageSessions.delete(root);
+    }
   }
   function bindAll(scope = document) {
     window.LuxelPlayground?.bindAll(scope);
@@ -160,5 +235,5 @@
       status(root, message.outcome || (message.success ? "Succeeded" : "Failed"), !message.success);
     }
   });
-  window.LuxelGalleryPlayground = Object.freeze({ bind, bindAll, destroy });
+  window.LuxelGalleryPlayground = Object.freeze({ bind, bindAll, destroy, dispose });
 })();
