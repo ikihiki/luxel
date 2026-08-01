@@ -6,6 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
+    <ProjectReference Include="..\Luxel.Gallery.Playground\Luxel.Gallery.Playground.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Rendering\Luxel.Gallery.Rendering.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Stories\Luxel.Gallery.Stories.csproj" />
     <PackageReference Include="Markdig" Version="0.41.3" />
@@ -19,6 +20,7 @@
     <EmbeddedResource Include="Assets\highlightjs\highlight.min.js" />
     <EmbeddedResource Include="Assets\highlightjs\github-dark.min.css" />
     <EmbeddedResource Include="Assets\highlightjs\LICENSE" />
+    <Content Include="Assets\monaco\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- Luxel.Gallery.Stories owns the shared Khronos Box acquisition target. Importing it here as well lets

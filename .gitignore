@@ -9,3 +9,8 @@ tools/
 
 # snap 回帰の一時出力 (golden 本体はコミットする)
 *.actual.png
+
+# Browser E2E dependencies and reports
+node_modules/
+test-results/
+playwright-report/

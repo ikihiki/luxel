@@ -23,6 +23,7 @@
     <Project Path="src/Luxel.Framework.DevTools/Luxel.Framework.DevTools.csproj" />
     <Project Path="src/Luxel.Framework/Luxel.Framework.csproj" />
     <Project Path="src/Luxel.Gallery.Generators/Luxel.Gallery.Generators.csproj" />
+    <Project Path="src/Luxel.Gallery.Playground/Luxel.Gallery.Playground.csproj" />
     <Project Path="src/Luxel.Gallery.RuntimeManifest/Luxel.Gallery.RuntimeManifest.csproj" />
     <Project Path="src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj" />
     <Project Path="src/Luxel.Gallery.UI/Luxel.Gallery.UI.csproj" />
@@ -58,6 +59,7 @@
     <Project Path="src/Luxel.Scene.UI/Luxel.Scene.UI.csproj" />
     <Project Path="src/Luxel.Settings/Luxel.Settings.csproj" />
     <Project Path="src/Luxel.Scripting.Framework/Luxel.Scripting.Framework.csproj" />
+    <Project Path="src/Luxel.Scripting.Roslyn.Web/Luxel.Scripting.Roslyn.Web.csproj" />
     <Project Path="src/Luxel.Scripting/Luxel.Scripting.csproj" />
     <Project Path="src/Luxel.Strudel/Luxel.Strudel.csproj" />
     <Project Path="src/Luxel.Graphics.TwoD.Skia/Luxel.Graphics.TwoD.Skia.csproj" />
@@ -85,6 +87,7 @@
     <Project Path="samples/LuxelTwoD/LuxelTwoD.csproj" />
     <Project Path="samples/LuxelFramework/LuxelFramework.csproj" />
     <Project Path="samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj" />
+    <Project Path="samples/LuxelPlaygroundBrowser/LuxelPlaygroundBrowser.csproj" />
     <Project Path="samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj" />
     <Project Path="samples/LuxelUiHeadless/LuxelUiHeadless.csproj" />
     <Project Path="samples/LuxelInput/LuxelInput.csproj" />
@@ -93,6 +96,7 @@
     <Project Path="samples/LuxelRange/LuxelRange/LuxelRange.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Luxel.Gallery.Playground.Tests/Luxel.Gallery.Playground.Tests.csproj" />
     <Project Path="tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj" />
     <Project Path="tests/Luxel.E2e.Tests/Luxel.E2e.Tests.csproj" />
     <Project Path="tests/Luxel.Platform.Silk.Tests/Luxel.Platform.Silk.Tests.csproj" />
@@ -104,6 +108,7 @@
     <Project Path="tests/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj" />
     <Project Path="tests/Luxel.UI.App.Tests/Luxel.UI.App.Tests.csproj" />
     <Project Path="tests/Luxel.Platform.Web.Tests/Luxel.Platform.Web.Tests.csproj" />
+    <Project Path="tests/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj" />
     <Project Path="tests/Luxel.Terminal.Linux.Tests/Luxel.Terminal.Linux.Tests.csproj" />
     <Project Path="tests/Luxel.Terminal.Windows.Tests/Luxel.Terminal.Windows.Tests.csproj" />
     <Project Path="tests/Luxel.Terminal.Tests/Luxel.Terminal.Tests.csproj" />

@@ -1,0 +1,11 @@
+{
+  "bundleId": "luxel-playground-browser-v1",
+  "protocol": "luxel-playground",
+  "protocolVersion": 1,
+  "entryUrl": "./",
+  "isolation": "iframe-recreate-per-run",
+  "workerIsolation": false,
+  "defaultSource": "return Kit.Button(_ => Log(\"Button clicked.\"), \"Click me\");",
+  "messagesFromParent": ["run"],
+  "messagesFromRuntime": ["ready", "diagnostics", "output", "runtime-error", "run-result"]
+}

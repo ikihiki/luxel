@@ -27,9 +27,24 @@ public sealed class GallerySiteExporterTests
         Assert.NotNull(catalog.Find("Start/Welcome"));
         Assert.NotNull(catalog.Find("Controls/Button/Primary"));
         Assert.NotNull(catalog.Find("Controls/Button/Overview"));
+        Assert.NotNull(catalog.Find("Examples/Scripting/Playground"));
         Assert.Equal("webgpu-browser-v1", catalog.Find("Examples/3D/Triangle")?.RuntimeBundleId);
         Assert.Equal("webgpu-browser-v1", catalog.Find("Controls/Button/Counter")?.RuntimeBundleId);
         Assert.Null(empty.Find("Start/Welcome"));
+    }
+
+    [Fact]
+    public void Playground_is_a_buildable_native_story()
+    {
+        StoryInfo story = Assert.IsType<StoryInfo>(Catalog.Find("Examples/Scripting/Playground"));
+        var context = new StoryContext();
+        context.SetServices(GalleryServices.Provider);
+
+        Widget widget = story.Build(context);
+
+        Assert.NotNull(widget);
+        Assert.Equal("Examples/Scripting/Playground", story.Path);
+        (widget as IDisposable)?.Dispose();
     }
 
     [Fact]
@@ -1221,7 +1236,9 @@ public sealed class GallerySiteExporterTests
 
         string workflow = File.ReadAllText(Path.Combine(root, ".github", "workflows", "deploy-pages.yml"));
         Assert.Contains("dotnet build Luxel.slnx --no-restore --configuration Release", workflow);
-        Assert.Contains("dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --no-build --configuration Release -- artifacts/gallery-site", workflow);
+        Assert.Contains("dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj", workflow);
+        Assert.Contains("--no-restore --no-build --configuration Release -- artifacts/gallery-site", workflow);
+        Assert.Contains("--playground-browser-root samples/LuxelPlaygroundBrowser/bin/Release/net10.0/publish/wwwroot", workflow);
         Assert.Contains("JamesIves/github-pages-deploy-action@v4.8.0", workflow);
         Assert.Contains("clean-exclude: pr-preview", workflow);
         Assert.Contains("force: false", workflow);
@@ -1232,7 +1249,9 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("rossjrw/pr-preview-action@v1.8.1", preview);
         Assert.Contains("source-dir: artifacts/gallery-site", preview);
         Assert.Contains("wait-for-pages-deployment: true", preview);
-        Assert.Contains("dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --no-build --configuration Release -- artifacts/gallery-site", preview);
+        Assert.Contains("dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj", preview);
+        Assert.Contains("--no-restore --no-build --configuration Release -- artifacts/gallery-site", preview);
+        Assert.Contains("--playground-browser-root samples/LuxelPlaygroundBrowser/bin/Release/net10.0/publish/wwwroot", preview);
         Assert.Contains("pull-requests: write", preview);
     }
 

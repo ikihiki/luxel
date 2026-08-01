@@ -76,6 +76,12 @@ browser_forbidden = lambda stem: native_heavy(stem) or stem in {
 }
 forbid_closure("Luxel.Gallery.Stories.CoreUi", browser_forbidden, "CoreUi browser closure")
 forbid_closure("LuxelWebGpuBrowser", browser_forbidden, "browser host closure")
+# The playground host intentionally carries the transport-neutral scripting contracts and the
+# browser-specific Roslyn implementation. Keep every other native-heavy dependency forbidden.
+playground_browser_forbidden = lambda stem: (
+    native_heavy(stem) and stem not in {"Luxel.Scripting", "Luxel.Scripting.Roslyn.Web"}
+) or stem in {"Luxel.Gallery.Host", "Luxel.Gallery.Site", "Luxel.Gallery.Stories", "Luxel.Scripting.Framework"}
+forbid_closure("LuxelPlaygroundBrowser", playground_browser_forbidden, "playground browser host closure")
 forbid_closure("Luxel.Gallery.RuntimeManifest", browser_forbidden, "runtime manifest closure")
 
 print(f"Project dependency graph OK ({len(graph)} projects).")

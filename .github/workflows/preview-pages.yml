@@ -56,13 +56,19 @@ jobs:
       - name: Test browser managed and source contracts
         if: github.event.action != 'closed'
         run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release
-      - name: Publish browser WebGPU sample
+      - name: Publish browser runtimes
         if: github.event.action != 'closed'
-        run: dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj --no-restore --configuration Release
+        run: |
+          dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj --no-restore --configuration Release
+          dotnet publish samples/LuxelPlaygroundBrowser/LuxelPlaygroundBrowser.csproj --no-restore --configuration Release
 
-      - name: Export static Gallery with browser WebGPU sample
+      - name: Export static Gallery with browser runtimes
         if: github.event.action != 'closed'
-        run: dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --no-build --configuration Release -- artifacts/gallery-site --browser-webgpu-root samples/LuxelWebGpuBrowser/bin/Release/net10.0/publish/wwwroot
+        run: >-
+          dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj
+          --no-restore --no-build --configuration Release -- artifacts/gallery-site
+          --browser-webgpu-root samples/LuxelWebGpuBrowser/bin/Release/net10.0/publish/wwwroot
+          --playground-browser-root samples/LuxelPlaygroundBrowser/bin/Release/net10.0/publish/wwwroot
       - name: Validate subpath-safe browser WebGPU sample
         if: github.event.action != 'closed'
         run: |
@@ -79,6 +85,8 @@ jobs:
           PY
           test -f artifacts/gallery-site/samples/webgpu-browser/_framework/dotnet.js
           ! grep -R -E '(src|href)="/' artifacts/gallery-site/samples/webgpu-browser/index.html artifacts/gallery-site/samples/webgpu-browser/main.js
+          test -f artifacts/gallery-site/samples/luxel-playground/playground-runtime-manifest.json
+          test -f artifacts/gallery-site/samples/luxel-playground/_framework/dotnet.js
       - name: Deploy PR preview
         uses: rossjrw/pr-preview-action@v1.8.1
         with:
