@@ -1,0 +1,15 @@
+{
+  "name": "luxel-playground-browser-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright coverage for the Luxel Gallery scripting playground.",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "install:browsers": "playwright install --with-deps chromium"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "1.62.1"
+  }
+}

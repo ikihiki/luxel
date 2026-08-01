@@ -45,6 +45,21 @@ public sealed record WebScriptPolicy(int MaxSourceBytes = 128 * 1024)
             }
         }
 
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string compact = string.Concat(lines[i].Where(c => !char.IsWhiteSpace(c)));
+            if (compact.Contains("while(true)", StringComparison.Ordinal)
+                || compact.Contains("for(;;)", StringComparison.Ordinal))
+            {
+                diagnostics.Add(new(
+                    "LUXWEB003",
+                    "Statically unbounded loops are not supported in the browser playground.",
+                    WebScriptDiagnosticSeverity.Error,
+                    i + 1,
+                    1,
+                    Math.Max(1, lines[i].Length)));
+            }
+        }
         return diagnostics;
     }
 }

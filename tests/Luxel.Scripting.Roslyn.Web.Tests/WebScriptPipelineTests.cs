@@ -90,6 +90,17 @@ public sealed class WebScriptPipelineTests
         Assert.Contains(compilation.Diagnostics, d => d.Id == "LUXWEB002" && d.Line == 1);
     }
 
+    [Theory]
+    [InlineData("while (true) { }")]
+    [InlineData("for (;;) { }")]
+    public void Policy_RejectsStaticallyUnboundedLoops(string source)
+    {
+        WebScriptCompilation compilation = CreateCompiler().Compile(source);
+
+        Assert.False(compilation.Success);
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "LUXWEB003");
+    }
+
     [Fact]
     public void Policy_RejectsUtf8SizeLimit()
     {

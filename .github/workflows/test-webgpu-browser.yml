@@ -14,14 +14,21 @@ on:
       - 'src/Luxel.Platform/**'
       - 'src/Luxel.Platform.Web/**'
       - 'samples/LuxelTriangle/**'
+      - 'samples/LuxelPlaygroundBrowser/**'
       - 'samples/LuxelWebGpuBrowser/**'
       - 'shaders/tutorial_triangle.slang'
       - 'shaders/compiled/tutorial_triangle.*'
       - 'shaders/raster2d_*.slang'
       - 'shaders/compiled/raster2d_*.wgsl'
       - 'assets/fonts/**'
+      - 'tests/Luxel.Playground.Browser.E2e/**'
+      - 'tests/Luxel.Gallery.Playground.Tests/**'
+      - 'tests/Luxel.Scripting.Roslyn.Web.Tests/**'
       - 'tests/Luxel.WebGPU.Browser.Tests/**'
       - 'tests/Luxel.Gallery.Site.Tests/**'
+      - 'src/Luxel.Gallery.Playground/**'
+      - 'src/Luxel.Scripting/**'
+      - 'src/Luxel.Scripting.Roslyn.Web/**'
       - 'src/Luxel.Gallery.RuntimeManifest/**'
       - 'src/Luxel.Gallery.Stories.CoreUi/**'
       - 'src/Luxel.UI.Generators/**'
@@ -49,6 +56,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tests/Luxel.Playground.Browser.E2e/package-lock.json
       - name: Install browser WebAssembly workload
         run: dotnet workload install wasm-tools
       - name: Validate project dependency graph
@@ -67,12 +79,22 @@ jobs:
         run: dotnet test tests/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test exporter and documentation contracts
         run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
+      - name: Test Playground presentation and Roslyn contracts
+        run: |
+          dotnet test tests/Luxel.Gallery.Playground.Tests/Luxel.Gallery.Playground.Tests.csproj --no-restore --no-build --configuration Release
+          dotnet test tests/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test browser managed and source contracts
         run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release
-      - name: Publish browser sample
-        run: dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj --no-restore --configuration Release
-      - name: Export static Gallery with browser WebGPU sample
-        run: dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj --no-restore --no-build --configuration Release -- artifacts/gallery-site --browser-webgpu-root samples/LuxelWebGpuBrowser/bin/Release/net10.0/publish/wwwroot
+      - name: Publish browser samples
+        run: |
+          dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj --no-restore --configuration Release
+          dotnet publish samples/LuxelPlaygroundBrowser/LuxelPlaygroundBrowser.csproj --no-restore --configuration Release
+      - name: Export static Gallery with browser runtimes
+        run: >-
+          dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj
+          --no-restore --no-build --configuration Release -- artifacts/gallery-site
+          --browser-webgpu-root samples/LuxelWebGpuBrowser/bin/Release/net10.0/publish/wwwroot
+          --playground-browser-root samples/LuxelPlaygroundBrowser/bin/Release/net10.0/publish/wwwroot
       - name: Validate subpath-safe browser WebGPU sample
         run: |
           test -f artifacts/gallery-site/samples/webgpu-browser/index.html
@@ -88,3 +110,22 @@ jobs:
           PY
           test -f artifacts/gallery-site/samples/webgpu-browser/_framework/dotnet.js
           ! grep -R -E '(src|href)="/' artifacts/gallery-site/samples/webgpu-browser/index.html artifacts/gallery-site/samples/webgpu-browser/main.js
+          test -f artifacts/gallery-site/samples/luxel-playground/playground-runtime-manifest.json
+          test -f artifacts/gallery-site/samples/luxel-playground/_framework/dotnet.js
+      - name: Install Playwright
+        working-directory: tests/Luxel.Playground.Browser.E2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Test Playground in Chromium
+        working-directory: tests/Luxel.Playground.Browser.E2e
+        run: npm test
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: luxel-playground-playwright
+          path: |
+            tests/Luxel.Playground.Browser.E2e/test-results
+            tests/Luxel.Playground.Browser.E2e/playwright-report
+          if-no-files-found: ignore
