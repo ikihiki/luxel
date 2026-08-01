@@ -59,7 +59,11 @@ public sealed class PlaygroundController : IDisposable
             cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _executionCancellation = cancellation;
             executionId = ++_executionId;
-            request = CreateRequest(_state.Draft, timeout);
+            request = CreateRequest(_state.Draft, timeout) with
+            {
+                RequestId = $"playground-{executionId}",
+                SourceRevision = executionId,
+            };
             _state = _state with
             {
                 Status = PlaygroundStatus.Running,

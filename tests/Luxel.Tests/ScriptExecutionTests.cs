@@ -192,6 +192,26 @@ public class ScriptExecutionTests
     }
 
     [Fact]
+    public async Task Coordinator_propagates_request_identity_and_revision()
+    {
+        var executor = new DelegateExecutor((_, _) => Task.FromResult(new ScriptExecutionResult
+        {
+            Outcome = ScriptExecutionOutcome.Succeeded,
+        }));
+        var request = new ScriptExecutionRequest
+        {
+            RequestId = "request-42",
+            SourceRevision = 42,
+            Source = "return 42;",
+        };
+
+        ScriptExecutionResult result = await new ScriptExecutionCoordinator(executor).ExecuteAsync(request);
+
+        Assert.Equal("request-42", result.RequestId);
+        Assert.Equal(42, result.SourceRevision);
+    }
+
+    [Fact]
     public async Task SuccessfulExecution_PreservesPayloadAndAddsLifecycle()
     {
         var executor = new DelegateExecutor((_, _) => Task.FromResult(new ScriptExecutionResult

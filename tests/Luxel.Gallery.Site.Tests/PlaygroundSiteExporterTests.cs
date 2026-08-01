@@ -48,6 +48,17 @@ public sealed class PlaygroundSiteExporterTests
     }
 
     [Fact]
+    public void Playground_bridge_enforces_a_bounded_execution_timeout()
+    {
+        string script = GallerySiteExporter.PlaygroundClientScript;
+
+        Assert.Contains("setTimeout(() =>", script);
+        Assert.Contains("Script execution exceeded the 5 second timeout.", script);
+        Assert.Contains("clearTimeout(session.timeout)", script);
+        Assert.Contains("destroy(root);", script);
+    }
+
+    [Fact]
     public void Export_without_runtime_still_writes_playground_with_clear_unavailable_state()
     {
         string output = Temp("without-runtime");

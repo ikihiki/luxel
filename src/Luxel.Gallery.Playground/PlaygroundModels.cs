@@ -53,10 +53,9 @@ public static class PlaygroundTemplates
         Files:
         [
             new PlaygroundFile("Button.csx", """
-                // The host supplies Luxel UI references and renders the returned value.
+                // Return a real Luxel Widget. The browser host renders it with WebGPU.
                 var label = "Click me";
-                Console.WriteLine($"Rendering button: {label}");
-                return $"Button: {label}";
+                return Kit.Button(_ => { }, label);
                 """),
         ]);
 

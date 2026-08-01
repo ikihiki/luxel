@@ -11,6 +11,12 @@ public interface IScriptExecutor
 /// <summary>A script and its optional supporting source documents.</summary>
 public sealed record ScriptExecutionRequest
 {
+    /// <summary>Caller-generated identifier used to correlate an execution across process boundaries.</summary>
+    public string RequestId { get; init; } = Guid.NewGuid().ToString("N");
+
+    /// <summary>Monotonic source revision. Results for older revisions can be ignored by callers.</summary>
+    public long SourceRevision { get; init; }
+
     /// <summary>The primary script source.</summary>
     public string Source { get; init; } = "";
 
@@ -61,6 +67,8 @@ public enum ScriptExecutionOutcome
     CompilationFailed,
     RuntimeFailed,
     InvalidRequest,
+    PolicyRejected,
+    InfrastructureFailed,
     TimedOut,
     Canceled,
 }
@@ -138,6 +146,8 @@ public sealed record ScriptExecutionLifecycle
 /// <summary>The serializable result of a script execution.</summary>
 public sealed record ScriptExecutionResult
 {
+    public string RequestId { get; init; } = "";
+    public long SourceRevision { get; init; }
     public ScriptExecutionOutcome Outcome { get; init; }
     public bool Success => Outcome == ScriptExecutionOutcome.Succeeded;
     public string? ReturnValue { get; init; }
@@ -172,10 +182,10 @@ public sealed class ScriptExecutionCoordinator : IScriptExecutor
             {
                 Outcome = ScriptExecutionOutcome.InvalidRequest,
                 Failure = validationFailure,
-            }, startedAt);
+            }, startedAt, request);
 
         if (cancellationToken.IsCancellationRequested)
-            return Complete(new ScriptExecutionResult { Outcome = ScriptExecutionOutcome.Canceled }, startedAt);
+            return Complete(new ScriptExecutionResult { Outcome = ScriptExecutionOutcome.Canceled }, startedAt, request);
 
         using var timeout = new CancellationTokenSource(request.Options.Timeout, _timeProvider);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
@@ -184,25 +194,25 @@ public sealed class ScriptExecutionCoordinator : IScriptExecutor
             ScriptExecutionResult result = await _executor.ExecuteAsync(request, linked.Token)
                 .WaitAsync(request.Options.Timeout, _timeProvider, cancellationToken)
                 .ConfigureAwait(false);
-            return Complete(result, startedAt);
+            return Complete(result, startedAt, request);
         }
         catch (TimeoutException)
         {
-            return Complete(TimeoutResult(request.Options.Timeout), startedAt);
+            return Complete(TimeoutResult(request.Options.Timeout), startedAt, request);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            return Complete(new ScriptExecutionResult { Outcome = ScriptExecutionOutcome.Canceled }, startedAt);
+            return Complete(new ScriptExecutionResult { Outcome = ScriptExecutionOutcome.Canceled }, startedAt, request);
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested)
         {
-            return Complete(TimeoutResult(request.Options.Timeout), startedAt);
+            return Complete(TimeoutResult(request.Options.Timeout), startedAt, request);
         }
         catch (Exception exception)
         {
             return Complete(new ScriptExecutionResult
             {
-                Outcome = ScriptExecutionOutcome.RuntimeFailed,
+                Outcome = ScriptExecutionOutcome.InfrastructureFailed,
                 Failure = new ScriptExecutionFailure
                 {
                     Kind = ScriptFailureKind.Infrastructure,
@@ -210,7 +220,7 @@ public sealed class ScriptExecutionCoordinator : IScriptExecutor
                     Type = exception.GetType().FullName,
                     StackTrace = exception.StackTrace,
                 },
-            }, startedAt);
+            }, startedAt, request);
         }
     }
 
@@ -224,11 +234,16 @@ public sealed class ScriptExecutionCoordinator : IScriptExecutor
         },
     };
 
-    private ScriptExecutionResult Complete(ScriptExecutionResult result, DateTimeOffset startedAt)
+    private ScriptExecutionResult Complete(
+        ScriptExecutionResult result,
+        DateTimeOffset startedAt,
+        ScriptExecutionRequest? request)
     {
         DateTimeOffset completedAt = _timeProvider.GetUtcNow();
         return result with
         {
+            RequestId = string.IsNullOrEmpty(result.RequestId) ? request?.RequestId ?? "" : result.RequestId,
+            SourceRevision = result.SourceRevision == 0 ? request?.SourceRevision ?? 0 : result.SourceRevision,
             Lifecycle = new ScriptExecutionLifecycle
             {
                 StartedAt = startedAt,

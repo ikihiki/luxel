@@ -110,6 +110,7 @@ public static partial class GallerySiteExporter
   }
   function destroy(root) {
     const session = sessions.get(root);
+    if (session?.timeout) clearTimeout(session.timeout);
     session?.frame?.remove();
     sessions.delete(root);
   }
@@ -173,7 +174,13 @@ public static partial class GallerySiteExporter
     frame.dataset.playgroundInstance = instanceId;
     frame.setAttribute("allow", "webgpu");
     frame.setAttribute("sandbox", "allow-scripts allow-same-origin");
-    const session = { frame, instanceId, revision, detail, ready: false };
+    const session = { frame, instanceId, revision, detail, ready: false, timeout: null };
+    session.timeout = setTimeout(() => {
+      if (sessions.get(root) !== session) return;
+      destroy(root);
+      status(root, "Timed out", true);
+      appendDiagnostics(root, [], { message: "Script execution exceeded the 5 second timeout." });
+    }, 5000);
     sessions.set(root, session);
     renderPreview(root, frame);
     status(root, "Starting fresh runtime…");
@@ -226,8 +233,9 @@ public static partial class GallerySiteExporter
     else if (message.type === "status") status(root, String(message.status || "Running…"));
     else if (message.type === "diagnostics") appendDiagnostics(root, message.diagnostics, message.failure);
     else if (message.type === "output") appendOutput(root, message.entries || message.logs);
-    else if (message.type === "runtime-error") { appendDiagnostics(root, message.diagnostics, message.failure || message.error); status(root, "Runtime failed", true); }
+    else if (message.type === "runtime-error") { if (session.timeout) { clearTimeout(session.timeout); session.timeout = null; } appendDiagnostics(root, message.diagnostics, message.failure || message.error); status(root, "Runtime failed", true); }
     else if (message.type === "run-result") {
+      if (session.timeout) { clearTimeout(session.timeout); session.timeout = null; }
       appendDiagnostics(root, message.diagnostics, message.failure);
       appendOutput(root, message.logs || message.entries);
       status(root, message.outcome || (message.success ? "Succeeded" : "Failed"), !message.success);
