@@ -13,6 +13,7 @@ async function openPlayground(page) {
   await expect.poll(() => root.evaluate(element => element.dataset.playgroundEditor)).toBe('monaco');
   await expect(root.locator('[data-playground-monaco]')).toBeVisible();
   await expect.poll(() => page.evaluate(() => globalThis.monaco?.editor.getModels()[0]?.getLanguageId())).toBe('csharp');
+  await expect.poll(() => root.evaluate(element => element.dataset.playgroundLanguageService), { timeout: 60_000 }).toBe('roslyn-worker');
   return { root, consoleErrors };
 }
 
@@ -37,14 +38,14 @@ test('compiles C# and renders a real Luxel button', async ({ page }) => {
   await setSource(root, 'Kit.');
   expect(await root.evaluate(element => globalThis.LuxelPlayground.triggerSuggest(element))).toBe(true);
   await expect(page.locator('.suggest-widget')).toBeVisible();
-  await expect(page.locator('.suggest-widget')).toContainText('Kit.Button');
+  await expect(page.locator('.suggest-widget')).toContainText('Button');
   const source = 'return Kit.Button(_ => Log("Button clicked."), "Playwright button");';
 
   const frame = await runSource(root, source);
   await expect(root.locator('[data-playground-status]')).toHaveText('rendered', { timeout: 60_000 });
   await expect(root.locator('[data-playground-diagnostics]')).toContainText('No diagnostics.');
 
-  const runtime = page.frames().find(candidate => candidate.url().includes('/samples/luxel-playground/'));
+  const runtime = page.frames().find(candidate => candidate.url().includes('/samples/luxel-playground/') && !candidate.url().includes('mode=language'));
   expect(runtime).toBeTruthy();
   await expect.poll(() => runtime.evaluate(() => globalThis.luxelPlaygroundRuntimeState?.ready)).toBe(true);
   await expect.poll(() => runtime.evaluate(() => globalThis.luxelPlaygroundRuntimeState?.latestRevision)).toBe(1);
@@ -57,6 +58,10 @@ test('compiles C# and renders a real Luxel button', async ({ page }) => {
 
 test('shows compiler diagnostics and replaces the runtime iframe on rerun', async ({ page }) => {
   const { root } = await openPlayground(page);
+
+  await setSource(root, 'return missingName;');
+  await expect.poll(() => root.evaluate(element => globalThis.LuxelPlayground.diagnostics(element)), { timeout: 15_000 })
+    .toEqual(expect.arrayContaining([expect.objectContaining({ code: 'CS0103' })]));
 
   const firstFrame = await runSource(root, 'return Kit.Button(_ => { }, "First");');
   await expect(root.locator('[data-playground-status]')).toHaveText('rendered', { timeout: 60_000 });

@@ -20,6 +20,7 @@ public static partial class Program
 {
     private static readonly WebScriptExecutor Executor = new();
     private static WebScriptCompiler? _compiler;
+    private static WebScriptLanguageService? _languageService;
     private static UiHost? _ui;
     private static int _latestRevision;
     private static int _pendingFirstFrameRevision;
@@ -28,7 +29,14 @@ public static partial class Program
     {
         try
         {
-            _compiler = new WebScriptCompiler(await LoadMetadataReferences());
+            MetadataReferenceImage[] references = await LoadMetadataReferences();
+            if (GetMode() == "language")
+            {
+                _languageService = new WebScriptLanguageService(references);
+                SetLanguageReady();
+                return;
+            }
+            _compiler = new WebScriptCompiler(references);
             await RunHost();
         }
         catch (Exception exception)
@@ -84,6 +92,27 @@ public static partial class Program
                 new FailureResponse("infrastructure", exception.Message, exception.GetType().FullName, null)));
         }
     }
+
+    [JSExport]
+    public static async Task<string> Complete(string source, int position, int revision)
+        => _languageService is null
+            ? SerializeError("The Playground language service is not ready.")
+            : JsonSerializer.Serialize(await _languageService.CompleteAsync(source, position, revision), JsonOptions);
+
+    [JSExport]
+    public static async Task<string> Hover(string source, int position, int revision)
+        => _languageService is null
+            ? SerializeError("The Playground language service is not ready.")
+            : JsonSerializer.Serialize(await _languageService.HoverAsync(source, position, revision), JsonOptions);
+
+    [JSExport]
+    public static async Task<string> Analyze(string source, int revision)
+        => _languageService is null
+            ? SerializeError("The Playground language service is not ready.")
+            : JsonSerializer.Serialize(await _languageService.AnalyzeAsync(source, revision), JsonOptions);
+
+    private static string SerializeError(string message)
+        => JsonSerializer.Serialize(new { error = message }, JsonOptions);
 
     private static async Task RunHost()
     {
@@ -222,6 +251,8 @@ public static partial class Program
     private sealed record FailureResponse(string Kind, string Message, string? ExceptionType, int? Line);
     private sealed record RunResponse(string Outcome, DiagnosticResponse[] Diagnostics, FailureResponse? Failure);
 
+    [JSImport("getMode", "luxel-playground-host")] private static partial string GetMode();
+    [JSImport("setLanguageReady", "luxel-playground-host")] private static partial void SetLanguageReady();
     [JSImport("getBaseUrl", "luxel-playground-host")] private static partial string GetBaseUrl();
     [JSImport("nextFrame", "luxel-playground-host")] private static partial Task<double> NextFrame();
     [JSImport("setReady", "luxel-playground-host")] private static partial void SetReady(string deviceName);

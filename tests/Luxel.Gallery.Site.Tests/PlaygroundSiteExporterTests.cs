@@ -47,6 +47,9 @@ public sealed class PlaygroundSiteExporterTests
         Assert.Contains("message?.protocol !== protocol", script);
         Assert.Contains("message.revision !== session.revision", script);
         Assert.Contains("message.type === \"ready\"", script);
+        Assert.Contains("new Worker(url, { type: \"module\"", script);
+        Assert.Contains("type: \"language-request\"", script);
+        Assert.Contains("roslyn-worker", script);
         Assert.Contains("type: \"run\"", script);
         Assert.Contains("source: session.detail.request.source", script);
         Assert.Contains("LuxelPlayground?.setDiagnostics", script);
@@ -112,6 +115,7 @@ public sealed class PlaygroundSiteExporterTests
             AssertManifestContainsPlayground(output);
             Assert.DoesNotContain("src=\"/samples/luxel-playground/", fragment);
             Assert.True(File.Exists(Path.Combine(output, "samples", "luxel-playground", "index.html")));
+            Assert.True(File.Exists(Path.Combine(output, "samples", "luxel-playground", "language-worker.js")));
             Assert.True(File.Exists(Path.Combine(output, "samples", "luxel-playground", "_framework", "dotnet.js")));
             GallerySiteExporter.Validate(output);
         }
@@ -168,6 +172,7 @@ public sealed class PlaygroundSiteExporterTests
         Directory.CreateDirectory(Path.Combine(root, "_framework"));
         File.WriteAllText(Path.Combine(root, "index.html"), "<!doctype html><script src=\"main.js\"></script>");
         File.WriteAllText(Path.Combine(root, "main.js"), "// runtime");
+        File.WriteAllText(Path.Combine(root, "language-worker.js"), "// language worker");
         File.WriteAllText(Path.Combine(root, "_framework", "dotnet.js"), "// dotnet");
         File.WriteAllText(Path.Combine(root, "playground-runtime-manifest.json"), "{\"protocol\":\"luxel-playground\",\"protocolVersion\":1,\"entryUrl\":\"./\"}");
         return root;

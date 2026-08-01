@@ -162,6 +162,47 @@ public sealed class WebScriptPipelineTests
         Assert.Equal("boom", runtime.Failure?.Message);
     }
 
+    [Fact]
+    public async Task LanguageService_ProvidesSemanticLuxelCompletion()
+    {
+        using var service = new WebScriptLanguageService(References());
+        const string source = "return Kit.";
+
+        WebCompletionResult completion = await service.CompleteAsync(source, source.Length, revision: 7);
+
+        Assert.Equal(7, completion.Revision);
+        Assert.Contains(completion.Items, item => item.Label == "Button");
+        Assert.DoesNotContain(completion.Items, item => item.Label == "Kit.Button");
+    }
+
+    [Fact]
+    public async Task LanguageService_ProvidesRoslynQuickInfo()
+    {
+        using var service = new WebScriptLanguageService(References());
+        const string source = "return Kit.Button(_ => Log(\"clicked\"), \"Click\");";
+        int position = source.IndexOf("Button", StringComparison.Ordinal) + 2;
+
+        WebHoverResult? hover = await service.HoverAsync(source, position, revision: 8);
+
+        Assert.NotNull(hover);
+        Assert.Equal(8, hover.Revision);
+        Assert.Contains("Button", hover.Markdown, StringComparison.Ordinal);
+        Assert.True(hover.Length > 0);
+    }
+
+    [Fact]
+    public async Task LanguageService_MapsLiveDiagnosticsToUserSource()
+    {
+        using var service = new WebScriptLanguageService(References());
+
+        WebAnalysisResult analysis = await service.AnalyzeAsync("var value = 1;\nreturn missingName;", revision: 9);
+
+        WebScriptDiagnostic diagnostic = Assert.Single(analysis.Diagnostics, item => item.Id == "CS0103");
+        Assert.Equal(9, analysis.Revision);
+        Assert.Equal(2, diagnostic.Line);
+        Assert.NotNull(diagnostic.Column);
+    }
+
     private static WebScriptCompiler CreateCompiler() => new(References());
 
     private static IReadOnlyList<MetadataReferenceImage> References()

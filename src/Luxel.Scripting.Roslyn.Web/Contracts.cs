@@ -92,6 +92,29 @@ public sealed record WebScriptFailure(
     string? ExceptionType = null,
     int? Line = null);
 
+public sealed record WebCompletionItem(
+    string Label,
+    string InsertText,
+    string Kind,
+    string? Detail = null,
+    string? Documentation = null);
+
+public sealed record WebCompletionResult(
+    int Revision,
+    int ReplacementStart,
+    int ReplacementLength,
+    IReadOnlyList<WebCompletionItem> Items);
+
+public sealed record WebHoverResult(
+    int Revision,
+    string Markdown,
+    int Start,
+    int Length);
+
+public sealed record WebAnalysisResult(
+    int Revision,
+    IReadOnlyList<WebScriptDiagnostic> Diagnostics);
+
 // Transport-neutral records for a future browser worker/preview boundary.
 public abstract record WebScriptWorkerMessage(long Revision);
 public sealed record CompileScriptRequest(long Revision, string Source) : WebScriptWorkerMessage(Revision);
