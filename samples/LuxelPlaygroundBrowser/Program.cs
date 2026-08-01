@@ -50,6 +50,7 @@ public static partial class Program
         _latestRevision = revision;
         try
         {
+            WebScriptOutput.SetSink(message => PublishLog(revision, "information", message));
             WebScriptCompilation compilation = _compiler.Compile(source, $"Luxel.Playground.Script.{revision}");
             DiagnosticResponse[] diagnostics = compilation.Diagnostics.Select(diagnostic => new DiagnosticResponse(
                 diagnostic.Id,
@@ -225,5 +226,6 @@ public static partial class Program
     [JSImport("nextFrame", "luxel-playground-host")] private static partial Task<double> NextFrame();
     [JSImport("setReady", "luxel-playground-host")] private static partial void SetReady(string deviceName);
     [JSImport("setFatalError", "luxel-playground-host")] private static partial void SetFatalError(string error);
+    [JSImport("publishLog", "luxel-playground-host")] private static partial void PublishLog(int revision, string level, string message);
     [JSImport("publishFirstFrame", "luxel-playground-host")] private static partial void PublishFirstFrame(int revision);
 }

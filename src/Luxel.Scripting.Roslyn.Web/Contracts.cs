@@ -8,6 +8,16 @@ public interface ILuxelWebScriptProgram
     Widget Build();
 }
 
+public static class WebScriptOutput
+{
+    private static Action<string>? _sink;
+
+    public static void SetSink(Action<string>? sink) => _sink = sink;
+
+    public static void Write(string message)
+        => _sink?.Invoke(message ?? string.Empty);
+}
+
 public sealed record MetadataReferenceImage(string FileName, ReadOnlyMemory<byte> Image);
 
 public sealed record WebScriptDiagnostic(

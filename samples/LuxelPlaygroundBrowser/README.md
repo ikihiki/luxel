@@ -35,7 +35,7 @@ iframe.contentWindow.postMessage({
 }, iframeOrigin);
 ```
 
-The child emits `ready`, optional `diagnostics`, `runtime-error`, and a terminal `run-result`. A successful `run-result` is sent only after the first rendered frame is presented.
+The child emits `ready`, optional `diagnostics`, live `output` entries, `runtime-error`, and a terminal `run-result`. A successful `run-result` is sent only after the first rendered frame is presented. Script callbacks can call `Log(...)`; the host forwards those messages to the Gallery Story's Output panel.
 
 ## Metadata references and reset model
 

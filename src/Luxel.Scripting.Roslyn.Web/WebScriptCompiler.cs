@@ -72,6 +72,8 @@ public sealed class WebScriptCompiler
 
         public sealed class LuxelWebScriptProgram : global::Luxel.Scripting.Roslyn.Web.ILuxelWebScriptProgram
         {
+            private static void Log(string message) => global::Luxel.Scripting.Roslyn.Web.WebScriptOutput.Write(message);
+
             public Widget Build()
             {
         #line 1 "{{ScriptFileName}}"

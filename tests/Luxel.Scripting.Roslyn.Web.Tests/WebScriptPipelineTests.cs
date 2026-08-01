@@ -21,6 +21,27 @@ public sealed class WebScriptPipelineTests
     }
 
     [Fact]
+    public void GeneratedLog_ForwardsMessagesToHostSink()
+    {
+        var messages = new List<string>();
+        WebScriptOutput.SetSink(messages.Add);
+        try
+        {
+            WebScriptCompilation compilation = CreateCompiler().Compile("Log(\"Button clicked.\"); return (Widget)Activator.CreateInstance(typeof(Text), nonPublic: true)!;");
+            Assert.True(compilation.Success, Format(compilation.Diagnostics));
+
+            WebScriptExecution execution = new WebScriptExecutor().Execute(compilation.PeImage!, compilation.PdbImage!);
+
+            Assert.True(execution.Success, execution.Failure?.Message);
+            Assert.Equal(["Button clicked."], messages);
+        }
+        finally
+        {
+            WebScriptOutput.SetSink(null);
+        }
+    }
+
+    [Fact]
     public void Compile_IsDeterministicForSameInput()
     {
         WebScriptCompiler compiler = CreateCompiler();

@@ -25,6 +25,7 @@ public sealed class PlaygroundControllerTests
         Assert.Equal("Helper.cs", file.FileName);
         Assert.Equal("class Helper {}", file.Source);
         Assert.Equal("button", PlaygroundTemplates.Button.Id);
+        Assert.Contains("Log(\"Button clicked.\")", PlaygroundTemplates.Button.Files[0].Source);
         Assert.Contains("Click me", PlaygroundTemplates.Button.Files[0].Source);
     }
 

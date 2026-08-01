@@ -1,4 +1,4 @@
-﻿using Luxel.Controls;
+using Luxel.Controls;
 using Luxel.Scripting;
 using Luxel.Gallery.Playground;
 using Luxel.Graphics.TwoD;
@@ -118,7 +118,7 @@ public static class ScriptingStory
         var block = new CsxBlock(
             "// Edit this C# and run it as a normal Gallery Story.\n" +
             "var label = \"Click me\";\n" +
-            "Button(_ => Log(\"clicked\"), label)",
+            "Button(_ => Log(\"Button clicked.\"), label)",
             maxWidth: 560, ctx, host, lang);
 
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[

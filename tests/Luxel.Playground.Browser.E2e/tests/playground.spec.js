@@ -23,7 +23,7 @@ async function runSource(root, source) {
 
 test('compiles C# and renders a real Luxel button', async ({ page }) => {
   const { root, consoleErrors } = await openPlayground(page);
-  const source = 'return Kit.Button(_ => { }, "Playwright button");';
+  const source = 'return Kit.Button(_ => Log("Button clicked."), "Playwright button");';
 
   const frame = await runSource(root, source);
   await expect(root.locator('[data-playground-status]')).toHaveText('rendered', { timeout: 60_000 });
@@ -33,6 +33,9 @@ test('compiles C# and renders a real Luxel button', async ({ page }) => {
   expect(runtime).toBeTruthy();
   await expect.poll(() => runtime.evaluate(() => globalThis.luxelPlaygroundRuntimeState?.ready)).toBe(true);
   await expect.poll(() => runtime.evaluate(() => globalThis.luxelPlaygroundRuntimeState?.latestRevision)).toBe(1);
+  const canvas = runtime.locator('#luxel-canvas');
+  await canvas.click({ position: { x: 60, y: 20 } });
+  await expect(root.locator('[data-playground-output]')).toContainText('Button clicked.');
   await expect(frame).toHaveAttribute('allow', 'webgpu');
   expect(consoleErrors).toEqual([]);
 });
