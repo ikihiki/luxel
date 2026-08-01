@@ -24,6 +24,7 @@
     sessions.delete(root);
   }
   function appendDiagnostics(root, diagnostics, failure) {
+    window.LuxelPlayground?.setDiagnostics(root, Array.isArray(diagnostics) ? diagnostics : []);
     const target = root.querySelector("[data-playground-diagnostics]");
     if (!target) return;
     target.replaceChildren();

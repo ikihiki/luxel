@@ -10,7 +10,11 @@
 .playground-editor, .playground-preview, .playground-diagnostics, .playground-output { min-width: 0; border: 1px solid #30363d; border-radius: .5rem; padding: .75rem; }
 .playground-diagnostics, .playground-output { margin-top: 1rem; }
 .playground-editor label { display: block; margin: .5rem 0 .25rem; color: #8b949e; }
+.playground-language-service { margin: 0 0 .4rem; color: #8b949e; font-size: 12px; }
 .playground-editor-host textarea { box-sizing: border-box; width: 100%; min-height: 20rem; resize: vertical; border: 1px solid #30363d; border-radius: .35rem; padding: .75rem; color: #e6edf3; background: #010409; font: 13px/1.5 ui-monospace, monospace; tab-size: 4; }
+.playground-monaco { display: none; width: 100%; height: 24rem; min-height: 20rem; border: 1px solid #30363d; border-radius: .35rem; overflow: hidden; }
+.playground-editor-host.monaco-ready .playground-monaco { display: block; }
+.playground-editor-host.monaco-ready textarea { display: none; }
 .playground-preview [data-playground-preview] { min-height: 20rem; }
 .playground-preview pre, .playground-failure pre { overflow: auto; white-space: pre-wrap; }
 .playground-empty, .playground-location { color: #8b949e; }
