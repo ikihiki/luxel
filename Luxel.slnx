@@ -56,6 +56,8 @@
     <Project Path="src/Luxel.Platform.Windows/Luxel.Platform.Windows.csproj" />
     <Project Path="src/Luxel.RenderGraph/Luxel.RenderGraph.csproj" />
     <Project Path="src/Luxel.Resources/Luxel.Resources.csproj" />
+    <Project Path="src/Luxel.Shaders/Luxel.Shaders.csproj" />
+    <Project Path="src/Luxel.Shaders.Slang.Native/Luxel.Shaders.Slang.Native.csproj" />
     <Project Path="src/Luxel.Scene.UI/Luxel.Scene.UI.csproj" />
     <Project Path="src/Luxel.Settings/Luxel.Settings.csproj" />
     <Project Path="src/Luxel.Scripting.Framework/Luxel.Scripting.Framework.csproj" />
@@ -109,6 +111,7 @@
     <Project Path="tests/Luxel.UI.App.Tests/Luxel.UI.App.Tests.csproj" />
     <Project Path="tests/Luxel.Platform.Web.Tests/Luxel.Platform.Web.Tests.csproj" />
     <Project Path="tests/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj" />
+    <Project Path="tests/Luxel.Shaders.Tests/Luxel.Shaders.Tests.csproj" />
     <Project Path="tests/Luxel.Terminal.Linux.Tests/Luxel.Terminal.Linux.Tests.csproj" />
     <Project Path="tests/Luxel.Terminal.Windows.Tests/Luxel.Terminal.Windows.Tests.csproj" />
     <Project Path="tests/Luxel.Terminal.Tests/Luxel.Terminal.Tests.csproj" />
