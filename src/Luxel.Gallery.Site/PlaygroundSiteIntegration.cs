@@ -14,12 +14,31 @@ public static partial class GallerySiteExporter
 
     private sealed record PlaygroundRuntimeManifest(string Protocol, int ProtocolVersion, string EntryUrl);
 
+    private const string MonacoBootstrapScript = """
+(() => {
+  "use strict";
+  const vs = new URL("vendor/monaco/vs", document.baseURI).href.replace(/\/$/, "");
+  window.MonacoEnvironment = { getWorkerUrl: () => `${vs}/editor/editor.worker.js` };
+  window.LuxelMonacoReady = new Promise((resolve, reject) => {
+    if (typeof window.require !== "function") { reject(new Error("Monaco AMD loader is unavailable.")); return; }
+    window.require.config({ paths: { vs } });
+    window.require(["vs/editor/editor.main"], () => resolve(window.monaco), reject);
+  });
+})();
+""";
+
     private static PlaygroundRuntimeManifest? ExportPlaygroundAssets(string output, string? runtimeRoot)
     {
         PlaygroundRuntimeManifest? runtime = runtimeRoot is null ? null : LoadPlaygroundRuntime(runtimeRoot);
         if (runtime is not null)
             CopyPlaygroundRuntime(runtimeRoot!, Path.Combine(output, PlaygroundRuntimeBaseUrl.Replace('/', Path.DirectorySeparatorChar)));
 
+        string monacoSource = Path.Combine(AppContext.BaseDirectory, "Assets", "monaco");
+        if (!Directory.Exists(monacoSource))
+            throw new DirectoryNotFoundException($"Vendored Monaco assets are missing: {monacoSource}");
+        CopyDirectory(Path.Combine(monacoSource, "vs"), Path.Combine(output, "vendor", "monaco", "vs"));
+        File.Copy(Path.Combine(monacoSource, "LICENSE"), Path.Combine(output, "licenses", "monaco-editor-LICENSE.txt"), overwrite: true);
+        File.WriteAllText(Path.Combine(output, "monaco-bootstrap.js"), MonacoBootstrapScript, new UTF8Encoding(false));
         File.WriteAllText(Path.Combine(output, "playground.css"), PlaygroundAssets.ReadStyle(), new UTF8Encoding(false));
         File.WriteAllText(Path.Combine(output, "playground.js"), PlaygroundAssets.ReadScript(), new UTF8Encoding(false));
         File.WriteAllText(Path.Combine(output, "playground-site.js"), PlaygroundBridgeScript, new UTF8Encoding(false));
@@ -115,6 +134,7 @@ public static partial class GallerySiteExporter
     sessions.delete(root);
   }
   function appendDiagnostics(root, diagnostics, failure) {
+    window.LuxelPlayground?.setDiagnostics(root, Array.isArray(diagnostics) ? diagnostics : []);
     const target = root.querySelector("[data-playground-diagnostics]");
     if (!target) return;
     target.replaceChildren();

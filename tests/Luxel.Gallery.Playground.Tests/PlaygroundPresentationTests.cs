@@ -56,6 +56,8 @@ public sealed class PlaygroundPresentationTests
         string html = PlaygroundWorkspace.Render(state, "sample");
 
         Assert.Contains("<textarea", html);
+        Assert.Contains("Monaco C# · Luxel completion and hover · Roslyn diagnostics on Run", html);
+        Assert.Contains("data-playground-monaco", html);
         Assert.Contains("data-playground-editor-host", html);
         Assert.Contains("data-playground-run", html);
         Assert.Contains(">Run</button>", html);
@@ -84,6 +86,14 @@ public sealed class PlaygroundPresentationTests
         Assert.Contains("localStorage", script);
         Assert.Contains("memoryDrafts", script);
         Assert.Contains("addEventListener(\"input\"", script);
+        Assert.Contains("LuxelMonacoReady", script);
+        Assert.Contains("monaco.editor.createModel", script);
+        Assert.Contains("\"csharp\"", script);
+        Assert.Contains("luxel-roslyn", script);
+        Assert.Contains("registerCompletionItemProvider", script);
+        Assert.Contains("registerHoverProvider", script);
+        Assert.Contains("Luxel Playground API", script);
+        Assert.Contains("setModelMarkers", script);
         Assert.Contains("luxel-playground:execute", script);
         Assert.Contains("luxel-playground:cancel", script);
         Assert.Contains("luxel-playground:reset", script);

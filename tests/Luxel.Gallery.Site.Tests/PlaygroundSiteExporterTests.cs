@@ -17,10 +17,15 @@ public sealed class PlaygroundSiteExporterTests
         string script = GallerySiteExporter.ClientScript;
 
         Assert.Contains("href=\"playground.css\"", html);
+        Assert.Contains("href=\"licenses/monaco-editor-LICENSE.txt\"", html);
+        Assert.Contains("src=\"vendor/monaco/vs/loader.js\"", html);
+        Assert.Contains("src=\"monaco-bootstrap.js\"", html);
         Assert.Contains("src=\"playground.js\"", html);
         Assert.Contains("src=\"playground-site.js\"", html);
         Assert.DoesNotContain("href=\"#playground\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("location.hash==='#playground'", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("cdn", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("src=\"/vendor/monaco", html, StringComparison.Ordinal);
         Assert.DoesNotContain("fetch('playground.html')", script, StringComparison.Ordinal);
         Assert.Contains("LuxelGalleryPlayground?.bindAll(content)", script);
         Assert.Contains("const storyHash=path=>'#story='+encodeURIComponent(path)", script);
@@ -44,6 +49,7 @@ public sealed class PlaygroundSiteExporterTests
         Assert.Contains("message.type === \"ready\"", script);
         Assert.Contains("type: \"run\"", script);
         Assert.Contains("source: session.detail.request.source", script);
+        Assert.Contains("LuxelPlayground?.setDiagnostics", script);
         Assert.Contains("message.type === \"runtime-error\"", script);
         Assert.Contains("textContent", script);
         Assert.DoesNotContain("innerHTML", script, StringComparison.Ordinal);
@@ -80,6 +86,10 @@ public sealed class PlaygroundSiteExporterTests
             Assert.DoesNotContain("samples/luxel-playground/", fragment);
             Assert.False(File.Exists(Path.Combine(output, "playground.html")));
             AssertManifestContainsPlayground(output);
+            Assert.True(File.Exists(Path.Combine(output, "vendor", "monaco", "vs", "loader.js")));
+            Assert.True(File.Exists(Path.Combine(output, "vendor", "monaco", "vs", "editor", "editor.worker.js")));
+            Assert.True(File.Exists(Path.Combine(output, "licenses", "monaco-editor-LICENSE.txt")));
+            Assert.True(File.Exists(Path.Combine(output, "monaco-bootstrap.js")));
             Assert.True(File.Exists(Path.Combine(output, "playground.css")));
             Assert.True(File.Exists(Path.Combine(output, "playground.js")));
             Assert.True(File.Exists(Path.Combine(output, "playground-site.js")));

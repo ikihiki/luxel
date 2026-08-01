@@ -10,11 +10,22 @@ async function openPlayground(page) {
   await expect(root).toBeVisible();
   await expect(page.locator('#stories a.active')).toHaveText('Playground');
   await expect(root.locator('[data-playground-status]')).toHaveText('Ready');
+  await expect.poll(() => root.evaluate(element => element.dataset.playgroundEditor)).toBe('monaco');
+  await expect(root.locator('[data-playground-monaco]')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => globalThis.monaco?.editor.getModels()[0]?.getLanguageId())).toBe('csharp');
   return { root, consoleErrors };
 }
 
+async function setSource(root, source) {
+  await root.evaluate((element, value) => globalThis.LuxelPlayground.setValue(element, value), source);
+}
+
+async function getSource(root) {
+  return root.evaluate(element => globalThis.LuxelPlayground.getValue(element));
+}
+
 async function runSource(root, source) {
-  await root.locator('[data-playground-source]').fill(source);
+  await setSource(root, source);
   await root.locator('[data-playground-run]').click();
   const frame = root.locator('iframe[data-playground-instance]');
   await expect(frame).toBeVisible();
@@ -23,6 +34,10 @@ async function runSource(root, source) {
 
 test('compiles C# and renders a real Luxel button', async ({ page }) => {
   const { root, consoleErrors } = await openPlayground(page);
+  await setSource(root, 'Kit.');
+  expect(await root.evaluate(element => globalThis.LuxelPlayground.triggerSuggest(element))).toBe(true);
+  await expect(page.locator('.suggest-widget')).toBeVisible();
+  await expect(page.locator('.suggest-widget')).toContainText('Kit.Button');
   const source = 'return Kit.Button(_ => Log("Button clicked."), "Playwright button");';
 
   const frame = await runSource(root, source);
@@ -50,6 +65,8 @@ test('shows compiler diagnostics and replaces the runtime iframe on rerun', asyn
   const secondFrame = await runSource(root, 'return missingName;');
   await expect(root.locator('[data-playground-status]')).toHaveText('compilation-failed', { timeout: 60_000 });
   await expect(root.locator('[data-playground-diagnostics]')).toContainText('CS0103');
+  const markers = await root.evaluate(element => globalThis.LuxelPlayground.diagnostics(element));
+  expect(markers.some(marker => String(marker.code) === 'CS0103')).toBe(true);
   const secondInstance = await secondFrame.getAttribute('data-playground-instance');
 
   expect(secondInstance).not.toBe(firstInstance);
@@ -77,17 +94,19 @@ test('rejects an obvious unbounded loop without freezing the gallery', async ({ 
   await expect(root.locator('[data-playground-diagnostics]')).toContainText('LUXWEB003');
 
   await runSource(root, 'return Kit.Button(_ => { }, "recovered");');
+  await expect.poll(() => root.evaluate(element => globalThis.LuxelPlayground.diagnostics(element))).toEqual([]);
   await expect(root.locator('[data-playground-status]')).toHaveText('rendered', { timeout: 60_000 });
 });
 
 test('restores the local draft after a page reload without putting source in the URL', async ({ page }) => {
   const { root } = await openPlayground(page);
   const source = 'return Kit.Text("persisted draft");';
-  await root.locator('[data-playground-source]').fill(source);
+  await setSource(root, source);
 
   await page.reload();
-  const restored = page.locator('[data-playground-source]');
-  await expect(restored).toHaveValue(source);
+  const restoredRoot = page.locator('[data-playground]');
+  await expect.poll(() => restoredRoot.evaluate(element => element.dataset.playgroundEditor)).toBe('monaco');
+  await expect.poll(() => getSource(restoredRoot)).toBe(source);
   expect(page.url()).not.toContain(encodeURIComponent(source));
   expect(page.url()).not.toContain('persisted%20draft');
 });

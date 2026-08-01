@@ -20,6 +20,7 @@
     <EmbeddedResource Include="Assets\highlightjs\highlight.min.js" />
     <EmbeddedResource Include="Assets\highlightjs\github-dark.min.css" />
     <EmbeddedResource Include="Assets\highlightjs\LICENSE" />
+    <Content Include="Assets\monaco\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- Luxel.Gallery.Stories owns the shared Khronos Box acquisition target. Importing it here as well lets

@@ -29,7 +29,9 @@ public static class PlaygroundWorkspace
         html.Append("<div class=\"playground-grid\"><section class=\"playground-editor\" aria-labelledby=\"")
             .Append(safeId).Append("-source-heading\"><h2 id=\"").Append(safeId).Append("-source-heading\">Source</h2>")
             .Append("<label for=\"").Append(safeId).Append("-source\">").Append(H(main.FileName)).Append("</label>")
+            .Append("<p class=\"playground-language-service\" data-playground-language-service>Monaco C# · Luxel completion and hover · Roslyn diagnostics on Run</p>")
             .Append("<div class=\"playground-editor-host\" data-playground-editor-host>")
+            .Append("<div class=\"playground-monaco\" data-playground-monaco aria-label=\"").Append(H(main.FileName)).Append(" code editor\"></div>")
             .Append("<textarea id=\"").Append(safeId).Append("-source\" data-playground-source data-file-name=\"")
             .Append(H(main.FileName)).Append("\" spellcheck=\"false\" autocomplete=\"off\">")
             .Append(H(main.Source)).Append("</textarea></div></section>");
