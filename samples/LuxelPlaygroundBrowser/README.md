@@ -20,18 +20,25 @@ WebGPU requires a secure context (HTTPS remotely; localhost is suitable for deve
 
 ## Protocol
 
-The checked-in `wwwroot/browser-runtime-manifest.json` describes protocol version 1. Parent messages and runtime messages carry `protocol: "luxel-playground"`, `protocolVersion: 1`, the iframe `instanceId`, and an integer source `revision`. The runtime accepts only `run` messages from its actual parent window and exact configured parent origin; stale/non-increasing revisions, wrong instances, wrong protocols, and malformed source payloads are ignored.
+The checked-in `wwwroot/playground-runtime-manifest.json` describes protocol version 2 and workspace schema version 2. Parent messages and runtime messages carry `protocol: "luxel-playground"`, `protocolVersion: 2`, the iframe `instanceId`, an execution `revision`, and a bounded full workspace snapshot. The runtime accepts only `run` messages from its actual parent window and exact configured parent origin; stale/non-increasing revisions, wrong instances, wrong protocols, mismatched workspace revisions, and malformed snapshots are ignored.
 
 A run message is:
 
 ```js
 iframe.contentWindow.postMessage({
   protocol: "luxel-playground",
-  protocolVersion: 1,
+  protocolVersion: 2,
   type: "run",
   instanceId: "preview-1",
   revision: 1,
-  source: 'return Kit.Button(_ => { }, "Click me");'
+  workspaceRevision: 3,
+  workspace: {
+    schemaVersion: 2,
+    revision: 3,
+    entryFileId: "main",
+    activeFileId: "main",
+    files: [{ id: "main", path: "Main.csx", language: "csharp-script", source: 'return Kit.Button(_ => { }, "Click me");', version: 2 }]
+  }
 }, iframeOrigin);
 ```
 

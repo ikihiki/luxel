@@ -51,8 +51,14 @@ public sealed class PlaygroundSiteExporterTests
         Assert.Contains("type: \"language-request\"", script);
         Assert.Contains("roslyn-worker", script);
         Assert.Contains("type: \"run\"", script);
-        Assert.Contains("source: session.detail.request.source", script);
+        Assert.Contains("workspace: session.detail.request.workspace", script);
+        Assert.Contains("workspaceRevision: session.detail.request.workspace.revision", script);
+        Assert.Contains("workspace: detail.workspace", script);
+        Assert.Contains("fileId: detail.fileId", script);
+        Assert.Contains("fileVersion: detail.fileVersion", script);
+        Assert.Contains("Stale language service response.", script);
         Assert.Contains("LuxelPlayground?.setDiagnostics", script);
+        Assert.Contains("LuxelPlayground?.selectFile", script);
         Assert.Contains("message.type === \"runtime-error\"", script);
         Assert.Contains("textContent", script);
         Assert.DoesNotContain("innerHTML", script, StringComparison.Ordinal);
@@ -111,6 +117,7 @@ public sealed class PlaygroundSiteExporterTests
             Export(output, runtime);
 
             string fragment = ReadPlaygroundFragment(output);
+            Assert.Contains("data-playground-protocol=\"2\"", fragment);
             Assert.Contains("data-playground-runtime-url=\"samples/luxel-playground/\"", fragment);
             AssertManifestContainsPlayground(output);
             Assert.DoesNotContain("src=\"/samples/luxel-playground/", fragment);
@@ -135,9 +142,9 @@ public sealed class PlaygroundSiteExporterTests
 
             Delete(output);
             File.WriteAllText(Path.Combine(runtime, "main.js"), "// runtime");
-            File.WriteAllText(Path.Combine(runtime, "playground-runtime-manifest.json"), "{\"protocol\":\"luxel-playground\",\"protocolVersion\":2,\"entryUrl\":\"./\"}");
+            File.WriteAllText(Path.Combine(runtime, "playground-runtime-manifest.json"), "{\"protocol\":\"luxel-playground\",\"protocolVersion\":1,\"entryUrl\":\"./\"}");
             InvalidDataException protocol = Assert.Throws<InvalidDataException>(() => Export(output, runtime));
-            Assert.Contains("protocol 2", protocol.Message);
+            Assert.Contains("protocol 1", protocol.Message);
         }
         finally { Delete(output); Delete(runtime); }
     }
@@ -174,7 +181,7 @@ public sealed class PlaygroundSiteExporterTests
         File.WriteAllText(Path.Combine(root, "main.js"), "// runtime");
         File.WriteAllText(Path.Combine(root, "language-worker.js"), "// language worker");
         File.WriteAllText(Path.Combine(root, "_framework", "dotnet.js"), "// dotnet");
-        File.WriteAllText(Path.Combine(root, "playground-runtime-manifest.json"), "{\"protocol\":\"luxel-playground\",\"protocolVersion\":1,\"entryUrl\":\"./\"}");
+        File.WriteAllText(Path.Combine(root, "playground-runtime-manifest.json"), "{\"protocol\":\"luxel-playground\",\"protocolVersion\":2,\"entryUrl\":\"./\"}");
         return root;
     }
 

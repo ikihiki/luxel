@@ -1,7 +1,8 @@
 {
-  "bundleId": "luxel-playground-browser-v1",
+  "bundleId": "luxel-playground-browser-v2",
   "protocol": "luxel-playground",
-  "protocolVersion": 1,
+  "protocolVersion": 2,
+  "workspaceSchemaVersion": 2,
   "entryUrl": "./",
   "isolation": "iframe-recreate-per-run",
   "workerIsolation": false,

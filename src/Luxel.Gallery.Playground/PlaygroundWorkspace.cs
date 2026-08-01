@@ -13,9 +13,12 @@ public static class PlaygroundWorkspace
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         string safeId = H(id);
         PlaygroundFile main = state.Draft.MainFile;
+        int entryIndex = state.Draft.Files.Select((file, index) => (file, index)).First(pair => ReferenceEquals(pair.file, main) || pair.file == main).index;
+        string entryFileId = FileId(entryIndex);
         var html = new StringBuilder();
         html.Append("<section class=\"luxel-playground\" id=\"").Append(safeId)
-            .Append("\" data-playground data-template-id=\"").Append(H(state.Draft.TemplateId))
+            .Append("\" data-playground data-workspace-schema=\"2\" data-template-id=\"").Append(H(state.Draft.TemplateId))
+            .Append("\" data-entry-file-id=\"").Append(entryFileId).Append("\" data-active-file-id=\"").Append(entryFileId)
             .Append("\" data-execution-id=\"").Append(state.ExecutionId).Append("\" aria-labelledby=\"")
             .Append(safeId).Append("-title\">");
         html.Append("<header class=\"playground-header\"><div><h1 id=\"").Append(safeId).Append("-title\">")
@@ -27,14 +30,36 @@ public static class PlaygroundWorkspace
             .Append("<button type=\"button\" data-playground-cancel").Append(state.CanCancel ? "" : " disabled").Append(">Stop</button>")
             .Append("<button type=\"button\" data-playground-reset>Reset</button></div>");
         html.Append("<div class=\"playground-grid\"><section class=\"playground-editor\" aria-labelledby=\"")
-            .Append(safeId).Append("-source-heading\"><h2 id=\"").Append(safeId).Append("-source-heading\">Source</h2>")
-            .Append("<label for=\"").Append(safeId).Append("-source\">").Append(H(main.FileName)).Append("</label>")
+            .Append(safeId).Append("-source-heading\"><h2 id=\"").Append(safeId).Append("-source-heading\">Source files</h2>")
+            .Append("<div class=\"playground-workspace\"><nav class=\"playground-files\" aria-label=\"Workspace files\">")
+            .Append("<div class=\"playground-file-actions\" role=\"toolbar\" aria-label=\"File actions\">")
+            .Append("<button type=\"button\" data-playground-file-add>Add file</button>")
+            .Append("<button type=\"button\" data-playground-file-rename>Rename</button>")
+            .Append("<button type=\"button\" data-playground-file-delete>Delete</button></div>")
+            .Append("<div class=\"playground-file-list\" role=\"tablist\" aria-label=\"Open files\" data-playground-file-list>");
+        for (int index = 0; index < state.Draft.Files.Count; index++)
+        {
+            PlaygroundFile file = state.Draft.Files[index];
+            string fileId = FileId(index);
+            html.Append("<button type=\"button\" role=\"tab\" data-playground-file-select data-file-id=\"").Append(fileId)
+                .Append("\" aria-selected=\"").Append(fileId == entryFileId ? "true" : "false").Append("\">")
+                .Append(H(file.FileName)).Append(fileId == entryFileId ? " <span aria-label=\"entry file\">●</span>" : "").Append("</button>");
+        }
+        html.Append("</div></nav><div class=\"playground-file-editor\">")
+            .Append("<label data-playground-active-file-label for=\"").Append(safeId).Append("-source\">").Append(H(main.FileName)).Append("</label>")
             .Append("<p class=\"playground-language-service\" data-playground-language-service>Monaco C# · Browser Roslyn completion, hover, and live diagnostics</p>")
             .Append("<div class=\"playground-editor-host\" data-playground-editor-host>")
-            .Append("<div class=\"playground-monaco\" data-playground-monaco aria-label=\"").Append(H(main.FileName)).Append(" code editor\"></div>")
-            .Append("<textarea id=\"").Append(safeId).Append("-source\" data-playground-source data-file-name=\"")
-            .Append(H(main.FileName)).Append("\" spellcheck=\"false\" autocomplete=\"off\">")
-            .Append(H(main.Source)).Append("</textarea></div></section>");
+            .Append("<div class=\"playground-monaco\" data-playground-monaco aria-label=\"").Append(H(main.FileName)).Append(" code editor\"></div>");
+        for (int index = 0; index < state.Draft.Files.Count; index++)
+        {
+            PlaygroundFile file = state.Draft.Files[index];
+            html.Append("<textarea");
+            if (index == entryIndex) html.Append(" id=\"").Append(safeId).Append("-source\"");
+            html.Append(" data-playground-source data-file-id=\"").Append(FileId(index)).Append("\" data-file-name=\"")
+                .Append(H(file.FileName)).Append("\" data-file-language=\"").Append(FileLanguage(file.FileName))
+                .Append("\" spellcheck=\"false\" autocomplete=\"off\">").Append(H(file.Source)).Append("</textarea>");
+        }
+        html.Append("</div></div></div></section>");
         html.Append("<section class=\"playground-preview\" aria-labelledby=\"").Append(safeId)
             .Append("-preview-heading\"><h2 id=\"").Append(safeId).Append("-preview-heading\">Preview</h2>")
             .Append("<div data-playground-preview role=\"region\" aria-live=\"polite\">");
@@ -102,6 +127,16 @@ public static class PlaygroundWorkspace
         }
         html.Append("</div></section>");
     }
+
+    private static string FileId(int index) => $"template-file-{index}";
+
+    private static string FileLanguage(string path) => Path.GetExtension(path).ToLowerInvariant() switch
+    {
+        ".csx" => "csharp-script",
+        ".cs" => "csharp",
+        ".slang" or ".slangh" => "slang",
+        _ => "text",
+    };
 
     private static string H(string value) => WebUtility.HtmlEncode(value);
 }

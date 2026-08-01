@@ -8,7 +8,7 @@ namespace Luxel.Gallery.Site;
 public static partial class GallerySiteExporter
 {
     private const string PlaygroundRuntimeBaseUrl = "samples/luxel-playground/";
-    private const int PlaygroundProtocolVersion = 1;
+    private const int PlaygroundProtocolVersion = 2;
     private static readonly string[] PlaygroundRuntimeRequiredFiles =
         ["index.html", "main.js", "language-worker.js", "playground-runtime-manifest.json", Path.Combine("_framework", "dotnet.js")];
 
@@ -145,9 +145,18 @@ public static partial class GallerySiteExporter
       for (const diagnostic of diagnostics.slice(0, 200)) {
         const item = document.createElement("li");
         item.dataset.severity = String(diagnostic.severity || "error").toLowerCase();
+        const button = document.createElement("button");
         const code = document.createElement("strong");
         code.textContent = diagnostic.code || diagnostic.id || "Diagnostic";
-        item.append(code, document.createTextNode(" " + String(diagnostic.message || "")));
+        button.append(code, document.createTextNode(" " + String(diagnostic.message || "")));
+        const path = diagnostic.path || diagnostic.fileName;
+        if (path) button.append(document.createTextNode(` ${path}:${diagnostic.line || diagnostic.startLine || 1}:${diagnostic.column || diagnostic.startColumn || 1}`));
+        button.addEventListener("click", () => {
+          const workspace = window.LuxelPlayground?.getWorkspace(root);
+          const file = workspace?.files?.find(candidate => candidate.id === diagnostic.fileId || candidate.path === path);
+          if (file) window.LuxelPlayground?.selectFile(root, file.id, diagnostic);
+        });
+        item.append(button);
         list.append(item);
       }
       target.append(list);
@@ -226,7 +235,8 @@ public static partial class GallerySiteExporter
       type: "run",
       instanceId: session.instanceId,
       revision: session.revision,
-      source: session.detail.request.source
+      workspaceRevision: session.detail.request.workspace.revision,
+      workspace: session.detail.request.workspace
     }, location.origin);
     status(root, "Running…");
   }
@@ -242,7 +252,9 @@ public static partial class GallerySiteExporter
       if (!pending) return;
       session.pending.delete(message.requestId);
       clearTimeout(pending.timeout);
-      if (message.error || message.result?.error) pending.reject(new Error(message.error || message.result.error));
+      if (message.workspaceRevision !== pending.workspaceRevision || message.fileId !== pending.fileId || message.fileVersion !== pending.fileVersion)
+        pending.reject(new Error("Stale language service response."));
+      else if (message.error || message.result?.error) pending.reject(new Error(message.error || message.result.error));
       else pending.resolve(message.result);
     }
   }
@@ -271,13 +283,17 @@ public static partial class GallerySiteExporter
       protocolVersion: Number(root.dataset.playgroundProtocol),
       type: "language-request",
       instanceId: session.instanceId,
-      revision: Number.isSafeInteger(detail.revision) ? detail.revision : Number(root.dataset.languageRevision || "0") + 1,
+      revision: Number.isSafeInteger(detail.workspaceRevision) ? detail.workspaceRevision : Number(root.dataset.languageRevision || "0") + 1,
+      workspaceRevision: detail.workspaceRevision,
       requestId,
       kind: detail.kind,
-      source: detail.source,
+      workspace: detail.workspace,
+      fileId: detail.fileId,
+      fileVersion: detail.fileVersion,
+      path: detail.path,
       position: detail.position
     };
-    root.dataset.languageRevision = String(request.revision);
+    root.dataset.languageRevision = String(request.workspaceRevision);
     const timeout = setTimeout(() => {
       const pending = session.pending.get(requestId);
       if (!pending) return;
@@ -287,6 +303,9 @@ public static partial class GallerySiteExporter
     session.pending.set(requestId, {
       resolve: detail.resolve || (() => {}),
       reject: detail.reject || (() => {}),
+      workspaceRevision: request.workspaceRevision,
+      fileId: request.fileId,
+      fileVersion: request.fileVersion,
       timeout
     });
     if (session.ready) session.worker.postMessage(request);

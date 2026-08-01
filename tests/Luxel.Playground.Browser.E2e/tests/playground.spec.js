@@ -103,6 +103,31 @@ test('rejects an obvious unbounded loop without freezing the gallery', async ({ 
   await expect(root.locator('[data-playground-status]')).toHaveText('rendered', { timeout: 60_000 });
 });
 
+test('adds, selects, renames, deletes, and restores multiple workspace files', async ({ page }) => {
+  const { root } = await openPlayground(page);
+  const helperId = await root.evaluate(element => globalThis.LuxelPlayground.addFile(element, 'Helpers/Message.cs', 'csharp', 'public static class Message { public const string Value = "hello"; }'));
+  let workspace = await root.evaluate(element => globalThis.LuxelPlayground.getWorkspace(element));
+  expect(workspace.schemaVersion).toBe(2);
+  expect(workspace.activeFileId).toBe(helperId);
+  expect(workspace.files.map(file => file.path)).toContain('Helpers/Message.cs');
+  const modelUri = await page.evaluate(id => globalThis.monaco.editor.getModels().find(model => model.uri.toString().includes(encodeURIComponent(id)))?.uri.toString(), helperId);
+
+  await root.evaluate((element, id) => globalThis.LuxelPlayground.renameFile(element, id, 'Helpers/Renamed.cs'), helperId);
+  expect(await page.evaluate(id => globalThis.monaco.editor.getModels().find(model => model.uri.toString().includes(encodeURIComponent(id)))?.uri.toString(), helperId)).toBe(modelUri);
+  await page.reload();
+
+  const restoredRoot = page.locator('[data-playground]');
+  await expect.poll(() => restoredRoot.evaluate(element => element.dataset.playgroundEditor)).toBe('monaco');
+  workspace = await restoredRoot.evaluate(element => globalThis.LuxelPlayground.getWorkspace(element));
+  expect(workspace.files.find(file => file.id === helperId)).toMatchObject({ path: 'Helpers/Renamed.cs', source: 'public static class Message { public const string Value = "hello"; }' });
+  expect(workspace.activeFileId).toBe(helperId);
+
+  expect(await restoredRoot.evaluate((element, id) => globalThis.LuxelPlayground.deleteFile(element, id), helperId)).toBe(true);
+  workspace = await restoredRoot.evaluate(element => globalThis.LuxelPlayground.getWorkspace(element));
+  expect(workspace.files.some(file => file.id === helperId)).toBe(false);
+  expect(workspace.files).toHaveLength(1);
+});
+
 test('restores the local draft after a page reload without putting source in the URL', async ({ page }) => {
   const { root } = await openPlayground(page);
   const source = 'return Kit.Text("persisted draft");';
