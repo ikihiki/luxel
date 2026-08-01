@@ -90,6 +90,13 @@ const host = {
     setError(error);
     post("runtime-error", latestRevision, { error: { kind: "infrastructure", message: String(error), exceptionType: null, line: null } });
   },
+  publishLog: (revision, level, message) => {
+    if (!Number.isSafeInteger(revision) || revision !== latestRevision) return;
+    const entries = state.logs ||= [];
+    entries.push({ level: String(level || "information"), message: String(message || ""), timestamp: new Date().toISOString() });
+    while (entries.length > 200) entries.shift();
+    post("output", revision, { entries: [...entries] });
+  },
   publishFirstFrame: revision => {
     if (!Number.isSafeInteger(revision) || revision !== latestRevision) return;
     const diagnostics = pendingDiagnostics.get(revision) || [];

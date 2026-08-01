@@ -5,7 +5,7 @@
   "entryUrl": "./",
   "isolation": "iframe-recreate-per-run",
   "workerIsolation": false,
-  "defaultSource": "return Kit.Button(_ => { }, \"Click me\");",
+  "defaultSource": "return Kit.Button(_ => Log(\"Button clicked.\"), \"Click me\");",
   "messagesFromParent": ["run"],
-  "messagesFromRuntime": ["ready", "diagnostics", "runtime-error", "run-result"]
+  "messagesFromRuntime": ["ready", "diagnostics", "output", "runtime-error", "run-result"]
 }
