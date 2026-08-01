@@ -1,4 +1,5 @@
 using Luxel.Controls;
+using Luxel.Scripting;
 using Luxel.Scripting.Roslyn.Web;
 
 namespace Luxel.Scripting.Roslyn.Web.Tests;
@@ -98,6 +99,35 @@ public sealed class WebScriptPipelineTests
 
         Assert.False(compilation.Success);
         Assert.Contains(compilation.Diagnostics, d => d.Id == "LUXWEB001");
+    }
+
+    [Fact]
+    public async Task CommonExecutor_MapsCompilationAndRuntimeResults()
+    {
+        WebScriptCompiler compiler = CreateCompiler();
+        var executor = new RoslynWebScriptExecutor(
+            new InProcessWebScriptWorkerController(compiler, new WebScriptExecutor()));
+
+        ScriptExecutionResult success = await executor.ExecuteAsync(new Luxel.Scripting.ScriptExecutionRequest
+        {
+            Source = "return (Widget)Activator.CreateInstance(typeof(Text), nonPublic: true)!;",
+        });
+        Assert.Equal(Luxel.Scripting.ScriptExecutionOutcome.Succeeded, success.Outcome);
+        Assert.Equal(typeof(Text).FullName, success.ReturnValue);
+
+        ScriptExecutionResult compilation = await executor.ExecuteAsync(new Luxel.Scripting.ScriptExecutionRequest
+        {
+            Source = "return missingName;",
+        });
+        Assert.Equal(Luxel.Scripting.ScriptExecutionOutcome.CompilationFailed, compilation.Outcome);
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Code == "CS0103");
+
+        ScriptExecutionResult runtime = await executor.ExecuteAsync(new Luxel.Scripting.ScriptExecutionRequest
+        {
+            Source = "throw new InvalidOperationException(\"boom\");",
+        });
+        Assert.Equal(Luxel.Scripting.ScriptExecutionOutcome.RuntimeFailed, runtime.Outcome);
+        Assert.Equal("boom", runtime.Failure?.Message);
     }
 
     private static WebScriptCompiler CreateCompiler() => new(References());
