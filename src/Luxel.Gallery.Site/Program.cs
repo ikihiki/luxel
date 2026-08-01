@@ -6,15 +6,25 @@ using Luxel.Graphics.TwoD.Skia;
 using Luxel.Typography;
 using Luxel.UI;
 
-string output = args.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal))
+string? ReadOption(string name)
+{
+    int index = Array.IndexOf(args, name);
+    return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
+}
+
+string[] optionsWithValues = ["--filter", "--browser-webgpu-root", "--playground-browser-root", "--rasterizer"];
+string output = args.Select((value, index) => (value, index))
+    .FirstOrDefault(item => !item.value.StartsWith("--", StringComparison.Ordinal)
+        && (item.index == 0 || !optionsWithValues.Contains(args[item.index - 1], StringComparer.Ordinal))).value
     ?? Path.Combine(Environment.CurrentDirectory, "artifacts", "gallery-site");
-string? filter = args.SkipWhile(a => a != "--filter").Skip(1).FirstOrDefault();
-string? browserWebGpuRoot = args.SkipWhile(a => a != "--browser-webgpu-root").Skip(1).FirstOrDefault();
+string? filter = ReadOption("--filter");
+string? browserWebGpuRoot = ReadOption("--browser-webgpu-root");
+string? playgroundBrowserRoot = ReadOption("--playground-browser-root");
 StoryCatalog catalog = GalleryStoryProject.CreateCatalog();
 IReadOnlyList<StoryInfo> stories = filter is null ? catalog.All
     : catalog.All.Where(s => s.Path.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToArray();
 
-string rasterizerBackend = args.SkipWhile(a => a != "--rasterizer").Skip(1).FirstOrDefault()?.ToLowerInvariant() ?? "gpu";
+string rasterizerBackend = ReadOption("--rasterizer")?.ToLowerInvariant() ?? "gpu";
 using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
 using GpuDevice? device = rasterizerBackend == "gpu"
     ? new GpuDevice(Luxel.Graphics.Vulkan.VulkanBackend.Create())
@@ -26,7 +36,7 @@ using IRasterizer2D rasterizer = rasterizerBackend switch
     _ => throw new ArgumentException($"Unknown rasterizer: {rasterizerBackend} (gpu / skia)"),
 };
 using var host = new GalleryHost(rasterizer, font, catalog);
-SiteExportReport report = GallerySiteExporter.Export(host, stories, output, GallerySiteExporter.FindRepositoryRoot(), browserWebGpuRoot);
+SiteExportReport report = GallerySiteExporter.Export(host, stories, output, GallerySiteExporter.FindRepositoryRoot(), browserWebGpuRoot, playgroundBrowserRoot);
 Console.WriteLine($"gallery-site: stories={report.Stories}, images={report.Images}, unavailable={report.Unavailable}, errors={report.Errors}, output={output}");
 // Per-story capture failures are exported as validated, explicit error cards; structural validation failures throw.
 return 0;
