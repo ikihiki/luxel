@@ -52,13 +52,16 @@ test('shows compiler diagnostics and replaces the runtime iframe on rerun', asyn
   await expect(root.locator('iframe[data-playground-instance]')).toHaveCount(1);
 });
 
-test('removes a runtime that never becomes ready after the shared timeout', async ({ page }) => {
+test('removes a runtime that never becomes ready after the startup timeout', async ({ page }) => {
   const { root } = await openPlayground(page);
 
-  await root.evaluate(element => { element.dataset.playgroundRuntimeUrl = 'index.html'; });
+  await root.evaluate(element => {
+    element.dataset.playgroundRuntimeUrl = 'index.html';
+    element.dataset.playgroundStartupTimeoutMs = '500';
+  });
   await runSource(root, 'return Kit.Text("never executed");');
   await expect(root.locator('[data-playground-status]')).toHaveText('Timed out', { timeout: 15_000 });
-  await expect(root.locator('[data-playground-diagnostics]')).toContainText('5 second timeout');
+  await expect(root.locator('[data-playground-diagnostics]')).toContainText('did not become ready within 30 seconds');
   await expect(root.locator('iframe[data-playground-instance]')).toHaveCount(0);
 });
 
