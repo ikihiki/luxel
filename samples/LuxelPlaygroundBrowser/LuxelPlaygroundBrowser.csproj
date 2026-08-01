@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <LuxelBrowserWasm>true</LuxelBrowserWasm>
+    <WasmMainJSPath>wwwroot/main.js</WasmMainJSPath>
+    <!-- Interpreter execution with native relinking for HarfBuzz; this is not AOT. -->
+    <WasmBuildNative>true</WasmBuildNative>
+    <RunAOTCompilation>false</RunAOTCompilation>
+    <PublishTrimmed>false</PublishTrimmed>
+    <WebAssemblyEnableLinking>false</WebAssemblyEnableLinking>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Luxel.Scripting.Roslyn.Web\Luxel.Scripting.Roslyn.Web.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Controls\Luxel.Controls.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Graphics.WebGPU.Browser\Luxel.Graphics.WebGPU.Browser.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Typography\Luxel.Typography.csproj" AdditionalProperties="LuxelBrowserWasm=true" />
+    <ProjectReference Include="..\..\src\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Platform.Web\Luxel.Platform.Web.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.0" ExcludeAssets="all" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" Version="14.2.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\shaders\compiled\raster2d_bounds.wgsl" Link="Shaders\raster2d_bounds.wgsl" />
+    <EmbeddedResource Include="..\..\shaders\compiled\raster2d_bin.wgsl" Link="Shaders\raster2d_bin.wgsl" />
+    <EmbeddedResource Include="..\..\shaders\compiled\raster2d_fine.wgsl" Link="Shaders\raster2d_fine.wgsl" />
+    <EmbeddedResource Include="..\..\assets\fonts\BIZUDGothic-Regular.ttf" Link="Fonts\BIZUDGothic-Regular.ttf" />
+    <Content Include="..\..\src\Luxel.Graphics.WebGPU.Browser\wwwroot\luxel-webgpu-browser.js" Link="wwwroot\luxel-webgpu-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Luxel.Platform.Web\wwwroot\luxel-platform-web.js" Link="wwwroot\luxel-platform-web.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="CollectPlaygroundMetadataReferences" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <_PlaygroundMetadataReference Include="@(ReferencePath)"
+        Condition="'%(Filename)' == 'mscorlib' Or '%(Filename)' == 'netstandard' Or '%(Filename)' == 'System.Runtime' Or '%(Filename)' == 'System.Console' Or '%(Filename)' == 'System.Collections' Or '%(Filename)' == 'System.Linq' Or '%(Filename)' == 'System.Memory' Or '%(Filename)' == 'System.Numerics.Vectors' Or '%(Filename)' == 'Luxel.Scripting.Roslyn.Web' Or '%(Filename)' == 'Luxel.Scripting' Or '%(Filename)' == 'Luxel.UI' Or '%(Filename)' == 'Luxel.Controls' Or '%(Filename)' == 'Luxel.Graphics' Or '%(Filename)' == 'Luxel.Graphics.TwoD'" />
+    </ItemGroup>
+  </Target>
+  <Target Name="CopyPlaygroundMetadataReferencesToOutput" AfterTargets="Build" DependsOnTargets="CollectPlaygroundMetadataReferences">
+    <MakeDir Directories="$(OutDir)wwwroot/references" />
+    <Copy SourceFiles="@(_PlaygroundMetadataReference)" DestinationFolder="$(OutDir)wwwroot/references" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyPlaygroundMetadataReferencesToPublish" AfterTargets="Publish" DependsOnTargets="CollectPlaygroundMetadataReferences">
+    <MakeDir Directories="$(PublishDir)wwwroot/references" />
+    <Copy SourceFiles="@(_PlaygroundMetadataReference)" DestinationFolder="$(PublishDir)wwwroot/references" SkipUnchangedFiles="true" />
+  </Target>
+</Project>
