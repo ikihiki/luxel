@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Scripting\Luxel.Scripting.csproj" />
+    <ProjectReference Include="..\Luxel.Settings\Luxel.Settings.csproj" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="wwwroot\luxel-playground.css" />

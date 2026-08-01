@@ -112,20 +112,42 @@ public static class ScriptingStory
         public void Dispose() => (_output as IDisposable)?.Dispose();
     }
 
-    [Story(PlaygroundContract.StoryPath, Height = 620, Order = 2031)]
-    public static Widget Playground(StoryContext ctx, ScriptHost host, ICodeLanguage lang)
+    [Story(PlaygroundContract.StoryPath, Height = 700, Order = 2031)]
+    public static Widget Playground(StoryContext ctx, ScriptHost host, ICodeLanguage lang, Luxel.Settings.IFileStore files)
     {
-        var block = new CsxBlock(
-            "// Edit this C# and run it as a normal Gallery Story.\n" +
-            "var label = \"Click me\";\n" +
-            "Button(_ => Log(\"Button clicked.\"), label)",
-            maxWidth: 560, ctx, host, lang);
+        var template = new PlaygroundTemplate(
+            PlaygroundTemplates.Button.Id,
+            PlaygroundTemplates.Button.Title,
+            PlaygroundTemplates.Button.Description,
+            PlaygroundTemplates.Button.MainFileName,
+            [
+                PlaygroundTemplates.Button.Files[0],
+                new PlaygroundFile("Helpers.cs", """
+                    // Supporting C# files are compiled before the main .csx entry point.
+                    static class PlaygroundLabels
+                    {
+                        public const string Ready = "Workspace ready";
+                    }
+                    """),
+            ]);
+        var workspace = new NativePlaygroundWorkspace(template, 620, ctx, host, lang, files);
+
+        ctx.Play("workspace", async driver =>
+        {
+            await driver.Expect(() => workspace.FileNames.Count == 2, "native Playground opens a multi-file workspace");
+            workspace.Activate("Helpers.cs");
+            await driver.Expect(() => workspace.ActiveFileName == "Helpers.cs", "supporting file tab activates");
+            workspace.Activate(PlaygroundTemplates.Button.MainFileName);
+            await driver.Click(workspace.RunButton);
+            await driver.Step(4);
+            await driver.Expect(() => workspace.LastRunOk, "workspace sources compile and return a Widget");
+        });
 
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             VStack(10)[
                 Heading("C# Playground"),
-                Muted("Edit and run a Luxel Widget inside the Gallery. The native Gallery uses ScriptHost; the web Gallery uses the browser Roslyn runtime."),
-                block]];
+                Muted("A native multi-file Workbench workspace with persisted tabs, edits, and active file. Run compiles supporting C# files before the main script."),
+                workspace]];
     }
 
     [Story("Examples/Scripting/LiveCsx", Height = 520, Order = 2032)]

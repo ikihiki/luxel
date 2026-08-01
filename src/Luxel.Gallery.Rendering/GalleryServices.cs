@@ -1,6 +1,7 @@
 ﻿using Luxel.Controls;
 using Luxel.Gallery.Stories;
 using Luxel.Scripting;
+using Luxel.Settings;
 using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,6 +48,9 @@ public static class GalleryServices
     /// <summary>プロセス共有のサービスプロバイダ (初回参照で構築 — ScriptHost 初回コンパイルは 1-2 秒)。</summary>
     public static IServiceProvider Provider => Lazy.Value;
 
+    /// <summary>共有 Roslyn サービスを再構築せず、ホスト固有の永続ストアだけを上書きする。</summary>
+    public static IServiceProvider WithFileStore(IFileStore files) => new FileStoreProvider(files, Provider);
+
     private static IServiceProvider Build()
     {
         // 役割ごとの ScriptHost を束ねる登録簿 (UI 用をここで、ゲーム/ECS 用は各機能側が GetOrAdd で足す)。
@@ -59,6 +63,13 @@ public static class GalleryServices
         services.AddSingleton(sp => sp.GetRequiredService<ScriptHostRegistry>().Host(UiProfile));
         services.AddSingleton(sp => sp.GetRequiredService<ScriptHostRegistry>().Workspace(UiProfile));
         services.AddSingleton<ICodeLanguage>(sp => new Luxel.Gallery.Stories.CsharpCodeLanguage(sp.GetRequiredService<ScriptWorkspace>()));
+        services.AddSingleton<IFileStore, InMemoryFileStore>();
         return services.BuildServiceProvider();
+    }
+
+    private sealed class FileStoreProvider(IFileStore files, IServiceProvider fallback) : IServiceProvider
+    {
+        public object? GetService(Type serviceType)
+            => serviceType == typeof(IFileStore) ? files : fallback.GetService(serviceType);
     }
 }
