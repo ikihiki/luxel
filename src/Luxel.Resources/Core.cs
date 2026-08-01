@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 
 namespace Luxel.Resources;
 
@@ -62,16 +62,18 @@ public readonly struct StageAwaitable : INotifyCompletion
     public void GetResult() { }
 }
 
-/// <summary>uri の解析結果 (scheme/path/ext + fragment + キャッシュキー)。既定 scheme = file。</summary>
+/// <summary>uri の解析結果 (scheme/path/query/ext + fragment + キャッシュキー)。既定 scheme = file。</summary>
 public readonly struct ResourceUri
 {
     public string Scheme { get; }
     public string Path { get; }
+    public string Query { get; }
     public string Extension { get; }
     public string Fragment { get; }
 
     public ResourceUri(string raw)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(raw);
         raw = raw.Trim();
         int i = raw.IndexOf("://", StringComparison.Ordinal);
         string body;
@@ -82,25 +84,43 @@ public readonly struct ResourceUri
             if (c > 1) { Scheme = raw[..c].ToLowerInvariant(); body = raw[(c + 1)..]; }
             else { Scheme = "file"; body = raw; }
         }
+
         int hash = body.IndexOf('#');
-        if (hash >= 0) { Path = body[..hash]; Fragment = body[(hash + 1)..]; }
-        else { Path = body; Fragment = ""; }
+        string pathAndQuery;
+        if (hash >= 0) { pathAndQuery = body[..hash]; Fragment = body[(hash + 1)..]; }
+        else { pathAndQuery = body; Fragment = ""; }
+
+        int question = pathAndQuery.IndexOf('?');
+        if (question >= 0) { Path = pathAndQuery[..question]; Query = pathAndQuery[(question + 1)..]; }
+        else { Path = pathAndQuery; Query = ""; }
+
         int dot = Path.LastIndexOf('.');
         int slash = Path.LastIndexOfAny(['/', '\\']);
         Extension = dot > slash && dot >= 0 ? Path[dot..].ToLowerInvariant() : "";
     }
 
-    public string Key => Fragment.Length == 0
-        ? Scheme + "|" + Path
-        : Scheme + "|" + Path + "#" + Fragment;
+    public string Key
+    {
+        get
+        {
+            string key = Scheme + "|" + Path;
+            if (Query.Length > 0) key += "?" + Query;
+            return Fragment.Length == 0 ? key : key + "#" + Fragment;
+        }
+    }
+
     public string Url
     {
         get
         {
             string baseUrl = Scheme is "file" or "" ? Path : $"{Scheme}://{Path}";
+            if (Query.Length > 0) baseUrl += "?" + Query;
             return Fragment.Length == 0 ? baseUrl : baseUrl + "#" + Fragment;
         }
     }
-    public ResourceUri WithoutFragment() => Fragment.Length == 0 ? this : new ResourceUri(Url[..^(Fragment.Length + 1)]);
+
+    public ResourceUri WithoutFragment() => Fragment.Length == 0
+        ? this
+        : new ResourceUri(Url[..^(Fragment.Length + 1)]);
     public override string ToString() => Url;
 }

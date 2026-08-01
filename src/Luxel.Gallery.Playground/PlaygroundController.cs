@@ -27,16 +27,20 @@ public sealed class PlaygroundController : IDisposable
         get { lock (_gate) return _state; }
     }
 
-    public void UpdateFile(string fileName, string source)
-    {
-        PlaygroundState state;
-        lock (_gate)
-        {
-            _state = _state with { Draft = _state.Draft.UpdateFile(fileName, source) };
-            state = _state;
-        }
-        OnStateChanged(state);
-    }
+    public void UpdateFile(string fileNameOrId, string source, long? expectedRevision = null) =>
+        UpdateDraft(draft => draft.UpdateFile(fileNameOrId, source, expectedRevision));
+
+    public void AddFile(string path, string source = "", string? language = null, string? id = null, long? expectedRevision = null) =>
+        UpdateDraft(draft => draft.AddFile(path, source, language, id, expectedRevision));
+
+    public void RenameFile(string fileNameOrId, string newPath, string? language = null, long? expectedRevision = null) =>
+        UpdateDraft(draft => draft.RenameFile(fileNameOrId, newPath, language, expectedRevision));
+
+    public void DeleteFile(string fileNameOrId, long? expectedRevision = null) =>
+        UpdateDraft(draft => draft.DeleteFile(fileNameOrId, expectedRevision));
+
+    public void SelectFile(string fileNameOrId, long? expectedRevision = null) =>
+        UpdateDraft(draft => draft.SelectFile(fileNameOrId, expectedRevision));
 
     public ScriptExecutionRequest CreateRequest(TimeSpan? timeout = null)
     {
@@ -62,7 +66,6 @@ public sealed class PlaygroundController : IDisposable
             request = CreateRequest(_state.Draft, timeout) with
             {
                 RequestId = $"playground-{executionId}",
-                SourceRevision = executionId,
             };
             _state = _state with
             {
@@ -170,11 +173,23 @@ public sealed class PlaygroundController : IDisposable
         }
     }
 
+    private void UpdateDraft(Func<PlaygroundDraft, PlaygroundDraft> update)
+    {
+        PlaygroundState state;
+        lock (_gate)
+        {
+            _state = _state with { Draft = update(_state.Draft) };
+            state = _state;
+        }
+        OnStateChanged(state);
+    }
+
     private static ScriptExecutionRequest CreateRequest(PlaygroundDraft draft, TimeSpan? timeout)
     {
         PlaygroundFile main = draft.MainFile;
         return new ScriptExecutionRequest
         {
+            SourceRevision = draft.Revision,
             Source = main.Source,
             FileName = main.FileName,
             Files = draft.Files
