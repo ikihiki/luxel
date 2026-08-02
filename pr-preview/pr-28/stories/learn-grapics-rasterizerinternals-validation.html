@@ -1,0 +1,61 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Grapics/RasterizerInternals/Validation</h1></header><h1 id="correctness">性能と correctness の検証</h1>
+<ul>
+<li><a href="#story=Learn%2FGrapics%2FRasterizerInternals%2FValidation&amp;section=%E5%AE%9F%E8%A3%85%E3%81%AE%E6%AD%A3">実装の正</a></li>
+</ul>
+<div class="markdown-alert markdown-alert-warning">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p>ここで扱う型、buffer layout、tile size は現在の内部実装です。通常のアプリは <code>IRasterizer2D</code> と <code>Scene2D</code> を使ってください。</p>
+</div>
+<p><strong>難易度:</strong> Advanced　 <strong>実行環境:</strong> Implementation reading + Gallery　 <strong>Backend:</strong> GPU compute　 <strong>前提知識:</strong> Learn/Grapics/TwoD</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FRasterizerInternals%2FRetainedUploads">RetainedUploads</a></p>
+<p>fill rule、clip、stroke、overflow fallback、backend pixel parity を golden と unit test で確認します。shader を変えたら SPIR-V/DXIL cache と <code>inputs.sha256</code> も更新します。</p>
+<h2 id="section">実装の正</h2>
+<pre><code class="language-csharp">using System.Numerics;
+using Luxel.Graphics.TwoD;
+using Xunit;
+
+namespace Luxel.Tests;
+
+public class Affine2DTests
+{
+    [Fact]
+    public void TranslateApply()
+    {
+        var t = Affine2D.Translate(10, 20);
+        Assert.Equal(new Vector2(15, 25), t.Apply(new Vector2(5, 5)));
+    }
+
+    [Fact]
+    public void Compose_AppliesSecondThenFirst()
+    {
+        // world = parent ∘ local。local で平行移動してから parent でスケール。
+        var parent = Affine2D.Scale(2, 2);
+        var local = Affine2D.Translate(3, 4);
+        var world = Affine2D.Mul(parent, local);
+        // 点 (0,0): local→(3,4)→parentでスケール→(6,8)
+        Assert.Equal(new Vector2(6, 8), world.Apply(Vector2.Zero));
+    }
+
+    [Fact]
+    public void Rotate90_MapsXtoY()
+    {
+        var r = Affine2D.Rotate(MathF.PI / 2);
+        Vector2 p = r.Apply(new Vector2(1, 0));
+        Assert.True(MathF.Abs(p.X) &lt; 1e-5 &amp;&amp; MathF.Abs(p.Y - 1) &lt; 1e-5);
+    }
+}
+
+public class Color2DTests
+{
+    [Fact]
+    public void RgbaPacksLittleEndian()
+    {
+        uint c = Color2D.Rgba(0x11, 0x22, 0x33, 0x44);
+        Assert.Equal(0x44332211u, c);
+    }
+}
+</code></pre>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/RasterizerInternals/Validation&quot;, Order = 10)]
+public static Widget Validation(StoryContext ctx) =&gt; Page(ctx, &quot;Learn/Grapics/RasterizerInternals/Validation&quot;, &quot;性能と correctness の検証&quot;,
+    &quot;fill rule、clip、stroke、overflow fallback、backend pixel parity を golden と unit test で確認します。shader を変えたら SPIR-V/DXIL cache と `inputs.sha256` も更新します。&quot;,
+    &quot;tests/Luxel.Tests/TwoDTests.cs&quot;, &quot;Learn/Grapics/RasterizerInternals/RetainedUploads&quot;, null);</code></pre></details></article>

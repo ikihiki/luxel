@@ -1,0 +1,35 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/2D/Gizmos2D</h1></header><figure class="static-capture"><img src="images/examples-2d-gizmos2d.png" alt="Examples/2D/Gizmos2D" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/2D/Gizmos2D&quot;, Height = 320, Order = 151)]
+public static Widget Gizmos2DDemo(StoryContext ctx) =&gt; ctx.Snap(Frame(Canvas2D(W, H, draw: s =&gt;
+{
+    TileMap map = BuildMap();
+
+    // --- 下地: ゲーム画面 (衝突タイルを塗り + プレイヤー箱) ---
+    s.FillRect(Color2D.Rgba(22, 26, 34), 0, 0, W, H);
+    for (int y = 0; y &lt; map.Height; y++)
+        for (int x = 0; x &lt; map.Width; x++)
+            if (map.TileSet.IsSolid(map.Get(x, y)))
+                s.FillRect(Color2D.Rgba(72, 78, 96), x * Tile, y * Tile, Tile, Tile);
+    s.FillRoundedRect(Color2D.Rgba(90, 170, 245), 176, 210, 16, 30, 3);   // プレイヤー (地面 y=240 の上)
+
+    // --- gizmo (決定的に毎フレーム作り直す) ---
+    DebugDraw.Reset();
+    DebugDraw.Enable(Gizmos2D.Tiles);
+    DebugDraw.Enable(Gizmos2D.Camera);
+    DebugDraw.Enable(ParticleGizmos.Emitters);
+
+    Gizmos2D.TileCollision(map, new RectF(0, 0, W, H), Color2D.Rgba(240, 120, 90), 1.5f);   // 衝突タイル (橙)
+
+    var rig = new CameraRig2D { Deadzone = new Vector2(150, 100), WorldBounds = new RectF(0, 0, 28 * Tile, 17 * Tile) };
+    rig.Target = new Vector2(230, 140);
+    rig.SnapToTarget();
+    Gizmos2D.CameraRig(rig, Color2D.Rgba(90, 220, 120), Color2D.Rgba(90, 200, 240), 1.5f);   // デッドゾーン緑 / 境界シアン
+
+    var ps = new ParticleSystem(
+        new ParticleConfig(Life: 5f, Speed: 0f, SpreadRadians: 0, BaseAngle: 0, Gravity: 0, Drag: 0,
+            Size: 1f, Color: ParticleColor.Const(0xFFFFFFFF)), capacity: 64, seed: 1);
+    ps.Emit(new Vector3(392, 70, 0), 24);
+    ParticleGizmos.Emitter(ps, new Vector2(392, 70), Color2D.Rgba(235, 120, 235), 7f);   // エミッタ (マゼンタ) + alive
+
+    DebugDraw.Flush(s, w =&gt; new Vector2(w.X, w.Y),
+        (sc, t, x, y, h, c) =&gt; Font.Value.AppendText(sc, t, x, y, h, c));
+})));</code></pre></details></article>

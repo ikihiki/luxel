@@ -1,0 +1,112 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Grapics/ThreeD/Shipping</h1></header><h1 id="publish">Publishして別ディレクトリから起動する</h1>
+<ul>
+<li><a href="#story=Learn%2FGrapics%2FThreeD%2FShipping&amp;section=%E5%88%A5cwd-smoke-test">別cwd smoke test</a></li>
+</ul>
+<p><strong>難易度:</strong> Beginner+　 <strong>実行環境:</strong> Published standalone app　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> Debugging</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FThreeD%2FDebugging">Debugging</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FTwoD%2FOverview">Overview</a></p>
+<p>このページが初心者経路の終点です。次は3D capstoneの<a href="#story=Apps%2FGame%2FRange">Apps/Game/Range</a>へ進めます。</p>
+<p>executable projectが<code>shaders/Luxel.Shaders.targets</code>をimportすると、compiled shaderはbuild/publishの<code>shaders/</code>へ入ります。loose assetは<code>Content</code>として出力とpublishの両方へ含めます。</p>
+<pre><code class="language-xml">&lt;ItemGroup&gt;
+  &lt;Content Include=&quot;assets/**&quot;&gt;
+    &lt;CopyToOutputDirectory&gt;PreserveNewest&lt;/CopyToOutputDirectory&gt;
+    &lt;CopyToPublishDirectory&gt;PreserveNewest&lt;/CopyToPublishDirectory&gt;
+  &lt;/Content&gt;
+&lt;/ItemGroup&gt;
+&lt;Import Project=&quot;../../shaders/Luxel.Shaders.targets&quot; /&gt;
+</code></pre>
+<p>codeはcwdではなくexecutable基準でassetを解決します。</p>
+<pre><code class="language-csharp">string model = Path.Combine(AppContext.BaseDirectory, &quot;assets&quot;, &quot;Box.glb&quot;);
+string shaderDirectory = Path.Combine(AppContext.BaseDirectory, &quot;shaders&quot;);
+if (!File.Exists(model))
+    throw new FileNotFoundException($&quot;Published model is missing: {model}&quot;, model);
+</code></pre>
+<h2 id="cwd-smoke-test">別cwd smoke test</h2>
+<p>publish directory内へ<code>cd</code>して起動するだけではcwd依存を発見できません。空の別directoryをcwdにして、executableは絶対pathで起動します。</p>
+<pre><code class="language-powershell">$publish = Join-Path $env:TEMP &quot;luxel-triangle-publish&quot;
+$cwd = Join-Path $env:TEMP &quot;luxel-triangle-empty-cwd&quot;
+Remove-Item $publish,$cwd -Recurse -Force -ErrorAction Ignore
+New-Item $publish,$cwd -ItemType Directory | Out-Null
+
+dotnet publish samples/LuxelTriangle/LuxelTriangle.csproj `
+  -c Release -o $publish
+
+@(
+  &quot;shaders/tutorial_triangle.spv&quot;,
+  &quot;shaders/tutorial_3d.spv&quot;,
+  &quot;shaders/compute_tutorial_postprocess.spv&quot;
+) | ForEach-Object {
+  if (-not (Test-Path (Join-Path $publish $_))) { throw &quot;missing: $_&quot; }
+}
+
+Push-Location $cwd
+try {
+  &amp; (Join-Path $publish &quot;LuxelTriangle.exe&quot;) vk --stage post --frames 3
+  if ($LASTEXITCODE -ne 0) { throw &quot;Vulkan smoke failed&quot; }
+} finally { Pop-Location }
+</code></pre>
+<p>この手順はrepository rootの<code>rendering-ship-verify.ps1</code>として実行できます。Windowsで<code>-IncludeRange</code>を付けると、<code>LuxelRange</code>のFox asset、license、static/skinned shaderも構造検査してからVulkan/D3D12で起動します。</p>
+<p>Windowsでは同じpublishへ<code>dx --stage post --frames 3</code>も実行します。Linuxでは実行ファイル名に<code>.exe</code>を付けず、X11/XvfbとVulkan ICDを用意します。capstoneのasset/shader配置とrun/publish手順は<code>samples/LuxelRange/README.md</code>へ続きます。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/ThreeD/Shipping&quot;, Order = 14)]
+public static Widget Shipping(StoryContext ctx)
+{
+    return DocNew(ctx, $$&quot;&quot;&quot;
+    # Publishして別ディレクトリから起動する
+
+    {{RenderingCourseCatalog.Meta(&quot;Learn/Grapics/ThreeD/Shipping&quot;, &quot;Beginner+&quot;, &quot;Published standalone app&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;Debugging&quot;)}}
+
+    このページが初心者経路の終点です。次は3D capstoneの[Apps/Game/Range](story:Apps/Game/Range)へ進めます。
+
+    executable projectが`shaders/Luxel.Shaders.targets`をimportすると、compiled shaderはbuild/publishの`shaders/`へ入ります。loose assetは`Content`として出力とpublishの両方へ含めます。
+
+    ```xml
+    &lt;ItemGroup&gt;
+      &lt;Content Include=&quot;assets/**&quot;&gt;
+        &lt;CopyToOutputDirectory&gt;PreserveNewest&lt;/CopyToOutputDirectory&gt;
+        &lt;CopyToPublishDirectory&gt;PreserveNewest&lt;/CopyToPublishDirectory&gt;
+      &lt;/Content&gt;
+    &lt;/ItemGroup&gt;
+    &lt;Import Project=&quot;../../shaders/Luxel.Shaders.targets&quot; /&gt;
+    ```
+
+    codeはcwdではなくexecutable基準でassetを解決します。
+
+    ```csharp
+    string model = Path.Combine(AppContext.BaseDirectory, &quot;assets&quot;, &quot;Box.glb&quot;);
+    string shaderDirectory = Path.Combine(AppContext.BaseDirectory, &quot;shaders&quot;);
+    if (!File.Exists(model))
+        throw new FileNotFoundException($&quot;Published model is missing: {model}&quot;, model);
+    ```
+
+    ## 別cwd smoke test
+
+    publish directory内へ`cd`して起動するだけではcwd依存を発見できません。空の別directoryをcwdにして、executableは絶対pathで起動します。
+
+    ```powershell
+    $publish = Join-Path $env:TEMP &quot;luxel-triangle-publish&quot;
+    $cwd = Join-Path $env:TEMP &quot;luxel-triangle-empty-cwd&quot;
+    Remove-Item $publish,$cwd -Recurse -Force -ErrorAction Ignore
+    New-Item $publish,$cwd -ItemType Directory | Out-Null
+
+    dotnet publish samples/LuxelTriangle/LuxelTriangle.csproj `
+      -c Release -o $publish
+
+    @(
+      &quot;shaders/tutorial_triangle.spv&quot;,
+      &quot;shaders/tutorial_3d.spv&quot;,
+      &quot;shaders/compute_tutorial_postprocess.spv&quot;
+    ) | ForEach-Object {
+      if (-not (Test-Path (Join-Path $publish $_))) { throw &quot;missing: $_&quot; }
+    }
+
+    Push-Location $cwd
+    try {
+      &amp; (Join-Path $publish &quot;LuxelTriangle.exe&quot;) vk --stage post --frames 3
+      if ($LASTEXITCODE -ne 0) { throw &quot;Vulkan smoke failed&quot; }
+    } finally { Pop-Location }
+    ```
+
+    この手順はrepository rootの`rendering-ship-verify.ps1`として実行できます。Windowsで`-IncludeRange`を付けると、`LuxelRange`のFox asset、license、static/skinned shaderも構造検査してからVulkan/D3D12で起動します。
+
+    Windowsでは同じpublishへ`dx --stage post --frames 3`も実行します。Linuxでは実行ファイル名に`.exe`を付けず、X11/XvfbとVulkan ICDを用意します。capstoneのasset/shader配置とrun/publish手順は`samples/LuxelRange/README.md`へ続きます。
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>
