@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.QuickInfo;
 using Microsoft.CodeAnalysis.Text;
@@ -108,6 +109,22 @@ public sealed class WebScriptLanguageService : IDisposable
         return new WebHoverResult(revision, markdown, start, length);
     }
 
+    public Task<WebFormatResult> FormatAsync(string source, int revision = 0, CancellationToken cancellationToken = default)
+        => FormatAsync(WebScriptProject.FromSource(source), WebScriptCompiler.ScriptFileName, revision, cancellationToken);
+
+    public async Task<WebFormatResult> FormatAsync(
+        WebScriptProject project,
+        string fileName,
+        int revision = 0,
+        CancellationToken cancellationToken = default)
+    {
+        (RoslynDocument document, _, _) = WithProject(project, fileName);
+        RoslynDocument formatted = await Formatter.FormatAsync(document, cancellationToken: cancellationToken);
+        string text = (await formatted.GetTextAsync(cancellationToken)).ToString();
+        bool isEntry = string.Equals(fileName, project.EntryDocument.FileName, StringComparison.OrdinalIgnoreCase);
+        return new WebFormatResult(revision, isEntry ? ExtractEntryBody(text, fileName) : text);
+    }
+
     public Task<WebAnalysisResult> AnalyzeAsync(string source, int revision = 0, CancellationToken cancellationToken = default)
         => AnalyzeAsync(WebScriptProject.FromSource(source), revision, cancellationToken);
 
@@ -160,6 +177,22 @@ public sealed class WebScriptLanguageService : IDisposable
         if (!_workspace.TryApplyChanges(solution))
             throw new InvalidOperationException("Roslyn rejected the Playground project update.");
         return (_workspace.CurrentSolution.GetDocument(targetId!)!, bodyStart, target.Source.Length);
+    }
+
+    private static string ExtractEntryBody(string generated, string fileName)
+    {
+        int bodyStart = FindBodyStart(generated, fileName);
+        int bodyEnd = generated.IndexOf("#line default", bodyStart, StringComparison.Ordinal);
+        if (bodyEnd < 0)
+            throw new InvalidOperationException("The formatted Playground source is missing its source mapping terminator.");
+
+        string body = generated[bodyStart..bodyEnd].Replace("\r\n", "\n", StringComparison.Ordinal).Trim('\n');
+        string[] lines = body.Split('\n');
+        int indentation = lines.Where(line => line.Length > 0)
+            .Select(line => line.TakeWhile(char.IsWhiteSpace).Count())
+            .DefaultIfEmpty(0)
+            .Min();
+        return string.Join("\n", lines.Select(line => line.Length >= indentation ? line[indentation..] : string.Empty));
     }
 
     private static int FindBodyStart(string generated, string fileName)

@@ -70,6 +70,7 @@ public static class PlaygroundWorkspace
             .Append("<div class=\"playground-workspace\"><nav class=\"playground-files\" aria-label=\"Workspace files\">")
             .Append("<div class=\"playground-file-actions\" role=\"toolbar\" aria-label=\"File actions\">")
             .Append("<button type=\"button\" data-playground-file-add>Add file</button>")
+            .Append("<button type=\"button\" data-playground-file-format>Format</button>")
             .Append("<button type=\"button\" data-playground-file-rename>Rename</button>")
             .Append("<button type=\"button\" data-playground-file-delete>Delete</button></div>")
             .Append("<div class=\"playground-file-list\" role=\"tablist\" aria-label=\"Open files\" data-playground-file-list>");

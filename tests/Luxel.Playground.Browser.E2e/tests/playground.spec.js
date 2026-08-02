@@ -121,6 +121,31 @@ test('adapts the editor and preview layout from desktop through iPad to mobile',
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 
+test('formats active C# files and disables formatting for Slang', async ({ page }) => {
+  const { root } = await openPlayground(page);
+  const format = root.locator('[data-playground-file-format]');
+
+  await setSource(root, 'if(true){return Kit.Text("ok");}');
+  await format.click();
+  await expect.poll(() => getSource(root)).toBe('if (true) { return Kit.Text("ok"); }');
+
+  const supportId = await root.evaluate(element => globalThis.LuxelPlayground.addFile(element, 'Support.cs', 'csharp', 'public static class Support{public static int Value=>1;}'));
+  await expect(format).toBeEnabled();
+  await format.click();
+  await expect.poll(() => getSource(root)).toBe('public static class Support { public static int Value => 1; }');
+  expect((await root.evaluate(element => globalThis.LuxelPlayground.getWorkspace(element))).activeFileId).toBe(supportId);
+
+  await root.locator('[data-playground-sample-select]').selectOption('slang-cube');
+  page.once('dialog', dialog => dialog.accept());
+  await root.locator('[data-playground-sample-load]').click();
+  const shaderId = await root.evaluate(element => globalThis.LuxelPlayground.getWorkspace(element).files.find(file => file.language === 'slang').id);
+  await root.evaluate((element, fileId) => globalThis.LuxelPlayground.selectFile(element, fileId), shaderId);
+  const shader = await getSource(root);
+  await expect(format).toBeDisabled();
+  await expect(format).toHaveAttribute('title', 'Formatting is available for C# files.');
+  expect(await getSource(root)).toBe(shader);
+});
+
 test('supports roving keyboard focus across workspace file tabs', async ({ page }) => {
   const { root } = await openPlayground(page);
   const secondId = await root.evaluate(element => globalThis.LuxelPlayground.addFile(element, 'Second.cs', 'csharp', 'class Second {}'));

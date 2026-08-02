@@ -317,6 +317,25 @@ public sealed class WebScriptPipelineTests
     }
 
     [Fact]
+    public async Task LanguageService_FormatsEntryAndSupportDocuments()
+    {
+        using var service = new WebScriptLanguageService(References());
+        const string entry = "if(true){return Kit.Text(\"ok\");}";
+        const string support = "public static class Support{public static int Value=>1;}";
+        var project = new WebScriptProject(
+            new WebScriptDocument("entry.csx", entry),
+            [new WebScriptDocument("support.cs", support)]);
+
+        WebFormatResult formattedEntry = await service.FormatAsync(project, "entry.csx", revision: 13);
+        WebFormatResult formattedSupport = await service.FormatAsync(project, "support.cs", revision: 14);
+
+        Assert.Equal(13, formattedEntry.Revision);
+        Assert.Equal("if (true) { return Kit.Text(\"ok\"); }", formattedEntry.Source);
+        Assert.Equal(14, formattedSupport.Revision);
+        Assert.Equal("public static class Support { public static int Value => 1; }", formattedSupport.Source);
+    }
+
+    [Fact]
     public async Task LanguageService_MapsSupportDiagnosticsToTheirDocument()
     {
         using var service = new WebScriptLanguageService(References());

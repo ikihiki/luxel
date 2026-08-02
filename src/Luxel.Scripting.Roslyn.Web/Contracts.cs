@@ -186,6 +186,10 @@ public sealed record WebHoverResult(
     int Start,
     int Length);
 
+public sealed record WebFormatResult(
+    int Revision,
+    string Source);
+
 public sealed record WebAnalysisResult(
     int Revision,
     IReadOnlyList<WebScriptDiagnostic> Diagnostics);

@@ -7,6 +7,17 @@ namespace Luxel.Gallery.Playground.Tests;
 public sealed class PlaygroundPresentationTests
 {
     [Fact]
+    public void Workspace_renders_a_format_action_for_the_active_file()
+    {
+        string html = PlaygroundWorkspace.Render(new PlaygroundState { Draft = PlaygroundTemplates.Button.CreateDraft() });
+        string script = PlaygroundAssets.ReadScript();
+
+        Assert.Contains("data-playground-file-format", html, StringComparison.Ordinal);
+        Assert.Contains("registerDocumentFormattingEditProvider", script, StringComparison.Ordinal);
+        Assert.Contains("luxel-playground:file-formatted", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Workspace_exports_accessible_editor_controls_and_result_regions()
     {
         PlaygroundDraft draft = PlaygroundTemplates.Button.CreateDraft().UpdateFile(

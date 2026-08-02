@@ -204,6 +204,12 @@ public static partial class Program
             : JsonSerializer.Serialize(await _languageService.HoverAsync(source, position, revision), JsonOptions);
 
     [JSExport]
+    public static async Task<string> Format(string source, int revision)
+        => _languageService is null
+            ? SerializeError("The Playground language service is not ready.")
+            : JsonSerializer.Serialize(await _languageService.FormatAsync(source, revision), JsonOptions);
+
+    [JSExport]
     public static async Task<string> Analyze(string source, int revision)
         => _languageService is null
             ? SerializeError("The Playground language service is not ready.")
@@ -227,6 +233,16 @@ public static partial class Program
         BrowserWorkspaceFile file = workspace.File(fileId);
         return JsonSerializer.Serialize(await _languageService.HoverAsync(
             workspace.ToWebScriptProject(), file.Path, position, revision), JsonOptions);
+    }
+
+    [JSExport]
+    public static async Task<string> FormatProject(string projectJson, string fileId, int revision)
+    {
+        if (_languageService is null) return SerializeError("The Playground language service is not ready.");
+        BrowserWorkspaceSnapshot workspace = BrowserWorkspaceSnapshot.Parse(projectJson, revision);
+        BrowserWorkspaceFile file = workspace.File(fileId);
+        return JsonSerializer.Serialize(await _languageService.FormatAsync(
+            workspace.ToWebScriptProject(), file.Path, revision), JsonOptions);
     }
 
     [JSExport]

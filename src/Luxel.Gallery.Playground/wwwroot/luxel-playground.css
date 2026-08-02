@@ -44,6 +44,7 @@
 .playground-files { min-width: 0; border-right: 1px solid #30363d; padding-right: .75rem; }
 .playground-file-actions { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .5rem; }
 .playground-file-actions button { border: 1px solid #8b949e; border-radius: .3rem; padding: .35rem .5rem; color: inherit; background: #21262d; cursor: pointer; font-size: 12px; }
+.playground-file-actions button:disabled { cursor: not-allowed; opacity: .5; }
 .playground-file-list { display: flex; min-width: 0; flex-direction: column; gap: .25rem; }
 .playground-file-list [role="tab"] { overflow: hidden; width: 100%; border: 1px solid transparent; border-radius: .3rem; padding: .45rem .5rem; color: #c9d1d9; background: transparent; text-align: left; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
 .playground-file-list [role="tab"][aria-selected="true"] { border-color: #388bfd; background: #1f6feb33; color: #fff; }
