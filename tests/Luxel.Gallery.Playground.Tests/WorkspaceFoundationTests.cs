@@ -90,6 +90,25 @@ public sealed class WorkspaceFoundationTests
     }
 
     [Fact]
+    public void Sample_catalog_has_stable_valid_workspaces_and_a_3d_slang_sample()
+    {
+        Assert.Equal(PlaygroundTemplates.All.Count, PlaygroundTemplates.All.Select(template => template.Id).Distinct(StringComparer.Ordinal).Count());
+        foreach (PlaygroundTemplate template in PlaygroundTemplates.All)
+        {
+            PlaygroundDraft draft = template.CreateDraft();
+            Assert.Equal("csharp-script", draft.MainFile.Language);
+            Assert.Equal(template.Files.Count, template.Files.Select(file => file.Id).Distinct(StringComparer.Ordinal).Count());
+        }
+
+        PlaygroundDraft cube = PlaygroundTemplates.SlangCube.CreateDraft();
+        Assert.Equal(3, cube.Files.Count);
+        Assert.Contains(cube.Files, file => file.Path == "SlangCubeScene.cs" && file.Language == "csharp");
+        Assert.Contains(cube.Files, file => file.Path == "Shaders/cube.slang" && file.Language == "slang");
+        Assert.Contains("WebScriptResources.Get<GpuShaderCode>", cube.MainFile.Source);
+        Assert.Contains("Kit.GpuView", cube.MainFile.Source);
+    }
+
+    [Fact]
     public void Workspace_vfs_is_case_insensitive_across_platforms()
     {
         var vfs = new WorkspaceFileSystem();

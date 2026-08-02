@@ -88,8 +88,8 @@ public sealed class PlaygroundSiteExporterTests
 
         Assert.Contains("playgroundStartupTimeoutMs || 30000", script);
         Assert.Contains("Playground runtime did not become ready within 30 seconds.", script);
-        Assert.Contains("playgroundExecutionTimeoutMs || 5000", script);
-        Assert.Contains("Script execution exceeded the 5 second timeout.", script);
+        Assert.Contains("hasSlang ? 20000 : 5000", script);
+        Assert.Contains("Script execution exceeded the ${executionTimeoutMs / 1000} second timeout.", script);
         Assert.Contains("clearTimeout(session.timeout)", script);
         Assert.Contains("destroy(root);", script);
     }

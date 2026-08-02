@@ -76,11 +76,12 @@ public sealed partial class BrowserSlangCompiler : ISlangCompiler
         if (!response.Success || string.IsNullOrEmpty(response.Wgsl))
             throw new ShaderCompilationException(response.Error ?? "Slang/WASM compilation failed.", diagnostics);
 
+        string wgsl = WgslNormalizer.Normalize(response.Wgsl, options.ProgramKind, source.Path);
         SlangEntryPoint representative = options.EffectiveEntryPoints[0];
         return new SlangCompilation(
             SlangCompileTarget.Wgsl,
             options.ProgramKind,
-            [new SlangArtifact(representative.Name, representative.Stage, System.Text.Encoding.UTF8.GetBytes(response.Wgsl))],
+            [new SlangArtifact(representative.Name, representative.Stage, Encoding.UTF8.GetBytes(wgsl))],
             diagnostics);
     }
 

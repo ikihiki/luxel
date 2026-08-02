@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using Luxel.Scripting;
 
 namespace Luxel.Gallery.Playground;
@@ -23,10 +24,42 @@ public static class PlaygroundWorkspace
             .Append("\" data-workspace-revision=\"").Append(state.Draft.Revision.ToString(CultureInfo.InvariantCulture))
             .Append("\" data-execution-id=\"").Append(state.ExecutionId.ToString(CultureInfo.InvariantCulture)).Append("\" aria-labelledby=\"")
             .Append(safeId).Append("-title\">");
-        html.Append("<header class=\"playground-header\"><div><h1 id=\"").Append(safeId).Append("-title\">")
-            .Append(H(state.Draft.Title)).Append("</h1><p>Edit and run this example in your browser.</p></div>")
+        html.Append("<header class=\"playground-header\"><div><h1 id=\"").Append(safeId).Append("-title\" data-playground-title>")
+            .Append(H(state.Draft.Title)).Append("</h1><p data-playground-description>").Append(H(
+                PlaygroundTemplates.All.FirstOrDefault(template => template.Id == state.Draft.TemplateId)?.Description
+                ?? "Edit and run this example in your browser.")).Append("</p></div>")
             .Append("<p class=\"playground-status\" role=\"status\" aria-live=\"polite\" data-playground-status>")
             .Append(H(state.StatusText)).Append("</p></header>");
+        html.Append("<div class=\"playground-samples\" role=\"group\" aria-label=\"Playground samples\">")
+            .Append("<label for=\"").Append(safeId).Append("-sample\">Sample</label>")
+            .Append("<select id=\"").Append(safeId).Append("-sample\" data-playground-sample-select>");
+        foreach (PlaygroundTemplate template in PlaygroundTemplates.All)
+            html.Append("<option value=\"").Append(H(template.Id)).Append("\"")
+                .Append(template.Id == state.Draft.TemplateId ? " selected" : "").Append('>')
+                .Append(H(template.Title)).Append("</option>");
+        html.Append("</select><button type=\"button\" data-playground-sample-load>Load sample</button></div>");
+        html.Append("<script type=\"application/json\" data-playground-samples>")
+            .Append(JsonSerializer.Serialize(PlaygroundTemplates.All.Select(template => new
+            {
+                id = template.Id,
+                title = template.Title,
+                description = template.Description,
+                workspace = new
+                {
+                    schemaVersion = 2,
+                    revision = 0,
+                    entryFileId = template.CreateDraft().MainFileId,
+                    activeFileId = template.CreateDraft().SelectedFileId,
+                    files = template.Files.Select(file => new
+                    {
+                        id = file.Id,
+                        path = file.Path,
+                        language = file.Language,
+                        source = file.Source,
+                        version = file.Version,
+                    }),
+                },
+            }))).Append("</script>");
         html.Append("<div class=\"playground-actions\" role=\"toolbar\" aria-label=\"Playground actions\">")
             .Append("<button type=\"button\" data-playground-run").Append(state.CanRun ? "" : " disabled").Append(">Run</button>")
             .Append("<button type=\"button\" data-playground-cancel").Append(state.CanCancel ? "" : " disabled").Append(">Stop</button>")

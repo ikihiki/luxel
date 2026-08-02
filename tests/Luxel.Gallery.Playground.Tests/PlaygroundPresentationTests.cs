@@ -60,6 +60,10 @@ public sealed class PlaygroundPresentationTests
         Assert.Contains("Monaco C# · Browser Roslyn completion, hover, and live diagnostics", html);
         Assert.Contains("data-playground-monaco", html);
         Assert.Contains("data-playground-editor-host", html);
+        Assert.Contains("data-playground-sample-select", html);
+        Assert.Contains("data-playground-sample-load", html);
+        Assert.Contains("data-playground-samples", html);
+        Assert.Contains("3D Slang Cube", html);
         Assert.Contains("data-playground-run", html);
         Assert.Contains(">Run</button>", html);
         Assert.Contains(">Stop</button>", html);
@@ -148,6 +152,10 @@ public sealed class PlaygroundPresentationTests
         Assert.Contains("root.dataset.workspaceRevision", script);
         Assert.Contains("selectFile(root, workspace.activeFileId, null, false)", script);
         Assert.Contains("cloneWorkspace", script);
+        Assert.Contains("readSamples", script);
+        Assert.Contains("loadSample", script);
+        Assert.Contains("sampleId", script);
+        Assert.Contains("Replace the current workspace with this sample?", script);
         Assert.Contains("addFile", script);
         Assert.Contains("renameFile", script);
         Assert.Contains("deleteFile", script);
@@ -186,6 +194,7 @@ public sealed class PlaygroundPresentationTests
         Assert.Contains("@container luxel-playground (min-width: 62rem)", style);
         Assert.Contains("@container luxel-playground (max-width: 40rem)", style);
         Assert.Contains("grid-template-columns: minmax(0, 2fr) minmax(20rem, 1fr)", style);
+        Assert.Contains(".playground-samples", style);
         Assert.Contains(".playground-preview iframe", style);
         Assert.Contains("min-height: 44px", style);
         Assert.Contains(":focus-visible", style);

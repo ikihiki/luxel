@@ -54,6 +54,34 @@ public sealed class SharedShaderTests
         Assert.Equal("wgsl", Encoding.UTF8.GetString(handle.Value.Wgsl!));
     }
 
+    [Fact]
+    public void WgslNormalizerAppliesGraphicsResourceAbi()
+    {
+        const string source = """
+            var<uniform> g_args_0 : DrawArgs_std430_0;
+            @binding(0) @group(0) var g_buffers_0 : array<array<u32>>;
+            fn load(index: u32, offset: u32) -> u32 {
+                return g_buffers_0[index][offset];
+            }
+            """;
+
+        string normalized = WgslNormalizer.Normalize(source, ShaderProgramKind.Graphics);
+
+        Assert.Contains("@group(0) @binding(1) var<uniform> g_args_0", normalized);
+        Assert.Contains("@group(0) @binding(0) var<storage, read> g_buffers_0 : array<u32>;", normalized);
+        Assert.Contains("g_buffers_0[(((index) * 64u) + (offset))]", normalized);
+    }
+
+    [Fact]
+    public void WgslNormalizerMakesComputeArenaWritable()
+    {
+        const string source = "@binding(0) @group(0) var g_buffers_0 : array<array<u32>>;";
+
+        string normalized = WgslNormalizer.Normalize(source, ShaderProgramKind.Compute);
+
+        Assert.Contains("var<storage, read_write> g_buffers_0", normalized);
+    }
+
     private sealed class RecordingCompiler : ISlangCompiler
     {
         public SlangSource? Source { get; private set; }

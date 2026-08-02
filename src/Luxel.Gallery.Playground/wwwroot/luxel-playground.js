@@ -59,10 +59,11 @@
       ids.add(file.id); paths.add(folded);
     }
     if (total > maxWorkspaceBytes || !ids.has(workspace.entryFileId) || !ids.has(workspace.activeFileId)) throw new Error("Workspace entry, active file, or total size is invalid.");
+    workspace.sampleId = typeof workspace.sampleId === "string" && workspace.sampleId ? workspace.sampleId : null;
     workspace.revision = Number.isSafeInteger(workspace.revision) && workspace.revision >= 0 ? workspace.revision : 0;
     return workspace;
   }
-  function cloneWorkspace(workspace) { return { schemaVersion, revision: workspace.revision, entryFileId: workspace.entryFileId, activeFileId: workspace.activeFileId, files: workspace.files.map(file => ({ ...file })) }; }
+  function cloneWorkspace(workspace) { return { schemaVersion, sampleId: workspace.sampleId || null, revision: workspace.revision, entryFileId: workspace.entryFileId, activeFileId: workspace.activeFileId, files: workspace.files.map(file => ({ ...file })) }; }
   function initialWorkspace(root, sources) {
     const files = sources.map((source, index) => ({
       id: source.dataset.fileId || `template-file-${index}`,
@@ -72,7 +73,7 @@
       version: Number(source.dataset.fileVersion ?? "1")
     }));
     const entryFileId = root.dataset.entryFileId || files[0].id;
-    return assertWorkspace({ schemaVersion, revision: Number(root.dataset.workspaceRevision ?? "0"), entryFileId, activeFileId: root.dataset.activeFileId || entryFileId, files });
+    return assertWorkspace({ schemaVersion, sampleId: root.dataset.templateId || null, revision: Number(root.dataset.workspaceRevision ?? "0"), entryFileId, activeFileId: root.dataset.activeFileId || entryFileId, files });
   }
   function loadWorkspace(root, initial) {
     const v2 = stored(storageKey(root));
@@ -93,6 +94,62 @@
   }
   function saveWorkspace(root, workspace) { store(storageKey(root), JSON.stringify(cloneWorkspace(workspace))); }
   function clearWorkspace(root) { removeStored(storageKey(root)); removeStored(storageKey(root, storagePrefixV1)); }
+  function readSamples(root) {
+    const node = root.querySelector("[data-playground-samples]");
+    if (!node) return new Map();
+    try {
+      const samples = JSON.parse(node.textContent || "[]");
+      return new Map(samples.map(sample => {
+        const workspace = assertWorkspace({ ...sample.workspace, sampleId: sample.id });
+        return [sample.id, { id: sample.id, title: String(sample.title), description: String(sample.description), workspace }];
+      }));
+    } catch { return new Map(); }
+  }
+  function sameSampleContent(workspace, baseline) {
+    if (!workspace || !baseline || workspace.entryFileId !== baseline.entryFileId || workspace.files.length !== baseline.files.length) return false;
+    return workspace.files.every((file, index) => {
+      const other = baseline.files[index];
+      return other && file.id === other.id && file.path === other.path && file.language === other.language && file.source === other.source;
+    });
+  }
+  function updateSampleUi(root, state) {
+    const sample = state.samples.get(state.workspace.sampleId) || state.samples.values().next().value;
+    const select = root.querySelector("[data-playground-sample-select]");
+    if (select && sample) select.value = sample.id;
+    const title = root.querySelector("[data-playground-title]");
+    if (title && sample) title.textContent = sample.title;
+    const description = root.querySelector("[data-playground-description]");
+    if (description && sample) description.textContent = sample.description;
+  }
+  function disposeModels(state) {
+    for (const record of state.models.values()) {
+      clearTimeout(record.analysisTimer);
+      record.subscription?.dispose();
+      modelRoots.delete(record.model.uri.toString());
+      record.model.dispose();
+    }
+    state.models.clear();
+  }
+  function replaceWorkspace(root, state, workspace, asBaseline) {
+    disposeModels(state);
+    state.workspace = assertWorkspace(cloneWorkspace(workspace));
+    if (asBaseline) state.initial = cloneWorkspace(state.workspace);
+    if (state.monaco) for (const file of state.workspace.files) createModel(root, state, file);
+    selectFile(root, state.workspace.activeFileId, null, false);
+    setDiagnostics(root, []);
+    updateSampleUi(root, state);
+  }
+  function loadSample(root, sampleId, confirmReplacement = true) {
+    const state = states.get(root), sample = state?.samples.get(sampleId);
+    if (!state || !sample) return false;
+    if (confirmReplacement && !sameSampleContent(state.workspace, state.initial) && !confirm("Replace the current workspace with this sample?")) return false;
+    const workspace = cloneWorkspace(sample.workspace);
+    workspace.revision = state.workspace.revision + 1;
+    replaceWorkspace(root, state, workspace, true);
+    saveWorkspace(root, state.workspace);
+    emit(root, "luxel-playground:sample-loaded", { sampleId, workspace: cloneWorkspace(state.workspace) });
+    return true;
+  }
   function activeFile(state) { return state.workspace.files.find(file => file.id === state.workspace.activeFileId); }
   function fileById(state, id) { return state.workspace.files.find(file => file.id === id); }
   function workspaceChanged(root, state, file, source) {
@@ -328,10 +385,11 @@
     if (root.dataset.playgroundBound === "true") return; root.dataset.playgroundBound = "true";
     const sources = [...root.querySelectorAll("[data-playground-source]")], run = root.querySelector("[data-playground-run]"), cancel = root.querySelector("[data-playground-cancel]"), reset = root.querySelector("[data-playground-reset]");
     if (!sources.length || !run || !cancel || !reset) return;
-    const initial = initialWorkspace(root, sources), workspace = loadWorkspace(root, initial), source = sources.find(item => item.dataset.fileId === workspace.activeFileId) || sources[0];
+    const samples = readSamples(root), pageInitial = initialWorkspace(root, sources), workspace = loadWorkspace(root, pageInitial), source = sources.find(item => item.dataset.fileId === workspace.activeFileId) || sources[0];
     for (const extra of sources) if (extra !== source) extra.remove();
-    const state = { source, initial, workspace, monaco: null, models: new Map(), editor: null, languageRequestId: 0 };
-    states.set(root, state); renderFileList(root, state); selectFile(root, workspace.activeFileId, null, false);
+    const sampleInitial = samples.get(workspace.sampleId)?.workspace || pageInitial;
+    const state = { source, initial: cloneWorkspace(sampleInitial), workspace, samples, monaco: null, models: new Map(), editor: null, languageRequestId: 0 };
+    states.set(root, state); renderFileList(root, state); selectFile(root, workspace.activeFileId, null, false); updateSampleUi(root, state);
     source.addEventListener("input", () => { const file = activeFile(state); if (file) workspaceChanged(root, state, file, source.value); });
     run.addEventListener("click", () => {
       const executionId = Number(root.dataset.executionId || "0") + 1;
@@ -346,7 +404,8 @@
       run.disabled = false;
       emit(root, "luxel-playground:cancel", { executionId: Number(root.dataset.executionId || "0"), workspaceRevision: state.workspace.revision });
     });
-    reset.addEventListener("click", () => { clearWorkspace(root); for (const record of state.models.values()) { clearTimeout(record.analysisTimer); record.subscription?.dispose(); modelRoots.delete(record.model.uri.toString()); record.model.dispose(); } state.models.clear(); state.workspace = cloneWorkspace(state.initial); if (state.monaco) for (const file of state.workspace.files) createModel(root, state, file); selectFile(root, state.workspace.activeFileId); setDiagnostics(root, []); emit(root, "luxel-playground:reset", { templateId: root.dataset.templateId, workspace: cloneWorkspace(state.workspace) }); });
+    reset.addEventListener("click", () => { clearWorkspace(root); const workspace = cloneWorkspace(state.initial); workspace.revision = state.workspace.revision + 1; replaceWorkspace(root, state, workspace, false); saveWorkspace(root, state.workspace); emit(root, "luxel-playground:reset", { templateId: root.dataset.templateId, sampleId: state.workspace.sampleId, workspace: cloneWorkspace(state.workspace) }); });
+    root.querySelector("[data-playground-sample-load]")?.addEventListener("click", () => { const select = root.querySelector("[data-playground-sample-select]"); if (select) loadSample(root, select.value); });
     root.querySelector("[data-playground-file-list]")?.addEventListener("keydown", event => navigateFileTabs(root, event));
     root.querySelector("[data-playground-file-add]")?.addEventListener("click", () => { const path = prompt("New workspace file path (for example, Helper.cs)"); if (path) try { addFile(root, path); } catch (error) { alert(error.message); } });
     root.querySelector("[data-playground-file-rename]")?.addEventListener("click", () => { const file = activeFile(state), path = file && prompt("Rename workspace file", file.path); if (path) try { renameFile(root, file.id, path); } catch (error) { alert(error.message); } });
@@ -354,7 +413,7 @@
     initializeMonaco(root, state);
   }
   function bindAll(scope = document) { scope.querySelectorAll("[data-playground]").forEach(bind); }
-  function dispose(root) { const state = states.get(root); state?.editor?.dispose(); for (const record of state?.models?.values?.() || []) { clearTimeout(record.analysisTimer); record.subscription?.dispose(); modelRoots.delete(record.model.uri.toString()); record.model.dispose(); } states.delete(root); }
-  window.LuxelPlayground = Object.freeze({ bind, bindAll, dispose, getValue, setValue, getWorkspace, setDiagnostics, diagnostics, triggerSuggest, selectFile, addFile, renameFile, deleteFile });
+  function dispose(root) { const state = states.get(root); state?.editor?.dispose(); if (state) disposeModels(state); states.delete(root); }
+  window.LuxelPlayground = Object.freeze({ bind, bindAll, dispose, getValue, setValue, getWorkspace, setDiagnostics, diagnostics, triggerSuggest, loadSample, selectFile, addFile, renameFile, deleteFile });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => bindAll(), { once: true }); else bindAll();
 })();

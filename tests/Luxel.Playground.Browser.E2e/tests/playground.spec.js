@@ -113,6 +113,46 @@ test('supports roving keyboard focus across workspace file tabs', async ({ page 
   await expect(root.locator(`[data-playground-file-list] [data-file-id="${firstId}"]`)).toHaveAttribute('tabindex', '-1');
 });
 
+test('loads, persists, resets, and renders the 3D Slang cube sample', async ({ page }) => {
+  const { root, consoleErrors } = await openPlayground(page);
+  const select = root.locator('[data-playground-sample-select]');
+  await expect(select).toContainText('3D Slang Cube');
+
+  await setSource(root, 'return Kit.Text("edited draft");');
+  await select.selectOption('slang-cube');
+  page.once('dialog', dialog => dialog.dismiss());
+  await root.locator('[data-playground-sample-load]').click();
+  expect((await root.evaluate(element => globalThis.LuxelPlayground.getWorkspace(element))).sampleId).toBe('button');
+
+  page.once('dialog', dialog => dialog.accept());
+  await root.locator('[data-playground-sample-load]').click();
+  await expect(root.locator('[data-playground-title]')).toHaveText('3D Slang Cube');
+  let workspace = await root.evaluate(element => globalThis.LuxelPlayground.getWorkspace(element));
+  expect(workspace.sampleId).toBe('slang-cube');
+  expect(workspace.files.map(file => file.path)).toEqual(['Cube.csx', 'SlangCubeScene.cs', 'Shaders/cube.slang']);
+  expect(workspace.files.find(file => file.path === 'Shaders/cube.slang').source).toContain('[shader("vertex")]');
+
+  await root.locator('[data-playground-run]').click();
+  await expect(root.locator('[data-playground-status]')).toHaveText('rendered', { timeout: 90_000 });
+  await expect(root.locator('[data-playground-diagnostics]')).toContainText('No diagnostics.');
+  await expect(root.locator('[data-playground-output]')).toContainText('Loaded Shaders/cube.slang as wgsl.');
+  const frame = root.locator('iframe[data-playground-instance]').last();
+  await expect(frame.contentFrame().locator('#status')).toContainText('rendered');
+  await expect(frame.contentFrame().locator('#luxel-canvas')).toBeVisible();
+
+  await page.reload();
+  const restored = page.locator('[data-playground]');
+  await expect.poll(() => restored.evaluate(element => element.dataset.playgroundEditor)).toBe('monaco');
+  workspace = await restored.evaluate(element => globalThis.LuxelPlayground.getWorkspace(element));
+  expect(workspace.sampleId).toBe('slang-cube');
+  await setSource(restored, '// edited shader');
+  await restored.locator('[data-playground-reset]').click();
+  workspace = await restored.evaluate(element => globalThis.LuxelPlayground.getWorkspace(element));
+  expect(workspace.sampleId).toBe('slang-cube');
+  expect(workspace.files.find(file => file.path === 'Shaders/cube.slang').source).toContain('[shader("vertex")]');
+  expect(consoleErrors).toEqual([]);
+});
+
 test('browser workspace validators reject unsafe paths, case aliases, and UTF-8 C# overflow', async ({ page }) => {
   const { root } = await openPlayground(page);
 
