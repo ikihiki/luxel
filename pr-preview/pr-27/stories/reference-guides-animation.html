@@ -1,0 +1,141 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Guides/Animation</h1></header><h1 id="luxel.animation">アニメーション (Luxel.Animation)</h1>
+<ul>
+<li><a href="#story=Reference%2FGuides%2FAnimation&amp;section=%E8%A8%AD%E8%A8%88%E3%83%8E%E3%83%BC%E3%83%88%3A-3-%E5%B1%A4-ir-%E3%81%AF%E5%85%B1%E9%80%9A%E3%80%81%E3%82%BF%E3%83%BC%E3%82%B2%E3%83%83%E3%83%88%E3%81%AF-3-%E3%82%A2%E3%83%80%E3%83%97%E3%82%BF">設計ノート: 3 層 IR は共通、ターゲットは 3 アダプタ</a></li>
+<li><a href="#story=Reference%2FGuides%2FAnimation&amp;section=curve-%C3%97-tween-%E3%81%AE-2-%E6%AE%B5%E5%88%86%E8%A7%A3">Curve × Tween の 2 段分解</a></li>
+<li><a href="#story=Reference%2FGuides%2FAnimation&amp;section=%E3%82%B3%E3%83%BC%E3%83%89-dsl-%E2%80%94-sequence-%2F-parallel">コード DSL — Sequence / Parallel</a></li>
+<li><a href="#story=Reference%2FGuides%2FAnimation&amp;section=animationclip-%E3%81%A8-importer">AnimationClip と Importer</a></li>
+<li><a href="#story=Reference%2FGuides%2FAnimation&amp;section=graph-%E3%81%A8-statemachine">Graph と StateMachine</a></li>
+<li><a href="#story=Reference%2FGuides%2FAnimation&amp;section=%E7%B5%B6%E5%AF%BE%E6%99%82%E5%88%BB%E3%83%A2%E3%83%87%E3%83%AB-frame-driven">絶対時刻モデル (frame-driven)</a></li>
+</ul>
+<p>glTF / CSS / コード DSL など様々な形式を統一的に扱うアニメーションシステムです。中核は <strong>3 層の IR</strong> で、書き込み先 (UI / 2D / 3D) はアダプタに分離されています。</p>
+<h2 id="ir-3">設計ノート: 3 層 IR は共通、ターゲットは 3 アダプタ</h2>
+<p>業界 (Flutter / Bevy / Unreal / Unity / Spine / glTF) の実装は同じ構造に収束しています:</p>
+<ul>
+<li><strong>L1: AnimationClip</strong> — pure data (Track の束)。immutable で共有可能</li>
+<li><strong>L2: Track + Sampler</strong> — stateless な純粋関数 (キーフレーム補間)</li>
+<li><strong>L3: AnimationPlayer / TrackEntry</strong> — stateful (time / loop / mix)</li>
+</ul>
+<p>ターゲットを共通化しないのも業界共通です — 共通化すると「最小公倍数」になり、signals のリアクティブ起動、RetainedCanvas の SoA 部分更新、ECS の component query という各ドメインの最適化が壊れます。Luxel のアダプタは 3 つ: <code>SignalAnimationTarget</code> (UI) / <code>RetainedCanvasAnimationTarget</code> (2D) / <code>EcsAnimationTarget</code> (3D)。</p>
+<h2 id="curve-tween-2">Curve × Tween の 2 段分解</h2>
+<p>値の補間は Flutter Animatable 流の 2 段分解です:</p>
+<pre><code>時間 t → Curve.Eval(t01) → progress → Tween.Lerp(p) → 値 T → Setter
+</code></pre>
+<p>Curve は Linear / CubicBezier / Steps / Spring、Tween は Float / Vector2/3 / Rgba / Quaternion (slerp)。時間の合成 (イージング) と値の合成 (型) が直交します。</p>
+<h2 id="dsl-sequence-parallel">コード DSL — Sequence / Parallel</h2>
+<pre><code class="language-csharp">var clock = new FixedFrameClock { FrameRate = 60f };
+var player = new AnimationPlayer();
+player.Update(clock);
+
+Animate.Sequence(
+    Animate.Parallel(
+        Animate.Tween(SignalAnimationTarget.For(x), -150f, 30f, 0.4f)
+               .WithCurve(CubicBezierCurve.EaseOut),
+        Animate.Tween(SignalAnimationTarget.For(opacity), 0f, 1f, 0.4f)),
+    Animate.Tween(SignalAnimationTarget.For(x2), 300f, 130f, 0.4f)
+).Play(player, clock);
+
+// 毎フレーム: clock を進めて player.Update(clock) — 絶対時刻モデル
+</code></pre>
+<p>実物 (2 枚のカードが slide-in + fade-in):</p>
+<figure class="static-capture"><a href="#story=Examples%2FAnimation%2FTween"><img src="images/examples-animation-tween.png" alt="Examples/Animation/Tween" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<h2 id="animationclip-importer">AnimationClip と Importer</h2>
+<p>キーフレームの束は <code>AnimationClip</code> に正規化されます。コードで組む (<code>Tracks.Vector3(path, kind, keyframes)</code>) ほか、<strong>Importer</strong> が外部形式を落とし込みます:</p>
+<ul>
+<li><strong>CSS @keyframes</strong> — <code>CssKeyframesImporter.Parse(css)</code> → opacity / translate / color の Track 群 (<a href="#story=Examples%2FAnimation%2FCssKeyframes">Examples/Animation/CssKeyframes</a>)</li>
+<li><strong>glTF</strong> — animations[] → translation/rotation/scale の Track。<strong>skin (スケルタル)</strong> — JOINTS_0/WEIGHTS_0 + inverse bind matrix から GPU 頂点スキニング (</li>
+</ul>
+<figure class="static-capture"><a href="#story=Examples%2F3D%2FGltfSkinned"><img src="images/examples-3d-gltfskinned.png" alt="Examples/3D/GltfSkinned" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<p>)。<strong>morph target (ブレンドシェイプ)</strong> — 位置/法線デルタを weights channel の重みで頂点加算 (</p>
+<figure class="static-capture"><a href="#story=Examples%2F3D%2FGltfMorph"><img src="images/examples-3d-gltfmorph.png" alt="Examples/3D/GltfMorph" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<p>)。どちらも GPU 頂点シェーダで解決</p>
+<ul>
+<li>拡張点は <code>IAnimationImporter</code> — Lottie subset 等はここに載せます。パース警告は既定 Warn (Strict / Lenient に切替可)</li>
+</ul>
+<p>Track の <code>TargetPath</code> (&quot;card/opacity&quot; 等) をアダプタの <code>Bind(name, 対象)</code> が解決します。</p>
+<h2 id="graph-statemachine">Graph と StateMachine</h2>
+<p>Clip の上には合成レイヤが載ります:</p>
+<ul>
+<li><strong>AnimationGraph</strong> — Clip / Blend / Add の DAG。<code>BlendNode.Weight</code> で 2 クリップを混合 (<a href="#story=Examples%2FAnimation%2FGraph">Examples/Animation/Graph</a> — weight は knob)</li>
+<li><strong>StateMachine</strong> — Trigger 名で状態切替、crossfade 秒指定 (<a href="#story=Examples%2FAnimation%2FStateMachine">Examples/Animation/StateMachine</a> — ボタンで Trigger)</li>
+<li>ECS への適用は <a href="#story=Examples%2FAnimation%2FEcsClip">Examples/Animation/EcsClip</a> — Clip → LocalTransform → propagate → extract → 描画</li>
+</ul>
+<h2 id="frame-driven">絶対時刻モデル (frame-driven)</h2>
+<p>実行は完全 frame-driven です。<code>IClock</code> (絶対時刻) を進めて <code>player.Update(clock)</code> を呼ぶ — <code>FixedFrameClock</code> は frame × (1/fps) を毎回計算するので累積誤差ゼロ、snap / bench の固定ステップでピクセルまで決定的になります。</p>
+<div class="markdown-alert markdown-alert-tip">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>Tip</p>
+<p>wall-clock は使いません。ストーリーやアプリのフレームループが持つ累積秒から clock を組み立てるのが規約です (Gallery のデモは全てこの形)。</p>
+</div>
+<p>次: <a href="#story=Reference%2FGuides%2FTransitions">Reference/Guides/Transitions</a> — 「値を変えるだけで補間される」層へ。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Animation&quot;, Order = 30)]
+public static Widget Animation(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # アニメーション (Luxel.Animation)
+
+    glTF / CSS / コード DSL など様々な形式を統一的に扱うアニメーションシステムです。中核は **3 層の IR** で、書き込み先 (UI / 2D / 3D) はアダプタに分離されています。
+
+    ## 設計ノート: 3 層 IR は共通、ターゲットは 3 アダプタ
+
+    業界 (Flutter / Bevy / Unreal / Unity / Spine / glTF) の実装は同じ構造に収束しています:
+
+    - **L1: AnimationClip** — pure data (Track の束)。immutable で共有可能
+    - **L2: Track + Sampler** — stateless な純粋関数 (キーフレーム補間)
+    - **L3: AnimationPlayer / TrackEntry** — stateful (time / loop / mix)
+
+    ターゲットを共通化しないのも業界共通です — 共通化すると「最小公倍数」になり、signals のリアクティブ起動、RetainedCanvas の SoA 部分更新、ECS の component query という各ドメインの最適化が壊れます。Luxel のアダプタは 3 つ: `SignalAnimationTarget` (UI) / `RetainedCanvasAnimationTarget` (2D) / `EcsAnimationTarget` (3D)。
+
+    ## Curve &#215; Tween の 2 段分解
+
+    値の補間は Flutter Animatable 流の 2 段分解です:
+
+    ```
+    時間 t → Curve.Eval(t01) → progress → Tween.Lerp(p) → 値 T → Setter
+    ```
+
+    Curve は Linear / CubicBezier / Steps / Spring、Tween は Float / Vector2/3 / Rgba / Quaternion (slerp)。時間の合成 (イージング) と値の合成 (型) が直交します。
+
+    ## コード DSL — Sequence / Parallel
+
+    ```csharp
+    var clock = new FixedFrameClock { FrameRate = 60f };
+    var player = new AnimationPlayer();
+    player.Update(clock);
+
+    Animate.Sequence(
+        Animate.Parallel(
+            Animate.Tween(SignalAnimationTarget.For(x), -150f, 30f, 0.4f)
+                   .WithCurve(CubicBezierCurve.EaseOut),
+            Animate.Tween(SignalAnimationTarget.For(opacity), 0f, 1f, 0.4f)),
+        Animate.Tween(SignalAnimationTarget.For(x2), 300f, 130f, 0.4f)
+    ).Play(player, clock);
+
+    // 毎フレーム: clock を進めて player.Update(clock) — 絶対時刻モデル
+    ```
+
+    実物 (2 枚のカードが slide-in + fade-in): {{StoryRef(ctx, &quot;Examples/Animation/Tween&quot;)}}
+
+    ## AnimationClip と Importer
+
+    キーフレームの束は `AnimationClip` に正規化されます。コードで組む (`Tracks.Vector3(path, kind, keyframes)`) ほか、**Importer** が外部形式を落とし込みます:
+
+    - **CSS @keyframes** — `CssKeyframesImporter.Parse(css)` → opacity / translate / color の Track 群 ([Examples/Animation/CssKeyframes](story:Examples/Animation/CssKeyframes))
+    - **glTF** — animations[] → translation/rotation/scale の Track。**skin (スケルタル)** — JOINTS_0/WEIGHTS_0 + inverse bind matrix から GPU 頂点スキニング ({{StoryRef(ctx, &quot;Examples/3D/GltfSkinned&quot;)}})。**morph target (ブレンドシェイプ)** — 位置/法線デルタを weights channel の重みで頂点加算 ({{StoryRef(ctx, &quot;Examples/3D/GltfMorph&quot;)}})。どちらも GPU 頂点シェーダで解決
+    - 拡張点は `IAnimationImporter` — Lottie subset 等はここに載せます。パース警告は既定 Warn (Strict / Lenient に切替可)
+
+    Track の `TargetPath` (&quot;card/opacity&quot; 等) をアダプタの `Bind(name, 対象)` が解決します。
+
+    ## Graph と StateMachine
+
+    Clip の上には合成レイヤが載ります:
+
+    - **AnimationGraph** — Clip / Blend / Add の DAG。`BlendNode.Weight` で 2 クリップを混合 ([Examples/Animation/Graph](story:Examples/Animation/Graph) — weight は knob)
+    - **StateMachine** — Trigger 名で状態切替、crossfade 秒指定 ([Examples/Animation/StateMachine](story:Examples/Animation/StateMachine) — ボタンで Trigger)
+    - ECS への適用は [Examples/Animation/EcsClip](story:Examples/Animation/EcsClip) — Clip → LocalTransform → propagate → extract → 描画
+
+    ## 絶対時刻モデル (frame-driven)
+
+    実行は完全 frame-driven です。`IClock` (絶対時刻) を進めて `player.Update(clock)` を呼ぶ — `FixedFrameClock` は frame &#215; (1/fps) を毎回計算するので累積誤差ゼロ、snap / bench の固定ステップでピクセルまで決定的になります。
+
+    &gt; [!TIP]
+    &gt; wall-clock は使いません。ストーリーやアプリのフレームループが持つ累積秒から clock を組み立てるのが規約です (Gallery のデモは全てこの形)。
+
+    次: [Reference/Guides/Transitions](story:Reference/Guides/Transitions) — 「値を変えるだけで補間される」層へ。
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
