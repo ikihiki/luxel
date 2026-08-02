@@ -93,8 +93,9 @@
   function publishPreview(root, session) {
     const preview = root.querySelector("[data-playground-preview]");
     if (!preview) return;
+    for (const child of [...preview.children])
+      if (child !== session.frame) child.remove();
     Object.assign(session.frame.style, { position: "", inset: "", width: "", height: "", opacity: "", pointerEvents: "" });
-    preview.replaceChildren(session.frame);
     session.published = true;
   }
   function createSession(root, detail) {
