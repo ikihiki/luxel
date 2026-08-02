@@ -20,6 +20,8 @@ let completeExport = null;
 let completeProjectExport = null;
 let hoverExport = null;
 let hoverProjectExport = null;
+let formatExport = null;
+let formatProjectExport = null;
 let analyzeExport = null;
 let analyzeProjectExport = null;
 let pendingRun = null;
@@ -113,6 +115,8 @@ async function invokeLanguage(message) {
       json = completeProjectExport ? await completeProjectExport(projectJson, file.id, message.position, workspace.revision) : await completeExport(file.source, message.position, workspace.revision);
     else if (message.kind === "hover" && Number.isInteger(message.position))
       json = hoverProjectExport ? await hoverProjectExport(projectJson, file.id, message.position, workspace.revision) : await hoverExport(file.source, message.position, workspace.revision);
+    else if (message.kind === "format")
+      json = formatProjectExport ? await formatProjectExport(projectJson, file.id, workspace.revision) : await formatExport(file.source, workspace.revision);
     else if (message.kind === "analysis")
       json = analyzeProjectExport ? await analyzeProjectExport(projectJson, file.id, workspace.revision) : await analyzeExport(file.source, workspace.revision);
     else throw new Error(`Unsupported language request '${message.kind}'.`);
@@ -211,7 +215,7 @@ const host = {
     ready = true;
     state.ready = true;
     status.textContent = "Playground language services ready";
-    post("language-ready", 0, { capabilities: { languages: { "csharp-script": { completion: true, hover: true, diagnostics: true }, csharp: { completion: true, hover: true, diagnostics: true }, slang: slangCapabilities } } });
+    post("language-ready", 0, { capabilities: { languages: { "csharp-script": { completion: true, hover: true, diagnostics: true, format: true }, csharp: { completion: true, hover: true, diagnostics: true, format: true }, slang: slangCapabilities } } });
   },
   getBaseUrl: () => new URL("./", location.href).href,
   nextFrame: () => new Promise(resolve => requestAnimationFrame(resolve)),
@@ -257,10 +261,12 @@ try {
   completeProjectExport = program?.CompleteProject || program?.CompleteWorkspace;
   hoverExport = program?.Hover;
   hoverProjectExport = program?.HoverProject || program?.HoverWorkspace;
+  formatExport = program?.Format;
+  formatProjectExport = program?.FormatProject || program?.FormatWorkspace;
   analyzeExport = program?.Analyze;
   analyzeProjectExport = program?.AnalyzeProject || program?.AnalyzeWorkspace;
   if (mode === "preview" && typeof runExport !== "function" && typeof runProjectExport !== "function") throw new Error("Managed playground Run export was not found.");
-  if (mode === "language" && [[completeExport, completeProjectExport], [hoverExport, hoverProjectExport], [analyzeExport, analyzeProjectExport]].some(pair => pair.every(value => typeof value !== "function")))
+  if (mode === "language" && [[completeExport, completeProjectExport], [hoverExport, hoverProjectExport], [formatExport, formatProjectExport], [analyzeExport, analyzeProjectExport]].some(pair => pair.every(value => typeof value !== "function")))
     throw new Error("Managed Playground language-service exports were not found.");
   runtime.runMain().catch(error => {
     host.setFatalError(error?.stack || error);

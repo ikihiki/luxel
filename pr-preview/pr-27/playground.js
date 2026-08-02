@@ -180,6 +180,23 @@
       String(result.fileId ?? file.id) === file.id && Number(result.fileVersion ?? file.version) === file.version;
   }
 
+  async function formatFile(root, fileId = null) {
+    const state = states.get(root), file = state && fileById(state, fileId || state.workspace.activeFileId);
+    if (!state || !file || !["csharp", "csharp-script"].includes(file.language)) return false;
+    const result = await languageRequest(root, "format", state, file).catch(() => null);
+    if (!responseIsCurrent(state, file, result) || typeof result?.source !== "string") return false;
+    if (result.source === file.source) return true;
+    const record = state.models.get(file.id);
+    if (record) {
+      const range = record.model.getFullModelRange();
+      record.model.pushEditOperations([], [{ range, text: result.source }], () => null);
+    } else {
+      workspaceChanged(root, state, file, result.source);
+    }
+    emit(root, "luxel-playground:file-formatted", { fileId: file.id, path: file.path, workspaceRevision: state.workspace.revision });
+    return true;
+  }
+
   function completionKind(monaco, kind) {
     const value = String(kind || "").toLowerCase();
     if (value.includes("method")) return monaco.languages.CompletionItemKind.Method;
@@ -197,6 +214,15 @@
       monaco.languages.register({ id: "slang", extensions: [".slang", ".slangh"] });
       monaco.languages.setMonarchTokensProvider("slang", { tokenizer: { root: [[/[a-zA-Z_]\w*/, { cases: { "@keywords": "keyword", "@default": "identifier" } }], [/\d+(\.\d+)?/, "number"], [/"([^"\\]|\\.)*$/, "string.invalid"], [/"/, { token: "string.quote", bracket: "@open", next: "@string" }], [/\/\//, "comment", "@lineComment"]], string: [[/[^\\"]+/, "string"], [/\\./, "string.escape"], [/"/, { token: "string.quote", bracket: "@close", next: "@pop" }]], lineComment: [[/.*/, "comment"]] }, keywords: ["struct", "class", "interface", "import", "return", "if", "else", "for", "while", "let", "var", "static", "public", "private", "void", "float", "float2", "float3", "float4"] });
     }
+    monaco.languages.registerDocumentFormattingEditProvider("csharp", { async provideDocumentFormattingEdits(model) {
+      const pair = modelRoots.get(model.uri.toString());
+      if (!pair) return [];
+      const { root, fileId } = pair, state = states.get(root), file = state && fileById(state, fileId);
+      if (!state || !file) return [];
+      const result = await languageRequest(root, "format", state, file).catch(() => null);
+      if (!responseIsCurrent(state, file, result) || typeof result?.source !== "string" || result.source === model.getValue()) return [];
+      return [{ range: model.getFullModelRange(), text: result.source }];
+    }});
     for (const language of ["csharp", "slang"]) {
       monaco.languages.registerCompletionItemProvider(language, { triggerCharacters: [".", " "], async provideCompletionItems(model, position) {
         const pair = modelRoots.get(model.uri.toString());
@@ -243,6 +269,12 @@
     const active = activeFile(state);
     const label = root.querySelector("[data-playground-active-file-label]");
     if (label && active) label.textContent = active.path;
+    const format = root.querySelector("[data-playground-file-format]");
+    if (format) {
+      const supported = active && ["csharp", "csharp-script"].includes(active.language);
+      format.disabled = !supported;
+      format.title = supported ? `Format ${active.path}` : "Formatting is available for C# files.";
+    }
     root.dataset.activeFileId = active?.id || "";
   }
   function createModel(root, state, file) {
@@ -408,12 +440,21 @@
     root.querySelector("[data-playground-sample-load]")?.addEventListener("click", () => { const select = root.querySelector("[data-playground-sample-select]"); if (select) loadSample(root, select.value); });
     root.querySelector("[data-playground-file-list]")?.addEventListener("keydown", event => navigateFileTabs(root, event));
     root.querySelector("[data-playground-file-add]")?.addEventListener("click", () => { const path = prompt("New workspace file path (for example, Helper.cs)"); if (path) try { addFile(root, path); } catch (error) { alert(error.message); } });
+    root.querySelector("[data-playground-file-format]")?.addEventListener("click", async event => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      try {
+        const file = activeFile(state);
+        if (!file || !["csharp", "csharp-script"].includes(file.language)) return;
+        await formatFile(root, file.id);
+      } finally { button.disabled = false; }
+    });
     root.querySelector("[data-playground-file-rename]")?.addEventListener("click", () => { const file = activeFile(state), path = file && prompt("Rename workspace file", file.path); if (path) try { renameFile(root, file.id, path); } catch (error) { alert(error.message); } });
     root.querySelector("[data-playground-file-delete]")?.addEventListener("click", () => { const file = activeFile(state); if (!file || !confirm(`Delete ${file.path}?`)) return; try { deleteFile(root, file.id); } catch (error) { alert(error.message); } });
     initializeMonaco(root, state);
   }
   function bindAll(scope = document) { scope.querySelectorAll("[data-playground]").forEach(bind); }
   function dispose(root) { const state = states.get(root); state?.editor?.dispose(); if (state) disposeModels(state); states.delete(root); }
-  window.LuxelPlayground = Object.freeze({ bind, bindAll, dispose, getValue, setValue, getWorkspace, setDiagnostics, diagnostics, triggerSuggest, loadSample, selectFile, addFile, renameFile, deleteFile });
+  window.LuxelPlayground = Object.freeze({ bind, bindAll, dispose, getValue, setValue, getWorkspace, setDiagnostics, diagnostics, triggerSuggest, formatFile, loadSample, selectFile, addFile, renameFile, deleteFile });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => bindAll(), { once: true }); else bindAll();
 })();

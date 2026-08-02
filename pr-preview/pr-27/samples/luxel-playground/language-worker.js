@@ -9,6 +9,7 @@ let ready = false;
 let latestWorkspaceRevision = -1;
 let completeExport = null, completeProjectExport = null;
 let hoverExport = null, hoverProjectExport = null;
+let formatExport = null, formatProjectExport = null;
 let analyzeExport = null, analyzeProjectExport = null;
 let operation = Promise.resolve();
 const queue = [];
@@ -56,6 +57,8 @@ async function apply(message) {
         json = hoverProjectExport ? await hoverProjectExport(projectJson, file.id, message.position, workspace.revision) : await hoverExport(file.source, message.position, workspace.revision);
       else if (message.kind === "analysis")
         json = analyzeProjectExport ? await analyzeProjectExport(projectJson, file.id, workspace.revision) : await analyzeExport(file.source, workspace.revision);
+      else if (message.kind === "format")
+        json = formatProjectExport ? await formatProjectExport(projectJson, file.id, workspace.revision) : await formatExport(file.source, workspace.revision);
       else throw new Error(`Unsupported language request '${message.kind}'.`);
       result = JSON.parse(json);
     }
@@ -77,7 +80,7 @@ const host = {
   setLanguageReady: async () => {
     const slangCapabilities = await slang.capabilities();
     ready = true;
-    post("language-ready", 0, { capabilities: { languages: { "csharp-script": { completion: true, hover: true, diagnostics: true }, csharp: { completion: true, hover: true, diagnostics: true }, slang: slangCapabilities } } });
+    post("language-ready", 0, { capabilities: { languages: { "csharp-script": { completion: true, hover: true, diagnostics: true, format: true }, csharp: { completion: true, hover: true, diagnostics: true, format: true }, slang: slangCapabilities } } });
     for (const message of queue.splice(0)) operation = operation.then(() => apply(message));
   },
   nextFrame: () => Promise.resolve(0), setReady: () => {},
@@ -91,7 +94,8 @@ try {
   const program = exports?.LuxelPlaygroundBrowser?.Program || exports?.Program;
   completeExport = program?.Complete; completeProjectExport = program?.CompleteProject || program?.CompleteWorkspace;
   hoverExport = program?.Hover; hoverProjectExport = program?.HoverProject || program?.HoverWorkspace;
+  formatExport = program?.Format; formatProjectExport = program?.FormatProject || program?.FormatWorkspace;
   analyzeExport = program?.Analyze; analyzeProjectExport = program?.AnalyzeProject || program?.AnalyzeWorkspace;
-  if ([[completeExport, completeProjectExport], [hoverExport, hoverProjectExport], [analyzeExport, analyzeProjectExport]].some(pair => pair.every(value => typeof value !== "function"))) throw new Error("Managed Playground language-service exports were not found.");
+  if ([[completeExport, completeProjectExport], [hoverExport, hoverProjectExport], [formatExport, formatProjectExport], [analyzeExport, analyzeProjectExport]].some(pair => pair.every(value => typeof value !== "function"))) throw new Error("Managed Playground language-service exports were not found.");
   await runtime.runMain();
 } catch (error) { host.setFatalError(error?.stack || error); }
