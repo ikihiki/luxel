@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Luxel.Controls;
 using Luxel.Graphics.TwoD;
+using Luxel.Settings;
 using Luxel.UI;
 using Luxel.Workbench;
 using static Luxel.Controls.Kit;
@@ -26,6 +27,7 @@ public sealed class GalleryApp : IDisposable
     private const float SurfW = 2560, SurfH = 1440;
 
     private readonly StoryCatalog _catalog;
+    private readonly IServiceProvider _storyServices;
     private readonly SurfaceView _preview = SurfaceView(SurfW, SurfH);
     private Exception? _pendingStoryError;
     // ストーリーへ StoryContext.Resources として配布 (キャッシュ共有、Pump は Update が叩く)
@@ -68,9 +70,12 @@ public sealed class GalleryApp : IDisposable
     private readonly object _editGate = new();
     private readonly List<(Widget W, string Name, string Type, string Value)> _propEdits = new();
 
-    public GalleryApp(StoryCatalog catalog)
+    public GalleryApp(StoryCatalog catalog, IFileStore? playgroundFiles = null)
     {
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        playgroundFiles ??= new PhysicalFileStore(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Luxel", "Gallery"));
+        _storyServices = GalleryServices.WithFileStore(playgroundFiles);
         _preview.ContentError = error => _pendingStoryError ??= error;
         WireStateForcing();   // Effect は生涯 1 組 (BuildRoot 毎に張ると累積する)
     }
@@ -759,7 +764,7 @@ public sealed class GalleryApp : IDisposable
         _treeExpanded.Add(story.Path);   // docs story自身も開いてTOCを見せる
         _title.Value = story.Path;
         _ctx = new StoryContext(_resources);
-        _ctx.SetServices(GalleryServices.Provider);   // DI: ScriptHost / ICodeLanguage をストーリー引数へ注入
+        _ctx.SetServices(_storyServices);   // DI: shared scripting services + native Playground persistence
         // 遷移は次フレームへキュー — 子ホストの入力ディスパッチ中に SetContent (旧ルート破棄) しない
         _ctx.SetNavigator(p => _pendingNav = p);
         if (HostGpu is { } gpu) _ctx.SetGpuHost(gpu.Device, gpu.Font);

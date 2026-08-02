@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using Luxel.Diagnostics;
 
 namespace Luxel.Resources;
@@ -15,11 +15,14 @@ internal sealed class ResourceNode
     public ResourceStatus Status = ResourceStatus.Loading;
     public Task<object> Computed = null!;
     public Exception? Error;
+    public bool HasValue;
+    public long LoadGeneration;
+    public int ReloadQueued;
     public int RefCount;
     public readonly HashSet<ResourceNode> Dependents = new();
     public readonly HashSet<ResourceNode> Dependencies = new();
     public IReloadToken? WatchToken;
-    public CancellationTokenSource Cts = new();
+    public CancellationTokenSource? Cts;
     public string StepName = "?";
     public Executor StepExecutor;
     public event Action? Reloaded;
@@ -42,6 +45,10 @@ public sealed class ResourceHandle<T> : IDisposable
     public ResourceUri Uri => Node.Uri;
     public Task Ready => Node.Computed;
     public int Version => Node.Version;
+    /// <summary>初回ロード成功済み、または再ロード失敗後も最後の正常値を保持している。</summary>
+    public bool HasValue => Node.HasValue;
+    /// <summary>直近のロード失敗。後続ロード成功時にクリアされる。</summary>
+    public Exception? LastReloadError => Node.Error;
     public Exception? Error => Node.Error;
 
     public event Action Reloaded { add => Node.Reloaded += value; remove => Node.Reloaded -= value; }
@@ -59,11 +66,13 @@ public sealed class LoadContext
 {
     private readonly ResourceSystem _sys;
     internal readonly ResourceNode Owner;
+    private readonly CancellationToken _token;
     public ResourceUri Uri { get; }
 
-    internal LoadContext(ResourceSystem sys, ResourceNode owner, ResourceUri uri) { _sys = sys; Owner = owner; Uri = uri; }
+    internal LoadContext(ResourceSystem sys, ResourceNode owner, ResourceUri uri, CancellationToken token)
+    { _sys = sys; Owner = owner; Uri = uri; _token = token; }
 
-    public CancellationToken Token => Owner.Cts.Token;
+    public CancellationToken Token => _token;
     public StageAwaitable Io => _sys.IoStage;
     public StageAwaitable Cpu => _sys.CpuStage;
     public StageAwaitable Gpu => _sys.GpuStage;
@@ -161,6 +170,7 @@ public sealed class ResourceSystem : IDisposable
                 StepName = "publish",
                 StepExecutor = Executor.Cpu,
                 Value = value,
+                HasValue = true,
                 Status = ResourceStatus.Ready,
                 Computed = Task.FromResult<object>(value),
                 Loader = _ => Task.FromResult<object>(value),
@@ -293,29 +303,79 @@ public sealed class ResourceSystem : IDisposable
 
     private void StartLoad(ResourceNode node, bool isReload)
     {
-        var ctx = new LoadContext(this, node, node.Uri);
-        node.Status = ResourceStatus.Loading;
-        node.Computed = RunLoad(node, ctx, isReload);
+        var cts = new CancellationTokenSource();
+        CancellationTokenSource? previous;
+        long generation;
+        lock (node)
+        {
+            previous = node.Cts;
+            node.Cts = cts;
+            generation = ++node.LoadGeneration;
+            node.Status = ResourceStatus.Loading;
+            var ctx = new LoadContext(this, node, node.Uri, cts.Token);
+            node.Computed = RunLoad(node, ctx, isReload, generation, cts);
+        }
+        try { previous?.Cancel(); } catch (ObjectDisposedException) { }
     }
 
-    private async Task<object> RunLoad(ResourceNode node, LoadContext ctx, bool isReload)
+    private async Task<object> RunLoad(
+        ResourceNode node,
+        LoadContext ctx,
+        bool isReload,
+        long generation,
+        CancellationTokenSource cts)
     {
         try
         {
             object v = await node.Loader(ctx);
-            node.Status = ResourceStatus.Ready;
-            if (isReload) _publishQueue.Enqueue(() => NotifyPublish(node, v));
-            else node.Value = v;
+            lock (node)
+            {
+                if (node.LoadGeneration != generation)
+                {
+                    if (!node.IsBorrowed) (v as IDisposable)?.Dispose();
+                    return v;
+                }
+
+                node.Status = ResourceStatus.Ready;
+                node.Error = null;
+                if (isReload)
+                {
+                    _publishQueue.Enqueue(() => PublishIfCurrent(node, v, generation));
+                }
+                else
+                {
+                    node.Value = v;
+                    node.HasValue = true;
+                }
+            }
             _graphDirty = true;
             return v;
         }
         catch (Exception e)
         {
-            node.Status = ResourceStatus.Failed;
-            node.Error = e;
+            lock (node)
+            {
+                if (node.LoadGeneration == generation)
+                {
+                    node.Status = node.HasValue ? ResourceStatus.Ready : ResourceStatus.Failed;
+                    node.Error = e;
+                    _graphDirty = true;
+                }
+            }
             throw;
         }
+        finally
+        {
+            lock (node)
+            {
+                if (ReferenceEquals(node.Cts, cts)) node.Cts = null;
+            }
+            cts.Dispose();
+        }
     }
+
+    private void PublishIfCurrent(ResourceNode node, object value, long generation)
+        => NotifyPublish(node, value, generation);
 
     public void Pump()
     {
@@ -332,7 +392,11 @@ public sealed class ResourceSystem : IDisposable
             }
         }
         while (_publishQueue.TryDequeue(out Action? a)) a();
-        while (_reloadQueue.TryDequeue(out ResourceNode? n)) StartLoad(n, isReload: true);
+        while (_reloadQueue.TryDequeue(out ResourceNode? n))
+        {
+            Interlocked.Exchange(ref n.ReloadQueued, 0);
+            StartLoad(n, isReload: true);
+        }
         if (_deferredDispose.Count > 0)
         {
             _deferredIdleHook?.Invoke();
@@ -364,31 +428,47 @@ public sealed class ResourceSystem : IDisposable
         EngineDiagnostics.Emit(EngineDiagnostics.Resources, new DiagResources(nodes));
     }
 
-    private void NotifyPublish(ResourceNode node, object newValue)
+    private void NotifyPublish(ResourceNode node, object newValue, long? generation = null)
     {
-        object? old = node.Value;
-        node.Value = newValue;
-        node.Version++;
+        object? old;
+        lock (node)
+        {
+            if (generation.HasValue && node.LoadGeneration != generation.Value)
+            {
+                if (!node.IsBorrowed) (newValue as IDisposable)?.Dispose();
+                return;
+            }
+            old = node.Value;
+            node.Value = newValue;
+            node.HasValue = true;
+            node.Version++;
+        }
         if (old != null && !ReferenceEquals(old, newValue)) _deferredDispose.Add(old);
         node.FireReloaded();
         _graphDirty = true;
         ResourceNode[] deps;
         lock (_lock) deps = node.Dependents.ToArray();
-        foreach (ResourceNode d in deps) _reloadQueue.Enqueue(d);
+        foreach (ResourceNode d in deps) EnqueueReload(d);
+    }
+
+    private void EnqueueReload(ResourceNode node)
+    {
+        if (Interlocked.CompareExchange(ref node.ReloadQueued, 1, 0) == 0)
+            _reloadQueue.Enqueue(node);
     }
 
     public void NotifyDeviceLost()
     {
         ResourceNode[] all;
         lock (_lock) all = _cache.Values.ToArray();
-        foreach (ResourceNode n in all) _reloadQueue.Enqueue(n);
+        foreach (ResourceNode n in all) EnqueueReload(n);
     }
 
     private void RegisterWatch(ResourceNode node)
     {
         if (node.Type != typeof(byte[])) return;
         IResourceSource? src = _pipeline.Source(node.Uri.Scheme);
-        node.WatchToken = src?.Watch(node.Uri, () => _reloadQueue.Enqueue(node));
+        node.WatchToken = src?.Watch(node.Uri, () => EnqueueReload(node));
     }
 
     internal void Release(ResourceNode node)
@@ -406,7 +486,7 @@ public sealed class ResourceSystem : IDisposable
         _cache.Remove(node.Key);
         _graphDirty = true;
         node.WatchToken?.Dispose();
-        try { node.Cts.Cancel(); } catch { }
+        try { node.Cts?.Cancel(); } catch { }
         if (node.Value != null && !node.IsBorrowed) _deferredDispose.Add(node.Value);
         foreach (ResourceNode dep in node.Dependencies.ToArray())
         {
@@ -423,6 +503,7 @@ public sealed class ResourceSystem : IDisposable
         foreach (ResourceNode n in all)
         {
             n.WatchToken?.Dispose();
+            try { n.Cts?.Cancel(); } catch { }
             if (!n.IsBorrowed) (n.Value as IDisposable)?.Dispose();
         }
         foreach (object o in _deferredDispose) (o as IDisposable)?.Dispose();

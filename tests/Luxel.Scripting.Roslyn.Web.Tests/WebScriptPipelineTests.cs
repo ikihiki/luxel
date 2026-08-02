@@ -1,4 +1,5 @@
 using Luxel.Controls;
+using Luxel.Graphics;
 using Luxel.Scripting;
 using Luxel.Scripting.Roslyn.Web;
 
@@ -42,6 +43,34 @@ public sealed class WebScriptPipelineTests
     }
 
     [Fact]
+    public void ScriptCanRetrieveHostGpuShaderCodeWithMetadata()
+    {
+        var code = new GpuShaderCode { Wgsl = "@compute @workgroup_size(1) fn main() {}"u8.ToArray() };
+        var metadata = new WebScriptResourceMetadata(
+            "workspace://Shaders/main.slang#compute",
+            "Shaders/main.slang",
+            "compute",
+            typeof(GpuShaderCode).FullName!,
+            new Dictionary<string, string> { ["target"] = "wgsl", ["workspaceRevision"] = "7" });
+        var provider = new TestResourceProvider(new WebScriptResource<GpuShaderCode>(code, metadata));
+        WebScriptCompilation compilation = CreateCompiler().Compile("""
+            var shader = WebScriptResources.Get<GpuShaderCode>("Shaders/main.slang");
+            if (shader.Value.Wgsl is null || shader.Metadata.Properties["target"] != "wgsl" || shader.Metadata.Path != "Shaders/main.slang")
+                throw new InvalidOperationException("The compiled shader resource was not exposed correctly.");
+            return (Widget)Activator.CreateInstance(typeof(Text), nonPublic: true)!;
+            """);
+        Assert.True(compilation.Success, Format(compilation.Diagnostics));
+
+        WebScriptExecution execution;
+        using (WebScriptResources.Push(provider))
+            execution = new WebScriptExecutor().Execute(compilation.PeImage!, compilation.PdbImage!);
+
+        Assert.True(execution.Success, execution.Failure?.Message);
+        Assert.IsType<Text>(execution.Widget);
+        Assert.False(WebScriptResources.TryGet<GpuShaderCode>("Shaders/main.slang", out _));
+    }
+
+    [Fact]
     public void Compile_IsDeterministicForSameInput()
     {
         WebScriptCompiler compiler = CreateCompiler();
@@ -64,6 +93,40 @@ public sealed class WebScriptPipelineTests
         Assert.Equal("CS0103", diagnostic.Id);
         Assert.Equal(2, diagnostic.Line);
         Assert.NotNull(diagnostic.Column);
+    }
+
+    [Fact]
+    public void Compile_ProjectCanReferenceSupportCSharpAndIgnoresSlang()
+    {
+        var project = new WebScriptProject(
+            new WebScriptDocument("entry.csx", "return Support.Create();"),
+            [
+                new WebScriptDocument(
+                    "support.cs",
+                    "using System; using Luxel.Controls; using Luxel.UI; public static class Support { public static Widget Create() => (Widget)Activator.CreateInstance(typeof(Text), nonPublic: true)!; }"),
+                new WebScriptDocument("shader.slang", "this is not C#"),
+            ]);
+
+        WebScriptCompilation compilation = CreateCompiler().Compile(project);
+
+        Assert.True(compilation.Success, Format(compilation.Diagnostics));
+        WebScriptExecution execution = new WebScriptExecutor().Execute(compilation.PeImage!, compilation.PdbImage!);
+        Assert.True(execution.Success, execution.Failure?.Message);
+        Assert.IsType<Text>(execution.Widget);
+    }
+
+    [Fact]
+    public void Compile_SupportDiagnosticPreservesFileNameAndLine()
+    {
+        var project = new WebScriptProject(
+            new WebScriptDocument("entry.csx", "return Support.Create();"),
+            [new WebScriptDocument("support.cs", "public static class Support\n{\n    public static Luxel.UI.Widget Create() => missingName;\n}")]);
+
+        WebScriptCompilation compilation = CreateCompiler().Compile(project);
+
+        WebScriptDiagnostic diagnostic = Assert.Single(compilation.Diagnostics, item => item.Id == "CS0103");
+        Assert.Equal("support.cs", diagnostic.FileName);
+        Assert.Equal(3, diagnostic.Line);
     }
 
     [Fact]
@@ -163,6 +226,48 @@ public sealed class WebScriptPipelineTests
     }
 
     [Fact]
+    public async Task CommonExecutor_CompilesCSharpFilesExcludesSlangAndPreservesFileDiagnostics()
+    {
+        WebScriptCompiler compiler = CreateCompiler();
+        var executor = new RoslynWebScriptExecutor(
+            new InProcessWebScriptWorkerController(compiler, new WebScriptExecutor()));
+
+        ScriptExecutionResult success = await executor.ExecuteAsync(new ScriptExecutionRequest
+        {
+            FileName = "entry.csx",
+            Source = "return Support.Create();",
+            Files =
+            [
+                new ScriptDocument
+                {
+                    FileName = "support.cs",
+                    Source = "using System; using Luxel.Controls; using Luxel.UI; public static class Support { public static Widget Create() => (Widget)Activator.CreateInstance(typeof(Text), nonPublic: true)!; }",
+                },
+                new ScriptDocument { FileName = "shader.slang", Source = "this is not C#" },
+            ],
+        });
+        Assert.Equal(ScriptExecutionOutcome.Succeeded, success.Outcome);
+
+        ScriptExecutionResult failure = await executor.ExecuteAsync(new ScriptExecutionRequest
+        {
+            FileName = "entry.csx",
+            Source = "return Support.Create();",
+            Files =
+            [
+                new ScriptDocument
+                {
+                    FileName = "support.cs",
+                    Source = "public static class Support { public static Luxel.UI.Widget Create() => missingName; }",
+                },
+            ],
+        });
+
+        Assert.Equal(ScriptExecutionOutcome.CompilationFailed, failure.Outcome);
+        ScriptExecutionDiagnostic diagnostic = Assert.Single(failure.Diagnostics, item => item.Code == "CS0103");
+        Assert.Equal("support.cs", diagnostic.Span?.FileName);
+    }
+
+    [Fact]
     public async Task LanguageService_ProvidesSemanticLuxelCompletion()
     {
         using var service = new WebScriptLanguageService(References());
@@ -191,6 +296,62 @@ public sealed class WebScriptPipelineTests
     }
 
     [Fact]
+    public async Task LanguageService_UsesSupportDocumentsForCompletionAndHover()
+    {
+        using var service = new WebScriptLanguageService(References());
+        const string entry = "return Support.";
+        const string support = "public static class Support { public static Luxel.UI.Widget Create() => null!; }";
+        var project = new WebScriptProject(
+            new WebScriptDocument("entry.csx", entry),
+            [new WebScriptDocument("support.cs", support)]);
+
+        WebCompletionResult completion = await service.CompleteAsync(project, "entry.csx", entry.Length, revision: 10);
+        int hoverPosition = support.IndexOf("Create", StringComparison.Ordinal) + 2;
+        WebHoverResult? hover = await service.HoverAsync(project, "support.cs", hoverPosition, revision: 11);
+
+        Assert.Equal(10, completion.Revision);
+        Assert.Contains(completion.Items, item => item.Label == "Create");
+        Assert.NotNull(hover);
+        Assert.Equal(11, hover.Revision);
+        Assert.Contains("Create", hover.Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task LanguageService_FormatsEntryAndSupportDocuments()
+    {
+        using var service = new WebScriptLanguageService(References());
+        const string entry = "if(true){return Kit.Text(\"ok\");}";
+        const string support = "public static class Support{public static int Value=>1;}";
+        var project = new WebScriptProject(
+            new WebScriptDocument("entry.csx", entry),
+            [new WebScriptDocument("support.cs", support)]);
+
+        WebFormatResult formattedEntry = await service.FormatAsync(project, "entry.csx", revision: 13);
+        WebFormatResult formattedSupport = await service.FormatAsync(project, "support.cs", revision: 14);
+
+        Assert.Equal(13, formattedEntry.Revision);
+        Assert.Equal("if (true) { return Kit.Text(\"ok\"); }", formattedEntry.Source);
+        Assert.Equal(14, formattedSupport.Revision);
+        Assert.Equal("public static class Support { public static int Value => 1; }", formattedSupport.Source);
+    }
+
+    [Fact]
+    public async Task LanguageService_MapsSupportDiagnosticsToTheirDocument()
+    {
+        using var service = new WebScriptLanguageService(References());
+        var project = new WebScriptProject(
+            new WebScriptDocument("entry.csx", "return Support.Create();"),
+            [new WebScriptDocument("support.cs", "public static class Support\n{\n    public static Luxel.UI.Widget Create() => missingName;\n}")]);
+
+        WebAnalysisResult analysis = await service.AnalyzeAsync(project, revision: 12);
+
+        WebScriptDiagnostic diagnostic = Assert.Single(analysis.Diagnostics, item => item.Id == "CS0103");
+        Assert.Equal(12, analysis.Revision);
+        Assert.Equal("support.cs", diagnostic.FileName);
+        Assert.Equal(3, diagnostic.Line);
+    }
+
+    [Fact]
     public async Task LanguageService_MapsLiveDiagnosticsToUserSource()
     {
         using var service = new WebScriptLanguageService(References());
@@ -201,6 +362,20 @@ public sealed class WebScriptPipelineTests
         Assert.Equal(9, analysis.Revision);
         Assert.Equal(2, diagnostic.Line);
         Assert.NotNull(diagnostic.Column);
+    }
+
+    private sealed class TestResourceProvider(WebScriptResource<GpuShaderCode> shader) : IWebScriptResourceProvider
+    {
+        public bool TryGet<T>(string name, out WebScriptResource<T>? resource)
+        {
+            if (typeof(T) == typeof(GpuShaderCode) && name == "Shaders/main.slang")
+            {
+                resource = (WebScriptResource<T>)(object)shader;
+                return true;
+            }
+            resource = null;
+            return false;
+        }
     }
 
     private static WebScriptCompiler CreateCompiler() => new(References());

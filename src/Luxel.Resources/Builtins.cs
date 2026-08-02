@@ -58,3 +58,11 @@ public sealed class TexDecoder : IResourceStep<byte[], CpuImage>
 
 // 組込み Source/Step (FileSource / HttpSource / TexDecoder) は ResourceSystem のコンストラクタで自動登録される。
 // GPU 依存 step (TextureUploader 等) は呼び出し側が Luxel.AssetsGpu の Install/AddStep で追加。
+
+/// <summary>Reads only workspace:// resources from a shared mutable workspace VFS.</summary>
+public sealed class WorkspaceSource(WorkspaceFileSystem workspace) : IResourceSource
+{
+    public IEnumerable<string> Schemes => ["workspace"];
+    public Task<byte[]> ReadAsync(ResourceUri uri, LoadContext ctx) => workspace.ReadAsync(uri.Path, ctx.Token);
+    public IReloadToken? Watch(ResourceUri uri, Action onChanged) => workspace.Watch(uri.Path, onChanged);
+}

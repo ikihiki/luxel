@@ -51,13 +51,34 @@ public sealed class PlaygroundSiteExporterTests
         Assert.Contains("type: \"language-request\"", script);
         Assert.Contains("roslyn-worker", script);
         Assert.Contains("type: \"run\"", script);
-        Assert.Contains("source: session.detail.request.source", script);
+        Assert.Contains("workspace: session.detail.request.workspace", script);
+        Assert.Contains("workspaceRevision: session.detail.request.workspace.revision", script);
+        Assert.Contains("workspace: detail.workspace", script);
+        Assert.Contains("fileId: detail.fileId", script);
+        Assert.Contains("fileVersion: detail.fileVersion", script);
+        Assert.Contains("Stale language service response.", script);
         Assert.Contains("LuxelPlayground?.setDiagnostics", script);
+        Assert.Contains("LuxelPlayground?.selectFile", script);
         Assert.Contains("message.type === \"runtime-error\"", script);
         Assert.Contains("textContent", script);
         Assert.DoesNotContain("innerHTML", script, StringComparison.Ordinal);
         Assert.DoesNotContain("searchParams.set(\"source\"", script, StringComparison.Ordinal);
         Assert.DoesNotContain("console.", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Playground_bridge_stages_new_runs_cancels_superseded_frames_and_keeps_last_good_preview()
+    {
+        string script = GallerySiteExporter.PlaygroundClientScript;
+
+        Assert.Contains("destroy(root, false);", script);
+        Assert.Contains("type: \"cancel\"", script);
+        Assert.Contains("stagePreview(root, frame)", script);
+        Assert.Contains("if (message.success) publishPreview(root, session);", script);
+        Assert.Contains("else destroy(root, false);", script);
+        Assert.Contains("if (child !== session.frame) child.remove();", script);
+        Assert.DoesNotContain("preview.replaceChildren(session.frame)", script);
+        Assert.Contains("if (removePublished || !session.published) session.frame.remove();", script);
     }
 
     [Fact]
@@ -67,8 +88,8 @@ public sealed class PlaygroundSiteExporterTests
 
         Assert.Contains("playgroundStartupTimeoutMs || 30000", script);
         Assert.Contains("Playground runtime did not become ready within 30 seconds.", script);
-        Assert.Contains("playgroundExecutionTimeoutMs || 5000", script);
-        Assert.Contains("Script execution exceeded the 5 second timeout.", script);
+        Assert.Contains("hasSlang ? 20000 : 5000", script);
+        Assert.Contains("Script execution exceeded the ${executionTimeoutMs / 1000} second timeout.", script);
         Assert.Contains("clearTimeout(session.timeout)", script);
         Assert.Contains("destroy(root);", script);
     }
@@ -111,6 +132,7 @@ public sealed class PlaygroundSiteExporterTests
             Export(output, runtime);
 
             string fragment = ReadPlaygroundFragment(output);
+            Assert.Contains("data-playground-protocol=\"2\"", fragment);
             Assert.Contains("data-playground-runtime-url=\"samples/luxel-playground/\"", fragment);
             AssertManifestContainsPlayground(output);
             Assert.DoesNotContain("src=\"/samples/luxel-playground/", fragment);
@@ -135,9 +157,9 @@ public sealed class PlaygroundSiteExporterTests
 
             Delete(output);
             File.WriteAllText(Path.Combine(runtime, "main.js"), "// runtime");
-            File.WriteAllText(Path.Combine(runtime, "playground-runtime-manifest.json"), "{\"protocol\":\"luxel-playground\",\"protocolVersion\":2,\"entryUrl\":\"./\"}");
+            File.WriteAllText(Path.Combine(runtime, "playground-runtime-manifest.json"), "{\"protocol\":\"luxel-playground\",\"protocolVersion\":1,\"entryUrl\":\"./\"}");
             InvalidDataException protocol = Assert.Throws<InvalidDataException>(() => Export(output, runtime));
-            Assert.Contains("protocol 2", protocol.Message);
+            Assert.Contains("protocol 1", protocol.Message);
         }
         finally { Delete(output); Delete(runtime); }
     }
@@ -174,7 +196,7 @@ public sealed class PlaygroundSiteExporterTests
         File.WriteAllText(Path.Combine(root, "main.js"), "// runtime");
         File.WriteAllText(Path.Combine(root, "language-worker.js"), "// language worker");
         File.WriteAllText(Path.Combine(root, "_framework", "dotnet.js"), "// dotnet");
-        File.WriteAllText(Path.Combine(root, "playground-runtime-manifest.json"), "{\"protocol\":\"luxel-playground\",\"protocolVersion\":1,\"entryUrl\":\"./\"}");
+        File.WriteAllText(Path.Combine(root, "playground-runtime-manifest.json"), "{\"protocol\":\"luxel-playground\",\"protocolVersion\":2,\"entryUrl\":\"./\"}");
         return root;
     }
 

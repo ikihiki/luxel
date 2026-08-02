@@ -13,6 +13,11 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Luxel.Scripting.Roslyn.Web\Luxel.Scripting.Roslyn.Web.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Imaging\Luxel.Imaging.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Shaders\Luxel.Shaders.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Shaders.Slang.Browser\Luxel.Shaders.Slang.Browser.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Controls\Luxel.Controls.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Graphics\Luxel.Graphics.csproj" />

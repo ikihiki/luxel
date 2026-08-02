@@ -112,20 +112,59 @@ public static class ScriptingStory
         public void Dispose() => (_output as IDisposable)?.Dispose();
     }
 
-    [Story(PlaygroundContract.StoryPath, Height = 620, Order = 2031)]
-    public static Widget Playground(StoryContext ctx, ScriptHost host, ICodeLanguage lang)
+    [Story(PlaygroundContract.StoryPath, Height = 700, Order = 2031)]
+    public static Widget Playground(StoryContext ctx, ICodeLanguage lang, Luxel.Settings.IFileStore files)
     {
-        var block = new CsxBlock(
-            "// Edit this C# and run it as a normal Gallery Story.\n" +
-            "var label = \"Click me\";\n" +
-            "Button(_ => Log(\"Button clicked.\"), label)",
-            maxWidth: 560, ctx, host, lang);
+        var template = new PlaygroundTemplate(
+            PlaygroundTemplates.Button.Id,
+            PlaygroundTemplates.Button.Title,
+            PlaygroundTemplates.Button.Description,
+            PlaygroundTemplates.Button.MainFileName,
+            [
+                new PlaygroundFile(PlaygroundTemplates.Button.MainFileName, """
+                    // The entry .csx can reference declarations from supporting .cs documents.
+                    return Kit.Button(_ => Log("Button clicked."), PlaygroundLabels.Ready);
+                    """),
+                new PlaygroundFile("Helpers.cs", """
+                    static class PlaygroundLabels
+                    {
+                        public const string Ready = "Workspace ready";
+                    }
+                    """),
+            ]);
+        NativePlaygroundResourceOptions? resourceOptions = null;
+        try { resourceOptions = NativePlaygroundResourceOptions.ForGpu(ctx.Device); }
+        catch (InvalidOperationException) { /* Headless/export hosts do not expose a GPU context. */ }
+        var workspace = new NativePlaygroundWorkspace(template, 620, lang, files, resourceOptions: resourceOptions);
+
+        ctx.Play("workspace", async driver =>
+        {
+            await driver.Expect(() => workspace.FileNames.Count == 2, "native Playground opens a multi-file workspace");
+            workspace.AddFile("Temporary.cs");
+            await driver.Expect(() => workspace.ActiveFileName == "Temporary.cs", "added file becomes active");
+            workspace.RenameActiveFile("Renamed.cs");
+            await driver.Expect(() => workspace.ActiveFileName == "Renamed.cs", "active file can be renamed");
+            workspace.DeleteActiveFile();
+            await driver.Expect(() => workspace.FileNames.Count == 2, "supporting file can be deleted");
+            workspace.Activate("Helpers.cs");
+            await driver.Expect(() => workspace.ActiveFileName == "Helpers.cs", "supporting file tab activates");
+            workspace.Activate(PlaygroundTemplates.Button.MainFileName);
+            await driver.Click(workspace.RunButton);
+            await driver.Step(4);
+            await driver.Expect(() => workspace.LastRunOk, "entry csx compiles with supporting cs and returns a Widget");
+            workspace.SetCode(PlaygroundTemplates.Button.MainFileName, "return Missing.Widget;");
+            await driver.Click(workspace.RunButton);
+            await driver.Step(4);
+            await driver.Expect(() => !workspace.LastRunOk && workspace.HasPreview,
+                "failed runs retain the last successful preview");
+            workspace.SetCode(PlaygroundTemplates.Button.MainFileName, template.Files[0].Source);
+        });
 
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             VStack(10)[
                 Heading("C# Playground"),
-                Muted("Edit and run a Luxel Widget inside the Gallery. The native Gallery uses ScriptHost; the web Gallery uses the browser Roslyn runtime."),
-                block]];
+                Muted("A native multi-file Workbench workspace with persisted tabs, edits, and active file. Run compiles supporting C# files before the main script."),
+                workspace]];
     }
 
     [Story("Examples/Scripting/LiveCsx", Height = 520, Order = 2032)]

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text;
 using Luxel.Controls;
 using Luxel.Resources;
@@ -160,6 +160,91 @@ public class ResourceSystemTests
         await PumpUntil(sys, () => _finalRuns > beforeFinal);
         Assert.True(_finalRuns > beforeFinal);              // GPU 段が再実行された
         Assert.Equal("K!", h.Value.Text);
+    }
+
+    [Fact]
+    public async Task SupersededReload_CannotPublishAfterNewerGeneration()
+    {
+        var sys = new ResourceSystem();
+        var loads = new List<TaskCompletionSource<Final>>();
+        var tokens = new List<CancellationToken>();
+        Loader<Final> loader = ctx =>
+        {
+            tokens.Add(ctx.Token);
+            var completion = new TaskCompletionSource<Final>(TaskCreationOptions.RunContinuationsAsynchronously);
+            loads.Add(completion);
+            return completion.Task;
+        };
+
+        var h = sys.Load("controlled://shader", loader);
+        loads[0].SetResult(new Final("initial"));
+        await h.Ready;
+        Assert.Equal("initial", h.Value.Text);
+
+        sys.NotifyDeviceLost();
+        sys.NotifyDeviceLost(); // duplicate queued reloads are coalesced
+        sys.Pump();
+        Assert.Equal(2, loads.Count);
+        Task olderReload = h.Ready;
+
+        sys.NotifyDeviceLost();
+        sys.Pump();
+        Assert.Equal(3, loads.Count);
+        Assert.True(tokens[1].IsCancellationRequested);
+        Task newerReload = h.Ready;
+
+        loads[2].SetResult(new Final("newer"));
+        await newerReload;
+        sys.Pump();
+        Assert.Equal("newer", h.Value.Text);
+        Assert.Equal(1, h.Version);
+
+        loads[1].SetResult(new Final("stale"));
+        await olderReload;
+        sys.Pump();
+        Assert.Equal("newer", h.Value.Text);
+        Assert.Equal(1, h.Version);
+    }
+
+    [Fact]
+    public async Task FailedReload_RetainsLastGoodValue_AndLaterSuccessClearsError()
+    {
+        var sys = new ResourceSystem();
+        var loads = new List<TaskCompletionSource<Final>>();
+        Loader<Final> loader = _ =>
+        {
+            var completion = new TaskCompletionSource<Final>(TaskCreationOptions.RunContinuationsAsynchronously);
+            loads.Add(completion);
+            return completion.Task;
+        };
+
+        var h = sys.Load("controlled://shader", loader);
+        loads[0].SetResult(new Final("good"));
+        await h.Ready;
+        Assert.True(h.HasValue);
+
+        sys.NotifyDeviceLost();
+        sys.Pump();
+        Task failedReload = h.Ready;
+        var failure = new InvalidOperationException("compile failed");
+        loads[1].SetException(failure);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await failedReload);
+
+        Assert.True(h.HasValue);
+        Assert.True(h.IsReady);
+        Assert.Same(failure, h.LastReloadError);
+        Assert.Equal("good", h.Value.Text);
+
+        sys.NotifyDeviceLost();
+        sys.Pump();
+        Task successfulReload = h.Ready;
+        loads[2].SetResult(new Final("fixed"));
+        await successfulReload;
+        sys.Pump();
+
+        Assert.Equal("fixed", h.Value.Text);
+        Assert.True(h.IsReady);
+        Assert.Null(h.LastReloadError);
     }
 
     [Fact]

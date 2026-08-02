@@ -8,7 +8,7 @@
     <SlangSpirvProfile Condition="'$(SlangSpirvProfile)' == ''">spirv_1_6</SlangSpirvProfile>
     <SlangDxilProfile Condition="'$(SlangDxilProfile)' == ''">sm_6_6</SlangDxilProfile>
     <SlangWgslGeneratorProject>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\eng\Luxel.ShaderWgslGen\Luxel.ShaderWgslGen.csproj'))</SlangWgslGeneratorProject>
-    <SlangWgslGeneratorSource>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\eng\Luxel.ShaderWgslGen\Program.cs'))</SlangWgslGeneratorSource>
+    <SlangWgslGeneratorSource>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\eng\Luxel.ShaderWgslGen\Program.cs'));$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\eng\Luxel.ShaderWgslGen\Luxel.ShaderWgslGen.csproj'));$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\src\Luxel.Shaders\WgslNormalizer.cs'))</SlangWgslGeneratorSource>
     <SlangWgslIntermediateDir>$([System.IO.Path]::GetFullPath('$(BaseIntermediateOutputPath)luxel-shaders/wgsl'))$([System.IO.Path]::DirectorySeparatorChar)</SlangWgslIntermediateDir>
     <SlangWgslManifestName>webgpu-shaders.json</SlangWgslManifestName>
     <SlangCacheSchema Condition="'$(SlangCacheSchema)' == ''">3</SlangCacheSchema>
