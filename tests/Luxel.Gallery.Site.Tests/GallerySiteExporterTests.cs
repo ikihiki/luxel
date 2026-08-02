@@ -884,6 +884,14 @@ public sealed class GallerySiteExporterTests
             if (i > 0) Assert.Contains("story:" + stories[i - 1].Path, source);
             if (i + 1 < stories.Length) Assert.Contains("story:" + stories[i + 1].Path, source);
         }
+        string environment = pages["Learn/Grapics/Environment"].Text;
+        Assert.Contains("# グラフィック環境", environment);
+        Assert.Contains("## Backend", environment);
+        foreach (string backend in new[] { "## Vulkan", "## Direct3D 12", "## WebGPU (native)", "## WebGPU (browser)" })
+            Assert.Contains(backend, environment);
+        Assert.DoesNotContain("## ビルド", environment);
+        Assert.DoesNotContain("## Shader cache", environment);
+
         Assert.Contains("story:Apps/Game/Range", pages[stories[^1].Path].Text);
 
         string overview = pages[stories[0].Path].Text.ToLowerInvariant();

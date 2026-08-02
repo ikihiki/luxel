@@ -38,55 +38,74 @@ public static partial class DocsRenderingLearn
     public static Widget Environment(StoryContext ctx)
     {
         return DocNew(ctx, $$"""
-        # レンダリング環境を確認する
+        # グラフィック環境
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/Environment", "Beginner", "Standalone", "Vulkan / DirectX 12", "Overview")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/Environment", "Beginner", "Standalone + Browser", "Vulkan / Direct3D 12 / WebGPU", "Overview")}}
 
-        ## 対応backend
+        ## Backend
 
-        | OS | Window backend | GPU backend | 実行引数 |
+        | Backend | 実行環境 | Window / Surface | `LuxelTriangle`の実行引数 |
         | --- | --- | --- | --- |
-        | Windows | Win32 | Vulkan | `vk` |
-        | Windows | Win32 | DirectX 12 | `dx` |
-        | Linux | Silk.NET GLFW / X11 | Vulkan | `vk` |
+        | Vulkan | Windows / Linux | Win32 / X11 | `vk` / `vulkan` |
+        | Direct3D 12 | Windows | Win32 | `dx` / `d3d12` |
+        | WebGPU (native) | Windows / Linux | Win32 / Xlib | `webgpu` / `wgpu` |
+        | WebGPU (browser) | Browser WASM | HTML canvas | — |
 
-        Linuxの実ウィンドウにはX11の `DISPLAY` が必要です。Wayland nativeは未対応です。headless環境では `eng/desktop/start.sh` または `xvfb-run` でX serverを用意します。
+        Linuxの実ウィンドウにはX11の `DISPLAY` が必要です。Wayland nativeは未対応です。browser版はnative windowを作らず、canvasからsurfaceを作ります。
 
-        ## ビルド
+        ## Vulkan
 
-        ```powershell
-        dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
-        dotnet run --project samples/LuxelTriangle -- vk
-        # Windowsのみ
-        dotnet run --project samples/LuxelTriangle -- dx
+        Windowsではbackendを直接作成できます。
+
+        ```csharp
+        using var device = new GpuDevice(
+            Luxel.Graphics.Vulkan.VulkanBackend.Create());
         ```
 
-        成功すると暗い背景に赤・緑・青の三角形が表示されます。CIやsmoke testでは `--frames 3` を付けると自動終了します。
+        Linuxのwindow表示では、windowが提供する`IVulkanWindowSurface`を作成時に渡します。
 
-        ## Shader cache
+        ```csharp
+        IVulkanWindowSurface provider = window.GetFeature<IVulkanWindowSurface>()
+            ?? throw new PlatformNotSupportedException(
+                "Linux/X11 window did not provide a Vulkan surface.");
 
-        通常ビルドはGit管理済みの `shaders/compiled/` を使うため、Slang/DXCの事前導入は不要です。`.slang`を変更したときだけ次を実行します。
-
-        ```powershell
-        dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache
+        using var device = new GpuDevice(
+            VulkanBackend.Create(new VulkanBackendOptions
+            {
+                Presentation = VulkanPresentationMode.Window,
+                WindowSurface = provider,
+            }));
         ```
 
-        生成物と `inputs.sha256` をshader sourceと一緒にコミットします。
+        ## Direct3D 12
 
-        ## Backendとdeviceを作る実コード
+        Direct3D 12はWindows専用です。`Create()`の`enableDebug`は既定で`true`です。
 
-        次は`LuxelTriangle`が実際にコンパイルするWindows/Linux両方のbackend選択です。Linuxではwindowが提供する`IVulkanWindowSurface`を`VulkanBackendOptions.WindowSurface`へ渡します。
+        ```csharp
+        using var device = new GpuDevice(
+            Luxel.Graphics.DirectX12.D3D12Backend.Create());
+        ```
 
-        {{SampleSource("samples/LuxelTriangle/Program.cs", "device-and-surface-backend")}}
+        ## WebGPU (native)
 
-        surface生成と所有権を含む完全なevent loopは次のClear Colorページにあります。device、surface、window systemは`using`で所有者を明確にし、終了前にqueueをidleにします。
+        native版は`wgpu-native`を利用し、WindowsとLinuxで同じ作成コードを使います。
 
-        ## 典型的な失敗
+        ```csharp
+        using var device = new GpuDevice(
+            Luxel.Graphics.WebGPU.WebGpuBackend.Create());
+        ```
 
-        - Linuxで `DISPLAY` がない → X11 serverを起動する
-        - Linuxで `dx` を指定 → Vulkanの `vk` を使う
-        - shader cache mismatch → 上記 `CompileLuxelShaderCache` を実行する
-        - Vulkan deviceがない → Vulkan driverまたはlavapipeの導入を確認する
+        ## WebGPU (browser)
+
+        browser版のbackend作成は非同期です。`GpuDevice`作成後はnative surface descriptorではなく、canvas selectorを指定します。
+
+        ```csharp
+        using BrowserWebGpuBackend backend =
+            await BrowserWebGpuBackend.CreateAsync();
+        using var device = new GpuDevice(backend);
+        using GpuSurface surface = device.CreateCanvasSurface(
+            "#luxel-canvas", (uint)window.Width, (uint)window.Height);
+        ```
         """, toc: true);
     }
 
