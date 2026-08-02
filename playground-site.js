@@ -11,6 +11,12 @@
     text(target, value);
     if (target) target.setAttribute("role", error ? "alert" : "status");
   }
+  function running(root, value) {
+    const run = root.querySelector("[data-playground-run]");
+    const cancel = root.querySelector("[data-playground-cancel]");
+    if (run) run.disabled = Boolean(value);
+    if (cancel) cancel.disabled = !value;
+  }
   function empty(target, message) {
     if (!target) return;
     target.replaceChildren();
@@ -19,10 +25,12 @@
     paragraph.textContent = message;
     target.append(paragraph);
   }
-  function destroy(root) {
+  function destroy(root, removePublished = true) {
     const session = sessions.get(root);
-    if (session?.timeout) clearTimeout(session.timeout);
-    session?.frame?.remove();
+    if (!session) return;
+    if (session.timeout) clearTimeout(session.timeout);
+    session.frame.contentWindow?.postMessage({ protocol, protocolVersion: Number(root.dataset.playgroundProtocol), type: "cancel", instanceId: session.instanceId, revision: session.revision }, location.origin);
+    if (removePublished || !session.published) session.frame.remove();
     sessions.delete(root);
   }
   function appendDiagnostics(root, diagnostics, failure) {
@@ -35,9 +43,18 @@
       for (const diagnostic of diagnostics.slice(0, 200)) {
         const item = document.createElement("li");
         item.dataset.severity = String(diagnostic.severity || "error").toLowerCase();
+        const button = document.createElement("button");
         const code = document.createElement("strong");
         code.textContent = diagnostic.code || diagnostic.id || "Diagnostic";
-        item.append(code, document.createTextNode(" " + String(diagnostic.message || "")));
+        button.append(code, document.createTextNode(" " + String(diagnostic.message || "")));
+        const path = diagnostic.path || diagnostic.fileName;
+        if (path) button.append(document.createTextNode(` ${path}:${diagnostic.line || diagnostic.startLine || 1}:${diagnostic.column || diagnostic.startColumn || 1}`));
+        button.addEventListener("click", () => {
+          const workspace = window.LuxelPlayground?.getWorkspace(root);
+          const file = workspace?.files?.find(candidate => candidate.id === diagnostic.fileId || candidate.path === path);
+          if (file) window.LuxelPlayground?.selectFile(root, file.id, diagnostic);
+        });
+        item.append(button);
         list.append(item);
       }
       target.append(list);
@@ -66,12 +83,23 @@
     }
     target.append(list);
   }
-  function renderPreview(root, frame) {
+  function stagePreview(root, frame) {
     const preview = root.querySelector("[data-playground-preview]");
-    preview?.replaceChildren(frame);
+    if (!preview) return;
+    preview.style.position = "relative";
+    Object.assign(frame.style, { position: "absolute", inset: "0", width: "100%", height: "100%", opacity: "0", pointerEvents: "none" });
+    preview.append(frame);
+  }
+  function publishPreview(root, session) {
+    const preview = root.querySelector("[data-playground-preview]");
+    if (!preview) return;
+    for (const child of [...preview.children])
+      if (child !== session.frame) child.remove();
+    Object.assign(session.frame.style, { position: "", inset: "", width: "", height: "", opacity: "", pointerEvents: "" });
+    session.published = true;
   }
   function createSession(root, detail) {
-    destroy(root);
+    destroy(root, false);
     const runtimeUrl = root.dataset.playgroundRuntimeUrl;
     if (!runtimeUrl) { status(root, "Playground runtime unavailable.", true); return null; }
     const revision = Number(detail?.executionId || 0);
@@ -86,16 +114,18 @@
     frame.dataset.playgroundInstance = instanceId;
     frame.setAttribute("allow", "webgpu");
     frame.setAttribute("sandbox", "allow-scripts allow-same-origin");
-    const session = { frame, instanceId, revision, detail, ready: false, timeout: null };
+    const session = { frame, instanceId, revision, detail, ready: false, published: false, timeout: null };
     const startupTimeoutMs = Number(root.dataset.playgroundStartupTimeoutMs || 30000);
     session.timeout = setTimeout(() => {
       if (sessions.get(root) !== session) return;
-      destroy(root);
+      destroy(root, false);
+      running(root, false);
       status(root, "Timed out", true);
       appendDiagnostics(root, [], { message: "Playground runtime did not become ready within 30 seconds." });
     }, startupTimeoutMs);
     sessions.set(root, session);
-    renderPreview(root, frame);
+    stagePreview(root, frame);
+    running(root, true);
     status(root, "Starting fresh runtime…");
     appendDiagnostics(root, [], null);
     appendOutput(root, []);
@@ -103,12 +133,14 @@
   }
   function postExecute(root, session) {
     if (session.timeout) clearTimeout(session.timeout);
-    const executionTimeoutMs = Number(root.dataset.playgroundExecutionTimeoutMs || 5000);
+    const hasSlang = session.detail?.request?.workspace?.files?.some(file => file.language === "slang");
+    const executionTimeoutMs = Number(root.dataset.playgroundExecutionTimeoutMs || (hasSlang ? 20000 : 5000));
     session.timeout = setTimeout(() => {
       if (sessions.get(root) !== session) return;
-      destroy(root);
+      destroy(root, false);
+      running(root, false);
       status(root, "Timed out", true);
-      appendDiagnostics(root, [], { message: "Script execution exceeded the 5 second timeout." });
+      appendDiagnostics(root, [], { message: `Script execution exceeded the ${executionTimeoutMs / 1000} second timeout.` });
     }, executionTimeoutMs);
     session.frame.contentWindow?.postMessage({
       protocol,
@@ -116,7 +148,8 @@
       type: "run",
       instanceId: session.instanceId,
       revision: session.revision,
-      source: session.detail.request.source
+      workspaceRevision: session.detail.request.workspace.revision,
+      workspace: session.detail.request.workspace
     }, location.origin);
     status(root, "Running…");
   }
@@ -132,7 +165,9 @@
       if (!pending) return;
       session.pending.delete(message.requestId);
       clearTimeout(pending.timeout);
-      if (message.error || message.result?.error) pending.reject(new Error(message.error || message.result.error));
+      if (message.workspaceRevision !== pending.workspaceRevision || message.fileId !== pending.fileId || message.fileVersion !== pending.fileVersion)
+        pending.reject(new Error("Stale language service response."));
+      else if (message.error || message.result?.error) pending.reject(new Error(message.error || message.result.error));
       else pending.resolve(message.result);
     }
   }
@@ -161,13 +196,17 @@
       protocolVersion: Number(root.dataset.playgroundProtocol),
       type: "language-request",
       instanceId: session.instanceId,
-      revision: Number.isSafeInteger(detail.revision) ? detail.revision : Number(root.dataset.languageRevision || "0") + 1,
+      revision: Number.isSafeInteger(detail.workspaceRevision) ? detail.workspaceRevision : Number(root.dataset.languageRevision || "0") + 1,
+      workspaceRevision: detail.workspaceRevision,
       requestId,
       kind: detail.kind,
-      source: detail.source,
+      workspace: detail.workspace,
+      fileId: detail.fileId,
+      fileVersion: detail.fileVersion,
+      path: detail.path,
       position: detail.position
     };
-    root.dataset.languageRevision = String(request.revision);
+    root.dataset.languageRevision = String(request.workspaceRevision);
     const timeout = setTimeout(() => {
       const pending = session.pending.get(requestId);
       if (!pending) return;
@@ -177,6 +216,9 @@
     session.pending.set(requestId, {
       resolve: detail.resolve || (() => {}),
       reject: detail.reject || (() => {}),
+      workspaceRevision: request.workspaceRevision,
+      fileId: request.fileId,
+      fileVersion: request.fileVersion,
       timeout
     });
     if (session.ready) session.worker.postMessage(request);
@@ -189,13 +231,13 @@
     root.addEventListener("luxel-playground:language-request", event => postLanguageRequest(root, event.detail));
     root.addEventListener("luxel-playground:execute", event => createSession(root, event.detail));
     root.addEventListener("luxel-playground:cancel", () => {
-      const session = sessions.get(root);
-      session?.frame.contentWindow?.postMessage({ protocol, protocolVersion: Number(root.dataset.playgroundProtocol), type: "cancel", instanceId: session.instanceId, revision: session.revision }, location.origin);
-      destroy(root);
+      destroy(root, false);
+      running(root, false);
       status(root, "Canceled");
     });
     root.addEventListener("luxel-playground:reset", () => {
       destroy(root);
+      running(root, false);
       empty(root.querySelector("[data-playground-preview]"), "Run the example to see a preview.");
       appendDiagnostics(root, [], null);
       appendOutput(root, []);
@@ -227,11 +269,15 @@
     else if (message.type === "status") status(root, String(message.status || "Running…"));
     else if (message.type === "diagnostics") appendDiagnostics(root, message.diagnostics, message.failure);
     else if (message.type === "output") appendOutput(root, message.entries || message.logs);
-    else if (message.type === "runtime-error") { if (session.timeout) { clearTimeout(session.timeout); session.timeout = null; } appendDiagnostics(root, message.diagnostics, message.failure || message.error); status(root, "Runtime failed", true); }
+    else if (message.type === "runtime-error") { if (session.timeout) { clearTimeout(session.timeout); session.timeout = null; } running(root, false); appendDiagnostics(root, message.diagnostics, message.failure || message.error); status(root, "Runtime failed", true); }
     else if (message.type === "run-result") {
       if (session.timeout) { clearTimeout(session.timeout); session.timeout = null; }
       appendDiagnostics(root, message.diagnostics, message.failure);
-      appendOutput(root, message.logs || message.entries);
+      if (Array.isArray(message.logs) || Array.isArray(message.entries))
+        appendOutput(root, message.logs || message.entries);
+      if (message.success) publishPreview(root, session);
+      else destroy(root, false);
+      running(root, false);
       status(root, message.outcome || (message.success ? "Succeeded" : "Failed"), !message.success);
     }
   });

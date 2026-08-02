@@ -138,20 +138,59 @@ public static class ScriptingStory
         public void Dispose() =&gt; (_output as IDisposable)?.Dispose();
     }
 
-    [Story(PlaygroundContract.StoryPath, Height = 620, Order = 2031)]
-    public static Widget Playground(StoryContext ctx, ScriptHost host, ICodeLanguage lang)
+    [Story(PlaygroundContract.StoryPath, Height = 700, Order = 2031)]
+    public static Widget Playground(StoryContext ctx, ICodeLanguage lang, Luxel.Settings.IFileStore files)
     {
-        var block = new CsxBlock(
-            &quot;// Edit this C# and run it as a normal Gallery Story.\n&quot; +
-            &quot;var label = \&quot;Click me\&quot;;\n&quot; +
-            &quot;Button(_ =&gt; Log(\&quot;Button clicked.\&quot;), label)&quot;,
-            maxWidth: 560, ctx, host, lang);
+        var template = new PlaygroundTemplate(
+            PlaygroundTemplates.Button.Id,
+            PlaygroundTemplates.Button.Title,
+            PlaygroundTemplates.Button.Description,
+            PlaygroundTemplates.Button.MainFileName,
+            [
+                new PlaygroundFile(PlaygroundTemplates.Button.MainFileName, &quot;&quot;&quot;
+                    // The entry .csx can reference declarations from supporting .cs documents.
+                    return Kit.Button(_ =&gt; Log(&quot;Button clicked.&quot;), PlaygroundLabels.Ready);
+                    &quot;&quot;&quot;),
+                new PlaygroundFile(&quot;Helpers.cs&quot;, &quot;&quot;&quot;
+                    static class PlaygroundLabels
+                    {
+                        public const string Ready = &quot;Workspace ready&quot;;
+                    }
+                    &quot;&quot;&quot;),
+            ]);
+        NativePlaygroundResourceOptions? resourceOptions = null;
+        try { resourceOptions = NativePlaygroundResourceOptions.ForGpu(ctx.Device); }
+        catch (InvalidOperationException) { /* Headless/export hosts do not expose a GPU context. */ }
+        var workspace = new NativePlaygroundWorkspace(template, 620, lang, files, resourceOptions: resourceOptions);
+
+        ctx.Play(&quot;workspace&quot;, async driver =&gt;
+        {
+            await driver.Expect(() =&gt; workspace.FileNames.Count == 2, &quot;native Playground opens a multi-file workspace&quot;);
+            workspace.AddFile(&quot;Temporary.cs&quot;);
+            await driver.Expect(() =&gt; workspace.ActiveFileName == &quot;Temporary.cs&quot;, &quot;added file becomes active&quot;);
+            workspace.RenameActiveFile(&quot;Renamed.cs&quot;);
+            await driver.Expect(() =&gt; workspace.ActiveFileName == &quot;Renamed.cs&quot;, &quot;active file can be renamed&quot;);
+            workspace.DeleteActiveFile();
+            await driver.Expect(() =&gt; workspace.FileNames.Count == 2, &quot;supporting file can be deleted&quot;);
+            workspace.Activate(&quot;Helpers.cs&quot;);
+            await driver.Expect(() =&gt; workspace.ActiveFileName == &quot;Helpers.cs&quot;, &quot;supporting file tab activates&quot;);
+            workspace.Activate(PlaygroundTemplates.Button.MainFileName);
+            await driver.Click(workspace.RunButton);
+            await driver.Step(4);
+            await driver.Expect(() =&gt; workspace.LastRunOk, &quot;entry csx compiles with supporting cs and returns a Widget&quot;);
+            workspace.SetCode(PlaygroundTemplates.Button.MainFileName, &quot;return Missing.Widget;&quot;);
+            await driver.Click(workspace.RunButton);
+            await driver.Step(4);
+            await driver.Expect(() =&gt; !workspace.LastRunOk &amp;&amp; workspace.HasPreview,
+                &quot;failed runs retain the last successful preview&quot;);
+            workspace.SetCode(PlaygroundTemplates.Button.MainFileName, template.Files[0].Source);
+        });
 
         return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
             VStack(10)[
                 Heading(&quot;C# Playground&quot;),
-                Muted(&quot;Edit and run a Luxel Widget inside the Gallery. The native Gallery uses ScriptHost; the web Gallery uses the browser Roslyn runtime.&quot;),
-                block]];
+                Muted(&quot;A native multi-file Workbench workspace with persisted tabs, edits, and active file. Run compiles supporting C# files before the main script.&quot;),
+                workspace]];
     }
 
     [Story(&quot;Examples/Scripting/LiveCsx&quot;, Height = 520, Order = 2032)]
