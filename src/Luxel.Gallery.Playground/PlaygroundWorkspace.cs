@@ -31,6 +31,7 @@ public static class PlaygroundWorkspace
             .Append("<button type=\"button\" data-playground-run").Append(state.CanRun ? "" : " disabled").Append(">Run</button>")
             .Append("<button type=\"button\" data-playground-cancel").Append(state.CanCancel ? "" : " disabled").Append(">Stop</button>")
             .Append("<button type=\"button\" data-playground-reset>Reset</button></div>");
+        string editorPanelId = $"{safeId}-file-editor";
         html.Append("<div class=\"playground-grid\"><section class=\"playground-editor\" aria-labelledby=\"")
             .Append(safeId).Append("-source-heading\"><h2 id=\"").Append(safeId).Append("-source-heading\">Source files</h2>")
             .Append("<div class=\"playground-workspace\"><nav class=\"playground-files\" aria-label=\"Workspace files\">")
@@ -41,11 +42,15 @@ public static class PlaygroundWorkspace
             .Append("<div class=\"playground-file-list\" role=\"tablist\" aria-label=\"Open files\" data-playground-file-list>");
         foreach (PlaygroundFile file in state.Draft.Files)
         {
+            bool isSelected = file.Id == state.Draft.SelectedFileId;
             html.Append("<button type=\"button\" role=\"tab\" data-playground-file-select data-file-id=\"").Append(H(file.Id))
-                .Append("\" aria-selected=\"").Append(file.Id == state.Draft.SelectedFileId ? "true" : "false").Append("\">")
+                .Append("\" title=\"").Append(H(file.Path)).Append("\" aria-controls=\"").Append(editorPanelId)
+                .Append("\" aria-selected=\"").Append(isSelected ? "true" : "false").Append("\" tabindex=\"")
+                .Append(isSelected ? "0" : "-1").Append("\">")
                 .Append(H(file.FileName)).Append(file.Id == state.Draft.MainFileId ? " <span aria-label=\"entry file\">●</span>" : "").Append("</button>");
         }
-        html.Append("</div></nav><div class=\"playground-file-editor\">")
+        html.Append("</div></nav><div class=\"playground-file-editor\" id=\"").Append(editorPanelId)
+            .Append("\" role=\"tabpanel\" aria-label=\"Active file editor\">")
             .Append("<label data-playground-active-file-label for=\"").Append(safeId).Append("-source\">").Append(H(selected.FileName)).Append("</label>")
             .Append("<p class=\"playground-language-service\" data-playground-language-service>Monaco C# · Browser Roslyn completion, hover, and live diagnostics</p>")
             .Append("<div class=\"playground-editor-host\" data-playground-editor-host>")

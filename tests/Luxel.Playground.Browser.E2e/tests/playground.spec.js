@@ -44,6 +44,75 @@ test('renders and parses the untouched default csx template', async ({ page }) =
   await expect(root.locator('[data-playground-diagnostics]')).toContainText('No diagnostics.');
 });
 
+test('adapts the editor and preview layout from desktop through iPad to mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const { root } = await openPlayground(page);
+  await page.evaluate(() => {
+    document.body.classList.add('sidebar-collapsed');
+    document.body.classList.remove('review-open');
+  });
+
+  const editor = root.locator('.playground-editor');
+  const preview = root.locator('.playground-preview');
+  const monaco = root.locator('[data-playground-monaco]');
+  let editorBox = await editor.boundingBox();
+  let previewBox = await preview.boundingBox();
+  let monacoBox = await monaco.boundingBox();
+  expect(Math.abs(editorBox.y - previewBox.y)).toBeLessThan(4);
+  expect(editorBox.width).toBeGreaterThan(previewBox.width);
+  expect(monacoBox.width).toBeGreaterThan(450);
+
+  await setSource(root, 'return Kit.Text("responsive draft");');
+  await page.setViewportSize({ width: 1024, height: 768 });
+  editorBox = await editor.boundingBox();
+  previewBox = await preview.boundingBox();
+  monacoBox = await monaco.boundingBox();
+  expect(previewBox.y).toBeGreaterThan(editorBox.y + editorBox.height - 2);
+  expect(monacoBox.width).toBeGreaterThanOrEqual(480);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  await page.setViewportSize({ width: 768, height: 1024 });
+  const filesBox = await root.locator('.playground-files').boundingBox();
+  monacoBox = await monaco.boundingBox();
+  previewBox = await preview.boundingBox();
+  editorBox = await editor.boundingBox();
+  expect(previewBox.y).toBeGreaterThan(editorBox.y + editorBox.height - 2);
+  expect(monacoBox.x).toBeGreaterThan(filesBox.x + filesBox.width - 2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await root.evaluate(element => {
+    globalThis.LuxelPlayground.addFile(element, 'A-very-long-support-file-name-for-horizontal-scrolling.cs', 'csharp', 'class Support {}');
+    globalThis.LuxelPlayground.addFile(element, 'Another-long-support-file-name-for-horizontal-scrolling.cs', 'csharp', 'class OtherSupport {}');
+  });
+  const fileList = root.locator('[data-playground-file-list]');
+  const narrowFilesBox = await root.locator('.playground-files').boundingBox();
+  monacoBox = await monaco.boundingBox();
+  expect(monacoBox.y).toBeGreaterThan(narrowFilesBox.y + narrowFilesBox.height - 2);
+  expect(monacoBox.width).toBeGreaterThan(narrowFilesBox.width * 0.9);
+  expect(await fileList.evaluate(element => getComputedStyle(element).overflowX)).toBe('auto');
+  expect(await fileList.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
+  for (const control of await root.locator('.playground-actions button, .playground-file-actions button, [data-playground-file-list] [role="tab"]').all())
+    expect((await control.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  expect(await getSource(root)).toBe('class OtherSupport {}');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
+test('supports roving keyboard focus across workspace file tabs', async ({ page }) => {
+  const { root } = await openPlayground(page);
+  const secondId = await root.evaluate(element => globalThis.LuxelPlayground.addFile(element, 'Second.cs', 'csharp', 'class Second {}'));
+  const firstId = await root.evaluate(element => globalThis.LuxelPlayground.getWorkspace(element).entryFileId);
+  const selected = root.locator(`[data-playground-file-list] [data-file-id="${secondId}"]`);
+  await selected.focus();
+  await selected.press('Home');
+  await expect(root.locator(`[data-playground-file-list] [data-file-id="${firstId}"]`)).toHaveAttribute('aria-selected', 'true');
+  await expect(root.locator(`[data-playground-file-list] [data-file-id="${firstId}"]`)).toBeFocused();
+  await page.keyboard.press('End');
+  await expect(root.locator(`[data-playground-file-list] [data-file-id="${secondId}"]`)).toHaveAttribute('aria-selected', 'true');
+  await expect(root.locator(`[data-playground-file-list] [data-file-id="${secondId}"]`)).toHaveAttribute('tabindex', '0');
+  await expect(root.locator(`[data-playground-file-list] [data-file-id="${firstId}"]`)).toHaveAttribute('tabindex', '-1');
+});
+
 test('browser workspace validators reject unsafe paths, case aliases, and UTF-8 C# overflow', async ({ page }) => {
   const { root } = await openPlayground(page);
 
@@ -83,6 +152,9 @@ test('compiles C# and renders a real Luxel button', async ({ page }) => {
   await expect(runtime.locator('#status')).toContainText('ready');
   await expect(runtime.locator('#luxel-canvas')).toBeVisible();
   await expect(root.locator('[data-playground-output]')).toContainText('Button rendered.');
+  const previewWidth = await root.locator('[data-playground-preview]').evaluate(element => element.clientWidth);
+  const frameWidth = await frame.evaluate(element => element.getBoundingClientRect().width);
+  expect(Math.abs(previewWidth - frameWidth)).toBeLessThanOrEqual(2);
   await expect(frame).toHaveAttribute('allow', 'webgpu');
   expect(consoleErrors).toEqual([]);
 });

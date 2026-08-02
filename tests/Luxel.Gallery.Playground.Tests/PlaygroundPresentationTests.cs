@@ -122,8 +122,9 @@ public sealed class PlaygroundPresentationTests
         Assert.Contains("data-workspace-revision=\"13\"", html);
         Assert.Contains($"data-file-id=\"{entryId}\" data-file-name=\"Main.csx\" data-file-language=\"csharp-script\" data-file-version=\"7\"", html);
         Assert.Contains($"id=\"custom-source\" data-playground-source data-file-id=\"{selectedId}\" data-file-name=\"notes.txt\" data-file-language=\"markdown\" data-file-version=\"11\"", html);
-        Assert.Contains($"data-file-id=\"{selectedId}\" aria-selected=\"true\"", html);
-        Assert.Contains($"data-file-id=\"{entryId}\" aria-selected=\"false\"", html);
+        Assert.Contains($"data-file-id=\"{selectedId}\" title=\"notes.txt\" aria-controls=\"custom-file-editor\" aria-selected=\"true\" tabindex=\"0\"", html);
+        Assert.Contains($"data-file-id=\"{entryId}\" title=\"Main.csx\" aria-controls=\"custom-file-editor\" aria-selected=\"false\" tabindex=\"-1\"", html);
+        Assert.Contains("class=\"playground-file-editor\" id=\"custom-file-editor\" role=\"tabpanel\"", html);
         Assert.Contains("data-playground-active-file-label for=\"custom-source\">notes.txt</label>", html);
         Assert.Contains("data-playground-monaco aria-label=\"notes.txt code editor\"", html);
         Assert.Contains("# &lt;selected&gt;", html);
@@ -163,6 +164,10 @@ public sealed class PlaygroundPresentationTests
         Assert.Contains("luxel-playground:language-request", script);
         Assert.Contains("language service", script);
         Assert.Contains("setModelMarkers", script);
+        Assert.Contains("navigateFileTabs", script);
+        Assert.Contains("ArrowLeft", script);
+        Assert.Contains("Home", script);
+        Assert.Contains("scrollIntoView", script);
         Assert.Contains("luxel-playground:execute", script);
         Assert.Contains("luxel-playground:cancel", script);
         Assert.Contains("luxel-playground:reset", script);
@@ -177,5 +182,12 @@ public sealed class PlaygroundPresentationTests
         Assert.DoesNotContain("innerHTML", script, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("eval(", script, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(".luxel-playground", style);
+        Assert.Contains("container-type: inline-size", style);
+        Assert.Contains("@container luxel-playground (min-width: 62rem)", style);
+        Assert.Contains("@container luxel-playground (max-width: 40rem)", style);
+        Assert.Contains("grid-template-columns: minmax(0, 2fr) minmax(20rem, 1fr)", style);
+        Assert.Contains(".playground-preview iframe", style);
+        Assert.Contains("min-height: 44px", style);
+        Assert.Contains(":focus-visible", style);
     }
 }
