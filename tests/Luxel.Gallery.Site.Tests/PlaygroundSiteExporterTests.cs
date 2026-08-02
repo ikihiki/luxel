@@ -76,7 +76,8 @@ public sealed class PlaygroundSiteExporterTests
         Assert.Contains("stagePreview(root, frame)", script);
         Assert.Contains("if (message.success) publishPreview(root, session);", script);
         Assert.Contains("else destroy(root, false);", script);
-        Assert.Contains("preview.replaceChildren(session.frame)", script);
+        Assert.Contains("if (child !== session.frame) child.remove();", script);
+        Assert.DoesNotContain("preview.replaceChildren(session.frame)", script);
         Assert.Contains("if (removePublished || !session.published) session.frame.remove();", script);
     }
 

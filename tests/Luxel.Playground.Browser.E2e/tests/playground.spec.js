@@ -149,12 +149,15 @@ test('compiles C# and renders a real Luxel button', async ({ page }) => {
   await expect(root.locator('[data-playground-diagnostics]')).toContainText('No diagnostics.');
 
   const runtime = frame.contentFrame();
-  await expect(runtime.locator('#status')).toContainText('ready');
+  await expect(runtime.locator('#status')).toContainText('rendered');
   await expect(runtime.locator('#luxel-canvas')).toBeVisible();
   await expect(root.locator('[data-playground-output]')).toContainText('Button rendered.');
   const previewWidth = await root.locator('[data-playground-preview]').evaluate(element => element.clientWidth);
   const frameWidth = await frame.evaluate(element => element.getBoundingClientRect().width);
   expect(Math.abs(previewWidth - frameWidth)).toBeLessThanOrEqual(2);
+  const canvas = runtime.locator('#luxel-canvas');
+  await canvas.click({ position: { x: 24, y: 24 } });
+  await expect(root.locator('[data-playground-output]')).toContainText('Button clicked.');
   await expect(frame).toHaveAttribute('allow', 'webgpu');
   expect(consoleErrors).toEqual([]);
 });

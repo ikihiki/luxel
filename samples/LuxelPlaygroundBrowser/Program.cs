@@ -34,7 +34,7 @@ public static partial class Program
     private static CancellationTokenSource? _runCancellation;
     private static int _latestRevision;
     private static int _runGeneration;
-    private static PendingFirstFrame? _pendingFirstFrame;
+    private static PendingRender? _pendingRender;
 
     public static async Task Main()
     {
@@ -89,9 +89,7 @@ public static partial class Program
             }
 
             ThrowIfStale(generation, token);
-            _ui.SetRoot(execution.Widget);
-            ThrowIfStale(generation, token);
-            _pendingFirstFrame = new PendingFirstFrame(revision, generation);
+            Interlocked.Exchange(ref _pendingRender, new PendingRender(revision, generation, execution.Widget));
             return Serialize(new RunResponse("render-pending", diagnostics, null));
         }
         catch (OperationCanceledException)
@@ -157,13 +155,11 @@ public static partial class Program
             }
 
             ThrowIfStale(generation, token);
-            _ui.SetRoot(execution.Widget);
-            ThrowIfStale(generation, token);
             BrowserRunResources? previous = _publishedRunResources;
             _publishedRunResources = runResources;
             runResources = null;
             previous?.Dispose();
-            _pendingFirstFrame = new PendingFirstFrame(revision, generation);
+            Interlocked.Exchange(ref _pendingRender, new PendingRender(revision, generation, execution.Widget));
             return Serialize(new RunResponse("render-pending", diagnostics, null));
         }
         catch (OperationCanceledException)
@@ -190,7 +186,7 @@ public static partial class Program
     {
         if (revision != _latestRevision) return;
         Interlocked.Increment(ref _runGeneration);
-        _pendingFirstFrame = null;
+        Interlocked.Exchange(ref _pendingRender, null);
         CancellationTokenSource? cancellation = Interlocked.Exchange(ref _runCancellation, null);
         cancellation?.Cancel();
     }
@@ -289,18 +285,18 @@ public static partial class Program
             window.TextInput += ui.Commit;
             window.FocusChanged += focused => { if (focused && !ui.HasFocus) ui.FocusNext(); };
 
-            async Task RenderAsync()
+            async Task RenderAsync(PendingRender? pending = null)
             {
                 using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
                 scene.Render(Camera2D.Pixels, new GpuRasterTarget2D(command, framebuffer, (uint)window.Width, (uint)window.Height));
                 command.Finish();
                 await device.MainQueue.SubmitAsync(command);
                 surface.Present(framebuffer, (uint)window.Width, (uint)window.Width, (uint)window.Height);
-                PendingFirstFrame? pending = _pendingFirstFrame;
-                if (pending is not null && pending.Generation == Volatile.Read(ref _runGeneration))
+                if (pending is not null)
                 {
-                    _pendingFirstFrame = null;
-                    PublishFirstFrame(pending.Revision);
+                    await NextFrame();
+                    if (pending.Generation == Volatile.Read(ref _runGeneration))
+                        PublishFirstFrame(pending.Revision);
                 }
             }
 
@@ -317,9 +313,14 @@ public static partial class Program
                     ui.Resize(resizeWidth, resizeHeight);
                     resizePending = false;
                 }
+                PendingRender? pending = Interlocked.Exchange(ref _pendingRender, null);
+                if (pending is not null && pending.Generation == Volatile.Read(ref _runGeneration))
+                    ui.SetRoot(pending.Widget);
+                else
+                    pending = null;
                 _publishedRunResources?.Resources.Pump();
                 ui.Tick(1f / 60f);
-                if (canvas.HasPendingChanges) await RenderAsync();
+                if (canvas.HasPendingChanges) await RenderAsync(pending);
                 await NextFrame();
             }
             framebuffer.Dispose();
@@ -404,7 +405,7 @@ public static partial class Program
 
         Volatile.Write(ref _latestRevision, revision);
         generation = Interlocked.Increment(ref _runGeneration);
-        _pendingFirstFrame = null;
+        Interlocked.Exchange(ref _pendingRender, null);
         cancellation = new CancellationTokenSource();
         CancellationTokenSource? previous = Interlocked.Exchange(ref _runCancellation, cancellation);
         previous?.Cancel();
@@ -530,7 +531,7 @@ public static partial class Program
         }
     }
 
-    private sealed record PendingFirstFrame(int Revision, int Generation);
+    private sealed record PendingRender(int Revision, int Generation, Widget Widget);
 
     private sealed class BrowserScriptResourceProvider : IWebScriptResourceProvider
     {
