@@ -133,13 +133,14 @@
   }
   function postExecute(root, session) {
     if (session.timeout) clearTimeout(session.timeout);
-    const executionTimeoutMs = Number(root.dataset.playgroundExecutionTimeoutMs || 5000);
+    const hasSlang = session.detail?.request?.workspace?.files?.some(file => file.language === "slang");
+    const executionTimeoutMs = Number(root.dataset.playgroundExecutionTimeoutMs || (hasSlang ? 20000 : 5000));
     session.timeout = setTimeout(() => {
       if (sessions.get(root) !== session) return;
       destroy(root, false);
       running(root, false);
       status(root, "Timed out", true);
-      appendDiagnostics(root, [], { message: "Script execution exceeded the 5 second timeout." });
+      appendDiagnostics(root, [], { message: `Script execution exceeded the ${executionTimeoutMs / 1000} second timeout.` });
     }, executionTimeoutMs);
     session.frame.contentWindow?.postMessage({
       protocol,

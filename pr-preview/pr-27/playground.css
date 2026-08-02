@@ -10,11 +10,15 @@
   padding: 1rem;
   font: 14px/1.5 system-ui, sans-serif;
 }
-.playground-header, .playground-actions { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.playground-header, .playground-actions, .playground-samples { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
 .playground-header h1, .luxel-playground h2 { margin: 0; }
 .playground-status { padding: .25rem .6rem; border-radius: 999px; background: #21262d; }
-.playground-actions { justify-content: flex-start; flex-wrap: wrap; margin: 1rem 0; }
-.playground-actions button, .playground-file-actions button, .playground-file-list [role="tab"] { min-height: 44px; }
+.playground-samples { justify-content: flex-start; flex-wrap: wrap; margin-top: 1rem; }
+.playground-samples label { color: #8b949e; font-weight: 600; }
+.playground-samples select { min-width: min(18rem, 100%); padding: .45rem .7rem; }
+.playground-samples button { border: 1px solid #8b949e; border-radius: .35rem; padding: .45rem .8rem; color: inherit; background: #21262d; cursor: pointer; }
+.playground-actions { justify-content: flex-start; flex-wrap: wrap; margin: .75rem 0 1rem; }
+.playground-samples button, .playground-samples select, .playground-actions button, .playground-file-actions button, .playground-file-list [role="tab"] { min-height: 44px; }
 .playground-actions button { border: 1px solid #8b949e; border-radius: .35rem; padding: .45rem .8rem; color: inherit; background: #21262d; cursor: pointer; }
 .playground-actions button:first-child { background: #238636; border-color: #2ea043; }
 .playground-actions button:disabled { cursor: not-allowed; opacity: .5; }
@@ -44,7 +48,7 @@
 .playground-file-list [role="tab"] { overflow: hidden; width: 100%; border: 1px solid transparent; border-radius: .3rem; padding: .45rem .5rem; color: #c9d1d9; background: transparent; text-align: left; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
 .playground-file-list [role="tab"][aria-selected="true"] { border-color: #388bfd; background: #1f6feb33; color: #fff; }
 .playground-diagnostics button { border: 0; padding: 0; color: inherit; background: transparent; text-align: left; cursor: pointer; }
-.playground-actions button:focus-visible, .playground-file-actions button:focus-visible, .playground-file-list [role="tab"]:focus-visible, .playground-diagnostics button:focus-visible { outline: 3px solid #58a6ff; outline-offset: 2px; }
+.playground-samples button:focus-visible, .playground-samples select:focus-visible, .playground-actions button:focus-visible, .playground-file-actions button:focus-visible, .playground-file-list [role="tab"]:focus-visible, .playground-diagnostics button:focus-visible { outline: 3px solid #58a6ff; outline-offset: 2px; }
 
 @container luxel-playground (min-width: 62rem) {
   .playground-grid { grid-template-columns: minmax(0, 2fr) minmax(20rem, 1fr); }
@@ -52,6 +56,9 @@
 
 @container luxel-playground (max-width: 40rem) {
   .playground-header { align-items: flex-start; flex-direction: column; }
+  .playground-samples { align-items: stretch; }
+  .playground-samples label { flex-basis: 100%; }
+  .playground-samples select { flex: 1 1 12rem; min-width: 0; }
   .playground-workspace { grid-template-columns: minmax(0, 1fr); }
   .playground-files { border-right: 0; border-bottom: 1px solid #30363d; padding-right: 0; padding-bottom: .75rem; }
   .playground-file-list { flex-direction: row; overflow-x: auto; overscroll-behavior-inline: contain; padding-bottom: .25rem; scrollbar-gutter: stable; }
@@ -60,5 +67,5 @@
 }
 
 @media (pointer: coarse) {
-  .playground-actions button, .playground-file-actions button, .playground-file-list [role="tab"] { min-height: 44px; }
+  .playground-samples button, .playground-samples select, .playground-actions button, .playground-file-actions button, .playground-file-list [role="tab"] { min-height: 44px; }
 }
