@@ -347,7 +347,10 @@ public static class PlaygroundTemplates
                         Vertex[] vertices = BuildCube();
                         _vertices = device.Malloc((ulong)vertices.Length * 32u, GpuMemoryKind.HostMapped);
                         vertices.CopyTo(_vertices.Span<Vertex>(vertices.Length));
-                        _output = device.Malloc(_width * _height * 4u, GpuMemoryKind.HostMapped);
+                        // This framebuffer is written by the GPU and sampled by GpuView. HostMapped
+                        // buffers are re-uploaded before every browser submission, which would overwrite
+                        // the rendered pixels with their CPU shadow before UI composition.
+                        _output = device.Malloc(_width * _height * 4u, GpuMemoryKind.DeviceLocal);
                         var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
                         raster.DepthTest = true;
                         raster.DepthWrite = true;

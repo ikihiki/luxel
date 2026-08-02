@@ -104,6 +104,7 @@ public sealed class WorkspaceFoundationTests
         Assert.Equal(3, cube.Files.Count);
         Assert.Contains(cube.Files, file => file.Path == "SlangCubeScene.cs" && file.Language == "csharp");
         Assert.Contains(cube.Files, file => file.Path == "Shaders/cube.slang" && file.Language == "slang");
+        Assert.Contains(cube.Files, file => file.Path == "SlangCubeScene.cs" && file.Source.Contains("GpuMemoryKind.DeviceLocal", StringComparison.Ordinal));
         Assert.Contains("WebScriptResources.Get<GpuShaderCode>", cube.MainFile.Source);
         Assert.Contains("Kit.GpuView", cube.MainFile.Source);
     }

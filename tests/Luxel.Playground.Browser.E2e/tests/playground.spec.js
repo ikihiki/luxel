@@ -25,6 +25,29 @@ async function getSource(root) {
   return root.evaluate(element => globalThis.LuxelPlayground.getValue(element));
 }
 
+async function countColoredCanvasSamples(canvas) {
+  return canvas.evaluate(async source => {
+    const image = new Image();
+    image.src = source.toDataURL('image/png');
+    await image.decode();
+    const copy = document.createElement('canvas');
+    copy.width = source.width;
+    copy.height = source.height;
+    const context = copy.getContext('2d', { willReadFrequently: true });
+    context.drawImage(image, 0, 0);
+    const pixels = context.getImageData(0, 0, copy.width, copy.height).data;
+    let colored = 0;
+    for (let y = 0; y < copy.height; y += 8) {
+      for (let x = 0; x < copy.width; x += 8) {
+        const offset = (y * copy.width + x) * 4;
+        const red = pixels[offset], green = pixels[offset + 1], blue = pixels[offset + 2], alpha = pixels[offset + 3];
+        if (alpha > 200 && Math.max(red, green, blue) - Math.min(red, green, blue) > 20) colored++;
+      }
+    }
+    return colored;
+  });
+}
+
 async function runSource(root, source) {
   await setSource(root, source);
   await root.locator('[data-playground-run]').click();
@@ -114,6 +137,7 @@ test('supports roving keyboard focus across workspace file tabs', async ({ page 
 });
 
 test('loads, persists, resets, and renders the 3D Slang cube sample', async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
   const { root, consoleErrors } = await openPlayground(page);
   const select = root.locator('[data-playground-sample-select]');
   await expect(select).toContainText('3D Slang Cube');
@@ -138,7 +162,9 @@ test('loads, persists, resets, and renders the 3D Slang cube sample', async ({ p
   await expect(root.locator('[data-playground-output]')).toContainText('Loaded Shaders/cube.slang as wgsl.');
   const frame = root.locator('iframe[data-playground-instance]').last();
   await expect(frame.contentFrame().locator('#status')).toContainText('rendered');
-  await expect(frame.contentFrame().locator('#luxel-canvas')).toBeVisible();
+  const canvas = frame.contentFrame().locator('#luxel-canvas');
+  await expect(canvas).toBeVisible();
+  await expect.poll(() => countColoredCanvasSamples(canvas), { timeout: 30_000 }).toBeGreaterThan(100);
 
   await page.reload();
   const restored = page.locator('[data-playground]');
