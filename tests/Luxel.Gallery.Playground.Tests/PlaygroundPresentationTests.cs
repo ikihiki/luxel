@@ -1,3 +1,4 @@
+using System.Net;
 using Luxel.Gallery.Playground;
 using Luxel.Scripting;
 
@@ -69,7 +70,9 @@ public sealed class PlaygroundPresentationTests
         Assert.Contains("role=\"status\"", html);
         Assert.Contains("aria-live=\"polite\"", html);
         Assert.Contains("data-workspace-schema=\"2\"", html);
-        Assert.Contains("data-entry-file-id=\"template-file-0\"", html);
+        Assert.Contains($"data-entry-file-id=\"{draft.MainFileId}\"", html);
+        Assert.Contains($"data-active-file-id=\"{draft.SelectedFileId}\"", html);
+        Assert.Contains($"data-workspace-revision=\"{draft.Revision}\"", html);
         Assert.Contains("data-playground-file-list", html);
         Assert.Contains("data-playground-file-add", html);
         Assert.Contains("data-playground-file-rename", html);
@@ -85,14 +88,64 @@ public sealed class PlaygroundPresentationTests
     }
 
     [Fact]
+    public void Default_template_renders_a_csharp_script_entry_for_browser_protocol_parsing()
+    {
+        PlaygroundDraft draft = PlaygroundTemplates.Button.CreateDraft();
+
+        Assert.Equal("csharp-script", draft.MainFile.Language);
+        string html = PlaygroundWorkspace.Render(new PlaygroundState { Draft = draft }, "default-template");
+        Assert.Contains("data-file-name=\"Button.csx\" data-file-language=\"csharp-script\"", html);
+    }
+
+    [Fact]
+    public void Workspace_round_trips_shared_model_identity_selection_language_and_versions()
+    {
+        PlaygroundFile[] files =
+        [
+            new PlaygroundFile("entry&id", "Main.csx", "csharp-script", "return 1;", 7),
+            new PlaygroundFile("selected\"file", "notes.txt", "markdown", "# <selected>", 11),
+        ];
+        var draft = new PlaygroundDraft(
+            "custom-template",
+            "Custom workspace",
+            files[0].Id,
+            files[1].Id,
+            files,
+            13);
+
+        string html = PlaygroundWorkspace.Render(new PlaygroundState { Draft = draft }, "custom");
+
+        string entryId = WebUtility.HtmlEncode(files[0].Id);
+        string selectedId = WebUtility.HtmlEncode(files[1].Id);
+        Assert.Contains($"data-entry-file-id=\"{entryId}\"", html);
+        Assert.Contains($"data-active-file-id=\"{selectedId}\"", html);
+        Assert.Contains("data-workspace-revision=\"13\"", html);
+        Assert.Contains($"data-file-id=\"{entryId}\" data-file-name=\"Main.csx\" data-file-language=\"csharp-script\" data-file-version=\"7\"", html);
+        Assert.Contains($"id=\"custom-source\" data-playground-source data-file-id=\"{selectedId}\" data-file-name=\"notes.txt\" data-file-language=\"markdown\" data-file-version=\"11\"", html);
+        Assert.Contains($"data-file-id=\"{selectedId}\" aria-selected=\"true\"", html);
+        Assert.Contains($"data-file-id=\"{entryId}\" aria-selected=\"false\"", html);
+        Assert.Contains("data-playground-active-file-label for=\"custom-source\">notes.txt</label>", html);
+        Assert.Contains("data-playground-monaco aria-label=\"notes.txt code editor\"", html);
+        Assert.Contains("# &lt;selected&gt;", html);
+        Assert.DoesNotContain("selected\"file", html);
+    }
+
+    [Fact]
     public void Client_asset_persists_drafts_and_uses_an_injected_event_bridge_without_leakage_sinks()
     {
         string script = PlaygroundAssets.ReadScript();
         string style = PlaygroundAssets.ReadStyle();
 
+        Assert.Contains("const maxFiles = 128", script);
+        Assert.Contains("const maxCSharpFileBytes = 128 * 1024", script);
+        Assert.Contains("const maxWorkspaceBytes = 2 * 1024 * 1024", script);
+        Assert.Contains("new TextEncoder()", script);
         Assert.Contains("luxel.playground.workspace.v2:", script);
         Assert.Contains("luxel.playground.draft.v1:", script);
         Assert.Contains("schemaVersion = 2", script);
+        Assert.Contains("source.dataset.fileVersion", script);
+        Assert.Contains("root.dataset.workspaceRevision", script);
+        Assert.Contains("selectFile(root, workspace.activeFileId, null, false)", script);
         Assert.Contains("cloneWorkspace", script);
         Assert.Contains("addFile", script);
         Assert.Contains("renameFile", script);

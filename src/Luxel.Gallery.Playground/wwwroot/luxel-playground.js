@@ -10,9 +10,11 @@
   const storagePrefixV2 = "luxel.playground.workspace.v2:";
   const storagePrefixV1 = "luxel.playground.draft.v1:";
   const markerOwner = "luxel-language-service";
-  const maxFiles = 64;
-  const maxFileSize = 1024 * 1024;
-  const maxWorkspaceSize = 4 * 1024 * 1024;
+  const maxFiles = 128;
+  const maxCSharpFileBytes = 128 * 1024;
+  const maxWorkspaceBytes = 2 * 1024 * 1024;
+  const supportedLanguages = new Set(["csharp-script", "csharp", "slang", "text", "plaintext", "json", "markdown", "xml", "html", "css", "javascript", "typescript"]);
+  const utf8 = new TextEncoder();
 
   function storageKey(root, prefix = storagePrefixV2) { return prefix + (root.dataset.templateId || "default"); }
   function stored(key) { try { return localStorage.getItem(key) ?? memoryDrafts.get(key) ?? null; } catch { return memoryDrafts.get(key) ?? null; } }
@@ -30,7 +32,7 @@
   function monacoLanguage(language) { return language === "csharp" || language === "csharp-script" ? "csharp" : language === "slang" ? "slang" : "plaintext"; }
   function normalizePath(value) {
     const path = String(value || "").replaceAll("\\", "/").trim();
-    if (!path || path.startsWith("/") || /^[a-z]:/i.test(path) || /^[a-z][a-z0-9+.-]*:/i.test(path) || /[\u0000-\u001f\u007f]/.test(path))
+    if (!path || path.startsWith("/") || path.includes(":") || /[\u0000-\u001f\u007f]/.test(path))
       throw new Error("File path must be a relative workspace path.");
     const parts = path.split("/");
     if (parts.some(part => !part || part === "." || part === "..")) throw new Error("File path contains an invalid segment.");
@@ -46,14 +48,17 @@
       const path = normalizePath(file.path);
       const folded = path.toLowerCase();
       if (paths.has(folded)) throw new Error(`Workspace already contains '${path}'.`);
-      if (typeof file.source !== "string" || file.source.length > maxFileSize) throw new Error(`Workspace file '${path}' is too large.`);
+      if (typeof file.source !== "string") throw new Error(`Workspace file '${path}' has invalid source.`);
       file.path = path;
-      file.language = ["csharp-script", "csharp", "slang", "text"].includes(file.language) ? file.language : inferLanguage(path);
-      file.version = Number.isSafeInteger(file.version) && file.version > 0 ? file.version : 1;
-      total += file.source.length;
+      file.language = typeof file.language === "string" && file.language ? file.language : inferLanguage(path);
+      if (!supportedLanguages.has(file.language)) throw new Error(`Workspace file '${path}' has unsupported language '${file.language}'.`);
+      const bytes = utf8.encode(file.source).byteLength;
+      if ((file.language === "csharp" || file.language === "csharp-script") && bytes > maxCSharpFileBytes) throw new Error(`C# file '${path}' is too large.`);
+      file.version = Number.isSafeInteger(file.version) && file.version >= 0 ? file.version : 1;
+      total += bytes;
       ids.add(file.id); paths.add(folded);
     }
-    if (total > maxWorkspaceSize || !ids.has(workspace.entryFileId) || !ids.has(workspace.activeFileId)) throw new Error("Workspace entry, active file, or total size is invalid.");
+    if (total > maxWorkspaceBytes || !ids.has(workspace.entryFileId) || !ids.has(workspace.activeFileId)) throw new Error("Workspace entry, active file, or total size is invalid.");
     workspace.revision = Number.isSafeInteger(workspace.revision) && workspace.revision >= 0 ? workspace.revision : 0;
     return workspace;
   }
@@ -64,10 +69,10 @@
       path: normalizePath(source.dataset.fileName || `File${index + 1}.cs`),
       language: source.dataset.fileLanguage || inferLanguage(source.dataset.fileName),
       source: source.value,
-      version: 1
+      version: Number(source.dataset.fileVersion ?? "1")
     }));
     const entryFileId = root.dataset.entryFileId || files[0].id;
-    return assertWorkspace({ schemaVersion, revision: 0, entryFileId, activeFileId: root.dataset.activeFileId || entryFileId, files });
+    return assertWorkspace({ schemaVersion, revision: Number(root.dataset.workspaceRevision ?? "0"), entryFileId, activeFileId: root.dataset.activeFileId || entryFileId, files });
   }
   function loadWorkspace(root, initial) {
     const v2 = stored(storageKey(root));
@@ -91,11 +96,17 @@
   function activeFile(state) { return state.workspace.files.find(file => file.id === state.workspace.activeFileId); }
   function fileById(state, id) { return state.workspace.files.find(file => file.id === id); }
   function workspaceChanged(root, state, file, source) {
-    if (source !== undefined && source !== file.source) { file.source = source; file.version++; state.workspace.revision++; }
+    if (source !== undefined && source !== file.source) {
+      const candidate = cloneWorkspace(state.workspace), candidateFile = candidate.files.find(item => item.id === file.id);
+      candidateFile.source = source; candidateFile.version++;
+      assertWorkspace(candidate);
+      file.source = source; file.version++; state.workspace.revision++;
+    }
     state.source.value = file.source;
     state.source.dataset.fileId = file.id;
     state.source.dataset.fileName = file.path;
     state.source.dataset.fileLanguage = file.language;
+    state.source.dataset.fileVersion = String(file.version);
     saveWorkspace(root, state.workspace);
     emit(root, "luxel-playground:draft-changed", { workspace: cloneWorkspace(state.workspace), fileId: file.id, fileVersion: file.version, path: file.path });
   }
@@ -190,13 +201,14 @@
     const result = await languageRequest(root, "analysis", state, file).catch(() => null);
     if (responseIsCurrent(state, file, result) && Array.isArray(result.diagnostics)) setDiagnostics(root, result.diagnostics, result);
   }
-  function selectFile(root, fileId, reveal = null) {
+  function selectFile(root, fileId, reveal = null, recordChange = true) {
     const state = states.get(root), file = state && fileById(state, fileId);
     if (!state || !file) return false;
     const previous = state.models.get(state.workspace.activeFileId);
     if (state.editor && previous) previous.viewState = state.editor.saveViewState();
-    state.workspace.activeFileId = file.id; state.workspace.revision++;
-    state.source.value = file.source; state.source.dataset.fileId = file.id; state.source.dataset.fileName = file.path; state.source.dataset.fileLanguage = file.language;
+    state.workspace.activeFileId = file.id;
+    if (recordChange) state.workspace.revision++;
+    state.source.value = file.source; state.source.dataset.fileId = file.id; state.source.dataset.fileName = file.path; state.source.dataset.fileLanguage = file.language; state.source.dataset.fileVersion = String(file.version);
     if (state.editor) {
       const record = state.models.get(file.id) || createModel(root, state, file);
       state.editor.setModel(record.model);
@@ -204,8 +216,11 @@
       state.editor.updateOptions({ ariaLabel: `${file.path} code editor` });
       if (reveal) { const position = { lineNumber: Math.max(1, Number(reveal.line || reveal.startLine || 1)), column: Math.max(1, Number(reveal.column || reveal.startColumn || 1)) }; state.editor.setPosition(position); state.editor.revealPositionInCenter(position); state.editor.focus(); }
     }
-    renderFileList(root, state); saveWorkspace(root, state.workspace);
-    emit(root, "luxel-playground:file-selected", { fileId: file.id, path: file.path, workspaceRevision: state.workspace.revision });
+    renderFileList(root, state);
+    if (recordChange) {
+      saveWorkspace(root, state.workspace);
+      emit(root, "luxel-playground:file-selected", { fileId: file.id, path: file.path, workspaceRevision: state.workspace.revision });
+    }
     return true;
   }
   function addFile(root, path, language = null, source = "") {
@@ -213,6 +228,8 @@
     path = normalizePath(path);
     if (state.workspace.files.length >= maxFiles || state.workspace.files.some(file => file.path.toLowerCase() === path.toLowerCase())) throw new Error(`Cannot add '${path}'.`);
     const file = { id: newId(), path, language: language || inferLanguage(path), source: String(source), version: 1 };
+    const candidate = cloneWorkspace(state.workspace); candidate.files.push({ ...file });
+    assertWorkspace(candidate);
     state.workspace.files.push(file); state.workspace.revision++;
     if (state.monaco) createModel(root, state, file);
     selectFile(root, file.id); saveWorkspace(root, state.workspace);
@@ -223,7 +240,12 @@
     const state = states.get(root), file = state && fileById(state, fileId); if (!state || !file) return false;
     path = normalizePath(path);
     if (state.workspace.files.some(other => other.id !== file.id && other.path.toLowerCase() === path.toLowerCase())) throw new Error(`Workspace already contains '${path}'.`);
-    const oldPath = file.path; file.path = path; file.language = inferLanguage(path); file.version++; state.workspace.revision++;
+    const oldPath = file.path;
+    const language = file.language === inferLanguage(oldPath) ? inferLanguage(path) : file.language;
+    const candidate = cloneWorkspace(state.workspace), candidateFile = candidate.files.find(item => item.id === file.id);
+    candidateFile.path = path; candidateFile.language = language;
+    assertWorkspace(candidate);
+    file.path = path; file.language = language; file.version++; state.workspace.revision++;
     const record = state.models.get(file.id); if (record) state.monaco.editor.setModelLanguage(record.model, monacoLanguage(file.language));
     workspaceChanged(root, state, file); renderFileList(root, state);
     emit(root, "luxel-playground:file-renamed", { fileId, oldPath, path, fileVersion: file.version, workspaceRevision: state.workspace.revision });
@@ -287,10 +309,21 @@
     const initial = initialWorkspace(root, sources), workspace = loadWorkspace(root, initial), source = sources.find(item => item.dataset.fileId === workspace.activeFileId) || sources[0];
     for (const extra of sources) if (extra !== source) extra.remove();
     const state = { source, initial, workspace, monaco: null, models: new Map(), editor: null, languageRequestId: 0 };
-    states.set(root, state); renderFileList(root, state); selectFile(root, workspace.activeFileId);
+    states.set(root, state); renderFileList(root, state); selectFile(root, workspace.activeFileId, null, false);
     source.addEventListener("input", () => { const file = activeFile(state); if (file) workspaceChanged(root, state, file, source.value); });
-    run.addEventListener("click", () => { setDiagnostics(root, []); emit(root, "luxel-playground:execute", { executionId: Number(root.dataset.executionId || "0") + 1, request: { workspace: cloneWorkspace(state.workspace) } }); });
-    cancel.addEventListener("click", () => emit(root, "luxel-playground:cancel", { executionId: Number(root.dataset.executionId || "0"), workspaceRevision: state.workspace.revision }));
+    run.addEventListener("click", () => {
+      const executionId = Number(root.dataset.executionId || "0") + 1;
+      root.dataset.executionId = String(executionId);
+      run.disabled = true;
+      cancel.disabled = false;
+      setDiagnostics(root, []);
+      emit(root, "luxel-playground:execute", { executionId, request: { workspace: cloneWorkspace(state.workspace) } });
+    });
+    cancel.addEventListener("click", () => {
+      cancel.disabled = true;
+      run.disabled = false;
+      emit(root, "luxel-playground:cancel", { executionId: Number(root.dataset.executionId || "0"), workspaceRevision: state.workspace.revision });
+    });
     reset.addEventListener("click", () => { clearWorkspace(root); for (const record of state.models.values()) { clearTimeout(record.analysisTimer); record.subscription?.dispose(); modelRoots.delete(record.model.uri.toString()); record.model.dispose(); } state.models.clear(); state.workspace = cloneWorkspace(state.initial); if (state.monaco) for (const file of state.workspace.files) createModel(root, state, file); selectFile(root, state.workspace.activeFileId); setDiagnostics(root, []); emit(root, "luxel-playground:reset", { templateId: root.dataset.templateId, workspace: cloneWorkspace(state.workspace) }); });
     root.querySelector("[data-playground-file-add]")?.addEventListener("click", () => { const path = prompt("New workspace file path (for example, Helper.cs)"); if (path) try { addFile(root, path); } catch (error) { alert(error.message); } });
     root.querySelector("[data-playground-file-rename]")?.addEventListener("click", () => { const file = activeFile(state), path = file && prompt("Rename workspace file", file.path); if (path) try { renameFile(root, file.id, path); } catch (error) { alert(error.message); } });

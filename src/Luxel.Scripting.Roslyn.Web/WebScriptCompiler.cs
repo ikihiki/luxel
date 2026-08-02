@@ -82,6 +82,7 @@ public sealed class WebScriptCompiler
         using Luxel.Graphics;
         using Luxel.UI;
         using Luxel.Controls;
+        using Luxel.Scripting.Roslyn.Web;
 
         namespace Luxel.Generated;
 

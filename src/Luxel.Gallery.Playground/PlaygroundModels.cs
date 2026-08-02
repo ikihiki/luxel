@@ -1,3 +1,5 @@
+using System.Text;
+using Luxel.Resources;
 using Luxel.Scripting;
 
 namespace Luxel.Gallery.Playground;
@@ -36,11 +38,13 @@ public sealed record PlaygroundFile
 
     internal PlaygroundFile WithSource(string source) => new(Id, Path, Language, source, checked(Version + 1));
     internal PlaygroundFile WithPath(string path, string? language = null) =>
-        new(Id, path, language ?? InferLanguage(path), Source, checked(Version + 1));
+        new(Id, path, language ?? (Language == InferLanguage(Path) ? InferLanguage(path) : Language), Source, checked(Version + 1));
 
     public static string InferLanguage(string path) => System.IO.Path.GetExtension(path).ToLowerInvariant() switch
     {
-        ".cs" or ".csx" => "csharp",
+        ".csx" => "csharp-script",
+        ".cs" => "csharp",
+        ".slang" or ".slangh" => "slang",
         ".json" => "json",
         ".md" or ".markdown" => "markdown",
         ".xml" => "xml",
@@ -75,7 +79,7 @@ public sealed record PlaygroundTemplate(
     {
         PlaygroundWorkspaceValidation.ValidateFiles(Files);
         PlaygroundFile main = Files.Single(file =>
-            string.Equals(file.Path, PlaygroundWorkspaceValidation.NormalizePath(MainFileName), StringComparison.Ordinal));
+            string.Equals(file.Path, PlaygroundWorkspaceValidation.NormalizePath(MainFileName), StringComparison.OrdinalIgnoreCase));
         return new PlaygroundDraft(Id, Title, main.Id, main.Id, Files.Select(file => file with { }).ToArray(), 0);
     }
 }
@@ -201,13 +205,13 @@ public sealed record PlaygroundDraft
         PlaygroundFile? byId = Files.SingleOrDefault(file => file.Id == fileNameOrId);
         if (byId is not null) return byId;
         string path = PlaygroundWorkspaceValidation.NormalizePath(fileNameOrId);
-        return Files.SingleOrDefault(file => file.Path == path)
+        return Files.SingleOrDefault(file => string.Equals(file.Path, path, StringComparison.OrdinalIgnoreCase))
             ?? throw new ArgumentException($"The draft does not contain '{fileNameOrId}'.", nameof(fileNameOrId));
     }
 
     private void EnsurePathAvailable(string path, string? exceptId = null)
     {
-        if (Files.Any(file => file.Id != exceptId && file.Path == path))
+        if (Files.Any(file => file.Id != exceptId && string.Equals(file.Path, path, StringComparison.OrdinalIgnoreCase)))
             throw new ArgumentException($"The draft already contains '{path}'.", nameof(path));
     }
 
@@ -221,7 +225,7 @@ public sealed record PlaygroundDraft
     {
         ArgumentNullException.ThrowIfNull(files);
         string normalized = PlaygroundWorkspaceValidation.NormalizePath(path);
-        return files.SingleOrDefault(file => file.Path == normalized)
+        return files.SingleOrDefault(file => string.Equals(file.Path, normalized, StringComparison.OrdinalIgnoreCase))
             ?? throw new ArgumentException($"The draft does not contain its main file '{path}'.", nameof(path));
     }
 }
@@ -235,31 +239,32 @@ public sealed class StalePlaygroundRevisionException(long expectedRevision, long
 
 public static class PlaygroundWorkspaceValidation
 {
-    public static string NormalizePath(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        string normalized = path.Trim().Replace('\\', '/');
-        if (normalized.StartsWith('/') || normalized.EndsWith('/') || normalized.Contains("//", StringComparison.Ordinal))
-            throw new ArgumentException("Workspace paths must be relative normalized file paths.", nameof(path));
-        string[] segments = normalized.Split('/');
-        if (segments.Any(segment => segment is "" or "." or ".."))
-            throw new ArgumentException("Workspace paths cannot contain empty, '.' or '..' segments.", nameof(path));
-        if (segments.Any(segment => segment.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0))
-            throw new ArgumentException("Workspace paths contain invalid characters.", nameof(path));
-        return normalized;
-    }
+    public static string NormalizePath(string path) => WorkspacePath.Normalize(path);
 
     public static void ValidateFiles(IReadOnlyList<PlaygroundFile> files)
     {
         ArgumentNullException.ThrowIfNull(files);
         if (files.Count == 0)
             throw new ArgumentException("A playground workspace must contain at least one file.", nameof(files));
+        if (files.Count > WorkspaceLimits.MaxFileCount)
+            throw new ArgumentException($"A playground workspace cannot contain more than {WorkspaceLimits.MaxFileCount} files.", nameof(files));
         if (files.Any(file => file is null))
             throw new ArgumentException("Workspace files cannot be null.", nameof(files));
         if (files.Select(file => file.Id).Distinct(StringComparer.Ordinal).Count() != files.Count)
             throw new ArgumentException("Playground file IDs must be unique.", nameof(files));
-        if (files.Select(file => file.Path).Distinct(StringComparer.Ordinal).Count() != files.Count)
-            throw new ArgumentException("Playground file paths must be unique.", nameof(files));
+        if (files.Select(file => file.Path).Distinct(StringComparer.OrdinalIgnoreCase).Count() != files.Count)
+            throw new ArgumentException("Playground file paths must be unique ignoring case.", nameof(files));
+
+        long totalSourceBytes = 0;
+        foreach (PlaygroundFile file in files)
+        {
+            int sourceBytes = Encoding.UTF8.GetByteCount(file.Source);
+            if ((file.Language is "csharp" or "csharp-script") && sourceBytes > WorkspaceLimits.MaxCSharpFileBytes)
+                throw new ArgumentException($"C# file '{file.Path}' exceeds the {WorkspaceLimits.MaxCSharpFileBytes} byte limit.", nameof(files));
+            totalSourceBytes += sourceBytes;
+            if (totalSourceBytes > WorkspaceLimits.MaxTotalSourceBytes)
+                throw new ArgumentException($"Workspace source exceeds the {WorkspaceLimits.MaxTotalSourceBytes} byte limit.", nameof(files));
+        }
     }
 }
 

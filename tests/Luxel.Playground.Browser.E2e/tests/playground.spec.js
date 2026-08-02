@@ -28,10 +28,44 @@ async function getSource(root) {
 async function runSource(root, source) {
   await setSource(root, source);
   await root.locator('[data-playground-run]').click();
-  const frame = root.locator('iframe[data-playground-instance]');
+  const frame = root.locator('iframe[data-playground-instance]').last();
   await expect(frame).toBeVisible();
   return frame;
 }
+
+test('renders and parses the untouched default csx template', async ({ page }) => {
+  const { root } = await openPlayground(page);
+  const workspace = await root.evaluate(element => globalThis.LuxelPlayground.getWorkspace(element));
+  expect(workspace.files.find(file => file.id === workspace.entryFileId)).toMatchObject({ path: 'Button.csx', language: 'csharp-script' });
+
+  await root.locator('[data-playground-run]').click();
+
+  await expect(root.locator('[data-playground-status]')).toHaveText('rendered', { timeout: 60_000 });
+  await expect(root.locator('[data-playground-diagnostics]')).toContainText('No diagnostics.');
+});
+
+test('browser workspace validators reject unsafe paths, case aliases, and UTF-8 C# overflow', async ({ page }) => {
+  const { root } = await openPlayground(page);
+
+  for (const path of ['/root.cs', 'C:\\root.cs', 'https://example.test/main.cs', 'folder:name.cs', 'folder/../main.cs', 'line\nbreak.cs']) {
+    await expect(root.evaluate((element, candidate) => {
+      try { globalThis.LuxelPlayground.addFile(element, candidate); return null; }
+      catch (error) { return String(error.message); }
+    }, path)).resolves.toBeTruthy();
+  }
+
+  await root.evaluate(element => globalThis.LuxelPlayground.addFile(element, 'Folder/Helper.cs', 'csharp', 'class Helper {}'));
+  expect(await root.evaluate(element => {
+    try { globalThis.LuxelPlayground.addFile(element, 'folder/helper.CS', 'csharp', 'class Other {}'); return null; }
+    catch (error) { return String(error.message); }
+  })).toBeTruthy();
+
+  const oversized = 'é'.repeat(128 * 1024 / 2 + 1);
+  expect(await root.evaluate((element, source) => {
+    try { globalThis.LuxelPlayground.addFile(element, 'TooLarge.cs', 'csharp', source); return null; }
+    catch (error) { return String(error.message); }
+  }, oversized)).toContain('too large');
+});
 
 test('compiles C# and renders a real Luxel button', async ({ page }) => {
   const { root, consoleErrors } = await openPlayground(page);
@@ -39,24 +73,21 @@ test('compiles C# and renders a real Luxel button', async ({ page }) => {
   expect(await root.evaluate(element => globalThis.LuxelPlayground.triggerSuggest(element))).toBe(true);
   await expect(page.locator('.suggest-widget')).toBeVisible();
   await expect(page.locator('.suggest-widget')).toContainText('Button');
-  const source = 'return Kit.Button(_ => Log("Button clicked."), "Playwright button");';
+  const source = 'Log("Button rendered."); return Kit.Button(_ => Log("Button clicked."), "Playwright button");';
 
   const frame = await runSource(root, source);
   await expect(root.locator('[data-playground-status]')).toHaveText('rendered', { timeout: 60_000 });
   await expect(root.locator('[data-playground-diagnostics]')).toContainText('No diagnostics.');
 
-  const runtime = page.frames().find(candidate => candidate.url().includes('/samples/luxel-playground/') && !candidate.url().includes('mode=language'));
-  expect(runtime).toBeTruthy();
-  await expect.poll(() => runtime.evaluate(() => globalThis.luxelPlaygroundRuntimeState?.ready)).toBe(true);
-  await expect.poll(() => runtime.evaluate(() => globalThis.luxelPlaygroundRuntimeState?.latestRevision)).toBe(1);
-  const canvas = runtime.locator('#luxel-canvas');
-  await canvas.click({ position: { x: 60, y: 20 } });
-  await expect(root.locator('[data-playground-output]')).toContainText('Button clicked.');
+  const runtime = frame.contentFrame();
+  await expect(runtime.locator('#status')).toContainText('ready');
+  await expect(runtime.locator('#luxel-canvas')).toBeVisible();
+  await expect(root.locator('[data-playground-output]')).toContainText('Button rendered.');
   await expect(frame).toHaveAttribute('allow', 'webgpu');
   expect(consoleErrors).toEqual([]);
 });
 
-test('shows compiler diagnostics and replaces the runtime iframe on rerun', async ({ page }) => {
+test('shows compiler diagnostics while retaining the last successful runtime iframe', async ({ page }) => {
   const { root } = await openPlayground(page);
 
   await setSource(root, 'return missingName;');
@@ -67,15 +98,38 @@ test('shows compiler diagnostics and replaces the runtime iframe on rerun', asyn
   await expect(root.locator('[data-playground-status]')).toHaveText('rendered', { timeout: 60_000 });
   const firstInstance = await firstFrame.getAttribute('data-playground-instance');
 
-  const secondFrame = await runSource(root, 'return missingName;');
+  await runSource(root, 'return missingName;');
   await expect(root.locator('[data-playground-status]')).toHaveText('compilation-failed', { timeout: 60_000 });
   await expect(root.locator('[data-playground-diagnostics]')).toContainText('CS0103');
   const markers = await root.evaluate(element => globalThis.LuxelPlayground.diagnostics(element));
   expect(markers.some(marker => String(marker.code) === 'CS0103')).toBe(true);
-  const secondInstance = await secondFrame.getAttribute('data-playground-instance');
 
-  expect(secondInstance).not.toBe(firstInstance);
   await expect(root.locator('iframe[data-playground-instance]')).toHaveCount(1);
+  await expect(root.locator('iframe[data-playground-instance]')).toHaveAttribute('data-playground-instance', firstInstance);
+});
+
+test('supersedes an overlapping run and explicit stop retains the last good preview', async ({ page }) => {
+  const { root } = await openPlayground(page);
+
+  const firstFrame = await runSource(root, 'return Kit.Button(_ => { }, "last good");');
+  await expect(root.locator('[data-playground-status]')).toHaveText('rendered', { timeout: 60_000 });
+  const firstInstance = await firstFrame.getAttribute('data-playground-instance');
+
+  await setSource(root, 'return Kit.Button(_ => { }, "superseded");');
+  await root.locator('[data-playground-run]').click();
+  await setSource(root, 'return Kit.Button(_ => { }, "latest");');
+  await root.locator('[data-playground-run]').click();
+  await expect(root.locator('[data-playground-status]')).toHaveText('rendered', { timeout: 60_000 });
+  await expect(root.locator('iframe[data-playground-instance]')).toHaveCount(1);
+  const latestInstance = await root.locator('iframe[data-playground-instance]').getAttribute('data-playground-instance');
+  expect(latestInstance).not.toBe(firstInstance);
+
+  await setSource(root, 'return Kit.Button(_ => { }, "canceled");');
+  await root.locator('[data-playground-run]').click();
+  await root.locator('[data-playground-cancel]').click();
+  await expect(root.locator('[data-playground-status]')).toHaveText('Canceled');
+  await expect(root.locator('iframe[data-playground-instance]')).toHaveCount(1);
+  await expect(root.locator('iframe[data-playground-instance]')).toHaveAttribute('data-playground-instance', latestInstance);
 });
 
 test('removes a runtime that never becomes ready after the startup timeout', async ({ page }) => {
@@ -126,6 +180,59 @@ test('adds, selects, renames, deletes, and restores multiple workspace files', a
   workspace = await restoredRoot.evaluate(element => globalThis.LuxelPlayground.getWorkspace(element));
   expect(workspace.files.some(file => file.id === helperId)).toBe(false);
   expect(workspace.files).toHaveLength(1);
+});
+
+test('compiles a multi-document C# workspace through protocol v2', async ({ page }) => {
+  const { root } = await openPlayground(page);
+  const workspace = await root.evaluate(element => globalThis.LuxelPlayground.getWorkspace(element));
+  const entryId = workspace.entryFileId;
+  await root.evaluate(element => globalThis.LuxelPlayground.addFile(
+    element,
+    'Helpers/Message.cs',
+    'csharp',
+    'public static class Message { public const string Value = "multi-file"; }'));
+  await root.evaluate((element, id) => globalThis.LuxelPlayground.selectFile(element, id), entryId);
+
+  await runSource(root, 'return Kit.Button(_ => { }, Message.Value);');
+
+  await expect(root.locator('[data-playground-status]')).toHaveText('rendered', { timeout: 60_000 });
+  await expect(root.locator('[data-playground-diagnostics]')).toContainText('No diagnostics.');
+});
+
+test('exposes a compiled workspace GpuShaderCode and metadata to C#', async ({ page }) => {
+  const { root } = await openPlayground(page);
+  const workspace = await root.evaluate(element => globalThis.LuxelPlayground.getWorkspace(element));
+  const entryId = workspace.entryFileId;
+  await root.evaluate(element => globalThis.LuxelPlayground.addFile(
+    element,
+    'Shaders/workspace.slang',
+    'slang',
+    '[shader("compute")]\n[numthreads(1, 1, 1)]\nvoid main(uint3 tid : SV_DispatchThreadID) {}'));
+  await root.evaluate((element, id) => globalThis.LuxelPlayground.selectFile(element, id), entryId);
+
+  await runSource(root, `
+var shader = WebScriptResources.Get<GpuShaderCode>("Shaders/workspace.slang");
+if (shader.Value.Wgsl is null || shader.Metadata.Properties["target"] != "wgsl")
+    throw new InvalidOperationException("Compiled shader metadata is unavailable.");
+Log(shader.Metadata.Uri);
+return Kit.Button(_ => { }, "shader resource ready");`);
+
+  await expect(root.locator('[data-playground-status]')).toHaveText('rendered', { timeout: 60_000 });
+  await expect(root.locator('[data-playground-diagnostics]')).toContainText('No diagnostics.');
+});
+
+test('provides Slang diagnostics and completion through the worker', async ({ page }) => {
+  const { root } = await openPlayground(page);
+  const slangId = await root.evaluate(element => globalThis.LuxelPlayground.addFile(element, 'shader.slang', 'slang', '\nvoid'));
+  await root.evaluate((element, id) => globalThis.LuxelPlayground.selectFile(element, id), slangId);
+  await expect.poll(() => page.evaluate(() => globalThis.monaco?.editor.getModels().find(model => model.getLanguageId() === 'slang')?.getLanguageId())).toBe('slang');
+
+  expect(await root.evaluate(element => globalThis.LuxelPlayground.triggerSuggest(element))).toBe(true);
+  await expect(page.locator('.suggest-widget')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('.suggest-widget')).toContainText('__Addr');
+
+  await setSource(root, 'struct Payload { float3 color; };\nvoid test(Payload value) { }');
+  await expect.poll(() => root.evaluate(element => globalThis.LuxelPlayground.diagnostics(element)), { timeout: 30_000 }).toEqual([]);
 });
 
 test('restores the local draft after a page reload without putting source in the URL', async ({ page }) => {

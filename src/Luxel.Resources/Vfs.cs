@@ -1,4 +1,4 @@
-﻿namespace Luxel.Resources;
+namespace Luxel.Resources;
 
 /// <summary>
 /// バーチャルファイルシステム。組込み FileSource はこれ経由で読む (DI で差替: pak/overlay/メモリ等)。
@@ -95,8 +95,8 @@ public sealed class MemoryFileSystem : IVirtualFileSystem
 public sealed class WorkspaceFileSystem : IVirtualFileSystem
 {
     private readonly object _gate = new();
-    private Dictionary<string, byte[]> _files = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, List<Action>> _watchers = new(StringComparer.Ordinal);
+    private Dictionary<string, byte[]> _files = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, List<Action>> _watchers = new(StringComparer.OrdinalIgnoreCase);
     private long _revision;
 
     public long Revision { get { lock (_gate) return _revision; } }
@@ -124,8 +124,8 @@ public sealed class WorkspaceFileSystem : IVirtualFileSystem
             EnsureRevision(expectedRevision);
             if (batch.Length == 0) return _revision;
 
-            var next = _files.ToDictionary(pair => pair.Key, pair => (byte[])pair.Value.Clone(), StringComparer.Ordinal);
-            var changedPaths = new HashSet<string>(StringComparer.Ordinal);
+            var next = _files.ToDictionary(pair => pair.Key, pair => (byte[])pair.Value.Clone(), StringComparer.OrdinalIgnoreCase);
+            var changedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (WorkspaceFileOperation operation in batch)
             {
                 switch (operation)
@@ -183,7 +183,7 @@ public sealed class WorkspaceFileSystem : IVirtualFileSystem
             var files = _files.ToDictionary(
                 pair => pair.Key,
                 pair => (ReadOnlyMemory<byte>)(byte[])pair.Value.Clone(),
-                StringComparer.Ordinal);
+                StringComparer.OrdinalIgnoreCase);
             return new WorkspaceFileSystemSnapshot(_revision, files);
         }
     }
@@ -254,6 +254,13 @@ public sealed class StaleWorkspaceRevisionException(long expectedRevision, long 
     public long ActualRevision { get; } = actualRevision;
 }
 
+public static class WorkspaceLimits
+{
+    public const int MaxFileCount = 128;
+    public const int MaxCSharpFileBytes = 128 * 1024;
+    public const int MaxTotalSourceBytes = 2 * 1024 * 1024;
+}
+
 public static class WorkspacePath
 {
     public static string Normalize(string path)
@@ -262,6 +269,8 @@ public static class WorkspacePath
         string normalized = path.Trim().Replace('\\', '/');
         if (normalized.StartsWith('/') || normalized.EndsWith('/') || normalized.Contains("//", StringComparison.Ordinal))
             throw new ArgumentException("Workspace paths must be relative normalized file paths.", nameof(path));
+        if (normalized.Contains(':', StringComparison.Ordinal) || normalized.Any(char.IsControl))
+            throw new ArgumentException("Workspace paths cannot contain URI, drive, colon, NUL, or control characters.", nameof(path));
         string[] segments = normalized.Split('/');
         if (segments.Any(segment => segment is "" or "." or ".."))
             throw new ArgumentException("Workspace paths cannot contain empty, '.' or '..' segments.", nameof(path));

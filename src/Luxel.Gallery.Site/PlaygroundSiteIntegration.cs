@@ -121,6 +121,12 @@ public static partial class GallerySiteExporter
     text(target, value);
     if (target) target.setAttribute("role", error ? "alert" : "status");
   }
+  function running(root, value) {
+    const run = root.querySelector("[data-playground-run]");
+    const cancel = root.querySelector("[data-playground-cancel]");
+    if (run) run.disabled = Boolean(value);
+    if (cancel) cancel.disabled = !value;
+  }
   function empty(target, message) {
     if (!target) return;
     target.replaceChildren();
@@ -129,10 +135,12 @@ public static partial class GallerySiteExporter
     paragraph.textContent = message;
     target.append(paragraph);
   }
-  function destroy(root) {
+  function destroy(root, removePublished = true) {
     const session = sessions.get(root);
-    if (session?.timeout) clearTimeout(session.timeout);
-    session?.frame?.remove();
+    if (!session) return;
+    if (session.timeout) clearTimeout(session.timeout);
+    session.frame.contentWindow?.postMessage({ protocol, protocolVersion: Number(root.dataset.playgroundProtocol), type: "cancel", instanceId: session.instanceId, revision: session.revision }, location.origin);
+    if (removePublished || !session.published) session.frame.remove();
     sessions.delete(root);
   }
   function appendDiagnostics(root, diagnostics, failure) {
@@ -185,12 +193,22 @@ public static partial class GallerySiteExporter
     }
     target.append(list);
   }
-  function renderPreview(root, frame) {
+  function stagePreview(root, frame) {
     const preview = root.querySelector("[data-playground-preview]");
-    preview?.replaceChildren(frame);
+    if (!preview) return;
+    preview.style.position = "relative";
+    Object.assign(frame.style, { position: "absolute", inset: "0", width: "100%", height: "100%", opacity: "0", pointerEvents: "none" });
+    preview.append(frame);
+  }
+  function publishPreview(root, session) {
+    const preview = root.querySelector("[data-playground-preview]");
+    if (!preview) return;
+    Object.assign(session.frame.style, { position: "", inset: "", width: "", height: "", opacity: "", pointerEvents: "" });
+    preview.replaceChildren(session.frame);
+    session.published = true;
   }
   function createSession(root, detail) {
-    destroy(root);
+    destroy(root, false);
     const runtimeUrl = root.dataset.playgroundRuntimeUrl;
     if (!runtimeUrl) { status(root, "Playground runtime unavailable.", true); return null; }
     const revision = Number(detail?.executionId || 0);
@@ -205,16 +223,18 @@ public static partial class GallerySiteExporter
     frame.dataset.playgroundInstance = instanceId;
     frame.setAttribute("allow", "webgpu");
     frame.setAttribute("sandbox", "allow-scripts allow-same-origin");
-    const session = { frame, instanceId, revision, detail, ready: false, timeout: null };
+    const session = { frame, instanceId, revision, detail, ready: false, published: false, timeout: null };
     const startupTimeoutMs = Number(root.dataset.playgroundStartupTimeoutMs || 30000);
     session.timeout = setTimeout(() => {
       if (sessions.get(root) !== session) return;
-      destroy(root);
+      destroy(root, false);
+      running(root, false);
       status(root, "Timed out", true);
       appendDiagnostics(root, [], { message: "Playground runtime did not become ready within 30 seconds." });
     }, startupTimeoutMs);
     sessions.set(root, session);
-    renderPreview(root, frame);
+    stagePreview(root, frame);
+    running(root, true);
     status(root, "Starting fresh runtime…");
     appendDiagnostics(root, [], null);
     appendOutput(root, []);
@@ -225,7 +245,8 @@ public static partial class GallerySiteExporter
     const executionTimeoutMs = Number(root.dataset.playgroundExecutionTimeoutMs || 5000);
     session.timeout = setTimeout(() => {
       if (sessions.get(root) !== session) return;
-      destroy(root);
+      destroy(root, false);
+      running(root, false);
       status(root, "Timed out", true);
       appendDiagnostics(root, [], { message: "Script execution exceeded the 5 second timeout." });
     }, executionTimeoutMs);
@@ -318,13 +339,13 @@ public static partial class GallerySiteExporter
     root.addEventListener("luxel-playground:language-request", event => postLanguageRequest(root, event.detail));
     root.addEventListener("luxel-playground:execute", event => createSession(root, event.detail));
     root.addEventListener("luxel-playground:cancel", () => {
-      const session = sessions.get(root);
-      session?.frame.contentWindow?.postMessage({ protocol, protocolVersion: Number(root.dataset.playgroundProtocol), type: "cancel", instanceId: session.instanceId, revision: session.revision }, location.origin);
-      destroy(root);
+      destroy(root, false);
+      running(root, false);
       status(root, "Canceled");
     });
     root.addEventListener("luxel-playground:reset", () => {
       destroy(root);
+      running(root, false);
       empty(root.querySelector("[data-playground-preview]"), "Run the example to see a preview.");
       appendDiagnostics(root, [], null);
       appendOutput(root, []);
@@ -356,11 +377,15 @@ public static partial class GallerySiteExporter
     else if (message.type === "status") status(root, String(message.status || "Running…"));
     else if (message.type === "diagnostics") appendDiagnostics(root, message.diagnostics, message.failure);
     else if (message.type === "output") appendOutput(root, message.entries || message.logs);
-    else if (message.type === "runtime-error") { if (session.timeout) { clearTimeout(session.timeout); session.timeout = null; } appendDiagnostics(root, message.diagnostics, message.failure || message.error); status(root, "Runtime failed", true); }
+    else if (message.type === "runtime-error") { if (session.timeout) { clearTimeout(session.timeout); session.timeout = null; } running(root, false); appendDiagnostics(root, message.diagnostics, message.failure || message.error); status(root, "Runtime failed", true); }
     else if (message.type === "run-result") {
       if (session.timeout) { clearTimeout(session.timeout); session.timeout = null; }
       appendDiagnostics(root, message.diagnostics, message.failure);
-      appendOutput(root, message.logs || message.entries);
+      if (Array.isArray(message.logs) || Array.isArray(message.entries))
+        appendOutput(root, message.logs || message.entries);
+      if (message.success) publishPreview(root, session);
+      else destroy(root, false);
+      running(root, false);
       status(root, message.outcome || (message.success ? "Succeeded" : "Failed"), !message.success);
     }
   });

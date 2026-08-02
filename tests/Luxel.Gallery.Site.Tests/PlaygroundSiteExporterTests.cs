@@ -67,6 +67,20 @@ public sealed class PlaygroundSiteExporterTests
     }
 
     [Fact]
+    public void Playground_bridge_stages_new_runs_cancels_superseded_frames_and_keeps_last_good_preview()
+    {
+        string script = GallerySiteExporter.PlaygroundClientScript;
+
+        Assert.Contains("destroy(root, false);", script);
+        Assert.Contains("type: \"cancel\"", script);
+        Assert.Contains("stagePreview(root, frame)", script);
+        Assert.Contains("if (message.success) publishPreview(root, session);", script);
+        Assert.Contains("else destroy(root, false);", script);
+        Assert.Contains("preview.replaceChildren(session.frame)", script);
+        Assert.Contains("if (removePublished || !session.published) session.frame.remove();", script);
+    }
+
+    [Fact]
     public void Playground_bridge_enforces_a_bounded_execution_timeout()
     {
         string script = GallerySiteExporter.PlaygroundClientScript;

@@ -1,4 +1,5 @@
 using Luxel.Controls;
+using Luxel.Graphics;
 using Luxel.Scripting;
 using Luxel.Scripting.Roslyn.Web;
 
@@ -39,6 +40,34 @@ public sealed class WebScriptPipelineTests
         {
             WebScriptOutput.SetSink(null);
         }
+    }
+
+    [Fact]
+    public void ScriptCanRetrieveHostGpuShaderCodeWithMetadata()
+    {
+        var code = new GpuShaderCode { Wgsl = "@compute @workgroup_size(1) fn main() {}"u8.ToArray() };
+        var metadata = new WebScriptResourceMetadata(
+            "workspace://Shaders/main.slang#compute",
+            "Shaders/main.slang",
+            "compute",
+            typeof(GpuShaderCode).FullName!,
+            new Dictionary<string, string> { ["target"] = "wgsl", ["workspaceRevision"] = "7" });
+        var provider = new TestResourceProvider(new WebScriptResource<GpuShaderCode>(code, metadata));
+        WebScriptCompilation compilation = CreateCompiler().Compile("""
+            var shader = WebScriptResources.Get<GpuShaderCode>("Shaders/main.slang");
+            if (shader.Value.Wgsl is null || shader.Metadata.Properties["target"] != "wgsl" || shader.Metadata.Path != "Shaders/main.slang")
+                throw new InvalidOperationException("The compiled shader resource was not exposed correctly.");
+            return (Widget)Activator.CreateInstance(typeof(Text), nonPublic: true)!;
+            """);
+        Assert.True(compilation.Success, Format(compilation.Diagnostics));
+
+        WebScriptExecution execution;
+        using (WebScriptResources.Push(provider))
+            execution = new WebScriptExecutor().Execute(compilation.PeImage!, compilation.PdbImage!);
+
+        Assert.True(execution.Success, execution.Failure?.Message);
+        Assert.IsType<Text>(execution.Widget);
+        Assert.False(WebScriptResources.TryGet<GpuShaderCode>("Shaders/main.slang", out _));
     }
 
     [Fact]
@@ -314,6 +343,20 @@ public sealed class WebScriptPipelineTests
         Assert.Equal(9, analysis.Revision);
         Assert.Equal(2, diagnostic.Line);
         Assert.NotNull(diagnostic.Column);
+    }
+
+    private sealed class TestResourceProvider(WebScriptResource<GpuShaderCode> shader) : IWebScriptResourceProvider
+    {
+        public bool TryGet<T>(string name, out WebScriptResource<T>? resource)
+        {
+            if (typeof(T) == typeof(GpuShaderCode) && name == "Shaders/main.slang")
+            {
+                resource = (WebScriptResource<T>)(object)shader;
+                return true;
+            }
+            resource = null;
+            return false;
+        }
     }
 
     private static WebScriptCompiler CreateCompiler() => new(References());

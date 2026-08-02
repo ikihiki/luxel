@@ -1,10 +1,11 @@
 using Luxel.Controls;
 using Luxel.Gallery.Playground;
-using Luxel.Scripting;
 using Luxel.Settings;
+using Luxel.Scripting.Roslyn.Web;
 using Luxel.UI;
 using Luxel.Workbench;
 using static Luxel.Controls.Kit;
+
 using static Luxel.Gallery.Stories.StoryKit;
 
 namespace Luxel.Gallery.Stories;
@@ -15,120 +16,235 @@ namespace Luxel.Gallery.Stories;
 /// </summary>
 internal sealed class NativePlaygroundWorkspace : CompositeControl, IDisposable
 {
-    private readonly StoryContext _ctx;
-    private readonly ScriptHost _host;
     private readonly NativePlaygroundSession _session;
+    private readonly INativePlaygroundRunner _runner;
+    private readonly ICodeLanguage _language;
     private readonly Workspace _workspace = new();
     private readonly Dictionary<string, TextDocument> _documents = new(StringComparer.Ordinal);
     private readonly Dictionary<IEditorDocument, Widget> _views = new();
-    private readonly List<IDisposable> _effects = [];
+    private readonly Dictionary<string, IDisposable> _effects = new(StringComparer.Ordinal);
     private readonly Signal<int> _version = new(0);
     private readonly Signal<string> _status = new("Ready");
+    private readonly Signal<string> _filePath = new("NewFile.cs");
+    private readonly NativePlaygroundRunCoordinator _runs = new();
+    private bool _disposed;
     private readonly float _width;
     private Widget? _output;
     private string _diagnostics = "";
 
     internal Button RunButton { get; }
-    internal IReadOnlyList<string> FileNames => _session.Draft.Files.Select(file => file.FileName).ToArray();
+    internal Button AddFileButton { get; }
+    internal Button RenameFileButton { get; }
+    internal Button DeleteFileButton { get; }
+    internal IReadOnlyList<string> FileNames => _session.Draft.Files.Select(file => file.Path).ToArray();
     internal string ActiveFileName => _session.ActiveFileName;
+    internal bool HasPreview => _output is not null;
     internal bool LastRunOk { get; private set; }
 
     public NativePlaygroundWorkspace(
         PlaygroundTemplate template,
         float width,
-        StoryContext ctx,
-        ScriptHost host,
         ICodeLanguage language,
-        IFileStore files)
+        IFileStore files,
+        INativePlaygroundRunner? runner = null,
+        NativePlaygroundResourceOptions? resourceOptions = null)
     {
-        _ctx = ctx;
-        _host = host;
         _width = MathF.Max(420, width);
-        _session = new NativePlaygroundSession(files, template);
+        _language = language;
+        _session = new NativePlaygroundSession(files, template, resourceOptions);
+        _runner = runner ?? new NativePlaygroundRunner();
 
-        foreach (PlaygroundFile file in _session.Draft.Files)
-        {
-            string fileName = file.FileName;
-            var document = new TextDocument("csharp", fileName, text => CreateEditor(text, language), file.Source);
-            _documents.Add(fileName, document);
-            _workspace.Open(document);
-            Widget view = document.CreateView();
-            _views.Add(document, view);
-            _effects.Add(Reactive.Effect(() =>
-            {
-                string source = document.Text.Value;
-                if (_session.Draft.Files.First(candidate => candidate.FileName == fileName).Source != source)
-                    _session.UpdateFile(fileName, source);
-            }));
-        }
+        foreach (PlaygroundFile file in _session.Draft.Files) AddDocument(file);
 
         Activate(_session.ActiveFileName);
-        RunButton = Button(_ => Run(), "Run");
+        RunButton = Button(_event => { _ = RunAsync(); }, "Run");
+        AddFileButton = Button(_ => AddFile(_filePath.Peek()), "Add", variant: Variant.Ghost);
+        RenameFileButton = Button(_ => RenameActiveFile(_filePath.Peek()), "Rename", variant: Variant.Ghost);
+        DeleteFileButton = Button(_ => DeleteActiveFile(), "Delete", variant: Variant.Ghost);
     }
 
-    internal void Activate(string fileName)
+    internal void Activate(string fileNameOrId)
     {
-        if (!_documents.TryGetValue(fileName, out TextDocument? document)) return;
+        PlaygroundFile? file = _session.Draft.Files.SingleOrDefault(candidate =>
+            candidate.Id == fileNameOrId || candidate.Path == fileNameOrId);
+        if (file is null || !_documents.TryGetValue(file.Id, out TextDocument? document)) return;
         _workspace.Activate(document);
-        _session.Activate(fileName);
+        _session.Activate(file.Id);
+        _filePath.Value = file.Path;
+        _status.Value = file.Language == "slang" && !_session.SlangLanguage.Capability.IsAvailable
+            ? _session.SlangLanguage.Capability.Message
+            : "Ready";
         _version.Value++;
     }
 
-    internal void SetCode(string fileName, string source)
+    internal void SetCode(string fileNameOrId, string source)
     {
-        if (_documents.TryGetValue(fileName, out TextDocument? document)) document.Text.Value = source;
+        PlaygroundFile? file = _session.Draft.Files.SingleOrDefault(candidate =>
+            candidate.Id == fileNameOrId || candidate.Path == fileNameOrId);
+        if (file is not null && _documents.TryGetValue(file.Id, out TextDocument? document))
+            document.Text.Value = source;
     }
 
-    private TextEditorView CreateEditor(Signal<string> text, ICodeLanguage language)
+    internal void AddFile(string path)
     {
+        TryMutation(() =>
+        {
+            PlaygroundFile file = _session.AddFile(path);
+            AddDocument(file);
+            Activate(file.Id);
+        });
+    }
+
+    internal void RenameActiveFile(string newPath)
+    {
+        TryMutation(() =>
+        {
+            string id = _session.Draft.SelectedFileId;
+            _session.RenameFile(id, newPath);
+            _documents[id].Title = _session.Draft.SelectedFile.Path;
+            _filePath.Value = _session.Draft.SelectedFile.Path;
+            _version.Value++;
+        });
+    }
+
+    internal void DeleteActiveFile()
+    {
+        TryMutation(() =>
+        {
+            string id = _session.Draft.SelectedFileId;
+            TextDocument document = _documents[id];
+            _session.DeleteFile(id);
+            _effects.Remove(id, out IDisposable? effect);
+            effect?.Dispose();
+            _documents.Remove(id);
+            _views.Remove(document);
+            _workspace.Close(document);
+            Activate(_session.Draft.SelectedFileId);
+        });
+    }
+
+    private void AddDocument(PlaygroundFile file)
+    {
+        string id = file.Id;
+        var document = new TextDocument(file.Language, file.Path, text => CreateEditor(text, file.Language, id), file.Source);
+        _documents.Add(id, document);
+        _workspace.Open(document);
+        _views.Add(document, document.CreateView());
+        _effects.Add(id, Reactive.Effect(() =>
+        {
+            string source = document.Text.Value;
+            PlaygroundFile? current = _session.Draft.Files.SingleOrDefault(candidate => candidate.Id == id);
+            if (current is not null && current.Source != source)
+            {
+                _runs.Cancel();
+                _session.UpdateFile(id, source);
+            }
+        }));
+    }
+
+    private void TryMutation(Action mutation)
+    {
+        try
+        {
+            _runs.Cancel();
+            mutation();
+            _diagnostics = "";
+            _status.Value = "Ready";
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            _diagnostics = exception.Message;
+            _status.Value = "Failed";
+        }
+        _version.Value++;
+    }
+
+    private TextEditorView CreateEditor(Signal<string> text, string language, string fileId)
+    {
+        ICodeLanguage service = language == "slang"
+            ? _session.SlangLanguage.ForFile(() => _session.Draft.Files.Single(file => file.Id == fileId).Path)
+            : _language;
         TextEditorView editor = TextEditorView(text, editorHeight: 250f, editorWidth: _width - 28);
         editor.ShowLineNumbers = true;
         editor.EditorFont = EditorFaces.Value.Mono;
-        editor.LanguageService = language;
+        editor.LanguageService = service;
         Func<Theme> theme = () => UiTheme.T;
-        editor.Providers.Add(new SyntaxHighlightProvider(Luxel.Highlight.TextMateHighlighter.Instance, "csharp", theme));
-        editor.Providers.Add(new DiagnosticsProvider(language, theme));
+        editor.Providers.Add(new SyntaxHighlightProvider(Luxel.Highlight.TextMateHighlighter.Instance, language, theme));
+        editor.Providers.Add(new DiagnosticsProvider(service, theme));
         editor.Providers.Add(new CurrentLineProvider(theme));
         return editor;
     }
 
-    private void Run()
+    private async Task RunAsync()
     {
-        foreach ((string fileName, TextDocument document) in _documents)
+        try
         {
-            string source = document.Text.Peek();
-            if (_session.Draft.Files.First(file => file.FileName == fileName).Source != source)
-                _session.UpdateFile(fileName, source);
+            foreach (PlaygroundFile file in _session.Draft.Files.ToArray())
+            {
+                string source = _documents[file.Id].Text.Peek();
+                if (file.Source != source) _session.UpdateFile(file.Id, source);
+            }
+
+            _status.Value = "Running";
+            _version.Value++;
+            await _runs.RunAsync(
+                cancellationToken => _runner.RunAsync(_session, cancellationToken),
+                PublishRunResult);
         }
-        ScriptResult result = _host.Run(_session.CreateExecutionSource(), new ScriptGlobals { Ctx = _ctx });
-        LastRunOk = false;
-        (_output as IDisposable)?.Dispose();
-        _output = null;
-        if (!result.Success)
+        catch (Exception exception) when (!_disposed)
         {
-            _diagnostics = result.Exception is not null
-                ? $"Runtime error{(result.ExceptionLine is int line ? $" (line {line})" : "")}: {result.Exception.Message}"
-                : string.Join("\n", result.Diagnostics.Where(diagnostic => diagnostic.IsError)
-                    .Select(diagnostic => $"Line {diagnostic.Line}:{diagnostic.Column} {diagnostic.Message}"));
+            LastRunOk = false;
+            _diagnostics = $"Runtime error: {exception.Message}";
+            _status.Value = "Failed";
+            _version.Value++;
+        }
+    }
+
+    private void PublishRunResult(NativePlaygroundRunResult result)
+    {
+        LastRunOk = result.Success && result.Widget is not null;
+        if (!LastRunOk)
+        {
+            _diagnostics = result.Failure is not null
+                ? $"Runtime error{(result.Failure.FileName is { } file ? $" in {file}" : "")}{(result.Failure.Line is int line ? $" (line {line})" : "")}: {result.Failure.Message}"
+                : string.Join("\n", result.Diagnostics.Where(diagnostic => diagnostic.Severity == WebScriptDiagnosticSeverity.Error)
+                    .Select(diagnostic => $"{diagnostic.FileName ?? _session.Draft.MainFileName}:{diagnostic.Line}:{diagnostic.Column} {diagnostic.Message}"));
             _status.Value = "Failed";
         }
         else
         {
-            _output = result.ReturnValue as Widget;
-            _diagnostics = _output is null && result.ReturnValue is not null
-                ? $"The return value is not a Widget: {result.ReturnValue.GetType().Name}"
-                : "";
-            LastRunOk = _output is not null;
-            _status.Value = LastRunOk ? "Succeeded" : "Succeeded (no output)";
+            (_output as IDisposable)?.Dispose();
+            _output = result.Widget;
+            _diagnostics = "";
+            _status.Value = "Succeeded";
         }
         _version.Value++;
     }
 
     private void Reset()
     {
+        _runs.Cancel();
         _session.Reset();
+        foreach ((string id, TextDocument document) in _documents.ToArray())
+        {
+            if (_session.Draft.Files.All(file => file.Id != id))
+            {
+                _effects.Remove(id, out IDisposable? effect);
+                effect?.Dispose();
+                _documents.Remove(id);
+                _views.Remove(document);
+                _workspace.Close(document);
+            }
+        }
         foreach (PlaygroundFile file in _session.Draft.Files)
-            _documents[file.FileName].LoadFrom(file.Source);
+        {
+            if (_documents.TryGetValue(file.Id, out TextDocument? document))
+            {
+                document.Title = file.Path;
+                document.LoadFrom(file.Source);
+            }
+            else AddDocument(file);
+        }
         Activate(_session.ActiveFileName);
         (_output as IDisposable)?.Dispose();
         _output = null;
@@ -155,6 +271,11 @@ internal sealed class NativePlaygroundWorkspace : CompositeControl, IDisposable
         var children = new List<Widget>
         {
             HStack(4)[tabs.ToArray()],
+            HStack(6)[
+                TextField(_filePath, placeholder: "File.cs", width: 180),
+                AddFileButton,
+                RenameFileButton,
+                DeleteFileButton],
             _views[active],
             HStack(8)[
                 RunButton,
@@ -173,8 +294,13 @@ internal sealed class NativePlaygroundWorkspace : CompositeControl, IDisposable
 
     public void Dispose()
     {
-        foreach (IDisposable effect in _effects) effect.Dispose();
+        if (_disposed) return;
+        _disposed = true;
+        _runs.Dispose();
+        foreach (IDisposable effect in _effects.Values) effect.Dispose();
+        _effects.Clear();
         foreach (IEditorDocument document in _workspace.Documents.ToArray()) _workspace.Close(document);
         (_output as IDisposable)?.Dispose();
+        _session.Dispose();
     }
 }

@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Playground;
 /// Editable native Playground workspace with schema-v2 persistence. The session is UI agnostic so
 /// native Gallery controls can reuse it without coupling persistence to a particular editor widget.
 /// </summary>
-public sealed class NativePlaygroundSession
+public sealed class NativePlaygroundSession : IDisposable, IAsyncDisposable
 {
     public const int SchemaVersion = 2;
     public const string StoragePrefix = "luxel.playground.workspace.v2:";
@@ -21,56 +21,88 @@ public sealed class NativePlaygroundSession
     private readonly IFileStore _store;
     private readonly PlaygroundTemplate _template;
 
-    public NativePlaygroundSession(IFileStore store, PlaygroundTemplate template)
+    public NativePlaygroundSession(
+        IFileStore store,
+        PlaygroundTemplate template,
+        NativePlaygroundResourceOptions? resourceOptions = null,
+        NativeSlangLanguageServiceOptions? languageServiceOptions = null,
+        ISlangLanguageServerConnectionFactory? languageServerFactory = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _template = template ?? throw new ArgumentNullException(nameof(template));
-        ActiveFileName = template.MainFileName;
         Draft = Load() ?? template.CreateDraft();
-        if (!Draft.Files.Any(file => file.FileName == ActiveFileName))
-            ActiveFileName = Draft.MainFileName;
+        ResourceSession = new NativePlaygroundResourceSession(Draft, resourceOptions);
+        SlangLanguage = NativeSlangCodeLanguage.CreateDefault(languageServiceOptions, languageServerFactory);
+        SlangLanguage.SyncWorkspace(Draft);
     }
 
     public PlaygroundDraft Draft { get; private set; }
+    public NativePlaygroundResourceSession ResourceSession { get; }
+    public NativeSlangCodeLanguage SlangLanguage { get; }
 
-    public string ActiveFileName { get; private set; }
+    public string ActiveFileName => Draft.SelectedFile.Path;
 
     public string StorageName => StoragePrefix + _template.Id + ".json";
 
-    /// <summary>
-    /// Produces one native C# submission while retaining logical file names through #line directives.
-    /// Supporting documents are emitted before the main script so declarations are available to it.
-    /// </summary>
-    public string CreateExecutionSource()
+    public void UpdateFile(string fileNameOrId, string source)
     {
-        PlaygroundFile main = Draft.MainFile;
-        string supporting = string.Join("\n\n", Draft.Files
-            .Where(file => file.FileName != Draft.MainFileName)
-            .Select(file => $"#line 1 \"{file.FileName}\"\n{file.Source}"));
-        return supporting.Length == 0
-            ? main.Source
-            : $"{supporting}\n\n#line 1 \"{main.FileName}\"\n{main.Source}";
-    }
-
-    public void UpdateFile(string fileName, string source)
-    {
-        Draft = Draft.UpdateFile(fileName, source);
+        Draft = Draft.UpdateFile(fileNameOrId, source);
+        SyncWorkspace();
         Save();
     }
 
-    public void Activate(string fileName)
+    public PlaygroundFile AddFile(string path, string source = "", string? language = null, string? id = null)
     {
-        if (!Draft.Files.Any(file => file.FileName == fileName))
-            throw new ArgumentException($"The workspace does not contain '{fileName}'.", nameof(fileName));
-        ActiveFileName = fileName;
+        Draft = Draft.AddFile(path, source, language, id);
+        SyncWorkspace();
+        Save();
+        return Draft.Files[^1];
+    }
+
+    public void RenameFile(string fileNameOrId, string newPath, string? language = null)
+    {
+        Draft = Draft.RenameFile(fileNameOrId, newPath, language);
+        SyncWorkspace();
+        Save();
+    }
+
+    public void DeleteFile(string fileNameOrId)
+    {
+        Draft = Draft.DeleteFile(fileNameOrId);
+        SyncWorkspace();
+        Save();
+    }
+
+    public void Activate(string fileNameOrId)
+    {
+        Draft = Draft.SelectFile(fileNameOrId);
+        SlangLanguage.SyncWorkspace(Draft);
         Save();
     }
 
     public void Reset()
     {
         Draft = _template.CreateDraft();
-        ActiveFileName = Draft.MainFileName;
+        SyncWorkspace();
         Save();
+    }
+
+    public void Dispose()
+    {
+        SlangLanguage.Dispose();
+        ResourceSession.Dispose();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await SlangLanguage.DisposeAsync().ConfigureAwait(false);
+        await ResourceSession.DisposeAsync().ConfigureAwait(false);
+    }
+
+    private void SyncWorkspace()
+    {
+        ResourceSession.SyncWorkspace(Draft);
+        SlangLanguage.SyncWorkspace(Draft);
     }
 
     public void Save()
@@ -80,12 +112,16 @@ public sealed class NativePlaygroundSession
             SchemaVersion = SchemaVersion,
             TemplateId = Draft.TemplateId,
             Title = Draft.Title,
-            MainFileName = Draft.MainFileName,
-            ActiveFileName = ActiveFileName,
+            MainFileId = Draft.MainFileId,
+            SelectedFileId = Draft.SelectedFileId,
+            Revision = Draft.Revision,
             Files = Draft.Files.Select(file => new PersistedFile
             {
-                FileName = file.FileName,
+                Id = file.Id,
+                Path = file.Path,
+                Language = file.Language,
                 Source = file.Source,
+                Version = file.Version,
             }).ToArray(),
         };
         _store.Write(StorageName, JsonSerializer.Serialize(persisted, JsonOptions));
@@ -98,23 +134,19 @@ public sealed class NativePlaygroundSession
         try
         {
             PersistedWorkspace? persisted = JsonSerializer.Deserialize<PersistedWorkspace>(json, JsonOptions);
-            if (persisted is null || persisted.SchemaVersion != SchemaVersion ||
-                persisted.TemplateId != _template.Id || persisted.Files.Count == 0 ||
-                persisted.Files.Select(file => file.FileName).Distinct(StringComparer.Ordinal).Count() != persisted.Files.Count ||
-                persisted.Files.Count(file => file.FileName == persisted.MainFileName) != 1)
+            if (persisted is null || persisted.SchemaVersion != SchemaVersion || persisted.TemplateId != _template.Id)
                 return null;
 
-            var draft = new PlaygroundDraft(
+            return new PlaygroundDraft(
                 persisted.TemplateId,
-                string.IsNullOrWhiteSpace(persisted.Title) ? _template.Title : persisted.Title,
-                persisted.MainFileName,
-                persisted.Files.Select(file => new PlaygroundFile(file.FileName, file.Source)).ToArray());
-            ActiveFileName = draft.Files.Any(file => file.FileName == persisted.ActiveFileName)
-                ? persisted.ActiveFileName
-                : draft.MainFileName;
-            return draft;
+                persisted.Title,
+                persisted.MainFileId,
+                persisted.SelectedFileId,
+                persisted.Files.Select(file => new PlaygroundFile(
+                    file.Id, file.Path, file.Language, file.Source, file.Version)).ToArray(),
+                persisted.Revision);
         }
-        catch (JsonException)
+        catch (Exception exception) when (exception is JsonException or ArgumentException or InvalidOperationException or OverflowException)
         {
             return null;
         }
@@ -125,14 +157,18 @@ public sealed class NativePlaygroundSession
         public int SchemaVersion { get; init; }
         public string TemplateId { get; init; } = "";
         public string Title { get; init; } = "";
-        public string MainFileName { get; init; } = "";
-        public string ActiveFileName { get; init; } = "";
+        public string MainFileId { get; init; } = "";
+        public string SelectedFileId { get; init; } = "";
+        public long Revision { get; init; }
         public IReadOnlyList<PersistedFile> Files { get; init; } = [];
     }
 
     private sealed record PersistedFile
     {
-        public string FileName { get; init; } = "";
+        public string Id { get; init; } = "";
+        public string Path { get; init; } = "";
+        public string Language { get; init; } = "";
         public string Source { get; init; } = "";
+        public long Version { get; init; }
     }
 }

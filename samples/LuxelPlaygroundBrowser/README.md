@@ -44,8 +44,26 @@ iframe.contentWindow.postMessage({
 
 The child emits `ready`, optional `diagnostics`, live `output` entries, `runtime-error`, and a terminal `run-result`. A successful `run-result` is sent only after the first rendered frame is presented. Script callbacks can call `Log(...)`; the host forwards those messages to the Gallery Story's Output panel.
 
+## Script resource API
+
+Before executing a project, the browser host compiles each workspace `.slang` root and exposes the resulting `GpuShaderCode` through the host-neutral `WebScriptResources` execution-context facade. Resource names are normalized workspace paths; the full resource URI is also accepted. `Get<T>` returns both the typed value and metadata, while `TryGet<T>` avoids an exception for optional resources:
+
+```csharp
+var shader = WebScriptResources.Get<GpuShaderCode>("Shaders/compute.slang");
+byte[] wgsl = shader.Value.Wgsl!;
+string uri = shader.Metadata.Uri;
+string target = shader.Metadata.Properties["target"];
+return Kit.Text($"{uri}: {wgsl.Length} bytes ({target})");
+```
+
+`WebScriptResourceMetadata` includes the workspace path, URI fragment/program kind, resource type, workspace/file revisions, and compile target. Native and browser hosts can implement `IWebScriptResourceProvider` and install it only around execution with `WebScriptResources.Push(...)`; scripts do not depend on backend or `ResourceSystem` types.
+
+## Slang isolation and limits
+
+Slang compile and language-service work runs in a dedicated module worker. A compile cancellation or 15-second timeout terminates that worker, rejects pending work, and creates a fresh worker for the next request. Workspaces are materialized into the Slang Emscripten filesystem so relative and nested `#include` paths resolve for compilation and language diagnostics. Browser workspaces are limited to 128 files and 2 MiB of UTF-8 source; generated WGSL is limited to 4 MiB.
+
 ## Metadata references and reset model
 
 Roslyn metadata images are copied at build/publish time into `wwwroot/references/` from resolved framework and project reference assemblies. The fixed list is in `wwwroot/references/manifest.json`; browser code never relies on `Assembly.Location`.
 
-This MVP intentionally runs compilation and execution on the browser main runtime, not in a Web Worker. It does not claim same-runtime unload or cancellation isolation. The parent must force-reset a run by removing and recreating the iframe, which creates a fresh browser-WASM runtime. User code is trusted playground input, not a security sandbox.
+C# Roslyn compilation and script execution still run on the browser main runtime; only Slang compile/language operations use the restartable worker described above. The host does not claim same-runtime unload or cancellation isolation for executed C#. The parent must force-reset a C# run by removing and recreating the iframe, which creates a fresh browser-WASM runtime. User code is trusted playground input, not a security sandbox.

@@ -40,6 +40,70 @@ public sealed class WorkspaceFoundationTests
     }
 
     [Fact]
+    public void Csx_defaults_to_csharp_script_while_explicit_languages_are_preserved()
+    {
+        Assert.Equal("csharp-script", new PlaygroundFile("Main.csx", "return 1;").Language);
+        Assert.Equal("csharp", new PlaygroundFile("Helper.cs", "class Helper {}").Language);
+
+        var explicitFile = new PlaygroundFile("id", "Main.csx", "csharp", "return 1;");
+        var draft = new PlaygroundDraft("sample", "Sample", explicitFile.Id, explicitFile.Id, [explicitFile], 0);
+        Assert.Equal("csharp", draft.RenameFile(explicitFile.Id, "Main.txt").MainFile.Language);
+    }
+
+    [Theory]
+    [InlineData("/root.csx")]
+    [InlineData("C:\\root.csx")]
+    [InlineData("https://example.test/main.csx")]
+    [InlineData("folder:name/main.csx")]
+    [InlineData("folder/../main.csx")]
+    [InlineData("folder//main.csx")]
+    [InlineData("folder/line\nbreak.csx")]
+    [InlineData("folder/nul\0name.csx")]
+    public void Playground_and_resource_paths_reject_the_same_unsafe_inputs(string path)
+    {
+        Assert.Throws<ArgumentException>(() => WorkspacePath.Normalize(path));
+        Assert.Throws<ArgumentException>(() => PlaygroundWorkspaceValidation.NormalizePath(path));
+    }
+
+    [Fact]
+    public void Workspace_validation_uses_case_insensitive_paths_and_utf8_byte_limits()
+    {
+        var duplicateCase = new[]
+        {
+            new PlaygroundFile("one", "Main.csx", "csharp-script", ""),
+            new PlaygroundFile("two", "main.csx", "csharp", ""),
+        };
+        Assert.Throws<ArgumentException>(() => PlaygroundWorkspaceValidation.ValidateFiles(duplicateCase));
+
+        string oversizedCSharp = new('é', WorkspaceLimits.MaxCSharpFileBytes / 2 + 1);
+        Assert.Throws<ArgumentException>(() => PlaygroundWorkspaceValidation.ValidateFiles(
+            [new PlaygroundFile("main", "Main.csx", "csharp-script", oversizedCSharp)]));
+
+        string oversizedWorkspace = new('é', WorkspaceLimits.MaxTotalSourceBytes / 2 + 1);
+        Assert.Throws<ArgumentException>(() => PlaygroundWorkspaceValidation.ValidateFiles(
+            [new PlaygroundFile("notes", "notes.txt", "text", oversizedWorkspace)]));
+
+        PlaygroundFile[] tooMany = Enumerable.Range(0, WorkspaceLimits.MaxFileCount + 1)
+            .Select(index => new PlaygroundFile($"id-{index}", $"file-{index}.txt", "text", ""))
+            .ToArray();
+        Assert.Throws<ArgumentException>(() => PlaygroundWorkspaceValidation.ValidateFiles(tooMany));
+    }
+
+    [Fact]
+    public void Workspace_vfs_is_case_insensitive_across_platforms()
+    {
+        var vfs = new WorkspaceFileSystem();
+        vfs.Set("Folder/File.txt", Encoding.UTF8.GetBytes("one"));
+
+        Assert.True(vfs.Exists("folder/file.TXT"));
+        vfs.Set("FOLDER/FILE.txt", Encoding.UTF8.GetBytes("two"));
+
+        WorkspaceFileSystemSnapshot snapshot = vfs.Snapshot();
+        Assert.Single(snapshot.Files);
+        Assert.Equal("two", Encoding.UTF8.GetString(snapshot.Files["folder/file.txt"].Span));
+    }
+
+    [Fact]
     public async Task Workspace_vfs_applies_batches_atomically_and_notifies_changed_paths()
     {
         var vfs = new WorkspaceFileSystem();

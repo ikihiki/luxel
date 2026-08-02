@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Reflection;
 using System.Text;
@@ -12,14 +13,15 @@ public static class PlaygroundWorkspace
         ArgumentNullException.ThrowIfNull(state);
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         string safeId = H(id);
-        PlaygroundFile main = state.Draft.MainFile;
-        int entryIndex = state.Draft.Files.Select((file, index) => (file, index)).First(pair => ReferenceEquals(pair.file, main) || pair.file == main).index;
-        string entryFileId = FileId(entryIndex);
+        PlaygroundFile selected = state.Draft.SelectedFile;
+        string entryFileId = H(state.Draft.MainFileId);
+        string activeFileId = H(state.Draft.SelectedFileId);
         var html = new StringBuilder();
         html.Append("<section class=\"luxel-playground\" id=\"").Append(safeId)
             .Append("\" data-playground data-workspace-schema=\"2\" data-template-id=\"").Append(H(state.Draft.TemplateId))
-            .Append("\" data-entry-file-id=\"").Append(entryFileId).Append("\" data-active-file-id=\"").Append(entryFileId)
-            .Append("\" data-execution-id=\"").Append(state.ExecutionId).Append("\" aria-labelledby=\"")
+            .Append("\" data-entry-file-id=\"").Append(entryFileId).Append("\" data-active-file-id=\"").Append(activeFileId)
+            .Append("\" data-workspace-revision=\"").Append(state.Draft.Revision.ToString(CultureInfo.InvariantCulture))
+            .Append("\" data-execution-id=\"").Append(state.ExecutionId.ToString(CultureInfo.InvariantCulture)).Append("\" aria-labelledby=\"")
             .Append(safeId).Append("-title\">");
         html.Append("<header class=\"playground-header\"><div><h1 id=\"").Append(safeId).Append("-title\">")
             .Append(H(state.Draft.Title)).Append("</h1><p>Edit and run this example in your browser.</p></div>")
@@ -37,26 +39,24 @@ public static class PlaygroundWorkspace
             .Append("<button type=\"button\" data-playground-file-rename>Rename</button>")
             .Append("<button type=\"button\" data-playground-file-delete>Delete</button></div>")
             .Append("<div class=\"playground-file-list\" role=\"tablist\" aria-label=\"Open files\" data-playground-file-list>");
-        for (int index = 0; index < state.Draft.Files.Count; index++)
+        foreach (PlaygroundFile file in state.Draft.Files)
         {
-            PlaygroundFile file = state.Draft.Files[index];
-            string fileId = FileId(index);
-            html.Append("<button type=\"button\" role=\"tab\" data-playground-file-select data-file-id=\"").Append(fileId)
-                .Append("\" aria-selected=\"").Append(fileId == entryFileId ? "true" : "false").Append("\">")
-                .Append(H(file.FileName)).Append(fileId == entryFileId ? " <span aria-label=\"entry file\">●</span>" : "").Append("</button>");
+            html.Append("<button type=\"button\" role=\"tab\" data-playground-file-select data-file-id=\"").Append(H(file.Id))
+                .Append("\" aria-selected=\"").Append(file.Id == state.Draft.SelectedFileId ? "true" : "false").Append("\">")
+                .Append(H(file.FileName)).Append(file.Id == state.Draft.MainFileId ? " <span aria-label=\"entry file\">●</span>" : "").Append("</button>");
         }
         html.Append("</div></nav><div class=\"playground-file-editor\">")
-            .Append("<label data-playground-active-file-label for=\"").Append(safeId).Append("-source\">").Append(H(main.FileName)).Append("</label>")
+            .Append("<label data-playground-active-file-label for=\"").Append(safeId).Append("-source\">").Append(H(selected.FileName)).Append("</label>")
             .Append("<p class=\"playground-language-service\" data-playground-language-service>Monaco C# · Browser Roslyn completion, hover, and live diagnostics</p>")
             .Append("<div class=\"playground-editor-host\" data-playground-editor-host>")
-            .Append("<div class=\"playground-monaco\" data-playground-monaco aria-label=\"").Append(H(main.FileName)).Append(" code editor\"></div>");
-        for (int index = 0; index < state.Draft.Files.Count; index++)
+            .Append("<div class=\"playground-monaco\" data-playground-monaco aria-label=\"").Append(H(selected.FileName)).Append(" code editor\"></div>");
+        foreach (PlaygroundFile file in state.Draft.Files)
         {
-            PlaygroundFile file = state.Draft.Files[index];
             html.Append("<textarea");
-            if (index == entryIndex) html.Append(" id=\"").Append(safeId).Append("-source\"");
-            html.Append(" data-playground-source data-file-id=\"").Append(FileId(index)).Append("\" data-file-name=\"")
-                .Append(H(file.FileName)).Append("\" data-file-language=\"").Append(FileLanguage(file.FileName))
+            if (file.Id == state.Draft.SelectedFileId) html.Append(" id=\"").Append(safeId).Append("-source\"");
+            html.Append(" data-playground-source data-file-id=\"").Append(H(file.Id)).Append("\" data-file-name=\"")
+                .Append(H(file.FileName)).Append("\" data-file-language=\"").Append(H(file.Language))
+                .Append("\" data-file-version=\"").Append(file.Version.ToString(CultureInfo.InvariantCulture))
                 .Append("\" spellcheck=\"false\" autocomplete=\"off\">").Append(H(file.Source)).Append("</textarea>");
         }
         html.Append("</div></div></div></section>");
@@ -127,16 +127,6 @@ public static class PlaygroundWorkspace
         }
         html.Append("</div></section>");
     }
-
-    private static string FileId(int index) => $"template-file-{index}";
-
-    private static string FileLanguage(string path) => Path.GetExtension(path).ToLowerInvariant() switch
-    {
-        ".csx" => "csharp-script",
-        ".cs" => "csharp",
-        ".slang" or ".slangh" => "slang",
-        _ => "text",
-    };
 
     private static string H(string value) => WebUtility.HtmlEncode(value);
 }
