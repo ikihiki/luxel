@@ -171,13 +171,18 @@
     if (!list) return;
     list.replaceChildren();
     for (const file of state.workspace.files) {
+      const selected = file.id === state.workspace.activeFileId;
       const button = document.createElement("button");
       button.type = "button"; button.setAttribute("role", "tab"); button.dataset.playgroundFileSelect = ""; button.dataset.fileId = file.id;
-      button.setAttribute("aria-selected", String(file.id === state.workspace.activeFileId));
+      button.title = file.path; button.tabIndex = selected ? 0 : -1;
+      button.setAttribute("aria-controls", `${root.id}-file-editor`);
+      button.setAttribute("aria-selected", String(selected));
       button.textContent = file.path + (file.id === state.workspace.entryFileId ? " ●" : "");
       button.addEventListener("click", () => selectFile(root, file.id));
       list.append(button);
     }
+    const selectedTab = list.querySelector('[role="tab"][aria-selected="true"]');
+    selectedTab?.scrollIntoView({ block: "nearest", inline: "nearest" });
     const active = activeFile(state);
     const label = root.querySelector("[data-playground-active-file-label]");
     if (label && active) label.textContent = active.path;
@@ -302,6 +307,23 @@
   }
   function diagnostics(root) { const state = states.get(root); return state?.monaco ? state.monaco.editor.getModelMarkers({ owner: markerOwner }) : []; }
   function triggerSuggest(root) { const editor = states.get(root)?.editor; if (!editor) return false; editor.focus(); editor.setPosition(editor.getModel().getPositionAt(editor.getModel().getValueLength())); editor.trigger("luxel-playground", "editor.action.triggerSuggest", {}); return true; }
+  function navigateFileTabs(root, event) {
+    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+    const current = event.target.closest?.('[role="tab"][data-playground-file-select]');
+    const tabs = [...root.querySelectorAll('[data-playground-file-list] [role="tab"]')];
+    const index = tabs.indexOf(current);
+    if (index < 0 || !tabs.length) return;
+    event.preventDefault();
+    let nextIndex;
+    if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = tabs.length - 1;
+    else nextIndex = (index + (["ArrowRight", "ArrowDown"].includes(event.key) ? 1 : -1) + tabs.length) % tabs.length;
+    const fileId = tabs[nextIndex].dataset.fileId;
+    if (!selectFile(root, fileId)) return;
+    const selected = [...root.querySelectorAll('[data-playground-file-list] [role="tab"]')]
+      .find(tab => tab.dataset.fileId === fileId);
+    selected?.focus();
+  }
   function bind(root) {
     if (root.dataset.playgroundBound === "true") return; root.dataset.playgroundBound = "true";
     const sources = [...root.querySelectorAll("[data-playground-source]")], run = root.querySelector("[data-playground-run]"), cancel = root.querySelector("[data-playground-cancel]"), reset = root.querySelector("[data-playground-reset]");
@@ -325,6 +347,7 @@
       emit(root, "luxel-playground:cancel", { executionId: Number(root.dataset.executionId || "0"), workspaceRevision: state.workspace.revision });
     });
     reset.addEventListener("click", () => { clearWorkspace(root); for (const record of state.models.values()) { clearTimeout(record.analysisTimer); record.subscription?.dispose(); modelRoots.delete(record.model.uri.toString()); record.model.dispose(); } state.models.clear(); state.workspace = cloneWorkspace(state.initial); if (state.monaco) for (const file of state.workspace.files) createModel(root, state, file); selectFile(root, state.workspace.activeFileId); setDiagnostics(root, []); emit(root, "luxel-playground:reset", { templateId: root.dataset.templateId, workspace: cloneWorkspace(state.workspace) }); });
+    root.querySelector("[data-playground-file-list]")?.addEventListener("keydown", event => navigateFileTabs(root, event));
     root.querySelector("[data-playground-file-add]")?.addEventListener("click", () => { const path = prompt("New workspace file path (for example, Helper.cs)"); if (path) try { addFile(root, path); } catch (error) { alert(error.message); } });
     root.querySelector("[data-playground-file-rename]")?.addEventListener("click", () => { const file = activeFile(state), path = file && prompt("Rename workspace file", file.path); if (path) try { renameFile(root, file.id, path); } catch (error) { alert(error.message); } });
     root.querySelector("[data-playground-file-delete]")?.addEventListener("click", () => { const file = activeFile(state); if (!file || !confirm(`Delete ${file.path}?`)) return; try { deleteFile(root, file.id); } catch (error) { alert(error.message); } });
