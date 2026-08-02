@@ -1,141 +1,157 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Grapics/Environment</h1></header><h1 id="section">レンダリング環境を確認する</h1>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Grapics/Environment</h1></header><h1 id="section">グラフィック環境</h1>
 <ul>
-<li><a href="#story=Learn%2FGrapics%2FEnvironment&amp;section=%E5%AF%BE%E5%BF%9Cbackend">対応backend</a></li>
-<li><a href="#story=Learn%2FGrapics%2FEnvironment&amp;section=%E3%83%93%E3%83%AB%E3%83%89">ビルド</a></li>
-<li><a href="#story=Learn%2FGrapics%2FEnvironment&amp;section=shader-cache">Shader cache</a></li>
-<li><a href="#story=Learn%2FGrapics%2FEnvironment&amp;section=backend%E3%81%A8device%E3%82%92%E4%BD%9C%E3%82%8B%E5%AE%9F%E3%82%B3%E3%83%BC%E3%83%89">Backendとdeviceを作る実コード</a></li>
-<li><a href="#story=Learn%2FGrapics%2FEnvironment&amp;section=%E5%85%B8%E5%9E%8B%E7%9A%84%E3%81%AA%E5%A4%B1%E6%95%97">典型的な失敗</a></li>
+<li><a href="#story=Learn%2FGrapics%2FEnvironment&amp;section=backend">Backend</a></li>
+<li><a href="#story=Learn%2FGrapics%2FEnvironment&amp;section=vulkan">Vulkan</a></li>
+<li><a href="#story=Learn%2FGrapics%2FEnvironment&amp;section=direct3d-12">Direct3D 12</a></li>
+<li><a href="#story=Learn%2FGrapics%2FEnvironment&amp;section=webgpu-native">WebGPU (native)</a></li>
+<li><a href="#story=Learn%2FGrapics%2FEnvironment&amp;section=webgpu-browser">WebGPU (browser)</a></li>
 </ul>
-<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> Overview</p>
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone + Browser　 <strong>Backend:</strong> Vulkan / Direct3D 12 / WebGPU　 <strong>前提知識:</strong> Overview</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FOverview">Overview</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FClearColor">ClearColor</a></p>
-<h2 id="backend">対応backend</h2>
+<h2 id="backend">Backend</h2>
 <table>
 <thead>
 <tr>
-<th>OS</th>
-<th>Window backend</th>
-<th>GPU backend</th>
-<th>実行引数</th>
+<th>Backend</th>
+<th>実行環境</th>
+<th>Window / Surface</th>
+<th><code>LuxelTriangle</code>の実行引数</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Windows</td>
-<td>Win32</td>
 <td>Vulkan</td>
-<td><code>vk</code></td>
+<td>Windows / Linux</td>
+<td>Win32 / X11</td>
+<td><code>vk</code> / <code>vulkan</code></td>
 </tr>
 <tr>
+<td>Direct3D 12</td>
 <td>Windows</td>
 <td>Win32</td>
-<td>DirectX 12</td>
-<td><code>dx</code></td>
+<td><code>dx</code> / <code>d3d12</code></td>
 </tr>
 <tr>
-<td>Linux</td>
-<td>Silk.NET GLFW / X11</td>
-<td>Vulkan</td>
-<td><code>vk</code></td>
+<td>WebGPU (native)</td>
+<td>Windows / Linux</td>
+<td>Win32 / Xlib</td>
+<td><code>webgpu</code> / <code>wgpu</code></td>
+</tr>
+<tr>
+<td>WebGPU (browser)</td>
+<td>Browser WASM</td>
+<td>HTML canvas</td>
+<td>—</td>
 </tr>
 </tbody>
 </table>
-<p>Linuxの実ウィンドウにはX11の <code>DISPLAY</code> が必要です。Wayland nativeは未対応です。headless環境では <code>eng/desktop/start.sh</code> または <code>xvfb-run</code> でX serverを用意します。</p>
-<h2 id="section-1">ビルド</h2>
-<pre><code class="language-powershell">dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
-dotnet run --project samples/LuxelTriangle -- vk
-# Windowsのみ
-dotnet run --project samples/LuxelTriangle -- dx
+<p>Linuxの実ウィンドウにはX11の <code>DISPLAY</code> が必要です。Wayland nativeは未対応です。browser版はnative windowを作らず、canvasからsurfaceを作ります。</p>
+<h2 id="vulkan">Vulkan</h2>
+<p>Windowsではbackendを直接作成できます。</p>
+<pre><code class="language-csharp">using var device = new GpuDevice(
+    Luxel.Graphics.Vulkan.VulkanBackend.Create());
 </code></pre>
-<p>成功すると暗い背景に赤・緑・青の三角形が表示されます。CIやsmoke testでは <code>--frames 3</code> を付けると自動終了します。</p>
-<h2 id="shader-cache">Shader cache</h2>
-<p>通常ビルドはGit管理済みの <code>shaders/compiled/</code> を使うため、Slang/DXCの事前導入は不要です。<code>.slang</code>を変更したときだけ次を実行します。</p>
-<pre><code class="language-powershell">dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache
-</code></pre>
-<p>生成物と <code>inputs.sha256</code> をshader sourceと一緒にコミットします。</p>
-<h2 id="backenddevice">Backendとdeviceを作る実コード</h2>
-<p>次は<code>LuxelTriangle</code>が実際にコンパイルするWindows/Linux両方のbackend選択です。Linuxではwindowが提供する<code>IVulkanWindowSurface</code>を<code>VulkanBackendOptions.WindowSurface</code>へ渡します。</p>
-<pre><code class="language-csharp">static GpuDevice CreateDevice(string backend, Window window)
-{
-#if LUXEL_WINDOWS
-    return backend switch
-    {
-        &quot;dx&quot; or &quot;d3d12&quot; =&gt; new GpuDevice(Luxel.Graphics.DirectX12.D3D12Backend.Create()),
-        &quot;webgpu&quot; or &quot;wgpu&quot; =&gt; new GpuDevice(Luxel.Graphics.WebGPU.WebGpuBackend.Create()),
-        _ =&gt; new GpuDevice(VulkanBackend.Create()),
-    };
-#else
-    if (backend is &quot;webgpu&quot; or &quot;wgpu&quot;)
-        return new GpuDevice(Luxel.Graphics.WebGPU.WebGpuBackend.Create());
-    IVulkanWindowSurface provider = window.GetFeature&lt;IVulkanWindowSurface&gt;()
-        ?? throw new PlatformNotSupportedException(&quot;Linux/X11 window did not provide a Vulkan surface.&quot;);
-    return new GpuDevice(VulkanBackend.Create(new VulkanBackendOptions
+<p>Linuxのwindow表示では、windowが提供する<code>IVulkanWindowSurface</code>を作成時に渡します。</p>
+<pre><code class="language-csharp">IVulkanWindowSurface provider = window.GetFeature&lt;IVulkanWindowSurface&gt;()
+    ?? throw new PlatformNotSupportedException(
+        &quot;Linux/X11 window did not provide a Vulkan surface.&quot;);
+
+using var device = new GpuDevice(
+    VulkanBackend.Create(new VulkanBackendOptions
     {
         Presentation = VulkanPresentationMode.Window,
         WindowSurface = provider,
     }));
-#endif
-}
 </code></pre>
-<p>surface生成と所有権を含む完全なevent loopは次のClear Colorページにあります。device、surface、window systemは<code>using</code>で所有者を明確にし、終了前にqueueをidleにします。</p>
-<h2 id="section-2">典型的な失敗</h2>
-<ul>
-<li>Linuxで <code>DISPLAY</code> がない → X11 serverを起動する</li>
-<li>Linuxで <code>dx</code> を指定 → Vulkanの <code>vk</code> を使う</li>
-<li>shader cache mismatch → 上記 <code>CompileLuxelShaderCache</code> を実行する</li>
-<li>Vulkan deviceがない → Vulkan driverまたはlavapipeの導入を確認する</li>
-</ul>
+<h2 id="direct3d-12">Direct3D 12</h2>
+<p>Direct3D 12はWindows専用です。<code>Create()</code>の<code>enableDebug</code>は既定で<code>true</code>です。</p>
+<pre><code class="language-csharp">using var device = new GpuDevice(
+    Luxel.Graphics.DirectX12.D3D12Backend.Create());
+</code></pre>
+<h2 id="webgpu-native">WebGPU (native)</h2>
+<p>native版は<code>wgpu-native</code>を利用し、WindowsとLinuxで同じ作成コードを使います。</p>
+<pre><code class="language-csharp">using var device = new GpuDevice(
+    Luxel.Graphics.WebGPU.WebGpuBackend.Create());
+</code></pre>
+<h2 id="webgpu-browser">WebGPU (browser)</h2>
+<p>browser版のbackend作成は非同期です。<code>GpuDevice</code>作成後はnative surface descriptorではなく、canvas selectorを指定します。</p>
+<pre><code class="language-csharp">using BrowserWebGpuBackend backend =
+    await BrowserWebGpuBackend.CreateAsync();
+using var device = new GpuDevice(backend);
+using GpuSurface surface = device.CreateCanvasSurface(
+    &quot;#luxel-canvas&quot;, (uint)window.Width, (uint)window.Height);
+</code></pre>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/Environment&quot;, Order = 1)]
 public static Widget Environment(StoryContext ctx)
 {
     return DocNew(ctx, $$&quot;&quot;&quot;
-    # レンダリング環境を確認する
+    # グラフィック環境
 
-    {{RenderingCourseCatalog.Meta(&quot;Learn/Grapics/Environment&quot;, &quot;Beginner&quot;, &quot;Standalone&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;Overview&quot;)}}
+    {{RenderingCourseCatalog.Meta(&quot;Learn/Grapics/Environment&quot;, &quot;Beginner&quot;, &quot;Standalone + Browser&quot;, &quot;Vulkan / Direct3D 12 / WebGPU&quot;, &quot;Overview&quot;)}}
 
-    ## 対応backend
+    ## Backend
 
-    | OS | Window backend | GPU backend | 実行引数 |
+    | Backend | 実行環境 | Window / Surface | `LuxelTriangle`の実行引数 |
     | --- | --- | --- | --- |
-    | Windows | Win32 | Vulkan | `vk` |
-    | Windows | Win32 | DirectX 12 | `dx` |
-    | Linux | Silk.NET GLFW / X11 | Vulkan | `vk` |
+    | Vulkan | Windows / Linux | Win32 / X11 | `vk` / `vulkan` |
+    | Direct3D 12 | Windows | Win32 | `dx` / `d3d12` |
+    | WebGPU (native) | Windows / Linux | Win32 / Xlib | `webgpu` / `wgpu` |
+    | WebGPU (browser) | Browser WASM | HTML canvas | — |
 
-    Linuxの実ウィンドウにはX11の `DISPLAY` が必要です。Wayland nativeは未対応です。headless環境では `eng/desktop/start.sh` または `xvfb-run` でX serverを用意します。
+    Linuxの実ウィンドウにはX11の `DISPLAY` が必要です。Wayland nativeは未対応です。browser版はnative windowを作らず、canvasからsurfaceを作ります。
 
-    ## ビルド
+    ## Vulkan
 
-    ```powershell
-    dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
-    dotnet run --project samples/LuxelTriangle -- vk
-    # Windowsのみ
-    dotnet run --project samples/LuxelTriangle -- dx
+    Windowsではbackendを直接作成できます。
+
+    ```csharp
+    using var device = new GpuDevice(
+        Luxel.Graphics.Vulkan.VulkanBackend.Create());
     ```
 
-    成功すると暗い背景に赤・緑・青の三角形が表示されます。CIやsmoke testでは `--frames 3` を付けると自動終了します。
+    Linuxのwindow表示では、windowが提供する`IVulkanWindowSurface`を作成時に渡します。
 
-    ## Shader cache
+    ```csharp
+    IVulkanWindowSurface provider = window.GetFeature&lt;IVulkanWindowSurface&gt;()
+        ?? throw new PlatformNotSupportedException(
+            &quot;Linux/X11 window did not provide a Vulkan surface.&quot;);
 
-    通常ビルドはGit管理済みの `shaders/compiled/` を使うため、Slang/DXCの事前導入は不要です。`.slang`を変更したときだけ次を実行します。
-
-    ```powershell
-    dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache
+    using var device = new GpuDevice(
+        VulkanBackend.Create(new VulkanBackendOptions
+        {
+            Presentation = VulkanPresentationMode.Window,
+            WindowSurface = provider,
+        }));
     ```
 
-    生成物と `inputs.sha256` をshader sourceと一緒にコミットします。
+    ## Direct3D 12
 
-    ## Backendとdeviceを作る実コード
+    Direct3D 12はWindows専用です。`Create()`の`enableDebug`は既定で`true`です。
 
-    次は`LuxelTriangle`が実際にコンパイルするWindows/Linux両方のbackend選択です。Linuxではwindowが提供する`IVulkanWindowSurface`を`VulkanBackendOptions.WindowSurface`へ渡します。
+    ```csharp
+    using var device = new GpuDevice(
+        Luxel.Graphics.DirectX12.D3D12Backend.Create());
+    ```
 
-    {{SampleSource(&quot;samples/LuxelTriangle/Program.cs&quot;, &quot;device-and-surface-backend&quot;)}}
+    ## WebGPU (native)
 
-    surface生成と所有権を含む完全なevent loopは次のClear Colorページにあります。device、surface、window systemは`using`で所有者を明確にし、終了前にqueueをidleにします。
+    native版は`wgpu-native`を利用し、WindowsとLinuxで同じ作成コードを使います。
 
-    ## 典型的な失敗
+    ```csharp
+    using var device = new GpuDevice(
+        Luxel.Graphics.WebGPU.WebGpuBackend.Create());
+    ```
 
-    - Linuxで `DISPLAY` がない → X11 serverを起動する
-    - Linuxで `dx` を指定 → Vulkanの `vk` を使う
-    - shader cache mismatch → 上記 `CompileLuxelShaderCache` を実行する
-    - Vulkan deviceがない → Vulkan driverまたはlavapipeの導入を確認する
+    ## WebGPU (browser)
+
+    browser版のbackend作成は非同期です。`GpuDevice`作成後はnative surface descriptorではなく、canvas selectorを指定します。
+
+    ```csharp
+    using BrowserWebGpuBackend backend =
+        await BrowserWebGpuBackend.CreateAsync();
+    using var device = new GpuDevice(backend);
+    using GpuSurface surface = device.CreateCanvasSurface(
+        &quot;#luxel-canvas&quot;, (uint)window.Width, (uint)window.Height);
+    ```
     &quot;&quot;&quot;, toc: true);
 }</code></pre></details></article>
