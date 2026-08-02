@@ -242,7 +242,7 @@ public static partial class DocsGpu
 
         ## GPU rasterizerの現在構成
 
-        現行 GPU pipeline は **bounds → 16×16 tile bin → fine raster** の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4×4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は [Rasterizer Internals](story:Learn/Rendering/RasterizerInternals/Overview) へ進んでください。
+        現行 GPU pipeline は **bounds → 16×16 tile bin → fine raster** の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4×4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は [Rasterizer Internals](story:Learn/Grapics/RasterizerInternals/Overview) へ進んでください。
 
         次: [Reference/Guides/RenderGraph](story:Reference/Guides/RenderGraph) — 多段パスの合成へ。
         """, toc: true);

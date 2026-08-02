@@ -6,13 +6,13 @@ namespace Luxel.Gallery.Stories;
 /// <summary>初心者向けレンダリング学習経路。実行可能な正は samples/LuxelTriangle。</summary>
 public static partial class DocsRenderingLearn
 {
-    [Story("Learn/Rendering/ThreeD/Textures", Order = 6, SampleBundle = "rendering.3d")]
+    [Story("Learn/Grapics/ThreeD/Textures", Order = 6, SampleBundle = "rendering.3d")]
     public static Widget Textures(StoryContext ctx)
     {
         return DocNew(ctx, $"""
         # Texture付きquad
 
-        {RenderingCourseCatalog.Meta("Learn/Rendering/ThreeD/Textures", "Beginner", "Standalone", "Vulkan / DirectX 12", "Shaders")}
+        {RenderingCourseCatalog.Meta("Learn/Grapics/ThreeD/Textures", "Beginner", "Standalone", "Vulkan / DirectX 12", "Shaders")}
 
         実行可能な正は `samples/LuxelTriangle/TriangleRenderer.cs`、ABIは `samples/LuxelTriangle/TutorialAbi.cs`、shaderは `shaders/tutorial_3d.slang` です。この段階では4頂点・6 indexのquadへ小さなRGBA checker textureを貼ります。
 
@@ -72,13 +72,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Rendering/ThreeD/TransformsAndCamera", Order = 7)]
+    [Story("Learn/Grapics/ThreeD/TransformsAndCamera", Order = 7)]
     public static Widget TransformsAndCamera(StoryContext ctx)
     {
         return DocNew(ctx, $"""
         # Transformとcameraでindexed cubeを描く
 
-        {RenderingCourseCatalog.Meta("Learn/Rendering/ThreeD/TransformsAndCamera", "Beginner+", "Standalone", "Vulkan / DirectX 12", "Textures")}
+        {RenderingCourseCatalog.Meta("Learn/Grapics/ThreeD/TransformsAndCamera", "Beginner+", "Standalone", "Vulkan / DirectX 12", "Textures")}
 
         実コードは `samples/LuxelTriangle/TriangleRenderer.cs`、共有ABIは `samples/LuxelTriangle/TutorialAbi.cs`、vertex pullingとMVPは `shaders/tutorial_3d.slang` を参照します。texture付きquadを24頂点・36 indexのcubeへ広げ、model / view / projectionをroot argumentsから渡します。
 
@@ -155,13 +155,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Rendering/ThreeD/DepthCullingLighting", Order = 8)]
+    [Story("Learn/Grapics/ThreeD/DepthCullingLighting", Order = 8)]
     public static Widget DepthCullingLighting(StoryContext ctx)
     {
         return DocNew(ctx, $"""
         # Depth、culling、方向光
 
-        {RenderingCourseCatalog.Meta("Learn/Rendering/ThreeD/DepthCullingLighting", "Beginner+", "Standalone", "Vulkan / DirectX 12", "TransformsAndCamera")}
+        {RenderingCourseCatalog.Meta("Learn/Grapics/ThreeD/DepthCullingLighting", "Beginner+", "Standalone", "Vulkan / DirectX 12", "TransformsAndCamera")}
 
         完成形は `samples/LuxelTriangle/TriangleRenderer.cs`と`samples/LuxelTriangle/TutorialAbi.cs`、shaderは `shaders/tutorial_3d.slang` です。indexed cubeへD32 depth target、back-face culling、最小のdirectional Lambert lightを追加します。
 
@@ -204,7 +204,7 @@ public static partial class DocsRenderingLearn
         return float4(linearRgb, alpha);
         ```
 
-        textureがsRGB authoredなら[Textures](story:Learn/Rendering/ThreeD/Textures)のdecode後にLambertを掛けます。ambientは完全な黒面を避ける小値で、specular、shadow、gamma-correct outputはこの章の範囲外です。normalはmodel変換後のworld-space、lightもworld-spaceに統一します。dotの符号が逆なら「lightが進む方向」と「surfaceからlightへの方向」を混同しています。
+        textureがsRGB authoredなら[Textures](story:Learn/Grapics/ThreeD/Textures)のdecode後にLambertを掛けます。ambientは完全な黒面を避ける小値で、specular、shadow、gamma-correct outputはこの章の範囲外です。normalはmodel変換後のworld-space、lightもworld-spaceに統一します。dotの符号が逆なら「lightが進む方向」と「surfaceからlightへの方向」を混同しています。
 
         opaque cubeは`GpuBlendMode.None`、alpha=1を維持します。透明物をdepth write + cullingだけで正しく描くことはできず、sortや別passが必要なので後続課題です。
 
@@ -236,13 +236,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Rendering/ThreeD/FirstRenderGraph", Order = 10)]
+    [Story("Learn/Grapics/ThreeD/FirstRenderGraph", Order = 10)]
     public static Widget FirstRenderGraph(StoryContext ctx)
     {
         return DocNew(ctx, $$"""
         # はじめてのRenderGraph
 
-        {{RenderingCourseCatalog.Meta("Learn/Rendering/ThreeD/FirstRenderGraph", "Beginner+", "Standalone + DevTools", "Vulkan / DirectX 12", "FrameLoopAndSynchronization")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/ThreeD/FirstRenderGraph", "Beginner+", "Standalone + DevTools", "Vulkan / DirectX 12", "FrameLoopAndSynchronization")}}
 
         sampleは `samples/LuxelTriangle/Program.cs`、`samples/LuxelTriangle/TriangleRenderer.cs`、`samples/LuxelTriangle/TutorialAbi.cs`、scene shaderの`shaders/tutorial_3d.slang`、post-process shaderの`shaders/compute_tutorial_postprocess.slang`です。RenderGraph本体は`src/Luxel.RenderGraph/`にあります。
 
@@ -377,13 +377,13 @@ public static partial class DocsRenderingLearn
 
 
 
-    [Story("Learn/Rendering/ThreeD/StaticGltf", Order = 12)]
+    [Story("Learn/Grapics/ThreeD/StaticGltf", Order = 12)]
     public static Widget StaticGltf(StoryContext ctx)
     {
         return DocNew(ctx, $$"""
         # ECSなしで静的glTFを描く
 
-        {{RenderingCourseCatalog.Meta("Learn/Rendering/ThreeD/StaticGltf", "Beginner+", "Gallery / Standalone", "Vulkan / DirectX 12", "FirstRenderGraph")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/ThreeD/StaticGltf", "Beginner+", "Gallery / Standalone", "Vulkan / DirectX 12", "FirstRenderGraph")}}
 
         {{StoryRef(ctx, "Examples/3D/GltfBox")}}
 
@@ -440,13 +440,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Rendering/ThreeD/Debugging", Order = 13)]
+    [Story("Learn/Grapics/ThreeD/Debugging", Order = 13)]
     public static Widget Debugging(StoryContext ctx)
     {
         return DocNew(ctx, $$"""
         # レンダリングをデバッグする
 
-        {{RenderingCourseCatalog.Meta("Learn/Rendering/ThreeD/Debugging", "Beginner", "Standalone / Gallery / DevTools", "Vulkan / DirectX 12", "StaticGltf")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/ThreeD/Debugging", "Beginner", "Standalone / Gallery / DevTools", "Vulkan / DirectX 12", "StaticGltf")}}
 
         ## 起動しない
 
@@ -491,13 +491,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Rendering/ThreeD/Shipping", Order = 14)]
+    [Story("Learn/Grapics/ThreeD/Shipping", Order = 14)]
     public static Widget Shipping(StoryContext ctx)
     {
         return DocNew(ctx, $$"""
         # Publishして別ディレクトリから起動する
 
-        {{RenderingCourseCatalog.Meta("Learn/Rendering/ThreeD/Shipping", "Beginner+", "Published standalone app", "Vulkan / DirectX 12", "Debugging")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/ThreeD/Shipping", "Beginner+", "Published standalone app", "Vulkan / DirectX 12", "Debugging")}}
 
         このページが初心者経路の終点です。次は3D capstoneの[Apps/Game/Range](story:Apps/Game/Range)へ進めます。
 

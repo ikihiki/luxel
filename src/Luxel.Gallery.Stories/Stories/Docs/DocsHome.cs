@@ -67,7 +67,7 @@ public static class DocsHome
             ## ドキュメントの歩き方
 
             - 全体像とレイヤ構成 → [Internals/Architecture](story:Internals/Architecture)
-            - GPU 描画の最初の一歩 (standalone) → [Learn/Rendering/Basics/Overview](story:Learn/Rendering/Basics/Overview)
+            - GPU 描画の最初の一歩 (standalone) → [Learn/Grapics/Overview](story:Learn/Grapics/Overview)
             - コントロールの型見本 (Variant/Intent/API 表) → [Reference/Guides/Button](story:Reference/Guides/Button)
             - Windows/Linux対応の端末エミュレータ → [Controls/Terminal/Overview](story:Controls/Terminal/Overview)
             - この docs ページ自体の書き方 → [Internals/Authoring](story:Internals/Authoring)
@@ -99,9 +99,9 @@ public static class DocsHome
 
         このページは既存リンクとの互換入口です。初心者向けの説明と、Gallery helperに依存しない完全なstandaloneサンプルは次へ移動しました。
 
-        → [Learn/Rendering/Basics/Overview](story:Learn/Rendering/Basics/Overview)
+        → [Learn/Grapics/Overview](story:Learn/Grapics/Overview)
 
-        最短で三角形まで進む場合は [Learn/Rendering/Basics/FirstTriangle](story:Learn/Rendering/Basics/FirstTriangle) を開いてください。`Examples/3D/Triangle` はGallery内のoffscreen回帰用で、通常アプリのwindow / surface / present処理は含みません。
+        最短で三角形まで進む場合は [Learn/Grapics/FirstTriangle](story:Learn/Grapics/FirstTriangle) を開いてください。`Examples/3D/Triangle` はGallery内のoffscreen回帰用で、通常アプリのwindow / surface / present処理は含みません。
         """, toc: true);
     }
 

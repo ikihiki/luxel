@@ -502,7 +502,7 @@ public sealed class GallerySiteExporterTests
         string root = GallerySiteExporter.FindRepositoryRoot();
         string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-runtime-embed-" + Guid.NewGuid().ToString("N"));
         string browserRoot = CreateBrowserRuntimeRoot();
-        StoryInfo story = Catalog.Find("Learn/Rendering/Basics/FirstTriangle")
+        StoryInfo story = Catalog.Find("Learn/Grapics/FirstTriangle")
             ?? throw new InvalidOperationException("FirstTriangle story is missing.");
         try
         {
@@ -512,7 +512,7 @@ public sealed class GallerySiteExporterTests
 
             GallerySiteExporter.Export(host, [story], output, root, browserRoot);
 
-            string fragment = File.ReadAllText(Path.Combine(output, "stories", "learn-rendering-basics-firsttriangle.html"));
+            string fragment = File.ReadAllText(Path.Combine(output, "stories", "learn-grapics-firsttriangle.html"));
             Assert.Contains("<iframe src=\"samples/webgpu-browser/?story=Examples%2F3D%2FTriangle&amp;args=%7B%7D&amp;instance=", fragment);
             Assert.Contains("data-luxel-runtime-story=\"Examples/3D/Triangle\"", fragment);
             Assert.Contains("runtime-story-embedded", fragment);
@@ -654,7 +654,7 @@ public sealed class GallerySiteExporterTests
     public void Focused_export_is_complete_and_deterministic()
     {
         string root = GallerySiteExporter.FindRepositoryRoot();
-        StoryInfo story = Catalog.Find("Learn/Rendering/Basics/Shaders")
+        StoryInfo story = Catalog.Find("Learn/Grapics/Shaders")
             ?? Catalog.All.First(s => !s.RealWindowOnly);
         StoryInfo imageStory = Catalog.Find("Controls/Button/Intents")
             ?? Catalog.All.First(s => !s.RealWindowOnly && s.Path != story.Path);
@@ -833,13 +833,13 @@ public sealed class GallerySiteExporterTests
     {
         string[] routes =
         [
-            "Learn/Rendering/Basics/Overview", "Learn/Rendering/Basics/Environment",
-            "Learn/Rendering/Basics/ClearColor", "Learn/Rendering/Basics/FirstTriangle",
-            "Learn/Rendering/Basics/BuffersAndBindings", "Learn/Rendering/Basics/Shaders",
-            "Learn/Rendering/Basics/FrameLoopAndSynchronization", "Learn/Rendering/ThreeD/Textures",
-            "Learn/Rendering/ThreeD/TransformsAndCamera", "Learn/Rendering/ThreeD/DepthCullingLighting",
-            "Learn/Rendering/ThreeD/FirstRenderGraph", "Learn/Rendering/ThreeD/StaticGltf",
-            "Learn/Rendering/ThreeD/Debugging", "Learn/Rendering/ThreeD/Shipping",
+            "Learn/Grapics/Overview", "Learn/Grapics/Environment",
+            "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
+            "Learn/Grapics/BuffersAndBindings", "Learn/Grapics/Shaders",
+            "Learn/Grapics/FrameLoopAndSynchronization", "Learn/Grapics/ThreeD/Textures",
+            "Learn/Grapics/ThreeD/TransformsAndCamera", "Learn/Grapics/ThreeD/DepthCullingLighting",
+            "Learn/Grapics/ThreeD/FirstRenderGraph", "Learn/Grapics/ThreeD/StaticGltf",
+            "Learn/Grapics/ThreeD/Debugging", "Learn/Grapics/ThreeD/Shipping",
         ];
 
         for (int i = 0; i < routes.Length; i++)
@@ -861,13 +861,13 @@ public sealed class GallerySiteExporterTests
     {
         string[] routes =
         [
-            "Learn/Rendering/Basics/Overview", "Learn/Rendering/Basics/Environment",
-            "Learn/Rendering/Basics/ClearColor", "Learn/Rendering/Basics/FirstTriangle",
-            "Learn/Rendering/Basics/BuffersAndBindings", "Learn/Rendering/Basics/Shaders",
-            "Learn/Rendering/Basics/FrameLoopAndSynchronization", "Learn/Rendering/ThreeD/Textures",
-            "Learn/Rendering/ThreeD/TransformsAndCamera", "Learn/Rendering/ThreeD/DepthCullingLighting",
-            "Learn/Rendering/ThreeD/FirstRenderGraph", "Learn/Rendering/ThreeD/StaticGltf",
-            "Learn/Rendering/ThreeD/Debugging", "Learn/Rendering/ThreeD/Shipping",
+            "Learn/Grapics/Overview", "Learn/Grapics/Environment",
+            "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
+            "Learn/Grapics/BuffersAndBindings", "Learn/Grapics/Shaders",
+            "Learn/Grapics/FrameLoopAndSynchronization", "Learn/Grapics/ThreeD/Textures",
+            "Learn/Grapics/ThreeD/TransformsAndCamera", "Learn/Grapics/ThreeD/DepthCullingLighting",
+            "Learn/Grapics/ThreeD/FirstRenderGraph", "Learn/Grapics/ThreeD/StaticGltf",
+            "Learn/Grapics/ThreeD/Debugging", "Learn/Grapics/ThreeD/Shipping",
         ];
         StoryInfo[] stories = routes.Select(name => Catalog.Find(name)
             ?? throw new InvalidOperationException($"Rendering Learn route is missing: {name}")).ToArray();
@@ -894,7 +894,7 @@ public sealed class GallerySiteExporterTests
         string actual = File.ReadAllText(Path.Combine(root, "samples", "LuxelTriangle", "TutorialAbi.cs"))
             .Replace("\r\n", "\n", StringComparison.Ordinal);
         string expected = ExtractMarkedRegion(actual, "triangle-abi").Trim();
-        string trianglePage = pages["Learn/Rendering/Basics/FirstTriangle"].Text;
+        string trianglePage = pages["Learn/Grapics/FirstTriangle"].Text;
         Assert.Contains(expected, trianglePage);
         Assert.DoesNotContain("docs:begin", trianglePage);
         Assert.DoesNotContain("docs:end", trianglePage);
@@ -968,8 +968,11 @@ public sealed class GallerySiteExporterTests
     {
         Assert.Equal("Start", Catalog.All[0].Component);
         Assert.NotNull(Catalog.Find("Start/Welcome"));
-        Assert.NotNull(Catalog.Find("Learn/Rendering/TwoD/Overview"));
-        Assert.NotNull(Catalog.Find("Learn/Rendering/RasterizerInternals/Overview"));
+        Assert.NotNull(Catalog.Find("Learn/Grapics/Overview"));
+        Assert.NotNull(Catalog.Find("Learn/Grapics/TwoD/Overview"));
+        Assert.NotNull(Catalog.Find("Learn/Grapics/RasterizerInternals/Overview"));
+        Assert.Null(Catalog.Find("Learn/Rendering/Basics/Overview"));
+        Assert.Null(Catalog.Find("Learn/Grapics/Basics/Overview"));
         foreach (string route in new[] { "Learn/Input/Overview", "Learn/Input/ActionsAndContexts", "Learn/Input/PlatformsAndTesting",
                      "Learn/Audio/Overview", "Learn/Audio/ClipsSourcesAndBuses", "Learn/Audio/SpatialStreamingAndTesting",
                      "Learn/Resources/Overview", "Learn/Resources/PipelinesAndDag", "Learn/Resources/ReloadAndLifetime",
@@ -1025,8 +1028,8 @@ public sealed class GallerySiteExporterTests
     public void Rendering_overview_follows_catalog_and_build_paths_match_copy_levels()
     {
         Dictionary<string, DocsPage> pages = DocsIndex.Build(
-            [Catalog.Find("Learn/Rendering/Basics/Overview")!], resources: null);
-        string overview = pages["Learn/Rendering/Basics/Overview"].Text;
+            [Catalog.Find("Learn/Grapics/Overview")!], resources: null);
+        string overview = pages["Learn/Grapics/Overview"].Text;
         int previous = -1;
         foreach (string route in RenderingCourseCatalog.ApplicationRoute)
         {

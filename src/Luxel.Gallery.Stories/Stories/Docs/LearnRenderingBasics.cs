@@ -6,19 +6,19 @@ namespace Luxel.Gallery.Stories;
 /// <summary>初心者向けレンダリング学習経路。実行可能な正は samples/LuxelTriangle。</summary>
 public static partial class DocsRenderingLearn
 {
-    [Story("Learn/Rendering/Basics/Overview", Order = 0)]
+    [Story("Learn/Grapics/Overview", Order = 0)]
     public static Widget Overview(StoryContext ctx)
     {
         return DocNew(ctx, $"""
-        # Rendering 学習ガイド
+        # Grapics 学習ガイド
 
-        {RenderingCourseCatalog.Meta("Learn/Rendering/Basics/Overview", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "なし")}
+        {RenderingCourseCatalog.Meta("Learn/Grapics/Overview", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "なし")}
 
         この章は、Gallery のデモを見るだけでなく、自分のウィンドウへ描画できるところまでを順番に進みます。最小アプリの実装はリポジトリの `samples/LuxelTriangle/` が単一の正です。
 
         ## 推奨アプリ構築ルート
 
-        BasicsからThreeDの順序はcourse catalogから生成されます。2DとRasterizer Internalsは、このルートを終えた後に目的に応じて選ぶ独立トラックです。
+        Grapics直下からThreeDまでの順序はcourse catalogから生成されます。2DとRasterizer Internalsは、このルートを終えた後に目的に応じて選ぶ独立トラックです。
 
         {RenderingCourseCatalog.ApplicationRouteMarkdown()}
 
@@ -34,13 +34,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Rendering/Basics/Environment", Order = 1)]
+    [Story("Learn/Grapics/Environment", Order = 1)]
     public static Widget Environment(StoryContext ctx)
     {
         return DocNew(ctx, $$"""
         # レンダリング環境を確認する
 
-        {{RenderingCourseCatalog.Meta("Learn/Rendering/Basics/Environment", "Beginner", "Standalone", "Vulkan / DirectX 12", "Overview")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/Environment", "Beginner", "Standalone", "Vulkan / DirectX 12", "Overview")}}
 
         ## 対応backend
 
@@ -91,13 +91,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Rendering/Basics/ClearColor", Order = 2)]
+    [Story("Learn/Grapics/ClearColor", Order = 2)]
     public static Widget ClearColor(StoryContext ctx)
     {
         return DocNew(ctx, $"""
         # ウィンドウとClear Color
 
-        {RenderingCourseCatalog.Meta("Learn/Rendering/Basics/ClearColor", "Beginner", "Standalone", "Vulkan / DirectX 12", "Environment")}
+        {RenderingCourseCatalog.Meta("Learn/Grapics/ClearColor", "Beginner", "Standalone", "Vulkan / DirectX 12", "Environment")}
 
         `samples/LuxelTriangle/Program.cs` がstandaloneアプリの外枠です。責務は次の順です。
 
@@ -133,13 +133,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Rendering/Basics/FirstTriangle", Order = 3, SampleBundle = "rendering.triangle")]
+    [Story("Learn/Grapics/FirstTriangle", Order = 3, SampleBundle = "rendering.triangle")]
     public static Widget FirstTriangle(StoryContext ctx)
     {
         return DocNew(ctx, $$"""
         # はじめての三角形
 
-        {{RenderingCourseCatalog.Meta("Learn/Rendering/Basics/FirstTriangle", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "ClearColor")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/FirstTriangle", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "ClearColor")}}
 
         {{StoryRef(ctx, "Examples/3D/Triangle")}}
 
@@ -206,13 +206,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Rendering/Basics/BuffersAndBindings", Order = 4)]
+    [Story("Learn/Grapics/BuffersAndBindings", Order = 4)]
     public static Widget BuffersAndBindings(StoryContext ctx)
     {
         return DocNew(ctx, $$"""
         # バッファ、ABI、bindless binding
 
-        {{RenderingCourseCatalog.Meta("Learn/Rendering/Basics/BuffersAndBindings", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "FirstTriangle")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/BuffersAndBindings", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "FirstTriangle")}}
 
         このページの実コードは `samples/LuxelTriangle/TutorialAbi.cs`、`TriangleRenderer.cs`、`shaders/tutorial_triangle.slang` です。確認コマンド:
 
@@ -300,13 +300,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Rendering/Basics/Shaders", Order = 5)]
+    [Story("Learn/Grapics/Shaders", Order = 5)]
     public static Widget Shaders(StoryContext ctx)
     {
         return DocNew(ctx, $$"""
         # Slang shaderとGit cache
 
-        {{RenderingCourseCatalog.Meta("Learn/Rendering/Basics/Shaders", "Beginner", "Standalone build / publish", "Vulkan / DirectX 12", "BuffersAndBindings")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/Shaders", "Beginner", "Standalone build / publish", "Vulkan / DirectX 12", "BuffersAndBindings")}}
 
         Luxelは `shaders/*.slang` を単一のsourceとして、Vulkan用SPIR-VとD3D12用DXILをGit管理します。通常のbuild / publishはcompilerを起動せずcacheを検証・コピーします。
 
@@ -371,13 +371,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Rendering/Basics/FrameLoopAndSynchronization", Order = 9)]
+    [Story("Learn/Grapics/FrameLoopAndSynchronization", Order = 9)]
     public static Widget FrameLoopAndSynchronization(StoryContext ctx)
     {
         return DocNew(ctx, $$"""
         # Frame loopと同期
 
-        {{RenderingCourseCatalog.Meta("Learn/Rendering/Basics/FrameLoopAndSynchronization", "Beginner+", "Standalone", "Vulkan / DirectX 12", "DepthCullingLighting")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/FrameLoopAndSynchronization", "Beginner+", "Standalone", "Vulkan / DirectX 12", "DepthCullingLighting")}}
 
         実コードは `samples/LuxelTriangle/Program.cs` と `samples/LuxelTriangle/TriangleRenderer.cs` です。このページでは、1 frameを「CPUがcommandを記録する期間」だけでなく、GPU完了とpresentまで含む寿命として捉えます。
 
