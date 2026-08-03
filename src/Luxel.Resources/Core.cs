@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 namespace Luxel.Resources;
 
 /// <summary>ステップが宣言する実行器 (内部スケジューラ。利用者は管理しない)。</summary>
-public enum Executor { Io, Cpu, Gpu }
+public enum Executor { Io, Cpu, External }
 
 /// <summary>キャッシュされた値の破棄責任。</summary>
 public enum ResourceOwnership
@@ -22,7 +22,7 @@ public interface IReloadToken : IDisposable { }
 
 /// <summary>
 /// 実行レーン: スレッドプール上で同時実行数を <c>maxConcurrency</c> に制限して継続を走らせる。
-/// `await ctx.Io/Cpu/Gpu` の hop 先。スレッドプールスレッドをブロックせずキューで絞る。
+/// `await ctx.Io/Cpu/External` の hop 先。スレッドプールスレッドをブロックせずキューで絞る。
 /// </summary>
 internal sealed class ResourceLane
 {

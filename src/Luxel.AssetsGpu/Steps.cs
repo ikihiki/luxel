@@ -10,7 +10,7 @@ namespace Luxel.AssetsGpu;
 public sealed class AssetTextureToGpuStep(GpuDevice device, AssetGpuRegistry registry)
     : IResourceStep<AssetTexture, GpuTexture>
 {
-    public Executor Executor => Executor.Gpu;
+    public Executor Executor => Executor.External;
     public Task<GpuTexture> RunAsync(AssetTexture input, ResourceUri uri, LoadContext ctx)
         => Task.FromResult(registry.Register(input));
 }
@@ -19,7 +19,7 @@ public sealed class AssetTextureToGpuStep(GpuDevice device, AssetGpuRegistry reg
 public sealed class AssetSamplerToGpuStep(GpuDevice device, AssetGpuRegistry registry)
     : IResourceStep<AssetSampler, GpuSampler>
 {
-    public Executor Executor => Executor.Gpu;
+    public Executor Executor => Executor.External;
     public Task<GpuSampler> RunAsync(AssetSampler input, ResourceUri uri, LoadContext ctx)
         => Task.FromResult(registry.Register(input));
 }
@@ -29,7 +29,7 @@ public sealed class AssetSamplerToGpuStep(GpuDevice device, AssetGpuRegistry reg
 public sealed class AssetMaterialToGpuStep(GpuDevice device, AssetGpuRegistry registry)
     : IResourceStep<AssetMaterial, GpuMaterial>
 {
-    public Executor Executor => Executor.Gpu;
+    public Executor Executor => Executor.External;
     public Task<GpuMaterial> RunAsync(AssetMaterial input, ResourceUri uri, LoadContext ctx)
         => Task.FromResult(registry.Register(input));
 }
@@ -38,7 +38,7 @@ public sealed class AssetMaterialToGpuStep(GpuDevice device, AssetGpuRegistry re
 public sealed class AssetMeshToGpuStep(GpuDevice device, AssetGpuRegistry registry)
     : IResourceStep<AssetMesh, GpuMesh>
 {
-    public Executor Executor => Executor.Gpu;
+    public Executor Executor => Executor.External;
     public Task<GpuMesh> RunAsync(AssetMesh input, ResourceUri uri, LoadContext ctx)
         => Task.FromResult(registry.Register(input));
 }
@@ -47,7 +47,7 @@ public sealed class AssetMeshToGpuStep(GpuDevice device, AssetGpuRegistry regist
 public sealed class AssetSkinToGpuStep(GpuDevice device, AssetGpuRegistry registry)
     : IResourceStep<AssetSkin, GpuSkin>
 {
-    public Executor Executor => Executor.Gpu;
+    public Executor Executor => Executor.External;
     public Task<GpuSkin> RunAsync(AssetSkin input, ResourceUri uri, LoadContext ctx)
         => Task.FromResult(registry.Register(input));
 }

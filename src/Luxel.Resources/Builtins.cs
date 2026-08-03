@@ -1,8 +1,8 @@
-﻿using System.Buffers.Binary;
+using System.Buffers.Binary;
 
 namespace Luxel.Resources;
 
-/// <summary>メインメモリ上のデコード済み画像 (RGBA8 密)。Disk→RAM の中間表現、GPU 非依存。</summary>
+/// <summary>メインメモリ上のデコード済み画像 (RGBA8 密)。Disk→RAM の中間表現。</summary>
 public sealed class CpuImage(int width, int height, byte[] pixels)
 {
     public int Width { get; } = width;
@@ -56,8 +56,7 @@ public sealed class TexDecoder : IResourceStep<byte[], CpuImage>
         => Task.FromResult(ImageCodec.DecodeTex(input));
 }
 
-// 組込み Source/Step (FileSource / HttpSource / TexDecoder) は ResourceSystem のコンストラクタで自動登録される。
-// GPU 依存 step (TextureUploader 等) は呼び出し側が Luxel.AssetsGpu の Install/AddStep で追加。
+// 組込み Source/Step は呼び出し側が ResourceSystem のコンストラクタまたは AddSource/AddStep で登録する。
 
 /// <summary>Reads only workspace:// resources from a shared mutable workspace VFS.</summary>
 public sealed class WorkspaceSource(WorkspaceFileSystem workspace) : IResourceSource

@@ -40,7 +40,7 @@ public class ResourceSystemTests
     }
     private sealed class FinalStep : IResourceStep<Upper, Final>
     {
-        public Executor Executor => Executor.Gpu;   // Gpu レーン (テストではデバイス不要)
+        public Executor Executor => Executor.External;   // Gpu レーン (テストではデバイス不要)
         public Task<Final> RunAsync(Upper up, ResourceUri u, LoadContext c)
         { Interlocked.Increment(ref _finalRuns); return Task.FromResult(new Final(up.Text + "!")); }
     }
@@ -156,7 +156,7 @@ public class ResourceSystemTests
         vfs.Set("a.doc", Encoding.UTF8.GetBytes("k"));
         var h = sys.Load<Final>("a.doc"); await h.Ready;
         int beforeFinal = _finalRuns;
-        sys.NotifyDeviceLost();
+        sys.InvalidateAll();
         await PumpUntil(sys, () => _finalRuns > beforeFinal);
         Assert.True(_finalRuns > beforeFinal);              // GPU 段が再実行された
         Assert.Equal("K!", h.Value.Text);
@@ -181,13 +181,13 @@ public class ResourceSystemTests
         await h.Ready;
         Assert.Equal("initial", h.Value.Text);
 
-        sys.NotifyDeviceLost();
-        sys.NotifyDeviceLost(); // duplicate queued reloads are coalesced
+        sys.InvalidateAll();
+        sys.InvalidateAll(); // duplicate queued reloads are coalesced
         sys.Pump();
         Assert.Equal(2, loads.Count);
         Task olderReload = h.Ready;
 
-        sys.NotifyDeviceLost();
+        sys.InvalidateAll();
         sys.Pump();
         Assert.Equal(3, loads.Count);
         Assert.True(tokens[1].IsCancellationRequested);
@@ -223,7 +223,7 @@ public class ResourceSystemTests
         await h.Ready;
         Assert.True(h.HasValue);
 
-        sys.NotifyDeviceLost();
+        sys.InvalidateAll();
         sys.Pump();
         Task failedReload = h.Ready;
         var failure = new InvalidOperationException("compile failed");
@@ -235,7 +235,7 @@ public class ResourceSystemTests
         Assert.Same(failure, h.LastReloadError);
         Assert.Equal("good", h.Value.Text);
 
-        sys.NotifyDeviceLost();
+        sys.InvalidateAll();
         sys.Pump();
         Task successfulReload = h.Ready;
         loads[2].SetResult(new Final("fixed"));

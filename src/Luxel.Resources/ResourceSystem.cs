@@ -75,7 +75,7 @@ public sealed class LoadContext
     public CancellationToken Token => _token;
     public StageAwaitable Io => _sys.IoStage;
     public StageAwaitable Cpu => _sys.CpuStage;
-    public StageAwaitable Gpu => _sys.GpuStage;
+    public StageAwaitable External => _sys.ExternalStage;
 
     /// <summary>現在のロード結果の破棄責任を <see cref="ResourceSystem"/> に設定する。</summary>
     public void MarkOwned() => Owner.Ownership = ResourceOwnership.Owned;
@@ -172,13 +172,13 @@ public sealed class ResourceScope : IDisposable
 /// リソース管理システム。(型,uri) ノードキャッシュ + 出力型逆引きの再帰オートコンポーズ + 自動リロード。
 ///
 /// <para><b>Source/Step は構築済みインスタンスをコンストラクタ配列 or <see cref="AddSource"/> / <see cref="AddStep"/>
-/// で登録する</b>。GPU device 等の依存は Step の ctor 引数として呼び出し側 (アプリ) が組み立てて渡す ─ 本システムに
+/// で登録する</b>。外部サービス等の依存は Step の ctor 引数として呼び出し側 (アプリ) が組み立てて渡す ─ 本システムに
 /// DI コンテナは含まれない。</para>
 /// </summary>
 public sealed class ResourceSystem : IDisposable
 {
     private readonly Pipeline _pipeline;
-    private readonly ResourceLane _io, _cpu, _gpu;
+    private readonly ResourceLane _io, _cpu, _external;
     private readonly Dictionary<string, ResourceNode> _cache = new();
     private readonly object _lock = new();
     private readonly ConcurrentQueue<ResourceNode> _reloadQueue = new();
@@ -203,7 +203,7 @@ public sealed class ResourceSystem : IDisposable
         int n = Environment.ProcessorCount;
         _io = new ResourceLane(Math.Max(4, n));
         _cpu = new ResourceLane(n);
-        _gpu = new ResourceLane(Math.Max(2, n));
+        _external = new ResourceLane(Math.Max(2, n));
 
         if (sources is not null) foreach (var s in sources) _pipeline.AddSource(s);
         if (steps is not null) foreach (var s in steps) _pipeline.AddStep(s);
@@ -211,8 +211,8 @@ public sealed class ResourceSystem : IDisposable
 
     internal StageAwaitable IoStage => new(_io);
     internal StageAwaitable CpuStage => new(_cpu);
-    internal StageAwaitable GpuStage => new(_gpu);
-    internal StageAwaitable Stage(Executor e) => e switch { Executor.Io => IoStage, Executor.Gpu => GpuStage, _ => CpuStage };
+    internal StageAwaitable ExternalStage => new(_external);
+    internal StageAwaitable Stage(Executor e) => e switch { Executor.Io => IoStage, Executor.External => ExternalStage, _ => CpuStage };
 
     /// <summary>Source インスタンスを追加登録 (実行時追加、通常はコンストラクタ配列を推奨)。</summary>
     public void AddSource(IResourceSource source) => _pipeline.AddSource(source);
@@ -319,7 +319,7 @@ public sealed class ResourceSystem : IDisposable
         lock (_lock) _flushRegistrations.Remove(registration);
     }
 
-    /// <summary>Pump 時に <c>_deferredDispose</c> を実際に破棄する前に呼ばれる hook (GPU の WaitIdle 用)。</summary>
+    /// <summary>Pump 時に <c>_deferredDispose</c> を実際に破棄する前に呼ばれる汎用 hook。</summary>
     public void SetDeferredDisposeIdleHook(Action hook) => _deferredIdleHook = hook;
 
     internal ResourceNode GetPublishedNode<T>(string uri) where T : class
@@ -596,9 +596,6 @@ public sealed class ResourceSystem : IDisposable
         lock (_lock) all = _cache.Values.ToArray();
         foreach (ResourceNode n in all) EnqueueReload(n);
     }
-
-    /// <summary>互換 API。汎用の <see cref="InvalidateAll"/> を呼び出す。</summary>
-    public void NotifyDeviceLost() => InvalidateAll();
 
     private void RegisterWatch(ResourceNode node)
     {
