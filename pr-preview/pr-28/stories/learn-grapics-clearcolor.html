@@ -1,132 +1,125 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Grapics/ClearColor</h1></header><h1 id="clear-color">ウィンドウとClear Color</h1>
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Grapics/ClearColor</h1></header><h1 id="clearcolor">ClearColor</h1>
 <ul>
-<li><a href="#story=Learn%2FGrapics%2FClearColor&amp;section=%E5%AE%9Fsample%E3%81%AEframe-loop">実sampleのframe loop</a></li>
+<li><a href="#story=Learn%2FGrapics%2FClearColor&amp;section=%E6%8F%8F%E7%94%BB%E5%85%88%E3%81%A8framebuffer%E3%82%92%E4%BD%9C%E6%88%90%E3%81%99%E3%82%8B">描画先とframebufferを作成する</a></li>
+<li><a href="#story=Learn%2FGrapics%2FClearColor&amp;section=%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89%E3%83%90%E3%83%83%E3%83%95%E3%82%A1%E3%82%92%E4%BD%9C%E6%88%90%E3%81%99%E3%82%8B">コマンドバッファを作成する</a></li>
+<li><a href="#story=Learn%2FGrapics%2FClearColor&amp;section=%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89%E3%82%92%E4%BD%9C%E6%88%90%E3%81%99%E3%82%8B">コマンドを作成する</a></li>
+<li><a href="#story=Learn%2FGrapics%2FClearColor&amp;section=submit%E3%81%99%E3%82%8B">Submitする</a></li>
+<li><a href="#story=Learn%2FGrapics%2FClearColor&amp;section=surface%E3%81%B8present%E3%81%99%E3%82%8B">SurfaceへPresentする</a></li>
 <li><a href="#story=Learn%2FGrapics%2FClearColor&amp;section=resize">Resize</a></li>
 </ul>
-<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> Environment</p>
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone　 <strong>Backend:</strong> Vulkan / Direct3D 12 / WebGPU　 <strong>前提知識:</strong> Environment</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FEnvironment">Environment</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FFirstTriangle">FirstTriangle</a></p>
-<p><code>samples/LuxelTriangle/Program.cs</code> がstandaloneアプリの外枠です。責務は次の順です。</p>
-<pre><code class="language-text">WindowSystem → Window → GpuDevice → GpuSurface
-             → event loop → Render → Present
+<p>ClearColorでは、render targetを指定した色でclearし、その結果をframebufferへコピーしてsurfaceへ表示します。Luxelにはcommand listとcommand bufferを分けたAPIはありません。<code>StartCommandRecording()</code>が一過性の<code>GpuCommandBuffer</code>を作成し、同時にコマンド記録を開始します。</p>
+<h2 id="framebuffer">描画先とframebufferを作成する</h2>
+<p>GPU上の描画先として<code>GpuTexture</code>を作り、surfaceへ渡すRGBA8データの格納先として<code>GpuBuffer</code>を確保します。</p>
+<pre><code class="language-csharp">uint width = 1280, height = 720;
+uint stridePixels = (width + 63) / 64 * 64;
+
+using GpuTexture target = device.CreateRenderTarget(
+    width, height, GpuFormat.Rgba8Unorm);
+using GpuBuffer framebuffer = device.Malloc(
+    checked((ulong)stridePixels * height * 4),
+    GpuMemoryKind.HostMapped);
 </code></pre>
-<p><code>GpuSurface</code>へrender targetを直接渡すのではなく、RGBA8のCPU可視framebufferを渡します。サンプルはGPU render targetをclearし、三角形を描き、<code>CopyTextureToBuffer</code>でframebufferへコピーします。三角形を外してもclear colorだけは表示されるため、window / surface / presentの切り分けに使えます。</p>
+<p>D3D12のtexture copyではrow pitchが256 byte単位になるため、RGBA8の<code>stridePixels</code>を64 pixel単位へ揃えます。VulkanとWebGPUでも同じstrideを使用できます。</p>
+<h2 id="section">コマンドバッファを作成する</h2>
+<p>main queueから使い捨ての<code>GpuCommandBuffer</code>を作り、記録を開始します。<code>using</code>によりsubmit後にbackend固有のcommand resourceを破棄します。</p>
+<pre><code class="language-csharp">using GpuCommandBuffer command =
+    device.MainQueue.StartCommandRecording();
+</code></pre>
+<h2 id="section-1">コマンドを作成する</h2>
+<p><code>BeginRendering</code>はrender passを開始し、指定したRGBA値でtargetをclearします。描画終了後は、color outputの書き込みをcopyから読める状態へbarrierで遷移し、textureをframebufferへコピーします。</p>
 <pre><code class="language-csharp">command.BeginRendering(target, null, 0.055f, 0.07f, 0.11f, 1)
     .EndRendering()
     .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
-    .CopyTextureToBuffer(target, framebuffer);
+    .CopyTextureToBuffer(target, framebuffer, stridePixels);
 command.Finish();
-device.MainQueue.SubmitAndWait(command);
-surface.Present(framebuffer, stridePixels, width, height);
 </code></pre>
-<h2 id="sampleframe-loop">実sampleのframe loop</h2>
-<p>次は<code>Program.cs</code>からbuild時に埋め込んだ実コードです。説明用コピーではなく、sampleがコンパイルする同じregionを表示しています。</p>
-<pre><code class="language-csharp">static int Run(string backend, int? frameLimit, TutorialStage stage, int initialWidth, int initialHeight)
-{
-    try
-    {
-#if LUXEL_WINDOWS
-        using var windows = new WindowSystem(Win32WindowBackend.Create());
-#else
-        if (backend is &quot;dx&quot; or &quot;d3d12&quot;)
-            throw new PlatformNotSupportedException(&quot;DirectX 12 は Windows でのみ利用できます。Linux では 'vk' を指定してください。&quot;);
-        using var windows = new WindowSystem(SilkWindowBackend.Create());
-#endif
-        Window window = windows.CreateWindow(new WindowDesc($&quot;Luxel — 3D Tutorial ({stage})&quot;, initialWidth, initialHeight));
-        using GpuDevice device = CreateDevice(backend, window);
-        using GpuSurface surface = CreateSurface(device, window);
-        using var renderer = new TriangleRenderer(device, stage);
-
-        int width = Math.Max(0, window.Width);
-        int height = Math.Max(0, window.Height);
-        bool resizePending = true;
-        window.Resized += (w, h) =&gt;
-        {
-            width = Math.Max(0, w);
-            height = Math.Max(0, h);
-            resizePending = true;
-        };
-
-        int renderedFrames = 0;
-        while (windows.Pump())
-        {
-            if (resizePending)
-            {
-                device.MainQueue.WaitIdle();
-                if (width &gt; 0 &amp;&amp; height &gt; 0)
-                    surface.Resize((uint)width, (uint)height);
-                renderer.Resize(width, height);
-                resizePending = false;
-            }
-
-            if (width == 0 || height == 0)
-            {
-                Thread.Sleep(10);
-                continue;
-            }
-
-            renderer.Render();
-            surface.Present(renderer.Framebuffer, renderer.StridePixels, (uint)width, (uint)height);
-            renderedFrames++;
-
-            if (frameLimit is int limit &amp;&amp; renderedFrames &gt;= limit)
-            {
-                window.Close();
-                windows.Pump();
-                break;
-            }
-        }
-
-        device.MainQueue.WaitIdle();
-        Console.WriteLine($&quot;tutorial-3d: {renderedFrames} frame(s), stage={stage}, backend={backend}, device={device.Name}, aspect={renderer.AspectRatio:F4}&quot;);
-        return 0;
-    }
-    catch (Exception ex)
-    {
-        Console.Error.WriteLine(ex);
-        return 1;
-    }
-}
+<p><code>Finish()</code>以降はcommandへ追加記録せず、queueへのsubmitに使用します。</p>
+<h2 id="submit">Submitする</h2>
+<p><code>SubmitAndWait</code>は記録済みcommandをmain queueへ投入し、GPU処理が完了するまで待つ入門用helperです。完了を待つため、直後にframebufferをPresentできます。</p>
+<pre><code class="language-csharp">device.MainQueue.SubmitAndWait(command);
 </code></pre>
+<p>非同期backendでは<code>SubmitAsync</code>も利用できます。本番の複数frame-in-flightでは、後続のFrame Loopページで扱う同期方式に置き換えます。</p>
+<h2 id="surfacepresent">SurfaceへPresentする</h2>
+<p><code>GpuSurface.Present</code>へ、コピー先framebuffer、1行のpixel数、実際の表示領域を渡します。surfaceは同じbackend instanceが作成したbufferだけを受け付けます。</p>
+<pre><code class="language-csharp">surface.Present(framebuffer, stridePixels, width, height);
+</code></pre>
+<p><code>stridePixels</code>にはalignmentを含む行幅を渡しますが、<code>width</code>と<code>height</code>には実際に表示する領域を渡します。</p>
 <h2 id="resize">Resize</h2>
 <p>resize callbackでは即座にGPU resourceを破棄せず、次のevent-loop iterationでqueueをidleにしてからsurface、render target、framebufferを作り直します。最小化中の0×0では描画を休止します。</p>
-<p>D3D12のtexture readback row pitchは256 byte単位なので、RGBA8のstrideは64 pixel単位へ揃えます。<code>Present</code>には実際のwidthと、揃えたstrideの両方を渡します。</p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/ClearColor&quot;, Order = 2)]
 public static Widget ClearColor(StoryContext ctx)
 {
     return DocNew(ctx, $&quot;&quot;&quot;
-    # ウィンドウとClear Color
+    # ClearColor
 
-    {RenderingCourseCatalog.Meta(&quot;Learn/Grapics/ClearColor&quot;, &quot;Beginner&quot;, &quot;Standalone&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;Environment&quot;)}
+    {RenderingCourseCatalog.Meta(&quot;Learn/Grapics/ClearColor&quot;, &quot;Beginner&quot;, &quot;Standalone&quot;, &quot;Vulkan / Direct3D 12 / WebGPU&quot;, &quot;Environment&quot;)}
 
-    `samples/LuxelTriangle/Program.cs` がstandaloneアプリの外枠です。責務は次の順です。
+    ClearColorでは、render targetを指定した色でclearし、その結果をframebufferへコピーしてsurfaceへ表示します。Luxelにはcommand listとcommand bufferを分けたAPIはありません。`StartCommandRecording()`が一過性の`GpuCommandBuffer`を作成し、同時にコマンド記録を開始します。
 
-    ```text
-    WindowSystem → Window → GpuDevice → GpuSurface
-                 → event loop → Render → Present
+    ## 描画先とframebufferを作成する
+
+    GPU上の描画先として`GpuTexture`を作り、surfaceへ渡すRGBA8データの格納先として`GpuBuffer`を確保します。
+
+    ```csharp
+    uint width = 1280, height = 720;
+    uint stridePixels = (width + 63) / 64 * 64;
+
+    using GpuTexture target = device.CreateRenderTarget(
+        width, height, GpuFormat.Rgba8Unorm);
+    using GpuBuffer framebuffer = device.Malloc(
+        checked((ulong)stridePixels * height * 4),
+        GpuMemoryKind.HostMapped);
     ```
 
-    `GpuSurface`へrender targetを直接渡すのではなく、RGBA8のCPU可視framebufferを渡します。サンプルはGPU render targetをclearし、三角形を描き、`CopyTextureToBuffer`でframebufferへコピーします。三角形を外してもclear colorだけは表示されるため、window / surface / presentの切り分けに使えます。
+    D3D12のtexture copyではrow pitchが256 byte単位になるため、RGBA8の`stridePixels`を64 pixel単位へ揃えます。VulkanとWebGPUでも同じstrideを使用できます。
+
+    ## コマンドバッファを作成する
+
+    main queueから使い捨ての`GpuCommandBuffer`を作り、記録を開始します。`using`によりsubmit後にbackend固有のcommand resourceを破棄します。
+
+    ```csharp
+    using GpuCommandBuffer command =
+        device.MainQueue.StartCommandRecording();
+    ```
+
+    ## コマンドを作成する
+
+    `BeginRendering`はrender passを開始し、指定したRGBA値でtargetをclearします。描画終了後は、color outputの書き込みをcopyから読める状態へbarrierで遷移し、textureをframebufferへコピーします。
 
     ```csharp
     command.BeginRendering(target, null, 0.055f, 0.07f, 0.11f, 1)
         .EndRendering()
         .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
-        .CopyTextureToBuffer(target, framebuffer);
+        .CopyTextureToBuffer(target, framebuffer, stridePixels);
     command.Finish();
+    ```
+
+    `Finish()`以降はcommandへ追加記録せず、queueへのsubmitに使用します。
+
+    ## Submitする
+
+    `SubmitAndWait`は記録済みcommandをmain queueへ投入し、GPU処理が完了するまで待つ入門用helperです。完了を待つため、直後にframebufferをPresentできます。
+
+    ```csharp
     device.MainQueue.SubmitAndWait(command);
+    ```
+
+    非同期backendでは`SubmitAsync`も利用できます。本番の複数frame-in-flightでは、後続のFrame Loopページで扱う同期方式に置き換えます。
+
+    ## SurfaceへPresentする
+
+    `GpuSurface.Present`へ、コピー先framebuffer、1行のpixel数、実際の表示領域を渡します。surfaceは同じbackend instanceが作成したbufferだけを受け付けます。
+
+    ```csharp
     surface.Present(framebuffer, stridePixels, width, height);
     ```
 
-    ## 実sampleのframe loop
-
-    次は`Program.cs`からbuild時に埋め込んだ実コードです。説明用コピーではなく、sampleがコンパイルする同じregionを表示しています。
-
-    {SampleSource(&quot;samples/LuxelTriangle/Program.cs&quot;, &quot;standalone-frame-loop&quot;)}
+    `stridePixels`にはalignmentを含む行幅を渡しますが、`width`と`height`には実際に表示する領域を渡します。
 
     ## Resize
 
     resize callbackでは即座にGPU resourceを破棄せず、次のevent-loop iterationでqueueをidleにしてからsurface、render target、framebufferを作り直します。最小化中の0&#215;0では描画を休止します。
-
-    D3D12のtexture readback row pitchは256 byte単位なので、RGBA8のstrideは64 pixel単位へ揃えます。`Present`には実際のwidthと、揃えたstrideの両方を渡します。
     &quot;&quot;&quot;, toc: true);
 }</code></pre></details></article>
