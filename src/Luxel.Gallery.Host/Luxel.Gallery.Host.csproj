@@ -5,6 +5,7 @@
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Rendering\Luxel.Gallery.Rendering.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Stories\Luxel.Gallery.Stories.csproj" />
+    <ProjectReference Include="..\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.TwoD.Skia\Luxel.Graphics.TwoD.Skia.csproj" />

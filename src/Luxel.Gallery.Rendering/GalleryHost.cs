@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Luxel;
+using Luxel.AssetsGpu;
 using Luxel.Diagnostics;
 using Luxel.Graphics.TwoD;
 using Luxel.Graphics.TwoD.Skia;
@@ -20,6 +21,7 @@ public sealed class GalleryHost : IDisposable
     private readonly VectorFont _font;
     private readonly IRasterizer2D _raster;
     private readonly GpuDeviceRasterizer2D? _gpuRasterizer;
+    private readonly AssetGpuInstallation? _assetGpuInstallation;
     // ストーリーへ StoryContext.Resources として配布 (キャッシュはストーリー横断で共有、Pump は Step が叩く)
     private readonly Luxel.Resources.ResourceSystem _resources = new(
         sources: Luxel.Resources.ResourceSystemDefaults.BuiltinSources(assetRoot: Environment.CurrentDirectory),
@@ -38,6 +40,7 @@ public sealed class GalleryHost : IDisposable
     private static readonly JsonSerializerOptions TreeJson = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private int _w, _h;
     private bool _dark;
+    private bool _disposed;
 
     // 最新フレーム (8B ヘッダ w,h LE + RGBA)。rev は内容変化時のみ進む
     private readonly object _frameGate = new();
@@ -58,6 +61,7 @@ public sealed class GalleryHost : IDisposable
         _font = font;
         _raster = rasterizer ?? throw new ArgumentNullException(nameof(rasterizer));
         _gpuRasterizer = rasterizer as GpuDeviceRasterizer2D;
+        if (device is not null) _assetGpuInstallation = _resources.InstallAssetGpuLifecycle(device);
         Commands.Register("story.select", a => { if (a is JsonElement el && el.TryGetProperty("id", out JsonElement id)) Select(id.GetString() ?? ""); });
         Commands.Register("story.theme", a => { _dark = a is JsonElement el && el.TryGetProperty("dark", out JsonElement d) && d.ValueKind == JsonValueKind.True; ApplyTheme(); });
         Commands.Register("story.state", a => SetState(a));
@@ -115,21 +119,29 @@ public sealed class GalleryHost : IDisposable
     public void SelectWidget(Widget widget, int width = 800, int height = 480, bool dark = false)
     {
         TearDown();
-        _w = width;
-        _h = height;
-        _dark = dark;
-        ApplyTheme();
-        _canvas = new RetainedCanvas();
-        _rasterScene = _raster.CreateScene(_canvas);
-        _host = new UiHost(_canvas, _font, _w, _h, gpuRasterizer: _gpuRasterizer);
-        UiHostCommands.RegisterDefaults(Commands, _host);
-        _ctx = new StoryContext(_resources);
-        _ctx.SetServices(GalleryServices.Provider);
-        _root = widget;
-        _host.SetRoot(widget);
-        CreateRasterTarget();
-        _frameHash = 0;
-        Render();
+        try
+        {
+            _w = width;
+            _h = height;
+            _dark = dark;
+            ApplyTheme();
+            _canvas = new RetainedCanvas();
+            _rasterScene = _raster.CreateScene(_canvas);
+            _host = new UiHost(_canvas, _font, _w, _h, gpuRasterizer: _gpuRasterizer);
+            UiHostCommands.RegisterDefaults(Commands, _host);
+            _ctx = new StoryContext(_resources);
+            _ctx.SetServices(GalleryServices.Provider);
+            _root = widget;
+            _host.SetRoot(widget);
+            CreateRasterTarget();
+            _frameHash = 0;
+            Render();
+        }
+        catch
+        {
+            TearDown();
+            throw;
+        }
     }
 
     internal void SelectForE2e(StoryInfo story) => SelectCore(story, e2e: true);
@@ -147,7 +159,15 @@ public sealed class GalleryHost : IDisposable
         else if (story.Theme is not null) _dark = story.Theme == "dark";
         ApplyTheme();
         if (e2e) Stories.StrudelStory.ResetForE2e();
-        BuildCurrent();
+        try
+        {
+            BuildCurrent();
+        }
+        catch
+        {
+            TearDown();
+            throw;
+        }
         Console.WriteLine($"[gallery] select '{story.Path}' {sw.ElapsedMilliseconds}ms");
     }
 
@@ -174,8 +194,16 @@ public sealed class GalleryHost : IDisposable
         if (_story is null || w < 16 || h < 16 || (w == _w && h == _h)) return;
         var sw = System.Diagnostics.Stopwatch.StartNew();
         _w = w; _h = h;
-        TearDownCanvasOnly();
-        BuildCurrent();
+        TearDownStoryInstance();
+        try
+        {
+            BuildCurrent();
+        }
+        catch
+        {
+            TearDown();
+            throw;
+        }
         Console.WriteLine($"[gallery] resize {w}x{h} {sw.ElapsedMilliseconds}ms");
     }
 
@@ -352,15 +380,28 @@ public sealed class GalleryHost : IDisposable
         _canvas?.Dispose(); _canvas = null;
     }
 
+    private void TearDownStoryInstance()
+    {
+        // The realized UI may still hold resource handles, so release it before the context-owned scope.
+        TearDownCanvasOnly();
+        _ctx?.Dispose();
+        _ctx = null;
+    }
+
     private void TearDown()
     {
-        TearDownCanvasOnly();
-        _story = null; _ctx = null;
+        TearDownStoryInstance();
+        _story = null;
     }
 
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
         TearDown();
+        // The host owns the AssetsGpu installation, but only borrows the device.
+        // Wait for its queue before ResourceSystem disposes scoped GPU values.
+        _assetGpuInstallation?.Dispose();
         _resources.Dispose();
         _raster.Dispose();
     }

@@ -1,4 +1,4 @@
-﻿using Luxel.Graphics.Abstraction;
+using Luxel.Graphics.Abstraction;
 using Silk.NET.Vulkan;
 
 namespace Luxel.Graphics.Vulkan;
@@ -10,12 +10,13 @@ internal sealed unsafe class VulkanTexture : IGpuBackendTexture
     private Image _image;
     private DeviceMemory _memory;
     private ImageView _view;
+    private readonly Action? _releaseDescriptor;
     private bool _disposed;
 
     public VulkanTexture(Vk vk, Device device, Image image, DeviceMemory memory, ImageView view,
                          uint width, uint height, GpuFormat format, Format vkFormat,
                          uint bindlessIndex = 0, ImageLayout initialLayout = ImageLayout.Undefined,
-                         ImageAspectFlags aspect = ImageAspectFlags.ColorBit)
+                         ImageAspectFlags aspect = ImageAspectFlags.ColorBit, Action? releaseDescriptor = null)
     {
         _vk = vk;
         _device = device;
@@ -29,6 +30,7 @@ internal sealed unsafe class VulkanTexture : IGpuBackendTexture
         BindlessIndex = bindlessIndex;
         CurrentLayout = initialLayout;
         Aspect = aspect;
+        _releaseDescriptor = releaseDescriptor;
     }
 
     public uint Width { get; }
@@ -49,5 +51,6 @@ internal sealed unsafe class VulkanTexture : IGpuBackendTexture
         _vk.DestroyImageView(_device, _view, null);
         _vk.DestroyImage(_device, _image, null);
         _vk.FreeMemory(_device, _memory, null);
+        _releaseDescriptor?.Invoke();
     }
 }

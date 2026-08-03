@@ -30,7 +30,7 @@ public static class DocsIndex
         {
             try
             {
-                var ctx = new StoryContext(resources);
+                using var ctx = new StoryContext(resources);
                 ctx.SetServices(GalleryServices.Provider);   // Scripting 等 DI ストーリーも build できるように
                 Widget w = s.Build(ctx);
                 if (FindMarkdownDoc(w) is { DocSource: { } src })

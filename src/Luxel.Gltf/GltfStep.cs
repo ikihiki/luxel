@@ -116,7 +116,7 @@ public sealed class SceneAssetsStep(GpuDevice device, Luxel.Ecs.World world) : I
     private readonly GpuDevice _device = device;
     private readonly Luxel.Ecs.World _world = world;
     /// <summary>GPU executor で実行 (buffer/texture 確保のため)。</summary>
-    public Executor Executor => Executor.Gpu;
+    public Executor Executor => Executor.External;
 
     /// <summary>SceneBuilder で <see cref="AssetDocument"/> から <see cref="SceneAssets"/> を構築。</summary>
     public Task<SceneAssets> RunAsync(AssetDocument input, ResourceUri uri, LoadContext ctx)

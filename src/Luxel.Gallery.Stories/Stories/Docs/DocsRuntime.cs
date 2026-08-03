@@ -33,7 +33,7 @@ public static class DocsRuntime
         resources.Pump();                   // 毎フレーム: リロード反映と破棄の消化
         ```
 
-        `Publish(uri, value)` で外部所有のオブジェクトも登録でき、`Republish` すると依存先へリロードが伝播します。GPU デバイスロストは `NotifyDeviceLost()` で全再ロード。
+        `Publish(uri, value)` で外部所有のオブジェクトも登録でき、`Republish` すると依存先へリロードが伝播します。GPU デバイスロストは `InvalidateAll()` で全再ロード。
 
         ## 自動コンポーズ — Step の連鎖
 
@@ -45,7 +45,7 @@ public static class DocsRuntime
 
         ## 3 レーン実行 (Io / Cpu / Gpu)
 
-        Step の中では `await ctx.Io` / `ctx.Cpu` / `ctx.Gpu` でレーンを移動します。ファイル読みは Io、デコードは Cpu、アップロードは Gpu — レーン毎に並列度が制限され、大量ロードでもフレームを崩しません。初回ロードの publish は Pump 不要で直接反映されるため、初期化時は `Ready.Wait` で同期的に待てます (Gallery のデモもこの形)。
+        Step の中では `await ctx.Io` / `ctx.Cpu` / `ctx.External` でレーンを移動します。ファイル読みは Io、デコードは Cpu、アップロードは Gpu — レーン毎に並列度が制限され、大量ロードでもフレームを崩しません。初回ロードの publish は Pump 不要で直接反映されるため、初期化時は `Ready.Wait` で同期的に待てます (Gallery のデモもこの形)。
 
         ## パッケージの役割分担
 
