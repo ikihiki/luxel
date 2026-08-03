@@ -43,7 +43,7 @@ public sealed unsafe class VulkanBackend : IGpuBackend
     private DebugUtilsMessengerEXT _messenger;
     private bool _disposed;
     private VulkanPresentationMode _presentation;
-    private IVulkanWindowSurface? _windowSurfaceProvider;
+    private VulkanPresentationSource? _presentationSource;
     private KhrSurface? _bootstrapKhrSurface;
     private SurfaceKHR _bootstrapSurface;
 
@@ -76,11 +76,11 @@ public sealed unsafe class VulkanBackend : IGpuBackend
     private void Initialize(VulkanBackendOptions options)
     {
         _presentation = ResolvePresentationMode(options.Presentation);
-        _windowSurfaceProvider = options.WindowSurface;
-        if (_presentation == VulkanPresentationMode.Window && _windowSurfaceProvider is null)
-            throw new ArgumentException("Window presentation requires VulkanBackendOptions.WindowSurface.", nameof(options));
-        if (_presentation != VulkanPresentationMode.Window && _windowSurfaceProvider is not null)
-            throw new ArgumentException("WindowSurface can only be supplied with VulkanPresentationMode.Window.", nameof(options));
+        _presentationSource = options.PresentationSource;
+        if (_presentation == VulkanPresentationMode.Window && _presentationSource is null)
+            throw new ArgumentException("Window presentation requires VulkanBackendOptions.PresentationSource.", nameof(options));
+        if (_presentation != VulkanPresentationMode.Window && _presentationSource is not null)
+            throw new ArgumentException("PresentationSource can only be supplied with VulkanPresentationMode.Window.", nameof(options));
 
         bool useValidation = options.EnableValidation && IsLayerAvailable("VK_LAYER_KHRONOS_validation");
         bool useDebugUtils = useValidation && IsInstanceExtensionAvailable(ExtDebugUtils.ExtensionName);
@@ -122,7 +122,7 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         }
         else if (_presentation == VulkanPresentationMode.Window)
         {
-            extensions.AddRange(_windowSurfaceProvider!.RequiredInstanceExtensions);
+            extensions.AddRange(_presentationSource!.RequiredInstanceExtensions);
         }
         extensions = extensions.Distinct(StringComparer.Ordinal).ToList();
 
@@ -149,7 +149,7 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         if (!_vk.TryGetInstanceExtension(_instance, out KhrSurface khrSurface))
             throw new VulkanException("Failed to load VK_KHR_surface for window presentation.");
         _bootstrapKhrSurface = khrSurface;
-        ulong handle = _windowSurfaceProvider!.CreateSurface(_instance.Handle);
+        ulong handle = _presentationSource!.CreateSurface(_instance.Handle);
         if (handle == 0) throw new VulkanException("The window surface provider returned a null VkSurfaceKHR.");
         _bootstrapSurface = new SurfaceKHR(handle);
     }
@@ -302,25 +302,27 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         }
     }
 
-    public IGpuBackendSurface CreateSurface(in NativeSurfaceDescriptor descriptor, uint width, uint height)
+    /// <summary>Transfers the surface created by <see cref="VulkanPresentationSource"/> into a presentation wrapper.</summary>
+    public GpuSurface CreateSurface(uint width, uint height)
     {
-        if (_presentation == VulkanPresentationMode.Disabled)
-            throw new InvalidOperationException(
-                "この Vulkan backend は headless mode で作成されているため presentation surface を作成できません。");
-        if (descriptor.Window == 0) throw new ArgumentException("A non-zero native window handle is required.", nameof(descriptor));
+        if (_presentation != VulkanPresentationMode.Window)
+            throw new InvalidOperationException("This overload requires VulkanPresentationMode.Window.");
+        if (_bootstrapSurface.Handle == 0)
+            throw new InvalidOperationException("This Vulkan backend already transferred its window surface; only one surface is supported.");
+        SurfaceKHR surface = _bootstrapSurface;
+        _bootstrapSurface = default;
+        return new GpuSurface(this, VulkanSurface.FromExisting(
+            _vk, _instance, _physicalDevice, _device, _queue, _queueFamily, surface, width, height));
+    }
 
-        if (_presentation == VulkanPresentationMode.Window)
-        {
-            if (_bootstrapSurface.Handle == 0)
-                throw new InvalidOperationException("This Vulkan backend already transferred its window surface; only one surface is supported.");
-            SurfaceKHR surface = _bootstrapSurface;
-            _bootstrapSurface = default;
-            return VulkanSurface.FromExisting(
-                _vk, _instance, _physicalDevice, _device, _queue, _queueFamily, surface, width, height);
-        }
-
-        return VulkanSurface.FromWin32(
-            _vk, _instance, _physicalDevice, _device, _queue, _queueFamily, unchecked((nint)descriptor.Window), width, height);
+    /// <summary>Creates a Vulkan Win32 presentation surface for an HWND.</summary>
+    public GpuSurface CreateWin32Surface(nint hwnd, uint width, uint height)
+    {
+        if (_presentation != VulkanPresentationMode.Win32)
+            throw new InvalidOperationException("This overload requires VulkanPresentationMode.Win32.");
+        if (hwnd == 0) throw new ArgumentException("A non-zero Win32 HWND is required.", nameof(hwnd));
+        return new GpuSurface(this, VulkanSurface.FromWin32(
+            _vk, _instance, _physicalDevice, _device, _queue, _queueFamily, hwnd, width, height));
     }
 
     // ---- 固定 bindless レイアウト --------------------------------------------
@@ -1020,7 +1022,7 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         IEnumerable<string> required = _presentation switch
         {
             VulkanPresentationMode.Win32 => [KhrSurface.ExtensionName, KhrWin32Surface.ExtensionName],
-            VulkanPresentationMode.Window => _windowSurfaceProvider!.RequiredInstanceExtensions,
+            VulkanPresentationMode.Window => _presentationSource!.RequiredInstanceExtensions,
             _ => [],
         };
         foreach (string extension in required.Distinct(StringComparer.Ordinal))

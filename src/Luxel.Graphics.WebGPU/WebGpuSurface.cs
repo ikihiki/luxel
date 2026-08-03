@@ -50,11 +50,11 @@ internal sealed unsafe class WebGpuSurface : IGpuBackendSurface
     private bool _configured;
     private bool _disposed;
 
-    internal WebGpuSurface(WebGpuBackend backend, in NativeSurfaceDescriptor descriptor, uint width, uint height)
+    private WebGpuSurface(WebGpuBackend backend, Surface* surface, uint width, uint height)
     {
         _backend = backend;
         _api = backend.Api;
-        _surface = CreateNativeSurface(in descriptor);
+        _surface = surface;
         try
         {
             SelectFormat();
@@ -128,35 +128,35 @@ internal sealed unsafe class WebGpuSurface : IGpuBackendSurface
         }
     }
 
-    private Surface* CreateNativeSurface(in NativeSurfaceDescriptor descriptor)
+    internal static WebGpuSurface CreateXlib(WebGpuBackend backend, nint display, ulong window, uint width, uint height)
     {
-        var surfaceDescriptor = new SurfaceDescriptor();
-        Surface* result;
-        if (descriptor.Kind == NativeSurfaceKind.Xlib)
+        if (display == 0) throw new ArgumentException("A non-zero Xlib Display is required.", nameof(display));
+        if (window == 0) throw new ArgumentException("A non-zero Xlib Window is required.", nameof(window));
+        var xlib = new SurfaceDescriptorFromXlibWindow
         {
-            var xlib = new SurfaceDescriptorFromXlibWindow
-            {
-                Chain = new ChainedStruct { SType = SType.SurfaceDescriptorFromXlibWindow },
-                Display = (void*)descriptor.Display,
-                Window = descriptor.Window,
-            };
-            surfaceDescriptor.NextInChain = &xlib.Chain;
-            result = _api.InstanceCreateSurface(_backend.Instance, in surfaceDescriptor);
-        }
-        else if (descriptor.Kind == NativeSurfaceKind.Win32)
+            Chain = new ChainedStruct { SType = SType.SurfaceDescriptorFromXlibWindow },
+            Display = (void*)display,
+            Window = window,
+        };
+        var descriptor = new SurfaceDescriptor { NextInChain = &xlib.Chain };
+        Surface* surface = backend.Api.InstanceCreateSurface(backend.Instance, in descriptor);
+        if (surface == null) throw new InvalidOperationException("wgpuInstanceCreateSurface returned null for Xlib.");
+        return new WebGpuSurface(backend, surface, width, height);
+    }
+
+    internal static WebGpuSurface CreateWin32(WebGpuBackend backend, nint hinstance, nint hwnd, uint width, uint height)
+    {
+        if (hwnd == 0) throw new ArgumentException("A non-zero Win32 HWND is required.", nameof(hwnd));
+        var win32 = new SurfaceDescriptorFromWindowsHWND
         {
-            var win32 = new SurfaceDescriptorFromWindowsHWND
-            {
-                Chain = new ChainedStruct { SType = SType.SurfaceDescriptorFromWindowsHwnd },
-                Hinstance = (void*)descriptor.Display,
-                Hwnd = (void*)unchecked((nint)descriptor.Window),
-            };
-            surfaceDescriptor.NextInChain = &win32.Chain;
-            result = _api.InstanceCreateSurface(_backend.Instance, in surfaceDescriptor);
-        }
-        else throw new PlatformNotSupportedException($"Unsupported native WebGPU surface kind: {descriptor.Kind}.");
-        if (result == null) throw new InvalidOperationException("wgpuInstanceCreateSurface returned null.");
-        return result;
+            Chain = new ChainedStruct { SType = SType.SurfaceDescriptorFromWindowsHwnd },
+            Hinstance = (void*)hinstance,
+            Hwnd = (void*)hwnd,
+        };
+        var descriptor = new SurfaceDescriptor { NextInChain = &win32.Chain };
+        Surface* surface = backend.Api.InstanceCreateSurface(backend.Instance, in descriptor);
+        if (surface == null) throw new InvalidOperationException("wgpuInstanceCreateSurface returned null for Win32.");
+        return new WebGpuSurface(backend, surface, width, height);
     }
 
     private void SelectFormat()

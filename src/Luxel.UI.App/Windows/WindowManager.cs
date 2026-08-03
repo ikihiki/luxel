@@ -23,6 +23,7 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
     private readonly VectorFont _font;
     private readonly GpuDeviceRasterizer2D _raster;   // パイプライン生成が重いので device で 1 個を共有
     private readonly WindowSystem _windows;
+    private readonly Func<Window, GpuSurface> _createSurface;
     private readonly object _gate = new();   // _hosts/_offscreen のスナップショット用 (server スレッドが読む)
     private readonly List<WindowHost> _hosts = new();
     private readonly List<IWindowContent> _offscreen = new();
@@ -36,11 +37,13 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
     public UiRegistry UiRegistry { get; }
 
     public WindowManager(GpuDevice device, VectorFont font, WindowSystem windows,
-                         EngineCommands? commands = null, UiRegistry? uiRegistry = null)
+                         EngineCommands? commands = null, UiRegistry? uiRegistry = null,
+                         Func<Window, GpuSurface>? createSurface = null)
     {
         _device = device;
         _font = font;
         _windows = windows;
+        _createSurface = createSurface ?? WindowGraphicsConnector.CreateSurfaceFactory(device.Backend);
         _raster = new GpuDeviceRasterizer2D(device);
         Commands = commands ?? new EngineCommands();
         UiRegistry = uiRegistry ?? new UiRegistry();
@@ -65,7 +68,10 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
         ArgumentNullException.ThrowIfNull(window);
         ArgumentNullException.ThrowIfNull(content);
         // 論理サイズ同期は WindowHost ctor が行う (物理クライアント ÷ DPI スケール)
-        var host = new WindowHost(_nextId++, _device, window, content);
+        GpuSurface surface = _createSurface(window);
+        WindowHost host;
+        try { host = new WindowHost(_nextId++, _device, window, content, surface); }
+        catch { surface.Dispose(); throw; }
         foreach ((string name, UiHost ui) in content.Uis) UiRegistry.Register(name, ui);
         lock (_gate) _hosts.Add(host);
         return host;

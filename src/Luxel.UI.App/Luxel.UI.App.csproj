@@ -6,6 +6,7 @@
   <PropertyGroup>
 
     <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
     <LangVersion>14</LangVersion>
     <PackageId>Luxel.UI.App</PackageId>

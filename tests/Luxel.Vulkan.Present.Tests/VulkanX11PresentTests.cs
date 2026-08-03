@@ -3,6 +3,9 @@ using Luxel.Platform.Abstraction;
 using Luxel.Platform.Silk;
 using Luxel.Graphics.Vulkan;
 
+using Silk.NET.Core.Contexts;
+using Silk.NET.Core.Native;
+
 namespace Luxel.Vulkan.Present.Tests;
 
 public sealed class VulkanX11PresentTests
@@ -16,17 +19,18 @@ public sealed class VulkanX11PresentTests
         Window window = windows.CreateWindow(new WindowDesc("Luxel Vulkan present", 160, 120));
         PumpUntil(windows, () => window.Width == 160 && window.Height == 120);
 
-        IVulkanWindowSurface provider = Assert.IsAssignableFrom<IVulkanWindowSurface>(
-            window.GetFeature<IVulkanWindowSurface>());
-        Assert.Contains("VK_KHR_surface", provider.RequiredInstanceExtensions);
+        SilkWindow nativeWindow = window.RequireBackendWindow<SilkWindow>();
+        VulkanPresentationSource source = CreatePresentationSource(nativeWindow);
+        Assert.Contains("VK_KHR_surface", source.RequiredInstanceExtensions);
 
-        using var device = new GpuDevice(VulkanBackend.Create(new VulkanBackendOptions
+        VulkanBackend backend = VulkanBackend.Create(new VulkanBackendOptions
         {
             EnableValidation = true,
             Presentation = VulkanPresentationMode.Window,
-            WindowSurface = provider,
-        }));
-        using GpuSurface surface = device.CreateSurface(window.GetFeature<INativeSurfaceProvider>()!.SurfaceDescriptor, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
+            PresentationSource = source,
+        });
+        using var device = new GpuDevice(backend);
+        using GpuSurface surface = backend.CreateSurface((uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
         using GpuBuffer pixels = CreatePixels(device, 160, 120, 0xFF2040E0u);
 
         surface.Present(pixels, 160, 160, 120);
@@ -42,15 +46,15 @@ public sealed class VulkanX11PresentTests
         Window window = windows.CreateWindow(new WindowDesc("Luxel Vulkan resize", 128, 96));
         PumpUntil(windows, () => window.Width == 128 && window.Height == 96);
 
-        IVulkanWindowSurface provider = Assert.IsAssignableFrom<IVulkanWindowSurface>(
-            window.GetFeature<IVulkanWindowSurface>());
-        using var device = new GpuDevice(VulkanBackend.Create(new VulkanBackendOptions
+        SilkWindow nativeWindow = window.RequireBackendWindow<SilkWindow>();
+        VulkanBackend backend = VulkanBackend.Create(new VulkanBackendOptions
         {
             EnableValidation = true,
             Presentation = VulkanPresentationMode.Window,
-            WindowSurface = provider,
-        }));
-        using GpuSurface surface = device.CreateSurface(window.GetFeature<INativeSurfaceProvider>()!.SurfaceDescriptor, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
+            PresentationSource = CreatePresentationSource(nativeWindow),
+        });
+        using var device = new GpuDevice(backend);
+        using GpuSurface surface = backend.CreateSurface((uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
         using (GpuBuffer initial = CreatePixels(device, 128, 96, 0xFF30C050u))
             surface.Present(initial, 128, 128, 96);
 
@@ -60,6 +64,21 @@ public sealed class VulkanX11PresentTests
         using GpuBuffer resized = CreatePixels(device, 224, 144, 0xFFF08020u);
         surface.Present(resized, 224, 224, 144);
         Assert.True(windows.Pump());
+    }
+
+    private static unsafe VulkanPresentationSource CreatePresentationSource(SilkWindow window)
+    {
+        IVkSurface vkSurface = window.NativeWindow.VkSurface
+            ?? throw new PlatformNotSupportedException("Silk.NET did not expose Vulkan surface integration.");
+        byte** pointers = vkSurface.GetRequiredExtensions(out uint count);
+        if (pointers is null || count == 0)
+            throw new PlatformNotSupportedException("Silk.NET did not report Vulkan instance extensions.");
+        var extensions = new string[count];
+        for (uint i = 0; i < count; i++)
+            extensions[i] = SilkMarshal.PtrToString((nint)pointers[i])
+                ?? throw new PlatformNotSupportedException("Silk.NET returned an invalid Vulkan extension name.");
+        return new VulkanPresentationSource(extensions, instance =>
+            vkSurface.Create<byte>(new VkHandle(instance), null).Handle);
     }
 
     private static GpuBuffer CreatePixels(GpuDevice device, uint width, uint height, uint rgba)

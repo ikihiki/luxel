@@ -272,12 +272,13 @@ public static partial class Program
             using var windows = new WindowSystem(web);
             Window window = windows.CreateWindow(new WindowDesc("Luxel Playground", 640, 360));
             windows.Pump();
-            using BrowserWebGpuBackend backend = await BrowserWebGpuBackend.CreateAsync();
+            BrowserWebGpuBackend backend = await BrowserWebGpuBackend.CreateAsync();
             using var device = new GpuDevice(backend);
             using var resourceHttp = new HttpClient { BaseAddress = new Uri(GetBaseUrl(), UriKind.Absolute) };
             await using var slangCompiler = new BrowserSlangCompiler();
             _runResourceFactory = workspace => new BrowserRunResources(workspace, resourceHttp, slangCompiler, device);
-            using GpuSurface surface = device.CreateCanvasSurface("#luxel-canvas", (uint)window.Width, (uint)window.Height);
+            var browserBackend = (Luxel.Graphics.WebGPU.Browser.BrowserWebGpuBackend)device.Backend;
+            using GpuSurface surface = browserBackend.CreateCanvasSurface("#luxel-canvas", (uint)window.Width, (uint)window.Height);
             using var raster = new GpuDeviceRasterizer2D(device, RasterShader);
             using var font = new VectorFont(Resource("BIZUDGothic-Regular.ttf"));
             using var canvas = new RetainedCanvas();

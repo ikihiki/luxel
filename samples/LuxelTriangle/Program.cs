@@ -5,6 +5,8 @@ using Luxel.Graphics.Vulkan;
 using Luxel.Platform.Windows;
 #else
 using Luxel.Platform.Silk;
+using Silk.NET.Core.Contexts;
+using Silk.NET.Core.Native;
 #endif
 
 string backend = args.FirstOrDefault(a => a is "vk" or "vulkan" or "dx" or "d3d12" or "webgpu" or "wgpu")?.ToLowerInvariant() ?? "vk";
@@ -37,7 +39,7 @@ static int Run(string backend, int? frameLimit, TutorialStage stage, int initial
 #endif
         Window window = windows.CreateWindow(new WindowDesc($"Luxel — 3D Tutorial ({stage})", initialWidth, initialHeight));
         using GpuDevice device = CreateDevice(backend, window);
-        using GpuSurface surface = device.CreateSurface(window.GetFeature<INativeSurfaceProvider>()!.SurfaceDescriptor, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
+        using GpuSurface surface = CreateSurface(device, window);
         using var renderer = new TriangleRenderer(device, stage);
 
         int width = Math.Max(0, window.Width);
@@ -106,15 +108,54 @@ static GpuDevice CreateDevice(string backend, Window window)
 #else
     if (backend is "webgpu" or "wgpu")
         return new GpuDevice(Luxel.Graphics.WebGPU.WebGpuBackend.Create());
-    IVulkanWindowSurface provider = window.GetFeature<IVulkanWindowSurface>()
-        ?? throw new PlatformNotSupportedException("Linux/X11 window did not provide a Vulkan surface.");
     return new GpuDevice(VulkanBackend.Create(new VulkanBackendOptions
     {
         Presentation = VulkanPresentationMode.Window,
-        WindowSurface = provider,
+        PresentationSource = CreateVulkanPresentationSource(window.RequireBackendWindow<SilkWindow>()),
     }));
 #endif
 }
+
+static GpuSurface CreateSurface(GpuDevice device, Window window)
+{
+    uint width = (uint)Math.Max(1, window.Width);
+    uint height = (uint)Math.Max(1, window.Height);
+#if LUXEL_WINDOWS
+    Win32Window native = window.RequireBackendWindow<Win32Window>();
+    return device.Backend switch
+    {
+        Luxel.Graphics.DirectX12.D3D12Backend d3d12 => d3d12.CreateSurface(native.Handle, width, height),
+        Luxel.Graphics.WebGPU.WebGpuBackend webGpu => webGpu.CreateWin32Surface(native.HInstance, native.Handle, width, height),
+        VulkanBackend vulkan => vulkan.CreateWin32Surface(native.Handle, width, height),
+        _ => throw new PlatformNotSupportedException($"Unsupported backend: {device.Backend.GetType().FullName}"),
+    };
+#else
+    SilkWindow native = window.RequireBackendWindow<SilkWindow>();
+    return device.Backend switch
+    {
+        Luxel.Graphics.WebGPU.WebGpuBackend webGpu => webGpu.CreateXlibSurface(native.X11Display, native.X11Window, width, height),
+        VulkanBackend vulkan => vulkan.CreateSurface(width, height),
+        _ => throw new PlatformNotSupportedException($"Unsupported backend: {device.Backend.GetType().FullName}"),
+    };
+#endif
+}
+
+#if !LUXEL_WINDOWS
+static unsafe VulkanPresentationSource CreateVulkanPresentationSource(SilkWindow window)
+{
+    IVkSurface vkSurface = window.NativeWindow.VkSurface
+        ?? throw new PlatformNotSupportedException("Silk.NET did not expose Vulkan surface integration.");
+    byte** pointers = vkSurface.GetRequiredExtensions(out uint count);
+    if (pointers is null || count == 0)
+        throw new PlatformNotSupportedException("Silk.NET did not report Vulkan instance extensions.");
+    var extensions = new string[count];
+    for (uint i = 0; i < count; i++)
+        extensions[i] = SilkMarshal.PtrToString((nint)pointers[i])
+            ?? throw new PlatformNotSupportedException("Silk.NET returned an invalid Vulkan extension name.");
+    return new VulkanPresentationSource(extensions, instance =>
+        vkSurface.Create<byte>(new VkHandle(instance), null).Handle);
+}
+#endif
 // docs:end device-and-surface-backend
 
 static int? ParseFrameLimit(string[] args)

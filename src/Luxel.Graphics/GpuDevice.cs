@@ -19,6 +19,12 @@ public sealed class GpuDevice : IDisposable
         MainQueue = new GpuQueue(_backend.MainQueue);
     }
 
+    /// <summary>
+    /// Gets the owned backend implementation for explicit low-level integration.
+    /// The backend remains owned by this device and must not be disposed separately.
+    /// </summary>
+    public IGpuBackend Backend => _backend;
+
     /// <summary>バックエンドとデバイスの名前。</summary>
     public string Name => _backend.Name;
 
@@ -28,31 +34,11 @@ public sealed class GpuDevice : IDisposable
     /// <summary>主キュー。</summary>
     public GpuQueue MainQueue { get; }
 
-    /// <summary>ネイティブウィンドウへのスワップチェーン提示面を生成する。</summary>
-    public GpuSurface CreateSurface(in NativeSurfaceDescriptor descriptor, uint width, uint height)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        return new GpuSurface(_backend.CreateSurface(in descriptor, width, height));
-    }
-
-    /// <summary>Win32 HWND から提示面を生成する互換オーバーロード。</summary>
-    public GpuSurface CreateSurface(nint windowHandle, uint width, uint height)
-        => CreateSurface(NativeSurfaceDescriptor.Win32(windowHandle), width, height);
-
-    /// <summary>browser canvas selector/token から提示面を生成する。対応 backend のみ利用可能。</summary>
-    public GpuSurface CreateCanvasSurface(string canvasToken, uint width, uint height)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_backend is not ICanvasGpuBackend canvas)
-            throw new PlatformNotSupportedException($"Backend {_backend.Name} does not support canvas surfaces.");
-        return new GpuSurface(canvas.CreateCanvasSurface(canvasToken, width, height));
-    }
-
     /// <summary><c>gpuMalloc</c>。GPU メモリを確保し、CPU ポインタと GPU アドレスを持つバッファを返す。</summary>
     public GpuBuffer Malloc(ulong sizeInBytes, GpuMemoryKind kind = GpuMemoryKind.HostMapped)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return new GpuBuffer(_backend.CreateBuffer(sizeInBytes, kind));
+        return new GpuBuffer(_backend, _backend.CreateBuffer(sizeInBytes, kind));
     }
 
     /// <summary>compute パイプラインを生成する。<paramref name="code"/> から本バックエンドに合う形式を選ぶ。</summary>

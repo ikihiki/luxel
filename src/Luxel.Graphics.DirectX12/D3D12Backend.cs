@@ -125,11 +125,11 @@ public sealed unsafe class D3D12Backend : IGpuBackend
         MainQueue = new D3D12Queue(_device, _queue, _rootSignature, _resourceHeap, _samplerHeap, _queueLock);
     }
 
-    public IGpuBackendSurface CreateSurface(in NativeSurfaceDescriptor descriptor, uint width, uint height)
+    /// <summary>Creates a DXGI presentation surface for a Win32 HWND.</summary>
+    public GpuSurface CreateSurface(nint hwnd, uint width, uint height)
     {
-        if (descriptor.Kind != NativeSurfaceKind.Win32)
-            throw new PlatformNotSupportedException("Direct3D 12 presentation requires a Win32 HWND surface.");
-        return new D3D12Surface(_factory, _device, _queue, unchecked((nint)descriptor.Window), width, height);
+        if (hwnd == 0) throw new ArgumentException("A non-zero Win32 HWND is required.", nameof(hwnd));
+        return new GpuSurface(this, new D3D12Surface(_factory, _device, _queue, hwnd, width, height));
     }
 
     private void CreateRootSignature()

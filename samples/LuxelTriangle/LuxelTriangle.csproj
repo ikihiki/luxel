@@ -4,6 +4,7 @@
 
     <AssemblyName>LuxelTriangle</AssemblyName>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
     <PlatformTarget Condition="$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'X64'">x64</PlatformTarget>
     <PlatformTarget Condition="$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'Arm64'">arm64</PlatformTarget>

@@ -82,7 +82,14 @@ static int Run(string folder, string backend, int frames)
         int w = game.Project.WindowWidth, h = game.Project.WindowHeight;
         using var windows = new WindowSystem(Win32WindowBackend.Create());
         Window win = windows.CreateWindow(new Luxel.Platform.Abstraction.WindowDesc(game.Project.Name, w, h));
-        using GpuSurface surface = device.CreateSurface(win.GetFeature<INativeSurfaceProvider>()!.SurfaceDescriptor, (uint)Math.Max(1, win.Width), (uint)Math.Max(1, win.Height));
+        Win32Window nativeWindow = win.RequireBackendWindow<Win32Window>();
+        using GpuSurface surface = device.Backend switch
+        {
+            Luxel.Graphics.DirectX12.D3D12Backend d3d12 => d3d12.CreateSurface(nativeWindow.Handle, (uint)Math.Max(1, win.Width), (uint)Math.Max(1, win.Height)),
+            Luxel.Graphics.Vulkan.VulkanBackend vulkan => vulkan.CreateWin32Surface(nativeWindow.Handle, (uint)Math.Max(1, win.Width), (uint)Math.Max(1, win.Height)),
+            Luxel.Graphics.WebGPU.WebGpuBackend webGpu => webGpu.CreateWin32Surface(nativeWindow.HInstance, nativeWindow.Handle, (uint)Math.Max(1, win.Width), (uint)Math.Max(1, win.Height)),
+            _ => throw new PlatformNotSupportedException($"Unsupported backend: {device.Backend.GetType().FullName}"),
+        };
 
         // 生キー → world.KeysDown (csx が world.KeysDown.Contains("Right") 等で読む)
         var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
