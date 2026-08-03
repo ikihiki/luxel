@@ -1,4 +1,4 @@
-﻿using Luxel.Assets;
+using Luxel.Assets;
 using Luxel.Resources;
 
 namespace Luxel.AssetsGpu;
@@ -39,6 +39,37 @@ public sealed class AssetGpuRegistry : IDisposable
         DefaultSampler = _device.CreateSampler(GpuSamplerFilter.Linear, GpuSamplerAddress.Repeat);
         MaterialArray = new GpuMaterialArray(_device);
     }
+
+    // ==================== Scoped resource creation ====================
+
+    /// <summary>
+    /// ResourceSystem の creation Step から利用する device-bound factory。
+    /// 返却値の所有者は ResourceSystem node であり、registry の asset cache には保持しない。
+    /// </summary>
+    internal GpuPipeline Create(GpuPipelineRequest request)
+        => request.IsCompute
+            ? _device.CreateComputePipeline(request.Code, request.ComputeEntry)
+            : _device.CreateGraphicsPipeline(request.Code, request.Raster, request.VertexEntry, request.PixelEntry);
+
+    /// <summary>ResourceSystem-owned texture を生成する。asset cache には保持しない。</summary>
+    internal GpuTexture Create(GpuTextureRequest request) => request.Kind switch
+    {
+        GpuTextureRequestKind.Sampled =>
+            _device.CreateTexture(request.Width, request.Height, request.Data.Span, request.Format),
+        GpuTextureRequestKind.RenderTarget =>
+            _device.CreateRenderTarget(request.Width, request.Height, request.Format),
+        GpuTextureRequestKind.DepthTarget =>
+            _device.CreateDepthTarget(request.Width, request.Height, request.Format),
+        _ => throw new ArgumentOutOfRangeException(nameof(request), request.Kind, "Unknown texture request kind."),
+    };
+
+    /// <summary>ResourceSystem-owned sampler を生成する。asset cache には保持しない。</summary>
+    internal GpuSampler Create(GpuSamplerRequest request)
+        => _device.CreateSampler(request.Filter, request.Address);
+
+    /// <summary>ResourceSystem-owned buffer を生成する。asset cache には保持しない。</summary>
+    internal GpuBuffer Create(GpuBufferRequest request)
+        => _device.Malloc(request.SizeInBytes, request.Kind);
 
     // ==================== Register (programmatic upload) ====================
 

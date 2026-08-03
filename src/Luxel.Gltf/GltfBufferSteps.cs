@@ -12,7 +12,7 @@ public sealed class GltfBufferStep(GpuDevice device) : IResourceStep<SceneAssets
 {
     private readonly GpuDevice _device = device;
     /// <summary>GPU executor で実行 (buffer 確保のため)。</summary>
-    public Executor Executor => Executor.Gpu;
+    public Executor Executor => Executor.External;
     /// <summary>処理対象の fragment パターン。</summary>
     public IEnumerable<string> FragmentPatterns => new[] { "mesh/*", "materials" };
 

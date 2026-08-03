@@ -34,8 +34,8 @@ public sealed unsafe class VulkanBackend : IGpuBackend
     private DescriptorSet _descriptorSet;
     private PipelineLayout _pipelineLayout;
     private int _nextBindless = -1;        // binding 0: storage buffer (Interlocked.Increment で採番)
-    private int _nextSampledImage = -1;    // binding 1: sampled image
-    private int _nextSampler = -1;         // binding 2: sampler
+    private readonly DescriptorSlotAllocator _sampledImageSlots = new(BindlessCapacity);
+    private readonly DescriptorSlotAllocator _samplerSlots = new(BindlessCapacity);
     private readonly object _queueLock = new();   // queue submit/wait の直列化 (OneShotSubmit と MainQueue で共有)
     private readonly object _descLock = new();     // vkUpdateDescriptorSets (同一 set はホスト同期必須) の直列化
 
@@ -847,7 +847,19 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         _vk.DestroyBuffer(_device, staging, null);
         _vk.FreeMemory(_device, stagingMem, null);
 
-        uint index = (uint)Interlocked.Increment(ref _nextSampledImage);
+        uint index;
+        try
+        {
+            index = _sampledImageSlots.Allocate();
+        }
+        catch
+        {
+            _vk.DestroyImageView(_device, view, null);
+            _vk.DestroyImage(_device, image, null);
+            _vk.FreeMemory(_device, memory, null);
+            throw;
+        }
+
         var descImage = new DescriptorImageInfo { ImageView = view, ImageLayout = ImageLayout.ShaderReadOnlyOptimal };
         var write = new WriteDescriptorSet
         {
@@ -862,7 +874,7 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         lock (_descLock) _vk.UpdateDescriptorSets(_device, 1, in write, 0, null);
 
         return new VulkanTexture(_vk, _device, image, memory, view, width, height, format, vkFormat,
-            index, ImageLayout.ShaderReadOnlyOptimal);
+            index, ImageLayout.ShaderReadOnlyOptimal, releaseDescriptor: () => _sampledImageSlots.Free(index));
     }
 
     public IGpuBackendSampler CreateSampler(GpuSamplerFilter filter, GpuSamplerAddress address = GpuSamplerAddress.Clamp)
@@ -883,7 +895,17 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         };
         VkCheck.Ok(_vk.CreateSampler(_device, in info, null, out var sampler), "vkCreateSampler");
 
-        uint index = (uint)Interlocked.Increment(ref _nextSampler);
+        uint index;
+        try
+        {
+            index = _samplerSlots.Allocate();
+        }
+        catch
+        {
+            _vk.DestroySampler(_device, sampler, null);
+            throw;
+        }
+
         var descSampler = new DescriptorImageInfo { Sampler = sampler };
         var write = new WriteDescriptorSet
         {
@@ -897,7 +919,7 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         };
         lock (_descLock) _vk.UpdateDescriptorSets(_device, 1, in write, 0, null);
 
-        return new VulkanSampler(_vk, _device, sampler, index);
+        return new VulkanSampler(_vk, _device, sampler, index, () => _samplerSlots.Free(index));
     }
 
     private (Silk.NET.Vulkan.Buffer, DeviceMemory) CreateStaging(ReadOnlySpan<byte> data)

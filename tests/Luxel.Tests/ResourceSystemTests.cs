@@ -40,7 +40,7 @@ public class ResourceSystemTests
     }
     private sealed class FinalStep : IResourceStep<Upper, Final>
     {
-        public Executor Executor => Executor.Gpu;   // Gpu レーン (テストではデバイス不要)
+        public Executor Executor => Executor.External;   // Gpu レーン (テストではデバイス不要)
         public Task<Final> RunAsync(Upper up, ResourceUri u, LoadContext c)
         { Interlocked.Increment(ref _finalRuns); return Task.FromResult(new Final(up.Text + "!")); }
     }
@@ -156,7 +156,7 @@ public class ResourceSystemTests
         vfs.Set("a.doc", Encoding.UTF8.GetBytes("k"));
         var h = sys.Load<Final>("a.doc"); await h.Ready;
         int beforeFinal = _finalRuns;
-        sys.NotifyDeviceLost();
+        sys.InvalidateAll();
         await PumpUntil(sys, () => _finalRuns > beforeFinal);
         Assert.True(_finalRuns > beforeFinal);              // GPU 段が再実行された
         Assert.Equal("K!", h.Value.Text);
@@ -181,13 +181,13 @@ public class ResourceSystemTests
         await h.Ready;
         Assert.Equal("initial", h.Value.Text);
 
-        sys.NotifyDeviceLost();
-        sys.NotifyDeviceLost(); // duplicate queued reloads are coalesced
+        sys.InvalidateAll();
+        sys.InvalidateAll(); // duplicate queued reloads are coalesced
         sys.Pump();
         Assert.Equal(2, loads.Count);
         Task olderReload = h.Ready;
 
-        sys.NotifyDeviceLost();
+        sys.InvalidateAll();
         sys.Pump();
         Assert.Equal(3, loads.Count);
         Assert.True(tokens[1].IsCancellationRequested);
@@ -223,7 +223,7 @@ public class ResourceSystemTests
         await h.Ready;
         Assert.True(h.HasValue);
 
-        sys.NotifyDeviceLost();
+        sys.InvalidateAll();
         sys.Pump();
         Task failedReload = h.Ready;
         var failure = new InvalidOperationException("compile failed");
@@ -235,7 +235,7 @@ public class ResourceSystemTests
         Assert.Same(failure, h.LastReloadError);
         Assert.Equal("good", h.Value.Text);
 
-        sys.NotifyDeviceLost();
+        sys.InvalidateAll();
         sys.Pump();
         Task successfulReload = h.Ready;
         loads[2].SetResult(new Final("fixed"));
@@ -257,6 +257,150 @@ public class ResourceSystemTests
         h1.Dispose();                                       // 参照0 → evict (依存も連鎖)
         var h2 = sys.Load<Final>("a.doc"); await h2.Ready;
         Assert.Equal(2, _finalRuns);                        // 再生成された
+    }
+
+    private sealed class DisposableResource : IDisposable
+    {
+        public int DisposeCount { get; private set; }
+        public void Dispose() => DisposeCount++;
+    }
+
+    [Fact]
+    public async Task Scope_CreateQualifiesKeysAndDisposesEachLeaseOnce()
+    {
+        using var sys = new ResourceSystem();
+        var firstScope = sys.CreateScope("panel/a");
+        var first = new DisposableResource();
+        ResourceHandle<DisposableResource> firstHandle = firstScope.Create(
+            "buffer 1", _ => Task.FromResult(first));
+        await firstHandle.Ready;
+
+        Assert.Equal("scope://panel%2Fa/buffer%201", firstHandle.Uri.ToString());
+
+        firstHandle.Dispose();
+        firstScope.Dispose(); // tracked handle was already disposed
+        sys.Pump();
+        Assert.Equal(1, first.DisposeCount);
+
+        using ResourceScope secondScope = sys.CreateScope("panel/a");
+        var second = new DisposableResource();
+        ResourceHandle<DisposableResource> secondHandle = secondScope.Create(
+            "buffer 1", _ => Task.FromResult(second));
+        await secondHandle.Ready;
+        Assert.NotSame(first, secondHandle.Value); // prior node was evicted despite scope's second Dispose
+    }
+
+    [Fact]
+    public async Task Scope_LocalKeysAreIsolatedByOwner_AndLoadTracksSharedLeases()
+    {
+        using var sys = NewSystem(out var vfs);
+        vfs.Set("shared.doc", Encoding.UTF8.GetBytes("shared"));
+        using ResourceHandle<Final> outside = sys.Load<Final>("shared.doc");
+        await outside.Ready;
+
+        var left = sys.CreateScope("left");
+        var right = sys.CreateScope("right");
+        ResourceHandle<Final> scopedLoad = left.Load<Final>("shared.doc");
+        var leftValue = new DisposableResource();
+        var rightValue = new DisposableResource();
+        ResourceHandle<DisposableResource> leftHandle = left.Create("same", _ => Task.FromResult(leftValue));
+        ResourceHandle<DisposableResource> rightHandle = right.Create("same", _ => Task.FromResult(rightValue));
+        await Task.WhenAll(scopedLoad.Ready, leftHandle.Ready, rightHandle.Ready);
+
+        Assert.Equal(outside.Value.Text, scopedLoad.Value.Text);
+        Assert.NotEqual(leftHandle.Uri, rightHandle.Uri);
+
+        left.Dispose();
+        sys.Pump();
+        Assert.Equal(1, leftValue.DisposeCount);
+        Assert.Equal(0, rightValue.DisposeCount);
+        Assert.True(outside.HasValue);
+
+        right.Dispose();
+        sys.Pump();
+        Assert.Equal(1, rightValue.DisposeCount);
+    }
+
+    [Fact]
+    public async Task LateOwnedLoaderCompletionAfterEvictionIsDisposed()
+    {
+        using var sys = new ResourceSystem();
+        var completion = new TaskCompletionSource<DisposableResource>(TaskCreationOptions.RunContinuationsAsynchronously);
+        ResourceHandle<DisposableResource> handle = sys.Load(
+            "controlled://late", _ => completion.Task, ResourceOwnership.Owned);
+        Task ready = handle.Ready;
+        handle.Dispose();
+
+        var value = new DisposableResource();
+        completion.SetResult(value);
+        await ready;
+
+        Assert.Equal(1, value.DisposeCount);
+    }
+
+    [Fact]
+    public async Task LateOwnedLoaderCompletionAfterSystemDisposeIsDisposed()
+    {
+        var sys = new ResourceSystem();
+        var completion = new TaskCompletionSource<DisposableResource>(TaskCreationOptions.RunContinuationsAsynchronously);
+        ResourceHandle<DisposableResource> handle = sys.Load(
+            "controlled://late-dispose", _ => completion.Task, ResourceOwnership.Owned);
+        Task ready = handle.Ready;
+        sys.Dispose();
+
+        var value = new DisposableResource();
+        completion.SetResult(value);
+        await ready;
+        handle.Dispose();
+
+        Assert.Equal(1, value.DisposeCount);
+    }
+
+    [Fact]
+    public void BorrowedValuesAreNotDisposedOnEviction()
+    {
+        using var sys = new ResourceSystem();
+        var value = new DisposableResource();
+        ResourceHandle<DisposableResource> handle = sys.Publish(
+            "published://borrowed", value, ResourceOwnership.Borrowed);
+
+        handle.Dispose();
+        sys.Pump();
+
+        Assert.Equal(0, value.DisposeCount);
+    }
+
+    [Fact]
+    public void PumpFlushRegistrationStopsAtNodeEviction()
+    {
+        using var sys = new ResourceSystem();
+        ResourceHandle<object> handle = sys.Publish("published://flush", new object());
+        int calls = 0;
+        using IDisposable registration = sys.RegisterPumpFlushLease(handle, () => { calls++; return false; });
+
+        handle.Dispose();
+        sys.Pump();
+
+        Assert.Equal(0, calls);
+    }
+
+    [Fact]
+    public async Task InvalidateAllReloadsExplicitLoaders()
+    {
+        using var sys = new ResourceSystem();
+        int loads = 0;
+        using ResourceHandle<Final> handle = sys.Load(
+            "controlled://generic-invalidation",
+            _ => Task.FromResult(new Final((++loads).ToString())));
+        await handle.Ready;
+
+        sys.InvalidateAll();
+        sys.Pump();
+        await handle.Ready;
+        sys.Pump();
+
+        Assert.Equal(2, loads);
+        Assert.Equal("2", handle.Value.Text);
     }
 
     [Fact]

@@ -154,6 +154,7 @@ public static class DocsMeta
         - `ctx.Signal(name, initial, description)` — **knob** (右パネルで編集可)。bool / int / float / string / 色 / enum / Length に対応
         - `ctx.Log(message)` — Log パネルへ (イベントの実演に)
         - `ctx.Resources` — ホスト所有の ResourceSystem (キャッシュはストーリー横断共有)
+        - `ctx.ScopedResources` — story instance 所有のResourceScope。story関数内でCPU/GPU resourceをロード・作成し、GpuView callbackへcaptureして渡す。story破棄時にleaseを一括解放
         - `ctx.Navigate(path)` — ストーリー遷移 (docs の story: リンクの実体)
 
         ## 2D / 3D デモのストーリー化
@@ -161,10 +162,10 @@ public static class DocsMeta
         描画結果を widget にする受け皿が 2 つあります:
 
         - **Canvas2D(w, h, draw: / animate:(s, t))** — Scene2D を直接描く (UI と同じ保持型キャンバスの 1 ノード)。`t` は累積秒
-        - **GpuView(w, h, render, animated:, dispose:)** — device と GpuView 所有 surface を受け取る callback で offscreen 描画し、bindless バッファ経由でゼロコピー合成。共通下回りは `GpuSceneBase` (Gallery 内)
+        - **GpuView(w, h, render, animated:, dispose:)** — story関数が`ctx.ScopedResources`で用意したresourceをcaptureし、deviceとGpuView所有surfaceを受け取るcallbackでoffscreen描画。bindless buffer経由でゼロコピー合成
 
         > [!WARNING]
-        > GpuView callback の規約: **ctor は引数保持のみ** (GPU resource は callback が最初に呼ばれた時に確保し、`dispose` で破棄する)。**時間は callback 引数の累積秒のみ** (wall-clock 禁止 — snap の決定性)。描画先と256B整列済みframebufferは `GpuViewSurface` が所有する。knob を絵に反映する場合は `animated: true` にする。RenderGraph は 1 フレーム使い切り — animated renderer では callback 内で毎回作る。
+        > GpuView callback の規約: GPU resourceはstory関数内で`ctx.ScopedResources`から取得し、callbackへcaptureする。個別handleを`dispose`へ渡す必要はなく、story scopeが一括解放する。**時間はcallback引数の累積秒のみ** (wall-clock禁止 — snapの決定性)。描画先と256B整列済みframebufferは`GpuViewSurface`が所有する。knobを絵に反映する場合は`animated: true`にする。RenderGraphは1フレーム使い切り — animated rendererではcallback内で毎回作る。
 
         ## 実窓専用ストーリー
 

@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 
 namespace Luxel.Resources;
 
@@ -84,17 +84,18 @@ internal sealed class Pipeline
         => _sources.TryGetValue(scheme.ToLowerInvariant(), out var s) ? s : null;
 
     /// <summary>出力型 + 拡張子 + fragment で 1 ステップ選択。</summary>
-    public StepAdapter? Select(Type output, string ext, string fragment)
+    public StepAdapter? Select(Type output, string ext, string fragment, Type? input = null)
     {
         if (!_byOutput.TryGetValue(output, out var list) || list.Count == 0) return null;
+        IEnumerable<StepAdapter> matchingInput = input is null ? list : list.Where(s => s.Input == input);
         List<StepAdapter> candidates;
         if (fragment.Length > 0)
         {
-            candidates = list.Where(s => s.FragmentPatterns is { } fp && fp.Any(p => FragmentMatch(p, fragment))).ToList();
+            candidates = matchingInput.Where(s => s.FragmentPatterns is { } fp && fp.Any(p => FragmentMatch(p, fragment))).ToList();
         }
         else
         {
-            candidates = list.Where(s => s.FragmentPatterns is null).ToList();
+            candidates = matchingInput.Where(s => s.FragmentPatterns is null).ToList();
         }
         if (candidates.Count == 0) return null;
         if (candidates.Count == 1) return candidates[0];
