@@ -56,14 +56,14 @@ public static class GpuStories
         RuntimeBundleId = "webgpu-browser-v1", CapabilityNote = "Specialized browser WebGPU validation route.")]
     public static Widget Triangle(StoryContext ctx)
         => ctx.Snap(Frame(GpuView(CanonicalTriangleRecipe.Width, CanonicalTriangleRecipe.Height,
-            new TriangleScene(ctx.ScopedResources))));
+            new TriangleScene(ctx.ScopedResourcesOrNull))));
 
     [Story("Examples/3D/TexturedQuad", Height = 320, Order = 121)]
     public static Widget TexturedQuad(StoryContext ctx)
-        => ctx.Snap(Frame(GpuView(320, 240, new TexturedScene(ctx.ScopedResources), animated: false)));
+        => ctx.Snap(Frame(GpuView(320, 240, new TexturedScene(ctx.ScopedResourcesOrNull), animated: false)));
 
     /// <summary>The native Gallery path for the shared canonical first-triangle recipe.</summary>
-    private sealed class TriangleScene(ResourceScope resources) : IGpuScene
+    private sealed class TriangleScene(ResourceScope? resources) : IGpuScene
     {
         private GpuDevice? _device;
         private ResourceHandle<GpuTexture>? _target;
@@ -73,15 +73,17 @@ public static class GpuStories
 
         public void Init(GpuDevice device, int width, int height)
         {
+            ResourceScope scoped = resources
+                ?? throw new InvalidOperationException("GPU scene was realized without a ResourceSystem-backed StoryContext.");
             _device = device;
             _w = (uint)width; _h = (uint)height;
-            _target = resources.CreateRenderTarget($"triangle.target.{_w}x{_h}", _w, _h);
+            _target = scoped.CreateRenderTarget($"triangle.target.{_w}x{_h}", _w, _h);
             CanonicalTriangleRecipe.Vertex[] vertices = CanonicalTriangleRecipe.CreateVertices();
-            _vb = resources.CreateBuffer<CanonicalTriangleRecipe.Vertex>(
+            _vb = scoped.CreateBuffer<CanonicalTriangleRecipe.Vertex>(
                 $"triangle.vertices.{vertices.Length}", vertices.Length);
             vertices.CopyTo(_vb.Value.Span<CanonicalTriangleRecipe.Vertex>(vertices.Length));
-            _out = resources.CreateBuffer($"triangle.readback.{_w}x{_h}", _w * _h * 4);
-            _pipeline = resources.CreateGraphicsPipeline("triangle.pipeline",
+            _out = scoped.CreateBuffer($"triangle.readback.{_w}x{_h}", _w * _h * 4);
+            _pipeline = scoped.CreateGraphicsPipeline("triangle.pipeline",
                 GpuShaderCode.Load(CanonicalTriangleRecipe.Shader),
                 GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
         }
@@ -113,7 +115,7 @@ public static class GpuStories
 
     /// <summary>テクスチャ付きフルスクリーン三角形 (サンプル 03 の移植)。テクスチャは
     /// story scope から PNG をロード (初回ロードの publish は Pump 不要なので Init で待てる)。</summary>
-    private sealed class TexturedScene(ResourceScope resources) : IGpuScene
+    private sealed class TexturedScene(ResourceScope? resources) : IGpuScene
     {
         private const string ImageUri = "src/Luxel.Gallery/assets/sample-sparkline.png";
 
@@ -131,19 +133,21 @@ public static class GpuStories
 
         public void Init(GpuDevice device, int width, int height)
         {
+            ResourceScope scoped = resources
+                ?? throw new InvalidOperationException("GPU scene was realized without a ResourceSystem-backed StoryContext.");
             _device = device;
             _w = (uint)width; _h = (uint)height;
             _rendered = false;   // 再 Init (Dispose 後の再実体化) ではバッファが新しい — 描き直す
-            _image = resources.Load<CpuImage>(ImageUri);
+            _image = scoped.Load<CpuImage>(ImageUri);
             try { _image.Ready.Wait(5000); } catch { /* 失敗時は 1x1 白で続行 */ }
             CpuImage img = _image.IsReady && _image.Value is { Width: > 0 } i
                 ? i : new CpuImage(1, 1, [255, 255, 255, 255]);
-            _texture = resources.CreateSampledTexture(
+            _texture = scoped.CreateSampledTexture(
                 $"textured.texture.{img.Width}x{img.Height}", (uint)img.Width, (uint)img.Height, img.Pixels);
-            _sampler = resources.CreateSampler("textured.sampler", GpuSamplerFilter.Point);
-            _target = resources.CreateRenderTarget($"textured.target.{_w}x{_h}", _w, _h);
-            _out = resources.CreateBuffer($"textured.readback.{_w}x{_h}", _w * _h * 4);
-            _pipeline = resources.CreateGraphicsPipeline("textured.pipeline",
+            _sampler = scoped.CreateSampler("textured.sampler", GpuSamplerFilter.Point);
+            _target = scoped.CreateRenderTarget($"textured.target.{_w}x{_h}", _w, _h);
+            _out = scoped.CreateBuffer($"textured.readback.{_w}x{_h}", _w * _h * 4);
+            _pipeline = scoped.CreateGraphicsPipeline("textured.pipeline",
                 GpuShaderCode.Load("textured"), GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
         }
 
