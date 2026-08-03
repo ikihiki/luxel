@@ -2,5 +2,5 @@
 public static Widget Graph(StoryContext ctx)
 {
     Signal&lt;float&gt; weight = ctx.Signal(&quot;weight&quot;, 0.5f, &quot;Blend: 0 = 上下振動, 1 = 左右振動&quot;);
-    return Frame(GpuView(256, 256, new GraphScene(weight)));
+    return Frame(GpuSceneBase.View(256, 256, new GraphScene(weight)));
 }</code></pre></details></article>

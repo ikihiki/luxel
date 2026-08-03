@@ -2,5 +2,5 @@
 public static Widget Bloom3D(StoryContext ctx)
 {
     Signal&lt;float&gt; intensity = ctx.Signal(&quot;intensity&quot;, 0.6f, &quot;bloom 合成の強さ (0 = 無効)&quot;);
-    return Frame(GpuView(256, 256, new Bloom3DScene(intensity)));
+    return Frame(GpuSceneBase.View(256, 256, new Bloom3DScene(intensity)));
 }</code></pre></details></article>

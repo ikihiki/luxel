@@ -1780,7 +1780,7 @@
       "width": 480,
       "height": 320,
       "args": [],
-      "capabilityNote": "Deterministic explanatory fallback for unsupported capability inputs: Scene.",
+      "capabilityNote": "Deterministic explanatory fallback for unsupported capability inputs: Render, Dispose.",
       "componentType": "global::Luxel.Controls.GpuView"
     },
     {

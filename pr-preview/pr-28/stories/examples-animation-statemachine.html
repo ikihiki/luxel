@@ -6,5 +6,5 @@ public static Widget StateMachineDemo(StoryContext ctx)
         HStack(8)[
             Button(_ =&gt; { scene.Trigger(&quot;press&quot;); ctx.Log(&quot;trigger: press → jump&quot;); }, &quot;press&quot;),
             Button(_ =&gt; { scene.Trigger(&quot;done&quot;); ctx.Log(&quot;trigger: done → idle&quot;); }, &quot;done&quot;)],
-        GpuView(256, 128, scene)]);
+        GpuSceneBase.View(256, 128, scene)]);
 }</code></pre></details></article>

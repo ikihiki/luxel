@@ -39,11 +39,11 @@
 <p>描画結果を widget にする受け皿が 2 つあります:</p>
 <ul>
 <li><strong>Canvas2D(w, h, draw: / animate:(s, t))</strong> — Scene2D を直接描く (UI と同じ保持型キャンバスの 1 ノード)。<code>t</code> は累積秒</li>
-<li><strong>GpuView(w, h, IGpuScene, animated:)</strong> — offscreen に自前 GPU レンダ → bindless バッファ経由でゼロコピー合成。共通下回りは <code>GpuSceneBase</code> (Gallery 内)</li>
+<li><strong>GpuView(w, h, render, animated:, dispose:)</strong> — device と GpuView 所有 surface を受け取る callback で offscreen 描画し、bindless バッファ経由でゼロコピー合成。共通下回りは <code>GpuSceneBase</code> (Gallery 内)</li>
 </ul>
 <div class="markdown-alert markdown-alert-warning">
 <p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
-<p>IGpuScene の規約: <strong>ctor は引数保持のみ</strong> (確保は全部 Init — 起動時に全ストーリーが Build される + Dispose 後の再 Init に耐える)。<strong>時間は Render 引数の累積秒のみ</strong> (wall-clock 禁止 — snap の決定性)。ターゲット幅は 64 の倍数 (D3D12 の 256B 整列)。knob を絵に反映するシーンは <code>animated: true</code> (Render が毎フレーム呼ばれる)。RenderGraph は 1 フレーム使い切り — animated シーンでは Render 内で毎回作る。</p>
+<p>GpuView callback の規約: <strong>ctor は引数保持のみ</strong> (GPU resource は callback が最初に呼ばれた時に確保し、<code>dispose</code> で破棄する)。<strong>時間は callback 引数の累積秒のみ</strong> (wall-clock 禁止 — snap の決定性)。描画先と256B整列済みframebufferは <code>GpuViewSurface</code> が所有する。knob を絵に反映する場合は <code>animated: true</code> にする。RenderGraph は 1 フレーム使い切り — animated renderer では callback 内で毎回作る。</p>
 </div>
 <h2 id="section">実窓専用ストーリー</h2>
 <p>音声再生や実デバイス入力のように offscreen の決定的描画にならない機能は <code>[Story(&quot;RealWindow/Audio/Tone&quot;, RealWindowOnly = true)]</code> にします — snap 回帰は SKIP され (golden を作らない)、Gallery アプリでは通常どおり表示されます。実例は <a href="#story=RealWindow%2FAudio%2FTone">RealWindow/Audio/Tone</a>。</p>
@@ -96,10 +96,10 @@ public static Widget Gallery(StoryContext ctx) =&gt; ctx.Snap(DocNew(ctx, $$&quo
     描画結果を widget にする受け皿が 2 つあります:
 
     - **Canvas2D(w, h, draw: / animate:(s, t))** — Scene2D を直接描く (UI と同じ保持型キャンバスの 1 ノード)。`t` は累積秒
-    - **GpuView(w, h, IGpuScene, animated:)** — offscreen に自前 GPU レンダ → bindless バッファ経由でゼロコピー合成。共通下回りは `GpuSceneBase` (Gallery 内)
+    - **GpuView(w, h, render, animated:, dispose:)** — device と GpuView 所有 surface を受け取る callback で offscreen 描画し、bindless バッファ経由でゼロコピー合成。共通下回りは `GpuSceneBase` (Gallery 内)
 
     &gt; [!WARNING]
-    &gt; IGpuScene の規約: **ctor は引数保持のみ** (確保は全部 Init — 起動時に全ストーリーが Build される + Dispose 後の再 Init に耐える)。**時間は Render 引数の累積秒のみ** (wall-clock 禁止 — snap の決定性)。ターゲット幅は 64 の倍数 (D3D12 の 256B 整列)。knob を絵に反映するシーンは `animated: true` (Render が毎フレーム呼ばれる)。RenderGraph は 1 フレーム使い切り — animated シーンでは Render 内で毎回作る。
+    &gt; GpuView callback の規約: **ctor は引数保持のみ** (GPU resource は callback が最初に呼ばれた時に確保し、`dispose` で破棄する)。**時間は callback 引数の累積秒のみ** (wall-clock 禁止 — snap の決定性)。描画先と256B整列済みframebufferは `GpuViewSurface` が所有する。knob を絵に反映する場合は `animated: true` にする。RenderGraph は 1 フレーム使い切り — animated renderer では callback 内で毎回作る。
 
     ## 実窓専用ストーリー
 
