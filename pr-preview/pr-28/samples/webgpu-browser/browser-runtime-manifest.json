@@ -892,6 +892,53 @@
       "componentType": null
     },
     {
+      "path": "Controls/Button/Playground",
+      "width": 480,
+      "height": 160,
+      "args": [
+        {
+          "name": "text",
+          "type": "string",
+          "defaultValue": "Click me",
+          "description": "Button label",
+          "order": 10,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "variant",
+          "type": "enum:Filled|Tonal|Outline|Ghost",
+          "defaultValue": "Filled",
+          "description": "Visual variant",
+          "order": 20,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": [
+            "Filled",
+            "Tonal",
+            "Outline",
+            "Ghost"
+          ]
+        },
+        {
+          "name": "disabled",
+          "type": "bool",
+          "defaultValue": false,
+          "description": "Disable interaction",
+          "order": 30,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        }
+      ],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
       "path": "Controls/Button/Primary",
       "width": 480,
       "height": 160,
@@ -5822,7 +5869,7 @@
       "width": 320,
       "height": 240,
       "args": [],
-      "capabilityNote": "Specialized browser WebGPU ClearColor route.",
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
       "componentType": null
     },
     {
@@ -5830,7 +5877,7 @@
       "width": 320,
       "height": 240,
       "args": [],
-      "capabilityNote": "Specialized browser WebGPU validation route.",
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
       "componentType": null
     },
     {
