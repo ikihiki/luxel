@@ -123,9 +123,6 @@ public sealed class ResourceScope : IDisposable
         OwnerId = ownerId;
     }
 
-    /// <summary>この scope を所有する ResourceSystem。上位の型付き integration が設定を解決するために使用する。</summary>
-    public ResourceSystem System => _system;
-
     public string OwnerId { get; }
 
     /// <summary>共有 URI をロードし、このスコープの lease として追跡する。</summary>
@@ -138,10 +135,28 @@ public sealed class ResourceScope : IDisposable
     /// <summary>owner 内で一意な key を scope-qualified URI に変換し、所有権を明示して作成する。</summary>
     public ResourceHandle<T> Create<T>(string localKey, Loader<T> loader, ResourceOwnership ownership)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(localKey);
         ArgumentNullException.ThrowIfNull(loader);
-        string uri = $"scope://{Uri.EscapeDataString(OwnerId)}/{Uri.EscapeDataString(localKey)}";
+        string uri = Qualify(localKey);
         return Track(_system.Load(uri, loader, ownership));
+    }
+
+    /// <summary>
+    /// scope-local input を borrowed node として登録し、登録済み Step を通して出力を生成する。
+    /// Step の依存は Step コンストラクタで注入する。
+    /// </summary>
+    public ResourceHandle<TOutput> Create<TInput, TOutput>(string localKey, TInput input)
+        where TInput : class
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        string uri = Qualify(localKey);
+        Track(_system.Load(uri, _ => Task.FromResult(input), ResourceOwnership.Borrowed));
+        return Track(_system.LoadFrom<TInput, TOutput>(uri));
+    }
+
+    private string Qualify(string localKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(localKey);
+        return $"scope://{Uri.EscapeDataString(OwnerId)}/{Uri.EscapeDataString(localKey)}";
     }
 
     private ResourceHandle<T> Track<T>(ResourceHandle<T> handle)
@@ -349,6 +364,16 @@ public sealed class ResourceSystem : IDisposable
         return new ResourceHandle<T>(this, node);
     }
 
+    internal ResourceHandle<TOutput> LoadFrom<TInput, TOutput>(string uri)
+    {
+        ThrowIfDisposed();
+        ResourceNode node = GetOrCreate(
+            typeof(TOutput), new ResourceUri(uri), explicitLoader: null, ownership: null,
+            preferredInput: typeof(TInput));
+        Interlocked.Increment(ref node.RefCount);
+        return new ResourceHandle<TOutput>(this, node);
+    }
+
     internal ResourceHandle<U> LoadDependency<U>(string uri, ResourceNode owner)
     {
         ResourceNode node = GetOrCreate(typeof(U), new ResourceUri(uri), null, ownership: null);
@@ -372,7 +397,8 @@ public sealed class ResourceSystem : IDisposable
         Type type,
         ResourceUri uri,
         Func<LoadContext, Task<object>>? explicitLoader,
-        ResourceOwnership? ownership)
+        ResourceOwnership? ownership,
+        Type? preferredInput = null)
     {
         string key = type.FullName + "|" + uri.Key;
         lock (_lock)
@@ -386,7 +412,7 @@ public sealed class ResourceSystem : IDisposable
                 node.StepExecutor = Executor.Cpu;
                 node.Ownership = ownership ?? ResourceOwnership.Owned;
             }
-            else node.Loader = Compose(type, uri, node);
+            else node.Loader = Compose(type, uri, node, preferredInput);
             _cache[key] = node;
             _graphDirty = true;
             if (_autoReload) RegisterWatch(node);
@@ -395,7 +421,8 @@ public sealed class ResourceSystem : IDisposable
         }
     }
 
-    private Func<LoadContext, Task<object>> Compose(Type type, ResourceUri uri, ResourceNode node)
+    private Func<LoadContext, Task<object>> Compose(
+        Type type, ResourceUri uri, ResourceNode node, Type? preferredInput = null)
     {
         if (type == typeof(byte[]))
         {
@@ -405,8 +432,9 @@ public sealed class ResourceSystem : IDisposable
             node.StepExecutor = Executor.Io;
             return async ctx => { await ctx.Io; return (object)await src.ReadAsync(uri, ctx); };
         }
-        StepAdapter step = _pipeline.Select(type, uri.Extension, uri.Fragment)
-            ?? throw new InvalidOperationException($"型 {type.Name} を生成するステップ未登録 (uri={uri}, ext={uri.Extension}, frag={uri.Fragment})。");
+        StepAdapter step = _pipeline.Select(type, uri.Extension, uri.Fragment, preferredInput)
+            ?? throw new InvalidOperationException(
+                $"型 {type.Name} を生成するステップ未登録 (input={preferredInput?.Name ?? "auto"}, uri={uri}, ext={uri.Extension}, frag={uri.Fragment})。");
         node.StepName = step.Name;
         node.StepExecutor = step.Executor;
         Type inType = step.Input;

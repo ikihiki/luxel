@@ -4,11 +4,9 @@ using Luxel.Resources;
 namespace Luxel.AssetsGpu;
 
 /// <summary>
-/// Creates GPU objects as owned <see cref="ResourceScope"/> resources. The device is resolved
-/// from the scope's <see cref="ResourceSystem"/> installation; call
-/// <see cref="ResourceSystemExtensions.InstallAssetGpuLifecycle"/> once during host setup.
-/// Local keys are qualified by the scope owner, so callers can use stable component-local names
-/// without moving graphics descriptors into <c>Luxel.Resources</c>.
+/// GPU creation descriptors are registered as scope-local inputs and converted by AssetsGpu Steps.
+/// Each Step receives <see cref="GpuDevice"/> through constructor injection when AssetsGpu is installed;
+/// callers therefore never pass a device to these factory methods.
 /// </summary>
 public static class ResourceScopeGpuExtensions
 {
@@ -20,10 +18,9 @@ public static class ResourceScopeGpuExtensions
     {
         ArgumentNullException.ThrowIfNull(scope);
         ArgumentNullException.ThrowIfNull(code);
-        GpuDevice device = AssetGpuInstallations.RequireDevice(scope);
-        return scope.Create(localKey,
-            _ => Task.FromResult(device.CreateComputePipeline(code, entryPoint)),
-            ResourceOwnership.Owned);
+        var request = new GpuPipelineRequest(
+            code, IsCompute: true, default, entryPoint, "vsMain", "psMain");
+        return scope.Create<GpuPipelineRequest, GpuPipeline>(localKey, request);
     }
 
     public static ResourceHandle<GpuPipeline> CreateGraphicsPipeline(
@@ -36,10 +33,9 @@ public static class ResourceScopeGpuExtensions
     {
         ArgumentNullException.ThrowIfNull(scope);
         ArgumentNullException.ThrowIfNull(code);
-        GpuDevice device = AssetGpuInstallations.RequireDevice(scope);
-        return scope.Create(localKey,
-            _ => Task.FromResult(device.CreateGraphicsPipeline(code, raster, vertexEntry, pixelEntry)),
-            ResourceOwnership.Owned);
+        var request = new GpuPipelineRequest(
+            code, IsCompute: false, raster, "main", vertexEntry, pixelEntry);
+        return scope.Create<GpuPipelineRequest, GpuPipeline>(localKey, request);
     }
 
     public static ResourceHandle<GpuTexture> CreateSampledTexture(
@@ -51,10 +47,9 @@ public static class ResourceScopeGpuExtensions
         GpuFormat format = GpuFormat.Rgba8Unorm)
     {
         ArgumentNullException.ThrowIfNull(scope);
-        GpuDevice device = AssetGpuInstallations.RequireDevice(scope);
-        return scope.Create(localKey,
-            _ => Task.FromResult(device.CreateTexture(width, height, data.Span, format)),
-            ResourceOwnership.Owned);
+        var request = new GpuTextureRequest(
+            GpuTextureRequestKind.Sampled, width, height, format, data);
+        return scope.Create<GpuTextureRequest, GpuTexture>(localKey, request);
     }
 
     public static ResourceHandle<GpuSampler> CreateSampler(
@@ -64,10 +59,8 @@ public static class ResourceScopeGpuExtensions
         GpuSamplerAddress address = GpuSamplerAddress.Clamp)
     {
         ArgumentNullException.ThrowIfNull(scope);
-        GpuDevice device = AssetGpuInstallations.RequireDevice(scope);
-        return scope.Create(localKey,
-            _ => Task.FromResult(device.CreateSampler(filter, address)),
-            ResourceOwnership.Owned);
+        return scope.Create<GpuSamplerRequest, GpuSampler>(
+            localKey, new GpuSamplerRequest(filter, address));
     }
 
     public static ResourceHandle<GpuTexture> CreateRenderTarget(
@@ -78,10 +71,9 @@ public static class ResourceScopeGpuExtensions
         GpuFormat format = GpuFormat.Rgba8Unorm)
     {
         ArgumentNullException.ThrowIfNull(scope);
-        GpuDevice device = AssetGpuInstallations.RequireDevice(scope);
-        return scope.Create(localKey,
-            _ => Task.FromResult(device.CreateRenderTarget(width, height, format)),
-            ResourceOwnership.Owned);
+        var request = new GpuTextureRequest(
+            GpuTextureRequestKind.RenderTarget, width, height, format, ReadOnlyMemory<byte>.Empty);
+        return scope.Create<GpuTextureRequest, GpuTexture>(localKey, request);
     }
 
     public static ResourceHandle<GpuTexture> CreateDepthTarget(
@@ -92,10 +84,9 @@ public static class ResourceScopeGpuExtensions
         GpuFormat format = GpuFormat.D32Float)
     {
         ArgumentNullException.ThrowIfNull(scope);
-        GpuDevice device = AssetGpuInstallations.RequireDevice(scope);
-        return scope.Create(localKey,
-            _ => Task.FromResult(device.CreateDepthTarget(width, height, format)),
-            ResourceOwnership.Owned);
+        var request = new GpuTextureRequest(
+            GpuTextureRequestKind.DepthTarget, width, height, format, ReadOnlyMemory<byte>.Empty);
+        return scope.Create<GpuTextureRequest, GpuTexture>(localKey, request);
     }
 
     public static ResourceHandle<GpuBuffer> CreateBuffer(
@@ -105,10 +96,8 @@ public static class ResourceScopeGpuExtensions
         GpuMemoryKind kind = GpuMemoryKind.HostMapped)
     {
         ArgumentNullException.ThrowIfNull(scope);
-        GpuDevice device = AssetGpuInstallations.RequireDevice(scope);
-        return scope.Create(localKey,
-            _ => Task.FromResult(device.Malloc(sizeInBytes, kind)),
-            ResourceOwnership.Owned);
+        return scope.Create<GpuBufferRequest, GpuBuffer>(
+            localKey, new GpuBufferRequest(sizeInBytes, kind));
     }
 
     public static ResourceHandle<GpuBuffer> CreateBuffer<T>(

@@ -22,6 +22,10 @@ public static class ResourceSystemExtensions
             new AssetMaterialToGpuStep(device, registry),
             new AssetMeshToGpuStep(device, registry),
             new AssetSkinToGpuStep(device, registry),
+            new GpuPipelineCreationStep(device),
+            new GpuTextureCreationStep(device),
+            new GpuSamplerCreationStep(device),
+            new GpuBufferCreationStep(device),
         };
     }
 
@@ -51,17 +55,7 @@ public static class ResourceSystemExtensions
         ArgumentNullException.ThrowIfNull(resources);
         ArgumentNullException.ThrowIfNull(device);
         var registry = new AssetGpuRegistry(device);
-        AssetGpuInstallation installation;
-        try
-        {
-            installation = new AssetGpuInstallation(resources, device, registry);
-        }
-        catch
-        {
-            device.MainQueue.WaitIdle();
-            registry.Dispose();
-            throw;
-        }
+        var installation = new AssetGpuInstallation(device, registry);
         AddAssetGpuSteps(resources, device, registry);
         resources.SetDeferredDisposeIdleHook(installation.WaitIdle);
         return installation;
@@ -75,6 +69,10 @@ public static class ResourceSystemExtensions
         resources.AddStep(new AssetMaterialToGpuStep(device, registry));
         resources.AddStep(new AssetMeshToGpuStep(device, registry));
         resources.AddStep(new AssetSkinToGpuStep(device, registry));
+        resources.AddStep(new GpuPipelineCreationStep(device));
+        resources.AddStep(new GpuTextureCreationStep(device));
+        resources.AddStep(new GpuSamplerCreationStep(device));
+        resources.AddStep(new GpuBufferCreationStep(device));
     }
 
     // ==================== Publish 系 GPU リソース ====================

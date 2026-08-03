@@ -105,7 +105,7 @@ public class AssetsGpuTests
     }
 
     [Fact]
-    public void ResourceScopeGpuFactories_RequireInstalledDevice()
+    public void ResourceScopeGpuFactories_RequireRegisteredCreationStep()
     {
         using var resources = new Luxel.Resources.ResourceSystem();
         using var scope = resources.CreateScope("viewport/uninstalled");
@@ -113,7 +113,8 @@ public class AssetsGpuTests
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(
             () => scope.CreateBuffer("buffer", 16));
 
-        Assert.Contains("InstallAssetGpuLifecycle", error.Message, StringComparison.Ordinal);
+        Assert.Contains("GpuBufferRequest", error.Message, StringComparison.Ordinal);
+        Assert.Contains("ステップ未登録", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
