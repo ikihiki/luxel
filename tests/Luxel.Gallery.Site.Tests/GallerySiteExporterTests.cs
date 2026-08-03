@@ -889,6 +889,14 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("## Backend", environment);
         foreach (string backend in new[] { "## Vulkan", "## Direct3D 12", "## WebGPU (native)", "## WebGPU (browser)" })
             Assert.Contains(backend, environment);
+        Assert.Contains("`Luxel.Platform`", environment);
+        Assert.Contains("Frameworkアプリ", environment);
+        foreach (string surfaceApi in new[] { "CreateWin32Surface", "VulkanPresentationSource", "CreateSurface", "CreateXlibSurface", "CreateCanvasSurface" })
+            Assert.Contains(surfaceApi, environment);
+        Assert.DoesNotContain("using Luxel.Platform", environment);
+        Assert.DoesNotContain("device.CreateSurface", environment);
+        Assert.DoesNotContain("device.CreateCanvasSurface", environment);
+        Assert.DoesNotContain("IVulkanWindowSurface", environment);
         Assert.DoesNotContain("## ビルド", environment);
         Assert.DoesNotContain("## Shader cache", environment);
 

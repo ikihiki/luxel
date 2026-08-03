@@ -59,7 +59,7 @@ public sealed class BrowserWebGpuManagedTests
     {
         var interop = new FakeInterop();
         using var backend = await BrowserWebGpuBackend.CreateAsync(interop);
-        using var surface = backend.CreateCanvasSurface("#canvas", 800, 600);
+        using var surface = backend.CreateNativeCanvasSurface("#canvas", 800, 600);
         using var pixels = backend.CreateBuffer(320 * 240 * 4, GpuMemoryKind.HostCached);
 
         surface.Present(pixels, 320, 320, 240);
@@ -86,9 +86,9 @@ public sealed class BrowserWebGpuManagedTests
     public async Task High_level_async_queue_and_canvas_surface_forward_to_browser_backend()
     {
         var interop = new FakeInterop();
-        using var backend = await BrowserWebGpuBackend.CreateAsync(interop);
+        BrowserWebGpuBackend backend = await BrowserWebGpuBackend.CreateAsync(interop);
         using var device = new GpuDevice(backend);
-        using GpuSurface surface = device.CreateCanvasSurface("#counter", 640, 360);
+        using GpuSurface surface = backend.CreateCanvasSurface("#counter", 640, 360);
         using GpuBuffer pixels = device.Malloc(640u * 360u * 4u, GpuMemoryKind.HostMapped);
         using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
         command.Finish();
@@ -99,6 +99,19 @@ public sealed class BrowserWebGpuManagedTests
         Assert.Equal("#counter", interop.LastCanvasToken);
         Assert.Equal((640, 360), interop.LastCanvasSize);
         Assert.Equal(1, interop.SurfacePresents);
+    }
+
+    [Fact]
+    public async Task Surface_rejects_buffer_from_another_backend_instance()
+    {
+        BrowserWebGpuBackend firstBackend = await BrowserWebGpuBackend.CreateAsync(new FakeInterop());
+        BrowserWebGpuBackend secondBackend = await BrowserWebGpuBackend.CreateAsync(new FakeInterop());
+        using var firstDevice = new GpuDevice(firstBackend);
+        using var secondDevice = new GpuDevice(secondBackend);
+        using GpuSurface surface = firstBackend.CreateCanvasSurface("#canvas", 16, 16);
+        using GpuBuffer foreignBuffer = secondDevice.Malloc(16u * 16u * 4u);
+
+        Assert.Throws<ArgumentException>(() => surface.Present(foreignBuffer, 16, 16, 16));
     }
 
     private static unsafe nint Pointer(IGpuBackendBuffer buffer) => (nint)buffer.MappedPointer;

@@ -42,69 +42,120 @@ public static partial class DocsRenderingLearn
 
         {{RenderingCourseCatalog.Meta("Learn/Grapics/Environment", "Beginner", "Standalone + Browser", "Vulkan / Direct3D 12 / WebGPU", "Overview")}}
 
+        > [!NOTE]
+        > `Luxel.Platform`と各platform実装はwindowの作成、event pump、clipboard、IME、低レベル入力をサポートします。通常のFrameworkアプリでは`Luxel.UI.App`の構成にdeviceとsurfaceの自動管理を任せられます。以下はgraphics APIを直接組み立てる低水準向けの例です。
+
+        低水準APIではwindow libraryとgraphics backendを利用者が接続します。例ではwindow system固有の型を持ち込まず、必要なnative handleやcallbackは`handle`などの変数へ事前に用意済みとします。
+
         ## Backend
 
-        | Backend | 実行環境 | Window / Surface | `LuxelTriangle`の実行引数 |
+        | Backend | 実行環境 | Surfaceの入力 | `LuxelTriangle`の実行引数 |
         | --- | --- | --- | --- |
-        | Vulkan | Windows / Linux | Win32 / X11 | `vk` / `vulkan` |
-        | Direct3D 12 | Windows | Win32 | `dx` / `d3d12` |
-        | WebGPU (native) | Windows / Linux | Win32 / Xlib | `webgpu` / `wgpu` |
-        | WebGPU (browser) | Browser WASM | HTML canvas | — |
+        | Vulkan | Windows | Win32 `HWND` | `vk` / `vulkan` |
+        | Vulkan | Linux / X11 | instance extensionと`VkSurfaceKHR`作成callback | `vk` / `vulkan` |
+        | Direct3D 12 | Windows | Win32 `HWND` | `dx` / `d3d12` |
+        | WebGPU (native) | Windows | `HINSTANCE`と`HWND` | `webgpu` / `wgpu` |
+        | WebGPU (native) | Linux / X11 | Xlib displayとwindow | `webgpu` / `wgpu` |
+        | WebGPU (browser) | Browser WASM | canvas selector | — |
 
-        Linuxの実ウィンドウにはX11の `DISPLAY` が必要です。Wayland nativeは未対応です。browser版はnative windowを作らず、canvasからsurfaceを作ります。
+        Linuxの実ウィンドウにはX11の`DISPLAY`が必要です。Wayland nativeは未対応です。surfaceは`GpuDevice`ではなく、作成に使用した具体的なbackendから作ります。
 
         ## Vulkan
 
-        Windowsではbackendを直接作成できます。
+        ### Windows
+
+        Win32では`VulkanPresentationMode.Win32`でdeviceを初期化し、事前に取得した`HWND`を`CreateWin32Surface`へ渡します。
 
         ```csharp
-        using var device = new GpuDevice(
-            Luxel.Graphics.Vulkan.VulkanBackend.Create());
+        nint handle = /* HWND */;
+        uint width = 1280, height = 720;
+
+        VulkanBackend backend = VulkanBackend.Create(new VulkanBackendOptions
+        {
+            Presentation = VulkanPresentationMode.Win32,
+        });
+        using var device = new GpuDevice(backend);
+        using GpuSurface surface = backend.CreateWin32Surface(
+            handle, width, height);
         ```
 
-        Linuxのwindow表示では、windowが提供する`IVulkanWindowSurface`を作成時に渡します。
+        ### Linux / X11
+
+        Vulkan instanceの作成前に、window libraryが要求するinstance extensionと、`VkInstance`から`VkSurfaceKHR`を作るcallbackが必要です。`handle`はX11 windowなど、callbackがsurface作成に必要とする値です。
 
         ```csharp
-        IVulkanWindowSurface provider = window.GetFeature<IVulkanWindowSurface>()
-            ?? throw new PlatformNotSupportedException(
-                "Linux/X11 window did not provide a Vulkan surface.");
+        ulong handle = /* X11 window */;
+        IReadOnlyList<string> requiredInstanceExtensions = /* prepared */;
 
-        using var device = new GpuDevice(
-            VulkanBackend.Create(new VulkanBackendOptions
-            {
-                Presentation = VulkanPresentationMode.Window,
-                WindowSurface = provider,
-            }));
+        var presentationSource = new VulkanPresentationSource(
+            requiredInstanceExtensions,
+            instanceHandle => CreateVulkanSurface(instanceHandle, handle));
+
+        VulkanBackend backend = VulkanBackend.Create(new VulkanBackendOptions
+        {
+            Presentation = VulkanPresentationMode.Window,
+            PresentationSource = presentationSource,
+        });
+        using var device = new GpuDevice(backend);
+        using GpuSurface surface = backend.CreateSurface(width, height);
         ```
+
+        `CreateVulkanSurface`は選択したwindow libraryを使ってsurfaceを作り、`VkSurfaceKHR`を`ulong`で返す利用者側の関数です。Linux Vulkanではwindow handleだけでは初期化できません。
 
         ## Direct3D 12
 
         Direct3D 12はWindows専用です。`Create()`の`enableDebug`は既定で`true`です。
 
         ```csharp
-        using var device = new GpuDevice(
-            Luxel.Graphics.DirectX12.D3D12Backend.Create());
+        nint handle = /* HWND */;
+
+        D3D12Backend backend = D3D12Backend.Create();
+        using var device = new GpuDevice(backend);
+        using GpuSurface surface = backend.CreateSurface(
+            handle, width, height);
         ```
 
         ## WebGPU (native)
 
-        native版は`wgpu-native`を利用し、WindowsとLinuxで同じ作成コードを使います。
+        deviceの作成コードはWindowsとLinuxで共通ですが、surface作成APIはnative window systemごとに異なります。
 
         ```csharp
-        using var device = new GpuDevice(
-            Luxel.Graphics.WebGPU.WebGpuBackend.Create());
+        WebGpuBackend backend = WebGpuBackend.Create();
+        using var device = new GpuDevice(backend);
+        ```
+
+        ### Windows
+
+        ```csharp
+        nint instanceHandle = /* HINSTANCE */;
+        nint handle = /* HWND */;
+
+        using GpuSurface surface = backend.CreateWin32Surface(
+            instanceHandle, handle, width, height);
+        ```
+
+        ### Linux / X11
+
+        ```csharp
+        nint displayHandle = /* Xlib Display* */;
+        ulong handle = /* Xlib Window */;
+
+        using GpuSurface surface = backend.CreateXlibSurface(
+            displayHandle, handle, width, height);
         ```
 
         ## WebGPU (browser)
 
-        browser版のbackend作成は非同期です。`GpuDevice`作成後はnative surface descriptorではなく、canvas selectorを指定します。
+        browser版のbackend作成は非同期です。native handleの代わりに描画先canvasのselectorを渡します。
 
         ```csharp
-        using BrowserWebGpuBackend backend =
+        string handle = /* canvas selector */;
+
+        BrowserWebGpuBackend backend =
             await BrowserWebGpuBackend.CreateAsync();
         using var device = new GpuDevice(backend);
-        using GpuSurface surface = device.CreateCanvasSurface(
-            "#luxel-canvas", (uint)window.Width, (uint)window.Height);
+        using GpuSurface surface = backend.CreateCanvasSurface(
+            handle, width, height);
         ```
         """, toc: true);
     }

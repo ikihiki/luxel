@@ -55,7 +55,7 @@ public sealed class WindowHost : IDisposable
     /// <summary>DPI スケール (論理 px × S = 物理 px)。</summary>
     private float S => Window.Scale;
 
-    public WindowHost(int id, GpuDevice device, Window window, IWindowContent content)
+    public WindowHost(int id, GpuDevice device, Window window, IWindowContent content, GpuSurface surface)
     {
         Id = id;
         _device = device;
@@ -65,9 +65,7 @@ public sealed class WindowHost : IDisposable
         Content.Resize(_w / S, _h / S, S);   // content の論理サイズを実クライアント (物理/scale) に同期
         RemoteInfo = CaptureRemoteInfo();
         Alloc();
-        INativeSurfaceProvider surfaceProvider = window.GetFeature<INativeSurfaceProvider>()
-            ?? throw new PlatformNotSupportedException("The window backend did not provide native surface handles.");
-        _surface = device.CreateSurface(surfaceProvider.SurfaceDescriptor, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
+        _surface = surface ?? throw new ArgumentNullException(nameof(surface));
         _textInput = window.CreateTextInputContext(() => Content.ImeTarget, () => S)
             ?? NoWindowTextInputContext.Instance;
         Wire();

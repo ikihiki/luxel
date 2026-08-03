@@ -22,7 +22,7 @@ public enum CursorKind
 /// <code>
 /// using var windows = new WindowSystem(Luxel.Platform.Windows.Win32WindowBackend.Create());
 /// Window main = windows.CreateWindow(new WindowDesc("App", 800, 600));
-/// var swapchain = device.CreateSurface(main.Handle, (uint)main.Width, (uint)main.Height);
+/// // Low-level callers explicitly connect the selected backend window and graphics backend.
 /// while (windows.Pump()) { ...描画して swapchain.Present... }
 /// </code>
 /// </summary>
@@ -143,6 +143,22 @@ public sealed class Window : IDisposable
     public event Action<WindowKeyEvent>? KeyDown;
     public event Action<WindowKeyEvent>? KeyUp;
     public event Action<string>? TextInput;
+
+    /// <summary>
+    /// Gets the implementation-owned backend window. The returned object remains owned by this
+    /// <see cref="Window"/> and must not be disposed separately.
+    /// </summary>
+    public IWindowBackendWindow BackendWindow => _win;
+
+    /// <summary>
+    /// Gets the backend window as the implementation type selected by the caller.
+    /// Presentation setup is intentionally explicit: callers using low-level graphics backends
+    /// are responsible for understanding and connecting the chosen window implementation.
+    /// </summary>
+    public TWindow RequireBackendWindow<TWindow>() where TWindow : class, IWindowBackendWindow
+        => _win as TWindow
+            ?? throw new InvalidOperationException(
+                $"Window backend type mismatch. Expected {typeof(TWindow).FullName}, actual {_win.GetType().FullName}.");
 
     /// <summary>Gets an optional backend-specific feature without adding it to the portable window ABI.</summary>
     public TFeature? GetFeature<TFeature>() where TFeature : class => _win as TFeature;

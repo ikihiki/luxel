@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel.Platform\Luxel.Platform.csproj" />
     <PackageReference Include="Silk.NET.Windowing" Version="2.23.0" />
   </ItemGroup>
@@ -17,7 +16,6 @@
              CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
-    <Using Include="Luxel.Graphics" />
     <Using Include="Luxel.Platform" />
   </ItemGroup>
 </Project>

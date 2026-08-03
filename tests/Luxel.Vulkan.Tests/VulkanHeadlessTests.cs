@@ -47,8 +47,7 @@ public sealed class VulkanHeadlessTests
         Assert.Equal(4096UL, buffer.Size);
         Assert.NotEqual(0UL, buffer.DeviceAddress);
 
-        var error = Assert.Throws<InvalidOperationException>(() =>
-            backend.CreateSurface(NativeSurfaceDescriptor.Win32(1), 1, 1));
-        Assert.Contains("headless", error.Message, StringComparison.OrdinalIgnoreCase);
+        var error = Assert.Throws<InvalidOperationException>(() => backend.CreateSurface(1, 1));
+        Assert.Contains("Window", error.Message, StringComparison.OrdinalIgnoreCase);
     }
 }

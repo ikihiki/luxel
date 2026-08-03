@@ -12,7 +12,7 @@ namespace Luxel.Platform.Windows;
 /// スレッドローカルを持たない (どのスレッドが何枚窓を持っても所有はインスタンスに閉じる)。
 /// メッセージポンプは呼び出しスレッドのキューを処理する (Win32 の意味論どおりスレッド所有)。
 /// </summary>
-internal sealed unsafe class Win32Window : IWindowBackendWindow, IWin32RawKeyInput, IWindowTextInputContextFactory, Luxel.Graphics.INativeSurfaceProvider
+public sealed unsafe class Win32Window : IWindowBackendWindow, IWin32RawKeyInput, IWindowTextInputContextFactory
 {
     private static readonly WNDPROC _wndProcThunk = StaticWndProc;         // GC で回収されないよう静的保持
     private static readonly object ClassGate = new();                      // クラス登録はプロセスで 1 回
@@ -42,10 +42,9 @@ internal sealed unsafe class Win32Window : IWindowBackendWindow, IWin32RawKeyInp
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
     private static extern nint GetWindowLongPtrW(nint hWnd, int nIndex);
 
-    public HWND Hwnd { get; private set; }
+    internal HWND Hwnd { get; private set; }
     public nint Handle => (nint)Hwnd.Value;
-    public Luxel.Graphics.NativeSurfaceDescriptor SurfaceDescriptor
-        => Luxel.Graphics.NativeSurfaceDescriptor.Win32(Handle, PInvoke.GetModuleHandle((PCWSTR)null));
+    public nint HInstance => PInvoke.GetModuleHandle((PCWSTR)null);
     public int Width { get; private set; }
     public int Height { get; private set; }
     public int X { get; private set; }
@@ -74,7 +73,7 @@ internal sealed unsafe class Win32Window : IWindowBackendWindow, IWin32RawKeyInp
     private const string ClassName = "LuxelWindow";
     private const int UseDefault = int.MinValue;   // CW_USEDEFAULT
 
-    public Win32Window(string title, int width, int height, int? x = null, int? y = null, bool visible = true)
+    internal Win32Window(string title, int width, int height, int? x = null, int? y = null, bool visible = true)
     {
         EnsureDpiAwareness();
         Width = width; Height = height;

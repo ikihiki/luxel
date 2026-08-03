@@ -69,9 +69,10 @@ public static partial class Program
             int initialHeight = story.Height > 0 ? story.Height : 360;
             Window window = windows.CreateWindow(new WindowDesc("Luxel " + path, initialWidth, initialHeight));
             windows.Pump();
-            using BrowserWebGpuBackend backend = await BrowserWebGpuBackend.CreateAsync();
+            BrowserWebGpuBackend backend = await BrowserWebGpuBackend.CreateAsync();
             using var device = new GpuDevice(backend);
-            using GpuSurface surface = device.CreateCanvasSurface("#luxel-canvas", (uint)window.Width, (uint)window.Height);
+            var browserBackend = (BrowserWebGpuBackend)device.Backend;
+            using GpuSurface surface = browserBackend.CreateCanvasSurface("#luxel-canvas", (uint)window.Width, (uint)window.Height);
             using var raster = new GpuDeviceRasterizer2D(device, RasterShader);
             using var font = new VectorFont(Resource("BIZUDGothic-Regular.ttf"));
             using var canvas = new RetainedCanvas();
@@ -151,7 +152,7 @@ public static partial class Program
         window.Resized += (_, _) => { resizeEvents++; resizePending = true; };
         windows.Pump();
         using BrowserWebGpuBackend gpu = await BrowserWebGpuBackend.CreateAsync();
-        using BrowserWebGpuSurface surface = gpu.CreateCanvasSurface("#luxel-canvas", (uint)window.Width, (uint)window.Height);
+        using BrowserWebGpuSurface surface = gpu.CreateNativeCanvasSurface("#luxel-canvas", (uint)window.Width, (uint)window.Height);
         resizePending = false;
         using IGpuBackendBuffer compute = gpu.CreateBuffer(256, GpuMemoryKind.HostCached);
         using IGpuBackendPipeline computePipeline = gpu.CreateComputePipeline(Resource("compute.wgsl"), "main");
