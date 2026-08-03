@@ -1,8 +1,0 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/UI/BuildAndReconciliation</h1></header><h1 id="build-layout-and-reconciliation">Build, layout, and reconciliation</h1>
-<p>Buildはlazyで、最初のLayout時に呼ばれます。signal変更は同期的に<code>Root</code>をnullへし、次のLayoutで最新値を使って一度だけ再Buildします。このheadless sampleはBuild reconciliationまでを検証します。<code>UiHost</code>、input hit testing、RetainedCanvasへの部分Realizeはwindow/GPU host側の責務であり、このbundleには含まれません。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/UI/BuildAndReconciliation&quot;, Order = 2)]
-public static Widget Reconciliation(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
-    # Build, layout, and reconciliation
-
-    Buildはlazyで、最初のLayout時に呼ばれます。signal変更は同期的に`Root`をnullへし、次のLayoutで最新値を使って一度だけ再Buildします。このheadless sampleはBuild reconciliationまでを検証します。`UiHost`、input hit testing、RetainedCanvasへの部分Realizeはwindow/GPU host側の責務であり、このbundleには含まれません。
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
