@@ -43,12 +43,14 @@ public sealed class StoryAttribute(string path) : Attribute
 /// ストーリー構築時の文脈。<see cref="Signal{T}"/> で作った signal は自動的に knob
 /// (ブラウザから編集できるパラメータ) として公開される。Storybook の args 相当。
 /// </summary>
-public sealed class StoryContext
+public sealed class StoryContext : IDisposable
 {
+    private static long _nextResourceOwnerId;
     private readonly List<StoryKnob> _knobs = new();
     private readonly object _logGate = new();
     private readonly List<StoryLogEntry> _log = new();
     private readonly Luxel.Resources.ResourceSystem? _resources;
+    private readonly Luxel.Resources.ResourceScope? _scopedResources;
     private long _logSeq;
     private const int LogCapacity = 200;
     private StoryArgs _args;
@@ -64,6 +66,7 @@ public sealed class StoryContext
     public StoryContext(Luxel.Resources.ResourceSystem? resources = null, StoryArgs? args = null)
     {
         _resources = resources;
+        _scopedResources = resources?.CreateScope($"story-context-{Interlocked.Increment(ref _nextResourceOwnerId)}");
         _args = args ?? StoryArgs.Empty;
     }
 
@@ -121,6 +124,16 @@ public sealed class StoryContext
 
     /// <summary><see cref="Resources"/> の nullable 版 — 画像配線など「あれば使う」任意機能用。</summary>
     public Luxel.Resources.ResourceSystem? ResourcesOrNull => _resources;
+
+    /// <summary>この story instance が所有する resource lease のスコープ。Context の破棄時に一括解放される。</summary>
+    public Luxel.Resources.ResourceScope ScopedResources
+        => _scopedResources ?? throw new InvalidOperationException("ホストが ResourceSystem を設定していません (StoryContext ctor で渡す)");
+
+    /// <summary><see cref="ScopedResources"/> の nullable 版。</summary>
+    public Luxel.Resources.ResourceScope? ScopedResourcesOrNull => _scopedResources;
+
+    /// <summary>この story instance が scoped resource lease を解放する。複数回呼び出しても安全。</summary>
+    public void Dispose() => _scopedResources?.Dispose();
 
     private Luxel.Graphics.GpuDevice? _device;
     private Luxel.Typography.VectorFont? _font;

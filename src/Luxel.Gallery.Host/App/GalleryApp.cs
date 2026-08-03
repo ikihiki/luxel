@@ -66,6 +66,7 @@ public sealed class GalleryApp : IDisposable
     private int _pendingScroll = -1;      // 見出しクリックでページ遷移した後のスクロール先ブロック
     private Dictionary<string, DocsPage>? _docsIndex;   // 初回 BuildRoot で構築 (path → 本文+TOC)
     private long _frame;
+    private bool _disposed;
     private Widget? _selected;                                   // Props インスペクタの選択ノード
     private readonly object _editGate = new();
     private readonly List<(Widget W, string Name, string Type, string Value)> _propEdits = new();
@@ -751,6 +752,102 @@ public sealed class GalleryApp : IDisposable
 
     public void Select(StoryInfo story)
     {
+        StoryContext? oldContext = _ctx;
+        var newContext = new StoryContext(_resources);
+        newContext.SetServices(_storyServices);   // DI: shared scripting services + native Playground persistence
+        // 遷移は次フレームへキュー — 子ホストの入力ディスパッチ中に SetContent (旧ルート破棄) しない
+        newContext.SetNavigator(p => _pendingNav = p);
+        if (HostGpu is { } gpu) newContext.SetGpuHost(gpu.Device, gpu.Font);
+        (int pw, int ph) = PreviewSize(story);
+
+        Widget newRoot;
+        try
+        {
+            newRoot = story.Build(newContext);
+        }
+        catch (Exception error)
+        {
+            newContext.Dispose();
+            if (InstallStoryError(story, error, pw, ph)) oldContext?.Dispose();
+            else
+            {
+                _preview.Dispose();
+                oldContext?.Dispose();
+                _ctx = null;
+                _storyRoot = null;
+            }
+            return;
+        }
+
+        try
+        {
+            // SetContent releases the previous realized UI first. Only then may its context scope be released.
+            _preview.SetContent(newRoot, pw, ph);
+        }
+        catch (Exception error)
+        {
+            // A failed SetRoot may have partially realized the new tree. Replacing it with the error view
+            // releases that UI before either the failed new scope or the previous scope is disposed.
+            bool errorInstalled = InstallStoryError(story, error, pw, ph);
+            if (!errorInstalled)
+            {
+                // If even the fallback cannot replace the partial tree, tear down the surface before releasing
+                // either scope. The preview is no longer usable, but no realized UI can outlive its resources.
+                _preview.Dispose();
+            }
+            newContext.Dispose();
+            oldContext?.Dispose();
+            if (!errorInstalled)
+            {
+                _ctx = null;
+                _storyRoot = null;
+            }
+            return;
+        }
+
+        _ctx = newContext;
+        _storyRoot = newRoot;
+        SetSelectedStory(story);
+        oldContext?.Dispose();
+        StorySelectionChanged();
+    }
+
+    private bool InstallStoryError(StoryInfo story, Exception error, int width, int height)
+    {
+        Console.Error.WriteLine($"[gallery] story error '{story.Path}': {error}");   // スタック付き (診断用)
+        Widget errorRoot = Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))[
+            VStack(spacing: 8)[
+                Text("Story error", 18, color: Color2D.Rgba(220, 60, 60)),
+                Text($"{error.GetType().Name}: {error.Message}", 14, color: Color2D.Rgba(220, 60, 60))
+            ]];
+        try
+        {
+            _preview.SetContent(errorRoot, width, height);
+            _ctx = null;
+            _storyRoot = errorRoot;
+            SetSelectedStory(story);
+            StorySelectionChanged();
+            return true;
+        }
+        catch (Exception fallbackError)
+        {
+            Console.Error.WriteLine($"[gallery] failed to install error view for '{story.Path}': {fallbackError}");
+            return false;
+        }
+    }
+
+    private void ShowStoryError(string path, Exception error, int? width = null, int? height = null)
+    {
+        StoryContext? failedContext = _ctx;
+        StoryInfo story = _currentStory ?? new StoryInfo(path, width ?? (int)PreviewW, height ?? (int)PreviewH, null, _ => Spacer());
+        (int pw, int ph) = width.HasValue && height.HasValue
+            ? (width.Value, height.Value)
+            : _currentStory is { } current ? PreviewSize(current) : ((int)PreviewW, (int)PreviewH);
+        if (InstallStoryError(story, error, pw, ph)) failedContext?.Dispose();
+    }
+
+    private void SetSelectedStory(StoryInfo story)
+    {
         _currentStory = story;
         _currentPath = story.Path;
         // 選択したstoryが折りたたまれたfolder内でも必ず見えるよう、全ancestorを展開する。
@@ -763,44 +860,14 @@ public sealed class GalleryApp : IDisposable
         }
         _treeExpanded.Add(story.Path);   // docs story自身も開いてTOCを見せる
         _title.Value = story.Path;
-        _ctx = new StoryContext(_resources);
-        _ctx.SetServices(_storyServices);   // DI: shared scripting services + native Playground persistence
-        // 遷移は次フレームへキュー — 子ホストの入力ディスパッチ中に SetContent (旧ルート破棄) しない
-        _ctx.SetNavigator(p => _pendingNav = p);
-        if (HostGpu is { } gpu) _ctx.SetGpuHost(gpu.Device, gpu.Font);
-        (int pw, int ph) = PreviewSize(story);
-        try
-        {
-            _storyRoot = story.Build(_ctx);
-            _preview.SetContent(_storyRoot, pw, ph);
-        }
-        catch (Exception e)
-        {
-            ShowStoryError(story.Path, e, pw, ph);
-        }
-        _logCount = -1;   // 新 StoryContext → Log リストを作り直させる
+    }
+
+    private void StorySelectionChanged()
+    {
+        _logCount = -1;       // 新 StoryContext → Log リストを作り直させる
         _selected = null;     // Props 選択は旧ストーリーの widget なのでクリア
         _dirty = true;        // knobs/props パネルが変わるので chrome を再構築 (SurfaceView は再利用)
         _statesDirty = true;  // 強制中の状態を新ストーリーへ再適用
-    }
-
-    private void ShowStoryError(string path, Exception error, int? width = null, int? height = null)
-    {
-        Console.Error.WriteLine($"[gallery] story error '{path}': {error}");   // スタック付き (診断用)
-        _storyRoot = Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))[
-            VStack(spacing: 8)[
-                Text("Story error", 18, color: Color2D.Rgba(220, 60, 60)),
-                Text($"{error.GetType().Name}: {error.Message}", 14, color: Color2D.Rgba(220, 60, 60))
-            ]];
-        (int pw, int ph) = width.HasValue && height.HasValue
-            ? (width.Value, height.Value)
-            : _currentStory is { } story ? PreviewSize(story) : ((int)PreviewW, (int)PreviewH);
-        try { _preview.SetContent(_storyRoot, pw, ph); }
-        catch (Exception fallbackError)
-        {
-            Console.Error.WriteLine($"[gallery] failed to install error view for '{path}': {fallbackError}");
-        }
-        _dirty = true;
     }
 
     public void SelectByPath(string path)
@@ -810,7 +877,11 @@ public sealed class GalleryApp : IDisposable
 
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
         _preview.Dispose();
+        _ctx?.Dispose();
+        _ctx = null;
         _resources.Dispose();
     }
 }

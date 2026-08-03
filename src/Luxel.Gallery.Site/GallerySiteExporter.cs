@@ -90,7 +90,8 @@ public static partial class GallerySiteExporter
                 }
                 else if (story.ResultBuild is not null)
                 {
-                    StoryResult result = story.BuildResult(new StoryContext(args: StoryArgs.Empty));
+                    using var context = new StoryContext(args: StoryArgs.Empty);
+                    StoryResult result = story.BuildResult(context);
                     if (result.Kind == StoryResultKind.Markdown)
                     {
                         status = "document";
@@ -308,7 +309,8 @@ public static partial class GallerySiteExporter
                 {
                     try
                     {
-                        StoryResult nested = referenced.BuildResult(new StoryContext(args: reference.Args));
+                        using var context = new StoryContext(args: reference.Args);
+                        StoryResult nested = referenced.BuildResult(context);
                         html = nested.Kind == StoryResultKind.Markdown
                             ? $"<section class=\"story-reference story-reference-markdown\" data-story-reference=\"{H(referenced.Path)}\">{RenderStoryResult(nested, referenced.Path, stories, browserBundle, host, imagesDir, repositoryRoot, cache, ancestry, depth + 1, ref unavailable, ref errors)}</section>"
                             : StaticReference(host, referenced, imagesDir, repositoryRoot, cache, ref unavailable, ref errors);
