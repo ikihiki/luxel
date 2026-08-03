@@ -33,7 +33,7 @@ surface.Present(framebuffer, stridePixels, width, height);
 #endif
         Window window = windows.CreateWindow(new WindowDesc($&quot;Luxel — 3D Tutorial ({stage})&quot;, initialWidth, initialHeight));
         using GpuDevice device = CreateDevice(backend, window);
-        using GpuSurface surface = device.CreateSurface(window.GetFeature&lt;INativeSurfaceProvider&gt;()!.SurfaceDescriptor, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
+        using GpuSurface surface = CreateSurface(device, window);
         using var renderer = new TriangleRenderer(device, stage);
 
         int width = Math.Max(0, window.Width);

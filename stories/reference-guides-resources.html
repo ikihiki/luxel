@@ -21,7 +21,7 @@ img.Dispose();                      // refcount 減 — 0 で自動 evict
 resources.Watch();                  // ファイル変更 → 自動リロード (Reloaded イベント)
 resources.Pump();                   // 毎フレーム: リロード反映と破棄の消化
 </code></pre>
-<p><code>Publish(uri, value)</code> で外部所有のオブジェクトも登録でき、<code>Republish</code> すると依存先へリロードが伝播します。GPU デバイスロストは <code>NotifyDeviceLost()</code> で全再ロード。</p>
+<p><code>Publish(uri, value)</code> で外部所有のオブジェクトも登録でき、<code>Republish</code> すると依存先へリロードが伝播します。GPU デバイスロストは <code>InvalidateAll()</code> で全再ロード。</p>
 <h2 id="step">自動コンポーズ — Step の連鎖</h2>
 <p>「<code>CpuImage</code> を作る Step (png デコード)」を登録しておくと、<code>Load&lt;CpuImage&gt;(&quot;a.png&quot;)</code> は自動的に <code>CpuImage ← byte[] ← FileSource</code> の依存ノードを連鎖生成します。変換の追加は <code>IResourceStep</code> の登録だけ — 呼び出し側は最終型で Load するだけです。</p>
 <ul>
@@ -30,7 +30,7 @@ resources.Pump();                   // 毎フレーム: リロード反映と破
 <li><strong>フラグメント</strong> — <code>model.glb#mesh/0</code> のように 1 ファイルから複数リソースを切り出せます (glTF のメッシュ/マテリアル分割がこれ)</li>
 </ul>
 <h2 id="io-cpu-gpu">3 レーン実行 (Io / Cpu / Gpu)</h2>
-<p>Step の中では <code>await ctx.Io</code> / <code>ctx.Cpu</code> / <code>ctx.Gpu</code> でレーンを移動します。ファイル読みは Io、デコードは Cpu、アップロードは Gpu — レーン毎に並列度が制限され、大量ロードでもフレームを崩しません。初回ロードの publish は Pump 不要で直接反映されるため、初期化時は <code>Ready.Wait</code> で同期的に待てます (Gallery のデモもこの形)。</p>
+<p>Step の中では <code>await ctx.Io</code> / <code>ctx.Cpu</code> / <code>ctx.External</code> でレーンを移動します。ファイル読みは Io、デコードは Cpu、アップロードは Gpu — レーン毎に並列度が制限され、大量ロードでもフレームを崩しません。初回ロードの publish は Pump 不要で直接反映されるため、初期化時は <code>Ready.Wait</code> で同期的に待てます (Gallery のデモもこの形)。</p>
 <h2 id="section">パッケージの役割分担</h2>
 <table>
 <thead>
@@ -88,7 +88,7 @@ public static Widget Resources(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot
     resources.Pump();                   // 毎フレーム: リロード反映と破棄の消化
     ```
 
-    `Publish(uri, value)` で外部所有のオブジェクトも登録でき、`Republish` すると依存先へリロードが伝播します。GPU デバイスロストは `NotifyDeviceLost()` で全再ロード。
+    `Publish(uri, value)` で外部所有のオブジェクトも登録でき、`Republish` すると依存先へリロードが伝播します。GPU デバイスロストは `InvalidateAll()` で全再ロード。
 
     ## 自動コンポーズ — Step の連鎖
 
@@ -100,7 +100,7 @@ public static Widget Resources(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot
 
     ## 3 レーン実行 (Io / Cpu / Gpu)
 
-    Step の中では `await ctx.Io` / `ctx.Cpu` / `ctx.Gpu` でレーンを移動します。ファイル読みは Io、デコードは Cpu、アップロードは Gpu — レーン毎に並列度が制限され、大量ロードでもフレームを崩しません。初回ロードの publish は Pump 不要で直接反映されるため、初期化時は `Ready.Wait` で同期的に待てます (Gallery のデモもこの形)。
+    Step の中では `await ctx.Io` / `ctx.Cpu` / `ctx.External` でレーンを移動します。ファイル読みは Io、デコードは Cpu、アップロードは Gpu — レーン毎に並列度が制限され、大量ロードでもフレームを崩しません。初回ロードの publish は Pump 不要で直接反映されるため、初期化時は `Ready.Wait` で同期的に待てます (Gallery のデモもこの形)。
 
     ## パッケージの役割分担
 
