@@ -14,6 +14,8 @@ RuntimeStoryDescriptor[] stories =
         story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>(),
         story.CapabilityNote,
         story.ProductionComponent?.ComponentType)),
+    new(CanonicalClearColorRecipe.Story, CanonicalClearColorRecipe.Width, CanonicalClearColorRecipe.Height,
+        Array.Empty<StoryArgDefinition>(), "Specialized browser WebGPU ClearColor route.", null),
     new(CanonicalTriangleRecipe.Story, CanonicalTriangleRecipe.Width, CanonicalTriangleRecipe.Height,
         Array.Empty<StoryArgDefinition>(), "Specialized browser WebGPU validation route.", null),
 ];

@@ -5818,6 +5818,14 @@
       "componentType": null
     },
     {
+      "path": "Examples/3D/ClearColor",
+      "width": 320,
+      "height": 240,
+      "args": [],
+      "capabilityNote": "Specialized browser WebGPU ClearColor route.",
+      "componentType": null
+    },
+    {
       "path": "Examples/3D/Triangle",
       "width": 320,
       "height": 240,

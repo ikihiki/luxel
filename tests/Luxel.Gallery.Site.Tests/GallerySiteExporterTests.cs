@@ -28,6 +28,7 @@ public sealed class GallerySiteExporterTests
         Assert.NotNull(catalog.Find("Controls/Button/Primary"));
         Assert.NotNull(catalog.Find("Controls/Button/Overview"));
         Assert.NotNull(catalog.Find("Examples/Scripting/Playground"));
+        Assert.Equal("webgpu-browser-v1", catalog.Find("Examples/3D/ClearColor")?.RuntimeBundleId);
         Assert.Equal("webgpu-browser-v1", catalog.Find("Examples/3D/Triangle")?.RuntimeBundleId);
         Assert.Equal("webgpu-browser-v1", catalog.Find("Controls/Button/Counter")?.RuntimeBundleId);
         Assert.Null(empty.Find("Start/Welcome"));
@@ -421,6 +422,7 @@ public sealed class GallerySiteExporterTests
     }
 
     [Theory]
+    [InlineData("Examples/3D/ClearColor", "examples-3d-clearcolor.html")]
     [InlineData("Examples/3D/Triangle", "examples-3d-triangle.html")]
     [InlineData("Controls/Button/Counter", "controls-button-counter.html")]
     public void Browser_stories_export_as_runtime_without_native_realization_or_static_capture(string storyPath, string fragmentName)
@@ -428,12 +430,8 @@ public sealed class GallerySiteExporterTests
         string root = GallerySiteExporter.FindRepositoryRoot();
         string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-runtime-" + Guid.NewGuid().ToString("N"));
         string browserRoot = CreateBrowserRuntimeRoot();
-        StoryInfo descriptor = storyPath == "Examples/3D/Triangle"
-            ? new StoryInfo(storyPath, 320, 240, null,
-                _ => throw new InvalidOperationException("runtime story must not be realized"), RealWindowOnly: true,
-                RuntimeBundleId: CoreUiStoryProject.RuntimeBundleId,
-                ArgDefinitions: Array.Empty<StoryArgDefinition>(),
-                CapabilityNote: "Specialized browser WebGPU validation route.")
+        StoryInfo descriptor = storyPath.StartsWith("Examples/3D/", StringComparison.Ordinal)
+            ? Assert.IsType<StoryInfo>(Catalog.Find(storyPath))
             : Assert.IsType<StoryInfo>(CoreUiStoryProject.CreateCatalog().Find(storyPath));
         StoryInfo story = descriptor with
         {
@@ -468,7 +466,7 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("data-runtime-tab=\"args\"", fragment);
             Assert.Contains("data-runtime-tab=\"output\"", fragment);
             Assert.Contains("class=\"output-list\"", fragment);
-            if (storyPath == "Examples/3D/Triangle")
+            if (storyPath.StartsWith("Examples/3D/", StringComparison.Ordinal))
                 Assert.Contains("This story has no configurable args.", fragment);
             if (storyPath == "Controls/Button/Counter")
             {
@@ -487,6 +485,37 @@ public sealed class GallerySiteExporterTests
             Assert.True(File.Exists(Path.Combine(output, "samples", "webgpu-browser", "index.html")));
             Assert.True(File.Exists(Path.Combine(output, "samples", "webgpu-browser", "main.js")));
             Assert.True(File.Exists(Path.Combine(output, "samples", "webgpu-browser", "_framework", "dotnet.js")));
+            GallerySiteExporter.Validate(output);
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+            if (Directory.Exists(browserRoot)) Directory.Delete(browserRoot, true);
+        }
+    }
+
+    [Fact]
+    public void ClearColor_story_ref_uses_the_browser_runtime_instead_of_a_static_capture()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-clear-color-runtime-embed-" + Guid.NewGuid().ToString("N"));
+        string browserRoot = CreateBrowserRuntimeRoot();
+        StoryInfo story = Catalog.Find("Learn/Grapics/ClearColor")
+            ?? throw new InvalidOperationException("ClearColor story is missing.");
+        try
+        {
+            using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
+            using var rasterizer = new Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D();
+            using var host = new GalleryHost(rasterizer, font);
+
+            GallerySiteExporter.Export(host, [story], output, root, browserRoot);
+
+            string fragment = File.ReadAllText(Path.Combine(output, "stories", "learn-grapics-clearcolor.html"));
+            Assert.Contains("<iframe src=\"samples/webgpu-browser/?story=Examples%2F3D%2FClearColor&amp;args=%7B%7D&amp;instance=", fragment);
+            Assert.Contains("data-luxel-runtime-story=\"Examples/3D/ClearColor\"", fragment);
+            Assert.Contains("runtime-story-embedded", fragment);
+            Assert.Contains("title=\"Interactive ClearColor\"", fragment);
+            Assert.False(File.Exists(Path.Combine(output, "images", "examples-3d-clearcolor.png")));
             GallerySiteExporter.Validate(output);
         }
         finally

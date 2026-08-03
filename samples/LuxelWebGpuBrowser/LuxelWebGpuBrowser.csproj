@@ -8,6 +8,7 @@
     <WasmMainJSPath>wwwroot/main.js</WasmMainJSPath>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\CanonicalClearColorRecipe.cs" Link="CanonicalClearColorRecipe.cs" />
     <Compile Include="..\CanonicalTriangleRecipe.cs" Link="CanonicalTriangleRecipe.cs" />
   </ItemGroup>
   <ItemGroup>

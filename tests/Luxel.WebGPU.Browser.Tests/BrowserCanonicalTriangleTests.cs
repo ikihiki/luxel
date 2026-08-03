@@ -14,6 +14,11 @@ public sealed class BrowserCanonicalTriangleTests
         string html = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "wwwroot", "index.html"));
         string shaderPath = Path.Combine(root, "shaders", "compiled", "tutorial_triangle.wgsl");
 
+        Assert.Contains("CanonicalClearColorRecipe.cs", project);
+        Assert.Contains("CanonicalClearColorRecipe.Story", program);
+        Assert.Contains("RunClearColor()", program);
+        Assert.Contains("CanonicalClearColorRecipe.Red", program);
+        Assert.Contains("backend.CreateCanvasSurface", program);
         Assert.Contains("CanonicalTriangleRecipe.cs", project);
         Assert.Contains("shaders\\compiled\\tutorial_triangle.wgsl", project);
         Assert.DoesNotContain("Shaders\\triangle.wgsl", project);

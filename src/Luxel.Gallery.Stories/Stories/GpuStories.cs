@@ -51,6 +51,11 @@ public static class GpuStories
 
     // ---- 3D: offscreen 自前レンダ → image 合成 ----
 
+    [Story(CanonicalClearColorRecipe.Story, Width = CanonicalClearColorRecipe.Width, Height = CanonicalClearColorRecipe.Height, Order = 119,
+        RuntimeBundleId = "webgpu-browser-v1", CapabilityNote = "Specialized browser WebGPU ClearColor route.")]
+    public static Widget ClearColor(StoryContext ctx)
+        => ctx.Snap(Frame(GpuView(CanonicalClearColorRecipe.Width, CanonicalClearColorRecipe.Height, new ClearColorScene(), animated: false)));
+
     [Story(CanonicalTriangleRecipe.Story, Width = CanonicalTriangleRecipe.Width, Height = CanonicalTriangleRecipe.Height, Order = 120,
         RuntimeBundleId = "webgpu-browser-v1", CapabilityNote = "Specialized browser WebGPU validation route.")]
     public static Widget Triangle(StoryContext ctx)
@@ -59,6 +64,45 @@ public static class GpuStories
     [Story("Examples/3D/TexturedQuad", Height = 320, Order = 121)]
     public static Widget TexturedQuad(StoryContext ctx)
         => ctx.Snap(Frame(GpuView(320, 240, new TexturedScene(ctx.Resources), animated: false)));
+
+    /// <summary>The native Gallery path for the shared canonical ClearColor recipe.</summary>
+    private sealed class ClearColorScene : IGpuScene
+    {
+        private GpuDevice? _device;
+        private GpuTexture? _target;
+        private GpuBuffer? _out;
+        private uint _width;
+
+        public void Init(GpuDevice device, int width, int height)
+        {
+            _device = device;
+            _width = (uint)width;
+            _target = device.CreateRenderTarget((uint)width, (uint)height, GpuFormat.Rgba8Unorm);
+            _out = device.Malloc(checked((ulong)width * (uint)height * 4), GpuMemoryKind.HostMapped);
+        }
+
+        public (int BindlessIndex, int StridePixels) Render(float time)
+        {
+            using GpuCommandBuffer command = _device!.MainQueue.StartCommandRecording();
+            command.BeginRendering(_target!, null,
+                    CanonicalClearColorRecipe.Red, CanonicalClearColorRecipe.Green,
+                    CanonicalClearColorRecipe.Blue, CanonicalClearColorRecipe.Alpha)
+                .EndRendering()
+                .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+                .CopyTextureToBuffer(_target!, _out!, _width);
+            command.Finish();
+            _device.MainQueue.SubmitAndWait(command);
+            return ((int)_out!.BindlessIndex, (int)_width);
+        }
+
+        public void Dispose()
+        {
+            _out?.Dispose();
+            _out = null;
+            _target?.Dispose();
+            _target = null;
+        }
+    }
 
     /// <summary>The native Gallery path for the shared canonical first-triangle recipe.</summary>
     private sealed class TriangleScene : IGpuScene

@@ -164,10 +164,14 @@ public static partial class DocsRenderingLearn
     [Story("Learn/Grapics/ClearColor", Order = 2)]
     public static Widget ClearColor(StoryContext ctx)
     {
-        return DocNew(ctx, $"""
+        return DocNew(ctx, $$"""
         # ClearColor
 
-        {RenderingCourseCatalog.Meta("Learn/Grapics/ClearColor", "Beginner", "Standalone", "Vulkan / Direct3D 12 / WebGPU", "Environment")}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/ClearColor", "Beginner", "Standalone + Gallery", "Vulkan / Direct3D 12 / WebGPU", "Environment")}}
+
+        {{StoryRef(ctx, CanonicalClearColorRecipe.Story)}}
+
+        上のサンプルはGalleryではnative offscreen renderingとして動作し、静的GalleryとPagesではbrowser-WASM WebGPU runtimeとして同じClearColor recipeを実行します。
 
         ClearColorでは、render targetを指定した色でclearし、その結果をframebufferへコピーしてsurfaceへ表示します。Luxelにはcommand listとcommand bufferを分けたAPIはありません。`StartCommandRecording()`が一過性の`GpuCommandBuffer`を作成し、同時にコマンド記録を開始します。
 
