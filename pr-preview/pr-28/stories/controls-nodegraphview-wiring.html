@@ -1,1 +1,47 @@
-<article class="story runtime-page"><section class="runtime-story" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Controls/NodeGraphView/Wiring#top" data-luxel-runtime-story="Controls/NodeGraphView/Wiring" data-luxel-runtime-instance="controls-nodegraphview-wiring-007b68ba7b42" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Controls%2FNodeGraphView%2FWiring&amp;args=%7B%7D&amp;instance=controls-nodegraphview-wiring-007b68ba7b42" data-luxel-runtime-story="Controls/NodeGraphView/Wiring" data-luxel-runtime-instance="controls-nodegraphview-wiring-007b68ba7b42" title="Interactive Controls/NodeGraphView/Wiring" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels"><div class="runtime-tabs" role="tablist" aria-label="Story controls and output"><button type="button" role="tab" id="controls-nodegraphview-wiring-007b68ba7b42-args-tab" aria-controls="controls-nodegraphview-wiring-007b68ba7b42-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="controls-nodegraphview-wiring-007b68ba7b42-output-tab" aria-controls="controls-nodegraphview-wiring-007b68ba7b42-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button></div><section class="args-panel" id="controls-nodegraphview-wiring-007b68ba7b42-args-panel" role="tabpanel" aria-labelledby="controls-nodegraphview-wiring-007b68ba7b42-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="controls-nodegraphview-wiring-007b68ba7b42-output-panel" role="tabpanel" aria-labelledby="controls-nodegraphview-wiring-007b68ba7b42-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section></article>
+<article class="story runtime-page"><section class="runtime-story" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Controls/NodeGraphView/Wiring#top" data-luxel-runtime-story="Controls/NodeGraphView/Wiring" data-luxel-runtime-instance="controls-nodegraphview-wiring-007b68ba7b42" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Controls%2FNodeGraphView%2FWiring&amp;args=%7B%7D&amp;instance=controls-nodegraphview-wiring-007b68ba7b42" data-luxel-runtime-story="Controls/NodeGraphView/Wiring" data-luxel-runtime-instance="controls-nodegraphview-wiring-007b68ba7b42" title="Interactive Controls/NodeGraphView/Wiring" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="controls-nodegraphview-wiring-007b68ba7b42-args-tab" aria-controls="controls-nodegraphview-wiring-007b68ba7b42-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="controls-nodegraphview-wiring-007b68ba7b42-output-tab" aria-controls="controls-nodegraphview-wiring-007b68ba7b42-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="controls-nodegraphview-wiring-007b68ba7b42-source-tab" aria-controls="controls-nodegraphview-wiring-007b68ba7b42-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="controls-nodegraphview-wiring-007b68ba7b42-args-panel" role="tabpanel" aria-labelledby="controls-nodegraphview-wiring-007b68ba7b42-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="controls-nodegraphview-wiring-007b68ba7b42-output-panel" role="tabpanel" aria-labelledby="controls-nodegraphview-wiring-007b68ba7b42-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="controls-nodegraphview-wiring-007b68ba7b42-source-panel" role="tabpanel" aria-labelledby="controls-nodegraphview-wiring-007b68ba7b42-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Controls/NodeGraphView/Wiring&quot;, Height = 460, Order = 2)]
+public static Widget Wiring(StoryContext ctx)
+{
+    NodeGraphView ed = NodeGraphView(source: WireGraph(), viewWidth: 620f, viewHeight: 380f);
+
+    ctx.Play(&quot;connect&quot;, async d =&gt;
+    {
+        await d.Snap();                              // 初期: A→B の 1 辺
+        Vector2 from = ed.PortScreen(2, 1);          // B の出力
+        Vector2 to = ed.PortScreen(3, 0);            // C の入力
+        // 進行中ワイヤを互換ポート上で撮る (手動ポインタ列)
+        d.Host.PointerDown(from.X, from.Y);
+        await d.Step(1);
+        d.Host.PointerMove(to.X, to.Y);              // C の入力に重ねる → 緑
+        await d.Step(1);
+        await d.Snap(&quot;dragging&quot;);                    // 緑の進行中ワイヤ (互換ポート上)
+        d.Host.PointerUp(to.X, to.Y);
+        await d.Step(2);
+        await d.Expect(() =&gt; ed.EdgeCount == 2, &quot;互換ポートで接続&quot;);
+        await d.Snap(&quot;connected&quot;);
+    });
+
+    ctx.Play(&quot;disconnect&quot;, async d =&gt;
+    {
+        Vector2 mid = ed.EdgeMidScreen(10);          // A→B の中点
+        await d.Click(mid.X, mid.Y);                 // 辺を選択 (+ フォーカス)
+        await d.Expect(() =&gt; ed.IsEdgeSelected(10), &quot;辺クリックで選択&quot;);
+        await d.Snap(&quot;selected&quot;);
+        await d.Key(Key.Delete);                     // 切断
+        await d.Expect(() =&gt; ed.EdgeCount == 0, &quot;Delete で切断&quot;);
+        await d.Snap(&quot;cut&quot;);
+    });
+
+    ctx.Play(&quot;invalid&quot;, async d =&gt;
+    {
+        Vector2 aOut = ed.PortScreen(1, 0);          // A の出力
+        Vector2 bOut = ed.PortScreen(2, 1);          // B の出力 (同方向 = 不可)
+        await d.Drag(aOut.X, aOut.Y, bOut.X, bOut.Y);
+        await d.Expect(() =&gt; ed.EdgeCount == 1, &quot;同方向ポートは接続不可&quot;);
+    });
+
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(10)[
+            Heading(&quot;NodeGraphView — 配線&quot;),
+            Muted(&quot;ポートからドラッグ → 進行中ワイヤ (緑=可/赤=不可) → 互換ポートで接続。辺クリック選択 → Delete で切断。&quot;),
+            ed]];
+}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section></article>

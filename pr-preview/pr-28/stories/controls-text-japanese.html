@@ -1,1 +1,36 @@
-<article class="story runtime-page"><section class="runtime-story" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Controls/Text/Japanese#top" data-luxel-runtime-story="Controls/Text/Japanese" data-luxel-runtime-instance="controls-text-japanese-64e1748c48e7" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Controls%2FText%2FJapanese&amp;args=%7B%7D&amp;instance=controls-text-japanese-64e1748c48e7" data-luxel-runtime-story="Controls/Text/Japanese" data-luxel-runtime-instance="controls-text-japanese-64e1748c48e7" title="Interactive Controls/Text/Japanese" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels"><div class="runtime-tabs" role="tablist" aria-label="Story controls and output"><button type="button" role="tab" id="controls-text-japanese-64e1748c48e7-args-tab" aria-controls="controls-text-japanese-64e1748c48e7-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="controls-text-japanese-64e1748c48e7-output-tab" aria-controls="controls-text-japanese-64e1748c48e7-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button></div><section class="args-panel" id="controls-text-japanese-64e1748c48e7-args-panel" role="tabpanel" aria-labelledby="controls-text-japanese-64e1748c48e7-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="controls-text-japanese-64e1748c48e7-output-panel" role="tabpanel" aria-labelledby="controls-text-japanese-64e1748c48e7-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section></article>
+<article class="story runtime-page"><section class="runtime-story" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Controls/Text/Japanese#top" data-luxel-runtime-story="Controls/Text/Japanese" data-luxel-runtime-instance="controls-text-japanese-64e1748c48e7" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Controls%2FText%2FJapanese&amp;args=%7B%7D&amp;instance=controls-text-japanese-64e1748c48e7" data-luxel-runtime-story="Controls/Text/Japanese" data-luxel-runtime-instance="controls-text-japanese-64e1748c48e7" title="Interactive Controls/Text/Japanese" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="controls-text-japanese-64e1748c48e7-args-tab" aria-controls="controls-text-japanese-64e1748c48e7-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="controls-text-japanese-64e1748c48e7-output-tab" aria-controls="controls-text-japanese-64e1748c48e7-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="controls-text-japanese-64e1748c48e7-source-tab" aria-controls="controls-text-japanese-64e1748c48e7-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="controls-text-japanese-64e1748c48e7-args-panel" role="tabpanel" aria-labelledby="controls-text-japanese-64e1748c48e7-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="controls-text-japanese-64e1748c48e7-output-panel" role="tabpanel" aria-labelledby="controls-text-japanese-64e1748c48e7-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="controls-text-japanese-64e1748c48e7-source-panel" role="tabpanel" aria-labelledby="controls-text-japanese-64e1748c48e7-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Controls/Text/Japanese&quot;, Height = 380)]
+public static Widget Japanese(StoryContext ctx)
+{
+    // 同梱フォント (BIZ UDGothic / UDEV Gothic) で日本語が出ることを 1 画面で確認する:
+    // 基本フォント直 (Heading/Button/Text) + IME 入力 (TextEditorView) + 等幅の日本語コメント (色分け)。
+    Signal&lt;string&gt; input = ctx.Signal(&quot;input&quot;, &quot;&quot;);
+    TextEditorView ta = TextEditorView(input, editorHeight: 72f, editorWidth: 420f);
+    ta.Fonts = JpFallback.Value;
+
+    Signal&lt;string&gt; code = ctx.Signal(&quot;code&quot;,
+        &quot;// 日本語コメントも等幅で表示される\nint 合計 = 1 + 2;  // 全角識別子&quot;);
+    TextEditorView ed = TextEditorView(code, editorHeight: 90f, editorWidth: 420f);
+    ed.ShowLineNumbers = true;
+    ed.EditorFont = EditorFaces.Value.Mono;
+    Func&lt;Theme&gt; th = () =&gt; UiTheme.T;
+    ed.Providers.Add(new SyntaxHighlightProvider(Luxel.Highlight.TextMateHighlighter.Instance, &quot;csharp&quot;, th));
+    ed.Providers.Add(new CurrentLineProvider(th));
+
+    ctx.Play(&quot;jp&quot;, async d =&gt;
+    {
+        await d.Snap();                              // 見出し/ラベル/コメントの日本語 (基本フォント直 + 等幅)
+        await d.Click(ta);
+        await d.Type(&quot;日本語入力テスト&quot;);
+        await d.Expect(() =&gt; input.Value.Contains(&quot;日本語&quot;), &quot;IME 経由で日本語が入力される&quot;);
+        await d.Snap(&quot;typed&quot;);
+    });
+
+    return Frame(VStack(10)[
+        Heading(&quot;日本語表示 — ひらがな・カタカナ・漢字&quot;),
+        HStack(8)[Button(_ =&gt; { }, &quot;ボタン&quot;),
+                  Text(&quot;ラベル：あいうえお アイウエオ 日本語&quot;, 14, color: Bind.From(() =&gt; UiTheme.T.Text))],
+        Muted(&quot;TextEditorView に IME で入力：&quot;),
+        ta,
+        Muted(&quot;等幅の日本語コメント (色分け)：&quot;),
+        ed]);
+}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section></article>
