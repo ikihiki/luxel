@@ -1,0 +1,13 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/AnimationParticles/GraphsAndEmitters</h1></header><h1 id="graphs-clips-and-emitters">Graphs, clips, and emitters</h1>
+<p>clipは時間からpose/valueを評価し、graphはblendとtransitionを決めます。particle emitterはspawn policy、lifetime、velocity、color/size curveを持ち、2D/3D backendへinstanceを渡します。</p>
+<figure class="static-capture"><a href="#story=Examples%2FAnimation%2FGraph"><img src="images/examples-animation-graph.png" alt="Examples/Animation/Graph" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<figure class="static-capture"><a href="#story=Examples%2F3D%2FParticles"><img src="images/examples-3d-particles.png" alt="Examples/3D/Particles" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/AnimationParticles/GraphsAndEmitters&quot;, Order = 1)]
+public static Widget AnimationGraphs(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # Graphs, clips, and emitters
+
+    clipは時間からpose/valueを評価し、graphはblendとtransitionを決めます。particle emitterはspawn policy、lifetime、velocity、color/size curveを持ち、2D/3D backendへinstanceを渡します。
+
+    {{StoryRef(ctx, &quot;Examples/Animation/Graph&quot;)}}
+    {{StoryRef(ctx, &quot;Examples/3D/Particles&quot;)}}
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

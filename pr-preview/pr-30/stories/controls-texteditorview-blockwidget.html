@@ -1,0 +1,28 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/TextEditorView/BlockWidget</h1></header><figure class="static-capture"><img src="images/controls-texteditorview-blockwidget.png" alt="Controls/TextEditorView/BlockWidget" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/TextEditorView/BlockWidget&quot;, Height = 300, Order = 9)]
+public static Widget BlockWidget(StoryContext ctx)
+{
+    // 複数ソース行を占有するブロック widget (WS-A S(A2b) / ADR-0012): 表/図/数式/埋め込みの土台。
+    // 範囲 [6,31) = 中間 2 ソース行を 80px の全幅パネルに置換 (先頭行=widget、残りは高さ0に畳む)。
+    Signal&lt;string&gt; text = ctx.Signal(&quot;text&quot;, &quot;Above\nblock line 1\nblock line 2\nBelow&quot;);
+    TextEditorView ed = TextEditorView(text, editorHeight: 220f, editorWidth: 480f);
+    ed.WrapText = true;
+
+    ed.WidgetResolver = key =&gt; key as string == &quot;panel&quot;
+        ? Border(background: Bind.From(() =&gt; Styles.WithAlpha(UiTheme.T.Primary, 40)),
+                 padding: new Thickness(14))[
+              Text(&quot;▦ block widget — 2 ソース行を占有&quot;, color: Bind.From(() =&gt; UiTheme.T.Primary))]
+        : null;
+
+    ctx.Play(async d =&gt;
+    {
+        ed.SetDecorations(&quot;block&quot;, new DecorationSet([new BlockWidgetDecoration(6, 31, &quot;panel&quot;, 80f)]));
+        await d.Step(1);
+        await d.Snap(&quot;block&quot;);
+    });
+
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(10)[
+            Heading(&quot;TextEditorView — ブロック widget&quot;),
+            Muted(&quot;BlockWidgetDecoration が複数ソース行を全幅 widget に置換 (表/図/埋め込みの土台)。行↔ソースの 1:1 は保つ。&quot;),
+            ed]];
+}</code></pre></details></article>

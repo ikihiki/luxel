@@ -1,0 +1,18 @@
+<article class="story document-page"><h1 id="listview">ListView</h1>
+<p>文字列行のリスト (固定行高、ホイール + サムでスクロール、クリック選択)。<strong>仮想化 (AP-M3)</strong>: 実体化するノードは可視行数 + 1 の固定プールだけで、スクロール/ 差し替えは プールへの<strong>再バインド</strong> (Content 再代入 = canvas の in-place 部分更新) — ノード数は行数にも スクロールにも依存せず、構造 dirty は発生しない (10 万行でもノードは数十個)。 スクロール位置はフィールドなので再実体化をまたいで生き残る。 行ごとに Effect は作らない — 色は Realize 時の単一 Effect が全行へ流す。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Controls/ListView/Overview#ref-0" data-luxel-runtime-story="Controls/ListView/Basic" data-luxel-runtime-instance="controls-listview-basic-524b4f33b785" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Controls%2FListView%2FBasic&amp;args=%7B%7D&amp;instance=controls-listview-basic-524b4f33b785" data-luxel-runtime-story="Controls/ListView/Basic" data-luxel-runtime-instance="controls-listview-basic-524b4f33b785" title="Interactive Basic" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels"><div class="runtime-tabs" role="tablist" aria-label="Story controls and output"><button type="button" role="tab" id="controls-listview-basic-524b4f33b785-args-tab" aria-controls="controls-listview-basic-524b4f33b785-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="controls-listview-basic-524b4f33b785-output-tab" aria-controls="controls-listview-basic-524b4f33b785-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button></div><section class="args-panel" id="controls-listview-basic-524b4f33b785-args-panel" role="tabpanel" aria-labelledby="controls-listview-basic-524b4f33b785-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="controls-listview-basic-524b4f33b785-output-panel" role="tabpanel" aria-labelledby="controls-listview-basic-524b4f33b785-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<h2 id="implementation">Implementation</h2>
+<pre><code class="language-csharp">ListView()
+</code></pre>
+<h2 id="patterns-and-variants">Patterns and variants</h2>
+<ul>
+<li>Basic typed factory usage</li>
+<li>Representative editable scalar args</li>
+<li>Inherited layout args: width, height, alignment and transforms when supported</li>
+<li>Deterministic browser fixture/fallback for capability inputs</li>
+</ul>
+<h2 id="events-parameters-and-api">Events, parameters and API</h2>
+<p><strong>Events:</strong> <code>OnSelect</code>, <code>OnReorder</code></p>
+<p><strong>Component parameters:</strong> <code>Height</code>, <code>RowHeight</code>, <code>Items</code>, <code>TextColor</code>, <code>SelectedColor</code>, <code>FontSize</code></p>
+<p>See <code>ControlApiRegistry</code> / the generated API table for the complete inherited API.</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">Generated overview for global::Luxel.Controls.ListView</code></pre></details></article>

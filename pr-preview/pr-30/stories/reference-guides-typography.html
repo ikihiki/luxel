@@ -1,0 +1,68 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Guides/Typography</h1></header><aside class="capture-error" data-capture-status="error"><strong>Static capture error</strong><pre>InvalidDataException: Broken documentation links: Reference/Guides/Typography: story:Controls/Text/Multiline, Reference/Guides/Typography: story:Controls/Text/EllipsisVAlign</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Typography&quot;, Order = 40)]
+public static Widget Typography(StoryContext ctx)
+{
+    ctx.Play(static d =&gt; d.Snap());   // 新スタック: mermaid フェンス + コードブロックの描画 golden
+    return DocNew(ctx, $$&quot;&quot;&quot;
+    # テキスト (Luxel.Typography)
+
+    `Luxel.Typography` はGPU/2Dに依存しないHarfBuzzシェーピング + 自前レイアウト基盤です。`Luxel.Typography.TwoD`が`VectorFont` / `TextLayout`を`Scene2D`へ出力する拡張を提供し、`Luxel.Graphics.TwoD`自体はテキストを知りません。ICU (完全なUAX#14/#29) は`Luxel.Typography.Icu`アダプタ — 使うアプリだけが参照します。
+
+    ## パイプライン
+
+    ```mermaid
+    flowchart LR
+    spans[spans] --&gt; para[段落分割]
+    para --&gt; runs[run 分割 - スタイル/フォールバック境界]
+    runs --&gt; hb[HarfBuzz シェーピング]
+    hb --&gt; brk[行分割 - break 機会で貪欲詰め]
+    brk --&gt; comp[行組み - align/ベースライン]
+    ```
+
+    レイアウトは 1 回走らせて結果 (`TextLayout`) を保持・再利用します。描画とキャレット/ヒットテストが**同じ結果**から出るので、必ず一致します。
+
+    ## TextLayout API
+
+    ```csharp
+    using Luxel.Typography;
+    using Luxel.Typography.TwoD;
+
+    var layout = new TextLayout(source, new TextLayoutOptions
+    {
+        MaxWidth = 300,            // ∞ = 折り返しなし
+        Wrap = TextWrap.Word,      // None / Word / Char
+        Align = TextAlign.Center,  // Left / Center / Right / Justify
+        LineHeight = 1.2f,
+    });
+    Size size = layout.Size;                  // 計測
+    layout.Draw(scene, x, y, color);          // 描画 (Luxel.Typography.TwoD拡張)
+    int idx = layout.HitTest(px, py);         // 座標 → テキスト位置 (クラスタ吸着)
+    Rect caret = layout.CaretRect(idx);       // キャレット矩形
+    Rect[] sel = layout.SelectionRects(a, b); // 選択範囲の行別矩形
+    ```
+
+    実物: [Controls/Text/Multiline](story:Controls/Text/Multiline) (wrap / 禁則 / Justify) / [Controls/Text/EllipsisVAlign](story:Controls/Text/EllipsisVAlign) (maxLines + 省略記号)。
+
+    ## セグメンタ (ITextSegmenter)
+
+    行分割・グラフェム・単語境界の判定は 1 インターフェースに隔離されています:
+
+    - **SimpleSegmenter** (内蔵、依存ゼロ) — 空白 + CJK 文字境界 + 代表的な禁則セット (行頭の「。、ゃっ」等 / 行末の「「『」等)。グラフェムは .NET の StringInfo
+    - **Icu アダプタ** — icu.net の BreakIterator で完全な UAX#14/#29。`TextLayoutOptions.Segmenter` かプロセス既定で差し込む
+
+    Justify は行の余り幅をラテンは空白へ、空白のない CJK 行は**字間へ**分配します (和文組版の字間調整)。段落最終行は分配しません — CSS と同じです。
+
+    ## フォールバックとリッチテキスト
+
+    `FontCollection` は優先順のフォント列です。run 分割時に未収載文字の連続を次候補フォントの run に切り出します (UI フォント → 日本語 → カラー絵文字 COLR)。行内のベースラインは run の最大 ascent に揃います:
+
+    {{StoryRef(ctx, &quot;Controls/RichText/Basic&quot;)}}
+
+    保持型キャンバスは 1 ノード 1 色のため、色ごとに GlyphRun をグループ化して 1 色 1 ノードで実体化します — テーマ連動色はノード単位の Effect でそのまま効きます。
+
+    ## キャレットと選択 (合字対応)
+
+    キャレットの単位は**グラフェム境界**。fi 合字のように 1 グリフに複数グラフェムが入る場合はグリフ advance を按分します (HarfBuzz 推奨の近似)。HitTest はクラスタ矩形の中央で左右に吸着し、選択は行ごとの矩形列です。
+
+    次: [Reference/Guides/Editor](story:Reference/Guides/Editor) — この上に載る文書モデルとエディタへ。
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>
