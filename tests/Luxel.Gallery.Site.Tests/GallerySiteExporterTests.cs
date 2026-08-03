@@ -410,6 +410,13 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("message.type==='args-changed'", script, StringComparison.Ordinal);
         Assert.Contains("message.type==='event'", script, StringComparison.Ordinal);
         Assert.Contains("appendRuntimeEvent(section,message.entry)", script, StringComparison.Ordinal);
+        Assert.Contains("source.hidden=name!=='source'", script, StringComparison.Ordinal);
+        Assert.Contains("initRuntimePanelResize(section)", script, StringComparison.Ordinal);
+        Assert.Contains("setRuntimePanelHeight(section", script, StringComparison.Ordinal);
+        Assert.Contains("handle.addEventListener('pointerdown'", script, StringComparison.Ordinal);
+        Assert.Contains("lostpointercapture", script, StringComparison.Ordinal);
+        Assert.Contains("event.shiftKey?48:16", script, StringComparison.Ordinal);
+        Assert.Contains("event.key==='ArrowUp'", script, StringComparison.Ordinal);
         Assert.Contains("activateRuntimeTab(section,next.dataset.runtimeTab,true)", script, StringComparison.Ordinal);
         Assert.Contains("candidate.contentWindow===event.source", script, StringComparison.Ordinal);
         Assert.Contains("event.origin!==location.origin", script, StringComparison.Ordinal);
@@ -514,6 +521,10 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("<iframe src=\"samples/webgpu-browser/?story=Examples%2F3D%2FClearColor&amp;args=%7B%7D&amp;instance=", fragment);
             Assert.Contains("data-luxel-runtime-story=\"Examples/3D/ClearColor\"", fragment);
             Assert.Contains("runtime-story-embedded", fragment);
+            Assert.Contains("data-runtime-tab=\"source\">Source</button>", fragment);
+            Assert.Contains("class=\"source-panel\"", fragment);
+            Assert.Contains("public static Widget ClearColor", fragment);
+            Assert.Contains("data-runtime-panel-resizer", fragment);
             Assert.Contains("title=\"Interactive ClearColor\"", fragment);
             Assert.False(File.Exists(Path.Combine(output, "images", "examples-3d-clearcolor.png")));
             GallerySiteExporter.Validate(output);
@@ -607,7 +618,11 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("body.runtime-active main{padding:0;overflow:hidden}", css);
         Assert.Contains(".runtime-panels{flex:none", css);
         Assert.Contains(".runtime-tabs{display:flex", css);
-        Assert.Contains(".args-panel,.output-panel", css);
+        Assert.Contains(".args-panel,.output-panel,.source-panel", css);
+        Assert.Contains(".runtime-panel-resizer", css);
+        Assert.Contains("height:var(--runtime-panel-height,180px)", css);
+        Assert.Contains("cursor:ns-resize", css);
+        Assert.Contains(".source-panel pre", css);
         Assert.Contains(".output-list", css);
         Assert.Contains("border-top:1px solid var(--line)", css);
         Assert.Contains(".args-table", css);
