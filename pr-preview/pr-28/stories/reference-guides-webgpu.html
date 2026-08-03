@@ -321,6 +321,7 @@ public static class HeadlessWebGpuSample
     &lt;WasmMainJSPath&gt;wwwroot/main.js&lt;/WasmMainJSPath&gt;
   &lt;/PropertyGroup&gt;
   &lt;ItemGroup&gt;
+    &lt;Compile Include=&quot;..\CanonicalClearColorRecipe.cs&quot; Link=&quot;CanonicalClearColorRecipe.cs&quot; /&gt;
     &lt;Compile Include=&quot;..\CanonicalTriangleRecipe.cs&quot; Link=&quot;CanonicalTriangleRecipe.cs&quot; /&gt;
   &lt;/ItemGroup&gt;
   &lt;ItemGroup&gt;
@@ -396,7 +397,8 @@ public static partial class Program
         string story = GetStory();
         try
         {
-            if (story == CanonicalTriangleRecipe.Story) await RunTriangle();
+            if (story == CanonicalClearColorRecipe.Story) await RunClearColor();
+            else if (story == CanonicalTriangleRecipe.Story) await RunTriangle();
             else await RunCatalogStory(story);
         }
         catch (Exception ex)
@@ -497,6 +499,46 @@ public static partial class Program
             PlatformClipboard.Current = null;
             _activeContext = null;
             _activeStory = null;
+        }
+    }
+
+    private static async Task RunClearColor()
+    {
+        uint width = CanonicalClearColorRecipe.Width, height = CanonicalClearColorRecipe.Height;
+        using WebWindowBackend web = await CreateWindowBackend();
+        using var windows = new WindowSystem(web);
+        Window window = windows.CreateWindow(new WindowDesc(&quot;Luxel browser WebGPU ClearColor&quot;, (int)width, (int)height));
+        bool resizePending = false;
+        int resizeEvents = 0;
+        window.Resized += (_, _) =&gt; { resizeEvents++; resizePending = true; };
+        windows.Pump();
+        BrowserWebGpuBackend backend = await BrowserWebGpuBackend.CreateAsync();
+        using var device = new GpuDevice(backend);
+        using GpuSurface surface = backend.CreateCanvasSurface(&quot;#luxel-canvas&quot;, (uint)window.Width, (uint)window.Height);
+        using GpuTexture target = device.CreateRenderTarget(width, height, GpuFormat.Rgba8Unorm);
+        using GpuBuffer pixels = device.Malloc(width * height * 4, GpuMemoryKind.HostCached);
+        using (GpuCommandBuffer command = device.MainQueue.StartCommandRecording())
+        {
+            command.BeginRendering(target, null,
+                    CanonicalClearColorRecipe.Red, CanonicalClearColorRecipe.Green,
+                    CanonicalClearColorRecipe.Blue, CanonicalClearColorRecipe.Alpha)
+                .EndRendering()
+                .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+                .CopyTextureToBuffer(target, pixels, width);
+            command.Finish();
+            await device.MainQueue.SubmitAsync(command);
+        }
+        surface.Present(pixels, width, width, height);
+        SetStatus(&quot;pass&quot;, $&quot;browser-webgpu: status=pass\nstory={CanonicalClearColorRecipe.Story}\ncanvas={width}x{height}\nrecipe={CanonicalClearColorRecipe.Recipe}\ndevice={device.Name}\nframes=1+; resize={resizeEvents}&quot;);
+        while (windows.Pump())
+        {
+            if (resizePending)
+            {
+                surface.Resize((uint)window.Width, (uint)window.Height);
+                surface.Present(pixels, width, width, height);
+                resizePending = false;
+            }
+            await NextFrame();
         }
     }
 

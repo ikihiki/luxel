@@ -7,8 +7,10 @@
 <li><a href="#story=Learn%2FGrapics%2FClearColor&amp;section=surface%E3%81%B8present%E3%81%99%E3%82%8B">SurfaceへPresentする</a></li>
 <li><a href="#story=Learn%2FGrapics%2FClearColor&amp;section=resize">Resize</a></li>
 </ul>
-<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone　 <strong>Backend:</strong> Vulkan / Direct3D 12 / WebGPU　 <strong>前提知識:</strong> Environment</p>
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone + Gallery　 <strong>Backend:</strong> Vulkan / Direct3D 12 / WebGPU　 <strong>前提知識:</strong> Environment</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FEnvironment">Environment</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FFirstTriangle">FirstTriangle</a></p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Grapics/ClearColor#doc-0" data-luxel-runtime-story="Examples/3D/ClearColor" data-luxel-runtime-instance="examples-3d-clearcolor-fd6e83bf2f4a" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F3D%2FClearColor&amp;args=%7B%7D&amp;instance=examples-3d-clearcolor-fd6e83bf2f4a" data-luxel-runtime-story="Examples/3D/ClearColor" data-luxel-runtime-instance="examples-3d-clearcolor-fd6e83bf2f4a" title="Interactive ClearColor" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels"><div class="runtime-tabs" role="tablist" aria-label="Story controls and output"><button type="button" role="tab" id="examples-3d-clearcolor-fd6e83bf2f4a-args-tab" aria-controls="examples-3d-clearcolor-fd6e83bf2f4a-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-3d-clearcolor-fd6e83bf2f4a-output-tab" aria-controls="examples-3d-clearcolor-fd6e83bf2f4a-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button></div><section class="args-panel" id="examples-3d-clearcolor-fd6e83bf2f4a-args-panel" role="tabpanel" aria-labelledby="examples-3d-clearcolor-fd6e83bf2f4a-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-3d-clearcolor-fd6e83bf2f4a-output-panel" role="tabpanel" aria-labelledby="examples-3d-clearcolor-fd6e83bf2f4a-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<p>上のサンプルはGalleryではnative offscreen renderingとして動作し、静的GalleryとPagesではbrowser-WASM WebGPU runtimeとして同じClearColor recipeを実行します。</p>
 <p>ClearColorでは、render targetを指定した色でclearし、その結果をframebufferへコピーしてsurfaceへ表示します。Luxelにはcommand listとcommand bufferを分けたAPIはありません。<code>StartCommandRecording()</code>が一過性の<code>GpuCommandBuffer</code>を作成し、同時にコマンド記録を開始します。</p>
 <h2 id="framebuffer">描画先とframebufferを作成する</h2>
 <p>GPU上の描画先として<code>GpuTexture</code>を作り、surfaceへ渡すRGBA8データの格納先として<code>GpuBuffer</code>を確保します。</p>
@@ -51,10 +53,14 @@ command.Finish();
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/ClearColor&quot;, Order = 2)]
 public static Widget ClearColor(StoryContext ctx)
 {
-    return DocNew(ctx, $&quot;&quot;&quot;
+    return DocNew(ctx, $$&quot;&quot;&quot;
     # ClearColor
 
-    {RenderingCourseCatalog.Meta(&quot;Learn/Grapics/ClearColor&quot;, &quot;Beginner&quot;, &quot;Standalone&quot;, &quot;Vulkan / Direct3D 12 / WebGPU&quot;, &quot;Environment&quot;)}
+    {{RenderingCourseCatalog.Meta(&quot;Learn/Grapics/ClearColor&quot;, &quot;Beginner&quot;, &quot;Standalone + Gallery&quot;, &quot;Vulkan / Direct3D 12 / WebGPU&quot;, &quot;Environment&quot;)}}
+
+    {{StoryRef(ctx, CanonicalClearColorRecipe.Story)}}
+
+    上のサンプルはGalleryではnative offscreen renderingとして動作し、静的GalleryとPagesではbrowser-WASM WebGPU runtimeとして同じClearColor recipeを実行します。
 
     ClearColorでは、render targetを指定した色でclearし、その結果をframebufferへコピーしてsurfaceへ表示します。Luxelにはcommand listとcommand bufferを分けたAPIはありません。`StartCommandRecording()`が一過性の`GpuCommandBuffer`を作成し、同時にコマンド記録を開始します。
 
