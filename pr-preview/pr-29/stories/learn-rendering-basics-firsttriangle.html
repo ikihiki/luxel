@@ -1,0 +1,144 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Rendering/Basics/FirstTriangle</h1></header><h1 id="section">はじめての三角形</h1>
+<ul>
+<li><a href="#story=Learn%2FRendering%2FBasics%2FFirstTriangle&amp;section=%E5%AE%9Fsample%E3%81%AEabi">実sampleのABI</a></li>
+<li><a href="#story=Learn%2FRendering%2FBasics%2FFirstTriangle&amp;section=%E6%8F%8F%E7%94%BB%E3%81%AE4%E6%AE%B5%E9%9A%8E">描画の4段階</a></li>
+<li><a href="#story=Learn%2FRendering%2FBasics%2FFirstTriangle&amp;section=%E5%85%B8%E5%9E%8B%E7%9A%84%E3%81%AA%E5%A4%B1%E6%95%97">典型的な失敗</a></li>
+</ul>
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone + Gallery　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> ClearColor</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FRendering%2FBasics%2FClearColor">ClearColor</a>　 <strong>次:</strong> <a href="#story=Learn%2FRendering%2FBasics%2FBuffersAndBindings">BuffersAndBindings</a></p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Rendering/Basics/FirstTriangle#doc-0" data-luxel-runtime-story="Examples/3D/Triangle" data-luxel-runtime-instance="examples-3d-triangle-c432c7bc6119" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F3D%2FTriangle&amp;args=%7B%7D&amp;instance=examples-3d-triangle-c432c7bc6119" data-luxel-runtime-story="Examples/3D/Triangle" data-luxel-runtime-instance="examples-3d-triangle-c432c7bc6119" title="Interactive Triangle" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels"><div class="runtime-tabs" role="tablist" aria-label="Story controls and output"><button type="button" role="tab" id="examples-3d-triangle-c432c7bc6119-args-tab" aria-controls="examples-3d-triangle-c432c7bc6119-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-3d-triangle-c432c7bc6119-output-tab" aria-controls="examples-3d-triangle-c432c7bc6119-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button></div><section class="args-panel" id="examples-3d-triangle-c432c7bc6119-args-panel" role="tabpanel" aria-labelledby="examples-3d-triangle-c432c7bc6119-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-3d-triangle-c432c7bc6119-output-panel" role="tabpanel" aria-labelledby="examples-3d-triangle-c432c7bc6119-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<p>Galleryアプリ内では上の表示をnative offscreenデモとして実行します。静的GalleryとPagesでは同じ場所にbrowser-WASM WebGPU runtimeを埋め込み、<code>Examples/3D/Triangle</code>とこのガイドの両方から、320×240（4:3）のcanonical triangle recipeを実行します。browser hostのsource/manifest契約、WASM publish、静的Gallery export、subpath-safe URLをCIで検証します。browser上の実行自体は自動テストの対象外です。</p>
+<p>コピーして動かす完全なstandalone実装は次の4ファイルです。</p>
+<ul>
+<li><code>samples/LuxelTriangle/LuxelTriangle.csproj</code></li>
+<li><code>samples/LuxelTriangle/Program.cs</code></li>
+<li><code>samples/LuxelTriangle/TriangleRenderer.cs</code></li>
+<li><code>shaders/tutorial_triangle.slang</code></li>
+</ul>
+<h2 id="sampleabi">実sampleのABI</h2>
+<pre><code class="language-csharp">    [StructLayout(LayoutKind.Sequential)]
+    public struct Vertex
+    {
+        public float Px, Py, Pz, Pw;
+        public float R, G, B, A;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct DrawArgs
+    {
+        public uint VertexBufferIndex;
+    }
+</code></pre>
+<h2 id="section-1">描画の4段階</h2>
+<ol>
+<li><code>Malloc(..., HostMapped)</code>で3頂点を確保し、<code>Span&lt;Vertex&gt;</code>へ書く</li>
+<li><code>GpuShaderCode.Load(&quot;tutorial_triangle&quot;)</code>からgraphics pipelineを作る</li>
+<li>commandへpipeline、root arguments、<code>Draw(3)</code>を記録する</li>
+<li>submit後、readback framebufferをsurfaceへpresentする</li>
+</ol>
+<pre><code class="language-csharp">command.BeginRendering(target, null, 0.055f, 0.07f, 0.11f, 1)
+    .SetGraphicsPipeline(pipeline)
+    .SetRootArguments(new DrawArgs { VertexBufferIndex = vertices.BindlessIndex })
+    .Draw(3)
+    .EndRendering()
+    .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+    .CopyTextureToBuffer(target, framebuffer);
+</code></pre>
+<p>Slang側は <code>SV_VertexID</code> を使ってbindless bufferから頂点を読むため、vertex-input layout objectはありません。C#の <code>Vertex</code> とSlangの <code>Vertex</code> はどちらも <code>float4 position + float4 color = 32 byte</code> です。</p>
+<pre><code class="language-slang">struct Vertex { float4 position; float4 color; }
+struct DrawArgs { uint vertexBufferIndex; }
+[[vk::push_constant]] DrawArgs g_args;
+[[vk::binding(0, 0)]] RWByteAddressBuffer g_buffers[];
+
+[shader(&quot;vertex&quot;)]
+VertexOut vsMain(uint vertexId : SV_VertexID)
+{
+    Vertex v = g_buffers[g_args.vertexBufferIndex].Load&lt;Vertex&gt;(vertexId * 32);
+    VertexOut o; o.position = v.position; o.color = v.color; return o;
+}
+
+[shader(&quot;pixel&quot;)]
+float4 psMain(VertexOut input) : SV_Target =&gt; input.color;
+</code></pre>
+<p>つまり最小例のdata flowは<code>C# Vertex[] → HostMapped buffer → BindlessIndex → root args → SV_VertexID</code>です。このblockと上のcommand記録を組み合わせれば、サンプルファイルを開かなくても必要なbindingを追えます。</p>
+<div class="markdown-alert markdown-alert-note">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>入門サンプルは処理順を明確にするため毎フレーム <code>SubmitAndWait</code> します。複数frame-in-flightとfenceによる本番向け同期は後続のFrame Loopページで扱います。</p>
+</div>
+<h2 id="section-2">典型的な失敗</h2>
+<ul>
+<li>clear colorだけ見える → pipeline、shader名、root arguments、<code>Draw(3)</code>を確認</li>
+<li>三角形が崩れる → C# / Slangのstruct sizeとoffsetを確認</li>
+<li>resize後だけ壊れる → queue idle後にtarget/framebufferを再生成したか確認</li>
+</ul>
+<details class="sample-bundle"><summary>Run this sample — Recipe</summary><p>A complete triangle recipe: standalone app host plus the compiled C#/Slang renderer.</p><p><strong>Requirements:</strong> Luxel.Graphics / Luxel.Platform</p><p><strong>Platforms:</strong> Windows / Linux</p><p><strong>Verification:</strong> exit 0, timeout 180s, stdout <code>tutorial-3d: 1 frame(s), stage=Triangle</code></p><ul><li><code>samples/CanonicalTriangleRecipe.cs</code> <span>CSharp</span></li><li><code>samples/LuxelTriangle/TutorialAbi.cs</code> <span>CSharp</span></li><li><code>samples/LuxelTriangle/TriangleRenderer.cs</code> <span>CSharp</span></li><li><code>shaders/tutorial_triangle.slang</code> <span>Shader</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle --frames 1</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Rendering/Basics/FirstTriangle&quot;, Order = 3, SampleBundle = &quot;rendering.triangle&quot;)]
+public static Widget FirstTriangle(StoryContext ctx)
+{
+    return DocNew(ctx, $$&quot;&quot;&quot;
+    # はじめての三角形
+
+    {{RenderingCourseCatalog.Meta(&quot;Learn/Rendering/Basics/FirstTriangle&quot;, &quot;Beginner&quot;, &quot;Standalone + Gallery&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;ClearColor&quot;)}}
+
+    {{StoryRef(ctx, &quot;Examples/3D/Triangle&quot;)}}
+
+    Galleryアプリ内では上の表示をnative offscreenデモとして実行します。静的GalleryとPagesでは同じ場所にbrowser-WASM WebGPU runtimeを埋め込み、`Examples/3D/Triangle`とこのガイドの両方から、320&#215;240（4:3）のcanonical triangle recipeを実行します。browser hostのsource/manifest契約、WASM publish、静的Gallery export、subpath-safe URLをCIで検証します。browser上の実行自体は自動テストの対象外です。
+
+    コピーして動かす完全なstandalone実装は次の4ファイルです。
+
+    - `samples/LuxelTriangle/LuxelTriangle.csproj`
+    - `samples/LuxelTriangle/Program.cs`
+    - `samples/LuxelTriangle/TriangleRenderer.cs`
+    - `shaders/tutorial_triangle.slang`
+
+    ## 実sampleのABI
+
+    {{SampleSource(&quot;samples/LuxelTriangle/TutorialAbi.cs&quot;, &quot;triangle-abi&quot;)}}
+
+    ## 描画の4段階
+
+    1. `Malloc(..., HostMapped)`で3頂点を確保し、`Span&lt;Vertex&gt;`へ書く
+    2. `GpuShaderCode.Load(&quot;tutorial_triangle&quot;)`からgraphics pipelineを作る
+    3. commandへpipeline、root arguments、`Draw(3)`を記録する
+    4. submit後、readback framebufferをsurfaceへpresentする
+
+    ```csharp
+    command.BeginRendering(target, null, 0.055f, 0.07f, 0.11f, 1)
+        .SetGraphicsPipeline(pipeline)
+        .SetRootArguments(new DrawArgs { VertexBufferIndex = vertices.BindlessIndex })
+        .Draw(3)
+        .EndRendering()
+        .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+        .CopyTextureToBuffer(target, framebuffer);
+    ```
+
+    Slang側は `SV_VertexID` を使ってbindless bufferから頂点を読むため、vertex-input layout objectはありません。C#の `Vertex` とSlangの `Vertex` はどちらも `float4 position + float4 color = 32 byte` です。
+
+    ```slang
+    struct Vertex { float4 position; float4 color; }
+    struct DrawArgs { uint vertexBufferIndex; }
+    [[vk::push_constant]] DrawArgs g_args;
+    [[vk::binding(0, 0)]] RWByteAddressBuffer g_buffers[];
+
+    [shader(&quot;vertex&quot;)]
+    VertexOut vsMain(uint vertexId : SV_VertexID)
+    {
+        Vertex v = g_buffers[g_args.vertexBufferIndex].Load&lt;Vertex&gt;(vertexId * 32);
+        VertexOut o; o.position = v.position; o.color = v.color; return o;
+    }
+
+    [shader(&quot;pixel&quot;)]
+    float4 psMain(VertexOut input) : SV_Target =&gt; input.color;
+    ```
+
+    つまり最小例のdata flowは`C# Vertex[] → HostMapped buffer → BindlessIndex → root args → SV_VertexID`です。このblockと上のcommand記録を組み合わせれば、サンプルファイルを開かなくても必要なbindingを追えます。
+
+    &gt; [!NOTE]
+    &gt; 入門サンプルは処理順を明確にするため毎フレーム `SubmitAndWait` します。複数frame-in-flightとfenceによる本番向け同期は後続のFrame Loopページで扱います。
+
+    ## 典型的な失敗
+
+    - clear colorだけ見える → pipeline、shader名、root arguments、`Draw(3)`を確認
+    - 三角形が崩れる → C# / Slangのstruct sizeとoffsetを確認
+    - resize後だけ壊れる → queue idle後にtarget/framebufferを再生成したか確認
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

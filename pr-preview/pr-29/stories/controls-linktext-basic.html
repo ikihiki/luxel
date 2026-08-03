@@ -1,0 +1,166 @@
+<article class="story runtime-page"><section class="runtime-story" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Controls/LinkText/Basic#top" data-luxel-runtime-story="Controls/LinkText/Basic" data-luxel-runtime-instance="controls-linktext-basic-6a709b63a318" data-luxel-runtime-args="{&quot;active&quot;:false,&quot;color&quot;:&quot;#feeadb&quot;,&quot;fontSize&quot;:16,&quot;hAlign&quot;:&quot;Start&quot;,&quot;height&quot;:&quot;96&quot;,&quot;hoverColor&quot;:&quot;#feeadb&quot;,&quot;rotate&quot;:0,&quot;scaleX&quot;:1,&quot;scaleY&quot;:1,&quot;text&quot;:&quot;Example&quot;,&quot;translateX&quot;:0,&quot;translateY&quot;:0,&quot;vAlign&quot;:&quot;Start&quot;,&quot;width&quot;:&quot;240&quot;}" data-luxel-runtime-schema="[
+  {
+    &quot;name&quot;: &quot;text&quot;,
+    &quot;type&quot;: &quot;string&quot;,
+    &quot;defaultValue&quot;: &quot;Example&quot;,
+    &quot;description&quot;: &quot;Text component parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;fontSize&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 16,
+    &quot;description&quot;: &quot;\u6587\u5B57\u30B5\u30A4\u30BA\u3002\u672A\u8A2D\u5B9A \u2192 \u30C6\u30FC\u30DE FontSm\u3002&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;active&quot;,
+    &quot;type&quot;: &quot;bool&quot;,
+    &quot;defaultValue&quot;: false,
+    &quot;description&quot;: &quot;\u9078\u629E\u4E2D/\u73FE\u5728\u5730\u306E\u5F37\u8ABF (\u8272\u304C\u30A2\u30AF\u30BB\u30F3\u30C8\u306B\u306A\u308B)\u3002&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;color&quot;,
+    &quot;type&quot;: &quot;color&quot;,
+    &quot;defaultValue&quot;: &quot;#feeadb&quot;,
+    &quot;description&quot;: &quot;\u901A\u5E38\u8272\u3002\u672A\u8A2D\u5B9A \u2192 Active ? Primary : TextMuted\u3002&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;hoverColor&quot;,
+    &quot;type&quot;: &quot;color&quot;,
+    &quot;defaultValue&quot;: &quot;#feeadb&quot;,
+    &quot;description&quot;: &quot;hover \u8272\u3002\u672A\u8A2D\u5B9A \u2192 Active ? Primary : Text\u3002&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;hAlign&quot;,
+    &quot;type&quot;: &quot;enum:Start|Center|End|Stretch&quot;,
+    &quot;defaultValue&quot;: &quot;Start&quot;,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: [
+      &quot;Start&quot;,
+      &quot;Center&quot;,
+      &quot;End&quot;,
+      &quot;Stretch&quot;
+    ]
+  },
+  {
+    &quot;name&quot;: &quot;vAlign&quot;,
+    &quot;type&quot;: &quot;enum:Start|Center|End|Stretch&quot;,
+    &quot;defaultValue&quot;: &quot;Start&quot;,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: [
+      &quot;Start&quot;,
+      &quot;Center&quot;,
+      &quot;End&quot;,
+      &quot;Stretch&quot;
+    ]
+  },
+  {
+    &quot;name&quot;: &quot;width&quot;,
+    &quot;type&quot;: &quot;length&quot;,
+    &quot;defaultValue&quot;: &quot;240&quot;,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;height&quot;,
+    &quot;type&quot;: &quot;length&quot;,
+    &quot;defaultValue&quot;: &quot;96&quot;,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;translateX&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 0,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;translateY&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 0,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;scaleX&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 1,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;scaleY&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 1,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;rotate&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 0,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  }
+]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Controls%2FLinkText%2FBasic&amp;args=%7B%22active%22%3Afalse%2C%22color%22%3A%22%23feeadb%22%2C%22fontSize%22%3A16%2C%22hAlign%22%3A%22Start%22%2C%22height%22%3A%2296%22%2C%22hoverColor%22%3A%22%23feeadb%22%2C%22rotate%22%3A0%2C%22scaleX%22%3A1%2C%22scaleY%22%3A1%2C%22text%22%3A%22Example%22%2C%22translateX%22%3A0%2C%22translateY%22%3A0%2C%22vAlign%22%3A%22Start%22%2C%22width%22%3A%22240%22%7D&amp;instance=controls-linktext-basic-6a709b63a318" data-luxel-runtime-story="Controls/LinkText/Basic" data-luxel-runtime-instance="controls-linktext-basic-6a709b63a318" title="Interactive Controls/LinkText/Basic" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels"><div class="runtime-tabs" role="tablist" aria-label="Story controls and output"><button type="button" role="tab" id="controls-linktext-basic-6a709b63a318-args-tab" aria-controls="controls-linktext-basic-6a709b63a318-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="controls-linktext-basic-6a709b63a318-output-tab" aria-controls="controls-linktext-basic-6a709b63a318-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button></div><section class="args-panel" id="controls-linktext-basic-6a709b63a318-args-panel" role="tabpanel" aria-labelledby="controls-linktext-basic-6a709b63a318-args-tab"><table class="args-table"><thead><tr><th scope="col">Name</th><th scope="col">Control</th><th scope="col">Default</th><th scope="col">Description</th><th scope="col">Constraints</th><th scope="col">Reset</th></tr></thead><tbody><tr data-arg-row="active"><th scope="row"><code>active</code></th><td><label class="visually-hidden" for="controls-linktext-basic-6a709b63a318-arg-active">active</label><input id="controls-linktext-basic-6a709b63a318-arg-active" data-arg-control="active" type="checkbox"></td><td><code>False</code></td><td>選択中/現在地の強調 (色がアクセントになる)。</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="active">Reset <span class="visually-hidden">active</span></button></td></tr><tr data-arg-row="color"><th scope="row"><code>color</code></th><td><div class="arg-color"><label class="visually-hidden" for="controls-linktext-basic-6a709b63a318-arg-color">color</label><input id="controls-linktext-basic-6a709b63a318-arg-color" data-arg-control="color" type="color" value="#feeadb"><label class="visually-hidden" for="controls-linktext-basic-6a709b63a318-arg-color-text">color color text</label><input id="controls-linktext-basic-6a709b63a318-arg-color-text" data-arg-control="color" data-color-text type="text" value="#feeadb" pattern="#[0-9a-fA-F]{6}"></div></td><td><code>#feeadb</code></td><td>通常色。未設定 → Active ? Primary : TextMuted。</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="color">Reset <span class="visually-hidden">color</span></button></td></tr><tr data-arg-row="fontSize"><th scope="row"><code>fontSize</code></th><td><label class="visually-hidden" for="controls-linktext-basic-6a709b63a318-arg-fontsize">fontSize</label><input id="controls-linktext-basic-6a709b63a318-arg-fontsize" data-arg-control="fontSize" type="number" value="16"></td><td><code>16</code></td><td>文字サイズ。未設定 → テーマ FontSm。</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="fontSize">Reset <span class="visually-hidden">fontSize</span></button></td></tr><tr data-arg-row="hAlign"><th scope="row"><code>hAlign</code></th><td><label class="visually-hidden" for="controls-linktext-basic-6a709b63a318-arg-halign">hAlign</label><select id="controls-linktext-basic-6a709b63a318-arg-halign" data-arg-control="hAlign"><option value="Start" selected>Start</option><option value="Center">Center</option><option value="End">End</option><option value="Stretch">Stretch</option></select></td><td><code>Start</code></td><td>Inherited layout parameter.</td><td>Start | Center | End | Stretch</td><td><button type="button" class="arg-reset" data-arg-reset="hAlign">Reset <span class="visually-hidden">hAlign</span></button></td></tr><tr data-arg-row="height"><th scope="row"><code>height</code></th><td><label class="visually-hidden" for="controls-linktext-basic-6a709b63a318-arg-height">height</label><input id="controls-linktext-basic-6a709b63a318-arg-height" data-arg-control="height" type="text" value="96" inputmode="decimal" placeholder="e.g. 120px or 50%"></td><td><code>96</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="height">Reset <span class="visually-hidden">height</span></button></td></tr><tr data-arg-row="hoverColor"><th scope="row"><code>hoverColor</code></th><td><div class="arg-color"><label class="visually-hidden" for="controls-linktext-basic-6a709b63a318-arg-hovercolor">hoverColor</label><input id="controls-linktext-basic-6a709b63a318-arg-hovercolor" data-arg-control="hoverColor" type="color" value="#feeadb"><label class="visually-hidden" for="controls-linktext-basic-6a709b63a318-arg-hovercolor-text">hoverColor color text</label><input id="controls-linktext-basic-6a709b63a318-arg-hovercolor-text" data-arg-control="hoverColor" data-color-text type="text" value="#feeadb" pattern="#[0-9a-fA-F]{6}"></div></td><td><code>#feeadb</code></td><td>hover 色。未設定 → Active ? Primary : Text。</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="hoverColor">Reset <span class="visually-hidden">hoverColor</span></button></td></tr><tr data-arg-row="rotate"><th scope="row"><code>rotate</code></th><td><label class="visually-hidden" for="controls-linktext-basic-6a709b63a318-arg-rotate">rotate</label><input id="controls-linktext-basic-6a709b63a318-arg-rotate" data-arg-control="rotate" type="number" value="0"></td><td><code>0</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="rotate">Reset <span class="visually-hidden">rotate</span></button></td></tr><tr data-arg-row="scaleX"><th scope="row"><code>scaleX</code></th><td><label class="visually-hidden" for="controls-linktext-basic-6a709b63a318-arg-scalex">scaleX</label><input id="controls-linktext-basic-6a709b63a318-arg-scalex" data-arg-control="scaleX" type="number" value="1"></td><td><code>1</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="scaleX">Reset <span class="visually-hidden">scaleX</span></button></td></tr><tr data-arg-row="scaleY"><th scope="row"><code>scaleY</code></th><td><label class="visually-hidden" for="controls-linktext-basic-6a709b63a318-arg-scaley">scaleY</label><input id="controls-linktext-basic-6a709b63a318-arg-scaley" data-arg-control="scaleY" type="number" value="1"></td><td><code>1</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="scaleY">Reset <span class="visually-hidden">scaleY</span></button></td></tr><tr data-arg-row="text"><th scope="row"><code>text</code></th><td><label class="visually-hidden" for="controls-linktext-basic-6a709b63a318-arg-text">text</label><input id="controls-linktext-basic-6a709b63a318-arg-text" data-arg-control="text" type="text" value="Example"></td><td><code>Example</code></td><td>Text component parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="text">Reset <span class="visually-hidden">text</span></button></td></tr><tr data-arg-row="translateX"><th scope="row"><code>translateX</code></th><td><label class="visually-hidden" for="controls-linktext-basic-6a709b63a318-arg-translatex">translateX</label><input id="controls-linktext-basic-6a709b63a318-arg-translatex" data-arg-control="translateX" type="number" value="0"></td><td><code>0</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="translateX">Reset <span class="visually-hidden">translateX</span></button></td></tr><tr data-arg-row="translateY"><th scope="row"><code>translateY</code></th><td><label class="visually-hidden" for="controls-linktext-basic-6a709b63a318-arg-translatey">translateY</label><input id="controls-linktext-basic-6a709b63a318-arg-translatey" data-arg-control="translateY" type="number" value="0"></td><td><code>0</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="translateY">Reset <span class="visually-hidden">translateY</span></button></td></tr><tr data-arg-row="vAlign"><th scope="row"><code>vAlign</code></th><td><label class="visually-hidden" for="controls-linktext-basic-6a709b63a318-arg-valign">vAlign</label><select id="controls-linktext-basic-6a709b63a318-arg-valign" data-arg-control="vAlign"><option value="Start" selected>Start</option><option value="Center">Center</option><option value="End">End</option><option value="Stretch">Stretch</option></select></td><td><code>Start</code></td><td>Inherited layout parameter.</td><td>Start | Center | End | Stretch</td><td><button type="button" class="arg-reset" data-arg-reset="vAlign">Reset <span class="visually-hidden">vAlign</span></button></td></tr><tr data-arg-row="width"><th scope="row"><code>width</code></th><td><label class="visually-hidden" for="controls-linktext-basic-6a709b63a318-arg-width">width</label><input id="controls-linktext-basic-6a709b63a318-arg-width" data-arg-control="width" type="text" value="240" inputmode="decimal" placeholder="e.g. 120px or 50%"></td><td><code>240</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="width">Reset <span class="visually-hidden">width</span></button></td></tr></tbody></table><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="controls-linktext-basic-6a709b63a318-output-panel" role="tabpanel" aria-labelledby="controls-linktext-basic-6a709b63a318-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section></article>
