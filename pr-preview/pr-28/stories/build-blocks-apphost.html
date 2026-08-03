@@ -29,6 +29,7 @@
 
     &lt;AssemblyName&gt;LuxelTriangle&lt;/AssemblyName&gt;
     &lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;
+    &lt;AllowUnsafeBlocks&gt;true&lt;/AllowUnsafeBlocks&gt;
     &lt;Nullable&gt;enable&lt;/Nullable&gt;
     &lt;PlatformTarget Condition=&quot;$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'X64'&quot;&gt;x64&lt;/PlatformTarget&gt;
     &lt;PlatformTarget Condition=&quot;$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'Arm64'&quot;&gt;arm64&lt;/PlatformTarget&gt;
@@ -84,7 +85,7 @@
 #endif
         Window window = windows.CreateWindow(new WindowDesc($&quot;Luxel — 3D Tutorial ({stage})&quot;, initialWidth, initialHeight));
         using GpuDevice device = CreateDevice(backend, window);
-        using GpuSurface surface = device.CreateSurface(window.GetFeature&lt;INativeSurfaceProvider&gt;()!.SurfaceDescriptor, (uint)Math.Max(1, window.Width), (uint)Math.Max(1, window.Height));
+        using GpuSurface surface = CreateSurface(device, window);
         using var renderer = new TriangleRenderer(device, stage);
 
         int width = Math.Max(0, window.Width);
