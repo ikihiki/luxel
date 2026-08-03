@@ -27,8 +27,8 @@ internal sealed record GpuTextureRequest(
 internal sealed record GpuSamplerRequest(GpuSamplerFilter Filter, GpuSamplerAddress Address);
 internal sealed record GpuBufferRequest(ulong SizeInBytes, GpuMemoryKind Kind);
 
-/// <summary>Pipeline descriptor → GPU pipeline。GpuDevice はインストール時に ctor 注入される。</summary>
-internal sealed class GpuPipelineCreationStep(GpuDevice device)
+/// <summary>Pipeline descriptor → GPU pipeline。device-bound registry は ctor 注入される。</summary>
+internal sealed class GpuPipelineCreationStep(AssetGpuRegistry registry)
     : IResourceStep<GpuPipelineRequest, GpuPipeline>
 {
     public Executor Executor => Executor.External;
@@ -36,15 +36,12 @@ internal sealed class GpuPipelineCreationStep(GpuDevice device)
     public Task<GpuPipeline> RunAsync(GpuPipelineRequest input, ResourceUri uri, LoadContext ctx)
     {
         ctx.MarkOwned();
-        GpuPipeline pipeline = input.IsCompute
-            ? device.CreateComputePipeline(input.Code, input.ComputeEntry)
-            : device.CreateGraphicsPipeline(input.Code, input.Raster, input.VertexEntry, input.PixelEntry);
-        return Task.FromResult(pipeline);
+        return Task.FromResult(registry.Create(input));
     }
 }
 
-/// <summary>Texture descriptor → GPU texture。GpuDevice はインストール時に ctor 注入される。</summary>
-internal sealed class GpuTextureCreationStep(GpuDevice device)
+/// <summary>Texture descriptor → GPU texture。device-bound registry は ctor 注入される。</summary>
+internal sealed class GpuTextureCreationStep(AssetGpuRegistry registry)
     : IResourceStep<GpuTextureRequest, GpuTexture>
 {
     public Executor Executor => Executor.External;
@@ -52,22 +49,12 @@ internal sealed class GpuTextureCreationStep(GpuDevice device)
     public Task<GpuTexture> RunAsync(GpuTextureRequest input, ResourceUri uri, LoadContext ctx)
     {
         ctx.MarkOwned();
-        GpuTexture texture = input.Kind switch
-        {
-            GpuTextureRequestKind.Sampled =>
-                device.CreateTexture(input.Width, input.Height, input.Data.Span, input.Format),
-            GpuTextureRequestKind.RenderTarget =>
-                device.CreateRenderTarget(input.Width, input.Height, input.Format),
-            GpuTextureRequestKind.DepthTarget =>
-                device.CreateDepthTarget(input.Width, input.Height, input.Format),
-            _ => throw new ArgumentOutOfRangeException(nameof(input), input.Kind, "Unknown texture request kind."),
-        };
-        return Task.FromResult(texture);
+        return Task.FromResult(registry.Create(input));
     }
 }
 
-/// <summary>Sampler descriptor → GPU sampler。GpuDevice はインストール時に ctor 注入される。</summary>
-internal sealed class GpuSamplerCreationStep(GpuDevice device)
+/// <summary>Sampler descriptor → GPU sampler。device-bound registry は ctor 注入される。</summary>
+internal sealed class GpuSamplerCreationStep(AssetGpuRegistry registry)
     : IResourceStep<GpuSamplerRequest, GpuSampler>
 {
     public Executor Executor => Executor.External;
@@ -75,12 +62,12 @@ internal sealed class GpuSamplerCreationStep(GpuDevice device)
     public Task<GpuSampler> RunAsync(GpuSamplerRequest input, ResourceUri uri, LoadContext ctx)
     {
         ctx.MarkOwned();
-        return Task.FromResult(device.CreateSampler(input.Filter, input.Address));
+        return Task.FromResult(registry.Create(input));
     }
 }
 
-/// <summary>Buffer descriptor → GPU buffer。GpuDevice はインストール時に ctor 注入される。</summary>
-internal sealed class GpuBufferCreationStep(GpuDevice device)
+/// <summary>Buffer descriptor → GPU buffer。device-bound registry は ctor 注入される。</summary>
+internal sealed class GpuBufferCreationStep(AssetGpuRegistry registry)
     : IResourceStep<GpuBufferRequest, GpuBuffer>
 {
     public Executor Executor => Executor.External;
@@ -88,6 +75,6 @@ internal sealed class GpuBufferCreationStep(GpuDevice device)
     public Task<GpuBuffer> RunAsync(GpuBufferRequest input, ResourceUri uri, LoadContext ctx)
     {
         ctx.MarkOwned();
-        return Task.FromResult(device.Malloc(input.SizeInBytes, input.Kind));
+        return Task.FromResult(registry.Create(input));
     }
 }

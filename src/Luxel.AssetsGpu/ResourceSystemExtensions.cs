@@ -4,7 +4,7 @@ namespace Luxel.AssetsGpu;
 
 /// <summary>
 /// <see cref="ResourceSystem"/> に AssetsGpu の Step 一式を追加登録するヘルパ + GPU リソース publish 用の extension methods。
-/// Step は <see cref="AssetGpuRegistry"/> と <see cref="GpuDevice"/> をコンストラクタで受け取る。
+/// GPU Step は device-bound <see cref="AssetGpuRegistry"/> をコンストラクタで受け取る。
 /// </summary>
 public static class ResourceSystemExtensions
 {
@@ -17,15 +17,15 @@ public static class ResourceSystemExtensions
         return new IResourceStep[]
         {
             new TextureUploaderStep(device),
-            new AssetTextureToGpuStep(device, registry),
-            new AssetSamplerToGpuStep(device, registry),
-            new AssetMaterialToGpuStep(device, registry),
-            new AssetMeshToGpuStep(device, registry),
-            new AssetSkinToGpuStep(device, registry),
-            new GpuPipelineCreationStep(device),
-            new GpuTextureCreationStep(device),
-            new GpuSamplerCreationStep(device),
-            new GpuBufferCreationStep(device),
+            new AssetTextureToGpuStep(registry),
+            new AssetSamplerToGpuStep(registry),
+            new AssetMaterialToGpuStep(registry),
+            new AssetMeshToGpuStep(registry),
+            new AssetSkinToGpuStep(registry),
+            new GpuPipelineCreationStep(registry),
+            new GpuTextureCreationStep(registry),
+            new GpuSamplerCreationStep(registry),
+            new GpuBufferCreationStep(registry),
         };
     }
 
@@ -64,15 +64,15 @@ public static class ResourceSystemExtensions
     private static void AddAssetGpuSteps(ResourceSystem resources, GpuDevice device, AssetGpuRegistry registry)
     {
         resources.AddStep(new TextureUploaderStep(device));
-        resources.AddStep(new AssetTextureToGpuStep(device, registry));
-        resources.AddStep(new AssetSamplerToGpuStep(device, registry));
-        resources.AddStep(new AssetMaterialToGpuStep(device, registry));
-        resources.AddStep(new AssetMeshToGpuStep(device, registry));
-        resources.AddStep(new AssetSkinToGpuStep(device, registry));
-        resources.AddStep(new GpuPipelineCreationStep(device));
-        resources.AddStep(new GpuTextureCreationStep(device));
-        resources.AddStep(new GpuSamplerCreationStep(device));
-        resources.AddStep(new GpuBufferCreationStep(device));
+        resources.AddStep(new AssetTextureToGpuStep(registry));
+        resources.AddStep(new AssetSamplerToGpuStep(registry));
+        resources.AddStep(new AssetMaterialToGpuStep(registry));
+        resources.AddStep(new AssetMeshToGpuStep(registry));
+        resources.AddStep(new AssetSkinToGpuStep(registry));
+        resources.AddStep(new GpuPipelineCreationStep(registry));
+        resources.AddStep(new GpuTextureCreationStep(registry));
+        resources.AddStep(new GpuSamplerCreationStep(registry));
+        resources.AddStep(new GpuBufferCreationStep(registry));
     }
 
     // ==================== Publish 系 GPU リソース ====================

@@ -5,7 +5,7 @@ namespace Luxel.AssetsGpu;
 
 /// <summary>
 /// GPU creation descriptors are registered as scope-local inputs and converted by AssetsGpu Steps.
-/// Each Step receives <see cref="GpuDevice"/> through constructor injection when AssetsGpu is installed;
+/// Each Step receives the device-bound <see cref="AssetGpuRegistry"/> through constructor injection;
 /// callers therefore never pass a device to these factory methods.
 /// </summary>
 public static class ResourceScopeGpuExtensions

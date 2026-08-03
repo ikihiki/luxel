@@ -2,6 +2,8 @@ using System.Numerics;
 using Luxel.Assets;
 using Luxel.AssetsGpu;
 
+using Luxel.Resources;
+
 namespace Luxel.Tests;
 
 /// <summary>
@@ -101,6 +103,30 @@ public class AssetsGpuTests
 
         Assert.Equal(2, backend.LiveResources);
         installation.Dispose();
+        Assert.Equal(0, backend.LiveResources);
+    }
+
+    [Fact]
+    public async Task CreateAssetGpuSteps_GlobalRegistrationUsesReturnedRegistry()
+    {
+        var backend = new FakeGpuBackend();
+        using var device = new GpuDevice(backend);
+        IResourceStep[] steps = ResourceSystemExtensions.CreateAssetGpuSteps(device, out AssetGpuRegistry registry);
+        using var resources = new Luxel.Resources.ResourceSystem(steps: steps);
+        resources.SetDeferredDisposeIdleHook(() => device.MainQueue.WaitIdle());
+        using ResourceScope scope = resources.CreateScope("global/steps");
+
+        ResourceHandle<GpuSampler> sampler = scope.CreateSampler("sampler");
+        ResourceHandle<GpuBuffer> buffer = scope.CreateBuffer("buffer", 32);
+        await Task.WhenAll(sampler.Ready, buffer.Ready);
+
+        Assert.Equal(4, backend.LiveResources); // registry defaults + scope-owned sampler/buffer
+
+        scope.Dispose();
+        resources.Pump();
+        Assert.Equal(2, backend.LiveResources);
+
+        registry.Dispose();
         Assert.Equal(0, backend.LiveResources);
     }
 
