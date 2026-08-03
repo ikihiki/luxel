@@ -1,12 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
-    <!-- Luxel.Diagnostics のみ利用 (GpuDevice/GpuBuffer 等の GPU API は使わない)。
-         GPU 関連 (RenderGraph / RenderBuffer 等) は Luxel.AssetsGpu プロジェクトに切り出し済。 -->
-  </ItemGroup>
-
-  <ItemGroup>
     <InternalsVisibleTo Include="Luxel.Tests" />
   </ItemGroup>
 
@@ -20,8 +14,4 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Using Include="Luxel.Graphics" />
-  </ItemGroup>
 </Project>

@@ -27,7 +27,8 @@ internal sealed class ResourceNode
     public Executor StepExecutor;
     public event Action? Reloaded;
     public void FireReloaded() => Reloaded?.Invoke();
-    public bool IsBorrowed;
+    public ResourceOwnership Ownership = ResourceOwnership.Owned;
+    public bool IsEvicted;
 }
 
 /// <summary>リソースへの安定参照ハンドル。再ロードで <see cref="Value"/> が差し替わる。</summary>
@@ -35,7 +36,7 @@ public sealed class ResourceHandle<T> : IDisposable
 {
     private readonly ResourceSystem _sys;
     internal readonly ResourceNode Node;
-    private bool _disposed;
+    private int _disposed;
 
     internal ResourceHandle(ResourceSystem sys, ResourceNode node) { _sys = sys; Node = node; }
 
@@ -55,8 +56,7 @@ public sealed class ResourceHandle<T> : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
+        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         _sys.Release(Node);
     }
 }
@@ -77,12 +77,95 @@ public sealed class LoadContext
     public StageAwaitable Cpu => _sys.CpuStage;
     public StageAwaitable Gpu => _sys.GpuStage;
 
-    /// <summary>fragment 有りノードは既定で borrowed。新規リソース作成 step は本メソッドで所有権を Resources に譲渡。</summary>
-    public void MarkOwned() => Owner.IsBorrowed = false;
+    /// <summary>現在のロード結果の破棄責任を <see cref="ResourceSystem"/> に設定する。</summary>
+    public void MarkOwned() => Owner.Ownership = ResourceOwnership.Owned;
+
+    /// <summary>現在のロード結果を外部所有として扱う。</summary>
+    public void MarkBorrowed() => Owner.Ownership = ResourceOwnership.Borrowed;
 
     /// <summary>依存リソースを (型,uri) で自動合成しロード (キャッシュ共有・リロード伝播)。</summary>
     public ResourceHandle<U> Load<U>(string uri) => _sys.LoadDependency<U>(uri, Owner);
     public ResourceHandle<U> Load<U>(string uri, Loader<U> loader) => _sys.LoadDependency(uri, loader, Owner);
+}
+
+internal sealed class PumpFlushRegistration : IDisposable
+{
+    private readonly ResourceSystem _system;
+    internal readonly ResourceNode Node;
+    internal readonly Func<bool> Callback;
+    private int _disposed;
+
+    internal PumpFlushRegistration(ResourceSystem system, ResourceNode node, Func<bool> callback)
+    {
+        _system = system;
+        Node = node;
+        Callback = callback;
+    }
+
+    internal bool IsDisposed => Volatile.Read(ref _disposed) != 0;
+
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) == 0) _system.RemovePumpFlush(this);
+    }
+}
+
+/// <summary>論理 owner に属するリソース lease をまとめて解放するスコープ。</summary>
+public sealed class ResourceScope : IDisposable
+{
+    private readonly ResourceSystem _system;
+    private readonly object _lock = new();
+    private List<IDisposable>? _leases = new();
+
+    internal ResourceScope(ResourceSystem system, string ownerId)
+    {
+        _system = system;
+        OwnerId = ownerId;
+    }
+
+    public string OwnerId { get; }
+
+    /// <summary>共有 URI をロードし、このスコープの lease として追跡する。</summary>
+    public ResourceHandle<T> Load<T>(string uri) => Track(_system.Load<T>(uri));
+
+    /// <summary>owner 内で一意な key を scope-qualified URI に変換して明示 loader で作成する。</summary>
+    public ResourceHandle<T> Create<T>(string localKey, Loader<T> loader)
+        => Create(localKey, loader, ResourceOwnership.Owned);
+
+    /// <summary>owner 内で一意な key を scope-qualified URI に変換し、所有権を明示して作成する。</summary>
+    public ResourceHandle<T> Create<T>(string localKey, Loader<T> loader, ResourceOwnership ownership)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(localKey);
+        ArgumentNullException.ThrowIfNull(loader);
+        string uri = $"scope://{Uri.EscapeDataString(OwnerId)}/{Uri.EscapeDataString(localKey)}";
+        return Track(_system.Load(uri, loader, ownership));
+    }
+
+    private ResourceHandle<T> Track<T>(ResourceHandle<T> handle)
+    {
+        lock (_lock)
+        {
+            if (_leases is null)
+            {
+                handle.Dispose();
+                throw new ObjectDisposedException(nameof(ResourceScope));
+            }
+            _leases.Add(handle);
+            return handle;
+        }
+    }
+
+    public void Dispose()
+    {
+        List<IDisposable>? leases;
+        lock (_lock)
+        {
+            leases = _leases;
+            _leases = null;
+        }
+        if (leases is null) return;
+        foreach (IDisposable lease in leases) lease.Dispose();
+    }
 }
 
 /// <summary>
@@ -100,10 +183,10 @@ public sealed class ResourceSystem : IDisposable
     private readonly object _lock = new();
     private readonly ConcurrentQueue<ResourceNode> _reloadQueue = new();
     private readonly ConcurrentQueue<Action> _publishQueue = new();
-    private readonly List<Func<bool>> _flushCallbacks = new();
-    private readonly List<ResourceNode> _flushNodes = new();
+    private readonly List<PumpFlushRegistration> _flushRegistrations = new();
     private readonly List<object> _deferredDispose = new();
     private bool _autoReload;
+    private volatile bool _disposed;
     private volatile bool _graphDirty;
     private Action? _deferredIdleHook;
 
@@ -136,12 +219,21 @@ public sealed class ResourceSystem : IDisposable
     /// <summary>Step インスタンスを追加登録 (実行時追加、通常はコンストラクタ配列を推奨)。</summary>
     public void AddStep(IResourceStep step) => _pipeline.AddStep(step);
 
+    /// <summary>論理 owner に属する resource lease をまとめて管理するスコープを作成する。</summary>
+    public ResourceScope CreateScope(string ownerId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(ownerId);
+        ThrowIfDisposed();
+        return new ResourceScope(this, ownerId);
+    }
+
     /// <summary>ファイル変更等による自動リロードを有効化。</summary>
     public void Watch() => _autoReload = true;
 
     public ResourceHandle<T> Load<T>(string uri)
     {
-        ResourceNode node = GetOrCreate(typeof(T), new ResourceUri(uri), explicitLoader: null);
+        ThrowIfDisposed();
+        ResourceNode node = GetOrCreate(typeof(T), new ResourceUri(uri), explicitLoader: null, ownership: null);
         Interlocked.Increment(ref node.RefCount);
         return new ResourceHandle<T>(this, node);
     }
@@ -154,9 +246,14 @@ public sealed class ResourceSystem : IDisposable
         return Publish(uri, value);
     }
 
-    /// <summary>外部所有の値を uri に登録する。以後 <see cref="Load{T}(string)"/> で取得可能。</summary>
+    /// <summary>値を uri に登録する。既存動作との互換性のため既定は owned。</summary>
     public ResourceHandle<T> Publish<T>(string uri, T value) where T : class
+        => Publish(uri, value, ResourceOwnership.Owned);
+
+    /// <summary>所有権を明示して値を uri に登録する。以後 <see cref="Load{T}(string)"/> で取得可能。</summary>
+    public ResourceHandle<T> Publish<T>(string uri, T value, ResourceOwnership ownership) where T : class
     {
+        ThrowIfDisposed();
         string key = typeof(T).FullName + "|" + new ResourceUri(uri).Key;
         lock (_lock)
         {
@@ -174,6 +271,7 @@ public sealed class ResourceSystem : IDisposable
                 Status = ResourceStatus.Ready,
                 Computed = Task.FromResult<object>(value),
                 Loader = _ => Task.FromResult<object>(value),
+                Ownership = ownership,
             };
             _cache[key] = node;
             Interlocked.Increment(ref node.RefCount);
@@ -196,14 +294,29 @@ public sealed class ResourceSystem : IDisposable
         _publishQueue.Enqueue(() => NotifyPublish(node, value));
     }
 
-    /// <summary>Publish 済み handle に「Pump 時に呼ぶ dirty flush callback」を登録。RenderBuffer/RenderTarget 等が利用する公開 API。</summary>
+    /// <summary>handle の node が生存中だけ Pump 時に呼ぶ callback を登録する。</summary>
     public void RegisterPumpFlush<T>(ResourceHandle<T> handle, Func<bool> flushCallback)
+        => RegisterPumpFlushLease(handle, flushCallback);
+
+    /// <summary>破棄による明示解除も可能な Pump callback lease を登録する。</summary>
+    public IDisposable RegisterPumpFlushLease<T>(ResourceHandle<T> handle, Func<bool> flushCallback)
     {
+        ArgumentNullException.ThrowIfNull(handle);
+        ArgumentNullException.ThrowIfNull(flushCallback);
+        ThrowIfDisposed();
+        var registration = new PumpFlushRegistration(this, handle.Node, flushCallback);
         lock (_lock)
         {
-            _flushCallbacks.Add(flushCallback);
-            _flushNodes.Add(handle.Node);
+            if (_disposed) throw new ObjectDisposedException(nameof(ResourceSystem));
+            if (handle.Node.IsEvicted) throw new ObjectDisposedException(nameof(handle));
+            _flushRegistrations.Add(registration);
         }
+        return registration;
+    }
+
+    internal void RemovePumpFlush(PumpFlushRegistration registration)
+    {
+        lock (_lock) _flushRegistrations.Remove(registration);
     }
 
     /// <summary>Pump 時に <c>_deferredDispose</c> を実際に破棄する前に呼ばれる hook (GPU の WaitIdle 用)。</summary>
@@ -221,15 +334,21 @@ public sealed class ResourceSystem : IDisposable
     }
 
     public ResourceHandle<T> Load<T>(string uri, Loader<T> loader)
+        => Load(uri, loader, ResourceOwnership.Owned);
+
+    /// <summary>明示 loader の結果の所有権を指定してロードする。</summary>
+    public ResourceHandle<T> Load<T>(string uri, Loader<T> loader, ResourceOwnership ownership)
     {
-        ResourceNode node = GetOrCreate(typeof(T), new ResourceUri(uri), Wrap(loader));
+        ArgumentNullException.ThrowIfNull(loader);
+        ThrowIfDisposed();
+        ResourceNode node = GetOrCreate(typeof(T), new ResourceUri(uri), Wrap(loader), ownership);
         Interlocked.Increment(ref node.RefCount);
         return new ResourceHandle<T>(this, node);
     }
 
     internal ResourceHandle<U> LoadDependency<U>(string uri, ResourceNode owner)
     {
-        ResourceNode node = GetOrCreate(typeof(U), new ResourceUri(uri), null);
+        ResourceNode node = GetOrCreate(typeof(U), new ResourceUri(uri), null, ownership: null);
         AddEdge(owner, node);
         Interlocked.Increment(ref node.RefCount);
         return new ResourceHandle<U>(this, node);
@@ -237,7 +356,7 @@ public sealed class ResourceSystem : IDisposable
 
     internal ResourceHandle<U> LoadDependency<U>(string uri, Loader<U> loader, ResourceNode owner)
     {
-        ResourceNode node = GetOrCreate(typeof(U), new ResourceUri(uri), Wrap(loader));
+        ResourceNode node = GetOrCreate(typeof(U), new ResourceUri(uri), Wrap(loader), ResourceOwnership.Owned);
         AddEdge(owner, node);
         Interlocked.Increment(ref node.RefCount);
         return new ResourceHandle<U>(this, node);
@@ -246,14 +365,24 @@ public sealed class ResourceSystem : IDisposable
     private static Func<LoadContext, Task<object>> Wrap<T>(Loader<T> loader)
         => async ctx => (object)(await loader(ctx))!;
 
-    private ResourceNode GetOrCreate(Type type, ResourceUri uri, Func<LoadContext, Task<object>>? explicitLoader)
+    private ResourceNode GetOrCreate(
+        Type type,
+        ResourceUri uri,
+        Func<LoadContext, Task<object>>? explicitLoader,
+        ResourceOwnership? ownership)
     {
         string key = type.FullName + "|" + uri.Key;
         lock (_lock)
         {
             if (_cache.TryGetValue(key, out ResourceNode? existing)) return existing;
             var node = new ResourceNode { Type = type, Uri = uri, Key = key };
-            if (explicitLoader != null) { node.Loader = explicitLoader; node.StepName = "loader"; node.StepExecutor = Executor.Cpu; }
+            if (explicitLoader != null)
+            {
+                node.Loader = explicitLoader;
+                node.StepName = "loader";
+                node.StepExecutor = Executor.Cpu;
+                node.Ownership = ownership ?? ResourceOwnership.Owned;
+            }
             else node.Loader = Compose(type, uri, node);
             _cache[key] = node;
             _graphDirty = true;
@@ -279,7 +408,7 @@ public sealed class ResourceSystem : IDisposable
         node.StepExecutor = step.Executor;
         Type inType = step.Input;
         ResourceUri depUri = uri.Fragment.Length > 0 ? uri.WithoutFragment() : uri;
-        if (uri.Fragment.Length > 0) node.IsBorrowed = true;
+        if (uri.Fragment.Length > 0) node.Ownership = ResourceOwnership.Borrowed;
         return async ctx =>
         {
             ResourceNode dep = GetOrCreateDep(inType, depUri, node);
@@ -291,7 +420,7 @@ public sealed class ResourceSystem : IDisposable
 
     private ResourceNode GetOrCreateDep(Type type, ResourceUri uri, ResourceNode owner)
     {
-        ResourceNode dep = GetOrCreate(type, uri, null);
+        ResourceNode dep = GetOrCreate(type, uri, null, ownership: null);
         AddEdge(owner, dep);
         return dep;
     }
@@ -330,9 +459,9 @@ public sealed class ResourceSystem : IDisposable
             object v = await node.Loader(ctx);
             lock (node)
             {
-                if (node.LoadGeneration != generation)
+                if (node.LoadGeneration != generation || node.IsEvicted)
                 {
-                    if (!node.IsBorrowed) (v as IDisposable)?.Dispose();
+                    if (node.Ownership == ResourceOwnership.Owned) (v as IDisposable)?.Dispose();
                     return v;
                 }
 
@@ -381,12 +510,13 @@ public sealed class ResourceSystem : IDisposable
     {
         lock (_lock)
         {
-            for (int i = 0; i < _flushCallbacks.Count; i++)
+            foreach (PumpFlushRegistration registration in _flushRegistrations.ToArray())
             {
-                if (_flushCallbacks[i]())
+                if (registration.IsDisposed || registration.Node.IsEvicted) continue;
+                if (registration.Callback())
                 {
-                    _flushNodes[i].Version++;
-                    _flushNodes[i].FireReloaded();
+                    registration.Node.Version++;
+                    registration.Node.FireReloaded();
                     _graphDirty = true;
                 }
             }
@@ -395,7 +525,7 @@ public sealed class ResourceSystem : IDisposable
         while (_reloadQueue.TryDequeue(out ResourceNode? n))
         {
             Interlocked.Exchange(ref n.ReloadQueued, 0);
-            StartLoad(n, isReload: true);
+            if (!n.IsEvicted) StartLoad(n, isReload: true);
         }
         if (_deferredDispose.Count > 0)
         {
@@ -433,9 +563,9 @@ public sealed class ResourceSystem : IDisposable
         object? old;
         lock (node)
         {
-            if (generation.HasValue && node.LoadGeneration != generation.Value)
+            if (node.IsEvicted || (generation.HasValue && node.LoadGeneration != generation.Value))
             {
-                if (!node.IsBorrowed) (newValue as IDisposable)?.Dispose();
+                if (node.Ownership == ResourceOwnership.Owned) (newValue as IDisposable)?.Dispose();
                 return;
             }
             old = node.Value;
@@ -443,7 +573,8 @@ public sealed class ResourceSystem : IDisposable
             node.HasValue = true;
             node.Version++;
         }
-        if (old != null && !ReferenceEquals(old, newValue)) _deferredDispose.Add(old);
+        if (old != null && !ReferenceEquals(old, newValue) && node.Ownership == ResourceOwnership.Owned)
+            _deferredDispose.Add(old);
         node.FireReloaded();
         _graphDirty = true;
         ResourceNode[] deps;
@@ -453,16 +584,21 @@ public sealed class ResourceSystem : IDisposable
 
     private void EnqueueReload(ResourceNode node)
     {
-        if (Interlocked.CompareExchange(ref node.ReloadQueued, 1, 0) == 0)
+        if (!node.IsEvicted && Interlocked.CompareExchange(ref node.ReloadQueued, 1, 0) == 0)
             _reloadQueue.Enqueue(node);
     }
 
-    public void NotifyDeviceLost()
+    /// <summary>現在キャッシュされている全 node を再ロード対象として無効化する。</summary>
+    public void InvalidateAll()
     {
+        ThrowIfDisposed();
         ResourceNode[] all;
         lock (_lock) all = _cache.Values.ToArray();
         foreach (ResourceNode n in all) EnqueueReload(n);
     }
+
+    /// <summary>互換 API。汎用の <see cref="InvalidateAll"/> を呼び出す。</summary>
+    public void NotifyDeviceLost() => InvalidateAll();
 
     private void RegisterWatch(ResourceNode node)
     {
@@ -475,6 +611,7 @@ public sealed class ResourceSystem : IDisposable
     {
         lock (_lock)
         {
+            if (node.IsEvicted) return;
             if (Interlocked.Decrement(ref node.RefCount) > 0) return;
             TryEvict(node);
         }
@@ -482,12 +619,21 @@ public sealed class ResourceSystem : IDisposable
 
     private void TryEvict(ResourceNode node)
     {
-        if (node.RefCount > 0 || node.Dependents.Count > 0) return;
+        if (node.IsEvicted || node.RefCount > 0 || node.Dependents.Count > 0) return;
+        object? value;
+        lock (node)
+        {
+            node.IsEvicted = true;
+            value = node.Value;
+            node.Value = null;
+            node.HasValue = false;
+        }
         _cache.Remove(node.Key);
+        _flushRegistrations.RemoveAll(r => ReferenceEquals(r.Node, node));
         _graphDirty = true;
         node.WatchToken?.Dispose();
         try { node.Cts?.Cancel(); } catch { }
-        if (node.Value != null && !node.IsBorrowed) _deferredDispose.Add(node.Value);
+        if (value != null && node.Ownership == ResourceOwnership.Owned) _deferredDispose.Add(value);
         foreach (ResourceNode dep in node.Dependencies.ToArray())
         {
             dep.Dependents.Remove(node);
@@ -499,14 +645,34 @@ public sealed class ResourceSystem : IDisposable
     public void Dispose()
     {
         ResourceNode[] all;
-        lock (_lock) { all = _cache.Values.ToArray(); _cache.Clear(); }
+        lock (_lock)
+        {
+            if (_disposed) return;
+            _disposed = true;
+            all = _cache.Values.ToArray();
+            _cache.Clear();
+            _flushRegistrations.Clear();
+        }
         foreach (ResourceNode n in all)
         {
+            object? value;
+            lock (n)
+            {
+                n.IsEvicted = true;
+                value = n.Value;
+                n.Value = null;
+                n.HasValue = false;
+            }
             n.WatchToken?.Dispose();
             try { n.Cts?.Cancel(); } catch { }
-            if (!n.IsBorrowed) (n.Value as IDisposable)?.Dispose();
+            if (n.Ownership == ResourceOwnership.Owned) (value as IDisposable)?.Dispose();
         }
         foreach (object o in _deferredDispose) (o as IDisposable)?.Dispose();
         _deferredDispose.Clear();
+    }
+
+    private void ThrowIfDisposed()
+    {
+        if (_disposed) throw new ObjectDisposedException(nameof(ResourceSystem));
     }
 }

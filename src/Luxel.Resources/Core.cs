@@ -5,6 +5,15 @@ namespace Luxel.Resources;
 /// <summary>ステップが宣言する実行器 (内部スケジューラ。利用者は管理しない)。</summary>
 public enum Executor { Io, Cpu, Gpu }
 
+/// <summary>キャッシュされた値の破棄責任。</summary>
+public enum ResourceOwnership
+{
+    /// <summary><see cref="ResourceSystem"/> が eviction / replacement 時に <see cref="IDisposable.Dispose"/> を呼ぶ。</summary>
+    Owned,
+    /// <summary>値の破棄責任は呼び出し側にあり、<see cref="ResourceSystem"/> は破棄しない。</summary>
+    Borrowed,
+}
+
 /// <summary>リソースの読込状態。</summary>
 public enum ResourceStatus { Loading, Ready, Failed }
 
