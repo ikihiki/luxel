@@ -34,7 +34,7 @@ public static class GltfMorphStories
     }
 
     [Story("Examples/3D/GltfMorph", Height = 320, Order = 128)]
-    public static Widget GltfMorph(StoryContext ctx) => ctx.Snap(Frame(GpuView(256, 256, new MorphScene())));
+    public static Widget GltfMorph(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(256, 256, new MorphScene())));
 
     private sealed class MorphScene : GpuSceneBase
     {

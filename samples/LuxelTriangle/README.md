@@ -1,6 +1,6 @@
 # LuxelTriangle
 
-Gallery の `GpuView` / `IGpuScene` に依存しない、最小のスタンドアロン GPU 描画サンプルです。
+Gallery の `GpuView` callback API に依存しない、最小のスタンドアロン GPU 描画サンプルです。
 
 - Windows: Vulkan (`vk`) / DirectX 12 (`dx`)
 - Linux: Vulkan (`vk`)、X11 (`DISPLAY`) が必要

@@ -25,7 +25,7 @@ public static partial class DocsRenderingLearn
         **検索キーワード:** triangle / texture / camera / render graph / glTF / blank screen / 真っ黒
 
         > [!IMPORTANT]
-        > `GpuView` と `IGpuScene` はGallery内でデモを表示するためのハーネスです。通常アプリでは `WindowSystem`、`Window`、`GpuSurface` を使います。
+        > `GpuView` とそのrender callbackはGallery内でデモを表示するためのハーネスです。通常アプリでは `WindowSystem`、`Window`、`GpuSurface` を使います。
 
         ## どのAPIまで学ぶか
 

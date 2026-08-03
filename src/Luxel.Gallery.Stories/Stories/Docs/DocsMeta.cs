@@ -161,10 +161,10 @@ public static class DocsMeta
         描画結果を widget にする受け皿が 2 つあります:
 
         - **Canvas2D(w, h, draw: / animate:(s, t))** — Scene2D を直接描く (UI と同じ保持型キャンバスの 1 ノード)。`t` は累積秒
-        - **GpuView(w, h, IGpuScene, animated:)** — offscreen に自前 GPU レンダ → bindless バッファ経由でゼロコピー合成。共通下回りは `GpuSceneBase` (Gallery 内)
+        - **GpuView(w, h, render, animated:, dispose:)** — device と GpuView 所有 surface を受け取る callback で offscreen 描画し、bindless バッファ経由でゼロコピー合成。共通下回りは `GpuSceneBase` (Gallery 内)
 
         > [!WARNING]
-        > IGpuScene の規約: **ctor は引数保持のみ** (確保は全部 Init — 起動時に全ストーリーが Build される + Dispose 後の再 Init に耐える)。**時間は Render 引数の累積秒のみ** (wall-clock 禁止 — snap の決定性)。ターゲット幅は 64 の倍数 (D3D12 の 256B 整列)。knob を絵に反映するシーンは `animated: true` (Render が毎フレーム呼ばれる)。RenderGraph は 1 フレーム使い切り — animated シーンでは Render 内で毎回作る。
+        > GpuView callback の規約: **ctor は引数保持のみ** (GPU resource は callback が最初に呼ばれた時に確保し、`dispose` で破棄する)。**時間は callback 引数の累積秒のみ** (wall-clock 禁止 — snap の決定性)。描画先と256B整列済みframebufferは `GpuViewSurface` が所有する。knob を絵に反映する場合は `animated: true` にする。RenderGraph は 1 フレーム使い切り — animated renderer では callback 内で毎回作る。
 
         ## 実窓専用ストーリー
 

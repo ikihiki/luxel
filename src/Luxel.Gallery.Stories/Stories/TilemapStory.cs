@@ -16,7 +16,7 @@ namespace Luxel.Gallery.Stories;
 public static class TilemapStories
 {
     [Story("Examples/2D/Tilemap", Height = 260, Order = 120)]
-    public static Widget Tilemap(StoryContext ctx) => ctx.Snap(Frame(GpuView(384, 192, new TilemapScene(), animated: false)));
+    public static Widget Tilemap(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(384, 192, new TilemapScene(), animated: false)));
 
     private sealed class TilemapScene : GpuSceneBase
     {
@@ -26,8 +26,6 @@ public static class TilemapStories
         private GpuBuffer _atlas = null!;
         private RetainedCanvas _canvas = null!;
         private IRasterScene2D _rasterScene = null!;
-
-        protected override bool NeedsColorTarget => false;
 
         protected override void OnInit()
         {

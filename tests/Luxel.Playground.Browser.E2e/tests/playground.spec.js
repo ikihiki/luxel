@@ -178,7 +178,7 @@ test('loads, persists, resets, and renders the 3D Slang cube sample', async ({ p
   await expect(root.locator('[data-playground-title]')).toHaveText('3D Slang Cube');
   let workspace = await root.evaluate(element => globalThis.LuxelPlayground.getWorkspace(element));
   expect(workspace.sampleId).toBe('slang-cube');
-  expect(workspace.files.map(file => file.path)).toEqual(['Cube.csx', 'SlangCubeScene.cs', 'Shaders/cube.slang']);
+  expect(workspace.files.map(file => file.path)).toEqual(['Cube.csx', 'SlangCubeRenderer.cs', 'Shaders/cube.slang']);
   expect(workspace.files.find(file => file.path === 'Shaders/cube.slang').source).toContain('[shader("vertex")]');
 
   await root.locator('[data-playground-run]').click();

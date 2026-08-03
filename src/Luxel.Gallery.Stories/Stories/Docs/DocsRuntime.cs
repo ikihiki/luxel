@@ -342,7 +342,7 @@ public static class DocsRuntime
 
         ## 機能させる面 (3 つ)
 
-        1. **Gallery/docs のライブブロック** (実装済み) — エディタで編集 → Run → 返した `Widget`/`IGpuScene` をその場に実体化。コンパイルエラー/実行時例外は行番号付きでインライン表示、ブロックが落ちてもページは落ちない (ErrorBoundary)
+        1. **Gallery/docs のライブブロック** (実装済み) — エディタで編集 → Run → 返した `Widget`/`GpuView` callback をその場に実体化。コンパイルエラー/実行時例外は行番号付きでインライン表示、ブロックが落ちてもページは落ちない (ErrorBoundary)
         2. **継続 REPL コンソール** (実装済み) — `ScriptHost.OpenSession(globals)` → `ScriptSession.Submit(line)`。**前の行で宣言した変数/using が次の行で見える** (Roslyn の `ContinueWith`)。実行中アプリへ 1 行ずつ投げて Signal を突く運用デバッグの土台。実演は {{StoryRef(ctx, "Examples/Scripting/Repl")}} へ
         3. **Framework アプリのゲームロジック** (実装済み) — `.csx` を World/Phase フックへ登録し、ファイル監視でホットリロード (`Luxel.Scripting.Framework` の `ScriptSystem`、下記)
 

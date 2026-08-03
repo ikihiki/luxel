@@ -16,7 +16,7 @@ namespace Luxel.Gallery.Stories;
 public static class SpriteStories
 {
     [Story("Examples/2D/Sprites", Height = 260, Order = 119)]
-    public static Widget Sprites(StoryContext ctx) => ctx.Snap(Frame(GpuView(384, 192, new SpriteScene(), animated: false)));
+    public static Widget Sprites(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(384, 192, new SpriteScene(), animated: false)));
 
     private sealed class SpriteScene : GpuSceneBase
     {
@@ -26,7 +26,6 @@ public static class SpriteStories
         private GpuBuffer _atlas = null!;
         private GpuEncodedScene2D _encoded = null!;
 
-        protected override bool NeedsColorTarget => false;   // Scene2D を直接 OutBuffer へラスタライズ
 
         protected override void OnInit()
         {

@@ -40,10 +40,10 @@ public static class GpuBasicsStories
     }
 
     [Story("Examples/3D/Depth", Height = 320, Order = 100)]
-    public static Widget Depth() => Frame(GpuView(256, 256, new DepthScene(), animated: false));
+    public static Widget Depth() => Frame(GpuSceneBase.View(256, 256, new DepthScene(), animated: false));
 
     [Story("Examples/3D/Blend", Height = 320, Order = 101)]
-    public static Widget Blend() => Frame(GpuView(256, 256, new BlendScene(), animated: false));
+    public static Widget Blend() => Frame(GpuSceneBase.View(256, 256, new BlendScene(), animated: false));
 
     /// <summary>深度テスト: 手前 (緑, z=0.3) → 奥 (赤, z=0.7) の順に描く。描画順だけなら
     /// 後から描いた赤が勝つはずだが、LessEqual の深度テストで重なり中心は緑が残る。</summary>

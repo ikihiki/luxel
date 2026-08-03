@@ -79,7 +79,7 @@ public static class AnimationStories
 
     /// <summary>CSS @keyframes → AnimationClip → RetainedCanvas ノードへ適用 (ループ再生)。</summary>
     [Story("Examples/Animation/CssKeyframes", Height = 300, Order = 141)]
-    public static Widget CssKeyframes(StoryContext ctx) => ctx.Snap(Frame(GpuView(256, 128, new CssClipScene())));
+    public static Widget CssKeyframes(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(256, 128, new CssClipScene())));
 
     /// <summary>StateMachine (idle ⇄ jump、crossfade 0.15s)。ボタンで Trigger を送る —
     /// press でジャンプ (黄)、done で idle (青) へ戻る。</summary>
@@ -91,13 +91,13 @@ public static class AnimationStories
             HStack(8)[
                 Button(_ => { scene.Trigger("press"); ctx.Log("trigger: press → jump"); }, "press"),
                 Button(_ => { scene.Trigger("done"); ctx.Log("trigger: done → idle"); }, "done")],
-            GpuView(256, 128, scene)]);
+            GpuSceneBase.View(256, 128, scene)]);
     }
 
     /// <summary>AnimationClip (translation + rotation) を EcsAnimationTarget で
     /// LocalTransform へ書き、毎フレーム propagate → extract → 描画。</summary>
     [Story("Examples/Animation/EcsClip", Height = 320, Order = 143)]
-    public static Widget EcsClip() => Frame(GpuView(256, 256, new EcsClipScene()));
+    public static Widget EcsClip() => Frame(GpuSceneBase.View(256, 256, new EcsClipScene()));
 
     /// <summary>AnimationGraph: BlendNode(上下振動, 左右振動)。weight は knob —
     /// 0 で上下のみ、1 で左右のみ、中間で混合。</summary>
@@ -105,7 +105,7 @@ public static class AnimationStories
     public static Widget Graph(StoryContext ctx)
     {
         Signal<float> weight = ctx.Signal("weight", 0.5f, "Blend: 0 = 上下振動, 1 = 左右振動");
-        return Frame(GpuView(256, 256, new GraphScene(weight)));
+        return Frame(GpuSceneBase.View(256, 256, new GraphScene(weight)));
     }
 
     // ---- 2D (RetainedCanvas をオフスクリーンで所有する) シーン ----
@@ -129,7 +129,6 @@ public static class AnimationStories
         private AnimationPlayer? _player;
         private int _lastFrame;
 
-        protected override bool NeedsColorTarget => false;
         protected override bool RenderEveryFrame => true;
 
         protected override void OnInit()
@@ -183,7 +182,6 @@ public static class AnimationStories
         private readonly Queue<string> _pending = new();
         private bool _started;
 
-        protected override bool NeedsColorTarget => false;
         protected override bool RenderEveryFrame => true;
 
         public void Trigger(string ev) => _pending.Enqueue(ev);
