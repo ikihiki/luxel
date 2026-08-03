@@ -1,4 +1,4 @@
-﻿using Luxel.Graphics.Abstraction;
+using Luxel.Graphics.Abstraction;
 using Vortice.Direct3D12;
 using Vortice.DXGI;
 
@@ -7,11 +7,12 @@ namespace Luxel.Graphics.DirectX12;
 internal sealed class D3D12Texture : IGpuBackendTexture
 {
     private ID3D12Resource _resource;
+    private readonly Action? _releaseDescriptor;
     private bool _disposed;
 
     public D3D12Texture(ID3D12Resource resource, uint width, uint height,
                         GpuFormat format, Format dxgiFormat, CpuDescriptorHandle rtv,
-                        uint bindlessIndex, ResourceStates initialState)
+                        uint bindlessIndex, ResourceStates initialState, Action? releaseDescriptor = null)
     {
         _resource = resource;
         Width = width;
@@ -21,6 +22,7 @@ internal sealed class D3D12Texture : IGpuBackendTexture
         Rtv = rtv;
         BindlessIndex = bindlessIndex;
         CurrentState = initialState;
+        _releaseDescriptor = releaseDescriptor;
     }
 
     public uint Width { get; }
@@ -38,6 +40,13 @@ internal sealed class D3D12Texture : IGpuBackendTexture
     {
         if (_disposed) return;
         _disposed = true;
-        _resource.Dispose();
+        try
+        {
+            _resource.Dispose();
+        }
+        finally
+        {
+            _releaseDescriptor?.Invoke();
+        }
     }
 }

@@ -16,6 +16,9 @@ namespace Luxel.Graphics.DirectX12;
 public sealed unsafe class D3D12Backend : IGpuBackend
 {
     private const int HeapCapacity = 100_000;
+    private const uint RtvCapacity = 64;
+    private const uint SamplerCapacity = 1024;
+    private const uint DsvCapacity = 64;
     private const uint PushConstantDwords = 48; // 192 バイト (shadow map で mat4×2 を渡すため拡張)。
                                                 // D3D12 root signature 上限は 64 DWord = 256B、48 DWord で余裕あり。
 
@@ -26,23 +29,23 @@ public sealed unsafe class D3D12Backend : IGpuBackend
     private ID3D12RootSignature _rootSignature = null!;
     private uint _descriptorSize;
     private CpuDescriptorHandle _heapCpuStart;
-    private int _nextDescriptor = -1;   // Interlocked.Increment で採番
+    private readonly DescriptorSlotAllocator _resourceSlots = new(HeapCapacity);
     private readonly object _queueLock = new();   // queue submit/wait の直列化 (OneShotSubmit と MainQueue で共有)
 
     private ID3D12DescriptorHeap _rtvHeap = null!;
     private uint _rtvSize;
     private CpuDescriptorHandle _rtvStart;
-    private uint _nextRtv;
+    private readonly DescriptorSlotAllocator _rtvSlots = new(RtvCapacity);
 
     private ID3D12DescriptorHeap _samplerHeap = null!;
     private uint _samplerSize;
     private CpuDescriptorHandle _samplerStart;
-    private int _nextSampler = -1;   // Interlocked.Increment で採番
+    private readonly DescriptorSlotAllocator _samplerSlots = new(SamplerCapacity);
 
     private ID3D12DescriptorHeap _dsvHeap = null!;
     private uint _dsvSize;
     private CpuDescriptorHandle _dsvStart;
-    private uint _nextDsv;
+    private readonly DescriptorSlotAllocator _dsvSlots = new(DsvCapacity);
     private ID3D12CommandQueue UploadQueue => _queue;
     private bool _disposed;
 
@@ -103,19 +106,19 @@ public sealed unsafe class D3D12Backend : IGpuBackend
         _heapCpuStart = _resourceHeap.GetCPUDescriptorHandleForHeapStart();
 
         var rtvHeapDesc = new DescriptorHeapDescription(
-            DescriptorHeapType.RenderTargetView, 64, DescriptorHeapFlags.None, 0);
+            DescriptorHeapType.RenderTargetView, RtvCapacity, DescriptorHeapFlags.None, 0);
         _rtvHeap = _device.CreateDescriptorHeap(rtvHeapDesc);
         _rtvSize = _device.GetDescriptorHandleIncrementSize(DescriptorHeapType.RenderTargetView);
         _rtvStart = _rtvHeap.GetCPUDescriptorHandleForHeapStart();
 
         var samplerHeapDesc = new DescriptorHeapDescription(
-            DescriptorHeapType.Sampler, 1024, DescriptorHeapFlags.ShaderVisible, 0);
+            DescriptorHeapType.Sampler, SamplerCapacity, DescriptorHeapFlags.ShaderVisible, 0);
         _samplerHeap = _device.CreateDescriptorHeap(samplerHeapDesc);
         _samplerSize = _device.GetDescriptorHandleIncrementSize(DescriptorHeapType.Sampler);
         _samplerStart = _samplerHeap.GetCPUDescriptorHandleForHeapStart();
 
         var dsvHeapDesc = new DescriptorHeapDescription(
-            DescriptorHeapType.DepthStencilView, 64, DescriptorHeapFlags.None, 0);
+            DescriptorHeapType.DepthStencilView, DsvCapacity, DescriptorHeapFlags.None, 0);
         _dsvHeap = _device.CreateDescriptorHeap(dsvHeapDesc);
         _dsvSize = _device.GetDescriptorHandleIncrementSize(DescriptorHeapType.DepthStencilView);
         _dsvStart = _dsvHeap.GetCPUDescriptorHandleForHeapStart();
@@ -179,7 +182,17 @@ public sealed unsafe class D3D12Backend : IGpuBackend
         if (hostVisible) mapped = resource.Map<byte>(0);
 
         // raw UAV を bindless ヒープに登録。
-        uint index = (uint)Interlocked.Increment(ref _nextDescriptor);
+        uint index;
+        try
+        {
+            index = _resourceSlots.Allocate();
+        }
+        catch
+        {
+            if (mapped != null) resource.Unmap(0);
+            resource.Dispose();
+            throw;
+        }
         var cpu = new CpuDescriptorHandle(_heapCpuStart, (int)index, _descriptorSize);
         var uavDesc = new UnorderedAccessViewDescription
         {
@@ -194,9 +207,20 @@ public sealed unsafe class D3D12Backend : IGpuBackend
                 Flags = BufferUnorderedAccessViewFlags.Raw,
             },
         };
-        _device.CreateUnorderedAccessView(resource, null, uavDesc, cpu);
+        try
+        {
+            _device.CreateUnorderedAccessView(resource, null, uavDesc, cpu);
+        }
+        catch
+        {
+            _resourceSlots.Free(index);
+            if (mapped != null) resource.Unmap(0);
+            resource.Dispose();
+            throw;
+        }
 
-        return new D3D12Buffer(resource, size, resource.GPUVirtualAddress, index, mapped);
+        return new D3D12Buffer(resource, size, resource.GPUVirtualAddress, index, mapped,
+            () => _resourceSlots.Free(index));
     }
 
     // ---- Pipelines -----------------------------------------------------------
@@ -267,10 +291,29 @@ public sealed unsafe class D3D12Backend : IGpuBackend
         ID3D12Resource res = _device.CreateCommittedResource(
             new HeapProperties(HeapType.Default), HeapFlags.None, desc, ResourceStates.Common);
 
-        uint idx = _nextRtv++;
+        uint idx;
+        try
+        {
+            idx = _rtvSlots.Allocate();
+        }
+        catch
+        {
+            res.Dispose();
+            throw;
+        }
         var handle = new CpuDescriptorHandle(_rtvStart, (int)idx, _rtvSize);
-        _device.CreateRenderTargetView(res, null, handle);
-        return new D3D12Texture(res, width, height, format, dxgi, handle, 0, ResourceStates.Common);
+        try
+        {
+            _device.CreateRenderTargetView(res, null, handle);
+        }
+        catch
+        {
+            _rtvSlots.Free(idx);
+            res.Dispose();
+            throw;
+        }
+        return new D3D12Texture(res, width, height, format, dxgi, handle, 0, ResourceStates.Common,
+            () => _rtvSlots.Free(idx));
     }
 
     public IGpuBackendTexture CreateDepthTarget(uint width, uint height, GpuFormat format)
@@ -282,10 +325,29 @@ public sealed unsafe class D3D12Backend : IGpuBackend
         ID3D12Resource res = _device.CreateCommittedResource(
             new HeapProperties(HeapType.Default), HeapFlags.None, desc, ResourceStates.DepthWrite, clear);
 
-        uint idx = _nextDsv++;
+        uint idx;
+        try
+        {
+            idx = _dsvSlots.Allocate();
+        }
+        catch
+        {
+            res.Dispose();
+            throw;
+        }
         var handle = new CpuDescriptorHandle(_dsvStart, (int)idx, _dsvSize);
-        _device.CreateDepthStencilView(res, null, handle);
-        return new D3D12Texture(res, width, height, format, dxgi, default, 0, ResourceStates.DepthWrite)
+        try
+        {
+            _device.CreateDepthStencilView(res, null, handle);
+        }
+        catch
+        {
+            _dsvSlots.Free(idx);
+            res.Dispose();
+            throw;
+        }
+        return new D3D12Texture(res, width, height, format, dxgi, default, 0, ResourceStates.DepthWrite,
+            () => _dsvSlots.Free(idx))
         {
             Dsv = handle,
         };
@@ -325,11 +387,30 @@ public sealed unsafe class D3D12Backend : IGpuBackend
         });
         staging.Dispose();
 
-        uint index = (uint)Interlocked.Increment(ref _nextDescriptor);
+        uint index;
+        try
+        {
+            index = _resourceSlots.Allocate();
+        }
+        catch
+        {
+            tex.Dispose();
+            throw;
+        }
         var cpu = new CpuDescriptorHandle(_heapCpuStart, (int)index, _descriptorSize);
-        _device.CreateShaderResourceView(tex, null, cpu);
+        try
+        {
+            _device.CreateShaderResourceView(tex, null, cpu);
+        }
+        catch
+        {
+            _resourceSlots.Free(index);
+            tex.Dispose();
+            throw;
+        }
 
-        return new D3D12Texture(tex, width, height, format, dxgi, default, index, ResourceStates.AllShaderResource);
+        return new D3D12Texture(tex, width, height, format, dxgi, default, index, ResourceStates.AllShaderResource,
+            () => _resourceSlots.Free(index));
     }
 
     public IGpuBackendSampler CreateSampler(GpuSamplerFilter filter, GpuSamplerAddress address = GpuSamplerAddress.Clamp)
@@ -339,10 +420,18 @@ public sealed unsafe class D3D12Backend : IGpuBackend
             ? TextureAddressMode.Wrap : TextureAddressMode.Clamp;
         var desc = new SamplerDescription(f, addr, addr, addr,
             0f, 1u, ComparisonFunction.Never, 0f, float.MaxValue);
-        uint index = (uint)Interlocked.Increment(ref _nextSampler);
+        uint index = _samplerSlots.Allocate();
         var cpu = new CpuDescriptorHandle(_samplerStart, (int)index, _samplerSize);
-        _device.CreateSampler(ref desc, cpu);
-        return new D3D12Sampler(index);
+        try
+        {
+            _device.CreateSampler(ref desc, cpu);
+        }
+        catch
+        {
+            _samplerSlots.Free(index);
+            throw;
+        }
+        return new D3D12Sampler(index, () => _samplerSlots.Free(index));
     }
 
     private void OneShotSubmit(Action<ID3D12GraphicsCommandList> record)
