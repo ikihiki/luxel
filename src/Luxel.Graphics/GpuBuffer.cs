@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using Luxel.Graphics.Abstraction;
 
 namespace Luxel.Graphics;
@@ -9,10 +9,15 @@ namespace Luxel.Graphics;
 /// </summary>
 public sealed class GpuBuffer : IDisposable
 {
+    private readonly IGpuBackend _owner;
     private readonly IGpuBackendBuffer _buffer;
     private bool _disposed;
 
-    internal GpuBuffer(IGpuBackendBuffer buffer) => _buffer = buffer;
+    internal GpuBuffer(IGpuBackend owner, IGpuBackendBuffer buffer)
+    {
+        _owner = owner;
+        _buffer = buffer;
+    }
 
     /// <summary>バイト数。</summary>
     public ulong Size => _buffer.Size;
@@ -47,6 +52,8 @@ public sealed class GpuBuffer : IDisposable
             throw new InvalidOperationException("このバッファは CPU マップされていません (GpuMemoryKind を確認してください)。");
         return new Span<T>(p, count);
     }
+
+    internal IGpuBackend Owner => _owner;
 
     /// <summary>抽象ハンドル (バックエンド/コマンド記録から利用)。</summary>
     internal IGpuBackendBuffer Backend => _buffer;

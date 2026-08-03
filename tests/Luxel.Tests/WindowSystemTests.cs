@@ -9,7 +9,7 @@ namespace Luxel.Tests;
 /// <summary>WindowSystem/Window の公開ラッパを Fake バックエンドで検証する (OS 非依存)。</summary>
 public class WindowSystemTests
 {
-    private sealed class FakeWindow : IWindowBackendWindow, IWindowTextInputContextFactory
+    private class FakeWindow : IWindowBackendWindow, IWindowTextInputContextFactory
     {
         public WindowDesc Desc;
         public string? LastTitle;
@@ -59,6 +59,11 @@ public class WindowSystemTests
         public void Focus() => Focused = true;
         public void Close() { CloseRequested = true; IsClosed = true; Closed?.Invoke(); }
         public void Dispose() => Disposed = true;
+    }
+
+    private sealed class OtherFakeWindow : FakeWindow
+    {
+        public OtherFakeWindow(in WindowDesc desc) : base(desc) { }
     }
 
     private sealed class FakeTextInputContext : IWindowTextInputContext
@@ -120,6 +125,22 @@ public class WindowSystemTests
         Assert.Equal((10, 20, false), (fake.Desc.X!.Value, fake.Desc.Y!.Value, fake.Desc.Visible));
         Assert.Equal("Hello", win.Title);
         Assert.Single(sys.Windows);
+    }
+
+    [Fact]
+    public void BackendWindow_具体型を明示的に取得し型不一致を診断する()
+    {
+        var backend = new FakeBackend();
+        using var sys = new WindowSystem(backend);
+        Window window = sys.CreateWindow(new WindowDesc("Typed", 100, 100));
+        FakeWindow implementation = backend.Created.Single();
+
+        Assert.Same(implementation, window.BackendWindow);
+        Assert.Same(implementation, window.RequireBackendWindow<FakeWindow>());
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(
+            window.RequireBackendWindow<OtherFakeWindow>);
+        Assert.Contains(typeof(OtherFakeWindow).FullName!, error.Message, StringComparison.Ordinal);
+        Assert.Contains(typeof(FakeWindow).FullName!, error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

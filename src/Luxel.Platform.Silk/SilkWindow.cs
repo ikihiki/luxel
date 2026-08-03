@@ -1,13 +1,11 @@
 using Luxel.Platform.Abstraction;
-using Silk.NET.Core.Contexts;
-using Silk.NET.Core.Native;
 using Silk.NET.GLFW;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
 namespace Luxel.Platform.Silk;
 
-internal sealed unsafe class SilkWindow : IWindowBackendWindow, IVulkanWindowSurface, INativeSurfaceProvider
+public sealed unsafe class SilkWindow : IWindowBackendWindow
 {
     private readonly SilkWindowBackend _backend;
     private readonly IWindow _window;
@@ -15,8 +13,6 @@ internal sealed unsafe class SilkWindow : IWindowBackendWindow, IVulkanWindowSur
     private WindowHandle* _handle;
     private readonly nint _x11Display;
     private readonly nint _x11Handle;
-    private readonly IVkSurface _vkSurface;
-    private readonly string[] _requiredInstanceExtensions;
 
     // GLFW stores unmanaged function pointers. Keep every delegate rooted until the native window is destroyed.
     private readonly GlfwCallbacks.CursorPosCallback _cursorPosCallback;
@@ -30,7 +26,7 @@ internal sealed unsafe class SilkWindow : IWindowBackendWindow, IVulkanWindowSur
     private bool _closedNotified;
     private CursorKind? _currentCursor;
 
-    public SilkWindow(SilkWindowBackend backend, IWindow window, Glfw glfw, WindowHandle* handle, nint x11Display, nint x11Handle)
+    internal SilkWindow(SilkWindowBackend backend, IWindow window, Glfw glfw, WindowHandle* handle, nint x11Display, nint x11Handle)
     {
         _backend = backend;
         _window = window;
@@ -38,18 +34,6 @@ internal sealed unsafe class SilkWindow : IWindowBackendWindow, IVulkanWindowSur
         _handle = handle;
         _x11Display = x11Display;
         _x11Handle = x11Handle;
-        _vkSurface = window.VkSurface
-            ?? throw new PlatformNotSupportedException("Silk.NET did not expose a Vulkan surface for the GLFW window.");
-        byte** requiredExtensions = _vkSurface.GetRequiredExtensions(out uint extensionCount);
-        if (requiredExtensions is null || extensionCount == 0)
-            throw new PlatformNotSupportedException("GLFW did not report the Vulkan instance extensions required for X11 presentation.");
-        _requiredInstanceExtensions = new string[extensionCount];
-        for (uint i = 0; i < extensionCount; i++)
-        {
-            _requiredInstanceExtensions[i] = SilkMarshal.PtrToString((nint)requiredExtensions[i])
-                ?? throw new PlatformNotSupportedException("GLFW returned an invalid Vulkan instance extension name.");
-        }
-
         _window.FramebufferResize += OnFramebufferResize;
         _window.Move += OnMove;
         _window.FocusChanged += OnFocusChanged;
@@ -78,14 +62,14 @@ internal sealed unsafe class SilkWindow : IWindowBackendWindow, IVulkanWindowSur
         }
     }
 
-    public NativeSurfaceDescriptor SurfaceDescriptor
-    {
-        get
-        {
-            VerifyUsable();
-            return NativeSurfaceDescriptor.Xlib(_x11Display, unchecked((ulong)_x11Handle));
-        }
-    }
+    /// <summary>The Silk.NET window implementation. It remains owned by this window.</summary>
+    public IWindow NativeWindow => _window;
+
+    /// <summary>The X11 display selected by the built-in Silk backend.</summary>
+    public nint X11Display { get { VerifyUsable(); return _x11Display; } }
+
+    /// <summary>The X11 window selected by the built-in Silk backend.</summary>
+    public ulong X11Window { get { VerifyUsable(); return unchecked((ulong)_x11Handle); } }
 
     public int Width
     {
@@ -136,17 +120,6 @@ internal sealed unsafe class SilkWindow : IWindowBackendWindow, IVulkanWindowSur
             _backend.VerifyThread();
             return !_closed && _glfw.GetWindowAttrib(_handle, WindowAttributeGetter.Focused);
         }
-    }
-
-    public IReadOnlyList<string> RequiredInstanceExtensions => _requiredInstanceExtensions;
-
-    public ulong CreateSurface(nint instanceHandle)
-    {
-        VerifyUsable();
-        if (instanceHandle == 0) throw new ArgumentException("A non-zero VkInstance handle is required.", nameof(instanceHandle));
-        ulong surface = _vkSurface.Create<byte>(new VkHandle(instanceHandle), null).Handle;
-        if (surface == 0) throw new InvalidOperationException("Silk.NET/GLFW returned a null VkSurfaceKHR.");
-        return surface;
     }
 
     public Action<int, int>? Resized { get; set; }

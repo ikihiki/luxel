@@ -178,8 +178,7 @@ internal sealed class EnvironmentLuxelApp
                 {
                     EnableValidation = _options.EnableValidation,
                     Presentation = VulkanPresentationMode.Window,
-                    WindowSurface = bootstrapWindow!.GetFeature<IVulkanWindowSurface>()
-                        ?? throw new PlatformNotSupportedException("The Silk window did not provide a Vulkan surface."),
+                    PresentationSource = WindowGraphicsConnector.CreateVulkanPresentationSource(bootstrapWindow!),
                 }),
                 LuxelGraphicsBackend.Vulkan => VulkanBackend.Create(new VulkanBackendOptions
                 {

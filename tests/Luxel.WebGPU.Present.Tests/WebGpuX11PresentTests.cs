@@ -13,13 +13,12 @@ public sealed class WebGpuX11PresentTests
         Assert.False(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY")));
         using var windows = new WindowSystem(SilkWindowBackend.Create());
         Window window = windows.CreateWindow(new WindowDesc("Luxel WebGPU present", 160, 120));
-        INativeSurfaceProvider provider = window.GetFeature<INativeSurfaceProvider>()
-            ?? throw new InvalidOperationException("Missing native surface provider.");
-        Assert.Equal(NativeSurfaceKind.Xlib, provider.SurfaceDescriptor.Kind);
-        Assert.NotEqual(0, provider.SurfaceDescriptor.Display);
-        Assert.NotEqual(0UL, provider.SurfaceDescriptor.Window);
-        using var device = new GpuDevice(WebGpuBackend.Create());
-        using GpuSurface surface = device.CreateSurface(provider.SurfaceDescriptor, 160, 120);
+        SilkWindow nativeWindow = window.RequireBackendWindow<SilkWindow>();
+        Assert.NotEqual(0, nativeWindow.X11Display);
+        Assert.NotEqual(0UL, nativeWindow.X11Window);
+        WebGpuBackend backend = WebGpuBackend.Create();
+        using var device = new GpuDevice(backend);
+        using GpuSurface surface = backend.CreateXlibSurface(nativeWindow.X11Display, nativeWindow.X11Window, 160, 120);
         using (GpuBuffer first = Pixels(device, 192, 160, 120, 0xFF2040E0u))
             surface.Present(first, 192, 160, 120);
         window.SetBounds(clientWidth: 224, clientHeight: 144);

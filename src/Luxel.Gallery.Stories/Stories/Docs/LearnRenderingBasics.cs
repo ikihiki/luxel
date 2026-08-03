@@ -75,7 +75,7 @@ public static partial class DocsRenderingLearn
 
         ## Backendとdeviceを作る実コード
 
-        次は`LuxelTriangle`が実際にコンパイルするWindows/Linux両方のbackend選択です。Linuxではwindowが提供する`IVulkanWindowSurface`を`VulkanBackendOptions.WindowSurface`へ渡します。
+        次は`LuxelTriangle`が実際にコンパイルするWindows/Linux両方のbackend選択です。低水準経路では具体的なwindow実装から必要情報を取得し、backend固有のsurface APIへ明示的に渡します。通常のUIアプリではFrameworkがこの接続を自動判定します。
 
         {{SampleSource("samples/LuxelTriangle/Program.cs", "device-and-surface-backend")}}
 

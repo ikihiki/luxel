@@ -372,10 +372,18 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         }
     }
 
-    public IGpuBackendSurface CreateSurface(in NativeSurfaceDescriptor descriptor, uint width, uint height)
+    /// <summary>Creates a native WebGPU surface for a Win32 HWND.</summary>
+    public GpuSurface CreateWin32Surface(nint hinstance, nint hwnd, uint width, uint height)
     {
         ThrowIfDisposed();
-        return new WebGpuSurface(this, in descriptor, width, height);
+        return new GpuSurface(this, WebGpuSurface.CreateWin32(this, hinstance, hwnd, width, height));
+    }
+
+    /// <summary>Creates a native WebGPU surface for an Xlib window.</summary>
+    public GpuSurface CreateXlibSurface(nint display, ulong window, uint width, uint height)
+    {
+        ThrowIfDisposed();
+        return new GpuSurface(this, WebGpuSurface.CreateXlib(this, display, window, width, height));
     }
 
     private WebGpuTexture CreateTexture(uint width, uint height, GpuFormat format, TextureUsage usage, uint bindlessIndex = 0)

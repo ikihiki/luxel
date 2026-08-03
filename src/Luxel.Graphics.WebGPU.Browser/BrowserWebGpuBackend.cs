@@ -6,7 +6,7 @@ using Luxel.Graphics.Abstraction;
 namespace Luxel.Graphics.WebGPU.Browser;
 
 /// <summary>Browser WebGPU backend using integer handles and a JavaScript ES-module object registry.</summary>
-public sealed class BrowserWebGpuBackend : IGpuBackend, ICanvasGpuBackend
+public sealed class BrowserWebGpuBackend : IGpuBackend
 {
     public const ulong ArenaSize = 64UL * 1024 * 1024;
     public const uint BufferStride = 256;
@@ -137,15 +137,12 @@ public sealed class BrowserWebGpuBackend : IGpuBackend, ICanvasGpuBackend
         catch { ReleaseSlot(_samplerSlots, slot); throw; }
     }
 
-    /// <summary>Native descriptors are not valid in the browser. Use <see cref="CreateCanvasSurface"/>.</summary>
-    public IGpuBackendSurface CreateSurface(in NativeSurfaceDescriptor descriptor, uint width, uint height)
-        => throw new PlatformNotSupportedException("Browser WebGPU surfaces require a canvas selector/token; NativeSurfaceDescriptor is unsupported.");
-
-    IGpuBackendSurface ICanvasGpuBackend.CreateCanvasSurface(string canvasToken, uint width, uint height)
-        => CreateCanvasSurface(canvasToken, width, height);
-
     /// <summary>Creates a browser canvas presentation surface from a CSS selector or host-provided canvas token.</summary>
-    public BrowserWebGpuSurface CreateCanvasSurface(string canvasToken, uint width, uint height)
+    public GpuSurface CreateCanvasSurface(string canvasToken, uint width, uint height)
+        => new(this, CreateNativeCanvasSurface(canvasToken, width, height));
+
+    /// <summary>Creates the backend-specific browser surface for advanced interop.</summary>
+    public BrowserWebGpuSurface CreateNativeCanvasSurface(string canvasToken, uint width, uint height)
     {
         ThrowIfDisposed();
         ArgumentException.ThrowIfNullOrWhiteSpace(canvasToken);

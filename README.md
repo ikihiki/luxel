@@ -137,6 +137,14 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
   dotnet test tests/Luxel.Vulkan.Tests/Luxel.Vulkan.Tests.csproj
 ```
 
+### Window presentation の責任境界
+
+通常の UI アプリケーションでは `Luxel.UI.App` が実行環境から built-in window backend と graphics backend の組み合わせを選び、surface 接続まで自動構成します。
+
+低水準 API を直接使う場合、利用者が具体的な window 実装と graphics backend を理解して接続します。`Window.RequireBackendWindow<T>()` で実装型を明示的に取得し、`D3D12Backend.CreateSurface`、`VulkanBackend.CreateSurface` / `CreateWin32Surface`、`WebGpuBackend.CreateXlibSurface` / `CreateWin32Surface` などの backend 固有 API に必要値を渡してください。Luxel は window library × graphics backend の全組み合わせに対する adapter package を提供しません。
+
+`Luxel.Platform` と各 Platform 実装は Graphics に依存せず、必須 presentation 情報の取得に `Window.GetFeature<T>()` は使用しません。Vulkan の instance extension と surface callback は、利用者が `VulkanPresentationSource` として構成します。完全な Windows/Linux の例は `samples/LuxelTriangle/Program.cs` を参照してください。
+
 ## 機能ハイライト
 
 各節の詳細と実例は Gallery 内 Docs 章の該当ページへ。
