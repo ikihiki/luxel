@@ -237,6 +237,9 @@ public sealed class ResourceSystem : IDisposable
     /// <summary>Step インスタンスを追加登録 (実行時追加、通常はコンストラクタ配列を推奨)。</summary>
     public void AddStep(IResourceStep step) => _pipeline.AddStep(step);
 
+    /// <summary>trimmed/AOT runtime向けにreflectionを使わずStepを追加登録する。</summary>
+    public void AddStep<TIn, TOut>(IResourceStep<TIn, TOut> step) => _pipeline.AddStep(step);
+
     /// <summary>論理 owner に属する resource lease をまとめて管理するスコープを作成する。</summary>
     public ResourceScope CreateScope(string ownerId)
     {

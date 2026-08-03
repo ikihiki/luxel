@@ -10,6 +10,7 @@ public sealed class BrowserStoryCatalogSourceTests
         string root = FindRepositoryRoot();
         string program = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "Program.cs"));
         string script = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "wwwroot", "main.js"));
+        string gpuResources = File.ReadAllText(Path.Combine(root, "src", "Luxel.AssetsGpu", "ResourceSystemExtensions.cs"));
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(Path.Combine(
             root, "samples", "LuxelWebGpuBrowser", "wwwroot", "browser-runtime-manifest.json")));
 
@@ -19,6 +20,8 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("new StoryContext(resources, args)", program, StringComparison.Ordinal);
         Assert.Contains("context.SetGpuHost(device, font)", program, StringComparison.Ordinal);
         Assert.Contains("resources.InstallAssetGpuLifecycle(device)", program, StringComparison.Ordinal);
+        Assert.Contains("AddStep<CpuImage, GpuTexture>", gpuResources, StringComparison.Ordinal);
+        Assert.Contains("AddStep<GpuBufferRequest, GpuBuffer>", gpuResources, StringComparison.Ordinal);
         Assert.Contains("SnapshotWidgets(result.Widget)", program, StringComparison.Ordinal);
         Assert.DoesNotContain("path switch", program, StringComparison.Ordinal);
         Assert.DoesNotContain("RunClearColor", program, StringComparison.Ordinal);

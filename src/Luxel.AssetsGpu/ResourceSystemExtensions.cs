@@ -1,3 +1,4 @@
+using Luxel.Assets;
 using Luxel.Resources;
 
 namespace Luxel.AssetsGpu;
@@ -63,16 +64,18 @@ public static class ResourceSystemExtensions
 
     private static void AddAssetGpuSteps(ResourceSystem resources, GpuDevice device, AssetGpuRegistry registry)
     {
-        resources.AddStep(new TextureUploaderStep(device));
-        resources.AddStep(new AssetTextureToGpuStep(registry));
-        resources.AddStep(new AssetSamplerToGpuStep(registry));
-        resources.AddStep(new AssetMaterialToGpuStep(registry));
-        resources.AddStep(new AssetMeshToGpuStep(registry));
-        resources.AddStep(new AssetSkinToGpuStep(registry));
-        resources.AddStep(new GpuPipelineCreationStep(registry));
-        resources.AddStep(new GpuTextureCreationStep(registry));
-        resources.AddStep(new GpuSamplerCreationStep(registry));
-        resources.AddStep(new GpuBufferCreationStep(registry));
+        // Use the generic registration path so browser-WASM trimming does not remove interface
+        // property metadata required by the legacy reflection-based adapter.
+        resources.AddStep<CpuImage, GpuTexture>(new TextureUploaderStep(device));
+        resources.AddStep<AssetTexture, GpuTexture>(new AssetTextureToGpuStep(registry));
+        resources.AddStep<AssetSampler, GpuSampler>(new AssetSamplerToGpuStep(registry));
+        resources.AddStep<AssetMaterial, GpuMaterial>(new AssetMaterialToGpuStep(registry));
+        resources.AddStep<AssetMesh, GpuMesh>(new AssetMeshToGpuStep(registry));
+        resources.AddStep<AssetSkin, GpuSkin>(new AssetSkinToGpuStep(registry));
+        resources.AddStep<GpuPipelineRequest, GpuPipeline>(new GpuPipelineCreationStep(registry));
+        resources.AddStep<GpuTextureRequest, GpuTexture>(new GpuTextureCreationStep(registry));
+        resources.AddStep<GpuSamplerRequest, GpuSampler>(new GpuSamplerCreationStep(registry));
+        resources.AddStep<GpuBufferRequest, GpuBuffer>(new GpuBufferCreationStep(registry));
     }
 
     // ==================== Publish 系 GPU リソース ====================

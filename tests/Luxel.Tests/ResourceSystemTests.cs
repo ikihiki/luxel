@@ -130,6 +130,20 @@ public class ResourceSystemTests
     private sealed class TagImpl(string s) : ITag { public string Tag => s; }
 
     [Fact]
+    public async Task GenericAddStep_RegistersWithoutReflection()
+    {
+        var vfs = new MemoryFileSystem();
+        using var sys = new ResourceSystem(sources: new IResourceSource[] { new FileSource(vfs) });
+        sys.AddStep<byte[], Doc>(new DocStep(new TagImpl("#generic")));
+        vfs.Set("generic.doc", Encoding.UTF8.GetBytes("value"));
+
+        using ResourceHandle<Doc> handle = sys.Load<Doc>("generic.doc");
+        await handle.Ready;
+
+        Assert.Equal("value#generic", handle.Value.Text);
+    }
+
+    [Fact]
     public async Task Reload_OnFileChange_PropagatesAndPublishesOnPump()
     {
         var sys = NewSystem(out var vfs);
