@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Luxel;
+using Luxel.AssetsGpu;
 using Luxel.Diagnostics;
 using Luxel.Graphics.TwoD;
 using Luxel.Graphics.TwoD.Skia;
@@ -20,6 +21,7 @@ public sealed class GalleryHost : IDisposable
     private readonly VectorFont _font;
     private readonly IRasterizer2D _raster;
     private readonly GpuDeviceRasterizer2D? _gpuRasterizer;
+    private readonly AssetGpuInstallation? _assetGpuInstallation;
     // ストーリーへ StoryContext.Resources として配布 (キャッシュはストーリー横断で共有、Pump は Step が叩く)
     private readonly Luxel.Resources.ResourceSystem _resources = new(
         sources: Luxel.Resources.ResourceSystemDefaults.BuiltinSources(assetRoot: Environment.CurrentDirectory),
@@ -59,6 +61,7 @@ public sealed class GalleryHost : IDisposable
         _font = font;
         _raster = rasterizer ?? throw new ArgumentNullException(nameof(rasterizer));
         _gpuRasterizer = rasterizer as GpuDeviceRasterizer2D;
+        if (device is not null) _assetGpuInstallation = _resources.InstallAssetGpuLifecycle(device);
         Commands.Register("story.select", a => { if (a is JsonElement el && el.TryGetProperty("id", out JsonElement id)) Select(id.GetString() ?? ""); });
         Commands.Register("story.theme", a => { _dark = a is JsonElement el && el.TryGetProperty("dark", out JsonElement d) && d.ValueKind == JsonValueKind.True; ApplyTheme(); });
         Commands.Register("story.state", a => SetState(a));
@@ -396,6 +399,9 @@ public sealed class GalleryHost : IDisposable
         if (_disposed) return;
         _disposed = true;
         TearDown();
+        // The host owns the AssetsGpu installation, but only borrows the device.
+        // Wait for its queue before ResourceSystem disposes scoped GPU values.
+        _assetGpuInstallation?.Dispose();
         _resources.Dispose();
         _raster.Dispose();
     }

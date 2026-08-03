@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Luxel.AssetsGpu;
 using Luxel.Controls;
 using Luxel.Graphics.TwoD;
 using Luxel.Settings;
@@ -34,6 +35,8 @@ public sealed class GalleryApp : IDisposable
     private readonly Luxel.Resources.ResourceSystem _resources = new(
         sources: Luxel.Resources.ResourceSystemDefaults.BuiltinSources(assetRoot: Environment.CurrentDirectory),
         steps: [.. Luxel.Resources.ResourceSystemDefaults.BuiltinSteps(), new Luxel.Imaging.ImageSharpDecoder()]);
+    private AssetGpuInstallation? _assetGpuInstallation;
+    private (GpuDevice Device, Luxel.Typography.VectorFont Font)? _hostGpu;
     private readonly Signal<string> _title = new("(ストーリーを選択)");
     // Log は ListView — 追記時は items signal へ流す (行ノードの差し替えのみ、chrome の SetRoot 不要)
     private readonly Signal<IReadOnlyList<string>> _logItems = new([]);
@@ -748,7 +751,32 @@ public sealed class GalleryApp : IDisposable
     }
 
     /// <summary>実窓ホストの GPU 設備 (Program が結線)。実窓専用ストーリーが ctx.Device/Font で借りる。</summary>
-    public (GpuDevice Device, Luxel.Typography.VectorFont Font)? HostGpu { get; set; }
+    public (GpuDevice Device, Luxel.Typography.VectorFont Font)? HostGpu
+    {
+        get => _hostGpu;
+        set
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(GalleryApp));
+            if (value is null)
+            {
+                if (_assetGpuInstallation is not null)
+                    throw new InvalidOperationException("Gallery GPU resources are already installed.");
+                _hostGpu = null;
+                return;
+            }
+
+            if (_assetGpuInstallation is not null)
+            {
+                if (!ReferenceEquals(_hostGpu?.Device, value.Value.Device))
+                    throw new InvalidOperationException("Gallery GPU resources are already installed for another device.");
+                _hostGpu = value;
+                return;
+            }
+
+            _assetGpuInstallation = _resources.InstallAssetGpuLifecycle(value.Value.Device);
+            _hostGpu = value;
+        }
+    }
 
     public void Select(StoryInfo story)
     {
@@ -882,6 +910,9 @@ public sealed class GalleryApp : IDisposable
         _preview.Dispose();
         _ctx?.Dispose();
         _ctx = null;
+        // GalleryApp owns the AssetsGpu installation, while the runtime owns the device.
+        // Wait for the queue before ResourceSystem releases story-scoped GPU values.
+        _assetGpuInstallation?.Dispose();
         _resources.Dispose();
     }
 }
