@@ -57,7 +57,12 @@ public static partial class GallerySiteExporter
         BrowserBundleManifest? browserBundle = browserWebGpuRoot is null ? null : LoadBrowserBundle(browserWebGpuRoot);
         if (browserBundle is not null)
             CopyBrowserRuntime(browserWebGpuRoot!, Path.Combine(output, BrowserRuntimeBaseUrl.Replace('/', Path.DirectorySeparatorChar)));
-        var storyByPath = stories.ToDictionary(story => story.Path, StringComparer.Ordinal);
+        // Export may be scoped to a subset of pages, but embedded story references still resolve
+        // against the authoritative explicit Gallery catalog. Supplied stories win so callers can
+        // export a locally constructed replacement without relying on the global StoryRegistry.
+        var storyByPath = GalleryStoryProject.CreateCatalog().All
+            .ToDictionary(story => story.Path, StringComparer.Ordinal);
+        foreach (StoryInfo story in stories) storyByPath[story.Path] = story;
 
         if (browserBundle is not null)
             ValidateBrowserBundle(stories, browserBundle);
@@ -116,7 +121,7 @@ public static partial class GallerySiteExporter
                     string? realizationError = null;
                     try
                     {
-                        host.SelectExact(story.Path);
+                        host.SelectExact(story);
                         GallerySnapshots.Stabilize(host);
                         if (png is null)
                         {
@@ -150,8 +155,8 @@ public static partial class GallerySiteExporter
                     IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, document.DocSource!);
                     if (linkErrors.Count > 0)
                         throw new InvalidDataException("Broken documentation links: " + string.Join(", ", linkErrors));
-                    string md = ReplaceEmbeds(story.Path, document.DocSource!, document.DocEmbeds, host, imagesDir, repositoryRoot,
-                        imageCache, browserBundle, ref unavailable, ref errors);
+                    string md = ReplaceEmbeds(story.Path, document.DocSource!, document.DocEmbeds, storyByPath,
+                        host, imagesDir, repositoryRoot, imageCache, browserBundle, ref unavailable, ref errors);
                     md = RewriteLocalImages(md, imagesDir, repositoryRoot);
                     md = ReplaceSpecialFences(md, host, imagesDir, ref errors);
                     body = RenderMarkdown(md, story.Path);
@@ -228,8 +233,8 @@ public static partial class GallerySiteExporter
         return cache[story.Path] = ($"images/{file}", "captured", null, hash);
     }
 
-    private static string ReplaceEmbeds(string containingStoryPath, string md, IReadOnlyList<DocEmbed> embeds, GalleryHost host,
-        string imagesDir, string repositoryRoot,
+    private static string ReplaceEmbeds(string containingStoryPath, string md, IReadOnlyList<DocEmbed> embeds,
+        IReadOnlyDictionary<string, StoryInfo> stories, GalleryHost host, string imagesDir, string repositoryRoot,
         Dictionary<string, (string? Url, string Status, string? Error, string Hash)> cache,
         BrowserBundleManifest? browserBundle, ref int unavailable, ref int errors)
     {
@@ -242,10 +247,12 @@ public static partial class GallerySiteExporter
             else if (embed.Kind == DocEmbedKind.TypeApiTable)
                 html = TypeApiHtml(embed.Reference);
             else if (embed.Kind == DocEmbedKind.StoryRef && embed.Reference is { } runtimePath
-                     && StoryRegistry.Find(runtimePath) is { } runtimeStory && CanRunInBrowser(runtimeStory, browserBundle))
+                     && stories.TryGetValue(runtimePath, out StoryInfo? runtimeStory)
+                     && CanRunInBrowser(runtimeStory, browserBundle))
                 html = RuntimeStory(runtimeStory, StoryArgs.Empty, browserBundle!, embedded: true,
                     containingStoryPath + "#doc-" + i);
-            else if (embed.Kind == DocEmbedKind.StoryRef && embed.Reference is { } path && StoryRegistry.Find(path) is { } story)
+            else if (embed.Kind == DocEmbedKind.StoryRef && embed.Reference is { } path
+                     && stories.TryGetValue(path, out StoryInfo? story))
             {
                 var result = EnsureStoryImage(host, story, imagesDir, repositoryRoot, cache);
                 if (result.Url is { } url)

@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using Luxel.AssetsGpu;
-using Luxel.Controls;
 using Luxel.Resources;
+using Luxel.Controls;
 using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Luxel.UI.Tailwind;
@@ -59,66 +59,7 @@ public static class GpuStories
         }));
     }
 
-    // ---- 3D: story scope のリソースを callback へ渡す ----
-
-    [Story(CanonicalClearColorRecipe.Story, Width = CanonicalClearColorRecipe.Width, Height = CanonicalClearColorRecipe.Height, Order = 119,
-        RuntimeBundleId = "webgpu-browser-v1", CapabilityNote = "Specialized browser WebGPU ClearColor route.")]
-    public static Widget ClearColor(StoryContext ctx)
-        => ctx.Snap(Frame(GpuView(
-            CanonicalClearColorRecipe.Width,
-            CanonicalClearColorRecipe.Height,
-            static (device, surface, _) =>
-            {
-                using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
-                command.BeginRendering(surface.ColorTarget, null,
-                        CanonicalClearColorRecipe.Red, CanonicalClearColorRecipe.Green,
-                        CanonicalClearColorRecipe.Blue, CanonicalClearColorRecipe.Alpha)
-                    .EndRendering();
-                surface.CopyColorToFramebuffer(command);
-                command.Finish();
-                device.MainQueue.SubmitAndWait(command);
-            },
-            animated: false)));
-
-    [Story(CanonicalTriangleRecipe.Story, Width = CanonicalTriangleRecipe.Width, Height = CanonicalTriangleRecipe.Height, Order = 120,
-        RuntimeBundleId = "webgpu-browser-v1", CapabilityNote = "Specialized browser WebGPU validation route.")]
-    public static Widget Triangle(StoryContext ctx)
-    {
-        if (ctx.DeviceOrNull is null || ctx.ScopedResourcesOrNull is not { } resources)
-            return BuildOnlyGpuView(ctx, CanonicalTriangleRecipe.Width, CanonicalTriangleRecipe.Height);
-
-        CanonicalTriangleRecipe.Vertex[] vertices = CanonicalTriangleRecipe.CreateVertices();
-        ResourceHandle<GpuBuffer> vertexBuffer = resources.CreateBuffer<CanonicalTriangleRecipe.Vertex>(
-            "triangle.vertices", vertices.Length);
-        ResourceHandle<GpuPipeline> pipeline = resources.CreateGraphicsPipeline(
-            "triangle.pipeline",
-            GpuShaderCode.Load(CanonicalTriangleRecipe.Shader),
-            GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
-        WaitFor(vertexBuffer);
-        WaitFor(pipeline);
-        vertices.CopyTo(vertexBuffer.Value.Span<CanonicalTriangleRecipe.Vertex>(vertices.Length));
-
-        return ctx.Snap(Frame(GpuView(
-            CanonicalTriangleRecipe.Width,
-            CanonicalTriangleRecipe.Height,
-            (device, surface, _) =>
-            {
-                var args = new CanonicalTriangleRecipe.DrawArgs
-                {
-                    VertexBufferIndex = vertexBuffer.Value.BindlessIndex,
-                };
-                using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
-                command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)
-                    .SetGraphicsPipeline(pipeline.Value)
-                    .SetRootArguments(args)
-                    .Draw(3)
-                    .EndRendering();
-                surface.CopyColorToFramebuffer(command);
-                command.Finish();
-                device.MainQueue.SubmitAndWait(command);
-            },
-            animated: false)));
-    }
+    // ---- 3D: browser-safe GpuView stories live in Luxel.Gallery.Stories.CoreUi ----
 
     [Story("Examples/3D/TexturedQuad", Height = 320, Order = 121)]
     public static Widget TexturedQuad(StoryContext ctx)

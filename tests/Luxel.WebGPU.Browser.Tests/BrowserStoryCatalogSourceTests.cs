@@ -16,8 +16,13 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("CoreUiStoryProject.CreateCatalog()", program, StringComparison.Ordinal);
         Assert.Contains("Catalog.Find(path)", program, StringComparison.Ordinal);
         Assert.Contains("story.RuntimeBundleId != CoreUiStoryProject.RuntimeBundleId", program, StringComparison.Ordinal);
+        Assert.Contains("new StoryContext(resources, args)", program, StringComparison.Ordinal);
+        Assert.Contains("context.SetGpuHost(device, font)", program, StringComparison.Ordinal);
+        Assert.Contains("resources.InstallAssetGpuLifecycle(device)", program, StringComparison.Ordinal);
         Assert.Contains("SnapshotWidgets(result.Widget)", program, StringComparison.Ordinal);
         Assert.DoesNotContain("path switch", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunClearColor", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunTriangle", program, StringComparison.Ordinal);
 
         Assert.Contains("const protocolVersion = 2", script, StringComparison.Ordinal);
         Assert.Contains("message.type !== \"set-args\"", script, StringComparison.Ordinal);

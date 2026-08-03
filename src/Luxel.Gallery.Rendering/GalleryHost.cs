@@ -105,8 +105,15 @@ public sealed class GalleryHost : IDisposable
 
     /// <summary>Selects exactly one registered story or throws instead of silently retaining the previous story.</summary>
     public void SelectExact(string path)
-        => SelectForE2e(FindStory(path)
+        => SelectExact(FindStory(path)
             ?? throw new KeyNotFoundException($"Story not found: {path}"));
+
+    /// <summary>Selects the supplied explicit-catalog story without consulting the global registry.</summary>
+    public void SelectExact(StoryInfo story)
+    {
+        ArgumentNullException.ThrowIfNull(story);
+        SelectForE2e(story);
+    }
 
     public bool ContainsStory(string path) => FindStory(path) is not null;
 

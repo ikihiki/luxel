@@ -915,9 +915,9 @@ public sealed class GallerySiteExporterTests
         ];
         StoryInfo[] stories = routes.Select(name => Catalog.Find(name)
             ?? throw new InvalidOperationException($"Rendering Learn route is missing: {name}")).ToArray();
-        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null);
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null, Catalog);
 
-        Assert.Empty(DocsIndex.ValidateLinks(pages));
+        Assert.Empty(DocsIndex.ValidateLinks(pages, Catalog));
         for (int i = 0; i < stories.Length; i++)
         {
             string source = pages[stories[i].Path].Text;
