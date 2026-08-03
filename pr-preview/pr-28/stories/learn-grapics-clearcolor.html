@@ -12,7 +12,21 @@
 <section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Grapics/ClearColor#doc-0" data-luxel-runtime-story="Examples/3D/ClearColor" data-luxel-runtime-instance="examples-3d-clearcolor-fd6e83bf2f4a" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F3D%2FClearColor&amp;args=%7B%7D&amp;instance=examples-3d-clearcolor-fd6e83bf2f4a" data-luxel-runtime-story="Examples/3D/ClearColor" data-luxel-runtime-instance="examples-3d-clearcolor-fd6e83bf2f4a" title="Interactive ClearColor" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-3d-clearcolor-fd6e83bf2f4a-args-tab" aria-controls="examples-3d-clearcolor-fd6e83bf2f4a-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-3d-clearcolor-fd6e83bf2f4a-output-tab" aria-controls="examples-3d-clearcolor-fd6e83bf2f4a-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-3d-clearcolor-fd6e83bf2f4a-source-tab" aria-controls="examples-3d-clearcolor-fd6e83bf2f4a-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-3d-clearcolor-fd6e83bf2f4a-args-panel" role="tabpanel" aria-labelledby="examples-3d-clearcolor-fd6e83bf2f4a-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-3d-clearcolor-fd6e83bf2f4a-output-panel" role="tabpanel" aria-labelledby="examples-3d-clearcolor-fd6e83bf2f4a-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-3d-clearcolor-fd6e83bf2f4a-source-panel" role="tabpanel" aria-labelledby="examples-3d-clearcolor-fd6e83bf2f4a-source-tab" hidden><pre><code class="language-csharp">[Story(CanonicalClearColorRecipe.Story, Width = CanonicalClearColorRecipe.Width, Height = CanonicalClearColorRecipe.Height, Order = 119,
     RuntimeBundleId = &quot;webgpu-browser-v1&quot;, CapabilityNote = &quot;Specialized browser WebGPU ClearColor route.&quot;)]
 public static Widget ClearColor(StoryContext ctx)
-    =&gt; ctx.Snap(Frame(GpuSceneBase.View(CanonicalClearColorRecipe.Width, CanonicalClearColorRecipe.Height, new ClearColorScene(), animated: false)));</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+    =&gt; ctx.Snap(Frame(GpuView(
+        CanonicalClearColorRecipe.Width,
+        CanonicalClearColorRecipe.Height,
+        static (device, surface, _) =&gt;
+        {
+            using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
+            command.BeginRendering(surface.ColorTarget, null,
+                    CanonicalClearColorRecipe.Red, CanonicalClearColorRecipe.Green,
+                    CanonicalClearColorRecipe.Blue, CanonicalClearColorRecipe.Alpha)
+                .EndRendering();
+            surface.CopyColorToFramebuffer(command);
+            command.Finish();
+            device.MainQueue.SubmitAndWait(command);
+        },
+        animated: false)));</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
 <p>上のサンプルはGalleryではnative offscreen renderingとして動作し、静的GalleryとPagesではbrowser-WASM WebGPU runtimeとして同じClearColor recipeを実行します。</p>
 <p>ClearColorでは、render targetを指定した色でclearし、その結果をframebufferへコピーしてsurfaceへ表示します。Luxelにはcommand listとcommand bufferを分けたAPIはありません。<code>StartCommandRecording()</code>が一過性の<code>GpuCommandBuffer</code>を作成し、同時にコマンド記録を開始します。</p>
 <h2 id="framebuffer">描画先とframebufferを作成する</h2>

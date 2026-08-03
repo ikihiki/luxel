@@ -9,7 +9,42 @@
 <section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Grapics/FirstTriangle#doc-0" data-luxel-runtime-story="Examples/3D/Triangle" data-luxel-runtime-instance="examples-3d-triangle-25604e8c5e31" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F3D%2FTriangle&amp;args=%7B%7D&amp;instance=examples-3d-triangle-25604e8c5e31" data-luxel-runtime-story="Examples/3D/Triangle" data-luxel-runtime-instance="examples-3d-triangle-25604e8c5e31" title="Interactive Triangle" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-3d-triangle-25604e8c5e31-args-tab" aria-controls="examples-3d-triangle-25604e8c5e31-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-3d-triangle-25604e8c5e31-output-tab" aria-controls="examples-3d-triangle-25604e8c5e31-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-3d-triangle-25604e8c5e31-source-tab" aria-controls="examples-3d-triangle-25604e8c5e31-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-3d-triangle-25604e8c5e31-args-panel" role="tabpanel" aria-labelledby="examples-3d-triangle-25604e8c5e31-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-3d-triangle-25604e8c5e31-output-panel" role="tabpanel" aria-labelledby="examples-3d-triangle-25604e8c5e31-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-3d-triangle-25604e8c5e31-source-panel" role="tabpanel" aria-labelledby="examples-3d-triangle-25604e8c5e31-source-tab" hidden><pre><code class="language-csharp">[Story(CanonicalTriangleRecipe.Story, Width = CanonicalTriangleRecipe.Width, Height = CanonicalTriangleRecipe.Height, Order = 120,
     RuntimeBundleId = &quot;webgpu-browser-v1&quot;, CapabilityNote = &quot;Specialized browser WebGPU validation route.&quot;)]
 public static Widget Triangle(StoryContext ctx)
-    =&gt; ctx.Snap(Frame(GpuSceneBase.View(CanonicalTriangleRecipe.Width, CanonicalTriangleRecipe.Height, new TriangleScene())));</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+{
+    if (ctx.DeviceOrNull is null || ctx.ScopedResourcesOrNull is not { } resources)
+        return BuildOnlyGpuView(ctx, CanonicalTriangleRecipe.Width, CanonicalTriangleRecipe.Height);
+<pre><code>CanonicalTriangleRecipe.Vertex[] vertices = CanonicalTriangleRecipe.CreateVertices();
+ResourceHandle&amp;lt;GpuBuffer&amp;gt; vertexBuffer = resources.CreateBuffer&amp;lt;CanonicalTriangleRecipe.Vertex&amp;gt;(
+    &amp;quot;triangle.vertices&amp;quot;, vertices.Length);
+ResourceHandle&amp;lt;GpuPipeline&amp;gt; pipeline = resources.CreateGraphicsPipeline(
+    &amp;quot;triangle.pipeline&amp;quot;,
+    GpuShaderCode.Load(CanonicalTriangleRecipe.Shader),
+    GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+WaitFor(vertexBuffer);
+WaitFor(pipeline);
+vertices.CopyTo(vertexBuffer.Value.Span&amp;lt;CanonicalTriangleRecipe.Vertex&amp;gt;(vertices.Length));
+
+return ctx.Snap(Frame(GpuView(
+    CanonicalTriangleRecipe.Width,
+    CanonicalTriangleRecipe.Height,
+    (device, surface, _) =&amp;gt;
+    {
+        var args = new CanonicalTriangleRecipe.DrawArgs
+        {
+            VertexBufferIndex = vertexBuffer.Value.BindlessIndex,
+        };
+        using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
+        command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)
+            .SetGraphicsPipeline(pipeline.Value)
+            .SetRootArguments(args)
+            .Draw(3)
+            .EndRendering();
+        surface.CopyColorToFramebuffer(command);
+        command.Finish();
+        device.MainQueue.SubmitAndWait(command);
+    },
+    animated: false)));
+</code></pre>
+<p>}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section></p>
 <p>Galleryアプリ内では上の表示をnative offscreenデモとして実行します。静的GalleryとPagesでは同じ場所にbrowser-WASM WebGPU runtimeを埋め込み、<code>Examples/3D/Triangle</code>とこのガイドの両方から、320×240（4:3）のcanonical triangle recipeを実行します。browser hostのsource/manifest契約、WASM publish、静的Gallery export、subpath-safe URLをCIで検証します。browser上の実行自体は自動テストの対象外です。</p>
 <p>コピーして動かす完全なstandalone実装は次の4ファイルです。</p>
 <ul>
