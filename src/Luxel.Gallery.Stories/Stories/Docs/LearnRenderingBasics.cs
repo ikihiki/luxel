@@ -165,40 +165,75 @@ public static partial class DocsRenderingLearn
     public static Widget ClearColor(StoryContext ctx)
     {
         return DocNew(ctx, $"""
-        # ウィンドウとClear Color
+        # ClearColor
 
-        {RenderingCourseCatalog.Meta("Learn/Grapics/ClearColor", "Beginner", "Standalone", "Vulkan / DirectX 12", "Environment")}
+        {RenderingCourseCatalog.Meta("Learn/Grapics/ClearColor", "Beginner", "Standalone", "Vulkan / Direct3D 12 / WebGPU", "Environment")}
 
-        `samples/LuxelTriangle/Program.cs` がstandaloneアプリの外枠です。責務は次の順です。
+        ClearColorでは、render targetを指定した色でclearし、その結果をframebufferへコピーしてsurfaceへ表示します。Luxelにはcommand listとcommand bufferを分けたAPIはありません。`StartCommandRecording()`が一過性の`GpuCommandBuffer`を作成し、同時にコマンド記録を開始します。
 
-        ```text
-        WindowSystem → Window → GpuDevice → GpuSurface
-                     → event loop → Render → Present
+        ## 描画先とframebufferを作成する
+
+        GPU上の描画先として`GpuTexture`を作り、surfaceへ渡すRGBA8データの格納先として`GpuBuffer`を確保します。
+
+        ```csharp
+        uint width = 1280, height = 720;
+        uint stridePixels = (width + 63) / 64 * 64;
+
+        using GpuTexture target = device.CreateRenderTarget(
+            width, height, GpuFormat.Rgba8Unorm);
+        using GpuBuffer framebuffer = device.Malloc(
+            checked((ulong)stridePixels * height * 4),
+            GpuMemoryKind.HostMapped);
         ```
 
-        `GpuSurface`へrender targetを直接渡すのではなく、RGBA8のCPU可視framebufferを渡します。サンプルはGPU render targetをclearし、三角形を描き、`CopyTextureToBuffer`でframebufferへコピーします。三角形を外してもclear colorだけは表示されるため、window / surface / presentの切り分けに使えます。
+        D3D12のtexture copyではrow pitchが256 byte単位になるため、RGBA8の`stridePixels`を64 pixel単位へ揃えます。VulkanとWebGPUでも同じstrideを使用できます。
+
+        ## コマンドバッファを作成する
+
+        main queueから使い捨ての`GpuCommandBuffer`を作り、記録を開始します。`using`によりsubmit後にbackend固有のcommand resourceを破棄します。
+
+        ```csharp
+        using GpuCommandBuffer command =
+            device.MainQueue.StartCommandRecording();
+        ```
+
+        ## コマンドを作成する
+
+        `BeginRendering`はrender passを開始し、指定したRGBA値でtargetをclearします。描画終了後は、color outputの書き込みをcopyから読める状態へbarrierで遷移し、textureをframebufferへコピーします。
 
         ```csharp
         command.BeginRendering(target, null, 0.055f, 0.07f, 0.11f, 1)
             .EndRendering()
             .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
-            .CopyTextureToBuffer(target, framebuffer);
+            .CopyTextureToBuffer(target, framebuffer, stridePixels);
         command.Finish();
+        ```
+
+        `Finish()`以降はcommandへ追加記録せず、queueへのsubmitに使用します。
+
+        ## Submitする
+
+        `SubmitAndWait`は記録済みcommandをmain queueへ投入し、GPU処理が完了するまで待つ入門用helperです。完了を待つため、直後にframebufferをPresentできます。
+
+        ```csharp
         device.MainQueue.SubmitAndWait(command);
+        ```
+
+        非同期backendでは`SubmitAsync`も利用できます。本番の複数frame-in-flightでは、後続のFrame Loopページで扱う同期方式に置き換えます。
+
+        ## SurfaceへPresentする
+
+        `GpuSurface.Present`へ、コピー先framebuffer、1行のpixel数、実際の表示領域を渡します。surfaceは同じbackend instanceが作成したbufferだけを受け付けます。
+
+        ```csharp
         surface.Present(framebuffer, stridePixels, width, height);
         ```
 
-        ## 実sampleのframe loop
-
-        次は`Program.cs`からbuild時に埋め込んだ実コードです。説明用コピーではなく、sampleがコンパイルする同じregionを表示しています。
-
-        {SampleSource("samples/LuxelTriangle/Program.cs", "standalone-frame-loop")}
+        `stridePixels`にはalignmentを含む行幅を渡しますが、`width`と`height`には実際に表示する領域を渡します。
 
         ## Resize
 
         resize callbackでは即座にGPU resourceを破棄せず、次のevent-loop iterationでqueueをidleにしてからsurface、render target、framebufferを作り直します。最小化中の0×0では描画を休止します。
-
-        D3D12のtexture readback row pitchは256 byte単位なので、RGBA8のstrideは64 pixel単位へ揃えます。`Present`には実際のwidthと、揃えたstrideの両方を渡します。
         """, toc: true);
     }
 

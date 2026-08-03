@@ -900,6 +900,26 @@ public sealed class GallerySiteExporterTests
         Assert.DoesNotContain("## ビルド", environment);
         Assert.DoesNotContain("## Shader cache", environment);
 
+        string clearColor = pages["Learn/Grapics/ClearColor"].Text;
+        Assert.Contains("# ClearColor", clearColor);
+        foreach (string stage in new[]
+                 {
+                     "## 描画先とframebufferを作成する",
+                     "## コマンドバッファを作成する",
+                     "## コマンドを作成する",
+                     "## Submitする",
+                     "## SurfaceへPresentする",
+                 })
+            Assert.Contains(stage, clearColor);
+        foreach (string api in new[]
+                 {
+                     "CreateRenderTarget", "StartCommandRecording", "BeginRendering",
+                     "CopyTextureToBuffer", "Finish", "SubmitAndWait", "surface.Present",
+                 })
+            Assert.Contains(api, clearColor);
+        Assert.DoesNotContain("## 実sampleのframe loop", clearColor);
+        Assert.DoesNotContain("SampleSource(\"samples/LuxelTriangle/Program.cs\", \"standalone-frame-loop\")", clearColor);
+
         Assert.Contains("story:Apps/Game/Range", pages[stories[^1].Path].Text);
 
         string overview = pages[stories[0].Path].Text.ToLowerInvariant();
