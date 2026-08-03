@@ -1,4 +1,4 @@
-﻿using Luxel.Resources;
+using Luxel.Resources;
 
 namespace Luxel.AssetsGpu;
 
@@ -51,7 +51,17 @@ public static class ResourceSystemExtensions
         ArgumentNullException.ThrowIfNull(resources);
         ArgumentNullException.ThrowIfNull(device);
         var registry = new AssetGpuRegistry(device);
-        var installation = new AssetGpuInstallation(device, registry);
+        AssetGpuInstallation installation;
+        try
+        {
+            installation = new AssetGpuInstallation(resources, device, registry);
+        }
+        catch
+        {
+            device.MainQueue.WaitIdle();
+            registry.Dispose();
+            throw;
+        }
         AddAssetGpuSteps(resources, device, registry);
         resources.SetDeferredDisposeIdleHook(installation.WaitIdle);
         return installation;

@@ -67,19 +67,20 @@ public class AssetsGpuTests
         var backend = new FakeGpuBackend();
         using var device = new GpuDevice(backend);
         using var resources = new Luxel.Resources.ResourceSystem();
+        AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
         var scope = resources.CreateScope("viewport/main");
         var code = new GpuShaderCode { SpirV = [1, 2, 3, 4] };
 
-        var compute = scope.CreateComputePipeline(device, "pipeline/compute", code);
+        var compute = scope.CreateComputePipeline("pipeline/compute", code);
         var graphics = scope.CreateGraphicsPipeline(
-            device, "pipeline/graphics", code, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+            "pipeline/graphics", code, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
         var sampled = scope.CreateSampledTexture(
-            device, "texture/albedo", 1, 1, new byte[] { 1, 2, 3, 4 });
-        var sampler = scope.CreateSampler(device, "sampler/main");
-        var sameSampler = scope.CreateSampler(device, "sampler/main");
-        var color = scope.CreateRenderTarget(device, "target/color", 8, 4);
-        var depth = scope.CreateDepthTarget(device, "target/depth", 8, 4);
-        var buffer = scope.CreateBuffer<uint>(device, "buffer/instances", 4);
+            "texture/albedo", 1, 1, new byte[] { 1, 2, 3, 4 });
+        var sampler = scope.CreateSampler("sampler/main");
+        var sameSampler = scope.CreateSampler("sampler/main");
+        var color = scope.CreateRenderTarget("target/color", 8, 4);
+        var depth = scope.CreateDepthTarget("target/depth", 8, 4);
+        var buffer = scope.CreateBuffer<uint>("buffer/instances", 4);
 
         await Task.WhenAll(
             compute.Ready, graphics.Ready, sampled.Ready, sampler.Ready, sameSampler.Ready,
@@ -93,12 +94,26 @@ public class AssetsGpuTests
         Assert.Equal((uint)8, color.Value.Width);
         Assert.Equal(GpuFormat.D32Float, depth.Value.Format);
         Assert.Equal((ulong)16, buffer.Value.Size);
-        Assert.Equal(7, backend.LiveResources);
+        Assert.Equal(9, backend.LiveResources); // scoped resources + registry default sampler/material buffer
 
         scope.Dispose();
         resources.Pump();
 
+        Assert.Equal(2, backend.LiveResources);
+        installation.Dispose();
         Assert.Equal(0, backend.LiveResources);
+    }
+
+    [Fact]
+    public void ResourceScopeGpuFactories_RequireInstalledDevice()
+    {
+        using var resources = new Luxel.Resources.ResourceSystem();
+        using var scope = resources.CreateScope("viewport/uninstalled");
+
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(
+            () => scope.CreateBuffer("buffer", 16));
+
+        Assert.Contains("InstallAssetGpuLifecycle", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

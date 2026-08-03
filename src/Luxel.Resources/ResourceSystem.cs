@@ -123,6 +123,9 @@ public sealed class ResourceScope : IDisposable
         OwnerId = ownerId;
     }
 
+    /// <summary>この scope を所有する ResourceSystem。上位の型付き integration が設定を解決するために使用する。</summary>
+    public ResourceSystem System => _system;
+
     public string OwnerId { get; }
 
     /// <summary>共有 URI をロードし、このスコープの lease として追跡する。</summary>

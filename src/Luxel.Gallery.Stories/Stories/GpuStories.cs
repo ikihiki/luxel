@@ -75,13 +75,13 @@ public static class GpuStories
         {
             _device = device;
             _w = (uint)width; _h = (uint)height;
-            _target = resources.CreateRenderTarget(device, $"triangle.target.{_w}x{_h}", _w, _h);
+            _target = resources.CreateRenderTarget($"triangle.target.{_w}x{_h}", _w, _h);
             CanonicalTriangleRecipe.Vertex[] vertices = CanonicalTriangleRecipe.CreateVertices();
-            _vb = resources.CreateBuffer<CanonicalTriangleRecipe.Vertex>(device,
+            _vb = resources.CreateBuffer<CanonicalTriangleRecipe.Vertex>(
                 $"triangle.vertices.{vertices.Length}", vertices.Length);
             vertices.CopyTo(_vb.Value.Span<CanonicalTriangleRecipe.Vertex>(vertices.Length));
-            _out = resources.CreateBuffer(device, $"triangle.readback.{_w}x{_h}", _w * _h * 4);
-            _pipeline = resources.CreateGraphicsPipeline(device, "triangle.pipeline",
+            _out = resources.CreateBuffer($"triangle.readback.{_w}x{_h}", _w * _h * 4);
+            _pipeline = resources.CreateGraphicsPipeline("triangle.pipeline",
                 GpuShaderCode.Load(CanonicalTriangleRecipe.Shader),
                 GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
         }
@@ -138,12 +138,12 @@ public static class GpuStories
             try { _image.Ready.Wait(5000); } catch { /* 失敗時は 1x1 白で続行 */ }
             CpuImage img = _image.IsReady && _image.Value is { Width: > 0 } i
                 ? i : new CpuImage(1, 1, [255, 255, 255, 255]);
-            _texture = resources.CreateSampledTexture(device,
+            _texture = resources.CreateSampledTexture(
                 $"textured.texture.{img.Width}x{img.Height}", (uint)img.Width, (uint)img.Height, img.Pixels);
-            _sampler = resources.CreateSampler(device, "textured.sampler", GpuSamplerFilter.Point);
-            _target = resources.CreateRenderTarget(device, $"textured.target.{_w}x{_h}", _w, _h);
-            _out = resources.CreateBuffer(device, $"textured.readback.{_w}x{_h}", _w * _h * 4);
-            _pipeline = resources.CreateGraphicsPipeline(device, "textured.pipeline",
+            _sampler = resources.CreateSampler("textured.sampler", GpuSamplerFilter.Point);
+            _target = resources.CreateRenderTarget($"textured.target.{_w}x{_h}", _w, _h);
+            _out = resources.CreateBuffer($"textured.readback.{_w}x{_h}", _w * _h * 4);
+            _pipeline = resources.CreateGraphicsPipeline("textured.pipeline",
                 GpuShaderCode.Load("textured"), GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
         }
 
