@@ -7,8 +7,8 @@
 <li><a href="#story=Learn%2FGrapics%2FShaders&amp;section=%E6%89%80%E6%9C%89%E6%A8%A9%E3%81%A8%E5%AF%BF%E5%91%BD">所有権と寿命</a></li>
 <li><a href="#story=Learn%2FGrapics%2FShaders&amp;section=error%E3%81%8B%E3%82%89%E7%9B%B4%E3%81%99">Errorから直す</a></li>
 </ul>
-<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone build / publish　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> BuffersAndBindings</p>
-<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FBuffersAndBindings">BuffersAndBindings</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FFrameLoopAndSynchronization">FrameLoopAndSynchronization</a></p>
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone build / publish　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> Textures</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FTextures">Textures</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FFrameLoopAndSynchronization">FrameLoopAndSynchronization</a></p>
 <p>Luxelは <code>shaders/*.slang</code> を単一のsourceとして、Vulkan用SPIR-VとD3D12用DXILをGit管理します。通常のbuild / publishはcompilerを起動せずcacheを検証・コピーします。</p>
 <h2 id="section">1. ファイルを追加して分類する</h2>
 <ul>
@@ -50,13 +50,13 @@ dotnet publish samples/LuxelTriangle/LuxelTriangle.csproj -c Release -o artifact
 <li>publish後だけshader missing → projectが<code>shaders/Luxel.Shaders.targets</code>をimportしているか、publish出力の<code>shaders/</code>を確認する</li>
 </ul>
 <p>shader sourceを変更した場合だけcache regenerationが必要です。このページやC# ABI testだけの変更ではcompiled shaderを更新しません。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/Shaders&quot;, Order = 5)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/Shaders&quot;, Order = 6)]
 public static Widget Shaders(StoryContext ctx)
 {
     return DocNew(ctx, $$&quot;&quot;&quot;
     # Slang shaderとGit cache
 
-    {{RenderingCourseCatalog.Meta(&quot;Learn/Grapics/Shaders&quot;, &quot;Beginner&quot;, &quot;Standalone build / publish&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;BuffersAndBindings&quot;)}}
+    {{RenderingCourseCatalog.Meta(&quot;Learn/Grapics/Shaders&quot;, &quot;Beginner&quot;, &quot;Standalone build / publish&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;Textures&quot;)}}
 
     Luxelは `shaders/*.slang` を単一のsourceとして、Vulkan用SPIR-VとD3D12用DXILをGit管理します。通常のbuild / publishはcompilerを起動せずcacheを検証・コピーします。
 

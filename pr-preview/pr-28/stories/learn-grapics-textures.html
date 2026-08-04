@@ -1,0 +1,141 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Grapics/Textures</h1></header><h1 id="textures">Textures</h1>
+<ul>
+<li><a href="#story=Learn%2FGrapics%2FTextures&amp;section=texture%E3%82%92%E4%BD%9C%E6%88%90%E3%81%99%E3%82%8B">Textureを作成する</a></li>
+<li><a href="#story=Learn%2FGrapics%2FTextures&amp;section=sampler%E3%82%92%E4%BD%9C%E6%88%90%E3%81%99%E3%82%8B">Samplerを作成する</a></li>
+<li><a href="#story=Learn%2FGrapics%2FTextures&amp;section=shader%E3%81%B8%E6%B8%A1%E3%81%99">Shaderへ渡す</a></li>
+<li><a href="#story=Learn%2FGrapics%2FTextures&amp;section=%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89%E3%81%B8%E8%A8%AD%E5%AE%9A%E3%81%99%E3%82%8B">コマンドへ設定する</a></li>
+</ul>
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone + Gallery　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> Buffers</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FBuffers">Buffers</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FShaders">Shaders</a></p>
+<p>Textureは2次元のpixel配列をGPUへ置き、shaderからUV座標で参照するresourceです。<code>GpuTexture</code>が画像本体、<code>GpuSampler</code>が補間方法と範囲外UVの扱いを持ちます。</p>
+<h2 id="texture">Textureを作成する</h2>
+<p><code>CreateTexture</code>へwidth、height、RGBA8のpixel dataを渡します。dataは左上から右へ並ぶtightなrowを、上から下へ続けます。</p>
+<pre><code class="language-csharp">byte[] pixels =
+[
+    255, 128,  32, 255,    96,  48, 192, 255,
+     96,  48, 192, 255,   255, 128,  32, 255,
+];
+
+using GpuTexture texture = device.CreateTexture(
+    2, 2, pixels, GpuFormat.Rgba8Unorm);
+</code></pre>
+<p>2×2のRGBA8なので、必要なdata sizeは<code>2 * 2 * 4 = 16 byte</code>です。<code>CreateTexture</code>が戻った後は入力配列を再利用できますが、作成されたtextureは描画commandが完了するまで保持します。</p>
+<h2 id="sampler">Samplerを作成する</h2>
+<p>samplerはpixel間の補間と、0〜1の外側に出たUVの扱いを指定します。</p>
+<pre><code class="language-csharp">using GpuSampler sampler = device.CreateSampler(
+    GpuSamplerFilter.Linear,
+    GpuSamplerAddress.Clamp);
+</code></pre>
+<p><code>Point</code>は最も近い1 pixelを選び、<code>Linear</code>は周囲を補間します。<code>Clamp</code>は端のpixelを延長し、<code>Repeat</code>はUVを繰り返します。</p>
+<h2 id="shader">Shaderへ渡す</h2>
+<p>bufferと同様に、textureとsamplerの<code>BindlessIndex</code>をroot argumentsへ入れます。</p>
+<pre><code class="language-csharp">public struct DrawArgs
+{
+    public uint TextureIndex;
+    public uint SamplerIndex;
+}
+
+var args = new DrawArgs
+{
+    TextureIndex = texture.BindlessIndex,
+    SamplerIndex = sampler.BindlessIndex,
+};
+</code></pre>
+<p>Slang側では同じindexを使ってtextureとsamplerを選択し、pixel shaderでUVをsampleします。</p>
+<pre><code class="language-slang">[[vk::binding(1, 0)]] Texture2D g_textures[];
+[[vk::binding(2, 0)]] SamplerState g_samplers[];
+
+float4 color = g_textures[g_args.textureIndex]
+    .Sample(g_samplers[g_args.samplerIndex], input.uv);
+</code></pre>
+<h2 id="section">コマンドへ設定する</h2>
+<p>textureとsamplerはroot argumentsを通じて参照されるため、command側ではpipelineとargsを設定して描画します。</p>
+<pre><code class="language-csharp">command.BeginRendering(target, null, 0, 0, 0, 1)
+    .SetGraphicsPipeline(pipeline)
+    .SetRootArguments(args)
+    .Draw(6)
+    .EndRendering();
+</code></pre>
+<p>典型的な問題は、RGBA/BGRAの取り違え、UVの上下反転、textureとsamplerのindex入れ替え、描画完了前のresource破棄です。より実用的なUV、色空間、upload rowの説明は<a href="#story=Learn%2FGrapics%2FThreeD%2FTextures">ThreeD/Textures</a>で扱います。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/Textures&quot;, Order = 5)]
+public static Widget TexturesBasics(StoryContext ctx)
+{
+    return DocNew(ctx, $$&quot;&quot;&quot;
+    # Textures
+
+    {{RenderingCourseCatalog.Meta(&quot;Learn/Grapics/Textures&quot;, &quot;Beginner&quot;, &quot;Standalone + Gallery&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;Buffers&quot;)}}
+
+    Textureは2次元のpixel配列をGPUへ置き、shaderからUV座標で参照するresourceです。`GpuTexture`が画像本体、`GpuSampler`が補間方法と範囲外UVの扱いを持ちます。
+
+    ## Textureを作成する
+
+    `CreateTexture`へwidth、height、RGBA8のpixel dataを渡します。dataは左上から右へ並ぶtightなrowを、上から下へ続けます。
+
+    ```csharp
+    byte[] pixels =
+    [
+        255, 128,  32, 255,    96,  48, 192, 255,
+         96,  48, 192, 255,   255, 128,  32, 255,
+    ];
+
+    using GpuTexture texture = device.CreateTexture(
+        2, 2, pixels, GpuFormat.Rgba8Unorm);
+    ```
+
+    2&#215;2のRGBA8なので、必要なdata sizeは`2 * 2 * 4 = 16 byte`です。`CreateTexture`が戻った後は入力配列を再利用できますが、作成されたtextureは描画commandが完了するまで保持します。
+
+    ## Samplerを作成する
+
+    samplerはpixel間の補間と、0〜1の外側に出たUVの扱いを指定します。
+
+    ```csharp
+    using GpuSampler sampler = device.CreateSampler(
+        GpuSamplerFilter.Linear,
+        GpuSamplerAddress.Clamp);
+    ```
+
+    `Point`は最も近い1 pixelを選び、`Linear`は周囲を補間します。`Clamp`は端のpixelを延長し、`Repeat`はUVを繰り返します。
+
+    ## Shaderへ渡す
+
+    bufferと同様に、textureとsamplerの`BindlessIndex`をroot argumentsへ入れます。
+
+    ```csharp
+    public struct DrawArgs
+    {
+        public uint TextureIndex;
+        public uint SamplerIndex;
+    }
+
+    var args = new DrawArgs
+    {
+        TextureIndex = texture.BindlessIndex,
+        SamplerIndex = sampler.BindlessIndex,
+    };
+    ```
+
+    Slang側では同じindexを使ってtextureとsamplerを選択し、pixel shaderでUVをsampleします。
+
+    ```slang
+    [[vk::binding(1, 0)]] Texture2D g_textures[];
+    [[vk::binding(2, 0)]] SamplerState g_samplers[];
+
+    float4 color = g_textures[g_args.textureIndex]
+        .Sample(g_samplers[g_args.samplerIndex], input.uv);
+    ```
+
+    ## コマンドへ設定する
+
+    textureとsamplerはroot argumentsを通じて参照されるため、command側ではpipelineとargsを設定して描画します。
+
+    ```csharp
+    command.BeginRendering(target, null, 0, 0, 0, 1)
+        .SetGraphicsPipeline(pipeline)
+        .SetRootArguments(args)
+        .Draw(6)
+        .EndRendering();
+    ```
+
+    典型的な問題は、RGBA/BGRAの取り違え、UVの上下反転、textureとsamplerのindex入れ替え、描画完了前のresource破棄です。より実用的なUV、色空間、upload rowの説明は[ThreeD/Textures](story:Learn/Grapics/ThreeD/Textures)で扱います。
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>
