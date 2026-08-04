@@ -581,8 +581,11 @@ public static partial class GallerySiteExporter
         string sourceTab = hasSource
             ? $"<button type=\"button\" role=\"tab\" id=\"{instance}-source-tab\" aria-controls=\"{instance}-source-panel\" aria-selected=\"false\" tabindex=\"-1\" data-runtime-tab=\"source\">Source</button>"
             : string.Empty;
+        // RuntimeStory HTML can itself be injected into a Markdown document. Keep the generated
+        // HTML block on one physical line so blank lines in source code cannot terminate Markdig's
+        // raw-HTML block and cause entities such as &gt; to be escaped a second time.
         string sourcePanel = hasSource
-            ? $"<section class=\"source-panel\" id=\"{instance}-source-panel\" role=\"tabpanel\" aria-labelledby=\"{instance}-source-tab\" hidden><pre><code class=\"language-csharp\">{H(story.Source!)}</code></pre></section>"
+            ? $"<section class=\"source-panel\" id=\"{instance}-source-panel\" role=\"tabpanel\" aria-labelledby=\"{instance}-source-tab\" hidden><pre><code class=\"language-csharp\">{SourceCodeText(story.Source!)}</code></pre></section>"
             : string.Empty;
         return $"<div class=\"runtime-panels\" style=\"--runtime-panel-height:180px\"><div class=\"runtime-panel-resizer\" role=\"separator\" aria-label=\"Resize story panels\" aria-orientation=\"horizontal\" aria-valuemin=\"96\" aria-valuemax=\"520\" aria-valuenow=\"180\" tabindex=\"0\" data-runtime-panel-resizer></div><div class=\"runtime-tabs\" role=\"tablist\" aria-label=\"Story controls, output, and source\"><button type=\"button\" role=\"tab\" id=\"{instance}-args-tab\" aria-controls=\"{instance}-args-panel\" aria-selected=\"true\" data-runtime-tab=\"args\">Args</button><button type=\"button\" role=\"tab\" id=\"{instance}-output-tab\" aria-controls=\"{instance}-output-panel\" aria-selected=\"false\" tabindex=\"-1\" data-runtime-tab=\"output\">Output <span class=\"output-count\" data-output-count>0</span></button>{sourceTab}</div>{ArgsTable(story, schema, values, instance)}<section class=\"output-panel\" id=\"{instance}-output-panel\" role=\"tabpanel\" aria-labelledby=\"{instance}-output-tab\" hidden><ol class=\"output-list\" aria-live=\"polite\"><li class=\"output-empty\">No events have been emitted.</li></ol></section>{sourcePanel}</div>";
     }
@@ -753,6 +756,10 @@ public static partial class GallerySiteExporter
     }
     private static string GoldenName(string path) { var sb = new StringBuilder(path.Length); foreach (char c in path) sb.Append(char.IsLetterOrDigit(c) ? c : '_'); return sb.ToString(); }
     private static string H(string value) => WebUtility.HtmlEncode(value);
+    private static string SourceCodeText(string value)
+        => H(value).Replace("\r", string.Empty, StringComparison.Ordinal)
+            .Replace("\n", "&#10;", StringComparison.Ordinal);
+
     internal static string BundleHtml(SampleBundleInfo? bundle)
     {
         if (bundle is null) return "<p class=\"sample-level gallery-only\">GalleryOnly — this Story source requires the Gallery harness.</p>";

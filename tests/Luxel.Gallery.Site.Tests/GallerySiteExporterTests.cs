@@ -556,6 +556,11 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("<iframe src=\"samples/webgpu-browser/?story=Examples%2F3D%2FTriangle&amp;args=%7B%7D&amp;instance=", fragment);
             Assert.Contains("data-luxel-runtime-story=\"Examples/3D/Triangle\"", fragment);
             Assert.Contains("runtime-story-embedded", fragment);
+            Assert.Contains("Load&lt;Vertex&gt;(vertexId * 32)", fragment);
+            Assert.Contains("byteOffset : u32) -&gt; f32", fragment);
+            Assert.DoesNotContain("&amp;gt;", fragment);
+            Assert.DoesNotContain("&amp;lt;", fragment);
+            Assert.DoesNotContain("&amp;quot;", fragment);
             Assert.Contains("title=\"Interactive Triangle\"", fragment);
             Assert.DoesNotContain("runtime-caption", fragment);
             Assert.DoesNotContain("Static embedded story capture", fragment);
