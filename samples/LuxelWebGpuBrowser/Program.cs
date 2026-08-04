@@ -84,7 +84,6 @@ public static partial class Program
             StoryResult result = story.BuildResult(context);
             if (result.Kind != StoryResultKind.Widget || result.Widget is null)
                 throw new InvalidOperationException($"Browser runtime story '{path}' did not build a Widget.");
-            await context.Ready;
 
             using var raster = new GpuDeviceRasterizer2D(device, RasterShader);
             using var canvas = new RetainedCanvas();

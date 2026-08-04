@@ -795,7 +795,6 @@ public sealed class GalleryApp : IDisposable
         try
         {
             newRoot = story.Build(newContext);
-            newContext.Ready.GetAwaiter().GetResult();
         }
         catch (Exception error)
         {

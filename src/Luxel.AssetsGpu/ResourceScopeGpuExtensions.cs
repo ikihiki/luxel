@@ -19,7 +19,20 @@ public static class ResourceScopeGpuExtensions
         ArgumentNullException.ThrowIfNull(scope);
         ArgumentNullException.ThrowIfNull(code);
         var request = new GpuPipelineRequest(
-            code, IsCompute: true, default, entryPoint, "vsMain", "psMain");
+            code, Shader: null, IsCompute: true, default, entryPoint, "vsMain", "psMain");
+        return scope.Create<GpuPipelineRequest, GpuPipeline>(localKey, request);
+    }
+
+    public static ResourceHandle<GpuPipeline> CreateComputePipeline(
+        this ResourceScope scope,
+        string localKey,
+        ResourceHandle<GpuShaderCode> shader,
+        string entryPoint = "main")
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentNullException.ThrowIfNull(shader);
+        var request = new GpuPipelineRequest(
+            Code: null, Shader: shader, IsCompute: true, default, entryPoint, "vsMain", "psMain");
         return scope.Create<GpuPipelineRequest, GpuPipeline>(localKey, request);
     }
 
@@ -34,7 +47,22 @@ public static class ResourceScopeGpuExtensions
         ArgumentNullException.ThrowIfNull(scope);
         ArgumentNullException.ThrowIfNull(code);
         var request = new GpuPipelineRequest(
-            code, IsCompute: false, raster, "main", vertexEntry, pixelEntry);
+            code, Shader: null, IsCompute: false, raster, "main", vertexEntry, pixelEntry);
+        return scope.Create<GpuPipelineRequest, GpuPipeline>(localKey, request);
+    }
+
+    public static ResourceHandle<GpuPipeline> CreateGraphicsPipeline(
+        this ResourceScope scope,
+        string localKey,
+        ResourceHandle<GpuShaderCode> shader,
+        GpuRasterDesc raster,
+        string vertexEntry = "vsMain",
+        string pixelEntry = "psMain")
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentNullException.ThrowIfNull(shader);
+        var request = new GpuPipelineRequest(
+            Code: null, Shader: shader, IsCompute: false, raster, "main", vertexEntry, pixelEntry);
         return scope.Create<GpuPipelineRequest, GpuPipeline>(localKey, request);
     }
 

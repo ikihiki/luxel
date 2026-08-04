@@ -76,14 +76,23 @@ public sealed partial class GpuView : Widget
         _node.Content = new Scene2D().ImageRect(
             surface.Framebuffer.BindlessIndex, surface.StridePixels, surface.Width, surface.Height,
             0, 0, Size.Width, Size.Height);
-        Draw();
         if (Animated.Get())
+        {
+            Draw();
             ctx.AddAnimation(dt =>
             {
                 _t += dt;
                 Draw();
                 return false;
             });
+        }
+        else
+        {
+            // Render callbacks may read resource-backed signals. The realization scope owns this
+            // effect, so a ready/reload notification redraws exactly this surface and is detached
+            // when the widget is re-realized or removed.
+            ctx.Effect(Draw);
+        }
 
         void Draw()
         {

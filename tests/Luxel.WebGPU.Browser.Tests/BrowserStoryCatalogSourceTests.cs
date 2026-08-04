@@ -24,9 +24,11 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("resources.InstallAssetGpuLifecycle(device)", program, StringComparison.Ordinal);
         Assert.Contains("new BrowserSlangCompiler()", program, StringComparison.Ordinal);
         Assert.Contains("AddStep<SlangSource, GpuShaderCode>", program, StringComparison.Ordinal);
-        Assert.Contains("await context.Ready", program, StringComparison.Ordinal);
-        Assert.True(program.IndexOf("await context.Ready", StringComparison.Ordinal)
-            < program.IndexOf("ui.SetRoot(result.Widget)", StringComparison.Ordinal));
+        Assert.DoesNotContain("context.Ready", program, StringComparison.Ordinal);
+        Assert.True(program.IndexOf("ui.SetRoot(result.Widget)", StringComparison.Ordinal)
+            < program.IndexOf("resources.Pump()", StringComparison.Ordinal));
+        Assert.True(program.IndexOf("resources.Pump()", StringComparison.Ordinal)
+            < program.IndexOf("ui.Tick(1f / 60f)", StringComparison.Ordinal));
         Assert.Contains("Luxel.Shaders.Slang.Browser.csproj", project, StringComparison.Ordinal);
         Assert.Contains("wwwroot\\slang-worker.js", project, StringComparison.Ordinal);
         Assert.Contains("BrowserSlangJsonContext.Default.BrowserCompileRequest", compiler, StringComparison.Ordinal);

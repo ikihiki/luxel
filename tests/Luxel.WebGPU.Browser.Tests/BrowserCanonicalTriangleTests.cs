@@ -31,7 +31,12 @@ public sealed class BrowserCanonicalTriangleTests
         Assert.Contains("Vertex vertex = g_buffers[g_args.vertexBufferIndex].Load<Vertex>(vertexId * 32);", gpuStories);
         Assert.Contains("new SlangSource(\"triangle.slang\", slang)", gpuStories);
         Assert.Contains("Create<SlangSource, GpuShaderCode>", gpuStories);
-        Assert.Contains("ctx.Initialize(pipeline)", gpuStories);
+        Assert.Contains("resources.CreateGraphicsPipeline(\n            \"triangle.pipeline\", shader,", gpuStories);
+        Assert.Contains("ctx.Observe(pipeline)", gpuStories);
+        Assert.DoesNotContain("ctx.Initialize", gpuStories);
+        Assert.DoesNotContain("CreatePipelineAsync", gpuStories);
+        Assert.DoesNotContain("await shader.Ready", gpuStories);
+        Assert.DoesNotContain("pipeline.GetAwaiter().GetResult()", gpuStories);
         Assert.DoesNotContain("GpuShaderCode.Load", gpuStories);
         Assert.DoesNotContain("const string wgsl", gpuStories);
         Assert.Contains("GpuView(", gpuStories);

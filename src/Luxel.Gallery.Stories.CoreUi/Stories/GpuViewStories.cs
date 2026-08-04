@@ -88,30 +88,27 @@ public static class GpuViewStories
             "triangle.vertices", vertices.Length);
         WaitFor(vertexBuffer);
         vertices.CopyTo(vertexBuffer.Value.Span<float>(vertices.Length));
-        Task<ResourceHandle<GpuPipeline>> pipeline = CreatePipelineAsync();
-        ctx.Initialize(pipeline);
-
-        async Task<ResourceHandle<GpuPipeline>> CreatePipelineAsync()
-        {
-            await shader.Ready;
-            ResourceHandle<GpuPipeline> result = resources.CreateGraphicsPipeline(
-                "triangle.pipeline", shader.Value, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
-            await result.Ready;
-            return result;
-        }
+        ResourceHandle<GpuPipeline> pipeline = resources.CreateGraphicsPipeline(
+            "triangle.pipeline", shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+        Signal<ResourceState> pipelineState = ctx.Observe(pipeline);
 
         return ctx.Snap(Frame(GpuView(
             320,
             240,
             (device, surface, _) =>
             {
-                uint vertexBufferIndex = vertexBuffer.Value.BindlessIndex;
+                ResourceState state = pipelineState.Value;
                 using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
-                command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)
-                    .SetGraphicsPipeline(pipeline.GetAwaiter().GetResult().Value)
-                    .SetRootArguments(vertexBufferIndex)
-                    .Draw(3)
-                    .EndRendering();
+                GpuCommandBuffer rendering = command.BeginRendering(
+                    surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1);
+                if (state.HasValue)
+                {
+                    uint vertexBufferIndex = vertexBuffer.Value.BindlessIndex;
+                    rendering.SetGraphicsPipeline(pipeline.Value)
+                        .SetRootArguments(vertexBufferIndex)
+                        .Draw(3);
+                }
+                rendering.EndRendering();
                 surface.CopyColorToFramebuffer(command);
                 command.Finish();
                 device.MainQueue.Submit(command);

@@ -107,6 +107,57 @@ public class AssetsGpuTests
     }
 
     [Fact]
+    public async Task PipelineFactoryAcceptsPendingShaderHandle()
+    {
+        var backend = new FakeGpuBackend();
+        using var device = new GpuDevice(backend);
+        using var resources = new ResourceSystem();
+        using AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        using ResourceScope scope = resources.CreateScope("pending-shader");
+        var completion = new TaskCompletionSource<GpuShaderCode>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using ResourceHandle<GpuShaderCode> shader = resources.Load(
+            "controlled://shader", _ => completion.Task, ResourceOwnership.Borrowed);
+
+        using ResourceHandle<GpuPipeline> pipeline = scope.CreateGraphicsPipeline(
+            "pipeline", shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+        Assert.False(pipeline.Ready.IsCompleted);
+
+        completion.SetResult(new GpuShaderCode { SpirV = [1, 2, 3, 4] });
+        await pipeline.Ready;
+
+        Assert.True(pipeline.HasValue);
+        Assert.Equal(1, backend.PipelineCreations);
+    }
+
+    [Fact]
+    public async Task ShaderRepublishRebuildsDependentPipeline()
+    {
+        var backend = new FakeGpuBackend();
+        using var device = new GpuDevice(backend);
+        using var resources = new ResourceSystem();
+        using AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        using ResourceScope scope = resources.CreateScope("reload-shader");
+        using ResourceHandle<GpuShaderCode> shader = resources.Publish(
+            "published://shader", new GpuShaderCode { SpirV = [1, 2, 3, 4] }, ResourceOwnership.Borrowed);
+        using ResourceHandle<GpuPipeline> pipeline = scope.CreateGraphicsPipeline(
+            "pipeline", shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+        await pipeline.Ready;
+        GpuPipeline first = pipeline.Value;
+
+        resources.Republish(
+            "published://shader", new GpuShaderCode { SpirV = [5, 6, 7, 8] });
+        resources.Pump();
+        resources.Pump();
+        await pipeline.Ready;
+        resources.Pump();
+
+        Assert.NotSame(first, pipeline.Value);
+        Assert.True(pipeline.Version >= 1);
+        Assert.Equal(2, backend.PipelineCreations);
+        Assert.True(backend.Queue.WaitIdleCount >= 1);
+    }
+
+    [Fact]
     public async Task CreateAssetGpuSteps_GlobalRegistrationUsesReturnedRegistry()
     {
         var backend = new FakeGpuBackend();
@@ -165,25 +216,33 @@ public class AssetsGpuTests
     private sealed class FakeGpuBackend : Luxel.Graphics.Abstraction.IGpuBackend
     {
         private int _liveResources;
+        private int _pipelineCreations;
 
         public string Name => "fake";
         public GpuBackendKind Kind => GpuBackendKind.Vulkan;
         public FakeQueue Queue { get; } = new();
         public Luxel.Graphics.Abstraction.IGpuBackendQueue MainQueue => Queue;
         public int LiveResources => Volatile.Read(ref _liveResources);
+        public int PipelineCreations => Volatile.Read(ref _pipelineCreations);
 
         public Luxel.Graphics.Abstraction.IGpuBackendBuffer CreateBuffer(ulong size, GpuMemoryKind kind)
             => Track(new FakeBuffer(size));
 
         public Luxel.Graphics.Abstraction.IGpuBackendPipeline CreateComputePipeline(
             ReadOnlySpan<byte> shaderBlob, string entryPoint)
-            => Track(new FakePipeline(isCompute: true));
+        {
+            Interlocked.Increment(ref _pipelineCreations);
+            return Track(new FakePipeline(isCompute: true));
+        }
 
         public Luxel.Graphics.Abstraction.IGpuBackendPipeline CreateGraphicsPipeline(
             ReadOnlySpan<byte> vsBlob, string vsEntry,
             ReadOnlySpan<byte> psBlob, string psEntry,
             GpuRasterDesc raster)
-            => Track(new FakePipeline(isCompute: false));
+        {
+            Interlocked.Increment(ref _pipelineCreations);
+            return Track(new FakePipeline(isCompute: false));
+        }
 
         public Luxel.Graphics.Abstraction.IGpuBackendTexture CreateRenderTarget(
             uint width, uint height, GpuFormat format)

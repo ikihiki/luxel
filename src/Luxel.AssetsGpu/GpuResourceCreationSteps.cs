@@ -3,7 +3,8 @@ using Luxel.Resources;
 namespace Luxel.AssetsGpu;
 
 internal sealed record GpuPipelineRequest(
-    GpuShaderCode Code,
+    GpuShaderCode? Code,
+    ResourceHandle<GpuShaderCode>? Shader,
     bool IsCompute,
     GpuRasterDesc Raster,
     string ComputeEntry,
@@ -33,10 +34,13 @@ internal sealed class GpuPipelineCreationStep(AssetGpuRegistry registry)
 {
     public Executor Executor => Executor.External;
 
-    public Task<GpuPipeline> RunAsync(GpuPipelineRequest input, ResourceUri uri, LoadContext ctx)
+    public async Task<GpuPipeline> RunAsync(GpuPipelineRequest input, ResourceUri uri, LoadContext ctx)
     {
+        GpuShaderCode code = input.Shader is not null
+            ? await ctx.Require(input.Shader).ConfigureAwait(false)
+            : input.Code ?? throw new InvalidOperationException("GPU pipeline request has no shader code or shader resource handle.");
         ctx.MarkOwned();
-        return Task.FromResult(registry.Create(input));
+        return registry.Create(input, code);
     }
 }
 

@@ -198,7 +198,6 @@ public sealed class GalleryHost : IDisposable
         // 遷移はコマンドキュー経由 — 入力ディスパッチ中の即時 TearDown を避ける (次の Drain で適用)
         _ctx.SetNavigator(p => Commands.Enqueue("story.select", JsonSerializer.SerializeToElement(new { id = p })));
         _root = _story.Build(_ctx);
-        _ctx.Ready.GetAwaiter().GetResult();
         _host.SetRoot(_root);
         CreateRasterTarget();
         _frameHash = 0;   // 次の Render で必ず配信

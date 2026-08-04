@@ -3,6 +3,13 @@ using Luxel.Diagnostics;
 
 namespace Luxel.Resources;
 
+/// <summary>UI等がPump thread上で観測できるresource nodeの状態snapshot。</summary>
+public readonly record struct ResourceState(
+    ResourceStatus Status,
+    bool HasValue,
+    int Version,
+    Exception? Error);
+
 /// <summary>キャッシュ上の 1 ノード ((出力型, 正規化uri) で一意)。</summary>
 internal sealed class ResourceNode
 {
@@ -27,6 +34,7 @@ internal sealed class ResourceNode
     public Executor StepExecutor;
     public event Action? Reloaded;
     public void FireReloaded() => Reloaded?.Invoke();
+    public readonly List<ResourceStateSubscription> StateSubscriptions = [];
     public ResourceOwnership Ownership = ResourceOwnership.Owned;
     public bool IsEvicted;
 }
@@ -39,6 +47,7 @@ public sealed class ResourceHandle<T> : IDisposable
     private int _disposed;
 
     internal ResourceHandle(ResourceSystem sys, ResourceNode node) { _sys = sys; Node = node; }
+    internal ResourceSystem System => _sys;
 
     public T Value => Node.Value is T t ? t : default!;
     public bool IsReady => Node.Status == ResourceStatus.Ready;
@@ -51,13 +60,40 @@ public sealed class ResourceHandle<T> : IDisposable
     /// <summary>直近のロード失敗。後続ロード成功時にクリアされる。</summary>
     public Exception? LastReloadError => Node.Error;
     public Exception? Error => Node.Error;
+    public ResourceState State => new(Node.Status, Node.HasValue, Node.Version, Node.Error);
 
     public event Action Reloaded { add => Node.Reloaded += value; remove => Node.Reloaded -= value; }
+
+    /// <summary>ResourceSystem.Pump() thread上で状態遷移を受け取る。</summary>
+    public IDisposable SubscribeState(Action<ResourceState> callback)
+        => _sys.SubscribeState(this, callback);
 
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         _sys.Release(Node);
+    }
+}
+
+internal sealed class ResourceStateSubscription : IDisposable
+{
+    private readonly ResourceSystem _system;
+    internal readonly ResourceNode Node;
+    internal readonly Action<ResourceState> Callback;
+    private int _disposed;
+
+    internal ResourceStateSubscription(ResourceSystem system, ResourceNode node, Action<ResourceState> callback)
+    {
+        _system = system;
+        Node = node;
+        Callback = callback;
+    }
+
+    internal bool IsDisposed => Volatile.Read(ref _disposed) != 0;
+
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) == 0) _system.RemoveStateSubscription(this);
     }
 }
 
@@ -86,6 +122,10 @@ public sealed class LoadContext
     /// <summary>依存リソースを (型,uri) で自動合成しロード (キャッシュ共有・リロード伝播)。</summary>
     public ResourceHandle<U> Load<U>(string uri) => _sys.LoadDependency<U>(uri, Owner);
     public ResourceHandle<U> Load<U>(string uri, Loader<U> loader) => _sys.LoadDependency(uri, loader, Owner);
+
+    /// <summary>既存handleを現在nodeの依存として接続し、その現在generationの値を待つ。</summary>
+    public Task<U> Require<U>(ResourceHandle<U> dependency)
+        => _sys.RequireDependency(dependency, Owner, _token);
 }
 
 internal sealed class PumpFlushRegistration : IDisposable
@@ -326,6 +366,27 @@ public sealed class ResourceSystem : IDisposable
         _publishQueue.Enqueue(() => NotifyPublish(node, value));
     }
 
+    internal IDisposable SubscribeState<T>(ResourceHandle<T> handle, Action<ResourceState> callback)
+    {
+        ArgumentNullException.ThrowIfNull(handle);
+        ArgumentNullException.ThrowIfNull(callback);
+        ThrowIfDisposed();
+        if (!ReferenceEquals(handle.System, this))
+            throw new InvalidOperationException("Resource handle belongs to another ResourceSystem.");
+        var subscription = new ResourceStateSubscription(this, handle.Node, callback);
+        lock (_lock)
+        {
+            if (handle.Node.IsEvicted) throw new ObjectDisposedException(nameof(handle));
+            handle.Node.StateSubscriptions.Add(subscription);
+        }
+        return subscription;
+    }
+
+    internal void RemoveStateSubscription(ResourceStateSubscription subscription)
+    {
+        lock (_lock) subscription.Node.StateSubscriptions.Remove(subscription);
+    }
+
     /// <summary>handle の node が生存中だけ Pump 時に呼ぶ callback を登録する。</summary>
     public void RegisterPumpFlush<T>(ResourceHandle<T> handle, Func<bool> flushCallback)
         => RegisterPumpFlushLease(handle, flushCallback);
@@ -402,6 +463,25 @@ public sealed class ResourceSystem : IDisposable
         AddEdge(owner, node);
         Interlocked.Increment(ref node.RefCount);
         return new ResourceHandle<U>(this, node);
+    }
+
+    internal async Task<U> RequireDependency<U>(
+        ResourceHandle<U> dependency,
+        ResourceNode owner,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+        if (!ReferenceEquals(dependency.System, this))
+            throw new InvalidOperationException("Resource dependency handle belongs to another ResourceSystem.");
+        if (dependency.Node.IsEvicted)
+            throw new ObjectDisposedException(nameof(dependency));
+        AddEdge(owner, dependency.Node);
+        Task<object> computed;
+        lock (dependency.Node) computed = dependency.Node.Computed;
+        await computed.WaitAsync(cancellationToken).ConfigureAwait(false);
+        return dependency.Node.Value is U value
+            ? value
+            : throw new InvalidOperationException($"Resource dependency '{dependency.Uri}' completed without a {typeof(U).Name} value.");
     }
 
     private static Func<LoadContext, Task<object>> Wrap<T>(Loader<T> loader)
@@ -488,6 +568,7 @@ public sealed class ResourceSystem : IDisposable
             node.Status = ResourceStatus.Loading;
             var ctx = new LoadContext(this, node, node.Uri, cts.Token);
             node.Computed = RunLoad(node, ctx, isReload, generation, cts);
+            if (isReload) QueueState(node, generation, Snapshot(node));
         }
         try { previous?.Cancel(); } catch (ObjectDisposedException) { }
     }
@@ -520,6 +601,7 @@ public sealed class ResourceSystem : IDisposable
                 {
                     node.Value = v;
                     node.HasValue = true;
+                    QueueState(node, generation, Snapshot(node));
                 }
             }
             _graphDirty = true;
@@ -533,6 +615,7 @@ public sealed class ResourceSystem : IDisposable
                 {
                     node.Status = node.HasValue ? ResourceStatus.Ready : ResourceStatus.Failed;
                     node.Error = e;
+                    QueueState(node, generation, Snapshot(node));
                     _graphDirty = true;
                 }
             }
@@ -551,6 +634,28 @@ public sealed class ResourceSystem : IDisposable
     private void PublishIfCurrent(ResourceNode node, object value, long generation)
         => NotifyPublish(node, value, generation);
 
+    private static ResourceState Snapshot(ResourceNode node)
+        => new(node.Status, node.HasValue, node.Version, node.Error);
+
+    private void QueueState(ResourceNode node, long generation, ResourceState state)
+        => _publishQueue.Enqueue(() =>
+        {
+            lock (node)
+            {
+                if (node.IsEvicted || node.LoadGeneration != generation) return;
+            }
+            FireState(node, state);
+        });
+
+    private void FireState(ResourceNode node, ResourceState state)
+    {
+        ResourceStateSubscription[] subscriptions;
+        lock (_lock)
+            subscriptions = node.StateSubscriptions.Where(s => !s.IsDisposed).ToArray();
+        foreach (ResourceStateSubscription subscription in subscriptions)
+            subscription.Callback(state);
+    }
+
     public void Pump()
     {
         lock (_lock)
@@ -562,6 +667,7 @@ public sealed class ResourceSystem : IDisposable
                 {
                     registration.Node.Version++;
                     registration.Node.FireReloaded();
+                    FireState(registration.Node, Snapshot(registration.Node));
                     _graphDirty = true;
                 }
             }
@@ -616,11 +722,14 @@ public sealed class ResourceSystem : IDisposable
             old = node.Value;
             node.Value = newValue;
             node.HasValue = true;
+            node.Status = ResourceStatus.Ready;
+            node.Error = null;
             node.Version++;
         }
         if (old != null && !ReferenceEquals(old, newValue) && node.Ownership == ResourceOwnership.Owned)
             _deferredDispose.Add(old);
         node.FireReloaded();
+        FireState(node, Snapshot(node));
         _graphDirty = true;
         ResourceNode[] deps;
         lock (_lock) deps = node.Dependents.ToArray();
@@ -672,6 +781,7 @@ public sealed class ResourceSystem : IDisposable
         }
         _cache.Remove(node.Key);
         _flushRegistrations.RemoveAll(r => ReferenceEquals(r.Node, node));
+        node.StateSubscriptions.Clear();
         _graphDirty = true;
         node.WatchToken?.Dispose();
         try { node.Cts?.Cancel(); } catch { }
@@ -704,6 +814,7 @@ public sealed class ResourceSystem : IDisposable
                 value = n.Value;
                 n.Value = null;
                 n.HasValue = false;
+                n.StateSubscriptions.Clear();
             }
             n.WatchToken?.Dispose();
             try { n.Cts?.Cancel(); } catch { }

@@ -44,6 +44,14 @@ public class ResourceSystemTests
         public Task<Final> RunAsync(Upper up, ResourceUri u, LoadContext c)
         { Interlocked.Increment(ref _finalRuns); return Task.FromResult(new Final(up.Text + "!")); }
     }
+    private sealed record DependencyRequest(ResourceHandle<Doc> Dependency);
+    private sealed class DependencyStep : IResourceStep<DependencyRequest, Final>
+    {
+        public Executor Executor => Executor.Cpu;
+        public async Task<Final> RunAsync(DependencyRequest input, ResourceUri uri, LoadContext ctx)
+            => new((await ctx.Require(input.Dependency)).Text + "!");
+    }
+
     private sealed class FragmentStep : IResourceStep<Doc, Final>
     {
         public Executor Executor => Executor.Cpu;
@@ -150,6 +158,87 @@ public class ResourceSystemTests
         await handle.Ready;
 
         Assert.Equal("value#generic", handle.Value.Text);
+    }
+
+    [Fact]
+    public async Task ExistingHandleDependencyWaitsAndReloadsDependent()
+    {
+        using var sys = new ResourceSystem();
+        sys.AddStep<DependencyRequest, Final>(new DependencyStep());
+        using ResourceHandle<Doc> shader = sys.Publish(
+            "published://shader", new Doc("one"), ResourceOwnership.Borrowed);
+        using ResourceScope scope = sys.CreateScope("pipeline");
+        using ResourceHandle<Final> pipeline = scope.Create<DependencyRequest, Final>(
+            "main", new DependencyRequest(shader));
+        await pipeline.Ready;
+        Assert.Equal("one!", pipeline.Value.Text);
+
+        sys.Republish("published://shader", new Doc("two"));
+        sys.Pump();
+        sys.Pump();
+        await pipeline.Ready;
+        sys.Pump();
+
+        Assert.Equal("two!", pipeline.Value.Text);
+        Assert.True(pipeline.Version >= 1);
+    }
+
+    [Fact]
+    public async Task ExistingHandleDependencyRejectsAnotherResourceSystem()
+    {
+        using var first = new ResourceSystem();
+        using ResourceHandle<Doc> foreign = first.Publish(
+            "published://foreign", new Doc("x"), ResourceOwnership.Borrowed);
+        using var second = new ResourceSystem();
+        second.AddStep<DependencyRequest, Final>(new DependencyStep());
+        using ResourceScope scope = second.CreateScope("pipeline");
+        using ResourceHandle<Final> pipeline = scope.Create<DependencyRequest, Final>(
+            "main", new DependencyRequest(foreign));
+
+        InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await pipeline.Ready);
+        Assert.Contains("another ResourceSystem", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task StateNotificationsAreDeliveredByPumpForSuccessFailureAndRecovery()
+    {
+        using var sys = new ResourceSystem();
+        var loads = new List<TaskCompletionSource<Final>>();
+        using ResourceHandle<Final> handle = sys.Load("controlled://state", _ =>
+        {
+            var completion = new TaskCompletionSource<Final>(TaskCreationOptions.RunContinuationsAsynchronously);
+            loads.Add(completion);
+            return completion.Task;
+        });
+        var states = new List<ResourceState>();
+        using IDisposable subscription = handle.SubscribeState(states.Add);
+
+        loads[0].SetResult(new Final("one"));
+        await handle.Ready;
+        Assert.Empty(states);
+        sys.Pump();
+        Assert.Equal(ResourceStatus.Ready, states[^1].Status);
+        Assert.True(states[^1].HasValue);
+
+        sys.InvalidateAll();
+        sys.Pump();
+        sys.Pump();
+        Assert.Contains(states, state => state.Status == ResourceStatus.Loading && state.HasValue);
+        var failure = new InvalidOperationException("reload failed");
+        loads[1].SetException(failure);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await handle.Ready);
+        sys.Pump();
+        Assert.Same(failure, states[^1].Error);
+        Assert.True(states[^1].HasValue);
+
+        sys.InvalidateAll();
+        sys.Pump();
+        loads[2].SetResult(new Final("two"));
+        await handle.Ready;
+        sys.Pump();
+        Assert.Null(states[^1].Error);
+        Assert.Equal("two", handle.Value.Text);
     }
 
     [Fact]

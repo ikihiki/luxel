@@ -57,8 +57,7 @@ public sealed class StoryContext : IDisposable
     private readonly List<StoryArgDefinition> _argDefinitions = new();
     private readonly HashSet<string> _argNames = new(StringComparer.Ordinal);
     private readonly Dictionary<string, StoryKnob> _argKnobs = new(StringComparer.Ordinal);
-    private readonly List<Task> _initializations = [];
-    private Task? _ready;
+    private readonly List<IDisposable> _resourceSubscriptions = [];
 
     /// <summary>Raised with the full canonical snapshot whenever a declared arg changes.</summary>
     public event Action<StoryArgs>? ArgsChanged;
@@ -119,8 +118,8 @@ public sealed class StoryContext : IDisposable
 
     /// <summary>ホスト所有の ResourceSystem (画像/テクスチャ等のロード窓口 — knob/Log と同じく
     /// 「ストーリーがホスト設備を借りる」窓口)。キャッシュはストーリー横断で共有され、
-    /// ハンドルは取得側 (シーン等) が Dispose する (refcount)。Pump はホストの毎フレームループが叩く。
-    /// 初回ロードの publish は Pump 不要 (直接反映) なので、GPU シーンの Init は Ready を待ってよい。</summary>
+    /// ハンドルは取得側 (シーン等) が Dispose する (refcount)。Pump はホストの毎フレームループが叩き、
+    /// <see cref="Observe{T}"/> のsignalへ初回完了・reload・failureをUI thread上で反映する。</summary>
     public Luxel.Resources.ResourceSystem Resources
         => _resources ?? throw new InvalidOperationException("ホストが ResourceSystem を設定していません (StoryContext ctor で渡す)");
 
@@ -134,29 +133,22 @@ public sealed class StoryContext : IDisposable
     /// <summary><see cref="ScopedResources"/> の nullable 版。</summary>
     public Luxel.Resources.ResourceScope? ScopedResourcesOrNull => _scopedResources;
 
-    /// <summary>
-    /// Registers asynchronous setup that must complete before a host realizes the returned widget.
-    /// Stories use this for resources such as runtime-compiled shaders whose completion cannot be
-    /// synchronously observed on every platform.
-    /// </summary>
-    public void Initialize(Task initialization)
+    /// <summary>resource状態をUI signalとして観測する。通知はResourceSystem.Pump() threadで反映される。</summary>
+    public Signal<Luxel.Resources.ResourceState> Observe<T>(Luxel.Resources.ResourceHandle<T> handle)
     {
-        ArgumentNullException.ThrowIfNull(initialization);
-        if (_ready is not null)
-            throw new InvalidOperationException("Story initialization cannot be registered after Ready has been observed.");
-        _initializations.Add(initialization);
+        ArgumentNullException.ThrowIfNull(handle);
+        var signal = new Signal<Luxel.Resources.ResourceState>(handle.State);
+        _resourceSubscriptions.Add(handle.SubscribeState(state => signal.Value = state));
+        return signal;
     }
 
-    /// <summary>Completes when every initialization registered during the synchronous story build completes.</summary>
-    public Task Ready => _ready ??= _initializations.Count switch
+    /// <summary>この story instance が subscription と scoped resource lease を解放する。複数回呼び出しても安全。</summary>
+    public void Dispose()
     {
-        0 => Task.CompletedTask,
-        1 => _initializations[0],
-        _ => Task.WhenAll(_initializations),
-    };
-
-    /// <summary>この story instance が scoped resource lease を解放する。複数回呼び出しても安全。</summary>
-    public void Dispose() => _scopedResources?.Dispose();
+        foreach (IDisposable subscription in _resourceSubscriptions) subscription.Dispose();
+        _resourceSubscriptions.Clear();
+        _scopedResources?.Dispose();
+    }
 
     private Luxel.Graphics.GpuDevice? _device;
     private Luxel.Typography.VectorFont? _font;
