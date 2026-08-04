@@ -26,33 +26,11 @@
 <pre><code class="language-powershell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle --frames 1
 </code></pre>
 <h3 id="samplescanonicaltrianglerecipe.cs-csharp"><code>samples/CanonicalTriangleRecipe.cs</code> (CSharp)</h3>
-<pre><code class="language-csharp">using System.Runtime.InteropServices;
-
-/// &lt;summary&gt;The canonical first-triangle data and identity shared by native and browser samples.&lt;/summary&gt;
+<pre><code class="language-csharp">/// &lt;summary&gt;The canonical first-triangle identity shared by native and browser samples.&lt;/summary&gt;
 public static class CanonicalTriangleRecipe
 {
     public const string Story = &quot;Examples/3D/Triangle&quot;;
     public const string Recipe = &quot;canonical-triangle-v1&quot;;
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct Vertex
-    {
-        public float Px, Py, Pz, Pw;
-        public float R, G, B, A;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct DrawArgs
-    {
-        public uint VertexBufferIndex;
-    }
-
-    public static Vertex[] CreateVertices() =&gt;
-    [
-        new() { Px = 0, Py = -0.72f, Pz = 0, Pw = 1, R = 1, G = 0.18f, B = 0.18f, A = 1 },
-        new() { Px = 0.72f, Py = 0.62f, Pz = 0, Pw = 1, R = 0.18f, G = 1, B = 0.28f, A = 1 },
-        new() { Px = -0.72f, Py = 0.62f, Pz = 0, Pw = 1, R = 0.2f, G = 0.42f, B = 1, A = 1 },
-    ];
 }
 </code></pre>
 <h3 id="samplesluxeltriangletutorialabi.cs-csharp"><code>samples/LuxelTriangle/TutorialAbi.cs</code> (CSharp)</h3>
@@ -103,10 +81,15 @@ internal sealed class TriangleRenderer : IDisposable
 
         if (stage == TutorialStage.Triangle)
         {
-            CanonicalTriangleRecipe.Vertex[] vertices = CanonicalTriangleRecipe.CreateVertices();
+            float[] vertices =
+            [
+                0, -0.72f, 0, 1, 1, 0.18f, 0.18f, 1,
+                0.72f, 0.62f, 0, 1, 0.18f, 1, 0.28f, 1,
+                -0.72f, 0.62f, 0, 1, 0.2f, 0.42f, 1, 1,
+            ];
             _indexCount = 3;
-            _vertices = device.Malloc(checked((ulong)vertices.Length * 32), GpuMemoryKind.HostMapped);
-            vertices.CopyTo(_vertices.Span&lt;CanonicalTriangleRecipe.Vertex&gt;(vertices.Length));
+            _vertices = device.Malloc(checked((ulong)vertices.Length * sizeof(float)), GpuMemoryKind.HostMapped);
+            vertices.CopyTo(_vertices.Span&lt;float&gt;(vertices.Length));
             _indices = device.Malloc(sizeof(uint), GpuMemoryKind.HostMapped); // Unused by the first-triangle stage.
         }
         else
@@ -168,11 +151,11 @@ internal sealed class TriangleRenderer : IDisposable
 
         if (_stage == TutorialStage.Triangle)
         {
-            var triangleArgs = new CanonicalTriangleRecipe.DrawArgs { VertexBufferIndex = _vertices.BindlessIndex };
+            uint vertexBufferIndex = _vertices.BindlessIndex;
             using GpuCommandBuffer triangleCommand = _device.MainQueue.StartCommandRecording();
             triangleCommand.BeginRendering(_target, null, 0.055f, 0.07f, 0.11f, 1)
                 .SetGraphicsPipeline(_pipeline)
-                .SetRootArguments(triangleArgs)
+                .SetRootArguments(vertexBufferIndex)
                 .Draw(3)
                 .EndRendering()
                 .Barrier(GpuStage.ColorOutput, GpuStage.Copy)

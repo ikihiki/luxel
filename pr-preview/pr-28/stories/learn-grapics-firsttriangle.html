@@ -12,30 +12,113 @@ public static Widget Triangle(StoryContext ctx)
 {
     if (ctx.DeviceOrNull is null || ctx.ScopedResourcesOrNull is not { } resources)
         return BuildOnlyGpuView(ctx, 320, 240);
-<pre><code>CanonicalTriangleRecipe.Vertex[] vertices = CanonicalTriangleRecipe.CreateVertices();
-ResourceHandle&amp;lt;GpuBuffer&amp;gt; vertexBuffer = resources.CreateBuffer&amp;lt;CanonicalTriangleRecipe.Vertex&amp;gt;(
+<pre><code>float[] vertices =
+[
+    0, -0.72f, 0, 1, 1, 0.18f, 0.18f, 1,
+    0.72f, 0.62f, 0, 1, 0.18f, 1, 0.28f, 1,
+    -0.72f, 0.62f, 0, 1, 0.2f, 0.42f, 1, 1,
+];
+const string slang = &amp;quot;&amp;quot;&amp;quot;
+    // Learn/Rendering/FirstTriangle: vertex pulling shared by Vulkan (SPIR-V) and D3D12 (DXIL).
+
+    [[vk::binding(0, 0)]]
+    RWByteAddressBuffer g_buffers[];
+
+    struct DrawArgs { uint vertexBufferIndex; };
+    [[vk::push_constant]] DrawArgs g_args;
+
+    struct Vertex
+    {
+        float4 position;
+        float4 color;
+    };
+
+    struct VSOut
+    {
+        float4 position : SV_Position;
+        float4 color : COLOR0;
+    };
+
+    [shader(&amp;quot;vertex&amp;quot;)]
+    VSOut vsMain(uint vertexId : SV_VertexID)
+    {
+        Vertex vertex = g_buffers[g_args.vertexBufferIndex].Load&amp;lt;Vertex&amp;gt;(vertexId * 32);
+        VSOut output;
+        output.position = vertex.position;
+        output.color = vertex.color;
+        return output;
+    }
+
+    [shader(&amp;quot;pixel&amp;quot;)]
+    float4 psMain(VSOut input) : SV_Target
+    {
+        return input.color;
+    }
+    &amp;quot;&amp;quot;&amp;quot;;
+const string wgsl = &amp;quot;&amp;quot;&amp;quot;
+    struct DrawArgs { vertexBufferIndex : u32, };
+    @group(0) @binding(1) var&amp;lt;uniform&amp;gt; g_args : DrawArgs;
+    @group(0) @binding(0) var&amp;lt;storage, read&amp;gt; g_buffers : array&amp;lt;u32&amp;gt;;
+
+    struct VSOut {
+        @builtin(position) position : vec4&amp;lt;f32&amp;gt;,
+        @location(0) color : vec4&amp;lt;f32&amp;gt;,
+    };
+
+    fn loadFloat(byteOffset : u32) -&amp;gt; f32 {
+        return bitcast&amp;lt;f32&amp;gt;(g_buffers[g_args.vertexBufferIndex * 64u + byteOffset / 4u]);
+    }
+
+    @vertex
+    fn vsMain(@builtin(vertex_index) vertexId : u32) -&amp;gt; VSOut {
+        let base = vertexId * 32u;
+        var output : VSOut;
+        output.position = vec4&amp;lt;f32&amp;gt;(
+            loadFloat(base), loadFloat(base + 4u),
+            loadFloat(base + 8u), loadFloat(base + 12u));
+        output.color = vec4&amp;lt;f32&amp;gt;(
+            loadFloat(base + 16u), loadFloat(base + 20u),
+            loadFloat(base + 24u), loadFloat(base + 28u));
+        return output;
+    }
+
+    @fragment
+    fn psMain(input : VSOut) -&amp;gt; @location(0) vec4&amp;lt;f32&amp;gt; {
+        return input.color;
+    }
+    &amp;quot;&amp;quot;&amp;quot;;
+
+string slangSha256 = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(slang + &amp;quot;\n&amp;quot;)))
+    .ToLowerInvariant();
+if (slangSha256 != &amp;quot;f960f5bbbd677280d9b61c5e618c78affc27efa16d8b07f24c00631306ace40f&amp;quot;)
+    throw new InvalidOperationException(&amp;quot;Inline Triangle Slang does not match the compiled shader cache.&amp;quot;);
+GpuShaderCode native = GpuShaderCode.Load(&amp;quot;tutorial_triangle&amp;quot;);
+var shader = new GpuShaderCode
+{
+    SpirV = native.SpirV,
+    Dxil = native.Dxil,
+    DxilVertex = native.DxilVertex,
+    DxilPixel = native.DxilPixel,
+    Wgsl = Encoding.UTF8.GetBytes(wgsl),
+};
+ResourceHandle&amp;lt;GpuBuffer&amp;gt; vertexBuffer = resources.CreateBuffer&amp;lt;float&amp;gt;(
     &amp;quot;triangle.vertices&amp;quot;, vertices.Length);
 ResourceHandle&amp;lt;GpuPipeline&amp;gt; pipeline = resources.CreateGraphicsPipeline(
-    &amp;quot;triangle.pipeline&amp;quot;,
-    TriangleShader(),
-    GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+    &amp;quot;triangle.pipeline&amp;quot;, shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
 WaitFor(vertexBuffer);
 WaitFor(pipeline);
-vertices.CopyTo(vertexBuffer.Value.Span&amp;lt;CanonicalTriangleRecipe.Vertex&amp;gt;(vertices.Length));
+vertices.CopyTo(vertexBuffer.Value.Span&amp;lt;float&amp;gt;(vertices.Length));
 
 return ctx.Snap(Frame(GpuView(
     320,
     240,
     (device, surface, _) =&amp;gt;
     {
-        var args = new CanonicalTriangleRecipe.DrawArgs
-        {
-            VertexBufferIndex = vertexBuffer.Value.BindlessIndex,
-        };
+        uint vertexBufferIndex = vertexBuffer.Value.BindlessIndex;
         using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
         command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)
             .SetGraphicsPipeline(pipeline.Value)
-            .SetRootArguments(args)
+            .SetRootArguments(vertexBufferIndex)
             .Draw(3)
             .EndRendering();
         surface.CopyColorToFramebuffer(command);
