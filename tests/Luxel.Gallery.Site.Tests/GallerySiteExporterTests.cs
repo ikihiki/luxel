@@ -885,7 +885,7 @@ public sealed class GallerySiteExporterTests
         [
             "Learn/Grapics/Overview", "Learn/Grapics/Environment",
             "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
-            "Learn/Grapics/BuffersAndBindings", "Learn/Grapics/Shaders",
+            "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
             "Learn/Grapics/FrameLoopAndSynchronization", "Learn/Grapics/ThreeD/Textures",
             "Learn/Grapics/ThreeD/TransformsAndCamera", "Learn/Grapics/ThreeD/DepthCullingLighting",
             "Learn/Grapics/ThreeD/FirstRenderGraph", "Learn/Grapics/ThreeD/StaticGltf",
@@ -913,7 +913,7 @@ public sealed class GallerySiteExporterTests
         [
             "Learn/Grapics/Overview", "Learn/Grapics/Environment",
             "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
-            "Learn/Grapics/BuffersAndBindings", "Learn/Grapics/Shaders",
+            "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
             "Learn/Grapics/FrameLoopAndSynchronization", "Learn/Grapics/ThreeD/Textures",
             "Learn/Grapics/ThreeD/TransformsAndCamera", "Learn/Grapics/ThreeD/DepthCullingLighting",
             "Learn/Grapics/ThreeD/FirstRenderGraph", "Learn/Grapics/ThreeD/StaticGltf",
@@ -1003,7 +1003,8 @@ public sealed class GallerySiteExporterTests
         Assert.DoesNotContain("resources.Create", trianglePage);
         Assert.DoesNotContain("ScopedResources", trianglePage);
 
-        string buffersPage = pages["Learn/Grapics/BuffersAndBindings"].Text;
+        string buffersPage = pages["Learn/Grapics/Buffers"].Text;
+        Assert.Contains("# Buffers", buffersPage);
         Assert.Contains("四角形sample", buffersPage);
         foreach (string buffer in new[] { "vertexBuffer", "indexBuffer", "colorBuffer" })
             Assert.Contains(buffer, buffersPage);
@@ -1013,6 +1014,16 @@ public sealed class GallerySiteExporterTests
                      "Load<uint>(vertexId * 4)", "Load2(index * 8)", "Load4(index * 16)", "Draw(6)",
                  })
             Assert.Contains(operation, buffersPage);
+
+        Assert.Null(Catalog.Find("Learn/Grapics/BuffersAndBindings"));
+        string texturesPage = pages["Learn/Grapics/Textures"].Text;
+        Assert.Contains("# Textures", texturesPage);
+        foreach (string api in new[]
+                 {
+                     "CreateTexture", "CreateSampler", "TextureIndex", "SamplerIndex",
+                     "Texture2D g_textures[]", "SamplerState g_samplers[]", ".Sample(",
+                 })
+            Assert.Contains(api, texturesPage);
     }
 
     [Fact]

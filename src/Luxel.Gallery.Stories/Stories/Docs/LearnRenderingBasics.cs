@@ -374,13 +374,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Grapics/BuffersAndBindings", Order = 4)]
-    public static Widget BuffersAndBindings(StoryContext ctx)
+    [Story("Learn/Grapics/Buffers", Order = 4)]
+    public static Widget Buffers(StoryContext ctx)
     {
         return DocNew(ctx, $$"""
-        # バッファ、ABI、bindless binding
+        # Buffers
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/BuffersAndBindings", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "FirstTriangle")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/Buffers", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "FirstTriangle")}}
 
         {{StoryRef(ctx, "Examples/3D/BuffersAndBindings")}}
 
@@ -534,13 +534,97 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Grapics/Shaders", Order = 5)]
+    [Story("Learn/Grapics/Textures", Order = 5)]
+    public static Widget TexturesBasics(StoryContext ctx)
+    {
+        return DocNew(ctx, $$"""
+        # Textures
+
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/Textures", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "Buffers")}}
+
+        Textureは2次元のpixel配列をGPUへ置き、shaderからUV座標で参照するresourceです。`GpuTexture`が画像本体、`GpuSampler`が補間方法と範囲外UVの扱いを持ちます。
+
+        ## Textureを作成する
+
+        `CreateTexture`へwidth、height、RGBA8のpixel dataを渡します。dataは左上から右へ並ぶtightなrowを、上から下へ続けます。
+
+        ```csharp
+        byte[] pixels =
+        [
+            255, 128,  32, 255,    96,  48, 192, 255,
+             96,  48, 192, 255,   255, 128,  32, 255,
+        ];
+
+        using GpuTexture texture = device.CreateTexture(
+            2, 2, pixels, GpuFormat.Rgba8Unorm);
+        ```
+
+        2×2のRGBA8なので、必要なdata sizeは`2 * 2 * 4 = 16 byte`です。`CreateTexture`が戻った後は入力配列を再利用できますが、作成されたtextureは描画commandが完了するまで保持します。
+
+        ## Samplerを作成する
+
+        samplerはpixel間の補間と、0〜1の外側に出たUVの扱いを指定します。
+
+        ```csharp
+        using GpuSampler sampler = device.CreateSampler(
+            GpuSamplerFilter.Linear,
+            GpuSamplerAddress.Clamp);
+        ```
+
+        `Point`は最も近い1 pixelを選び、`Linear`は周囲を補間します。`Clamp`は端のpixelを延長し、`Repeat`はUVを繰り返します。
+
+        ## Shaderへ渡す
+
+        bufferと同様に、textureとsamplerの`BindlessIndex`をroot argumentsへ入れます。
+
+        ```csharp
+        public struct DrawArgs
+        {
+            public uint TextureIndex;
+            public uint SamplerIndex;
+        }
+
+        var args = new DrawArgs
+        {
+            TextureIndex = texture.BindlessIndex,
+            SamplerIndex = sampler.BindlessIndex,
+        };
+        ```
+
+        Slang側では同じindexを使ってtextureとsamplerを選択し、pixel shaderでUVをsampleします。
+
+        ```slang
+        [[vk::binding(1, 0)]] Texture2D g_textures[];
+        [[vk::binding(2, 0)]] SamplerState g_samplers[];
+
+        float4 color = g_textures[g_args.textureIndex]
+            .Sample(g_samplers[g_args.samplerIndex], input.uv);
+        ```
+
+        ## コマンドへ設定する
+
+        textureとsamplerはroot argumentsを通じて参照されるため、command側ではpipelineとargsを設定して描画します。
+
+        ```csharp
+        command.BeginRendering(target, null, 0, 0, 0, 1)
+            .SetGraphicsPipeline(pipeline)
+            .SetRootArguments(args)
+            .Draw(6)
+            .EndRendering();
+        ```
+
+        典型的な問題は、RGBA/BGRAの取り違え、UVの上下反転、textureとsamplerのindex入れ替え、描画完了前のresource破棄です。より実用的なUV、色空間、upload rowの説明は[ThreeD/Textures](story:Learn/Grapics/ThreeD/Textures)で扱います。
+        """, toc: true);
+    }
+
+
+    [Story("Learn/Grapics/Shaders", Order = 6)]
     public static Widget Shaders(StoryContext ctx)
     {
         return DocNew(ctx, $$"""
         # Slang shaderとGit cache
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/Shaders", "Beginner", "Standalone build / publish", "Vulkan / DirectX 12", "BuffersAndBindings")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/Shaders", "Beginner", "Standalone build / publish", "Vulkan / DirectX 12", "Textures")}}
 
         Luxelは `shaders/*.slang` を単一のsourceとして、Vulkan用SPIR-VとD3D12用DXILをGit管理します。通常のbuild / publishはcompilerを起動せずcacheを検証・コピーします。
 
