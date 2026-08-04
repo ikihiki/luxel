@@ -1,6 +1,6 @@
 <article class="story document-page"><h1 id="shaders">Shaders</h1>
 <p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Gallery + Standalone　 <strong>Backend:</strong> Vulkan / DirectX 12 / WebGPU　 <strong>前提知識:</strong> Textures</p>
-<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FTextures">Textures</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FFrameLoopAndSynchronization">FrameLoopAndSynchronization</a></p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FTextures">Textures</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FPipelineState">PipelineState</a></p>
 <p>shaderはGPU上で各頂点、pixel、またはdispatchされたthreadを処理するprogramです。この章では、Slangでshaderを書き、Luxelからresourceと値を渡し、実行時またはbuild前にcompileする流れを説明します。</p>
 <h2 id="slang">Slangとは</h2>
 <p><a href="https://shader-slang.org/">Slang公式サイト</a>で公開されている、HLSLに近い構文のshader languageとcompilerです。1つの<code>.slang</code> sourceから、Luxelのbackendに応じてVulkan向けSPIR-V、DirectX 12向けDXIL、WebGPU向けWGSLを作れます。</p>
