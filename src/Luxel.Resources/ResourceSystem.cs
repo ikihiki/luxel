@@ -146,11 +146,22 @@ public sealed class ResourceScope : IDisposable
     /// </summary>
     public ResourceHandle<TOutput> Create<TInput, TOutput>(string localKey, TInput input)
         where TInput : class
+        => Create<TInput, TOutput>(localKey, input, fragment: null);
+
+    /// <summary>
+    /// scope-local input を登録し、fragment selector付きのStepで出力を生成する。
+    /// shaderの <c>#graphics</c>/<c>#compute</c> のように同じsourceから複数programを作る用途向け。
+    /// </summary>
+    public ResourceHandle<TOutput> Create<TInput, TOutput>(string localKey, TInput input, string? fragment)
+        where TInput : class
     {
         ArgumentNullException.ThrowIfNull(input);
         string uri = Qualify(localKey);
         Track(_system.Load(uri, _ => Task.FromResult(input), ResourceOwnership.Borrowed));
-        return Track(_system.LoadFrom<TInput, TOutput>(uri));
+        string outputUri = string.IsNullOrWhiteSpace(fragment)
+            ? uri
+            : uri + "#" + fragment.Trim();
+        return Track(_system.LoadFrom<TInput, TOutput>(outputUri));
     }
 
     private string Qualify(string localKey)

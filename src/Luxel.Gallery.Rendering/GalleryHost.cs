@@ -22,6 +22,7 @@ public sealed class GalleryHost : IDisposable
     private readonly IRasterizer2D _raster;
     private readonly GpuDeviceRasterizer2D? _gpuRasterizer;
     private readonly AssetGpuInstallation? _assetGpuInstallation;
+    private readonly GallerySlangCompilation? _slangCompilation;
     // ストーリーへ StoryContext.Resources として配布 (キャッシュはストーリー横断で共有、Pump は Step が叩く)
     private readonly Luxel.Resources.ResourceSystem _resources = new(
         sources: Luxel.Resources.ResourceSystemDefaults.BuiltinSources(assetRoot: Environment.CurrentDirectory),
@@ -61,7 +62,12 @@ public sealed class GalleryHost : IDisposable
         _font = font;
         _raster = rasterizer ?? throw new ArgumentNullException(nameof(rasterizer));
         _gpuRasterizer = rasterizer as GpuDeviceRasterizer2D;
-        if (device is not null) _assetGpuInstallation = _resources.InstallAssetGpuLifecycle(device);
+        if (device is not null)
+        {
+            _slangCompilation = new GallerySlangCompilation();
+            _slangCompilation.Install(_resources, device.BackendKind);
+            _assetGpuInstallation = _resources.InstallAssetGpuLifecycle(device);
+        }
         Commands.Register("story.select", a => { if (a is JsonElement el && el.TryGetProperty("id", out JsonElement id)) Select(id.GetString() ?? ""); });
         Commands.Register("story.theme", a => { _dark = a is JsonElement el && el.TryGetProperty("dark", out JsonElement d) && d.ValueKind == JsonValueKind.True; ApplyTheme(); });
         Commands.Register("story.state", a => SetState(a));
@@ -192,6 +198,7 @@ public sealed class GalleryHost : IDisposable
         // 遷移はコマンドキュー経由 — 入力ディスパッチ中の即時 TearDown を避ける (次の Drain で適用)
         _ctx.SetNavigator(p => Commands.Enqueue("story.select", JsonSerializer.SerializeToElement(new { id = p })));
         _root = _story.Build(_ctx);
+        _ctx.Ready.GetAwaiter().GetResult();
         _host.SetRoot(_root);
         CreateRasterTarget();
         _frameHash = 0;   // 次の Render で必ず配信
@@ -412,6 +419,7 @@ public sealed class GalleryHost : IDisposable
         // Wait for its queue before ResourceSystem disposes scoped GPU values.
         _assetGpuInstallation?.Dispose();
         _resources.Dispose();
+        _slangCompilation?.Dispose();
         _raster.Dispose();
     }
 }

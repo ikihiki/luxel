@@ -44,6 +44,15 @@ public class ResourceSystemTests
         public Task<Final> RunAsync(Upper up, ResourceUri u, LoadContext c)
         { Interlocked.Increment(ref _finalRuns); return Task.FromResult(new Final(up.Text + "!")); }
     }
+    private sealed class FragmentStep : IResourceStep<Doc, Final>
+    {
+        public Executor Executor => Executor.Cpu;
+        public IEnumerable<string> Extensions => [".slang"];
+        public IEnumerable<string> FragmentPatterns => ["graphics"];
+        public Task<Final> RunAsync(Doc input, ResourceUri uri, LoadContext ctx)
+            => Task.FromResult(new Final($"{input.Text}#{uri.Fragment}"));
+    }
+
     private sealed class BundleStep : IResourceStep<byte[], Bundle>
     {
         public Executor Executor => Executor.Cpu;
@@ -302,6 +311,21 @@ public class ResourceSystemTests
             "buffer 1", _ => Task.FromResult(second));
         await secondHandle.Ready;
         Assert.NotSame(first, secondHandle.Value); // prior node was evicted despite scope's second Dispose
+    }
+
+    [Fact]
+    public async Task Scope_CreateUsesFragmentToSelectOutputStep()
+    {
+        using var sys = new ResourceSystem();
+        sys.AddStep<Doc, Final>(new FragmentStep());
+        using ResourceScope scope = sys.CreateScope("shader-story");
+
+        using ResourceHandle<Final> handle = scope.Create<Doc, Final>(
+            "triangle.slang", new Doc("compiled"), "graphics");
+        await handle.Ready;
+
+        Assert.Equal("scope://shader-story/triangle.slang#graphics", handle.Uri.ToString());
+        Assert.Equal("compiled#graphics", handle.Value.Text);
     }
 
     [Fact]

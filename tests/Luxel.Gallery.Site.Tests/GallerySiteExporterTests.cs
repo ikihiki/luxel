@@ -557,7 +557,8 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("data-luxel-runtime-story=\"Examples/3D/Triangle\"", fragment);
             Assert.Contains("runtime-story-embedded", fragment);
             Assert.Contains("Load&lt;Vertex&gt;(vertexId * 32)", fragment);
-            Assert.Contains("byteOffset : u32) -&gt; f32", fragment);
+            Assert.Contains("VSOut vsMain(uint vertexId : SV_VertexID)", fragment);
+            Assert.Contains("float4 psMain(VSOut input) : SV_Target", fragment);
             Assert.DoesNotContain("&amp;gt;", fragment);
             Assert.DoesNotContain("&amp;lt;", fragment);
             Assert.DoesNotContain("&amp;quot;", fragment);

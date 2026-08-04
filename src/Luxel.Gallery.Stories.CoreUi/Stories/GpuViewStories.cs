@@ -1,9 +1,8 @@
-using System.Security.Cryptography;
-using System.Text;
 using Luxel.AssetsGpu;
 using Luxel.Controls;
 using Luxel.Graphics;
 using Luxel.Resources;
+using Luxel.Shaders;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
@@ -83,59 +82,23 @@ public static class GpuViewStories
                 return input.color;
             }
             """;
-        const string wgsl = """
-            struct DrawArgs { vertexBufferIndex : u32, };
-            @group(0) @binding(1) var<uniform> g_args : DrawArgs;
-            @group(0) @binding(0) var<storage, read> g_buffers : array<u32>;
-
-            struct VSOut {
-                @builtin(position) position : vec4<f32>,
-                @location(0) color : vec4<f32>,
-            };
-
-            fn loadFloat(byteOffset : u32) -> f32 {
-                return bitcast<f32>(g_buffers[g_args.vertexBufferIndex * 64u + byteOffset / 4u]);
-            }
-
-            @vertex
-            fn vsMain(@builtin(vertex_index) vertexId : u32) -> VSOut {
-                let base = vertexId * 32u;
-                var output : VSOut;
-                output.position = vec4<f32>(
-                    loadFloat(base), loadFloat(base + 4u),
-                    loadFloat(base + 8u), loadFloat(base + 12u));
-                output.color = vec4<f32>(
-                    loadFloat(base + 16u), loadFloat(base + 20u),
-                    loadFloat(base + 24u), loadFloat(base + 28u));
-                return output;
-            }
-
-            @fragment
-            fn psMain(input : VSOut) -> @location(0) vec4<f32> {
-                return input.color;
-            }
-            """;
-
-        string slangSha256 = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(slang + "\n")))
-            .ToLowerInvariant();
-        if (slangSha256 != "f960f5bbbd677280d9b61c5e618c78affc27efa16d8b07f24c00631306ace40f")
-            throw new InvalidOperationException("Inline Triangle Slang does not match the compiled shader cache.");
-        GpuShaderCode native = GpuShaderCode.Load("tutorial_triangle");
-        var shader = new GpuShaderCode
-        {
-            SpirV = native.SpirV,
-            Dxil = native.Dxil,
-            DxilVertex = native.DxilVertex,
-            DxilPixel = native.DxilPixel,
-            Wgsl = Encoding.UTF8.GetBytes(wgsl),
-        };
+        ResourceHandle<GpuShaderCode> shader = resources.Create<SlangSource, GpuShaderCode>(
+            "triangle.slang", new SlangSource("triangle.slang", slang), "graphics");
         ResourceHandle<GpuBuffer> vertexBuffer = resources.CreateBuffer<float>(
             "triangle.vertices", vertices.Length);
-        ResourceHandle<GpuPipeline> pipeline = resources.CreateGraphicsPipeline(
-            "triangle.pipeline", shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
         WaitFor(vertexBuffer);
-        WaitFor(pipeline);
         vertices.CopyTo(vertexBuffer.Value.Span<float>(vertices.Length));
+        Task<ResourceHandle<GpuPipeline>> pipeline = CreatePipelineAsync();
+        ctx.Initialize(pipeline);
+
+        async Task<ResourceHandle<GpuPipeline>> CreatePipelineAsync()
+        {
+            await shader.Ready;
+            ResourceHandle<GpuPipeline> result = resources.CreateGraphicsPipeline(
+                "triangle.pipeline", shader.Value, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+            await result.Ready;
+            return result;
+        }
 
         return ctx.Snap(Frame(GpuView(
             320,
@@ -145,7 +108,7 @@ public static class GpuViewStories
                 uint vertexBufferIndex = vertexBuffer.Value.BindlessIndex;
                 using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
                 command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)
-                    .SetGraphicsPipeline(pipeline.Value)
+                    .SetGraphicsPipeline(pipeline.GetAwaiter().GetResult().Value)
                     .SetRootArguments(vertexBufferIndex)
                     .Draw(3)
                     .EndRendering();

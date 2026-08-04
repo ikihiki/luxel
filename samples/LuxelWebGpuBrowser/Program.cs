@@ -13,6 +13,8 @@ using Luxel.Platform;
 using Luxel.Platform.Abstraction;
 using Luxel.Platform.Web;
 using Luxel.Resources;
+using Luxel.Shaders;
+using Luxel.Shaders.Slang.Browser;
 using Luxel.Typography;
 using Luxel.UI;
 
@@ -65,7 +67,10 @@ public static partial class Program
             var browserBackend = (BrowserWebGpuBackend)device.Backend;
             using GpuSurface surface = browserBackend.CreateCanvasSurface(
                 "#luxel-canvas", (uint)window.Width, (uint)window.Height);
+            await using var slangCompiler = new BrowserSlangCompiler();
             using var resources = new ResourceSystem();
+            resources.AddStep<SlangSource, GpuShaderCode>(
+                new SlangCompileStep(slangCompiler, GpuBackendKind.WebGpu));
             await using AssetGpuInstallation assetGpu = resources.InstallAssetGpuLifecycle(device);
             using var font = new VectorFont(Resource("BIZUDGothic-Regular.ttf"));
             using var context = new StoryContext(resources, args);
@@ -79,6 +84,7 @@ public static partial class Program
             StoryResult result = story.BuildResult(context);
             if (result.Kind != StoryResultKind.Widget || result.Widget is null)
                 throw new InvalidOperationException($"Browser runtime story '{path}' did not build a Widget.");
+            await context.Ready;
 
             using var raster = new GpuDeviceRasterizer2D(device, RasterShader);
             using var canvas = new RetainedCanvas();

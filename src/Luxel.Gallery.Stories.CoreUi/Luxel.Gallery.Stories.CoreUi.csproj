@@ -7,6 +7,7 @@
     <Compile Include="..\..\samples\CanonicalClearColorRecipe.cs" Link="CanonicalClearColorRecipe.cs" />
     <Compile Include="..\..\samples\CanonicalTriangleRecipe.cs" Link="CanonicalTriangleRecipe.cs" />
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
+    <ProjectReference Include="..\Luxel.Shaders\Luxel.Shaders.csproj" />
     <ProjectReference Include="..\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />
     <ProjectReference Include="..\Luxel.Controls\Luxel.Controls.csproj" />

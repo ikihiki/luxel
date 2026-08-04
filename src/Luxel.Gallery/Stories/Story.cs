@@ -57,6 +57,8 @@ public sealed class StoryContext : IDisposable
     private readonly List<StoryArgDefinition> _argDefinitions = new();
     private readonly HashSet<string> _argNames = new(StringComparer.Ordinal);
     private readonly Dictionary<string, StoryKnob> _argKnobs = new(StringComparer.Ordinal);
+    private readonly List<Task> _initializations = [];
+    private Task? _ready;
 
     /// <summary>Raised with the full canonical snapshot whenever a declared arg changes.</summary>
     public event Action<StoryArgs>? ArgsChanged;
@@ -131,6 +133,27 @@ public sealed class StoryContext : IDisposable
 
     /// <summary><see cref="ScopedResources"/> の nullable 版。</summary>
     public Luxel.Resources.ResourceScope? ScopedResourcesOrNull => _scopedResources;
+
+    /// <summary>
+    /// Registers asynchronous setup that must complete before a host realizes the returned widget.
+    /// Stories use this for resources such as runtime-compiled shaders whose completion cannot be
+    /// synchronously observed on every platform.
+    /// </summary>
+    public void Initialize(Task initialization)
+    {
+        ArgumentNullException.ThrowIfNull(initialization);
+        if (_ready is not null)
+            throw new InvalidOperationException("Story initialization cannot be registered after Ready has been observed.");
+        _initializations.Add(initialization);
+    }
+
+    /// <summary>Completes when every initialization registered during the synchronous story build completes.</summary>
+    public Task Ready => _ready ??= _initializations.Count switch
+    {
+        0 => Task.CompletedTask,
+        1 => _initializations[0],
+        _ => Task.WhenAll(_initializations),
+    };
 
     /// <summary>この story instance が scoped resource lease を解放する。複数回呼び出しても安全。</summary>
     public void Dispose() => _scopedResources?.Dispose();

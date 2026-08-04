@@ -1,6 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
-
 namespace Luxel.WebGPU.Browser.Tests;
 
 public sealed class BrowserCanonicalTriangleTests
@@ -15,7 +12,6 @@ public sealed class BrowserCanonicalTriangleTests
         string canonicalTriangle = File.ReadAllText(Path.Combine(root, "samples", "CanonicalTriangleRecipe.cs"));
         string gpuStories = File.ReadAllText(Path.Combine(root, "src", "Luxel.Gallery.Stories.CoreUi", "Stories", "GpuViewStories.cs"));
         string html = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "wwwroot", "index.html"));
-        string shaderPath = Path.Combine(root, "shaders", "compiled", "tutorial_triangle.wgsl");
 
         Assert.Contains("Luxel.Gallery.Stories.CoreUi.csproj", project);
         Assert.DoesNotContain("CanonicalClearColorRecipe.cs", project);
@@ -33,6 +29,11 @@ public sealed class BrowserCanonicalTriangleTests
         Assert.Contains("float[] vertices =", gpuStories);
         Assert.Contains("RWByteAddressBuffer g_buffers[];", gpuStories);
         Assert.Contains("Vertex vertex = g_buffers[g_args.vertexBufferIndex].Load<Vertex>(vertexId * 32);", gpuStories);
+        Assert.Contains("new SlangSource(\"triangle.slang\", slang)", gpuStories);
+        Assert.Contains("Create<SlangSource, GpuShaderCode>", gpuStories);
+        Assert.Contains("ctx.Initialize(pipeline)", gpuStories);
+        Assert.DoesNotContain("GpuShaderCode.Load", gpuStories);
+        Assert.DoesNotContain("const string wgsl", gpuStories);
         Assert.Contains("GpuView(", gpuStories);
         Assert.Contains("ctx.ScopedResources", gpuStories);
         Assert.Contains("browserBackend.CreateCanvasSurface", program);
@@ -51,13 +52,6 @@ public sealed class BrowserCanonicalTriangleTests
         Assert.DoesNotContain("data-shader=", html);
         Assert.DoesNotContain("data-recipe=", html);
         Assert.Contains("data-status=\"loading\"", html);
-
-        byte[] shader = File.ReadAllBytes(shaderPath);
-        Assert.Equal("4c3a36aa594306d963f00f1c0e6c5d7c62b1543748bfc882d72d0de8cf9a2cdd",
-            Convert.ToHexString(SHA256.HashData(shader)).ToLowerInvariant());
-        string wgsl = Encoding.UTF8.GetString(shader);
-        Assert.Contains("fn vsMain", wgsl);
-        Assert.Contains("fn psMain", wgsl);
     }
 
     private static string FindRepositoryRoot()
