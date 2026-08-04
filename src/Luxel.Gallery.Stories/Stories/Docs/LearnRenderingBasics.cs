@@ -622,69 +622,158 @@ public static partial class DocsRenderingLearn
     public static Widget Shaders(StoryContext ctx)
     {
         return DocNew(ctx, $$"""
-        # Slang shaderとGit cache
+        # Shaders
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/Shaders", "Beginner", "Standalone build / publish", "Vulkan / DirectX 12", "Textures")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/Shaders", "Beginner", "Gallery + Standalone", "Vulkan / DirectX 12 / WebGPU", "Textures")}}
 
-        Luxelは `shaders/*.slang` を単一のsourceとして、Vulkan用SPIR-VとD3D12用DXILをGit管理します。通常のbuild / publishはcompilerを起動せずcacheを検証・コピーします。
+        shaderはGPU上で各頂点、pixel、またはdispatchされたthreadを処理するprogramです。この章では、Slangでshaderを書き、Luxelからresourceと値を渡し、実行時またはbuild前にcompileする流れを説明します。
 
-        ## 1. ファイルを追加して分類する
+        ## Slangとは
 
-        - `compute*.slang` または `raster2d_*.slang` はcompute。entry pointは `[shader("compute")] main`。
-        - それ以外の `.slang` はgraphics。entry pointは `[shader("vertex")] vsMain` と `[shader("pixel")] psMain`。
-        - SPIR-Vはどちらも1 sourceにつき `compiled/<name>.spv`。
-        - compute DXILは `compiled/<name>.dxil`。
-        - graphics DXILは `compiled/<name>.vs.dxil` と `compiled/<name>.ps.dxil`。
+        [Slang公式サイト](https://shader-slang.org/)で公開されている、HLSLに近い構文のshader languageとcompilerです。1つの`.slang` sourceから、Luxelのbackendに応じてVulkan向けSPIR-V、DirectX 12向けDXIL、WebGPU向けWGSLを作れます。
 
-        したがって `shaders/my_effect.slang` をgraphicsとして追加すると、期待生成物は次です。
+        Slang側の型とC#側の型は別々にcompileされます。両者でfieldの順序、型、paddingを一致させ、GPUへ渡すbytesのlayoutを同じにする必要があります。
 
-        ```text
-        shaders/compiled/my_effect.spv
-        shaders/compiled/my_effect.vs.dxil
-        shaders/compiled/my_effect.ps.dxil
+        ## シェーダーの種類と作り方
+
+        Luxelで最初に使うのはgraphics shaderとcompute shaderです。
+
+        - **vertex shader**: 頂点ごとに実行され、clip spaceの位置とpixel shaderへ渡す値を作ります。
+        - **pixel shader**: rasterizeされたpixelごとに実行され、render targetへ書く色を返します。
+        - **compute shader**: 描画pipelineとは独立したthread groupとして実行され、bufferやtextureを読み書きします。
+
+        graphics shaderはvertexとpixelの2つのentry pointを同じsourceへ定義します。
+
+        ```slang
+        struct VSOut
+        {
+            float4 position : SV_Position;
+            float4 color : COLOR0;
+        };
+
+        [shader("vertex")]
+        VSOut vsMain(uint vertexId : SV_VertexID)
+        {
+            VSOut output;
+            output.position = float4(0, 0, 0, 1);
+            output.color = float4(1, 0.5, 0.1, 1);
+            return output;
+        }
+
+        [shader("pixel")]
+        float4 psMain(VSOut input) : SV_Target
+        {
+            return input.color;
+        }
         ```
 
-        compute shaderをgraphics名で追加するとDXIL compileは`vsMain` / `psMain`を探して失敗します。computeとして分類したい場合はfilenameを `compute...` または `raster2d_...` にしてください。
+        compute shaderは`main`をentry pointにし、`numthreads`で1 groupのthread数を指定します。
 
-        ## 2. Cacheを再生成する
+        ```slang
+        [shader("compute")]
+        [numthreads(8, 8, 1)]
+        void main(uint3 threadId : SV_DispatchThreadID)
+        {
+            // threadIdを使ってbufferまたはtextureを更新する
+        }
+        ```
 
-        repository rootで実行します。固定版Slang/DXCは必要なときだけ`tools/`へ自動取得されます。
+        graphicsには`CreateGraphicsPipeline`、computeには`CreateComputePipeline`を使います。Luxelの既定entry point名はgraphicsが`vsMain` / `psMain`、computeが`main`です。
+
+        ## メイン関数の入出力
+
+        entry pointのparameterと戻り値にはsemanticを付け、GPU pipelineのどの値に対応するかを示します。
+
+        | semantic | stage | 意味 |
+        | --- | --- | --- |
+        | `SV_VertexID` | vertex input | `Draw`が生成した頂点番号 |
+        | `SV_Position` | vertex output | clip spaceの頂点位置。vertex shaderで必須 |
+        | `COLOR0`, `TEXCOORD0` | vertex output / pixel input | stage間で補間される任意の値 |
+        | `SV_Target` | pixel output | render targetへ書く色 |
+        | `SV_DispatchThreadID` | compute input | dispatch全体で一意なthread座標 |
+
+        `VSOut`のようなstructをvertex shaderの戻り値とpixel shaderのparameterで共有すると、同じsemanticを持つfieldが接続されます。位置は`float4`の`SV_Position`として返し、色やUVは`COLOR0`や`TEXCOORD0`で渡します。pixel shaderの`SV_Target`は通常`float4`のRGBA色です。
+
+        ## bindingとroot argument
+
+        buffer、texture、samplerはbindingへ配置し、shaderから参照します。Luxelの基本bindingはbufferが0、textureが1、samplerが2です。
+
+        ```slang
+        [[vk::binding(0, 0)]] RWByteAddressBuffer g_buffers[];
+        [[vk::binding(1, 0)]] Texture2D g_textures[];
+        [[vk::binding(2, 0)]] SamplerState g_samplers[];
+
+        struct DrawArgs
+        {
+            uint vertexBufferIndex;
+            uint textureIndex;
+            uint samplerIndex;
+        };
+        [[vk::push_constant]] DrawArgs g_args;
+        ```
+
+        bindingの配列はbindless resource tableです。C#側で各resourceの`BindlessIndex`をroot argumentへ入れ、commandへ設定します。
+
+        ```csharp
+        var args = new DrawArgs
+        {
+            VertexBufferIndex = vertexBuffer.BindlessIndex,
+            TextureIndex = texture.BindlessIndex,
+            SamplerIndex = sampler.BindlessIndex,
+        };
+
+        command.SetRootArguments(args);
+        ```
+
+        `[[vk::push_constant]]`はVulkanだけに限定するための記述ではありません。Luxelが同じroot argument bytesを各backendの対応する仕組みへ渡します。Slangの`DrawArgs`とC#の`DrawArgs`はfield順とsizeを一致させ、参照中のresourceはGPU commandが完了するまで破棄しません。
+
+        ## オンラインコンパイル
+
+        Galleryのsampleでは、実行時にSlang sourceをcompileできます。`ResourceSystem`へ`SlangSource`を渡し、現在のbackend向け`GpuShaderCode`を非同期に作ります。
+
+        ```csharp
+        string slang = LoadShaderSource();
+
+        ResourceHandle<GpuShaderCode> shader =
+            resources.Create<SlangSource, GpuShaderCode>(
+                "sample.slang",
+                new SlangSource("sample.slang", slang),
+                "graphics");
+
+        ResourceHandle<GpuPipeline> pipeline = resources.CreateGraphicsPipeline(
+            "sample.pipeline", shader,
+            GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+        ```
+
+        selectorはgraphics shaderなら`"graphics"`、compute shaderなら`"compute"`です。compile中はresourceがLoadingになり、成功後にpipelineを使用できます。sourceの変更をすぐ試せるため、Gallery、editor、開発中のhot reloadに向いています。一方、起動時にcompilerとcompile時間が必要なので、配布物では次のoffline cacheを使えます。
+
+        ## オフラインコンパイルとキャッシュ
+
+        standalone applicationでは`.slang`を`shaders/`へ置き、build前に全backend向けartifactを生成してGit管理します。通常のbuild / publishはcompilerを起動せず、cacheの完全性とsource hashを検証して出力へcopyします。
+
+        - `compute*.slang`または`raster2d_*.slang`: compute。entry pointは`main`。
+        - それ以外の`.slang`: graphics。entry pointは`vsMain`と`psMain`。
+        - 共通: `compiled/<name>.spv`と`compiled/<name>.wgsl`。
+        - compute DXIL: `compiled/<name>.dxil`。
+        - graphics DXIL: `compiled/<name>.vs.dxil`と`compiled/<name>.ps.dxil`。
+
+        sourceを追加または変更したらrepository rootでcacheを再生成します。
 
         ```powershell
         dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache
         git status --short shaders
         ```
 
-        source、全backend生成物、`shaders/compiled/inputs.sha256`を一緒にcommitします。manifestは全 `.slang` のSHA-256だけでなくschema、Slang/DXC version、SPIR-V/DXIL profileも固定します。`tools/`はlocal cacheでcommitしません。
+        `shaders/*.slang`、`shaders/compiled/*`、`shaders/compiled/inputs.sha256`を同じcommitへ含めます。`inputs.sha256`にはsource hashだけでなくcache schema、Slang/DXC version、target profileも記録されます。取得されたcompilerの`tools/`はlocal cacheなのでcommitしません。
 
-        ## 3. 通常buildとpublish
+        runtimeではbase nameを指定するだけで、現在のbackendに対応するartifactを読み込めます。
 
-        ```powershell
-        dotnet build Luxel.slnx --no-restore
-        dotnet publish samples/LuxelTriangle/LuxelTriangle.csproj -c Release -o artifacts/triangle-publish
+        ```csharp
+        GpuShaderCode shader = GpuShaderCode.Load("my_effect");
+        using GpuPipeline pipeline = device.CreateGraphicsPipeline(shader, raster);
         ```
 
-        `Luxel.Shaders.targets`はbuild前にcache completenessと`inputs.sha256`一致を検証し、出力の`shaders/`へcopyします。publishにも同じcompiled filesが含まれます。`GpuShaderCode.Load("tutorial_triangle")`はbackendに応じて `.spv`、`.vs.dxil` / `.ps.dxil`を読みます。
-
-        ## Backend差と固定binding
-
-        Slang sourceは共通です。`[[vk::push_constant]]`のroot argsはVulkanのpush constants、同じbytesはD3D12の`b0` root constantsになります。`g_buffers[]`はVulkanのset 0 / binding 0とD3D12のunbounded UAV tableへ対応し、どちらも同じ`BindlessIndex`で引きます。shader側structのpaddingとroot argsの192 byte / 4 byte条件は両backend共通として扱ってください。
-
-        ## 所有権と寿命
-
-        sourceと`compiled/`はrepositoryが所有し、build output / publish outputは生成先が所有します。runtimeでは`GpuShaderCode.Load`のbytesから作った`GpuPipeline`をrendererが所有し、使用中commandが完了してからdisposeします。`.slang`だけ変更して古いpipeline/cacheを使い続けないでください。
-
-        ## Errorから直す
-
-        - `Slang シェーダキャッシュがありません` → `CompileLuxelShaderCache`を実行する
-        - `キャッシュが不足しています: ...` → filename分類に対応するSPIR-V/DXILを再生成する
-        - `Slang ソースまたはコンパイル設定が Git キャッシュと一致しません` → source変更後のcacheと`inputs.sha256`を再生成・commitする
-        - `entry point 'vsMain'/'psMain' not found` → graphics entry名、またはcompute filename分類を直す
-        - `entry point 'main' not found` → compute shaderに`main`を定義する
-        - Slang type/layout error → C#側を先に合わせず、両言語のfield順・size・paddingを同じ変更で直す
-        - publish後だけshader missing → projectが`shaders/Luxel.Shaders.targets`をimportしているか、publish出力の`shaders/`を確認する
-
-        shader sourceを変更した場合だけcache regenerationが必要です。このページやC# ABI testだけの変更ではcompiled shaderを更新しません。
+        cacheが不足している、またはsourceと`inputs.sha256`が一致しない場合、通常buildは意図的に失敗します。`CompileLuxelShaderCache`を再実行し、生成物を更新してください。pipelineとshaderがGPU commandから参照されている間は破棄せず、sourceだけを変更した古いcacheを配布しないようにします。
         """, toc: true);
     }
 

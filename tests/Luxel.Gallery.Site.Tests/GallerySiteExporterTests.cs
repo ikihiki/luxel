@@ -1030,6 +1030,34 @@ public sealed class GallerySiteExporterTests
                      "Texture2D g_textures[]", "SamplerState g_samplers[]", ".Sample(",
                  })
             Assert.Contains(api, texturesPage);
+
+        string shadersPage = pages["Learn/Grapics/Shaders"].Text;
+        Assert.Contains("# Shaders", shadersPage);
+        string[] shaderTopics =
+        [
+            "## Slangとは",
+            "## シェーダーの種類と作り方",
+            "## メイン関数の入出力",
+            "## bindingとroot argument",
+            "## オンラインコンパイル",
+            "## オフラインコンパイルとキャッシュ",
+        ];
+        int previousShaderTopic = -1;
+        foreach (string topic in shaderTopics)
+        {
+            int position = shadersPage.IndexOf(topic, previousShaderTopic + 1, StringComparison.Ordinal);
+            Assert.True(position > previousShaderTopic, $"Missing or out-of-order Shaders topic: {topic}");
+            previousShaderTopic = position;
+        }
+        foreach (string shaderTerm in new[]
+                 {
+                     "https://shader-slang.org/", "[shader(\"vertex\")]", "[shader(\"pixel\")]",
+                     "[shader(\"compute\")]", "SV_VertexID", "SV_Position", "SV_Target",
+                     "SV_DispatchThreadID", "vk::binding", "vk::push_constant", "BindlessIndex",
+                     "SetRootArguments", "Create<SlangSource, GpuShaderCode>", "CompileLuxelShaderCache",
+                     "inputs.sha256", "GpuShaderCode.Load",
+                 })
+            Assert.Contains(shaderTerm, shadersPage);
     }
 
     [Fact]
