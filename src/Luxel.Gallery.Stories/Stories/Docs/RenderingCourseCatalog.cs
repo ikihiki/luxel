@@ -10,7 +10,7 @@ internal static class RenderingCourseCatalog
         "Learn/Grapics/Overview", "Learn/Grapics/Environment",
         "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
         "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
-        "Learn/Grapics/FrameLoopAndSynchronization",
+        "Learn/Grapics/PipelineState", "Learn/Grapics/FrameLoopAndSynchronization",
         "Learn/Grapics/ThreeD/Textures", "Learn/Grapics/ThreeD/TransformsAndCamera",
         "Learn/Grapics/ThreeD/DepthCullingLighting", "Learn/Grapics/ThreeD/FirstRenderGraph",
         "Learn/Grapics/ThreeD/StaticGltf", "Learn/Grapics/ThreeD/Debugging",

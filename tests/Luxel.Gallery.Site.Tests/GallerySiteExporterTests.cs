@@ -1004,7 +1004,7 @@ public sealed class GallerySiteExporterTests
             "Learn/Grapics/Overview", "Learn/Grapics/Environment",
             "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
             "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
-            "Learn/Grapics/FrameLoopAndSynchronization", "Learn/Grapics/ThreeD/Textures",
+            "Learn/Grapics/PipelineState", "Learn/Grapics/FrameLoopAndSynchronization", "Learn/Grapics/ThreeD/Textures",
             "Learn/Grapics/ThreeD/TransformsAndCamera", "Learn/Grapics/ThreeD/DepthCullingLighting",
             "Learn/Grapics/ThreeD/FirstRenderGraph", "Learn/Grapics/ThreeD/StaticGltf",
             "Learn/Grapics/ThreeD/Debugging", "Learn/Grapics/ThreeD/Shipping",
@@ -1031,7 +1031,7 @@ public sealed class GallerySiteExporterTests
             "Learn/Grapics/Overview", "Learn/Grapics/Environment",
             "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
             "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
-            "Learn/Grapics/FrameLoopAndSynchronization", "Learn/Grapics/ThreeD/Textures",
+            "Learn/Grapics/PipelineState", "Learn/Grapics/FrameLoopAndSynchronization", "Learn/Grapics/ThreeD/Textures",
             "Learn/Grapics/ThreeD/TransformsAndCamera", "Learn/Grapics/ThreeD/DepthCullingLighting",
             "Learn/Grapics/ThreeD/FirstRenderGraph", "Learn/Grapics/ThreeD/StaticGltf",
             "Learn/Grapics/ThreeD/Debugging", "Learn/Grapics/ThreeD/Shipping",
@@ -1170,6 +1170,38 @@ public sealed class GallerySiteExporterTests
                      "inputs.sha256", "GpuShaderCode.Load",
                  })
             Assert.Contains(shaderTerm, shadersPage);
+
+        string pipelinePage = pages["Learn/Grapics/PipelineState"].Text;
+        Assert.Contains("# Pipelineのその他の設定", pipelinePage);
+        string[] pipelineTopics =
+        [
+            "## Rasterizer State",
+            "## Depth-Stencil State",
+            "## Blend State",
+            "## Viewport / Scissor",
+            "## Pipelineを分ける判断",
+            "## よくある症状",
+        ];
+        int previousPipelineTopic = -1;
+        foreach (string topic in pipelineTopics)
+        {
+            int position = pipelinePage.IndexOf(topic, previousPipelineTopic + 1, StringComparison.Ordinal);
+            Assert.True(position > previousPipelineTopic, $"Missing or out-of-order Pipeline State topic: {topic}");
+            previousPipelineTopic = position;
+        }
+        foreach (string pipelineTerm in new[]
+                 {
+                     "GpuRasterDesc.Default", "GpuPrimitiveTopology.TriangleList", "GpuCullMode.Back",
+                     "GpuFrontFace.CounterClockwise", "DepthTest", "DepthWrite", "GpuFormat.D32Float",
+                     "GpuBlendMode.AlphaBlend", "CreateDepthTarget", "LessOrEqual",
+                     "SetViewport", "SetScissor", "render target全体",
+                 })
+            Assert.Contains(pipelineTerm, pipelinePage);
+        ISemanticDocument pipelineDocument = BuildSemanticDocument(Catalog.Find("Learn/Grapics/PipelineState")!)!;
+        Assert.Contains(pipelineDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/3D/Depth");
+        Assert.Contains(pipelineDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/3D/Blend");
     }
 
     [Fact]
