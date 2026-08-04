@@ -1,4 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Audio/ClipsSourcesAndBuses</h1></header><h1 id="clips-sources-and-buses">Clips, sources, and buses</h1>
+<article class="story document-page"><h1 id="clips-sources-and-buses">Clips, sources, and buses</h1>
 <p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone / Game loop　 <strong>Backend:</strong> Backend neutral　 <strong>前提知識:</strong> Audio overview</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FAudio%2FOverview">Overview</a>　 <strong>次:</strong> <a href="#story=Learn%2FAudio%2FSpatialStreamingAndTesting">SpatialStreamingAndTesting</a></p>
 <p>SFXは<code>AudioClip</code>を<code>AudioMixer.PlayOneShot</code>へ渡します。持続音は<code>AudioSource</code>でvolume/pitch/panをSignalとして更新し、master/music/sfxの階層音量は<code>AudioBus</code>で掛け合わせます。<code>AudioMixer.Tick()</code>とsourceの<code>Tick()</code>はframe loopから呼びます。</p>

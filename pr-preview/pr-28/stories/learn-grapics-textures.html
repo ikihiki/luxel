@@ -1,31 +1,38 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Grapics/Textures</h1></header><h1 id="textures">Textures</h1>
+<article class="story document-page"><h1 id="textures">Textures</h1>
 <ul>
-<li><a href="#story=Learn%2FGrapics%2FTextures&amp;section=texture%E3%82%92%E4%BD%9C%E6%88%90%E3%81%99%E3%82%8B">Textureを作成する</a></li>
+<li><a href="#story=Learn%2FGrapics%2FTextures&amp;section=resourcesystem%E3%81%A7texture%E3%82%92%E8%AA%AD%E3%81%BF%E8%BE%BC%E3%82%80">ResourceSystemでTextureを読み込む</a></li>
 <li><a href="#story=Learn%2FGrapics%2FTextures&amp;section=sampler%E3%82%92%E4%BD%9C%E6%88%90%E3%81%99%E3%82%8B">Samplerを作成する</a></li>
 <li><a href="#story=Learn%2FGrapics%2FTextures&amp;section=shader%E3%81%B8%E6%B8%A1%E3%81%99">Shaderへ渡す</a></li>
 <li><a href="#story=Learn%2FGrapics%2FTextures&amp;section=%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89%E3%81%B8%E8%A8%AD%E5%AE%9A%E3%81%99%E3%82%8B">コマンドへ設定する</a></li>
 </ul>
 <p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone + Gallery　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> Buffers</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FBuffers">Buffers</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FShaders">Shaders</a></p>
-<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Grapics/Textures#doc-0" data-luxel-runtime-story="Examples/3D/Textures" data-luxel-runtime-instance="examples-3d-textures-e3596628d639" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F3D%2FTextures&amp;args=%7B%7D&amp;instance=examples-3d-textures-e3596628d639" data-luxel-runtime-story="Examples/3D/Textures" data-luxel-runtime-instance="examples-3d-textures-e3596628d639" title="Interactive Textures" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-3d-textures-e3596628d639-args-tab" aria-controls="examples-3d-textures-e3596628d639-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-3d-textures-e3596628d639-output-tab" aria-controls="examples-3d-textures-e3596628d639-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-3d-textures-e3596628d639-source-tab" aria-controls="examples-3d-textures-e3596628d639-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-3d-textures-e3596628d639-args-panel" role="tabpanel" aria-labelledby="examples-3d-textures-e3596628d639-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-3d-textures-e3596628d639-output-panel" role="tabpanel" aria-labelledby="examples-3d-textures-e3596628d639-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-3d-textures-e3596628d639-source-panel" role="tabpanel" aria-labelledby="examples-3d-textures-e3596628d639-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/3D/Textures&quot;, Width = 320, Height = 240, Order = 122,&#10;    CapabilityNote = &quot;Renders a generated checker texture with a bindless texture and sampler.&quot;)]&#10;public static Widget Textures(StoryContext ctx)&#10;{&#10;    if (ctx.DeviceOrNull is not { } device || ctx.ScopedResourcesOrNull is not { } resources)&#10;        return BuildOnlyGpuView(ctx, 320, 240);&#10;&#10;    const uint textureWidth = 8;&#10;    const uint textureHeight = 8;&#10;    byte[] pixels = CreateCheckerboard(textureWidth, textureHeight);&#10;    GpuTexture texture = device.CreateTexture(&#10;        textureWidth, textureHeight, pixels, GpuFormat.Rgba8Unorm);&#10;    GpuSampler sampler;&#10;    try&#10;    {&#10;        sampler = device.CreateSampler(&#10;            GpuSamplerFilter.Point, GpuSamplerAddress.Repeat);&#10;    }&#10;    catch&#10;    {&#10;        texture.Dispose();&#10;        throw;&#10;    }&#10;&#10;    const string slang = &quot;&quot;&quot;&#10;        [[vk::binding(1, 0)]]&#10;        Texture2D g_textures[];&#10;        [[vk::binding(2, 0)]]&#10;        SamplerState g_samplers[];&#10;&#10;        struct DrawArgs&#10;        {&#10;            uint textureIndex;&#10;            uint samplerIndex;&#10;        };&#10;        [[vk::push_constant]] DrawArgs g_args;&#10;&#10;        struct VSOut&#10;        {&#10;            float4 position : SV_Position;&#10;            float2 uv : TEXCOORD0;&#10;        };&#10;&#10;        [shader(&quot;vertex&quot;)]&#10;        VSOut vsMain(uint vertexId : SV_VertexID)&#10;        {&#10;            uint index = vertexId == 0 ? 0&#10;                : vertexId == 1 ? 1&#10;                : vertexId == 2 ? 2&#10;                : vertexId == 3 ? 0&#10;                : vertexId == 4 ? 2 : 3;&#10;            bool right = index == 1 || index == 2;&#10;            bool top = index &gt;= 2;&#10;&#10;            VSOut output;&#10;            output.position = float4(&#10;                right ? 0.72 : -0.72,&#10;                top ? 0.72 : -0.72,&#10;                0, 1);&#10;            output.uv = float2(right ? 1.0 : 0.0, top ? 0.0 : 1.0);&#10;            return output;&#10;        }&#10;&#10;        [shader(&quot;pixel&quot;)]&#10;        float4 psMain(VSOut input) : SV_Target&#10;        {&#10;            return g_textures[g_args.textureIndex]&#10;                .Sample(g_samplers[g_args.samplerIndex], input.uv);&#10;        }&#10;        &quot;&quot;&quot;;&#10;&#10;    ResourceHandle&lt;GpuShaderCode&gt; shader = resources.Create&lt;SlangSource, GpuShaderCode&gt;(&#10;        &quot;textures.slang&quot;, new SlangSource(&quot;textures.slang&quot;, slang), &quot;graphics&quot;);&#10;    ResourceHandle&lt;GpuPipeline&gt; pipeline = resources.CreateGraphicsPipeline(&#10;        &quot;textures.pipeline&quot;, shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));&#10;    Signal&lt;ResourceState&gt; pipelineState = ctx.Observe(pipeline);&#10;&#10;    return ctx.Snap(Frame(GpuView(&#10;        320,&#10;        240,&#10;        (gpu, surface, _) =&gt;&#10;        {&#10;            ResourceState state = pipelineState.Value;&#10;            if (!state.HasValue)&#10;                return state.Status == ResourceStatus.Failed&#10;                    ? GpuViewRenderResult.Failed&#10;                    : GpuViewRenderResult.Loading;&#10;&#10;            var args = new TextureDrawArgs&#10;            {&#10;                TextureIndex = texture.BindlessIndex,&#10;                SamplerIndex = sampler.BindlessIndex,&#10;            };&#10;            using GpuCommandBuffer command = gpu.MainQueue.StartCommandRecording();&#10;            command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)&#10;                .SetGraphicsPipeline(pipeline.Value)&#10;                .SetRootArguments(args)&#10;                .Draw(6)&#10;                .EndRendering();&#10;            surface.CopyColorToFramebuffer(command);&#10;            command.Finish();&#10;            gpu.MainQueue.Submit(command);&#10;            return GpuViewRenderResult.Ready;&#10;        },&#10;        animated: false,&#10;        dispose: () =&gt;&#10;        {&#10;            device.MainQueue.WaitIdle();&#10;            sampler.Dispose();&#10;            texture.Dispose();&#10;        })));&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Grapics/Textures#doc-0" data-luxel-runtime-story="Examples/3D/Textures" data-luxel-runtime-instance="examples-3d-textures-e3596628d639" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F3D%2FTextures&amp;args=%7B%7D&amp;instance=examples-3d-textures-e3596628d639" data-luxel-runtime-story="Examples/3D/Textures" data-luxel-runtime-instance="examples-3d-textures-e3596628d639" title="Interactive Textures" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-3d-textures-e3596628d639-args-tab" aria-controls="examples-3d-textures-e3596628d639-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-3d-textures-e3596628d639-output-tab" aria-controls="examples-3d-textures-e3596628d639-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-3d-textures-e3596628d639-source-tab" aria-controls="examples-3d-textures-e3596628d639-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-3d-textures-e3596628d639-args-panel" role="tabpanel" aria-labelledby="examples-3d-textures-e3596628d639-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-3d-textures-e3596628d639-output-panel" role="tabpanel" aria-labelledby="examples-3d-textures-e3596628d639-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-3d-textures-e3596628d639-source-panel" role="tabpanel" aria-labelledby="examples-3d-textures-e3596628d639-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/3D/Textures&quot;, Width = 320, Height = 240, Order = 122,&#10;    CapabilityNote = &quot;Renders a generated checker texture with a bindless texture and sampler.&quot;)]&#10;public static Widget Textures(StoryContext ctx)&#10;{&#10;    if (ctx.DeviceOrNull is null || ctx.ScopedResourcesOrNull is not { } resources)&#10;        return BuildOnlyGpuView(ctx, 320, 240);&#10;&#10;    const uint textureWidth = 8;&#10;    const uint textureHeight = 8;&#10;    byte[] pixels = CreateCheckerboard(textureWidth, textureHeight);&#10;    ResourceHandle&lt;GpuTexture&gt; texture = resources.CreateSampledTexture(&#10;        &quot;textures.checker&quot;, textureWidth, textureHeight, pixels, GpuFormat.Rgba8Unorm);&#10;    ResourceHandle&lt;GpuSampler&gt; sampler = resources.CreateSampler(&#10;        &quot;textures.sampler&quot;, GpuSamplerFilter.Point, GpuSamplerAddress.Repeat);&#10;&#10;    const string slang = &quot;&quot;&quot;&#10;        [[vk::binding(1, 0)]]&#10;        Texture2D g_textures[];&#10;        [[vk::binding(2, 0)]]&#10;        SamplerState g_samplers[];&#10;&#10;        struct DrawArgs&#10;        {&#10;            uint textureIndex;&#10;            uint samplerIndex;&#10;        };&#10;        [[vk::push_constant]] DrawArgs g_args;&#10;&#10;        struct VSOut&#10;        {&#10;            float4 position : SV_Position;&#10;            float2 uv : TEXCOORD0;&#10;        };&#10;&#10;        [shader(&quot;vertex&quot;)]&#10;        VSOut vsMain(uint vertexId : SV_VertexID)&#10;        {&#10;            uint index = vertexId == 0 ? 0&#10;                : vertexId == 1 ? 1&#10;                : vertexId == 2 ? 2&#10;                : vertexId == 3 ? 0&#10;                : vertexId == 4 ? 2 : 3;&#10;            bool right = index == 1 || index == 2;&#10;            bool top = index &gt;= 2;&#10;&#10;            VSOut output;&#10;            output.position = float4(&#10;                right ? 0.72 : -0.72,&#10;                top ? 0.72 : -0.72,&#10;                0, 1);&#10;            output.uv = float2(right ? 1.0 : 0.0, top ? 0.0 : 1.0);&#10;            return output;&#10;        }&#10;&#10;        [shader(&quot;pixel&quot;)]&#10;        float4 psMain(VSOut input) : SV_Target&#10;        {&#10;            return g_textures[g_args.textureIndex]&#10;                .Sample(g_samplers[g_args.samplerIndex], input.uv);&#10;        }&#10;        &quot;&quot;&quot;;&#10;&#10;    ResourceHandle&lt;GpuShaderCode&gt; shader = resources.Create&lt;SlangSource, GpuShaderCode&gt;(&#10;        &quot;textures.slang&quot;, new SlangSource(&quot;textures.slang&quot;, slang), &quot;graphics&quot;);&#10;    ResourceHandle&lt;GpuPipeline&gt; pipeline = resources.CreateGraphicsPipeline(&#10;        &quot;textures.pipeline&quot;, shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));&#10;    Signal&lt;ResourceState&gt; textureState = ctx.Observe(texture);&#10;    Signal&lt;ResourceState&gt; samplerState = ctx.Observe(sampler);&#10;    Signal&lt;ResourceState&gt; pipelineState = ctx.Observe(pipeline);&#10;&#10;    return ctx.Snap(Frame(GpuView(&#10;        320,&#10;        240,&#10;        (gpu, surface, _) =&gt;&#10;        {&#10;            ResourceState sampledTextureState = textureState.Value;&#10;            ResourceState textureSamplerState = samplerState.Value;&#10;            ResourceState shaderPipelineState = pipelineState.Value;&#10;            if (!sampledTextureState.HasValue || !textureSamplerState.HasValue || !shaderPipelineState.HasValue)&#10;                return sampledTextureState.Status == ResourceStatus.Failed&#10;                       || textureSamplerState.Status == ResourceStatus.Failed&#10;                       || shaderPipelineState.Status == ResourceStatus.Failed&#10;                    ? GpuViewRenderResult.Failed&#10;                    : GpuViewRenderResult.Loading;&#10;&#10;            var args = new TextureDrawArgs&#10;            {&#10;                TextureIndex = texture.Value.BindlessIndex,&#10;                SamplerIndex = sampler.Value.BindlessIndex,&#10;            };&#10;            using GpuCommandBuffer command = gpu.MainQueue.StartCommandRecording();&#10;            command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)&#10;                .SetGraphicsPipeline(pipeline.Value)&#10;                .SetRootArguments(args)&#10;                .Draw(6)&#10;                .EndRendering();&#10;            surface.CopyColorToFramebuffer(command);&#10;            command.Finish();&#10;            gpu.MainQueue.Submit(command);&#10;            return GpuViewRenderResult.Ready;&#10;        },&#10;        animated: false)));&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
 <p>Textureは2次元のpixel配列をGPUへ置き、shaderからUV座標で参照するresourceです。<code>GpuTexture</code>が画像本体、<code>GpuSampler</code>が補間方法と範囲外UVの扱いを持ちます。</p>
-<h2 id="texture">Textureを作成する</h2>
-<p><code>CreateTexture</code>へwidth、height、RGBA8のpixel dataを渡します。dataは左上から右へ並ぶtightなrowを、上から下へ続けます。</p>
+<h2 id="resourcesystemtexture">ResourceSystemでTextureを読み込む</h2>
+<p><code>ResourceScope.CreateSampledTexture</code>へwidth、height、RGBA8のpixel dataを渡すと、GPU uploadを行う<code>ResourceHandle&lt;GpuTexture&gt;</code>が返ります。dataは左上から右へ並ぶtightなrowを、上から下へ続けます。</p>
 <pre><code class="language-csharp">const uint textureWidth = 8;
 const uint textureHeight = 8;
 byte[] pixels = CreateCheckerboard(textureWidth, textureHeight);
 
-using GpuTexture texture = device.CreateTexture(
-    textureWidth, textureHeight, pixels, GpuFormat.Rgba8Unorm);
+ResourceHandle&lt;GpuTexture&gt; texture = resources.CreateSampledTexture(
+    &quot;textures.checker&quot;,
+    textureWidth,
+    textureHeight,
+    pixels,
+    GpuFormat.Rgba8Unorm);
+Signal&lt;ResourceState&gt; textureState = ctx.Observe(texture);
 </code></pre>
-<p>上のsampleではチェック柄を作る処理を<code>CreateCheckerboard</code>へ分けています。Story Sourceにはhelperの呼び出しだけが表示され、画像生成処理の本体は含まれません。8×8のRGBA8なので、pixel dataは<code>8 * 8 * 4 = 256 byte</code>です。<code>CreateTexture</code>が戻った後は入力配列を再利用できますが、作成されたtextureは描画commandが完了するまで保持します。</p>
+<p>上のsampleではチェック柄を作る処理を<code>CreateCheckerboard</code>へ分けています。Story Sourceにはhelperの呼び出しだけが表示され、画像生成処理の本体は含まれません。8×8のRGBA8なので、pixel dataは<code>8 * 8 * 4 = 256 byte</code>です。textureの作成と所有権はResourceSystemが管理し、<code>textureState.HasValue</code>になってから<code>texture.Value</code>を使います。scope終了時の破棄もResourceSystemがGPUのidle境界に合わせて処理します。</p>
 <h2 id="sampler">Samplerを作成する</h2>
 <p>samplerはpixel間の補間と、0〜1の外側に出たUVの扱いを指定します。</p>
-<pre><code class="language-csharp">using GpuSampler sampler = device.CreateSampler(
+<pre><code class="language-csharp">ResourceHandle&lt;GpuSampler&gt; sampler = resources.CreateSampler(
+    &quot;textures.sampler&quot;,
     GpuSamplerFilter.Point,
     GpuSamplerAddress.Repeat);
+Signal&lt;ResourceState&gt; samplerState = ctx.Observe(sampler);
 </code></pre>
-<p><code>Point</code>は最も近い1 pixelを選び、<code>Linear</code>は周囲を補間します。<code>Clamp</code>は端のpixelを延長し、<code>Repeat</code>はUVを繰り返します。</p>
+<p><code>Point</code>は最も近い1 pixelを選び、<code>Linear</code>は周囲を補間します。<code>Clamp</code>は端のpixelを延長し、<code>Repeat</code>はUVを繰り返します。samplerも同じscopeが所有し、readyになってから使用します。</p>
 <h2 id="shader">Shaderへ渡す</h2>
 <p>bufferと同様に、textureとsamplerの<code>BindlessIndex</code>をroot argumentsへ入れます。</p>
 <pre><code class="language-csharp">public struct DrawArgs
@@ -36,8 +43,8 @@ using GpuTexture texture = device.CreateTexture(
 
 var args = new DrawArgs
 {
-    TextureIndex = texture.BindlessIndex,
-    SamplerIndex = sampler.BindlessIndex,
+    TextureIndex = texture.Value.BindlessIndex,
+    SamplerIndex = sampler.Value.BindlessIndex,
 };
 </code></pre>
 <p>Slang側では同じindexを使ってtextureとsamplerを選択し、pixel shaderでUVをsampleします。</p>
@@ -68,32 +75,39 @@ public static Widget TexturesBasics(StoryContext ctx)
 
     Textureは2次元のpixel配列をGPUへ置き、shaderからUV座標で参照するresourceです。`GpuTexture`が画像本体、`GpuSampler`が補間方法と範囲外UVの扱いを持ちます。
 
-    ## Textureを作成する
+    ## ResourceSystemでTextureを読み込む
 
-    `CreateTexture`へwidth、height、RGBA8のpixel dataを渡します。dataは左上から右へ並ぶtightなrowを、上から下へ続けます。
+    `ResourceScope.CreateSampledTexture`へwidth、height、RGBA8のpixel dataを渡すと、GPU uploadを行う`ResourceHandle&lt;GpuTexture&gt;`が返ります。dataは左上から右へ並ぶtightなrowを、上から下へ続けます。
 
     ```csharp
     const uint textureWidth = 8;
     const uint textureHeight = 8;
     byte[] pixels = CreateCheckerboard(textureWidth, textureHeight);
 
-    using GpuTexture texture = device.CreateTexture(
-        textureWidth, textureHeight, pixels, GpuFormat.Rgba8Unorm);
+    ResourceHandle&lt;GpuTexture&gt; texture = resources.CreateSampledTexture(
+        &quot;textures.checker&quot;,
+        textureWidth,
+        textureHeight,
+        pixels,
+        GpuFormat.Rgba8Unorm);
+    Signal&lt;ResourceState&gt; textureState = ctx.Observe(texture);
     ```
 
-    上のsampleではチェック柄を作る処理を`CreateCheckerboard`へ分けています。Story Sourceにはhelperの呼び出しだけが表示され、画像生成処理の本体は含まれません。8&#215;8のRGBA8なので、pixel dataは`8 * 8 * 4 = 256 byte`です。`CreateTexture`が戻った後は入力配列を再利用できますが、作成されたtextureは描画commandが完了するまで保持します。
+    上のsampleではチェック柄を作る処理を`CreateCheckerboard`へ分けています。Story Sourceにはhelperの呼び出しだけが表示され、画像生成処理の本体は含まれません。8&#215;8のRGBA8なので、pixel dataは`8 * 8 * 4 = 256 byte`です。textureの作成と所有権はResourceSystemが管理し、`textureState.HasValue`になってから`texture.Value`を使います。scope終了時の破棄もResourceSystemがGPUのidle境界に合わせて処理します。
 
     ## Samplerを作成する
 
     samplerはpixel間の補間と、0〜1の外側に出たUVの扱いを指定します。
 
     ```csharp
-    using GpuSampler sampler = device.CreateSampler(
+    ResourceHandle&lt;GpuSampler&gt; sampler = resources.CreateSampler(
+        &quot;textures.sampler&quot;,
         GpuSamplerFilter.Point,
         GpuSamplerAddress.Repeat);
+    Signal&lt;ResourceState&gt; samplerState = ctx.Observe(sampler);
     ```
 
-    `Point`は最も近い1 pixelを選び、`Linear`は周囲を補間します。`Clamp`は端のpixelを延長し、`Repeat`はUVを繰り返します。
+    `Point`は最も近い1 pixelを選び、`Linear`は周囲を補間します。`Clamp`は端のpixelを延長し、`Repeat`はUVを繰り返します。samplerも同じscopeが所有し、readyになってから使用します。
 
     ## Shaderへ渡す
 
@@ -108,8 +122,8 @@ public static Widget TexturesBasics(StoryContext ctx)
 
     var args = new DrawArgs
     {
-        TextureIndex = texture.BindlessIndex,
-        SamplerIndex = sampler.BindlessIndex,
+        TextureIndex = texture.Value.BindlessIndex,
+        SamplerIndex = sampler.Value.BindlessIndex,
     };
     ```
 

@@ -1,4 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Audio/SpatialStreamingAndTesting</h1></header><h1 id="spatial-audio-streaming-and-testing">Spatial audio, streaming, and testing</h1>
+<article class="story document-page"><h1 id="spatial-audio-streaming-and-testing">Spatial audio, streaming, and testing</h1>
 <p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Game loop / Windows audio / CI　 <strong>Backend:</strong> XAudio2 / Null　 <strong>前提知識:</strong> Clips and buses</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FAudio%2FClipsSourcesAndBuses">ClipsSourcesAndBuses</a>　 <strong>次:</strong> <a href="#story=Learn%2FResources%2FOverview">Overview</a></p>
 <p><code>AudioSource3D</code>はlistenerとの距離減衰と左右panを計算します。HRTF/Dopplerではありません。長い音声は<code>WavStream</code>/<code>LoopingStream</code>と<code>StreamingVoice.Pump()</code>を使います。headless smokeでは実音ではなくInitialized、voice数、queue、playing、submitted bytesをcheckpointにします。</p>

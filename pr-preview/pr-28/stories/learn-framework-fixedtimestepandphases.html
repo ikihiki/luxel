@@ -1,4 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Framework/FixedTimestepAndPhases</h1></header><h1 id="fixed-timestep-and-phases">Fixed timestep and phases</h1>
+<article class="story document-page"><h1 id="fixed-timestep-and-phases">Fixed timestep and phases</h1>
 <p>可変frame dtは<code>FixedTimestep.Advance</code>へ蓄積し、返された回数だけ決定的なsimulationを進めます。上限超過は<code>DroppedSteps</code>へ記録され、<code>Alpha</code>は描画補間に使います。標準loopの順序はEarlyUpdate → FixedUpdate → Update → LateUpdate → PreRender → Render → PostRenderです。</p>
 <pre><code class="language-csharp">var timestep = new FixedTimestep(fixedDt: 0.125, maxStepsPerFrame: 3);
 double[] frames = [0.0625, 0.1875, 0.625];

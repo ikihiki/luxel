@@ -1,4 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Guides/ThreeD</h1></header><h1 id="d-ecs">3D と ECS</h1>
+<article class="story document-page"><h1 id="d-ecs">3D と ECS</h1>
 <ul>
 <li><a href="#story=Reference%2FGuides%2FThreeD&amp;section=%E3%82%B3%E3%83%B3%E3%83%9D%E3%83%BC%E3%83%8D%E3%83%B3%E3%83%88%E3%81%A8%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0">コンポーネントとシステム</a></li>
 <li><a href="#story=Reference%2FGuides%2FThreeD&amp;section=%E6%8A%BD%E5%87%BA-irenderextractor">抽出 (IRenderExtractor)</a></li>
@@ -16,7 +16,7 @@
 </ul>
 <h2 id="irenderextractor">抽出 (IRenderExtractor)</h2>
 <p><code>Render3DExtractSystem</code> が ECS をクエリし、<code>InstanceData[]</code> (mat4 + color の SoA) を bindless バッファへ書きます。シーン層とレンダーグラフ層の橋渡しはこの <strong>Extract 層だけ</strong> — グラフ側は書き上がったバッファを Import するのみです。</p>
-<figure class="static-capture"><a href="#story=Examples%2F3D%2FEcsCubes"><img src="images/examples-3d-ecscubes.png" alt="Examples/3D/EcsCubes" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
 <h2 id="section-1">描画パターン</h2>
 <p>graphics パスの lambda が <code>BeginRendering(rt, depth, ...)</code> で RT/Depth を直接管理し、instance 数ぶん <code>Draw</code> します。この形のまま合成が伸びます:</p>
 <ul>

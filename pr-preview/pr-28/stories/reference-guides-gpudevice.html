@@ -1,4 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Guides/GpuDevice</h1></header><h1 id="gpu-gpudevice">GPU 抽象 (GpuDevice)</h1>
+<article class="story document-page"><h1 id="gpu-gpudevice">GPU 抽象 (GpuDevice)</h1>
 <ul>
 <li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=backend-%E3%81%A8-capability">backend と capability</a></li>
 <li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=%E5%9B%BA%E5%AE%9A%E3%83%91%E3%82%A4%E3%83%97%E3%83%A9%E3%82%A4%E3%83%B3%E3%83%AC%E3%82%A4%E3%82%A2%E3%82%A6%E3%83%88">固定パイプラインレイアウト</a></li>
@@ -77,8 +77,8 @@ device.MainQueue.SubmitAndWait(cmd);
 <p><code>MainQueue.StartCommandRecording()</code> → fluent にコマンドを積み → <code>Finish()</code> → <code>SubmitAndWait(cmd)</code>。同期は <code>Barrier(srcStage, dstStage)</code> の <strong>stage バリア</strong>だけ — リソース個別の状態遷移管理はありません (bindless + 単純化された使用パターンが前提)。</p>
 <h2 id="graphics-pso">描画 (graphics PSO)</h2>
 <p>graphics も同じ流儀です。<code>CreateGraphicsPipeline(shader, GpuRasterDesc)</code> で深度テストやブレンドを宣言し、dynamic rendering (<code>BeginRendering</code>/<code>EndRendering</code>) で RT/Depth を直接指定、頂点は<strong>頂点プル</strong> (頂点レイアウト宣言なし — シェーダが bindless バッファから読む) です。</p>
-<figure class="static-capture"><a href="#story=Examples%2F3D%2FDepth"><img src="images/examples-3d-depth.png" alt="Examples/3D/Depth" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
-<figure class="static-capture"><a href="#story=Examples%2F3D%2FBlend"><img src="images/examples-3d-blend.png" alt="Examples/3D/Blend" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
 <p><code>StorySource</code> でこのデモの実装をそのまま引用できます:</p>
 <pre><code class="language-csharp">[Story(&quot;Examples/3D/Depth&quot;, Height = 320, Order = 100)]
 public static Widget Depth() =&gt; Frame(GpuSceneBase.View(256, 256, new DepthScene(), animated: false));

@@ -1,4 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Guides/RenderGraph</h1></header><h1 id="luxel.rendergraph">レンダーグラフ (Luxel.RenderGraph)</h1>
+<article class="story document-page"><h1 id="luxel.rendergraph">レンダーグラフ (Luxel.RenderGraph)</h1>
 <ul>
 <li><a href="#story=Reference%2FGuides%2FRenderGraph&amp;section=%E8%A8%AD%E8%A8%88%E3%83%8E%E3%83%BC%E3%83%88%3A-%E6%A5%AD%E7%95%8C-4-%E5%AE%9F%E8%A3%85%E3%81%AE%E5%8F%8E%E6%9D%9F">設計ノート: 業界 4 実装の収束</a></li>
 <li><a href="#story=Reference%2FGuides%2FRenderGraph&amp;section=setup-%2F-compile-%2F-execute">Setup / Compile / Execute</a></li>
@@ -56,7 +56,7 @@ rg.Execute(cmd);   // Compile + Execute (寿命解析 + 自動バリア + lambda
 <p>Transient は同形 (バッファはサイズ、テクスチャは幅・高さ・フォーマット・種別) で寿命が重ならなければ <strong>物理リソースを共有</strong> (interval scheduling) します。実物:</p>
 <figure class="static-capture"><a href="#story=Examples%2FRenderGraph%2FBlur"><img src="images/examples-rendergraph-blur.png" alt="Examples/RenderGraph/Blur" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
 <p>下のデモは反復ブラー 4 段 + 誰も読まないパス — 論理 5 transient が物理 2 本に alias され、DeadPass がカリングされる様子が <strong>Log パネル</strong>に出ます (<code>PhysicalTransientBufferCount</code> / <code>IsAliased</code> / <code>IsPassCulled</code> で観測):</p>
-<figure class="static-capture"><a href="#story=Examples%2FRenderGraph%2FAliasing"><img src="images/examples-rendergraph-aliasing.png" alt="Examples/RenderGraph/Aliasing" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
 <h2 id="resourceusage">自動バリアと ResourceUsage</h2>
 <p>パスの Read/Write 宣言から <code>GpuStage</code> の遷移を計算し、バリアを自動挿入します。既定は compute 読み書きの扱いなので、<strong>実際の使い方が違うときは usage を明示</strong>します: <code>Write(h, ResourceUsage.CopyDest)</code> (RT → バッファのコピー先)、<code>Read(h, ResourceUsage.SampledInPixelShader)</code> (pixel シェーダで Load) など — これで Copy→Compute / Compute→PixelShader の遷移が正しく発行されます。</p>
 <div class="markdown-alert markdown-alert-warning">
