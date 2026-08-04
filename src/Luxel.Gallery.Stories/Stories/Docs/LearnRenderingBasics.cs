@@ -382,16 +382,45 @@ public static partial class DocsRenderingLearn
 
         {{RenderingCourseCatalog.Meta("Learn/Grapics/BuffersAndBindings", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "FirstTriangle")}}
 
-        このページの実コードは `samples/LuxelTriangle/TutorialAbi.cs`、`TriangleRenderer.cs`、`shaders/tutorial_triangle.slang` です。確認コマンド:
+        {{StoryRef(ctx, "Examples/3D/BuffersAndBindings")}}
 
-        ```powershell
-        dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
-        dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter TutorialAbiTests
-        dotnet run --project samples/LuxelTriangle -- vk --frames 3
-        # Windowsのみ: dotnet run --project samples/LuxelTriangle -- dx --frames 3
+        上のsampleは4頂点の四角形を、**頂点座標・インデックス・色の3つのbuffer**に分けて描画します。6個のindexを`Draw(6)`の`SV_VertexID`で順に読み、indexが指す頂点座標と色を別bufferから取得します。
+
+        ## 四角形sampleのbufferを作成する
+
+        頂点bufferには4個の`float2`、index bufferには2三角形分の6個の`uint`、色bufferには4個の`float4`を格納します。各bufferを`HostMapped`で確保し、対応する`Span<T>`へ転送します。
+
+        ```csharp
+        float[] vertices =
+        [
+            -0.72f, -0.72f,
+             0.72f, -0.72f,
+             0.72f,  0.72f,
+            -0.72f,  0.72f,
+        ];
+        uint[] indices = [0, 1, 2, 0, 2, 3];
+        float[] colors =
+        [
+            1.00f, 0.18f, 0.18f, 1,
+            0.18f, 1.00f, 0.28f, 1,
+            0.20f, 0.42f, 1.00f, 1,
+            1.00f, 0.82f, 0.18f, 1,
+        ];
+
+        using GpuBuffer vertexBuffer = device.Malloc(
+            checked((ulong)vertices.Length * sizeof(float)),
+            GpuMemoryKind.HostMapped);
+        using GpuBuffer indexBuffer = device.Malloc(
+            checked((ulong)indices.Length * sizeof(uint)),
+            GpuMemoryKind.HostMapped);
+        using GpuBuffer colorBuffer = device.Malloc(
+            checked((ulong)colors.Length * sizeof(float)),
+            GpuMemoryKind.HostMapped);
+
+        vertices.CopyTo(vertexBuffer.Span<float>(vertices.Length));
+        indices.CopyTo(indexBuffer.Span<uint>(indices.Length));
+        colors.CopyTo(colorBuffer.Span<float>(colors.Length));
         ```
-
-        成功時はABI testが2件通り、実行すると暗い背景にRGB三角形が3 frame表示されます。
 
         ## Luxelでは「vertex buffer」もraw bindless buffer
 
@@ -409,33 +438,58 @@ public static partial class DocsRenderingLearn
 
         ## C# とSlangのABI
 
-        tutorialの実構造体はテスト専用コピーではなく、renderer自身が使う `TutorialAbi.Vertex` と `TutorialAbi.DrawArgs` です。
+        root argumentsには3つのbufferの`BindlessIndex`だけを入れます。C#とSlangでfield順を一致させると、12 byteの同じraw bytesとして解釈されます。
 
         ```csharp
-        [StructLayout(LayoutKind.Sequential)]
-        public struct Vertex
-        {
-            public float Px, Py, Pz, Pw; // offset 0, float4 position
-            public float R, G, B, A;     // offset 16, float4 color
-        }                                // size 32
-
         public struct DrawArgs
         {
-            public uint VertexBufferIndex; // offset 0, size 4
+            public uint VertexBufferIndex;
+            public uint IndexBufferIndex;
+            public uint ColorBufferIndex;
         }
+
+        var args = new DrawArgs
+        {
+            VertexBufferIndex = vertexBuffer.BindlessIndex,
+            IndexBufferIndex = indexBuffer.BindlessIndex,
+            ColorBufferIndex = colorBuffer.BindlessIndex,
+        };
         ```
 
         ```slang
-        struct DrawArgs { uint vertexBufferIndex; };
-        struct Vertex { float4 position; float4 color; };
+        struct DrawArgs
+        {
+            uint vertexBufferIndex;
+            uint indexBufferIndex;
+            uint colorBufferIndex;
+        };
+        [[vk::push_constant]] DrawArgs g_args;
+        [[vk::binding(0, 0)]] RWByteAddressBuffer g_buffers[];
 
-        Vertex vertex = g_buffers[g_args.vertexBufferIndex]
-            .Load<Vertex>(vertexId * 32);
+        struct VertexOut
+        {
+            float4 position : SV_Position;
+            float4 color : COLOR0;
+        };
+
+        [shader("vertex")]
+        VertexOut vsMain(uint vertexId : SV_VertexID)
+        {
+            uint index = g_buffers[g_args.indexBufferIndex]
+                .Load<uint>(vertexId * 4);
+            float2 position = asfloat(
+                g_buffers[g_args.vertexBufferIndex].Load2(index * 8));
+            float4 color = asfloat(
+                g_buffers[g_args.colorBufferIndex].Load4(index * 16));
+
+            VertexOut output;
+            output.position = float4(position, 0, 1);
+            output.color = color;
+            return output;
+        }
         ```
 
-        `float3`の直後へ別fieldを足す、C#側だけ`bool`を使う、field順を変える、といった変更はoffsetをずらします。曖昧な詰め方を避け、必要なら明示paddingを置き、`Marshal.SizeOf` / `Marshal.OffsetOf` testを同時に更新してください。buffer内の配列strideもstruct sizeと一致させます。
-
-        行列は**置き場所とshaderの読み方に依存**します。Slang/HLSL既定のcolumn-major matrixをroot argsの型付きfieldとして受け、`mul(v, M)`する既存3Dコードは `Matrix4x4.Transpose` して渡します。一方、bufferから `Load4` を4回行ってrowを組み立てるper-instance matrixは転置しません。「Matrix4x4なら常にtranspose」ではありません。
+        `vertexId`は0〜5のindex-stream上の位置です。index bufferから得た0〜3の値を使い、頂点bufferは1要素8 byte、色bufferは1要素16 byteとしてbyte offsetを計算します。異なる役割のデータを別bufferへ分けても、同じindexで対応する頂点と色を取得できます。
 
         ## Root argumentsはraw bytes
 
@@ -443,19 +497,31 @@ public static partial class DocsRenderingLearn
 
         ```mermaid
         flowchart TB
-        cpu["C#: DrawArgs raw bytes\nvertexBufferIndex = 17"] --> api["SetRootArguments\n4-byte units, max 192 bytes"]
+        cpu["C#: DrawArgs raw bytes\nvertex / index / color buffer indices"] --> api["SetRootArguments\n4-byte units, max 192 bytes"]
         api --> vk["Vulkan\npush constants"]
         api --> dx["D3D12\nroot 32-bit constants"]
-        vk --> slang["Slang: g_args.vertexBufferIndex"]
+        vk --> slang["Slang: g_args"]
         dx --> slang
-        heap["bindless raw buffer heap\nslot 17 = vertex data"] --> pull["g_buffers[17].Load<Vertex>()"]
-        slang --> pull
-        pull --> vertex["SV_VertexID -> byte offset -> Vertex"]
+        index["index buffer\nSV_VertexID -> vertex index"] --> vertex["vertex buffer\nindex -> float2 position"]
+        index --> color["color buffer\nindex -> float4 color"]
+        slang --> index
+        ```
+
+        ## コマンドを記録する
+
+        `DrawIndexed`の代わりにindex数の6を`Draw`へ渡します。shader内で`SV_VertexID`をindex bufferのoffsetとして使います。
+
+        ```csharp
+        command.BeginRendering(target, null, 0.055f, 0.07f, 0.11f, 1)
+            .SetGraphicsPipeline(pipeline)
+            .SetRootArguments(args)
+            .Draw(6)
+            .EndRendering();
         ```
 
         ## 所有権と寿命
 
-        `TriangleRenderer`がvertex bufferとpipelineを所有し、resize単位のtarget/framebufferも所有します。command bufferは1 frameだけです。dispose順は **queue idle → framebuffer / target → pipeline → vertex buffer → device**。bindless indexはbufferが生存中だけ有効なので、記録済みcommandが参照している間にbufferを破棄・再利用してはいけません。
+        sampleはvertex、index、color bufferを描画中保持し、破棄時はqueueの完了を待ってから3つのbufferを破棄します。command bufferは1 frameだけです。bindless indexはbufferが生存中だけ有効なので、記録済みcommandが参照している間にbufferを破棄・再利用してはいけません。
 
         ## 典型的な失敗
 

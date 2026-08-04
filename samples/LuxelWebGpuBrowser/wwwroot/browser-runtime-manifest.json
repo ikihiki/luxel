@@ -5867,6 +5867,14 @@
       "componentType": null
     },
     {
+      "path": "Examples/3D/BuffersAndBindings",
+      "width": 320,
+      "height": 240,
+      "args": [],
+      "capabilityNote": "Renders an indexed quad from separate position, index, and color buffers.",
+      "componentType": null
+    },
+    {
       "path": "Examples/3D/ClearColor",
       "width": 320,
       "height": 240,

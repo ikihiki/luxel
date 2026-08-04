@@ -119,6 +119,171 @@ public static class GpuViewStories
             animated: false)));
     }
 
+    [Story("Examples/3D/BuffersAndBindings", Width = 320, Height = 240, Order = 121,
+        CapabilityNote = "Renders an indexed quad from separate position, index, and color buffers.")]
+    public static Widget BuffersAndBindings(StoryContext ctx)
+    {
+        if (ctx.DeviceOrNull is not { } device || ctx.ScopedResourcesOrNull is not { } resources)
+            return BuildOnlyGpuView(ctx, 320, 240);
+
+        const string slang = """
+            [[vk::binding(0, 0)]]
+            RWByteAddressBuffer g_buffers[];
+
+            struct DrawArgs
+            {
+                uint vertexBufferIndex;
+                uint indexBufferIndex;
+                uint colorBufferIndex;
+            };
+            [[vk::push_constant]] DrawArgs g_args;
+
+            struct VSOut
+            {
+                float4 position : SV_Position;
+                float4 color : COLOR0;
+            };
+
+            [shader("vertex")]
+            VSOut vsMain(uint vertexId : SV_VertexID)
+            {
+                uint index = g_buffers[g_args.indexBufferIndex].Load<uint>(vertexId * 4);
+                float2 position = asfloat(g_buffers[g_args.vertexBufferIndex].Load2(index * 8));
+                float4 color = asfloat(g_buffers[g_args.colorBufferIndex].Load4(index * 16));
+
+                VSOut output;
+                output.position = float4(position, 0, 1);
+                output.color = color;
+                return output;
+            }
+
+            [shader("pixel")]
+            float4 psMain(VSOut input) : SV_Target
+            {
+                return input.color;
+            }
+            """;
+
+        var buffers = new BufferQuadBuffers(device);
+        ResourceHandle<GpuShaderCode> shader = resources.Create<SlangSource, GpuShaderCode>(
+            "buffers-and-bindings.slang", new SlangSource("buffers-and-bindings.slang", slang), "graphics");
+        ResourceHandle<GpuPipeline> pipeline = resources.CreateGraphicsPipeline(
+            "buffers-and-bindings.pipeline", shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+        Signal<ResourceState> pipelineState = ctx.Observe(pipeline);
+
+        return ctx.Snap(Frame(GpuView(
+            320,
+            240,
+            (gpu, surface, _) =>
+            {
+                ResourceState state = pipelineState.Value;
+                if (!state.HasValue)
+                    return state.Status == ResourceStatus.Failed
+                        ? GpuViewRenderResult.Failed
+                        : GpuViewRenderResult.Loading;
+
+                var args = new BufferQuadDrawArgs
+                {
+                    VertexBufferIndex = buffers.Vertices.BindlessIndex,
+                    IndexBufferIndex = buffers.Indices.BindlessIndex,
+                    ColorBufferIndex = buffers.Colors.BindlessIndex,
+                };
+                using GpuCommandBuffer command = gpu.MainQueue.StartCommandRecording();
+                command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)
+                    .SetGraphicsPipeline(pipeline.Value)
+                    .SetRootArguments(args)
+                    .Draw(6)
+                    .EndRendering();
+                surface.CopyColorToFramebuffer(command);
+                command.Finish();
+                gpu.MainQueue.Submit(command);
+                return GpuViewRenderResult.Ready;
+            },
+            animated: false,
+            dispose: buffers.Dispose)));
+    }
+
+    private struct BufferQuadDrawArgs
+    {
+        public uint VertexBufferIndex;
+        public uint IndexBufferIndex;
+        public uint ColorBufferIndex;
+    }
+
+    private sealed class BufferQuadBuffers : IDisposable
+    {
+        private readonly GpuDevice _device;
+        private bool _disposed;
+
+        public BufferQuadBuffers(GpuDevice device)
+        {
+            _device = device;
+            float[] vertices =
+            [
+                -0.72f, -0.72f,
+                 0.72f, -0.72f,
+                 0.72f,  0.72f,
+                -0.72f,  0.72f,
+            ];
+            uint[] indices = [0, 1, 2, 0, 2, 3];
+            float[] colors =
+            [
+                1.00f, 0.18f, 0.18f, 1,
+                0.18f, 1.00f, 0.28f, 1,
+                0.20f, 0.42f, 1.00f, 1,
+                1.00f, 0.82f, 0.18f, 1,
+            ];
+
+            Vertices = CreateBuffer(device, vertices);
+            try
+            {
+                Indices = CreateBuffer(device, indices);
+                try { Colors = CreateBuffer(device, colors); }
+                catch
+                {
+                    Indices.Dispose();
+                    throw;
+                }
+            }
+            catch
+            {
+                Vertices.Dispose();
+                throw;
+            }
+        }
+
+        public GpuBuffer Vertices { get; }
+        public GpuBuffer Indices { get; }
+        public GpuBuffer Colors { get; }
+
+        private static GpuBuffer CreateBuffer<T>(GpuDevice device, T[] data) where T : unmanaged
+        {
+            GpuBuffer buffer = device.Malloc(
+                checked((ulong)data.Length * (ulong)System.Runtime.InteropServices.Marshal.SizeOf<T>()),
+                GpuMemoryKind.HostMapped);
+            try
+            {
+                data.CopyTo(buffer.Span<T>(data.Length));
+                return buffer;
+            }
+            catch
+            {
+                buffer.Dispose();
+                throw;
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            _device.MainQueue.WaitIdle();
+            Colors.Dispose();
+            Indices.Dispose();
+            Vertices.Dispose();
+        }
+    }
+
     private static Widget BuildOnlyGpuView(StoryContext ctx, float width, float height)
         => ctx.Snap(Frame(GpuView(width, height,
             static (_, _, _) => GpuViewRenderResult.Failed,

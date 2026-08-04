@@ -1002,6 +1002,17 @@ public sealed class GallerySiteExporterTests
         Assert.DoesNotContain("ResourceHandle", trianglePage);
         Assert.DoesNotContain("resources.Create", trianglePage);
         Assert.DoesNotContain("ScopedResources", trianglePage);
+
+        string buffersPage = pages["Learn/Grapics/BuffersAndBindings"].Text;
+        Assert.Contains("四角形sample", buffersPage);
+        foreach (string buffer in new[] { "vertexBuffer", "indexBuffer", "colorBuffer" })
+            Assert.Contains(buffer, buffersPage);
+        foreach (string operation in new[]
+                 {
+                     "indices.CopyTo", "IndexBufferIndex", "ColorBufferIndex",
+                     "Load<uint>(vertexId * 4)", "Load2(index * 8)", "Load4(index * 16)", "Draw(6)",
+                 })
+            Assert.Contains(operation, buffersPage);
     }
 
     [Fact]
