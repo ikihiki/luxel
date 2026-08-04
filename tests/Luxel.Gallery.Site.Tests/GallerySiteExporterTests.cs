@@ -976,14 +976,32 @@ public sealed class GallerySiteExporterTests
         foreach (string term in new[] { "triangle", "texture", "camera", "render graph", "gltf", "blank screen", "真っ黒" })
             Assert.Contains(term, overview);
 
-        string root = GallerySiteExporter.FindRepositoryRoot();
-        string actual = File.ReadAllText(Path.Combine(root, "samples", "LuxelTriangle", "TutorialAbi.cs"))
-            .Replace("\r\n", "\n", StringComparison.Ordinal);
-        string expected = ExtractMarkedRegion(actual, "triangle-abi").Trim();
         string trianglePage = pages["Learn/Grapics/FirstTriangle"].Text;
-        Assert.Contains(expected, trianglePage);
-        Assert.DoesNotContain("docs:begin", trianglePage);
-        Assert.DoesNotContain("docs:end", trianglePage);
+        Assert.Contains("# 三角形表示", trianglePage);
+        string[] triangleStages =
+        [
+            "## 1. 頂点バッファの作成",
+            "## 2. 頂点データの作成と転送",
+            "## 3. シェーダーの作成",
+            "## 4. パイプラインの作成",
+            "## 5. コマンドの設定",
+        ];
+        int previousTriangleStage = -1;
+        foreach (string stage in triangleStages)
+        {
+            int position = trianglePage.IndexOf(stage, previousTriangleStage + 1, StringComparison.Ordinal);
+            Assert.True(position > previousTriangleStage, $"Missing or out-of-order FirstTriangle stage: {stage}");
+            previousTriangleStage = position;
+        }
+        foreach (string api in new[]
+                 {
+                     "device.Malloc", "vertexBuffer.Span<float>", "GpuShaderCode.Load",
+                     "CreateGraphicsPipeline", "StartCommandRecording", "SetRootArguments", "Draw(vertexCount)",
+                 })
+            Assert.Contains(api, trianglePage);
+        Assert.DoesNotContain("ResourceHandle", trianglePage);
+        Assert.DoesNotContain("resources.Create", trianglePage);
+        Assert.DoesNotContain("ScopedResources", trianglePage);
     }
 
     [Fact]

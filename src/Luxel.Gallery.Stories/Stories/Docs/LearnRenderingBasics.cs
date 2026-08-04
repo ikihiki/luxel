@@ -246,70 +246,129 @@ public static partial class DocsRenderingLearn
     public static Widget FirstTriangle(StoryContext ctx)
     {
         return DocNew(ctx, $$"""
-        # はじめての三角形
+        # 三角形表示
 
         {{RenderingCourseCatalog.Meta("Learn/Grapics/FirstTriangle", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "ClearColor")}}
 
         {{StoryRef(ctx, "Examples/3D/Triangle")}}
 
-        Galleryアプリ内では上の表示をnative offscreenデモとして実行します。静的GalleryとPagesでは同じ場所にbrowser-WASM WebGPU runtimeを埋め込み、`Examples/3D/Triangle`とこのガイドの両方から、320×240（4:3）のcanonical triangle recipeを実行します。browser hostのsource/manifest契約、WASM publish、静的Gallery export、subpath-safe URLをCIで検証します。browser上の実行自体は自動テストの対象外です。
+        このページでは`GpuDevice`、`GpuBuffer`、`GpuShaderCode`、`GpuPipeline`、`GpuCommandBuffer`を使って三角形を描画します。完全なstandalone実装は`samples/LuxelTriangle/TriangleRenderer.cs`と`shaders/tutorial_triangle.slang`で確認できます。
 
-        コピーして動かす完全なstandalone実装は次の4ファイルです。
+        ## 1. 頂点バッファの作成
 
-        - `samples/LuxelTriangle/LuxelTriangle.csproj`
-        - `samples/LuxelTriangle/Program.cs`
-        - `samples/LuxelTriangle/TriangleRenderer.cs`
-        - `shaders/tutorial_triangle.slang`
-
-        ## 実sampleのABI
-
-        {{SampleSource("samples/LuxelTriangle/TutorialAbi.cs", "triangle-abi")}}
-
-        ## 描画の4段階
-
-        1. `Malloc(..., HostMapped)`で3頂点を確保し、`Span<Vertex>`へ書く
-        2. `GpuShaderCode.Load("tutorial_triangle")`からgraphics pipelineを作る
-        3. commandへpipeline、root arguments、`Draw(3)`を記録する
-        4. submit後、readback framebufferをsurfaceへpresentする
+        1頂点は位置の`float4`と色の`float4`で8個の`float`を使います。3頂点分の96 byteを`HostMapped`メモリへ確保します。`using`のscopeを抜けるとバッファは破棄されます。
 
         ```csharp
-        command.BeginRendering(target, null, 0.055f, 0.07f, 0.11f, 1)
-            .SetGraphicsPipeline(pipeline)
-            .SetRootArguments(new DrawArgs { VertexBufferIndex = vertices.BindlessIndex })
-            .Draw(3)
-            .EndRendering()
-            .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
-            .CopyTextureToBuffer(target, framebuffer);
+        const uint vertexCount = 3;
+        const uint floatsPerVertex = 8;
+        const ulong vertexBufferSize =
+            vertexCount * floatsPerVertex * sizeof(float);
+
+        using GpuBuffer vertexBuffer = device.Malloc(
+            vertexBufferSize, GpuMemoryKind.HostMapped);
         ```
 
-        Slang側は `SV_VertexID` を使ってbindless bufferから頂点を読むため、vertex-input layout objectはありません。C#の `Vertex` とSlangの `Vertex` はどちらも `float4 position + float4 color = 32 byte` です。
+        `GpuDevice.Malloc`が返す`GpuBuffer`には、シェーダーからraw bufferとして参照するための`BindlessIndex`も割り当てられます。
+
+        ## 2. 頂点データの作成と転送
+
+        各頂点を`position(x, y, z, w)`、`color(r, g, b, a)`の順に並べます。`HostMapped`バッファなので、`Span<float>`を取得してCPUから直接転送できます。
+
+        ```csharp
+        float[] vertexData =
+        [
+             0.00f, -0.72f, 0, 1,  1.00f, 0.18f, 0.18f, 1,
+             0.72f,  0.62f, 0, 1,  0.18f, 1.00f, 0.28f, 1,
+            -0.72f,  0.62f, 0, 1,  0.20f, 0.42f, 1.00f, 1,
+        ];
+
+        vertexData.CopyTo(vertexBuffer.Span<float>(vertexData.Length));
+        ```
+
+        C#側とシェーダー側で、1頂点のstrideが`8 * sizeof(float) = 32 byte`になるようにデータ配置を一致させます。
+
+        ## 3. シェーダーの作成
+
+        頂点シェーダーは`SV_VertexID`から頂点番号を受け取り、root argumentsで渡された`BindlessIndex`を使って頂点バッファを読みます。専用のvertex-input layoutは不要です。
 
         ```slang
-        struct Vertex { float4 position; float4 color; }
-        struct DrawArgs { uint vertexBufferIndex; }
+        [[vk::binding(0, 0)]]
+        RWByteAddressBuffer g_buffers[];
+
+        struct DrawArgs { uint vertexBufferIndex; };
         [[vk::push_constant]] DrawArgs g_args;
-        [[vk::binding(0, 0)]] RWByteAddressBuffer g_buffers[];
+
+        struct Vertex { float4 position; float4 color; };
+        struct VertexOut
+        {
+            float4 position : SV_Position;
+            float4 color : COLOR0;
+        };
 
         [shader("vertex")]
         VertexOut vsMain(uint vertexId : SV_VertexID)
         {
-            Vertex v = g_buffers[g_args.vertexBufferIndex].Load<Vertex>(vertexId * 32);
-            VertexOut o; o.position = v.position; o.color = v.color; return o;
+            Vertex vertex = g_buffers[g_args.vertexBufferIndex]
+                .Load<Vertex>(vertexId * 32);
+            VertexOut output;
+            output.position = vertex.position;
+            output.color = vertex.color;
+            return output;
         }
 
         [shader("pixel")]
-        float4 psMain(VertexOut input) : SV_Target => input.color;
+        float4 psMain(VertexOut input) : SV_Target
+        {
+            return input.color;
+        }
         ```
 
-        つまり最小例のdata flowは`C# Vertex[] → HostMapped buffer → BindlessIndex → root args → SV_VertexID`です。このblockと上のcommand記録を組み合わせれば、サンプルファイルを開かなくても必要なbindingを追えます。
+        buildで生成されたSPIR-VまたはDXILを`GpuShaderCode.Load`で読み込みます。`GpuShaderCode`は実行中のbackendに対応するshader blobを保持します。
+
+        ```csharp
+        GpuShaderCode shader = GpuShaderCode.Load("tutorial_triangle");
+        ```
+
+        ## 4. パイプラインの作成
+
+        render targetのformatに合わせたraster設定を作り、頂点シェーダーとピクセルシェーダーをgraphics pipelineへまとめます。既定のentry pointは`vsMain`と`psMain`です。
+
+        ```csharp
+        GpuRasterDesc raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
+        using GpuPipeline pipeline =
+            device.CreateGraphicsPipeline(shader, raster);
+        ```
+
+        ## 5. コマンドの設定
+
+        main queueからcommand bufferを作り、render pass、pipeline、頂点バッファの`BindlessIndex`、頂点数の順に設定します。描画後はrender targetをframebufferへコピーします。
+
+        ```csharp
+        using GpuCommandBuffer command =
+            device.MainQueue.StartCommandRecording();
+
+        command.BeginRendering(target, null, 0.055f, 0.07f, 0.11f, 1)
+            .SetGraphicsPipeline(pipeline)
+            .SetRootArguments(vertexBuffer.BindlessIndex)
+            .Draw(vertexCount)
+            .EndRendering()
+            .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+            .CopyTextureToBuffer(target, framebuffer, stridePixels);
+
+        command.Finish();
+        device.MainQueue.SubmitAndWait(command);
+        surface.Present(framebuffer, stridePixels, width, height);
+        ```
+
+        処理全体のdata flowは`float[] → HostMapped GpuBuffer → BindlessIndex → root arguments → SV_VertexID`です。
 
         > [!NOTE]
-        > 入門サンプルは処理順を明確にするため毎フレーム `SubmitAndWait` します。複数frame-in-flightとfenceによる本番向け同期は後続のFrame Loopページで扱います。
+        > 入門例では処理順を明確にするため`SubmitAndWait`を使います。複数frame-in-flightとfenceによる同期は後続のFrame Loopページで扱います。
 
         ## 典型的な失敗
 
         - clear colorだけ見える → pipeline、shader名、root arguments、`Draw(3)`を確認
-        - 三角形が崩れる → C# / Slangのstruct sizeとoffsetを確認
+        - 三角形が崩れる → C# / Slangのstrideとfield順を確認
         - resize後だけ壊れる → queue idle後にtarget/framebufferを再生成したか確認
         """, toc: true);
     }
