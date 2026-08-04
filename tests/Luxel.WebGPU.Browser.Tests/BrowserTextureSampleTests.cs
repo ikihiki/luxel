@@ -11,14 +11,17 @@ public sealed class BrowserTextureSampleTests
 
         Assert.Contains("[Story(\"Examples/3D/Textures\"", source);
         Assert.Contains("byte[] pixels = CreateCheckerboard(textureWidth, textureHeight)", source);
-        Assert.Contains("device.CreateTexture(", source);
-        Assert.Contains("device.CreateSampler(", source);
+        Assert.Contains("ResourceHandle<GpuTexture> texture = resources.CreateSampledTexture(", source);
+        Assert.Contains("ResourceHandle<GpuSampler> sampler = resources.CreateSampler(", source);
+        Assert.Contains("Signal<ResourceState> textureState = ctx.Observe(texture)", source);
+        Assert.Contains("Signal<ResourceState> samplerState = ctx.Observe(sampler)", source);
+        Assert.DoesNotContain("device.CreateTexture(", source);
         Assert.Contains("GpuSamplerFilter.Point, GpuSamplerAddress.Repeat", source);
         Assert.Contains("Texture2D g_textures[]", source);
         Assert.Contains("SamplerState g_samplers[]", source);
         Assert.Contains(".Sample(g_samplers[g_args.samplerIndex], input.uv)", source);
-        Assert.Contains("TextureIndex = texture.BindlessIndex", source);
-        Assert.Contains("SamplerIndex = sampler.BindlessIndex", source);
+        Assert.Contains("TextureIndex = texture.Value.BindlessIndex", source);
+        Assert.Contains("SamplerIndex = sampler.Value.BindlessIndex", source);
         Assert.Contains("private static byte[] CreateCheckerboard(uint width, uint height)", source);
     }
 

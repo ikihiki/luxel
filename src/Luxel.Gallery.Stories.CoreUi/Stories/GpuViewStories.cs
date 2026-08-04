@@ -207,25 +207,16 @@ public static class GpuViewStories
         CapabilityNote = "Renders a generated checker texture with a bindless texture and sampler.")]
     public static Widget Textures(StoryContext ctx)
     {
-        if (ctx.DeviceOrNull is not { } device || ctx.ScopedResourcesOrNull is not { } resources)
+        if (ctx.DeviceOrNull is null || ctx.ScopedResourcesOrNull is not { } resources)
             return BuildOnlyGpuView(ctx, 320, 240);
 
         const uint textureWidth = 8;
         const uint textureHeight = 8;
         byte[] pixels = CreateCheckerboard(textureWidth, textureHeight);
-        GpuTexture texture = device.CreateTexture(
-            textureWidth, textureHeight, pixels, GpuFormat.Rgba8Unorm);
-        GpuSampler sampler;
-        try
-        {
-            sampler = device.CreateSampler(
-                GpuSamplerFilter.Point, GpuSamplerAddress.Repeat);
-        }
-        catch
-        {
-            texture.Dispose();
-            throw;
-        }
+        ResourceHandle<GpuTexture> texture = resources.CreateSampledTexture(
+            "textures.checker", textureWidth, textureHeight, pixels, GpuFormat.Rgba8Unorm);
+        ResourceHandle<GpuSampler> sampler = resources.CreateSampler(
+            "textures.sampler", GpuSamplerFilter.Point, GpuSamplerAddress.Repeat);
 
         const string slang = """
             [[vk::binding(1, 0)]]
@@ -278,6 +269,8 @@ public static class GpuViewStories
             "textures.slang", new SlangSource("textures.slang", slang), "graphics");
         ResourceHandle<GpuPipeline> pipeline = resources.CreateGraphicsPipeline(
             "textures.pipeline", shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+        Signal<ResourceState> textureState = ctx.Observe(texture);
+        Signal<ResourceState> samplerState = ctx.Observe(sampler);
         Signal<ResourceState> pipelineState = ctx.Observe(pipeline);
 
         return ctx.Snap(Frame(GpuView(
@@ -285,16 +278,20 @@ public static class GpuViewStories
             240,
             (gpu, surface, _) =>
             {
-                ResourceState state = pipelineState.Value;
-                if (!state.HasValue)
-                    return state.Status == ResourceStatus.Failed
+                ResourceState sampledTextureState = textureState.Value;
+                ResourceState textureSamplerState = samplerState.Value;
+                ResourceState shaderPipelineState = pipelineState.Value;
+                if (!sampledTextureState.HasValue || !textureSamplerState.HasValue || !shaderPipelineState.HasValue)
+                    return sampledTextureState.Status == ResourceStatus.Failed
+                           || textureSamplerState.Status == ResourceStatus.Failed
+                           || shaderPipelineState.Status == ResourceStatus.Failed
                         ? GpuViewRenderResult.Failed
                         : GpuViewRenderResult.Loading;
 
                 var args = new TextureDrawArgs
                 {
-                    TextureIndex = texture.BindlessIndex,
-                    SamplerIndex = sampler.BindlessIndex,
+                    TextureIndex = texture.Value.BindlessIndex,
+                    SamplerIndex = sampler.Value.BindlessIndex,
                 };
                 using GpuCommandBuffer command = gpu.MainQueue.StartCommandRecording();
                 command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)
@@ -307,13 +304,7 @@ public static class GpuViewStories
                 gpu.MainQueue.Submit(command);
                 return GpuViewRenderResult.Ready;
             },
-            animated: false,
-            dispose: () =>
-            {
-                device.MainQueue.WaitIdle();
-                sampler.Dispose();
-                texture.Dispose();
-            })));
+            animated: false)));
     }
 
     private struct TextureDrawArgs

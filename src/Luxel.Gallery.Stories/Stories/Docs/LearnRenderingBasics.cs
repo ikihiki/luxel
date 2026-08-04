@@ -546,32 +546,39 @@ public static partial class DocsRenderingLearn
 
         Textureは2次元のpixel配列をGPUへ置き、shaderからUV座標で参照するresourceです。`GpuTexture`が画像本体、`GpuSampler`が補間方法と範囲外UVの扱いを持ちます。
 
-        ## Textureを作成する
+        ## ResourceSystemでTextureを読み込む
 
-        `CreateTexture`へwidth、height、RGBA8のpixel dataを渡します。dataは左上から右へ並ぶtightなrowを、上から下へ続けます。
+        `ResourceScope.CreateSampledTexture`へwidth、height、RGBA8のpixel dataを渡すと、GPU uploadを行う`ResourceHandle<GpuTexture>`が返ります。dataは左上から右へ並ぶtightなrowを、上から下へ続けます。
 
         ```csharp
         const uint textureWidth = 8;
         const uint textureHeight = 8;
         byte[] pixels = CreateCheckerboard(textureWidth, textureHeight);
 
-        using GpuTexture texture = device.CreateTexture(
-            textureWidth, textureHeight, pixels, GpuFormat.Rgba8Unorm);
+        ResourceHandle<GpuTexture> texture = resources.CreateSampledTexture(
+            "textures.checker",
+            textureWidth,
+            textureHeight,
+            pixels,
+            GpuFormat.Rgba8Unorm);
+        Signal<ResourceState> textureState = ctx.Observe(texture);
         ```
 
-        上のsampleではチェック柄を作る処理を`CreateCheckerboard`へ分けています。Story Sourceにはhelperの呼び出しだけが表示され、画像生成処理の本体は含まれません。8×8のRGBA8なので、pixel dataは`8 * 8 * 4 = 256 byte`です。`CreateTexture`が戻った後は入力配列を再利用できますが、作成されたtextureは描画commandが完了するまで保持します。
+        上のsampleではチェック柄を作る処理を`CreateCheckerboard`へ分けています。Story Sourceにはhelperの呼び出しだけが表示され、画像生成処理の本体は含まれません。8×8のRGBA8なので、pixel dataは`8 * 8 * 4 = 256 byte`です。textureの作成と所有権はResourceSystemが管理し、`textureState.HasValue`になってから`texture.Value`を使います。scope終了時の破棄もResourceSystemがGPUのidle境界に合わせて処理します。
 
         ## Samplerを作成する
 
         samplerはpixel間の補間と、0〜1の外側に出たUVの扱いを指定します。
 
         ```csharp
-        using GpuSampler sampler = device.CreateSampler(
+        ResourceHandle<GpuSampler> sampler = resources.CreateSampler(
+            "textures.sampler",
             GpuSamplerFilter.Point,
             GpuSamplerAddress.Repeat);
+        Signal<ResourceState> samplerState = ctx.Observe(sampler);
         ```
 
-        `Point`は最も近い1 pixelを選び、`Linear`は周囲を補間します。`Clamp`は端のpixelを延長し、`Repeat`はUVを繰り返します。
+        `Point`は最も近い1 pixelを選び、`Linear`は周囲を補間します。`Clamp`は端のpixelを延長し、`Repeat`はUVを繰り返します。samplerも同じscopeが所有し、readyになってから使用します。
 
         ## Shaderへ渡す
 
@@ -586,8 +593,8 @@ public static partial class DocsRenderingLearn
 
         var args = new DrawArgs
         {
-            TextureIndex = texture.BindlessIndex,
-            SamplerIndex = sampler.BindlessIndex,
+            TextureIndex = texture.Value.BindlessIndex,
+            SamplerIndex = sampler.Value.BindlessIndex,
         };
         ```
 
