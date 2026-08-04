@@ -40,7 +40,7 @@
 <p>描画結果を widget にする受け皿が 2 つあります:</p>
 <ul>
 <li><strong>Canvas2D(w, h, draw: / animate:(s, t))</strong> — Scene2D を直接描く (UI と同じ保持型キャンバスの 1 ノード)。<code>t</code> は累積秒</li>
-<li><strong>GpuView(w, h, render, animated:, dispose:)</strong> — story関数が<code>ctx.ScopedResources</code>で用意したresourceをcaptureし、deviceとGpuView所有surfaceを受け取るcallbackでoffscreen描画。bindless buffer経由でゼロコピー合成</li>
+<li><strong>GpuView(w, h, render, animated:, dispose:)</strong> — story関数が<code>ctx.ScopedResources</code>で用意したresourceをcaptureし、deviceとGpuView所有surfaceを受け取るcallbackでoffscreen描画。callbackは<code>Ready</code>/<code>Loading</code>/<code>Failed</code>を返し、未準備・失敗時は状態アイコンへフォールバック。bindless buffer経由でゼロコピー合成</li>
 </ul>
 <div class="markdown-alert markdown-alert-warning">
 <p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
@@ -98,7 +98,7 @@ public static Widget Gallery(StoryContext ctx) =&gt; ctx.Snap(DocNew(ctx, $$&quo
     描画結果を widget にする受け皿が 2 つあります:
 
     - **Canvas2D(w, h, draw: / animate:(s, t))** — Scene2D を直接描く (UI と同じ保持型キャンバスの 1 ノード)。`t` は累積秒
-    - **GpuView(w, h, render, animated:, dispose:)** — story関数が`ctx.ScopedResources`で用意したresourceをcaptureし、deviceとGpuView所有surfaceを受け取るcallbackでoffscreen描画。bindless buffer経由でゼロコピー合成
+    - **GpuView(w, h, render, animated:, dispose:)** — story関数が`ctx.ScopedResources`で用意したresourceをcaptureし、deviceとGpuView所有surfaceを受け取るcallbackでoffscreen描画。callbackは`Ready`/`Loading`/`Failed`を返し、未準備・失敗時は状態アイコンへフォールバック。bindless buffer経由でゼロコピー合成
 
     &gt; [!WARNING]
     &gt; GpuView callback の規約: GPU resourceはstory関数内で`ctx.ScopedResources`から取得し、callbackへcaptureする。個別handleを`dispose`へ渡す必要はなく、story scopeが一括解放する。**時間はcallback引数の累積秒のみ** (wall-clock禁止 — snapの決定性)。描画先と256B整列済みframebufferは`GpuViewSurface`が所有する。knobを絵に反映する場合は`animated: true`にする。RenderGraphは1フレーム使い切り — animated rendererではcallback内で毎回作る。
