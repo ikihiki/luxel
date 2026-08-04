@@ -264,13 +264,84 @@ public sealed class GallerySiteExporterTests
         {
             using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
             using var rasterizer = new Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D();
-            using var host = new GalleryHost(rasterizer, font);
+            using var host = new GalleryHost(rasterizer, font, publishFrames: false);
 
             SiteExportReport report = GallerySiteExporter.Export(host, [story], output, root);
 
             Assert.Equal(1, report.Stories);
             Assert.Equal(1, host.StorySelectionCount);
             Assert.True(File.Exists(Path.Combine(output, "images", GallerySiteExporter.Slug(story.Path) + ".png")));
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+        }
+    }
+
+    [Fact]
+    public void Static_capture_none_exports_native_story_as_unavailable_without_creating_host()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-no-capture-" + Guid.NewGuid().ToString("N"));
+        var story = new StoryInfo("Test/NoCapture", 160, 80, null,
+            _ => throw new InvalidOperationException("native story must not be realized"), Source: "static Widget NoCapture() => Text(\"source\");");
+        var builder = new StoryCatalogBuilder();
+        builder.Add(story);
+        StoryCatalog catalog = builder.Build();
+        int hostCreations = 0;
+        try
+        {
+            SiteExportReport report = GallerySiteExporter.Export(
+                () => { hostCreations++; throw new InvalidOperationException("host must remain lazy"); },
+                catalog, [story], output, root, options: new SiteExportOptions { StaticCapture = StaticCaptureMode.None });
+
+            Assert.Equal(0, hostCreations);
+            Assert.Equal(0, report.Images);
+            Assert.Equal(1, report.Unavailable);
+            Assert.Equal(1, report.Metrics?.PolicySkips);
+            SiteStory entry = Assert.Single(JsonSerializer.Deserialize<SiteStory[]>(
+                File.ReadAllText(Path.Combine(output, "manifest.json")),
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })!);
+            Assert.Equal("unavailable", entry.Status);
+            Assert.Null(entry.Image);
+            Assert.Empty(entry.ImageSha256);
+            string fragment = File.ReadAllText(Path.Combine(output, "stories", "test-nocapture.html"));
+            Assert.Contains("Static preview was disabled", fragment);
+            Assert.Contains("Story source", fragment);
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+        }
+    }
+
+    [Fact]
+    public void Incremental_semantic_export_reuses_unchanged_files_without_creating_host()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-incremental-" + Guid.NewGuid().ToString("N"));
+        StoryResult BuildResult(StoryContext _) => StoryResult.FromMarkdown("# Incremental\n\nSemantic document.");
+        var story = new StoryInfo("Test/Incremental", 0, 0, null,
+            _ => throw new InvalidOperationException("native story must not be realized"), ResultBuild: BuildResult);
+        var builder = new StoryCatalogBuilder();
+        builder.Add(story);
+        StoryCatalog catalog = builder.Build();
+        var options = new SiteExportOptions { StaticCapture = StaticCaptureMode.None, Incremental = true };
+        try
+        {
+            GallerySiteExporter.Export(() => throw new InvalidOperationException("host must remain lazy"),
+                catalog, [story], output, root, options: options);
+            string fragment = Path.Combine(output, "stories", "test-incremental.html");
+            DateTime firstWrite = File.GetLastWriteTimeUtc(fragment);
+            Thread.Sleep(20);
+
+            SiteExportReport second = GallerySiteExporter.Export(
+                () => throw new InvalidOperationException("host must remain lazy"),
+                catalog, [story], output, root, options: options);
+
+            Assert.Equal(firstWrite, File.GetLastWriteTimeUtc(fragment));
+            Assert.True(second.Metrics?.FilesReused > 0);
+            Assert.Equal(0, second.Images);
         }
         finally
         {
@@ -1406,6 +1477,7 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj", workflow);
         Assert.Contains("--no-restore --no-build --configuration Release -- artifacts/gallery-site", workflow);
         Assert.Contains("--playground-browser-root samples/LuxelPlaygroundBrowser/bin/Release/net10.0/publish/wwwroot", workflow);
+        Assert.Contains("--static-capture golden-only", workflow);
         Assert.Contains("JamesIves/github-pages-deploy-action@v4.8.0", workflow);
         Assert.Contains("clean-exclude: pr-preview", workflow);
         Assert.Contains("force: false", workflow);
@@ -1419,6 +1491,7 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj", preview);
         Assert.Contains("--no-restore --no-build --configuration Release -- artifacts/gallery-site", preview);
         Assert.Contains("--playground-browser-root samples/LuxelPlaygroundBrowser/bin/Release/net10.0/publish/wwwroot", preview);
+        Assert.Contains("--static-capture golden-only", preview);
         Assert.Contains("pull-requests: write", preview);
     }
 

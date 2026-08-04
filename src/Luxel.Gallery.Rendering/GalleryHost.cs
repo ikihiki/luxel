@@ -41,6 +41,8 @@ public sealed class GalleryHost : IDisposable
     private static readonly JsonSerializerOptions TreeJson = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private int _w, _h;
     private bool _dark;
+    private readonly bool _publishFrames;
+    private bool _hasRenderedFrame;
     private bool _disposed;
 
     // 最新フレーム (8B ヘッダ w,h LE + RGBA)。rev は内容変化時のみ進む
@@ -49,17 +51,18 @@ public sealed class GalleryHost : IDisposable
     private long _frameRev;
     private ulong _frameHash;
 
-    public GalleryHost(GpuDevice device, VectorFont font, StoryCatalog? catalog = null)
-        : this(new GpuDeviceRasterizer2D(device), font, device, catalog) { }
+    public GalleryHost(GpuDevice device, VectorFont font, StoryCatalog? catalog = null, bool publishFrames = true)
+        : this(new GpuDeviceRasterizer2D(device), font, device, catalog, publishFrames) { }
 
-    public GalleryHost(IRasterizer2D rasterizer, VectorFont font, StoryCatalog? catalog = null)
-        : this(rasterizer, font, rasterizer is GpuDeviceRasterizer2D gpu ? gpu.Device : null, catalog) { }
+    public GalleryHost(IRasterizer2D rasterizer, VectorFont font, StoryCatalog? catalog = null, bool publishFrames = true)
+        : this(rasterizer, font, rasterizer is GpuDeviceRasterizer2D gpu ? gpu.Device : null, catalog, publishFrames) { }
 
-    private GalleryHost(IRasterizer2D rasterizer, VectorFont font, GpuDevice? device, StoryCatalog? catalog)
+    private GalleryHost(IRasterizer2D rasterizer, VectorFont font, GpuDevice? device, StoryCatalog? catalog, bool publishFrames)
     {
         _catalog = catalog;
         _device = device;
         _font = font;
+        _publishFrames = publishFrames;
         _raster = rasterizer ?? throw new ArgumentNullException(nameof(rasterizer));
         _gpuRasterizer = rasterizer as GpuDeviceRasterizer2D;
         if (device is not null)
@@ -258,7 +261,7 @@ public sealed class GalleryHost : IDisposable
         _ctx?.PumpKnobEdits();   // Knobs テーブル (docs 埋め込み) の編集適用 (effect 文脈外)
         if (_host is null || _canvas is null || _rasterScene is null) return;
         _host.Tick(dt);
-        if (_frame is not null && !_canvas.HasPendingChanges) return;   // 前回と同じ絵になるだけ
+        if (_hasRenderedFrame && !_canvas.HasPendingChanges) return;   // 前回と同じ絵になるだけ
         Render();
     }
 
@@ -281,6 +284,9 @@ public sealed class GalleryHost : IDisposable
         {
             throw new InvalidOperationException($"No target is available for {_raster.Name}.");
         }
+
+        _hasRenderedFrame = true;
+        if (!_publishFrames) return;
 
         int len = _w * _h * 4;
         byte[] body = new byte[8 + len];

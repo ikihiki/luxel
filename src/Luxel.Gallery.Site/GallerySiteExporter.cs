@@ -12,7 +12,10 @@ using Markdig;
 
 namespace Luxel.Gallery.Site;
 
-public sealed record SiteExportReport(int Stories, int Images, int Unavailable, int Errors);
+public sealed record SiteExportReport(int Stories, int Images, int Unavailable, int Errors)
+{
+    public SiteExportMetrics? Metrics { get; init; }
+}
 public sealed record SiteStory(string Path, string Name, string Component, string Fragment, string? Image,
     string Status, string? Error, string ImageSha256, string SearchText, IReadOnlyList<string> Aliases,
     SampleBundleInfo? Bundle, IReadOnlyList<StoryArgDefinition> Args);
@@ -24,15 +27,37 @@ public static partial class GallerySiteExporter
     private sealed record BrowserRuntimeStory(string Path, int Width, int Height,
         IReadOnlyList<StoryArgDefinition> Args, string? CapabilityNote, string? ComponentType);
     private sealed record BrowserBundleManifest(string BundleId, int ProtocolVersion, string EntryUrl,
-        IReadOnlyList<BrowserRuntimeStory> Stories);
+        IReadOnlyList<BrowserRuntimeStory> Stories)
+    {
+        public IReadOnlyDictionary<string, BrowserRuntimeStory> StoryByPath { get; } =
+            Stories.ToDictionary(story => story.Path, StringComparer.Ordinal);
+    }
     private static readonly string[] BrowserRuntimeRequiredFiles = ["index.html", "main.js", "browser-runtime-manifest.json", Path.Combine("_framework", "dotnet.js")];
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
     public static SiteExportReport Export(GalleryHost host, IReadOnlyList<StoryInfo> stories, string output, string repositoryRoot,
         string? browserWebGpuRoot = null, string? playgroundBrowserRoot = null)
+        => Export(() => host, GalleryStoryProject.CreateCatalog(), stories, output, repositoryRoot,
+            browserWebGpuRoot, playgroundBrowserRoot, new SiteExportOptions());
+
+    public static SiteExportReport Export(Func<GalleryHost> hostFactory, StoryCatalog catalog,
+        IReadOnlyList<StoryInfo> stories, string output, string repositoryRoot,
+        string? browserWebGpuRoot = null, string? playgroundBrowserRoot = null, SiteExportOptions? options = null)
     {
-        if (Directory.Exists(output)) Directory.Delete(output, recursive: true);
+        ArgumentNullException.ThrowIfNull(hostFactory);
+        ArgumentNullException.ThrowIfNull(catalog);
+        options ??= new SiteExportOptions();
+        var metrics = new SiteExportMetricsBuilder { Incremental = options.Incremental };
+        var setupTimer = System.Diagnostics.Stopwatch.StartNew();
+        var lazyHost = new Lazy<GalleryHost>(hostFactory);
+        GalleryHost Host() => lazyHost.Value;
+
+        string managedIndexPath = Path.Combine(output, ".gallery-managed-files.json");
+        string[] previousManaged = options.Incremental && File.Exists(managedIndexPath)
+            ? JsonSerializer.Deserialize<string[]>(File.ReadAllText(managedIndexPath), Json) ?? []
+            : [];
+        if (!options.Incremental && Directory.Exists(output)) Directory.Delete(output, recursive: true);
         Directory.CreateDirectory(output);
         string fragmentsDir = Path.Combine(output, "stories");
         string imagesDir = Path.Combine(output, "images");
@@ -40,29 +65,28 @@ public static partial class GallerySiteExporter
         Directory.CreateDirectory(imagesDir);
         string highlightDir = Path.Combine(output, "vendor", "highlightjs");
         Directory.CreateDirectory(highlightDir);
-        CopyRuntimeAsset(Path.Combine("Assets", "highlightjs", "highlight.min.js"), Path.Combine(highlightDir, "highlight.min.js"));
-        CopyRuntimeAsset(Path.Combine("Assets", "highlightjs", "github-dark.min.css"), Path.Combine(highlightDir, "github-dark.min.css"));
+        CopyRuntimeAsset(Path.Combine("Assets", "highlightjs", "highlight.min.js"), Path.Combine(highlightDir, "highlight.min.js"), options.Incremental, metrics);
+        CopyRuntimeAsset(Path.Combine("Assets", "highlightjs", "github-dark.min.css"), Path.Combine(highlightDir, "github-dark.min.css"), options.Incremental, metrics);
         string licensesDir = Path.Combine(output, "licenses");
         Directory.CreateDirectory(licensesDir);
         string boxLicense = Path.Combine(repositoryRoot, "tools", "khronos-samples", "Box-LICENSE.md");
         if (!File.Exists(boxLicense))
             throw new FileNotFoundException("Khronos Box license was not provisioned before site export.", boxLicense);
-        CopyRuntimeAsset(Path.Combine("Assets", "highlightjs", "LICENSE"), Path.Combine(licensesDir, "highlight.js-LICENSE.txt"));
-        File.Copy(boxLicense, Path.Combine(licensesDir, "Box-LICENSE.md"), overwrite: true);
-        File.WriteAllText(Path.Combine(output, ".nojekyll"), "", new UTF8Encoding(false));
-        File.WriteAllText(Path.Combine(output, "site.css"), Css + StorySourceCss + MermaidCss, new UTF8Encoding(false));
-        File.WriteAllText(Path.Combine(output, "site.js"), Js, new UTF8Encoding(false));
-        File.WriteAllText(Path.Combine(output, "mermaid-bootstrap.js"), MermaidBootstrap, new UTF8Encoding(false));
-        PlaygroundRuntimeManifest? playgroundRuntime = ExportPlaygroundAssets(output, playgroundBrowserRoot);
+        CopyRuntimeAsset(Path.Combine("Assets", "highlightjs", "LICENSE"), Path.Combine(licensesDir, "highlight.js-LICENSE.txt"), options.Incremental, metrics);
+        CopyFileIfChanged(boxLicense, Path.Combine(licensesDir, "Box-LICENSE.md"), options.Incremental, metrics);
+        WriteTextIfChanged(Path.Combine(output, ".nojekyll"), "", options.Incremental, metrics);
+        WriteTextIfChanged(Path.Combine(output, "site.css"), Css + StorySourceCss + MermaidCss, options.Incremental, metrics);
+        WriteTextIfChanged(Path.Combine(output, "site.js"), Js, options.Incremental, metrics);
+        WriteTextIfChanged(Path.Combine(output, "mermaid-bootstrap.js"), MermaidBootstrap, options.Incremental, metrics);
+        PlaygroundRuntimeManifest? playgroundRuntime = ExportPlaygroundAssets(output, playgroundBrowserRoot, options.Incremental, metrics);
 
         BrowserBundleManifest? browserBundle = browserWebGpuRoot is null ? null : LoadBrowserBundle(browserWebGpuRoot);
         if (browserBundle is not null)
-            CopyBrowserRuntime(browserWebGpuRoot!, Path.Combine(output, BrowserRuntimeBaseUrl.Replace('/', Path.DirectorySeparatorChar)));
+            CopyBrowserRuntime(browserWebGpuRoot!, Path.Combine(output, BrowserRuntimeBaseUrl.Replace('/', Path.DirectorySeparatorChar)), options.Incremental, metrics);
         // Export may be scoped to a subset of pages, but embedded story references still resolve
         // against the authoritative explicit Gallery catalog. Supplied stories win so callers can
         // export a locally constructed replacement without relying on the global StoryRegistry.
-        var storyByPath = GalleryStoryProject.CreateCatalog().All
-            .ToDictionary(story => story.Path, StringComparer.Ordinal);
+        var storyByPath = catalog.All.ToDictionary(story => story.Path, StringComparer.Ordinal);
         foreach (StoryInfo story in stories) storyByPath[story.Path] = story;
 
         if (browserBundle is not null)
@@ -70,6 +94,10 @@ public static partial class GallerySiteExporter
 
         var manifest = new List<SiteStory>();
         var imageCache = new Dictionary<string, (string? Url, string Status, string? Error, string Hash)>(StringComparer.Ordinal);
+        Dictionary<string, string> goldenIndex = IndexGoldens(repositoryRoot);
+        var localImageCache = new Dictionary<string, string>(StringComparer.Ordinal);
+        setupTimer.Stop();
+        metrics.Setup = setupTimer.Elapsed;
         int unavailable = 0, errors = 0;
         foreach (StoryInfo story in stories)
         {
@@ -87,11 +115,13 @@ public static partial class GallerySiteExporter
                 if (string.Equals(story.Path, PlaygroundContract.StoryPath, StringComparison.Ordinal))
                 {
                     status = "document";
+                    metrics.DocumentStories++;
                     body = PlaygroundStoryFragment(playgroundRuntime);
                 }
                 else if (CanRunInBrowser(story, browserBundle))
                 {
                     status = "runtime";
+                    metrics.RuntimeStories++;
                     body = RuntimeStory(story, StoryArgs.Empty, browserBundle!, embedded: false, story.Path + "#top");
                 }
                 else if (story.ResultBuild is not null)
@@ -101,12 +131,15 @@ public static partial class GallerySiteExporter
                     if (result.Kind == StoryResultKind.Markdown)
                     {
                         status = "document";
-                        body = RenderStoryResult(result, story.Path, storyByPath, browserBundle, host, imagesDir, repositoryRoot,
-                            imageCache, new HashSet<string>(StringComparer.Ordinal), 0, ref unavailable, ref errors);
+                        body = RenderStoryResult(result, story.Path, storyByPath, browserBundle, Host, imagesDir, repositoryRoot,
+                            imageCache, goldenIndex, options.StaticCapture, metrics,
+                            new HashSet<string>(StringComparer.Ordinal), 0, ref unavailable, ref errors);
+                        metrics.DocumentStories++;
                     }
                     else
                     {
-                        (imageUrl, status, error, imageHash) = EnsureStoryImage(host, story, imagesDir, repositoryRoot, imageCache);
+                        (imageUrl, status, error, imageHash) = EnsureStoryImage(Host, story, imagesDir, imageCache,
+                            goldenIndex, options.StaticCapture, metrics);
                     }
                 }
                 else if (story.RealWindowOnly)
@@ -114,40 +147,76 @@ public static partial class GallerySiteExporter
                     status = "unavailable";
                     error = "This story requires a real window and is not available in the static gallery.";
                 }
+                else if (options.StaticCapture == StaticCaptureMode.None)
+                {
+                    metrics.PolicySkips++;
+                    status = "unavailable";
+                    error = CapturePolicyMessage(options.StaticCapture);
+                }
                 else
                 {
-                    // CI renders through lavapipe, so rebuilding and stabilizing a story twice is especially
-                    // expensive. Realize once, inspect the current root, and capture that same stabilized frame.
-                    byte[]? png = FindGolden(story.Path, repositoryRoot) is { } golden ? File.ReadAllBytes(golden) : null;
+                    // Realize once to discover legacy TextEditorView documents. Inspect the root before
+                    // producing a PNG so semantic documents never pay final readback/encoding or retain an unused image.
+                    byte[]? png = null;
                     string? realizationError = null;
+                    GalleryHost activeHost = Host();
+                    var nativeTimer = System.Diagnostics.Stopwatch.StartNew();
                     try
                     {
-                        host.SelectExact(story);
-                        GallerySnapshots.Stabilize(host);
-                        if (png is null)
+                        activeHost.SelectExact(story);
+                        GallerySnapshots.Stabilize(activeHost);
+                        document = GallerySnapshots.FindDocument(activeHost.CurrentRoot);
+                        if (document is null)
                         {
-                            GallerySnapshotResult capture = GallerySnapshots.CaptureCurrent(host, story.Path);
-                            png = capture.Png;
-                            realizationError = capture.Error;
+                            png = TryReadGolden(story.Path, goldenIndex, options.StaticCapture, metrics);
+                            if (png is null && options.StaticCapture == StaticCaptureMode.All)
+                            {
+                                GallerySnapshotResult capture = GallerySnapshots.CaptureCurrent(activeHost, story.Path);
+                                png = capture.Png;
+                                realizationError = capture.Error;
+                                if (png is not null) metrics.DynamicCaptures++;
+                            }
                         }
-                        document = GallerySnapshots.FindDocument(host.CurrentRoot);
                     }
                     catch (Exception e)
                     {
                         realizationError = $"{e.GetType().Name}: {e.Message}";
+                        png = TryReadGolden(story.Path, goldenIndex, options.StaticCapture, metrics);
+                    }
+                    finally
+                    {
+                        nativeTimer.Stop();
+                        metrics.NativeRealization += nativeTimer.Elapsed;
                     }
 
-                    (imageUrl, status, error, imageHash) = StoreStoryImage(
-                        story, imagesDir, imageCache, png, realizationError);
-                    if (png is not null && realizationError is not null)
+                    if (document is not null)
                     {
-                        // Preserve an already available golden or runtime capture if optional document
-                        // introspection fails after the frame is ready.
-                        error = "Live document introspection unavailable; static capture preserved. " + realizationError;
+                        status = "document";
+                        metrics.DocumentStories++;
+                        imageUrl = null;
+                        imageHash = "";
+                    }
+                    else if (png is not null)
+                    {
+                        (imageUrl, status, error, imageHash) = StoreStoryImage(
+                            story, imagesDir, imageCache, png, realizationError, metrics);
+                        if (realizationError is not null)
+                            error = "Live document introspection unavailable; static capture preserved. " + realizationError;
+                    }
+                    else if (options.StaticCapture == StaticCaptureMode.GoldenOnly && realizationError is null)
+                    {
+                        metrics.PolicySkips++;
+                        status = "unavailable";
+                        error = CapturePolicyMessage(options.StaticCapture);
+                    }
+                    else
+                    {
+                        (imageUrl, status, error, imageHash) = StoreStoryImage(
+                            story, imagesDir, imageCache, null, realizationError, metrics);
                     }
                 }
 
-                if (status is "runtime" or "document")
+                if (status == "runtime" || status == "document" && document is null)
                 {
                     // Semantic HTML/runtime was selected before native realization.
                 }
@@ -157,9 +226,10 @@ public static partial class GallerySiteExporter
                     if (linkErrors.Count > 0)
                         throw new InvalidDataException("Broken documentation links: " + string.Join(", ", linkErrors));
                     string md = ReplaceEmbeds(story.Path, document.DocSource!, document.DocEmbeds, storyByPath,
-                        host, imagesDir, repositoryRoot, imageCache, browserBundle, ref unavailable, ref errors);
-                    md = RewriteLocalImages(md, imagesDir, repositoryRoot);
-                    md = ReplaceSpecialFences(md, host, imagesDir, ref errors);
+                        Host, imagesDir, imageCache, goldenIndex, options.StaticCapture, metrics,
+                        browserBundle, ref unavailable, ref errors);
+                    md = RewriteLocalImages(md, imagesDir, repositoryRoot, localImageCache, metrics);
+                    md = ReplaceSpecialFences(md, Host, imagesDir, options.StaticCapture, metrics, ref unavailable, ref errors);
                     body = RenderMarkdown(md, story.Path);
                 }
                 else if (imageUrl is not null)
@@ -188,7 +258,7 @@ public static partial class GallerySiteExporter
                 string badge = "<p class=\"static-badge\">Static capture — not interactive</p>";
                 fragment = $"<article class=\"story\"><header>{badge}<h1>{H(story.Path)}</h1></header>{body}{BundleHtml(SampleBundleRegistry.Find(story.SampleBundle))}{StorySourceHtml(story.Source)}</article>";
             }
-            File.WriteAllText(Path.Combine(output, fragmentUrl.Replace('/', Path.DirectorySeparatorChar)), fragment, new UTF8Encoding(false));
+            WriteTextIfChanged(Path.Combine(output, fragmentUrl.Replace('/', Path.DirectorySeparatorChar)), fragment, options.Incremental, metrics);
             if (status == "unavailable") unavailable++;
             if (status == "error") errors++;
             string searchText = story.Path + "\n" + story.Name + "\n" + story.Component
@@ -199,44 +269,81 @@ public static partial class GallerySiteExporter
                 story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>()));
         }
 
-        File.WriteAllText(Path.Combine(output, "manifest.json"), JsonSerializer.Serialize(manifest, Json) + "\n", new UTF8Encoding(false));
-        File.WriteAllText(Path.Combine(output, "index.html"), Index, new UTF8Encoding(false));
+        WriteTextIfChanged(Path.Combine(output, "manifest.json"), JsonSerializer.Serialize(manifest, Json) + "\n", options.Incremental, metrics);
+        WriteTextIfChanged(Path.Combine(output, "index.html"), Index, options.Incremental, metrics);
+        if (options.Incremental)
+        {
+            var currentRelative = metrics.ManagedFiles
+                .Select(path => Path.GetRelativePath(output, path).Replace(Path.DirectorySeparatorChar, '/'))
+                .Where(path => !path.StartsWith("..", StringComparison.Ordinal))
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .ToArray();
+            var currentSet = currentRelative.ToHashSet(StringComparer.Ordinal);
+            foreach (string stale in previousManaged.Where(path => !currentSet.Contains(path)))
+            {
+                string stalePath = Path.GetFullPath(Path.Combine(output, stale.Replace('/', Path.DirectorySeparatorChar)));
+                if (stalePath.StartsWith(Path.GetFullPath(output) + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+                    && File.Exists(stalePath)) File.Delete(stalePath);
+            }
+            File.WriteAllText(managedIndexPath, JsonSerializer.Serialize(currentRelative, Json) + "\n", new UTF8Encoding(false));
+        }
+        var validationTimer = System.Diagnostics.Stopwatch.StartNew();
         Validate(output);
-        return new(stories.Count, Directory.GetFiles(imagesDir, "*.png").Length, unavailable, errors);
+        validationTimer.Stop();
+        metrics.Validation = validationTimer.Elapsed;
+        SiteExportMetrics completedMetrics = metrics.Build();
+        options.Log?.Invoke("gallery-site metrics: " + completedMetrics);
+        return new(stories.Count, Directory.GetFiles(imagesDir, "*.png").Length, unavailable, errors)
+        {
+            Metrics = completedMetrics,
+        };
     }
 
-    private static (string? Url, string Status, string? Error, string Hash) EnsureStoryImage(GalleryHost host, StoryInfo story,
-        string imagesDir, string repositoryRoot, Dictionary<string, (string? Url, string Status, string? Error, string Hash)> cache)
+    private static (string? Url, string Status, string? Error, string Hash) EnsureStoryImage(Func<GalleryHost> host,
+        StoryInfo story, string imagesDir,
+        Dictionary<string, (string? Url, string Status, string? Error, string Hash)> cache,
+        IReadOnlyDictionary<string, string> goldenIndex, StaticCaptureMode captureMode, SiteExportMetricsBuilder metrics)
     {
         if (cache.TryGetValue(story.Path, out var cached)) return cached;
         if (story.RealWindowOnly)
             return cache[story.Path] = (null, "unavailable", "RealWindowOnly story cannot be captured offscreen.", "");
-        byte[]? png = FindGolden(story.Path, repositoryRoot) is { } golden ? File.ReadAllBytes(golden) : null;
+        byte[]? png = TryReadGolden(story.Path, goldenIndex, captureMode, metrics);
         string? error = null;
-        if (png is null)
+        if (png is null && captureMode == StaticCaptureMode.All)
         {
-            GallerySnapshotResult result = GallerySnapshots.CaptureStory(host, story);
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            GallerySnapshotResult result = GallerySnapshots.CaptureStory(host(), story);
+            timer.Stop();
+            metrics.NativeRealization += timer.Elapsed;
             png = result.Png;
             error = result.Error;
+            if (png is not null) metrics.DynamicCaptures++;
         }
-        return StoreStoryImage(story, imagesDir, cache, png, error);
+        if (png is null && captureMode != StaticCaptureMode.All && error is null)
+        {
+            metrics.PolicySkips++;
+            return cache[story.Path] = (null, "unavailable", CapturePolicyMessage(captureMode), "");
+        }
+        return StoreStoryImage(story, imagesDir, cache, png, error, metrics);
     }
 
     private static (string? Url, string Status, string? Error, string Hash) StoreStoryImage(StoryInfo story,
         string imagesDir, Dictionary<string, (string? Url, string Status, string? Error, string Hash)> cache,
-        byte[]? png, string? error)
+        byte[]? png, string? error, SiteExportMetricsBuilder metrics)
     {
         if (cache.TryGetValue(story.Path, out var cached)) return cached;
         if (png is null) return cache[story.Path] = (null, "error", error ?? "Capture failed.", "");
         string file = Slug(story.Path) + ".png";
-        File.WriteAllBytes(Path.Combine(imagesDir, file), png);
+        string destination = Path.Combine(imagesDir, file);
+        WriteBytesIfChanged(destination, png, metrics);
         string hash = Convert.ToHexString(SHA256.HashData(png)).ToLowerInvariant();
         return cache[story.Path] = ($"images/{file}", "captured", null, hash);
     }
 
     private static string ReplaceEmbeds(string containingStoryPath, string md, IReadOnlyList<DocEmbed> embeds,
-        IReadOnlyDictionary<string, StoryInfo> stories, GalleryHost host, string imagesDir, string repositoryRoot,
+        IReadOnlyDictionary<string, StoryInfo> stories, Func<GalleryHost> host, string imagesDir,
         Dictionary<string, (string? Url, string Status, string? Error, string Hash)> cache,
+        IReadOnlyDictionary<string, string> goldenIndex, StaticCaptureMode captureMode, SiteExportMetricsBuilder metrics,
         BrowserBundleManifest? browserBundle, ref int unavailable, ref int errors)
     {
         for (int i = 0; i < embeds.Count; i++)
@@ -255,7 +362,7 @@ public static partial class GallerySiteExporter
             else if (embed.Kind == DocEmbedKind.StoryRef && embed.Reference is { } path
                      && stories.TryGetValue(path, out StoryInfo? story))
             {
-                var result = EnsureStoryImage(host, story, imagesDir, repositoryRoot, cache);
+                var result = EnsureStoryImage(host, story, imagesDir, cache, goldenIndex, captureMode, metrics);
                 if (result.Url is { } url)
                     html = StaticFigure(url, path, "Static embedded story capture",
                         "#story=" + Uri.EscapeDataString(path));
@@ -272,11 +379,25 @@ public static partial class GallerySiteExporter
             }
             else
             {
-                GallerySnapshotResult result = GallerySnapshots.CaptureWidget(host, $"doc-embed-{i}", embed.Widget);
+                if (captureMode != StaticCaptureMode.All)
+                {
+                    metrics.PolicySkips++;
+                    html = Unavailable(CapturePolicyMessage(captureMode), "unavailable");
+                    unavailable++;
+                    md = md.Replace($"```{DocString.UiTypeId}\n{i}\n```", "\n" + html + "\n", StringComparison.Ordinal)
+                        .Replace($"[￼]({DocString.InlineScheme}{i})", html, StringComparison.Ordinal);
+                    continue;
+                }
+                var timer = System.Diagnostics.Stopwatch.StartNew();
+                GallerySnapshotResult result = GallerySnapshots.CaptureWidget(host(), $"doc-embed-{i}", embed.Widget);
+                timer.Stop();
+                metrics.NativeRealization += timer.Elapsed;
                 if (result.Png is { } png)
                 {
                     string file = $"embed-{Convert.ToHexString(SHA256.HashData(png)).ToLowerInvariant()[..20]}.png";
-                    File.WriteAllBytes(Path.Combine(imagesDir, file), png);
+                    string destination = Path.Combine(imagesDir, file);
+                    WriteBytesIfChanged(destination, png, metrics);
+                    metrics.DynamicCaptures++;
                     html = StaticFigure("images/" + file, $"Documentation embed {i + 1}", "Static widget capture");
                 }
                 else { html = Unavailable(result.Error ?? "Widget capture failed.", "error"); errors++; }
@@ -288,9 +409,10 @@ public static partial class GallerySiteExporter
     }
 
     private static string RenderStoryResult(StoryResult result, string storyPath,
-        IReadOnlyDictionary<string, StoryInfo> stories, BrowserBundleManifest? browserBundle, GalleryHost host,
+        IReadOnlyDictionary<string, StoryInfo> stories, BrowserBundleManifest? browserBundle, Func<GalleryHost> host,
         string imagesDir, string repositoryRoot,
         Dictionary<string, (string? Url, string Status, string? Error, string Hash)> cache,
+        IReadOnlyDictionary<string, string> goldenIndex, StaticCaptureMode captureMode, SiteExportMetricsBuilder metrics,
         HashSet<string> ancestry, int depth, ref int unavailable, ref int errors)
     {
         const int maxDepth = 12;
@@ -320,8 +442,8 @@ public static partial class GallerySiteExporter
                         using var context = new StoryContext(args: reference.Args);
                         StoryResult nested = referenced.BuildResult(context);
                         html = nested.Kind == StoryResultKind.Markdown
-                            ? $"<section class=\"story-reference story-reference-markdown\" data-story-reference=\"{H(referenced.Path)}\">{RenderStoryResult(nested, referenced.Path, stories, browserBundle, host, imagesDir, repositoryRoot, cache, ancestry, depth + 1, ref unavailable, ref errors)}</section>"
-                            : StaticReference(host, referenced, imagesDir, repositoryRoot, cache, ref unavailable, ref errors);
+                            ? $"<section class=\"story-reference story-reference-markdown\" data-story-reference=\"{H(referenced.Path)}\">{RenderStoryResult(nested, referenced.Path, stories, browserBundle, host, imagesDir, repositoryRoot, cache, goldenIndex, captureMode, metrics, ancestry, depth + 1, ref unavailable, ref errors)}</section>"
+                            : StaticReference(host, referenced, imagesDir, cache, goldenIndex, captureMode, metrics, ref unavailable, ref errors);
                     }
                     catch (Exception error)
                     {
@@ -331,7 +453,7 @@ public static partial class GallerySiteExporter
                 }
                 else
                 {
-                    html = StaticReference(host, referenced, imagesDir, repositoryRoot, cache, ref unavailable, ref errors);
+                    html = StaticReference(host, referenced, imagesDir, cache, goldenIndex, captureMode, metrics, ref unavailable, ref errors);
                 }
 
                 markdown = markdown.Replace($"```luxel-story\n{i}\n```", "\n" + html + "\n", StringComparison.Ordinal);
@@ -341,11 +463,12 @@ public static partial class GallerySiteExporter
         finally { ancestry.Remove(storyPath); }
     }
 
-    private static string StaticReference(GalleryHost host, StoryInfo story, string imagesDir, string repositoryRoot,
+    private static string StaticReference(Func<GalleryHost> host, StoryInfo story, string imagesDir,
         Dictionary<string, (string? Url, string Status, string? Error, string Hash)> cache,
+        IReadOnlyDictionary<string, string> goldenIndex, StaticCaptureMode captureMode, SiteExportMetricsBuilder metrics,
         ref int unavailable, ref int errors)
     {
-        var capture = EnsureStoryImage(host, story, imagesDir, repositoryRoot, cache);
+        var capture = EnsureStoryImage(host, story, imagesDir, cache, goldenIndex, captureMode, metrics);
         if (capture.Url is { } url)
             return StaticFigure(url, story.Path, "Static embedded story capture", "#story=" + Uri.EscapeDataString(story.Path));
         if (capture.Status == "unavailable") unavailable++; else errors++;
@@ -406,7 +529,8 @@ public static partial class GallerySiteExporter
         return html.Append("</section>").ToString();
     }
 
-    private static string RewriteLocalImages(string markdown, string imagesDir, string repositoryRoot)
+    private static string RewriteLocalImages(string markdown, string imagesDir, string repositoryRoot,
+        Dictionary<string, string> cache, SiteExportMetricsBuilder metrics)
         => MarkdownImage().Replace(markdown, match =>
         {
             string url = match.Groups[2].Value;
@@ -416,16 +540,24 @@ public static partial class GallerySiteExporter
             string source = Path.GetFullPath(Path.Combine(repositoryRoot, url.Replace('/', Path.DirectorySeparatorChar)));
             if (!File.Exists(source))
                 return Unavailable($"Referenced documentation image was not found: {url}", "error");
-            byte[] bytes = File.ReadAllBytes(source);
-            string extension = Path.GetExtension(source).ToLowerInvariant();
-            string file = $"asset-{Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant()[..20]}{extension}";
-            File.WriteAllBytes(Path.Combine(imagesDir, file), bytes);
+            if (!cache.TryGetValue(source, out string? file))
+            {
+                byte[] bytes = File.ReadAllBytes(source);
+                string extension = Path.GetExtension(source).ToLowerInvariant();
+                file = $"asset-{Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant()[..20]}{extension}";
+                string destination = Path.Combine(imagesDir, file);
+                // Authored images are managed output too, but remain available in every capture mode.
+                WriteBytesIfChanged(destination, bytes, metrics);
+                cache[source] = file;
+            }
+            metrics.ManagedFiles.Add(Path.GetFullPath(Path.Combine(imagesDir, file)));
             return $"{match.Groups[1].Value}images/{file}{match.Groups[3].Value}";
         });
 
-    private static string ReplaceSpecialFences(string md, GalleryHost host, string imagesDir, ref int errors)
+    private static string ReplaceSpecialFences(string md, Func<GalleryHost> host, string imagesDir,
+        StaticCaptureMode captureMode, SiteExportMetricsBuilder metrics, ref int unavailable, ref int errors)
     {
-        int index = 0, failed = 0;
+        int index = 0, failed = 0, skipped = 0;
         string replaced = SpecialFence().Replace(md, match =>
         {
             string kind = match.Groups[1].Value;
@@ -433,17 +565,29 @@ public static partial class GallerySiteExporter
             if (kind == "mermaid")
                 return $"<pre class=\"mermaid\">{H(source)}</pre>";
 
+            if (captureMode != StaticCaptureMode.All)
+            {
+                metrics.PolicySkips++;
+                skipped++;
+                return Unavailable(CapturePolicyMessage(captureMode), "unavailable");
+            }
             Widget widget = Luxel.MathText.Factories.MathBlockView(source, maxWidth: 640f);
-            GallerySnapshotResult result = GallerySnapshots.CaptureWidget(host, $"{kind}-{index++}", widget, 680, 480);
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            GallerySnapshotResult result = GallerySnapshots.CaptureWidget(host(), $"{kind}-{index++}", widget, 680, 480);
+            timer.Stop();
+            metrics.NativeRealization += timer.Elapsed;
             if (result.Png is not { } png)
             {
                 failed++;
                 return Unavailable(result.Error ?? $"{kind} capture failed.", "error");
             }
             string file = $"{kind}-{Convert.ToHexString(SHA256.HashData(png)).ToLowerInvariant()[..20]}.png";
-            File.WriteAllBytes(Path.Combine(imagesDir, file), png);
+            string destination = Path.Combine(imagesDir, file);
+            WriteBytesIfChanged(destination, png, metrics);
+            metrics.DynamicCaptures++;
             return StaticFigure("images/" + file, $"{kind} diagram", $"Static {kind} capture");
         });
+        unavailable += skipped;
         errors += failed;
         return replaced;
     }
@@ -461,6 +605,10 @@ public static partial class GallerySiteExporter
                 throw new InvalidDataException($"Unknown capture status '{story.Status}' for {story.Path}.");
             if (story.Status == "runtime" && (story.Image is not null || story.ImageSha256.Length != 0))
                 throw new InvalidDataException($"Invalid runtime manifest entry for {story.Path}.");
+            if (story.Status == "captured" && (story.Image is null || story.ImageSha256.Length == 0))
+                throw new InvalidDataException($"Captured manifest entry is missing its image or hash for {story.Path}.");
+            if (story.Status is "document" or "unavailable" && (story.Image is not null || story.ImageSha256.Length != 0))
+                throw new InvalidDataException($"Image-less manifest status '{story.Status}' contains capture data for {story.Path}.");
         }
 
         foreach (string png in Directory.GetFiles(output, "*.png", SearchOption.AllDirectories))
@@ -537,10 +685,9 @@ public static partial class GallerySiteExporter
 
     private static void ValidateBrowserBundle(IReadOnlyList<StoryInfo> stories, BrowserBundleManifest bundle)
     {
-        var runtimeByPath = bundle.Stories.ToDictionary(story => story.Path, StringComparer.Ordinal);
         foreach (StoryInfo story in stories.Where(story => story.RuntimeBundleId == bundle.BundleId))
         {
-            if (!runtimeByPath.TryGetValue(story.Path, out BrowserRuntimeStory? runtime))
+            if (!bundle.StoryByPath.TryGetValue(story.Path, out BrowserRuntimeStory? runtime))
                 throw new InvalidDataException($"Browser runtime bundle '{bundle.BundleId}' does not declare registered story '{story.Path}'.");
             if (runtime.Width != story.Width || runtime.Height != story.Height)
                 throw new InvalidDataException(
@@ -558,13 +705,13 @@ public static partial class GallerySiteExporter
 
     private static bool CanRunInBrowser(StoryInfo story, BrowserBundleManifest? bundle)
         => bundle is not null && story.RuntimeBundleId == bundle.BundleId
-            && bundle.Stories.Any(runtime => runtime.Path == story.Path);
+            && bundle.StoryByPath.ContainsKey(story.Path);
 
     private static string RuntimeStory(StoryInfo story, StoryArgs args, BrowserBundleManifest bundle, bool embedded,
         string location)
     {
         IReadOnlyList<StoryArgDefinition> schema = story.ArgDefinitions
-            ?? bundle.Stories.First(runtime => runtime.Path == story.Path).Args;
+            ?? bundle.StoryByPath[story.Path].Args;
         StoryArgs seeded = args.WithDefaults(schema);
         string argsJson = seeded.ToJson();
         string instanceSeed = location + "|" + story.Path;
@@ -684,7 +831,7 @@ public static partial class GallerySiteExporter
         return manifest;
     }
 
-    private static void CopyBrowserRuntime(string source, string destination)
+    private static void CopyBrowserRuntime(string source, string destination, bool incremental, SiteExportMetricsBuilder metrics)
     {
         if (!Directory.Exists(source))
             throw new DirectoryNotFoundException($"Browser WebGPU publish root is missing: {source}");
@@ -694,29 +841,27 @@ public static partial class GallerySiteExporter
             if (!File.Exists(required))
                 throw new FileNotFoundException($"Browser WebGPU publish root is incomplete; required app file is missing: {relative}", required);
         }
-        CopyDirectory(source, destination);
+        CopyDirectory(source, destination, incremental, metrics);
         foreach (string relative in BrowserRuntimeRequiredFiles)
             if (!File.Exists(Path.Combine(destination, relative)))
                 throw new FileNotFoundException($"Copied browser WebGPU app is incomplete: {relative}", Path.Combine(destination, relative));
     }
 
-    private static void CopyDirectory(string source, string destination)
+    private static void CopyDirectory(string source, string destination, bool incremental, SiteExportMetricsBuilder metrics)
     {
         if (!Directory.Exists(source))
             throw new DirectoryNotFoundException($"Browser WebGPU publish root is missing: {source}");
-        foreach (string directory in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
-            Directory.CreateDirectory(Path.Combine(destination, Path.GetRelativePath(source, directory)));
         Directory.CreateDirectory(destination);
         foreach (string file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
         {
             string target = Path.Combine(destination, Path.GetRelativePath(source, file));
-            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-            File.Copy(file, target, overwrite: true);
+            CopyFileIfChanged(file, target, incremental, metrics);
         }
     }
 
-    private static void CopyRuntimeAsset(string relativePath, string destination)
+    private static void CopyRuntimeAsset(string relativePath, string destination, bool incremental, SiteExportMetricsBuilder metrics)
     {
+        metrics.ManagedFiles.Add(Path.GetFullPath(destination));
         string suffix = relativePath.Replace(Path.DirectorySeparatorChar, '.').Replace(Path.AltDirectorySeparatorChar, '.');
         System.Reflection.Assembly assembly = typeof(GallerySiteExporter).Assembly;
         string? resource = assembly.GetManifestResourceNames()
@@ -725,8 +870,17 @@ public static partial class GallerySiteExporter
             throw new FileNotFoundException($"Embedded static Gallery runtime asset is missing: {relativePath}");
         using Stream source = assembly.GetManifestResourceStream(resource)
             ?? throw new FileNotFoundException($"Embedded static Gallery runtime asset cannot be opened: {relativePath}");
-        using FileStream target = File.Create(destination);
-        source.CopyTo(target);
+        using var memory = new MemoryStream();
+        source.CopyTo(memory);
+        byte[] bytes = memory.ToArray();
+        if (incremental && File.Exists(destination) && File.ReadAllBytes(destination).AsSpan().SequenceEqual(bytes))
+        {
+            metrics.FilesReused++;
+            return;
+        }
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+        File.WriteAllBytes(destination, bytes);
+        metrics.FilesWritten++;
     }
 
     public static string FindRepositoryRoot()
@@ -737,18 +891,105 @@ public static partial class GallerySiteExporter
         throw new DirectoryNotFoundException("Could not locate Luxel.slnx.");
     }
 
-    private static string? FindGolden(string path, string root)
+    private static Dictionary<string, string> IndexGoldens(string root)
     {
         string dir = Path.Combine(root, "src", "Luxel.Gallery", "goldens");
-        string prefix = GoldenName(path);
-        string exact = Path.Combine(dir, prefix + ".vk.png");
-        if (File.Exists(exact)) return exact;
-        if (!Directory.Exists(dir)) return null;
-        string? vulkan = Directory.GetFiles(dir, prefix + ".*.vk.png").OrderBy(x => x, StringComparer.Ordinal).FirstOrDefault();
-        if (vulkan is not null) return vulkan;
-        string directX = Path.Combine(dir, prefix + ".dx.png");
-        if (File.Exists(directX)) return directX;
-        return Directory.GetFiles(dir, prefix + ".*.dx.png").OrderBy(x => x, StringComparer.Ordinal).FirstOrDefault();
+        var indexed = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        if (!Directory.Exists(dir)) return new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (string file in Directory.EnumerateFiles(dir, "*.png").OrderBy(path => path, StringComparer.Ordinal))
+        {
+            string name = Path.GetFileName(file);
+            int played = name.IndexOf(".played-", StringComparison.Ordinal);
+            int backend = played >= 0 ? played
+                : name.EndsWith(".vk.png", StringComparison.Ordinal) || name.EndsWith(".dx.png", StringComparison.Ordinal)
+                    ? name.Length - ".vk.png".Length
+                    : -1;
+            if (backend < 0) continue;
+            string prefix = name[..backend];
+            if (!indexed.TryGetValue(prefix, out List<string>? candidates))
+                indexed[prefix] = candidates = [];
+            candidates.Add(file);
+        }
+
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach ((string prefix, List<string> candidates) in indexed)
+        {
+            string? preferred = candidates.FirstOrDefault(path => path.EndsWith(".vk.png", StringComparison.Ordinal)
+                && !Path.GetFileName(path).Contains(".played-", StringComparison.Ordinal))
+                ?? candidates.FirstOrDefault(path => path.EndsWith(".vk.png", StringComparison.Ordinal))
+                ?? candidates.FirstOrDefault(path => path.EndsWith(".dx.png", StringComparison.Ordinal)
+                    && !Path.GetFileName(path).Contains(".played-", StringComparison.Ordinal))
+                ?? candidates.FirstOrDefault(path => path.EndsWith(".dx.png", StringComparison.Ordinal));
+            if (preferred is not null) result[prefix] = preferred;
+        }
+        return result;
+    }
+
+    private static byte[]? TryReadGolden(string path, IReadOnlyDictionary<string, string> index,
+        StaticCaptureMode mode, SiteExportMetricsBuilder metrics)
+    {
+        if (mode == StaticCaptureMode.None || !index.TryGetValue(GoldenName(path), out string? golden)) return null;
+        metrics.GoldenImages++;
+        return File.ReadAllBytes(golden);
+    }
+
+    private static string CapturePolicyMessage(StaticCaptureMode mode) => mode switch
+    {
+        StaticCaptureMode.GoldenOnly => "Static preview was skipped because this export uses existing golden images only.",
+        StaticCaptureMode.None => "Static preview was disabled for this export.",
+        _ => "No static capture is available.",
+    };
+
+    private static void WriteBytesIfChanged(string path, byte[] content, SiteExportMetricsBuilder metrics)
+    {
+        metrics.ManagedFiles.Add(Path.GetFullPath(path));
+        if (metrics.Incremental && File.Exists(path) && File.ReadAllBytes(path).AsSpan().SequenceEqual(content))
+        {
+            metrics.FilesReused++;
+            return;
+        }
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllBytes(path, content);
+        metrics.FilesWritten++;
+    }
+
+    private static void CopyFileIfChanged(string source, string destination, bool incremental, SiteExportMetricsBuilder metrics)
+    {
+        metrics.ManagedFiles.Add(Path.GetFullPath(destination));
+        if (incremental && File.Exists(destination))
+        {
+            var sourceInfo = new FileInfo(source);
+            var destinationInfo = new FileInfo(destination);
+            if (sourceInfo.Length == destinationInfo.Length
+                && sourceInfo.LastWriteTimeUtc == destinationInfo.LastWriteTimeUtc)
+            {
+                metrics.FilesReused++;
+                return;
+            }
+            if (sourceInfo.Length == destinationInfo.Length
+                && File.ReadAllBytes(source).AsSpan().SequenceEqual(File.ReadAllBytes(destination)))
+            {
+                File.SetLastWriteTimeUtc(destination, sourceInfo.LastWriteTimeUtc);
+                metrics.FilesReused++;
+                return;
+            }
+        }
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+        File.Copy(source, destination, overwrite: true);
+        metrics.FilesWritten++;
+    }
+
+    private static void WriteTextIfChanged(string path, string content, bool incremental, SiteExportMetricsBuilder metrics)
+    {
+        metrics.ManagedFiles.Add(Path.GetFullPath(path));
+        if (incremental && File.Exists(path) && string.Equals(File.ReadAllText(path), content, StringComparison.Ordinal))
+        {
+            metrics.FilesReused++;
+            return;
+        }
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, content, new UTF8Encoding(false));
+        metrics.FilesWritten++;
     }
 
     public static string Slug(string value)
@@ -806,7 +1047,7 @@ public static partial class GallerySiteExporter
 
     internal static string ClientScript => Js;
 
-    private const string Index = """<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Luxel Gallery — Static Captures</title><link rel="stylesheet" href="site.css"><link rel="stylesheet" href="playground.css"><link rel="stylesheet" href="vendor/highlightjs/github-dark.min.css"></head><body><button id="sidebar-toggle" class="floating-toggle" type="button" aria-controls="sidebar" aria-expanded="true">ストーリー</button><button id="review-toggle" class="floating-toggle" type="button" aria-controls="review-panel" aria-expanded="false">フィードバック</button><aside id="sidebar"><header><h1>Luxel Gallery</h1><p>静的HTML版です。Mermaidは公式ライブラリで描画し、その他の埋め込みは静的キャプチャです。</p><button id="theme" type="button">テーマ切替</button><p><a href="licenses/Box-LICENSE.md">Khronos Box license</a> · <a href="licenses/highlight.js-LICENSE.txt">Highlight.js license</a> · <a href="licenses/monaco-editor-LICENSE.txt">Monaco Editor license</a></p></header><input id="search" type="search" placeholder="Story・見出し・本文を検索"><nav id="stories" aria-label="Stories"></nav></aside><main id="content"><p>Galleryを読み込んでいます…</p></main><aside id="review-panel" aria-label="ギャラリーフィードバック"><header class="review-header"><div class="review-actions" role="toolbar" aria-label="フィードバック操作"><button id="review-prev" class="icon-button" type="button" aria-label="前のコメント" title="前のコメント"><span aria-hidden="true">←</span></button><button id="review-next" class="icon-button" type="button" aria-label="次のコメント" title="次のコメント"><span aria-hidden="true">→</span></button><button id="review-copy" class="icon-button" type="button" aria-label="全件をコピー" title="全件をコピー"><span aria-hidden="true">⧉</span></button><button id="review-download-md" class="icon-button" type="button" aria-label="Markdownを保存" title="Markdownを保存"><span aria-hidden="true">↓</span></button><button id="review-download-json" class="icon-button" type="button" aria-label="JSONをバックアップ" title="JSONをバックアップ"><span aria-hidden="true">⇩</span></button><label class="icon-button button-label" for="review-import" aria-label="JSONを復元" title="JSONを復元"><span aria-hidden="true">⇧</span></label><input id="review-import" type="file" accept="application/json,.json"><button id="review-issue" class="icon-button" type="button" aria-label="この内容でIssueを開く" title="この内容でIssueを開く"><span aria-hidden="true">↗</span></button><button id="review-close" class="icon-button" type="button" aria-label="フィードバックを閉じる" title="閉じる"><span aria-hidden="true">×</span></button></div></header><label class="visually-hidden" for="review-status">状態</label><select id="review-status" aria-label="レビュー状態"><option value="unchecked">未確認</option><option value="reviewed">確認済み</option><option value="needs-change">要修正</option></select><label class="review-comment-label" for="review-comment">フィードバック</label><textarea id="review-comment" rows="10" placeholder="表示を見ながら、気づいた点をここに記録します。"></textarea><p id="review-save-state" class="visually-hidden" role="status" aria-live="polite"></p><textarea id="review-export-fallback" class="review-export-fallback" aria-label="コピー用フィードバック" readonly hidden></textarea></aside><script src="vendor/highlightjs/highlight.min.js"></script><script src="vendor/monaco/vs/loader.js"></script><script src="monaco-bootstrap.js"></script><script src="playground.js"></script><script src="playground-site.js"></script><script src="site.js"></script><script type="module" src="mermaid-bootstrap.js"></script></body></html>""";
+    private const string Index = """<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Luxel Gallery</title><link rel="stylesheet" href="site.css"><link rel="stylesheet" href="playground.css"><link rel="stylesheet" href="vendor/highlightjs/github-dark.min.css"></head><body><button id="sidebar-toggle" class="floating-toggle" type="button" aria-controls="sidebar" aria-expanded="true">ストーリー</button><button id="review-toggle" class="floating-toggle" type="button" aria-controls="review-panel" aria-expanded="false">フィードバック</button><aside id="sidebar"><header><h1>Luxel Gallery</h1><p>HTML版です。semantic document、browser runtime、static previewを内容に応じて表示します。</p><button id="theme" type="button">テーマ切替</button><p><a href="licenses/Box-LICENSE.md">Khronos Box license</a> · <a href="licenses/highlight.js-LICENSE.txt">Highlight.js license</a> · <a href="licenses/monaco-editor-LICENSE.txt">Monaco Editor license</a></p></header><input id="search" type="search" placeholder="Story・見出し・本文を検索"><nav id="stories" aria-label="Stories"></nav></aside><main id="content"><p>Galleryを読み込んでいます…</p></main><aside id="review-panel" aria-label="ギャラリーフィードバック"><header class="review-header"><div class="review-actions" role="toolbar" aria-label="フィードバック操作"><button id="review-prev" class="icon-button" type="button" aria-label="前のコメント" title="前のコメント"><span aria-hidden="true">←</span></button><button id="review-next" class="icon-button" type="button" aria-label="次のコメント" title="次のコメント"><span aria-hidden="true">→</span></button><button id="review-copy" class="icon-button" type="button" aria-label="全件をコピー" title="全件をコピー"><span aria-hidden="true">⧉</span></button><button id="review-download-md" class="icon-button" type="button" aria-label="Markdownを保存" title="Markdownを保存"><span aria-hidden="true">↓</span></button><button id="review-download-json" class="icon-button" type="button" aria-label="JSONをバックアップ" title="JSONをバックアップ"><span aria-hidden="true">⇩</span></button><label class="icon-button button-label" for="review-import" aria-label="JSONを復元" title="JSONを復元"><span aria-hidden="true">⇧</span></label><input id="review-import" type="file" accept="application/json,.json"><button id="review-issue" class="icon-button" type="button" aria-label="この内容でIssueを開く" title="この内容でIssueを開く"><span aria-hidden="true">↗</span></button><button id="review-close" class="icon-button" type="button" aria-label="フィードバックを閉じる" title="閉じる"><span aria-hidden="true">×</span></button></div></header><label class="visually-hidden" for="review-status">状態</label><select id="review-status" aria-label="レビュー状態"><option value="unchecked">未確認</option><option value="reviewed">確認済み</option><option value="needs-change">要修正</option></select><label class="review-comment-label" for="review-comment">フィードバック</label><textarea id="review-comment" rows="10" placeholder="表示を見ながら、気づいた点をここに記録します。"></textarea><p id="review-save-state" class="visually-hidden" role="status" aria-live="polite"></p><textarea id="review-export-fallback" class="review-export-fallback" aria-label="コピー用フィードバック" readonly hidden></textarea></aside><script src="vendor/highlightjs/highlight.min.js"></script><script src="vendor/monaco/vs/loader.js"></script><script src="monaco-bootstrap.js"></script><script src="playground.js"></script><script src="playground-site.js"></script><script src="site.js"></script><script type="module" src="mermaid-bootstrap.js"></script></body></html>""";
     private const string MermaidBootstrap = """
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
 

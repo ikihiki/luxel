@@ -52,6 +52,7 @@ jobs:
           --no-restore --no-build --configuration Release -- artifacts/gallery-site
           --browser-webgpu-root samples/LuxelWebGpuBrowser/bin/Release/net10.0/publish/wwwroot
           --playground-browser-root samples/LuxelPlaygroundBrowser/bin/Release/net10.0/publish/wwwroot
+          --static-capture golden-only
       - name: Validate subpath-safe browser WebGPU sample
         run: |
           test -f artifacts/gallery-site/samples/webgpu-browser/index.html

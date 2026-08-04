@@ -12,7 +12,7 @@ string? ReadOption(string name)
     return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
 }
 
-string[] optionsWithValues = ["--filter", "--browser-webgpu-root", "--playground-browser-root", "--rasterizer"];
+string[] optionsWithValues = ["--filter", "--browser-webgpu-root", "--playground-browser-root", "--rasterizer", "--static-capture"];
 string output = args.Select((value, index) => (value, index))
     .FirstOrDefault(item => !item.value.StartsWith("--", StringComparison.Ordinal)
         && (item.index == 0 || !optionsWithValues.Contains(args[item.index - 1], StringComparer.Ordinal))).value
@@ -24,19 +24,57 @@ StoryCatalog catalog = GalleryStoryProject.CreateCatalog();
 IReadOnlyList<StoryInfo> stories = filter is null ? catalog.All
     : catalog.All.Where(s => s.Path.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToArray();
 
-string rasterizerBackend = ReadOption("--rasterizer")?.ToLowerInvariant() ?? "gpu";
-using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
-using GpuDevice? device = rasterizerBackend == "gpu"
-    ? new GpuDevice(Luxel.Graphics.Vulkan.VulkanBackend.Create())
-    : null;
-using IRasterizer2D rasterizer = rasterizerBackend switch
+StaticCaptureMode captureMode = (ReadOption("--static-capture")?.ToLowerInvariant() ?? "all") switch
 {
-    "gpu" => new GpuDeviceRasterizer2D(device!),
-    "skia" => new SkiaRasterizer2D(),
-    _ => throw new ArgumentException($"Unknown rasterizer: {rasterizerBackend} (gpu / skia)"),
+    "all" => StaticCaptureMode.All,
+    "golden-only" => StaticCaptureMode.GoldenOnly,
+    "none" => StaticCaptureMode.None,
+    string value => throw new ArgumentException($"Unknown static capture mode: {value} (all / golden-only / none)"),
 };
-using var host = new GalleryHost(rasterizer, font, catalog);
-SiteExportReport report = GallerySiteExporter.Export(host, stories, output, GallerySiteExporter.FindRepositoryRoot(), browserWebGpuRoot, playgroundBrowserRoot);
-Console.WriteLine($"gallery-site: stories={report.Stories}, images={report.Images}, unavailable={report.Unavailable}, errors={report.Errors}, output={output}");
-// Per-story capture failures are exported as validated, explicit error cards; structural validation failures throw.
-return 0;
+string rasterizerBackend = ReadOption("--rasterizer")?.ToLowerInvariant() ?? "gpu";
+var environment = new Lazy<CaptureEnvironment>(() => new CaptureEnvironment(rasterizerBackend, catalog));
+try
+{
+    var options = new SiteExportOptions
+    {
+        StaticCapture = captureMode,
+        Incremental = args.Contains("--incremental", StringComparer.Ordinal),
+        Log = Console.WriteLine,
+    };
+    SiteExportReport report = GallerySiteExporter.Export(() => environment.Value.Host, catalog, stories, output,
+        GallerySiteExporter.FindRepositoryRoot(), browserWebGpuRoot, playgroundBrowserRoot, options);
+    Console.WriteLine($"gallery-site: stories={report.Stories}, images={report.Images}, unavailable={report.Unavailable}, errors={report.Errors}, capture={captureMode}, hostCreated={environment.IsValueCreated}, output={output}");
+    return 0;
+}
+finally
+{
+    if (environment.IsValueCreated) environment.Value.Dispose();
+}
+
+sealed class CaptureEnvironment : IDisposable
+{
+    private readonly VectorFont _font;
+    private readonly GpuDevice? _device;
+    private readonly IRasterizer2D _rasterizer;
+    public GalleryHost Host { get; }
+
+    public CaptureEnvironment(string backend, StoryCatalog catalog)
+    {
+        _font = GalleryFonts.Load(GalleryFonts.Regular);
+        _device = backend == "gpu" ? new GpuDevice(Luxel.Graphics.Vulkan.VulkanBackend.Create()) : null;
+        _rasterizer = backend switch
+        {
+            "gpu" => new GpuDeviceRasterizer2D(_device!),
+            "skia" => new SkiaRasterizer2D(),
+            _ => throw new ArgumentException($"Unknown rasterizer: {backend} (gpu / skia)"),
+        };
+        Host = new GalleryHost(_rasterizer, _font, catalog, publishFrames: false);
+    }
+
+    public void Dispose()
+    {
+        Host.Dispose();
+        _device?.Dispose();
+        _font.Dispose();
+    }
+}
