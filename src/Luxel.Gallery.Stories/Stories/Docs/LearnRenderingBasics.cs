@@ -434,7 +434,7 @@ public static partial class DocsRenderingLearn
         | upload | CPUが書き、GPUが読む一時または頻繁更新データ | `HostMapped` |
         | readback | GPU copy後にCPUが読む | `HostCached` |
 
-        `HostMapped` はCPU write向けで、write-combined / uncachedの場合があります。CPU readbackには使わず、`CopyBuffer`や`CopyTextureToBuffer`で `HostCached` へコピーします。`DeviceLocal` はCPUの `Span<T>` を持たずGPU処理向けです。古い資料の `HostCache` ではなく、API名は **`HostCached`** です。
+        `HostMapped` はCPU write向けで、write-combined / uncachedの場合があります。CPU readbackには使わず、`CopyBuffer`や`CopyTextureToBuffer`で `HostCached` へコピーします。`DeviceLocal` はCPUの `Span<T>` を持たずGPU処理向けです。
 
         ## C# とSlangのABI
 

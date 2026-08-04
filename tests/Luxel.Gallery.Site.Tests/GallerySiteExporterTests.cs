@@ -1391,7 +1391,7 @@ public sealed class GallerySiteExporterTests
     }
 
     [SkippableFact]
-    public void Mermaid_fence_is_exported_as_png()
+    public void Mermaid_fence_uses_the_official_browser_library_in_html_exports()
     {
         string root = GallerySiteExporter.FindRepositoryRoot();
         StoryInfo story = Catalog.Find("Internals/Architecture")
@@ -1405,10 +1405,17 @@ public sealed class GallerySiteExporterTests
             GallerySiteExporter.Export(host, [story], output, root);
             string html = string.Join('\n', Directory.GetFiles(output, "*.html", SearchOption.AllDirectories).Select(File.ReadAllText));
             string renderedBody = html[..html.IndexOf("<details class=\"story-source\">", StringComparison.Ordinal)];
+            string index = File.ReadAllText(Path.Combine(output, "index.html"));
+            string bootstrap = File.ReadAllText(Path.Combine(output, "mermaid-bootstrap.js"));
+
             Assert.DoesNotContain("```mermaid", renderedBody);
-            Assert.Contains("Static mermaid capture", renderedBody);
+            Assert.Contains("<pre class=\"mermaid\">", renderedBody);
             Assert.Contains("```mermaid", html); // generated method source remains visible in the collapsed Source section
-            Assert.NotEmpty(Directory.GetFiles(Path.Combine(output, "images"), "mermaid-*.png"));
+            Assert.Empty(Directory.GetFiles(Path.Combine(output, "images"), "mermaid-*.png"));
+            Assert.Contains("type=\"module\" src=\"mermaid-bootstrap.js\"", index);
+            Assert.Contains("cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs", bootstrap);
+            Assert.Contains("securityLevel: 'strict'", bootstrap);
+            Assert.Contains("mermaid.run({ nodes })", bootstrap);
         }
         finally
         {
