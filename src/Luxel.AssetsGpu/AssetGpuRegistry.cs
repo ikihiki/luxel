@@ -51,6 +51,23 @@ public sealed class AssetGpuRegistry : IDisposable
             ? _device.CreateComputePipeline(code, request.ComputeEntry)
             : _device.CreateGraphicsPipeline(code, request.Raster, request.VertexEntry, request.PixelEntry);
 
+    /// <summary>ResourceSystem-owned initialized float bufferを生成する。</summary>
+    internal GpuBuffer Create(float[] data)
+    {
+        var buffer = _device.Malloc(
+            checked((ulong)data.Length * sizeof(float)), GpuMemoryKind.HostMapped);
+        try
+        {
+            data.AsSpan().CopyTo(buffer.Span<float>(data.Length));
+            return buffer;
+        }
+        catch
+        {
+            buffer.Dispose();
+            throw;
+        }
+    }
+
     /// <summary>ResourceSystem-owned texture を生成する。asset cache には保持しない。</summary>
     internal GpuTexture Create(GpuTextureRequest request) => request.Kind switch
     {

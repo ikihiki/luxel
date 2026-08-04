@@ -32,7 +32,7 @@ internal abstract class GpuSceneBase : IDisposable
         return resource;
     }
 
-    internal void Render(GpuDevice device, GpuViewSurface surface, float time)
+    internal GpuViewRenderResult Render(GpuDevice device, GpuViewSurface surface, float time)
     {
         if (!ReferenceEquals(_generation, surface))
         {
@@ -48,6 +48,7 @@ internal abstract class GpuSceneBase : IDisposable
             _rendered = true;
             OnRender(time);
         }
+        return GpuViewRenderResult.Ready;
     }
 
     protected abstract void OnInit();

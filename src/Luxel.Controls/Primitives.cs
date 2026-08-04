@@ -36,7 +36,7 @@ public sealed partial class Box : Widget
     }
 }
 
-public enum IconKind { Check, Close, ChevronDown, ChevronRight, ChevronLeft, Plus, Minus, Dot, Circle }
+public enum IconKind { Check, Close, ChevronDown, ChevronRight, ChevronLeft, Plus, Minus, Dot, Circle, Loading, Failed }
 
 /// <summary>ベクターアイコン (24x24 ビューボックスのパスを size に拡大)。色はテーマ束縛可。</summary>
 [UiComponent]
@@ -77,7 +77,7 @@ public sealed partial class Icon : Widget
                 onClick: () => OnClick.Invoke(this), cursor: CursorKind.Hand);
     }
 
-    private static void Draw(Scene2D s, IconKind k, float z, float w)
+    internal static void Draw(Scene2D s, IconKind k, float z, float w)
     {
         Vector2 P(float x, float y) => new(x * z, y * z);   // 0..1 正規化座標
         switch (k)
@@ -95,6 +95,14 @@ public sealed partial class Icon : Widget
             case IconKind.Minus: s.StrokeLine(Color2D.White, w, 0.22f * z, 0.5f * z, 0.78f * z, 0.5f * z); break;
             case IconKind.Dot: s.FillCircle(Color2D.White, 0.5f * z, 0.5f * z, 0.18f * z); break;
             case IconKind.Circle: s.FillCircle(Color2D.White, 0.5f * z, 0.5f * z, 0.42f * z); break;
+            case IconKind.Loading:
+                s.FillCircle(Color2D.White, 0.22f * z, 0.5f * z, 0.08f * z);
+                s.FillCircle(Color2D.White, 0.5f * z, 0.5f * z, 0.08f * z);
+                s.FillCircle(Color2D.White, 0.78f * z, 0.5f * z, 0.08f * z); break;
+            case IconKind.Failed:
+                s.StrokeRoundedRect(Color2D.White, w, 0.12f * z, 0.12f * z, 0.76f * z, 0.76f * z, 0.38f * z);
+                s.StrokeLine(Color2D.White, w, 0.34f * z, 0.34f * z, 0.66f * z, 0.66f * z);
+                s.StrokeLine(Color2D.White, w, 0.66f * z, 0.34f * z, 0.34f * z, 0.66f * z); break;
         }
     }
 }

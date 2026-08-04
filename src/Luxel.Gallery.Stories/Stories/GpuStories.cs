@@ -103,14 +103,14 @@ public static class GpuStories
                 surface.CopyColorToFramebuffer(command);
                 command.Finish();
                 device.MainQueue.SubmitAndWait(command);
+                return GpuViewRenderResult.Ready;
             },
             animated: false)));
     }
 
     private static Widget BuildOnlyGpuView(StoryContext ctx, float width, float height)
         => ctx.Snap(Frame(GpuView(width, height,
-            static (_, _, _) => throw new InvalidOperationException(
-                "GpuView was realized without a ResourceSystem-backed StoryContext."),
+            static (_, _, _) => GpuViewRenderResult.Failed,
             animated: false)));
 
     private static void WaitFor<T>(ResourceHandle<T> handle)

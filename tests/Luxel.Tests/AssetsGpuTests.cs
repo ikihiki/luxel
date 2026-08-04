@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Luxel.Assets;
 using Luxel.AssetsGpu;
 
@@ -104,6 +105,25 @@ public class AssetsGpuTests
         Assert.Equal(2, backend.LiveResources);
         installation.Dispose();
         Assert.Equal(0, backend.LiveResources);
+    }
+
+    [Fact]
+    public async Task FloatArrayResourceUploadsIntoOwnedGpuBuffer()
+    {
+        var backend = new FakeGpuBackend();
+        using var device = new GpuDevice(backend);
+        using var resources = new ResourceSystem();
+        using AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        using ResourceScope scope = resources.CreateScope("vertex-upload");
+        float[] vertices = [1.25f, -2.5f, 3.75f, 4f];
+
+        using ResourceHandle<GpuBuffer> buffer = scope.Create<float[], GpuBuffer>(
+            "vertices", vertices);
+        await buffer.Ready;
+
+        Assert.Equal("scope://vertex-upload/vertices", buffer.Uri.ToString());
+        Assert.Equal((ulong)(vertices.Length * sizeof(float)), buffer.Value.Size);
+        Assert.Equal(vertices, buffer.Value.Span<float>(vertices.Length).ToArray());
     }
 
     [Fact]
@@ -277,8 +297,12 @@ public class AssetsGpuTests
 
         public void Dispose()
         {
-            if (Interlocked.Exchange(ref _disposed, 1) == 0) Disposed?.Invoke();
+            if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+            OnDispose();
+            Disposed?.Invoke();
         }
+
+        protected virtual void OnDispose() { }
     }
 
     private sealed class FakePipeline(bool isCompute) : FakeResource, Luxel.Graphics.Abstraction.IGpuBackendPipeline
@@ -300,12 +324,21 @@ public class AssetsGpuTests
         public uint BindlessIndex => 2;
     }
 
-    private sealed class FakeBuffer(ulong size) : FakeResource, Luxel.Graphics.Abstraction.IGpuBackendBuffer
+    private sealed class FakeBuffer : FakeResource, Luxel.Graphics.Abstraction.IGpuBackendBuffer
     {
-        public ulong Size { get; } = size;
+        private readonly IntPtr _memory;
+
+        public FakeBuffer(ulong size)
+        {
+            Size = size;
+            _memory = Marshal.AllocHGlobal(checked((int)size));
+        }
+
+        public ulong Size { get; }
         public ulong DeviceAddress => 0x1000;
         public uint BindlessIndex => 3;
-        public unsafe void* MappedPointer => null;
+        public unsafe void* MappedPointer => (void*)_memory;
+        protected override void OnDispose() => Marshal.FreeHGlobal(_memory);
     }
 
     private sealed class FakeQueue : Luxel.Graphics.Abstraction.IGpuBackendQueue

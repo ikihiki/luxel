@@ -35,6 +35,7 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("BrowserSlangJsonContext.Default.BrowserCompileResponse", compiler, StringComparison.Ordinal);
         Assert.Contains("AddStep<CpuImage, GpuTexture>", gpuResources, StringComparison.Ordinal);
         Assert.Contains("AddStep<GpuBufferRequest, GpuBuffer>", gpuResources, StringComparison.Ordinal);
+        Assert.Contains("AddStep<float[], GpuBuffer>", gpuResources, StringComparison.Ordinal);
         Assert.Contains("SnapshotWidgets(result.Widget)", program, StringComparison.Ordinal);
         Assert.DoesNotContain("path switch", program, StringComparison.Ordinal);
         Assert.DoesNotContain("RunClearColor", program, StringComparison.Ordinal);

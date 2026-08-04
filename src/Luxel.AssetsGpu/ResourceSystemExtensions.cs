@@ -27,6 +27,7 @@ public static class ResourceSystemExtensions
             new GpuTextureCreationStep(registry),
             new GpuSamplerCreationStep(registry),
             new GpuBufferCreationStep(registry),
+            new Float32ArrayToGpuBufferStep(registry),
         };
     }
 
@@ -76,6 +77,7 @@ public static class ResourceSystemExtensions
         resources.AddStep<GpuTextureRequest, GpuTexture>(new GpuTextureCreationStep(registry));
         resources.AddStep<GpuSamplerRequest, GpuSampler>(new GpuSamplerCreationStep(registry));
         resources.AddStep<GpuBufferRequest, GpuBuffer>(new GpuBufferCreationStep(registry));
+        resources.AddStep<float[], GpuBuffer>(new Float32ArrayToGpuBufferStep(registry));
     }
 
     // ==================== Publish 系 GPU リソース ====================

@@ -337,7 +337,7 @@ public static class PlaygroundTemplates
 
                     public SlangCubeRenderer(GpuShaderCode shader) => _shader = shader;
 
-                    public void Render(GpuDevice device, GpuViewSurface surface, float time)
+                    public GpuViewRenderResult Render(GpuDevice device, GpuViewSurface surface, float time)
                     {
                         if (!ReferenceEquals(_surface, surface))
                             Initialize(device, surface);
@@ -357,6 +357,7 @@ public static class PlaygroundTemplates
                         surface.CopyColorToFramebuffer(command);
                         command.Finish();
                         device.MainQueue.Submit(command);
+                        return GpuViewRenderResult.Ready;
                     }
 
                     private void Initialize(GpuDevice device, GpuViewSurface surface)

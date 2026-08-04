@@ -162,7 +162,7 @@ public static class DocsMeta
         描画結果を widget にする受け皿が 2 つあります:
 
         - **Canvas2D(w, h, draw: / animate:(s, t))** — Scene2D を直接描く (UI と同じ保持型キャンバスの 1 ノード)。`t` は累積秒
-        - **GpuView(w, h, render, animated:, dispose:)** — story関数が`ctx.ScopedResources`で用意したresourceをcaptureし、deviceとGpuView所有surfaceを受け取るcallbackでoffscreen描画。bindless buffer経由でゼロコピー合成
+        - **GpuView(w, h, render, animated:, dispose:)** — story関数が`ctx.ScopedResources`で用意したresourceをcaptureし、deviceとGpuView所有surfaceを受け取るcallbackでoffscreen描画。callbackは`Ready`/`Loading`/`Failed`を返し、未準備・失敗時は状態アイコンへフォールバック。bindless buffer経由でゼロコピー合成
 
         > [!WARNING]
         > GpuView callback の規約: GPU resourceはstory関数内で`ctx.ScopedResources`から取得し、callbackへcaptureする。個別handleを`dispose`へ渡す必要はなく、story scopeが一括解放する。**時間はcallback引数の累積秒のみ** (wall-clock禁止 — snapの決定性)。描画先と256B整列済みframebufferは`GpuViewSurface`が所有する。knobを絵に反映する場合は`animated: true`にする。RenderGraphは1フレーム使い切り — animated rendererではcallback内で毎回作る。

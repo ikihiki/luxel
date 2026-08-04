@@ -29,6 +29,7 @@ public static class GpuViewStories
                 surface.CopyColorToFramebuffer(command);
                 command.Finish();
                 device.MainQueue.Submit(command);
+                return GpuViewRenderResult.Ready;
             },
             animated: false)));
 
@@ -84,12 +85,11 @@ public static class GpuViewStories
             """;
         ResourceHandle<GpuShaderCode> shader = resources.Create<SlangSource, GpuShaderCode>(
             "triangle.slang", new SlangSource("triangle.slang", slang), "graphics");
-        ResourceHandle<GpuBuffer> vertexBuffer = resources.CreateBuffer<float>(
-            "triangle.vertices", vertices.Length);
-        WaitFor(vertexBuffer);
-        vertices.CopyTo(vertexBuffer.Value.Span<float>(vertices.Length));
+        ResourceHandle<GpuBuffer> vertexBuffer = resources.Create<float[], GpuBuffer>(
+            "triangle.vertices", vertices);
         ResourceHandle<GpuPipeline> pipeline = resources.CreateGraphicsPipeline(
             "triangle.pipeline", shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+        Signal<ResourceState> vertexBufferState = ctx.Observe(vertexBuffer);
         Signal<ResourceState> pipelineState = ctx.Observe(pipeline);
 
         return ctx.Snap(Frame(GpuView(
@@ -97,31 +97,30 @@ public static class GpuViewStories
             240,
             (device, surface, _) =>
             {
-                ResourceState state = pipelineState.Value;
+                ResourceState bufferState = vertexBufferState.Value;
+                ResourceState shaderPipelineState = pipelineState.Value;
+                if (!bufferState.HasValue || !shaderPipelineState.HasValue)
+                    return bufferState.Status == ResourceStatus.Failed || shaderPipelineState.Status == ResourceStatus.Failed
+                        ? GpuViewRenderResult.Failed
+                        : GpuViewRenderResult.Loading;
+
                 using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
-                GpuCommandBuffer rendering = command.BeginRendering(
-                    surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1);
-                if (state.HasValue)
-                {
-                    uint vertexBufferIndex = vertexBuffer.Value.BindlessIndex;
-                    rendering.SetGraphicsPipeline(pipeline.Value)
-                        .SetRootArguments(vertexBufferIndex)
-                        .Draw(3);
-                }
-                rendering.EndRendering();
+                uint vertexBufferIndex = vertexBuffer.Value.BindlessIndex;
+                command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)
+                    .SetGraphicsPipeline(pipeline.Value)
+                    .SetRootArguments(vertexBufferIndex)
+                    .Draw(3)
+                    .EndRendering();
                 surface.CopyColorToFramebuffer(command);
                 command.Finish();
                 device.MainQueue.Submit(command);
+                return GpuViewRenderResult.Ready;
             },
             animated: false)));
     }
 
     private static Widget BuildOnlyGpuView(StoryContext ctx, float width, float height)
         => ctx.Snap(Frame(GpuView(width, height,
-            static (_, _, _) => throw new InvalidOperationException(
-                "GpuView was realized without a ResourceSystem-backed GPU StoryContext."),
+            static (_, _, _) => GpuViewRenderResult.Failed,
             animated: false)));
-
-    private static void WaitFor<T>(ResourceHandle<T> handle)
-        => handle.Ready.GetAwaiter().GetResult();
 }

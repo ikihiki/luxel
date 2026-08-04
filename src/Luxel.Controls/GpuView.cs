@@ -33,8 +33,16 @@ public sealed class GpuViewSurface : IDisposable
     }
 }
 
-/// <summary>GpuView の1フレームを記録・submitする callback。</summary>
-public delegate void GpuViewRender(GpuDevice device, GpuViewSurface surface, float time);
+/// <summary>GpuView callbackの表示結果。Ready以外ではframebufferの代わりに状態アイコンを表示する。</summary>
+public enum GpuViewRenderResult
+{
+    Ready = 0,
+    Loading,
+    Failed,
+}
+
+/// <summary>GpuView の1フレームを記録・submitし、表示可能状態を返す callback。</summary>
+public delegate GpuViewRenderResult GpuViewRender(GpuDevice device, GpuViewSurface surface, float time);
 
 /// <summary>
 /// GPU callback の描画結果を表示する widget。GpuView が RGBA8 color target と最終 framebuffer を用意し、
@@ -73,9 +81,35 @@ public sealed partial class GpuView : Widget
         var lease = new RenderLease(surface, dispose);
         ctx.Own(lease);
 
-        _node.Content = new Scene2D().ImageRect(
+        UiNode image = ctx.Canvas.AddChild(_node);
+        image.Content = new Scene2D().ImageRect(
             surface.Framebuffer.BindlessIndex, surface.StridePixels, surface.Width, surface.Height,
             0, 0, Size.Width, Size.Height);
+        UiNode fallback = ctx.Canvas.AddChild(_node);
+        var fallbackScene = new Scene2D();
+        fallbackScene.FillRoundedRect(Color2D.White, 0, 0, Size.Width, Size.Height, 6);
+        fallback.Content = fallbackScene;
+        UiNode icon = ctx.Canvas.AddChild(fallback);
+        const float iconSize = 28;
+        icon.Transform = Affine2D.Translate((Size.Width - iconSize) / 2, (Size.Height - iconSize) / 2);
+        var status = new Signal<GpuViewRenderResult>(GpuViewRenderResult.Loading);
+        ctx.Effect(() =>
+        {
+            GpuViewRenderResult result = status.Value;
+            bool ready = result == GpuViewRenderResult.Ready;
+            image.Visible = ready;
+            fallback.Visible = !ready;
+            fallback.Color = ctx.Theme.Value.SurfaceAlt;
+            icon.Color = result == GpuViewRenderResult.Failed
+                ? ctx.Theme.Value.Danger
+                : ctx.Theme.Value.TextMuted;
+            var scene = new Scene2D();
+            Icon.Draw(scene,
+                result == GpuViewRenderResult.Failed ? IconKind.Failed : IconKind.Loading,
+                iconSize, 2);
+            icon.Content = scene;
+        });
+
         if (Animated.Get())
         {
             Draw();
@@ -96,8 +130,15 @@ public sealed partial class GpuView : Widget
 
         void Draw()
         {
-            render(device, surface, _t);
-            _node!.Touch();
+            GpuViewRenderResult result;
+            try { result = render(device, surface, _t); }
+            catch (Exception error)
+            {
+                UiError.Report(error, "GpuView.Render");
+                result = GpuViewRenderResult.Failed;
+            }
+            status.Value = result;
+            if (result == GpuViewRenderResult.Ready) image.Touch();
         }
     }
 
