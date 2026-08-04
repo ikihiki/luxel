@@ -12,6 +12,7 @@ public sealed class BrowserCanonicalTriangleTests
         string project = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "LuxelWebGpuBrowser.csproj"));
         string program = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "Program.cs"));
         string storiesProject = File.ReadAllText(Path.Combine(root, "src", "Luxel.Gallery.Stories.CoreUi", "Luxel.Gallery.Stories.CoreUi.csproj"));
+        string canonicalTriangle = File.ReadAllText(Path.Combine(root, "samples", "CanonicalTriangleRecipe.cs"));
         string gpuStories = File.ReadAllText(Path.Combine(root, "src", "Luxel.Gallery.Stories.CoreUi", "Stories", "GpuViewStories.cs"));
         string html = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "wwwroot", "index.html"));
         string shaderPath = Path.Combine(root, "shaders", "compiled", "tutorial_triangle.wgsl");
@@ -19,6 +20,8 @@ public sealed class BrowserCanonicalTriangleTests
         Assert.Contains("Luxel.Gallery.Stories.CoreUi.csproj", project);
         Assert.DoesNotContain("CanonicalClearColorRecipe.cs", project);
         Assert.DoesNotContain("CanonicalTriangleRecipe.cs", project);
+        Assert.DoesNotContain("struct Vertex", canonicalTriangle);
+        Assert.DoesNotContain("CreateVertices", canonicalTriangle);
         Assert.Contains("CanonicalClearColorRecipe.cs", storiesProject);
         Assert.Contains("CanonicalTriangleRecipe.cs", storiesProject);
         Assert.Contains("await RunCatalogStory(story)", program);
@@ -26,7 +29,10 @@ public sealed class BrowserCanonicalTriangleTests
         Assert.DoesNotContain("RunTriangle", program);
         Assert.DoesNotContain("CanonicalClearColorRecipe.Red", gpuStories);
         Assert.Contains("BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1f)", gpuStories);
-        Assert.Contains("CanonicalTriangleRecipe.CreateVertices()", gpuStories);
+        Assert.DoesNotContain("CanonicalTriangleRecipe.CreateVertices()", gpuStories);
+        Assert.Contains("float[] vertices =", gpuStories);
+        Assert.Contains("RWByteAddressBuffer g_buffers[];", gpuStories);
+        Assert.Contains("Vertex vertex = g_buffers[g_args.vertexBufferIndex].Load<Vertex>(vertexId * 32);", gpuStories);
         Assert.Contains("GpuView(", gpuStories);
         Assert.Contains("ctx.ScopedResources", gpuStories);
         Assert.Contains("browserBackend.CreateCanvasSurface", program);
