@@ -203,6 +203,141 @@ public static class GpuViewStories
             dispose: buffers.Dispose)));
     }
 
+    [Story("Examples/3D/Textures", Width = 320, Height = 240, Order = 122,
+        CapabilityNote = "Renders a generated checker texture with a bindless texture and sampler.")]
+    public static Widget Textures(StoryContext ctx)
+    {
+        if (ctx.DeviceOrNull is not { } device || ctx.ScopedResourcesOrNull is not { } resources)
+            return BuildOnlyGpuView(ctx, 320, 240);
+
+        const uint textureWidth = 8;
+        const uint textureHeight = 8;
+        byte[] pixels = CreateCheckerboard(textureWidth, textureHeight);
+        GpuTexture texture = device.CreateTexture(
+            textureWidth, textureHeight, pixels, GpuFormat.Rgba8Unorm);
+        GpuSampler sampler;
+        try
+        {
+            sampler = device.CreateSampler(
+                GpuSamplerFilter.Point, GpuSamplerAddress.Repeat);
+        }
+        catch
+        {
+            texture.Dispose();
+            throw;
+        }
+
+        const string slang = """
+            [[vk::binding(1, 0)]]
+            Texture2D g_textures[];
+            [[vk::binding(2, 0)]]
+            SamplerState g_samplers[];
+
+            struct DrawArgs
+            {
+                uint textureIndex;
+                uint samplerIndex;
+            };
+            [[vk::push_constant]] DrawArgs g_args;
+
+            struct VSOut
+            {
+                float4 position : SV_Position;
+                float2 uv : TEXCOORD0;
+            };
+
+            [shader("vertex")]
+            VSOut vsMain(uint vertexId : SV_VertexID)
+            {
+                uint index = vertexId == 0 ? 0
+                    : vertexId == 1 ? 1
+                    : vertexId == 2 ? 2
+                    : vertexId == 3 ? 0
+                    : vertexId == 4 ? 2 : 3;
+                bool right = index == 1 || index == 2;
+                bool top = index >= 2;
+
+                VSOut output;
+                output.position = float4(
+                    right ? 0.72 : -0.72,
+                    top ? 0.72 : -0.72,
+                    0, 1);
+                output.uv = float2(right ? 1.0 : 0.0, top ? 0.0 : 1.0);
+                return output;
+            }
+
+            [shader("pixel")]
+            float4 psMain(VSOut input) : SV_Target
+            {
+                return g_textures[g_args.textureIndex]
+                    .Sample(g_samplers[g_args.samplerIndex], input.uv);
+            }
+            """;
+
+        ResourceHandle<GpuShaderCode> shader = resources.Create<SlangSource, GpuShaderCode>(
+            "textures.slang", new SlangSource("textures.slang", slang), "graphics");
+        ResourceHandle<GpuPipeline> pipeline = resources.CreateGraphicsPipeline(
+            "textures.pipeline", shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+        Signal<ResourceState> pipelineState = ctx.Observe(pipeline);
+
+        return ctx.Snap(Frame(GpuView(
+            320,
+            240,
+            (gpu, surface, _) =>
+            {
+                ResourceState state = pipelineState.Value;
+                if (!state.HasValue)
+                    return state.Status == ResourceStatus.Failed
+                        ? GpuViewRenderResult.Failed
+                        : GpuViewRenderResult.Loading;
+
+                var args = new TextureDrawArgs
+                {
+                    TextureIndex = texture.BindlessIndex,
+                    SamplerIndex = sampler.BindlessIndex,
+                };
+                using GpuCommandBuffer command = gpu.MainQueue.StartCommandRecording();
+                command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)
+                    .SetGraphicsPipeline(pipeline.Value)
+                    .SetRootArguments(args)
+                    .Draw(6)
+                    .EndRendering();
+                surface.CopyColorToFramebuffer(command);
+                command.Finish();
+                gpu.MainQueue.Submit(command);
+                return GpuViewRenderResult.Ready;
+            },
+            animated: false,
+            dispose: () =>
+            {
+                device.MainQueue.WaitIdle();
+                sampler.Dispose();
+                texture.Dispose();
+            })));
+    }
+
+    private struct TextureDrawArgs
+    {
+        public uint TextureIndex;
+        public uint SamplerIndex;
+    }
+
+    private static byte[] CreateCheckerboard(uint width, uint height)
+    {
+        var pixels = new byte[checked((int)(width * height * 4))];
+        for (uint y = 0; y < height; y++)
+        for (uint x = 0; x < width; x++)
+        {
+            bool light = ((x / 2) + (y / 2)) % 2 == 0;
+            int offset = checked((int)((y * width + x) * 4));
+            pixels[offset + 0] = light ? (byte)255 : (byte)76;
+            pixels[offset + 1] = light ? (byte)160 : (byte)48;
+            pixels[offset + 2] = light ? (byte)40 : (byte)176;
+            pixels[offset + 3] = 255;
+        }
+        return pixels;
+    }
+
     private struct BufferQuadDrawArgs
     {
         public uint VertexBufferIndex;

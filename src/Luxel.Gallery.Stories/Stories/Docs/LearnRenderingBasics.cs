@@ -542,6 +542,8 @@ public static partial class DocsRenderingLearn
 
         {{RenderingCourseCatalog.Meta("Learn/Grapics/Textures", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "Buffers")}}
 
+        {{StoryRef(ctx, "Examples/3D/Textures")}}
+
         Textureは2次元のpixel配列をGPUへ置き、shaderからUV座標で参照するresourceです。`GpuTexture`が画像本体、`GpuSampler`が補間方法と範囲外UVの扱いを持ちます。
 
         ## Textureを作成する
@@ -549,17 +551,15 @@ public static partial class DocsRenderingLearn
         `CreateTexture`へwidth、height、RGBA8のpixel dataを渡します。dataは左上から右へ並ぶtightなrowを、上から下へ続けます。
 
         ```csharp
-        byte[] pixels =
-        [
-            255, 128,  32, 255,    96,  48, 192, 255,
-             96,  48, 192, 255,   255, 128,  32, 255,
-        ];
+        const uint textureWidth = 8;
+        const uint textureHeight = 8;
+        byte[] pixels = CreateCheckerboard(textureWidth, textureHeight);
 
         using GpuTexture texture = device.CreateTexture(
-            2, 2, pixels, GpuFormat.Rgba8Unorm);
+            textureWidth, textureHeight, pixels, GpuFormat.Rgba8Unorm);
         ```
 
-        2×2のRGBA8なので、必要なdata sizeは`2 * 2 * 4 = 16 byte`です。`CreateTexture`が戻った後は入力配列を再利用できますが、作成されたtextureは描画commandが完了するまで保持します。
+        上のsampleではチェック柄を作る処理を`CreateCheckerboard`へ分けています。Story Sourceにはhelperの呼び出しだけが表示され、画像生成処理の本体は含まれません。8×8のRGBA8なので、pixel dataは`8 * 8 * 4 = 256 byte`です。`CreateTexture`が戻った後は入力配列を再利用できますが、作成されたtextureは描画commandが完了するまで保持します。
 
         ## Samplerを作成する
 
@@ -567,8 +567,8 @@ public static partial class DocsRenderingLearn
 
         ```csharp
         using GpuSampler sampler = device.CreateSampler(
-            GpuSamplerFilter.Linear,
-            GpuSamplerAddress.Clamp);
+            GpuSamplerFilter.Point,
+            GpuSamplerAddress.Repeat);
         ```
 
         `Point`は最も近い1 pixelを選び、`Linear`は周囲を補間します。`Clamp`は端のpixelを延長し、`Repeat`はUVを繰り返します。

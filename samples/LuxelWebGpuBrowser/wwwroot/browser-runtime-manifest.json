@@ -5883,6 +5883,14 @@
       "componentType": null
     },
     {
+      "path": "Examples/3D/Textures",
+      "width": 320,
+      "height": 240,
+      "args": [],
+      "capabilityNote": "Renders a generated checker texture with a bindless texture and sampler.",
+      "componentType": null
+    },
+    {
       "path": "Examples/3D/Triangle",
       "width": 320,
       "height": 240,

@@ -31,6 +31,12 @@ public sealed class GallerySiteExporterTests
         Assert.Equal("webgpu-browser-v1", catalog.Find("Examples/3D/ClearColor")?.RuntimeBundleId);
         Assert.Equal("webgpu-browser-v1", catalog.Find("Examples/3D/Triangle")?.RuntimeBundleId);
         Assert.Equal("webgpu-browser-v1", catalog.Find("Controls/Button/Counter")?.RuntimeBundleId);
+        StoryInfo textureStory = Assert.IsType<StoryInfo>(catalog.Find("Examples/3D/Textures"));
+        Assert.Contains("CreateCheckerboard(textureWidth, textureHeight)", textureStory.Source);
+        Assert.Contains("device.CreateTexture(", textureStory.Source);
+        Assert.Contains("device.CreateSampler(", textureStory.Source);
+        Assert.DoesNotContain("private static byte[] CreateCheckerboard", textureStory.Source);
+        Assert.DoesNotContain("for (uint y", textureStory.Source);
         Assert.Null(empty.Find("Start/Welcome"));
     }
 
@@ -1020,7 +1026,7 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("# Textures", texturesPage);
         foreach (string api in new[]
                  {
-                     "CreateTexture", "CreateSampler", "TextureIndex", "SamplerIndex",
+                     "CreateCheckerboard", "CreateTexture", "CreateSampler", "TextureIndex", "SamplerIndex",
                      "Texture2D g_textures[]", "SamplerState g_samplers[]", ".Sample(",
                  })
             Assert.Contains(api, texturesPage);
