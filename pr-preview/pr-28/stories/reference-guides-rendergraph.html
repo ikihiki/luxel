@@ -11,7 +11,9 @@
 <p>Frostbite FrameGraph / Unreal RDG / Unity URP RenderGraph / Granite の 4 実装は同じ <strong>Setup / Compile / Execute 三相</strong>モデルに収束しています。もう 1 つの結論は「シーングラフは導入しない」— シーングラフは描画対象の階層管理、レンダーグラフはパスとリソース依存の DAG 管理で、別レイヤです。Luxel では 2D/UI 側に RetainedCanvas、3D 側に ECS が既にその役割を持っています。</p>
 <p>参考: <a href="https://www.gdcvault.com/play/1024612/FrameGraph-Extensible-Rendering-Architecture-in">FrameGraph (GDC 2017)</a> / <a href="https://themaister.net/blog/2017/08/15/render-graphs-and-vulkan-a-deep-dive/">Render graphs and Vulkan — a deep dive</a> / <a href="https://dev.epicgames.com/documentation/unreal-engine/render-dependency-graph-in-unreal-engine">Unreal RDG</a> / <a href="https://docs.unity3d.com/6000.3/Documentation/Manual/urp/render-graph-introduction.html">Unity URP Render Graph</a></p>
 <h2 id="setup-compile-execute">Setup / Compile / Execute</h2>
-<figure class="static-capture"><img src="images/mermaid-eac93af80390a39dcb2e.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
+<pre class="mermaid">flowchart LR
+setup[Setup - AddPass + Read/Write 宣言] --&gt; compile[Compile - カリング/寿命/alias/バリア]
+compile --&gt; exec[Execute - pass lambda 駆動]</pre>
 <p>Setup でパスと依存を宣言し、<code>Execute(cmd)</code> 1 回で Compile + Execute が走ります。Compile 相の仕事: デッドパスカリング (External への書き込みに到達しないパスを除去) → 各リソースの first-write / last-read 計算 → transient の物理割当 (aliasing) → パス境界のバリア計算。現在の実行順はトポロジカルソートではなく<strong>パスの登録順</strong>なので、producerをconsumerより先に登録します。</p>
 <pre><code class="language-csharp">using var rg = new RenderGraph(device);                       // 1 フレーム使い切り
 BufferHandle hUi    = rg.ImportBuffer(ui, &quot;ui&quot;);              // External

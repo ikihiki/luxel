@@ -5,7 +5,11 @@
 <blockquote>
 <p><strong>Diagnostic map:</strong> path AABB + stroke margin + clip. The constants shown here are current implementation values, not public API.</p>
 </blockquote>
-<figure class="static-capture"><img src="images/mermaid-346402a2d71c0d87ba6b.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
+<pre class="mermaid">flowchart LR
+Path --&gt; Transform --&gt; ScreenAABB
+Style --&gt; StrokeMargin --&gt; ScreenAABB
+Clip --&gt; Intersection --&gt; ScreenAABB
+ScreenAABB --&gt; BoundsBuffer</pre>
 <p>The bounds buffer is consumed by both bin and fine passes for early rejection.</p>
 <h2 id="production-source">Production source</h2>
 <pre><code class="language-slang">// 2D ラスタライザ (bounds): order エントリ毎に、パス bbox を画面空間 AABB へ前計算して

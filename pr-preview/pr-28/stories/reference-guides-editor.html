@@ -10,7 +10,9 @@
 <li><a href="#story=Reference%2FGuides%2FEditor&amp;section=%E5%9F%8B%E3%82%81%E8%BE%BC%E3%81%BF%E3%83%96%E3%83%AD%E3%83%83%E3%82%AF-embed">埋め込みブロック (Embed)</a></li>
 </ul>
 <p>テキスト編集は 2 層です。<strong>Luxel.Document</strong> が canvas 非依存のエディタコア (状態・編集・装飾・幾何)、<strong>Luxel.Controls の <code>TextEditorView</code></strong> が塗り・入力・IME を足す薄いビュー。CodeMirror 6 に倣った設計です (決定は <a href="#story=Internals%2FADR%2F0006-Editor-New-Stack">ADR-0006</a>)。コアの全意味論が UI/GPU なしで単体テストできます。</p>
-<figure class="static-capture"><img src="images/mermaid-28405cb94124193cf805.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
+<pre class="mermaid">flowchart TB
+typo[Luxel.Typography - TextLayout/キャレット] --&gt; core[Luxel.Document - 状態/編集/装飾/幾何]
+core --&gt; view[Luxel.Controls TextEditorView - 塗り/入力/IME]</pre>
 <h2 id="editorstate-transaction">EditorState と Transaction</h2>
 <ul>
 <li><strong>不変 <code>EditorState</code></strong> = <code>TextDoc</code> (テキスト) + <code>EditorSelection</code> (複数レンジ + main) + 装飾状態。編集は <code>Transaction</code> が運ぶ <code>ChangeSet</code> で、<strong><code>ChangeSet.MapPos</code> が選択・装飾・非同期結果の唯一の位置写像</strong></li>

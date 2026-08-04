@@ -5,7 +5,14 @@
 <blockquote>
 <p><strong>Diagnostic map:</strong> Segment / Path / Transform / Style / Clip / Order SoA. The constants shown here are current implementation values, not public API.</p>
 </blockquote>
-<figure class="static-capture"><img src="images/mermaid-1a5b7caabe3bc41c6de6.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
+<pre class="mermaid">flowchart LR
+Scene2D --&gt; PathEncoder
+PathEncoder --&gt; Segments
+PathEncoder --&gt; Paths
+PathEncoder --&gt; Styles
+PathEncoder --&gt; Transforms
+PathEncoder --&gt; Clips
+PathEncoder --&gt; Order</pre>
 <p>Each path indexes the other arrays; the order buffer preserves painter order independently from stable retained slots.</p>
 <h2 id="production-source">Production source</h2>
 <pre><code class="language-csharp">using System.Numerics;

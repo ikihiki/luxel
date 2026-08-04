@@ -82,7 +82,7 @@ colors.CopyTo(colorBuffer.Span&lt;float&gt;(colors.Length));
 </tr>
 </tbody>
 </table>
-<p><code>HostMapped</code> はCPU write向けで、write-combined / uncachedの場合があります。CPU readbackには使わず、<code>CopyBuffer</code>や<code>CopyTextureToBuffer</code>で <code>HostCached</code> へコピーします。<code>DeviceLocal</code> はCPUの <code>Span&lt;T&gt;</code> を持たずGPU処理向けです。古い資料の <code>HostCache</code> ではなく、API名は <strong><code>HostCached</code></strong> です。</p>
+<p><code>HostMapped</code> はCPU write向けで、write-combined / uncachedの場合があります。CPU readbackには使わず、<code>CopyBuffer</code>や<code>CopyTextureToBuffer</code>で <code>HostCached</code> へコピーします。<code>DeviceLocal</code> はCPUの <code>Span&lt;T&gt;</code> を持たずGPU処理向けです。</p>
 <h2 id="c-slangabi">C# とSlangのABI</h2>
 <p>root argumentsには3つのbufferの<code>BindlessIndex</code>だけを入れます。C#とSlangでfield順を一致させると、12 byteの同じraw bytesとして解釈されます。</p>
 <pre><code class="language-csharp">public struct DrawArgs
@@ -133,7 +133,15 @@ VertexOut vsMain(uint vertexId : SV_VertexID)
 <p><code>vertexId</code>は0〜5のindex-stream上の位置です。index bufferから得た0〜3の値を使い、頂点bufferは1要素8 byte、色bufferは1要素16 byteとしてbyte offsetを計算します。異なる役割のデータを別bufferへ分けても、同じindexで対応する頂点と色を取得できます。</p>
 <h2 id="root-argumentsraw-bytes">Root argumentsはraw bytes</h2>
 <p><code>SetRootArguments&lt;T&gt;</code> はunmanaged structをそのままbytes化し、Vulkanではpush constants、D3D12ではroot 32-bit constantsへ送ります。共通固定容量は <strong>192 byte</strong>、D3D12互換のためsizeは <strong>4 byte単位</strong>です。参照そのものではなく <code>BindlessIndex</code> や小さなscalar / matrixを入れます。大きな配列はbufferへ置いてindexだけを渡します。</p>
-<figure class="static-capture"><img src="images/mermaid-9d72f7a15c5aec578f66.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
+<pre class="mermaid">flowchart TB
+cpu[&quot;C#: DrawArgs raw bytes\nvertex / index / color buffer indices&quot;] --&gt; api[&quot;SetRootArguments\n4-byte units, max 192 bytes&quot;]
+api --&gt; vk[&quot;Vulkan\npush constants&quot;]
+api --&gt; dx[&quot;D3D12\nroot 32-bit constants&quot;]
+vk --&gt; slang[&quot;Slang: g_args&quot;]
+dx --&gt; slang
+index[&quot;index buffer\nSV_VertexID -&gt; vertex index&quot;] --&gt; vertex[&quot;vertex buffer\nindex -&gt; float2 position&quot;]
+index --&gt; color[&quot;color buffer\nindex -&gt; float4 color&quot;]
+slang --&gt; index</pre>
 <h2 id="section">コマンドを記録する</h2>
 <p><code>DrawIndexed</code>の代わりにindex数の6を<code>Draw</code>へ渡します。shader内で<code>SV_VertexID</code>をindex bufferのoffsetとして使います。</p>
 <pre><code class="language-csharp">command.BeginRendering(target, null, 0.055f, 0.07f, 0.11f, 1)
@@ -212,7 +220,7 @@ public static Widget BuffersAndBindings(StoryContext ctx)
     | upload | CPUが書き、GPUが読む一時または頻繁更新データ | `HostMapped` |
     | readback | GPU copy後にCPUが読む | `HostCached` |
 
-    `HostMapped` はCPU write向けで、write-combined / uncachedの場合があります。CPU readbackには使わず、`CopyBuffer`や`CopyTextureToBuffer`で `HostCached` へコピーします。`DeviceLocal` はCPUの `Span&lt;T&gt;` を持たずGPU処理向けです。古い資料の `HostCache` ではなく、API名は **`HostCached`** です。
+    `HostMapped` はCPU write向けで、write-combined / uncachedの場合があります。CPU readbackには使わず、`CopyBuffer`や`CopyTextureToBuffer`で `HostCached` へコピーします。`DeviceLocal` はCPUの `Span&lt;T&gt;` を持たずGPU処理向けです。
 
     ## C# とSlangのABI
 

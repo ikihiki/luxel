@@ -2,7 +2,8 @@
 <p>This page is authored with the <strong>DocString</strong> API but renders on the <em>new stack</em> via <code>MarkdownDoc.FromDoc</code>.</p>
 <figure class="static-capture"><img src="images/embed-5bdb55bfc1b794f959c2.png" alt="Documentation embed 1" loading="lazy"><figcaption>Static widget capture — not interactive</figcaption></figure>
 <p>A mermaid diagram, reusing Luxel.Diagram:</p>
-<figure class="static-capture"><img src="images/mermaid-12c4082a131e07ab23ec.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
+<pre class="mermaid">flowchart LR
+Docs --&gt; FromDoc --&gt; NewStack</pre>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/TextEditorView/DocBridge&quot;, Height = 420, Order = 14)]
 public static Widget DocBridge(StoryContext ctx)
 {

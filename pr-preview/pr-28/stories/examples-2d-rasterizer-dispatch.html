@@ -5,7 +5,12 @@
 <blockquote>
 <p><strong>Diagnostic map:</strong> bounds → barrier → bin → barrier → fine. The constants shown here are current implementation values, not public API.</p>
 </blockquote>
-<figure class="static-capture"><img src="images/mermaid-fcafb74654566daa4192.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
+<pre class="mermaid">flowchart LR
+Bounds --&gt; Barrier1[compute barrier]
+Barrier1 --&gt; Bin
+Bin --&gt; Barrier2[compute barrier]
+Barrier2 --&gt; Fine
+Fine --&gt; Barrier3[all-stage barrier]</pre>
 <p>Scratch buffers grow to the required capacity and are reused by the serial rasterizer session.</p>
 <h2 id="production-source">Production source</h2>
 <pre><code class="language-csharp">namespace Luxel.Graphics.TwoD;

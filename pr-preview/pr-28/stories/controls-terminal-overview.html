@@ -9,7 +9,15 @@
 <li><a href="#story=Controls%2FTerminal%2FOverview&amp;section=sample%E3%82%92%E5%AE%9F%E8%A1%8C%E3%81%99%E3%82%8B">sampleを実行する</a></li>
 </ul>
 <p>Luxelの端末機能は、VT/ANSIを解釈するOS非依存コア、OSごとのPTY backend、Luxel UIへ描画する<code>TerminalView</code>の3層です。WindowsではConPTY、LinuxではUnix PTYを使用します。<code>Luxel.Controls</code>とは相互に依存せず、アプリが必要な層だけを組み合わせます。</p>
-<figure class="static-capture"><img src="images/mermaid-b159877b66a10e467a90.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
+<pre class="mermaid">flowchart TB
+app[アプリ] --&gt; view[Luxel.Terminal.UI - TerminalView]
+app --&gt; session[Luxel.Terminal - TerminalSession]
+view --&gt; session
+view --&gt; ui[Luxel.UI]
+view --&gt; typo[Luxel.Typography.TwoD]
+session --&gt; pty[ITerminalPty]
+pty --&gt; win[Luxel.Terminal.Windows - ConPTY]
+pty --&gt; linux[Luxel.Terminal.Linux - forkpty]</pre>
 <h2 id="section">プロジェクト</h2>
 <table>
 <thead>
