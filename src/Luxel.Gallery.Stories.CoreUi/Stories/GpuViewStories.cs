@@ -15,19 +15,16 @@ namespace Luxel.Gallery.Stories;
 /// </summary>
 public static class GpuViewStories
 {
-    [Story(CanonicalClearColorRecipe.Story, Width = CanonicalClearColorRecipe.Width,
-        Height = CanonicalClearColorRecipe.Height, Order = 119,
+    [Story(CanonicalClearColorRecipe.Story, Width = 320, Height = 240, Order = 119,
         CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
     public static Widget ClearColor(StoryContext ctx)
         => ctx.Snap(Frame(GpuView(
-            CanonicalClearColorRecipe.Width,
-            CanonicalClearColorRecipe.Height,
+            320,
+            240,
             static (device, surface, _) =>
             {
                 using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
-                command.BeginRendering(surface.ColorTarget, null,
-                        CanonicalClearColorRecipe.Red, CanonicalClearColorRecipe.Green,
-                        CanonicalClearColorRecipe.Blue, CanonicalClearColorRecipe.Alpha)
+                command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1f)
                     .EndRendering();
                 surface.CopyColorToFramebuffer(command);
                 command.Finish();
@@ -35,13 +32,12 @@ public static class GpuViewStories
             },
             animated: false)));
 
-    [Story(CanonicalTriangleRecipe.Story, Width = CanonicalTriangleRecipe.Width,
-        Height = CanonicalTriangleRecipe.Height, Order = 120,
+    [Story(CanonicalTriangleRecipe.Story, Width = 320, Height = 240, Order = 120,
         CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
     public static Widget Triangle(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is null || ctx.ScopedResourcesOrNull is not { } resources)
-            return BuildOnlyGpuView(ctx, CanonicalTriangleRecipe.Width, CanonicalTriangleRecipe.Height);
+            return BuildOnlyGpuView(ctx, 320, 240);
 
         CanonicalTriangleRecipe.Vertex[] vertices = CanonicalTriangleRecipe.CreateVertices();
         ResourceHandle<GpuBuffer> vertexBuffer = resources.CreateBuffer<CanonicalTriangleRecipe.Vertex>(
@@ -55,8 +51,8 @@ public static class GpuViewStories
         vertices.CopyTo(vertexBuffer.Value.Span<CanonicalTriangleRecipe.Vertex>(vertices.Length));
 
         return ctx.Snap(Frame(GpuView(
-            CanonicalTriangleRecipe.Width,
-            CanonicalTriangleRecipe.Height,
+            320,
+            240,
             (device, surface, _) =>
             {
                 var args = new CanonicalTriangleRecipe.DrawArgs
@@ -87,7 +83,7 @@ public static class GpuViewStories
 
     private static GpuShaderCode TriangleShader()
     {
-        GpuShaderCode native = GpuShaderCode.Load(CanonicalTriangleRecipe.Shader);
+        GpuShaderCode native = GpuShaderCode.Load("tutorial_triangle");
         return new GpuShaderCode
         {
             SpirV = native.SpirV,

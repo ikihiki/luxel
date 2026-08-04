@@ -4,13 +4,7 @@ using System.Runtime.InteropServices;
 public static class CanonicalTriangleRecipe
 {
     public const string Story = "Examples/3D/Triangle";
-    public const string Shader = "tutorial_triangle";
     public const string Recipe = "canonical-triangle-v1";
-    public const string ShaderSha256 = "4c3a36aa594306d963f00f1c0e6c5d7c62b1543748bfc882d72d0de8cf9a2cdd";
-    public const int Width = 320;
-    public const int Height = 240;
-    public const int VertexSize = 32;
-    public const int DrawArgsSize = 4;
 
     [StructLayout(LayoutKind.Sequential)]
     public struct Vertex

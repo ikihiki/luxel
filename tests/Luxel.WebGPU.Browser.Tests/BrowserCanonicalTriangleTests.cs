@@ -24,7 +24,8 @@ public sealed class BrowserCanonicalTriangleTests
         Assert.Contains("await RunCatalogStory(story)", program);
         Assert.DoesNotContain("RunClearColor", program);
         Assert.DoesNotContain("RunTriangle", program);
-        Assert.Contains("CanonicalClearColorRecipe.Red", gpuStories);
+        Assert.DoesNotContain("CanonicalClearColorRecipe.Red", gpuStories);
+        Assert.Contains("BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1f)", gpuStories);
         Assert.Contains("CanonicalTriangleRecipe.CreateVertices()", gpuStories);
         Assert.Contains("GpuView(", gpuStories);
         Assert.Contains("ctx.ScopedResources", gpuStories);
@@ -46,7 +47,8 @@ public sealed class BrowserCanonicalTriangleTests
         Assert.Contains("data-status=\"loading\"", html);
 
         byte[] shader = File.ReadAllBytes(shaderPath);
-        Assert.Equal(CanonicalTriangleRecipe.ShaderSha256, Convert.ToHexString(SHA256.HashData(shader)).ToLowerInvariant());
+        Assert.Equal("4c3a36aa594306d963f00f1c0e6c5d7c62b1543748bfc882d72d0de8cf9a2cdd",
+            Convert.ToHexString(SHA256.HashData(shader)).ToLowerInvariant());
         string wgsl = Encoding.UTF8.GetString(shader);
         Assert.Contains("fn vsMain", wgsl);
         Assert.Contains("fn psMain", wgsl);
