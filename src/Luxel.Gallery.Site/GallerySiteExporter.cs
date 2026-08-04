@@ -108,6 +108,7 @@ public static partial class GallerySiteExporter
             string? error = null;
             string imageHash = "";
             TextEditorView? document = null;
+            ISemanticDocument? semanticDocument = null;
 
             string body = "";
             try
@@ -136,6 +137,37 @@ public static partial class GallerySiteExporter
                             new HashSet<string>(StringComparer.Ordinal), 0, ref unavailable, ref errors);
                         metrics.DocumentStories++;
                     }
+                    else if (result.Widget is ISemanticDocument { DocumentSource: { } documentSource } semantic)
+                    {
+                        semanticDocument = semantic;
+                        status = "document";
+                        IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, documentSource);
+                        if (linkErrors.Count > 0)
+                            throw new InvalidDataException("Broken documentation links: " + string.Join(", ", linkErrors));
+                        string md = ReplaceEmbeds(story.Path, documentSource, semantic.DocumentEmbeds, storyByPath,
+                            Host, imagesDir, imageCache, goldenIndex, options.StaticCapture, metrics,
+                            browserBundle, ref unavailable, ref errors);
+                        md = RewriteLocalImages(md, imagesDir, repositoryRoot, localImageCache, metrics);
+                        md = ReplaceSpecialFences(md, Host, imagesDir, options.StaticCapture, metrics, ref unavailable, ref errors);
+                        body = RenderMarkdown(md, story.Path);
+                        metrics.DocumentStories++;
+                    }
+                    else if (result.Widget is { } semanticRoot
+                             && GallerySnapshots.FindDocument(semanticRoot) is { DocSource: { } nestedSource } nestedDocument)
+                    {
+                        semanticDocument = nestedDocument;
+                        status = "document";
+                        IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, nestedSource);
+                        if (linkErrors.Count > 0)
+                            throw new InvalidDataException("Broken documentation links: " + string.Join(", ", linkErrors));
+                        string md = ReplaceEmbeds(story.Path, nestedSource, nestedDocument.DocEmbeds, storyByPath,
+                            Host, imagesDir, imageCache, goldenIndex, options.StaticCapture, metrics,
+                            browserBundle, ref unavailable, ref errors);
+                        md = RewriteLocalImages(md, imagesDir, repositoryRoot, localImageCache, metrics);
+                        md = ReplaceSpecialFences(md, Host, imagesDir, options.StaticCapture, metrics, ref unavailable, ref errors);
+                        body = RenderMarkdown(md, story.Path);
+                        metrics.DocumentStories++;
+                    }
                     else
                     {
                         (imageUrl, status, error, imageHash) = EnsureStoryImage(Host, story, imagesDir, imageCache,
@@ -147,15 +179,24 @@ public static partial class GallerySiteExporter
                     status = "unavailable";
                     error = "This story requires a real window and is not available in the static gallery.";
                 }
-                else if (options.StaticCapture == StaticCaptureMode.None)
+                else if (options.StaticCapture != StaticCaptureMode.All)
                 {
-                    metrics.PolicySkips++;
-                    status = "unavailable";
-                    error = CapturePolicyMessage(options.StaticCapture);
+                    byte[]? png = TryReadGolden(story.Path, goldenIndex, options.StaticCapture, metrics);
+                    if (png is not null)
+                        (imageUrl, status, error, imageHash) = StoreStoryImage(
+                            story, imagesDir, imageCache, png, null, metrics);
+                    else
+                    {
+                        metrics.PolicySkips++;
+                        status = "unavailable";
+                        error = CapturePolicyMessage(options.StaticCapture);
+                    }
                 }
                 else
                 {
-                    // Realize once to discover legacy TextEditorView documents. Inspect the root before
+                    // All mode realizes remaining legacy widgets to discover documents or produce a capture.
+                    // Golden-only/none never create a native host: documents must expose ResultBuild metadata.
+                    // Inspect the root before
                     // producing a PNG so semantic documents never pay final readback/encoding or retain an unused image.
                     byte[]? png = null;
                     string? realizationError = null;
@@ -263,6 +304,7 @@ public static partial class GallerySiteExporter
             if (status == "error") errors++;
             string searchText = story.Path + "\n" + story.Name + "\n" + story.Component
                 + (document?.DocSource is { } source ? "\n" + source : "")
+                + (semanticDocument?.DocumentSource is { } semanticSource ? "\n" + semanticSource : "")
                 + (story.Source is { Length: > 0 } code ? "\n" + code : "");
             manifest.Add(new SiteStory(story.Path, story.Name, story.Component, fragmentUrl, imageUrl, status, error,
                 imageHash, searchText, Array.Empty<string>(), SampleBundleRegistry.Find(story.SampleBundle),
@@ -389,7 +431,7 @@ public static partial class GallerySiteExporter
                     continue;
                 }
                 var timer = System.Diagnostics.Stopwatch.StartNew();
-                GallerySnapshotResult result = GallerySnapshots.CaptureWidget(host(), $"doc-embed-{i}", embed.Widget);
+                GallerySnapshotResult result = GallerySnapshots.CaptureWidget(host(), $"doc-embed-{i}", embed.ResolveWidget());
                 timer.Stop();
                 metrics.NativeRealization += timer.Elapsed;
                 if (result.Png is { } png)

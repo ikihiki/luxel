@@ -1,4 +1,4 @@
-﻿using Luxel.Audio;
+using Luxel.Audio;
 using Luxel.Audio.Sequencing;
 using Luxel.Controls;
 using Luxel.Document;
@@ -192,7 +192,16 @@ public static class StrudelStory
         public void Dispose() => Session.Release(_slot, this);
     }
 
-    [Story("Examples/Strudel/Repl", Height = 560, Order = 2031)]
+    private const string ReplMarkdown =
+        "Strudel REPL: 各 ```strudel セルを **Ctrl+Enter** または Run で評価 (再 Run = ホットスワップ)。\n\n" +
+        "```strudel\ns(\"bd*2 [~ sd] hh*4\").gain(0.9)\n```\n\n" +
+        "別セルは独立スロット — 重ねて鳴る。silence を Run するとそのスロットだけ止まる。\n\n" +
+        "```strudel\nnote(\"c3 eb3 g3 <bb3 c4>\").s(\"saw\").slow(2)\n```\n\n" +
+        "例: `.every(2, rev)` / `.jux(fast(2))` / `.degrade()` / `cps(0.6)` でテンポ。\n";
+
+    internal static StoryResult ReplResult() => StoryResult.FromMarkdown(ReplMarkdown);
+
+    [Story("Examples/Strudel/Repl", Height = 560, Order = 2031, Result = nameof(ReplResult))]
     public static Widget Repl(StoryContext ctx)
     {
         // 各セルは ```strudel フェンス — 本文キーでキャッシュし同一 StrudelBlock を返す (再描画で状態が消えない)
@@ -209,12 +218,7 @@ public static class StrudelStory
             return cell;
         }
 
-        Signal<string> src = ctx.Signal("source",
-            "Strudel REPL: 各 ```strudel セルを **Ctrl+Enter** または Run で評価 (再 Run = ホットスワップ)。\n\n" +
-            "```strudel\ns(\"bd*2 [~ sd] hh*4\").gain(0.9)\n```\n\n" +
-            "別セルは独立スロット — 重ねて鳴る。silence を Run するとそのスロットだけ止まる。\n\n" +
-            "```strudel\nnote(\"c3 eb3 g3 <bb3 c4>\").s(\"saw\").slow(2)\n```\n\n" +
-            "例: `.every(2, rev)` / `.jux(fast(2))` / `.degrade()` / `cps(0.6)` でテンポ。\n");
+        Signal<string> src = ctx.Signal("source", ReplMarkdown);
 
         Signal<float> cps = ctx.Signal("cps", 0.5f);
         var wave = Sparkline(300f, 30f, bars: true);
@@ -259,8 +263,10 @@ public static class StrudelStory
     }
 
     /// <summary>ルート: エディタを包み、Tick でセッションを駆動する (ポンプ + 波形 + cps 同期)。</summary>
-    private sealed class ReplRoot(Widget editor, Sparkline wave, Signal<float> cps) : CompositeControl
+    private sealed class ReplRoot(TextEditorView editor, Sparkline wave, Signal<float> cps) : CompositeControl, ISemanticDocument
     {
+        public string? DocumentSource => editor.DocSource;
+        public IReadOnlyList<DocEmbed> DocumentEmbeds => editor.DocEmbeds;
         protected override Widget Build() => editor;
 
         protected override void OnRealize(UiBuildContext ctx)

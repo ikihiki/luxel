@@ -15,7 +15,7 @@ namespace Luxel.Controls;
 /// (シンタックス色/診断/検索/再生囲み) や行内 widget は後続ステージがこの上に載る。
 /// </summary>
 [UiComponent]
-public sealed partial class TextEditorView : Widget, ITextInput
+public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocument
 {
     /// <summary>編集対象テキスト (双方向)。</summary>
     [UiParam] private readonly Bindable<Signal<string>> _value = new();
@@ -46,6 +46,9 @@ public sealed partial class TextEditorView : Widget, ITextInput
     public string? DocSource { get; set; }
     /// <summary>Structured live-embed metadata associated with <see cref="DocSource"/>.
     /// Native rendering continues through <see cref="WidgetResolver"/>; static exporters consume this list.</summary>
+    string? ISemanticDocument.DocumentSource => DocSource;
+    IReadOnlyList<DocEmbed> ISemanticDocument.DocumentEmbeds => DocEmbeds;
+
     public IReadOnlyList<DocEmbed> DocEmbeds { get; set; } = [];
     /// <summary>領域いっぱいに広がる (固定 editorWidth/Height でなく制約サイズを使う)。文書ページ向け。</summary>
     public bool Fill { get; set; }

@@ -35,6 +35,8 @@ public sealed class StoryAttribute(string path) : Attribute
     public string? RuntimeBundleId { get; set; }
     /// <summary>Human-readable deterministic fixture/capability note exported with runtime descriptors.</summary>
     public string? CapabilityNote { get; set; }
+    /// <summary>Optional static semantic result provider used by host-free exporters.</summary>
+    public string? Result { get; set; }
     /// <summary>Optional static schema provider method on the declaring story type.</summary>
     public string? Args { get; set; }
 }

@@ -316,6 +316,44 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Golden_only_exports_semantic_document_and_skips_native_story_without_creating_host()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-golden-host-free-" + Guid.NewGuid().ToString("N"));
+        var document = new StoryInfo("Test/Document", 0, 0, null,
+            _ => throw new InvalidOperationException("document widget must not be realized"),
+            ResultBuild: static _ => StoryResult.FromMarkdown("# Semantic document"));
+        var native = new StoryInfo("Test/Native", 160, 80, null,
+            _ => throw new InvalidOperationException("native story must not be realized"));
+        var builder = new StoryCatalogBuilder();
+        builder.Add(document);
+        builder.Add(native);
+        StoryCatalog catalog = builder.Build();
+        int hostCreations = 0;
+        try
+        {
+            SiteExportReport report = GallerySiteExporter.Export(
+                () => { hostCreations++; throw new InvalidOperationException("host must remain lazy"); },
+                catalog, [document, native], output, root,
+                options: new SiteExportOptions { StaticCapture = StaticCaptureMode.GoldenOnly });
+
+            Assert.Equal(0, hostCreations);
+            Assert.Equal(0, report.Metrics?.NativeRealization.TotalMilliseconds);
+            Assert.Equal(1, report.Metrics?.DocumentStories);
+            Assert.Equal(1, report.Unavailable);
+            SiteStory[] entries = JsonSerializer.Deserialize<SiteStory[]>(
+                File.ReadAllText(Path.Combine(output, "manifest.json")),
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })!;
+            Assert.Equal("document", Assert.Single(entries, entry => entry.Path == document.Path).Status);
+            Assert.Equal("unavailable", Assert.Single(entries, entry => entry.Path == native.Path).Status);
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+        }
+    }
+
+    [Fact]
     public void Incremental_semantic_export_reuses_unchanged_files_without_creating_host()
     {
         string root = GallerySiteExporter.FindRepositoryRoot();
@@ -848,10 +886,10 @@ public sealed class GallerySiteExporterTests
         {
             StoryInfo story = Catalog.Find("Reference/" + ns)
                 ?? throw new InvalidOperationException($"Namespace reference is missing: {ns}");
-            TextEditorView document = GallerySnapshots.FindDocument(story.Build(new StoryContext()))
+            ISemanticDocument document = BuildSemanticDocument(story)
                 ?? throw new InvalidOperationException($"Namespace reference is not a document: {ns}");
-            Assert.Contains($"# {ns}", document.DocSource);
-            Assert.All(document.DocEmbeds, embed => Assert.Equal(DocEmbedKind.TypeApiTable, embed.Kind));
+            Assert.Contains($"# {ns}", document.DocumentSource);
+            Assert.All(document.DocumentEmbeds, embed => Assert.Equal(DocEmbedKind.TypeApiTable, embed.Kind));
         }
 
         string[] requiredNamespaces =
@@ -901,9 +939,9 @@ public sealed class GallerySiteExporterTests
             }
             else
             {
-                TextEditorView document = GallerySnapshots.FindDocument(result.Widget!)
+                ISemanticDocument document = DocsIndex.FindSemanticDocument(result.Widget)
                     ?? throw new InvalidOperationException($"Control overview is not a document: {category}");
-                Assert.Contains(document.DocEmbeds,
+                Assert.Contains(document.DocumentEmbeds,
                     embed => embed.Kind == DocEmbedKind.ControlApiTable && embed.Reference == apiName);
             }
         }
@@ -912,12 +950,12 @@ public sealed class GallerySiteExporterTests
 
         StoryInfo controls = Catalog.Find("Reference/Guides/Controls")
             ?? throw new InvalidOperationException("Reference/Guides/Controls is missing.");
-        TextEditorView controlsDocument = GallerySnapshots.FindDocument(controls.Build(new StoryContext()))
+        ISemanticDocument controlsDocument = BuildSemanticDocument(controls)
             ?? throw new InvalidOperationException("Reference/Guides/Controls is not a document.");
-        Assert.Contains("Controls/NavigationView/Basic", controlsDocument.DocSource);
-        Assert.Contains("Examples/UI/Navigation", controlsDocument.DocSource);
-        Assert.DoesNotContain("Reference/Overview", controlsDocument.DocSource);
-        Assert.Contains("Controls/Button/Overview", controlsDocument.DocSource);
+        Assert.Contains("Controls/NavigationView/Basic", controlsDocument.DocumentSource);
+        Assert.Contains("Examples/UI/Navigation", controlsDocument.DocumentSource);
+        Assert.DoesNotContain("Reference/Overview", controlsDocument.DocumentSource);
+        Assert.Contains("Controls/Button/Overview", controlsDocument.DocumentSource);
     }
 
     [SkippableFact]
@@ -977,12 +1015,11 @@ public sealed class GallerySiteExporterTests
             string path = routes[i];
             StoryInfo story = Catalog.Find(path)
                 ?? throw new InvalidOperationException($"Rendering Learn route is missing: {path}");
-            Widget root = story.Build(new StoryContext());
-            TextEditorView document = GallerySnapshots.FindDocument(root)
+            ISemanticDocument document = BuildSemanticDocument(story)
                 ?? throw new InvalidOperationException($"Rendering Learn route is not a document: {path}");
-            Assert.Contains("**難易度:**", document.DocSource);
+            Assert.Contains("**難易度:**", document.DocumentSource);
             if (i > 0)
-                Assert.Contains("```", document.DocSource); // The page remains understandable without opening sample files.
+                Assert.Contains("```", document.DocumentSource); // The page remains understandable without opening sample files.
         }
     }
 
@@ -1167,11 +1204,11 @@ public sealed class GallerySiteExporterTests
             Assert.Contains(ns, TypeApiRegistry.Namespaces);
             StoryInfo story = Catalog.Find("Reference/" + ns)
                 ?? throw new InvalidOperationException($"Terminal API reference is missing: {ns}");
-            TextEditorView document = GallerySnapshots.FindDocument(story.Build(new StoryContext()))
+            ISemanticDocument document = BuildSemanticDocument(story)
                 ?? throw new InvalidOperationException($"Terminal API reference is not a document: {ns}");
-            Assert.Contains($"# {ns}", document.DocSource);
-            Assert.NotEmpty(document.DocEmbeds);
-            Assert.All(document.DocEmbeds, embed => Assert.Equal(DocEmbedKind.TypeApiTable, embed.Kind));
+            Assert.Contains($"# {ns}", document.DocumentSource);
+            Assert.NotEmpty(document.DocumentEmbeds);
+            Assert.All(document.DocumentEmbeds, embed => Assert.Equal(DocEmbedKind.TypeApiTable, embed.Kind));
         }
 
         Assert.NotNull(TypeApiRegistry.Find("Luxel.Terminal.Session.TerminalSession"));
@@ -1462,6 +1499,15 @@ public sealed class GallerySiteExporterTests
             "// docs:end x\nline\n// docs:begin x\n", "sample.cs", "x"));
         Assert.Throws<InvalidOperationException>(() => Luxel.Gallery.Stories.DocsKit.ExtractRegion(
             "// docs:begin x\na\n// docs:end x\n// docs:begin x\nb\n// docs:end x\n", "sample.cs", "x"));
+    }
+
+    private static ISemanticDocument? BuildSemanticDocument(StoryInfo story)
+    {
+        using var context = new StoryContext();
+        StoryResult result = story.BuildResult(context);
+        return result.Kind == StoryResultKind.Widget
+            ? DocsIndex.FindSemanticDocument(result.Widget)
+            : null;
     }
 
     [Fact]

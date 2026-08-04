@@ -18,8 +18,11 @@ public static class DocsMeta
     public static Widget Authoring(StoryContext ctx)
     {
         // snap (静定 1 フレーム) の決定性のため画像を同期 preload — 実アプリでは不要
-        _imagePreload ??= ctx.Resources.Load<Luxel.Resources.CpuImage>(SampleImage);
-        try { _imagePreload.Ready.Wait(3000); } catch { /* 失敗時はプレースホルダのまま */ }
+        if (ctx.ResourcesOrNull is { } resources)
+        {
+            _imagePreload ??= resources.Load<Luxel.Resources.CpuImage>(SampleImage);
+            try { _imagePreload.Ready.Wait(3000); } catch { /* 失敗時はプレースホルダのまま */ }
+        }
 
         Signal<int> count = ctx.Signal("count", 0, "カウンタの現在値 (± ボタンと連動)");
         Widget counter = HStack(8)[
