@@ -1,22 +1,4 @@
 <article class="story document-page"><h1 id="luxel.typography">Luxel.Typography</h1>
-<ul>
-<li><a href="#story=Reference%2FLuxel.Typography&amp;section=colorlayer">ColorLayer</a></li>
-<li><a href="#story=Reference%2FLuxel.Typography&amp;section=fontcollection">FontCollection</a></li>
-<li><a href="#story=Reference%2FLuxel.Typography&amp;section=itextsegmenter">ITextSegmenter</a></li>
-<li><a href="#story=Reference%2FLuxel.Typography&amp;section=icusegmenter">IcuSegmenter</a></li>
-<li><a href="#story=Reference%2FLuxel.Typography&amp;section=linebreakkind">LineBreakKind</a></li>
-<li><a href="#story=Reference%2FLuxel.Typography&amp;section=simplesegmenter">SimpleSegmenter</a></li>
-<li><a href="#story=Reference%2FLuxel.Typography&amp;section=spanstyle">SpanStyle</a></li>
-<li><a href="#story=Reference%2FLuxel.Typography&amp;section=textalign">TextAlign</a></li>
-<li><a href="#story=Reference%2FLuxel.Typography&amp;section=textlayout">TextLayout</a></li>
-<li><a href="#story=Reference%2FLuxel.Typography&amp;section=textlayoutoptions">TextLayoutOptions</a></li>
-<li><a href="#story=Reference%2FLuxel.Typography&amp;section=textrect">TextRect</a></li>
-<li><a href="#story=Reference%2FLuxel.Typography&amp;section=textsegmenter">TextSegmenter</a></li>
-<li><a href="#story=Reference%2FLuxel.Typography&amp;section=textspan">TextSpan</a></li>
-<li><a href="#story=Reference%2FLuxel.Typography&amp;section=textvalign">TextVAlign</a></li>
-<li><a href="#story=Reference%2FLuxel.Typography&amp;section=textwrap">TextWrap</a></li>
-<li><a href="#story=Reference%2FLuxel.Typography&amp;section=vectorfont">VectorFont</a></li>
-</ul>
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="colorlayer">ColorLayer</h2>
 <section class="api-reference"><p class="api-summary">struct — カラーグリフ (COLR v0) のレイヤ 1 枚。Foreground = パレット 0xFFFF (テキスト色で描く — レイヤ色は未指定)。Rgba は little-endian 0xAABBGGRR パック。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>ColorLayer</code></th><td><code>(uint GlyphId, uint Rgba, bool Foreground)</code></td><td>カラーグリフ (COLR v0) のレイヤ 1 枚。Foreground = パレット 0xFFFF (テキスト色で描く — レイヤ色は未指定)。Rgba は little-endian 0xAABBGGRR パック。</td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Equals</code></th><td><code>(ColorLayer other) → bool</code></td><td></td></tr><tr><th scope="row"><code>Deconstruct</code></th><td><code>(uint GlyphId, uint Rgba, bool Foreground) → void</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>GlyphId</code></th><td><code>uint (get/set)</code></td><td></td></tr><tr><th scope="row"><code>Rgba</code></th><td><code>uint (get/set)</code></td><td></td></tr><tr><th scope="row"><code>Foreground</code></th><td><code>bool (get/set)</code></td><td></td></tr></tbody></table></div></section>

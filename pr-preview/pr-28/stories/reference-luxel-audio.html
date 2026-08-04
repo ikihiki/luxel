@@ -1,23 +1,4 @@
 <article class="story document-page"><h1 id="luxel.audio">Luxel.Audio</h1>
-<ul>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audiobus">AudioBus</a></li>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audioclip">AudioClip</a></li>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audiocliploader">AudioClipLoader</a></li>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audioclipstep">AudioClipStep</a></li>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audioformat">AudioFormat</a></li>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audiolistener">AudioListener</a></li>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audiomixer">AudioMixer</a></li>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audioregistry">AudioRegistry</a></li>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audiosource">AudioSource</a></li>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=audiosource3d">AudioSource3D</a></li>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=iaudiobackend">IAudioBackend</a></li>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=iaudiostream">IAudioStream</a></li>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=iaudiovoice">IAudioVoice</a></li>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=loopingstream">LoopingStream</a></li>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=nullaudiobackend">NullAudioBackend</a></li>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=streamingvoice">StreamingVoice</a></li>
-<li><a href="#story=Reference%2FLuxel.Audio&amp;section=wavstream">WavStream</a></li>
-</ul>
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="audiobus">AudioBus</h2>
 <section class="api-reference"><p class="api-summary">class — ミキサーの階層ノード。Master / Music / SFX / Voice のような 音量グループ。 親 bus を持つと、実効音量は自身 &#215; 親のチェーンで計算される。UI の master slider を Signal で bind すれば 全 sound source に同時に効く。 XAudio2 の SubmixVoice を使わず、AudioSource / AudioSource3D が Tick 時に EffectiveVolume を掛け算するシンプル実装。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>AudioBus</code></th><td><code>(string name, AudioBus parent)</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Name</code></th><td><code>string (get)</code></td><td></td></tr><tr><th scope="row"><code>Volume</code></th><td><code>Signal&lt;float&gt; (get)</code></td><td></td></tr><tr><th scope="row"><code>Parent</code></th><td><code>AudioBus (get)</code></td><td></td></tr><tr><th scope="row"><code>EffectiveVolume</code></th><td><code>float (get)</code></td><td>親 chain を辿って掛け算した実効音量。</td></tr></tbody></table></div></section>

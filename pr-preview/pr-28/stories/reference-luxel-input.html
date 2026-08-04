@@ -1,26 +1,4 @@
 <article class="story document-page"><h1 id="luxel.input">Luxel.Input</h1>
-<ul>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=axis1daction">Axis1DAction</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=axis2daction">Axis2DAction</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=axiscode">AxisCode</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=buttonaction">ButtonAction</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=fakeinputsource">FakeInputSource</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=iinputsource">IInputSource</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=inputaction">InputAction</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=inputbindingentry">InputBindingEntry</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=inputbindings">InputBindings</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=inputbindingsapplier">InputBindingsApplier</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=inputbindingsstep">InputBindingsStep</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=inputbus">InputBus</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=inputcontext">InputContext</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=inputevent">InputEvent</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=inputeventkind">InputEventKind</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=inputstack">InputStack</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=inputstatemachine%3Ctstate%3E">InputStateMachine<TState></a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=keycode">KeyCode</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=windowinput">WindowInput</a></li>
-<li><a href="#story=Reference%2FLuxel.Input&amp;section=windowinputsource">WindowInputSource</a></li>
-</ul>
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="axis1daction">Axis1DAction</h2>
 <section class="api-reference"><p class="api-summary">class — 1D 軸 (float) アクション。WASD の左右 → -1..1 のような ボタン対 + 生 axis を統合。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Axis1DAction</code></th><td><code>(string name)</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Value</code></th><td><code>Signal&lt;float&gt; (get)</code></td><td></td></tr><tr><th scope="row"><code>ButtonPairs</code></th><td><code>List&lt;(KeyCode Positive, KeyCode Negative)&gt; (get)</code></td><td>Positive - Negative でボタン対から軸を作る (WASD 相当)。複数対も OR 統合。</td></tr><tr><th scope="row"><code>Axes</code></th><td><code>List&lt;AxisCode&gt; (get)</code></td><td>生 axis を直接バインド (GamepadLeftStickX 等、正規化前提)。</td></tr></tbody></table></div></section>

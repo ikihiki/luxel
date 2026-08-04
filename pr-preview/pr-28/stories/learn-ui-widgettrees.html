@@ -1,13 +1,4 @@
 <article class="story document-page"><h1 id="ui-widget-trees">UI widget trees</h1>
-<ul>
-<li><a href="#story=Learn%2FUI%2FWidgetTrees&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-headless-reactive-widget-tree">コピーして動かす — Headless reactive widget tree</a>
-<ul>
-<li><a href="#story=Learn%2FUI%2FWidgetTrees&amp;section=%60samples%2Fluxeluiheadless%2Fluxeluiheadless.csproj%60-project"><code>samples/LuxelUiHeadless/LuxelUiHeadless.csproj</code> (Project)</a></li>
-<li><a href="#story=Learn%2FUI%2FWidgetTrees&amp;section=%60samples%2Fluxeluiheadless%2Fprogram.cs%60-csharp"><code>samples/LuxelUiHeadless/Program.cs</code> (CSharp)</a></li>
-<li><a href="#story=Learn%2FUI%2FWidgetTrees&amp;section=%60assets%2Ffonts%2Fbizudgothic-regular.ttf%60-asset"><code>assets/fonts/BIZUDGothic-Regular.ttf</code> (Asset)</a></li>
-</ul>
-</li>
-</ul>
 <p>Luxel UIは<code>Widget</code>を宣言し、Layoutでsizeとoffsetを決め、Realizeでretained 2D nodeへ接続します。<code>CompositeControl.Build()</code>は既存controlを組み合わせる入口です。完全自前描画が不要なら<code>Widget</code>を直接継承せず、generated <code>Kit</code> factoryでtreeを返します。</p>
 <h2 id="headless-reactive-widget-tree">コピーして動かす — Headless reactive widget tree</h2>
 <blockquote>

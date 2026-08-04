@@ -1,17 +1,4 @@
 <article class="story document-page"><h1 id="luxel.player">Luxel.Player</h1>
-<ul>
-<li><a href="#story=Reference%2FLuxel.Player&amp;section=behaviourglobals">BehaviourGlobals</a></li>
-<li><a href="#story=Reference%2FLuxel.Player&amp;section=iplayerworld">IPlayerWorld</a></li>
-<li><a href="#story=Reference%2FLuxel.Player&amp;section=player2dworld">Player2DWorld</a></li>
-<li><a href="#story=Reference%2FLuxel.Player&amp;section=player3dhit">Player3DHit</a></li>
-<li><a href="#story=Reference%2FLuxel.Player&amp;section=player3dworld">Player3DWorld</a></li>
-<li><a href="#story=Reference%2FLuxel.Player&amp;section=playerbehaviours">PlayerBehaviours</a></li>
-<li><a href="#story=Reference%2FLuxel.Player&amp;section=playerentity">PlayerEntity</a></li>
-<li><a href="#story=Reference%2FLuxel.Player&amp;section=playergame">PlayerGame</a></li>
-<li><a href="#story=Reference%2FLuxel.Player&amp;section=playerloader">PlayerLoader</a></li>
-<li><a href="#story=Reference%2FLuxel.Player&amp;section=playershipper">PlayerShipper</a></li>
-<li><a href="#story=Reference%2FLuxel.Player&amp;section=scenecompiler">SceneCompiler</a></li>
-</ul>
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="behaviourglobals">BehaviourGlobals</h2>
 <section class="api-reference"><p class="api-summary">class — csx ビヘイビアの globals (ADR-0018) — スクリプトは Update に 毎ステップ処理を代入する: Update = (self, world, dt) =&amp;gt; { self.Pos.X += 60f * dt; };。 **スクリプト自身は状態を持たない** (同じスクリプトを複数エンティティが共有する) — エンティティ状態はコンポーネント (String)/SceneValue)) に置く。 空間非依存の共通部で、2D/3D の world へ同じ delegate で接続する。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>BehaviourGlobals</code></th><td><code>()</code></td><td></td></tr></tbody></table></div><h3>フィールド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Update</code></th><td><code>Action&lt;PlayerEntity, IPlayerWorld, float&gt;</code></td><td>毎ステップ呼ばれる更新 (self = このスクリプトを持つエンティティ, world, 固定 dt)。</td></tr></tbody></table></div></section>

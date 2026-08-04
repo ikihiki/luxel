@@ -1,13 +1,4 @@
 <article class="story document-page"><h1 id="transformcameraindexed-cube">Transformとcameraでindexed cubeを描く</h1>
-<ul>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FTransformsAndCamera&amp;section=%E5%AE%9F%E8%A1%8C%E3%81%A8%E6%9C%9F%E5%BE%85%E7%B5%90%E6%9E%9C">実行と期待結果</a></li>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FTransformsAndCamera&amp;section=%E3%81%93%E3%81%AEtutorial%E3%81%AE%E5%BA%A7%E6%A8%99%E8%A6%8F%E7%B4%84">このtutorialの座標規約</a></li>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FTransformsAndCamera&amp;section=indexed-vertex-pulling">Indexed vertex pulling</a></li>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FTransformsAndCamera&amp;section=resize%E3%81%A8aspect">Resizeとaspect</a></li>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FTransformsAndCamera&amp;section=normal-transform">Normal transform</a></li>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FTransformsAndCamera&amp;section=%E6%89%80%E6%9C%89%E6%A8%A9%E3%81%A8backend%E5%B7%AE">所有権とbackend差</a></li>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FTransformsAndCamera&amp;section=%E5%85%B8%E5%9E%8B%E7%9A%84%E3%81%AA%E5%A4%B1%E6%95%97">典型的な失敗</a></li>
-</ul>
 <p><strong>難易度:</strong> Beginner+　 <strong>実行環境:</strong> Standalone　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> Textures</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FThreeD%2FTextures">Textures</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FThreeD%2FDepthCullingLighting">DepthCullingLighting</a></p>
 <p>実コードは <code>samples/LuxelTriangle/TriangleRenderer.cs</code>、共有ABIは <code>samples/LuxelTriangle/TutorialAbi.cs</code>、vertex pullingとMVPは <code>shaders/tutorial_3d.slang</code> を参照します。texture付きquadを24頂点・36 indexのcubeへ広げ、model / view / projectionをroot argumentsから渡します。</p>

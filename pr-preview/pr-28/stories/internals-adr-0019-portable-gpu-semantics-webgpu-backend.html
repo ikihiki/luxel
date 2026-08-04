@@ -1,23 +1,10 @@
 <article class="story document-page"><h1 id="adr-0019-portable-gpu-semantics-webgpu-backend">ADR-0019 — portable GPU semantics として WebGPU backend を追加する</h1>
 <ul>
-<li><p><a href="#story=Internals%2FADR%2F0019-Portable-Gpu-Semantics-WebGPU-Backend&amp;section=context">Context</a></p>
-</li>
-<li><p><a href="#story=Internals%2FADR%2F0019-Portable-Gpu-Semantics-WebGPU-Backend&amp;section=decision">Decision</a></p>
-</li>
-<li><p><a href="#story=Internals%2FADR%2F0019-Portable-Gpu-Semantics-WebGPU-Backend&amp;section=alternatives">Alternatives</a></p>
-</li>
-<li><p><a href="#story=Internals%2FADR%2F0019-Portable-Gpu-Semantics-WebGPU-Backend&amp;section=consequences">Consequences</a></p>
-</li>
-<li><p><strong>Status</strong>: Accepted</p>
-</li>
-<li><p><strong>Date</strong>: 2026-07-28</p>
-</li>
-<li><p><strong>Browser/WASM extension accepted</strong>: 2026-07-29</p>
-</li>
-<li><p><strong>Deciders</strong>: ikihiki</p>
-</li>
-<li><p><strong>Amends</strong>: <a href="#story=Internals%2FADR%2F0002-Thin-Bindless-Gpu-Abstraction">ADR-0002</a></p>
-</li>
+<li><strong>Status</strong>: Accepted</li>
+<li><strong>Date</strong>: 2026-07-28</li>
+<li><strong>Browser/WASM extension accepted</strong>: 2026-07-29</li>
+<li><strong>Deciders</strong>: ikihiki</li>
+<li><strong>Amends</strong>: <a href="#story=Internals%2FADR%2F0002-Thin-Bindless-Gpu-Abstraction">ADR-0002</a></li>
 </ul>
 <h2 id="context">Context</h2>
 <p><a href="#story=Internals%2FADR%2F0002-Thin-Bindless-Gpu-Abstraction">ADR-0002</a> は Vulkan / DirectX 12 の共通部分を、固定 root arguments、bindless resources、vertex pulling、one-shot command recording、stage barrierへ絞ることで、薄い GPU 抽象を成立させました。一方、その決定は GPU virtual address、永続 map、ユーザー書換 descriptor heap、明示 barrierを portable baseline とみなし、WebGPU 系を「最大公約数」の抽象として却下していました。</p>

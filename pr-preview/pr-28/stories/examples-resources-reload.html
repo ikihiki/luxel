@@ -1,12 +1,4 @@
 <article class="story document-page"><h1 id="resources-reload-boundary">Resources: reload boundary</h1>
-<ul>
-<li><a href="#story=Examples%2FResources%2FReload&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-resource-pipeline">コピーして動かす — Resource pipeline</a>
-<ul>
-<li><a href="#story=Examples%2FResources%2FReload&amp;section=%60samples%2Fluxelresources%2Fluxelresources.csproj%60-project"><code>samples/LuxelResources/LuxelResources.csproj</code> (Project)</a></li>
-<li><a href="#story=Examples%2FResources%2FReload&amp;section=%60samples%2Fluxelresources%2Fprogram.cs%60-csharp"><code>samples/LuxelResources/Program.cs</code> (CSharp)</a></li>
-</ul>
-</li>
-</ul>
 <p>この決定的pipelineへ<code>Watch</code>/<code>Republish</code>を追加し、非同期計算後のvalue swapを<code>Pump()</code>境界で観測します。</p>
 <pre><code class="language-csharp">var files = new MemoryFileSystem();
 files.Set(&quot;hello.txt&quot;, Encoding.UTF8.GetBytes(&quot;hello resources&quot;));

@@ -1,12 +1,4 @@
 <article class="story document-page"><h1 id="input-context-stack">Input: context stack</h1>
-<ul>
-<li><a href="#story=Examples%2FInput%2FContextStack&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-deterministic-input-actions">コピーして動かす — Deterministic input actions</a>
-<ul>
-<li><a href="#story=Examples%2FInput%2FContextStack&amp;section=%60samples%2Fluxelinput%2Fluxelinput.csproj%60-project"><code>samples/LuxelInput/LuxelInput.csproj</code> (Project)</a></li>
-<li><a href="#story=Examples%2FInput%2FContextStack&amp;section=%60samples%2Fluxelinput%2Fprogram.cs%60-csharp"><code>samples/LuxelInput/Program.cs</code> (CSharp)</a></li>
-</ul>
-</li>
-</ul>
 <p><code>InputStack</code>の上位contextが使用した入力をconsumeするため、menuとgameplayをplatform分岐なしで切り替えられます。</p>
 <pre><code class="language-csharp">var bus = new InputBus();
 var source = new FakeInputSource();

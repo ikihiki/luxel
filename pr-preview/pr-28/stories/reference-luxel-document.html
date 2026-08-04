@@ -1,44 +1,4 @@
 <article class="story document-page"><h1 id="luxel.document">Luxel.Document</h1>
-<ul>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=blockdecoration">BlockDecoration</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=blockwidgetdecoration">BlockWidgetDecoration</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=boxstyle">BoxStyle</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=changeset">ChangeSet</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=changespec">ChangeSpec</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=decoration">Decoration</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=decorationproviders">DecorationProviders</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=decorationset">DecorationSet</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=decorationtable">DecorationTable</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=displayline">DisplayLine</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=editcommands">EditCommands</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=editorconfig">EditorConfig</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=editorgeometry">EditorGeometry</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=editorselection">EditorSelection</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=editorstate">EditorState</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=fontvariant">FontVariant</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=history">History</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=idecorationprovider">IDecorationProvider</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=isyntaxhighlighter">ISyntaxHighlighter</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=linedecoration">LineDecoration</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=lineprefixdecoration">LinePrefixDecoration</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=markdecoration">MarkDecoration</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=overlaykind">OverlayKind</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=overlayrect">OverlayRect</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=removedecorations">RemoveDecorations</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=selectionrange">SelectionRange</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=setdecorations">SetDecorations</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=stateeffect">StateEffect</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=syntaxtoken">SyntaxToken</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=textdoc">TextDoc</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=textsearch">TextSearch</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=tokenkind">TokenKind</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=transaction">Transaction</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=transactionspec">TransactionSpec</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=underlinestyle">UnderlineStyle</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=widgetdecoration">WidgetDecoration</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=widgetside">WidgetSide</a></li>
-<li><a href="#story=Reference%2FLuxel.Document&amp;section=widgetslot">WidgetSlot</a></li>
-</ul>
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="blockdecoration">BlockDecoration</h2>
 <section class="api-reference"><p class="api-summary">class — 行グループ [From, To) への装飾 — 背景や左縦バー (引用/コードブロック)。 Indent はブロック内の行を右へずらす左余白 px (縦バー/マーカーの場所を確保し、 行頭 prefix やテキストと重ならないようにする)。背景/バーはインデント前の左端に描かれる。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>BlockDecoration</code></th><td><code>(int From, int To, uint? Background, uint? BarColor, float BarWidth, float Indent)</code></td><td>行グループ [From, To) への装飾 — 背景や左縦バー (引用/コードブロック)。 Indent はブロック内の行を右へずらす左余白 px (縦バー/マーカーの場所を確保し、 行頭 prefix やテキストと重ならないようにする)。背景/バーはインデント前の左端に描かれる。</td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Map</code></th><td><code>(ChangeSet cs) → Decoration</code></td><td></td></tr><tr><th scope="row"><code>Equals</code></th><td><code>(BlockDecoration other) → bool</code></td><td></td></tr><tr><th scope="row"><code>&lt;Clone&gt;$</code></th><td><code>() → BlockDecoration</code></td><td></td></tr><tr><th scope="row"><code>Deconstruct</code></th><td><code>(int From, int To, uint? Background, uint? BarColor, float BarWidth, float Indent) → void</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>From</code></th><td><code>int (get/set)</code></td><td></td></tr><tr><th scope="row"><code>To</code></th><td><code>int (get/set)</code></td><td></td></tr><tr><th scope="row"><code>Background</code></th><td><code>uint? (get/set)</code></td><td></td></tr><tr><th scope="row"><code>BarColor</code></th><td><code>uint? (get/set)</code></td><td></td></tr><tr><th scope="row"><code>BarWidth</code></th><td><code>float (get/set)</code></td><td></td></tr><tr><th scope="row"><code>Indent</code></th><td><code>float (get/set)</code></td><td></td></tr><tr><th scope="row"><code>SortFrom</code></th><td><code>int (get)</code></td><td></td></tr><tr><th scope="row"><code>SortTo</code></th><td><code>int (get)</code></td><td></td></tr><tr><th scope="row"><code>AffectsLayout</code></th><td><code>bool (get)</code></td><td>オーバーレイのみ。</td></tr></tbody></table></div></section>

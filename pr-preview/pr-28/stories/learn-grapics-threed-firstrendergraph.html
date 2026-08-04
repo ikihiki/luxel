@@ -1,16 +1,4 @@
 <article class="story document-page"><h1 id="rendergraph">はじめてのRenderGraph</h1>
-<ul>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FFirstRenderGraph&amp;section=%E5%AE%9F%E8%A1%8C%E3%81%A8%E6%9C%9F%E5%BE%85%E7%B5%90%E6%9E%9C">実行と期待結果</a></li>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FFirstRenderGraph&amp;section=%E5%AE%9Fsample%E3%81%AEgraph%E5%AE%9F%E8%A3%85">実sampleのgraph実装</a></li>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FFirstRenderGraph&amp;section=direct-%E2%86%92-graph-%E2%86%92-post">direct → graph → post</a></li>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FFirstRenderGraph&amp;section=external%E3%81%A8transient">ExternalとTransient</a></li>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FFirstRenderGraph&amp;section=read-%2F-write%E3%81%8C%E4%BE%9D%E5%AD%98%E3%81%A8barrier%E3%82%92%E4%BD%9C%E3%82%8B">Read / Writeが依存とbarrierを作る</a></li>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FFirstRenderGraph&amp;section=culling%E3%80%81aliasing%E3%80%81%E7%B5%82%E7%AB%AFresource">Culling、aliasing、終端resource</a></li>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FFirstRenderGraph&amp;section=1-frame%E3%81%94%E3%81%A8%E3%81%AE%E6%A7%8B%E7%AF%89%E3%80%81resize%E3%80%81dispose">1 frameごとの構築、resize、dispose</a></li>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FFirstRenderGraph&amp;section=backend%E5%B7%AE">Backend差</a></li>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FFirstRenderGraph&amp;section=validation-error%E3%81%AE%E8%AA%AD%E3%81%BF%E6%96%B9">Validation errorの読み方</a></li>
-<li><a href="#story=Learn%2FGrapics%2FThreeD%2FFirstRenderGraph&amp;section=devtools%E3%81%A7%E4%BE%9D%E5%AD%98%E3%82%92%E8%A6%8B%E3%82%8B">DevToolsで依存を見る</a></li>
-</ul>
 <p><strong>難易度:</strong> Beginner+　 <strong>実行環境:</strong> Standalone + DevTools　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> FrameLoopAndSynchronization</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FThreeD%2FDepthCullingLighting">DepthCullingLighting</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FThreeD%2FStaticGltf">StaticGltf</a></p>
 <p>sampleは <code>samples/LuxelTriangle/Program.cs</code>、<code>samples/LuxelTriangle/TriangleRenderer.cs</code>、<code>samples/LuxelTriangle/TutorialAbi.cs</code>、scene shaderの<code>shaders/tutorial_3d.slang</code>、post-process shaderの<code>shaders/compute_tutorial_postprocess.slang</code>です。RenderGraph本体は<code>src/Luxel.RenderGraph/</code>にあります。</p>

@@ -1,19 +1,8 @@
 <article class="story document-page"><h1 id="adr-0017">ADR-0017 — プレイインエディタは「都度コンパイル + 停止で破棄」の別インスタンスで動かす</h1>
 <ul>
-<li><p><a href="#story=Internals%2FADR%2F0017-Play-In-Editor&amp;section=context">Context</a></p>
-</li>
-<li><p><a href="#story=Internals%2FADR%2F0017-Play-In-Editor&amp;section=decision">Decision</a></p>
-</li>
-<li><p><a href="#story=Internals%2FADR%2F0017-Play-In-Editor&amp;section=alternatives">Alternatives</a></p>
-</li>
-<li><p><a href="#story=Internals%2FADR%2F0017-Play-In-Editor&amp;section=consequences">Consequences</a></p>
-</li>
-<li><p><strong>Status</strong>: Accepted</p>
-</li>
-<li><p><strong>Date</strong>: 2026-07-11</p>
-</li>
-<li><p><strong>Deciders</strong>: ikihiki</p>
-</li>
+<li><strong>Status</strong>: Accepted</li>
+<li><strong>Date</strong>: 2026-07-11</li>
+<li><strong>Deciders</strong>: ikihiki</li>
 </ul>
 <h2 id="context">Context</h2>
 <p>Luxel Studio でシーンを編集しながら ▶ で即プレイできる必要があります。編集状態 (SceneDoc、<a href="#story=Internals%2FADR%2F0016-Scene-Editor-Stack">ADR-0016</a>) は不変 + Transaction、ランタイム (Player2DWorld、<a href="#story=Internals%2FADR%2F0018-Csx-Behaviour-Model">ADR-0018</a>) は可変 — この 2 つの間で「プレイ中の変更が編集データを汚染する」「停止後に状態が残る」事故を構造的に防ぎたい。また golden 回帰のためプレイは決定的 (固定 dt) であること。</p>

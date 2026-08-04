@@ -1,10 +1,4 @@
 <article class="story document-page"><h1 id="luxel.animation.ui">Luxel.Animation.UI</h1>
-<ul>
-<li><a href="#story=Reference%2FLuxel.Animation.UI&amp;section=animationuibridge">AnimationUiBridge</a></li>
-<li><a href="#story=Reference%2FLuxel.Animation.UI&amp;section=signalanimationtarget">SignalAnimationTarget</a></li>
-<li><a href="#story=Reference%2FLuxel.Animation.UI&amp;section=signaltransition">SignalTransition</a></li>
-<li><a href="#story=Reference%2FLuxel.Animation.UI&amp;section=transitionset">TransitionSet</a></li>
-</ul>
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="animationuibridge">AnimationUiBridge</h2>
 <section class="api-reference"><p class="api-summary">class — AnimationPlayer を UiHost のフレームに結線する拡張。 Animation 側は絶対時刻 (IClock) で駆動、UI 側は dt 累積で Tick するため、ここで橋渡し。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Drive</code></th><td><code>(AnimationPlayer player, UiHost host, IClock clock, float dt) → void</code></td><td>AnimationPlayer を IClock で更新し、UiHost を dt で進める標準ヘルパ。 ユーザーは FixedFrameClock や WallClock を渡してフレームの絶対時刻を制御する。</td></tr></tbody></table></div></section>

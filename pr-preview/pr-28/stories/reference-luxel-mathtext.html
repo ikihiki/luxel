@@ -1,21 +1,4 @@
 <article class="story document-page"><h1 id="luxel.mathtext">Luxel.MathText</h1>
-<ul>
-<li><a href="#story=Reference%2FLuxel.MathText&amp;section=factories">Factories</a></li>
-<li><a href="#story=Reference%2FLuxel.MathText&amp;section=mathblockview">MathBlockView</a></li>
-<li><a href="#story=Reference%2FLuxel.MathText&amp;section=mathblockviewprops">MathBlockViewProps</a></li>
-<li><a href="#story=Reference%2FLuxel.MathText&amp;section=mathbox">MathBox</a></li>
-<li><a href="#story=Reference%2FLuxel.MathText&amp;section=mathfrac">MathFrac</a></li>
-<li><a href="#story=Reference%2FLuxel.MathText&amp;section=mathlayoutengine">MathLayoutEngine</a></li>
-<li><a href="#story=Reference%2FLuxel.MathText&amp;section=mathmatrix">MathMatrix</a></li>
-<li><a href="#story=Reference%2FLuxel.MathText&amp;section=mathnode">MathNode</a></li>
-<li><a href="#story=Reference%2FLuxel.MathText&amp;section=mathrow">MathRow</a></li>
-<li><a href="#story=Reference%2FLuxel.MathText&amp;section=mathscript">MathScript</a></li>
-<li><a href="#story=Reference%2FLuxel.MathText&amp;section=mathsqrt">MathSqrt</a></li>
-<li><a href="#story=Reference%2FLuxel.MathText&amp;section=mathsymbol">MathSymbol</a></li>
-<li><a href="#story=Reference%2FLuxel.MathText&amp;section=mathvec">MathVec</a></li>
-<li><a href="#story=Reference%2FLuxel.MathText&amp;section=texparser">TexParser</a></li>
-<li><a href="#story=Reference%2FLuxel.MathText&amp;section=textext">TexText</a></li>
-</ul>
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="factories">Factories</h2>
 <section class="api-reference"><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>MathBlockView</code></th><td><code>(Bindable&lt;string&gt; source, Bindable&lt;float&gt; fontSize, Bindable&lt;float&gt; maxWidth, Bindable&lt;Thickness&gt; margin, Bindable&lt;Align&gt; hAlign, Bindable&lt;Align&gt; vAlign, Length width, Length height, Bindable&lt;float&gt; translateX, Bindable&lt;float&gt; translateY, Bindable&lt;float&gt; scaleX, Bindable&lt;float&gt; scaleY, Bindable&lt;float&gt; rotate) → MathBlockView</code></td><td>ブロック数式 ($$...$$) の描画 widget。TexParser → MathLayoutEngine で組版し、グリフ (VectorFont) + ストローク (分数線/根号/括弧) を 1 つの Scene2D に描く。 色はテーマ Text の recolor のみ。使える幅に収まらないときは等比縮小。</td></tr></tbody></table></div></section>

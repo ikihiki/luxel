@@ -1,9 +1,4 @@
 <article class="story document-page"><h1 id="luxel.scripting.framework">Luxel.Scripting.Framework</h1>
-<ul>
-<li><a href="#story=Reference%2FLuxel.Scripting.Framework&amp;section=scriptgameglobals">ScriptGameGlobals</a></li>
-<li><a href="#story=Reference%2FLuxel.Scripting.Framework&amp;section=scriptsystem">ScriptSystem</a></li>
-<li><a href="#story=Reference%2FLuxel.Scripting.Framework&amp;section=scriptsystems">ScriptSystems</a></li>
-</ul>
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="scriptgameglobals">ScriptGameGlobals</h2>
 <section class="api-reference"><p class="api-summary">class — ゲームスクリプトの globals (メンバはスクリプト内で裸で書ける)。String) でデバッグ出力、 Single}) で記述子を作る。ScriptHost 構築時にこの型を globalsType に渡す。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>ScriptGameGlobals</code></th><td><code>(Action&lt;string&gt; log)</code></td><td></td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Log</code></th><td><code>(string message) → void</code></td><td>ログ出力 (スクリプトの第一のデバッグ手段)。</td></tr><tr><th scope="row"><code>Systems</code></th><td><code>(Action&lt;World, float&gt; update, Action&lt;World, float&gt; lateUpdate, Action&lt;World, float&gt; fixedUpdate) → ScriptSystems</code></td><td>フェーズ別デリゲートから ScriptSystems を作る。</td></tr></tbody></table></div></section>

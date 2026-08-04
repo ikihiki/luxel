@@ -1,12 +1,4 @@
 <article class="story document-page"><h1 id="audio-overview">Audio overview</h1>
-<ul>
-<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-headless-audio-tone">コピーして動かす — Headless audio tone</a>
-<ul>
-<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%60samples%2Fluxelaudio%2Fluxelaudio.csproj%60-project"><code>samples/LuxelAudio/LuxelAudio.csproj</code> (Project)</a></li>
-<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%60samples%2Fluxelaudio%2Fprogram.cs%60-csharp"><code>samples/LuxelAudio/Program.cs</code> (CSharp)</a></li>
-</ul>
-</li>
-</ul>
 <p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone / Headless / Windows device　 <strong>Backend:</strong> Null / XAudio2　 <strong>前提知識:</strong> Input track</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FInput%2FPlatformsAndTesting">PlatformsAndTesting</a>　 <strong>次:</strong> <a href="#story=Learn%2FAudio%2FClipsSourcesAndBuses">ClipsSourcesAndBuses</a></p>
 <p><code>AudioClip</code>はdecode済みPCM、<code>IAudioVoice</code>は再生slot、<code>AudioMixer</code>はone-shotとvoice poolを管理します。実音出力は現在Windows/XAudio2、CIと非Windowsは<code>NullAudioBackend</code>で状態遷移を検証します。</p>

@@ -1,47 +1,4 @@
 <article class="story document-page"><h1 id="luxel.sceneedit">Luxel.SceneEdit</h1>
-<ul>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=addentity">AddEntity</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=atlasdef">AtlasDef</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=atlasdefjson">AtlasDefJson</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=componentschema">ComponentSchema</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=gameproject">GameProject</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=gameprojectjson">GameProjectJson</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=icomponentschema">IComponentSchema</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=painttiles">PaintTiles</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=removecomponent">RemoveComponent</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=removeentity">RemoveEntity</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=renameentity">RenameEntity</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=respath">ResPath</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenechange">SceneChange</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenechangeset">SceneChangeSet</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenecommands">SceneCommands</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenecomponent">SceneComponent</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenedoc">SceneDoc</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=sceneeditstate">SceneEditState</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=sceneentity">SceneEntity</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenefield">SceneField</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenefielddef">SceneFieldDef</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenefieldtype">SceneFieldType</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenefieldtypes">SceneFieldTypes</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenehistory">SceneHistory</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenejson">SceneJson</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenerotation">SceneRotation</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=sceneschemas">SceneSchemas</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=sceneselection">SceneSelection</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenespace">SceneSpace</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenespaces">SceneSpaces</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenespacesextensions">SceneSpacesExtensions</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenetransaction">SceneTransaction</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenetransactionspec">SceneTransactionSpec</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenevalue">SceneValue</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=scenevaluekind">SceneValueKind</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=schemaregistry">SchemaRegistry</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=setcomponent">SetComponent</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=setfield">SetField</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=tilelayer">TileLayer</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=tilepaint">TilePaint</a></li>
-<li><a href="#story=Reference%2FLuxel.SceneEdit&amp;section=tilepalette">TilePalette</a></li>
-</ul>
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="addentity">AddEntity</h2>
 <section class="api-reference"><p class="api-summary">class — エンティティを 1 個追加する。 は挿入位置 (-1 = 末尾) — エンティティ順は 2D の描画順なので、削除の逆はこの Index で元の位置へ戻す。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>AddEntity</code></th><td><code>(SceneEntity Entity, int Index)</code></td><td>エンティティを 1 個追加する。 は挿入位置 (-1 = 末尾) — エンティティ順は 2D の描画順なので、削除の逆はこの Index で元の位置へ戻す。</td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Apply</code></th><td><code>(SceneDoc doc) → SceneDoc</code></td><td></td></tr><tr><th scope="row"><code>InvertAgainst</code></th><td><code>(SceneDoc doc) → IReadOnlyList&lt;SceneChange&gt;</code></td><td></td></tr><tr><th scope="row"><code>Equals</code></th><td><code>(AddEntity other) → bool</code></td><td></td></tr><tr><th scope="row"><code>&lt;Clone&gt;$</code></th><td><code>() → AddEntity</code></td><td></td></tr><tr><th scope="row"><code>Deconstruct</code></th><td><code>(SceneEntity Entity, int Index) → void</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Entity</code></th><td><code>SceneEntity (get/set)</code></td><td></td></tr><tr><th scope="row"><code>Index</code></th><td><code>int (get/set)</code></td><td></td></tr></tbody></table></div></section>
