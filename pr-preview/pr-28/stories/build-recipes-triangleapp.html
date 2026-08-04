@@ -32,13 +32,7 @@
 public static class CanonicalTriangleRecipe
 {
     public const string Story = &quot;Examples/3D/Triangle&quot;;
-    public const string Shader = &quot;tutorial_triangle&quot;;
     public const string Recipe = &quot;canonical-triangle-v1&quot;;
-    public const string ShaderSha256 = &quot;4c3a36aa594306d963f00f1c0e6c5d7c62b1543748bfc882d72d0de8cf9a2cdd&quot;;
-    public const int Width = 320;
-    public const int Height = 240;
-    public const int VertexSize = 32;
-    public const int DrawArgsSize = 4;
 
     [StructLayout(LayoutKind.Sequential)]
     public struct Vertex
@@ -111,7 +105,7 @@ internal sealed class TriangleRenderer : IDisposable
         {
             CanonicalTriangleRecipe.Vertex[] vertices = CanonicalTriangleRecipe.CreateVertices();
             _indexCount = 3;
-            _vertices = device.Malloc(checked((ulong)vertices.Length * CanonicalTriangleRecipe.VertexSize), GpuMemoryKind.HostMapped);
+            _vertices = device.Malloc(checked((ulong)vertices.Length * 32), GpuMemoryKind.HostMapped);
             vertices.CopyTo(_vertices.Span&lt;CanonicalTriangleRecipe.Vertex&gt;(vertices.Length));
             _indices = device.Malloc(sizeof(uint), GpuMemoryKind.HostMapped); // Unused by the first-triangle stage.
         }
@@ -135,7 +129,7 @@ internal sealed class TriangleRenderer : IDisposable
         raster.CullMode = stage is TutorialStage.Lighting or TutorialStage.Graph or TutorialStage.PostProcess
             ? GpuCullMode.Back : GpuCullMode.None;
         raster.FrontFace = GpuFrontFace.CounterClockwise;
-        string shader = stage == TutorialStage.Triangle ? CanonicalTriangleRecipe.Shader : &quot;tutorial_3d&quot;;
+        string shader = stage == TutorialStage.Triangle ? &quot;tutorial_triangle&quot; : &quot;tutorial_3d&quot;;
         _pipeline = device.CreateGraphicsPipeline(GpuShaderCode.Load(shader), raster);
         _postPipeline = device.CreateComputePipeline(GpuShaderCode.Load(&quot;compute_tutorial_postprocess&quot;));
     }

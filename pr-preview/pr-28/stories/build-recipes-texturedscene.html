@@ -393,7 +393,7 @@ internal sealed class TriangleRenderer : IDisposable
         {
             CanonicalTriangleRecipe.Vertex[] vertices = CanonicalTriangleRecipe.CreateVertices();
             _indexCount = 3;
-            _vertices = device.Malloc(checked((ulong)vertices.Length * CanonicalTriangleRecipe.VertexSize), GpuMemoryKind.HostMapped);
+            _vertices = device.Malloc(checked((ulong)vertices.Length * 32), GpuMemoryKind.HostMapped);
             vertices.CopyTo(_vertices.Span&lt;CanonicalTriangleRecipe.Vertex&gt;(vertices.Length));
             _indices = device.Malloc(sizeof(uint), GpuMemoryKind.HostMapped); // Unused by the first-triangle stage.
         }
@@ -417,7 +417,7 @@ internal sealed class TriangleRenderer : IDisposable
         raster.CullMode = stage is TutorialStage.Lighting or TutorialStage.Graph or TutorialStage.PostProcess
             ? GpuCullMode.Back : GpuCullMode.None;
         raster.FrontFace = GpuFrontFace.CounterClockwise;
-        string shader = stage == TutorialStage.Triangle ? CanonicalTriangleRecipe.Shader : &quot;tutorial_3d&quot;;
+        string shader = stage == TutorialStage.Triangle ? &quot;tutorial_triangle&quot; : &quot;tutorial_3d&quot;;
         _pipeline = device.CreateGraphicsPipeline(GpuShaderCode.Load(shader), raster);
         _postPipeline = device.CreateComputePipeline(GpuShaderCode.Load(&quot;compute_tutorial_postprocess&quot;));
     }
