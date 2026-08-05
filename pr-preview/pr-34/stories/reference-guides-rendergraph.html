@@ -8,7 +8,7 @@
 <li><a href="#story=Reference%2FGuides%2FRenderGraph&amp;section=resourcesystem-%E3%81%A8%E3%81%AE%E9%96%A2%E4%BF%82-%E6%B7%B7%E5%90%8C%E6%B3%A8%E6%84%8F">ResourceSystem との関係 (混同注意)</a></li>
 </ul>
 <!-- /luxel-toc -->
-<p>APIを使いながら順番に学ぶ場合は、<a href="#story=Learn%2FRenderGraph%2FOverview">RenderGraph入門</a>から始めてください。このページは設計とAPIをまとめて確認するreferenceです。</p>
+<p>APIを使いながら順番に学ぶ場合は、<a href="#story=Learn%2FGraphics%2FRenderGraph%2FOverview">RenderGraph入門</a>から始めてください。このページは設計とAPIをまとめて確認するreferenceです。</p>
 <p>UI のレンダリング結果を別パスで参照したり、compute/graphics 混在の多段パスを組み立てるための薄い管理層です。<strong>scene-agnostic</strong> — 入力は GPU ハンドル (<code>BufferHandle</code> / <code>TextureHandle</code>) のみで、シーン側 (RetainedCanvas / ECS) を一切知りません。</p>
 <h2 id="section">設計ノート: 業界 4 実装の収束</h2>
 <p>Frostbite FrameGraph / Unreal RDG / Unity URP RenderGraph / Granite の 4 実装は同じ <strong>Setup / Compile / Execute 三相</strong>モデルに収束しています。もう 1 つの結論は「シーングラフは導入しない」— シーングラフは描画対象の階層管理、レンダーグラフはパスとリソース依存の DAG 管理で、別レイヤです。Luxel では 2D/UI 側に RetainedCanvas、3D 側に ECS が既にその役割を持っています。</p>
@@ -99,7 +99,7 @@ rg.Execute(cmd);   // Compile + Execute (寿命解析 + 自動バリア + lambda
 public static StoryResult RenderGraphDocs(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # レンダーグラフ (Luxel.Graphics.RenderGraph)
 
-    APIを使いながら順番に学ぶ場合は、[RenderGraph入門](story:Learn/RenderGraph/Overview)から始めてください。このページは設計とAPIをまとめて確認するreferenceです。
+    APIを使いながら順番に学ぶ場合は、[RenderGraph入門](story:Learn/Graphics/RenderGraph/Overview)から始めてください。このページは設計とAPIをまとめて確認するreferenceです。
 
     UI のレンダリング結果を別パスで参照したり、compute/graphics 混在の多段パスを組み立てるための薄い管理層です。**scene-agnostic** — 入力は GPU ハンドル (`BufferHandle` / `TextureHandle`) のみで、シーン側 (RetainedCanvas / ECS) を一切知りません。
 
