@@ -63,6 +63,7 @@ public sealed class GallerySiteExporterTests
             Assert.Equal(320, story.Height);
             Assert.Equal(100 + i, story.Order);
             Assert.False(story.RealWindowOnly);
+            Assert.Equal(CoreUiStoryProject.RuntimeBundleId, story.RuntimeBundleId);
 
             var context = new StoryContext();
             context.SetServices(GalleryServices.Provider);
@@ -74,7 +75,7 @@ public sealed class GallerySiteExporterTests
 
         string root = GallerySiteExporter.FindRepositoryRoot();
         string source = File.ReadAllText(Path.Combine(root,
-            "src", "Luxel.Gallery.Stories", "Stories", "Gpu", "PipelineStateStories.cs"));
+            "src", "Luxel.Gallery.Stories.CoreUi", "Stories", "PipelineStateStories.cs"));
         Assert.DoesNotContain("GpuRasterDesc", source);
         foreach (string required in new[]
                  {

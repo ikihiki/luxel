@@ -17,6 +17,18 @@ const twoDStories = [
   'Examples/2D/Rasterizer/RetainedUpdatesLive'
 ];
 
+const pipelineStateStories = [
+  'Examples/3D/PipelineState/Topology',
+  'Examples/3D/PipelineState/Rasterizer',
+  'Examples/3D/PipelineState/Depth',
+  'Examples/3D/PipelineState/Blend',
+  'Examples/3D/PipelineState/Stencil',
+  'Examples/3D/PipelineState/ViewportScissor',
+  'Examples/3D/PipelineState/Separation',
+  'Examples/3D/Depth',
+  'Examples/3D/Blend'
+];
+
 function collectErrors(page) {
   const consoleErrors = [];
   const pageErrors = [];
@@ -45,6 +57,16 @@ async function expectRuntimeStory(frame, story) {
 }
 
 for (const story of twoDStories) {
+  test(`browser-WASM renders ${story}`, async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto(`/samples/webgpu-browser/?story=${encodeURIComponent(story)}`);
+    await expectRuntimeStory(page, story);
+    expect(errors.consoleErrors).toEqual([]);
+    expect(errors.pageErrors).toEqual([]);
+  });
+}
+
+for (const story of pipelineStateStories) {
   test(`browser-WASM renders ${story}`, async ({ page }) => {
     const errors = collectErrors(page);
     await page.goto(`/samples/webgpu-browser/?story=${encodeURIComponent(story)}`);
