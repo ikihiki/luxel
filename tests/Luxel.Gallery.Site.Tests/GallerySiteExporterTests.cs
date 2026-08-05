@@ -86,6 +86,13 @@ public sealed class GallerySiteExporterTests
                  })
             Assert.Contains(stateSetter, Catalog.Find(paths[6])!.Source);
 
+        string[] shaderResources = typeof(PipelineStateStories).Assembly.GetManifestResourceNames();
+        foreach (string resource in new[]
+                 {
+                     "triangle.spv", "triangle.vs.dxil", "triangle.ps.dxil", "triangle.wgsl",
+                 })
+            Assert.Contains(shaderResources, name => name.EndsWith("Shaders." + resource, StringComparison.Ordinal));
+
         Assert.NotNull(Catalog.Find("Examples/3D/Depth"));
         Assert.NotNull(Catalog.Find("Examples/3D/Blend"));
 
