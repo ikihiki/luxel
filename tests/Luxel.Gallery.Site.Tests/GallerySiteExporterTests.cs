@@ -1506,7 +1506,9 @@ public sealed class GallerySiteExporterTests
         Assert.Null(Catalog.Find("Learn/Graphics/RasterizerInternals/Overview"));
         Assert.Null(Catalog.Find("Learn/Rendering/Basics/Overview"));
         Assert.Null(Catalog.Find("Learn/Graphics/Basics/Overview"));
-        foreach (string route in new[] { "Learn/Input/Overview", "Learn/Input/ActionsAndContexts", "Learn/Input/PlatformsAndTesting",
+        foreach (string route in new[] { "Learn/Input/Overview", "Learn/Input/SourcesAndBus", "Learn/Input/ActionsAndContexts",
+                     "Learn/Input/BindingsAndRebinding", "Learn/Input/PlatformsAndTesting", "Examples/Input/SourcesAndBus",
+                     "Examples/Input/Actions", "Examples/Input/ContextStack", "Examples/Input/Bindings",
                      "Learn/Audio/Overview", "Learn/Audio/ClipsSourcesAndBuses", "Learn/Audio/SpatialStreamingAndTesting",
                      "Learn/Resources/Overview", "Learn/Resources/PipelinesAndDag", "Learn/Resources/ReloadAndLifetime",
                      "Build/Blocks/Input/Actions", "Build/Blocks/Audio/Tone", "Build/Blocks/Resources/Pipeline" })
@@ -1520,6 +1522,106 @@ public sealed class GallerySiteExporterTests
         Assert.Contains(Catalog.All, story => story.Path.StartsWith("Examples/", StringComparison.Ordinal));
         Assert.DoesNotContain(Catalog.All, story => story.Path.StartsWith("Demos/", StringComparison.Ordinal));
         Assert.Empty(DocsIndex.ValidateLinks(DocsIndex.Build(Catalog.All, resources: null, Catalog), Catalog));
+    }
+
+    [Fact]
+    public void Input_learn_pages_embed_running_stories_and_concept_sized_source_fragments()
+    {
+        ISemanticDocument overviewDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/Overview")!)!;
+        Assert.DoesNotContain("コピーして動かす", overviewDocument.DocumentSource!);
+
+        ISemanticDocument platformsDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/PlatformsAndTesting")!)!;
+        Assert.DoesNotContain("story:Learn/Audio/Overview", platformsDocument.DocumentSource!);
+
+        ISemanticDocument sourcesDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/SourcesAndBus")!)!;
+        string sources = sourcesDocument.DocumentSource!;
+        Assert.Contains(sourcesDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/Input/SourcesAndBus");
+        string[] sourceStages =
+        [
+            "## IInputSourceの役割",
+            "## InputEventの共通形式",
+            "## 1 tickの収集順序",
+            "## 押下と解放を別tickにする",
+        ];
+        int previousSourceStage = -1;
+        foreach (string stage in sourceStages)
+        {
+            int position = sources.IndexOf(stage, previousSourceStage + 1, StringComparison.Ordinal);
+            Assert.True(position > previousSourceStage, $"Missing or out-of-order Input source stage: {stage}");
+            previousSourceStage = position;
+        }
+        foreach (string token in new[]
+                 {
+                     "IInputSource[] sources", "new InputBus", "bus.Clear()", "source.Poll(bus)",
+                     "bus.Events", "InputEventKind.AxisChanged", "InputEventKind.PointerMoved",
+                 })
+            Assert.Contains(token, sources);
+        Assert.Contains("sourceごとに`bus.Clear()`してはいけません", sources);
+        Assert.Contains("`InputStack.Update`はイベントを保持状態へ反映した後、busをクリアします", sources);
+        foreach (string uiScaffolding in new[] { "Frame(VStack", "Heading(", "Button(_ =>" })
+            Assert.DoesNotContain(uiScaffolding, sources);
+
+        ISemanticDocument actionsDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/ActionsAndContexts")!)!;
+        string actions = actionsDocument.DocumentSource!;
+        Assert.Contains(actionsDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/Input/Actions");
+        Assert.Contains(actionsDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/Input/ContextStack");
+
+        string[] actionStages =
+        [
+            "## アクションを構成する",
+            "## 押下と解放のエッジを処理する",
+            "## コンテキストの優先順位と入力の消費",
+            "### スタックを構成する",
+            "### 上位コンテキストで入力を消費する",
+            "### コンテキストを一時停止する",
+        ];
+        int previousActionStage = -1;
+        foreach (string stage in actionStages)
+        {
+            int position = actions.IndexOf(stage, previousActionStage + 1, StringComparison.Ordinal);
+            Assert.True(position > previousActionStage, $"Missing or out-of-order Input action stage: {stage}");
+            previousActionStage = position;
+        }
+        foreach (string token in new[]
+                 {
+                     "new FakeInputSource", "stack.Push(gameplay)", "jump.Triggered", "jump.Released",
+                     "stack.Push(menu)", "source.PressKey(KeyCode.Enter)", "stack.SetSuspended",
+                 })
+            Assert.Contains(token, actions);
+        foreach (string uiScaffolding in new[] { "Frame(VStack", "Heading(", "KeyButton(" })
+            Assert.DoesNotContain(uiScaffolding, actions);
+
+        ISemanticDocument bindingsDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/BindingsAndRebinding")!)!;
+        string bindings = bindingsDocument.DocumentSource!;
+        Assert.Contains(bindingsDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/Input/Bindings");
+
+        string[] bindingStages =
+        [
+            "## アクションとテスト用入力を用意する",
+            "## JSONとして保存する",
+            "## JSONを読み込み、コンテキストへ反映する",
+            "## 反映したバインディングを確認する",
+            "## 再設定UIの責務",
+        ];
+        int previousBindingStage = -1;
+        foreach (string stage in bindingStages)
+        {
+            int position = bindings.IndexOf(stage, previousBindingStage + 1, StringComparison.Ordinal);
+            Assert.True(position > previousBindingStage, $"Missing or out-of-order Input binding stage: {stage}");
+            previousBindingStage = position;
+        }
+        foreach (string token in new[]
+                 {
+                     "new ButtonAction(\"Jump\"", "JsonSerializer.Serialize", "InputBindingsJsonContext.Default.InputBindings",
+                     "InputBindingsApplier.Apply", "source.PressKey(key)", "source.ReleaseKey(key)",
+                 })
+            Assert.Contains(token, bindings);
+        foreach (string uiScaffolding in new[] { "Frame(VStack", "Heading(", "Button(_ =>" })
+            Assert.DoesNotContain(uiScaffolding, bindings);
     }
 
     [Fact]
@@ -1719,12 +1821,29 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Input_examples_are_canonical_story_based_samples()
+    {
+        StoryCatalog browserCatalog = CoreUiStoryProject.CreateCatalog();
+        foreach (string route in new[] { "Examples/Input/SourcesAndBus", "Examples/Input/Actions", "Examples/Input/ContextStack", "Examples/Input/Bindings" })
+        {
+            StoryInfo story = Catalog.Find(route) ?? throw new InvalidOperationException(route);
+            StoryInfo browserStory = browserCatalog.Find(route) ?? throw new InvalidOperationException($"Browser catalog: {route}");
+            Assert.Equal(CoreUiStoryProject.RuntimeBundleId, story.RuntimeBundleId);
+            Assert.Equal(CoreUiStoryProject.RuntimeBundleId, browserStory.RuntimeBundleId);
+            Assert.Null(story.SampleBundle);
+            using var context = new StoryContext();
+            Assert.Equal(StoryResultKind.Widget, browserStory.BuildResult(context).Kind);
+        }
+        Assert.Null(Catalog.Find("Learn/Input/BrowserWasm"));
+        Assert.Null(Catalog.Find("Examples/Input/WindowActions"));
+    }
+
+    [Fact]
     public void Runtime_examples_are_source_backed_and_bundle_connected()
     {
         (string Route, string Bundle)[] examples =
         [
-            ("Examples/Input/Actions", "input.actions"), ("Examples/Input/ContextStack", "input.actions"),
-            ("Examples/Input/Bindings", "input.actions"), ("Examples/Audio/WaveformAndVoice", "audio.tone"),
+            ("Examples/Audio/WaveformAndVoice", "audio.tone"),
             ("Examples/Audio/Buses", "audio.tone"), ("Examples/Audio/SpatialAttenuation", "audio.tone"),
             ("Examples/Audio/StreamingQueue", "audio.tone"), ("Examples/Resources/Pipeline", "resources.pipeline"),
             ("Examples/Resources/DependencyDag", "resources.pipeline"), ("Examples/Resources/Reload", "resources.pipeline"),
