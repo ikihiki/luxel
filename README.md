@@ -126,8 +126,7 @@ storage arenaからのvertex pulling、sampled checkerboard、`HostCached` readb
 dotnet run --project samples/LuxelWebGpuHeadless -c Release
 ```
 
-LinuxのCI相当ではMesa lavapipeを選びます。詳細は`samples/LuxelWebGpuHeadless/README.md`とGalleryの
-`Reference/Guides/WebGPU`を参照してください。
+LinuxのCI相当ではMesa lavapipeを選びます。詳細は`samples/LuxelWebGpuHeadless/README.md`を参照してください。
 
 ### Linux headless Vulkan
 
@@ -161,25 +160,22 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 各節の詳細と実例は Gallery 内 Docs 章の該当ページへ。
 
 - **GPU 抽象** — 固定レイアウト + bindless、Slang 統一シェーダ、stage バリアのみの同期、
-  深度/ブレンド/テクスチャ (→ Reference/Guides/GpuDevice)
+  深度/ブレンド/テクスチャ
 - **2D ベクター** — backend-neutralな`IRasterizer2D`からGPU computeまたはSkia CPU RGBAを選択。
-  EvenOdd/ストローク/日本語ベクターテキスト、Camera2D、保持型キャンバスのGPU増分更新 (→ Reference/Guides/TwoD)
+  EvenOdd/ストローク/日本語ベクターテキスト、Camera2D、保持型キャンバスのGPU増分更新
 - **レンダーグラフ** — Setup/Compile/Execute 三相、transient aliasing、デッドパスカリング、
-  自動バリア。scene-agnostic (→ Reference/Guides/RenderGraph)
+  自動バリア。scene-agnostic
 - **3D + ECS** — Friflo ECS + Transform 伝播 + IRenderExtractor、forward/bloom/shadow map/
-  world-space UI (→ Reference/Guides/ThreeD)
+  world-space UI
 - **宣言的 UI** — ベアファクトリ + indexer の DSL、signals 細粒度更新、単一パスレイアウト、
-  エラー境界 (→ Reference/Guides/UI)。コントロール 40 超 + CompositeControl (→ Reference/Guides/Controls)、
-  StateStyle/Tailwind utility (→ Reference/Guides/Styling)
+  エラー境界。コントロール 40 超 + CompositeControl、
+  StateStyle/Tailwind utility
 - **テキストとエディタ** — HarfBuzz + 自前 TextLayout (禁則/Justify/ICU 差し込み)、
-  RichDocument + Markdig の WYSIWYG hybrid エディタ、埋め込みブロック (→ Reference/Guides/Typography,
-  Reference/Guides/Editor)
+  RichDocument + Markdig の WYSIWYG hybrid エディタ、埋め込みブロック
 - **アニメーション** — 3 層 IR (Clip/Track/Player) + UI/2D/3D アダプタ、コード DSL、
-  CSS @keyframes、Graph/StateMachine、CSS transition 相当の暗黙補間 (→ Reference/Guides/Animation,
-  Reference/Guides/Transitions)
+  CSS @keyframes、Graph/StateMachine、CSS transition 相当の暗黙補間
 - **ランタイム** — (型,uri) リソース DAG、Win32 窓 + TSF IME、XAudio2、
   LuxelHostBuilder + 7 フェーズループ + UiSurface、ネイティブ DevTools + HTTP DebugServer
-  (→ Reference/Guides/Resources, Reference/Guides/Platform, Reference/Guides/Audio, Reference/Guides/Framework, Reference/Guides/DevTools)
 
 ## プロジェクト構成
 

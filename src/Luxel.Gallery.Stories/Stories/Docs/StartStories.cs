@@ -15,7 +15,7 @@ public static class StartStories
         ## 学習ルート
 
         - **GPU が初めて** — [Graphics](story:Learn/Graphics/Overview) で window、device、surface、三角形まで進む
-        - **3D アプリを作る** — [Indexed Cube](story:Build/Recipes/IndexedCube) と [3D Camera](story:Build/Recipes/Camera3D) を組み合わせる
+        - **3D アプリを作る** — Indexed Cube と 3D Camera を組み合わせる
         - **2D を描画する** — [2D](story:Learn/Graphics/2D/Overview) で path、色、画像、camera transform を使う
         - **複数passを構成する** — [RenderGraph](story:Learn/Graphics/RenderGraph/Overview) でresource、依存、culling、aliasingを順に学ぶ
         - **Input / Audio / Resources** — [Input](story:Learn/Input/Overview)、[Audio](story:Learn/Audio/Overview)、[Resources](story:Learn/Resources/Overview)でapp runtimeを組む
@@ -39,7 +39,7 @@ public static class StartStories
         | 目的 | 開始ページ | 到達物 |
         |---|---|---|
         | 最初の GPU アプリ | [Graphics](story:Learn/Graphics/Overview) | standalone triangle |
-        | 実用 3D | [Indexed Cube](story:Build/Recipes/IndexedCube) | indexed mesh + perspective camera |
+        | 実用 3D | Indexed Cube | indexed mesh + perspective camera |
         | 2D canvas | [2D](story:Learn/Graphics/2D/Overview) | 2D content を構築して描画できる |
         | 複数pass GPU描画 | [RenderGraph](story:Learn/Graphics/RenderGraph/Overview) | transient resource、自動barrier、culling、aliasing |
         | 実装読解 | [Internal](story:Learn/Graphics/2D/Internal/Overview) | C# から compute pass まで説明できる |

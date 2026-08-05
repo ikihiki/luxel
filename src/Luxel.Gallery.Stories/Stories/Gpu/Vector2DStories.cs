@@ -10,7 +10,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>
 /// 2D ベクターの描画デモ — compute ラスタライザ (三角形分割なし) が塗る EvenOdd パス、
-/// ストローク、ベクターテキスト (日本語含む)。docs の Reference/Guides/TwoD から参照される。
+/// ストローク、ベクターテキスト (日本語含む)。
 /// </summary>
 public static class Vector2DStories
 {

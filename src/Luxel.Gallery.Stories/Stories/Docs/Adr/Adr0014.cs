@@ -18,7 +18,7 @@ public static partial class DocsAdr
         ## Context
 
         > [!NOTE]
-        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクするLearnページと実装を正とします。
 
 
         Workbench ([ADR-0010](story:Internals/ADR/0010-Workbench-Framework)) のシェルに必要な**内容/レイアウト系コントロール**が未実装です。調査の結果、次が「無い」と判明しました: 複数ドキュメントの `DocumentTabs`、ドッキングを描く `DockHost`、型/ECS を反映する `PropertyGrid`/Inspector、`StatusBar`、VFS 連動の `AssetBrowser`。

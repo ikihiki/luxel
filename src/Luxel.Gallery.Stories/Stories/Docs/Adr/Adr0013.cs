@@ -18,7 +18,7 @@ public static partial class DocsAdr
         ## Context
 
         > [!NOTE]
-        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクするLearnページと実装を正とします。
 
 
         Workbench ([ADR-0010](story:Internals/ADR/0010-Workbench-Framework)) にメニュー/コマンド起動の面が要ります。現状 `MenuBar`・コマンドパレット・汎用ツールバーは無く、あるのは `ContextMenu` と浮遊 UI 配置エンジン ([ADR-0007](story:Internals/ADR/0007-Floating-Ui-Placement)) だけです。

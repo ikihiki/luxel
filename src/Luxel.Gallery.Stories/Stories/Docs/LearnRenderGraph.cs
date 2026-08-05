@@ -37,7 +37,7 @@ public static class LearnRenderGraph
         | Lifecycle | submit、GPU完了、dispose、resize |
         | Debugging | validationとDevToolsによる依存の可視化 |
 
-        RenderGraph本体は`src/Luxel.Graphics.RenderGraph/`にあります。APIだけを一覧したい場合は[RenderGraph Guide](story:Reference/Guides/RenderGraph)を参照してください。
+        RenderGraph本体は`src/Luxel.Graphics.RenderGraph/`にあります。APIだけを一覧したい場合はRenderGraph Guideを参照してください。
         """;
 
     [Story("Learn/Graphics/RenderGraph/Resources", Order = 28, Toc = true)]
@@ -256,6 +256,6 @@ public static class LearnRenderGraph
 
         {{StoryRef(ctx, "Examples/RenderGraph/Blur")}}
 
-        次は[Indexed Cube](story:Build/Recipes/IndexedCube)や[3D Camera](story:Build/Recipes/Camera3D)と組み合わせるか、[Bloom3D](story:Examples/RenderGraph/Bloom3D)で複数passの完成例を確認してください。
+        次はIndexed Cubeや3D Cameraと組み合わせるか、[Bloom3D](story:Examples/RenderGraph/Bloom3D)で複数passの完成例を確認してください。
         """;
 }
