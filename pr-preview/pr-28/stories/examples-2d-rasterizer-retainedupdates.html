@@ -490,7 +490,7 @@ public sealed class RetainedCanvas : IDisposable
     }
 }
 </code></pre>
-<p>→ <a href="#story=Learn%2FGrapics%2FRasterizerInternals%2FOverview">Rasterizer Internals course</a></p>
+<p>→ <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FOverview">Internal course</a></p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/2D/Rasterizer/RetainedUpdates&quot;, Order = 8)]
 public static Widget RetainedUpdates(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;Retained updates&quot;, &quot;dirty ranges and stable slots&quot;,
     &quot;Transform-only and style-only edits update their corresponding SoA ranges without regenerating segment bytes. The retained canvas exposes last-write counters so tests can distinguish incremental upload from a full rebuild.&quot;,

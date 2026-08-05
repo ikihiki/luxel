@@ -1,0 +1,330 @@
+<article class="story document-page"><h1 id="pathfillstroke">Path、fill、stroke</h1>
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Gallery / Standalone / Headless　 <strong>Backend:</strong> Vulkan / DirectX 12 / Skia CPU　 <strong>前提知識:</strong> 2D Overview</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2F2D%2FOverview">Overview</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2F2D%2FCompositing">Compositing</a></p>
+<p><code>Scene2D</code> は <code>MoveTo</code>、<code>LineTo</code>、<code>QuadTo</code>、<code>CubicTo</code>、<code>Close</code> を蓄積します。fill は open contour を閉じ、stroke は明示的に閉じた contour だけを閉じます。</p>
+<p>→ <a href="#story=Examples%2F2D%2FVectorPaths">動く VectorPaths</a></p>
+<pre><code class="language-csharp">using System.Numerics;
+
+namespace Luxel.Graphics.TwoD;
+
+/// &lt;summary&gt;図形の種別。&lt;/summary&gt;
+public enum PaintKind { Fill, Stroke, Image }
+
+/// &lt;summary&gt;角丸矩形の丸める角の選択 (入力グループの接合面を直角にする等)。&lt;/summary&gt;
+[Flags]
+public enum RectCorners
+{
+    None = 0,
+    TopLeft = 1,
+    TopRight = 2,
+    BottomRight = 4,
+    BottomLeft = 8,
+    Left = TopLeft | BottomLeft,
+    Right = TopRight | BottomRight,
+    All = TopLeft | TopRight | BottomRight | BottomLeft,
+}
+
+/// &lt;summary&gt;
+/// ベクターシーン。塗り (色 + 塗り規則) またはストローク (色 + 幅) ごとに 1 つ以上の輪郭を持つ。
+/// 曲線は追加時に線分へ平坦化される。座標はワールド空間。
+/// &lt;/summary&gt;
+public sealed class Scene2D
+{
+    internal sealed class Contour
+    {
+        public readonly List&lt;Vector2&gt; Points = new();
+        public bool Closed;
+    }
+
+    internal sealed class Shape
+    {
+        public PaintKind Kind;
+        public uint Color;
+        public FillRule Rule;
+        public float StrokeWidth;
+        public uint SrcIndex, SrcStride, SrcW, SrcH;   // Image 用 (bindless バッファソース)
+        public uint SrcX, SrcY;                        // Image 用: アトラス原点オフセット(px, texel)
+        /// &lt;summary&gt;true = 保持型キャンバスでノード色に畳まれず自分の色で描かれる (カラー絵文字のレイヤ等)。&lt;/summary&gt;
+        public bool AbsoluteColor;
+        public readonly List&lt;Contour&gt; Contours = new();
+    }
+
+    internal readonly List&lt;Shape&gt; Shapes = new();
+
+    private Shape? _shape;
+    private Contour? _contour;
+    private Vector2 _pen;
+
+    /// &lt;summary&gt;曲線平坦化の許容誤差 (ワールド単位)。&lt;/summary&gt;
+    public float FlattenTolerance { get; set; } = 0.2f;
+
+    /// &lt;summary&gt;エンコード後の (線分数, パス数) を数える — &lt;see cref=&quot;UiNode.ReserveContent&quot;/&gt; の
+    /// 見積もり用 (仮想化リスト等でワーストケースの Content を一度測る)。&lt;/summary&gt;
+    public (int Segments, int Paths) CountEncoded()
+    {
+        (GpuSegment[] segs, GpuPath[] paths, _) = PathEncoder.Encode(this);
+        return (segs.Length, paths.Length);
+    }
+
+    /// &lt;summary&gt;塗り図形を開始する。&lt;paramref name=&quot;absoluteColor&quot;/&gt; = true は保持型キャンバスで
+    /// ノード色に畳まれず**この色のまま**描かれる (カラー絵文字のレイヤ等、テーマ recolor 対象外の色)。&lt;/summary&gt;
+    public Scene2D BeginFill(uint colorRgba, FillRule rule = FillRule.NonZero, bool absoluteColor = false)
+    {
+        FlushContour();
+        _shape = new Shape { Kind = PaintKind.Fill, Color = colorRgba, Rule = rule, AbsoluteColor = absoluteColor };
+        return this;
+    }
+
+    /// &lt;summary&gt;ストローク図形を開始する (幅はワールド単位ではなく画面ピクセル)。&lt;/summary&gt;
+    public Scene2D BeginStroke(uint colorRgba, float width)
+    {
+        FlushContour();
+        _shape = new Shape { Kind = PaintKind.Stroke, Color = colorRgba, StrokeWidth = width };
+        return this;
+    }
+
+    public Scene2D MoveTo(float x, float y)
+    {
+        FlushContour();
+        _pen = new Vector2(x, y);
+        _contour = new Contour();
+        _contour.Points.Add(_pen);
+        return this;
+    }
+
+    public Scene2D LineTo(float x, float y)
+    {
+        _pen = new Vector2(x, y);
+        _contour!.Points.Add(_pen);
+        return this;
+    }
+
+    public Scene2D QuadTo(float cx, float cy, float x, float y)
+    {
+        FlattenQuad(_pen, new Vector2(cx, cy), new Vector2(x, y), FlattenTolerance, _contour!.Points);
+        _pen = new Vector2(x, y);
+        return this;
+    }
+
+    public Scene2D CubicTo(float c0x, float c0y, float c1x, float c1y, float x, float y)
+    {
+        FlattenCubic(_pen, new Vector2(c0x, c0y), new Vector2(c1x, c1y), new Vector2(x, y),
+            FlattenTolerance, _contour!.Points);
+        _pen = new Vector2(x, y);
+        return this;
+    }
+
+    /// &lt;summary&gt;現在の輪郭を閉じる。&lt;/summary&gt;
+    public Scene2D Close()
+    {
+        if (_contour != null) _contour.Closed = true;
+        FlushContour();
+        return this;
+    }
+
+    /// &lt;summary&gt;図形を確定する。&lt;/summary&gt;
+    public Scene2D End()
+    {
+        FlushContour();
+        if (_shape != null &amp;&amp; _shape.Contours.Count &gt; 0) Shapes.Add(_shape);
+        _shape = null;
+        return this;
+    }
+
+    /// &lt;summary&gt;EndFill は End の別名 (互換)。&lt;/summary&gt;
+    public Scene2D EndFill() =&gt; End();
+
+    // ---- 便利メソッド ----
+
+    public Scene2D FillRect(uint color, float x, float y, float w, float h)
+        =&gt; BeginFill(color).MoveTo(x, y).LineTo(x + w, y).LineTo(x + w, y + h).LineTo(x, y + h).Close().End();
+
+    /// &lt;summary&gt;別バッファに描かれた RGBA8 画像を矩形にサンプリングして合成する (iframe 相当の埋め込み)。
+    /// ソースは bindless バッファ (&lt;see cref=&quot;GpuBuffer.BindlessIndex&quot;/&gt;) — framebuffer と同じ形式で、
+    /// 透過合成するには premultiplied RGBA (RetainedCanvas.Render の transparent=true) で描いておく。
+    /// &lt;paramref name=&quot;srcStride&quot;/&gt; は行ピッチ (px, パディング込み)。サンプリングは nearest。&lt;/summary&gt;
+    public Scene2D ImageRect(uint srcIndex, uint srcStride, uint srcW, uint srcH,
+                             float x, float y, float w, float h)
+    {
+        FlushContour();
+        _shape = new Shape
+        {
+            Kind = PaintKind.Image,
+            Color = Color2D.White,
+            SrcIndex = srcIndex,
+            SrcStride = srcStride,
+            SrcW = srcW,
+            SrcH = srcH,
+        };
+        MoveTo(x, y); LineTo(x + w, y); LineTo(x + w, y + h); LineTo(x, y + h); Close();
+        return End();
+    }
+
+    /// &lt;summary&gt;アトラス (1 バッファに複数スプライトを詰めた RGBA8 画像) の**サブ矩形**を dest 矩形へサンプリングして描く。
+    /// &lt;paramref name=&quot;srcStride&quot;/&gt; = アトラス全幅 (px, 行ピッチ)。(&lt;paramref name=&quot;srcX&quot;/&gt;,&lt;paramref name=&quot;srcY&quot;/&gt;) =
+    /// サブ矩形の左上 texel、(&lt;paramref name=&quot;srcW&quot;/&gt;,&lt;paramref name=&quot;srcH&quot;/&gt;) = サブ矩形サイズ。
+    /// サンプリングは clamp 付き bilinear で、隣接スプライトへ漏れない (1:1 表示は nearest 相当)。
+    /// ソースは premultiplied RGBA (透過キャンバス出力、または &lt;c&gt;SpriteAtlas&lt;/c&gt; の GPU アップロード) 前提。&lt;/summary&gt;
+    public Scene2D ImageSubRect(uint srcIndex, uint srcStride, uint srcX, uint srcY, uint srcW, uint srcH,
+                                float x, float y, float w, float h)
+    {
+        FlushContour();
+        _shape = new Shape
+        {
+            Kind = PaintKind.Image,
+            Color = Color2D.White,
+            SrcIndex = srcIndex,
+            SrcStride = srcStride,
+            SrcW = srcW,
+            SrcH = srcH,
+            SrcX = srcX,
+            SrcY = srcY,
+        };
+        MoveTo(x, y); LineTo(x + w, y); LineTo(x + w, y + h); LineTo(x, y + h); Close();
+        return End();
+    }
+
+    /// &lt;summary&gt;アトラスのスプライト &lt;paramref name=&quot;name&quot;/&gt; を、ピボットが (&lt;paramref name=&quot;x&quot;/&gt;,&lt;paramref name=&quot;y&quot;/&gt;) に
+    /// 合うよう &lt;paramref name=&quot;scale&quot;/&gt; 倍で描く。&lt;paramref name=&quot;atlas&quot;/&gt; は &lt;see cref=&quot;SpriteAtlas.Bind&quot;/&gt; 済みであること。&lt;/summary&gt;
+    public Scene2D DrawSprite(SpriteAtlas atlas, string name, float x, float y, float scale = 1f)
+    {
+        SpriteRect r = atlas[name];
+        return ImageSubRect(atlas.SrcIndex, atlas.SrcStride, (uint)r.X, (uint)r.Y, (uint)r.W, (uint)r.H,
+            x - r.PivotX * scale, y - r.PivotY * scale, r.W * scale, r.H * scale);
+    }
+
+    /// &lt;summary&gt;アニメーションの現フレーム (&lt;see cref=&quot;SpriteAnimation.FrameName&quot;/&gt;) を描く (&lt;see cref=&quot;DrawSprite&quot;/&gt; の糖衣)。&lt;/summary&gt;
+    public Scene2D DrawSprite(SpriteAtlas atlas, SpriteAnimation anim, float x, float y, float scale = 1f)
+        =&gt; DrawSprite(atlas, anim.FrameName, x, y, scale);
+
+    public Scene2D FillRoundedRect(uint color, float x, float y, float w, float h, float r)
+        =&gt; FillRoundedRect(color, x, y, w, h, r, RectCorners.All);
+
+    /// &lt;summary&gt;角ごとに丸めを選べる角丸矩形 (入力グループ等、接合面だけ直角にする用)。
+    /// &lt;see cref=&quot;RectCorners.All&quot;/&gt; は従来の &lt;c&gt;FillRoundedRect&lt;/c&gt; と同一ジオメトリ。&lt;/summary&gt;
+    public Scene2D FillRoundedRect(uint color, float x, float y, float w, float h, float r, RectCorners corners)
+    {
+        r = MathF.Min(r, MathF.Min(w, h) * 0.5f);
+        BeginFill(color);
+        if ((corners &amp; RectCorners.TopLeft) != 0) MoveTo(x + r, y); else MoveTo(x, y);
+        if ((corners &amp; RectCorners.TopRight) != 0) LineTo(x + w - r, y).QuadTo(x + w, y, x + w, y + r); else LineTo(x + w, y);
+        if ((corners &amp; RectCorners.BottomRight) != 0) LineTo(x + w, y + h - r).QuadTo(x + w, y + h, x + w - r, y + h); else LineTo(x + w, y + h);
+        if ((corners &amp; RectCorners.BottomLeft) != 0) LineTo(x + r, y + h).QuadTo(x, y + h, x, y + h - r); else LineTo(x, y + h);
+        if ((corners &amp; RectCorners.TopLeft) != 0) LineTo(x, y + r).QuadTo(x, y, x + r, y); else LineTo(x, y);
+        return Close().End();
+    }
+
+    /// &lt;summary&gt;角丸矩形のアウトライン (幅は画面ピクセル)。フォーカスリング等、面を覆わない輪郭用 —
+    /// 塗りと違い描画順に関係なく下の内容が見える。&lt;/summary&gt;
+    public Scene2D StrokeRoundedRect(uint color, float width, float x, float y, float w, float h, float r)
+    {
+        r = MathF.Min(r, MathF.Min(w, h) * 0.5f);
+        BeginStroke(color, width);
+        MoveTo(x + r, y);
+        LineTo(x + w - r, y).QuadTo(x + w, y, x + w, y + r);
+        LineTo(x + w, y + h - r).QuadTo(x + w, y + h, x + w - r, y + h);
+        LineTo(x + r, y + h).QuadTo(x, y + h, x, y + h - r);
+        LineTo(x, y + r).QuadTo(x, y, x + r, y);
+        return Close().End();
+    }
+
+    public Scene2D FillCircle(uint color, float cx, float cy, float radius, int segments = 64)
+    {
+        BeginFill(color);
+        AddCircleContour(cx, cy, radius, segments);
+        return End();
+    }
+
+    public Scene2D StrokeLine(uint color, float width, float x0, float y0, float x1, float y1)
+        =&gt; BeginStroke(color, width).MoveTo(x0, y0).LineTo(x1, y1).End();
+
+    public Scene2D StrokePolyline(uint color, float width, params Vector2[] points)
+    {
+        BeginStroke(color, width);
+        for (int i = 0; i &lt; points.Length; i++)
+            if (i == 0) MoveTo(points[i].X, points[i].Y); else LineTo(points[i].X, points[i].Y);
+        return End();
+    }
+
+    private void AddCircleContour(float cx, float cy, float r, int segments)
+    {
+        for (int i = 0; i &lt; segments; i++)
+        {
+            float t = i / (float)segments * MathF.Tau;
+            float x = cx + MathF.Cos(t) * r, y = cy + MathF.Sin(t) * r;
+            if (i == 0) MoveTo(x, y); else LineTo(x, y);
+        }
+        Close();
+    }
+
+    private void FlushContour()
+    {
+        if (_contour != null &amp;&amp; _contour.Points.Count &gt;= 2 &amp;&amp; _shape != null)
+            _shape.Contours.Add(_contour);
+        _contour = null;
+    }
+
+    // ---- 平坦化済み輪郭の取り出し / 追加 (グリフ線分キャッシュ用 — AP-M4) ----
+
+    /// &lt;summary&gt;直前に &lt;see cref=&quot;End&quot;/&gt; した図形の輪郭点列を取り出す (グリフキャッシュの構築用)。&lt;/summary&gt;
+    public Vector2[][] ExportContours()
+    {
+        if (Shapes.Count == 0) return [];
+        Shape s = Shapes[^1];
+        var res = new Vector2[s.Contours.Count][];
+        for (int i = 0; i &lt; res.Length; i++) res[i] = s.Contours[i].Points.ToArray();
+        return res;
+    }
+
+    /// &lt;summary&gt;平坦化済みの閉輪郭列を現在の図形へ (ox, oy) 平行移動でコピーする —
+    /// ベジェ平坦化をスキップする高速パス (キャッシュ済みグリフの描画用)。&lt;/summary&gt;
+    public Scene2D AppendClosedContours(Vector2[][] contours, float ox, float oy)
+    {
+        FlushContour();
+        foreach (Vector2[] pts in contours)
+        {
+            var c = new Contour { Closed = true };
+            c.Points.Capacity = pts.Length;
+            for (int i = 0; i &lt; pts.Length; i++) c.Points.Add(new Vector2(pts[i].X + ox, pts[i].Y + oy));
+            _shape!.Contours.Add(c);
+        }
+        return this;
+    }
+
+    // ---- ベジェ平坦化 (再帰的 de Casteljau) ----
+
+    private static void FlattenQuad(Vector2 p0, Vector2 c, Vector2 p1, float tol, List&lt;Vector2&gt; outPts, int depth = 0)
+    {
+        Vector2 d = p1 - p0;
+        float area = MathF.Abs((c.X - p1.X) * d.Y - (c.Y - p1.Y) * d.X);
+        if (depth &gt;= 16 || area * area &lt;= tol * tol * (d.X * d.X + d.Y * d.Y))
+        {
+            outPts.Add(p1);
+            return;
+        }
+        Vector2 p01 = (p0 + c) * 0.5f, p12 = (c + p1) * 0.5f, mid = (p01 + p12) * 0.5f;
+        FlattenQuad(p0, p01, mid, tol, outPts, depth + 1);
+        FlattenQuad(mid, p12, p1, tol, outPts, depth + 1);
+    }
+
+    private static void FlattenCubic(Vector2 p0, Vector2 c0, Vector2 c1, Vector2 p1, float tol, List&lt;Vector2&gt; outPts, int depth = 0)
+    {
+        Vector2 d = p1 - p0;
+        float d0 = MathF.Abs((c0.X - p1.X) * d.Y - (c0.Y - p1.Y) * d.X);
+        float d1 = MathF.Abs((c1.X - p1.X) * d.Y - (c1.Y - p1.Y) * d.X);
+        if (depth &gt;= 16 || (d0 + d1) * (d0 + d1) &lt;= tol * tol * (d.X * d.X + d.Y * d.Y))
+        {
+            outPts.Add(p1);
+            return;
+        }
+        Vector2 p01 = (p0 + c0) * 0.5f, p12 = (c0 + c1) * 0.5f, p23 = (c1 + p1) * 0.5f;
+        Vector2 p012 = (p01 + p12) * 0.5f, p123 = (p12 + p23) * 0.5f, mid = (p012 + p123) * 0.5f;
+        FlattenCubic(p0, p01, p012, mid, tol, outPts, depth + 1);
+        FlattenCubic(mid, p123, p23, p1, tol, outPts, depth + 1);
+    }
+}
+</code></pre>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Paths&quot;, Order = 11)]
+public static Widget Paths(StoryContext ctx) =&gt; Page(ctx, &quot;Learn/Grapics/2D/Paths&quot;, &quot;Path、fill、stroke&quot;, &quot;2D Overview&quot;,
+    &quot;`Scene2D` は `MoveTo`、`LineTo`、`QuadTo`、`CubicTo`、`Close` を蓄積します。fill は open contour を閉じ、stroke は明示的に閉じた contour だけを閉じます。\n\n→ [動く VectorPaths](story:Examples/2D/VectorPaths)&quot;,
+    &quot;src/Luxel.Graphics.TwoD/Scene2D.cs&quot;, &quot;Learn/Grapics/2D/Overview&quot;, &quot;Learn/Grapics/2D/Compositing&quot;);</code></pre></details></article>

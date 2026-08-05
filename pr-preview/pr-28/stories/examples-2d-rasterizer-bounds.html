@@ -79,7 +79,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     g_buffers[args.boundsIndex].Store&lt;float4&gt;(oi * 16, float4(lo.x, lo.y, hi.x, hi.y));
 }
 </code></pre>
-<p>→ <a href="#story=Learn%2FGrapics%2FRasterizerInternals%2FOverview">Rasterizer Internals course</a></p>
+<p>→ <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FOverview">Internal course</a></p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/2D/Rasterizer/Bounds&quot;, Order = 2)]
 public static Widget Bounds(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;Bounds pass&quot;, &quot;path AABB + stroke margin + clip&quot;,
     &quot;```mermaid\nflowchart LR\nPath --&gt; Transform --&gt; ScreenAABB\nStyle --&gt; StrokeMargin --&gt; ScreenAABB\nClip --&gt; Intersection --&gt; ScreenAABB\nScreenAABB --&gt; BoundsBuffer\n```\n\nThe bounds buffer is consumed by both bin and fine passes for early rejection.&quot;,

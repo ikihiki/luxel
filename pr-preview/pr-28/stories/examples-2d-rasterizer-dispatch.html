@@ -324,7 +324,7 @@ internal sealed class GpuRetainedRasterScene2D : IRasterScene2D, IRetainedCanvas
     }
 }
 </code></pre>
-<p>→ <a href="#story=Learn%2FGrapics%2FRasterizerInternals%2FOverview">Rasterizer Internals course</a></p>
+<p>→ <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FOverview">Internal course</a></p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/2D/Rasterizer/Dispatch&quot;, Order = 7)]
 public static Widget Dispatch(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;Dispatch chain&quot;, &quot;bounds → barrier → bin → barrier → fine&quot;,
     &quot;```mermaid\nflowchart LR\nBounds --&gt; Barrier1[compute barrier]\nBarrier1 --&gt; Bin\nBin --&gt; Barrier2[compute barrier]\nBarrier2 --&gt; Fine\nFine --&gt; Barrier3[all-stage barrier]\n```\n\nScratch buffers grow to the required capacity and are reused by the serial rasterizer session.&quot;,

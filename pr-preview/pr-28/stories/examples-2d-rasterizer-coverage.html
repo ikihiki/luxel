@@ -231,7 +231,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     g_buffers[args.fbIndex].Store((tid.y * args.width + tid.x) * 4, outPacked);
 }
 </code></pre>
-<p>→ <a href="#story=Learn%2FGrapics%2FRasterizerInternals%2FOverview">Rasterizer Internals course</a></p>
+<p>→ <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FOverview">Internal course</a></p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/2D/Rasterizer/Coverage&quot;, Order = 4)]
 public static Widget Coverage(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;Coverage and fill rules&quot;, &quot;4&#215;4 samples per pixel&quot;,
     &quot;| Rule | Covered when |\n|---|---|\n| NonZero | winding number is not zero |\n| EvenOdd | crossing parity is odd |\n\nFine raster evaluates sample points, then converts the number of covered samples into pixel coverage.&quot;,

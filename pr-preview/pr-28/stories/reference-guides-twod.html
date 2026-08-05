@@ -97,7 +97,7 @@ else
 <li>定常フレームのコストは O(変わったノード) — 回帰は bench で監視 (使い方は Gallery の Docs 章の Contributing ページへ)</li>
 </ul>
 <h2 id="gpu-rasterizer">GPU rasterizerの現在構成</h2>
-<p>現行 GPU pipeline は <strong>bounds → 16×16 tile bin → fine raster</strong> の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4×4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は <a href="#story=Learn%2FGrapics%2FRasterizerInternals%2FOverview">Rasterizer Internals</a> へ進んでください。</p>
+<p>現行 GPU pipeline は <strong>bounds → 16×16 tile bin → fine raster</strong> の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4×4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FOverview">Internal</a> へ進んでください。</p>
 <p>次: <a href="#story=Reference%2FGuides%2FRenderGraph">Reference/Guides/RenderGraph</a> — 多段パスの合成へ。</p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/TwoD&quot;, Order = 11)]
 public static Widget TwoD(StoryContext ctx)
@@ -246,7 +246,7 @@ public static Widget TwoD(StoryContext ctx)
 
     ## GPU rasterizerの現在構成
 
-    現行 GPU pipeline は **bounds → 16&#215;16 tile bin → fine raster** の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4&#215;4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は [Rasterizer Internals](story:Learn/Grapics/RasterizerInternals/Overview) へ進んでください。
+    現行 GPU pipeline は **bounds → 16&#215;16 tile bin → fine raster** の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4&#215;4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は [Internal](story:Learn/Grapics/2D/Internal/Overview) へ進んでください。
 
     次: [Reference/Guides/RenderGraph](story:Reference/Guides/RenderGraph) — 多段パスの合成へ。
     &quot;&quot;&quot;, toc: true);
