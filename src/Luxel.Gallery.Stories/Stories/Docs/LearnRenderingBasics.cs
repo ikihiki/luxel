@@ -29,7 +29,7 @@ public static partial class DocsRenderingLearn
 
         ## どのAPIまで学ぶか
 
-        三角形、buffer ABI、texture付きquad、shader、pipeline stateを順に学び、BarrierとSubmit系methodによる同期を整理してからRenderGraphへ進みます。`--stage graph`でdirect描画を1 passへ移し、`--stage post`でtransient resourceとcompute post-processを追加します。indexed meshとcameraの実装はBuildのRecipeへ分けています。
+        三角形、buffer ABI、texture付きquad、shader、pipeline stateを順に学び、BarrierとSubmit系methodによる同期までを整理します。その後は独立した[RenderGraphコース](story:Learn/RenderGraph/Overview)で、direct描画を1 passへ移し、transient resourceとcompute post-processを追加します。indexed meshとcameraの実装はBuildのRecipeへ分けています。
         """, toc: true);
     }
 
@@ -1193,7 +1193,7 @@ public static partial class DocsRenderingLearn
         Queue API:   commandのsubmitとCPUから見た完了境界
         ```
 
-        次ページでは、手書きBarrierをpassのRead/Write宣言へ置き換えるRenderGraphを扱います。Vulkan、DirectX 12、native/browser WebGPUがBarrierとqueue完了をどうlowerするかは[GPU同期の内部実装](story:Internals/Gpu/Synchronization)を参照してください。
+        手書きBarrierをpassのRead/Write宣言へ置き換える方法は、独立した[RenderGraphコース](story:Learn/RenderGraph/Overview)で順番に扱います。Vulkan、DirectX 12、native/browser WebGPUがBarrierとqueue完了をどうlowerするかは[GPU同期の内部実装](story:Internals/Gpu/Synchronization)を参照してください。
 
         ## 典型的な失敗
 
