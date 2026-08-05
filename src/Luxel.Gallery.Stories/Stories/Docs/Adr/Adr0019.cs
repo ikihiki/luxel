@@ -7,8 +7,8 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0019-Portable-Gpu-Semantics-WebGPU-Backend", Order = 90)]
-    public static Widget Adr0019(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Internals/ADR/0019-Portable-Gpu-Semantics-WebGPU-Backend", Order = 90, Toc = true)]
+    public static StoryResult Adr0019(StoryContext ctx) => $$"""
         # ADR-0019 — portable GPU semantics として WebGPU backend を追加する
 
         - **Status**: Accepted
@@ -57,5 +57,5 @@ public static partial class DocsAdr
         - ⚠️ WebGPU の feature/limit と採用 native implementation の対応範囲により、pipeline が明示的に利用不能になる場合がある
         - ⚠️ macOS、Immediate Data、unbounded runtime resource arrays、永続 CPU/GPU 同時 map は portable baseline に含まれない
         - ⚠️ browser/WASMはsecure context、WebGPU対応browser、wasm-tools workload、async host lifecycleを必要とする
-        """, toc: true);
+        """;
 }

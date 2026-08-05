@@ -24,8 +24,8 @@ internal static class RuntimeCourseCatalog
 
 public static class LearnInput
 {
-    [Story("Learn/Input/Overview", Order = 0, SampleBundle = "input.actions")]
-    public static Widget Overview(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Learn/Input/Overview", Order = 0, SampleBundle = "input.actions", Toc = true)]
+    public static StoryResult Overview(StoryContext ctx) => $"""
         # 入力システムの概要
 
         {RuntimeCourseCatalog.Meta("Learn/Input/Overview", "Beginner", "Gallery / Headless", "Window / Fake / XInput", "なし")}
@@ -57,10 +57,10 @@ public static class LearnInput
         TextFieldやIMEによる文字入力は`Luxel.UI`の責務です。`Luxel.Input`はゲーム操作のための物理入力と論理アクションを扱います。
 
         {SampleBundle("input.actions")}
-        """, toc: true);
+        """;
 
-    [Story("Learn/Input/ActionsAndContexts", Order = 1)]
-    public static Widget Actions(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Learn/Input/ActionsAndContexts", Order = 1, Toc = true)]
+    public static StoryResult Actions(StoryContext ctx) => $"""
         # アクションとコンテキスト
 
         {RuntimeCourseCatalog.Meta("Learn/Input/ActionsAndContexts", "Beginner", "Gallery / Headless", "Backend neutral", "入力システムの概要")}
@@ -114,10 +114,10 @@ public static class LearnInput
         `SetSuspended`を使うと、コンテキストをスタックから外さず評価対象から除外できます。Menuを停止すると、同じEnterをGameplayが受け取ります。
 
         {SampleSource("src/Luxel.Gallery.Stories/Stories/InputActionStories.cs", "input-context-suspension")}
-        """, toc: true);
+        """;
 
-    [Story("Learn/Input/BindingsAndRebinding", Order = 2)]
-    public static Widget Bindings(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Learn/Input/BindingsAndRebinding", Order = 2, Toc = true)]
+    public static StoryResult Bindings(StoryContext ctx) => $"""
         # バインディングとキーの再設定
 
         {RuntimeCourseCatalog.Meta("Learn/Input/BindingsAndRebinding", "Beginner", "Gallery / Settings", "Backend neutral", "アクションとコンテキスト")}
@@ -162,10 +162,10 @@ public static class LearnInput
         再設定UIは、ユーザーが次に押した物理キーまたはボタンを取得し、対象アクションのbinding entryを書き換えます。実ウィンドウでは`WindowInputSource.TakePressed()`を使って直近のキー押下を取得できます。
 
         文字入力やIME compositionはキー設定ではなく`Luxel.UI`のテキスト入力経路で扱います。表示文字と物理キーを混同しないことが重要です。
-        """, toc: true);
+        """;
 
-    [Story("Learn/Input/PlatformsAndTesting", Order = 3)]
-    public static Widget Platforms(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Learn/Input/PlatformsAndTesting", Order = 3, Toc = true)]
+    public static StoryResult Platforms(StoryContext ctx) => $"""
         # プラットフォーム入力と決定的テスト
 
         {RuntimeCourseCatalog.Meta("Learn/Input/PlatformsAndTesting", "Beginner", "Window / CI", "Win32 / Silk X11 / Fake / XInput", "バインディングとキーの再設定")}
@@ -180,13 +180,13 @@ public static class LearnInput
         ゲームロジックのテストでは`FakeInputSource`を使い、ウィンドウや実機器なしで同じ`InputBus`と`InputStack`を更新します。押下と解放を別tickにすれば、`Triggered`と`Released`も決定的に検証できます。
 
         {SampleSource("samples/LuxelInput/Program.cs", "input-actions")}
-        """, toc: true);
+        """;
 }
 
 public static class LearnAudio
 {
-    [Story("Learn/Audio/Overview", Order = 0, SampleBundle = "audio.tone")]
-    public static Widget Overview(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Learn/Audio/Overview", Order = 0, SampleBundle = "audio.tone", Toc = true)]
+    public static StoryResult Overview(StoryContext ctx) => $"""
         # Audio overview
 
         {RuntimeCourseCatalog.Meta("Learn/Audio/Overview", "Beginner", "Standalone / Headless / Windows device", "Null / XAudio2", "Input track")}
@@ -194,10 +194,10 @@ public static class LearnAudio
         `AudioClip`はdecode済みPCM、`IAudioVoice`は再生slot、`AudioMixer`はone-shotとvoice poolを管理します。実音出力は現在Windows/XAudio2、CIと非Windowsは`NullAudioBackend`で状態遷移を検証します。
 
         {SampleBundle("audio.tone")}
-        """, toc: true);
+        """;
 
-    [Story("Learn/Audio/ClipsSourcesAndBuses", Order = 1)]
-    public static Widget Clips(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Learn/Audio/ClipsSourcesAndBuses", Order = 1, Toc = true)]
+    public static StoryResult Clips(StoryContext ctx) => $"""
         # Clips, sources, and buses
 
         {RuntimeCourseCatalog.Meta("Learn/Audio/ClipsSourcesAndBuses", "Beginner", "Standalone / Game loop", "Backend neutral", "Audio overview")}
@@ -205,10 +205,10 @@ public static class LearnAudio
         SFXは`AudioClip`を`AudioMixer.PlayOneShot`へ渡します。持続音は`AudioSource`でvolume/pitch/panをSignalとして更新し、master/music/sfxの階層音量は`AudioBus`で掛け合わせます。`AudioMixer.Tick()`とsourceの`Tick()`はframe loopから呼びます。
 
         {SampleSource("samples/LuxelAudio/Program.cs", "audio-tone")}
-        """, toc: true);
+        """;
 
-    [Story("Learn/Audio/SpatialStreamingAndTesting", Order = 2)]
-    public static Widget Spatial(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Learn/Audio/SpatialStreamingAndTesting", Order = 2, Toc = true)]
+    public static StoryResult Spatial(StoryContext ctx) => $"""
         # Spatial audio, streaming, and testing
 
         {RuntimeCourseCatalog.Meta("Learn/Audio/SpatialStreamingAndTesting", "Intermediate", "Game loop / Windows audio / CI", "XAudio2 / Null", "Clips and buses")}
@@ -216,13 +216,13 @@ public static class LearnAudio
         `AudioSource3D`はlistenerとの距離減衰と左右panを計算します。HRTF/Dopplerではありません。長い音声は`WavStream`/`LoopingStream`と`StreamingVoice.Pump()`を使います。headless smokeでは実音ではなくInitialized、voice数、queue、playing、submitted bytesをcheckpointにします。
 
         実音例は [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone) です。
-        """, toc: true);
+        """;
 }
 
 public static class LearnResources
 {
-    [Story("Learn/Resources/Overview", Order = 0, SampleBundle = "resources.pipeline")]
-    public static Widget Overview(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Learn/Resources/Overview", Order = 0, SampleBundle = "resources.pipeline", Toc = true)]
+    public static StoryResult Overview(StoryContext ctx) => $"""
         # Resources overview
 
         {RuntimeCourseCatalog.Meta("Learn/Resources/Overview", "Beginner", "Standalone / Gallery / Headless", "CPU / optional GPU steps", "Audio track")}
@@ -230,10 +230,10 @@ public static class LearnResources
         `ResourceSystem`は `(requested type, URI)` をcache keyにし、sourceとtyped stepを自動合成します。asset利用側は`ResourceHandle<T>`を保持し、不要になったらDisposeします。
 
         {SampleBundle("resources.pipeline")}
-        """, toc: true);
+        """;
 
-    [Story("Learn/Resources/PipelinesAndDag", Order = 1)]
-    public static Widget Pipelines(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Learn/Resources/PipelinesAndDag", Order = 1, Toc = true)]
+    public static StoryResult Pipelines(StoryContext ctx) => $"""
         # Typed pipelines and dependency DAG
 
         {RuntimeCourseCatalog.Meta("Learn/Resources/PipelinesAndDag", "Intermediate", "Standalone / Headless", "IO / CPU / GPU lanes", "Resources overview")}
@@ -241,14 +241,14 @@ public static class LearnResources
         `IResourceSource`がURIからbytesを読み、`IResourceStep<TIn,TOut>`が型を変換します。requested output typeからstepを逆引きするため、`byte[] → decoded → GPU resource`の任意長chainを組めます。step内の`LoadContext.Load`はdependency edgeを作り、共有・reload伝播・eviction順序へ使われます。
 
         {SampleSource("samples/LuxelResources/Program.cs", "resource-pipeline")}
-        """, toc: true);
+        """;
 
-    [Story("Learn/Resources/ReloadAndLifetime", Order = 2)]
-    public static Widget Reload(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Learn/Resources/ReloadAndLifetime", Order = 2, Toc = true)]
+    public static StoryResult Reload(StoryContext ctx) => $"""
         # Reload, publish, and lifetime
 
         {RuntimeCourseCatalog.Meta("Learn/Resources/ReloadAndLifetime", "Intermediate", "Game loop / DevTools / CI", "Backend neutral", "Pipeline and DAG")}
 
         `Watch()`後のfile change、`Republish()`、dependency reloadは非同期に計算され、value swap、`Reloaded`通知、deferred disposeは`Pump()`境界で適用されます。refcountが0でdependentも無いnodeから連鎖evictionされます。GPU値のdispose前にはidle hookを設定できます。
-        """, toc: true);
+        """;
 }

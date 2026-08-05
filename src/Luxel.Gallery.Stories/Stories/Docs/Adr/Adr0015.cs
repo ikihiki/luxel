@@ -7,8 +7,8 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0015-Game-Project-Scene-Format", Order = 86)]
-    public static Widget Adr0015(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Internals/ADR/0015-Game-Project-Scene-Format", Order = 86, Toc = true)]
+    public static StoryResult Adr0015(StoryContext ctx) => $$"""
         # ADR-0015 — ゲームプロジェクト/シーン形式はエディタ専用モデル + 一方向コンパイルにする
 
         - **Status**: Accepted
@@ -53,5 +53,5 @@ public static partial class DocsAdr
         - ✅ 決定的 JSON で golden/git diff が安定する
         - ⚠️ Int/Float、Quat/Color の区別は保存形に現れない — スキーマ無しで開いた場合の表示は形どおり (Number/Vec4) に落ちる
         - ⚠️ エディタモデルと ECS 実型の二重性は残る — SceneCompiler (GE-3) がスキーマ経由で構築することで乖離を防ぐ
-        """, toc: true);
+        """;
 }

@@ -1,4 +1,4 @@
-﻿using Luxel.Controls;
+using Luxel.Controls;
 using Luxel.Typography;
 using Luxel.UI;
 using Xunit;
@@ -35,7 +35,7 @@ public class InlineWidgetTests
         Assert.True(after[0].X >= box[0].X + 40 - 0.5f);
     }
 
-    // ---- DocString の markdown 符号化 (新スタック MarkdownDoc.FromDoc/DocNew が使う .Md) ----
+    // ---- DocString の markdown 符号化 (structured document bridge が使う .Md) ----
 
     [Fact]
     public void DocString_InlineHole_EmitsLinkSyntax()

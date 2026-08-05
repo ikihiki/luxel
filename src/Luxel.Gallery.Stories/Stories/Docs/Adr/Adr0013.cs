@@ -7,8 +7,8 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0013-Menu-Command-System", Order = 84)]
-    public static Widget Adr0013(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Internals/ADR/0013-Menu-Command-System", Order = 84, Toc = true)]
+    public static StoryResult Adr0013(StoryContext ctx) => $$"""
         # ADR-0013 — メニューは CommandRegistry を単一の真実とし、全サーフェスをその純粋ビューとして生成する
 
         - **Status**: Accepted
@@ -51,5 +51,5 @@ public static partial class DocsAdr
         - ✅ リボンを避けつつ発見性はパレットで担保し、特許面もクリーン
         - ⚠️ 全コントロールをコマンド経由に寄せる**規律**が要る (直接アクション実装を避ける)
         - ⚠️ enablement / keymap の評価タイミング (アクティブ doc の変化に追従) を正しく配線する必要がある
-        """, toc: true);
+        """;
 }

@@ -15,7 +15,7 @@ public static class DocsMeta
     private static Luxel.Resources.ResourceHandle<Luxel.Resources.CpuImage>? _imagePreload;
 
     [Story("Internals/Authoring", Order = 91)]
-    public static Widget Authoring(StoryContext ctx)
+    public static StoryResult Authoring(StoryContext ctx)
     {
         // snap (静定 1 フレーム) の決定性のため画像を同期 preload — 実アプリでは不要
         if (ctx.ResourcesOrNull is { } resources)
@@ -30,7 +30,7 @@ public static class DocsMeta
             Text($" {count} ", 20, vAlign: Align.Center),
             Button(_ => { count.Value++; ctx.Log("counter: +1"); }, "+")];
 
-        Widget doc = DocNew(ctx, $$$""""
+        StoryResult doc = $$$""""
             # docs ページの書き方
 
             docs ページは **補完文字列 + markdown** で書きます。リテラル部分は markdown として整形され、hole に `Widget` を置くとその場に**ライブ UI** が埋め込まれます。カラー絵文字 :smile: :rocket: :+1: と "smart quotes" -- SmartyPants も効きます。リンクも張れます: [Reference/Guides/Button を開く](story:Reference/Guides/Button) / [書けるもの へ](#書けるもの) / [No Graphics API (外部)](https://www.sebastianaaltonen.com/blog/no-graphics-api)
@@ -40,8 +40,8 @@ public static class DocsMeta
             `[Story("Reference/Guides/...")]` + `Kit.Docs` + `WithDocFonts` (日本語/絵文字フォールバック + シンタックスハイライト + mermaid/math widget の配線) が定型です。文字列は `$$"""` (hole = 波かっこ 2 連) にすると、C# コード例の波かっこ 1 連がそのままリテラルになります:
 
             ```csharp
-            [Story("Reference/Guides/MyPage", Order = 50)]
-            public static Widget MyPage(StoryContext ctx) => DocNew(ctx, $$"""
+            [Story("Reference/Guides/MyPage", Order = 50, Toc = true)]
+            public static StoryResult MyPage(StoryContext ctx) => $$"""
                 # 見出し
 
                 本文。hole にはライブ UI が置けます: {{Button(_ => ctx.Log("hi"), "押す")}}
@@ -49,7 +49,7 @@ public static class DocsMeta
                 コード例の波かっこはリテラルです: new Args { Count = n }
 
                 {{StoryRef(ctx, "Controls/Button/Variants", knobs: true)}}
-                """, toc: true);
+                """;
             ```
 
             `Order` がサイドバーの並び、`toc: true` で H2/H3 の目次が H1 直後に入ります。ページの H2/H3 はサイドバーのツリーにも出るので、節の粒度 = ナビゲーションの粒度です。
@@ -109,22 +109,12 @@ public static class DocsMeta
             - 埋め込みストーリーの knob 名がページ側と衝突したら後勝ち
             - StoryRef は 1 ページ 1〜3 個まで (実体化 + snap のコストがかかる)
             - snap (オフスクリーン回帰) は日本語フォールバックフォントがなく豆腐になりますが、決定的なので回帰検出には有効です
-            """", toc: true);
-        // golden ①先頭、②「ライブ UI」見出しへスクロールして**行内 widget** (Badge/Button の :inline hole) を映す
-        ctx.Play(async d =>
-        {
-            await d.Snap();
-            if (doc is TextEditorView tev)
-                foreach (MarkdownHeading h in MarkdownDecorations.Headings(tev.DocSource!))
-                    if (h.Text == "ライブ UI") { tev.ScrollToSource(h.Offset); break; }
-            await d.Step(2);
-            await d.Snap("inline");
-        });
+            """";
         return doc;
     }
 
     [Story("Internals/Gallery", Order = 90)]
-    public static Widget Gallery(StoryContext ctx) => ctx.Snap(DocNew(ctx, $$"""
+    public static StoryResult Gallery(StoryContext ctx) => $$"""
         # Gallery — ストーリーの書き方
 
         この Gallery は Storybook 相当のカタログ + ドキュメント + 回帰基盤です。「ストーリー」= Widget を返す static メソッド 1 つで、実窓カタログ・snap 回帰・ docs への埋め込みのすべてに同じ実装が使われます。
@@ -138,7 +128,7 @@ public static class DocsMeta
             public static Widget Primary() => Frame(Button(_ => { }, "OK"));
 
             // signal が要るときは StoryContext から — ctx.Signal(...) は自動で knob になる
-            [Story("Controls/CheckBox/Basic", Height = 160)]
+            [Story("Controls/CheckBox/Basic", Height = 160, Toc = true)]
             public static Widget Check(StoryContext ctx)
                 => Frame(Check(ctx.Signal("checked", false), "Subscribe"));
         }
@@ -187,10 +177,10 @@ public static class DocsMeta
         ```
 
         実窓は `Ctrl+D` でテーマ切替、ツールバーの「全画面」でプレビューをメイン全面に。サイドバーの検索欄は docs 本文の全文検索です。docs ページの書き方は [Internals/Authoring](story:Internals/Authoring) へ。
-        """, toc: true));
+        """;
 
-    [Story("Internals/Contributing", Order = 92)]
-    public static Widget Contributing(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Internals/Contributing", Order = 92, Toc = true)]
+    public static StoryResult Contributing(StoryContext ctx) => $$"""
         # 貢献者向け — ビルド・テスト・回帰ゲート
 
         ## ビルドとツール (tools/)
@@ -229,5 +219,5 @@ public static class DocsMeta
         - **vk / dx ピクセル一致** — 新しい描画機能は両バックエンドで検証してから完了
         - **デッドリンク検証** — 実窓起動時に docs 全ページの `story:` / `#アンカー` を検査し、切れたリンクを stderr に警告します (`[gallery] dead link in ...`)
         - **実窓 E2E** — DebugServer の `/winframe` + `/cmd` で操作と描画を確認 ([Reference/Guides/DevTools](story:Reference/Guides/DevTools))
-        """, toc: true);
+        """;
 }

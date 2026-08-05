@@ -7,8 +7,8 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0006-Editor-New-Stack", Order = 77)]
-    public static Widget Adr0006(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Internals/ADR/0006-Editor-New-Stack", Order = 77, Toc = true)]
+    public static StoryResult Adr0006(StoryContext ctx) => $$"""
         # ADR-0006 — テキストエディタは Transaction ベースの新スタックを新規に作る
 
         - **Status**: Accepted
@@ -61,5 +61,5 @@ public static partial class DocsAdr
         - ⚠️ **新規コード量が大きい** — IME/TSF ブリッジ・undo・ChangeSet 代数を新 view 向けに正しく作り直す (DocumentEditor の実装は流用しない)
         - ⚠️ Strudel/デモを新コントロールへ移行する必要があり、MiniNotation にソーススパンの配管を足す (greenfield)
         - ⚠️ 「view を純粋な塗り役に保つ」境界規律を維持する必要がある — ロジックは canvas 非依存の層に置く
-        """, toc: true);
+        """;
 }

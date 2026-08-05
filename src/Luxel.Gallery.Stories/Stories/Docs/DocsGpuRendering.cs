@@ -8,8 +8,8 @@ namespace Luxel.Gallery.Stories;
 /// <summary>RenderGraph and 3D/ECS learning units.</summary>
 public static partial class DocsGpu
 {
-    [Story("Reference/Guides/RenderGraph", Order = 12)]
-    public static Widget RenderGraphDocs(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/RenderGraph", Order = 12, Toc = true)]
+    public static StoryResult RenderGraphDocs(StoryContext ctx) => $$"""
         # レンダーグラフ (Luxel.Graphics.RenderGraph)
 
         APIを使いながら順番に学ぶ場合は、[RenderGraph入門](story:Learn/RenderGraph/Overview)から始めてください。このページは設計とAPIをまとめて確認するreferenceです。
@@ -80,10 +80,10 @@ public static partial class DocsGpu
         両者は直交します。併用パターン: ResourceSystem でロードした `GpuTexture` を `ImportTexture` で External として取り込む。
 
         次: [Reference/Guides/ThreeD](story:Reference/Guides/ThreeD) — ECS と組み合わせて 3D を描きます。
-        """, toc: true);
+        """;
 
-    [Story("Reference/Guides/ThreeD", Order = 13)]
-    public static Widget ThreeD(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/ThreeD", Order = 13, Toc = true)]
+    public static StoryResult ThreeD(StoryContext ctx) => $$"""
         # 3D と ECS
 
         3D は **ECS (Friflo Engine ECS のラッパ = Luxel.Ecs) + 抽出 + レンダーグラフ**の直列で描きます。シーングラフという独立した抽象はありません — 階層は ECS の `Parent`/`Children` コンポーネントが素直に表します。
@@ -126,5 +126,5 @@ public static partial class DocsGpu
         > Slang/HLSL の既定行列レイアウトは column-major、`System.Numerics.Matrix4x4` は row-major です。ルート引数で行列を渡すときは **CPU 側で `Matrix4x4.Transpose`** を入れて整えます (per-instance 行列はシェーダ側で Load4 ×4 の行構築なので転置不要)。
 
         アニメーションを ECS へ流す例は [Examples/Animation/EcsClip](story:Examples/Animation/EcsClip) と [Examples/Animation/Graph](story:Examples/Animation/Graph) へ。
-        """, toc: true);
+        """;
 }

@@ -8,8 +8,8 @@ namespace Luxel.Gallery.Stories;
 /// <summary>glTF assets, ECS, and physics learning units.</summary>
 public static partial class DocsGpu
 {
-    [Story("Reference/Guides/Assets", Order = 14)]
-    public static Widget Assets(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/Assets", Order = 14, Toc = true)]
+    public static StoryResult Assets(StoryContext ctx) => $$"""
         # アセットパイプライン (glTF)
 
         glTF 2.0 (.gltf/.glb) を読み込み、ECS + GPU バッファへ展開して描くまでのパイプラインです。4 つのプロジェクトが層を分担します:
@@ -85,10 +85,10 @@ public static partial class DocsGpu
         - サンプルモデルはリポジトリの `tools/khronos-samples/` (Khronos 公式 glTF テストスイート) にあります
 
         型 API は [Luxel.Assets](story:Reference/Luxel.Assets) / [Luxel.AssetsGpu](story:Reference/Luxel.AssetsGpu) / [Luxel.AssetRuntime](story:Reference/Luxel.AssetRuntime) / [Luxel.Gltf](story:Reference/Luxel.Gltf) へ。
-        """, toc: true);
+        """;
 
-    [Story("Reference/Guides/Ecs", Order = 15)]
-    public static Widget Ecs(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/Ecs", Order = 15, Toc = true)]
+    public static StoryResult Ecs(StoryContext ctx) => $$"""
         # ECS (Luxel.Ecs)
 
         Friflo Engine ECS の薄いラッパです。3D シーン ([Reference/Guides/ThreeD](story:Reference/Guides/ThreeD)) とアセット展開 ([Reference/Guides/Assets](story:Reference/Guides/Assets)) の土台ですが、単体でも使えます。高度な操作は `world.Store` (生の Friflo `EntityStore`) を直接触ってかまいません。
@@ -143,10 +143,10 @@ public static partial class DocsGpu
         - ラッパを薄く保つのは、Friflo の archetype API (`ArchetypeQuery` / `ForEachEntity`) がそのまま最速経路だからです。Luxel が足すのは Phase 規約・DelegateSystem・Signal ブリッジ・perf 収集だけ
 
         物理 (剛体/衝突) を entity に付けるには [Reference/Guides/Physics](story:Reference/Guides/Physics) へ。型 API は [Luxel.Ecs](story:Reference/Luxel.Ecs) / [Luxel.Ecs.Signal](story:Reference/Luxel.Ecs.Signal) へ。
-        """, toc: true);
+        """;
 
-    [Story("Reference/Guides/Physics", Order = 16)]
-    public static Widget Physics(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/Physics", Order = 16, Toc = true)]
+    public static StoryResult Physics(StoryContext ctx) => $$"""
         # 物理 (Luxel.Physics)
 
         BepuPhysics v2 (pure C#) を薄く包んだ 3D 剛体物理です。Bepu の boilerplate (Simulation.Create の callbacks 構造体、BufferPool 管理) は `PhysicsWorld` が隠蔽し、ECS 側はコンポーネントを付けるだけで動きます。
@@ -303,5 +303,5 @@ public static partial class DocsGpu
         `ThreadCount > 0` は浮動小数の加算順がスレッドスケジューリングで変わり、実行ごとに結果が揺れます (Bepu 2.4 の仕様)。だから既定は単スレッド = 決定的で、マルチスレッドは速度と引き換えの opt-in。Bepu 2.5 系は決定性オプションが改善されているため、バージョン更新時に「固定スレッド数なら決定的」へ緩められる可能性があります。
 
         型 API は [Luxel.Physics](story:Reference/Luxel.Physics) へ。
-        """, toc: true);
+        """;
 }

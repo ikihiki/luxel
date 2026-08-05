@@ -10,8 +10,8 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static partial class DocsGpu
 {
-    [Story("Reference/Guides/GpuDevice", Order = 10)]
-    public static Widget GpuDevice(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/GpuDevice", Order = 10, Toc = true)]
+    public static StoryResult GpuDevice(StoryContext ctx) => $$"""
         # GPU 抽象 (GpuDevice)
 
         `Luxel.Graphics` は *No Graphics API* の原則を、resource・arguments・pass・dependency の **portable semantics** と backend-specific lowering に分けた薄い抽象です。アプリのコードは backend 分岐を持たず、Vulkan / DirectX 12 は bindless・GPUVA・明示 barrier を fast path として使います。native WebGPU は同じ意味論を bind groups、argument ring、pass segmentation へ lower する明示 opt-in backend として追加する方針です。
@@ -93,13 +93,13 @@ public static partial class DocsGpu
         > D3D12 の `CopyTextureToBuffer` は行 256B 整列が必要です。RGBA8 なら **ターゲット幅を 64 の倍数**にしてください (このページのデモはすべて 256)。
 
         次: [Reference/Guides/TwoD](story:Reference/Guides/TwoD) — この GPU 抽象の上に 2D ベクターを載せます。
-        """, toc: true);
+        """;
 
-    [Story("Reference/Guides/TwoD", Order = 11)]
-    public static Widget TwoD(StoryContext ctx)
+    [Story("Reference/Guides/TwoD", Order = 11, Toc = true)]
+    public static StoryResult TwoD(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());   // 積み重なった GPU デモ 7 本が device lost せず描画される回帰 golden
-        return DocNew(ctx, $$"""
+        return $$"""
         # 2D ベクター (Luxel.Graphics.TwoD)
 
         GPU **コンピュートラスタライザ** (Vello 風) による 2D ベクター描画です。パスを三角形分割せず、線分のまま GPU に常駐させ、compute が画素ごとに巻き数/距離で被覆を計算して塗ります。バックエンド変更ゼロ (framebuffer は bindless バッファ)。
@@ -242,9 +242,9 @@ public static partial class DocsGpu
 
         ## GPU rasterizerの現在構成
 
-        現行 GPU pipeline は **bounds → 16×16 tile bin → fine raster** の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4×4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は [Internal](story:Learn/Grapics/2D/Internal/Overview) へ進んでください。
+        現行 GPU pipeline は **bounds → 16×16 tile bin → fine raster** の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4×4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は [Internal](story:Learn/Graphics/2D/Internal/Overview) へ進んでください。
 
         次: [Reference/Guides/RenderGraph](story:Reference/Guides/RenderGraph) — 多段パスの合成へ。
-        """, toc: true);
+        """;
     }
 }

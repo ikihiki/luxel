@@ -12,6 +12,31 @@ public enum StoryResultKind
     Widget,
 }
 
+/// <summary>Markdown Story に直接補間できる生 Markdown 断片。</summary>
+public interface IStoryMarkdownFragment
+{
+    string Markdown { get; }
+}
+
+/// <summary>Markdown Story に直接補間できる構造化 Widget 埋め込み。</summary>
+public interface IStoryMarkdownEmbed
+{
+    Widget? Widget { get; }
+    string Kind { get; }
+    string? Reference { get; }
+    bool Inline { get; }
+    bool IncludeInherited { get; }
+    Func<Widget>? WidgetFactory { get; }
+}
+
+/// <summary>StoryResult 内の構造化 Widget 埋め込み。</summary>
+public sealed record StoryMarkdownEmbed(Widget? Widget, string Kind = "Widget", string? Reference = null,
+    bool Inline = false, bool IncludeInherited = false, Func<Widget>? WidgetFactory = null)
+{
+    public Widget ResolveWidget() => Widget ?? WidgetFactory?.Invoke()
+        ?? throw new InvalidOperationException("Documentation embed has no native widget factory.");
+}
+
 /// <summary>Markdown へ埋め込む canonical story reference。</summary>
 public sealed record StoryReference(string Path, StoryArgs Args)
 {
@@ -193,17 +218,21 @@ public sealed class StoryResult
 {
     private readonly StringBuilder? _markdown;
     private readonly List<StoryReference>? _references;
+    private readonly List<StoryMarkdownEmbed>? _embeds;
+    private bool _afterEmbed;
 
     public StoryResultKind Kind { get; }
     public Widget? Widget { get; }
     public string Markdown => _markdown?.ToString() ?? string.Empty;
     public IReadOnlyList<StoryReference> References => _references is null ? Array.Empty<StoryReference>() : _references;
+    public IReadOnlyList<StoryMarkdownEmbed> Embeds => _embeds is null ? Array.Empty<StoryMarkdownEmbed>() : _embeds;
 
     public StoryResult(int literalLength, int formattedCount)
     {
         Kind = StoryResultKind.Markdown;
         _markdown = new StringBuilder(literalLength + formattedCount * 24);
         _references = new List<StoryReference>(formattedCount);
+        _embeds = new List<StoryMarkdownEmbed>(formattedCount);
     }
 
     private StoryResult(Widget widget)
@@ -213,39 +242,110 @@ public sealed class StoryResult
         Widget = widget;
     }
 
-    private StoryResult(string markdown, IReadOnlyList<StoryReference> references)
+    private StoryResult(string markdown, IReadOnlyList<StoryReference> references,
+        IReadOnlyList<StoryMarkdownEmbed>? embeds = null)
     {
         Kind = StoryResultKind.Markdown;
         _markdown = new StringBuilder(markdown ?? string.Empty);
         _references = new List<StoryReference>(references);
+        _embeds = embeds is null ? new List<StoryMarkdownEmbed>() : new List<StoryMarkdownEmbed>(embeds);
     }
 
-    /// <summary>Creates semantic Markdown with pre-authored luxel-story fence placeholders.</summary>
+    /// <summary>Creates semantic Markdown with pre-authored story/embed fence placeholders.</summary>
     public static StoryResult FromMarkdown(string markdown, params StoryReference[] references)
         => new(markdown, references ?? Array.Empty<StoryReference>());
 
+    /// <summary>既存の構造化文書からMarkdownとWidget埋め込みを移行する。</summary>
+    public static StoryResult FromDocument(string markdown, IEnumerable<IStoryMarkdownEmbed> embeds)
+        => new(markdown, Array.Empty<StoryReference>(), embeds.Select(embed => new StoryMarkdownEmbed(
+            embed.Widget, embed.Kind, embed.Reference, embed.Inline, embed.IncludeInherited, embed.WidgetFactory)).ToArray());
+
+    /// <summary>構造化参照と埋め込みを保持したまま Markdown 本文だけを置換する。</summary>
+    public StoryResult WithMarkdown(string markdown)
+        => Kind == StoryResultKind.Markdown
+            ? new StoryResult(markdown, References, Embeds)
+            : throw new InvalidOperationException("Widget result does not have Markdown.");
+
     public static implicit operator StoryResult(Widget widget) => new(widget);
 
-    public void AppendLiteral(string value) => _markdown!.Append(value);
+    public void AppendLiteral(string value)
+    {
+        EnsureEmbedBoundary(value);
+        _markdown!.Append(value);
+    }
 
     public void AppendFormatted(StoryReference reference)
     {
         int index = _references!.Count;
         _references.Add(reference);
-        if (_markdown!.Length > 0 && _markdown[^1] != '\n') _markdown.Append('\n');
-        _markdown.Append("```luxel-story\n").Append(index).Append("\n```");
+        AppendFence("luxel-story", index);
+    }
+
+    public void AppendFormatted(Widget widget) => AppendEmbed(new StoryMarkdownEmbed(widget));
+
+    public void AppendFormatted(Widget widget, string format)
+    {
+        if (string.Equals(format, "inline", StringComparison.Ordinal))
+        {
+            int index = _embeds!.Count;
+            _embeds.Add(new StoryMarkdownEmbed(widget, Inline: true));
+            EnsureEmbedBoundary("[");
+            _markdown!.Append("[￼](luxel-ui:").Append(index).Append(')');
+            return;
+        }
+        AppendFormatted(widget);
     }
 
     public void AppendFormatted<T>(T value)
     {
-        if (value is StoryReference reference)
+        switch (value)
         {
-            AppendFormatted(reference);
-            return;
+            case StoryReference reference:
+                AppendFormatted(reference);
+                return;
+            case Widget widget:
+                AppendFormatted(widget);
+                return;
+            case IStoryMarkdownFragment fragment:
+                EnsureLineBoundary();
+                _markdown!.Append(fragment.Markdown);
+                _afterEmbed = true;
+                return;
+            case IStoryMarkdownEmbed embed:
+                AppendEmbed(new StoryMarkdownEmbed(embed.Widget, embed.Kind, embed.Reference,
+                    embed.Inline, embed.IncludeInherited, embed.WidgetFactory));
+                return;
+            default:
+                string text = value?.ToString() ?? string.Empty;
+                EnsureEmbedBoundary(text);
+                _markdown!.Append(text);
+                return;
         }
-        if (value is Widget widget)
-            throw new InvalidOperationException("Widget holes are not supported in StoryResult Markdown. Use StoryReference.To(...).");
-        _markdown!.Append(value?.ToString() ?? string.Empty);
+    }
+
+    private void AppendEmbed(StoryMarkdownEmbed embed)
+    {
+        int index = _embeds!.Count;
+        _embeds.Add(embed with { Inline = false });
+        AppendFence("luxel-ui", index);
+    }
+
+    private void AppendFence(string kind, int index)
+    {
+        EnsureLineBoundary();
+        _markdown!.Append("```").Append(kind).Append('\n').Append(index).Append("\n```");
+        _afterEmbed = true;
+    }
+
+    private void EnsureLineBoundary()
+    {
+        if (_markdown!.Length > 0 && _markdown[^1] != '\n') _markdown.Append('\n');
+    }
+
+    private void EnsureEmbedBoundary(string next)
+    {
+        if (_afterEmbed && (next.Length == 0 || next[0] != '\n')) _markdown!.Append('\n');
+        _afterEmbed = false;
     }
 
     public override string ToString() => Kind == StoryResultKind.Markdown ? Markdown : Widget?.ToString() ?? string.Empty;
