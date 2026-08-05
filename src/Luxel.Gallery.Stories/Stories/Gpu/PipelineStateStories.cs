@@ -18,32 +18,32 @@ public static class PipelineStateStories
     private struct DrawArgs { public uint VertexBufferIndex; }
 
     [Story("Examples/3D/PipelineState/Topology", Height = 320, Order = 100)]
-    public static Widget Topology() => View(new TopologyScene());
+    public static Widget Topology(StoryContext ctx) => ctx.Snap(View(new TopologyScene()));
 
     [Story("Examples/3D/PipelineState/Rasterizer", Height = 320, Order = 101)]
-    public static Widget Rasterizer() => View(new RasterizerScene());
+    public static Widget Rasterizer(StoryContext ctx) => ctx.Snap(View(new RasterizerScene()));
 
     [Story("Examples/3D/PipelineState/Depth", Height = 320, Order = 102)]
-    public static Widget DepthStates() => View(new DepthScene());
+    public static Widget DepthStates(StoryContext ctx) => ctx.Snap(View(new DepthScene()));
 
     [Story("Examples/3D/PipelineState/Blend", Height = 320, Order = 103)]
-    public static Widget BlendState() => View(new BlendScene());
+    public static Widget BlendState(StoryContext ctx) => ctx.Snap(View(new BlendScene()));
 
     [Story("Examples/3D/PipelineState/Stencil", Height = 320, Order = 104)]
-    public static Widget Stencil() => View(new StencilScene());
+    public static Widget Stencil(StoryContext ctx) => ctx.Snap(View(new StencilScene()));
 
     [Story("Examples/3D/PipelineState/ViewportScissor", Height = 320, Order = 105)]
-    public static Widget ViewportScissor() => View(new ViewportScissorScene());
+    public static Widget ViewportScissor(StoryContext ctx) => ctx.Snap(View(new ViewportScissorScene()));
 
     [Story("Examples/3D/PipelineState/Separation", Height = 320, Order = 106)]
-    public static Widget Separation() => View(new SeparationScene());
+    public static Widget Separation(StoryContext ctx) => ctx.Snap(View(new SeparationScene()));
 
     // Keep the established public routes for bookmarks and existing documentation embeds.
     [Story("Examples/3D/Depth", Height = 320, Order = 107)]
-    public static Widget Depth() => View(new DepthScene());
+    public static Widget Depth(StoryContext ctx) => ctx.Snap(View(new DepthScene()));
 
     [Story("Examples/3D/Blend", Height = 320, Order = 108)]
-    public static Widget Blend() => View(new BlendScene());
+    public static Widget Blend(StoryContext ctx) => ctx.Snap(View(new BlendScene()));
 
     private static Widget View(GpuSceneBase scene)
         => Frame(GpuSceneBase.View(256, 256, scene, animated: false));

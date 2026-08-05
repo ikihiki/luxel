@@ -63,6 +63,11 @@ public sealed class GallerySiteExporterTests
             Assert.Equal(320, story.Height);
             Assert.Equal(100 + i, story.Order);
             Assert.False(story.RealWindowOnly);
+
+            var context = new StoryContext();
+            context.SetServices(GalleryServices.Provider);
+            Assert.NotNull(story.Build(context));
+            Assert.Single(context.Plays);
         }
         Assert.NotNull(Catalog.Find("Examples/3D/Depth"));
         Assert.NotNull(Catalog.Find("Examples/3D/Blend"));
@@ -80,6 +85,54 @@ public sealed class GallerySiteExporterTests
                      "SetStencilReference(1)", "SetStencilReference(2)",
                  })
             Assert.Contains(required, source);
+    }
+
+    [Fact]
+    public void Pipeline_state_stories_have_golden_only_static_previews()
+    {
+        string[] paths =
+        [
+            "Examples/3D/PipelineState/Topology",
+            "Examples/3D/PipelineState/Rasterizer",
+            "Examples/3D/PipelineState/Depth",
+            "Examples/3D/PipelineState/Blend",
+            "Examples/3D/PipelineState/Stencil",
+            "Examples/3D/PipelineState/ViewportScissor",
+            "Examples/3D/PipelineState/Separation",
+            "Examples/3D/Depth",
+            "Examples/3D/Blend",
+        ];
+        StoryInfo[] stories = paths.Select(path => Assert.IsType<StoryInfo>(Catalog.Find(path))).ToArray();
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-pipeline-goldens-" + Guid.NewGuid().ToString("N"));
+        int hostCreations = 0;
+
+        try
+        {
+            SiteExportReport report = GallerySiteExporter.Export(
+                () => { hostCreations++; throw new InvalidOperationException("golden-only export must not create a host"); },
+                Catalog, stories, output, root,
+                options: new SiteExportOptions { StaticCapture = StaticCaptureMode.GoldenOnly });
+
+            Assert.Equal(0, hostCreations);
+            Assert.Equal(paths.Length, report.Images);
+            Assert.Equal(0, report.Unavailable);
+            SiteStory[] entries = JsonSerializer.Deserialize<SiteStory[]>(
+                File.ReadAllText(Path.Combine(output, "manifest.json")),
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })!;
+            foreach (string path in paths)
+            {
+                SiteStory entry = Assert.Single(entries, candidate => candidate.Path == path);
+                Assert.Equal("captured", entry.Status);
+                Assert.NotNull(entry.Image);
+                Assert.NotEmpty(entry.ImageSha256);
+                Assert.True(File.Exists(Path.Combine(output, entry.Image!)));
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+        }
     }
 
     [Fact]
