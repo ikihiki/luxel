@@ -1,0 +1,58 @@
+<article class="story document-page"><h1 id="cullingaliasing">Cullingとaliasing</h1>
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Standalone + DevTools　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> Passes</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FRenderGraph%2FPasses">Passes</a>　 <strong>次:</strong> <a href="#story=Learn%2FRenderGraph%2FLifecycle">Lifecycle</a></p>
+<p><code>Execute(command)</code>を初めて呼ぶとgraphをcompileします。compileはpassを検証し、resourceの寿命を解析し、不要passをcullして、transientの物理resourceを割り当てます。</p>
+<h2 id="external-outputpass">External outputから必要なpassを逆算する</h2>
+<p>external resourceはgraph外へ結果を渡す終端です。compileはexternalへのwriteから依存を後ろ向きに辿り、到達しないpassをcullします。</p>
+<pre><code class="language-text">SceneColor → CopyScene → PostProcess → External framebuffer
+DebugOnly  ─────────────────────────X  (externalへ届かないのでculled)
+</code></pre>
+<p>「登録したpassは必ず実行される」とは限りません。残したい処理は、その出力が最終external resourceまでRead/Write依存でつながるようにします。副作用だけのpassを表す専用APIは現在ありません。</p>
+<h2 id="transient-lifetimealiasing">Transient lifetimeとaliasing</h2>
+<p>compileは各論理resourceの最初のwriteと最後のreadを調べます。寿命が重ならずdescriptorが同じtransientは、同じ物理slotを共有できます。</p>
+<ul>
+<li>bufferはsizeと<code>GpuMemoryKind</code>が一致する</li>
+<li>textureはwidth、height、format、color/depth kindが一致する</li>
+<li>external resourceはaliasingしない</li>
+<li>寿命が重なる論理resourceは共有しない</li>
+</ul>
+<p>aliasingは同時利用を許可する機能ではなく、compileが非重複を証明した場合のmemory再利用です。同じ物理resourceへ別の論理resourceが割り当てられる境界もhazard追跡され、必要なbarrierが入ります。</p>
+<h2 id="barrier">終端barrier</h2>
+<p>external resourceへ最後にwriteした場合、graphは後段のcopyやpresentから見えるよう保守的な終端barrierを記録します。ただし、これはCPUから見たGPU完了待ちではありません。submitとresource破棄の関係は次ページで扱います。</p>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/RenderGraph/Compilation&quot;, Order = 3)]
+public static Widget Compilation(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # Cullingとaliasing
+
+    {{RenderGraphCourseCatalog.Meta(&quot;Learn/RenderGraph/Compilation&quot;, &quot;Intermediate&quot;, &quot;Passes&quot;)}}
+
+    `Execute(command)`を初めて呼ぶとgraphをcompileします。compileはpassを検証し、resourceの寿命を解析し、不要passをcullして、transientの物理resourceを割り当てます。
+
+    ## External outputから必要なpassを逆算する
+
+    external resourceはgraph外へ結果を渡す終端です。compileはexternalへのwriteから依存を後ろ向きに辿り、到達しないpassをcullします。
+
+    ```text
+    SceneColor → CopyScene → PostProcess → External framebuffer
+    DebugOnly  ─────────────────────────X  (externalへ届かないのでculled)
+    ```
+
+    「登録したpassは必ず実行される」とは限りません。残したい処理は、その出力が最終external resourceまでRead/Write依存でつながるようにします。副作用だけのpassを表す専用APIは現在ありません。
+
+    ## Transient lifetimeとaliasing
+
+    compileは各論理resourceの最初のwriteと最後のreadを調べます。寿命が重ならずdescriptorが同じtransientは、同じ物理slotを共有できます。
+
+    - bufferはsizeと`GpuMemoryKind`が一致する
+    - textureはwidth、height、format、color/depth kindが一致する
+    - external resourceはaliasingしない
+    - 寿命が重なる論理resourceは共有しない
+
+    aliasingは同時利用を許可する機能ではなく、compileが非重複を証明した場合のmemory再利用です。同じ物理resourceへ別の論理resourceが割り当てられる境界もhazard追跡され、必要なbarrierが入ります。
+
+    ## 終端barrier
+
+    external resourceへ最後にwriteした場合、graphは後段のcopyやpresentから見えるよう保守的な終端barrierを記録します。ただし、これはCPUから見たGPU完了待ちではありません。submitとresource破棄の関係は次ページで扱います。
+
+    {{StoryRef(ctx, &quot;Examples/RenderGraph/Aliasing&quot;)}}
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

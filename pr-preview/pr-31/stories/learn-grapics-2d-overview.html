@@ -1,6 +1,6 @@
 <article class="story document-page"><h1 id="d">はじめての2Dシーン</h1>
 <p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Gallery / Standalone / Headless　 <strong>Backend:</strong> Vulkan / DirectX 12 / Skia CPU　 <strong>前提知識:</strong> RenderGraph</p>
-<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FRenderGraph">RenderGraph</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2F2D%2FPaths">Paths</a></p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FSynchronization">Synchronization</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2F2D%2FPaths">Paths</a></p>
 <figure class="static-capture"><a href="#story=Examples%2F2D%2FShapes"><img src="images/examples-2d-shapes.png" alt="Examples/2D/Shapes" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
 <p><code>Scene2D</code>は「何を描くか」をCPU側で組み立てる最小APIです。次のコードだけで角丸矩形、円、線を含むsceneを作れます。</p>
 <pre><code class="language-csharp">using Luxel.Graphics.TwoD;
@@ -69,7 +69,7 @@ if (canvas.HasPendingChanges)
     Console.WriteLine(&quot;次のGPU renderで差分を反映する&quot;);
 </code></pre>
 <p>UI内なら<code>Canvas2D(draw: scene =&gt; ...)</code>、headlessなら<code>SkiaRasterizer2D</code>からscene/sessionと<code>SkiaRasterTarget2D</code>を作ります。stroke widthはscreen pixel、world座標変換はcameraが担当します。透明imageはpremultiplied RGBAを前提にし、Skia backendではGPU bindless imageを描けません。実window経路はCPU pixelをpresentするupload経路をまだ持たないためGPU固定です。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Overview&quot;, Order = 10)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Overview&quot;, Order = 9)]
 public static Widget First2DScene(StoryContext ctx)
 {
     return DocNew(ctx, $$&quot;&quot;&quot;

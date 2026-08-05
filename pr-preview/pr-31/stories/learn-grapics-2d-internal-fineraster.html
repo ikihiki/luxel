@@ -216,7 +216,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     g_buffers[args.fbIndex].Store((tid.y * args.width + tid.x) * 4, outPacked);
 }
 </code></pre>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Internal/FineRaster&quot;, Order = 24)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Internal/FineRaster&quot;, Order = 23)]
 public static Widget FineRaster(StoryContext ctx) =&gt; Page(ctx, &quot;Learn/Grapics/2D/Internal/FineRaster&quot;, &quot;Fine raster と coverage&quot;,
     &quot;pixel 内の sample 点で winding を計算し、NonZero/EvenOdd fill と segment distance による stroke coverage を求めます。現在は 4&#215;4 supersampling です。&quot;,
     &quot;shaders/raster2d_fine.slang&quot;, &quot;Learn/Grapics/2D/Internal/TileBinning&quot;, &quot;Learn/Grapics/2D/Internal/ImagesAndComposite&quot;);</code></pre></details></article>

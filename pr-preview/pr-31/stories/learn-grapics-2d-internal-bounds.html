@@ -77,7 +77,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     g_buffers[args.boundsIndex].Store&lt;float4&gt;(oi * 16, float4(lo.x, lo.y, hi.x, hi.y));
 }
 </code></pre>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Internal/Bounds&quot;, Order = 22)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Internal/Bounds&quot;, Order = 21)]
 public static Widget Bounds(StoryContext ctx) =&gt; Page(ctx, &quot;Learn/Grapics/2D/Internal/Bounds&quot;, &quot;Bounds pass&quot;,
     &quot;path の screen-space AABB を計算し、stroke margin と clip を反映します。この結果が bin/fine pass の早期除外を可能にします。&quot;,
     &quot;shaders/raster2d_bounds.slang&quot;, &quot;Learn/Grapics/2D/Internal/Abi&quot;, &quot;Learn/Grapics/2D/Internal/TileBinning&quot;);</code></pre></details></article>

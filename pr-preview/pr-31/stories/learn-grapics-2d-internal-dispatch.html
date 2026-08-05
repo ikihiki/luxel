@@ -321,7 +321,7 @@ internal sealed class GpuRetainedRasterScene2D : IRasterScene2D, IRetainedCanvas
     }
 }
 </code></pre>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Internal/Dispatch&quot;, Order = 26)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Internal/Dispatch&quot;, Order = 25)]
 public static Widget Dispatch(StoryContext ctx) =&gt; Page(ctx, &quot;Learn/Grapics/2D/Internal/Dispatch&quot;, &quot;Dispatch と barrier&quot;,
     &quot;bounds → compute barrier → bin → compute barrier → fine → all barrier の順で dispatch します。scratch buffer は必要量まで成長し、rasterizer は直列使用します。&quot;,
     &quot;src/Luxel.Graphics.TwoD/GpuDeviceRasterizer2D.cs&quot;, &quot;Learn/Grapics/2D/Internal/ImagesAndComposite&quot;, &quot;Learn/Grapics/2D/Internal/RetainedUploads&quot;);</code></pre></details></article>
