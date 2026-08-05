@@ -25,7 +25,7 @@
 <p>boundsは全covered pixelを含み、stroke marginとclipを保守的に反映する。</p>
 <h2 id="correctness">Correctnessと失敗時の確認</h2>
 <p>欠けはunder-estimate、過剰workはover-estimateを疑います。NaN、zero-size target、clip交差も確認します。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Internal/Bounds&quot;, Order = 21, Toc = true)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Internal/Bounds&quot;, Order = 20, Toc = true)]
 public static StoryResult Bounds() =&gt; Page(&quot;Learn/Graphics/2D/Internal/Bounds&quot;, &quot;Bounds pass&quot;, &quot;encoded paths → screen AABB&quot;,
     &quot;path segment range、camera transform、stroke width、clip&quot;, &quot;pathごとのscreen-space bounds&quot;,
     &quot;boundsは全covered pixelを含み、stroke marginとclipを保守的に反映する。&quot;,

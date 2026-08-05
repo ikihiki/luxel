@@ -7,34 +7,43 @@
 <li><a href="#story=Learn%2FGraphics%2F2D%2FBackends&amp;section=api%E3%81%AE%E5%A5%91%E7%B4%84%E3%81%A8%E6%B3%A8%E6%84%8F%E7%82%B9">APIの契約と注意点</a></li>
 </ul>
 <!-- /luxel-toc -->
-<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Gallery WASM / Standalone / Headless　 <strong>Backend:</strong> WebGPU / Vulkan / DirectX 12 / Skia CPU　 <strong>前提知識:</strong> 同じScene2Dに適したrasterizerとtargetを選ぶ。</p>
-<p><strong>前へ:</strong> <a href="#story=Learn%2FGraphics%2F2D%2FCamera">Camera</a>　 <strong>次:</strong> <a href="#story=Learn%2FGraphics%2F2D%2FRetainedCanvas">RetainedCanvas</a></p>
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Native Gallery / Standalone / Headless　 <strong>Backend:</strong> WebGPU / Vulkan / DirectX 12 / Skia CPU　 <strong>前提知識:</strong> 同じScene2DをGPUとSkiaで描画し、targetとcapabilityの違いを説明する。</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGraphics%2F2D%2FCamera">Camera</a>　 <strong>次:</strong> <a href="#story=Learn%2FGraphics%2F2D%2FIncrementalUpdates">IncrementalUpdates</a></p>
 <h2 id="section">このページでできるようになること</h2>
-<p>同じScene2Dに適したrasterizerとtargetを選ぶ。</p>
+<p>同じScene2DをGPUとSkiaで描画し、targetとcapabilityの違いを説明する。</p>
 <h2 id="section-1">メンタルモデル</h2>
-<p>描画コードは<code>IRasterizer2D</code>へ依存し、GPU固有のcommand recordingやbindless imageはcapabilityで分岐します。</p>
+<p>描画内容は<code>Scene2D</code>、backend選択は<code>IRasterizer2D</code>、出力先は<code>IRasterTarget2D</code>へ分かれます。GPUはcommandへ記録し、SkiaはCPU RGBAへ同期描画します。サンプルは両方の結果を<code>GpuView</code>で並べますが、Skia側の<code>GpuView</code>はCPU結果を表示するtransportであり、rasterize自体はSkiaです。</p>
 <h2 id="section-2">最小例</h2>
-<pre><code class="language-csharp">using IRasterizer2D rasterizer = useCpu
-    ? new SkiaRasterizer2D()
-    : new GpuDeviceRasterizer2D(device);
-using IRasterScene2D encoded = rasterizer.CreateScene(scene);
-encoded.Render(Camera2D.Pixels, target);
+<pre><code class="language-csharp">using var gpu = new GpuDeviceRasterizer2D(device);
+using IRasterScene2D gpuScene = gpu.CreateScene(scene);
+gpuScene.Render(Camera2D.Pixels,
+    new GpuRasterTarget2D(command, framebuffer, width, height));
+
+using var skia = new SkiaRasterizer2D();
+using IRasterScene2D skiaScene = skia.CreateScene(scene);
+var cpuTarget = new SkiaRasterTarget2D(width, height);
+skiaScene.Render(Camera2D.Pixels, cpuTarget);
 </code></pre>
 <h2 id="api">APIの契約と注意点</h2>
-<p>GPUは<code>GpuCommandRecording</code>、<code>BindlessImages</code>、<code>RetainedIncrementalUpdates</code>、Skiaは<code>CpuRgbaTarget</code>を提供します。sessionをrasterizerより先にdisposeし、同じrasterizerを複数threadから同時使用しません。browser live sampleはWebGPU、headless referenceはSkiaを使います。</p>
-<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Graphics/2D/Backends#ref-0" data-luxel-runtime-story="Examples/2D/SceneRender" data-luxel-runtime-instance="examples-2d-scenerender-e6da8d619a5a" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F2D%2FSceneRender&amp;args=%7B%7D&amp;instance=examples-2d-scenerender-e6da8d619a5a" data-luxel-runtime-story="Examples/2D/SceneRender" data-luxel-runtime-instance="examples-2d-scenerender-e6da8d619a5a" title="Interactive SceneRender" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-2d-scenerender-e6da8d619a5a-args-tab" aria-controls="examples-2d-scenerender-e6da8d619a5a-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-2d-scenerender-e6da8d619a5a-output-tab" aria-controls="examples-2d-scenerender-e6da8d619a5a-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-2d-scenerender-e6da8d619a5a-source-tab" aria-controls="examples-2d-scenerender-e6da8d619a5a-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-2d-scenerender-e6da8d619a5a-args-panel" role="tabpanel" aria-labelledby="examples-2d-scenerender-e6da8d619a5a-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-2d-scenerender-e6da8d619a5a-output-panel" role="tabpanel" aria-labelledby="examples-2d-scenerender-e6da8d619a5a-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-2d-scenerender-e6da8d619a5a-source-panel" role="tabpanel" aria-labelledby="examples-2d-scenerender-e6da8d619a5a-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/2D/SceneRender&quot;, Width = 480, Height = 300, Order = 109, CapabilityNote = BrowserNote)]&#10;public static Widget SceneRender(StoryContext ctx)&#10;{&#10;    var scene = new Scene2D();&#10;    scene.FillRect(Color2D.Rgba(18, 24, 38), 0, 0, 420, 220);&#10;    scene.FillRoundedRect(Color2D.Rgba(47, 111, 237), 28, 30, 150, 86, 18);&#10;    scene.FillCircle(Color2D.Rgba(245, 180, 55), 276, 76, 46);&#10;    scene.BeginFill(Color2D.Rgba(236, 72, 100)).MoveTo(92, 142).LineTo(172, 204).LineTo(26, 204).Close().End();&#10;    scene.StrokeLine(Color2D.Rgba(90, 210, 150), 6, 216, 190, 382, 138);&#10;    return Snapshot(ctx, RasterView(ctx, 420, 220, scene, Camera2D.Pixels));&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<p>GPUは<code>GpuCommandRecording</code>、<code>BindlessImages</code>、<code>RetainedIncrementalUpdates</code>を提供し、Skiaは<code>CpuRgbaTarget</code>を提供します。image shapeはSkia非対応なので、backend比較にはvector-only sceneを使います。sessionをrasterizerより先にdisposeし、同じrasterizerを複数threadから同時使用しません。</p>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Backends&quot;, Order = 14, Toc = true)]
     public static StoryResult Backends() =&gt; Page(&quot;Learn/Graphics/2D/Backends&quot;, &quot;GPUとSkia backend&quot;,
-        &quot;同じScene2Dに適したrasterizerとtargetを選ぶ。&quot;,
-        &quot;描画コードは`IRasterizer2D`へ依存し、GPU固有のcommand recordingやbindless imageはcapabilityで分岐します。&quot;,
+        &quot;同じScene2DをGPUとSkiaで描画し、targetとcapabilityの違いを説明する。&quot;,
+        &quot;描画内容は`Scene2D`、backend選択は`IRasterizer2D`、出力先は`IRasterTarget2D`へ分かれます。GPUはcommandへ記録し、SkiaはCPU RGBAへ同期描画します。サンプルは両方の結果を`GpuView`で並べますが、Skia側の`GpuView`はCPU結果を表示するtransportであり、rasterize自体はSkiaです。&quot;,
         &quot;&quot;&quot;&quot;
 ```csharp
-using IRasterizer2D rasterizer = useCpu
-    ? new SkiaRasterizer2D()
-    : new GpuDeviceRasterizer2D(device);
-using IRasterScene2D encoded = rasterizer.CreateScene(scene);
-encoded.Render(Camera2D.Pixels, target);
+using var gpu = new GpuDeviceRasterizer2D(device);
+using IRasterScene2D gpuScene = gpu.CreateScene(scene);
+gpuScene.Render(Camera2D.Pixels,
+    new GpuRasterTarget2D(command, framebuffer, width, height));
+
+using var skia = new SkiaRasterizer2D();
+using IRasterScene2D skiaScene = skia.CreateScene(scene);
+var cpuTarget = new SkiaRasterTarget2D(width, height);
+skiaScene.Render(Camera2D.Pixels, cpuTarget);
 ```
 &quot;&quot;&quot;&quot;,
-        &quot;GPUは`GpuCommandRecording`、`BindlessImages`、`RetainedIncrementalUpdates`、Skiaは`CpuRgbaTarget`を提供します。sessionをrasterizerより先にdisposeし、同じrasterizerを複数threadから同時使用しません。browser live sampleはWebGPU、headless referenceはSkiaを使います。&quot;,
-        StoryReference.To(&quot;Examples/2D/SceneRender&quot;));</code></pre></details></article>
+        &quot;GPUは`GpuCommandRecording`、`BindlessImages`、`RetainedIncrementalUpdates`を提供し、Skiaは`CpuRgbaTarget`を提供します。image shapeはSkia非対応なので、backend比較にはvector-only sceneを使います。sessionをrasterizerより先にdisposeし、同じrasterizerを複数threadから同時使用しません。&quot;,
+        StoryReference.To(&quot;Examples/2D/Backends&quot;),
+        environment: &quot;Native Gallery / Standalone / Headless&quot;);</code></pre></details></article>

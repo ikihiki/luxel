@@ -25,7 +25,7 @@
 <p>transform/style-only mutationはgeometry rangeを変えず、structural mutationだけが必要範囲を再構築する。</p>
 <h2 id="correctness">Correctnessと失敗時の確認</h2>
 <p>write counters、fragmentation、capacity growth、full rebuild flagを確認します。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Internal/RetainedUploads&quot;, Order = 26, Toc = true)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Internal/RetainedUploads&quot;, Order = 25, Toc = true)]
 public static StoryResult RetainedUploads() =&gt; Page(&quot;Learn/Graphics/2D/Internal/RetainedUploads&quot;, &quot;Retained scene uploads&quot;, &quot;dirty ranges → partial writes&quot;,
     &quot;stable node slots、dirty transform/style/segment ranges&quot;, &quot;in-place uploadまたはcompacted scene&quot;,
     &quot;transform/style-only mutationはgeometry rangeを変えず、structural mutationだけが必要範囲を再構築する。&quot;,

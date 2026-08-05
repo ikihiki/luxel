@@ -5947,14 +5947,6 @@
       "componentType": null
     },
     {
-      "path": "Examples/2D/RetainedCanvasLive",
-      "width": 520,
-      "height": 300,
-      "args": [],
-      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
-      "componentType": null
-    },
-    {
       "path": "Examples/2D/SceneRender",
       "width": 480,
       "height": 300,
@@ -5973,7 +5965,7 @@
     {
       "path": "Examples/2D/Sprites",
       "width": 480,
-      "height": 300,
+      "height": 330,
       "args": [],
       "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
       "componentType": null
