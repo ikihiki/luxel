@@ -1,4 +1,20 @@
 <article class="story document-page"><h1 id="luxel.diagram">Luxel.Diagram</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FLuxel.Diagram&amp;section=diagramblock">DiagramBlock</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagram&amp;section=diagramblockprops">DiagramBlockProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagram&amp;section=diagramedge">DiagramEdge</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagram&amp;section=diagramedgelayout">DiagramEdgeLayout</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagram&amp;section=diagramlayout">DiagramLayout</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagram&amp;section=diagramlayoutresult">DiagramLayoutResult</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagram&amp;section=diagramnode">DiagramNode</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagram&amp;section=diagramnodelayout">DiagramNodeLayout</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagram&amp;section=diagramshape">DiagramShape</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagram&amp;section=diagramspec">DiagramSpec</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagram&amp;section=factories">Factories</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagram&amp;section=mermaidparser">MermaidParser</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="diagramblock">DiagramBlock</h2>
 <section class="api-reference"><p class="api-summary">class — mermaid (サブセット) ダイアグラムの描画 widget。```mermaid フェンスの本文を MermaidParser → DiagramLayout で配置し、Scene2D で描く (箱 = Surface 地 + Border 枠、矢印 = TextMuted、ラベル = Text — テーマ切替は recolor のみ)。 使える幅に収まらないときは全体を等比縮小する。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>MaxIntrinsicWidth</code></th><td><code>(float height, LayoutContext ctx) → float</code></td><td>縮小前の自然幅 (レイアウト未実行なら 0)。</td></tr><tr><th scope="row"><code>SetProp</code></th><td><code>(string name, WidgetState state, Bindable&lt;T&gt; value) → bool</code></td><td></td></tr><tr><th scope="row"><code>DebugProps</code></th><td><code>() → IEnumerable&lt;DebugProp&gt;</code></td><td></td></tr><tr><th scope="row"><code>When</code></th><td><code>(WidgetState state, Bindable&lt;float&gt; translateX, Bindable&lt;float&gt; translateY, Bindable&lt;float&gt; scaleX, Bindable&lt;float&gt; scaleY, Bindable&lt;float&gt; rotate) → DiagramBlock</code></td><td>状態レイヤを積む (Tailwind の hover: 相当の型付き版)。 引数はファクトリと同名 — 表示系 ([UiParam(Stateable = true)]) のみ。</td></tr><tr><th scope="row"><code>SetDebugProp</code></th><td><code>(string name, string type, JsonElement value) → void</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>DebugDetail</code></th><td><code>string (get)</code></td><td>デバッグ表示の補足 (配置済みノード数)。</td></tr><tr><th scope="row"><code>Source</code></th><td><code>Bindable&lt;string&gt; (get)</code></td><td>mermaid フェンス本文。</td></tr><tr><th scope="row"><code>MaxWidth</code></th><td><code>Bindable&lt;float&gt; (get)</code></td><td>使える最大幅 (0 = 制約幅)。超えると全体を等比縮小。</td></tr></tbody></table></div></section>

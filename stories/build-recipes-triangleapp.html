@@ -1,4 +1,16 @@
 <article class="story document-page"><h1 id="recipe-triangle-app">Recipe: Triangle App</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Build%2FRecipes%2FTriangleApp&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-triangle-renderer">コピーして動かす — Triangle renderer</a>
+<ul>
+<li><a href="#story=Build%2FRecipes%2FTriangleApp&amp;section=%60samples%2Fcanonicaltrianglerecipe.cs%60-csharp"><code>samples/CanonicalTriangleRecipe.cs</code> (CSharp)</a></li>
+<li><a href="#story=Build%2FRecipes%2FTriangleApp&amp;section=%60samples%2Fluxeltriangle%2Ftutorialabi.cs%60-csharp"><code>samples/LuxelTriangle/TutorialAbi.cs</code> (CSharp)</a></li>
+<li><a href="#story=Build%2FRecipes%2FTriangleApp&amp;section=%60samples%2Fluxeltriangle%2Ftrianglerenderer.cs%60-csharp"><code>samples/LuxelTriangle/TriangleRenderer.cs</code> (CSharp)</a></li>
+<li><a href="#story=Build%2FRecipes%2FTriangleApp&amp;section=%60shaders%2Ftutorial_triangle.slang%60-shader"><code>shaders/tutorial_triangle.slang</code> (Shader)</a></li>
+</ul>
+</li>
+</ul>
+<!-- /luxel-toc -->
 <p><code>rendering.app-host + rendering.triangle</code> の最小 recipe です。表示されるファイルは実際の <code>LuxelTriangle</code> project が build しているものです。</p>
 <h2 id="triangle-renderer">コピーして動かす — Triangle renderer</h2>
 <blockquote>
@@ -383,11 +395,11 @@ float4 psMain(VSOut input) : SV_Target
     return input.color;
 }
 </code></pre>
-<details class="sample-bundle"><summary>Run this sample — Recipe</summary><p>A complete triangle recipe: standalone app host plus the compiled C#/Slang renderer.</p><p><strong>Requirements:</strong> Luxel.Graphics / Luxel.Platform</p><p><strong>Platforms:</strong> Windows / Linux</p><p><strong>Verification:</strong> exit 0, timeout 180s, stdout <code>tutorial-3d: 1 frame(s), stage=Triangle</code></p><ul><li><code>samples/CanonicalTriangleRecipe.cs</code> <span>CSharp</span></li><li><code>samples/LuxelTriangle/TutorialAbi.cs</code> <span>CSharp</span></li><li><code>samples/LuxelTriangle/TriangleRenderer.cs</code> <span>CSharp</span></li><li><code>shaders/tutorial_triangle.slang</code> <span>Shader</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle --frames 1</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Recipes/TriangleApp&quot;, Order = 10, SampleBundle = &quot;rendering.triangle&quot;)]
-public static Widget TriangleApp(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+<details class="sample-bundle"><summary>Run this sample — Recipe</summary><p>A complete triangle recipe: standalone app host plus the compiled C#/Slang renderer.</p><p><strong>Requirements:</strong> Luxel.Graphics / Luxel.Platform</p><p><strong>Platforms:</strong> Windows / Linux</p><p><strong>Verification:</strong> exit 0, timeout 180s, stdout <code>tutorial-3d: 1 frame(s), stage=Triangle</code></p><ul><li><code>samples/CanonicalTriangleRecipe.cs</code> <span>CSharp</span></li><li><code>samples/LuxelTriangle/TutorialAbi.cs</code> <span>CSharp</span></li><li><code>samples/LuxelTriangle/TriangleRenderer.cs</code> <span>CSharp</span></li><li><code>shaders/tutorial_triangle.slang</code> <span>Shader</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage triangle --frames 1</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Recipes/TriangleApp&quot;, Order = 10, SampleBundle = &quot;rendering.triangle&quot;, Toc = true)]
+public static StoryResult TriangleApp(StoryContext ctx) =&gt; $&quot;&quot;&quot;
     # Recipe: Triangle App
 
     `rendering.app-host + rendering.triangle` の最小 recipe です。表示されるファイルは実際の `LuxelTriangle` project が build しているものです。
 
     {SampleBundle(&quot;rendering.triangle&quot;)}
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

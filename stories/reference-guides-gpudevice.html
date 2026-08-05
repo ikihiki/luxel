@@ -1,4 +1,15 @@
 <article class="story document-page"><h1 id="gpu-gpudevice">GPU 抽象 (GpuDevice)</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=backend-%E3%81%A8-capability">backend と capability</a></li>
+<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=%E5%9B%BA%E5%AE%9A%E3%83%91%E3%82%A4%E3%83%97%E3%83%A9%E3%82%A4%E3%83%B3%E3%83%AC%E3%82%A4%E3%82%A2%E3%82%A6%E3%83%88">固定パイプラインレイアウト</a></li>
+<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=%E3%83%A1%E3%83%A2%E3%83%AA%E3%81%A8%E3%83%90%E3%83%83%E3%83%95%E3%82%A1">メモリとバッファ</a></li>
+<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=slang-%E7%B5%B1%E4%B8%80%E3%82%B7%E3%82%A7%E3%83%BC%E3%83%80">Slang 統一シェーダ</a></li>
+<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89%E3%81%A8%E3%83%90%E3%83%AA%E3%82%A2">コマンドとバリア</a></li>
+<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=%E6%8F%8F%E7%94%BB-graphics-pso">描画 (graphics PSO)</a></li>
+<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=%E3%83%86%E3%82%AF%E3%82%B9%E3%83%81%E3%83%A3%E3%81%A8%E3%83%AC%E3%83%B3%E3%83%80%E3%83%BC%E3%82%BF%E3%83%BC%E3%82%B2%E3%83%83%E3%83%88">テクスチャとレンダーターゲット</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p><code>Luxel.Graphics</code> は <em>No Graphics API</em> の原則を、resource・arguments・pass・dependency の <strong>portable semantics</strong> と backend-specific lowering に分けた薄い抽象です。アプリのコードは backend 分岐を持たず、Vulkan / DirectX 12 は bindless・GPUVA・明示 barrier を fast path として使います。native WebGPU は同じ意味論を bind groups、argument ring、pass segmentation へ lower する明示 opt-in backend として追加する方針です。</p>
 <h2 id="backend-capability">backend と capability</h2>
 <table>
@@ -81,8 +92,8 @@ public static Widget Depth() =&gt; Frame(GpuSceneBase.View(256, 256, new DepthSc
 <p>D3D12 の <code>CopyTextureToBuffer</code> は行 256B 整列が必要です。RGBA8 なら <strong>ターゲット幅を 64 の倍数</strong>にしてください (このページのデモはすべて 256)。</p>
 </div>
 <p>次: <a href="#story=Reference%2FGuides%2FTwoD">Reference/Guides/TwoD</a> — この GPU 抽象の上に 2D ベクターを載せます。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/GpuDevice&quot;, Order = 10)]
-public static Widget GpuDevice(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/GpuDevice&quot;, Order = 10, Toc = true)]
+public static StoryResult GpuDevice(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # GPU 抽象 (GpuDevice)
 
     `Luxel.Graphics` は *No Graphics API* の原則を、resource・arguments・pass・dependency の **portable semantics** と backend-specific lowering に分けた薄い抽象です。アプリのコードは backend 分岐を持たず、Vulkan / DirectX 12 は bindless・GPUVA・明示 barrier を fast path として使います。native WebGPU は同じ意味論を bind groups、argument ring、pass segmentation へ lower する明示 opt-in backend として追加する方針です。
@@ -164,4 +175,4 @@ public static Widget GpuDevice(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot
     &gt; D3D12 の `CopyTextureToBuffer` は行 256B 整列が必要です。RGBA8 なら **ターゲット幅を 64 の倍数**にしてください (このページのデモはすべて 256)。
 
     次: [Reference/Guides/TwoD](story:Reference/Guides/TwoD) — この GPU 抽象の上に 2D ベクターを載せます。
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

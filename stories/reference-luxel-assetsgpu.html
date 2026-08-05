@@ -1,4 +1,27 @@
 <article class="story document-page"><h1 id="luxel.assetsgpu">Luxel.AssetsGpu</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=assetgpuinstallation">AssetGpuInstallation</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=assetgpuregistry">AssetGpuRegistry</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=assetmaterialtogpustep">AssetMaterialToGpuStep</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=assetmeshtogpustep">AssetMeshToGpuStep</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=assetsamplertogpustep">AssetSamplerToGpuStep</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=assetskintogpustep">AssetSkinToGpuStep</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=assettexturetogpustep">AssetTextureToGpuStep</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=gpuassetfactory">GpuAssetFactory</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=gpumaterial">GpuMaterial</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=gpumaterialarray">GpuMaterialArray</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=gpumesh">GpuMesh</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=gpuprimitive">GpuPrimitive</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=gpuskin">GpuSkin</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=renderbuffer%3Ct%3E">RenderBuffer<T></a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=rendergraphextensions">RenderGraphExtensions</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=rendertarget">RenderTarget</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=resourcescopegpuextensions">ResourceScopeGpuExtensions</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=resourcesystemextensions">ResourceSystemExtensions</a></li>
+<li><a href="#story=Reference%2FLuxel.AssetsGpu&amp;section=textureuploaderstep">TextureUploaderStep</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="assetgpuinstallation">AssetGpuInstallation</h2>
 <section class="api-reference"><p class="api-summary">class — Owns the registry created by an AssetsGpu installation. Dispose this before the GpuDevice; disposal first waits for the main queue and then releases registry-owned GPU resources.</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>DisposeAsync</code></th><td><code>() → ValueTask</code></td><td></td></tr><tr><th scope="row"><code>Dispose</code></th><td><code>() → void</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Registry</code></th><td><code>AssetGpuRegistry (get)</code></td><td></td></tr></tbody></table></div></section>

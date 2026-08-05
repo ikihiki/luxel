@@ -1,4 +1,22 @@
 <article class="story document-page"><h1 id="devtools-luxel.devtools">DevTools (Luxel.DevTools)</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FGuides%2FDevTools&amp;section=%E3%83%8D%E3%82%A4%E3%83%86%E3%82%A3%E3%83%96-devtools-%E5%88%A5%E3%82%A6%E3%82%A3%E3%83%B3%E3%83%89%E3%82%A6-%2B-%E5%88%A5%E3%82%B9%E3%83%AC%E3%83%83%E3%83%89">ネイティブ DevTools (別ウィンドウ + 別スレッド)</a></li>
+<li><a href="#story=Reference%2FGuides%2FDevTools&amp;section=%E3%83%91%E3%83%8D%E3%83%AB">パネル</a></li>
+<li><a href="#story=Reference%2FGuides%2FDevTools&amp;section=http-debugserver">HTTP DebugServer</a></li>
+<li><a href="#story=Reference%2FGuides%2FDevTools&amp;section=%E3%82%B9%E3%82%BF%E3%83%B3%E3%83%89%E3%82%A2%E3%83%AD%E3%83%B3%E3%82%B2%E3%83%BC%E3%83%A0%E3%81%B8%E7%B5%90%E7%B7%9A%E3%81%99%E3%82%8B-%E2%80%94-withdevtools">スタンドアロンゲームへ結線する — WithDevTools</a></li>
+<li><a href="#story=Reference%2FGuides%2FDevTools&amp;section=%E3%82%B2%E3%83%BC%E3%83%A0%E3%82%92%E8%A6%B3%E6%B8%AC%E3%81%99%E3%82%8B">ゲームを観測する</a>
+<ul>
+<li><a href="#story=Reference%2FGuides%2FDevTools&amp;section=devstats-%E2%80%94-%E3%82%B2%E3%83%BC%E3%83%A0%E5%81%B4%E3%81%AE%E3%82%AB%E3%82%B9%E3%82%BF%E3%83%A0%E7%B5%B1%E8%A8%88">DevStats — ゲーム側のカスタム統計</a></li>
+<li><a href="#story=Reference%2FGuides%2FDevTools&amp;section=debugdraw-%2F-gizmo-%E2%80%94-%E3%82%B2%E3%83%BC%E3%83%A0%E7%94%BB%E9%9D%A2%E4%B8%8A%E3%81%AE%E3%82%AA%E3%83%BC%E3%83%90%E3%83%BC%E3%83%AC%E3%82%A4">DebugDraw / gizmo — ゲーム画面上のオーバーレイ</a></li>
+<li><a href="#story=Reference%2FGuides%2FDevTools&amp;section=timescale-%E2%80%94-%E3%82%B9%E3%83%AD%E3%83%BC%E3%83%A2%E3%83%BC%E3%82%B7%E3%83%A7%E3%83%B3">timescale — スローモーション</a></li>
+<li><a href="#story=Reference%2FGuides%2FDevTools&amp;section=ecs-%E3%82%A4%E3%83%B3%E3%82%B9%E3%83%9A%E3%82%AF%E3%82%BF%E3%81%AE%E3%82%B9%E3%82%B1%E3%83%BC%E3%83%AB">ECS インスペクタのスケール</a></li>
+<li><a href="#story=Reference%2FGuides%2FDevTools&amp;section=%E3%83%A9%E3%82%A4%E3%83%96%E3%83%93%E3%83%A5%E3%83%BC%E3%81%AE%E3%83%A2%E3%83%BC%E3%83%89-%E2%80%94-%E6%BB%91%E3%82%89%E3%81%8B%E3%81%95-%E3%81%A8-%E6%AD%A3%E7%A2%BA%E3%81%95">ライブビューのモード — 滑らかさ と 正確さ</a></li>
+</ul>
+</li>
+<li><a href="#story=Reference%2FGuides%2FDevTools&amp;section=%E3%82%B9%E3%83%AC%E3%83%83%E3%83%89%E8%A8%AD%E8%A8%88%E3%81%AE%E8%A6%8F%E7%B4%84">スレッド設計の規約</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>エンジンとの結合は 2 本だけです — <strong>DiagnosticListener (読み) + EngineCommands (書き)</strong>。この疎結合がそのままスレッド境界・プロセス境界になります。</p>
 <pre class="mermaid">flowchart LR
 engine[エンジン] --&gt;|EngineDiagnostics.Emit| listener[DevToolsListener]
@@ -40,8 +58,8 @@ panels --&gt;|EngineCommands.Enqueue| engine</pre>
 </div>
 <h2 id="section-3">スレッド設計の規約</h2>
 <p>signal は所有する島 (スレッド) のみが触り、スレッド間は Listener (volatile/lock 済) と EngineCommands (ConcurrentQueue) だけ — [ThreadStatic] やグローバル可変状態は使いません。テーマも UiHost 単位の signal 所有です (DevTools 島は自前テーマを持つ)。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/DevTools&quot;, Order = 55)]
-public static Widget DevTools(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/DevTools&quot;, Order = 55, Toc = true)]
+public static StoryResult DevTools(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # DevTools (Luxel.DevTools)
 
     エンジンとの結合は 2 本だけです — **DiagnosticListener (読み) + EngineCommands (書き)**。この疎結合がそのままスレッド境界・プロセス境界になります。
@@ -102,4 +120,4 @@ public static Widget DevTools(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;
     ## スレッド設計の規約
 
     signal は所有する島 (スレッド) のみが触り、スレッド間は Listener (volatile/lock 済) と EngineCommands (ConcurrentQueue) だけ — [ThreadStatic] やグローバル可変状態は使いません。テーマも UiHost 単位の signal 所有です (DevTools 島は自前テーマを持つ)。
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

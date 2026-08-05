@@ -1,4 +1,15 @@
 <article class="story document-page"><h1 id="luxel.settings">Luxel.Settings</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FLuxel.Settings&amp;section=ifilestore">IFileStore</a></li>
+<li><a href="#story=Reference%2FLuxel.Settings&amp;section=inmemoryfilestore">InMemoryFileStore</a></li>
+<li><a href="#story=Reference%2FLuxel.Settings&amp;section=luxelconfiguration">LuxelConfiguration</a></li>
+<li><a href="#story=Reference%2FLuxel.Settings&amp;section=physicalfilestore">PhysicalFileStore</a></li>
+<li><a href="#story=Reference%2FLuxel.Settings&amp;section=settingsservicecollectionextensions">SettingsServiceCollectionExtensions</a></li>
+<li><a href="#story=Reference%2FLuxel.Settings&amp;section=settingsstore">SettingsStore</a></li>
+<li><a href="#story=Reference%2FLuxel.Settings&amp;section=signaloptionsmonitor%3Ct%3E">SignalOptionsMonitor<T></a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="ifilestore">IFileStore</h2>
 <section class="api-reference"><p class="api-summary">interface — 設定ファイルの読み書き抽象 (Read/Write/Exists)。単体テストはインメモリ実装で file IO 非依存にできる (01 の IScriptSource と同じ判断)。Resources の read-only な IVirtualFileSystem とは別 — こちらは設定の永続化 (書き込みあり) 専用の薄い口。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Exists</code></th><td><code>(string name) → bool</code></td><td>ファイルが存在するか。</td></tr><tr><th scope="row"><code>Read</code></th><td><code>(string name) → string</code></td><td>内容を読む。無ければ null。</td></tr><tr><th scope="row"><code>Write</code></th><td><code>(string name, string content) → void</code></td><td>内容を書く (上書き)。</td></tr></tbody></table></div></section>

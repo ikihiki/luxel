@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0012-markdownrichtexteditor">ADR-0012 — Markdown/リッチ文書はテキスト新スタックの構成として実装し、RichTextEditor を置き換える</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0012-Rich-Document-Stack&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0012-Rich-Document-Stack&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0012-Rich-Document-Stack&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0012-Rich-Document-Stack&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-09</li>
@@ -42,8 +50,8 @@
 <li>⚠️ Docs 11 モジュール移行 + プロセッサの widget 化 + golden 全再生成 (依然として最大ワークストリーム)</li>
 <li>⚠️ read-only レンダラの要件 (proportional 折返し + インライン混在 + 表 + 数式 + mermaid + 埋め込み UI) を装飾/widget で満たす設計精度が要る</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0012-Rich-Document-Stack&quot;, Order = 83)]
-public static Widget Adr0012(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0012-Rich-Document-Stack&quot;, Order = 83, Toc = true)]
+public static StoryResult Adr0012(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0012 — Markdown/リッチ文書はテキスト新スタックの構成として実装し、RichTextEditor を置き換える
 
     - **Status**: Accepted
@@ -93,4 +101,4 @@ public static Widget Adr0012(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ⚠️ テキストスタックに font-variant Mark / ブロック widget / Markdown プロバイダを足す (ジオメトリの mixed-weight ラン対応)
     - ⚠️ Docs 11 モジュール移行 + プロセッサの widget 化 + golden 全再生成 (依然として最大ワークストリーム)
     - ⚠️ read-only レンダラの要件 (proportional 折返し + インライン混在 + 表 + 数式 + mermaid + 埋め込み UI) を装飾/widget で満たす設計精度が要る
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

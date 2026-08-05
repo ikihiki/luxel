@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0016-3-transaction">ADR-0016 — シーンエディタは第 3 の Transaction スタック + 空間アダプタで作る</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0016-Scene-Editor-Stack&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0016-Scene-Editor-Stack&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0016-Scene-Editor-Stack&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0016-Scene-Editor-Stack&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-11</li>
@@ -31,8 +39,8 @@
 <li>⚠️ アダプタ境界の維持には規律が要る — シェルに空間ロジックを書くと 3D で崩壊する (レビュー観点)</li>
 <li>⚠️ プレースホルダ表示 (定型ボックス) は GE-2/GE-3 でスプライト/実表示に置き換えるまでの仮</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0016-Scene-Editor-Stack&quot;, Order = 87)]
-public static Widget Adr0016(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0016-Scene-Editor-Stack&quot;, Order = 87, Toc = true)]
+public static StoryResult Adr0016(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0016 — シーンエディタは第 3 の Transaction スタック + 空間アダプタで作る
 
     - **Status**: Accepted
@@ -69,4 +77,4 @@ public static Widget Adr0016(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ✅ SetField 1 本で移動/インスペクタ/スクリプト設定が同じ undo 経路に乗る
     - ⚠️ アダプタ境界の維持には規律が要る — シェルに空間ロジックを書くと 3D で崩壊する (レビュー観点)
     - ⚠️ プレースホルダ表示 (定型ボックス) は GE-2/GE-3 でスプライト/実表示に置き換えるまでの仮
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0009-transaction">ADR-0009 — ノードエディタは汎用の Transaction ベース新スタックとして作る</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0009-Node-Editor-Stack&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0009-Node-Editor-Stack&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0009-Node-Editor-Stack&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0009-Node-Editor-Stack&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-08</li>
@@ -44,8 +52,8 @@
 <li>⚠️ PointerEvent に修飾キーが無い制約で、追加クリック選択の操作感はフレームワーク拡張まで範囲選択で代替 (マルチカーソル / <a href="#story=Internals%2FADR%2F0008-Custom-Ime-Candidates">ADR-0008</a> と共有の穴)</li>
 <li>⚠️ pan/zoom がコンテナ変換 1 枚の共有ワールドなので、入れ子で独立ズームが要る規模になったら <code>SurfaceView</code> 化の再検討が要る</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0009-Node-Editor-Stack&quot;, Order = 80)]
-public static Widget Adr0009(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0009-Node-Editor-Stack&quot;, Order = 80, Toc = true)]
+public static StoryResult Adr0009(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0009 — ノードエディタは汎用の Transaction ベース新スタックとして作る
 
     - **Status**: Accepted
@@ -96,4 +104,4 @@ public static Widget Adr0009(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ⚠️ 新プロジェクト + view の表面積が増える (既存 Diagram / Animation.Graph と概念が近く、使い分けの説明が要る)
     - ⚠️ PointerEvent に修飾キーが無い制約で、追加クリック選択の操作感はフレームワーク拡張まで範囲選択で代替 (マルチカーソル / [ADR-0008](story:Internals/ADR/0008-Custom-Ime-Candidates) と共有の穴)
     - ⚠️ pan/zoom がコンテナ変換 1 枚の共有ワールドなので、入れ子で独立ズームが要る規模になったら `SurfaceView` 化の再検討が要る
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

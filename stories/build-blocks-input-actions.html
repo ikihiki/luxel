@@ -1,4 +1,14 @@
 <article class="story document-page"><h1 id="block-input-actions">Block: Input actions</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Build%2FBlocks%2FInput%2FActions&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-deterministic-input-actions">コピーして動かす — Deterministic input actions</a>
+<ul>
+<li><a href="#story=Build%2FBlocks%2FInput%2FActions&amp;section=%60samples%2Fluxelinput%2Fluxelinput.csproj%60-project"><code>samples/LuxelInput/LuxelInput.csproj</code> (Project)</a></li>
+<li><a href="#story=Build%2FBlocks%2FInput%2FActions&amp;section=%60samples%2Fluxelinput%2Fprogram.cs%60-csharp"><code>samples/LuxelInput/Program.cs</code> (CSharp)</a></li>
+</ul>
+</li>
+</ul>
+<!-- /luxel-toc -->
 <p>Windowから独立したaction/context/stackのblockです。</p>
 <h2 id="deterministic-input-actions">コピーして動かす — Deterministic input actions</h2>
 <blockquote>
@@ -45,11 +55,11 @@ source.ReleaseKey(KeyCode.Space); source.ReleaseKey(KeyCode.W); source.ReleaseKe
 source.Poll(bus); stack.Update(bus);
 return jump.Value.Value ? 2 : 0;
 </code></pre>
-<details class="sample-bundle"><summary>Run this sample — Block</summary><p>FakeInputSource drives InputBus, InputStack, ButtonAction and Axis2DAction without a window.</p><p><strong>Requirements:</strong> .NET 10 / Headless on all supported .NET OS</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>input: jump=True, triggered=1</code></p><ul><li><code>samples/LuxelInput/LuxelInput.csproj</code> <span>Project</span></li><li><code>samples/LuxelInput/Program.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelInput</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelInput</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Blocks/Input/Actions&quot;, Order = 4, SampleBundle = &quot;input.actions&quot;)]
-public static Widget InputActions(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+<details class="sample-bundle"><summary>Run this sample — Block</summary><p>FakeInputSource drives InputBus, InputStack, ButtonAction and Axis2DAction without a window.</p><p><strong>Requirements:</strong> .NET 10 / Headless on all supported .NET OS</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>input: jump=True, triggered=1</code></p><ul><li><code>samples/LuxelInput/LuxelInput.csproj</code> <span>Project</span></li><li><code>samples/LuxelInput/Program.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelInput</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelInput</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Blocks/Input/Actions&quot;, Order = 4, SampleBundle = &quot;input.actions&quot;, Toc = true)]
+public static StoryResult InputActions(StoryContext ctx) =&gt; $&quot;&quot;&quot;
     # Block: Input actions
 
     Windowから独立したaction/context/stackのblockです。
 
     {SampleBundle(&quot;input.actions&quot;)}
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

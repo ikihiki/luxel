@@ -73,8 +73,8 @@ void main(uint3 tid : SV_DispatchThreadID)
     g_buffers[args.tileCountIndex].Store(tile * 4, count);
 }
 </code></pre>
-<p>→ <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FOverview">Internal course</a></p>
+<p>→ <a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FOverview">Internal course</a></p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/2D/Rasterizer/TileBins&quot;, Order = 3)]
-public static Widget TileBins(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;Tile bins&quot;, &quot;16&#215;16 pixel tiles&quot;,
+public static StoryResult TileBins(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;Tile bins&quot;, &quot;16&#215;16 pixel tiles&quot;,
     &quot;| Tile state | Meaning |\n|---|---|\n| empty | no path bounds intersect the tile |\n| populated | painter-order indices fit in the tile list |\n| overflow | fine pass scans the complete order buffer for correctness |\n\nThe current tile capacity is an implementation tuning value and may change.&quot;,
     &quot;shaders/raster2d_bin.slang&quot;);</code></pre></details></article>

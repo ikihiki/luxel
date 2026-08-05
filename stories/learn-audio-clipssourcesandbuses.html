@@ -15,8 +15,8 @@ backend.Initialize();
 using var mixer = new AudioMixer(backend);
 mixer.PlayOneShot(clip, volume: 0.5f);
 </code></pre>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/ClipsSourcesAndBuses&quot;, Order = 1)]
-public static Widget Clips(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/ClipsSourcesAndBuses&quot;, Order = 1, Toc = true)]
+public static StoryResult Clips(StoryContext ctx) =&gt; $&quot;&quot;&quot;
     # Clips, sources, and buses
 
     {RuntimeCourseCatalog.Meta(&quot;Learn/Audio/ClipsSourcesAndBuses&quot;, &quot;Beginner&quot;, &quot;Standalone / Game loop&quot;, &quot;Backend neutral&quot;, &quot;Audio overview&quot;)}
@@ -24,4 +24,4 @@ public static Widget Clips(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quo
     SFXは`AudioClip`を`AudioMixer.PlayOneShot`へ渡します。持続音は`AudioSource`でvolume/pitch/panをSignalとして更新し、master/music/sfxの階層音量は`AudioBus`で掛け合わせます。`AudioMixer.Tick()`とsourceの`Tick()`はframe loopから呼びます。
 
     {SampleSource(&quot;samples/LuxelAudio/Program.cs&quot;, &quot;audio-tone&quot;)}
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

@@ -3,8 +3,8 @@
 <figure class="static-capture"><a href="#story=Examples%2FWorkbench%2FShell"><img src="images/examples-workbench-shell.png" alt="Examples/Workbench/Shell" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
 <figure class="static-capture"><a href="#story=Examples%2FWorkbench%2FFiles"><img src="images/examples-workbench-files.png" alt="Examples/Workbench/Files" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
 <figure class="static-capture"><a href="#story=Examples%2FWorkbench%2FMaterial"><img src="images/examples-workbench-material.png" alt="Examples/Workbench/Material" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Production/Workbench&quot;, Order = 1)]
-public static Widget Workbench(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Production/Workbench&quot;, Order = 1, Toc = true)]
+public static StoryResult Workbench(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # Workbench workflow
 
     Workbenchはcode、files、material、inspectorを同じdock shellで扱います。変更はresource/script reload境界へ送り、編集中のdocument stateと実行中runtime stateを分離します。
@@ -12,4 +12,4 @@ public static Widget Workbench(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot
     {{StoryRef(ctx, &quot;Examples/Workbench/Shell&quot;)}}
     {{StoryRef(ctx, &quot;Examples/Workbench/Files&quot;)}}
     {{StoryRef(ctx, &quot;Examples/Workbench/Material&quot;)}}
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

@@ -1,4 +1,16 @@
 <article class="story document-page"><h1 id="luxel.document">ドキュメントとエディタ (Luxel.Document)</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FGuides%2FEditor&amp;section=editorstate-%E3%81%A8-transaction">EditorState と Transaction</a></li>
+<li><a href="#story=Reference%2FGuides%2FEditor&amp;section=%E3%83%9E%E3%83%AB%E3%83%81%E3%82%AB%E3%83%BC%E3%82%BD%E3%83%AB-native">マルチカーソル (native)</a></li>
+<li><a href="#story=Reference%2FGuides%2FEditor&amp;section=%E8%A3%85%E9%A3%BE%E3%81%AF%E7%AC%AC%E4%B8%80%E7%B4%9A%E3%81%AE%E7%8A%B6%E6%85%8B-decoration">装飾は第一級の状態 (Decoration)</a></li>
+<li><a href="#story=Reference%2FGuides%2FEditor&amp;section=%E3%82%B8%E3%82%AA%E3%83%A1%E3%83%88%E3%83%AA%E3%81%AF%E7%B4%94%E5%B0%84%E5%BD%B1-editorgeometry">ジオメトリは純射影 (EditorGeometry)</a></li>
+<li><a href="#story=Reference%2FGuides%2FEditor&amp;section=texteditorview-%E2%80%94-%E8%96%84%E3%81%84%E3%83%93%E3%83%A5%E3%83%BC">TextEditorView — 薄いビュー</a></li>
+<li><a href="#story=Reference%2FGuides%2FEditor&amp;section=%E3%82%B3%E3%83%BC%E3%83%89%E7%B7%A8%E9%9B%86-%E2%80%94-%E8%89%B2%E5%88%86%E3%81%91%E3%83%BB%E8%A8%BA%E6%96%AD%E3%83%BB%E8%A3%9C%E5%AE%8C">コード編集 — 色分け・診断・補完</a></li>
+<li><a href="#story=Reference%2FGuides%2FEditor&amp;section=markdown-%E3%83%AC%E3%83%B3%E3%83%80%E3%83%AA%E3%83%B3%E3%82%B0%E3%81%A8-live-preview">Markdown レンダリングと Live Preview</a></li>
+<li><a href="#story=Reference%2FGuides%2FEditor&amp;section=%E5%9F%8B%E3%82%81%E8%BE%BC%E3%81%BF%E3%83%96%E3%83%AD%E3%83%83%E3%82%AF-embed">埋め込みブロック (Embed)</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>テキスト編集は 2 層です。<strong>Luxel.Document</strong> が canvas 非依存のエディタコア (状態・編集・装飾・幾何)、<strong>Luxel.Controls の <code>TextEditorView</code></strong> が塗り・入力・IME を足す薄いビュー。CodeMirror 6 に倣った設計です (決定は <a href="#story=Internals%2FADR%2F0006-Editor-New-Stack">ADR-0006</a>)。コアの全意味論が UI/GPU なしで単体テストできます。</p>
 <pre class="mermaid">flowchart TB
 typo[Luxel.Typography - TextLayout/キャレット] --&gt; core[Luxel.Document - 状態/編集/装飾/幾何]
@@ -43,11 +55,11 @@ core --&gt; view[Luxel.Controls TextEditorView - 塗り/入力/IME]</pre>
 <p>見出しは TOC の <code>#アンカー</code> と <code>story:</code> リンクの素になり、起動時に<strong>デッドリンク検証</strong>が走ります。</p>
 <h2 id="embed">埋め込みブロック (Embed)</h2>
 <p>図/表/数式/ライブ UI は<strong>ブロック widget</strong> として文章の間に載ります。<code>embed &lt;key&gt;</code> フェンス (や <code>mermaid</code> / <code>math</code> 言語のフェンス) を <code>MarkdownDecorations</code> が自動高さ block widget にし、view の <code>WidgetResolver</code> が key + 本文から実 Widget を解決します (mermaid → <code>Luxel.Diagram</code>、数式 → <code>Luxel.MathText</code>、ライブ UI → 任意 widget)。リゾルバのいない環境では<strong>ただのコードブロックとして保全</strong>されます。行内 hole は <code>[￼](luxel-ui:N)</code> = 自動サイズの行内 widget。実物: <a href="#story=Controls%2FTextEditorView%2FDocEmbeds">Controls/TextEditorView/DocEmbeds</a> (mermaid + 数式) / <a href="#story=Controls%2FTextEditorView%2FEmbed">Embed</a> (ライブ UI)。<strong>この docs ページの mermaid / コードブロックも同じ経路</strong>です。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Editor&quot;, Order = 41)]
-public static Widget Editor(StoryContext ctx)
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Editor&quot;, Order = 41, Toc = true)]
+public static StoryResult Editor(StoryContext ctx)
 {
     ctx.Play(static d =&gt; d.Snap());   // 新スタック解説ページ (見出し/mermaid/コードの描画 golden)
-    return DocNew(ctx, $$&quot;&quot;&quot;
+    return $$&quot;&quot;&quot;
     # ドキュメントとエディタ (Luxel.Document)
 
     テキスト編集は 2 層です。**Luxel.Document** が canvas 非依存のエディタコア (状態・編集・装飾・幾何)、**Luxel.Controls の `TextEditorView`** が塗り・入力・IME を足す薄いビュー。CodeMirror 6 に倣った設計です (決定は [ADR-0006](story:Internals/ADR/0006-Editor-New-Stack))。コアの全意味論が UI/GPU なしで単体テストできます。
@@ -111,5 +123,5 @@ public static Widget Editor(StoryContext ctx)
     ## 埋め込みブロック (Embed)
 
     図/表/数式/ライブ UI は**ブロック widget** として文章の間に載ります。`embed &lt;key&gt;` フェンス (や `mermaid` / `math` 言語のフェンス) を `MarkdownDecorations` が自動高さ block widget にし、view の `WidgetResolver` が key + 本文から実 Widget を解決します (mermaid → `Luxel.Diagram`、数式 → `Luxel.MathText`、ライブ UI → 任意 widget)。リゾルバのいない環境では**ただのコードブロックとして保全**されます。行内 hole は `[￼](luxel-ui:N)` = 自動サイズの行内 widget。実物: [Controls/TextEditorView/DocEmbeds](story:Controls/TextEditorView/DocEmbeds) (mermaid + 数式) / [Embed](story:Controls/TextEditorView/Embed) (ライブ UI)。**この docs ページの mermaid / コードブロックも同じ経路**です。
-    &quot;&quot;&quot;, toc: true);
+    &quot;&quot;&quot;;
 }</code></pre></details></article>

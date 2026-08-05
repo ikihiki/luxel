@@ -213,8 +213,8 @@ void main(uint3 tid : SV_DispatchThreadID)
     g_buffers[args.fbIndex].Store((tid.y * args.width + tid.x) * 4, outPacked);
 }
 </code></pre>
-<p>→ <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FOverview">Internal course</a></p>
+<p>→ <a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FOverview">Internal course</a></p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/2D/Rasterizer/Stroke&quot;, Order = 5)]
-public static Widget Stroke(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;Stroke distance&quot;, &quot;screen-space segment distance&quot;,
+public static StoryResult Stroke(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;Stroke distance&quot;, &quot;screen-space segment distance&quot;,
     &quot;Stroke coverage compares each sample&#39;s distance to the flattened segment against half the configured screen-space width. Closed contours add the closing segment; open strokes do not.&quot;,
     &quot;shaders/raster2d_fine.slang&quot;);</code></pre></details></article>

@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="section">貢献者向け — ビルド・テスト・回帰ゲート</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FContributing&amp;section=%E3%83%93%E3%83%AB%E3%83%89%E3%81%A8%E3%83%84%E3%83%BC%E3%83%AB-tools%2F">ビルドとツール (tools/)</a></li>
+<li><a href="#story=Internals%2FContributing&amp;section=%E3%83%86%E3%82%B9%E3%83%88%E3%81%A8-e2e-%E5%9B%9E%E5%B8%B0-play-%2B-golden">テストと E2E 回帰 (play + golden)</a></li>
+<li><a href="#story=Internals%2FContributing&amp;section=bench-%E2%80%94-canvas-%E6%9B%B4%E6%96%B0%E3%82%B3%E3%82%B9%E3%83%88%E3%81%AE%E5%9B%9E%E5%B8%B0%E3%82%B2%E3%83%BC%E3%83%88">bench — canvas 更新コストの回帰ゲート</a></li>
+<li><a href="#story=Internals%2FContributing&amp;section=%E3%81%9D%E3%81%AE%E4%BB%96%E3%81%AE%E6%A4%9C%E8%A8%BC">その他の検証</a></li>
+</ul>
+<!-- /luxel-toc -->
 <h2 id="tools">ビルドとツール (tools/)</h2>
 <p>通常ビルドは Git 管理された <code>shaders/compiled/</code> の SPIR-V / DXIL を検証して使うため、Slang/DXC の手動導入は不要です。shader変更時だけ <code>dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache</code> を実行すると、固定版ツールを取得・SHA-256検証してcacheを更新します。</p>
 <h2 id="e2e-play-golden">テストと E2E 回帰 (play + golden)</h2>
@@ -25,8 +33,8 @@ dotnet run --project src/Luxel.Gallery.Host -- vk bench &quot;Controls/ListView/
 <li><strong>デッドリンク検証</strong> — 実窓起動時に docs 全ページの <code>story:</code> / <code>#アンカー</code> を検査し、切れたリンクを stderr に警告します (<code>[gallery] dead link in ...</code>)</li>
 <li><strong>実窓 E2E</strong> — DebugServer の <code>/winframe</code> + <code>/cmd</code> で操作と描画を確認 (<a href="#story=Reference%2FGuides%2FDevTools">Reference/Guides/DevTools</a>)</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/Contributing&quot;, Order = 92)]
-public static Widget Contributing(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/Contributing&quot;, Order = 92, Toc = true)]
+public static StoryResult Contributing(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # 貢献者向け — ビルド・テスト・回帰ゲート
 
     ## ビルドとツール (tools/)
@@ -65,4 +73,4 @@ public static Widget Contributing(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&q
     - **vk / dx ピクセル一致** — 新しい描画機能は両バックエンドで検証してから完了
     - **デッドリンク検証** — 実窓起動時に docs 全ページの `story:` / `#アンカー` を検査し、切れたリンクを stderr に警告します (`[gallery] dead link in ...`)
     - **実窓 E2E** — DebugServer の `/winframe` + `/cmd` で操作と描画を確認 ([Reference/Guides/DevTools](story:Reference/Guides/DevTools))
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

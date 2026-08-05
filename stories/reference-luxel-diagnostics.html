@@ -1,4 +1,48 @@
 <article class="story document-page"><h1 id="luxel.diagnostics">Luxel.Diagnostics</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=devstats">DevStats</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagaudio">DiagAudio</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagaudiobus">DiagAudioBus</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagaudiosource">DiagAudioSource</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagcomponent">DiagComponent</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagcustom">DiagCustom</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagecs">DiagEcs</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagecssummary">DiagEcsSummary</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagenginestate">DiagEngineState</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagentity">DiagEntity</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagentitysummary">DiagEntitySummary</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagfixedstep">DiagFixedStep</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagflush">DiagFlush</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagframe">DiagFrame</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diaggpu">DiagGpu</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diaggpucommand">DiagGpuCommand</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diaginput">DiagInput</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diaginputaction">DiagInputAction</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diaginputcontext">DiagInputContext</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diaginputstate">DiagInputState</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagpath">DiagPath</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagperf">DiagPerf</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagphasetiming">DiagPhaseTiming</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagprimitives">DiagPrimitives</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagrendergraph">DiagRenderGraph</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagrendergraphpass">DiagRenderGraphPass</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagrendergraphresource">DiagRenderGraphResource</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagresourcenode">DiagResourceNode</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagresources">DiagResources</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagruntime">DiagRuntime</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagstat">DiagStat</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagsurface">DiagSurface</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagsurfaces">DiagSurfaces</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagsystemtiming">DiagSystemTiming</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diaguiframe">DiagUiFrame</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagworld">DiagWorld</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=diagworldsummary">DiagWorldSummary</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=enginecommands">EngineCommands</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=enginediagnostics">EngineDiagnostics</a></li>
+<li><a href="#story=Reference%2FLuxel.Diagnostics&amp;section=iwindowremotehost">IWindowRemoteHost</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="devstats">DevStats</h2>
 <section class="api-reference"><p class="api-summary">class — ゲームが 1 行で観測に載せる汎用 key-value watch。score / 残弾 / HP / 状態機械の現在状態や パーティクル Alive 数など、printf デバッグの受け皿。値は String) で いつでも上書きし、フレームループが Flush で 30f 毎にまとめて Custom へ emit する。 ゼロコスト規律: DevTools が繋がっていない (購読者ゼロ) ときは String) は String) の bool 判定だけで即 return し、辞書書き込みも割り当ても行わない。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Set</code></th><td><code>(string key, string value) → void</code></td><td>文字列値を観測に載せる (購読者が居なければ何もしない)。</td></tr><tr><th scope="row"><code>Set</code></th><td><code>(string key, double value) → void</code></td><td>数値を観測に載せる (小数 3 桁、invariant)。</td></tr><tr><th scope="row"><code>Set</code></th><td><code>(string key, long value) → void</code></td><td>整数を観測に載せる。</td></tr><tr><th scope="row"><code>Set</code></th><td><code>(string key, int value) → void</code></td><td>整数を観測に載せる。</td></tr><tr><th scope="row"><code>Set</code></th><td><code>(string key, bool value) → void</code></td><td>真偽値を観測に載せる。</td></tr><tr><th scope="row"><code>Snapshot</code></th><td><code>() → DiagStat[]</code></td><td>現在の全 key-value を key 昇順で取得する (テスト/emit 用の決定的スナップショット)。</td></tr><tr><th scope="row"><code>Flush</code></th><td><code>() → void</code></td><td>溜まった key-value を Custom へ emit する (フレームループが 30f 毎に呼ぶ)。</td></tr><tr><th scope="row"><code>Clear</code></th><td><code>() → void</code></td><td>全 key を消す (シーン切替時など。テストの分離にも使う)。</td></tr></tbody></table></div></section>

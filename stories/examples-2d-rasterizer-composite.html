@@ -216,8 +216,8 @@ void main(uint3 tid : SV_DispatchThreadID)
     g_buffers[args.fbIndex].Store((tid.y * args.width + tid.x) * 4, outPacked);
 }
 </code></pre>
-<p>→ <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FOverview">Internal course</a></p>
+<p>→ <a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FOverview">Internal course</a></p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/2D/Rasterizer/Composite&quot;, Order = 6)]
-public static Widget Composite(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;Painter-order composite&quot;, &quot;premultiplied source-over&quot;,
+public static StoryResult Composite(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;Painter-order composite&quot;, &quot;premultiplied source-over&quot;,
     &quot;```text\nout.rgb = src.rgb + dst.rgb * (1 - src.a)\nout.a   = src.a   + dst.a   * (1 - src.a)\n```\n\nVector coverage and sampled images enter the same ordered premultiplied-alpha composite.&quot;,
     &quot;shaders/raster2d_fine.slang&quot;);</code></pre></details></article>

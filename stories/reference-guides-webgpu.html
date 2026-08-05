@@ -1,4 +1,45 @@
 <article class="story document-page"><h1 id="webgpu-backend">WebGPU backend 設計ガイド</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%E5%AF%BE%E8%B1%A1%E3%81%A8-backend-%E9%81%B8%E6%8A%9E">対象と backend 選択</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-headless-webgpu-compute-and-triangle">コピーして動かす — Headless WebGPU compute and triangle</a>
+<ul>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpuheadless%2Fluxelwebgpuheadless.csproj%60-project"><code>samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj</code> (Project)</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpuheadless%2Fprogram.cs%60-csharp"><code>samples/LuxelWebGpuHeadless/Program.cs</code> (CSharp)</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpuheadless%2Fheadlesswebgpusample.cs%60-csharp"><code>samples/LuxelWebGpuHeadless/HeadlessWebGpuSample.cs</code> (CSharp)</a></li>
+</ul>
+</li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-browser-wasm-webgpu-canvas">コピーして動かす — Browser-WASM WebGPU canvas</a>
+<ul>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpubrowser%2Fluxelwebgpubrowser.csproj%60-project"><code>samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj</code> (Project)</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpubrowser%2Fprogram.cs%60-csharp"><code>samples/LuxelWebGpuBrowser/Program.cs</code> (CSharp)</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpubrowser%2Freadme.md%60-asset"><code>samples/LuxelWebGpuBrowser/README.md</code> (Asset)</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpubrowser%2Fwwwroot%2Findex.html%60-asset"><code>samples/LuxelWebGpuBrowser/wwwroot/index.html</code> (Asset)</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpubrowser%2Fwwwroot%2Fmain.js%60-asset"><code>samples/LuxelWebGpuBrowser/wwwroot/main.js</code> (Asset)</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpubrowser%2Fwwwroot%2Fbrowser-runtime-manifest.json%60-asset"><code>samples/LuxelWebGpuBrowser/wwwroot/browser-runtime-manifest.json</code> (Asset)</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fluxelwebgpubrowser%2Fshaders%2Fcompute.wgsl%60-shader"><code>samples/LuxelWebGpuBrowser/Shaders/compute.wgsl</code> (Shader)</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60samples%2Fcanonicaltrianglerecipe.cs%60-csharp"><code>samples/CanonicalTriangleRecipe.cs</code> (CSharp)</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%60shaders%2Fcompiled%2Ftutorial_triangle.wgsl%60-shader"><code>shaders/compiled/tutorial_triangle.wgsl</code> (Shader)</a></li>
+</ul>
+</li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=no-graphics-api-%E5%8E%9F%E5%89%87%E3%81%A8%E3%81%AE%E5%AF%BE%E5%BF%9C">No Graphics API 原則との対応</a>
+<ul>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=portable-baseline-%E3%81%AB%E3%81%97%E3%81%AA%E3%81%84%E3%82%82%E3%81%AE">portable baseline にしないもの</a></li>
+</ul>
+</li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=root-arguments-%E3%81%AE-fallback">root arguments の fallback</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=logical-resource-references">logical resource references</a>
+<ul>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%E7%8F%BE%E8%A1%8C%E3%81%AE%E5%9B%BA%E5%AE%9A-webgpu-abi">現行の固定 WebGPU ABI</a></li>
+</ul>
+</li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=upload-%2F-readback">upload / readback</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%E5%90%8C%E6%9C%9F-lowering">同期 lowering</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=shader-package">shader package</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%E5%88%B6%E9%99%90%E3%81%A8-diagnostics">制限と diagnostics</a></li>
+<li><a href="#story=Reference%2FGuides%2FWebGPU&amp;section=%E9%96%A2%E9%80%A3%E3%81%99%E3%82%8B-backend-neutral-stories">関連する backend-neutral stories</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>このページは native と browser/WASM の WebGPU backend が満たす<strong>設計契約と対応範囲</strong>を定義します。特定の build や platform が利用可能かどうかは、adapter/device 作成、required feature/limit 検査、代表 story の回帰ゲートで判定します。この文書だけを根拠に「対応済み」または「実装進行中」とは扱いません。</p>
 <p>背景となる決定は <a href="#story=Internals%2FADR%2F0019-Portable-Gpu-Semantics-WebGPU-Backend">ADR-0019</a>、共通 API の入口は <a href="#story=Reference%2FGuides%2FGpuDevice">Reference/Guides/GpuDevice</a>、pass 間依存は <a href="#story=Reference%2FGuides%2FRenderGraph">Reference/Guides/RenderGraph</a> を参照してください。</p>
 <h2 id="backend">対象と backend 選択</h2>
@@ -855,8 +896,8 @@ fn psMain( _S19 : pixelInput_0, @builtin(position) position_1 : vec4&lt;f32&gt;)
 <li><a href="#story=Reference%2FGuides%2FTwoD">Reference/Guides/TwoD</a> — compute raster、text、logical buffer/texture refs</li>
 </ul>
 <p>これらの story が選択した環境で通ることと、required tests/goldens が揃うことを、backend 対応を表明するためのゲートにします。</p>
-<details class="sample-bundle"><summary>Run this sample — StandaloneProject</summary><p>Browser-WASM recipe covering async WebGPU initialization, fixed-ABI embedded WGSL compute, textured offscreen rendering, canvas presentation and DOM input/resize events.</p><p><strong>Requirements:</strong> .NET 10 / wasm-tools workload / WebGPU browser / HTTPS or localhost</p><p><strong>Platforms:</strong> Browser/WASM</p><p><strong>Verification:</strong> exit 0, timeout 240s, stdout <code>data-status=pass</code></p><ul><li><code>samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj</code> <span>Project</span></li><li><code>samples/LuxelWebGpuBrowser/Program.cs</code> <span>CSharp</span></li><li><code>samples/LuxelWebGpuBrowser/README.md</code> <span>Asset</span></li><li><code>samples/LuxelWebGpuBrowser/wwwroot/index.html</code> <span>Asset</span></li><li><code>samples/LuxelWebGpuBrowser/wwwroot/main.js</code> <span>Asset</span></li><li><code>samples/LuxelWebGpuBrowser/wwwroot/browser-runtime-manifest.json</code> <span>Asset</span></li><li><code>samples/LuxelWebGpuBrowser/Shaders/compute.wgsl</code> <span>Shader</span></li><li><code>samples/CanonicalTriangleRecipe.cs</code> <span>CSharp</span></li><li><code>shaders/compiled/tutorial_triangle.wgsl</code> <span>Shader</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/WebGPU&quot;, Order = 17, SampleBundle = &quot;rendering.webgpu-browser&quot;)]
-public static Widget WebGpu(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<details class="sample-bundle"><summary>Run this sample — StandaloneProject</summary><p>Browser-WASM recipe covering async WebGPU initialization, fixed-ABI embedded WGSL compute, textured offscreen rendering, canvas presentation and DOM input/resize events.</p><p><strong>Requirements:</strong> .NET 10 / wasm-tools workload / WebGPU browser / HTTPS or localhost</p><p><strong>Platforms:</strong> Browser/WASM</p><p><strong>Verification:</strong> exit 0, timeout 240s, stdout <code>data-status=pass</code></p><ul><li><code>samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj</code> <span>Project</span></li><li><code>samples/LuxelWebGpuBrowser/Program.cs</code> <span>CSharp</span></li><li><code>samples/LuxelWebGpuBrowser/README.md</code> <span>Asset</span></li><li><code>samples/LuxelWebGpuBrowser/wwwroot/index.html</code> <span>Asset</span></li><li><code>samples/LuxelWebGpuBrowser/wwwroot/main.js</code> <span>Asset</span></li><li><code>samples/LuxelWebGpuBrowser/wwwroot/browser-runtime-manifest.json</code> <span>Asset</span></li><li><code>samples/LuxelWebGpuBrowser/Shaders/compute.wgsl</code> <span>Shader</span></li><li><code>samples/CanonicalTriangleRecipe.cs</code> <span>CSharp</span></li><li><code>shaders/compiled/tutorial_triangle.wgsl</code> <span>Shader</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/WebGPU&quot;, Order = 17, SampleBundle = &quot;rendering.webgpu-browser&quot;, Toc = true)]
+public static StoryResult WebGpu(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # WebGPU backend 設計ガイド
 
     このページは native と browser/WASM の WebGPU backend が満たす**設計契約と対応範囲**を定義します。特定の build や platform が利用可能かどうかは、adapter/device 作成、required feature/limit 検査、代表 story の回帰ゲートで判定します。この文書だけを根拠に「対応済み」または「実装進行中」とは扱いません。
@@ -999,4 +1040,4 @@ public static Widget WebGpu(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&q
     - [Reference/Guides/TwoD](story:Reference/Guides/TwoD) — compute raster、text、logical buffer/texture refs
 
     これらの story が選択した環境で通ることと、required tests/goldens が揃うことを、backend 対応を表明するためのゲートにします。
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>
