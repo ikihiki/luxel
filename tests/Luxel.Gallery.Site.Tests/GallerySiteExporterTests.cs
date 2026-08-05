@@ -40,6 +40,11 @@ public sealed class GallerySiteExporterTests
         Assert.DoesNotContain("device.CreateTexture(", textureStory.Source);
         Assert.DoesNotContain("private static byte[] CreateCheckerboard", textureStory.Source);
         Assert.DoesNotContain("for (uint y", textureStory.Source);
+        StoryInfo blurStory = Assert.IsType<StoryInfo>(catalog.Find("Examples/RenderGraph/Blur"));
+        Assert.Contains("static Rg BuildGraph", blurStory.Source);
+        Assert.Contains("graph.AddPass(\"BlurH\"", blurStory.Source);
+        Assert.Contains("graph.AddPass(\"BlurV\"", blurStory.Source);
+        Assert.Contains("graph.AddPass(\"Composite\"", blurStory.Source);
         Assert.Null(empty.Find("Start/Welcome"));
     }
 
@@ -694,6 +699,38 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void RenderGraph_overview_uses_the_browser_runtime_for_the_Blur_story()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-rendergraph-runtime-" + Guid.NewGuid().ToString("N"));
+        string browserRoot = CreateBrowserRuntimeRoot();
+        StoryInfo story = Catalog.Find("Learn/RenderGraph/Overview")
+            ?? throw new InvalidOperationException("RenderGraph Overview story is missing.");
+        try
+        {
+            using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
+            using var rasterizer = new Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D();
+            using var host = new GalleryHost(rasterizer, font);
+
+            GallerySiteExporter.Export(host, [story], output, root, browserRoot);
+
+            string fragment = File.ReadAllText(Path.Combine(output, "stories", "learn-rendergraph-overview.html"));
+            Assert.Contains("<iframe src=\"samples/webgpu-browser/?story=Examples%2FRenderGraph%2FBlur&amp;args=%7B%7D&amp;instance=", fragment);
+            Assert.Contains("data-luxel-runtime-story=\"Examples/RenderGraph/Blur\"", fragment);
+            Assert.Contains("runtime-story-embedded", fragment);
+            Assert.Contains("title=\"Interactive Blur\"", fragment);
+            Assert.DoesNotContain("Static embedded story capture", fragment);
+            Assert.False(File.Exists(Path.Combine(output, "images", "examples-rendergraph-blur.png")));
+            GallerySiteExporter.Validate(output);
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+            if (Directory.Exists(browserRoot)) Directory.Delete(browserRoot, true);
+        }
+    }
+
+    [Fact]
     public void Runtime_triangle_requires_a_complete_copied_browser_application()
     {
         string root = GallerySiteExporter.FindRepositoryRoot();
@@ -1004,7 +1041,7 @@ public sealed class GallerySiteExporterTests
             "Learn/Grapics/Overview", "Learn/Grapics/Environment",
             "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
             "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
-            "Learn/Grapics/PipelineState", "Learn/Grapics/Synchronization", "Learn/Grapics/RenderGraph",
+            "Learn/Grapics/PipelineState", "Learn/Grapics/Synchronization",
         ];
 
         string[] orderedGraphicsRoutes = Catalog.All
@@ -1012,8 +1049,14 @@ public sealed class GallerySiteExporterTests
             .Select(story => story.Path)
             .ToArray();
         Assert.Equal(RenderingCourseCatalog.Routes, orderedGraphicsRoutes);
-        Assert.Equal("Learn/Grapics/2D/Overview", orderedGraphicsRoutes[10]);
-        Assert.Equal("Learn/Grapics/2D/Internal/Overview", orderedGraphicsRoutes[18]);
+        Assert.Equal("Learn/Grapics/2D/Overview", orderedGraphicsRoutes[9]);
+        Assert.Equal("Learn/Grapics/2D/Internal/Overview", orderedGraphicsRoutes[17]);
+
+        string[] orderedRenderGraphRoutes = Catalog.All
+            .Where(story => story.Path.StartsWith("Learn/RenderGraph/", StringComparison.Ordinal))
+            .Select(story => story.Path)
+            .ToArray();
+        Assert.Equal(RenderGraphCourseCatalog.Routes, orderedRenderGraphRoutes);
 
         for (int i = 0; i < routes.Length; i++)
         {
@@ -1029,6 +1072,26 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void RenderGraph_learn_chain_is_ordered_and_linked()
+    {
+        StoryInfo[] stories = RenderGraphCourseCatalog.Routes.Select(path => Catalog.Find(path)
+            ?? throw new InvalidOperationException($"RenderGraph Learn route is missing: {path}")).ToArray();
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null, Catalog);
+
+        Assert.Empty(DocsIndex.ValidateLinks(pages, Catalog));
+        for (int i = 0; i < stories.Length; i++)
+        {
+            string source = pages[stories[i].Path].Text;
+            Assert.Contains("**難易度:**", source);
+            Assert.Contains("**実行環境:**", source);
+            Assert.Contains("**Backend:**", source);
+            Assert.Contains("**前提知識:**", source);
+            if (i > 0) Assert.Contains("story:" + stories[i - 1].Path, source);
+            if (i + 1 < stories.Length) Assert.Contains("story:" + stories[i + 1].Path, source);
+        }
+    }
+
+    [Fact]
     public void Rendering_docs_links_metadata_search_and_sample_sources_are_verified()
     {
         string[] routes =
@@ -1036,7 +1099,7 @@ public sealed class GallerySiteExporterTests
             "Learn/Grapics/Overview", "Learn/Grapics/Environment",
             "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
             "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
-            "Learn/Grapics/PipelineState", "Learn/Grapics/Synchronization", "Learn/Grapics/RenderGraph",
+            "Learn/Grapics/PipelineState", "Learn/Grapics/Synchronization",
         ];
         StoryInfo[] stories = routes.Select(name => Catalog.Find(name)
             ?? throw new InvalidOperationException($"Rendering Learn route is missing: {name}")).ToArray();
@@ -1241,7 +1304,7 @@ public sealed class GallerySiteExporterTests
                      "GpuStage.PixelShader", "GpuStage.ComputeShader", "GpuStage.ColorOutput",
                      "GpuStage.DepthStencil", "GpuStage.Copy", "GpuStage.AllGraphics", "GpuStage.All",
                      "GpuHazard.IndirectArguments", "SubmitAndWait", "SubmitAsync", "WaitIdle", "WaitIdleAsync",
-                     "story:Internals/Gpu/Synchronization", "story:Learn/Grapics/RenderGraph",
+                     "story:Internals/Gpu/Synchronization", "story:Learn/RenderGraph/Overview",
                  })
             Assert.Contains(synchronizationTerm, synchronizationPage);
         Assert.DoesNotContain("## Frame slotとFence", synchronizationPage);
@@ -1259,16 +1322,69 @@ public sealed class GallerySiteExporterTests
                  })
             Assert.Contains(implementationTerm, synchronizationInternalsPage);
 
-        string renderGraphPage = pages["Learn/Grapics/RenderGraph"].Text;
-        Assert.Contains("# RenderGraph", renderGraphPage);
-        Assert.Contains("story:Learn/Grapics/Synchronization", renderGraphPage);
-        Assert.Contains("story:Learn/Grapics/2D/Overview", renderGraphPage);
-        foreach (string renderGraphTopic in new[]
+        StoryInfo[] renderGraphStories = RenderGraphCourseCatalog.Routes.Select(path => Catalog.Find(path)!).ToArray();
+        Dictionary<string, DocsPage> renderGraphPages = DocsIndex.Build(renderGraphStories, resources: null, Catalog);
+
+        string renderGraphOverview = renderGraphPages["Learn/RenderGraph/Overview"].Text;
+        Assert.Contains("# RenderGraph入門", renderGraphOverview);
+        Assert.Contains("## 動くサンプル", renderGraphOverview);
+        Assert.Contains("BlurH", renderGraphOverview);
+        Assert.Contains("BlurV", renderGraphOverview);
+        Assert.DoesNotContain("別projectのbuildや起動は不要です", renderGraphOverview);
+        Assert.DoesNotContain("samples/LuxelTriangle", renderGraphOverview);
+        Assert.DoesNotContain("dotnet build", renderGraphOverview);
+        Assert.DoesNotContain("dotnet run", renderGraphOverview);
+        ISemanticDocument renderGraphOverviewDocument = BuildSemanticDocument(Catalog.Find("Learn/RenderGraph/Overview")!)!;
+        Assert.Equal(CoreUiStoryProject.RuntimeBundleId,
+            Catalog.Find("Examples/RenderGraph/Blur")!.RuntimeBundleId);
+        Assert.Contains(renderGraphOverviewDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/RenderGraph/Blur");
+
+        string renderGraphResources = renderGraphPages["Learn/RenderGraph/Resources"].Text;
+        foreach (string term in new[]
                  {
-                     "## ExternalとTransient", "## Read / Writeが依存とbarrierを作る",
-                     "## Culling、aliasing、終端resource", "## DevToolsで依存を見る",
+                     "# リソースとハンドル", "External", "Transient", "ImportBuffer", "ImportTexture",
+                     "CreateBuffer", "CreateTexture", "BufferHandle", "TextureHandle", "別graphのhandle",
                  })
-            Assert.Contains(renderGraphTopic, renderGraphPage);
+            Assert.Contains(term, renderGraphResources);
+
+        string renderGraphPasses = renderGraphPages["Learn/RenderGraph/Passes"].Text;
+        foreach (string term in new[]
+                 {
+                     "# パスと依存関係", "AddPass", "Read / Writeがbarrierを作る",
+                     "TextureUsage.ColorAttachment", "ResourceUsage.IndirectArgs", "passの登録順", "device.MainQueue",
+                 })
+            Assert.Contains(term, renderGraphPasses);
+
+        string renderGraphCompilation = renderGraphPages["Learn/RenderGraph/Compilation"].Text;
+        foreach (string term in new[]
+                 {
+                     "# Cullingとaliasing", "externalへのwrite", "cull", "物理slot", "終端barrier",
+                 })
+            Assert.Contains(term, renderGraphCompilation);
+        ISemanticDocument renderGraphCompilationDocument = BuildSemanticDocument(Catalog.Find("Learn/RenderGraph/Compilation")!)!;
+        Assert.DoesNotContain(renderGraphCompilationDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef);
+
+        string renderGraphLifecycle = renderGraphPages["Learn/RenderGraph/Lifecycle"].Text;
+        foreach (string term in new[]
+                 {
+                     "# フレーム寿命とresize", "SubmitAndWait", "disposeはGPU完了後", "0×0", "Backend差",
+                 })
+            Assert.Contains(term, renderGraphLifecycle);
+
+        string renderGraphDebugging = renderGraphPages["Learn/RenderGraph/Debugging"].Text;
+        foreach (string term in new[]
+                 {
+                     "# ValidationとDevTools", "EngineDiagnostics.RenderGraph", "RenderGraphNodes.Build", "(culled)",
+                     "story:Examples/RenderGraph/Bloom3D",
+                 })
+            Assert.Contains(term, renderGraphDebugging);
+        ISemanticDocument renderGraphDebuggingDocument = BuildSemanticDocument(Catalog.Find("Learn/RenderGraph/Debugging")!)!;
+        Assert.Contains(renderGraphDebuggingDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/RenderGraph/Blur");
+
+        Assert.Null(Catalog.Find("Learn/Grapics/RenderGraph"));
 
         foreach (string removedRoute in new[]
                  {
@@ -1367,6 +1483,7 @@ public sealed class GallerySiteExporterTests
         Assert.Equal("Start", Catalog.All[0].Component);
         Assert.NotNull(Catalog.Find("Start/Welcome"));
         Assert.NotNull(Catalog.Find("Learn/Grapics/Overview"));
+        Assert.NotNull(Catalog.Find("Learn/RenderGraph/Overview"));
         Assert.NotNull(Catalog.Find("Learn/Grapics/2D/Overview"));
         Assert.NotNull(Catalog.Find("Learn/Grapics/2D/Internal/Overview"));
         Assert.Null(Catalog.Find("Learn/Grapics/TwoD/Overview"));
@@ -1701,7 +1818,7 @@ public sealed class GallerySiteExporterTests
             using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
             using var host = new GalleryHost(device, font);
             GallerySiteExporter.Export(host, [story], output, root);
-            string html = string.Join('\n', Directory.GetFiles(output, "*.html", SearchOption.AllDirectories).Select(File.ReadAllText));
+            string html = File.ReadAllText(Path.Combine(output, "stories", "internals-architecture.html"));
             string renderedBody = html[..html.IndexOf("<details class=\"story-source\">", StringComparison.Ordinal)];
             string index = File.ReadAllText(Path.Combine(output, "index.html"));
             string bootstrap = File.ReadAllText(Path.Combine(output, "mermaid-bootstrap.js"));

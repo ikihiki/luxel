@@ -1,10 +1,10 @@
 using System.Numerics;
 using Luxel;
-using Luxel.RenderGraph;
+using Luxel.Graphics.RenderGraph;
 using DrawArgs3D = TutorialAbi.DrawArgs3D;
 using PostProcessArgs = TutorialAbi.PostProcessArgs;
 using Vertex3D = TutorialAbi.Vertex3D;
-using Rg = Luxel.RenderGraph.RenderGraph;
+using Rg = Luxel.Graphics.RenderGraph.RenderGraph;
 
 internal sealed class TriangleRenderer : IDisposable
 {

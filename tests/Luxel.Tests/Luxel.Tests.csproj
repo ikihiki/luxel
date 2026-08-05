@@ -53,7 +53,7 @@
     <ProjectReference Include="..\..\src\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Diagram\Luxel.Diagram.csproj" />
     <ProjectReference Include="..\..\src\Luxel.MathText\Luxel.MathText.csproj" />
-    <ProjectReference Include="..\..\src\Luxel.RenderGraph\Luxel.RenderGraph.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Ecs\Luxel.Ecs.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Ecs.Signal\Luxel.Ecs.Signal.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Assets\Luxel.Assets.csproj" />

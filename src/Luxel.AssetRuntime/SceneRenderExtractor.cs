@@ -4,7 +4,7 @@ using Friflo.Engine.ECS;
 using Luxel.Assets;
 using Luxel.AssetsGpu;
 using Luxel.Ecs;
-using Luxel.RenderGraph;
+using Luxel.Graphics.RenderGraph;
 using Luxel.Resources;
 
 namespace Luxel.AssetRuntime;

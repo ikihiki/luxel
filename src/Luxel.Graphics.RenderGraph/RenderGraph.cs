@@ -1,6 +1,6 @@
 using Luxel.Diagnostics;
 
-namespace Luxel.RenderGraph;
+namespace Luxel.Graphics.RenderGraph;
 
 /// <summary>
 /// レンダーグラフ (RG-M1: Setup/Compile/Execute 三相 + バッファ寿命解析 + 自動 stage バリア)。

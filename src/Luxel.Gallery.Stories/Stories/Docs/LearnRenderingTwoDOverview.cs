@@ -6,7 +6,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>初心者向けレンダリング学習経路。実行可能な正は samples/LuxelTriangle。</summary>
 public static partial class DocsRenderingLearn
 {
-    [Story("Learn/Grapics/2D/Overview", Order = 10)]
+    [Story("Learn/Grapics/2D/Overview", Order = 9)]
     public static Widget First2DScene(StoryContext ctx)
     {
         return DocNew(ctx, $$"""

@@ -6,7 +6,7 @@ using Luxel.Diagnostics;
 using Luxel.Ecs;
 using Luxel.Input;
 using Luxel.Resources;
-using LuxelRG = Luxel.RenderGraph;
+using LuxelRG = Luxel.Graphics.RenderGraph;
 
 namespace Luxel.Framework;
 

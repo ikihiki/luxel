@@ -117,7 +117,7 @@ public static class DocsHome
         ```mermaid
         flowchart TB
         app[アプリ / Gallery / Framework] --> controls[Luxel.Controls]
-        app --> rg[Luxel.RenderGraph]
+        app --> rg[Luxel.Graphics.RenderGraph]
         app --> ecs[Luxel.Ecs + AssetRuntime]
         app --> terminalui[Luxel.Terminal.UI]
         controls --> ui[Luxel.UI]
@@ -158,7 +158,7 @@ public static class DocsHome
 
         ## 3D / レンダーグラフ / リソース
 
-        `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、`Luxel.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成 ([Examples/RenderGraph/Blur](story:Examples/RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` + `Luxel.Gltf` が (型, uri) キーのリソース DAG を提供します。
+        `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、`Luxel.Graphics.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成 ([Examples/RenderGraph/Blur](story:Examples/RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` + `Luxel.Gltf` が (型, uri) キーのリソース DAG を提供します。
 
         ## ランタイムとツール
 
@@ -177,7 +177,7 @@ public static class DocsHome
         | Luxel.Document (+ Highlight.TextMate, Diagram, MathText) | ドキュメントモデル / ハイライト / 図 / 数式 |
         | Luxel.Animation (+ .UI, .TwoD, .ThreeD) | アニメーション IR + ターゲットアダプタ |
         | Luxel.Ecs (+ .Signal) | ECS (Friflo) + signal 連携 |
-        | Luxel.RenderGraph | パス合成 / transient aliasing / 自動バリア |
+        | Luxel.Graphics.RenderGraph | パス合成 / transient aliasing / 自動バリア |
         | Luxel.Resources (+ Imaging, Assets, AssetsGpu, AssetRuntime, Gltf) | リソース DAG / 画像 / glTF / 3D 抽出 |
         | Luxel.Platform (+ .Windows, .Silk) | ウィンドウ / クリップボード / IME / 低レベル入力 |
         | Luxel.Input (+ .XInput) | アクションマップ / リバインド / Windowsゲームパッド入力 |
