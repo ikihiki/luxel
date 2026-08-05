@@ -1508,6 +1508,71 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Input_learn_pages_embed_running_stories_and_concept_sized_source_fragments()
+    {
+        ISemanticDocument actionsDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/ActionsAndContexts")!)!;
+        string actions = actionsDocument.DocumentSource!;
+        Assert.Contains(actionsDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/Input/Actions");
+        Assert.Contains(actionsDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/Input/ContextStack");
+
+        string[] actionStages =
+        [
+            "## アクションを構成する",
+            "## 押下と解放のエッジを処理する",
+            "## コンテキストの優先順位と入力の消費",
+            "### スタックを構成する",
+            "### 上位コンテキストで入力を消費する",
+            "### コンテキストを一時停止する",
+        ];
+        int previousActionStage = -1;
+        foreach (string stage in actionStages)
+        {
+            int position = actions.IndexOf(stage, previousActionStage + 1, StringComparison.Ordinal);
+            Assert.True(position > previousActionStage, $"Missing or out-of-order Input action stage: {stage}");
+            previousActionStage = position;
+        }
+        foreach (string token in new[]
+                 {
+                     "new FakeInputSource", "stack.Push(gameplay)", "jump.Triggered", "jump.Released",
+                     "stack.Push(menu)", "source.PressKey(KeyCode.Enter)", "stack.SetSuspended",
+                 })
+            Assert.Contains(token, actions);
+        foreach (string uiScaffolding in new[] { "Frame(VStack", "Heading(", "KeyButton(" })
+            Assert.DoesNotContain(uiScaffolding, actions);
+
+        ISemanticDocument bindingsDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/BindingsAndRebinding")!)!;
+        string bindings = bindingsDocument.DocumentSource!;
+        Assert.Contains(bindingsDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/Input/Bindings");
+
+        string[] bindingStages =
+        [
+            "## アクションとテスト用入力を用意する",
+            "## JSONとして保存する",
+            "## JSONを読み込み、コンテキストへ反映する",
+            "## 反映したバインディングを確認する",
+            "## 再設定UIの責務",
+        ];
+        int previousBindingStage = -1;
+        foreach (string stage in bindingStages)
+        {
+            int position = bindings.IndexOf(stage, previousBindingStage + 1, StringComparison.Ordinal);
+            Assert.True(position > previousBindingStage, $"Missing or out-of-order Input binding stage: {stage}");
+            previousBindingStage = position;
+        }
+        foreach (string token in new[]
+                 {
+                     "new ButtonAction(\"Jump\"", "JsonSerializer.Serialize", "JsonSerializer.Deserialize<InputBindings>",
+                     "InputBindingsApplier.Apply", "source.PressKey(key)", "source.ReleaseKey(key)",
+                 })
+            Assert.Contains(token, bindings);
+        foreach (string uiScaffolding in new[] { "Frame(VStack", "Heading(", "Button(_ =>" })
+            Assert.DoesNotContain(uiScaffolding, bindings);
+    }
+
+    [Fact]
     public void Sample_bundle_graph_and_files_are_valid()
     {
         string root = GallerySiteExporter.FindRepositoryRoot();

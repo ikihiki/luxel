@@ -65,7 +65,11 @@ public static class LearnInput
 
         {RuntimeCourseCatalog.Meta("Learn/Input/ActionsAndContexts", "Beginner", "Gallery / Headless", "Backend neutral", "入力システムの概要")}
 
-        ## アクションの種類
+        {StoryRef(ctx, "Examples/Input/Actions")}
+
+        上のStoryは`FakeInputSource`でW、D、Spaceの押下と解放を1 tickずつ送り、移動ベクトル、Jumpの保持状態、`Triggered`／`Released`の回数を表示します。
+
+        ## アクションを構成する
 
         | アクション | 値 | 主な用途 |
         |---|---|---|
@@ -73,31 +77,43 @@ public static class LearnInput
         | `Axis1DAction` | `-1`から`1` | 左右移動、アクセル、トリガー |
         | `Axis2DAction` | `Vector2` | WASD移動、スティック入力 |
 
-        `ButtonAction`の`Triggered`は未押下から押下へ変わったtick、`Released`は押下から未押下へ変わったtickで1回だけ発火します。押し続けている間は`IsActive`がtrueですが、`Triggered`は繰り返し発火しません。
+        `InputContext`へアクションを追加し、物理キーや軸を登録します。ここではSpaceをJumpへ、WASDをMoveへ対応付け、Gameplayコンテキストを`InputStack`へ積みます。
 
-        `Axis2DAction`へWASDを登録すると、左右と上下のボタンを2次元ベクトルへ合成します。斜め入力は長さが1を超えないように正規化されます。
+        {SampleSource("src/Luxel.Gallery.Stories/Stories/InputActionStories.cs", "input-actions-setup")}
 
-        {StoryRef(ctx, "Examples/Input/Actions")}
+        `Axis2DAction`は上下左右を2次元ベクトルへ合成します。WとDを同時に押した斜め入力は、長さが1を超えないよう正規化されます。
 
-        {SampleSource("src/Luxel.Gallery.Stories/Stories/InputActionStories.cs", "input-actions-story")}
+        ## 押下と解放のエッジを処理する
 
-        ## 1 tickの処理順
+        `ButtonAction.Triggered`は未押下から押下へ変わったtick、`Released`は押下から未押下へ変わったtickで1回だけ発火します。押し続けている間は`IsActive`がtrueですが、`Triggered`は繰り返し発火しません。
 
-        1. `IInputSource.Poll(bus)`で、そのtickの入力イベントを`InputBus`へ送ります。
-        2. `InputStack.Update(bus)`で押下状態を更新し、各アクションの値を計算します。
-        3. ゲームロジックがアクションの値や`Triggered`／`Released`を読みます。
+        {SampleSource("src/Luxel.Gallery.Stories/Stories/InputActionStories.cs", "input-actions-edges")}
 
-        押下と解放のエッジを確認するときは、押下と解放を別々のtickで処理します。
+        `Tick`では最初に`source.Poll(bus)`で差分イベントを集め、次に`stack.Update(bus)`で保持状態とアクション値を更新します。エッジを確認するときは押下と解放を別々のtickで処理します。
 
         ## コンテキストの優先順位と入力の消費
 
-        `InputContext`は、ある場面で有効なアクションをまとめます。たとえばGameplayとMenuを別コンテキストにすると、メニュー表示中だけMenuを優先できます。
-
-        `InputStack`は最後に`Push`したコンテキストから評価します。上位コンテキストで有効になったアクションが使用するキーや軸は消費され、下位コンテキストには渡りません。また、`SetSuspended`を使うとコンテキストをスタックから外さず一時停止できます。
-
         {StoryRef(ctx, "Examples/Input/ContextStack")}
 
-        {SampleSource("src/Luxel.Gallery.Stories/Stories/InputActionStories.cs", "input-context-stack")}
+        上のStoryはGameplayの上にMenuを積み、同じEnterがどちらへ届くかを表示します。
+
+        ### スタックを構成する
+
+        `InputStack`は最後に`Push`したコンテキストから評価します。Menuを最後に積むことで、MenuがGameplayより上位になります。
+
+        {SampleSource("src/Luxel.Gallery.Stories/Stories/InputActionStories.cs", "input-context-setup")}
+
+        ### 上位コンテキストで入力を消費する
+
+        上位コンテキストのactive actionが使用したキーや軸は消費され、下位コンテキストには渡りません。押下tickで結果を読み、解放tickで保持状態を戻します。
+
+        {SampleSource("src/Luxel.Gallery.Stories/Stories/InputActionStories.cs", "input-context-routing")}
+
+        ### コンテキストを一時停止する
+
+        `SetSuspended`を使うと、コンテキストをスタックから外さず評価対象から除外できます。Menuを停止すると、同じEnterをGameplayが受け取ります。
+
+        {SampleSource("src/Luxel.Gallery.Stories/Stories/InputActionStories.cs", "input-context-suspension")}
         """, toc: true);
 
     [Story("Learn/Input/BindingsAndRebinding", Order = 2)]
@@ -106,29 +122,40 @@ public static class LearnInput
 
         {RuntimeCourseCatalog.Meta("Learn/Input/BindingsAndRebinding", "Beginner", "Gallery / Settings", "Backend neutral", "アクションとコンテキスト")}
 
-        ## バインディングをデータにする理由
+        {StoryRef(ctx, "Examples/Input/Bindings")}
 
-        ゲームロジックには「Spaceが押されたか」ではなく「Jumpが有効か」を問い合わせます。`Jump`というアクション名をゲーム側の契約として固定し、SpaceやEnterとの対応を`InputBindings`へ分離します。
+        上のStoryはJumpのバインドをSpaceとEnterで切り替え、表示中のJSONを読み戻してから`InputBindingsApplier`へ反映します。その後、各キーをシミュレートして、新しい設定でJumpが発火するか確認できます。
 
-        この分離により、次の処理をゲームロジックを変更せず実装できます。
+        ## アクションとテスト用入力を用意する
 
-        - ユーザーごとのキー設定
-        - 初期設定へのリセット
-        - 設定ファイルへの保存と読み込み
-        - キーボードとゲームパッドの複数バインド
+        ゲームロジックには「Spaceが押されたか」ではなく「Jumpが有効か」を問い合わせます。`Jump`というアクション名を契約として固定し、物理キーとの対応だけを変更します。
 
-        ## 読み込みと反映
+        {SampleSource("src/Luxel.Gallery.Stories/Stories/InputActionStories.cs", "input-bindings-setup")}
+
+        この分離により、ユーザーごとのキー設定、初期設定へのリセット、設定ファイルへの保存と読み込み、キーボードとゲームパッドの複数バインドを、ゲームロジックを変更せず実装できます。
+
+        ## JSONとして保存する
+
+        `InputBindings.Actions`のキーは論理アクション名です。`InputBindingEntry.Kind`でbutton／axisの種類を示し、`Keys`、`Pairs`、`Quads`、`Axes`へ物理入力名を保存します。
+
+        {SampleSource("src/Luxel.Gallery.Stories/Stories/InputActionStories.cs", "input-bindings-json")}
+
+        JSONには`Jump`と`Space`または`Enter`の対応だけが含まれます。ゲーム側はこの物理キー名を直接参照しません。
+
+        ## JSONを読み込み、コンテキストへ反映する
 
         1. JSONを`InputBindings`へデシリアライズします。
         2. `InputBindingsApplier.Apply(bindings, context)`を呼びます。
-        3. Applierがアクション名を照合し、`ButtonAction.Keys`、`Axis1DAction.ButtonPairs`、`Axis2DAction.ButtonQuads`などを更新します。
-        4. 以降のtickから、新しい物理キーで同じ論理アクションが有効になります。
+        3. Applierがアクション名を照合し、`ButtonAction.Keys`などを更新します。
+        4. 以降のtickから、新しい物理キーで同じJumpアクションが有効になります。
 
-        次のStoryでは、JumpのバインドをSpaceとEnterで切り替えた後、それぞれのキーをシミュレートして結果を確認できます。表示しているJSONを読み戻してから`InputBindingsApplier`へ渡しているため、保存・読み込みと同じ境界を通ります。
+        {SampleSource("src/Luxel.Gallery.Stories/Stories/InputActionStories.cs", "input-bindings-apply")}
 
-        {StoryRef(ctx, "Examples/Input/Bindings")}
+        ## 反映したバインディングを確認する
 
-        {SampleSource("src/Luxel.Gallery.Stories/Stories/InputActionStories.cs", "input-bindings-story")}
+        新しいキーを押して1 tick進め、Jumpのactive状態を読みます。その後、キーを解放して次のtickへ進めます。保存・読み込みとアクション評価を同じStory内で確認できます。
+
+        {SampleSource("src/Luxel.Gallery.Stories/Stories/InputActionStories.cs", "input-bindings-simulate")}
 
         ## 再設定UIの責務
 

@@ -11,10 +11,10 @@ namespace Luxel.Gallery.Stories;
 /// <summary>入力アクション、コンテキスト、バインディングを決定的に学ぶStory。</summary>
 public static class InputActionStories
 {
-    // docs:begin input-actions-story
     [Story("Examples/Input/Actions", Width = 680, Height = 430, Order = 0)]
     public static Widget Actions()
     {
+        // docs:begin input-actions-setup
         var source = new FakeInputSource();
         var bus = new InputBus();
         var gameplay = new InputContext("Gameplay");
@@ -23,7 +23,9 @@ public static class InputActionStories
         move.ButtonQuads.Add((KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D));
         var stack = new InputStack();
         stack.Push(gameplay);
+        // docs:end input-actions-setup
 
+        // docs:begin input-actions-edges
         var jumpTriggered = new Signal<int>(0);
         var jumpReleased = new Signal<int>(0);
         jump.Triggered += () => jumpTriggered.Value++;
@@ -35,6 +37,7 @@ public static class InputActionStories
             if (pressed) source.PressKey(key); else source.ReleaseKey(key);
             Tick();
         }
+        // docs:end input-actions-edges
 
         Widget KeyButton(string label, KeyCode key) => HStack(6)[
             Button(_ => SetKey(key, true), $"{label} 押下"),
@@ -53,12 +56,11 @@ public static class InputActionStories
             Text("WとDを両方押すと斜め方向が正規化されます。Spaceは押下tickでTriggered、解放tickでReleasedが1回ずつ発火します。", 13,
                 color: Bind.From(() => UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 590)]);
     }
-    // docs:end input-actions-story
 
-    // docs:begin input-context-stack
     [Story("Examples/Input/ContextStack", Width = 650, Height = 390, Order = 1)]
     public static Widget ContextStack()
     {
+        // docs:begin input-context-setup
         var source = new FakeInputSource();
         var bus = new InputBus();
         var gameplay = new InputContext("Gameplay");
@@ -68,9 +70,12 @@ public static class InputActionStories
         var stack = new InputStack();
         stack.Push(gameplay);
         stack.Push(menu);
+        // docs:end input-context-setup
+
         var menuSuspended = new Signal<bool>(false);
         var result = new Signal<string>("Enterを送ると、最上位のMenuが先に処理します。");
 
+        // docs:begin input-context-routing
         void TapEnter()
         {
             source.PressKey(KeyCode.Enter); source.Poll(bus); stack.Update(bus);
@@ -81,7 +86,9 @@ public static class InputActionStories
                     : "Enterを受け取ったコンテキストはありません。";
             source.ReleaseKey(KeyCode.Enter); source.Poll(bus); stack.Update(bus);
         }
+        // docs:end input-context-routing
 
+        // docs:begin input-context-suspension
         void ToggleMenu()
         {
             menuSuspended.Value = !menuSuspended.Value;
@@ -90,6 +97,7 @@ public static class InputActionStories
                 ? "Menuを停止しました。次のEnterはGameplayへ届きます。"
                 : "Menuを再開しました。再び最優先でEnterを処理します。";
         }
+        // docs:end input-context-suspension
 
         return Frame(VStack(14, width: 550)[
             Heading("コンテキストの優先順位", 2),
@@ -103,22 +111,24 @@ public static class InputActionStories
                 Text("2. Gameplay: 有効（下位）", 14),
                 Text($"{result}", 14, wrap: TextWrap.Word, width: 500)])]);
     }
-    // docs:end input-context-stack
 
-    // docs:begin input-bindings-story
     [Story("Examples/Input/Bindings", Width = 680, Height = 440, Order = 2)]
     public static Widget Bindings()
     {
+        // docs:begin input-bindings-setup
         var source = new FakeInputSource();
         var bus = new InputBus();
         var context = new InputContext("Gameplay");
         var jump = context.Add(new ButtonAction("Jump", KeyCode.Space));
         var stack = new InputStack();
         stack.Push(context);
+        // docs:end input-bindings-setup
+
         var current = new Signal<KeyCode>(KeyCode.Space);
         var result = new Signal<string>("現在のJumpはSpaceです。");
         var json = new Signal<string>(Serialize(KeyCode.Space));
 
+        // docs:begin input-bindings-apply
         void ApplyBinding(KeyCode key)
         {
             string serialized = Serialize(key);
@@ -128,7 +138,9 @@ public static class InputActionStories
             json.Value = serialized;
             result.Value = $"JSONを読み込み、Jumpを{current.Value}へ再設定しました。";
         }
+        // docs:end input-bindings-apply
 
+        // docs:begin input-bindings-simulate
         void Simulate(KeyCode key)
         {
             source.PressKey(key); source.Poll(bus); stack.Update(bus);
@@ -138,6 +150,7 @@ public static class InputActionStories
                 ? $"{key}でJumpが発火しました。"
                 : $"{key}は現在のJumpバインドではありません。";
         }
+        // docs:end input-bindings-simulate
 
         return Frame(VStack(12, width: 600)[
             Heading("バインディングと再設定", 2),
@@ -153,10 +166,11 @@ public static class InputActionStories
             Text($"{result}", 14, color: Bind.From(() => UiTheme.T.TextMuted)),
             Card(Text($"{json}", 12, wrap: TextWrap.Word, width: 520))]);
 
+        // docs:begin input-bindings-json
         static string Serialize(KeyCode key) => JsonSerializer.Serialize(new InputBindings
         {
             Actions = { ["Jump"] = new InputBindingEntry { Kind = "button", Keys = [key.ToString()] } }
         }, new JsonSerializerOptions { WriteIndented = true });
+        // docs:end input-bindings-json
     }
-    // docs:end input-bindings-story
 }
