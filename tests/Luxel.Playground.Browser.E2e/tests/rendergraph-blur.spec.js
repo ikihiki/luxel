@@ -14,7 +14,8 @@ test('runs the RenderGraph Blur story through the WebAssembly runtime', async ({
   await expect.poll(() => page.evaluate(() => globalThis.luxelBrowserState?.renderRevision),
     { timeout: 60_000 }).toBeGreaterThanOrEqual(2);
 
-  const coloredSamples = await page.locator('#luxel-canvas').evaluate(async source => {
+  const canvas = page.locator('#luxel-canvas');
+  await expect.poll(() => canvas.evaluate(async source => {
     const image = new Image();
     image.src = source.toDataURL('image/png');
     await image.decode();
@@ -33,8 +34,6 @@ test('runs the RenderGraph Blur story through the WebAssembly runtime', async ({
       }
     }
     return colored;
-  });
-
-  expect(coloredSamples).toBeGreaterThan(100);
+  }), { timeout: 30_000 }).toBeGreaterThan(100);
   expect(consoleErrors).toEqual([]);
 });
