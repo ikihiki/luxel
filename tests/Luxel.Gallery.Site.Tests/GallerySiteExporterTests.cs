@@ -1008,7 +1008,7 @@ public sealed class GallerySiteExporterTests
         string[] livePaths =
         [
             "Examples/2D/SceneRender", "Examples/2D/Shapes", "Examples/2D/VectorPaths",
-            "Examples/2D/CameraRig", "Examples/2D/Sprites",
+            "Examples/2D/CameraRig", "Examples/2D/Sprites", "Examples/2D/RetainedCanvasLive",
             "Examples/2D/Rasterizer/InputPathsLive", "Examples/2D/Rasterizer/EncodedSceneLive",
             "Examples/2D/Rasterizer/BoundsLive", "Examples/2D/Rasterizer/TileBinsLive",
             "Examples/2D/Rasterizer/CoverageLive", "Examples/2D/Rasterizer/StrokeLive",
@@ -1034,6 +1034,9 @@ public sealed class GallerySiteExporterTests
             using var context = new StoryContext();
             StoryResult result = lesson.BuildResult(context);
             Assert.Equal(StoryResultKind.Markdown, result.Kind);
+            Assert.DoesNotContain("## WASM", result.Markdown, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("## 実装を読む", result.Markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("## 実装の正", result.Markdown, StringComparison.Ordinal);
             Assert.True(lesson.Toc);
             Assert.Contains("<!-- luxel-toc -->", StoryMarkdownRenderer.EffectiveMarkdown(lesson, result.Markdown));
             Assert.All(result.References, reference =>
@@ -1042,6 +1045,22 @@ public sealed class GallerySiteExporterTests
                 Assert.Equal(CoreUiStoryProject.RuntimeBundleId, browserCatalog.Find(reference.Path)?.RuntimeBundleId);
             });
         }
+    }
+
+    [Fact]
+    public void TwoD_live_samples_use_the_APIs_taught_by_the_lessons()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(root,
+            "src", "Luxel.Gallery.Stories.CoreUi", "Stories", "TwoDBrowserStories.cs"));
+
+        Assert.Contains("scene.ImageRect(", source, StringComparison.Ordinal);
+        Assert.Contains("scene.ImageSubRect(", source, StringComparison.Ordinal);
+        Assert.Contains("scene.DrawSprite(", source, StringComparison.Ordinal);
+        Assert.Contains("encoded.Render(camera", source, StringComparison.Ordinal);
+        Assert.Contains("new RetainedCanvas()", source, StringComparison.Ordinal);
+        Assert.Contains("canvas.LastTransformWrites", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Vector2 Transform(", source, StringComparison.Ordinal);
     }
 
     [Fact]

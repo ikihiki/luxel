@@ -1,12 +1,11 @@
 using Luxel.Controls;
-using static Luxel.Gallery.Stories.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
 public static class LearnRenderingTwoD
 {
     private static StoryResult Page(string path, string title, string objective, string mentalModel,
-        string example, string contracts, StoryReference live, DocMarkdown source)
+        string example, string contracts, StoryReference sample)
         => $$"""
         # {{title}}
 
@@ -28,13 +27,7 @@ public static class LearnRenderingTwoD
 
         {{contracts}}
 
-        ## WASMで確認する
-
-        {{live}}
-
-        ## 実装を読む
-
-        {{source}}
+        {{sample}}
         """;
 
     [Story("Learn/Graphics/2D/Paths", Order = 11, Toc = true)]
@@ -51,7 +44,7 @@ scene.BeginFill(Color2D.Rgba(59, 130, 246), FillRule.EvenOdd)
 ```
 """",
         "fillとimage contourはencode時に閉じます。strokeは`Close`を呼んだcontourだけが閉じます。`LineTo`/`QuadTo`/`CubicTo`にはcurrent contourが必要で、2点未満のcontourは破棄されます。`FlattenTolerance`の単位はworld unitです。",
-        StoryReference.To("Examples/2D/Rasterizer/InputPathsLive"), SampleSource("src/Luxel.Graphics.TwoD/Scene2D.cs"));
+        StoryReference.To("Examples/2D/Rasterizer/InputPathsLive"));
 
     [Story("Learn/Graphics/2D/Compositing", Order = 12, Toc = true)]
     public static StoryResult Compositing() => Page("Learn/Graphics/2D/Compositing", "Fill ruleと合成",
@@ -66,7 +59,7 @@ scene.EndFill();
 ```
 """",
         "`Color2D`はredがlow byteのpacked表現です。`0xAARRGGBB`を想定したliteralは避け、`Color2D.Rgba(r,g,b,a)`を使います。premultiplied colorはRGBにもalphaを掛け、source-overは`out = src + dst × (1-src.a)`です。",
-        StoryReference.To("Examples/2D/Rasterizer/CompositeLive"), SampleSource("src/Luxel.Graphics.TwoD/Primitives.cs"));
+        StoryReference.To("Examples/2D/Rasterizer/CompositeLive"));
 
     [Story("Learn/Graphics/2D/Images", Order = 13, Toc = true)]
     public static StoryResult Images() => Page("Learn/Graphics/2D/Images", "Image、sprite、atlas",
@@ -80,7 +73,7 @@ scene.ImageSubRect(imageIndex, imageStride,
 ```
 """",
         "source座標とstrideはpixel単位です。bufferはencoded scene/sessionより長く生存させます。RGBAはpremultipliedを前提とし、atlas端のfilter bleedを避けます。現在のSkia backendはimage shapeを支援しないため`Rasterizer2DCapabilities.BindlessImages`を確認します。",
-        StoryReference.To("Examples/2D/Sprites"), SampleSource("src/Luxel.Graphics.TwoD/Scene2D.cs"));
+        StoryReference.To("Examples/2D/Sprites"));
 
     [Story("Learn/Graphics/2D/Camera", Order = 14, Toc = true)]
     public static StoryResult Camera() => Page("Learn/Graphics/2D/Camera", "Camera2Dと描画変換",
@@ -97,7 +90,7 @@ encoded.Render(camera, target);
 ```
 """",
         "geometry座標はworld-space、stroke widthはscreen pixelです。rasterizerへcameraを渡す場合、geometryを手動で同じcamera変換してはいけません。resize時はscreen寸法からcameraを作り直し、0×0 targetではrenderしません。input、pointer逆変換、hit testはこのコースの対象外です。",
-        StoryReference.To("Examples/2D/CameraRig"), SampleSource("src/Luxel.Graphics.TwoD/Primitives.cs"));
+        StoryReference.To("Examples/2D/CameraRig"));
 
     [Story("Learn/Graphics/2D/Backends", Order = 15, Toc = true)]
     public static StoryResult Backends() => Page("Learn/Graphics/2D/Backends", "GPUとSkia backend",
@@ -113,7 +106,7 @@ encoded.Render(Camera2D.Pixels, target);
 ```
 """",
         "GPUは`GpuCommandRecording`、`BindlessImages`、`RetainedIncrementalUpdates`、Skiaは`CpuRgbaTarget`を提供します。sessionをrasterizerより先にdisposeし、同じrasterizerを複数threadから同時使用しません。browser live sampleはWebGPU、headless referenceはSkiaを使います。",
-        StoryReference.To("Examples/2D/SceneRender"), SampleSource("src/Luxel.Graphics.TwoD/IRasterizer2D.cs"));
+        StoryReference.To("Examples/2D/SceneRender"));
 
     [Story("Learn/Graphics/2D/RetainedCanvas", Order = 16, Toc = true)]
     public static StoryResult RetainedCanvasPage() => Page("Learn/Graphics/2D/RetainedCanvas", "RetainedCanvas",
@@ -129,7 +122,7 @@ card.Color = Color2D.Rgba(47, 111, 237);
 ```
 """",
         "`HasPendingChanges`はqueued mutationを示すだけでuploadは行いません。backendとの同期はrender時です。transform/style変更はgeometryを再生成せず、contentやtree構造の変更はsegment更新またはfull rebuildを発生させます。",
-        StoryReference.To("Examples/2D/Rasterizer/RetainedUpdatesLive"), SampleSource("src/Luxel.Graphics.TwoD/Retained/RetainedCanvas.cs"));
+        StoryReference.To("Examples/2D/RetainedCanvasLive"));
 
     [Story("Learn/Graphics/2D/IncrementalUpdates", Order = 17, Toc = true)]
     public static StoryResult IncrementalUpdates() => Page("Learn/Graphics/2D/IncrementalUpdates", "増分更新",
@@ -139,11 +132,11 @@ card.Color = Color2D.Rgba(47, 111, 237);
 ```csharp
 node.Transform = Affine2D.Translate(40, 12);
 encoded.Render(camera, target);
-Console.WriteLine(encoded.LastTransformWrites);
-Console.WriteLine(encoded.LastSegmentBytesWritten);
-Console.WriteLine(encoded.LastWasFullRebuild);
+Console.WriteLine(canvas.LastTransformWrites);
+Console.WriteLine(canvas.LastSegmentBytesWritten);
+Console.WriteLine(canvas.LastWasFullRebuild);
 ```
 """",
         "`LastTransformWrites`、`LastStyleWrites`、`LastSegmentBytesWritten`、`LastWasFullRebuild`は直近の同期結果です。値を読む前にrenderを完了し、`HasPendingChanges`と混同しません。",
-        StoryReference.To("Examples/2D/Rasterizer/RetainedUpdatesLive"), SampleSource("src/Luxel.Graphics.TwoD/GpuDeviceRasterizer2D.cs"));
+        StoryReference.To("Examples/2D/Rasterizer/RetainedUpdatesLive"));
 }

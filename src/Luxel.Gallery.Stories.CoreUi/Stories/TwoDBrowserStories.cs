@@ -1,5 +1,8 @@
 using System.Numerics;
+using Luxel.Controls;
+using Luxel.Graphics;
 using Luxel.Graphics.TwoD;
+using Luxel.Mathematics;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
@@ -12,14 +15,16 @@ public static class TwoDBrowserStories
     private const string BrowserNote = "Runs through the Gallery browser-WASM WebGPU runtime.";
 
     [Story("Examples/2D/SceneRender", Width = 480, Height = 300, Order = 109, CapabilityNote = BrowserNote)]
-    public static Widget SceneRender(StoryContext ctx) => Snapshot(ctx, Canvas2D(420, 220, draw: scene =>
+    public static Widget SceneRender(StoryContext ctx)
     {
+        var scene = new Scene2D();
         scene.FillRect(Color2D.Rgba(18, 24, 38), 0, 0, 420, 220);
         scene.FillRoundedRect(Color2D.Rgba(47, 111, 237), 28, 30, 150, 86, 18);
         scene.FillCircle(Color2D.Rgba(245, 180, 55), 276, 76, 46);
         scene.BeginFill(Color2D.Rgba(236, 72, 100)).MoveTo(92, 142).LineTo(172, 204).LineTo(26, 204).Close().End();
         scene.StrokeLine(Color2D.Rgba(90, 210, 150), 6, 216, 190, 382, 138);
-    }));
+        return Snapshot(ctx, RasterView(ctx, 420, 220, scene, Camera2D.Pixels));
+    }
 
     [Story("Examples/2D/Shapes", Width = 480, Height = 300, Order = 110, CapabilityNote = BrowserNote)]
     public static Widget Shapes(StoryContext ctx) => Snapshot(ctx, Canvas2D(420, 220, draw: scene =>
@@ -46,32 +51,55 @@ public static class TwoDBrowserStories
     }));
 
     [Story("Examples/2D/CameraRig", Width = 540, Height = 360, Order = 118, CapabilityNote = BrowserNote)]
-    public static Widget CameraTransform(StoryContext ctx) => Snapshot(ctx, VStack(6)[
-        Muted("同じ world geometry を identity / translated / zoomed Camera2D で比較"),
-        Frame(Canvas2D(460, 84, draw: scene => DrawCameraStage(scene, Camera2D.Pixels))),
-        Frame(Canvas2D(460, 84, draw: scene => DrawCameraStage(scene, Camera2D.Create(1f, new Vector2(80, 10), 460, 84)))),
-        Frame(Canvas2D(460, 84, draw: scene => DrawCameraStage(scene, Camera2D.Create(1.6f, new Vector2(160, 42), 460, 84))))
-    ]);
+    public static Widget CameraTransform(StoryContext ctx)
+    {
+        Scene2D WorldScene()
+        {
+            var scene = new Scene2D();
+            for (float x = -120; x < 620; x += 40)
+                scene.StrokeLine(Color2D.Rgba(70, 82, 105), 1, x, -80, x, 164);
+            scene.FillRoundedRect(Color2D.Rgba(245, 180, 55), 220, 32, 20, 20, 4);
+            return scene;
+        }
+
+        return Snapshot(ctx, VStack(6)[
+            Muted("同じ world geometry を IRasterScene2D.Render の camera引数だけ変えて比較"),
+            RasterView(ctx, 460, 84, WorldScene(), Camera2D.Pixels),
+            RasterView(ctx, 460, 84, WorldScene(), Camera2D.Create(1f, new Vector2(80, 10), 460, 84)),
+            RasterView(ctx, 460, 84, WorldScene(), Camera2D.Create(1.6f, new Vector2(160, 42), 460, 84))
+        ]);
+    }
 
     [Story("Examples/2D/Sprites", Width = 480, Height = 300, Order = 119, CapabilityNote = BrowserNote)]
-    public static Widget Sprites(StoryContext ctx) => Snapshot(ctx, VStack(6)[
-        Muted("手続き atlas の 4 frame と、sub-rect を拡大した描画結果"),
-        Frame(Canvas2D(400, 210, draw: scene =>
-        {
-            scene.FillRect(Color2D.Rgba(26, 31, 42), 0, 0, 400, 210);
-            uint[] colors = [Color2D.Rgba(60, 130, 240), Color2D.Rgba(230, 80, 100), Color2D.Rgba(40, 200, 120), Color2D.Rgba(235, 200, 50)];
-            for (int i = 0; i < 4; i++)
-            {
-                float x = 18 + i * 54;
-                scene.FillRect(colors[i], x, 20, 42, 42);
-                scene.StrokeRoundedRect(Color2D.Rgba(245, 245, 245), 2, x, 20, 42, 42, 2);
-                scene.FillRect(Color2D.Rgba(245, 245, 245), x + (i % 2 == 0 ? 5 : 27), 25 + (i < 2 ? 0 : 22), 10, 10);
-            }
-            scene.FillRoundedRect(colors[2], 258, 82, 112, 112, 8);
-            scene.StrokeRoundedRect(Color2D.Rgba(245, 245, 245), 4, 258, 82, 112, 112, 8);
-            scene.FillRect(Color2D.Rgba(245, 245, 245), 272, 144, 28, 28);
-        }))
-    ]);
+    public static Widget Sprites(StoryContext ctx)
+    {
+        if (ctx.DeviceOrNull is not { } device) return Snapshot(ctx, Muted("GPU runtime required"));
+        const int atlasW = 64, atlasH = 64, cell = 32;
+        GpuBuffer atlasBuffer = device.Malloc(atlasW * atlasH * 4, GpuMemoryKind.HostMapped);
+        FillAtlas(atlasBuffer.Span<byte>(atlasW * atlasH * 4), atlasW, cell);
+        var atlas = new SpriteAtlas("proc://2d-course", [
+            new("f_0", new SpriteRect(0, 0, cell, cell)),
+            new("f_1", new SpriteRect(cell, 0, cell, cell)),
+            new("f_2", new SpriteRect(0, cell, cell, cell)),
+            new("f_3", new SpriteRect(cell, cell, cell, cell)),
+        ]);
+        atlas.Bind(atlasBuffer.BindlessIndex, atlasW, atlasH);
+
+        var scene = new Scene2D();
+        scene.FillRect(Color2D.Rgba(26, 31, 42), 0, 0, 400, 210);
+        scene.ImageRect(atlasBuffer.BindlessIndex, atlasW, atlasW, atlasH, 18, 18, 64, 64);
+        scene.ImageSubRect(atlasBuffer.BindlessIndex, atlasW, 32, 0, 32, 32, 116, 18, 64, 64);
+        for (int frame = 0; frame < 4; frame++)
+            scene.DrawSprite(atlas, $"f_{frame}", 18 + frame * 54, 112, scale: 1.5f);
+        var animation = new SpriteAnimation("f_", frameCount: 4, fps: 8f);
+        animation.Update(0.30f);
+        scene.DrawSprite(atlas, animation, 286, 94, scale: 3f);
+
+        return Snapshot(ctx, VStack(6)[
+            Muted("ImageRect / ImageSubRect / DrawSprite を同じ手続きatlasで比較"),
+            RasterView(ctx, 400, 210, scene, Camera2D.Pixels, atlasBuffer)
+        ]);
+    }
 
     [Story("Examples/2D/Rasterizer/InputPathsLive", Width = 520, Height = 300, Order = 200, CapabilityNote = BrowserNote)]
     public static Widget InputPaths(StoryContext ctx) => Diagnostic(ctx, "open stroke / closed fill", scene =>
@@ -125,11 +153,14 @@ public static class TwoDBrowserStories
     });
 
     [Story("Examples/2D/Rasterizer/CompositeLive", Width = 520, Height = 300, Order = 206, CapabilityNote = BrowserNote)]
-    public static Widget Composite(StoryContext ctx) => Diagnostic(ctx, "painter order と source-over", scene =>
+    public static Widget Composite(StoryContext ctx) => Diagnostic(ctx, "EvenOdd fill と painter-order source-over", scene =>
     {
-        scene.FillCircle(Color2D.Rgba(239, 68, 68, 190), 156, 110, 76);
-        scene.FillCircle(Color2D.Rgba(59, 130, 246, 190), 232, 110, 76);
-        scene.FillRoundedRect(Color2D.Rgba(34, 197, 94, 180), 204, 72, 140, 94, 20);
+        scene.BeginFill(Color2D.Rgba(59, 130, 246, 210), FillRule.EvenOdd);
+        AddCircle(scene, 112, 110, 76);
+        AddCircle(scene, 112, 110, 34);
+        scene.EndFill();
+        scene.FillCircle(Color2D.Rgba(239, 68, 68, 190), 226, 110, 76);
+        scene.FillRoundedRect(Color2D.Rgba(34, 197, 94, 180), 248, 72, 140, 94, 20);
     });
 
     [Story("Examples/2D/Rasterizer/DispatchLive", Width = 520, Height = 300, Order = 207, CapabilityNote = BrowserNote)]
@@ -144,22 +175,42 @@ public static class TwoDBrowserStories
         }
     });
 
-    [Story("Examples/2D/Rasterizer/RetainedUpdatesLive", Width = 520, Height = 330, Order = 208, CapabilityNote = BrowserNote)]
-    public static Widget RetainedUpdates(StoryContext ctx) => Snapshot(ctx, VStack(6)[
-        Muted("transform/style の部分更新と geometry full rebuild の差"),
-        Frame(Canvas2D(420, 205, draw: scene =>
-        {
-            scene.FillRoundedRect(Color2D.Rgba(59, 130, 246), 22, 28, 112, 58, 12);
-            scene.FillRoundedRect(Color2D.Rgba(34, 197, 94), 154, 28, 112, 58, 12);
-            scene.FillRoundedRect(Color2D.Rgba(239, 68, 68), 286, 28, 112, 58, 12);
-            scene.StrokeLine(Color2D.Rgba(59, 130, 246), 5, 78, 100, 78, 176);
-            scene.StrokeLine(Color2D.Rgba(34, 197, 94), 5, 210, 100, 210, 176);
-            scene.StrokeLine(Color2D.Rgba(239, 68, 68), 5, 342, 100, 342, 176);
-            for (int i = 0; i < 3; i++) for (int j = 0; j <= i; j++)
-                scene.FillCircle(i == 2 ? Color2D.Rgba(239, 68, 68) : i == 1 ? Color2D.Rgba(34, 197, 94) : Color2D.Rgba(59, 130, 246),
-                    56 + i * 132 + j * 22, 188, 6);
-        }))
-    ]);
+    [Story("Examples/2D/RetainedCanvasLive", Width = 520, Height = 300, Order = 208, CapabilityNote = BrowserNote)]
+    public static Widget RetainedCanvasSample(StoryContext ctx)
+    {
+        var canvas = new RetainedCanvas();
+        UiNode blue = canvas.AddChild(canvas.Root);
+        blue.Content = new Scene2D().FillRoundedRect(Color2D.White, 0, 0, 150, 72, 14);
+        blue.Transform = Affine2D.Translate(28, 34);
+        blue.Color = Color2D.Rgba(59, 130, 246);
+        UiNode amber = canvas.AddChild(canvas.Root);
+        amber.Content = new Scene2D().FillCircle(Color2D.White, 0, 0, 42);
+        amber.Transform = Affine2D.Translate(290, 112);
+        amber.Color = Color2D.Rgba(245, 158, 11);
+        return Snapshot(ctx, VStack(6)[
+            Muted("RetainedCanvasのnode treeをIRasterizer2D.CreateSceneで描画"),
+            RasterView(ctx, 420, 220, canvas, Camera2D.Pixels)
+        ]);
+    }
+
+    [Story("Examples/2D/Rasterizer/RetainedUpdatesLive", Width = 520, Height = 330, Order = 209, CapabilityNote = BrowserNote)]
+    public static Widget RetainedUpdates(StoryContext ctx)
+    {
+        var canvas = new RetainedCanvas();
+        UiNode card = canvas.AddChild(canvas.Root);
+        card.Content = new Scene2D().FillRoundedRect(Color2D.White, 0, 0, 180, 90, 14);
+        card.Transform = Affine2D.Translate(24, 24);
+        card.Color = Color2D.Rgba(59, 130, 246);
+        canvas.Flush(420, 220);
+        card.Transform = Affine2D.Translate(190, 92);
+        card.Color = Color2D.Rgba(34, 197, 94);
+        canvas.Flush(420, 220);
+        string counters = $"transform={canvas.LastTransformWrites}, style={canvas.LastStyleWrites}, segmentBytes={canvas.LastSegmentBytesWritten}, fullRebuild={canvas.LastWasFullRebuild}";
+        return Snapshot(ctx, VStack(6)[
+            Muted(counters),
+            RasterView(ctx, 420, 220, canvas, Camera2D.Pixels)
+        ]);
+    }
 
     private static Widget Diagnostic(StoryContext ctx, string caption, Action<Scene2D> draw)
         => Snapshot(ctx, VStack(6)[Muted(caption), Frame(Canvas2D(420, 220, draw: scene =>
@@ -182,16 +233,72 @@ public static class TwoDBrowserStories
         scene.Close();
     }
 
-    private static void DrawCameraStage(Scene2D scene, Camera2D camera)
+    private static Widget RasterView(StoryContext ctx, uint width, uint height, Scene2D scene, Camera2D camera,
+        params IDisposable[] resources)
+        => RasterView(ctx, width, height, rasterizer => rasterizer.CreateScene(scene), camera, resources);
+
+    private static Widget RasterView(StoryContext ctx, uint width, uint height, RetainedCanvas canvas, Camera2D camera,
+        params IDisposable[] resources)
+        => RasterView(ctx, width, height, rasterizer => rasterizer.CreateScene(canvas), camera, [canvas, .. resources]);
+
+    private static Widget RasterView(StoryContext ctx, uint width, uint height,
+        Func<IRasterizer2D, IRasterScene2D> createScene, Camera2D camera, params IDisposable[] resources)
     {
-        scene.FillRect(Color2D.Rgba(20, 26, 38), 0, 0, 460, 84);
-        Vector2 Transform(float x, float y) => new(camera.A * x + camera.C * y + camera.E, camera.B * x + camera.D * y + camera.F);
-        for (float x = -120; x < 620; x += 40)
+        if (ctx.DeviceOrNull is not { } device) return Muted("GPU runtime required");
+        IRasterizer2D rasterizer = new GpuDeviceRasterizer2D(device, RasterShader);
+        IRasterScene2D encoded = createScene(rasterizer);
+        return GpuView(width, height, (_, surface, _) =>
         {
-            Vector2 a = Transform(x, -80), b = Transform(x, 164);
-            scene.StrokeLine(Color2D.Rgba(70, 82, 105), 1, a.X, a.Y, b.X, b.Y);
+            using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
+            encoded.Render(camera, new GpuRasterTarget2D(command, surface.Framebuffer, width, height));
+            command.Finish();
+            device.MainQueue.Submit(command);
+            return GpuViewRenderResult.Ready;
+        }, animated: false, dispose: () =>
+        {
+            encoded.Dispose();
+            rasterizer.Dispose();
+            foreach (IDisposable resource in resources) resource.Dispose();
+        });
+    }
+
+    private static GpuShaderCode RasterShader(string name) => new()
+    {
+        SpirV = ShaderResource(name + ".spv"),
+        Dxil = ShaderResource(name + ".dxil"),
+        Wgsl = ShaderResource(name + ".wgsl"),
+    };
+
+    private static byte[] ShaderResource(string fileName)
+    {
+        System.Reflection.Assembly assembly = typeof(TwoDBrowserStories).Assembly;
+        string resourceName = assembly.GetManifestResourceNames().Single(name =>
+            name.EndsWith("Shaders." + fileName, StringComparison.Ordinal));
+        using Stream stream = assembly.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException($"Embedded raster shader is missing: {fileName}");
+        using var memory = new MemoryStream();
+        stream.CopyTo(memory);
+        return memory.ToArray();
+    }
+
+    private static void FillAtlas(Span<byte> pixels, int atlasWidth, int cell)
+    {
+        (byte R, byte G, byte B)[] colors = [(60, 130, 240), (230, 80, 100), (40, 200, 120), (235, 200, 50)];
+        for (int frame = 0; frame < 4; frame++)
+        {
+            int originX = frame % 2 * cell, originY = frame / 2 * cell;
+            for (int y = 0; y < cell; y++)
+            for (int x = 0; x < cell; x++)
+            {
+                int offset = ((originY + y) * atlasWidth + originX + x) * 4;
+                bool border = x < 2 || y < 2 || x >= cell - 2 || y >= cell - 2;
+                bool marker = x >= (frame % 2 == 0 ? 4 : 20) && x < (frame % 2 == 0 ? 12 : 28)
+                    && y >= (frame < 2 ? 4 : 20) && y < (frame < 2 ? 12 : 28);
+                pixels[offset] = border ? (byte)20 : marker ? (byte)245 : colors[frame].R;
+                pixels[offset + 1] = border ? (byte)24 : marker ? (byte)245 : colors[frame].G;
+                pixels[offset + 2] = border ? (byte)30 : marker ? (byte)245 : colors[frame].B;
+                pixels[offset + 3] = 255;
+            }
         }
-        Vector2 point = Transform(230, 42);
-        scene.FillRoundedRect(Color2D.Rgba(245, 180, 55), point.X - 10, point.Y - 10, 20, 20, 4);
     }
 }

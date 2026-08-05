@@ -28,6 +28,9 @@
                       GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="..\..\shaders\compiled\raster2d_bounds.*" Link="Shaders\%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\shaders\compiled\raster2d_bin.*" Link="Shaders\%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\shaders\compiled\raster2d_fine.*" Link="Shaders\%(Filename)%(Extension)" />
     <InternalsVisibleTo Include="Luxel.Gallery.Site.Tests" />
   </ItemGroup>
 </Project>
