@@ -140,6 +140,27 @@ git status --short shaders
 <pre><code class="language-csharp">GpuShaderCode shader = GpuShaderCode.Load(&quot;my_effect&quot;);
 using GpuPipeline pipeline = device.CreateGraphicsPipeline(shader, raster);
 </code></pre>
+<h2 id="publish">Publishする際の注意</h2>
+<p>executable projectから<code>shaders/Luxel.Shaders.targets</code>をimportすると、compiled shader cacheがbuild/publish先の<code>shaders/</code>へcopyされます。publish時にSlang compilerを実行するのではなく、Git管理された検証済みartifactを同梱します。</p>
+<pre><code class="language-xml">&lt;Import Project=&quot;../../shaders/Luxel.Shaders.targets&quot; /&gt;
+</code></pre>
+<p>runtimeではcurrent working directoryではなく、executable基準の<code>AppContext.BaseDirectory/shaders</code>からshaderを解決します。IDEやrepository rootから起動したときだけ動く相対pathを使用しないでください。</p>
+<pre><code class="language-csharp">string shaderDirectory = Path.Combine(
+    AppContext.BaseDirectory, &quot;shaders&quot;);
+</code></pre>
+<p><code>dotnet publish</code>後は、必要な<code>.spv</code>、<code>.vs.dxil</code>、<code>.ps.dxil</code>、compute用<code>.dxil</code>がpublish directoryへ存在することを確認します。publish directory自体へ<code>cd</code>するだけではcwd依存を発見できないため、空の別directoryをcurrent directoryにして、publishしたexecutableを絶対pathで起動するsmoke testを行います。</p>
+<pre><code class="language-powershell">$publish = Join-Path $env:TEMP &quot;luxel-publish&quot;
+$cwd = Join-Path $env:TEMP &quot;luxel-empty-cwd&quot;
+dotnet publish samples/LuxelTriangle/LuxelTriangle.csproj `
+  -c Release -o $publish
+
+Push-Location $cwd
+try {
+  &amp; (Join-Path $publish &quot;LuxelTriangle.exe&quot;) vk --frames 1
+  if ($LASTEXITCODE -ne 0) { throw &quot;publish smoke failed&quot; }
+} finally { Pop-Location }
+</code></pre>
+<p>Linuxでは実行ファイル名に<code>.exe</code>を付けません。Windowsでは必要に応じてVulkanとDirectX 12の両方を起動し、cacheに各backend用artifactが含まれることを確認します。</p>
 <p>cacheが不足している、またはsourceと<code>inputs.sha256</code>が一致しない場合、通常buildは意図的に失敗します。<code>CompileLuxelShaderCache</code>を再実行し、生成物を更新してください。pipelineとshaderがGPU commandから参照されている間は破棄せず、sourceだけを変更した古いcacheを配布しないようにします。</p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/Shaders&quot;, Order = 6)]
 public static Widget Shaders(StoryContext ctx)
@@ -295,6 +316,38 @@ public static Widget Shaders(StoryContext ctx)
     GpuShaderCode shader = GpuShaderCode.Load(&quot;my_effect&quot;);
     using GpuPipeline pipeline = device.CreateGraphicsPipeline(shader, raster);
     ```
+
+    ## Publishする際の注意
+
+    executable projectから`shaders/Luxel.Shaders.targets`をimportすると、compiled shader cacheがbuild/publish先の`shaders/`へcopyされます。publish時にSlang compilerを実行するのではなく、Git管理された検証済みartifactを同梱します。
+
+    ```xml
+    &lt;Import Project=&quot;../../shaders/Luxel.Shaders.targets&quot; /&gt;
+    ```
+
+    runtimeではcurrent working directoryではなく、executable基準の`AppContext.BaseDirectory/shaders`からshaderを解決します。IDEやrepository rootから起動したときだけ動く相対pathを使用しないでください。
+
+    ```csharp
+    string shaderDirectory = Path.Combine(
+        AppContext.BaseDirectory, &quot;shaders&quot;);
+    ```
+
+    `dotnet publish`後は、必要な`.spv`、`.vs.dxil`、`.ps.dxil`、compute用`.dxil`がpublish directoryへ存在することを確認します。publish directory自体へ`cd`するだけではcwd依存を発見できないため、空の別directoryをcurrent directoryにして、publishしたexecutableを絶対pathで起動するsmoke testを行います。
+
+    ```powershell
+    $publish = Join-Path $env:TEMP &quot;luxel-publish&quot;
+    $cwd = Join-Path $env:TEMP &quot;luxel-empty-cwd&quot;
+    dotnet publish samples/LuxelTriangle/LuxelTriangle.csproj `
+      -c Release -o $publish
+
+    Push-Location $cwd
+    try {
+      &amp; (Join-Path $publish &quot;LuxelTriangle.exe&quot;) vk --frames 1
+      if ($LASTEXITCODE -ne 0) { throw &quot;publish smoke failed&quot; }
+    } finally { Pop-Location }
+    ```
+
+    Linuxでは実行ファイル名に`.exe`を付けません。Windowsでは必要に応じてVulkanとDirectX 12の両方を起動し、cacheに各backend用artifactが含まれることを確認します。
 
     cacheが不足している、またはsourceと`inputs.sha256`が一致しない場合、通常buildは意図的に失敗します。`CompileLuxelShaderCache`を再実行し、生成物を更新してください。pipelineとshaderがGPU commandから参照されている間は破棄せず、sourceだけを変更した古いcacheを配布しないようにします。
     &quot;&quot;&quot;, toc: true);

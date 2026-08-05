@@ -1,8 +1,8 @@
 <article class="story document-page"><h1 id="rendergraph">RenderGraph</h1>
 <p><strong>難易度:</strong> Beginner+　 <strong>実行環境:</strong> Standalone + DevTools　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> Fence</p>
-<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FFence">Fence</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FThreeD%2FTextures">Textures</a></p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FFence">Fence</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FTwoD%2FOverview">Overview</a></p>
 <p>RenderGraphは、複数passがどのresourceを読み書きするか宣言し、実行順の検証、barrier、不要passのculling、transient resourceの寿命をまとめて扱います。前ページのFenceがCPUとsubmit完了の境界を扱うのに対し、RenderGraphは主にsubmit内部のGPU処理を構成します。</p>
-<p>実行sampleは <code>samples/LuxelTriangle/Program.cs</code>、<code>samples/LuxelTriangle/TriangleRenderer.cs</code>、<code>samples/LuxelTriangle/TutorialAbi.cs</code>、scene shaderの<code>shaders/tutorial_3d.slang</code>、post-process shaderの<code>shaders/compute_tutorial_postprocess.slang</code>です。sampleの見た目には後続の3D章で説明するtexture、camera、depth、lightingも含まれますが、このページではgraphのresourceとpass宣言だけに注目します。RenderGraph本体は<code>src/Luxel.RenderGraph/</code>にあります。</p>
+<p>実行sampleは <code>samples/LuxelTriangle/Program.cs</code>、<code>samples/LuxelTriangle/TriangleRenderer.cs</code>、<code>samples/LuxelTriangle/TutorialAbi.cs</code>、scene shaderの<code>shaders/tutorial_3d.slang</code>、post-process shaderの<code>shaders/compute_tutorial_postprocess.slang</code>です。sampleにはtextureやcameraを含む完成済みsceneを使いますが、このページではgraphのresourceとpass宣言だけに注目します。indexed meshとcameraの作り方は<a href="#story=Build%2FRecipes%2FIndexedCube">Indexed Cube</a>と<a href="#story=Build%2FRecipes%2FCamera3D">3D Camera</a>へ分けています。RenderGraph本体は<code>src/Luxel.RenderGraph/</code>にあります。</p>
 <h2 id="section">実行と期待結果</h2>
 <pre><code class="language-powershell">dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
 dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter RenderGraphTests
@@ -180,7 +180,7 @@ public static Widget RenderGraph(StoryContext ctx)
 
     RenderGraphは、複数passがどのresourceを読み書きするか宣言し、実行順の検証、barrier、不要passのculling、transient resourceの寿命をまとめて扱います。前ページのFenceがCPUとsubmit完了の境界を扱うのに対し、RenderGraphは主にsubmit内部のGPU処理を構成します。
 
-    実行sampleは `samples/LuxelTriangle/Program.cs`、`samples/LuxelTriangle/TriangleRenderer.cs`、`samples/LuxelTriangle/TutorialAbi.cs`、scene shaderの`shaders/tutorial_3d.slang`、post-process shaderの`shaders/compute_tutorial_postprocess.slang`です。sampleの見た目には後続の3D章で説明するtexture、camera、depth、lightingも含まれますが、このページではgraphのresourceとpass宣言だけに注目します。RenderGraph本体は`src/Luxel.RenderGraph/`にあります。
+    実行sampleは `samples/LuxelTriangle/Program.cs`、`samples/LuxelTriangle/TriangleRenderer.cs`、`samples/LuxelTriangle/TutorialAbi.cs`、scene shaderの`shaders/tutorial_3d.slang`、post-process shaderの`shaders/compute_tutorial_postprocess.slang`です。sampleにはtextureやcameraを含む完成済みsceneを使いますが、このページではgraphのresourceとpass宣言だけに注目します。indexed meshとcameraの作り方は[Indexed Cube](story:Build/Recipes/IndexedCube)と[3D Camera](story:Build/Recipes/Camera3D)へ分けています。RenderGraph本体は`src/Luxel.RenderGraph/`にあります。
 
     ## 実行と期待結果
 

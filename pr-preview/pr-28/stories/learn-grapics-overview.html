@@ -14,13 +14,13 @@ public static Widget Overview(StoryContext ctx)
 
     {RenderingCourseCatalog.ApplicationRouteMarkdown()}
 
-    **検索キーワード:** triangle / texture / camera / render graph / glTF / blank screen / 真っ黒
+    **検索キーワード:** triangle / texture / shader / pipeline / fence / render graph
 
     &gt; [!IMPORTANT]
     &gt; `GpuView` とそのrender callbackはGallery内でデモを表示するためのハーネスです。通常アプリでは `WindowSystem`、`Window`、`GpuSurface` を使います。
 
     ## どのAPIまで学ぶか
 
-    三角形、buffer ABI、texture、shader、pipeline stateを順に学び、FenceでCPUとGPUの完了境界を整理してからRenderGraphへ進みます。`--stage graph`でdirect描画を1 passへ移し、`--stage post`でtransient resourceとcompute post-processを追加します。その後にtexture付きquad、camera、depth/culling/方向光、静的glTF、デバッグ、publishを扱います。複数frame-in-flightの設計も説明しますが、現在の公開queue APIとtutorialはper-submit fenceをまだ提供しません。
+    三角形、buffer ABI、texture付きquad、shader、pipeline stateを順に学び、FenceでCPUとGPUの完了境界を整理してからRenderGraphへ進みます。`--stage graph`でdirect描画を1 passへ移し、`--stage post`でtransient resourceとcompute post-processを追加します。indexed meshとcameraの実装はBuildのRecipeへ分けています。複数frame-in-flightの設計も説明しますが、現在の公開queue APIとtutorialはper-submit fenceをまだ提供しません。
     &quot;&quot;&quot;, toc: true);
 }</code></pre></details></article>
