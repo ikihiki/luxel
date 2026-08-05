@@ -35,6 +35,8 @@ public sealed class StoryAttribute(string path) : Attribute
     public string? RuntimeBundleId { get; set; }
     /// <summary>Human-readable deterministic fixture/capability note exported with runtime descriptors.</summary>
     public string? CapabilityNote { get; set; }
+    /// <summary>Optional static semantic result provider used by host-free exporters.</summary>
+    public string? Result { get; set; }
     /// <summary>Optional static schema provider method on the declaring story type.</summary>
     public string? Args { get; set; }
 }
@@ -57,6 +59,7 @@ public sealed class StoryContext : IDisposable
     private readonly List<StoryArgDefinition> _argDefinitions = new();
     private readonly HashSet<string> _argNames = new(StringComparer.Ordinal);
     private readonly Dictionary<string, StoryKnob> _argKnobs = new(StringComparer.Ordinal);
+    private readonly List<IDisposable> _resourceSubscriptions = [];
 
     /// <summary>Raised with the full canonical snapshot whenever a declared arg changes.</summary>
     public event Action<StoryArgs>? ArgsChanged;
@@ -117,8 +120,8 @@ public sealed class StoryContext : IDisposable
 
     /// <summary>ホスト所有の ResourceSystem (画像/テクスチャ等のロード窓口 — knob/Log と同じく
     /// 「ストーリーがホスト設備を借りる」窓口)。キャッシュはストーリー横断で共有され、
-    /// ハンドルは取得側 (シーン等) が Dispose する (refcount)。Pump はホストの毎フレームループが叩く。
-    /// 初回ロードの publish は Pump 不要 (直接反映) なので、GPU シーンの Init は Ready を待ってよい。</summary>
+    /// ハンドルは取得側 (シーン等) が Dispose する (refcount)。Pump はホストの毎フレームループが叩き、
+    /// <see cref="Observe{T}"/> のsignalへ初回完了・reload・failureをUI thread上で反映する。</summary>
     public Luxel.Resources.ResourceSystem Resources
         => _resources ?? throw new InvalidOperationException("ホストが ResourceSystem を設定していません (StoryContext ctor で渡す)");
 
@@ -132,8 +135,22 @@ public sealed class StoryContext : IDisposable
     /// <summary><see cref="ScopedResources"/> の nullable 版。</summary>
     public Luxel.Resources.ResourceScope? ScopedResourcesOrNull => _scopedResources;
 
-    /// <summary>この story instance が scoped resource lease を解放する。複数回呼び出しても安全。</summary>
-    public void Dispose() => _scopedResources?.Dispose();
+    /// <summary>resource状態をUI signalとして観測する。通知はResourceSystem.Pump() threadで反映される。</summary>
+    public Signal<Luxel.Resources.ResourceState> Observe<T>(Luxel.Resources.ResourceHandle<T> handle)
+    {
+        ArgumentNullException.ThrowIfNull(handle);
+        var signal = new Signal<Luxel.Resources.ResourceState>(handle.State);
+        _resourceSubscriptions.Add(handle.SubscribeState(state => signal.Value = state));
+        return signal;
+    }
+
+    /// <summary>この story instance が subscription と scoped resource lease を解放する。複数回呼び出しても安全。</summary>
+    public void Dispose()
+    {
+        foreach (IDisposable subscription in _resourceSubscriptions) subscription.Dispose();
+        _resourceSubscriptions.Clear();
+        _scopedResources?.Dispose();
+    }
 
     private Luxel.Graphics.GpuDevice? _device;
     private Luxel.Typography.VectorFont? _font;
@@ -145,6 +162,9 @@ public sealed class StoryContext : IDisposable
         _device = device;
         _font = font;
     }
+
+    /// <summary><see cref="Device"/> の nullable 版。GPU resource stepが利用可能なhostかをbuild中に判定する用途。</summary>
+    public Luxel.Graphics.GpuDevice? DeviceOrNull => _device;
 
     /// <summary>ホスト所有の GpuDevice (実窓専用ストーリー用 — 第 2 ウィンドウの生成等)。</summary>
     public Luxel.Graphics.GpuDevice Device

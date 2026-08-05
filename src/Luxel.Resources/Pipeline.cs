@@ -68,9 +68,27 @@ internal sealed class Pipeline
         var run = (Func<object, ResourceUri, LoadContext, Task<object>>)typeof(Pipeline)
             .GetMethod(nameof(MakeRun), BindingFlags.NonPublic | BindingFlags.Static)!
             .MakeGenericMethod(inT, outT).Invoke(null, [step])!;
+        AddAdapter(stepType.Name, inT, outT, exec, ext, fragPatterns, run);
+    }
 
-        var adapter = new StepAdapter(stepType.Name, inT, outT, exec, ext, fragPatterns, run);
-        if (!_byOutput.TryGetValue(outT, out var list)) _byOutput[outT] = list = new();
+    /// <summary>
+    /// Reflection-free registration path for trimmed/AOT runtimes. Callers that know the step's
+    /// input/output types should prefer this overload so default interface members remain reachable.
+    /// </summary>
+    public void AddStep<TIn, TOut>(IResourceStep<TIn, TOut> step)
+    {
+        ArgumentNullException.ThrowIfNull(step);
+        string[]? extensions = step.Extensions?.Select(extension => extension.ToLowerInvariant()).ToArray();
+        string[]? fragmentPatterns = step.FragmentPatterns?.ToArray();
+        AddAdapter(step.GetType().Name, typeof(TIn), typeof(TOut), step.Executor, extensions, fragmentPatterns,
+            async (input, uri, ctx) => (object)(await step.RunAsync((TIn)input, uri, ctx))!);
+    }
+
+    private void AddAdapter(string name, Type input, Type output, Executor executor, string[]? extensions,
+        string[]? fragmentPatterns, Func<object, ResourceUri, LoadContext, Task<object>> run)
+    {
+        var adapter = new StepAdapter(name, input, output, executor, extensions, fragmentPatterns, run);
+        if (!_byOutput.TryGetValue(output, out var list)) _byOutput[output] = list = new();
         list.Add(adapter);
     }
 

@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Luxel.Assets;
 using Luxel.AssetsGpu;
 
@@ -107,6 +108,76 @@ public class AssetsGpuTests
     }
 
     [Fact]
+    public async Task FloatArrayResourceUploadsIntoOwnedGpuBuffer()
+    {
+        var backend = new FakeGpuBackend();
+        using var device = new GpuDevice(backend);
+        using var resources = new ResourceSystem();
+        using AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        using ResourceScope scope = resources.CreateScope("vertex-upload");
+        float[] vertices = [1.25f, -2.5f, 3.75f, 4f];
+
+        using ResourceHandle<GpuBuffer> buffer = scope.Create<float[], GpuBuffer>(
+            "vertices", vertices);
+        await buffer.Ready;
+
+        Assert.Equal("scope://vertex-upload/vertices", buffer.Uri.ToString());
+        Assert.Equal((ulong)(vertices.Length * sizeof(float)), buffer.Value.Size);
+        Assert.Equal(vertices, buffer.Value.Span<float>(vertices.Length).ToArray());
+    }
+
+    [Fact]
+    public async Task PipelineFactoryAcceptsPendingShaderHandle()
+    {
+        var backend = new FakeGpuBackend();
+        using var device = new GpuDevice(backend);
+        using var resources = new ResourceSystem();
+        using AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        using ResourceScope scope = resources.CreateScope("pending-shader");
+        var completion = new TaskCompletionSource<GpuShaderCode>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using ResourceHandle<GpuShaderCode> shader = resources.Load(
+            "controlled://shader", _ => completion.Task, ResourceOwnership.Borrowed);
+
+        using ResourceHandle<GpuPipeline> pipeline = scope.CreateGraphicsPipeline(
+            "pipeline", shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+        Assert.False(pipeline.Ready.IsCompleted);
+
+        completion.SetResult(new GpuShaderCode { SpirV = [1, 2, 3, 4] });
+        await pipeline.Ready;
+
+        Assert.True(pipeline.HasValue);
+        Assert.Equal(1, backend.PipelineCreations);
+    }
+
+    [Fact]
+    public async Task ShaderRepublishRebuildsDependentPipeline()
+    {
+        var backend = new FakeGpuBackend();
+        using var device = new GpuDevice(backend);
+        using var resources = new ResourceSystem();
+        using AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        using ResourceScope scope = resources.CreateScope("reload-shader");
+        using ResourceHandle<GpuShaderCode> shader = resources.Publish(
+            "published://shader", new GpuShaderCode { SpirV = [1, 2, 3, 4] }, ResourceOwnership.Borrowed);
+        using ResourceHandle<GpuPipeline> pipeline = scope.CreateGraphicsPipeline(
+            "pipeline", shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+        await pipeline.Ready;
+        GpuPipeline first = pipeline.Value;
+
+        resources.Republish(
+            "published://shader", new GpuShaderCode { SpirV = [5, 6, 7, 8] });
+        resources.Pump();
+        resources.Pump();
+        await pipeline.Ready;
+        resources.Pump();
+
+        Assert.NotSame(first, pipeline.Value);
+        Assert.True(pipeline.Version >= 1);
+        Assert.Equal(2, backend.PipelineCreations);
+        Assert.True(backend.Queue.WaitIdleCount >= 1);
+    }
+
+    [Fact]
     public async Task CreateAssetGpuSteps_GlobalRegistrationUsesReturnedRegistry()
     {
         var backend = new FakeGpuBackend();
@@ -165,25 +236,33 @@ public class AssetsGpuTests
     private sealed class FakeGpuBackend : Luxel.Graphics.Abstraction.IGpuBackend
     {
         private int _liveResources;
+        private int _pipelineCreations;
 
         public string Name => "fake";
         public GpuBackendKind Kind => GpuBackendKind.Vulkan;
         public FakeQueue Queue { get; } = new();
         public Luxel.Graphics.Abstraction.IGpuBackendQueue MainQueue => Queue;
         public int LiveResources => Volatile.Read(ref _liveResources);
+        public int PipelineCreations => Volatile.Read(ref _pipelineCreations);
 
         public Luxel.Graphics.Abstraction.IGpuBackendBuffer CreateBuffer(ulong size, GpuMemoryKind kind)
             => Track(new FakeBuffer(size));
 
         public Luxel.Graphics.Abstraction.IGpuBackendPipeline CreateComputePipeline(
             ReadOnlySpan<byte> shaderBlob, string entryPoint)
-            => Track(new FakePipeline(isCompute: true));
+        {
+            Interlocked.Increment(ref _pipelineCreations);
+            return Track(new FakePipeline(isCompute: true));
+        }
 
         public Luxel.Graphics.Abstraction.IGpuBackendPipeline CreateGraphicsPipeline(
             ReadOnlySpan<byte> vsBlob, string vsEntry,
             ReadOnlySpan<byte> psBlob, string psEntry,
             GpuRasterDesc raster)
-            => Track(new FakePipeline(isCompute: false));
+        {
+            Interlocked.Increment(ref _pipelineCreations);
+            return Track(new FakePipeline(isCompute: false));
+        }
 
         public Luxel.Graphics.Abstraction.IGpuBackendTexture CreateRenderTarget(
             uint width, uint height, GpuFormat format)
@@ -218,8 +297,12 @@ public class AssetsGpuTests
 
         public void Dispose()
         {
-            if (Interlocked.Exchange(ref _disposed, 1) == 0) Disposed?.Invoke();
+            if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+            OnDispose();
+            Disposed?.Invoke();
         }
+
+        protected virtual void OnDispose() { }
     }
 
     private sealed class FakePipeline(bool isCompute) : FakeResource, Luxel.Graphics.Abstraction.IGpuBackendPipeline
@@ -241,12 +324,21 @@ public class AssetsGpuTests
         public uint BindlessIndex => 2;
     }
 
-    private sealed class FakeBuffer(ulong size) : FakeResource, Luxel.Graphics.Abstraction.IGpuBackendBuffer
+    private sealed class FakeBuffer : FakeResource, Luxel.Graphics.Abstraction.IGpuBackendBuffer
     {
-        public ulong Size { get; } = size;
+        private readonly IntPtr _memory;
+
+        public FakeBuffer(ulong size)
+        {
+            Size = size;
+            _memory = Marshal.AllocHGlobal(checked((int)size));
+        }
+
+        public ulong Size { get; }
         public ulong DeviceAddress => 0x1000;
         public uint BindlessIndex => 3;
-        public unsafe void* MappedPointer => null;
+        public unsafe void* MappedPointer => (void*)_memory;
+        protected override void OnDispose() => Marshal.FreeHGlobal(_memory);
     }
 
     private sealed class FakeQueue : Luxel.Graphics.Abstraction.IGpuBackendQueue

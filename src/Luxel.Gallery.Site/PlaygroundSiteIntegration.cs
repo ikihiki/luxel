@@ -27,21 +27,22 @@ public static partial class GallerySiteExporter
 })();
 """;
 
-    private static PlaygroundRuntimeManifest? ExportPlaygroundAssets(string output, string? runtimeRoot)
+    private static PlaygroundRuntimeManifest? ExportPlaygroundAssets(string output, string? runtimeRoot,
+        bool incremental, SiteExportMetricsBuilder metrics)
     {
         PlaygroundRuntimeManifest? runtime = runtimeRoot is null ? null : LoadPlaygroundRuntime(runtimeRoot);
         if (runtime is not null)
-            CopyPlaygroundRuntime(runtimeRoot!, Path.Combine(output, PlaygroundRuntimeBaseUrl.Replace('/', Path.DirectorySeparatorChar)));
+            CopyPlaygroundRuntime(runtimeRoot!, Path.Combine(output, PlaygroundRuntimeBaseUrl.Replace('/', Path.DirectorySeparatorChar)), incremental, metrics);
 
         string monacoSource = Path.Combine(AppContext.BaseDirectory, "Assets", "monaco");
         if (!Directory.Exists(monacoSource))
             throw new DirectoryNotFoundException($"Vendored Monaco assets are missing: {monacoSource}");
-        CopyDirectory(Path.Combine(monacoSource, "vs"), Path.Combine(output, "vendor", "monaco", "vs"));
-        File.Copy(Path.Combine(monacoSource, "LICENSE"), Path.Combine(output, "licenses", "monaco-editor-LICENSE.txt"), overwrite: true);
-        File.WriteAllText(Path.Combine(output, "monaco-bootstrap.js"), MonacoBootstrapScript, new UTF8Encoding(false));
-        File.WriteAllText(Path.Combine(output, "playground.css"), PlaygroundAssets.ReadStyle(), new UTF8Encoding(false));
-        File.WriteAllText(Path.Combine(output, "playground.js"), PlaygroundAssets.ReadScript(), new UTF8Encoding(false));
-        File.WriteAllText(Path.Combine(output, "playground-site.js"), PlaygroundBridgeScript, new UTF8Encoding(false));
+        CopyDirectory(Path.Combine(monacoSource, "vs"), Path.Combine(output, "vendor", "monaco", "vs"), incremental, metrics);
+        CopyFileIfChanged(Path.Combine(monacoSource, "LICENSE"), Path.Combine(output, "licenses", "monaco-editor-LICENSE.txt"), incremental, metrics);
+        WriteTextIfChanged(Path.Combine(output, "monaco-bootstrap.js"), MonacoBootstrapScript, incremental, metrics);
+        WriteTextIfChanged(Path.Combine(output, "playground.css"), PlaygroundAssets.ReadStyle(), incremental, metrics);
+        WriteTextIfChanged(Path.Combine(output, "playground.js"), PlaygroundAssets.ReadScript(), incremental, metrics);
+        WriteTextIfChanged(Path.Combine(output, "playground-site.js"), PlaygroundBridgeScript, incremental, metrics);
         return runtime;
     }
 
@@ -86,9 +87,9 @@ public static partial class GallerySiteExporter
         return manifest;
     }
 
-    private static void CopyPlaygroundRuntime(string source, string destination)
+    private static void CopyPlaygroundRuntime(string source, string destination, bool incremental, SiteExportMetricsBuilder metrics)
     {
-        CopyDirectory(source, destination);
+        CopyDirectory(source, destination, incremental, metrics);
         foreach (string relative in PlaygroundRuntimeRequiredFiles)
             if (!File.Exists(Path.Combine(destination, relative)))
                 throw new FileNotFoundException($"Copied playground browser app is incomplete: {relative}", Path.Combine(destination, relative));

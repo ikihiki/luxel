@@ -14,11 +14,11 @@ public static class StartStories
 
         ## 学習ルート
 
-        - **GPU が初めて** — [Rendering Basics](story:Learn/Rendering/Basics/Overview) で window、device、surface、三角形まで進む
-        - **3D アプリを作る** — [ThreeD](story:Learn/Rendering/ThreeD/Textures) で texture、camera、depth、lighting、RenderGraph を組み合わせる
-        - **2D アプリを作る** — [TwoD](story:Learn/Rendering/TwoD/Overview) で path、camera、retained canvas を使う
+        - **GPU が初めて** — [Grapics](story:Learn/Grapics/Overview) で window、device、surface、三角形まで進む
+        - **3D アプリを作る** — [Indexed Cube](story:Build/Recipes/IndexedCube) と [3D Camera](story:Build/Recipes/Camera3D) を組み合わせる
+        - **2D アプリを作る** — [2D](story:Learn/Grapics/2D/Overview) で path、camera、retained canvas を使う
         - **Input / Audio / Resources** — [Input](story:Learn/Input/Overview)、[Audio](story:Learn/Audio/Overview)、[Resources](story:Learn/Resources/Overview)でapp runtimeを組む
-        - **2D rasterizer の中を読む** — [Rasterizer Internals](story:Learn/Rendering/RasterizerInternals/Overview) で encode、bounds、bin、fine pass を追う
+        - **2D rasterizer の中を読む** — [Internal](story:Learn/Grapics/2D/Internal/Overview) で encode、bounds、bin、fine pass を追う
 
         ## コードの保証レベル
 
@@ -37,12 +37,12 @@ public static class StartStories
 
         | 目的 | 開始ページ | 到達物 |
         |---|---|---|
-        | 最初の GPU アプリ | [Basics](story:Learn/Rendering/Basics/Overview) | standalone triangle |
-        | 実用 3D | [ThreeD](story:Learn/Rendering/ThreeD/Textures) | textured 3D viewer |
-        | 2D canvas | [TwoD](story:Learn/Rendering/TwoD/Overview) | input と camera 付き 2D app |
-        | 実装読解 | [Rasterizer Internals](story:Learn/Rendering/RasterizerInternals/Overview) | C# から compute pass まで説明できる |
+        | 最初の GPU アプリ | [Grapics](story:Learn/Grapics/Overview) | standalone triangle |
+        | 実用 3D | [Indexed Cube](story:Build/Recipes/IndexedCube) | indexed mesh + perspective camera |
+        | 2D canvas | [2D](story:Learn/Grapics/2D/Overview) | input と camera 付き 2D app |
+        | 実装読解 | [Internal](story:Learn/Grapics/2D/Internal/Overview) | C# から compute pass まで説明できる |
 
-        初心者は Basics を順番に進めてください。各ページ末尾の「次」を辿れば前提を飛ばしません。
+        初心者は Grapics 直下のページを順番に進めてください。各ページ末尾の「次」を辿れば前提を飛ばしません。
         """, toc: true);
 
     [Story("Start/GalleryGuide", Order = 2)]

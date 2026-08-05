@@ -5,18 +5,15 @@ using Luxel.UI;
 
 string output = args.FirstOrDefault() ?? throw new ArgumentException("Output manifest path is required.");
 StoryCatalog catalog = CoreUiStoryProject.CreateCatalog();
-RuntimeStoryDescriptor[] stories =
-[
-    .. CoreUiStoryProject.RuntimeStories(catalog).Select(story => new RuntimeStoryDescriptor(
+RuntimeStoryDescriptor[] stories = CoreUiStoryProject.RuntimeStories(catalog)
+    .Select(story => new RuntimeStoryDescriptor(
         story.Path,
         story.Width,
         story.Height,
         story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>(),
         story.CapabilityNote,
-        story.ProductionComponent?.ComponentType)),
-    new(CanonicalTriangleRecipe.Story, CanonicalTriangleRecipe.Width, CanonicalTriangleRecipe.Height,
-        Array.Empty<StoryArgDefinition>(), "Specialized browser WebGPU validation route.", null),
-];
+        story.ProductionComponent?.ComponentType))
+    .ToArray();
 stories = stories.OrderBy(story => story.Path, StringComparer.Ordinal).ToArray();
 var manifest = new BrowserRuntimeManifest(
     CoreUiStoryProject.RuntimeBundleId,

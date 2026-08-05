@@ -1,18 +1,20 @@
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Luxel.AssetsGpu;
 using Luxel.Controls;
 using Luxel.Gallery;
 using Luxel.Graphics;
-using Luxel.Graphics.Abstraction;
 using Luxel.Graphics.TwoD;
 using Luxel.Graphics.WebGPU.Browser;
 using Luxel.Platform;
 using Luxel.Platform.Abstraction;
 using Luxel.Platform.Web;
+using Luxel.Resources;
+using Luxel.Shaders;
+using Luxel.Shaders.Slang.Browser;
 using Luxel.Typography;
 using Luxel.UI;
 
@@ -21,7 +23,6 @@ namespace LuxelWebGpuBrowser;
 [SupportedOSPlatform("browser")]
 public static partial class Program
 {
-    private const uint ExpectedCompute = 0xc0ffee42;
     private static StoryCatalog? _catalog;
     private static StoryCatalog Catalog => _catalog ??= CoreUiStoryProject.CreateCatalog();
     private static StoryContext? _activeContext;
@@ -32,8 +33,7 @@ public static partial class Program
         string story = GetStory();
         try
         {
-            if (story == CanonicalTriangleRecipe.Story) await RunTriangle();
-            else await RunCatalogStory(story);
+            await RunCatalogStory(story);
         }
         catch (Exception ex)
         {
@@ -45,19 +45,11 @@ public static partial class Program
 
     private static async Task RunCatalogStory(string path)
     {
-        StoryInfo story = Catalog.Find(path) ?? throw new InvalidOperationException($"Unknown CoreUi story '{path}'.");
+        StoryInfo story = Catalog.Find(path) ?? throw new InvalidOperationException($"Unknown browser story '{path}'.");
         if (story.RuntimeBundleId != CoreUiStoryProject.RuntimeBundleId)
-            throw new InvalidOperationException($"Story '{path}' is not owned by the CoreUi browser runtime.");
+            throw new InvalidOperationException($"Story '{path}' is not owned by the Gallery browser runtime.");
         IReadOnlyList<StoryArgDefinition> schema = story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>();
         StoryArgs args = StoryArgs.Parse(GetArgsJson()).WithDefaults(schema);
-        var context = new StoryContext(args: args);
-        _activeContext = context;
-        _activeStory = path;
-        context.ArgsChanged += changed => PublishArgsChanged(changed.ToJson());
-        context.Logged += entry => PublishEvent(JsonSerializer.Serialize(entry, BrowserJsonContext.Default.StoryLogEntry));
-        StoryResult result = story.BuildResult(context);
-        if (result.Kind != StoryResultKind.Widget || result.Widget is null)
-            throw new InvalidOperationException($"CoreUi runtime story '{path}' did not build a Widget.");
 
         using WebWindowBackend web = await CreateWindowBackend();
         using var clipboard = new Clipboard(web.CreateClipboardBackend());
@@ -69,22 +61,47 @@ public static partial class Program
             int initialHeight = story.Height > 0 ? story.Height : 360;
             Window window = windows.CreateWindow(new WindowDesc("Luxel " + path, initialWidth, initialHeight));
             windows.Pump();
+
             BrowserWebGpuBackend backend = await BrowserWebGpuBackend.CreateAsync();
             using var device = new GpuDevice(backend);
             var browserBackend = (BrowserWebGpuBackend)device.Backend;
-            using GpuSurface surface = browserBackend.CreateCanvasSurface("#luxel-canvas", (uint)window.Width, (uint)window.Height);
-            using var raster = new GpuDeviceRasterizer2D(device, RasterShader);
+            using GpuSurface surface = browserBackend.CreateCanvasSurface(
+                "#luxel-canvas", (uint)window.Width, (uint)window.Height);
+            await using var slangCompiler = new BrowserSlangCompiler();
+            using var resources = new ResourceSystem();
+            resources.AddStep<SlangSource, GpuShaderCode>(
+                new SlangCompileStep(slangCompiler, GpuBackendKind.WebGpu));
+            await using AssetGpuInstallation assetGpu = resources.InstallAssetGpuLifecycle(device);
             using var font = new VectorFont(Resource("BIZUDGothic-Regular.ttf"));
+            using var context = new StoryContext(resources, args);
+            context.SetGpuHost(device, font);
+            _activeContext = context;
+            _activeStory = path;
+            context.ArgsChanged += changed => PublishArgsChanged(changed.ToJson());
+            context.Logged += entry => PublishEvent(
+                JsonSerializer.Serialize(entry, BrowserJsonContext.Default.StoryLogEntry));
+
+            StoryResult result = story.BuildResult(context);
+            if (result.Kind != StoryResultKind.Widget || result.Widget is null)
+                throw new InvalidOperationException($"Browser runtime story '{path}' did not build a Widget.");
+
+            using var raster = new GpuDeviceRasterizer2D(device, RasterShader);
             using var canvas = new RetainedCanvas();
             using IRasterScene2D scene = raster.CreateScene(canvas);
             using var ui = new UiHost(canvas, font, window.Width, window.Height, gpuRasterizer: raster);
             ui.SetRoot(result.Widget);
 
-            GpuBuffer framebuffer = device.Malloc(checked((ulong)window.Width * (uint)window.Height * 4), GpuMemoryKind.DeviceLocal);
+            GpuBuffer framebuffer = device.Malloc(
+                checked((ulong)window.Width * (uint)window.Height * 4), GpuMemoryKind.DeviceLocal);
             bool resizePending = false;
             int resizeWidth = window.Width, resizeHeight = window.Height;
             int renderRevision = 0;
-            window.Resized += (width, height) => { resizePending = true; resizeWidth = Math.Max(1, width); resizeHeight = Math.Max(1, height); };
+            window.Resized += (width, height) =>
+            {
+                resizePending = true;
+                resizeWidth = Math.Max(1, width);
+                resizeHeight = Math.Max(1, height);
+            };
             window.PointerMoved += input => ui.PointerMove(input.X, input.Y);
             window.PointerDown += input => ui.PointerDown(input.X, input.Y, MapButton(input.Button));
             window.PointerUp += input => ui.PointerUp(input.X, input.Y, MapButton(input.Button));
@@ -99,7 +116,8 @@ public static partial class Program
             async Task RenderAsync()
             {
                 using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
-                scene.Render(Camera2D.Pixels, new GpuRasterTarget2D(command, framebuffer, (uint)window.Width, (uint)window.Height));
+                scene.Render(Camera2D.Pixels,
+                    new GpuRasterTarget2D(command, framebuffer, (uint)window.Width, (uint)window.Height));
                 command.Finish();
                 await device.MainQueue.SubmitAsync(command);
                 surface.Present(framebuffer, (uint)window.Width, (uint)window.Width, (uint)window.Height);
@@ -108,25 +126,33 @@ public static partial class Program
                     SnapshotWidgets(result.Widget), BrowserJsonContext.Default.BrowserWidgetDiagnosticArray));
             }
 
-            await RenderAsync();
-            SetReady($"browser-webgpu: status=pass\nstory={path}\ndevice={device.Name}", context.Args.ToJson(),
-                JsonSerializer.Serialize(schema.ToArray(), BrowserJsonContext.Default.StoryArgDefinitionArray));
-            while (windows.Pump())
+            try
             {
-                if (resizePending)
+                await RenderAsync();
+                SetReady($"browser-webgpu: status=pass\nstory={path}\ndevice={device.Name}", context.Args.ToJson(),
+                    JsonSerializer.Serialize(schema.ToArray(), BrowserJsonContext.Default.StoryArgDefinitionArray));
+                while (windows.Pump())
                 {
-                    await device.MainQueue.WaitIdleAsync();
-                    framebuffer.Dispose();
-                    framebuffer = device.Malloc(checked((ulong)resizeWidth * (uint)resizeHeight * 4), GpuMemoryKind.DeviceLocal);
-                    surface.Resize((uint)resizeWidth, (uint)resizeHeight);
-                    ui.Resize(resizeWidth, resizeHeight);
-                    resizePending = false;
+                    if (resizePending)
+                    {
+                        await device.MainQueue.WaitIdleAsync();
+                        framebuffer.Dispose();
+                        framebuffer = device.Malloc(
+                            checked((ulong)resizeWidth * (uint)resizeHeight * 4), GpuMemoryKind.DeviceLocal);
+                        surface.Resize((uint)resizeWidth, (uint)resizeHeight);
+                        ui.Resize(resizeWidth, resizeHeight);
+                        resizePending = false;
+                    }
+                    resources.Pump();
+                    ui.Tick(1f / 60f);
+                    if (canvas.HasPendingChanges) await RenderAsync();
+                    await NextFrame();
                 }
-                ui.Tick(1f / 60f);
-                if (canvas.HasPendingChanges) await RenderAsync();
-                await NextFrame();
             }
-            framebuffer.Dispose();
+            finally
+            {
+                framebuffer.Dispose();
+            }
         }
         finally
         {
@@ -134,52 +160,6 @@ public static partial class Program
             _activeContext = null;
             _activeStory = null;
         }
-    }
-
-    private static async Task RunTriangle()
-    {
-        uint width = CanonicalTriangleRecipe.Width, height = CanonicalTriangleRecipe.Height;
-        using WebWindowBackend web = await CreateWindowBackend();
-        using var windows = new WindowSystem(web);
-        Window window = windows.CreateWindow(new WindowDesc("Luxel browser WebGPU", (int)width, (int)height));
-        int pointerEvents = 0, keyEvents = 0, resizeEvents = 0;
-        bool resizePending = false;
-        window.PointerMoved += _ => pointerEvents++;
-        window.PointerDown += _ => pointerEvents++;
-        window.PointerUp += _ => pointerEvents++;
-        window.KeyDown += _ => keyEvents++;
-        window.KeyUp += _ => keyEvents++;
-        window.Resized += (_, _) => { resizeEvents++; resizePending = true; };
-        windows.Pump();
-        using BrowserWebGpuBackend gpu = await BrowserWebGpuBackend.CreateAsync();
-        using BrowserWebGpuSurface surface = gpu.CreateNativeCanvasSurface("#luxel-canvas", (uint)window.Width, (uint)window.Height);
-        resizePending = false;
-        using IGpuBackendBuffer compute = gpu.CreateBuffer(256, GpuMemoryKind.HostCached);
-        using IGpuBackendPipeline computePipeline = gpu.CreateComputePipeline(Resource("compute.wgsl"), "main");
-        using (IGpuBackendCommandBuffer command = gpu.MainQueue.StartCommandRecording())
-        {
-            command.SetComputePipeline(computePipeline); command.SetRootConstants(Bytes(new ComputeRoot(compute.BindlessIndex, ExpectedCompute)));
-            command.Dispatch(1, 1, 1); command.Finish(); await gpu.AsyncQueue.SubmitAsync(command);
-        }
-        uint computeValue = Read<uint>(compute);
-        CanonicalTriangleRecipe.Vertex[] triangleVertices = CanonicalTriangleRecipe.CreateVertices();
-        using IGpuBackendBuffer vertices = gpu.CreateBuffer((ulong)(triangleVertices.Length * CanonicalTriangleRecipe.VertexSize), GpuMemoryKind.HostMapped);
-        Write(vertices, triangleVertices);
-        using IGpuBackendTexture target = gpu.CreateRenderTarget(width, height, GpuFormat.Rgba8Unorm);
-        using IGpuBackendBuffer pixels = gpu.CreateBuffer(width * height * 4, GpuMemoryKind.HostCached);
-        using IGpuBackendPipeline graphics = gpu.CreateGraphicsPipeline(Resource("tutorial_triangle.wgsl"), "vsMain", Resource("tutorial_triangle.wgsl"), "psMain", GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
-        using (IGpuBackendCommandBuffer command = gpu.MainQueue.StartCommandRecording())
-        {
-            command.SetGraphicsPipeline(graphics); command.SetRootConstants(Bytes(new CanonicalTriangleRecipe.DrawArgs { VertexBufferIndex = vertices.BindlessIndex }));
-            command.BeginRendering(target, null, 0.04f, 0.07f, 0.12f, 1f, 1f); command.Draw(3, 1); command.EndRendering();
-            command.CopyTextureToBuffer(target, pixels, width); command.Finish(); await gpu.AsyncQueue.SubmitAsync(command);
-        }
-        int center = checked((int)((height / 2 * width + width / 2) * 4));
-        Span<byte> data = Mapped(pixels); byte red = data[center], green = data[center + 1], blue = data[center + 2], alpha = data[center + 3];
-        if (alpha < 240 || red + green + blue < 180) throw new InvalidOperationException($"Center pixel was rgba({red},{green},{blue},{alpha}).");
-        surface.Present(pixels, width, width, height);
-        SetStatus("pass", $"browser-webgpu: status=pass\nstory={CanonicalTriangleRecipe.Story}\nshader={CanonicalTriangleRecipe.Shader}\nvertexSize={CanonicalTriangleRecipe.VertexSize}; rootSize={CanonicalTriangleRecipe.DrawArgsSize}\ncanvas={width}x{height}\nrecipe={CanonicalTriangleRecipe.Recipe}\nhash={CanonicalTriangleRecipe.ShaderSha256}\ndevice={gpu.Name}\ncompute=0x{computeValue:x8}; center=rgba({red},{green},{blue},{alpha})\nframes=1+; resize={resizeEvents}; pointer={pointerEvents}; key={keyEvents}");
-        while (windows.Pump()) { if (resizePending) { surface.Resize((uint)window.Width, (uint)window.Height); surface.Present(pixels, width, width, height); resizePending = false; } await NextFrame(); }
     }
 
     [JSExport]
@@ -264,10 +244,6 @@ public static partial class Program
         using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resource)!;
         using var memory = new MemoryStream(); stream.CopyTo(memory); return memory.ToArray();
     }
-    private static byte[] Bytes<T>(T value) where T : unmanaged { T[] one = [value]; return MemoryMarshal.AsBytes(one.AsSpan()).ToArray(); }
-    private static unsafe Span<byte> Mapped(IGpuBackendBuffer buffer) => new(buffer.MappedPointer, checked((int)buffer.Size));
-    private static T Read<T>(IGpuBackendBuffer buffer) where T : unmanaged => MemoryMarshal.Read<T>(Mapped(buffer));
-    private static void Write<T>(IGpuBackendBuffer buffer, ReadOnlySpan<T> values) where T : unmanaged => MemoryMarshal.AsBytes(values).CopyTo(Mapped(buffer));
     private sealed record BrowserWidgetDiagnostic(string Type, string? Detail, float X, float Y, float Width, float Height);
     private sealed record SetArgsResponse(string Story, string InstanceId, int Revision, string RequestId,
         Dictionary<string, JsonElement>? Args, string[] Errors);
@@ -278,8 +254,6 @@ public static partial class Program
     [JsonSerializable(typeof(StoryLogEntry))]
     [JsonSerializable(typeof(SetArgsResponse))]
     private sealed partial class BrowserJsonContext : JsonSerializerContext;
-
-    private readonly record struct ComputeRoot(uint BufferIndex, uint Value, uint Pad0 = 0, uint Pad1 = 0);
 
     [JSImport("getArgsJson", "luxel-browser-host")] private static partial string GetArgsJson();
     [JSImport("getStory", "luxel-browser-host")] private static partial string GetStory();

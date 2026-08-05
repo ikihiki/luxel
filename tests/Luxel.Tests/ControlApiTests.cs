@@ -34,6 +34,18 @@ public class ControlApiTests
     }
 
     [Fact]
+    public void GpuView_RenderCallbackReturnsDisplayStatus()
+    {
+        Assert.Equal(Luxel.Controls.GpuViewRenderResult.Ready,
+            default(Luxel.Controls.GpuViewRenderResult));
+        Luxel.UI.Widget widget = Luxel.Controls.Kit.GpuView(
+            16, 16,
+            static (_, _, _) => Luxel.Controls.GpuViewRenderResult.Loading,
+            animated: false);
+        Assert.IsType<Luxel.Controls.GpuView>(widget);
+    }
+
+    [Fact]
     public void TreeView_Params_WithShortTypes()
     {
         ControlApi? api = ControlApiRegistry.Find("TreeView");

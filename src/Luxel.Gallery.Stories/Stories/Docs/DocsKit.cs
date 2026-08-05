@@ -28,26 +28,31 @@ internal static class DocsKit
                 Text(path, 12, color: Bind.From(() => UiTheme.T.TextMuted)),
                 Alert($"ストーリーが見つかりません: {path}", Intent.Danger)], DocEmbedKind.StoryRef, path);
 
-        int before = ctx.Knobs.Count;
-        // 埋め込みは ctx を共有するが、play はページへ漏らさない (golden はページ自身の play が撮る)
-        bool suppressed = ctx.SuppressPlays;
-        ctx.SuppressPlays = true;
-        Widget body;
-        try { body = s.Build(ctx); }
-        finally { ctx.SuppressPlays = suppressed; }
-        var parts = new List<Widget>
+        Widget BuildNativeEmbed()
         {
-            Text(path, 12, color: Bind.From(() => UiTheme.T.TextMuted)),
-            body,
-        };
-        if (knobs)
-        {
-            StoryKnob[] mine = ctx.Knobs.Skip(before).ToArray();
-            parts.Add(Divider());
-            parts.Add(global::Luxel.Gallery.UI.Kit.KnobsTable(mine, width: 640,
-                onEdit: (_, k, v) => ctx.QueueKnobEdit(k, v)));
+            int before = ctx.Knobs.Count;
+            // 埋め込みは ctx を共有するが、play はページへ漏らさない (golden はページ自身の play が撮る)
+            bool suppressed = ctx.SuppressPlays;
+            ctx.SuppressPlays = true;
+            Widget body;
+            try { body = s.Build(ctx); }
+            finally { ctx.SuppressPlays = suppressed; }
+            var parts = new List<Widget>
+            {
+                Text(path, 12, color: Bind.From(() => UiTheme.T.TextMuted)),
+                body,
+            };
+            if (knobs)
+            {
+                StoryKnob[] mine = ctx.Knobs.Skip(before).ToArray();
+                parts.Add(Divider());
+                parts.Add(global::Luxel.Gallery.UI.Kit.KnobsTable(mine, width: 640,
+                    onEdit: (_, k, v) => ctx.QueueKnobEdit(k, v)));
+            }
+            return VStack(6)[parts.ToArray()];
         }
-        return new DocEmbed(VStack(6)[parts.ToArray()], DocEmbedKind.StoryRef, path);
+
+        return new DocEmbed(null, DocEmbedKind.StoryRef, path, WidgetFactory: BuildNativeEmbed);
     }
 
     /// <summary>Story methodの公開された本体だけを表示する。private helperや外部sampleを含む「完全なsource」ではない。
@@ -147,6 +152,18 @@ internal static class DocsKit
     /// フェンス・領域いっぱい (fill) を配線し、クリック → <c>story:</c>/外部/<c>#アンカー</c> ナビを繋ぐ。
     /// docs ページの `Docs(ctx, ...)` を `DocNew(ctx, ...)` に替えるだけで移行できる (WS-A / S(A3))。</summary>
     internal static Widget DocNew(StoryContext ctx, DocString content, bool toc = false)
+        => new SemanticDocumentView(ctx, content, toc);
+
+    private sealed class SemanticDocumentView(StoryContext context, DocString content, bool toc)
+        : CompositeControl, ISemanticDocument
+    {
+        public string DocumentSource => content.Markdown;
+        public IReadOnlyList<DocEmbed> DocumentEmbeds => content.Embeds;
+        protected override bool TrackBuild => false;
+        protected override Widget Build() => BuildDocument(context, content, toc);
+    }
+
+    private static Widget BuildDocument(StoryContext ctx, DocString content, bool toc)
     {
         (VectorFont? bold, _, _, VectorFont? mono) = StoryKit.EditorFaces.Value;
         var fences = new Dictionary<string, Func<string, Widget>>

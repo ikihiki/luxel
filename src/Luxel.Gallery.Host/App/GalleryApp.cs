@@ -36,6 +36,7 @@ public sealed class GalleryApp : IDisposable
         sources: Luxel.Resources.ResourceSystemDefaults.BuiltinSources(assetRoot: Environment.CurrentDirectory),
         steps: [.. Luxel.Resources.ResourceSystemDefaults.BuiltinSteps(), new Luxel.Imaging.ImageSharpDecoder()]);
     private AssetGpuInstallation? _assetGpuInstallation;
+    private GallerySlangCompilation? _slangCompilation;
     private (GpuDevice Device, Luxel.Typography.VectorFont Font)? _hostGpu;
     private readonly Signal<string> _title = new("(ストーリーを選択)");
     // Log は ListView — 追記時は items signal へ流す (行ノードの差し替えのみ、chrome の SetRoot 不要)
@@ -773,6 +774,8 @@ public sealed class GalleryApp : IDisposable
                 return;
             }
 
+            _slangCompilation = new GallerySlangCompilation();
+            _slangCompilation.Install(_resources, value.Value.Device.BackendKind);
             _assetGpuInstallation = _resources.InstallAssetGpuLifecycle(value.Value.Device);
             _hostGpu = value;
         }
@@ -914,5 +917,6 @@ public sealed class GalleryApp : IDisposable
         // Wait for the queue before ResourceSystem releases story-scoped GPU values.
         _assetGpuInstallation?.Dispose();
         _resources.Dispose();
+        _slangCompilation?.Dispose();
     }
 }

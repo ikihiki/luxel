@@ -6,13 +6,13 @@ namespace Luxel.Gallery.Stories;
 /// <summary>初心者向けレンダリング学習経路。実行可能な正は samples/LuxelTriangle。</summary>
 public static partial class DocsRenderingLearn
 {
-    [Story("Learn/Rendering/TwoD/Overview", Order = 11)]
+    [Story("Learn/Grapics/2D/Overview", Order = 10)]
     public static Widget First2DScene(StoryContext ctx)
     {
         return DocNew(ctx, $$"""
         # はじめての2Dシーン
 
-        {{RenderingCourseCatalog.Meta("Learn/Rendering/TwoD/Overview", "Beginner", "Gallery / Standalone / Headless", "Vulkan / DirectX 12 / Skia CPU", "FirstRenderGraph")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/2D/Overview", "Beginner", "Gallery / Standalone / Headless", "Vulkan / DirectX 12 / Skia CPU", "RenderGraph")}}
 
         {{StoryRef(ctx, "Examples/2D/Shapes")}}
 

@@ -27,7 +27,7 @@ public static class GallerySnapshots
             return new(story.Path, GallerySnapshotStatus.Unavailable, Error: "RealWindowOnly story cannot be captured offscreen.");
         try
         {
-            host.SelectExact(story.Path);
+            host.SelectExact(story);
             Stabilize(host);
             return Snapshot(host, story.Path);
         }

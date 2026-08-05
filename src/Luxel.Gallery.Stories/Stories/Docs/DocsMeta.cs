@@ -18,8 +18,11 @@ public static class DocsMeta
     public static Widget Authoring(StoryContext ctx)
     {
         // snap (静定 1 フレーム) の決定性のため画像を同期 preload — 実アプリでは不要
-        _imagePreload ??= ctx.Resources.Load<Luxel.Resources.CpuImage>(SampleImage);
-        try { _imagePreload.Ready.Wait(3000); } catch { /* 失敗時はプレースホルダのまま */ }
+        if (ctx.ResourcesOrNull is { } resources)
+        {
+            _imagePreload ??= resources.Load<Luxel.Resources.CpuImage>(SampleImage);
+            try { _imagePreload.Ready.Wait(3000); } catch { /* 失敗時はプレースホルダのまま */ }
+        }
 
         Signal<int> count = ctx.Signal("count", 0, "カウンタの現在値 (± ボタンと連動)");
         Widget counter = HStack(8)[
@@ -154,6 +157,7 @@ public static class DocsMeta
         - `ctx.Signal(name, initial, description)` — **knob** (右パネルで編集可)。bool / int / float / string / 色 / enum / Length に対応
         - `ctx.Log(message)` — Log パネルへ (イベントの実演に)
         - `ctx.Resources` — ホスト所有の ResourceSystem (キャッシュはストーリー横断共有)
+        - `ctx.ScopedResources` — story instance 所有のResourceScope。story関数内でCPU/GPU resourceをロード・作成し、GpuView callbackへcaptureして渡す。story破棄時にleaseを一括解放
         - `ctx.Navigate(path)` — ストーリー遷移 (docs の story: リンクの実体)
 
         ## 2D / 3D デモのストーリー化
@@ -161,10 +165,10 @@ public static class DocsMeta
         描画結果を widget にする受け皿が 2 つあります:
 
         - **Canvas2D(w, h, draw: / animate:(s, t))** — Scene2D を直接描く (UI と同じ保持型キャンバスの 1 ノード)。`t` は累積秒
-        - **GpuView(w, h, IGpuScene, animated:)** — offscreen に自前 GPU レンダ → bindless バッファ経由でゼロコピー合成。共通下回りは `GpuSceneBase` (Gallery 内)
+        - **GpuView(w, h, render, animated:, dispose:)** — story関数が`ctx.ScopedResources`で用意したresourceをcaptureし、deviceとGpuView所有surfaceを受け取るcallbackでoffscreen描画。callbackは`Ready`/`Loading`/`Failed`を返し、未準備・失敗時は状態アイコンへフォールバック。bindless buffer経由でゼロコピー合成
 
         > [!WARNING]
-        > IGpuScene の規約: **ctor は引数保持のみ** (確保は全部 Init — 起動時に全ストーリーが Build される + Dispose 後の再 Init に耐える)。**時間は Render 引数の累積秒のみ** (wall-clock 禁止 — snap の決定性)。ターゲット幅は 64 の倍数 (D3D12 の 256B 整列)。knob を絵に反映するシーンは `animated: true` (Render が毎フレーム呼ばれる)。RenderGraph は 1 フレーム使い切り — animated シーンでは Render 内で毎回作る。
+        > GpuView callback の規約: GPU resourceはstory関数内で`ctx.ScopedResources`から取得し、callbackへcaptureする。個別handleを`dispose`へ渡す必要はなく、story scopeが一括解放する。**時間はcallback引数の累積秒のみ** (wall-clock禁止 — snapの決定性)。描画先と256B整列済みframebufferは`GpuViewSurface`が所有する。knobを絵に反映する場合は`animated: true`にする。RenderGraphは1フレーム使い切り — animated rendererではcallback内で毎回作る。
 
         ## 実窓専用ストーリー
 

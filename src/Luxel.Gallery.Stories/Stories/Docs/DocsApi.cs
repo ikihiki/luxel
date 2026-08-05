@@ -25,7 +25,8 @@ public static class DocsApi
 
         foreach (string ns in TypeApiRegistry.Namespaces)
             builder.Add(new StoryInfo($"Reference/{ns}", 0, 0, null,
-                ctx => NamespacePage(ctx, ns), Order: 60), replaceGenerated: true);
+                ctx => NamespacePage(ctx, ns), Order: 60,
+                ResultBuild: ctx => NamespacePage(ctx, ns)), replaceGenerated: true);
 
         foreach (ControlApi api in ControlApiRegistry.All)
         {
@@ -37,7 +38,8 @@ public static class DocsApi
                     ctx => ControlPage(ctx, api), Order: 0,
                     ResultBuild: static _ => ButtonOverview())
                 : new StoryInfo($"Controls/{category}/Overview", 0, 0, null,
-                    ctx => ControlPage(ctx, api), Order: 0), replaceGenerated: true);
+                    ctx => ControlPage(ctx, api), Order: 0,
+                    ResultBuild: ctx => ControlPage(ctx, api)), replaceGenerated: true);
         }
 
         RegisterSpecialControlPage(builder, categories, "Layout", LayoutPage);
@@ -49,7 +51,8 @@ public static class DocsApi
         string category, Func<StoryContext, Widget> build)
     {
         if (!categories.Add(category)) return;
-        builder.Add(new StoryInfo($"Controls/{category}/Overview", 0, 0, null, build, Order: 0), replaceGenerated: true);
+        builder.Add(new StoryInfo($"Controls/{category}/Overview", 0, 0, null, build, Order: 0,
+            ResultBuild: ctx => build(ctx)), replaceGenerated: true);
     }
 
     private static void RegisterReferenceStories()
@@ -62,7 +65,8 @@ public static class DocsApi
                 string ns = value;
                 if (!RegisteredNamespaces.Add(ns)) continue;
                 StoryRegistry.Register(new StoryInfo($"Reference/{ns}", 0, 0, null,
-                    ctx => NamespacePage(ctx, ns), Order: 60));
+                    ctx => NamespacePage(ctx, ns), Order: 60,
+                    ResultBuild: ctx => NamespacePage(ctx, ns)));
             }
 
             foreach (ControlApi value in ControlApiRegistry.All)
@@ -72,7 +76,8 @@ public static class DocsApi
                 string? category = ExistingControlCategory(api.Name);
                 if (category is null || !RegisteredControlCategories.Add(category)) continue;
                 StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview", 0, 0, null,
-                    ctx => ControlPage(ctx, api), Order: 0));
+                    ctx => ControlPage(ctx, api), Order: 0,
+                    ResultBuild: ctx => ControlPage(ctx, api)));
             }
 
             RegisterSpecialControlPage("Layout", LayoutPage);
@@ -84,7 +89,8 @@ public static class DocsApi
     private static void RegisterSpecialControlPage(string category, Func<StoryContext, Widget> build)
     {
         if (!RegisteredControlCategories.Add(category)) return;
-        StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview", 0, 0, null, build, Order: 0));
+        StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview", 0, 0, null, build, Order: 0,
+            ResultBuild: ctx => build(ctx)));
     }
 
     private static string? ExistingControlCategory(string apiName) => apiName switch

@@ -15,18 +15,6 @@ public sealed class TutorialAbiTests
     }
 
     [Fact]
-    public void Canonical_triangle_recipe_matches_tutorial_abi()
-    {
-        Assert.Equal(320, CanonicalTriangleRecipe.Width);
-        Assert.Equal(240, CanonicalTriangleRecipe.Height);
-        Assert.Equal(CanonicalTriangleRecipe.VertexSize, Marshal.SizeOf<CanonicalTriangleRecipe.Vertex>());
-        Assert.Equal(CanonicalTriangleRecipe.DrawArgsSize, Marshal.SizeOf<CanonicalTriangleRecipe.DrawArgs>());
-        Assert.Equal(TutorialAbi.VertexSize, CanonicalTriangleRecipe.VertexSize);
-        Assert.Equal(TutorialAbi.DrawArgsSize, CanonicalTriangleRecipe.DrawArgsSize);
-        Assert.Equal(3, CanonicalTriangleRecipe.CreateVertices().Length);
-    }
-
-    [Fact]
     public void Tutorial_3d_vertex_layout_matches_slang()
     {
         Assert.Equal(TutorialAbi.Vertex3DSize, Marshal.SizeOf<TutorialAbi.Vertex3D>());

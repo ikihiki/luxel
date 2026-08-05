@@ -2,6 +2,7 @@ using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Luxel.Shaders;
 
 namespace Luxel.Shaders.Slang.Browser;
@@ -13,7 +14,6 @@ public sealed partial class BrowserSlangCompiler : ISlangCompiler
     private const int MaxFiles = 128;
     private const int MaxSourceBytes = 2 * 1024 * 1024;
     private const int CompileTimeoutMilliseconds = 15_000;
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static int _nextRequestId;
     private bool _disposed;
 
@@ -54,14 +54,16 @@ public sealed partial class BrowserSlangCompiler : ISlangCompiler
         string responseJson;
         try
         {
-            responseJson = await CompileJsonAsync(JsonSerializer.Serialize(request, JsonOptions));
+            responseJson = await CompileJsonAsync(JsonSerializer.Serialize(
+                request, BrowserSlangJsonContext.Default.BrowserCompileRequest));
         }
         catch (JSException) when (cancellationToken.IsCancellationRequested)
         {
             throw new OperationCanceledException(cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
-        BrowserCompileResponse response = JsonSerializer.Deserialize<BrowserCompileResponse>(responseJson, JsonOptions)
+        BrowserCompileResponse response = JsonSerializer.Deserialize(
+            responseJson, BrowserSlangJsonContext.Default.BrowserCompileResponse)
             ?? throw new ShaderCompilationException(
                 "Slang/WASM returned an invalid response.",
                 [new ShaderDiagnostic(ShaderDiagnosticSeverity.Error, "The browser compiler response was empty.", "SLANG_WASM_RESPONSE", source.Path)]);
@@ -101,7 +103,7 @@ public sealed partial class BrowserSlangCompiler : ISlangCompiler
         _ => ShaderDiagnosticSeverity.Error,
     };
 
-    private sealed record BrowserCompileRequest(
+    internal sealed record BrowserCompileRequest(
         int RequestId,
         int TimeoutMs,
         string Path,
@@ -110,9 +112,9 @@ public sealed partial class BrowserSlangCompiler : ISlangCompiler
         string ProgramKind,
         IReadOnlyList<BrowserEntryPoint> EntryPoints,
         IReadOnlyDictionary<string, string?> Defines);
-    private sealed record BrowserEntryPoint(string Name, string Stage);
-    private sealed record BrowserCompileResponse(bool Success, string? Wgsl, BrowserDiagnostic[] Diagnostics, string? Error);
-    private sealed record BrowserDiagnostic(string? Severity, string Message, string? Code, string? Path, int? Line, int? Column);
+    internal sealed record BrowserEntryPoint(string Name, string Stage);
+    internal sealed record BrowserCompileResponse(bool Success, string? Wgsl, BrowserDiagnostic[] Diagnostics, string? Error);
+    internal sealed record BrowserDiagnostic(string? Severity, string Message, string? Code, string? Path, int? Line, int? Column);
 
     [JSImport("compile", "luxel-slang")]
     private static partial Task<string> CompileJsonAsync(string requestJson);
@@ -120,3 +122,8 @@ public sealed partial class BrowserSlangCompiler : ISlangCompiler
     [JSImport("cancel", "luxel-slang")]
     private static partial void CancelCompile(int requestId);
 }
+
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+[JsonSerializable(typeof(BrowserSlangCompiler.BrowserCompileRequest))]
+[JsonSerializable(typeof(BrowserSlangCompiler.BrowserCompileResponse))]
+internal sealed partial class BrowserSlangJsonContext : JsonSerializerContext;

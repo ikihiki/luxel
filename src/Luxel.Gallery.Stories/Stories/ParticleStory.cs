@@ -18,15 +18,13 @@ namespace Luxel.Gallery.Stories;
 public static class ParticleStories
 {
     [Story("Examples/2D/Particles", Height = 260, Order = 121)]
-    public static Widget Particles(StoryContext ctx) => ctx.Snap(Frame(GpuView(384, 192, new ParticleScene(), animated: false)));
+    public static Widget Particles(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(384, 192, new ParticleScene(), animated: false)));
 
     private sealed class ParticleScene : GpuSceneBase
     {
         private GpuDeviceRasterizer2D _raster = null!;
         private RetainedCanvas _canvas = null!;
         private IRasterScene2D _rasterScene = null!;
-
-        protected override bool NeedsColorTarget => false;
 
         protected override void OnInit()
         {

@@ -31,14 +31,14 @@ public static class RenderGraphStories
     /// <summary>UI → 分離ガウシアン (BlurH → BlurV) → 左右分割合成。
     /// 左半分 = 元の UI、右半分 = ブラー結果。中間バッファは transient。</summary>
     [Story("Examples/RenderGraph/Blur", Height = 320, Order = 130)]
-    public static Widget Blur(StoryContext ctx) => ctx.Snap(Frame(GpuView(256, 256, new BlurScene(stages: 1), animated: false)));
+    public static Widget Blur(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(256, 256, new BlurScene(stages: 1), animated: false)));
 
     /// <summary>反復ブラー 4 段 + 誰も読まないパスで **transient aliasing** と
     /// **デッドパスカリング** を実証。コンパイル結果 (物理バッファ数/実行パス数/alias) は
     /// Log パネルに出る。</summary>
     [Story("Examples/RenderGraph/Aliasing", Height = 320, Order = 131)]
     public static Widget Aliasing(StoryContext ctx)
-        => Frame(GpuView(256, 256, new BlurScene(stages: 2, addDeadPass: true, log: ctx.Log), animated: false));
+        => Frame(GpuSceneBase.View(256, 256, new BlurScene(stages: 2, addDeadPass: true, log: ctx.Log), animated: false));
 
     /// <summary>分離ガウシアン × N 段の RenderGraph シーン。stages=2 で中間バッファの寿命が
     /// 重ならず物理 2 本に alias される (tmp1↔tmp2 / blur1↔blur2)。</summary>
@@ -49,8 +49,6 @@ public static class RenderGraphStories
         private GpuEncodedScene2D _encoded = null!;
         private GpuBuffer _ui = null!;
         private GpuPipeline _blur = null!, _composite = null!;
-
-        protected override bool NeedsColorTarget => false;   // compute だけで OutBuffer へ書く
 
         protected override void OnInit()
         {

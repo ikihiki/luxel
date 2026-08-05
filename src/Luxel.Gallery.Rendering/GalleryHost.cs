@@ -22,6 +22,7 @@ public sealed class GalleryHost : IDisposable
     private readonly IRasterizer2D _raster;
     private readonly GpuDeviceRasterizer2D? _gpuRasterizer;
     private readonly AssetGpuInstallation? _assetGpuInstallation;
+    private readonly GallerySlangCompilation? _slangCompilation;
     // ストーリーへ StoryContext.Resources として配布 (キャッシュはストーリー横断で共有、Pump は Step が叩く)
     private readonly Luxel.Resources.ResourceSystem _resources = new(
         sources: Luxel.Resources.ResourceSystemDefaults.BuiltinSources(assetRoot: Environment.CurrentDirectory),
@@ -40,6 +41,8 @@ public sealed class GalleryHost : IDisposable
     private static readonly JsonSerializerOptions TreeJson = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private int _w, _h;
     private bool _dark;
+    private readonly bool _publishFrames;
+    private bool _hasRenderedFrame;
     private bool _disposed;
 
     // 最新フレーム (8B ヘッダ w,h LE + RGBA)。rev は内容変化時のみ進む
@@ -48,20 +51,26 @@ public sealed class GalleryHost : IDisposable
     private long _frameRev;
     private ulong _frameHash;
 
-    public GalleryHost(GpuDevice device, VectorFont font, StoryCatalog? catalog = null)
-        : this(new GpuDeviceRasterizer2D(device), font, device, catalog) { }
+    public GalleryHost(GpuDevice device, VectorFont font, StoryCatalog? catalog = null, bool publishFrames = true)
+        : this(new GpuDeviceRasterizer2D(device), font, device, catalog, publishFrames) { }
 
-    public GalleryHost(IRasterizer2D rasterizer, VectorFont font, StoryCatalog? catalog = null)
-        : this(rasterizer, font, rasterizer is GpuDeviceRasterizer2D gpu ? gpu.Device : null, catalog) { }
+    public GalleryHost(IRasterizer2D rasterizer, VectorFont font, StoryCatalog? catalog = null, bool publishFrames = true)
+        : this(rasterizer, font, rasterizer is GpuDeviceRasterizer2D gpu ? gpu.Device : null, catalog, publishFrames) { }
 
-    private GalleryHost(IRasterizer2D rasterizer, VectorFont font, GpuDevice? device, StoryCatalog? catalog)
+    private GalleryHost(IRasterizer2D rasterizer, VectorFont font, GpuDevice? device, StoryCatalog? catalog, bool publishFrames)
     {
         _catalog = catalog;
         _device = device;
         _font = font;
+        _publishFrames = publishFrames;
         _raster = rasterizer ?? throw new ArgumentNullException(nameof(rasterizer));
         _gpuRasterizer = rasterizer as GpuDeviceRasterizer2D;
-        if (device is not null) _assetGpuInstallation = _resources.InstallAssetGpuLifecycle(device);
+        if (device is not null)
+        {
+            _slangCompilation = new GallerySlangCompilation();
+            _slangCompilation.Install(_resources, device.BackendKind);
+            _assetGpuInstallation = _resources.InstallAssetGpuLifecycle(device);
+        }
         Commands.Register("story.select", a => { if (a is JsonElement el && el.TryGetProperty("id", out JsonElement id)) Select(id.GetString() ?? ""); });
         Commands.Register("story.theme", a => { _dark = a is JsonElement el && el.TryGetProperty("dark", out JsonElement d) && d.ValueKind == JsonValueKind.True; ApplyTheme(); });
         Commands.Register("story.state", a => SetState(a));
@@ -105,8 +114,15 @@ public sealed class GalleryHost : IDisposable
 
     /// <summary>Selects exactly one registered story or throws instead of silently retaining the previous story.</summary>
     public void SelectExact(string path)
-        => SelectForE2e(FindStory(path)
+        => SelectExact(FindStory(path)
             ?? throw new KeyNotFoundException($"Story not found: {path}"));
+
+    /// <summary>Selects the supplied explicit-catalog story without consulting the global registry.</summary>
+    public void SelectExact(StoryInfo story)
+    {
+        ArgumentNullException.ThrowIfNull(story);
+        SelectForE2e(story);
+    }
 
     public bool ContainsStory(string path) => FindStory(path) is not null;
 
@@ -131,6 +147,7 @@ public sealed class GalleryHost : IDisposable
             UiHostCommands.RegisterDefaults(Commands, _host);
             _ctx = new StoryContext(_resources);
             _ctx.SetServices(GalleryServices.Provider);
+            if (_device is not null) _ctx.SetGpuHost(_device, _font);
             _root = widget;
             _host.SetRoot(widget);
             CreateRasterTarget();
@@ -180,6 +197,7 @@ public sealed class GalleryHost : IDisposable
         UiHostCommands.RegisterDefaults(Commands, _host);   // click/pointermove/key/char/... (同名上書き)
         _ctx = new StoryContext(_resources);
         _ctx.SetServices(GalleryServices.Provider);   // DI: ScriptHost / ICodeLanguage をストーリー引数へ注入
+        if (_device is not null) _ctx.SetGpuHost(_device, _font);
         // 遷移はコマンドキュー経由 — 入力ディスパッチ中の即時 TearDown を避ける (次の Drain で適用)
         _ctx.SetNavigator(p => Commands.Enqueue("story.select", JsonSerializer.SerializeToElement(new { id = p })));
         _root = _story.Build(_ctx);
@@ -243,7 +261,7 @@ public sealed class GalleryHost : IDisposable
         _ctx?.PumpKnobEdits();   // Knobs テーブル (docs 埋め込み) の編集適用 (effect 文脈外)
         if (_host is null || _canvas is null || _rasterScene is null) return;
         _host.Tick(dt);
-        if (_frame is not null && !_canvas.HasPendingChanges) return;   // 前回と同じ絵になるだけ
+        if (_hasRenderedFrame && !_canvas.HasPendingChanges) return;   // 前回と同じ絵になるだけ
         Render();
     }
 
@@ -266,6 +284,9 @@ public sealed class GalleryHost : IDisposable
         {
             throw new InvalidOperationException($"No target is available for {_raster.Name}.");
         }
+
+        _hasRenderedFrame = true;
+        if (!_publishFrames) return;
 
         int len = _w * _h * 4;
         byte[] body = new byte[8 + len];
@@ -403,6 +424,7 @@ public sealed class GalleryHost : IDisposable
         // Wait for its queue before ResourceSystem disposes scoped GPU values.
         _assetGpuInstallation?.Dispose();
         _resources.Dispose();
+        _slangCompilation?.Dispose();
         _raster.Dispose();
     }
 }

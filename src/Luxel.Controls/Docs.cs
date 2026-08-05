@@ -36,8 +36,20 @@ public readonly record struct DocMarkdown(string Markdown);
 /// <summary>Structured description of a live widget embedded in a <see cref="DocString"/>.
 /// Static exporters use this metadata to replace the live widget with an equivalent capture.
 /// <paramref name="Reference"/> is the referenced story path for <see cref="DocEmbedKind.StoryRef"/>.</summary>
-public sealed record DocEmbed(Widget Widget, DocEmbedKind Kind = DocEmbedKind.Widget, string? Reference = null,
-    bool Inline = false, bool IncludeInherited = false);
+public sealed record DocEmbed(Widget? Widget, DocEmbedKind Kind = DocEmbedKind.Widget, string? Reference = null,
+    bool Inline = false, bool IncludeInherited = false, Func<Widget>? WidgetFactory = null)
+{
+    /// <summary>Resolves the native live widget only when an interactive document is realized.</summary>
+    public Widget ResolveWidget() => Widget ?? WidgetFactory?.Invoke()
+        ?? throw new InvalidOperationException("Documentation embed has no native widget factory.");
+}
+
+/// <summary>Semantic documentation exposed without realizing a native widget tree.</summary>
+public interface ISemanticDocument
+{
+    string? DocumentSource { get; }
+    IReadOnlyList<DocEmbed> DocumentEmbeds { get; }
+}
 
 /// <summary>Kind of live content represented by a <see cref="DocEmbed"/>.</summary>
 public enum DocEmbedKind
@@ -59,13 +71,13 @@ public sealed class DocString
 
     private readonly StringBuilder _md;
     private bool _afterFence;   // 直前が UI フェンス — 次の追記の頭で行境界を保証する
-    internal readonly List<Widget> Holes = new();
     private readonly List<DocEmbed> _embeds = new();
 
-    /// <summary>組み上がった markdown (```luxel-ui フェンス等を含む)。新スタック橋 (<see cref="Kit.MarkdownDocs"/>) 用。</summary>
-    internal string Md => _md.ToString();
-    /// <summary>ブロック hole の Widget 列 (```luxel-ui の index が指す)。</summary>
-    internal IReadOnlyList<Widget> HoleWidgets => Holes;
+    /// <summary>組み上がった markdown (```luxel-ui フェンス等を含む)。静的exportでも利用する。</summary>
+    public string Markdown => _md.ToString();
+    internal string Md => Markdown;
+    /// <summary>ブロック hole の Widget 列 (```luxel-ui の index が指す)。native realization時だけ解決する。</summary>
+    internal IReadOnlyList<Widget> HoleWidgets => _embeds.Select(static embed => embed.ResolveWidget()).ToArray();
     /// <summary>Structured metadata for every UI hole, in the same index order as <see cref="HoleWidgets"/>.</summary>
     public IReadOnlyList<DocEmbed> Embeds => _embeds;
 
@@ -88,9 +100,8 @@ public sealed class DocString
     {
         if (_md.Length > 0 && _md[^1] != '\n') _md.Append('\n');
         _md.Append("```").Append(UiTypeId).Append('\n')
-           .Append(Holes.Count).Append("\n```");
+           .Append(_embeds.Count).Append("\n```");
         _afterFence = true;   // 閉じフェンスの行終端はソース側の改行に任せる (二重改行を作らない)
-        Holes.Add(embed.Widget);
         _embeds.Add(embed with { Inline = false });
     }
 
@@ -102,8 +113,7 @@ public sealed class DocString
         if (format == "inline")
         {
             FenceBoundary("[");
-            _md.Append("[￼](").Append(InlineScheme).Append(Holes.Count).Append(')');
-            Holes.Add(widget);
+            _md.Append("[￼](").Append(InlineScheme).Append(_embeds.Count).Append(')');
             _embeds.Add(new DocEmbed(widget, Inline: true));
             return;
         }

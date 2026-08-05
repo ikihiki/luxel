@@ -310,7 +310,19 @@ public static class ScriptingStory
         public void Dispose() => (_output as IDisposable)?.Dispose();
     }
 
-    [Story("Examples/Scripting/Notebook", Height = 620, Order = 2034)]
+    private const string NotebookMarkdown =
+        "# Luxel ノートブック\n" +
+        "**文章 + 実行可能なコードセル** の Jupyter 風です。各セルの ▷ で実行、結果が下に出ます。\n\n" +
+        "## 数値を返すセル\n" +
+        "```csx\nEnumerable.Range(1, 10).Sum(i => i * i)\n```\n" +
+        "## Widget を返すセル\n" +
+        "セルは最後の式が `Widget` ならその場に描画されます:\n" +
+        "```csx\nHStack(6)[\n    Badge(\"Ready\", Intent.Success),\n    Button(_ => Log(\"cell!\"), \"押す\")]\n```\n" +
+        "文章とコードが交互に並ぶのが notebook 体験です。\n";
+
+    internal static StoryResult NotebookResult() => StoryResult.FromMarkdown(NotebookMarkdown);
+
+    [Story("Examples/Scripting/Notebook", Height = 620, Order = 2034, Result = nameof(NotebookResult))]
     public static Widget Notebook(StoryContext ctx, ScriptHost host, ICodeLanguage lang)
     {
         // resolver は再描画毎に呼ばれる — 本文キーでキャッシュし**同一インスタンス**を返す
@@ -328,15 +340,7 @@ public static class ScriptingStory
             return cell;
         }
 
-        Signal<string> md = ctx.Signal("markdown",
-            "# Luxel ノートブック\n" +
-            "**文章 + 実行可能なコードセル** の Jupyter 風です。各セルの ▷ で実行、結果が下に出ます。\n\n" +
-            "## 数値を返すセル\n" +
-            "```csx\nEnumerable.Range(1, 10).Sum(i => i * i)\n```\n" +
-            "## Widget を返すセル\n" +
-            "セルは最後の式が `Widget` ならその場に描画されます:\n" +
-            "```csx\nHStack(6)[\n    Badge(\"Ready\", Intent.Success),\n    Button(_ => Log(\"cell!\"), \"押す\")]\n```\n" +
-            "文章とコードが交互に並ぶのが notebook 体験です。\n");
+        Signal<string> md = ctx.Signal("markdown", NotebookMarkdown);
 
         // 新スタック: markdown 文書レンダラ + ```csx フェンスを embed 扱いし NotebookCell に解決
         TextEditorView doc = MarkdownDoc.Create(md, () => UiTheme.T, width: 600f, height: 520f,

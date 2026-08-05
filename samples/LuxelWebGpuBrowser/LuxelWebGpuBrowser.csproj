@@ -8,9 +8,8 @@
     <WasmMainJSPath>wwwroot/main.js</WasmMainJSPath>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\CanonicalTriangleRecipe.cs" Link="CanonicalTriangleRecipe.cs" />
-  </ItemGroup>
-  <ItemGroup>
+    <ProjectReference Include="..\..\src\Luxel.Shaders\Luxel.Shaders.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Shaders.Slang.Browser\Luxel.Shaders.Slang.Browser.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Gallery.Stories.CoreUi\Luxel.Gallery.Stories.CoreUi.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Controls\Luxel.Controls.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
@@ -29,12 +28,18 @@
     <PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" Version="14.2.0" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Shaders\compute.wgsl" />
     <EmbeddedResource Include="..\..\shaders\compiled\raster2d_bounds.wgsl" Link="Shaders\raster2d_bounds.wgsl" />
     <EmbeddedResource Include="..\..\shaders\compiled\raster2d_bin.wgsl" Link="Shaders\raster2d_bin.wgsl" />
     <EmbeddedResource Include="..\..\shaders\compiled\raster2d_fine.wgsl" Link="Shaders\raster2d_fine.wgsl" />
     <EmbeddedResource Include="..\..\assets\fonts\BIZUDGothic-Regular.ttf" Link="Fonts\BIZUDGothic-Regular.ttf" />
-    <EmbeddedResource Include="..\..\shaders\compiled\tutorial_triangle.wgsl" Link="Shaders\tutorial_triangle.wgsl" />
+    <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser.js"
+             Link="wwwroot\slang-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser-runtime.js"
+             Link="wwwroot\slang-browser-runtime.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang-worker.js"
+             Link="wwwroot\slang-worker.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang\**\*"
+             Link="wwwroot\slang\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\src\Luxel.Graphics.WebGPU.Browser\wwwroot\luxel-webgpu-browser.js"
              Link="wwwroot\luxel-webgpu-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\src\Luxel.Platform.Web\wwwroot\luxel-platform-web.js"

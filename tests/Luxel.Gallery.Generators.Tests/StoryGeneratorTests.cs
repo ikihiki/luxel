@@ -75,6 +75,19 @@ public sealed class StoryGeneratorTests
     }
 
     [Fact]
+    public void Explicit_semantic_result_provider_is_emitted_without_invoking_story_dependencies()
+    {
+        GeneratorDriverRunResult result = Run("""
+            [Story("Examples/Document", Result = nameof(DocumentResult))]
+            public static Widget Document(StoryContext ctx, DemoService service) => new Widget(service.Name);
+            internal static StoryResult DocumentResult() => new StoryResult();
+            """);
+
+        string generated = Assert.Single(result.GeneratedTrees).ToString();
+        Assert.Contains("ResultBuild: static _ => global::Demo.Stories.DocumentResult()", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void InvalidStorySignature_ReportsNgui010()
     {
         GeneratorDriverRunResult result = Run("""
@@ -127,6 +140,7 @@ public sealed class StoryGeneratorTests
                     public string? SampleBundle { get; set; }
                     public string? RuntimeBundleId { get; set; }
                     public string? Args { get; set; }
+                    public string? Result { get; set; }
                     public string? CapabilityNote { get; set; }
                 }
                 public sealed class StoryContext
@@ -134,9 +148,14 @@ public sealed class StoryGeneratorTests
                     public T Require<T>() => default!;
                 }
                 public sealed record StoryArgDefinition(string Name);
+                public sealed class StoryResult
+                {
+                    public static implicit operator StoryResult(Widget widget) => new();
+                }
                 public sealed record StoryInfo(string Path, int Width, int Height, string? Theme,
                     Func<StoryContext, Widget> Build, int Order = 1000, string? Source = null, bool RealWindowOnly = false, string? SampleBundle = null,
-                    string? RuntimeBundleId = null, System.Collections.Generic.IReadOnlyList<StoryArgDefinition>? ArgDefinitions = null,
+                    Func<StoryContext, StoryResult>? ResultBuild = null, string? RuntimeBundleId = null,
+                    System.Collections.Generic.IReadOnlyList<StoryArgDefinition>? ArgDefinitions = null,
                     string? CapabilityNote = null);
                 public static class StoryRegistry { public static void Register(StoryInfo story) { } }
             }

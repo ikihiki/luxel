@@ -99,16 +99,108 @@ public static class BuildStories
         {SampleBundle("rendering.triangle")}
         """, toc: true);
 
-    [Story("Build/Recipes/TexturedScene", Order = 11, SampleBundle = "rendering.3d")]
-    public static Widget TexturedScene(StoryContext ctx) => DocNew(ctx, $"""
-        # Recipe: Textured 3D Scene
+    [Story("Build/Recipes/IndexedCube", Order = 11, SampleBundle = "rendering.3d")]
+    public static Widget IndexedCube(StoryContext ctx) => DocNew(ctx, $"""
+        # Recipe: Index bufferでcubeを描く
 
-        texture、camera、depth、lighting、RenderGraph、compute post-process を stage 切替できる standalone project です。
+        texture付きquadを24頂点・36 indexのcubeへ拡張するrecipeです。実装の正は`samples/LuxelTriangle/TriangleRenderer.cs`、共有ABIは`samples/LuxelTriangle/TutorialAbi.cs`、vertex pullingは`shaders/tutorial_3d.slang`です。
+
+        ## 実行する
+
+        ```powershell
+        dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
+        dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter TutorialAbiTests
+        dotnet run --project samples/LuxelTriangle -- vk --stage transform --frames 3
+        # Windowsのみ
+        dotnet run --project samples/LuxelTriangle -- dx --stage transform --frames 3
+        ```
+
+        ## Indexed vertex pulling
+
+        Luxelのcore graphics APIには固定functionの`DrawIndexed`はありません。`Draw(36)`が生成する`SV_VertexID`をindex-stream番号として使い、raw index bufferからvertex indexを読み、そのindexでvertex bufferをpullします。
+
+        ```slang
+        uint vertexIndex = g_buffers[indexBufferIndex].Load(vertexId * 4);
+        Vertex vertex = g_buffers[vertexBufferIndex]
+            .Load<Vertex>(vertexIndex * vertexStride);
+        ```
+
+        tutorialは32-bit indexを使います。cubeは8 positionだけを共有せず、面ごとのnormalとUV seamを表すため24頂点を持ちます。同じ位置でも面が異なればnormalとUVが異なるため、別vertexとして格納します。
+
+        ```text
+        24 vertices
+          → 6 faces × 4 face-local vertices
+        36 indices
+          → 6 faces × 2 triangles × 3 indices
+        ```
+
+        C#とSlangでindex width、vertex stride、position / normal / UV offsetを一致させます。index値がvertex数以上にならないこと、各triangleのwindingが揃っていることも作成時に検証します。
+
+        ## Resourceの所有
+
+        vertex bufferとindex bufferはrendererが所有し、記録済みcommandが完了するまで破棄しません。meshを毎frameuploadせず、初期化時に作成してdraw間で再利用します。
+
+        次はこのindexed cubeへ[3D Camera](story:Build/Recipes/Camera3D)を適用します。
 
         {SampleBundle("rendering.3d")}
         """, toc: true);
 
-    [Story("Build/Recipes/HeadlessScene2D", Order = 12, SampleBundle = "rendering.2d")]
+    [Story("Build/Recipes/Camera3D", Order = 12, SampleBundle = "rendering.3d")]
+    public static Widget Camera3D(StoryContext ctx) => DocNew(ctx, $"""
+        # Recipe: 3D Camera
+
+        このrecipeは[Index bufferでcubeを描く](story:Build/Recipes/IndexedCube)のmeshを描画対象にします。
+
+        indexed cubeへmodel、view、projectionを適用し、window resizeへ追従するperspective cameraを組み込むrecipeです。実装の正は`samples/LuxelTriangle/TriangleRenderer.cs`と`samples/LuxelTriangle/TutorialAbi.cs`です。
+
+        ## 座標規約
+
+        | 項目 | recipeの規約 |
+        | --- | --- |
+        | handedness | right-handed |
+        | world axes | +X=右、+Y=上、cameraの前方=-Z |
+        | clip/depth | shader出力後のdepthは0..1 |
+        | matrix | CPUは`System.Numerics.Matrix4x4`、shaderはmatrix×column-vector |
+
+        規約をbackendごとに変えず、Vulkan / DirectX 12から同じ最終clip spaceに見えるようbackend変換を1か所へ閉じ込めます。
+
+        ## Model、View、Projection
+
+        CPU上の意味は`model * view * projection`です。現在のABIはmatrixをtransposeしてroot argumentsへ格納し、Slangではmatrix×column-vectorとして適用します。
+
+        ```csharp
+        Matrix4x4 model = Matrix4x4.CreateRotationY(angle);
+        Matrix4x4 view = Matrix4x4.CreateLookAt(
+            new Vector3(0, 1.5f, 3.5f), Vector3.Zero, Vector3.UnitY);
+        Matrix4x4 projection = CreatePerspective(width, height);
+
+        args.Model = Matrix4x4.Transpose(model);
+        args.ViewProjection = Matrix4x4.Transpose(view * projection);
+        ```
+
+        ```slang
+        float4 worldPosition = mul(g_args.model, float4(vertex.position, 1));
+        float4 clipPosition = mul(g_args.viewProjection, worldPosition);
+        ```
+
+        matrixの掛け算順とmemory layoutは別問題です。objectがorbitする場合はmodelの順序、backend間で上下が逆ならprojectionとviewportのY補正が重複していないかを確認します。
+
+        ## Resizeとaspect
+
+        aspectはreadback用のaligned strideではなく、resize callbackで確定したvisible client width / heightから計算します。最小化中の0×0ではprojection計算とrenderを停止し、正のsizeへ戻った次frameでtargetとprojectionをまとめて更新します。
+
+        ```csharp
+        float aspect = visibleWidth / (float)visibleHeight;
+        Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(
+            fieldOfView, aspect, nearPlane, farPlane);
+        ```
+
+        nearは0より大きく、farより十分小さくします。正方形、横長、縦長へresizeし、cubeの辺の比率と中心位置が維持されることを確認します。
+
+        {SampleBundle("rendering.3d")}
+        """, toc: true);
+
+    [Story("Build/Recipes/HeadlessScene2D", Order = 13, SampleBundle = "rendering.2d")]
     public static Widget HeadlessScene2D(StoryContext ctx) => DocNew(ctx, $$"""
         # Recipe: Headless Scene2D Render
 

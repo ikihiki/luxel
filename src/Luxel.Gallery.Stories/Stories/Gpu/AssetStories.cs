@@ -30,7 +30,7 @@ public static class AssetStories
 
     /// <summary>Box.gltf → AssetDocument → AssetPrimitive → GPU buffers → 1 draw。ECSなしの静的最小経路。</summary>
     [Story("Examples/3D/GltfBox", Height = 320, Order = 125)]
-    public static Widget GltfBox() => Frame(GpuView(256, 256, new StaticGltfScene("Box.gltf"), animated: false));
+    public static Widget GltfBox() => Frame(GpuSceneBase.View(256, 256, new StaticGltfScene("Box.gltf"), animated: false));
 
     /// <summary>静的primitiveを直接uploadし、1件のinstance bufferで描く。ECS/animation/skin/morphは使わない。</summary>
     private sealed class StaticGltfScene(string file) : GpuSceneBase
@@ -104,7 +104,7 @@ public static class AssetStories
     /// <summary>BoxAnimated.glb — ノード TRS アニメーションを SceneAnimationPlayer が毎フレーム
     /// sample → TransformPropagate → 再 Extract して描く (スキニングなしのアニメーション経路)。</summary>
     [Story("Examples/3D/GltfAnimated", Height = 320, Order = 126)]
-    public static Widget GltfAnimated(StoryContext ctx) => ctx.Snap(Frame(GpuView(256, 256, new GltfScene("BoxAnimated.glb", animate: true))));
+    public static Widget GltfAnimated(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(256, 256, new GltfScene("BoxAnimated.glb", animate: true))));
 
     /// <summary>khronos-samples の glTF を読み、SceneBuilder → SceneRenderExtractor → 描画。
     /// animate 時は毎フレーム anim[0] を周期 sample して instance を書き直す。</summary>

@@ -43,7 +43,7 @@ public static class CavernStories
         // 敵 AI を .csx からコンパイル (ScriptSystem のドッグフーディング — 実ゲームの敵ロジックを csx で書く)
         ScriptResult r = scripts.GetOrAdd(AiProfile).Run(PatrolAiCsx, new object());
         var ai = r.ReturnValue as Action<Walker, CavernSim, float>;
-        return ctx.Snap(Frame(GpuView(384, 256, new CavernScene(ai), animated: false)));
+        return ctx.Snap(Frame(GpuSceneBase.View(384, 256, new CavernScene(ai), animated: false)));
     }
 
     private static readonly Lazy<VectorFont> Font = new(() => Luxel.Gallery.GalleryFonts.Load(Luxel.Gallery.GalleryFonts.Regular));
@@ -57,8 +57,6 @@ public static class CavernStories
         private RetainedCanvas _canvas = null!;
         private IRasterScene2D _rasterScene = null!;
         private Vector2 _cameraCenter;
-
-        protected override bool NeedsColorTarget => false;
 
         protected override void OnInit()
         {

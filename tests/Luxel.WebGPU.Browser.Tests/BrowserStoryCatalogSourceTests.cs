@@ -10,16 +10,40 @@ public sealed class BrowserStoryCatalogSourceTests
         string root = FindRepositoryRoot();
         string program = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "Program.cs"));
         string script = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "wwwroot", "main.js"));
+        string project = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "LuxelWebGpuBrowser.csproj"));
+        string compiler = File.ReadAllText(Path.Combine(root, "src", "Luxel.Shaders.Slang.Browser", "BrowserSlangCompiler.cs"));
+        string gpuResources = File.ReadAllText(Path.Combine(root, "src", "Luxel.AssetsGpu", "ResourceSystemExtensions.cs"));
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(Path.Combine(
             root, "samples", "LuxelWebGpuBrowser", "wwwroot", "browser-runtime-manifest.json")));
 
         Assert.Contains("CoreUiStoryProject.CreateCatalog()", program, StringComparison.Ordinal);
         Assert.Contains("Catalog.Find(path)", program, StringComparison.Ordinal);
         Assert.Contains("story.RuntimeBundleId != CoreUiStoryProject.RuntimeBundleId", program, StringComparison.Ordinal);
+        Assert.Contains("new StoryContext(resources, args)", program, StringComparison.Ordinal);
+        Assert.Contains("context.SetGpuHost(device, font)", program, StringComparison.Ordinal);
+        Assert.Contains("resources.InstallAssetGpuLifecycle(device)", program, StringComparison.Ordinal);
+        Assert.Contains("new BrowserSlangCompiler()", program, StringComparison.Ordinal);
+        Assert.Contains("AddStep<SlangSource, GpuShaderCode>", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("context.Ready", program, StringComparison.Ordinal);
+        Assert.True(program.IndexOf("ui.SetRoot(result.Widget)", StringComparison.Ordinal)
+            < program.IndexOf("resources.Pump()", StringComparison.Ordinal));
+        Assert.True(program.IndexOf("resources.Pump()", StringComparison.Ordinal)
+            < program.IndexOf("ui.Tick(1f / 60f)", StringComparison.Ordinal));
+        Assert.Contains("Luxel.Shaders.Slang.Browser.csproj", project, StringComparison.Ordinal);
+        Assert.Contains("wwwroot\\slang-worker.js", project, StringComparison.Ordinal);
+        Assert.Contains("BrowserSlangJsonContext.Default.BrowserCompileRequest", compiler, StringComparison.Ordinal);
+        Assert.Contains("BrowserSlangJsonContext.Default.BrowserCompileResponse", compiler, StringComparison.Ordinal);
+        Assert.Contains("AddStep<CpuImage, GpuTexture>", gpuResources, StringComparison.Ordinal);
+        Assert.Contains("AddStep<GpuBufferRequest, GpuBuffer>", gpuResources, StringComparison.Ordinal);
+        Assert.Contains("AddStep<float[], GpuBuffer>", gpuResources, StringComparison.Ordinal);
         Assert.Contains("SnapshotWidgets(result.Widget)", program, StringComparison.Ordinal);
         Assert.DoesNotContain("path switch", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunClearColor", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunTriangle", program, StringComparison.Ordinal);
 
         Assert.Contains("const protocolVersion = 2", script, StringComparison.Ordinal);
+        Assert.Contains("import * as slang from \"./slang-browser.js\"", script, StringComparison.Ordinal);
+        Assert.Contains("runtime.setModuleImports(\"luxel-slang\", slang)", script, StringComparison.Ordinal);
         Assert.Contains("message.type !== \"set-args\"", script, StringComparison.Ordinal);
         Assert.Contains("event.source !== parent", script, StringComparison.Ordinal);
         Assert.Contains("event.origin !== location.origin", script, StringComparison.Ordinal);

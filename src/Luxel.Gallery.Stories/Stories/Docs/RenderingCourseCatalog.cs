@@ -7,29 +7,25 @@ internal static class RenderingCourseCatalog
 {
     internal static readonly string[] Routes =
     [
-        "Learn/Rendering/Basics/Overview", "Learn/Rendering/Basics/Environment",
-        "Learn/Rendering/Basics/ClearColor", "Learn/Rendering/Basics/FirstTriangle",
-        "Learn/Rendering/Basics/BuffersAndBindings", "Learn/Rendering/Basics/Shaders",
-        "Learn/Rendering/Basics/FrameLoopAndSynchronization",
-        "Learn/Rendering/ThreeD/Textures", "Learn/Rendering/ThreeD/TransformsAndCamera",
-        "Learn/Rendering/ThreeD/DepthCullingLighting", "Learn/Rendering/ThreeD/FirstRenderGraph",
-        "Learn/Rendering/ThreeD/StaticGltf", "Learn/Rendering/ThreeD/Debugging",
-        "Learn/Rendering/ThreeD/Shipping",
-        "Learn/Rendering/TwoD/Overview", "Learn/Rendering/TwoD/Paths",
-        "Learn/Rendering/TwoD/Compositing", "Learn/Rendering/TwoD/Images",
-        "Learn/Rendering/TwoD/Camera", "Learn/Rendering/TwoD/Backends",
-        "Learn/Rendering/TwoD/RetainedCanvas", "Learn/Rendering/TwoD/IncrementalUpdates",
-        "Learn/Rendering/RasterizerInternals/Overview", "Learn/Rendering/RasterizerInternals/Flattening",
-        "Learn/Rendering/RasterizerInternals/SceneEncoding", "Learn/Rendering/RasterizerInternals/Abi",
-        "Learn/Rendering/RasterizerInternals/Bounds", "Learn/Rendering/RasterizerInternals/TileBinning",
-        "Learn/Rendering/RasterizerInternals/FineRaster", "Learn/Rendering/RasterizerInternals/ImagesAndComposite",
-        "Learn/Rendering/RasterizerInternals/Dispatch", "Learn/Rendering/RasterizerInternals/RetainedUploads",
-        "Learn/Rendering/RasterizerInternals/Validation",
+        "Learn/Grapics/Overview", "Learn/Grapics/Environment",
+        "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
+        "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
+        "Learn/Grapics/PipelineState", "Learn/Grapics/Synchronization", "Learn/Grapics/RenderGraph",
+        "Learn/Grapics/2D/Overview", "Learn/Grapics/2D/Paths",
+        "Learn/Grapics/2D/Compositing", "Learn/Grapics/2D/Images",
+        "Learn/Grapics/2D/Camera", "Learn/Grapics/2D/Backends",
+        "Learn/Grapics/2D/RetainedCanvas", "Learn/Grapics/2D/IncrementalUpdates",
+        "Learn/Grapics/2D/Internal/Overview", "Learn/Grapics/2D/Internal/Flattening",
+        "Learn/Grapics/2D/Internal/SceneEncoding", "Learn/Grapics/2D/Internal/Abi",
+        "Learn/Grapics/2D/Internal/Bounds", "Learn/Grapics/2D/Internal/TileBinning",
+        "Learn/Grapics/2D/Internal/FineRaster", "Learn/Grapics/2D/Internal/ImagesAndComposite",
+        "Learn/Grapics/2D/Internal/Dispatch", "Learn/Grapics/2D/Internal/RetainedUploads",
+        "Learn/Grapics/2D/Internal/Validation",
     ];
 
     internal static readonly string[] ApplicationRoute = Routes
         .Skip(1)
-        .TakeWhile(route => !route.StartsWith("Learn/Rendering/TwoD/", StringComparison.Ordinal))
+        .TakeWhile(route => !route.StartsWith("Learn/Grapics/2D/", StringComparison.Ordinal))
         .ToArray();
 
     internal static string ApplicationRouteMarkdown()

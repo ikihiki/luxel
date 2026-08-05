@@ -102,9 +102,11 @@ public sealed class WorkspaceFoundationTests
 
         PlaygroundDraft cube = PlaygroundTemplates.SlangCube.CreateDraft();
         Assert.Equal(3, cube.Files.Count);
-        Assert.Contains(cube.Files, file => file.Path == "SlangCubeScene.cs" && file.Language == "csharp");
+        Assert.Contains(cube.Files, file => file.Path == "SlangCubeRenderer.cs" && file.Language == "csharp");
         Assert.Contains(cube.Files, file => file.Path == "Shaders/cube.slang" && file.Language == "slang");
-        Assert.Contains(cube.Files, file => file.Path == "SlangCubeScene.cs" && file.Source.Contains("GpuMemoryKind.DeviceLocal", StringComparison.Ordinal));
+        Assert.Contains(cube.Files, file => file.Path == "SlangCubeRenderer.cs" && file.Source.Contains("GpuViewSurface", StringComparison.Ordinal));
+        Assert.Contains(cube.Files, file => file.Path == "SlangCubeRenderer.cs" && file.Source.Contains("surface.CopyColorToFramebuffer", StringComparison.Ordinal));
+        Assert.DoesNotContain(cube.Files, file => file.Source.Contains("IGpuScene", StringComparison.Ordinal));
         Assert.Contains("WebScriptResources.Get<GpuShaderCode>", cube.MainFile.Source);
         Assert.Contains("Kit.GpuView", cube.MainFile.Source);
     }

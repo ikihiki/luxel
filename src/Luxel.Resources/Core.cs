@@ -66,7 +66,10 @@ public readonly struct StageAwaitable : INotifyCompletion
     internal StageAwaitable(ResourceLane lane) => _lane = lane;
 
     public StageAwaitable GetAwaiter() => this;
-    public bool IsCompleted => false;
+    // Browser WebAssembly has no independently progressing ThreadPool while synchronous story
+    // construction is waiting for scope-local GPU creation. Run the lane continuation inline there;
+    // genuinely asynchronous source/decoder work still yields on its own Task.
+    public bool IsCompleted => OperatingSystem.IsBrowser();
     public void OnCompleted(Action continuation) => _lane.Post(continuation);
     public void GetResult() { }
 }

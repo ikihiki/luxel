@@ -31,10 +31,15 @@ internal sealed class TriangleRenderer : IDisposable
 
         if (stage == TutorialStage.Triangle)
         {
-            CanonicalTriangleRecipe.Vertex[] vertices = CanonicalTriangleRecipe.CreateVertices();
+            float[] vertices =
+            [
+                0, -0.72f, 0, 1, 1, 0.18f, 0.18f, 1,
+                0.72f, 0.62f, 0, 1, 0.18f, 1, 0.28f, 1,
+                -0.72f, 0.62f, 0, 1, 0.2f, 0.42f, 1, 1,
+            ];
             _indexCount = 3;
-            _vertices = device.Malloc(checked((ulong)vertices.Length * CanonicalTriangleRecipe.VertexSize), GpuMemoryKind.HostMapped);
-            vertices.CopyTo(_vertices.Span<CanonicalTriangleRecipe.Vertex>(vertices.Length));
+            _vertices = device.Malloc(checked((ulong)vertices.Length * sizeof(float)), GpuMemoryKind.HostMapped);
+            vertices.CopyTo(_vertices.Span<float>(vertices.Length));
             _indices = device.Malloc(sizeof(uint), GpuMemoryKind.HostMapped); // Unused by the first-triangle stage.
         }
         else
@@ -57,7 +62,7 @@ internal sealed class TriangleRenderer : IDisposable
         raster.CullMode = stage is TutorialStage.Lighting or TutorialStage.Graph or TutorialStage.PostProcess
             ? GpuCullMode.Back : GpuCullMode.None;
         raster.FrontFace = GpuFrontFace.CounterClockwise;
-        string shader = stage == TutorialStage.Triangle ? CanonicalTriangleRecipe.Shader : "tutorial_3d";
+        string shader = stage == TutorialStage.Triangle ? "tutorial_triangle" : "tutorial_3d";
         _pipeline = device.CreateGraphicsPipeline(GpuShaderCode.Load(shader), raster);
         _postPipeline = device.CreateComputePipeline(GpuShaderCode.Load("compute_tutorial_postprocess"));
     }
@@ -96,11 +101,11 @@ internal sealed class TriangleRenderer : IDisposable
 
         if (_stage == TutorialStage.Triangle)
         {
-            var triangleArgs = new CanonicalTriangleRecipe.DrawArgs { VertexBufferIndex = _vertices.BindlessIndex };
+            uint vertexBufferIndex = _vertices.BindlessIndex;
             using GpuCommandBuffer triangleCommand = _device.MainQueue.StartCommandRecording();
             triangleCommand.BeginRendering(_target, null, 0.055f, 0.07f, 0.11f, 1)
                 .SetGraphicsPipeline(_pipeline)
-                .SetRootArguments(triangleArgs)
+                .SetRootArguments(vertexBufferIndex)
                 .Draw(3)
                 .EndRendering()
                 .Barrier(GpuStage.ColorOutput, GpuStage.Copy)

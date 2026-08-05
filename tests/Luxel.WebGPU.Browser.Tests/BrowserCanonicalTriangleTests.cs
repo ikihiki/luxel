@@ -1,6 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
-
 namespace Luxel.WebGPU.Browser.Tests;
 
 public sealed class BrowserCanonicalTriangleTests
@@ -11,13 +8,49 @@ public sealed class BrowserCanonicalTriangleTests
         string root = FindRepositoryRoot();
         string project = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "LuxelWebGpuBrowser.csproj"));
         string program = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "Program.cs"));
+        string storiesProject = File.ReadAllText(Path.Combine(root, "src", "Luxel.Gallery.Stories.CoreUi", "Luxel.Gallery.Stories.CoreUi.csproj"));
+        string canonicalTriangle = File.ReadAllText(Path.Combine(root, "samples", "CanonicalTriangleRecipe.cs"));
+        string gpuStories = File.ReadAllText(Path.Combine(root, "src", "Luxel.Gallery.Stories.CoreUi", "Stories", "GpuViewStories.cs"));
         string html = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "wwwroot", "index.html"));
-        string shaderPath = Path.Combine(root, "shaders", "compiled", "tutorial_triangle.wgsl");
 
-        Assert.Contains("CanonicalTriangleRecipe.cs", project);
-        Assert.Contains("shaders\\compiled\\tutorial_triangle.wgsl", project);
+        Assert.Contains("Luxel.Gallery.Stories.CoreUi.csproj", project);
+        Assert.DoesNotContain("CanonicalClearColorRecipe.cs", project);
+        Assert.DoesNotContain("CanonicalTriangleRecipe.cs", project);
+        Assert.DoesNotContain("struct Vertex", canonicalTriangle);
+        Assert.DoesNotContain("CreateVertices", canonicalTriangle);
+        Assert.Contains("CanonicalClearColorRecipe.cs", storiesProject);
+        Assert.Contains("CanonicalTriangleRecipe.cs", storiesProject);
+        Assert.Contains("await RunCatalogStory(story)", program);
+        Assert.DoesNotContain("RunClearColor", program);
+        Assert.DoesNotContain("RunTriangle", program);
+        Assert.DoesNotContain("CanonicalClearColorRecipe.Red", gpuStories);
+        Assert.Contains("BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1f)", gpuStories);
+        Assert.DoesNotContain("CanonicalTriangleRecipe.CreateVertices()", gpuStories);
+        Assert.Contains("float[] vertices =", gpuStories);
+        Assert.Contains("RWByteAddressBuffer g_buffers[];", gpuStories);
+        Assert.Contains("Vertex vertex = g_buffers[g_args.vertexBufferIndex].Load<Vertex>(vertexId * 32);", gpuStories);
+        Assert.Contains("new SlangSource(\"triangle.slang\", slang)", gpuStories);
+        Assert.Contains("Create<SlangSource, GpuShaderCode>", gpuStories);
+        Assert.Contains("Create<float[], GpuBuffer>", gpuStories);
+        Assert.Contains("ctx.Observe(vertexBuffer)", gpuStories);
+        Assert.DoesNotContain("CreateBuffer<float>", gpuStories);
+        Assert.DoesNotContain("vertices.CopyTo(vertexBuffer.Value.Span", gpuStories);
+        Assert.DoesNotContain("WaitFor(vertexBuffer)", gpuStories);
+        Assert.Contains("resources.CreateGraphicsPipeline(\n            \"triangle.pipeline\", shader,", gpuStories);
+        Assert.Contains("ctx.Observe(pipeline)", gpuStories);
+        Assert.Contains("GpuViewRenderResult.Loading", gpuStories);
+        Assert.Contains("GpuViewRenderResult.Failed", gpuStories);
+        Assert.DoesNotContain("ctx.Initialize", gpuStories);
+        Assert.DoesNotContain("CreatePipelineAsync", gpuStories);
+        Assert.DoesNotContain("await shader.Ready", gpuStories);
+        Assert.DoesNotContain("pipeline.GetAwaiter().GetResult()", gpuStories);
+        Assert.DoesNotContain("GpuShaderCode.Load", gpuStories);
+        Assert.DoesNotContain("const string wgsl", gpuStories);
+        Assert.Contains("GpuView(", gpuStories);
+        Assert.Contains("ctx.ScopedResources", gpuStories);
+        Assert.Contains("browserBackend.CreateCanvasSurface", program);
+        Assert.DoesNotContain("tutorial_triangle.wgsl", project);
         Assert.DoesNotContain("Shaders\\triangle.wgsl", project);
-        Assert.Contains("CanonicalTriangleRecipe.CreateVertices()", program);
         Assert.DoesNotContain("checker", program, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("width=\"320\" height=\"240\"", html);
         Assert.DoesNotContain("aspect-ratio", html);
@@ -27,20 +60,10 @@ public sealed class BrowserCanonicalTriangleTests
         Assert.DoesNotContain("Move/click over", html);
         Assert.Contains("if (resizePending)", program);
         Assert.Contains("resizePending = false;", program);
-        Assert.Contains($"data-story=\"{CanonicalTriangleRecipe.Story}\"", html);
-        Assert.Contains($"data-shader=\"{CanonicalTriangleRecipe.Shader}\"", html);
-        Assert.Contains($"data-vertex-size=\"{CanonicalTriangleRecipe.VertexSize}\"", html);
-        Assert.Contains($"data-root-size=\"{CanonicalTriangleRecipe.DrawArgsSize}\"", html);
-        Assert.Contains($"data-canvas=\"{CanonicalTriangleRecipe.Width}x{CanonicalTriangleRecipe.Height}\"", html);
-        Assert.Contains($"data-recipe=\"{CanonicalTriangleRecipe.Recipe}\"", html);
-        Assert.Contains($"data-hash=\"{CanonicalTriangleRecipe.ShaderSha256}\"", html);
+        Assert.DoesNotContain("data-story=", html);
+        Assert.DoesNotContain("data-shader=", html);
+        Assert.DoesNotContain("data-recipe=", html);
         Assert.Contains("data-status=\"loading\"", html);
-
-        byte[] shader = File.ReadAllBytes(shaderPath);
-        Assert.Equal(CanonicalTriangleRecipe.ShaderSha256, Convert.ToHexString(SHA256.HashData(shader)).ToLowerInvariant());
-        string wgsl = Encoding.UTF8.GetString(shader);
-        Assert.Contains("fn vsMain", wgsl);
-        Assert.Contains("fn psMain", wgsl);
     }
 
     private static string FindRepositoryRoot()

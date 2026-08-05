@@ -300,15 +300,18 @@ public static class PlaygroundTemplates
                 // The host compiles the workspace Slang file before this script runs.
                 var shader = WebScriptResources.Get<GpuShaderCode>("Shaders/cube.slang");
                 Log($"Loaded {shader.Metadata.Path} as {shader.Metadata.Properties["target"]}.");
-                return Kit.GpuView(320, 320, new SlangCubeScene(shader.Value), animated: true);
+                var renderer = new SlangCubeRenderer(shader.Value);
+                return Kit.GpuView(320, 320,
+                    (device, surface, time) => renderer.Render(device, surface, time),
+                    animated: true, dispose: renderer.Dispose);
                 """),
-            new PlaygroundFile("slang-cube-scene", "SlangCubeScene.cs", "csharp", """
+            new PlaygroundFile("slang-cube-renderer", "SlangCubeRenderer.cs", "csharp", """
                 using System;
                 using System.Runtime.InteropServices;
                 using Luxel.Controls;
                 using Luxel.Graphics;
 
-                public sealed class SlangCubeScene : IGpuScene
+                public sealed class SlangCubeRenderer : IDisposable
                 {
                     [StructLayout(LayoutKind.Sequential)]
                     private struct Vertex
@@ -327,56 +330,49 @@ public static class PlaygroundTemplates
                     }
 
                     private readonly GpuShaderCode _shader;
-                    private GpuDevice? _device;
-                    private GpuTexture? _color;
+                    private GpuViewSurface? _surface;
                     private GpuTexture? _depth;
                     private GpuBuffer? _vertices;
-                    private GpuBuffer? _output;
                     private GpuPipeline? _pipeline;
-                    private uint _width, _height;
 
-                    public SlangCubeScene(GpuShaderCode shader) => _shader = shader;
+                    public SlangCubeRenderer(GpuShaderCode shader) => _shader = shader;
 
-                    public void Init(GpuDevice device, int width, int height)
+                    public GpuViewRenderResult Render(GpuDevice device, GpuViewSurface surface, float time)
                     {
-                        _device = device;
-                        _width = (uint)width;
-                        _height = (uint)height;
-                        _color = device.CreateRenderTarget(_width, _height, GpuFormat.Rgba8Unorm);
-                        _depth = device.CreateDepthTarget(_width, _height);
+                        if (!ReferenceEquals(_surface, surface))
+                            Initialize(device, surface);
+
+                        var args = new DrawArgs
+                        {
+                            VertexBufferIndex = _vertices!.BindlessIndex,
+                            Time = time,
+                            Aspect = (float)surface.Width / surface.Height,
+                        };
+                        using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
+                        command.BeginRendering(surface.ColorTarget, _depth, 0.025f, 0.04f, 0.08f, 1f)
+                            .SetGraphicsPipeline(_pipeline!)
+                            .SetRootArguments(args)
+                            .Draw(36)
+                            .EndRendering();
+                        surface.CopyColorToFramebuffer(command);
+                        command.Finish();
+                        device.MainQueue.Submit(command);
+                        return GpuViewRenderResult.Ready;
+                    }
+
+                    private void Initialize(GpuDevice device, GpuViewSurface surface)
+                    {
+                        DisposeResources();
+                        _surface = surface;
+                        _depth = device.CreateDepthTarget(surface.Width, surface.Height);
                         Vertex[] vertices = BuildCube();
                         _vertices = device.Malloc((ulong)vertices.Length * 32u, GpuMemoryKind.HostMapped);
                         vertices.CopyTo(_vertices.Span<Vertex>(vertices.Length));
-                        // This framebuffer is written by the GPU and sampled by GpuView. HostMapped
-                        // buffers are re-uploaded before every browser submission, which would overwrite
-                        // the rendered pixels with their CPU shadow before UI composition.
-                        _output = device.Malloc(_width * _height * 4u, GpuMemoryKind.DeviceLocal);
                         var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
                         raster.DepthTest = true;
                         raster.DepthWrite = true;
                         raster.CullMode = GpuCullMode.Back;
                         _pipeline = device.CreateGraphicsPipeline(_shader, raster);
-                    }
-
-                    public (int BindlessIndex, int StridePixels) Render(float time)
-                    {
-                        var args = new DrawArgs
-                        {
-                            VertexBufferIndex = _vertices!.BindlessIndex,
-                            Time = time,
-                            Aspect = (float)_width / _height,
-                        };
-                        using GpuCommandBuffer command = _device!.MainQueue.StartCommandRecording();
-                        command.BeginRendering(_color!, _depth, 0.025f, 0.04f, 0.08f, 1f)
-                            .SetGraphicsPipeline(_pipeline!)
-                            .SetRootArguments(args)
-                            .Draw(36)
-                            .EndRendering()
-                            .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
-                            .CopyTextureToBuffer(_color!, _output!);
-                        command.Finish();
-                        _device.MainQueue.Submit(command);
-                        return ((int)_output!.BindlessIndex, (int)_width);
                     }
 
                     private static Vertex[] BuildCube()
@@ -406,12 +402,15 @@ public static class PlaygroundTemplates
 
                     public void Dispose()
                     {
+                        DisposeResources();
+                        _surface = null;
+                    }
+
+                    private void DisposeResources()
+                    {
                         _pipeline?.Dispose(); _pipeline = null;
-                        _output?.Dispose(); _output = null;
                         _vertices?.Dispose(); _vertices = null;
                         _depth?.Dispose(); _depth = null;
-                        _color?.Dispose(); _color = null;
-                        _device = null;
                     }
                 }
                 """),

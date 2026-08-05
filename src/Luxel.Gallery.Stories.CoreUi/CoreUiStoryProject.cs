@@ -62,7 +62,9 @@ public static class CoreUiStoryProject
         foreach (StoryInfo story in authoredBuilder.Build().All)
         {
             if (ProductionCanonicalPaths.Contains(story.Path)) continue;
-            builder.Add(story);
+            // This assembly is the browser-safe story boundary. Any authored story added here is
+            // automatically exported and executable by the WebAssembly runtime.
+            builder.Add(story with { RuntimeBundleId = story.RuntimeBundleId ?? RuntimeBundleId });
         }
     }
 

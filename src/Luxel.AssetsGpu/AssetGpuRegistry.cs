@@ -46,10 +46,27 @@ public sealed class AssetGpuRegistry : IDisposable
     /// ResourceSystem の creation Step から利用する device-bound factory。
     /// 返却値の所有者は ResourceSystem node であり、registry の asset cache には保持しない。
     /// </summary>
-    internal GpuPipeline Create(GpuPipelineRequest request)
+    internal GpuPipeline Create(GpuPipelineRequest request, GpuShaderCode code)
         => request.IsCompute
-            ? _device.CreateComputePipeline(request.Code, request.ComputeEntry)
-            : _device.CreateGraphicsPipeline(request.Code, request.Raster, request.VertexEntry, request.PixelEntry);
+            ? _device.CreateComputePipeline(code, request.ComputeEntry)
+            : _device.CreateGraphicsPipeline(code, request.Raster, request.VertexEntry, request.PixelEntry);
+
+    /// <summary>ResourceSystem-owned initialized float bufferを生成する。</summary>
+    internal GpuBuffer Create(float[] data)
+    {
+        var buffer = _device.Malloc(
+            checked((ulong)data.Length * sizeof(float)), GpuMemoryKind.HostMapped);
+        try
+        {
+            data.AsSpan().CopyTo(buffer.Span<float>(data.Length));
+            return buffer;
+        }
+        catch
+        {
+            buffer.Dispose();
+            throw;
+        }
+    }
 
     /// <summary>ResourceSystem-owned texture を生成する。asset cache には保持しない。</summary>
     internal GpuTexture Create(GpuTextureRequest request) => request.Kind switch

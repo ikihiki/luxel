@@ -27,7 +27,7 @@ internal static class RepoRoot
 }
 
 /// <summary>play カタログ — テスト検出時に全ストーリーを **GPU なしで** 一度構築し、
-/// 登録された play を列挙する (構築が GPU フリーなのは IGpuScene 規約と DocsIndex で実証済み)。</summary>
+/// 登録された play を列挙する (構築が GPU フリーなのは GpuView callback 規約と DocsIndex で実証済み)。</summary>
 internal static class E2eCatalog
 {
     private static readonly Lazy<IReadOnlyList<(string Path, int Index, string Name)>> Lazy = new(Discover);

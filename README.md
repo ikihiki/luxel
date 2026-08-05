@@ -13,10 +13,21 @@ dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site --rasteriz
 
 # 対象を絞って確認する場合
 dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site --filter Controls/Button
+
+# 高速export: 既存goldenのみ使用し、不足するnative captureは生成しない
+dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site --static-capture golden-only
+
+# semantic HTML / browser runtimeのみ。native hostやGPUを起動しない
+dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site --static-capture none
+
+# 既存出力を保持し、変更されたassetだけ更新するlocal iteration mode
+dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site --static-capture golden-only --incremental
 ```
 
+`--static-capture`は`all`（既定、golden不足分をcapture）、`golden-only`（既存goldenのみ）、`none`（static previewなし）を選べる。どのmodeでもsemantic document、browser runtime iframe、Playground、Mermaid、Markdownのlocal imageは維持される。captureを省略したnative-only Widgetは、Story sourceを残した明示的なunavailable cardになる。
+
 生成物は相対URLだけを使い、`.nojekyll`、hash routing、sidebar、全文検索、light/dark themeを含む。
-既存Vulkan goldenを代表previewとして優先し、不足画像はVulkanで決定的に生成する。`RealWindowOnly`や描画失敗は
+既存Vulkan goldenを代表previewとして優先し、`all`では不足画像をVulkanで決定的に生成する。`RealWindowOnly`や描画失敗は
 黙って省略せず、明示的な状態cardとして出力する。`luxel-ui` placeholder、local参照切れ、root absolute URLはexport時に検証する。
 
 生成先の`artifacts/`はGitへcommitしない。`.github/workflows/deploy-pages.yml`は`main`へのpushまたは手動実行で

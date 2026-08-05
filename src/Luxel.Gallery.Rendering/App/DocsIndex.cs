@@ -32,20 +32,30 @@ public static class DocsIndex
             {
                 using var ctx = new StoryContext(resources);
                 ctx.SetServices(GalleryServices.Provider);   // Scripting 等 DI ストーリーも build できるように
-                Widget w = s.Build(ctx);
-                if (FindMarkdownDoc(w) is { DocSource: { } src })
+                string? src;
+                if (s.ResultBuild is not null)
                 {
-                    // 新スタック (MarkdownDoc): markdown ソースから見出し/リンクを取る (realize 不要)。
-                    // Block はソースオフセット (TextEditorView.ScrollToSource でそのまま使える)。
-                    var heads = MarkdownDecorations.Headings(src)
-                        .Where(h => h.Level >= 2)
-                        .Select(h => new DocsHeading(h.Text, h.Level, h.Offset))
-                        .ToList();
-                    map[s.Path] = new DocsPage(s.Path, src, heads);
-                    foreach (MarkdownLink l in MarkdownDecorations.Links(src))
-                        if (LinkBroken(l.Url, src, catalog))
-                        { broken++; Console.Error.WriteLine($"[gallery] dead link in '{s.Path}': {l.Url}"); }
+                    StoryResult result = s.BuildResult(ctx);
+                    src = result.Kind == StoryResultKind.Markdown
+                        ? result.Markdown
+                        : FindSemanticDocument(result.Widget)?.DocumentSource;
                 }
+                else
+                {
+                    src = FindSemanticDocument(s.Build(ctx))?.DocumentSource;
+                }
+                if (src is null) continue;
+
+                // Semantic markdownから見出し/リンクを取る (realize 不要)。
+                // Block はソースオフセット (TextEditorView.ScrollToSource でそのまま使える)。
+                var heads = MarkdownDecorations.Headings(src)
+                    .Where(h => h.Level >= 2)
+                    .Select(h => new DocsHeading(h.Text, h.Level, h.Offset))
+                    .ToList();
+                map[s.Path] = new DocsPage(s.Path, src, heads);
+                foreach (MarkdownLink l in MarkdownDecorations.Links(src))
+                    if (LinkBroken(l.Url, src, catalog))
+                    { broken++; Console.Error.WriteLine($"[gallery] dead link in '{s.Path}': {l.Url}"); }
             }
             catch (Exception e)
             {
@@ -75,10 +85,19 @@ public static class DocsIndex
         return errors;
     }
 
-    /// <summary>widget 木から新スタックの docs (<see cref="TextEditorView.DocSource"/> を持つ) を探す。</summary>
+    /// <summary>widget 木からnative realization不要のsemantic documentを探す。</summary>
+    internal static ISemanticDocument? FindSemanticDocument(Widget? w)
+    {
+        if (w is null) return null;
+        if (w is ISemanticDocument { DocumentSource: not null } document) return document;
+        foreach (Widget c in w.DebugChildren())
+            if (FindSemanticDocument(c) is { } found) return found;
+        return null;
+    }
+
     internal static TextEditorView? FindMarkdownDoc(Widget w)
     {
-        if (w is TextEditorView e && e.DocSource is not null) return e;
+        if (w is TextEditorView { DocSource: not null } editor) return editor;
         foreach (Widget c in w.DebugChildren())
             if (FindMarkdownDoc(c) is { } found) return found;
         return null;

@@ -892,6 +892,53 @@
       "componentType": null
     },
     {
+      "path": "Controls/Button/Playground",
+      "width": 480,
+      "height": 160,
+      "args": [
+        {
+          "name": "text",
+          "type": "string",
+          "defaultValue": "Click me",
+          "description": "Button label",
+          "order": 10,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "variant",
+          "type": "enum:Filled|Tonal|Outline|Ghost",
+          "defaultValue": "Filled",
+          "description": "Visual variant",
+          "order": 20,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": [
+            "Filled",
+            "Tonal",
+            "Outline",
+            "Ghost"
+          ]
+        },
+        {
+          "name": "disabled",
+          "type": "bool",
+          "defaultValue": false,
+          "description": "Disable interaction",
+          "order": 30,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        }
+      ],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
       "path": "Controls/Button/Primary",
       "width": 480,
       "height": 160,
@@ -1780,7 +1827,7 @@
       "width": 480,
       "height": 320,
       "args": [],
-      "capabilityNote": "Deterministic explanatory fallback for unsupported capability inputs: Scene.",
+      "capabilityNote": "Deterministic explanatory fallback for unsupported capability inputs: Render, Dispose.",
       "componentType": "global::Luxel.Controls.GpuView"
     },
     {
@@ -1806,7 +1853,7 @@
       "args": [
         {
           "name": "kind",
-          "type": "enum:Check|Close|ChevronDown|ChevronRight|ChevronLeft|Plus|Minus|Dot|Circle",
+          "type": "enum:Check|Close|ChevronDown|ChevronRight|ChevronLeft|Plus|Minus|Dot|Circle|Loading|Failed",
           "defaultValue": "Check",
           "description": "\u30A2\u30A4\u30B3\u30F3\u7A2E\u5225\u3002",
           "order": 1000,
@@ -1822,7 +1869,9 @@
             "Plus",
             "Minus",
             "Dot",
-            "Circle"
+            "Circle",
+            "Loading",
+            "Failed"
           ]
         },
         {
@@ -5818,11 +5867,35 @@
       "componentType": null
     },
     {
+      "path": "Examples/3D/BuffersAndBindings",
+      "width": 320,
+      "height": 240,
+      "args": [],
+      "capabilityNote": "Renders an indexed quad from separate position, index, and color buffers.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/ClearColor",
+      "width": 320,
+      "height": 240,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/Textures",
+      "width": 320,
+      "height": 240,
+      "args": [],
+      "capabilityNote": "Renders a generated checker texture with a bindless texture and sampler.",
+      "componentType": null
+    },
+    {
       "path": "Examples/3D/Triangle",
       "width": 320,
       "height": 240,
       "args": [],
-      "capabilityNote": "Specialized browser WebGPU validation route.",
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
       "componentType": null
     },
     {
