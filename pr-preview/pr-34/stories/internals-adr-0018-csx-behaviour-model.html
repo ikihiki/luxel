@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0018-csx-update">ADR-0018 — ゲームの挙動は csx ビヘイビア (状態レス Update) で書く</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0018-Csx-Behaviour-Model&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0018-Csx-Behaviour-Model&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0018-Csx-Behaviour-Model&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0018-Csx-Behaviour-Model&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-11</li>
@@ -33,8 +41,8 @@
 <li>⚠️ スクリプト間の直接呼び出しは無い — 連携はコンポーネント経由 (複雑な連携が要るゲームは C# コア方式が引き続き有効)</li>
 <li>⚠️ Roslyn コンパイルは初回が重い — 起動時 LoadAll でまとめて払う (ゲーム中のスパイクにしない)</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0018-Csx-Behaviour-Model&quot;, Order = 89)]
-public static Widget Adr0018(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0018-Csx-Behaviour-Model&quot;, Order = 89, Toc = true)]
+public static StoryResult Adr0018(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0018 — ゲームの挙動は csx ビヘイビア (状態レス Update) で書く
 
     - **Status**: Accepted
@@ -72,4 +80,4 @@ public static Widget Adr0018(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ✅ 失敗してもゲーム/エディタが落ちない (旧維持 or 無効化 + 診断)
     - ⚠️ スクリプト間の直接呼び出しは無い — 連携はコンポーネント経由 (複雑な連携が要るゲームは C# コア方式が引き続き有効)
     - ⚠️ Roslyn コンパイルは初回が重い — 起動時 LoadAll でまとめて払う (ゲーム中のスパイクにしない)
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

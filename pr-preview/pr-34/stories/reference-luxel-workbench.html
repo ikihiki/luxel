@@ -1,4 +1,28 @@
 <article class="story document-page"><h1 id="luxel.workbench">Luxel.Workbench</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=command">Command</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=commandcontribution">CommandContribution</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=commandregistry">CommandRegistry</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=dockfloat">DockFloat</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=dockgroup">DockGroup</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=docknode">DockNode</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=dockside">DockSide</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=docksplit">DockSplit</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=docktree">DockTree</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=documentbinding">DocumentBinding</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=documentstore">DocumentStore</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=idocumentprovider">IDocumentProvider</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=idocumentstore">IDocumentStore</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=ieditordocument">IEditorDocument</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=ifilestorage">IFileStorage</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=keygestures">KeyGestures</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=memoryfilestorage">MemoryFileStorage</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=menunode">MenuNode</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=physicalfilestorage">PhysicalFileStorage</a></li>
+<li><a href="#story=Reference%2FLuxel.Workbench&amp;section=workspace">Workspace</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="command">Command</h2>
 <section class="api-reference"><p class="api-summary">class — コマンド 1 つ (ADR-0013 の単一の真実)。MenuBar/CommandPalette/Toolbar/Keymap は すべてこの定義のビュー。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Command</code></th><td><code>(string Id, string Title, Action Run, Func&lt;bool&gt; Enabled, KeyGesture? Gesture)</code></td><td>コマンド 1 つ (ADR-0013 の単一の真実)。MenuBar/CommandPalette/Toolbar/Keymap は すべてこの定義のビュー。</td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Equals</code></th><td><code>(Command other) → bool</code></td><td></td></tr><tr><th scope="row"><code>&lt;Clone&gt;$</code></th><td><code>() → Command</code></td><td></td></tr><tr><th scope="row"><code>Deconstruct</code></th><td><code>(string Id, string Title, Action Run, Func&lt;bool&gt; Enabled, KeyGesture? Gesture) → void</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Id</code></th><td><code>string (get/set)</code></td><td></td></tr><tr><th scope="row"><code>Title</code></th><td><code>string (get/set)</code></td><td></td></tr><tr><th scope="row"><code>Run</code></th><td><code>Action (get/set)</code></td><td></td></tr><tr><th scope="row"><code>Enabled</code></th><td><code>Func&lt;bool&gt; (get/set)</code></td><td></td></tr><tr><th scope="row"><code>Gesture</code></th><td><code>KeyGesture? (get/set)</code></td><td></td></tr><tr><th scope="row"><code>IsEnabled</code></th><td><code>bool (get)</code></td><td>いま実行できるか (enablement)。評価は表示/実行時。</td></tr></tbody></table></div></section>

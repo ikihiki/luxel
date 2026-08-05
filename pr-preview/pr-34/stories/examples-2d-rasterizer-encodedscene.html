@@ -120,8 +120,8 @@ public struct Camera2D
     };
 }
 </code></pre>
-<p>→ <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FOverview">Internal course</a></p>
+<p>→ <a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FOverview">Internal course</a></p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/2D/Rasterizer/EncodedScene&quot;, Order = 1)]
-public static Widget EncodedScene(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;Encoded scene&quot;, &quot;Segment / Path / Transform / Style / Clip / Order SoA&quot;,
+public static StoryResult EncodedScene(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;Encoded scene&quot;, &quot;Segment / Path / Transform / Style / Clip / Order SoA&quot;,
     &quot;```mermaid\nflowchart LR\nScene2D --&gt; PathEncoder\nPathEncoder --&gt; Segments\nPathEncoder --&gt; Paths\nPathEncoder --&gt; Styles\nPathEncoder --&gt; Transforms\nPathEncoder --&gt; Clips\nPathEncoder --&gt; Order\n```\n\nEach path indexes the other arrays; the order buffer preserves painter order independently from stable retained slots.&quot;,
     &quot;src/Luxel.Graphics.TwoD/Primitives.cs&quot;);</code></pre></details></article>

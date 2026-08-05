@@ -55,6 +55,6 @@ source.Poll(bus); stack.Update(bus);
 return jump.Value.Value ? 2 : 0;
 </code></pre>
 <details class="sample-bundle"><summary>Run this sample — Block</summary><p>FakeInputSource drives InputBus, InputStack, ButtonAction and Axis2DAction without a window.</p><p><strong>Requirements:</strong> .NET 10 / Headless on all supported .NET OS</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>input: jump=True, triggered=1</code></p><ul><li><code>samples/LuxelInput/LuxelInput.csproj</code> <span>Project</span></li><li><code>samples/LuxelInput/Program.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelInput</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelInput</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/Input/ContextStack&quot;, Order = 1, SampleBundle = &quot;input.actions&quot;)]
-public static Widget InputContextStack(StoryContext ctx) =&gt; RuntimeExample(ctx, &quot;Input: context stack&quot;,
+public static StoryResult InputContextStack(StoryContext ctx) =&gt; RuntimeExample(ctx, &quot;Input: context stack&quot;,
     &quot;`InputStack`の上位contextが使用した入力をconsumeするため、menuとgameplayをplatform分岐なしで切り替えられます。&quot;,
     &quot;samples/LuxelInput/Program.cs&quot;, &quot;input-actions&quot;, &quot;input.actions&quot;);</code></pre></details></article>

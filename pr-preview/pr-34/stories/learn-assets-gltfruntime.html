@@ -2,12 +2,12 @@
 <p>glTFのbuffer/image/node/skin/animationはCPU decode結果です。GPU uploadとruntime instanceは別所有者にし、resource handleの寿命より先にbindless bufferやtextureを破棄しません。</p>
 <figure class="static-capture"><a href="#story=Examples%2F3D%2FGltfSkinned"><img src="images/examples-3d-gltfskinned.png" alt="Examples/3D/GltfSkinned" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
 <figure class="static-capture"><a href="#story=Examples%2F3D%2FGltfMorph"><img src="images/examples-3d-gltfmorph.png" alt="Examples/3D/GltfMorph" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Assets/GltfRuntime&quot;, Order = 1)]
-public static Widget GltfRuntime(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Assets/GltfRuntime&quot;, Order = 1, Toc = true)]
+public static StoryResult GltfRuntime(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # glTF runtime ownership
 
     glTFのbuffer/image/node/skin/animationはCPU decode結果です。GPU uploadとruntime instanceは別所有者にし、resource handleの寿命より先にbindless bufferやtextureを破棄しません。
 
     {{StoryRef(ctx, &quot;Examples/3D/GltfSkinned&quot;)}}
     {{StoryRef(ctx, &quot;Examples/3D/GltfMorph&quot;)}}
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

@@ -1,4 +1,169 @@
 <article class="story document-page"><h1 id="luxel.controls">Luxel.Controls</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=accordion">Accordion</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=accordionprops">AccordionProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=assetbrowser">AssetBrowser</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=assetbrowserprops">AssetBrowserProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=border">Border</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=borderprops">BorderProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=box">Box</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=boxprops">BoxProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=button">Button</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=buttonprops">ButtonProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=canonicalcounterrecipe">CanonicalCounterRecipe</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=canvas2d">Canvas2D</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=canvas2dprops">Canvas2DProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=center">Center</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=centerprops">CenterProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=checkbox">CheckBox</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=checkboxprops">CheckBoxProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=codecompletion">CodeCompletion</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=codedecorations">CodeDecorations</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=codediagnostic">CodeDiagnostic</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=colorpicker">ColorPicker</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=colorpickerprops">ColorPickerProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=commandpalette">CommandPalette</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=contextmenu">ContextMenu</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=currentlineprovider">CurrentLineProvider</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=diagnosticsprovider">DiagnosticsProvider</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=dialog">Dialog</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=dialogprops">DialogProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=docembed">DocEmbed</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=docembedkind">DocEmbedKind</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=docmarkdown">DocMarkdown</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=docstring">DocString</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=doctab">DocTab</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=dockhost">DockHost</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=dockhostprops">DockHostProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=dockitem">DockItem</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=documenttabs">DocumentTabs</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=documenttabsprops">DocumentTabsProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=drawer">Drawer</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=drawerprops">DrawerProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=dropdown">Dropdown</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=dropdownprops">DropdownProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=embedref">EmbedRef</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=gpuview">GpuView</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=gpuviewprops">GpuViewProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=gpuviewrenderresult">GpuViewRenderResult</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=gpuviewsurface">GpuViewSurface</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=grid">Grid</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=gridattachedextensions">GridAttachedExtensions</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=gridprops">GridProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=highlightqueue">HighlightQueue</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=icodelanguage">ICodeLanguage</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=iscenespaceadapter">ISceneSpaceAdapter</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=iscenetileadapter">ISceneTileAdapter</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=isemanticdocument">ISemanticDocument</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=icon">Icon</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=iconkind">IconKind</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=iconprops">IconProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=imageblock">ImageBlock</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=imageblockprops">ImageBlockProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=imagepayload">ImagePayload</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=imageview">ImageView</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=imageviewprops">ImageViewProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=kit">Kit</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=lengthfield">LengthField</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=lengthfieldprops">LengthFieldProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=linktext">LinkText</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=linktextprops">LinkTextProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=listview">ListView</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=listviewprops">ListViewProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=markdowndecorations">MarkdownDecorations</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=markdowndoc">MarkdownDoc</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=markdownheading">MarkdownHeading</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=markdownlink">MarkdownLink</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=markdownprovider">MarkdownProvider</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=menubar">MenuBar</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=menubarprops">MenuBarProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=menurow">MenuRow</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=menurowprops">MenuRowProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=navigationview">NavigationView</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=navigationviewitem">NavigationViewItem</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=navigationviewprops">NavigationViewProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=nodegraphdocument">NodeGraphDocument</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=nodegraphview">NodeGraphView</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=nodegraphviewprops">NodeGraphViewProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=objectdocument%3Ct%3E">ObjectDocument<T></a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=propertygrid">PropertyGrid</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=propertygridprops">PropertyGridProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=propertygroupattribute">PropertyGroupAttribute</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=propertyignoreattribute">PropertyIgnoreAttribute</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=propertyrangeattribute">PropertyRangeAttribute</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=propertyrow">PropertyRow</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=radiogroup">RadioGroup</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=radiogroupprops">RadioGroupProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=rendergraphnodes">RenderGraphNodes</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=richtextview">RichTextView</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=richtextviewprops">RichTextViewProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=sceneeditorview">SceneEditorView</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=sceneeditorviewprops">SceneEditorViewProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=scenehandlekind">SceneHandleKind</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=sceneinspector">SceneInspector</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=sceneinspectorprops">SceneInspectorProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=scenespace2dadapter">SceneSpace2DAdapter</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=scenespace3dadapter">SceneSpace3DAdapter</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=scenetool">SceneTool</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=scrollbars">ScrollBars</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=scrollmodel">ScrollModel</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=scrollviewer">ScrollViewer</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=scrollviewerprops">ScrollViewerProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=searchfield">SearchField</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=searchfieldprops">SearchFieldProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=segmentedcontrol">SegmentedControl</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=segmentedcontrolprops">SegmentedControlProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=select">Select</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=selectprops">SelectProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=slider">Slider</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=sliderprops">SliderProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=sliderslot">SliderSlot</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=sliderslotkey">SliderSlotKey</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=spacer">Spacer</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=spacerprops">SpacerProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=sparkline">Sparkline</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=sparklineprops">SparklineProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=spinner">Spinner</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=spinnerprops">SpinnerProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=splitter">Splitter</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=splitterprops">SplitterProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=stackpanel">StackPanel</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=stackpanelprops">StackPanelProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=statusbar">StatusBar</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=statusbarprops">StatusBarProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=surfaceview">SurfaceView</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=surfaceviewprops">SurfaceViewProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=switch">Switch</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=switchprops">SwitchProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=syntaxhighlightprovider">SyntaxHighlightProvider</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=tablealign">TableAlign</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=tableblock">TableBlock</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=tableblockprops">TableBlockProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=tablepayload">TablePayload</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=tabs">Tabs</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=tabsprops">TabsProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=text">Text</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=textdocument">TextDocument</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=texteditorview">TextEditorView</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=texteditorviewprops">TextEditorViewProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=textfield">TextField</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=textfieldprops">TextFieldProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=textprops">TextProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=toast">Toast</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=toastprops">ToastProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=toolbar">Toolbar</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=toolbarprops">ToolbarProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=tooltip">Tooltip</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=tooltipprops">TooltipProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=treenode">TreeNode</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=treeview">TreeView</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=treeviewprops">TreeViewProps</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=widgetclipmode">WidgetClipMode</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=wrappanel">WrapPanel</a></li>
+<li><a href="#story=Reference%2FLuxel.Controls&amp;section=wrappanelprops">WrapPanelProps</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="accordion">Accordion</h2>
 <section class="api-reference"><p class="api-summary">class — 折りたたみ。ヘッダクリックで展開トグル。コンテンツはクリップ高さをアニメ (reveal)。 注: 単一パスのため周囲の再レイアウトはしない (末尾配置向け)。Size はヘッダ高のみ。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>SetProp</code></th><td><code>(string name, WidgetState state, Bindable&lt;T&gt; value) → bool</code></td><td></td></tr><tr><th scope="row"><code>DebugProps</code></th><td><code>() → IEnumerable&lt;DebugProp&gt;</code></td><td></td></tr><tr><th scope="row"><code>When</code></th><td><code>(WidgetState state, Bindable&lt;uint&gt; background, Bindable&lt;uint&gt; foreground, Bindable&lt;float&gt; translateX, Bindable&lt;float&gt; translateY, Bindable&lt;float&gt; scaleX, Bindable&lt;float&gt; scaleY, Bindable&lt;float&gt; rotate) → Accordion</code></td><td>状態レイヤを積む (Tailwind の hover: 相当の型付き版)。 引数はファクトリと同名 — 表示系 ([UiParam(Stateable = true)]) のみ。</td></tr><tr><th scope="row"><code>SetDebugProp</code></th><td><code>(string name, string type, JsonElement value) → void</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>DebugDetail</code></th><td><code>string (get)</code></td><td></td></tr><tr><th scope="row"><code>Title</code></th><td><code>Bindable&lt;string&gt; (get)</code></td><td>ヘッダに表示するタイトル。</td></tr><tr><th scope="row"><code>Content</code></th><td><code>Bindable&lt;Widget&gt; (get)</code></td><td>展開時に表示するコンテンツ。</td></tr><tr><th scope="row"><code>Expanded</code></th><td><code>Bindable&lt;Signal&lt;bool&gt;&gt; (get)</code></td><td>展開状態の外部 Signal。未指定なら内部で保持 (初期値 false)。</td></tr><tr><th scope="row"><code>FontSize</code></th><td><code>Bindable&lt;float&gt; (get)</code></td><td></td></tr><tr><th scope="row"><code>Background</code></th><td><code>Bindable&lt;uint&gt; (get)</code></td><td>ヘッダ地色。未設定 → hover ? SurfaceAlt : Surface。</td></tr><tr><th scope="row"><code>Foreground</code></th><td><code>Bindable&lt;uint&gt; (get)</code></td><td>タイトル色。未設定 → テーマ Text。</td></tr></tbody></table></div></section>
@@ -61,7 +226,7 @@
 <h2 id="docembedkind">DocEmbedKind</h2>
 <section class="api-reference"><p class="api-summary">enum — Kind of live content represented by a DocEmbed.</p><h3>値</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Widget</code></th><td><code></code></td><td></td></tr><tr><th scope="row"><code>StoryRef</code></th><td><code></code></td><td></td></tr><tr><th scope="row"><code>ControlApiTable</code></th><td><code></code></td><td></td></tr><tr><th scope="row"><code>TypeApiTable</code></th><td><code></code></td><td></td></tr></tbody></table></div></section>
 <h2 id="docmarkdown">DocMarkdown</h2>
-<section class="api-reference"><p class="api-summary">struct — MDX 風 docs ページの補完文字列 (新スタック Boolean) / DocNew の引数)。 **リテラル部分 = markdown、hole = ライブ UI / テキスト補完**。 Docs($&quot;&quot;&quot; # Button ボタンは **Variant &#215; Intent** で配色が決まります。テーマ数: {themeCount} {Button(_ =&gt; ctx.Log(&quot;clicked&quot;), &quot;触ってみて&quot;)} &quot;&quot;&quot;) Widget の hole → その位置に**ブロックレベル**のライブ UI (クリック可、状態も生きる)。 内部では ```luxel-ui フェンス (hole 連番) に置き換え、既存の embed 基盤 (IFenceResolver + BlockWidgetRegistry) に乗せる。 Signal`1 の hole → 現在値のテキスト補完 (構築時評価、非リアクティブ)。 その他の hole → ToString のテキスト補完。 文中インライン UI は非対応 (embed はブロック単位) — hole は行境界だけ保証される。 **改行は改行として扱われる** (空行も含めソースの行がそのまま表示行になる) ため、 要素の間隔は書き手のソースがそのまま決める。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>DocMarkdown</code></th><td><code>(string Markdown)</code></td><td>MDX 風 docs ページの補完文字列 (新スタック Boolean) / DocNew の引数)。 **リテラル部分 = markdown、hole = ライブ UI / テキスト補完**。 Docs($&quot;&quot;&quot; # Button ボタンは **Variant &#215; Intent** で配色が決まります。テーマ数: {themeCount} {Button(_ =&gt; ctx.Log(&quot;clicked&quot;), &quot;触ってみて&quot;)} &quot;&quot;&quot;) Widget の hole → その位置に**ブロックレベル**のライブ UI (クリック可、状態も生きる)。 内部では ```luxel-ui フェンス (hole 連番) に置き換え、既存の embed 基盤 (IFenceResolver + BlockWidgetRegistry) に乗せる。 Signal`1 の hole → 現在値のテキスト補完 (構築時評価、非リアクティブ)。 その他の hole → ToString のテキスト補完。 文中インライン UI は非対応 (embed はブロック単位) — hole は行境界だけ保証される。 **改行は改行として扱われる** (空行も含めソースの行がそのまま表示行になる) ため、 要素の間隔は書き手のソースがそのまま決める。</td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Equals</code></th><td><code>(DocMarkdown other) → bool</code></td><td></td></tr><tr><th scope="row"><code>Deconstruct</code></th><td><code>(string Markdown) → void</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Markdown</code></th><td><code>string (get/set)</code></td><td></td></tr></tbody></table></div></section>
+<section class="api-reference"><p class="api-summary">struct — MDX 風 docs ページの補完文字列。direct StoryResult への移行前のstructured documentにも使用する。 **リテラル部分 = markdown、hole = ライブ UI / テキスト補完**。 Docs($&quot;&quot;&quot; # Button ボタンは **Variant &#215; Intent** で配色が決まります。テーマ数: {themeCount} {Button(_ =&gt; ctx.Log(&quot;clicked&quot;), &quot;触ってみて&quot;)} &quot;&quot;&quot;) Widget の hole → その位置に**ブロックレベル**のライブ UI (クリック可、状態も生きる)。 内部では ```luxel-ui フェンス (hole 連番) に置き換え、既存の embed 基盤 (IFenceResolver + BlockWidgetRegistry) に乗せる。 Signal`1 の hole → 現在値のテキスト補完 (構築時評価、非リアクティブ)。 その他の hole → ToString のテキスト補完。 文中インライン UI は非対応 (embed はブロック単位) — hole は行境界だけ保証される。 **改行は改行として扱われる** (空行も含めソースの行がそのまま表示行になる) ため、 要素の間隔は書き手のソースがそのまま決める。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>DocMarkdown</code></th><td><code>(string Markdown)</code></td><td>MDX 風 docs ページの補完文字列。direct StoryResult への移行前のstructured documentにも使用する。 **リテラル部分 = markdown、hole = ライブ UI / テキスト補完**。 Docs($&quot;&quot;&quot; # Button ボタンは **Variant &#215; Intent** で配色が決まります。テーマ数: {themeCount} {Button(_ =&gt; ctx.Log(&quot;clicked&quot;), &quot;触ってみて&quot;)} &quot;&quot;&quot;) Widget の hole → その位置に**ブロックレベル**のライブ UI (クリック可、状態も生きる)。 内部では ```luxel-ui フェンス (hole 連番) に置き換え、既存の embed 基盤 (IFenceResolver + BlockWidgetRegistry) に乗せる。 Signal`1 の hole → 現在値のテキスト補完 (構築時評価、非リアクティブ)。 その他の hole → ToString のテキスト補完。 文中インライン UI は非対応 (embed はブロック単位) — hole は行境界だけ保証される。 **改行は改行として扱われる** (空行も含めソースの行がそのまま表示行になる) ため、 要素の間隔は書き手のソースがそのまま決める。</td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Equals</code></th><td><code>(DocMarkdown other) → bool</code></td><td></td></tr><tr><th scope="row"><code>Deconstruct</code></th><td><code>(string Markdown) → void</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Markdown</code></th><td><code>string (get/set)</code></td><td></td></tr></tbody></table></div></section>
 <h2 id="docstring">DocString</h2>
 <section class="api-reference"><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>DocString</code></th><td><code>(int literalLength, int formattedCount)</code></td><td></td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>AppendLiteral</code></th><td><code>(string s) → void</code></td><td></td></tr><tr><th scope="row"><code>AppendFormatted</code></th><td><code>(Widget widget) → void</code></td><td>ブロックレベルのライブ UI (Storybook の Canvas 相当)。 フェンスは行境界だけ保証する (改行は足さない) — 空行は空行として表示される (改行 = 改行の行指向モデル) ため、区切りの量は書き手のソースがそのまま決める。</td></tr><tr><th scope="row"><code>AppendFormatted</code></th><td><code>(DocEmbed embed) → void</code></td><td>Adds a live UI hole with structured metadata for native rendering and static export.</td></tr><tr><th scope="row"><code>AppendFormatted</code></th><td><code>(Widget widget, string format) → void</code></td><td>書式付き widget hole: {widget:inline} = **文中インライン** (行内に占位ボックスを 取り、その矩形へ実体化 — バッジや小さなボタン向け)。他の書式はブロック hole と同じ。 内部ではリンク記法 [￼](luxel-ui:N) になり、エディタの InlineWidgetResolver が解決する。</td></tr><tr><th scope="row"><code>AppendFormatted</code></th><td><code>(DocMarkdown md) → void</code></td><td>生の markdown を差し込む hole (storysource 等 — テキスト補完と違い行境界を保証する)。 ページ本体のパーサ/ハイライト/リンク機構がそのまま効く。</td></tr><tr><th scope="row"><code>AppendFormatted</code></th><td><code>(Signal&lt;T&gt; signal) → void</code></td><td>Signal はその時点の値をテキスト補完 (非リアクティブ)。</td></tr><tr><th scope="row"><code>AppendFormatted</code></th><td><code>(T value) → void</code></td><td>その他の値はテキスト補完。**Widget 派生は UI hole へ振り直す** — hole の静的型がコントロール型 (例: ApiTable ファクトリの戻り値) だと、ジェネリックの 本オーバーロードが Widget) より優先されるため (恒等変換 &gt; 基底変換)。</td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Markdown</code></th><td><code>string (get)</code></td><td>組み上がった markdown (```luxel-ui フェンス等を含む)。静的exportでも利用する。</td></tr><tr><th scope="row"><code>Embeds</code></th><td><code>IReadOnlyList&lt;DocEmbed&gt; (get)</code></td><td>Structured metadata for every UI hole, in the same index order as HoleWidgets.</td></tr></tbody></table></div><h3>フィールド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>UiTypeId</code></th><td><code>string (const)</code></td><td>UI hole の埋め込み TypeId (```luxel-ui フェンス)。</td></tr><tr><th scope="row"><code>InlineScheme</code></th><td><code>string (const)</code></td><td>インライン hole のリンクスキーム ({widget:inline} → [￼](luxel-ui:N))。</td></tr></tbody></table></div></section>
 <h2 id="doctab">DocTab</h2>
@@ -143,7 +308,7 @@
 <h2 id="markdowndecorations">MarkdownDecorations</h2>
 <section class="api-reference"><p class="api-summary">class — Markdown ソース → 装飾 (WS-A / ADR-0012)。見出し (Bold + サイズ倍率)・太字・斜体・ インラインコード (Mono + 背景) を font-variant MarkDecoration で表す。 **表示は行に分解、編集単位はブロック**というテキスト新スタックの流儀で、read-only 文書レンダラ および Markdown エディタの土台になる (`TextEditorView.Providers` に足すだけ)。 記法マーカ (#/**/`) は淡色にして本文を引き立てる。 表・図・数式など複数行ブロックは block widget (後段スライス) で足す。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Headings</code></th><td><code>(string text) → IReadOnlyList&lt;MarkdownHeading&gt;</code></td><td>文書中の ATX 見出しを順に抽出する (TOC / story: ナビの素。フェンス内は除外)。純関数。</td></tr><tr><th scope="row"><code>Links</code></th><td><code>(string text) → IReadOnlyList&lt;MarkdownLink&gt;</code></td><td>文書中のリンク [text](url) をリンクテキストの範囲 + URL で抽出する (純関数)。 view の OnClickOffset でクリック位置を当てて URL へ飛ばす。</td></tr><tr><th scope="row"><code>HeadingScale</code></th><td><code>(int level) → float</code></td><td>見出しレベル (1..6) → 基準サイズへの倍率。</td></tr><tr><th scope="row"><code>Build</code></th><td><code>(string text, Theme t, bool hideMarkers, ISyntaxHighlighter highlighter, IReadOnlyCollection&lt;string&gt; embedKinds, Func&lt;int, bool&gt; reveal) → DecorationSet</code></td><td>Markdown 全文 → 装飾集合 (純関数、フォント非依存 = GPU 不要でテスト可)。 = true (read-only 文書レンダラ) で記法マーカ (#/**/`/&amp;gt;/-/[]() 等) を 淡色化ではなく**非表示** (幅0) にする。false (編集/live-preview) は従来どおり淡色。</td></tr></tbody></table></div></section>
 <h2 id="markdowndoc">MarkdownDoc</h2>
-<section class="api-reference"><p class="api-summary">class — Markdown を「文書として描く」ワンショット (WS-A / ADR-0012) — TextEditorView に MarkdownProvider を付け、read-only + 折返しで束ねる。表示は行、装飾は provider。 Gallery の docs レンダラ (旧 Kit.Docs の後継) はこれ。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Create</code></th><td><code>(Signal&lt;string&gt; markdown, Func&lt;Theme&gt; theme, float width, float height, VectorFont body, VectorFont bold, VectorFont italic, VectorFont boldItalic, VectorFont mono, bool wrap, ISyntaxHighlighter highlighter, IReadOnlyCollection&lt;string&gt; embedKinds, FontCollection fonts, bool fill, bool editable) → TextEditorView</code></td><td>設定済みの文書レンダラを作る。 が null なら既定 (テーマ) フォント。</td></tr><tr><th scope="row"><code>FromDoc</code></th><td><code>(DocString content, Func&lt;Theme&gt; theme, float width, float height, VectorFont body, VectorFont bold, VectorFont mono, ISyntaxHighlighter highlighter, IReadOnlyDictionary&lt;string, Func&lt;string, Widget&gt;&gt; fences, FontCollection fonts, bool fill, bool toc) → TextEditorView</code></td><td>既存の DocString (```luxel-ui の UI hole を含む markdown) を新スタックで描く橋。 これで Docs($&quot;...{Widget}...&quot;) 記法のページを 1 行変更で新スタックへ移行できる。 block hole (luxel-ui) は HoleWidgets で解決。mermaid/数式など外部ドメインの フェンスは (kind → 本文で widget を作る) で注入する (Controls は Diagram/MathText 非依存)。 インライン hole ([￼](luxel-ui:N)) は後段。</td></tr><tr><th scope="row"><code>Slug</code></th><td><code>(string heading) → string</code></td><td>見出しアンカーの slug: lowercase + 空白 (半角/全角) → -、さらに markdown リンク URL ](…) を壊す丸括弧/角括弧を除去する。見出しに (...) があっても TOC の #アンカー が正しく張れる (括弧が残ると URL 内の ) がリンクを途中で閉じる)。 TOC 生成・ナビ・デッドリンク検証で共通に使う。</td></tr><tr><th scope="row"><code>InsertToc</code></th><td><code>(string md) → string</code></td><td>TOC = アンカーリンク付き markdown リストを最初の H1 直後 (無ければ先頭) へ挿入する。 ただの markdown なのでフォントもリンク機構 (#アンカー→スクロール) もそのまま効く。 H2/H3 が対象・コードフェンス内は無視。slug は String) で本文と一致させる。</td></tr></tbody></table></div></section>
+<section class="api-reference"><p class="api-summary">class — Markdown を「文書として描く」ワンショット (WS-A / ADR-0012) — TextEditorView に MarkdownProvider を付け、read-only + 折返しで束ねる。表示は行、装飾は provider。 Gallery の docs レンダラ (旧 Kit.Docs の後継) はこれ。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Create</code></th><td><code>(Signal&lt;string&gt; markdown, Func&lt;Theme&gt; theme, float width, float height, VectorFont body, VectorFont bold, VectorFont italic, VectorFont boldItalic, VectorFont mono, bool wrap, ISyntaxHighlighter highlighter, IReadOnlyCollection&lt;string&gt; embedKinds, FontCollection fonts, bool fill, bool editable) → TextEditorView</code></td><td>設定済みの文書レンダラを作る。 が null なら既定 (テーマ) フォント。</td></tr><tr><th scope="row"><code>FromDoc</code></th><td><code>(DocString content, Func&lt;Theme&gt; theme, float width, float height, VectorFont body, VectorFont bold, VectorFont mono, ISyntaxHighlighter highlighter, IReadOnlyDictionary&lt;string, Func&lt;string, Widget&gt;&gt; fences, FontCollection fonts, bool fill, bool toc) → TextEditorView</code></td><td>既存の DocString (```luxel-ui の UI hole を含む markdown) を新スタックで描く橋。 これで Docs($&quot;...{Widget}...&quot;) 記法のページを 1 行変更で新スタックへ移行できる。 block hole (luxel-ui) は HoleWidgets で解決。mermaid/数式など外部ドメインの フェンスは (kind → 本文で widget を作る) で注入する (Controls は Diagram/MathText 非依存)。 インライン hole ([￼](luxel-ui:N)) は後段。</td></tr><tr><th scope="row"><code>FromStoryResult</code></th><td><code>(StoryResult result, Func&lt;Theme&gt; theme, float width, float height, Func&lt;StoryReference, Widget&gt; storyResolver, VectorFont body, VectorFont bold, VectorFont mono, ISyntaxHighlighter highlighter, IReadOnlyDictionary&lt;string, Func&lt;string, Widget&gt;&gt; fences, FontCollection fonts, bool fill) → TextEditorView</code></td><td>Direct StoryResult Markdown を構造化 Story/Widget 埋め込み付きで描画する。</td></tr><tr><th scope="row"><code>Slug</code></th><td><code>(string heading) → string</code></td><td>見出しアンカーの slug: lowercase + 空白 (半角/全角) → -、さらに markdown リンク URL ](…) を壊す丸括弧/角括弧を除去する。見出しに (...) があっても TOC の #アンカー が正しく張れる (括弧が残ると URL 内の ) がリンクを途中で閉じる)。 TOC 生成・ナビ・デッドリンク検証で共通に使う。</td></tr><tr><th scope="row"><code>InsertToc</code></th><td><code>(string md) → string</code></td><td>TOC = アンカーリンク付き markdown リストを最初の H1 直後 (無ければ先頭) へ挿入する。 ただの markdown なのでフォントもリンク機構 (#アンカー→スクロール) もそのまま効く。 H2/H3 が対象・コードフェンス内は無視。slug は String) で本文と一致させる。</td></tr></tbody></table></div></section>
 <h2 id="markdownheading">MarkdownHeading</h2>
 <section class="api-reference"><p class="api-summary">struct — 見出し 1 件 (レベル・テキスト・ソースオフセット)。TOC / story: ナビの素。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>MarkdownHeading</code></th><td><code>(int Level, string Text, int Offset)</code></td><td>見出し 1 件 (レベル・テキスト・ソースオフセット)。TOC / story: ナビの素。</td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Equals</code></th><td><code>(MarkdownHeading other) → bool</code></td><td></td></tr><tr><th scope="row"><code>Deconstruct</code></th><td><code>(int Level, string Text, int Offset) → void</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Level</code></th><td><code>int (get/set)</code></td><td></td></tr><tr><th scope="row"><code>Text</code></th><td><code>string (get/set)</code></td><td></td></tr><tr><th scope="row"><code>Offset</code></th><td><code>int (get/set)</code></td><td></td></tr></tbody></table></div></section>
 <h2 id="markdownlink">MarkdownLink</h2>

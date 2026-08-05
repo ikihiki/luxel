@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0014-workbench-ui">ADR-0014 — Workbench 基盤 UI コントロール群を新設する</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0014-Workbench-Ui-Controls&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0014-Workbench-Ui-Controls&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0014-Workbench-Ui-Controls&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0014-Workbench-Ui-Controls&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-09</li>
@@ -36,8 +44,8 @@
 <li>⚠️ <code>DockHost</code> の D&amp;D/ドロップゾーンは実装が重く、<a href="#story=Internals%2FADR%2F0011-Pointer-Button-Modifiers">ADR-0011</a> と<strong>端レイアウトの golden 検証</strong>が要る</li>
 <li>⚠️ <code>PropertyGrid</code> の型別エディタは、対応型を増やすたびに保守が要る</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0014-Workbench-Ui-Controls&quot;, Order = 85)]
-public static Widget Adr0014(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0014-Workbench-Ui-Controls&quot;, Order = 85, Toc = true)]
+public static StoryResult Adr0014(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0014 — Workbench 基盤 UI コントロール群を新設する
 
     - **Status**: Accepted
@@ -81,4 +89,4 @@ public static Widget Adr0014(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ✅ 既存の種 (`Tabs`/`Splitter`/`KnobsTable`/`TreeView`) を活かせて新規コードを絞れる
     - ⚠️ `DockHost` の D&amp;D/ドロップゾーンは実装が重く、[ADR-0011](story:Internals/ADR/0011-Pointer-Button-Modifiers) と**端レイアウトの golden 検証**が要る
     - ⚠️ `PropertyGrid` の型別エディタは、対応型を増やすたびに保守が要る
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

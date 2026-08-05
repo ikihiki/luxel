@@ -1,4 +1,11 @@
 <article class="story document-page"><h1 id="cullingaliasing">Cullingとaliasing</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FRenderGraph%2FCompilation&amp;section=external-output%E3%81%8B%E3%82%89%E5%BF%85%E8%A6%81%E3%81%AApass%E3%82%92%E9%80%86%E7%AE%97%E3%81%99%E3%82%8B">External outputから必要なpassを逆算する</a></li>
+<li><a href="#story=Learn%2FRenderGraph%2FCompilation&amp;section=transient-lifetime%E3%81%A8aliasing">Transient lifetimeとaliasing</a></li>
+<li><a href="#story=Learn%2FRenderGraph%2FCompilation&amp;section=%E7%B5%82%E7%AB%AFbarrier">終端barrier</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Standalone + DevTools　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> Passes</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FRenderGraph%2FPasses">Passes</a>　 <strong>次:</strong> <a href="#story=Learn%2FRenderGraph%2FLifecycle">Lifecycle</a></p>
 <p><code>Execute(command)</code>を初めて呼ぶとgraphをcompileします。compileはpassを検証し、resourceの寿命を解析し、不要passをcullして、transientの物理resourceを割り当てます。</p>
@@ -19,8 +26,8 @@ DebugOnly  ───────────────────────
 <p>aliasingは同時利用を許可する機能ではなく、compileが非重複を証明した場合のmemory再利用です。同じ物理resourceへ別の論理resourceが割り当てられる境界もhazard追跡され、必要なbarrierが入ります。</p>
 <h2 id="barrier">終端barrier</h2>
 <p>external resourceへ最後にwriteした場合、graphは後段のcopyやpresentから見えるよう保守的な終端barrierを記録します。ただし、これはCPUから見たGPU完了待ちではありません。submitとresource破棄の関係は次ページで扱います。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/RenderGraph/Compilation&quot;, Order = 3)]
-public static Widget Compilation(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/RenderGraph/Compilation&quot;, Order = 3, Toc = true)]
+public static StoryResult Compilation(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # Cullingとaliasing
 
     {{RenderGraphCourseCatalog.Meta(&quot;Learn/RenderGraph/Compilation&quot;, &quot;Intermediate&quot;, &quot;Passes&quot;)}}
@@ -52,4 +59,4 @@ public static Widget Compilation(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&qu
     ## 終端barrier
 
     external resourceへ最後にwriteした場合、graphは後段のcopyやpresentから見えるよう保守的な終端barrierを記録します。ただし、これはCPUから見たGPU完了待ちではありません。submitとresource破棄の関係は次ページで扱います。
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

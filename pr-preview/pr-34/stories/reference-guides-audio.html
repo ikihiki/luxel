@@ -1,4 +1,13 @@
 <article class="story document-page"><h1 id="luxel.audio">オーディオ (Luxel.Audio)</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FGuides%2FAudio&amp;section=%E4%BD%BF%E3%81%84%E6%96%B9">使い方</a></li>
+<li><a href="#story=Reference%2FGuides%2FAudio&amp;section=3d-%E9%9F%B3%E6%BA%90">3D 音源</a></li>
+<li><a href="#story=Reference%2FGuides%2FAudio&amp;section=%E3%83%90%E3%82%B9-audiobus">バス (AudioBus)</a></li>
+<li><a href="#story=Reference%2FGuides%2FAudio&amp;section=%E3%83%AA%E3%82%BD%E3%83%BC%E3%82%B9%E9%80%A3%E6%90%BA">リソース連携</a></li>
+<li><a href="#story=Reference%2FGuides%2FAudio&amp;section=%E3%82%B9%E3%83%88%E3%83%AA%E3%83%BC%E3%83%9F%E3%83%B3%E3%82%B0%E5%86%8D%E7%94%9F-streamingvoice">ストリーミング再生 (StreamingVoice)</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>初めて使う場合は <a href="#story=Learn%2FAudio%2FOverview">Audio Learn</a>、headlessで動く最小構成は <a href="#story=Build%2FBlocks%2FAudio%2FTone">Build/Blocks/Audio/Tone</a> から始めてください。</p>
 <p><code>Luxel.Audio</code> の <code>IAudioBackend</code> の上に、SFX ミキサ / BGM ソース / 3D 音源 / バスによる音量カスケードを提供します。Windows固有のXAudio2実装は <code>Luxel.Audio.Windows</code> に分離されています。<strong>Volume / Pitch / Pan が Signal</strong> なので、UI ともアニメーション (Transition) とも自然につながります。実際に音が鳴るデモは <a href="#story=RealWindow%2FAudio%2FTone">RealWindow/Audio/Tone</a> (実窓専用) へ。</p>
 <h2 id="section">使い方</h2>
@@ -33,8 +42,8 @@ bgm.Pump();                                                  // キューを補�
 <p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
 <p>SFX は全展開クリップ (<code>AudioClip</code>)、BGM は <code>StreamingVoice</code>。Doppler と mp3 は将来枠。Tick/Update/Pump を呼ばないと Signal の変更やキュー補充が反映されません。</p>
 </div>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Audio&quot;, Order = 53)]
-public static Widget Audio(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Audio&quot;, Order = 53, Toc = true)]
+public static StoryResult Audio(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # オーディオ (Luxel.Audio)
 
     初めて使う場合は [Audio Learn](story:Learn/Audio/Overview)、headlessで動く最小構成は [Build/Blocks/Audio/Tone](story:Build/Blocks/Audio/Tone) から始めてください。
@@ -84,4 +93,4 @@ public static Widget Audio(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&qu
 
     &gt; [!NOTE]
     &gt; SFX は全展開クリップ (`AudioClip`)、BGM は `StreamingVoice`。Doppler と mp3 は将来枠。Tick/Update/Pump を呼ばないと Signal の変更やキュー補充が反映されません。
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

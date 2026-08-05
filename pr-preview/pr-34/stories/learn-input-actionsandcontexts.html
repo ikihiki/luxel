@@ -11,8 +11,8 @@ move.ButtonQuads.Add((KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D));
 var stack = new InputStack();
 stack.Push(gameplay);
 </code></pre>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Input/ActionsAndContexts&quot;, Order = 1)]
-public static Widget Actions(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Input/ActionsAndContexts&quot;, Order = 1, Toc = true)]
+public static StoryResult Actions(StoryContext ctx) =&gt; $&quot;&quot;&quot;
     # Actions and contexts
 
     {RuntimeCourseCatalog.Meta(&quot;Learn/Input/ActionsAndContexts&quot;, &quot;Beginner&quot;, &quot;Standalone / Headless&quot;, &quot;Backend neutral&quot;, &quot;Input overview&quot;)}
@@ -20,4 +20,4 @@ public static Widget Actions(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&q
     `ButtonAction`、`Axis1DAction`、`Axis2DAction`はkeyboardとgamepadを同じ論理値へ統合します。`InputContext`を`InputStack`へ積むと、上位contextのactive actionが使用したkey/axisをconsumeします。menuを上に積み、gameplayをsuspendする構成が基本です。
 
     {SampleSource(&quot;samples/LuxelInput/Program.cs&quot;, &quot;input-actions&quot;)}
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

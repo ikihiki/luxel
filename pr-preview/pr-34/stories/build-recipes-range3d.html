@@ -1,4 +1,14 @@
 <article class="story document-page"><h1 id="recipe-range-3d-game">Recipe: Range 3D game</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Build%2FRecipes%2FRange3D&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-luxel-range-capstone">コピーして動かす — Luxel Range capstone</a>
+<ul>
+<li><a href="#story=Build%2FRecipes%2FRange3D&amp;section=%60samples%2Fluxelrange%2Fluxelrange%2Fluxelrange.csproj%60-project"><code>samples/LuxelRange/LuxelRange/LuxelRange.csproj</code> (Project)</a></li>
+<li><a href="#story=Build%2FRecipes%2FRange3D&amp;section=%60samples%2Fluxelrange%2Fluxelrange%2Frangerealtimescene.cs%60-csharp"><code>samples/LuxelRange/LuxelRange/RangeRealtimeScene.cs</code> (CSharp)</a></li>
+</ul>
+</li>
+</ul>
+<!-- /luxel-toc -->
 <p>ECS、physics、glTF、GPU asset extraction、particlesを統合したrepository capstoneです。</p>
 <figure class="static-capture"><a href="#story=Apps%2FGame%2FRange"><img src="images/apps-game-range.png" alt="Apps/Game/Range" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
 <h2 id="luxel-range-capstone">コピーして動かす — Luxel Range capstone</h2>
@@ -457,12 +467,12 @@ public sealed class RangeRealtimeScene : GameScene
     }
 }
 </code></pre>
-<details class="sample-bundle"><summary>Run this sample — Recipe</summary><p>Repository recipe integrating ECS, physics, glTF, GPU asset extraction and 3D particles.</p><p><strong>Requirements:</strong> Repository checkout / .NET 10 / Windows real-window host / Khronos Fox asset</p><p><strong>Platforms:</strong> Windows</p><p><strong>Verification:</strong> exit 0, timeout 240s</p><ul><li><code>samples/LuxelRange/LuxelRange/LuxelRange.csproj</code> <span>Project</span></li><li><code>samples/LuxelRange/LuxelRange/RangeRealtimeScene.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelRange/LuxelRange</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet build samples/LuxelRange/LuxelRange/LuxelRange.csproj --configuration Release --no-restore</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Recipes/Range3D&quot;, Order = 8, SampleBundle = &quot;game.range&quot;)]
-public static Widget Range3D(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+<details class="sample-bundle"><summary>Run this sample — Recipe</summary><p>Repository recipe integrating ECS, physics, glTF, GPU asset extraction and 3D particles.</p><p><strong>Requirements:</strong> Repository checkout / .NET 10 / Windows real-window host / Khronos Fox asset</p><p><strong>Platforms:</strong> Windows</p><p><strong>Verification:</strong> exit 0, timeout 240s</p><ul><li><code>samples/LuxelRange/LuxelRange/LuxelRange.csproj</code> <span>Project</span></li><li><code>samples/LuxelRange/LuxelRange/RangeRealtimeScene.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelRange/LuxelRange</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet build samples/LuxelRange/LuxelRange/LuxelRange.csproj --configuration Release --no-restore</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Recipes/Range3D&quot;, Order = 8, SampleBundle = &quot;game.range&quot;, Toc = true)]
+public static StoryResult Range3D(StoryContext ctx) =&gt; $&quot;&quot;&quot;
     # Recipe: Range 3D game
 
     ECS、physics、glTF、GPU asset extraction、particlesを統合したrepository capstoneです。
 
     {StoryRef(ctx, &quot;Apps/Game/Range&quot;)}
     {SampleBundle(&quot;game.range&quot;)}
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

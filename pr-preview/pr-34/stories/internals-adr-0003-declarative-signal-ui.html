@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0003-ui-c-dsl-signals">ADR-0003 — UI は「宣言的 C# DSL + signals」を自作する</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0003-Declarative-Signal-Ui&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0003-Declarative-Signal-Ui&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0003-Declarative-Signal-Ui&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0003-Declarative-Signal-Ui&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-08 (記録日 — 決定自体は UI 層の着手時)</li>
@@ -39,8 +47,8 @@
 <li>⚠️ Effect の文脈規律が要る — Effect 内から他 widget の状態 signal を書くと依存追跡と干渉するため、「フラグを立てて Update (effect 外) で書く」パターンを守る必要がある (GalleryApp が実例)</li>
 <li>⚠️ 単一パスレイアウトは「親サイズが子に依存し、子が親サイズに依存する」ような循環要求を表現できない — Constraints で表せる範囲に設計を寄せる</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0003-Declarative-Signal-Ui&quot;, Order = 74)]
-public static Widget Adr0003(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0003-Declarative-Signal-Ui&quot;, Order = 74, Toc = true)]
+public static StoryResult Adr0003(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0003 — UI は「宣言的 C# DSL + signals」を自作する
 
     - **Status**: Accepted
@@ -84,4 +92,4 @@ public static Widget Adr0003(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ⚠️ 値状態と構造状態の区別は**規約** — 構造が変わるのに `Rebuild()` を忘れる・状態を保つ子をフィールド保持しないと壊れる。CompositeControl の 3 層規約を守る教育コストがある
     - ⚠️ Effect の文脈規律が要る — Effect 内から他 widget の状態 signal を書くと依存追跡と干渉するため、「フラグを立てて Update (effect 外) で書く」パターンを守る必要がある (GalleryApp が実例)
     - ⚠️ 単一パスレイアウトは「親サイズが子に依存し、子が親サイズに依存する」ような循環要求を表現できない — Constraints で表せる範囲に設計を寄せる
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

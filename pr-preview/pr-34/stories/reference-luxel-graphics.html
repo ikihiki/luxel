@@ -1,4 +1,41 @@
 <article class="story document-page"><h1 id="luxel.graphics">Luxel.Graphics</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpuattachmentlayout">GpuAttachmentLayout</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpubackendkind">GpuBackendKind</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpublendmode">GpuBlendMode</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpublendstate">GpuBlendState</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpubuffer">GpuBuffer</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpucommandbuffer">GpuCommandBuffer</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpucompareop">GpuCompareOp</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpucullmode">GpuCullMode</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpudepthstencilstate">GpuDepthStencilState</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpudevice">GpuDevice</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpuformat">GpuFormat</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpufrontface">GpuFrontFace</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpugraphicspipelinedesc">GpuGraphicsPipelineDesc</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpugraphicspipelinevariantkey">GpuGraphicsPipelineVariantKey</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpuhazard">GpuHazard</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpumemorykind">GpuMemoryKind</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpupipeline">GpuPipeline</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpupipelinediagnostics">GpuPipelineDiagnostics</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpuprimitivetopology">GpuPrimitiveTopology</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpuqueue">GpuQueue</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpurasterdesc">GpuRasterDesc</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpurasterizerstate">GpuRasterizerState</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpusampler">GpuSampler</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpusampleraddress">GpuSamplerAddress</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpusamplerfilter">GpuSamplerFilter</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpuscissorrect">GpuScissorRect</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpushadercode">GpuShaderCode</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpustage">GpuStage</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpustencilfacestate">GpuStencilFaceState</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpustencilop">GpuStencilOp</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpusurface">GpuSurface</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gputexture">GpuTexture</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics&amp;section=gpuviewport">GpuViewport</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="gpuattachmentlayout">GpuAttachmentLayout</h2>
 <section class="api-reference"><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>GpuAttachmentLayout</code></th><td><code>(GpuFormat ColorFormat, GpuFormat? DepthStencilFormat, uint SampleCount)</code></td><td></td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Validate</code></th><td><code>() → GpuAttachmentLayout</code></td><td></td></tr><tr><th scope="row"><code>Equals</code></th><td><code>(GpuAttachmentLayout other) → bool</code></td><td></td></tr><tr><th scope="row"><code>Deconstruct</code></th><td><code>(GpuFormat ColorFormat, GpuFormat? DepthStencilFormat, uint SampleCount) → void</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>ColorFormat</code></th><td><code>GpuFormat (get/set)</code></td><td></td></tr><tr><th scope="row"><code>DepthStencilFormat</code></th><td><code>GpuFormat? (get/set)</code></td><td></td></tr><tr><th scope="row"><code>SampleCount</code></th><td><code>uint (get/set)</code></td><td></td></tr></tbody></table></div></section>

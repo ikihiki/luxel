@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0004-2d">ADR-0004 — 2D はコンピュートラスタライザ + 保持型キャンバス</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0004-Compute-Rasterizer-Retained-2D&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0004-Compute-Rasterizer-Retained-2D&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0004-Compute-Rasterizer-Retained-2D&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0004-Compute-Rasterizer-Retained-2D&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-08 (記録日 — 決定自体は 2D 層の着手時)</li>
@@ -38,8 +46,8 @@
 <li>⚠️ compute ラスタライザは非標準経路 — RenderDoc 等での三角形パイプラインのデバッグ手法がそのまま効かず、問題調査は自前の観測カウンタと golden 比較が頼り</li>
 <li>⚠️ 容量付き slot の増分更新は複雑さの置き場 — コンパクション条件やノード増減の増分化 (保留中) など、チューニング項目を自前で抱える</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0004-Compute-Rasterizer-Retained-2D&quot;, Order = 75)]
-public static Widget Adr0004(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0004-Compute-Rasterizer-Retained-2D&quot;, Order = 75, Toc = true)]
+public static StoryResult Adr0004(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0004 — 2D はコンピュートラスタライザ + 保持型キャンバス
 
     - **Status**: Accepted
@@ -82,4 +90,4 @@ public static Widget Adr0004(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ⚠️ **現状はブルートフォース** — 画素&#215;線分 (+ bbox 早期スキップ) で、タイル binning は今後の課題。AA も 4x4 スーパーサンプルで解析的 AA ではない
     - ⚠️ compute ラスタライザは非標準経路 — RenderDoc 等での三角形パイプラインのデバッグ手法がそのまま効かず、問題調査は自前の観測カウンタと golden 比較が頼り
     - ⚠️ 容量付き slot の増分更新は複雑さの置き場 — コンパクション条件やノード増減の増分化 (保留中) など、チューニング項目を自前で抱える
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

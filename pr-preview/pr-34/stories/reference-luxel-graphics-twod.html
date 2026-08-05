@@ -1,4 +1,35 @@
 <article class="story document-page"><h1 id="luxel.graphics.twod">Luxel.Graphics.TwoD</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=camera2d">Camera2D</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=camerarig2d">CameraRig2D</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=color2d">Color2D</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=debugdraw">DebugDraw</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=fillrule">FillRule</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=gizmos2d">Gizmos2D</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=gpudevicerasterizer2d">GpuDeviceRasterizer2D</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=gpuencodedscene2d">GpuEncodedScene2D</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=gpurastertarget2d">GpuRasterTarget2D</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=irasterscene2d">IRasterScene2D</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=irastertarget2d">IRasterTarget2D</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=irasterizer2d">IRasterizer2D</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=paintkind">PaintKind</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=rasterizer2dcapabilities">Rasterizer2DCapabilities</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=rectclip">RectClip</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=rectcorners">RectCorners</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=retainedcanvas">RetainedCanvas</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=scene2d">Scene2D</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=spriteanimation">SpriteAnimation</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=spriteatlas">SpriteAtlas</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=spriteatlasstep">SpriteAtlasStep</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=spriterect">SpriteRect</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=tiledef">TileDef</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=tilemap">TileMap</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=tilemaplayer">TileMapLayer</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=tileset">TileSet</a></li>
+<li><a href="#story=Reference%2FLuxel.Graphics.TwoD&amp;section=uinode">UiNode</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="camera2d">Camera2D</h2>
 <section class="api-reference"><p class="api-summary">struct — ワールド→画面の 2D アフィン変換 (ズーム/パン)。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Create</code></th><td><code>(float scale, Vector2 worldCenter, uint screenW, uint screenH) → Camera2D</code></td><td>スケール + 中心指定。worldCenter が画面中心に来る。</td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Pixels</code></th><td><code>Camera2D (get)</code></td><td>ワールド=画面ピクセルそのまま (恒等)。</td></tr></tbody></table></div><h3>フィールド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>A</code></th><td><code>float</code></td><td></td></tr><tr><th scope="row"><code>B</code></th><td><code>float</code></td><td></td></tr><tr><th scope="row"><code>C</code></th><td><code>float</code></td><td></td></tr><tr><th scope="row"><code>D</code></th><td><code>float</code></td><td></td></tr><tr><th scope="row"><code>E</code></th><td><code>float</code></td><td></td></tr><tr><th scope="row"><code>F</code></th><td><code>float</code></td><td></td></tr></tbody></table></div></section>

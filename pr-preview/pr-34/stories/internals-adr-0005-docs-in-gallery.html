@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0005-gallery">ADR-0005 — ドキュメントとサンプルは Gallery に一本化する</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0005-Docs-In-Gallery&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0005-Docs-In-Gallery&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0005-Docs-In-Gallery&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0005-Docs-In-Gallery&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-04</li>
@@ -36,8 +44,8 @@
 <li>⚠️ 執筆に C# ビルドが要り、raw string の規約 (<code>$</code> の数 = hole の波かっこ数、段落は 1 ソース行、本文に引用符 3 連を含むページは区切りを 4 連に) を覚える必要がある</li>
 <li>⚠️ 計画文書のリポジトリ内の置き場が無くなる — 意図的な制約 (現在形の仕様として docs に吸収するか、リポジトリ外へ)</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0005-Docs-In-Gallery&quot;, Order = 76)]
-public static Widget Adr0005(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0005-Docs-In-Gallery&quot;, Order = 76, Toc = true)]
+public static StoryResult Adr0005(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0005 — ドキュメントとサンプルは Gallery に一本化する
 
     - **Status**: Accepted
@@ -77,4 +85,4 @@ public static Widget Adr0005(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ⚠️ **GitHub 上でそのまま読めない** — docs を読むには Gallery を起動する (かソースを読む)。公開ドキュメントが必要になったら書き出し手段の検討が要る
     - ⚠️ 執筆に C# ビルドが要り、raw string の規約 (`$` の数 = hole の波かっこ数、段落は 1 ソース行、本文に引用符 3 連を含むページは区切りを 4 連に) を覚える必要がある
     - ⚠️ 計画文書のリポジトリ内の置き場が無くなる — 意図的な制約 (現在形の仕様として docs に吸収するか、リポジトリ外へ)
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

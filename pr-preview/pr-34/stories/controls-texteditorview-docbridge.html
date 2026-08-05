@@ -1,10 +1,4 @@
-<article class="story document-page"><h1 id="migrated-docs-page">Migrated docs page</h1>
-<p>This page is authored with the <strong>DocString</strong> API but renders on the <em>new stack</em> via <code>MarkdownDoc.FromDoc</code>.</p>
-<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
-<p>A mermaid diagram, reusing Luxel.Diagram:</p>
-<pre class="mermaid">flowchart LR
-Docs --&gt; FromDoc --&gt; NewStack</pre>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/TextEditorView/DocBridge&quot;, Height = 420, Order = 14)]
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/TextEditorView/DocBridge</h1></header><aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/TextEditorView/DocBridge&quot;, Height = 420, Order = 14)]
 public static Widget DocBridge(StoryContext ctx)
 {
     // 移行の本命 (WS-A / ADR-0012 S(A3)): 既存の Docs($&quot;...{Widget}...&quot;) 記法 (DocString) を

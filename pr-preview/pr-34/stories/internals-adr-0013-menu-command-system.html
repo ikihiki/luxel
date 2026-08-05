@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0013-commandregistry">ADR-0013 — メニューは CommandRegistry を単一の真実とし、全サーフェスをその純粋ビューとして生成する</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0013-Menu-Command-System&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0013-Menu-Command-System&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0013-Menu-Command-System&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0013-Menu-Command-System&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-09</li>
@@ -35,8 +43,8 @@
 <li>⚠️ 全コントロールをコマンド経由に寄せる<strong>規律</strong>が要る (直接アクション実装を避ける)</li>
 <li>⚠️ enablement / keymap の評価タイミング (アクティブ doc の変化に追従) を正しく配線する必要がある</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0013-Menu-Command-System&quot;, Order = 84)]
-public static Widget Adr0013(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0013-Menu-Command-System&quot;, Order = 84, Toc = true)]
+public static StoryResult Adr0013(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0013 — メニューは CommandRegistry を単一の真実とし、全サーフェスをその純粋ビューとして生成する
 
     - **Status**: Accepted
@@ -79,4 +87,4 @@ public static Widget Adr0013(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ✅ リボンを避けつつ発見性はパレットで担保し、特許面もクリーン
     - ⚠️ 全コントロールをコマンド経由に寄せる**規律**が要る (直接アクション実装を避ける)
     - ⚠️ enablement / keymap の評価タイミング (アクティブ doc の変化に追従) を正しく配線する必要がある
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

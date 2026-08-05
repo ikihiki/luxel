@@ -1,4 +1,14 @@
 <article class="story document-page"><h1 id="block-framework-fixed-timestep">Block: Framework fixed timestep</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Build%2FBlocks%2FFramework%2FFixedTimestep&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-deterministic-framework-timing">コピーして動かす — Deterministic framework timing</a>
+<ul>
+<li><a href="#story=Build%2FBlocks%2FFramework%2FFixedTimestep&amp;section=%60samples%2Fluxelframework%2Fluxelframework.csproj%60-project"><code>samples/LuxelFramework/LuxelFramework.csproj</code> (Project)</a></li>
+<li><a href="#story=Build%2FBlocks%2FFramework%2FFixedTimestep&amp;section=%60samples%2Fluxelframework%2Fprogram.cs%60-csharp"><code>samples/LuxelFramework/Program.cs</code> (CSharp)</a></li>
+</ul>
+</li>
+</ul>
+<!-- /luxel-toc -->
 <p>GPUやwindowを使わず、可変frame dtからbounded fixed updatesとinterpolation alphaを得るblockです。</p>
 <h2 id="deterministic-framework-timing">コピーして動かす — Deterministic framework timing</h2>
 <blockquote>
@@ -38,11 +48,11 @@ Console.WriteLine($&quot;framework: updates={updates}, total={timestep.TotalStep
 
 return updates == 5 &amp;&amp; timestep.TotalSteps == 5 &amp;&amp; timestep.DroppedSteps == 2 ? 0 : 1;
 </code></pre>
-<details class="sample-bundle"><summary>Run this sample — Block</summary><p>A headless FixedTimestep consumer that demonstrates bounded fixed updates, dropped-step diagnostics and interpolation alpha.</p><p><strong>Requirements:</strong> .NET 10 / Headless on all supported .NET OS</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>framework: updates=5, total=5, dropped=2, alpha=0.00</code></p><ul><li><code>samples/LuxelFramework/LuxelFramework.csproj</code> <span>Project</span></li><li><code>samples/LuxelFramework/Program.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelFramework</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelFramework</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Blocks/Framework/FixedTimestep&quot;, Order = 2, SampleBundle = &quot;framework.fixed-timestep&quot;)]
-public static Widget FrameworkTiming(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+<details class="sample-bundle"><summary>Run this sample — Block</summary><p>A headless FixedTimestep consumer that demonstrates bounded fixed updates, dropped-step diagnostics and interpolation alpha.</p><p><strong>Requirements:</strong> .NET 10 / Headless on all supported .NET OS</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>framework: updates=5, total=5, dropped=2, alpha=0.00</code></p><ul><li><code>samples/LuxelFramework/LuxelFramework.csproj</code> <span>Project</span></li><li><code>samples/LuxelFramework/Program.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelFramework</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelFramework</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Blocks/Framework/FixedTimestep&quot;, Order = 2, SampleBundle = &quot;framework.fixed-timestep&quot;, Toc = true)]
+public static StoryResult FrameworkTiming(StoryContext ctx) =&gt; $&quot;&quot;&quot;
     # Block: Framework fixed timestep
 
     GPUやwindowを使わず、可変frame dtからbounded fixed updatesとinterpolation alphaを得るblockです。
 
     {SampleBundle(&quot;framework.fixed-timestep&quot;)}
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

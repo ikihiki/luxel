@@ -7,7 +7,7 @@
     public static Widget Primary() =&gt; Frame(Button(_ =&gt; { }, &quot;OK&quot;));
 
     // signal が要るときは StoryContext から — ctx.Signal(...) は自動で knob になる
-    [Story(&quot;Controls/CheckBox/Basic&quot;, Height = 160)]
+    [Story(&quot;Controls/CheckBox/Basic&quot;, Height = 160, Toc = true)]
     public static Widget Check(StoryContext ctx)
         =&gt; Frame(Check(ctx.Signal(&quot;checked&quot;, false), &quot;Subscribe&quot;));
 }
@@ -48,7 +48,7 @@ dotnet run --project src/Luxel.Gallery.Host -- vk bench &lt;story&gt; [frames] [
 </code></pre>
 <p>実窓は <code>Ctrl+D</code> でテーマ切替、ツールバーの「全画面」でプレビューをメイン全面に。サイドバーの検索欄は docs 本文の全文検索です。docs ページの書き方は <a href="#story=Internals%2FAuthoring">Internals/Authoring</a> へ。</p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/Gallery&quot;, Order = 90)]
-public static Widget Gallery(StoryContext ctx) =&gt; ctx.Snap(DocNew(ctx, $$&quot;&quot;&quot;
+public static StoryResult Gallery(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # Gallery — ストーリーの書き方
 
     この Gallery は Storybook 相当のカタログ + ドキュメント + 回帰基盤です。「ストーリー」= Widget を返す static メソッド 1 つで、実窓カタログ・snap 回帰・ docs への埋め込みのすべてに同じ実装が使われます。
@@ -62,7 +62,7 @@ public static Widget Gallery(StoryContext ctx) =&gt; ctx.Snap(DocNew(ctx, $$&quo
         public static Widget Primary() =&gt; Frame(Button(_ =&gt; { }, &quot;OK&quot;));
 
         // signal が要るときは StoryContext から — ctx.Signal(...) は自動で knob になる
-        [Story(&quot;Controls/CheckBox/Basic&quot;, Height = 160)]
+        [Story(&quot;Controls/CheckBox/Basic&quot;, Height = 160, Toc = true)]
         public static Widget Check(StoryContext ctx)
             =&gt; Frame(Check(ctx.Signal(&quot;checked&quot;, false), &quot;Subscribe&quot;));
     }
@@ -111,4 +111,4 @@ public static Widget Gallery(StoryContext ctx) =&gt; ctx.Snap(DocNew(ctx, $$&quo
     ```
 
     実窓は `Ctrl+D` でテーマ切替、ツールバーの「全画面」でプレビューをメイン全面に。サイドバーの検索欄は docs 本文の全文検索です。docs ページの書き方は [Internals/Authoring](story:Internals/Authoring) へ。
-    &quot;&quot;&quot;, toc: true));</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

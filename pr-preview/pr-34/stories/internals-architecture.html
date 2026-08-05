@@ -1,4 +1,17 @@
 <article class="story document-page"><h1 id="section">アーキテクチャ</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FArchitecture&amp;section=gpu-%E5%9C%9F%E5%8F%B0">GPU 土台</a></li>
+<li><a href="#story=Internals%2FArchitecture&amp;section=2d-%E3%81%A8%E3%83%86%E3%82%AD%E3%82%B9%E3%83%88">2D とテキスト</a></li>
+<li><a href="#story=Internals%2FArchitecture&amp;section=ui-%E3%81%A8%E3%82%B3%E3%83%B3%E3%83%88%E3%83%AD%E3%83%BC%E3%83%AB">UI とコントロール</a></li>
+<li><a href="#story=Internals%2FArchitecture&amp;section=%E7%AB%AF%E6%9C%AB">端末</a></li>
+<li><a href="#story=Internals%2FArchitecture&amp;section=%E3%83%A2%E3%83%BC%E3%82%B7%E3%83%A7%E3%83%B3">モーション</a></li>
+<li><a href="#story=Internals%2FArchitecture&amp;section=3d-%2F-%E3%83%AC%E3%83%B3%E3%83%80%E3%83%BC%E3%82%B0%E3%83%A9%E3%83%95-%2F-%E3%83%AA%E3%82%BD%E3%83%BC%E3%82%B9">3D / レンダーグラフ / リソース</a></li>
+<li><a href="#story=Internals%2FArchitecture&amp;section=%E3%83%A9%E3%83%B3%E3%82%BF%E3%82%A4%E3%83%A0%E3%81%A8%E3%83%84%E3%83%BC%E3%83%AB">ランタイムとツール</a></li>
+<li><a href="#story=Internals%2FArchitecture&amp;section=%E3%83%97%E3%83%AD%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88%E4%B8%80%E8%A6%A7">プロジェクト一覧</a></li>
+<li><a href="#story=Internals%2FArchitecture&amp;section=backend-%E5%9B%9E%E5%B8%B0%E3%81%A8%E3%81%84%E3%81%86%E8%A6%8F%E5%BE%8B">backend 回帰という規律</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。下図は native WebGPU を明示 opt-in lowering として加える目標構成を含みます。</p>
 <pre class="mermaid">flowchart TB
 app[アプリ / Gallery / Framework] --&gt; controls[Luxel.Controls]
@@ -114,11 +127,11 @@ gpu --&gt; wgpu[Luxel.Graphics.WebGPU — native opt-in target]</pre>
 </table>
 <h2 id="backend">backend 回帰という規律</h2>
 <p>既存の描画機能は Vulkan と DirectX 12 の両方で動き、e2e回帰は<strong>バックエンド別の golden</strong> と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。WebGPU 対応を表明する機能は同じ backend-neutral story を WGSL/manifest、limits、diagnostics を含む専用ゲートで検証します。どれか一つの backend で「たまたま動く」ことを許さず、差を lowering と capability に閉じ込めることが、薄い抽象を保つ開発規律です。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/Architecture&quot;, Order = 1)]
-public static Widget Architecture(StoryContext ctx)
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/Architecture&quot;, Order = 1, Toc = true)]
+public static StoryResult Architecture(StoryContext ctx)
 {
     ctx.Play(static d =&gt; d.Snap());   // 新スタック: 全体像 mermaid 図の描画 golden (ライブ埋め込み無し=安全)
-    return DocNew(ctx, $$&quot;&quot;&quot;
+    return $$&quot;&quot;&quot;
     # アーキテクチャ
 
     Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。下図は native WebGPU を明示 opt-in lowering として加える目標構成を含みます。
@@ -198,5 +211,5 @@ public static Widget Architecture(StoryContext ctx)
     ## backend 回帰という規律
 
     既存の描画機能は Vulkan と DirectX 12 の両方で動き、e2e回帰は**バックエンド別の golden** と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。WebGPU 対応を表明する機能は同じ backend-neutral story を WGSL/manifest、limits、diagnostics を含む専用ゲートで検証します。どれか一つの backend で「たまたま動く」ことを許さず、差を lowering と capability に閉じ込めることが、薄い抽象を保つ開発規律です。
-    &quot;&quot;&quot;, toc: true);
+    &quot;&quot;&quot;;
 }</code></pre></details></article>

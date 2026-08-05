@@ -1,4 +1,13 @@
 <article class="story document-page"><h1 id="architecture-decision-records-adr">Architecture Decision Records (ADR)</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2FOverview&amp;section=%E6%96%B0%E3%81%97%E3%81%84-adr-%E3%81%AE%E8%BF%BD%E5%8A%A0">新しい ADR の追加</a></li>
+<li><a href="#story=Internals%2FADR%2FOverview&amp;section=%E3%82%B9%E3%83%86%E3%83%BC%E3%82%BF%E3%82%B9%E3%81%AE%E6%84%8F%E5%91%B3">ステータスの意味</a></li>
+<li><a href="#story=Internals%2FADR%2FOverview&amp;section=%E4%BD%95%E3%82%92-adr-%E3%81%AB%E3%81%99%E3%82%8B%E3%81%8B">何を ADR にするか</a></li>
+<li><a href="#story=Internals%2FADR%2FOverview&amp;section=%E8%A8%98%E9%8C%B2%E4%B8%80%E8%A6%A7">記録一覧</a></li>
+<li><a href="#story=Internals%2FADR%2FOverview&amp;section=%E5%8F%82%E8%80%83">参考</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>ADR は「<strong>なぜそう決めたか</strong>」を 1 決定 1 ページで残す軽量な記録です。コードや docs は <em>現在の姿</em> を説明しますが、ADR は <em>その姿を選んだ理由</em> と <em>検討したが捨てた選択肢</em> を時系列で残します。後から「なぜ X なのか」を掘り起こす時間を無くすのが目的です。</p>
 <h2 id="adr">新しい ADR の追加</h2>
 <ol>
@@ -70,8 +79,8 @@
 <li><a href="#story=Internals%2FAuthoring">Internals/Authoring</a> — docs ページの書き方 (ADR も同じ仕組み)</li>
 <li><a href="https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions">Documenting Architecture Decisions — Michael Nygard (外部)</a></li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/Overview&quot;, Order = 70)]
-public static Widget Overview(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/Overview&quot;, Order = 70, Toc = true)]
+public static StoryResult Overview(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # Architecture Decision Records (ADR)
 
     ADR は「**なぜそう決めたか**」を 1 決定 1 ページで残す軽量な記録です。コードや docs は *現在の姿* を説明しますが、ADR は *その姿を選んだ理由* と *検討したが捨てた選択肢* を時系列で残します。後から「なぜ X なのか」を掘り起こす時間を無くすのが目的です。
@@ -128,4 +137,4 @@ public static Widget Overview(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;
     - [Internals/Contributing](story:Internals/Contributing) — ビルド・テスト・回帰ゲート
     - [Internals/Authoring](story:Internals/Authoring) — docs ページの書き方 (ADR も同じ仕組み)
     - [Documenting Architecture Decisions — Michael Nygard (外部)](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

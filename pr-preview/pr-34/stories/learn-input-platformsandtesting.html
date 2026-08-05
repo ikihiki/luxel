@@ -2,11 +2,11 @@
 <p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Window / CI　 <strong>Backend:</strong> Silk/Win32 + optional XInput　 <strong>前提知識:</strong> Actions and contexts</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FInput%2FActionsAndContexts">ActionsAndContexts</a>　 <strong>次:</strong> <a href="#story=Learn%2FAudio%2FOverview">Overview</a></p>
 <p>実windowは<code>WindowInputSource</code>、Windows gamepadは別assemblyの<code>XInputSource</code>です。ゲームロジックのtestは<code>FakeInputSource</code>を使い、<code>source.Poll(bus); stack.Update(bus);</code>を1 tickとして検証します。同一tickでdown/upする<code>TapKey</code>では最終heldがfalseになるため、edgeを検証する場合はpressとreleaseを別tickにします。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Input/PlatformsAndTesting&quot;, Order = 2)]
-public static Widget Platforms(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Input/PlatformsAndTesting&quot;, Order = 2, Toc = true)]
+public static StoryResult Platforms(StoryContext ctx) =&gt; $&quot;&quot;&quot;
     # Platform input and deterministic tests
 
     {RuntimeCourseCatalog.Meta(&quot;Learn/Input/PlatformsAndTesting&quot;, &quot;Beginner&quot;, &quot;Window / CI&quot;, &quot;Silk/Win32 + optional XInput&quot;, &quot;Actions and contexts&quot;)}
 
     実windowは`WindowInputSource`、Windows gamepadは別assemblyの`XInputSource`です。ゲームロジックのtestは`FakeInputSource`を使い、`source.Poll(bus); stack.Update(bus);`を1 tickとして検証します。同一tickでdown/upする`TapKey`では最終heldがfalseになるため、edgeを検証する場合はpressとreleaseを別tickにします。
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

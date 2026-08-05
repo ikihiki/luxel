@@ -1,4 +1,10 @@
 <article class="story document-page"><h1 id="section">パスと依存関係</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FRenderGraph%2FPasses&amp;section=read-%2F-write%E3%81%8Cbarrier%E3%82%92%E4%BD%9C%E3%82%8B">Read / Writeがbarrierを作る</a></li>
+<li><a href="#story=Learn%2FRenderGraph%2FPasses&amp;section=%E7%8F%BE%E5%9C%A8%E3%81%AE%E5%AE%9F%E8%A1%8C%E9%A0%86%E3%81%A8queue">現在の実行順とqueue</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Standalone + DevTools　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> Resources</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FRenderGraph%2FResources">Resources</a>　 <strong>次:</strong> <a href="#story=Learn%2FRenderGraph%2FCompilation">Compilation</a></p>
 <p>passは<code>AddPass</code>で作り、<code>Read</code> / <code>Write</code>でaccessを宣言し、最後の<code>Execute</code>でgraphへ登録します。宣言はdocumentationではなく、barrierとlifetime解析の入力です。</p>
@@ -69,8 +75,8 @@ graph.AddPass(&quot;CopyScene&quot;, PassQueue.Graphics)
 <p>callbackで使うresourceを宣言しなければ、graphは依存を認識できません。同じpass内でrender後にcopyするなど複数stageを使う場合、そのpass内部の順序とbarrierはcallback側の責任です。</p>
 <h2 id="queue">現在の実行順とqueue</h2>
 <p>現在は依存からtopological sortせず、<strong>passの登録順で実行</strong>します。producerをconsumerより先に登録してください。<code>PassQueue.Graphics</code>と<code>PassQueue.Compute</code>は分類と診断に使われますが、どちらも<code>device.MainQueue</code>で実行されます。<code>AsyncCompute</code>を並列実行の契約として扱わないでください。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/RenderGraph/Passes&quot;, Order = 2)]
-public static Widget Passes(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/RenderGraph/Passes&quot;, Order = 2, Toc = true)]
+public static StoryResult Passes(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # パスと依存関係
 
     {{RenderGraphCourseCatalog.Meta(&quot;Learn/RenderGraph/Passes&quot;, &quot;Intermediate&quot;, &quot;Resources&quot;)}}
@@ -114,4 +120,4 @@ public static Widget Passes(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&q
     ## 現在の実行順とqueue
 
     現在は依存からtopological sortせず、**passの登録順で実行**します。producerをconsumerより先に登録してください。`PassQueue.Graphics`と`PassQueue.Compute`は分類と診断に使われますが、どちらも`device.MainQueue`で実行されます。`AsyncCompute`を並列実行の契約として扱わないでください。
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

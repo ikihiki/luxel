@@ -1,4 +1,22 @@
 <article class="story document-page"><h1 id="recipe-index-buffercube">Recipe: Index bufferでcubeを描く</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Build%2FRecipes%2FIndexedCube&amp;section=%E5%AE%9F%E8%A1%8C%E3%81%99%E3%82%8B">実行する</a></li>
+<li><a href="#story=Build%2FRecipes%2FIndexedCube&amp;section=indexed-vertex-pulling">Indexed vertex pulling</a></li>
+<li><a href="#story=Build%2FRecipes%2FIndexedCube&amp;section=resource%E3%81%AE%E6%89%80%E6%9C%89">Resourceの所有</a></li>
+<li><a href="#story=Build%2FRecipes%2FIndexedCube&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-textured-and-lit-3d-renderer">コピーして動かす — Textured and lit 3D renderer</a>
+<ul>
+<li><a href="#story=Build%2FRecipes%2FIndexedCube&amp;section=%60samples%2Fluxeltriangle%2Fluxeltriangle.csproj%60-project"><code>samples/LuxelTriangle/LuxelTriangle.csproj</code> (Project)</a></li>
+<li><a href="#story=Build%2FRecipes%2FIndexedCube&amp;section=%60samples%2Fluxeltriangle%2Fprogram.cs%60-csharp"><code>samples/LuxelTriangle/Program.cs</code> (CSharp)</a></li>
+<li><a href="#story=Build%2FRecipes%2FIndexedCube&amp;section=%60samples%2Fluxeltriangle%2Ftutorialabi.cs%60-csharp"><code>samples/LuxelTriangle/TutorialAbi.cs</code> (CSharp)</a></li>
+<li><a href="#story=Build%2FRecipes%2FIndexedCube&amp;section=%60samples%2Fluxeltriangle%2Ftrianglerenderer.cs%60-csharp"><code>samples/LuxelTriangle/TriangleRenderer.cs</code> (CSharp)</a></li>
+<li><a href="#story=Build%2FRecipes%2FIndexedCube&amp;section=%60shaders%2Ftutorial_triangle.slang%60-shader"><code>shaders/tutorial_triangle.slang</code> (Shader)</a></li>
+<li><a href="#story=Build%2FRecipes%2FIndexedCube&amp;section=%60shaders%2Ftutorial_3d.slang%60-shader"><code>shaders/tutorial_3d.slang</code> (Shader)</a></li>
+<li><a href="#story=Build%2FRecipes%2FIndexedCube&amp;section=%60shaders%2Fcompute_tutorial_postprocess.slang%60-shader"><code>shaders/compute_tutorial_postprocess.slang</code> (Shader)</a></li>
+</ul>
+</li>
+</ul>
+<!-- /luxel-toc -->
 <p>texture付きquadを24頂点・36 indexのcubeへ拡張するrecipeです。実装の正は<code>samples/LuxelTriangle/TriangleRenderer.cs</code>、共有ABIは<code>samples/LuxelTriangle/TutorialAbi.cs</code>、vertex pullingは<code>shaders/tutorial_3d.slang</code>です。</p>
 <h2 id="section">実行する</h2>
 <pre><code class="language-powershell">dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
@@ -830,8 +848,8 @@ void main(uint3 tid : SV_DispatchThreadID)
     g_buffers[g_args.destinationBufferIndex].Store(address, r | (g &lt;&lt; 8) | (b &lt;&lt; 16) | 0xff000000u);
 }
 </code></pre>
-<details class="sample-bundle"><summary>Run this sample — StandaloneProject</summary><p>Texture, camera, depth, lighting, render graph and compute post-process stages.</p><p><strong>Requirements:</strong> .NET 10 / Vulkan 1.3 or DirectX 12</p><p><strong>Verification:</strong> exit 0, timeout 300s</p><ul><li><code>samples/LuxelTriangle/LuxelTriangle.csproj</code> <span>Project</span></li><li><code>samples/LuxelTriangle/Program.cs</code> <span>CSharp</span></li><li><code>samples/LuxelTriangle/TutorialAbi.cs</code> <span>CSharp</span></li><li><code>samples/LuxelTriangle/TriangleRenderer.cs</code> <span>CSharp</span></li><li><code>shaders/tutorial_triangle.slang</code> <span>Shader</span></li><li><code>shaders/tutorial_3d.slang</code> <span>Shader</span></li><li><code>shaders/compute_tutorial_postprocess.slang</code> <span>Shader</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage post</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage post --frames 1</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Recipes/IndexedCube&quot;, Order = 11, SampleBundle = &quot;rendering.3d&quot;)]
-public static Widget IndexedCube(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+<details class="sample-bundle"><summary>Run this sample — StandaloneProject</summary><p>Texture, camera, depth, lighting, render graph and compute post-process stages.</p><p><strong>Requirements:</strong> .NET 10 / Vulkan 1.3 or DirectX 12</p><p><strong>Verification:</strong> exit 0, timeout 300s</p><ul><li><code>samples/LuxelTriangle/LuxelTriangle.csproj</code> <span>Project</span></li><li><code>samples/LuxelTriangle/Program.cs</code> <span>CSharp</span></li><li><code>samples/LuxelTriangle/TutorialAbi.cs</code> <span>CSharp</span></li><li><code>samples/LuxelTriangle/TriangleRenderer.cs</code> <span>CSharp</span></li><li><code>shaders/tutorial_triangle.slang</code> <span>Shader</span></li><li><code>shaders/tutorial_3d.slang</code> <span>Shader</span></li><li><code>shaders/compute_tutorial_postprocess.slang</code> <span>Shader</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage post</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelTriangle -- vk --stage post --frames 1</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Recipes/IndexedCube&quot;, Order = 11, SampleBundle = &quot;rendering.3d&quot;, Toc = true)]
+public static StoryResult IndexedCube(StoryContext ctx) =&gt; $&quot;&quot;&quot;
     # Recipe: Index bufferでcubeを描く
 
     texture付きquadを24頂点・36 indexのcubeへ拡張するrecipeです。実装の正は`samples/LuxelTriangle/TriangleRenderer.cs`、共有ABIは`samples/LuxelTriangle/TutorialAbi.cs`、vertex pullingは`shaders/tutorial_3d.slang`です。
@@ -874,4 +892,4 @@ public static Widget IndexedCube(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quo
     次はこのindexed cubeへ[3D Camera](story:Build/Recipes/Camera3D)を適用します。
 
     {SampleBundle(&quot;rendering.3d&quot;)}
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

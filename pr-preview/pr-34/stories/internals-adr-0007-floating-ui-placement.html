@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0007-ui-anchored-placement">ADR-0007 — 浮遊 UI は単一の anchored placement エンジンに統一する</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0007-Floating-Ui-Placement&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0007-Floating-Ui-Placement&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0007-Floating-Ui-Placement&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0007-Floating-Ui-Placement&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-08</li>
@@ -41,8 +49,8 @@
 <li>⚠️ 移行が複数コントロール + golden に及ぶ (配置が数 px 動きうる — 意図差分として --update)</li>
 <li>⚠️ anchored と region の 2 ファミリを区別して保守する必要がある</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0007-Floating-Ui-Placement&quot;, Order = 78)]
-public static Widget Adr0007(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0007-Floating-Ui-Placement&quot;, Order = 78, Toc = true)]
+public static StoryResult Adr0007(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0007 — 浮遊 UI は単一の anchored placement エンジンに統一する
 
     - **Status**: Accepted
@@ -89,4 +97,4 @@ public static Widget Adr0007(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ✅ ContextMenu が端でのクランプ/フリップを獲得する
     - ⚠️ 移行が複数コントロール + golden に及ぶ (配置が数 px 動きうる — 意図差分として --update)
     - ⚠️ anchored と region の 2 ファミリを区別して保守する必要がある
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

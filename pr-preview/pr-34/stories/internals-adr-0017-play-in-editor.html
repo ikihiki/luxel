@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0017">ADR-0017 — プレイインエディタは「都度コンパイル + 停止で破棄」の別インスタンスで動かす</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0017-Play-In-Editor&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0017-Play-In-Editor&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0017-Play-In-Editor&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0017-Play-In-Editor&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-11</li>
@@ -28,8 +36,8 @@
 <li>⚠️ ▶ のたびにコンパイル (シーン構築 + csx) が走る — 現規模では軽い。重くなったら csx キャッシュ (同一ソース再利用) を足す</li>
 <li>⚠️ プレイ中に「この配置いいな」を保存する導線が無い (明示コマンドとして将来)</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0017-Play-In-Editor&quot;, Order = 88)]
-public static Widget Adr0017(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0017-Play-In-Editor&quot;, Order = 88, Toc = true)]
+public static StoryResult Adr0017(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0017 — プレイインエディタは「都度コンパイル + 停止で破棄」の別インスタンスで動かす
 
     - **Status**: Accepted
@@ -61,4 +69,4 @@ public static Widget Adr0017(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ✅ 固定 dt + ステップで golden/デバッグが決定的
     - ⚠️ ▶ のたびにコンパイル (シーン構築 + csx) が走る — 現規模では軽い。重くなったら csx キャッシュ (同一ソース再利用) を足す
     - ⚠️ プレイ中に「この配置いいな」を保存する導線が無い (明示コマンドとして将来)
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>
