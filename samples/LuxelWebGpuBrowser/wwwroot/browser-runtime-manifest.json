@@ -6035,6 +6035,30 @@
       "componentType": null
     },
     {
+      "path": "Examples/Input/Actions",
+      "width": 680,
+      "height": 430,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Input/Bindings",
+      "width": 680,
+      "height": 440,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Input/ContextStack",
+      "width": 650,
+      "height": 390,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
       "path": "Examples/RenderGraph/Blur",
       "width": 320,
       "height": 320,

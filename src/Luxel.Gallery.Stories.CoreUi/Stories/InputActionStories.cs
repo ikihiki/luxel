@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Luxel.Controls;
 using Luxel.Input;
 using Luxel.Typography;
@@ -7,6 +8,10 @@ using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
 
 namespace Luxel.Gallery.Stories;
+
+[JsonSourceGenerationOptions(WriteIndented = true)]
+[JsonSerializable(typeof(InputBindings))]
+internal partial class InputBindingsJsonContext : JsonSerializerContext { }
 
 /// <summary>入力アクション、コンテキスト、バインディングを決定的に学ぶStory。</summary>
 public static class InputActionStories
@@ -132,7 +137,7 @@ public static class InputActionStories
         void ApplyBinding(KeyCode key)
         {
             string serialized = Serialize(key);
-            InputBindings loaded = JsonSerializer.Deserialize<InputBindings>(serialized)!;
+            InputBindings loaded = JsonSerializer.Deserialize(serialized, InputBindingsJsonContext.Default.InputBindings)!;
             InputBindingsApplier.Apply(loaded, context);
             current.Value = jump.Keys.Single();
             json.Value = serialized;
@@ -170,7 +175,7 @@ public static class InputActionStories
         static string Serialize(KeyCode key) => JsonSerializer.Serialize(new InputBindings
         {
             Actions = { ["Jump"] = new InputBindingEntry { Kind = "button", Keys = [key.ToString()] } }
-        }, new JsonSerializerOptions { WriteIndented = true });
+        }, InputBindingsJsonContext.Default.InputBindings);
         // docs:end input-bindings-json
     }
 }

@@ -1787,11 +1787,16 @@ public sealed class GallerySiteExporterTests
     [Fact]
     public void Input_examples_are_canonical_story_based_samples()
     {
+        StoryCatalog browserCatalog = CoreUiStoryProject.CreateCatalog();
         foreach (string route in new[] { "Examples/Input/Actions", "Examples/Input/ContextStack", "Examples/Input/Bindings" })
         {
             StoryInfo story = Catalog.Find(route) ?? throw new InvalidOperationException(route);
-            Assert.Null(story.RuntimeBundleId);
+            StoryInfo browserStory = browserCatalog.Find(route) ?? throw new InvalidOperationException($"Browser catalog: {route}");
+            Assert.Equal(CoreUiStoryProject.RuntimeBundleId, story.RuntimeBundleId);
+            Assert.Equal(CoreUiStoryProject.RuntimeBundleId, browserStory.RuntimeBundleId);
             Assert.Null(story.SampleBundle);
+            using var context = new StoryContext();
+            Assert.Equal(StoryResultKind.Widget, browserStory.BuildResult(context).Kind);
         }
         Assert.Null(Catalog.Find("Learn/Input/BrowserWasm"));
         Assert.Null(Catalog.Find("Examples/Input/WindowActions"));
