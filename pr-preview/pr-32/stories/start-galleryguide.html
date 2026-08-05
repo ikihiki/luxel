@@ -1,0 +1,24 @@
+<article class="story document-page"><h1 id="gallery">Gallery の使い方</h1>
+<ol>
+<li><strong>Learn</strong> で概念を順番に学ぶ</li>
+<li><strong>Build</strong> でコピー可能な block と recipe を探す</li>
+<li><strong>Examples</strong> で完成形を操作する</li>
+<li><strong>Reference</strong> で API を確認する</li>
+<li><strong>Internals</strong> で設計判断と実装を読む</li>
+</ol>
+<p>Native Gallery の preview、Knobs、Interactions は対話可能です。Static Gallery は画像ですが、同じ source bundle、依存、実行コマンドを表示します。</p>
+<p>Source タブは <code>[Story]</code> メソッドだけの場合があります。<strong>Run this sample</strong> または Sample Bundle があるページをコピー元にしてください。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Start/GalleryGuide&quot;, Order = 2)]
+public static Widget GalleryGuide(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # Gallery の使い方
+
+    1. **Learn** で概念を順番に学ぶ
+    2. **Build** でコピー可能な block と recipe を探す
+    3. **Examples** で完成形を操作する
+    4. **Reference** で API を確認する
+    5. **Internals** で設計判断と実装を読む
+
+    Native Gallery の preview、Knobs、Interactions は対話可能です。Static Gallery は画像ですが、同じ source bundle、依存、実行コマンドを表示します。
+
+    Source タブは `[Story]` メソッドだけの場合があります。**Run this sample** または Sample Bundle があるページをコピー元にしてください。
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

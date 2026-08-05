@@ -1,0 +1,92 @@
+<article class="story document-page"><h1 id="adr-0007-ui-anchored-placement">ADR-0007 — 浮遊 UI は単一の anchored placement エンジンに統一する</h1>
+<ul>
+<li><strong>Status</strong>: Accepted</li>
+<li><strong>Date</strong>: 2026-07-08</li>
+<li><strong>Deciders</strong>: ikihiki</li>
+</ul>
+<h2 id="context">Context</h2>
+<div class="markdown-alert markdown-alert-note">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p><code>ToDo/22</code>〜<code>ToDo/27</code> はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする <code>Reference/Guides/*</code> とLearnページを正とします。</p>
+</div>
+<p>浮遊 UI (ダイアログ・トースト・ドロワー・ドロップダウン・Select・ColorPicker・コンテキストメニュー・補完ポップアップ・ホバーツールチップ・IME 候補) が増え、配置ロジックが散らばっています。</p>
+<ul>
+<li>オーバーレイ層 (<code>OverlayEntry</code> / <code>UiHost.Place</code>、Z=1000) に anchor + フリップ/クランプはあるが、<strong>下↔上のフリップと X のクランプだけ</strong>。水平フリップ・shift-to-fit・左右 side 配置・画面より高いときの max-height/スクロールが無い</li>
+<li><code>ContextMenu</code> はこの層を使わず Z=3000 の一点物 — <strong>端でクランプもフリップもしない</strong> (右端・下端ではみ出す)</li>
+<li>CodeEditor の補完ポップアップ/ツールチップは<strong>エディタの content 内の素の Scene2D ノード</strong> — エディタのクリップに閉じ込められて画面外へ出られず、端でフリップもしない</li>
+<li>画面端での挙動 (方向を変える) を各コントロールが個別に持つ/持たないため一貫しない</li>
+</ul>
+<p>新スタックの補完ポップアップ (<a href="#story=Internals%2FADR%2F0006-Editor-New-Stack">ADR-0006</a> の S6c) を機に、<strong>全ての浮遊 UI が同じ規則で端に反応する</strong>土台を作りたい、という力学です。</p>
+<h2 id="decision">Decision</h2>
+<p><code>Luxel.UI</code> に<strong>単一の anchored placement エンジン</strong>を置き、浮遊 UI を統一します。</p>
+<ul>
+<li><strong>配置指定</strong> <code>AnchoredPlacement { Side (Below/Above/Right/Left), Align (Start/Center/End), bool Flip, bool Shift, float Gap, Margin, MaxWidth/MaxHeight }</code></li>
+<li><strong>純粋なソルバ</strong> <code>Solve(Rect anchor, Size content, Rect viewport) → (Rect rect, PopupSide actualSide, Size constrained)</code> — ①希望 side に置く ②入らなければ反対 side へ<strong>フリップ</strong> ③交差軸で画面内へ<strong>シフト</strong> ④viewport を超えるなら<strong>サイズをクランプ</strong> (中身はスクロール)。canvas 非依存で単体テスト可能</li>
+<li><strong>2 つの配置ファミリ</strong>を明確に分ける: <strong>anchored</strong> (トリガー/キャレットに紐づく — Side/Align/Flip/Shift) と <strong>region</strong> (ダイアログ/ドロワー/トースト — Center/Edge/Corner、既存踏襲)</li>
+<li><strong>移行</strong>: ContextMenu・Select/Dropdown/ColorPicker・<strong>CodeEditor 補完ポップアップ + ツールチップ</strong>をこのエンジンへ。ポップアップは Z=1000 のオーバーレイ層へ昇格し、トリガーの WorldPos 矩形または <code>ITextInput.CaretRect</code> にアンカーする (エディタのクリップから出て、画面端でフリップする)</li>
+<li><strong>IME 候補ウインドウ</strong> (<a href="#story=Internals%2FADR%2F0008-Custom-Ime-Candidates">ADR-0008</a>) も、自前描画する場合はこの Popup として CaretRect にアンカーする — 浮遊 UI の一消費者になる</li>
+</ul>
+<p>実装計画は ToDo/23。現在の姿は <a href="#story=Reference%2FGuides%2FUI">Reference/Guides/UI</a> が正。</p>
+<h2 id="alternatives">Alternatives</h2>
+<ul>
+<li><strong>各コントロールが個別に配置</strong> (現状) — フリップ/クランプを毎回作り直し、ContextMenu と補完は端でクランプすらせずはみ出す → 却下</li>
+<li><strong>Floating UI / CSS Anchor Positioning 相当のフルミドルウェア</strong> (flip/shift/size/arrow/autoPlacement…) — 過剰。必要な部分集合 (flip + shift + size) だけ採る → 却下 (部分採用)</li>
+<li><strong>ポップアップ毎に手でクランプ</strong> — 重複・未テスト・端対応が漏れる → 却下</li>
+</ul>
+<h2 id="consequences">Consequences</h2>
+<ul>
+<li>✅ フリップ/シフト/クランプが 1 か所・単体テスト済みになり、全浮遊 UI が一貫して画面端に反応する</li>
+<li>✅ 補完ポップアップがエディタのクリップから解放され、キャレットにアンカーして端でフリップする</li>
+<li>✅ ContextMenu が端でのクランプ/フリップを獲得する</li>
+<li>⚠️ 移行が複数コントロール + golden に及ぶ (配置が数 px 動きうる — 意図差分として --update)</li>
+<li>⚠️ anchored と region の 2 ファミリを区別して保守する必要がある</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0007-Floating-Ui-Placement&quot;, Order = 78)]
+public static Widget Adr0007(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # ADR-0007 — 浮遊 UI は単一の anchored placement エンジンに統一する
+
+    - **Status**: Accepted
+    - **Date**: 2026-07-08
+    - **Deciders**: ikihiki
+
+    ## Context
+
+    &gt; [!NOTE]
+    &gt; `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+
+
+    浮遊 UI (ダイアログ・トースト・ドロワー・ドロップダウン・Select・ColorPicker・コンテキストメニュー・補完ポップアップ・ホバーツールチップ・IME 候補) が増え、配置ロジックが散らばっています。
+
+    - オーバーレイ層 (`OverlayEntry` / `UiHost.Place`、Z=1000) に anchor + フリップ/クランプはあるが、**下↔上のフリップと X のクランプだけ**。水平フリップ・shift-to-fit・左右 side 配置・画面より高いときの max-height/スクロールが無い
+    - `ContextMenu` はこの層を使わず Z=3000 の一点物 — **端でクランプもフリップもしない** (右端・下端ではみ出す)
+    - CodeEditor の補完ポップアップ/ツールチップは**エディタの content 内の素の Scene2D ノード** — エディタのクリップに閉じ込められて画面外へ出られず、端でフリップもしない
+    - 画面端での挙動 (方向を変える) を各コントロールが個別に持つ/持たないため一貫しない
+
+    新スタックの補完ポップアップ ([ADR-0006](story:Internals/ADR/0006-Editor-New-Stack) の S6c) を機に、**全ての浮遊 UI が同じ規則で端に反応する**土台を作りたい、という力学です。
+
+    ## Decision
+
+    `Luxel.UI` に**単一の anchored placement エンジン**を置き、浮遊 UI を統一します。
+
+    - **配置指定** `AnchoredPlacement { Side (Below/Above/Right/Left), Align (Start/Center/End), bool Flip, bool Shift, float Gap, Margin, MaxWidth/MaxHeight }`
+    - **純粋なソルバ** `Solve(Rect anchor, Size content, Rect viewport) → (Rect rect, PopupSide actualSide, Size constrained)` — ①希望 side に置く ②入らなければ反対 side へ**フリップ** ③交差軸で画面内へ**シフト** ④viewport を超えるなら**サイズをクランプ** (中身はスクロール)。canvas 非依存で単体テスト可能
+    - **2 つの配置ファミリ**を明確に分ける: **anchored** (トリガー/キャレットに紐づく — Side/Align/Flip/Shift) と **region** (ダイアログ/ドロワー/トースト — Center/Edge/Corner、既存踏襲)
+    - **移行**: ContextMenu・Select/Dropdown/ColorPicker・**CodeEditor 補完ポップアップ + ツールチップ**をこのエンジンへ。ポップアップは Z=1000 のオーバーレイ層へ昇格し、トリガーの WorldPos 矩形または `ITextInput.CaretRect` にアンカーする (エディタのクリップから出て、画面端でフリップする)
+    - **IME 候補ウインドウ** ([ADR-0008](story:Internals/ADR/0008-Custom-Ime-Candidates)) も、自前描画する場合はこの Popup として CaretRect にアンカーする — 浮遊 UI の一消費者になる
+
+    実装計画は ToDo/23。現在の姿は [Reference/Guides/UI](story:Reference/Guides/UI) が正。
+
+    ## Alternatives
+
+    - **各コントロールが個別に配置** (現状) — フリップ/クランプを毎回作り直し、ContextMenu と補完は端でクランプすらせずはみ出す → 却下
+    - **Floating UI / CSS Anchor Positioning 相当のフルミドルウェア** (flip/shift/size/arrow/autoPlacement…) — 過剰。必要な部分集合 (flip + shift + size) だけ採る → 却下 (部分採用)
+    - **ポップアップ毎に手でクランプ** — 重複・未テスト・端対応が漏れる → 却下
+
+    ## Consequences
+
+    - ✅ フリップ/シフト/クランプが 1 か所・単体テスト済みになり、全浮遊 UI が一貫して画面端に反応する
+    - ✅ 補完ポップアップがエディタのクリップから解放され、キャレットにアンカーして端でフリップする
+    - ✅ ContextMenu が端でのクランプ/フリップを獲得する
+    - ⚠️ 移行が複数コントロール + golden に及ぶ (配置が数 px 動きうる — 意図差分として --update)
+    - ⚠️ anchored と region の 2 ファミリを区別して保守する必要がある
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

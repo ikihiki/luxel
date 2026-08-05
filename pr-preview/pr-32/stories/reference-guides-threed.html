@@ -1,0 +1,78 @@
+<article class="story document-page"><h1 id="d-ecs">3D と ECS</h1>
+<p>3D は <strong>ECS (Friflo Engine ECS のラッパ = Luxel.Ecs) + 抽出 + レンダーグラフ</strong>の直列で描きます。シーングラフという独立した抽象はありません — 階層は ECS の <code>Parent</code>/<code>Children</code> コンポーネントが素直に表します。</p>
+<h2 id="section">コンポーネントとシステム</h2>
+<ul>
+<li><code>LocalTransform</code> / <code>GlobalTransform</code> — ローカル/ワールド変換。<code>TransformPropagateSystem.Run(world)</code> が Parent をたどって伝播</li>
+<li><code>MeshRef</code> / <code>Color3D</code> / <code>Visible</code> — 描画コンポーネント</li>
+<li>メッシュは <code>CubeMesh</code> 等の頂点プル用バッファ (position + normal)</li>
+</ul>
+<h2 id="irenderextractor">抽出 (IRenderExtractor)</h2>
+<p><code>Render3DExtractSystem</code> が ECS をクエリし、<code>InstanceData[]</code> (mat4 + color の SoA) を bindless バッファへ書きます。シーン層とレンダーグラフ層の橋渡しはこの <strong>Extract 層だけ</strong> — グラフ側は書き上がったバッファを Import するのみです。</p>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<h2 id="section-1">描画パターン</h2>
+<p>graphics パスの lambda が <code>BeginRendering(rt, depth, ...)</code> で RT/Depth を直接管理し、instance 数ぶん <code>Draw</code> します。この形のまま合成が伸びます:</p>
+<ul>
+<li>post-process 連鎖 (forward → blur → 加算合成) → <a href="#story=Examples%2FRenderGraph%2FBloom3D">Examples/RenderGraph/Bloom3D</a></li>
+<li>world-space UI (2D UI を 3D 内の板にサンプリング) → <a href="#story=Examples%2F3D%2FWorldSpaceUI">Examples/3D/WorldSpaceUI</a></li>
+<li>shadow map (ライト視点 R32Float → bindless バッファ → 比較) → <a href="#story=Examples%2F3D%2FShadowMap">Examples/3D/ShadowMap</a></li>
+</ul>
+<p>shadow map も「R32F カラー RT + bindless バッファ経由の Load」— 専用のサンプラ比較ハードウェアに頼らない compute-first の流儀です。</p>
+<h2 id="orbitcamera">OrbitCamera — 軌道カメラ</h2>
+<p>注視点を中心に yaw/pitch/distance で周回する軌道カメラ <code>OrbitCamera</code> (<code>Luxel.Mathematics</code>) が <code>ViewProjection</code> (<code>view * proj</code>) を計算します。<code>Orbit(dYaw, dPitch)</code> でドラッグ回転 (pitch はジンバルロック手前でクランプ)、<code>Dolly(factor, min, max)</code> でズームします。ルート引数へ渡すときは行列レイアウトの罠 (下記) に従い <code>Matrix4x4.Transpose</code> を入れます。2D の <code>CameraRig2D</code> (追従/シェイク/境界) に対し、3D は v1 では viewProj 算出とドラッグ操作までがスコープです。</p>
+<h2 id="ui-ecs">設計ノート: UI に ECS を使わない理由</h2>
+<ul>
+<li>UI は reactive signals + 保持型ツリーのほうが DSL / 部分更新と相性が良い</li>
+<li>ラベル 100 個を 100 entity にするとフレーム単位 query のオーバーヘッドが過剰</li>
+<li>Bevy も UI は別系統 (bevy_ui)。Luxel でも <code>Luxel.UI</code> は signals 系のまま、<strong>3D 側だけ ECS</strong> です</li>
+</ul>
+<h2 id="section-2">行列レイアウトの罠</h2>
+<div class="markdown-alert markdown-alert-warning">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p>Slang/HLSL の既定行列レイアウトは column-major、<code>System.Numerics.Matrix4x4</code> は row-major です。ルート引数で行列を渡すときは <strong>CPU 側で <code>Matrix4x4.Transpose</code></strong> を入れて整えます (per-instance 行列はシェーダ側で Load4 ×4 の行構築なので転置不要)。</p>
+</div>
+<p>アニメーションを ECS へ流す例は <a href="#story=Examples%2FAnimation%2FEcsClip">Examples/Animation/EcsClip</a> と <a href="#story=Examples%2FAnimation%2FGraph">Examples/Animation/Graph</a> へ。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/ThreeD&quot;, Order = 13)]
+public static Widget ThreeD(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # 3D と ECS
+
+    3D は **ECS (Friflo Engine ECS のラッパ = Luxel.Ecs) + 抽出 + レンダーグラフ**の直列で描きます。シーングラフという独立した抽象はありません — 階層は ECS の `Parent`/`Children` コンポーネントが素直に表します。
+
+    ## コンポーネントとシステム
+
+    - `LocalTransform` / `GlobalTransform` — ローカル/ワールド変換。`TransformPropagateSystem.Run(world)` が Parent をたどって伝播
+    - `MeshRef` / `Color3D` / `Visible` — 描画コンポーネント
+    - メッシュは `CubeMesh` 等の頂点プル用バッファ (position + normal)
+
+    ## 抽出 (IRenderExtractor)
+
+    `Render3DExtractSystem` が ECS をクエリし、`InstanceData[]` (mat4 + color の SoA) を bindless バッファへ書きます。シーン層とレンダーグラフ層の橋渡しはこの **Extract 層だけ** — グラフ側は書き上がったバッファを Import するのみです。
+
+    {{StoryRef(ctx, &quot;Examples/3D/EcsCubes&quot;)}}
+
+    ## 描画パターン
+
+    graphics パスの lambda が `BeginRendering(rt, depth, ...)` で RT/Depth を直接管理し、instance 数ぶん `Draw` します。この形のまま合成が伸びます:
+
+    - post-process 連鎖 (forward → blur → 加算合成) → [Examples/RenderGraph/Bloom3D](story:Examples/RenderGraph/Bloom3D)
+    - world-space UI (2D UI を 3D 内の板にサンプリング) → [Examples/3D/WorldSpaceUI](story:Examples/3D/WorldSpaceUI)
+    - shadow map (ライト視点 R32Float → bindless バッファ → 比較) → [Examples/3D/ShadowMap](story:Examples/3D/ShadowMap)
+
+    shadow map も「R32F カラー RT + bindless バッファ経由の Load」— 専用のサンプラ比較ハードウェアに頼らない compute-first の流儀です。
+
+    ## OrbitCamera — 軌道カメラ
+
+    注視点を中心に yaw/pitch/distance で周回する軌道カメラ `OrbitCamera` (`Luxel.Mathematics`) が `ViewProjection` (`view * proj`) を計算します。`Orbit(dYaw, dPitch)` でドラッグ回転 (pitch はジンバルロック手前でクランプ)、`Dolly(factor, min, max)` でズームします。ルート引数へ渡すときは行列レイアウトの罠 (下記) に従い `Matrix4x4.Transpose` を入れます。2D の `CameraRig2D` (追従/シェイク/境界) に対し、3D は v1 では viewProj 算出とドラッグ操作までがスコープです。
+
+    ## 設計ノート: UI に ECS を使わない理由
+
+    - UI は reactive signals + 保持型ツリーのほうが DSL / 部分更新と相性が良い
+    - ラベル 100 個を 100 entity にするとフレーム単位 query のオーバーヘッドが過剰
+    - Bevy も UI は別系統 (bevy_ui)。Luxel でも `Luxel.UI` は signals 系のまま、**3D 側だけ ECS** です
+
+    ## 行列レイアウトの罠
+
+    &gt; [!WARNING]
+    &gt; Slang/HLSL の既定行列レイアウトは column-major、`System.Numerics.Matrix4x4` は row-major です。ルート引数で行列を渡すときは **CPU 側で `Matrix4x4.Transpose`** を入れて整えます (per-instance 行列はシェーダ側で Load4 &#215;4 の行構築なので転置不要)。
+
+    アニメーションを ECS へ流す例は [Examples/Animation/EcsClip](story:Examples/Animation/EcsClip) と [Examples/Animation/Graph](story:Examples/Animation/Graph) へ。
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

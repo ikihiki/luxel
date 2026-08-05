@@ -1,0 +1,57 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Guides/Studio</h1></header><aside class="capture-error" data-capture-status="error"><strong>Static capture error</strong><pre>InvalidDataException: Broken documentation links: Reference/Guides/Studio: story:Controls/SceneEditorView/Basic, Reference/Guides/Studio: story:Controls/SceneEditorView/Tiles, Reference/Guides/Studio: story:Controls/SceneEditorView/Inspector, Reference/Guides/Studio: story:Controls/SceneEditorView/Assets, Reference/Guides/Studio: story:Controls/SceneEditorView/ThreeD</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Studio&quot;, Order = 44)]
+public static Widget Studio(StoryContext ctx)
+{
+    ctx.Play(static d =&gt; d.Snap());
+    return DocNew(ctx, $$&quot;&quot;&quot;
+    # Luxel Studio (ゲームエディタ)
+
+    **C# ソリューションを書かずに** — プロジェクト作成 → シーン編集 → csx で挙動 → エディタ内プレイ → フォルダごと出荷 — を完走するためのエディタ群です。決定は [ADR-0015](story:Internals/ADR/0015-Game-Project-Scene-Format) (形式) / [ADR-0016](story:Internals/ADR/0016-Scene-Editor-Stack) (シーンエディタ) / [ADR-0017](story:Internals/ADR/0017-Play-In-Editor) (プレイ) / [ADR-0018](story:Internals/ADR/0018-Csx-Behaviour-Model) (csx)。通し実演は [Apps/Studio/Shell](story:Apps/Studio/Shell)、[Apps/Studio/CoinGame](story:Apps/Studio/CoinGame)、[Apps/Studio/Mixed3D](story:Apps/Studio/Mixed3D)。
+
+    設計と実装は **2D/3D 両対応**です: シーンは `space` を宣言し、座標はコンポーネント (`transform2d` / `transform3d` は別スキーマ) の関心事。エディタは共有シェル + 空間アダプタ、ランタイムのコンパイラはコア + space 別バックエンドです。プロジェクトは 2D/3D シーンを混在でき、csx から `world.RequestScene(&quot;res://scenes/arena.scene.json&quot;)` で別 space のシーンへ遷移できます。
+
+    ## プロジェクト形式 (Luxel.SceneEdit)
+
+    プロジェクト = フォルダ: `project.luxel` (名前/開始シーン/ウインドウ) + `scenes/*.scene.json` + `scripts/*.csx` + `atlas/*.atlas.json` + アセット。参照はすべて `res://` (フォルダ相対)。シーンは安定 id のエンティティ + コンポーネント + タイルレイヤで、値は**形ベース** (Bool/Number/Text/Vec2/3/4/Raw) — 型付きの意味 (Int/Enum/AssetRef/Quat/Color) は `IComponentSchema` の解釈なので、スキーマに無いコンポーネントも劣化なく往復します。JSON は決定的 (キー順固定・LF・タイルは行 CSV) で git 差分が読めます。
+
+    ## シーンエディタ ([SceneEditorView](story:Controls/SceneEditorView/Basic))
+
+    テキスト ([ADR-0006](story:Internals/ADR/0006-Editor-New-Stack))・ノード ([ADR-0009](story:Internals/ADR/0009-Node-Editor-Stack)) に続く**第 3 の Transaction スタック** (不変 SceneDoc + SceneChange + 1 tx = 1 undo)。空間の知識 (変換/ヒット/カメラ/描画) は `ISceneSpaceAdapter` に閉じ、シェルは view-local px と id しか扱いません。選択/移動 (軸分解ハンドル X=赤/Y=緑)/複製 (Ctrl+D)/削除、[タイル描き込み](story:Controls/SceneEditorView/Tiles) (ブラシ = 直線補間/矩形/消しゴム/スポイト、1 ストローク = 1 undo)。
+
+    [SceneInspector](story:Controls/SceneEditorView/Inspector) はスキーマ駆動 (space で出し分け・全フィールド型のエディタ・Quat はオイラー度表示で Quat 保存)。編集は `ApplyEdit` の Transaction 経由なので**インスペクタ編集も undo できます**。[アセット](story:Controls/SceneEditorView/Assets)は AssetBrowser + `*.atlas.json` の PropertyGrid 編集。
+
+    ## 3D シーン ([SceneEditorView/ThreeD](story:Controls/SceneEditorView/ThreeD))
+
+    `space: &quot;3d&quot;` のシーンは `SceneSpace3DAdapter` が担当します。`OrbitCamera` で地面グリッド、`transform3d` の AABB ワイヤ、X/Y/Z 軸ハンドル、marquee、orbit/dolly を描画・操作します。共有シェルは 2D と同じ選択/Transaction/undo 経路を使い、空間固有の数学はアダプタへ閉じています。
+
+    ランタイム側は `SceneCompiler.Compile3D` が `Player3DWorld` を構築します。`mesh3d` は `glb` AssetRef として VFS 上の存在を検証し、`camera3d` は `OrbitCamera` 初期値になります。v1 の Player 3D 描画は deterministic な Scene2D 投影ワイヤで、`Player3DWorld.QueryAabb` / `RayCast` と csx の `self.Pos3D` 更新を提供します。デモは [Apps/Player/ThreeD](story:Apps/Player/ThreeD)。
+
+    ## 挙動 = csx ([ADR-0018](story:Internals/ADR/0018-Csx-Behaviour-Model))
+
+    エンティティに `behaviour { script: res://scripts/foo.csx }` を載せ、スクリプトは globals へ Update を代入するだけ:
+
+    ```csharp
+    Update = (self, world, dt) =&gt;
+    {
+        if (world.KeysDown.Contains(&quot;Right&quot;)) self.Pos.X += 120f * dt;
+    };
+    ```
+
+    1 スクリプト 1 コンパイルで全エンティティ共有・状態はコンポーネント側。globals の `world` は `IPlayerWorld` なので 2D/3D 共通の `Time` / `KeysDown` / `Find` / `RequestScene` が使え、3D エンティティは `self.Pos3D` を更新できます。失敗契約: コンパイル失敗 = 旧維持 + 診断 / 実行時例外 = 無効化 + 診断 / Reload で復帰。[ScriptEditor](story:Apps/Player/ScriptEditor) が TextEditorView (診断波線 + 補完、`ScriptWorkspace` にランタイムと同じ globals を渡す) と保存 → ホットリロードを実演します。
+
+    ## Studio シェル ([Apps/Studio/Shell](story:Apps/Studio/Shell))
+
+    Workbench の `DockHost` / `CommandRegistry` / `DocumentStore` を土台に、SceneEditor、Inspector、AssetBrowser、csx ScriptEditor、Play View、Problems を 1 つの作業台へ束ねます。MenuBar / Toolbar / CommandPalette は同じ registry から生成され、Save / Play / Pause / Step / Stop / Ship mock、Scene 操作、Script reload、Problems jump を実行します。`scripts/*.csx` は `IDocumentProvider` + `TextDocument` として開き、保存時に実行中 Player の VFS も更新して `PlayerBehaviours.Reload` へ流します。
+
+    Play View は保存済みプロジェクトから Player を起動し、2D title → 3D arena の `RequestScene` 遷移と overlay 表示を同じペインで確認できます。Problems は csx compile/runtime diagnostics と AssetRef 欠落を統合表示します。story の play は scene edit/save → play → compile error → fix → ship command mock を通し、Vulkan / D3D12 の golden で回帰します。
+
+    ## プレイと出荷
+
+    - **プレイインエディタ** ([ADR-0017](story:Internals/ADR/0017-Play-In-Editor) / [デモ](story:Apps/Player/PlayInEditor)): ▶ = SceneCompiler で**別インスタンスを都度構築**、⏹ = 破棄 — 編集データは汚染されません。⏸/ステップは固定 dt (1/60) で決定的
+    - **ランタイム** (`Luxel.Player` / [2D](story:Apps/Player/Basic) / [3D](story:Apps/Player/ThreeD)): VFS からプロジェクトを読み一方向構築。exe `Luxel.Player.App &lt;フォルダ&gt; [vk|dx] [--frames N]`、引数省略時は exe 隣の `project/`
+    - **出荷** (`PlayerShipper` / `--ship` / リポジトリの `ship-verify.ps1`): `dotnet publish` (self-contained、shaders 同梱) + プロジェクトを `project/` へコピー — フォルダごと配布してダブルクリックで動きます
+
+    ## 現状の制約
+
+    2D タイル/エンティティと 3D メッシュの見た目はプレースホルダ描画です。3D は glb 参照の存在検証とワイヤ表示までで、フル `scene_pbr` / glTF 展開 / Bepu 物理統合は実アセット描画フェーズで接続します。音は未配線。Studio Shell は Gallery story 上の hermetic 実証で、実 FS / マルチウィンドウ / 外部アセット監視の完全 UX は後続です。
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

@@ -1,0 +1,13 @@
+<article class="story document-page"><h1 id="reload-diagnostics-and-isolation">Reload, diagnostics, and isolation</h1>
+<p>compile errorは前の実行可能instanceを保持し、成功時だけswapします。長時間処理にはcancellation tokenを渡し、script assemblyが保持するeventやEffectをreload時にdisposeします。</p>
+<figure class="static-capture"><a href="#story=Examples%2FScripting%2FHotReload"><img src="images/examples-scripting-hotreload.png" alt="Examples/Scripting/HotReload" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<figure class="static-capture"><a href="#story=Examples%2FScripting%2FNotebook"><img src="images/examples-scripting-notebook.png" alt="Examples/Scripting/Notebook" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Scripting/ReloadAndIsolation&quot;, Order = 1)]
+public static Widget ScriptingReload(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # Reload, diagnostics, and isolation
+
+    compile errorは前の実行可能instanceを保持し、成功時だけswapします。長時間処理にはcancellation tokenを渡し、script assemblyが保持するeventやEffectをreload時にdisposeします。
+
+    {{StoryRef(ctx, &quot;Examples/Scripting/HotReload&quot;)}}
+    {{StoryRef(ctx, &quot;Examples/Scripting/Notebook&quot;)}}
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

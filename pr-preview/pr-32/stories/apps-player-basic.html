@@ -1,0 +1,28 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Apps/Player/Basic</h1></header><aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Apps/Player/Basic&quot;, Height = 420, Order = 148)]
+public static Widget Basic(StoryContext ctx)
+{
+    PlayerGame game = PlayerLoader.LoadStart(FixtureProject());
+    Player2DWorld world = game.World2D;
+    float w = game.Project.WindowWidth, h = game.Project.WindowHeight;
+
+    // Canvas2D の animate = Tick 累積 (wall-clock 禁止) — snap の固定ステップで決定的
+    Canvas2D view = Canvas2D(w, h, animate: (s, _) =&gt; world.Render(s, w, h, Font.Value));
+
+    ctx.Play(&quot;run&quot;, async d =&gt;
+    {
+        await d.Snap();                              // 読み込んだプロジェクトの初期状態 (タイル + tint 付き箱)
+        await d.Expect(() =&gt; world.Behaviours!.Diagnostics.Count == 0, &quot;csx がコンパイルできている&quot;);
+        for (int i = 0; i &lt; 30; i++) world.Update(1f / 60f);   // csx ビヘイビアがエンティティを動かす
+        await d.Step(1);                             // animate が再エンコード
+        await d.Expect(() =&gt; MathF.Abs(world.Find(&quot;Player&quot;)!.Pos.X - 140f) &lt; 0.01f, &quot;walk.csx が 60px/s で移動&quot;);
+        await d.Expect(() =&gt; world.Find(&quot;Coin&quot;)!.Pos.Y != 150f, &quot;bob.csx が上下動&quot;);
+        await d.Expect(() =&gt; world.TileAt(1, 0, 8) == 1, &quot;タイルはランタイムへ素通し&quot;);
+        await d.Snap(&quot;stepped&quot;);
+    });
+
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(10)[
+            Heading(&quot;Luxel.Player — データ駆動ランタイム&quot;),
+            Muted(&quot;project.luxel + scenes/*.scene.json (エディタ形式そのまま) を VFS から読み、SceneCompiler が 2D world へ一方向構築。固定 dt で駆動し、見た目はエディタと同じプレースホルダ (TilePalette 共有)。&quot;),
+            view]];
+}</code></pre></details></article>
