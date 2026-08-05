@@ -1,0 +1,46 @@
+<article class="story document-page"><h1 id="diagrams-and-math">Diagrams and math</h1>
+<p>A mermaid diagram, reusing Luxel.Diagram:</p>
+<pre><code class="language-embed">flowchart LR
+A[Editor] --&gt; B[Provider]
+B --&gt; C[BlockWidget]
+</code></pre>
+<p>A formula via Luxel.MathText:</p>
+<pre><code class="language-embed">w = \frac{\alpha + \beta}{\sqrt{x^2 + y^2}}
+</code></pre>
+<p>Both are just embed widgets.</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/TextEditorView/DocEmbeds&quot;, Height = 460, Order = 13)]
+public static Widget DocEmbeds(StoryContext ctx)
+{
+    // mermaid/数式アダプタ (WS-A / ADR-0012): ```embed mermaid|math フェンス本文を、既存の
+    // Luxel.Diagram / Luxel.MathText を再利用して図/式 widget に解決 (自動高さで載る)。
+    Signal&lt;string&gt; md = ctx.Signal(&quot;md&quot;,
+        &quot;# Diagrams and math\n&quot; +
+        &quot;A mermaid diagram, reusing Luxel.Diagram:\n&quot; +
+        &quot;```embed mermaid\n&quot; +
+        &quot;flowchart LR\n&quot; +
+        &quot;A[Editor] --&gt; B[Provider]\n&quot; +
+        &quot;B --&gt; C[BlockWidget]\n&quot; +
+        &quot;```\n&quot; +
+        &quot;A formula via Luxel.MathText:\n&quot; +
+        &quot;```embed math\n&quot; +
+        &quot;w = \\frac{\\alpha + \\beta}{\\sqrt{x^2 + y^2}}\n&quot; +
+        &quot;```\n&quot; +
+        &quot;Both are just embed widgets.&quot;);
+    (VectorFont? bold, _, _, VectorFont? mono) = EditorFaces.Value;
+    TextEditorView ed = MarkdownDoc.Create(md, () =&gt; UiTheme.T, width: 520f, height: 380f, bold: bold, mono: mono);
+    const float cw = 460f;
+    ed.WidgetResolver = key =&gt; key is not EmbedRef r ? null : r.Key switch
+    {
+        &quot;mermaid&quot; =&gt; Luxel.Diagram.Factories.DiagramBlock(r.Body, cw),
+        &quot;math&quot; =&gt; Luxel.MathText.Factories.MathBlockView(r.Body, maxWidth: cw),
+        _ =&gt; null,
+    };
+
+    ctx.Play(async d =&gt; { await d.Step(3); await d.Snap(&quot;docembeds&quot;); });
+
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(10)[
+            Heading(&quot;TextEditorView — mermaid / 数式 埋め込み&quot;),
+            Muted(&quot;```embed mermaid|math の本文を既存プロセッサ (Diagram/MathText) で解決 = 内容プロセッサ再利用。&quot;),
+            ed]];
+}</code></pre></details></article>

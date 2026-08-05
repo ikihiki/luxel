@@ -1,0 +1,64 @@
+<article class="story document-page"><h1 id="adr-0017">ADR-0017 — プレイインエディタは「都度コンパイル + 停止で破棄」の別インスタンスで動かす</h1>
+<ul>
+<li><strong>Status</strong>: Accepted</li>
+<li><strong>Date</strong>: 2026-07-11</li>
+<li><strong>Deciders</strong>: ikihiki</li>
+</ul>
+<h2 id="context">Context</h2>
+<p>Luxel Studio でシーンを編集しながら ▶ で即プレイできる必要があります。編集状態 (SceneDoc、<a href="#story=Internals%2FADR%2F0016-Scene-Editor-Stack">ADR-0016</a>) は不変 + Transaction、ランタイム (Player2DWorld、<a href="#story=Internals%2FADR%2F0018-Csx-Behaviour-Model">ADR-0018</a>) は可変 — この 2 つの間で「プレイ中の変更が編集データを汚染する」「停止後に状態が残る」事故を構造的に防ぎたい。また golden 回帰のためプレイは決定的 (固定 dt) であること。</p>
+<h2 id="decision">Decision</h2>
+<ul>
+<li><strong>▶ = SceneCompiler で編集中の SceneDoc から新しい Player2DWorld を都度構築</strong>する (csx ビヘイビアもこの時点でロード)。編集状態への参照は渡さない — コンパイルは一方向 (<a href="#story=Internals%2FADR%2F0015-Game-Project-Scene-Format">ADR-0015</a>)</li>
+<li><strong>⏹ = プレイ world を捨てる</strong>。プレイ中に起きた変更 (位置・コンポーネント値) は保存されない — Unity の「プレイ中の変更は消える」と同じ契約。次の ▶ は編集中の最新 SceneDoc から作り直す</li>
+<li><strong>⏸ / ⏭ (1 ステップ)</strong>: プレイは固定 dt (1/60) でのみ進む。ステップ実行で決定的にフレームを刻める (golden/デバッグ)</li>
+<li>プレイ中の編集は<strong>編集側にだけ</strong>効く (次の ▶ から反映)。プレイ中のインスペクタ書き戻しは v1 スコープ外</li>
+<li>エディタ内の表示はストーリー/シェルが Canvas2D 等で world.Render をホストする (exe と同じ描画コード — 見た目が実行時と一致)</li>
+</ul>
+<h2 id="alternatives">Alternatives</h2>
+<ul>
+<li><strong>編集 world をそのまま動かして undo で巻き戻す</strong> — 物理/スクリプトの毎フレーム変更が undo 履歴を汚染し、csx の可変状態は Transaction モデルに乗らない → 却下</li>
+<li><strong>プレイ状態を編集へ書き戻すモード (Unity の Play Mode Edit)</strong> — 事故源。必要になったら「プレイ状態をシーンに焼く」明示コマンドとして別途 → 見送り</li>
+<li><strong>プレイを別プロセス (Player.App) で起動</strong> — 分離は最強だがステップ実行/オーバーレイ/ホットリロードの統合が重い。exe 起動は「実行」メニューとして残す → 却下 (in-process 別インスタンス)</li>
+</ul>
+<h2 id="consequences">Consequences</h2>
+<ul>
+<li>✅ 編集データの汚染と状態残留が構造的に起きない (参照を渡さない + 捨てる)</li>
+<li>✅ プレイ表示が exe と同じ Render を通る — 「エディタでは動くのに実行すると違う」を防ぐ</li>
+<li>✅ 固定 dt + ステップで golden/デバッグが決定的</li>
+<li>⚠️ ▶ のたびにコンパイル (シーン構築 + csx) が走る — 現規模では軽い。重くなったら csx キャッシュ (同一ソース再利用) を足す</li>
+<li>⚠️ プレイ中に「この配置いいな」を保存する導線が無い (明示コマンドとして将来)</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0017-Play-In-Editor&quot;, Order = 88)]
+public static Widget Adr0017(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # ADR-0017 — プレイインエディタは「都度コンパイル + 停止で破棄」の別インスタンスで動かす
+
+    - **Status**: Accepted
+    - **Date**: 2026-07-11
+    - **Deciders**: ikihiki
+
+    ## Context
+
+    Luxel Studio でシーンを編集しながら ▶ で即プレイできる必要があります。編集状態 (SceneDoc、[ADR-0016](story:Internals/ADR/0016-Scene-Editor-Stack)) は不変 + Transaction、ランタイム (Player2DWorld、[ADR-0018](story:Internals/ADR/0018-Csx-Behaviour-Model)) は可変 — この 2 つの間で「プレイ中の変更が編集データを汚染する」「停止後に状態が残る」事故を構造的に防ぎたい。また golden 回帰のためプレイは決定的 (固定 dt) であること。
+
+    ## Decision
+
+    - **▶ = SceneCompiler で編集中の SceneDoc から新しい Player2DWorld を都度構築**する (csx ビヘイビアもこの時点でロード)。編集状態への参照は渡さない — コンパイルは一方向 ([ADR-0015](story:Internals/ADR/0015-Game-Project-Scene-Format))
+    - **⏹ = プレイ world を捨てる**。プレイ中に起きた変更 (位置・コンポーネント値) は保存されない — Unity の「プレイ中の変更は消える」と同じ契約。次の ▶ は編集中の最新 SceneDoc から作り直す
+    - **⏸ / ⏭ (1 ステップ)**: プレイは固定 dt (1/60) でのみ進む。ステップ実行で決定的にフレームを刻める (golden/デバッグ)
+    - プレイ中の編集は**編集側にだけ**効く (次の ▶ から反映)。プレイ中のインスペクタ書き戻しは v1 スコープ外
+    - エディタ内の表示はストーリー/シェルが Canvas2D 等で world.Render をホストする (exe と同じ描画コード — 見た目が実行時と一致)
+
+    ## Alternatives
+
+    - **編集 world をそのまま動かして undo で巻き戻す** — 物理/スクリプトの毎フレーム変更が undo 履歴を汚染し、csx の可変状態は Transaction モデルに乗らない → 却下
+    - **プレイ状態を編集へ書き戻すモード (Unity の Play Mode Edit)** — 事故源。必要になったら「プレイ状態をシーンに焼く」明示コマンドとして別途 → 見送り
+    - **プレイを別プロセス (Player.App) で起動** — 分離は最強だがステップ実行/オーバーレイ/ホットリロードの統合が重い。exe 起動は「実行」メニューとして残す → 却下 (in-process 別インスタンス)
+
+    ## Consequences
+
+    - ✅ 編集データの汚染と状態残留が構造的に起きない (参照を渡さない + 捨てる)
+    - ✅ プレイ表示が exe と同じ Render を通る — 「エディタでは動くのに実行すると違う」を防ぐ
+    - ✅ 固定 dt + ステップで golden/デバッグが決定的
+    - ⚠️ ▶ のたびにコンパイル (シーン構築 + csx) が走る — 現規模では軽い。重くなったら csx キャッシュ (同一ソース再利用) を足す
+    - ⚠️ プレイ中に「この配置いいな」を保存する導線が無い (明示コマンドとして将来)
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

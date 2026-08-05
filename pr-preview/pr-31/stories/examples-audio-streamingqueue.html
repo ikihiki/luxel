@@ -1,0 +1,61 @@
+<article class="story document-page"><h1 id="audio-streaming-queue">Audio: streaming queue</h1>
+<p>短いclipのqueue観測を、<code>WavStream</code>/<code>LoopingStream</code>と<code>StreamingVoice.Pump()</code>へ拡張する接続点を示します。</p>
+<pre><code class="language-csharp">var format = new AudioFormat(48_000, 1, 16);
+byte[] pcm = new byte[4_800 * format.BytesPerSample];
+for (int i = 0; i &lt; 4_800; i++)
+{
+    short sample = (short)(Math.Sin(2 * Math.PI * 440 * i / format.SampleRate) * short.MaxValue * 0.2);
+    BitConverter.TryWriteBytes(pcm.AsSpan(i * 2, 2), sample);
+}
+var clip = new AudioClip(format, pcm, &quot;440Hz tone&quot;);
+using var backend = new NullAudioBackend();
+backend.Initialize();
+using var mixer = new AudioMixer(backend);
+mixer.PlayOneShot(clip, volume: 0.5f);
+</code></pre>
+<h2 id="headless-audio-tone">コピーして動かす — Headless audio tone</h2>
+<blockquote>
+<p><strong>Block</strong> · 難易度: Beginner · 依存 bundle: <code>support.source-tree</code></p>
+</blockquote>
+<p>Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.</p>
+<p><strong>必要条件:</strong> .NET 10 / Headless: any supported OS / Audible output: Windows/XAudio2 integration
+<strong>Platform:</strong> Windows / Linux / macOS
+<strong>検証契約:</strong> exit <code>0</code> / timeout <code>300s</code> / stdout <code>audio: initialized=True, voices=1</code>
+<strong>接続点:</strong> <code>AudioMixer</code></p>
+<p><strong>Run</strong></p>
+<pre><code class="language-powershell">dotnet run --project samples/LuxelAudio
+</code></pre>
+<p><strong>Smoke test</strong></p>
+<pre><code class="language-powershell">dotnet run --project samples/LuxelAudio
+</code></pre>
+<h3 id="samplesluxelaudioluxelaudio.csproj-project"><code>samples/LuxelAudio/LuxelAudio.csproj</code> (Project)</h3>
+<pre><code class="language-xml">&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;
+  &lt;PropertyGroup&gt;&lt;OutputType&gt;Exe&lt;/OutputType&gt;&lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;&lt;Nullable&gt;enable&lt;/Nullable&gt;&lt;/PropertyGroup&gt;
+  &lt;ItemGroup&gt;&lt;ProjectReference Include=&quot;..\..\src\Luxel.Audio\Luxel.Audio.csproj&quot; /&gt;&lt;/ItemGroup&gt;
+&lt;/Project&gt;
+</code></pre>
+<h3 id="samplesluxelaudioprogram.cs-csharp"><code>samples/LuxelAudio/Program.cs</code> (CSharp)</h3>
+<pre><code class="language-csharp">using Luxel.Audio;
+
+// docs:begin audio-tone
+var format = new AudioFormat(48_000, 1, 16);
+byte[] pcm = new byte[4_800 * format.BytesPerSample];
+for (int i = 0; i &lt; 4_800; i++)
+{
+    short sample = (short)(Math.Sin(2 * Math.PI * 440 * i / format.SampleRate) * short.MaxValue * 0.2);
+    BitConverter.TryWriteBytes(pcm.AsSpan(i * 2, 2), sample);
+}
+var clip = new AudioClip(format, pcm, &quot;440Hz tone&quot;);
+using var backend = new NullAudioBackend();
+backend.Initialize();
+using var mixer = new AudioMixer(backend);
+mixer.PlayOneShot(clip, volume: 0.5f);
+// docs:end audio-tone
+IAudioVoice voice = backend.Voices.Single();
+Console.WriteLine($&quot;audio: initialized={backend.Initialized}, voices={backend.Voices.Count}, queued={voice.BuffersQueued}, playing={voice.IsPlaying}, bytes={pcm.Length}&quot;);
+return backend.Initialized &amp;&amp; voice.BuffersQueued == 1 &amp;&amp; voice.IsPlaying ? 0 : 1;
+</code></pre>
+<details class="sample-bundle"><summary>Run this sample — Block</summary><p>Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.</p><p><strong>Requirements:</strong> .NET 10 / Headless: any supported OS / Audible output: Windows/XAudio2 integration</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>audio: initialized=True, voices=1</code></p><ul><li><code>samples/LuxelAudio/LuxelAudio.csproj</code> <span>Project</span></li><li><code>samples/LuxelAudio/Program.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelAudio</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelAudio</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/Audio/StreamingQueue&quot;, Order = 3, SampleBundle = &quot;audio.tone&quot;)]
+public static Widget AudioStreaming(StoryContext ctx) =&gt; RuntimeExample(ctx, &quot;Audio: streaming queue&quot;,
+    &quot;短いclipのqueue観測を、`WavStream`/`LoopingStream`と`StreamingVoice.Pump()`へ拡張する接続点を示します。&quot;,
+    &quot;samples/LuxelAudio/Program.cs&quot;, &quot;audio-tone&quot;, &quot;audio.tone&quot;);</code></pre></details></article>

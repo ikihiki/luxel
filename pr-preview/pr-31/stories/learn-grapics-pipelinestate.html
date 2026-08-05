@@ -1,0 +1,316 @@
+<article class="story document-page"><h1 id="pipeline">Pipelineのその他の設定</h1>
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Gallery + Standalone　 <strong>Backend:</strong> Vulkan / DirectX 12 / WebGPU　 <strong>前提知識:</strong> Shaders</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FShaders">Shaders</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FSynchronization">Synchronization</a></p>
+<p>shaderが「各頂点・pixelをどう計算するか」を決めるのに対し、graphics pipeline stateは「三角形をどう組み立て、どの面とpixelを残し、既存のrender targetへどう書き込むか」を決めます。Luxelでは固定pipeline stateを<code>GpuRasterDesc</code>へまとめ、<code>CreateGraphicsPipeline</code>時にshaderと組み合わせます。</p>
+<pre><code class="language-csharp">GpuRasterDesc raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
+raster.Topology = GpuPrimitiveTopology.TriangleList;
+raster.CullMode = GpuCullMode.Back;
+raster.FrontFace = GpuFrontFace.CounterClockwise;
+raster.DepthTest = true;
+raster.DepthWrite = true;
+raster.DepthFormat = GpuFormat.D32Float;
+raster.Blend = GpuBlendMode.None;
+
+using GpuPipeline pipeline =
+    device.CreateGraphicsPipeline(shader, raster);
+</code></pre>
+<p><code>GpuRasterDesc.Default</code>はtriangle list、depth無効、blend無効、culling無効です。設定を変更したら別のpipelineを作ります。対してrender target、clear値、viewport / scissorはcommand記録時の状態です。</p>
+<table>
+<thead>
+<tr>
+<th>分類</th>
+<th>Luxelでの指定場所</th>
+<th>主な設定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rasterizer State</td>
+<td><code>GpuRasterDesc</code></td>
+<td>topology、cull mode、front face</td>
+</tr>
+<tr>
+<td>Depth-Stencil State</td>
+<td><code>GpuRasterDesc</code> + <code>BeginRendering</code></td>
+<td>depth test/write/format、depth target、clear depth</td>
+</tr>
+<tr>
+<td>Blend State</td>
+<td><code>GpuRasterDesc</code></td>
+<td>overwriteまたはstraight alpha blend</td>
+</tr>
+<tr>
+<td>Viewport / Scissor</td>
+<td><code>BeginRendering</code>が自動設定</td>
+<td>現在はrender target全体</td>
+</tr>
+</tbody>
+</table>
+<h2 id="rasterizer-state">Rasterizer State</h2>
+<p>rasterizerはvertex shaderが返したclip-space頂点からprimitiveを組み立て、三角形が覆うpixelを求めます。<code>Topology</code>は頂点列の解釈、<code>CullMode</code>と<code>FrontFace</code>は描画前に除外する面を決めます。</p>
+<h3 id="primitive-topology">Primitive Topology</h3>
+<ul>
+<li><code>TriangleList</code>: 3頂点ごとに独立した三角形。<code>0,1,2</code>の次は<code>3,4,5</code>です。</li>
+<li><code>TriangleStrip</code>: 最初の3頂点で三角形を作り、以降は1頂点追加するたびに前の2頂点と新しい三角形を作ります。</li>
+</ul>
+<p>初学者向けsampleは、頂点数と三角形の対応が明確な<code>TriangleList</code>を使います。topologyはpipeline stateなので、同じshaderでもlistとstripを切り替える場合は対応するpipelineを用意します。</p>
+<h3 id="cull-modefront-face">Cull ModeとFront Face</h3>
+<p>三角形を画面上から見た頂点の回り順でfront/backへ分類します。<code>FrontFace = CounterClockwise</code>なら反時計回りを表面とし、<code>CullMode = Back</code>なら裏面をrasterizeしません。</p>
+<pre><code class="language-csharp">raster.CullMode = GpuCullMode.Back;
+raster.FrontFace = GpuFrontFace.CounterClockwise;
+</code></pre>
+<p><code>GpuCullMode.None</code> / <code>Front</code> / <code>Back</code>を選べます。何も表示されないときは一度<code>None</code>へ戻してください。projectionのY方向、negative scale、index順の違いでwindingが反転することがあります。LuxelのVulkan backendはviewportのYを内部で反転し、Direct3D 12と同じ画面座標の見え方へ揃えます。</p>
+<p>現在の公開<code>GpuRasterDesc</code>はfill描画のみで、wireframe、depth bias、line widthは公開していません。</p>
+<h2 id="depth-stencil-state">Depth-Stencil State</h2>
+<p>depth testは各fragmentのdepthとdepth targetに保存済みの値を比較し、手前のfragmentだけをcolor targetへ通します。Luxelの通常depthは0..1で、比較は<code>LessOrEqual</code>、clear値は1です。</p>
+<pre><code class="language-csharp">raster.DepthTest = true;
+raster.DepthWrite = true;
+raster.DepthFormat = GpuFormat.D32Float;
+
+using GpuTexture depth = device.CreateDepthTarget(width, height);
+
+command.BeginRendering(
+    colorTarget, depth,
+    r: 0.05f, g: 0.07f, b: 0.1f, a: 1,
+    clearDepth: 1f);
+</code></pre>
+<p><code>DepthTest</code>だけでなく、pipelineの<code>DepthFormat</code>と実際に渡すdepth targetのformatを一致させます。resize時はcolor targetと同じvisible sizeでdepth targetも作り直します。</p>
+<ul>
+<li><code>DepthTest = false</code>, <code>DepthWrite = false</code>: 2D、背景、描画順で上書きする単純なpass。</li>
+<li><code>DepthTest = true</code>, <code>DepthWrite = true</code>: 通常のopaque 3D geometry。</li>
+<li><code>DepthTest = true</code>, <code>DepthWrite = false</code>: 透明物など、既存depthでは隠すがdepth targetは更新したくないpass。</li>
+</ul>
+<p>名前はDepth-Stencil Stateですが、現在のLuxel公開APIはdepthのみを公開しています。stencil test、stencil operation、read/write maskはまだ<code>GpuRasterDesc</code>から設定できません。</p>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<h2 id="blend-state">Blend State</h2>
+<p>blendはpixel shaderの出力<code>src</code>と、render targetに既にある色<code>dst</code>を合成します。</p>
+<ul>
+<li><code>GpuBlendMode.None</code>: <code>src</code>で<code>dst</code>を上書きします。opaque描画の既定値です。</li>
+<li><code>GpuBlendMode.AlphaBlend</code>: straight alphaとしてRGBを<code>src.a</code>と<code>1 - src.a</code>で合成します。</li>
+</ul>
+<pre><code class="language-text">out.rgb = src.rgb * src.a + dst.rgb * (1 - src.a)
+out.a   = src.a             + dst.a   * (1 - src.a)
+</code></pre>
+<pre><code class="language-csharp">raster.Blend = GpuBlendMode.AlphaBlend;
+</code></pre>
+<p><code>AlphaBlend</code>へ渡すRGBはpremultiplied alphaではありません。透明物は通常、opaque passの後に奥から手前へsortし、depth testを有効、depth writeを無効にして描きます。blendを有効にするだけでは、複数の透明面の順序問題は解決しません。加算、乗算、個別blend factor、color write maskは現在の公開enumにはありません。</p>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<h2 id="viewport-scissor">Viewport / Scissor</h2>
+<p>viewportはNDCをrender target上の座標とdepth範囲へ変換します。scissorはその後、fragmentを書き込める矩形を整数pixelで制限します。</p>
+<pre><code class="language-text">clip position
+  → perspective divide
+  → NDC
+  → viewport transform
+  → rasterization
+  → scissor test
+  → depth / blend
+  → color target
+</code></pre>
+<p>一般的なgraphics APIではviewportとscissorはcommand bufferへ動的に設定し、split screen、letterbox、thumbnail、部分更新などに使います。<strong>現在のLuxel公開APIには<code>SetViewport</code> / <code>SetScissor</code>はありません。</strong> <code>BeginRendering(colorTarget, ...)</code>が両方をrender target全体へ自動設定します。</p>
+<pre><code class="language-csharp">command.BeginRendering(colorTarget, depthTarget)
+    .SetGraphicsPipeline(pipeline)
+    .SetRootArguments(args)
+    .Draw(vertexCount)
+    .EndRendering();
+</code></pre>
+<p>したがって現在は、pipelineだけを変えて部分領域へ描画することはできません。必要なら小さいintermediate render targetへ描いて後で合成するか、将来のdynamic viewport / scissor APIを追加します。resize後の次frameでは、新しいtarget sizeに合わせて<code>BeginRendering</code>が全領域を再設定します。</p>
+<h2 id="pipeline-1">Pipelineを分ける判断</h2>
+<p>shaderが同じでも、次のようなpassは別pipelineにします。</p>
+<table>
+<thead>
+<tr>
+<th>pass</th>
+<th>Depth</th>
+<th>Blend</th>
+<th>Cull</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>opaque 3D</td>
+<td>test on / write on</td>
+<td>None</td>
+<td>Back</td>
+</tr>
+<tr>
+<td>transparent 3D</td>
+<td>test on / write off</td>
+<td>AlphaBlend</td>
+<td>BackまたはNone</td>
+</tr>
+<tr>
+<td>2D overlay</td>
+<td>test off / write off</td>
+<td>AlphaBlend</td>
+<td>None</td>
+</tr>
+<tr>
+<td>full-screen post process</td>
+<td>test off / write off</td>
+<td>None</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+<p>pipelineはdrawごとに作らず、初期化時またはresource systemで作成して再利用します。render target format、depth format、topology、culling、blendが異なる組み合わせをkeyにcacheすると、同じ状態のpipelineを共有できます。</p>
+<h2 id="section">よくある症状</h2>
+<ul>
+<li><strong>何も出ない</strong>: cullingを<code>None</code>へ戻し、winding、<code>ColorFormat</code>、shader entry pointを確認する。</li>
+<li><strong>奥の面が手前に出る</strong>: depth target、<code>DepthTest</code>、<code>DepthWrite</code>、clear depth 1、0..1 projectionを確認する。</li>
+<li><strong>透明部分が黒い・縁が暗い</strong>: straight alphaとpremultiplied alphaを混ぜていないか確認する。</li>
+<li><strong>透明面の前後が逆</strong>: transparent drawを奥から手前へsortし、depth writeを無効にする。</li>
+<li><strong>resize後に欠ける</strong>: color/depth targetを同じsizeで再作成し、次の<code>BeginRendering</code>で全viewport/scissorを設定する。</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/PipelineState&quot;, Order = 7)]
+public static Widget PipelineState(StoryContext ctx)
+{
+    return DocNew(ctx, $$&quot;&quot;&quot;
+    # Pipelineのその他の設定
+
+    {{RenderingCourseCatalog.Meta(&quot;Learn/Grapics/PipelineState&quot;, &quot;Beginner&quot;, &quot;Gallery + Standalone&quot;, &quot;Vulkan / DirectX 12 / WebGPU&quot;, &quot;Shaders&quot;)}}
+
+    shaderが「各頂点・pixelをどう計算するか」を決めるのに対し、graphics pipeline stateは「三角形をどう組み立て、どの面とpixelを残し、既存のrender targetへどう書き込むか」を決めます。Luxelでは固定pipeline stateを`GpuRasterDesc`へまとめ、`CreateGraphicsPipeline`時にshaderと組み合わせます。
+
+    ```csharp
+    GpuRasterDesc raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
+    raster.Topology = GpuPrimitiveTopology.TriangleList;
+    raster.CullMode = GpuCullMode.Back;
+    raster.FrontFace = GpuFrontFace.CounterClockwise;
+    raster.DepthTest = true;
+    raster.DepthWrite = true;
+    raster.DepthFormat = GpuFormat.D32Float;
+    raster.Blend = GpuBlendMode.None;
+
+    using GpuPipeline pipeline =
+        device.CreateGraphicsPipeline(shader, raster);
+    ```
+
+    `GpuRasterDesc.Default`はtriangle list、depth無効、blend無効、culling無効です。設定を変更したら別のpipelineを作ります。対してrender target、clear値、viewport / scissorはcommand記録時の状態です。
+
+    | 分類 | Luxelでの指定場所 | 主な設定 |
+    | --- | --- | --- |
+    | Rasterizer State | `GpuRasterDesc` | topology、cull mode、front face |
+    | Depth-Stencil State | `GpuRasterDesc` + `BeginRendering` | depth test/write/format、depth target、clear depth |
+    | Blend State | `GpuRasterDesc` | overwriteまたはstraight alpha blend |
+    | Viewport / Scissor | `BeginRendering`が自動設定 | 現在はrender target全体 |
+
+    ## Rasterizer State
+
+    rasterizerはvertex shaderが返したclip-space頂点からprimitiveを組み立て、三角形が覆うpixelを求めます。`Topology`は頂点列の解釈、`CullMode`と`FrontFace`は描画前に除外する面を決めます。
+
+    ### Primitive Topology
+
+    - `TriangleList`: 3頂点ごとに独立した三角形。`0,1,2`の次は`3,4,5`です。
+    - `TriangleStrip`: 最初の3頂点で三角形を作り、以降は1頂点追加するたびに前の2頂点と新しい三角形を作ります。
+
+    初学者向けsampleは、頂点数と三角形の対応が明確な`TriangleList`を使います。topologyはpipeline stateなので、同じshaderでもlistとstripを切り替える場合は対応するpipelineを用意します。
+
+    ### Cull ModeとFront Face
+
+    三角形を画面上から見た頂点の回り順でfront/backへ分類します。`FrontFace = CounterClockwise`なら反時計回りを表面とし、`CullMode = Back`なら裏面をrasterizeしません。
+
+    ```csharp
+    raster.CullMode = GpuCullMode.Back;
+    raster.FrontFace = GpuFrontFace.CounterClockwise;
+    ```
+
+    `GpuCullMode.None` / `Front` / `Back`を選べます。何も表示されないときは一度`None`へ戻してください。projectionのY方向、negative scale、index順の違いでwindingが反転することがあります。LuxelのVulkan backendはviewportのYを内部で反転し、Direct3D 12と同じ画面座標の見え方へ揃えます。
+
+    現在の公開`GpuRasterDesc`はfill描画のみで、wireframe、depth bias、line widthは公開していません。
+
+    ## Depth-Stencil State
+
+    depth testは各fragmentのdepthとdepth targetに保存済みの値を比較し、手前のfragmentだけをcolor targetへ通します。Luxelの通常depthは0..1で、比較は`LessOrEqual`、clear値は1です。
+
+    ```csharp
+    raster.DepthTest = true;
+    raster.DepthWrite = true;
+    raster.DepthFormat = GpuFormat.D32Float;
+
+    using GpuTexture depth = device.CreateDepthTarget(width, height);
+
+    command.BeginRendering(
+        colorTarget, depth,
+        r: 0.05f, g: 0.07f, b: 0.1f, a: 1,
+        clearDepth: 1f);
+    ```
+
+    `DepthTest`だけでなく、pipelineの`DepthFormat`と実際に渡すdepth targetのformatを一致させます。resize時はcolor targetと同じvisible sizeでdepth targetも作り直します。
+
+    - `DepthTest = false`, `DepthWrite = false`: 2D、背景、描画順で上書きする単純なpass。
+    - `DepthTest = true`, `DepthWrite = true`: 通常のopaque 3D geometry。
+    - `DepthTest = true`, `DepthWrite = false`: 透明物など、既存depthでは隠すがdepth targetは更新したくないpass。
+
+    名前はDepth-Stencil Stateですが、現在のLuxel公開APIはdepthのみを公開しています。stencil test、stencil operation、read/write maskはまだ`GpuRasterDesc`から設定できません。
+
+    {{StoryRef(ctx, &quot;Examples/3D/Depth&quot;)}}
+
+    ## Blend State
+
+    blendはpixel shaderの出力`src`と、render targetに既にある色`dst`を合成します。
+
+    - `GpuBlendMode.None`: `src`で`dst`を上書きします。opaque描画の既定値です。
+    - `GpuBlendMode.AlphaBlend`: straight alphaとしてRGBを`src.a`と`1 - src.a`で合成します。
+
+    ```text
+    out.rgb = src.rgb * src.a + dst.rgb * (1 - src.a)
+    out.a   = src.a             + dst.a   * (1 - src.a)
+    ```
+
+    ```csharp
+    raster.Blend = GpuBlendMode.AlphaBlend;
+    ```
+
+    `AlphaBlend`へ渡すRGBはpremultiplied alphaではありません。透明物は通常、opaque passの後に奥から手前へsortし、depth testを有効、depth writeを無効にして描きます。blendを有効にするだけでは、複数の透明面の順序問題は解決しません。加算、乗算、個別blend factor、color write maskは現在の公開enumにはありません。
+
+    {{StoryRef(ctx, &quot;Examples/3D/Blend&quot;)}}
+
+    ## Viewport / Scissor
+
+    viewportはNDCをrender target上の座標とdepth範囲へ変換します。scissorはその後、fragmentを書き込める矩形を整数pixelで制限します。
+
+    ```text
+    clip position
+      → perspective divide
+      → NDC
+      → viewport transform
+      → rasterization
+      → scissor test
+      → depth / blend
+      → color target
+    ```
+
+    一般的なgraphics APIではviewportとscissorはcommand bufferへ動的に設定し、split screen、letterbox、thumbnail、部分更新などに使います。**現在のLuxel公開APIには`SetViewport` / `SetScissor`はありません。** `BeginRendering(colorTarget, ...)`が両方をrender target全体へ自動設定します。
+
+    ```csharp
+    command.BeginRendering(colorTarget, depthTarget)
+        .SetGraphicsPipeline(pipeline)
+        .SetRootArguments(args)
+        .Draw(vertexCount)
+        .EndRendering();
+    ```
+
+    したがって現在は、pipelineだけを変えて部分領域へ描画することはできません。必要なら小さいintermediate render targetへ描いて後で合成するか、将来のdynamic viewport / scissor APIを追加します。resize後の次frameでは、新しいtarget sizeに合わせて`BeginRendering`が全領域を再設定します。
+
+    ## Pipelineを分ける判断
+
+    shaderが同じでも、次のようなpassは別pipelineにします。
+
+    | pass | Depth | Blend | Cull |
+    | --- | --- | --- | --- |
+    | opaque 3D | test on / write on | None | Back |
+    | transparent 3D | test on / write off | AlphaBlend | BackまたはNone |
+    | 2D overlay | test off / write off | AlphaBlend | None |
+    | full-screen post process | test off / write off | None | None |
+
+    pipelineはdrawごとに作らず、初期化時またはresource systemで作成して再利用します。render target format、depth format、topology、culling、blendが異なる組み合わせをkeyにcacheすると、同じ状態のpipelineを共有できます。
+
+    ## よくある症状
+
+    - **何も出ない**: cullingを`None`へ戻し、winding、`ColorFormat`、shader entry pointを確認する。
+    - **奥の面が手前に出る**: depth target、`DepthTest`、`DepthWrite`、clear depth 1、0..1 projectionを確認する。
+    - **透明部分が黒い・縁が暗い**: straight alphaとpremultiplied alphaを混ぜていないか確認する。
+    - **透明面の前後が逆**: transparent drawを奥から手前へsortし、depth writeを無効にする。
+    - **resize後に欠ける**: color/depth targetを同じsizeで再作成し、次の`BeginRendering`で全viewport/scissorを設定する。
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

@@ -1,0 +1,60 @@
+<article class="story document-page"><h1 id="tile-binning">16×16 tile binning</h1>
+<div class="markdown-alert markdown-alert-warning">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p>ここで扱う型、buffer layout、tile size は現在の内部実装です。通常のアプリは <code>IRasterizer2D</code> と <code>Scene2D</code> を使ってください。</p>
+</div>
+<p><strong>難易度:</strong> Advanced　 <strong>実行環境:</strong> Implementation reading + Gallery　 <strong>Backend:</strong> GPU compute　 <strong>前提知識:</strong> 2D</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FBounds">Bounds</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FFineRaster">FineRaster</a></p>
+<p>各 tile に交差する path order を集めます。現在の <code>TileCap</code> を超えた tile は correctness を保つため全 order 走査へ fallback します。値は公開契約ではありません。</p>
+<h2 id="section">実装の正</h2>
+<pre><code class="language-slang">// 2D ラスタライザ (bin): 1 スレッド = 1 タイル (16px)。order を先頭から順に走査し、
+// 前計算 AABB (bounds) がタイルに重なる order index を自タイルのリストへ詰める。
+// **スレッドがタイルを専有するので atomic 不要で、リストは自然に描画順を保つ** (painter's algorithm)。
+// 容量 (tileCap) を超えたタイルは件数だけ数え続け、fine が全走査へフォールバックする (正しさ優先)。
+
+[[vk::binding(0, 0)]]
+RWByteAddressBuffer g_buffers[];
+
+struct RasterArgs
+{
+    float a, b, c, d, e, f;
+    uint width, height;
+    uint segIndex, pathIndex, transformIndex, styleIndex, clipIndex, orderIndex;
+    uint orderCount, fbIndex;
+    uint bgMode;
+    uint tilesX, tileCap;
+    uint boundsIndex, tileListIndex, tileCountIndex;
+};
+[[vk::push_constant]] RasterArgs args;
+
+[shader(&quot;compute&quot;)]
+[numthreads(64, 1, 1)]
+void main(uint3 tid : SV_DispatchThreadID)
+{
+    uint tilesY = (args.height + 15) / 16;
+    uint tileCount = args.tilesX * tilesY;
+    uint tile = tid.x;
+    if (tile &gt;= tileCount) return;
+
+    uint tx = tile % args.tilesX;
+    uint ty = tile / args.tilesX;
+    float2 tlo = float2(tx * 16, ty * 16);
+    float2 thi = tlo + float2(16, 16);
+
+    uint count = 0;
+    uint listBase = tile * args.tileCap;
+    for (uint oi = 0; oi &lt; args.orderCount; oi++)
+    {
+        float4 b = g_buffers[args.boundsIndex].Load&lt;float4&gt;(oi * 16);   // lo.xy, hi.xy
+        if (thi.x &lt; b.x || tlo.x &gt; b.z || thi.y &lt; b.y || tlo.y &gt; b.w) continue;
+        if (count &lt; args.tileCap)
+            g_buffers[args.tileListIndex].Store((listBase + count) * 4, oi);
+        count++;   // 容量超過後も数え続ける — fine が count &gt; tileCap で全走査へ切り替える
+    }
+    g_buffers[args.tileCountIndex].Store(tile * 4, count);
+}
+</code></pre>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Internal/TileBinning&quot;, Order = 23)]
+public static Widget TileBinning(StoryContext ctx) =&gt; Page(ctx, &quot;Learn/Grapics/2D/Internal/TileBinning&quot;, &quot;16&#215;16 tile binning&quot;,
+    &quot;各 tile に交差する path order を集めます。現在の `TileCap` を超えた tile は correctness を保つため全 order 走査へ fallback します。値は公開契約ではありません。&quot;,
+    &quot;shaders/raster2d_bin.slang&quot;, &quot;Learn/Grapics/2D/Internal/Bounds&quot;, &quot;Learn/Grapics/2D/Internal/FineRaster&quot;);</code></pre></details></article>
