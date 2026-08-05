@@ -21,6 +21,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Luxel.Input\Luxel.Input.csproj" />
     <ProjectReference Include="..\Luxel.Input.XInput\Luxel.Input.XInput.csproj" />
     <ProjectReference Include="..\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
     <ProjectReference Include="..\Luxel.UI.App\Luxel.UI.App.csproj" />
@@ -123,6 +124,7 @@
     <EmbeddedResource Include="..\..\samples\LuxelCavern\LuxelCavern\CavernRealtimeScene.cs" LogicalName="Luxel.Sample.samples.LuxelCavern.LuxelCavern.CavernRealtimeScene.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelRange\LuxelRange\LuxelRange.csproj" LogicalName="Luxel.Sample.samples.LuxelRange.LuxelRange.LuxelRange.csproj" />
     <EmbeddedResource Include="..\..\samples\LuxelRange\LuxelRange\RangeRealtimeScene.cs" LogicalName="Luxel.Sample.samples.LuxelRange.LuxelRange.RangeRealtimeScene.cs" />
+    <EmbeddedResource Include="Stories\InputActionStories.cs" LogicalName="Luxel.Sample.src.Luxel.Gallery.Stories.Stories.InputActionStories.cs" />
     <EmbeddedResource Include="Stories\ScriptingStory.cs" LogicalName="Luxel.Sample.src.Luxel.Gallery.Stories.Stories.ScriptingStory.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelFramework\LuxelFramework.csproj" LogicalName="Luxel.Sample.samples.LuxelFramework.LuxelFramework.csproj" />
     <EmbeddedResource Include="..\..\samples\LuxelFramework\Program.cs" LogicalName="Luxel.Sample.samples.LuxelFramework.Program.cs" />

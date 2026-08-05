@@ -9,7 +9,7 @@ internal static class RuntimeCourseCatalog
     internal static readonly string[] Routes =
     [
         "Learn/Input/Overview", "Learn/Input/ActionsAndContexts", "Learn/Input/BindingsAndRebinding",
-        "Learn/Input/BrowserWasm", "Learn/Input/PlatformsAndTesting",
+        "Learn/Input/PlatformsAndTesting",
         "Learn/Audio/Overview", "Learn/Audio/ClipsSourcesAndBuses", "Learn/Audio/SpatialStreamingAndTesting",
         "Learn/Resources/Overview", "Learn/Resources/PipelinesAndDag", "Learn/Resources/ReloadAndLifetime",
     ];
@@ -26,113 +26,131 @@ public static class LearnInput
 {
     [Story("Learn/Input/Overview", Order = 0, SampleBundle = "input.actions")]
     public static Widget Overview(StoryContext ctx) => DocNew(ctx, $"""
-        # Input overview
+        # 入力システムの概要
 
-        {RuntimeCourseCatalog.Meta("Learn/Input/Overview", "Beginner", "Gallery / Browser / Headless", "Window / Web / Fake / XInput", "なし")}
+        {RuntimeCourseCatalog.Meta("Learn/Input/Overview", "Beginner", "Gallery / Headless", "Window / Fake / XInput", "なし")}
 
-        Luxel.Inputは物理device eventをgameplayの語彙へ変換します。game codeは`WindowKey.W`やDOM eventではなく、`Move`、`Jump`、`Fire`のようなactionだけを読みます。
+        `Luxel.Input`は、キーボードやゲームパッドの物理入力を、`Move`や`Jump`のようなゲーム内の意味へ変換します。ゲームロジックが特定のキーを直接読むのではなく、論理アクションを読むようにすることで、入力機器やキー設定を変更してもゲーム側のコードを保てます。
 
         ```mermaid
         flowchart LR
-          A[Platform / Fake source] --> B[InputBus]
+          A[IInputSource] --> B[InputBus]
           B --> C[InputStack]
           C --> D[InputContext]
-          D --> E[Button / Axis actions]
-          E --> F[Game logic]
+          D --> E[InputAction]
+          E --> F[ゲームロジック]
         ```
 
-        | 用語 | 役割 |
+        | 要素 | 役割 |
         |---|---|
-        | `IInputSource` | window、controller、test fixtureからraw eventを収集する |
-        | `InputBus` | 1 tick分の差分eventをまとめる |
-        | `InputStack` | held stateを保持し、context priorityとconsumptionを適用する |
-        | `InputAction` | button、1D axis、2D axisとして論理値とedgeを公開する |
-        | `InputBindings` | action名と物理key/axisの対応をdataとして保持する |
+        | `IInputSource` | 実ウィンドウ、ゲームパッド、テスト用入力からイベントを収集する |
+        | `InputBus` | 1 tickで発生した入力イベントを一時的に保持する |
+        | `InputStack` | 押下状態を保持し、コンテキストの優先順位と消費を適用する |
+        | `InputContext` | Gameplay、Menuなど、同時に有効にするアクションをまとめる |
+        | `InputAction` | Button、1D軸、2D軸としてゲームロジックへ値を公開する |
+        | `InputBindings` | アクションと物理キー／軸の対応をデータとして保持する |
 
-        まず同じstoryをnative GalleryまたはexportされたBrowser/WASM Galleryで操作してください。
+        最初にアクションのStoryを操作し、押下、保持、解放がtickごとにどう変化するか確認してください。
 
-        {StoryRef(ctx, "Examples/Input/WindowActions")}
+        {StoryRef(ctx, "Examples/Input/Actions")}
 
-        TextFieldやIMEの文字入力は`Luxel.UI`の責務です。`Luxel.Input`は物理操作とgame/action mappingを扱い、入力文字列は扱いません。
-
-        Copy/paste可能なheadless最小例は次のbundleです。
+        TextFieldやIMEによる文字入力は`Luxel.UI`の責務です。`Luxel.Input`はゲーム操作のための物理入力と論理アクションを扱います。
 
         {SampleBundle("input.actions")}
         """, toc: true);
 
     [Story("Learn/Input/ActionsAndContexts", Order = 1)]
     public static Widget Actions(StoryContext ctx) => DocNew(ctx, $"""
-        # Actions and contexts
+        # アクションとコンテキスト
 
-        {RuntimeCourseCatalog.Meta("Learn/Input/ActionsAndContexts", "Beginner", "Gallery / Headless", "Backend neutral", "Input overview")}
+        {RuntimeCourseCatalog.Meta("Learn/Input/ActionsAndContexts", "Beginner", "Gallery / Headless", "Backend neutral", "入力システムの概要")}
 
-        `ButtonAction`はbool、`Axis1DAction`は`-1..1`、`Axis2DAction`は正規化された`Vector2`を公開します。`Triggered`と`Released`はactive stateの立ち上がり／立ち下がりで一度だけ発火します。
+        ## アクションの種類
 
-        `InputStack`は最後にpushしたcontextから評価します。上位contextのactive actionが使用したkey/axisは下位contextへ渡りません。menuをgameplayより上に置き、text editing中はgameplay contextをsuspendする構成が基本です。
+        | アクション | 値 | 主な用途 |
+        |---|---|---|
+        | `ButtonAction` | `bool` | ジャンプ、決定、攻撃 |
+        | `Axis1DAction` | `-1`から`1` | 左右移動、アクセル、トリガー |
+        | `Axis2DAction` | `Vector2` | WASD移動、スティック入力 |
+
+        `ButtonAction`の`Triggered`は未押下から押下へ変わったtick、`Released`は押下から未押下へ変わったtickで1回だけ発火します。押し続けている間は`IsActive`がtrueですが、`Triggered`は繰り返し発火しません。
+
+        `Axis2DAction`へWASDを登録すると、左右と上下のボタンを2次元ベクトルへ合成します。斜め入力は長さが1を超えないように正規化されます。
+
+        {StoryRef(ctx, "Examples/Input/Actions")}
+
+        {SampleSource("src/Luxel.Gallery.Stories/Stories/InputActionStories.cs", "input-actions-story")}
+
+        ## 1 tickの処理順
+
+        1. `IInputSource.Poll(bus)`で、そのtickの入力イベントを`InputBus`へ送ります。
+        2. `InputStack.Update(bus)`で押下状態を更新し、各アクションの値を計算します。
+        3. ゲームロジックがアクションの値や`Triggered`／`Released`を読みます。
+
+        押下と解放のエッジを確認するときは、押下と解放を別々のtickで処理します。
+
+        ## コンテキストの優先順位と入力の消費
+
+        `InputContext`は、ある場面で有効なアクションをまとめます。たとえばGameplayとMenuを別コンテキストにすると、メニュー表示中だけMenuを優先できます。
+
+        `InputStack`は最後に`Push`したコンテキストから評価します。上位コンテキストで有効になったアクションが使用するキーや軸は消費され、下位コンテキストには渡りません。また、`SetSuspended`を使うとコンテキストをスタックから外さず一時停止できます。
 
         {StoryRef(ctx, "Examples/Input/ContextStack")}
 
-        {SampleSource("src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-context-stack")}
+        {SampleSource("src/Luxel.Gallery.Stories/Stories/InputActionStories.cs", "input-context-stack")}
         """, toc: true);
 
     [Story("Learn/Input/BindingsAndRebinding", Order = 2)]
     public static Widget Bindings(StoryContext ctx) => DocNew(ctx, $"""
-        # Bindings and rebinding
+        # バインディングとキーの再設定
 
-        {RuntimeCourseCatalog.Meta("Learn/Input/BindingsAndRebinding", "Beginner", "Gallery / Settings", "Backend neutral", "Actions and contexts")}
+        {RuntimeCourseCatalog.Meta("Learn/Input/BindingsAndRebinding", "Beginner", "Gallery / Settings", "Backend neutral", "アクションとコンテキスト")}
 
-        Bindingはcode branchではなくdataです。`InputBindings`をJSONへ保存し、`InputBindingsApplier.Apply`で既存の`InputContext`へ反映します。action名を安定した契約にすると、platformやuser preferenceが変わってもgame codeは変わりません。
+        ## バインディングをデータにする理由
+
+        ゲームロジックには「Spaceが押されたか」ではなく「Jumpが有効か」を問い合わせます。`Jump`というアクション名をゲーム側の契約として固定し、SpaceやEnterとの対応を`InputBindings`へ分離します。
+
+        この分離により、次の処理をゲームロジックを変更せず実装できます。
+
+        - ユーザーごとのキー設定
+        - 初期設定へのリセット
+        - 設定ファイルへの保存と読み込み
+        - キーボードとゲームパッドの複数バインド
+
+        ## 読み込みと反映
+
+        1. JSONを`InputBindings`へデシリアライズします。
+        2. `InputBindingsApplier.Apply(bindings, context)`を呼びます。
+        3. Applierがアクション名を照合し、`ButtonAction.Keys`、`Axis1DAction.ButtonPairs`、`Axis2DAction.ButtonQuads`などを更新します。
+        4. 以降のtickから、新しい物理キーで同じ論理アクションが有効になります。
+
+        次のStoryでは、JumpのバインドをSpaceとEnterで切り替えた後、それぞれのキーをシミュレートして結果を確認できます。表示しているJSONを読み戻してから`InputBindingsApplier`へ渡しているため、保存・読み込みと同じ境界を通ります。
 
         {StoryRef(ctx, "Examples/Input/Bindings")}
 
-        {SampleSource("src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-bindings-story")}
+        {SampleSource("src/Luxel.Gallery.Stories/Stories/InputActionStories.cs", "input-bindings-story")}
 
-        Rebind UIが待つのは物理key/buttonです。文字入力、IME composition、keyboard layoutに依存するtextはUI layerへ渡してください。
+        ## 再設定UIの責務
+
+        再設定UIは、ユーザーが次に押した物理キーまたはボタンを取得し、対象アクションのbinding entryを書き換えます。実ウィンドウでは`WindowInputSource.TakePressed()`を使って直近のキー押下を取得できます。
+
+        文字入力やIME compositionはキー設定ではなく`Luxel.UI`のテキスト入力経路で扱います。表示文字と物理キーを混同しないことが重要です。
         """, toc: true);
 
-    [Story("Learn/Input/BrowserWasm", Order = 3)]
-    public static Widget BrowserWasm(StoryContext ctx) => DocNew(ctx, $"""
-        # Browser / WASM input
-
-        {RuntimeCourseCatalog.Meta("Learn/Input/BrowserWasm", "Intermediate", "Gallery static site / Browser", "Luxel.Platform.Web + webgpu-browser-v1", "Bindings and rebinding")}
-
-        Browser版は専用sampleを複製せず、native Galleryと同じ`Examples/Input/WindowActions` storyを既存の`webgpu-browser-v1` runtimeで実行します。static exportでは`StoryRef`がruntime iframeへ変換されます。
-
-        ```mermaid
-        flowchart LR
-          DOM[DOM keyboard / pointer] --> WEB[Luxel.Platform.Web]
-          WEB --> WIN[portable Window events]
-          WIN --> SRC[WindowInputSource]
-          SRC --> HOST[IStoryInputRuntime]
-          HOST --> STORY[CoreUi input story]
-        ```
-
-        {StoryRef(ctx, "Examples/Input/WindowActions")}
-
-        - canvasをクリックしてfocusしてからkeyboardを使います。
-        - window/canvasのblur時は保持中key/buttonをreleaseし、stuck actionを防ぎます。
-        - DOM Pointer Eventsは受信しますが、pointer id/type/pressureはaction modelへ保持しません。
-        - Web Gamepad API、multitouch/gesture、mouse movement axisは未対応です。
-        - text/composition eventは`UiHost`へ渡され、action layerには入りません。
-        """, toc: true);
-
-    [Story("Learn/Input/PlatformsAndTesting", Order = 4)]
+    [Story("Learn/Input/PlatformsAndTesting", Order = 3)]
     public static Widget Platforms(StoryContext ctx) => DocNew(ctx, $"""
-        # Platform input and deterministic tests
+        # プラットフォーム入力と決定的テスト
 
-        {RuntimeCourseCatalog.Meta("Learn/Input/PlatformsAndTesting", "Beginner", "Window / Browser / CI", "Win32 / Silk X11 / Web / Fake / XInput", "Browser / WASM input")}
+        {RuntimeCourseCatalog.Meta("Learn/Input/PlatformsAndTesting", "Beginner", "Window / CI", "Win32 / Silk X11 / Fake / XInput", "バインディングとキーの再設定")}
 
-        | Platform | Window keyboard/pointer | Text / IME | Gamepad | 検証済み範囲 |
-        |---|---|---|---|---|
-        | Windows | Win32 + `WindowInputSource` | UI layerで対応 | optional `Luxel.Input.XInput` | real window、action、XInput stories/tests |
-        | Linux | Silk backend (X11) | UI layerで対応 | 未提供 | X11 backend tests。Waylandは未対応 |
-        | Browser/WASM | `Luxel.Platform.Web` + canonical CoreUi story | UI layerでcomposition対応 | Web Gamepad未対応 | keyboard、pointer button、blur release |
-        | macOS | real window backend未提供 | 未提供 | 未提供 | `FakeInputSource`によるportable/headless logicのみ |
-        | Mobile | backend未提供 | 未提供 | 未提供 | touch/multitouch対応を意味しない |
+        | Platform | Window keyboard/pointer | Gamepad | 検証範囲 |
+        |---|---|---|---|
+        | Windows | Win32 + `WindowInputSource` | optional `Luxel.Input.XInput` | 実ウィンドウ入力、アクション、XInput |
+        | Linux | Silk backend（X11） | 未提供 | X11 keyboard／pointer。Waylandは未対応 |
+        | macOS | 実ウィンドウbackend未提供 | 未提供 | `FakeInputSource`によるheadlessロジックのみ |
+        | Mobile | backend未提供 | 未提供 | touch／multitouchは未対応 |
 
-        game logicのtestは`FakeInputSource`を使い、`source.Poll(bus); stack.Update(bus);`を1 tickとして検証します。edgeを検証するときはpress tickとrelease tickを分けます。同一tickでdown/upする`TapKey`では、`InputStack.Update`時点の最終held stateはfalseです。
-
-        Platform adapterのtestはraw window eventの変換とfocus lossを担当し、gameplay testはwindowを作らずactions/contexts/bindingsだけを検証します。
+        ゲームロジックのテストでは`FakeInputSource`を使い、ウィンドウや実機器なしで同じ`InputBus`と`InputStack`を更新します。押下と解放を別tickにすれば、`Triggered`と`Released`も決定的に検証できます。
 
         {SampleSource("samples/LuxelInput/Program.cs", "input-actions")}
         """, toc: true);

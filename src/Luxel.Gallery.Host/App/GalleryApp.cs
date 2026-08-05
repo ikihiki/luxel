@@ -29,7 +29,6 @@ public sealed class GalleryApp : IDisposable
 
     private readonly StoryCatalog _catalog;
     private readonly IServiceProvider _storyServices;
-    private readonly StoryInputRuntime? _storyInput;
     private readonly SurfaceView _preview = SurfaceView(SurfW, SurfH);
     private Exception? _pendingStoryError;
     // ストーリーへ StoryContext.Resources として配布 (キャッシュ共有、Pump は Update が叩く)
@@ -76,15 +75,12 @@ public sealed class GalleryApp : IDisposable
     private readonly object _editGate = new();
     private readonly List<(Widget W, string Name, string Type, string Value)> _propEdits = new();
 
-    public GalleryApp(StoryCatalog catalog, IFileStore? playgroundFiles = null, StoryInputRuntime? storyInput = null)
+    public GalleryApp(StoryCatalog catalog, IFileStore? playgroundFiles = null)
     {
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-        _storyInput = storyInput;
         playgroundFiles ??= new PhysicalFileStore(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Luxel", "Gallery"));
-        _storyServices = storyInput is null
-            ? GalleryServices.WithFileStore(playgroundFiles)
-            : GalleryServices.WithFileStore(playgroundFiles, storyInput);
+        _storyServices = GalleryServices.WithFileStore(playgroundFiles);
         _preview.ContentError = error => _pendingStoryError ??= error;
         WireStateForcing();   // Effect は生涯 1 組 (BuildRoot 毎に張ると累積する)
     }
@@ -174,7 +170,6 @@ public sealed class GalleryApp : IDisposable
     /// <summary>毎フレームの軽い同期: 状態強制の適用 (effect 文脈の外で signal を書く) + 検索適用 + Log の反映 (15f 毎)。</summary>
     public void Update()
     {
-        _storyInput?.SetFocused(_preview.Focused.Value);
         _resources.Pump();
         if (_pendingStoryError is { } storyError)
         {

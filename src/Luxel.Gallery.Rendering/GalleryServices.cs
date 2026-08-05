@@ -1,4 +1,4 @@
-using Luxel.Controls;
+﻿using Luxel.Controls;
 using Luxel.Gallery.Stories;
 using Luxel.Scripting;
 using Luxel.Settings;
@@ -48,9 +48,8 @@ public static class GalleryServices
     /// <summary>プロセス共有のサービスプロバイダ (初回参照で構築 — ScriptHost 初回コンパイルは 1-2 秒)。</summary>
     public static IServiceProvider Provider => Lazy.Value;
 
-    /// <summary>共有 Roslyn サービスを再構築せず、ホスト固有サービスを上書きする。</summary>
-    public static IServiceProvider WithFileStore(IFileStore files, params object[] services)
-        => new OverrideProvider(files, services, Provider);
+    /// <summary>共有 Roslyn サービスを再構築せず、ホスト固有の永続ストアだけを上書きする。</summary>
+    public static IServiceProvider WithFileStore(IFileStore files) => new FileStoreProvider(files, Provider);
 
     private static IServiceProvider Build()
     {
@@ -68,23 +67,9 @@ public static class GalleryServices
         return services.BuildServiceProvider();
     }
 
-    private sealed class OverrideProvider : IServiceProvider
+    private sealed class FileStoreProvider(IFileStore files, IServiceProvider fallback) : IServiceProvider
     {
-        private readonly IFileStore _files;
-        private readonly Dictionary<Type, object> _services;
-        private readonly IServiceProvider _fallback;
-
-        public OverrideProvider(IFileStore files, IEnumerable<object> services, IServiceProvider fallback)
-        {
-            _files = files;
-            _fallback = fallback;
-            _services = services.ToDictionary(service => service.GetType().GetInterfaces()
-                .FirstOrDefault(type => type == typeof(IStoryInputRuntime)) ?? service.GetType());
-        }
-
         public object? GetService(Type serviceType)
-            => serviceType == typeof(IFileStore) ? _files
-                : _services.TryGetValue(serviceType, out object? service) ? service
-                : _fallback.GetService(serviceType);
+            => serviceType == typeof(IFileStore) ? files : fallback.GetService(serviceType);
     }
 }

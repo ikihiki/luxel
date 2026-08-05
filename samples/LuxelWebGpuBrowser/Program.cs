@@ -9,7 +9,6 @@ using Luxel.Gallery;
 using Luxel.Graphics;
 using Luxel.Graphics.TwoD;
 using Luxel.Graphics.WebGPU.Browser;
-using Luxel.Input;
 using Luxel.Platform;
 using Luxel.Platform.Abstraction;
 using Luxel.Platform.Web;
@@ -61,9 +60,6 @@ public static partial class Program
             int initialWidth = story.Width > 0 ? story.Width : 640;
             int initialHeight = story.Height > 0 ? story.Height : 360;
             Window window = windows.CreateWindow(new WindowDesc("Luxel " + path, initialWidth, initialHeight));
-            using var storyInput = new StoryInputRuntime();
-            storyInput.Attach(window.CreateInputSource("gallery-browser-story"));
-            storyInput.SetFocused(window.IsFocused);
             windows.Pump();
 
             BrowserWebGpuBackend backend = await BrowserWebGpuBackend.CreateAsync();
@@ -78,7 +74,6 @@ public static partial class Program
             await using AssetGpuInstallation assetGpu = resources.InstallAssetGpuLifecycle(device);
             using var font = new VectorFont(Resource("BIZUDGothic-Regular.ttf"));
             using var context = new StoryContext(resources, args);
-            context.SetServices(new SingleServiceProvider<IStoryInputRuntime>(storyInput));
             context.SetGpuHost(device, font);
             _activeContext = context;
             _activeStory = path;
@@ -116,11 +111,7 @@ public static partial class Program
                 input.Modifiers.HasFlag(WindowKeyModifiers.Control),
                 input.Modifiers.HasFlag(WindowKeyModifiers.Alt));
             window.TextInput += ui.Commit;
-            window.FocusChanged += focused =>
-            {
-                storyInput.SetFocused(focused);
-                if (focused && !ui.HasFocus) ui.FocusNext();
-            };
+            window.FocusChanged += focused => { if (focused && !ui.HasFocus) ui.FocusNext(); };
 
             async Task RenderAsync()
             {
@@ -152,7 +143,6 @@ public static partial class Program
                         ui.Resize(resizeWidth, resizeHeight);
                         resizePending = false;
                     }
-                    storyInput.Update();
                     resources.Pump();
                     ui.Tick(1f / 60f);
                     if (canvas.HasPendingChanges) await RenderAsync();
@@ -254,11 +244,6 @@ public static partial class Program
         using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resource)!;
         using var memory = new MemoryStream(); stream.CopyTo(memory); return memory.ToArray();
     }
-    private sealed class SingleServiceProvider<T>(T service) : IServiceProvider where T : class
-    {
-        public object? GetService(Type serviceType) => serviceType == typeof(T) ? service : null;
-    }
-
     private sealed record BrowserWidgetDiagnostic(string Type, string? Detail, float X, float Y, float Width, float Height);
     private sealed record SetArgsResponse(string Story, string InstanceId, int Revision, string RequestId,
         Dictionary<string, JsonElement>? Args, string[] Errors);

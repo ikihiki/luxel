@@ -18,7 +18,6 @@
     <ProjectReference Include="..\..\src\Luxel.Typography\Luxel.Typography.csproj"
                       AdditionalProperties="LuxelBrowserWasm=true" />
     <ProjectReference Include="..\..\src\Luxel.UI\Luxel.UI.csproj" />
-    <ProjectReference Include="..\..\src\Luxel.Input\Luxel.Input.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Platform\Luxel.Platform.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Platform.Web\Luxel.Platform.Web.csproj" />
   </ItemGroup>

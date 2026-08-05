@@ -20,9 +20,6 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("Catalog.Find(path)", program, StringComparison.Ordinal);
         Assert.Contains("story.RuntimeBundleId != CoreUiStoryProject.RuntimeBundleId", program, StringComparison.Ordinal);
         Assert.Contains("new StoryContext(resources, args)", program, StringComparison.Ordinal);
-        Assert.Contains("context.SetServices(new SingleServiceProvider<IStoryInputRuntime>(storyInput))", program, StringComparison.Ordinal);
-        Assert.Contains("window.CreateInputSource(\"gallery-browser-story\")", program, StringComparison.Ordinal);
-        Assert.Contains("storyInput.Update()", program, StringComparison.Ordinal);
         Assert.Contains("context.SetGpuHost(device, font)", program, StringComparison.Ordinal);
         Assert.Contains("resources.InstallAssetGpuLifecycle(device)", program, StringComparison.Ordinal);
         Assert.Contains("new BrowserSlangCompiler()", program, StringComparison.Ordinal);
@@ -61,10 +58,6 @@ public sealed class BrowserStoryCatalogSourceTests
         JsonElement[] production = manifest.GetProperty("stories").EnumerateArray()
             .Where(story => story.GetProperty("componentType").ValueKind == JsonValueKind.String)
             .ToArray();
-        JsonElement input = manifest.GetProperty("stories").EnumerateArray()
-            .Single(story => story.GetProperty("path").GetString() == "Examples/Input/WindowActions");
-        Assert.Equal(680, input.GetProperty("width").GetInt32());
-        Assert.Equal(430, input.GetProperty("height").GetInt32());
         JsonElement blur = manifest.GetProperty("stories").EnumerateArray()
             .Single(story => story.GetProperty("path").GetString() == "Examples/RenderGraph/Blur");
         Assert.Equal(320, blur.GetProperty("width").GetInt32());

@@ -2,7 +2,6 @@ using Luxel;
 using Luxel.DevTools;
 using Luxel.Diagnostics;
 using Luxel.Gallery;
-using Luxel.Input;
 using Luxel.Platform;
 using Luxel.UI.App;
 using Luxel.Graphics.TwoD;
@@ -76,8 +75,7 @@ if (args.Length > 2 && args[1] == "bench")
 int port = args.Length > 1 && int.TryParse(args[1], out int p) ? p : 5180;
 int seconds = args.Length > 2 && int.TryParse(args[2], out int s) ? s : 0;   // 0 = 常駐
 
-using var storyInput = new StoryInputRuntime();
-var gallery = new GalleryApp(catalog, storyInput: storyInput);
+var gallery = new GalleryApp(catalog);
 bool storyRegistered = false;
 LuxelAppBuilder builder = LuxelApp.CreateBuilder(args);
 builder.Options.Title = "Luxel Gallery";
@@ -102,7 +100,6 @@ builder.ConfigureRuntime(runtime =>
 });
 builder.OnStarted(runtime =>
 {
-    storyInput.Attach(runtime.MainWindow.Window.CreateInputSource("gallery-story"));
     Console.WriteLine($"=== Luxel.Gallery app (device: {runtime.Device.Name}) ===");
     if (runtime.MainWindow.Content is UiContent content)
         content.Host.RegisterShortcut(new KeyGesture(Key.D, Ctrl: true), gallery.ToggleTheme);
@@ -120,7 +117,6 @@ builder.OnStarted(runtime =>
 });
 builder.OnFrame((runtime, _) =>
 {
-    storyInput.Update();
     gallery.Update();
     if (runtime.MainWindow.Content is not UiContent content) return;
     gallery.SetWindowSize(content.Host.Width, content.Host.Height);

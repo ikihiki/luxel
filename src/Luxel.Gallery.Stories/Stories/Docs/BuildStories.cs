@@ -37,13 +37,9 @@ public static class BuildStories
     public static Widget InputActions(StoryContext ctx) => DocNew(ctx, $"""
         # Block: Input actions
 
-        Windowから独立したaction/context/stackのcopyable blockです。実windowとの接続はhostが`WindowInputSource`を生成し、同じ`InputBus`へpollします。
-
-        {StoryRef(ctx, "Examples/Input/WindowActions")}
+        Windowから独立したaction/context/stackのblockです。
 
         {SampleBundle("input.actions")}
-
-        Platformごとのbackendと制約は [Platform input and deterministic tests](story:Learn/Input/PlatformsAndTesting) を参照してください。
         """, toc: true);
 
     [Story("Build/Blocks/Audio/Tone", Order = 5, SampleBundle = "audio.tone")]

@@ -282,35 +282,6 @@ public class WindowSystemTests
     }
 
     [Fact]
-    public void WindowInputSourceはfocus喪失時に保持入力をreleaseする()
-    {
-        var backend = new FakeBackend();
-        using var sys = new WindowSystem(backend);
-        Window window = sys.CreateWindow(new WindowDesc("Input", 100, 100));
-        FakeWindow fake = backend.Created.Single();
-        using WindowInputSource source = window.CreateInputSource("focus-reset");
-
-        fake.KeyDown!(new(WindowKey.W));
-        fake.PointerDown!(new(1, 1, WindowPointerButton.Left));
-        var bus = new InputBus();
-        source.Poll(bus);
-        Assert.Equal(2, bus.Events.Count);
-
-        bus.Clear();
-        fake.FocusChanged!(false);
-        source.Poll(bus);
-        Assert.Collection(bus.Events,
-            e => Assert.Equal((InputEventKind.KeyUp, KeyCode.W), (e.Kind, e.Key)),
-            e => Assert.Equal((InputEventKind.KeyUp, KeyCode.Mouse0), (e.Kind, e.Key)));
-
-        bus.Clear();
-        fake.KeyUp!(new(WindowKey.W));
-        fake.PointerUp!(new(1, 1, WindowPointerButton.Left));
-        source.Poll(bus);
-        Assert.Empty(bus.Events);
-    }
-
-    [Fact]
     public void ClipboardはWindowなしでバックエンドを包む()
     {
         var backend = new FakeClipboardBackend { Text = "before" };
