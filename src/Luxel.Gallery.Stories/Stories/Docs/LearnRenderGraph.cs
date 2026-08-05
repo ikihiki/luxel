@@ -184,8 +184,6 @@ public static class LearnRenderGraph
         ## 終端barrier
 
         external resourceへ最後にwriteした場合、graphは後段のcopyやpresentから見えるよう保守的な終端barrierを記録します。ただし、これはCPUから見たGPU完了待ちではありません。submitとresource破棄の関係は次ページで扱います。
-
-        {{StoryRef(ctx, "Examples/RenderGraph/Aliasing")}}
         """, toc: true);
 
     [Story("Learn/RenderGraph/Lifecycle", Order = 4)]

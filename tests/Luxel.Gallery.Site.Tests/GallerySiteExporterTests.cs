@@ -1313,8 +1313,8 @@ public sealed class GallerySiteExporterTests
                  })
             Assert.Contains(term, renderGraphCompilation);
         ISemanticDocument renderGraphCompilationDocument = BuildSemanticDocument(Catalog.Find("Learn/RenderGraph/Compilation")!)!;
-        Assert.Contains(renderGraphCompilationDocument.DocumentEmbeds,
-            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/RenderGraph/Aliasing");
+        Assert.DoesNotContain(renderGraphCompilationDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef);
 
         string renderGraphLifecycle = renderGraphPages["Learn/RenderGraph/Lifecycle"].Text;
         foreach (string term in new[]
