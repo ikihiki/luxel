@@ -22,14 +22,14 @@ public static partial class DocsRenderingLearn
 
         {RenderingCourseCatalog.ApplicationRouteMarkdown()}
 
-        **検索キーワード:** triangle / texture / camera / render graph / glTF / blank screen / 真っ黒
+        **検索キーワード:** triangle / texture / shader / pipeline / fence / render graph
 
         > [!IMPORTANT]
         > `GpuView` とそのrender callbackはGallery内でデモを表示するためのハーネスです。通常アプリでは `WindowSystem`、`Window`、`GpuSurface` を使います。
 
         ## どのAPIまで学ぶか
 
-        三角形、buffer ABI、texture、shader、pipeline stateを順に学び、FenceでCPUとGPUの完了境界を整理してからRenderGraphへ進みます。`--stage graph`でdirect描画を1 passへ移し、`--stage post`でtransient resourceとcompute post-processを追加します。その後にtexture付きquad、camera、depth/culling/方向光、静的glTF、デバッグ、publishを扱います。複数frame-in-flightの設計も説明しますが、現在の公開queue APIとtutorialはper-submit fenceをまだ提供しません。
+        三角形、buffer ABI、texture付きquad、shader、pipeline stateを順に学び、FenceでCPUとGPUの完了境界を整理してからRenderGraphへ進みます。`--stage graph`でdirect描画を1 passへ移し、`--stage post`でtransient resourceとcompute post-processを追加します。indexed meshとcameraの実装はBuildのRecipeへ分けています。複数frame-in-flightの設計も説明しますが、現在の公開queue APIとtutorialはper-submit fenceをまだ提供しません。
         """, toc: true);
     }
 
@@ -562,39 +562,35 @@ public static partial class DocsRenderingLearn
 
         Textureは2次元のpixel配列をGPUへ置き、shaderからUV座標で参照するresourceです。`GpuTexture`が画像本体、`GpuSampler`が補間方法と範囲外UVの扱いを持ちます。
 
-        ## ResourceSystemでTextureを読み込む
+        ## Textureを作成する
 
-        `ResourceScope.CreateSampledTexture`へwidth、height、RGBA8のpixel dataを渡すと、GPU uploadを行う`ResourceHandle<GpuTexture>`が返ります。dataは左上から右へ並ぶtightなrowを、上から下へ続けます。
+        `GpuDevice.CreateTexture`へwidth、height、RGBA8のpixel dataを渡して、サンプリング可能な`GpuTexture`を直接作成します。dataは左上から右へ並ぶtightなrowを、上から下へ続けます。
 
         ```csharp
         const uint textureWidth = 8;
         const uint textureHeight = 8;
         byte[] pixels = CreateCheckerboard(textureWidth, textureHeight);
 
-        ResourceHandle<GpuTexture> texture = resources.CreateSampledTexture(
-            "textures.checker",
+        using GpuTexture texture = device.CreateTexture(
             textureWidth,
             textureHeight,
             pixels,
             GpuFormat.Rgba8Unorm);
-        Signal<ResourceState> textureState = ctx.Observe(texture);
         ```
 
-        上のsampleではチェック柄を作る処理を`CreateCheckerboard`へ分けています。Story Sourceにはhelperの呼び出しだけが表示され、画像生成処理の本体は含まれません。8×8のRGBA8なので、pixel dataは`8 * 8 * 4 = 256 byte`です。textureの作成と所有権はResourceSystemが管理し、`textureState.HasValue`になってから`texture.Value`を使います。scope終了時の破棄もResourceSystemがGPUのidle境界に合わせて処理します。
+        上のsampleではチェック柄を作る処理を`CreateCheckerboard`へ分けています。8×8のRGBA8なので、pixel dataは`8 * 8 * 4 = 256 byte`です。dataの長さは`width * height * 4`と正確に一致させます。uploadは同期的なので、`CreateTexture`から戻った後は元の`pixels`を再利用できます。生成された`GpuTexture`はrendererが所有し、それを参照するGPU commandが完了してから破棄します。
 
         ## Samplerを作成する
 
-        samplerはpixel間の補間と、0〜1の外側に出たUVの扱いを指定します。
+        samplerはpixel間の補間と、0〜1の外側に出たUVの扱いを指定します。`GpuDevice.CreateSampler`で直接作成します。
 
         ```csharp
-        ResourceHandle<GpuSampler> sampler = resources.CreateSampler(
-            "textures.sampler",
+        using GpuSampler sampler = device.CreateSampler(
             GpuSamplerFilter.Point,
             GpuSamplerAddress.Repeat);
-        Signal<ResourceState> samplerState = ctx.Observe(sampler);
         ```
 
-        `Point`は最も近い1 pixelを選び、`Linear`は周囲を補間します。`Clamp`は端のpixelを延長し、`Repeat`はUVを繰り返します。samplerも同じscopeが所有し、readyになってから使用します。
+        `Point`は最も近い1 pixelを選び、`Linear`は周囲を補間します。`Clamp`は端のpixelを延長し、`Repeat`はUVを繰り返します。samplerもrendererが所有し、参照中のGPU commandが完了するまで生存させます。
 
         ## Shaderへ渡す
 
@@ -609,8 +605,8 @@ public static partial class DocsRenderingLearn
 
         var args = new DrawArgs
         {
-            TextureIndex = texture.Value.BindlessIndex,
-            SamplerIndex = sampler.Value.BindlessIndex,
+            TextureIndex = texture.BindlessIndex,
+            SamplerIndex = sampler.BindlessIndex,
         };
         ```
 
@@ -636,7 +632,50 @@ public static partial class DocsRenderingLearn
             .EndRendering();
         ```
 
-        典型的な問題は、RGBA/BGRAの取り違え、UVの上下反転、textureとsamplerのindex入れ替え、描画完了前のresource破棄です。より実用的なUV、色空間、upload rowの説明は[ThreeD/Textures](story:Learn/Grapics/ThreeD/Textures)で扱います。
+        ## Texture付きquadで確認する
+
+        実行可能な正は`samples/LuxelTriangle/TriangleRenderer.cs`、ABIは`samples/LuxelTriangle/TutorialAbi.cs`、shaderは`shaders/tutorial_3d.slang`です。4頂点・6 indexのquadへ4×4の橙/紫checker textureを貼り、upload、UV、sampler、bindless indexをまとめて確認できます。
+
+        ```powershell
+        dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
+        dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter TutorialAbiTests
+        dotnet run --project samples/LuxelTriangle -- vk --stage texture
+        dotnet run --project samples/LuxelTriangle -- vk --stage texture --frames 3
+        # Windowsのみ
+        dotnet run --project samples/LuxelTriangle -- dx --stage texture --frames 3
+        ```
+
+        成功すると暗い背景の中央にchecker付きquadが表示されます。UV向きを検証するときは四隅を非対称な色にすると、上下・左右の反転を発見しやすくなります。
+
+        ## Pixel、色空間、alpha
+
+        `CreateTexture`へ渡すdataは、**左上から右へ進むtightなRGBA8 row**を上から下へ並べます。公開APIのformatには現在sRGB variantがないため、sRGB authored imageを`Rgba8Unorm`として読む場合はshaderで明示的にlinearへdecodeします。hardware decodeが追加された将来にshader decodeと重ねず、decodeを0回か1回に固定してください。
+
+        `GpuBlendMode.None`ではalphaは出力値に残るだけで背景とは混ざりません。透過には`GpuBlendMode.AlphaBlend`を使い、RGBをalphaで事前乗算しないstraight alphaへ統一します。opaque textureではalphaを1にすると、色空間とblendの問題を分けて確認できます。
+
+        ## UV原点とindexed quad
+
+        tutorialの規約はCPU imageの(0,0)とUV(0,0)を左上、`u`は右、`v`は下です。CPU upload、asset loader、shaderの複数箇所でVを反転しないでください。
+
+        quadは6頂点を複製せず、4頂点をindex列`0,1,2, 0,2,3`で再利用します。shaderが`SV_VertexID`からraw index bufferを読み、そのindexでposition、color、UVを含むvertexをpullします。C#とSlangでindex width、vertex stride、UV offsetを一致させます。
+
+        ```text
+        CPU RGBA bytes → CreateTexture → bindless texture index ┐
+        CreateSampler  → bindless sampler index ────────────────┼→ tutorial_3d.slang → sampled color
+        Vertex UV + index pulling ───────────────────────────────┘
+        ```
+
+        ## Upload rowとbackend差
+
+        呼び出し側のupload dataは常に`width * 4` byteのtight rowで、backend用paddingを含めません。Vulkan backendはstaging copyへ渡し、D3D12 backendは内部で各rowを256 byte境界のfootprintへ詰め直します。readback framebufferの`StridePixels`を64 pixelへ揃える規則と、texture uploadの入力規則を混同しないでください。
+
+        現在の`CreateTexture` uploadは同期的です。methodが戻った後は入力配列を再利用できます。一方、生成したtexture、sampler、その`BindlessIndex`は記録済みcommandが完了するまで生存させます。
+
+        ## Backend差を切り分ける
+
+        Slang source、RGBA channel順、UV規約、bindless indexはbackend共通です。VulkanはSPIR-Vとdescriptor array、D3D12はDXILとdescriptor heapを使います。linear filteringやfloat丸めによる数LSBの差はあり得ますが、上下反転、R/B交換、1 rowずれは許容差ではなくbugです。
+
+        典型的な問題は、RGBA/BGRAの取り違え、UVの上下反転、textureとsamplerのindex入れ替え、upload rowのpadding混入、描画完了前のresource破棄です。
         """, toc: true);
     }
 
@@ -795,6 +834,38 @@ public static partial class DocsRenderingLearn
         GpuShaderCode shader = GpuShaderCode.Load("my_effect");
         using GpuPipeline pipeline = device.CreateGraphicsPipeline(shader, raster);
         ```
+
+        ## Publishする際の注意
+
+        executable projectから`shaders/Luxel.Shaders.targets`をimportすると、compiled shader cacheがbuild/publish先の`shaders/`へcopyされます。publish時にSlang compilerを実行するのではなく、Git管理された検証済みartifactを同梱します。
+
+        ```xml
+        <Import Project="../../shaders/Luxel.Shaders.targets" />
+        ```
+
+        runtimeではcurrent working directoryではなく、executable基準の`AppContext.BaseDirectory/shaders`からshaderを解決します。IDEやrepository rootから起動したときだけ動く相対pathを使用しないでください。
+
+        ```csharp
+        string shaderDirectory = Path.Combine(
+            AppContext.BaseDirectory, "shaders");
+        ```
+
+        `dotnet publish`後は、必要な`.spv`、`.vs.dxil`、`.ps.dxil`、compute用`.dxil`がpublish directoryへ存在することを確認します。publish directory自体へ`cd`するだけではcwd依存を発見できないため、空の別directoryをcurrent directoryにして、publishしたexecutableを絶対pathで起動するsmoke testを行います。
+
+        ```powershell
+        $publish = Join-Path $env:TEMP "luxel-publish"
+        $cwd = Join-Path $env:TEMP "luxel-empty-cwd"
+        dotnet publish samples/LuxelTriangle/LuxelTriangle.csproj `
+          -c Release -o $publish
+
+        Push-Location $cwd
+        try {
+          & (Join-Path $publish "LuxelTriangle.exe") vk --frames 1
+          if ($LASTEXITCODE -ne 0) { throw "publish smoke failed" }
+        } finally { Pop-Location }
+        ```
+
+        Linuxでは実行ファイル名に`.exe`を付けません。Windowsでは必要に応じてVulkanとDirectX 12の両方を起動し、cacheに各backend用artifactが含まれることを確認します。
 
         cacheが不足している、またはsourceと`inputs.sha256`が一致しない場合、通常buildは意図的に失敗します。`CompileLuxelShaderCache`を再実行し、生成物を更新してください。pipelineとshaderがGPU commandから参照されている間は破棄せず、sourceだけを変更した古いcacheを配布しないようにします。
         """, toc: true);

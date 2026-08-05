@@ -1005,9 +1005,6 @@ public sealed class GallerySiteExporterTests
             "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
             "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
             "Learn/Grapics/PipelineState", "Learn/Grapics/Fence", "Learn/Grapics/RenderGraph",
-            "Learn/Grapics/ThreeD/Textures", "Learn/Grapics/ThreeD/TransformsAndCamera",
-            "Learn/Grapics/ThreeD/DepthCullingLighting", "Learn/Grapics/ThreeD/StaticGltf",
-            "Learn/Grapics/ThreeD/Debugging", "Learn/Grapics/ThreeD/Shipping",
         ];
 
         for (int i = 0; i < routes.Length; i++)
@@ -1032,9 +1029,6 @@ public sealed class GallerySiteExporterTests
             "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
             "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
             "Learn/Grapics/PipelineState", "Learn/Grapics/Fence", "Learn/Grapics/RenderGraph",
-            "Learn/Grapics/ThreeD/Textures", "Learn/Grapics/ThreeD/TransformsAndCamera",
-            "Learn/Grapics/ThreeD/DepthCullingLighting", "Learn/Grapics/ThreeD/StaticGltf",
-            "Learn/Grapics/ThreeD/Debugging", "Learn/Grapics/ThreeD/Shipping",
         ];
         StoryInfo[] stories = routes.Select(name => Catalog.Find(name)
             ?? throw new InvalidOperationException($"Rendering Learn route is missing: {name}")).ToArray();
@@ -1090,10 +1084,10 @@ public sealed class GallerySiteExporterTests
         Assert.DoesNotContain("## 実sampleのframe loop", clearColor);
         Assert.DoesNotContain("SampleSource(\"samples/LuxelTriangle/Program.cs\", \"standalone-frame-loop\")", clearColor);
 
-        Assert.Contains("story:Apps/Game/Range", pages[stories[^1].Path].Text);
+        Assert.Contains("story:Learn/Grapics/TwoD/Overview", pages[stories[^1].Path].Text);
 
         string overview = pages[stories[0].Path].Text.ToLowerInvariant();
-        foreach (string term in new[] { "triangle", "texture", "camera", "render graph", "gltf", "blank screen", "真っ黒" })
+        foreach (string term in new[] { "triangle", "texture", "shader", "pipeline", "fence", "render graph" })
             Assert.Contains(term, overview);
 
         string trianglePage = pages["Learn/Grapics/FirstTriangle"].Text;
@@ -1140,11 +1134,19 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("# Textures", texturesPage);
         foreach (string api in new[]
                  {
-                     "CreateCheckerboard", "CreateSampledTexture", "ResourceHandle<GpuTexture>",
-                     "ctx.Observe(texture)", "texture.Value.BindlessIndex", "CreateSampler", "TextureIndex", "SamplerIndex",
+                     "CreateCheckerboard", "device.CreateTexture", "using GpuTexture",
+                     "texture.BindlessIndex", "device.CreateSampler", "using GpuSampler", "TextureIndex", "SamplerIndex",
                      "Texture2D g_textures[]", "SamplerState g_samplers[]", ".Sample(",
+                     "## Texture付きquadで確認する", "--stage texture", "0,1,2, 0,2,3",
+                     "## Pixel、色空間、alpha", "## Upload rowとbackend差",
                  })
             Assert.Contains(api, texturesPage);
+        foreach (string resourceSystemTerm in new[]
+                 {
+                     "ResourceSystem", "ResourceScope", "ResourceHandle", "ResourceState",
+                     "resources.", "ctx.Observe", ".Value.BindlessIndex",
+                 })
+            Assert.DoesNotContain(resourceSystemTerm, texturesPage);
 
         string shadersPage = pages["Learn/Grapics/Shaders"].Text;
         Assert.Contains("# Shaders", shadersPage);
@@ -1156,6 +1158,7 @@ public sealed class GallerySiteExporterTests
             "## bindingとroot argument",
             "## オンラインコンパイル",
             "## オフラインコンパイルとキャッシュ",
+            "## Publishする際の注意",
         ];
         int previousShaderTopic = -1;
         foreach (string topic in shaderTopics)
@@ -1170,7 +1173,8 @@ public sealed class GallerySiteExporterTests
                      "[shader(\"compute\")]", "SV_VertexID", "SV_Position", "SV_Target",
                      "SV_DispatchThreadID", "vk::binding", "vk::push_constant", "BindlessIndex",
                      "SetRootArguments", "Create<SlangSource, GpuShaderCode>", "CompileLuxelShaderCache",
-                     "inputs.sha256", "GpuShaderCode.Load",
+                     "inputs.sha256", "GpuShaderCode.Load", "Luxel.Shaders.targets",
+                     "AppContext.BaseDirectory", "dotnet publish", "luxel-empty-cwd",
                  })
             Assert.Contains(shaderTerm, shadersPage);
 
@@ -1226,7 +1230,7 @@ public sealed class GallerySiteExporterTests
         string renderGraphPage = pages["Learn/Grapics/RenderGraph"].Text;
         Assert.Contains("# RenderGraph", renderGraphPage);
         Assert.Contains("story:Learn/Grapics/Fence", renderGraphPage);
-        Assert.Contains("story:Learn/Grapics/ThreeD/Textures", renderGraphPage);
+        Assert.Contains("story:Learn/Grapics/TwoD/Overview", renderGraphPage);
         foreach (string renderGraphTopic in new[]
                  {
                      "## ExternalとTransient", "## Read / Writeが依存とbarrierを作る",
@@ -1234,8 +1238,31 @@ public sealed class GallerySiteExporterTests
                  })
             Assert.Contains(renderGraphTopic, renderGraphPage);
 
-        Assert.Null(Catalog.Find("Learn/Grapics/FrameLoopAndSynchronization"));
-        Assert.Null(Catalog.Find("Learn/Grapics/ThreeD/FirstRenderGraph"));
+        foreach (string removedRoute in new[]
+                 {
+                     "Learn/Grapics/FrameLoopAndSynchronization", "Learn/Grapics/ThreeD/FirstRenderGraph",
+                     "Learn/Grapics/ThreeD/Textures", "Learn/Grapics/ThreeD/TransformsAndCamera",
+                     "Learn/Grapics/ThreeD/DepthCullingLighting", "Learn/Grapics/ThreeD/StaticGltf",
+                     "Learn/Grapics/ThreeD/Debugging", "Learn/Grapics/ThreeD/Shipping",
+                 })
+            Assert.Null(Catalog.Find(removedRoute));
+
+        StoryInfo indexedCube = Catalog.Find("Build/Recipes/IndexedCube")!;
+        string indexedCubePage = BuildSemanticDocument(indexedCube)!.DocumentSource!;
+        Assert.Contains("# Recipe: Index bufferでcubeを描く", indexedCubePage);
+        Assert.Contains("## Indexed vertex pulling", indexedCubePage);
+        Assert.Contains("24 vertices", indexedCubePage);
+        Assert.Contains("36 indices", indexedCubePage);
+        Assert.Equal("rendering.3d", indexedCube.SampleBundle);
+
+        StoryInfo camera3D = Catalog.Find("Build/Recipes/Camera3D")!;
+        string cameraPage = BuildSemanticDocument(camera3D)!.DocumentSource!;
+        Assert.Contains("# Recipe: 3D Camera", cameraPage);
+        Assert.Contains("## Model、View、Projection", cameraPage);
+        Assert.Contains("## Resizeとaspect", cameraPage);
+        Assert.Contains("AppContext", shadersPage);
+        Assert.Equal("rendering.3d", camera3D.SampleBundle);
+        Assert.Null(Catalog.Find("Build/Recipes/TexturedScene"));
     }
 
     [Fact]
@@ -1320,6 +1347,8 @@ public sealed class GallerySiteExporterTests
         foreach (string diagnostic in diagnostics)
             Assert.NotNull(Catalog.Find("Examples/2D/Rasterizer/" + diagnostic));
         Assert.NotNull(Catalog.Find("Build/Recipes/TriangleApp"));
+        Assert.NotNull(Catalog.Find("Build/Recipes/IndexedCube"));
+        Assert.NotNull(Catalog.Find("Build/Recipes/Camera3D"));
         Assert.Contains(Catalog.All, story => story.Path.StartsWith("Examples/", StringComparison.Ordinal));
         Assert.DoesNotContain(Catalog.All, story => story.Path.StartsWith("Demos/", StringComparison.Ordinal));
         Assert.Empty(DocsIndex.ValidateLinks(DocsIndex.Build(Catalog.All, resources: null, Catalog), Catalog));

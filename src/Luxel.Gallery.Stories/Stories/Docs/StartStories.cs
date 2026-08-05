@@ -15,7 +15,7 @@ public static class StartStories
         ## 学習ルート
 
         - **GPU が初めて** — [Grapics](story:Learn/Grapics/Overview) で window、device、surface、三角形まで進む
-        - **3D アプリを作る** — [ThreeD](story:Learn/Grapics/ThreeD/Textures) で texture、camera、depth、lighting、RenderGraph を組み合わせる
+        - **3D アプリを作る** — [Indexed Cube](story:Build/Recipes/IndexedCube) と [3D Camera](story:Build/Recipes/Camera3D) を組み合わせる
         - **2D アプリを作る** — [TwoD](story:Learn/Grapics/TwoD/Overview) で path、camera、retained canvas を使う
         - **Input / Audio / Resources** — [Input](story:Learn/Input/Overview)、[Audio](story:Learn/Audio/Overview)、[Resources](story:Learn/Resources/Overview)でapp runtimeを組む
         - **2D rasterizer の中を読む** — [Rasterizer Internals](story:Learn/Grapics/RasterizerInternals/Overview) で encode、bounds、bin、fine pass を追う
@@ -38,7 +38,7 @@ public static class StartStories
         | 目的 | 開始ページ | 到達物 |
         |---|---|---|
         | 最初の GPU アプリ | [Grapics](story:Learn/Grapics/Overview) | standalone triangle |
-        | 実用 3D | [ThreeD](story:Learn/Grapics/ThreeD/Textures) | textured 3D viewer |
+        | 実用 3D | [Indexed Cube](story:Build/Recipes/IndexedCube) | indexed mesh + perspective camera |
         | 2D canvas | [TwoD](story:Learn/Grapics/TwoD/Overview) | input と camera 付き 2D app |
         | 実装読解 | [Rasterizer Internals](story:Learn/Grapics/RasterizerInternals/Overview) | C# から compute pass まで説明できる |
 
