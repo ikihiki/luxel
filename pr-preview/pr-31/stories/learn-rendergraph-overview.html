@@ -2,108 +2,47 @@
 <p><strong>難易度:</strong> Beginner+　 <strong>実行環境:</strong> Standalone + DevTools　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> Grapics / Synchronization</p>
 <p><strong>次:</strong> <a href="#story=Learn%2FRenderGraph%2FResources">Resources</a></p>
 <p>RenderGraphは、複数passがどのresourceを読み書きするか宣言し、barrier、不要passのculling、transient resourceの寿命をまとめて扱う仕組みです。このコースは<a href="#story=Learn%2FGrapics%2FSynchronization">Grapicsの同期</a>で手書きBarrierとSubmitを理解した後に進めてください。</p>
-<h2 id="section">このコースで作るもの</h2>
-<p>実行可能な正は<code>samples/LuxelTriangle</code>です。完成済みのtexture付きsceneを題材に、direct描画から1 passのgraphへ移行し、最後にcompute post-processを追加します。</p>
+<h2 id="section">動くサンプル</h2>
+<p>次のストーリーは、2D UIを入力として横方向・縦方向のblur passを実行し、左半分に元画像、右半分にblur結果を合成します。Gallery内でそのまま実行されるため、別projectのbuildや起動は不要です。</p>
+<figure class="static-capture"><a href="#story=Examples%2FRenderGraph%2FBlur"><img src="images/examples-rendergraph-blur.png" alt="Examples/RenderGraph/Blur" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<pre><code class="language-text">External UI buffer
+  → BlurH (Transient buffer)
+  → BlurV (Transient buffer)
+  → Composite
+  → External output buffer
+</code></pre>
+<p>この小さなgraphを各ページで順番に分解します。</p>
 <table>
 <thead>
 <tr>
-<th>stage</th>
-<th>resourceとpass</th>
+<th>ページ</th>
 <th>学ぶこと</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>lighting</code></td>
-<td>renderer所有のcolor/depthへ直接描画</td>
-<td>command順とresource寿命の基準</td>
+<td>Resources</td>
+<td>External / Transientと論理handle</td>
 </tr>
 <tr>
-<td><code>graph</code></td>
-<td>同じ描画を1個のgraph passとして登録</td>
-<td>AddPass、Read/Write、Execute、移行時の同値性</td>
+<td>Passes</td>
+<td>AddPass、Read / Write、Executeと自動barrier</td>
 </tr>
 <tr>
-<td><code>post</code></td>
-<td>transient scene color/depth → copy buffer → compute → external framebuffer</td>
-<td>pass間依存、自動barrier、culling、aliasing</td>
+<td>Compilation</td>
+<td>culling、lifetime解析、aliasing</td>
+</tr>
+<tr>
+<td>Lifecycle</td>
+<td>submit、GPU完了、dispose、resize</td>
+</tr>
+<tr>
+<td>Debugging</td>
+<td>validationとDevToolsによる依存の可視化</td>
 </tr>
 </tbody>
 </table>
-<p>最初から複雑なgraphへ書き換えず、まずdirect版と同じ画像を1 passで作ります。これによりcamera、pipeline、windingのbugとgraph宣言のbugを分離できます。</p>
-<h2 id="section-1">実行する</h2>
-<pre><code class="language-powershell">dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
-dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter RenderGraphTests
-dotnet run --project samples/LuxelTriangle -- vk --stage graph --frames 3
-dotnet run --project samples/LuxelTriangle -- vk --stage post --frames 3
-dotnet run --project samples/LuxelTriangle -- vk --stage post --size 801x603
-# Windowsのみ
-dotnet run --project samples/LuxelTriangle -- dx --stage graph --frames 3
-dotnet run --project samples/LuxelTriangle -- dx --stage post --frames 3
-</code></pre>
-<p><code>graph</code>はdirect描画と同じ結果をRenderGraph経由で作ります。<code>post</code>はsceneをtransient targetへ描画し、compute shaderで寒色のshadowとvignetteを加えてexternal framebufferへ書きます。</p>
-<h2 id="samplegraph">実sampleのgraph実装</h2>
-<p>次のsourceはsolutionで実際にbuildされます。各ページではこの全体像からresource、pass、compile、lifecycleを順番に取り出します。</p>
-<pre><code class="language-csharp">    private void RenderGraphFrame(DrawArgs3D args)
-    {
-        // One graph is one frame in this tutorial. It owns transients until SubmitAndWait completes.
-        using var graph = new Rg(_device);
-        TextureHandle finalColor = graph.ImportTexture(_target!, &quot;present-color&quot;);
-        TextureHandle finalDepth = graph.ImportTexture(_depth!, &quot;present-depth&quot;);
-        BufferHandle finalBuffer = graph.ImportBuffer(_framebuffer!, &quot;present-framebuffer&quot;);
-
-        if (_stage == TutorialStage.Graph)
-        {
-            graph.AddPass(&quot;DrawAndReadback&quot;, PassQueue.Graphics)
-                .Write(finalColor, TextureUsage.ColorAttachment)
-                .Write(finalDepth, TextureUsage.DepthAttachment)
-                .Write(finalBuffer, ResourceUsage.CopyDest)
-                .Execute(c =&gt;
-                {
-                    DrawCube(c.Cmd, c.Texture(finalColor), c.Texture(finalDepth), args);
-                    c.Cmd.Barrier(GpuStage.ColorOutput, GpuStage.Copy)
-                        .CopyTextureToBuffer(c.Texture(finalColor), c.Buffer(finalBuffer), StridePixels);
-                });
-        }
-        else
-        {
-            TextureHandle sceneColor = graph.CreateTexture(
-                new TextureDesc(_width, _height, GpuFormat.Rgba8Unorm), &quot;scene-color&quot;);
-            TextureHandle sceneDepth = graph.CreateTexture(
-                new TextureDesc(_width, _height, GpuFormat.D32Float, TextureKind.Depth), &quot;scene-depth&quot;);
-            BufferHandle scenePixels = graph.CreateBuffer(
-                new BufferDesc(checked((ulong)StridePixels * _height * 4), GpuMemoryKind.HostMapped), &quot;scene-pixels&quot;);
-
-            graph.AddPass(&quot;DrawScene&quot;, PassQueue.Graphics)
-                .Write(sceneColor, TextureUsage.ColorAttachment)
-                .Write(sceneDepth, TextureUsage.DepthAttachment)
-                .Execute(c =&gt; DrawCube(c.Cmd, c.Texture(sceneColor), c.Texture(sceneDepth), args));
-            graph.AddPass(&quot;SceneReadback&quot;, PassQueue.Graphics)
-                .Read(sceneColor, TextureUsage.CopySource)
-                .Write(scenePixels, ResourceUsage.CopyDest)
-                .Execute(c =&gt; c.Cmd.CopyTextureToBuffer(c.Texture(sceneColor), c.Buffer(scenePixels), StridePixels));
-            graph.AddPass(&quot;PostProcess&quot;, PassQueue.Compute)
-                .Read(scenePixels, ResourceUsage.StorageBufferRead)
-                .Write(finalBuffer, ResourceUsage.StorageBufferWrite)
-                .Execute(c =&gt; c.Cmd.SetComputePipeline(_postPipeline)
-                    .SetRootArguments(new PostProcessArgs
-                    {
-                        SourceBufferIndex = c.BindlessIndex(scenePixels),
-                        DestinationBufferIndex = c.BindlessIndex(finalBuffer),
-                        Width = _width,
-                        Height = _height,
-                        StridePixels = StridePixels,
-                    })
-                    .Dispatch((_width + 7) / 8, (_height + 7) / 8));
-        }
-
-        using GpuCommandBuffer command = _device.MainQueue.StartCommandRecording();
-        graph.Execute(command);
-        command.Finish();
-        _device.MainQueue.SubmitAndWait(command);
-    }
-</code></pre>
-<p>RenderGraph本体は<code>src/Luxel.Graphics.RenderGraph/</code>、post-process shaderは<code>shaders/compute_tutorial_postprocess.slang</code>にあります。APIだけを一覧したい場合は<a href="#story=Reference%2FGuides%2FRenderGraph">RenderGraph Guide</a>を参照してください。</p>
+<p>RenderGraph本体は<code>src/Luxel.Graphics.RenderGraph/</code>にあります。APIだけを一覧したい場合は<a href="#story=Reference%2FGuides%2FRenderGraph">RenderGraph Guide</a>を参照してください。</p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/RenderGraph/Overview&quot;, Order = 0)]
 public static Widget Overview(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
     # RenderGraph入門
@@ -112,38 +51,29 @@ public static Widget Overview(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;
 
     RenderGraphは、複数passがどのresourceを読み書きするか宣言し、barrier、不要passのculling、transient resourceの寿命をまとめて扱う仕組みです。このコースは[Grapicsの同期](story:Learn/Grapics/Synchronization)で手書きBarrierとSubmitを理解した後に進めてください。
 
-    ## このコースで作るもの
+    ## 動くサンプル
 
-    実行可能な正は`samples/LuxelTriangle`です。完成済みのtexture付きsceneを題材に、direct描画から1 passのgraphへ移行し、最後にcompute post-processを追加します。
+    次のストーリーは、2D UIを入力として横方向・縦方向のblur passを実行し、左半分に元画像、右半分にblur結果を合成します。Gallery内でそのまま実行されるため、別projectのbuildや起動は不要です。
 
-    | stage | resourceとpass | 学ぶこと |
-    | --- | --- | --- |
-    | `lighting` | renderer所有のcolor/depthへ直接描画 | command順とresource寿命の基準 |
-    | `graph` | 同じ描画を1個のgraph passとして登録 | AddPass、Read/Write、Execute、移行時の同値性 |
-    | `post` | transient scene color/depth → copy buffer → compute → external framebuffer | pass間依存、自動barrier、culling、aliasing |
+    {{StoryRef(ctx, &quot;Examples/RenderGraph/Blur&quot;)}}
 
-    最初から複雑なgraphへ書き換えず、まずdirect版と同じ画像を1 passで作ります。これによりcamera、pipeline、windingのbugとgraph宣言のbugを分離できます。
-
-    ## 実行する
-
-    ```powershell
-    dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
-    dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter RenderGraphTests
-    dotnet run --project samples/LuxelTriangle -- vk --stage graph --frames 3
-    dotnet run --project samples/LuxelTriangle -- vk --stage post --frames 3
-    dotnet run --project samples/LuxelTriangle -- vk --stage post --size 801x603
-    # Windowsのみ
-    dotnet run --project samples/LuxelTriangle -- dx --stage graph --frames 3
-    dotnet run --project samples/LuxelTriangle -- dx --stage post --frames 3
+    ```text
+    External UI buffer
+      → BlurH (Transient buffer)
+      → BlurV (Transient buffer)
+      → Composite
+      → External output buffer
     ```
 
-    `graph`はdirect描画と同じ結果をRenderGraph経由で作ります。`post`はsceneをtransient targetへ描画し、compute shaderで寒色のshadowとvignetteを加えてexternal framebufferへ書きます。
+    この小さなgraphを各ページで順番に分解します。
 
-    ## 実sampleのgraph実装
+    | ページ | 学ぶこと |
+    | --- | --- |
+    | Resources | External / Transientと論理handle |
+    | Passes | AddPass、Read / Write、Executeと自動barrier |
+    | Compilation | culling、lifetime解析、aliasing |
+    | Lifecycle | submit、GPU完了、dispose、resize |
+    | Debugging | validationとDevToolsによる依存の可視化 |
 
-    次のsourceはsolutionで実際にbuildされます。各ページではこの全体像からresource、pass、compile、lifecycleを順番に取り出します。
-
-    {{SampleSource(&quot;samples/LuxelTriangle/TriangleRenderer.cs&quot;, &quot;render-graph-frame&quot;)}}
-
-    RenderGraph本体は`src/Luxel.Graphics.RenderGraph/`、post-process shaderは`shaders/compute_tutorial_postprocess.slang`にあります。APIだけを一覧したい場合は[RenderGraph Guide](story:Reference/Guides/RenderGraph)を参照してください。
+    RenderGraph本体は`src/Luxel.Graphics.RenderGraph/`にあります。APIだけを一覧したい場合は[RenderGraph Guide](story:Reference/Guides/RenderGraph)を参照してください。
     &quot;&quot;&quot;, toc: true);</code></pre></details></article>

@@ -19,7 +19,6 @@ DebugOnly  ───────────────────────
 <p>aliasingは同時利用を許可する機能ではなく、compileが非重複を証明した場合のmemory再利用です。同じ物理resourceへ別の論理resourceが割り当てられる境界もhazard追跡され、必要なbarrierが入ります。</p>
 <h2 id="barrier">終端barrier</h2>
 <p>external resourceへ最後にwriteした場合、graphは後段のcopyやpresentから見えるよう保守的な終端barrierを記録します。ただし、これはCPUから見たGPU完了待ちではありません。submitとresource破棄の関係は次ページで扱います。</p>
-<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/RenderGraph/Compilation&quot;, Order = 3)]
 public static Widget Compilation(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
     # Cullingとaliasing
@@ -53,6 +52,4 @@ public static Widget Compilation(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&qu
     ## 終端barrier
 
     external resourceへ最後にwriteした場合、graphは後段のcopyやpresentから見えるよう保守的な終端barrierを記録します。ただし、これはCPUから見たGPU完了待ちではありません。submitとresource破棄の関係は次ページで扱います。
-
-    {{StoryRef(ctx, &quot;Examples/RenderGraph/Aliasing&quot;)}}
     &quot;&quot;&quot;, toc: true);</code></pre></details></article>
