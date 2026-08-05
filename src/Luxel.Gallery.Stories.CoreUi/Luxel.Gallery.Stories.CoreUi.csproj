@@ -6,6 +6,8 @@
   <ItemGroup>
     <Compile Include="..\..\samples\CanonicalClearColorRecipe.cs" Link="CanonicalClearColorRecipe.cs" />
     <Compile Include="..\..\samples\CanonicalTriangleRecipe.cs" Link="CanonicalTriangleRecipe.cs" />
+    <ProjectReference Include="..\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
     <ProjectReference Include="..\Luxel.Shaders\Luxel.Shaders.csproj" />
     <ProjectReference Include="..\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
@@ -27,6 +29,9 @@
                       GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="..\..\shaders\compiled\raster2d_bounds.*" Link="Shaders\%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\shaders\compiled\raster2d_bin.*" Link="Shaders\%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\shaders\compiled\raster2d_fine.*" Link="Shaders\%(Filename)%(Extension)" />
     <InternalsVisibleTo Include="Luxel.Gallery.Site.Tests" />
   </ItemGroup>
 </Project>

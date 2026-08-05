@@ -9,8 +9,8 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsHome
 {
-    [Story("Reference/Guides/GettingStarted", Order = 0)]   // 章立て: Docs を先頭、入門を最初に
-    public static Widget GettingStarted(StoryContext ctx)
+    [Story("Reference/Guides/GettingStarted", Order = 0, Toc = true)]   // 章立て: Docs を先頭、入門を最初に
+    public static StoryResult GettingStarted(StoryContext ctx)
     {
         Signal<int> count = ctx.Signal("count", 0, "カウンタの現在値 (± ボタンと連動)");
         Widget counter = HStack(8)[
@@ -18,7 +18,7 @@ public static class DocsHome
             Text($" {count} ", 20, vAlign: Align.Center),
             Button(_ => { count.Value++; ctx.Log("counter: +1"); }, "+")];
 
-        Widget doc = DocNew(ctx, $$"""
+        StoryResult doc = $$"""
             # Luxel を始める
 
             Luxel は [Sebastian Aaltonen の *No Graphics API*](https://www.sebastianaaltonen.com/blog/no-graphics-api) の原則を C# で実装した薄いグラフィックエンジンです。resource・単一 argument block・明示 pass・producer/consumer dependency を portable semantics とし、descriptor 管理や native synchronization は backend lowering に閉じ込めます。その上に 2D ベクター・宣言的 UI・アニメーション・レンダーグラフを積み上げています。
@@ -67,7 +67,7 @@ public static class DocsHome
             ## ドキュメントの歩き方
 
             - 全体像とレイヤ構成 → [Internals/Architecture](story:Internals/Architecture)
-            - GPU 描画の最初の一歩 (standalone) → [Learn/Grapics/Overview](story:Learn/Grapics/Overview)
+            - GPU 描画の最初の一歩 (standalone) → [Learn/Graphics/Overview](story:Learn/Graphics/Overview)
             - コントロールの型見本 (Variant/Intent/API 表) → [Reference/Guides/Button](story:Reference/Guides/Button)
             - Windows/Linux対応の端末エミュレータ → [Controls/Terminal/Overview](story:Controls/Terminal/Overview)
             - この docs ページ自体の書き方 → [Internals/Authoring](story:Internals/Authoring)
@@ -75,41 +75,31 @@ public static class DocsHome
 
             > [!TIP]
             > `Ctrl+D` でライト/ダークテーマを切り替えられます。右パネルの Knobs はストーリーが公開している調整パラメータです — このページのカウンタも編集できます。
-            """, toc: true);
+            """;
 
-        // golden ①先頭 (見出し/TOC)、②「最初の UI」見出しへスクロールして埋め込みカウンタ (hole) を映す
-        ctx.Play(async d =>
-        {
-            await d.Snap();
-            if (doc is TextEditorView tev)
-                foreach (MarkdownHeading h in MarkdownDecorations.Headings(tev.DocSource!))
-                    if (h.Text == "最初の UI") { tev.ScrollToSource(h.Offset); break; }
-            await d.Step(2);
-            await d.Snap("counter");
-        });
         return doc;
     }
 
-    [Story("Reference/Guides/FirstTriangle", Order = 2)]
-    public static Widget FirstTriangle(StoryContext ctx)
+    [Story("Reference/Guides/FirstTriangle", Order = 2, Toc = true)]
+    public static StoryResult FirstTriangle(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());
-        return DocNew(ctx, $"""
+        return $"""
         # はじめての GPU 描画
 
         このページは既存リンクとの互換入口です。初心者向けの説明と、Gallery helperに依存しない完全なstandaloneサンプルは次へ移動しました。
 
-        → [Learn/Grapics/Overview](story:Learn/Grapics/Overview)
+        → [Learn/Graphics/Overview](story:Learn/Graphics/Overview)
 
-        最短で三角形まで進む場合は [Learn/Grapics/FirstTriangle](story:Learn/Grapics/FirstTriangle) を開いてください。`Examples/3D/Triangle` はGallery内のoffscreen回帰用で、通常アプリのwindow / surface / present処理は含みません。
-        """, toc: true);
+        最短で三角形まで進む場合は [Learn/Graphics/FirstTriangle](story:Learn/Graphics/FirstTriangle) を開いてください。`Examples/3D/Triangle` はGallery内のoffscreen回帰用で、通常アプリのwindow / surface / present処理は含みません。
+        """;
     }
 
-    [Story("Internals/Architecture", Order = 1)]
-    public static Widget Architecture(StoryContext ctx)
+    [Story("Internals/Architecture", Order = 1, Toc = true)]
+    public static StoryResult Architecture(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());   // 新スタック: 全体像 mermaid 図の描画 golden (ライブ埋め込み無し=安全)
-        return DocNew(ctx, $$"""
+        return $$"""
         # アーキテクチャ
 
         Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。下図は native WebGPU を明示 opt-in lowering として加える目標構成を含みます。
@@ -117,7 +107,7 @@ public static class DocsHome
         ```mermaid
         flowchart TB
         app[アプリ / Gallery / Framework] --> controls[Luxel.Controls]
-        app --> rg[Luxel.RenderGraph]
+        app --> rg[Luxel.Graphics.RenderGraph]
         app --> ecs[Luxel.Ecs + AssetRuntime]
         app --> terminalui[Luxel.Terminal.UI]
         controls --> ui[Luxel.UI]
@@ -158,7 +148,7 @@ public static class DocsHome
 
         ## 3D / レンダーグラフ / リソース
 
-        `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、`Luxel.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成 ([Examples/RenderGraph/Blur](story:Examples/RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` + `Luxel.Gltf` が (型, uri) キーのリソース DAG を提供します。
+        `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、`Luxel.Graphics.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成 ([Examples/RenderGraph/Blur](story:Examples/RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` + `Luxel.Gltf` が (型, uri) キーのリソース DAG を提供します。
 
         ## ランタイムとツール
 
@@ -177,7 +167,7 @@ public static class DocsHome
         | Luxel.Document (+ Highlight.TextMate, Diagram, MathText) | ドキュメントモデル / ハイライト / 図 / 数式 |
         | Luxel.Animation (+ .UI, .TwoD, .ThreeD) | アニメーション IR + ターゲットアダプタ |
         | Luxel.Ecs (+ .Signal) | ECS (Friflo) + signal 連携 |
-        | Luxel.RenderGraph | パス合成 / transient aliasing / 自動バリア |
+        | Luxel.Graphics.RenderGraph | パス合成 / transient aliasing / 自動バリア |
         | Luxel.Resources (+ Imaging, Assets, AssetsGpu, AssetRuntime, Gltf) | リソース DAG / 画像 / glTF / 3D 抽出 |
         | Luxel.Platform (+ .Windows, .Silk) | ウィンドウ / クリップボード / IME / 低レベル入力 |
         | Luxel.Input (+ .XInput) | アクションマップ / リバインド / Windowsゲームパッド入力 |
@@ -189,6 +179,6 @@ public static class DocsHome
         ## backend 回帰という規律
 
         既存の描画機能は Vulkan と DirectX 12 の両方で動き、e2e回帰は**バックエンド別の golden** と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。WebGPU 対応を表明する機能は同じ backend-neutral story を WGSL/manifest、limits、diagnostics を含む専用ゲートで検証します。どれか一つの backend で「たまたま動く」ことを許さず、差を lowering と capability に閉じ込めることが、薄い抽象を保つ開発規律です。
-        """, toc: true);
+        """;
     }
 }

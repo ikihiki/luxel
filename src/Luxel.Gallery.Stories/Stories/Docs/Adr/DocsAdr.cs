@@ -14,8 +14,8 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/Overview", Order = 70)]
-    public static Widget Overview(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Internals/ADR/Overview", Order = 70, Toc = true)]
+    public static StoryResult Overview(StoryContext ctx) => $$"""
         # Architecture Decision Records (ADR)
 
         ADR は「**なぜそう決めたか**」を 1 決定 1 ページで残す軽量な記録です。コードや docs は *現在の姿* を説明しますが、ADR は *その姿を選んだ理由* と *検討したが捨てた選択肢* を時系列で残します。後から「なぜ X なのか」を掘り起こす時間を無くすのが目的です。
@@ -72,18 +72,18 @@ public static partial class DocsAdr
         - [Internals/Contributing](story:Internals/Contributing) — ビルド・テスト・回帰ゲート
         - [Internals/Authoring](story:Internals/Authoring) — docs ページの書き方 (ADR も同じ仕組み)
         - [Documenting Architecture Decisions — Michael Nygard (外部)](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)
-        """, toc: true);
+        """;
 
     // 本文に $$""" のコード例 ("""=引用符 3 連) を含むため引用符 4 連、hole 記法 ({{ }}) も
     // 文章として見せるため $ 3 連 (hole = 波かっこ 3 連) — Internals/Authoring と同じレシピ。
     [Story("Internals/ADR/Template", Order = 71)]
-    public static Widget Template(StoryContext ctx) => DocNew(ctx, $$$""""
+    public static StoryResult Template(StoryContext ctx) => $$$""""
         # ADR テンプレート
 
         新しい ADR はこの雛形を複製して作ります。`[Story("Internals/ADR/NNNN-...", Order = 71 + 番号)]` で登録し、下の 5 節を埋めてください。**1 ファイル 1 ADR** — `Stories/Docs/Adr/AdrNNNN.cs` を新規に作り (`partial class DocsAdr`)、そこに書くのが定位置です。
 
         ```csharp
-        [Story("Internals/ADR/0002-example-decision", Order = 73)]
+        [Story("Internals/ADR/0002-example-decision", Order = 73, Toc = true)]
         public static Widget Adr0002(StoryContext ctx) => WithDocFonts(Docs(ctx, $$"""
             # ADR-0002 — 決定の短いタイトル
 
@@ -119,5 +119,5 @@ public static partial class DocsAdr
 
         > [!TIP]
         > 節タイトル (H2) はサイドバーのツリーにも出ます。上の 5 節を固定にしておくと、どの ADR も同じ骨格で読めます。
-        """", toc: true);
+        """";
 }

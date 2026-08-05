@@ -6,101 +6,101 @@ namespace Luxel.Gallery.Stories;
 
 public static class BuildStories
 {
-    [Story("Build/Blocks/AppHost", Order = 0, SampleBundle = "rendering.app-host")]
-    public static Widget AppHost(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Build/Blocks/AppHost", Order = 0, SampleBundle = "rendering.app-host", Toc = true)]
+    public static StoryResult AppHost(StoryContext ctx) => $"""
         # Block: App Host
 
         window、device、surface、resize、frame loop、dispose を一度だけ用意する共通骨格です。他の rendering block はこの host の接続点へ追加します。
 
         {SampleBundle("rendering.app-host")}
-        """, toc: true);
+        """;
 
-    [Story("Build/Blocks/Framework/FixedTimestep", Order = 2, SampleBundle = "framework.fixed-timestep")]
-    public static Widget FrameworkTiming(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Build/Blocks/Framework/FixedTimestep", Order = 2, SampleBundle = "framework.fixed-timestep", Toc = true)]
+    public static StoryResult FrameworkTiming(StoryContext ctx) => $"""
         # Block: Framework fixed timestep
 
         GPUやwindowを使わず、可変frame dtからbounded fixed updatesとinterpolation alphaを得るblockです。
 
         {SampleBundle("framework.fixed-timestep")}
-        """, toc: true);
+        """;
 
-    [Story("Build/Blocks/UI/HeadlessTree", Order = 3, SampleBundle = "ui.headless-tree")]
-    public static Widget UiHeadlessTree(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Build/Blocks/UI/HeadlessTree", Order = 3, SampleBundle = "ui.headless-tree", Toc = true)]
+    public static StoryResult UiHeadlessTree(StoryContext ctx) => $"""
         # Block: Headless reactive UI tree
 
         `Signal`、`CompositeControl`、generated `Kit` factories、LayoutだけでBuild invalidationを検証するclean-consumer blockです。
 
         {SampleBundle("ui.headless-tree")}
-        """, toc: true);
+        """;
 
-    [Story("Build/Blocks/Input/Actions", Order = 4, SampleBundle = "input.actions")]
-    public static Widget InputActions(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Build/Blocks/Input/Actions", Order = 4, SampleBundle = "input.actions", Toc = true)]
+    public static StoryResult InputActions(StoryContext ctx) => $"""
         # Block: Input actions
 
         Windowから独立したaction/context/stackのblockです。
 
         {SampleBundle("input.actions")}
-        """, toc: true);
+        """;
 
-    [Story("Build/Blocks/Audio/Tone", Order = 5, SampleBundle = "audio.tone")]
-    public static Widget AudioTone(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Build/Blocks/Audio/Tone", Order = 5, SampleBundle = "audio.tone", Toc = true)]
+    public static StoryResult AudioTone(StoryContext ctx) => $"""
         # Block: Audio tone
 
         Procedural PCMとheadless backendでvoice lifecycleを確認します。
 
         {SampleBundle("audio.tone")}
-        """, toc: true);
+        """;
 
-    [Story("Build/Blocks/Resources/Pipeline", Order = 6, SampleBundle = "resources.pipeline")]
-    public static Widget ResourcePipeline(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Build/Blocks/Resources/Pipeline", Order = 6, SampleBundle = "resources.pipeline", Toc = true)]
+    public static StoryResult ResourcePipeline(StoryContext ctx) => $"""
         # Block: Resource pipeline
 
         Memory VFSとtyped conversion stepによる最小resource DAGです。
 
         {SampleBundle("resources.pipeline")}
-        """, toc: true);
+        """;
 
-    [Story("Build/Recipes/Cavern2D", Order = 7, SampleBundle = "game.cavern")]
-    public static Widget Cavern2D(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Build/Recipes/Cavern2D", Order = 7, SampleBundle = "game.cavern", Toc = true)]
+    public static StoryResult Cavern2D(StoryContext ctx) => $"""
         # Recipe: Cavern 2D game
 
         Framework、UI、2D、input、audio、resources、particles、settingsを統合したrepository capstoneです。
 
         {StoryRef(ctx, "Game/Cavern")}
         {SampleBundle("game.cavern")}
-        """, toc: true);
+        """;
 
-    [Story("Build/Recipes/Range3D", Order = 8, SampleBundle = "game.range")]
-    public static Widget Range3D(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Build/Recipes/Range3D", Order = 8, SampleBundle = "game.range", Toc = true)]
+    public static StoryResult Range3D(StoryContext ctx) => $"""
         # Recipe: Range 3D game
 
         ECS、physics、glTF、GPU asset extraction、particlesを統合したrepository capstoneです。
 
         {StoryRef(ctx, "Apps/Game/Range")}
         {SampleBundle("game.range")}
-        """, toc: true);
+        """;
 
-    [Story("Build/Blocks/Scripting/HotReload", Order = 9, SampleBundle = "scripting.gallery")]
-    public static Widget ScriptHotReload(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Build/Blocks/Scripting/HotReload", Order = 9, SampleBundle = "scripting.gallery", Toc = true)]
+    public static StoryResult ScriptHotReload(StoryContext ctx) => $"""
         # Block: Script hot reload
 
         Galleryで検証される`ScriptHost`、diagnostics、successful-swap、cancellationの接続例です。
 
         {StoryRef(ctx, "Examples/Scripting/HotReload")}
         {SampleBundle("scripting.gallery")}
-        """, toc: true);
+        """;
 
-    [Story("Build/Recipes/TriangleApp", Order = 10, SampleBundle = "rendering.triangle")]
-    public static Widget TriangleApp(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Build/Recipes/TriangleApp", Order = 10, SampleBundle = "rendering.triangle", Toc = true)]
+    public static StoryResult TriangleApp(StoryContext ctx) => $"""
         # Recipe: Triangle App
 
         `rendering.app-host + rendering.triangle` の最小 recipe です。表示されるファイルは実際の `LuxelTriangle` project が build しているものです。
 
         {SampleBundle("rendering.triangle")}
-        """, toc: true);
+        """;
 
-    [Story("Build/Recipes/IndexedCube", Order = 11, SampleBundle = "rendering.3d")]
-    public static Widget IndexedCube(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Build/Recipes/IndexedCube", Order = 11, SampleBundle = "rendering.3d", Toc = true)]
+    public static StoryResult IndexedCube(StoryContext ctx) => $"""
         # Recipe: Index bufferでcubeを描く
 
         texture付きquadを24頂点・36 indexのcubeへ拡張するrecipeです。実装の正は`samples/LuxelTriangle/TriangleRenderer.cs`、共有ABIは`samples/LuxelTriangle/TutorialAbi.cs`、vertex pullingは`shaders/tutorial_3d.slang`です。
@@ -143,10 +143,10 @@ public static class BuildStories
         次はこのindexed cubeへ[3D Camera](story:Build/Recipes/Camera3D)を適用します。
 
         {SampleBundle("rendering.3d")}
-        """, toc: true);
+        """;
 
-    [Story("Build/Recipes/Camera3D", Order = 12, SampleBundle = "rendering.3d")]
-    public static Widget Camera3D(StoryContext ctx) => DocNew(ctx, $"""
+    [Story("Build/Recipes/Camera3D", Order = 12, SampleBundle = "rendering.3d", Toc = true)]
+    public static StoryResult Camera3D(StoryContext ctx) => $"""
         # Recipe: 3D Camera
 
         このrecipeは[Index bufferでcubeを描く](story:Build/Recipes/IndexedCube)のmeshを描画対象にします。
@@ -198,10 +198,10 @@ public static class BuildStories
         nearは0より大きく、farより十分小さくします。正方形、横長、縦長へresizeし、cubeの辺の比率と中心位置が維持されることを確認します。
 
         {SampleBundle("rendering.3d")}
-        """, toc: true);
+        """;
 
-    [Story("Build/Recipes/HeadlessScene2D", Order = 13, SampleBundle = "rendering.2d")]
-    public static Widget HeadlessScene2D(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Build/Recipes/HeadlessScene2D", Order = 13, SampleBundle = "rendering.2d", Toc = true)]
+    public static StoryResult HeadlessScene2D(StoryContext ctx) => $$"""
         # Recipe: Headless Scene2D Render
 
         静的な `Scene2D` を `Camera2D.Pixels` で一度だけSkia CPU rasterizerへ描画し、決定的なpixel hashを検証するstandalone recipeです。input、retained canvas、interactive cameraはこのbundleには含まれません。
@@ -209,5 +209,5 @@ public static class BuildStories
         {{StoryRef(ctx, "Examples/2D/VectorPaths")}}
 
         {{SampleBundle("rendering.2d")}}
-        """, toc: true);
+        """;
 }

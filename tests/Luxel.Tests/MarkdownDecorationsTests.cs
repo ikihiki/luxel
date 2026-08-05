@@ -154,7 +154,7 @@ public class MarkdownDecorationsTests
     {
         string md = MarkdownDoc.InsertToc("# Title\n\nintro\n## First Section\ntext\n### Sub A\n```\n## not a heading\n```\n## Second");
         // TOC は H1 直後に挿入され、H2 は "- [..](#slug)"、H3 は 2 スペースインデント
-        Assert.Contains("# Title\n\n- [First Section](#first-section)", md);
+        Assert.Contains("# Title\n\n<!-- luxel-toc -->\n- [First Section](#first-section)", md);
         Assert.Contains("  - [Sub A](#sub-a)", md);
         Assert.Contains("- [Second](#second)", md);
         Assert.DoesNotContain("(#not-a-heading)", md);   // フェンス内の ## は無視
@@ -214,6 +214,15 @@ public class MarkdownDecorationsTests
         MarkdownLink toc = MarkdownDecorations.Links(md).Single(l => l.Url.StartsWith("#"));
         Assert.Equal("#セグメンタ-itextsegmenter", toc.Url);   // URL 内に ) が無く途中で閉じない
         Assert.False(toc.Url.Contains(')'));
+    }
+
+    [Fact]
+    public void InsertToc_IsIdempotent()
+    {
+        string once = MarkdownDoc.InsertToc("# Title\n\n## Section\nbody");
+        string twice = MarkdownDoc.InsertToc(once);
+        Assert.Equal(once, twice);
+        Assert.Equal(1, once.Split("<!-- luxel-toc -->").Length - 1);
     }
 
     [Fact]

@@ -24,6 +24,7 @@ on:
       - 'tests/Luxel.Playground.Browser.E2e/**'
       - 'tests/Luxel.Gallery.Playground.Tests/**'
       - 'tests/Luxel.Scripting.Roslyn.Web.Tests/**'
+      - 'tests/Luxel.WebGPU.Browser.E2E/**'
       - 'tests/Luxel.WebGPU.Browser.Tests/**'
       - 'tests/Luxel.Gallery.Site.Tests/**'
       - 'src/Luxel.Gallery.Playground/**'
@@ -60,7 +61,9 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: tests/Luxel.Playground.Browser.E2e/package-lock.json
+          cache-dependency-path: |
+            tests/Luxel.Playground.Browser.E2e/package-lock.json
+            tests/Luxel.WebGPU.Browser.E2E/package-lock.json
       - name: Install browser WebAssembly workload
         run: dotnet workload install wasm-tools
       - name: Validate project dependency graph
@@ -106,6 +109,9 @@ jobs:
           production = [story for story in manifest['stories'] if story.get('componentType')]
           assert manifest['bundleId'] == 'webgpu-browser-v1'
           assert manifest['protocolVersion'] == 2
+          blur = next(story for story in manifest['stories'] if story['path'] == 'Examples/RenderGraph/Blur')
+          assert blur['width'] == blur['height'] == 320
+          assert blur['componentType'] is None
           assert len(production) == len({story['componentType'] for story in production}) == 60
           assert all(story['path'].endswith('/Basic') and isinstance(story['args'], list) for story in production)
           PY
@@ -118,8 +124,14 @@ jobs:
         run: |
           npm ci
           npx playwright install --with-deps chromium
+      - name: Install browser WebGPU E2E dependencies
+        working-directory: tests/Luxel.WebGPU.Browser.E2E
+        run: npm ci
       - name: Test Playground in Chromium
         working-directory: tests/Luxel.Playground.Browser.E2e
+        run: npm test
+      - name: Test 2D browser-WASM stories in Chromium
+        working-directory: tests/Luxel.WebGPU.Browser.E2E
         run: npm test
       - name: Upload Playwright failure artifacts
         if: failure()
@@ -129,4 +141,6 @@ jobs:
           path: |
             tests/Luxel.Playground.Browser.E2e/test-results
             tests/Luxel.Playground.Browser.E2e/playwright-report
+            tests/Luxel.WebGPU.Browser.E2E/test-results
+            tests/Luxel.WebGPU.Browser.E2E/playwright-report
           if-no-files-found: ignore

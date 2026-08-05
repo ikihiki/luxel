@@ -4,7 +4,7 @@ using Friflo.Engine.ECS;
 using Luxel.AssetRuntime;
 using Luxel.Assets;
 using Luxel.AssetsGpu;
-using Luxel.RenderGraph;
+using Luxel.Graphics.RenderGraph;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
@@ -130,7 +130,7 @@ public static class GltfMorphStories
             Matrix4x4 proj = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 3.5f, 1f, 0.1f, 100f);
             Matrix4x4 viewProj = view * proj;
 
-            using var rg = new Luxel.RenderGraph.RenderGraph(Device);
+            using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);
             BufferHandle hV = rg.ImportBuffer(_prim.VertexBuffer, "verts");
             BufferHandle hI = rg.ImportBuffer(_prim.IndexBuffer, "indices");
             BufferHandle hInst = rg.ImportBuffer(_extractor.InstanceBuffer, "instances");

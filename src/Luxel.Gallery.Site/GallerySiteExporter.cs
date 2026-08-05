@@ -132,8 +132,9 @@ public static partial class GallerySiteExporter
                     if (result.Kind == StoryResultKind.Markdown)
                     {
                         status = "document";
+                        result = result.WithMarkdown(StoryMarkdownRenderer.EffectiveMarkdown(story, result.Markdown));
                         body = RenderStoryResult(result, story.Path, storyByPath, browserBundle, Host, imagesDir, repositoryRoot,
-                            imageCache, goldenIndex, options.StaticCapture, metrics,
+                            localImageCache, imageCache, goldenIndex, options.StaticCapture, metrics,
                             new HashSet<string>(StringComparer.Ordinal), 0, ref unavailable, ref errors);
                         metrics.DocumentStories++;
                     }
@@ -141,7 +142,7 @@ public static partial class GallerySiteExporter
                     {
                         semanticDocument = semantic;
                         status = "document";
-                        IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, documentSource);
+                        IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, documentSource, catalog);
                         if (linkErrors.Count > 0)
                             throw new InvalidDataException("Broken documentation links: " + string.Join(", ", linkErrors));
                         string md = ReplaceEmbeds(story.Path, documentSource, semantic.DocumentEmbeds, storyByPath,
@@ -157,7 +158,7 @@ public static partial class GallerySiteExporter
                     {
                         semanticDocument = nestedDocument;
                         status = "document";
-                        IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, nestedSource);
+                        IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, nestedSource, catalog);
                         if (linkErrors.Count > 0)
                             throw new InvalidDataException("Broken documentation links: " + string.Join(", ", linkErrors));
                         string md = ReplaceEmbeds(story.Path, nestedSource, nestedDocument.DocEmbeds, storyByPath,
@@ -263,7 +264,7 @@ public static partial class GallerySiteExporter
                 }
                 else if (document is not null)
                 {
-                    IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, document.DocSource!);
+                    IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, document.DocSource!, catalog);
                     if (linkErrors.Count > 0)
                         throw new InvalidDataException("Broken documentation links: " + string.Join(", ", linkErrors));
                     string md = ReplaceEmbeds(story.Path, document.DocSource!, document.DocEmbeds, storyByPath,
@@ -307,7 +308,7 @@ public static partial class GallerySiteExporter
                 + (semanticDocument?.DocumentSource is { } semanticSource ? "\n" + semanticSource : "")
                 + (story.Source is { Length: > 0 } code ? "\n" + code : "");
             manifest.Add(new SiteStory(story.Path, story.Name, story.Component, fragmentUrl, imageUrl, status, error,
-                imageHash, searchText, Array.Empty<string>(), SampleBundleRegistry.Find(story.SampleBundle),
+                imageHash, searchText, catalog.AliasesFor(story.Path), SampleBundleRegistry.Find(story.SampleBundle),
                 story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>()));
         }
 
@@ -452,7 +453,7 @@ public static partial class GallerySiteExporter
 
     private static string RenderStoryResult(StoryResult result, string storyPath,
         IReadOnlyDictionary<string, StoryInfo> stories, BrowserBundleManifest? browserBundle, Func<GalleryHost> host,
-        string imagesDir, string repositoryRoot,
+        string imagesDir, string repositoryRoot, Dictionary<string, string> localImageCache,
         Dictionary<string, (string? Url, string Status, string? Error, string Hash)> cache,
         IReadOnlyDictionary<string, string> goldenIndex, StaticCaptureMode captureMode, SiteExportMetricsBuilder metrics,
         HashSet<string> ancestry, int depth, ref int unavailable, ref int errors)
@@ -463,6 +464,14 @@ public static partial class GallerySiteExporter
         try
         {
             string markdown = result.Markdown;
+            if (result.Embeds.Count > 0)
+            {
+                DocEmbed[] embeds = result.Embeds.Select(embed => new DocEmbed(embed.Widget,
+                    Enum.TryParse(embed.Kind, out DocEmbedKind kind) ? kind : DocEmbedKind.Widget,
+                    embed.Reference, embed.Inline, embed.IncludeInherited, embed.WidgetFactory)).ToArray();
+                markdown = ReplaceEmbeds(storyPath, markdown, embeds, stories, host, imagesDir, cache,
+                    goldenIndex, captureMode, metrics, browserBundle, ref unavailable, ref errors);
+            }
             for (int i = 0; i < result.References.Count; i++)
             {
                 StoryReference reference = result.References[i];
@@ -484,7 +493,7 @@ public static partial class GallerySiteExporter
                         using var context = new StoryContext(args: reference.Args);
                         StoryResult nested = referenced.BuildResult(context);
                         html = nested.Kind == StoryResultKind.Markdown
-                            ? $"<section class=\"story-reference story-reference-markdown\" data-story-reference=\"{H(referenced.Path)}\">{RenderStoryResult(nested, referenced.Path, stories, browserBundle, host, imagesDir, repositoryRoot, cache, goldenIndex, captureMode, metrics, ancestry, depth + 1, ref unavailable, ref errors)}</section>"
+                            ? $"<section class=\"story-reference story-reference-markdown\" data-story-reference=\"{H(referenced.Path)}\">{RenderStoryResult(nested, referenced.Path, stories, browserBundle, host, imagesDir, repositoryRoot, localImageCache, cache, goldenIndex, captureMode, metrics, ancestry, depth + 1, ref unavailable, ref errors)}</section>"
                             : StaticReference(host, referenced, imagesDir, cache, goldenIndex, captureMode, metrics, ref unavailable, ref errors);
                     }
                     catch (Exception error)
@@ -500,6 +509,8 @@ public static partial class GallerySiteExporter
 
                 markdown = markdown.Replace($"```luxel-story\n{i}\n```", "\n" + html + "\n", StringComparison.Ordinal);
             }
+            markdown = RewriteLocalImages(markdown, imagesDir, repositoryRoot, localImageCache, metrics);
+            markdown = ReplaceSpecialFences(markdown, host, imagesDir, captureMode, metrics, ref unavailable, ref errors);
             return RenderMarkdown(markdown, storyPath);
         }
         finally { ancestry.Remove(storyPath); }

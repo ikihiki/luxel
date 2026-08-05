@@ -7,8 +7,8 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0018-Csx-Behaviour-Model", Order = 89)]
-    public static Widget Adr0018(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Internals/ADR/0018-Csx-Behaviour-Model", Order = 89, Toc = true)]
+    public static StoryResult Adr0018(StoryContext ctx) => $$"""
         # ADR-0018 — ゲームの挙動は csx ビヘイビア (状態レス Update) で書く
 
         - **Status**: Accepted
@@ -46,5 +46,5 @@ public static partial class DocsAdr
         - ✅ 失敗してもゲーム/エディタが落ちない (旧維持 or 無効化 + 診断)
         - ⚠️ スクリプト間の直接呼び出しは無い — 連携はコンポーネント経由 (複雑な連携が要るゲームは C# コア方式が引き続き有効)
         - ⚠️ Roslyn コンパイルは初回が重い — 起動時 LoadAll でまとめて払う (ゲーム中のスパイクにしない)
-        """, toc: true);
+        """;
 }

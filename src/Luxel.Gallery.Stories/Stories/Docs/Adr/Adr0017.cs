@@ -7,8 +7,8 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0017-Play-In-Editor", Order = 88)]
-    public static Widget Adr0017(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Internals/ADR/0017-Play-In-Editor", Order = 88, Toc = true)]
+    public static StoryResult Adr0017(StoryContext ctx) => $$"""
         # ADR-0017 — プレイインエディタは「都度コンパイル + 停止で破棄」の別インスタンスで動かす
 
         - **Status**: Accepted
@@ -40,5 +40,5 @@ public static partial class DocsAdr
         - ✅ 固定 dt + ステップで golden/デバッグが決定的
         - ⚠️ ▶ のたびにコンパイル (シーン構築 + csx) が走る — 現規模では軽い。重くなったら csx キャッシュ (同一ソース再利用) を足す
         - ⚠️ プレイ中に「この配置いいな」を保存する導線が無い (明示コマンドとして将来)
-        """, toc: true);
+        """;
 }

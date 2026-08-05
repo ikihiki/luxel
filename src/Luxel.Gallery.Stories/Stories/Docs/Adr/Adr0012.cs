@@ -7,8 +7,8 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0012-Rich-Document-Stack", Order = 83)]
-    public static Widget Adr0012(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Internals/ADR/0012-Rich-Document-Stack", Order = 83, Toc = true)]
+    public static StoryResult Adr0012(StoryContext ctx) => $$"""
         # ADR-0012 — Markdown/リッチ文書はテキスト新スタックの構成として実装し、RichTextEditor を置き換える
 
         - **Status**: Accepted
@@ -58,5 +58,5 @@ public static partial class DocsAdr
         - ⚠️ テキストスタックに font-variant Mark / ブロック widget / Markdown プロバイダを足す (ジオメトリの mixed-weight ラン対応)
         - ⚠️ Docs 11 モジュール移行 + プロセッサの widget 化 + golden 全再生成 (依然として最大ワークストリーム)
         - ⚠️ read-only レンダラの要件 (proportional 折返し + インライン混在 + 表 + 数式 + mermaid + 埋め込み UI) を装飾/widget で満たす設計精度が要る
-        """, toc: true);
+        """;
 }

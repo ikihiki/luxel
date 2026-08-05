@@ -5859,11 +5859,123 @@
       "componentType": null
     },
     {
+      "path": "Examples/2D/CameraRig",
+      "width": 540,
+      "height": 360,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
       "path": "Examples/2D/ParticleView",
       "width": 480,
       "height": 240,
       "args": [],
       "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/BoundsLive",
+      "width": 520,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/CompositeLive",
+      "width": 520,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/CoverageLive",
+      "width": 520,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/DispatchLive",
+      "width": 520,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/EncodedSceneLive",
+      "width": 520,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/InputPathsLive",
+      "width": 520,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/RetainedUpdatesLive",
+      "width": 520,
+      "height": 330,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/StrokeLive",
+      "width": 520,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/TileBinsLive",
+      "width": 520,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/SceneRender",
+      "width": 480,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Shapes",
+      "width": 480,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Sprites",
+      "width": 480,
+      "height": 330,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/VectorPaths",
+      "width": 360,
+      "height": 330,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
       "componentType": null
     },
     {
@@ -5920,6 +6032,14 @@
       "height": 300,
       "args": [],
       "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/RenderGraph/Blur",
+      "width": 320,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
       "componentType": null
     },
     {

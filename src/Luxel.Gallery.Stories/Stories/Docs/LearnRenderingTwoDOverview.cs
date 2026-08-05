@@ -1,70 +1,63 @@
-using Luxel.UI;
+using Luxel.Controls;
 using static Luxel.Gallery.Stories.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
-/// <summary>初心者向けレンダリング学習経路。実行可能な正は samples/LuxelTriangle。</summary>
 public static partial class DocsRenderingLearn
 {
-    [Story("Learn/Grapics/2D/Overview", Order = 10)]
-    public static Widget First2DScene(StoryContext ctx)
-    {
-        return DocNew(ctx, $$"""
-        # はじめての2Dシーン
+    [Story("Learn/Graphics/2D/Overview", Order = 9, Toc = true)]
+    public static StoryResult First2DScene() => $$"""
+        # はじめての2D描画
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/2D/Overview", "Beginner", "Gallery / Standalone / Headless", "Vulkan / DirectX 12 / Skia CPU", "RenderGraph")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/2D/Overview", "Beginner", "Gallery WASM / Standalone / Headless", "WebGPU / Vulkan / DirectX 12 / Skia CPU", "基本的なC#")}}
 
-        {{StoryRef(ctx, "Examples/2D/Shapes")}}
+        このコースの到達目標は、path・色・画像・camera transformを組み合わせた`Scene2D`を作り、render targetへ描画できることです。window、input、pointer hit test、appのframe loopは扱いません。
 
-        `Scene2D`は「何を描くか」をCPU側で組み立てる最小APIです。次のコードだけで角丸矩形、円、線を含むsceneを作れます。
+        ## 描画の最小フロー
+
+        `Scene2D`はbackendに依存しない描画命令です。まずsceneを作り、`IRasterizer2D.CreateScene`でbackend用sessionへencodeし、targetへrenderします。
 
         ```csharp
-        using Luxel.Graphics.TwoD;
-
         var scene = new Scene2D();
-        scene.FillRoundedRect(0xFF2F6FED, 24, 24, 220, 120, 18);
-        scene.FillCircle(0xFFFFC857, 86, 84, 28);
-        scene.StrokeLine(0xFFE7EAF0, 4, 32, 176, 250, 176);
+        scene.FillRoundedRect(Color2D.Rgba(47, 111, 237), 24, 24, 220, 120, 18);
+        scene.FillCircle(Color2D.Rgba(255, 200, 87), 86, 84, 28);
+        scene.StrokeLine(Color2D.Rgba(231, 234, 240), 4, 32, 176, 250, 176);
+
+        using IRasterizer2D rasterizer = new SkiaRasterizer2D();
+        using IRasterScene2D encoded = rasterizer.CreateScene(scene);
+        encoded.Render(Camera2D.Pixels, target);
         ```
 
-        GPUへ出すstandalone側は`GpuDeviceRasterizer2D`がsceneをencodeし、commandへrenderを記録します。geometryが変わらないなら`encoded`を毎frame作り直さず保持します。
+        `IRasterScene2D`はbackend resourceを所有するため、sessionをrasterizerより先にdisposeします。geometryが変わらない間はsessionを再利用できます。
+
+        {{StoryReference.To("Examples/2D/SceneRender")}}
+
+        ## APIの選び方
+
+        | API | 用途 | 更新モデル | 注意点 |
+        |---|---|---|---|
+        | `Scene2D` | shape/path/imageを直接構築 | encode時のsnapshot | sessionの寿命をcallerが所有 |
+        | `RetainedCanvas` | nodeを残してtransform/styleを更新 | dirty rangeを同期 | backendがincremental updateを支援するか確認 |
+        | UI `Canvas2D` | GalleryやUI内の2D表示 | hostが描画 | standalone window APIではない |
+        | `SkiaRasterizer2D` | headless/CI/CPU参照画像 | 同期RGBA target | image shape非対応、GPUとAAが完全一致しない |
+
+        ## GPU固有の経路
+
+        GPU backendでは`GpuDeviceRasterizer2D`、`GpuRasterTarget2D`、command recordingを使います。`Encode`やcommand submissionは`IRasterizer2D`の基本概念を理解した後に選ぶ最適化・統合APIです。
 
         ```csharp
         using var rasterizer = new GpuDeviceRasterizer2D(device);
         using var encoded = rasterizer.Encode(scene);
-        using GpuCommandBuffer cmd = device.MainQueue.StartCommandRecording();
-
-        rasterizer.Render(cmd, encoded, Camera2D.Pixels,
-            width, height, framebuffer);
-        cmd.Finish();
-        device.MainQueue.SubmitAndWait(cmd);
+        using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
+        rasterizer.Render(command, encoded, Camera2D.Pixels, width, height, framebuffer);
+        command.Finish();
+        device.MainQueue.Submit(command);
         ```
 
-        ## 4つの入口の選び方
+        ## 次に学ぶこと
 
-        | API | 選ぶ場面 | GPU | 注意点 |
-        | --- | --- | --- | --- |
-        | `Scene2D` | shape/pathを直接作る | backend次第 | `CreateScene`時点のsnapshot。session寿命をcallerが所有 |
-        | `RetainedCanvas` | objectが残りtransform/styleだけ変わる | 不要 | backend-neutral。`Invalidate()`連打ではなく部分更新を使う |
-        | UI `Canvas2D` | GalleryやUIへ小さな図を埋め込む | hostが提供 | standalone window APIではない |
-        | `SkiaRasterizer2D` | CI、headless test、CPU参照画像 | 不要 | 同期RGBA target。image shape非対応、AA edgeはGPUと完全一致しない |
+        {{StoryReference.To("Examples/2D/Shapes")}}
 
-        retained treeではnodeを保持し、変更箇所だけ更新します。
-
-        ```csharp
-        var canvas = new RetainedCanvas();       // headlessでも構築可能
-        UiNode card = canvas.AddChild(canvas.Root);
-        card.Content = new Scene2D()
-            .FillRoundedRect(Color2D.White, 20, 20, 240, 120, 16);
-        card.Color = 0xFF2F6FED;
-        card.Transform = Affine2D.Translate(12, 8);
-
-        if (canvas.HasPendingChanges)
-            Console.WriteLine("次のGPU renderで差分を反映する");
-        ```
-
-        UI内なら`Canvas2D(draw: scene => ...)`、headlessなら`SkiaRasterizer2D`からscene/sessionと`SkiaRasterTarget2D`を作ります。stroke widthはscreen pixel、world座標変換はcameraが担当します。透明imageはpremultiplied RGBAを前提にし、Skia backendではGPU bindless imageを描けません。実window経路はCPU pixelをpresentするupload経路をまだ持たないためGPU固定です。
-        """, toc: true);
-    }
-
+        次は[Path、fill、stroke](story:Learn/Graphics/2D/Paths)でcontourの組み立て方を学びます。desktop/headlessの完全なprojectは[HeadlessScene2D](story:Build/Recipes/HeadlessScene2D)をsource recipeとして参照できます。
+        """;
 }

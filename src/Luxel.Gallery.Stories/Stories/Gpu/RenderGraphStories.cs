@@ -1,5 +1,5 @@
-﻿using System.Runtime.InteropServices;
-using Luxel.RenderGraph;
+using System.Runtime.InteropServices;
+using Luxel.Graphics.RenderGraph;
 using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
@@ -27,11 +27,6 @@ public static class RenderGraphStories
     {
         public uint UiIndex, BlurIndex, DstIndex, Width, Height, SplitX, Pad0, Pad1;
     }
-
-    /// <summary>UI → 分離ガウシアン (BlurH → BlurV) → 左右分割合成。
-    /// 左半分 = 元の UI、右半分 = ブラー結果。中間バッファは transient。</summary>
-    [Story("Examples/RenderGraph/Blur", Height = 320, Order = 130)]
-    public static Widget Blur(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(256, 256, new BlurScene(stages: 1), animated: false)));
 
     /// <summary>反復ブラー 4 段 + 誰も読まないパスで **transient aliasing** と
     /// **デッドパスカリング** を実証。コンパイル結果 (物理バッファ数/実行パス数/alias) は
@@ -75,7 +70,7 @@ public static class RenderGraphStories
         protected override void OnRender(float time)
         {
             ulong fbBytes = (ulong)(W * H * 4);
-            using var rg = new Luxel.RenderGraph.RenderGraph(Device);   // グラフは 1 フレーム使い切り
+            using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);   // グラフは 1 フレーム使い切り
 
             BufferHandle hUi = rg.ImportBuffer(_ui, "ui");
             BufferHandle hFinal = rg.ImportBuffer(OutBuffer, "final");

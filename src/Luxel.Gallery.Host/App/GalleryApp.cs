@@ -794,7 +794,10 @@ public sealed class GalleryApp : IDisposable
         Widget newRoot;
         try
         {
-            newRoot = story.Build(newContext);
+            StoryResult result = story.BuildResult(newContext);
+            newRoot = result.Kind == StoryResultKind.Markdown
+                ? StoryMarkdownRenderer.Build(story, newContext, result)
+                : result.Widget ?? throw new InvalidOperationException("Widget story returned no Widget.");
         }
         catch (Exception error)
         {

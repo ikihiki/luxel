@@ -9,11 +9,11 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsWorkbench
 {
-    [Story("Reference/Guides/Workbench", Order = 43)]
-    public static Widget Workbench(StoryContext ctx)
+    [Story("Reference/Guides/Workbench", Order = 43, Toc = true)]
+    public static StoryResult Workbench(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());   // mermaid 図 + コードの描画 golden (ライブ埋め込み無し)
-        return DocNew(ctx, $$"""
+        return $$"""
         # Workbench (Luxel.Workbench)
 
         複数のエディタを「**開いて・並べて・保存する**」シェルのフレームワークです。エディタは特定型をハードコードせず**構成**として載せます — テキスト ([Reference/Guides/Editor](story:Reference/Guides/Editor))・ノード ([Reference/Guides/NodeEditor](story:Reference/Guides/NodeEditor))・Inspector が同じ契約で並び、内部モデルは統一しません。決定は [ADR-0010](story:Internals/ADR/0010-Workbench-Framework) (コア) / [ADR-0013](story:Internals/ADR/0013-Menu-Command-System) (コマンド) / [ADR-0014](story:Internals/ADR/0014-Workbench-Ui-Controls) (基盤 UI)。
@@ -68,6 +68,6 @@ public static class DocsWorkbench
 
         > [!NOTE]
         > **Gallery 自身がドッグフード**です — この画面のサイドバー/プレビュー/下ペイン (Log/Knobs/Interactions/Console のタブ)/Props は DockTree + DockHost で組まれており、下ペインのタブは D&D で動かせます。単一タブのペインはタブ帯を隠して従来の chrome と同じ見た目にしています (`hideSingleTabStrip`)。
-        """, toc: true);
+        """;
     }
 }
