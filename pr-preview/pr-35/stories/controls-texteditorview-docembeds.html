@@ -1,14 +1,4 @@
-<article class="story document-page"><h1 id="diagrams-and-math">Diagrams and math</h1>
-<p>A mermaid diagram, reusing Luxel.Diagram:</p>
-<pre><code class="language-embed">flowchart LR
-A[Editor] --&gt; B[Provider]
-B --&gt; C[BlockWidget]
-</code></pre>
-<p>A formula via Luxel.MathText:</p>
-<pre><code class="language-embed">w = \frac{\alpha + \beta}{\sqrt{x^2 + y^2}}
-</code></pre>
-<p>Both are just embed widgets.</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/TextEditorView/DocEmbeds&quot;, Height = 460, Order = 13)]
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/TextEditorView/DocEmbeds</h1></header><aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/TextEditorView/DocEmbeds&quot;, Height = 460, Order = 13)]
 public static Widget DocEmbeds(StoryContext ctx)
 {
     // mermaid/数式アダプタ (WS-A / ADR-0012): ```embed mermaid|math フェンス本文を、既存の

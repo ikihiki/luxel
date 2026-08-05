@@ -1,4 +1,14 @@
 <article class="story document-page"><h1 id="audio-overview">Audio overview</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-headless-audio-tone">コピーして動かす — Headless audio tone</a>
+<ul>
+<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%60samples%2Fluxelaudio%2Fluxelaudio.csproj%60-project"><code>samples/LuxelAudio/LuxelAudio.csproj</code> (Project)</a></li>
+<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%60samples%2Fluxelaudio%2Fprogram.cs%60-csharp"><code>samples/LuxelAudio/Program.cs</code> (CSharp)</a></li>
+</ul>
+</li>
+</ul>
+<!-- /luxel-toc -->
 <p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone / Headless / Windows device　 <strong>Backend:</strong> Null / XAudio2　 <strong>前提知識:</strong> Input track</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FInput%2FPlatformsAndTesting">PlatformsAndTesting</a>　 <strong>次:</strong> <a href="#story=Learn%2FAudio%2FClipsSourcesAndBuses">ClipsSourcesAndBuses</a></p>
 <p><code>AudioClip</code>はdecode済みPCM、<code>IAudioVoice</code>は再生slot、<code>AudioMixer</code>はone-shotとvoice poolを管理します。実音出力は現在Windows/XAudio2、CIと非Windowsは<code>NullAudioBackend</code>で状態遷移を検証します。</p>
@@ -44,8 +54,8 @@ IAudioVoice voice = backend.Voices.Single();
 Console.WriteLine($&quot;audio: initialized={backend.Initialized}, voices={backend.Voices.Count}, queued={voice.BuffersQueued}, playing={voice.IsPlaying}, bytes={pcm.Length}&quot;);
 return backend.Initialized &amp;&amp; voice.BuffersQueued == 1 &amp;&amp; voice.IsPlaying ? 0 : 1;
 </code></pre>
-<details class="sample-bundle"><summary>Run this sample — Block</summary><p>Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.</p><p><strong>Requirements:</strong> .NET 10 / Headless: any supported OS / Audible output: Windows/XAudio2 integration</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>audio: initialized=True, voices=1</code></p><ul><li><code>samples/LuxelAudio/LuxelAudio.csproj</code> <span>Project</span></li><li><code>samples/LuxelAudio/Program.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelAudio</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelAudio</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/Overview&quot;, Order = 0, SampleBundle = &quot;audio.tone&quot;)]
-public static Widget Overview(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+<details class="sample-bundle"><summary>Run this sample — Block</summary><p>Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.</p><p><strong>Requirements:</strong> .NET 10 / Headless: any supported OS / Audible output: Windows/XAudio2 integration</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>audio: initialized=True, voices=1</code></p><ul><li><code>samples/LuxelAudio/LuxelAudio.csproj</code> <span>Project</span></li><li><code>samples/LuxelAudio/Program.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelAudio</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelAudio</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/Overview&quot;, Order = 0, SampleBundle = &quot;audio.tone&quot;, Toc = true)]
+public static StoryResult Overview(StoryContext ctx) =&gt; $&quot;&quot;&quot;
     # Audio overview
 
     {RuntimeCourseCatalog.Meta(&quot;Learn/Audio/Overview&quot;, &quot;Beginner&quot;, &quot;Standalone / Headless / Windows device&quot;, &quot;Null / XAudio2&quot;, &quot;Input track&quot;)}
@@ -53,4 +63,4 @@ public static Widget Overview(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&
     `AudioClip`はdecode済みPCM、`IAudioVoice`は再生slot、`AudioMixer`はone-shotとvoice poolを管理します。実音出力は現在Windows/XAudio2、CIと非Windowsは`NullAudioBackend`で状態遷移を検証します。
 
     {SampleBundle(&quot;audio.tone&quot;)}
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

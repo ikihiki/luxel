@@ -10,8 +10,8 @@ using var resources = new ResourceSystem(
 using ResourceHandle&lt;TextAsset&gt; handle = resources.Load&lt;TextAsset&gt;(&quot;hello.txt&quot;);
 await handle.Ready;
 </code></pre>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Resources/PipelinesAndDag&quot;, Order = 1)]
-public static Widget Pipelines(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Resources/PipelinesAndDag&quot;, Order = 1, Toc = true)]
+public static StoryResult Pipelines(StoryContext ctx) =&gt; $&quot;&quot;&quot;
     # Typed pipelines and dependency DAG
 
     {RuntimeCourseCatalog.Meta(&quot;Learn/Resources/PipelinesAndDag&quot;, &quot;Intermediate&quot;, &quot;Standalone / Headless&quot;, &quot;IO / CPU / GPU lanes&quot;, &quot;Resources overview&quot;)}
@@ -19,4 +19,4 @@ public static Widget Pipelines(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;
     `IResourceSource`がURIからbytesを読み、`IResourceStep&lt;TIn,TOut&gt;`が型を変換します。requested output typeからstepを逆引きするため、`byte[] → decoded → GPU resource`の任意長chainを組めます。step内の`LoadContext.Load`はdependency edgeを作り、共有・reload伝播・eviction順序へ使われます。
 
     {SampleSource(&quot;samples/LuxelResources/Program.cs&quot;, &quot;resource-pipeline&quot;)}
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

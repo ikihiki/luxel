@@ -1,4 +1,13 @@
 <article class="story document-page"><h1 id="scripting-overview">Scripting overview</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FScripting%2FOverview&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-gallery-script-hot-reload">コピーして動かす — Gallery script hot reload</a>
+<ul>
+<li><a href="#story=Learn%2FScripting%2FOverview&amp;section=%60src%2Fluxel.gallery.stories%2Fstories%2Fscriptingstory.cs%60-csharp"><code>src/Luxel.Gallery.Stories/Stories/ScriptingStory.cs</code> (CSharp)</a></li>
+</ul>
+</li>
+</ul>
+<!-- /luxel-toc -->
 <p><code>ScriptHost</code>はC# scriptをcompileし、<code>ScriptGlobals</code>で許可したhost capabilityだけを公開します。REPL、notebook、file hot reloadは同じcompile/diagnostic/cancellation境界を共有します。</p>
 <aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
 <h2 id="gallery-script-hot-reload">コピーして動かす — Gallery script hot reload</h2>
@@ -381,12 +390,12 @@ public static class ScriptingStory
     }
 }
 </code></pre>
-<details class="sample-bundle"><summary>Run this sample — Block</summary><p>Gallery-hosted ScriptHost recipe covering compilation, diagnostics, cancellation and successful-swap reload.</p><p><strong>Requirements:</strong> Luxel.Scripting / Gallery service provider</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 180s</p><ul><li><code>src/Luxel.Gallery.Stories/Stories/ScriptingStory.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project src/Luxel.Gallery.Host -- vk --story Examples/Scripting/HotReload</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter Scripting</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Scripting/Overview&quot;, Order = 0, SampleBundle = &quot;scripting.gallery&quot;)]
-public static Widget ScriptingOverview(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<details class="sample-bundle"><summary>Run this sample — Block</summary><p>Gallery-hosted ScriptHost recipe covering compilation, diagnostics, cancellation and successful-swap reload.</p><p><strong>Requirements:</strong> Luxel.Scripting / Gallery service provider</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 180s</p><ul><li><code>src/Luxel.Gallery.Stories/Stories/ScriptingStory.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project src/Luxel.Gallery.Host -- vk --story Examples/Scripting/HotReload</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter Scripting</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Scripting/Overview&quot;, Order = 0, SampleBundle = &quot;scripting.gallery&quot;, Toc = true)]
+public static StoryResult ScriptingOverview(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # Scripting overview
 
     `ScriptHost`はC# scriptをcompileし、`ScriptGlobals`で許可したhost capabilityだけを公開します。REPL、notebook、file hot reloadは同じcompile/diagnostic/cancellation境界を共有します。
 
     {{StoryRef(ctx, &quot;Examples/Scripting/LiveCsx&quot;)}}
     {{SampleBundle(&quot;scripting.gallery&quot;)}}
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

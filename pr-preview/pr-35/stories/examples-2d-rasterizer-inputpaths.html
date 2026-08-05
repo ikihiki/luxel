@@ -73,8 +73,8 @@ internal static class PathEncoder
     }
 }
 </code></pre>
-<p>→ <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FOverview">Internal course</a></p>
+<p>→ <a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FOverview">Internal course</a></p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/2D/Rasterizer/InputPaths&quot;, Order = 0)]
-public static Widget InputPaths(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;Input paths&quot;, &quot;Scene2D → flattened segments&quot;,
+public static StoryResult InputPaths(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;Input paths&quot;, &quot;Scene2D → flattened segments&quot;,
     &quot;The live path example below exercises line, quadratic, cubic, open, and closed contours. `FlattenTolerance` controls the CPU-side de Casteljau subdivision before upload.\n\n&quot;
     + StoryRef(ctx, &quot;Examples/2D/VectorPaths&quot;), &quot;src/Luxel.Graphics.TwoD/PathEncoder.cs&quot;);</code></pre></details></article>

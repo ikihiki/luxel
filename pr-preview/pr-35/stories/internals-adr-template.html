@@ -1,6 +1,6 @@
 <article class="story document-page"><h1 id="adr">ADR テンプレート</h1>
 <p>新しい ADR はこの雛形を複製して作ります。<code>[Story(&quot;Internals/ADR/NNNN-...&quot;, Order = 71 + 番号)]</code> で登録し、下の 5 節を埋めてください。<strong>1 ファイル 1 ADR</strong> — <code>Stories/Docs/Adr/AdrNNNN.cs</code> を新規に作り (<code>partial class DocsAdr</code>)、そこに書くのが定位置です。</p>
-<pre><code class="language-csharp">[Story(&quot;Internals/ADR/0002-example-decision&quot;, Order = 73)]
+<pre><code class="language-csharp">[Story(&quot;Internals/ADR/0002-example-decision&quot;, Order = 73, Toc = true)]
 public static Widget Adr0002(StoryContext ctx) =&gt; WithDocFonts(Docs(ctx, $$&quot;&quot;&quot;
     # ADR-0002 — 決定の短いタイトル
 
@@ -38,13 +38,13 @@ public static Widget Adr0002(StoryContext ctx) =&gt; WithDocFonts(Docs(ctx, $$&q
 <p>節タイトル (H2) はサイドバーのツリーにも出ます。上の 5 節を固定にしておくと、どの ADR も同じ骨格で読めます。</p>
 </div>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/Template&quot;, Order = 71)]
-public static Widget Template(StoryContext ctx) =&gt; DocNew(ctx, $$$&quot;&quot;&quot;&quot;
+public static StoryResult Template(StoryContext ctx) =&gt; $$$&quot;&quot;&quot;&quot;
     # ADR テンプレート
 
     新しい ADR はこの雛形を複製して作ります。`[Story(&quot;Internals/ADR/NNNN-...&quot;, Order = 71 + 番号)]` で登録し、下の 5 節を埋めてください。**1 ファイル 1 ADR** — `Stories/Docs/Adr/AdrNNNN.cs` を新規に作り (`partial class DocsAdr`)、そこに書くのが定位置です。
 
     ```csharp
-    [Story(&quot;Internals/ADR/0002-example-decision&quot;, Order = 73)]
+    [Story(&quot;Internals/ADR/0002-example-decision&quot;, Order = 73, Toc = true)]
     public static Widget Adr0002(StoryContext ctx) =&gt; WithDocFonts(Docs(ctx, $$&quot;&quot;&quot;
         # ADR-0002 — 決定の短いタイトル
 
@@ -80,4 +80,4 @@ public static Widget Template(StoryContext ctx) =&gt; DocNew(ctx, $$$&quot;&quot
 
     &gt; [!TIP]
     &gt; 節タイトル (H2) はサイドバーのツリーにも出ます。上の 5 節を固定にしておくと、どの ADR も同じ骨格で読めます。
-    &quot;&quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;&quot;;</code></pre></details></article>

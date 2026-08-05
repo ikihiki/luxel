@@ -1,4 +1,11 @@
 <article class="story document-page"><h1 id="luxel.framework.devtools">Luxel.Framework.DevTools</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FLuxel.Framework.DevTools&amp;section=devtoolsruntime">DevToolsRuntime</a></li>
+<li><a href="#story=Reference%2FLuxel.Framework.DevTools&amp;section=iframepublisher">IFramePublisher</a></li>
+<li><a href="#story=Reference%2FLuxel.Framework.DevTools&amp;section=luxelhostdevtoolsextensions">LuxelHostDevToolsExtensions</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="devtoolsruntime">DevToolsRuntime</h2>
 <section class="api-reference"><p class="api-summary">class — DevTools フロントエンドのライフサイクルを host に載せる hosted service。listener を先に作って エンジン診断を購読させ (これで String) が true になる)、 選択に応じて DebugServer / DevToolsApp を起動する。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>DevToolsRuntime</code></th><td><code>(EngineCommands commands, DevToolsOptions options)</code></td><td></td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>StartAsync</code></th><td><code>(CancellationToken cancellationToken) → Task</code></td><td></td></tr><tr><th scope="row"><code>StopAsync</code></th><td><code>(CancellationToken cancellationToken) → Task</code></td><td></td></tr><tr><th scope="row"><code>Dispose</code></th><td><code>() → void</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>BrowserUrl</code></th><td><code>string (get)</code></td><td>ブラウザ版 DebugServer の URL (起動時のみ、なければ null)。ゲームがログに出すのに使う。</td></tr></tbody></table></div></section>

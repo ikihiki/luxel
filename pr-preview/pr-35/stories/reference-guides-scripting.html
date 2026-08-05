@@ -1,4 +1,13 @@
 <article class="story document-page"><h1 id="luxel.scripting">スクリプト (Luxel.Scripting)</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FGuides%2FScripting&amp;section=scripthost-%E2%80%94-%E3%82%B3%E3%83%B3%E3%83%91%E3%82%A4%E3%83%AB%E3%81%A8%E5%AE%9F%E8%A1%8C">ScriptHost — コンパイルと実行</a></li>
+<li><a href="#story=Reference%2FGuides%2FScripting&amp;section=%E6%A9%9F%E8%83%BD%E3%81%95%E3%81%9B%E3%82%8B%E9%9D%A2-3-%E3%81%A4">機能させる面 (3 つ)</a></li>
+<li><a href="#story=Reference%2FGuides%2FScripting&amp;section=scriptsystem-%E2%80%94-.csx-%E3%82%B2%E3%83%BC%E3%83%A0%E3%83%AD%E3%82%B8%E3%83%83%E3%82%AF-%2B-hot-reload">ScriptSystem — .csx ゲームロジック + hot reload</a></li>
+<li><a href="#story=Reference%2FGuides%2FScripting&amp;section=%E8%A8%80%E8%AA%9E%E3%82%B5%E3%83%BC%E3%83%93%E3%82%B9-lsp-%E3%81%AE%E6%96%B9%E9%87%9D">言語サービス (LSP) の方針</a></li>
+<li><a href="#story=Reference%2FGuides%2FScripting&amp;section=%E3%83%87%E3%83%90%E3%83%83%E3%82%B0%E3%81%AE%E6%96%B9%E9%87%9D">デバッグの方針</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p><strong>言語はエンジンと同じ C#</strong> です (別言語を持ち込みません)。<a href="https://github.com/dotnet/roslyn">Roslyn Scripting</a> を <code>ScriptHost</code> で薄く包み、<code>.csx</code> 意味論 (最後の式が戻り値、globals のメンバーが裸で見える) で実行します。書き手は開発者自身なのでフルトラストで、pure-C#・型付き・決定的というリポジトリの方針とそのまま噛み合います。実演は</p>
 <aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
 <p>へ。</p>
@@ -52,8 +61,8 @@ script.Attach(world, () =&gt; _dt);   // 安定ラッパを Update/LateUpdate/Fi
 <p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
 <p>v1 の割り切り: 編集ごとのアセンブリはプロセス終了まで残る (開発時ツールとして許容 — アンロードが要件になったら collectible ALC 化)。サンドボックスは無し (信頼できるコード前提 — 軽量分離が要るなら Lua-CSharp を後付けする退路)。スクリプトは決定性規約 (wall-clock/乱数/await を使わない) を守れば snap/E2E と両立します。</p>
 </div>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Scripting&quot;, Order = 56)]
-public static Widget Scripting(StoryContext ctx) =&gt; ctx.Snap(DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Scripting&quot;, Order = 56, Toc = true)]
+public static StoryResult Scripting(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # スクリプト (Luxel.Scripting)
 
     **言語はエンジンと同じ C#** です (別言語を持ち込みません)。[Roslyn Scripting](https://github.com/dotnet/roslyn) を `ScriptHost` で薄く包み、`.csx` 意味論 (最後の式が戻り値、globals のメンバーが裸で見える) で実行します。書き手は開発者自身なのでフルトラストで、pure-C#・型付き・決定的というリポジトリの方針とそのまま噛み合います。実演は {{StoryRef(ctx, &quot;Examples/Scripting/LiveCsx&quot;)}} へ。
@@ -113,4 +122,4 @@ public static Widget Scripting(StoryContext ctx) =&gt; ctx.Snap(DocNew(ctx, $$&q
 
     &gt; [!NOTE]
     &gt; v1 の割り切り: 編集ごとのアセンブリはプロセス終了まで残る (開発時ツールとして許容 — アンロードが要件になったら collectible ALC 化)。サンドボックスは無し (信頼できるコード前提 — 軽量分離が要るなら Lua-CSharp を後付けする退路)。スクリプトは決定性規約 (wall-clock/乱数/await を使わない) を守れば snap/E2E と両立します。
-    &quot;&quot;&quot;, toc: true));</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

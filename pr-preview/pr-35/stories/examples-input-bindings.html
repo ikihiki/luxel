@@ -1,16 +1,20 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/Input/Bindings</h1></header><aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/Input/Bindings&quot;, Width = 680, Height = 440, Order = 2)]
 public static Widget Bindings()
 {
+    // docs:begin input-bindings-setup
     var source = new FakeInputSource();
     var bus = new InputBus();
     var context = new InputContext(&quot;Gameplay&quot;);
     var jump = context.Add(new ButtonAction(&quot;Jump&quot;, KeyCode.Space));
     var stack = new InputStack();
     stack.Push(context);
+    // docs:end input-bindings-setup
+
     var current = new Signal&lt;KeyCode&gt;(KeyCode.Space);
     var result = new Signal&lt;string&gt;(&quot;現在のJumpはSpaceです。&quot;);
     var json = new Signal&lt;string&gt;(Serialize(KeyCode.Space));
 
+    // docs:begin input-bindings-apply
     void ApplyBinding(KeyCode key)
     {
         string serialized = Serialize(key);
@@ -20,7 +24,9 @@ public static Widget Bindings()
         json.Value = serialized;
         result.Value = $&quot;JSONを読み込み、Jumpを{current.Value}へ再設定しました。&quot;;
     }
+    // docs:end input-bindings-apply
 
+    // docs:begin input-bindings-simulate
     void Simulate(KeyCode key)
     {
         source.PressKey(key); source.Poll(bus); stack.Update(bus);
@@ -30,6 +36,7 @@ public static Widget Bindings()
             ? $&quot;{key}でJumpが発火しました。&quot;
             : $&quot;{key}は現在のJumpバインドではありません。&quot;;
     }
+    // docs:end input-bindings-simulate
 
     return Frame(VStack(12, width: 600)[
         Heading(&quot;バインディングと再設定&quot;, 2),
@@ -45,8 +52,10 @@ public static Widget Bindings()
         Text($&quot;{result}&quot;, 14, color: Bind.From(() =&gt; UiTheme.T.TextMuted)),
         Card(Text($&quot;{json}&quot;, 12, wrap: TextWrap.Word, width: 520))]);
 
+    // docs:begin input-bindings-json
     static string Serialize(KeyCode key) =&gt; JsonSerializer.Serialize(new InputBindings
     {
         Actions = { [&quot;Jump&quot;] = new InputBindingEntry { Kind = &quot;button&quot;, Keys = [key.ToString()] } }
     }, new JsonSerializerOptions { WriteIndented = true });
+    // docs:end input-bindings-json
 }</code></pre></details></article>

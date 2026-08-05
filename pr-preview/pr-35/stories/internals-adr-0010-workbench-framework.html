@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0010-workbench">ADR-0010 — 複数エディタを束ねる Workbench フレームワークを新規に作る</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0010-Workbench-Framework&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0010-Workbench-Framework&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0010-Workbench-Framework&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0010-Workbench-Framework&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-09</li>
@@ -37,8 +45,8 @@
 <li>⚠️ Gallery 移行は golden 面積が広い — 既定レイアウト再現で中立化する規律が要る</li>
 <li>⚠️ <code>IEditorDocument</code> の serialize 契約を各スタックで満たす必要がある (ノード = JSON 往復、テキスト = 文字列、リッチ文書 = ブロック)</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0010-Workbench-Framework&quot;, Order = 81)]
-public static Widget Adr0010(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0010-Workbench-Framework&quot;, Order = 81, Toc = true)]
+public static StoryResult Adr0010(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0010 — 複数エディタを束ねる Workbench フレームワークを新規に作る
 
     - **Status**: Accepted
@@ -83,4 +91,4 @@ public static Widget Adr0010(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ⚠️ 本格ドッキング + 保存経路 + 複数 doc は**新規コード量が大きい** (だからこそ ADR-0011〜0014 に分割した)
     - ⚠️ Gallery 移行は golden 面積が広い — 既定レイアウト再現で中立化する規律が要る
     - ⚠️ `IEditorDocument` の serialize 契約を各スタックで満たす必要がある (ノード = JSON 往復、テキスト = 文字列、リッチ文書 = ブロック)
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

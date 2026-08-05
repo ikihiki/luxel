@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0019-portable-gpu-semantics-webgpu-backend">ADR-0019 — portable GPU semantics として WebGPU backend を追加する</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0019-Portable-Gpu-Semantics-WebGPU-Backend&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0019-Portable-Gpu-Semantics-WebGPU-Backend&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0019-Portable-Gpu-Semantics-WebGPU-Backend&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0019-Portable-Gpu-Semantics-WebGPU-Backend&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-28</li>
@@ -41,8 +49,8 @@
 <li>⚠️ macOS、Immediate Data、unbounded runtime resource arrays、永続 CPU/GPU 同時 map は portable baseline に含まれない</li>
 <li>⚠️ browser/WASMはsecure context、WebGPU対応browser、wasm-tools workload、async host lifecycleを必要とする</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0019-Portable-Gpu-Semantics-WebGPU-Backend&quot;, Order = 90)]
-public static Widget Adr0019(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0019-Portable-Gpu-Semantics-WebGPU-Backend&quot;, Order = 90, Toc = true)]
+public static StoryResult Adr0019(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0019 — portable GPU semantics として WebGPU backend を追加する
 
     - **Status**: Accepted
@@ -91,4 +99,4 @@ public static Widget Adr0019(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ⚠️ WebGPU の feature/limit と採用 native implementation の対応範囲により、pipeline が明示的に利用不能になる場合がある
     - ⚠️ macOS、Immediate Data、unbounded runtime resource arrays、永続 CPU/GPU 同時 map は portable baseline に含まれない
     - ⚠️ browser/WASMはsecure context、WebGPU対応browser、wasm-tools workload、async host lifecycleを必要とする
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

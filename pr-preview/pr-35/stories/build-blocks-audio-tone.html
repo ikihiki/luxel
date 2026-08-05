@@ -1,4 +1,14 @@
 <article class="story document-page"><h1 id="block-audio-tone">Block: Audio tone</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Build%2FBlocks%2FAudio%2FTone&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-headless-audio-tone">コピーして動かす — Headless audio tone</a>
+<ul>
+<li><a href="#story=Build%2FBlocks%2FAudio%2FTone&amp;section=%60samples%2Fluxelaudio%2Fluxelaudio.csproj%60-project"><code>samples/LuxelAudio/LuxelAudio.csproj</code> (Project)</a></li>
+<li><a href="#story=Build%2FBlocks%2FAudio%2FTone&amp;section=%60samples%2Fluxelaudio%2Fprogram.cs%60-csharp"><code>samples/LuxelAudio/Program.cs</code> (CSharp)</a></li>
+</ul>
+</li>
+</ul>
+<!-- /luxel-toc -->
 <p>Procedural PCMとheadless backendでvoice lifecycleを確認します。</p>
 <h2 id="headless-audio-tone">コピーして動かす — Headless audio tone</h2>
 <blockquote>
@@ -42,11 +52,11 @@ IAudioVoice voice = backend.Voices.Single();
 Console.WriteLine($&quot;audio: initialized={backend.Initialized}, voices={backend.Voices.Count}, queued={voice.BuffersQueued}, playing={voice.IsPlaying}, bytes={pcm.Length}&quot;);
 return backend.Initialized &amp;&amp; voice.BuffersQueued == 1 &amp;&amp; voice.IsPlaying ? 0 : 1;
 </code></pre>
-<details class="sample-bundle"><summary>Run this sample — Block</summary><p>Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.</p><p><strong>Requirements:</strong> .NET 10 / Headless: any supported OS / Audible output: Windows/XAudio2 integration</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>audio: initialized=True, voices=1</code></p><ul><li><code>samples/LuxelAudio/LuxelAudio.csproj</code> <span>Project</span></li><li><code>samples/LuxelAudio/Program.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelAudio</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelAudio</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Blocks/Audio/Tone&quot;, Order = 5, SampleBundle = &quot;audio.tone&quot;)]
-public static Widget AudioTone(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+<details class="sample-bundle"><summary>Run this sample — Block</summary><p>Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.</p><p><strong>Requirements:</strong> .NET 10 / Headless: any supported OS / Audible output: Windows/XAudio2 integration</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>audio: initialized=True, voices=1</code></p><ul><li><code>samples/LuxelAudio/LuxelAudio.csproj</code> <span>Project</span></li><li><code>samples/LuxelAudio/Program.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelAudio</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelAudio</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Blocks/Audio/Tone&quot;, Order = 5, SampleBundle = &quot;audio.tone&quot;, Toc = true)]
+public static StoryResult AudioTone(StoryContext ctx) =&gt; $&quot;&quot;&quot;
     # Block: Audio tone
 
     Procedural PCMとheadless backendでvoice lifecycleを確認します。
 
     {SampleBundle(&quot;audio.tone&quot;)}
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

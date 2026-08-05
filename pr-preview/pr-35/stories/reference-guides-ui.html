@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="ui-luxel.ui">宣言的 UI (Luxel.UI)</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FGuides%2FUI&amp;section=dsl-%E2%80%94-%E3%83%99%E3%82%A2%E3%83%95%E3%82%A1%E3%82%AF%E3%83%88%E3%83%AA-%2B-indexer">DSL — ベアファクトリ + indexer</a></li>
+<li><a href="#story=Reference%2FGuides%2FUI&amp;section=signals-%E2%80%94-%E7%B4%B0%E7%B2%92%E5%BA%A6%E3%83%AA%E3%82%A2%E3%82%AF%E3%83%86%E3%82%A3%E3%83%96">Signals — 細粒度リアクティブ</a></li>
+<li><a href="#story=Reference%2FGuides%2FUI&amp;section=%E3%83%AC%E3%82%A4%E3%82%A2%E3%82%A6%E3%83%88-%E2%80%94-flutter-%E9%A2%A8%E3%81%AE%E5%8D%98%E4%B8%80%E3%83%91%E3%82%B9">レイアウト — Flutter 風の単一パス</a></li>
+<li><a href="#story=Reference%2FGuides%2FUI&amp;section=%E5%85%A5%E5%8A%9B%E3%81%A8%E3%82%A8%E3%83%A9%E3%83%BC%E5%A2%83%E7%95%8C">入力とエラー境界</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>保持型 2D 層 (RetainedCanvas) の上に、<strong>宣言的 C# DSL + signals (細粒度リアクティブ) + 単一パスレイアウト + 入力</strong>を提供します。フレームワークは仮想 DOM を持たず、変わった値だけが保持型キャンバスの部分更新に落ちます。</p>
 <h2 id="dsl-indexer">DSL — ベアファクトリ + indexer</h2>
 <p>構築は <code>Button(...)</code> / <code>VStack(...)</code> などの<strong>ベアファクトリ</strong> (ソースジェネレーターが <code>[UiComponent]</code>/<code>[UiParam]</code> から生成)、子は get-only インデクサ <code>[...]</code>、見た目はすべて省略可能引数。状態レイヤやグリッド配置などの追加宣言は <strong>fluent 拡張</strong> (<code>.When(...)</code> / <code>.Transition(...)</code> / <code>.GridColumn(1)</code>) をチェーンします:</p>
@@ -24,8 +32,8 @@ Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickn
 <h2 id="section">入力とエラー境界</h2>
 <p><code>UiHost</code> がポインタ/キー/IME を前面優先でディスパッチします (Esc → Tab → フォーカス → フォーカス中コントロール → アプリ全域ショートカットの順)。ユーザーコード (Build / Effect / 入力ハンドラ) の例外は<strong>エラー境界</strong>が捕捉し、該当サブツリーを赤枠の ErrorWidget に縮退させます — アプリ全体は落ちません。</p>
 <p>次: <a href="#story=Reference%2FGuides%2FControls">Reference/Guides/Controls</a> (組み込みコントロールと独自コントロール) / <a href="#story=Reference%2FGuides%2FStyling">Reference/Guides/Styling</a> (状態別スタイルと Tailwind)。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/UI&quot;, Order = 20)]
-public static Widget Ui(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/UI&quot;, Order = 20, Toc = true)]
+public static StoryResult Ui(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # 宣言的 UI (Luxel.UI)
 
     保持型 2D 層 (RetainedCanvas) の上に、**宣言的 C# DSL + signals (細粒度リアクティブ) + 単一パスレイアウト + 入力**を提供します。フレームワークは仮想 DOM を持たず、変わった値だけが保持型キャンバスの部分更新に落ちます。
@@ -63,4 +71,4 @@ public static Widget Ui(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
     `UiHost` がポインタ/キー/IME を前面優先でディスパッチします (Esc → Tab → フォーカス → フォーカス中コントロール → アプリ全域ショートカットの順)。ユーザーコード (Build / Effect / 入力ハンドラ) の例外は**エラー境界**が捕捉し、該当サブツリーを赤枠の ErrorWidget に縮退させます — アプリ全体は落ちません。
 
     次: [Reference/Guides/Controls](story:Reference/Guides/Controls) (組み込みコントロールと独自コントロール) / [Reference/Guides/Styling](story:Reference/Guides/Styling) (状態別スタイルと Tailwind)。
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

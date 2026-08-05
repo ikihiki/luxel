@@ -1,4 +1,54 @@
 <article class="story document-page"><h1 id="luxel.assets">Luxel.Assets</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetaabb">AssetAabb</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetalphamode">AssetAlphaMode</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetanimation">AssetAnimation</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetanimationchannel">AssetAnimationChannel</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetanimationpath">AssetAnimationPath</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetanimationsampler">AssetAnimationSampler</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetcache">AssetCache</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetcamera">AssetCamera</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetcamerakind">AssetCameraKind</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetdocument">AssetDocument</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetfilter">AssetFilter</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetimageformat">AssetImageFormat</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetinterpolation">AssetInterpolation</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetlight">AssetLight</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetlightkind">AssetLightKind</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetloaders">AssetLoaders</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetmaterial">AssetMaterial</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetmaterialmodel">AssetMaterialModel</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetmaterialref">AssetMaterialRef</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetmesh">AssetMesh</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetmeshref">AssetMeshRef</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetmipfilter">AssetMipFilter</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetmorphtarget">AssetMorphTarget</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetnode">AssetNode</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetnodename">AssetNodeName</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetnormaltextureref">AssetNormalTextureRef</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetocclusiontextureref">AssetOcclusionTextureRef</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetprimitive">AssetPrimitive</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetsampler">AssetSampler</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetscene">AssetScene</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetskin">AssetSkin</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetskinref">AssetSkinRef</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assettexture">AssetTexture</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assettextureref">AssetTextureRef</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assettexturetransform">AssetTextureTransform</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assettopology">AssetTopology</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetvertexbuffer">AssetVertexBuffer</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=assetwrapmode">AssetWrapMode</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=cubemesh">CubeMesh</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=drawinstance">DrawInstance</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=drawmaterial">DrawMaterial</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=drawmesh">DrawMesh</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=drawskinning">DrawSkinning</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=iassetloader">IAssetLoader</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=materialgpudata">MaterialGpuData</a></li>
+<li><a href="#story=Reference%2FLuxel.Assets&amp;section=uiquadmesh">UiQuadMesh</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="assetaabb">AssetAabb</h2>
 <section class="api-reference"><p class="api-summary">struct — 軸平行境界ボックス (Axis-Aligned Bounding Box)。カリング/frustum 判定用。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>AssetAabb</code></th><td><code>(Vector3 min, Vector3 max)</code></td><td>Min/Max を指定して作成。</td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>FromPoints</code></th><td><code>(ReadOnlySpan&lt;Vector3&gt; points) → AssetAabb</code></td><td>点群を包む AABB を計算 (空なら zero AABB)。</td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Center</code></th><td><code>Vector3 (get)</code></td><td>中心座標。</td></tr><tr><th scope="row"><code>Extent</code></th><td><code>Vector3 (get)</code></td><td>中心から各面までの半径 (Size の半分)。</td></tr><tr><th scope="row"><code>Size</code></th><td><code>Vector3 (get)</code></td><td>各軸の全長 (Max - Min)。</td></tr></tbody></table></div><h3>フィールド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Min</code></th><td><code>Vector3</code></td><td>最小コーナー。</td></tr><tr><th scope="row"><code>Max</code></th><td><code>Vector3</code></td><td>最大コーナー。</td></tr></tbody></table></div></section>

@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0002-3d-api-bindless">ADR-0002 — 3D グラフィック API は「薄い bindless 抽象」を自作する</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0002-Thin-Bindless-Gpu-Abstraction&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0002-Thin-Bindless-Gpu-Abstraction&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0002-Thin-Bindless-Gpu-Abstraction&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0002-Thin-Bindless-Gpu-Abstraction&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-08 (記録日 — 決定自体はプロジェクト開始時)</li>
@@ -43,8 +51,8 @@
 <li>⚠️ バックエンド固有の罠は自分で吸収する (例: D3D12 の CopyTextureToBuffer 行 256B 整列 → RGBA8 はターゲット幅 64 の倍数、DXIL は validator 1.7 指定)</li>
 <li>⚠️ stage バリアのみの単純化は「単純な使用パターン」が前提 — 複雑な並行アクセスパターンが将来必要になったら見直し対象</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0002-Thin-Bindless-Gpu-Abstraction&quot;, Order = 73)]
-public static Widget Adr0002(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0002-Thin-Bindless-Gpu-Abstraction&quot;, Order = 73, Toc = true)]
+public static StoryResult Adr0002(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0002 — 3D グラフィック API は「薄い bindless 抽象」を自作する
 
     - **Status**: Accepted
@@ -91,4 +99,4 @@ public static Widget Adr0002(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ⚠️ 抽象を自作した以上、**vk / dx ピクセル一致**を自分で保証し続ける必要がある — snap 回帰をバックエンド別 golden で持ち、新機能は両方で検証してから完了とする開発規律が生まれた
     - ⚠️ バックエンド固有の罠は自分で吸収する (例: D3D12 の CopyTextureToBuffer 行 256B 整列 → RGBA8 はターゲット幅 64 の倍数、DXIL は validator 1.7 指定)
     - ⚠️ stage バリアのみの単純化は「単純な使用パターン」が前提 — 複雑な並行アクセスパターンが将来必要になったら見直し対象
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

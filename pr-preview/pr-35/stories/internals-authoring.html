@@ -2,8 +2,8 @@
 <p>docs ページは <strong>補完文字列 + markdown</strong> で書きます。リテラル部分は markdown として整形され、hole に <code>Widget</code> を置くとその場に<strong>ライブ UI</strong> が埋め込まれます。カラー絵文字 :smile: :rocket: :+1: と &quot;smart quotes&quot; -- SmartyPants も効きます。リンクも張れます: <a href="#story=Reference%2FGuides%2FButton">Reference/Guides/Button を開く</a> / <a href="#story=Internals%2FAuthoring&amp;section=%E6%9B%B8%E3%81%91%E3%82%8B%E3%82%82%E3%81%AE">書けるもの へ</a> / <a href="https://www.sebastianaaltonen.com/blog/no-graphics-api">No Graphics API (外部)</a></p>
 <h2 id="section">ページの骨格</h2>
 <p><code>[Story(&quot;Reference/Guides/...&quot;)]</code> + <code>Kit.Docs</code> + <code>WithDocFonts</code> (日本語/絵文字フォールバック + シンタックスハイライト + mermaid/math widget の配線) が定型です。文字列は <code>$$&quot;&quot;&quot;</code> (hole = 波かっこ 2 連) にすると、C# コード例の波かっこ 1 連がそのままリテラルになります:</p>
-<pre><code class="language-csharp">[Story(&quot;Reference/Guides/MyPage&quot;, Order = 50)]
-public static Widget MyPage(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<pre><code class="language-csharp">[Story(&quot;Reference/Guides/MyPage&quot;, Order = 50, Toc = true)]
+public static StoryResult MyPage(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # 見出し
 
     本文。hole にはライブ UI が置けます: {{Button(_ =&gt; ctx.Log(&quot;hi&quot;), &quot;押す&quot;)}}
@@ -11,7 +11,7 @@ public static Widget MyPage(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&q
     コード例の波かっこはリテラルです: new Args { Count = n }
 
     {{StoryRef(ctx, &quot;Controls/Button/Variants&quot;, knobs: true)}}
-    &quot;&quot;&quot;, toc: true);
+    &quot;&quot;&quot;;
 </code></pre>
 <p><code>Order</code> がサイドバーの並び、<code>toc: true</code> で H2/H3 の目次が H1 直後に入ります。ページの H2/H3 はサイドバーのツリーにも出るので、節の粒度 = ナビゲーションの粒度です。</p>
 <h2 id="ui">ライブ UI</h2>
@@ -58,7 +58,7 @@ canvas --&gt;|dispatch| gpu(GPU)</pre>
 <li>snap (オフスクリーン回帰) は日本語フォールバックフォントがなく豆腐になりますが、決定的なので回帰検出には有効です</li>
 </ul>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/Authoring&quot;, Order = 91)]
-public static Widget Authoring(StoryContext ctx)
+public static StoryResult Authoring(StoryContext ctx)
 {
     // snap (静定 1 フレーム) の決定性のため画像を同期 preload — 実アプリでは不要
     if (ctx.ResourcesOrNull is { } resources)
@@ -73,7 +73,7 @@ public static Widget Authoring(StoryContext ctx)
         Text($&quot; {count} &quot;, 20, vAlign: Align.Center),
         Button(_ =&gt; { count.Value++; ctx.Log(&quot;counter: +1&quot;); }, &quot;+&quot;)];
 
-    Widget doc = DocNew(ctx, $$$&quot;&quot;&quot;&quot;
+    StoryResult doc = $$$&quot;&quot;&quot;&quot;
         # docs ページの書き方
 
         docs ページは **補完文字列 + markdown** で書きます。リテラル部分は markdown として整形され、hole に `Widget` を置くとその場に**ライブ UI** が埋め込まれます。カラー絵文字 :smile: :rocket: :+1: と &quot;smart quotes&quot; -- SmartyPants も効きます。リンクも張れます: [Reference/Guides/Button を開く](story:Reference/Guides/Button) / [書けるもの へ](#書けるもの) / [No Graphics API (外部)](https://www.sebastianaaltonen.com/blog/no-graphics-api)
@@ -83,8 +83,8 @@ public static Widget Authoring(StoryContext ctx)
         `[Story(&quot;Reference/Guides/...&quot;)]` + `Kit.Docs` + `WithDocFonts` (日本語/絵文字フォールバック + シンタックスハイライト + mermaid/math widget の配線) が定型です。文字列は `$$&quot;&quot;&quot;` (hole = 波かっこ 2 連) にすると、C# コード例の波かっこ 1 連がそのままリテラルになります:
 
         ```csharp
-        [Story(&quot;Reference/Guides/MyPage&quot;, Order = 50)]
-        public static Widget MyPage(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+        [Story(&quot;Reference/Guides/MyPage&quot;, Order = 50, Toc = true)]
+        public static StoryResult MyPage(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
             # 見出し
 
             本文。hole にはライブ UI が置けます: {{Button(_ =&gt; ctx.Log(&quot;hi&quot;), &quot;押す&quot;)}}
@@ -92,7 +92,7 @@ public static Widget Authoring(StoryContext ctx)
             コード例の波かっこはリテラルです: new Args { Count = n }
 
             {{StoryRef(ctx, &quot;Controls/Button/Variants&quot;, knobs: true)}}
-            &quot;&quot;&quot;, toc: true);
+            &quot;&quot;&quot;;
         ```
 
         `Order` がサイドバーの並び、`toc: true` で H2/H3 の目次が H1 直後に入ります。ページの H2/H3 はサイドバーのツリーにも出るので、節の粒度 = ナビゲーションの粒度です。
@@ -152,16 +152,6 @@ public static Widget Authoring(StoryContext ctx)
         - 埋め込みストーリーの knob 名がページ側と衝突したら後勝ち
         - StoryRef は 1 ページ 1〜3 個まで (実体化 + snap のコストがかかる)
         - snap (オフスクリーン回帰) は日本語フォールバックフォントがなく豆腐になりますが、決定的なので回帰検出には有効です
-        &quot;&quot;&quot;&quot;, toc: true);
-    // golden ①先頭、②「ライブ UI」見出しへスクロールして**行内 widget** (Badge/Button の :inline hole) を映す
-    ctx.Play(async d =&gt;
-    {
-        await d.Snap();
-        if (doc is TextEditorView tev)
-            foreach (MarkdownHeading h in MarkdownDecorations.Headings(tev.DocSource!))
-                if (h.Text == &quot;ライブ UI&quot;) { tev.ScrollToSource(h.Offset); break; }
-        await d.Step(2);
-        await d.Snap(&quot;inline&quot;);
-    });
+        &quot;&quot;&quot;&quot;;
     return doc;
 }</code></pre></details></article>

@@ -1,4 +1,13 @@
 <article class="story document-page"><h1 id="luxel.resources">リソース (Luxel.Resources)</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FGuides%2FResources&amp;section=load-%E3%81%A8-resourcehandle">Load と ResourceHandle</a></li>
+<li><a href="#story=Reference%2FGuides%2FResources&amp;section=%E8%87%AA%E5%8B%95%E3%82%B3%E3%83%B3%E3%83%9D%E3%83%BC%E3%82%BA-%E2%80%94-step-%E3%81%AE%E9%80%A3%E9%8E%96">自動コンポーズ — Step の連鎖</a></li>
+<li><a href="#story=Reference%2FGuides%2FResources&amp;section=3-%E3%83%AC%E3%83%BC%E3%83%B3%E5%AE%9F%E8%A1%8C-io-%2F-cpu-%2F-gpu">3 レーン実行 (Io / Cpu / Gpu)</a></li>
+<li><a href="#story=Reference%2FGuides%2FResources&amp;section=%E3%83%91%E3%83%83%E3%82%B1%E3%83%BC%E3%82%B8%E3%81%AE%E5%BD%B9%E5%89%B2%E5%88%86%E6%8B%85">パッケージの役割分担</a></li>
+<li><a href="#story=Reference%2FGuides%2FResources&amp;section=rendergraph-%E3%81%A8%E3%81%AE%E9%96%A2%E4%BF%82">RenderGraph との関係</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>初めて使う場合は <a href="#story=Learn%2FResources%2FOverview">Resources Learn</a>、コピー可能な最小構成は <a href="#story=Build%2FBlocks%2FResources%2FPipeline">Build/Blocks/Resources/Pipeline</a> から始めてください。</p>
 <p>アセットのロードは <strong>(型, uri) をキーとするノードキャッシュ</strong>の上で動きます。同じ (型, uri) は常に同じノードを共有し、参照カウントとリロードをシステムが管理します。</p>
 <h2 id="load-resourcehandle">Load と ResourceHandle</h2>
@@ -57,8 +66,8 @@ resources.Pump();                   // 毎フレーム: リロード反映と破
 </table>
 <h2 id="rendergraph">RenderGraph との関係</h2>
 <p>混同注意 — Resources は<strong>多フレーム寿命のアセット</strong> ((型, uri) DAG)、RenderGraph は <strong>1 フレームのパス合成</strong> ((pass, resource) DAG) です。併用は「Resources でロードした GpuTexture を <code>ImportTexture</code> で External として取り込む」形 (<a href="#story=Reference%2FGuides%2FRenderGraph">Reference/Guides/RenderGraph</a> の対比表も参照)。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Resources&quot;, Order = 50)]
-public static Widget Resources(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Resources&quot;, Order = 50, Toc = true)]
+public static StoryResult Resources(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # リソース (Luxel.Resources)
 
     初めて使う場合は [Resources Learn](story:Learn/Resources/Overview)、コピー可能な最小構成は [Build/Blocks/Resources/Pipeline](story:Build/Blocks/Resources/Pipeline) から始めてください。
@@ -108,4 +117,4 @@ public static Widget Resources(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot
     ## RenderGraph との関係
 
     混同注意 — Resources は**多フレーム寿命のアセット** ((型, uri) DAG)、RenderGraph は **1 フレームのパス合成** ((pass, resource) DAG) です。併用は「Resources でロードした GpuTexture を `ImportTexture` で External として取り込む」形 ([Reference/Guides/RenderGraph](story:Reference/Guides/RenderGraph) の対比表も参照)。
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

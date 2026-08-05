@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0011-pointerevent">ADR-0011 — PointerEvent にボタンと修飾キーを通す</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0011-Pointer-Button-Modifiers&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0011-Pointer-Button-Modifiers&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0011-Pointer-Button-Modifiers&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0011-Pointer-Button-Modifiers&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-09</li>
@@ -32,8 +40,8 @@
 <li>⚠️ <code>PointerEvent</code> の構造とその生成/配布経路 (<code>UiHost</code>) を触るため、<strong>全ドラッグ系の無回帰</strong>を golden で確認する必要がある</li>
 <li>⚠️ 修飾キー/ボタンの取得はプラットフォーム依存 — Win32 のメッセージから正しく組み立てる (他 OS 対応時は各 Platform で埋める)</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0011-Pointer-Button-Modifiers&quot;, Order = 82)]
-public static Widget Adr0011(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0011-Pointer-Button-Modifiers&quot;, Order = 82, Toc = true)]
+public static StoryResult Adr0011(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0011 — PointerEvent にボタンと修飾キーを通す
 
     - **Status**: Accepted
@@ -70,4 +78,4 @@ public static Widget Adr0011(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ✅ 本格ドッキング ([ADR-0010](story:Internals/ADR/0010-Workbench-Framework) / [ADR-0014](story:Internals/ADR/0014-Workbench-Ui-Controls)) の前提が揃う
     - ⚠️ `PointerEvent` の構造とその生成/配布経路 (`UiHost`) を触るため、**全ドラッグ系の無回帰**を golden で確認する必要がある
     - ⚠️ 修飾キー/ボタンの取得はプラットフォーム依存 — Win32 のメッセージから正しく組み立てる (他 OS 対応時は各 Platform で埋める)
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

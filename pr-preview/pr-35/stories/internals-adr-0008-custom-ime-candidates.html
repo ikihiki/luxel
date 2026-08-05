@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0008-ime">ADR-0008 — IME 候補ウインドウを自前描画する (排他モード対応)</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0008-Custom-Ime-Candidates&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0008-Custom-Ime-Candidates&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0008-Custom-Ime-Candidates&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0008-Custom-Ime-Candidates&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Proposed</li>
 <li><strong>Date</strong>: 2026-07-08</li>
@@ -33,8 +41,8 @@
 <li>⚠️ 候補以外の UI 要素 (リーディングウインドウ/ツールチップ) もあり、抑制範囲の線引きが要る</li>
 <li>⚠️ 抑制すると OS の候補由来の便利機能も消えるため、既定は通常ウインドウ=OS 描画・排他=自前、の切替方針を守る必要がある</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0008-Custom-Ime-Candidates&quot;, Order = 79)]
-public static Widget Adr0008(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0008-Custom-Ime-Candidates&quot;, Order = 79, Toc = true)]
+public static StoryResult Adr0008(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0008 — IME 候補ウインドウを自前描画する (排他モード対応)
 
     - **Status**: Proposed
@@ -74,4 +82,4 @@ public static Widget Adr0008(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ⚠️ **実 IME 依存で決定的テストが困難** — 実機 + 各 IME (MS-IME/Google 日本語入力等) の手動検証が必須。golden に乗らない
     - ⚠️ 候補以外の UI 要素 (リーディングウインドウ/ツールチップ) もあり、抑制範囲の線引きが要る
     - ⚠️ 抑制すると OS の候補由来の便利機能も消えるため、既定は通常ウインドウ=OS 描画・排他=自前、の切替方針を守る必要がある
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

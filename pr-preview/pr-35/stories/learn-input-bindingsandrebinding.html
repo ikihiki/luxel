@@ -1,38 +1,43 @@
 <article class="story document-page"><h1 id="section">バインディングとキーの再設定</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FInput%2FBindingsAndRebinding&amp;section=%E3%82%A2%E3%82%AF%E3%82%B7%E3%83%A7%E3%83%B3%E3%81%A8%E3%83%86%E3%82%B9%E3%83%88%E7%94%A8%E5%85%A5%E5%8A%9B%E3%82%92%E7%94%A8%E6%84%8F%E3%81%99%E3%82%8B">アクションとテスト用入力を用意する</a></li>
+<li><a href="#story=Learn%2FInput%2FBindingsAndRebinding&amp;section=json%E3%81%A8%E3%81%97%E3%81%A6%E4%BF%9D%E5%AD%98%E3%81%99%E3%82%8B">JSONとして保存する</a></li>
+<li><a href="#story=Learn%2FInput%2FBindingsAndRebinding&amp;section=json%E3%82%92%E8%AA%AD%E3%81%BF%E8%BE%BC%E3%81%BF%E3%80%81%E3%82%B3%E3%83%B3%E3%83%86%E3%82%AD%E3%82%B9%E3%83%88%E3%81%B8%E5%8F%8D%E6%98%A0%E3%81%99%E3%82%8B">JSONを読み込み、コンテキストへ反映する</a></li>
+<li><a href="#story=Learn%2FInput%2FBindingsAndRebinding&amp;section=%E5%8F%8D%E6%98%A0%E3%81%97%E3%81%9F%E3%83%90%E3%82%A4%E3%83%B3%E3%83%87%E3%82%A3%E3%83%B3%E3%82%B0%E3%82%92%E7%A2%BA%E8%AA%8D%E3%81%99%E3%82%8B">反映したバインディングを確認する</a></li>
+<li><a href="#story=Learn%2FInput%2FBindingsAndRebinding&amp;section=%E5%86%8D%E8%A8%AD%E5%AE%9Aui%E3%81%AE%E8%B2%AC%E5%8B%99">再設定UIの責務</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Gallery / Settings　 <strong>Backend:</strong> Backend neutral　 <strong>前提知識:</strong> アクションとコンテキスト</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FInput%2FActionsAndContexts">ActionsAndContexts</a>　 <strong>次:</strong> <a href="#story=Learn%2FInput%2FPlatformsAndTesting">PlatformsAndTesting</a></p>
-<h2 id="section-1">バインディングをデータにする理由</h2>
-<p>ゲームロジックには「Spaceが押されたか」ではなく「Jumpが有効か」を問い合わせます。<code>Jump</code>というアクション名をゲーム側の契約として固定し、SpaceやEnterとの対応を<code>InputBindings</code>へ分離します。</p>
-<p>この分離により、次の処理をゲームロジックを変更せず実装できます。</p>
-<ul>
-<li>ユーザーごとのキー設定</li>
-<li>初期設定へのリセット</li>
-<li>設定ファイルへの保存と読み込み</li>
-<li>キーボードとゲームパッドの複数バインド</li>
-</ul>
-<h2 id="section-2">読み込みと反映</h2>
-<ol>
-<li>JSONを<code>InputBindings</code>へデシリアライズします。</li>
-<li><code>InputBindingsApplier.Apply(bindings, context)</code>を呼びます。</li>
-<li>Applierがアクション名を照合し、<code>ButtonAction.Keys</code>、<code>Axis1DAction.ButtonPairs</code>、<code>Axis2DAction.ButtonQuads</code>などを更新します。</li>
-<li>以降のtickから、新しい物理キーで同じ論理アクションが有効になります。</li>
-</ol>
-<p>次のStoryでは、JumpのバインドをSpaceとEnterで切り替えた後、それぞれのキーをシミュレートして結果を確認できます。表示しているJSONを読み戻してから<code>InputBindingsApplier</code>へ渡しているため、保存・読み込みと同じ境界を通ります。</p>
 <aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
-<pre><code class="language-csharp">    [Story(&quot;Examples/Input/Bindings&quot;, Width = 680, Height = 440, Order = 2)]
-    public static Widget Bindings()
-    {
-        var source = new FakeInputSource();
+<p>上のStoryはJumpのバインドをSpaceとEnterで切り替え、表示中のJSONを読み戻してから<code>InputBindingsApplier</code>へ反映します。その後、各キーをシミュレートして、新しい設定でJumpが発火するか確認できます。</p>
+<h2 id="section-1">アクションとテスト用入力を用意する</h2>
+<p>ゲームロジックには「Spaceが押されたか」ではなく「Jumpが有効か」を問い合わせます。<code>Jump</code>というアクション名を契約として固定し、物理キーとの対応だけを変更します。</p>
+<pre><code class="language-csharp">        var source = new FakeInputSource();
         var bus = new InputBus();
         var context = new InputContext(&quot;Gameplay&quot;);
         var jump = context.Add(new ButtonAction(&quot;Jump&quot;, KeyCode.Space));
         var stack = new InputStack();
         stack.Push(context);
-        var current = new Signal&lt;KeyCode&gt;(KeyCode.Space);
-        var result = new Signal&lt;string&gt;(&quot;現在のJumpはSpaceです。&quot;);
-        var json = new Signal&lt;string&gt;(Serialize(KeyCode.Space));
-
-        void ApplyBinding(KeyCode key)
+</code></pre>
+<p>この分離により、ユーザーごとのキー設定、初期設定へのリセット、設定ファイルへの保存と読み込み、キーボードとゲームパッドの複数バインドを、ゲームロジックを変更せず実装できます。</p>
+<h2 id="json">JSONとして保存する</h2>
+<p><code>InputBindings.Actions</code>のキーは論理アクション名です。<code>InputBindingEntry.Kind</code>でbutton／axisの種類を示し、<code>Keys</code>、<code>Pairs</code>、<code>Quads</code>、<code>Axes</code>へ物理入力名を保存します。</p>
+<pre><code class="language-csharp">        static string Serialize(KeyCode key) =&gt; JsonSerializer.Serialize(new InputBindings
+        {
+            Actions = { [&quot;Jump&quot;] = new InputBindingEntry { Kind = &quot;button&quot;, Keys = [key.ToString()] } }
+        }, new JsonSerializerOptions { WriteIndented = true });
+</code></pre>
+<p>JSONには<code>Jump</code>と<code>Space</code>または<code>Enter</code>の対応だけが含まれます。ゲーム側はこの物理キー名を直接参照しません。</p>
+<h2 id="json-1">JSONを読み込み、コンテキストへ反映する</h2>
+<ol>
+<li>JSONを<code>InputBindings</code>へデシリアライズします。</li>
+<li><code>InputBindingsApplier.Apply(bindings, context)</code>を呼びます。</li>
+<li>Applierがアクション名を照合し、<code>ButtonAction.Keys</code>などを更新します。</li>
+<li>以降のtickから、新しい物理キーで同じJumpアクションが有効になります。</li>
+</ol>
+<pre><code class="language-csharp">        void ApplyBinding(KeyCode key)
         {
             string serialized = Serialize(key);
             InputBindings loaded = JsonSerializer.Deserialize&lt;InputBindings&gt;(serialized)!;
@@ -41,8 +46,10 @@
             json.Value = serialized;
             result.Value = $&quot;JSONを読み込み、Jumpを{current.Value}へ再設定しました。&quot;;
         }
-
-        void Simulate(KeyCode key)
+</code></pre>
+<h2 id="section-2">反映したバインディングを確認する</h2>
+<p>新しいキーを押して1 tick進め、Jumpのactive状態を読みます。その後、キーを解放して次のtickへ進めます。保存・読み込みとアクション評価を同じStory内で確認できます。</p>
+<pre><code class="language-csharp">        void Simulate(KeyCode key)
         {
             source.PressKey(key); source.Poll(bus); stack.Update(bus);
             bool activated = jump.IsActive.Value;
@@ -51,63 +58,54 @@
                 ? $&quot;{key}でJumpが発火しました。&quot;
                 : $&quot;{key}は現在のJumpバインドではありません。&quot;;
         }
-
-        return Frame(VStack(12, width: 600)[
-            Heading(&quot;バインディングと再設定&quot;, 2),
-            Text(&quot;アクション名をゲーム側の契約として固定し、物理キーとの対応だけをJSONで保存・読み込みします。&quot;, 14,
-                wrap: TextWrap.Word, width: 590, color: Bind.From(() =&gt; UiTheme.T.TextMuted)),
-            HStack(10)[
-                Button(_ =&gt; ApplyBinding(KeyCode.Space), &quot;JumpをSpaceへ設定&quot;),
-                Button(_ =&gt; ApplyBinding(KeyCode.Enter), &quot;JumpをEnterへ設定&quot;)],
-            HStack(10)[
-                Button(_ =&gt; Simulate(KeyCode.Space), &quot;Spaceを試す&quot;),
-                Button(_ =&gt; Simulate(KeyCode.Enter), &quot;Enterを試す&quot;)],
-            Text((Func&lt;string&gt;)(() =&gt; $&quot;現在のバインド: Jump → {current.Value}&quot;), 15),
-            Text($&quot;{result}&quot;, 14, color: Bind.From(() =&gt; UiTheme.T.TextMuted)),
-            Card(Text($&quot;{json}&quot;, 12, wrap: TextWrap.Word, width: 520))]);
-
-        static string Serialize(KeyCode key) =&gt; JsonSerializer.Serialize(new InputBindings
-        {
-            Actions = { [&quot;Jump&quot;] = new InputBindingEntry { Kind = &quot;button&quot;, Keys = [key.ToString()] } }
-        }, new JsonSerializerOptions { WriteIndented = true });
-    }
 </code></pre>
 <h2 id="ui">再設定UIの責務</h2>
 <p>再設定UIは、ユーザーが次に押した物理キーまたはボタンを取得し、対象アクションのbinding entryを書き換えます。実ウィンドウでは<code>WindowInputSource.TakePressed()</code>を使って直近のキー押下を取得できます。</p>
 <p>文字入力やIME compositionはキー設定ではなく<code>Luxel.UI</code>のテキスト入力経路で扱います。表示文字と物理キーを混同しないことが重要です。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Input/BindingsAndRebinding&quot;, Order = 2)]
-public static Widget Bindings(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Input/BindingsAndRebinding&quot;, Order = 2, Toc = true)]
+public static StoryResult Bindings(StoryContext ctx) =&gt; $&quot;&quot;&quot;
     # バインディングとキーの再設定
 
     {RuntimeCourseCatalog.Meta(&quot;Learn/Input/BindingsAndRebinding&quot;, &quot;Beginner&quot;, &quot;Gallery / Settings&quot;, &quot;Backend neutral&quot;, &quot;アクションとコンテキスト&quot;)}
 
-    ## バインディングをデータにする理由
+    {StoryRef(ctx, &quot;Examples/Input/Bindings&quot;)}
 
-    ゲームロジックには「Spaceが押されたか」ではなく「Jumpが有効か」を問い合わせます。`Jump`というアクション名をゲーム側の契約として固定し、SpaceやEnterとの対応を`InputBindings`へ分離します。
+    上のStoryはJumpのバインドをSpaceとEnterで切り替え、表示中のJSONを読み戻してから`InputBindingsApplier`へ反映します。その後、各キーをシミュレートして、新しい設定でJumpが発火するか確認できます。
 
-    この分離により、次の処理をゲームロジックを変更せず実装できます。
+    ## アクションとテスト用入力を用意する
 
-    - ユーザーごとのキー設定
-    - 初期設定へのリセット
-    - 設定ファイルへの保存と読み込み
-    - キーボードとゲームパッドの複数バインド
+    ゲームロジックには「Spaceが押されたか」ではなく「Jumpが有効か」を問い合わせます。`Jump`というアクション名を契約として固定し、物理キーとの対応だけを変更します。
 
-    ## 読み込みと反映
+    {SampleSource(&quot;src/Luxel.Gallery.Stories/Stories/InputActionStories.cs&quot;, &quot;input-bindings-setup&quot;)}
+
+    この分離により、ユーザーごとのキー設定、初期設定へのリセット、設定ファイルへの保存と読み込み、キーボードとゲームパッドの複数バインドを、ゲームロジックを変更せず実装できます。
+
+    ## JSONとして保存する
+
+    `InputBindings.Actions`のキーは論理アクション名です。`InputBindingEntry.Kind`でbutton／axisの種類を示し、`Keys`、`Pairs`、`Quads`、`Axes`へ物理入力名を保存します。
+
+    {SampleSource(&quot;src/Luxel.Gallery.Stories/Stories/InputActionStories.cs&quot;, &quot;input-bindings-json&quot;)}
+
+    JSONには`Jump`と`Space`または`Enter`の対応だけが含まれます。ゲーム側はこの物理キー名を直接参照しません。
+
+    ## JSONを読み込み、コンテキストへ反映する
 
     1. JSONを`InputBindings`へデシリアライズします。
     2. `InputBindingsApplier.Apply(bindings, context)`を呼びます。
-    3. Applierがアクション名を照合し、`ButtonAction.Keys`、`Axis1DAction.ButtonPairs`、`Axis2DAction.ButtonQuads`などを更新します。
-    4. 以降のtickから、新しい物理キーで同じ論理アクションが有効になります。
+    3. Applierがアクション名を照合し、`ButtonAction.Keys`などを更新します。
+    4. 以降のtickから、新しい物理キーで同じJumpアクションが有効になります。
 
-    次のStoryでは、JumpのバインドをSpaceとEnterで切り替えた後、それぞれのキーをシミュレートして結果を確認できます。表示しているJSONを読み戻してから`InputBindingsApplier`へ渡しているため、保存・読み込みと同じ境界を通ります。
+    {SampleSource(&quot;src/Luxel.Gallery.Stories/Stories/InputActionStories.cs&quot;, &quot;input-bindings-apply&quot;)}
 
-    {StoryRef(ctx, &quot;Examples/Input/Bindings&quot;)}
+    ## 反映したバインディングを確認する
 
-    {SampleSource(&quot;src/Luxel.Gallery.Stories/Stories/InputActionStories.cs&quot;, &quot;input-bindings-story&quot;)}
+    新しいキーを押して1 tick進め、Jumpのactive状態を読みます。その後、キーを解放して次のtickへ進めます。保存・読み込みとアクション評価を同じStory内で確認できます。
+
+    {SampleSource(&quot;src/Luxel.Gallery.Stories/Stories/InputActionStories.cs&quot;, &quot;input-bindings-simulate&quot;)}
 
     ## 再設定UIの責務
 
     再設定UIは、ユーザーが次に押した物理キーまたはボタンを取得し、対象アクションのbinding entryを書き換えます。実ウィンドウでは`WindowInputSource.TakePressed()`を使って直近のキー押下を取得できます。
 
     文字入力やIME compositionはキー設定ではなく`Luxel.UI`のテキスト入力経路で扱います。表示文字と物理キーを混同しないことが重要です。
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

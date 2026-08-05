@@ -10,7 +10,7 @@
 <tbody>
 <tr>
 <td>最初の GPU アプリ</td>
-<td><a href="#story=Learn%2FGrapics%2FOverview">Grapics</a></td>
+<td><a href="#story=Learn%2FGraphics%2FOverview">Graphics</a></td>
 <td>standalone triangle</td>
 </tr>
 <tr>
@@ -20,8 +20,8 @@
 </tr>
 <tr>
 <td>2D canvas</td>
-<td><a href="#story=Learn%2FGrapics%2F2D%2FOverview">2D</a></td>
-<td>input と camera 付き 2D app</td>
+<td><a href="#story=Learn%2FGraphics%2F2D%2FOverview">2D</a></td>
+<td>2D content を構築して描画できる</td>
 </tr>
 <tr>
 <td>複数pass GPU描画</td>
@@ -30,23 +30,23 @@
 </tr>
 <tr>
 <td>実装読解</td>
-<td><a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FOverview">Internal</a></td>
+<td><a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FOverview">Internal</a></td>
 <td>C# から compute pass まで説明できる</td>
 </tr>
 </tbody>
 </table>
-<p>初心者は Grapics 直下のページを順番に進めてください。各ページ末尾の「次」を辿れば前提を飛ばしません。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Start/ChooseYourPath&quot;, Order = 1)]
-public static Widget ChooseYourPath(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p>初心者は Graphics 直下のページを順番に進めてください。各ページ末尾の「次」を辿れば前提を飛ばしません。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Start/ChooseYourPath&quot;, Order = 1, Toc = true)]
+public static StoryResult ChooseYourPath(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # 自分のルートを選ぶ
 
     | 目的 | 開始ページ | 到達物 |
     |---|---|---|
-    | 最初の GPU アプリ | [Grapics](story:Learn/Grapics/Overview) | standalone triangle |
+    | 最初の GPU アプリ | [Graphics](story:Learn/Graphics/Overview) | standalone triangle |
     | 実用 3D | [Indexed Cube](story:Build/Recipes/IndexedCube) | indexed mesh + perspective camera |
-    | 2D canvas | [2D](story:Learn/Grapics/2D/Overview) | input と camera 付き 2D app |
+    | 2D canvas | [2D](story:Learn/Graphics/2D/Overview) | 2D content を構築して描画できる |
     | 複数pass GPU描画 | [RenderGraph](story:Learn/RenderGraph/Overview) | transient resource、自動barrier、culling、aliasing |
-    | 実装読解 | [Internal](story:Learn/Grapics/2D/Internal/Overview) | C# から compute pass まで説明できる |
+    | 実装読解 | [Internal](story:Learn/Graphics/2D/Internal/Overview) | C# から compute pass まで説明できる |
 
-    初心者は Grapics 直下のページを順番に進めてください。各ページ末尾の「次」を辿れば前提を飛ばしません。
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    初心者は Graphics 直下のページを順番に進めてください。各ページ末尾の「次」を辿れば前提を飛ばしません。
+    &quot;&quot;&quot;;</code></pre></details></article>

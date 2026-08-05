@@ -1,6 +1,7 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/Input/Actions</h1></header><aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/Input/Actions&quot;, Width = 680, Height = 430, Order = 0)]
 public static Widget Actions()
 {
+    // docs:begin input-actions-setup
     var source = new FakeInputSource();
     var bus = new InputBus();
     var gameplay = new InputContext(&quot;Gameplay&quot;);
@@ -9,7 +10,9 @@ public static Widget Actions()
     move.ButtonQuads.Add((KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D));
     var stack = new InputStack();
     stack.Push(gameplay);
+    // docs:end input-actions-setup
 
+    // docs:begin input-actions-edges
     var jumpTriggered = new Signal&lt;int&gt;(0);
     var jumpReleased = new Signal&lt;int&gt;(0);
     jump.Triggered += () =&gt; jumpTriggered.Value++;
@@ -21,6 +24,7 @@ public static Widget Actions()
         if (pressed) source.PressKey(key); else source.ReleaseKey(key);
         Tick();
     }
+    // docs:end input-actions-edges
 
     Widget KeyButton(string label, KeyCode key) =&gt; HStack(6)[
         Button(_ =&gt; SetKey(key, true), $&quot;{label} 押下&quot;),

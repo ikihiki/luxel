@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="luxel.controls">コントロール (Luxel.Controls)</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FGuides%2FControls&amp;section=%E3%82%AB%E3%82%BF%E3%83%AD%E3%82%B0">カタログ</a></li>
+<li><a href="#story=Reference%2FGuides%2FControls&amp;section=%E6%A8%AA%E6%96%AD%E5%9F%BA%E7%9B%A4">横断基盤</a></li>
+<li><a href="#story=Reference%2FGuides%2FControls&amp;section=compositecontrol-%E2%80%94-%E7%8B%AC%E8%87%AA%E3%82%B3%E3%83%B3%E3%83%88%E3%83%AD%E3%83%BC%E3%83%AB%E3%82%92%E6%9B%B8%E3%81%8F">CompositeControl — 独自コントロールを書く</a></li>
+<li><a href="#story=Reference%2FGuides%2FControls&amp;section=%E3%82%B9%E3%82%AF%E3%83%AD%E3%83%BC%E3%83%AB%E3%81%AE%E5%85%B1%E9%80%9A%E6%A9%9F%E6%A7%8B-scrollmodel-%2F-scrollbars">スクロールの共通機構 (ScrollModel / ScrollBars)</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>Button から RichTextEditor まで 40 超のコントロール群です。<strong>実物はサイドバーの各章にあります</strong> — このページは地図と、独自コントロールの書き方です。各コントロールの引数/イベント/パラメータは、そのカテゴリ直下の <code>Overview</code> (例: <a href="#story=Controls%2FButton%2FOverview">Controls/Button/Overview</a>) にあります。</p>
 <h2 id="section">カタログ</h2>
 <ul>
@@ -72,8 +80,8 @@ public sealed partial class MyPanel : CompositeControl
 <li>model を <strong>フィールドで持てば再実体化をまたいで位置が生き残る</strong></li>
 <li>平滑スクロール (UiStates) と併用するときは <code>displayOffset</code> に動的値、<code>onDirectChange</code> でドラッグの即時チャネルへ切り替える (ScrollViewer/ListView の形)</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Controls&quot;, Order = 21)]
-public static Widget Controls(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Controls&quot;, Order = 21, Toc = true)]
+public static StoryResult Controls(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # コントロール (Luxel.Controls)
 
     Button から RichTextEditor まで 40 超のコントロール群です。**実物はサイドバーの各章にあります** — このページは地図と、独自コントロールの書き方です。各コントロールの引数/イベント/パラメータは、そのカテゴリ直下の `Overview` (例: [Controls/Button/Overview](story:Controls/Button/Overview)) にあります。
@@ -136,4 +144,4 @@ public static Widget Controls(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;
     - **オフセットだけでなく内容長/ビューポート長も Signal** — `SetLengths(contentH, viewH)` を Refresh/レイアウトから毎回呼ぶ (同値なら発火しない)。幅変更で内容高が変わっても、`model.Clamped` を読む effect (content transform) が再実行され、**スクロール位置は保たれたまま**新しい範囲へクランプされる
     - model を **フィールドで持てば再実体化をまたいで位置が生き残る**
     - 平滑スクロール (UiStates) と併用するときは `displayOffset` に動的値、`onDirectChange` でドラッグの即時チャネルへ切り替える (ScrollViewer/ListView の形)
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

@@ -1,6 +1,7 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/Input/ContextStack</h1></header><aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/Input/ContextStack&quot;, Width = 650, Height = 390, Order = 1)]
 public static Widget ContextStack()
 {
+    // docs:begin input-context-setup
     var source = new FakeInputSource();
     var bus = new InputBus();
     var gameplay = new InputContext(&quot;Gameplay&quot;);
@@ -10,9 +11,12 @@ public static Widget ContextStack()
     var stack = new InputStack();
     stack.Push(gameplay);
     stack.Push(menu);
+    // docs:end input-context-setup
+
     var menuSuspended = new Signal&lt;bool&gt;(false);
     var result = new Signal&lt;string&gt;(&quot;Enterを送ると、最上位のMenuが先に処理します。&quot;);
 
+    // docs:begin input-context-routing
     void TapEnter()
     {
         source.PressKey(KeyCode.Enter); source.Poll(bus); stack.Update(bus);
@@ -23,7 +27,9 @@ public static Widget ContextStack()
                 : &quot;Enterを受け取ったコンテキストはありません。&quot;;
         source.ReleaseKey(KeyCode.Enter); source.Poll(bus); stack.Update(bus);
     }
+    // docs:end input-context-routing
 
+    // docs:begin input-context-suspension
     void ToggleMenu()
     {
         menuSuspended.Value = !menuSuspended.Value;
@@ -32,6 +38,7 @@ public static Widget ContextStack()
             ? &quot;Menuを停止しました。次のEnterはGameplayへ届きます。&quot;
             : &quot;Menuを再開しました。再び最優先でEnterを処理します。&quot;;
     }
+    // docs:end input-context-suspension
 
     return Frame(VStack(14, width: 550)[
         Heading(&quot;コンテキストの優先順位&quot;, 2),

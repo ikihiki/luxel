@@ -1,4 +1,10 @@
 <article class="story document-page"><h1 id="section">リソースとハンドル</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FRenderGraph%2FResources&amp;section=%E8%AB%96%E7%90%86handle%E3%82%92%E4%BD%BF%E3%81%86%E7%90%86%E7%94%B1">論理handleを使う理由</a></li>
+<li><a href="#story=Learn%2FRenderGraph%2FResources&amp;section=handle%E3%81%AEscope">handleのscope</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p><strong>難易度:</strong> Beginner+　 <strong>実行環境:</strong> Standalone + DevTools　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> RenderGraph Overview</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FRenderGraph%2FOverview">Overview</a>　 <strong>次:</strong> <a href="#story=Learn%2FRenderGraph%2FPasses">Passes</a></p>
 <p>graphへ登録するresourceは<strong>External</strong>と<strong>Transient</strong>に分かれます。違いは作成場所と所有者です。</p>
@@ -68,8 +74,8 @@ BufferHandle output = graph.ImportBuffer(framebuffer, &quot;PresentFramebuffer&q
 <li>external resourceの寿命はgraphではなくimportした側が管理する</li>
 <li>transientのdescriptorはcompile後に変更せず、次frameで作り直す</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/RenderGraph/Resources&quot;, Order = 1)]
-public static Widget Resources(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/RenderGraph/Resources&quot;, Order = 1, Toc = true)]
+public static StoryResult Resources(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # リソースとハンドル
 
     {{RenderGraphCourseCatalog.Meta(&quot;Learn/RenderGraph/Resources&quot;, &quot;Beginner+&quot;, &quot;RenderGraph Overview&quot;)}}
@@ -120,4 +126,4 @@ public static Widget Resources(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot
     - frameをまたいでhandleを再利用しない
     - external resourceの寿命はgraphではなくimportした側が管理する
     - transientのdescriptorはcompile後に変更せず、次frameで作り直す
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

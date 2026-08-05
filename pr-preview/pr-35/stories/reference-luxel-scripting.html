@@ -1,4 +1,36 @@
 <article class="story document-page"><h1 id="luxel.scripting">Luxel.Scripting</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=completionitem">CompletionItem</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=filescriptsource">FileScriptSource</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=hoverinfo">HoverInfo</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=iscriptexecutor">IScriptExecutor</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=iscriptsource">IScriptSource</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=memoryscriptsource">MemoryScriptSource</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptdiagnostic">ScriptDiagnostic</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptdiagnosticseverity">ScriptDiagnosticSeverity</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptdocument">ScriptDocument</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptexecutioncoordinator">ScriptExecutionCoordinator</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptexecutiondiagnostic">ScriptExecutionDiagnostic</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptexecutionfailure">ScriptExecutionFailure</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptexecutionlifecycle">ScriptExecutionLifecycle</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptexecutionlimits">ScriptExecutionLimits</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptexecutionoptions">ScriptExecutionOptions</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptexecutionoutcome">ScriptExecutionOutcome</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptexecutionrequest">ScriptExecutionRequest</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptexecutionresult">ScriptExecutionResult</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptfailurekind">ScriptFailureKind</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scripthost">ScriptHost</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scripthostregistry">ScriptHostRegistry</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptlogentry">ScriptLogEntry</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptloglevel">ScriptLogLevel</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptprofile">ScriptProfile</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptresult">ScriptResult</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptsession">ScriptSession</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptsourcespan">ScriptSourceSpan</a></li>
+<li><a href="#story=Reference%2FLuxel.Scripting&amp;section=scriptworkspace">ScriptWorkspace</a></li>
+</ul>
+<!-- /luxel-toc -->
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="completionitem">CompletionItem</h2>
 <section class="api-reference"><p class="api-summary">class — 補完候補 1 件 (エディタのポップアップ用)。</p><h3>コンストラクタ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>CompletionItem</code></th><td><code>(string Label, string InsertText, string Kind)</code></td><td>補完候補 1 件 (エディタのポップアップ用)。</td></tr></tbody></table></div><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Equals</code></th><td><code>(CompletionItem other) → bool</code></td><td></td></tr><tr><th scope="row"><code>&lt;Clone&gt;$</code></th><td><code>() → CompletionItem</code></td><td></td></tr><tr><th scope="row"><code>Deconstruct</code></th><td><code>(string Label, string InsertText, string Kind) → void</code></td><td></td></tr></tbody></table></div><h3>プロパティ</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>Label</code></th><td><code>string (get/set)</code></td><td></td></tr><tr><th scope="row"><code>InsertText</code></th><td><code>string (get/set)</code></td><td></td></tr><tr><th scope="row"><code>Kind</code></th><td><code>string (get/set)</code></td><td></td></tr></tbody></table></div></section>

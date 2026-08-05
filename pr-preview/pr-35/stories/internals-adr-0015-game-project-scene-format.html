@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0015">ADR-0015 — ゲームプロジェクト/シーン形式はエディタ専用モデル + 一方向コンパイルにする</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0015-Game-Project-Scene-Format&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0015-Game-Project-Scene-Format&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0015-Game-Project-Scene-Format&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0015-Game-Project-Scene-Format&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-10</li>
@@ -41,8 +49,8 @@
 <li>⚠️ Int/Float、Quat/Color の区別は保存形に現れない — スキーマ無しで開いた場合の表示は形どおり (Number/Vec4) に落ちる</li>
 <li>⚠️ エディタモデルと ECS 実型の二重性は残る — SceneCompiler (GE-3) がスキーマ経由で構築することで乖離を防ぐ</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0015-Game-Project-Scene-Format&quot;, Order = 86)]
-public static Widget Adr0015(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0015-Game-Project-Scene-Format&quot;, Order = 86, Toc = true)]
+public static StoryResult Adr0015(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # ADR-0015 — ゲームプロジェクト/シーン形式はエディタ専用モデル + 一方向コンパイルにする
 
     - **Status**: Accepted
@@ -87,4 +95,4 @@ public static Widget Adr0015(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
     - ✅ 決定的 JSON で golden/git diff が安定する
     - ⚠️ Int/Float、Quat/Color の区別は保存形に現れない — スキーマ無しで開いた場合の表示は形どおり (Number/Vec4) に落ちる
     - ⚠️ エディタモデルと ECS 実型の二重性は残る — SceneCompiler (GE-3) がスキーマ経由で構築することで乖離を防ぐ
-    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
+    &quot;&quot;&quot;;</code></pre></details></article>

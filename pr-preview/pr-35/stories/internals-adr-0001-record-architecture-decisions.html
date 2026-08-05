@@ -1,4 +1,12 @@
 <article class="story document-page"><h1 id="adr-0001-adr-gallery">ADR-0001 — アーキテクチャ決定を ADR として Gallery に記録する</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0001-Record-Architecture-Decisions&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0001-Record-Architecture-Decisions&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0001-Record-Architecture-Decisions&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0001-Record-Architecture-Decisions&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
 <ul>
 <li><strong>Status</strong>: Accepted</li>
 <li><strong>Date</strong>: 2026-07-08</li>
@@ -27,11 +35,11 @@
 <li>⚠️ 決定ごとに 1 ページ書く軽い手間が増える。瑣末な決定まで ADR 化しない線引きが要る (<a href="#story=Internals%2FADR%2FOverview">Internals/ADR/Overview</a> の「何を ADR にするか」が目安)</li>
 <li>⚠️ ADR は不変記録。変更は supersede 運用を守る必要がある</li>
 </ul>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0001-Record-Architecture-Decisions&quot;, Order = 72)]
-public static Widget Adr0001(StoryContext ctx)
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0001-Record-Architecture-Decisions&quot;, Order = 72, Toc = true)]
+public static StoryResult Adr0001(StoryContext ctx)
 {
     ctx.Play(static d =&gt; d.Snap());   // 新スタック (MarkdownDoc) 描画の golden
-    return DocNew(ctx, $$&quot;&quot;&quot;
+    return $$&quot;&quot;&quot;
     # ADR-0001 — アーキテクチャ決定を ADR として Gallery に記録する
 
     - **Status**: Accepted
@@ -64,5 +72,5 @@ public static Widget Adr0001(StoryContext ctx)
     - ✅ docs と同じ執筆・レビュー・デッドリンク検証フローに乗る (新規 ADR は `[Story]` を足して `dotnet build` するだけ)
     - ⚠️ 決定ごとに 1 ページ書く軽い手間が増える。瑣末な決定まで ADR 化しない線引きが要る ([Internals/ADR/Overview](story:Internals/ADR/Overview) の「何を ADR にするか」が目安)
     - ⚠️ ADR は不変記録。変更は supersede 運用を守る必要がある
-    &quot;&quot;&quot;, toc: true);
+    &quot;&quot;&quot;;
 }</code></pre></details></article>
