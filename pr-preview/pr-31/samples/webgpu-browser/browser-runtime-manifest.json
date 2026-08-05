@@ -5884,10 +5884,10 @@
     },
     {
       "path": "Examples/3D/Textures",
-      "width": 320,
-      "height": 240,
+      "width": 680,
+      "height": 430,
       "args": [],
-      "capabilityNote": "Renders a generated checker texture with a bindless texture and sampler.",
+      "capabilityNote": "Compares point/linear filtering and clamp/repeat addressing with a generated texture.",
       "componentType": null
     },
     {
@@ -5920,6 +5920,14 @@
       "height": 300,
       "args": [],
       "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/RenderGraph/Blur",
+      "width": 320,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
       "componentType": null
     },
     {
