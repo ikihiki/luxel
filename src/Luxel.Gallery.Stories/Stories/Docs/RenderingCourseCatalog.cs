@@ -21,6 +21,9 @@ internal static class RenderingCourseCatalog
         "Learn/Graphics/2D/Internal/FineRaster", "Learn/Graphics/2D/Internal/ImagesAndComposite",
         "Learn/Graphics/2D/Internal/Dispatch", "Learn/Graphics/2D/Internal/RetainedUploads",
         "Learn/Graphics/2D/Internal/Validation",
+        "Learn/Graphics/RenderGraph/Overview", "Learn/Graphics/RenderGraph/Resources",
+        "Learn/Graphics/RenderGraph/Passes", "Learn/Graphics/RenderGraph/Compilation",
+        "Learn/Graphics/RenderGraph/Lifecycle", "Learn/Graphics/RenderGraph/Debugging",
     ];
 
     internal static readonly string[] ApplicationRoute = Routes
