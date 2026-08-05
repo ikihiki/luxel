@@ -40,6 +40,15 @@ command.Finish();
 <pre><code class="language-csharp">surface.Present(framebuffer, stridePixels, width, height);
 </code></pre>
 <p><code>stridePixels</code>にはalignmentを含む行幅を渡しますが、<code>width</code>と<code>height</code>には実際に表示する領域を渡します。</p>
+<h2 id="framebuffer-1">Framebufferのバッファリング</h2>
+<p>このsampleの<code>framebuffer</code>はrender targetをCPUへ読み戻し、<code>GpuSurface.Present</code>へ渡す<code>GpuBuffer</code>です。現在のtutorialは<code>SubmitAndWait</code>後にpresentするため、1個のframebufferを安全に再利用できます。CPUとGPUを非同期に進める場合は、使用中のbufferを上書きしないよう2〜3個をringにします。</p>
+<pre><code class="language-text">slot 0: GPU copy中 / present待ち
+slot 1: CPUが次frame用に予約
+slot 2: 前回利用のfence完了後に再利用可能
+</code></pre>
+<p>各slotにはframebufferと、それを最後に使ったsubmitのfence値を対応付けます。slotを再利用する直前にそのfenceだけを待ち、copy先として記録し、GPU完了後にpresentします。これはGPU resource再利用のためのbufferingであり、window backend内部のswapchain bufferingとは別の層です。</p>
+<p>D3D12のRGBA8 readbackでは各rowを256 byteへ揃えるため、slotごとに同じ<code>stridePixels</code>と必要byte数を確保します。<code>stridePixels</code>は64 pixel単位のaligned rowですが、<code>Present</code>へ渡す<code>width</code> / <code>height</code>はvisible sizeです。resizeでは使用中slotの完了を待ち、全framebufferを新しいsizeでまとめて作り直します。</p>
+<p>現在のLuxel公開APIにはper-submit fenceがないため、tutorialはsingle framebuffer + <code>SubmitAndWait</code>を正とします。Fenceによる非同期再利用の考え方は<a href="#story=Learn%2FGrapics%2FFence">FenceとGPU同期</a>で説明します。</p>
 <h2 id="resize">Resize</h2>
 <p>resize callbackでは即座にGPU resourceを破棄せず、次のevent-loop iterationでqueueをidleにしてからsurface、render target、framebufferを作り直します。最小化中の0×0では描画を休止します。</p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/ClearColor&quot;, Order = 2)]
@@ -115,6 +124,22 @@ public static Widget ClearColor(StoryContext ctx)
     ```
 
     `stridePixels`にはalignmentを含む行幅を渡しますが、`width`と`height`には実際に表示する領域を渡します。
+
+    ## Framebufferのバッファリング
+
+    このsampleの`framebuffer`はrender targetをCPUへ読み戻し、`GpuSurface.Present`へ渡す`GpuBuffer`です。現在のtutorialは`SubmitAndWait`後にpresentするため、1個のframebufferを安全に再利用できます。CPUとGPUを非同期に進める場合は、使用中のbufferを上書きしないよう2〜3個をringにします。
+
+    ```text
+    slot 0: GPU copy中 / present待ち
+    slot 1: CPUが次frame用に予約
+    slot 2: 前回利用のfence完了後に再利用可能
+    ```
+
+    各slotにはframebufferと、それを最後に使ったsubmitのfence値を対応付けます。slotを再利用する直前にそのfenceだけを待ち、copy先として記録し、GPU完了後にpresentします。これはGPU resource再利用のためのbufferingであり、window backend内部のswapchain bufferingとは別の層です。
+
+    D3D12のRGBA8 readbackでは各rowを256 byteへ揃えるため、slotごとに同じ`stridePixels`と必要byte数を確保します。`stridePixels`は64 pixel単位のaligned rowですが、`Present`へ渡す`width` / `height`はvisible sizeです。resizeでは使用中slotの完了を待ち、全framebufferを新しいsizeでまとめて作り直します。
+
+    現在のLuxel公開APIにはper-submit fenceがないため、tutorialはsingle framebuffer + `SubmitAndWait`を正とします。Fenceによる非同期再利用の考え方は[FenceとGPU同期](story:Learn/Grapics/Fence)で説明します。
 
     ## Resize
 

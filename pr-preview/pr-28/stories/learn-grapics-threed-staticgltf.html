@@ -1,6 +1,6 @@
 <article class="story document-page"><h1 id="ecsgltf">ECSなしで静的glTFを描く</h1>
-<p><strong>難易度:</strong> Beginner+　 <strong>実行環境:</strong> Gallery / Standalone　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> FirstRenderGraph</p>
-<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FThreeD%2FFirstRenderGraph">FirstRenderGraph</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FThreeD%2FDebugging">Debugging</a></p>
+<p><strong>難易度:</strong> Beginner+　 <strong>実行環境:</strong> Gallery / Standalone　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> DepthCullingLighting</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FThreeD%2FDepthCullingLighting">DepthCullingLighting</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FThreeD%2FDebugging">Debugging</a></p>
 <aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
 <p>最初の1モデルではECS、animation、skin、morphを使いません。理解する経路はこれだけです。</p>
 <pre><code class="language-text">Box.gltf → AssetDocument → AssetPrimitive → GpuPrimitive → instance buffer → Draw
@@ -45,7 +45,7 @@ public static Widget StaticGltf(StoryContext ctx)
     return DocNew(ctx, $$&quot;&quot;&quot;
     # ECSなしで静的glTFを描く
 
-    {{RenderingCourseCatalog.Meta(&quot;Learn/Grapics/ThreeD/StaticGltf&quot;, &quot;Beginner+&quot;, &quot;Gallery / Standalone&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;FirstRenderGraph&quot;)}}
+    {{RenderingCourseCatalog.Meta(&quot;Learn/Grapics/ThreeD/StaticGltf&quot;, &quot;Beginner+&quot;, &quot;Gallery / Standalone&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;DepthCullingLighting&quot;)}}
 
     {{StoryRef(ctx, &quot;Examples/3D/GltfBox&quot;)}}
 

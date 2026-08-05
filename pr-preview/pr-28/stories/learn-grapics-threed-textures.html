@@ -1,6 +1,6 @@
 <article class="story document-page"><h1 id="texturequad">Texture付きquad</h1>
-<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> Shaders</p>
-<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FFrameLoopAndSynchronization">FrameLoopAndSynchronization</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FThreeD%2FTransformsAndCamera">TransformsAndCamera</a></p>
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> RenderGraph</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FRenderGraph">RenderGraph</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FThreeD%2FTransformsAndCamera">TransformsAndCamera</a></p>
 <p>実行可能な正は <code>samples/LuxelTriangle/TriangleRenderer.cs</code>、ABIは <code>samples/LuxelTriangle/TutorialAbi.cs</code>、shaderは <code>shaders/tutorial_3d.slang</code> です。この段階では4頂点・6 indexのquadへ小さなRGBA checker textureを貼ります。</p>
 <h2 id="section">実行と期待結果</h2>
 <pre><code class="language-powershell">dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
@@ -43,7 +43,7 @@ public static Widget Textures(StoryContext ctx)
     return DocNew(ctx, $&quot;&quot;&quot;
     # Texture付きquad
 
-    {RenderingCourseCatalog.Meta(&quot;Learn/Grapics/ThreeD/Textures&quot;, &quot;Beginner&quot;, &quot;Standalone&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;Shaders&quot;)}
+    {RenderingCourseCatalog.Meta(&quot;Learn/Grapics/ThreeD/Textures&quot;, &quot;Beginner&quot;, &quot;Standalone&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;RenderGraph&quot;)}
 
     実行可能な正は `samples/LuxelTriangle/TriangleRenderer.cs`、ABIは `samples/LuxelTriangle/TutorialAbi.cs`、shaderは `shaders/tutorial_3d.slang` です。この段階では4頂点・6 indexのquadへ小さなRGBA checker textureを貼ります。
 
