@@ -12,6 +12,8 @@ public static partial class DocsGpu
     public static StoryResult Assets(StoryContext ctx) => $$"""
         # アセットパイプライン (glTF)
 
+        段階的に学ぶ場合は[Resources / Assets Learn](story:Learn/Resources/Assets/Overview)から始めてください。
+
         glTF 2.0 (.gltf/.glb) を読み込み、ECS + GPU バッファへ展開して描くまでのパイプラインです。4 つのプロジェクトが層を分担します:
 
         ```mermaid
@@ -60,16 +62,21 @@ public static partial class DocsGpu
 
         {{StoryRef(ctx, "Examples/3D/GltfAnimated")}}
 
-        > [!WARNING]
-        > morph target (Weights チャンネル) は未対応です — `SceneAnimationPlayer` は skip します。スキニングは `SkinningSystem` + `scene_pbr_skinned` シェーダ (頂点 56B: joints/weights 付き) が担います。
+        > [!NOTE]
+        > morph targetのWeightsチャンネルは`SceneAnimationPlayer`がlinear / stepで`MorphWeights`へ反映し、`scene_pbr_morph`が頂点deltaを加算します。`CubicSpline`の専用tangent評価は未実装です。スキニングは`SkinningSystem` + `scene_pbr_skinned`シェーダ（頂点56B: joints/weights付き）が担います。
 
         ## ResourceSystem 統合
 
-        実アプリでは URI ロード + キャッシュ + 依存解決を Resources に任せます。AssetsGpu の Step 群を登録すると `Load<T>` の型で変換チェーンが解決されます:
+        実アプリではURIロード、キャッシュ、依存解決をResourcesに任せます。glTF scene経路では、組込みSourceに加えて`GltfStep`、`SceneAssetsStep`、fragmentを使う場合は`GltfBufferStep` / `MaterialTextureStep`を明示登録します。AssetsGpuの汎用`Asset* → Gpu*` Step群は`InstallAssetGpuLifecycle()`で別途登録できます。
 
         ```csharp
-        var handle = resources.Load<SceneAssets>("file:///model.glb");        // glb → doc → ECS+GPU
-        var vbuf = resources.Load<GpuBuffer>("file:///model.glb#mesh/0/vertex");   // fragment URI で部分ロード
+        resources.AddStep<byte[], AssetDocument>(new GltfStep());
+        resources.AddStep<AssetDocument, SceneAssets>(new SceneAssetsStep(device, world));
+        resources.AddStep<SceneAssets, GpuBuffer>(new GltfBufferStep(device));
+        resources.AddStep<SceneAssets, GpuTexture>(new MaterialTextureStep());
+
+        var handle = resources.Load<SceneAssets>("file:///model.glb");
+        var vbuf = resources.Load<GpuBuffer>("file:///model.glb#mesh/0/vertex");
         ```
 
         `#mesh/N/vertex` / `#materials` のような **fragment URI** で primitive 単位の遅延ロードができます。Resources 自体の概念 (RefCount / Republish / Pump) は [Reference/Guides/Resources](story:Reference/Guides/Resources) へ。

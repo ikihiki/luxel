@@ -21,31 +21,34 @@ public static class DocsRuntime
 
         ```csharp
         using var resources = new ResourceSystem(
-            ResourceSystemDefaults.BuiltinSources(assetRoot: "./assets"),
-            ResourceSystemDefaults.BuiltinSteps());
+            sources: ResourceSystemDefaults.BuiltinSources(assetRoot: "./assets"),
+            steps:
+            [
+                ..ResourceSystemDefaults.BuiltinSteps(), // .tex 用 TexDecoder
+                new ImageSharpDecoder(),                 // png / jpg など
+            ]);
 
-        ResourceHandle<CpuImage> img = resources.Load<CpuImage>("hero.png");
-        await img.Ready;                    // または IsReady をポーリング
-        Use(img.Value);
-        img.Dispose();                      // refcount 減 — 0 で自動 evict
+        resources.Watch();                  // Load 前に変更監視を有効化
+        using ResourceHandle<CpuImage> img = resources.Load<CpuImage>("hero.png");
+        await img.Ready;
+        if (img.HasValue) Use(img.Value);
 
-        resources.Watch();                  // ファイル変更 → 自動リロード (Reloaded イベント)
-        resources.Pump();                   // 毎フレーム: リロード反映と破棄の消化
+        resources.Pump();                   // 毎フレーム: reload反映、通知、遅延破棄
         ```
 
-        `Publish(uri, value)` で外部所有のオブジェクトも登録でき、`Republish` すると依存先へリロードが伝播します。GPU デバイスロストは `InvalidateAll()` で全再ロード。
+        `Publish(uri, value)` の既定所有権は `Owned` です。外部所有のオブジェクトを登録する場合は `ResourceOwnership.Borrowed` を明示します。`Republish` すると依存先へリロードが伝播し、GPU デバイスロストなどでは `InvalidateAll()` で全nodeを再ロード対象にできます。
 
         ## 自動コンポーズ — Step の連鎖
 
         「`CpuImage` を作る Step (png デコード)」を登録しておくと、`Load<CpuImage>("a.png")` は自動的に `CpuImage ← byte[] ← FileSource` の依存ノードを連鎖生成します。変換の追加は `IResourceStep` の登録だけ — 呼び出し側は最終型で Load するだけです。
 
         - **Source** (`IResourceSource`) — スキーム別の byte[] ロード (file / http / メモリ VFS)
-        - **Step** (`IResourceStep<TIn, TOut>`) — 型変換。拡張子とフラグメントで選ばれる
-        - **フラグメント** — `model.glb#mesh/0` のように 1 ファイルから複数リソースを切り出せます (glTF のメッシュ/マテリアル分割がこれ)
+        - **Step** (`IResourceStep<TIn, TOut>`) — 型変換。複数候補がある場合は拡張子、入力型、フラグメントを選択情報に使う
+        - **フラグメント** — `shader.slang#compute` のように、同じ元URIを共有しながらselector別の出力nodeを作る
 
-        ## 3 レーン実行 (Io / Cpu / Gpu)
+        ## 3 レーン実行 (Io / Cpu / External)
 
-        Step の中では `await ctx.Io` / `ctx.Cpu` / `ctx.External` でレーンを移動します。ファイル読みは Io、デコードは Cpu、アップロードは Gpu — レーン毎に並列度が制限され、大量ロードでもフレームを崩しません。初回ロードの publish は Pump 不要で直接反映されるため、初期化時は `Ready.Wait` で同期的に待てます (Gallery のデモもこの形)。
+        Step は `Executor.Io` / `Cpu` / `External` の実行レーンを宣言し、ResourceSystem が `RunAsync` の前に移動します。`External` はGPU、compiler、native serviceなどの外部実行環境向けで、GPU専用ではありません。`await ctx.Io` / `ctx.Cpu` / `ctx.External` はStep内で追加のstage hopが必要な場合に使います。初回ロードの値は`Ready`完了時に利用でき、reload後の差し替えと通知は`Pump()`で反映されます。
 
         ## パッケージの役割分担
 
