@@ -1530,6 +1530,9 @@ public sealed class GallerySiteExporterTests
         ISemanticDocument overviewDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/Overview")!)!;
         Assert.DoesNotContain("コピーして動かす", overviewDocument.DocumentSource!);
 
+        ISemanticDocument platformsDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/PlatformsAndTesting")!)!;
+        Assert.DoesNotContain("story:Learn/Audio/Overview", platformsDocument.DocumentSource!);
+
         ISemanticDocument sourcesDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/SourcesAndBus")!)!;
         string sources = sourcesDocument.DocumentSource!;
         Assert.Contains(sourcesDocument.DocumentEmbeds,

@@ -16,8 +16,11 @@ internal static class RuntimeCourseCatalog
     internal static DocMarkdown Meta(string path, string difficulty, string environment, string backend, string prerequisites)
     {
         int i = Array.IndexOf(Routes, path);
-        string? previous = i > 0 ? Routes[i - 1] : null;
-        string? next = i >= 0 && i + 1 < Routes.Length ? Routes[i + 1] : null;
+        string course = string.Join('/', path.Split('/').Take(2));
+        string? previous = i > 0 && Routes[i - 1].StartsWith(course + "/", StringComparison.Ordinal)
+            ? Routes[i - 1] : null;
+        string? next = i >= 0 && i + 1 < Routes.Length && Routes[i + 1].StartsWith(course + "/", StringComparison.Ordinal)
+            ? Routes[i + 1] : null;
         return RenderingMeta(difficulty, environment, backend, prerequisites, previous, next);
     }
 }
