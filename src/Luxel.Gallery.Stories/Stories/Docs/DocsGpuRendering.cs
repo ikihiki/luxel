@@ -12,7 +12,7 @@ public static partial class DocsGpu
     public static StoryResult RenderGraphDocs(StoryContext ctx) => $$"""
         # レンダーグラフ (Luxel.Graphics.RenderGraph)
 
-        APIを使いながら順番に学ぶ場合は、[RenderGraph入門](story:Learn/RenderGraph/Overview)から始めてください。このページは設計とAPIをまとめて確認するreferenceです。
+        APIを使いながら順番に学ぶ場合は、[RenderGraph入門](story:Learn/Graphics/RenderGraph/Overview)から始めてください。このページは設計とAPIをまとめて確認するreferenceです。
 
         UI のレンダリング結果を別パスで参照したり、compute/graphics 混在の多段パスを組み立てるための薄い管理層です。**scene-agnostic** — 入力は GPU ハンドル (`BufferHandle` / `TextureHandle`) のみで、シーン側 (RetainedCanvas / ECS) を一切知りません。
 

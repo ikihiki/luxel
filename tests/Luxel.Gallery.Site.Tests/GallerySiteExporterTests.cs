@@ -699,7 +699,7 @@ public sealed class GallerySiteExporterTests
         string root = GallerySiteExporter.FindRepositoryRoot();
         string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-rendergraph-runtime-" + Guid.NewGuid().ToString("N"));
         string browserRoot = CreateBrowserRuntimeRoot();
-        StoryInfo story = Catalog.Find("Learn/RenderGraph/Overview")
+        StoryInfo story = Catalog.Find("Learn/Graphics/RenderGraph/Overview")
             ?? throw new InvalidOperationException("RenderGraph Overview story is missing.");
         try
         {
@@ -709,7 +709,7 @@ public sealed class GallerySiteExporterTests
 
             GallerySiteExporter.Export(host, [story], output, root, browserRoot);
 
-            string fragment = File.ReadAllText(Path.Combine(output, "stories", "learn-rendergraph-overview.html"));
+            string fragment = File.ReadAllText(Path.Combine(output, "stories", "learn-graphics-rendergraph-overview.html"));
             Assert.Contains("<iframe src=\"samples/webgpu-browser/?story=Examples%2FRenderGraph%2FBlur&amp;args=%7B%7D&amp;instance=", fragment);
             Assert.Contains("data-luxel-runtime-story=\"Examples/RenderGraph/Blur\"", fragment);
             Assert.Contains("runtime-story-embedded", fragment);
@@ -1132,10 +1132,18 @@ public sealed class GallerySiteExporterTests
         Assert.Equal("Learn/Graphics/2D/Internal/Overview", orderedGraphicsRoutes[16]);
 
         string[] orderedRenderGraphRoutes = Catalog.All
-            .Where(story => story.Path.StartsWith("Learn/RenderGraph/", StringComparison.Ordinal))
+            .Where(story => story.Path.StartsWith("Learn/Graphics/RenderGraph/", StringComparison.Ordinal))
             .Select(story => story.Path)
             .ToArray();
-        Assert.Equal(RenderGraphCourseCatalog.Routes, orderedRenderGraphRoutes);
+        Assert.Equal(RenderingCourseCatalog.Routes[^6..], orderedRenderGraphRoutes);
+        Assert.Equal("Learn/Graphics/2D/Internal/Validation", orderedGraphicsRoutes[^7]);
+        Assert.Equal("Learn/Graphics/RenderGraph/Overview", orderedGraphicsRoutes[^6]);
+        Assert.Equal("Learn/Graphics/RenderGraph/Debugging", orderedGraphicsRoutes[^1]);
+
+        string validationPage = BuildSemanticDocument(Catalog.Find("Learn/Graphics/2D/Internal/Validation")!)!.DocumentSource!;
+        string renderGraphOverviewPage = BuildSemanticDocument(Catalog.Find("Learn/Graphics/RenderGraph/Overview")!)!.DocumentSource!;
+        Assert.Contains("story:Learn/Graphics/RenderGraph/Overview", validationPage);
+        Assert.Contains("story:Learn/Graphics/2D/Internal/Validation", renderGraphOverviewPage);
 
         for (int i = 0; i < routes.Length; i++)
         {
@@ -1153,7 +1161,8 @@ public sealed class GallerySiteExporterTests
     [Fact]
     public void RenderGraph_learn_chain_is_ordered_and_linked()
     {
-        StoryInfo[] stories = RenderGraphCourseCatalog.Routes.Select(path => Catalog.Find(path)
+        string[] routes = RenderingCourseCatalog.Routes[^6..];
+        StoryInfo[] stories = routes.Select(path => Catalog.Find(path)
             ?? throw new InvalidOperationException($"RenderGraph Learn route is missing: {path}")).ToArray();
         Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null, Catalog);
 
@@ -1383,7 +1392,7 @@ public sealed class GallerySiteExporterTests
                      "GpuStage.PixelShader", "GpuStage.ComputeShader", "GpuStage.ColorOutput",
                      "GpuStage.DepthStencil", "GpuStage.Copy", "GpuStage.AllGraphics", "GpuStage.All",
                      "GpuHazard.IndirectArguments", "SubmitAndWait", "SubmitAsync", "WaitIdle", "WaitIdleAsync",
-                     "story:Internals/Gpu/Synchronization", "story:Learn/RenderGraph/Overview",
+                     "story:Internals/Gpu/Synchronization", "story:Learn/Graphics/RenderGraph/Overview",
                  })
             Assert.Contains(synchronizationTerm, synchronizationPage);
         Assert.DoesNotContain("## Frame slotとFence", synchronizationPage);
@@ -1402,6 +1411,12 @@ public sealed class GallerySiteExporterTests
             Assert.Contains(implementationTerm, synchronizationInternalsPage);
 
         Assert.Null(Catalog.Find("Learn/Graphics/RenderGraph"));
+        foreach (string oldRoute in new[]
+                 {
+                     "Learn/RenderGraph/Overview", "Learn/RenderGraph/Resources", "Learn/RenderGraph/Passes",
+                     "Learn/RenderGraph/Compilation", "Learn/RenderGraph/Lifecycle", "Learn/RenderGraph/Debugging",
+                 })
+            Assert.Null(Catalog.Find(oldRoute));
 
         foreach (string removedRoute in new[]
                  {
