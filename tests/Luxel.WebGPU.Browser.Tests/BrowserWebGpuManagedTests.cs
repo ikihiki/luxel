@@ -71,6 +71,23 @@ public sealed class BrowserWebGpuManagedTests
         Assert.Equal([(900, 650)], interop.SurfaceResizes);
     }
 
+    [Theory]
+    [InlineData(GpuFormat.R8Unorm, 1)]
+    [InlineData(GpuFormat.Rg8Unorm, 2)]
+    [InlineData(GpuFormat.Rgba8UnormSrgb, 4)]
+    [InlineData(GpuFormat.Bgra8UnormSrgb, 4)]
+    public async Task PortableSampledTexturesUseFormatSpecificPixelSizes(GpuFormat format, int bytesPerPixel)
+    {
+        var interop = new FakeInterop();
+        using var backend = await BrowserWebGpuBackend.CreateAsync(interop);
+        using var device = new GpuDevice(backend);
+        using GpuTexture texture = device.CreateTexture(1, 1, new byte[bytesPerPixel], format);
+
+        Assert.Equal((int)format, Assert.Single(interop.TextureFormats));
+        Assert.Equal(bytesPerPixel, Assert.Single(interop.TextureDataLengths));
+        Assert.Equal(format, texture.Format);
+    }
+
     [Fact]
     public async Task RootAndTextureReadbackValidationMatchesWebGpuLimits()
     {
@@ -127,10 +144,17 @@ public sealed class BrowserWebGpuManagedTests
         public (int Width, int Height) LastCanvasSize { get; private set; }
         public int SurfacePresents { get; private set; }
         public List<(int Width, int Height)> SurfaceResizes { get; } = [];
+        public List<int> TextureFormats { get; } = [];
+        public List<int> TextureDataLengths { get; } = [];
         public Task<string> InitializeAsync() => Task.FromResult(JsonSerializer.Serialize(new { handle = ++_next, name = "WebGPU / fake" }));
         public int CreateComputePipeline(int backend, string wgslBase64, string entryPoint) => ++_next;
         public int CreateGraphicsPipeline(int backend, string vsBase64, string vsEntry, string psBase64, string psEntry, string rasterJson) => ++_next;
-        public int CreateTexture(int backend, int width, int height, int format, int usage, int bindlessIndex, string dataBase64) => ++_next;
+        public int CreateTexture(int backend, int width, int height, int format, int usage, int bindlessIndex, string dataBase64)
+        {
+            TextureFormats.Add(format);
+            TextureDataLengths.Add(dataBase64.Length == 0 ? 0 : Convert.FromBase64String(dataBase64).Length);
+            return ++_next;
+        }
         public int CreateSampler(int backend, int filter, int address, int bindlessIndex) => ++_next;
         public int CreateCommandBuffer(int backend) => ++_next;
         public void CommandSetComputePipeline(int command, int pipeline) { }

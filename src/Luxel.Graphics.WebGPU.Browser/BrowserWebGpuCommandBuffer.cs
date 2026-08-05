@@ -83,7 +83,9 @@ internal sealed class BrowserWebGpuCommandBuffer : BrowserWebGpuHandle, IGpuBack
         if (_rendering) throw new InvalidOperationException("EndRendering must be called before copy operations.");
         BrowserWebGpuTexture texture = Owner.RequireTexture(source, nameof(source));
         BrowserWebGpuBuffer buffer = Owner.RequireBuffer(destination, nameof(destination));
-        uint bytesPerPixel = texture.Format == GpuFormat.D32Float ? throw new NotSupportedException("Depth texture readback is unsupported.") : 4u;
+        if (texture.Format == GpuFormat.D32Float)
+            throw new NotSupportedException("Depth texture readback is unsupported.");
+        uint bytesPerPixel = GpuFormatInfo.BytesPerPixel(texture.Format);
         uint rowPixels = rowLengthPixels == 0 ? texture.Width : rowLengthPixels;
         if (rowPixels < texture.Width) throw new ArgumentOutOfRangeException(nameof(rowLengthPixels));
         uint bytesPerRow = checked(rowPixels * bytesPerPixel);

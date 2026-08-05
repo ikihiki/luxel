@@ -203,20 +203,26 @@ public static class GpuViewStories
             dispose: buffers.Dispose)));
     }
 
-    [Story("Examples/3D/Textures", Width = 320, Height = 240, Order = 122,
-        CapabilityNote = "Renders a generated checker texture with a bindless texture and sampler.")]
+    [Story("Examples/3D/Textures", Width = 680, Height = 430, Order = 122,
+        CapabilityNote = "Compares point/linear filtering and clamp/repeat addressing with a generated texture.")]
     public static Widget Textures(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is null || ctx.ScopedResourcesOrNull is not { } resources)
-            return BuildOnlyGpuView(ctx, 320, 240);
+            return BuildOnlyGpuView(ctx, 680, 430);
 
         const uint textureWidth = 8;
         const uint textureHeight = 8;
         byte[] pixels = CreateCheckerboard(textureWidth, textureHeight);
         ResourceHandle<GpuTexture> texture = resources.CreateSampledTexture(
             "textures.checker", textureWidth, textureHeight, pixels, GpuFormat.Rgba8Unorm);
-        ResourceHandle<GpuSampler> sampler = resources.CreateSampler(
-            "textures.sampler", GpuSamplerFilter.Point, GpuSamplerAddress.Repeat);
+        ResourceHandle<GpuSampler> pointClamp = resources.CreateSampler(
+            "textures.sampler.point-clamp", GpuSamplerFilter.Point, GpuSamplerAddress.Clamp);
+        ResourceHandle<GpuSampler> pointRepeat = resources.CreateSampler(
+            "textures.sampler.point-repeat", GpuSamplerFilter.Point, GpuSamplerAddress.Repeat);
+        ResourceHandle<GpuSampler> linearClamp = resources.CreateSampler(
+            "textures.sampler.linear-clamp", GpuSamplerFilter.Linear, GpuSamplerAddress.Clamp);
+        ResourceHandle<GpuSampler> linearRepeat = resources.CreateSampler(
+            "textures.sampler.linear-repeat", GpuSamplerFilter.Linear, GpuSamplerAddress.Repeat);
 
         const string slang = """
             [[vk::binding(1, 0)]]
@@ -240,20 +246,15 @@ public static class GpuViewStories
             [shader("vertex")]
             VSOut vsMain(uint vertexId : SV_VertexID)
             {
-                uint index = vertexId == 0 ? 0
-                    : vertexId == 1 ? 1
-                    : vertexId == 2 ? 2
-                    : vertexId == 3 ? 0
-                    : vertexId == 4 ? 2 : 3;
-                bool right = index == 1 || index == 2;
-                bool top = index >= 2;
+                bool right = vertexId == 1 || vertexId == 2 || vertexId == 4;
+                bool top = vertexId == 2 || vertexId == 4 || vertexId == 5;
 
                 VSOut output;
                 output.position = float4(
-                    right ? 0.72 : -0.72,
-                    top ? 0.72 : -0.72,
+                    right ? 0.88 : -0.88,
+                    top ? 0.88 : -0.88,
                     0, 1);
-                output.uv = float2(right ? 1.0 : 0.0, top ? 0.0 : 1.0);
+                output.uv = float2(right ? 1.35 : -0.35, top ? -0.35 : 1.35);
                 return output;
             }
 
@@ -270,41 +271,52 @@ public static class GpuViewStories
         ResourceHandle<GpuPipeline> pipeline = resources.CreateGraphicsPipeline(
             "textures.pipeline", shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
         Signal<ResourceState> textureState = ctx.Observe(texture);
-        Signal<ResourceState> samplerState = ctx.Observe(sampler);
         Signal<ResourceState> pipelineState = ctx.Observe(pipeline);
 
-        return ctx.Snap(Frame(GpuView(
-            320,
-            240,
-            (gpu, surface, _) =>
-            {
-                ResourceState sampledTextureState = textureState.Value;
-                ResourceState textureSamplerState = samplerState.Value;
-                ResourceState shaderPipelineState = pipelineState.Value;
-                if (!sampledTextureState.HasValue || !textureSamplerState.HasValue || !shaderPipelineState.HasValue)
-                    return sampledTextureState.Status == ResourceStatus.Failed
-                           || textureSamplerState.Status == ResourceStatus.Failed
-                           || shaderPipelineState.Status == ResourceStatus.Failed
-                        ? GpuViewRenderResult.Failed
-                        : GpuViewRenderResult.Loading;
+        Widget SamplerExample(string title, ResourceHandle<GpuSampler> sampler)
+        {
+            Signal<ResourceState> samplerState = ctx.Observe(sampler);
+            return VStack(4, width: 280)[
+                Text(title, 12, color: Bind.From(() => UiTheme.T.TextMuted)),
+                GpuView(
+                    280,
+                    160,
+                    (gpu, surface, _) =>
+                    {
+                        ResourceState sampledTextureState = textureState.Value;
+                        ResourceState textureSamplerState = samplerState.Value;
+                        ResourceState shaderPipelineState = pipelineState.Value;
+                        if (!sampledTextureState.HasValue || !textureSamplerState.HasValue || !shaderPipelineState.HasValue)
+                            return sampledTextureState.Status == ResourceStatus.Failed
+                                   || textureSamplerState.Status == ResourceStatus.Failed
+                                   || shaderPipelineState.Status == ResourceStatus.Failed
+                                ? GpuViewRenderResult.Failed
+                                : GpuViewRenderResult.Loading;
 
-                var args = new TextureDrawArgs
-                {
-                    TextureIndex = texture.Value.BindlessIndex,
-                    SamplerIndex = sampler.Value.BindlessIndex,
-                };
-                using GpuCommandBuffer command = gpu.MainQueue.StartCommandRecording();
-                command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)
-                    .SetGraphicsPipeline(pipeline.Value)
-                    .SetRootArguments(args)
-                    .Draw(6)
-                    .EndRendering();
-                surface.CopyColorToFramebuffer(command);
-                command.Finish();
-                gpu.MainQueue.Submit(command);
-                return GpuViewRenderResult.Ready;
-            },
-            animated: false)));
+                        var args = new TextureDrawArgs
+                        {
+                            TextureIndex = texture.Value.BindlessIndex,
+                            SamplerIndex = sampler.Value.BindlessIndex,
+                        };
+                        using GpuCommandBuffer command = gpu.MainQueue.StartCommandRecording();
+                        command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)
+                            .SetGraphicsPipeline(pipeline.Value)
+                            .SetRootArguments(args)
+                            .Draw(6)
+                            .EndRendering();
+                        surface.CopyColorToFramebuffer(command);
+                        command.Finish();
+                        gpu.MainQueue.Submit(command);
+                        return GpuViewRenderResult.Ready;
+                    },
+                    animated: false)];
+        }
+
+        return ctx.Snap(Frame(Wrap(16, 12, width: 600)[
+            SamplerExample("Point + Clamp", pointClamp),
+            SamplerExample("Point + Repeat", pointRepeat),
+            SamplerExample("Linear + Clamp", linearClamp),
+            SamplerExample("Linear + Repeat", linearRepeat)]));
     }
 
     private struct TextureDrawArgs
