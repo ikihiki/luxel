@@ -40,6 +40,11 @@ public sealed class GallerySiteExporterTests
         Assert.DoesNotContain("device.CreateTexture(", textureStory.Source);
         Assert.DoesNotContain("private static byte[] CreateCheckerboard", textureStory.Source);
         Assert.DoesNotContain("for (uint y", textureStory.Source);
+        StoryInfo blurStory = Assert.IsType<StoryInfo>(catalog.Find("Examples/RenderGraph/Blur"));
+        Assert.Contains("static Rg BuildGraph", blurStory.Source);
+        Assert.Contains("graph.AddPass(\"BlurH\"", blurStory.Source);
+        Assert.Contains("graph.AddPass(\"BlurV\"", blurStory.Source);
+        Assert.Contains("graph.AddPass(\"Composite\"", blurStory.Source);
         Assert.Null(empty.Find("Start/Welcome"));
     }
 

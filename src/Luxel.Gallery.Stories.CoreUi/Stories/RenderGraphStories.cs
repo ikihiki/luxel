@@ -93,56 +93,56 @@ public static class BrowserRenderGraphStories
                 graph?.Dispose();
                 input.Dispose();
             })));
-    }
 
-    private static Rg BuildGraph(GpuDevice device, GpuViewSurface surface, GpuBuffer input,
-        GpuPipeline blurPipeline, GpuPipeline compositePipeline)
-    {
-        ulong bytes = (ulong)(Width * Height * 4);
-        var graph = new Rg(device);
-        BufferHandle source = graph.ImportBuffer(input, "ui");
-        BufferHandle horizontal = graph.CreateBuffer(
-            new BufferDesc(bytes, GpuMemoryKind.DeviceLocal), "blur-horizontal");
-        BufferHandle vertical = graph.CreateBuffer(
-            new BufferDesc(bytes, GpuMemoryKind.DeviceLocal), "blur-vertical");
-        BufferHandle output = graph.ImportBuffer(surface.Framebuffer, "output");
+        static Rg BuildGraph(GpuDevice device, GpuViewSurface surface, GpuBuffer input,
+            GpuPipeline blurPipeline, GpuPipeline compositePipeline)
+        {
+            ulong bytes = (ulong)(Width * Height * 4);
+            var graph = new Rg(device);
+            BufferHandle source = graph.ImportBuffer(input, "ui");
+            BufferHandle horizontal = graph.CreateBuffer(
+                new BufferDesc(bytes, GpuMemoryKind.DeviceLocal), "blur-horizontal");
+            BufferHandle vertical = graph.CreateBuffer(
+                new BufferDesc(bytes, GpuMemoryKind.DeviceLocal), "blur-vertical");
+            BufferHandle output = graph.ImportBuffer(surface.Framebuffer, "output");
 
-        graph.AddPass("BlurH", PassQueue.Compute)
-            .Read(source)
-            .Write(horizontal)
-            .Execute(pass => Dispatch(pass, blurPipeline, new BlurArgs
-            {
-                SrcIndex = pass.BindlessIndex(source),
-                DstIndex = pass.BindlessIndex(horizontal),
-                Width = Width,
-                Height = Height,
-                DirX = 1,
-            }));
-        graph.AddPass("BlurV", PassQueue.Compute)
-            .Read(horizontal)
-            .Write(vertical)
-            .Execute(pass => Dispatch(pass, blurPipeline, new BlurArgs
-            {
-                SrcIndex = pass.BindlessIndex(horizontal),
-                DstIndex = pass.BindlessIndex(vertical),
-                Width = Width,
-                Height = Height,
-                DirY = 1,
-            }));
-        graph.AddPass("Composite", PassQueue.Compute)
-            .Read(source)
-            .Read(vertical)
-            .Write(output)
-            .Execute(pass => Dispatch(pass, compositePipeline, new CompositeArgs
-            {
-                UiIndex = pass.BindlessIndex(source),
-                BlurIndex = pass.BindlessIndex(vertical),
-                DstIndex = pass.BindlessIndex(output),
-                Width = Width,
-                Height = Height,
-                SplitX = Width / 2,
-            }));
-        return graph;
+            graph.AddPass("BlurH", PassQueue.Compute)
+                .Read(source)
+                .Write(horizontal)
+                .Execute(pass => Dispatch(pass, blurPipeline, new BlurArgs
+                {
+                    SrcIndex = pass.BindlessIndex(source),
+                    DstIndex = pass.BindlessIndex(horizontal),
+                    Width = Width,
+                    Height = Height,
+                    DirX = 1,
+                }));
+            graph.AddPass("BlurV", PassQueue.Compute)
+                .Read(horizontal)
+                .Write(vertical)
+                .Execute(pass => Dispatch(pass, blurPipeline, new BlurArgs
+                {
+                    SrcIndex = pass.BindlessIndex(horizontal),
+                    DstIndex = pass.BindlessIndex(vertical),
+                    Width = Width,
+                    Height = Height,
+                    DirY = 1,
+                }));
+            graph.AddPass("Composite", PassQueue.Compute)
+                .Read(source)
+                .Read(vertical)
+                .Write(output)
+                .Execute(pass => Dispatch(pass, compositePipeline, new CompositeArgs
+                {
+                    UiIndex = pass.BindlessIndex(source),
+                    BlurIndex = pass.BindlessIndex(vertical),
+                    DstIndex = pass.BindlessIndex(output),
+                    Width = Width,
+                    Height = Height,
+                    SplitX = Width / 2,
+                }));
+            return graph;
+        }
     }
 
     private static void Dispatch<T>(PassContext pass, GpuPipeline pipeline, T args) where T : unmanaged
