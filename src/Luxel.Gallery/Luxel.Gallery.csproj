@@ -8,6 +8,7 @@
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel.Typography\Luxel.Typography.csproj" />
     <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\Luxel.Input\Luxel.Input.csproj" />
   </ItemGroup>
   <Import Project="..\..\assets\Luxel.FontAssets.targets" />
 </Project>

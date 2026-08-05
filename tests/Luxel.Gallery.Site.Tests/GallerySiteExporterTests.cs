@@ -1490,7 +1490,9 @@ public sealed class GallerySiteExporterTests
         Assert.Null(Catalog.Find("Learn/Grapics/RasterizerInternals/Overview"));
         Assert.Null(Catalog.Find("Learn/Rendering/Basics/Overview"));
         Assert.Null(Catalog.Find("Learn/Grapics/Basics/Overview"));
-        foreach (string route in new[] { "Learn/Input/Overview", "Learn/Input/ActionsAndContexts", "Learn/Input/PlatformsAndTesting",
+        foreach (string route in new[] { "Learn/Input/Overview", "Learn/Input/ActionsAndContexts", "Learn/Input/BindingsAndRebinding",
+                     "Learn/Input/BrowserWasm", "Learn/Input/PlatformsAndTesting", "Examples/Input/WindowActions",
+                     "Examples/Input/ContextStack", "Examples/Input/Bindings",
                      "Learn/Audio/Overview", "Learn/Audio/ClipsSourcesAndBuses", "Learn/Audio/SpatialStreamingAndTesting",
                      "Learn/Resources/Overview", "Learn/Resources/PipelinesAndDag", "Learn/Resources/ReloadAndLifetime",
                      "Build/Blocks/Input/Actions", "Build/Blocks/Audio/Tone", "Build/Blocks/Resources/Pipeline" })
@@ -1703,12 +1705,49 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Story_input_runtime_gates_inactive_events_and_releases_on_focus_loss()
+    {
+        var source = new Luxel.Input.FakeInputSource();
+        using var runtime = new StoryInputRuntime();
+        runtime.Attach(source, ownsSource: false);
+        var bus = new Luxel.Input.InputBus();
+
+        source.PressKey(Luxel.Input.KeyCode.W);
+        runtime.Update();
+        runtime.Poll(bus);
+        Assert.Empty(bus.Events);
+
+        runtime.SetFocused(true);
+        source.PressKey(Luxel.Input.KeyCode.A);
+        runtime.Update();
+        runtime.Poll(bus);
+        Assert.Single(bus.Events);
+        Assert.Equal(Luxel.Input.InputEventKind.KeyDown, bus.Events[0].Kind);
+
+        bus.Clear();
+        runtime.SetFocused(false);
+        runtime.Poll(bus);
+        Assert.Single(bus.Events);
+        Assert.Equal((Luxel.Input.InputEventKind.KeyUp, Luxel.Input.KeyCode.A), (bus.Events[0].Kind, bus.Events[0].Key));
+    }
+
+    [Fact]
+    public void Input_examples_are_canonical_browser_runtime_stories()
+    {
+        foreach (string route in new[] { "Examples/Input/WindowActions", "Examples/Input/ContextStack", "Examples/Input/Bindings" })
+        {
+            StoryInfo story = Catalog.Find(route) ?? throw new InvalidOperationException(route);
+            Assert.Equal(CoreUiStoryProject.RuntimeBundleId, story.RuntimeBundleId);
+            Assert.Null(story.SampleBundle);
+        }
+    }
+
+    [Fact]
     public void Runtime_examples_are_source_backed_and_bundle_connected()
     {
         (string Route, string Bundle)[] examples =
         [
-            ("Examples/Input/Actions", "input.actions"), ("Examples/Input/ContextStack", "input.actions"),
-            ("Examples/Input/Bindings", "input.actions"), ("Examples/Audio/WaveformAndVoice", "audio.tone"),
+            ("Examples/Audio/WaveformAndVoice", "audio.tone"),
             ("Examples/Audio/Buses", "audio.tone"), ("Examples/Audio/SpatialAttenuation", "audio.tone"),
             ("Examples/Audio/StreamingQueue", "audio.tone"), ("Examples/Resources/Pipeline", "resources.pipeline"),
             ("Examples/Resources/DependencyDag", "resources.pipeline"), ("Examples/Resources/Reload", "resources.pipeline"),

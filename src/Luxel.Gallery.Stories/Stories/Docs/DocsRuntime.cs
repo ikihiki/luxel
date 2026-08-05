@@ -66,11 +66,15 @@ public static class DocsRuntime
     public static Widget Platform(StoryContext ctx) => DocNew(ctx, $$"""
         # プラットフォーム (Luxel.Platform)
 
-        `Luxel.Platform` がウィンドウ、クリップボード、低レベル入力の共通公開APIを提供します。`Luxel.Platform.Windows` はCsWin32によるWin32/TSF実装、`Luxel.Platform.Silk` はSilk.NET/GLFWによるLinux/X11実装です。オフスクリーン描画 (snap / bench) とはここだけが違います。
+        `Luxel.Platform` がウィンドウ、クリップボード、低レベル入力の共通公開APIを提供します。`Luxel.Platform.Windows` はCsWin32によるWin32/TSF実装、`Luxel.Platform.Silk` はLinux/X11実装、`Luxel.Platform.Web` はcanvas向けDOM event実装です。macOS native window、Wayland、mobile backendは現在提供していません。
 
         ## ウィンドウとマルチウィンドウ
 
         `Luxel.Platform.Windows` の `Win32Window` (CreateWindowEx + WndProc + PeekMessage) を共通 `WindowSystem` が公開し、`Luxel.UI.App` の `WindowManager` / `WindowHost` が UI ウィンドウとして束ねます。ウィンドウは複数持て、インスタンスは GWLP_USERDATA で引く正攻法 — 静的マップがないので**別スレッドの別ウィンドウ** (ネイティブ DevTools) とも共存します。マウス/ホイール/キー/WM_CHAR/リサイズは `UiHost` へ配線されます。第 2 ウィンドウを実際に開くデモは [RealWindow/Platform/SecondWindow](story:RealWindow/Platform/SecondWindow) (実窓専用) へ。
+
+        ## Browser / WASM
+
+        `Luxel.Platform.Web`はpointer、wheel、keyboard、composition/text、focus、resizeをportable `Window` eventへ変換します。Gallery static siteではbrowser-safe CoreUi storiesを既存`webgpu-browser-v1` runtimeで実行します。action inputの実例は [Learn/Input/BrowserWasm](story:Learn/Input/BrowserWasm) と [Examples/Input/WindowActions](story:Examples/Input/WindowActions) を参照してください。
 
         ## スワップチェーン提示
 
@@ -93,7 +97,7 @@ public static class DocsRuntime
 
         ゲーム入力を順に学ぶ場合は [Input Learn](story:Learn/Input/Overview)、コピー可能な最小構成は [Build/Blocks/Input/Actions](story:Build/Blocks/Input/Actions) から始めてください。
 
-        入力は 2 系統あります — **UI 入力** (UiHost がポインタ/キー/IME をコントロールへ配送) と、**ゲーム入力** (Luxel.Input — アクションマップとリバインド)。ゲーム入力の動くデモは [RealWindow/Input/Gamepad](story:RealWindow/Input/Gamepad) (実窓専用) へ。
+        入力は 2 系統あります — **UI 入力** (`UiHost`がpointer/key/text/IMEをcontrolへ配送) と、**game/action入力** (`Luxel.Input`のaction map、context、binding)。portableなkeyboard/pointer actionは [Examples/Input/WindowActions](story:Examples/Input/WindowActions)、contextは [Examples/Input/ContextStack](story:Examples/Input/ContextStack)、bindingは [Examples/Input/Bindings](story:Examples/Input/Bindings)、Windows XInputは [RealWindow/Input/Gamepad](story:RealWindow/Input/Gamepad) で確認できます。
 
         ## UiHost の配送順
 
@@ -109,7 +113,7 @@ public static class DocsRuntime
 
         ## ゲーム入力 (Luxel.Input)
 
-        アクションマップ (コンテキスト単位の有効/無効 — 例: gameplay と menu) と **キーバインドの JSON リマップ** (保存/復元の round-trip) を提供します。Framework のフレームループ (`InputBus` / `InputStack`) に統合されます。Windows固有のXbox互換ゲームパッド入力は `Luxel.Input.XInput` の `XInputSource` に分離されています。
+        `WindowInputSource → InputBus → InputStack → InputContext → InputAction`のpipelineで、button/1D/2D action、context priority/consumption、JSON bindingを提供します。window focus喪失時は保持中key/buttonをreleaseします。Windows固有のXbox互換gamepadは`Luxel.Input.XInput`へ分離されています。Linux controller、Web Gamepad、touch/multitouch、pointer movement axisは未提供です。
 
         ## programmatic 入力
 

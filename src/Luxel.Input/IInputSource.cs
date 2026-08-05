@@ -31,6 +31,7 @@ public sealed class WindowInputSource : IInputSource, Luxel.Platform.IWindowInpu
     private readonly Luxel.Platform.Window _window;
     private readonly object _gate = new();
     private readonly List<InputEvent> _pending = new();
+    private readonly HashSet<KeyCode> _held = new();
     private KeyCode? _lastPressed;
     private bool _disposed;
 
@@ -39,6 +40,7 @@ public sealed class WindowInputSource : IInputSource, Luxel.Platform.IWindowInpu
         _window = window ?? throw new ArgumentNullException(nameof(window));
         Name = name;
         _window.AddInputHandler(this);
+        _window.FocusChanged += OnFocusChanged;
     }
 
     public string Name { get; }
@@ -49,13 +51,13 @@ public sealed class WindowInputSource : IInputSource, Luxel.Platform.IWindowInpu
     public void PointerDown(Luxel.Platform.WindowPointerEvent input)
     {
         KeyCode key = PointerKey(input.Button);
-        if (key != KeyCode.None) Add(new(InputEventKind.KeyDown, key, AxisCode.None, 1f, 0f, 0));
+        if (key != KeyCode.None) AddKeyDown(key, rememberForRebind: false);
     }
 
     public void PointerUp(Luxel.Platform.WindowPointerEvent input)
     {
         KeyCode key = PointerKey(input.Button);
-        if (key != KeyCode.None) Add(new(InputEventKind.KeyUp, key, AxisCode.None, 0f, 0f, 0));
+        if (key != KeyCode.None) AddKeyUp(key);
     }
 
     public void Wheel(Luxel.Platform.WindowWheelEvent input)
@@ -64,19 +66,13 @@ public sealed class WindowInputSource : IInputSource, Luxel.Platform.IWindowInpu
     public void KeyDown(Luxel.Platform.WindowKeyEvent input)
     {
         KeyCode key = ToKeyCode(input.Key);
-        if (key == KeyCode.None) return;
-        lock (_gate)
-        {
-            if (_disposed) return;
-            _lastPressed = key;
-            _pending.Add(new(InputEventKind.KeyDown, key, AxisCode.None, 1f, 0f, 0));
-        }
+        if (key != KeyCode.None) AddKeyDown(key, rememberForRebind: true);
     }
 
     public void KeyUp(Luxel.Platform.WindowKeyEvent input)
     {
         KeyCode key = ToKeyCode(input.Key);
-        if (key != KeyCode.None) Add(new(InputEventKind.KeyUp, key, AxisCode.None, 0f, 0f, 0));
+        if (key != KeyCode.None) AddKeyUp(key);
     }
 
     /// <summary>直近のキー押下を取り出してクリアする。キー設定UIなどで使用する。</summary>
@@ -105,9 +101,48 @@ public sealed class WindowInputSource : IInputSource, Luxel.Platform.IWindowInpu
             if (_disposed) return;
             _disposed = true;
             _pending.Clear();
+            _held.Clear();
             _lastPressed = null;
         }
+        _window.FocusChanged -= OnFocusChanged;
         _window.RemoveInputHandler(this);
+    }
+
+    /// <summary>現在保持中のキーとpointer buttonをrelease eventへ変換する。</summary>
+    public void ReleaseAll()
+    {
+        lock (_gate)
+        {
+            if (_disposed) return;
+            foreach (KeyCode key in _held.Order())
+                _pending.Add(new(InputEventKind.KeyUp, key, AxisCode.None, 0f, 0f, 0));
+            _held.Clear();
+        }
+    }
+
+    private void OnFocusChanged(bool focused)
+    {
+        if (!focused) ReleaseAll();
+    }
+
+    private void AddKeyDown(KeyCode key, bool rememberForRebind)
+    {
+        lock (_gate)
+        {
+            if (_disposed) return;
+            if (rememberForRebind) _lastPressed = key;
+            if (_held.Add(key))
+                _pending.Add(new(InputEventKind.KeyDown, key, AxisCode.None, 1f, 0f, 0));
+        }
+    }
+
+    private void AddKeyUp(KeyCode key)
+    {
+        lock (_gate)
+        {
+            if (_disposed || !_held.Remove(key)) return;
+            _pending.Add(new(InputEventKind.KeyUp, key, AxisCode.None, 0f, 0f, 0));
+        }
     }
 
     private void Add(InputEvent input)
