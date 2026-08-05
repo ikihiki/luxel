@@ -694,6 +694,38 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void RenderGraph_overview_uses_the_browser_runtime_for_the_Blur_story()
+    {
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-rendergraph-runtime-" + Guid.NewGuid().ToString("N"));
+        string browserRoot = CreateBrowserRuntimeRoot();
+        StoryInfo story = Catalog.Find("Learn/RenderGraph/Overview")
+            ?? throw new InvalidOperationException("RenderGraph Overview story is missing.");
+        try
+        {
+            using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
+            using var rasterizer = new Luxel.Graphics.TwoD.Skia.SkiaRasterizer2D();
+            using var host = new GalleryHost(rasterizer, font);
+
+            GallerySiteExporter.Export(host, [story], output, root, browserRoot);
+
+            string fragment = File.ReadAllText(Path.Combine(output, "stories", "learn-rendergraph-overview.html"));
+            Assert.Contains("<iframe src=\"samples/webgpu-browser/?story=Examples%2FRenderGraph%2FBlur&amp;args=%7B%7D&amp;instance=", fragment);
+            Assert.Contains("data-luxel-runtime-story=\"Examples/RenderGraph/Blur\"", fragment);
+            Assert.Contains("runtime-story-embedded", fragment);
+            Assert.Contains("title=\"Interactive Blur\"", fragment);
+            Assert.DoesNotContain("Static embedded story capture", fragment);
+            Assert.False(File.Exists(Path.Combine(output, "images", "examples-rendergraph-blur.png")));
+            GallerySiteExporter.Validate(output);
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+            if (Directory.Exists(browserRoot)) Directory.Delete(browserRoot, true);
+        }
+    }
+
+    [Fact]
     public void Runtime_triangle_requires_a_complete_copied_browser_application()
     {
         string root = GallerySiteExporter.FindRepositoryRoot();
@@ -1292,6 +1324,8 @@ public sealed class GallerySiteExporterTests
         Assert.DoesNotContain("dotnet build", renderGraphOverview);
         Assert.DoesNotContain("dotnet run", renderGraphOverview);
         ISemanticDocument renderGraphOverviewDocument = BuildSemanticDocument(Catalog.Find("Learn/RenderGraph/Overview")!)!;
+        Assert.Equal(CoreUiStoryProject.RuntimeBundleId,
+            Catalog.Find("Examples/RenderGraph/Blur")!.RuntimeBundleId);
         Assert.Contains(renderGraphOverviewDocument.DocumentEmbeds,
             embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/RenderGraph/Blur");
 
@@ -1773,7 +1807,7 @@ public sealed class GallerySiteExporterTests
             using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);
             using var host = new GalleryHost(device, font);
             GallerySiteExporter.Export(host, [story], output, root);
-            string html = string.Join('\n', Directory.GetFiles(output, "*.html", SearchOption.AllDirectories).Select(File.ReadAllText));
+            string html = File.ReadAllText(Path.Combine(output, "stories", "internals-architecture.html"));
             string renderedBody = html[..html.IndexOf("<details class=\"story-source\">", StringComparison.Ordinal)];
             string index = File.ReadAllText(Path.Combine(output, "index.html"));
             string bootstrap = File.ReadAllText(Path.Combine(output, "mermaid-bootstrap.js"));

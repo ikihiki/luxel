@@ -141,7 +141,7 @@ public static partial class GallerySiteExporter
                     {
                         semanticDocument = semantic;
                         status = "document";
-                        IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, documentSource);
+                        IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, documentSource, catalog);
                         if (linkErrors.Count > 0)
                             throw new InvalidDataException("Broken documentation links: " + string.Join(", ", linkErrors));
                         string md = ReplaceEmbeds(story.Path, documentSource, semantic.DocumentEmbeds, storyByPath,
@@ -157,7 +157,7 @@ public static partial class GallerySiteExporter
                     {
                         semanticDocument = nestedDocument;
                         status = "document";
-                        IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, nestedSource);
+                        IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, nestedSource, catalog);
                         if (linkErrors.Count > 0)
                             throw new InvalidDataException("Broken documentation links: " + string.Join(", ", linkErrors));
                         string md = ReplaceEmbeds(story.Path, nestedSource, nestedDocument.DocEmbeds, storyByPath,
@@ -263,7 +263,7 @@ public static partial class GallerySiteExporter
                 }
                 else if (document is not null)
                 {
-                    IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, document.DocSource!);
+                    IReadOnlyList<string> linkErrors = DocsIndex.ValidateLinks(story.Path, document.DocSource!, catalog);
                     if (linkErrors.Count > 0)
                         throw new InvalidDataException("Broken documentation links: " + string.Join(", ", linkErrors));
                     string md = ReplaceEmbeds(story.Path, document.DocSource!, document.DocEmbeds, storyByPath,

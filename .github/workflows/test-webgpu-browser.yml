@@ -106,6 +106,9 @@ jobs:
           production = [story for story in manifest['stories'] if story.get('componentType')]
           assert manifest['bundleId'] == 'webgpu-browser-v1'
           assert manifest['protocolVersion'] == 2
+          blur = next(story for story in manifest['stories'] if story['path'] == 'Examples/RenderGraph/Blur')
+          assert blur['width'] == blur['height'] == 320
+          assert blur['componentType'] is None
           assert len(production) == len({story['componentType'] for story in production}) == 60
           assert all(story['path'].endswith('/Basic') and isinstance(story['args'], list) for story in production)
           PY
