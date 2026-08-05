@@ -55,8 +55,6 @@ public static class LearnInput
         {StoryRef(ctx, "Examples/Input/Actions")}
 
         TextFieldやIMEによる文字入力は`Luxel.UI`の責務です。`Luxel.Input`はゲーム操作のための物理入力と論理アクションを扱います。
-
-        {SampleBundle("input.actions")}
         """;
 
     [Story("Learn/Input/ActionsAndContexts", Order = 1, Toc = true)]

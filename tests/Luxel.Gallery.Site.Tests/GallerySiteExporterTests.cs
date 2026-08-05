@@ -1526,6 +1526,9 @@ public sealed class GallerySiteExporterTests
     [Fact]
     public void Input_learn_pages_embed_running_stories_and_concept_sized_source_fragments()
     {
+        ISemanticDocument overviewDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/Overview")!)!;
+        Assert.DoesNotContain("コピーして動かす", overviewDocument.DocumentSource!);
+
         ISemanticDocument actionsDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/ActionsAndContexts")!)!;
         string actions = actionsDocument.DocumentSource!;
         Assert.Contains(actionsDocument.DocumentEmbeds,
