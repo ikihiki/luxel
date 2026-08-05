@@ -52,7 +52,7 @@ internal interface IRetainedCanvasSink
     void WriteOrder(uint[] order);
 }
 </code></pre>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Backends&quot;, Order = 15)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Backends&quot;, Order = 14)]
 public static Widget Backends(StoryContext ctx) =&gt; Page(ctx, &quot;Learn/Grapics/2D/Backends&quot;, &quot;GPU と Skia backend&quot;, &quot;Camera2D&quot;,
     &quot;アプリは `IRasterizer2D` に依存し、backend 固有機能は `Rasterizer2DCapabilities` で確認します。GPU は compute rasterizer、headless test は Skia CPU を選べます。&quot;,
     &quot;src/Luxel.Graphics.TwoD/IRasterizer2D.cs&quot;, &quot;Learn/Grapics/2D/Camera&quot;, &quot;Learn/Grapics/2D/RetainedCanvas&quot;);</code></pre></details></article>

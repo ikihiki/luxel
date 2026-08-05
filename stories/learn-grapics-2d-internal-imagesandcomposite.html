@@ -216,7 +216,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     g_buffers[args.fbIndex].Store((tid.y * args.width + tid.x) * 4, outPacked);
 }
 </code></pre>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Internal/ImagesAndComposite&quot;, Order = 25)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Internal/ImagesAndComposite&quot;, Order = 24)]
 public static Widget ImagesAndComposite(StoryContext ctx) =&gt; Page(ctx, &quot;Learn/Grapics/2D/Internal/ImagesAndComposite&quot;, &quot;Image sampling と composite&quot;,
     &quot;vector coverage と image sample を premultiplied alpha に揃え、order 順に source-over 合成します。透明色でも RGB が alpha 済みであることが重要です。&quot;,
     &quot;shaders/raster2d_fine.slang&quot;, &quot;Learn/Grapics/2D/Internal/FineRaster&quot;, &quot;Learn/Grapics/2D/Internal/Dispatch&quot;);</code></pre></details></article>

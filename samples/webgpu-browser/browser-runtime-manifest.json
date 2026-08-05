@@ -5923,6 +5923,14 @@
       "componentType": null
     },
     {
+      "path": "Examples/RenderGraph/Blur",
+      "width": 320,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
       "path": "Examples/UI/Navigation",
       "width": 680,
       "height": 380,

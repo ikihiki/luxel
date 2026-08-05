@@ -321,7 +321,7 @@ internal sealed class GpuRetainedRasterScene2D : IRasterScene2D, IRetainedCanvas
     }
 }
 </code></pre>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Internal/Overview&quot;, Order = 18)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Internal/Overview&quot;, Order = 17)]
 public static Widget Overview(StoryContext ctx) =&gt; Page(ctx, &quot;Learn/Grapics/2D/Internal/Overview&quot;, &quot;2D rasterizer pipeline&quot;,
     &quot;1 frame は `Scene2D → PathEncoder → bounds → tile bin → fine raster → target` と流れます。C# は buffer と dispatch を組み、Slang compute shader が coverage と合成を計算します。&quot;,
     &quot;src/Luxel.Graphics.TwoD/GpuDeviceRasterizer2D.cs&quot;, &quot;Learn/Grapics/2D/IncrementalUpdates&quot;, &quot;Learn/Grapics/2D/Internal/Flattening&quot;);</code></pre></details></article>

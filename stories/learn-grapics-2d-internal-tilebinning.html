@@ -54,7 +54,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     g_buffers[args.tileCountIndex].Store(tile * 4, count);
 }
 </code></pre>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Internal/TileBinning&quot;, Order = 23)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Internal/TileBinning&quot;, Order = 22)]
 public static Widget TileBinning(StoryContext ctx) =&gt; Page(ctx, &quot;Learn/Grapics/2D/Internal/TileBinning&quot;, &quot;16&#215;16 tile binning&quot;,
     &quot;各 tile に交差する path order を集めます。現在の `TileCap` を超えた tile は correctness を保つため全 order 走査へ fallback します。値は公開契約ではありません。&quot;,
     &quot;shaders/raster2d_bin.slang&quot;, &quot;Learn/Grapics/2D/Internal/Bounds&quot;, &quot;Learn/Grapics/2D/Internal/FineRaster&quot;);</code></pre></details></article>

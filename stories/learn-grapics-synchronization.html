@@ -1,6 +1,6 @@
 <article class="story document-page"><h1 id="section">同期</h1>
 <p><strong>難易度:</strong> Beginner+　 <strong>実行環境:</strong> Standalone　 <strong>Backend:</strong> Vulkan / DirectX 12 / WebGPU　 <strong>前提知識:</strong> Pipeline State</p>
-<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FPipelineState">PipelineState</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FRenderGraph">RenderGraph</a></p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FPipelineState">PipelineState</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2F2D%2FOverview">Overview</a></p>
 <p>GPU commandは記録した順に並べるだけでは、前段の書き込みが後段の読み出しから正しく見えるとは限りません。また、<code>Submit</code>はGPU処理の完了を待ちません。このページでは、command内の実行・memory依存を表す<code>Barrier</code>と、commandをqueueへ投入してCPU側の完了境界を作るSubmit系methodを分けて説明します。</p>
 <pre><code class="language-text">command内: producer → Barrier → consumer
 CPU / queue: Finish → Submit → GPU execution → completion wait
@@ -192,7 +192,7 @@ RecreateSizeDependentResources();
 <pre><code class="language-text">RenderGraph: pass間のproducer / consumer依存
 Queue API:   commandのsubmitとCPUから見た完了境界
 </code></pre>
-<p>次ページでは、手書きBarrierをpassのRead/Write宣言へ置き換えるRenderGraphを扱います。Vulkan、DirectX 12、native/browser WebGPUがBarrierとqueue完了をどうlowerするかは<a href="#story=Internals%2FGpu%2FSynchronization">GPU同期の内部実装</a>を参照してください。</p>
+<p>手書きBarrierをpassのRead/Write宣言へ置き換える方法は、独立した<a href="#story=Learn%2FRenderGraph%2FOverview">RenderGraphコース</a>で順番に扱います。Vulkan、DirectX 12、native/browser WebGPUがBarrierとqueue完了をどうlowerするかは<a href="#story=Internals%2FGpu%2FSynchronization">GPU同期の内部実装</a>を参照してください。</p>
 <h2 id="section-1">典型的な失敗</h2>
 <ul>
 <li>compute結果が古い → producerとconsumerの間に適切な<code>Barrier</code>がない。</li>
@@ -368,7 +368,7 @@ public static Widget Synchronization(StoryContext ctx)
     Queue API:   commandのsubmitとCPUから見た完了境界
     ```
 
-    次ページでは、手書きBarrierをpassのRead/Write宣言へ置き換えるRenderGraphを扱います。Vulkan、DirectX 12、native/browser WebGPUがBarrierとqueue完了をどうlowerするかは[GPU同期の内部実装](story:Internals/Gpu/Synchronization)を参照してください。
+    手書きBarrierをpassのRead/Write宣言へ置き換える方法は、独立した[RenderGraphコース](story:Learn/RenderGraph/Overview)で順番に扱います。Vulkan、DirectX 12、native/browser WebGPUがBarrierとqueue完了をどうlowerするかは[GPU同期の内部実装](story:Internals/Gpu/Synchronization)を参照してください。
 
     ## 典型的な失敗
 
