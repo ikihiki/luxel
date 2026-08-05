@@ -5,11 +5,12 @@ namespace Luxel.Gallery.Stories;
 public static class LearnRenderingTwoD
 {
     private static StoryResult Page(string path, string title, string objective, string mentalModel,
-        string example, string contracts, StoryReference sample)
+        string example, string contracts, StoryReference sample,
+        string environment = "Gallery WASM / Standalone / Headless")
         => $$"""
         # {{title}}
 
-        {{RenderingCourseCatalog.Meta(path, "Intermediate", "Gallery WASM / Standalone / Headless", "WebGPU / Vulkan / DirectX 12 / Skia CPU", objective)}}
+        {{RenderingCourseCatalog.Meta(path, "Intermediate", environment, "WebGPU / Vulkan / DirectX 12 / Skia CPU", objective)}}
 
         ## このページでできるようになること
 
@@ -63,16 +64,33 @@ scene.EndFill();
 
     [Story("Learn/Graphics/2D/Images", Order = 12, Toc = true)]
     public static StoryResult Images() => Page("Learn/Graphics/2D/Images", "Image、sprite、atlas",
-        "image全体、sub-rect、sprite atlasの描画方法を選ぶ。",
-        "image shapeもvector shapeと同じpainter orderに参加します。`ImageRect`は全体、`ImageSubRect`はatlasの一部、`DrawSprite`は名前付きframeを描きます。",
+        "画像全体、atlasのsub-rect、名前付きsprite、animation frameを用途に応じて描き分ける。",
+        "`ImageRect`は1枚のRGBA画像全体を矩形へ写します。atlasは複数画像を1枚へ詰めたsourceで、`ImageSubRect`がpixel座標の一部だけを選びます。`SpriteAtlas`は名前から`SpriteRect`を引くmetadataで、`DrawSprite`がsub-rect選択・pivot・scaleをまとめます。`SpriteAnimation`は現在のframe名を選び、最終的には同じ`DrawSprite`へ渡されます。",
         """"
 ```csharp
-scene.ImageSubRect(imageIndex, imageStride,
-    srcX: 32, srcY: 0, srcWidth: 32, srcHeight: 32,
-    x: 24, y: 24, width: 96, height: 96);
+// 画像全体
+scene.ImageRect(imageIndex, imageStride, imageWidth, imageHeight,
+    x: 16, y: 16, width: 64, height: 64);
+
+// atlas内の右上32×32だけを描画
+scene.ImageSubRect(atlasIndex, atlasWidth,
+    srcX: 32, srcY: 0, srcW: 32, srcH: 32,
+    x: 112, y: 16, w: 64, h: 64);
+
+var atlas = new SpriteAtlas("player.png", new Dictionary<string, SpriteRect>
+{
+    ["idle_0"] = new(0, 0, 32, 32, PivotX: 16, PivotY: 32),
+    ["idle_1"] = new(32, 0, 32, 32, PivotX: 16, PivotY: 32),
+});
+atlas.Bind(atlasIndex, atlasWidth: 64, atlasHeight: 32);
+scene.DrawSprite(atlas, "idle_0", x: 220, y: 96, scale: 2f);
+
+var animation = new SpriteAnimation("idle_", frameCount: 2, fps: 8f);
+animation.Update(deltaSeconds);
+scene.DrawSprite(atlas, animation, x: 300, y: 96, scale: 2f);
 ```
 """",
-        "source座標とstrideはpixel単位です。bufferはencoded scene/sessionより長く生存させます。RGBAはpremultipliedを前提とし、atlas端のfilter bleedを避けます。現在のSkia backendはimage shapeを支援しないため`Rasterizer2DCapabilities.BindlessImages`を確認します。",
+        "`srcStride`はbyte数ではなくpixel単位の行幅です。source bufferはRGBA8を密に並べ、sessionより長く生存させます。`SpriteAtlas`はpack処理を行わず、外部toolまたはasset metadataが作った矩形を保持します。pivotは指定world座標へ合わせるsprite内の基準点です。RGBAはpremultipliedを前提とし、atlas sub-rectは隣接cellへfilter bleedしないよう範囲内へclampされます。Skia backendはbindless image shapeを支援しないため`Rasterizer2DCapabilities.BindlessImages`を確認します。",
         StoryReference.To("Examples/2D/Sprites"));
 
     [Story("Learn/Graphics/2D/Camera", Order = 13, Toc = true)]
@@ -81,6 +99,7 @@ scene.ImageSubRect(imageIndex, imageStride,
         "`Camera2D`はaffine変換です。`screen.x=A×world.x+C×world.y+E`、`screen.y=B×world.x+D×world.y+F`として、同じsceneをpan/zoomした結果へ写します。",
         """"
 ```csharp
+// worldの(160, 90)をscreen中央へ移し、その点を中心に1.5倍する。
 Camera2D camera = Camera2D.Create(
     scale: 1.5f,
     worldCenter: new Vector2(160, 90),
@@ -94,49 +113,52 @@ encoded.Render(camera, target);
 
     [Story("Learn/Graphics/2D/Backends", Order = 14, Toc = true)]
     public static StoryResult Backends() => Page("Learn/Graphics/2D/Backends", "GPUとSkia backend",
-        "同じScene2Dに適したrasterizerとtargetを選ぶ。",
-        "描画コードは`IRasterizer2D`へ依存し、GPU固有のcommand recordingやbindless imageはcapabilityで分岐します。",
+        "同じScene2DをGPUとSkiaで描画し、targetとcapabilityの違いを説明する。",
+        "描画内容は`Scene2D`、backend選択は`IRasterizer2D`、出力先は`IRasterTarget2D`へ分かれます。GPUはcommandへ記録し、SkiaはCPU RGBAへ同期描画します。サンプルは両方の結果を`GpuView`で並べますが、Skia側の`GpuView`はCPU結果を表示するtransportであり、rasterize自体はSkiaです。",
         """"
 ```csharp
-using IRasterizer2D rasterizer = useCpu
-    ? new SkiaRasterizer2D()
-    : new GpuDeviceRasterizer2D(device);
-using IRasterScene2D encoded = rasterizer.CreateScene(scene);
-encoded.Render(Camera2D.Pixels, target);
+using var gpu = new GpuDeviceRasterizer2D(device);
+using IRasterScene2D gpuScene = gpu.CreateScene(scene);
+gpuScene.Render(Camera2D.Pixels,
+    new GpuRasterTarget2D(command, framebuffer, width, height));
+
+using var skia = new SkiaRasterizer2D();
+using IRasterScene2D skiaScene = skia.CreateScene(scene);
+var cpuTarget = new SkiaRasterTarget2D(width, height);
+skiaScene.Render(Camera2D.Pixels, cpuTarget);
 ```
 """",
-        "GPUは`GpuCommandRecording`、`BindlessImages`、`RetainedIncrementalUpdates`、Skiaは`CpuRgbaTarget`を提供します。sessionをrasterizerより先にdisposeし、同じrasterizerを複数threadから同時使用しません。browser live sampleはWebGPU、headless referenceはSkiaを使います。",
-        StoryReference.To("Examples/2D/SceneRender"));
+        "GPUは`GpuCommandRecording`、`BindlessImages`、`RetainedIncrementalUpdates`を提供し、Skiaは`CpuRgbaTarget`を提供します。image shapeはSkia非対応なので、backend比較にはvector-only sceneを使います。sessionをrasterizerより先にdisposeし、同じrasterizerを複数threadから同時使用しません。",
+        StoryReference.To("Examples/2D/Backends"),
+        environment: "Native Gallery / Standalone / Headless");
 
-    [Story("Learn/Graphics/2D/RetainedCanvas", Order = 15, Toc = true)]
-    public static StoryResult RetainedCanvasPage() => Page("Learn/Graphics/2D/RetainedCanvas", "RetainedCanvas",
-        "immediate Scene2Dとpersistent node treeを使い分ける。",
-        "`Scene2D`はencode時のsnapshotです。`RetainedCanvas`はnode treeとencoded display dataを分け、content、transform、style、clip、orderのmutationを追跡します。",
+    [Story("Learn/Graphics/2D/IncrementalUpdates", Order = 15, Toc = true)]
+    public static StoryResult IncrementalUpdates() => Page("Learn/Graphics/2D/IncrementalUpdates", "RetainedCanvasと増分更新",
+        "RetainedCanvasを速度改善のために導入し、mutationの種類とGPU upload量の関係を観測する。",
+        "`Scene2D`はencode時のsnapshotです。同じcontentを繰り返し描き、一部のtransform/styleだけを変える場合、`RetainedCanvas`はpersistent node、stable slot、dirty rangeを使って再encodeを避けます。transform/style-only updateは小さなin-place writeになり、contentやtree構造の変更はsegment writeまたはfull rebuildになります。",
         """"
 ```csharp
 var canvas = new RetainedCanvas();
 UiNode card = canvas.AddChild(canvas.Root);
-card.Content = new Scene2D().FillRoundedRect(Color2D.White, 0, 0, 180, 90, 12);
+card.Content = new Scene2D()
+    .FillRoundedRect(Color2D.White, 0, 0, 180, 90, 12);
 card.Transform = Affine2D.Translate(24, 18);
 card.Color = Color2D.Rgba(47, 111, 237);
-```
-"""",
-        "`HasPendingChanges`はqueued mutationを示すだけでuploadは行いません。backendとの同期はrender時です。transform/style変更はgeometryを再生成せず、contentやtree構造の変更はsegment更新またはfull rebuildを発生させます。",
-        StoryReference.To("Examples/2D/RetainedCanvasLive"));
 
-    [Story("Learn/Graphics/2D/IncrementalUpdates", Order = 16, Toc = true)]
-    public static StoryResult IncrementalUpdates() => Page("Learn/Graphics/2D/IncrementalUpdates", "増分更新",
-        "mutationの種類とGPU upload量の関係を観測する。",
-        "retained backendはstable slotとdirty rangeを使い、transform/style-only updateを小さなin-place writeへ変換します。geometryや構造が変わるとsegment writeやfull rebuildになります。",
-        """"
-```csharp
-node.Transform = Affine2D.Translate(40, 12);
-encoded.Render(camera, target);
+using IRasterScene2D encoded = rasterizer.CreateScene(canvas);
+encoded.Render(camera, target); // 初回はscene全体を同期
+
+card.Transform = Affine2D.Translate(190, 92);
+card.Color = Color2D.Rgba(34, 197, 94);
+encoded.Render(camera, target); // transform/styleのdirty rangeだけを同期
+
 Console.WriteLine(canvas.LastTransformWrites);
+Console.WriteLine(canvas.LastStyleWrites);
 Console.WriteLine(canvas.LastSegmentBytesWritten);
 Console.WriteLine(canvas.LastWasFullRebuild);
 ```
 """",
-        "`LastTransformWrites`、`LastStyleWrites`、`LastSegmentBytesWritten`、`LastWasFullRebuild`は直近の同期結果です。値を読む前にrenderを完了し、`HasPendingChanges`と混同しません。",
+        "`RetainedCanvas`は描画表現を増やすAPIではなく、同じsceneの更新コストを減らす最適化です。毎frame全geometryが変わる場合は`Scene2D`の再encodeの方が単純です。`HasPendingChanges`はqueued mutationを示すだけでuploadは行いません。`LastTransformWrites`、`LastStyleWrites`、`LastSegmentBytesWritten`、`LastWasFullRebuild`は直近のrender同期結果なので、値はrender後に読みます。",
         StoryReference.To("Examples/2D/Rasterizer/RetainedUpdatesLive"));
+
 }

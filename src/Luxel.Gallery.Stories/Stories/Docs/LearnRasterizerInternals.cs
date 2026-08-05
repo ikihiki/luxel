@@ -32,67 +32,67 @@ public static class LearnRasterizerInternals
         {{correctness}}
         """;
 
-    [Story("Learn/Graphics/2D/Internal/Overview", Order = 17, Toc = true)]
+    [Story("Learn/Graphics/2D/Internal/Overview", Order = 16, Toc = true)]
     public static StoryResult Overview() => Page("Learn/Graphics/2D/Internal/Overview", "2D rasterizer pipeline", "全stageの接続",
         "Scene2DまたはRetainedCanvas", "RGBA render target",
         "C#側のbuffer rangeとdispatch順序が、shader側の読み取りlayoutと一致する。",
         "描画が欠ける場合は入力path、encoded range、bounds、tile membership、coverage、compositeの順に切り分けます。");
 
-    [Story("Learn/Graphics/2D/Internal/Flattening", Order = 18, Toc = true)]
+    [Story("Learn/Graphics/2D/Internal/Flattening", Order = 17, Toc = true)]
     public static StoryResult Flattening() => Page("Learn/Graphics/2D/Internal/Flattening", "Curve flattening", "curve → line segment",
         "quadratic/cubic Bézierとworld-unit tolerance", "ordered line segment列",
         "各subdivisionは許容誤差以内で元curveを近似し、contour orderを保存する。",
         "toleranceが小さすぎるとsegment数が増え、大きすぎると輪郭が崩れます。open/closed contourと2点未満の破棄も確認します。");
 
-    [Story("Learn/Graphics/2D/Internal/SceneEncoding", Order = 19, Toc = true)]
+    [Story("Learn/Graphics/2D/Internal/SceneEncoding", Order = 18, Toc = true)]
     public static StoryResult SceneEncoding() => Page("Learn/Graphics/2D/Internal/SceneEncoding", "SoA scene encoding", "segments → SoA buffers",
         "flattened segments、shape/style/transform/clip/order", "GPU buffer rangeとroot arguments",
         "各shapeのrangeがsegment列を正確に指し、order bufferがpainter orderを保存する。",
         "rangeのoff-by-one、空shape、transform/style slotのずれをdiagnosticで確認します。");
 
-    [Story("Learn/Graphics/2D/Internal/Abi", Order = 20, Toc = true)]
+    [Story("Learn/Graphics/2D/Internal/Abi", Order = 19, Toc = true)]
     public static StoryResult Abi() => Page("Learn/Graphics/2D/Internal/Abi", "C# / Slang ABI", "host layout ↔ shader layout",
         "GpuSegment/GpuPath/GpuTransform/GpuStyle/GpuClip", "shaderから同じ意味で読めるbytes",
         "field order、size、alignment、bindless indexがC#とSlangで一致する。",
         "ABI test、shader cacheのinputs hash、root argument sizeを確認します。layout変更は片側だけで完結しません。");
 
-    [Story("Learn/Graphics/2D/Internal/Bounds", Order = 21, Toc = true)]
+    [Story("Learn/Graphics/2D/Internal/Bounds", Order = 20, Toc = true)]
     public static StoryResult Bounds() => Page("Learn/Graphics/2D/Internal/Bounds", "Bounds pass", "encoded paths → screen AABB",
         "path segment range、camera transform、stroke width、clip", "pathごとのscreen-space bounds",
         "boundsは全covered pixelを含み、stroke marginとclipを保守的に反映する。",
         "欠けはunder-estimate、過剰workはover-estimateを疑います。NaN、zero-size target、clip交差も確認します。");
 
-    [Story("Learn/Graphics/2D/Internal/TileBinning", Order = 22, Toc = true)]
+    [Story("Learn/Graphics/2D/Internal/TileBinning", Order = 21, Toc = true)]
     public static StoryResult TileBinning() => Page("Learn/Graphics/2D/Internal/TileBinning", "16×16 tile binning", "bounds → tile membership",
         "screen boundsとpainter order", "tileごとのordered path list",
         "tile内のpath orderを保存し、capacity overflowでも全order fallbackでcorrectnessを失わない。",
         "overflow count、tile offset/capacity、boundsとの交差を確認します。TileCapは公開契約ではありません。");
 
-    [Story("Learn/Graphics/2D/Internal/FineRaster", Order = 23, Toc = true)]
+    [Story("Learn/Graphics/2D/Internal/FineRaster", Order = 22, Toc = true)]
     public static StoryResult FineRaster() => Page("Learn/Graphics/2D/Internal/FineRaster", "Fine rasterとcoverage", "tile paths → sample coverage",
         "tile list、segments、fill rule、stroke width", "pixelごとのpremultiplied source color",
         "NonZero/EvenOddのwindingとstroke distanceが同じsample grid上で安定してcoverageを返す。",
         "現在の4×4 sample、境界pixel、open stroke、clip、fallback tileを確認します。");
 
-    [Story("Learn/Graphics/2D/Internal/ImagesAndComposite", Order = 24, Toc = true)]
+    [Story("Learn/Graphics/2D/Internal/ImagesAndComposite", Order = 23, Toc = true)]
     public static StoryResult ImagesAndComposite() => Page("Learn/Graphics/2D/Internal/ImagesAndComposite", "Image samplingとcomposite", "coverage/image → painter result",
         "vector coverage、image sample、order、destination color", "premultiplied RGBA pixel",
         "すべてのsourceをpremultiplied表現へ揃え、order順のsource-overを崩さない。",
         "transparent RGB、atlas座標/stride、bindless index、shape orderを確認します。");
 
-    [Story("Learn/Graphics/2D/Internal/Dispatch", Order = 25, Toc = true)]
+    [Story("Learn/Graphics/2D/Internal/Dispatch", Order = 24, Toc = true)]
     public static StoryResult Dispatch() => Page("Learn/Graphics/2D/Internal/Dispatch", "Dispatchとbarrier", "bounds → bin → fine",
         "scene buffers、scratch capacity、target", "完了したRGBA target",
         "各passのproducer writeがbarrier後のconsumer readから可視で、scratch rangeがdispatch量を満たす。",
         "bounds/bin/fineの順序、compute barrier、target transition、rasterizerの直列使用を確認します。browserでは同期waitを使いません。");
 
-    [Story("Learn/Graphics/2D/Internal/RetainedUploads", Order = 26, Toc = true)]
+    [Story("Learn/Graphics/2D/Internal/RetainedUploads", Order = 25, Toc = true)]
     public static StoryResult RetainedUploads() => Page("Learn/Graphics/2D/Internal/RetainedUploads", "Retained scene uploads", "dirty ranges → partial writes",
         "stable node slots、dirty transform/style/segment ranges", "in-place uploadまたはcompacted scene",
         "transform/style-only mutationはgeometry rangeを変えず、structural mutationだけが必要範囲を再構築する。",
         "write counters、fragmentation、capacity growth、full rebuild flagを確認します。");
 
-    [Story("Learn/Graphics/2D/Internal/Validation", Order = 27, Toc = true)]
+    [Story("Learn/Graphics/2D/Internal/Validation", Order = 26, Toc = true)]
     public static StoryResult Validation() => Page("Learn/Graphics/2D/Internal/Validation", "性能とcorrectnessの検証", "pipeline output → evidence",
         "unit tests、golden、backend parity、overflow fixture", "再現可能なpass/fail結果",
         "fill、clip、stroke、overflow fallback、ABI、backend差を独立したfixtureで固定する。",

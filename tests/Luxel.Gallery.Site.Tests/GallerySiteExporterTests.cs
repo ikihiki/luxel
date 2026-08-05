@@ -1035,12 +1035,12 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
-    public void TwoD_lessons_embed_only_browser_wasm_widget_stories()
+    public void TwoD_lessons_embed_the_expected_runtime_samples()
     {
         string[] livePaths =
         [
             "Examples/2D/SceneRender", "Examples/2D/Shapes", "Examples/2D/VectorPaths",
-            "Examples/2D/CameraRig", "Examples/2D/Sprites", "Examples/2D/RetainedCanvasLive",
+            "Examples/2D/CameraRig", "Examples/2D/Sprites",
             "Examples/2D/Rasterizer/InputPathsLive", "Examples/2D/Rasterizer/EncodedSceneLive",
             "Examples/2D/Rasterizer/BoundsLive", "Examples/2D/Rasterizer/TileBinsLive",
             "Examples/2D/Rasterizer/CoverageLive", "Examples/2D/Rasterizer/StrokeLive",
@@ -1060,7 +1060,10 @@ public sealed class GallerySiteExporterTests
         StoryInfo[] lessons = Catalog.All
             .Where(story => story.Path.StartsWith("Learn/Graphics/2D/", StringComparison.Ordinal))
             .ToArray();
-        Assert.Equal(19, lessons.Length);
+        Assert.Equal(18, lessons.Length);
+        Assert.Null(Catalog.Find("Learn/Graphics/2D/RetainedCanvas"));
+        Assert.Null(browserCatalog.Find("Examples/2D/RetainedCanvasLive"));
+        Assert.NotNull(Catalog.Find("Examples/2D/Backends"));
         foreach (StoryInfo lesson in lessons)
         {
             using var context = new StoryContext();
@@ -1073,6 +1076,12 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("<!-- luxel-toc -->", StoryMarkdownRenderer.EffectiveMarkdown(lesson, result.Markdown));
             Assert.All(result.References, reference =>
             {
+                if (reference.Path == "Examples/2D/Backends")
+                {
+                    Assert.NotNull(Catalog.Find(reference.Path));
+                    Assert.Null(browserCatalog.Find(reference.Path));
+                    return;
+                }
                 Assert.Contains(reference.Path, livePaths);
                 Assert.Equal(CoreUiStoryProject.RuntimeBundleId, browserCatalog.Find(reference.Path)?.RuntimeBundleId);
             });
@@ -1092,7 +1101,15 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("encoded.Render(camera", source, StringComparison.Ordinal);
         Assert.Contains("new RetainedCanvas()", source, StringComparison.Ordinal);
         Assert.Contains("canvas.LastTransformWrites", source, StringComparison.Ordinal);
+        Assert.Contains("surface.StridePixels", source, StringComparison.Ordinal);
+        Assert.Contains("world (80, 10) → screen center", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Vector2 Transform(", source, StringComparison.Ordinal);
+
+        string backendSource = File.ReadAllText(Path.Combine(root,
+            "src", "Luxel.Gallery.Stories", "Stories", "TwoDBackendStories.cs"));
+        Assert.Contains("new GpuDeviceRasterizer2D", backendSource, StringComparison.Ordinal);
+        Assert.Contains("new SkiaRasterizer2D", backendSource, StringComparison.Ordinal);
+        Assert.Contains("GpuView(", backendSource, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1112,7 +1129,7 @@ public sealed class GallerySiteExporterTests
             .ToArray();
         Assert.Equal(RenderingCourseCatalog.Routes, orderedGraphicsRoutes);
         Assert.Equal("Learn/Graphics/2D/Overview", orderedGraphicsRoutes[9]);
-        Assert.Equal("Learn/Graphics/2D/Internal/Overview", orderedGraphicsRoutes[17]);
+        Assert.Equal("Learn/Graphics/2D/Internal/Overview", orderedGraphicsRoutes[16]);
 
         string[] orderedRenderGraphRoutes = Catalog.All
             .Where(story => story.Path.StartsWith("Learn/RenderGraph/", StringComparison.Ordinal))

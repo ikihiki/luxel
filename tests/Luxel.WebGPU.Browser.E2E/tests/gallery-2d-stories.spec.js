@@ -6,7 +6,6 @@ const twoDStories = [
   'Examples/2D/VectorPaths',
   'Examples/2D/CameraRig',
   'Examples/2D/Sprites',
-  'Examples/2D/RetainedCanvasLive',
   'Examples/2D/Rasterizer/InputPathsLive',
   'Examples/2D/Rasterizer/EncodedSceneLive',
   'Examples/2D/Rasterizer/BoundsLive',

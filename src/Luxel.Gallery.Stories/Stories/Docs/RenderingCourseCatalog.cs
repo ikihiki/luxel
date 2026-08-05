@@ -14,7 +14,7 @@ internal static class RenderingCourseCatalog
         "Learn/Graphics/2D/Overview", "Learn/Graphics/2D/Paths",
         "Learn/Graphics/2D/Compositing", "Learn/Graphics/2D/Images",
         "Learn/Graphics/2D/Camera", "Learn/Graphics/2D/Backends",
-        "Learn/Graphics/2D/RetainedCanvas", "Learn/Graphics/2D/IncrementalUpdates",
+        "Learn/Graphics/2D/IncrementalUpdates",
         "Learn/Graphics/2D/Internal/Overview", "Learn/Graphics/2D/Internal/Flattening",
         "Learn/Graphics/2D/Internal/SceneEncoding", "Learn/Graphics/2D/Internal/Abi",
         "Learn/Graphics/2D/Internal/Bounds", "Learn/Graphics/2D/Internal/TileBinning",

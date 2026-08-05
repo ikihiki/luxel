@@ -62,15 +62,24 @@ public static class TwoDBrowserStories
             return scene;
         }
 
+        // 恒等変換: world座標をそのままscreen pixelとして描く。
+        Camera2D identity = Camera2D.Pixels;
+        // panのみ: worldの(80, 10)を460×84 viewportの中央(230, 42)へ移す。
+        Camera2D panned = Camera2D.Create(1f, new Vector2(80, 10), 460, 84);
+        // zoom + pan: worldの(160, 42)をviewport中央へ移し、その点を中心に1.6倍する。
+        Camera2D zoomed = Camera2D.Create(1.6f, new Vector2(160, 42), 460, 84);
+
         return Snapshot(ctx, VStack(6)[
-            Muted("同じ world geometry を IRasterScene2D.Render の camera引数だけ変えて比較"),
-            RasterView(ctx, 460, 84, WorldScene(), Camera2D.Pixels),
-            RasterView(ctx, 460, 84, WorldScene(), Camera2D.Create(1f, new Vector2(80, 10), 460, 84)),
-            RasterView(ctx, 460, 84, WorldScene(), Camera2D.Create(1.6f, new Vector2(160, 42), 460, 84))
+            Muted("identity — world座標 = screen pixel"),
+            RasterView(ctx, 460, 84, WorldScene(), identity),
+            Muted("pan — world (80, 10) → screen center (230, 42)"),
+            RasterView(ctx, 460, 84, WorldScene(), panned),
+            Muted("zoom + pan — world (160, 42)を中心に1.6倍"),
+            RasterView(ctx, 460, 84, WorldScene(), zoomed)
         ]);
     }
 
-    [Story("Examples/2D/Sprites", Width = 480, Height = 300, Order = 119, CapabilityNote = BrowserNote)]
+    [Story("Examples/2D/Sprites", Width = 480, Height = 330, Order = 119, CapabilityNote = BrowserNote)]
     public static Widget Sprites(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is not { } device) return Snapshot(ctx, Muted("GPU runtime required"));
@@ -85,19 +94,24 @@ public static class TwoDBrowserStories
         ]);
         atlas.Bind(atlasBuffer.BindlessIndex, atlasW, atlasH);
 
+        const int viewWidth = 400, viewHeight = 210;
         var scene = new Scene2D();
-        scene.FillRect(Color2D.Rgba(26, 31, 42), 0, 0, 400, 210);
-        scene.ImageRect(atlasBuffer.BindlessIndex, atlasW, atlasW, atlasH, 18, 18, 64, 64);
-        scene.ImageSubRect(atlasBuffer.BindlessIndex, atlasW, 32, 0, 32, 32, 116, 18, 64, 64);
+        scene.FillRect(Color2D.Rgba(26, 31, 42), 0, 0, viewWidth, viewHeight);
+        // 左上: 64×64 atlas全体。
+        scene.ImageRect(atlasBuffer.BindlessIndex, atlasW, atlasW, atlasH, 16, 18, 64, 64);
+        // 中央上: atlas右上の32×32 sub-rectだけを2倍表示。
+        scene.ImageSubRect(atlasBuffer.BindlessIndex, atlasW, 32, 0, 32, 32, 112, 18, 64, 64);
+        // 下段: 名前付きSpriteRectをatlasから選択。
         for (int frame = 0; frame < 4; frame++)
-            scene.DrawSprite(atlas, $"f_{frame}", 18 + frame * 54, 112, scale: 1.5f);
+            scene.DrawSprite(atlas, $"f_{frame}", 16 + frame * 52, 112, scale: 1.5f);
+        // 右側: SpriteAnimationが0.30秒時点で選ぶframeを拡大表示。
         var animation = new SpriteAnimation("f_", frameCount: 4, fps: 8f);
         animation.Update(0.30f);
         scene.DrawSprite(atlas, animation, 286, 94, scale: 3f);
 
-        return Snapshot(ctx, VStack(6)[
-            Muted("ImageRect / ImageSubRect / DrawSprite を同じ手続きatlasで比較"),
-            RasterView(ctx, 400, 210, scene, Camera2D.Pixels, atlasBuffer)
+        return Snapshot(ctx, VStack(4)[
+            Muted("上: atlas全体 / sub-rect　下: 名前付きsprite　右: animation frame"),
+            RasterView(ctx, viewWidth, viewHeight, scene, Camera2D.Pixels, atlasBuffer)
         ]);
     }
 
@@ -175,24 +189,6 @@ public static class TwoDBrowserStories
         }
     });
 
-    [Story("Examples/2D/RetainedCanvasLive", Width = 520, Height = 300, Order = 208, CapabilityNote = BrowserNote)]
-    public static Widget RetainedCanvasSample(StoryContext ctx)
-    {
-        var canvas = new RetainedCanvas();
-        UiNode blue = canvas.AddChild(canvas.Root);
-        blue.Content = new Scene2D().FillRoundedRect(Color2D.White, 0, 0, 150, 72, 14);
-        blue.Transform = Affine2D.Translate(28, 34);
-        blue.Color = Color2D.Rgba(59, 130, 246);
-        UiNode amber = canvas.AddChild(canvas.Root);
-        amber.Content = new Scene2D().FillCircle(Color2D.White, 0, 0, 42);
-        amber.Transform = Affine2D.Translate(290, 112);
-        amber.Color = Color2D.Rgba(245, 158, 11);
-        return Snapshot(ctx, VStack(6)[
-            Muted("RetainedCanvasのnode treeをIRasterizer2D.CreateSceneで描画"),
-            RasterView(ctx, 420, 220, canvas, Camera2D.Pixels)
-        ]);
-    }
-
     [Story("Examples/2D/Rasterizer/RetainedUpdatesLive", Width = 520, Height = 330, Order = 209, CapabilityNote = BrowserNote)]
     public static Widget RetainedUpdates(StoryContext ctx)
     {
@@ -250,7 +246,10 @@ public static class TwoDBrowserStories
         return GpuView(width, height, (_, surface, _) =>
         {
             using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
-            encoded.Render(camera, new GpuRasterTarget2D(command, surface.Framebuffer, width, height));
+            // GpuViewのframebufferは64px境界のrow strideを持つ。rasterizerの出力幅もstrideへ合わせ、
+            // GpuView側はsurface.Widthだけをcrop表示する。logical widthを渡すと各行の開始位置がずれて縞状になる。
+            encoded.Render(camera,
+                new GpuRasterTarget2D(command, surface.Framebuffer, surface.StridePixels, surface.Height));
             command.Finish();
             device.MainQueue.Submit(command);
             return GpuViewRenderResult.Ready;
