@@ -16,7 +16,7 @@ public static class LearnRenderGraph
 
         ## 動くサンプル
 
-        次のストーリーは、2D UIを入力として横方向・縦方向のblur passを実行し、左半分に元画像、右半分にblur結果を合成します。Gallery内でそのまま実行されるため、別projectのbuildや起動は不要です。
+        次のストーリーは、2D UIを入力として横方向・縦方向のblur passを実行し、左半分に元画像、右半分にblur結果を合成します。
 
         {{StoryRef(ctx, "Examples/RenderGraph/Blur")}}
 

@@ -1287,6 +1287,7 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("## 動くサンプル", renderGraphOverview);
         Assert.Contains("BlurH", renderGraphOverview);
         Assert.Contains("BlurV", renderGraphOverview);
+        Assert.DoesNotContain("別projectのbuildや起動は不要です", renderGraphOverview);
         Assert.DoesNotContain("samples/LuxelTriangle", renderGraphOverview);
         Assert.DoesNotContain("dotnet build", renderGraphOverview);
         Assert.DoesNotContain("dotnet run", renderGraphOverview);
