@@ -1,0 +1,41 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/Input/Actions</h1></header><aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/Input/Actions&quot;, Width = 680, Height = 430, Order = 0)]
+public static Widget Actions()
+{
+    var source = new FakeInputSource();
+    var bus = new InputBus();
+    var gameplay = new InputContext(&quot;Gameplay&quot;);
+    var jump = gameplay.Add(new ButtonAction(&quot;Jump&quot;, KeyCode.Space));
+    var move = gameplay.Add(new Axis2DAction(&quot;Move&quot;));
+    move.ButtonQuads.Add((KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D));
+    var stack = new InputStack();
+    stack.Push(gameplay);
+
+    var jumpTriggered = new Signal&lt;int&gt;(0);
+    var jumpReleased = new Signal&lt;int&gt;(0);
+    jump.Triggered += () =&gt; jumpTriggered.Value++;
+    jump.Released += () =&gt; jumpReleased.Value++;
+
+    void Tick() { source.Poll(bus); stack.Update(bus); }
+    void SetKey(KeyCode key, bool pressed)
+    {
+        if (pressed) source.PressKey(key); else source.ReleaseKey(key);
+        Tick();
+    }
+
+    Widget KeyButton(string label, KeyCode key) =&gt; HStack(6)[
+        Button(_ =&gt; SetKey(key, true), $&quot;{label} 押下&quot;),
+        Button(_ =&gt; SetKey(key, false), $&quot;{label} 解放&quot;)];
+
+    return Frame(VStack(12, width: 600)[
+        Heading(&quot;アクションの値とエッジ&quot;, 2),
+        Text(&quot;FakeInputSourceで物理入力を再現し、1回のPollとUpdateを1 tickとして処理します。&quot;, 14,
+            color: Bind.From(() =&gt; UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 590),
+        HStack(16)[KeyButton(&quot;W&quot;, KeyCode.W), KeyButton(&quot;D&quot;, KeyCode.D)],
+        KeyButton(&quot;Space&quot;, KeyCode.Space),
+        Card(VStack(6)[
+            Text((Func&lt;string&gt;)(() =&gt; $&quot;Move = ({move.Value.Value.X:0.00}, {move.Value.Value.Y:0.00})&quot;), 15),
+            Text((Func&lt;string&gt;)(() =&gt; $&quot;Jump = {(jump.IsActive.Value ? &quot;押下中&quot; : &quot;未押下&quot;)}&quot;), 15),
+            Text((Func&lt;string&gt;)(() =&gt; $&quot;Triggered = {jumpTriggered.Value} / Released = {jumpReleased.Value}&quot;), 15)]),
+        Text(&quot;WとDを両方押すと斜め方向が正規化されます。Spaceは押下tickでTriggered、解放tickでReleasedが1回ずつ発火します。&quot;, 13,
+            color: Bind.From(() =&gt; UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 590)]);
+}</code></pre></details></article>

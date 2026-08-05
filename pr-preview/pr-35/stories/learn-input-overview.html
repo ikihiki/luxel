@@ -1,47 +1,50 @@
-<article class="story document-page"><h1 id="input-overview">Input overview</h1>
-<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Gallery / Browser / Headless　 <strong>Backend:</strong> Window / Web / Fake / XInput　 <strong>前提知識:</strong> なし</p>
+<article class="story document-page"><h1 id="section">入力システムの概要</h1>
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Gallery / Headless　 <strong>Backend:</strong> Window / Fake / XInput　 <strong>前提知識:</strong> なし</p>
 <p><strong>次:</strong> <a href="#story=Learn%2FInput%2FActionsAndContexts">ActionsAndContexts</a></p>
-<p>Luxel.Inputは物理device eventをgameplayの語彙へ変換します。game codeは<code>WindowKey.W</code>やDOM eventではなく、<code>Move</code>、<code>Jump</code>、<code>Fire</code>のようなactionだけを読みます。</p>
+<p><code>Luxel.Input</code>は、キーボードやゲームパッドの物理入力を、<code>Move</code>や<code>Jump</code>のようなゲーム内の意味へ変換します。ゲームロジックが特定のキーを直接読むのではなく、論理アクションを読むようにすることで、入力機器やキー設定を変更してもゲーム側のコードを保てます。</p>
 <pre class="mermaid">flowchart LR
-  A[Platform / Fake source] --&gt; B[InputBus]
+  A[IInputSource] --&gt; B[InputBus]
   B --&gt; C[InputStack]
   C --&gt; D[InputContext]
-  D --&gt; E[Button / Axis actions]
-  E --&gt; F[Game logic]</pre>
+  D --&gt; E[InputAction]
+  E --&gt; F[ゲームロジック]</pre>
 <table>
 <thead>
 <tr>
-<th>用語</th>
+<th>要素</th>
 <th>役割</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>IInputSource</code></td>
-<td>window、controller、test fixtureからraw eventを収集する</td>
+<td>実ウィンドウ、ゲームパッド、テスト用入力からイベントを収集する</td>
 </tr>
 <tr>
 <td><code>InputBus</code></td>
-<td>1 tick分の差分eventをまとめる</td>
+<td>1 tickで発生した入力イベントを一時的に保持する</td>
 </tr>
 <tr>
 <td><code>InputStack</code></td>
-<td>held stateを保持し、context priorityとconsumptionを適用する</td>
+<td>押下状態を保持し、コンテキストの優先順位と消費を適用する</td>
+</tr>
+<tr>
+<td><code>InputContext</code></td>
+<td>Gameplay、Menuなど、同時に有効にするアクションをまとめる</td>
 </tr>
 <tr>
 <td><code>InputAction</code></td>
-<td>button、1D axis、2D axisとして論理値とedgeを公開する</td>
+<td>Button、1D軸、2D軸としてゲームロジックへ値を公開する</td>
 </tr>
 <tr>
 <td><code>InputBindings</code></td>
-<td>action名と物理key/axisの対応をdataとして保持する</td>
+<td>アクションと物理キー／軸の対応をデータとして保持する</td>
 </tr>
 </tbody>
 </table>
-<p>まず同じstoryをnative GalleryまたはexportされたBrowser/WASM Galleryで操作してください。</p>
-<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Input/Overview#doc-0" data-luxel-runtime-story="Examples/Input/WindowActions" data-luxel-runtime-instance="examples-input-windowactions-ea221fbd8331" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2FInput%2FWindowActions&amp;args=%7B%7D&amp;instance=examples-input-windowactions-ea221fbd8331" data-luxel-runtime-story="Examples/Input/WindowActions" data-luxel-runtime-instance="examples-input-windowactions-ea221fbd8331" title="Interactive WindowActions" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-input-windowactions-ea221fbd8331-args-tab" aria-controls="examples-input-windowactions-ea221fbd8331-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-input-windowactions-ea221fbd8331-output-tab" aria-controls="examples-input-windowactions-ea221fbd8331-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-input-windowactions-ea221fbd8331-source-tab" aria-controls="examples-input-windowactions-ea221fbd8331-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-input-windowactions-ea221fbd8331-args-panel" role="tabpanel" aria-labelledby="examples-input-windowactions-ea221fbd8331-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-input-windowactions-ea221fbd8331-output-panel" role="tabpanel" aria-labelledby="examples-input-windowactions-ea221fbd8331-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-input-windowactions-ea221fbd8331-source-panel" role="tabpanel" aria-labelledby="examples-input-windowactions-ea221fbd8331-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/Input/WindowActions&quot;, Width = 680, Height = 430, Order = 0)]&#10;public static Widget WindowActions(StoryContext ctx)&#10;{&#10;    IStoryInputRuntime? runtime = ctx.Get&lt;IStoryInputRuntime&gt;();&#10;    var bus = new InputBus();&#10;    var gameplay = new InputContext(&quot;Gameplay&quot;);&#10;    var move = gameplay.Add(new Axis2DAction(&quot;Move&quot;));&#10;    move.ButtonQuads.Add((KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D));&#10;    move.ButtonQuads.Add((KeyCode.Up, KeyCode.Down, KeyCode.Left, KeyCode.Right));&#10;    var fire = gameplay.Add(new ButtonAction(&quot;Fire&quot;, KeyCode.Mouse0));&#10;    var stack = new InputStack();&#10;    stack.Push(gameplay);&#10;&#10;    var vector = new Signal&lt;Vector2&gt;(Vector2.Zero);&#10;    var focused = new Signal&lt;bool&gt;(runtime?.IsFocused ?? false);&#10;    var fireHeld = new Signal&lt;bool&gt;(false);&#10;    var pressCount = new Signal&lt;int&gt;(0);&#10;    var releaseCount = new Signal&lt;int&gt;(0);&#10;    fire.Triggered += () =&gt; pressCount.Value++;&#10;    fire.Released += () =&gt; releaseCount.Value++;&#10;&#10;    Widget meter = Canvas2D(560, 170, animate: (scene, _) =&gt;&#10;    {&#10;        if (runtime is not null)&#10;        {&#10;            runtime.Poll(bus);&#10;            stack.Update(bus);&#10;            vector.Value = move.Value.Value;&#10;            fireHeld.Value = fire.Value.Value;&#10;            focused.Value = runtime.IsFocused;&#10;        }&#10;&#10;        uint panel = Color2D.Rgba(25, 32, 45, 255);&#10;        uint accent = fireHeld.Value ? Color2D.Rgba(251, 146, 60, 255) : Color2D.Rgba(96, 165, 250, 255);&#10;        scene.FillRoundedRect(panel, 0, 0, 560, 170, 14);&#10;        scene.FillCircle(Color2D.Rgba(148, 163, 184, 255), 280, 85, 105);&#10;        scene.FillCircle(panel, 280, 85, 102);&#10;        scene.FillCircle(accent, 280 + vector.Value.X * 95, 85 - vector.Value.Y * 55, fireHeld.Value ? 18 : 13);&#10;    });&#10;&#10;    string Capability() =&gt; runtime is null&#10;        ? &quot;Physical input service: unavailable (deterministic docs/catalog fallback)&quot;&#10;        : focused.Value ? &quot;Focused: keyboard and pointer actions are active&quot; : &quot;Click the preview to focus input&quot;;&#10;&#10;    return Frame(VStack(12, width: 600)[&#10;        Heading(&quot;Window actions&quot;, 2),&#10;        Text(&quot;Click this preview, then use WASD / arrow keys. Hold the left pointer button for Fire.&quot;, 14,&#10;            color: Bind.From(() =&gt; UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 590),&#10;        meter,&#10;        HStack(20)[&#10;            Text((Func&lt;string&gt;)(() =&gt; $&quot;Move: {vector.Value.X:0.00}, {vector.Value.Y:0.00}&quot;), 14),&#10;            Text((Func&lt;string&gt;)(() =&gt; $&quot;Fire: {(fireHeld.Value ? &quot;held&quot; : &quot;idle&quot;)}&quot;), 14),&#10;            Text((Func&lt;string&gt;)(() =&gt; $&quot;Pressed: {pressCount.Value}  Released: {releaseCount.Value}&quot;), 14)],&#10;        Text((Func&lt;string&gt;)Capability, 12, color: Bind.From(() =&gt; UiTheme.T.TextMuted))]);&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
-<p>TextFieldやIMEの文字入力は<code>Luxel.UI</code>の責務です。<code>Luxel.Input</code>は物理操作とgame/action mappingを扱い、入力文字列は扱いません。</p>
-<p>Copy/paste可能なheadless最小例は次のbundleです。</p>
+<p>最初にアクションのStoryを操作し、押下、保持、解放がtickごとにどう変化するか確認してください。</p>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<p>TextFieldやIMEによる文字入力は<code>Luxel.UI</code>の責務です。<code>Luxel.Input</code>はゲーム操作のための物理入力と論理アクションを扱います。</p>
 <h2 id="deterministic-input-actions">コピーして動かす — Deterministic input actions</h2>
 <blockquote>
 <p><strong>Block</strong> · 難易度: Beginner · 依存 bundle: <code>support.source-tree</code></p>
@@ -89,36 +92,35 @@ return jump.Value.Value ? 2 : 0;
 </code></pre>
 <details class="sample-bundle"><summary>Run this sample — Block</summary><p>FakeInputSource drives InputBus, InputStack, ButtonAction and Axis2DAction without a window.</p><p><strong>Requirements:</strong> .NET 10 / Headless on all supported .NET OS</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>input: jump=True, triggered=1</code></p><ul><li><code>samples/LuxelInput/LuxelInput.csproj</code> <span>Project</span></li><li><code>samples/LuxelInput/Program.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelInput</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelInput</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Input/Overview&quot;, Order = 0, SampleBundle = &quot;input.actions&quot;)]
 public static Widget Overview(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
-    # Input overview
+    # 入力システムの概要
 
-    {RuntimeCourseCatalog.Meta(&quot;Learn/Input/Overview&quot;, &quot;Beginner&quot;, &quot;Gallery / Browser / Headless&quot;, &quot;Window / Web / Fake / XInput&quot;, &quot;なし&quot;)}
+    {RuntimeCourseCatalog.Meta(&quot;Learn/Input/Overview&quot;, &quot;Beginner&quot;, &quot;Gallery / Headless&quot;, &quot;Window / Fake / XInput&quot;, &quot;なし&quot;)}
 
-    Luxel.Inputは物理device eventをgameplayの語彙へ変換します。game codeは`WindowKey.W`やDOM eventではなく、`Move`、`Jump`、`Fire`のようなactionだけを読みます。
+    `Luxel.Input`は、キーボードやゲームパッドの物理入力を、`Move`や`Jump`のようなゲーム内の意味へ変換します。ゲームロジックが特定のキーを直接読むのではなく、論理アクションを読むようにすることで、入力機器やキー設定を変更してもゲーム側のコードを保てます。
 
     ```mermaid
     flowchart LR
-      A[Platform / Fake source] --&gt; B[InputBus]
+      A[IInputSource] --&gt; B[InputBus]
       B --&gt; C[InputStack]
       C --&gt; D[InputContext]
-      D --&gt; E[Button / Axis actions]
-      E --&gt; F[Game logic]
+      D --&gt; E[InputAction]
+      E --&gt; F[ゲームロジック]
     ```
 
-    | 用語 | 役割 |
+    | 要素 | 役割 |
     |---|---|
-    | `IInputSource` | window、controller、test fixtureからraw eventを収集する |
-    | `InputBus` | 1 tick分の差分eventをまとめる |
-    | `InputStack` | held stateを保持し、context priorityとconsumptionを適用する |
-    | `InputAction` | button、1D axis、2D axisとして論理値とedgeを公開する |
-    | `InputBindings` | action名と物理key/axisの対応をdataとして保持する |
+    | `IInputSource` | 実ウィンドウ、ゲームパッド、テスト用入力からイベントを収集する |
+    | `InputBus` | 1 tickで発生した入力イベントを一時的に保持する |
+    | `InputStack` | 押下状態を保持し、コンテキストの優先順位と消費を適用する |
+    | `InputContext` | Gameplay、Menuなど、同時に有効にするアクションをまとめる |
+    | `InputAction` | Button、1D軸、2D軸としてゲームロジックへ値を公開する |
+    | `InputBindings` | アクションと物理キー／軸の対応をデータとして保持する |
 
-    まず同じstoryをnative GalleryまたはexportされたBrowser/WASM Galleryで操作してください。
+    最初にアクションのStoryを操作し、押下、保持、解放がtickごとにどう変化するか確認してください。
 
-    {StoryRef(ctx, &quot;Examples/Input/WindowActions&quot;)}
+    {StoryRef(ctx, &quot;Examples/Input/Actions&quot;)}
 
-    TextFieldやIMEの文字入力は`Luxel.UI`の責務です。`Luxel.Input`は物理操作とgame/action mappingを扱い、入力文字列は扱いません。
-
-    Copy/paste可能なheadless最小例は次のbundleです。
+    TextFieldやIMEによる文字入力は`Luxel.UI`の責務です。`Luxel.Input`はゲーム操作のための物理入力と論理アクションを扱います。
 
     {SampleBundle(&quot;input.actions&quot;)}
     &quot;&quot;&quot;, toc: true);</code></pre></details></article>

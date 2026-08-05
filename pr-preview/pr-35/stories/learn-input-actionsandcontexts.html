@@ -1,14 +1,174 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Input/ActionsAndContexts</h1></header><aside class="capture-error" data-capture-status="error"><strong>Static capture error</strong><pre>InvalidOperationException: Embedded sample source not found: src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs (Luxel.Sample.src.Luxel.Gallery.Stories.CoreUi.Stories.InputActionStories.cs)</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Input/ActionsAndContexts&quot;, Order = 1)]
+<article class="story document-page"><h1 id="section">アクションとコンテキスト</h1>
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Gallery / Headless　 <strong>Backend:</strong> Backend neutral　 <strong>前提知識:</strong> 入力システムの概要</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FInput%2FOverview">Overview</a>　 <strong>次:</strong> <a href="#story=Learn%2FInput%2FBindingsAndRebinding">BindingsAndRebinding</a></p>
+<h2 id="section-1">アクションの種類</h2>
+<table>
+<thead>
+<tr>
+<th>アクション</th>
+<th>値</th>
+<th>主な用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ButtonAction</code></td>
+<td><code>bool</code></td>
+<td>ジャンプ、決定、攻撃</td>
+</tr>
+<tr>
+<td><code>Axis1DAction</code></td>
+<td><code>-1</code>から<code>1</code></td>
+<td>左右移動、アクセル、トリガー</td>
+</tr>
+<tr>
+<td><code>Axis2DAction</code></td>
+<td><code>Vector2</code></td>
+<td>WASD移動、スティック入力</td>
+</tr>
+</tbody>
+</table>
+<p><code>ButtonAction</code>の<code>Triggered</code>は未押下から押下へ変わったtick、<code>Released</code>は押下から未押下へ変わったtickで1回だけ発火します。押し続けている間は<code>IsActive</code>がtrueですが、<code>Triggered</code>は繰り返し発火しません。</p>
+<p><code>Axis2DAction</code>へWASDを登録すると、左右と上下のボタンを2次元ベクトルへ合成します。斜め入力は長さが1を超えないように正規化されます。</p>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<pre><code class="language-csharp">    [Story(&quot;Examples/Input/Actions&quot;, Width = 680, Height = 430, Order = 0)]
+    public static Widget Actions()
+    {
+        var source = new FakeInputSource();
+        var bus = new InputBus();
+        var gameplay = new InputContext(&quot;Gameplay&quot;);
+        var jump = gameplay.Add(new ButtonAction(&quot;Jump&quot;, KeyCode.Space));
+        var move = gameplay.Add(new Axis2DAction(&quot;Move&quot;));
+        move.ButtonQuads.Add((KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D));
+        var stack = new InputStack();
+        stack.Push(gameplay);
+
+        var jumpTriggered = new Signal&lt;int&gt;(0);
+        var jumpReleased = new Signal&lt;int&gt;(0);
+        jump.Triggered += () =&gt; jumpTriggered.Value++;
+        jump.Released += () =&gt; jumpReleased.Value++;
+
+        void Tick() { source.Poll(bus); stack.Update(bus); }
+        void SetKey(KeyCode key, bool pressed)
+        {
+            if (pressed) source.PressKey(key); else source.ReleaseKey(key);
+            Tick();
+        }
+
+        Widget KeyButton(string label, KeyCode key) =&gt; HStack(6)[
+            Button(_ =&gt; SetKey(key, true), $&quot;{label} 押下&quot;),
+            Button(_ =&gt; SetKey(key, false), $&quot;{label} 解放&quot;)];
+
+        return Frame(VStack(12, width: 600)[
+            Heading(&quot;アクションの値とエッジ&quot;, 2),
+            Text(&quot;FakeInputSourceで物理入力を再現し、1回のPollとUpdateを1 tickとして処理します。&quot;, 14,
+                color: Bind.From(() =&gt; UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 590),
+            HStack(16)[KeyButton(&quot;W&quot;, KeyCode.W), KeyButton(&quot;D&quot;, KeyCode.D)],
+            KeyButton(&quot;Space&quot;, KeyCode.Space),
+            Card(VStack(6)[
+                Text((Func&lt;string&gt;)(() =&gt; $&quot;Move = ({move.Value.Value.X:0.00}, {move.Value.Value.Y:0.00})&quot;), 15),
+                Text((Func&lt;string&gt;)(() =&gt; $&quot;Jump = {(jump.IsActive.Value ? &quot;押下中&quot; : &quot;未押下&quot;)}&quot;), 15),
+                Text((Func&lt;string&gt;)(() =&gt; $&quot;Triggered = {jumpTriggered.Value} / Released = {jumpReleased.Value}&quot;), 15)]),
+            Text(&quot;WとDを両方押すと斜め方向が正規化されます。Spaceは押下tickでTriggered、解放tickでReleasedが1回ずつ発火します。&quot;, 13,
+                color: Bind.From(() =&gt; UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 590)]);
+    }
+</code></pre>
+<h2 id="tick">1 tickの処理順</h2>
+<ol>
+<li><code>IInputSource.Poll(bus)</code>で、そのtickの入力イベントを<code>InputBus</code>へ送ります。</li>
+<li><code>InputStack.Update(bus)</code>で押下状態を更新し、各アクションの値を計算します。</li>
+<li>ゲームロジックがアクションの値や<code>Triggered</code>／<code>Released</code>を読みます。</li>
+</ol>
+<p>押下と解放のエッジを確認するときは、押下と解放を別々のtickで処理します。</p>
+<h2 id="section-2">コンテキストの優先順位と入力の消費</h2>
+<p><code>InputContext</code>は、ある場面で有効なアクションをまとめます。たとえばGameplayとMenuを別コンテキストにすると、メニュー表示中だけMenuを優先できます。</p>
+<p><code>InputStack</code>は最後に<code>Push</code>したコンテキストから評価します。上位コンテキストで有効になったアクションが使用するキーや軸は消費され、下位コンテキストには渡りません。また、<code>SetSuspended</code>を使うとコンテキストをスタックから外さず一時停止できます。</p>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<pre><code class="language-csharp">    [Story(&quot;Examples/Input/ContextStack&quot;, Width = 650, Height = 390, Order = 1)]
+    public static Widget ContextStack()
+    {
+        var source = new FakeInputSource();
+        var bus = new InputBus();
+        var gameplay = new InputContext(&quot;Gameplay&quot;);
+        var gameplayConfirm = gameplay.Add(new ButtonAction(&quot;Confirm&quot;, KeyCode.Enter));
+        var menu = new InputContext(&quot;Menu&quot;);
+        var menuConfirm = menu.Add(new ButtonAction(&quot;Confirm&quot;, KeyCode.Enter));
+        var stack = new InputStack();
+        stack.Push(gameplay);
+        stack.Push(menu);
+        var menuSuspended = new Signal&lt;bool&gt;(false);
+        var result = new Signal&lt;string&gt;(&quot;Enterを送ると、最上位のMenuが先に処理します。&quot;);
+
+        void TapEnter()
+        {
+            source.PressKey(KeyCode.Enter); source.Poll(bus); stack.Update(bus);
+            result.Value = menuConfirm.IsActive.Value
+                ? &quot;MenuがEnterを消費しました。Gameplayには届きません。&quot;
+                : gameplayConfirm.IsActive.Value
+                    ? &quot;Menuは停止中なので、GameplayがEnterを受け取りました。&quot;
+                    : &quot;Enterを受け取ったコンテキストはありません。&quot;;
+            source.ReleaseKey(KeyCode.Enter); source.Poll(bus); stack.Update(bus);
+        }
+
+        void ToggleMenu()
+        {
+            menuSuspended.Value = !menuSuspended.Value;
+            stack.SetSuspended(menu, menuSuspended.Value);
+            result.Value = menuSuspended.Value
+                ? &quot;Menuを停止しました。次のEnterはGameplayへ届きます。&quot;
+                : &quot;Menuを再開しました。再び最優先でEnterを処理します。&quot;;
+        }
+
+        return Frame(VStack(14, width: 550)[
+            Heading(&quot;コンテキストの優先順位&quot;, 2),
+            Text(&quot;InputStackは最後にPushしたコンテキストから評価します。上位のアクションが使用したキーは消費され、下位には渡りません。&quot;, 14,
+                wrap: TextWrap.Word, width: 540, color: Bind.From(() =&gt; UiTheme.T.TextMuted)),
+            HStack(10)[
+                Button(_ =&gt; TapEnter(), &quot;Enterを送る&quot;),
+                Button(_ =&gt; ToggleMenu(), (Func&lt;string&gt;)(() =&gt; menuSuspended.Value ? &quot;Menuを再開&quot; : &quot;Menuを停止&quot;))],
+            Card(VStack(6)[
+                Text((Func&lt;string&gt;)(() =&gt; $&quot;1. Menu: {(menuSuspended.Value ? &quot;停止中&quot; : &quot;有効（最上位）&quot;)}&quot;), 14),
+                Text(&quot;2. Gameplay: 有効（下位）&quot;, 14),
+                Text($&quot;{result}&quot;, 14, wrap: TextWrap.Word, width: 500)])]);
+    }
+</code></pre>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Input/ActionsAndContexts&quot;, Order = 1)]
 public static Widget Actions(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
-    # Actions and contexts
+    # アクションとコンテキスト
 
-    {RuntimeCourseCatalog.Meta(&quot;Learn/Input/ActionsAndContexts&quot;, &quot;Beginner&quot;, &quot;Gallery / Headless&quot;, &quot;Backend neutral&quot;, &quot;Input overview&quot;)}
+    {RuntimeCourseCatalog.Meta(&quot;Learn/Input/ActionsAndContexts&quot;, &quot;Beginner&quot;, &quot;Gallery / Headless&quot;, &quot;Backend neutral&quot;, &quot;入力システムの概要&quot;)}
 
-    `ButtonAction`はbool、`Axis1DAction`は`-1..1`、`Axis2DAction`は正規化された`Vector2`を公開します。`Triggered`と`Released`はactive stateの立ち上がり／立ち下がりで一度だけ発火します。
+    ## アクションの種類
 
-    `InputStack`は最後にpushしたcontextから評価します。上位contextのactive actionが使用したkey/axisは下位contextへ渡りません。menuをgameplayより上に置き、text editing中はgameplay contextをsuspendする構成が基本です。
+    | アクション | 値 | 主な用途 |
+    |---|---|---|
+    | `ButtonAction` | `bool` | ジャンプ、決定、攻撃 |
+    | `Axis1DAction` | `-1`から`1` | 左右移動、アクセル、トリガー |
+    | `Axis2DAction` | `Vector2` | WASD移動、スティック入力 |
+
+    `ButtonAction`の`Triggered`は未押下から押下へ変わったtick、`Released`は押下から未押下へ変わったtickで1回だけ発火します。押し続けている間は`IsActive`がtrueですが、`Triggered`は繰り返し発火しません。
+
+    `Axis2DAction`へWASDを登録すると、左右と上下のボタンを2次元ベクトルへ合成します。斜め入力は長さが1を超えないように正規化されます。
+
+    {StoryRef(ctx, &quot;Examples/Input/Actions&quot;)}
+
+    {SampleSource(&quot;src/Luxel.Gallery.Stories/Stories/InputActionStories.cs&quot;, &quot;input-actions-story&quot;)}
+
+    ## 1 tickの処理順
+
+    1. `IInputSource.Poll(bus)`で、そのtickの入力イベントを`InputBus`へ送ります。
+    2. `InputStack.Update(bus)`で押下状態を更新し、各アクションの値を計算します。
+    3. ゲームロジックがアクションの値や`Triggered`／`Released`を読みます。
+
+    押下と解放のエッジを確認するときは、押下と解放を別々のtickで処理します。
+
+    ## コンテキストの優先順位と入力の消費
+
+    `InputContext`は、ある場面で有効なアクションをまとめます。たとえばGameplayとMenuを別コンテキストにすると、メニュー表示中だけMenuを優先できます。
+
+    `InputStack`は最後に`Push`したコンテキストから評価します。上位コンテキストで有効になったアクションが使用するキーや軸は消費され、下位コンテキストには渡りません。また、`SetSuspended`を使うとコンテキストをスタックから外さず一時停止できます。
 
     {StoryRef(ctx, &quot;Examples/Input/ContextStack&quot;)}
 
-    {SampleSource(&quot;src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs&quot;, &quot;input-context-stack&quot;)}
+    {SampleSource(&quot;src/Luxel.Gallery.Stories/Stories/InputActionStories.cs&quot;, &quot;input-context-stack&quot;)}
     &quot;&quot;&quot;, toc: true);</code></pre></details></article>

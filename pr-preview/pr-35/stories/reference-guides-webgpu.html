@@ -292,7 +292,6 @@ public static class HeadlessWebGpuSample
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.Typography\Luxel.Typography.csproj&quot;
                       AdditionalProperties=&quot;LuxelBrowserWasm=true&quot; /&gt;
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.UI\Luxel.UI.csproj&quot; /&gt;
-    &lt;ProjectReference Include=&quot;..\..\src\Luxel.Input\Luxel.Input.csproj&quot; /&gt;
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.Platform\Luxel.Platform.csproj&quot; /&gt;
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.Platform.Web\Luxel.Platform.Web.csproj&quot; /&gt;
   &lt;/ItemGroup&gt;
@@ -340,7 +339,6 @@ using Luxel.Gallery;
 using Luxel.Graphics;
 using Luxel.Graphics.TwoD;
 using Luxel.Graphics.WebGPU.Browser;
-using Luxel.Input;
 using Luxel.Platform;
 using Luxel.Platform.Abstraction;
 using Luxel.Platform.Web;
@@ -392,9 +390,6 @@ public static partial class Program
             int initialWidth = story.Width &gt; 0 ? story.Width : 640;
             int initialHeight = story.Height &gt; 0 ? story.Height : 360;
             Window window = windows.CreateWindow(new WindowDesc(&quot;Luxel &quot; + path, initialWidth, initialHeight));
-            using var storyInput = new StoryInputRuntime();
-            storyInput.Attach(window.CreateInputSource(&quot;gallery-browser-story&quot;));
-            storyInput.SetFocused(window.IsFocused);
             windows.Pump();
 
             BrowserWebGpuBackend backend = await BrowserWebGpuBackend.CreateAsync();
@@ -409,7 +404,6 @@ public static partial class Program
             await using AssetGpuInstallation assetGpu = resources.InstallAssetGpuLifecycle(device);
             using var font = new VectorFont(Resource(&quot;BIZUDGothic-Regular.ttf&quot;));
             using var context = new StoryContext(resources, args);
-            context.SetServices(new SingleServiceProvider&lt;IStoryInputRuntime&gt;(storyInput));
             context.SetGpuHost(device, font);
             _activeContext = context;
             _activeStory = path;
@@ -447,11 +441,7 @@ public static partial class Program
                 input.Modifiers.HasFlag(WindowKeyModifiers.Control),
                 input.Modifiers.HasFlag(WindowKeyModifiers.Alt));
             window.TextInput += ui.Commit;
-            window.FocusChanged += focused =&gt;
-            {
-                storyInput.SetFocused(focused);
-                if (focused &amp;&amp; !ui.HasFocus) ui.FocusNext();
-            };
+            window.FocusChanged += focused =&gt; { if (focused &amp;&amp; !ui.HasFocus) ui.FocusNext(); };
 
             async Task RenderAsync()
             {
@@ -483,7 +473,6 @@ public static partial class Program
                         ui.Resize(resizeWidth, resizeHeight);
                         resizePending = false;
                     }
-                    storyInput.Update();
                     resources.Pump();
                     ui.Tick(1f / 60f);
                     if (canvas.HasPendingChanges) await RenderAsync();
@@ -585,11 +574,6 @@ public static partial class Program
         using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resource)!;
         using var memory = new MemoryStream(); stream.CopyTo(memory); return memory.ToArray();
     }
-    private sealed class SingleServiceProvider&lt;T&gt;(T service) : IServiceProvider where T : class
-    {
-        public object? GetService(Type serviceType) =&gt; serviceType == typeof(T) ? service : null;
-    }
-
     private sealed record BrowserWidgetDiagnostic(string Type, string? Detail, float X, float Y, float Width, float Height);
     private sealed record SetArgsResponse(string Story, string InstanceId, int Revision, string RequestId,
         Dictionary&lt;string, JsonElement&gt;? Args, string[] Errors);

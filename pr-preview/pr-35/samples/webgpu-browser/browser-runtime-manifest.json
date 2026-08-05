@@ -5923,30 +5923,6 @@
       "componentType": null
     },
     {
-      "path": "Examples/Input/Bindings",
-      "width": 650,
-      "height": 390,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Examples/Input/ContextStack",
-      "width": 620,
-      "height": 360,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Examples/Input/WindowActions",
-      "width": 680,
-      "height": 430,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
       "path": "Examples/RenderGraph/Blur",
       "width": 320,
       "height": 320,

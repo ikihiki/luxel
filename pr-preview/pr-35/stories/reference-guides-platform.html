@@ -1,9 +1,7 @@
 <article class="story document-page"><h1 id="luxel.platform">プラットフォーム (Luxel.Platform)</h1>
-<p><code>Luxel.Platform</code> がウィンドウ、クリップボード、低レベル入力の共通公開APIを提供します。<code>Luxel.Platform.Windows</code> はCsWin32によるWin32/TSF実装、<code>Luxel.Platform.Silk</code> はLinux/X11実装、<code>Luxel.Platform.Web</code> はcanvas向けDOM event実装です。macOS native window、Wayland、mobile backendは現在提供していません。</p>
+<p><code>Luxel.Platform</code> がウィンドウ、クリップボード、低レベル入力の共通公開APIを提供します。<code>Luxel.Platform.Windows</code> はCsWin32によるWin32/TSF実装、<code>Luxel.Platform.Silk</code> はSilk.NET/GLFWによるLinux/X11実装です。オフスクリーン描画 (snap / bench) とはここだけが違います。</p>
 <h2 id="section">ウィンドウとマルチウィンドウ</h2>
 <p><code>Luxel.Platform.Windows</code> の <code>Win32Window</code> (CreateWindowEx + WndProc + PeekMessage) を共通 <code>WindowSystem</code> が公開し、<code>Luxel.UI.App</code> の <code>WindowManager</code> / <code>WindowHost</code> が UI ウィンドウとして束ねます。ウィンドウは複数持て、インスタンスは GWLP_USERDATA で引く正攻法 — 静的マップがないので<strong>別スレッドの別ウィンドウ</strong> (ネイティブ DevTools) とも共存します。マウス/ホイール/キー/WM_CHAR/リサイズは <code>UiHost</code> へ配線されます。第 2 ウィンドウを実際に開くデモは <a href="#story=RealWindow%2FPlatform%2FSecondWindow">RealWindow/Platform/SecondWindow</a> (実窓専用) へ。</p>
-<h2 id="browser-wasm">Browser / WASM</h2>
-<p><code>Luxel.Platform.Web</code>はpointer、wheel、keyboard、composition/text、focus、resizeをportable <code>Window</code> eventへ変換します。Gallery static siteではbrowser-safe CoreUi storiesを既存<code>webgpu-browser-v1</code> runtimeで実行します。action inputの実例は <a href="#story=Learn%2FInput%2FBrowserWasm">Learn/Input/BrowserWasm</a> と <a href="#story=Examples%2FInput%2FWindowActions">Examples/Input/WindowActions</a> を参照してください。</p>
 <h2 id="section-1">スワップチェーン提示</h2>
 <p>compute が書いた RGBA8 framebuffer を swapchain image へ<strong>コピーして present</strong> します (Vulkan = vkCmdCopyBufferToImage、D3D12 = CopyTextureRegion)。framebuffer 幅は 64 の倍数にパディングして D3D12 の 256B 行整列を満たし、可視領域のみ提示。両バックエンド R8G8B8A8 で swizzle 不要、リサイズで再生成します。</p>
 <h2 id="ime-tsf-preedit">IME (TSF、自前 preedit)</h2>
@@ -18,15 +16,11 @@
 public static Widget Platform(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
     # プラットフォーム (Luxel.Platform)
 
-    `Luxel.Platform` がウィンドウ、クリップボード、低レベル入力の共通公開APIを提供します。`Luxel.Platform.Windows` はCsWin32によるWin32/TSF実装、`Luxel.Platform.Silk` はLinux/X11実装、`Luxel.Platform.Web` はcanvas向けDOM event実装です。macOS native window、Wayland、mobile backendは現在提供していません。
+    `Luxel.Platform` がウィンドウ、クリップボード、低レベル入力の共通公開APIを提供します。`Luxel.Platform.Windows` はCsWin32によるWin32/TSF実装、`Luxel.Platform.Silk` はSilk.NET/GLFWによるLinux/X11実装です。オフスクリーン描画 (snap / bench) とはここだけが違います。
 
     ## ウィンドウとマルチウィンドウ
 
     `Luxel.Platform.Windows` の `Win32Window` (CreateWindowEx + WndProc + PeekMessage) を共通 `WindowSystem` が公開し、`Luxel.UI.App` の `WindowManager` / `WindowHost` が UI ウィンドウとして束ねます。ウィンドウは複数持て、インスタンスは GWLP_USERDATA で引く正攻法 — 静的マップがないので**別スレッドの別ウィンドウ** (ネイティブ DevTools) とも共存します。マウス/ホイール/キー/WM_CHAR/リサイズは `UiHost` へ配線されます。第 2 ウィンドウを実際に開くデモは [RealWindow/Platform/SecondWindow](story:RealWindow/Platform/SecondWindow) (実窓専用) へ。
-
-    ## Browser / WASM
-
-    `Luxel.Platform.Web`はpointer、wheel、keyboard、composition/text、focus、resizeをportable `Window` eventへ変換します。Gallery static siteではbrowser-safe CoreUi storiesを既存`webgpu-browser-v1` runtimeで実行します。action inputの実例は [Learn/Input/BrowserWasm](story:Learn/Input/BrowserWasm) と [Examples/Input/WindowActions](story:Examples/Input/WindowActions) を参照してください。
 
     ## スワップチェーン提示
 
