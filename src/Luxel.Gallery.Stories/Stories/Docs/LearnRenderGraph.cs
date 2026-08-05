@@ -3,7 +3,7 @@ using static Luxel.Gallery.Stories.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
-/// <summary>RenderGraphを段階的に学ぶ独立コース。実行可能な正は samples/LuxelTriangle。</summary>
+/// <summary>RenderGraphを動くGalleryストーリーから段階的に学ぶ独立コース。</summary>
 public static class LearnRenderGraph
 {
     [Story("Learn/RenderGraph/Overview", Order = 0)]
@@ -14,40 +14,31 @@ public static class LearnRenderGraph
 
         RenderGraphは、複数passがどのresourceを読み書きするか宣言し、barrier、不要passのculling、transient resourceの寿命をまとめて扱う仕組みです。このコースは[Grapicsの同期](story:Learn/Grapics/Synchronization)で手書きBarrierとSubmitを理解した後に進めてください。
 
-        ## このコースで作るもの
+        ## 動くサンプル
 
-        実行可能な正は`samples/LuxelTriangle`です。完成済みのtexture付きsceneを題材に、direct描画から1 passのgraphへ移行し、最後にcompute post-processを追加します。
+        次のストーリーは、2D UIを入力として横方向・縦方向のblur passを実行し、左半分に元画像、右半分にblur結果を合成します。Gallery内でそのまま実行されるため、別projectのbuildや起動は不要です。
 
-        | stage | resourceとpass | 学ぶこと |
-        | --- | --- | --- |
-        | `lighting` | renderer所有のcolor/depthへ直接描画 | command順とresource寿命の基準 |
-        | `graph` | 同じ描画を1個のgraph passとして登録 | AddPass、Read/Write、Execute、移行時の同値性 |
-        | `post` | transient scene color/depth → copy buffer → compute → external framebuffer | pass間依存、自動barrier、culling、aliasing |
+        {{StoryRef(ctx, "Examples/RenderGraph/Blur")}}
 
-        最初から複雑なgraphへ書き換えず、まずdirect版と同じ画像を1 passで作ります。これによりcamera、pipeline、windingのbugとgraph宣言のbugを分離できます。
-
-        ## 実行する
-
-        ```powershell
-        dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
-        dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter RenderGraphTests
-        dotnet run --project samples/LuxelTriangle -- vk --stage graph --frames 3
-        dotnet run --project samples/LuxelTriangle -- vk --stage post --frames 3
-        dotnet run --project samples/LuxelTriangle -- vk --stage post --size 801x603
-        # Windowsのみ
-        dotnet run --project samples/LuxelTriangle -- dx --stage graph --frames 3
-        dotnet run --project samples/LuxelTriangle -- dx --stage post --frames 3
+        ```text
+        External UI buffer
+          → BlurH (Transient buffer)
+          → BlurV (Transient buffer)
+          → Composite
+          → External output buffer
         ```
 
-        `graph`はdirect描画と同じ結果をRenderGraph経由で作ります。`post`はsceneをtransient targetへ描画し、compute shaderで寒色のshadowとvignetteを加えてexternal framebufferへ書きます。
+        この小さなgraphを各ページで順番に分解します。
 
-        ## 実sampleのgraph実装
+        | ページ | 学ぶこと |
+        | --- | --- |
+        | Resources | External / Transientと論理handle |
+        | Passes | AddPass、Read / Write、Executeと自動barrier |
+        | Compilation | culling、lifetime解析、aliasing |
+        | Lifecycle | submit、GPU完了、dispose、resize |
+        | Debugging | validationとDevToolsによる依存の可視化 |
 
-        次のsourceはsolutionで実際にbuildされます。各ページではこの全体像からresource、pass、compile、lifecycleを順番に取り出します。
-
-        {{SampleSource("samples/LuxelTriangle/TriangleRenderer.cs", "render-graph-frame")}}
-
-        RenderGraph本体は`src/Luxel.Graphics.RenderGraph/`、post-process shaderは`shaders/compute_tutorial_postprocess.slang`にあります。APIだけを一覧したい場合は[RenderGraph Guide](story:Reference/Guides/RenderGraph)を参照してください。
+        RenderGraph本体は`src/Luxel.Graphics.RenderGraph/`にあります。APIだけを一覧したい場合は[RenderGraph Guide](story:Reference/Guides/RenderGraph)を参照してください。
         """, toc: true);
 
     [Story("Learn/RenderGraph/Resources", Order = 1)]

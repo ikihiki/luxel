@@ -1284,11 +1284,15 @@ public sealed class GallerySiteExporterTests
 
         string renderGraphOverview = renderGraphPages["Learn/RenderGraph/Overview"].Text;
         Assert.Contains("# RenderGraph入門", renderGraphOverview);
-        Assert.Contains("direct描画から1 passのgraph", renderGraphOverview);
-        Assert.Contains("--stage graph", renderGraphOverview);
-        Assert.Contains("--stage post", renderGraphOverview);
-        StoryInfo renderGraphOverviewStory = Catalog.Find("Learn/RenderGraph/Overview")!;
-        Assert.Contains("samples/LuxelTriangle/TriangleRenderer.cs", renderGraphOverviewStory.Source);
+        Assert.Contains("## 動くサンプル", renderGraphOverview);
+        Assert.Contains("BlurH", renderGraphOverview);
+        Assert.Contains("BlurV", renderGraphOverview);
+        Assert.DoesNotContain("samples/LuxelTriangle", renderGraphOverview);
+        Assert.DoesNotContain("dotnet build", renderGraphOverview);
+        Assert.DoesNotContain("dotnet run", renderGraphOverview);
+        ISemanticDocument renderGraphOverviewDocument = BuildSemanticDocument(Catalog.Find("Learn/RenderGraph/Overview")!)!;
+        Assert.Contains(renderGraphOverviewDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/RenderGraph/Blur");
 
         string renderGraphResources = renderGraphPages["Learn/RenderGraph/Resources"].Text;
         foreach (string term in new[]
