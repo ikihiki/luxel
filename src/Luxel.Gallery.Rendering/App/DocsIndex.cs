@@ -37,7 +37,7 @@ public static class DocsIndex
                 {
                     StoryResult result = s.BuildResult(ctx);
                     src = result.Kind == StoryResultKind.Markdown
-                        ? result.Markdown
+                        ? StoryMarkdownRenderer.EffectiveMarkdown(s, result.Markdown)
                         : FindSemanticDocument(result.Widget)?.DocumentSource;
                 }
                 else

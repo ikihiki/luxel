@@ -7,8 +7,8 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0014-Workbench-Ui-Controls", Order = 85)]
-    public static Widget Adr0014(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Internals/ADR/0014-Workbench-Ui-Controls", Order = 85, Toc = true)]
+    public static StoryResult Adr0014(StoryContext ctx) => $$"""
         # ADR-0014 — Workbench 基盤 UI コントロール群を新設する
 
         - **Status**: Accepted
@@ -52,5 +52,5 @@ public static partial class DocsAdr
         - ✅ 既存の種 (`Tabs`/`Splitter`/`KnobsTable`/`TreeView`) を活かせて新規コードを絞れる
         - ⚠️ `DockHost` の D&D/ドロップゾーンは実装が重く、[ADR-0011](story:Internals/ADR/0011-Pointer-Button-Modifiers) と**端レイアウトの golden 検証**が要る
         - ⚠️ `PropertyGrid` の型別エディタは、対応型を増やすたびに保守が要る
-        """, toc: true);
+        """;
 }

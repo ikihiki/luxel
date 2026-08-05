@@ -9,11 +9,11 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsText
 {
-    [Story("Reference/Guides/Typography", Order = 40)]
-    public static Widget Typography(StoryContext ctx)
+    [Story("Reference/Guides/Typography", Order = 40, Toc = true)]
+    public static StoryResult Typography(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());   // 新スタック: mermaid フェンス + コードブロックの描画 golden
-        return DocNew(ctx, $$"""
+        return $$"""
         # テキスト (Luxel.Typography)
 
         `Luxel.Typography` はGPU/2Dに依存しないHarfBuzzシェーピング + 自前レイアウト基盤です。`Luxel.Typography.TwoD`が`VectorFont` / `TextLayout`を`Scene2D`へ出力する拡張を提供し、`Luxel.Graphics.TwoD`自体はテキストを知りません。ICU (完全なUAX#14/#29) は`Luxel.Typography.Icu`アダプタ — 使うアプリだけが参照します。
@@ -75,14 +75,14 @@ public static class DocsText
         キャレットの単位は**グラフェム境界**。fi 合字のように 1 グリフに複数グラフェムが入る場合はグリフ advance を按分します (HarfBuzz 推奨の近似)。HitTest はクラスタ矩形の中央で左右に吸着し、選択は行ごとの矩形列です。
 
         次: [Reference/Guides/Editor](story:Reference/Guides/Editor) — この上に載る文書モデルとエディタへ。
-        """, toc: true);
+        """;
     }
 
-    [Story("Reference/Guides/Editor", Order = 41)]
-    public static Widget Editor(StoryContext ctx)
+    [Story("Reference/Guides/Editor", Order = 41, Toc = true)]
+    public static StoryResult Editor(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());   // 新スタック解説ページ (見出し/mermaid/コードの描画 golden)
-        return DocNew(ctx, $$"""
+        return $$"""
         # ドキュメントとエディタ (Luxel.Document)
 
         テキスト編集は 2 層です。**Luxel.Document** が canvas 非依存のエディタコア (状態・編集・装飾・幾何)、**Luxel.Controls の `TextEditorView`** が塗り・入力・IME を足す薄いビュー。CodeMirror 6 に倣った設計です (決定は [ADR-0006](story:Internals/ADR/0006-Editor-New-Stack))。コアの全意味論が UI/GPU なしで単体テストできます。
@@ -146,6 +146,6 @@ public static class DocsText
         ## 埋め込みブロック (Embed)
 
         図/表/数式/ライブ UI は**ブロック widget** として文章の間に載ります。`embed <key>` フェンス (や `mermaid` / `math` 言語のフェンス) を `MarkdownDecorations` が自動高さ block widget にし、view の `WidgetResolver` が key + 本文から実 Widget を解決します (mermaid → `Luxel.Diagram`、数式 → `Luxel.MathText`、ライブ UI → 任意 widget)。リゾルバのいない環境では**ただのコードブロックとして保全**されます。行内 hole は `[￼](luxel-ui:N)` = 自動サイズの行内 widget。実物: [Controls/TextEditorView/DocEmbeds](story:Controls/TextEditorView/DocEmbeds) (mermaid + 数式) / [Embed](story:Controls/TextEditorView/Embed) (ライブ UI)。**この docs ページの mermaid / コードブロックも同じ経路**です。
-        """, toc: true);
+        """;
     }
 }

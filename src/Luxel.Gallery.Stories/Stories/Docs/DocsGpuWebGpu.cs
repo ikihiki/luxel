@@ -7,8 +7,8 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsGpu
 {
-    [Story("Reference/Guides/WebGPU", Order = 17, SampleBundle = "rendering.webgpu-browser")]
-    public static Widget WebGpu(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/WebGPU", Order = 17, SampleBundle = "rendering.webgpu-browser", Toc = true)]
+    public static StoryResult WebGpu(StoryContext ctx) => $$"""
         # WebGPU backend 設計ガイド
 
         このページは native と browser/WASM の WebGPU backend が満たす**設計契約と対応範囲**を定義します。特定の build や platform が利用可能かどうかは、adapter/device 作成、required feature/limit 検査、代表 story の回帰ゲートで判定します。この文書だけを根拠に「対応済み」または「実装進行中」とは扱いません。
@@ -151,5 +151,5 @@ public static partial class DocsGpu
         - [Reference/Guides/TwoD](story:Reference/Guides/TwoD) — compute raster、text、logical buffer/texture refs
 
         これらの story が選択した環境で通ることと、required tests/goldens が揃うことを、backend 対応を表明するためのゲートにします。
-        """, toc: true);
+        """;
 }

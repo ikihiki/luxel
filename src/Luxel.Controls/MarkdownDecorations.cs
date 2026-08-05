@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Luxel.Gallery;
 using Luxel.Document;
 using Luxel.Typography;
 using Luxel.UI;
@@ -72,6 +73,36 @@ public static class MarkdownDoc
         return ed;
     }
 
+    /// <summary>Direct <see cref="StoryResult"/> Markdown を構造化 Story/Widget 埋め込み付きで描画する。</summary>
+    public static TextEditorView FromStoryResult(StoryResult result, Func<Theme> theme, float width, float height,
+        Func<StoryReference, Widget> storyResolver, VectorFont? body = null, VectorFont? bold = null,
+        VectorFont? mono = null, ISyntaxHighlighter? highlighter = null,
+        IReadOnlyDictionary<string, Func<string, Widget>>? fences = null, FontCollection? fonts = null,
+        bool fill = false)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(storyResolver);
+        var kinds = new HashSet<string> { "luxel-ui", "luxel-story" };
+        if (fences is not null) foreach (string key in fences.Keys) kinds.Add(key);
+        TextEditorView editor = Create(new Signal<string>(result.Markdown), theme, width, height,
+            body: body, bold: bold, mono: mono, highlighter: highlighter, embedKinds: kinds, fonts: fonts, fill: fill);
+        editor.WidgetResolver = key =>
+        {
+            if (key is not EmbedRef embed) return null;
+            if (embed.Key == "luxel-story")
+                return int.TryParse(embed.Body.Trim(), out int storyIndex)
+                    && storyIndex >= 0 && storyIndex < result.References.Count
+                    ? storyResolver(result.References[storyIndex]) : null;
+            if (embed.Key == "luxel-ui")
+                return int.TryParse(embed.Body.Trim(), out int widgetIndex)
+                    && widgetIndex >= 0 && widgetIndex < result.Embeds.Count
+                    ? result.Embeds[widgetIndex].ResolveWidget() : null;
+            return fences is not null && fences.TryGetValue(embed.Key, out Func<string, Widget>? factory)
+                ? factory(embed.Body) : null;
+        };
+        return editor;
+    }
+
     /// <summary>見出しアンカーの slug: lowercase + 空白 (半角/全角) → <c>-</c>、さらに
     /// markdown リンク URL <c>](…)</c> を壊す丸括弧/角括弧を除去する。見出しに <c>(...)</c> があっても
     /// TOC の <c>#アンカー</c> が正しく張れる (括弧が残ると URL 内の <c>)</c> がリンクを途中で閉じる)。
@@ -89,6 +120,8 @@ public static class MarkdownDoc
     /// H2/H3 が対象・コードフェンス内は無視。slug は <see cref="Slug"/> で本文と一致させる。</summary>
     public static string InsertToc(string md)
     {
+        const string tocMarker = "<!-- luxel-toc -->";
+        if (md.Contains(tocMarker, StringComparison.Ordinal)) return md;
         string[] lines = md.Split('\n');
         var toc = new List<string>();
         bool inFence = false;
@@ -100,7 +133,7 @@ public static class MarkdownDoc
             else if (l.StartsWith("### ")) toc.Add($"  - [{l[4..].Trim()}](#{Slug(l[4..])})");
         }
         if (toc.Count == 0) return md;
-        string block = string.Join('\n', toc);
+        string block = tocMarker + "\n" + string.Join('\n', toc) + "\n<!-- /luxel-toc -->";
         for (int i = 0; i < lines.Length; i++)
             if (lines[i].StartsWith("# ")) { lines[i] += "\n\n" + block; return string.Join('\n', lines); }
         return block + "\n\n" + md;

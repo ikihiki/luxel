@@ -7,8 +7,8 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0016-Scene-Editor-Stack", Order = 87)]
-    public static Widget Adr0016(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Internals/ADR/0016-Scene-Editor-Stack", Order = 87, Toc = true)]
+    public static StoryResult Adr0016(StoryContext ctx) => $$"""
         # ADR-0016 — シーンエディタは第 3 の Transaction スタック + 空間アダプタで作る
 
         - **Status**: Accepted
@@ -45,5 +45,5 @@ public static partial class DocsAdr
         - ✅ SetField 1 本で移動/インスペクタ/スクリプト設定が同じ undo 経路に乗る
         - ⚠️ アダプタ境界の維持には規律が要る — シェルに空間ロジックを書くと 3D で崩壊する (レビュー観点)
         - ⚠️ プレースホルダ表示 (定型ボックス) は GE-2/GE-3 でスプライト/実表示に置き換えるまでの仮
-        """, toc: true);
+        """;
 }

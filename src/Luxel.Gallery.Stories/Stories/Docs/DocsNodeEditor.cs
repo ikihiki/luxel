@@ -9,11 +9,11 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsNodeEditor
 {
-    [Story("Reference/Guides/NodeEditor", Order = 42)]
-    public static Widget NodeEditor(StoryContext ctx)
+    [Story("Reference/Guides/NodeEditor", Order = 42, Toc = true)]
+    public static StoryResult NodeEditor(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());   // 新スタック: mermaid 図の描画 golden (ライブ埋め込み無し=安全)
-        return DocNew(ctx, $$"""
+        return $$"""
         # ノードエディタ (Luxel.NodeGraph)
 
         ノード + ポート + 接続線を空間上で編集する**汎用ノードグラフ制御**です。特定ドメインに縛られない土台 (TouchDesigner / Blueprint 流) で、アニメブレンド・シェーダ・オーディオパッチ・レンダーグラフ可視化などが同じ control に載ります。決定は [ADR-0009](story:Internals/ADR/0009-Node-Editor-Stack)。テキスト新スタック ([ADR-0006](story:Internals/ADR/0006-Editor-New-Stack)) と**同じ骨格**で、canvas 非依存のコアと薄いビューに分かれます。
@@ -50,6 +50,6 @@ public static class DocsNodeEditor
         > ポインタのボタン/修飾キーは [ADR-0011](story:Internals/ADR/0011-Pointer-Button-Modifiers) で追加済み — **中ボタンドラッグ = pan**、**Ctrl+クリック = 追加選択**が使えます (空白の左ドラッグは範囲選択のまま)。
         >
         > Workbench ([Reference/Guides/Workbench](story:Reference/Guides/Workbench)) に載せるときは `NodeGraphDocument` アダプタが JSON 往復 (`NodeGraphJson`) と undo 委譲を配線します。
-        """, toc: true);
+        """;
     }
 }

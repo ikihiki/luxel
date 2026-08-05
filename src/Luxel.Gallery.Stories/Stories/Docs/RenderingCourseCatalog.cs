@@ -7,25 +7,25 @@ internal static class RenderingCourseCatalog
 {
     internal static readonly string[] Routes =
     [
-        "Learn/Grapics/Overview", "Learn/Grapics/Environment",
-        "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
-        "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
-        "Learn/Grapics/PipelineState", "Learn/Grapics/Synchronization",
-        "Learn/Grapics/2D/Overview", "Learn/Grapics/2D/Paths",
-        "Learn/Grapics/2D/Compositing", "Learn/Grapics/2D/Images",
-        "Learn/Grapics/2D/Camera", "Learn/Grapics/2D/Backends",
-        "Learn/Grapics/2D/RetainedCanvas", "Learn/Grapics/2D/IncrementalUpdates",
-        "Learn/Grapics/2D/Internal/Overview", "Learn/Grapics/2D/Internal/Flattening",
-        "Learn/Grapics/2D/Internal/SceneEncoding", "Learn/Grapics/2D/Internal/Abi",
-        "Learn/Grapics/2D/Internal/Bounds", "Learn/Grapics/2D/Internal/TileBinning",
-        "Learn/Grapics/2D/Internal/FineRaster", "Learn/Grapics/2D/Internal/ImagesAndComposite",
-        "Learn/Grapics/2D/Internal/Dispatch", "Learn/Grapics/2D/Internal/RetainedUploads",
-        "Learn/Grapics/2D/Internal/Validation",
+        "Learn/Graphics/Overview", "Learn/Graphics/Environment",
+        "Learn/Graphics/ClearColor", "Learn/Graphics/FirstTriangle",
+        "Learn/Graphics/Buffers", "Learn/Graphics/Textures", "Learn/Graphics/Shaders",
+        "Learn/Graphics/PipelineState", "Learn/Graphics/Synchronization",
+        "Learn/Graphics/2D/Overview", "Learn/Graphics/2D/Paths",
+        "Learn/Graphics/2D/Compositing", "Learn/Graphics/2D/Images",
+        "Learn/Graphics/2D/Camera", "Learn/Graphics/2D/Backends",
+        "Learn/Graphics/2D/IncrementalUpdates",
+        "Learn/Graphics/2D/Internal/Overview", "Learn/Graphics/2D/Internal/Flattening",
+        "Learn/Graphics/2D/Internal/SceneEncoding", "Learn/Graphics/2D/Internal/Abi",
+        "Learn/Graphics/2D/Internal/Bounds", "Learn/Graphics/2D/Internal/TileBinning",
+        "Learn/Graphics/2D/Internal/FineRaster", "Learn/Graphics/2D/Internal/ImagesAndComposite",
+        "Learn/Graphics/2D/Internal/Dispatch", "Learn/Graphics/2D/Internal/RetainedUploads",
+        "Learn/Graphics/2D/Internal/Validation",
     ];
 
     internal static readonly string[] ApplicationRoute = Routes
         .Skip(1)
-        .TakeWhile(route => !route.StartsWith("Learn/Grapics/2D/", StringComparison.Ordinal))
+        .TakeWhile(route => !route.StartsWith("Learn/Graphics/2D/", StringComparison.Ordinal))
         .ToArray();
 
     internal static string ApplicationRouteMarkdown()

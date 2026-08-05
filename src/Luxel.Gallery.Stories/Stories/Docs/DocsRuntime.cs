@@ -9,8 +9,8 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsRuntime
 {
-    [Story("Reference/Guides/Resources", Order = 50)]
-    public static Widget Resources(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/Resources", Order = 50, Toc = true)]
+    public static StoryResult Resources(StoryContext ctx) => $$"""
         # リソース (Luxel.Resources)
 
         初めて使う場合は [Resources Learn](story:Learn/Resources/Overview)、コピー可能な最小構成は [Build/Blocks/Resources/Pipeline](story:Build/Blocks/Resources/Pipeline) から始めてください。
@@ -60,10 +60,10 @@ public static class DocsRuntime
         ## RenderGraph との関係
 
         混同注意 — Resources は**多フレーム寿命のアセット** ((型, uri) DAG)、RenderGraph は **1 フレームのパス合成** ((pass, resource) DAG) です。併用は「Resources でロードした GpuTexture を `ImportTexture` で External として取り込む」形 ([Reference/Guides/RenderGraph](story:Reference/Guides/RenderGraph) の対比表も参照)。
-        """, toc: true);
+        """;
 
-    [Story("Reference/Guides/Platform", Order = 51)]
-    public static Widget Platform(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/Platform", Order = 51, Toc = true)]
+    public static StoryResult Platform(StoryContext ctx) => $$"""
         # プラットフォーム (Luxel.Platform)
 
         `Luxel.Platform` がウィンドウ、クリップボード、低レベル入力の共通公開APIを提供します。`Luxel.Platform.Windows` はCsWin32によるWin32/TSF実装、`Luxel.Platform.Silk` はSilk.NET/GLFWによるLinux/X11実装です。オフスクリーン描画 (snap / bench) とはここだけが違います。
@@ -85,10 +85,10 @@ public static class DocsRuntime
         - `CursorKind` (Arrow / IBeam / Hand / Resize) を `HitTarget.Cursor` で宣言 — hover 先のカーソルが WM_SETCURSOR で反映されます
         - 右クリックは `OnContext` → `ContextMenu.Open` (エディタ標準の切り取り/コピー/貼り付け)
         - クリップボードは `Luxel.Platform.Clipboard` + `IClipboardBackend` (`Win32ClipboardBackend` / `SilkClipboardBackend`) としてウィンドウから独立して構成します。リッチテキストは plain + markdown の両形式で書き込みます
-        """, toc: true);
+        """;
 
-    [Story("Reference/Guides/Input", Order = 52)]
-    public static Widget Input(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/Input", Order = 52, Toc = true)]
+    public static StoryResult Input(StoryContext ctx) => $$"""
         # 入力
 
         ゲーム入力を順に学ぶ場合は [Input Learn](story:Learn/Input/Overview)、コピー可能な最小構成は [Build/Blocks/Input/Actions](story:Build/Blocks/Input/Actions) から始めてください。
@@ -114,10 +114,10 @@ public static class DocsRuntime
         ## programmatic 入力
 
         ウィンドウなしで `host.Click(x, y)` / `host.Char("Hi")` / `host.KeyDown(Key.Tab)` を直接呼べます — ユニットテストや snap 前の状態強制はこの経路です。
-        """, toc: true);
+        """;
 
-    [Story("Reference/Guides/Audio", Order = 53)]
-    public static Widget Audio(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/Audio", Order = 53, Toc = true)]
+    public static StoryResult Audio(StoryContext ctx) => $$"""
         # オーディオ (Luxel.Audio)
 
         初めて使う場合は [Audio Learn](story:Learn/Audio/Overview)、headlessで動く最小構成は [Build/Blocks/Audio/Tone](story:Build/Blocks/Audio/Tone) から始めてください。
@@ -167,10 +167,10 @@ public static class DocsRuntime
 
         > [!NOTE]
         > SFX は全展開クリップ (`AudioClip`)、BGM は `StreamingVoice`。Doppler と mp3 は将来枠。Tick/Update/Pump を呼ばないと Signal の変更やキュー補充が反映されません。
-        """, toc: true);
+        """;
 
-    [Story("Reference/Guides/Framework", Order = 54)]
-    public static Widget Framework(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/Framework", Order = 54, Toc = true)]
+    public static StoryResult Framework(StoryContext ctx) => $$"""
         # フレームワーク (Luxel.Framework)
 
         アプリの骨格です。Microsoft.Extensions.Hosting の DI に GPU / Resources / Audio / Input を統合し、シーンの生成・切り替えとフレームループを一括管理します。
@@ -253,10 +253,10 @@ public static class DocsRuntime
         スタンドアロンゲームは `LuxelHostBuilder` + `GameScene` でループを組み、`WindowSystem`/`Window`/`GpuSurface` へ提示します。**Framework は窓/提示を持たない**ので、フレーム待ち (`UseFrameWaiter`) を pacer で同期し、`host.Start()` 後にメインループで `pacer.Tick()` (1 フレーム同期実行) → `surface.Present(scene の framebuffer)` します (StoryAppView と同じ TCS inline 方式で GPU キュー安全)。入力は `IInputSource` を登録すると GameLoop が毎フレーム Poll します。
 
         出荷は `dotnet publish -c Release -r win-x64 --self-contained` の self-contained フォルダ配布。出力にはコンパイル済みシェーダ (`shaders/*.spv`/`*.dxil` — `Luxel.Shaders.targets` が自動コピー)・アセット/同梱フォント (csproj の Content)・ネイティブ DLL (glfw / HarfBuzz / Silk.NET) が揃います。アセットは `AppContext.BaseDirectory` (exe の隣) 基準で読むので **cwd 非依存** — リポジトリ外の任意パスへコピーして起動できます。`vulkan-1.dll` は OS/ドライバ側 (同梱しない) なので README に動作要件として明記します。実例は capstone ① `samples/LuxelCavern` (フォルダ publish を vk/dx 両方でリポジトリ外起動まで検証)。
-        """, toc: true);
+        """;
 
-    [Story("Reference/Guides/DevTools", Order = 55)]
-    public static Widget DevTools(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/DevTools", Order = 55, Toc = true)]
+    public static StoryResult DevTools(StoryContext ctx) => $$"""
         # DevTools (Luxel.DevTools)
 
         エンジンとの結合は 2 本だけです — **DiagnosticListener (読み) + EngineCommands (書き)**。この疎結合がそのままスレッド境界・プロセス境界になります。
@@ -317,10 +317,10 @@ public static class DocsRuntime
         ## スレッド設計の規約
 
         signal は所有する島 (スレッド) のみが触り、スレッド間は Listener (volatile/lock 済) と EngineCommands (ConcurrentQueue) だけ — [ThreadStatic] やグローバル可変状態は使いません。テーマも UiHost 単位の signal 所有です (DevTools 島は自前テーマを持つ)。
-        """, toc: true);
+        """;
 
-    [Story("Reference/Guides/Scripting", Order = 56)]
-    public static Widget Scripting(StoryContext ctx) => ctx.Snap(DocNew(ctx, $$"""
+    [Story("Reference/Guides/Scripting", Order = 56, Toc = true)]
+    public static StoryResult Scripting(StoryContext ctx) => $$"""
         # スクリプト (Luxel.Scripting)
 
         **言語はエンジンと同じ C#** です (別言語を持ち込みません)。[Roslyn Scripting](https://github.com/dotnet/roslyn) を `ScriptHost` で薄く包み、`.csx` 意味論 (最後の式が戻り値、globals のメンバーが裸で見える) で実行します。書き手は開発者自身なのでフルトラストで、pure-C#・型付き・決定的というリポジトリの方針とそのまま噛み合います。実演は {{StoryRef(ctx, "Examples/Scripting/LiveCsx")}} へ。
@@ -380,5 +380,5 @@ public static class DocsRuntime
 
         > [!NOTE]
         > v1 の割り切り: 編集ごとのアセンブリはプロセス終了まで残る (開発時ツールとして許容 — アンロードが要件になったら collectible ALC 化)。サンドボックスは無し (信頼できるコード前提 — 軽量分離が要るなら Lua-CSharp を後付けする退路)。スクリプトは決定性規約 (wall-clock/乱数/await を使わない) を守れば snap/E2E と両立します。
-        """, toc: true));
+        """;
 }

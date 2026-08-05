@@ -5,11 +5,11 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsGpu
 {
-    [Story("Internals/Gpu/Synchronization", Order = 69)]
-    public static Widget GpuSynchronizationInternals(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Internals/Gpu/Synchronization", Order = 69, Toc = true)]
+    public static StoryResult GpuSynchronizationInternals(StoryContext ctx) => $$"""
         # GPU同期の内部実装
 
-        公開APIの`GpuCommandBuffer.Barrier`と`GpuQueue`は、Vulkan、DirectX 12、native WebGPU、browser WebGPUの異なる同期機構へlowerされます。利用側の説明は[同期](story:Learn/Grapics/Synchronization)を参照してください。このページでは現在の実装が実際にどのnative operationを使うかを説明します。
+        公開APIの`GpuCommandBuffer.Barrier`と`GpuQueue`は、Vulkan、DirectX 12、native WebGPU、browser WebGPUの異なる同期機構へlowerされます。利用側の説明は[同期](story:Learn/Graphics/Synchronization)を参照してください。このページでは現在の実装が実際にどのnative operationを使うかを説明します。
 
         ## 公開APIとbackend interface
 
@@ -124,5 +124,5 @@ public static partial class DocsGpu
         - `GpuStage`の精密なloweringはVulkanが中心で、D3D12/WebGPUはより粗い同期になる。
 
         将来per-submit completionを公開する場合も、Vulkan fence/timeline semaphore、D3D12 fence value、WebGPU Promise/serialを直接露出せず、resource再利用に必要なbackend-neutral completion tokenとして設計する必要があります。
-        """, toc: true);
+        """;
 }

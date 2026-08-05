@@ -1,4 +1,3 @@
-using Luxel.UI;
 using static Luxel.Gallery.Stories.DocsKit;
 
 namespace Luxel.Gallery.Stories;
@@ -6,13 +5,13 @@ namespace Luxel.Gallery.Stories;
 /// <summary>RenderGraphを動くGalleryストーリーから段階的に学ぶ独立コース。</summary>
 public static class LearnRenderGraph
 {
-    [Story("Learn/RenderGraph/Overview", Order = 0)]
-    public static Widget Overview(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Learn/RenderGraph/Overview", Order = 0, Toc = true)]
+    public static StoryResult Overview(StoryContext ctx) => $$"""
         # RenderGraph入門
 
-        {{RenderGraphCourseCatalog.Meta("Learn/RenderGraph/Overview", "Beginner+", "Grapics / Synchronization")}}
+        {{RenderGraphCourseCatalog.Meta("Learn/RenderGraph/Overview", "Beginner+", "Graphics / Synchronization")}}
 
-        RenderGraphは、複数passがどのresourceを読み書きするか宣言し、barrier、不要passのculling、transient resourceの寿命をまとめて扱う仕組みです。このコースは[Grapicsの同期](story:Learn/Grapics/Synchronization)で手書きBarrierとSubmitを理解した後に進めてください。
+        RenderGraphは、複数passがどのresourceを読み書きするか宣言し、barrier、不要passのculling、transient resourceの寿命をまとめて扱う仕組みです。このコースは[Graphicsの同期](story:Learn/Graphics/Synchronization)で手書きBarrierとSubmitを理解した後に進めてください。
 
         ## 動くサンプル
 
@@ -39,10 +38,10 @@ public static class LearnRenderGraph
         | Debugging | validationとDevToolsによる依存の可視化 |
 
         RenderGraph本体は`src/Luxel.Graphics.RenderGraph/`にあります。APIだけを一覧したい場合は[RenderGraph Guide](story:Reference/Guides/RenderGraph)を参照してください。
-        """, toc: true);
+        """;
 
-    [Story("Learn/RenderGraph/Resources", Order = 1)]
-    public static Widget Resources(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Learn/RenderGraph/Resources", Order = 1, Toc = true)]
+    public static StoryResult Resources(StoryContext ctx) => $$"""
         # リソースとハンドル
 
         {{RenderGraphCourseCatalog.Meta("Learn/RenderGraph/Resources", "Beginner+", "RenderGraph Overview")}}
@@ -93,10 +92,10 @@ public static class LearnRenderGraph
         - frameをまたいでhandleを再利用しない
         - external resourceの寿命はgraphではなくimportした側が管理する
         - transientのdescriptorはcompile後に変更せず、次frameで作り直す
-        """, toc: true);
+        """;
 
-    [Story("Learn/RenderGraph/Passes", Order = 2)]
-    public static Widget Passes(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Learn/RenderGraph/Passes", Order = 2, Toc = true)]
+    public static StoryResult Passes(StoryContext ctx) => $$"""
         # パスと依存関係
 
         {{RenderGraphCourseCatalog.Meta("Learn/RenderGraph/Passes", "Intermediate", "Resources")}}
@@ -140,10 +139,10 @@ public static class LearnRenderGraph
         ## 現在の実行順とqueue
 
         現在は依存からtopological sortせず、**passの登録順で実行**します。producerをconsumerより先に登録してください。`PassQueue.Graphics`と`PassQueue.Compute`は分類と診断に使われますが、どちらも`device.MainQueue`で実行されます。`AsyncCompute`を並列実行の契約として扱わないでください。
-        """, toc: true);
+        """;
 
-    [Story("Learn/RenderGraph/Compilation", Order = 3)]
-    public static Widget Compilation(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Learn/RenderGraph/Compilation", Order = 3, Toc = true)]
+    public static StoryResult Compilation(StoryContext ctx) => $$"""
         # Cullingとaliasing
 
         {{RenderGraphCourseCatalog.Meta("Learn/RenderGraph/Compilation", "Intermediate", "Passes")}}
@@ -175,10 +174,10 @@ public static class LearnRenderGraph
         ## 終端barrier
 
         external resourceへ最後にwriteした場合、graphは後段のcopyやpresentから見えるよう保守的な終端barrierを記録します。ただし、これはCPUから見たGPU完了待ちではありません。submitとresource破棄の関係は次ページで扱います。
-        """, toc: true);
+        """;
 
-    [Story("Learn/RenderGraph/Lifecycle", Order = 4)]
-    public static Widget Lifecycle(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Learn/RenderGraph/Lifecycle", Order = 4, Toc = true)]
+    public static StoryResult Lifecycle(StoryContext ctx) => $$"""
         # フレーム寿命とresize
 
         {{RenderGraphCourseCatalog.Meta("Learn/RenderGraph/Lifecycle", "Intermediate", "Compilation / Synchronization")}}
@@ -218,10 +217,10 @@ public static class LearnRenderGraph
         ## Backend差
 
         VulkanとDirectX 12でlogical passと依存宣言は共通です。backend差はbarrier command、SPIR-V/DXIL、D3D12 readback row pitchなど下層へ閉じ込めます。RenderGraphを使ってもsubmit、GPU完了、presentが自動になるわけではありません。
-        """, toc: true);
+        """;
 
-    [Story("Learn/RenderGraph/Debugging", Order = 5)]
-    public static Widget Debugging(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Learn/RenderGraph/Debugging", Order = 5, Toc = true)]
+    public static StoryResult Debugging(StoryContext ctx) => $$"""
         # ValidationとDevTools
 
         {{RenderGraphCourseCatalog.Meta("Learn/RenderGraph/Debugging", "Intermediate", "Lifecycle")}}
@@ -258,5 +257,5 @@ public static class LearnRenderGraph
         {{StoryRef(ctx, "Examples/RenderGraph/Blur")}}
 
         次は[Indexed Cube](story:Build/Recipes/IndexedCube)や[3D Camera](story:Build/Recipes/Camera3D)と組み合わせるか、[Bloom3D](story:Examples/RenderGraph/Bloom3D)で複数passの完成例を確認してください。
-        """, toc: true);
+        """;
 }
