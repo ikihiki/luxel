@@ -1004,7 +1004,7 @@ public sealed class GallerySiteExporterTests
             "Learn/Grapics/Overview", "Learn/Grapics/Environment",
             "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
             "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
-            "Learn/Grapics/PipelineState", "Learn/Grapics/Fence", "Learn/Grapics/RenderGraph",
+            "Learn/Grapics/PipelineState", "Learn/Grapics/Synchronization", "Learn/Grapics/RenderGraph",
         ];
 
         for (int i = 0; i < routes.Length; i++)
@@ -1028,7 +1028,7 @@ public sealed class GallerySiteExporterTests
             "Learn/Grapics/Overview", "Learn/Grapics/Environment",
             "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
             "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
-            "Learn/Grapics/PipelineState", "Learn/Grapics/Fence", "Learn/Grapics/RenderGraph",
+            "Learn/Grapics/PipelineState", "Learn/Grapics/Synchronization", "Learn/Grapics/RenderGraph",
         ];
         StoryInfo[] stories = routes.Select(name => Catalog.Find(name)
             ?? throw new InvalidOperationException($"Rendering Learn route is missing: {name}")).ToArray();
@@ -1080,14 +1080,15 @@ public sealed class GallerySiteExporterTests
             Assert.Contains(api, clearColor);
         Assert.Contains("## Framebufferのバッファリング", clearColor);
         Assert.Contains("single framebuffer + `SubmitAndWait`", clearColor);
-        Assert.Contains("story:Learn/Grapics/Fence", clearColor);
+        Assert.Contains("story:Learn/Grapics/Synchronization", clearColor);
+        Assert.Contains("story:Internals/Gpu/Synchronization", clearColor);
         Assert.DoesNotContain("## 実sampleのframe loop", clearColor);
         Assert.DoesNotContain("SampleSource(\"samples/LuxelTriangle/Program.cs\", \"standalone-frame-loop\")", clearColor);
 
         Assert.Contains("story:Learn/Grapics/TwoD/Overview", pages[stories[^1].Path].Text);
 
         string overview = pages[stories[0].Path].Text.ToLowerInvariant();
-        foreach (string term in new[] { "triangle", "texture", "shader", "pipeline", "fence", "render graph" })
+        foreach (string term in new[] { "triangle", "texture", "shader", "pipeline", "barrier", "submit", "render graph" })
             Assert.Contains(term, overview);
 
         string trianglePage = pages["Learn/Grapics/FirstTriangle"].Text;
@@ -1210,26 +1211,41 @@ public sealed class GallerySiteExporterTests
         Assert.Contains(pipelineDocument.DocumentEmbeds,
             embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/3D/Blend");
 
-        string fencePage = pages["Learn/Grapics/Fence"].Text;
-        Assert.Contains("# FenceとGPU同期", fencePage);
-        foreach (string fenceTopic in new[]
+        string synchronizationPage = pages["Learn/Grapics/Synchronization"].Text;
+        Assert.Contains("# 同期", synchronizationPage);
+        foreach (string synchronizationTopic in new[]
                  {
-                     "## CPUとGPUは別のtimelineで進む", "## Fenceの基本操作",
-                     "## SubmitAndWaitとWaitIdleとの違い", "## Frame slotとFence",
-                     "## Resourceごとの完了境界", "## RenderGraphとの関係",
+                     "## Barrierは何を同期するか", "## よく使うBarrier",
+                     "## Barrierでは解決しないこと", "## FinishとSubmit",
+                     "## SubmitAndWait", "## SubmitAsync", "## WaitIdleとWaitIdleAsync",
+                     "## RenderGraphとの関係",
                  })
-            Assert.Contains(fenceTopic, fencePage);
-        foreach (string fenceTerm in new[]
+            Assert.Contains(synchronizationTopic, synchronizationPage);
+        foreach (string synchronizationTerm in new[]
                  {
-                     "CompletedValue", "fence.Wait", "SubmitAndWait", "WaitIdle",
-                     "現在のLuxel公開APIにはGpuFenceはまだありません", "story:Learn/Grapics/RenderGraph",
+                     "GpuStage.ColorOutput", "GpuStage.Copy", "GpuHazard.IndirectArguments",
+                     "SubmitAndWait", "SubmitAsync", "WaitIdle", "WaitIdleAsync",
+                     "story:Internals/Gpu/Synchronization", "story:Learn/Grapics/RenderGraph",
                  })
-            Assert.Contains(fenceTerm, fencePage);
-        Assert.DoesNotContain("## Present、VSync、frame pacing", fencePage);
+            Assert.Contains(synchronizationTerm, synchronizationPage);
+        Assert.DoesNotContain("## Frame slotとFence", synchronizationPage);
+        Assert.DoesNotContain("fence.CompletedValue", synchronizationPage);
+
+        StoryInfo synchronizationInternals = Catalog.Find("Internals/Gpu/Synchronization")!;
+        string synchronizationInternalsPage = BuildSemanticDocument(synchronizationInternals)!.DocumentSource!;
+        Assert.Contains("# GPU同期の内部実装", synchronizationInternalsPage);
+        foreach (string backendTopic in new[] { "## Vulkan", "## DirectX 12", "## Native WebGPU", "## Browser WebGPU" })
+            Assert.Contains(backendTopic, synchronizationInternalsPage);
+        foreach (string implementationTerm in new[]
+                 {
+                     "vkCmdPipelineBarrier2", "vkQueueWaitIdle", "VkFence",
+                     "ID3D12Fence", "CompletedValue", "DevicePoll", "submission serial",
+                 })
+            Assert.Contains(implementationTerm, synchronizationInternalsPage);
 
         string renderGraphPage = pages["Learn/Grapics/RenderGraph"].Text;
         Assert.Contains("# RenderGraph", renderGraphPage);
-        Assert.Contains("story:Learn/Grapics/Fence", renderGraphPage);
+        Assert.Contains("story:Learn/Grapics/Synchronization", renderGraphPage);
         Assert.Contains("story:Learn/Grapics/TwoD/Overview", renderGraphPage);
         foreach (string renderGraphTopic in new[]
                  {
@@ -1240,7 +1256,8 @@ public sealed class GallerySiteExporterTests
 
         foreach (string removedRoute in new[]
                  {
-                     "Learn/Grapics/FrameLoopAndSynchronization", "Learn/Grapics/ThreeD/FirstRenderGraph",
+                     "Learn/Grapics/FrameLoopAndSynchronization", "Learn/Grapics/Fence",
+                     "Learn/Grapics/ThreeD/FirstRenderGraph",
                      "Learn/Grapics/ThreeD/Textures", "Learn/Grapics/ThreeD/TransformsAndCamera",
                      "Learn/Grapics/ThreeD/DepthCullingLighting", "Learn/Grapics/ThreeD/StaticGltf",
                      "Learn/Grapics/ThreeD/Debugging", "Learn/Grapics/ThreeD/Shipping",

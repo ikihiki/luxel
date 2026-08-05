@@ -12,9 +12,9 @@ public static partial class DocsRenderingLearn
         return DocNew(ctx, $$"""
         # RenderGraph
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/RenderGraph", "Beginner+", "Standalone + DevTools", "Vulkan / DirectX 12", "Fence")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/RenderGraph", "Beginner+", "Standalone + DevTools", "Vulkan / DirectX 12", "Synchronization")}}
 
-        RenderGraphは、複数passがどのresourceを読み書きするか宣言し、実行順の検証、barrier、不要passのculling、transient resourceの寿命をまとめて扱います。前ページのFenceがCPUとsubmit完了の境界を扱うのに対し、RenderGraphは主にsubmit内部のGPU処理を構成します。
+        RenderGraphは、複数passがどのresourceを読み書きするか宣言し、実行順の検証、barrier、不要passのculling、transient resourceの寿命をまとめて扱います。前ページの同期では手書きBarrierとSubmit系methodを扱いました。RenderGraphはそのうちpass間のGPU依存をRead/Write宣言から構成します。
 
         実行sampleは `samples/LuxelTriangle/Program.cs`、`samples/LuxelTriangle/TriangleRenderer.cs`、`samples/LuxelTriangle/TutorialAbi.cs`、scene shaderの`shaders/tutorial_3d.slang`、post-process shaderの`shaders/compute_tutorial_postprocess.slang`です。sampleにはtextureやcameraを含む完成済みsceneを使いますが、このページではgraphのresourceとpass宣言だけに注目します。indexed meshとcameraの作り方は[Indexed Cube](story:Build/Recipes/IndexedCube)と[3D Camera](story:Build/Recipes/Camera3D)へ分けています。RenderGraph本体は`src/Luxel.RenderGraph/`にあります。
 
@@ -120,7 +120,7 @@ public static partial class DocsRenderingLearn
           → external framebufferをPresent
         ```
 
-        **graphを`SubmitAndWait`より前にdisposeしてはいけません。** disposeはgraph所有のtransient resourceを解放するため、GPUがまだ参照している可能性があります。現行sampleでは完了待ちの後にdisposeします。将来frames-in-flightを導入する場合はgraphまたはそのtransient allocationをframe slotが所有し、そのslotのfence完了後に破棄・再利用します。
+        **graphを`SubmitAndWait`より前にdisposeしてはいけません。** disposeはgraph所有のtransient resourceを解放するため、GPUがまだ参照している可能性があります。現行sampleでは完了待ちの後にdisposeします。複数frameを同時進行させる場合はgraphまたはそのtransient allocationをframe slotが所有し、そのslotに対応するGPU処理の完了後に破棄・再利用します。
 
         resize時はqueue idle後にexternal framebufferを作り直し、次frameのgraphを新しいvisible width/heightとstrideから構築します。compile済みgraphのdescriptorだけを書き換えることはできません。最小化の0×0ではgraphや0-size textureを作らず描画を休止します。終了時も最後のsubmit完了後にgraphをdisposeし、external resource、pipeline、deviceの順に閉じます。
 

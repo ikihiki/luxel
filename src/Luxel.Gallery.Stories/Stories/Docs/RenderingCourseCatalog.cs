@@ -10,7 +10,7 @@ internal static class RenderingCourseCatalog
         "Learn/Grapics/Overview", "Learn/Grapics/Environment",
         "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
         "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
-        "Learn/Grapics/PipelineState", "Learn/Grapics/Fence", "Learn/Grapics/RenderGraph",
+        "Learn/Grapics/PipelineState", "Learn/Grapics/Synchronization", "Learn/Grapics/RenderGraph",
         "Learn/Grapics/TwoD/Overview", "Learn/Grapics/TwoD/Paths",
         "Learn/Grapics/TwoD/Compositing", "Learn/Grapics/TwoD/Images",
         "Learn/Grapics/TwoD/Camera", "Learn/Grapics/TwoD/Backends",
