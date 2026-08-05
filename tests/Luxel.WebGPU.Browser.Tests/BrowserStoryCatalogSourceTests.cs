@@ -58,6 +58,13 @@ public sealed class BrowserStoryCatalogSourceTests
         JsonElement[] production = manifest.GetProperty("stories").EnumerateArray()
             .Where(story => story.GetProperty("componentType").ValueKind == JsonValueKind.String)
             .ToArray();
+        JsonElement blur = manifest.GetProperty("stories").EnumerateArray()
+            .Single(story => story.GetProperty("path").GetString() == "Examples/RenderGraph/Blur");
+        Assert.Equal(320, blur.GetProperty("width").GetInt32());
+        Assert.Equal(320, blur.GetProperty("height").GetInt32());
+        Assert.Equal("Runs through the shared Gallery WebAssembly story runner.",
+            blur.GetProperty("capabilityNote").GetString());
+
         Assert.Equal(60, production.Length);
         Assert.Equal(60, production.Select(story => story.GetProperty("path").GetString())
             .Distinct(StringComparer.Ordinal).Count());

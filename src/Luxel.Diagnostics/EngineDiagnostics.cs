@@ -21,7 +21,7 @@ public static class EngineDiagnostics
     public const string Primitives = "Luxel.Primitives"; // payload: DiagPrimitives (最新のみ/2D SoA)
     public const string Gpu = "Luxel.Gpu";              // payload: DiagGpu  (最新のみ/GPU 発行コマンド)
     public const string Resources = "Luxel.Resources";  // payload: DiagResources (最新のみ/ロードグラフ)
-    public const string RenderGraph = "Luxel.RenderGraph";  // payload: DiagRenderGraph (最新のみ/パス×リソース DAG)
+    public const string RenderGraph = "Luxel.Graphics.RenderGraph";  // payload: DiagRenderGraph (最新のみ/パス×リソース DAG)
     public const string Perf = "Luxel.Perf";                // payload: DiagPerf (最新のみ/フレーム時間内訳)
     public const string Ecs = "Luxel.Ecs";                  // payload: DiagEcs (最新のみ/world × entity、詳細)
     public const string EcsSummary = "Luxel.EcsSummary";    // payload: DiagEcsSummary (最新のみ/一覧、値なし)

@@ -5,7 +5,7 @@ namespace Luxel.Gallery.Stories;
 
 public static partial class DocsRenderingLearn
 {
-    [Story("Learn/Graphics/2D/Overview", Order = 10, Toc = true)]
+    [Story("Learn/Graphics/2D/Overview", Order = 9, Toc = true)]
     public static StoryResult First2DScene() => $$"""
         # はじめての2D描画
 

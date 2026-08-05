@@ -5,7 +5,7 @@ using Luxel.AssetRuntime;
 using Luxel.Ecs;
 using Luxel.Framework;
 using Luxel.Physics;
-using Luxel.RenderGraph;
+using Luxel.Graphics.RenderGraph;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;
 using static Luxel.Controls.Kit;
@@ -163,7 +163,7 @@ public static class KnockdownStories
             Matrix4x4 proj = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 3.4f, (float)W / H, 0.1f, 100f);
             Matrix4x4 viewProj = view * proj;
 
-            using var rg = new Luxel.RenderGraph.RenderGraph(Device);
+            using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);
             BufferHandle hVerts = rg.ImportBuffer(_vb!, "verts");
             BufferHandle hInsts = rg.ImportBuffer(_extractor.InstanceBuffer, "instances");
             rg.AddPass("Knockdown3D", PassQueue.Graphics)

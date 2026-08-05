@@ -9,7 +9,7 @@ using Luxel.Framework;
 using Luxel.Gltf;
 using Luxel.Particles;
 using Luxel.Particles.ThreeD;
-using Luxel.RenderGraph;
+using Luxel.Graphics.RenderGraph;
 using Luxel.UI;
 using LuxelRange.Core;
 using Microsoft.Extensions.DependencyInjection;
@@ -178,7 +178,7 @@ public static class RangeStories
             Matrix4x4 viewProj = _cam.ViewProjection;
             Matrix4x4 vpT = Matrix4x4.Transpose(viewProj);
             (Vector3 billRight, Vector3 billUp) = ParticleBillboards.CameraAxes(_cam.Eye, _cam.Target);
-            using var rg = new Luxel.RenderGraph.RenderGraph(Device);
+            using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);
             BufferHandle hVerts = rg.ImportBuffer(_vb!, "verts");
             BufferHandle hInsts = rg.ImportBuffer(_extractor.InstanceBuffer, "instances");
             BufferHandle hTV = rg.ImportBuffer(_terrainVb!, "terrainVerts");

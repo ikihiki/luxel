@@ -37,7 +37,7 @@ using Luxel.UI;
 [assembly: GenerateAssemblyApi("Luxel.Particles.ThreeD")]
 [assembly: GenerateAssemblyApi("Luxel.Particles.UI")]
 // 3D / レンダーグラフ / アセット
-[assembly: GenerateAssemblyApi("Luxel.RenderGraph")]
+[assembly: GenerateAssemblyApi("Luxel.Graphics.RenderGraph")]
 [assembly: GenerateAssemblyApi("Luxel.Ecs")]
 [assembly: GenerateAssemblyApi("Luxel.Ecs.Signal")]
 [assembly: GenerateAssemblyApi("Luxel.Physics")]

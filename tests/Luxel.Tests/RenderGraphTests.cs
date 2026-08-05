@@ -1,8 +1,8 @@
 using Luxel;
-using Luxel.RenderGraph;
+using Luxel.Graphics.RenderGraph;
 using Xunit;
-// 名前空間 Luxel.RenderGraph と型 RenderGraph が同名なので、テスト内ではエイリアスで区別する。
-using Rg = Luxel.RenderGraph.RenderGraph;
+// 名前空間 Luxel.Graphics.RenderGraph と型 RenderGraph が同名なので、テスト内ではエイリアスで区別する。
+using Rg = Luxel.Graphics.RenderGraph.RenderGraph;
 
 namespace Luxel.Tests;
 

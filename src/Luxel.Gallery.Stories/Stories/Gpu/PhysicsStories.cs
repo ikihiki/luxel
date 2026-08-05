@@ -5,7 +5,7 @@ using Luxel.AssetRuntime;
 // Friflo にも Signal<TEvent> があるため、UI の Signal は完全修飾で書く
 using Luxel.Ecs;
 using Luxel.Physics;
-using Luxel.RenderGraph;
+using Luxel.Graphics.RenderGraph;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
@@ -166,7 +166,7 @@ public static class PhysicsStories
             Matrix4x4 proj = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 3, 1f, 0.1f, 100f);
             Matrix4x4 viewProj = view * proj;
 
-            using var rg = new Luxel.RenderGraph.RenderGraph(Device);
+            using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);
             BufferHandle hVerts = rg.ImportBuffer(_vb, "verts");
             BufferHandle hInsts = rg.ImportBuffer(_extractor.InstanceBuffer, "instances");
             rg.AddPass("Render3D", PassQueue.Graphics)

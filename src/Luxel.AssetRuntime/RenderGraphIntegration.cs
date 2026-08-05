@@ -1,7 +1,7 @@
 ﻿using Friflo.Engine.ECS.Systems;
 using Luxel.Assets;
 using Luxel.Ecs;
-using Luxel.RenderGraph;
+using Luxel.Graphics.RenderGraph;
 
 namespace Luxel.AssetRuntime;
 
@@ -11,7 +11,7 @@ namespace Luxel.AssetRuntime;
 /// <para><b>使い方</b>:</para>
 /// <code>
 /// var root = ScheduleRoot.Create(world);
-/// var rg = new Luxel.RenderGraph.RenderGraph(device);
+/// var rg = new Luxel.Graphics.RenderGraph.RenderGraph(device);
 /// var extractor = new Render3DExtractSystem(world, device);
 ///
 /// // PreRender phase に Extractor を走らせる system を登録

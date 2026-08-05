@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using Luxel.AssetRuntime;
 using Luxel.Assets;
 using Luxel.Ecs;
-using Luxel.RenderGraph;
+using Luxel.Graphics.RenderGraph;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
@@ -171,7 +171,7 @@ public static class Ecs3DStories
         protected override void OnRender(float time)
         {
             Matrix4x4 viewProj = OrbitViewProj(time * 0.4f);
-            using var rg = new Luxel.RenderGraph.RenderGraph(Device);   // グラフは 1 フレーム使い切り
+            using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);   // グラフは 1 フレーム使い切り
             BufferHandle hVerts = rg.ImportBuffer(_vb, "verts");
             BufferHandle hInsts = rg.ImportBuffer(_extractor.InstanceBuffer, "instances");
 
@@ -234,7 +234,7 @@ public static class Ecs3DStories
         {
             ulong fbBytes = (ulong)(W * H * 4);
             Matrix4x4 viewProj = OrbitViewProj(time * 0.15f);
-            using var rg = new Luxel.RenderGraph.RenderGraph(Device);
+            using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);
             BufferHandle hVerts = rg.ImportBuffer(_vb, "verts");
             BufferHandle hInsts = rg.ImportBuffer(_extractor.InstanceBuffer, "instances");
             BufferHandle hBase = rg.ImportBuffer(_base, "base3d");
@@ -372,7 +372,7 @@ public static class Ecs3DStories
               * Matrix4x4.CreateTranslation(0f, 0.5f, 2.5f);
             Matrix4x4 uiMvp = uiWorld * viewProj;
 
-            using var rg = new Luxel.RenderGraph.RenderGraph(Device);
+            using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);
             BufferHandle hUi = rg.ImportBuffer(_uiBuf, "uiBuf");
             BufferHandle hCubeVb = rg.ImportBuffer(_cubeVb, "cubeVb");
             BufferHandle hCubeInst = rg.ImportBuffer(_extractor.InstanceBuffer, "cubeInst");
@@ -484,7 +484,7 @@ public static class Ecs3DStories
             Matrix4x4 lightVP = Matrix4x4.CreateLookAt(lightDir * 6.0f, Vector3.Zero, Vector3.UnitY)
                               * Matrix4x4.CreateOrthographic(6.5f, 6.5f, 0.5f, 12f);
 
-            using var rg = new Luxel.RenderGraph.RenderGraph(Device);
+            using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);
             BufferHandle hVerts = rg.ImportBuffer(_vb, "verts");
             BufferHandle hInsts = rg.ImportBuffer(_extractor.InstanceBuffer, "instances");
             BufferHandle hShadow = rg.ImportBuffer(_shadowBuf, "shadowBuf");

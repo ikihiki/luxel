@@ -11,7 +11,7 @@ using Luxel.Gltf;
 using Luxel.Input;
 using Luxel.Particles;
 using Luxel.Particles.ThreeD;
-using Luxel.RenderGraph;
+using Luxel.Graphics.RenderGraph;
 using LuxelRange.Core;
 
 namespace LuxelRange;
@@ -143,7 +143,7 @@ public sealed class RangeRealtimeScene : GameScene
 
         Matrix4x4 viewProj = _cam.ViewProjection;
         Matrix4x4 vpT = Matrix4x4.Transpose(viewProj);
-        using var rg = new Luxel.RenderGraph.RenderGraph(Device);
+        using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);
         BufferHandle hV = rg.ImportBuffer(_vb!, "verts");
         BufferHandle hInst = rg.ImportBuffer(_extractor.InstanceBuffer, "instances");
         BufferHandle hTV = rg.ImportBuffer(_terrainVb!, "tv");

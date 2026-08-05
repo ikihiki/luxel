@@ -54,7 +54,7 @@
     <Project Path="src/Luxel.Platform/Luxel.Platform.csproj" />
     <Project Path="src/Luxel.Platform.Web/Luxel.Platform.Web.csproj" />
     <Project Path="src/Luxel.Platform.Windows/Luxel.Platform.Windows.csproj" />
-    <Project Path="src/Luxel.RenderGraph/Luxel.RenderGraph.csproj" />
+    <Project Path="src/Luxel.Graphics.RenderGraph/Luxel.Graphics.RenderGraph.csproj" />
     <Project Path="src/Luxel.Resources/Luxel.Resources.csproj" />
     <Project Path="src/Luxel.Shaders/Luxel.Shaders.csproj" />
     <Project Path="src/Luxel.Shaders.Slang.Browser/Luxel.Shaders.Slang.Browser.csproj" />

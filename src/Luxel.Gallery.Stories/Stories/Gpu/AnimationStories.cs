@@ -7,7 +7,7 @@ using Luxel.Animation.UI;
 using Luxel.AssetRuntime;
 using Luxel.Assets;
 using Luxel.Ecs;
-using Luxel.RenderGraph;
+using Luxel.Graphics.RenderGraph;
 using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
@@ -300,7 +300,7 @@ public static class AnimationStories
             Matrix4x4 proj = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 3, 1f, 0.1f, 100f);
             Matrix4x4 viewProj = view * proj;
 
-            using var rg = new Luxel.RenderGraph.RenderGraph(Device);
+            using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);
             BufferHandle hVerts = rg.ImportBuffer(_vb, "verts");
             BufferHandle hInsts = rg.ImportBuffer(_extractor.InstanceBuffer, "instances");
             BufferHandle hRead = rg.ImportBuffer(OutBuffer, "readback");

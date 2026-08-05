@@ -1,7 +1,7 @@
 ﻿using Friflo.Engine.ECS;
 using Luxel.Assets;
 using Luxel.Ecs;
-using Luxel.RenderGraph;
+using Luxel.Graphics.RenderGraph;
 using Luxel.Resources;
 
 namespace Luxel.AssetRuntime;
@@ -43,7 +43,7 @@ public static class DrawableCollector
 
     /// <summary>DrawMesh + DrawInstance + DrawMaterial 3 点を持つ entity を全て collect。
     /// DrawSkinning があれば Joint handle も取得。</summary>
-    public static List<DrawItem> Collect(Luxel.Ecs.World world, Luxel.RenderGraph.RenderGraph rg)
+    public static List<DrawItem> Collect(Luxel.Ecs.World world, Luxel.Graphics.RenderGraph.RenderGraph rg)
     {
         var items = new List<DrawItem>();
         world.Query<DrawMesh, DrawInstance, DrawMaterial>()
