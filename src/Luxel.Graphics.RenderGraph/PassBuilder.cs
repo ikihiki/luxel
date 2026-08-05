@@ -1,4 +1,4 @@
-﻿namespace Luxel.RenderGraph;
+﻿namespace Luxel.Graphics.RenderGraph;
 
 /// <summary>
 /// パスのリソース依存を宣言する builder。<see cref="Execute"/> 呼び出しでグラフへ確定登録される。

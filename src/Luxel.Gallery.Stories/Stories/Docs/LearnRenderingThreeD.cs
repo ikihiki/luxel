@@ -16,7 +16,7 @@ public static partial class DocsRenderingLearn
 
         RenderGraphは、複数passがどのresourceを読み書きするか宣言し、実行順の検証、barrier、不要passのculling、transient resourceの寿命をまとめて扱います。前ページの同期では手書きBarrierとSubmit系methodを扱いました。RenderGraphはそのうちpass間のGPU依存をRead/Write宣言から構成します。
 
-        実行sampleは `samples/LuxelTriangle/Program.cs`、`samples/LuxelTriangle/TriangleRenderer.cs`、`samples/LuxelTriangle/TutorialAbi.cs`、scene shaderの`shaders/tutorial_3d.slang`、post-process shaderの`shaders/compute_tutorial_postprocess.slang`です。sampleにはtextureやcameraを含む完成済みsceneを使いますが、このページではgraphのresourceとpass宣言だけに注目します。indexed meshとcameraの作り方は[Indexed Cube](story:Build/Recipes/IndexedCube)と[3D Camera](story:Build/Recipes/Camera3D)へ分けています。RenderGraph本体は`src/Luxel.RenderGraph/`にあります。
+        実行sampleは `samples/LuxelTriangle/Program.cs`、`samples/LuxelTriangle/TriangleRenderer.cs`、`samples/LuxelTriangle/TutorialAbi.cs`、scene shaderの`shaders/tutorial_3d.slang`、post-process shaderの`shaders/compute_tutorial_postprocess.slang`です。sampleにはtextureやcameraを含む完成済みsceneを使いますが、このページではgraphのresourceとpass宣言だけに注目します。indexed meshとcameraの作り方は[Indexed Cube](story:Build/Recipes/IndexedCube)と[3D Camera](story:Build/Recipes/Camera3D)へ分けています。RenderGraph本体は`src/Luxel.Graphics.RenderGraph/`にあります。
 
         ## 実行と期待結果
 

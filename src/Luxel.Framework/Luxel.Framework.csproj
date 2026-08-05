@@ -4,7 +4,7 @@
     <ProjectReference Include="..\Luxel.Audio.Windows\Luxel.Audio.Windows.csproj" />
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj" />
-    <ProjectReference Include="..\Luxel.RenderGraph\Luxel.RenderGraph.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
     <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />
     <ProjectReference Include="..\Luxel.Input\Luxel.Input.csproj" />
     <ProjectReference Include="..\Luxel.Audio\Luxel.Audio.csproj" />

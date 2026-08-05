@@ -1,5 +1,5 @@
 ﻿using System.Runtime.InteropServices;
-using Luxel.RenderGraph;
+using Luxel.Graphics.RenderGraph;
 using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
@@ -75,7 +75,7 @@ public static class RenderGraphStories
         protected override void OnRender(float time)
         {
             ulong fbBytes = (ulong)(W * H * 4);
-            using var rg = new Luxel.RenderGraph.RenderGraph(Device);   // グラフは 1 フレーム使い切り
+            using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);   // グラフは 1 フレーム使い切り
 
             BufferHandle hUi = rg.ImportBuffer(_ui, "ui");
             BufferHandle hFinal = rg.ImportBuffer(OutBuffer, "final");

@@ -10,7 +10,7 @@ public static partial class DocsGpu
 {
     [Story("Reference/Guides/RenderGraph", Order = 12)]
     public static Widget RenderGraphDocs(StoryContext ctx) => DocNew(ctx, $$"""
-        # レンダーグラフ (Luxel.RenderGraph)
+        # レンダーグラフ (Luxel.Graphics.RenderGraph)
 
         UI のレンダリング結果を別パスで参照したり、compute/graphics 混在の多段パスを組み立てるための薄い管理層です。**scene-agnostic** — 入力は GPU ハンドル (`BufferHandle` / `TextureHandle`) のみで、シーン側 (RetainedCanvas / ECS) を一切知りません。
 
@@ -69,7 +69,7 @@ public static partial class DocsGpu
 
         ## ResourceSystem との関係 (混同注意)
 
-        | 軸 | Luxel.Resources | Luxel.RenderGraph |
+        | 軸 | Luxel.Resources | Luxel.Graphics.RenderGraph |
         | --- | --- | --- |
         | 単位 | アセット ((型, uri) ノード) | フレームのパス (pass × resource) |
         | 寿命 | 多フレーム (refcount + reload) | 1 フレーム (transient) + External |

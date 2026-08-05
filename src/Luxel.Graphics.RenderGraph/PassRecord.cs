@@ -1,4 +1,4 @@
-﻿namespace Luxel.RenderGraph;
+﻿namespace Luxel.Graphics.RenderGraph;
 
 /// <summary>パスの確定後の内部表現。順序付きリストに保持され、Compile/Execute が走査する。</summary>
 internal sealed class PassRecord

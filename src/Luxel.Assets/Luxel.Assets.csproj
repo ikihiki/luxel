@@ -3,7 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj" />
-    <ProjectReference Include="..\Luxel.RenderGraph\Luxel.RenderGraph.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
     <ProjectReference Include="..\Luxel.Animation\Luxel.Animation.csproj" />
     <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />
   </ItemGroup>
