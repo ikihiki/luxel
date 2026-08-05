@@ -19,7 +19,7 @@ public static class RasterizerDiagnosticStories
 
         {SampleSource(source)}
 
-        → [Rasterizer Internals course](story:Learn/Grapics/RasterizerInternals/Overview)
+        → [Internal course](story:Learn/Grapics/2D/Internal/Overview)
         """, toc: true);
 
     [Story("Examples/2D/Rasterizer/InputPaths", Order = 0)]

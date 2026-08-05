@@ -11,21 +11,21 @@ internal static class RenderingCourseCatalog
         "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
         "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
         "Learn/Grapics/PipelineState", "Learn/Grapics/Synchronization", "Learn/Grapics/RenderGraph",
-        "Learn/Grapics/TwoD/Overview", "Learn/Grapics/TwoD/Paths",
-        "Learn/Grapics/TwoD/Compositing", "Learn/Grapics/TwoD/Images",
-        "Learn/Grapics/TwoD/Camera", "Learn/Grapics/TwoD/Backends",
-        "Learn/Grapics/TwoD/RetainedCanvas", "Learn/Grapics/TwoD/IncrementalUpdates",
-        "Learn/Grapics/RasterizerInternals/Overview", "Learn/Grapics/RasterizerInternals/Flattening",
-        "Learn/Grapics/RasterizerInternals/SceneEncoding", "Learn/Grapics/RasterizerInternals/Abi",
-        "Learn/Grapics/RasterizerInternals/Bounds", "Learn/Grapics/RasterizerInternals/TileBinning",
-        "Learn/Grapics/RasterizerInternals/FineRaster", "Learn/Grapics/RasterizerInternals/ImagesAndComposite",
-        "Learn/Grapics/RasterizerInternals/Dispatch", "Learn/Grapics/RasterizerInternals/RetainedUploads",
-        "Learn/Grapics/RasterizerInternals/Validation",
+        "Learn/Grapics/2D/Overview", "Learn/Grapics/2D/Paths",
+        "Learn/Grapics/2D/Compositing", "Learn/Grapics/2D/Images",
+        "Learn/Grapics/2D/Camera", "Learn/Grapics/2D/Backends",
+        "Learn/Grapics/2D/RetainedCanvas", "Learn/Grapics/2D/IncrementalUpdates",
+        "Learn/Grapics/2D/Internal/Overview", "Learn/Grapics/2D/Internal/Flattening",
+        "Learn/Grapics/2D/Internal/SceneEncoding", "Learn/Grapics/2D/Internal/Abi",
+        "Learn/Grapics/2D/Internal/Bounds", "Learn/Grapics/2D/Internal/TileBinning",
+        "Learn/Grapics/2D/Internal/FineRaster", "Learn/Grapics/2D/Internal/ImagesAndComposite",
+        "Learn/Grapics/2D/Internal/Dispatch", "Learn/Grapics/2D/Internal/RetainedUploads",
+        "Learn/Grapics/2D/Internal/Validation",
     ];
 
     internal static readonly string[] ApplicationRoute = Routes
         .Skip(1)
-        .TakeWhile(route => !route.StartsWith("Learn/Grapics/TwoD/", StringComparison.Ordinal))
+        .TakeWhile(route => !route.StartsWith("Learn/Grapics/2D/", StringComparison.Ordinal))
         .ToArray();
 
     internal static string ApplicationRouteMarkdown()

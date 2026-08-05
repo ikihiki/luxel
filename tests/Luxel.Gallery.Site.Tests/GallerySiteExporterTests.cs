@@ -1007,6 +1007,14 @@ public sealed class GallerySiteExporterTests
             "Learn/Grapics/PipelineState", "Learn/Grapics/Synchronization", "Learn/Grapics/RenderGraph",
         ];
 
+        string[] orderedGraphicsRoutes = Catalog.All
+            .Where(story => story.Path.StartsWith("Learn/Grapics/", StringComparison.Ordinal))
+            .Select(story => story.Path)
+            .ToArray();
+        Assert.Equal(RenderingCourseCatalog.Routes, orderedGraphicsRoutes);
+        Assert.Equal("Learn/Grapics/2D/Overview", orderedGraphicsRoutes[10]);
+        Assert.Equal("Learn/Grapics/2D/Internal/Overview", orderedGraphicsRoutes[18]);
+
         for (int i = 0; i < routes.Length; i++)
         {
             string path = routes[i];
@@ -1085,7 +1093,7 @@ public sealed class GallerySiteExporterTests
         Assert.DoesNotContain("## 実sampleのframe loop", clearColor);
         Assert.DoesNotContain("SampleSource(\"samples/LuxelTriangle/Program.cs\", \"standalone-frame-loop\")", clearColor);
 
-        Assert.Contains("story:Learn/Grapics/TwoD/Overview", pages[stories[^1].Path].Text);
+        Assert.Contains("story:Learn/Grapics/2D/Overview", pages[stories[^1].Path].Text);
 
         string overview = pages[stories[0].Path].Text.ToLowerInvariant();
         foreach (string term in new[] { "triangle", "texture", "shader", "pipeline", "barrier", "submit", "render graph" })
@@ -1246,7 +1254,7 @@ public sealed class GallerySiteExporterTests
         string renderGraphPage = pages["Learn/Grapics/RenderGraph"].Text;
         Assert.Contains("# RenderGraph", renderGraphPage);
         Assert.Contains("story:Learn/Grapics/Synchronization", renderGraphPage);
-        Assert.Contains("story:Learn/Grapics/TwoD/Overview", renderGraphPage);
+        Assert.Contains("story:Learn/Grapics/2D/Overview", renderGraphPage);
         foreach (string renderGraphTopic in new[]
                  {
                      "## ExternalとTransient", "## Read / Writeが依存とbarrierを作る",
@@ -1351,8 +1359,10 @@ public sealed class GallerySiteExporterTests
         Assert.Equal("Start", Catalog.All[0].Component);
         Assert.NotNull(Catalog.Find("Start/Welcome"));
         Assert.NotNull(Catalog.Find("Learn/Grapics/Overview"));
-        Assert.NotNull(Catalog.Find("Learn/Grapics/TwoD/Overview"));
-        Assert.NotNull(Catalog.Find("Learn/Grapics/RasterizerInternals/Overview"));
+        Assert.NotNull(Catalog.Find("Learn/Grapics/2D/Overview"));
+        Assert.NotNull(Catalog.Find("Learn/Grapics/2D/Internal/Overview"));
+        Assert.Null(Catalog.Find("Learn/Grapics/TwoD/Overview"));
+        Assert.Null(Catalog.Find("Learn/Grapics/RasterizerInternals/Overview"));
         Assert.Null(Catalog.Find("Learn/Rendering/Basics/Overview"));
         Assert.Null(Catalog.Find("Learn/Grapics/Basics/Overview"));
         foreach (string route in new[] { "Learn/Input/Overview", "Learn/Input/ActionsAndContexts", "Learn/Input/PlatformsAndTesting",
@@ -1422,7 +1432,7 @@ public sealed class GallerySiteExporterTests
             previous = current;
         }
         Assert.True(overview.IndexOf("story:Examples/3D/Triangle", StringComparison.Ordinal) > previous);
-        Assert.Contains("独立トラック", overview);
+        Assert.Contains("その下のInternal", overview);
 
         foreach (StoryInfo story in Catalog.All.Where(story => story.Path.StartsWith("Build/Blocks/", StringComparison.Ordinal)))
         {
