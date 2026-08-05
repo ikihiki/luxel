@@ -1,0 +1,114 @@
+<article class="story document-page"><h1 id="gallery">Gallery — ストーリーの書き方</h1>
+<p>この Gallery は Storybook 相当のカタログ + ドキュメント + 回帰基盤です。「ストーリー」= Widget を返す static メソッド 1 つで、実窓カタログ・snap 回帰・ docs への埋め込みのすべてに同じ実装が使われます。</p>
+<h2 id="story">[Story] 属性とレジストリ</h2>
+<pre><code class="language-csharp">public static class ButtonStories
+{
+    [Story(&quot;Controls/Button/Primary&quot;, Height = 160)]
+    public static Widget Primary() =&gt; Frame(Button(_ =&gt; { }, &quot;OK&quot;));
+
+    // signal が要るときは StoryContext から — ctx.Signal(...) は自動で knob になる
+    [Story(&quot;Controls/CheckBox/Basic&quot;, Height = 160)]
+    public static Widget Check(StoryContext ctx)
+        =&gt; Frame(Check(ctx.Signal(&quot;checked&quot;, false), &quot;Subscribe&quot;));
+}
+</code></pre>
+<ul>
+<li>パスは<strong>スラッシュ区切りの階層</strong> (本家 Storybook の title 相当、深さ任意) — <code>&quot;章/コンポーネント/ストーリー名&quot;</code>。サイドバーはこれをそのまま木にします (章: Docs / Reference / Controls / Demos / Apps / RealWindow)。<code>Width</code>/<code>Height</code> (既定 480×320 — <strong>両方省略するとプレビュー領域いっぱい (fill)</strong>。docs ページはこれで、全画面モードではメイン全面に、snap では 800×480 固定で描かれます)、<code>Theme</code> (&quot;light&quot;/&quot;dark&quot;)、<code>Order</code> (並び順 — Docs 0〜 / デモ 100〜 / コントロール既定 1000 / 機能デモ 2000〜)</li>
+<li>署名は <code>static Widget M()</code> か <code>static Widget M(StoryContext ctx)</code></li>
+<li>収集は<strong>ソースジェネレーター</strong> (reflection なし) — <code>[Story]</code> を走査して module initializer で <code>StoryRegistry.Register</code> を焼き込み、<strong>完全なmethod宣言の C# ソース</strong>も <code>StoryInfo.Source</code> に保存します</li>
+</ul>
+<h2 id="source">Sourceビュー</h2>
+<p>通常のstoryは下部Dockの <strong>Source</strong> タブで、属性・signature・本体を含む <code>[Story]</code> method宣言を読み取り専用・行番号・C#ハイライト付きで確認できます。静的Galleryでは各story末尾の折りたたみ <strong>Story source</strong> に同じ内容が入ります。private helper、別file、shaderは含まれないため、完全な実file/regionを教材にするときは <code>SampleSource(path, region)</code> を使います。Reference/Overviewなどproviderが実行時登録するstoryには対応するmethodがなく、Source unavailableになる場合があります。</p>
+<h2 id="storycontext">StoryContext — ホスト設備の窓口</h2>
+<ul>
+<li><code>ctx.Signal(name, initial, description)</code> — <strong>knob</strong> (右パネルで編集可)。bool / int / float / string / 色 / enum / Length に対応</li>
+<li><code>ctx.Log(message)</code> — Log パネルへ (イベントの実演に)</li>
+<li><code>ctx.Resources</code> — ホスト所有の ResourceSystem (キャッシュはストーリー横断共有)</li>
+<li><code>ctx.ScopedResources</code> — story instance 所有のResourceScope。story関数内でCPU/GPU resourceをロード・作成し、GpuView callbackへcaptureして渡す。story破棄時にleaseを一括解放</li>
+<li><code>ctx.Navigate(path)</code> — ストーリー遷移 (docs の story: リンクの実体)</li>
+</ul>
+<h2 id="d-3d">2D / 3D デモのストーリー化</h2>
+<p>描画結果を widget にする受け皿が 2 つあります:</p>
+<ul>
+<li><strong>Canvas2D(w, h, draw: / animate:(s, t))</strong> — Scene2D を直接描く (UI と同じ保持型キャンバスの 1 ノード)。<code>t</code> は累積秒</li>
+<li><strong>GpuView(w, h, render, animated:, dispose:)</strong> — story関数が<code>ctx.ScopedResources</code>で用意したresourceをcaptureし、deviceとGpuView所有surfaceを受け取るcallbackでoffscreen描画。callbackは<code>Ready</code>/<code>Loading</code>/<code>Failed</code>を返し、未準備・失敗時は状態アイコンへフォールバック。bindless buffer経由でゼロコピー合成</li>
+</ul>
+<div class="markdown-alert markdown-alert-warning">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p>GpuView callback の規約: GPU resourceはstory関数内で<code>ctx.ScopedResources</code>から取得し、callbackへcaptureする。個別handleを<code>dispose</code>へ渡す必要はなく、story scopeが一括解放する。<strong>時間はcallback引数の累積秒のみ</strong> (wall-clock禁止 — snapの決定性)。描画先と256B整列済みframebufferは<code>GpuViewSurface</code>が所有する。knobを絵に反映する場合は<code>animated: true</code>にする。RenderGraphは1フレーム使い切り — animated rendererではcallback内で毎回作る。</p>
+</div>
+<h2 id="section">実窓専用ストーリー</h2>
+<p>音声再生や実デバイス入力のように offscreen の決定的描画にならない機能は <code>[Story(&quot;RealWindow/Audio/Tone&quot;, RealWindowOnly = true)]</code> にします — snap 回帰は SKIP され (golden を作らない)、Gallery アプリでは通常どおり表示されます。実例は <a href="#story=RealWindow%2FAudio%2FTone">RealWindow/Audio/Tone</a>。</p>
+<h2 id="section-1">パスと章</h2>
+<p>ストーリーパスは <strong>ID</strong> (golden ファイル名・<code>story:</code> リンク・E2E 参照) であると同時に、本家 Storybook の title と同じく<strong>サイドバーの階層そのもの</strong>です — 表示用の別マップはありません。章はパスの先頭セグメント (Docs / Reference / Controls / Demos / Apps / RealWindow)。整理・改名はパスを変えて golden を <code>git mv</code> で追従させます (ピクセルはパス非依存 — 再撮影が要るのは、パス文字列を <strong>リンク/StoryRef の見出しとして描画している他ページ</strong> だけ)。</p>
+<h2 id="section-2">実行モード</h2>
+<pre><code class="language-powershell">dotnet run --project src/Luxel.Gallery.Host -- vk [port] [seconds]           # 実窓 (既定 5180)
+dotnet run --project src/Luxel.Gallery.Host -- vk e2e [--update] [フィルタ]   # E2E 回帰 (play + golden)
+dotnet run --project src/Luxel.Gallery.Host -- vk bench &lt;story&gt; [frames] [--type|--wheel d]
+</code></pre>
+<p>実窓は <code>Ctrl+D</code> でテーマ切替、ツールバーの「全画面」でプレビューをメイン全面に。サイドバーの検索欄は docs 本文の全文検索です。docs ページの書き方は <a href="#story=Internals%2FAuthoring">Internals/Authoring</a> へ。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/Gallery&quot;, Order = 90)]
+public static Widget Gallery(StoryContext ctx) =&gt; ctx.Snap(DocNew(ctx, $$&quot;&quot;&quot;
+    # Gallery — ストーリーの書き方
+
+    この Gallery は Storybook 相当のカタログ + ドキュメント + 回帰基盤です。「ストーリー」= Widget を返す static メソッド 1 つで、実窓カタログ・snap 回帰・ docs への埋め込みのすべてに同じ実装が使われます。
+
+    ## [Story] 属性とレジストリ
+
+    ```csharp
+    public static class ButtonStories
+    {
+        [Story(&quot;Controls/Button/Primary&quot;, Height = 160)]
+        public static Widget Primary() =&gt; Frame(Button(_ =&gt; { }, &quot;OK&quot;));
+
+        // signal が要るときは StoryContext から — ctx.Signal(...) は自動で knob になる
+        [Story(&quot;Controls/CheckBox/Basic&quot;, Height = 160)]
+        public static Widget Check(StoryContext ctx)
+            =&gt; Frame(Check(ctx.Signal(&quot;checked&quot;, false), &quot;Subscribe&quot;));
+    }
+    ```
+
+    - パスは**スラッシュ区切りの階層** (本家 Storybook の title 相当、深さ任意) — `&quot;章/コンポーネント/ストーリー名&quot;`。サイドバーはこれをそのまま木にします (章: Docs / Reference / Controls / Demos / Apps / RealWindow)。`Width`/`Height` (既定 480&#215;320 — **両方省略するとプレビュー領域いっぱい (fill)**。docs ページはこれで、全画面モードではメイン全面に、snap では 800&#215;480 固定で描かれます)、`Theme` (&quot;light&quot;/&quot;dark&quot;)、`Order` (並び順 — Docs 0〜 / デモ 100〜 / コントロール既定 1000 / 機能デモ 2000〜)
+    - 署名は `static Widget M()` か `static Widget M(StoryContext ctx)`
+    - 収集は**ソースジェネレーター** (reflection なし) — `[Story]` を走査して module initializer で `StoryRegistry.Register` を焼き込み、**完全なmethod宣言の C# ソース**も `StoryInfo.Source` に保存します
+
+    ## Sourceビュー
+
+    通常のstoryは下部Dockの **Source** タブで、属性・signature・本体を含む `[Story]` method宣言を読み取り専用・行番号・C#ハイライト付きで確認できます。静的Galleryでは各story末尾の折りたたみ **Story source** に同じ内容が入ります。private helper、別file、shaderは含まれないため、完全な実file/regionを教材にするときは `SampleSource(path, region)` を使います。Reference/Overviewなどproviderが実行時登録するstoryには対応するmethodがなく、Source unavailableになる場合があります。
+
+    ## StoryContext — ホスト設備の窓口
+
+    - `ctx.Signal(name, initial, description)` — **knob** (右パネルで編集可)。bool / int / float / string / 色 / enum / Length に対応
+    - `ctx.Log(message)` — Log パネルへ (イベントの実演に)
+    - `ctx.Resources` — ホスト所有の ResourceSystem (キャッシュはストーリー横断共有)
+    - `ctx.ScopedResources` — story instance 所有のResourceScope。story関数内でCPU/GPU resourceをロード・作成し、GpuView callbackへcaptureして渡す。story破棄時にleaseを一括解放
+    - `ctx.Navigate(path)` — ストーリー遷移 (docs の story: リンクの実体)
+
+    ## 2D / 3D デモのストーリー化
+
+    描画結果を widget にする受け皿が 2 つあります:
+
+    - **Canvas2D(w, h, draw: / animate:(s, t))** — Scene2D を直接描く (UI と同じ保持型キャンバスの 1 ノード)。`t` は累積秒
+    - **GpuView(w, h, render, animated:, dispose:)** — story関数が`ctx.ScopedResources`で用意したresourceをcaptureし、deviceとGpuView所有surfaceを受け取るcallbackでoffscreen描画。callbackは`Ready`/`Loading`/`Failed`を返し、未準備・失敗時は状態アイコンへフォールバック。bindless buffer経由でゼロコピー合成
+
+    &gt; [!WARNING]
+    &gt; GpuView callback の規約: GPU resourceはstory関数内で`ctx.ScopedResources`から取得し、callbackへcaptureする。個別handleを`dispose`へ渡す必要はなく、story scopeが一括解放する。**時間はcallback引数の累積秒のみ** (wall-clock禁止 — snapの決定性)。描画先と256B整列済みframebufferは`GpuViewSurface`が所有する。knobを絵に反映する場合は`animated: true`にする。RenderGraphは1フレーム使い切り — animated rendererではcallback内で毎回作る。
+
+    ## 実窓専用ストーリー
+
+    音声再生や実デバイス入力のように offscreen の決定的描画にならない機能は `[Story(&quot;RealWindow/Audio/Tone&quot;, RealWindowOnly = true)]` にします — snap 回帰は SKIP され (golden を作らない)、Gallery アプリでは通常どおり表示されます。実例は [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone)。
+
+    ## パスと章
+
+    ストーリーパスは **ID** (golden ファイル名・`story:` リンク・E2E 参照) であると同時に、本家 Storybook の title と同じく**サイドバーの階層そのもの**です — 表示用の別マップはありません。章はパスの先頭セグメント (Docs / Reference / Controls / Demos / Apps / RealWindow)。整理・改名はパスを変えて golden を `git mv` で追従させます (ピクセルはパス非依存 — 再撮影が要るのは、パス文字列を **リンク/StoryRef の見出しとして描画している他ページ** だけ)。
+
+    ## 実行モード
+
+    ```powershell
+    dotnet run --project src/Luxel.Gallery.Host -- vk [port] [seconds]           # 実窓 (既定 5180)
+    dotnet run --project src/Luxel.Gallery.Host -- vk e2e [--update] [フィルタ]   # E2E 回帰 (play + golden)
+    dotnet run --project src/Luxel.Gallery.Host -- vk bench &lt;story&gt; [frames] [--type|--wheel d]
+    ```
+
+    実窓は `Ctrl+D` でテーマ切替、ツールバーの「全画面」でプレビューをメイン全面に。サイドバーの検索欄は docs 本文の全文検索です。docs ページの書き方は [Internals/Authoring](story:Internals/Authoring) へ。
+    &quot;&quot;&quot;, toc: true));</code></pre></details></article>

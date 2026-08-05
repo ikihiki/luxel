@@ -1,0 +1,74 @@
+<article class="story document-page"><h1 id="luxel.nodegraph">ノードエディタ (Luxel.NodeGraph)</h1>
+<p>ノード + ポート + 接続線を空間上で編集する<strong>汎用ノードグラフ制御</strong>です。特定ドメインに縛られない土台 (TouchDesigner / Blueprint 流) で、アニメブレンド・シェーダ・オーディオパッチ・レンダーグラフ可視化などが同じ control に載ります。決定は <a href="#story=Internals%2FADR%2F0009-Node-Editor-Stack">ADR-0009</a>。テキスト新スタック (<a href="#story=Internals%2FADR%2F0006-Editor-New-Stack">ADR-0006</a>) と<strong>同じ骨格</strong>で、canvas 非依存のコアと薄いビューに分かれます。</p>
+<pre class="mermaid">flowchart TB
+core[Luxel.NodeGraph - Doc/装飾/幾何/コマンド] --&gt; view[NodeGraphView - 描画+入力の薄いビュー]</pre>
+<h2 id="luxel.nodegraph-1">コア (Luxel.NodeGraph、依存ゼロ)</h2>
+<ul>
+<li><strong>不変状態 + Transaction</strong>: <code>NodeGraphDoc</code> (ノード/ポート/辺、id 索引) + <code>GraphSelection</code> + <code>GraphViewport</code> を束ねた不変 <code>NodeGraphState</code>。編集は <code>GraphTransaction</code> が変更列 (<code>GraphChange</code>: 追加/削除/移動・接続/切断・データ更新) を 1 つに束ね、<strong>1 Transaction = 1 undo</strong>。</li>
+<li><strong>安定 id → 座標写像が不要</strong>: テキストのオフセットと違いノード/ポート/辺は安定 id を持つので、<code>ChangeSet.MapPos</code> に相当する写像が要りません。選択・装飾は id 参照で編集を生き延びます (テキストスタックからの意図的な簡約)。</li>
+<li><strong>装飾は第一級</strong>: ノードバッジ・辺ハイライト・ポートヒント・進行中ワイヤ・ノード内インライン枠 (<code>GraphDecoration</code>)。<code>AffectsLayout</code> 分類でオーバーレイ (再射影不要) とサイズ変化を分けます。</li>
+<li><strong>純射影ジオメトリ</strong>: <code>GraphGeometry</code> が Doc + view 注入の <code>NodeMeasure</code> から、ノード矩形・ポートアンカー・接続線のベジェ・<code>HitTest</code>・world↔screen 変換を計算します。選択状態を持たない純関数で、サイズ測定を外注するので <strong>canvas なしで単体テスト</strong>できます (<code>Luxel.Typography</code> 非依存)。</li>
+</ul>
+<h2 id="nodegraphview-uicomponent">ビュー (NodeGraphView — [UiComponent])</h2>
+<p>状態を投影して塗るだけの薄いビューです。<strong>pan/zoom は world コンテナノードの <code>Affine2D</code> 変換</strong>なのでヒットテストが自動追従します。</p>
+<ul>
+<li><strong>ノードドラッグで移動</strong> (複数選択はまとめて 1 undo)、<strong>クリック選択 / 空白ドラッグで範囲選択 (marquee)</strong>、<strong>ホイールでカーソル中心ズーム</strong></li>
+<li><strong>配線</strong>: ポートからドラッグ → 進行中ワイヤ (互換ポートなら緑・不可なら赤) → ドロップで接続。型キー一致・向き・重複を <code>GraphConnect</code> が検証。<strong>辺クリック選択 → Delete で切断</strong></li>
+<li><strong>ノード内インライン UI</strong>: <code>NodeInlineDecoration</code> + <code>WidgetResolver</code> でノード本体に実 Widget (スライダ等) をホスト。枠の宣言幅はノード幅に吸収され (widget は枠幅に収まる)、<code>WidgetClip</code> (既定 = 枠でクリップ) ではみ出しを隠す</li>
+<li><strong>ノード追加パレット</strong>: 右クリックで <code>INodeCatalog</code> の種別を <a href="#story=Internals%2FADR%2F0007-Floating-Ui-Placement">PopupPlacer</a> のメニューに並べ、クリック位置に追加</li>
+<li><strong>自動整列</strong>: 辺の依存に沿って左→右にランク配置 (<code>AutoLayout</code>) + <code>FitToView</code> + グリッドスナップ</li>
+<li><strong>読み取り専用</strong> (<code>ReadOnly</code>): 編集を無効化し、ドラッグ = pan / クリック = 選択 (検査) / ホイール = ズームの閲覧モード。DevTools のレンダーグラフ可視化で使います (<code>RenderGraphNodes</code> が診断 <code>DiagRenderGraph</code> を「パス = ノード / リソース依存 = 辺」の doc に変換 → 読み取り専用ビューで表示)</li>
+</ul>
+<p>実物: <a href="#story=Controls%2FNodeGraphView%2FBasic">Controls/NodeGraphView/Basic</a> (ノード/選択/移動) / <a href="#story=Controls%2FNodeGraphView%2FWiring">Wiring</a> (配線) / <a href="#story=Controls%2FNodeGraphView%2FWidgets">Widgets</a> (ノード内 UI + パレット) / <a href="#story=Controls%2FNodeGraphView%2FAutoLayout">AutoLayout</a> (式グラフの自動整列) / <a href="#story=Controls%2FNodeGraphView%2FRenderGraph">RenderGraph</a> (レンダーグラフの読み取り専用可視化)。</p>
+<div class="markdown-alert markdown-alert-note">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>ドメインを載せるには <code>INodeCatalog</code> (種別と工場) を実装し、必要ならノード内の値編集を <code>WidgetResolver</code> で供給します。既存の <a href="#story=Reference%2FGuides%2FControls">Luxel.Diagram</a> は<strong>表示専用の図</strong>、<code>Luxel.Animation</code> の Graph は<strong>実行時評価ツリー</strong>で、本エディタ (編集キャンバス) とは別物です (配置アルゴリズムのみ Diagram と同型)。</p>
+</div>
+<div class="markdown-alert markdown-alert-note">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>ポインタのボタン/修飾キーは <a href="#story=Internals%2FADR%2F0011-Pointer-Button-Modifiers">ADR-0011</a> で追加済み — <strong>中ボタンドラッグ = pan</strong>、<strong>Ctrl+クリック = 追加選択</strong>が使えます (空白の左ドラッグは範囲選択のまま)。</p>
+<p>Workbench (<a href="#story=Reference%2FGuides%2FWorkbench">Reference/Guides/Workbench</a>) に載せるときは <code>NodeGraphDocument</code> アダプタが JSON 往復 (<code>NodeGraphJson</code>) と undo 委譲を配線します。</p>
+</div>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/NodeEditor&quot;, Order = 42)]
+public static Widget NodeEditor(StoryContext ctx)
+{
+    ctx.Play(static d =&gt; d.Snap());   // 新スタック: mermaid 図の描画 golden (ライブ埋め込み無し=安全)
+    return DocNew(ctx, $$&quot;&quot;&quot;
+    # ノードエディタ (Luxel.NodeGraph)
+
+    ノード + ポート + 接続線を空間上で編集する**汎用ノードグラフ制御**です。特定ドメインに縛られない土台 (TouchDesigner / Blueprint 流) で、アニメブレンド・シェーダ・オーディオパッチ・レンダーグラフ可視化などが同じ control に載ります。決定は [ADR-0009](story:Internals/ADR/0009-Node-Editor-Stack)。テキスト新スタック ([ADR-0006](story:Internals/ADR/0006-Editor-New-Stack)) と**同じ骨格**で、canvas 非依存のコアと薄いビューに分かれます。
+
+    ```mermaid
+    flowchart TB
+    core[Luxel.NodeGraph - Doc/装飾/幾何/コマンド] --&gt; view[NodeGraphView - 描画+入力の薄いビュー]
+    ```
+
+    ## コア (Luxel.NodeGraph、依存ゼロ)
+
+    - **不変状態 + Transaction**: `NodeGraphDoc` (ノード/ポート/辺、id 索引) + `GraphSelection` + `GraphViewport` を束ねた不変 `NodeGraphState`。編集は `GraphTransaction` が変更列 (`GraphChange`: 追加/削除/移動・接続/切断・データ更新) を 1 つに束ね、**1 Transaction = 1 undo**。
+    - **安定 id → 座標写像が不要**: テキストのオフセットと違いノード/ポート/辺は安定 id を持つので、`ChangeSet.MapPos` に相当する写像が要りません。選択・装飾は id 参照で編集を生き延びます (テキストスタックからの意図的な簡約)。
+    - **装飾は第一級**: ノードバッジ・辺ハイライト・ポートヒント・進行中ワイヤ・ノード内インライン枠 (`GraphDecoration`)。`AffectsLayout` 分類でオーバーレイ (再射影不要) とサイズ変化を分けます。
+    - **純射影ジオメトリ**: `GraphGeometry` が Doc + view 注入の `NodeMeasure` から、ノード矩形・ポートアンカー・接続線のベジェ・`HitTest`・world↔screen 変換を計算します。選択状態を持たない純関数で、サイズ測定を外注するので **canvas なしで単体テスト**できます (`Luxel.Typography` 非依存)。
+
+    ## ビュー (NodeGraphView — [UiComponent])
+
+    状態を投影して塗るだけの薄いビューです。**pan/zoom は world コンテナノードの `Affine2D` 変換**なのでヒットテストが自動追従します。
+
+    - **ノードドラッグで移動** (複数選択はまとめて 1 undo)、**クリック選択 / 空白ドラッグで範囲選択 (marquee)**、**ホイールでカーソル中心ズーム**
+    - **配線**: ポートからドラッグ → 進行中ワイヤ (互換ポートなら緑・不可なら赤) → ドロップで接続。型キー一致・向き・重複を `GraphConnect` が検証。**辺クリック選択 → Delete で切断**
+    - **ノード内インライン UI**: `NodeInlineDecoration` + `WidgetResolver` でノード本体に実 Widget (スライダ等) をホスト。枠の宣言幅はノード幅に吸収され (widget は枠幅に収まる)、`WidgetClip` (既定 = 枠でクリップ) ではみ出しを隠す
+    - **ノード追加パレット**: 右クリックで `INodeCatalog` の種別を [PopupPlacer](story:Internals/ADR/0007-Floating-Ui-Placement) のメニューに並べ、クリック位置に追加
+    - **自動整列**: 辺の依存に沿って左→右にランク配置 (`AutoLayout`) + `FitToView` + グリッドスナップ
+    - **読み取り専用** (`ReadOnly`): 編集を無効化し、ドラッグ = pan / クリック = 選択 (検査) / ホイール = ズームの閲覧モード。DevTools のレンダーグラフ可視化で使います (`RenderGraphNodes` が診断 `DiagRenderGraph` を「パス = ノード / リソース依存 = 辺」の doc に変換 → 読み取り専用ビューで表示)
+
+    実物: [Controls/NodeGraphView/Basic](story:Controls/NodeGraphView/Basic) (ノード/選択/移動) / [Wiring](story:Controls/NodeGraphView/Wiring) (配線) / [Widgets](story:Controls/NodeGraphView/Widgets) (ノード内 UI + パレット) / [AutoLayout](story:Controls/NodeGraphView/AutoLayout) (式グラフの自動整列) / [RenderGraph](story:Controls/NodeGraphView/RenderGraph) (レンダーグラフの読み取り専用可視化)。
+
+    &gt; [!NOTE]
+    &gt; ドメインを載せるには `INodeCatalog` (種別と工場) を実装し、必要ならノード内の値編集を `WidgetResolver` で供給します。既存の [Luxel.Diagram](story:Reference/Guides/Controls) は**表示専用の図**、`Luxel.Animation` の Graph は**実行時評価ツリー**で、本エディタ (編集キャンバス) とは別物です (配置アルゴリズムのみ Diagram と同型)。
+
+    &gt; [!NOTE]
+    &gt; ポインタのボタン/修飾キーは [ADR-0011](story:Internals/ADR/0011-Pointer-Button-Modifiers) で追加済み — **中ボタンドラッグ = pan**、**Ctrl+クリック = 追加選択**が使えます (空白の左ドラッグは範囲選択のまま)。
+    &gt;
+    &gt; Workbench ([Reference/Guides/Workbench](story:Reference/Guides/Workbench)) に載せるときは `NodeGraphDocument` アダプタが JSON 往復 (`NodeGraphJson`) と undo 委譲を配線します。
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

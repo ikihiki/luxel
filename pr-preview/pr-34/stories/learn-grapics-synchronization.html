@@ -1,0 +1,382 @@
+<article class="story document-page"><h1 id="section">同期</h1>
+<p><strong>難易度:</strong> Beginner+　 <strong>実行環境:</strong> Standalone　 <strong>Backend:</strong> Vulkan / DirectX 12 / WebGPU　 <strong>前提知識:</strong> Pipeline State</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FPipelineState">PipelineState</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2F2D%2FOverview">Overview</a></p>
+<p>GPU commandは記録した順に並べるだけでは、前段の書き込みが後段の読み出しから正しく見えるとは限りません。また、<code>Submit</code>はGPU処理の完了を待ちません。このページでは、command内の実行・memory依存を表す<code>Barrier</code>と、commandをqueueへ投入してCPU側の完了境界を作るSubmit系methodを分けて説明します。</p>
+<pre><code class="language-text">command内: producer → Barrier → consumer
+CPU / queue: Finish → Submit → GPU execution → completion wait
+</code></pre>
+<h2 id="barrier">Barrierは何を同期するか</h2>
+<p><code>GpuCommandBuffer.Barrier(source, destination, hazard)</code>は、前段stageのmemory accessを後段stageから見えるようにするstage barrierです。同じcommand buffer内で、computeの書き込みをpixel shaderから読む、color outputをcopyする、GPUが生成したindirect argumentsをdrawで読む、といった依存に使います。</p>
+<pre><code class="language-csharp">command.Dispatch(groupCountX)
+    .Barrier(GpuStage.ComputeShader, GpuStage.PixelShader)
+    .BeginRendering(colorTarget)
+    .SetGraphicsPipeline(graphicsPipeline)
+    .Draw(vertexCount)
+    .EndRendering();
+</code></pre>
+<p><code>source</code>は値を生成したstage、<code>destination</code>はその値を次に使うstageです。<code>GpuStage</code>は<code>[Flags]</code> enumなので、複数stageをbitwise ORでまとめられます。</p>
+<h2 id="gpustage">GpuStage一覧</h2>
+<table>
+<thead>
+<tr>
+<th>値</th>
+<th>対象になる処理</th>
+<th>Barrierでの典型的な指定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GpuStage.None</code></td>
+<td>stageを指定しない</td>
+<td>stage依存がないことを明示する値。通常のproducer / consumer指定には使わない</td>
+</tr>
+<tr>
+<td><code>GpuStage.DrawIndirect</code></td>
+<td>indirect draw / dispatch引数の読み出し</td>
+<td>GPUが生成した引数を読むdestination。必要に応じて<code>GpuHazard.IndirectArguments</code>も指定する</td>
+</tr>
+<tr>
+<td><code>GpuStage.VertexShader</code></td>
+<td>vertex shaderとvertex pullingのload</td>
+<td>computeやcopyで用意したvertex dataを読むdestination</td>
+</tr>
+<tr>
+<td><code>GpuStage.PixelShader</code></td>
+<td>pixel / fragment shader</td>
+<td>computeやcopyで用意したtexture・bufferを読むdestination</td>
+</tr>
+<tr>
+<td><code>GpuStage.ComputeShader</code></td>
+<td>compute shader</td>
+<td>dispatchによる書き込みのsource、または前段の結果を読むdestination</td>
+</tr>
+<tr>
+<td><code>GpuStage.ColorOutput</code></td>
+<td>color attachmentへの書き込み</td>
+<td>render targetを書いたsource</td>
+</tr>
+<tr>
+<td><code>GpuStage.DepthStencil</code></td>
+<td>depth / stencil testと書き込み</td>
+<td>depth / stencil resourceへaccessするstage</td>
+</tr>
+<tr>
+<td><code>GpuStage.Copy</code></td>
+<td>copy / transfer</td>
+<td>copy元を準備した後のdestination、またはcopy結果を使う前のsource</td>
+</tr>
+<tr>
+<td><code>GpuStage.AllGraphics</code></td>
+<td>すべてのgraphics stage</td>
+<td>graphics側の複数stageをまとめて指定したい場合</td>
+</tr>
+<tr>
+<td><code>GpuStage.All</code></td>
+<td>すべてのcommand</td>
+<td>最も粗い指定。依存stageを切り分ける診断時に限定して使う</td>
+</tr>
+</tbody>
+</table>
+<p>通常はproducerとconsumerをできるだけ正確に指定します。<code>AllGraphics</code>や<code>All</code>へ広げるほど意図は粗くなり、backendが不要な待機まで挿入する可能性があります。</p>
+<h2 id="barrier-1">よく使うBarrier</h2>
+<h3 id="render-targetcopy">Render targetからcopyする</h3>
+<pre><code class="language-csharp">command.BeginRendering(target, null, 0, 0, 0, 1)
+    .SetGraphicsPipeline(pipeline)
+    .Draw(vertexCount)
+    .EndRendering()
+    .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+    .CopyTextureToBuffer(target, framebuffer, stridePixels);
+</code></pre>
+<p>color attachmentへの書き込みを、後続のcopy sourceとして見えるようにします。texture layout/stateの具体的な遷移はbackendが処理します。</p>
+<h3 id="computeshader">Compute結果を後段shaderで読む</h3>
+<pre><code class="language-csharp">command.SetComputePipeline(computePipeline)
+    .Dispatch(groupCountX)
+    .Barrier(GpuStage.ComputeShader,
+             GpuStage.VertexShader | GpuStage.PixelShader)
+    .SetGraphicsPipeline(graphicsPipeline)
+    .Draw(vertexCount);
+</code></pre>
+<p>producerとconsumerを正確に指定します。常に<code>All</code>へ広げると正しさは確認しやすい一方、backendが不要な待機まで挿入する可能性があります。</p>
+<h3 id="indirect-arguments">Indirect argumentsを生成する</h3>
+<pre><code class="language-csharp">command.Dispatch(groupCountX)
+    .Barrier(
+        GpuStage.ComputeShader,
+        GpuStage.DrawIndirect,
+        GpuHazard.IndirectArguments);
+</code></pre>
+<p><code>GpuHazard.IndirectArguments</code>はGPUが書いたindirect draw/dispatch argumentを後段のcommand processorから読めるようにする追加指定です。<code>GpuHazard.Descriptors</code>はbindless descriptor更新に関する特殊hazardですが、通常の描画resource依存へ機械的に付けません。</p>
+<h2 id="barrier-2">Barrierでは解決しないこと</h2>
+<p>Barrierはcommand buffer内のGPU依存を表します。次の問題は解決しません。</p>
+<ul>
+<li>CPUがGPU完了前にbufferやtextureを破棄・上書きすること</li>
+<li>command bufferを<code>Finish</code>せずにsubmitすること</li>
+<li>別queue間の所有権移動や同期</li>
+<li>application thread同士の排他制御</li>
+<li>presentやreadbackのCPU側完了待ち</li>
+</ul>
+<p>CPUが結果を読む、resourceを再利用する、resizeで作り直す場合はqueueの完了境界も必要です。</p>
+<h2 id="finishsubmit">FinishとSubmit</h2>
+<p><code>Finish()</code>はcommand記録を終了します。GPUへ投入する操作ではありません。<code>Finish</code>後のcommandを<code>GpuQueue.Submit</code>へ渡します。</p>
+<pre><code class="language-csharp">using GpuCommandBuffer command =
+    device.MainQueue.StartCommandRecording();
+
+RecordCommands(command);
+command.Finish();
+device.MainQueue.Submit(command);
+</code></pre>
+<p><code>Submit</code>は待たずに戻ります。投入後もGPUがcommandや参照resourceを使用している可能性があるため、公開APIだけで個別submitの完了を追跡できない現在は、直後にそれらを破棄・再利用するコードへ変更しないでください。</p>
+<h2 id="submitandwait">SubmitAndWait</h2>
+<p><code>SubmitAndWait(command)</code>はcommandをsubmitした後、main queueがidleになるまで待つ同期helperです。tutorial、GPU readback、one-shot処理など、CPUが直後に結果を必要とする場面に向いています。</p>
+<pre><code class="language-csharp">command.Finish();
+device.MainQueue.SubmitAndWait(command);
+
+ReadOnlySpan&lt;byte&gt; pixels = framebuffer.Span&lt;byte&gt;(byteCount);
+</code></pre>
+<p>実装上は<code>Submit</code>に続けて<code>WaitIdle</code>を呼ぶため、queue上の先行処理も完了します。毎frame使うとCPUとGPUが直列化されるので、簡潔さを優先するsample向けです。</p>
+<h2 id="submitasync">SubmitAsync</h2>
+<p><code>SubmitAsync(command, cancellationToken)</code>は非同期backendでGPU完了をawaitします。browser WebGPUのようにJavaScript Promiseを同期blockできない環境では、このmethodを使用します。</p>
+<pre><code class="language-csharp">command.Finish();
+await device.MainQueue.SubmitAsync(command, cancellationToken);
+</code></pre>
+<p>nativeの同期backendではsubmit後に同期的なidle waitを実行し、完了済み<code>ValueTask</code>を返します。そのため、<code>SubmitAsync</code>を呼ぶだけでnative rendererのCPU/GPU overlapが自動的に増えるわけではありません。</p>
+<h2 id="waitidlewaitidleasync">WaitIdleとWaitIdleAsync</h2>
+<p><code>WaitIdle()</code>は既にqueueへ投入された全処理の完了を同期的に待ちます。resize、shutdown、まとめてresourceを再生成する境界に使用します。</p>
+<pre><code class="language-csharp">device.MainQueue.WaitIdle();
+RecreateSizeDependentResources();
+</code></pre>
+<p><code>WaitIdleAsync()</code>は同じ意味の非同期版です。browser WebGPUでは<code>WaitIdle()</code>が利用できないため、必ず非同期版をawaitします。</p>
+<table>
+<thead>
+<tr>
+<th>method</th>
+<th>submit</th>
+<th>completion wait</th>
+<th>主な用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Submit</code></td>
+<td>する</td>
+<td>しない</td>
+<td>完了を別の仕組みで管理する低水準経路</td>
+</tr>
+<tr>
+<td><code>SubmitAndWait</code></td>
+<td>する</td>
+<td>同期的にqueue idleまで待つ</td>
+<td>tutorial、readback、one-shot</td>
+</tr>
+<tr>
+<td><code>SubmitAsync</code></td>
+<td>する</td>
+<td>backendに応じてawait</td>
+<td>browser、非同期処理</td>
+</tr>
+<tr>
+<td><code>WaitIdle</code></td>
+<td>しない</td>
+<td>既存queue処理を同期的に待つ</td>
+<td>native resize、shutdown</td>
+</tr>
+<tr>
+<td><code>WaitIdleAsync</code></td>
+<td>しない</td>
+<td>既存queue処理をawait</td>
+<td>browser resize、shutdown</td>
+</tr>
+</tbody>
+</table>
+<h2 id="rendergraph">RenderGraphとの関係</h2>
+<p>手書きcommandでは利用者が<code>Barrier</code>を置きます。RenderGraphではpassのRead/Write宣言から依存とbarrierを構築します。ただしgraphがbarrierを挿入しても、submit後のCPU完了待ちまで自動化されるわけではありません。</p>
+<pre><code class="language-text">RenderGraph: pass間のproducer / consumer依存
+Queue API:   commandのsubmitとCPUから見た完了境界
+</code></pre>
+<p>手書きBarrierをpassのRead/Write宣言へ置き換える方法は、独立した<a href="#story=Learn%2FRenderGraph%2FOverview">RenderGraphコース</a>で順番に扱います。Vulkan、DirectX 12、native/browser WebGPUがBarrierとqueue完了をどうlowerするかは<a href="#story=Internals%2FGpu%2FSynchronization">GPU同期の内部実装</a>を参照してください。</p>
+<h2 id="section-1">典型的な失敗</h2>
+<ul>
+<li>compute結果が古い → producerとconsumerの間に適切な<code>Barrier</code>がない。</li>
+<li>copyした画像が壊れる → <code>ColorOutput → Copy</code>のbarrierまたはtexture state遷移を確認する。</li>
+<li><code>Submit</code>へ変えたら時々壊れる → GPU完了前にresourceやcommandを再利用・破棄している。</li>
+<li>browserで<code>WaitIdle</code>が例外になる → <code>WaitIdleAsync</code>または<code>SubmitAsync</code>をawaitする。</li>
+<li>resizeのたびに壊れる → queue完了前にsize依存resourceを作り直している。</li>
+<li>毎frame遅い → <code>SubmitAndWait</code>や<code>WaitIdle</code>でCPU/GPUを直列化している。</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/Synchronization&quot;, Order = 8)]
+public static Widget Synchronization(StoryContext ctx)
+{
+    return DocNew(ctx, $$&quot;&quot;&quot;
+    # 同期
+
+    {{RenderingCourseCatalog.Meta(&quot;Learn/Grapics/Synchronization&quot;, &quot;Beginner+&quot;, &quot;Standalone&quot;, &quot;Vulkan / DirectX 12 / WebGPU&quot;, &quot;Pipeline State&quot;)}}
+
+    GPU commandは記録した順に並べるだけでは、前段の書き込みが後段の読み出しから正しく見えるとは限りません。また、`Submit`はGPU処理の完了を待ちません。このページでは、command内の実行・memory依存を表す`Barrier`と、commandをqueueへ投入してCPU側の完了境界を作るSubmit系methodを分けて説明します。
+
+    ```text
+    command内: producer → Barrier → consumer
+    CPU / queue: Finish → Submit → GPU execution → completion wait
+    ```
+
+    ## Barrierは何を同期するか
+
+    `GpuCommandBuffer.Barrier(source, destination, hazard)`は、前段stageのmemory accessを後段stageから見えるようにするstage barrierです。同じcommand buffer内で、computeの書き込みをpixel shaderから読む、color outputをcopyする、GPUが生成したindirect argumentsをdrawで読む、といった依存に使います。
+
+    ```csharp
+    command.Dispatch(groupCountX)
+        .Barrier(GpuStage.ComputeShader, GpuStage.PixelShader)
+        .BeginRendering(colorTarget)
+        .SetGraphicsPipeline(graphicsPipeline)
+        .Draw(vertexCount)
+        .EndRendering();
+    ```
+
+    `source`は値を生成したstage、`destination`はその値を次に使うstageです。`GpuStage`は`[Flags]` enumなので、複数stageをbitwise ORでまとめられます。
+
+    ## GpuStage一覧
+
+    | 値 | 対象になる処理 | Barrierでの典型的な指定 |
+    | --- | --- | --- |
+    | `GpuStage.None` | stageを指定しない | stage依存がないことを明示する値。通常のproducer / consumer指定には使わない |
+    | `GpuStage.DrawIndirect` | indirect draw / dispatch引数の読み出し | GPUが生成した引数を読むdestination。必要に応じて`GpuHazard.IndirectArguments`も指定する |
+    | `GpuStage.VertexShader` | vertex shaderとvertex pullingのload | computeやcopyで用意したvertex dataを読むdestination |
+    | `GpuStage.PixelShader` | pixel / fragment shader | computeやcopyで用意したtexture・bufferを読むdestination |
+    | `GpuStage.ComputeShader` | compute shader | dispatchによる書き込みのsource、または前段の結果を読むdestination |
+    | `GpuStage.ColorOutput` | color attachmentへの書き込み | render targetを書いたsource |
+    | `GpuStage.DepthStencil` | depth / stencil testと書き込み | depth / stencil resourceへaccessするstage |
+    | `GpuStage.Copy` | copy / transfer | copy元を準備した後のdestination、またはcopy結果を使う前のsource |
+    | `GpuStage.AllGraphics` | すべてのgraphics stage | graphics側の複数stageをまとめて指定したい場合 |
+    | `GpuStage.All` | すべてのcommand | 最も粗い指定。依存stageを切り分ける診断時に限定して使う |
+
+    通常はproducerとconsumerをできるだけ正確に指定します。`AllGraphics`や`All`へ広げるほど意図は粗くなり、backendが不要な待機まで挿入する可能性があります。
+
+    ## よく使うBarrier
+
+    ### Render targetからcopyする
+
+    ```csharp
+    command.BeginRendering(target, null, 0, 0, 0, 1)
+        .SetGraphicsPipeline(pipeline)
+        .Draw(vertexCount)
+        .EndRendering()
+        .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+        .CopyTextureToBuffer(target, framebuffer, stridePixels);
+    ```
+
+    color attachmentへの書き込みを、後続のcopy sourceとして見えるようにします。texture layout/stateの具体的な遷移はbackendが処理します。
+
+    ### Compute結果を後段shaderで読む
+
+    ```csharp
+    command.SetComputePipeline(computePipeline)
+        .Dispatch(groupCountX)
+        .Barrier(GpuStage.ComputeShader,
+                 GpuStage.VertexShader | GpuStage.PixelShader)
+        .SetGraphicsPipeline(graphicsPipeline)
+        .Draw(vertexCount);
+    ```
+
+    producerとconsumerを正確に指定します。常に`All`へ広げると正しさは確認しやすい一方、backendが不要な待機まで挿入する可能性があります。
+
+    ### Indirect argumentsを生成する
+
+    ```csharp
+    command.Dispatch(groupCountX)
+        .Barrier(
+            GpuStage.ComputeShader,
+            GpuStage.DrawIndirect,
+            GpuHazard.IndirectArguments);
+    ```
+
+    `GpuHazard.IndirectArguments`はGPUが書いたindirect draw/dispatch argumentを後段のcommand processorから読めるようにする追加指定です。`GpuHazard.Descriptors`はbindless descriptor更新に関する特殊hazardですが、通常の描画resource依存へ機械的に付けません。
+
+    ## Barrierでは解決しないこと
+
+    Barrierはcommand buffer内のGPU依存を表します。次の問題は解決しません。
+
+    - CPUがGPU完了前にbufferやtextureを破棄・上書きすること
+    - command bufferを`Finish`せずにsubmitすること
+    - 別queue間の所有権移動や同期
+    - application thread同士の排他制御
+    - presentやreadbackのCPU側完了待ち
+
+    CPUが結果を読む、resourceを再利用する、resizeで作り直す場合はqueueの完了境界も必要です。
+
+    ## FinishとSubmit
+
+    `Finish()`はcommand記録を終了します。GPUへ投入する操作ではありません。`Finish`後のcommandを`GpuQueue.Submit`へ渡します。
+
+    ```csharp
+    using GpuCommandBuffer command =
+        device.MainQueue.StartCommandRecording();
+
+    RecordCommands(command);
+    command.Finish();
+    device.MainQueue.Submit(command);
+    ```
+
+    `Submit`は待たずに戻ります。投入後もGPUがcommandや参照resourceを使用している可能性があるため、公開APIだけで個別submitの完了を追跡できない現在は、直後にそれらを破棄・再利用するコードへ変更しないでください。
+
+    ## SubmitAndWait
+
+    `SubmitAndWait(command)`はcommandをsubmitした後、main queueがidleになるまで待つ同期helperです。tutorial、GPU readback、one-shot処理など、CPUが直後に結果を必要とする場面に向いています。
+
+    ```csharp
+    command.Finish();
+    device.MainQueue.SubmitAndWait(command);
+
+    ReadOnlySpan&lt;byte&gt; pixels = framebuffer.Span&lt;byte&gt;(byteCount);
+    ```
+
+    実装上は`Submit`に続けて`WaitIdle`を呼ぶため、queue上の先行処理も完了します。毎frame使うとCPUとGPUが直列化されるので、簡潔さを優先するsample向けです。
+
+    ## SubmitAsync
+
+    `SubmitAsync(command, cancellationToken)`は非同期backendでGPU完了をawaitします。browser WebGPUのようにJavaScript Promiseを同期blockできない環境では、このmethodを使用します。
+
+    ```csharp
+    command.Finish();
+    await device.MainQueue.SubmitAsync(command, cancellationToken);
+    ```
+
+    nativeの同期backendではsubmit後に同期的なidle waitを実行し、完了済み`ValueTask`を返します。そのため、`SubmitAsync`を呼ぶだけでnative rendererのCPU/GPU overlapが自動的に増えるわけではありません。
+
+    ## WaitIdleとWaitIdleAsync
+
+    `WaitIdle()`は既にqueueへ投入された全処理の完了を同期的に待ちます。resize、shutdown、まとめてresourceを再生成する境界に使用します。
+
+    ```csharp
+    device.MainQueue.WaitIdle();
+    RecreateSizeDependentResources();
+    ```
+
+    `WaitIdleAsync()`は同じ意味の非同期版です。browser WebGPUでは`WaitIdle()`が利用できないため、必ず非同期版をawaitします。
+
+    | method | submit | completion wait | 主な用途 |
+    | --- | --- | --- | --- |
+    | `Submit` | する | しない | 完了を別の仕組みで管理する低水準経路 |
+    | `SubmitAndWait` | する | 同期的にqueue idleまで待つ | tutorial、readback、one-shot |
+    | `SubmitAsync` | する | backendに応じてawait | browser、非同期処理 |
+    | `WaitIdle` | しない | 既存queue処理を同期的に待つ | native resize、shutdown |
+    | `WaitIdleAsync` | しない | 既存queue処理をawait | browser resize、shutdown |
+
+    ## RenderGraphとの関係
+
+    手書きcommandでは利用者が`Barrier`を置きます。RenderGraphではpassのRead/Write宣言から依存とbarrierを構築します。ただしgraphがbarrierを挿入しても、submit後のCPU完了待ちまで自動化されるわけではありません。
+
+    ```text
+    RenderGraph: pass間のproducer / consumer依存
+    Queue API:   commandのsubmitとCPUから見た完了境界
+    ```
+
+    手書きBarrierをpassのRead/Write宣言へ置き換える方法は、独立した[RenderGraphコース](story:Learn/RenderGraph/Overview)で順番に扱います。Vulkan、DirectX 12、native/browser WebGPUがBarrierとqueue完了をどうlowerするかは[GPU同期の内部実装](story:Internals/Gpu/Synchronization)を参照してください。
+
+    ## 典型的な失敗
+
+    - compute結果が古い → producerとconsumerの間に適切な`Barrier`がない。
+    - copyした画像が壊れる → `ColorOutput → Copy`のbarrierまたはtexture state遷移を確認する。
+    - `Submit`へ変えたら時々壊れる → GPU完了前にresourceやcommandを再利用・破棄している。
+    - browserで`WaitIdle`が例外になる → `WaitIdleAsync`または`SubmitAsync`をawaitする。
+    - resizeのたびに壊れる → queue完了前にsize依存resourceを作り直している。
+    - 毎frame遅い → `SubmitAndWait`や`WaitIdle`でCPU/GPUを直列化している。
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

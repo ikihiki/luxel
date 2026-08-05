@@ -1,0 +1,16 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/2D/Orbit</h1></header><figure class="static-capture"><img src="images/examples-2d-orbit.png" alt="Examples/2D/Orbit" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/2D/Orbit&quot;, Height = 300, Order = 111)]
+public static Widget Orbit(StoryContext ctx)
+{
+    Signal&lt;float&gt; speed = ctx.Signal(&quot;speed&quot;, 1f, &quot;軌道アニメの速度倍率&quot;);
+    ctx.Play(static d =&gt; d.Snap());
+    return Frame(Canvas2D(384, 220, animate: (s, t) =&gt;
+    {
+        const float cx = 192, cy = 110;
+        s.FillCircle(Tw.Amber500, cx, cy, 26);
+        s.StrokeRoundedRect(Tw.Slate500, 1, cx - 80, cy - 80, 160, 160, 80);
+        float a = t * speed.Value;
+        s.FillCircle(Tw.Blue500, cx + MathF.Cos(a) * 80, cy + MathF.Sin(a) * 80, 12);
+        float a2 = t * speed.Value * 2.6f;
+        s.FillCircle(Tw.Red500, cx + MathF.Cos(a2) * 44, cy + MathF.Sin(a2) * 44, 7);
+    }));
+}</code></pre></details></article>

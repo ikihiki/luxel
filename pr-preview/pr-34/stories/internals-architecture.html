@@ -1,0 +1,202 @@
+<article class="story document-page"><h1 id="section">アーキテクチャ</h1>
+<p>Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。下図は native WebGPU を明示 opt-in lowering として加える目標構成を含みます。</p>
+<pre class="mermaid">flowchart TB
+app[アプリ / Gallery / Framework] --&gt; controls[Luxel.Controls]
+app --&gt; rg[Luxel.Graphics.RenderGraph]
+app --&gt; ecs[Luxel.Ecs + AssetRuntime]
+app --&gt; terminalui[Luxel.Terminal.UI]
+controls --&gt; ui[Luxel.UI]
+terminalui --&gt; ui
+terminalui --&gt; terminal[Luxel.Terminal]
+terminal --&gt; pty[ConPTY / Unix PTY]
+ui --&gt; anim[Luxel.Animation]
+ui --&gt; typotwod[Luxel.Typography.TwoD]
+typotwod --&gt; typo[Luxel.Typography]
+typotwod --&gt; twod[Luxel.Graphics.TwoD]
+rg --&gt; gpu[Luxel.Graphics — GpuDevice]
+ecs --&gt; rg
+twod --&gt; gpu
+gpu --&gt; vk(Luxel.Graphics.Vulkan)
+gpu --&gt; dx(Luxel.Graphics.DirectX12)
+gpu --&gt; wgpu[Luxel.Graphics.WebGPU — native opt-in target]</pre>
+<h2 id="gpu">GPU 土台</h2>
+<p><code>Luxel.Graphics</code> が GpuDevice / resource / argument block / pass / dependency の portable semantics を提供し、各 backend が native mechanism へ lower します。Vulkan と DirectX 12 は bindless heap、GPUVA、push/root constants、native barrier を fast path として維持し、native WebGPU は logical refs、fixed bind groups、frame-local argument ring、pass/encoder segmentation を使う明示 opt-in backend として加える方針です。shader package は entry/metadata と SPIR-V / DXIL / portable WGSL artifact を束ねます。詳細は <a href="#story=Reference%2FGuides%2FWebGPU">Reference/Guides/WebGPU</a> へ。</p>
+<h2 id="d">2D とテキスト</h2>
+<p><code>Luxel.Graphics.TwoD</code>はbackend-neutralな2D契約、computeベースのGPUベクターラスタライザ、保持型キャンバスを提供します。<code>Luxel.Typography</code>はGPU非依存のHarfBuzzシェーピング + 自前TextLayout、<code>Luxel.Typography.TwoD</code>はScene2D描画adapter、<code>Luxel.Typography.Icu</code>はICUセグメンタを提供します。</p>
+<h2 id="ui">UI とコントロール</h2>
+<p><code>Luxel.UI</code> が宣言的 DSL (ベアファクトリ + indexer)、Signal/Effect の反応系、単一パスレイアウト。<code>Luxel.Controls</code> が Button から RichTextEditor までのコントロール群、<code>Luxel.UI.Tailwind</code> が Tailwind カラーパレット (Tw)、<code>Luxel.Document</code> + <code>Luxel.Highlight.TextMate</code> + <code>Luxel.Diagram</code> + <code>Luxel.MathText</code> がこの docs ページを支えるドキュメントスタックです。</p>
+<h2 id="section-1">端末</h2>
+<p><code>Luxel.Terminal</code>がUI非依存のVT/ANSI parser、screen、scrollback、入力encode、sessionを提供し、<code>.Windows</code>のConPTYと<code>.Linux</code>のUnix PTYを<code>ITerminalPty</code>の後ろへ分離します。<code>Luxel.Terminal.UI</code>の<code>TerminalView</code>は<code>Luxel.Controls</code>に依存せず、font fallback、selection、clipboard、IME、resize reflowを担当します。導入と調整方法は <a href="#story=Controls%2FTerminal%2FOverview">Controls/Terminal/Overview</a> へ。</p>
+<h2 id="section-2">モーション</h2>
+<p><code>Luxel.Animation</code> が Curve × Tween の 2 段分解による中核 IR。ターゲットアダプタ (<code>.UI</code> = Signal、<code>.TwoD</code> = RetainedCanvas、<code>.ThreeD</code> = ECS) が書き込み先を分離します。実例はサイドバーの Animation 章へ (<a href="#story=Examples%2FAnimation%2FTween">Examples/Animation/Tween</a> など)。</p>
+<h2 id="d-1">3D / レンダーグラフ / リソース</h2>
+<p><code>Luxel.Ecs</code> (Friflo ラッパ) + <code>Luxel.Assets</code>/<code>Luxel.AssetRuntime</code> が 3D シーンと抽出、<code>Luxel.Graphics.RenderGraph</code> が Setup/Compile/Execute 三相の scene-agnostic なパス合成 (<a href="#story=Examples%2FRenderGraph%2FBlur">Examples/RenderGraph/Blur</a>)。<code>Luxel.Resources</code> + <code>Luxel.Imaging</code> + <code>Luxel.Gltf</code> が (型, uri) キーのリソース DAG を提供します。</p>
+<h2 id="section-3">ランタイムとツール</h2>
+<p><code>Luxel.Platform</code> + <code>.Windows</code> / <code>.Silk</code> (窓 / クリップボード / IME / 低レベル入力)、<code>Luxel.Input</code> + <code>.XInput</code>、<code>Luxel.Audio</code> + <code>.Windows</code>、<code>Luxel.Framework</code> (ホストビルダー + シーン遷移)、そして <code>Luxel.DevTools</code> (別窓デバッガ + HTTP DebugServer)。この Gallery (<code>Luxel.Gallery</code>) 自体が Luxel UI で書かれたドッグフーディングアプリです。</p>
+<h2 id="section-4">プロジェクト一覧</h2>
+<table>
+<thead>
+<tr>
+<th>プロジェクト</th>
+<th>役割</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Luxel.Graphics / Luxel.Graphics.Vulkan / Luxel.Graphics.DirectX12 / Luxel.Graphics.WebGPU (追加方針)</td>
+<td>portable GPU semantics と backend lowering</td>
+</tr>
+<tr>
+<td>Luxel.Graphics.TwoD</td>
+<td>2D ベクターラスタライザ + 保持型キャンバス</td>
+</tr>
+<tr>
+<td>Luxel.Typography (+ .Icu) / Luxel.Typography.TwoD</td>
+<td>GPU非依存レイアウト・シェーピング・ICU / Scene2D描画adapter</td>
+</tr>
+<tr>
+<td>Luxel.UI (+ .Generators, .Tailwind)</td>
+<td>宣言的 UI / signals / ソースジェネレーター</td>
+</tr>
+<tr>
+<td>Luxel.Controls</td>
+<td>コントロール群 + docs 基盤 (Kit)</td>
+</tr>
+<tr>
+<td>Luxel.Terminal (+ .UI, .Windows, .Linux)</td>
+<td>VT/ANSI端末コア / UI widget / ConPTY・Unix PTY backend</td>
+</tr>
+<tr>
+<td>Luxel.Document (+ Highlight.TextMate, Diagram, MathText)</td>
+<td>ドキュメントモデル / ハイライト / 図 / 数式</td>
+</tr>
+<tr>
+<td>Luxel.Animation (+ .UI, .TwoD, .ThreeD)</td>
+<td>アニメーション IR + ターゲットアダプタ</td>
+</tr>
+<tr>
+<td>Luxel.Ecs (+ .Signal)</td>
+<td>ECS (Friflo) + signal 連携</td>
+</tr>
+<tr>
+<td>Luxel.Graphics.RenderGraph</td>
+<td>パス合成 / transient aliasing / 自動バリア</td>
+</tr>
+<tr>
+<td>Luxel.Resources (+ Imaging, Assets, AssetsGpu, AssetRuntime, Gltf)</td>
+<td>リソース DAG / 画像 / glTF / 3D 抽出</td>
+</tr>
+<tr>
+<td>Luxel.Platform (+ .Windows, .Silk)</td>
+<td>ウィンドウ / クリップボード / IME / 低レベル入力</td>
+</tr>
+<tr>
+<td>Luxel.Input (+ .XInput)</td>
+<td>アクションマップ / リバインド / Windowsゲームパッド入力</td>
+</tr>
+<tr>
+<td>Luxel.Audio (+ .Windows)</td>
+<td>音声API / XAudio2バックエンド</td>
+</tr>
+<tr>
+<td>Luxel.Framework (+ Scene.UI)</td>
+<td>アプリ骨格 / シーン遷移</td>
+</tr>
+<tr>
+<td>Luxel.DevTools (+ .App)</td>
+<td>デバッガ / HTTP DebugServer</td>
+</tr>
+<tr>
+<td>Luxel.Gallery</td>
+<td>この Gallery (docs + デモ + e2e/bench)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="backend">backend 回帰という規律</h2>
+<p>既存の描画機能は Vulkan と DirectX 12 の両方で動き、e2e回帰は<strong>バックエンド別の golden</strong> と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。WebGPU 対応を表明する機能は同じ backend-neutral story を WGSL/manifest、limits、diagnostics を含む専用ゲートで検証します。どれか一つの backend で「たまたま動く」ことを許さず、差を lowering と capability に閉じ込めることが、薄い抽象を保つ開発規律です。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/Architecture&quot;, Order = 1)]
+public static Widget Architecture(StoryContext ctx)
+{
+    ctx.Play(static d =&gt; d.Snap());   // 新スタック: 全体像 mermaid 図の描画 golden (ライブ埋め込み無し=安全)
+    return DocNew(ctx, $$&quot;&quot;&quot;
+    # アーキテクチャ
+
+    Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。下図は native WebGPU を明示 opt-in lowering として加える目標構成を含みます。
+
+    ```mermaid
+    flowchart TB
+    app[アプリ / Gallery / Framework] --&gt; controls[Luxel.Controls]
+    app --&gt; rg[Luxel.Graphics.RenderGraph]
+    app --&gt; ecs[Luxel.Ecs + AssetRuntime]
+    app --&gt; terminalui[Luxel.Terminal.UI]
+    controls --&gt; ui[Luxel.UI]
+    terminalui --&gt; ui
+    terminalui --&gt; terminal[Luxel.Terminal]
+    terminal --&gt; pty[ConPTY / Unix PTY]
+    ui --&gt; anim[Luxel.Animation]
+    ui --&gt; typotwod[Luxel.Typography.TwoD]
+    typotwod --&gt; typo[Luxel.Typography]
+    typotwod --&gt; twod[Luxel.Graphics.TwoD]
+    rg --&gt; gpu[Luxel.Graphics — GpuDevice]
+    ecs --&gt; rg
+    twod --&gt; gpu
+    gpu --&gt; vk(Luxel.Graphics.Vulkan)
+    gpu --&gt; dx(Luxel.Graphics.DirectX12)
+    gpu --&gt; wgpu[Luxel.Graphics.WebGPU — native opt-in target]
+    ```
+
+    ## GPU 土台
+
+    `Luxel.Graphics` が GpuDevice / resource / argument block / pass / dependency の portable semantics を提供し、各 backend が native mechanism へ lower します。Vulkan と DirectX 12 は bindless heap、GPUVA、push/root constants、native barrier を fast path として維持し、native WebGPU は logical refs、fixed bind groups、frame-local argument ring、pass/encoder segmentation を使う明示 opt-in backend として加える方針です。shader package は entry/metadata と SPIR-V / DXIL / portable WGSL artifact を束ねます。詳細は [Reference/Guides/WebGPU](story:Reference/Guides/WebGPU) へ。
+
+    ## 2D とテキスト
+
+    `Luxel.Graphics.TwoD`はbackend-neutralな2D契約、computeベースのGPUベクターラスタライザ、保持型キャンバスを提供します。`Luxel.Typography`はGPU非依存のHarfBuzzシェーピング + 自前TextLayout、`Luxel.Typography.TwoD`はScene2D描画adapter、`Luxel.Typography.Icu`はICUセグメンタを提供します。
+
+    ## UI とコントロール
+
+    `Luxel.UI` が宣言的 DSL (ベアファクトリ + indexer)、Signal/Effect の反応系、単一パスレイアウト。`Luxel.Controls` が Button から RichTextEditor までのコントロール群、`Luxel.UI.Tailwind` が Tailwind カラーパレット (Tw)、`Luxel.Document` + `Luxel.Highlight.TextMate` + `Luxel.Diagram` + `Luxel.MathText` がこの docs ページを支えるドキュメントスタックです。
+
+    ## 端末
+
+    `Luxel.Terminal`がUI非依存のVT/ANSI parser、screen、scrollback、入力encode、sessionを提供し、`.Windows`のConPTYと`.Linux`のUnix PTYを`ITerminalPty`の後ろへ分離します。`Luxel.Terminal.UI`の`TerminalView`は`Luxel.Controls`に依存せず、font fallback、selection、clipboard、IME、resize reflowを担当します。導入と調整方法は [Controls/Terminal/Overview](story:Controls/Terminal/Overview) へ。
+
+    ## モーション
+
+    `Luxel.Animation` が Curve &#215; Tween の 2 段分解による中核 IR。ターゲットアダプタ (`.UI` = Signal、`.TwoD` = RetainedCanvas、`.ThreeD` = ECS) が書き込み先を分離します。実例はサイドバーの Animation 章へ ([Examples/Animation/Tween](story:Examples/Animation/Tween) など)。
+
+    ## 3D / レンダーグラフ / リソース
+
+    `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、`Luxel.Graphics.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成 ([Examples/RenderGraph/Blur](story:Examples/RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` + `Luxel.Gltf` が (型, uri) キーのリソース DAG を提供します。
+
+    ## ランタイムとツール
+
+    `Luxel.Platform` + `.Windows` / `.Silk` (窓 / クリップボード / IME / 低レベル入力)、`Luxel.Input` + `.XInput`、`Luxel.Audio` + `.Windows`、`Luxel.Framework` (ホストビルダー + シーン遷移)、そして `Luxel.DevTools` (別窓デバッガ + HTTP DebugServer)。この Gallery (`Luxel.Gallery`) 自体が Luxel UI で書かれたドッグフーディングアプリです。
+
+    ## プロジェクト一覧
+
+    | プロジェクト | 役割 |
+    | --- | --- |
+    | Luxel.Graphics / Luxel.Graphics.Vulkan / Luxel.Graphics.DirectX12 / Luxel.Graphics.WebGPU (追加方針) | portable GPU semantics と backend lowering |
+    | Luxel.Graphics.TwoD | 2D ベクターラスタライザ + 保持型キャンバス |
+    | Luxel.Typography (+ .Icu) / Luxel.Typography.TwoD | GPU非依存レイアウト・シェーピング・ICU / Scene2D描画adapter |
+    | Luxel.UI (+ .Generators, .Tailwind) | 宣言的 UI / signals / ソースジェネレーター |
+    | Luxel.Controls | コントロール群 + docs 基盤 (Kit) |
+    | Luxel.Terminal (+ .UI, .Windows, .Linux) | VT/ANSI端末コア / UI widget / ConPTY・Unix PTY backend |
+    | Luxel.Document (+ Highlight.TextMate, Diagram, MathText) | ドキュメントモデル / ハイライト / 図 / 数式 |
+    | Luxel.Animation (+ .UI, .TwoD, .ThreeD) | アニメーション IR + ターゲットアダプタ |
+    | Luxel.Ecs (+ .Signal) | ECS (Friflo) + signal 連携 |
+    | Luxel.Graphics.RenderGraph | パス合成 / transient aliasing / 自動バリア |
+    | Luxel.Resources (+ Imaging, Assets, AssetsGpu, AssetRuntime, Gltf) | リソース DAG / 画像 / glTF / 3D 抽出 |
+    | Luxel.Platform (+ .Windows, .Silk) | ウィンドウ / クリップボード / IME / 低レベル入力 |
+    | Luxel.Input (+ .XInput) | アクションマップ / リバインド / Windowsゲームパッド入力 |
+    | Luxel.Audio (+ .Windows) | 音声API / XAudio2バックエンド |
+    | Luxel.Framework (+ Scene.UI) | アプリ骨格 / シーン遷移 |
+    | Luxel.DevTools (+ .App) | デバッガ / HTTP DebugServer |
+    | Luxel.Gallery | この Gallery (docs + デモ + e2e/bench) |
+
+    ## backend 回帰という規律
+
+    既存の描画機能は Vulkan と DirectX 12 の両方で動き、e2e回帰は**バックエンド別の golden** と比較します (SPIR-V/DXIL のコード生成差で AA の LSB が揺れるため)。WebGPU 対応を表明する機能は同じ backend-neutral story を WGSL/manifest、limits、diagnostics を含む専用ゲートで検証します。どれか一つの backend で「たまたま動く」ことを許さず、差を lowering と capability に閉じ込めることが、薄い抽象を保つ開発規律です。
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

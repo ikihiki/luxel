@@ -1,0 +1,41 @@
+<article class="story document-page"><h1 id="section">入力</h1>
+<p>ゲーム入力を順に学ぶ場合は <a href="#story=Learn%2FInput%2FOverview">Input Learn</a>、コピー可能な最小構成は <a href="#story=Build%2FBlocks%2FInput%2FActions">Build/Blocks/Input/Actions</a> から始めてください。</p>
+<p>入力は 2 系統あります — <strong>UI 入力</strong> (UiHost がポインタ/キー/IME をコントロールへ配送) と、<strong>ゲーム入力</strong> (Luxel.Input — アクションマップとリバインド)。ゲーム入力の動くデモは <a href="#story=RealWindow%2FInput%2FGamepad">RealWindow/Input/Gamepad</a> (実窓専用) へ。</p>
+<h2 id="uihost">UiHost の配送順</h2>
+<p>KeyDown は次の順で消費されます: <strong>Esc (オーバーレイのディスミス) → Tab (フォーカス巡回) → フォーカス中コントロール → 未消費のときだけアプリ全域ショートカット</strong>。エディタのタイプや Ctrl+B を奪わないための順序です。</p>
+<h2 id="keygesture">ショートカット (KeyGesture)</h2>
+<p><code>UiHost.RegisterShortcut(new KeyGesture(Key.D, Ctrl: true), action)</code> でアプリ全域のキーマップを登録します。この Gallery の <code>Ctrl+D</code> (テーマ切替) がこれです。フィールドフォーカス中の Ctrl+A は選択として消費され (奪わない)、Ctrl+D は TextField が消費しないので発火する — という両方向が成立します。</p>
+<h2 id="section-1">ドラッグ &amp; ドロップ</h2>
+<p><code>UiHost.BeginDrag(payload, ghost)</code> + <code>HitTarget.OnDragOver/OnDrop</code> — ゴーストがポインタに追従し、ドロップ位置インジケータを受け手が描きます。実物は <a href="#story=Controls%2FListView%2FReorder">Controls/ListView/Reorder</a> (行の並べ替え) へ。</p>
+<h2 id="luxel.input">ゲーム入力 (Luxel.Input)</h2>
+<p>アクションマップ (コンテキスト単位の有効/無効 — 例: gameplay と menu) と <strong>キーバインドの JSON リマップ</strong> (保存/復元の round-trip) を提供します。Framework のフレームループ (<code>InputBus</code> / <code>InputStack</code>) に統合されます。Windows固有のXbox互換ゲームパッド入力は <code>Luxel.Input.XInput</code> の <code>XInputSource</code> に分離されています。</p>
+<h2 id="programmatic">programmatic 入力</h2>
+<p>ウィンドウなしで <code>host.Click(x, y)</code> / <code>host.Char(&quot;Hi&quot;)</code> / <code>host.KeyDown(Key.Tab)</code> を直接呼べます — ユニットテストや snap 前の状態強制はこの経路です。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Input&quot;, Order = 52)]
+public static Widget Input(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&quot;
+    # 入力
+
+    ゲーム入力を順に学ぶ場合は [Input Learn](story:Learn/Input/Overview)、コピー可能な最小構成は [Build/Blocks/Input/Actions](story:Build/Blocks/Input/Actions) から始めてください。
+
+    入力は 2 系統あります — **UI 入力** (UiHost がポインタ/キー/IME をコントロールへ配送) と、**ゲーム入力** (Luxel.Input — アクションマップとリバインド)。ゲーム入力の動くデモは [RealWindow/Input/Gamepad](story:RealWindow/Input/Gamepad) (実窓専用) へ。
+
+    ## UiHost の配送順
+
+    KeyDown は次の順で消費されます: **Esc (オーバーレイのディスミス) → Tab (フォーカス巡回) → フォーカス中コントロール → 未消費のときだけアプリ全域ショートカット**。エディタのタイプや Ctrl+B を奪わないための順序です。
+
+    ## ショートカット (KeyGesture)
+
+    `UiHost.RegisterShortcut(new KeyGesture(Key.D, Ctrl: true), action)` でアプリ全域のキーマップを登録します。この Gallery の `Ctrl+D` (テーマ切替) がこれです。フィールドフォーカス中の Ctrl+A は選択として消費され (奪わない)、Ctrl+D は TextField が消費しないので発火する — という両方向が成立します。
+
+    ## ドラッグ &amp; ドロップ
+
+    `UiHost.BeginDrag(payload, ghost)` + `HitTarget.OnDragOver/OnDrop` — ゴーストがポインタに追従し、ドロップ位置インジケータを受け手が描きます。実物は [Controls/ListView/Reorder](story:Controls/ListView/Reorder) (行の並べ替え) へ。
+
+    ## ゲーム入力 (Luxel.Input)
+
+    アクションマップ (コンテキスト単位の有効/無効 — 例: gameplay と menu) と **キーバインドの JSON リマップ** (保存/復元の round-trip) を提供します。Framework のフレームループ (`InputBus` / `InputStack`) に統合されます。Windows固有のXbox互換ゲームパッド入力は `Luxel.Input.XInput` の `XInputSource` に分離されています。
+
+    ## programmatic 入力
+
+    ウィンドウなしで `host.Click(x, y)` / `host.Char(&quot;Hi&quot;)` / `host.KeyDown(Key.Tab)` を直接呼べます — ユニットテストや snap 前の状態強制はこの経路です。
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
