@@ -15,7 +15,7 @@
 <p>Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。下図は native WebGPU を明示 opt-in lowering として加える目標構成を含みます。</p>
 <pre class="mermaid">flowchart TB
 app[アプリ / Gallery / Framework] --&gt; controls[Luxel.Controls]
-app --&gt; rg[Luxel.RenderGraph]
+app --&gt; rg[Luxel.Graphics.RenderGraph]
 app --&gt; ecs[Luxel.Ecs + AssetRuntime]
 app --&gt; terminalui[Luxel.Terminal.UI]
 controls --&gt; ui[Luxel.UI]
@@ -43,7 +43,7 @@ gpu --&gt; wgpu[Luxel.Graphics.WebGPU — native opt-in target]</pre>
 <h2 id="section-2">モーション</h2>
 <p><code>Luxel.Animation</code> が Curve × Tween の 2 段分解による中核 IR。ターゲットアダプタ (<code>.UI</code> = Signal、<code>.TwoD</code> = RetainedCanvas、<code>.ThreeD</code> = ECS) が書き込み先を分離します。実例はサイドバーの Animation 章へ (<a href="#story=Examples%2FAnimation%2FTween">Examples/Animation/Tween</a> など)。</p>
 <h2 id="d-1">3D / レンダーグラフ / リソース</h2>
-<p><code>Luxel.Ecs</code> (Friflo ラッパ) + <code>Luxel.Assets</code>/<code>Luxel.AssetRuntime</code> が 3D シーンと抽出、<code>Luxel.RenderGraph</code> が Setup/Compile/Execute 三相の scene-agnostic なパス合成 (<a href="#story=Examples%2FRenderGraph%2FBlur">Examples/RenderGraph/Blur</a>)。<code>Luxel.Resources</code> + <code>Luxel.Imaging</code> + <code>Luxel.Gltf</code> が (型, uri) キーのリソース DAG を提供します。</p>
+<p><code>Luxel.Ecs</code> (Friflo ラッパ) + <code>Luxel.Assets</code>/<code>Luxel.AssetRuntime</code> が 3D シーンと抽出、<code>Luxel.Graphics.RenderGraph</code> が Setup/Compile/Execute 三相の scene-agnostic なパス合成 (<a href="#story=Examples%2FRenderGraph%2FBlur">Examples/RenderGraph/Blur</a>)。<code>Luxel.Resources</code> + <code>Luxel.Imaging</code> + <code>Luxel.Gltf</code> が (型, uri) キーのリソース DAG を提供します。</p>
 <h2 id="section-3">ランタイムとツール</h2>
 <p><code>Luxel.Platform</code> + <code>.Windows</code> / <code>.Silk</code> (窓 / クリップボード / IME / 低レベル入力)、<code>Luxel.Input</code> + <code>.XInput</code>、<code>Luxel.Audio</code> + <code>.Windows</code>、<code>Luxel.Framework</code> (ホストビルダー + シーン遷移)、そして <code>Luxel.DevTools</code> (別窓デバッガ + HTTP DebugServer)。この Gallery (<code>Luxel.Gallery</code>) 自体が Luxel UI で書かれたドッグフーディングアプリです。</p>
 <h2 id="section-4">プロジェクト一覧</h2>
@@ -92,7 +92,7 @@ gpu --&gt; wgpu[Luxel.Graphics.WebGPU — native opt-in target]</pre>
 <td>ECS (Friflo) + signal 連携</td>
 </tr>
 <tr>
-<td>Luxel.RenderGraph</td>
+<td>Luxel.Graphics.RenderGraph</td>
 <td>パス合成 / transient aliasing / 自動バリア</td>
 </tr>
 <tr>
@@ -139,7 +139,7 @@ public static StoryResult Architecture(StoryContext ctx)
     ```mermaid
     flowchart TB
     app[アプリ / Gallery / Framework] --&gt; controls[Luxel.Controls]
-    app --&gt; rg[Luxel.RenderGraph]
+    app --&gt; rg[Luxel.Graphics.RenderGraph]
     app --&gt; ecs[Luxel.Ecs + AssetRuntime]
     app --&gt; terminalui[Luxel.Terminal.UI]
     controls --&gt; ui[Luxel.UI]
@@ -180,7 +180,7 @@ public static StoryResult Architecture(StoryContext ctx)
 
     ## 3D / レンダーグラフ / リソース
 
-    `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、`Luxel.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成 ([Examples/RenderGraph/Blur](story:Examples/RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` + `Luxel.Gltf` が (型, uri) キーのリソース DAG を提供します。
+    `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、`Luxel.Graphics.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成 ([Examples/RenderGraph/Blur](story:Examples/RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` + `Luxel.Gltf` が (型, uri) キーのリソース DAG を提供します。
 
     ## ランタイムとツール
 
@@ -199,7 +199,7 @@ public static StoryResult Architecture(StoryContext ctx)
     | Luxel.Document (+ Highlight.TextMate, Diagram, MathText) | ドキュメントモデル / ハイライト / 図 / 数式 |
     | Luxel.Animation (+ .UI, .TwoD, .ThreeD) | アニメーション IR + ターゲットアダプタ |
     | Luxel.Ecs (+ .Signal) | ECS (Friflo) + signal 連携 |
-    | Luxel.RenderGraph | パス合成 / transient aliasing / 自動バリア |
+    | Luxel.Graphics.RenderGraph | パス合成 / transient aliasing / 自動バリア |
     | Luxel.Resources (+ Imaging, Assets, AssetsGpu, AssetRuntime, Gltf) | リソース DAG / 画像 / glTF / 3D 抽出 |
     | Luxel.Platform (+ .Windows, .Silk) | ウィンドウ / クリップボード / IME / 低レベル入力 |
     | Luxel.Input (+ .XInput) | アクションマップ / リバインド / Windowsゲームパッド入力 |

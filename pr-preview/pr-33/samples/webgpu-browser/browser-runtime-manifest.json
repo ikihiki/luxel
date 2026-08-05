@@ -5947,6 +5947,14 @@
       "componentType": null
     },
     {
+      "path": "Examples/2D/RetainedCanvasLive",
+      "width": 520,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
       "path": "Examples/2D/SceneRender",
       "width": 480,
       "height": 300,
@@ -6032,6 +6040,14 @@
       "height": 300,
       "args": [],
       "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/RenderGraph/Blur",
+      "width": 320,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
       "componentType": null
     },
     {

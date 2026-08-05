@@ -5,15 +5,13 @@
 <li><a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FFlattening&amp;section=%E5%85%A5%E5%8A%9B%E3%81%A8%E5%87%BA%E5%8A%9B">入力と出力</a></li>
 <li><a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FFlattening&amp;section=core-invariant">Core invariant</a></li>
 <li><a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FFlattening&amp;section=correctness%E3%81%A8%E5%A4%B1%E6%95%97%E6%99%82%E3%81%AE%E7%A2%BA%E8%AA%8D">Correctnessと失敗時の確認</a></li>
-<li><a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FFlattening&amp;section=wasm-diagnostic">WASM diagnostic</a></li>
-<li><a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FFlattening&amp;section=%E5%AE%9F%E8%A3%85%E3%81%AE%E6%AD%A3">実装の正</a></li>
 </ul>
 <!-- /luxel-toc -->
 <div class="markdown-alert markdown-alert-warning">
 <p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
 <p>ここで扱うlayout、tile size、shader stageは内部実装です。通常の2D描画コードは<code>IRasterizer2D</code>と<code>Scene2D</code>を使います。</p>
 </div>
-<p><strong>難易度:</strong> Advanced　 <strong>実行環境:</strong> Implementation reading + Gallery WASM　 <strong>Backend:</strong> GPU compute　 <strong>前提知識:</strong> 2D描画</p>
+<p><strong>難易度:</strong> Advanced　 <strong>実行環境:</strong> Gallery / Standalone　 <strong>Backend:</strong> GPU compute　 <strong>前提知識:</strong> 2D描画</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FOverview">Overview</a>　 <strong>次:</strong> <a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FSceneEncoding">SceneEncoding</a></p>
 <h2 id="pipeline">Pipeline上の位置</h2>
 <p><code>Scene2D / RetainedCanvas → flattened geometry → SoA encoding → bounds → tile bins → fine coverage + composite → RGBA target</code></p>
@@ -27,80 +25,8 @@
 <p>各subdivisionは許容誤差以内で元curveを近似し、contour orderを保存する。</p>
 <h2 id="correctness">Correctnessと失敗時の確認</h2>
 <p>toleranceが小さすぎるとsegment数が増え、大きすぎると輪郭が崩れます。open/closed contourと2点未満の破棄も確認します。</p>
-<h2 id="wasm-diagnostic">WASM diagnostic</h2>
-<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Graphics/2D/Internal/Flattening#ref-0" data-luxel-runtime-story="Examples/2D/Rasterizer/InputPathsLive" data-luxel-runtime-instance="examples-2d-rasterizer-inputpathslive-9df189549a52" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F2D%2FRasterizer%2FInputPathsLive&amp;args=%7B%7D&amp;instance=examples-2d-rasterizer-inputpathslive-9df189549a52" data-luxel-runtime-story="Examples/2D/Rasterizer/InputPathsLive" data-luxel-runtime-instance="examples-2d-rasterizer-inputpathslive-9df189549a52" title="Interactive InputPathsLive" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-2d-rasterizer-inputpathslive-9df189549a52-args-tab" aria-controls="examples-2d-rasterizer-inputpathslive-9df189549a52-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-2d-rasterizer-inputpathslive-9df189549a52-output-tab" aria-controls="examples-2d-rasterizer-inputpathslive-9df189549a52-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-2d-rasterizer-inputpathslive-9df189549a52-source-tab" aria-controls="examples-2d-rasterizer-inputpathslive-9df189549a52-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-2d-rasterizer-inputpathslive-9df189549a52-args-panel" role="tabpanel" aria-labelledby="examples-2d-rasterizer-inputpathslive-9df189549a52-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-2d-rasterizer-inputpathslive-9df189549a52-output-panel" role="tabpanel" aria-labelledby="examples-2d-rasterizer-inputpathslive-9df189549a52-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-2d-rasterizer-inputpathslive-9df189549a52-source-panel" role="tabpanel" aria-labelledby="examples-2d-rasterizer-inputpathslive-9df189549a52-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/2D/Rasterizer/InputPathsLive&quot;, Width = 520, Height = 300, Order = 200, CapabilityNote = BrowserNote)]&#10;public static Widget InputPaths(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;open stroke / closed fill&quot;, scene =&gt;&#10;{&#10;    scene.BeginStroke(Color2D.Rgba(245, 158, 11), 7).MoveTo(26, 168).LineTo(96, 52).LineTo(168, 168).End();&#10;    scene.BeginFill(Color2D.Rgba(59, 130, 246), FillRule.EvenOdd).MoveTo(224, 174).LineTo(286, 48).LineTo(352, 174).Close().End();&#10;    for (int i = 0; i &lt; 3; i++) scene.FillCircle(Color2D.Rgba(248, 250, 252), 224 + i * 64, i == 1 ? 48 : 174, 5);&#10;});</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
-<h2 id="section-1">実装の正</h2>
-<pre><code class="language-csharp">using System.Numerics;
-
-namespace Luxel.Graphics.TwoD;
-
-/// &lt;summary&gt;Scene2D を GPU 用の Segment[]/Path[] 配列にエンコードする。&lt;/summary&gt;
-internal static class PathEncoder
-{
-    public static (GpuSegment[] segments, GpuPath[] paths, GpuStyle[] styles) Encode(Scene2D scene)
-    {
-        var segments = new List&lt;GpuSegment&gt;();
-        var paths = new GpuPath[scene.Shapes.Count];
-        var styles = new GpuStyle[scene.Shapes.Count];
-
-        for (int pi = 0; pi &lt; scene.Shapes.Count; pi++)
-        {
-            Scene2D.Shape shape = scene.Shapes[pi];
-            uint segStart = (uint)segments.Count;
-            float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
-
-            // 塗り/画像は常に閉じる (巻き数のため)。ストロークは Closed の輪郭のみ閉じる。
-            bool alwaysClose = shape.Kind != PaintKind.Stroke;
-            foreach (Scene2D.Contour contour in shape.Contours)
-            {
-                List&lt;Vector2&gt; pts = contour.Points;
-                int n = pts.Count;
-                int edgeCount = (alwaysClose || contour.Closed) ? n : n - 1;
-                for (int i = 0; i &lt; edgeCount; i++)
-                {
-                    Vector2 a = pts[i];
-                    Vector2 b = pts[(i + 1) % n];
-                    if (a == b) continue;
-                    segments.Add(new GpuSegment { X0 = a.X, Y0 = a.Y, X1 = b.X, Y1 = b.Y, PathId = (uint)pi });
-                }
-                foreach (Vector2 q in pts)
-                {
-                    minX = MathF.Min(minX, q.X); minY = MathF.Min(minY, q.Y);
-                    maxX = MathF.Max(maxX, q.X); maxY = MathF.Max(maxY, q.Y);
-                }
-            }
-
-            paths[pi] = new GpuPath
-            {
-                SegStart = segStart,
-                SegCount = (uint)segments.Count - segStart,
-                TransformSlot = 0,                 // 即時モードは恒等変換 (slot 0)
-                StyleSlot = (uint)pi,
-                ClipSlot = GpuPath.NoClip,
-                FillRule = (uint)shape.Rule,
-                BMinX = minX,
-                BMinY = minY,
-                BMaxX = maxX,
-                BMaxY = maxY,
-                Kind = shape.Kind switch { PaintKind.Stroke =&gt; 1u, PaintKind.Image =&gt; 2u, _ =&gt; 0u },
-                StrokeHalfWidth = shape.StrokeWidth * 0.5f,
-                SrcIndex = shape.SrcIndex,
-                SrcStride = shape.SrcStride,
-                SrcW = shape.SrcW,
-                SrcH = shape.SrcH,
-                SrcX = shape.SrcX,
-                SrcY = shape.SrcY,
-            };
-            styles[pi] = new GpuStyle { ColorRgba = shape.Color, Opacity = 1f };
-        }
-
-        return (segments.ToArray(), paths, styles);
-    }
-}
-</code></pre>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Internal/Flattening&quot;, Order = 19, Toc = true)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Internal/Flattening&quot;, Order = 18, Toc = true)]
 public static StoryResult Flattening() =&gt; Page(&quot;Learn/Graphics/2D/Internal/Flattening&quot;, &quot;Curve flattening&quot;, &quot;curve → line segment&quot;,
     &quot;quadratic/cubic B&#233;zierとworld-unit tolerance&quot;, &quot;ordered line segment列&quot;,
     &quot;各subdivisionは許容誤差以内で元curveを近似し、contour orderを保存する。&quot;,
-    &quot;toleranceが小さすぎるとsegment数が増え、大きすぎると輪郭が崩れます。open/closed contourと2点未満の破棄も確認します。&quot;,
-    StoryReference.To(&quot;Examples/2D/Rasterizer/InputPathsLive&quot;), SampleSource(&quot;src/Luxel.Graphics.TwoD/PathEncoder.cs&quot;));</code></pre></details></article>
+    &quot;toleranceが小さすぎるとsegment数が増え、大きすぎると輪郭が崩れます。open/closed contourと2点未満の破棄も確認します。&quot;);</code></pre></details></article>

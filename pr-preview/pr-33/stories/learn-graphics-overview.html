@@ -19,7 +19,6 @@
 <li><a href="#story=Learn%2FGraphics%2FShaders">Shaders</a></li>
 <li><a href="#story=Learn%2FGraphics%2FPipelineState">PipelineState</a></li>
 <li><a href="#story=Learn%2FGraphics%2FSynchronization">Synchronization</a></li>
-<li><a href="#story=Learn%2FGraphics%2FRenderGraph">RenderGraph</a></li>
 <li><a href="#story=Examples%2F3D%2FTriangle">Gallery Triangle</a></li>
 </ol>
 <p><strong>検索キーワード:</strong> triangle / texture / shader / pipeline / barrier / submit / render graph</p>
@@ -28,7 +27,7 @@
 <p><code>GpuView</code> とそのrender callbackはGallery内でデモを表示するためのハーネスです。通常アプリでは <code>WindowSystem</code>、<code>Window</code>、<code>GpuSurface</code> を使います。</p>
 </div>
 <h2 id="api">どのAPIまで学ぶか</h2>
-<p>三角形、buffer ABI、texture付きquad、shader、pipeline stateを順に学び、BarrierとSubmit系methodによる同期を整理してからRenderGraphへ進みます。<code>--stage graph</code>でdirect描画を1 passへ移し、<code>--stage post</code>でtransient resourceとcompute post-processを追加します。indexed meshとcameraの実装はBuildのRecipeへ分けています。</p>
+<p>三角形、buffer ABI、texture付きquad、shader、pipeline stateを順に学び、BarrierとSubmit系methodによる同期までを整理します。その後は独立した<a href="#story=Learn%2FRenderGraph%2FOverview">RenderGraphコース</a>で、direct描画を1 passへ移し、transient resourceとcompute post-processを追加します。indexed meshとcameraの実装はBuildのRecipeへ分けています。</p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/Overview&quot;, Order = 0, Toc = true)]
 public static StoryResult Overview(StoryContext ctx)
 {
@@ -52,6 +51,6 @@ public static StoryResult Overview(StoryContext ctx)
 
     ## どのAPIまで学ぶか
 
-    三角形、buffer ABI、texture付きquad、shader、pipeline stateを順に学び、BarrierとSubmit系methodによる同期を整理してからRenderGraphへ進みます。`--stage graph`でdirect描画を1 passへ移し、`--stage post`でtransient resourceとcompute post-processを追加します。indexed meshとcameraの実装はBuildのRecipeへ分けています。
+    三角形、buffer ABI、texture付きquad、shader、pipeline stateを順に学び、BarrierとSubmit系methodによる同期までを整理します。その後は独立した[RenderGraphコース](story:Learn/RenderGraph/Overview)で、direct描画を1 passへ移し、transient resourceとcompute post-processを追加します。indexed meshとcameraの実装はBuildのRecipeへ分けています。
     &quot;&quot;&quot;;
 }</code></pre></details></article>

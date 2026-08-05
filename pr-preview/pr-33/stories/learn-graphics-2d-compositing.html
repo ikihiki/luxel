@@ -5,8 +5,6 @@
 <li><a href="#story=Learn%2FGraphics%2F2D%2FCompositing&amp;section=%E3%83%A1%E3%83%B3%E3%82%BF%E3%83%AB%E3%83%A2%E3%83%87%E3%83%AB">メンタルモデル</a></li>
 <li><a href="#story=Learn%2FGraphics%2F2D%2FCompositing&amp;section=%E6%9C%80%E5%B0%8F%E4%BE%8B">最小例</a></li>
 <li><a href="#story=Learn%2FGraphics%2F2D%2FCompositing&amp;section=api%E3%81%AE%E5%A5%91%E7%B4%84%E3%81%A8%E6%B3%A8%E6%84%8F%E7%82%B9">APIの契約と注意点</a></li>
-<li><a href="#story=Learn%2FGraphics%2F2D%2FCompositing&amp;section=wasm%E3%81%A7%E7%A2%BA%E8%AA%8D%E3%81%99%E3%82%8B">WASMで確認する</a></li>
-<li><a href="#story=Learn%2FGraphics%2F2D%2FCompositing&amp;section=%E5%AE%9F%E8%A3%85%E3%82%92%E8%AA%AD%E3%82%80">実装を読む</a></li>
 </ul>
 <!-- /luxel-toc -->
 <p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Gallery WASM / Standalone / Headless　 <strong>Backend:</strong> WebGPU / Vulkan / DirectX 12 / Skia CPU　 <strong>前提知識:</strong> NonZero/EvenOdd、painter order、premultiplied source-overを説明できる。</p>
@@ -23,118 +21,8 @@ scene.EndFill();
 </code></pre>
 <h2 id="api">APIの契約と注意点</h2>
 <p><code>Color2D</code>はredがlow byteのpacked表現です。<code>0xAARRGGBB</code>を想定したliteralは避け、<code>Color2D.Rgba(r,g,b,a)</code>を使います。premultiplied colorはRGBにもalphaを掛け、source-overは<code>out = src + dst × (1-src.a)</code>です。</p>
-<h2 id="wasm">WASMで確認する</h2>
-<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Graphics/2D/Compositing#ref-0" data-luxel-runtime-story="Examples/2D/Rasterizer/CompositeLive" data-luxel-runtime-instance="examples-2d-rasterizer-compositelive-6ea03a9b65e8" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F2D%2FRasterizer%2FCompositeLive&amp;args=%7B%7D&amp;instance=examples-2d-rasterizer-compositelive-6ea03a9b65e8" data-luxel-runtime-story="Examples/2D/Rasterizer/CompositeLive" data-luxel-runtime-instance="examples-2d-rasterizer-compositelive-6ea03a9b65e8" title="Interactive CompositeLive" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-2d-rasterizer-compositelive-6ea03a9b65e8-args-tab" aria-controls="examples-2d-rasterizer-compositelive-6ea03a9b65e8-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-2d-rasterizer-compositelive-6ea03a9b65e8-output-tab" aria-controls="examples-2d-rasterizer-compositelive-6ea03a9b65e8-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-2d-rasterizer-compositelive-6ea03a9b65e8-source-tab" aria-controls="examples-2d-rasterizer-compositelive-6ea03a9b65e8-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-2d-rasterizer-compositelive-6ea03a9b65e8-args-panel" role="tabpanel" aria-labelledby="examples-2d-rasterizer-compositelive-6ea03a9b65e8-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-2d-rasterizer-compositelive-6ea03a9b65e8-output-panel" role="tabpanel" aria-labelledby="examples-2d-rasterizer-compositelive-6ea03a9b65e8-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-2d-rasterizer-compositelive-6ea03a9b65e8-source-panel" role="tabpanel" aria-labelledby="examples-2d-rasterizer-compositelive-6ea03a9b65e8-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/2D/Rasterizer/CompositeLive&quot;, Width = 520, Height = 300, Order = 206, CapabilityNote = BrowserNote)]&#10;public static Widget Composite(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;painter order と source-over&quot;, scene =&gt;&#10;{&#10;    scene.FillCircle(Color2D.Rgba(239, 68, 68, 190), 156, 110, 76);&#10;    scene.FillCircle(Color2D.Rgba(59, 130, 246, 190), 232, 110, 76);&#10;    scene.FillRoundedRect(Color2D.Rgba(34, 197, 94, 180), 204, 72, 140, 94, 20);&#10;});</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
-<h2 id="section-3">実装を読む</h2>
-<pre><code class="language-csharp">using System.Numerics;
-using System.Runtime.InteropServices;
-
-namespace Luxel.Graphics.TwoD;
-
-/// &lt;summary&gt;塗り規則。&lt;/summary&gt;
-public enum FillRule : uint
-{
-    NonZero = 0,
-    EvenOdd = 1,
-}
-
-/// &lt;summary&gt;RGBA8 色のヘルパ (R が下位バイト)。&lt;/summary&gt;
-public static class Color2D
-{
-    public static uint Rgba(byte r, byte g, byte b, byte a = 255)
-        =&gt; (uint)r | ((uint)g &lt;&lt; 8) | ((uint)b &lt;&lt; 16) | ((uint)a &lt;&lt; 24);
-
-    public static uint FromFloat(float r, float g, float b, float a = 1f)
-        =&gt; Rgba((byte)(Math.Clamp(r, 0, 1) * 255), (byte)(Math.Clamp(g, 0, 1) * 255),
-                (byte)(Math.Clamp(b, 0, 1) * 255), (byte)(Math.Clamp(a, 0, 1) * 255));
-
-    public static readonly uint Black = Rgba(0, 0, 0);
-    public static readonly uint White = Rgba(255, 255, 255);
-    public static readonly uint Red = Rgba(220, 50, 50);
-    public static readonly uint Green = Rgba(50, 180, 80);
-    public static readonly uint Blue = Rgba(60, 110, 220);
-}
-
-// ---- GPU 構造体 (raster2d_fine.slang と一致, scalar layout) ----
-
-[StructLayout(LayoutKind.Sequential)]
-internal struct GpuSegment   // 32 バイト
-{
-    public float X0, Y0, X1, Y1;  // ワールド座標の線分
-    public uint PathId, Pad0, Pad1, Pad2;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-internal struct GpuPath       // 72 バイト
-{
-    public uint SegStart, SegCount, TransformSlot, StyleSlot;
-    public uint FillRule, Kind, ClipSlot, SrcIndex;   // ClipSlot=0xFFFFFFFF で無し。Kind: 0=fill 1=stroke 2=image
-    public float BMinX, BMinY, BMaxX, BMaxY;           // ローカル bbox (変換前)。image は UV 矩形を兼ねる
-    public float StrokeHalfWidth;
-    public uint SrcStride, SrcW, SrcH;                 // image 用: ソース bindless バッファの行ピッチ(px)/サンプリング寸法
-    public uint SrcX, SrcY;                            // image 用: アトラス原点オフセット(px)。0 = バッファ先頭 (全画像)
-
-    public const uint NoClip = 0xFFFFFFFF;
-    public const int SizeBytes = 72;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-internal struct GpuTransform  // 32 バイト (2x3 affine)
-{
-    public float A, B, C, D, E, F;  // screen = (A*x+C*y+E, B*x+D*y+F)
-    public uint Pad0, Pad1;
-
-    public static GpuTransform Identity =&gt; new() { A = 1, D = 1 };
-}
-
-[StructLayout(LayoutKind.Sequential)]
-internal struct GpuStyle      // 16 バイト
-{
-    public uint ColorRgba;
-    public float Opacity;
-    public uint Pad0, Pad1;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-internal struct GpuClip       // 16 バイト (画面空間 AABB)
-{
-    public float MinX, MinY, MaxX, MaxY;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-internal struct RasterArgs    // 88 バイト
-{
-    public float A, B, C, D, E, F;  // カメラ (ワールド→画面 affine 2x3)
-    public uint Width, Height;
-    public uint SegIndex, PathIndex, TransformIndex, StyleIndex, ClipIndex, OrderIndex;
-    public uint OrderCount, FbIndex;
-    public uint BgMode;             // 0 = 白背景 (RGB 出力, alpha=255), 1 = 透過 (premultiplied RGBA)
-    // ---- タイルビニング (RA-M1): 16px タイル毎のパスリストで fine の per-pixel 全 order 走査を置換 ----
-    public uint TilesX, TileCap;    // 横タイル数 / タイルリスト容量 (超過タイルは fine が全走査へフォールバック)
-    public uint BoundsIndex, TileListIndex, TileCountIndex;   // 前計算 AABB / タイルリスト / タイル毎件数
-}
-
-/// &lt;summary&gt;ワールド→画面の 2D アフィン変換 (ズーム/パン)。&lt;/summary&gt;
-public struct Camera2D
-{
-    public float A, B, C, D, E, F;  // screen = (A*x+C*y+E, B*x+D*y+F)
-
-    /// &lt;summary&gt;ワールド=画面ピクセルそのまま (恒等)。&lt;/summary&gt;
-    public static Camera2D Pixels =&gt; new() { A = 1, B = 0, C = 0, D = 1, E = 0, F = 0 };
-
-    /// &lt;summary&gt;スケール + 中心指定。worldCenter が画面中心に来る。&lt;/summary&gt;
-    public static Camera2D Create(float scale, Vector2 worldCenter, uint screenW, uint screenH) =&gt; new()
-    {
-        A = scale,
-        B = 0,
-        C = 0,
-        D = scale,
-        E = screenW * 0.5f - worldCenter.X * scale,
-        F = screenH * 0.5f - worldCenter.Y * scale,
-    };
-}
-</code></pre>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Compositing&quot;, Order = 12, Toc = true)]
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Graphics/2D/Compositing#ref-0" data-luxel-runtime-story="Examples/2D/Rasterizer/CompositeLive" data-luxel-runtime-instance="examples-2d-rasterizer-compositelive-6ea03a9b65e8" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F2D%2FRasterizer%2FCompositeLive&amp;args=%7B%7D&amp;instance=examples-2d-rasterizer-compositelive-6ea03a9b65e8" data-luxel-runtime-story="Examples/2D/Rasterizer/CompositeLive" data-luxel-runtime-instance="examples-2d-rasterizer-compositelive-6ea03a9b65e8" title="Interactive CompositeLive" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-2d-rasterizer-compositelive-6ea03a9b65e8-args-tab" aria-controls="examples-2d-rasterizer-compositelive-6ea03a9b65e8-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-2d-rasterizer-compositelive-6ea03a9b65e8-output-tab" aria-controls="examples-2d-rasterizer-compositelive-6ea03a9b65e8-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-2d-rasterizer-compositelive-6ea03a9b65e8-source-tab" aria-controls="examples-2d-rasterizer-compositelive-6ea03a9b65e8-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-2d-rasterizer-compositelive-6ea03a9b65e8-args-panel" role="tabpanel" aria-labelledby="examples-2d-rasterizer-compositelive-6ea03a9b65e8-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-2d-rasterizer-compositelive-6ea03a9b65e8-output-panel" role="tabpanel" aria-labelledby="examples-2d-rasterizer-compositelive-6ea03a9b65e8-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-2d-rasterizer-compositelive-6ea03a9b65e8-source-panel" role="tabpanel" aria-labelledby="examples-2d-rasterizer-compositelive-6ea03a9b65e8-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/2D/Rasterizer/CompositeLive&quot;, Width = 520, Height = 300, Order = 206, CapabilityNote = BrowserNote)]&#10;public static Widget Composite(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;EvenOdd fill と painter-order source-over&quot;, scene =&gt;&#10;{&#10;    scene.BeginFill(Color2D.Rgba(59, 130, 246, 210), FillRule.EvenOdd);&#10;    AddCircle(scene, 112, 110, 76);&#10;    AddCircle(scene, 112, 110, 34);&#10;    scene.EndFill();&#10;    scene.FillCircle(Color2D.Rgba(239, 68, 68, 190), 226, 110, 76);&#10;    scene.FillRoundedRect(Color2D.Rgba(34, 197, 94, 180), 248, 72, 140, 94, 20);&#10;});</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Compositing&quot;, Order = 11, Toc = true)]
     public static StoryResult Compositing() =&gt; Page(&quot;Learn/Graphics/2D/Compositing&quot;, &quot;Fill ruleと合成&quot;,
         &quot;NonZero/EvenOdd、painter order、premultiplied source-overを説明できる。&quot;,
         &quot;NonZeroはwinding count、EvenOddは交差回数の偶奇で内外を決めます。shapeはsceneへ追加した順に描かれ、後のshapeが前の結果へsource-over合成されます。&quot;,
@@ -147,4 +35,4 @@ scene.EndFill();
 ```
 &quot;&quot;&quot;&quot;,
         &quot;`Color2D`はredがlow byteのpacked表現です。`0xAARRGGBB`を想定したliteralは避け、`Color2D.Rgba(r,g,b,a)`を使います。premultiplied colorはRGBにもalphaを掛け、source-overは`out = src + dst &#215; (1-src.a)`です。&quot;,
-        StoryReference.To(&quot;Examples/2D/Rasterizer/CompositeLive&quot;), SampleSource(&quot;src/Luxel.Graphics.TwoD/Primitives.cs&quot;));</code></pre></details></article>
+        StoryReference.To(&quot;Examples/2D/Rasterizer/CompositeLive&quot;));</code></pre></details></article>

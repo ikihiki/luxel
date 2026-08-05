@@ -5,15 +5,13 @@
 <li><a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FValidation&amp;section=%E5%85%A5%E5%8A%9B%E3%81%A8%E5%87%BA%E5%8A%9B">入力と出力</a></li>
 <li><a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FValidation&amp;section=core-invariant">Core invariant</a></li>
 <li><a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FValidation&amp;section=correctness%E3%81%A8%E5%A4%B1%E6%95%97%E6%99%82%E3%81%AE%E7%A2%BA%E8%AA%8D">Correctnessと失敗時の確認</a></li>
-<li><a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FValidation&amp;section=wasm-diagnostic">WASM diagnostic</a></li>
-<li><a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FValidation&amp;section=%E5%AE%9F%E8%A3%85%E3%81%AE%E6%AD%A3">実装の正</a></li>
 </ul>
 <!-- /luxel-toc -->
 <div class="markdown-alert markdown-alert-warning">
 <p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
 <p>ここで扱うlayout、tile size、shader stageは内部実装です。通常の2D描画コードは<code>IRasterizer2D</code>と<code>Scene2D</code>を使います。</p>
 </div>
-<p><strong>難易度:</strong> Advanced　 <strong>実行環境:</strong> Implementation reading + Gallery WASM　 <strong>Backend:</strong> GPU compute　 <strong>前提知識:</strong> 2D描画</p>
+<p><strong>難易度:</strong> Advanced　 <strong>実行環境:</strong> Gallery / Standalone　 <strong>Backend:</strong> GPU compute　 <strong>前提知識:</strong> 2D描画</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FRetainedUploads">RetainedUploads</a></p>
 <h2 id="pipeline">Pipeline上の位置</h2>
 <p><code>Scene2D / RetainedCanvas → flattened geometry → SoA encoding → bounds → tile bins → fine coverage + composite → RGBA target</code></p>
@@ -26,58 +24,9 @@
 <h2 id="core-invariant">Core invariant</h2>
 <p>fill、clip、stroke、overflow fallback、ABI、backend差を独立したfixtureで固定する。</p>
 <h2 id="correctness-1">Correctnessと失敗時の確認</h2>
-<p>shader変更時はSPIR-V/DXIL/WGSL artifactとinputs hashを更新し、WASM live storyもmanifestとbrowser smoke testで検証します。</p>
-<h2 id="wasm-diagnostic">WASM diagnostic</h2>
-<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Graphics/2D/Internal/Validation#ref-0" data-luxel-runtime-story="Examples/2D/Rasterizer/DispatchLive" data-luxel-runtime-instance="examples-2d-rasterizer-dispatchlive-6e7dfd897af8" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F2D%2FRasterizer%2FDispatchLive&amp;args=%7B%7D&amp;instance=examples-2d-rasterizer-dispatchlive-6e7dfd897af8" data-luxel-runtime-story="Examples/2D/Rasterizer/DispatchLive" data-luxel-runtime-instance="examples-2d-rasterizer-dispatchlive-6e7dfd897af8" title="Interactive DispatchLive" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-2d-rasterizer-dispatchlive-6e7dfd897af8-args-tab" aria-controls="examples-2d-rasterizer-dispatchlive-6e7dfd897af8-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-2d-rasterizer-dispatchlive-6e7dfd897af8-output-tab" aria-controls="examples-2d-rasterizer-dispatchlive-6e7dfd897af8-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-2d-rasterizer-dispatchlive-6e7dfd897af8-source-tab" aria-controls="examples-2d-rasterizer-dispatchlive-6e7dfd897af8-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-2d-rasterizer-dispatchlive-6e7dfd897af8-args-panel" role="tabpanel" aria-labelledby="examples-2d-rasterizer-dispatchlive-6e7dfd897af8-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-2d-rasterizer-dispatchlive-6e7dfd897af8-output-panel" role="tabpanel" aria-labelledby="examples-2d-rasterizer-dispatchlive-6e7dfd897af8-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-2d-rasterizer-dispatchlive-6e7dfd897af8-source-panel" role="tabpanel" aria-labelledby="examples-2d-rasterizer-dispatchlive-6e7dfd897af8-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/2D/Rasterizer/DispatchLive&quot;, Width = 520, Height = 300, Order = 207, CapabilityNote = BrowserNote)]&#10;public static Widget Dispatch(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;bounds → bins → fine → composite&quot;, scene =&gt;&#10;{&#10;    uint[] colors = [Color2D.Rgba(59, 130, 246), Color2D.Rgba(245, 158, 11), Color2D.Rgba(34, 197, 94), Color2D.Rgba(168, 85, 247)];&#10;    for (int i = 0; i &lt; 4; i++)&#10;    {&#10;        float x = 18 + i * 96;&#10;        scene.FillRoundedRect(colors[i], x, 78, 72, 60, 10);&#10;        if (i &lt; 3) scene.BeginFill(Color2D.Rgba(148, 163, 184)).MoveTo(x + 76, 100).LineTo(x + 90, 108).LineTo(x + 76, 116).Close().End();&#10;    }&#10;});</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
-<h2 id="section-1">実装の正</h2>
-<pre><code class="language-csharp">using System.Numerics;
-using Luxel.Graphics.TwoD;
-using Xunit;
-
-namespace Luxel.Tests;
-
-public class Affine2DTests
-{
-    [Fact]
-    public void TranslateApply()
-    {
-        var t = Affine2D.Translate(10, 20);
-        Assert.Equal(new Vector2(15, 25), t.Apply(new Vector2(5, 5)));
-    }
-
-    [Fact]
-    public void Compose_AppliesSecondThenFirst()
-    {
-        // world = parent ∘ local。local で平行移動してから parent でスケール。
-        var parent = Affine2D.Scale(2, 2);
-        var local = Affine2D.Translate(3, 4);
-        var world = Affine2D.Mul(parent, local);
-        // 点 (0,0): local→(3,4)→parentでスケール→(6,8)
-        Assert.Equal(new Vector2(6, 8), world.Apply(Vector2.Zero));
-    }
-
-    [Fact]
-    public void Rotate90_MapsXtoY()
-    {
-        var r = Affine2D.Rotate(MathF.PI / 2);
-        Vector2 p = r.Apply(new Vector2(1, 0));
-        Assert.True(MathF.Abs(p.X) &lt; 1e-5 &amp;&amp; MathF.Abs(p.Y - 1) &lt; 1e-5);
-    }
-}
-
-public class Color2DTests
-{
-    [Fact]
-    public void RgbaPacksLittleEndian()
-    {
-        uint c = Color2D.Rgba(0x11, 0x22, 0x33, 0x44);
-        Assert.Equal(0x44332211u, c);
-    }
-}
-</code></pre>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Internal/Validation&quot;, Order = 28, Toc = true)]
+<p>shader変更時はSPIR-V/DXIL/WGSL artifactとinputs hashを更新し、unit test、golden、backend parityで検証します。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Internal/Validation&quot;, Order = 27, Toc = true)]
 public static StoryResult Validation() =&gt; Page(&quot;Learn/Graphics/2D/Internal/Validation&quot;, &quot;性能とcorrectnessの検証&quot;, &quot;pipeline output → evidence&quot;,
     &quot;unit tests、golden、backend parity、overflow fixture&quot;, &quot;再現可能なpass/fail結果&quot;,
     &quot;fill、clip、stroke、overflow fallback、ABI、backend差を独立したfixtureで固定する。&quot;,
-    &quot;shader変更時はSPIR-V/DXIL/WGSL artifactとinputs hashを更新し、WASM live storyもmanifestとbrowser smoke testで検証します。&quot;,
-    StoryReference.To(&quot;Examples/2D/Rasterizer/DispatchLive&quot;), SampleSource(&quot;tests/Luxel.Tests/TwoDTests.cs&quot;));</code></pre></details></article>
+    &quot;shader変更時はSPIR-V/DXIL/WGSL artifactとinputs hashを更新し、unit test、golden、backend parityで検証します。&quot;);</code></pre></details></article>

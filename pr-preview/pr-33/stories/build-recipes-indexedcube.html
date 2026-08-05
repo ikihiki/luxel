@@ -74,7 +74,7 @@ Vertex vertex = g_buffers[vertexBufferIndex]
 
   &lt;ItemGroup&gt;
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.Graphics\Luxel.Graphics.csproj&quot; /&gt;
-    &lt;ProjectReference Include=&quot;..\..\src\Luxel.RenderGraph\Luxel.RenderGraph.csproj&quot; /&gt;
+    &lt;ProjectReference Include=&quot;..\..\src\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj&quot; /&gt;
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.Graphics.WebGPU\Luxel.Graphics.WebGPU.csproj&quot; /&gt;
     &lt;ProjectReference Include=&quot;..\..\src\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj&quot; /&gt;
   &lt;/ItemGroup&gt;
@@ -388,11 +388,11 @@ public enum TutorialStage
 <h3 id="samplesluxeltriangletrianglerenderer.cs-csharp"><code>samples/LuxelTriangle/TriangleRenderer.cs</code> (CSharp)</h3>
 <pre><code class="language-csharp">using System.Numerics;
 using Luxel;
-using Luxel.RenderGraph;
+using Luxel.Graphics.RenderGraph;
 using DrawArgs3D = TutorialAbi.DrawArgs3D;
 using PostProcessArgs = TutorialAbi.PostProcessArgs;
 using Vertex3D = TutorialAbi.Vertex3D;
-using Rg = Luxel.RenderGraph.RenderGraph;
+using Rg = Luxel.Graphics.RenderGraph.RenderGraph;
 
 internal sealed class TriangleRenderer : IDisposable
 {
