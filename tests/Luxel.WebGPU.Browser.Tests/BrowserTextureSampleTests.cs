@@ -12,17 +12,36 @@ public sealed class BrowserTextureSampleTests
         Assert.Contains("[Story(\"Examples/3D/Textures\"", source);
         Assert.Contains("byte[] pixels = CreateCheckerboard(textureWidth, textureHeight)", source);
         Assert.Contains("ResourceHandle<GpuTexture> texture = resources.CreateSampledTexture(", source);
-        Assert.Contains("ResourceHandle<GpuSampler> sampler = resources.CreateSampler(", source);
+        Assert.Contains("ResourceHandle<GpuSampler> pointClamp = resources.CreateSampler(", source);
+        Assert.Contains("ResourceHandle<GpuSampler> pointRepeat = resources.CreateSampler(", source);
+        Assert.Contains("ResourceHandle<GpuSampler> linearClamp = resources.CreateSampler(", source);
+        Assert.Contains("ResourceHandle<GpuSampler> linearRepeat = resources.CreateSampler(", source);
         Assert.Contains("Signal<ResourceState> textureState = ctx.Observe(texture)", source);
         Assert.Contains("Signal<ResourceState> samplerState = ctx.Observe(sampler)", source);
         Assert.DoesNotContain("device.CreateTexture(", source);
+        Assert.Contains("GpuSamplerFilter.Point, GpuSamplerAddress.Clamp", source);
         Assert.Contains("GpuSamplerFilter.Point, GpuSamplerAddress.Repeat", source);
+        Assert.Contains("GpuSamplerFilter.Linear, GpuSamplerAddress.Clamp", source);
+        Assert.Contains("GpuSamplerFilter.Linear, GpuSamplerAddress.Repeat", source);
+        Assert.Contains("Wrap(16, 12, width: 600)", source);
         Assert.Contains("Texture2D g_textures[]", source);
         Assert.Contains("SamplerState g_samplers[]", source);
         Assert.Contains(".Sample(g_samplers[g_args.samplerIndex], input.uv)", source);
         Assert.Contains("TextureIndex = texture.Value.BindlessIndex", source);
         Assert.Contains("SamplerIndex = sampler.Value.BindlessIndex", source);
         Assert.Contains("private static byte[] CreateCheckerboard(uint width, uint height)", source);
+    }
+
+    [Fact]
+    public void Browser_runtime_maps_portable_formats_and_their_pixel_sizes()
+    {
+        string root = FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(
+            root, "src", "Luxel.Graphics.WebGPU.Browser", "wwwroot", "luxel-webgpu-browser.js"));
+
+        Assert.Contains("\"rgba8unorm-srgb\", \"bgra8unorm-srgb\", \"r8unorm\", \"rg8unorm\"", source);
+        Assert.Contains("[4, 4, 4, 4, 4, 4, 1, 2]", source);
+        Assert.Contains("width * gpuBytesPerPixel(formatValue)", source);
     }
 
     private static string FindRepositoryRoot()

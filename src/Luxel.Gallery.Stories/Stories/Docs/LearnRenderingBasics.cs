@@ -556,7 +556,7 @@ public static partial class DocsRenderingLearn
         return $$"""
         # Textures
 
-        {{RenderingCourseCatalog.Meta("Learn/Graphics/Textures", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "Buffers")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/Textures", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12 / WebGPU", "Buffers")}}
 
         {{StoryRef(ctx, "Examples/3D/Textures")}}
 
@@ -578,7 +578,26 @@ public static partial class DocsRenderingLearn
             GpuFormat.Rgba8Unorm);
         ```
 
-        上のsampleではチェック柄を作る処理を`CreateCheckerboard`へ分けています。8×8のRGBA8なので、pixel dataは`8 * 8 * 4 = 256 byte`です。dataの長さは`width * height * 4`と正確に一致させます。uploadは同期的なので、`CreateTexture`から戻った後は元の`pixels`を再利用できます。生成された`GpuTexture`はrendererが所有し、それを参照するGPU commandが完了してから破棄します。
+        上のsampleではチェック柄を作る処理を`CreateCheckerboard`へ分けています。8×8のRGBA8なので、pixel dataは`8 * 8 * 4 = 256 byte`です。dataの長さはformatごとのbytes per pixelを使って正確に一致させます。uploadは同期的なので、`CreateTexture`から戻った後は元の`pixels`を再利用できます。生成された`GpuTexture`はrendererが所有し、それを参照するGPU commandが完了してから破棄します。
+
+        ## Format一覧
+
+        次のformatはVulkan、DirectX 12、native WebGPU、Browser WebGPUで共通に利用できます。`CreateTexture`はサンプリング用upload、`CreateRenderTarget`はcolor attachment、`CreateDepthTarget`はdepth attachmentを表します。
+
+        | `GpuFormat` | 1 pixel | 共通の用途 | shaderから見える値 |
+        |---|---:|---|---|
+        | `R8Unorm` | 1 byte | sampled / color target | Rのみ。G/Bは0、Aは1。mask・grayscale向け |
+        | `Rg8Unorm` | 2 byte | sampled / color target | RGのみ。Bは0、Aは1。2成分data・normal XY向け |
+        | `Rgba8Unorm` | 4 byte | sampled / color target | RGBA順、0〜1のlinear値 |
+        | `Bgra8Unorm` | 4 byte | sampled / color target | BGRA memory順、0〜1のlinear値 |
+        | `Rgba8UnormSrgb` | 4 byte | sampled / color target | sampled時にRGBをsRGBからlinearへdecode |
+        | `Bgra8UnormSrgb` | 4 byte | sampled / color target | BGRA memory順、sampled時にRGBをsRGBからlinearへdecode |
+        | `R32Float` | 4 byte | color target | 32-bit float 1 channel。portable sampled ABIの対象外 |
+        | `D32Float` | 4 byte | depth target | 32-bit float depth |
+
+        alphaを保存しない共通formatには`R8Unorm`と`Rg8Unorm`があります。一方、通常の24-bit `Rgb8Unorm` / `Rgb8UnormSrgb`はWebGPUにないため共通APIには含めません。alpha不要のRGB画像はAを255にしてRGBA8へ展開します。
+
+        sRGB formatでもalphaはlinearのままです。色テクスチャにはsRGB、normal・mask・数値dataにはlinearの`Unorm`を選びます。`R32Float`のsampled uploadはnative backendで使える場合がありますが、全platform共通にしたいcodeではcolor target用途に限定します。
 
         ## Samplerを作成する
 
@@ -590,7 +609,21 @@ public static partial class DocsRenderingLearn
             GpuSamplerAddress.Repeat);
         ```
 
-        `Point`は最も近い1 pixelを選び、`Linear`は周囲を補間します。`Clamp`は端のpixelを延長し、`Repeat`はUVを繰り返します。samplerもrendererが所有し、参照中のGPU commandが完了するまで生存させます。
+        `GpuSamplerFilter`はpixel間の補間を決めます。
+
+        | 値 | 動作 | 向いている用途 |
+        |---|---|---|
+        | `GpuSamplerFilter.Point` | 最も近い1 pixelを選ぶ | pixel art、整数scale、texel境界の確認 |
+        | `GpuSamplerFilter.Linear` | 周囲のpixelを線形補間する | 写真、滑らかな拡大縮小、通常の3D material |
+
+        `GpuSamplerAddress`は0〜1の外へ出たUVを決めます。現在はU、V、Wへ同じmodeを適用します。
+
+        | 値 | 動作 | UVの例 |
+        |---|---|---|
+        | `GpuSamplerAddress.Clamp` | 最寄りの端へ固定し、端のpixelを延長する | `1.25` → `1.0` |
+        | `GpuSamplerAddress.Repeat` | 小数部でwrapし、textureをタイル状に繰り返す | `1.25` → `0.25` |
+
+        samplerもrendererが所有し、参照中のGPU commandが完了するまで生存させます。上のsampleは4つの組み合わせを`WrapPanel`へ並べ、範囲外UVを含む同じchecker textureでfilterとaddress modeの差を比較します。
 
         ## Shaderへ渡す
 
@@ -632,48 +665,21 @@ public static partial class DocsRenderingLearn
             .EndRendering();
         ```
 
-        ## Texture付きquadで確認する
-
-        実行可能な正は`samples/LuxelTriangle/TriangleRenderer.cs`、ABIは`samples/LuxelTriangle/TutorialAbi.cs`、shaderは`shaders/tutorial_3d.slang`です。4頂点・6 indexのquadへ4×4の橙/紫checker textureを貼り、upload、UV、sampler、bindless indexをまとめて確認できます。
-
-        ```powershell
-        dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
-        dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter TutorialAbiTests
-        dotnet run --project samples/LuxelTriangle -- vk --stage texture
-        dotnet run --project samples/LuxelTriangle -- vk --stage texture --frames 3
-        # Windowsのみ
-        dotnet run --project samples/LuxelTriangle -- dx --stage texture --frames 3
-        ```
-
-        成功すると暗い背景の中央にchecker付きquadが表示されます。UV向きを検証するときは四隅を非対称な色にすると、上下・左右の反転を発見しやすくなります。
-
         ## Pixel、色空間、alpha
 
-        `CreateTexture`へ渡すdataは、**左上から右へ進むtightなRGBA8 row**を上から下へ並べます。公開APIのformatには現在sRGB variantがないため、sRGB authored imageを`Rgba8Unorm`として読む場合はshaderで明示的にlinearへdecodeします。hardware decodeが追加された将来にshader decodeと重ねず、decodeを0回か1回に固定してください。
+        `CreateTexture`へ渡すdataは、**左上から右へ進むtightなrow**を上から下へ並べます。sRGB authored imageは`Rgba8UnormSrgb`または`Bgra8UnormSrgb`を選ぶとsample時にhardwareがRGBをlinearへdecodeします。shader側でもdecodeすると二重変換になるため、decodeはformatかshaderのどちらか1回だけにします。
 
         `GpuBlendMode.None`ではalphaは出力値に残るだけで背景とは混ざりません。透過には`GpuBlendMode.AlphaBlend`を使い、RGBをalphaで事前乗算しないstraight alphaへ統一します。opaque textureではalphaを1にすると、色空間とblendの問題を分けて確認できます。
 
-        ## UV原点とindexed quad
-
-        tutorialの規約はCPU imageの(0,0)とUV(0,0)を左上、`u`は右、`v`は下です。CPU upload、asset loader、shaderの複数箇所でVを反転しないでください。
-
-        quadは6頂点を複製せず、4頂点をindex列`0,1,2, 0,2,3`で再利用します。shaderが`SV_VertexID`からraw index bufferを読み、そのindexでposition、color、UVを含むvertexをpullします。C#とSlangでindex width、vertex stride、UV offsetを一致させます。
-
-        ```text
-        CPU RGBA bytes → CreateTexture → bindless texture index ┐
-        CreateSampler  → bindless sampler index ────────────────┼→ tutorial_3d.slang → sampled color
-        Vertex UV + index pulling ───────────────────────────────┘
-        ```
-
         ## Upload rowとbackend差
 
-        呼び出し側のupload dataは常に`width * 4` byteのtight rowで、backend用paddingを含めません。Vulkan backendはstaging copyへ渡し、D3D12 backendは内部で各rowを256 byte境界のfootprintへ詰め直します。readback framebufferの`StridePixels`を64 pixelへ揃える規則と、texture uploadの入力規則を混同しないでください。
+        呼び出し側のupload dataは`width * bytesPerPixel` byteのtight rowで、backend用paddingを含めません。`R8Unorm`は1 byte、`Rg8Unorm`は2 byte、RGBA/BGRAと`R32Float`は4 byteです。Vulkanはstaging copyへ渡し、D3D12は内部で各rowを256 byte境界のfootprintへ詰め直し、WebGPUは`writeTexture`へtight rowを渡します。readback framebufferの`StridePixels`を64 pixelへ揃える規則と、texture uploadの入力規則を混同しないでください。
 
         現在の`CreateTexture` uploadは同期的です。methodが戻った後は入力配列を再利用できます。一方、生成したtexture、sampler、その`BindlessIndex`は記録済みcommandが完了するまで生存させます。
 
         ## Backend差を切り分ける
 
-        Slang source、RGBA channel順、UV規約、bindless indexはbackend共通です。VulkanはSPIR-Vとdescriptor array、D3D12はDXILとdescriptor heapを使います。linear filteringやfloat丸めによる数LSBの差はあり得ますが、上下反転、R/B交換、1 rowずれは許容差ではなくbugです。
+        Slang source、channel順、UV規約、bindless indexはbackend共通です。VulkanはSPIR-Vとdescriptor array、D3D12はDXILとdescriptor heap、WebGPUはWGSLとbind groupを使います。linear filteringやfloat丸めによる数LSBの差はあり得ますが、上下反転、R/B交換、1 rowずれ、sRGBの二重decodeは許容差ではなくbugです。
 
         典型的な問題は、RGBA/BGRAの取り違え、UVの上下反転、textureとsamplerのindex入れ替え、upload rowのpadding混入、描画完了前のresource破棄です。
         """;

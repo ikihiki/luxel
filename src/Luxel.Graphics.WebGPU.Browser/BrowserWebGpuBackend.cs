@@ -118,9 +118,9 @@ public sealed class BrowserWebGpuBackend : IGpuBackend
 
     public IGpuBackendTexture CreateSampledTexture(uint width, uint height, GpuFormat format, ReadOnlySpan<byte> data)
     {
-        if (format is not (GpuFormat.Rgba8Unorm or GpuFormat.Bgra8Unorm))
-            throw new NotSupportedException("The fixed sampled-texture ABI supports RGBA8/BGRA8 filterable textures only.");
-        int expected = checked((int)(width * height * 4));
+        if (!GpuFormatInfo.IsPortableSampled(format))
+            throw new NotSupportedException("The fixed sampled-texture ABI supports R8, RG8, and RGBA8/BGRA8 linear or sRGB filterable textures only.");
+        int expected = checked((int)(width * height * GpuFormatInfo.BytesPerPixel(format)));
         if (data.Length != expected) throw new ArgumentException($"Sampled texture data must contain exactly {expected} bytes.", nameof(data));
         uint slot = AllocateSlot(_textureSlots, "sampled texture", MaxSampledTextures);
         try { return CreateTexture(width, height, format, BrowserTextureUsage.Sampled, data, slot); }
@@ -246,7 +246,7 @@ public sealed class BrowserWebGpuBackend : IGpuBackend
     }
     private static void ValidateColorFormat(GpuFormat format)
     {
-        if (format is not (GpuFormat.Rgba8Unorm or GpuFormat.Bgra8Unorm or GpuFormat.R32Float))
+        if (!GpuFormatInfo.IsColor(format))
             throw new NotSupportedException($"Unsupported Browser WebGPU color format: {format}.");
     }
     private static void ValidateDimensions(uint width, uint height)

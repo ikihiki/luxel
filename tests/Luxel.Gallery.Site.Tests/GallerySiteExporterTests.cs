@@ -1194,10 +1194,16 @@ public sealed class GallerySiteExporterTests
                      "CreateCheckerboard", "device.CreateTexture", "using GpuTexture",
                      "texture.BindlessIndex", "device.CreateSampler", "using GpuSampler", "TextureIndex", "SamplerIndex",
                      "Texture2D g_textures[]", "SamplerState g_samplers[]", ".Sample(",
-                     "## Texture付きquadで確認する", "--stage texture", "0,1,2, 0,2,3",
+                     "## Format一覧", "R8Unorm", "Rg8Unorm", "Rgba8UnormSrgb", "Bgra8UnormSrgb",
+                     "Rgb8Unorm", "width * bytesPerPixel",
+                     "GpuSamplerFilter.Point", "GpuSamplerFilter.Linear",
+                     "GpuSamplerAddress.Clamp", "GpuSamplerAddress.Repeat", "WrapPanel",
                      "## Pixel、色空間、alpha", "## Upload rowとbackend差",
                  })
             Assert.Contains(api, texturesPage);
+        Assert.DoesNotContain("## Texture付きquadで確認する", texturesPage);
+        Assert.DoesNotContain("## UV原点とindexed quad", texturesPage);
+        Assert.DoesNotContain("--stage texture", texturesPage);
         foreach (string resourceSystemTerm in new[]
                  {
                      "ResourceSystem", "ResourceScope", "ResourceHandle", "ResourceState",

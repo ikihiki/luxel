@@ -5996,10 +5996,10 @@
     },
     {
       "path": "Examples/3D/Textures",
-      "width": 320,
-      "height": 240,
+      "width": 680,
+      "height": 430,
       "args": [],
-      "capabilityNote": "Renders a generated checker texture with a bindless texture and sampler.",
+      "capabilityNote": "Compares point/linear filtering and clamp/repeat addressing with a generated texture.",
       "componentType": null
     },
     {
