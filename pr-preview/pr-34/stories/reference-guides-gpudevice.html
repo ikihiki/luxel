@@ -68,13 +68,13 @@ device.MainQueue.SubmitAndWait(cmd);
 <p><code>MainQueue.StartCommandRecording()</code> → fluent にコマンドを積み → <code>Finish()</code> → <code>SubmitAndWait(cmd)</code>。同期は <code>Barrier(srcStage, dstStage)</code> の <strong>stage バリア</strong>だけ — リソース個別の状態遷移管理はありません (bindless + 単純化された使用パターンが前提)。</p>
 <h2 id="logical-pipeline-state-blocks">描画 (logical pipeline + state blocks)</h2>
 <p>graphics も同じ流儀です。<code>GpuGraphicsPipelineDesc</code> は shader entry、attachment layout、topology をまとめた logical pipeline を作ります。cull、depth-stencil、blend、viewport、scissor、stencil reference は command-time state として独立に設定し、backend が必要な native variant を遅延 cache します。dynamic rendering (<code>BeginRendering</code>/<code>EndRendering</code>) で color / depth-stencil attachment と clear 値を指定し、頂点は<strong>頂点プル</strong> (頂点レイアウト宣言なし — shader が bindless buffer から読む) です。</p>
-<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
-<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
-<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
-<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<figure class="static-capture"><a href="#story=Examples%2F3D%2FPipelineState%2FSeparation"><img src="images/examples-3d-pipelinestate-separation.png" alt="Examples/3D/PipelineState/Separation" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<figure class="static-capture"><a href="#story=Examples%2F3D%2FPipelineState%2FDepth"><img src="images/examples-3d-pipelinestate-depth.png" alt="Examples/3D/PipelineState/Depth" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<figure class="static-capture"><a href="#story=Examples%2F3D%2FPipelineState%2FBlend"><img src="images/examples-3d-pipelinestate-blend.png" alt="Examples/3D/PipelineState/Blend" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<figure class="static-capture"><a href="#story=Examples%2F3D%2FPipelineState%2FStencil"><img src="images/examples-3d-pipelinestate-stencil.png" alt="Examples/3D/PipelineState/Stencil" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
 <p>従来の <code>Examples/3D/Depth</code> と <code>Examples/3D/Blend</code> route も bookmark 互換のため維持しています。<code>StorySource</code> で separated state API の実装をそのまま引用できます:</p>
 <pre><code class="language-csharp">[Story(&quot;Examples/3D/PipelineState/Separation&quot;, Height = 320, Order = 106)]
-public static Widget Separation() =&gt; View(new SeparationScene());
+public static Widget Separation(StoryContext ctx) =&gt; ctx.Snap(View(new SeparationScene()));
 </code></pre>
 <h2 id="section-3">テクスチャとレンダーターゲット</h2>
 <p><code>CreateTexture</code> (ピクセルアップロード) / <code>CreateSampler</code> / <code>CreateRenderTarget</code> / <code>CreateDepthTarget</code>。RT の内容は <code>CopyTextureToBuffer</code> で bindless バッファへ書き出し、後段の compute/pixel シェーダが <code>Load</code> で読みます — swapchain 提示も docs 内の GpuView 埋め込みも、すべてこの経路です。</p>
