@@ -1,0 +1,69 @@
+<article class="story document-page"><h1 id="input-overview">Input overview</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FInput%2FOverview&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-deterministic-input-actions">コピーして動かす — Deterministic input actions</a>
+<ul>
+<li><a href="#story=Learn%2FInput%2FOverview&amp;section=%60samples%2Fluxelinput%2Fluxelinput.csproj%60-project"><code>samples/LuxelInput/LuxelInput.csproj</code> (Project)</a></li>
+<li><a href="#story=Learn%2FInput%2FOverview&amp;section=%60samples%2Fluxelinput%2Fprogram.cs%60-csharp"><code>samples/LuxelInput/Program.cs</code> (CSharp)</a></li>
+</ul>
+</li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone / Gallery / Headless　 <strong>Backend:</strong> Window / Fake / XInput　 <strong>前提知識:</strong> なし</p>
+<p><strong>次:</strong> <a href="#story=Learn%2FInput%2FActionsAndContexts">ActionsAndContexts</a></p>
+<p>Inputは <code>IInputSource → InputBus → InputStack → InputAction</code> の順に流れます。アプリのロジックはplatform eventではなく、JumpやMoveのようなactionを読みます。</p>
+<h2 id="deterministic-input-actions">コピーして動かす — Deterministic input actions</h2>
+<blockquote>
+<p><strong>Block</strong> · 難易度: Beginner · 依存 bundle: <code>support.source-tree</code></p>
+</blockquote>
+<p>FakeInputSource drives InputBus, InputStack, ButtonAction and Axis2DAction without a window.</p>
+<p><strong>必要条件:</strong> .NET 10 / Headless on all supported .NET OS
+<strong>Platform:</strong> Windows / Linux / macOS
+<strong>検証契約:</strong> exit <code>0</code> / timeout <code>300s</code> / stdout <code>input: jump=True, triggered=1</code>
+<strong>接続点:</strong> <code>InputStack</code></p>
+<p><strong>Run</strong></p>
+<pre><code class="language-powershell">dotnet run --project samples/LuxelInput
+</code></pre>
+<p><strong>Smoke test</strong></p>
+<pre><code class="language-powershell">dotnet run --project samples/LuxelInput
+</code></pre>
+<h3 id="samplesluxelinputluxelinput.csproj-project"><code>samples/LuxelInput/LuxelInput.csproj</code> (Project)</h3>
+<pre><code class="language-xml">&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;
+  &lt;PropertyGroup&gt;&lt;OutputType&gt;Exe&lt;/OutputType&gt;&lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;&lt;Nullable&gt;enable&lt;/Nullable&gt;&lt;/PropertyGroup&gt;
+  &lt;ItemGroup&gt;&lt;ProjectReference Include=&quot;..\..\src\Luxel.Input\Luxel.Input.csproj&quot; /&gt;&lt;/ItemGroup&gt;
+&lt;/Project&gt;
+</code></pre>
+<h3 id="samplesluxelinputprogram.cs-csharp"><code>samples/LuxelInput/Program.cs</code> (CSharp)</h3>
+<pre><code class="language-csharp">using Luxel.Input;
+
+// docs:begin input-actions
+var bus = new InputBus();
+var source = new FakeInputSource();
+var gameplay = new InputContext(&quot;Gameplay&quot;);
+var jump = gameplay.Add(new ButtonAction(&quot;Jump&quot;, KeyCode.Space));
+var move = gameplay.Add(new Axis2DAction(&quot;Move&quot;));
+move.ButtonQuads.Add((KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D));
+var stack = new InputStack();
+stack.Push(gameplay);
+// docs:end input-actions
+
+int triggered = 0;
+jump.Triggered += () =&gt; triggered++;
+source.PressKey(KeyCode.Space); source.PressKey(KeyCode.W); source.PressKey(KeyCode.D);
+source.Poll(bus); stack.Update(bus);
+Console.WriteLine($&quot;input: jump={jump.Value.Value}, triggered={triggered}, move={move.Value.Value.X:F3},{move.Value.Value.Y:F3}&quot;);
+if (!jump.Value.Value || triggered != 1 || move.Value.Value.X &lt;= 0 || move.Value.Value.Y &lt;= 0) return 1;
+source.ReleaseKey(KeyCode.Space); source.ReleaseKey(KeyCode.W); source.ReleaseKey(KeyCode.D);
+source.Poll(bus); stack.Update(bus);
+return jump.Value.Value ? 2 : 0;
+</code></pre>
+<details class="sample-bundle"><summary>Run this sample — Block</summary><p>FakeInputSource drives InputBus, InputStack, ButtonAction and Axis2DAction without a window.</p><p><strong>Requirements:</strong> .NET 10 / Headless on all supported .NET OS</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>input: jump=True, triggered=1</code></p><ul><li><code>samples/LuxelInput/LuxelInput.csproj</code> <span>Project</span></li><li><code>samples/LuxelInput/Program.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelInput</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelInput</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Input/Overview&quot;, Order = 0, SampleBundle = &quot;input.actions&quot;, Toc = true)]
+public static StoryResult Overview(StoryContext ctx) =&gt; $&quot;&quot;&quot;
+    # Input overview
+
+    {RuntimeCourseCatalog.Meta(&quot;Learn/Input/Overview&quot;, &quot;Beginner&quot;, &quot;Standalone / Gallery / Headless&quot;, &quot;Window / Fake / XInput&quot;, &quot;なし&quot;)}
+
+    Inputは `IInputSource → InputBus → InputStack → InputAction` の順に流れます。アプリのロジックはplatform eventではなく、JumpやMoveのようなactionを読みます。
+
+    {SampleBundle(&quot;input.actions&quot;)}
+    &quot;&quot;&quot;;</code></pre></details></article>

@@ -1,0 +1,178 @@
+<article class="story document-page"><h1 id="gpu-gpudevice">GPU 抽象 (GpuDevice)</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=backend-%E3%81%A8-capability">backend と capability</a></li>
+<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=%E5%9B%BA%E5%AE%9A%E3%83%91%E3%82%A4%E3%83%97%E3%83%A9%E3%82%A4%E3%83%B3%E3%83%AC%E3%82%A4%E3%82%A2%E3%82%A6%E3%83%88">固定パイプラインレイアウト</a></li>
+<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=%E3%83%A1%E3%83%A2%E3%83%AA%E3%81%A8%E3%83%90%E3%83%83%E3%83%95%E3%82%A1">メモリとバッファ</a></li>
+<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=slang-%E7%B5%B1%E4%B8%80%E3%82%B7%E3%82%A7%E3%83%BC%E3%83%80">Slang 統一シェーダ</a></li>
+<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89%E3%81%A8%E3%83%90%E3%83%AA%E3%82%A2">コマンドとバリア</a></li>
+<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=%E6%8F%8F%E7%94%BB-graphics-pso">描画 (graphics PSO)</a></li>
+<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=%E3%83%86%E3%82%AF%E3%82%B9%E3%83%81%E3%83%A3%E3%81%A8%E3%83%AC%E3%83%B3%E3%83%80%E3%83%BC%E3%82%BF%E3%83%BC%E3%82%B2%E3%83%83%E3%83%88">テクスチャとレンダーターゲット</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><code>Luxel.Graphics</code> は <em>No Graphics API</em> の原則を、resource・arguments・pass・dependency の <strong>portable semantics</strong> と backend-specific lowering に分けた薄い抽象です。アプリのコードは backend 分岐を持たず、Vulkan / DirectX 12 は bindless・GPUVA・明示 barrier を fast path として使います。native WebGPU は同じ意味論を bind groups、argument ring、pass segmentation へ lower する明示 opt-in backend として追加する方針です。</p>
+<h2 id="backend-capability">backend と capability</h2>
+<table>
+<thead>
+<tr>
+<th>backend</th>
+<th>対象と位置づけ</th>
+<th>主な lowering</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vulkan 1.3</td>
+<td>native desktop、既存 backend</td>
+<td>descriptor indexing / BDA、push constants、synchronization2</td>
+</tr>
+<tr>
+<td>DirectX 12</td>
+<td>native Windows、既存 backend</td>
+<td>descriptor heap / GPUVA、root constants、transition/UAV barrier</td>
+</tr>
+<tr>
+<td>WebGPU</td>
+<td>native Windows・Linux/X11、明示 opt-in</td>
+<td>fixed bind groups、argument ring、pass/encoder segmentation</td>
+</tr>
+</tbody>
+</table>
+<p>WebGPU は browser 互換モードや自動 fallback ではありません。対象範囲、portable baseline に含めない機能、required limits と診断契約は <a href="#story=Reference%2FGuides%2FWebGPU">Reference/Guides/WebGPU</a> を参照してください。</p>
+<p>以下の固定 bindless layout と <code>Span&lt;T&gt;</code> の例は Vulkan / DirectX 12 の既存 fast path を説明します。portable contract では native address/index/map 方法ではなく logical resource references と Upload / DeviceLocal / Readback のデータフローを扱います。</p>
+<h2 id="section">固定パイプラインレイアウト</h2>
+<p>全パイプラインが同じレイアウトを共有します:</p>
+<ul>
+<li><strong>ルート引数</strong> — 小さな構造体を push 定数 (Vulkan) / root 32bit 定数 (D3D12) で inline 渡し。<code>SetRootArguments(args)</code> に構造体を渡すだけ</li>
+<li><strong>bindless heap</strong> — すべてのバッファ/テクスチャは作成時に <code>BindlessIndex</code> を持ち、シェーダは <code>g_buffers[index]</code> / <code>g_textures[index]</code> で参照</li>
+</ul>
+<p>レイアウトが 1 つなので、ディスクリプタの束ね直しも PSO の組み合わせ爆発も起きません。「どのリソースを使うか」はルート引数の中の index が全てです。</p>
+<h2 id="section-1">メモリとバッファ</h2>
+<p><code>device.Malloc(bytes, GpuMemoryKind)</code> でバッファを確保します。<code>HostMapped</code> は CPU から <code>Span&lt;T&gt;</code> で書き込みやすい upload 用、<code>DeviceLocal</code> は GPU 専用、<code>HostCached</code> は GPU→CPU 読み戻し用です。<code>HostMapped</code> は write-combined / uncached の場合があるため、CPU readback は <code>HostCached</code> へ GPU copyしてから行います。</p>
+<pre><code class="language-csharp">using var device = new GpuDevice(VulkanBackend.Create());   // dx も可
+using var input  = device.Malloc(n * sizeof(float), GpuMemoryKind.HostMapped);
+using var output = device.Malloc(n * sizeof(float), GpuMemoryKind.HostMapped);
+
+input.Span&lt;float&gt;(n)[i] = ...;                    // CPU マップへ直接書き込み
+
+using var pipeline = device.CreateComputePipeline(GpuShaderCode.Load(&quot;compute01&quot;));
+using var cmd = device.MainQueue.StartCommandRecording();
+cmd.SetComputePipeline(pipeline)
+   .SetRootArguments(new Args { Input = input.BindlessIndex, Output = output.BindlessIndex, Count = n })
+   .Dispatch((n + 63) / 64)
+   .Barrier(GpuStage.ComputeShader, GpuStage.All);
+cmd.Finish();
+device.MainQueue.SubmitAndWait(cmd);
+// output.Span&lt;float&gt;(n) を読み戻して検証
+</code></pre>
+<h2 id="slang">Slang 統一シェーダ</h2>
+<p>シェーダは Slang で 1 回書き、SPIR-V (Vulkan) と DXIL (D3D12) の両方へコンパイルします。通常ビルドは Git 管理済みの <code>shaders/compiled/</code> を検証して使い、shader変更時だけ <code>CompileLuxelShaderCache</code> で両形式を更新します。</p>
+<ul>
+<li><code>g_buffers[index]</code> は Vulkan では set0/binding0 の storage buffer 配列、D3D12 では u0/space1 の unbounded UAV テーブルに lower される</li>
+<li>シェーダはレンダーグラフにもバックエンドにも依存しない</li>
+</ul>
+<div class="markdown-alert markdown-alert-tip">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>Tip</p>
+<p>DXIL は <code>-validator-version 1.7</code> で出力しています — DXC 既定版の DXIL は OS ランタイムに拒否されることがあります。</p>
+</div>
+<h2 id="section-2">コマンドとバリア</h2>
+<p><code>MainQueue.StartCommandRecording()</code> → fluent にコマンドを積み → <code>Finish()</code> → <code>SubmitAndWait(cmd)</code>。同期は <code>Barrier(srcStage, dstStage)</code> の <strong>stage バリア</strong>だけ — リソース個別の状態遷移管理はありません (bindless + 単純化された使用パターンが前提)。</p>
+<h2 id="graphics-pso">描画 (graphics PSO)</h2>
+<p>graphics も同じ流儀です。<code>CreateGraphicsPipeline(shader, GpuRasterDesc)</code> で深度テストやブレンドを宣言し、dynamic rendering (<code>BeginRendering</code>/<code>EndRendering</code>) で RT/Depth を直接指定、頂点は<strong>頂点プル</strong> (頂点レイアウト宣言なし — シェーダが bindless バッファから読む) です。</p>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<p><code>StorySource</code> でこのデモの実装をそのまま引用できます:</p>
+<pre><code class="language-csharp">[Story(&quot;Examples/3D/Depth&quot;, Height = 320, Order = 100)]
+public static Widget Depth() =&gt; Frame(GpuSceneBase.View(256, 256, new DepthScene(), animated: false));
+</code></pre>
+<h2 id="section-3">テクスチャとレンダーターゲット</h2>
+<p><code>CreateTexture</code> (ピクセルアップロード) / <code>CreateSampler</code> / <code>CreateRenderTarget</code> / <code>CreateDepthTarget</code>。RT の内容は <code>CopyTextureToBuffer</code> で bindless バッファへ書き出し、後段の compute/pixel シェーダが <code>Load</code> で読みます — swapchain 提示も docs 内の GpuView 埋め込みも、すべてこの経路です。</p>
+<div class="markdown-alert markdown-alert-warning">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p>D3D12 の <code>CopyTextureToBuffer</code> は行 256B 整列が必要です。RGBA8 なら <strong>ターゲット幅を 64 の倍数</strong>にしてください (このページのデモはすべて 256)。</p>
+</div>
+<p>次: <a href="#story=Reference%2FGuides%2FTwoD">Reference/Guides/TwoD</a> — この GPU 抽象の上に 2D ベクターを載せます。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/GpuDevice&quot;, Order = 10, Toc = true)]
+public static StoryResult GpuDevice(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # GPU 抽象 (GpuDevice)
+
+    `Luxel.Graphics` は *No Graphics API* の原則を、resource・arguments・pass・dependency の **portable semantics** と backend-specific lowering に分けた薄い抽象です。アプリのコードは backend 分岐を持たず、Vulkan / DirectX 12 は bindless・GPUVA・明示 barrier を fast path として使います。native WebGPU は同じ意味論を bind groups、argument ring、pass segmentation へ lower する明示 opt-in backend として追加する方針です。
+
+    ## backend と capability
+
+    | backend | 対象と位置づけ | 主な lowering |
+    | --- | --- | --- |
+    | Vulkan 1.3 | native desktop、既存 backend | descriptor indexing / BDA、push constants、synchronization2 |
+    | DirectX 12 | native Windows、既存 backend | descriptor heap / GPUVA、root constants、transition/UAV barrier |
+    | WebGPU | native Windows・Linux/X11、明示 opt-in | fixed bind groups、argument ring、pass/encoder segmentation |
+
+    WebGPU は browser 互換モードや自動 fallback ではありません。対象範囲、portable baseline に含めない機能、required limits と診断契約は [Reference/Guides/WebGPU](story:Reference/Guides/WebGPU) を参照してください。
+
+    以下の固定 bindless layout と `Span&lt;T&gt;` の例は Vulkan / DirectX 12 の既存 fast path を説明します。portable contract では native address/index/map 方法ではなく logical resource references と Upload / DeviceLocal / Readback のデータフローを扱います。
+
+    ## 固定パイプラインレイアウト
+
+    全パイプラインが同じレイアウトを共有します:
+
+    - **ルート引数** — 小さな構造体を push 定数 (Vulkan) / root 32bit 定数 (D3D12) で inline 渡し。`SetRootArguments(args)` に構造体を渡すだけ
+    - **bindless heap** — すべてのバッファ/テクスチャは作成時に `BindlessIndex` を持ち、シェーダは `g_buffers[index]` / `g_textures[index]` で参照
+
+    レイアウトが 1 つなので、ディスクリプタの束ね直しも PSO の組み合わせ爆発も起きません。「どのリソースを使うか」はルート引数の中の index が全てです。
+
+    ## メモリとバッファ
+
+    `device.Malloc(bytes, GpuMemoryKind)` でバッファを確保します。`HostMapped` は CPU から `Span&lt;T&gt;` で書き込みやすい upload 用、`DeviceLocal` は GPU 専用、`HostCached` は GPU→CPU 読み戻し用です。`HostMapped` は write-combined / uncached の場合があるため、CPU readback は `HostCached` へ GPU copyしてから行います。
+
+    ```csharp
+    using var device = new GpuDevice(VulkanBackend.Create());   // dx も可
+    using var input  = device.Malloc(n * sizeof(float), GpuMemoryKind.HostMapped);
+    using var output = device.Malloc(n * sizeof(float), GpuMemoryKind.HostMapped);
+
+    input.Span&lt;float&gt;(n)[i] = ...;                    // CPU マップへ直接書き込み
+
+    using var pipeline = device.CreateComputePipeline(GpuShaderCode.Load(&quot;compute01&quot;));
+    using var cmd = device.MainQueue.StartCommandRecording();
+    cmd.SetComputePipeline(pipeline)
+       .SetRootArguments(new Args { Input = input.BindlessIndex, Output = output.BindlessIndex, Count = n })
+       .Dispatch((n + 63) / 64)
+       .Barrier(GpuStage.ComputeShader, GpuStage.All);
+    cmd.Finish();
+    device.MainQueue.SubmitAndWait(cmd);
+    // output.Span&lt;float&gt;(n) を読み戻して検証
+    ```
+
+    ## Slang 統一シェーダ
+
+    シェーダは Slang で 1 回書き、SPIR-V (Vulkan) と DXIL (D3D12) の両方へコンパイルします。通常ビルドは Git 管理済みの `shaders/compiled/` を検証して使い、shader変更時だけ `CompileLuxelShaderCache` で両形式を更新します。
+
+    - `g_buffers[index]` は Vulkan では set0/binding0 の storage buffer 配列、D3D12 では u0/space1 の unbounded UAV テーブルに lower される
+    - シェーダはレンダーグラフにもバックエンドにも依存しない
+
+    &gt; [!TIP]
+    &gt; DXIL は `-validator-version 1.7` で出力しています — DXC 既定版の DXIL は OS ランタイムに拒否されることがあります。
+
+    ## コマンドとバリア
+
+    `MainQueue.StartCommandRecording()` → fluent にコマンドを積み → `Finish()` → `SubmitAndWait(cmd)`。同期は `Barrier(srcStage, dstStage)` の **stage バリア**だけ — リソース個別の状態遷移管理はありません (bindless + 単純化された使用パターンが前提)。
+
+    ## 描画 (graphics PSO)
+
+    graphics も同じ流儀です。`CreateGraphicsPipeline(shader, GpuRasterDesc)` で深度テストやブレンドを宣言し、dynamic rendering (`BeginRendering`/`EndRendering`) で RT/Depth を直接指定、頂点は**頂点プル** (頂点レイアウト宣言なし — シェーダが bindless バッファから読む) です。
+
+    {{StoryRef(ctx, &quot;Examples/3D/Depth&quot;)}}
+
+    {{StoryRef(ctx, &quot;Examples/3D/Blend&quot;)}}
+
+    `StorySource` でこのデモの実装をそのまま引用できます:
+
+    {{StorySource(&quot;Examples/3D/Depth&quot;)}}
+
+    ## テクスチャとレンダーターゲット
+
+    `CreateTexture` (ピクセルアップロード) / `CreateSampler` / `CreateRenderTarget` / `CreateDepthTarget`。RT の内容は `CopyTextureToBuffer` で bindless バッファへ書き出し、後段の compute/pixel シェーダが `Load` で読みます — swapchain 提示も docs 内の GpuView 埋め込みも、すべてこの経路です。
+
+    &gt; [!WARNING]
+    &gt; D3D12 の `CopyTextureToBuffer` は行 256B 整列が必要です。RGBA8 なら **ターゲット幅を 64 の倍数**にしてください (このページのデモはすべて 256)。
+
+    次: [Reference/Guides/TwoD](story:Reference/Guides/TwoD) — この GPU 抽象の上に 2D ベクターを載せます。
+    &quot;&quot;&quot;;</code></pre></details></article>

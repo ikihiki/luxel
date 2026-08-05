@@ -1,0 +1,94 @@
+<article class="story document-page"><h1 id="gpuskia-backend">GPUとSkia backend</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FGraphics%2F2D%2FBackends&amp;section=%E3%81%93%E3%81%AE%E3%83%9A%E3%83%BC%E3%82%B8%E3%81%A7%E3%81%A7%E3%81%8D%E3%82%8B%E3%82%88%E3%81%86%E3%81%AB%E3%81%AA%E3%82%8B%E3%81%93%E3%81%A8">このページでできるようになること</a></li>
+<li><a href="#story=Learn%2FGraphics%2F2D%2FBackends&amp;section=%E3%83%A1%E3%83%B3%E3%82%BF%E3%83%AB%E3%83%A2%E3%83%87%E3%83%AB">メンタルモデル</a></li>
+<li><a href="#story=Learn%2FGraphics%2F2D%2FBackends&amp;section=%E6%9C%80%E5%B0%8F%E4%BE%8B">最小例</a></li>
+<li><a href="#story=Learn%2FGraphics%2F2D%2FBackends&amp;section=api%E3%81%AE%E5%A5%91%E7%B4%84%E3%81%A8%E6%B3%A8%E6%84%8F%E7%82%B9">APIの契約と注意点</a></li>
+<li><a href="#story=Learn%2FGraphics%2F2D%2FBackends&amp;section=wasm%E3%81%A7%E7%A2%BA%E8%AA%8D%E3%81%99%E3%82%8B">WASMで確認する</a></li>
+<li><a href="#story=Learn%2FGraphics%2F2D%2FBackends&amp;section=%E5%AE%9F%E8%A3%85%E3%82%92%E8%AA%AD%E3%82%80">実装を読む</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Gallery WASM / Standalone / Headless　 <strong>Backend:</strong> WebGPU / Vulkan / DirectX 12 / Skia CPU　 <strong>前提知識:</strong> 同じScene2Dに適したrasterizerとtargetを選ぶ。</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGraphics%2F2D%2FCamera">Camera</a>　 <strong>次:</strong> <a href="#story=Learn%2FGraphics%2F2D%2FRetainedCanvas">RetainedCanvas</a></p>
+<h2 id="section">このページでできるようになること</h2>
+<p>同じScene2Dに適したrasterizerとtargetを選ぶ。</p>
+<h2 id="section-1">メンタルモデル</h2>
+<p>描画コードは<code>IRasterizer2D</code>へ依存し、GPU固有のcommand recordingやbindless imageはcapabilityで分岐します。</p>
+<h2 id="section-2">最小例</h2>
+<pre><code class="language-csharp">using IRasterizer2D rasterizer = useCpu
+    ? new SkiaRasterizer2D()
+    : new GpuDeviceRasterizer2D(device);
+using IRasterScene2D encoded = rasterizer.CreateScene(scene);
+encoded.Render(Camera2D.Pixels, target);
+</code></pre>
+<h2 id="api">APIの契約と注意点</h2>
+<p>GPUは<code>GpuCommandRecording</code>、<code>BindlessImages</code>、<code>RetainedIncrementalUpdates</code>、Skiaは<code>CpuRgbaTarget</code>を提供します。sessionをrasterizerより先にdisposeし、同じrasterizerを複数threadから同時使用しません。browser live sampleはWebGPU、headless referenceはSkiaを使います。</p>
+<h2 id="wasm">WASMで確認する</h2>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Graphics/2D/Backends#ref-0" data-luxel-runtime-story="Examples/2D/SceneRender" data-luxel-runtime-instance="examples-2d-scenerender-e6da8d619a5a" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F2D%2FSceneRender&amp;args=%7B%7D&amp;instance=examples-2d-scenerender-e6da8d619a5a" data-luxel-runtime-story="Examples/2D/SceneRender" data-luxel-runtime-instance="examples-2d-scenerender-e6da8d619a5a" title="Interactive SceneRender" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-2d-scenerender-e6da8d619a5a-args-tab" aria-controls="examples-2d-scenerender-e6da8d619a5a-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-2d-scenerender-e6da8d619a5a-output-tab" aria-controls="examples-2d-scenerender-e6da8d619a5a-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-2d-scenerender-e6da8d619a5a-source-tab" aria-controls="examples-2d-scenerender-e6da8d619a5a-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-2d-scenerender-e6da8d619a5a-args-panel" role="tabpanel" aria-labelledby="examples-2d-scenerender-e6da8d619a5a-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-2d-scenerender-e6da8d619a5a-output-panel" role="tabpanel" aria-labelledby="examples-2d-scenerender-e6da8d619a5a-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-2d-scenerender-e6da8d619a5a-source-panel" role="tabpanel" aria-labelledby="examples-2d-scenerender-e6da8d619a5a-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/2D/SceneRender&quot;, Width = 480, Height = 300, Order = 109, CapabilityNote = BrowserNote)]&#10;public static Widget SceneRender(StoryContext ctx) =&gt; Snapshot(ctx, Canvas2D(420, 220, draw: scene =&gt;&#10;{&#10;    scene.FillRect(Color2D.Rgba(18, 24, 38), 0, 0, 420, 220);&#10;    scene.FillRoundedRect(Color2D.Rgba(47, 111, 237), 28, 30, 150, 86, 18);&#10;    scene.FillCircle(Color2D.Rgba(245, 180, 55), 276, 76, 46);&#10;    scene.BeginFill(Color2D.Rgba(236, 72, 100)).MoveTo(92, 142).LineTo(172, 204).LineTo(26, 204).Close().End();&#10;    scene.StrokeLine(Color2D.Rgba(90, 210, 150), 6, 216, 190, 382, 138);&#10;}));</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<h2 id="section-3">実装を読む</h2>
+<pre><code class="language-csharp">namespace Luxel.Graphics.TwoD;
+
+/// &lt;summary&gt;2Dラスタライザが提供する機能。&lt;/summary&gt;
+[Flags]
+public enum Rasterizer2DCapabilities
+{
+    None = 0,
+    GpuCommandRecording = 1 &lt;&lt; 0,
+    CpuRgbaTarget = 1 &lt;&lt; 1,
+    BindlessImages = 1 &lt;&lt; 2,
+    RetainedIncrementalUpdates = 1 &lt;&lt; 3,
+}
+
+/// &lt;summary&gt;
+/// バックエンド非依存の2Dラスタライザ。作成したsessionはrasterizerより先に破棄し、
+/// rasterizer/sessionは同時に複数スレッドから使用しない。
+/// &lt;/summary&gt;
+public interface IRasterizer2D : IDisposable
+{
+    string Name { get; }
+    Rasterizer2DCapabilities Capabilities { get; }
+    IRasterScene2D CreateScene(Scene2D scene);
+    IRasterScene2D CreateScene(RetainedCanvas canvas);
+}
+
+/// &lt;summary&gt;ラスタライザが所有するエンコード済みシーン/session。&lt;/summary&gt;
+public interface IRasterScene2D : IDisposable
+{
+    IRasterizer2D Rasterizer { get; }
+    void Render(Camera2D camera, IRasterTarget2D target, bool transparent = false);
+}
+
+/// &lt;summary&gt;ラスタライザ固有の出力先を表す共通契約。&lt;/summary&gt;
+public interface IRasterTarget2D
+{
+    uint Width { get; }
+    uint Height { get; }
+}
+
+internal interface IRetainedCanvasSink
+{
+    void FullSync(RetainedCanvas canvas);
+    void WriteTransform(int index, GpuTransform value);
+    void WriteStyle(int index, GpuStyle value);
+    void WriteClip(int index, GpuClip value);
+    void WriteSegment(int index, GpuSegment value);
+    void WritePath(int index, GpuPath value);
+    void WriteOrder(uint[] order);
+}
+</code></pre>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Backends&quot;, Order = 15, Toc = true)]
+    public static StoryResult Backends() =&gt; Page(&quot;Learn/Graphics/2D/Backends&quot;, &quot;GPUとSkia backend&quot;,
+        &quot;同じScene2Dに適したrasterizerとtargetを選ぶ。&quot;,
+        &quot;描画コードは`IRasterizer2D`へ依存し、GPU固有のcommand recordingやbindless imageはcapabilityで分岐します。&quot;,
+        &quot;&quot;&quot;&quot;
+```csharp
+using IRasterizer2D rasterizer = useCpu
+    ? new SkiaRasterizer2D()
+    : new GpuDeviceRasterizer2D(device);
+using IRasterScene2D encoded = rasterizer.CreateScene(scene);
+encoded.Render(Camera2D.Pixels, target);
+```
+&quot;&quot;&quot;&quot;,
+        &quot;GPUは`GpuCommandRecording`、`BindlessImages`、`RetainedIncrementalUpdates`、Skiaは`CpuRgbaTarget`を提供します。sessionをrasterizerより先にdisposeし、同じrasterizerを複数threadから同時使用しません。browser live sampleはWebGPU、headless referenceはSkiaを使います。&quot;,
+        StoryReference.To(&quot;Examples/2D/SceneRender&quot;), SampleSource(&quot;src/Luxel.Graphics.TwoD/IRasterizer2D.cs&quot;));</code></pre></details></article>

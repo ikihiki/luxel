@@ -1,0 +1,57 @@
+<article class="story document-page"><h1 id="graphics">Graphics 学習ガイド</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FGraphics%2FOverview&amp;section=%E6%8E%A8%E5%A5%A8%E3%82%A2%E3%83%97%E3%83%AA%E6%A7%8B%E7%AF%89%E3%83%AB%E3%83%BC%E3%83%88">推奨アプリ構築ルート</a></li>
+<li><a href="#story=Learn%2FGraphics%2FOverview&amp;section=%E3%81%A9%E3%81%AEapi%E3%81%BE%E3%81%A7%E5%AD%A6%E3%81%B6%E3%81%8B">どのAPIまで学ぶか</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone + Gallery　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> なし</p>
+<p><strong>次:</strong> <a href="#story=Learn%2FGraphics%2FEnvironment">Environment</a></p>
+<p>この章は、Gallery のデモを見るだけでなく、自分のウィンドウへ描画できるところまでを順番に進みます。最小アプリの実装はリポジトリの <code>samples/LuxelTriangle/</code> が単一の正です。</p>
+<h2 id="section">推奨アプリ構築ルート</h2>
+<p>Graphics直下のページはリンク順に並びます。基礎ルートの後に2Dを置き、その下のInternalで2D rasterizerの内部実装を扱います。</p>
+<ol>
+<li><a href="#story=Learn%2FGraphics%2FEnvironment">Environment</a></li>
+<li><a href="#story=Learn%2FGraphics%2FClearColor">ClearColor</a></li>
+<li><a href="#story=Learn%2FGraphics%2FFirstTriangle">FirstTriangle</a></li>
+<li><a href="#story=Learn%2FGraphics%2FBuffers">Buffers</a></li>
+<li><a href="#story=Learn%2FGraphics%2FTextures">Textures</a></li>
+<li><a href="#story=Learn%2FGraphics%2FShaders">Shaders</a></li>
+<li><a href="#story=Learn%2FGraphics%2FPipelineState">PipelineState</a></li>
+<li><a href="#story=Learn%2FGraphics%2FSynchronization">Synchronization</a></li>
+<li><a href="#story=Learn%2FGraphics%2FRenderGraph">RenderGraph</a></li>
+<li><a href="#story=Examples%2F3D%2FTriangle">Gallery Triangle</a></li>
+</ol>
+<p><strong>検索キーワード:</strong> triangle / texture / shader / pipeline / barrier / submit / render graph</p>
+<div class="markdown-alert markdown-alert-important">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Important</p>
+<p><code>GpuView</code> とそのrender callbackはGallery内でデモを表示するためのハーネスです。通常アプリでは <code>WindowSystem</code>、<code>Window</code>、<code>GpuSurface</code> を使います。</p>
+</div>
+<h2 id="api">どのAPIまで学ぶか</h2>
+<p>三角形、buffer ABI、texture付きquad、shader、pipeline stateを順に学び、BarrierとSubmit系methodによる同期を整理してからRenderGraphへ進みます。<code>--stage graph</code>でdirect描画を1 passへ移し、<code>--stage post</code>でtransient resourceとcompute post-processを追加します。indexed meshとcameraの実装はBuildのRecipeへ分けています。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/Overview&quot;, Order = 0, Toc = true)]
+public static StoryResult Overview(StoryContext ctx)
+{
+    return $&quot;&quot;&quot;
+    # Graphics 学習ガイド
+
+    {RenderingCourseCatalog.Meta(&quot;Learn/Graphics/Overview&quot;, &quot;Beginner&quot;, &quot;Standalone + Gallery&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;なし&quot;)}
+
+    この章は、Gallery のデモを見るだけでなく、自分のウィンドウへ描画できるところまでを順番に進みます。最小アプリの実装はリポジトリの `samples/LuxelTriangle/` が単一の正です。
+
+    ## 推奨アプリ構築ルート
+
+    Graphics直下のページはリンク順に並びます。基礎ルートの後に2Dを置き、その下のInternalで2D rasterizerの内部実装を扱います。
+
+    {RenderingCourseCatalog.ApplicationRouteMarkdown()}
+
+    **検索キーワード:** triangle / texture / shader / pipeline / barrier / submit / render graph
+
+    &gt; [!IMPORTANT]
+    &gt; `GpuView` とそのrender callbackはGallery内でデモを表示するためのハーネスです。通常アプリでは `WindowSystem`、`Window`、`GpuSurface` を使います。
+
+    ## どのAPIまで学ぶか
+
+    三角形、buffer ABI、texture付きquad、shader、pipeline stateを順に学び、BarrierとSubmit系methodによる同期を整理してからRenderGraphへ進みます。`--stage graph`でdirect描画を1 passへ移し、`--stage post`でtransient resourceとcompute post-processを追加します。indexed meshとcameraの実装はBuildのRecipeへ分けています。
+    &quot;&quot;&quot;;
+}</code></pre></details></article>

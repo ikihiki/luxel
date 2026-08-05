@@ -1,0 +1,326 @@
+<article class="story document-page"><h1 id="rendergraph">RenderGraph</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FGraphics%2FRenderGraph&amp;section=%E5%AE%9F%E8%A1%8C%E3%81%A8%E6%9C%9F%E5%BE%85%E7%B5%90%E6%9E%9C">実行と期待結果</a></li>
+<li><a href="#story=Learn%2FGraphics%2FRenderGraph&amp;section=%E5%AE%9Fsample%E3%81%AEgraph%E5%AE%9F%E8%A3%85">実sampleのgraph実装</a></li>
+<li><a href="#story=Learn%2FGraphics%2FRenderGraph&amp;section=direct-%E2%86%92-graph-%E2%86%92-post">direct → graph → post</a></li>
+<li><a href="#story=Learn%2FGraphics%2FRenderGraph&amp;section=external%E3%81%A8transient">ExternalとTransient</a></li>
+<li><a href="#story=Learn%2FGraphics%2FRenderGraph&amp;section=read-%2F-write%E3%81%8C%E4%BE%9D%E5%AD%98%E3%81%A8barrier%E3%82%92%E4%BD%9C%E3%82%8B">Read / Writeが依存とbarrierを作る</a></li>
+<li><a href="#story=Learn%2FGraphics%2FRenderGraph&amp;section=culling%E3%80%81aliasing%E3%80%81%E7%B5%82%E7%AB%AFresource">Culling、aliasing、終端resource</a></li>
+<li><a href="#story=Learn%2FGraphics%2FRenderGraph&amp;section=1-frame%E3%81%94%E3%81%A8%E3%81%AE%E6%A7%8B%E7%AF%89%E3%80%81resize%E3%80%81dispose">1 frameごとの構築、resize、dispose</a></li>
+<li><a href="#story=Learn%2FGraphics%2FRenderGraph&amp;section=backend%E5%B7%AE">Backend差</a></li>
+<li><a href="#story=Learn%2FGraphics%2FRenderGraph&amp;section=validation-error%E3%81%AE%E8%AA%AD%E3%81%BF%E6%96%B9">Validation errorの読み方</a></li>
+<li><a href="#story=Learn%2FGraphics%2FRenderGraph&amp;section=devtools%E3%81%A7%E4%BE%9D%E5%AD%98%E3%82%92%E8%A6%8B%E3%82%8B">DevToolsで依存を見る</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Beginner+　 <strong>実行環境:</strong> Standalone + DevTools　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> Synchronization</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGraphics%2FSynchronization">Synchronization</a>　 <strong>次:</strong> <a href="#story=Learn%2FGraphics%2F2D%2FOverview">Overview</a></p>
+<p>RenderGraphは、複数passがどのresourceを読み書きするか宣言し、実行順の検証、barrier、不要passのculling、transient resourceの寿命をまとめて扱います。前ページの同期では手書きBarrierとSubmit系methodを扱いました。RenderGraphはそのうちpass間のGPU依存をRead/Write宣言から構成します。</p>
+<p>実行sampleは <code>samples/LuxelTriangle/Program.cs</code>、<code>samples/LuxelTriangle/TriangleRenderer.cs</code>、<code>samples/LuxelTriangle/TutorialAbi.cs</code>、scene shaderの<code>shaders/tutorial_3d.slang</code>、post-process shaderの<code>shaders/compute_tutorial_postprocess.slang</code>です。sampleにはtextureやcameraを含む完成済みsceneを使いますが、このページではgraphのresourceとpass宣言だけに注目します。indexed meshとcameraの作り方は<a href="#story=Build%2FRecipes%2FIndexedCube">Indexed Cube</a>と<a href="#story=Build%2FRecipes%2FCamera3D">3D Camera</a>へ分けています。RenderGraph本体は<code>src/Luxel.RenderGraph/</code>にあります。</p>
+<h2 id="section">実行と期待結果</h2>
+<pre><code class="language-powershell">dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
+dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter RenderGraphTests
+dotnet run --project samples/LuxelTriangle -- vk --stage graph --frames 3
+dotnet run --project samples/LuxelTriangle -- vk --stage post --frames 3
+dotnet run --project samples/LuxelTriangle -- vk --stage post --size 801x603
+# Windowsのみ
+dotnet run --project samples/LuxelTriangle -- dx --stage graph --frames 3
+dotnet run --project samples/LuxelTriangle -- dx --stage post --frames 3
+</code></pre>
+<p><code>graph</code>はdirect描画と同じ結果を1 passのRenderGraph経由で作り、移行前後の画像を比較する段階です。<code>post</code>はsceneをtransient color/depthへ描画し、colorをtransient bufferへcopyし、compute shaderで寒色のshadowと柔らかなvignetteを加えてexternal framebufferへ書きます。どちらも3 frame smokeが終了コード0で完了し、通常起動ではresize後も同じ構成を新しいsizeで再構築します。</p>
+<p>shader sourceを変更した場合はcacheも更新します。</p>
+<pre><code class="language-powershell">dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache
+</code></pre>
+<h2 id="samplegraph">実sampleのgraph実装</h2>
+<p>以下は<code>TriangleRenderer.cs</code>の実regionです。Learnページ側に別実装を複製せず、solutionでbuildされるsourceを表示します。</p>
+<pre><code class="language-csharp">    private void RenderGraphFrame(DrawArgs3D args)
+    {
+        // One graph is one frame in this tutorial. It owns transients until SubmitAndWait completes.
+        using var graph = new Rg(_device);
+        TextureHandle finalColor = graph.ImportTexture(_target!, &quot;present-color&quot;);
+        TextureHandle finalDepth = graph.ImportTexture(_depth!, &quot;present-depth&quot;);
+        BufferHandle finalBuffer = graph.ImportBuffer(_framebuffer!, &quot;present-framebuffer&quot;);
+
+        if (_stage == TutorialStage.Graph)
+        {
+            graph.AddPass(&quot;DrawAndReadback&quot;, PassQueue.Graphics)
+                .Write(finalColor, TextureUsage.ColorAttachment)
+                .Write(finalDepth, TextureUsage.DepthAttachment)
+                .Write(finalBuffer, ResourceUsage.CopyDest)
+                .Execute(c =&gt;
+                {
+                    DrawCube(c.Cmd, c.Texture(finalColor), c.Texture(finalDepth), args);
+                    c.Cmd.Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+                        .CopyTextureToBuffer(c.Texture(finalColor), c.Buffer(finalBuffer), StridePixels);
+                });
+        }
+        else
+        {
+            TextureHandle sceneColor = graph.CreateTexture(
+                new TextureDesc(_width, _height, GpuFormat.Rgba8Unorm), &quot;scene-color&quot;);
+            TextureHandle sceneDepth = graph.CreateTexture(
+                new TextureDesc(_width, _height, GpuFormat.D32Float, TextureKind.Depth), &quot;scene-depth&quot;);
+            BufferHandle scenePixels = graph.CreateBuffer(
+                new BufferDesc(checked((ulong)StridePixels * _height * 4), GpuMemoryKind.HostMapped), &quot;scene-pixels&quot;);
+
+            graph.AddPass(&quot;DrawScene&quot;, PassQueue.Graphics)
+                .Write(sceneColor, TextureUsage.ColorAttachment)
+                .Write(sceneDepth, TextureUsage.DepthAttachment)
+                .Execute(c =&gt; DrawCube(c.Cmd, c.Texture(sceneColor), c.Texture(sceneDepth), args));
+            graph.AddPass(&quot;SceneReadback&quot;, PassQueue.Graphics)
+                .Read(sceneColor, TextureUsage.CopySource)
+                .Write(scenePixels, ResourceUsage.CopyDest)
+                .Execute(c =&gt; c.Cmd.CopyTextureToBuffer(c.Texture(sceneColor), c.Buffer(scenePixels), StridePixels));
+            graph.AddPass(&quot;PostProcess&quot;, PassQueue.Compute)
+                .Read(scenePixels, ResourceUsage.StorageBufferRead)
+                .Write(finalBuffer, ResourceUsage.StorageBufferWrite)
+                .Execute(c =&gt; c.Cmd.SetComputePipeline(_postPipeline)
+                    .SetRootArguments(new PostProcessArgs
+                    {
+                        SourceBufferIndex = c.BindlessIndex(scenePixels),
+                        DestinationBufferIndex = c.BindlessIndex(finalBuffer),
+                        Width = _width,
+                        Height = _height,
+                        StridePixels = StridePixels,
+                    })
+                    .Dispatch((_width + 7) / 8, (_height + 7) / 8));
+        }
+
+        using GpuCommandBuffer command = _device.MainQueue.StartCommandRecording();
+        graph.Execute(command);
+        command.Finish();
+        _device.MainQueue.SubmitAndWait(command);
+    }
+</code></pre>
+<h2 id="direct-graph-post">direct → graph → post</h2>
+<table>
+<thead>
+<tr>
+<th>stage</th>
+<th>resourceとpass</th>
+<th>学ぶこと</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lighting</code></td>
+<td>renderer所有のcolor/depthへ直接描画し、手書きbarrier後にframebufferへcopy</td>
+<td>command順とresource寿命の基準</td>
+</tr>
+<tr>
+<td><code>graph</code></td>
+<td>同じ処理を1個のgraph passとして登録</td>
+<td>pass名、Read/Write宣言、Compile/Execute、移行時の同値性</td>
+</tr>
+<tr>
+<td><code>post</code></td>
+<td>transient scene color/depth → copy用transient buffer → compute → external framebuffer</td>
+<td>pass間依存、自動barrier、culling、transient寿命</td>
+</tr>
+</tbody>
+</table>
+<p>最初から複雑なgraphへ書き換えず、まず1 passでdirect版と同じ画像を作ると、camera、pipeline、windingのbugとgraph宣言のbugを分けられます。その後、scene / copy / postへ分割します。</p>
+<h2 id="externaltransient">ExternalとTransient</h2>
+<p><strong>External resource</strong>はgraphの外で作られ、<code>ImportBuffer</code>または<code>ImportTexture</code>で取り込みます。sampleの最終framebufferのように、presentや次frameでも必要なresourceです。所有者はrendererであり、RenderGraphをdisposeしてもexternal resourceは解放されません。</p>
+<p><strong>Transient resource</strong>は<code>CreateBuffer</code>または<code>CreateTexture</code>で論理的に宣言します。物理resourceはcompile時に割り当てられ、graphが所有し、graphのdisposeで解放されます。<code>post</code>のscene color、scene depth、copy用bufferはそのframeの途中だけ必要なのでtransientに適しています。</p>
+<pre><code class="language-csharp">using var graph = new RenderGraph(_device);
+TextureHandle sceneColor = graph.CreateTexture(
+    new TextureDesc(width, height, GpuFormat.Rgba8Unorm), &quot;SceneColor&quot;);
+TextureHandle sceneDepth = graph.CreateTexture(
+    new TextureDesc(width, height, GpuFormat.D32Float, TextureKind.Depth), &quot;SceneDepth&quot;);
+BufferHandle copiedColor = graph.CreateBuffer(
+    new BufferDesc(framebufferBytes, GpuMemoryKind.HostMapped), &quot;CopiedColor&quot;);
+BufferHandle output = graph.ImportBuffer(_framebuffer, &quot;PresentFramebuffer&quot;);
+</code></pre>
+<p>handleはgraph内の論理IDで、<code>GpuTexture</code>や<code>GpuBuffer</code>そのものではありません。execute callback内で<code>ctx.Texture(handle)</code> / <code>ctx.Buffer(handle)</code>に解決します。defaultのinvalid handleやcompile前の解決は失敗します。handle自体にはgraph識別子がないため、別graphのhandleを混ぜると同じIDの別resourceを誤参照し得ます。handleを作ったgraphのscopeから外へ持ち出さないでください。</p>
+<h2 id="read-writebarrier">Read / Writeが依存とbarrierを作る</h2>
+<pre><code class="language-csharp">graph.AddPass(&quot;Scene&quot;, PassQueue.Graphics)
+    .Write(sceneColor, TextureUsage.ColorAttachment)
+    .Write(sceneDepth, TextureUsage.DepthAttachment)
+    .Execute(ctx =&gt; RecordScene(ctx.Cmd, ctx.Texture(sceneColor), ctx.Texture(sceneDepth)));
+
+graph.AddPass(&quot;CopyScene&quot;, PassQueue.Graphics)
+    .Read(sceneColor, TextureUsage.CopySource)
+    .Write(copiedColor, ResourceUsage.CopyDest)
+    .Execute(ctx =&gt; ctx.Cmd.CopyTextureToBuffer(
+        ctx.Texture(sceneColor), ctx.Buffer(copiedColor), stridePixels));
+
+graph.AddPass(&quot;PostProcess&quot;, PassQueue.Compute)
+    .Read(copiedColor, ResourceUsage.StorageBufferRead)
+    .Write(output, ResourceUsage.StorageBufferWrite)
+    .Execute(ctx =&gt; RecordPost(ctx.Cmd, ctx.Buffer(copiedColor), ctx.Buffer(output)));
+</code></pre>
+<p>宣言はdocumentationではなく実行計画の入力です。write→read、write→write、read→writeのhazardに対して、RenderGraphはpass境界へstage barrierを挿入します。同一pass内でrenderしてcopyするなど複数stageを使う場合、そのpass内部の順序と必要なbarrierはcallback側の責任です。passへ宣言していないresourceをcallbackで触るとgraphは依存を認識できません。</p>
+<p>現在の実行順は<strong>依存からtopological sortするのではなく、passの登録順そのまま</strong>です。producerをconsumerより先に登録してください。<code>PassQueue.Graphics</code>と<code>PassQueue.Compute</code>は分類と診断に使われますが、<strong>現在はどちらも<code>device.MainQueue</code>で実行</strong>されます。公開されたasync compute実行やqueue間同期があるとは考えないでください。<code>AsyncCompute</code>をこのtutorialの並列実行手段として使いません。</p>
+<h2 id="cullingaliasingresource">Culling、aliasing、終端resource</h2>
+<p>compileはexternal resourceを最終成果物とみなし、それへ到達しないpassを後ろからcullします。たとえばdebug用transientへ書くだけで、その結果をexternal outputへつながないpassは実行されません。残したいpassは、その出力が最終framebufferまでRead/Write依存で到達するよう宣言します。「登録したから必ず実行される」わけではありません。</p>
+<p>lifetimeが重ならない同形transientは同じ物理slotを共有できます。bufferはsizeとmemory kind、textureはwidth、height、format、color/depth kindが一致することがaliasing候補です。alias境界も同じ物理resourceとしてhazard追跡され、必要なbarrierが入ります。aliasingは論理resourceの同時利用を許す機能ではなく、compileが非重複寿命を証明できた場合のmemory再利用です。</p>
+<p>external resourceはaliasing対象ではなく、graphも破棄しません。最終external writeの後には後段のcopy/presentから見えるよう保守的な終端barrierが入ります。ただしCPUから読む時点のGPU完了は別問題なので、sampleは<code>SubmitAndWait</code>後にpresentします。</p>
+<h2 id="frameresizedispose">1 frameごとの構築、resize、dispose</h2>
+<p>tutorialは毎frame、新しいRenderGraphへ現在のwidth/heightとframebufferを登録し、commandへexecuteしてsubmitします。graphはcompile後に変更できないため、毎frame再構築するとframe固有のresourceとpassを素直に表現できます。</p>
+<pre><code class="language-text">graphを構築
+  → passを登録
+  → command記録中にgraph.Execute(command)
+  → command.Finish()
+  → MainQueue.SubmitAndWait(command)
+  → graph.Dispose()
+  → external framebufferをPresent
+</code></pre>
+<p><strong>graphを<code>SubmitAndWait</code>より前にdisposeしてはいけません。</strong> disposeはgraph所有のtransient resourceを解放するため、GPUがまだ参照している可能性があります。現行sampleでは完了待ちの後にdisposeします。複数frameを同時進行させる場合はgraphまたはそのtransient allocationをframe slotが所有し、そのslotに対応するGPU処理の完了後に破棄・再利用します。</p>
+<p>resize時はqueue idle後にexternal framebufferを作り直し、次frameのgraphを新しいvisible width/heightとstrideから構築します。compile済みgraphのdescriptorだけを書き換えることはできません。最小化の0×0ではgraphや0-size textureを作らず描画を休止します。終了時も最後のsubmit完了後にgraphをdisposeし、external resource、pipeline、deviceの順に閉じます。</p>
+<h2 id="backend">Backend差</h2>
+<p>VulkanとD3D12でgraphの論理passと依存宣言は共通です。backend差はbarrier command、SPIR-V/DXIL、D3D12 readback row pitchなど下層へ閉じ込めます。post shaderのroot argumentsとbuffer strideは両backendで同じABIにし、visible widthとaligned strideを混同しません。graphを使ってもGPU完了やpresentが自動になるわけではありません。</p>
+<h2 id="validation-error">Validation errorの読み方</h2>
+<ul>
+<li><code>無効なハンドル</code> → default handle、ID 0、または範囲外handleをRead/Write/resolveしている。別graphのhandle混入は同じIDの誤参照になる場合もある</li>
+<li><code>CopyDest は書き込みです。 Write() を使ってください。</code> → write usageを<code>Read</code>へ渡した。<code>Write(handle, ResourceUsage.CopyDest)</code>へ直す</li>
+<li><code>SampledPixel は読み込みです。 Read() を使ってください。</code> → read usageをtextureの<code>Write</code>へ渡した。<code>Read(handle, TextureUsage.SampledPixel)</code>へ直す</li>
+<li><code>Compile/Execute 後にグラフを変更することはできません。</code> → <code>Execute</code>後にresource/passを追加した。次frame用graphを新しく作る</li>
+<li><code>リソース ... は未割当 (Compile 未実行)</code> → execute callback外など、compile前に物理resourceへ解決しようとした</li>
+<li>passが実行されない → external outputまで依存が届かずcullされた、またはbuilderの最後に<code>Execute(...)</code>しておらずpassが登録されていない</li>
+<li>画像が古い / 破損する → callbackで使ったresourceのRead/Write宣言漏れ、usage/stage違い、またはgraphをGPU完了前にdisposeした</li>
+<li>graphとpostの順が逆になる → 現在は登録順実行なのでproducer/consumerの追加順を確認</li>
+</ul>
+<h2 id="devtools">DevToolsで依存を見る</h2>
+<p><code>RenderGraph.Execute</code>は<code>EngineDiagnostics.RenderGraph</code>が有効なとき、compile後の<code>DiagRenderGraph</code>を発行します。<code>src/Luxel.Controls/RenderGraphNodes.cs</code>の<code>RenderGraphNodes.Build(...)</code>が、<strong>passをnode、resourceのwriter→reader依存をedge</strong>へ変換し、DevToolsの読み取り専用NodeGraphへ渡します。</p>
+<p>DevToolsではpass名、<code>Graphics</code> / <code>Compute</code>分類、Read/Write resource、<code>(culled)</code>表示、transientのphysical slot / alias情報を確認します。画面が空なら診断channelが有効か、graphが実際に<code>Execute</code>されたか、DevTools listenerが<code>EngineDiagnostics.RenderGraph</code>を購読しているかを順に確認してください。この経路は可視化であり、実行順変更やasync computeを行うschedulerではありません。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/RenderGraph&quot;, Order = 9, Toc = true)]
+public static StoryResult RenderGraph(StoryContext ctx)
+{
+    return $$&quot;&quot;&quot;
+    # RenderGraph
+
+    {{RenderingCourseCatalog.Meta(&quot;Learn/Graphics/RenderGraph&quot;, &quot;Beginner+&quot;, &quot;Standalone + DevTools&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;Synchronization&quot;)}}
+
+    RenderGraphは、複数passがどのresourceを読み書きするか宣言し、実行順の検証、barrier、不要passのculling、transient resourceの寿命をまとめて扱います。前ページの同期では手書きBarrierとSubmit系methodを扱いました。RenderGraphはそのうちpass間のGPU依存をRead/Write宣言から構成します。
+
+    実行sampleは `samples/LuxelTriangle/Program.cs`、`samples/LuxelTriangle/TriangleRenderer.cs`、`samples/LuxelTriangle/TutorialAbi.cs`、scene shaderの`shaders/tutorial_3d.slang`、post-process shaderの`shaders/compute_tutorial_postprocess.slang`です。sampleにはtextureやcameraを含む完成済みsceneを使いますが、このページではgraphのresourceとpass宣言だけに注目します。indexed meshとcameraの作り方は[Indexed Cube](story:Build/Recipes/IndexedCube)と[3D Camera](story:Build/Recipes/Camera3D)へ分けています。RenderGraph本体は`src/Luxel.RenderGraph/`にあります。
+
+    ## 実行と期待結果
+
+    ```powershell
+    dotnet build samples/LuxelTriangle/LuxelTriangle.csproj
+    dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter RenderGraphTests
+    dotnet run --project samples/LuxelTriangle -- vk --stage graph --frames 3
+    dotnet run --project samples/LuxelTriangle -- vk --stage post --frames 3
+    dotnet run --project samples/LuxelTriangle -- vk --stage post --size 801x603
+    # Windowsのみ
+    dotnet run --project samples/LuxelTriangle -- dx --stage graph --frames 3
+    dotnet run --project samples/LuxelTriangle -- dx --stage post --frames 3
+    ```
+
+    `graph`はdirect描画と同じ結果を1 passのRenderGraph経由で作り、移行前後の画像を比較する段階です。`post`はsceneをtransient color/depthへ描画し、colorをtransient bufferへcopyし、compute shaderで寒色のshadowと柔らかなvignetteを加えてexternal framebufferへ書きます。どちらも3 frame smokeが終了コード0で完了し、通常起動ではresize後も同じ構成を新しいsizeで再構築します。
+
+    shader sourceを変更した場合はcacheも更新します。
+
+    ```powershell
+    dotnet msbuild shaders/Luxel.ShaderCache.proj -t:CompileLuxelShaderCache
+    ```
+
+    ## 実sampleのgraph実装
+
+    以下は`TriangleRenderer.cs`の実regionです。Learnページ側に別実装を複製せず、solutionでbuildされるsourceを表示します。
+
+    {{SampleSource(&quot;samples/LuxelTriangle/TriangleRenderer.cs&quot;, &quot;render-graph-frame&quot;)}}
+
+    ## direct → graph → post
+
+    | stage | resourceとpass | 学ぶこと |
+    | --- | --- | --- |
+    | `lighting` | renderer所有のcolor/depthへ直接描画し、手書きbarrier後にframebufferへcopy | command順とresource寿命の基準 |
+    | `graph` | 同じ処理を1個のgraph passとして登録 | pass名、Read/Write宣言、Compile/Execute、移行時の同値性 |
+    | `post` | transient scene color/depth → copy用transient buffer → compute → external framebuffer | pass間依存、自動barrier、culling、transient寿命 |
+
+    最初から複雑なgraphへ書き換えず、まず1 passでdirect版と同じ画像を作ると、camera、pipeline、windingのbugとgraph宣言のbugを分けられます。その後、scene / copy / postへ分割します。
+
+    ## ExternalとTransient
+
+    **External resource**はgraphの外で作られ、`ImportBuffer`または`ImportTexture`で取り込みます。sampleの最終framebufferのように、presentや次frameでも必要なresourceです。所有者はrendererであり、RenderGraphをdisposeしてもexternal resourceは解放されません。
+
+    **Transient resource**は`CreateBuffer`または`CreateTexture`で論理的に宣言します。物理resourceはcompile時に割り当てられ、graphが所有し、graphのdisposeで解放されます。`post`のscene color、scene depth、copy用bufferはそのframeの途中だけ必要なのでtransientに適しています。
+
+    ```csharp
+    using var graph = new RenderGraph(_device);
+    TextureHandle sceneColor = graph.CreateTexture(
+        new TextureDesc(width, height, GpuFormat.Rgba8Unorm), &quot;SceneColor&quot;);
+    TextureHandle sceneDepth = graph.CreateTexture(
+        new TextureDesc(width, height, GpuFormat.D32Float, TextureKind.Depth), &quot;SceneDepth&quot;);
+    BufferHandle copiedColor = graph.CreateBuffer(
+        new BufferDesc(framebufferBytes, GpuMemoryKind.HostMapped), &quot;CopiedColor&quot;);
+    BufferHandle output = graph.ImportBuffer(_framebuffer, &quot;PresentFramebuffer&quot;);
+    ```
+
+    handleはgraph内の論理IDで、`GpuTexture`や`GpuBuffer`そのものではありません。execute callback内で`ctx.Texture(handle)` / `ctx.Buffer(handle)`に解決します。defaultのinvalid handleやcompile前の解決は失敗します。handle自体にはgraph識別子がないため、別graphのhandleを混ぜると同じIDの別resourceを誤参照し得ます。handleを作ったgraphのscopeから外へ持ち出さないでください。
+
+    ## Read / Writeが依存とbarrierを作る
+
+    ```csharp
+    graph.AddPass(&quot;Scene&quot;, PassQueue.Graphics)
+        .Write(sceneColor, TextureUsage.ColorAttachment)
+        .Write(sceneDepth, TextureUsage.DepthAttachment)
+        .Execute(ctx =&gt; RecordScene(ctx.Cmd, ctx.Texture(sceneColor), ctx.Texture(sceneDepth)));
+
+    graph.AddPass(&quot;CopyScene&quot;, PassQueue.Graphics)
+        .Read(sceneColor, TextureUsage.CopySource)
+        .Write(copiedColor, ResourceUsage.CopyDest)
+        .Execute(ctx =&gt; ctx.Cmd.CopyTextureToBuffer(
+            ctx.Texture(sceneColor), ctx.Buffer(copiedColor), stridePixels));
+
+    graph.AddPass(&quot;PostProcess&quot;, PassQueue.Compute)
+        .Read(copiedColor, ResourceUsage.StorageBufferRead)
+        .Write(output, ResourceUsage.StorageBufferWrite)
+        .Execute(ctx =&gt; RecordPost(ctx.Cmd, ctx.Buffer(copiedColor), ctx.Buffer(output)));
+    ```
+
+    宣言はdocumentationではなく実行計画の入力です。write→read、write→write、read→writeのhazardに対して、RenderGraphはpass境界へstage barrierを挿入します。同一pass内でrenderしてcopyするなど複数stageを使う場合、そのpass内部の順序と必要なbarrierはcallback側の責任です。passへ宣言していないresourceをcallbackで触るとgraphは依存を認識できません。
+
+    現在の実行順は**依存からtopological sortするのではなく、passの登録順そのまま**です。producerをconsumerより先に登録してください。`PassQueue.Graphics`と`PassQueue.Compute`は分類と診断に使われますが、**現在はどちらも`device.MainQueue`で実行**されます。公開されたasync compute実行やqueue間同期があるとは考えないでください。`AsyncCompute`をこのtutorialの並列実行手段として使いません。
+
+    ## Culling、aliasing、終端resource
+
+    compileはexternal resourceを最終成果物とみなし、それへ到達しないpassを後ろからcullします。たとえばdebug用transientへ書くだけで、その結果をexternal outputへつながないpassは実行されません。残したいpassは、その出力が最終framebufferまでRead/Write依存で到達するよう宣言します。「登録したから必ず実行される」わけではありません。
+
+    lifetimeが重ならない同形transientは同じ物理slotを共有できます。bufferはsizeとmemory kind、textureはwidth、height、format、color/depth kindが一致することがaliasing候補です。alias境界も同じ物理resourceとしてhazard追跡され、必要なbarrierが入ります。aliasingは論理resourceの同時利用を許す機能ではなく、compileが非重複寿命を証明できた場合のmemory再利用です。
+
+    external resourceはaliasing対象ではなく、graphも破棄しません。最終external writeの後には後段のcopy/presentから見えるよう保守的な終端barrierが入ります。ただしCPUから読む時点のGPU完了は別問題なので、sampleは`SubmitAndWait`後にpresentします。
+
+    ## 1 frameごとの構築、resize、dispose
+
+    tutorialは毎frame、新しいRenderGraphへ現在のwidth/heightとframebufferを登録し、commandへexecuteしてsubmitします。graphはcompile後に変更できないため、毎frame再構築するとframe固有のresourceとpassを素直に表現できます。
+
+    ```text
+    graphを構築
+      → passを登録
+      → command記録中にgraph.Execute(command)
+      → command.Finish()
+      → MainQueue.SubmitAndWait(command)
+      → graph.Dispose()
+      → external framebufferをPresent
+    ```
+
+    **graphを`SubmitAndWait`より前にdisposeしてはいけません。** disposeはgraph所有のtransient resourceを解放するため、GPUがまだ参照している可能性があります。現行sampleでは完了待ちの後にdisposeします。複数frameを同時進行させる場合はgraphまたはそのtransient allocationをframe slotが所有し、そのslotに対応するGPU処理の完了後に破棄・再利用します。
+
+    resize時はqueue idle後にexternal framebufferを作り直し、次frameのgraphを新しいvisible width/heightとstrideから構築します。compile済みgraphのdescriptorだけを書き換えることはできません。最小化の0&#215;0ではgraphや0-size textureを作らず描画を休止します。終了時も最後のsubmit完了後にgraphをdisposeし、external resource、pipeline、deviceの順に閉じます。
+
+    ## Backend差
+
+    VulkanとD3D12でgraphの論理passと依存宣言は共通です。backend差はbarrier command、SPIR-V/DXIL、D3D12 readback row pitchなど下層へ閉じ込めます。post shaderのroot argumentsとbuffer strideは両backendで同じABIにし、visible widthとaligned strideを混同しません。graphを使ってもGPU完了やpresentが自動になるわけではありません。
+
+    ## Validation errorの読み方
+
+    - `無効なハンドル` → default handle、ID 0、または範囲外handleをRead/Write/resolveしている。別graphのhandle混入は同じIDの誤参照になる場合もある
+    - `CopyDest は書き込みです。 Write() を使ってください。` → write usageを`Read`へ渡した。`Write(handle, ResourceUsage.CopyDest)`へ直す
+    - `SampledPixel は読み込みです。 Read() を使ってください。` → read usageをtextureの`Write`へ渡した。`Read(handle, TextureUsage.SampledPixel)`へ直す
+    - `Compile/Execute 後にグラフを変更することはできません。` → `Execute`後にresource/passを追加した。次frame用graphを新しく作る
+    - `リソース ... は未割当 (Compile 未実行)` → execute callback外など、compile前に物理resourceへ解決しようとした
+    - passが実行されない → external outputまで依存が届かずcullされた、またはbuilderの最後に`Execute(...)`しておらずpassが登録されていない
+    - 画像が古い / 破損する → callbackで使ったresourceのRead/Write宣言漏れ、usage/stage違い、またはgraphをGPU完了前にdisposeした
+    - graphとpostの順が逆になる → 現在は登録順実行なのでproducer/consumerの追加順を確認
+
+    ## DevToolsで依存を見る
+
+    `RenderGraph.Execute`は`EngineDiagnostics.RenderGraph`が有効なとき、compile後の`DiagRenderGraph`を発行します。`src/Luxel.Controls/RenderGraphNodes.cs`の`RenderGraphNodes.Build(...)`が、**passをnode、resourceのwriter→reader依存をedge**へ変換し、DevToolsの読み取り専用NodeGraphへ渡します。
+
+    DevToolsではpass名、`Graphics` / `Compute`分類、Read/Write resource、`(culled)`表示、transientのphysical slot / alias情報を確認します。画面が空なら診断channelが有効か、graphが実際に`Execute`されたか、DevTools listenerが`EngineDiagnostics.RenderGraph`を購読しているかを順に確認してください。この経路は可視化であり、実行順変更やasync computeを行うschedulerではありません。
+    &quot;&quot;&quot;;
+}</code></pre></details></article>
