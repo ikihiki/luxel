@@ -71,6 +71,9 @@ for (const story of pipelineStateStories) {
     const errors = collectErrors(page);
     await page.goto(`/samples/webgpu-browser/?story=${encodeURIComponent(story)}`);
     await expectRuntimeStory(page, story);
+    await expect.poll(() => page.evaluate(() =>
+      globalThis.luxelBrowserState?.widgets?.find(widget => widget.type?.endsWith('.GpuView'))?.detail || ''),
+      { timeout: 90_000 }).toContain('Ready');
     expect(errors.consoleErrors).toEqual([]);
     expect(errors.pageErrors).toEqual([]);
   });

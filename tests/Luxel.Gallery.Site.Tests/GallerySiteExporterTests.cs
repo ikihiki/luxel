@@ -70,6 +70,22 @@ public sealed class GallerySiteExporterTests
             Assert.NotNull(story.Build(context));
             Assert.Single(context.Plays);
         }
+        Assert.Contains("GpuPrimitiveTopology.TriangleStrip", Catalog.Find(paths[0])!.Source);
+        Assert.Contains("SetGraphicsPipeline", Catalog.Find(paths[0])!.Source);
+        Assert.Contains("SetRasterizerState", Catalog.Find(paths[1])!.Source);
+        Assert.Contains("GpuFormat.D32Float", Catalog.Find(paths[2])!.Source);
+        Assert.Contains("SetDepthStencilState", Catalog.Find(paths[2])!.Source);
+        Assert.Contains("SetBlendState", Catalog.Find(paths[3])!.Source);
+        Assert.Contains("GpuStencilFaceState", Catalog.Find(paths[4])!.Source);
+        Assert.Contains("SetStencilReference", Catalog.Find(paths[4])!.Source);
+        Assert.Contains("SetViewport", Catalog.Find(paths[5])!.Source);
+        Assert.Contains("SetScissor", Catalog.Find(paths[5])!.Source);
+        foreach (string stateSetter in new[]
+                 {
+                     "SetRasterizerState", "SetDepthStencilState", "SetBlendState", "SetViewport", "SetScissor",
+                 })
+            Assert.Contains(stateSetter, Catalog.Find(paths[6])!.Source);
+
         Assert.NotNull(Catalog.Find("Examples/3D/Depth"));
         Assert.NotNull(Catalog.Find("Examples/3D/Blend"));
 
