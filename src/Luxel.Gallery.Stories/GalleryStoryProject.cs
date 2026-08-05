@@ -13,12 +13,15 @@ public static class GalleryStoryProject
         var fullBuilder = new StoryCatalogBuilder();
         Luxel.Gallery.Generated.StoryRegistration_Luxel_Gallery_Stories.Register(fullBuilder);
         Stories.DocsApi.RegisterReferenceStories(fullBuilder);
-        foreach (StoryInfo story in fullBuilder.Build().All)
+        StoryCatalog fullCatalog = fullBuilder.Build();
+        foreach (StoryInfo story in fullCatalog.All)
         {
             // CoreUi owns every production component's exact canonical Overview/Basic fallback.
             // Other duplicates are composition errors rather than silently disappearing across projects.
-            if (CoreUiStoryProject.IsProductionCanonicalPath(story.Path)) continue;
+            if (CoreUiStoryProject.IsProductionCanonicalPath(story.Path) || builder.ContainsPath(story.Path)) continue;
             builder.Add(story);
+            if (story.Path.StartsWith("Learn/Graphics/", StringComparison.Ordinal))
+                builder.AddAlias("Learn/Grapics/" + story.Path["Learn/Graphics/".Length..], story.Path);
         }
     }
 

@@ -6,19 +6,19 @@ namespace Luxel.Gallery.Stories;
 /// <summary>初心者向けレンダリング学習経路。実行可能な正は samples/LuxelTriangle。</summary>
 public static partial class DocsRenderingLearn
 {
-    [Story("Learn/Grapics/Overview", Order = 0)]
-    public static Widget Overview(StoryContext ctx)
+    [Story("Learn/Graphics/Overview", Order = 0, Toc = true)]
+    public static StoryResult Overview(StoryContext ctx)
     {
-        return DocNew(ctx, $"""
-        # Grapics 学習ガイド
+        return $"""
+        # Graphics 学習ガイド
 
-        {RenderingCourseCatalog.Meta("Learn/Grapics/Overview", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "なし")}
+        {RenderingCourseCatalog.Meta("Learn/Graphics/Overview", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "なし")}
 
         この章は、Gallery のデモを見るだけでなく、自分のウィンドウへ描画できるところまでを順番に進みます。最小アプリの実装はリポジトリの `samples/LuxelTriangle/` が単一の正です。
 
         ## 推奨アプリ構築ルート
 
-        Grapics直下のページはリンク順に並びます。基礎ルートの後に2Dを置き、その下のInternalで2D rasterizerの内部実装を扱います。
+        Graphics直下のページはリンク順に並びます。基礎ルートの後に2Dを置き、その下のInternalで2D rasterizerの内部実装を扱います。
 
         {RenderingCourseCatalog.ApplicationRouteMarkdown()}
 
@@ -30,17 +30,17 @@ public static partial class DocsRenderingLearn
         ## どのAPIまで学ぶか
 
         三角形、buffer ABI、texture付きquad、shader、pipeline stateを順に学び、BarrierとSubmit系methodによる同期を整理してからRenderGraphへ進みます。`--stage graph`でdirect描画を1 passへ移し、`--stage post`でtransient resourceとcompute post-processを追加します。indexed meshとcameraの実装はBuildのRecipeへ分けています。
-        """, toc: true);
+        """;
     }
 
 
-    [Story("Learn/Grapics/Environment", Order = 1)]
-    public static Widget Environment(StoryContext ctx)
+    [Story("Learn/Graphics/Environment", Order = 1, Toc = true)]
+    public static StoryResult Environment(StoryContext ctx)
     {
-        return DocNew(ctx, $$"""
+        return $$"""
         # グラフィック環境
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/Environment", "Beginner", "Standalone + Browser", "Vulkan / Direct3D 12 / WebGPU", "Overview")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/Environment", "Beginner", "Standalone + Browser", "Vulkan / Direct3D 12 / WebGPU", "Overview")}}
 
         > [!NOTE]
         > `Luxel.Platform`と各platform実装はwindowの作成、event pump、clipboard、IME、低レベル入力をサポートします。通常のFrameworkアプリでは`Luxel.UI.App`の構成にdeviceとsurfaceの自動管理を任せられます。以下はgraphics APIを直接組み立てる低水準向けの例です。
@@ -157,17 +157,17 @@ public static partial class DocsRenderingLearn
         using GpuSurface surface = backend.CreateCanvasSurface(
             handle, width, height);
         ```
-        """, toc: true);
+        """;
     }
 
 
-    [Story("Learn/Grapics/ClearColor", Order = 2)]
-    public static Widget ClearColor(StoryContext ctx)
+    [Story("Learn/Graphics/ClearColor", Order = 2, Toc = true)]
+    public static StoryResult ClearColor(StoryContext ctx)
     {
-        return DocNew(ctx, $$"""
+        return $$"""
         # ClearColor
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/ClearColor", "Beginner", "Standalone + Gallery", "Vulkan / Direct3D 12 / WebGPU", "Environment")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/ClearColor", "Beginner", "Standalone + Gallery", "Vulkan / Direct3D 12 / WebGPU", "Environment")}}
 
         {{StoryRef(ctx, CanonicalClearColorRecipe.Story)}}
 
@@ -249,22 +249,22 @@ public static partial class DocsRenderingLearn
 
         D3D12のRGBA8 readbackでは各rowを256 byteへ揃えるため、slotごとに同じ`stridePixels`と必要byte数を確保します。`stridePixels`は64 pixel単位のaligned rowですが、`Present`へ渡す`width` / `height`はvisible sizeです。resizeでは使用中slotの完了を待ち、全framebufferを新しいsizeでまとめて作り直します。
 
-        tutorialはsingle framebuffer + `SubmitAndWait`を正とします。Barrierとqueue完了の使い分けは[同期](story:Learn/Grapics/Synchronization)で説明します。backend内部の完了機構は[GPU同期の内部実装](story:Internals/Gpu/Synchronization)で扱います。
+        tutorialはsingle framebuffer + `SubmitAndWait`を正とします。Barrierとqueue完了の使い分けは[同期](story:Learn/Graphics/Synchronization)で説明します。backend内部の完了機構は[GPU同期の内部実装](story:Internals/Gpu/Synchronization)で扱います。
 
         ## Resize
 
         resize callbackでは即座にGPU resourceを破棄せず、次のevent-loop iterationでqueueをidleにしてからsurface、render target、framebufferを作り直します。最小化中の0×0では描画を休止します。
-        """, toc: true);
+        """;
     }
 
 
-    [Story("Learn/Grapics/FirstTriangle", Order = 3, SampleBundle = "rendering.triangle")]
-    public static Widget FirstTriangle(StoryContext ctx)
+    [Story("Learn/Graphics/FirstTriangle", Order = 3, SampleBundle = "rendering.triangle", Toc = true)]
+    public static StoryResult FirstTriangle(StoryContext ctx)
     {
-        return DocNew(ctx, $$"""
+        return $$"""
         # 三角形表示
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/FirstTriangle", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "ClearColor")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/FirstTriangle", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "ClearColor")}}
 
         {{StoryRef(ctx, "Examples/3D/Triangle")}}
 
@@ -386,17 +386,17 @@ public static partial class DocsRenderingLearn
         - clear colorだけ見える → pipeline、shader名、root arguments、`Draw(3)`を確認
         - 三角形が崩れる → C# / Slangのstrideとfield順を確認
         - resize後だけ壊れる → queue idle後にtarget/framebufferを再生成したか確認
-        """, toc: true);
+        """;
     }
 
 
-    [Story("Learn/Grapics/Buffers", Order = 4)]
-    public static Widget Buffers(StoryContext ctx)
+    [Story("Learn/Graphics/Buffers", Order = 4, Toc = true)]
+    public static StoryResult Buffers(StoryContext ctx)
     {
-        return DocNew(ctx, $$"""
+        return $$"""
         # Buffers
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/Buffers", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "FirstTriangle")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/Buffers", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "FirstTriangle")}}
 
         {{StoryRef(ctx, "Examples/3D/BuffersAndBindings")}}
 
@@ -546,17 +546,17 @@ public static partial class DocsRenderingLearn
         - 三角形が崩れる → C# / Slangのsize、offset、stride、paddingを照合する
         - GPU validation / device lost → 寿命切れのbindless index、copy/barrier前後、範囲外offsetを確認する
         - CPU readbackが極端に遅い → `HostMapped`を直接読まず`HostCached`へGPU copyする
-        """, toc: true);
+        """;
     }
 
 
-    [Story("Learn/Grapics/Textures", Order = 5)]
-    public static Widget TexturesBasics(StoryContext ctx)
+    [Story("Learn/Graphics/Textures", Order = 5, Toc = true)]
+    public static StoryResult TexturesBasics(StoryContext ctx)
     {
-        return DocNew(ctx, $$"""
+        return $$"""
         # Textures
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/Textures", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "Buffers")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/Textures", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "Buffers")}}
 
         {{StoryRef(ctx, "Examples/3D/Textures")}}
 
@@ -676,17 +676,17 @@ public static partial class DocsRenderingLearn
         Slang source、RGBA channel順、UV規約、bindless indexはbackend共通です。VulkanはSPIR-Vとdescriptor array、D3D12はDXILとdescriptor heapを使います。linear filteringやfloat丸めによる数LSBの差はあり得ますが、上下反転、R/B交換、1 rowずれは許容差ではなくbugです。
 
         典型的な問題は、RGBA/BGRAの取り違え、UVの上下反転、textureとsamplerのindex入れ替え、upload rowのpadding混入、描画完了前のresource破棄です。
-        """, toc: true);
+        """;
     }
 
 
-    [Story("Learn/Grapics/Shaders", Order = 6)]
-    public static Widget Shaders(StoryContext ctx)
+    [Story("Learn/Graphics/Shaders", Order = 6, Toc = true)]
+    public static StoryResult Shaders(StoryContext ctx)
     {
-        return DocNew(ctx, $$"""
+        return $$"""
         # Shaders
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/Shaders", "Beginner", "Gallery + Standalone", "Vulkan / DirectX 12 / WebGPU", "Textures")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/Shaders", "Beginner", "Gallery + Standalone", "Vulkan / DirectX 12 / WebGPU", "Textures")}}
 
         shaderはGPU上で各頂点、pixel、またはdispatchされたthreadを処理するprogramです。この章では、Slangでshaderを書き、Luxelからresourceと値を渡し、実行時またはbuild前にcompileする流れを説明します。
 
@@ -868,17 +868,17 @@ public static partial class DocsRenderingLearn
         Linuxでは実行ファイル名に`.exe`を付けません。Windowsでは必要に応じてVulkanとDirectX 12の両方を起動し、cacheに各backend用artifactが含まれることを確認します。
 
         cacheが不足している、またはsourceと`inputs.sha256`が一致しない場合、通常buildは意図的に失敗します。`CompileLuxelShaderCache`を再実行し、生成物を更新してください。pipelineとshaderがGPU commandから参照されている間は破棄せず、sourceだけを変更した古いcacheを配布しないようにします。
-        """, toc: true);
+        """;
     }
 
 
-    [Story("Learn/Grapics/PipelineState", Order = 7)]
-    public static Widget PipelineState(StoryContext ctx)
+    [Story("Learn/Graphics/PipelineState", Order = 7, Toc = true)]
+    public static StoryResult PipelineState(StoryContext ctx)
     {
-        return DocNew(ctx, $$"""
+        return $$"""
         # Pipelineのその他の設定
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/PipelineState", "Beginner", "Gallery + Standalone", "Vulkan / DirectX 12 / WebGPU", "Shaders")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/PipelineState", "Beginner", "Gallery + Standalone", "Vulkan / DirectX 12 / WebGPU", "Shaders")}}
 
         shaderが「各頂点・pixelをどう計算するか」を決めるのに対し、graphics pipeline stateは「三角形をどう組み立て、どの面とpixelを残し、既存のrender targetへどう書き込むか」を決めます。Luxelでは固定pipeline stateを`GpuRasterDesc`へまとめ、`CreateGraphicsPipeline`時にshaderと組み合わせます。
 
@@ -1023,17 +1023,17 @@ public static partial class DocsRenderingLearn
         - **透明部分が黒い・縁が暗い**: straight alphaとpremultiplied alphaを混ぜていないか確認する。
         - **透明面の前後が逆**: transparent drawを奥から手前へsortし、depth writeを無効にする。
         - **resize後に欠ける**: color/depth targetを同じsizeで再作成し、次の`BeginRendering`で全viewport/scissorを設定する。
-        """, toc: true);
+        """;
     }
 
 
-    [Story("Learn/Grapics/Synchronization", Order = 8)]
-    public static Widget Synchronization(StoryContext ctx)
+    [Story("Learn/Graphics/Synchronization", Order = 8, Toc = true)]
+    public static StoryResult Synchronization(StoryContext ctx)
     {
-        return DocNew(ctx, $$"""
+        return $$"""
         # 同期
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/Synchronization", "Beginner+", "Standalone", "Vulkan / DirectX 12 / WebGPU", "Pipeline State")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/Synchronization", "Beginner+", "Standalone", "Vulkan / DirectX 12 / WebGPU", "Pipeline State")}}
 
         GPU commandは記録した順に並べるだけでは、前段の書き込みが後段の読み出しから正しく見えるとは限りません。また、`Submit`はGPU処理の完了を待ちません。このページでは、command内の実行・memory依存を表す`Barrier`と、commandをqueueへ投入してCPU側の完了境界を作るSubmit系methodを分けて説明します。
 
@@ -1203,7 +1203,7 @@ public static partial class DocsRenderingLearn
         - browserで`WaitIdle`が例外になる → `WaitIdleAsync`または`SubmitAsync`をawaitする。
         - resizeのたびに壊れる → queue完了前にsize依存resourceを作り直している。
         - 毎frame遅い → `SubmitAndWait`や`WaitIdle`でCPU/GPUを直列化している。
-        """, toc: true);
+        """;
     }
 
 }

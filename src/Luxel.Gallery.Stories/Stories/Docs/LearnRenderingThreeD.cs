@@ -6,13 +6,13 @@ namespace Luxel.Gallery.Stories;
 /// <summary>初心者向けRenderGraph教材。実行可能な正は samples/LuxelTriangle。</summary>
 public static partial class DocsRenderingLearn
 {
-    [Story("Learn/Grapics/RenderGraph", Order = 9)]
-    public static Widget RenderGraph(StoryContext ctx)
+    [Story("Learn/Graphics/RenderGraph", Order = 9, Toc = true)]
+    public static StoryResult RenderGraph(StoryContext ctx)
     {
-        return DocNew(ctx, $$"""
+        return $$"""
         # RenderGraph
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/RenderGraph", "Beginner+", "Standalone + DevTools", "Vulkan / DirectX 12", "Synchronization")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/RenderGraph", "Beginner+", "Standalone + DevTools", "Vulkan / DirectX 12", "Synchronization")}}
 
         RenderGraphは、複数passがどのresourceを読み書きするか宣言し、実行順の検証、barrier、不要passのculling、transient resourceの寿命をまとめて扱います。前ページの同期では手書きBarrierとSubmit系methodを扱いました。RenderGraphはそのうちpass間のGPU依存をRead/Write宣言から構成します。
 
@@ -144,6 +144,6 @@ public static partial class DocsRenderingLearn
         `RenderGraph.Execute`は`EngineDiagnostics.RenderGraph`が有効なとき、compile後の`DiagRenderGraph`を発行します。`src/Luxel.Controls/RenderGraphNodes.cs`の`RenderGraphNodes.Build(...)`が、**passをnode、resourceのwriter→reader依存をedge**へ変換し、DevToolsの読み取り専用NodeGraphへ渡します。
 
         DevToolsではpass名、`Graphics` / `Compute`分類、Read/Write resource、`(culled)`表示、transientのphysical slot / alias情報を確認します。画面が空なら診断channelが有効か、graphが実際に`Execute`されたか、DevTools listenerが`EngineDiagnostics.RenderGraph`を購読しているかを順に確認してください。この経路は可視化であり、実行順変更やasync computeを行うschedulerではありません。
-        """, toc: true);
+        """;
     }
 }

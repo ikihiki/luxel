@@ -23,6 +23,25 @@ public sealed class StoryResultTests
     }
 
     [Fact]
+    public void Interpolated_story_result_preserves_markdown_fragments_and_widgets()
+    {
+        Widget widget = Luxel.Controls.Kit.Text("live");
+        Luxel.Controls.DocMarkdown source = new("```csharp\nint x = 1;\n```");
+        StoryResult result = $$"""
+            # Direct document
+
+            {{source}}
+
+            {{widget}}
+            """;
+
+        Assert.Contains("int x = 1", result.Markdown, StringComparison.Ordinal);
+        StoryMarkdownEmbed embed = Assert.Single(result.Embeds);
+        Assert.Same(widget, embed.Widget);
+        Assert.Contains("```luxel-ui", result.Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Story_args_are_canonical_and_arg_seeds_first_build()
     {
         StoryArgs args = StoryArgs.Parse("{\"label\":\"Save\",\"count\":3}");

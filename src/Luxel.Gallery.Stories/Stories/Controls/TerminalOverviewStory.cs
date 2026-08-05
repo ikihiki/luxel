@@ -7,11 +7,11 @@ namespace Luxel.Gallery.Stories;
 /// <summary>Terminal control overview and integration guide.</summary>
 public static class TerminalOverviewStory
 {
-    [Story("Controls/Terminal/Overview", Order = 0)]
-    public static Widget Overview(StoryContext ctx)
+    [Story("Controls/Terminal/Overview", Order = 0, Toc = true)]
+    public static StoryResult Overview(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());
-        return DocNew(ctx, $$"""
+        return $$"""
         # 端末エミュレータ (Luxel.Terminal)
 
         Luxelの端末機能は、VT/ANSIを解釈するOS非依存コア、OSごとのPTY backend、Luxel UIへ描画する`TerminalView`の3層です。WindowsではConPTY、LinuxではUnix PTYを使用します。`Luxel.Controls`とは相互に依存せず、アプリが必要な層だけを組み合わせます。
@@ -139,6 +139,6 @@ public static class TerminalOverviewStory
         primary fontとNerd Font fallbackを分ける場合は`--nerd-font`、配置を調整する場合は`--cell-width`、`--cell-height`、`--glyph-offset-x/y`、`--glyph-scale`、`--advance-scale`を指定します。oh-my-poshは通常どおり`.bashrc`や`.zshrc`から初期化してください。
 
         Linuxの初期support targetはglibc x64です。WindowsではConPTYが利用可能な環境が必要です。Linux Native AOT publish手順を含む詳細なCLI例は`samples/LuxelTerminal/README.md`を参照してください。
-        """, toc: true);
+        """;
     }
 }

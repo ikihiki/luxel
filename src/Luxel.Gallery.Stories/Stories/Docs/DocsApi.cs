@@ -25,8 +25,8 @@ public static class DocsApi
 
         foreach (string ns in TypeApiRegistry.Namespaces)
             builder.Add(new StoryInfo($"Reference/{ns}", 0, 0, null,
-                ctx => NamespacePage(ctx, ns), Order: 60,
-                ResultBuild: ctx => NamespacePage(ctx, ns)), replaceGenerated: true);
+                static _ => Spacer(), Order: 60,
+                ResultBuild: ctx => NamespacePage(ctx, ns), Toc: true), replaceGenerated: true);
 
         foreach (ControlApi api in ControlApiRegistry.All)
         {
@@ -35,10 +35,10 @@ public static class DocsApi
             if (category is null || !categories.Add(category)) continue;
             builder.Add(api.Name == "Button"
                 ? new StoryInfo("Controls/Button/Overview", 0, 0, null,
-                    ctx => ControlPage(ctx, api), Order: 0,
+                    static _ => Spacer(), Order: 0,
                     ResultBuild: static _ => ButtonOverview())
                 : new StoryInfo($"Controls/{category}/Overview", 0, 0, null,
-                    ctx => ControlPage(ctx, api), Order: 0,
+                    static _ => Spacer(), Order: 0,
                     ResultBuild: ctx => ControlPage(ctx, api)), replaceGenerated: true);
         }
 
@@ -48,11 +48,11 @@ public static class DocsApi
     }
 
     private static void RegisterSpecialControlPage(StoryCatalogBuilder builder, HashSet<string> categories,
-        string category, Func<StoryContext, Widget> build)
+        string category, Func<StoryContext, StoryResult> build)
     {
         if (!categories.Add(category)) return;
-        builder.Add(new StoryInfo($"Controls/{category}/Overview", 0, 0, null, build, Order: 0,
-            ResultBuild: ctx => build(ctx)), replaceGenerated: true);
+        builder.Add(new StoryInfo($"Controls/{category}/Overview", 0, 0, null, static _ => Spacer(), Order: 0,
+            ResultBuild: build), replaceGenerated: true);
     }
 
     private static void RegisterReferenceStories()
@@ -65,8 +65,8 @@ public static class DocsApi
                 string ns = value;
                 if (!RegisteredNamespaces.Add(ns)) continue;
                 StoryRegistry.Register(new StoryInfo($"Reference/{ns}", 0, 0, null,
-                    ctx => NamespacePage(ctx, ns), Order: 60,
-                    ResultBuild: ctx => NamespacePage(ctx, ns)));
+                    static _ => Spacer(), Order: 60,
+                    ResultBuild: ctx => NamespacePage(ctx, ns), Toc: true));
             }
 
             foreach (ControlApi value in ControlApiRegistry.All)
@@ -76,7 +76,7 @@ public static class DocsApi
                 string? category = ExistingControlCategory(api.Name);
                 if (category is null || !RegisteredControlCategories.Add(category)) continue;
                 StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview", 0, 0, null,
-                    ctx => ControlPage(ctx, api), Order: 0,
+                    static _ => Spacer(), Order: 0,
                     ResultBuild: ctx => ControlPage(ctx, api)));
             }
 
@@ -86,11 +86,11 @@ public static class DocsApi
         }
     }
 
-    private static void RegisterSpecialControlPage(string category, Func<StoryContext, Widget> build)
+    private static void RegisterSpecialControlPage(string category, Func<StoryContext, StoryResult> build)
     {
         if (!RegisteredControlCategories.Add(category)) return;
-        StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview", 0, 0, null, build, Order: 0,
-            ResultBuild: ctx => build(ctx)));
+        StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview", 0, 0, null, static _ => Spacer(), Order: 0,
+            ResultBuild: build));
     }
 
     private static string? ExistingControlCategory(string apiName) => apiName switch
@@ -104,7 +104,7 @@ public static class DocsApi
         _ => apiName,
     };
 
-    private static Widget NamespacePage(StoryContext ctx, string ns)
+    private static StoryResult NamespacePage(StoryContext ctx, string ns)
     {
         IReadOnlyList<TypeApi> types = TypeApiRegistry.InNamespace(ns);
         var s = new DocString(512, types.Count);
@@ -116,7 +116,7 @@ public static class DocsApi
             s.AppendFormatted(TypeApiReference($"{ns}.{type.Name}"));
             s.AppendLiteral("\n");
         }
-        return DocNew(ctx, s, toc: true);
+        return StoryResult.FromDocument(s.Markdown, s.Embeds);
     }
 
     private static StoryResult ButtonOverview() => $$"""
@@ -132,16 +132,16 @@ public static class DocsApi
         overview remains semantic HTML.
         """;
 
-    private static Widget ControlPage(StoryContext ctx, ControlApi api)
+    private static StoryResult ControlPage(StoryContext ctx, ControlApi api)
     {
         var s = new DocString(256, 1);
         s.AppendLiteral($"# {api.Name}\n\n");
         s.AppendLiteral($"`{api.Namespace}` のコントロール API です。コンストラクタ引数・イベント・パラメータは `[UiComponent]` のソースと XML doc コメントから生成されます。\n\n");
         s.AppendFormatted(ControlApiReference(api.Name));
-        return DocNew(ctx, s);
+        return StoryResult.FromDocument(s.Markdown, s.Embeds);
     }
 
-    private static Widget LayoutPage(StoryContext ctx)
+    private static StoryResult LayoutPage(StoryContext ctx)
     {
         var s = new DocString(384, 4);
         s.AppendLiteral("# Layout\n\n`Controls/Layout` のデモで使う基本レイアウトコントロールです。個別カテゴリを持たないプリミティブをまとめています。\n");
@@ -150,10 +150,10 @@ public static class DocsApi
             s.AppendLiteral($"\n## {name}\n\n");
             s.AppendFormatted(ControlApiReference(name));
         }
-        return DocNew(ctx, s, toc: true);
+        return StoryResult.FromDocument(s.Markdown, s.Embeds);
     }
 
-    private static Widget KitPage(StoryContext ctx) => DocNew(ctx, $$"""
+    private static StoryResult KitPage(StoryContext ctx) => $$"""
         # Kit
 
         `Luxel.Controls.Kit` の複合helperです。`[UiComponent]` ではないため生成 `ApiTable` は持たず、公開signatureをここにまとめます。
@@ -172,9 +172,9 @@ public static class DocsApi
         ```
 
         実例は [Badges](story:Controls/Kit/Badges) / [Alert](story:Controls/Kit/Alert) / [Typography](story:Controls/Kit/Typography) へ。
-        """, toc: true);
+        """;
 
-    private static Widget CommandPalettePage(StoryContext ctx) => DocNew(ctx, $$"""
+    private static StoryResult CommandPalettePage(StoryContext ctx) => $$"""
         # CommandPalette
 
         `CommandPalette` は `[UiComponent]` ではなく、前面overlayへパレットを開くstatic APIです。
@@ -187,7 +187,7 @@ public static class DocsApi
         ```
 
         戻り値の `PaletteView` はplay/testで現在の絞り込み結果 (`Filtered`) と入力欄 (`Field`) を参照できます。実例は [Basic](story:Controls/CommandPalette/Basic) へ。
-        """, toc: true);
+        """;
 
     internal static DocEmbed ControlApiReference(string name, bool inherited = false, float width = 720f)
         => new(global::Luxel.Gallery.UI.Kit.ApiTable(name, inherited: inherited, width: width), DocEmbedKind.ControlApiTable, name,

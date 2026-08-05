@@ -75,6 +75,20 @@ public sealed class StoryGeneratorTests
     }
 
     [Fact]
+    public void Direct_markdown_story_and_toc_metadata_are_emitted_from_the_return_type()
+    {
+        GeneratorDriverRunResult result = Run("""
+            [Story("Learn/Graphics/2D/Overview", Toc = true)]
+            public static StoryResult Overview() => new StoryResult();
+            """);
+
+        string generated = Assert.Single(result.GeneratedTrees).ToString();
+        Assert.Contains("ResultBuild: static ctx => global::Demo.Stories.Overview()", generated, StringComparison.Ordinal);
+        Assert.Contains("Toc: true", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("DocNew", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Explicit_semantic_result_provider_is_emitted_without_invoking_story_dependencies()
     {
         GeneratorDriverRunResult result = Run("""
@@ -137,6 +151,7 @@ public sealed class StoryGeneratorTests
                     public int Order { get; set; }
                     public string? Theme { get; set; }
                     public bool RealWindowOnly { get; set; }
+                    public bool Toc { get; set; }
                     public string? SampleBundle { get; set; }
                     public string? RuntimeBundleId { get; set; }
                     public string? Args { get; set; }
@@ -156,7 +171,7 @@ public sealed class StoryGeneratorTests
                     Func<StoryContext, Widget> Build, int Order = 1000, string? Source = null, bool RealWindowOnly = false, string? SampleBundle = null,
                     Func<StoryContext, StoryResult>? ResultBuild = null, string? RuntimeBundleId = null,
                     System.Collections.Generic.IReadOnlyList<StoryArgDefinition>? ArgDefinitions = null,
-                    string? CapabilityNote = null);
+                    string? CapabilityNote = null, bool Toc = false);
                 public static class StoryRegistry { public static void Register(StoryInfo story) { } }
             }
 

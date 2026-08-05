@@ -35,6 +35,8 @@ public sealed class StoryAttribute(string path) : Attribute
     public string? RuntimeBundleId { get; set; }
     /// <summary>Human-readable deterministic fixture/capability note exported with runtime descriptors.</summary>
     public string? CapabilityNote { get; set; }
+    /// <summary>true のとき Markdown 文書へ H2/H3 の目次を生成する。</summary>
+    public bool Toc { get; set; }
     /// <summary>Optional static semantic result provider used by host-free exporters.</summary>
     public string? Result { get; set; }
     /// <summary>Optional static schema provider method on the declaring story type.</summary>
@@ -430,6 +432,7 @@ public sealed record StoryInfo(string Path, int Width, int Height, string? Theme
                                int Order = 1000, string? Source = null, bool RealWindowOnly = false, string? SampleBundle = null,
                                Func<StoryContext, StoryResult>? ResultBuild = null, string? RuntimeBundleId = null,
                                IReadOnlyList<StoryArgDefinition>? ArgDefinitions = null, string? CapabilityNote = null,
+                               bool Toc = false,
                                StoryRegistrationKind RegistrationKind = StoryRegistrationKind.Authored,
                                GeneratedComponentStoryDescriptor? ProductionComponent = null)
 {

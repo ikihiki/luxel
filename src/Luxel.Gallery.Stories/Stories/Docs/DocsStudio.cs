@@ -9,11 +9,11 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsStudio
 {
-    [Story("Reference/Guides/Studio", Order = 44)]
-    public static Widget Studio(StoryContext ctx)
+    [Story("Reference/Guides/Studio", Order = 44, Toc = true)]
+    public static StoryResult Studio(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());
-        return DocNew(ctx, $$"""
+        return $$"""
         # Luxel Studio (ゲームエディタ)
 
         **C# ソリューションを書かずに** — プロジェクト作成 → シーン編集 → csx で挙動 → エディタ内プレイ → フォルダごと出荷 — を完走するためのエディタ群です。決定は [ADR-0015](story:Internals/ADR/0015-Game-Project-Scene-Format) (形式) / [ADR-0016](story:Internals/ADR/0016-Scene-Editor-Stack) (シーンエディタ) / [ADR-0017](story:Internals/ADR/0017-Play-In-Editor) (プレイ) / [ADR-0018](story:Internals/ADR/0018-Csx-Behaviour-Model) (csx)。通し実演は [Apps/Studio/Shell](story:Apps/Studio/Shell)、[Apps/Studio/CoinGame](story:Apps/Studio/CoinGame)、[Apps/Studio/Mixed3D](story:Apps/Studio/Mixed3D)。
@@ -64,6 +64,6 @@ public static class DocsStudio
         ## 現状の制約
 
         2D タイル/エンティティと 3D メッシュの見た目はプレースホルダ描画です。3D は glb 参照の存在検証とワイヤ表示までで、フル `scene_pbr` / glTF 展開 / Bepu 物理統合は実アセット描画フェーズで接続します。音は未配線。Studio Shell は Gallery story 上の hermetic 実証で、実 FS / マルチウィンドウ / 外部アセット監視の完全 UX は後続です。
-        """, toc: true);
+        """;
     }
 }

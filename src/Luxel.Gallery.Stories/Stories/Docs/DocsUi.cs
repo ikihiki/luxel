@@ -9,8 +9,8 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
 public static class DocsUi
 {
-    [Story("Reference/Guides/UI", Order = 20)]
-    public static Widget Ui(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/UI", Order = 20, Toc = true)]
+    public static StoryResult Ui(StoryContext ctx) => $$"""
         # 宣言的 UI (Luxel.UI)
 
         保持型 2D 層 (RetainedCanvas) の上に、**宣言的 C# DSL + signals (細粒度リアクティブ) + 単一パスレイアウト + 入力**を提供します。フレームワークは仮想 DOM を持たず、変わった値だけが保持型キャンバスの部分更新に落ちます。
@@ -48,10 +48,10 @@ public static class DocsUi
         `UiHost` がポインタ/キー/IME を前面優先でディスパッチします (Esc → Tab → フォーカス → フォーカス中コントロール → アプリ全域ショートカットの順)。ユーザーコード (Build / Effect / 入力ハンドラ) の例外は**エラー境界**が捕捉し、該当サブツリーを赤枠の ErrorWidget に縮退させます — アプリ全体は落ちません。
 
         次: [Reference/Guides/Controls](story:Reference/Guides/Controls) (組み込みコントロールと独自コントロール) / [Reference/Guides/Styling](story:Reference/Guides/Styling) (状態別スタイルと Tailwind)。
-        """, toc: true);
+        """;
 
-    [Story("Reference/Guides/Controls", Order = 21)]
-    public static Widget Controls(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/Controls", Order = 21, Toc = true)]
+    public static StoryResult Controls(StoryContext ctx) => $$"""
         # コントロール (Luxel.Controls)
 
         Button から RichTextEditor まで 40 超のコントロール群です。**実物はサイドバーの各章にあります** — このページは地図と、独自コントロールの書き方です。各コントロールの引数/イベント/パラメータは、そのカテゴリ直下の `Overview` (例: [Controls/Button/Overview](story:Controls/Button/Overview)) にあります。
@@ -114,10 +114,10 @@ public static class DocsUi
         - **オフセットだけでなく内容長/ビューポート長も Signal** — `SetLengths(contentH, viewH)` を Refresh/レイアウトから毎回呼ぶ (同値なら発火しない)。幅変更で内容高が変わっても、`model.Clamped` を読む effect (content transform) が再実行され、**スクロール位置は保たれたまま**新しい範囲へクランプされる
         - model を **フィールドで持てば再実体化をまたいで位置が生き残る**
         - 平滑スクロール (UiStates) と併用するときは `displayOffset` に動的値、`onDirectChange` でドラッグの即時チャネルへ切り替える (ScrollViewer/ListView の形)
-        """, toc: true);
+        """;
 
-    [Story("Reference/Guides/Styling", Order = 23)]
-    public static Widget Styling(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/Styling", Order = 23, Toc = true)]
+    public static StoryResult Styling(StoryContext ctx) => $$"""
         # スタイリングと Tailwind
 
         コントロールの見た目は 3 つの層で決まります: **① テーマ既定** (Variant × Intent) → **② ファクトリ引数** (background 等の個別指定) → **③ 状態レイヤ** (fluent `.When(state, ...)` の override)。後の層ほど強く、CSS の specificity と同じ感覚です。
@@ -162,10 +162,10 @@ public static class DocsUi
         {{StoryRef(ctx, "Examples/Animation/Transitions")}}
 
         設計ノート: 状態別スタイルを「引数と同名の型付き宣言」にしたのは Tailwind の hover: / MUI sx / Flutter WidgetState と同じ発想です。テーマを経由しない一発指定と、テーマ経由の既定解決が同居し、どちらもトランジションに乗ります。
-        """, toc: true);
+        """;
 
-    [Story("Reference/Guides/Button", Order = 22)]
-    public static Widget ButtonDocs(StoryContext ctx) => DocNew(ctx, $$"""
+    [Story("Reference/Guides/Button", Order = 22, Toc = true)]
+    public static StoryResult ButtonDocs(StoryContext ctx) => $$"""
         # Button
 
         ボタンは **Variant × Intent × 状態** から配色を解決します。未指定のプロパティはテーマ値へフォールバックし、hover/press はトランジション (状態機械) で補間されます。
@@ -194,5 +194,5 @@ public static class DocsUi
         ## API
 
         {{DocsApi.ControlApiReference("Button")}}
-        """, toc: true);
+        """;
 }

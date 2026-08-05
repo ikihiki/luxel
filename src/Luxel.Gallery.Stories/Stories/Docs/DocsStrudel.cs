@@ -8,8 +8,8 @@ namespace Luxel.Gallery.Stories;
 /// <summary>Docs: Strudel (パターン言語 + シーケンシング層) の概念ページ。</summary>
 public static class DocsStrudel
 {
-    [Story("Reference/Guides/Strudel", Order = 55)]
-    public static Widget Strudel(StoryContext ctx) => ctx.Snap(DocNew(ctx, $$"""
+    [Story("Reference/Guides/Strudel", Order = 55, Toc = true)]
+    public static StoryResult Strudel(StoryContext ctx) => $$"""
         # ライブコーディング (Luxel.Strudel)
 
         [Strudel](https://strudel.cc) (TidalCycles の JS 版) のパターン言語を C# で実装したものです。実演は {{StoryRef(ctx, "Examples/Strudel/Repl")}} へ。2 層に分かれます:
@@ -86,5 +86,5 @@ public static class DocsStrudel
 
         > [!NOTE]
         > 実装済み: ミニ記法の全記法・scale/chord・filter/delay・wav サンプル (`SampleInstrument`)・MIDI out (`MidiOutSink`)。MIDI の実デバイス送出は実機依存のため、自動テストはメッセージ生成まで (送出は実機スモーク)。
-        """, toc: true));
+        """;
 }
