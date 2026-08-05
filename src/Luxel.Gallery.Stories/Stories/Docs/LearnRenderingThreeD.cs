@@ -12,7 +12,7 @@ public static partial class DocsRenderingLearn
         return DocNew(ctx, $"""
         # Texture付きquad
 
-        {RenderingCourseCatalog.Meta("Learn/Grapics/ThreeD/Textures", "Beginner", "Standalone", "Vulkan / DirectX 12", "Shaders")}
+        {RenderingCourseCatalog.Meta("Learn/Grapics/ThreeD/Textures", "Beginner", "Standalone", "Vulkan / DirectX 12", "RenderGraph")}
 
         実行可能な正は `samples/LuxelTriangle/TriangleRenderer.cs`、ABIは `samples/LuxelTriangle/TutorialAbi.cs`、shaderは `shaders/tutorial_3d.slang` です。この段階では4頂点・6 indexのquadへ小さなRGBA checker textureを貼ります。
 
@@ -236,15 +236,17 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Grapics/ThreeD/FirstRenderGraph", Order = 10)]
-    public static Widget FirstRenderGraph(StoryContext ctx)
+    [Story("Learn/Grapics/RenderGraph", Order = 9)]
+    public static Widget RenderGraph(StoryContext ctx)
     {
         return DocNew(ctx, $$"""
-        # はじめてのRenderGraph
+        # RenderGraph
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/ThreeD/FirstRenderGraph", "Beginner+", "Standalone + DevTools", "Vulkan / DirectX 12", "FrameLoopAndSynchronization")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/RenderGraph", "Beginner+", "Standalone + DevTools", "Vulkan / DirectX 12", "Fence")}}
 
-        sampleは `samples/LuxelTriangle/Program.cs`、`samples/LuxelTriangle/TriangleRenderer.cs`、`samples/LuxelTriangle/TutorialAbi.cs`、scene shaderの`shaders/tutorial_3d.slang`、post-process shaderの`shaders/compute_tutorial_postprocess.slang`です。RenderGraph本体は`src/Luxel.RenderGraph/`にあります。
+        RenderGraphは、複数passがどのresourceを読み書きするか宣言し、実行順の検証、barrier、不要passのculling、transient resourceの寿命をまとめて扱います。前ページのFenceがCPUとsubmit完了の境界を扱うのに対し、RenderGraphは主にsubmit内部のGPU処理を構成します。
+
+        実行sampleは `samples/LuxelTriangle/Program.cs`、`samples/LuxelTriangle/TriangleRenderer.cs`、`samples/LuxelTriangle/TutorialAbi.cs`、scene shaderの`shaders/tutorial_3d.slang`、post-process shaderの`shaders/compute_tutorial_postprocess.slang`です。sampleの見た目には後続の3D章で説明するtexture、camera、depth、lightingも含まれますが、このページではgraphのresourceとpass宣言だけに注目します。RenderGraph本体は`src/Luxel.RenderGraph/`にあります。
 
         ## 実行と期待結果
 
@@ -259,7 +261,7 @@ public static partial class DocsRenderingLearn
         dotnet run --project samples/LuxelTriangle -- dx --stage post --frames 3
         ```
 
-        `graph`はlightingと同じcubeを1 passのRenderGraph経由で描き、移行前後の画像を比較する段階です。`post`はsceneをtransient color/depthへ描画し、colorをtransient bufferへcopyし、compute shaderで寒色のshadowと柔らかなvignetteを加えてexternal framebufferへ書きます。どちらも3 frame smokeが終了コード0で完了し、通常起動ではresize後も同じ構成を新しいsizeで再構築します。
+        `graph`はdirect描画と同じ結果を1 passのRenderGraph経由で作り、移行前後の画像を比較する段階です。`post`はsceneをtransient color/depthへ描画し、colorをtransient bufferへcopyし、compute shaderで寒色のshadowと柔らかなvignetteを加えてexternal framebufferへ書きます。どちらも3 frame smokeが終了コード0で完了し、通常起動ではresize後も同じ構成を新しいsizeで再構築します。
 
         shader sourceを変更した場合はcacheも更新します。
 
@@ -383,7 +385,7 @@ public static partial class DocsRenderingLearn
         return DocNew(ctx, $$"""
         # ECSなしで静的glTFを描く
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/ThreeD/StaticGltf", "Beginner+", "Gallery / Standalone", "Vulkan / DirectX 12", "FirstRenderGraph")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/ThreeD/StaticGltf", "Beginner+", "Gallery / Standalone", "Vulkan / DirectX 12", "DepthCullingLighting")}}
 
         {{StoryRef(ctx, "Examples/3D/GltfBox")}}
 

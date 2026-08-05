@@ -1004,9 +1004,9 @@ public sealed class GallerySiteExporterTests
             "Learn/Grapics/Overview", "Learn/Grapics/Environment",
             "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
             "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
-            "Learn/Grapics/PipelineState", "Learn/Grapics/FrameLoopAndSynchronization", "Learn/Grapics/ThreeD/Textures",
-            "Learn/Grapics/ThreeD/TransformsAndCamera", "Learn/Grapics/ThreeD/DepthCullingLighting",
-            "Learn/Grapics/ThreeD/FirstRenderGraph", "Learn/Grapics/ThreeD/StaticGltf",
+            "Learn/Grapics/PipelineState", "Learn/Grapics/Fence", "Learn/Grapics/RenderGraph",
+            "Learn/Grapics/ThreeD/Textures", "Learn/Grapics/ThreeD/TransformsAndCamera",
+            "Learn/Grapics/ThreeD/DepthCullingLighting", "Learn/Grapics/ThreeD/StaticGltf",
             "Learn/Grapics/ThreeD/Debugging", "Learn/Grapics/ThreeD/Shipping",
         ];
 
@@ -1031,9 +1031,9 @@ public sealed class GallerySiteExporterTests
             "Learn/Grapics/Overview", "Learn/Grapics/Environment",
             "Learn/Grapics/ClearColor", "Learn/Grapics/FirstTriangle",
             "Learn/Grapics/Buffers", "Learn/Grapics/Textures", "Learn/Grapics/Shaders",
-            "Learn/Grapics/PipelineState", "Learn/Grapics/FrameLoopAndSynchronization", "Learn/Grapics/ThreeD/Textures",
-            "Learn/Grapics/ThreeD/TransformsAndCamera", "Learn/Grapics/ThreeD/DepthCullingLighting",
-            "Learn/Grapics/ThreeD/FirstRenderGraph", "Learn/Grapics/ThreeD/StaticGltf",
+            "Learn/Grapics/PipelineState", "Learn/Grapics/Fence", "Learn/Grapics/RenderGraph",
+            "Learn/Grapics/ThreeD/Textures", "Learn/Grapics/ThreeD/TransformsAndCamera",
+            "Learn/Grapics/ThreeD/DepthCullingLighting", "Learn/Grapics/ThreeD/StaticGltf",
             "Learn/Grapics/ThreeD/Debugging", "Learn/Grapics/ThreeD/Shipping",
         ];
         StoryInfo[] stories = routes.Select(name => Catalog.Find(name)
@@ -1084,6 +1084,9 @@ public sealed class GallerySiteExporterTests
                      "CopyTextureToBuffer", "Finish", "SubmitAndWait", "surface.Present",
                  })
             Assert.Contains(api, clearColor);
+        Assert.Contains("## Framebufferのバッファリング", clearColor);
+        Assert.Contains("single framebuffer + `SubmitAndWait`", clearColor);
+        Assert.Contains("story:Learn/Grapics/Fence", clearColor);
         Assert.DoesNotContain("## 実sampleのframe loop", clearColor);
         Assert.DoesNotContain("SampleSource(\"samples/LuxelTriangle/Program.cs\", \"standalone-frame-loop\")", clearColor);
 
@@ -1202,6 +1205,37 @@ public sealed class GallerySiteExporterTests
             embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/3D/Depth");
         Assert.Contains(pipelineDocument.DocumentEmbeds,
             embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/3D/Blend");
+
+        string fencePage = pages["Learn/Grapics/Fence"].Text;
+        Assert.Contains("# FenceとGPU同期", fencePage);
+        foreach (string fenceTopic in new[]
+                 {
+                     "## CPUとGPUは別のtimelineで進む", "## Fenceの基本操作",
+                     "## SubmitAndWaitとWaitIdleとの違い", "## Frame slotとFence",
+                     "## Resourceごとの完了境界", "## RenderGraphとの関係",
+                 })
+            Assert.Contains(fenceTopic, fencePage);
+        foreach (string fenceTerm in new[]
+                 {
+                     "CompletedValue", "fence.Wait", "SubmitAndWait", "WaitIdle",
+                     "現在のLuxel公開APIにはGpuFenceはまだありません", "story:Learn/Grapics/RenderGraph",
+                 })
+            Assert.Contains(fenceTerm, fencePage);
+        Assert.DoesNotContain("## Present、VSync、frame pacing", fencePage);
+
+        string renderGraphPage = pages["Learn/Grapics/RenderGraph"].Text;
+        Assert.Contains("# RenderGraph", renderGraphPage);
+        Assert.Contains("story:Learn/Grapics/Fence", renderGraphPage);
+        Assert.Contains("story:Learn/Grapics/ThreeD/Textures", renderGraphPage);
+        foreach (string renderGraphTopic in new[]
+                 {
+                     "## ExternalとTransient", "## Read / Writeが依存とbarrierを作る",
+                     "## Culling、aliasing、終端resource", "## DevToolsで依存を見る",
+                 })
+            Assert.Contains(renderGraphTopic, renderGraphPage);
+
+        Assert.Null(Catalog.Find("Learn/Grapics/FrameLoopAndSynchronization"));
+        Assert.Null(Catalog.Find("Learn/Grapics/ThreeD/FirstRenderGraph"));
     }
 
     [Fact]

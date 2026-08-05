@@ -12,7 +12,7 @@ public static partial class DocsRenderingLearn
         return DocNew(ctx, $$"""
         # はじめての2Dシーン
 
-        {{RenderingCourseCatalog.Meta("Learn/Grapics/TwoD/Overview", "Beginner", "Gallery / Standalone / Headless", "Vulkan / DirectX 12 / Skia CPU", "FirstRenderGraph")}}
+        {{RenderingCourseCatalog.Meta("Learn/Grapics/TwoD/Overview", "Beginner", "Gallery / Standalone / Headless", "Vulkan / DirectX 12 / Skia CPU", "RenderGraph")}}
 
         {{StoryRef(ctx, "Examples/2D/Shapes")}}
 
