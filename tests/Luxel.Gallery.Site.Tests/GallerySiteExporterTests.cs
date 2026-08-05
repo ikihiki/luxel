@@ -1506,8 +1506,9 @@ public sealed class GallerySiteExporterTests
         Assert.Null(Catalog.Find("Learn/Graphics/RasterizerInternals/Overview"));
         Assert.Null(Catalog.Find("Learn/Rendering/Basics/Overview"));
         Assert.Null(Catalog.Find("Learn/Graphics/Basics/Overview"));
-        foreach (string route in new[] { "Learn/Input/Overview", "Learn/Input/ActionsAndContexts", "Learn/Input/BindingsAndRebinding",
-                     "Learn/Input/PlatformsAndTesting", "Examples/Input/Actions", "Examples/Input/ContextStack", "Examples/Input/Bindings",
+        foreach (string route in new[] { "Learn/Input/Overview", "Learn/Input/SourcesAndBus", "Learn/Input/ActionsAndContexts",
+                     "Learn/Input/BindingsAndRebinding", "Learn/Input/PlatformsAndTesting", "Examples/Input/SourcesAndBus",
+                     "Examples/Input/Actions", "Examples/Input/ContextStack", "Examples/Input/Bindings",
                      "Learn/Audio/Overview", "Learn/Audio/ClipsSourcesAndBuses", "Learn/Audio/SpatialStreamingAndTesting",
                      "Learn/Resources/Overview", "Learn/Resources/PipelinesAndDag", "Learn/Resources/ReloadAndLifetime",
                      "Build/Blocks/Input/Actions", "Build/Blocks/Audio/Tone", "Build/Blocks/Resources/Pipeline" })
@@ -1528,6 +1529,35 @@ public sealed class GallerySiteExporterTests
     {
         ISemanticDocument overviewDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/Overview")!)!;
         Assert.DoesNotContain("コピーして動かす", overviewDocument.DocumentSource!);
+
+        ISemanticDocument sourcesDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/SourcesAndBus")!)!;
+        string sources = sourcesDocument.DocumentSource!;
+        Assert.Contains(sourcesDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/Input/SourcesAndBus");
+        string[] sourceStages =
+        [
+            "## IInputSourceの役割",
+            "## InputEventの共通形式",
+            "## 1 tickの収集順序",
+            "## 押下と解放を別tickにする",
+        ];
+        int previousSourceStage = -1;
+        foreach (string stage in sourceStages)
+        {
+            int position = sources.IndexOf(stage, previousSourceStage + 1, StringComparison.Ordinal);
+            Assert.True(position > previousSourceStage, $"Missing or out-of-order Input source stage: {stage}");
+            previousSourceStage = position;
+        }
+        foreach (string token in new[]
+                 {
+                     "IInputSource[] sources", "new InputBus", "bus.Clear()", "source.Poll(bus)",
+                     "bus.Events", "InputEventKind.AxisChanged", "InputEventKind.PointerMoved",
+                 })
+            Assert.Contains(token, sources);
+        Assert.Contains("sourceごとに`bus.Clear()`してはいけません", sources);
+        Assert.Contains("`InputStack.Update`はイベントを保持状態へ反映した後、busをクリアします", sources);
+        foreach (string uiScaffolding in new[] { "Frame(VStack", "Heading(", "Button(_ =>" })
+            Assert.DoesNotContain(uiScaffolding, sources);
 
         ISemanticDocument actionsDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/ActionsAndContexts")!)!;
         string actions = actionsDocument.DocumentSource!;
@@ -1583,7 +1613,7 @@ public sealed class GallerySiteExporterTests
         }
         foreach (string token in new[]
                  {
-                     "new ButtonAction(\"Jump\"", "JsonSerializer.Serialize", "JsonSerializer.Deserialize<InputBindings>",
+                     "new ButtonAction(\"Jump\"", "JsonSerializer.Serialize", "InputBindingsJsonContext.Default.InputBindings",
                      "InputBindingsApplier.Apply", "source.PressKey(key)", "source.ReleaseKey(key)",
                  })
             Assert.Contains(token, bindings);
@@ -1791,7 +1821,7 @@ public sealed class GallerySiteExporterTests
     public void Input_examples_are_canonical_story_based_samples()
     {
         StoryCatalog browserCatalog = CoreUiStoryProject.CreateCatalog();
-        foreach (string route in new[] { "Examples/Input/Actions", "Examples/Input/ContextStack", "Examples/Input/Bindings" })
+        foreach (string route in new[] { "Examples/Input/SourcesAndBus", "Examples/Input/Actions", "Examples/Input/ContextStack", "Examples/Input/Bindings" })
         {
             StoryInfo story = Catalog.Find(route) ?? throw new InvalidOperationException(route);
             StoryInfo browserStory = browserCatalog.Find(route) ?? throw new InvalidOperationException($"Browser catalog: {route}");

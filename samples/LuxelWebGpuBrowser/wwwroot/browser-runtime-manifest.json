@@ -6059,6 +6059,14 @@
       "componentType": null
     },
     {
+      "path": "Examples/Input/SourcesAndBus",
+      "width": 700,
+      "height": 460,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
       "path": "Examples/RenderGraph/Blur",
       "width": 320,
       "height": 320,

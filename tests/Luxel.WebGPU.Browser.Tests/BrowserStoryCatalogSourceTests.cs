@@ -67,6 +67,7 @@ public sealed class BrowserStoryCatalogSourceTests
 
         string[] inputStories =
         [
+            "Examples/Input/SourcesAndBus",
             "Examples/Input/Actions",
             "Examples/Input/ContextStack",
             "Examples/Input/Bindings",

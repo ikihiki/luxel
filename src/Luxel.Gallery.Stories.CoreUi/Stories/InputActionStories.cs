@@ -16,7 +16,68 @@ internal partial class InputBindingsJsonContext : JsonSerializerContext { }
 /// <summary>入力アクション、コンテキスト、バインディングを決定的に学ぶStory。</summary>
 public static class InputActionStories
 {
-    [Story("Examples/Input/Actions", Width = 680, Height = 430, Order = 0)]
+    [Story("Examples/Input/SourcesAndBus", Width = 700, Height = 460, Order = 0)]
+    public static Widget SourcesAndBus()
+    {
+        // docs:begin input-sources-bus-setup
+        var keyboard = new FakeInputSource();
+        var gamepad = new FakeInputSource();
+        var pointer = new FakeInputSource();
+        IInputSource[] sources = [keyboard, gamepad, pointer];
+        var bus = new InputBus();
+        // docs:end input-sources-bus-setup
+
+        var tick = new Signal<int>(0);
+        var wDown = false;
+        var eventSummary = new Signal<string>("「次のtickを収集」を押すと、3つのsourceからeventを集めます。");
+
+        // docs:begin input-sources-bus-poll
+        void PollFrame()
+        {
+            bus.Clear();
+            if (wDown) keyboard.ReleaseKey(KeyCode.W); else keyboard.PressKey(KeyCode.W);
+            wDown = !wDown;
+            gamepad.SetAxis(AxisCode.GamepadLeftStickX, wDown ? 0.75f : -0.75f);
+            pointer.MovePointer(120 + tick.Value * 12, 80 + tick.Value * 6);
+
+            foreach (IInputSource source in sources)
+                source.Poll(bus);
+
+            tick.Value++;
+            eventSummary.Value = string.Join("\n", bus.Events.Select(Describe));
+        }
+        // docs:end input-sources-bus-poll
+
+        void ClearBus()
+        {
+            bus.Clear();
+            eventSummary.Value = "InputBusをClearしました。次のtickのeventはまだありません。";
+        }
+
+        // docs:begin input-sources-bus-events
+        static string Describe(InputEvent input) => input.Kind switch
+        {
+            InputEventKind.KeyDown or InputEventKind.KeyUp => $"{input.Kind}: {input.Key}",
+            InputEventKind.AxisChanged => $"{input.Kind}: {input.Axis} = {input.Value:0.00}",
+            InputEventKind.PointerMoved => $"{input.Kind}: ({input.Value:0}, {input.ValueY:0})",
+            _ => input.Kind.ToString(),
+        };
+        // docs:end input-sources-bus-events
+
+        return Frame(VStack(12, width: 620)[
+            Heading("IInputSourceとInputBus", 2),
+            Text("keyboard、gamepad、pointerを別々のsourceとして扱い、同じInputBusへ1 tick分のeventを集約します。", 14,
+                color: Bind.From(() => UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 610),
+            HStack(10)[
+                Button(_ => PollFrame(), "次のtickを収集"),
+                Button(_ => ClearBus(), "BusをClear")],
+            Text((Func<string>)(() => $"tick = {tick.Value} / bus.Events = {bus.Events.Count}"), 15),
+            Card(Text($"{eventSummary}", 13, wrap: TextWrap.Word, width: 540)),
+            Text("Pollはsource内のpending eventをBusへ移します。Busは保持状態ではなく、そのtickの差分eventを保持します。", 13,
+                color: Bind.From(() => UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 610)]);
+    }
+
+    [Story("Examples/Input/Actions", Width = 680, Height = 430, Order = 1)]
     public static Widget Actions()
     {
         // docs:begin input-actions-setup
@@ -62,7 +123,7 @@ public static class InputActionStories
                 color: Bind.From(() => UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 590)]);
     }
 
-    [Story("Examples/Input/ContextStack", Width = 650, Height = 390, Order = 1)]
+    [Story("Examples/Input/ContextStack", Width = 650, Height = 390, Order = 2)]
     public static Widget ContextStack()
     {
         // docs:begin input-context-setup
@@ -117,7 +178,7 @@ public static class InputActionStories
                 Text($"{result}", 14, wrap: TextWrap.Word, width: 500)])]);
     }
 
-    [Story("Examples/Input/Bindings", Width = 680, Height = 440, Order = 2)]
+    [Story("Examples/Input/Bindings", Width = 680, Height = 440, Order = 3)]
     public static Widget Bindings()
     {
         // docs:begin input-bindings-setup

@@ -8,8 +8,8 @@ internal static class RuntimeCourseCatalog
 {
     internal static readonly string[] Routes =
     [
-        "Learn/Input/Overview", "Learn/Input/ActionsAndContexts", "Learn/Input/BindingsAndRebinding",
-        "Learn/Input/PlatformsAndTesting",
+        "Learn/Input/Overview", "Learn/Input/SourcesAndBus", "Learn/Input/ActionsAndContexts",
+        "Learn/Input/BindingsAndRebinding", "Learn/Input/PlatformsAndTesting",
         "Learn/Audio/Overview", "Learn/Audio/ClipsSourcesAndBuses", "Learn/Audio/SpatialStreamingAndTesting",
         "Learn/Resources/Overview", "Learn/Resources/PipelinesAndDag", "Learn/Resources/ReloadAndLifetime",
     ];
@@ -57,11 +57,66 @@ public static class LearnInput
         TextFieldやIMEによる文字入力は`Luxel.UI`の責務です。`Luxel.Input`はゲーム操作のための物理入力と論理アクションを扱います。
         """;
 
-    [Story("Learn/Input/ActionsAndContexts", Order = 1, Toc = true)]
+    [Story("Learn/Input/SourcesAndBus", Order = 1, Toc = true)]
+    public static StoryResult SourcesAndBus(StoryContext ctx) => $"""
+        # IInputSourceとInputBus
+
+        {RuntimeCourseCatalog.Meta("Learn/Input/SourcesAndBus", "Beginner", "Gallery / Headless", "Backend neutral", "入力システムの概要")}
+
+        {StoryRef(ctx, "Examples/Input/SourcesAndBus")}
+
+        上のStoryはkeyboard、gamepad、pointerを独立した`IInputSource`として扱い、1 tick分の差分イベントを同じ`InputBus`へ集約します。「次のtickを収集」を押すたびに、キー、軸、ポインターのイベントが一覧へ追加されます。
+
+        ## IInputSourceの役割
+
+        `IInputSource`は物理デバイスやテスト入力を、共通の`InputEvent`列へ変換する境界です。ゲームロジックはWindows、X11、ゲームパッドなどの個別APIを直接参照せず、すべての入力源を`Name`と`Poll(InputBus)`という同じ契約で扱えます。
+
+        | 実装 | 入力元 | 主な用途 |
+        |---|---|---|
+        | `WindowInputSource` | `Luxel.Platform.Window` | keyboard、pointer button、wheel、pointer position |
+        | `XInputSource` | Windows XInput controller | gamepad button、trigger、stick |
+        | `FakeInputSource` | コードから予約したイベント | Story、unit test、headless simulation |
+
+        複数のsourceも同じ配列へまとめられます。各sourceは内部にpending eventを保持し、`Poll`が呼ばれたときだけbusへ移します。
+
+        {SampleSource("src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-sources-bus-setup")}
+
+        ## InputEventの共通形式
+
+        `InputBus.Events`には次の4種類が並びます。
+
+        | `InputEventKind` | 主なフィールド | 意味 |
+        |---|---|---|
+        | `KeyDown` | `Key`, `Value = 1` | keyboard、pointer button、gamepad buttonの押下 |
+        | `KeyUp` | `Key`, `Value = 0` | buttonの解放 |
+        | `AxisChanged` | `Axis`, `Value` | stick、trigger、wheelなどの値 |
+        | `PointerMoved` | `Value`, `ValueY` | pointerのX/Y座標 |
+
+        `AxisChanged.Value`の範囲は入力によって異なります。stickは通常`-1`から`1`、triggerは`0`から`1`、wheelはスクロール量です。`PointerMoved`はアクション用の軸ではなく、raw pointer positionとして保持されます。
+
+        {SampleSource("src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-sources-bus-events")}
+
+        ## 1 tickの収集順序
+
+        1. tickの開始時に`bus.Clear()`を1回呼びます。
+        2. すべてのsourceへ`Poll(bus)`を呼び、同じbusへイベントを追加します。
+        3. raw eventを診断表示や記録に使う場合は、この時点で`bus.Events`を読みます。
+        4. action layerを使う場合は`stack.Update(bus)`を呼びます。`InputStack.Update`はイベントを保持状態へ反映した後、busをクリアします。
+
+        {SampleSource("src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-sources-bus-poll")}
+
+        sourceごとに`bus.Clear()`してはいけません。途中でクリアすると、それ以前のsourceが追加したイベントが失われます。`InputBus`はキーボードやgamepadの保持状態を持つ場所ではなく、そのtickに発生した差分イベントを一時的に集めるqueueです。保持中のキーと軸値は`InputStack`がtickをまたいで管理します。
+
+        ## 押下と解放を別tickにする
+
+        `FakeInputSource.TapKey`は同じtickへ`KeyDown`と`KeyUp`を予約します。raw event列のテストには使えますが、1回の`InputStack.Update`後にはキーが解放済みになるため、`ButtonAction.Triggered`と`Released`の遷移確認には向きません。アクションのedgeを検証するときは、押下をPoll／Updateした後、次のtickで解放をPoll／Updateします。
+        """;
+
+    [Story("Learn/Input/ActionsAndContexts", Order = 2, Toc = true)]
     public static StoryResult Actions(StoryContext ctx) => $"""
         # アクションとコンテキスト
 
-        {RuntimeCourseCatalog.Meta("Learn/Input/ActionsAndContexts", "Beginner", "Gallery / Headless", "Backend neutral", "入力システムの概要")}
+        {RuntimeCourseCatalog.Meta("Learn/Input/ActionsAndContexts", "Beginner", "Gallery / Headless", "Backend neutral", "IInputSourceとInputBus")}
 
         {StoryRef(ctx, "Examples/Input/Actions")}
 
@@ -114,7 +169,7 @@ public static class LearnInput
         {SampleSource("src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-context-suspension")}
         """;
 
-    [Story("Learn/Input/BindingsAndRebinding", Order = 2, Toc = true)]
+    [Story("Learn/Input/BindingsAndRebinding", Order = 3, Toc = true)]
     public static StoryResult Bindings(StoryContext ctx) => $"""
         # バインディングとキーの再設定
 
@@ -162,7 +217,7 @@ public static class LearnInput
         文字入力やIME compositionはキー設定ではなく`Luxel.UI`のテキスト入力経路で扱います。表示文字と物理キーを混同しないことが重要です。
         """;
 
-    [Story("Learn/Input/PlatformsAndTesting", Order = 3, Toc = true)]
+    [Story("Learn/Input/PlatformsAndTesting", Order = 4, Toc = true)]
     public static StoryResult Platforms(StoryContext ctx) => $"""
         # プラットフォーム入力と決定的テスト
 
