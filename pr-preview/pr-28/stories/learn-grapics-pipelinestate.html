@@ -1,6 +1,6 @@
 <article class="story document-page"><h1 id="pipeline">Pipelineのその他の設定</h1>
 <p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Gallery + Standalone　 <strong>Backend:</strong> Vulkan / DirectX 12 / WebGPU　 <strong>前提知識:</strong> Shaders</p>
-<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FShaders">Shaders</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FFence">Fence</a></p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FShaders">Shaders</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FSynchronization">Synchronization</a></p>
 <p>shaderが「各頂点・pixelをどう計算するか」を決めるのに対し、graphics pipeline stateは「三角形をどう組み立て、どの面とpixelを残し、既存のrender targetへどう書き込むか」を決めます。Luxelでは固定pipeline stateを<code>GpuRasterDesc</code>へまとめ、<code>CreateGraphicsPipeline</code>時にshaderと組み合わせます。</p>
 <pre><code class="language-csharp">GpuRasterDesc raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
 raster.Topology = GpuPrimitiveTopology.TriangleList;
