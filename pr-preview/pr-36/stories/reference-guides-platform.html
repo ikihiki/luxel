@@ -1,0 +1,46 @@
+<article class="story document-page"><h1 id="luxel.platform">プラットフォーム (Luxel.Platform)</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FGuides%2FPlatform&amp;section=%E3%82%A6%E3%82%A3%E3%83%B3%E3%83%89%E3%82%A6%E3%81%A8%E3%83%9E%E3%83%AB%E3%83%81%E3%82%A6%E3%82%A3%E3%83%B3%E3%83%89%E3%82%A6">ウィンドウとマルチウィンドウ</a></li>
+<li><a href="#story=Reference%2FGuides%2FPlatform&amp;section=%E3%82%B9%E3%83%AF%E3%83%83%E3%83%97%E3%83%81%E3%82%A7%E3%83%BC%E3%83%B3%E6%8F%90%E7%A4%BA">スワップチェーン提示</a></li>
+<li><a href="#story=Reference%2FGuides%2FPlatform&amp;section=ime-tsf%E3%80%81%E8%87%AA%E5%89%8D-preedit">IME (TSF、自前 preedit)</a></li>
+<li><a href="#story=Reference%2FGuides%2FPlatform&amp;section=%E3%82%AB%E3%83%BC%E3%82%BD%E3%83%AB%E3%83%BB%E5%8F%B3%E3%82%AF%E3%83%AA%E3%83%83%E3%82%AF%E3%83%BB%E3%82%AF%E3%83%AA%E3%83%83%E3%83%97%E3%83%9C%E3%83%BC%E3%83%89">カーソル・右クリック・クリップボード</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><code>Luxel.Platform</code> がウィンドウ、クリップボード、低レベル入力の共通公開APIを提供します。<code>Luxel.Platform.Windows</code> はCsWin32によるWin32/TSF実装、<code>Luxel.Platform.Silk</code> はSilk.NET/GLFWによるLinux/X11実装です。オフスクリーン描画 (snap / bench) とはここだけが違います。</p>
+<h2 id="section">ウィンドウとマルチウィンドウ</h2>
+<p><code>Luxel.Platform.Windows</code> の <code>Win32Window</code> (CreateWindowEx + WndProc + PeekMessage) を共通 <code>WindowSystem</code> が公開し、<code>Luxel.UI.App</code> の <code>WindowManager</code> / <code>WindowHost</code> が UI ウィンドウとして束ねます。ウィンドウは複数持て、インスタンスは GWLP_USERDATA で引く正攻法 — 静的マップがないので<strong>別スレッドの別ウィンドウ</strong> (ネイティブ DevTools) とも共存します。マウス/ホイール/キー/WM_CHAR/リサイズは <code>UiHost</code> へ配線されます。第 2 ウィンドウを実際に開くデモは <a href="#story=RealWindow%2FPlatform%2FSecondWindow">RealWindow/Platform/SecondWindow</a> (実窓専用) へ。</p>
+<h2 id="section-1">スワップチェーン提示</h2>
+<p>compute が書いた RGBA8 framebuffer を swapchain image へ<strong>コピーして present</strong> します (Vulkan = vkCmdCopyBufferToImage、D3D12 = CopyTextureRegion)。framebuffer 幅は 64 の倍数にパディングして D3D12 の 256B 行整列を満たし、可視領域のみ提示。両バックエンド R8G8B8A8 で swizzle 不要、リサイズで再生成します。</p>
+<h2 id="ime-tsf-preedit">IME (TSF、自前 preedit)</h2>
+<p><code>Luxel.Platform.ITextInputClient</code> が共通のIME編集面を定義し、Windowsの <code>TsfTextStore : ITextStoreACP</code> がフォーカス中のテキスト入力へ橋渡しします。<code>GetTextExt</code> がキャレット矩形を返すので変換候補ウィンドウがキャレット位置に出ます。<strong>preedit 下線・変換対象節ハイライト・キャレットは自前描画</strong> (<code>ImeComposition</code> モデル) — TSF の文書はフォーカス中ブロックに局所化されています (<a href="#story=Reference%2FGuides%2FEditor">Reference/Guides/Editor</a>)。</p>
+<h2 id="section-2">カーソル・右クリック・クリップボード</h2>
+<ul>
+<li><code>CursorKind</code> (Arrow / IBeam / Hand / Resize) を <code>HitTarget.Cursor</code> で宣言 — hover 先のカーソルが WM_SETCURSOR で反映されます</li>
+<li>右クリックは <code>OnContext</code> → <code>ContextMenu.Open</code> (エディタ標準の切り取り/コピー/貼り付け)</li>
+<li>クリップボードは <code>Luxel.Platform.Clipboard</code> + <code>IClipboardBackend</code> (<code>Win32ClipboardBackend</code> / <code>SilkClipboardBackend</code>) としてウィンドウから独立して構成します。リッチテキストは plain + markdown の両形式で書き込みます</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/Platform&quot;, Order = 51, Toc = true)]
+public static StoryResult Platform(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # プラットフォーム (Luxel.Platform)
+
+    `Luxel.Platform` がウィンドウ、クリップボード、低レベル入力の共通公開APIを提供します。`Luxel.Platform.Windows` はCsWin32によるWin32/TSF実装、`Luxel.Platform.Silk` はSilk.NET/GLFWによるLinux/X11実装です。オフスクリーン描画 (snap / bench) とはここだけが違います。
+
+    ## ウィンドウとマルチウィンドウ
+
+    `Luxel.Platform.Windows` の `Win32Window` (CreateWindowEx + WndProc + PeekMessage) を共通 `WindowSystem` が公開し、`Luxel.UI.App` の `WindowManager` / `WindowHost` が UI ウィンドウとして束ねます。ウィンドウは複数持て、インスタンスは GWLP_USERDATA で引く正攻法 — 静的マップがないので**別スレッドの別ウィンドウ** (ネイティブ DevTools) とも共存します。マウス/ホイール/キー/WM_CHAR/リサイズは `UiHost` へ配線されます。第 2 ウィンドウを実際に開くデモは [RealWindow/Platform/SecondWindow](story:RealWindow/Platform/SecondWindow) (実窓専用) へ。
+
+    ## スワップチェーン提示
+
+    compute が書いた RGBA8 framebuffer を swapchain image へ**コピーして present** します (Vulkan = vkCmdCopyBufferToImage、D3D12 = CopyTextureRegion)。framebuffer 幅は 64 の倍数にパディングして D3D12 の 256B 行整列を満たし、可視領域のみ提示。両バックエンド R8G8B8A8 で swizzle 不要、リサイズで再生成します。
+
+    ## IME (TSF、自前 preedit)
+
+    `Luxel.Platform.ITextInputClient` が共通のIME編集面を定義し、Windowsの `TsfTextStore : ITextStoreACP` がフォーカス中のテキスト入力へ橋渡しします。`GetTextExt` がキャレット矩形を返すので変換候補ウィンドウがキャレット位置に出ます。**preedit 下線・変換対象節ハイライト・キャレットは自前描画** (`ImeComposition` モデル) — TSF の文書はフォーカス中ブロックに局所化されています ([Reference/Guides/Editor](story:Reference/Guides/Editor))。
+
+    ## カーソル・右クリック・クリップボード
+
+    - `CursorKind` (Arrow / IBeam / Hand / Resize) を `HitTarget.Cursor` で宣言 — hover 先のカーソルが WM_SETCURSOR で反映されます
+    - 右クリックは `OnContext` → `ContextMenu.Open` (エディタ標準の切り取り/コピー/貼り付け)
+    - クリップボードは `Luxel.Platform.Clipboard` + `IClipboardBackend` (`Win32ClipboardBackend` / `SilkClipboardBackend`) としてウィンドウから独立して構成します。リッチテキストは plain + markdown の両形式で書き込みます
+    &quot;&quot;&quot;;</code></pre></details></article>

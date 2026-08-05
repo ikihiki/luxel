@@ -1,0 +1,267 @@
+<article class="story document-page"><h1 id="d-luxel.graphics.twod">2D ベクター (Luxel.Graphics.TwoD)</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=%E6%8F%8F%E3%81%91%E3%82%8B%E3%82%82%E3%81%AE">描けるもの</a></li>
+<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=scene2d-%E3%81%A8%E3%83%91%E3%82%B9%E6%A7%8B%E7%AF%89">Scene2D とパス構築</a></li>
+<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=camera2d-%E2%80%94-%E3%82%B9%E3%83%A0%E3%83%BC%E3%82%BA%E3%82%BA%E3%83%BC%E3%83%A0">Camera2D — スムーズズーム</a></li>
+<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=camerarig2d-%E2%80%94-%E8%BF%BD%E5%BE%93%E3%82%AB%E3%83%A1%E3%83%A9-%E3%82%B2%E3%83%BC%E3%83%A0%E3%83%95%E3%82%A3%E3%83%BC%E3%83%AB">CameraRig2D — 追従カメラ (ゲームフィール)</a></li>
+<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=%E3%82%B9%E3%83%97%E3%83%A9%E3%82%A4%E3%83%88%E3%82%A2%E3%83%88%E3%83%A9%E3%82%B9-%E2%80%94-1-%E3%83%86%E3%82%AF%E3%82%B9%E3%83%81%E3%83%A3%E3%81%AB%E8%A4%87%E6%95%B0%E3%82%B9%E3%83%97%E3%83%A9%E3%82%A4%E3%83%88">スプライトアトラス — 1 テクスチャに複数スプライト</a></li>
+<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=%E3%82%BF%E3%82%A4%E3%83%AB%E3%83%9E%E3%83%83%E3%83%97-%E2%80%94-%E3%82%B0%E3%83%AA%E3%83%83%E3%83%89%E6%8F%8F%E7%94%BB-%2B-aabb-%E8%A1%9D%E7%AA%81">タイルマップ — グリッド描画 + AABB 衝突</a></li>
+<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=%E3%83%91%E3%83%BC%E3%83%86%E3%82%A3%E3%82%AF%E3%83%AB-%E2%80%94-%E6%A8%99%E6%BA%96-vfx-%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0">パーティクル — 標準 VFX システム</a></li>
+<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=irasterizer2d-%2F-retainedcanvas-%E2%80%94-backend%E5%88%87%E6%9B%BF%E3%81%A8%E9%83%A8%E5%88%86%E6%9B%B4%E6%96%B0">IRasterizer2D / RetainedCanvas — backend切替と部分更新</a></li>
+<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=%E8%A8%AD%E8%A8%88%E3%83%8E%E3%83%BC%E3%83%88%3A-%E5%A2%97%E5%88%86%E6%9B%B4%E6%96%B0-%E2%80%94-%E3%80%8Cslot-%E6%8D%AE%E3%81%88%E7%BD%AE%E3%81%8D%E3%80%81%E3%83%AC%E3%83%B3%E3%82%B8%E3%81%AF%E5%AE%B9%E9%87%8F%E4%BB%98%E3%81%8D%E3%80%8D">設計ノート: 増分更新 — 「slot 据え置き、レンジは容量付き」</a></li>
+<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=gpu-rasterizer%E3%81%AE%E7%8F%BE%E5%9C%A8%E6%A7%8B%E6%88%90">GPU rasterizerの現在構成</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p>GPU <strong>コンピュートラスタライザ</strong> (Vello 風) による 2D ベクター描画です。パスを三角形分割せず、線分のまま GPU に常駐させ、compute が画素ごとに巻き数/距離で被覆を計算して塗ります。バックエンド変更ゼロ (framebuffer は bindless バッファ)。</p>
+<h2 id="section">描けるもの</h2>
+<p>塗り (NonZero/EvenOdd — 穴あき対応)、複数パス合成、ストローク (距離ベース・画面一定幅)、<strong>ベクターテキスト</strong> (TTF 輪郭 → パス → 塗り、日本語対応)、角丸:</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Reference/Guides/TwoD#doc-0" data-luxel-runtime-story="Examples/2D/VectorPaths" data-luxel-runtime-instance="examples-2d-vectorpaths-5a2efacab8f0" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F2D%2FVectorPaths&amp;args=%7B%7D&amp;instance=examples-2d-vectorpaths-5a2efacab8f0" data-luxel-runtime-story="Examples/2D/VectorPaths" data-luxel-runtime-instance="examples-2d-vectorpaths-5a2efacab8f0" title="Interactive VectorPaths" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-2d-vectorpaths-5a2efacab8f0-args-tab" aria-controls="examples-2d-vectorpaths-5a2efacab8f0-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-2d-vectorpaths-5a2efacab8f0-output-tab" aria-controls="examples-2d-vectorpaths-5a2efacab8f0-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-2d-vectorpaths-5a2efacab8f0-source-tab" aria-controls="examples-2d-vectorpaths-5a2efacab8f0-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-2d-vectorpaths-5a2efacab8f0-args-panel" role="tabpanel" aria-labelledby="examples-2d-vectorpaths-5a2efacab8f0-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-2d-vectorpaths-5a2efacab8f0-output-panel" role="tabpanel" aria-labelledby="examples-2d-vectorpaths-5a2efacab8f0-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-2d-vectorpaths-5a2efacab8f0-source-panel" role="tabpanel" aria-labelledby="examples-2d-vectorpaths-5a2efacab8f0-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/2D/VectorPaths&quot;, Width = 360, Height = 330, Order = 112, CapabilityNote = BrowserNote)]&#10;public static Widget VectorPaths(StoryContext ctx) =&gt; Snapshot(ctx, Canvas2D(280, 260, draw: scene =&gt;&#10;{&#10;    scene.FillRect(Color2D.Rgba(245, 245, 248), 0, 0, 280, 260);&#10;    scene.BeginFill(Color2D.Rgba(45, 105, 220), FillRule.EvenOdd);&#10;    AddCircle(scene, 180, 142, 72);&#10;    AddCircle(scene, 180, 142, 34);&#10;    scene.EndFill();&#10;    scene.BeginStroke(Color2D.Rgba(239, 130, 35), 9).MoveTo(20, 226).QuadTo(76, 110, 136, 220).End();&#10;    scene.BeginFill(Color2D.Rgba(40, 185, 105)).MoveTo(24, 32).LineTo(126, 32).LineTo(106, 104).LineTo(42, 88).Close().End();&#10;}));</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<h2 id="scene2d">Scene2D とパス構築</h2>
+<pre><code class="language-csharp">var scene = new Scene2D();
+scene.FillRoundedRect(Color2D.Blue, 40, 40, 120, 80, 12);
+using (var jp = VectorFont.LoadSystemJapanese())
+    jp.AppendText(scene, &quot;こんにちは&quot;, 50, 120, 28, Color2D.Black);
+
+using var raster = new GpuDeviceRasterizer2D(device);
+using var encoded = raster.Encode(scene);                 // GPU へ 1 回
+raster.Render(cmd, encoded, Camera2D.Pixels, w, h, fb);   // ズームは Camera2D.Create(...)
+</code></pre>
+<h2 id="camera2d">Camera2D — スムーズズーム</h2>
+<p>ワールド座標で 1 回 <code>Encode</code> したら、<code>Camera2D</code> を変えるだけで連続拡縮できます — 再エンコードも再三角形分割もありません。ベクターなので拡大してもエッジが崩れないことを knob で確かめられます:</p>
+<figure class="static-capture"><a href="#story=Examples%2F2D%2FMap"><img src="images/examples-2d-map.png" alt="Examples/2D/Map" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<h2 id="camerarig2d">CameraRig2D — 追従カメラ (ゲームフィール)</h2>
+<p>低レベルの <code>Camera2D</code> (ズーム/パン affine) の上に、ゲーム向けの高レベルコントローラ <code>CameraRig2D</code> があります。毎フレーム追従対象 (<code>Target</code>) を与えて <code>Update(dt, viewportW, viewportH)</code> し、<code>Camera(w, h)</code> で <code>Camera2D</code> を得ます。<strong>デッドゾーン</strong> (中央のこの矩形内では動かない)・<strong>指数平滑</strong> (フレームレート非依存の <code>1 - exp(-dt/tau)</code>、<code>* 0.1f</code> 方式は dt 依存なので使わない)・<strong>ワールド境界クランプ</strong> (画面端が <code>WorldBounds</code> を出ない、ワールドが画面より小さい軸は中央固定)・<strong>画面シェイク</strong> (<code>Shake(amp, duration, seed)</code>、固定シード xorshift なので golden 決定的) を持ちます。追従はターゲットが動いた後 = LateUpdate が定位置です。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Reference/Guides/TwoD#doc-2" data-luxel-runtime-story="Examples/2D/CameraRig" data-luxel-runtime-instance="examples-2d-camerarig-375ca7ec8261" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F2D%2FCameraRig&amp;args=%7B%7D&amp;instance=examples-2d-camerarig-375ca7ec8261" data-luxel-runtime-story="Examples/2D/CameraRig" data-luxel-runtime-instance="examples-2d-camerarig-375ca7ec8261" title="Interactive CameraRig" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-2d-camerarig-375ca7ec8261-args-tab" aria-controls="examples-2d-camerarig-375ca7ec8261-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-2d-camerarig-375ca7ec8261-output-tab" aria-controls="examples-2d-camerarig-375ca7ec8261-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-2d-camerarig-375ca7ec8261-source-tab" aria-controls="examples-2d-camerarig-375ca7ec8261-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-2d-camerarig-375ca7ec8261-args-panel" role="tabpanel" aria-labelledby="examples-2d-camerarig-375ca7ec8261-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-2d-camerarig-375ca7ec8261-output-panel" role="tabpanel" aria-labelledby="examples-2d-camerarig-375ca7ec8261-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-2d-camerarig-375ca7ec8261-source-panel" role="tabpanel" aria-labelledby="examples-2d-camerarig-375ca7ec8261-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/2D/CameraRig&quot;, Width = 540, Height = 360, Order = 118, CapabilityNote = BrowserNote)]&#10;public static Widget CameraTransform(StoryContext ctx)&#10;{&#10;    Scene2D WorldScene()&#10;    {&#10;        var scene = new Scene2D();&#10;        for (float x = -120; x &lt; 620; x += 40)&#10;            scene.StrokeLine(Color2D.Rgba(70, 82, 105), 1, x, -80, x, 164);&#10;        scene.FillRoundedRect(Color2D.Rgba(245, 180, 55), 220, 32, 20, 20, 4);&#10;        return scene;&#10;    }&#10;&#10;    // 恒等変換: world座標をそのままscreen pixelとして描く。&#10;    Camera2D identity = Camera2D.Pixels;&#10;    // panのみ: worldの(80, 10)を460&#215;84 viewportの中央(230, 42)へ移す。&#10;    Camera2D panned = Camera2D.Create(1f, new Vector2(80, 10), 460, 84);&#10;    // zoom + pan: worldの(160, 42)をviewport中央へ移し、その点を中心に1.6倍する。&#10;    Camera2D zoomed = Camera2D.Create(1.6f, new Vector2(160, 42), 460, 84);&#10;&#10;    return Snapshot(ctx, VStack(6)[&#10;        Muted(&quot;identity — world座標 = screen pixel&quot;),&#10;        RasterView(ctx, 460, 84, WorldScene(), identity),&#10;        Muted(&quot;pan — world (80, 10) → screen center (230, 42)&quot;),&#10;        RasterView(ctx, 460, 84, WorldScene(), panned),&#10;        Muted(&quot;zoom + pan — world (160, 42)を中心に1.6倍&quot;),&#10;        RasterView(ctx, 460, 84, WorldScene(), zoomed)&#10;    ]);&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<h2 id="section-1">スプライトアトラス — 1 テクスチャに複数スプライト</h2>
+<p>2D ゲームの素材は 1 枚のアトラス (テクスチャに複数スプライトを詰めた画像) に UV 矩形で参照するのが定石です。<code>SpriteAtlas</code> は名前 → <code>SpriteRect</code> (px 矩形 + ピボット) の辞書を持ち、JSON 定義 (<code>SpriteAtlas.FromJson</code>、リソース DAG なら <code>resources.Load&lt;SpriteAtlas&gt;(&quot;sprites.atlas.json&quot;)</code>) から読みます。テクスチャを密 (行ピッチ = 幅) に bindless バッファへ上げたら <code>Bind(srcIndex, atlasW, atlasH)</code> で GPU 情報を注入し、<code>scene.DrawSprite(atlas, &quot;player_idle_0&quot;, x, y, scale)</code> でピボットを (x,y) に合わせて描きます。フレーム列は <code>SpriteAnimation</code> (名前プレフィクス + fps、固定 dt 積算で決定的) が現フレーム名を返します。</p>
+<pre><code class="language-csharp">SpriteAtlas atlas = SpriteAtlas.FromJson(json);   // { &quot;texture&quot;:&quot;...&quot;, &quot;sprites&quot;: { &quot;run_0&quot;: {&quot;x&quot;:0,&quot;y&quot;:0,&quot;w&quot;:32,&quot;h&quot;:32,&quot;px&quot;:16,&quot;py&quot;:32} } }
+atlas.Bind(atlasBuf.BindlessIndex, atlasW, atlasH);
+scene.DrawSprite(atlas, &quot;run_0&quot;, 100, 200, scale: 2f);
+
+var anim = new SpriteAnimation(&quot;run_&quot;, frameCount: 6, fps: 12f);
+anim.Update(dt);                                  // 固定 dt を積算 (wall-clock 禁止)
+scene.DrawSprite(atlas, anim, playerX, playerY);  // 現フレームを描く
+</code></pre>
+<p>GPU 側は <code>GpuPath</code> の image シェイプ (<code>ImageSubRect</code>) がアトラスの<strong>サブ矩形</strong>を直接サンプリングします — <code>srcStride</code> = アトラス全幅 (行ピッチ)、<code>srcX/srcY</code> = サブ矩形原点、<code>srcW/srcH</code> = サイズ。clamp 付きサンプリングでサブ矩形境界に閉じるため、隣接スプライトへ滲みません (1:1 表示は nearest 相当)。image シェイプは GPU 専用 (Skia CPU バックエンドは非対応) です。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Reference/Guides/TwoD#doc-3" data-luxel-runtime-story="Examples/2D/Sprites" data-luxel-runtime-instance="examples-2d-sprites-1392b9c2aae8" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F2D%2FSprites&amp;args=%7B%7D&amp;instance=examples-2d-sprites-1392b9c2aae8" data-luxel-runtime-story="Examples/2D/Sprites" data-luxel-runtime-instance="examples-2d-sprites-1392b9c2aae8" title="Interactive Sprites" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-2d-sprites-1392b9c2aae8-args-tab" aria-controls="examples-2d-sprites-1392b9c2aae8-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-2d-sprites-1392b9c2aae8-output-tab" aria-controls="examples-2d-sprites-1392b9c2aae8-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-2d-sprites-1392b9c2aae8-source-tab" aria-controls="examples-2d-sprites-1392b9c2aae8-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-2d-sprites-1392b9c2aae8-args-panel" role="tabpanel" aria-labelledby="examples-2d-sprites-1392b9c2aae8-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-2d-sprites-1392b9c2aae8-output-panel" role="tabpanel" aria-labelledby="examples-2d-sprites-1392b9c2aae8-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-2d-sprites-1392b9c2aae8-source-panel" role="tabpanel" aria-labelledby="examples-2d-sprites-1392b9c2aae8-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/2D/Sprites&quot;, Width = 480, Height = 330, Order = 119, CapabilityNote = BrowserNote)]&#10;public static Widget Sprites(StoryContext ctx)&#10;{&#10;    if (ctx.DeviceOrNull is not { } device) return Snapshot(ctx, Muted(&quot;GPU runtime required&quot;));&#10;    const int atlasW = 64, atlasH = 64, cell = 32;&#10;    GpuBuffer atlasBuffer = device.Malloc(atlasW * atlasH * 4, GpuMemoryKind.HostMapped);&#10;    FillAtlas(atlasBuffer.Span&lt;byte&gt;(atlasW * atlasH * 4), atlasW, cell);&#10;    var atlas = new SpriteAtlas(&quot;proc://2d-course&quot;, [&#10;        new(&quot;f_0&quot;, new SpriteRect(0, 0, cell, cell)),&#10;        new(&quot;f_1&quot;, new SpriteRect(cell, 0, cell, cell)),&#10;        new(&quot;f_2&quot;, new SpriteRect(0, cell, cell, cell)),&#10;        new(&quot;f_3&quot;, new SpriteRect(cell, cell, cell, cell)),&#10;    ]);&#10;    atlas.Bind(atlasBuffer.BindlessIndex, atlasW, atlasH);&#10;&#10;    const int viewWidth = 400, viewHeight = 210;&#10;    var scene = new Scene2D();&#10;    scene.FillRect(Color2D.Rgba(26, 31, 42), 0, 0, viewWidth, viewHeight);&#10;    // 左上: 64&#215;64 atlas全体。&#10;    scene.ImageRect(atlasBuffer.BindlessIndex, atlasW, atlasW, atlasH, 16, 18, 64, 64);&#10;    // 中央上: atlas右上の32&#215;32 sub-rectだけを2倍表示。&#10;    scene.ImageSubRect(atlasBuffer.BindlessIndex, atlasW, 32, 0, 32, 32, 112, 18, 64, 64);&#10;    // 下段: 名前付きSpriteRectをatlasから選択。&#10;    for (int frame = 0; frame &lt; 4; frame++)&#10;        scene.DrawSprite(atlas, $&quot;f_{frame}&quot;, 16 + frame * 52, 112, scale: 1.5f);&#10;    // 右側: SpriteAnimationが0.30秒時点で選ぶframeを拡大表示。&#10;    var animation = new SpriteAnimation(&quot;f_&quot;, frameCount: 4, fps: 8f);&#10;    animation.Update(0.30f);&#10;    scene.DrawSprite(atlas, animation, 286, 94, scale: 3f);&#10;&#10;    return Snapshot(ctx, VStack(4)[&#10;        Muted(&quot;上: atlas全体 / sub-rect　下: 名前付きsprite　右: animation frame&quot;),&#10;        RasterView(ctx, viewWidth, viewHeight, scene, Camera2D.Pixels, atlasBuffer)&#10;    ]);&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<h2 id="aabb">タイルマップ — グリッド描画 + AABB 衝突</h2>
+<p><code>TileSet</code> (スプライトアトラス + タイル px サイズ + id → スプライト名/衝突フラグ) と <code>TileMap</code> (int グリッド、0 = 空) で直交タイルマップを組みます。マップは自前 CSV (<code>TileMap.FromCsv</code>) か Tiled の <code>.tmj</code> 最小 import (<code>TileMap.FromTiledJson</code> — 外部エディタで編集できる) から読めます。描画は<strong>チャンク単位</strong> (既定 32×32 タイル) で、<code>TileMapLayer</code> が <code>RetainedCanvas</code> 上に<strong>可視チャンクだけ UiNode 実体化</strong>し、<code>SetTile</code> で dirty になったチャンクだけ再構築します (静的チャンクはジオメトリ不変 → スクロールは <code>Camera2D</code> 側)。大マップでも画面周辺のチャンクしか焼きません。</p>
+<p>衝突は物理エンジン非依存の純 AABB グリッドクエリです。<code>QueryAabb(rect)</code> は矩形に重なる衝突タイルを列挙し、<code>Sweep(box, delta, out hitX, out hitY)</code> は衝突タイルへめり込まない移動可能量を X→Y の軸分離で返します (プラットフォーマの定番)。純ロジックなので決定的にテストできます。</p>
+<pre><code class="language-csharp">var tileSet = new TileSet(atlas, 16, 16, [new(1, new TileDef(&quot;grass&quot;, Solid: true)), new(2, new TileDef(&quot;wall&quot;, Solid: true))]);
+TileMap map = TileMap.FromCsv(tileSet, csv);
+var layer = new TileMapLayer(canvas, canvas.Root, map);
+layer.Update(cameraWorldView);                    // 可視チャンクを実体化/更新
+
+Vector2 moved = map.Sweep(playerBox, velocity, out bool hitX, out bool hitY);   // 壁の手前で止まる
+</code></pre>
+<p>下のデモは壁柱へ右移動するプレイヤー (赤) が <code>Sweep</code> で壁の手前に切り詰められる様子です (アウトラインが意図した移動先):</p>
+<figure class="static-capture"><a href="#story=Examples%2F2D%2FTilemap"><img src="images/examples-2d-tilemap.png" alt="Examples/2D/Tilemap" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<h2 id="vfx">パーティクル — 標準 VFX システム</h2>
+<p>爆発・煙・キラキラ等の VFX は <code>ParticleSystem</code> (プロジェクト <code>Luxel.Particles</code>) で作ります。エミッタは <code>Emit(pos, count)</code> (バースト) と <code>SetEmission(pos, rate)</code> (連続放出)、シミュレーションは寿命/速度/重力/抗力を <code>Update(dt)</code> で積分します。座標は Vector3 (2D は z=0) でコードパスは 1 本、乱数は固定シード xorshift・時間は固定 dt なので<strong>決定的</strong> (golden 安定)。内部は SoA の固定長配列 (GC ゼロ)、生存パーティクルは発生順で連続に並び、寿命切れは前方詰めで除去します (描画順が変わらない)。</p>
+<p>パラメータは判別共用体 <code>ParticleValue</code> (<code>Const</code> / <code>Range(min,max)</code> / <code>Curved(from,to,curve)</code>) に統一し、寿命に沿う色は <code>ParticleColor</code> (start→end を <code>ICurve</code> で補間、α 含む) で表します。乱流・引力等のフォースフィールドはエンジンに入れず、毎ステップ速度 span を加工する <code>Forces</code> フックでゲーム側が実装します。</p>
+<p>2D 描画は <code>Luxel.Particles.TwoD</code> の <code>ParticleNode</code> — <code>RetainedCanvas</code> の 1 ノードに <code>ContentColors</code> + <code>ReserveContent</code> で容量を確保しきり、毎フレーム生存パーティクルを Content 差し替えで描きます (Breakout の手法を部品化。容量内なら構造 Rebuild なし)。</p>
+<pre><code class="language-csharp">var config = new ParticleConfig(
+    Life: ParticleValue.Range(0.4f, 0.9f), Speed: ParticleValue.Range(60, 160),
+    SpreadRadians: MathF.PI, BaseAngle: -MathF.PI / 2, Gravity: 260, Drag: 0.6f,
+    Size: 5f, Color: new ParticleColor(yellow, redTransparent), Shape: ParticleShape.Quad);
+var ps = new ParticleSystem(config, capacity: 120, seed: 0x2024);
+var node = new ParticleNode(canvas, canvas.Root, ps);
+ps.Emit(new Vector3(x, y, 0), 90);
+ps.Update(dt);                                    // 固定 dt (wall-clock 禁止)
+node.Sync();                                      // 生存パーティクルを描き直す
+</code></pre>
+<figure class="static-capture"><a href="#story=Examples%2F2D%2FParticles"><img src="images/examples-2d-particles.png" alt="Examples/2D/Particles" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<p>3D は <code>Luxel.Particles.ThreeD</code> の <code>ParticleBillboards</code> — 生存パーティクルを <code>RenderBuffer&lt;T&gt;</code> の instance 配列に詰め、<code>billboard.slang</code> が SV_InstanceID から各粒子をカメラ向きの quad (right/up 軸で展開) に開きます。深度テストあり・書き込み無し + アルファブレンドで、描画順は発生順 (半透明ソートは v1 でやらない割り切り)。<code>Spherical: true</code> の設定で +Y 軸まわりの円錐 (π で全球) に 3D 放出します。</p>
+<p>設定は JSON からも読めます (<code>ParticleConfigJson.FromJson</code>、リソース DAG なら <code>resources.Load&lt;ParticleConfig&gt;(&quot;explosion.particle.json&quot;)</code>)。DAG の watch/reload に乗るので「JSON 保存 → 実行中のゲームでエフェクトが変わる」ライブ編集が既存機構のタダ乗りで成立します。</p>
+<figure class="static-capture"><a href="#story=Examples%2F3D%2FParticles"><img src="images/examples-3d-particles.png" alt="Examples/3D/Particles" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<h2 id="irasterizer2d-retainedcanvas-backend">IRasterizer2D / RetainedCanvas — backend切替と部分更新</h2>
+<p><code>RetainedCanvas</code> はフレーム間で保持するノードツリーとCPU display-listだけを所有します。描画backendはcomposition rootで <code>IRasterizer2D</code> として選び、<code>CreateScene(canvas)</code> が同じツリーの変更を追跡するsessionを返します。GPU sessionはTransform / Style / Clip / Order / Segmentを分離したbufferを持つため、<strong>移動 = transformだけ、色変更 = styleだけ</strong>を書き換えます。</p>
+<pre><code class="language-csharp">using IRasterizer2D raster = useCpu
+    ? new SkiaRasterizer2D()
+    : new GpuDeviceRasterizer2D(device);
+using var canvas = new RetainedCanvas();
+using IRasterScene2D rasterScene = raster.CreateScene(canvas);
+
+UiNode panel = canvas.AddChild(canvas.Root);
+panel.Transform = Affine2D.Translate(40, 40);
+panel.Content = new Scene2D().FillRoundedRect(Color2D.White, 0, 0, 400, 240, 16);
+
+if (raster is GpuDeviceRasterizer2D)
+    rasterScene.Render(Camera2D.Pixels, new GpuRasterTarget2D(cmd, fb, w, h)); // callerがsubmit
+else
+{
+    var cpuTarget = new SkiaRasterTarget2D(w, h);
+    rasterScene.Render(Camera2D.Pixels, cpuTarget); // 復帰時に同期RGBAが読める
+    ReadOnlyMemory&lt;byte&gt; rgba = cpuTarget.Pixels;
+}
+</code></pre>
+<p>sessionはrasterizerより先に破棄します。異なるbackendのsession/target混在は例外になります。<code>GpuDeviceRasterizer2D</code>はcommand recording・bindless image・retained incremental updateを提供し、<code>SkiaRasterizer2D</code>は同期CPU RGBAを提供します。現在のimage shapeはbindless GPU resourceなのでSkiaでは <code>NotSupportedException</code> です。</p>
+<ul>
+<li><code>UiNode</code>: ローカル変換 / 色 / 不透明度 / 矩形クリップ / Z / 子 / Content。setter が dirty を伝播</li>
+<li>クリップは祖先と交差して適用 (スクロール / パネル)</li>
+<li>描画順はツリー pre-order + 兄弟内 Z の order バッファ (奥→手前 alpha 合成)</li>
+<li>部分更新量は <code>LastTransformWrites</code> / <code>LastStyleWrites</code> / <code>LastSegmentBytesWritten</code> で観測できます</li>
+</ul>
+<h2 id="slot">設計ノート: 増分更新 — 「slot 据え置き、レンジは容量付き」</h2>
+<p>Content 差し替え (タイプ中のエディタ、ライブ波形) を O(シーン全体) のフル再構築にしないため、ノードの線分レンジに<strong>容量 (capacity)</strong> を持たせています。収まる差し替えは in-place 書き込み、伸びたら末尾へ追記して旧レンジを空きに。空きが閾値を超えたときだけフル再構築 = <strong>まれなコンパクション</strong>に降格します。</p>
+<ul>
+<li>パス slot の中身を書き換えても描画順 (order バッファ) は不変</li>
+<li>パス数が変わるときだけ order を再構成 (軽量パス)</li>
+<li>定常フレームのコストは O(変わったノード) — 回帰は bench で監視 (使い方は Gallery の Docs 章の Contributing ページへ)</li>
+</ul>
+<h2 id="gpu-rasterizer">GPU rasterizerの現在構成</h2>
+<p>現行 GPU pipeline は <strong>bounds → 16×16 tile bin → fine raster</strong> の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4×4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は <a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FOverview">Internal</a> へ進んでください。</p>
+<p>次: <a href="#story=Reference%2FGuides%2FRenderGraph">Reference/Guides/RenderGraph</a> — 多段パスの合成へ。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/TwoD&quot;, Order = 11, Toc = true)]
+public static StoryResult TwoD(StoryContext ctx)
+{
+    ctx.Play(static d =&gt; d.Snap());   // 積み重なった GPU デモ 7 本が device lost せず描画される回帰 golden
+    return $$&quot;&quot;&quot;
+    # 2D ベクター (Luxel.Graphics.TwoD)
+
+    GPU **コンピュートラスタライザ** (Vello 風) による 2D ベクター描画です。パスを三角形分割せず、線分のまま GPU に常駐させ、compute が画素ごとに巻き数/距離で被覆を計算して塗ります。バックエンド変更ゼロ (framebuffer は bindless バッファ)。
+
+    ## 描けるもの
+
+    塗り (NonZero/EvenOdd — 穴あき対応)、複数パス合成、ストローク (距離ベース・画面一定幅)、**ベクターテキスト** (TTF 輪郭 → パス → 塗り、日本語対応)、角丸:
+
+    {{StoryRef(ctx, &quot;Examples/2D/VectorPaths&quot;)}}
+
+    ## Scene2D とパス構築
+
+    ```csharp
+    var scene = new Scene2D();
+    scene.FillRoundedRect(Color2D.Blue, 40, 40, 120, 80, 12);
+    using (var jp = VectorFont.LoadSystemJapanese())
+        jp.AppendText(scene, &quot;こんにちは&quot;, 50, 120, 28, Color2D.Black);
+
+    using var raster = new GpuDeviceRasterizer2D(device);
+    using var encoded = raster.Encode(scene);                 // GPU へ 1 回
+    raster.Render(cmd, encoded, Camera2D.Pixels, w, h, fb);   // ズームは Camera2D.Create(...)
+    ```
+
+    ## Camera2D — スムーズズーム
+
+    ワールド座標で 1 回 `Encode` したら、`Camera2D` を変えるだけで連続拡縮できます — 再エンコードも再三角形分割もありません。ベクターなので拡大してもエッジが崩れないことを knob で確かめられます:
+
+    {{StoryRef(ctx, &quot;Examples/2D/Map&quot;, knobs: true)}}
+
+    ## CameraRig2D — 追従カメラ (ゲームフィール)
+
+    低レベルの `Camera2D` (ズーム/パン affine) の上に、ゲーム向けの高レベルコントローラ `CameraRig2D` があります。毎フレーム追従対象 (`Target`) を与えて `Update(dt, viewportW, viewportH)` し、`Camera(w, h)` で `Camera2D` を得ます。**デッドゾーン** (中央のこの矩形内では動かない)・**指数平滑** (フレームレート非依存の `1 - exp(-dt/tau)`、`* 0.1f` 方式は dt 依存なので使わない)・**ワールド境界クランプ** (画面端が `WorldBounds` を出ない、ワールドが画面より小さい軸は中央固定)・**画面シェイク** (`Shake(amp, duration, seed)`、固定シード xorshift なので golden 決定的) を持ちます。追従はターゲットが動いた後 = LateUpdate が定位置です。
+
+    {{StoryRef(ctx, &quot;Examples/2D/CameraRig&quot;)}}
+
+    ## スプライトアトラス — 1 テクスチャに複数スプライト
+
+    2D ゲームの素材は 1 枚のアトラス (テクスチャに複数スプライトを詰めた画像) に UV 矩形で参照するのが定石です。`SpriteAtlas` は名前 → `SpriteRect` (px 矩形 + ピボット) の辞書を持ち、JSON 定義 (`SpriteAtlas.FromJson`、リソース DAG なら `resources.Load&lt;SpriteAtlas&gt;(&quot;sprites.atlas.json&quot;)`) から読みます。テクスチャを密 (行ピッチ = 幅) に bindless バッファへ上げたら `Bind(srcIndex, atlasW, atlasH)` で GPU 情報を注入し、`scene.DrawSprite(atlas, &quot;player_idle_0&quot;, x, y, scale)` でピボットを (x,y) に合わせて描きます。フレーム列は `SpriteAnimation` (名前プレフィクス + fps、固定 dt 積算で決定的) が現フレーム名を返します。
+
+    ```csharp
+    SpriteAtlas atlas = SpriteAtlas.FromJson(json);   // { &quot;texture&quot;:&quot;...&quot;, &quot;sprites&quot;: { &quot;run_0&quot;: {&quot;x&quot;:0,&quot;y&quot;:0,&quot;w&quot;:32,&quot;h&quot;:32,&quot;px&quot;:16,&quot;py&quot;:32} } }
+    atlas.Bind(atlasBuf.BindlessIndex, atlasW, atlasH);
+    scene.DrawSprite(atlas, &quot;run_0&quot;, 100, 200, scale: 2f);
+
+    var anim = new SpriteAnimation(&quot;run_&quot;, frameCount: 6, fps: 12f);
+    anim.Update(dt);                                  // 固定 dt を積算 (wall-clock 禁止)
+    scene.DrawSprite(atlas, anim, playerX, playerY);  // 現フレームを描く
+    ```
+
+    GPU 側は `GpuPath` の image シェイプ (`ImageSubRect`) がアトラスの**サブ矩形**を直接サンプリングします — `srcStride` = アトラス全幅 (行ピッチ)、`srcX/srcY` = サブ矩形原点、`srcW/srcH` = サイズ。clamp 付きサンプリングでサブ矩形境界に閉じるため、隣接スプライトへ滲みません (1:1 表示は nearest 相当)。image シェイプは GPU 専用 (Skia CPU バックエンドは非対応) です。
+
+    {{StoryRef(ctx, &quot;Examples/2D/Sprites&quot;)}}
+
+    ## タイルマップ — グリッド描画 + AABB 衝突
+
+    `TileSet` (スプライトアトラス + タイル px サイズ + id → スプライト名/衝突フラグ) と `TileMap` (int グリッド、0 = 空) で直交タイルマップを組みます。マップは自前 CSV (`TileMap.FromCsv`) か Tiled の `.tmj` 最小 import (`TileMap.FromTiledJson` — 外部エディタで編集できる) から読めます。描画は**チャンク単位** (既定 32&#215;32 タイル) で、`TileMapLayer` が `RetainedCanvas` 上に**可視チャンクだけ UiNode 実体化**し、`SetTile` で dirty になったチャンクだけ再構築します (静的チャンクはジオメトリ不変 → スクロールは `Camera2D` 側)。大マップでも画面周辺のチャンクしか焼きません。
+
+    衝突は物理エンジン非依存の純 AABB グリッドクエリです。`QueryAabb(rect)` は矩形に重なる衝突タイルを列挙し、`Sweep(box, delta, out hitX, out hitY)` は衝突タイルへめり込まない移動可能量を X→Y の軸分離で返します (プラットフォーマの定番)。純ロジックなので決定的にテストできます。
+
+    ```csharp
+    var tileSet = new TileSet(atlas, 16, 16, [new(1, new TileDef(&quot;grass&quot;, Solid: true)), new(2, new TileDef(&quot;wall&quot;, Solid: true))]);
+    TileMap map = TileMap.FromCsv(tileSet, csv);
+    var layer = new TileMapLayer(canvas, canvas.Root, map);
+    layer.Update(cameraWorldView);                    // 可視チャンクを実体化/更新
+
+    Vector2 moved = map.Sweep(playerBox, velocity, out bool hitX, out bool hitY);   // 壁の手前で止まる
+    ```
+
+    下のデモは壁柱へ右移動するプレイヤー (赤) が `Sweep` で壁の手前に切り詰められる様子です (アウトラインが意図した移動先):
+
+    {{StoryRef(ctx, &quot;Examples/2D/Tilemap&quot;)}}
+
+    ## パーティクル — 標準 VFX システム
+
+    爆発・煙・キラキラ等の VFX は `ParticleSystem` (プロジェクト `Luxel.Particles`) で作ります。エミッタは `Emit(pos, count)` (バースト) と `SetEmission(pos, rate)` (連続放出)、シミュレーションは寿命/速度/重力/抗力を `Update(dt)` で積分します。座標は Vector3 (2D は z=0) でコードパスは 1 本、乱数は固定シード xorshift・時間は固定 dt なので**決定的** (golden 安定)。内部は SoA の固定長配列 (GC ゼロ)、生存パーティクルは発生順で連続に並び、寿命切れは前方詰めで除去します (描画順が変わらない)。
+
+    パラメータは判別共用体 `ParticleValue` (`Const` / `Range(min,max)` / `Curved(from,to,curve)`) に統一し、寿命に沿う色は `ParticleColor` (start→end を `ICurve` で補間、α 含む) で表します。乱流・引力等のフォースフィールドはエンジンに入れず、毎ステップ速度 span を加工する `Forces` フックでゲーム側が実装します。
+
+    2D 描画は `Luxel.Particles.TwoD` の `ParticleNode` — `RetainedCanvas` の 1 ノードに `ContentColors` + `ReserveContent` で容量を確保しきり、毎フレーム生存パーティクルを Content 差し替えで描きます (Breakout の手法を部品化。容量内なら構造 Rebuild なし)。
+
+    ```csharp
+    var config = new ParticleConfig(
+        Life: ParticleValue.Range(0.4f, 0.9f), Speed: ParticleValue.Range(60, 160),
+        SpreadRadians: MathF.PI, BaseAngle: -MathF.PI / 2, Gravity: 260, Drag: 0.6f,
+        Size: 5f, Color: new ParticleColor(yellow, redTransparent), Shape: ParticleShape.Quad);
+    var ps = new ParticleSystem(config, capacity: 120, seed: 0x2024);
+    var node = new ParticleNode(canvas, canvas.Root, ps);
+    ps.Emit(new Vector3(x, y, 0), 90);
+    ps.Update(dt);                                    // 固定 dt (wall-clock 禁止)
+    node.Sync();                                      // 生存パーティクルを描き直す
+    ```
+
+    {{StoryRef(ctx, &quot;Examples/2D/Particles&quot;)}}
+
+    3D は `Luxel.Particles.ThreeD` の `ParticleBillboards` — 生存パーティクルを `RenderBuffer&lt;T&gt;` の instance 配列に詰め、`billboard.slang` が SV_InstanceID から各粒子をカメラ向きの quad (right/up 軸で展開) に開きます。深度テストあり・書き込み無し + アルファブレンドで、描画順は発生順 (半透明ソートは v1 でやらない割り切り)。`Spherical: true` の設定で +Y 軸まわりの円錐 (π で全球) に 3D 放出します。
+
+    設定は JSON からも読めます (`ParticleConfigJson.FromJson`、リソース DAG なら `resources.Load&lt;ParticleConfig&gt;(&quot;explosion.particle.json&quot;)`)。DAG の watch/reload に乗るので「JSON 保存 → 実行中のゲームでエフェクトが変わる」ライブ編集が既存機構のタダ乗りで成立します。
+
+    {{StoryRef(ctx, &quot;Examples/3D/Particles&quot;)}}
+
+    ## IRasterizer2D / RetainedCanvas — backend切替と部分更新
+
+    `RetainedCanvas` はフレーム間で保持するノードツリーとCPU display-listだけを所有します。描画backendはcomposition rootで `IRasterizer2D` として選び、`CreateScene(canvas)` が同じツリーの変更を追跡するsessionを返します。GPU sessionはTransform / Style / Clip / Order / Segmentを分離したbufferを持つため、**移動 = transformだけ、色変更 = styleだけ**を書き換えます。
+
+    ```csharp
+    using IRasterizer2D raster = useCpu
+        ? new SkiaRasterizer2D()
+        : new GpuDeviceRasterizer2D(device);
+    using var canvas = new RetainedCanvas();
+    using IRasterScene2D rasterScene = raster.CreateScene(canvas);
+
+    UiNode panel = canvas.AddChild(canvas.Root);
+    panel.Transform = Affine2D.Translate(40, 40);
+    panel.Content = new Scene2D().FillRoundedRect(Color2D.White, 0, 0, 400, 240, 16);
+
+    if (raster is GpuDeviceRasterizer2D)
+        rasterScene.Render(Camera2D.Pixels, new GpuRasterTarget2D(cmd, fb, w, h)); // callerがsubmit
+    else
+    {
+        var cpuTarget = new SkiaRasterTarget2D(w, h);
+        rasterScene.Render(Camera2D.Pixels, cpuTarget); // 復帰時に同期RGBAが読める
+        ReadOnlyMemory&lt;byte&gt; rgba = cpuTarget.Pixels;
+    }
+    ```
+
+    sessionはrasterizerより先に破棄します。異なるbackendのsession/target混在は例外になります。`GpuDeviceRasterizer2D`はcommand recording・bindless image・retained incremental updateを提供し、`SkiaRasterizer2D`は同期CPU RGBAを提供します。現在のimage shapeはbindless GPU resourceなのでSkiaでは `NotSupportedException` です。
+
+    - `UiNode`: ローカル変換 / 色 / 不透明度 / 矩形クリップ / Z / 子 / Content。setter が dirty を伝播
+    - クリップは祖先と交差して適用 (スクロール / パネル)
+    - 描画順はツリー pre-order + 兄弟内 Z の order バッファ (奥→手前 alpha 合成)
+    - 部分更新量は `LastTransformWrites` / `LastStyleWrites` / `LastSegmentBytesWritten` で観測できます
+
+    ## 設計ノート: 増分更新 — 「slot 据え置き、レンジは容量付き」
+
+    Content 差し替え (タイプ中のエディタ、ライブ波形) を O(シーン全体) のフル再構築にしないため、ノードの線分レンジに**容量 (capacity)** を持たせています。収まる差し替えは in-place 書き込み、伸びたら末尾へ追記して旧レンジを空きに。空きが閾値を超えたときだけフル再構築 = **まれなコンパクション**に降格します。
+
+    - パス slot の中身を書き換えても描画順 (order バッファ) は不変
+    - パス数が変わるときだけ order を再構成 (軽量パス)
+    - 定常フレームのコストは O(変わったノード) — 回帰は bench で監視 (使い方は Gallery の Docs 章の Contributing ページへ)
+
+    ## GPU rasterizerの現在構成
+
+    現行 GPU pipeline は **bounds → 16&#215;16 tile bin → fine raster** の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4&#215;4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は [Internal](story:Learn/Graphics/2D/Internal/Overview) へ進んでください。
+
+    次: [Reference/Guides/RenderGraph](story:Reference/Guides/RenderGraph) — 多段パスの合成へ。
+    &quot;&quot;&quot;;
+}</code></pre></details></article>
