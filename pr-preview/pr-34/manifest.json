@@ -393,7 +393,7 @@
     "status": "document",
     "error": null,
     "imageSha256": "",
-    "searchText": "Learn/Input/Overview\nOverview\nLearn\n[Story(\u0022Learn/Input/Overview\u0022, Order = 0, SampleBundle = \u0022input.actions\u0022, Toc = true)]\npublic static StoryResult Overview(StoryContext ctx) =\u003E $\u0022\u0022\u0022\n    # Input overview\n\n    {RuntimeCourseCatalog.Meta(\u0022Learn/Input/Overview\u0022, \u0022Beginner\u0022, \u0022Standalone / Gallery / Headless\u0022, \u0022Window / Fake / XInput\u0022, \u0022\u306A\u3057\u0022)}\n\n    Input\u306F \u0060IInputSource \u2192 InputBus \u2192 InputStack \u2192 InputAction\u0060 \u306E\u9806\u306B\u6D41\u308C\u307E\u3059\u3002\u30A2\u30D7\u30EA\u306E\u30ED\u30B8\u30C3\u30AF\u306Fplatform event\u3067\u306F\u306A\u304F\u3001Jump\u3084Move\u306E\u3088\u3046\u306Aaction\u3092\u8AAD\u307F\u307E\u3059\u3002\n\n    {SampleBundle(\u0022input.actions\u0022)}\n    \u0022\u0022\u0022;",
+    "searchText": "Learn/Input/Overview\nOverview\nLearn\n[Story(\u0022Learn/Input/Overview\u0022, Order = 0, SampleBundle = \u0022input.actions\u0022, Toc = true)]\npublic static StoryResult Overview(StoryContext ctx) =\u003E $\u0022\u0022\u0022\n    # \u5165\u529B\u30B7\u30B9\u30C6\u30E0\u306E\u6982\u8981\n\n    {RuntimeCourseCatalog.Meta(\u0022Learn/Input/Overview\u0022, \u0022Beginner\u0022, \u0022Gallery / Headless\u0022, \u0022Window / Fake / XInput\u0022, \u0022\u306A\u3057\u0022)}\n\n    \u0060Luxel.Input\u0060\u306F\u3001\u30AD\u30FC\u30DC\u30FC\u30C9\u3084\u30B2\u30FC\u30E0\u30D1\u30C3\u30C9\u306E\u7269\u7406\u5165\u529B\u3092\u3001\u0060Move\u0060\u3084\u0060Jump\u0060\u306E\u3088\u3046\u306A\u30B2\u30FC\u30E0\u5185\u306E\u610F\u5473\u3078\u5909\u63DB\u3057\u307E\u3059\u3002\u30B2\u30FC\u30E0\u30ED\u30B8\u30C3\u30AF\u304C\u7279\u5B9A\u306E\u30AD\u30FC\u3092\u76F4\u63A5\u8AAD\u3080\u306E\u3067\u306F\u306A\u304F\u3001\u8AD6\u7406\u30A2\u30AF\u30B7\u30E7\u30F3\u3092\u8AAD\u3080\u3088\u3046\u306B\u3059\u308B\u3053\u3068\u3067\u3001\u5165\u529B\u6A5F\u5668\u3084\u30AD\u30FC\u8A2D\u5B9A\u3092\u5909\u66F4\u3057\u3066\u3082\u30B2\u30FC\u30E0\u5074\u306E\u30B3\u30FC\u30C9\u3092\u4FDD\u3066\u307E\u3059\u3002\n\n    \u0060\u0060\u0060mermaid\n    flowchart LR\n      A[IInputSource] --\u003E B[InputBus]\n      B --\u003E C[InputStack]\n      C --\u003E D[InputContext]\n      D --\u003E E[InputAction]\n      E --\u003E F[\u30B2\u30FC\u30E0\u30ED\u30B8\u30C3\u30AF]\n    \u0060\u0060\u0060\n\n    | \u8981\u7D20 | \u5F79\u5272 |\n    |---|---|\n    | \u0060IInputSource\u0060 | \u5B9F\u30A6\u30A3\u30F3\u30C9\u30A6\u3001\u30B2\u30FC\u30E0\u30D1\u30C3\u30C9\u3001\u30C6\u30B9\u30C8\u7528\u5165\u529B\u304B\u3089\u30A4\u30D9\u30F3\u30C8\u3092\u53CE\u96C6\u3059\u308B |\n    | \u0060InputBus\u0060 | 1 tick\u3067\u767A\u751F\u3057\u305F\u5165\u529B\u30A4\u30D9\u30F3\u30C8\u3092\u4E00\u6642\u7684\u306B\u4FDD\u6301\u3059\u308B |\n    | \u0060InputStack\u0060 | \u62BC\u4E0B\u72B6\u614B\u3092\u4FDD\u6301\u3057\u3001\u30B3\u30F3\u30C6\u30AD\u30B9\u30C8\u306E\u512A\u5148\u9806\u4F4D\u3068\u6D88\u8CBB\u3092\u9069\u7528\u3059\u308B |\n    | \u0060InputContext\u0060 | Gameplay\u3001Menu\u306A\u3069\u3001\u540C\u6642\u306B\u6709\u52B9\u306B\u3059\u308B\u30A2\u30AF\u30B7\u30E7\u30F3\u3092\u307E\u3068\u3081\u308B |\n    | \u0060InputAction\u0060 | Button\u30011D\u8EF8\u30012D\u8EF8\u3068\u3057\u3066\u30B2\u30FC\u30E0\u30ED\u30B8\u30C3\u30AF\u3078\u5024\u3092\u516C\u958B\u3059\u308B |\n    | \u0060InputBindings\u0060 | \u30A2\u30AF\u30B7\u30E7\u30F3\u3068\u7269\u7406\u30AD\u30FC\uFF0F\u8EF8\u306E\u5BFE\u5FDC\u3092\u30C7\u30FC\u30BF\u3068\u3057\u3066\u4FDD\u6301\u3059\u308B |\n\n    \u6700\u521D\u306B\u30A2\u30AF\u30B7\u30E7\u30F3\u306EStory\u3092\u64CD\u4F5C\u3057\u3001\u62BC\u4E0B\u3001\u4FDD\u6301\u3001\u89E3\u653E\u304Ctick\u3054\u3068\u306B\u3069\u3046\u5909\u5316\u3059\u308B\u304B\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002\n\n    {StoryRef(ctx, \u0022Examples/Input/Actions\u0022)}\n\n    TextField\u3084IME\u306B\u3088\u308B\u6587\u5B57\u5165\u529B\u306F\u0060Luxel.UI\u0060\u306E\u8CAC\u52D9\u3067\u3059\u3002\u0060Luxel.Input\u0060\u306F\u30B2\u30FC\u30E0\u64CD\u4F5C\u306E\u305F\u3081\u306E\u7269\u7406\u5165\u529B\u3068\u8AD6\u7406\u30A2\u30AF\u30B7\u30E7\u30F3\u3092\u6271\u3044\u307E\u3059\u3002\n    \u0022\u0022\u0022;",
     "aliases": [],
     "bundle": {
       "id": "input.actions",
@@ -817,15 +817,15 @@
     "args": []
   },
   {
-    "path": "Learn/Input/ActionsAndContexts",
-    "name": "ActionsAndContexts",
+    "path": "Learn/Input/SourcesAndBus",
+    "name": "SourcesAndBus",
     "component": "Learn",
-    "fragment": "stories/learn-input-actionsandcontexts.html",
+    "fragment": "stories/learn-input-sourcesandbus.html",
     "image": null,
     "status": "document",
     "error": null,
     "imageSha256": "",
-    "searchText": "Learn/Input/ActionsAndContexts\nActionsAndContexts\nLearn\n[Story(\u0022Learn/Input/ActionsAndContexts\u0022, Order = 1, Toc = true)]\npublic static StoryResult Actions(StoryContext ctx) =\u003E $\u0022\u0022\u0022\n    # Actions and contexts\n\n    {RuntimeCourseCatalog.Meta(\u0022Learn/Input/ActionsAndContexts\u0022, \u0022Beginner\u0022, \u0022Standalone / Headless\u0022, \u0022Backend neutral\u0022, \u0022Input overview\u0022)}\n\n    \u0060ButtonAction\u0060\u3001\u0060Axis1DAction\u0060\u3001\u0060Axis2DAction\u0060\u306Fkeyboard\u3068gamepad\u3092\u540C\u3058\u8AD6\u7406\u5024\u3078\u7D71\u5408\u3057\u307E\u3059\u3002\u0060InputContext\u0060\u3092\u0060InputStack\u0060\u3078\u7A4D\u3080\u3068\u3001\u4E0A\u4F4Dcontext\u306Eactive action\u304C\u4F7F\u7528\u3057\u305Fkey/axis\u3092consume\u3057\u307E\u3059\u3002menu\u3092\u4E0A\u306B\u7A4D\u307F\u3001gameplay\u3092suspend\u3059\u308B\u69CB\u6210\u304C\u57FA\u672C\u3067\u3059\u3002\n\n    {SampleSource(\u0022samples/LuxelInput/Program.cs\u0022, \u0022input-actions\u0022)}\n    \u0022\u0022\u0022;",
+    "searchText": "Learn/Input/SourcesAndBus\nSourcesAndBus\nLearn\n[Story(\u0022Learn/Input/SourcesAndBus\u0022, Order = 1, Toc = true)]\npublic static StoryResult SourcesAndBus(StoryContext ctx) =\u003E $\u0022\u0022\u0022\n    # IInputSource\u3068InputBus\n\n    {RuntimeCourseCatalog.Meta(\u0022Learn/Input/SourcesAndBus\u0022, \u0022Beginner\u0022, \u0022Gallery / Headless\u0022, \u0022Backend neutral\u0022, \u0022\u5165\u529B\u30B7\u30B9\u30C6\u30E0\u306E\u6982\u8981\u0022)}\n\n    {StoryRef(ctx, \u0022Examples/Input/SourcesAndBus\u0022)}\n\n    \u4E0A\u306EStory\u306Fkeyboard\u3001gamepad\u3001pointer\u3092\u72EC\u7ACB\u3057\u305F\u0060IInputSource\u0060\u3068\u3057\u3066\u6271\u3044\u30011 tick\u5206\u306E\u5DEE\u5206\u30A4\u30D9\u30F3\u30C8\u3092\u540C\u3058\u0060InputBus\u0060\u3078\u96C6\u7D04\u3057\u307E\u3059\u3002\u300C\u6B21\u306Etick\u3092\u53CE\u96C6\u300D\u3092\u62BC\u3059\u305F\u3073\u306B\u3001\u30AD\u30FC\u3001\u8EF8\u3001\u30DD\u30A4\u30F3\u30BF\u30FC\u306E\u30A4\u30D9\u30F3\u30C8\u304C\u4E00\u89A7\u3078\u8FFD\u52A0\u3055\u308C\u307E\u3059\u3002\n\n    ## IInputSource\u306E\u5F79\u5272\n\n    \u0060IInputSource\u0060\u306F\u7269\u7406\u30C7\u30D0\u30A4\u30B9\u3084\u30C6\u30B9\u30C8\u5165\u529B\u3092\u3001\u5171\u901A\u306E\u0060InputEvent\u0060\u5217\u3078\u5909\u63DB\u3059\u308B\u5883\u754C\u3067\u3059\u3002\u30B2\u30FC\u30E0\u30ED\u30B8\u30C3\u30AF\u306FWindows\u3001X11\u3001\u30B2\u30FC\u30E0\u30D1\u30C3\u30C9\u306A\u3069\u306E\u500B\u5225API\u3092\u76F4\u63A5\u53C2\u7167\u305B\u305A\u3001\u3059\u3079\u3066\u306E\u5165\u529B\u6E90\u3092\u0060Name\u0060\u3068\u0060Poll(InputBus)\u0060\u3068\u3044\u3046\u540C\u3058\u5951\u7D04\u3067\u6271\u3048\u307E\u3059\u3002\n\n    | \u5B9F\u88C5 | \u5165\u529B\u5143 | \u4E3B\u306A\u7528\u9014 |\n    |---|---|---|\n    | \u0060WindowInputSource\u0060 | \u0060Luxel.Platform.Window\u0060 | keyboard\u3001pointer button\u3001wheel\u3001pointer position |\n    | \u0060XInputSource\u0060 | Windows XInput controller | gamepad button\u3001trigger\u3001stick |\n    | \u0060FakeInputSource\u0060 | \u30B3\u30FC\u30C9\u304B\u3089\u4E88\u7D04\u3057\u305F\u30A4\u30D9\u30F3\u30C8 | Story\u3001unit test\u3001headless simulation |\n\n    \u8907\u6570\u306Esource\u3082\u540C\u3058\u914D\u5217\u3078\u307E\u3068\u3081\u3089\u308C\u307E\u3059\u3002\u5404source\u306F\u5185\u90E8\u306Bpending event\u3092\u4FDD\u6301\u3057\u3001\u0060Poll\u0060\u304C\u547C\u3070\u308C\u305F\u3068\u304D\u3060\u3051bus\u3078\u79FB\u3057\u307E\u3059\u3002\n\n    {SampleSource(\u0022src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs\u0022, \u0022input-sources-bus-setup\u0022)}\n\n    ## InputEvent\u306E\u5171\u901A\u5F62\u5F0F\n\n    \u0060InputBus.Events\u0060\u306B\u306F\u6B21\u306E4\u7A2E\u985E\u304C\u4E26\u3073\u307E\u3059\u3002\n\n    | \u0060InputEventKind\u0060 | \u4E3B\u306A\u30D5\u30A3\u30FC\u30EB\u30C9 | \u610F\u5473 |\n    |---|---|---|\n    | \u0060KeyDown\u0060 | \u0060Key\u0060, \u0060Value = 1\u0060 | keyboard\u3001pointer button\u3001gamepad button\u306E\u62BC\u4E0B |\n    | \u0060KeyUp\u0060 | \u0060Key\u0060, \u0060Value = 0\u0060 | button\u306E\u89E3\u653E |\n    | \u0060AxisChanged\u0060 | \u0060Axis\u0060, \u0060Value\u0060 | stick\u3001trigger\u3001wheel\u306A\u3069\u306E\u5024 |\n    | \u0060PointerMoved\u0060 | \u0060Value\u0060, \u0060ValueY\u0060 | pointer\u306EX/Y\u5EA7\u6A19 |\n\n    \u0060AxisChanged.Value\u0060\u306E\u7BC4\u56F2\u306F\u5165\u529B\u306B\u3088\u3063\u3066\u7570\u306A\u308A\u307E\u3059\u3002stick\u306F\u901A\u5E38\u0060-1\u0060\u304B\u3089\u00601\u0060\u3001trigger\u306F\u00600\u0060\u304B\u3089\u00601\u0060\u3001wheel\u306F\u30B9\u30AF\u30ED\u30FC\u30EB\u91CF\u3067\u3059\u3002\u0060PointerMoved\u0060\u306F\u30A2\u30AF\u30B7\u30E7\u30F3\u7528\u306E\u8EF8\u3067\u306F\u306A\u304F\u3001raw pointer position\u3068\u3057\u3066\u4FDD\u6301\u3055\u308C\u307E\u3059\u3002\n\n    {SampleSource(\u0022src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs\u0022, \u0022input-sources-bus-events\u0022)}\n\n    ## 1 tick\u306E\u53CE\u96C6\u9806\u5E8F\n\n    1. tick\u306E\u958B\u59CB\u6642\u306B\u0060bus.Clear()\u0060\u30921\u56DE\u547C\u3073\u307E\u3059\u3002\n    2. \u3059\u3079\u3066\u306Esource\u3078\u0060Poll(bus)\u0060\u3092\u547C\u3073\u3001\u540C\u3058bus\u3078\u30A4\u30D9\u30F3\u30C8\u3092\u8FFD\u52A0\u3057\u307E\u3059\u3002\n    3. raw event\u3092\u8A3A\u65AD\u8868\u793A\u3084\u8A18\u9332\u306B\u4F7F\u3046\u5834\u5408\u306F\u3001\u3053\u306E\u6642\u70B9\u3067\u0060bus.Events\u0060\u3092\u8AAD\u307F\u307E\u3059\u3002\n    4. action layer\u3092\u4F7F\u3046\u5834\u5408\u306F\u0060stack.Update(bus)\u0060\u3092\u547C\u3073\u307E\u3059\u3002\u0060InputStack.Update\u0060\u306F\u30A4\u30D9\u30F3\u30C8\u3092\u4FDD\u6301\u72B6\u614B\u3078\u53CD\u6620\u3057\u305F\u5F8C\u3001bus\u3092\u30AF\u30EA\u30A2\u3057\u307E\u3059\u3002\n\n    {SampleSource(\u0022src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs\u0022, \u0022input-sources-bus-poll\u0022)}\n\n    source\u3054\u3068\u306B\u0060bus.Clear()\u0060\u3057\u3066\u306F\u3044\u3051\u307E\u305B\u3093\u3002\u9014\u4E2D\u3067\u30AF\u30EA\u30A2\u3059\u308B\u3068\u3001\u305D\u308C\u4EE5\u524D\u306Esource\u304C\u8FFD\u52A0\u3057\u305F\u30A4\u30D9\u30F3\u30C8\u304C\u5931\u308F\u308C\u307E\u3059\u3002\u0060InputBus\u0060\u306F\u30AD\u30FC\u30DC\u30FC\u30C9\u3084gamepad\u306E\u4FDD\u6301\u72B6\u614B\u3092\u6301\u3064\u5834\u6240\u3067\u306F\u306A\u304F\u3001\u305D\u306Etick\u306B\u767A\u751F\u3057\u305F\u5DEE\u5206\u30A4\u30D9\u30F3\u30C8\u3092\u4E00\u6642\u7684\u306B\u96C6\u3081\u308Bqueue\u3067\u3059\u3002\u4FDD\u6301\u4E2D\u306E\u30AD\u30FC\u3068\u8EF8\u5024\u306F\u0060InputStack\u0060\u304Ctick\u3092\u307E\u305F\u3044\u3067\u7BA1\u7406\u3057\u307E\u3059\u3002\n\n    ## \u62BC\u4E0B\u3068\u89E3\u653E\u3092\u5225tick\u306B\u3059\u308B\n\n    \u0060FakeInputSource.TapKey\u0060\u306F\u540C\u3058tick\u3078\u0060KeyDown\u0060\u3068\u0060KeyUp\u0060\u3092\u4E88\u7D04\u3057\u307E\u3059\u3002raw event\u5217\u306E\u30C6\u30B9\u30C8\u306B\u306F\u4F7F\u3048\u307E\u3059\u304C\u30011\u56DE\u306E\u0060InputStack.Update\u0060\u5F8C\u306B\u306F\u30AD\u30FC\u304C\u89E3\u653E\u6E08\u307F\u306B\u306A\u308B\u305F\u3081\u3001\u0060ButtonAction.Triggered\u0060\u3068\u0060Released\u0060\u306E\u9077\u79FB\u78BA\u8A8D\u306B\u306F\u5411\u304D\u307E\u305B\u3093\u3002\u30A2\u30AF\u30B7\u30E7\u30F3\u306Eedge\u3092\u691C\u8A3C\u3059\u308B\u3068\u304D\u306F\u3001\u62BC\u4E0B\u3092Poll\uFF0FUpdate\u3057\u305F\u5F8C\u3001\u6B21\u306Etick\u3067\u89E3\u653E\u3092Poll\uFF0FUpdate\u3057\u307E\u3059\u3002\n    \u0022\u0022\u0022;",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -1010,15 +1010,15 @@
     "args": []
   },
   {
-    "path": "Learn/Input/PlatformsAndTesting",
-    "name": "PlatformsAndTesting",
+    "path": "Learn/Input/ActionsAndContexts",
+    "name": "ActionsAndContexts",
     "component": "Learn",
-    "fragment": "stories/learn-input-platformsandtesting.html",
+    "fragment": "stories/learn-input-actionsandcontexts.html",
     "image": null,
     "status": "document",
     "error": null,
     "imageSha256": "",
-    "searchText": "Learn/Input/PlatformsAndTesting\nPlatformsAndTesting\nLearn\n[Story(\u0022Learn/Input/PlatformsAndTesting\u0022, Order = 2, Toc = true)]\npublic static StoryResult Platforms(StoryContext ctx) =\u003E $\u0022\u0022\u0022\n    # Platform input and deterministic tests\n\n    {RuntimeCourseCatalog.Meta(\u0022Learn/Input/PlatformsAndTesting\u0022, \u0022Beginner\u0022, \u0022Window / CI\u0022, \u0022Silk/Win32 \u002B optional XInput\u0022, \u0022Actions and contexts\u0022)}\n\n    \u5B9Fwindow\u306F\u0060WindowInputSource\u0060\u3001Windows gamepad\u306F\u5225assembly\u306E\u0060XInputSource\u0060\u3067\u3059\u3002\u30B2\u30FC\u30E0\u30ED\u30B8\u30C3\u30AF\u306Etest\u306F\u0060FakeInputSource\u0060\u3092\u4F7F\u3044\u3001\u0060source.Poll(bus); stack.Update(bus);\u0060\u30921 tick\u3068\u3057\u3066\u691C\u8A3C\u3057\u307E\u3059\u3002\u540C\u4E00tick\u3067down/up\u3059\u308B\u0060TapKey\u0060\u3067\u306F\u6700\u7D42held\u304Cfalse\u306B\u306A\u308B\u305F\u3081\u3001edge\u3092\u691C\u8A3C\u3059\u308B\u5834\u5408\u306Fpress\u3068release\u3092\u5225tick\u306B\u3057\u307E\u3059\u3002\n    \u0022\u0022\u0022;",
+    "searchText": "Learn/Input/ActionsAndContexts\nActionsAndContexts\nLearn\n[Story(\u0022Learn/Input/ActionsAndContexts\u0022, Order = 2, Toc = true)]\npublic static StoryResult Actions(StoryContext ctx) =\u003E $\u0022\u0022\u0022\n    # \u30A2\u30AF\u30B7\u30E7\u30F3\u3068\u30B3\u30F3\u30C6\u30AD\u30B9\u30C8\n\n    {RuntimeCourseCatalog.Meta(\u0022Learn/Input/ActionsAndContexts\u0022, \u0022Beginner\u0022, \u0022Gallery / Headless\u0022, \u0022Backend neutral\u0022, \u0022IInputSource\u3068InputBus\u0022)}\n\n    {StoryRef(ctx, \u0022Examples/Input/Actions\u0022)}\n\n    \u4E0A\u306EStory\u306F\u0060FakeInputSource\u0060\u3067W\u3001D\u3001Space\u306E\u62BC\u4E0B\u3068\u89E3\u653E\u30921 tick\u305A\u3064\u9001\u308A\u3001\u79FB\u52D5\u30D9\u30AF\u30C8\u30EB\u3001Jump\u306E\u4FDD\u6301\u72B6\u614B\u3001\u0060Triggered\u0060\uFF0F\u0060Released\u0060\u306E\u56DE\u6570\u3092\u8868\u793A\u3057\u307E\u3059\u3002\n\n    ## \u30A2\u30AF\u30B7\u30E7\u30F3\u3092\u69CB\u6210\u3059\u308B\n\n    | \u30A2\u30AF\u30B7\u30E7\u30F3 | \u5024 | \u4E3B\u306A\u7528\u9014 |\n    |---|---|---|\n    | \u0060ButtonAction\u0060 | \u0060bool\u0060 | \u30B8\u30E3\u30F3\u30D7\u3001\u6C7A\u5B9A\u3001\u653B\u6483 |\n    | \u0060Axis1DAction\u0060 | \u0060-1\u0060\u304B\u3089\u00601\u0060 | \u5DE6\u53F3\u79FB\u52D5\u3001\u30A2\u30AF\u30BB\u30EB\u3001\u30C8\u30EA\u30AC\u30FC |\n    | \u0060Axis2DAction\u0060 | \u0060Vector2\u0060 | WASD\u79FB\u52D5\u3001\u30B9\u30C6\u30A3\u30C3\u30AF\u5165\u529B |\n\n    \u0060InputContext\u0060\u3078\u30A2\u30AF\u30B7\u30E7\u30F3\u3092\u8FFD\u52A0\u3057\u3001\u7269\u7406\u30AD\u30FC\u3084\u8EF8\u3092\u767B\u9332\u3057\u307E\u3059\u3002\u3053\u3053\u3067\u306FSpace\u3092Jump\u3078\u3001WASD\u3092Move\u3078\u5BFE\u5FDC\u4ED8\u3051\u3001Gameplay\u30B3\u30F3\u30C6\u30AD\u30B9\u30C8\u3092\u0060InputStack\u0060\u3078\u7A4D\u307F\u307E\u3059\u3002\n\n    {SampleSource(\u0022src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs\u0022, \u0022input-actions-setup\u0022)}\n\n    \u0060Axis2DAction\u0060\u306F\u4E0A\u4E0B\u5DE6\u53F3\u30922\u6B21\u5143\u30D9\u30AF\u30C8\u30EB\u3078\u5408\u6210\u3057\u307E\u3059\u3002W\u3068D\u3092\u540C\u6642\u306B\u62BC\u3057\u305F\u659C\u3081\u5165\u529B\u306F\u3001\u9577\u3055\u304C1\u3092\u8D85\u3048\u306A\u3044\u3088\u3046\u6B63\u898F\u5316\u3055\u308C\u307E\u3059\u3002\n\n    ## \u62BC\u4E0B\u3068\u89E3\u653E\u306E\u30A8\u30C3\u30B8\u3092\u51E6\u7406\u3059\u308B\n\n    \u0060ButtonAction.Triggered\u0060\u306F\u672A\u62BC\u4E0B\u304B\u3089\u62BC\u4E0B\u3078\u5909\u308F\u3063\u305Ftick\u3001\u0060Released\u0060\u306F\u62BC\u4E0B\u304B\u3089\u672A\u62BC\u4E0B\u3078\u5909\u308F\u3063\u305Ftick\u30671\u56DE\u3060\u3051\u767A\u706B\u3057\u307E\u3059\u3002\u62BC\u3057\u7D9A\u3051\u3066\u3044\u308B\u9593\u306F\u0060IsActive\u0060\u304Ctrue\u3067\u3059\u304C\u3001\u0060Triggered\u0060\u306F\u7E70\u308A\u8FD4\u3057\u767A\u706B\u3057\u307E\u305B\u3093\u3002\n\n    {SampleSource(\u0022src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs\u0022, \u0022input-actions-edges\u0022)}\n\n    \u0060Tick\u0060\u3067\u306F\u6700\u521D\u306B\u0060source.Poll(bus)\u0060\u3067\u5DEE\u5206\u30A4\u30D9\u30F3\u30C8\u3092\u96C6\u3081\u3001\u6B21\u306B\u0060stack.Update(bus)\u0060\u3067\u4FDD\u6301\u72B6\u614B\u3068\u30A2\u30AF\u30B7\u30E7\u30F3\u5024\u3092\u66F4\u65B0\u3057\u307E\u3059\u3002\u30A8\u30C3\u30B8\u3092\u78BA\u8A8D\u3059\u308B\u3068\u304D\u306F\u62BC\u4E0B\u3068\u89E3\u653E\u3092\u5225\u3005\u306Etick\u3067\u51E6\u7406\u3057\u307E\u3059\u3002\n\n    ## \u30B3\u30F3\u30C6\u30AD\u30B9\u30C8\u306E\u512A\u5148\u9806\u4F4D\u3068\u5165\u529B\u306E\u6D88\u8CBB\n\n    {StoryRef(ctx, \u0022Examples/Input/ContextStack\u0022)}\n\n    \u4E0A\u306EStory\u306FGameplay\u306E\u4E0A\u306BMenu\u3092\u7A4D\u307F\u3001\u540C\u3058Enter\u304C\u3069\u3061\u3089\u3078\u5C4A\u304F\u304B\u3092\u8868\u793A\u3057\u307E\u3059\u3002\n\n    ### \u30B9\u30BF\u30C3\u30AF\u3092\u69CB\u6210\u3059\u308B\n\n    \u0060InputStack\u0060\u306F\u6700\u5F8C\u306B\u0060Push\u0060\u3057\u305F\u30B3\u30F3\u30C6\u30AD\u30B9\u30C8\u304B\u3089\u8A55\u4FA1\u3057\u307E\u3059\u3002Menu\u3092\u6700\u5F8C\u306B\u7A4D\u3080\u3053\u3068\u3067\u3001Menu\u304CGameplay\u3088\u308A\u4E0A\u4F4D\u306B\u306A\u308A\u307E\u3059\u3002\n\n    {SampleSource(\u0022src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs\u0022, \u0022input-context-setup\u0022)}\n\n    ### \u4E0A\u4F4D\u30B3\u30F3\u30C6\u30AD\u30B9\u30C8\u3067\u5165\u529B\u3092\u6D88\u8CBB\u3059\u308B\n\n    \u4E0A\u4F4D\u30B3\u30F3\u30C6\u30AD\u30B9\u30C8\u306Eactive action\u304C\u4F7F\u7528\u3057\u305F\u30AD\u30FC\u3084\u8EF8\u306F\u6D88\u8CBB\u3055\u308C\u3001\u4E0B\u4F4D\u30B3\u30F3\u30C6\u30AD\u30B9\u30C8\u306B\u306F\u6E21\u308A\u307E\u305B\u3093\u3002\u62BC\u4E0Btick\u3067\u7D50\u679C\u3092\u8AAD\u307F\u3001\u89E3\u653Etick\u3067\u4FDD\u6301\u72B6\u614B\u3092\u623B\u3057\u307E\u3059\u3002\n\n    {SampleSource(\u0022src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs\u0022, \u0022input-context-routing\u0022)}\n\n    ### \u30B3\u30F3\u30C6\u30AD\u30B9\u30C8\u3092\u4E00\u6642\u505C\u6B62\u3059\u308B\n\n    \u0060SetSuspended\u0060\u3092\u4F7F\u3046\u3068\u3001\u30B3\u30F3\u30C6\u30AD\u30B9\u30C8\u3092\u30B9\u30BF\u30C3\u30AF\u304B\u3089\u5916\u3055\u305A\u8A55\u4FA1\u5BFE\u8C61\u304B\u3089\u9664\u5916\u3067\u304D\u307E\u3059\u3002Menu\u3092\u505C\u6B62\u3059\u308B\u3068\u3001\u540C\u3058Enter\u3092Gameplay\u304C\u53D7\u3051\u53D6\u308A\u307E\u3059\u3002\n\n    {SampleSource(\u0022src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs\u0022, \u0022input-context-suspension\u0022)}\n    \u0022\u0022\u0022;",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -1172,6 +1172,20 @@
     "args": []
   },
   {
+    "path": "Learn/Input/BindingsAndRebinding",
+    "name": "BindingsAndRebinding",
+    "component": "Learn",
+    "fragment": "stories/learn-input-bindingsandrebinding.html",
+    "image": null,
+    "status": "document",
+    "error": null,
+    "imageSha256": "",
+    "searchText": "Learn/Input/BindingsAndRebinding\nBindingsAndRebinding\nLearn\n[Story(\u0022Learn/Input/BindingsAndRebinding\u0022, Order = 3, Toc = true)]\npublic static StoryResult Bindings(StoryContext ctx) =\u003E $\u0022\u0022\u0022\n    # \u30D0\u30A4\u30F3\u30C7\u30A3\u30F3\u30B0\u3068\u30AD\u30FC\u306E\u518D\u8A2D\u5B9A\n\n    {RuntimeCourseCatalog.Meta(\u0022Learn/Input/BindingsAndRebinding\u0022, \u0022Beginner\u0022, \u0022Gallery / Settings\u0022, \u0022Backend neutral\u0022, \u0022\u30A2\u30AF\u30B7\u30E7\u30F3\u3068\u30B3\u30F3\u30C6\u30AD\u30B9\u30C8\u0022)}\n\n    {StoryRef(ctx, \u0022Examples/Input/Bindings\u0022)}\n\n    \u4E0A\u306EStory\u306FJump\u306E\u30D0\u30A4\u30F3\u30C9\u3092Space\u3068Enter\u3067\u5207\u308A\u66FF\u3048\u3001\u8868\u793A\u4E2D\u306EJSON\u3092\u8AAD\u307F\u623B\u3057\u3066\u304B\u3089\u0060InputBindingsApplier\u0060\u3078\u53CD\u6620\u3057\u307E\u3059\u3002\u305D\u306E\u5F8C\u3001\u5404\u30AD\u30FC\u3092\u30B7\u30DF\u30E5\u30EC\u30FC\u30C8\u3057\u3066\u3001\u65B0\u3057\u3044\u8A2D\u5B9A\u3067Jump\u304C\u767A\u706B\u3059\u308B\u304B\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002\n\n    ## \u30A2\u30AF\u30B7\u30E7\u30F3\u3068\u30C6\u30B9\u30C8\u7528\u5165\u529B\u3092\u7528\u610F\u3059\u308B\n\n    \u30B2\u30FC\u30E0\u30ED\u30B8\u30C3\u30AF\u306B\u306F\u300CSpace\u304C\u62BC\u3055\u308C\u305F\u304B\u300D\u3067\u306F\u306A\u304F\u300CJump\u304C\u6709\u52B9\u304B\u300D\u3092\u554F\u3044\u5408\u308F\u305B\u307E\u3059\u3002\u0060Jump\u0060\u3068\u3044\u3046\u30A2\u30AF\u30B7\u30E7\u30F3\u540D\u3092\u5951\u7D04\u3068\u3057\u3066\u56FA\u5B9A\u3057\u3001\u7269\u7406\u30AD\u30FC\u3068\u306E\u5BFE\u5FDC\u3060\u3051\u3092\u5909\u66F4\u3057\u307E\u3059\u3002\n\n    {SampleSource(\u0022src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs\u0022, \u0022input-bindings-setup\u0022)}\n\n    \u3053\u306E\u5206\u96E2\u306B\u3088\u308A\u3001\u30E6\u30FC\u30B6\u30FC\u3054\u3068\u306E\u30AD\u30FC\u8A2D\u5B9A\u3001\u521D\u671F\u8A2D\u5B9A\u3078\u306E\u30EA\u30BB\u30C3\u30C8\u3001\u8A2D\u5B9A\u30D5\u30A1\u30A4\u30EB\u3078\u306E\u4FDD\u5B58\u3068\u8AAD\u307F\u8FBC\u307F\u3001\u30AD\u30FC\u30DC\u30FC\u30C9\u3068\u30B2\u30FC\u30E0\u30D1\u30C3\u30C9\u306E\u8907\u6570\u30D0\u30A4\u30F3\u30C9\u3092\u3001\u30B2\u30FC\u30E0\u30ED\u30B8\u30C3\u30AF\u3092\u5909\u66F4\u305B\u305A\u5B9F\u88C5\u3067\u304D\u307E\u3059\u3002\n\n    ## JSON\u3068\u3057\u3066\u4FDD\u5B58\u3059\u308B\n\n    \u0060InputBindings.Actions\u0060\u306E\u30AD\u30FC\u306F\u8AD6\u7406\u30A2\u30AF\u30B7\u30E7\u30F3\u540D\u3067\u3059\u3002\u0060InputBindingEntry.Kind\u0060\u3067button\uFF0Faxis\u306E\u7A2E\u985E\u3092\u793A\u3057\u3001\u0060Keys\u0060\u3001\u0060Pairs\u0060\u3001\u0060Quads\u0060\u3001\u0060Axes\u0060\u3078\u7269\u7406\u5165\u529B\u540D\u3092\u4FDD\u5B58\u3057\u307E\u3059\u3002\n\n    {SampleSource(\u0022src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs\u0022, \u0022input-bindings-json\u0022)}\n\n    JSON\u306B\u306F\u0060Jump\u0060\u3068\u0060Space\u0060\u307E\u305F\u306F\u0060Enter\u0060\u306E\u5BFE\u5FDC\u3060\u3051\u304C\u542B\u307E\u308C\u307E\u3059\u3002\u30B2\u30FC\u30E0\u5074\u306F\u3053\u306E\u7269\u7406\u30AD\u30FC\u540D\u3092\u76F4\u63A5\u53C2\u7167\u3057\u307E\u305B\u3093\u3002\n\n    ## JSON\u3092\u8AAD\u307F\u8FBC\u307F\u3001\u30B3\u30F3\u30C6\u30AD\u30B9\u30C8\u3078\u53CD\u6620\u3059\u308B\n\n    1. JSON\u3092\u0060InputBindings\u0060\u3078\u30C7\u30B7\u30EA\u30A2\u30E9\u30A4\u30BA\u3057\u307E\u3059\u3002\n    2. \u0060InputBindingsApplier.Apply(bindings, context)\u0060\u3092\u547C\u3073\u307E\u3059\u3002\n    3. Applier\u304C\u30A2\u30AF\u30B7\u30E7\u30F3\u540D\u3092\u7167\u5408\u3057\u3001\u0060ButtonAction.Keys\u0060\u306A\u3069\u3092\u66F4\u65B0\u3057\u307E\u3059\u3002\n    4. \u4EE5\u964D\u306Etick\u304B\u3089\u3001\u65B0\u3057\u3044\u7269\u7406\u30AD\u30FC\u3067\u540C\u3058Jump\u30A2\u30AF\u30B7\u30E7\u30F3\u304C\u6709\u52B9\u306B\u306A\u308A\u307E\u3059\u3002\n\n    {SampleSource(\u0022src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs\u0022, \u0022input-bindings-apply\u0022)}\n\n    ## \u53CD\u6620\u3057\u305F\u30D0\u30A4\u30F3\u30C7\u30A3\u30F3\u30B0\u3092\u78BA\u8A8D\u3059\u308B\n\n    \u65B0\u3057\u3044\u30AD\u30FC\u3092\u62BC\u3057\u30661 tick\u9032\u3081\u3001Jump\u306Eactive\u72B6\u614B\u3092\u8AAD\u307F\u307E\u3059\u3002\u305D\u306E\u5F8C\u3001\u30AD\u30FC\u3092\u89E3\u653E\u3057\u3066\u6B21\u306Etick\u3078\u9032\u3081\u307E\u3059\u3002\u4FDD\u5B58\u30FB\u8AAD\u307F\u8FBC\u307F\u3068\u30A2\u30AF\u30B7\u30E7\u30F3\u8A55\u4FA1\u3092\u540C\u3058Story\u5185\u3067\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002\n\n    {SampleSource(\u0022src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs\u0022, \u0022input-bindings-simulate\u0022)}\n\n    ## \u518D\u8A2D\u5B9AUI\u306E\u8CAC\u52D9\n\n    \u518D\u8A2D\u5B9AUI\u306F\u3001\u30E6\u30FC\u30B6\u30FC\u304C\u6B21\u306B\u62BC\u3057\u305F\u7269\u7406\u30AD\u30FC\u307E\u305F\u306F\u30DC\u30BF\u30F3\u3092\u53D6\u5F97\u3057\u3001\u5BFE\u8C61\u30A2\u30AF\u30B7\u30E7\u30F3\u306Ebinding entry\u3092\u66F8\u304D\u63DB\u3048\u307E\u3059\u3002\u5B9F\u30A6\u30A3\u30F3\u30C9\u30A6\u3067\u306F\u0060WindowInputSource.TakePressed()\u0060\u3092\u4F7F\u3063\u3066\u76F4\u8FD1\u306E\u30AD\u30FC\u62BC\u4E0B\u3092\u53D6\u5F97\u3067\u304D\u307E\u3059\u3002\n\n    \u6587\u5B57\u5165\u529B\u3084IME composition\u306F\u30AD\u30FC\u8A2D\u5B9A\u3067\u306F\u306A\u304F\u0060Luxel.UI\u0060\u306E\u30C6\u30AD\u30B9\u30C8\u5165\u529B\u7D4C\u8DEF\u3067\u6271\u3044\u307E\u3059\u3002\u8868\u793A\u6587\u5B57\u3068\u7269\u7406\u30AD\u30FC\u3092\u6DF7\u540C\u3057\u306A\u3044\u3053\u3068\u304C\u91CD\u8981\u3067\u3059\u3002\n    \u0022\u0022\u0022;",
+    "aliases": [],
+    "bundle": null,
+    "args": []
+  },
+  {
     "path": "Learn/RenderGraph/Compilation",
     "name": "Compilation",
     "component": "Learn",
@@ -1195,6 +1209,20 @@
     "error": null,
     "imageSha256": "",
     "searchText": "Learn/Graphics/Buffers\nBuffers\nLearn\n[Story(\u0022Learn/Graphics/Buffers\u0022, Order = 4, Toc = true)]\npublic static StoryResult Buffers(StoryContext ctx)\n{\n    return $$\u0022\u0022\u0022\n    # Buffers\n\n    {{RenderingCourseCatalog.Meta(\u0022Learn/Graphics/Buffers\u0022, \u0022Beginner\u0022, \u0022Standalone \u002B Gallery\u0022, \u0022Vulkan / DirectX 12\u0022, \u0022FirstTriangle\u0022)}}\n\n    {{StoryRef(ctx, \u0022Examples/3D/BuffersAndBindings\u0022)}}\n\n    \u4E0A\u306Esample\u306F4\u9802\u70B9\u306E\u56DB\u89D2\u5F62\u3092\u3001**\u9802\u70B9\u5EA7\u6A19\u30FB\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9\u30FB\u8272\u306E3\u3064\u306Ebuffer**\u306B\u5206\u3051\u3066\u63CF\u753B\u3057\u307E\u3059\u30026\u500B\u306Eindex\u3092\u0060Draw(6)\u0060\u306E\u0060SV_VertexID\u0060\u3067\u9806\u306B\u8AAD\u307F\u3001index\u304C\u6307\u3059\u9802\u70B9\u5EA7\u6A19\u3068\u8272\u3092\u5225buffer\u304B\u3089\u53D6\u5F97\u3057\u307E\u3059\u3002\n\n    ## \u56DB\u89D2\u5F62sample\u306Ebuffer\u3092\u4F5C\u6210\u3059\u308B\n\n    \u9802\u70B9buffer\u306B\u306F4\u500B\u306E\u0060float2\u0060\u3001index buffer\u306B\u306F2\u4E09\u89D2\u5F62\u5206\u306E6\u500B\u306E\u0060uint\u0060\u3001\u8272buffer\u306B\u306F4\u500B\u306E\u0060float4\u0060\u3092\u683C\u7D0D\u3057\u307E\u3059\u3002\u5404buffer\u3092\u0060HostMapped\u0060\u3067\u78BA\u4FDD\u3057\u3001\u5BFE\u5FDC\u3059\u308B\u0060Span\u003CT\u003E\u0060\u3078\u8EE2\u9001\u3057\u307E\u3059\u3002\n\n    \u0060\u0060\u0060csharp\n    float[] vertices =\n    [\n        -0.72f, -0.72f,\n         0.72f, -0.72f,\n         0.72f,  0.72f,\n        -0.72f,  0.72f,\n    ];\n    uint[] indices = [0, 1, 2, 0, 2, 3];\n    float[] colors =\n    [\n        1.00f, 0.18f, 0.18f, 1,\n        0.18f, 1.00f, 0.28f, 1,\n        0.20f, 0.42f, 1.00f, 1,\n        1.00f, 0.82f, 0.18f, 1,\n    ];\n\n    using GpuBuffer vertexBuffer = device.Malloc(\n        checked((ulong)vertices.Length * sizeof(float)),\n        GpuMemoryKind.HostMapped);\n    using GpuBuffer indexBuffer = device.Malloc(\n        checked((ulong)indices.Length * sizeof(uint)),\n        GpuMemoryKind.HostMapped);\n    using GpuBuffer colorBuffer = device.Malloc(\n        checked((ulong)colors.Length * sizeof(float)),\n        GpuMemoryKind.HostMapped);\n\n    vertices.CopyTo(vertexBuffer.Span\u003Cfloat\u003E(vertices.Length));\n    indices.CopyTo(indexBuffer.Span\u003Cuint\u003E(indices.Length));\n    colors.CopyTo(colorBuffer.Span\u003Cfloat\u003E(colors.Length));\n    \u0060\u0060\u0060\n\n    ## Luxel\u3067\u306F\u300Cvertex buffer\u300D\u3082raw bindless buffer\n\n    \u0060GpuDevice.Malloc\u0060 \u304C\u4F5C\u308B \u0060GpuBuffer\u0060 \u306F\u3001\u4F5C\u6210\u6642\u306B \u0060BindlessIndex\u0060 \u3092\u5F97\u3066raw storage buffer\u914D\u5217\u3078\u767B\u9332\u3055\u308C\u307E\u3059\u3002vertex / index / storage / upload / readback\u306F\u5225\u30AF\u30E9\u30B9\u3067\u306F\u306A\u304F\u3001**\u540C\u3058\u30D0\u30C3\u30D5\u30A1\u3092\u3069\u3046\u4F7F\u3046\u304B\u3068\u3044\u3046\u5F79\u5272**\u3067\u3059\u3002\n\n    | \u5F79\u5272 | \u4E2D\u8EAB\u3068\u30A2\u30AF\u30BB\u30B9 | \u63A8\u5968memory kind |\n    | --- | --- | --- |\n    | vertex | \u9802\u70B9shader\u304C \u0060SV_VertexID\u0060 \u304B\u3089byte offset\u3092\u8A08\u7B97\u3057\u3066pull | \u5C0F\u3055\u3044\u66F4\u65B0\u30C7\u30FC\u30BF\u306F\u0060HostMapped\u0060\u3001\u5927\u304D\u3044\u9759\u7684\u30C7\u30FC\u30BF\u306F\u0060DeviceLocal\u0060 |\n    | index | index\u5024\u3092raw buffer\u304B\u3089pull\u3057\u3001\u305D\u306E\u5024\u3067vertex\u3092pull\u3002Luxel core\u306B\u0060DrawIndexed\u0060\u306F\u306A\u3044 | \u901A\u5E38\u0060DeviceLocal\u0060\u3001\u4F5C\u6210\u6642\u306Bupload |\n    | storage | compute / graphics\u304C\u4EFB\u610Foffset\u3092\u8AAD\u307F\u66F8\u304D | \u901A\u5E38\u0060DeviceLocal\u0060 |\n    | upload | CPU\u304C\u66F8\u304D\u3001GPU\u304C\u8AAD\u3080\u4E00\u6642\u307E\u305F\u306F\u983B\u7E41\u66F4\u65B0\u30C7\u30FC\u30BF | \u0060HostMapped\u0060 |\n    | readback | GPU copy\u5F8C\u306BCPU\u304C\u8AAD\u3080 | \u0060HostCached\u0060 |\n\n    \u0060HostMapped\u0060 \u306FCPU write\u5411\u3051\u3067\u3001write-combined / uncached\u306E\u5834\u5408\u304C\u3042\u308A\u307E\u3059\u3002CPU readback\u306B\u306F\u4F7F\u308F\u305A\u3001\u0060CopyBuffer\u0060\u3084\u0060CopyTextureToBuffer\u0060\u3067 \u0060HostCached\u0060 \u3078\u30B3\u30D4\u30FC\u3057\u307E\u3059\u3002\u0060DeviceLocal\u0060 \u306FCPU\u306E \u0060Span\u003CT\u003E\u0060 \u3092\u6301\u305F\u305AGPU\u51E6\u7406\u5411\u3051\u3067\u3059\u3002\n\n    ## C# \u3068Slang\u306EABI\n\n    root arguments\u306B\u306F3\u3064\u306Ebuffer\u306E\u0060BindlessIndex\u0060\u3060\u3051\u3092\u5165\u308C\u307E\u3059\u3002C#\u3068Slang\u3067field\u9806\u3092\u4E00\u81F4\u3055\u305B\u308B\u3068\u300112 byte\u306E\u540C\u3058raw bytes\u3068\u3057\u3066\u89E3\u91C8\u3055\u308C\u307E\u3059\u3002\n\n    \u0060\u0060\u0060csharp\n    public struct DrawArgs\n    {\n        public uint VertexBufferIndex;\n        public uint IndexBufferIndex;\n        public uint ColorBufferIndex;\n    }\n\n    var args = new DrawArgs\n    {\n        VertexBufferIndex = vertexBuffer.BindlessIndex,\n        IndexBufferIndex = indexBuffer.BindlessIndex,\n        ColorBufferIndex = colorBuffer.BindlessIndex,\n    };\n    \u0060\u0060\u0060\n\n    \u0060\u0060\u0060slang\n    struct DrawArgs\n    {\n        uint vertexBufferIndex;\n        uint indexBufferIndex;\n        uint colorBufferIndex;\n    };\n    [[vk::push_constant]] DrawArgs g_args;\n    [[vk::binding(0, 0)]] RWByteAddressBuffer g_buffers[];\n\n    struct VertexOut\n    {\n        float4 position : SV_Position;\n        float4 color : COLOR0;\n    };\n\n    [shader(\u0022vertex\u0022)]\n    VertexOut vsMain(uint vertexId : SV_VertexID)\n    {\n        uint index = g_buffers[g_args.indexBufferIndex]\n            .Load\u003Cuint\u003E(vertexId * 4);\n        float2 position = asfloat(\n            g_buffers[g_args.vertexBufferIndex].Load2(index * 8));\n        float4 color = asfloat(\n            g_buffers[g_args.colorBufferIndex].Load4(index * 16));\n\n        VertexOut output;\n        output.position = float4(position, 0, 1);\n        output.color = color;\n        return output;\n    }\n    \u0060\u0060\u0060\n\n    \u0060vertexId\u0060\u306F0\u301C5\u306Eindex-stream\u4E0A\u306E\u4F4D\u7F6E\u3067\u3059\u3002index buffer\u304B\u3089\u5F97\u305F0\u301C3\u306E\u5024\u3092\u4F7F\u3044\u3001\u9802\u70B9buffer\u306F1\u8981\u7D208 byte\u3001\u8272buffer\u306F1\u8981\u7D2016 byte\u3068\u3057\u3066byte offset\u3092\u8A08\u7B97\u3057\u307E\u3059\u3002\u7570\u306A\u308B\u5F79\u5272\u306E\u30C7\u30FC\u30BF\u3092\u5225buffer\u3078\u5206\u3051\u3066\u3082\u3001\u540C\u3058index\u3067\u5BFE\u5FDC\u3059\u308B\u9802\u70B9\u3068\u8272\u3092\u53D6\u5F97\u3067\u304D\u307E\u3059\u3002\n\n    ## Root arguments\u306Fraw bytes\n\n    \u0060SetRootArguments\u003CT\u003E\u0060 \u306Funmanaged struct\u3092\u305D\u306E\u307E\u307Ebytes\u5316\u3057\u3001Vulkan\u3067\u306Fpush constants\u3001D3D12\u3067\u306Froot 32-bit constants\u3078\u9001\u308A\u307E\u3059\u3002\u5171\u901A\u56FA\u5B9A\u5BB9\u91CF\u306F **192 byte**\u3001D3D12\u4E92\u63DB\u306E\u305F\u3081size\u306F **4 byte\u5358\u4F4D**\u3067\u3059\u3002\u53C2\u7167\u305D\u306E\u3082\u306E\u3067\u306F\u306A\u304F \u0060BindlessIndex\u0060 \u3084\u5C0F\u3055\u306Ascalar / matrix\u3092\u5165\u308C\u307E\u3059\u3002\u5927\u304D\u306A\u914D\u5217\u306Fbuffer\u3078\u7F6E\u3044\u3066index\u3060\u3051\u3092\u6E21\u3057\u307E\u3059\u3002\n\n    \u0060\u0060\u0060mermaid\n    flowchart TB\n    cpu[\u0022C#: DrawArgs raw bytes\\nvertex / index / color buffer indices\u0022] --\u003E api[\u0022SetRootArguments\\n4-byte units, max 192 bytes\u0022]\n    api --\u003E vk[\u0022Vulkan\\npush constants\u0022]\n    api --\u003E dx[\u0022D3D12\\nroot 32-bit constants\u0022]\n    vk --\u003E slang[\u0022Slang: g_args\u0022]\n    dx --\u003E slang\n    index[\u0022index buffer\\nSV_VertexID -\u003E vertex index\u0022] --\u003E vertex[\u0022vertex buffer\\nindex -\u003E float2 position\u0022]\n    index --\u003E color[\u0022color buffer\\nindex -\u003E float4 color\u0022]\n    slang --\u003E index\n    \u0060\u0060\u0060\n\n    ## \u30B3\u30DE\u30F3\u30C9\u3092\u8A18\u9332\u3059\u308B\n\n    \u0060DrawIndexed\u0060\u306E\u4EE3\u308F\u308A\u306Bindex\u6570\u306E6\u3092\u0060Draw\u0060\u3078\u6E21\u3057\u307E\u3059\u3002shader\u5185\u3067\u0060SV_VertexID\u0060\u3092index buffer\u306Eoffset\u3068\u3057\u3066\u4F7F\u3044\u307E\u3059\u3002\n\n    \u0060\u0060\u0060csharp\n    command.BeginRendering(target, null, 0.055f, 0.07f, 0.11f, 1)\n        .SetGraphicsPipeline(pipeline)\n        .SetRootArguments(args)\n        .Draw(6)\n        .EndRendering();\n    \u0060\u0060\u0060\n\n    ## \u6240\u6709\u6A29\u3068\u5BFF\u547D\n\n    sample\u306Fvertex\u3001index\u3001color buffer\u3092\u63CF\u753B\u4E2D\u4FDD\u6301\u3057\u3001\u7834\u68C4\u6642\u306Fqueue\u306E\u5B8C\u4E86\u3092\u5F85\u3063\u3066\u304B\u30893\u3064\u306Ebuffer\u3092\u7834\u68C4\u3057\u307E\u3059\u3002command buffer\u306F1 frame\u3060\u3051\u3067\u3059\u3002bindless index\u306Fbuffer\u304C\u751F\u5B58\u4E2D\u3060\u3051\u6709\u52B9\u306A\u306E\u3067\u3001\u8A18\u9332\u6E08\u307Fcommand\u304C\u53C2\u7167\u3057\u3066\u3044\u308B\u9593\u306Bbuffer\u3092\u7834\u68C4\u30FB\u518D\u5229\u7528\u3057\u3066\u306F\u3044\u3051\u307E\u305B\u3093\u3002\n\n    ## \u5178\u578B\u7684\u306A\u5931\u6557\n\n    - \u0060ArgumentException: 4-byte-compatible size\u0060 \u2192 root args\u30783 byte\u306A\u3069DWord\u975E\u4E92\u63DB\u306E\u578B\u3092\u6E21\u3057\u305F\n    - \u0060ArgumentOutOfRangeException: limited to 192 bytes\u0060 \u2192 \u5927\u304D\u306A\u30C7\u30FC\u30BF\u3092buffer\u3078\u79FB\u3057\u3001index\u3060\u3051\u3092root args\u3078\u7F6E\u304F\n    - \u4E09\u89D2\u5F62\u304C\u5D29\u308C\u308B \u2192 C# / Slang\u306Esize\u3001offset\u3001stride\u3001padding\u3092\u7167\u5408\u3059\u308B\n    - GPU validation / device lost \u2192 \u5BFF\u547D\u5207\u308C\u306Ebindless index\u3001copy/barrier\u524D\u5F8C\u3001\u7BC4\u56F2\u5916offset\u3092\u78BA\u8A8D\u3059\u308B\n    - CPU readback\u304C\u6975\u7AEF\u306B\u9045\u3044 \u2192 \u0060HostMapped\u0060\u3092\u76F4\u63A5\u8AAD\u307E\u305A\u0060HostCached\u0060\u3078GPU copy\u3059\u308B\n    \u0022\u0022\u0022;\n}",
+    "aliases": [],
+    "bundle": null,
+    "args": []
+  },
+  {
+    "path": "Learn/Input/PlatformsAndTesting",
+    "name": "PlatformsAndTesting",
+    "component": "Learn",
+    "fragment": "stories/learn-input-platformsandtesting.html",
+    "image": null,
+    "status": "document",
+    "error": null,
+    "imageSha256": "",
+    "searchText": "Learn/Input/PlatformsAndTesting\nPlatformsAndTesting\nLearn\n[Story(\u0022Learn/Input/PlatformsAndTesting\u0022, Order = 4, Toc = true)]\npublic static StoryResult Platforms(StoryContext ctx) =\u003E $\u0022\u0022\u0022\n    # \u30D7\u30E9\u30C3\u30C8\u30D5\u30A9\u30FC\u30E0\u5165\u529B\u3068\u6C7A\u5B9A\u7684\u30C6\u30B9\u30C8\n\n    {RuntimeCourseCatalog.Meta(\u0022Learn/Input/PlatformsAndTesting\u0022, \u0022Beginner\u0022, \u0022Window / CI\u0022, \u0022Win32 / Silk X11 / Fake / XInput\u0022, \u0022\u30D0\u30A4\u30F3\u30C7\u30A3\u30F3\u30B0\u3068\u30AD\u30FC\u306E\u518D\u8A2D\u5B9A\u0022)}\n\n    | Platform | Window keyboard/pointer | Gamepad | \u691C\u8A3C\u7BC4\u56F2 |\n    |---|---|---|---|\n    | Windows | Win32 \u002B \u0060WindowInputSource\u0060 | optional \u0060Luxel.Input.XInput\u0060 | \u5B9F\u30A6\u30A3\u30F3\u30C9\u30A6\u5165\u529B\u3001\u30A2\u30AF\u30B7\u30E7\u30F3\u3001XInput |\n    | Linux | Silk backend\uFF08X11\uFF09 | \u672A\u63D0\u4F9B | X11 keyboard\uFF0Fpointer\u3002Wayland\u306F\u672A\u5BFE\u5FDC |\n    | macOS | \u5B9F\u30A6\u30A3\u30F3\u30C9\u30A6backend\u672A\u63D0\u4F9B | \u672A\u63D0\u4F9B | \u0060FakeInputSource\u0060\u306B\u3088\u308Bheadless\u30ED\u30B8\u30C3\u30AF\u306E\u307F |\n    | Mobile | backend\u672A\u63D0\u4F9B | \u672A\u63D0\u4F9B | touch\uFF0Fmultitouch\u306F\u672A\u5BFE\u5FDC |\n\n    \u30B2\u30FC\u30E0\u30ED\u30B8\u30C3\u30AF\u306E\u30C6\u30B9\u30C8\u3067\u306F\u0060FakeInputSource\u0060\u3092\u4F7F\u3044\u3001\u30A6\u30A3\u30F3\u30C9\u30A6\u3084\u5B9F\u6A5F\u5668\u306A\u3057\u3067\u540C\u3058\u0060InputBus\u0060\u3068\u0060InputStack\u0060\u3092\u66F4\u65B0\u3057\u307E\u3059\u3002\u62BC\u4E0B\u3068\u89E3\u653E\u3092\u5225tick\u306B\u3059\u308C\u3070\u3001\u0060Triggered\u0060\u3068\u0060Released\u0060\u3082\u6C7A\u5B9A\u7684\u306B\u691C\u8A3C\u3067\u304D\u307E\u3059\u3002\n\n    {SampleSource(\u0022samples/LuxelInput/Program.cs\u0022, \u0022input-actions\u0022)}\n    \u0022\u0022\u0022;",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -2626,70 +2654,17 @@
     "args": []
   },
   {
-    "path": "Examples/Input/Actions",
-    "name": "Actions",
+    "path": "Examples/Input/SourcesAndBus",
+    "name": "SourcesAndBus",
     "component": "Examples",
-    "fragment": "stories/examples-input-actions.html",
+    "fragment": "stories/examples-input-sourcesandbus.html",
     "image": null,
-    "status": "document",
+    "status": "runtime",
     "error": null,
     "imageSha256": "",
-    "searchText": "Examples/Input/Actions\nActions\nExamples\n[Story(\u0022Examples/Input/Actions\u0022, Order = 0, SampleBundle = \u0022input.actions\u0022)]\npublic static StoryResult InputActions(StoryContext ctx) =\u003E RuntimeExample(ctx, \u0022Input: actions\u0022,\n    \u0022\u0060ButtonAction\u0060\u3068\u0060Axis2DAction\u0060\u3092\u540C\u3058tick\u3067\u66F4\u65B0\u3057\u3001\u8AD6\u7406\u5165\u529B\u3060\u3051\u3092game code\u3078\u516C\u958B\u3057\u307E\u3059\u3002\u0022,\n    \u0022samples/LuxelInput/Program.cs\u0022, \u0022input-actions\u0022, \u0022input.actions\u0022);",
+    "searchText": "Examples/Input/SourcesAndBus\nSourcesAndBus\nExamples\n[Story(\u0022Examples/Input/SourcesAndBus\u0022, Width = 700, Height = 460, Order = 0)]\npublic static Widget SourcesAndBus()\n{\n    // docs:begin input-sources-bus-setup\n    var keyboard = new FakeInputSource();\n    var gamepad = new FakeInputSource();\n    var pointer = new FakeInputSource();\n    IInputSource[] sources = [keyboard, gamepad, pointer];\n    var bus = new InputBus();\n    // docs:end input-sources-bus-setup\n\n    var tick = new Signal\u003Cint\u003E(0);\n    var wDown = false;\n    var eventSummary = new Signal\u003Cstring\u003E(\u0022\u300C\u6B21\u306Etick\u3092\u53CE\u96C6\u300D\u3092\u62BC\u3059\u3068\u30013\u3064\u306Esource\u304B\u3089event\u3092\u96C6\u3081\u307E\u3059\u3002\u0022);\n\n    // docs:begin input-sources-bus-poll\n    void PollFrame()\n    {\n        bus.Clear();\n        if (wDown) keyboard.ReleaseKey(KeyCode.W); else keyboard.PressKey(KeyCode.W);\n        wDown = !wDown;\n        gamepad.SetAxis(AxisCode.GamepadLeftStickX, wDown ? 0.75f : -0.75f);\n        pointer.MovePointer(120 \u002B tick.Value * 12, 80 \u002B tick.Value * 6);\n\n        foreach (IInputSource source in sources)\n            source.Poll(bus);\n\n        tick.Value\u002B\u002B;\n        eventSummary.Value = string.Join(\u0022\\n\u0022, bus.Events.Select(Describe));\n    }\n    // docs:end input-sources-bus-poll\n\n    void ClearBus()\n    {\n        bus.Clear();\n        eventSummary.Value = \u0022InputBus\u3092Clear\u3057\u307E\u3057\u305F\u3002\u6B21\u306Etick\u306Eevent\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002\u0022;\n    }\n\n    // docs:begin input-sources-bus-events\n    static string Describe(InputEvent input) =\u003E input.Kind switch\n    {\n        InputEventKind.KeyDown or InputEventKind.KeyUp =\u003E $\u0022{input.Kind}: {input.Key}\u0022,\n        InputEventKind.AxisChanged =\u003E $\u0022{input.Kind}: {input.Axis} = {input.Value:0.00}\u0022,\n        InputEventKind.PointerMoved =\u003E $\u0022{input.Kind}: ({input.Value:0}, {input.ValueY:0})\u0022,\n        _ =\u003E input.Kind.ToString(),\n    };\n    // docs:end input-sources-bus-events\n\n    return Frame(VStack(12, width: 620)[\n        Heading(\u0022IInputSource\u3068InputBus\u0022, 2),\n        Text(\u0022keyboard\u3001gamepad\u3001pointer\u3092\u5225\u3005\u306Esource\u3068\u3057\u3066\u6271\u3044\u3001\u540C\u3058InputBus\u30781 tick\u5206\u306Eevent\u3092\u96C6\u7D04\u3057\u307E\u3059\u3002\u0022, 14,\n            color: Bind.From(() =\u003E UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 610),\n        HStack(10)[\n            Button(_ =\u003E PollFrame(), \u0022\u6B21\u306Etick\u3092\u53CE\u96C6\u0022),\n            Button(_ =\u003E ClearBus(), \u0022Bus\u3092Clear\u0022)],\n        Text((Func\u003Cstring\u003E)(() =\u003E $\u0022tick = {tick.Value} / bus.Events = {bus.Events.Count}\u0022), 15),\n        Card(Text($\u0022{eventSummary}\u0022, 13, wrap: TextWrap.Word, width: 540)),\n        Text(\u0022Poll\u306Fsource\u5185\u306Epending event\u3092Bus\u3078\u79FB\u3057\u307E\u3059\u3002Bus\u306F\u4FDD\u6301\u72B6\u614B\u3067\u306F\u306A\u304F\u3001\u305D\u306Etick\u306E\u5DEE\u5206event\u3092\u4FDD\u6301\u3057\u307E\u3059\u3002\u0022, 13,\n            color: Bind.From(() =\u003E UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 610)]);\n}",
     "aliases": [],
-    "bundle": {
-      "id": "input.actions",
-      "name": "Deterministic input actions",
-      "description": "FakeInputSource drives InputBus, InputStack, ButtonAction and Axis2DAction without a window.",
-      "difficulty": "Beginner",
-      "copyLevel": 1,
-      "files": [
-        {
-          "path": "samples/LuxelInput/LuxelInput.csproj",
-          "kind": 0,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelInput/LuxelInput.csproj",
-          "effectiveMode": 0
-        },
-        {
-          "path": "samples/LuxelInput/Program.cs",
-          "kind": 1,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelInput/Program.cs",
-          "effectiveMode": 0
-        }
-      ],
-      "dependencies": [
-        "support.source-tree"
-      ],
-      "requirements": [
-        ".NET 10",
-        "Headless on all supported .NET OS"
-      ],
-      "exportSymbol": "InputStack",
-      "runCommand": "dotnet run --project samples/LuxelInput",
-      "smokeCommand": "dotnet run --project samples/LuxelInput",
-      "platforms": [
-        "Windows",
-        "Linux",
-        "macOS"
-      ],
-      "timeoutSeconds": 300,
-      "expectedExitCode": 0,
-      "expectedStdoutMarker": "input: jump=True, triggered=1",
-      "expectedArtifacts": null
-    },
+    "bundle": null,
     "args": []
   },
   {
@@ -2842,70 +2817,17 @@
     "args": []
   },
   {
-    "path": "Examples/Input/ContextStack",
-    "name": "ContextStack",
+    "path": "Examples/Input/Actions",
+    "name": "Actions",
     "component": "Examples",
-    "fragment": "stories/examples-input-contextstack.html",
+    "fragment": "stories/examples-input-actions.html",
     "image": null,
-    "status": "document",
+    "status": "runtime",
     "error": null,
     "imageSha256": "",
-    "searchText": "Examples/Input/ContextStack\nContextStack\nExamples\n[Story(\u0022Examples/Input/ContextStack\u0022, Order = 1, SampleBundle = \u0022input.actions\u0022)]\npublic static StoryResult InputContextStack(StoryContext ctx) =\u003E RuntimeExample(ctx, \u0022Input: context stack\u0022,\n    \u0022\u0060InputStack\u0060\u306E\u4E0A\u4F4Dcontext\u304C\u4F7F\u7528\u3057\u305F\u5165\u529B\u3092consume\u3059\u308B\u305F\u3081\u3001menu\u3068gameplay\u3092platform\u5206\u5C90\u306A\u3057\u3067\u5207\u308A\u66FF\u3048\u3089\u308C\u307E\u3059\u3002\u0022,\n    \u0022samples/LuxelInput/Program.cs\u0022, \u0022input-actions\u0022, \u0022input.actions\u0022);",
+    "searchText": "Examples/Input/Actions\nActions\nExamples\n[Story(\u0022Examples/Input/Actions\u0022, Width = 680, Height = 430, Order = 1)]\npublic static Widget Actions()\n{\n    // docs:begin input-actions-setup\n    var source = new FakeInputSource();\n    var bus = new InputBus();\n    var gameplay = new InputContext(\u0022Gameplay\u0022);\n    var jump = gameplay.Add(new ButtonAction(\u0022Jump\u0022, KeyCode.Space));\n    var move = gameplay.Add(new Axis2DAction(\u0022Move\u0022));\n    move.ButtonQuads.Add((KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D));\n    var stack = new InputStack();\n    stack.Push(gameplay);\n    // docs:end input-actions-setup\n\n    // docs:begin input-actions-edges\n    var jumpTriggered = new Signal\u003Cint\u003E(0);\n    var jumpReleased = new Signal\u003Cint\u003E(0);\n    jump.Triggered \u002B= () =\u003E jumpTriggered.Value\u002B\u002B;\n    jump.Released \u002B= () =\u003E jumpReleased.Value\u002B\u002B;\n\n    void Tick() { source.Poll(bus); stack.Update(bus); }\n    void SetKey(KeyCode key, bool pressed)\n    {\n        if (pressed) source.PressKey(key); else source.ReleaseKey(key);\n        Tick();\n    }\n    // docs:end input-actions-edges\n\n    Widget KeyButton(string label, KeyCode key) =\u003E HStack(6)[\n        Button(_ =\u003E SetKey(key, true), $\u0022{label} \u62BC\u4E0B\u0022),\n        Button(_ =\u003E SetKey(key, false), $\u0022{label} \u89E3\u653E\u0022)];\n\n    return Frame(VStack(12, width: 600)[\n        Heading(\u0022\u30A2\u30AF\u30B7\u30E7\u30F3\u306E\u5024\u3068\u30A8\u30C3\u30B8\u0022, 2),\n        Text(\u0022FakeInputSource\u3067\u7269\u7406\u5165\u529B\u3092\u518D\u73FE\u3057\u30011\u56DE\u306EPoll\u3068Update\u30921 tick\u3068\u3057\u3066\u51E6\u7406\u3057\u307E\u3059\u3002\u0022, 14,\n            color: Bind.From(() =\u003E UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 590),\n        HStack(16)[KeyButton(\u0022W\u0022, KeyCode.W), KeyButton(\u0022D\u0022, KeyCode.D)],\n        KeyButton(\u0022Space\u0022, KeyCode.Space),\n        Card(VStack(6)[\n            Text((Func\u003Cstring\u003E)(() =\u003E $\u0022Move = ({move.Value.Value.X:0.00}, {move.Value.Value.Y:0.00})\u0022), 15),\n            Text((Func\u003Cstring\u003E)(() =\u003E $\u0022Jump = {(jump.IsActive.Value ? \u0022\u62BC\u4E0B\u4E2D\u0022 : \u0022\u672A\u62BC\u4E0B\u0022)}\u0022), 15),\n            Text((Func\u003Cstring\u003E)(() =\u003E $\u0022Triggered = {jumpTriggered.Value} / Released = {jumpReleased.Value}\u0022), 15)]),\n        Text(\u0022W\u3068D\u3092\u4E21\u65B9\u62BC\u3059\u3068\u659C\u3081\u65B9\u5411\u304C\u6B63\u898F\u5316\u3055\u308C\u307E\u3059\u3002Space\u306F\u62BC\u4E0Btick\u3067Triggered\u3001\u89E3\u653Etick\u3067Released\u304C1\u56DE\u305A\u3064\u767A\u706B\u3057\u307E\u3059\u3002\u0022, 13,\n            color: Bind.From(() =\u003E UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 590)]);\n}",
     "aliases": [],
-    "bundle": {
-      "id": "input.actions",
-      "name": "Deterministic input actions",
-      "description": "FakeInputSource drives InputBus, InputStack, ButtonAction and Axis2DAction without a window.",
-      "difficulty": "Beginner",
-      "copyLevel": 1,
-      "files": [
-        {
-          "path": "samples/LuxelInput/LuxelInput.csproj",
-          "kind": 0,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelInput/LuxelInput.csproj",
-          "effectiveMode": 0
-        },
-        {
-          "path": "samples/LuxelInput/Program.cs",
-          "kind": 1,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelInput/Program.cs",
-          "effectiveMode": 0
-        }
-      ],
-      "dependencies": [
-        "support.source-tree"
-      ],
-      "requirements": [
-        ".NET 10",
-        "Headless on all supported .NET OS"
-      ],
-      "exportSymbol": "InputStack",
-      "runCommand": "dotnet run --project samples/LuxelInput",
-      "smokeCommand": "dotnet run --project samples/LuxelInput",
-      "platforms": [
-        "Windows",
-        "Linux",
-        "macOS"
-      ],
-      "timeoutSeconds": 300,
-      "expectedExitCode": 0,
-      "expectedStdoutMarker": "input: jump=True, triggered=1",
-      "expectedArtifacts": null
-    },
+    "bundle": null,
     "args": []
   },
   {
@@ -3058,70 +2980,17 @@
     "args": []
   },
   {
-    "path": "Examples/Input/Bindings",
-    "name": "Bindings",
+    "path": "Examples/Input/ContextStack",
+    "name": "ContextStack",
     "component": "Examples",
-    "fragment": "stories/examples-input-bindings.html",
+    "fragment": "stories/examples-input-contextstack.html",
     "image": null,
-    "status": "document",
+    "status": "runtime",
     "error": null,
     "imageSha256": "",
-    "searchText": "Examples/Input/Bindings\nBindings\nExamples\n[Story(\u0022Examples/Input/Bindings\u0022, Order = 2, SampleBundle = \u0022input.actions\u0022)]\npublic static StoryResult InputBindings(StoryContext ctx) =\u003E RuntimeExample(ctx, \u0022Input: bindings and deterministic ticks\u0022,\n    \u0022keyboard binding\u3092\u8AD6\u7406action\u3078\u96C6\u7D04\u3057\u3001\u0060FakeInputSource\u0060\u306Epress\u3068release\u3092\u5225tick\u3067\u9001\u308B\u691C\u8A3C\u53EF\u80FD\u306A\u69CB\u6210\u3067\u3059\u3002\u0022,\n    \u0022samples/LuxelInput/Program.cs\u0022, \u0022input-actions\u0022, \u0022input.actions\u0022);",
+    "searchText": "Examples/Input/ContextStack\nContextStack\nExamples\n[Story(\u0022Examples/Input/ContextStack\u0022, Width = 650, Height = 390, Order = 2)]\npublic static Widget ContextStack()\n{\n    // docs:begin input-context-setup\n    var source = new FakeInputSource();\n    var bus = new InputBus();\n    var gameplay = new InputContext(\u0022Gameplay\u0022);\n    var gameplayConfirm = gameplay.Add(new ButtonAction(\u0022Confirm\u0022, KeyCode.Enter));\n    var menu = new InputContext(\u0022Menu\u0022);\n    var menuConfirm = menu.Add(new ButtonAction(\u0022Confirm\u0022, KeyCode.Enter));\n    var stack = new InputStack();\n    stack.Push(gameplay);\n    stack.Push(menu);\n    // docs:end input-context-setup\n\n    var menuSuspended = new Signal\u003Cbool\u003E(false);\n    var result = new Signal\u003Cstring\u003E(\u0022Enter\u3092\u9001\u308B\u3068\u3001\u6700\u4E0A\u4F4D\u306EMenu\u304C\u5148\u306B\u51E6\u7406\u3057\u307E\u3059\u3002\u0022);\n\n    // docs:begin input-context-routing\n    void TapEnter()\n    {\n        source.PressKey(KeyCode.Enter); source.Poll(bus); stack.Update(bus);\n        result.Value = menuConfirm.IsActive.Value\n            ? \u0022Menu\u304CEnter\u3092\u6D88\u8CBB\u3057\u307E\u3057\u305F\u3002Gameplay\u306B\u306F\u5C4A\u304D\u307E\u305B\u3093\u3002\u0022\n            : gameplayConfirm.IsActive.Value\n                ? \u0022Menu\u306F\u505C\u6B62\u4E2D\u306A\u306E\u3067\u3001Gameplay\u304CEnter\u3092\u53D7\u3051\u53D6\u308A\u307E\u3057\u305F\u3002\u0022\n                : \u0022Enter\u3092\u53D7\u3051\u53D6\u3063\u305F\u30B3\u30F3\u30C6\u30AD\u30B9\u30C8\u306F\u3042\u308A\u307E\u305B\u3093\u3002\u0022;\n        source.ReleaseKey(KeyCode.Enter); source.Poll(bus); stack.Update(bus);\n    }\n    // docs:end input-context-routing\n\n    // docs:begin input-context-suspension\n    void ToggleMenu()\n    {\n        menuSuspended.Value = !menuSuspended.Value;\n        stack.SetSuspended(menu, menuSuspended.Value);\n        result.Value = menuSuspended.Value\n            ? \u0022Menu\u3092\u505C\u6B62\u3057\u307E\u3057\u305F\u3002\u6B21\u306EEnter\u306FGameplay\u3078\u5C4A\u304D\u307E\u3059\u3002\u0022\n            : \u0022Menu\u3092\u518D\u958B\u3057\u307E\u3057\u305F\u3002\u518D\u3073\u6700\u512A\u5148\u3067Enter\u3092\u51E6\u7406\u3057\u307E\u3059\u3002\u0022;\n    }\n    // docs:end input-context-suspension\n\n    return Frame(VStack(14, width: 550)[\n        Heading(\u0022\u30B3\u30F3\u30C6\u30AD\u30B9\u30C8\u306E\u512A\u5148\u9806\u4F4D\u0022, 2),\n        Text(\u0022InputStack\u306F\u6700\u5F8C\u306BPush\u3057\u305F\u30B3\u30F3\u30C6\u30AD\u30B9\u30C8\u304B\u3089\u8A55\u4FA1\u3057\u307E\u3059\u3002\u4E0A\u4F4D\u306E\u30A2\u30AF\u30B7\u30E7\u30F3\u304C\u4F7F\u7528\u3057\u305F\u30AD\u30FC\u306F\u6D88\u8CBB\u3055\u308C\u3001\u4E0B\u4F4D\u306B\u306F\u6E21\u308A\u307E\u305B\u3093\u3002\u0022, 14,\n            wrap: TextWrap.Word, width: 540, color: Bind.From(() =\u003E UiTheme.T.TextMuted)),\n        HStack(10)[\n            Button(_ =\u003E TapEnter(), \u0022Enter\u3092\u9001\u308B\u0022),\n            Button(_ =\u003E ToggleMenu(), (Func\u003Cstring\u003E)(() =\u003E menuSuspended.Value ? \u0022Menu\u3092\u518D\u958B\u0022 : \u0022Menu\u3092\u505C\u6B62\u0022))],\n        Card(VStack(6)[\n            Text((Func\u003Cstring\u003E)(() =\u003E $\u00221. Menu: {(menuSuspended.Value ? \u0022\u505C\u6B62\u4E2D\u0022 : \u0022\u6709\u52B9\uFF08\u6700\u4E0A\u4F4D\uFF09\u0022)}\u0022), 14),\n            Text(\u00222. Gameplay: \u6709\u52B9\uFF08\u4E0B\u4F4D\uFF09\u0022, 14),\n            Text($\u0022{result}\u0022, 14, wrap: TextWrap.Word, width: 500)])]);\n}",
     "aliases": [],
-    "bundle": {
-      "id": "input.actions",
-      "name": "Deterministic input actions",
-      "description": "FakeInputSource drives InputBus, InputStack, ButtonAction and Axis2DAction without a window.",
-      "difficulty": "Beginner",
-      "copyLevel": 1,
-      "files": [
-        {
-          "path": "samples/LuxelInput/LuxelInput.csproj",
-          "kind": 0,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelInput/LuxelInput.csproj",
-          "effectiveMode": 0
-        },
-        {
-          "path": "samples/LuxelInput/Program.cs",
-          "kind": 1,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelInput/Program.cs",
-          "effectiveMode": 0
-        }
-      ],
-      "dependencies": [
-        "support.source-tree"
-      ],
-      "requirements": [
-        ".NET 10",
-        "Headless on all supported .NET OS"
-      ],
-      "exportSymbol": "InputStack",
-      "runCommand": "dotnet run --project samples/LuxelInput",
-      "smokeCommand": "dotnet run --project samples/LuxelInput",
-      "platforms": [
-        "Windows",
-        "Linux",
-        "macOS"
-      ],
-      "timeoutSeconds": 300,
-      "expectedExitCode": 0,
-      "expectedStdoutMarker": "input: jump=True, triggered=1",
-      "expectedArtifacts": null
-    },
+    "bundle": null,
     "args": []
   },
   {
@@ -3274,6 +3143,20 @@
     "args": []
   },
   {
+    "path": "Examples/Input/Bindings",
+    "name": "Bindings",
+    "component": "Examples",
+    "fragment": "stories/examples-input-bindings.html",
+    "image": null,
+    "status": "runtime",
+    "error": null,
+    "imageSha256": "",
+    "searchText": "Examples/Input/Bindings\nBindings\nExamples\n[Story(\u0022Examples/Input/Bindings\u0022, Width = 680, Height = 440, Order = 3)]\npublic static Widget Bindings()\n{\n    // docs:begin input-bindings-setup\n    var source = new FakeInputSource();\n    var bus = new InputBus();\n    var context = new InputContext(\u0022Gameplay\u0022);\n    var jump = context.Add(new ButtonAction(\u0022Jump\u0022, KeyCode.Space));\n    var stack = new InputStack();\n    stack.Push(context);\n    // docs:end input-bindings-setup\n\n    var current = new Signal\u003CKeyCode\u003E(KeyCode.Space);\n    var result = new Signal\u003Cstring\u003E(\u0022\u73FE\u5728\u306EJump\u306FSpace\u3067\u3059\u3002\u0022);\n    var json = new Signal\u003Cstring\u003E(Serialize(KeyCode.Space));\n\n    // docs:begin input-bindings-apply\n    void ApplyBinding(KeyCode key)\n    {\n        string serialized = Serialize(key);\n        InputBindings loaded = JsonSerializer.Deserialize(serialized, InputBindingsJsonContext.Default.InputBindings)!;\n        InputBindingsApplier.Apply(loaded, context);\n        current.Value = jump.Keys.Single();\n        json.Value = serialized;\n        result.Value = $\u0022JSON\u3092\u8AAD\u307F\u8FBC\u307F\u3001Jump\u3092{current.Value}\u3078\u518D\u8A2D\u5B9A\u3057\u307E\u3057\u305F\u3002\u0022;\n    }\n    // docs:end input-bindings-apply\n\n    // docs:begin input-bindings-simulate\n    void Simulate(KeyCode key)\n    {\n        source.PressKey(key); source.Poll(bus); stack.Update(bus);\n        bool activated = jump.IsActive.Value;\n        source.ReleaseKey(key); source.Poll(bus); stack.Update(bus);\n        result.Value = activated\n            ? $\u0022{key}\u3067Jump\u304C\u767A\u706B\u3057\u307E\u3057\u305F\u3002\u0022\n            : $\u0022{key}\u306F\u73FE\u5728\u306EJump\u30D0\u30A4\u30F3\u30C9\u3067\u306F\u3042\u308A\u307E\u305B\u3093\u3002\u0022;\n    }\n    // docs:end input-bindings-simulate\n\n    return Frame(VStack(12, width: 600)[\n        Heading(\u0022\u30D0\u30A4\u30F3\u30C7\u30A3\u30F3\u30B0\u3068\u518D\u8A2D\u5B9A\u0022, 2),\n        Text(\u0022\u30A2\u30AF\u30B7\u30E7\u30F3\u540D\u3092\u30B2\u30FC\u30E0\u5074\u306E\u5951\u7D04\u3068\u3057\u3066\u56FA\u5B9A\u3057\u3001\u7269\u7406\u30AD\u30FC\u3068\u306E\u5BFE\u5FDC\u3060\u3051\u3092JSON\u3067\u4FDD\u5B58\u30FB\u8AAD\u307F\u8FBC\u307F\u3057\u307E\u3059\u3002\u0022, 14,\n            wrap: TextWrap.Word, width: 590, color: Bind.From(() =\u003E UiTheme.T.TextMuted)),\n        HStack(10)[\n            Button(_ =\u003E ApplyBinding(KeyCode.Space), \u0022Jump\u3092Space\u3078\u8A2D\u5B9A\u0022),\n            Button(_ =\u003E ApplyBinding(KeyCode.Enter), \u0022Jump\u3092Enter\u3078\u8A2D\u5B9A\u0022)],\n        HStack(10)[\n            Button(_ =\u003E Simulate(KeyCode.Space), \u0022Space\u3092\u8A66\u3059\u0022),\n            Button(_ =\u003E Simulate(KeyCode.Enter), \u0022Enter\u3092\u8A66\u3059\u0022)],\n        Text((Func\u003Cstring\u003E)(() =\u003E $\u0022\u73FE\u5728\u306E\u30D0\u30A4\u30F3\u30C9: Jump \u2192 {current.Value}\u0022), 15),\n        Text($\u0022{result}\u0022, 14, color: Bind.From(() =\u003E UiTheme.T.TextMuted)),\n        Card(Text($\u0022{json}\u0022, 12, wrap: TextWrap.Word, width: 520))]);\n\n    // docs:begin input-bindings-json\n    static string Serialize(KeyCode key) =\u003E JsonSerializer.Serialize(new InputBindings\n    {\n        Actions = { [\u0022Jump\u0022] = new InputBindingEntry { Kind = \u0022button\u0022, Keys = [key.ToString()] } }\n    }, InputBindingsJsonContext.Default.InputBindings);\n    // docs:end input-bindings-json\n}",
+    "aliases": [],
+    "bundle": null,
+    "args": []
+  },
+  {
     "path": "Examples/Resources/Lifetime",
     "name": "Lifetime",
     "component": "Examples",
@@ -3415,11 +3298,11 @@
     "name": "Topology",
     "component": "Examples",
     "fragment": "stories/examples-3d-pipelinestate-topology.html",
-    "image": "images/examples-3d-pipelinestate-topology.png",
-    "status": "captured",
+    "image": null,
+    "status": "runtime",
     "error": null,
-    "imageSha256": "bb388e9090c05df266c92b758ec98eabc1af70db746dfd95c98f94a4cd8301eb",
-    "searchText": "Examples/3D/PipelineState/Topology\nTopology\nExamples\n[Story(\u0022Examples/3D/PipelineState/Topology\u0022, Height = 320, Order = 100)]\npublic static Widget Topology(StoryContext ctx) =\u003E ctx.Snap(View(new TopologyScene()));",
+    "imageSha256": "",
+    "searchText": "Examples/3D/PipelineState/Topology\nTopology\nExamples\n[Story(\u0022Examples/3D/PipelineState/Topology\u0022, Height = 320, Order = 100,\n    CapabilityNote = \u0022Runs through the shared Gallery WebAssembly story runner.\u0022)]\npublic static Widget Topology(StoryContext ctx) =\u003E Build(ctx, DemoKind.Topology);",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -3429,11 +3312,11 @@
     "name": "Rasterizer",
     "component": "Examples",
     "fragment": "stories/examples-3d-pipelinestate-rasterizer.html",
-    "image": "images/examples-3d-pipelinestate-rasterizer.png",
-    "status": "captured",
+    "image": null,
+    "status": "runtime",
     "error": null,
-    "imageSha256": "04b589166d43ed23218342b02511bf542ed31d87df9ed68e7af7ce0d2bf0b334",
-    "searchText": "Examples/3D/PipelineState/Rasterizer\nRasterizer\nExamples\n[Story(\u0022Examples/3D/PipelineState/Rasterizer\u0022, Height = 320, Order = 101)]\npublic static Widget Rasterizer(StoryContext ctx) =\u003E ctx.Snap(View(new RasterizerScene()));",
+    "imageSha256": "",
+    "searchText": "Examples/3D/PipelineState/Rasterizer\nRasterizer\nExamples\n[Story(\u0022Examples/3D/PipelineState/Rasterizer\u0022, Height = 320, Order = 101,\n    CapabilityNote = \u0022Runs through the shared Gallery WebAssembly story runner.\u0022)]\npublic static Widget Rasterizer(StoryContext ctx) =\u003E Build(ctx, DemoKind.Rasterizer);",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -3443,11 +3326,11 @@
     "name": "Depth",
     "component": "Examples",
     "fragment": "stories/examples-3d-pipelinestate-depth.html",
-    "image": "images/examples-3d-pipelinestate-depth.png",
-    "status": "captured",
+    "image": null,
+    "status": "runtime",
     "error": null,
-    "imageSha256": "1b7c03ca97e900653e24f009afb70497511f8799a9d9f16e0eb3d9f3606801c7",
-    "searchText": "Examples/3D/PipelineState/Depth\nDepth\nExamples\n[Story(\u0022Examples/3D/PipelineState/Depth\u0022, Height = 320, Order = 102)]\npublic static Widget DepthStates(StoryContext ctx) =\u003E ctx.Snap(View(new DepthScene()));",
+    "imageSha256": "",
+    "searchText": "Examples/3D/PipelineState/Depth\nDepth\nExamples\n[Story(\u0022Examples/3D/PipelineState/Depth\u0022, Height = 320, Order = 102,\n    CapabilityNote = \u0022Runs through the shared Gallery WebAssembly story runner.\u0022)]\npublic static Widget DepthStates(StoryContext ctx) =\u003E Build(ctx, DemoKind.Depth);",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -3457,11 +3340,11 @@
     "name": "Blend",
     "component": "Examples",
     "fragment": "stories/examples-3d-pipelinestate-blend.html",
-    "image": "images/examples-3d-pipelinestate-blend.png",
-    "status": "captured",
+    "image": null,
+    "status": "runtime",
     "error": null,
-    "imageSha256": "de27c1963ad320cc62d1b1b026d1058070f893aa37c1a042b0396cf75f6f0601",
-    "searchText": "Examples/3D/PipelineState/Blend\nBlend\nExamples\n[Story(\u0022Examples/3D/PipelineState/Blend\u0022, Height = 320, Order = 103)]\npublic static Widget BlendState(StoryContext ctx) =\u003E ctx.Snap(View(new BlendScene()));",
+    "imageSha256": "",
+    "searchText": "Examples/3D/PipelineState/Blend\nBlend\nExamples\n[Story(\u0022Examples/3D/PipelineState/Blend\u0022, Height = 320, Order = 103,\n    CapabilityNote = \u0022Runs through the shared Gallery WebAssembly story runner.\u0022)]\npublic static Widget BlendState(StoryContext ctx) =\u003E Build(ctx, DemoKind.Blend);",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -3471,11 +3354,11 @@
     "name": "Stencil",
     "component": "Examples",
     "fragment": "stories/examples-3d-pipelinestate-stencil.html",
-    "image": "images/examples-3d-pipelinestate-stencil.png",
-    "status": "captured",
+    "image": null,
+    "status": "runtime",
     "error": null,
-    "imageSha256": "9ac9798460f09deb09bcdaf10106ef1291d2c052c31161abc98c1aae1afdba4b",
-    "searchText": "Examples/3D/PipelineState/Stencil\nStencil\nExamples\n[Story(\u0022Examples/3D/PipelineState/Stencil\u0022, Height = 320, Order = 104)]\npublic static Widget Stencil(StoryContext ctx) =\u003E ctx.Snap(View(new StencilScene()));",
+    "imageSha256": "",
+    "searchText": "Examples/3D/PipelineState/Stencil\nStencil\nExamples\n[Story(\u0022Examples/3D/PipelineState/Stencil\u0022, Height = 320, Order = 104,\n    CapabilityNote = \u0022Runs through the shared Gallery WebAssembly story runner.\u0022)]\npublic static Widget Stencil(StoryContext ctx) =\u003E Build(ctx, DemoKind.Stencil);",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -3485,11 +3368,11 @@
     "name": "ViewportScissor",
     "component": "Examples",
     "fragment": "stories/examples-3d-pipelinestate-viewportscissor.html",
-    "image": "images/examples-3d-pipelinestate-viewportscissor.png",
-    "status": "captured",
+    "image": null,
+    "status": "runtime",
     "error": null,
-    "imageSha256": "b8a1dd37cdd816da5560462683c933a3d0cf8cfeb26a9a5a38c165cb5d034a6f",
-    "searchText": "Examples/3D/PipelineState/ViewportScissor\nViewportScissor\nExamples\n[Story(\u0022Examples/3D/PipelineState/ViewportScissor\u0022, Height = 320, Order = 105)]\npublic static Widget ViewportScissor(StoryContext ctx) =\u003E ctx.Snap(View(new ViewportScissorScene()));",
+    "imageSha256": "",
+    "searchText": "Examples/3D/PipelineState/ViewportScissor\nViewportScissor\nExamples\n[Story(\u0022Examples/3D/PipelineState/ViewportScissor\u0022, Height = 320, Order = 105,\n    CapabilityNote = \u0022Runs through the shared Gallery WebAssembly story runner.\u0022)]\npublic static Widget ViewportScissor(StoryContext ctx) =\u003E Build(ctx, DemoKind.ViewportScissor);",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -3499,11 +3382,11 @@
     "name": "Separation",
     "component": "Examples",
     "fragment": "stories/examples-3d-pipelinestate-separation.html",
-    "image": "images/examples-3d-pipelinestate-separation.png",
-    "status": "captured",
+    "image": null,
+    "status": "runtime",
     "error": null,
-    "imageSha256": "9622f644203fbff3d8722385909e727d40edf35ab8a0557c470bce655387565f",
-    "searchText": "Examples/3D/PipelineState/Separation\nSeparation\nExamples\n[Story(\u0022Examples/3D/PipelineState/Separation\u0022, Height = 320, Order = 106)]\npublic static Widget Separation(StoryContext ctx) =\u003E ctx.Snap(View(new SeparationScene()));",
+    "imageSha256": "",
+    "searchText": "Examples/3D/PipelineState/Separation\nSeparation\nExamples\n[Story(\u0022Examples/3D/PipelineState/Separation\u0022, Height = 320, Order = 106,\n    CapabilityNote = \u0022Runs through the shared Gallery WebAssembly story runner.\u0022)]\npublic static Widget Separation(StoryContext ctx) =\u003E Build(ctx, DemoKind.Separation);",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -3513,11 +3396,11 @@
     "name": "Depth",
     "component": "Examples",
     "fragment": "stories/examples-3d-depth.html",
-    "image": "images/examples-3d-depth.png",
-    "status": "captured",
+    "image": null,
+    "status": "runtime",
     "error": null,
-    "imageSha256": "1b7c03ca97e900653e24f009afb70497511f8799a9d9f16e0eb3d9f3606801c7",
-    "searchText": "Examples/3D/Depth\nDepth\nExamples\n[Story(\u0022Examples/3D/Depth\u0022, Height = 320, Order = 107)]\npublic static Widget Depth(StoryContext ctx) =\u003E ctx.Snap(View(new DepthScene()));",
+    "imageSha256": "",
+    "searchText": "Examples/3D/Depth\nDepth\nExamples\n[Story(\u0022Examples/3D/Depth\u0022, Height = 320, Order = 107,\n    CapabilityNote = \u0022Compatibility route backed by the browser-safe pipeline-state demo.\u0022)]\npublic static Widget Depth(StoryContext ctx) =\u003E Build(ctx, DemoKind.Depth);",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -3527,11 +3410,11 @@
     "name": "Blend",
     "component": "Examples",
     "fragment": "stories/examples-3d-blend.html",
-    "image": "images/examples-3d-blend.png",
-    "status": "captured",
+    "image": null,
+    "status": "runtime",
     "error": null,
-    "imageSha256": "de27c1963ad320cc62d1b1b026d1058070f893aa37c1a042b0396cf75f6f0601",
-    "searchText": "Examples/3D/Blend\nBlend\nExamples\n[Story(\u0022Examples/3D/Blend\u0022, Height = 320, Order = 108)]\npublic static Widget Blend(StoryContext ctx) =\u003E ctx.Snap(View(new BlendScene()));",
+    "imageSha256": "",
+    "searchText": "Examples/3D/Blend\nBlend\nExamples\n[Story(\u0022Examples/3D/Blend\u0022, Height = 320, Order = 108,\n    CapabilityNote = \u0022Compatibility route backed by the browser-safe pipeline-state demo.\u0022)]\npublic static Widget Blend(StoryContext ctx) =\u003E Build(ctx, DemoKind.Blend);",
     "aliases": [],
     "bundle": null,
     "args": []
