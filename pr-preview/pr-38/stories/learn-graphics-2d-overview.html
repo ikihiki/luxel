@@ -1,0 +1,129 @@
+<article class="story document-page"><h1 id="d">はじめての2D描画</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FGraphics%2F2D%2FOverview&amp;section=%E6%8F%8F%E7%94%BB%E3%81%AE%E6%9C%80%E5%B0%8F%E3%83%95%E3%83%AD%E3%83%BC">描画の最小フロー</a></li>
+<li><a href="#story=Learn%2FGraphics%2F2D%2FOverview&amp;section=api%E3%81%AE%E9%81%B8%E3%81%B3%E6%96%B9">APIの選び方</a></li>
+<li><a href="#story=Learn%2FGraphics%2F2D%2FOverview&amp;section=gpu%E5%9B%BA%E6%9C%89%E3%81%AE%E7%B5%8C%E8%B7%AF">GPU固有の経路</a></li>
+<li><a href="#story=Learn%2FGraphics%2F2D%2FOverview&amp;section=%E6%AC%A1%E3%81%AB%E5%AD%A6%E3%81%B6%E3%81%93%E3%81%A8">次に学ぶこと</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Gallery WASM / Standalone / Headless　 <strong>Backend:</strong> WebGPU / Vulkan / DirectX 12 / Skia CPU　 <strong>前提知識:</strong> 基本的なC#</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGraphics%2FSynchronization">Synchronization</a>　 <strong>次:</strong> <a href="#story=Learn%2FGraphics%2F2D%2FPaths">Paths</a></p>
+<p>このコースの到達目標は、path・色・画像・camera transformを組み合わせた<code>Scene2D</code>を作り、render targetへ描画できることです。window、input、pointer hit test、appのframe loopは扱いません。</p>
+<h2 id="section">描画の最小フロー</h2>
+<p><code>Scene2D</code>はbackendに依存しない描画命令です。まずsceneを作り、<code>IRasterizer2D.CreateScene</code>でbackend用sessionへencodeし、targetへrenderします。</p>
+<pre><code class="language-csharp">var scene = new Scene2D();
+scene.FillRoundedRect(Color2D.Rgba(47, 111, 237), 24, 24, 220, 120, 18);
+scene.FillCircle(Color2D.Rgba(255, 200, 87), 86, 84, 28);
+scene.StrokeLine(Color2D.Rgba(231, 234, 240), 4, 32, 176, 250, 176);
+
+using IRasterizer2D rasterizer = new SkiaRasterizer2D();
+using IRasterScene2D encoded = rasterizer.CreateScene(scene);
+encoded.Render(Camera2D.Pixels, target);
+</code></pre>
+<p><code>IRasterScene2D</code>はbackend resourceを所有するため、sessionをrasterizerより先にdisposeします。geometryが変わらない間はsessionを再利用できます。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Graphics/2D/Overview#ref-0" data-luxel-runtime-story="Examples/2D/SceneRender" data-luxel-runtime-instance="examples-2d-scenerender-0709553cda27" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F2D%2FSceneRender&amp;args=%7B%7D&amp;instance=examples-2d-scenerender-0709553cda27" data-luxel-runtime-story="Examples/2D/SceneRender" data-luxel-runtime-instance="examples-2d-scenerender-0709553cda27" title="Interactive SceneRender" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-2d-scenerender-0709553cda27-args-tab" aria-controls="examples-2d-scenerender-0709553cda27-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-2d-scenerender-0709553cda27-output-tab" aria-controls="examples-2d-scenerender-0709553cda27-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-2d-scenerender-0709553cda27-source-tab" aria-controls="examples-2d-scenerender-0709553cda27-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-2d-scenerender-0709553cda27-args-panel" role="tabpanel" aria-labelledby="examples-2d-scenerender-0709553cda27-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-2d-scenerender-0709553cda27-output-panel" role="tabpanel" aria-labelledby="examples-2d-scenerender-0709553cda27-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-2d-scenerender-0709553cda27-source-panel" role="tabpanel" aria-labelledby="examples-2d-scenerender-0709553cda27-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/2D/SceneRender&quot;, Width = 480, Height = 300, Order = 109, CapabilityNote = BrowserNote)]&#10;public static Widget SceneRender(StoryContext ctx)&#10;{&#10;    var scene = new Scene2D();&#10;    scene.FillRect(Color2D.Rgba(18, 24, 38), 0, 0, 420, 220);&#10;    scene.FillRoundedRect(Color2D.Rgba(47, 111, 237), 28, 30, 150, 86, 18);&#10;    scene.FillCircle(Color2D.Rgba(245, 180, 55), 276, 76, 46);&#10;    scene.BeginFill(Color2D.Rgba(236, 72, 100)).MoveTo(92, 142).LineTo(172, 204).LineTo(26, 204).Close().End();&#10;    scene.StrokeLine(Color2D.Rgba(90, 210, 150), 6, 216, 190, 382, 138);&#10;    return Snapshot(ctx, RasterView(ctx, 420, 220, scene, Camera2D.Pixels));&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<h2 id="api">APIの選び方</h2>
+<table>
+<thead>
+<tr>
+<th>API</th>
+<th>用途</th>
+<th>更新モデル</th>
+<th>注意点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Scene2D</code></td>
+<td>shape/path/imageを直接構築</td>
+<td>encode時のsnapshot</td>
+<td>sessionの寿命をcallerが所有</td>
+</tr>
+<tr>
+<td><code>RetainedCanvas</code></td>
+<td>nodeを残してtransform/styleを更新</td>
+<td>dirty rangeを同期</td>
+<td>backendがincremental updateを支援するか確認</td>
+</tr>
+<tr>
+<td>UI <code>Canvas2D</code></td>
+<td>GalleryやUI内の2D表示</td>
+<td>hostが描画</td>
+<td>standalone window APIではない</td>
+</tr>
+<tr>
+<td><code>SkiaRasterizer2D</code></td>
+<td>headless/CI/CPU参照画像</td>
+<td>同期RGBA target</td>
+<td>image shape非対応、GPUとAAが完全一致しない</td>
+</tr>
+</tbody>
+</table>
+<h2 id="gpu">GPU固有の経路</h2>
+<p>GPU backendでは<code>GpuDeviceRasterizer2D</code>、<code>GpuRasterTarget2D</code>、command recordingを使います。<code>Encode</code>やcommand submissionは<code>IRasterizer2D</code>の基本概念を理解した後に選ぶ最適化・統合APIです。</p>
+<pre><code class="language-csharp">using var rasterizer = new GpuDeviceRasterizer2D(device);
+using var encoded = rasterizer.Encode(scene);
+using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
+rasterizer.Render(command, encoded, Camera2D.Pixels, width, height, framebuffer);
+command.Finish();
+device.MainQueue.Submit(command);
+</code></pre>
+<h2 id="section-1">次に学ぶこと</h2>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Graphics/2D/Overview#ref-1" data-luxel-runtime-story="Examples/2D/Shapes" data-luxel-runtime-instance="examples-2d-shapes-337923743ff3" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F2D%2FShapes&amp;args=%7B%7D&amp;instance=examples-2d-shapes-337923743ff3" data-luxel-runtime-story="Examples/2D/Shapes" data-luxel-runtime-instance="examples-2d-shapes-337923743ff3" title="Interactive Shapes" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-2d-shapes-337923743ff3-args-tab" aria-controls="examples-2d-shapes-337923743ff3-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-2d-shapes-337923743ff3-output-tab" aria-controls="examples-2d-shapes-337923743ff3-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-2d-shapes-337923743ff3-source-tab" aria-controls="examples-2d-shapes-337923743ff3-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-2d-shapes-337923743ff3-args-panel" role="tabpanel" aria-labelledby="examples-2d-shapes-337923743ff3-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-2d-shapes-337923743ff3-output-panel" role="tabpanel" aria-labelledby="examples-2d-shapes-337923743ff3-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-2d-shapes-337923743ff3-source-panel" role="tabpanel" aria-labelledby="examples-2d-shapes-337923743ff3-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/2D/Shapes&quot;, Width = 480, Height = 300, Order = 110, CapabilityNote = BrowserNote)]&#10;public static Widget Shapes(StoryContext ctx) =&gt; Snapshot(ctx, Canvas2D(420, 220, draw: scene =&gt;&#10;{&#10;    scene.FillRect(Color2D.Rgba(248, 250, 252), 0, 0, 420, 220);&#10;    scene.FillRoundedRect(Color2D.Rgba(59, 130, 246), 18, 18, 138, 82, 16);&#10;    scene.FillCircle(Color2D.Rgba(245, 158, 11), 232, 62, 42);&#10;    scene.StrokeRoundedRect(Color2D.Rgba(34, 197, 94), 4, 300, 20, 92, 80, 12);&#10;    scene.BeginFill(Color2D.Rgba(239, 68, 68)).MoveTo(62, 128).LineTo(148, 204).LineTo(16, 204).Close().End();&#10;    scene.StrokePolyline(Color2D.Rgba(71, 85, 105), 3,&#10;        new Vector2(178, 202), new Vector2(224, 132), new Vector2(282, 190), new Vector2(398, 126));&#10;}));</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<p>次は<a href="#story=Learn%2FGraphics%2F2D%2FPaths">Path、fill、stroke</a>でcontourの組み立て方を学びます。desktop/headlessの完全なprojectはHeadlessScene2Dをsource recipeとして参照できます。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Overview&quot;, Order = 9, Toc = true)]
+public static StoryResult First2DScene() =&gt; $$&quot;&quot;&quot;
+    # はじめての2D描画
+
+    {{RenderingCourseCatalog.Meta(&quot;Learn/Graphics/2D/Overview&quot;, &quot;Beginner&quot;, &quot;Gallery WASM / Standalone / Headless&quot;, &quot;WebGPU / Vulkan / DirectX 12 / Skia CPU&quot;, &quot;基本的なC#&quot;)}}
+
+    このコースの到達目標は、path・色・画像・camera transformを組み合わせた`Scene2D`を作り、render targetへ描画できることです。window、input、pointer hit test、appのframe loopは扱いません。
+
+    ## 描画の最小フロー
+
+    `Scene2D`はbackendに依存しない描画命令です。まずsceneを作り、`IRasterizer2D.CreateScene`でbackend用sessionへencodeし、targetへrenderします。
+
+    ```csharp
+    var scene = new Scene2D();
+    scene.FillRoundedRect(Color2D.Rgba(47, 111, 237), 24, 24, 220, 120, 18);
+    scene.FillCircle(Color2D.Rgba(255, 200, 87), 86, 84, 28);
+    scene.StrokeLine(Color2D.Rgba(231, 234, 240), 4, 32, 176, 250, 176);
+
+    using IRasterizer2D rasterizer = new SkiaRasterizer2D();
+    using IRasterScene2D encoded = rasterizer.CreateScene(scene);
+    encoded.Render(Camera2D.Pixels, target);
+    ```
+
+    `IRasterScene2D`はbackend resourceを所有するため、sessionをrasterizerより先にdisposeします。geometryが変わらない間はsessionを再利用できます。
+
+    {{StoryReference.To(&quot;Examples/2D/SceneRender&quot;)}}
+
+    ## APIの選び方
+
+    | API | 用途 | 更新モデル | 注意点 |
+    |---|---|---|---|
+    | `Scene2D` | shape/path/imageを直接構築 | encode時のsnapshot | sessionの寿命をcallerが所有 |
+    | `RetainedCanvas` | nodeを残してtransform/styleを更新 | dirty rangeを同期 | backendがincremental updateを支援するか確認 |
+    | UI `Canvas2D` | GalleryやUI内の2D表示 | hostが描画 | standalone window APIではない |
+    | `SkiaRasterizer2D` | headless/CI/CPU参照画像 | 同期RGBA target | image shape非対応、GPUとAAが完全一致しない |
+
+    ## GPU固有の経路
+
+    GPU backendでは`GpuDeviceRasterizer2D`、`GpuRasterTarget2D`、command recordingを使います。`Encode`やcommand submissionは`IRasterizer2D`の基本概念を理解した後に選ぶ最適化・統合APIです。
+
+    ```csharp
+    using var rasterizer = new GpuDeviceRasterizer2D(device);
+    using var encoded = rasterizer.Encode(scene);
+    using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
+    rasterizer.Render(command, encoded, Camera2D.Pixels, width, height, framebuffer);
+    command.Finish();
+    device.MainQueue.Submit(command);
+    ```
+
+    ## 次に学ぶこと
+
+    {{StoryReference.To(&quot;Examples/2D/Shapes&quot;)}}
+
+    次は[Path、fill、stroke](story:Learn/Graphics/2D/Paths)でcontourの組み立て方を学びます。desktop/headlessの完全なprojectはHeadlessScene2Dをsource recipeとして参照できます。
+    &quot;&quot;&quot;;</code></pre></details></article>

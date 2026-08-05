@@ -1,0 +1,76 @@
+<article class="story document-page"><h1 id="adr-0001-adr-gallery">ADR-0001 — アーキテクチャ決定を ADR として Gallery に記録する</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Internals%2FADR%2F0001-Record-Architecture-Decisions&amp;section=context">Context</a></li>
+<li><a href="#story=Internals%2FADR%2F0001-Record-Architecture-Decisions&amp;section=decision">Decision</a></li>
+<li><a href="#story=Internals%2FADR%2F0001-Record-Architecture-Decisions&amp;section=alternatives">Alternatives</a></li>
+<li><a href="#story=Internals%2FADR%2F0001-Record-Architecture-Decisions&amp;section=consequences">Consequences</a></li>
+</ul>
+<!-- /luxel-toc -->
+<ul>
+<li><strong>Status</strong>: Accepted</li>
+<li><strong>Date</strong>: 2026-07-08</li>
+<li><strong>Deciders</strong>: ikihiki</li>
+</ul>
+<h2 id="context">Context</h2>
+<p>Luxel は薄い GPU 抽象の上に多数のサブシステムを積む構成で、随所に「なぜこの設計なのか」という判断があります — 固定レイアウト (最大192Bのルート引数 + bindless heap)、vk/dx ピクセル一致という開発規律、docs を Gallery に一本化した方針、Effekseer を統合しない選択などです。</p>
+<p>こうした <em>理由</em> は現状、コード・docs・コミットログ・個々人の記憶に散在しています。docs は「現在の姿」を説明しますが、「なぜその姿を選び、何を捨てたか」は残りにくく、後から掘り起こすのに時間がかかります。</p>
+<h2 id="decision">Decision</h2>
+<p>アーキテクチャ上の重要な決定を <strong>ADR (Architecture Decision Record)</strong> として、Gallery の独立章「<strong>ADR</strong>」に <strong>1 決定 1 ページ</strong>で記録します。既存の docs ページと同じ仕組み (<code>[Story]</code> + <code>Kit.Docs</code> + <code>WithDocFonts</code>) を使い、全文検索・<code>story:</code> リンク・デッドリンク検証・テーマ切替をそのまま共有します。</p>
+<ul>
+<li>番号は連番 <code>ADR-NNNN</code>、パスは <code>Internals/ADR/NNNN-短いタイトル</code></li>
+<li>節は Status / Context / Decision / Alternatives / Consequences で固定</li>
+<li>決定を変えるときは元の ADR を<strong>書き換えず</strong>、新しい ADR を追加して古い方を <code>Superseded by ADR-NNNN</code> にする</li>
+</ul>
+<h2 id="alternatives">Alternatives</h2>
+<ul>
+<li><strong>別リポジトリや <code>docs/adr/</code> の素の Markdown</strong> — docs は Gallery に一本化済み (<a href="#story=Internals%2FGallery">Internals/Gallery</a>) で、二重管理になりデッドリンク検証も全文検索も効かない → 却下</li>
+<li><strong>コミットメッセージ / PR 説明に理由を書く</strong> — 検索性・一覧性が低く、決定単位で辿れない → 却下 (補助としては継続してよい)</li>
+<li><strong>記録しない (コード + 記憶に頼る)</strong> — まさに現状の課題そのもの → 却下</li>
+</ul>
+<h2 id="consequences">Consequences</h2>
+<ul>
+<li>✅ 決定の理由と却下案が 1 か所に線形に残り、Gallery の検索・ナビゲーション・ダークテーマをそのまま使える</li>
+<li>✅ docs と同じ執筆・レビュー・デッドリンク検証フローに乗る (新規 ADR は <code>[Story]</code> を足して <code>dotnet build</code> するだけ)</li>
+<li>⚠️ 決定ごとに 1 ページ書く軽い手間が増える。瑣末な決定まで ADR 化しない線引きが要る (<a href="#story=Internals%2FADR%2FOverview">Internals/ADR/Overview</a> の「何を ADR にするか」が目安)</li>
+<li>⚠️ ADR は不変記録。変更は supersede 運用を守る必要がある</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Internals/ADR/0001-Record-Architecture-Decisions&quot;, Order = 72, Toc = true)]
+public static StoryResult Adr0001(StoryContext ctx)
+{
+    ctx.Play(static d =&gt; d.Snap());   // 新スタック (MarkdownDoc) 描画の golden
+    return $$&quot;&quot;&quot;
+    # ADR-0001 — アーキテクチャ決定を ADR として Gallery に記録する
+
+    - **Status**: Accepted
+    - **Date**: 2026-07-08
+    - **Deciders**: ikihiki
+
+    ## Context
+
+    Luxel は薄い GPU 抽象の上に多数のサブシステムを積む構成で、随所に「なぜこの設計なのか」という判断があります — 固定レイアウト (最大192Bのルート引数 + bindless heap)、vk/dx ピクセル一致という開発規律、docs を Gallery に一本化した方針、Effekseer を統合しない選択などです。
+
+    こうした *理由* は現状、コード・docs・コミットログ・個々人の記憶に散在しています。docs は「現在の姿」を説明しますが、「なぜその姿を選び、何を捨てたか」は残りにくく、後から掘り起こすのに時間がかかります。
+
+    ## Decision
+
+    アーキテクチャ上の重要な決定を **ADR (Architecture Decision Record)** として、Gallery の独立章「**ADR**」に **1 決定 1 ページ**で記録します。既存の docs ページと同じ仕組み (`[Story]` + `Kit.Docs` + `WithDocFonts`) を使い、全文検索・`story:` リンク・デッドリンク検証・テーマ切替をそのまま共有します。
+
+    - 番号は連番 `ADR-NNNN`、パスは `Internals/ADR/NNNN-短いタイトル`
+    - 節は Status / Context / Decision / Alternatives / Consequences で固定
+    - 決定を変えるときは元の ADR を**書き換えず**、新しい ADR を追加して古い方を `Superseded by ADR-NNNN` にする
+
+    ## Alternatives
+
+    - **別リポジトリや `docs/adr/` の素の Markdown** — docs は Gallery に一本化済み ([Internals/Gallery](story:Internals/Gallery)) で、二重管理になりデッドリンク検証も全文検索も効かない → 却下
+    - **コミットメッセージ / PR 説明に理由を書く** — 検索性・一覧性が低く、決定単位で辿れない → 却下 (補助としては継続してよい)
+    - **記録しない (コード + 記憶に頼る)** — まさに現状の課題そのもの → 却下
+
+    ## Consequences
+
+    - ✅ 決定の理由と却下案が 1 か所に線形に残り、Gallery の検索・ナビゲーション・ダークテーマをそのまま使える
+    - ✅ docs と同じ執筆・レビュー・デッドリンク検証フローに乗る (新規 ADR は `[Story]` を足して `dotnet build` するだけ)
+    - ⚠️ 決定ごとに 1 ページ書く軽い手間が増える。瑣末な決定まで ADR 化しない線引きが要る ([Internals/ADR/Overview](story:Internals/ADR/Overview) の「何を ADR にするか」が目安)
+    - ⚠️ ADR は不変記録。変更は supersede 運用を守る必要がある
+    &quot;&quot;&quot;;
+}</code></pre></details></article>

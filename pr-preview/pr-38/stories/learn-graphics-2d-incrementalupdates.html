@@ -1,0 +1,66 @@
+<article class="story document-page"><h1 id="retainedcanvas">RetainedCanvasと増分更新</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FGraphics%2F2D%2FIncrementalUpdates&amp;section=%E3%81%93%E3%81%AE%E3%83%9A%E3%83%BC%E3%82%B8%E3%81%A7%E3%81%A7%E3%81%8D%E3%82%8B%E3%82%88%E3%81%86%E3%81%AB%E3%81%AA%E3%82%8B%E3%81%93%E3%81%A8">このページでできるようになること</a></li>
+<li><a href="#story=Learn%2FGraphics%2F2D%2FIncrementalUpdates&amp;section=%E3%83%A1%E3%83%B3%E3%82%BF%E3%83%AB%E3%83%A2%E3%83%87%E3%83%AB">メンタルモデル</a></li>
+<li><a href="#story=Learn%2FGraphics%2F2D%2FIncrementalUpdates&amp;section=%E6%9C%80%E5%B0%8F%E4%BE%8B">最小例</a></li>
+<li><a href="#story=Learn%2FGraphics%2F2D%2FIncrementalUpdates&amp;section=api%E3%81%AE%E5%A5%91%E7%B4%84%E3%81%A8%E6%B3%A8%E6%84%8F%E7%82%B9">APIの契約と注意点</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Gallery WASM / Standalone / Headless　 <strong>Backend:</strong> WebGPU / Vulkan / DirectX 12 / Skia CPU　 <strong>前提知識:</strong> RetainedCanvasを速度改善のために導入し、mutationの種類とGPU upload量の関係を観測する。</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGraphics%2F2D%2FBackends">Backends</a>　 <strong>次:</strong> <a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FOverview">Overview</a></p>
+<h2 id="section">このページでできるようになること</h2>
+<p>RetainedCanvasを速度改善のために導入し、mutationの種類とGPU upload量の関係を観測する。</p>
+<h2 id="section-1">メンタルモデル</h2>
+<p><code>Scene2D</code>はencode時のsnapshotです。同じcontentを繰り返し描き、一部のtransform/styleだけを変える場合、<code>RetainedCanvas</code>はpersistent node、stable slot、dirty rangeを使って再encodeを避けます。transform/style-only updateは小さなin-place writeになり、contentやtree構造の変更はsegment writeまたはfull rebuildになります。</p>
+<h2 id="section-2">最小例</h2>
+<pre><code class="language-csharp">var canvas = new RetainedCanvas();
+UiNode card = canvas.AddChild(canvas.Root);
+card.Content = new Scene2D()
+    .FillRoundedRect(Color2D.White, 0, 0, 180, 90, 12);
+card.Transform = Affine2D.Translate(24, 18);
+card.Color = Color2D.Rgba(47, 111, 237);
+
+using IRasterScene2D encoded = rasterizer.CreateScene(canvas);
+encoded.Render(camera, target); // 初回はscene全体を同期
+
+card.Transform = Affine2D.Translate(190, 92);
+card.Color = Color2D.Rgba(34, 197, 94);
+encoded.Render(camera, target); // transform/styleのdirty rangeだけを同期
+
+Console.WriteLine(canvas.LastTransformWrites);
+Console.WriteLine(canvas.LastStyleWrites);
+Console.WriteLine(canvas.LastSegmentBytesWritten);
+Console.WriteLine(canvas.LastWasFullRebuild);
+</code></pre>
+<h2 id="api">APIの契約と注意点</h2>
+<p><code>RetainedCanvas</code>は描画表現を増やすAPIではなく、同じsceneの更新コストを減らす最適化です。毎frame全geometryが変わる場合は<code>Scene2D</code>の再encodeの方が単純です。<code>HasPendingChanges</code>はqueued mutationを示すだけでuploadは行いません。<code>LastTransformWrites</code>、<code>LastStyleWrites</code>、<code>LastSegmentBytesWritten</code>、<code>LastWasFullRebuild</code>は直近のrender同期結果なので、値はrender後に読みます。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Graphics/2D/IncrementalUpdates#ref-0" data-luxel-runtime-story="Examples/2D/Rasterizer/RetainedUpdatesLive" data-luxel-runtime-instance="examples-2d-rasterizer-retainedupdateslive-8a25dcf0ae76" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F2D%2FRasterizer%2FRetainedUpdatesLive&amp;args=%7B%7D&amp;instance=examples-2d-rasterizer-retainedupdateslive-8a25dcf0ae76" data-luxel-runtime-story="Examples/2D/Rasterizer/RetainedUpdatesLive" data-luxel-runtime-instance="examples-2d-rasterizer-retainedupdateslive-8a25dcf0ae76" title="Interactive RetainedUpdatesLive" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-2d-rasterizer-retainedupdateslive-8a25dcf0ae76-args-tab" aria-controls="examples-2d-rasterizer-retainedupdateslive-8a25dcf0ae76-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-2d-rasterizer-retainedupdateslive-8a25dcf0ae76-output-tab" aria-controls="examples-2d-rasterizer-retainedupdateslive-8a25dcf0ae76-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-2d-rasterizer-retainedupdateslive-8a25dcf0ae76-source-tab" aria-controls="examples-2d-rasterizer-retainedupdateslive-8a25dcf0ae76-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-2d-rasterizer-retainedupdateslive-8a25dcf0ae76-args-panel" role="tabpanel" aria-labelledby="examples-2d-rasterizer-retainedupdateslive-8a25dcf0ae76-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-2d-rasterizer-retainedupdateslive-8a25dcf0ae76-output-panel" role="tabpanel" aria-labelledby="examples-2d-rasterizer-retainedupdateslive-8a25dcf0ae76-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-2d-rasterizer-retainedupdateslive-8a25dcf0ae76-source-panel" role="tabpanel" aria-labelledby="examples-2d-rasterizer-retainedupdateslive-8a25dcf0ae76-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/2D/Rasterizer/RetainedUpdatesLive&quot;, Width = 520, Height = 330, Order = 209, CapabilityNote = BrowserNote)]&#10;public static Widget RetainedUpdates(StoryContext ctx)&#10;{&#10;    var canvas = new RetainedCanvas();&#10;    UiNode card = canvas.AddChild(canvas.Root);&#10;    card.Content = new Scene2D().FillRoundedRect(Color2D.White, 0, 0, 180, 90, 14);&#10;    card.Transform = Affine2D.Translate(24, 24);&#10;    card.Color = Color2D.Rgba(59, 130, 246);&#10;    canvas.Flush(420, 220);&#10;    card.Transform = Affine2D.Translate(190, 92);&#10;    card.Color = Color2D.Rgba(34, 197, 94);&#10;    canvas.Flush(420, 220);&#10;    string counters = $&quot;transform={canvas.LastTransformWrites}, style={canvas.LastStyleWrites}, segmentBytes={canvas.LastSegmentBytesWritten}, fullRebuild={canvas.LastWasFullRebuild}&quot;;&#10;    return Snapshot(ctx, VStack(6)[&#10;        Muted(counters),&#10;        RasterView(ctx, 420, 220, canvas, Camera2D.Pixels)&#10;    ]);&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/IncrementalUpdates&quot;, Order = 15, Toc = true)]
+    public static StoryResult IncrementalUpdates() =&gt; Page(&quot;Learn/Graphics/2D/IncrementalUpdates&quot;, &quot;RetainedCanvasと増分更新&quot;,
+        &quot;RetainedCanvasを速度改善のために導入し、mutationの種類とGPU upload量の関係を観測する。&quot;,
+        &quot;`Scene2D`はencode時のsnapshotです。同じcontentを繰り返し描き、一部のtransform/styleだけを変える場合、`RetainedCanvas`はpersistent node、stable slot、dirty rangeを使って再encodeを避けます。transform/style-only updateは小さなin-place writeになり、contentやtree構造の変更はsegment writeまたはfull rebuildになります。&quot;,
+        &quot;&quot;&quot;&quot;
+```csharp
+var canvas = new RetainedCanvas();
+UiNode card = canvas.AddChild(canvas.Root);
+card.Content = new Scene2D()
+    .FillRoundedRect(Color2D.White, 0, 0, 180, 90, 12);
+card.Transform = Affine2D.Translate(24, 18);
+card.Color = Color2D.Rgba(47, 111, 237);
+
+using IRasterScene2D encoded = rasterizer.CreateScene(canvas);
+encoded.Render(camera, target); // 初回はscene全体を同期
+
+card.Transform = Affine2D.Translate(190, 92);
+card.Color = Color2D.Rgba(34, 197, 94);
+encoded.Render(camera, target); // transform/styleのdirty rangeだけを同期
+
+Console.WriteLine(canvas.LastTransformWrites);
+Console.WriteLine(canvas.LastStyleWrites);
+Console.WriteLine(canvas.LastSegmentBytesWritten);
+Console.WriteLine(canvas.LastWasFullRebuild);
+```
+&quot;&quot;&quot;&quot;,
+        &quot;`RetainedCanvas`は描画表現を増やすAPIではなく、同じsceneの更新コストを減らす最適化です。毎frame全geometryが変わる場合は`Scene2D`の再encodeの方が単純です。`HasPendingChanges`はqueued mutationを示すだけでuploadは行いません。`LastTransformWrites`、`LastStyleWrites`、`LastSegmentBytesWritten`、`LastWasFullRebuild`は直近のrender同期結果なので、値はrender後に読みます。&quot;,
+        StoryReference.To(&quot;Examples/2D/Rasterizer/RetainedUpdatesLive&quot;));</code></pre></details></article>

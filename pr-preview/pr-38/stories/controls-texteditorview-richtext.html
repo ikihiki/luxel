@@ -1,0 +1,29 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/TextEditorView/RichText</h1></header><aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/TextEditorView/RichText&quot;, Height = 220, Order = 7)]
+public static Widget RichText(StoryContext ctx)
+{
+    // Markdown/リッチ文書の素地 (WS-A / ADR-0012、S(A1)): font-variant Mark で見出し/太字/小サイズを
+    // 同一の行テキストモデルの上に描く — 表示は行に分解、装飾は push 型。
+    Signal&lt;string&gt; text = ctx.Signal(&quot;text&quot;, &quot;Title\nbold here\nsmall&quot;);
+    TextEditorView ed = TextEditorView(text, editorHeight: 130f, editorWidth: 460f);
+    ed.BoldFont = EditorFaces.Value.Bold;
+
+    var set = new DecorationSet(
+    [
+        new MarkDecoration(0, 5, Variant: FontVariant.Bold, FontScale: 2.0f),          // 見出し (太字 + 2x)
+        new MarkDecoration(6, 10, Variant: FontVariant.Bold),                          // &quot;bold&quot; 太字
+        new MarkDecoration(16, 21, Foreground: 0xFF888888, FontScale: 0.8f),           // &quot;small&quot; 小さめ・淡色
+    ]);
+
+    ctx.Play(async d =&gt;
+    {
+        ed.SetDecorations(&quot;md&quot;, set);
+        await d.Step(1);
+        await d.Snap(&quot;variants&quot;);
+    });
+
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(10)[
+            Heading(&quot;TextEditorView — font-variant (Markdown 素地)&quot;),
+            Muted(&quot;MarkDecoration の Variant (Bold) + FontScale で見出し・太字・小サイズを同一行モデルに描く。表示は行、装飾は push。&quot;),
+            ed]];
+}</code></pre></details></article>
