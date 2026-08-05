@@ -80,13 +80,10 @@ public sealed class GpuDevice : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (width == 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (height == 0) throw new ArgumentOutOfRangeException(nameof(height));
-        int bytesPerPixel = format switch
-        {
-            GpuFormat.Rgba8Unorm or GpuFormat.Bgra8Unorm => 4,
-            GpuFormat.R32Float => 4,
-            _ => throw new ArgumentException($"{format} is not a sampled upload format.", nameof(format)),
-        };
-        ulong expected = checked((ulong)width * height * (uint)bytesPerPixel);
+        if (!GpuFormatInfo.IsSampledUpload(format))
+            throw new ArgumentException($"{format} is not a sampled upload format.", nameof(format));
+        uint bytesPerPixel = GpuFormatInfo.BytesPerPixel(format);
+        ulong expected = checked((ulong)width * height * bytesPerPixel);
         if ((ulong)data.Length != expected)
             throw new ArgumentException($"Texture data must contain exactly {expected} bytes, but contained {data.Length}.", nameof(data));
         return new GpuTexture(_backend.CreateSampledTexture(width, height, format, data));

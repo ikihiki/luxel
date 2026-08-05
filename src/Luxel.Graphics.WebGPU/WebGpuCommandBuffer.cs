@@ -163,7 +163,9 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
         EndPasses();
         var texture = RequireTexture(source);
         var buffer = RequireBuffer(destination);
-        uint bytesPerPixel = texture.Format is GpuFormat.Rgba8Unorm or GpuFormat.Bgra8Unorm or GpuFormat.R32Float ? 4u : throw new NotSupportedException("Depth texture readback is not supported.");
+        if (texture.Format == GpuFormat.D32Float)
+            throw new NotSupportedException("Depth texture readback is not supported.");
+        uint bytesPerPixel = GpuFormatInfo.BytesPerPixel(texture.Format);
         uint rowPixels = rowLengthPixels == 0 ? texture.Width : rowLengthPixels;
         if (rowPixels < texture.Width)
             throw new ArgumentOutOfRangeException(nameof(rowLengthPixels), "Destination row length cannot be smaller than the texture width.");

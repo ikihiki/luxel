@@ -452,8 +452,12 @@ public sealed unsafe class D3D12Backend : IGpuBackend
 
     private static Format ToDxgiFormat(GpuFormat format) => format switch
     {
+        GpuFormat.R8Unorm => Format.R8_UNorm,
+        GpuFormat.Rg8Unorm => Format.R8G8_UNorm,
         GpuFormat.Rgba8Unorm => Format.R8G8B8A8_UNorm,
         GpuFormat.Bgra8Unorm => Format.B8G8R8A8_UNorm,
+        GpuFormat.Rgba8UnormSrgb => Format.R8G8B8A8_UNorm_SRgb,
+        GpuFormat.Bgra8UnormSrgb => Format.B8G8R8A8_UNorm_SRgb,
         GpuFormat.R32Float => Format.R32_Float,
         GpuFormat.D32Float => Format.D32_Float,
         _ => throw new ArgumentOutOfRangeException(nameof(format)),

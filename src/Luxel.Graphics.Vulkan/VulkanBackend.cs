@@ -1019,8 +1019,12 @@ public sealed unsafe class VulkanBackend : IGpuBackend
 
     internal static Format ToVkFormat(GpuFormat format) => format switch
     {
+        GpuFormat.R8Unorm => Format.R8Unorm,
+        GpuFormat.Rg8Unorm => Format.R8G8Unorm,
         GpuFormat.Rgba8Unorm => Format.R8G8B8A8Unorm,
         GpuFormat.Bgra8Unorm => Format.B8G8R8A8Unorm,
+        GpuFormat.Rgba8UnormSrgb => Format.R8G8B8A8Srgb,
+        GpuFormat.Bgra8UnormSrgb => Format.B8G8R8A8Srgb,
         GpuFormat.R32Float => Format.R32Sfloat,
         GpuFormat.D32Float => Format.D32Sfloat,
         _ => throw new ArgumentOutOfRangeException(nameof(format)),

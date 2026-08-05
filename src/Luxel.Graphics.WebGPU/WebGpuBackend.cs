@@ -315,9 +315,10 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
     {
         ThrowIfDisposed();
         if (width == 0 || height == 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (format is not (GpuFormat.Rgba8Unorm or GpuFormat.Bgra8Unorm))
-            throw new NotSupportedException("The portable WebGPU sampled-texture ABI supports RGBA8/BGRA8 filterable 2D textures only.");
-        int expectedBytes = checked((int)(width * height * 4));
+        if (!GpuFormatInfo.IsPortableSampled(format))
+            throw new NotSupportedException("The portable WebGPU sampled-texture ABI supports R8, RG8, and RGBA8/BGRA8 linear or sRGB filterable 2D textures only.");
+        uint bytesPerPixel = GpuFormatInfo.BytesPerPixel(format);
+        int expectedBytes = checked((int)(width * height * bytesPerPixel));
         if (data.Length != expectedBytes)
             throw new ArgumentException($"Sampled texture data must contain exactly {expectedBytes} bytes.", nameof(data));
 
@@ -329,7 +330,7 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
             try
             {
                 var destination = new ImageCopyTexture { Texture = texture.Handle, Aspect = TextureAspect.All };
-                var layout = new TextureDataLayout { BytesPerRow = checked(width * 4), RowsPerImage = height };
+                var layout = new TextureDataLayout { BytesPerRow = checked(width * bytesPerPixel), RowsPerImage = height };
                 var extent = new Extent3D { Width = width, Height = height, DepthOrArrayLayers = 1 };
                 fixed (byte* source = data)
                     _api.QueueWriteTexture(_queue, in destination, source, (nuint)data.Length, in layout, in extent);
@@ -715,8 +716,12 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
 
     internal static TextureFormat MapFormat(GpuFormat format) => format switch
     {
+        GpuFormat.R8Unorm => TextureFormat.R8Unorm,
+        GpuFormat.Rg8Unorm => TextureFormat.RG8Unorm,
         GpuFormat.Rgba8Unorm => TextureFormat.Rgba8Unorm,
         GpuFormat.Bgra8Unorm => TextureFormat.Bgra8Unorm,
+        GpuFormat.Rgba8UnormSrgb => TextureFormat.Rgba8UnormSrgb,
+        GpuFormat.Bgra8UnormSrgb => TextureFormat.Bgra8UnormSrgb,
         GpuFormat.R32Float => TextureFormat.R32float,
         GpuFormat.D32Float => TextureFormat.Depth32float,
         _ => throw new ArgumentOutOfRangeException(nameof(format)),

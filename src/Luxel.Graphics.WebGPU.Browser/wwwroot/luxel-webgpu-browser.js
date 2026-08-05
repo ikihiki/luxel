@@ -27,7 +27,8 @@ const encode = bytes => {
   return btoa(binary);
 };
 const text = base64 => new TextDecoder().decode(decode(base64));
-const gpuFormat = value => ["rgba8unorm", "bgra8unorm", "r32float", "depth32float"][value] ?? (() => { throw new Error(`Unsupported format ${value}.`); })();
+const gpuFormat = value => ["rgba8unorm", "bgra8unorm", "r32float", "depth32float", "rgba8unorm-srgb", "bgra8unorm-srgb", "r8unorm", "rg8unorm"][value] ?? (() => { throw new Error(`Unsupported format ${value}.`); })();
+const gpuBytesPerPixel = value => [4, 4, 4, 4, 4, 4, 1, 2][value] ?? (() => { throw new Error(`Unsupported format ${value}.`); })();
 const ensureHealthy = backend => {
   if (backend.lost) throw new Error(`WebGPU device was lost: ${backend.lost}`);
   if (backend.errors.length) throw new Error(`WebGPU validation error: ${backend.errors.shift()}`);
@@ -105,7 +106,7 @@ export function createTexture(backendHandle, width, height, formatValue, usageVa
     const slot = bindlessIndex;
     if (slot < 0 || slot >= 16 || backend.textures[slot]) { texture.destroy(); throw new Error(`Invalid or occupied sampled texture slot ${slot}.`); }
     backend.textures[slot] = texture;
-    backend.queue.writeTexture({ texture }, decode(dataBase64), { bytesPerRow: width * 4, rowsPerImage: height }, [width, height, 1]);
+    backend.queue.writeTexture({ texture }, decode(dataBase64), { bytesPerRow: width * gpuBytesPerPixel(formatValue), rowsPerImage: height }, [width, height, 1]);
     texture.__luxelSlot = slot;
   }
   return put("texture", { backend, texture, format: gpuFormat(formatValue), width, height });
