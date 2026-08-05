@@ -1003,22 +1003,6 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
-    public void Graphics_typo_routes_are_hidden_canonical_aliases()
-    {
-        StoryInfo[] canonical = Catalog.All
-            .Where(story => story.Path.StartsWith("Learn/Graphics/", StringComparison.Ordinal))
-            .ToArray();
-        Assert.NotEmpty(canonical);
-        Assert.DoesNotContain(Catalog.All, story => story.Path.Contains("Grapics", StringComparison.Ordinal));
-        foreach (StoryInfo story in canonical)
-        {
-            string alias = "Learn/Grapics/" + story.Path["Learn/Graphics/".Length..];
-            Assert.Same(story, Catalog.Find(alias));
-            Assert.Contains(alias, Catalog.AliasesFor(story.Path));
-        }
-    }
-
-    [Fact]
     public void TwoD_lessons_embed_only_browser_wasm_widget_stories()
     {
         string[] livePaths =

@@ -20,8 +20,6 @@ public static class GalleryStoryProject
             // Other duplicates are composition errors rather than silently disappearing across projects.
             if (CoreUiStoryProject.IsProductionCanonicalPath(story.Path) || builder.ContainsPath(story.Path)) continue;
             builder.Add(story);
-            if (story.Path.StartsWith("Learn/Graphics/", StringComparison.Ordinal))
-                builder.AddAlias("Learn/Grapics/" + story.Path["Learn/Graphics/".Length..], story.Path);
         }
     }
 
