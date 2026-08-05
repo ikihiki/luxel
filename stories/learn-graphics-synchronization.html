@@ -212,7 +212,7 @@ RecreateSizeDependentResources();
 <pre><code class="language-text">RenderGraph: pass間のproducer / consumer依存
 Queue API:   commandのsubmitとCPUから見た完了境界
 </code></pre>
-<p>手書きBarrierをpassのRead/Write宣言へ置き換える方法は、独立した<a href="#story=Learn%2FRenderGraph%2FOverview">RenderGraphコース</a>で順番に扱います。Vulkan、DirectX 12、native/browser WebGPUがBarrierとqueue完了をどうlowerするかは<a href="#story=Internals%2FGpu%2FSynchronization">GPU同期の内部実装</a>を参照してください。</p>
+<p>手書きBarrierをpassのRead/Write宣言へ置き換える方法は、Graphics内の<a href="#story=Learn%2FGraphics%2FRenderGraph%2FOverview">RenderGraph章</a>で順番に扱います。Vulkan、DirectX 12、native/browser WebGPUがBarrierとqueue完了をどうlowerするかは<a href="#story=Internals%2FGpu%2FSynchronization">GPU同期の内部実装</a>を参照してください。</p>
 <h2 id="section-1">典型的な失敗</h2>
 <ul>
 <li>compute結果が古い → producerとconsumerの間に適切な<code>Barrier</code>がない。</li>
@@ -388,7 +388,7 @@ public static StoryResult Synchronization(StoryContext ctx)
     Queue API:   commandのsubmitとCPUから見た完了境界
     ```
 
-    手書きBarrierをpassのRead/Write宣言へ置き換える方法は、独立した[RenderGraphコース](story:Learn/RenderGraph/Overview)で順番に扱います。Vulkan、DirectX 12、native/browser WebGPUがBarrierとqueue完了をどうlowerするかは[GPU同期の内部実装](story:Internals/Gpu/Synchronization)を参照してください。
+    手書きBarrierをpassのRead/Write宣言へ置き換える方法は、Graphics内の[RenderGraph章](story:Learn/Graphics/RenderGraph/Overview)で順番に扱います。Vulkan、DirectX 12、native/browser WebGPUがBarrierとqueue完了をどうlowerするかは[GPU同期の内部実装](story:Internals/Gpu/Synchronization)を参照してください。
 
     ## 典型的な失敗
 

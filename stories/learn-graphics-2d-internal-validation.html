@@ -12,7 +12,7 @@
 <p>ここで扱うlayout、tile size、shader stageは内部実装です。通常の2D描画コードは<code>IRasterizer2D</code>と<code>Scene2D</code>を使います。</p>
 </div>
 <p><strong>難易度:</strong> Advanced　 <strong>実行環境:</strong> Gallery / Standalone　 <strong>Backend:</strong> GPU compute　 <strong>前提知識:</strong> 2D描画</p>
-<p><strong>前へ:</strong> <a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FRetainedUploads">RetainedUploads</a></p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGraphics%2F2D%2FInternal%2FRetainedUploads">RetainedUploads</a>　 <strong>次:</strong> <a href="#story=Learn%2FGraphics%2FRenderGraph%2FOverview">Overview</a></p>
 <h2 id="pipeline">Pipeline上の位置</h2>
 <p><code>Scene2D / RetainedCanvas → flattened geometry → SoA encoding → bounds → tile bins → fine coverage + composite → RGBA target</code></p>
 <p><strong>このstage:</strong> pipeline output → evidence</p>
