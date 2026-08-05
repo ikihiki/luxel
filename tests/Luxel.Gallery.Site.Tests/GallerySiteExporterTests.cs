@@ -1223,7 +1223,7 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("# 同期", synchronizationPage);
         foreach (string synchronizationTopic in new[]
                  {
-                     "## Barrierは何を同期するか", "## よく使うBarrier",
+                     "## Barrierは何を同期するか", "## GpuStage一覧", "## よく使うBarrier",
                      "## Barrierでは解決しないこと", "## FinishとSubmit",
                      "## SubmitAndWait", "## SubmitAsync", "## WaitIdleとWaitIdleAsync",
                      "## RenderGraphとの関係",
@@ -1231,8 +1231,10 @@ public sealed class GallerySiteExporterTests
             Assert.Contains(synchronizationTopic, synchronizationPage);
         foreach (string synchronizationTerm in new[]
                  {
-                     "GpuStage.ColorOutput", "GpuStage.Copy", "GpuHazard.IndirectArguments",
-                     "SubmitAndWait", "SubmitAsync", "WaitIdle", "WaitIdleAsync",
+                     "GpuStage.None", "GpuStage.DrawIndirect", "GpuStage.VertexShader",
+                     "GpuStage.PixelShader", "GpuStage.ComputeShader", "GpuStage.ColorOutput",
+                     "GpuStage.DepthStencil", "GpuStage.Copy", "GpuStage.AllGraphics", "GpuStage.All",
+                     "GpuHazard.IndirectArguments", "SubmitAndWait", "SubmitAsync", "WaitIdle", "WaitIdleAsync",
                      "story:Internals/Gpu/Synchronization", "story:Learn/Grapics/RenderGraph",
                  })
             Assert.Contains(synchronizationTerm, synchronizationPage);

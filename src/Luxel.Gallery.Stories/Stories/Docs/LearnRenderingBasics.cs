@@ -1055,7 +1055,24 @@ public static partial class DocsRenderingLearn
             .EndRendering();
         ```
 
-        `source`は値を生成したstage、`destination`はその値を次に使うstageです。指定できる主なstageは`DrawIndirect`、`VertexShader`、`PixelShader`、`ComputeShader`、`ColorOutput`、`DepthStencil`、`Copy`です。複数stageはbitwise ORでまとめられ、切り分け中だけ`All`を使います。
+        `source`は値を生成したstage、`destination`はその値を次に使うstageです。`GpuStage`は`[Flags]` enumなので、複数stageをbitwise ORでまとめられます。
+
+        ## GpuStage一覧
+
+        | 値 | 対象になる処理 | Barrierでの典型的な指定 |
+        | --- | --- | --- |
+        | `GpuStage.None` | stageを指定しない | stage依存がないことを明示する値。通常のproducer / consumer指定には使わない |
+        | `GpuStage.DrawIndirect` | indirect draw / dispatch引数の読み出し | GPUが生成した引数を読むdestination。必要に応じて`GpuHazard.IndirectArguments`も指定する |
+        | `GpuStage.VertexShader` | vertex shaderとvertex pullingのload | computeやcopyで用意したvertex dataを読むdestination |
+        | `GpuStage.PixelShader` | pixel / fragment shader | computeやcopyで用意したtexture・bufferを読むdestination |
+        | `GpuStage.ComputeShader` | compute shader | dispatchによる書き込みのsource、または前段の結果を読むdestination |
+        | `GpuStage.ColorOutput` | color attachmentへの書き込み | render targetを書いたsource |
+        | `GpuStage.DepthStencil` | depth / stencil testと書き込み | depth / stencil resourceへaccessするstage |
+        | `GpuStage.Copy` | copy / transfer | copy元を準備した後のdestination、またはcopy結果を使う前のsource |
+        | `GpuStage.AllGraphics` | すべてのgraphics stage | graphics側の複数stageをまとめて指定したい場合 |
+        | `GpuStage.All` | すべてのcommand | 最も粗い指定。依存stageを切り分ける診断時に限定して使う |
+
+        通常はproducerとconsumerをできるだけ正確に指定します。`AllGraphics`や`All`へ広げるほど意図は粗くなり、backendが不要な待機まで挿入する可能性があります。
 
         ## よく使うBarrier
 
