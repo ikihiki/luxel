@@ -146,7 +146,9 @@ public static partial class DocsGpu
 
         - [Examples/3D/Triangle](story:Examples/3D/Triangle) — root arguments、vertex pulling、render-to-texture
         - [Examples/3D/TexturedQuad](story:Examples/3D/TexturedQuad) — sampled texture と sampler
-        - [Examples/3D/Depth](story:Examples/3D/Depth) / [Examples/3D/Blend](story:Examples/3D/Blend) — baked pipeline state
+        - [Examples/3D/PipelineState/Separation](story:Examples/3D/PipelineState/Separation) — logical pipeline と command-time state の分離
+        - [Examples/3D/PipelineState/Stencil](story:Examples/3D/PipelineState/Stencil) — `Depth24PlusStencil8`、mask、dynamic stencil reference
+        - [Examples/3D/PipelineState/ViewportScissor](story:Examples/3D/PipelineState/ViewportScissor) — dynamic viewport / scissor lowering
         - [Examples/RenderGraph/Blur](story:Examples/RenderGraph/Blur) — dependency と pass segmentation
         - [Reference/Guides/TwoD](story:Reference/Guides/TwoD) — compute raster、text、logical buffer/texture refs
 

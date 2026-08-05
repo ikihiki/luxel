@@ -44,6 +44,45 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Pipeline_state_stories_are_registered_with_deterministic_metadata_and_separated_api_usage()
+    {
+        string[] paths =
+        [
+            "Examples/3D/PipelineState/Topology",
+            "Examples/3D/PipelineState/Rasterizer",
+            "Examples/3D/PipelineState/Depth",
+            "Examples/3D/PipelineState/Blend",
+            "Examples/3D/PipelineState/Stencil",
+            "Examples/3D/PipelineState/ViewportScissor",
+            "Examples/3D/PipelineState/Separation",
+        ];
+
+        for (int i = 0; i < paths.Length; i++)
+        {
+            StoryInfo story = Assert.IsType<StoryInfo>(Catalog.Find(paths[i]));
+            Assert.Equal(320, story.Height);
+            Assert.Equal(100 + i, story.Order);
+            Assert.False(story.RealWindowOnly);
+        }
+        Assert.NotNull(Catalog.Find("Examples/3D/Depth"));
+        Assert.NotNull(Catalog.Find("Examples/3D/Blend"));
+
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(root,
+            "src", "Luxel.Gallery.Stories", "Stories", "Gpu", "PipelineStateStories.cs"));
+        Assert.DoesNotContain("GpuRasterDesc", source);
+        foreach (string required in new[]
+                 {
+                     "GpuGraphicsPipelineDesc", "GpuAttachmentLayout", "SetRasterizerState",
+                     "SetDepthStencilState", "SetBlendState", "SetViewport", "SetScissor",
+                     "GpuFormat.Depth24PlusStencil8", "clearStencil: 0", "GpuStencilOp.Replace",
+                     "GpuCompareOp.Equal", "StencilReadMask = 0x0f", "StencilWriteMask = 0x0f",
+                     "SetStencilReference(1)", "SetStencilReference(2)",
+                 })
+            Assert.Contains(required, source);
+    }
+
+    [Fact]
     public void Playground_is_a_buildable_native_story()
     {
         StoryInfo story = Assert.IsType<StoryInfo>(Catalog.Find("Examples/Scripting/Playground"));
@@ -1201,7 +1240,7 @@ public sealed class GallerySiteExporterTests
             "## Depth-Stencil State",
             "## Blend State",
             "## Viewport / Scissor",
-            "## Pipelineを分ける判断",
+            "## Pipelineとstateを分ける判断",
             "## よくある症状",
         ];
         int previousPipelineTopic = -1;
@@ -1213,17 +1252,24 @@ public sealed class GallerySiteExporterTests
         }
         foreach (string pipelineTerm in new[]
                  {
-                     "GpuRasterDesc.Default", "GpuPrimitiveTopology.TriangleList", "GpuCullMode.Back",
-                     "GpuFrontFace.CounterClockwise", "DepthTest", "DepthWrite", "GpuFormat.D32Float",
-                     "GpuBlendMode.AlphaBlend", "CreateDepthTarget", "LessOrEqual",
-                     "SetViewport", "SetScissor", "render target全体",
+                     "No Graphics API", "GpuGraphicsPipelineDesc", "GpuAttachmentLayout",
+                     "GpuPrimitiveTopology.TriangleList", "GpuCullMode.Back", "GpuFrontFace.CounterClockwise",
+                     "SetRasterizerState", "SetDepthStencilState", "SetBlendState", "SetViewport", "SetScissor",
+                     "GpuFormat.Depth24PlusStencil8", "clearStencil", "GpuStencilOp.Replace", "GpuCompareOp.Equal",
+                     "StencilReadMask", "StencilWriteMask", "SetStencilReference", "GpuPipelineDiagnostics",
                  })
             Assert.Contains(pipelineTerm, pipelinePage);
+        Assert.DoesNotContain("GpuRasterDesc", pipelinePage);
         ISemanticDocument pipelineDocument = BuildSemanticDocument(Catalog.Find("Learn/Grapics/PipelineState")!)!;
-        Assert.Contains(pipelineDocument.DocumentEmbeds,
-            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/3D/Depth");
-        Assert.Contains(pipelineDocument.DocumentEmbeds,
-            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/3D/Blend");
+        foreach (string storyPath in new[]
+                 {
+                     "Examples/3D/PipelineState/Topology", "Examples/3D/PipelineState/Rasterizer",
+                     "Examples/3D/PipelineState/Depth", "Examples/3D/PipelineState/Blend",
+                     "Examples/3D/PipelineState/Stencil", "Examples/3D/PipelineState/ViewportScissor",
+                     "Examples/3D/PipelineState/Separation",
+                 })
+            Assert.Contains(pipelineDocument.DocumentEmbeds,
+                embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == storyPath);
 
         string synchronizationPage = pages["Learn/Grapics/Synchronization"].Text;
         Assert.Contains("# 同期", synchronizationPage);

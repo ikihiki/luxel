@@ -73,17 +73,21 @@ public static partial class DocsGpu
 
         `MainQueue.StartCommandRecording()` → fluent にコマンドを積み → `Finish()` → `SubmitAndWait(cmd)`。同期は `Barrier(srcStage, dstStage)` の **stage バリア**だけ — リソース個別の状態遷移管理はありません (bindless + 単純化された使用パターンが前提)。
 
-        ## 描画 (graphics PSO)
+        ## 描画 (logical pipeline + state blocks)
 
-        graphics も同じ流儀です。`CreateGraphicsPipeline(shader, GpuRasterDesc)` で深度テストやブレンドを宣言し、dynamic rendering (`BeginRendering`/`EndRendering`) で RT/Depth を直接指定、頂点は**頂点プル** (頂点レイアウト宣言なし — シェーダが bindless バッファから読む) です。
+        graphics も同じ流儀です。`GpuGraphicsPipelineDesc` は shader entry、attachment layout、topology をまとめた logical pipeline を作ります。cull、depth-stencil、blend、viewport、scissor、stencil reference は command-time state として独立に設定し、backend が必要な native variant を遅延 cache します。dynamic rendering (`BeginRendering`/`EndRendering`) で color / depth-stencil attachment と clear 値を指定し、頂点は**頂点プル** (頂点レイアウト宣言なし — shader が bindless buffer から読む) です。
 
-        {{StoryRef(ctx, "Examples/3D/Depth")}}
+        {{StoryRef(ctx, "Examples/3D/PipelineState/Separation")}}
 
-        {{StoryRef(ctx, "Examples/3D/Blend")}}
+        {{StoryRef(ctx, "Examples/3D/PipelineState/Depth")}}
 
-        `StorySource` でこのデモの実装をそのまま引用できます:
+        {{StoryRef(ctx, "Examples/3D/PipelineState/Blend")}}
 
-        {{StorySource("Examples/3D/Depth")}}
+        {{StoryRef(ctx, "Examples/3D/PipelineState/Stencil")}}
+
+        従来の `Examples/3D/Depth` と `Examples/3D/Blend` route も bookmark 互換のため維持しています。`StorySource` で separated state API の実装をそのまま引用できます:
+
+        {{StorySource("Examples/3D/PipelineState/Separation")}}
 
         ## テクスチャとレンダーターゲット
 
