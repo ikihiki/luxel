@@ -1,16 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Guides/TwoD</h1></header><h1 id="d-luxel.graphics.twod">2D ベクター (Luxel.Graphics.TwoD)</h1>
-<ul>
-<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=%E6%8F%8F%E3%81%91%E3%82%8B%E3%82%82%E3%81%AE">描けるもの</a></li>
-<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=scene2d-%E3%81%A8%E3%83%91%E3%82%B9%E6%A7%8B%E7%AF%89">Scene2D とパス構築</a></li>
-<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=camera2d-%E2%80%94-%E3%82%B9%E3%83%A0%E3%83%BC%E3%82%BA%E3%82%BA%E3%83%BC%E3%83%A0">Camera2D — スムーズズーム</a></li>
-<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=camerarig2d-%E2%80%94-%E8%BF%BD%E5%BE%93%E3%82%AB%E3%83%A1%E3%83%A9-%E3%82%B2%E3%83%BC%E3%83%A0%E3%83%95%E3%82%A3%E3%83%BC%E3%83%AB">CameraRig2D — 追従カメラ (ゲームフィール)</a></li>
-<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=%E3%82%B9%E3%83%97%E3%83%A9%E3%82%A4%E3%83%88%E3%82%A2%E3%83%88%E3%83%A9%E3%82%B9-%E2%80%94-1-%E3%83%86%E3%82%AF%E3%82%B9%E3%83%81%E3%83%A3%E3%81%AB%E8%A4%87%E6%95%B0%E3%82%B9%E3%83%97%E3%83%A9%E3%82%A4%E3%83%88">スプライトアトラス — 1 テクスチャに複数スプライト</a></li>
-<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=%E3%82%BF%E3%82%A4%E3%83%AB%E3%83%9E%E3%83%83%E3%83%97-%E2%80%94-%E3%82%B0%E3%83%AA%E3%83%83%E3%83%89%E6%8F%8F%E7%94%BB-%2B-aabb-%E8%A1%9D%E7%AA%81">タイルマップ — グリッド描画 + AABB 衝突</a></li>
-<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=%E3%83%91%E3%83%BC%E3%83%86%E3%82%A3%E3%82%AF%E3%83%AB-%E2%80%94-%E6%A8%99%E6%BA%96-vfx-%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0">パーティクル — 標準 VFX システム</a></li>
-<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=irasterizer2d-%2F-retainedcanvas-%E2%80%94-backend%E5%88%87%E6%9B%BF%E3%81%A8%E9%83%A8%E5%88%86%E6%9B%B4%E6%96%B0">IRasterizer2D / RetainedCanvas — backend切替と部分更新</a></li>
-<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=%E8%A8%AD%E8%A8%88%E3%83%8E%E3%83%BC%E3%83%88%3A-%E5%A2%97%E5%88%86%E6%9B%B4%E6%96%B0-%E2%80%94-%E3%80%8Cslot-%E6%8D%AE%E3%81%88%E7%BD%AE%E3%81%8D%E3%80%81%E3%83%AC%E3%83%B3%E3%82%B8%E3%81%AF%E5%AE%B9%E9%87%8F%E4%BB%98%E3%81%8D%E3%80%8D">設計ノート: 増分更新 — 「slot 据え置き、レンジは容量付き」</a></li>
-<li><a href="#story=Reference%2FGuides%2FTwoD&amp;section=gpu-rasterizer%E3%81%AE%E7%8F%BE%E5%9C%A8%E6%A7%8B%E6%88%90">GPU rasterizerの現在構成</a></li>
-</ul>
+<article class="story document-page"><h1 id="d-luxel.graphics.twod">2D ベクター (Luxel.Graphics.TwoD)</h1>
 <p>GPU <strong>コンピュートラスタライザ</strong> (Vello 風) による 2D ベクター描画です。パスを三角形分割せず、線分のまま GPU に常駐させ、compute が画素ごとに巻き数/距離で被覆を計算して塗ります。バックエンド変更ゼロ (framebuffer は bindless バッファ)。</p>
 <h2 id="section">描けるもの</h2>
 <p>塗り (NonZero/EvenOdd — 穴あき対応)、複数パス合成、ストローク (距離ベース・画面一定幅)、<strong>ベクターテキスト</strong> (TTF 輪郭 → パス → 塗り、日本語対応)、角丸:</p>
@@ -109,7 +97,7 @@ else
 <li>定常フレームのコストは O(変わったノード) — 回帰は bench で監視 (使い方は Gallery の Docs 章の Contributing ページへ)</li>
 </ul>
 <h2 id="gpu-rasterizer">GPU rasterizerの現在構成</h2>
-<p>現行 GPU pipeline は <strong>bounds → 16×16 tile bin → fine raster</strong> の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4×4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は <a href="#story=Learn%2FRendering%2FRasterizerInternals%2FOverview">Rasterizer Internals</a> へ進んでください。</p>
+<p>現行 GPU pipeline は <strong>bounds → 16×16 tile bin → fine raster</strong> の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4×4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FOverview">Internal</a> へ進んでください。</p>
 <p>次: <a href="#story=Reference%2FGuides%2FRenderGraph">Reference/Guides/RenderGraph</a> — 多段パスの合成へ。</p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Reference/Guides/TwoD&quot;, Order = 11)]
 public static Widget TwoD(StoryContext ctx)
@@ -258,7 +246,7 @@ public static Widget TwoD(StoryContext ctx)
 
     ## GPU rasterizerの現在構成
 
-    現行 GPU pipeline は **bounds → 16&#215;16 tile bin → fine raster** の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4&#215;4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は [Rasterizer Internals](story:Learn/Rendering/RasterizerInternals/Overview) へ進んでください。
+    現行 GPU pipeline は **bounds → 16&#215;16 tile bin → fine raster** の3 compute passです。bounds passがscreen-space AABBを作り、bin passがpainter orderをtileごとに絞り、fine passが4&#215;4スーパーサンプルでfill/stroke coverageとpremultiplied alpha合成を計算します。tile容量超過時だけcorrectnessを保つ全order走査へfallbackします。実装を追う場合は [Internal](story:Learn/Grapics/2D/Internal/Overview) へ進んでください。
 
     次: [Reference/Guides/RenderGraph](story:Reference/Guides/RenderGraph) — 多段パスの合成へ。
     &quot;&quot;&quot;, toc: true);

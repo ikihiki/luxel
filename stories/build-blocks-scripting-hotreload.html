@@ -1,11 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Build/Blocks/Scripting/HotReload</h1></header><h1 id="block-script-hot-reload">Block: Script hot reload</h1>
-<ul>
-<li><a href="#story=Build%2FBlocks%2FScripting%2FHotReload&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-gallery-script-hot-reload">コピーして動かす — Gallery script hot reload</a>
-<ul>
-<li><a href="#story=Build%2FBlocks%2FScripting%2FHotReload&amp;section=%60src%2Fluxel.gallery.stories%2Fstories%2Fscriptingstory.cs%60-csharp"><code>src/Luxel.Gallery.Stories/Stories/ScriptingStory.cs</code> (CSharp)</a></li>
-</ul>
-</li>
-</ul>
+<article class="story document-page"><h1 id="block-script-hot-reload">Block: Script hot reload</h1>
 <p>Galleryで検証される<code>ScriptHost</code>、diagnostics、successful-swap、cancellationの接続例です。</p>
 <figure class="static-capture"><a href="#story=Examples%2FScripting%2FHotReload"><img src="images/examples-scripting-hotreload.png" alt="Examples/Scripting/HotReload" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
 <h2 id="gallery-script-hot-reload">コピーして動かす — Gallery script hot reload</h2>
@@ -336,7 +329,19 @@ public static class ScriptingStory
         public void Dispose() =&gt; (_output as IDisposable)?.Dispose();
     }
 
-    [Story(&quot;Examples/Scripting/Notebook&quot;, Height = 620, Order = 2034)]
+    private const string NotebookMarkdown =
+        &quot;# Luxel ノートブック\n&quot; +
+        &quot;**文章 + 実行可能なコードセル** の Jupyter 風です。各セルの ▷ で実行、結果が下に出ます。\n\n&quot; +
+        &quot;## 数値を返すセル\n&quot; +
+        &quot;```csx\nEnumerable.Range(1, 10).Sum(i =&gt; i * i)\n```\n&quot; +
+        &quot;## Widget を返すセル\n&quot; +
+        &quot;セルは最後の式が `Widget` ならその場に描画されます:\n&quot; +
+        &quot;```csx\nHStack(6)[\n    Badge(\&quot;Ready\&quot;, Intent.Success),\n    Button(_ =&gt; Log(\&quot;cell!\&quot;), \&quot;押す\&quot;)]\n```\n&quot; +
+        &quot;文章とコードが交互に並ぶのが notebook 体験です。\n&quot;;
+
+    internal static StoryResult NotebookResult() =&gt; StoryResult.FromMarkdown(NotebookMarkdown);
+
+    [Story(&quot;Examples/Scripting/Notebook&quot;, Height = 620, Order = 2034, Result = nameof(NotebookResult))]
     public static Widget Notebook(StoryContext ctx, ScriptHost host, ICodeLanguage lang)
     {
         // resolver は再描画毎に呼ばれる — 本文キーでキャッシュし**同一インスタンス**を返す
@@ -354,15 +359,7 @@ public static class ScriptingStory
             return cell;
         }
 
-        Signal&lt;string&gt; md = ctx.Signal(&quot;markdown&quot;,
-            &quot;# Luxel ノートブック\n&quot; +
-            &quot;**文章 + 実行可能なコードセル** の Jupyter 風です。各セルの ▷ で実行、結果が下に出ます。\n\n&quot; +
-            &quot;## 数値を返すセル\n&quot; +
-            &quot;```csx\nEnumerable.Range(1, 10).Sum(i =&gt; i * i)\n```\n&quot; +
-            &quot;## Widget を返すセル\n&quot; +
-            &quot;セルは最後の式が `Widget` ならその場に描画されます:\n&quot; +
-            &quot;```csx\nHStack(6)[\n    Badge(\&quot;Ready\&quot;, Intent.Success),\n    Button(_ =&gt; Log(\&quot;cell!\&quot;), \&quot;押す\&quot;)]\n```\n&quot; +
-            &quot;文章とコードが交互に並ぶのが notebook 体験です。\n&quot;);
+        Signal&lt;string&gt; md = ctx.Signal(&quot;markdown&quot;, NotebookMarkdown);
 
         // 新スタック: markdown 文書レンダラ + ```csx フェンスを embed 扱いし NotebookCell に解決
         TextEditorView doc = MarkdownDoc.Create(md, () =&gt; UiTheme.T, width: 600f, height: 520f,

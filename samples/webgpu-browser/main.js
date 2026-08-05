@@ -1,4 +1,5 @@
 import { dotnet } from "./_framework/dotnet.js";
+import * as slang from "./slang-browser.js";
 import * as webgpu from "./luxel-webgpu-browser.js";
 
 const protocolVersion = 2;
@@ -111,6 +112,7 @@ const host = {
 try {
   const runtime = await dotnet.create();
   runtime.setModuleImports("./luxel-webgpu-browser.js", webgpu);
+  runtime.setModuleImports("luxel-slang", slang);
   runtime.setModuleImports("luxel-browser-host", host);
   const exports = await runtime.getAssemblyExports("LuxelWebGpuBrowser.dll");
   globalThis.luxelBrowserExports = exports;

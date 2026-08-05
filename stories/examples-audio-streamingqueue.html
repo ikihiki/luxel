@@ -1,12 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/Audio/StreamingQueue</h1></header><h1 id="audio-streaming-queue">Audio: streaming queue</h1>
-<ul>
-<li><a href="#story=Examples%2FAudio%2FStreamingQueue&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-headless-audio-tone">コピーして動かす — Headless audio tone</a>
-<ul>
-<li><a href="#story=Examples%2FAudio%2FStreamingQueue&amp;section=%60samples%2Fluxelaudio%2Fluxelaudio.csproj%60-project"><code>samples/LuxelAudio/LuxelAudio.csproj</code> (Project)</a></li>
-<li><a href="#story=Examples%2FAudio%2FStreamingQueue&amp;section=%60samples%2Fluxelaudio%2Fprogram.cs%60-csharp"><code>samples/LuxelAudio/Program.cs</code> (CSharp)</a></li>
-</ul>
-</li>
-</ul>
+<article class="story document-page"><h1 id="audio-streaming-queue">Audio: streaming queue</h1>
 <p>短いclipのqueue観測を、<code>WavStream</code>/<code>LoopingStream</code>と<code>StreamingVoice.Pump()</code>へ拡張する接続点を示します。</p>
 <pre><code class="language-csharp">var format = new AudioFormat(48_000, 1, 16);
 byte[] pcm = new byte[4_800 * format.BytesPerSample];

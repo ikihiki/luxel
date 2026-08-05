@@ -1,13 +1,11 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Guides/Assets</h1></header><h1 id="gltf">アセットパイプライン (glTF)</h1>
-<ul>
-<li><a href="#story=Reference%2FGuides%2FAssets&amp;section=%E6%9C%80%E5%B0%8F%E7%B5%8C%E8%B7%AF%3A-%E3%83%AD%E3%83%BC%E3%83%89%E3%81%97%E3%81%A6%E6%8F%8F%E3%81%8F">最小経路: ロードして描く</a></li>
-<li><a href="#story=Reference%2FGuides%2FAssets&amp;section=%E3%82%A2%E3%83%8B%E3%83%A1%E3%83%BC%E3%82%B7%E3%83%A7%E3%83%B3">アニメーション</a></li>
-<li><a href="#story=Reference%2FGuides%2FAssets&amp;section=resourcesystem-%E7%B5%B1%E5%90%88">ResourceSystem 統合</a></li>
-<li><a href="#story=Reference%2FGuides%2FAssets&amp;section=draw-m3%3A-%E3%82%B3%E3%83%B3%E3%83%9D%E3%83%BC%E3%83%8D%E3%83%B3%E3%83%88%E9%A7%86%E5%8B%95%E3%81%AE%E6%8F%8F%E7%94%BB">DRAW-M3: コンポーネント駆動の描画</a></li>
-<li><a href="#story=Reference%2FGuides%2FAssets&amp;section=%E8%A8%AD%E8%A8%88%E3%83%8E%E3%83%BC%E3%83%88">設計ノート</a></li>
-</ul>
+<article class="story document-page"><h1 id="gltf">アセットパイプライン (glTF)</h1>
 <p>glTF 2.0 (.gltf/.glb) を読み込み、ECS + GPU バッファへ展開して描くまでのパイプラインです。4 つのプロジェクトが層を分担します:</p>
-<figure class="static-capture"><img src="images/mermaid-e75f5c960b0f0bac9315.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
+<pre class="mermaid">graph LR
+G[Luxel.Gltf&lt;br/&gt;glTF 2.0 ローダ] --&gt; A[Luxel.Assets&lt;br/&gt;CPU アセット表現]
+A --&gt; R[Luxel.AssetRuntime&lt;br/&gt;ECS 展開 + アニメ/スキニング]
+A --&gt; P[Luxel.AssetsGpu&lt;br/&gt;GPU アップロード + Resources 統合]
+R --&gt; RG[RenderGraph 描画]
+P --&gt; RG</pre>
 <ul>
 <li><code>Luxel.Assets</code> — 形式に依存しない CPU 表現 (<code>AssetDocument</code> / <code>AssetMesh</code> / <code>AssetMaterial</code> / <code>AssetAnimation</code> / <code>AssetSkin</code>)。<strong>Resources に依存しない</strong>純データ層</li>
 <li><code>Luxel.Gltf</code> — <code>GltfLoader</code> が glTF/glb を <code>AssetDocument</code> へ。外部 .bin/画像は Resources 経由でも単体でも読める</li>
@@ -26,7 +24,7 @@ extractor.Extract(new ExtractContext(device, frameIndex: 0));
 // assets.Primitives[prim] の vertex/index バッファを bindless で Draw する
 </code></pre>
 <p>シェーダは <code>scene_pbr_lite</code> (頂点 32B: pos+normal+uv、インスタンス 80B: world+baseColor)。<code>DrawIndexed</code> は無いので <strong>index バッファもシェーダが bindless で読み</strong>、<code>indexBufIndex = 0xFFFFFFFF</code> で non-indexed に切り替えます。</p>
-<figure class="static-capture"><a href="#story=Examples%2F3D%2FGltfBox"><img src="images/examples-3d-gltfbox.png" alt="Examples/3D/GltfBox" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
 <h2 id="section-1">アニメーション</h2>
 <p>ノード TRS アニメーションは <code>SceneAnimationPlayer</code> が時刻 t の値を sample して entity の <code>LocalTransform</code> に書き、<code>TransformPropagateSystem</code> で伝播 → 再 Extract で instance バッファが更新されます:</p>
 <pre><code class="language-csharp">var player = new SceneAnimationPlayer(world, assets, doc.Animations[0]);

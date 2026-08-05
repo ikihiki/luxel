@@ -1,4 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Resources/ReloadAndLifetime</h1></header><h1 id="reload-publish-and-lifetime">Reload, publish, and lifetime</h1>
+<article class="story document-page"><h1 id="reload-publish-and-lifetime">Reload, publish, and lifetime</h1>
 <p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Game loop / DevTools / CI　 <strong>Backend:</strong> Backend neutral　 <strong>前提知識:</strong> Pipeline and DAG</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FResources%2FPipelinesAndDag">PipelinesAndDag</a></p>
 <p><code>Watch()</code>後のfile change、<code>Republish()</code>、dependency reloadは非同期に計算され、value swap、<code>Reloaded</code>通知、deferred disposeは<code>Pump()</code>境界で適用されます。refcountが0でdependentも無いnodeから連鎖evictionされます。GPU値のdispose前にはidle hookを設定できます。</p>

@@ -1,15 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Luxel.Graphics.Abstraction</h1></header><h1 id="luxel.graphics.abstraction">Luxel.Graphics.Abstraction</h1>
-<ul>
-<li><a href="#story=Reference%2FLuxel.Graphics.Abstraction&amp;section=iasyncgpubackendqueue">IAsyncGpuBackendQueue</a></li>
-<li><a href="#story=Reference%2FLuxel.Graphics.Abstraction&amp;section=igpubackend">IGpuBackend</a></li>
-<li><a href="#story=Reference%2FLuxel.Graphics.Abstraction&amp;section=igpubackendbuffer">IGpuBackendBuffer</a></li>
-<li><a href="#story=Reference%2FLuxel.Graphics.Abstraction&amp;section=igpubackendcommandbuffer">IGpuBackendCommandBuffer</a></li>
-<li><a href="#story=Reference%2FLuxel.Graphics.Abstraction&amp;section=igpubackendpipeline">IGpuBackendPipeline</a></li>
-<li><a href="#story=Reference%2FLuxel.Graphics.Abstraction&amp;section=igpubackendqueue">IGpuBackendQueue</a></li>
-<li><a href="#story=Reference%2FLuxel.Graphics.Abstraction&amp;section=igpubackendsampler">IGpuBackendSampler</a></li>
-<li><a href="#story=Reference%2FLuxel.Graphics.Abstraction&amp;section=igpubackendsurface">IGpuBackendSurface</a></li>
-<li><a href="#story=Reference%2FLuxel.Graphics.Abstraction&amp;section=igpubackendtexture">IGpuBackendTexture</a></li>
-</ul>
+<article class="story document-page"><h1 id="luxel.graphics.abstraction">Luxel.Graphics.Abstraction</h1>
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="iasyncgpubackendqueue">IAsyncGpuBackendQueue</h2>
 <section class="api-reference"><p class="api-summary">interface — Promise ベースの GPU キュー完了を公開する additive API。 ブラウザ WebGPU では同期 IGpuBackendCommandBuffer) はアップロード、エンコード済みコマンドの投入開始までを行い、 CancellationToken) または CancellationToken) の完了後に HostCached バッファが可視になる。</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>SubmitAsync</code></th><td><code>(IGpuBackendCommandBuffer commandBuffer, CancellationToken cancellationToken) → ValueTask</code></td><td>コマンドを投入し、GPU 完了と HostCached バッファの読み戻しまで非同期に待つ。</td></tr><tr><th scope="row"><code>WaitIdleAsync</code></th><td><code>(CancellationToken cancellationToken) → ValueTask</code></td><td>それまでに投入した処理と読み戻しの完了を非同期に待つ。</td></tr></tbody></table></div></section>

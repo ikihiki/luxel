@@ -1,9 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Luxel.Particles.UI</h1></header><h1 id="luxel.particles.ui">Luxel.Particles.UI</h1>
-<ul>
-<li><a href="#story=Reference%2FLuxel.Particles.UI&amp;section=kit">Kit</a></li>
-<li><a href="#story=Reference%2FLuxel.Particles.UI&amp;section=particleview">ParticleView</a></li>
-<li><a href="#story=Reference%2FLuxel.Particles.UI&amp;section=particleviewprops">ParticleViewProps</a></li>
-</ul>
+<article class="story document-page"><h1 id="luxel.particles.ui">Luxel.Particles.UI</h1>
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="kit">Kit</h2>
 <section class="api-reference"><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>ParticleView</code></th><td><code>(ParticleSystem particles, Bindable&lt;float&gt; viewWidth, Bindable&lt;float&gt; viewHeight, Bindable&lt;bool&gt; animated, Bindable&lt;int&gt; circleSegments, Bindable&lt;Thickness&gt; margin, Bindable&lt;Align&gt; hAlign, Bindable&lt;Align&gt; vAlign, Length width, Length height, Bindable&lt;float&gt; translateX, Bindable&lt;float&gt; translateY, Bindable&lt;float&gt; scaleX, Bindable&lt;float&gt; scaleY, Bindable&lt;float&gt; rotate) → ParticleView</code></td><td>ParticleSystem を UI ツリー/ストーリーに載せる widget。ParticleNode を キャンバスへ 1 個生成し、animated: true なら毎 Tick (AddAnimation) で Single) + Sync する。パーティクルはウィジェットローカル座標で放出する (親変換で配置)。ゲーム (ECS) からは system を直接回す — こちらは UI 埋め込み用。</td></tr></tbody></table></div></section>

@@ -1,7 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/2D/Rasterizer/RetainedUpdates</h1></header><h1 id="retained-updates">Retained updates</h1>
-<ul>
-<li><a href="#story=Examples%2F2D%2FRasterizer%2FRetainedUpdates&amp;section=production-source">Production source</a></li>
-</ul>
+<article class="story document-page"><h1 id="retained-updates">Retained updates</h1>
 <blockquote>
 <p><strong>Diagnostic map:</strong> dirty ranges and stable slots. The constants shown here are current implementation values, not public API.</p>
 </blockquote>
@@ -493,7 +490,7 @@ public sealed class RetainedCanvas : IDisposable
     }
 }
 </code></pre>
-<p>→ <a href="#story=Learn%2FRendering%2FRasterizerInternals%2FOverview">Rasterizer Internals course</a></p>
+<p>→ <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FOverview">Internal course</a></p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/2D/Rasterizer/RetainedUpdates&quot;, Order = 8)]
 public static Widget RetainedUpdates(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;Retained updates&quot;, &quot;dirty ranges and stable slots&quot;,
     &quot;Transform-only and style-only edits update their corresponding SoA ranges without regenerating segment bytes. The retained canvas exposes last-write counters so tests can distinguish incremental upload from a full rebuild.&quot;,

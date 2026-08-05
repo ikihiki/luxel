@@ -1,15 +1,14 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/Terminal/Overview</h1></header><h1 id="luxel.terminal">端末エミュレータ (Luxel.Terminal)</h1>
-<ul>
-<li><a href="#story=Controls%2FTerminal%2FOverview&amp;section=%E3%83%97%E3%83%AD%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88">プロジェクト</a></li>
-<li><a href="#story=Controls%2FTerminal%2FOverview&amp;section=%E6%9C%80%E5%B0%8F%E6%A7%8B%E6%88%90">最小構成</a></li>
-<li><a href="#story=Controls%2FTerminal%2FOverview&amp;section=terminalview%E3%81%A8%E6%96%87%E5%AD%97%E9%85%8D%E7%BD%AE">TerminalViewと文字配置</a></li>
-<li><a href="#story=Controls%2FTerminal%2FOverview&amp;section=%E6%8A%98%E3%82%8A%E8%BF%94%E3%81%97%E3%83%BBscrollback%E3%83%BBresize">折り返し・scrollback・resize</a></li>
-<li><a href="#story=Controls%2FTerminal%2FOverview&amp;section=%E5%85%A5%E5%8A%9B%E3%83%BBselection%E3%83%BBime">入力・selection・IME</a></li>
-<li><a href="#story=Controls%2FTerminal%2FOverview&amp;section=%E7%B5%82%E4%BA%86%E5%87%A6%E7%90%86">終了処理</a></li>
-<li><a href="#story=Controls%2FTerminal%2FOverview&amp;section=sample%E3%82%92%E5%AE%9F%E8%A1%8C%E3%81%99%E3%82%8B">sampleを実行する</a></li>
-</ul>
+<article class="story document-page"><h1 id="luxel.terminal">端末エミュレータ (Luxel.Terminal)</h1>
 <p>Luxelの端末機能は、VT/ANSIを解釈するOS非依存コア、OSごとのPTY backend、Luxel UIへ描画する<code>TerminalView</code>の3層です。WindowsではConPTY、LinuxではUnix PTYを使用します。<code>Luxel.Controls</code>とは相互に依存せず、アプリが必要な層だけを組み合わせます。</p>
-<figure class="static-capture"><img src="images/mermaid-b159877b66a10e467a90.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
+<pre class="mermaid">flowchart TB
+app[アプリ] --&gt; view[Luxel.Terminal.UI - TerminalView]
+app --&gt; session[Luxel.Terminal - TerminalSession]
+view --&gt; session
+view --&gt; ui[Luxel.UI]
+view --&gt; typo[Luxel.Typography.TwoD]
+session --&gt; pty[ITerminalPty]
+pty --&gt; win[Luxel.Terminal.Windows - ConPTY]
+pty --&gt; linux[Luxel.Terminal.Linux - forkpty]</pre>
 <h2 id="section">プロジェクト</h2>
 <table>
 <thead>

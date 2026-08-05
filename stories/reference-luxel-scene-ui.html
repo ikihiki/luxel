@@ -1,9 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Luxel.Scene.UI</h1></header><h1 id="luxel.scene.ui">Luxel.Scene.UI</h1>
-<ul>
-<li><a href="#story=Reference%2FLuxel.Scene.UI&amp;section=animationcontroller">AnimationController</a></li>
-<li><a href="#story=Reference%2FLuxel.Scene.UI&amp;section=boneeditor">BoneEditor</a></li>
-<li><a href="#story=Reference%2FLuxel.Scene.UI&amp;section=playbackstate">PlaybackState</a></li>
-</ul>
+<article class="story document-page"><h1 id="luxel.scene.ui">Luxel.Scene.UI</h1>
 <p>この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (<code>[assembly: GenerateAssemblyApi]</code> → <code>TypeApiRegistry</code>) ため、コードと乖離しません。</p>
 <h2 id="animationcontroller">AnimationController</h2>
 <section class="api-reference"><p class="api-summary">class — Animation 制御の reactive state ヘルパ (PlaybackState を参照)。 注: 具体的な Widget 構築 (Button/Slider/Segmented) は Sample 側で組む。 本クラスは state の生成と再生 tick の制御を提供するのみで、UI ライブラリへの依存を最小化。 var state = new PlaybackState(); state.Duration.Value = animation.Duration; // Sample 側で Widget 構築: host.SetRoot(VStack[ Button(_ =&gt; state.IsPlaying.Value = !state.IsPlaying.Value, &quot;Play/Pause&quot;), Kit.Slider(state.CurrentTime, 0, state.Duration.Value), // ... ]); // 毎フレーム: state.Tick(deltaTime);</p><h3>メソッド</h3><div class="api-table-wrap"><table class="api-table"><thead><tr><th scope="col">名前</th><th scope="col">型</th><th scope="col">説明</th></tr></thead><tbody><tr><th scope="row"><code>CreateState</code></th><td><code>() → PlaybackState</code></td><td></td></tr></tbody></table></div></section>

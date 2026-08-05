@@ -1,10 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Guides/GettingStarted</h1></header><h1 id="luxel">Luxel を始める</h1>
-<ul>
-<li><a href="#story=Reference%2FGuides%2FGettingStarted&amp;section=%E5%BF%85%E8%A6%81%E7%92%B0%E5%A2%83">必要環境</a></li>
-<li><a href="#story=Reference%2FGuides%2FGettingStarted&amp;section=%E3%83%93%E3%83%AB%E3%83%89%E3%81%A8-gallery-%E3%81%AE%E8%B5%B7%E5%8B%95">ビルドと Gallery の起動</a></li>
-<li><a href="#story=Reference%2FGuides%2FGettingStarted&amp;section=%E6%9C%80%E5%88%9D%E3%81%AE-ui">最初の UI</a></li>
-<li><a href="#story=Reference%2FGuides%2FGettingStarted&amp;section=%E3%83%89%E3%82%AD%E3%83%A5%E3%83%A1%E3%83%B3%E3%83%88%E3%81%AE%E6%AD%A9%E3%81%8D%E6%96%B9">ドキュメントの歩き方</a></li>
-</ul>
+<article class="story document-page"><h1 id="luxel">Luxel を始める</h1>
 <p>Luxel は <a href="https://www.sebastianaaltonen.com/blog/no-graphics-api">Sebastian Aaltonen の <em>No Graphics API</em></a> の原則を C# で実装した薄いグラフィックエンジンです。resource・単一 argument block・明示 pass・producer/consumer dependency を portable semantics とし、descriptor 管理や native synchronization は backend lowering に閉じ込めます。その上に 2D ベクター・宣言的 UI・アニメーション・レンダーグラフを積み上げています。</p>
 <ul>
 <li><strong>バックエンド</strong>: Vulkan 1.3 + DirectX 12。native WebGPU は Windows/Linux の明示 opt-in として追加する方針</li>
@@ -29,7 +23,7 @@ dotnet test                                            # ユニットテスト
 <p><code>vk</code> を <code>dx</code> に変えると DirectX 12 で動きます。両バックエンドは<strong>ピクセル一致</strong>が開発規律です (golden はバックエンド別に保持)。</p>
 <h2 id="ui">最初の UI</h2>
 <p>宣言的 UI はベアファクトリ + indexer の DSL で書きます。下のカウンタは本物です — クリックすると右の Log パネルに出て、値も動きます:</p>
-<figure class="static-capture"><img src="images/embed-892a43984b3111f92d6d.png" alt="Documentation embed 1" loading="lazy"><figcaption>Static widget capture — not interactive</figcaption></figure>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
 <pre><code class="language-csharp">Signal&lt;int&gt; count = ctx.Signal(&quot;count&quot;, 0);   // knob にもなる状態
 Widget ui = HStack(8)[
     Button(_ =&gt; count.Value--, &quot;-&quot;),
@@ -40,7 +34,7 @@ Widget ui = HStack(8)[
 <h2 id="section-1">ドキュメントの歩き方</h2>
 <ul>
 <li>全体像とレイヤ構成 → <a href="#story=Internals%2FArchitecture">Internals/Architecture</a></li>
-<li>GPU 描画の最初の一歩 (standalone) → <a href="#story=Learn%2FRendering%2FBasics%2FOverview">Learn/Rendering/Basics/Overview</a></li>
+<li>GPU 描画の最初の一歩 (standalone) → <a href="#story=Learn%2FGrapics%2FOverview">Learn/Grapics/Overview</a></li>
 <li>コントロールの型見本 (Variant/Intent/API 表) → <a href="#story=Reference%2FGuides%2FButton">Reference/Guides/Button</a></li>
 <li>Windows/Linux対応の端末エミュレータ → <a href="#story=Controls%2FTerminal%2FOverview">Controls/Terminal/Overview</a></li>
 <li>この docs ページ自体の書き方 → <a href="#story=Internals%2FAuthoring">Internals/Authoring</a></li>
@@ -108,7 +102,7 @@ public static Widget GettingStarted(StoryContext ctx)
         ## ドキュメントの歩き方
 
         - 全体像とレイヤ構成 → [Internals/Architecture](story:Internals/Architecture)
-        - GPU 描画の最初の一歩 (standalone) → [Learn/Rendering/Basics/Overview](story:Learn/Rendering/Basics/Overview)
+        - GPU 描画の最初の一歩 (standalone) → [Learn/Grapics/Overview](story:Learn/Grapics/Overview)
         - コントロールの型見本 (Variant/Intent/API 表) → [Reference/Guides/Button](story:Reference/Guides/Button)
         - Windows/Linux対応の端末エミュレータ → [Controls/Terminal/Overview](story:Controls/Terminal/Overview)
         - この docs ページ自体の書き方 → [Internals/Authoring](story:Internals/Authoring)

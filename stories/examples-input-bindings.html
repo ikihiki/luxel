@@ -1,12 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/Input/Bindings</h1></header><h1 id="input-bindings-and-deterministic-ticks">Input: bindings and deterministic ticks</h1>
-<ul>
-<li><a href="#story=Examples%2FInput%2FBindings&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-deterministic-input-actions">コピーして動かす — Deterministic input actions</a>
-<ul>
-<li><a href="#story=Examples%2FInput%2FBindings&amp;section=%60samples%2Fluxelinput%2Fluxelinput.csproj%60-project"><code>samples/LuxelInput/LuxelInput.csproj</code> (Project)</a></li>
-<li><a href="#story=Examples%2FInput%2FBindings&amp;section=%60samples%2Fluxelinput%2Fprogram.cs%60-csharp"><code>samples/LuxelInput/Program.cs</code> (CSharp)</a></li>
-</ul>
-</li>
-</ul>
+<article class="story document-page"><h1 id="input-bindings-and-deterministic-ticks">Input: bindings and deterministic ticks</h1>
 <p>keyboard bindingを論理actionへ集約し、<code>FakeInputSource</code>のpressとreleaseを別tickで送る検証可能な構成です。</p>
 <pre><code class="language-csharp">var bus = new InputBus();
 var source = new FakeInputSource();

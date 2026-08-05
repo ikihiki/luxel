@@ -1,19 +1,8 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Internals/ADR/0016-Scene-Editor-Stack</h1></header><h1 id="adr-0016-3-transaction">ADR-0016 — シーンエディタは第 3 の Transaction スタック + 空間アダプタで作る</h1>
+<article class="story document-page"><h1 id="adr-0016-3-transaction">ADR-0016 — シーンエディタは第 3 の Transaction スタック + 空間アダプタで作る</h1>
 <ul>
-<li><p><a href="#story=Internals%2FADR%2F0016-Scene-Editor-Stack&amp;section=context">Context</a></p>
-</li>
-<li><p><a href="#story=Internals%2FADR%2F0016-Scene-Editor-Stack&amp;section=decision">Decision</a></p>
-</li>
-<li><p><a href="#story=Internals%2FADR%2F0016-Scene-Editor-Stack&amp;section=alternatives">Alternatives</a></p>
-</li>
-<li><p><a href="#story=Internals%2FADR%2F0016-Scene-Editor-Stack&amp;section=consequences">Consequences</a></p>
-</li>
-<li><p><strong>Status</strong>: Accepted</p>
-</li>
-<li><p><strong>Date</strong>: 2026-07-11</p>
-</li>
-<li><p><strong>Deciders</strong>: ikihiki</p>
-</li>
+<li><strong>Status</strong>: Accepted</li>
+<li><strong>Date</strong>: 2026-07-11</li>
+<li><strong>Deciders</strong>: ikihiki</li>
 </ul>
 <h2 id="context">Context</h2>
 <p>ゲームエディタ (Luxel Studio、<a href="#story=Internals%2FADR%2F0015-Game-Project-Scene-Format">ADR-0015</a>) の中心はシーン編集 — エンティティの選択/移動/複製/削除、タイル描き込み、undo/redo です。リポジトリには実証済みの編集アーキテクチャが 2 本あります: テキスト (<a href="#story=Internals%2FADR%2F0006-Editor-New-Stack">ADR-0006</a>) とノードグラフ (<a href="#story=Internals%2FADR%2F0009-Node-Editor-Stack">ADR-0009</a>)。どちらも「不変スナップショット + Transaction + 1 tx = 1 undo + 安定 id」の同じ骨格です。</p>

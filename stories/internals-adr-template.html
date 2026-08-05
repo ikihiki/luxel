@@ -1,7 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Internals/ADR/Template</h1></header><h1 id="adr">ADR テンプレート</h1>
-<ul>
-<li><a href="#story=Internals%2FADR%2FTemplate&amp;section=%E5%90%84%E7%AF%80%E3%81%AE%E6%9B%B8%E3%81%8D%E6%96%B9">各節の書き方</a></li>
-</ul>
+<article class="story document-page"><h1 id="adr">ADR テンプレート</h1>
 <p>新しい ADR はこの雛形を複製して作ります。<code>[Story(&quot;Internals/ADR/NNNN-...&quot;, Order = 71 + 番号)]</code> で登録し、下の 5 節を埋めてください。<strong>1 ファイル 1 ADR</strong> — <code>Stories/Docs/Adr/AdrNNNN.cs</code> を新規に作り (<code>partial class DocsAdr</code>)、そこに書くのが定位置です。</p>
 <pre><code class="language-csharp">[Story(&quot;Internals/ADR/0002-example-decision&quot;, Order = 73)]
 public static Widget Adr0002(StoryContext ctx) =&gt; WithDocFonts(Docs(ctx, $$&quot;&quot;&quot;

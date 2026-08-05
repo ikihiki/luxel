@@ -1,10 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Guides/Platform</h1></header><h1 id="luxel.platform">プラットフォーム (Luxel.Platform)</h1>
-<ul>
-<li><a href="#story=Reference%2FGuides%2FPlatform&amp;section=%E3%82%A6%E3%82%A3%E3%83%B3%E3%83%89%E3%82%A6%E3%81%A8%E3%83%9E%E3%83%AB%E3%83%81%E3%82%A6%E3%82%A3%E3%83%B3%E3%83%89%E3%82%A6">ウィンドウとマルチウィンドウ</a></li>
-<li><a href="#story=Reference%2FGuides%2FPlatform&amp;section=%E3%82%B9%E3%83%AF%E3%83%83%E3%83%97%E3%83%81%E3%82%A7%E3%83%BC%E3%83%B3%E6%8F%90%E7%A4%BA">スワップチェーン提示</a></li>
-<li><a href="#story=Reference%2FGuides%2FPlatform&amp;section=ime-tsf%E3%80%81%E8%87%AA%E5%89%8D-preedit">IME (TSF、自前 preedit)</a></li>
-<li><a href="#story=Reference%2FGuides%2FPlatform&amp;section=%E3%82%AB%E3%83%BC%E3%82%BD%E3%83%AB%E3%83%BB%E5%8F%B3%E3%82%AF%E3%83%AA%E3%83%83%E3%82%AF%E3%83%BB%E3%82%AF%E3%83%AA%E3%83%83%E3%83%97%E3%83%9C%E3%83%BC%E3%83%89">カーソル・右クリック・クリップボード</a></li>
-</ul>
+<article class="story document-page"><h1 id="luxel.platform">プラットフォーム (Luxel.Platform)</h1>
 <p><code>Luxel.Platform</code> がウィンドウ、クリップボード、低レベル入力の共通公開APIを提供します。<code>Luxel.Platform.Windows</code> はCsWin32によるWin32/TSF実装、<code>Luxel.Platform.Silk</code> はSilk.NET/GLFWによるLinux/X11実装です。オフスクリーン描画 (snap / bench) とはここだけが違います。</p>
 <h2 id="section">ウィンドウとマルチウィンドウ</h2>
 <p><code>Luxel.Platform.Windows</code> の <code>Win32Window</code> (CreateWindowEx + WndProc + PeekMessage) を共通 <code>WindowSystem</code> が公開し、<code>Luxel.UI.App</code> の <code>WindowManager</code> / <code>WindowHost</code> が UI ウィンドウとして束ねます。ウィンドウは複数持て、インスタンスは GWLP_USERDATA で引く正攻法 — 静的マップがないので<strong>別スレッドの別ウィンドウ</strong> (ネイティブ DevTools) とも共存します。マウス/ホイール/キー/WM_CHAR/リサイズは <code>UiHost</code> へ配線されます。第 2 ウィンドウを実際に開くデモは <a href="#story=RealWindow%2FPlatform%2FSecondWindow">RealWindow/Platform/SecondWindow</a> (実窓専用) へ。</p>

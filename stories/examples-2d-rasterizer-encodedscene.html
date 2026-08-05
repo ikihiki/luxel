@@ -1,11 +1,15 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/2D/Rasterizer/EncodedScene</h1></header><h1 id="encoded-scene">Encoded scene</h1>
-<ul>
-<li><a href="#story=Examples%2F2D%2FRasterizer%2FEncodedScene&amp;section=production-source">Production source</a></li>
-</ul>
+<article class="story document-page"><h1 id="encoded-scene">Encoded scene</h1>
 <blockquote>
 <p><strong>Diagnostic map:</strong> Segment / Path / Transform / Style / Clip / Order SoA. The constants shown here are current implementation values, not public API.</p>
 </blockquote>
-<figure class="static-capture"><img src="images/mermaid-1a5b7caabe3bc41c6de6.png" alt="mermaid diagram" loading="lazy"><figcaption>Static mermaid capture — not interactive</figcaption></figure>
+<pre class="mermaid">flowchart LR
+Scene2D --&gt; PathEncoder
+PathEncoder --&gt; Segments
+PathEncoder --&gt; Paths
+PathEncoder --&gt; Styles
+PathEncoder --&gt; Transforms
+PathEncoder --&gt; Clips
+PathEncoder --&gt; Order</pre>
 <p>Each path indexes the other arrays; the order buffer preserves painter order independently from stable retained slots.</p>
 <h2 id="production-source">Production source</h2>
 <pre><code class="language-csharp">using System.Numerics;
@@ -116,7 +120,7 @@ public struct Camera2D
     };
 }
 </code></pre>
-<p>→ <a href="#story=Learn%2FRendering%2FRasterizerInternals%2FOverview">Rasterizer Internals course</a></p>
+<p>→ <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FOverview">Internal course</a></p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/2D/Rasterizer/EncodedScene&quot;, Order = 1)]
 public static Widget EncodedScene(StoryContext ctx) =&gt; Diagnostic(ctx, &quot;Encoded scene&quot;, &quot;Segment / Path / Transform / Style / Clip / Order SoA&quot;,
     &quot;```mermaid\nflowchart LR\nScene2D --&gt; PathEncoder\nPathEncoder --&gt; Segments\nPathEncoder --&gt; Paths\nPathEncoder --&gt; Styles\nPathEncoder --&gt; Transforms\nPathEncoder --&gt; Clips\nPathEncoder --&gt; Order\n```\n\nEach path indexes the other arrays; the order buffer preserves painter order independently from stable retained slots.&quot;,

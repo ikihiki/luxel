@@ -1,19 +1,8 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Internals/ADR/0001-Record-Architecture-Decisions</h1></header><h1 id="adr-0001-adr-gallery">ADR-0001 — アーキテクチャ決定を ADR として Gallery に記録する</h1>
+<article class="story document-page"><h1 id="adr-0001-adr-gallery">ADR-0001 — アーキテクチャ決定を ADR として Gallery に記録する</h1>
 <ul>
-<li><p><a href="#story=Internals%2FADR%2F0001-Record-Architecture-Decisions&amp;section=context">Context</a></p>
-</li>
-<li><p><a href="#story=Internals%2FADR%2F0001-Record-Architecture-Decisions&amp;section=decision">Decision</a></p>
-</li>
-<li><p><a href="#story=Internals%2FADR%2F0001-Record-Architecture-Decisions&amp;section=alternatives">Alternatives</a></p>
-</li>
-<li><p><a href="#story=Internals%2FADR%2F0001-Record-Architecture-Decisions&amp;section=consequences">Consequences</a></p>
-</li>
-<li><p><strong>Status</strong>: Accepted</p>
-</li>
-<li><p><strong>Date</strong>: 2026-07-08</p>
-</li>
-<li><p><strong>Deciders</strong>: ikihiki</p>
-</li>
+<li><strong>Status</strong>: Accepted</li>
+<li><strong>Date</strong>: 2026-07-08</li>
+<li><strong>Deciders</strong>: ikihiki</li>
 </ul>
 <h2 id="context">Context</h2>
 <p>Luxel は薄い GPU 抽象の上に多数のサブシステムを積む構成で、随所に「なぜこの設計なのか」という判断があります — 固定レイアウト (最大192Bのルート引数 + bindless heap)、vk/dx ピクセル一致という開発規律、docs を Gallery に一本化した方針、Effekseer を統合しない選択などです。</p>

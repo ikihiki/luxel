@@ -1,0 +1,26 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Grapics/Overview</h1></header><aside class="capture-error" data-capture-status="error"><strong>Static capture error</strong><pre>InvalidDataException: Broken documentation links: Learn/Grapics/Overview: story:Examples/3D/Triangle</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/Overview&quot;, Order = 0)]
+public static Widget Overview(StoryContext ctx)
+{
+    return DocNew(ctx, $&quot;&quot;&quot;
+    # Grapics 学習ガイド
+
+    {RenderingCourseCatalog.Meta(&quot;Learn/Grapics/Overview&quot;, &quot;Beginner&quot;, &quot;Standalone + Gallery&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;なし&quot;)}
+
+    この章は、Gallery のデモを見るだけでなく、自分のウィンドウへ描画できるところまでを順番に進みます。最小アプリの実装はリポジトリの `samples/LuxelTriangle/` が単一の正です。
+
+    ## 推奨アプリ構築ルート
+
+    Grapics直下のページはリンク順に並びます。基礎ルートの後に2Dを置き、その下のInternalで2D rasterizerの内部実装を扱います。
+
+    {RenderingCourseCatalog.ApplicationRouteMarkdown()}
+
+    **検索キーワード:** triangle / texture / shader / pipeline / barrier / submit / render graph
+
+    &gt; [!IMPORTANT]
+    &gt; `GpuView` とそのrender callbackはGallery内でデモを表示するためのハーネスです。通常アプリでは `WindowSystem`、`Window`、`GpuSurface` を使います。
+
+    ## どのAPIまで学ぶか
+
+    三角形、buffer ABI、texture付きquad、shader、pipeline stateを順に学び、BarrierとSubmit系methodによる同期を整理してからRenderGraphへ進みます。`--stage graph`でdirect描画を1 passへ移し、`--stage post`でtransient resourceとcompute post-processを追加します。indexed meshとcameraの実装はBuildのRecipeへ分けています。
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

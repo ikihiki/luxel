@@ -6,8 +6,8 @@ public static Widget Orbit(StoryContext ctx)
     return Frame(Canvas2D(384, 220, animate: (s, t) =&gt;
     {
         const float cx = 192, cy = 110;
-        s.FillCircle(Tw.Amber500, cx, cy, 26);                       // 恒星
-        s.StrokeRoundedRect(Tw.Slate500, 1, cx - 80, cy - 80, 160, 160, 80);   // 軌道
+        s.FillCircle(Tw.Amber500, cx, cy, 26);
+        s.StrokeRoundedRect(Tw.Slate500, 1, cx - 80, cy - 80, 160, 160, 80);
         float a = t * speed.Value;
         s.FillCircle(Tw.Blue500, cx + MathF.Cos(a) * 80, cy + MathF.Sin(a) * 80, 12);
         float a2 = t * speed.Value * 2.6f;

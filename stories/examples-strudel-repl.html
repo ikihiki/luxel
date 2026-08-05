@@ -1,11 +1,11 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/Strudel/Repl</h1></header><p>Strudel REPL: 各 ```strudel セルを <strong>Ctrl+Enter</strong> または Run で評価 (再 Run = ホットスワップ)。</p>
+<article class="story document-page"><p>Strudel REPL: 各 ```strudel セルを <strong>Ctrl+Enter</strong> または Run で評価 (再 Run = ホットスワップ)。</p>
 <pre><code class="language-strudel">s(&quot;bd*2 [~ sd] hh*4&quot;).gain(0.9)
 </code></pre>
 <p>別セルは独立スロット — 重ねて鳴る。silence を Run するとそのスロットだけ止まる。</p>
 <pre><code class="language-strudel">note(&quot;c3 eb3 g3 &lt;bb3 c4&gt;&quot;).s(&quot;saw&quot;).slow(2)
 </code></pre>
 <p>例: <code>.every(2, rev)</code> / <code>.jux(fast(2))</code> / <code>.degrade()</code> / <code>cps(0.6)</code> でテンポ。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/Strudel/Repl&quot;, Height = 560, Order = 2031)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/Strudel/Repl&quot;, Height = 560, Order = 2031, Result = nameof(ReplResult))]
 public static Widget Repl(StoryContext ctx)
 {
     // 各セルは ```strudel フェンス — 本文キーでキャッシュし同一 StrudelBlock を返す (再描画で状態が消えない)
@@ -22,12 +22,7 @@ public static Widget Repl(StoryContext ctx)
         return cell;
     }
 
-    Signal&lt;string&gt; src = ctx.Signal(&quot;source&quot;,
-        &quot;Strudel REPL: 各 ```strudel セルを **Ctrl+Enter** または Run で評価 (再 Run = ホットスワップ)。\n\n&quot; +
-        &quot;```strudel\ns(\&quot;bd*2 [~ sd] hh*4\&quot;).gain(0.9)\n```\n\n&quot; +
-        &quot;別セルは独立スロット — 重ねて鳴る。silence を Run するとそのスロットだけ止まる。\n\n&quot; +
-        &quot;```strudel\nnote(\&quot;c3 eb3 g3 &lt;bb3 c4&gt;\&quot;).s(\&quot;saw\&quot;).slow(2)\n```\n\n&quot; +
-        &quot;例: `.every(2, rev)` / `.jux(fast(2))` / `.degrade()` / `cps(0.6)` でテンポ。\n&quot;);
+    Signal&lt;string&gt; src = ctx.Signal(&quot;source&quot;, ReplMarkdown);
 
     Signal&lt;float&gt; cps = ctx.Signal(&quot;cps&quot;, 0.5f);
     var wave = Sparkline(300f, 30f, bars: true);

@@ -1,3 +1,46 @@
 <article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/3D/TexturedQuad</h1></header><figure class="static-capture"><img src="images/examples-3d-texturedquad.png" alt="Examples/3D/TexturedQuad" loading="lazy"><figcaption>Static story capture — not interactive</figcaption></figure><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/3D/TexturedQuad&quot;, Height = 320, Order = 121)]
 public static Widget TexturedQuad(StoryContext ctx)
-    =&gt; ctx.Snap(Frame(GpuView(320, 240, new TexturedScene(ctx.ScopedResourcesOrNull), animated: false)));</code></pre></details></article>
+{
+    if (ctx.DeviceOrNull is null || ctx.ScopedResourcesOrNull is not { } resources)
+        return BuildOnlyGpuView(ctx, 320, 240);
+
+    ResourceHandle&lt;CpuImage&gt; image = resources.Load&lt;CpuImage&gt;(ImageUri);
+    image.Ready.GetAwaiter().GetResult();
+    CpuImage pixels = image.Value is { Width: &gt; 0 } ready
+        ? ready
+        : new CpuImage(1, 1, [255, 255, 255, 255]);
+    ResourceHandle&lt;GpuTexture&gt; texture = resources.CreateSampledTexture(
+        &quot;textured.texture&quot;, (uint)pixels.Width, (uint)pixels.Height, pixels.Pixels);
+    ResourceHandle&lt;GpuSampler&gt; sampler = resources.CreateSampler(
+        &quot;textured.sampler&quot;, GpuSamplerFilter.Point);
+    ResourceHandle&lt;GpuPipeline&gt; pipeline = resources.CreateGraphicsPipeline(
+        &quot;textured.pipeline&quot;,
+        GpuShaderCode.Load(&quot;textured&quot;),
+        GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+    WaitFor(texture);
+    WaitFor(sampler);
+    WaitFor(pipeline);
+
+    return ctx.Snap(Frame(GpuView(
+        320,
+        240,
+        (device, surface, _) =&gt;
+        {
+            var args = new TexturedDrawArgs
+            {
+                TextureIndex = texture.Value.BindlessIndex,
+                SamplerIndex = sampler.Value.BindlessIndex,
+            };
+            using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
+            command.BeginRendering(surface.ColorTarget, null, 0, 0, 0, 1)
+                .SetGraphicsPipeline(pipeline.Value)
+                .SetRootArguments(args)
+                .Draw(3)
+                .EndRendering();
+            surface.CopyColorToFramebuffer(command);
+            command.Finish();
+            device.MainQueue.SubmitAndWait(command);
+            return GpuViewRenderResult.Ready;
+        },
+        animated: false)));
+}</code></pre></details></article>

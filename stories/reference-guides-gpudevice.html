@@ -1,13 +1,4 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Reference/Guides/GpuDevice</h1></header><h1 id="gpu-gpudevice">GPU 抽象 (GpuDevice)</h1>
-<ul>
-<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=backend-%E3%81%A8-capability">backend と capability</a></li>
-<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=%E5%9B%BA%E5%AE%9A%E3%83%91%E3%82%A4%E3%83%97%E3%83%A9%E3%82%A4%E3%83%B3%E3%83%AC%E3%82%A4%E3%82%A2%E3%82%A6%E3%83%88">固定パイプラインレイアウト</a></li>
-<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=%E3%83%A1%E3%83%A2%E3%83%AA%E3%81%A8%E3%83%90%E3%83%83%E3%83%95%E3%82%A1">メモリとバッファ</a></li>
-<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=slang-%E7%B5%B1%E4%B8%80%E3%82%B7%E3%82%A7%E3%83%BC%E3%83%80">Slang 統一シェーダ</a></li>
-<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89%E3%81%A8%E3%83%90%E3%83%AA%E3%82%A2">コマンドとバリア</a></li>
-<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=%E6%8F%8F%E7%94%BB-graphics-pso">描画 (graphics PSO)</a></li>
-<li><a href="#story=Reference%2FGuides%2FGpuDevice&amp;section=%E3%83%86%E3%82%AF%E3%82%B9%E3%83%81%E3%83%A3%E3%81%A8%E3%83%AC%E3%83%B3%E3%83%80%E3%83%BC%E3%82%BF%E3%83%BC%E3%82%B2%E3%83%83%E3%83%88">テクスチャとレンダーターゲット</a></li>
-</ul>
+<article class="story document-page"><h1 id="gpu-gpudevice">GPU 抽象 (GpuDevice)</h1>
 <p><code>Luxel.Graphics</code> は <em>No Graphics API</em> の原則を、resource・arguments・pass・dependency の <strong>portable semantics</strong> と backend-specific lowering に分けた薄い抽象です。アプリのコードは backend 分岐を持たず、Vulkan / DirectX 12 は bindless・GPUVA・明示 barrier を fast path として使います。native WebGPU は同じ意味論を bind groups、argument ring、pass segmentation へ lower する明示 opt-in backend として追加する方針です。</p>
 <h2 id="backend-capability">backend と capability</h2>
 <table>
@@ -77,11 +68,11 @@ device.MainQueue.SubmitAndWait(cmd);
 <p><code>MainQueue.StartCommandRecording()</code> → fluent にコマンドを積み → <code>Finish()</code> → <code>SubmitAndWait(cmd)</code>。同期は <code>Barrier(srcStage, dstStage)</code> の <strong>stage バリア</strong>だけ — リソース個別の状態遷移管理はありません (bindless + 単純化された使用パターンが前提)。</p>
 <h2 id="graphics-pso">描画 (graphics PSO)</h2>
 <p>graphics も同じ流儀です。<code>CreateGraphicsPipeline(shader, GpuRasterDesc)</code> で深度テストやブレンドを宣言し、dynamic rendering (<code>BeginRendering</code>/<code>EndRendering</code>) で RT/Depth を直接指定、頂点は<strong>頂点プル</strong> (頂点レイアウト宣言なし — シェーダが bindless バッファから読む) です。</p>
-<figure class="static-capture"><a href="#story=Examples%2F3D%2FDepth"><img src="images/examples-3d-depth.png" alt="Examples/3D/Depth" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
-<figure class="static-capture"><a href="#story=Examples%2F3D%2FBlend"><img src="images/examples-3d-blend.png" alt="Examples/3D/Blend" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
 <p><code>StorySource</code> でこのデモの実装をそのまま引用できます:</p>
 <pre><code class="language-csharp">[Story(&quot;Examples/3D/Depth&quot;, Height = 320, Order = 100)]
-public static Widget Depth() =&gt; Frame(GpuView(256, 256, new DepthScene(), animated: false));
+public static Widget Depth() =&gt; Frame(GpuSceneBase.View(256, 256, new DepthScene(), animated: false));
 </code></pre>
 <h2 id="section-3">テクスチャとレンダーターゲット</h2>
 <p><code>CreateTexture</code> (ピクセルアップロード) / <code>CreateSampler</code> / <code>CreateRenderTarget</code> / <code>CreateDepthTarget</code>。RT の内容は <code>CopyTextureToBuffer</code> で bindless バッファへ書き出し、後段の compute/pixel シェーダが <code>Load</code> で読みます — swapchain 提示も docs 内の GpuView 埋め込みも、すべてこの経路です。</p>

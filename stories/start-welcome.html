@@ -1,16 +1,12 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Start/Welcome</h1></header><h1 id="luxel-gallery">Luxel Gallery — 見て、コピーして、アプリを作る</h1>
-<ul>
-<li><a href="#story=Start%2FWelcome&amp;section=%E5%AD%A6%E7%BF%92%E3%83%AB%E3%83%BC%E3%83%88">学習ルート</a></li>
-<li><a href="#story=Start%2FWelcome&amp;section=%E3%82%B3%E3%83%BC%E3%83%89%E3%81%AE%E4%BF%9D%E8%A8%BC%E3%83%AC%E3%83%99%E3%83%AB">コードの保証レベル</a></li>
-</ul>
+<article class="story document-page"><h1 id="luxel-gallery">Luxel Gallery — 見て、コピーして、アプリを作る</h1>
 <p>Gallery は動く教科書です。説明を読んだら preview を操作し、<strong>検証済み Sample Bundle</strong> の実ファイルをコピーしてください。</p>
 <h2 id="section">学習ルート</h2>
 <ul>
-<li><strong>GPU が初めて</strong> — <a href="#story=Learn%2FRendering%2FBasics%2FOverview">Rendering Basics</a> で window、device、surface、三角形まで進む</li>
-<li><strong>3D アプリを作る</strong> — <a href="#story=Learn%2FRendering%2FThreeD%2FTextures">ThreeD</a> で texture、camera、depth、lighting、RenderGraph を組み合わせる</li>
-<li><strong>2D アプリを作る</strong> — <a href="#story=Learn%2FRendering%2FTwoD%2FOverview">TwoD</a> で path、camera、retained canvas を使う</li>
+<li><strong>GPU が初めて</strong> — <a href="#story=Learn%2FGrapics%2FOverview">Grapics</a> で window、device、surface、三角形まで進む</li>
+<li><strong>3D アプリを作る</strong> — <a href="#story=Build%2FRecipes%2FIndexedCube">Indexed Cube</a> と <a href="#story=Build%2FRecipes%2FCamera3D">3D Camera</a> を組み合わせる</li>
+<li><strong>2D アプリを作る</strong> — <a href="#story=Learn%2FGrapics%2F2D%2FOverview">2D</a> で path、camera、retained canvas を使う</li>
 <li><strong>Input / Audio / Resources</strong> — <a href="#story=Learn%2FInput%2FOverview">Input</a>、<a href="#story=Learn%2FAudio%2FOverview">Audio</a>、<a href="#story=Learn%2FResources%2FOverview">Resources</a>でapp runtimeを組む</li>
-<li><strong>2D rasterizer の中を読む</strong> — <a href="#story=Learn%2FRendering%2FRasterizerInternals%2FOverview">Rasterizer Internals</a> で encode、bounds、bin、fine pass を追う</li>
+<li><strong>2D rasterizer の中を読む</strong> — <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FOverview">Internal</a> で encode、bounds、bin、fine pass を追う</li>
 </ul>
 <h2 id="section-1">コードの保証レベル</h2>
 <ul>
@@ -29,11 +25,11 @@ public static Widget Welcome(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;&
 
     ## 学習ルート
 
-    - **GPU が初めて** — [Rendering Basics](story:Learn/Rendering/Basics/Overview) で window、device、surface、三角形まで進む
-    - **3D アプリを作る** — [ThreeD](story:Learn/Rendering/ThreeD/Textures) で texture、camera、depth、lighting、RenderGraph を組み合わせる
-    - **2D アプリを作る** — [TwoD](story:Learn/Rendering/TwoD/Overview) で path、camera、retained canvas を使う
+    - **GPU が初めて** — [Grapics](story:Learn/Grapics/Overview) で window、device、surface、三角形まで進む
+    - **3D アプリを作る** — [Indexed Cube](story:Build/Recipes/IndexedCube) と [3D Camera](story:Build/Recipes/Camera3D) を組み合わせる
+    - **2D アプリを作る** — [2D](story:Learn/Grapics/2D/Overview) で path、camera、retained canvas を使う
     - **Input / Audio / Resources** — [Input](story:Learn/Input/Overview)、[Audio](story:Learn/Audio/Overview)、[Resources](story:Learn/Resources/Overview)でapp runtimeを組む
-    - **2D rasterizer の中を読む** — [Rasterizer Internals](story:Learn/Rendering/RasterizerInternals/Overview) で encode、bounds、bin、fine pass を追う
+    - **2D rasterizer の中を読む** — [Internal](story:Learn/Grapics/2D/Internal/Overview) で encode、bounds、bin、fine pass を追う
 
     ## コードの保証レベル
 
