@@ -3,7 +3,7 @@
 <p><strong>次:</strong> <a href="#story=Learn%2FRenderGraph%2FResources">Resources</a></p>
 <p>RenderGraphは、複数passがどのresourceを読み書きするか宣言し、barrier、不要passのculling、transient resourceの寿命をまとめて扱う仕組みです。このコースは<a href="#story=Learn%2FGrapics%2FSynchronization">Grapicsの同期</a>で手書きBarrierとSubmitを理解した後に進めてください。</p>
 <h2 id="section">動くサンプル</h2>
-<p>次のストーリーは、2D UIを入力として横方向・縦方向のblur passを実行し、左半分に元画像、右半分にblur結果を合成します。Gallery内でそのまま実行されるため、別projectのbuildや起動は不要です。</p>
+<p>次のストーリーは、2D UIを入力として横方向・縦方向のblur passを実行し、左半分に元画像、右半分にblur結果を合成します。</p>
 <figure class="static-capture"><a href="#story=Examples%2FRenderGraph%2FBlur"><img src="images/examples-rendergraph-blur.png" alt="Examples/RenderGraph/Blur" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
 <pre><code class="language-text">External UI buffer
   → BlurH (Transient buffer)
@@ -53,7 +53,7 @@ public static Widget Overview(StoryContext ctx) =&gt; DocNew(ctx, $$&quot;&quot;
 
     ## 動くサンプル
 
-    次のストーリーは、2D UIを入力として横方向・縦方向のblur passを実行し、左半分に元画像、右半分にblur結果を合成します。Gallery内でそのまま実行されるため、別projectのbuildや起動は不要です。
+    次のストーリーは、2D UIを入力として横方向・縦方向のblur passを実行し、左半分に元画像、右半分にblur結果を合成します。
 
     {{StoryRef(ctx, &quot;Examples/RenderGraph/Blur&quot;)}}
 
