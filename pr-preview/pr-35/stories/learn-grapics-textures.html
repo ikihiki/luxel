@@ -1,0 +1,305 @@
+<article class="story document-page"><h1 id="textures">Textures</h1>
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone + Gallery　 <strong>Backend:</strong> Vulkan / DirectX 12 / WebGPU　 <strong>前提知識:</strong> Buffers</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2FBuffers">Buffers</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2FShaders">Shaders</a></p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Grapics/Textures#doc-0" data-luxel-runtime-story="Examples/3D/Textures" data-luxel-runtime-instance="examples-3d-textures-e3596628d639" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F3D%2FTextures&amp;args=%7B%7D&amp;instance=examples-3d-textures-e3596628d639" data-luxel-runtime-story="Examples/3D/Textures" data-luxel-runtime-instance="examples-3d-textures-e3596628d639" title="Interactive Textures" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-3d-textures-e3596628d639-args-tab" aria-controls="examples-3d-textures-e3596628d639-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-3d-textures-e3596628d639-output-tab" aria-controls="examples-3d-textures-e3596628d639-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-3d-textures-e3596628d639-source-tab" aria-controls="examples-3d-textures-e3596628d639-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-3d-textures-e3596628d639-args-panel" role="tabpanel" aria-labelledby="examples-3d-textures-e3596628d639-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-3d-textures-e3596628d639-output-panel" role="tabpanel" aria-labelledby="examples-3d-textures-e3596628d639-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-3d-textures-e3596628d639-source-panel" role="tabpanel" aria-labelledby="examples-3d-textures-e3596628d639-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/3D/Textures&quot;, Width = 680, Height = 430, Order = 122,&#10;    CapabilityNote = &quot;Compares point/linear filtering and clamp/repeat addressing with a generated texture.&quot;)]&#10;public static Widget Textures(StoryContext ctx)&#10;{&#10;    if (ctx.DeviceOrNull is null || ctx.ScopedResourcesOrNull is not { } resources)&#10;        return BuildOnlyGpuView(ctx, 680, 430);&#10;&#10;    const uint textureWidth = 8;&#10;    const uint textureHeight = 8;&#10;    byte[] pixels = CreateCheckerboard(textureWidth, textureHeight);&#10;    ResourceHandle&lt;GpuTexture&gt; texture = resources.CreateSampledTexture(&#10;        &quot;textures.checker&quot;, textureWidth, textureHeight, pixels, GpuFormat.Rgba8Unorm);&#10;    ResourceHandle&lt;GpuSampler&gt; pointClamp = resources.CreateSampler(&#10;        &quot;textures.sampler.point-clamp&quot;, GpuSamplerFilter.Point, GpuSamplerAddress.Clamp);&#10;    ResourceHandle&lt;GpuSampler&gt; pointRepeat = resources.CreateSampler(&#10;        &quot;textures.sampler.point-repeat&quot;, GpuSamplerFilter.Point, GpuSamplerAddress.Repeat);&#10;    ResourceHandle&lt;GpuSampler&gt; linearClamp = resources.CreateSampler(&#10;        &quot;textures.sampler.linear-clamp&quot;, GpuSamplerFilter.Linear, GpuSamplerAddress.Clamp);&#10;    ResourceHandle&lt;GpuSampler&gt; linearRepeat = resources.CreateSampler(&#10;        &quot;textures.sampler.linear-repeat&quot;, GpuSamplerFilter.Linear, GpuSamplerAddress.Repeat);&#10;&#10;    const string slang = &quot;&quot;&quot;&#10;        [[vk::binding(1, 0)]]&#10;        Texture2D g_textures[];&#10;        [[vk::binding(2, 0)]]&#10;        SamplerState g_samplers[];&#10;&#10;        struct DrawArgs&#10;        {&#10;            uint textureIndex;&#10;            uint samplerIndex;&#10;        };&#10;        [[vk::push_constant]] DrawArgs g_args;&#10;&#10;        struct VSOut&#10;        {&#10;            float4 position : SV_Position;&#10;            float2 uv : TEXCOORD0;&#10;        };&#10;&#10;        [shader(&quot;vertex&quot;)]&#10;        VSOut vsMain(uint vertexId : SV_VertexID)&#10;        {&#10;            bool right = vertexId == 1 || vertexId == 2 || vertexId == 4;&#10;            bool top = vertexId == 2 || vertexId == 4 || vertexId == 5;&#10;&#10;            VSOut output;&#10;            output.position = float4(&#10;                right ? 0.88 : -0.88,&#10;                top ? 0.88 : -0.88,&#10;                0, 1);&#10;            output.uv = float2(right ? 1.35 : -0.35, top ? -0.35 : 1.35);&#10;            return output;&#10;        }&#10;&#10;        [shader(&quot;pixel&quot;)]&#10;        float4 psMain(VSOut input) : SV_Target&#10;        {&#10;            return g_textures[g_args.textureIndex]&#10;                .Sample(g_samplers[g_args.samplerIndex], input.uv);&#10;        }&#10;        &quot;&quot;&quot;;&#10;&#10;    ResourceHandle&lt;GpuShaderCode&gt; shader = resources.Create&lt;SlangSource, GpuShaderCode&gt;(&#10;        &quot;textures.slang&quot;, new SlangSource(&quot;textures.slang&quot;, slang), &quot;graphics&quot;);&#10;    ResourceHandle&lt;GpuPipeline&gt; pipeline = resources.CreateGraphicsPipeline(&#10;        &quot;textures.pipeline&quot;, shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));&#10;    Signal&lt;ResourceState&gt; textureState = ctx.Observe(texture);&#10;    Signal&lt;ResourceState&gt; pipelineState = ctx.Observe(pipeline);&#10;&#10;    Widget SamplerExample(string title, ResourceHandle&lt;GpuSampler&gt; sampler)&#10;    {&#10;        Signal&lt;ResourceState&gt; samplerState = ctx.Observe(sampler);&#10;        return VStack(4, width: 280)[&#10;            Text(title, 12, color: Bind.From(() =&gt; UiTheme.T.TextMuted)),&#10;            GpuView(&#10;                280,&#10;                160,&#10;                (gpu, surface, _) =&gt;&#10;                {&#10;                    ResourceState sampledTextureState = textureState.Value;&#10;                    ResourceState textureSamplerState = samplerState.Value;&#10;                    ResourceState shaderPipelineState = pipelineState.Value;&#10;                    if (!sampledTextureState.HasValue || !textureSamplerState.HasValue || !shaderPipelineState.HasValue)&#10;                        return sampledTextureState.Status == ResourceStatus.Failed&#10;                               || textureSamplerState.Status == ResourceStatus.Failed&#10;                               || shaderPipelineState.Status == ResourceStatus.Failed&#10;                            ? GpuViewRenderResult.Failed&#10;                            : GpuViewRenderResult.Loading;&#10;&#10;                    var args = new TextureDrawArgs&#10;                    {&#10;                        TextureIndex = texture.Value.BindlessIndex,&#10;                        SamplerIndex = sampler.Value.BindlessIndex,&#10;                    };&#10;                    using GpuCommandBuffer command = gpu.MainQueue.StartCommandRecording();&#10;                    command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)&#10;                        .SetGraphicsPipeline(pipeline.Value)&#10;                        .SetRootArguments(args)&#10;                        .Draw(6)&#10;                        .EndRendering();&#10;                    surface.CopyColorToFramebuffer(command);&#10;                    command.Finish();&#10;                    gpu.MainQueue.Submit(command);&#10;                    return GpuViewRenderResult.Ready;&#10;                },&#10;                animated: false)];&#10;    }&#10;&#10;    return ctx.Snap(Frame(Wrap(16, 12, width: 600)[&#10;        SamplerExample(&quot;Point + Clamp&quot;, pointClamp),&#10;        SamplerExample(&quot;Point + Repeat&quot;, pointRepeat),&#10;        SamplerExample(&quot;Linear + Clamp&quot;, linearClamp),&#10;        SamplerExample(&quot;Linear + Repeat&quot;, linearRepeat)]));&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<p>Textureは2次元のpixel配列をGPUへ置き、shaderからUV座標で参照するresourceです。<code>GpuTexture</code>が画像本体、<code>GpuSampler</code>が補間方法と範囲外UVの扱いを持ちます。</p>
+<h2 id="texture">Textureを作成する</h2>
+<p><code>GpuDevice.CreateTexture</code>へwidth、height、RGBA8のpixel dataを渡して、サンプリング可能な<code>GpuTexture</code>を直接作成します。dataは左上から右へ並ぶtightなrowを、上から下へ続けます。</p>
+<pre><code class="language-csharp">const uint textureWidth = 8;
+const uint textureHeight = 8;
+byte[] pixels = CreateCheckerboard(textureWidth, textureHeight);
+
+using GpuTexture texture = device.CreateTexture(
+    textureWidth,
+    textureHeight,
+    pixels,
+    GpuFormat.Rgba8Unorm);
+</code></pre>
+<p>上のsampleではチェック柄を作る処理を<code>CreateCheckerboard</code>へ分けています。8×8のRGBA8なので、pixel dataは<code>8 * 8 * 4 = 256 byte</code>です。dataの長さはformatごとのbytes per pixelを使って正確に一致させます。uploadは同期的なので、<code>CreateTexture</code>から戻った後は元の<code>pixels</code>を再利用できます。生成された<code>GpuTexture</code>はrendererが所有し、それを参照するGPU commandが完了してから破棄します。</p>
+<h2 id="format">Format一覧</h2>
+<p>次のformatはVulkan、DirectX 12、native WebGPU、Browser WebGPUで共通に利用できます。<code>CreateTexture</code>はサンプリング用upload、<code>CreateRenderTarget</code>はcolor attachment、<code>CreateDepthTarget</code>はdepth attachmentを表します。</p>
+<table>
+<thead>
+<tr>
+<th><code>GpuFormat</code></th>
+<th style="text-align: right;">1 pixel</th>
+<th>共通の用途</th>
+<th>shaderから見える値</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>R8Unorm</code></td>
+<td style="text-align: right;">1 byte</td>
+<td>sampled / color target</td>
+<td>Rのみ。G/Bは0、Aは1。mask・grayscale向け</td>
+</tr>
+<tr>
+<td><code>Rg8Unorm</code></td>
+<td style="text-align: right;">2 byte</td>
+<td>sampled / color target</td>
+<td>RGのみ。Bは0、Aは1。2成分data・normal XY向け</td>
+</tr>
+<tr>
+<td><code>Rgba8Unorm</code></td>
+<td style="text-align: right;">4 byte</td>
+<td>sampled / color target</td>
+<td>RGBA順、0〜1のlinear値</td>
+</tr>
+<tr>
+<td><code>Bgra8Unorm</code></td>
+<td style="text-align: right;">4 byte</td>
+<td>sampled / color target</td>
+<td>BGRA memory順、0〜1のlinear値</td>
+</tr>
+<tr>
+<td><code>Rgba8UnormSrgb</code></td>
+<td style="text-align: right;">4 byte</td>
+<td>sampled / color target</td>
+<td>sampled時にRGBをsRGBからlinearへdecode</td>
+</tr>
+<tr>
+<td><code>Bgra8UnormSrgb</code></td>
+<td style="text-align: right;">4 byte</td>
+<td>sampled / color target</td>
+<td>BGRA memory順、sampled時にRGBをsRGBからlinearへdecode</td>
+</tr>
+<tr>
+<td><code>R32Float</code></td>
+<td style="text-align: right;">4 byte</td>
+<td>color target</td>
+<td>32-bit float 1 channel。portable sampled ABIの対象外</td>
+</tr>
+<tr>
+<td><code>D32Float</code></td>
+<td style="text-align: right;">4 byte</td>
+<td>depth target</td>
+<td>32-bit float depth</td>
+</tr>
+</tbody>
+</table>
+<p>alphaを保存しない共通formatには<code>R8Unorm</code>と<code>Rg8Unorm</code>があります。一方、通常の24-bit <code>Rgb8Unorm</code> / <code>Rgb8UnormSrgb</code>はWebGPUにないため共通APIには含めません。alpha不要のRGB画像はAを255にしてRGBA8へ展開します。</p>
+<p>sRGB formatでもalphaはlinearのままです。色テクスチャにはsRGB、normal・mask・数値dataにはlinearの<code>Unorm</code>を選びます。<code>R32Float</code>のsampled uploadはnative backendで使える場合がありますが、全platform共通にしたいcodeではcolor target用途に限定します。</p>
+<h2 id="sampler">Samplerを作成する</h2>
+<p>samplerはpixel間の補間と、0〜1の外側に出たUVの扱いを指定します。<code>GpuDevice.CreateSampler</code>で直接作成します。</p>
+<pre><code class="language-csharp">using GpuSampler sampler = device.CreateSampler(
+    GpuSamplerFilter.Point,
+    GpuSamplerAddress.Repeat);
+</code></pre>
+<p><code>GpuSamplerFilter</code>はpixel間の補間を決めます。</p>
+<table>
+<thead>
+<tr>
+<th>値</th>
+<th>動作</th>
+<th>向いている用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GpuSamplerFilter.Point</code></td>
+<td>最も近い1 pixelを選ぶ</td>
+<td>pixel art、整数scale、texel境界の確認</td>
+</tr>
+<tr>
+<td><code>GpuSamplerFilter.Linear</code></td>
+<td>周囲のpixelを線形補間する</td>
+<td>写真、滑らかな拡大縮小、通常の3D material</td>
+</tr>
+</tbody>
+</table>
+<p><code>GpuSamplerAddress</code>は0〜1の外へ出たUVを決めます。現在はU、V、Wへ同じmodeを適用します。</p>
+<table>
+<thead>
+<tr>
+<th>値</th>
+<th>動作</th>
+<th>UVの例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GpuSamplerAddress.Clamp</code></td>
+<td>最寄りの端へ固定し、端のpixelを延長する</td>
+<td><code>1.25</code> → <code>1.0</code></td>
+</tr>
+<tr>
+<td><code>GpuSamplerAddress.Repeat</code></td>
+<td>小数部でwrapし、textureをタイル状に繰り返す</td>
+<td><code>1.25</code> → <code>0.25</code></td>
+</tr>
+</tbody>
+</table>
+<p>samplerもrendererが所有し、参照中のGPU commandが完了するまで生存させます。上のsampleは4つの組み合わせを<code>WrapPanel</code>へ並べ、範囲外UVを含む同じchecker textureでfilterとaddress modeの差を比較します。</p>
+<h2 id="shader">Shaderへ渡す</h2>
+<p>bufferと同様に、textureとsamplerの<code>BindlessIndex</code>をroot argumentsへ入れます。</p>
+<pre><code class="language-csharp">public struct DrawArgs
+{
+    public uint TextureIndex;
+    public uint SamplerIndex;
+}
+
+var args = new DrawArgs
+{
+    TextureIndex = texture.BindlessIndex,
+    SamplerIndex = sampler.BindlessIndex,
+};
+</code></pre>
+<p>Slang側では同じindexを使ってtextureとsamplerを選択し、pixel shaderでUVをsampleします。</p>
+<pre><code class="language-slang">[[vk::binding(1, 0)]] Texture2D g_textures[];
+[[vk::binding(2, 0)]] SamplerState g_samplers[];
+
+float4 color = g_textures[g_args.textureIndex]
+    .Sample(g_samplers[g_args.samplerIndex], input.uv);
+</code></pre>
+<h2 id="section">コマンドへ設定する</h2>
+<p>textureとsamplerはroot argumentsを通じて参照されるため、command側ではpipelineとargsを設定して描画します。</p>
+<pre><code class="language-csharp">command.BeginRendering(target, null, 0, 0, 0, 1)
+    .SetGraphicsPipeline(pipeline)
+    .SetRootArguments(args)
+    .Draw(6)
+    .EndRendering();
+</code></pre>
+<h2 id="pixelalpha">Pixel、色空間、alpha</h2>
+<p><code>CreateTexture</code>へ渡すdataは、<strong>左上から右へ進むtightなrow</strong>を上から下へ並べます。sRGB authored imageは<code>Rgba8UnormSrgb</code>または<code>Bgra8UnormSrgb</code>を選ぶとsample時にhardwareがRGBをlinearへdecodeします。shader側でもdecodeすると二重変換になるため、decodeはformatかshaderのどちらか1回だけにします。</p>
+<p><code>GpuBlendMode.None</code>ではalphaは出力値に残るだけで背景とは混ざりません。透過には<code>GpuBlendMode.AlphaBlend</code>を使い、RGBをalphaで事前乗算しないstraight alphaへ統一します。opaque textureではalphaを1にすると、色空間とblendの問題を分けて確認できます。</p>
+<h2 id="upload-rowbackend">Upload rowとbackend差</h2>
+<p>呼び出し側のupload dataは<code>width * bytesPerPixel</code> byteのtight rowで、backend用paddingを含めません。<code>R8Unorm</code>は1 byte、<code>Rg8Unorm</code>は2 byte、RGBA/BGRAと<code>R32Float</code>は4 byteです。Vulkanはstaging copyへ渡し、D3D12は内部で各rowを256 byte境界のfootprintへ詰め直し、WebGPUは<code>writeTexture</code>へtight rowを渡します。readback framebufferの<code>StridePixels</code>を64 pixelへ揃える規則と、texture uploadの入力規則を混同しないでください。</p>
+<p>現在の<code>CreateTexture</code> uploadは同期的です。methodが戻った後は入力配列を再利用できます。一方、生成したtexture、sampler、その<code>BindlessIndex</code>は記録済みcommandが完了するまで生存させます。</p>
+<h2 id="backend">Backend差を切り分ける</h2>
+<p>Slang source、channel順、UV規約、bindless indexはbackend共通です。VulkanはSPIR-Vとdescriptor array、D3D12はDXILとdescriptor heap、WebGPUはWGSLとbind groupを使います。linear filteringやfloat丸めによる数LSBの差はあり得ますが、上下反転、R/B交換、1 rowずれ、sRGBの二重decodeは許容差ではなくbugです。</p>
+<p>典型的な問題は、RGBA/BGRAの取り違え、UVの上下反転、textureとsamplerのindex入れ替え、upload rowのpadding混入、描画完了前のresource破棄です。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/Textures&quot;, Order = 5)]
+public static Widget TexturesBasics(StoryContext ctx)
+{
+    return DocNew(ctx, $$&quot;&quot;&quot;
+    # Textures
+
+    {{RenderingCourseCatalog.Meta(&quot;Learn/Grapics/Textures&quot;, &quot;Beginner&quot;, &quot;Standalone + Gallery&quot;, &quot;Vulkan / DirectX 12 / WebGPU&quot;, &quot;Buffers&quot;)}}
+
+    {{StoryRef(ctx, &quot;Examples/3D/Textures&quot;)}}
+
+    Textureは2次元のpixel配列をGPUへ置き、shaderからUV座標で参照するresourceです。`GpuTexture`が画像本体、`GpuSampler`が補間方法と範囲外UVの扱いを持ちます。
+
+    ## Textureを作成する
+
+    `GpuDevice.CreateTexture`へwidth、height、RGBA8のpixel dataを渡して、サンプリング可能な`GpuTexture`を直接作成します。dataは左上から右へ並ぶtightなrowを、上から下へ続けます。
+
+    ```csharp
+    const uint textureWidth = 8;
+    const uint textureHeight = 8;
+    byte[] pixels = CreateCheckerboard(textureWidth, textureHeight);
+
+    using GpuTexture texture = device.CreateTexture(
+        textureWidth,
+        textureHeight,
+        pixels,
+        GpuFormat.Rgba8Unorm);
+    ```
+
+    上のsampleではチェック柄を作る処理を`CreateCheckerboard`へ分けています。8&#215;8のRGBA8なので、pixel dataは`8 * 8 * 4 = 256 byte`です。dataの長さはformatごとのbytes per pixelを使って正確に一致させます。uploadは同期的なので、`CreateTexture`から戻った後は元の`pixels`を再利用できます。生成された`GpuTexture`はrendererが所有し、それを参照するGPU commandが完了してから破棄します。
+
+    ## Format一覧
+
+    次のformatはVulkan、DirectX 12、native WebGPU、Browser WebGPUで共通に利用できます。`CreateTexture`はサンプリング用upload、`CreateRenderTarget`はcolor attachment、`CreateDepthTarget`はdepth attachmentを表します。
+
+    | `GpuFormat` | 1 pixel | 共通の用途 | shaderから見える値 |
+    |---|---:|---|---|
+    | `R8Unorm` | 1 byte | sampled / color target | Rのみ。G/Bは0、Aは1。mask・grayscale向け |
+    | `Rg8Unorm` | 2 byte | sampled / color target | RGのみ。Bは0、Aは1。2成分data・normal XY向け |
+    | `Rgba8Unorm` | 4 byte | sampled / color target | RGBA順、0〜1のlinear値 |
+    | `Bgra8Unorm` | 4 byte | sampled / color target | BGRA memory順、0〜1のlinear値 |
+    | `Rgba8UnormSrgb` | 4 byte | sampled / color target | sampled時にRGBをsRGBからlinearへdecode |
+    | `Bgra8UnormSrgb` | 4 byte | sampled / color target | BGRA memory順、sampled時にRGBをsRGBからlinearへdecode |
+    | `R32Float` | 4 byte | color target | 32-bit float 1 channel。portable sampled ABIの対象外 |
+    | `D32Float` | 4 byte | depth target | 32-bit float depth |
+
+    alphaを保存しない共通formatには`R8Unorm`と`Rg8Unorm`があります。一方、通常の24-bit `Rgb8Unorm` / `Rgb8UnormSrgb`はWebGPUにないため共通APIには含めません。alpha不要のRGB画像はAを255にしてRGBA8へ展開します。
+
+    sRGB formatでもalphaはlinearのままです。色テクスチャにはsRGB、normal・mask・数値dataにはlinearの`Unorm`を選びます。`R32Float`のsampled uploadはnative backendで使える場合がありますが、全platform共通にしたいcodeではcolor target用途に限定します。
+
+    ## Samplerを作成する
+
+    samplerはpixel間の補間と、0〜1の外側に出たUVの扱いを指定します。`GpuDevice.CreateSampler`で直接作成します。
+
+    ```csharp
+    using GpuSampler sampler = device.CreateSampler(
+        GpuSamplerFilter.Point,
+        GpuSamplerAddress.Repeat);
+    ```
+
+    `GpuSamplerFilter`はpixel間の補間を決めます。
+
+    | 値 | 動作 | 向いている用途 |
+    |---|---|---|
+    | `GpuSamplerFilter.Point` | 最も近い1 pixelを選ぶ | pixel art、整数scale、texel境界の確認 |
+    | `GpuSamplerFilter.Linear` | 周囲のpixelを線形補間する | 写真、滑らかな拡大縮小、通常の3D material |
+
+    `GpuSamplerAddress`は0〜1の外へ出たUVを決めます。現在はU、V、Wへ同じmodeを適用します。
+
+    | 値 | 動作 | UVの例 |
+    |---|---|---|
+    | `GpuSamplerAddress.Clamp` | 最寄りの端へ固定し、端のpixelを延長する | `1.25` → `1.0` |
+    | `GpuSamplerAddress.Repeat` | 小数部でwrapし、textureをタイル状に繰り返す | `1.25` → `0.25` |
+
+    samplerもrendererが所有し、参照中のGPU commandが完了するまで生存させます。上のsampleは4つの組み合わせを`WrapPanel`へ並べ、範囲外UVを含む同じchecker textureでfilterとaddress modeの差を比較します。
+
+    ## Shaderへ渡す
+
+    bufferと同様に、textureとsamplerの`BindlessIndex`をroot argumentsへ入れます。
+
+    ```csharp
+    public struct DrawArgs
+    {
+        public uint TextureIndex;
+        public uint SamplerIndex;
+    }
+
+    var args = new DrawArgs
+    {
+        TextureIndex = texture.BindlessIndex,
+        SamplerIndex = sampler.BindlessIndex,
+    };
+    ```
+
+    Slang側では同じindexを使ってtextureとsamplerを選択し、pixel shaderでUVをsampleします。
+
+    ```slang
+    [[vk::binding(1, 0)]] Texture2D g_textures[];
+    [[vk::binding(2, 0)]] SamplerState g_samplers[];
+
+    float4 color = g_textures[g_args.textureIndex]
+        .Sample(g_samplers[g_args.samplerIndex], input.uv);
+    ```
+
+    ## コマンドへ設定する
+
+    textureとsamplerはroot argumentsを通じて参照されるため、command側ではpipelineとargsを設定して描画します。
+
+    ```csharp
+    command.BeginRendering(target, null, 0, 0, 0, 1)
+        .SetGraphicsPipeline(pipeline)
+        .SetRootArguments(args)
+        .Draw(6)
+        .EndRendering();
+    ```
+
+    ## Pixel、色空間、alpha
+
+    `CreateTexture`へ渡すdataは、**左上から右へ進むtightなrow**を上から下へ並べます。sRGB authored imageは`Rgba8UnormSrgb`または`Bgra8UnormSrgb`を選ぶとsample時にhardwareがRGBをlinearへdecodeします。shader側でもdecodeすると二重変換になるため、decodeはformatかshaderのどちらか1回だけにします。
+
+    `GpuBlendMode.None`ではalphaは出力値に残るだけで背景とは混ざりません。透過には`GpuBlendMode.AlphaBlend`を使い、RGBをalphaで事前乗算しないstraight alphaへ統一します。opaque textureではalphaを1にすると、色空間とblendの問題を分けて確認できます。
+
+    ## Upload rowとbackend差
+
+    呼び出し側のupload dataは`width * bytesPerPixel` byteのtight rowで、backend用paddingを含めません。`R8Unorm`は1 byte、`Rg8Unorm`は2 byte、RGBA/BGRAと`R32Float`は4 byteです。Vulkanはstaging copyへ渡し、D3D12は内部で各rowを256 byte境界のfootprintへ詰め直し、WebGPUは`writeTexture`へtight rowを渡します。readback framebufferの`StridePixels`を64 pixelへ揃える規則と、texture uploadの入力規則を混同しないでください。
+
+    現在の`CreateTexture` uploadは同期的です。methodが戻った後は入力配列を再利用できます。一方、生成したtexture、sampler、その`BindlessIndex`は記録済みcommandが完了するまで生存させます。
+
+    ## Backend差を切り分ける
+
+    Slang source、channel順、UV規約、bindless indexはbackend共通です。VulkanはSPIR-Vとdescriptor array、D3D12はDXILとdescriptor heap、WebGPUはWGSLとbind groupを使います。linear filteringやfloat丸めによる数LSBの差はあり得ますが、上下反転、R/B交換、1 rowずれ、sRGBの二重decodeは許容差ではなくbugです。
+
+    典型的な問題は、RGBA/BGRAの取り違え、UVの上下反転、textureとsamplerのindex入れ替え、upload rowのpadding混入、描画完了前のresource破棄です。
+    &quot;&quot;&quot;, toc: true);
+}</code></pre></details></article>

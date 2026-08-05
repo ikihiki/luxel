@@ -1,0 +1,14 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Input/BindingsAndRebinding</h1></header><aside class="capture-error" data-capture-status="error"><strong>Static capture error</strong><pre>InvalidOperationException: Embedded sample source not found: src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs (Luxel.Sample.src.Luxel.Gallery.Stories.CoreUi.Stories.InputActionStories.cs)</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Input/BindingsAndRebinding&quot;, Order = 2)]
+public static Widget Bindings(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+    # Bindings and rebinding
+
+    {RuntimeCourseCatalog.Meta(&quot;Learn/Input/BindingsAndRebinding&quot;, &quot;Beginner&quot;, &quot;Gallery / Settings&quot;, &quot;Backend neutral&quot;, &quot;Actions and contexts&quot;)}
+
+    Bindingはcode branchではなくdataです。`InputBindings`をJSONへ保存し、`InputBindingsApplier.Apply`で既存の`InputContext`へ反映します。action名を安定した契約にすると、platformやuser preferenceが変わってもgame codeは変わりません。
+
+    {StoryRef(ctx, &quot;Examples/Input/Bindings&quot;)}
+
+    {SampleSource(&quot;src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs&quot;, &quot;input-bindings-story&quot;)}
+
+    Rebind UIが待つのは物理key/buttonです。文字入力、IME composition、keyboard layoutに依存するtextはUI layerへ渡してください。
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

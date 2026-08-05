@@ -1,0 +1,82 @@
+<article class="story document-page"><h1 id="platform-input-and-deterministic-tests">Platform input and deterministic tests</h1>
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Window / Browser / CI　 <strong>Backend:</strong> Win32 / Silk X11 / Web / Fake / XInput　 <strong>前提知識:</strong> Browser / WASM input</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FInput%2FBrowserWasm">BrowserWasm</a>　 <strong>次:</strong> <a href="#story=Learn%2FAudio%2FOverview">Overview</a></p>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Window keyboard/pointer</th>
+<th>Text / IME</th>
+<th>Gamepad</th>
+<th>検証済み範囲</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Windows</td>
+<td>Win32 + <code>WindowInputSource</code></td>
+<td>UI layerで対応</td>
+<td>optional <code>Luxel.Input.XInput</code></td>
+<td>real window、action、XInput stories/tests</td>
+</tr>
+<tr>
+<td>Linux</td>
+<td>Silk backend (X11)</td>
+<td>UI layerで対応</td>
+<td>未提供</td>
+<td>X11 backend tests。Waylandは未対応</td>
+</tr>
+<tr>
+<td>Browser/WASM</td>
+<td><code>Luxel.Platform.Web</code> + canonical CoreUi story</td>
+<td>UI layerでcomposition対応</td>
+<td>Web Gamepad未対応</td>
+<td>keyboard、pointer button、blur release</td>
+</tr>
+<tr>
+<td>macOS</td>
+<td>real window backend未提供</td>
+<td>未提供</td>
+<td>未提供</td>
+<td><code>FakeInputSource</code>によるportable/headless logicのみ</td>
+</tr>
+<tr>
+<td>Mobile</td>
+<td>backend未提供</td>
+<td>未提供</td>
+<td>未提供</td>
+<td>touch/multitouch対応を意味しない</td>
+</tr>
+</tbody>
+</table>
+<p>game logicのtestは<code>FakeInputSource</code>を使い、<code>source.Poll(bus); stack.Update(bus);</code>を1 tickとして検証します。edgeを検証するときはpress tickとrelease tickを分けます。同一tickでdown/upする<code>TapKey</code>では、<code>InputStack.Update</code>時点の最終held stateはfalseです。</p>
+<p>Platform adapterのtestはraw window eventの変換とfocus lossを担当し、gameplay testはwindowを作らずactions/contexts/bindingsだけを検証します。</p>
+<pre><code class="language-csharp">var bus = new InputBus();
+var source = new FakeInputSource();
+var gameplay = new InputContext(&quot;Gameplay&quot;);
+var jump = gameplay.Add(new ButtonAction(&quot;Jump&quot;, KeyCode.Space));
+var move = gameplay.Add(new Axis2DAction(&quot;Move&quot;));
+move.ButtonQuads.Add((KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D));
+var stack = new InputStack();
+stack.Push(gameplay);
+</code></pre>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Input/PlatformsAndTesting&quot;, Order = 4)]
+public static Widget Platforms(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+    # Platform input and deterministic tests
+
+    {RuntimeCourseCatalog.Meta(&quot;Learn/Input/PlatformsAndTesting&quot;, &quot;Beginner&quot;, &quot;Window / Browser / CI&quot;, &quot;Win32 / Silk X11 / Web / Fake / XInput&quot;, &quot;Browser / WASM input&quot;)}
+
+    | Platform | Window keyboard/pointer | Text / IME | Gamepad | 検証済み範囲 |
+    |---|---|---|---|---|
+    | Windows | Win32 + `WindowInputSource` | UI layerで対応 | optional `Luxel.Input.XInput` | real window、action、XInput stories/tests |
+    | Linux | Silk backend (X11) | UI layerで対応 | 未提供 | X11 backend tests。Waylandは未対応 |
+    | Browser/WASM | `Luxel.Platform.Web` + canonical CoreUi story | UI layerでcomposition対応 | Web Gamepad未対応 | keyboard、pointer button、blur release |
+    | macOS | real window backend未提供 | 未提供 | 未提供 | `FakeInputSource`によるportable/headless logicのみ |
+    | Mobile | backend未提供 | 未提供 | 未提供 | touch/multitouch対応を意味しない |
+
+    game logicのtestは`FakeInputSource`を使い、`source.Poll(bus); stack.Update(bus);`を1 tickとして検証します。edgeを検証するときはpress tickとrelease tickを分けます。同一tickでdown/upする`TapKey`では、`InputStack.Update`時点の最終held stateはfalseです。
+
+    Platform adapterのtestはraw window eventの変換とfocus lossを担当し、gameplay testはwindowを作らずactions/contexts/bindingsだけを検証します。
+
+    {SampleSource(&quot;samples/LuxelInput/Program.cs&quot;, &quot;input-actions&quot;)}
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

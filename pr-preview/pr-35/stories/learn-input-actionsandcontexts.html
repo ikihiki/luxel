@@ -1,0 +1,14 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Learn/Input/ActionsAndContexts</h1></header><aside class="capture-error" data-capture-status="error"><strong>Static capture error</strong><pre>InvalidOperationException: Embedded sample source not found: src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs (Luxel.Sample.src.Luxel.Gallery.Stories.CoreUi.Stories.InputActionStories.cs)</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Input/ActionsAndContexts&quot;, Order = 1)]
+public static Widget Actions(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+    # Actions and contexts
+
+    {RuntimeCourseCatalog.Meta(&quot;Learn/Input/ActionsAndContexts&quot;, &quot;Beginner&quot;, &quot;Gallery / Headless&quot;, &quot;Backend neutral&quot;, &quot;Input overview&quot;)}
+
+    `ButtonAction`はbool、`Axis1DAction`は`-1..1`、`Axis2DAction`は正規化された`Vector2`を公開します。`Triggered`と`Released`はactive stateの立ち上がり／立ち下がりで一度だけ発火します。
+
+    `InputStack`は最後にpushしたcontextから評価します。上位contextのactive actionが使用したkey/axisは下位contextへ渡りません。menuをgameplayより上に置き、text editing中はgameplay contextをsuspendする構成が基本です。
+
+    {StoryRef(ctx, &quot;Examples/Input/ContextStack&quot;)}
+
+    {SampleSource(&quot;src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs&quot;, &quot;input-context-stack&quot;)}
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

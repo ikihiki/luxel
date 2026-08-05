@@ -1,0 +1,23 @@
+<article class="story document-page"><h1 id="signals-and-dependency-tracking">Signals and dependency tracking</h1>
+<p><code>Signal&lt;T&gt;.Value</code>は現在のreactive scopeへ依存登録し、setで購読側を無効化します。<code>Peek()</code>は追跡しない読み取りです。<code>CompositeControl</code>はBuild中に読んだsignalを既定で追跡するため、構造を決める値が変わるとrootを破棄します。</p>
+<pre><code class="language-csharp">using VectorFont font = VectorFont.Load(Path.Combine(AppContext.BaseDirectory, &quot;fonts&quot;, &quot;BIZUDGothic-Regular.ttf&quot;));
+var context = new LayoutContext { Font = font };
+var counter = new CounterTree();
+counter.Layout(Constraints.LooseW(240, 240), context);
+int firstChildren = ((StackPanel)counter.Root!).ChildCount;
+
+counter.Count.Value = 3;
+bool invalidated = counter.Root is null;
+counter.Layout(Constraints.LooseW(240, 240), context);
+int secondChildren = ((StackPanel)counter.Root!).ChildCount;
+
+Console.WriteLine($&quot;ui: builds={counter.Builds}, children={firstChildren}-&gt;{secondChildren}, invalidated={invalidated}&quot;);
+</code></pre>
+<details class="sample-bundle"><summary>Run this sample — Block</summary><p>CompositeControl tracks a Signal read during Build, invalidates its root, and rebuilds a declarative StackPanel on the next layout.</p><p><strong>Requirements:</strong> .NET 10 / Bundled font / Headless on all supported .NET OS</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>ui: builds=2, children=1-&gt;3, invalidated=True</code></p><ul><li><code>samples/LuxelUiHeadless/LuxelUiHeadless.csproj</code> <span>Project</span></li><li><code>samples/LuxelUiHeadless/Program.cs</code> <span>CSharp</span></li><li><code>assets/fonts/BIZUDGothic-Regular.ttf</code> <span>Asset</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelUiHeadless</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelUiHeadless</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/UI/Signals&quot;, Order = 1, SampleBundle = &quot;ui.headless-tree&quot;)]
+public static Widget Signals(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+    # Signals and dependency tracking
+
+    `Signal&lt;T&gt;.Value`は現在のreactive scopeへ依存登録し、setで購読側を無効化します。`Peek()`は追跡しない読み取りです。`CompositeControl`はBuild中に読んだsignalを既定で追跡するため、構造を決める値が変わるとrootを破棄します。
+
+    {SampleSource(&quot;samples/LuxelUiHeadless/Program.cs&quot;, &quot;ui-headless-tree&quot;)}
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>

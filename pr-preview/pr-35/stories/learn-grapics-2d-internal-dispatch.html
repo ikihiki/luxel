@@ -1,0 +1,327 @@
+<article class="story document-page"><h1 id="dispatch-barrier">Dispatch と barrier</h1>
+<div class="markdown-alert markdown-alert-warning">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p>ここで扱う型、buffer layout、tile size は現在の内部実装です。通常のアプリは <code>IRasterizer2D</code> と <code>Scene2D</code> を使ってください。</p>
+</div>
+<p><strong>難易度:</strong> Advanced　 <strong>実行環境:</strong> Implementation reading + Gallery　 <strong>Backend:</strong> GPU compute　 <strong>前提知識:</strong> 2D</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FImagesAndComposite">ImagesAndComposite</a>　 <strong>次:</strong> <a href="#story=Learn%2FGrapics%2F2D%2FInternal%2FRetainedUploads">RetainedUploads</a></p>
+<p>bounds → compute barrier → bin → compute barrier → fine → all barrier の順で dispatch します。scratch buffer は必要量まで成長し、rasterizer は直列使用します。</p>
+<h2 id="section">実装の正</h2>
+<pre><code class="language-csharp">namespace Luxel.Graphics.TwoD;
+
+/// &lt;summary&gt;GPUコマンド記録用の2D描画target。submit/waitは呼び出し側が行う。&lt;/summary&gt;
+public sealed class GpuRasterTarget2D : IRasterTarget2D
+{
+    public GpuRasterTarget2D(GpuCommandBuffer commandBuffer, GpuBuffer framebuffer, uint width, uint height)
+    {
+        CommandBuffer = commandBuffer ?? throw new ArgumentNullException(nameof(commandBuffer));
+        Framebuffer = framebuffer ?? throw new ArgumentNullException(nameof(framebuffer));
+        Width = width;
+        Height = height;
+    }
+
+    public GpuCommandBuffer CommandBuffer { get; }
+    public GpuBuffer Framebuffer { get; }
+    public uint Width { get; }
+    public uint Height { get; }
+}
+
+/// &lt;summary&gt;エンコード済みシーン (GPU 常駐の SoA バッファ群)。&lt;/summary&gt;
+public class GpuEncodedScene2D : IRasterScene2D
+{
+    private bool _disposed;
+    internal GpuBuffer Segments { get; }
+    internal GpuBuffer Paths { get; }
+    internal GpuBuffer Transforms { get; }
+    internal GpuBuffer Styles { get; }
+    internal GpuBuffer Clips { get; }
+    internal GpuBuffer Order { get; }
+    internal uint OrderCount { get; }
+
+    internal GpuEncodedScene2D(GpuDeviceRasterizer2D owner, GpuBuffer segments, GpuBuffer paths, GpuBuffer transforms,
+        GpuBuffer styles, GpuBuffer clips, GpuBuffer order, uint orderCount)
+    {
+        Rasterizer = owner;
+        Segments = segments; Paths = paths; Transforms = transforms;
+        Styles = styles; Clips = clips; Order = order; OrderCount = orderCount;
+    }
+
+    public GpuDeviceRasterizer2D Rasterizer { get; }
+    IRasterizer2D IRasterScene2D.Rasterizer =&gt; Rasterizer;
+
+    public void Render(Camera2D camera, IRasterTarget2D target, bool transparent = false)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (target is not GpuRasterTarget2D gpu)
+            throw new ArgumentException(&quot;GpuEncodedScene2D requires GpuRasterTarget2D.&quot;, nameof(target));
+        Rasterizer.Render(gpu.CommandBuffer, this, camera, gpu.Width, gpu.Height, gpu.Framebuffer, transparent);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        Segments.Dispose(); Paths.Dispose(); Transforms.Dispose();
+        Styles.Dispose(); Clips.Dispose(); Order.Dispose();
+    }
+}
+
+/// &lt;summary&gt;
+/// コンピュートベースの 2D ベクターラスタライザ。SoA バッファ (Segment/Path/Transform/Style/Clip/Order)
+/// を per-path 間接化したコンピュートシェーダで塗る。即時モード (Scene2D) と保持型 (RetainedCanvas) の
+/// 共通バックエンド。
+/// &lt;/summary&gt;
+public class GpuDeviceRasterizer2D : IRasterizer2D
+{
+    private readonly GpuDevice _device;
+    private readonly GpuPipeline _bounds, _bin, _fine;
+    private bool _disposed;
+
+    // タイルビニング (RA-M1) の scratch。ラスタライザ 1 個 = 1 スレッドで直列使用が前提
+    // (各 Render は自前 cmd + SubmitAndWait なので、次の DispatchRaster までに前の GPU 使用は完了)。
+    private const uint TileSize = 16;
+    private const uint TileCap = 64;   // タイルあたりのパスリスト容量。超過タイルは fine が全走査
+    private GpuBuffer? _boundsBuf, _tileList, _tileCountBuf;
+    private uint _boundsCap, _tilesCap;
+
+    public GpuDeviceRasterizer2D(GpuDevice device)
+        : this(device, name =&gt; GpuShaderCode.Load(name)) { }
+
+    /// &lt;summary&gt;シェーダ供給元を注入する。browser/AOT の EmbeddedResource 利用など filesystem 非依存 host 向け。&lt;/summary&gt;
+    public GpuDeviceRasterizer2D(GpuDevice device, Func&lt;string, GpuShaderCode&gt; shaderProvider)
+    {
+        _device = device ?? throw new ArgumentNullException(nameof(device));
+        ArgumentNullException.ThrowIfNull(shaderProvider);
+        _bounds = device.CreateComputePipeline(shaderProvider(&quot;raster2d_bounds&quot;));
+        _bin = device.CreateComputePipeline(shaderProvider(&quot;raster2d_bin&quot;));
+        _fine = device.CreateComputePipeline(shaderProvider(&quot;raster2d_fine&quot;));
+    }
+
+    public string Name =&gt; &quot;GpuDevice&quot;;
+    public Rasterizer2DCapabilities Capabilities =&gt; Rasterizer2DCapabilities.GpuCommandRecording
+        | Rasterizer2DCapabilities.BindlessImages
+        | Rasterizer2DCapabilities.RetainedIncrementalUpdates;
+
+    IRasterScene2D IRasterizer2D.CreateScene(Scene2D scene) =&gt; Encode(scene);
+    public IRasterScene2D CreateScene(RetainedCanvas canvas)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return new GpuRetainedRasterScene2D(this, canvas ?? throw new ArgumentNullException(nameof(canvas)));
+    }
+
+    public GpuDevice Device =&gt; _device;
+
+    /// &lt;summary&gt;即時モード: シーンを SoA バッファへ 1 回エンコードする (恒等変換/順次 Order)。&lt;/summary&gt;
+    public GpuEncodedScene2D Encode(Scene2D scene)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(scene);
+        (GpuSegment[] segs, GpuPath[] paths, GpuStyle[] styles) = PathEncoder.Encode(scene);
+        if (segs.Length == 0) segs = new GpuSegment[1];
+        if (paths.Length == 0) { paths = new GpuPath[1]; styles = new GpuStyle[1]; }
+
+        var transforms = new[] { GpuTransform.Identity };   // 全パス共通の恒等変換
+        var order = new uint[paths.Length];
+        for (uint i = 0; i &lt; order.Length; i++) order[i] = i;
+        var clips = new GpuClip[1];                          // 即時モードはクリップ無し
+
+        GpuBuffer segBuf = Upload(segs, 32);
+        GpuBuffer pathBuf = Upload(paths, GpuPath.SizeBytes);
+        GpuBuffer tfBuf = Upload(transforms, 32);
+        GpuBuffer styBuf = Upload(styles, 16);
+        GpuBuffer clipBuf = Upload(clips, 16);
+        GpuBuffer orderBuf = Upload(order, 4);
+
+        return new GpuEncodedScene2D(this, segBuf, pathBuf, tfBuf, styBuf, clipBuf, orderBuf, (uint)paths.Length);
+    }
+
+    internal GpuBuffer Upload&lt;T&gt;(T[] data, int stride) where T : unmanaged
+    {
+        GpuBuffer buf = _device.Malloc((ulong)(Math.Max(1, data.Length) * stride), GpuMemoryKind.HostMapped);
+        if (data.Length &gt; 0) data.AsSpan().CopyTo(buf.Span&lt;T&gt;(data.Length));
+        return buf;
+    }
+
+    /// &lt;summary&gt;シーンを framebuffer (RGBA8) へラスタライズする。
+    /// transparent=true で背景を premultiplied alpha に (未描画ピクセルは alpha=0)。&lt;/summary&gt;
+    public void Render(GpuCommandBuffer cmd, GpuEncodedScene2D scene, Camera2D camera,
+        uint width, uint height, GpuBuffer framebuffer, bool transparent = false)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(scene);
+        if (!ReferenceEquals(scene.Rasterizer, this))
+            throw new ArgumentException(&quot;The encoded scene belongs to a different GPU rasterizer/device.&quot;, nameof(scene));
+        DispatchRaster(cmd, scene.Segments, scene.Paths, scene.Transforms, scene.Styles,
+            scene.Clips, scene.Order, scene.OrderCount, camera, width, height, framebuffer, transparent);
+    }
+
+    /// &lt;summary&gt;SoA バッファ群を直接指定してラスタライズ (即時モード・保持型 共通)。
+    /// 3 段: bounds (パス毎の画面 AABB 前計算) → bin (タイル毎パスリスト、描画順保存) →
+    /// fine (自タイルのリストだけ走査) — per-pixel の全 order 走査 (O(px × paths)) を
+    /// O(tiles × paths + px × tile内paths) へ落とす。&lt;/summary&gt;
+    internal void DispatchRaster(GpuCommandBuffer cmd, GpuBuffer seg, GpuBuffer path, GpuBuffer tf,
+        GpuBuffer sty, GpuBuffer clip, GpuBuffer order, uint orderCount,
+        Camera2D camera, uint width, uint height, GpuBuffer framebuffer, bool transparent = false)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        uint tilesX = (width + TileSize - 1) / TileSize;
+        uint tilesY = (height + TileSize - 1) / TileSize;
+        uint tiles = tilesX * tilesY;
+        EnsureScratch(orderCount, tiles);
+
+        var args = new RasterArgs
+        {
+            A = camera.A,
+            B = camera.B,
+            C = camera.C,
+            D = camera.D,
+            E = camera.E,
+            F = camera.F,
+            Width = width,
+            Height = height,
+            SegIndex = seg.BindlessIndex,
+            PathIndex = path.BindlessIndex,
+            TransformIndex = tf.BindlessIndex,
+            StyleIndex = sty.BindlessIndex,
+            ClipIndex = clip.BindlessIndex,
+            OrderIndex = order.BindlessIndex,
+            OrderCount = orderCount,
+            FbIndex = framebuffer.BindlessIndex,
+            BgMode = transparent ? 1u : 0u,
+            TilesX = tilesX,
+            TileCap = TileCap,
+            BoundsIndex = _boundsBuf!.BindlessIndex,
+            TileListIndex = _tileList!.BindlessIndex,
+            TileCountIndex = _tileCountBuf!.BindlessIndex,
+        };
+        cmd.SetComputePipeline(_bounds)
+           .SetRootArguments(args)
+           .Dispatch(Math.Max(1, (orderCount + 63) / 64), 1)
+           .Barrier(GpuStage.ComputeShader, GpuStage.ComputeShader)
+           .SetComputePipeline(_bin)
+           .SetRootArguments(args)
+           .Dispatch((tiles + 63) / 64, 1)
+           .Barrier(GpuStage.ComputeShader, GpuStage.ComputeShader)
+           .SetComputePipeline(_fine)
+           .SetRootArguments(args)
+           .Dispatch((width + 7) / 8, (height + 7) / 8)
+           .Barrier(GpuStage.ComputeShader, GpuStage.All);
+    }
+
+    /// &lt;summary&gt;ビニング scratch を必要サイズまで成長させる (縮めない)。DeviceLocal — CPU は触らない。&lt;/summary&gt;
+    private void EnsureScratch(uint orderCount, uint tiles)
+    {
+        if (_boundsBuf is null || orderCount &gt; _boundsCap)
+        {
+            _boundsCap = Math.Max(256, System.Numerics.BitOperations.RoundUpToPowerOf2(Math.Max(1, orderCount)));
+            _boundsBuf?.Dispose();
+            _boundsBuf = _device.Malloc((ulong)_boundsCap * 16, GpuMemoryKind.DeviceLocal);
+        }
+        if (_tileList is null || tiles &gt; _tilesCap)
+        {
+            _tilesCap = Math.Max(1024, System.Numerics.BitOperations.RoundUpToPowerOf2(tiles));
+            _tileList?.Dispose();
+            _tileList = _device.Malloc((ulong)_tilesCap * TileCap * 4, GpuMemoryKind.DeviceLocal);
+            _tileCountBuf?.Dispose();
+            _tileCountBuf = _device.Malloc((ulong)_tilesCap * 4, GpuMemoryKind.DeviceLocal);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _bounds.Dispose(); _bin.Dispose(); _fine.Dispose();
+        _boundsBuf?.Dispose(); _tileList?.Dispose(); _tileCountBuf?.Dispose();
+    }
+}
+
+internal sealed class GpuRetainedRasterScene2D : IRasterScene2D, IRetainedCanvasSink
+{
+    private readonly RetainedCanvas _canvas;
+    private GpuBuffer? _segments, _paths, _transforms, _styles, _clips, _order;
+    private int _segmentCapacity, _pathCapacity, _transformCapacity, _styleCapacity, _clipCapacity, _orderCapacity;
+    private uint _orderCount;
+    private bool _disposed;
+
+    public GpuRetainedRasterScene2D(GpuDeviceRasterizer2D rasterizer, RetainedCanvas canvas)
+    {
+        Rasterizer = rasterizer;
+        _canvas = canvas;
+        _canvas.RegisterSink(this);
+        FullSync(_canvas);
+    }
+
+    public GpuDeviceRasterizer2D Rasterizer { get; }
+    IRasterizer2D IRasterScene2D.Rasterizer =&gt; Rasterizer;
+
+    public void Render(Camera2D camera, IRasterTarget2D target, bool transparent = false)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (target is not GpuRasterTarget2D gpu)
+            throw new ArgumentException(&quot;GPU retained scenes require GpuRasterTarget2D.&quot;, nameof(target));
+
+        _canvas.Flush(gpu.Width, gpu.Height);
+        Rasterizer.DispatchRaster(gpu.CommandBuffer, _segments!, _paths!, _transforms!, _styles!, _clips!, _order!,
+            _orderCount, camera, gpu.Width, gpu.Height, gpu.Framebuffer, transparent);
+        _canvas.EmitRenderDiagnostics();
+    }
+
+    public void FullSync(RetainedCanvas canvas)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        Replace(ref _segments, ref _segmentCapacity, canvas.SegmentSnapshot(), 32);
+        Replace(ref _paths, ref _pathCapacity, canvas.PathSnapshot(), GpuPath.SizeBytes);
+        Replace(ref _transforms, ref _transformCapacity, canvas.TransformSnapshot(), 32);
+        Replace(ref _styles, ref _styleCapacity, canvas.StyleSnapshot(), 16);
+        Replace(ref _clips, ref _clipCapacity, canvas.ClipSnapshot(), 16);
+        Replace(ref _order, ref _orderCapacity, canvas.OrderSnapshot(), 4);
+        _orderCount = canvas.OrderCount;
+    }
+
+    public void WriteTransform(int index, GpuTransform value) =&gt; Write(_transforms, _transformCapacity, index, value);
+    public void WriteStyle(int index, GpuStyle value) =&gt; Write(_styles, _styleCapacity, index, value);
+    public void WriteClip(int index, GpuClip value) =&gt; Write(_clips, _clipCapacity, index, value);
+    public void WriteSegment(int index, GpuSegment value) =&gt; Write(_segments, _segmentCapacity, index, value);
+    public void WritePath(int index, GpuPath value) =&gt; Write(_paths, _pathCapacity, index, value);
+
+    public void WriteOrder(uint[] order)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_order is null || order.Length &gt; _orderCapacity)
+            Replace(ref _order, ref _orderCapacity, order.Length &gt; 0 ? order : new uint[1], 4);
+        else if (order.Length &gt; 0)
+            order.AsSpan().CopyTo(_order.Span&lt;uint&gt;(_orderCapacity));
+        _orderCount = (uint)order.Length;
+    }
+
+    private void Replace&lt;T&gt;(ref GpuBuffer? buffer, ref int capacity, T[] data, int stride) where T : unmanaged
+    {
+        buffer?.Dispose();
+        buffer = Rasterizer.Upload(data, stride);
+        capacity = Math.Max(1, data.Length);
+    }
+
+    private void Write&lt;T&gt;(GpuBuffer? buffer, int capacity, int index, T value) where T : unmanaged
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (buffer is null || (uint)index &gt;= (uint)capacity)
+            throw new InvalidOperationException(&quot;Retained GPU buffer is not synchronized with its canvas.&quot;);
+        buffer.Span&lt;T&gt;(capacity)[index] = value;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _canvas.UnregisterSink(this);
+        _segments?.Dispose(); _paths?.Dispose(); _transforms?.Dispose();
+        _styles?.Dispose(); _clips?.Dispose(); _order?.Dispose();
+        _segments = _paths = _transforms = _styles = _clips = _order = null;
+    }
+}
+</code></pre>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Grapics/2D/Internal/Dispatch&quot;, Order = 25)]
+public static Widget Dispatch(StoryContext ctx) =&gt; Page(ctx, &quot;Learn/Grapics/2D/Internal/Dispatch&quot;, &quot;Dispatch と barrier&quot;,
+    &quot;bounds → compute barrier → bin → compute barrier → fine → all barrier の順で dispatch します。scratch buffer は必要量まで成長し、rasterizer は直列使用します。&quot;,
+    &quot;src/Luxel.Graphics.TwoD/GpuDeviceRasterizer2D.cs&quot;, &quot;Learn/Grapics/2D/Internal/ImagesAndComposite&quot;, &quot;Learn/Grapics/2D/Internal/RetainedUploads&quot;);</code></pre></details></article>

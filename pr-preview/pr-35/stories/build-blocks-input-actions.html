@@ -1,0 +1,61 @@
+<article class="story document-page"><h1 id="block-input-actions">Block: Input actions</h1>
+<p>Windowから独立したaction/context/stackのcopyable blockです。実windowとの接続はhostが<code>WindowInputSource</code>を生成し、同じ<code>InputBus</code>へpollします。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Build/Blocks/Input/Actions#doc-0" data-luxel-runtime-story="Examples/Input/WindowActions" data-luxel-runtime-instance="examples-input-windowactions-f9e288012778" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2FInput%2FWindowActions&amp;args=%7B%7D&amp;instance=examples-input-windowactions-f9e288012778" data-luxel-runtime-story="Examples/Input/WindowActions" data-luxel-runtime-instance="examples-input-windowactions-f9e288012778" title="Interactive WindowActions" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-input-windowactions-f9e288012778-args-tab" aria-controls="examples-input-windowactions-f9e288012778-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-input-windowactions-f9e288012778-output-tab" aria-controls="examples-input-windowactions-f9e288012778-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-input-windowactions-f9e288012778-source-tab" aria-controls="examples-input-windowactions-f9e288012778-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-input-windowactions-f9e288012778-args-panel" role="tabpanel" aria-labelledby="examples-input-windowactions-f9e288012778-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-input-windowactions-f9e288012778-output-panel" role="tabpanel" aria-labelledby="examples-input-windowactions-f9e288012778-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-input-windowactions-f9e288012778-source-panel" role="tabpanel" aria-labelledby="examples-input-windowactions-f9e288012778-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/Input/WindowActions&quot;, Width = 680, Height = 430, Order = 0)]&#10;public static Widget WindowActions(StoryContext ctx)&#10;{&#10;    IStoryInputRuntime? runtime = ctx.Get&lt;IStoryInputRuntime&gt;();&#10;    var bus = new InputBus();&#10;    var gameplay = new InputContext(&quot;Gameplay&quot;);&#10;    var move = gameplay.Add(new Axis2DAction(&quot;Move&quot;));&#10;    move.ButtonQuads.Add((KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D));&#10;    move.ButtonQuads.Add((KeyCode.Up, KeyCode.Down, KeyCode.Left, KeyCode.Right));&#10;    var fire = gameplay.Add(new ButtonAction(&quot;Fire&quot;, KeyCode.Mouse0));&#10;    var stack = new InputStack();&#10;    stack.Push(gameplay);&#10;&#10;    var vector = new Signal&lt;Vector2&gt;(Vector2.Zero);&#10;    var focused = new Signal&lt;bool&gt;(runtime?.IsFocused ?? false);&#10;    var fireHeld = new Signal&lt;bool&gt;(false);&#10;    var pressCount = new Signal&lt;int&gt;(0);&#10;    var releaseCount = new Signal&lt;int&gt;(0);&#10;    fire.Triggered += () =&gt; pressCount.Value++;&#10;    fire.Released += () =&gt; releaseCount.Value++;&#10;&#10;    Widget meter = Canvas2D(560, 170, animate: (scene, _) =&gt;&#10;    {&#10;        if (runtime is not null)&#10;        {&#10;            runtime.Poll(bus);&#10;            stack.Update(bus);&#10;            vector.Value = move.Value.Value;&#10;            fireHeld.Value = fire.Value.Value;&#10;            focused.Value = runtime.IsFocused;&#10;        }&#10;&#10;        uint panel = Color2D.Rgba(25, 32, 45, 255);&#10;        uint accent = fireHeld.Value ? Color2D.Rgba(251, 146, 60, 255) : Color2D.Rgba(96, 165, 250, 255);&#10;        scene.FillRoundedRect(panel, 0, 0, 560, 170, 14);&#10;        scene.FillCircle(Color2D.Rgba(148, 163, 184, 255), 280, 85, 105);&#10;        scene.FillCircle(panel, 280, 85, 102);&#10;        scene.FillCircle(accent, 280 + vector.Value.X * 95, 85 - vector.Value.Y * 55, fireHeld.Value ? 18 : 13);&#10;    });&#10;&#10;    string Capability() =&gt; runtime is null&#10;        ? &quot;Physical input service: unavailable (deterministic docs/catalog fallback)&quot;&#10;        : focused.Value ? &quot;Focused: keyboard and pointer actions are active&quot; : &quot;Click the preview to focus input&quot;;&#10;&#10;    return Frame(VStack(12, width: 600)[&#10;        Heading(&quot;Window actions&quot;, 2),&#10;        Text(&quot;Click this preview, then use WASD / arrow keys. Hold the left pointer button for Fire.&quot;, 14,&#10;            color: Bind.From(() =&gt; UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 590),&#10;        meter,&#10;        HStack(20)[&#10;            Text((Func&lt;string&gt;)(() =&gt; $&quot;Move: {vector.Value.X:0.00}, {vector.Value.Y:0.00}&quot;), 14),&#10;            Text((Func&lt;string&gt;)(() =&gt; $&quot;Fire: {(fireHeld.Value ? &quot;held&quot; : &quot;idle&quot;)}&quot;), 14),&#10;            Text((Func&lt;string&gt;)(() =&gt; $&quot;Pressed: {pressCount.Value}  Released: {releaseCount.Value}&quot;), 14)],&#10;        Text((Func&lt;string&gt;)Capability, 12, color: Bind.From(() =&gt; UiTheme.T.TextMuted))]);&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<h2 id="deterministic-input-actions">コピーして動かす — Deterministic input actions</h2>
+<blockquote>
+<p><strong>Block</strong> · 難易度: Beginner · 依存 bundle: <code>support.source-tree</code></p>
+</blockquote>
+<p>FakeInputSource drives InputBus, InputStack, ButtonAction and Axis2DAction without a window.</p>
+<p><strong>必要条件:</strong> .NET 10 / Headless on all supported .NET OS
+<strong>Platform:</strong> Windows / Linux / macOS
+<strong>検証契約:</strong> exit <code>0</code> / timeout <code>300s</code> / stdout <code>input: jump=True, triggered=1</code>
+<strong>接続点:</strong> <code>InputStack</code></p>
+<p><strong>Run</strong></p>
+<pre><code class="language-powershell">dotnet run --project samples/LuxelInput
+</code></pre>
+<p><strong>Smoke test</strong></p>
+<pre><code class="language-powershell">dotnet run --project samples/LuxelInput
+</code></pre>
+<h3 id="samplesluxelinputluxelinput.csproj-project"><code>samples/LuxelInput/LuxelInput.csproj</code> (Project)</h3>
+<pre><code class="language-xml">&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;
+  &lt;PropertyGroup&gt;&lt;OutputType&gt;Exe&lt;/OutputType&gt;&lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;&lt;Nullable&gt;enable&lt;/Nullable&gt;&lt;/PropertyGroup&gt;
+  &lt;ItemGroup&gt;&lt;ProjectReference Include=&quot;..\..\src\Luxel.Input\Luxel.Input.csproj&quot; /&gt;&lt;/ItemGroup&gt;
+&lt;/Project&gt;
+</code></pre>
+<h3 id="samplesluxelinputprogram.cs-csharp"><code>samples/LuxelInput/Program.cs</code> (CSharp)</h3>
+<pre><code class="language-csharp">using Luxel.Input;
+
+// docs:begin input-actions
+var bus = new InputBus();
+var source = new FakeInputSource();
+var gameplay = new InputContext(&quot;Gameplay&quot;);
+var jump = gameplay.Add(new ButtonAction(&quot;Jump&quot;, KeyCode.Space));
+var move = gameplay.Add(new Axis2DAction(&quot;Move&quot;));
+move.ButtonQuads.Add((KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D));
+var stack = new InputStack();
+stack.Push(gameplay);
+// docs:end input-actions
+
+int triggered = 0;
+jump.Triggered += () =&gt; triggered++;
+source.PressKey(KeyCode.Space); source.PressKey(KeyCode.W); source.PressKey(KeyCode.D);
+source.Poll(bus); stack.Update(bus);
+Console.WriteLine($&quot;input: jump={jump.Value.Value}, triggered={triggered}, move={move.Value.Value.X:F3},{move.Value.Value.Y:F3}&quot;);
+if (!jump.Value.Value || triggered != 1 || move.Value.Value.X &lt;= 0 || move.Value.Value.Y &lt;= 0) return 1;
+source.ReleaseKey(KeyCode.Space); source.ReleaseKey(KeyCode.W); source.ReleaseKey(KeyCode.D);
+source.Poll(bus); stack.Update(bus);
+return jump.Value.Value ? 2 : 0;
+</code></pre>
+<p>Platformごとのbackendと制約は <a href="#story=Learn%2FInput%2FPlatformsAndTesting">Platform input and deterministic tests</a> を参照してください。</p>
+<details class="sample-bundle"><summary>Run this sample — Block</summary><p>FakeInputSource drives InputBus, InputStack, ButtonAction and Axis2DAction without a window.</p><p><strong>Requirements:</strong> .NET 10 / Headless on all supported .NET OS</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>input: jump=True, triggered=1</code></p><ul><li><code>samples/LuxelInput/LuxelInput.csproj</code> <span>Project</span></li><li><code>samples/LuxelInput/Program.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelInput</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelInput</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Build/Blocks/Input/Actions&quot;, Order = 4, SampleBundle = &quot;input.actions&quot;)]
+public static Widget InputActions(StoryContext ctx) =&gt; DocNew(ctx, $&quot;&quot;&quot;
+    # Block: Input actions
+
+    Windowから独立したaction/context/stackのcopyable blockです。実windowとの接続はhostが`WindowInputSource`を生成し、同じ`InputBus`へpollします。
+
+    {StoryRef(ctx, &quot;Examples/Input/WindowActions&quot;)}
+
+    {SampleBundle(&quot;input.actions&quot;)}
+
+    Platformごとのbackendと制約は [Platform input and deterministic tests](story:Learn/Input/PlatformsAndTesting) を参照してください。
+    &quot;&quot;&quot;, toc: true);</code></pre></details></article>
