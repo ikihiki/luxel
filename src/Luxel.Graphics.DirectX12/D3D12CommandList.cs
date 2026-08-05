@@ -14,6 +14,14 @@ internal sealed class D3D12CommandList : IGpuBackendCommandBuffer
     private readonly ID3D12DescriptorHeap _samplerHeap;
     private ID3D12CommandAllocator _allocator;
     private ID3D12GraphicsCommandList _list;
+    private IGpuBackendPipeline? _graphicsPipeline;
+    private GpuRasterizerState _rasterizer = GpuRasterizerState.Default;
+    private GpuDepthStencilState _depthStencil = GpuDepthStencilState.Default;
+    private GpuBlendState _blend = GpuBlendState.None;
+    private uint _renderWidth, _renderHeight;
+    private GpuFormat _colorFormat;
+    private GpuFormat? _depthFormat;
+    private bool _rendering;
     private bool _isGraphics;
     private bool _disposed;
 
@@ -48,12 +56,29 @@ internal sealed class D3D12CommandList : IGpuBackendCommandBuffer
     public void SetGraphicsPipeline(IGpuBackendPipeline pipeline)
     {
         _isGraphics = true;
+        _graphicsPipeline = pipeline;
         _list.SetGraphicsRootSignature(_rootSignature);
         _list.SetGraphicsRootDescriptorTable(1, ResGpu);
         _list.SetGraphicsRootDescriptorTable(2, ResGpu);
         _list.SetGraphicsRootDescriptorTable(3, SmpGpu);
-        _list.SetPipelineState(((D3D12Pipeline)pipeline).Handle);
-        _list.IASetPrimitiveTopology(PrimitiveTopology.TriangleList);
+    }
+    public void SetRasterizerState(GpuRasterizerState state) => _rasterizer = state;
+    public void SetDepthStencilState(GpuDepthStencilState state) => _depthStencil = state.Normalize();
+    public void SetBlendState(GpuBlendState state) => _blend = state;
+    public void SetStencilReference(uint reference)
+    {
+        if (!_rendering) throw new InvalidOperationException("Stencil reference can only be set during rendering.");
+        _list.OMSetStencilRef(reference);
+    }
+    public void SetViewport(GpuViewport value)
+    {
+        ValidateViewport(value);
+        _list.RSSetViewport(value.X, value.Y, value.Width, value.Height, value.MinDepth, value.MaxDepth);
+    }
+    public void SetScissor(GpuScissorRect value)
+    {
+        ValidateScissor(value);
+        _list.RSSetScissorRect(new RawRect((int)value.X, (int)value.Y, checked((int)(value.X + value.Width)), checked((int)(value.Y + value.Height))));
     }
 
     public unsafe void SetRootConstants(ReadOnlySpan<byte> data)
@@ -70,7 +95,7 @@ internal sealed class D3D12CommandList : IGpuBackendCommandBuffer
         => _list.Dispatch(groupCountX, groupCountY, groupCountZ);
 
     public void BeginRendering(IGpuBackendTexture color, IGpuBackendTexture? depth,
-        float r, float g, float b, float a, float clearDepth)
+        float r, float g, float b, float a, float clearDepth, uint clearStencil)
     {
         var tex = (D3D12Texture)color;
         Transition(tex, ResourceStates.RenderTarget);
@@ -79,21 +104,47 @@ internal sealed class D3D12CommandList : IGpuBackendCommandBuffer
         {
             var dtex = (D3D12Texture)depth;
             _list.OMSetRenderTargets(tex.Rtv, dtex.Dsv);
-            _list.ClearDepthStencilView(dtex.Dsv, ClearFlags.Depth, clearDepth, 0);
+            ClearFlags flags = ClearFlags.Depth | (GpuFormatInfo.HasStencil(dtex.Format) ? ClearFlags.Stencil : 0);
+            _list.ClearDepthStencilView(dtex.Dsv, flags, clearDepth, (byte)clearStencil);
         }
         else
         {
             _list.OMSetRenderTargets(tex.Rtv, null);
         }
         _list.ClearRenderTargetView(tex.Rtv, new Color4(r, g, b, a));
-        _list.RSSetViewport(0, 0, tex.Width, tex.Height, 0, 1);
-        _list.RSSetScissorRect(new RawRect(0, 0, (int)tex.Width, (int)tex.Height));
+        _renderWidth = tex.Width; _renderHeight = tex.Height; _colorFormat = tex.Format; _depthFormat = depth?.Format; _rendering = true;
+        SetViewport(new GpuViewport(0, 0, tex.Width, tex.Height));
+        SetScissor(new GpuScissorRect(0, 0, tex.Width, tex.Height));
+        _list.OMSetStencilRef(0);
     }
 
-    public void EndRendering() { /* D3D12 はレンダーパスオブジェクト不要 */ }
+    public void EndRendering() { _rendering = false; }
 
     public void Draw(uint vertexCount, uint instanceCount)
-        => _list.DrawInstanced(vertexCount, instanceCount, 0, 0);
+    {
+        if (!_rendering) throw new InvalidOperationException("BeginRendering must be called before Draw.");
+        if (_graphicsPipeline is null) throw new InvalidOperationException("A graphics pipeline must be set before Draw.");
+        GpuAttachmentLayout layout = _graphicsPipeline.GraphicsDescription!.Value.Attachments;
+        if (layout.ColorFormat != _colorFormat || layout.DepthStencilFormat != _depthFormat) throw new InvalidOperationException("Bound attachments do not match the graphics pipeline attachment layout.");
+        var variant = (D3D12Pipeline)_graphicsPipeline.ResolveGraphicsVariant(_rasterizer, _depthStencil, _blend);
+        _list.SetPipelineState(variant.Handle);
+        GpuPrimitiveTopology topology = _graphicsPipeline.GraphicsDescription!.Value.Topology;
+        _list.IASetPrimitiveTopology(topology == GpuPrimitiveTopology.TriangleStrip ? PrimitiveTopology.TriangleStrip : PrimitiveTopology.TriangleList);
+        _list.DrawInstanced(vertexCount, instanceCount, 0, 0);
+    }
+
+    private void ValidateViewport(GpuViewport value)
+    {
+        if (!_rendering) throw new InvalidOperationException("Viewport can only be set during rendering.");
+        if (!float.IsFinite(value.X) || !float.IsFinite(value.Y) || !float.IsFinite(value.Width) || !float.IsFinite(value.Height) || value.Width <= 0 || value.Height <= 0 || value.X < 0 || value.Y < 0 || value.X + value.Width > _renderWidth || value.Y + value.Height > _renderHeight || value.MinDepth < 0 || value.MaxDepth > 1 || value.MinDepth > value.MaxDepth)
+            throw new ArgumentOutOfRangeException(nameof(value));
+    }
+    private void ValidateScissor(GpuScissorRect value)
+    {
+        if (!_rendering) throw new InvalidOperationException("Scissor can only be set during rendering.");
+        if (value.Width == 0 || value.Height == 0 || (ulong)value.X + value.Width > _renderWidth || (ulong)value.Y + value.Height > _renderHeight)
+            throw new ArgumentOutOfRangeException(nameof(value));
+    }
 
     public unsafe void CopyTextureToBuffer(IGpuBackendTexture source, IGpuBackendBuffer destination, uint rowLengthPixels)
     {

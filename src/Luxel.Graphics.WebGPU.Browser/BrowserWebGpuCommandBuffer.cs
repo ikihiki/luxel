@@ -8,7 +8,13 @@ internal sealed class BrowserWebGpuCommandBuffer : BrowserWebGpuHandle, IGpuBack
     private bool _submitted;
     private bool _rendering;
     private bool _computePipeline;
-    private bool _graphicsPipeline;
+    private BrowserWebGpuPipeline? _graphicsPipeline;
+    private GpuRasterizerState _rasterizer = GpuRasterizerState.Default;
+    private GpuDepthStencilState _depthStencil = GpuDepthStencilState.Default;
+    private GpuBlendState _blend = GpuBlendState.None;
+    private uint _renderWidth, _renderHeight;
+    private GpuFormat _colorFormat;
+    private GpuFormat? _depthFormat;
 
     internal BrowserWebGpuCommandBuffer(BrowserWebGpuBackend owner) : base(owner, owner.Interop.CreateCommandBuffer(owner.Handle)) { }
     internal bool IsFinished => _finished;
@@ -41,23 +47,42 @@ internal sealed class BrowserWebGpuCommandBuffer : BrowserWebGpuHandle, IGpuBack
     public void SetGraphicsPipeline(IGpuBackendPipeline pipeline)
     {
         EnsureRecording();
-        var value = Owner.RequirePipeline(pipeline, false);
-        Owner.Interop.CommandSetGraphicsPipeline(Handle, value.Handle);
-        _graphicsPipeline = true;
+        _graphicsPipeline = Owner.RequirePipeline(pipeline, false);
+    }
+    public void SetRasterizerState(GpuRasterizerState state) => _rasterizer = state;
+    public void SetDepthStencilState(GpuDepthStencilState state) => _depthStencil = state.Normalize();
+    public void SetBlendState(GpuBlendState state) => _blend = state;
+    public void SetStencilReference(uint reference)
+    {
+        if (!_rendering) throw new InvalidOperationException("Stencil reference can only be set during rendering.");
+        Owner.Interop.CommandSetStencilReference(Handle, CheckedInt(reference));
+    }
+    public void SetViewport(GpuViewport value)
+    {
+        ValidateViewport(value);
+        Owner.Interop.CommandSetViewport(Handle, value.X, value.Y, value.Width, value.Height, value.MinDepth, value.MaxDepth);
+    }
+    public void SetScissor(GpuScissorRect value)
+    {
+        ValidateScissor(value);
+        Owner.Interop.CommandSetScissor(Handle, CheckedInt(value.X), CheckedInt(value.Y), CheckedInt(value.Width), CheckedInt(value.Height));
     }
 
-    public void BeginRendering(IGpuBackendTexture color, IGpuBackendTexture? depth, float r, float g, float b, float a, float clearDepth)
+    public void BeginRendering(IGpuBackendTexture color, IGpuBackendTexture? depth, float r, float g, float b, float a, float clearDepth, uint clearStencil)
     {
         EnsureRecording();
         if (_rendering) throw new InvalidOperationException("A render pass is already active.");
         BrowserWebGpuTexture colorValue = Owner.RequireTexture(color, nameof(color));
-        if (colorValue.Format == GpuFormat.D32Float) throw new ArgumentException("Color target cannot use a depth format.", nameof(color));
+        if (!GpuFormatInfo.IsColor(colorValue.Format)) throw new ArgumentException("Color target must use a color format.", nameof(color));
         BrowserWebGpuTexture? depthValue = depth is null ? null : Owner.RequireTexture(depth, nameof(depth));
-        if (depthValue is not null && depthValue.Format != GpuFormat.D32Float) throw new ArgumentException("Depth target must use D32Float.", nameof(depth));
+        if (depthValue is not null && !GpuFormatInfo.IsDepthStencilAttachment(depthValue.Format)) throw new ArgumentException("Depth target must use a depth-stencil format.", nameof(depth));
         if (depthValue is not null && (depthValue.Width != colorValue.Width || depthValue.Height != colorValue.Height))
             throw new ArgumentException("Color and depth target dimensions must match.", nameof(depth));
-        Owner.Interop.CommandBeginRendering(Handle, colorValue.Handle, depthValue?.Handle ?? 0, r, g, b, a, clearDepth);
-        _rendering = true;
+        Owner.Interop.CommandBeginRendering(Handle, colorValue.Handle, depthValue?.Handle ?? 0, r, g, b, a, clearDepth, CheckedInt(clearStencil));
+        _renderWidth = colorValue.Width; _renderHeight = colorValue.Height; _colorFormat = colorValue.Format; _depthFormat = depthValue?.Format; _rendering = true;
+        SetViewport(new GpuViewport(0, 0, colorValue.Width, colorValue.Height));
+        SetScissor(new GpuScissorRect(0, 0, colorValue.Width, colorValue.Height));
+        Owner.Interop.CommandSetStencilReference(Handle, 0);
     }
 
     public void EndRendering()
@@ -72,9 +97,26 @@ internal sealed class BrowserWebGpuCommandBuffer : BrowserWebGpuHandle, IGpuBack
     {
         EnsureRecording();
         if (!_rendering) throw new InvalidOperationException("BeginRendering must be called before Draw.");
-        if (!_graphicsPipeline) throw new InvalidOperationException("SetGraphicsPipeline must be called before Draw.");
+        if (_graphicsPipeline is null) throw new InvalidOperationException("SetGraphicsPipeline must be called before Draw.");
+        GpuAttachmentLayout layout = _graphicsPipeline.GraphicsDescription!.Value.Attachments;
+        if (layout.ColorFormat != _colorFormat || layout.DepthStencilFormat != _depthFormat) throw new InvalidOperationException("Bound attachments do not match the graphics pipeline attachment layout.");
+        var variant = (BrowserWebGpuPipeline)_graphicsPipeline.ResolveGraphicsVariant(_rasterizer, _depthStencil, _blend);
+        Owner.Interop.CommandSetGraphicsPipeline(Handle, variant.Handle);
         if (vertexCount == 0 || instanceCount == 0) throw new ArgumentOutOfRangeException(nameof(vertexCount));
         Owner.Interop.CommandDraw(Handle, CheckedInt(vertexCount), CheckedInt(instanceCount));
+    }
+
+    private void ValidateViewport(GpuViewport value)
+    {
+        if (!_rendering) throw new InvalidOperationException("Viewport can only be set during rendering.");
+        if (!float.IsFinite(value.X) || !float.IsFinite(value.Y) || !float.IsFinite(value.Width) || !float.IsFinite(value.Height) || value.Width <= 0 || value.Height <= 0 || value.X < 0 || value.Y < 0 || value.X + value.Width > _renderWidth || value.Y + value.Height > _renderHeight || value.MinDepth < 0 || value.MaxDepth > 1 || value.MinDepth > value.MaxDepth)
+            throw new ArgumentOutOfRangeException(nameof(value));
+    }
+    private void ValidateScissor(GpuScissorRect value)
+    {
+        if (!_rendering) throw new InvalidOperationException("Scissor can only be set during rendering.");
+        if (value.Width == 0 || value.Height == 0 || (ulong)value.X + value.Width > _renderWidth || (ulong)value.Y + value.Height > _renderHeight)
+            throw new ArgumentOutOfRangeException(nameof(value));
     }
 
     public void CopyTextureToBuffer(IGpuBackendTexture source, IGpuBackendBuffer destination, uint rowLengthPixels)

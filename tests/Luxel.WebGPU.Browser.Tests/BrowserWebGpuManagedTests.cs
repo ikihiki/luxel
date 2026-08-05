@@ -33,7 +33,7 @@ public sealed class BrowserWebGpuManagedTests
         Assert.Equal(0UL, reused.DeviceAddress);
         using var foreign = b.CreateRenderTarget(1, 1, GpuFormat.Rgba8Unorm);
         using var command = a.MainQueue.StartCommandRecording();
-        Assert.Throws<ArgumentException>(() => command.BeginRendering(foreign, null, 0, 0, 0, 1, 1));
+        Assert.Throws<ArgumentException>(() => command.BeginRendering(foreign, null, 0, 0, 0, 1, 1, 0));
     }
 
     [Fact]
@@ -131,6 +131,23 @@ public sealed class BrowserWebGpuManagedTests
         Assert.Throws<ArgumentException>(() => surface.Present(foreignBuffer, 16, 16, 16));
     }
 
+    [Fact]
+    public void Pipeline_state_json_contains_portable_depth_stencil_semantics()
+    {
+        var face = new GpuStencilFaceState(GpuCompareOp.Equal, GpuStencilOp.Replace,
+            GpuStencilOp.IncrementClamp, GpuStencilOp.DecrementWrap);
+        var depth = new GpuDepthStencilState(true, true, GpuCompareOp.LessEqual, true,
+            face, GpuStencilFaceState.Default, 0x7f, 0x3f);
+        var key = new GpuGraphicsPipelineVariantKey(
+            new GpuAttachmentLayout(GpuFormat.Rgba8Unorm, GpuFormat.Depth24PlusStencil8),
+            GpuPrimitiveTopology.TriangleStrip, GpuRasterizerState.Default, depth, GpuBlendState.AlphaBlend);
+        string json = BrowserWebGpuBackend.SerializePipelineState(key);
+        Assert.Contains("\"depthCompare\":3", json);
+        Assert.Contains("\"stencilReadMask\":127", json);
+        Assert.Contains("\"stencilWriteMask\":63", json);
+        Assert.Contains("\"stencilFront\"", json);
+    }
+
     private static unsafe nint Pointer(IGpuBackendBuffer buffer) => (nint)buffer.MappedPointer;
     private static unsafe void Fill(IGpuBackendBuffer buffer, byte value, int length) => new Span<byte>(buffer.MappedPointer, length).Fill(value);
     private static unsafe byte[] Read(IGpuBackendBuffer buffer, int length) => new ReadOnlySpan<byte>(buffer.MappedPointer, length).ToArray();
@@ -161,7 +178,10 @@ public sealed class BrowserWebGpuManagedTests
         public void CommandSetGraphicsPipeline(int command, int pipeline) { }
         public void CommandSetRootConstants(int command, string dataBase64) { }
         public void CommandDispatch(int command, int x, int y, int z) { }
-        public void CommandBeginRendering(int command, int color, int depth, float r, float g, float b, float a, float clearDepth) { }
+        public void CommandBeginRendering(int command, int color, int depth, float r, float g, float b, float a, float clearDepth, int clearStencil) { }
+        public void CommandSetStencilReference(int command, int reference) { }
+        public void CommandSetViewport(int command, float x, float y, float width, float height, float minDepth, float maxDepth) { }
+        public void CommandSetScissor(int command, int x, int y, int width, int height) { }
         public void CommandEndRendering(int command) { }
         public void CommandDraw(int command, int vertexCount, int instanceCount) { }
         public void CommandCopyTextureToBuffer(int command, int texture, int destinationOffset, int bytesPerRow, int width, int height) { }

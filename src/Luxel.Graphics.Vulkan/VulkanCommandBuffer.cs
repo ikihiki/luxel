@@ -12,6 +12,14 @@ internal sealed unsafe class VulkanCommandBuffer : IGpuBackendCommandBuffer
     private readonly DescriptorSet _descriptorSet;
     private CommandPool _pool;
     private CommandBuffer _cb;
+    private IGpuBackendPipeline? _graphicsPipeline;
+    private GpuRasterizerState _rasterizer = GpuRasterizerState.Default;
+    private GpuDepthStencilState _depthStencil = GpuDepthStencilState.Default;
+    private GpuBlendState _blend = GpuBlendState.None;
+    private uint _renderWidth, _renderHeight;
+    private GpuFormat _colorFormat;
+    private GpuFormat? _depthFormat;
+    private bool _rendering;
     private bool _disposed;
 
     public VulkanCommandBuffer(Vk vk, Device device, uint queueFamilyIndex, PipelineLayout layout,
@@ -71,14 +79,30 @@ internal sealed unsafe class VulkanCommandBuffer : IGpuBackendCommandBuffer
         _vk.CmdDispatch(_cb, groupCountX, groupCountY, groupCountZ);
     }
 
-    public void SetGraphicsPipeline(IGpuBackendPipeline pipeline)
+    public void SetGraphicsPipeline(IGpuBackendPipeline pipeline) => _graphicsPipeline = pipeline;
+    public void SetRasterizerState(GpuRasterizerState state) => _rasterizer = state;
+    public void SetDepthStencilState(GpuDepthStencilState state) => _depthStencil = state.Normalize();
+    public void SetBlendState(GpuBlendState state) => _blend = state;
+    public void SetStencilReference(uint reference)
     {
-        var vp = (VulkanPipeline)pipeline;
-        _vk.CmdBindPipeline(_cb, PipelineBindPoint.Graphics, vp.Handle);
+        if (!_rendering) throw new InvalidOperationException("Stencil reference can only be set during rendering.");
+        _vk.CmdSetStencilReference(_cb, StencilFaceFlags.FrontAndBack, reference);
+    }
+    public void SetViewport(GpuViewport value)
+    {
+        ValidateViewport(value);
+        var viewport = new Viewport(value.X, value.Y + value.Height, value.Width, -value.Height, value.MinDepth, value.MaxDepth);
+        _vk.CmdSetViewport(_cb, 0, 1, in viewport);
+    }
+    public void SetScissor(GpuScissorRect value)
+    {
+        ValidateScissor(value);
+        var scissor = new Rect2D(new Offset2D((int)value.X, (int)value.Y), new Extent2D(value.Width, value.Height));
+        _vk.CmdSetScissor(_cb, 0, 1, in scissor);
     }
 
     public void BeginRendering(IGpuBackendTexture color, IGpuBackendTexture? depth,
-        float r, float g, float b, float a, float clearDepth)
+        float r, float g, float b, float a, float clearDepth, uint clearStencil)
     {
         var tex = (VulkanTexture)color;
         TransitionImage(tex, ImageLayout.ColorAttachmentOptimal,
@@ -101,17 +125,23 @@ internal sealed unsafe class VulkanCommandBuffer : IGpuBackendCommandBuffer
         if (hasDepth)
         {
             var dtex = (VulkanTexture)depth!;
-            TransitionImage(dtex, ImageLayout.DepthAttachmentOptimal,
+            ImageLayout depthLayout = GpuFormatInfo.HasStencil(dtex.Format)
+                ? ImageLayout.DepthStencilAttachmentOptimal : ImageLayout.DepthAttachmentOptimal;
+            TransitionImage(dtex, depthLayout,
                 PipelineStageFlags2.TopOfPipeBit, 0,
                 PipelineStageFlags2.EarlyFragmentTestsBit | PipelineStageFlags2.LateFragmentTestsBit,
                 AccessFlags2.DepthStencilAttachmentWriteBit);
             depthAttachment.ImageView = dtex.View;
-            depthAttachment.ImageLayout = ImageLayout.DepthAttachmentOptimal;
+            depthAttachment.ImageLayout = depthLayout;
             depthAttachment.LoadOp = AttachmentLoadOp.Clear;
             depthAttachment.StoreOp = AttachmentStoreOp.Store;
-            depthAttachment.ClearValue = new ClearValue { DepthStencil = new ClearDepthStencilValue(clearDepth, 0) };
+            depthAttachment.ClearValue = new ClearValue { DepthStencil = new ClearDepthStencilValue(clearDepth, clearStencil) };
         }
 
+        _renderWidth = tex.Width;
+        _renderHeight = tex.Height;
+        _colorFormat = tex.Format; _depthFormat = depth?.Format;
+        _rendering = true;
         var renderingInfo = new RenderingInfo
         {
             SType = StructureType.RenderingInfo,
@@ -120,20 +150,51 @@ internal sealed unsafe class VulkanCommandBuffer : IGpuBackendCommandBuffer
             ColorAttachmentCount = 1,
             PColorAttachments = &attachment,
             PDepthAttachment = hasDepth ? &depthAttachment : null,
+            PStencilAttachment = hasDepth && GpuFormatInfo.HasStencil(depth!.Format) ? &depthAttachment : null,
         };
         _vk.CmdBeginRendering(_cb, in renderingInfo);
-
-        // ネガティブ高さビューポートで Y を反転し、D3D12 と同じ座標系に揃える。
-        var viewport = new Viewport(0, tex.Height, tex.Width, -(float)tex.Height, 0, 1);
-        _vk.CmdSetViewport(_cb, 0, 1, in viewport);
-        var scissor = new Rect2D(new Offset2D(0, 0), new Extent2D(tex.Width, tex.Height));
-        _vk.CmdSetScissor(_cb, 0, 1, in scissor);
+        SetViewport(new GpuViewport(0, 0, tex.Width, tex.Height));
+        SetScissor(new GpuScissorRect(0, 0, tex.Width, tex.Height));
+        _vk.CmdSetStencilReference(_cb, StencilFaceFlags.FrontAndBack, 0);
     }
 
-    public void EndRendering() => _vk.CmdEndRendering(_cb);
+    public void EndRendering() { _vk.CmdEndRendering(_cb); _rendering = false; }
 
     public void Draw(uint vertexCount, uint instanceCount)
-        => _vk.CmdDraw(_cb, vertexCount, instanceCount, 0, 0);
+    {
+        if (!_rendering) throw new InvalidOperationException("BeginRendering must be called before Draw.");
+        if (_graphicsPipeline is null) throw new InvalidOperationException("A graphics pipeline must be set before Draw.");
+        ValidateAttachments(_graphicsPipeline.GraphicsDescription!.Value);
+        var variant = (VulkanPipeline)_graphicsPipeline.ResolveGraphicsVariant(_rasterizer, _depthStencil, _blend);
+        _vk.CmdBindPipeline(_cb, PipelineBindPoint.Graphics, variant.Handle);
+        _vk.CmdDraw(_cb, vertexCount, instanceCount, 0, 0);
+    }
+
+    private void ValidateAttachments(GpuGraphicsPipelineDesc description)
+    {
+        if (description.Attachments.ColorFormat != _colorFormat || description.Attachments.DepthStencilFormat != _depthFormat)
+            throw new InvalidOperationException("Bound attachments do not match the graphics pipeline attachment layout.");
+        bool needsDepth = _depthStencil.DepthTest || _depthStencil.DepthWrite;
+        bool needsStencil = _depthStencil.StencilTest;
+        GpuFormat? format = description.Attachments.DepthStencilFormat;
+        if (needsDepth && (format is not { } depth || !GpuFormatInfo.HasDepth(depth)))
+            throw new InvalidOperationException("Depth state requires a depth attachment format.");
+        if (needsStencil && (format is not { } stencil || !GpuFormatInfo.HasStencil(stencil)))
+            throw new InvalidOperationException("Stencil state requires a stencil attachment format.");
+    }
+
+    private void ValidateViewport(GpuViewport value)
+    {
+        if (!_rendering) throw new InvalidOperationException("Viewport can only be set during rendering.");
+        if (!float.IsFinite(value.X) || !float.IsFinite(value.Y) || !float.IsFinite(value.Width) || !float.IsFinite(value.Height) || value.Width <= 0 || value.Height <= 0 || value.X < 0 || value.Y < 0 || value.X + value.Width > _renderWidth || value.Y + value.Height > _renderHeight || value.MinDepth < 0 || value.MaxDepth > 1 || value.MinDepth > value.MaxDepth)
+            throw new ArgumentOutOfRangeException(nameof(value));
+    }
+    private void ValidateScissor(GpuScissorRect value)
+    {
+        if (!_rendering) throw new InvalidOperationException("Scissor can only be set during rendering.");
+        if (value.Width == 0 || value.Height == 0 || (ulong)value.X + value.Width > _renderWidth || (ulong)value.Y + value.Height > _renderHeight)
+            throw new ArgumentOutOfRangeException(nameof(value));
+    }
 
     public void CopyTextureToBuffer(IGpuBackendTexture source, IGpuBackendBuffer destination, uint rowLengthPixels)
     {

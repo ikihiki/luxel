@@ -3,6 +3,7 @@ namespace Luxel.Graphics;
 /// <summary>
 /// グラフィックスパイプラインのラスタ状態。ブログの GpuRasterDesc に相当。
 /// </summary>
+[Obsolete("Use GpuGraphicsPipelineDesc with separate rasterizer, depth-stencil, and blend state blocks.") ]
 public struct GpuRasterDesc
 {
     /// <summary>カラーターゲット形式。</summary>
@@ -28,6 +29,16 @@ public struct GpuRasterDesc
 
     /// <summary>表面として扱う頂点の回り順。</summary>
     public GpuFrontFace FrontFace;
+
+
+    internal readonly (GpuGraphicsPipelineDesc Pipeline, GpuRasterizerState Rasterizer, GpuDepthStencilState DepthStencil, GpuBlendState Blend) Normalize()
+    {
+        var layout = new GpuAttachmentLayout(ColorFormat, DepthTest || DepthWrite ? DepthFormat : null);
+        return (new GpuGraphicsPipelineDesc(layout, Topology),
+            new GpuRasterizerState(CullMode, FrontFace),
+            new GpuDepthStencilState(DepthTest, DepthWrite, GpuCompareOp.LessEqual, false, GpuStencilFaceState.Default, GpuStencilFaceState.Default, 0xff, 0xff),
+            new GpuBlendState(Blend));
+    }
 
     public static GpuRasterDesc Default(GpuFormat colorFormat) => new()
     {

@@ -61,14 +61,31 @@ public sealed class GpuCommandBuffer : IDisposable
     public GpuCommandBuffer SetGraphicsPipeline(GpuPipeline pipeline)
     {
         _cmd.SetGraphicsPipeline(pipeline.Backend);
+        _cmd.SetRasterizerState(pipeline.LegacyRasterizerState);
+        _cmd.SetDepthStencilState(pipeline.LegacyDepthStencilState);
+        _cmd.SetBlendState(pipeline.LegacyBlendState);
         return this;
     }
 
-    /// <summary>カラー(+任意で深度)ターゲットへの描画を開始し、クリアする。</summary>
-    public GpuCommandBuffer BeginRendering(GpuTexture color, GpuTexture? depth = null,
-        float r = 0, float g = 0, float b = 0, float a = 1, float clearDepth = 1f)
+    public GpuCommandBuffer SetRasterizerState(GpuRasterizerState state) { _cmd.SetRasterizerState(state); return this; }
+    public GpuCommandBuffer SetDepthStencilState(GpuDepthStencilState state) { _cmd.SetDepthStencilState(state.Normalize()); return this; }
+    public GpuCommandBuffer SetStencilReference(uint reference)
     {
-        _cmd.BeginRendering(color.Backend, depth?.Backend, r, g, b, a, clearDepth);
+        GpuDepthStencilState.ValidateByte(reference, nameof(reference));
+        _cmd.SetStencilReference(reference);
+        return this;
+    }
+    public GpuCommandBuffer SetBlendState(GpuBlendState state) { _cmd.SetBlendState(state); return this; }
+    public GpuCommandBuffer SetViewport(GpuViewport viewport) { _cmd.SetViewport(viewport); return this; }
+    public GpuCommandBuffer SetScissor(GpuScissorRect scissor) { _cmd.SetScissor(scissor); return this; }
+
+    /// <summary>カラー(+任意で深度-stencil)ターゲットへの描画を開始し、クリアする。</summary>
+    public GpuCommandBuffer BeginRendering(GpuTexture color, GpuTexture? depth = null,
+        float r = 0, float g = 0, float b = 0, float a = 1, float clearDepth = 1f, uint clearStencil = 0)
+    {
+        if (!float.IsFinite(clearDepth) || clearDepth < 0 || clearDepth > 1) throw new ArgumentOutOfRangeException(nameof(clearDepth));
+        GpuDepthStencilState.ValidateByte(clearStencil, nameof(clearStencil));
+        _cmd.BeginRendering(color.Backend, depth?.Backend, r, g, b, a, clearDepth, clearStencil);
         return this;
     }
 

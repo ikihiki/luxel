@@ -78,7 +78,25 @@ internal sealed class BrowserWebGpuSampler : BrowserWebGpuHandle, IGpuBackendSam
 internal sealed class BrowserWebGpuPipeline : BrowserWebGpuHandle, IGpuBackendPipeline
 {
     private readonly bool _compute;
+    private readonly Func<GpuGraphicsPipelineVariantKey, int>? _factory;
+    private readonly Dictionary<GpuGraphicsPipelineVariantKey, BrowserWebGpuPipeline>? _variants;
+    private ulong _hits, _misses;
     internal BrowserWebGpuPipeline(BrowserWebGpuBackend owner, int handle, bool compute) : base(owner, handle) => _compute = compute;
+    internal BrowserWebGpuPipeline(BrowserWebGpuBackend owner, GpuGraphicsPipelineDesc description, Func<GpuGraphicsPipelineVariantKey, int> factory) : base(owner, int.MaxValue)
+    { GraphicsDescription = description; _factory = factory; _variants = new(); }
     public bool IsCompute { get { ThrowIfDisposed(); return _compute; } }
-    protected override void Release() => Owner.ReleaseHandle(BrowserHandleKind.Pipeline, Handle);
+    public GpuGraphicsPipelineDesc? GraphicsDescription { get; }
+    public GpuPipelineDiagnostics Diagnostics => new(_hits, _misses, (ulong)(_variants?.Count ?? 1));
+    public IGpuBackendPipeline ResolveGraphicsVariant(GpuRasterizerState rasterizer, GpuDepthStencilState depthStencil, GpuBlendState blend)
+    {
+        if (GraphicsDescription is not { } desc) return this;
+        var key = new GpuGraphicsPipelineVariantKey(desc.Attachments, desc.Topology, rasterizer, depthStencil.Normalize(), blend);
+        if (_variants!.TryGetValue(key, out var value)) { _hits++; return value; }
+        _misses++; value = new BrowserWebGpuPipeline(Owner, _factory!(key), false); _variants.Add(key, value); return value;
+    }
+    protected override void Release()
+    {
+        if (_variants is not null) foreach (var variant in _variants.Values) variant.Dispose();
+        else Owner.ReleaseHandle(BrowserHandleKind.Pipeline, Handle);
+    }
 }

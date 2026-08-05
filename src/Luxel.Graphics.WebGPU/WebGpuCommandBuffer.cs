@@ -17,6 +17,12 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
     private ComputePassEncoder* _computePass;
     private RenderPassEncoder* _renderPass;
     private WebGpuPipeline? _graphicsPipeline;
+    private GpuRasterizerState _rasterizer = GpuRasterizerState.Default;
+    private GpuDepthStencilState _depthStencil = GpuDepthStencilState.Default;
+    private GpuBlendState _blend = GpuBlendState.None;
+    private uint _renderWidth, _renderHeight;
+    private GpuFormat _colorFormat;
+    private GpuFormat? _depthFormat;
     private CommandBuffer* _commandBuffer;
     private readonly List<nint> _temporaryBuffers = [];
     private readonly HashSet<WebGpuBuffer> _referencedBuffers = [];
@@ -95,11 +101,28 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
         EnsureRecording();
         _graphicsPipeline = RequirePipeline(pipeline, false);
         if (_computePass != null) EndComputePass();
-        if (_renderPass != null) _api.RenderPassEncoderSetPipeline(_renderPass, _graphicsPipeline.Render);
+    }
+    public void SetRasterizerState(GpuRasterizerState state) => _rasterizer = state;
+    public void SetDepthStencilState(GpuDepthStencilState state) => _depthStencil = state.Normalize();
+    public void SetBlendState(GpuBlendState state) => _blend = state;
+    public void SetStencilReference(uint reference)
+    {
+        if (_renderPass == null) throw new InvalidOperationException("Stencil reference can only be set during rendering.");
+        _api.RenderPassEncoderSetStencilReference(_renderPass, reference);
+    }
+    public void SetViewport(GpuViewport value)
+    {
+        ValidateViewport(value);
+        _api.RenderPassEncoderSetViewport(_renderPass, value.X, value.Y, value.Width, value.Height, value.MinDepth, value.MaxDepth);
+    }
+    public void SetScissor(GpuScissorRect value)
+    {
+        ValidateScissor(value);
+        _api.RenderPassEncoderSetScissorRect(_renderPass, value.X, value.Y, value.Width, value.Height);
     }
 
     public void BeginRendering(IGpuBackendTexture color, IGpuBackendTexture? depth,
-        float r, float g, float b, float a, float clearDepth)
+        float r, float g, float b, float a, float clearDepth, uint clearStencil)
     {
         EnsureRecording();
         EndPasses();
@@ -122,8 +145,9 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
                 DepthLoadOp = LoadOp.Clear,
                 DepthStoreOp = StoreOp.Store,
                 DepthClearValue = clearDepth,
-                StencilLoadOp = LoadOp.Undefined,
-                StencilStoreOp = StoreOp.Undefined,
+                StencilLoadOp = GpuFormatInfo.HasStencil(depthTexture.Format) ? LoadOp.Clear : LoadOp.Undefined,
+                StencilStoreOp = GpuFormatInfo.HasStencil(depthTexture.Format) ? StoreOp.Store : StoreOp.Undefined,
+                StencilClearValue = clearStencil,
             };
         }
         var descriptor = new RenderPassDescriptor
@@ -133,9 +157,10 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
             DepthStencilAttachment = depth is null ? null : &depthAttachment,
         };
         _renderPass = _api.CommandEncoderBeginRenderPass(_encoder, in descriptor);
-        if (_graphicsPipeline is not null) _api.RenderPassEncoderSetPipeline(_renderPass, _graphicsPipeline.Render);
-        _api.RenderPassEncoderSetViewport(_renderPass, 0, 0, colorTexture.Width, colorTexture.Height, 0, 1);
-        _api.RenderPassEncoderSetScissorRect(_renderPass, 0, 0, colorTexture.Width, colorTexture.Height);
+        _renderWidth = colorTexture.Width; _renderHeight = colorTexture.Height; _colorFormat = colorTexture.Format; _depthFormat = depth?.Format;
+        SetViewport(new GpuViewport(0, 0, colorTexture.Width, colorTexture.Height));
+        SetScissor(new GpuScissorRect(0, 0, colorTexture.Width, colorTexture.Height));
+        _api.RenderPassEncoderSetStencilReference(_renderPass, 0);
     }
 
     public void EndRendering()
@@ -151,10 +176,27 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
         EnsureRecording();
         if (_renderPass == null) throw new InvalidOperationException("BeginRendering must be called before Draw.");
         if (_graphicsPipeline is null) throw new InvalidOperationException("SetGraphicsPipeline must be called before Draw.");
+        GpuAttachmentLayout layout = _graphicsPipeline.GraphicsDescription!.Value.Attachments;
+        if (layout.ColorFormat != _colorFormat || layout.DepthStencilFormat != _depthFormat) throw new InvalidOperationException("Bound attachments do not match the graphics pipeline attachment layout.");
+        var variant = (WebGpuPipeline)_graphicsPipeline.ResolveGraphicsVariant(_rasterizer, _depthStencil, _blend);
+        _api.RenderPassEncoderSetPipeline(_renderPass, variant.Render);
         uint dynamicOffset = _currentRootOffset;
         _api.RenderPassEncoderSetBindGroup(_renderPass, 0, _graphicsBindGroup, 1, in dynamicOffset);
         _api.RenderPassEncoderSetBindGroup(_renderPass, 1, _resourceBindGroup, 0, null);
         _api.RenderPassEncoderDraw(_renderPass, vertexCount, instanceCount, 0, 0);
+    }
+
+    private void ValidateViewport(GpuViewport value)
+    {
+        if (_renderPass == null) throw new InvalidOperationException("Viewport can only be set during rendering.");
+        if (!float.IsFinite(value.X) || !float.IsFinite(value.Y) || !float.IsFinite(value.Width) || !float.IsFinite(value.Height) || value.Width <= 0 || value.Height <= 0 || value.X < 0 || value.Y < 0 || value.X + value.Width > _renderWidth || value.Y + value.Height > _renderHeight || value.MinDepth < 0 || value.MaxDepth > 1 || value.MinDepth > value.MaxDepth)
+            throw new ArgumentOutOfRangeException(nameof(value));
+    }
+    private void ValidateScissor(GpuScissorRect value)
+    {
+        if (_renderPass == null) throw new InvalidOperationException("Scissor can only be set during rendering.");
+        if (value.Width == 0 || value.Height == 0 || (ulong)value.X + value.Width > _renderWidth || (ulong)value.Y + value.Height > _renderHeight)
+            throw new ArgumentOutOfRangeException(nameof(value));
     }
 
     public void CopyTextureToBuffer(IGpuBackendTexture source, IGpuBackendBuffer destination, uint rowLengthPixels)
