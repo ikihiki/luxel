@@ -67,9 +67,8 @@ public sealed class GpuDevice : IDisposable
         var normalized = raster.Normalize();
         var description = normalized.Pipeline with { VertexEntry = vertexEntry, PixelEntry = pixelEntry };
         GpuPipeline pipeline = CreateGraphicsPipeline(code, description);
-        pipeline.LegacyRasterizerState = normalized.Rasterizer;
-        pipeline.LegacyDepthStencilState = normalized.DepthStencil;
-        pipeline.LegacyBlendState = normalized.Blend;
+        pipeline.LegacyGraphicsState = new GpuLegacyGraphicsState(
+            normalized.Rasterizer, normalized.DepthStencil, normalized.Blend);
         return pipeline;
     }
 

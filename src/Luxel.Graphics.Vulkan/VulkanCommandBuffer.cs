@@ -174,13 +174,7 @@ internal sealed unsafe class VulkanCommandBuffer : IGpuBackendCommandBuffer
     {
         if (description.Attachments.ColorFormat != _colorFormat || description.Attachments.DepthStencilFormat != _depthFormat)
             throw new InvalidOperationException("Bound attachments do not match the graphics pipeline attachment layout.");
-        bool needsDepth = _depthStencil.DepthTest || _depthStencil.DepthWrite;
-        bool needsStencil = _depthStencil.StencilTest;
-        GpuFormat? format = description.Attachments.DepthStencilFormat;
-        if (needsDepth && (format is not { } depth || !GpuFormatInfo.HasDepth(depth)))
-            throw new InvalidOperationException("Depth state requires a depth attachment format.");
-        if (needsStencil && (format is not { } stencil || !GpuFormatInfo.HasStencil(stencil)))
-            throw new InvalidOperationException("Stencil state requires a stencil attachment format.");
+        GpuGraphicsStateValidation.ValidateDepthStencilAttachmentRequirements(description.Attachments, _depthStencil);
     }
 
     private void ValidateViewport(GpuViewport value)

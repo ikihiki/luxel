@@ -99,6 +99,19 @@ public sealed class BrowserWebGpuManagedTests
         Assert.Throws<ArgumentException>(() => command.CopyTextureToBuffer(texture, buffer, 3));
     }
 
+    [Theory]
+    [InlineData(GpuFormat.D32Float)]
+    [InlineData(GpuFormat.Depth24PlusStencil8)]
+    public async Task Depth_stencil_texture_readback_is_rejected(GpuFormat format)
+    {
+        using var backend = await BrowserWebGpuBackend.CreateAsync(new FakeInterop());
+        using var command = backend.MainQueue.StartCommandRecording();
+        using var texture = backend.CreateDepthTarget(1, 1, format);
+        using var buffer = backend.CreateBuffer(4, GpuMemoryKind.HostCached);
+
+        Assert.Throws<NotSupportedException>(() => command.CopyTextureToBuffer(texture, buffer, 0));
+    }
+
     [Fact]
     public async Task High_level_async_queue_and_canvas_surface_forward_to_browser_backend()
     {

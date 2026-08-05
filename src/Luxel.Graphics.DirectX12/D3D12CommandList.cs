@@ -126,6 +126,7 @@ internal sealed class D3D12CommandList : IGpuBackendCommandBuffer
         if (_graphicsPipeline is null) throw new InvalidOperationException("A graphics pipeline must be set before Draw.");
         GpuAttachmentLayout layout = _graphicsPipeline.GraphicsDescription!.Value.Attachments;
         if (layout.ColorFormat != _colorFormat || layout.DepthStencilFormat != _depthFormat) throw new InvalidOperationException("Bound attachments do not match the graphics pipeline attachment layout.");
+        GpuGraphicsStateValidation.ValidateDepthStencilAttachmentRequirements(layout, _depthStencil);
         var variant = (D3D12Pipeline)_graphicsPipeline.ResolveGraphicsVariant(_rasterizer, _depthStencil, _blend);
         _list.SetPipelineState(variant.Handle);
         GpuPrimitiveTopology topology = _graphicsPipeline.GraphicsDescription!.Value.Topology;

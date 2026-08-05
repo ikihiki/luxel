@@ -14,9 +14,7 @@ public sealed class GpuPipeline : IDisposable
     public GpuGraphicsPipelineDesc? GraphicsDescription => _pipeline.GraphicsDescription;
     public GpuPipelineDiagnostics Diagnostics => _pipeline.Diagnostics;
 
-    internal GpuRasterizerState LegacyRasterizerState { get; set; } = GpuRasterizerState.Default;
-    internal GpuDepthStencilState LegacyDepthStencilState { get; set; } = GpuDepthStencilState.Default;
-    internal GpuBlendState LegacyBlendState { get; set; } = GpuBlendState.None;
+    internal GpuLegacyGraphicsState? LegacyGraphicsState { get; set; }
     internal IGpuBackendPipeline Backend => _pipeline;
 
     public void Dispose()

@@ -178,6 +178,7 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
         if (_graphicsPipeline is null) throw new InvalidOperationException("SetGraphicsPipeline must be called before Draw.");
         GpuAttachmentLayout layout = _graphicsPipeline.GraphicsDescription!.Value.Attachments;
         if (layout.ColorFormat != _colorFormat || layout.DepthStencilFormat != _depthFormat) throw new InvalidOperationException("Bound attachments do not match the graphics pipeline attachment layout.");
+        GpuGraphicsStateValidation.ValidateDepthStencilAttachmentRequirements(layout, _depthStencil);
         var variant = (WebGpuPipeline)_graphicsPipeline.ResolveGraphicsVariant(_rasterizer, _depthStencil, _blend);
         _api.RenderPassEncoderSetPipeline(_renderPass, variant.Render);
         uint dynamicOffset = _currentRootOffset;
@@ -205,8 +206,8 @@ internal sealed unsafe class WebGpuCommandBuffer : IGpuBackendCommandBuffer
         EndPasses();
         var texture = RequireTexture(source);
         var buffer = RequireBuffer(destination);
-        if (texture.Format == GpuFormat.D32Float)
-            throw new NotSupportedException("Depth texture readback is not supported.");
+        if (GpuFormatInfo.IsDepthStencilAttachment(texture.Format))
+            throw new NotSupportedException("Depth-stencil texture readback is not supported.");
         uint bytesPerPixel = GpuFormatInfo.BytesPerPixel(texture.Format);
         uint rowPixels = rowLengthPixels == 0 ? texture.Width : rowLengthPixels;
         if (rowPixels < texture.Width)

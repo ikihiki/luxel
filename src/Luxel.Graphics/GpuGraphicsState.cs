@@ -88,6 +88,26 @@ public readonly record struct GpuDepthStencilState(
     }
 }
 
+internal readonly record struct GpuLegacyGraphicsState(
+    GpuRasterizerState Rasterizer,
+    GpuDepthStencilState DepthStencil,
+    GpuBlendState Blend);
+
+internal static class GpuGraphicsStateValidation
+{
+    internal static void ValidateDepthStencilAttachmentRequirements(
+        GpuAttachmentLayout attachments, GpuDepthStencilState depthStencil)
+    {
+        GpuFormat? format = attachments.DepthStencilFormat;
+        if ((depthStencil.DepthTest || depthStencil.DepthWrite)
+            && (format is not { } depth || !GpuFormatInfo.HasDepth(depth)))
+            throw new InvalidOperationException("Depth state requires a depth attachment format.");
+        if (depthStencil.StencilTest
+            && (format is not { } stencil || !GpuFormatInfo.HasStencil(stencil)))
+            throw new InvalidOperationException("Stencil state requires a stencil attachment format.");
+    }
+}
+
 public readonly record struct GpuViewport(float X, float Y, float Width, float Height, float MinDepth = 0, float MaxDepth = 1);
 public readonly record struct GpuScissorRect(uint X, uint Y, uint Width, uint Height);
 
