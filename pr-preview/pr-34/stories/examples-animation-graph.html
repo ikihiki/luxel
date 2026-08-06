@@ -1,6 +1,0 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/Animation/Graph</h1></header><aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/Animation/Graph&quot;, Height = 320, Order = 144)]
-public static Widget Graph(StoryContext ctx)
-{
-    Signal&lt;float&gt; weight = ctx.Signal(&quot;weight&quot;, 0.5f, &quot;Blend: 0 = 上下振動, 1 = 左右振動&quot;);
-    return Frame(GpuSceneBase.View(256, 256, new GraphScene(weight)));
-}</code></pre></details></article>
