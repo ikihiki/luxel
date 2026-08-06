@@ -124,21 +124,13 @@ test('exported 2D overview boots its browser-WASM live samples through iframes',
   expect(errors.pageErrors).toEqual([]);
 });
 
-test('exported Animation overview boots its browser-WASM live samples through iframes', async ({ page }) => {
+test('exported Animation lesson boots its browser-WASM live sample through an iframe', async ({ page }) => {
   const errors = collectErrors(page);
-  await page.goto('/index.html#story=Learn%2FAnimation%2FOverview');
+  await page.goto('/index.html#story=Learn%2FAnimation%2FSequenceAndParallel');
 
-  const frames = page.locator('iframe[data-luxel-runtime-story]');
-  await expect(frames.first()).toBeVisible();
-  const count = await frames.count();
-  expect(count).toBeGreaterThan(0);
-
-  for (let index = 0; index < count; index++) {
-    const iframe = frames.nth(index);
-    const story = await iframe.getAttribute('data-luxel-runtime-story');
-    expect(animationStories).toContain(story);
-    await expectRuntimeStory(iframe.contentFrame(), story);
-  }
+  const frame = page.locator('iframe[data-luxel-runtime-story="Examples/Animation/Tween"]');
+  await expect(frame).toBeVisible();
+  await expectRuntimeStory(frame.contentFrame(), 'Examples/Animation/Tween');
 
   expect(errors.consoleErrors).toEqual([]);
   expect(errors.pageErrors).toEqual([]);

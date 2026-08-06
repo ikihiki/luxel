@@ -197,7 +197,7 @@ public static class AnimationStories
 
         protected override void OnInit()
         {
-            var raster = Track(new GpuDeviceRasterizer2D(Device));
+            var raster = Track(new GpuDeviceRasterizer2D(Device, RasterShader));
             _canvas = Track(new RetainedCanvas());
             _rasterScene = Track(raster.CreateScene(_canvas));
             var card = _canvas.AddChild(_canvas.Root);
@@ -228,7 +228,6 @@ public static class AnimationStories
             _clock.Frame = frame;
             _player.Update(_clock);
 
-            OutBuffer.Span<byte>((int)(W * H * 4)).Clear();
             using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
             _rasterScene.Render(Camera2D.Pixels, new GpuRasterTarget2D(cmd, OutBuffer, StridePixels, H));
             cmd.Finish();
@@ -275,7 +274,7 @@ public static class AnimationStories
                 }),
             });
 
-            var raster = Track(new GpuDeviceRasterizer2D(Device));
+            var raster = Track(new GpuDeviceRasterizer2D(Device, RasterShader));
             _canvas = Track(new RetainedCanvas());
             _rasterScene = Track(raster.CreateScene(_canvas));
             var card = _canvas.AddChild(_canvas.Root);
@@ -305,7 +304,6 @@ public static class AnimationStories
             while (_pending.TryDequeue(out string? ev)) _sm.Trigger(ev, _clock);
             _sm.Tick(_clock);
 
-            OutBuffer.Span<byte>((int)(W * H * 4)).Clear();
             using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
             _rasterScene.Render(Camera2D.Pixels, new GpuRasterTarget2D(cmd, OutBuffer, StridePixels, H));
             cmd.Finish();
@@ -392,6 +390,13 @@ public static class AnimationStories
             Device.MainQueue.Submit(cmd);
         }
     }
+
+    private static GpuShaderCode RasterShader(string name) => new()
+    {
+        SpirV = ShaderResource(name + ".spv"),
+        Dxil = ShaderResource(name + ".dxil"),
+        Wgsl = ShaderResource(name + ".wgsl"),
+    };
 
     private static GpuShaderCode CubeForwardShader() => new()
     {
