@@ -6091,6 +6091,14 @@
       "componentType": null
     },
     {
+      "path": "Examples/Animation/Curves",
+      "width": 480,
+      "height": 720,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
       "path": "Examples/Animation/EcsClip",
       "width": 480,
       "height": 320,
