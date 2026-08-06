@@ -1,0 +1,83 @@
+<article class="story document-page"><h1 id="body-shape">Body と Shape</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FBodiesAndShapes&amp;section=dynamic-body">Dynamic body</a></li>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FBodiesAndShapes&amp;section=static-body">Static body</a></li>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FBodiesAndShapes&amp;section=shape-%E3%81%A8%E8%A6%8B%E3%81%9F%E7%9B%AE">Shape と見た目</a></li>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FBodiesAndShapes&amp;section=%E5%88%B6%E7%B4%84">制約</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Headless + Gallery　 <strong>Backend:</strong> CPU / BepuPhysics v2　 <strong>前提知識:</strong> Physics Overview</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FECS%2FPhysics%2FOverview">Overview</a>　 <strong>次:</strong> <a href="#story=Learn%2FECS%2FPhysics%2FFixedStep">FixedStep</a></p>
+<p>Physics entity は「形状」と「動き方」を別 component で表します。primitive shape は <code>Collider</code>、動的 body は <code>RigidBody</code>、固定 geometry は <code>StaticBody</code> です。</p>
+<h2 id="dynamic-body">Dynamic body</h2>
+<pre><code class="language-csharp">world.CreateEntity(
+    new LocalTransform(Matrix4x4.CreateTranslation(0, 5, 0)),
+    Collider.Sphere(radius: 0.5f),
+    RigidBody.Dynamic(
+        mass: 2f,
+        initialVelocity: new Vector3(2, 0, 0),
+        ccd: true));
+</code></pre>
+<p><code>Collider</code> は Box、Sphere、Capsule を提供します。<code>RigidBody.Mass</code> が0以下なら attach 時に1として扱われ、<code>Continuous</code> は高速物体向け CCD を一度だけ設定します。</p>
+<h2 id="static-body">Static body</h2>
+<pre><code class="language-csharp">world.CreateEntity(
+    new LocalTransform(Matrix4x4.CreateTranslation(0, -0.5f, 0)),
+    Collider.Box(12, 1, 12),
+    new StaticBody());
+</code></pre>
+<p>static の pose は attach 時の <code>LocalTransform</code> で固定されます。後から component の行列だけを変えても Physics 側は移動しません。動く床は <code>PhysicsWorld.AddKinematic</code> と <code>KinematicBody</code> を使い、所有者が毎 step <code>SetBodyPose</code> します。</p>
+<h2 id="shape">Shape と見た目</h2>
+<p><code>Collider.RenderScale</code> は primitive を Cube mesh で近似表示する寸法です。Box は full size、Sphere は直径、Capsule は <code>(2r, length + 2r, 2r)</code> になります。描画 mesh と衝突形状が一致しているか gizmo で確認してください。</p>
+<h2 id="section">制約</h2>
+<ul>
+<li><code>RigidBody</code> と <code>StaticBody</code> を同じ entity に付けない。</li>
+<li>dynamic body に <code>Parent</code> を付けない。Physics pose は world 空間です。</li>
+<li>CCD は必要な高速物体だけで有効にする。</li>
+</ul>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/ECS/Physics/BodiesAndShapes&quot;, Order = 10, Toc = true)]
+public static StoryResult BodiesAndShapes(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Body と Shape
+
+    {{EcsCourseCatalog.Meta(&quot;Learn/ECS/Physics/BodiesAndShapes&quot;, &quot;Intermediate&quot;, &quot;Headless + Gallery&quot;, &quot;CPU / BepuPhysics v2&quot;, &quot;Physics Overview&quot;)}}
+
+    Physics entity は「形状」と「動き方」を別 component で表します。primitive shape は `Collider`、動的 body は `RigidBody`、固定 geometry は `StaticBody` です。
+
+    ## Dynamic body
+
+    ```csharp
+    world.CreateEntity(
+        new LocalTransform(Matrix4x4.CreateTranslation(0, 5, 0)),
+        Collider.Sphere(radius: 0.5f),
+        RigidBody.Dynamic(
+            mass: 2f,
+            initialVelocity: new Vector3(2, 0, 0),
+            ccd: true));
+    ```
+
+    `Collider` は Box、Sphere、Capsule を提供します。`RigidBody.Mass` が0以下なら attach 時に1として扱われ、`Continuous` は高速物体向け CCD を一度だけ設定します。
+
+    ## Static body
+
+    ```csharp
+    world.CreateEntity(
+        new LocalTransform(Matrix4x4.CreateTranslation(0, -0.5f, 0)),
+        Collider.Box(12, 1, 12),
+        new StaticBody());
+    ```
+
+    static の pose は attach 時の `LocalTransform` で固定されます。後から component の行列だけを変えても Physics 側は移動しません。動く床は `PhysicsWorld.AddKinematic` と `KinematicBody` を使い、所有者が毎 step `SetBodyPose` します。
+
+    ## Shape と見た目
+
+    `Collider.RenderScale` は primitive を Cube mesh で近似表示する寸法です。Box は full size、Sphere は直径、Capsule は `(2r, length + 2r, 2r)` になります。描画 mesh と衝突形状が一致しているか gizmo で確認してください。
+
+    ## 制約
+
+    - `RigidBody` と `StaticBody` を同じ entity に付けない。
+    - dynamic body に `Parent` を付けない。Physics pose は world 空間です。
+    - CCD は必要な高速物体だけで有効にする。
+
+    {{StoryRef(ctx, &quot;Examples/3D/PhysicsPlayground&quot;)}}
+    &quot;&quot;&quot;;</code></pre></details></article>

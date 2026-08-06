@@ -1,0 +1,38 @@
+<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Controls/TextEditorView/Markdown</h1></header><aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Controls/TextEditorView/Markdown&quot;, Height = 320, Order = 8)]
+public static Widget Markdown(StoryContext ctx)
+{
+    // read-only 文書レンダラの核 (WS-A / ADR-0012): MarkdownProvider が Markdown ソースを
+    // font-variant Mark + Block/Line/LinePrefix 装飾に変換 → 同一の行テキストモデルの上に
+    // 見出し/太字/斜体/インラインコード + 引用/箇条書き/コードフェンスが乗る。
+    Signal&lt;string&gt; md = ctx.Signal(&quot;md&quot;,
+        &quot;# Markdown on the text stack\n&quot; +
+        &quot;Rich text via decorations: **bold**, *italic*, `code`.\n&quot; +
+        &quot;Links are rendered inline with the text.\n&quot; +
+        &quot;&gt; A quoted line renders with a left bar.\n&quot; +
+        &quot;- first list item\n&quot; +
+        &quot;- second list item\n&quot; +
+        &quot;```\n&quot; +
+        &quot;let mono = code_block;\n&quot; +
+        &quot;```&quot;);
+    TextEditorView ed = TextEditorView(md, editorHeight: 240f, editorWidth: 520f);
+    (ed.BoldFont, _, _, ed.MonoFont) = EditorFaces.Value;
+    ed.ReadOnly = true;   // 文書レンダラ = 読み取り専用
+    ed.Providers.Add(new MarkdownProvider(() =&gt; UiTheme.T));
+    int clickOff = -1;
+    ed.OnClickOffset = o =&gt; clickOff = o;   // クリック→ソースオフセット (リンクナビの当たり判定用)
+
+    ctx.Play(async d =&gt;
+    {
+        await d.Snap(&quot;rendered&quot;);
+        await d.Click(ed);
+        await d.Expect(() =&gt; clickOff &gt;= 0, &quot;OnClickOffset がクリックで発火する&quot;);
+        await d.Type(&quot;XXX&quot;);
+        await d.Expect(() =&gt; !ed.Text.Contains(&quot;XXX&quot;), &quot;ReadOnly は編集を無視する&quot;);
+    });
+
+    return Border(background: Bind.From(() =&gt; UiTheme.T.Background), padding: new Thickness(20))[
+        VStack(10)[
+            Heading(&quot;TextEditorView — Markdown (プロバイダ)&quot;),
+            Muted(&quot;MarkdownProvider を Providers に足すと見出し/太字/斜体/コードが付く。表示は行、装飾は push = read-only 文書レンダラの核。&quot;),
+            ed]];
+}</code></pre></details></article>

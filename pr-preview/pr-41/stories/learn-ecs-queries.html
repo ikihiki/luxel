@@ -1,0 +1,85 @@
+<article class="story document-page"><h1 id="query">Query</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FECS%2FQueries&amp;section=1-component-%E3%82%92%E6%9B%B4%E6%96%B0%E3%81%99%E3%82%8B">1 component を更新する</a></li>
+<li><a href="#story=Learn%2FECS%2FQueries&amp;section=%E8%A4%87%E6%95%B0-component-%E3%82%92%E7%B5%90%E5%90%88%E3%81%99%E3%82%8B">複数 component を結合する</a></li>
+<li><a href="#story=Learn%2FECS%2FQueries&amp;section=%E6%A7%8B%E9%80%A0%E5%A4%89%E6%9B%B4%E3%81%AF%E5%8F%8E%E9%9B%86%E3%81%97%E3%81%A6%E3%81%8B%E3%82%89%E9%81%A9%E7%94%A8%E3%81%99%E3%82%8B">構造変更は収集してから適用する</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Headless　 <strong>Backend:</strong> CPU / Friflo ECS　 <strong>前提知識:</strong> ComponentsAndTags</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FECS%2FComponentsAndTags">ComponentsAndTags</a>　 <strong>次:</strong> <a href="#story=Learn%2FECS%2FSystemsAndPhases">SystemsAndPhases</a></p>
+<p>query は必要な component の組を宣言し、一致する archetype だけを走査します。entity ごとの仮想 method 呼び出しではなく、data の組に対する処理として考えます。</p>
+<h2 id="component">1 component を更新する</h2>
+<pre><code class="language-csharp">world.Query&lt;Health&gt;().ForEachEntity(
+    (ref Health health, Entity entity) =&gt;
+    {
+        health.Current = Math.Min(health.Current + 1, health.Maximum);
+    });
+</code></pre>
+<h2 id="component-1">複数 component を結合する</h2>
+<pre><code class="language-csharp">world.Query&lt;LocalTransform, Velocity&gt;().ForEachEntity(
+    (ref LocalTransform transform, ref Velocity velocity, Entity entity) =&gt;
+    {
+        transform.Matrix *= Matrix4x4.CreateTranslation(velocity.Value * dt);
+    });
+</code></pre>
+<p><code>World.Query&lt;T1,T2,T3&gt;()</code> は 3 component までを直接公開します。より高度な filter は <code>world.Store</code> の Friflo query API を使用します。</p>
+<h2 id="section">構造変更は収集してから適用する</h2>
+<pre><code class="language-csharp">var expired = new List&lt;Entity&gt;();
+world.Query&lt;Lifetime&gt;().ForEachEntity(
+    (ref Lifetime life, Entity entity) =&gt;
+    {
+        life.Seconds -= dt;
+        if (life.Seconds &lt;= 0) expired.Add(entity);
+    });
+foreach (Entity entity in expired) entity.DeleteEntity();
+</code></pre>
+<p>query 中の component 値の変更はできますが、component の追加・削除や entity 削除は archetype を変えます。Luxel の system と同様に「収集 → 適用」の2段階にすると安全です。</p>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/ECS/Queries&quot;, Order = 3, Toc = true)]
+public static StoryResult Queries(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Query
+
+    {{EcsCourseCatalog.Meta(&quot;Learn/ECS/Queries&quot;, &quot;Beginner&quot;, &quot;Headless&quot;, &quot;CPU / Friflo ECS&quot;, &quot;ComponentsAndTags&quot;)}}
+
+    query は必要な component の組を宣言し、一致する archetype だけを走査します。entity ごとの仮想 method 呼び出しではなく、data の組に対する処理として考えます。
+
+    ## 1 component を更新する
+
+    ```csharp
+    world.Query&lt;Health&gt;().ForEachEntity(
+        (ref Health health, Entity entity) =&gt;
+        {
+            health.Current = Math.Min(health.Current + 1, health.Maximum);
+        });
+    ```
+
+    ## 複数 component を結合する
+
+    ```csharp
+    world.Query&lt;LocalTransform, Velocity&gt;().ForEachEntity(
+        (ref LocalTransform transform, ref Velocity velocity, Entity entity) =&gt;
+        {
+            transform.Matrix *= Matrix4x4.CreateTranslation(velocity.Value * dt);
+        });
+    ```
+
+    `World.Query&lt;T1,T2,T3&gt;()` は 3 component までを直接公開します。より高度な filter は `world.Store` の Friflo query API を使用します。
+
+    ## 構造変更は収集してから適用する
+
+    ```csharp
+    var expired = new List&lt;Entity&gt;();
+    world.Query&lt;Lifetime&gt;().ForEachEntity(
+        (ref Lifetime life, Entity entity) =&gt;
+        {
+            life.Seconds -= dt;
+            if (life.Seconds &lt;= 0) expired.Add(entity);
+        });
+    foreach (Entity entity in expired) entity.DeleteEntity();
+    ```
+
+    query 中の component 値の変更はできますが、component の追加・削除や entity 削除は archetype を変えます。Luxel の system と同様に「収集 → 適用」の2段階にすると安全です。
+
+    {{StoryRef(ctx, &quot;Examples/3D/EcsCubes&quot;)}}
+    &quot;&quot;&quot;;</code></pre></details></article>

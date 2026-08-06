@@ -1,0 +1,72 @@
+<article class="story document-page"><h1 id="persistence">Persistence</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FECS%2FPersistence&amp;section=%E4%BF%9D%E5%AD%98%E3%81%A8%E5%BE%A9%E5%85%83">保存と復元</a></li>
+<li><a href="#story=Learn%2FECS%2FPersistence&amp;section=%E6%97%A2%E5%AD%98-world-%E3%81%B8-merge-%E3%81%99%E3%82%8B">既存 World へ merge する</a></li>
+<li><a href="#story=Learn%2FECS%2FPersistence&amp;section=%E4%BF%9D%E5%AD%98%E3%81%97%E3%81%AA%E3%81%84%E3%82%82%E3%81%AE">保存しないもの</a></li>
+<li><a href="#story=Learn%2FECS%2FPersistence&amp;section=version-%E3%81%A8-migration">Version と migration</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Headless　 <strong>Backend:</strong> CPU / JSON　 <strong>前提知識:</strong> ComponentsAndTags</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FECS%2FInterpolation">Interpolation</a>　 <strong>次:</strong> <a href="#story=Learn%2FECS%2FDiagnostics">Diagnostics</a></p>
+<p><code>WorldSave</code> は Friflo <code>EntitySerializer</code> を使い、World の純データ component を version 付き JSON に変換します。ファイル I/O は担当せず、文字列の入出力に限定されています。</p>
+<h2 id="section">保存と復元</h2>
+<pre><code class="language-csharp">string json = WorldSave.Serialize(world);
+
+using var restored = new World();
+WorldSave.Deserialize(restored, json);
+</code></pre>
+<p>形式は <code>{ &quot;version&quot;: 1, &quot;entities&quot;: [...] }</code> です。既定の <code>clear: true</code> は既存 entity を全削除してから復元します。</p>
+<h2 id="world-merge">既存 World へ merge する</h2>
+<pre><code class="language-csharp">WorldSave.Deserialize(world, json, clear: false);
+</code></pre>
+<p><code>clear: false</code> は persistent id を key に upsert します。同じ id は上書き、新しい id は追加されます。意図しない重複や stale entity を避けるには、通常ロードでは既定の clear を使います。</p>
+<h2 id="section-1">保存しないもの</h2>
+<p><code>DebugName</code> は <code>[ComponentKey(null)]</code> により除外されます。同様に GPU handle、Physics の runtime handle、event subscription などは保存せず、ロード後に runtime system が再発行します。</p>
+<pre><code class="language-csharp">WorldSave.Deserialize(world, json);
+RebuildRuntimeResources(world);
+TransformPropagateSystem.Run(world);
+</code></pre>
+<h2 id="version-migration">Version と migration</h2>
+<p><code>WorldSave.CurrentVersion</code> は現在1です。loader は version を読み取りますが、v1 には migration chain がまだありません。schema を変えるときは古い JSON を新形式へ変換する処理を <code>Deserialize</code> の前段へ追加してください。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/ECS/Persistence&quot;, Order = 7, Toc = true)]
+public static StoryResult Persistence(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Persistence
+
+    {{EcsCourseCatalog.Meta(&quot;Learn/ECS/Persistence&quot;, &quot;Intermediate&quot;, &quot;Headless&quot;, &quot;CPU / JSON&quot;, &quot;ComponentsAndTags&quot;)}}
+
+    `WorldSave` は Friflo `EntitySerializer` を使い、World の純データ component を version 付き JSON に変換します。ファイル I/O は担当せず、文字列の入出力に限定されています。
+
+    ## 保存と復元
+
+    ```csharp
+    string json = WorldSave.Serialize(world);
+
+    using var restored = new World();
+    WorldSave.Deserialize(restored, json);
+    ```
+
+    形式は `{ &quot;version&quot;: 1, &quot;entities&quot;: [...] }` です。既定の `clear: true` は既存 entity を全削除してから復元します。
+
+    ## 既存 World へ merge する
+
+    ```csharp
+    WorldSave.Deserialize(world, json, clear: false);
+    ```
+
+    `clear: false` は persistent id を key に upsert します。同じ id は上書き、新しい id は追加されます。意図しない重複や stale entity を避けるには、通常ロードでは既定の clear を使います。
+
+    ## 保存しないもの
+
+    `DebugName` は `[ComponentKey(null)]` により除外されます。同様に GPU handle、Physics の runtime handle、event subscription などは保存せず、ロード後に runtime system が再発行します。
+
+    ```csharp
+    WorldSave.Deserialize(world, json);
+    RebuildRuntimeResources(world);
+    TransformPropagateSystem.Run(world);
+    ```
+
+    ## Version と migration
+
+    `WorldSave.CurrentVersion` は現在1です。loader は version を読み取りますが、v1 には migration chain がまだありません。schema を変えるときは古い JSON を新形式へ変換する処理を `Deserialize` の前段へ追加してください。
+    &quot;&quot;&quot;;</code></pre></details></article>

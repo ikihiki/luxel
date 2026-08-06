@@ -1,0 +1,73 @@
+<article class="story document-page"><h1 id="fixed-step">Fixed-step の描画補間</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FECS%2FInterpolation&amp;section=fixedupdate-%E3%81%A7%E7%8A%B6%E6%85%8B%E3%82%92%E7%A9%8D%E3%82%80">FixedUpdate で状態を積む</a></li>
+<li><a href="#story=Learn%2FECS%2FInterpolation&amp;section=prerender-%E3%81%A7-sample-%E3%81%99%E3%82%8B">PreRender で sample する</a></li>
+<li><a href="#story=Learn%2FECS%2FInterpolation&amp;section=teleport-%E3%81%A8%E5%88%9D%E6%9C%9F%E5%8C%96">Teleport と初期化</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Headless + Frame loop　 <strong>Backend:</strong> CPU　 <strong>前提知識:</strong> TransformHierarchy、固定タイムステップ</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FECS%2FTransformHierarchy">TransformHierarchy</a>　 <strong>次:</strong> <a href="#story=Learn%2FECS%2FPersistence">Persistence</a></p>
+<p>simulation を固定間隔で進めても、display frame の時刻は step 境界と一致しません。<code>InterpolatedTransform</code> は前回と現在の TRS を保持し、描画直前に <code>alpha</code> で補間して <code>LocalTransform</code> へ書きます。</p>
+<h2 id="fixedupdate">FixedUpdate で状態を積む</h2>
+<pre><code class="language-csharp">ref InterpolatedTransform pose =
+    ref entity.GetComponent&lt;InterpolatedTransform&gt;();
+pose.Push(nextPosition, nextRotation, nextScale);
+</code></pre>
+<p><code>Push</code> は current を previous へ送り、新しい current を保存します。固定 step 1回につき1回だけ呼びます。</p>
+<h2 id="prerender-sample">PreRender で sample する</h2>
+<pre><code class="language-csharp">float alpha = accumulator / fixedDt;
+TransformInterpolationSystem.Run(world, alpha);
+TransformPropagateSystem.Run(world);
+</code></pre>
+<p><code>TransformInterpolationSystem.Run</code> は <code>InterpolatedTransform</code> を query し、補間した <code>Scale * Rotation * Translation</code> を <code>LocalTransform</code> へ反映します。<code>LocalTransform</code> が無ければ追加します。</p>
+<h2 id="teleport">Teleport と初期化</h2>
+<pre><code class="language-csharp">var pose = new InterpolatedTransform(position, rotation, Vector3.One);
+entity.AddComponent(pose);
+
+ref InterpolatedTransform current =
+    ref entity.GetComponent&lt;InterpolatedTransform&gt;();
+current.Teleport(respawnPosition, Quaternion.Identity, Vector3.One);
+</code></pre>
+<p>spawn や teleport で previous と current を別位置にすると、存在しない軌跡を1 frame 補間します。両方を同じ TRS にそろえて飛びを消してください。<code>alpha</code> は通常 <code>[0,1)</code> に保ちます。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/ECS/Interpolation&quot;, Order = 6, Toc = true)]
+public static StoryResult Interpolation(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Fixed-step の描画補間
+
+    {{EcsCourseCatalog.Meta(&quot;Learn/ECS/Interpolation&quot;, &quot;Intermediate&quot;, &quot;Headless + Frame loop&quot;, &quot;CPU&quot;, &quot;TransformHierarchy、固定タイムステップ&quot;)}}
+
+    simulation を固定間隔で進めても、display frame の時刻は step 境界と一致しません。`InterpolatedTransform` は前回と現在の TRS を保持し、描画直前に `alpha` で補間して `LocalTransform` へ書きます。
+
+    ## FixedUpdate で状態を積む
+
+    ```csharp
+    ref InterpolatedTransform pose =
+        ref entity.GetComponent&lt;InterpolatedTransform&gt;();
+    pose.Push(nextPosition, nextRotation, nextScale);
+    ```
+
+    `Push` は current を previous へ送り、新しい current を保存します。固定 step 1回につき1回だけ呼びます。
+
+    ## PreRender で sample する
+
+    ```csharp
+    float alpha = accumulator / fixedDt;
+    TransformInterpolationSystem.Run(world, alpha);
+    TransformPropagateSystem.Run(world);
+    ```
+
+    `TransformInterpolationSystem.Run` は `InterpolatedTransform` を query し、補間した `Scale * Rotation * Translation` を `LocalTransform` へ反映します。`LocalTransform` が無ければ追加します。
+
+    ## Teleport と初期化
+
+    ```csharp
+    var pose = new InterpolatedTransform(position, rotation, Vector3.One);
+    entity.AddComponent(pose);
+
+    ref InterpolatedTransform current =
+        ref entity.GetComponent&lt;InterpolatedTransform&gt;();
+    current.Teleport(respawnPosition, Quaternion.Identity, Vector3.One);
+    ```
+
+    spawn や teleport で previous と current を別位置にすると、存在しない軌跡を1 frame 補間します。両方を同じ TRS にそろえて飛びを消してください。`alpha` は通常 `[0,1)` に保ちます。
+    &quot;&quot;&quot;;</code></pre></details></article>

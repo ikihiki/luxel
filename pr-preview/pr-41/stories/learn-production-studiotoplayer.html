@@ -1,0 +1,13 @@
+<article class="story document-page"><h1 id="studio-to-player-workflow">Studio to Player workflow</h1>
+<p>Studioでproject/sceneを編集し、PlayerのPlay-in-Editorで同じdataを実行し、standalone hostへ渡します。editor-only stateをscene dataへ混ぜず、保存前にruntime schemaへ変換します。</p>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Production/StudioToPlayer&quot;, Order = 0, Toc = true)]
+public static StoryResult StudioToPlayer(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Studio to Player workflow
+
+    Studioでproject/sceneを編集し、PlayerのPlay-in-Editorで同じdataを実行し、standalone hostへ渡します。editor-only stateをscene dataへ混ぜず、保存前にruntime schemaへ変換します。
+
+    {{StoryRef(ctx, &quot;Apps/Studio/Shell&quot;)}}
+    {{StoryRef(ctx, &quot;Apps/Player/PlayInEditor&quot;)}}
+    &quot;&quot;&quot;;</code></pre></details></article>

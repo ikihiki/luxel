@@ -1,0 +1,84 @@
+<article class="story document-page"><h1 id="world-entity">World と Entity</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FECS%2FWorldAndEntities&amp;section=entity-%E3%82%92%E4%BD%9C%E3%82%8B">Entity を作る</a></li>
+<li><a href="#story=Learn%2FECS%2FWorldAndEntities&amp;section=component-%E3%82%92%E8%BF%BD%E5%8A%A0%E3%83%BB%E6%9B%B4%E6%96%B0%E3%81%99%E3%82%8B">Component を追加・更新する</a></li>
+<li><a href="#story=Learn%2FECS%2FWorldAndEntities&amp;section=%E5%89%8A%E9%99%A4%E3%81%A8-resource-%E3%81%AE%E5%A2%83%E7%95%8C">削除と resource の境界</a></li>
+<li><a href="#story=Learn%2FECS%2FWorldAndEntities&amp;section=%E3%82%88%E3%81%8F%E3%81%82%E3%82%8B%E5%A4%B1%E6%95%97">よくある失敗</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Headless　 <strong>Backend:</strong> CPU / Friflo ECS　 <strong>前提知識:</strong> Overview</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FECS%2FOverview">Overview</a>　 <strong>次:</strong> <a href="#story=Learn%2FECS%2FComponentsAndTags">ComponentsAndTags</a></p>
+<p><code>World</code> は <code>EntityStore</code> の寿命と query/system の入口をまとめます。entity 自体は軽量な handle で、意味は保持する component の組み合わせによって決まります。</p>
+<h2 id="entity">Entity を作る</h2>
+<pre><code class="language-csharp">using var world = new World();
+var empty = world.CreateEntity();
+var named = world.CreateEntity(new DebugName(&quot;Player&quot;));
+var visibleCube = world.CreateEntity(
+    new LocalTransform(Matrix4x4.Identity),
+    new Visible(true),
+    new MeshRef(MeshRef.Cube));
+</code></pre>
+<p><code>World.CreateEntity</code> の convenience overload は component 3個までです。4個以上を同時に渡す場合は <code>world.Store.CreateEntity(...)</code> を使用できます。</p>
+<h2 id="component">Component を追加・更新する</h2>
+<pre><code class="language-csharp">entity.AddComponent(new DebugName(&quot;Enemy&quot;));
+ref LocalTransform transform = ref entity.GetComponent&lt;LocalTransform&gt;();
+transform.Matrix *= Matrix4x4.CreateTranslation(1, 0, 0);
+</code></pre>
+<p><code>Entity</code> は <code>World.Store</code> によって管理されます。別 World の entity を component 参照として混ぜず、削除後の handle を再利用しないでください。</p>
+<h2 id="resource">削除と resource の境界</h2>
+<pre><code class="language-csharp">entity.DeleteEntity();
+</code></pre>
+<p>entity の削除は ECS data を消しますが、外部 GPU resource や Physics body を自動破棄するとは限りません。外部 resource を発行した system は、despawn 時の対になる解放処理を持つか、World と runtime をまとめて再構築します。</p>
+<h2 id="section">よくある失敗</h2>
+<ul>
+<li>component を持つ前に <code>GetComponent&lt;T&gt;()</code> を呼ぶ。</li>
+<li>query 列挙中に entity の archetype を変更する。</li>
+<li>ECS entity の寿命と外部 resource の寿命を同じだと思い込む。</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/ECS/WorldAndEntities&quot;, Order = 1, Toc = true)]
+public static StoryResult WorldAndEntities(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # World と Entity
+
+    {{EcsCourseCatalog.Meta(&quot;Learn/ECS/WorldAndEntities&quot;, &quot;Beginner&quot;, &quot;Headless&quot;, &quot;CPU / Friflo ECS&quot;, &quot;Overview&quot;)}}
+
+    `World` は `EntityStore` の寿命と query/system の入口をまとめます。entity 自体は軽量な handle で、意味は保持する component の組み合わせによって決まります。
+
+    ## Entity を作る
+
+    ```csharp
+    using var world = new World();
+    var empty = world.CreateEntity();
+    var named = world.CreateEntity(new DebugName(&quot;Player&quot;));
+    var visibleCube = world.CreateEntity(
+        new LocalTransform(Matrix4x4.Identity),
+        new Visible(true),
+        new MeshRef(MeshRef.Cube));
+    ```
+
+    `World.CreateEntity` の convenience overload は component 3個までです。4個以上を同時に渡す場合は `world.Store.CreateEntity(...)` を使用できます。
+
+    ## Component を追加・更新する
+
+    ```csharp
+    entity.AddComponent(new DebugName(&quot;Enemy&quot;));
+    ref LocalTransform transform = ref entity.GetComponent&lt;LocalTransform&gt;();
+    transform.Matrix *= Matrix4x4.CreateTranslation(1, 0, 0);
+    ```
+
+    `Entity` は `World.Store` によって管理されます。別 World の entity を component 参照として混ぜず、削除後の handle を再利用しないでください。
+
+    ## 削除と resource の境界
+
+    ```csharp
+    entity.DeleteEntity();
+    ```
+
+    entity の削除は ECS data を消しますが、外部 GPU resource や Physics body を自動破棄するとは限りません。外部 resource を発行した system は、despawn 時の対になる解放処理を持つか、World と runtime をまとめて再構築します。
+
+    ## よくある失敗
+
+    - component を持つ前に `GetComponent&lt;T&gt;()` を呼ぶ。
+    - query 列挙中に entity の archetype を変更する。
+    - ECS entity の寿命と外部 resource の寿命を同じだと思い込む。
+    &quot;&quot;&quot;;</code></pre></details></article>

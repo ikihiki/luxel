@@ -1,0 +1,77 @@
+<article class="story document-page"><h1 id="ecs-physics-overview">ECS Physics overview</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FOverview&amp;section=%E3%83%87%E3%83%BC%E3%82%BF%E3%81%AE%E6%B5%81%E3%82%8C">データの流れ</a></li>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FOverview&amp;section=%E6%9C%80%E5%B0%8F%E6%A7%8B%E6%88%90">最小構成</a></li>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FOverview&amp;section=%E6%89%80%E6%9C%89%E6%A8%A9">所有権</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Headless + Gallery　 <strong>Backend:</strong> CPU / BepuPhysics v2　 <strong>前提知識:</strong> Diagnostics までの ECS 基礎</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FECS%2FDiagnostics">Diagnostics</a>　 <strong>次:</strong> <a href="#story=Learn%2FECS%2FPhysics%2FBodiesAndShapes">BodiesAndShapes</a></p>
+<p><code>Luxel.Physics</code> は BepuPhysics v2 を包む <code>PhysicsWorld</code> と、ECS component を body/shape へ接続する <code>PhysicsStepSystem</code> を提供します。Physics は独立した scene graph ではなく、ECS の <code>LocalTransform</code> を入出力境界として動きます。</p>
+<h2 id="section">データの流れ</h2>
+<pre><code class="language-text">ECS components
+  → Attach body / static / trigger
+  → PhysicsWorld fixed step
+  → dynamic pose を LocalTransform へ write-back
+  → TransformPropagateSystem
+  → render extraction
+</code></pre>
+<h2 id="section-1">最小構成</h2>
+<pre><code class="language-csharp">using var world = new World();
+using var physics = new PhysicsWorld();
+var step = new PhysicsStepSystem(world, physics);
+
+world.CreateEntity(
+    new LocalTransform(Matrix4x4.CreateTranslation(0, 3, 0)),
+    Collider.Box(1, 1, 1),
+    RigidBody.Dynamic(mass: 1));
+
+step.Run(elapsedSeconds);
+</code></pre>
+<p><code>PhysicsStepSystem</code> は未 attach の component を発見し、body を一度だけ発行します。その後 <code>PhysicsWorld.Step</code> を固定 <code>FixedDt</code> で進め、動的 pose を <code>LocalTransform</code> へ書き戻します。</p>
+<h2 id="section-2">所有権</h2>
+<p><code>PhysicsWorld</code> は <code>Simulation</code> と <code>BufferPool</code> を所有するため dispose が必要です。ECS entity の削除だけでは body は消えません。despawn では <code>RemoveBody</code> / <code>RemoveStatic</code> を対で呼ぶか、決定的な reset として World と PhysicsWorld をまとめて再構築します。</p>
+<figure class="static-capture"><a href="#story=Examples%2F3D%2FPhysicsFalling"><img src="images/examples-3d-physicsfalling.png" alt="Examples/3D/PhysicsFalling" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/ECS/Physics/Overview&quot;, Order = 9, Toc = true)]
+public static StoryResult Overview(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # ECS Physics overview
+
+    {{EcsCourseCatalog.Meta(&quot;Learn/ECS/Physics/Overview&quot;, &quot;Intermediate&quot;, &quot;Headless + Gallery&quot;, &quot;CPU / BepuPhysics v2&quot;, &quot;Diagnostics までの ECS 基礎&quot;)}}
+
+    `Luxel.Physics` は BepuPhysics v2 を包む `PhysicsWorld` と、ECS component を body/shape へ接続する `PhysicsStepSystem` を提供します。Physics は独立した scene graph ではなく、ECS の `LocalTransform` を入出力境界として動きます。
+
+    ## データの流れ
+
+    ```text
+    ECS components
+      → Attach body / static / trigger
+      → PhysicsWorld fixed step
+      → dynamic pose を LocalTransform へ write-back
+      → TransformPropagateSystem
+      → render extraction
+    ```
+
+    ## 最小構成
+
+    ```csharp
+    using var world = new World();
+    using var physics = new PhysicsWorld();
+    var step = new PhysicsStepSystem(world, physics);
+
+    world.CreateEntity(
+        new LocalTransform(Matrix4x4.CreateTranslation(0, 3, 0)),
+        Collider.Box(1, 1, 1),
+        RigidBody.Dynamic(mass: 1));
+
+    step.Run(elapsedSeconds);
+    ```
+
+    `PhysicsStepSystem` は未 attach の component を発見し、body を一度だけ発行します。その後 `PhysicsWorld.Step` を固定 `FixedDt` で進め、動的 pose を `LocalTransform` へ書き戻します。
+
+    ## 所有権
+
+    `PhysicsWorld` は `Simulation` と `BufferPool` を所有するため dispose が必要です。ECS entity の削除だけでは body は消えません。despawn では `RemoveBody` / `RemoveStatic` を対で呼ぶか、決定的な reset として World と PhysicsWorld をまとめて再構築します。
+
+    {{StoryRef(ctx, &quot;Examples/3D/PhysicsFalling&quot;)}}
+    &quot;&quot;&quot;;</code></pre></details></article>
