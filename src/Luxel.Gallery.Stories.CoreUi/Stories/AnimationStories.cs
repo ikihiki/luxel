@@ -7,8 +7,11 @@ using Luxel.Animation.UI;
 using Luxel.AssetRuntime;
 using Luxel.Assets;
 using Luxel.Ecs;
+using Luxel.Controls;
+using Luxel.Graphics;
 using Luxel.Graphics.RenderGraph;
 using Luxel.Graphics.TwoD;
+using Luxel.Mathematics;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
@@ -29,6 +32,68 @@ public static class AnimationStories
         public uint VertexBufIndex;
         public uint InstanceBufIndex;
         public uint Pad0, Pad1;
+    }
+
+    /// <summary>CoreUI-local adapter for stateful scenes rendered through a browser-safe GpuView.</summary>
+    private abstract class AnimationSceneBase : IDisposable
+    {
+        protected GpuDevice Device { get; private set; } = null!;
+        protected GpuTexture Target => Surface.ColorTarget;
+        protected GpuBuffer OutBuffer => Surface.Framebuffer;
+        protected uint W => Surface.Width;
+        protected uint H => Surface.Height;
+        protected uint StridePixels => Surface.StridePixels;
+        protected GpuViewSurface Surface { get; private set; } = null!;
+
+        private readonly List<IDisposable> _resources = [];
+        private GpuViewSurface? _generation;
+        private bool _rendered;
+
+        internal static Widget View(float width, float height, AnimationSceneBase scene, bool animated = true)
+            => GpuView(width, height,
+                (device, surface, time) => scene.Render(device, surface, time),
+                animated: animated, dispose: scene.Dispose);
+
+        protected T Track<T>(T resource) where T : IDisposable
+        {
+            _resources.Add(resource);
+            return resource;
+        }
+
+        private GpuViewRenderResult Render(GpuDevice device, GpuViewSurface surface, float time)
+        {
+            if (!ReferenceEquals(_generation, surface))
+            {
+                DisposeResources();
+                Device = device;
+                Surface = surface;
+                _generation = surface;
+                _rendered = false;
+                OnInit();
+            }
+            if (RenderEveryFrame || !_rendered)
+            {
+                _rendered = true;
+                OnRender(time);
+            }
+            return GpuViewRenderResult.Ready;
+        }
+
+        protected abstract void OnInit();
+        protected abstract void OnRender(float time);
+        protected virtual bool RenderEveryFrame => false;
+
+        public void Dispose()
+        {
+            DisposeResources();
+            _generation = null;
+        }
+
+        private void DisposeResources()
+        {
+            for (int i = _resources.Count - 1; i >= 0; i--) _resources[i].Dispose();
+            _resources.Clear();
+        }
     }
 
     /// <summary>コード DSL: Sequence(Parallel(slide+fade), Parallel(slide+fade))。
@@ -78,7 +143,7 @@ public static class AnimationStories
 
     /// <summary>CSS @keyframes → AnimationClip → RetainedCanvas ノードへ適用 (ループ再生)。</summary>
     [Story("Examples/Animation/CssKeyframes", Height = 300, Order = 141)]
-    public static Widget CssKeyframes(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(256, 128, new CssClipScene())));
+    public static Widget CssKeyframes(StoryContext ctx) => ctx.Snap(Frame(AnimationSceneBase.View(256, 128, new CssClipScene())));
 
     /// <summary>StateMachine (idle ⇄ jump、crossfade 0.15s)。ボタンで Trigger を送る —
     /// press でジャンプ (黄)、done で idle (青) へ戻る。</summary>
@@ -90,13 +155,13 @@ public static class AnimationStories
             HStack(8)[
                 Button(_ => { scene.Trigger("press"); ctx.Log("trigger: press → jump"); }, "press"),
                 Button(_ => { scene.Trigger("done"); ctx.Log("trigger: done → idle"); }, "done")],
-            GpuSceneBase.View(256, 128, scene)]);
+            AnimationSceneBase.View(256, 128, scene)]);
     }
 
     /// <summary>AnimationClip (translation + rotation) を EcsAnimationTarget で
     /// LocalTransform へ書き、毎フレーム propagate → extract → 描画。</summary>
     [Story("Examples/Animation/EcsClip", Height = 320, Order = 143)]
-    public static Widget EcsClip() => Frame(GpuSceneBase.View(256, 256, new EcsClipScene()));
+    public static Widget EcsClip() => Frame(AnimationSceneBase.View(256, 256, new EcsClipScene()));
 
     /// <summary>AnimationGraph: BlendNode(上下振動, 左右振動)。weight は knob —
     /// 0 で上下のみ、1 で左右のみ、中間で混合。</summary>
@@ -104,13 +169,13 @@ public static class AnimationStories
     public static Widget Graph(StoryContext ctx)
     {
         Signal<float> weight = ctx.Signal("weight", 0.5f, "Blend: 0 = 上下振動, 1 = 左右振動");
-        return Frame(GpuSceneBase.View(256, 256, new GraphScene(weight)));
+        return Frame(AnimationSceneBase.View(256, 256, new GraphScene(weight)));
     }
 
     // ---- 2D (RetainedCanvas をオフスクリーンで所有する) シーン ----
 
     /// <summary>CSS @keyframes を CssKeyframesImporter でパースし、card ノードで再生。</summary>
-    private sealed class CssClipScene : GpuSceneBase
+    private sealed class CssClipScene : AnimationSceneBase
     {
         private const string Css = """
             @keyframes slideAndFade {
@@ -165,14 +230,14 @@ public static class AnimationStories
 
             OutBuffer.Span<byte>((int)(W * H * 4)).Clear();
             using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-            _rasterScene.Render(Camera2D.Pixels, new GpuRasterTarget2D(cmd, OutBuffer, W, H));
+            _rasterScene.Render(Camera2D.Pixels, new GpuRasterTarget2D(cmd, OutBuffer, StridePixels, H));
             cmd.Finish();
-            Device.MainQueue.SubmitAndWait(cmd);
+            Device.MainQueue.Submit(cmd);
         }
     }
 
     /// <summary>idle ⇄ jump の StateMachine。Trigger はキュー経由 (入力イベント → 次フレーム反映)。</summary>
-    private sealed class StateMachineScene : GpuSceneBase
+    private sealed class StateMachineScene : AnimationSceneBase
     {
         private RetainedCanvas _canvas = null!;
         private IRasterScene2D _rasterScene = null!;
@@ -242,16 +307,16 @@ public static class AnimationStories
 
             OutBuffer.Span<byte>((int)(W * H * 4)).Clear();
             using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-            _rasterScene.Render(Camera2D.Pixels, new GpuRasterTarget2D(cmd, OutBuffer, W, H));
+            _rasterScene.Render(Camera2D.Pixels, new GpuRasterTarget2D(cmd, OutBuffer, StridePixels, H));
             cmd.Finish();
-            Device.MainQueue.SubmitAndWait(cmd);
+            Device.MainQueue.Submit(cmd);
         }
     }
 
     // ---- 3D (ECS + AnimationGraph) シーン ----
 
     /// <summary>キューブ entity 1 個 + clip/graph を毎フレーム評価して描く共通下回り。</summary>
-    private abstract class AnimatedCubeScene : GpuSceneBase
+    private abstract class AnimatedCubeScene : AnimationSceneBase
     {
         protected Luxel.Ecs.World World = null!;
         protected EcsAnimationTarget EcsTarget = null!;
@@ -280,7 +345,7 @@ public static class AnimationStories
             var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
             raster.DepthTest = true;
             raster.DepthWrite = true;
-            _pipeline = Track(Device.CreateGraphicsPipeline(GpuShaderCode.Load("cube_forward"), raster));
+            _pipeline = Track(Device.CreateGraphicsPipeline(CubeForwardShader(), raster));
             OnSceneInit();
         }
 
@@ -319,13 +384,33 @@ public static class AnimationStories
                          .Draw((uint)CubeMesh.VertexCount, (uint)_extractor.InstanceCount)
                          .EndRendering()
                          .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
-                         .CopyTextureToBuffer(Target, OutBuffer);
+                         .CopyTextureToBuffer(Target, OutBuffer, StridePixels);
               });
             using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
             rg.Execute(cmd);
             cmd.Finish();
-            Device.MainQueue.SubmitAndWait(cmd);
+            Device.MainQueue.Submit(cmd);
         }
+    }
+
+    private static GpuShaderCode CubeForwardShader() => new()
+    {
+        SpirV = ShaderResource("cube_forward.spv"),
+        DxilVertex = ShaderResource("cube_forward.vs.dxil"),
+        DxilPixel = ShaderResource("cube_forward.ps.dxil"),
+        Wgsl = ShaderResource("cube_forward.wgsl"),
+    };
+
+    private static byte[] ShaderResource(string fileName)
+    {
+        System.Reflection.Assembly assembly = typeof(AnimationStories).Assembly;
+        string resourceName = assembly.GetManifestResourceNames().Single(name =>
+            name.EndsWith("Shaders." + fileName, StringComparison.Ordinal));
+        using Stream stream = assembly.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException($"Embedded cube shader is missing: {fileName}");
+        using var memory = new MemoryStream();
+        stream.CopyTo(memory);
+        return memory.ToArray();
     }
 
     /// <summary>translation (上下) + rotation (Y 一回転) の AnimationClip をループ評価。</summary>

@@ -17,6 +17,10 @@
     <ProjectReference Include="..\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
     <ProjectReference Include="..\Luxel.Animation\Luxel.Animation.csproj" />
     <ProjectReference Include="..\Luxel.Animation.UI\Luxel.Animation.UI.csproj" />
+    <ProjectReference Include="..\Luxel.Animation.TwoD\Luxel.Animation.TwoD.csproj" />
+    <ProjectReference Include="..\Luxel.Animation.ThreeD\Luxel.Animation.ThreeD.csproj" />
+    <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj" />
+    <ProjectReference Include="..\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
     <ProjectReference Include="..\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
     <ProjectReference Include="..\Luxel.Diagram\Luxel.Diagram.csproj" />
     <ProjectReference Include="..\Luxel.MathText\Luxel.MathText.csproj" />
@@ -34,6 +38,10 @@
     <EmbeddedResource Include="..\..\shaders\compiled\triangle.vs.dxil" LogicalName="Luxel.Gallery.Stories.CoreUi.Shaders.triangle.vs.dxil" WithCulture="false" />
     <EmbeddedResource Include="..\..\shaders\compiled\triangle.ps.dxil" LogicalName="Luxel.Gallery.Stories.CoreUi.Shaders.triangle.ps.dxil" WithCulture="false" />
     <EmbeddedResource Include="..\..\shaders\compiled\triangle.wgsl" LogicalName="Luxel.Gallery.Stories.CoreUi.Shaders.triangle.wgsl" WithCulture="false" />
+    <EmbeddedResource Include="..\..\shaders\compiled\cube_forward.spv" LogicalName="Luxel.Gallery.Stories.CoreUi.Shaders.cube_forward.spv" WithCulture="false" />
+    <EmbeddedResource Include="..\..\shaders\compiled\cube_forward.vs.dxil" LogicalName="Luxel.Gallery.Stories.CoreUi.Shaders.cube_forward.vs.dxil" WithCulture="false" />
+    <EmbeddedResource Include="..\..\shaders\compiled\cube_forward.ps.dxil" LogicalName="Luxel.Gallery.Stories.CoreUi.Shaders.cube_forward.ps.dxil" WithCulture="false" />
+    <EmbeddedResource Include="..\..\shaders\compiled\cube_forward.wgsl" LogicalName="Luxel.Gallery.Stories.CoreUi.Shaders.cube_forward.wgsl" WithCulture="false" />
     <EmbeddedResource Include="..\..\shaders\compiled\raster2d_bounds.*" Link="Shaders\%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\shaders\compiled\raster2d_bin.*" Link="Shaders\%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\shaders\compiled\raster2d_fine.*" Link="Shaders\%(Filename)%(Extension)" />

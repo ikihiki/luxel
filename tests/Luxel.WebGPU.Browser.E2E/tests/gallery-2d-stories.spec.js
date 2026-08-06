@@ -29,6 +29,16 @@ const pipelineStateStories = [
   'Examples/3D/Blend'
 ];
 
+const animationStories = [
+  'Examples/Animation/Tween',
+  'Examples/Animation/CssKeyframes',
+  'Examples/Animation/StateMachine',
+  'Examples/Animation/EcsClip',
+  'Examples/Animation/Graph'
+];
+
+const animationGpuStories = new Set(animationStories.filter(story => story !== 'Examples/Animation/Tween'));
+
 function collectErrors(page) {
   const consoleErrors = [];
   const pageErrors = [];
@@ -79,6 +89,21 @@ for (const story of pipelineStateStories) {
   });
 }
 
+for (const story of animationStories) {
+  test(`browser-WASM renders ${story}`, async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto(`/samples/webgpu-browser/?story=${encodeURIComponent(story)}`);
+    await expectRuntimeStory(page, story);
+    if (animationGpuStories.has(story)) {
+      await expect.poll(() => page.evaluate(() =>
+        globalThis.luxelBrowserState?.widgets?.find(widget => widget.type?.endsWith('.GpuView'))?.detail || ''),
+        { timeout: 90_000 }).toContain('Ready');
+    }
+    expect(errors.consoleErrors).toEqual([]);
+    expect(errors.pageErrors).toEqual([]);
+  });
+}
+
 test('exported 2D overview boots its browser-WASM live samples through iframes', async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto('/index.html#story=Learn%2FGraphics%2F2D%2FOverview');
@@ -92,6 +117,26 @@ test('exported 2D overview boots its browser-WASM live samples through iframes',
     const iframe = frames.nth(index);
     const story = await iframe.getAttribute('data-luxel-runtime-story');
     expect(twoDStories).toContain(story);
+    await expectRuntimeStory(iframe.contentFrame(), story);
+  }
+
+  expect(errors.consoleErrors).toEqual([]);
+  expect(errors.pageErrors).toEqual([]);
+});
+
+test('exported Animation overview boots its browser-WASM live samples through iframes', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto('/index.html#story=Learn%2FAnimation%2FOverview');
+
+  const frames = page.locator('iframe[data-luxel-runtime-story]');
+  await expect(frames.first()).toBeVisible();
+  const count = await frames.count();
+  expect(count).toBeGreaterThan(0);
+
+  for (let index = 0; index < count; index++) {
+    const iframe = frames.nth(index);
+    const story = await iframe.getAttribute('data-luxel-runtime-story');
+    expect(animationStories).toContain(story);
     await expectRuntimeStory(iframe.contentFrame(), story);
   }
 
