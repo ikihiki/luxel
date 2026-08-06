@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using Silk.NET.OpenAL;
 
-namespace Luxel.Audio.Linux;
+namespace Luxel.Audio.Silk;
 
 internal sealed unsafe class NativeOpenAlApi : IOpenAlApi
 {

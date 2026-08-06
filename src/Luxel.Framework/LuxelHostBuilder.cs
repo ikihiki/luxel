@@ -78,8 +78,8 @@ public sealed class LuxelHostBuilder
     /// 詳細は <see cref="SceneLoopServices.WaitFrame"/>。</summary>
     public LuxelHostBuilder UseFrameWaiter(Func<CancellationToken, Task> waiter) { _frameWaiter = waiter; return this; }
 
-    /// <summary>現在の OS に対応する audio backend を DI に登録する。Windows は XAudio2、Linux は OpenAL Soft。
-    /// 未指定なら audio system は起動しない。</summary>
+    /// <summary>現在の OS に対応する audio backend を DI に登録する。Windows は XAudio2、
+    /// Linux/macOS は Silk.NET 経由の OpenAL Soft。未指定なら audio system は起動しない。</summary>
     public LuxelHostBuilder UseAudio() { _useAudio = true; _audioFactory = null; return this; }
 
     /// <summary>Audio backend factory を明示注入する。factory が作った backend は初期化され、host の破棄で Dispose される。</summary>
@@ -135,8 +135,8 @@ public sealed class LuxelHostBuilder
     internal static IAudioBackend CreatePlatformAudioBackend()
     {
         if (OperatingSystem.IsWindows()) return new Luxel.Audio.Windows.XAudio2Backend();
-        if (OperatingSystem.IsLinux()) return new Luxel.Audio.Linux.OpenAlAudioBackend();
-        throw new PlatformNotSupportedException("UseAudio() supports Windows (XAudio2) and Linux (OpenAL Soft). Use UseAudio(factory) for another platform.");
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) return new Luxel.Audio.Silk.OpenAlAudioBackend();
+        throw new PlatformNotSupportedException("UseAudio() supports Windows (XAudio2) and Linux/macOS (OpenAL Soft via Silk.NET). Use UseAudio(factory) for another platform.");
     }
 
     public IHost Build()

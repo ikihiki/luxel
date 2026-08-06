@@ -4,6 +4,6 @@
     <PackageReference Include="Silk.NET.OpenAL" Version="2.23.0" />
   </ItemGroup>
   <ItemGroup>
-    <InternalsVisibleTo Include="Luxel.Audio.Linux.Tests" />
+    <InternalsVisibleTo Include="Luxel.Audio.Silk.Tests" />
   </ItemGroup>
 </Project>

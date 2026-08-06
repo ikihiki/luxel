@@ -1,4 +1,4 @@
-namespace Luxel.Audio.Linux;
+namespace Luxel.Audio.Silk;
 
 internal enum OpenAlPlaybackState
 {

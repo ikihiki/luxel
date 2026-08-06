@@ -1,4 +1,4 @@
-namespace Luxel.Audio.Linux.Tests;
+namespace Luxel.Audio.Silk.Tests;
 
 public sealed class OpenAlManagedTests
 {

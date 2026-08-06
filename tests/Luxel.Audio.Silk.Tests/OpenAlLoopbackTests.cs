@@ -1,4 +1,4 @@
-namespace Luxel.Audio.Linux.Tests;
+namespace Luxel.Audio.Silk.Tests;
 
 public sealed class OpenAlLoopbackTests
 {
@@ -7,7 +7,7 @@ public sealed class OpenAlLoopbackTests
     [Fact]
     public void LoopbackRenders440HzAtExpectedRmsAndPitchDoublesFrequency()
     {
-        if (!OperatingSystem.IsLinux()) return;
+        if (!ShouldRunNativeTests()) return;
         using var backend = CreateLoopback();
         using IAudioVoice voice = backend.CreateVoice(AudioFormat.Pcm16Mono48k);
         voice.SubmitBuffer(CreateSine(440f, 0.5f, channels: 1), loop: true);
@@ -30,7 +30,7 @@ public sealed class OpenAlLoopbackTests
     [Fact]
     public void LoopbackStopProducesSilenceAndSingleBufferLoopContinues()
     {
-        if (!OperatingSystem.IsLinux()) return;
+        if (!ShouldRunNativeTests()) return;
         using var backend = CreateLoopback();
         using IAudioVoice voice = backend.CreateVoice(AudioFormat.Pcm16Mono48k);
         voice.SubmitBuffer(CreateSine(440f, 0.02f, channels: 1), loop: true);
@@ -52,7 +52,7 @@ public sealed class OpenAlLoopbackTests
     [Fact]
     public void LoopbackStereoPanUsesStereoAnglesWhenAvailable()
     {
-        if (!OperatingSystem.IsLinux()) return;
+        if (!ShouldRunNativeTests()) return;
         using var backend = CreateLoopback();
         using IAudioVoice voice = backend.CreateVoice(AudioFormat.Pcm16Stereo48k);
         voice.SubmitBuffer(CreateSine(440f, 0.25f, channels: 2), loop: true);
@@ -73,7 +73,7 @@ public sealed class OpenAlLoopbackTests
     [Fact]
     public void NativeLoopbackCollectsCompletedQueuedBuffers()
     {
-        if (!OperatingSystem.IsLinux()) return;
+        if (!ShouldRunNativeTests()) return;
         using var backend = CreateLoopback();
         using IAudioVoice voice = backend.CreateVoice(AudioFormat.Pcm16Mono48k);
         voice.SubmitBuffer(CreateSine(330f, 0.02f, 1));
@@ -85,6 +85,10 @@ public sealed class OpenAlLoopbackTests
         Assert.Equal(0, voice.BuffersQueued);
         Assert.False(voice.IsPlaying);
     }
+
+    private static bool ShouldRunNativeTests() =>
+        OperatingSystem.IsLinux()
+        || Environment.GetEnvironmentVariable("LUXEL_OPENAL_NATIVE_TESTS") == "1";
 
     private static OpenAlAudioBackend CreateLoopback()
     {
@@ -98,7 +102,7 @@ public sealed class OpenAlLoopbackTests
         catch (Exception error) when (error is DllNotFoundException or FileNotFoundException)
         {
             backend.Dispose();
-            throw new Xunit.Sdk.XunitException($"Linux native tests require libopenal.so.1: {error.Message}");
+            throw new Xunit.Sdk.XunitException($"Native OpenAL tests require an OpenAL Soft runtime for the current OS: {error.Message}");
         }
         catch
         {

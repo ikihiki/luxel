@@ -8,7 +8,7 @@ public static class LearnAudio
     public static StoryResult Overview(StoryContext ctx) => $$"""
         # Audio overview
 
-        {{AudioCourseCatalog.Meta("Learn/Audio/Overview", "Beginner", "Gallery / Headless / Windows / Linux / Browser WASM", "Null / XAudio2 / OpenAL Soft / Web Audio", "なし")}}
+        {{AudioCourseCatalog.Meta("Learn/Audio/Overview", "Beginner", "Gallery / Headless / Windows / Linux / macOS / Browser WASM", "Null / XAudio2 / Silk OpenAL / Web Audio", "なし")}}
 
         ## このコースで作るメンタルモデル
 
@@ -33,7 +33,7 @@ public static class LearnAudio
 
         {{SampleSource("samples/LuxelAudio/Program.cs", "audio-tone")}}
 
-        `NullAudioBackend`は音を出さず、initialized、voice数、`BuffersQueued`、`IsPlaying`、volume/pitch/panを決定的に観測できます。Windowsの`XAudio2Backend`、Linuxの`Luxel.Audio.Linux.OpenAlAudioBackend`は実deviceへ出力し、browser WASMでは`Luxel.Audio.Browser.BrowserAudioBackend`がWeb AudioへPCM16 clipとqueueを送ります。Linux backendはOpenAL Softを使い、PipeWire/PulseAudio/ALSAへ出力できます。browserでは作成後もcontextがsuspendedの場合があるため、click/tapから`ResumeAsync()`を呼んでから可聴状態として扱います。
+        `NullAudioBackend`は音を出さず、initialized、voice数、`BuffersQueued`、`IsPlaying`、volume/pitch/panを決定的に観測できます。Windowsの`XAudio2Backend`、Linux/macOSの`Luxel.Audio.Silk.OpenAlAudioBackend`は実deviceへ出力し、browser WASMでは`Luxel.Audio.Browser.BrowserAudioBackend`がWeb AudioへPCM16 clipとqueueを送ります。`Luxel.Audio.Silk`はSilk.NET経由でOpenAL Softを利用するクロスプラットフォームbackendです。LinuxではOpenAL SoftからPipeWire/PulseAudio/ALSAへ出力できます。browserでは作成後もcontextがsuspendedの場合があるため、click/tapから`ResumeAsync()`を呼んでから可聴状態として扱います。
 
         ## ライフサイクルの原則
 
@@ -55,7 +55,7 @@ public static class LearnAudio
     public static StoryResult Environment(StoryContext ctx) => $$"""
         # Audio environment and backends
 
-        {{AudioCourseCatalog.Meta("Learn/Audio/EnvironmentAndBackends", "Beginner", "Standalone / Framework / CI / Linux / Browser WASM", "Null / XAudio2 / OpenAL Soft / Web Audio", "Audio overview")}}
+        {{AudioCourseCatalog.Meta("Learn/Audio/EnvironmentAndBackends", "Beginner", "Standalone / Framework / CI / Linux / macOS / Browser WASM", "Null / XAudio2 / Silk OpenAL / Web Audio", "Audio overview")}}
 
         ## 境界と責務
 
@@ -75,8 +75,9 @@ public static class LearnAudio
         |---|---|---|
         | unit test / CI / deviceなし | `NullAudioBackend` | state、queue、parameter、所有権 |
         | Windows実音 | `Luxel.Audio.Windows.XAudio2Backend` | device、speaker、実時間でのqueue drain |
-        | Linux実音/CI | `Luxel.Audio.Linux.OpenAlAudioBackend` | OpenAL Soft、loopback、Pulse null sink capture |
-        | Framework app | `new LuxelHostBuilder().UseAudio()` | Windows=XAudio2、Linux=OpenAL SoftをOS別登録 |
+        | Linux/macOS実音 | `Luxel.Audio.Silk.OpenAlAudioBackend` | OpenAL Soft、voice queue、loopback |
+        | Linux CI | 同じSilk backend + Pulse null sink | 実出力captureと波形解析 |
+        | Framework app | `new LuxelHostBuilder().UseAudio()` | Windows=XAudio2、Linux/macOS=Silk OpenALをOS別登録 |
         | Browser WASM | `Luxel.Audio.Browser.BrowserAudioBackend` | Web Audio、autoplay unlock、browser lifecycle |
 
         `UseAudio()`はFramework側のcomposition rootです。standalone sampleではbackendを明示生成した方が依存とdispose順を読み取りやすくなります。Windows実音の統合確認は [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone)、browser実音は`samples/LuxelAudioBrowser`を使います。
@@ -96,7 +97,7 @@ public static class LearnAudio
 
         ## 所有権と失敗
 
-        backendより先にvoiceを破棄します。`Initialize()`忘れ、別formatのPCM投入、backend dispose後のvoice利用、browserで`ResumeAsync()`前から音が出ると仮定することが典型的な失敗です。Linuxでは`libopenal.so.1`と出力serverを確認し、CIでは`LUXEL_DESKTOP_AUDIO=null eng/desktop/audio-start.sh`で48 kHz stereoの仮想sinkを用意できます。
+        backendより先にvoiceを破棄します。`Initialize()`忘れ、別formatのPCM投入、backend dispose後のvoice利用、browserで`ResumeAsync()`前から音が出ると仮定することが典型的な失敗です。OpenAL runtimeが見つからない場合はOSに対応するOpenAL Soft libraryを確認します。Linux CIでは`LUXEL_DESKTOP_AUDIO=null eng/desktop/audio-start.sh`で48 kHz stereoの仮想sinkを用意できます。
 
         {{StoryRef(ctx, "Examples/Audio/WaveformAndVoice")}}
         """;
@@ -265,7 +266,7 @@ public static class LearnAudio
     public static StoryResult Testing(StoryContext ctx) => $$"""
         # Audio testing and troubleshooting
 
-        {{AudioCourseCatalog.Meta("Learn/Audio/SpatialStreamingAndTesting", "Intermediate", "CI / Headless / Windows / Linux / Browser WASM", "Null / XAudio2 / OpenAL Soft / Web Audio", "Streaming audio")}}
+        {{AudioCourseCatalog.Meta("Learn/Audio/SpatialStreamingAndTesting", "Intermediate", "CI / Headless / Windows / Linux / macOS / Browser WASM", "Null / XAudio2 / Silk OpenAL / Web Audio", "Streaming audio")}}
 
         このページは既存Story IDを保ちながら、spatial/streamingを含むaudio全体のtesting入口にします。
 
@@ -289,7 +290,7 @@ public static class LearnAudio
 
         ## backend差を分けてtestする
 
-        Null testは時間やspeakerに依存しないlogic contractです。XAudio2 integration testはWindows device、実時間のqueue完了、可聴結果を別層で確認します。Linuxはfake OpenAL contract、`ALC_SOFT_loopback`の決定的な440 Hz/RMS/pitch/pan test、PulseAudio null sinkのWAV captureを分けて検証します。Web Audioはmanaged fake interopでlifecycle、PCM validation、ownershipを、mock `AudioContext`を使うJavaScript contract testで連続schedule、`onended` queue accounting、pause/pitch時のnode再生成を検証します。autoplay unlockと実音はbrowser sampleで手動確認します。AudioWorklet/SABは現行backendのtest対象ではありません。
+        Null testは時間やspeakerに依存しないlogic contractです。XAudio2 integration testはWindows device、実時間のqueue完了、可聴結果を別層で確認します。Silk OpenAL backendは全OS共通のfake contractを持ち、OpenAL Soft runtimeのある環境では`ALC_SOFT_loopback`の決定的な440 Hz/RMS/pitch/pan testを実行できます。Linux CIではさらにPulseAudio null sinkのWAV captureを検証します。Web Audioはmanaged fake interopでlifecycle、PCM validation、ownershipを、mock `AudioContext`を使うJavaScript contract testで連続schedule、`onended` queue accounting、pause/pitch時のnode再生成を検証します。autoplay unlockと実音はbrowser sampleで手動確認します。AudioWorklet/SABは現行backendのtest対象ではありません。
 
         {{StoryRef(ctx, "Examples/Audio/SpatialAttenuation")}}
 

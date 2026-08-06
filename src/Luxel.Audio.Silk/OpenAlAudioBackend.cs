@@ -1,25 +1,22 @@
 using Luxel.Audio;
 
-namespace Luxel.Audio.Linux;
+namespace Luxel.Audio.Silk;
 
-/// <summary>OpenAL Soft audio backend for Linux.</summary>
+/// <summary>Cross-platform OpenAL Soft audio backend implemented with Silk.NET.OpenAL.</summary>
 public sealed class OpenAlAudioBackend : IAudioBackend
 {
     private readonly object _gate = new();
     private readonly IOpenAlApi _api;
-    private readonly bool _enforceLinux;
     private readonly List<OpenAlAudioVoice> _voices = [];
     private bool _initialized;
     private bool _disposed;
     private float _masterVolume = 1f;
 
-    public OpenAlAudioBackend() : this(new NativeOpenAlApi(), enforceLinux: true) { }
-    internal OpenAlAudioBackend(IOpenAlApi api) : this(api, enforceLinux: false) { }
+    public OpenAlAudioBackend() : this(new NativeOpenAlApi()) { }
 
-    private OpenAlAudioBackend(IOpenAlApi api, bool enforceLinux)
+    internal OpenAlAudioBackend(IOpenAlApi api)
     {
         _api = api ?? throw new ArgumentNullException(nameof(api));
-        _enforceLinux = enforceLinux;
     }
 
     public float MasterVolume
@@ -34,8 +31,6 @@ public sealed class OpenAlAudioBackend : IAudioBackend
 
     public void Initialize()
     {
-        if (_enforceLinux && !OperatingSystem.IsLinux())
-            throw new PlatformNotSupportedException("OpenAlAudioBackend is available only on Linux.");
         lock (_gate)
         {
             ThrowIfDisposed();

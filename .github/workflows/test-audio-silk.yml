@@ -1,19 +1,19 @@
-name: Test Linux Audio
+name: Test Silk OpenAL Audio
 
 on:
   pull_request:
     paths:
       - 'src/Luxel.Audio/**'
-      - 'src/Luxel.Audio.Linux/**'
+      - 'src/Luxel.Audio.Silk/**'
       - 'src/Luxel.Framework/**'
       - 'src/Luxel.Gallery.Stories/Stories/Docs/LearnAudio.cs'
-      - 'tests/Luxel.Audio.Linux.Tests/**'
-      - 'tests/Luxel.Audio.Linux.Tests/FrameworkAudioBackendTests.cs'
+      - 'tests/Luxel.Audio.Silk.Tests/**'
+      - 'tests/Luxel.Audio.Silk.Tests/FrameworkAudioBackendTests.cs'
       - 'eng/desktop/**'
       - 'src/**/*.csproj'
       - 'tests/**/*.csproj'
       - 'Luxel.slnx'
-      - '.github/workflows/test-audio-linux.yml'
+      - '.github/workflows/test-audio-silk.yml'
   workflow_dispatch:
 
 permissions:
@@ -24,14 +24,14 @@ env:
   LUXEL_AUDIO_SINK: luxel_null
 
 jobs:
-  linux-audio:
+  ubuntu-openal:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - name: Install Linux audio dependencies
+      - name: Install Ubuntu OpenAL and virtual audio dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -42,13 +42,13 @@ jobs:
           python3 eng/desktop/test-wav-analyzer.py
       - name: Restore targeted projects
         run: |
-          dotnet restore src/Luxel.Audio.Linux/Luxel.Audio.Linux.csproj
-          dotnet restore tests/Luxel.Audio.Linux.Tests/Luxel.Audio.Linux.Tests.csproj
+          dotnet restore src/Luxel.Audio.Silk/Luxel.Audio.Silk.csproj
+          dotnet restore tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj
           dotnet restore src/Luxel.Framework/Luxel.Framework.csproj
-      - name: Build Linux audio backend and tests
+      - name: Build Silk OpenAL backend and tests
         run: |
-          dotnet build src/Luxel.Audio.Linux/Luxel.Audio.Linux.csproj --no-restore --configuration Release
-          dotnet build tests/Luxel.Audio.Linux.Tests/Luxel.Audio.Linux.Tests.csproj --no-restore --configuration Release
+          dotnet build src/Luxel.Audio.Silk/Luxel.Audio.Silk.csproj --no-restore --configuration Release
+          dotnet build tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj --no-restore --configuration Release
           dotnet build src/Luxel.Framework/Luxel.Framework.csproj --no-restore --configuration Release
       - name: Start isolated virtual audio
         env:
@@ -64,14 +64,14 @@ jobs:
           printf 'ALSOFT_DRIVERS=%s\n' "${ALSOFT_DRIVERS}" >> "$GITHUB_ENV"
       - name: Test managed, native, and loopback audio paths
         run: >-
-          dotnet test tests/Luxel.Audio.Linux.Tests/Luxel.Audio.Linux.Tests.csproj
+          dotnet test tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj
           --no-restore --no-build --configuration Release
           --filter 'FullyQualifiedName!~OutputCapture'
       - name: Detect optional output capture tests
         id: output-tests
         shell: bash
         run: |
-          if dotnet test tests/Luxel.Audio.Linux.Tests/Luxel.Audio.Linux.Tests.csproj \
+          if dotnet test tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj \
               --no-restore --no-build --configuration Release --list-tests | grep -qi 'OutputCapture'; then
             echo 'present=true' >> "$GITHUB_OUTPUT"
           else
@@ -83,7 +83,7 @@ jobs:
           recording="${RUNNER_TEMP}/luxel-output-test.wav"
           eng/desktop/capture-audio-start.sh "$recording"
           trap 'eng/desktop/capture-audio-stop.sh || true' EXIT
-          LUXEL_AUDIO_OUTPUT_CAPTURE=1 dotnet test tests/Luxel.Audio.Linux.Tests/Luxel.Audio.Linux.Tests.csproj \
+          LUXEL_AUDIO_OUTPUT_CAPTURE=1 dotnet test tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj \
             --no-restore --no-build --configuration Release \
             --filter 'FullyQualifiedName~OutputCapture'
           sleep 0.25
@@ -122,7 +122,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: linux-audio-diagnostics
+          name: silk-openal-ubuntu-diagnostics
           path: |
             ${{ runner.temp }}/luxel-audio/logs/
             ${{ runner.temp }}/*.wav

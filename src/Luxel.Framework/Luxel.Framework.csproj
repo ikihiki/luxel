@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Luxel.Audio.Linux\Luxel.Audio.Linux.csproj" />
+    <ProjectReference Include="..\Luxel.Audio.Silk\Luxel.Audio.Silk.csproj" />
     <ProjectReference Include="..\Luxel.Audio.Windows\Luxel.Audio.Windows.csproj" />
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj" />
@@ -35,14 +35,14 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Luxel.Tests" />
-    <InternalsVisibleTo Include="Luxel.Audio.Linux.Tests" />
+    <InternalsVisibleTo Include="Luxel.Audio.Silk.Tests" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Luxel.Graphics" />
   </ItemGroup>
   <ItemGroup>
-    <Using Include="Luxel.Audio.Linux" />
+    <Using Include="Luxel.Audio.Silk" />
     <Using Include="Luxel.Audio.Windows" />
   </ItemGroup>
 </Project>
