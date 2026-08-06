@@ -9,6 +9,7 @@
     <ProjectReference Include="..\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
+    <ProjectReference Include="..\Luxel.Input\Luxel.Input.csproj" />
     <ProjectReference Include="..\Luxel.Shaders\Luxel.Shaders.csproj" />
     <ProjectReference Include="..\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />
@@ -29,6 +30,10 @@
                       GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="..\..\shaders\compiled\triangle.spv" LogicalName="Luxel.Gallery.Stories.CoreUi.Shaders.triangle.spv" WithCulture="false" />
+    <EmbeddedResource Include="..\..\shaders\compiled\triangle.vs.dxil" LogicalName="Luxel.Gallery.Stories.CoreUi.Shaders.triangle.vs.dxil" WithCulture="false" />
+    <EmbeddedResource Include="..\..\shaders\compiled\triangle.ps.dxil" LogicalName="Luxel.Gallery.Stories.CoreUi.Shaders.triangle.ps.dxil" WithCulture="false" />
+    <EmbeddedResource Include="..\..\shaders\compiled\triangle.wgsl" LogicalName="Luxel.Gallery.Stories.CoreUi.Shaders.triangle.wgsl" WithCulture="false" />
     <EmbeddedResource Include="..\..\shaders\compiled\raster2d_bounds.*" Link="Shaders\%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\shaders\compiled\raster2d_bin.*" Link="Shaders\%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\shaders\compiled\raster2d_fine.*" Link="Shaders\%(Filename)%(Extension)" />

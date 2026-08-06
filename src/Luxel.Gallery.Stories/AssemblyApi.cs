@@ -1,4 +1,4 @@
-// 型 API リファレンスの対象 (Reference/Guides/Api* が TypeApiRegistry から実行時にページを組み立てる)。
+// 型 API リファレンスの対象 (`Reference/{namespace}` が TypeApiRegistry から実行時にページを組み立てる)。
 // 追加したい名前空間はここに並べる — 対象アセンブリは GenerateDocumentationFile=true が必要
 // (Directory.Build.props で全プロジェクト有効)。
 using Luxel.UI;

@@ -60,10 +60,36 @@ public sealed class BrowserStoryCatalogSourceTests
             .ToArray();
         JsonElement blur = manifest.GetProperty("stories").EnumerateArray()
             .Single(story => story.GetProperty("path").GetString() == "Examples/RenderGraph/Blur");
+        string[] pipelineStories =
+        [
+            "Examples/3D/PipelineState/Topology", "Examples/3D/PipelineState/Rasterizer",
+            "Examples/3D/PipelineState/Depth", "Examples/3D/PipelineState/Blend",
+            "Examples/3D/PipelineState/Stencil", "Examples/3D/PipelineState/ViewportScissor",
+            "Examples/3D/PipelineState/Separation", "Examples/3D/Depth", "Examples/3D/Blend",
+        ];
+        string[] runtimePaths = manifest.GetProperty("stories").EnumerateArray()
+            .Select(story => story.GetProperty("path").GetString()!)
+            .ToArray();
+        Assert.All(pipelineStories, path => Assert.Contains(path, runtimePaths));
         Assert.Equal(320, blur.GetProperty("width").GetInt32());
         Assert.Equal(320, blur.GetProperty("height").GetInt32());
         Assert.Equal("Runs through the shared Gallery WebAssembly story runner.",
             blur.GetProperty("capabilityNote").GetString());
+
+        string[] inputStories =
+        [
+            "Examples/Input/SourcesAndBus",
+            "Examples/Input/Actions",
+            "Examples/Input/ContextStack",
+            "Examples/Input/Bindings",
+        ];
+        foreach (string path in inputStories)
+        {
+            JsonElement input = manifest.GetProperty("stories").EnumerateArray()
+                .Single(story => story.GetProperty("path").GetString() == path);
+            Assert.Equal(JsonValueKind.Array, input.GetProperty("args").ValueKind);
+            Assert.Null(input.GetProperty("capabilityNote").GetString());
+        }
 
         Assert.Equal(60, production.Length);
         Assert.Equal(60, production.Select(story => story.GetProperty("path").GetString())

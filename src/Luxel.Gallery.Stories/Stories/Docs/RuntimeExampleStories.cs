@@ -6,21 +6,6 @@ namespace Luxel.Gallery.Stories;
 /// <summary>Small, source-backed runtime examples that connect Learn concepts to copyable bundles.</summary>
 public static class RuntimeExampleStories
 {
-    [Story("Examples/Input/Actions", Order = 0, SampleBundle = "input.actions")]
-    public static StoryResult InputActions(StoryContext ctx) => RuntimeExample(ctx, "Input: actions",
-        "`ButtonAction`と`Axis2DAction`を同じtickで更新し、論理入力だけをgame codeへ公開します。",
-        "samples/LuxelInput/Program.cs", "input-actions", "input.actions");
-
-    [Story("Examples/Input/ContextStack", Order = 1, SampleBundle = "input.actions")]
-    public static StoryResult InputContextStack(StoryContext ctx) => RuntimeExample(ctx, "Input: context stack",
-        "`InputStack`の上位contextが使用した入力をconsumeするため、menuとgameplayをplatform分岐なしで切り替えられます。",
-        "samples/LuxelInput/Program.cs", "input-actions", "input.actions");
-
-    [Story("Examples/Input/Bindings", Order = 2, SampleBundle = "input.actions")]
-    public static StoryResult InputBindings(StoryContext ctx) => RuntimeExample(ctx, "Input: bindings and deterministic ticks",
-        "keyboard bindingを論理actionへ集約し、`FakeInputSource`のpressとreleaseを別tickで送る検証可能な構成です。",
-        "samples/LuxelInput/Program.cs", "input-actions", "input.actions");
-
     [Story("Examples/Audio/WaveformAndVoice", Order = 0, SampleBundle = "audio.tone")]
     public static StoryResult AudioWaveform(StoryContext ctx) => RuntimeExample(ctx, "Audio: waveform and voice",
         "procedural PCM16 waveformから`AudioClip`を作り、voiceへqueueしてplaying状態とsubmitted bytesを観測します。",

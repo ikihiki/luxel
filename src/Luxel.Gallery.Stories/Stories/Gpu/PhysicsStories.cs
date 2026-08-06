@@ -16,7 +16,7 @@ namespace Luxel.Gallery.Stories;
 /// 物理 (Luxel.Physics = BepuPhysics v2) のデモ — Collider + RigidBody を持つ entity を
 /// PhysicsStepSystem が毎フレーム進めて LocalTransform を書き、既存の
 /// TransformPropagate → Render3DExtract → cube_forward がそのまま描く (シェーダ変更ゼロ)。
-/// 単スレッド固定タイムステップなので snap でも決定的。docs の Reference/Guides/Physics から参照される。
+/// 単スレッド固定タイムステップなので snap でも決定的。
 /// </summary>
 public static class PhysicsStories
 {

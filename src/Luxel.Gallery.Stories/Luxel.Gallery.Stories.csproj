@@ -21,6 +21,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Luxel.Input\Luxel.Input.csproj" />
     <ProjectReference Include="..\Luxel.Input.XInput\Luxel.Input.XInput.csproj" />
     <ProjectReference Include="..\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
     <ProjectReference Include="..\Luxel.UI.App\Luxel.UI.App.csproj" />
@@ -88,7 +89,7 @@
     <ProjectReference Include="..\Luxel.Workbench\Luxel.Workbench.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.TwoD.Skia\Luxel.Graphics.TwoD.Skia.csproj" />
     <ProjectReference Include="..\Luxel.Typography.Icu\Luxel.Typography.Icu.csproj" />
-    <!-- 型 API リファレンス (Reference/Guides/Api*) の対象 — Gallery はドキュメントハブとして全域を参照する -->
+    <!-- 型 API リファレンス (`Reference/{namespace}`) の対象 — Gallery はドキュメントハブとして全域を参照する -->
     <ProjectReference Include="..\Luxel.Framework\Luxel.Framework.csproj" />
     <ProjectReference Include="..\Luxel.Scene.UI\Luxel.Scene.UI.csproj" />
     <ProjectReference Include="..\Luxel.Ecs.Signal\Luxel.Ecs.Signal.csproj" />
@@ -123,6 +124,8 @@
     <EmbeddedResource Include="..\..\samples\LuxelCavern\LuxelCavern\CavernRealtimeScene.cs" LogicalName="Luxel.Sample.samples.LuxelCavern.LuxelCavern.CavernRealtimeScene.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelRange\LuxelRange\LuxelRange.csproj" LogicalName="Luxel.Sample.samples.LuxelRange.LuxelRange.LuxelRange.csproj" />
     <EmbeddedResource Include="..\..\samples\LuxelRange\LuxelRange\RangeRealtimeScene.cs" LogicalName="Luxel.Sample.samples.LuxelRange.LuxelRange.RangeRealtimeScene.cs" />
+    <EmbeddedResource Include="..\Luxel.Gallery.Stories.CoreUi\Stories\InputActionStories.cs"
+                      LogicalName="Luxel.Sample.src.Luxel.Gallery.Stories.CoreUi.Stories.InputActionStories.cs" />
     <EmbeddedResource Include="Stories\ScriptingStory.cs" LogicalName="Luxel.Sample.src.Luxel.Gallery.Stories.Stories.ScriptingStory.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelFramework\LuxelFramework.csproj" LogicalName="Luxel.Sample.samples.LuxelFramework.LuxelFramework.csproj" />
     <EmbeddedResource Include="..\..\samples\LuxelFramework\Program.cs" LogicalName="Luxel.Sample.samples.LuxelFramework.Program.cs" />

@@ -14,7 +14,10 @@ internal interface IBrowserWebGpuInterop
     void CommandSetGraphicsPipeline(int command, int pipeline);
     void CommandSetRootConstants(int command, string dataBase64);
     void CommandDispatch(int command, int x, int y, int z);
-    void CommandBeginRendering(int command, int color, int depth, float r, float g, float b, float a, float clearDepth);
+    void CommandBeginRendering(int command, int color, int depth, float r, float g, float b, float a, float clearDepth, int clearStencil);
+    void CommandSetStencilReference(int command, int reference);
+    void CommandSetViewport(int command, float x, float y, float width, float height, float minDepth, float maxDepth);
+    void CommandSetScissor(int command, int x, int y, int width, int height);
     void CommandEndRendering(int command);
     void CommandDraw(int command, int vertexCount, int instanceCount);
     void CommandCopyTextureToBuffer(int command, int texture, int destinationOffset, int bytesPerRow, int width, int height);
@@ -46,7 +49,10 @@ internal sealed partial class BrowserWebGpuInterop : IBrowserWebGpuInterop
     public void CommandSetGraphicsPipeline(int command, int pipeline) => CommandSetGraphicsPipelineCore(command, pipeline);
     public void CommandSetRootConstants(int command, string dataBase64) => CommandSetRootConstantsCore(command, dataBase64);
     public void CommandDispatch(int command, int x, int y, int z) => CommandDispatchCore(command, x, y, z);
-    public void CommandBeginRendering(int command, int color, int depth, float r, float g, float b, float a, float clearDepth) => CommandBeginRenderingCore(command, color, depth, r, g, b, a, clearDepth);
+    public void CommandBeginRendering(int command, int color, int depth, float r, float g, float b, float a, float clearDepth, int clearStencil) => CommandBeginRenderingCore(command, color, depth, r, g, b, a, clearDepth, clearStencil);
+    public void CommandSetStencilReference(int command, int reference) => CommandSetStencilReferenceCore(command, reference);
+    public void CommandSetViewport(int command, float x, float y, float width, float height, float minDepth, float maxDepth) => CommandSetViewportCore(command, x, y, width, height, minDepth, maxDepth);
+    public void CommandSetScissor(int command, int x, int y, int width, int height) => CommandSetScissorCore(command, x, y, width, height);
     public void CommandEndRendering(int command) => CommandEndRenderingCore(command);
     public void CommandDraw(int command, int vertexCount, int instanceCount) => CommandDrawCore(command, vertexCount, instanceCount);
     public void CommandCopyTextureToBuffer(int command, int texture, int destinationOffset, int bytesPerRow, int width, int height) => CommandCopyTextureToBufferCore(command, texture, destinationOffset, bytesPerRow, width, height);
@@ -73,7 +79,10 @@ internal sealed partial class BrowserWebGpuInterop : IBrowserWebGpuInterop
     [JSImport("commandSetGraphicsPipeline", Module)] private static partial void CommandSetGraphicsPipelineCore(int command, int pipeline);
     [JSImport("commandSetRootConstants", Module)] private static partial void CommandSetRootConstantsCore(int command, string dataBase64);
     [JSImport("commandDispatch", Module)] private static partial void CommandDispatchCore(int command, int x, int y, int z);
-    [JSImport("commandBeginRendering", Module)] private static partial void CommandBeginRenderingCore(int command, int color, int depth, float r, float g, float b, float a, float clearDepth);
+    [JSImport("commandBeginRendering", Module)] private static partial void CommandBeginRenderingCore(int command, int color, int depth, float r, float g, float b, float a, float clearDepth, int clearStencil);
+    [JSImport("commandSetStencilReference", Module)] private static partial void CommandSetStencilReferenceCore(int command, int reference);
+    [JSImport("commandSetViewport", Module)] private static partial void CommandSetViewportCore(int command, float x, float y, float width, float height, float minDepth, float maxDepth);
+    [JSImport("commandSetScissor", Module)] private static partial void CommandSetScissorCore(int command, int x, int y, int width, int height);
     [JSImport("commandEndRendering", Module)] private static partial void CommandEndRenderingCore(int command);
     [JSImport("commandDraw", Module)] private static partial void CommandDrawCore(int command, int vertexCount, int instanceCount);
     [JSImport("commandCopyTextureToBuffer", Module)] private static partial void CommandCopyTextureToBufferCore(int command, int texture, int destinationOffset, int bytesPerRow, int width, int height);

@@ -256,12 +256,11 @@ public class AssetsGpuTests
         }
 
         public Luxel.Graphics.Abstraction.IGpuBackendPipeline CreateGraphicsPipeline(
-            ReadOnlySpan<byte> vsBlob, string vsEntry,
-            ReadOnlySpan<byte> psBlob, string psEntry,
-            GpuRasterDesc raster)
+            ReadOnlySpan<byte> vsBlob, ReadOnlySpan<byte> psBlob,
+            GpuGraphicsPipelineDesc description)
         {
             Interlocked.Increment(ref _pipelineCreations);
-            return Track(new FakePipeline(isCompute: false));
+            return Track(new FakePipeline(isCompute: false, description));
         }
 
         public Luxel.Graphics.Abstraction.IGpuBackendTexture CreateRenderTarget(
@@ -305,9 +304,13 @@ public class AssetsGpuTests
         protected virtual void OnDispose() { }
     }
 
-    private sealed class FakePipeline(bool isCompute) : FakeResource, Luxel.Graphics.Abstraction.IGpuBackendPipeline
+    private sealed class FakePipeline(bool isCompute, GpuGraphicsPipelineDesc? description = null) : FakeResource, Luxel.Graphics.Abstraction.IGpuBackendPipeline
     {
         public bool IsCompute { get; } = isCompute;
+        public GpuGraphicsPipelineDesc? GraphicsDescription { get; } = description;
+        public GpuPipelineDiagnostics Diagnostics => default;
+        public Luxel.Graphics.Abstraction.IGpuBackendPipeline ResolveGraphicsVariant(
+            GpuRasterizerState rasterizer, GpuDepthStencilState depthStencil, GpuBlendState blend) => this;
     }
 
     private sealed class FakeTexture(uint width, uint height, GpuFormat format)

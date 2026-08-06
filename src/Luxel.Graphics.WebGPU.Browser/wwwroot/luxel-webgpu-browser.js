@@ -27,7 +27,7 @@ const encode = bytes => {
   return btoa(binary);
 };
 const text = base64 => new TextDecoder().decode(decode(base64));
-const gpuFormat = value => ["rgba8unorm", "bgra8unorm", "r32float", "depth32float", "rgba8unorm-srgb", "bgra8unorm-srgb", "r8unorm", "rg8unorm"][value] ?? (() => { throw new Error(`Unsupported format ${value}.`); })();
+const gpuFormat = value => ["rgba8unorm", "bgra8unorm", "r32float", "depth32float", "rgba8unorm-srgb", "bgra8unorm-srgb", "r8unorm", "rg8unorm", "depth24plus-stencil8"][value] ?? (() => { throw new Error(`Unsupported format ${value}.`); })();
 const gpuBytesPerPixel = value => [4, 4, 4, 4, 4, 4, 1, 2][value] ?? (() => { throw new Error(`Unsupported format ${value}.`); })();
 const ensureHealthy = backend => {
   if (backend.lost) throw new Error(`WebGPU device was lost: ${backend.lost}`);
@@ -91,7 +91,12 @@ export function createGraphicsPipeline(backendHandle, vsBase64, vsEntry, psBase6
   const target = { format: gpuFormat(raster.colorFormat) };
   if (raster.blend === 1) target.blend = { color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" }, alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" } };
   const descriptor = { layout: backend.graphicsPipelineLayout, vertex: { module: vs, entryPoint: vsEntry }, fragment: { module: ps, entryPoint: psEntry, targets: [target] }, primitive };
-  if (raster.depthTest || raster.depthWrite) descriptor.depthStencil = { format: gpuFormat(raster.depthFormat), depthWriteEnabled: raster.depthWrite, depthCompare: raster.depthTest ? "less" : "always" };
+  if (raster.depthFormat >= 0) {
+    const compares = ["never", "less", "equal", "less-equal", "greater", "not-equal", "greater-equal", "always"];
+    const ops = ["keep", "zero", "replace", "increment-clamp", "decrement-clamp", "invert", "increment-wrap", "decrement-wrap"];
+    const face = value => ({ compare: compares[value.compare], failOp: ops[value.fail], depthFailOp: ops[value.depthFail], passOp: ops[value.pass] });
+    descriptor.depthStencil = { format: gpuFormat(raster.depthFormat), depthWriteEnabled: raster.depthWrite, depthCompare: raster.depthTest ? compares[raster.depthCompare] : "always", stencilFront: face(raster.stencilFront), stencilBack: face(raster.stencilBack), stencilReadMask: raster.stencilReadMask, stencilWriteMask: raster.stencilWriteMask };
+  }
   return put("pipeline", { backend, compute: false, pipeline: backend.device.createRenderPipeline(descriptor) });
 }
 
@@ -153,14 +158,16 @@ export function commandDispatch(commandHandle, x, y, z) {
   const command = get(commandHandle, "command"); if (!command.computePass) throw new Error("No compute pass is active.");
   command.computePass.setBindGroup(0, command.computeGroup, [command.currentRootOffset]); command.computePass.setBindGroup(1, command.resourceGroup); command.computePass.dispatchWorkgroups(x, y, z);
 }
-export function commandBeginRendering(commandHandle, colorHandle, depthHandle, r, g, b, a, clearDepth) {
+export function commandBeginRendering(commandHandle, colorHandle, depthHandle, r, g, b, a, clearDepth, clearStencil) {
   const command = get(commandHandle, "command"), color = get(colorHandle, "texture");
   if (color.backend !== command.backend) throw new Error("Foreign color texture."); endPass(command);
   const descriptor = { colorAttachments: [{ view: color.texture.createView(), clearValue: { r, g, b, a }, loadOp: "clear", storeOp: "store" }] };
-  if (depthHandle) { const depth = get(depthHandle, "texture"); if (depth.backend !== command.backend) throw new Error("Foreign depth texture."); descriptor.depthStencilAttachment = { view: depth.texture.createView(), depthClearValue: clearDepth, depthLoadOp: "clear", depthStoreOp: "store" }; }
+  if (depthHandle) { const depth = get(depthHandle, "texture"); if (depth.backend !== command.backend) throw new Error("Foreign depth texture."); descriptor.depthStencilAttachment = { view: depth.texture.createView(), depthClearValue: clearDepth, depthLoadOp: "clear", depthStoreOp: "store" }; if (depth.format === "depth24plus-stencil8") Object.assign(descriptor.depthStencilAttachment, { stencilClearValue: clearStencil, stencilLoadOp: "clear", stencilStoreOp: "store" }); }
   command.renderPass = command.encoder.beginRenderPass(descriptor); if (command.graphicsPipeline) command.renderPass.setPipeline(command.graphicsPipeline);
-  command.renderPass.setViewport(0, 0, color.width, color.height, 0, 1); command.renderPass.setScissorRect(0, 0, color.width, color.height);
 }
+export function commandSetStencilReference(commandHandle, reference) { const command=get(commandHandle,"command"); if(!command.renderPass) throw new Error("No render pass is active."); command.renderPass.setStencilReference(reference); }
+export function commandSetViewport(commandHandle,x,y,width,height,minDepth,maxDepth) { const command=get(commandHandle,"command"); if(!command.renderPass) throw new Error("No render pass is active."); command.renderPass.setViewport(x,y,width,height,minDepth,maxDepth); }
+export function commandSetScissor(commandHandle,x,y,width,height) { const command=get(commandHandle,"command"); if(!command.renderPass) throw new Error("No render pass is active."); command.renderPass.setScissorRect(x,y,width,height); }
 export function commandEndRendering(commandHandle) { const command = get(commandHandle, "command"); if (!command.renderPass) throw new Error("No render pass is active."); command.renderPass.end(); command.renderPass = null; }
 export function commandDraw(commandHandle, vertexCount, instanceCount) { const command = get(commandHandle, "command"); if (!command.renderPass) throw new Error("No render pass is active."); command.renderPass.setBindGroup(0, command.graphicsGroup, [command.currentRootOffset]); command.renderPass.setBindGroup(1, command.resourceGroup); command.renderPass.draw(vertexCount, instanceCount); }
 export function commandCopyTextureToBuffer(commandHandle, textureHandle, destinationOffset, bytesPerRow, width, height) { const command = get(commandHandle, "command"), texture = get(textureHandle, "texture"); endPass(command); const layout = { buffer: command.backend.arena, offset: destinationOffset }; if (height > 1) { layout.bytesPerRow = bytesPerRow; layout.rowsPerImage = height; } command.encoder.copyTextureToBuffer({ texture: texture.texture }, layout, [width, height, 1]); }

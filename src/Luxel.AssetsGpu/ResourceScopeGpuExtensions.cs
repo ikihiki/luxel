@@ -19,7 +19,7 @@ public static class ResourceScopeGpuExtensions
         ArgumentNullException.ThrowIfNull(scope);
         ArgumentNullException.ThrowIfNull(code);
         var request = new GpuPipelineRequest(
-            code, Shader: null, IsCompute: true, default, entryPoint, "vsMain", "psMain");
+            code, Shader: null, IsCompute: true, default, null, entryPoint);
         return scope.Create<GpuPipelineRequest, GpuPipeline>(localKey, request);
     }
 
@@ -32,10 +32,27 @@ public static class ResourceScopeGpuExtensions
         ArgumentNullException.ThrowIfNull(scope);
         ArgumentNullException.ThrowIfNull(shader);
         var request = new GpuPipelineRequest(
-            Code: null, Shader: shader, IsCompute: true, default, entryPoint, "vsMain", "psMain");
+            Code: null, Shader: shader, IsCompute: true, default, null, entryPoint);
         return scope.Create<GpuPipelineRequest, GpuPipeline>(localKey, request);
     }
 
+    public static ResourceHandle<GpuPipeline> CreateGraphicsPipeline(
+        this ResourceScope scope, string localKey, GpuShaderCode code, GpuGraphicsPipelineDesc description)
+    {
+        ArgumentNullException.ThrowIfNull(scope); ArgumentNullException.ThrowIfNull(code);
+        return scope.Create<GpuPipelineRequest, GpuPipeline>(localKey,
+            new GpuPipelineRequest(code, null, false, description, null, "main"));
+    }
+
+    public static ResourceHandle<GpuPipeline> CreateGraphicsPipeline(
+        this ResourceScope scope, string localKey, ResourceHandle<GpuShaderCode> shader, GpuGraphicsPipelineDesc description)
+    {
+        ArgumentNullException.ThrowIfNull(scope); ArgumentNullException.ThrowIfNull(shader);
+        return scope.Create<GpuPipelineRequest, GpuPipeline>(localKey,
+            new GpuPipelineRequest(null, shader, false, description, null, "main"));
+    }
+
+    [Obsolete("Use the GpuGraphicsPipelineDesc overload.")]
     public static ResourceHandle<GpuPipeline> CreateGraphicsPipeline(
         this ResourceScope scope,
         string localKey,
@@ -47,10 +64,11 @@ public static class ResourceScopeGpuExtensions
         ArgumentNullException.ThrowIfNull(scope);
         ArgumentNullException.ThrowIfNull(code);
         var request = new GpuPipelineRequest(
-            code, Shader: null, IsCompute: false, raster, "main", vertexEntry, pixelEntry);
+            code, Shader: null, IsCompute: false, default, raster, "main");
         return scope.Create<GpuPipelineRequest, GpuPipeline>(localKey, request);
     }
 
+    [Obsolete("Use the GpuGraphicsPipelineDesc overload.")]
     public static ResourceHandle<GpuPipeline> CreateGraphicsPipeline(
         this ResourceScope scope,
         string localKey,
@@ -62,7 +80,7 @@ public static class ResourceScopeGpuExtensions
         ArgumentNullException.ThrowIfNull(scope);
         ArgumentNullException.ThrowIfNull(shader);
         var request = new GpuPipelineRequest(
-            Code: null, Shader: shader, IsCompute: false, raster, "main", vertexEntry, pixelEntry);
+            Code: null, Shader: shader, IsCompute: false, default, raster, "main");
         return scope.Create<GpuPipelineRequest, GpuPipeline>(localKey, request);
     }
 

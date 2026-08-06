@@ -481,7 +481,7 @@ public static class StoryRegistry
     private static readonly Dictionary<string, string> Aliases = new(StringComparer.Ordinal);
     private static readonly IReadOnlyDictionary<string, int> ComponentOrder = new Dictionary<string, int>(StringComparer.Ordinal)
     {
-        ["Start"] = 0, ["Learn"] = 10, ["Build"] = 20, ["Examples"] = 30,
+        ["Start"] = 0, ["Learn"] = 10, ["Examples"] = 30,
         ["Controls"] = 40, ["Apps"] = 50, ["Game"] = 60, ["Reference"] = 70,
         ["Internals"] = 80, ["RealWindow"] = 90, ["ADR"] = 100, ["Docs"] = 110,
     };

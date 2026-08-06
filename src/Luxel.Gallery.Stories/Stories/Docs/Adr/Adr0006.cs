@@ -18,7 +18,7 @@ public static partial class DocsAdr
         ## Context
 
         > [!NOTE]
-        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクするLearnページと実装を正とします。
 
 
         テキスト編集系コントロールに、性質の異なる要件が**同一エディタの同一行で同時に**求められるようになりました: 標準的な編集作業、Strudel の行内 UI コントロール配置と「いま鳴らしているシーケンス」を示す文字の囲み、C# 診断の下線・波線、コードエディタの行内色分けです。
@@ -42,7 +42,7 @@ public static partial class DocsAdr
         - **具体エディタは構成**で作る — `CodeEditorView` = view + ガター + syntax/診断/検索プロバイダ + 補完 chrome。Strudel ブロック = view + インライン widget + 再生囲みプロバイダ
         - **トークナイザ/言語契約は新スタック側に持つ** (model 非依存の `SyntaxToken`/`TokenKind` は再利用可)。既存の TextMate/Roslyn 実装は薄いアダプタで橋渡しし、新スタックは旧 Luxel.Document モデルに依存しない
 
-        実装計画は ToDo/22 (段階 S1〜S8)。旧 07 のマルチカーソル + 矩形選択は S7 に畳んだ (native モデルではほぼコマンド追加で済む)。現在の姿は [Reference/Guides/Editor](story:Reference/Guides/Editor) が正。
+        実装計画は ToDo/22 (段階 S1〜S8)。旧 07 のマルチカーソル + 矩形選択は S7 に畳んだ (native モデルではほぼコマンド追加で済む)。現在の実装を正とします。
 
         ## Alternatives
 

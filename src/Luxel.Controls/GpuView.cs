@@ -59,11 +59,12 @@ public sealed partial class GpuView : Widget
 
     private float _t;
     private UiNode? _node;
+    private GpuViewRenderResult _renderResult = GpuViewRenderResult.Loading;
 
     private float W1 => MathF.Max(1, ViewWidth.Get());
     private float H1 => MathF.Max(1, ViewHeight.Get());
 
-    public override string? DebugDetail => $"{(int)W1}x{(int)H1}{(Animated.Get() ? " animated" : "")}";
+    public override string? DebugDetail => $"{(int)W1}x{(int)H1}{(Animated.Get() ? " animated" : "")} {_renderResult}";
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
         => Size = c.Constrain(new Size(W1, H1));
@@ -137,6 +138,7 @@ public sealed partial class GpuView : Widget
                 UiError.Report(error, "GpuView.Render");
                 result = GpuViewRenderResult.Failed;
             }
+            _renderResult = result;
             status.Value = result;
             if (result == GpuViewRenderResult.Ready) image.Touch();
         }

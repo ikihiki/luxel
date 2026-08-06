@@ -5979,6 +5979,14 @@
       "componentType": null
     },
     {
+      "path": "Examples/3D/Blend",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Compatibility route backed by the browser-safe pipeline-state demo.",
+      "componentType": null
+    },
+    {
       "path": "Examples/3D/BuffersAndBindings",
       "width": 320,
       "height": 240,
@@ -5990,6 +5998,70 @@
       "path": "Examples/3D/ClearColor",
       "width": 320,
       "height": 240,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/Depth",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Compatibility route backed by the browser-safe pipeline-state demo.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Blend",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Depth",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Rasterizer",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Separation",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Stencil",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Topology",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/ViewportScissor",
+      "width": 480,
+      "height": 320,
       "args": [],
       "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
       "componentType": null
@@ -6030,6 +6102,38 @@
       "path": "Examples/Embeds/Math",
       "width": 480,
       "height": 300,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Input/Actions",
+      "width": 680,
+      "height": 430,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Input/Bindings",
+      "width": 680,
+      "height": 440,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Input/ContextStack",
+      "width": 650,
+      "height": 390,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Input/SourcesAndBus",
+      "width": 700,
+      "height": 460,
       "args": [],
       "capabilityNote": null,
       "componentType": null

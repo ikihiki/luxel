@@ -1,3 +1,5 @@
 # Shader cache hashes must be identical on Windows and Unix checkouts.
 shaders/*.slang text eol=lf
 eng/Luxel.ShaderWgslGen/Program.cs text eol=lf
+eng/Luxel.ShaderWgslGen/Luxel.ShaderWgslGen.csproj text eol=lf
+src/Luxel.Shaders/WgslNormalizer.cs text eol=lf

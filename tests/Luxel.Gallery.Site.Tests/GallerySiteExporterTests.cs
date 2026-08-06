@@ -44,6 +44,122 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Pipeline_state_stories_are_registered_with_deterministic_metadata_and_separated_api_usage()
+    {
+        string[] paths =
+        [
+            "Examples/3D/PipelineState/Topology",
+            "Examples/3D/PipelineState/Rasterizer",
+            "Examples/3D/PipelineState/Depth",
+            "Examples/3D/PipelineState/Blend",
+            "Examples/3D/PipelineState/Stencil",
+            "Examples/3D/PipelineState/ViewportScissor",
+            "Examples/3D/PipelineState/Separation",
+        ];
+
+        for (int i = 0; i < paths.Length; i++)
+        {
+            StoryInfo story = Assert.IsType<StoryInfo>(Catalog.Find(paths[i]));
+            Assert.Equal(320, story.Height);
+            Assert.Equal(100 + i, story.Order);
+            Assert.False(story.RealWindowOnly);
+            Assert.Equal(CoreUiStoryProject.RuntimeBundleId, story.RuntimeBundleId);
+
+            var context = new StoryContext();
+            context.SetServices(GalleryServices.Provider);
+            Assert.NotNull(story.Build(context));
+            Assert.Single(context.Plays);
+        }
+        Assert.Contains("GpuPrimitiveTopology.TriangleStrip", Catalog.Find(paths[0])!.Source);
+        Assert.Contains("SetGraphicsPipeline", Catalog.Find(paths[0])!.Source);
+        Assert.Contains("SetRasterizerState", Catalog.Find(paths[1])!.Source);
+        Assert.Contains("GpuFormat.D32Float", Catalog.Find(paths[2])!.Source);
+        Assert.Contains("SetDepthStencilState", Catalog.Find(paths[2])!.Source);
+        Assert.Contains("SetBlendState", Catalog.Find(paths[3])!.Source);
+        Assert.Contains("GpuStencilFaceState", Catalog.Find(paths[4])!.Source);
+        Assert.Contains("SetStencilReference", Catalog.Find(paths[4])!.Source);
+        Assert.Contains("SetViewport", Catalog.Find(paths[5])!.Source);
+        Assert.Contains("SetScissor", Catalog.Find(paths[5])!.Source);
+        foreach (string stateSetter in new[]
+                 {
+                     "SetRasterizerState", "SetDepthStencilState", "SetBlendState", "SetViewport", "SetScissor",
+                 })
+            Assert.Contains(stateSetter, Catalog.Find(paths[6])!.Source);
+
+        string[] shaderResources = typeof(PipelineStateStories).Assembly.GetManifestResourceNames();
+        foreach (string resource in new[]
+                 {
+                     "triangle.spv", "triangle.vs.dxil", "triangle.ps.dxil", "triangle.wgsl",
+                 })
+            Assert.Contains(shaderResources, name => name.EndsWith("Shaders." + resource, StringComparison.Ordinal));
+
+        Assert.NotNull(Catalog.Find("Examples/3D/Depth"));
+        Assert.NotNull(Catalog.Find("Examples/3D/Blend"));
+
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(root,
+            "src", "Luxel.Gallery.Stories.CoreUi", "Stories", "PipelineStateStories.cs"));
+        Assert.DoesNotContain("GpuRasterDesc", source);
+        foreach (string required in new[]
+                 {
+                     "GpuGraphicsPipelineDesc", "GpuAttachmentLayout", "SetRasterizerState",
+                     "SetDepthStencilState", "SetBlendState", "SetViewport", "SetScissor",
+                     "GpuFormat.Depth24PlusStencil8", "clearStencil: 0", "GpuStencilOp.Replace",
+                     "GpuCompareOp.Equal", "StencilReadMask = 0x0f", "StencilWriteMask = 0x0f",
+                     "SetStencilReference(1)", "SetStencilReference(2)",
+                 })
+            Assert.Contains(required, source);
+    }
+
+    [Fact]
+    public void Pipeline_state_stories_have_golden_only_static_previews()
+    {
+        string[] paths =
+        [
+            "Examples/3D/PipelineState/Topology",
+            "Examples/3D/PipelineState/Rasterizer",
+            "Examples/3D/PipelineState/Depth",
+            "Examples/3D/PipelineState/Blend",
+            "Examples/3D/PipelineState/Stencil",
+            "Examples/3D/PipelineState/ViewportScissor",
+            "Examples/3D/PipelineState/Separation",
+            "Examples/3D/Depth",
+            "Examples/3D/Blend",
+        ];
+        StoryInfo[] stories = paths.Select(path => Assert.IsType<StoryInfo>(Catalog.Find(path))).ToArray();
+        string root = GallerySiteExporter.FindRepositoryRoot();
+        string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-pipeline-goldens-" + Guid.NewGuid().ToString("N"));
+        int hostCreations = 0;
+
+        try
+        {
+            SiteExportReport report = GallerySiteExporter.Export(
+                () => { hostCreations++; throw new InvalidOperationException("golden-only export must not create a host"); },
+                Catalog, stories, output, root,
+                options: new SiteExportOptions { StaticCapture = StaticCaptureMode.GoldenOnly });
+
+            Assert.Equal(0, hostCreations);
+            Assert.Equal(paths.Length, report.Images);
+            Assert.Equal(0, report.Unavailable);
+            SiteStory[] entries = JsonSerializer.Deserialize<SiteStory[]>(
+                File.ReadAllText(Path.Combine(output, "manifest.json")),
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })!;
+            foreach (string path in paths)
+            {
+                SiteStory entry = Assert.Single(entries, candidate => candidate.Path == path);
+                Assert.Equal("captured", entry.Status);
+                Assert.NotNull(entry.Image);
+                Assert.NotEmpty(entry.ImageSha256);
+                Assert.True(File.Exists(Path.Combine(output, entry.Image!)));
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(output)) Directory.Delete(output, true);
+        }
+    }
+
+    [Fact]
     public void Playground_is_a_buildable_native_story()
     {
         StoryInfo story = Assert.IsType<StoryInfo>(Catalog.Find("Examples/Scripting/Playground"));
@@ -68,10 +184,6 @@ public sealed class GallerySiteExporterTests
         Assert.Contains(bundle.Files, file => file.Path.EndsWith("triangle.wgsl", StringComparison.Ordinal));
         Assert.Contains("dotnet publish", bundle.RunCommand);
 
-        StoryInfo guide = Assert.Single(Catalog.All.Where(story => story.Path == "Reference/Guides/WebGPU"));
-        Assert.Equal("rendering.webgpu-browser", guide.SampleBundle);
-        Assert.Contains("(samples/webgpu-browser/)", File.ReadAllText(Path.Combine(
-            GallerySiteExporter.FindRepositoryRoot(), "src", "Luxel.Gallery.Stories", "Stories", "Docs", "DocsGpuWebGpu.cs")));
     }
 
     [Fact]
@@ -149,7 +261,7 @@ public sealed class GallerySiteExporterTests
     public void Slug_is_stable_and_relative_safe()
     {
         Assert.Equal("controls-button-primary", GallerySiteExporter.Slug("Controls/Button/Primary"));
-        Assert.DoesNotContain('/', GallerySiteExporter.Slug("Reference/Guides/はじめに"));
+        Assert.DoesNotContain('/', GallerySiteExporter.Slug("Reference/はじめに"));
     }
 
     [Fact]
@@ -699,7 +811,7 @@ public sealed class GallerySiteExporterTests
         string root = GallerySiteExporter.FindRepositoryRoot();
         string output = Path.Combine(Path.GetTempPath(), "luxel-gallery-rendergraph-runtime-" + Guid.NewGuid().ToString("N"));
         string browserRoot = CreateBrowserRuntimeRoot();
-        StoryInfo story = Catalog.Find("Learn/RenderGraph/Overview")
+        StoryInfo story = Catalog.Find("Learn/Graphics/RenderGraph/Overview")
             ?? throw new InvalidOperationException("RenderGraph Overview story is missing.");
         try
         {
@@ -709,7 +821,7 @@ public sealed class GallerySiteExporterTests
 
             GallerySiteExporter.Export(host, [story], output, root, browserRoot);
 
-            string fragment = File.ReadAllText(Path.Combine(output, "stories", "learn-rendergraph-overview.html"));
+            string fragment = File.ReadAllText(Path.Combine(output, "stories", "learn-graphics-rendergraph-overview.html"));
             Assert.Contains("<iframe src=\"samples/webgpu-browser/?story=Examples%2FRenderGraph%2FBlur&amp;args=%7B%7D&amp;instance=", fragment);
             Assert.Contains("data-luxel-runtime-story=\"Examples/RenderGraph/Blur\"", fragment);
             Assert.Contains("runtime-story-embedded", fragment);
@@ -986,14 +1098,6 @@ public sealed class GallerySiteExporterTests
         foreach (string special in new[] { "Layout", "Kit", "CommandPalette" })
             Assert.NotNull(Catalog.Find($"Controls/{special}/Overview"));
 
-        StoryInfo controls = Catalog.Find("Reference/Guides/Controls")
-            ?? throw new InvalidOperationException("Reference/Guides/Controls is missing.");
-        ISemanticDocument controlsDocument = BuildSemanticDocument(controls)
-            ?? throw new InvalidOperationException("Reference/Guides/Controls is not a document.");
-        Assert.Contains("Controls/NavigationView/Basic", controlsDocument.DocumentSource);
-        Assert.Contains("Examples/UI/Navigation", controlsDocument.DocumentSource);
-        Assert.DoesNotContain("Reference/Overview", controlsDocument.DocumentSource);
-        Assert.Contains("Controls/Button/Overview", controlsDocument.DocumentSource);
     }
 
     [SkippableFact]
@@ -1132,10 +1236,18 @@ public sealed class GallerySiteExporterTests
         Assert.Equal("Learn/Graphics/2D/Internal/Overview", orderedGraphicsRoutes[16]);
 
         string[] orderedRenderGraphRoutes = Catalog.All
-            .Where(story => story.Path.StartsWith("Learn/RenderGraph/", StringComparison.Ordinal))
+            .Where(story => story.Path.StartsWith("Learn/Graphics/RenderGraph/", StringComparison.Ordinal))
             .Select(story => story.Path)
             .ToArray();
-        Assert.Equal(RenderGraphCourseCatalog.Routes, orderedRenderGraphRoutes);
+        Assert.Equal(RenderingCourseCatalog.Routes[^6..], orderedRenderGraphRoutes);
+        Assert.Equal("Learn/Graphics/2D/Internal/Validation", orderedGraphicsRoutes[^7]);
+        Assert.Equal("Learn/Graphics/RenderGraph/Overview", orderedGraphicsRoutes[^6]);
+        Assert.Equal("Learn/Graphics/RenderGraph/Debugging", orderedGraphicsRoutes[^1]);
+
+        string validationPage = BuildSemanticDocument(Catalog.Find("Learn/Graphics/2D/Internal/Validation")!)!.DocumentSource!;
+        string renderGraphOverviewPage = BuildSemanticDocument(Catalog.Find("Learn/Graphics/RenderGraph/Overview")!)!.DocumentSource!;
+        Assert.Contains("story:Learn/Graphics/RenderGraph/Overview", validationPage);
+        Assert.Contains("story:Learn/Graphics/2D/Internal/Validation", renderGraphOverviewPage);
 
         for (int i = 0; i < routes.Length; i++)
         {
@@ -1245,21 +1357,13 @@ public sealed class GallerySiteExporterTests
         foreach (string term in new[] { "SceneAnimationPlayer.Sample", "TransformPropagateSystem.Run", "SkinningSystem.Run", "MorphWeights", "scene_pbr_skinned", "scene_pbr_morph" })
             Assert.Contains(term, assetRuntime);
         Assert.Contains("Weights channelのlinear / step", assetRuntime);
-
-        StoryInfo referenceStory = Catalog.Find("Reference/Guides/Resources")
-            ?? throw new InvalidOperationException("Resources reference route is missing.");
-        string reference = BuildSemanticDocument(referenceStory)!.DocumentSource!;
-        Assert.Contains("new ImageSharpDecoder()", reference);
-        Assert.Contains("ResourceOwnership.Borrowed", reference);
-        Assert.Contains("Io / Cpu / External", reference);
-        Assert.DoesNotContain("Io / Cpu / Gpu", reference);
-        Assert.DoesNotContain("Executor.Gpu", reference);
     }
 
     [Fact]
     public void RenderGraph_learn_chain_is_ordered_and_linked()
     {
-        StoryInfo[] stories = RenderGraphCourseCatalog.Routes.Select(path => Catalog.Find(path)
+        string[] routes = RenderingCourseCatalog.Routes[^6..];
+        StoryInfo[] stories = routes.Select(path => Catalog.Find(path)
             ?? throw new InvalidOperationException($"RenderGraph Learn route is missing: {path}")).ToArray();
         Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null, Catalog);
 
@@ -1449,7 +1553,7 @@ public sealed class GallerySiteExporterTests
             "## Depth-Stencil State",
             "## Blend State",
             "## Viewport / Scissor",
-            "## Pipelineを分ける判断",
+            "## Pipelineとstateを分ける判断",
             "## よくある症状",
         ];
         int previousPipelineTopic = -1;
@@ -1461,17 +1565,24 @@ public sealed class GallerySiteExporterTests
         }
         foreach (string pipelineTerm in new[]
                  {
-                     "GpuRasterDesc.Default", "GpuPrimitiveTopology.TriangleList", "GpuCullMode.Back",
-                     "GpuFrontFace.CounterClockwise", "DepthTest", "DepthWrite", "GpuFormat.D32Float",
-                     "GpuBlendMode.AlphaBlend", "CreateDepthTarget", "LessOrEqual",
-                     "SetViewport", "SetScissor", "render target全体",
+                     "No Graphics API", "GpuGraphicsPipelineDesc", "GpuAttachmentLayout",
+                     "GpuPrimitiveTopology.TriangleList", "GpuCullMode.Back", "GpuFrontFace.CounterClockwise",
+                     "SetRasterizerState", "SetDepthStencilState", "SetBlendState", "SetViewport", "SetScissor",
+                     "GpuFormat.Depth24PlusStencil8", "clearStencil", "GpuStencilOp.Replace", "GpuCompareOp.Equal",
+                     "StencilReadMask", "StencilWriteMask", "SetStencilReference", "GpuPipelineDiagnostics",
                  })
             Assert.Contains(pipelineTerm, pipelinePage);
+        Assert.DoesNotContain("GpuRasterDesc", pipelinePage);
         ISemanticDocument pipelineDocument = BuildSemanticDocument(Catalog.Find("Learn/Graphics/PipelineState")!)!;
-        Assert.Contains(pipelineDocument.DocumentEmbeds,
-            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/3D/Depth");
-        Assert.Contains(pipelineDocument.DocumentEmbeds,
-            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/3D/Blend");
+        foreach (string storyPath in new[]
+                 {
+                     "Examples/3D/PipelineState/Topology", "Examples/3D/PipelineState/Rasterizer",
+                     "Examples/3D/PipelineState/Depth", "Examples/3D/PipelineState/Blend",
+                     "Examples/3D/PipelineState/Stencil", "Examples/3D/PipelineState/ViewportScissor",
+                     "Examples/3D/PipelineState/Separation",
+                 })
+            Assert.Contains(pipelineDocument.DocumentEmbeds,
+                embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == storyPath);
 
         string synchronizationPage = pages["Learn/Graphics/Synchronization"].Text;
         Assert.Contains("# 同期", synchronizationPage);
@@ -1489,7 +1600,7 @@ public sealed class GallerySiteExporterTests
                      "GpuStage.PixelShader", "GpuStage.ComputeShader", "GpuStage.ColorOutput",
                      "GpuStage.DepthStencil", "GpuStage.Copy", "GpuStage.AllGraphics", "GpuStage.All",
                      "GpuHazard.IndirectArguments", "SubmitAndWait", "SubmitAsync", "WaitIdle", "WaitIdleAsync",
-                     "story:Internals/Gpu/Synchronization", "story:Learn/RenderGraph/Overview",
+                     "story:Internals/Gpu/Synchronization", "story:Learn/Graphics/RenderGraph/Overview",
                  })
             Assert.Contains(synchronizationTerm, synchronizationPage);
         Assert.DoesNotContain("## Frame slotとFence", synchronizationPage);
@@ -1508,6 +1619,12 @@ public sealed class GallerySiteExporterTests
             Assert.Contains(implementationTerm, synchronizationInternalsPage);
 
         Assert.Null(Catalog.Find("Learn/Graphics/RenderGraph"));
+        foreach (string oldRoute in new[]
+                 {
+                     "Learn/RenderGraph/Overview", "Learn/RenderGraph/Resources", "Learn/RenderGraph/Passes",
+                     "Learn/RenderGraph/Compilation", "Learn/RenderGraph/Lifecycle", "Learn/RenderGraph/Debugging",
+                 })
+            Assert.Null(Catalog.Find(oldRoute));
 
         foreach (string removedRoute in new[]
                  {
@@ -1519,31 +1636,11 @@ public sealed class GallerySiteExporterTests
                  })
             Assert.Null(Catalog.Find(removedRoute));
 
-        StoryInfo indexedCube = Catalog.Find("Build/Recipes/IndexedCube")!;
-        string indexedCubePage = BuildSemanticDocument(indexedCube)!.DocumentSource!;
-        Assert.Contains("# Recipe: Index bufferでcubeを描く", indexedCubePage);
-        Assert.Contains("## Indexed vertex pulling", indexedCubePage);
-        Assert.Contains("24 vertices", indexedCubePage);
-        Assert.Contains("36 indices", indexedCubePage);
-        Assert.Equal("rendering.3d", indexedCube.SampleBundle);
-
-        StoryInfo camera3D = Catalog.Find("Build/Recipes/Camera3D")!;
-        string cameraPage = BuildSemanticDocument(camera3D)!.DocumentSource!;
-        Assert.Contains("# Recipe: 3D Camera", cameraPage);
-        Assert.Contains("## Model、View、Projection", cameraPage);
-        Assert.Contains("## Resizeとaspect", cameraPage);
-        Assert.Contains("AppContext", shadersPage);
-        Assert.Equal("rendering.3d", camera3D.SampleBundle);
-        Assert.Null(Catalog.Find("Build/Recipes/TexturedScene"));
     }
 
     [Fact]
-    public void Docs_gpu_routes_and_story_source_limitations_are_preserved()
+    public void Story_source_limitations_are_preserved()
     {
-        string[] routes = ["GpuDevice", "TwoD", "RenderGraph", "ThreeD", "Assets", "Ecs", "Physics"];
-        foreach (string route in routes)
-            Assert.NotNull(Catalog.Find("Reference/Guides/" + route));
-
         StoryInfo authoring = Catalog.Find("Internals/Authoring")
             ?? throw new InvalidOperationException("Internals/Authoring is missing.");
         Assert.Contains("完全な `[Story]` method宣言", authoring.Source);
@@ -1612,20 +1709,120 @@ public sealed class GallerySiteExporterTests
         Assert.Null(Catalog.Find("Learn/Graphics/RasterizerInternals/Overview"));
         Assert.Null(Catalog.Find("Learn/Rendering/Basics/Overview"));
         Assert.Null(Catalog.Find("Learn/Graphics/Basics/Overview"));
-        foreach (string route in new[] { "Learn/Input/Overview", "Learn/Input/ActionsAndContexts", "Learn/Input/PlatformsAndTesting",
+        foreach (string route in new[] { "Learn/Input/Overview", "Learn/Input/SourcesAndBus", "Learn/Input/ActionsAndContexts",
+                     "Learn/Input/BindingsAndRebinding", "Learn/Input/PlatformsAndTesting", "Examples/Input/SourcesAndBus",
+                     "Examples/Input/Actions", "Examples/Input/ContextStack", "Examples/Input/Bindings",
                      "Learn/Audio/Overview", "Learn/Audio/ClipsSourcesAndBuses", "Learn/Audio/SpatialStreamingAndTesting",
-                     "Learn/Resources/Overview", "Learn/Resources/PipelinesAndDag", "Learn/Resources/ReloadAndLifetime",
-                     "Build/Blocks/Input/Actions", "Build/Blocks/Audio/Tone", "Build/Blocks/Resources/Pipeline" })
+                     "Learn/Resources/Overview", "Learn/Resources/PipelinesAndDag", "Learn/Resources/ReloadAndLifetime" })
             Assert.NotNull(Catalog.Find(route));
         string[] diagnostics = ["InputPaths", "EncodedScene", "Bounds", "TileBins", "Coverage", "Stroke", "Composite", "Dispatch", "RetainedUpdates"];
         foreach (string diagnostic in diagnostics)
             Assert.NotNull(Catalog.Find("Examples/2D/Rasterizer/" + diagnostic));
-        Assert.NotNull(Catalog.Find("Build/Recipes/TriangleApp"));
-        Assert.NotNull(Catalog.Find("Build/Recipes/IndexedCube"));
-        Assert.NotNull(Catalog.Find("Build/Recipes/Camera3D"));
+        Assert.DoesNotContain(Catalog.All, story => story.Path.StartsWith("Build/", StringComparison.Ordinal));
+        Assert.DoesNotContain(Catalog.All, story => story.Path.StartsWith("Reference/Guides/", StringComparison.Ordinal));
         Assert.Contains(Catalog.All, story => story.Path.StartsWith("Examples/", StringComparison.Ordinal));
         Assert.DoesNotContain(Catalog.All, story => story.Path.StartsWith("Demos/", StringComparison.Ordinal));
         Assert.Empty(DocsIndex.ValidateLinks(DocsIndex.Build(Catalog.All, resources: null, Catalog), Catalog));
+    }
+
+    [Fact]
+    public void Input_learn_pages_embed_running_stories_and_concept_sized_source_fragments()
+    {
+        ISemanticDocument overviewDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/Overview")!)!;
+        Assert.DoesNotContain("コピーして動かす", overviewDocument.DocumentSource!);
+
+        ISemanticDocument platformsDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/PlatformsAndTesting")!)!;
+        Assert.DoesNotContain("story:Learn/Audio/Overview", platformsDocument.DocumentSource!);
+
+        ISemanticDocument sourcesDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/SourcesAndBus")!)!;
+        string sources = sourcesDocument.DocumentSource!;
+        Assert.Contains(sourcesDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/Input/SourcesAndBus");
+        string[] sourceStages =
+        [
+            "## IInputSourceの役割",
+            "## InputEventの共通形式",
+            "## 1 tickの収集順序",
+            "## 押下と解放を別tickにする",
+        ];
+        int previousSourceStage = -1;
+        foreach (string stage in sourceStages)
+        {
+            int position = sources.IndexOf(stage, previousSourceStage + 1, StringComparison.Ordinal);
+            Assert.True(position > previousSourceStage, $"Missing or out-of-order Input source stage: {stage}");
+            previousSourceStage = position;
+        }
+        foreach (string token in new[]
+                 {
+                     "IInputSource[] sources", "new InputBus", "bus.Clear()", "source.Poll(bus)",
+                     "bus.Events", "InputEventKind.AxisChanged", "InputEventKind.PointerMoved",
+                 })
+            Assert.Contains(token, sources);
+        Assert.Contains("sourceごとに`bus.Clear()`してはいけません", sources);
+        Assert.Contains("`InputStack.Update`はイベントを保持状態へ反映した後、busをクリアします", sources);
+        foreach (string uiScaffolding in new[] { "Frame(VStack", "Heading(", "Button(_ =>" })
+            Assert.DoesNotContain(uiScaffolding, sources);
+
+        ISemanticDocument actionsDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/ActionsAndContexts")!)!;
+        string actions = actionsDocument.DocumentSource!;
+        Assert.Contains(actionsDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/Input/Actions");
+        Assert.Contains(actionsDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/Input/ContextStack");
+
+        string[] actionStages =
+        [
+            "## アクションを構成する",
+            "## 押下と解放のエッジを処理する",
+            "## コンテキストの優先順位と入力の消費",
+            "### スタックを構成する",
+            "### 上位コンテキストで入力を消費する",
+            "### コンテキストを一時停止する",
+        ];
+        int previousActionStage = -1;
+        foreach (string stage in actionStages)
+        {
+            int position = actions.IndexOf(stage, previousActionStage + 1, StringComparison.Ordinal);
+            Assert.True(position > previousActionStage, $"Missing or out-of-order Input action stage: {stage}");
+            previousActionStage = position;
+        }
+        foreach (string token in new[]
+                 {
+                     "new FakeInputSource", "stack.Push(gameplay)", "jump.Triggered", "jump.Released",
+                     "stack.Push(menu)", "source.PressKey(KeyCode.Enter)", "stack.SetSuspended",
+                 })
+            Assert.Contains(token, actions);
+        foreach (string uiScaffolding in new[] { "Frame(VStack", "Heading(", "KeyButton(" })
+            Assert.DoesNotContain(uiScaffolding, actions);
+
+        ISemanticDocument bindingsDocument = BuildSemanticDocument(Catalog.Find("Learn/Input/BindingsAndRebinding")!)!;
+        string bindings = bindingsDocument.DocumentSource!;
+        Assert.Contains(bindingsDocument.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/Input/Bindings");
+
+        string[] bindingStages =
+        [
+            "## アクションとテスト用入力を用意する",
+            "## JSONとして保存する",
+            "## JSONを読み込み、コンテキストへ反映する",
+            "## 反映したバインディングを確認する",
+            "## 再設定UIの責務",
+        ];
+        int previousBindingStage = -1;
+        foreach (string stage in bindingStages)
+        {
+            int position = bindings.IndexOf(stage, previousBindingStage + 1, StringComparison.Ordinal);
+            Assert.True(position > previousBindingStage, $"Missing or out-of-order Input binding stage: {stage}");
+            previousBindingStage = position;
+        }
+        foreach (string token in new[]
+                 {
+                     "new ButtonAction(\"Jump\"", "JsonSerializer.Serialize", "InputBindingsJsonContext.Default.InputBindings",
+                     "InputBindingsApplier.Apply", "source.PressKey(key)", "source.ReleaseKey(key)",
+                 })
+            Assert.Contains(token, bindings);
+        foreach (string uiScaffolding in new[] { "Frame(VStack", "Heading(", "Button(_ =>" })
+            Assert.DoesNotContain(uiScaffolding, bindings);
     }
 
     [Fact]
@@ -1660,13 +1857,10 @@ public sealed class GallerySiteExporterTests
                     _ = Luxel.Gallery.Stories.DocsKit.SampleSource(file.Path, file.Region, file.Language);
             }
         }
-        StoryInfo triangle = Catalog.Find("Build/Recipes/TriangleApp")!;
-        Assert.Equal("rendering.triangle", triangle.SampleBundle);
-        Assert.NotNull(SampleBundleRegistry.Find(triangle.SampleBundle));
     }
 
     [Fact]
-    public void Rendering_overview_follows_catalog_and_build_paths_match_copy_levels()
+    public void Rendering_overview_follows_catalog()
     {
         Dictionary<string, DocsPage> pages = DocsIndex.Build(
             [Catalog.Find("Learn/Graphics/Overview")!], resources: null);
@@ -1681,23 +1875,6 @@ public sealed class GallerySiteExporterTests
         Assert.True(overview.IndexOf("story:Examples/3D/Triangle", StringComparison.Ordinal) > previous);
         Assert.Contains("その下のInternal", overview);
 
-        foreach (StoryInfo story in Catalog.All.Where(story => story.Path.StartsWith("Build/Blocks/", StringComparison.Ordinal)))
-        {
-            Assert.False(string.IsNullOrWhiteSpace(story.SampleBundle), story.Path);
-            Assert.Equal(SampleCopyLevel.Block, SampleBundleRegistry.Find(story.SampleBundle!)!.CopyLevel);
-        }
-        foreach (StoryInfo story in Catalog.All.Where(story => story.Path.StartsWith("Build/Recipes/", StringComparison.Ordinal)))
-        {
-            Assert.False(string.IsNullOrWhiteSpace(story.SampleBundle), story.Path);
-            Assert.Contains(SampleBundleRegistry.Find(story.SampleBundle!)!.CopyLevel,
-                new[] { SampleCopyLevel.Recipe, SampleCopyLevel.StandaloneProject });
-        }
-
-        Assert.Null(Catalog.Find("Build/Blocks/ThreeD/Triangle"));
-        Assert.Null(Catalog.Find("Build/Recipes/TwoDCanvasApp"));
-        Assert.Null(Catalog.Find("Build/Recipes/MiniGame2D"));
-        Assert.Null(Catalog.Find("Build/Recipes/Viewer3D"));
-        Assert.NotNull(Catalog.Find("Build/Recipes/HeadlessScene2D"));
     }
 
     [Fact]
@@ -1766,13 +1943,13 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
-    public void Runtime_sample_bundles_are_connected_to_learn_and_build_pages()
+    public void Runtime_sample_bundles_are_connected_to_learn_pages()
     {
-        (string Bundle, string Learn, string Build)[] cases =
+        (string Bundle, string Learn)[] cases =
         [
-            ("input.actions", "Learn/Input/Overview", "Build/Blocks/Input/Actions"),
-            ("audio.tone", "Learn/Audio/Overview", "Build/Blocks/Audio/Tone"),
-            ("resources.pipeline", "Learn/Resources/Overview", "Build/Blocks/Resources/Pipeline"),
+            ("input.actions", "Learn/Input/Overview"),
+            ("audio.tone", "Learn/Audio/Overview"),
+            ("resources.pipeline", "Learn/Resources/Overview"),
         ];
         foreach (var item in cases)
         {
@@ -1780,7 +1957,6 @@ public sealed class GallerySiteExporterTests
             Assert.Equal(SampleCopyLevel.Block, bundle.CopyLevel);
             Assert.False(string.IsNullOrWhiteSpace(bundle.SmokeCommand));
             Assert.Equal(item.Bundle, Catalog.Find(item.Learn)!.SampleBundle);
-            Assert.Equal(item.Bundle, Catalog.Find(item.Build)!.SampleBundle);
         }
     }
 
@@ -1791,10 +1967,8 @@ public sealed class GallerySiteExporterTests
         [
             ("Learn/Framework/Overview", "framework.fixed-timestep"),
             ("Learn/Framework/FixedTimestepAndPhases", "framework.fixed-timestep"),
-            ("Build/Blocks/Framework/FixedTimestep", "framework.fixed-timestep"),
             ("Learn/UI/WidgetTrees", "ui.headless-tree"),
             ("Learn/UI/Signals", "ui.headless-tree"),
-            ("Build/Blocks/UI/HeadlessTree", "ui.headless-tree"),
         ];
         foreach ((string route, string bundle) in pages)
         {
@@ -1819,7 +1993,6 @@ public sealed class GallerySiteExporterTests
             "Learn/AnimationParticles/Overview", "Learn/AnimationParticles/GraphsAndEmitters",
             "Learn/Scripting/Overview", "Learn/Scripting/ReloadAndIsolation",
             "Learn/Production/StudioToPlayer", "Learn/Production/Workbench", "Learn/Production/ValidateAndShip",
-            "Build/Recipes/Cavern2D", "Build/Recipes/Range3D", "Build/Blocks/Scripting/HotReload",
         ];
         StoryInfo[] stories = routes.Select(route => Catalog.Find(route)
             ?? throw new InvalidOperationException(route)).ToArray();
@@ -1827,12 +2000,29 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Input_examples_are_canonical_story_based_samples()
+    {
+        StoryCatalog browserCatalog = CoreUiStoryProject.CreateCatalog();
+        foreach (string route in new[] { "Examples/Input/SourcesAndBus", "Examples/Input/Actions", "Examples/Input/ContextStack", "Examples/Input/Bindings" })
+        {
+            StoryInfo story = Catalog.Find(route) ?? throw new InvalidOperationException(route);
+            StoryInfo browserStory = browserCatalog.Find(route) ?? throw new InvalidOperationException($"Browser catalog: {route}");
+            Assert.Equal(CoreUiStoryProject.RuntimeBundleId, story.RuntimeBundleId);
+            Assert.Equal(CoreUiStoryProject.RuntimeBundleId, browserStory.RuntimeBundleId);
+            Assert.Null(story.SampleBundle);
+            using var context = new StoryContext();
+            Assert.Equal(StoryResultKind.Widget, browserStory.BuildResult(context).Kind);
+        }
+        Assert.Null(Catalog.Find("Learn/Input/BrowserWasm"));
+        Assert.Null(Catalog.Find("Examples/Input/WindowActions"));
+    }
+
+    [Fact]
     public void Runtime_examples_are_source_backed_and_bundle_connected()
     {
         (string Route, string Bundle)[] examples =
         [
-            ("Examples/Input/Actions", "input.actions"), ("Examples/Input/ContextStack", "input.actions"),
-            ("Examples/Input/Bindings", "input.actions"), ("Examples/Audio/WaveformAndVoice", "audio.tone"),
+            ("Examples/Audio/WaveformAndVoice", "audio.tone"),
             ("Examples/Audio/Buses", "audio.tone"), ("Examples/Audio/SpatialAttenuation", "audio.tone"),
             ("Examples/Audio/StreamingQueue", "audio.tone"), ("Examples/Resources/Pipeline", "resources.pipeline"),
             ("Examples/Resources/DependencyDag", "resources.pipeline"), ("Examples/Resources/Reload", "resources.pipeline"),
