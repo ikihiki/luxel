@@ -19,6 +19,7 @@ public static class StartStories
         - **2D を描画する** — [2D](story:Learn/Graphics/2D/Overview) で path、色、画像、camera transform を使う
         - **複数passを構成する** — [RenderGraph](story:Learn/Graphics/RenderGraph/Overview) でresource、依存、culling、aliasingを順に学ぶ
         - **Input / Audio / Resources** — [Input](story:Learn/Input/Overview)、[Audio](story:Learn/Audio/Overview)、[Resources](story:Learn/Resources/Overview)でapp runtimeを組む
+        - **値・clip・effectを動かす** — [Animation](story:Learn/Animation/Overview)から始め、短命なvisual effectは[Particles](story:Learn/Animation/Particles/Overview)へ進む
         - **2D rasterizer の中を読む** — [Internal](story:Learn/Graphics/2D/Internal/Overview) で encode、bounds、bin、fine pass を追う
 
         ## コードの保証レベル

@@ -1360,6 +1360,101 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Animation_learn_chain_is_complete_ordered_and_implementation_accurate()
+    {
+        string[] orderedRoutes = Catalog.All
+            .Where(story => story.Path.StartsWith("Learn/Animation/", StringComparison.Ordinal))
+            .Select(story => story.Path)
+            .ToArray();
+        Assert.Equal(AnimationCourseCatalog.Routes, orderedRoutes);
+        Assert.Equal(16, orderedRoutes.Length);
+        Assert.Equal(AnimationCourseCatalog.Routes[9..], AnimationCourseCatalog.ParticleRoutes);
+        Assert.Equal(7, AnimationCourseCatalog.ParticleRoutes.Length);
+        Assert.All(AnimationCourseCatalog.ParticleRoutes,
+            route => Assert.StartsWith("Learn/Animation/Particles/", route, StringComparison.Ordinal));
+
+        StoryInfo[] stories = AnimationCourseCatalog.Routes.Select(path => Catalog.Find(path)
+            ?? throw new InvalidOperationException($"Animation Learn route is missing: {path}")).ToArray();
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null, Catalog);
+
+        Assert.Empty(DocsIndex.ValidateLinks(pages, Catalog));
+        for (int i = 0; i < stories.Length; i++)
+        {
+            StoryInfo story = stories[i];
+            DocsPage page = pages[story.Path];
+            using var context = new StoryContext();
+            StoryResult result = story.BuildResult(context);
+
+            Assert.Equal(StoryResultKind.Markdown, result.Kind);
+            Assert.True(story.Toc);
+            Assert.Contains("<!-- luxel-toc -->", StoryMarkdownRenderer.EffectiveMarkdown(story, result.Markdown));
+            Assert.Contains("**難易度:**", page.Text);
+            Assert.Contains("**実行環境:**", page.Text);
+            Assert.Contains("**Backend:**", page.Text);
+            Assert.Contains("**前提知識:**", page.Text);
+            Assert.True(page.Headings.Count >= 3, $"Animation page needs multiple sections: {page.Path}");
+            Assert.Contains("```", page.Text);
+            if (i > 0) Assert.Contains("story:" + stories[i - 1].Path, page.Text);
+            if (i + 1 < stories.Length) Assert.Contains("story:" + stories[i + 1].Path, page.Text);
+        }
+
+        Assert.Contains("story:Learn/Animation/Particles/Overview",
+            pages["Learn/Animation/ImportAndDebugging"].Text);
+        Assert.Contains("story:Learn/Animation/ImportAndDebugging",
+            pages["Learn/Animation/Particles/Overview"].Text);
+
+        (string Page, string Sample)[] references =
+        [
+            ("Learn/Animation/SequenceAndParallel", "Examples/Animation/Tween"),
+            ("Learn/Animation/ClipsAndTracks", "Examples/Animation/EcsClip"),
+            ("Learn/Animation/GraphsAndBlending", "Examples/Animation/Graph"),
+            ("Learn/Animation/StateMachines", "Examples/Animation/StateMachine"),
+            ("Learn/Animation/ImportAndDebugging", "Examples/Animation/CssKeyframes"),
+            ("Learn/Animation/Particles/Overview", "Examples/2D/ParticleView"),
+            ("Learn/Animation/Particles/Rendering2DAndUI", "Examples/2D/Particles"),
+            ("Learn/Animation/Particles/Rendering3D", "Examples/3D/Particles"),
+        ];
+        foreach ((string pagePath, string samplePath) in references)
+        {
+            StoryInfo sample = Catalog.Find(samplePath)
+                ?? throw new InvalidOperationException($"Animation sample route is missing: {samplePath}");
+            Assert.NotNull(sample);
+            ISemanticDocument document = BuildSemanticDocument(Catalog.Find(pagePath)!)!;
+            Assert.Contains(document.DocumentEmbeds,
+                embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == samplePath);
+        }
+
+        string overview = pages["Learn/Animation/Overview"].Text;
+        foreach (string term in new[] { "ICurve", "ITween<T>", "AnimationPlayer", "AnimationClip", "AnimationGraph", "StateMachine", "ParticleSystem" })
+            Assert.Contains(term, overview);
+
+        string timing = pages["Learn/Animation/PlayerAndTiming"].Text;
+        foreach (string term in new[] { "絶対時刻", "Play()", "Loop", "TimeScale", "Stop(entry)", "completion" })
+            Assert.Contains(term, timing, StringComparison.OrdinalIgnoreCase);
+
+        string tracks = pages["Learn/Animation/ClipsAndTracks"].Text;
+        foreach (string term in new[] { "CubicSpline", "linearへfallback", "linear search", "path" })
+            Assert.Contains(term, tracks);
+
+        string targets = pages["Learn/Animation/TargetsAndBindings"].Text;
+        foreach (string term in new[] { "SignalAnimationTarget.For", "RetainedCanvasAnimationTarget", "EcsAnimationTarget", "黙って無視" })
+            Assert.Contains(term, targets);
+
+        string simulation = pages["Learn/Animation/Particles/EmissionAndSimulation"].Text;
+        foreach (string term in new[] { "continuous emission", "Forces", "Age >= LifeMax", "stable compaction", "Capacity" })
+            Assert.Contains(term, simulation);
+
+        string resources = pages["Learn/Animation/Particles/ResourcesAndDebugging"].Text;
+        foreach (string term in new[] { "ParticleConfigStep", "Spherical", "未知のease", "任意`ICurve`", "round-trip", "adapterを再作成" })
+            Assert.Contains(term, resources);
+
+        Assert.Null(Catalog.Find("Learn/AnimationParticles/Overview"));
+        Assert.Null(Catalog.Find("Learn/AnimationParticles/GraphsAndEmitters"));
+        Assert.Contains("story:Learn/Animation/Overview", pages["Learn/Animation/Overview"].Text
+            + BuildSemanticDocument(Catalog.Find("Start/Welcome")!)!.DocumentSource);
+    }
+
+    [Fact]
     public void RenderGraph_learn_chain_is_ordered_and_linked()
     {
         string[] routes = RenderingCourseCatalog.Routes[^6..];
@@ -1990,7 +2085,6 @@ public sealed class GallerySiteExporterTests
             "Learn/Resources/Assets/LoadingAndGpu", "Learn/Resources/Assets/ShaderCalculations",
             "Learn/Resources/Assets/GltfRuntime",
             "Learn/ECSPhysics/Overview", "Learn/ECSPhysics/CollisionsAndGizmos",
-            "Learn/AnimationParticles/Overview", "Learn/AnimationParticles/GraphsAndEmitters",
             "Learn/Scripting/Overview", "Learn/Scripting/ReloadAndIsolation",
             "Learn/Production/StudioToPlayer", "Learn/Production/Workbench", "Learn/Production/ValidateAndShip",
         ];
