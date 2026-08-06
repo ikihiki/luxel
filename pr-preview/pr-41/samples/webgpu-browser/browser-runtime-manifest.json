@@ -6046,7 +6046,41 @@
       "path": "Examples/3D/PhysicsPlayground",
       "width": 320,
       "height": 320,
-      "args": [],
+      "args": [
+        {
+          "name": "gravity",
+          "type": "float",
+          "defaultValue": 9.8,
+          "description": "\u4E0B\u5411\u304D\u91CD\u529B\u306E\u5F37\u3055 (m/s\u00B2)",
+          "order": 1000,
+          "min": 0,
+          "max": 30,
+          "step": 0.1,
+          "options": null
+        },
+        {
+          "name": "bounciness",
+          "type": "float",
+          "defaultValue": 2,
+          "description": "\u63A5\u89E6\u306E\u53CD\u767A\u4E0A\u9650 (MaximumRecoveryVelocity, m/s)",
+          "order": 1000,
+          "min": 0,
+          "max": 20,
+          "step": 0.1,
+          "options": null
+        },
+        {
+          "name": "reset",
+          "type": "bool",
+          "defaultValue": false,
+          "description": "\u30C8\u30B0\u30EB\u3059\u308B\u3068\u30B7\u30FC\u30F3\u3092\u521D\u671F\u72B6\u614B\u3078\u518D\u69CB\u7BC9",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        }
+      ],
       "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
       "componentType": null
     },

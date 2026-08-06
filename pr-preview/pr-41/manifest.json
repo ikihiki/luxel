@@ -2922,7 +2922,7 @@
     "status": "runtime",
     "error": null,
     "imageSha256": "",
-    "searchText": "Examples/3D/PhysicsFalling\nPhysicsFalling\nExamples\n[Story(\u0022Examples/3D/PhysicsFalling\u0022, Width = 320, Height = 320, Order = 127, CapabilityNote = BrowserNote)]\npublic static Widget PhysicsFalling(StoryContext ctx) =\u003E PhysicsGpuView(ctx, null, null, null);",
+    "searchText": "Examples/3D/PhysicsFalling\nPhysicsFalling\nExamples\n[Story(\u0022Examples/3D/PhysicsFalling\u0022, Width = 320, Height = 320, Order = 127, CapabilityNote = BrowserNote)]\npublic static Widget PhysicsFalling(StoryContext ctx)\n{\n    if (ctx.DeviceOrNull is not { } device)\n        return ctx.Snap(Frame(GpuView(ViewWidth, ViewHeight,\n            static (_, _, _) =\u003E GpuViewRenderResult.Failed,\n            animated: false)));\n\n    var demo = new PhysicsGpuDemo(device, null, null, null);\n    return ctx.Snap(Frame(GpuView(\n        ViewWidth,\n        ViewHeight,\n        demo.Render,\n        animated: true,\n        dispose: demo.Dispose)));\n}",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -2964,10 +2964,44 @@
     "status": "runtime",
     "error": null,
     "imageSha256": "",
-    "searchText": "Examples/3D/PhysicsPlayground\nPhysicsPlayground\nExamples\n[Story(\u0022Examples/3D/PhysicsPlayground\u0022, Width = 320, Height = 320, Order = 128, CapabilityNote = BrowserNote)]\npublic static Widget PhysicsPlayground(StoryContext ctx)\n{\n    Luxel.UI.Signal\u003Cfloat\u003E gravity = ctx.Signal(\u0022gravity\u0022, 9.8f, \u0022\u4E0B\u5411\u304D\u91CD\u529B\u306E\u5F37\u3055 (m/s\u00B2)\u0022);\n    Luxel.UI.Signal\u003Cfloat\u003E bounciness = ctx.Signal(\u0022bounciness\u0022, 2f, \u0022\u63A5\u89E6\u306E\u53CD\u767A\u4E0A\u9650 (MaximumRecoveryVelocity, m/s)\u0022);\n    Luxel.UI.Signal\u003Cbool\u003E reset = ctx.Signal(\u0022reset\u0022, false, \u0022\u30C8\u30B0\u30EB\u3059\u308B\u3068\u30B7\u30FC\u30F3\u3092\u521D\u671F\u72B6\u614B\u3078\u518D\u69CB\u7BC9\u0022);\n    return PhysicsGpuView(ctx, gravity, bounciness, reset);\n}",
+    "searchText": "Examples/3D/PhysicsPlayground\nPhysicsPlayground\nExamples\n[Story(\u0022Examples/3D/PhysicsPlayground\u0022, Width = 320, Height = 320, Order = 128,\n    CapabilityNote = BrowserNote, Args = nameof(PhysicsPlaygroundArgs))]\npublic static Widget PhysicsPlayground(StoryContext ctx)\n{\n    Luxel.UI.Signal\u003Cfloat\u003E gravity = ctx.Arg(\u0022gravity\u0022, 9.8f,\n        new StoryArgOptions\u003Cfloat\u003E { Description = \u0022\u4E0B\u5411\u304D\u91CD\u529B\u306E\u5F37\u3055 (m/s\u00B2)\u0022, Min = 0, Max = 30, Step = 0.1 });\n    Luxel.UI.Signal\u003Cfloat\u003E bounciness = ctx.Arg(\u0022bounciness\u0022, 2f,\n        new StoryArgOptions\u003Cfloat\u003E\n        {\n            Description = \u0022\u63A5\u89E6\u306E\u53CD\u767A\u4E0A\u9650 (MaximumRecoveryVelocity, m/s)\u0022, Min = 0, Max = 20, Step = 0.1,\n        });\n    Luxel.UI.Signal\u003Cbool\u003E reset = ctx.Arg(\u0022reset\u0022, false,\n        new StoryArgOptions\u003Cbool\u003E { Description = \u0022\u30C8\u30B0\u30EB\u3059\u308B\u3068\u30B7\u30FC\u30F3\u3092\u521D\u671F\u72B6\u614B\u3078\u518D\u69CB\u7BC9\u0022 });\n\n    if (ctx.DeviceOrNull is not { } device)\n        return ctx.Snap(Frame(GpuView(ViewWidth, ViewHeight,\n            static (_, _, _) =\u003E GpuViewRenderResult.Failed,\n            animated: false)));\n\n    var demo = new PhysicsGpuDemo(device, gravity, bounciness, reset);\n    return ctx.Snap(Frame(GpuView(\n        ViewWidth,\n        ViewHeight,\n        demo.Render,\n        animated: true,\n        dispose: demo.Dispose)));\n}",
     "aliases": [],
     "bundle": null,
-    "args": []
+    "args": [
+      {
+        "name": "gravity",
+        "type": "float",
+        "defaultValue": 9.8,
+        "description": "\u4E0B\u5411\u304D\u91CD\u529B\u306E\u5F37\u3055 (m/s\u00B2)",
+        "order": 1000,
+        "min": 0,
+        "max": 30,
+        "step": 0.1,
+        "options": null
+      },
+      {
+        "name": "bounciness",
+        "type": "float",
+        "defaultValue": 2,
+        "description": "\u63A5\u89E6\u306E\u53CD\u767A\u4E0A\u9650 (MaximumRecoveryVelocity, m/s)",
+        "order": 1000,
+        "min": 0,
+        "max": 20,
+        "step": 0.1,
+        "options": null
+      },
+      {
+        "name": "reset",
+        "type": "bool",
+        "defaultValue": false,
+        "description": "\u30C8\u30B0\u30EB\u3059\u308B\u3068\u30B7\u30FC\u30F3\u3092\u521D\u671F\u72B6\u614B\u3078\u518D\u69CB\u7BC9",
+        "order": 1000,
+        "min": null,
+        "max": null,
+        "step": null,
+        "options": null
+      }
+    ]
   },
   {
     "path": "Examples/3D/PhysicsGizmos",
