@@ -10,7 +10,6 @@ internal static class RuntimeCourseCatalog
     [
         "Learn/Input/Overview", "Learn/Input/SourcesAndBus", "Learn/Input/ActionsAndContexts",
         "Learn/Input/BindingsAndRebinding", "Learn/Input/PlatformsAndTesting",
-        "Learn/Audio/Overview", "Learn/Audio/ClipsSourcesAndBuses", "Learn/Audio/SpatialStreamingAndTesting",
         "Learn/Resources/Overview", "Learn/Resources/PipelinesAndDag", "Learn/Resources/ReloadAndLifetime",
     ];
     internal static DocMarkdown Meta(string path, string difficulty, string environment, string backend, string prerequisites)
@@ -236,42 +235,6 @@ public static class LearnInput
         ゲームロジックのテストでは`FakeInputSource`を使い、ウィンドウや実機器なしで同じ`InputBus`と`InputStack`を更新します。押下と解放を別tickにすれば、`Triggered`と`Released`も決定的に検証できます。
 
         {SampleSource("samples/LuxelInput/Program.cs", "input-actions")}
-        """;
-}
-
-public static class LearnAudio
-{
-    [Story("Learn/Audio/Overview", Order = 0, SampleBundle = "audio.tone", Toc = true)]
-    public static StoryResult Overview(StoryContext ctx) => $"""
-        # Audio overview
-
-        {RuntimeCourseCatalog.Meta("Learn/Audio/Overview", "Beginner", "Standalone / Headless / Windows device", "Null / XAudio2", "Input track")}
-
-        `AudioClip`はdecode済みPCM、`IAudioVoice`は再生slot、`AudioMixer`はone-shotとvoice poolを管理します。実音出力は現在Windows/XAudio2、CIと非Windowsは`NullAudioBackend`で状態遷移を検証します。
-
-        {SampleBundle("audio.tone")}
-        """;
-
-    [Story("Learn/Audio/ClipsSourcesAndBuses", Order = 1, Toc = true)]
-    public static StoryResult Clips(StoryContext ctx) => $"""
-        # Clips, sources, and buses
-
-        {RuntimeCourseCatalog.Meta("Learn/Audio/ClipsSourcesAndBuses", "Beginner", "Standalone / Game loop", "Backend neutral", "Audio overview")}
-
-        SFXは`AudioClip`を`AudioMixer.PlayOneShot`へ渡します。持続音は`AudioSource`でvolume/pitch/panをSignalとして更新し、master/music/sfxの階層音量は`AudioBus`で掛け合わせます。`AudioMixer.Tick()`とsourceの`Tick()`はframe loopから呼びます。
-
-        {SampleSource("samples/LuxelAudio/Program.cs", "audio-tone")}
-        """;
-
-    [Story("Learn/Audio/SpatialStreamingAndTesting", Order = 2, Toc = true)]
-    public static StoryResult Spatial(StoryContext ctx) => $"""
-        # Spatial audio, streaming, and testing
-
-        {RuntimeCourseCatalog.Meta("Learn/Audio/SpatialStreamingAndTesting", "Intermediate", "Game loop / Windows audio / CI", "XAudio2 / Null", "Clips and buses")}
-
-        `AudioSource3D`はlistenerとの距離減衰と左右panを計算します。HRTF/Dopplerではありません。長い音声は`WavStream`/`LoopingStream`と`StreamingVoice.Pump()`を使います。headless smokeでは実音ではなくInitialized、voice数、queue、playing、submitted bytesをcheckpointにします。
-
-        実音例は [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone) です。
         """;
 }
 

@@ -1101,6 +1101,79 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Audio_learn_chain_is_complete_ordered_and_linked()
+    {
+        string[] orderedRoutes = Catalog.All
+            .Where(story => story.Path.StartsWith("Learn/Audio/", StringComparison.Ordinal))
+            .Select(story => story.Path)
+            .ToArray();
+        Assert.Equal(AudioCourseCatalog.Routes, orderedRoutes);
+
+        StoryInfo[] stories = AudioCourseCatalog.Routes.Select(path => Catalog.Find(path)
+            ?? throw new InvalidOperationException($"Audio Learn route is missing: {path}")).ToArray();
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null, Catalog);
+        Assert.Empty(DocsIndex.ValidateLinks(pages, Catalog));
+
+        for (int i = 0; i < stories.Length; i++)
+        {
+            Assert.True(stories[i].Toc);
+            string source = pages[stories[i].Path].Text;
+            Assert.Contains("**難易度:**", source);
+            Assert.Contains("**実行環境:**", source);
+            Assert.Contains("**Backend:**", source);
+            Assert.Contains("**前提知識:**", source);
+            Assert.Contains("## ", source);
+            if (i > 0) Assert.Contains("story:" + stories[i - 1].Path, source);
+            if (i + 1 < stories.Length) Assert.Contains("story:" + stories[i + 1].Path, source);
+        }
+    }
+
+    [Fact]
+    public void Audio_learn_pages_have_concept_sized_examples()
+    {
+        StoryInfo[] stories = AudioCourseCatalog.Routes.Select(path => Catalog.Find(path)!).ToArray();
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null, Catalog);
+
+        foreach (string path in AudioCourseCatalog.Routes.Skip(1))
+        {
+            string source = pages[path].Text;
+            Assert.True(source.Contains("```", StringComparison.Ordinal)
+                || source.Contains("SampleSource", StringComparison.Ordinal)
+                || source.Contains("docs:begin", StringComparison.Ordinal),
+                $"Audio lesson lacks a concept-sized code example: {path}");
+        }
+
+        string examples = string.Join('\n', new[]
+        {
+            BuildSemanticDocument(Catalog.Find("Examples/Audio/Buses")!)!.DocumentSource!,
+            BuildSemanticDocument(Catalog.Find("Examples/Audio/SpatialAttenuation")!)!.DocumentSource!,
+            BuildSemanticDocument(Catalog.Find("Examples/Audio/StreamingQueue")!)!.DocumentSource!,
+        });
+        foreach (string api in new[] { "AudioBus", "EffectiveVolume", "AudioSource3D", "EffectivePan", "WavStream", "StreamingVoice", "Pump()" })
+            Assert.Contains(api, examples, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Audio_docs_cover_backend_lifecycle_and_testing_contracts()
+    {
+        StoryInfo[] stories = AudioCourseCatalog.Routes.Select(path => Catalog.Find(path)!).ToArray();
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null, Catalog);
+        string course = string.Join('\n', AudioCourseCatalog.Routes.Select(path => pages[path].Text));
+
+        foreach (string contract in new[]
+                 {
+                     "NullAudioBackend", "XAudio2", "Initialize()", "Tick()", "Pump()",
+                     "BuffersQueued", "Dispose()", "HRTF", "Doppler", "occlusion", "reverb",
+                 })
+            Assert.Contains(contract, course, StringComparison.OrdinalIgnoreCase);
+
+        Assert.Contains("現在このrepositoryにWeb Audio backendは**実装されていません**", course, StringComparison.Ordinal);
+        Assert.Contains("AudioContext.resume()", course, StringComparison.Ordinal);
+        Assert.Contains("user gesture", course, StringComparison.Ordinal);
+        Assert.Contains("SharedArrayBuffer", course, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Rendering_learn_chain_is_complete_and_has_inline_examples()
     {
         string[] routes =
