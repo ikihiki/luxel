@@ -1232,8 +1232,9 @@ public sealed class GallerySiteExporterTests
             .Select(story => story.Path)
             .ToArray();
         Assert.Equal(RenderingCourseCatalog.Routes, orderedGraphicsRoutes);
-        Assert.Equal("Learn/Graphics/2D/Overview", orderedGraphicsRoutes[9]);
-        Assert.Equal("Learn/Graphics/2D/Internal/Overview", orderedGraphicsRoutes[16]);
+        Assert.Equal("Learn/Graphics/Internal/DirectX12", orderedGraphicsRoutes[9]);
+        Assert.Equal("Learn/Graphics/2D/Overview", orderedGraphicsRoutes[12]);
+        Assert.Equal("Learn/Graphics/2D/Internal/Overview", orderedGraphicsRoutes[19]);
 
         string[] orderedRenderGraphRoutes = Catalog.All
             .Where(story => story.Path.StartsWith("Learn/Graphics/RenderGraph/", StringComparison.Ordinal))
@@ -1260,6 +1261,55 @@ public sealed class GallerySiteExporterTests
             if (i > 0)
                 Assert.Contains("```", document.DocumentSource); // The page remains understandable without opening sample files.
         }
+    }
+
+    [Fact]
+    public void Graphics_backend_internal_pages_are_ordered_linked_and_resource_oriented()
+    {
+        string[] routes =
+        [
+            "Learn/Graphics/Internal/DirectX12",
+            "Learn/Graphics/Internal/Vulkan",
+            "Learn/Graphics/Internal/WebGPU",
+        ];
+        StoryInfo[] stories = routes.Select(path => Catalog.Find(path)
+            ?? throw new InvalidOperationException($"Graphics backend internal route is missing: {path}")).ToArray();
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null, Catalog);
+
+        Assert.Empty(DocsIndex.ValidateLinks(pages, Catalog));
+        foreach (StoryInfo story in stories)
+        {
+            string source = pages[story.Path].Text;
+            foreach (string heading in new[]
+                     {
+                         "## Buffer", "## Texture", "## Sampler", "## Shader", "## Command",
+                         "## Queue", "## Surface", "## Lifetime",
+                     })
+                Assert.Contains(heading, source);
+            Assert.Contains("BindlessIndex", source);
+            Assert.Contains("**難易度:**", source);
+            Assert.Contains("**実行環境:**", source);
+            Assert.Contains("**Backend:**", source);
+            Assert.Contains("**前提知識:**", source);
+        }
+
+        string directX12 = pages[routes[0]].Text;
+        foreach (string term in new[] { "GetCopyableFootprints", "root signature", "ID3D12Fence", "IDXGISwapChain3" })
+            Assert.Contains(term, directX12);
+        Assert.Contains("story:Learn/Graphics/Synchronization", directX12);
+        Assert.Contains("story:Learn/Graphics/Internal/Vulkan", directX12);
+
+        string vulkan = pages[routes[1]].Text;
+        foreach (string term in new[] { "vkUpdateDescriptorSets", "vkCreateGraphicsPipelines", "vkCmdPipelineBarrier2", "vkQueuePresentKHR" })
+            Assert.Contains(term, vulkan);
+        Assert.Contains("story:Learn/Graphics/Internal/DirectX12", vulkan);
+        Assert.Contains("story:Learn/Graphics/Internal/WebGPU", vulkan);
+
+        string webGpu = pages[routes[2]].Text;
+        foreach (string term in new[] { "bind group layout", "QueueWriteTexture", "DevicePoll", "submission serial", "Promise" })
+            Assert.Contains(term, webGpu, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("story:Learn/Graphics/Internal/Vulkan", webGpu);
+        Assert.Contains("story:Learn/Graphics/2D/Overview", webGpu);
     }
 
     [Fact]
@@ -1445,7 +1495,7 @@ public sealed class GallerySiteExporterTests
         Assert.DoesNotContain("## 実sampleのframe loop", clearColor);
         Assert.DoesNotContain("SampleSource(\"samples/LuxelTriangle/Program.cs\", \"standalone-frame-loop\")", clearColor);
 
-        Assert.Contains("story:Learn/Graphics/2D/Overview", pages[stories[^1].Path].Text);
+        Assert.Contains("story:Learn/Graphics/Internal/DirectX12", pages[stories[^1].Path].Text);
 
         string overview = pages[stories[0].Path].Text.ToLowerInvariant();
         foreach (string term in new[] { "triangle", "texture", "shader", "pipeline", "barrier", "submit", "render graph" })
@@ -1873,7 +1923,9 @@ public sealed class GallerySiteExporterTests
             previous = current;
         }
         Assert.True(overview.IndexOf("story:Examples/3D/Triangle", StringComparison.Ordinal) > previous);
-        Assert.Contains("その下のInternal", overview);
+        Assert.Contains("story:Learn/Graphics/Internal/DirectX12", overview);
+        Assert.Contains("story:Learn/Graphics/Internal/Vulkan", overview);
+        Assert.Contains("story:Learn/Graphics/Internal/WebGPU", overview);
 
     }
 
