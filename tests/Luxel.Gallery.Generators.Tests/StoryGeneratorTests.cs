@@ -49,6 +49,29 @@ public sealed class StoryGeneratorTests
     }
 
     [Fact]
+    public void SourceMembers_AppendsNamedHelpersFromDeclaringType()
+    {
+        const string story = """
+            [Story("Examples/Delegated", SourceMembers = "BuildScene, Scene")]
+            public static Widget Delegated() => BuildScene();
+
+            private static Widget BuildScene() => new Widget("helper");
+
+            private sealed class Scene
+            {
+                public Widget Build() => new Widget("scene");
+            }
+            """;
+
+        string source = GeneratedStorySource(story);
+
+        Assert.Contains("public static Widget Delegated()", source);
+        Assert.Contains("private static Widget BuildScene()", source);
+        Assert.Contains("private sealed class Scene", source);
+        Assert.DoesNotContain("SourceMembers_AppendsNamedHelpers", source);
+    }
+
+    [Fact]
     public void SampleBundle_IsEmittedIntoStoryInfo()
     {
         GeneratorDriverRunResult result = Run("""
@@ -157,6 +180,7 @@ public sealed class StoryGeneratorTests
                     public string? Args { get; set; }
                     public string? Result { get; set; }
                     public string? CapabilityNote { get; set; }
+                    public string? SourceMembers { get; set; }
                 }
                 public sealed class StoryContext
                 {

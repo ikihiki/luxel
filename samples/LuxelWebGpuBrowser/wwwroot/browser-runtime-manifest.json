@@ -6131,9 +6131,57 @@
       "componentType": null
     },
     {
+      "path": "Examples/Animation/CssKeyframes",
+      "width": 480,
+      "height": 300,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/Curves",
+      "width": 480,
+      "height": 720,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/EcsClip",
+      "width": 480,
+      "height": 300,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/Graph",
+      "width": 480,
+      "height": 300,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/StateMachine",
+      "width": 480,
+      "height": 340,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
       "path": "Examples/Animation/Transitions",
       "width": 480,
       "height": 200,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/Tween",
+      "width": 480,
+      "height": 300,
       "args": [],
       "capabilityNote": null,
       "componentType": null

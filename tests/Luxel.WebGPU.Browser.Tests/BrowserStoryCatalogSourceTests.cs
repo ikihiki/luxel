@@ -77,6 +77,23 @@ public sealed class BrowserStoryCatalogSourceTests
                  })
             Assert.Contains(path, runtimePaths);
         Assert.All(pipelineStories, path => Assert.Contains(path, runtimePaths));
+        (string Path, int Height)[] animationStories =
+        [
+            ("Examples/Animation/Curves", 720),
+            ("Examples/Animation/Tween", 300),
+            ("Examples/Animation/CssKeyframes", 300),
+            ("Examples/Animation/StateMachine", 340),
+            ("Examples/Animation/EcsClip", 300),
+            ("Examples/Animation/Graph", 300),
+        ];
+        Assert.All(animationStories, expected =>
+        {
+            JsonElement story = manifest.GetProperty("stories").EnumerateArray()
+                .Single(candidate => candidate.GetProperty("path").GetString() == expected.Path);
+            Assert.Equal(480, story.GetProperty("width").GetInt32());
+            Assert.Equal(expected.Height, story.GetProperty("height").GetInt32());
+            Assert.Null(story.GetProperty("componentType").GetString());
+        });
         Assert.Equal(320, blur.GetProperty("width").GetInt32());
         Assert.Equal(320, blur.GetProperty("height").GetInt32());
         Assert.Equal("Runs through the shared Gallery WebAssembly story runner.",

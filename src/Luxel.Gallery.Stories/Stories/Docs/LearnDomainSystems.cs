@@ -5,27 +5,6 @@ namespace Luxel.Gallery.Stories;
 
 public static class LearnDomainSystems
 {
-    [Story("Learn/AnimationParticles/Overview", Order = 0, SampleBundle = "game.cavern", Toc = true)]
-    public static StoryResult AnimationOverview(StoryContext ctx) => $$"""
-        # Animation and particles overview
-
-        値補間はTween、状態遷移はStateMachine、骨格animationはclip/graph、短命なvisual eventはparticle emitterへ分けます。simulation値と描画補間値を混同しません。
-
-        {{StoryRef(ctx, "Examples/Animation/Tween")}}
-        {{StoryRef(ctx, "Examples/2D/Particles")}}
-        {{SampleBundle("game.cavern")}}
-        """;
-
-    [Story("Learn/AnimationParticles/GraphsAndEmitters", Order = 1, Toc = true)]
-    public static StoryResult AnimationGraphs(StoryContext ctx) => $$"""
-        # Graphs, clips, and emitters
-
-        clipは時間からpose/valueを評価し、graphはblendとtransitionを決めます。particle emitterはspawn policy、lifetime、velocity、color/size curveを持ち、2D/3D backendへinstanceを渡します。
-
-        {{StoryRef(ctx, "Examples/Animation/Graph")}}
-        {{StoryRef(ctx, "Examples/3D/Particles")}}
-        """;
-
     [Story("Learn/Scripting/Overview", Order = 0, SampleBundle = "scripting.gallery", Toc = true)]
     public static StoryResult ScriptingOverview(StoryContext ctx) => $$"""
         # Scripting overview
