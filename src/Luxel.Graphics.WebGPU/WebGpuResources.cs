@@ -243,25 +243,41 @@ internal sealed unsafe class WebGpuSampler : IGpuBackendSampler
     }
 }
 
+internal unsafe delegate RenderPipeline* WebGpuPipelineFactory(GpuGraphicsPipelineVariantKey key);
+
 internal sealed unsafe class WebGpuPipeline : IGpuBackendPipeline
 {
     private readonly WebGpuBackend _backend;
     private readonly WebGpuApi _api;
     private ComputePipeline* _compute;
     private RenderPipeline* _render;
+    private readonly WebGpuPipelineFactory? _factory;
+    private readonly Dictionary<GpuGraphicsPipelineVariantKey, WebGpuPipeline>? _variants;
+    private ulong _hits, _misses;
     private bool _disposed;
     internal WebGpuPipeline(WebGpuBackend backend, ComputePipeline* pipeline) { _backend = backend; _api = backend.Api; _compute = pipeline; }
     internal WebGpuPipeline(WebGpuBackend backend, RenderPipeline* pipeline) { _backend = backend; _api = backend.Api; _render = pipeline; }
+    internal WebGpuPipeline(WebGpuBackend backend, GpuGraphicsPipelineDesc description, WebGpuPipelineFactory factory)
+    { _backend = backend; _api = backend.Api; GraphicsDescription = description; _factory = factory; _variants = new(); }
     public bool IsCompute { get { ThrowIfDisposed(); return _compute != null; } }
+    public GpuGraphicsPipelineDesc? GraphicsDescription { get; }
+    public GpuPipelineDiagnostics Diagnostics => new(_hits, _misses, (ulong)(_variants?.Count ?? (_compute != null || _render != null ? 1 : 0)));
     internal WebGpuBackend Owner => _backend;
     internal bool IsDisposed => _disposed;
     internal ComputePipeline* Compute { get { ThrowIfDisposed(); return _compute; } }
     internal RenderPipeline* Render { get { ThrowIfDisposed(); return _render; } }
+    public IGpuBackendPipeline ResolveGraphicsVariant(GpuRasterizerState rasterizer, GpuDepthStencilState depthStencil, GpuBlendState blend)
+    {
+        if (GraphicsDescription is not { } desc) return this;
+        var key = new GpuGraphicsPipelineVariantKey(desc.Attachments, desc.Topology, rasterizer, depthStencil.Normalize(), blend);
+        if (_variants!.TryGetValue(key, out var value)) { _hits++; return value; }
+        _misses++; value = new WebGpuPipeline(_backend, _factory!(key)); _variants.Add(key, value); return value;
+    }
     internal void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
     public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
+        if (_disposed) return; _disposed = true;
+        if (_variants is not null) foreach (var variant in _variants.Values) variant.Dispose();
         if (!_backend.IsDisposed && _compute != null) _api.ComputePipelineRelease(_compute);
         if (!_backend.IsDisposed && _render != null) _api.RenderPipelineRelease(_render);
         _compute = null; _render = null;

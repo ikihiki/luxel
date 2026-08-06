@@ -553,9 +553,16 @@ public sealed unsafe class VulkanBackend : IGpuBackend
     }
 
     public IGpuBackendPipeline CreateGraphicsPipeline(
-        ReadOnlySpan<byte> vsBlob, string vsEntry,
-        ReadOnlySpan<byte> psBlob, string psEntry,
-        GpuRasterDesc raster)
+        ReadOnlySpan<byte> vsBlob, ReadOnlySpan<byte> psBlob, GpuGraphicsPipelineDesc description)
+    {
+        byte[] vertex = vsBlob.ToArray();
+        byte[] pixel = psBlob.ToArray();
+        return new VulkanPipeline(_vk, _device, description, key =>
+            CreateGraphicsPipelineVariant(vertex, pixel, description.VertexEntry, description.PixelEntry, key));
+    }
+
+    private Pipeline CreateGraphicsPipelineVariant(byte[] vsBlob, byte[] psBlob, string vsEntry, string psEntry,
+        GpuGraphicsPipelineVariantKey key)
     {
         // Vulkan は vs/ps が同一 SPIR-V モジュール内の別エントリでよい。
         ShaderModule module;
@@ -597,7 +604,7 @@ public sealed unsafe class VulkanBackend : IGpuBackend
             var inputAssembly = new PipelineInputAssemblyStateCreateInfo
             {
                 SType = StructureType.PipelineInputAssemblyStateCreateInfo,
-                Topology = raster.Topology == GpuPrimitiveTopology.TriangleStrip
+                Topology = key.Topology == GpuPrimitiveTopology.TriangleStrip
                     ? PrimitiveTopology.TriangleStrip : PrimitiveTopology.TriangleList,
             };
             var viewportState = new PipelineViewportStateCreateInfo
@@ -610,13 +617,13 @@ public sealed unsafe class VulkanBackend : IGpuBackend
             {
                 SType = StructureType.PipelineRasterizationStateCreateInfo,
                 PolygonMode = PolygonMode.Fill,
-                CullMode = raster.CullMode switch
+                CullMode = key.Rasterizer.CullMode switch
                 {
                     GpuCullMode.Front => CullModeFlags.FrontBit,
                     GpuCullMode.Back => CullModeFlags.BackBit,
                     _ => CullModeFlags.None,
                 },
-                FrontFace = raster.FrontFace == GpuFrontFace.Clockwise
+                FrontFace = key.Rasterizer.FrontFace == GpuFrontFace.Clockwise
                     ? FrontFace.Clockwise : FrontFace.CounterClockwise,
                 LineWidth = 1.0f,
             };
@@ -625,7 +632,7 @@ public sealed unsafe class VulkanBackend : IGpuBackend
                 SType = StructureType.PipelineMultisampleStateCreateInfo,
                 RasterizationSamples = SampleCountFlags.Count1Bit,
             };
-            bool blend = raster.Blend == GpuBlendMode.AlphaBlend;
+            bool blend = key.Blend.Mode == GpuBlendMode.AlphaBlend;
             var blendAttachment = new PipelineColorBlendAttachmentState
             {
                 BlendEnable = blend,
@@ -644,29 +651,33 @@ public sealed unsafe class VulkanBackend : IGpuBackend
                 AttachmentCount = 1,
                 PAttachments = &blendAttachment,
             };
-            var dynamicStates = stackalloc DynamicState[2] { DynamicState.Viewport, DynamicState.Scissor };
+            var dynamicStates = stackalloc DynamicState[3] { DynamicState.Viewport, DynamicState.Scissor, DynamicState.StencilReference };
             var dynamicState = new PipelineDynamicStateCreateInfo
             {
                 SType = StructureType.PipelineDynamicStateCreateInfo,
-                DynamicStateCount = 2,
+                DynamicStateCount = 3,
                 PDynamicStates = dynamicStates,
             };
 
             var depthStencil = new PipelineDepthStencilStateCreateInfo
             {
                 SType = StructureType.PipelineDepthStencilStateCreateInfo,
-                DepthTestEnable = raster.DepthTest,
-                DepthWriteEnable = raster.DepthWrite,
-                DepthCompareOp = CompareOp.LessOrEqual,
+                DepthTestEnable = key.DepthStencil.DepthTest || key.DepthStencil.DepthWrite,
+                DepthWriteEnable = key.DepthStencil.DepthWrite,
+                DepthCompareOp = key.DepthStencil.DepthTest ? ToVkCompare(key.DepthStencil.DepthCompare) : CompareOp.Always,
+                StencilTestEnable = key.DepthStencil.StencilTest,
+                Front = ToVkStencil(key.DepthStencil.StencilFront, key.DepthStencil.StencilReadMask, key.DepthStencil.StencilWriteMask),
+                Back = ToVkStencil(key.DepthStencil.StencilBack, key.DepthStencil.StencilReadMask, key.DepthStencil.StencilWriteMask),
             };
 
-            Format colorFormat = ToVkFormat(raster.ColorFormat);
+            Format colorFormat = ToVkFormat(key.Attachments.ColorFormat);
             var renderingInfo = new PipelineRenderingCreateInfo
             {
                 SType = StructureType.PipelineRenderingCreateInfo,
                 ColorAttachmentCount = 1,
                 PColorAttachmentFormats = &colorFormat,
-                DepthAttachmentFormat = raster.DepthTest ? ToVkFormat(raster.DepthFormat) : Format.Undefined,
+                DepthAttachmentFormat = key.Attachments.DepthStencilFormat is { } depthFormat && GpuFormatInfo.HasDepth(depthFormat) ? ToVkFormat(depthFormat) : Format.Undefined,
+                StencilAttachmentFormat = key.Attachments.DepthStencilFormat is { } stencilFormat && GpuFormatInfo.HasStencil(stencilFormat) ? ToVkFormat(stencilFormat) : Format.Undefined,
             };
 
             var createInfo = new GraphicsPipelineCreateInfo
@@ -687,7 +698,7 @@ public sealed unsafe class VulkanBackend : IGpuBackend
             };
             VkCheck.Ok(_vk.CreateGraphicsPipelines(_device, default, 1, in createInfo, null, out var pipeline),
                 "vkCreateGraphicsPipelines");
-            return new VulkanPipeline(_vk, _device, pipeline, isCompute: false);
+            return pipeline;
         }
         finally
         {
@@ -771,18 +782,20 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         VkCheck.Ok(_vk.AllocateMemory(_device, in allocInfo, null, out var memory), "vkAllocateMemory(depth)");
         VkCheck.Ok(_vk.BindImageMemory(_device, image, memory, 0), "vkBindImageMemory(depth)");
 
+        ImageAspectFlags aspects = ImageAspectFlags.DepthBit |
+            (GpuFormatInfo.HasStencil(format) ? ImageAspectFlags.StencilBit : 0);
         var viewInfo = new ImageViewCreateInfo
         {
             SType = StructureType.ImageViewCreateInfo,
             Image = image,
             ViewType = ImageViewType.Type2D,
             Format = vkFormat,
-            SubresourceRange = new ImageSubresourceRange(ImageAspectFlags.DepthBit, 0, 1, 0, 1),
+            SubresourceRange = new ImageSubresourceRange(aspects, 0, 1, 0, 1),
         };
         VkCheck.Ok(_vk.CreateImageView(_device, in viewInfo, null, out var view), "vkCreateImageView(depth)");
 
         return new VulkanTexture(_vk, _device, image, memory, view, width, height, format, vkFormat,
-            0, ImageLayout.Undefined, ImageAspectFlags.DepthBit);
+            0, ImageLayout.Undefined, aspects);
     }
 
     public IGpuBackendTexture CreateSampledTexture(uint width, uint height, GpuFormat format, ReadOnlySpan<byte> data)
@@ -1017,7 +1030,7 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         _vk.CmdPipelineBarrier2(cb, in dep);
     }
 
-    internal static Format ToVkFormat(GpuFormat format) => format switch
+    internal Format ToVkFormat(GpuFormat format) => format switch
     {
         GpuFormat.R8Unorm => Format.R8Unorm,
         GpuFormat.Rg8Unorm => Format.R8G8Unorm,
@@ -1027,7 +1040,42 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         GpuFormat.Bgra8UnormSrgb => Format.B8G8R8A8Srgb,
         GpuFormat.R32Float => Format.R32Sfloat,
         GpuFormat.D32Float => Format.D32Sfloat,
+        GpuFormat.Depth24PlusStencil8 => ResolveDepth24PlusStencil8(),
         _ => throw new ArgumentOutOfRangeException(nameof(format)),
+    };
+
+    private Format ResolveDepth24PlusStencil8()
+    {
+        foreach (Format candidate in new[] { Format.D24UnormS8Uint, Format.D32SfloatS8Uint })
+        {
+            _vk.GetPhysicalDeviceFormatProperties(_physicalDevice, candidate, out FormatProperties properties);
+            if ((properties.OptimalTilingFeatures & FormatFeatureFlags.DepthStencilAttachmentBit) != 0) return candidate;
+        }
+        throw new NotSupportedException("No Vulkan combined depth-stencil attachment format is supported.");
+    }
+
+    private static CompareOp ToVkCompare(GpuCompareOp value) => value switch
+    {
+        GpuCompareOp.Never => CompareOp.Never, GpuCompareOp.Less => CompareOp.Less,
+        GpuCompareOp.Equal => CompareOp.Equal, GpuCompareOp.LessEqual => CompareOp.LessOrEqual,
+        GpuCompareOp.Greater => CompareOp.Greater, GpuCompareOp.NotEqual => CompareOp.NotEqual,
+        GpuCompareOp.GreaterEqual => CompareOp.GreaterOrEqual, _ => CompareOp.Always,
+    };
+    private static Silk.NET.Vulkan.StencilOp ToVkStencilOp(GpuStencilOp value) => value switch
+    {
+        GpuStencilOp.Zero => Silk.NET.Vulkan.StencilOp.Zero, GpuStencilOp.Replace => Silk.NET.Vulkan.StencilOp.Replace,
+        GpuStencilOp.IncrementClamp => Silk.NET.Vulkan.StencilOp.IncrementAndClamp,
+        GpuStencilOp.DecrementClamp => Silk.NET.Vulkan.StencilOp.DecrementAndClamp,
+        GpuStencilOp.Invert => Silk.NET.Vulkan.StencilOp.Invert,
+        GpuStencilOp.IncrementWrap => Silk.NET.Vulkan.StencilOp.IncrementAndWrap,
+        GpuStencilOp.DecrementWrap => Silk.NET.Vulkan.StencilOp.DecrementAndWrap,
+        _ => Silk.NET.Vulkan.StencilOp.Keep,
+    };
+    private static StencilOpState ToVkStencil(GpuStencilFaceState value, uint readMask, uint writeMask) => new()
+    {
+        CompareOp = ToVkCompare(value.Compare), FailOp = ToVkStencilOp(value.FailOp),
+        DepthFailOp = ToVkStencilOp(value.DepthFailOp), PassOp = ToVkStencilOp(value.PassOp),
+        CompareMask = readMask, WriteMask = writeMask,
     };
 
     // ---- availability helpers ------------------------------------------------

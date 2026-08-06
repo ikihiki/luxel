@@ -49,20 +49,35 @@ public sealed class GpuDevice : IDisposable
         return new GpuPipeline(_backend.CreateComputePipeline(blob, entryPoint));
     }
 
-    /// <summary>graphics パイプラインを生成する (頂点 + ピクセル)。</summary>
+    /// <summary>Creates a logical graphics pipeline. Native state variants are resolved and cached by the backend.</summary>
+    public GpuPipeline CreateGraphicsPipeline(GpuShaderCode code, GpuGraphicsPipelineDesc description)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        description.Validate();
+        byte[] vs = code.VertexBlob(BackendKind);
+        byte[] ps = code.PixelBlob(BackendKind);
+        return new GpuPipeline(_backend.CreateGraphicsPipeline(vs, ps, description));
+    }
+
+    /// <summary>Legacy adapter for the former monolithic raster descriptor.</summary>
+    [Obsolete("Use CreateGraphicsPipeline(GpuShaderCode, GpuGraphicsPipelineDesc) and command state setters.")]
     public GpuPipeline CreateGraphicsPipeline(GpuShaderCode code, GpuRasterDesc raster,
         string vertexEntry = "vsMain", string pixelEntry = "psMain")
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        byte[] vs = code.VertexBlob(BackendKind);
-        byte[] ps = code.PixelBlob(BackendKind);
-        return new GpuPipeline(_backend.CreateGraphicsPipeline(vs, vertexEntry, ps, pixelEntry, raster));
+        var normalized = raster.Normalize();
+        var description = normalized.Pipeline with { VertexEntry = vertexEntry, PixelEntry = pixelEntry };
+        GpuPipeline pipeline = CreateGraphicsPipeline(code, description);
+        pipeline.LegacyGraphicsState = new GpuLegacyGraphicsState(
+            normalized.Rasterizer, normalized.DepthStencil, normalized.Blend);
+        return pipeline;
     }
 
     /// <summary>レンダーターゲット (カラー) テクスチャを生成する。</summary>
     public GpuTexture CreateRenderTarget(uint width, uint height, GpuFormat format = GpuFormat.Rgba8Unorm)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        if (width == 0 || height == 0) throw new ArgumentOutOfRangeException(nameof(width));
+        if (!GpuFormatInfo.IsColor(format)) throw new ArgumentException($"{format} is not a color attachment format.", nameof(format));
         return new GpuTexture(_backend.CreateRenderTarget(width, height, format));
     }
 
@@ -70,6 +85,8 @@ public sealed class GpuDevice : IDisposable
     public GpuTexture CreateDepthTarget(uint width, uint height, GpuFormat format = GpuFormat.D32Float)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        if (width == 0 || height == 0) throw new ArgumentOutOfRangeException(nameof(width));
+        if (!GpuFormatInfo.IsDepthStencilAttachment(format)) throw new ArgumentException($"{format} is not a depth-stencil attachment format.", nameof(format));
         return new GpuTexture(_backend.CreateDepthTarget(width, height, format));
     }
 

@@ -10,7 +10,6 @@ internal static class RuntimeCourseCatalog
     [
         "Learn/Input/Overview", "Learn/Input/SourcesAndBus", "Learn/Input/ActionsAndContexts",
         "Learn/Input/BindingsAndRebinding", "Learn/Input/PlatformsAndTesting",
-        "Learn/Resources/Overview", "Learn/Resources/PipelinesAndDag", "Learn/Resources/ReloadAndLifetime",
     ];
     internal static DocMarkdown Meta(string path, string difficulty, string environment, string backend, string prerequisites)
     {
@@ -235,39 +234,5 @@ public static class LearnInput
         ゲームロジックのテストでは`FakeInputSource`を使い、ウィンドウや実機器なしで同じ`InputBus`と`InputStack`を更新します。押下と解放を別tickにすれば、`Triggered`と`Released`も決定的に検証できます。
 
         {SampleSource("samples/LuxelInput/Program.cs", "input-actions")}
-        """;
-}
-
-public static class LearnResources
-{
-    [Story("Learn/Resources/Overview", Order = 0, SampleBundle = "resources.pipeline", Toc = true)]
-    public static StoryResult Overview(StoryContext ctx) => $"""
-        # Resources overview
-
-        {RuntimeCourseCatalog.Meta("Learn/Resources/Overview", "Beginner", "Standalone / Gallery / Headless", "CPU / optional GPU steps", "Audio track")}
-
-        `ResourceSystem`は `(requested type, URI)` をcache keyにし、sourceとtyped stepを自動合成します。asset利用側は`ResourceHandle<T>`を保持し、不要になったらDisposeします。
-
-        {SampleBundle("resources.pipeline")}
-        """;
-
-    [Story("Learn/Resources/PipelinesAndDag", Order = 1, Toc = true)]
-    public static StoryResult Pipelines(StoryContext ctx) => $"""
-        # Typed pipelines and dependency DAG
-
-        {RuntimeCourseCatalog.Meta("Learn/Resources/PipelinesAndDag", "Intermediate", "Standalone / Headless", "IO / CPU / GPU lanes", "Resources overview")}
-
-        `IResourceSource`がURIからbytesを読み、`IResourceStep<TIn,TOut>`が型を変換します。requested output typeからstepを逆引きするため、`byte[] → decoded → GPU resource`の任意長chainを組めます。step内の`LoadContext.Load`はdependency edgeを作り、共有・reload伝播・eviction順序へ使われます。
-
-        {SampleSource("samples/LuxelResources/Program.cs", "resource-pipeline")}
-        """;
-
-    [Story("Learn/Resources/ReloadAndLifetime", Order = 2, Toc = true)]
-    public static StoryResult Reload(StoryContext ctx) => $"""
-        # Reload, publish, and lifetime
-
-        {RuntimeCourseCatalog.Meta("Learn/Resources/ReloadAndLifetime", "Intermediate", "Game loop / DevTools / CI", "Backend neutral", "Pipeline and DAG")}
-
-        `Watch()`後のfile change、`Republish()`、dependency reloadは非同期に計算され、value swap、`Reloaded`通知、deferred disposeは`Pump()`境界で適用されます。refcountが0でdependentも無いnodeから連鎖evictionされます。GPU値のdispose前にはidle hookを設定できます。
         """;
 }

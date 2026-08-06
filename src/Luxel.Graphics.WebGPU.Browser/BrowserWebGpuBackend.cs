@@ -90,21 +90,31 @@ public sealed class BrowserWebGpuBackend : IGpuBackend
         return new BrowserWebGpuPipeline(this, handle, true);
     }
 
-    public IGpuBackendPipeline CreateGraphicsPipeline(ReadOnlySpan<byte> vsBlob, string vsEntry, ReadOnlySpan<byte> psBlob, string psEntry, GpuRasterDesc raster)
+    public IGpuBackendPipeline CreateGraphicsPipeline(ReadOnlySpan<byte> vsBlob, ReadOnlySpan<byte> psBlob, GpuGraphicsPipelineDesc description)
     {
         ThrowIfDisposed();
-        ValidateShader(vsBlob, vsEntry);
-        ValidateShader(psBlob, psEntry);
-        ValidateColorFormat(raster.ColorFormat);
-        if ((raster.DepthTest || raster.DepthWrite) && raster.DepthFormat != GpuFormat.D32Float)
-            throw new NotSupportedException("Browser WebGPU supports D32Float depth targets only.");
-        string rasterJson = string.Create(CultureInfo.InvariantCulture,
-            $"{{\"colorFormat\":{(int)raster.ColorFormat},\"topology\":{(int)raster.Topology}," +
-            $"\"depthTest\":{raster.DepthTest.ToString().ToLowerInvariant()},\"depthWrite\":{raster.DepthWrite.ToString().ToLowerInvariant()}," +
-            $"\"depthFormat\":{(int)raster.DepthFormat},\"blend\":{(int)raster.Blend},\"cullMode\":{(int)raster.CullMode},\"frontFace\":{(int)raster.FrontFace}}}");
-        int handle = _interop.CreateGraphicsPipeline(Handle, Convert.ToBase64String(vsBlob), vsEntry,
-            Convert.ToBase64String(psBlob), psEntry, rasterJson);
-        return new BrowserWebGpuPipeline(this, handle, false);
+        byte[] vertex = vsBlob.ToArray(); byte[] pixel = psBlob.ToArray();
+        ValidateShader(vertex, description.VertexEntry); ValidateShader(pixel, description.PixelEntry);
+        ValidateColorFormat(description.Attachments.ColorFormat);
+        return new BrowserWebGpuPipeline(this, description, key =>
+        {
+            string json = SerializePipelineState(key);
+            return _interop.CreateGraphicsPipeline(Handle, Convert.ToBase64String(vertex), description.VertexEntry,
+                Convert.ToBase64String(pixel), description.PixelEntry, json);
+        });
+    }
+
+    internal static string SerializePipelineState(GpuGraphicsPipelineVariantKey key)
+    {
+        GpuDepthStencilState d = key.DepthStencil;
+        return string.Create(CultureInfo.InvariantCulture,
+            $"{{\"colorFormat\":{(int)key.Attachments.ColorFormat},\"topology\":{(int)key.Topology}," +
+            $"\"depthTest\":{d.DepthTest.ToString().ToLowerInvariant()},\"depthWrite\":{d.DepthWrite.ToString().ToLowerInvariant()}," +
+            $"\"depthCompare\":{(int)d.DepthCompare},\"depthFormat\":{(int?)key.Attachments.DepthStencilFormat ?? -1}," +
+            $"\"stencilTest\":{d.StencilTest.ToString().ToLowerInvariant()},\"stencilReadMask\":{d.StencilReadMask},\"stencilWriteMask\":{d.StencilWriteMask}," +
+            $"\"stencilFront\":{{\"compare\":{(int)d.StencilFront.Compare},\"fail\":{(int)d.StencilFront.FailOp},\"depthFail\":{(int)d.StencilFront.DepthFailOp},\"pass\":{(int)d.StencilFront.PassOp}}}," +
+            $"\"stencilBack\":{{\"compare\":{(int)d.StencilBack.Compare},\"fail\":{(int)d.StencilBack.FailOp},\"depthFail\":{(int)d.StencilBack.DepthFailOp},\"pass\":{(int)d.StencilBack.PassOp}}}," +
+            $"\"blend\":{(int)key.Blend.Mode},\"cullMode\":{(int)key.Rasterizer.CullMode},\"frontFace\":{(int)key.Rasterizer.FrontFace}}}");
     }
 
     public IGpuBackendTexture CreateRenderTarget(uint width, uint height, GpuFormat format)
@@ -112,7 +122,7 @@ public sealed class BrowserWebGpuBackend : IGpuBackend
 
     public IGpuBackendTexture CreateDepthTarget(uint width, uint height, GpuFormat format)
     {
-        if (format != GpuFormat.D32Float) throw new NotSupportedException("Browser WebGPU supports D32Float depth targets only.");
+        if (!GpuFormatInfo.IsDepthStencilAttachment(format)) throw new NotSupportedException("A depth-stencil attachment format is required.");
         return CreateTexture(width, height, format, BrowserTextureUsage.DepthTarget, ReadOnlySpan<byte>.Empty, null);
     }
 
