@@ -5,7 +5,10 @@ on:
     paths:
       - 'src/Luxel.Audio/**'
       - 'src/Luxel.Audio.Linux/**'
+      - 'src/Luxel.Framework/**'
+      - 'src/Luxel.Gallery.Stories/Stories/Docs/LearnAudio.cs'
       - 'tests/Luxel.Audio.Linux.Tests/**'
+      - 'tests/Luxel.Audio.Linux.Tests/FrameworkAudioBackendTests.cs'
       - 'eng/desktop/**'
       - 'src/**/*.csproj'
       - 'tests/**/*.csproj'
@@ -41,10 +44,12 @@ jobs:
         run: |
           dotnet restore src/Luxel.Audio.Linux/Luxel.Audio.Linux.csproj
           dotnet restore tests/Luxel.Audio.Linux.Tests/Luxel.Audio.Linux.Tests.csproj
+          dotnet restore src/Luxel.Framework/Luxel.Framework.csproj
       - name: Build Linux audio backend and tests
         run: |
           dotnet build src/Luxel.Audio.Linux/Luxel.Audio.Linux.csproj --no-restore --configuration Release
           dotnet build tests/Luxel.Audio.Linux.Tests/Luxel.Audio.Linux.Tests.csproj --no-restore --configuration Release
+          dotnet build src/Luxel.Framework/Luxel.Framework.csproj --no-restore --configuration Release
       - name: Start isolated virtual audio
         env:
           LUXEL_DESKTOP_STATE_DIR: ${{ runner.temp }}/luxel-audio
@@ -78,7 +83,7 @@ jobs:
           recording="${RUNNER_TEMP}/luxel-output-test.wav"
           eng/desktop/capture-audio-start.sh "$recording"
           trap 'eng/desktop/capture-audio-stop.sh || true' EXIT
-          dotnet test tests/Luxel.Audio.Linux.Tests/Luxel.Audio.Linux.Tests.csproj \
+          LUXEL_AUDIO_OUTPUT_CAPTURE=1 dotnet test tests/Luxel.Audio.Linux.Tests/Luxel.Audio.Linux.Tests.csproj \
             --no-restore --no-build --configuration Release \
             --filter 'FullyQualifiedName~OutputCapture'
           sleep 0.25
@@ -103,7 +108,7 @@ jobs:
           eng/desktop/capture-audio-start.sh "$recording"
           trap 'eng/desktop/capture-audio-stop.sh || true' EXIT
           sleep 0.25
-          paplay "$tone"
+          paplay --latency-msec=20 --process-time-msec=10 "$tone"
           sleep 0.25
           eng/desktop/capture-audio-stop.sh
           trap - EXIT
