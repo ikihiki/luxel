@@ -9,6 +9,7 @@
     <Project Path="src/Luxel.AssetsGpu/Luxel.AssetsGpu.csproj" />
     <Project Path="src/Luxel.Audio/Luxel.Audio.csproj" />
     <Project Path="src/Luxel.Audio.Browser/Luxel.Audio.Browser.csproj" />
+    <Project Path="src/Luxel.Audio.Linux/Luxel.Audio.Linux.csproj" />
     <Project Path="src/Luxel.Audio.Windows/Luxel.Audio.Windows.csproj" />
     <Project Path="src/Luxel.Controls/Luxel.Controls.csproj" />
     <Project Path="src/Luxel.Graphics/Luxel.Graphics.csproj" />
@@ -107,6 +108,7 @@
     <Project Path="tests/Luxel.Platform.Silk.Tests/Luxel.Platform.Silk.Tests.csproj" />
     <Project Path="tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj" />
     <Project Path="tests/Luxel.Audio.Browser.Tests/Luxel.Audio.Browser.Tests.csproj" />
+    <Project Path="tests/Luxel.Audio.Linux.Tests/Luxel.Audio.Linux.Tests.csproj" />
     <Project Path="tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj" />
     <Project Path="tests/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj" />
     <Project Path="tests/Luxel.Vulkan.Tests/Luxel.Vulkan.Tests.csproj" />

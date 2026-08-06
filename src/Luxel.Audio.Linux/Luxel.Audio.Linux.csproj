@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Audio\Luxel.Audio.csproj" />
+    <PackageReference Include="Silk.NET.OpenAL" Version="2.23.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Luxel.Audio.Linux.Tests" />
+  </ItemGroup>
+</Project>
