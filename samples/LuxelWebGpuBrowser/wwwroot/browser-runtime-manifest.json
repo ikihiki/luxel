@@ -6019,6 +6019,46 @@
       "componentType": null
     },
     {
+      "path": "Examples/3D/PhysicsFalling",
+      "width": 320,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PhysicsGizmos",
+      "width": 520,
+      "height": 360,
+      "args": [],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PhysicsMesh",
+      "width": 520,
+      "height": 360,
+      "args": [],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PhysicsPlayground",
+      "width": 320,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PhysicsTrigger",
+      "width": 520,
+      "height": 360,
+      "args": [],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
       "path": "Examples/3D/PipelineState/Blend",
       "width": 480,
       "height": 320,

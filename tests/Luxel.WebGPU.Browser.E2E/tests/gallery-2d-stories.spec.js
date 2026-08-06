@@ -18,8 +18,19 @@ const twoDStories = [
 ];
 
 const ecsStories = [
-  'Examples/3D/EcsCubes'
+  'Examples/3D/EcsCubes',
+  'Examples/3D/PhysicsFalling',
+  'Examples/3D/PhysicsPlayground',
+  'Examples/3D/PhysicsGizmos',
+  'Examples/3D/PhysicsTrigger',
+  'Examples/3D/PhysicsMesh'
 ];
+
+const ecsGpuViewStories = new Set([
+  'Examples/3D/EcsCubes',
+  'Examples/3D/PhysicsFalling',
+  'Examples/3D/PhysicsPlayground'
+]);
 
 const pipelineStateStories = [
   'Examples/3D/PipelineState/Topology',
@@ -75,9 +86,11 @@ for (const story of ecsStories) {
     const errors = collectErrors(page);
     await page.goto(`/samples/webgpu-browser/?story=${encodeURIComponent(story)}`);
     await expectRuntimeStory(page, story);
-    await expect.poll(() => page.evaluate(() =>
-      globalThis.luxelBrowserState?.widgets?.find(widget => widget.type?.endsWith('.GpuView'))?.detail || ''),
-      { timeout: 90_000 }).toContain('Ready');
+    if (ecsGpuViewStories.has(story)) {
+      await expect.poll(() => page.evaluate(() =>
+        globalThis.luxelBrowserState?.widgets?.find(widget => widget.type?.endsWith('.GpuView'))?.detail || ''),
+        { timeout: 90_000 }).toContain('Ready');
+    }
     expect(errors.consoleErrors).toEqual([]);
     expect(errors.pageErrors).toEqual([]);
   });

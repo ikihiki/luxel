@@ -10,6 +10,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Luxel.Shaders\Luxel.Shaders.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Shaders.Slang.Browser\Luxel.Shaders.Slang.Browser.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Physics\Luxel.Physics.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Physics.Gizmos\Luxel.Physics.Gizmos.csproj" />
     <ProjectReference Include="..\..\src\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Gallery.Stories.CoreUi\Luxel.Gallery.Stories.CoreUi.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Controls\Luxel.Controls.csproj" />
@@ -23,13 +25,21 @@
     <ProjectReference Include="..\..\src\Luxel.Platform.Web\Luxel.Platform.Web.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Browser stories are source-generated and invoked through catalog delegates. Keep the ECS
-         extraction assembly rooted so the WebAssembly trimmer does not discard its runtime types. -->
+    <!-- Browser stories are source-generated and invoked through catalog delegates. Keep assemblies
+         reached through those delegates rooted so the WebAssembly trimmer preserves their runtime types. -->
+    <TrimmerRootAssembly Include="Luxel.Physics" />
+    <TrimmerRootAssembly Include="Luxel.Physics.Gizmos" />
+    <TrimmerRootAssembly Include="BepuPhysics" />
+    <TrimmerRootAssembly Include="BepuUtilities" />
     <TrimmerRootAssembly Include="Luxel.AssetRuntime" />
   </ItemGroup>
   <ItemGroup>
     <!-- Luxel.Typography carries desktop Linux assets for native consumers. The browser root
          explicitly suppresses those transitive assets so the WebAssembly module owns libHarfBuzzSharp. -->
+    <!-- Keep Bepu's managed assemblies in the browser bundle; the physics Stories construct
+         component types carrying Bepu handles through source-generated catalog delegates. -->
+    <PackageReference Include="BepuPhysics" Version="2.4.0" />
+    <PackageReference Include="BepuUtilities" Version="2.4.0" />
     <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.0" ExcludeAssets="all" />
     <PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" Version="14.2.0" />
   </ItemGroup>

@@ -3,6 +3,8 @@ name: Test Browser WebGPU
 on:
   pull_request:
     paths:
+      - 'src/Luxel.Physics/**'
+      - 'src/Luxel.Physics.Gizmos/**'
       - 'src/Luxel.Ecs/**'
       - 'src/Luxel.Assets/**'
       - 'src/Luxel.AssetsGpu/**'
@@ -115,6 +117,11 @@ jobs:
           production = [story for story in manifest['stories'] if story.get('componentType')]
           assert manifest['bundleId'] == 'webgpu-browser-v1'
           assert manifest['protocolVersion'] == 2
+          physics_paths = {
+              'Examples/3D/PhysicsFalling', 'Examples/3D/PhysicsPlayground',
+              'Examples/3D/PhysicsGizmos', 'Examples/3D/PhysicsTrigger', 'Examples/3D/PhysicsMesh',
+          }
+          assert physics_paths <= {story['path'] for story in manifest['stories']}
           ecs = next(story for story in manifest['stories'] if story['path'] == 'Examples/3D/EcsCubes')
           blur = next(story for story in manifest['stories'] if story['path'] == 'Examples/RenderGraph/Blur')
           assert ecs['width'] == ecs['height'] == 320

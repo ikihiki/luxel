@@ -1309,10 +1309,13 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("story:Learn/ECS/Physics/BodiesAndShapes", physicsOverview);
         foreach (string example in new[]
                  {
-                     "Examples/3D/PhysicsFalling", "Examples/3D/PhysicsTrigger",
-                     "Examples/3D/PhysicsMesh", "Examples/3D/PhysicsGizmos",
+                     "Examples/3D/PhysicsFalling", "Examples/3D/PhysicsPlayground",
+                     "Examples/3D/PhysicsTrigger", "Examples/3D/PhysicsMesh", "Examples/3D/PhysicsGizmos",
                  })
-            Assert.NotNull(Catalog.Find(example));
+        {
+            Assert.Equal(CoreUiStoryProject.RuntimeBundleId, browserCatalog.Find(example)?.RuntimeBundleId);
+            Assert.Equal(CoreUiStoryProject.RuntimeBundleId, Catalog.Find(example)?.RuntimeBundleId);
+        }
     }
 
 

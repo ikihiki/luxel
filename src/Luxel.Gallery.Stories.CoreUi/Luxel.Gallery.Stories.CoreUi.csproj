@@ -9,6 +9,8 @@
     <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj" />
     <ProjectReference Include="..\Luxel.Assets\Luxel.Assets.csproj" />
     <ProjectReference Include="..\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\Luxel.Physics\Luxel.Physics.csproj" />
+    <ProjectReference Include="..\Luxel.Physics.Gizmos\Luxel.Physics.Gizmos.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
