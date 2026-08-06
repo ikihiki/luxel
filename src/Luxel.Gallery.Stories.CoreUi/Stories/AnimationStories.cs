@@ -118,9 +118,15 @@ public static class AnimationStories
             ("Spring overdamped", new SpringCurve(damping: 50f), Color2D.Rgba(210, 175, 70, 255)),
         ];
 
-        Widget Row(string name, ICurve curve, uint color) => HStack(10)[
-            Text(name, 12),
-            Canvas2D(300, 28, animate: (scene, time) =>
+        var cells = new List<Widget>(curves.Length * 2);
+        for (int row = 0; row < curves.Length; row++)
+        {
+            (string name, ICurve curve, uint color) = curves[row];
+            Widget label = Text(name, 12).GridCell(0, row);
+            label.HAlign.SetBase(Align.End);
+            label.VAlign.SetBase(Align.Center);
+
+            Widget sample = Canvas2D(300, 28, animate: (scene, time) =>
             {
                 float phase = time % 2.4f / 1.2f;
                 float input = phase <= 1f ? phase : 2f - phase;
@@ -129,14 +135,22 @@ public static class AnimationStories
                 float x = 20f + (output + 0.2f) / 1.5f * 250f;
                 scene.FillRoundedRect(Color2D.Rgba(55, 60, 72, 255), 18, 12, 254, 4, 2);
                 scene.FillRoundedRect(color, x - 7, 6, 14, 16, 5);
-            })];
+            }).GridCell(1, row);
+            sample.HAlign.SetBase(Align.Start);
+            sample.VAlign.SetBase(Align.Center);
 
-        var rows = new List<Widget>
-        {
+            cells.Add(label);
+            cells.Add(sample);
+        }
+
+        Grid comparison = Grid(
+            columns: [GridLength.Px(150), GridLength.Px(300)],
+            rows: Enumerable.Repeat(GridLength.Px(35), curves.Length).ToArray())[cells.ToArray()];
+        comparison.HAlign.SetBase(Align.Start);
+
+        return Frame(VStack(7)[
             Text("同じ0→1→0入力に対する位置の変化。Springはovershoot、Stepsはjump位置の差を表示します。", 12),
-        };
-        rows.AddRange(curves.Select(item => Row(item.Name, item.Curve, item.Color)));
-        return Frame(VStack(7)[rows.ToArray()]);
+            comparison]);
     }
 
     /// <summary>コード DSL: Sequence(Parallel(slide+fade), Parallel(slide+fade))。
