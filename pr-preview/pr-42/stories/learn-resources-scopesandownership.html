@@ -1,0 +1,121 @@
+<article class="story document-page"><h1 id="resourcescope-and-ownership">ResourceScope and ownership</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FResources%2FScopesAndOwnership&amp;section=resourcescope%E3%81%AE%E5%BD%B9%E5%89%B2">ResourceScopeの役割</a></li>
+<li><a href="#story=Learn%2FResources%2FScopesAndOwnership&amp;section=scope-local-resource%E3%82%92%E4%BD%9C%E3%82%8B">Scope-local resourceを作る</a></li>
+<li><a href="#story=Learn%2FResources%2FScopesAndOwnership&amp;section=owned%E3%81%A8borrowed">OwnedとBorrowed</a></li>
+<li><a href="#story=Learn%2FResources%2FScopesAndOwnership&amp;section=scope%E3%82%92%E4%BD%BF%E3%81%86%E7%9B%AE%E5%AE%89">Scopeを使う目安</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Game / Editor / Gallery　 <strong>Backend:</strong> Backend neutral / optional GPU　 <strong>前提知識:</strong> Pipeline and DAG</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FResources%2FPipelinesAndDag">PipelinesAndDag</a>　 <strong>次:</strong> <a href="#story=Learn%2FResources%2FReloadAndLifetime">ReloadAndLifetime</a></p>
+<h2 id="resourcescope">ResourceScopeの役割</h2>
+<p><code>ResourceScope</code>はscene、document、widgetなどの論理ownerが持つ複数のleaseをまとめます。scope経由で取得・作成したhandleは追跡され、scopeのDisposeで一括解放されます。</p>
+<pre><code class="language-csharp">using ResourceScope scope = resources.CreateScope(&quot;scene/main&quot;);
+ResourceHandle&lt;CpuImage&gt; image = scope.Load&lt;CpuImage&gt;(&quot;panel.tex&quot;);
+</code></pre>
+<p><code>scope.Load()</code>は通常の共有URIをロードします。同じ型・URIはscope外のhandleとも同じnodeを共有します。</p>
+<h2 id="scope-local-resource">Scope-local resourceを作る</h2>
+<p><code>scope.Create()</code>はowner内のlocal keyを<code>scope://{owner}/{localKey}</code>へqualifyし、明示loaderで値を作ります。異なるownerが同じlocal keyを使っても別nodeになります。</p>
+<pre><code class="language-csharp">ResourceHandle&lt;Descriptor&gt; descriptor = scope.Create(
+    &quot;material/default&quot;,
+    _ =&gt; Task.FromResult(CreateDescriptor()));
+</code></pre>
+<p><code>Create&lt;TInput,TOutput&gt;()</code>ではscope-local inputをBorrowed nodeとして登録し、登録済みStepを通してoutputを作れます。program valueやdescriptorからGPU/runtime objectを生成する用途に向きます。</p>
+<h2 id="ownedborrowed">OwnedとBorrowed</h2>
+<p><code>ResourceOwnership</code>はcache値の破棄責任を表します。</p>
+<table>
+<thead>
+<tr>
+<th>Ownership</th>
+<th>replacement / eviction時のDispose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Owned</code></td>
+<td><code>ResourceSystem</code>が行う</td>
+</tr>
+<tr>
+<td><code>Borrowed</code></td>
+<td>外部ownerが行う。ResourceSystemは破棄しない</td>
+</tr>
+</tbody>
+</table>
+<p><code>Publish(uri, value)</code>の既定は<code>Owned</code>です。外部所有値を登録する場合は必ず明示します。</p>
+<pre><code class="language-csharp">ResourceHandle&lt;GpuDevice&gt; deviceHandle = resources.Publish(
+    &quot;runtime://device/main&quot;,
+    device,
+    ResourceOwnership.Borrowed);
+</code></pre>
+<p>Stepの結果については<code>ctx.MarkOwned()</code> / <code>ctx.MarkBorrowed()</code>で指定できます。所有する<code>IDisposable</code>を返すStepは、誰が破棄するかを実装時に決めてください。</p>
+<div class="markdown-alert markdown-alert-note">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>fragment付きpipeline nodeは元URIの値を切り出すselectorとして扱われ、現在の自動合成ではBorrowedに設定されます。fragment出力が独立した<code>IDisposable</code>を所有する設計にする場合は、この挙動を前提にStepとownerの責任を決めてください。</p>
+</div>
+<h2 id="scope">Scopeを使う目安</h2>
+<ul>
+<li>scene unloadで関連leaseをまとめて解放したい。</li>
+<li>editor documentごとに同名のlocal resourceを持ちたい。</li>
+<li>program valueを入力として登録済みStepを再利用したい。</li>
+<li>個々のhandle Dispose漏れをowner境界で防ぎたい。</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Resources/ScopesAndOwnership&quot;, Order = 6, Toc = true)]
+public static StoryResult ScopesAndOwnership(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # ResourceScope and ownership
+
+    {{ResourceCourseCatalog.Meta(&quot;Learn/Resources/ScopesAndOwnership&quot;, &quot;Intermediate&quot;, &quot;Game / Editor / Gallery&quot;, &quot;Backend neutral / optional GPU&quot;, &quot;Pipeline and DAG&quot;)}}
+
+    ## ResourceScopeの役割
+
+    `ResourceScope`はscene、document、widgetなどの論理ownerが持つ複数のleaseをまとめます。scope経由で取得・作成したhandleは追跡され、scopeのDisposeで一括解放されます。
+
+    ```csharp
+    using ResourceScope scope = resources.CreateScope(&quot;scene/main&quot;);
+    ResourceHandle&lt;CpuImage&gt; image = scope.Load&lt;CpuImage&gt;(&quot;panel.tex&quot;);
+    ```
+
+    `scope.Load()`は通常の共有URIをロードします。同じ型・URIはscope外のhandleとも同じnodeを共有します。
+
+    ## Scope-local resourceを作る
+
+    `scope.Create()`はowner内のlocal keyを`scope://{owner}/{localKey}`へqualifyし、明示loaderで値を作ります。異なるownerが同じlocal keyを使っても別nodeになります。
+
+    ```csharp
+    ResourceHandle&lt;Descriptor&gt; descriptor = scope.Create(
+        &quot;material/default&quot;,
+        _ =&gt; Task.FromResult(CreateDescriptor()));
+    ```
+
+    `Create&lt;TInput,TOutput&gt;()`ではscope-local inputをBorrowed nodeとして登録し、登録済みStepを通してoutputを作れます。program valueやdescriptorからGPU/runtime objectを生成する用途に向きます。
+
+    ## OwnedとBorrowed
+
+    `ResourceOwnership`はcache値の破棄責任を表します。
+
+    | Ownership | replacement / eviction時のDispose |
+    | --- | --- |
+    | `Owned` | `ResourceSystem`が行う |
+    | `Borrowed` | 外部ownerが行う。ResourceSystemは破棄しない |
+
+    `Publish(uri, value)`の既定は`Owned`です。外部所有値を登録する場合は必ず明示します。
+
+    ```csharp
+    ResourceHandle&lt;GpuDevice&gt; deviceHandle = resources.Publish(
+        &quot;runtime://device/main&quot;,
+        device,
+        ResourceOwnership.Borrowed);
+    ```
+
+    Stepの結果については`ctx.MarkOwned()` / `ctx.MarkBorrowed()`で指定できます。所有する`IDisposable`を返すStepは、誰が破棄するかを実装時に決めてください。
+
+    &gt; [!NOTE]
+    &gt; fragment付きpipeline nodeは元URIの値を切り出すselectorとして扱われ、現在の自動合成ではBorrowedに設定されます。fragment出力が独立した`IDisposable`を所有する設計にする場合は、この挙動を前提にStepとownerの責任を決めてください。
+
+    ## Scopeを使う目安
+
+    - scene unloadで関連leaseをまとめて解放したい。
+    - editor documentごとに同名のlocal resourceを持ちたい。
+    - program valueを入力として登録済みStepを再利用したい。
+    - 個々のhandle Dispose漏れをowner境界で防ぎたい。
+    &quot;&quot;&quot;;</code></pre></details></article>

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Luxel Playground Runtime</title>
+  <style>
+    :root,html,body,#runtime-root,#luxel-canvas{width:100%;height:100%;margin:0;padding:0}
+    html,body{overflow:hidden;background:#10151d}
+    #runtime-root,#luxel-canvas{display:block}
+    #status{position:fixed;left:8px;bottom:8px;padding:5px 8px;border-radius:4px;background:#10151dcc;color:#d7e3f4;font:12px/1.4 system-ui,sans-serif;pointer-events:none}
+    #error{position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:#10151dee;color:#ffb4ac;font:14px/1.5 system-ui,sans-serif;white-space:pre-wrap}
+    #error[hidden]{display:none}
+  </style>
+</head>
+<body>
+  <main id="runtime-root">
+    <canvas id="luxel-canvas" tabindex="0" aria-label="Luxel playground preview"></canvas>
+    <div id="status" role="status">Loading playground runtime…</div>
+    <div id="error" role="alert" hidden></div>
+  </main>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

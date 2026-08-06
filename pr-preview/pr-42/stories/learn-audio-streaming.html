@@ -1,0 +1,67 @@
+<article class="story document-page"><h1 id="streaming-audio">Streaming audio</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FAudio%2FStreaming&amp;section=clip%E3%81%8Bstream%E3%81%8B">clipかstreamか</a></li>
+<li><a href="#story=Learn%2FAudio%2FStreaming&amp;section=queue%E3%81%A8pump">queueとPump</a></li>
+<li><a href="#story=Learn%2FAudio%2FStreaming&amp;section=%E7%B5%82%E4%BA%86%E3%80%81restart%E3%80%81loop%E3%80%81dispose">終了、restart、loop、dispose</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Game loop / Headless　 <strong>Backend:</strong> Null / XAudio2 queue　 <strong>前提知識:</strong> Spatial audio</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FAudio%2FSpatialAudio">SpatialAudio</a>　 <strong>次:</strong> <a href="#story=Learn%2FAudio%2FSpatialStreamingAndTesting">SpatialStreamingAndTesting</a></p>
+<h2 id="clipstream">clipかstreamか</h2>
+<p>短いSFXや頻繁に再利用する音は<code>AudioClip</code>へ全展開します。長尺WAVは<code>IAudioStream</code>でfloat sampleを逐次供給し、<code>StreamingVoice</code>がPCM16へ量子化してvoice queueへ補充します。<code>WavStream</code>はseek可能なRIFF PCM16/float32、<code>LoopingStream</code>は終端で<code>Reset()</code>するdecoratorです。</p>
+<pre><code class="language-csharp">    internal static bool Streaming()
+    {
+        byte[] wav = CreatePcm16Wav(sampleRate: 1_000, channels: 1, frames: 250);
+        using var backend = new NullAudioBackend();
+        backend.Initialize();
+        using var memory = new MemoryStream(wav, writable: false);
+        using var stream = new WavStream(memory, leaveOpen: true);
+        using var playback = new StreamingVoice(backend, stream, chunkSeconds: 0.1f, queueDepth: 2);
+
+        playback.Pump();
+        bool prebuffered = playback.IsPlaying &amp;&amp; playback.BuffersQueued == 2;
+        playback.Stop();
+        return prebuffered &amp;&amp; playback.Finished &amp;&amp; playback.BuffersQueued == 0;
+    }
+</code></pre>
+<h2 id="queuepump">queueとPump</h2>
+<p>constructorの<code>chunkSeconds</code>は1 bufferの長さ、<code>QueueDepth</code>は先読み数です。毎frame <code>Pump()</code>は<code>BuffersQueued &lt; QueueDepth</code>の間だけdecode/submitし、最初のbufferで<code>Play()</code>します。既定は約100ms × 3です。</p>
+<pre><code class="language-csharp">using var stream = WavStream.Open(&quot;music.wav&quot;);
+using var playback = new StreamingVoice(backend, stream);
+while (running) playback.Pump();
+</code></pre>
+<p><code>Pump()</code>が遅いとunderrunし、queueが空になって無音になります。queueを深くするとjitter耐性と引き換えにlatency/memoryが増えます。<code>Finished</code>はstream終端に達し、かつbackend queueが0になったときだけtrueです。</p>
+<h2 id="restartloopdispose">終了、restart、loop、dispose</h2>
+<p><code>Stop()</code>はvoice queueを捨てて終了扱いにします。<code>Restart()</code>はvoiceをstopしstreamをresetして、次の<code>Pump()</code>から再開します。loopは<code>new LoopingStream(inner)</code>を渡します。<code>StreamingVoice.Dispose()</code>がvoiceとstreamを所有・破棄するので、同じstreamを別所有者から二重disposeしないでください。</p>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/Streaming&quot;, Order = 6, Toc = true)]
+public static StoryResult Streaming(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Streaming audio
+
+    {{AudioCourseCatalog.Meta(&quot;Learn/Audio/Streaming&quot;, &quot;Intermediate&quot;, &quot;Game loop / Headless&quot;, &quot;Null / XAudio2 queue&quot;, &quot;Spatial audio&quot;)}}
+
+    ## clipかstreamか
+
+    短いSFXや頻繁に再利用する音は`AudioClip`へ全展開します。長尺WAVは`IAudioStream`でfloat sampleを逐次供給し、`StreamingVoice`がPCM16へ量子化してvoice queueへ補充します。`WavStream`はseek可能なRIFF PCM16/float32、`LoopingStream`は終端で`Reset()`するdecoratorです。
+
+    {{SampleSource(&quot;samples/LuxelAudio/AudioConceptSamples.cs&quot;, &quot;audio-streaming&quot;)}}
+
+    ## queueとPump
+
+    constructorの`chunkSeconds`は1 bufferの長さ、`QueueDepth`は先読み数です。毎frame `Pump()`は`BuffersQueued &lt; QueueDepth`の間だけdecode/submitし、最初のbufferで`Play()`します。既定は約100ms &#215; 3です。
+
+    ```csharp
+    using var stream = WavStream.Open(&quot;music.wav&quot;);
+    using var playback = new StreamingVoice(backend, stream);
+    while (running) playback.Pump();
+    ```
+
+    `Pump()`が遅いとunderrunし、queueが空になって無音になります。queueを深くするとjitter耐性と引き換えにlatency/memoryが増えます。`Finished`はstream終端に達し、かつbackend queueが0になったときだけtrueです。
+
+    ## 終了、restart、loop、dispose
+
+    `Stop()`はvoice queueを捨てて終了扱いにします。`Restart()`はvoiceをstopしstreamをresetして、次の`Pump()`から再開します。loopは`new LoopingStream(inner)`を渡します。`StreamingVoice.Dispose()`がvoiceとstreamを所有・破棄するので、同じstreamを別所有者から二重disposeしないでください。
+
+    {{StoryRef(ctx, &quot;Examples/Audio/StreamingQueue&quot;)}}
+    &quot;&quot;&quot;;</code></pre></details></article>

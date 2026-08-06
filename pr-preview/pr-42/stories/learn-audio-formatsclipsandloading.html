@@ -1,0 +1,68 @@
+<article class="story document-page"><h1 id="formats-clips-and-loading">Formats, clips, and loading</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FAudio%2FFormatsClipsAndLoading&amp;section=sample%E3%80%81frame%E3%80%81byte">sample、frame、byte</a></li>
+<li><a href="#story=Learn%2FAudio%2FFormatsClipsAndLoading&amp;section=clip%E3%82%92%E4%BD%9C%E3%82%8B3%E7%B5%8C%E8%B7%AF">clipを作る3経路</a></li>
+<li><a href="#story=Learn%2FAudio%2FFormatsClipsAndLoading&amp;section=%E5%BD%A2%E5%BC%8F%E4%B8%8D%E4%B8%80%E8%87%B4%E3%81%A8%E5%A4%B1%E6%95%97">形式不一致と失敗</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone / Resources　 <strong>Backend:</strong> Backend neutral PCM16　 <strong>前提知識:</strong> Environment and backends</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FAudio%2FEnvironmentAndBackends">EnvironmentAndBackends</a>　 <strong>次:</strong> <a href="#story=Learn%2FAudio%2FVoicesAndMixer">VoicesAndMixer</a></p>
+<h2 id="sampleframebyte">sample、frame、byte</h2>
+<p><code>AudioFormat(48_000, 2, 16)</code>では、1 channelの値がsample、同時刻の左右2 sampleがframeです。1 sampleは2 bytes、1 frameは4 bytes、1秒は192,000 bytesです。<code>AudioFormat.BytesPerSample</code>は名前に反して全channelを含む1 frame分で、<code>AudioClip.SampleCount</code>もper-channel frame数です。</p>
+<pre><code class="language-csharp">    internal static bool FormatAndClip()
+    {
+        var format = new AudioFormat(SampleRate: 48_000, Channels: 1, BitsPerSample: 16);
+        int frames = 4_800; // 100 ms
+        byte[] pcm = SinePcm16(format, frames, 440f);
+        var clip = new AudioClip(format, pcm, &quot;procedural 440 Hz&quot;);
+
+        return clip.SampleCount == frames
+            &amp;&amp; clip.Duration == TimeSpan.FromMilliseconds(100)
+            &amp;&amp; clip.PcmData.Length == frames * format.BytesPerSample;
+    }
+</code></pre>
+<h2 id="clip3">clipを作る3経路</h2>
+<ol>
+<li>procedural PCMを作り<code>new AudioClip(format, bytes, name)</code>する。</li>
+<li><code>AudioClipLoader.Load(stream, &quot;.wav&quot; | &quot;.ogg&quot;)</code>で16-bit PCMへ全展開する。</li>
+<li>Resourcesへ<code>AudioClipStep</code>を登録し、<code>resources.Load&lt;AudioClip&gt;(...)</code>でtyped loadする。</li>
+</ol>
+<pre><code class="language-csharp">AudioClip clip = AudioClipLoader.Load(fileBytes, &quot;.wav&quot;, &quot;hit&quot;);
+// AudioClipStep.RunAsync also delegates to AudioClipLoader using uri.Extension.
+</code></pre>
+<p><code>AudioClipLoader</code>はWAV/OGGを扱いますが、<code>WavStream</code>は長尺向けの別経路で、RIFF PCM16またはfloat32を逐次decodeします。clipはbytesを所有し、loaderへ渡したstreamの寿命とは切り離されます。</p>
+<h2 id="section">形式不一致と失敗</h2>
+<p>PCM bytesだけではsample rate/channels/bit depthを復元できません。channelsを間違えると速度や左右が崩れ、frame境界でないbyte数は不正です。core backendの共通formatはPCM16です。未知拡張子、壊れたRIFF、未対応bit depthは例外として扱い、黙って再生しない設計にします。</p>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/FormatsClipsAndLoading&quot;, Order = 2, Toc = true)]
+public static StoryResult Formats(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Formats, clips, and loading
+
+    {{AudioCourseCatalog.Meta(&quot;Learn/Audio/FormatsClipsAndLoading&quot;, &quot;Beginner&quot;, &quot;Standalone / Resources&quot;, &quot;Backend neutral PCM16&quot;, &quot;Environment and backends&quot;)}}
+
+    ## sample、frame、byte
+
+    `AudioFormat(48_000, 2, 16)`では、1 channelの値がsample、同時刻の左右2 sampleがframeです。1 sampleは2 bytes、1 frameは4 bytes、1秒は192,000 bytesです。`AudioFormat.BytesPerSample`は名前に反して全channelを含む1 frame分で、`AudioClip.SampleCount`もper-channel frame数です。
+
+    {{SampleSource(&quot;samples/LuxelAudio/AudioConceptSamples.cs&quot;, &quot;audio-format-clip&quot;)}}
+
+    ## clipを作る3経路
+
+    1. procedural PCMを作り`new AudioClip(format, bytes, name)`する。
+    2. `AudioClipLoader.Load(stream, &quot;.wav&quot; | &quot;.ogg&quot;)`で16-bit PCMへ全展開する。
+    3. Resourcesへ`AudioClipStep`を登録し、`resources.Load&lt;AudioClip&gt;(...)`でtyped loadする。
+
+    ```csharp
+    AudioClip clip = AudioClipLoader.Load(fileBytes, &quot;.wav&quot;, &quot;hit&quot;);
+    // AudioClipStep.RunAsync also delegates to AudioClipLoader using uri.Extension.
+    ```
+
+    `AudioClipLoader`はWAV/OGGを扱いますが、`WavStream`は長尺向けの別経路で、RIFF PCM16またはfloat32を逐次decodeします。clipはbytesを所有し、loaderへ渡したstreamの寿命とは切り離されます。
+
+    ## 形式不一致と失敗
+
+    PCM bytesだけではsample rate/channels/bit depthを復元できません。channelsを間違えると速度や左右が崩れ、frame境界でないbyte数は不正です。core backendの共通formatはPCM16です。未知拡張子、壊れたRIFF、未対応bit depthは例外として扱い、黙って再生しない設計にします。
+
+    {{StoryRef(ctx, &quot;Examples/Audio/WaveformAndVoice&quot;)}}
+    &quot;&quot;&quot;;</code></pre></details></article>

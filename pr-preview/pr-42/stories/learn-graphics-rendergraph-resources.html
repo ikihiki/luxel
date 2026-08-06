@@ -1,0 +1,129 @@
+<article class="story document-page"><h1 id="section">リソースとハンドル</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FGraphics%2FRenderGraph%2FResources&amp;section=%E8%AB%96%E7%90%86handle%E3%82%92%E4%BD%BF%E3%81%86%E7%90%86%E7%94%B1">論理handleを使う理由</a></li>
+<li><a href="#story=Learn%2FGraphics%2FRenderGraph%2FResources&amp;section=handle%E3%81%AEscope">handleのscope</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Beginner+　 <strong>実行環境:</strong> Standalone + DevTools　 <strong>Backend:</strong> Vulkan / DirectX 12　 <strong>前提知識:</strong> RenderGraph Overview</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGraphics%2FRenderGraph%2FOverview">Overview</a>　 <strong>次:</strong> <a href="#story=Learn%2FGraphics%2FRenderGraph%2FPasses">Passes</a></p>
+<p>graphへ登録するresourceは<strong>External</strong>と<strong>Transient</strong>に分かれます。違いは作成場所と所有者です。</p>
+<table>
+<thead>
+<tr>
+<th>種類</th>
+<th>登録API</th>
+<th>所有者</th>
+<th>典型例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>External buffer</td>
+<td><code>ImportBuffer</code></td>
+<td>renderer / application</td>
+<td>present用framebuffer、永続mesh buffer</td>
+</tr>
+<tr>
+<td>External texture</td>
+<td><code>ImportTexture</code></td>
+<td>renderer / application</td>
+<td>swapchain相当のtarget、永続texture</td>
+</tr>
+<tr>
+<td>Transient buffer</td>
+<td><code>CreateBuffer</code></td>
+<td>RenderGraph</td>
+<td>frame途中だけ使うcopy・compute buffer</td>
+</tr>
+<tr>
+<td>Transient texture</td>
+<td><code>CreateTexture</code></td>
+<td>RenderGraph</td>
+<td>scene color、depth、post-process中間target</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-csharp">using Luxel.Graphics.RenderGraph;
+
+using var graph = new RenderGraph(device);
+TextureHandle sceneColor = graph.CreateTexture(
+    new TextureDesc(width, height, GpuFormat.Rgba8Unorm), &quot;SceneColor&quot;);
+TextureHandle sceneDepth = graph.CreateTexture(
+    new TextureDesc(width, height, GpuFormat.D32Float, TextureKind.Depth), &quot;SceneDepth&quot;);
+BufferHandle copiedColor = graph.CreateBuffer(
+    new BufferDesc(framebufferBytes, GpuMemoryKind.HostMapped), &quot;CopiedColor&quot;);
+BufferHandle output = graph.ImportBuffer(framebuffer, &quot;PresentFramebuffer&quot;);
+</code></pre>
+<h2 id="handle">論理handleを使う理由</h2>
+<p><code>BufferHandle</code>と<code>TextureHandle</code>はgraph内の論理IDです。setup中は物理<code>GpuBuffer</code> / <code>GpuTexture</code>を直接渡さず、execute callback内で解決します。</p>
+<pre><code class="language-csharp">graph.AddPass(&quot;PostProcess&quot;, PassQueue.Compute)
+    .Read(copiedColor, ResourceUsage.StorageBufferRead)
+    .Write(output, ResourceUsage.StorageBufferWrite)
+    .Execute(pass =&gt; RecordPost(
+        pass.Cmd,
+        pass.Buffer(copiedColor),
+        pass.Buffer(output)));
+</code></pre>
+<p>この間接化により、compileはresourceの寿命を調べ、同時に使われないtransientへ同じ物理slotを割り当てられます。</p>
+<h2 id="handlescope">handleのscope</h2>
+<p>default値のhandleは<code>Id == 0</code>で無効です。compile前に物理resourceへ解決することもできません。またhandleにはgraph識別子がないため、別graphのhandleを混ぜると同じIDの別resourceを誤参照する可能性があります。</p>
+<ul>
+<li>handleを作ったgraphの外へ保存しない</li>
+<li>frameをまたいでhandleを再利用しない</li>
+<li>external resourceの寿命はgraphではなくimportした側が管理する</li>
+<li>transientのdescriptorはcompile後に変更せず、次frameで作り直す</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/RenderGraph/Resources&quot;, Order = 28, Toc = true)]
+public static StoryResult Resources(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # リソースとハンドル
+
+    {{RenderingCourseCatalog.Meta(&quot;Learn/Graphics/RenderGraph/Resources&quot;, &quot;Beginner+&quot;, &quot;Standalone + DevTools&quot;, &quot;Vulkan / DirectX 12&quot;, &quot;RenderGraph Overview&quot;)}}
+
+    graphへ登録するresourceは**External**と**Transient**に分かれます。違いは作成場所と所有者です。
+
+    | 種類 | 登録API | 所有者 | 典型例 |
+    | --- | --- | --- | --- |
+    | External buffer | `ImportBuffer` | renderer / application | present用framebuffer、永続mesh buffer |
+    | External texture | `ImportTexture` | renderer / application | swapchain相当のtarget、永続texture |
+    | Transient buffer | `CreateBuffer` | RenderGraph | frame途中だけ使うcopy・compute buffer |
+    | Transient texture | `CreateTexture` | RenderGraph | scene color、depth、post-process中間target |
+
+    ```csharp
+    using Luxel.Graphics.RenderGraph;
+
+    using var graph = new RenderGraph(device);
+    TextureHandle sceneColor = graph.CreateTexture(
+        new TextureDesc(width, height, GpuFormat.Rgba8Unorm), &quot;SceneColor&quot;);
+    TextureHandle sceneDepth = graph.CreateTexture(
+        new TextureDesc(width, height, GpuFormat.D32Float, TextureKind.Depth), &quot;SceneDepth&quot;);
+    BufferHandle copiedColor = graph.CreateBuffer(
+        new BufferDesc(framebufferBytes, GpuMemoryKind.HostMapped), &quot;CopiedColor&quot;);
+    BufferHandle output = graph.ImportBuffer(framebuffer, &quot;PresentFramebuffer&quot;);
+    ```
+
+    ## 論理handleを使う理由
+
+    `BufferHandle`と`TextureHandle`はgraph内の論理IDです。setup中は物理`GpuBuffer` / `GpuTexture`を直接渡さず、execute callback内で解決します。
+
+    ```csharp
+    graph.AddPass(&quot;PostProcess&quot;, PassQueue.Compute)
+        .Read(copiedColor, ResourceUsage.StorageBufferRead)
+        .Write(output, ResourceUsage.StorageBufferWrite)
+        .Execute(pass =&gt; RecordPost(
+            pass.Cmd,
+            pass.Buffer(copiedColor),
+            pass.Buffer(output)));
+    ```
+
+    この間接化により、compileはresourceの寿命を調べ、同時に使われないtransientへ同じ物理slotを割り当てられます。
+
+    ## handleのscope
+
+    default値のhandleは`Id == 0`で無効です。compile前に物理resourceへ解決することもできません。またhandleにはgraph識別子がないため、別graphのhandleを混ぜると同じIDの別resourceを誤参照する可能性があります。
+
+    - handleを作ったgraphの外へ保存しない
+    - frameをまたいでhandleを再利用しない
+    - external resourceの寿命はgraphではなくimportした側が管理する
+    - transientのdescriptorはcompile後に変更せず、次frameで作り直す
+    &quot;&quot;&quot;;</code></pre></details></article>

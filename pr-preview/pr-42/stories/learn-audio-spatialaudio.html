@@ -1,0 +1,76 @@
+<article class="story document-page"><h1 id="spatial-audio">Spatial audio</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FAudio%2FSpatialAudio&amp;section=%E3%83%A1%E3%83%B3%E3%82%BF%E3%83%AB%E3%83%A2%E3%83%87%E3%83%AB">メンタルモデル</a></li>
+<li><a href="#story=Learn%2FAudio%2FSpatialAudio&amp;section=frame%E6%9B%B4%E6%96%B0%E9%A0%86">frame更新順</a></li>
+<li><a href="#story=Learn%2FAudio%2FSpatialAudio&amp;section=%E7%8F%BE%E5%9C%A8%E3%81%AE%E7%AF%84%E5%9B%B2">現在の範囲</a></li>
+<li><a href="#story=Learn%2FAudio%2FSpatialAudio&amp;section=%E5%A4%B1%E6%95%97">失敗</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Game loop / Headless　 <strong>Backend:</strong> C# attenuation + backend pan　 <strong>前提知識:</strong> Clips, sources, and buses</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FAudio%2FClipsSourcesAndBuses">ClipsSourcesAndBuses</a>　 <strong>次:</strong> <a href="#story=Learn%2FAudio%2FStreaming">Streaming</a></p>
+<h2 id="section">メンタルモデル</h2>
+<p><code>AudioListener</code>はposition/forward/upを持ち、<code>Right = Normalize(Forward × Up)</code>を導出します。<code>AudioSource3D.Update(listener)</code>は距離からlinear attenuation、正規化した方向とRightの内積からpanを計算し、busとsource volumeを掛けてvoiceへ転送します。</p>
+<pre><code class="language-csharp">    internal static bool Spatial()
+    {
+        using var backend = new NullAudioBackend();
+        backend.Initialize();
+        var clip = new AudioClip(AudioFormat.Pcm16Mono48k, new byte[960], &quot;spatial probe&quot;);
+        var listener = new AudioListener { Position = Vector3.Zero };
+        using var source = new AudioSource3D(backend, clip)
+        {
+            Position = new Vector3(5, 0, 0),
+            MinDistance = 1,
+            MaxDistance = 9,
+        };
+
+        source.Play();
+        source.Update(listener); // listener pose first, source position second, spatial update last
+        return Math.Abs(source.EffectiveVolume - 0.5f) &lt; 0.0001f
+            &amp;&amp; Math.Abs(source.EffectivePan - 1f) &lt; 0.0001f;
+    }
+</code></pre>
+<p>距離が<code>MinDistance</code>以下なら1、<code>MaxDistance</code>以上なら0、その間は線形です。例では距離5、範囲1..9なのでattenuationは0.5、listener右側なのでpanは+1です。</p>
+<h2 id="frame">frame更新順</h2>
+<ol>
+<li>camera/playerからlistener poseを更新する。</li>
+<li>scene transformからsource <code>Position</code>を更新する。</li>
+<li><code>source.Update(listener)</code>を呼ぶ。</li>
+<li>backendが同じframeのvolume/panを使う。</li>
+</ol>
+<h2 id="section-1">現在の範囲</h2>
+<p>これはHRTF、Doppler、occlusion、room reverbではありません。C#で距離gainとstereo panを計算するportableな基礎です。mono clipでもvoice panを設定できますが、実際のspeaker mappingとpan lawはbackendに依存します。</p>
+<h2 id="section-2">失敗</h2>
+<p>forward/upが平行だとRightを正規化できません。<code>MinDistance &gt;= MaxDistance</code>はstep状の減衰になります。listener更新より前にsourceを更新すると1 frame古い結果になります。</p>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/SpatialAudio&quot;, Order = 5, Toc = true)]
+public static StoryResult Spatial(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Spatial audio
+
+    {{AudioCourseCatalog.Meta(&quot;Learn/Audio/SpatialAudio&quot;, &quot;Intermediate&quot;, &quot;Game loop / Headless&quot;, &quot;C# attenuation + backend pan&quot;, &quot;Clips, sources, and buses&quot;)}}
+
+    ## メンタルモデル
+
+    `AudioListener`はposition/forward/upを持ち、`Right = Normalize(Forward &#215; Up)`を導出します。`AudioSource3D.Update(listener)`は距離からlinear attenuation、正規化した方向とRightの内積からpanを計算し、busとsource volumeを掛けてvoiceへ転送します。
+
+    {{SampleSource(&quot;samples/LuxelAudio/AudioConceptSamples.cs&quot;, &quot;audio-spatial&quot;)}}
+
+    距離が`MinDistance`以下なら1、`MaxDistance`以上なら0、その間は線形です。例では距離5、範囲1..9なのでattenuationは0.5、listener右側なのでpanは+1です。
+
+    ## frame更新順
+
+    1. camera/playerからlistener poseを更新する。
+    2. scene transformからsource `Position`を更新する。
+    3. `source.Update(listener)`を呼ぶ。
+    4. backendが同じframeのvolume/panを使う。
+
+    ## 現在の範囲
+
+    これはHRTF、Doppler、occlusion、room reverbではありません。C#で距離gainとstereo panを計算するportableな基礎です。mono clipでもvoice panを設定できますが、実際のspeaker mappingとpan lawはbackendに依存します。
+
+    ## 失敗
+
+    forward/upが平行だとRightを正規化できません。`MinDistance &gt;= MaxDistance`はstep状の減衰になります。listener更新より前にsourceを更新すると1 frame古い結果になります。
+
+    {{StoryRef(ctx, &quot;Examples/Audio/SpatialAttenuation&quot;)}}
+    &quot;&quot;&quot;;</code></pre></details></article>

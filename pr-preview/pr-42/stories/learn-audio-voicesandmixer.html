@@ -1,0 +1,91 @@
+<article class="story document-page"><h1 id="voices-and-the-one-shot-mixer">Voices and the one-shot mixer</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FAudio%2FVoicesAndMixer&amp;section=voice%E3%81%AE%E7%8A%B6%E6%85%8B%E3%83%A2%E3%83%87%E3%83%AB">voiceの状態モデル</a></li>
+<li><a href="#story=Learn%2FAudio%2FVoicesAndMixer&amp;section=audiomixer%E3%81%AEpool">AudioMixerのpool</a></li>
+<li><a href="#story=Learn%2FAudio%2FVoicesAndMixer&amp;section=%E6%89%80%E6%9C%89%E6%A8%A9%E3%81%A8%E5%A4%B1%E6%95%97">所有権と失敗</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Game loop / Headless　 <strong>Backend:</strong> Null / XAudio2　 <strong>前提知識:</strong> Formats, clips, and loading</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FAudio%2FFormatsClipsAndLoading">FormatsClipsAndLoading</a>　 <strong>次:</strong> <a href="#story=Learn%2FAudio%2FClipsSourcesAndBuses">ClipsSourcesAndBuses</a></p>
+<h2 id="voice">voiceの状態モデル</h2>
+<p><code>SubmitBuffer()</code>はqueueを増やし、<code>Play()</code>は再生を開始、<code>Pause()</code>はqueueを保持したまま停止、<code>Stop()</code>は停止してqueueを捨てます。<code>BuffersQueued == 0</code>はone-shot完了とpool返却の判定です。<code>IsPlaying</code>の枯渇時挙動はbackend依存なので、完了判定はqueueを中心に組みます。</p>
+<pre><code class="language-csharp">    internal static bool MixerAndVoice()
+    {
+        var format = AudioFormat.Pcm16Mono48k;
+        var clip = new AudioClip(format, SinePcm16(format, 480, 660f), &quot;one-shot&quot;);
+        using var backend = new NullAudioBackend();
+        backend.Initialize();
+        using var mixer = new AudioMixer(backend);
+
+        mixer.PlayOneShot(clip, volume: 0.5f, pitch: 1.25f, pan: -0.25f);
+        IAudioVoice voice = backend.Voices.Single();
+        bool submitted = mixer.ActiveVoiceCount == 1
+            &amp;&amp; voice.BuffersQueued == 1 &amp;&amp; voice.IsPlaying
+            &amp;&amp; voice.Volume == 0.5f &amp;&amp; voice.Pitch == 1.25f &amp;&amp; voice.Pan == -0.25f;
+
+        // Real backends decrement BuffersQueued as playback completes; then Tick returns the voice to the pool.
+        voice.Stop();
+        mixer.Tick();
+        return submitted &amp;&amp; mixer.ActiveVoiceCount == 0;
+    }
+</code></pre>
+<h2 id="audiomixerpool">AudioMixerのpool</h2>
+<p><code>PlayOneShot</code>は同じ<code>AudioFormat</code>のidle voiceを借り、volume、pitch、panを設定してsubmit/playします。実backendが再生を終えて<code>BuffersQueued</code>を0にした後、毎frameの<code>AudioMixer.Tick()</code>がvoiceを停止してformat別poolへ返します。</p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>意味</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>volume</td>
+<td>linear gain、通常0..1</td>
+<td>busの<code>EffectiveVolume</code>も乗算される</td>
+</tr>
+<tr>
+<td>pitch</td>
+<td>playback speed ratio</td>
+<td>1が原音、backend範囲に依存</td>
+</tr>
+<tr>
+<td>pan</td>
+<td>-1 left .. +1 right</td>
+<td>backendのpan lawは完全一致しない</td>
+</tr>
+</tbody>
+</table>
+<h2 id="section">所有権と失敗</h2>
+<p>mixerが借りたvoiceを所有するため、呼び出し側はone-shot voiceをdisposeしません。一方mixer自体はbackendより先にdisposeします。<code>Tick()</code>忘れはpoolへ戻らない原因です。<code>NullAudioBackend</code>は時間経過で自動drainしないため、testでは<code>Stop()</code>等で完了状態を決定的に作ります。</p>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/VoicesAndMixer&quot;, Order = 3, Toc = true)]
+public static StoryResult Voices(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Voices and the one-shot mixer
+
+    {{AudioCourseCatalog.Meta(&quot;Learn/Audio/VoicesAndMixer&quot;, &quot;Beginner&quot;, &quot;Game loop / Headless&quot;, &quot;Null / XAudio2&quot;, &quot;Formats, clips, and loading&quot;)}}
+
+    ## voiceの状態モデル
+
+    `SubmitBuffer()`はqueueを増やし、`Play()`は再生を開始、`Pause()`はqueueを保持したまま停止、`Stop()`は停止してqueueを捨てます。`BuffersQueued == 0`はone-shot完了とpool返却の判定です。`IsPlaying`の枯渇時挙動はbackend依存なので、完了判定はqueueを中心に組みます。
+
+    {{SampleSource(&quot;samples/LuxelAudio/AudioConceptSamples.cs&quot;, &quot;audio-mixer-voice&quot;)}}
+
+    ## AudioMixerのpool
+
+    `PlayOneShot`は同じ`AudioFormat`のidle voiceを借り、volume、pitch、panを設定してsubmit/playします。実backendが再生を終えて`BuffersQueued`を0にした後、毎frameの`AudioMixer.Tick()`がvoiceを停止してformat別poolへ返します。
+
+    | parameter | 意味 | 注意 |
+    |---|---|---|
+    | volume | linear gain、通常0..1 | busの`EffectiveVolume`も乗算される |
+    | pitch | playback speed ratio | 1が原音、backend範囲に依存 |
+    | pan | -1 left .. +1 right | backendのpan lawは完全一致しない |
+
+    ## 所有権と失敗
+
+    mixerが借りたvoiceを所有するため、呼び出し側はone-shot voiceをdisposeしません。一方mixer自体はbackendより先にdisposeします。`Tick()`忘れはpoolへ戻らない原因です。`NullAudioBackend`は時間経過で自動drainしないため、testでは`Stop()`等で完了状態を決定的に作ります。
+
+    {{StoryRef(ctx, &quot;Examples/Audio/WaveformAndVoice&quot;)}}
+    &quot;&quot;&quot;;</code></pre></details></article>

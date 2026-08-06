@@ -1,0 +1,137 @@
+<article class="story document-page"><h1 id="assetgpu">AssetをロードしてGPUで使う</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FResources%2FAssets%2FLoadingAndGpu&amp;section=cpu-asset%E3%82%92%E5%8F%96%E5%BE%97%E3%81%99%E3%82%8B">CPU assetを取得する</a></li>
+<li><a href="#story=Learn%2FResources%2FAssets%2FLoadingAndGpu&amp;section=assetsgpu%E3%81%AEstep%E3%82%92%E7%99%BB%E9%8C%B2%E3%81%99%E3%82%8B">AssetsGpuのStepを登録する</a></li>
+<li><a href="#story=Learn%2FResources%2FAssets%2FLoadingAndGpu&amp;section=program-value%E3%82%92gpu-asset%E3%81%B8%E5%A4%89%E6%8F%9B%E3%81%99%E3%82%8B">Program valueをGPU assetへ変換する</a></li>
+<li><a href="#story=Learn%2FResources%2FAssets%2FLoadingAndGpu&amp;section=gltf-scene%E3%82%92runtime%E3%81%B8%E5%B1%95%E9%96%8B%E3%81%99%E3%82%8B">glTF sceneをruntimeへ展開する</a></li>
+<li><a href="#story=Learn%2FResources%2FAssets%2FLoadingAndGpu&amp;section=%E6%8F%8F%E7%94%BB%E3%81%B8%E6%B8%A1%E3%81%99">描画へ渡す</a></li>
+<li><a href="#story=Learn%2FResources%2FAssets%2FLoadingAndGpu&amp;section=%E5%AF%BF%E5%91%BD%E3%81%AE%E9%A0%86%E5%BA%8F">寿命の順序</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Standalone / Browser / Game　 <strong>Backend:</strong> Resources + AssetsGpu　 <strong>前提知識:</strong> Asset types</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FResources%2FAssets%2FTypesAndRelationships">TypesAndRelationships</a>　 <strong>次:</strong> <a href="#story=Learn%2FResources%2FAssets%2FShaderCalculations">ShaderCalculations</a></p>
+<h2 id="cpu-asset">CPU assetを取得する</h2>
+<p>glTFをResourcesから取得するには、Sourceに加えて<code>GltfStep</code>を登録します。外部<code>.bin</code>やimageを参照するglTFでは、Step内の<code>LoadContext.Load()</code>によって別URIのdependencyがDAGへ接続されます。</p>
+<pre><code class="language-csharp">resources.AddStep&lt;byte[], AssetDocument&gt;(new GltfStep());
+
+using ResourceHandle&lt;AssetDocument&gt; document =
+    resources.Load&lt;AssetDocument&gt;(&quot;models/scene.glb&quot;);
+await document.Ready;
+AssetMesh firstMesh = document.Value.Meshes[0];
+</code></pre>
+<p><code>AssetDocument</code>から必要なmesh、material、animationを直接参照できます。CPU検査だけならGPU deviceは不要です。</p>
+<h2 id="assetsgpustep">AssetsGpuのStepを登録する</h2>
+<p><code>InstallAssetGpuLifecycle()</code>はdevice-boundな<code>AssetGpuRegistry</code>を作り、次のようなgeneric Stepを登録し、deferred dispose前のqueue idle hookも設定します。</p>
+<pre><code class="language-text">AssetTexture  → GpuTexture
+AssetSampler  → GpuSampler
+AssetMaterial → GpuMaterial
+AssetMesh     → GpuMesh
+AssetSkin     → GpuSkin
+</code></pre>
+<pre><code class="language-csharp">using AssetGpuInstallation gpuAssets =
+    resources.InstallAssetGpuLifecycle(device);
+</code></pre>
+<p>lifecycle tokenはdeviceより先にDisposeします。registryは同じCPU asset objectのuploadをdeduplicateし、material登録時にはtextureとsampler、mesh登録時にはprimitiveのmaterialを再帰登録します。</p>
+<h2 id="program-valuegpu-asset">Program valueをGPU assetへ変換する</h2>
+<p>既にCPU側で持っているassetは<code>ResourceScope.Create&lt;TInput,TOutput&gt;()</code>でBorrowed inputとして登録し、AssetsGpu Stepへ渡せます。</p>
+<pre><code class="language-csharp">using ResourceScope scope = resources.CreateScope(&quot;scene/main&quot;);
+ResourceHandle&lt;GpuMesh&gt; mesh =
+    scope.Create&lt;AssetMesh, GpuMesh&gt;(&quot;mesh/player&quot;, cpuMesh);
+await mesh.Ready;
+</code></pre>
+<p><code>GpuMesh</code>はprimitiveごとのvertex / index bufferを持ち、<code>GpuMaterial</code>はGPU texture / samplerへの借用参照を持ちます。<code>GpuSkin</code>は毎フレーム更新可能なjoint matrixの<code>RenderBuffer&lt;Matrix4x4&gt;</code>を持ちます。</p>
+<h2 id="gltf-sceneruntime">glTF sceneをruntimeへ展開する</h2>
+<p>scene graph全体を使う場合は<code>SceneAssetsStep(device, world)</code>を登録し、<code>AssetDocument → SceneAssets</code>へ変換します。fragmentで部分bufferを取得する場合は<code>GltfBufferStep</code>と<code>MaterialTextureStep</code>も明示登録します。</p>
+<pre><code class="language-csharp">resources.AddStep&lt;AssetDocument, SceneAssets&gt;(
+    new SceneAssetsStep(device, world));
+resources.AddStep&lt;SceneAssets, GpuBuffer&gt;(new GltfBufferStep(device));
+resources.AddStep&lt;SceneAssets, GpuTexture&gt;(new MaterialTextureStep());
+</code></pre>
+<p><code>SceneAssets</code>はprimitive GPU state、material array、skin、node-to-entity mappingを保持します。これは汎用<code>AssetGpuRegistry</code>経路とは別のglTF runtime経路です。必要な出力型に応じて登録するStepを選び、両者が自動的に同じcacheを共有すると仮定しないでください。</p>
+<h2 id="section">描画へ渡す</h2>
+<p>runtime entityへ<code>DrawMesh</code>、<code>DrawInstance</code>、<code>DrawMaterial</code>、必要なら<code>DrawSkinning</code>を付けると、<code>DrawableCollector.Collect(world, renderGraph)</code>がvertex、index、instance、material、jointのimport済みhandleを<code>DrawItem</code>として返します。draw loopはhandleから実bufferのbindless indexをroot argumentsへ設定します。</p>
+<h2 id="section-1">寿命の順序</h2>
+<ol>
+<li>drawとRenderGraphの利用を終了する。</li>
+<li>scope / resource handle / <code>SceneAssets</code>を解放する。</li>
+<li><code>AssetGpuInstallation</code>またはregistryを解放する。</li>
+<li>最後に<code>GpuDevice</code>を破棄する。</li>
+</ol>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Resources/Assets/LoadingAndGpu&quot;, Order = 10, Toc = true)]
+public static StoryResult LoadingAndGpu(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # AssetをロードしてGPUで使う
+
+    {{ResourceCourseCatalog.Meta(&quot;Learn/Resources/Assets/LoadingAndGpu&quot;, &quot;Intermediate&quot;, &quot;Standalone / Browser / Game&quot;, &quot;Resources + AssetsGpu&quot;, &quot;Asset types&quot;)}}
+
+    ## CPU assetを取得する
+
+    glTFをResourcesから取得するには、Sourceに加えて`GltfStep`を登録します。外部`.bin`やimageを参照するglTFでは、Step内の`LoadContext.Load()`によって別URIのdependencyがDAGへ接続されます。
+
+    ```csharp
+    resources.AddStep&lt;byte[], AssetDocument&gt;(new GltfStep());
+
+    using ResourceHandle&lt;AssetDocument&gt; document =
+        resources.Load&lt;AssetDocument&gt;(&quot;models/scene.glb&quot;);
+    await document.Ready;
+    AssetMesh firstMesh = document.Value.Meshes[0];
+    ```
+
+    `AssetDocument`から必要なmesh、material、animationを直接参照できます。CPU検査だけならGPU deviceは不要です。
+
+    ## AssetsGpuのStepを登録する
+
+    `InstallAssetGpuLifecycle()`はdevice-boundな`AssetGpuRegistry`を作り、次のようなgeneric Stepを登録し、deferred dispose前のqueue idle hookも設定します。
+
+    ```text
+    AssetTexture  → GpuTexture
+    AssetSampler  → GpuSampler
+    AssetMaterial → GpuMaterial
+    AssetMesh     → GpuMesh
+    AssetSkin     → GpuSkin
+    ```
+
+    ```csharp
+    using AssetGpuInstallation gpuAssets =
+        resources.InstallAssetGpuLifecycle(device);
+    ```
+
+    lifecycle tokenはdeviceより先にDisposeします。registryは同じCPU asset objectのuploadをdeduplicateし、material登録時にはtextureとsampler、mesh登録時にはprimitiveのmaterialを再帰登録します。
+
+    ## Program valueをGPU assetへ変換する
+
+    既にCPU側で持っているassetは`ResourceScope.Create&lt;TInput,TOutput&gt;()`でBorrowed inputとして登録し、AssetsGpu Stepへ渡せます。
+
+    ```csharp
+    using ResourceScope scope = resources.CreateScope(&quot;scene/main&quot;);
+    ResourceHandle&lt;GpuMesh&gt; mesh =
+        scope.Create&lt;AssetMesh, GpuMesh&gt;(&quot;mesh/player&quot;, cpuMesh);
+    await mesh.Ready;
+    ```
+
+    `GpuMesh`はprimitiveごとのvertex / index bufferを持ち、`GpuMaterial`はGPU texture / samplerへの借用参照を持ちます。`GpuSkin`は毎フレーム更新可能なjoint matrixの`RenderBuffer&lt;Matrix4x4&gt;`を持ちます。
+
+    ## glTF sceneをruntimeへ展開する
+
+    scene graph全体を使う場合は`SceneAssetsStep(device, world)`を登録し、`AssetDocument → SceneAssets`へ変換します。fragmentで部分bufferを取得する場合は`GltfBufferStep`と`MaterialTextureStep`も明示登録します。
+
+    ```csharp
+    resources.AddStep&lt;AssetDocument, SceneAssets&gt;(
+        new SceneAssetsStep(device, world));
+    resources.AddStep&lt;SceneAssets, GpuBuffer&gt;(new GltfBufferStep(device));
+    resources.AddStep&lt;SceneAssets, GpuTexture&gt;(new MaterialTextureStep());
+    ```
+
+    `SceneAssets`はprimitive GPU state、material array、skin、node-to-entity mappingを保持します。これは汎用`AssetGpuRegistry`経路とは別のglTF runtime経路です。必要な出力型に応じて登録するStepを選び、両者が自動的に同じcacheを共有すると仮定しないでください。
+
+    ## 描画へ渡す
+
+    runtime entityへ`DrawMesh`、`DrawInstance`、`DrawMaterial`、必要なら`DrawSkinning`を付けると、`DrawableCollector.Collect(world, renderGraph)`がvertex、index、instance、material、jointのimport済みhandleを`DrawItem`として返します。draw loopはhandleから実bufferのbindless indexをroot argumentsへ設定します。
+
+    ## 寿命の順序
+
+    1. drawとRenderGraphの利用を終了する。
+    2. scope / resource handle / `SceneAssets`を解放する。
+    3. `AssetGpuInstallation`またはregistryを解放する。
+    4. 最後に`GpuDevice`を破棄する。
+    &quot;&quot;&quot;;</code></pre></details></article>

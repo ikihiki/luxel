@@ -1,0 +1,85 @@
+<article class="story document-page"><h1 id="clips-sources-and-buses">Clips, sources, and buses</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FAudio%2FClipsSourcesAndBuses&amp;section=audiosource%E3%82%92%E4%BD%BF%E3%81%86%E3%81%A8%E3%81%8D">AudioSourceを使うとき</a></li>
+<li><a href="#story=Learn%2FAudio%2FClipsSourcesAndBuses&amp;section=bus-tree">bus tree</a></li>
+<li><a href="#story=Learn%2FAudio%2FClipsSourcesAndBuses&amp;section=lifecycle">lifecycle</a></li>
+<li><a href="#story=Learn%2FAudio%2FClipsSourcesAndBuses&amp;section=%E3%82%88%E3%81%8F%E3%81%82%E3%82%8B%E5%A4%B1%E6%95%97">よくある失敗</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Game loop　 <strong>Backend:</strong> Backend neutral　 <strong>前提知識:</strong> Voices and mixer</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FAudio%2FVoicesAndMixer">VoicesAndMixer</a>　 <strong>次:</strong> <a href="#story=Learn%2FAudio%2FSpatialAudio">SpatialAudio</a></p>
+<h2 id="audiosource">AudioSourceを使うとき</h2>
+<p><code>AudioSource</code>は1つのclipとvoiceを所有し、loop、pause、stop、継続的なvolume/pitch/pan更新を扱います。<code>Signal&lt;float&gt;</code>を書き換えただけではvoiceへ反映されず、毎frame <code>Tick()</code>が必要です。</p>
+<pre><code class="language-csharp">    internal static bool SourceAndBus()
+    {
+        var master = new AudioBus(&quot;Master&quot;);
+        var music = new AudioBus(&quot;Music&quot;, master);
+        var sfx = new AudioBus(&quot;SFX&quot;, master);
+        master.Volume.Value = 0.8f;
+        music.Volume.Value = 0.5f;
+        sfx.Volume.Value = 0.25f;
+
+        using var backend = new NullAudioBackend();
+        backend.Initialize();
+        var clip = new AudioClip(AudioFormat.Pcm16Mono48k, new byte[960], &quot;loop&quot;);
+        using var source = new AudioSource(backend, clip) { Bus = music };
+        source.Volume.Value = 0.5f;
+        source.Play(loop: true);
+        source.Tick(); // copy Signal and bus values to the voice every frame
+
+        IAudioVoice voice = backend.Voices.Single();
+        return Math.Abs(music.EffectiveVolume - 0.4f) &lt; 0.0001f
+            &amp;&amp; Math.Abs(sfx.EffectiveVolume - 0.2f) &lt; 0.0001f
+            &amp;&amp; Math.Abs(voice.Volume - 0.2f) &lt; 0.0001f;
+    }
+</code></pre>
+<h2 id="bus-tree">bus tree</h2>
+<p><code>AudioBus</code>はOSのsubmix voiceではなくC#側の軽量な階層です。Master=0.8、Music=0.5ならMusicの<code>EffectiveVolume</code>は0.4です。source volume=0.5ならvoiceへ渡る値は0.2です。Master/Music/SFX/Voiceを兄弟として作ると設定画面とgame logicを分離できます。</p>
+<pre><code class="language-csharp">while (running)
+{
+    music.Tick();       // Signal × bus -&gt; IAudioVoice
+    mixer.Tick();       // completed one-shots -&gt; pool
+    RunGameFrame();
+}
+</code></pre>
+<h2 id="lifecycle">lifecycle</h2>
+<p><code>Play(loop: true)</code>は最初の呼び出しでsubmitします。<code>Pause()</code>後の<code>Play()</code>は同じqueueを再開し、<code>Stop()</code>はqueueを捨てて次回Playで再submitします。sourceがvoiceを所有するので、sourceをbackendより先に<code>Dispose()</code>します。busはmanagedな値objectでdispose不要です。</p>
+<h2 id="section">よくある失敗</h2>
+<p><code>Tick()</code>忘れ、parent busが0、sourceとone-shotの所有権混同、dispose後の再生が代表例です。bus値だけでなく最終voice volumeをheadlessで確認します。</p>
+<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/ClipsSourcesAndBuses&quot;, Order = 4, Toc = true)]
+public static StoryResult Sources(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Clips, sources, and buses
+
+    {{AudioCourseCatalog.Meta(&quot;Learn/Audio/ClipsSourcesAndBuses&quot;, &quot;Beginner&quot;, &quot;Game loop&quot;, &quot;Backend neutral&quot;, &quot;Voices and mixer&quot;)}}
+
+    ## AudioSourceを使うとき
+
+    `AudioSource`は1つのclipとvoiceを所有し、loop、pause、stop、継続的なvolume/pitch/pan更新を扱います。`Signal&lt;float&gt;`を書き換えただけではvoiceへ反映されず、毎frame `Tick()`が必要です。
+
+    {{SampleSource(&quot;samples/LuxelAudio/AudioConceptSamples.cs&quot;, &quot;audio-source-bus&quot;)}}
+
+    ## bus tree
+
+    `AudioBus`はOSのsubmix voiceではなくC#側の軽量な階層です。Master=0.8、Music=0.5ならMusicの`EffectiveVolume`は0.4です。source volume=0.5ならvoiceへ渡る値は0.2です。Master/Music/SFX/Voiceを兄弟として作ると設定画面とgame logicを分離できます。
+
+    ```csharp
+    while (running)
+    {
+        music.Tick();       // Signal &#215; bus -&gt; IAudioVoice
+        mixer.Tick();       // completed one-shots -&gt; pool
+        RunGameFrame();
+    }
+    ```
+
+    ## lifecycle
+
+    `Play(loop: true)`は最初の呼び出しでsubmitします。`Pause()`後の`Play()`は同じqueueを再開し、`Stop()`はqueueを捨てて次回Playで再submitします。sourceがvoiceを所有するので、sourceをbackendより先に`Dispose()`します。busはmanagedな値objectでdispose不要です。
+
+    ## よくある失敗
+
+    `Tick()`忘れ、parent busが0、sourceとone-shotの所有権混同、dispose後の再生が代表例です。bus値だけでなく最終voice volumeをheadlessで確認します。
+
+    {{StoryRef(ctx, &quot;Examples/Audio/Buses&quot;)}}
+    &quot;&quot;&quot;;</code></pre></details></article>

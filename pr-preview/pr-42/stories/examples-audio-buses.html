@@ -1,0 +1,237 @@
+<article class="story document-page"><h1 id="audio-source-and-buses">Audio: source and buses</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Examples%2FAudio%2FBuses&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-headless-audio-tone">コピーして動かす — Headless audio tone</a>
+<ul>
+<li><a href="#story=Examples%2FAudio%2FBuses&amp;section=%60samples%2Fluxelaudio%2Fluxelaudio.csproj%60-project"><code>samples/LuxelAudio/LuxelAudio.csproj</code> (Project)</a></li>
+<li><a href="#story=Examples%2FAudio%2FBuses&amp;section=%60samples%2Fluxelaudio%2Fprogram.cs%60-csharp"><code>samples/LuxelAudio/Program.cs</code> (CSharp)</a></li>
+<li><a href="#story=Examples%2FAudio%2FBuses&amp;section=%60samples%2Fluxelaudio%2Faudioconceptsamples.cs%60-csharp"><code>samples/LuxelAudio/AudioConceptSamples.cs</code> (CSharp)</a></li>
+</ul>
+</li>
+</ul>
+<!-- /luxel-toc -->
+<p>Master/Music/SFXの親子busを作り、<code>EffectiveVolume</code>の乗算と<code>AudioSource.Tick()</code>が最終voice volumeへ反映することを検証します。</p>
+<pre><code class="language-csharp">    internal static bool SourceAndBus()
+    {
+        var master = new AudioBus(&quot;Master&quot;);
+        var music = new AudioBus(&quot;Music&quot;, master);
+        var sfx = new AudioBus(&quot;SFX&quot;, master);
+        master.Volume.Value = 0.8f;
+        music.Volume.Value = 0.5f;
+        sfx.Volume.Value = 0.25f;
+
+        using var backend = new NullAudioBackend();
+        backend.Initialize();
+        var clip = new AudioClip(AudioFormat.Pcm16Mono48k, new byte[960], &quot;loop&quot;);
+        using var source = new AudioSource(backend, clip) { Bus = music };
+        source.Volume.Value = 0.5f;
+        source.Play(loop: true);
+        source.Tick(); // copy Signal and bus values to the voice every frame
+
+        IAudioVoice voice = backend.Voices.Single();
+        return Math.Abs(music.EffectiveVolume - 0.4f) &lt; 0.0001f
+            &amp;&amp; Math.Abs(sfx.EffectiveVolume - 0.2f) &lt; 0.0001f
+            &amp;&amp; Math.Abs(voice.Volume - 0.2f) &lt; 0.0001f;
+    }
+</code></pre>
+<h2 id="headless-audio-tone">コピーして動かす — Headless audio tone</h2>
+<blockquote>
+<p><strong>Block</strong> · 難易度: Beginner · 依存 bundle: <code>support.source-tree</code></p>
+</blockquote>
+<p>Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.</p>
+<p><strong>必要条件:</strong> .NET 10 / Headless: any supported OS / Audible output: Windows/XAudio2 integration
+<strong>Platform:</strong> Windows / Linux / macOS
+<strong>検証契約:</strong> exit <code>0</code> / timeout <code>300s</code> / stdout <code>audio: initialized=True, voices=1</code>
+<strong>接続点:</strong> <code>AudioMixer</code></p>
+<p><strong>Run</strong></p>
+<pre><code class="language-powershell">dotnet run --project samples/LuxelAudio
+</code></pre>
+<p><strong>Smoke test</strong></p>
+<pre><code class="language-powershell">dotnet run --project samples/LuxelAudio
+</code></pre>
+<h3 id="samplesluxelaudioluxelaudio.csproj-project"><code>samples/LuxelAudio/LuxelAudio.csproj</code> (Project)</h3>
+<pre><code class="language-xml">&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;
+  &lt;PropertyGroup&gt;&lt;OutputType&gt;Exe&lt;/OutputType&gt;&lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;&lt;Nullable&gt;enable&lt;/Nullable&gt;&lt;/PropertyGroup&gt;
+  &lt;ItemGroup&gt;&lt;ProjectReference Include=&quot;..\..\src\Luxel.Audio\Luxel.Audio.csproj&quot; /&gt;&lt;/ItemGroup&gt;
+&lt;/Project&gt;
+</code></pre>
+<h3 id="samplesluxelaudioprogram.cs-csharp"><code>samples/LuxelAudio/Program.cs</code> (CSharp)</h3>
+<pre><code class="language-csharp">using Luxel.Audio;
+
+// docs:begin audio-tone
+var format = new AudioFormat(48_000, 1, 16);
+byte[] pcm = new byte[4_800 * format.BytesPerSample];
+for (int i = 0; i &lt; 4_800; i++)
+{
+    short sample = (short)(Math.Sin(2 * Math.PI * 440 * i / format.SampleRate) * short.MaxValue * 0.2);
+    BitConverter.TryWriteBytes(pcm.AsSpan(i * 2, 2), sample);
+}
+var clip = new AudioClip(format, pcm, &quot;440Hz tone&quot;);
+using var backend = new NullAudioBackend();
+backend.Initialize();
+using var mixer = new AudioMixer(backend);
+mixer.PlayOneShot(clip, volume: 0.5f);
+// docs:end audio-tone
+IAudioVoice voice = backend.Voices.Single();
+Console.WriteLine($&quot;audio: initialized={backend.Initialized}, voices={backend.Voices.Count}, queued={voice.BuffersQueued}, playing={voice.IsPlaying}, bytes={pcm.Length}&quot;);
+return backend.Initialized &amp;&amp; voice.BuffersQueued == 1 &amp;&amp; voice.IsPlaying &amp;&amp; AudioConceptSamples.RunAll() ? 0 : 1;
+</code></pre>
+<h3 id="samplesluxelaudioaudioconceptsamples.cs-csharp"><code>samples/LuxelAudio/AudioConceptSamples.cs</code> (CSharp)</h3>
+<pre><code class="language-csharp">using System.Numerics;
+using System.Text;
+using Luxel.Audio;
+
+internal static class AudioConceptSamples
+{
+    internal static bool RunAll()
+        =&gt; FormatAndClip() &amp;&amp; MixerAndVoice() &amp;&amp; SourceAndBus() &amp;&amp; Spatial() &amp;&amp; Streaming() &amp;&amp; HeadlessTest();
+
+    // docs:begin audio-format-clip
+    internal static bool FormatAndClip()
+    {
+        var format = new AudioFormat(SampleRate: 48_000, Channels: 1, BitsPerSample: 16);
+        int frames = 4_800; // 100 ms
+        byte[] pcm = SinePcm16(format, frames, 440f);
+        var clip = new AudioClip(format, pcm, &quot;procedural 440 Hz&quot;);
+
+        return clip.SampleCount == frames
+            &amp;&amp; clip.Duration == TimeSpan.FromMilliseconds(100)
+            &amp;&amp; clip.PcmData.Length == frames * format.BytesPerSample;
+    }
+    // docs:end audio-format-clip
+
+    // docs:begin audio-mixer-voice
+    internal static bool MixerAndVoice()
+    {
+        var format = AudioFormat.Pcm16Mono48k;
+        var clip = new AudioClip(format, SinePcm16(format, 480, 660f), &quot;one-shot&quot;);
+        using var backend = new NullAudioBackend();
+        backend.Initialize();
+        using var mixer = new AudioMixer(backend);
+
+        mixer.PlayOneShot(clip, volume: 0.5f, pitch: 1.25f, pan: -0.25f);
+        IAudioVoice voice = backend.Voices.Single();
+        bool submitted = mixer.ActiveVoiceCount == 1
+            &amp;&amp; voice.BuffersQueued == 1 &amp;&amp; voice.IsPlaying
+            &amp;&amp; voice.Volume == 0.5f &amp;&amp; voice.Pitch == 1.25f &amp;&amp; voice.Pan == -0.25f;
+
+        // Real backends decrement BuffersQueued as playback completes; then Tick returns the voice to the pool.
+        voice.Stop();
+        mixer.Tick();
+        return submitted &amp;&amp; mixer.ActiveVoiceCount == 0;
+    }
+    // docs:end audio-mixer-voice
+
+    // docs:begin audio-source-bus
+    internal static bool SourceAndBus()
+    {
+        var master = new AudioBus(&quot;Master&quot;);
+        var music = new AudioBus(&quot;Music&quot;, master);
+        var sfx = new AudioBus(&quot;SFX&quot;, master);
+        master.Volume.Value = 0.8f;
+        music.Volume.Value = 0.5f;
+        sfx.Volume.Value = 0.25f;
+
+        using var backend = new NullAudioBackend();
+        backend.Initialize();
+        var clip = new AudioClip(AudioFormat.Pcm16Mono48k, new byte[960], &quot;loop&quot;);
+        using var source = new AudioSource(backend, clip) { Bus = music };
+        source.Volume.Value = 0.5f;
+        source.Play(loop: true);
+        source.Tick(); // copy Signal and bus values to the voice every frame
+
+        IAudioVoice voice = backend.Voices.Single();
+        return Math.Abs(music.EffectiveVolume - 0.4f) &lt; 0.0001f
+            &amp;&amp; Math.Abs(sfx.EffectiveVolume - 0.2f) &lt; 0.0001f
+            &amp;&amp; Math.Abs(voice.Volume - 0.2f) &lt; 0.0001f;
+    }
+    // docs:end audio-source-bus
+
+    // docs:begin audio-spatial
+    internal static bool Spatial()
+    {
+        using var backend = new NullAudioBackend();
+        backend.Initialize();
+        var clip = new AudioClip(AudioFormat.Pcm16Mono48k, new byte[960], &quot;spatial probe&quot;);
+        var listener = new AudioListener { Position = Vector3.Zero };
+        using var source = new AudioSource3D(backend, clip)
+        {
+            Position = new Vector3(5, 0, 0),
+            MinDistance = 1,
+            MaxDistance = 9,
+        };
+
+        source.Play();
+        source.Update(listener); // listener pose first, source position second, spatial update last
+        return Math.Abs(source.EffectiveVolume - 0.5f) &lt; 0.0001f
+            &amp;&amp; Math.Abs(source.EffectivePan - 1f) &lt; 0.0001f;
+    }
+    // docs:end audio-spatial
+
+    // docs:begin audio-streaming
+    internal static bool Streaming()
+    {
+        byte[] wav = CreatePcm16Wav(sampleRate: 1_000, channels: 1, frames: 250);
+        using var backend = new NullAudioBackend();
+        backend.Initialize();
+        using var memory = new MemoryStream(wav, writable: false);
+        using var stream = new WavStream(memory, leaveOpen: true);
+        using var playback = new StreamingVoice(backend, stream, chunkSeconds: 0.1f, queueDepth: 2);
+
+        playback.Pump();
+        bool prebuffered = playback.IsPlaying &amp;&amp; playback.BuffersQueued == 2;
+        playback.Stop();
+        return prebuffered &amp;&amp; playback.Finished &amp;&amp; playback.BuffersQueued == 0;
+    }
+    // docs:end audio-streaming
+
+    // docs:begin audio-headless-test
+    internal static bool HeadlessTest()
+    {
+        using var backend = new NullAudioBackend();
+        backend.Initialize();
+        IAudioVoice voice = backend.CreateVoice(AudioFormat.Pcm16Stereo48k);
+        voice.SubmitBuffer(new byte[480 * AudioFormat.Pcm16Stereo48k.BytesPerSample]);
+        voice.Volume = 0.75f;
+        voice.Pan = 0.25f;
+        voice.Play();
+
+        bool observable = backend.Initialized &amp;&amp; backend.Voices.Count == 1
+            &amp;&amp; voice.BuffersQueued == 1 &amp;&amp; voice.IsPlaying
+            &amp;&amp; voice.Volume == 0.75f &amp;&amp; voice.Pan == 0.25f;
+        voice.Dispose();
+        return observable;
+    }
+    // docs:end audio-headless-test
+
+    private static byte[] SinePcm16(AudioFormat format, int frames, float frequency)
+    {
+        byte[] pcm = new byte[frames * format.BytesPerSample];
+        for (int frame = 0; frame &lt; frames; frame++)
+        {
+            short sample = (short)(Math.Sin(2 * Math.PI * frequency * frame / format.SampleRate) * short.MaxValue * 0.2);
+            for (int channel = 0; channel &lt; format.Channels; channel++)
+                BitConverter.TryWriteBytes(pcm.AsSpan((frame * format.Channels + channel) * 2, 2), sample);
+        }
+        return pcm;
+    }
+
+    private static byte[] CreatePcm16Wav(int sampleRate, short channels, int frames)
+    {
+        int dataBytes = frames * channels * 2;
+        using var stream = new MemoryStream(44 + dataBytes);
+        using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
+        writer.Write(Encoding.ASCII.GetBytes(&quot;RIFF&quot;)); writer.Write(36 + dataBytes);
+        writer.Write(Encoding.ASCII.GetBytes(&quot;WAVEfmt &quot;)); writer.Write(16); writer.Write((short)1);
+        writer.Write(channels); writer.Write(sampleRate); writer.Write(sampleRate * channels * 2);
+        writer.Write((short)(channels * 2)); writer.Write((short)16);
+        writer.Write(Encoding.ASCII.GetBytes(&quot;data&quot;)); writer.Write(dataBytes);
+        writer.Write(new byte[dataBytes]);
+        return stream.ToArray();
+    }
+}
+</code></pre>
+<details class="sample-bundle"><summary>Run this sample — Block</summary><p>Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.</p><p><strong>Requirements:</strong> .NET 10 / Headless: any supported OS / Audible output: Windows/XAudio2 integration</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>audio: initialized=True, voices=1</code></p><ul><li><code>samples/LuxelAudio/LuxelAudio.csproj</code> <span>Project</span></li><li><code>samples/LuxelAudio/Program.cs</code> <span>CSharp</span></li><li><code>samples/LuxelAudio/AudioConceptSamples.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelAudio</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelAudio</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/Audio/Buses&quot;, Order = 1, SampleBundle = &quot;audio.tone&quot;, Toc = true)]
+public static StoryResult AudioBuses(StoryContext ctx) =&gt; RuntimeExample(ctx, &quot;Audio: source and buses&quot;,
+    &quot;Master/Music/SFXの親子busを作り、`EffectiveVolume`の乗算と`AudioSource.Tick()`が最終voice volumeへ反映することを検証します。&quot;,
+    &quot;samples/LuxelAudio/AudioConceptSamples.cs&quot;, &quot;audio-source-bus&quot;, &quot;audio.tone&quot;);</code></pre></details></article>
