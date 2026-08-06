@@ -21,7 +21,7 @@ public static StoryResult MyPage(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
 <h2 id="knobs">埋め込み + Knobs</h2>
 <p><code>StoryRef(ctx, path, knobs: true)</code> でストーリーの下に <strong>Knobs テーブル</strong> (autodoc の Controls 相当) が付きます。操作列を編集すると上の描画が変わります:</p>
 <figure class="static-capture"><a href="#story=Examples%2F2D%2FOrbit"><img src="images/examples-2d-orbit.png" alt="Examples/2D/Orbit" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
-<p><code>StorySource(path)</code> はジェネレーターが公開する <strong>完全な <code>[Story]</code> method宣言</strong> (属性・signature・本体) をコードフェンスとして差し込みます。同じコードは通常storyでも下部の <strong>Source</strong> タブから確認でき、静的Galleryでは折りたたみSourceとして表示されます。private helper、別file、shaderまでは含まれません。実行可能sampleを教材の正にする場合は、build時に埋め込んだ実file/regionを表示する<code>SampleSource(path, region)</code>を使います。コントロール個別ページでは <code>DocsApi.ControlApiReference(&quot;Button&quot;)</code> で API リファレンス表が出ます (実例は <a href="#story=Controls%2FButton%2FOverview">Controls/Button/Overview</a>)。</p>
+<p><code>StorySource(path)</code> はジェネレーターが公開する <strong>完全な <code>[Story]</code> method宣言</strong> (属性・signature・本体) をコードフェンスとして差し込みます。同じコードは通常storyでも下部の <strong>Source</strong> タブから確認でき、静的Galleryでは折りたたみSourceとして表示されます。通常private helperは含みませんが、storyが処理を同じ型のhelperへ委譲する場合は<code>[Story(SourceMembers = &quot;Helper,Scene&quot;)]</code>で関連method・nested typeを追記できます。別fileやshaderを含む実行可能sampleを教材の正にする場合は、build時に埋め込んだ実file/regionを表示する<code>SampleSource(path, region)</code>を使います。コントロール個別ページでは <code>DocsApi.ControlApiReference(&quot;Button&quot;)</code> で API リファレンス表が出ます (実例は <a href="#story=Controls%2FButton%2FOverview">Controls/Button/Overview</a>)。</p>
 <h2 id="section-1">書けるもの</h2>
 <ul>
 <li>見出し / <strong>強調</strong> / <em>斜体</em> / <code>インラインコード</code></li>
@@ -111,7 +111,7 @@ public static StoryResult Authoring(StoryContext ctx)
 
         {{{StoryRef(ctx, &quot;Examples/2D/Orbit&quot;, knobs: true)}}}
 
-        `StorySource(path)` はジェネレーターが公開する **完全な `[Story]` method宣言** (属性・signature・本体) をコードフェンスとして差し込みます。同じコードは通常storyでも下部の **Source** タブから確認でき、静的Galleryでは折りたたみSourceとして表示されます。private helper、別file、shaderまでは含まれません。実行可能sampleを教材の正にする場合は、build時に埋め込んだ実file/regionを表示する`SampleSource(path, region)`を使います。コントロール個別ページでは `DocsApi.ControlApiReference(&quot;Button&quot;)` で API リファレンス表が出ます (実例は [Controls/Button/Overview](story:Controls/Button/Overview))。
+        `StorySource(path)` はジェネレーターが公開する **完全な `[Story]` method宣言** (属性・signature・本体) をコードフェンスとして差し込みます。同じコードは通常storyでも下部の **Source** タブから確認でき、静的Galleryでは折りたたみSourceとして表示されます。通常private helperは含みませんが、storyが処理を同じ型のhelperへ委譲する場合は`[Story(SourceMembers = &quot;Helper,Scene&quot;)]`で関連method・nested typeを追記できます。別fileやshaderを含む実行可能sampleを教材の正にする場合は、build時に埋め込んだ実file/regionを表示する`SampleSource(path, region)`を使います。コントロール個別ページでは `DocsApi.ControlApiReference(&quot;Button&quot;)` で API リファレンス表が出ます (実例は [Controls/Button/Overview](story:Controls/Button/Overview))。
 
         ## 書けるもの
 

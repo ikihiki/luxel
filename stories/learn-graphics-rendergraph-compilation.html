@@ -26,7 +26,7 @@ DebugOnly  ───────────────────────
 <p>aliasingは同時利用を許可する機能ではなく、compileが非重複を証明した場合のmemory再利用です。同じ物理resourceへ別の論理resourceが割り当てられる境界もhazard追跡され、必要なbarrierが入ります。</p>
 <h2 id="barrier">終端barrier</h2>
 <p>external resourceへ最後にwriteした場合、graphは後段のcopyやpresentから見えるよう保守的な終端barrierを記録します。ただし、これはCPUから見たGPU完了待ちではありません。submitとresource破棄の関係は次ページで扱います。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/RenderGraph/Compilation&quot;, Order = 30, Toc = true)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/RenderGraph/Compilation&quot;, Order = 33, Toc = true)]
 public static StoryResult Compilation(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # Cullingとaliasing
 

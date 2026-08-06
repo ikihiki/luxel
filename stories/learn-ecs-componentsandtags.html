@@ -1,0 +1,82 @@
+<article class="story document-page"><h1 id="component-tag">Component と Tag</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FECS%2FComponentsAndTags&amp;section=component-%E3%81%AF%E7%B4%94%E3%83%87%E3%83%BC%E3%82%BF%E3%81%AB%E3%81%99%E3%82%8B">Component は純データにする</a></li>
+<li><a href="#story=Learn%2FECS%2FComponentsAndTags&amp;section=tag-%E3%81%A7%E7%8A%B6%E6%85%8B%E3%82%92%E5%88%86%E9%A1%9E%E3%81%99%E3%82%8B">Tag で状態を分類する</a></li>
+<li><a href="#story=Learn%2FECS%2FComponentsAndTags&amp;section=%E4%BF%9D%E5%AD%98%E5%AF%BE%E8%B1%A1%E3%82%92%E6%B1%BA%E3%82%81%E3%82%8B">保存対象を決める</a></li>
+<li><a href="#story=Learn%2FECS%2FComponentsAndTags&amp;section=%E3%82%88%E3%81%8F%E3%81%82%E3%82%8B%E5%A4%B1%E6%95%97">よくある失敗</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Headless　 <strong>Backend:</strong> CPU / Friflo ECS　 <strong>前提知識:</strong> WorldAndEntities</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FECS%2FWorldAndEntities">WorldAndEntities</a>　 <strong>次:</strong> <a href="#story=Learn%2FECS%2FQueries">Queries</a></p>
+<p>component は <code>IComponent</code> を実装する struct で、entity の状態を保持します。tag は <code>ITag</code> を実装し、値を持たず query の分類に使います。</p>
+<h2 id="component">Component は純データにする</h2>
+<pre><code class="language-csharp">public struct Health : IComponent
+{
+    public int Current;
+    public int Maximum;
+}
+
+var player = world.CreateEntity(new Health { Current = 100, Maximum = 100 });
+</code></pre>
+<p>Luxel の標準 component には <code>LocalTransform</code>、<code>GlobalTransform</code>、<code>Parent</code>、<code>Color3D</code>、<code>MeshRef</code>、<code>Visible</code> があります。処理は system 側へ置き、component 自身に frame loop や service 参照を持たせません。</p>
+<h2 id="tag">Tag で状態を分類する</h2>
+<pre><code class="language-csharp">entity.AddTag&lt;Enabled&gt;();
+entity.AddTag&lt;Selected&gt;();
+
+var enabled = world.Query&lt;LocalTransform&gt;()
+    .AllTags(Tags.Get&lt;Enabled&gt;());
+</code></pre>
+<p><code>Enabled</code>、<code>Selected</code>、<code>Dirty</code> は値を持たない marker です。頻繁に変わる数値は component、単純な所属や処理対象フラグは tag にすると意図が明確になります。</p>
+<h2 id="section">保存対象を決める</h2>
+<p><code>DebugName</code> は観測専用で <code>[ComponentKey(null)]</code> が付いているため <code>WorldSave</code> から除外されます。GPU handle、callback、service のような再構築可能な runtime 値も保存対象 component へ混ぜないでください。</p>
+<h2 id="section-1">よくある失敗</h2>
+<ul>
+<li>class を component として使い、所有権と共有状態を曖昧にする。</li>
+<li>tag に値を持たせようとする。</li>
+<li>render resource の handle を永続データとして保存する。</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/ECS/ComponentsAndTags&quot;, Order = 2, Toc = true)]
+public static StoryResult ComponentsAndTags(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Component と Tag
+
+    {{EcsCourseCatalog.Meta(&quot;Learn/ECS/ComponentsAndTags&quot;, &quot;Beginner&quot;, &quot;Headless&quot;, &quot;CPU / Friflo ECS&quot;, &quot;WorldAndEntities&quot;)}}
+
+    component は `IComponent` を実装する struct で、entity の状態を保持します。tag は `ITag` を実装し、値を持たず query の分類に使います。
+
+    ## Component は純データにする
+
+    ```csharp
+    public struct Health : IComponent
+    {
+        public int Current;
+        public int Maximum;
+    }
+
+    var player = world.CreateEntity(new Health { Current = 100, Maximum = 100 });
+    ```
+
+    Luxel の標準 component には `LocalTransform`、`GlobalTransform`、`Parent`、`Color3D`、`MeshRef`、`Visible` があります。処理は system 側へ置き、component 自身に frame loop や service 参照を持たせません。
+
+    ## Tag で状態を分類する
+
+    ```csharp
+    entity.AddTag&lt;Enabled&gt;();
+    entity.AddTag&lt;Selected&gt;();
+
+    var enabled = world.Query&lt;LocalTransform&gt;()
+        .AllTags(Tags.Get&lt;Enabled&gt;());
+    ```
+
+    `Enabled`、`Selected`、`Dirty` は値を持たない marker です。頻繁に変わる数値は component、単純な所属や処理対象フラグは tag にすると意図が明確になります。
+
+    ## 保存対象を決める
+
+    `DebugName` は観測専用で `[ComponentKey(null)]` が付いているため `WorldSave` から除外されます。GPU handle、callback、service のような再構築可能な runtime 値も保存対象 component へ混ぜないでください。
+
+    ## よくある失敗
+
+    - class を component として使い、所有権と共有状態を曖昧にする。
+    - tag に値を持たせようとする。
+    - render resource の handle を永続データとして保存する。
+    &quot;&quot;&quot;;</code></pre></details></article>

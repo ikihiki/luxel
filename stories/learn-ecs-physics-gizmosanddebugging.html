@@ -1,0 +1,543 @@
+<article class="story document-page"><h1 id="gizmo-physics-debugging">Gizmo と Physics debugging</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FGizmosAndDebugging&amp;section=collider-%E3%82%92%E6%8F%8F%E3%81%8F">Collider を描く</a></li>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FGizmosAndDebugging&amp;section=contact-marker-%E3%82%92%E6%8F%8F%E3%81%8F">Contact marker を描く</a></li>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FGizmosAndDebugging&amp;section=%E5%95%8F%E9%A1%8C%E3%82%92%E5%88%87%E3%82%8A%E5%88%86%E3%81%91%E3%82%8B">問題を切り分ける</a></li>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FGizmosAndDebugging&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-luxel-range-capstone">コピーして動かす — Luxel Range capstone</a>
+<ul>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FGizmosAndDebugging&amp;section=%60samples%2Fluxelrange%2Fluxelrange%2Fluxelrange.csproj%60-project"><code>samples/LuxelRange/LuxelRange/LuxelRange.csproj</code> (Project)</a></li>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FGizmosAndDebugging&amp;section=%60samples%2Fluxelrange%2Fluxelrange%2Frangerealtimescene.cs%60-csharp"><code>samples/LuxelRange/LuxelRange/RangeRealtimeScene.cs</code> (CSharp)</a></li>
+</ul>
+</li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Gallery + DevTools　 <strong>Backend:</strong> CPU / 2D overlay　 <strong>前提知識:</strong> MeshesAndRaycasts</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FECS%2FPhysics%2FMeshesAndRaycasts">MeshesAndRaycasts</a></p>
+<p>Physics の不具合は「見た目の mesh」と「実際の shape」の差から起きやすいため、<code>PhysicsGizmos</code> で collider と接触中 pair を可視化します。</p>
+<h2 id="collider">Collider を描く</h2>
+<pre><code class="language-csharp">PhysicsGizmos.DrawColliders(
+    world,
+    dynamicColor: 0x44CCFFFF,
+    staticColor: 0x88FF88FF,
+    ccdColor: 0xFFAA33FF,
+    triggerColor: 0xFF44FFFF);
+</code></pre>
+<p><code>gizmo.physics</code> category が無効なときは ECS query も allocation も行わず終了します。primitive は <code>Collider.RenderScale</code> の外接 wire box として描かれます。</p>
+<h2 id="contact-marker">Contact marker を描く</h2>
+<pre><code class="language-csharp">step.TrackCurrentContacts = true;
+step.StepFixedOnce();
+PhysicsGizmos.ContactMarkers(step.CurrentContacts, 0xFF3333FF);
+</code></pre>
+<p>current contact の収集は既定で無効です。gizmo が必要なときだけ <code>TrackCurrentContacts = true</code> にします。現在の marker は詳細な接触点ではなく、2 entity 中心の midpoint に置く接触インジケータです。</p>
+<h2 id="section">問題を切り分ける</h2>
+<ol>
+<li>collider 色で dynamic / static / CCD / trigger を確認する。</li>
+<li><code>Attached</code> と handle を確認する。</li>
+<li><code>LocalTransform</code> と Physics pose のどちらが古いか確認する。</li>
+<li>fixed step が0回の frame と複数回の frame を記録する。</li>
+<li>contact event は frame 内、current contacts は opt-in という寿命を確認する。</li>
+</ol>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/ECS/Physics/GizmosAndDebugging#doc-0" data-luxel-runtime-story="Examples/3D/PhysicsGizmos" data-luxel-runtime-instance="examples-3d-physicsgizmos-7fea59c94b8f" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F3D%2FPhysicsGizmos&amp;args=%7B%7D&amp;instance=examples-3d-physicsgizmos-7fea59c94b8f" data-luxel-runtime-story="Examples/3D/PhysicsGizmos" data-luxel-runtime-instance="examples-3d-physicsgizmos-7fea59c94b8f" title="Interactive PhysicsGizmos" loading="eager" allow="webgpu; autoplay; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-3d-physicsgizmos-7fea59c94b8f-args-tab" aria-controls="examples-3d-physicsgizmos-7fea59c94b8f-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-3d-physicsgizmos-7fea59c94b8f-output-tab" aria-controls="examples-3d-physicsgizmos-7fea59c94b8f-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-3d-physicsgizmos-7fea59c94b8f-source-tab" aria-controls="examples-3d-physicsgizmos-7fea59c94b8f-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-3d-physicsgizmos-7fea59c94b8f-args-panel" role="tabpanel" aria-labelledby="examples-3d-physicsgizmos-7fea59c94b8f-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-3d-physicsgizmos-7fea59c94b8f-output-panel" role="tabpanel" aria-labelledby="examples-3d-physicsgizmos-7fea59c94b8f-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-3d-physicsgizmos-7fea59c94b8f-source-panel" role="tabpanel" aria-labelledby="examples-3d-physicsgizmos-7fea59c94b8f-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/3D/PhysicsGizmos&quot;, Width = 520, Height = 360, Order = 129, CapabilityNote = BrowserNote)]&#10;public static Widget PhysicsGizmosDemo(StoryContext ctx) =&gt; ctx.Snap(Frame(Canvas2D(&#10;    CanvasWidth, CanvasHeight, draw: scene =&gt;&#10;    {&#10;        scene.FillRect(Color2D.Rgba(20, 24, 30), 0, 0, CanvasWidth, CanvasHeight);&#10;        using var world = new World();&#10;        world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(0, -0.5f, 0)),&#10;            Collider.Box(6, 1, 6), new StaticBody());&#10;        world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(-1.4f, 0.6f, 0.8f)),&#10;            Collider.Box(1.2f, 1.2f, 1.2f), RigidBody.Dynamic());&#10;        world.CreateEntity(new LocalTransform(Matrix4x4.CreateFromYawPitchRoll(0.6f, 0.3f, 0.2f)&#10;                * Matrix4x4.CreateTranslation(0.2f, 1.5f, -0.6f)),&#10;            Collider.Box(1, 1, 1), RigidBody.Dynamic());&#10;        world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(1.7f, 0.5f, 1.2f)),&#10;            Collider.Sphere(0.5f), RigidBody.Dynamic(ccd: true));&#10;&#10;        ResetDebugDraw(PhysicsGizmos.Colliders);&#10;        PhysicsGizmos.DrawColliders(world,&#10;            Color2D.Rgba(110, 220, 130), Color2D.Rgba(150, 156, 170),&#10;            Color2D.Rgba(240, 96, 96), Color2D.Rgba(90, 200, 240), 1.6f);&#10;        FlushDebugDraw(scene, IsoGizmos);&#10;    })));</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<p>ECS と Physics、asset、GPU 抽出をまとめた実用構成は Range capstone で確認できます。</p>
+<h2 id="luxel-range-capstone">コピーして動かす — Luxel Range capstone</h2>
+<blockquote>
+<p><strong>Recipe</strong> · 難易度: Advanced · 依存 bundle: なし</p>
+</blockquote>
+<p>Repository recipe integrating ECS, physics, glTF, GPU asset extraction and 3D particles.</p>
+<p><strong>必要条件:</strong> Repository checkout / .NET 10 / Windows real-window host / Khronos Fox asset
+<strong>Platform:</strong> Windows
+<strong>検証契約:</strong> exit <code>0</code> / timeout <code>240s</code>
+<strong>接続点:</strong> <code>RangeRealtimeScene</code></p>
+<p><strong>Run</strong></p>
+<pre><code class="language-powershell">dotnet run --project samples/LuxelRange/LuxelRange
+</code></pre>
+<p><strong>Smoke test</strong></p>
+<pre><code class="language-powershell">dotnet build samples/LuxelRange/LuxelRange/LuxelRange.csproj --configuration Release --no-restore
+</code></pre>
+<h3 id="samplesluxelrangeluxelrangeluxelrange.csproj-project"><code>samples/LuxelRange/LuxelRange/LuxelRange.csproj</code> (Project)</h3>
+<pre><code class="language-xml">&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;
+
+  &lt;!--
+    LuxelRange — スタンドアロン実行ファイル (capstone ②)。実窓・スワップチェーン提示・入力の結線だけを持つ
+    薄い層で、ゲームロジックは LuxelRange.Core にある。3D (glTF/scene_pbr/billboard) の publish 検証の本丸。
+    RID は publish 時に -r win-x64 で指定する (csproj には固定しない)。
+  --&gt;
+  &lt;ItemGroup&gt;
+    &lt;ProjectReference Include=&quot;..\..\..\src\Luxel.Mathematics\Luxel.Mathematics.csproj&quot; /&gt;
+    &lt;Using Include=&quot;Luxel.Mathematics&quot; /&gt;
+  &lt;/ItemGroup&gt;
+
+  &lt;PropertyGroup&gt;
+    &lt;OutputType&gt;WinExe&lt;/OutputType&gt;
+
+    &lt;AssemblyName&gt;LuxelRange&lt;/AssemblyName&gt;
+    &lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;
+    &lt;Nullable&gt;enable&lt;/Nullable&gt;
+  &lt;/PropertyGroup&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;ProjectReference Include=&quot;..\..\..\src\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj&quot; /&gt;
+    &lt;ProjectReference Include=&quot;..\..\..\src\Luxel.Graphics\Luxel.Graphics.csproj&quot; /&gt;
+    &lt;ProjectReference Include=&quot;..\LuxelRange.Core\LuxelRange.Core.csproj&quot; /&gt;
+    &lt;ProjectReference Include=&quot;..\..\..\src\Luxel.Platform\Luxel.Platform.csproj&quot; /&gt;
+    &lt;ProjectReference Include=&quot;..\..\..\src\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj&quot; /&gt;
+    &lt;ProjectReference Include=&quot;..\..\..\src\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj&quot; /&gt;
+    &lt;!-- 実時間ゲームループ (GameScene/LuxelHostBuilder) + 入力 --&gt;
+    &lt;ProjectReference Include=&quot;..\..\..\src\Luxel.Framework\Luxel.Framework.csproj&quot; /&gt;
+    &lt;ProjectReference Include=&quot;..\..\..\src\Luxel.Input\Luxel.Input.csproj&quot; /&gt;
+    &lt;!-- 3D 描画 (ECS→Render3DExtract→cube_forward、地形メッシュ→scene_pbr_lite、Fox skin→scene_pbr_skinned) --&gt;
+    &lt;ProjectReference Include=&quot;..\..\..\src\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj&quot; /&gt;
+    &lt;!-- glTF ロード (動く的 = Fox.glb のスケルタルスキン) --&gt;
+    &lt;ProjectReference Include=&quot;..\..\..\src\Luxel.Gltf\Luxel.Gltf.csproj&quot; /&gt;
+    &lt;!-- 命中パーティクル (.ThreeD ビルボードバースト) --&gt;
+    &lt;ProjectReference Include=&quot;..\..\..\src\Luxel.Particles\Luxel.Particles.csproj&quot; /&gt;
+    &lt;ProjectReference Include=&quot;..\..\..\src\Luxel.Particles.ThreeD\Luxel.Particles.ThreeD.csproj&quot; /&gt;
+    &lt;!-- セーブの実 IO (PhysicalFileStore を %APPDATA% に向ける) --&gt;
+    &lt;ProjectReference Include=&quot;..\..\..\src\Luxel.Settings\Luxel.Settings.csproj&quot; /&gt;
+  &lt;/ItemGroup&gt;
+
+  &lt;!--
+    Khronos 公式 glTF-Sample-Assets の Fox.glb を固定コミットから tools/ へ取得する。
+    通常はローカルキャッシュを再利用し、毎ビルド SHA-256 を検証してから出力/publish に含める。
+  --&gt;
+  &lt;PropertyGroup&gt;
+    &lt;KhronosFoxCommit&gt;5bad5aaa0bbb5d0f9cdc934e626f27d0df1e79b8&lt;/KhronosFoxCommit&gt;
+    &lt;KhronosFoxSha256&gt;D97044E701822BAC5A62696459B27D7B375AADA5DE8574ED4362EDBBA94771F7&lt;/KhronosFoxSha256&gt;
+    &lt;KhronosFoxLicenseSha256&gt;1EA9BA5E4A5F22552E2FEB44719AF14D4139580BEF0CE5DBBA3709AF98CEA445&lt;/KhronosFoxLicenseSha256&gt;
+    &lt;KhronosSampleCacheDir&gt;$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\..\tools\khronos-samples'))&lt;/KhronosSampleCacheDir&gt;
+    &lt;KhronosFoxPath&gt;$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', 'Fox.glb'))&lt;/KhronosFoxPath&gt;
+    &lt;KhronosFoxLicensePath&gt;$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', 'Fox-LICENSE.md'))&lt;/KhronosFoxLicensePath&gt;
+    &lt;KhronosFoxDownloadedLicensePath&gt;$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', 'LICENSE.md'))&lt;/KhronosFoxDownloadedLicensePath&gt;
+    &lt;KhronosFoxUrl&gt;https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/$(KhronosFoxCommit)/Models/Fox/glTF-Binary/Fox.glb&lt;/KhronosFoxUrl&gt;
+    &lt;KhronosFoxLicenseUrl&gt;https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/$(KhronosFoxCommit)/Models/Fox/LICENSE.md&lt;/KhronosFoxLicenseUrl&gt;
+  &lt;/PropertyGroup&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;Content Include=&quot;$(KhronosFoxPath)&quot;&gt;
+      &lt;Link&gt;assets/Fox.glb&lt;/Link&gt;
+      &lt;CopyToOutputDirectory&gt;PreserveNewest&lt;/CopyToOutputDirectory&gt;
+      &lt;CopyToPublishDirectory&gt;PreserveNewest&lt;/CopyToPublishDirectory&gt;
+    &lt;/Content&gt;
+    &lt;Content Include=&quot;$(KhronosFoxLicensePath)&quot;&gt;
+      &lt;Link&gt;licenses/Fox-LICENSE.md&lt;/Link&gt;
+      &lt;CopyToOutputDirectory&gt;PreserveNewest&lt;/CopyToOutputDirectory&gt;
+      &lt;CopyToPublishDirectory&gt;PreserveNewest&lt;/CopyToPublishDirectory&gt;
+    &lt;/Content&gt;
+  &lt;/ItemGroup&gt;
+
+  &lt;Target Name=&quot;AcquireKhronosFoxAsset&quot; BeforeTargets=&quot;PrepareForBuild&quot;&gt;
+    &lt;MakeDir Directories=&quot;$(KhronosSampleCacheDir)&quot; /&gt;
+    &lt;DownloadFile Condition=&quot;!Exists('$(KhronosFoxPath)')&quot;
+                  SourceUrl=&quot;$(KhronosFoxUrl)&quot;
+                  DestinationFolder=&quot;$(KhronosSampleCacheDir)&quot;
+                  Retries=&quot;3&quot;
+                  RetryDelayMilliseconds=&quot;1000&quot; /&gt;
+    &lt;DownloadFile Condition=&quot;!Exists('$(KhronosFoxLicensePath)')&quot;
+                  SourceUrl=&quot;$(KhronosFoxLicenseUrl)&quot;
+                  DestinationFolder=&quot;$(KhronosSampleCacheDir)&quot;
+                  Retries=&quot;3&quot;
+                  RetryDelayMilliseconds=&quot;1000&quot; /&gt;
+    &lt;Copy Condition=&quot;!Exists('$(KhronosFoxLicensePath)') and Exists('$(KhronosFoxDownloadedLicensePath)')&quot;
+          SourceFiles=&quot;$(KhronosFoxDownloadedLicensePath)&quot;
+          DestinationFiles=&quot;$(KhronosFoxLicensePath)&quot; /&gt;
+    &lt;Error Condition=&quot;!Exists('$(KhronosFoxPath)')&quot;
+           Text=&quot;Khronos Fox.glb を取得できませんでした: $(KhronosFoxUrl)&quot; /&gt;
+    &lt;Error Condition=&quot;!Exists('$(KhronosFoxLicensePath)')&quot;
+           Text=&quot;Khronos Fox のライセンスを取得できませんでした: $(KhronosFoxLicenseUrl)&quot; /&gt;
+    &lt;GetFileHash Files=&quot;$(KhronosFoxPath)&quot; Algorithm=&quot;SHA256&quot;&gt;
+      &lt;Output TaskParameter=&quot;Items&quot; ItemName=&quot;_KhronosFoxHash&quot; /&gt;
+    &lt;/GetFileHash&gt;
+    &lt;GetFileHash Files=&quot;$(KhronosFoxLicensePath)&quot; Algorithm=&quot;SHA256&quot;&gt;
+      &lt;Output TaskParameter=&quot;Items&quot; ItemName=&quot;_KhronosFoxLicenseHash&quot; /&gt;
+    &lt;/GetFileHash&gt;
+    &lt;Error Condition=&quot;'@(_KhronosFoxHash-&gt;'%(FileHash)')' != '$(KhronosFoxSha256)'&quot;
+           Text=&quot;Fox.glb の SHA-256 が一致しません。$(KhronosFoxPath) を削除して再ビルドしてください。&quot; /&gt;
+    &lt;Error Condition=&quot;'@(_KhronosFoxLicenseHash-&gt;'%(FileHash)')' != '$(KhronosFoxLicenseSha256)'&quot;
+           Text=&quot;Fox-LICENSE.md の SHA-256 が一致しません。$(KhronosFoxLicensePath) を削除して再ビルドしてください。&quot; /&gt;
+  &lt;/Target&gt;
+
+  &lt;!-- Slang シェーダを出力/publish の shaders/ へ。targets 側が publish コピーも面倒を見る。 --&gt;
+  &lt;Import Project=&quot;..\..\..\shaders\Luxel.Shaders.targets&quot; /&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;Using Include=&quot;Luxel.Graphics&quot; /&gt;
+  &lt;/ItemGroup&gt;
+  &lt;ItemGroup&gt;
+    &lt;Using Include=&quot;Luxel.Platform&quot; /&gt;
+  &lt;/ItemGroup&gt;
+  &lt;ItemGroup&gt;
+    &lt;Using Include=&quot;Luxel.Platform.Windows&quot; /&gt;
+  &lt;/ItemGroup&gt;
+&lt;/Project&gt;
+</code></pre>
+<h3 id="samplesluxelrangeluxelrangerangerealtimescene.cs-csharp"><code>samples/LuxelRange/LuxelRange/RangeRealtimeScene.cs</code> (CSharp)</h3>
+<pre><code class="language-csharp">using System.Numerics;
+using System.Runtime.InteropServices;
+using Luxel;
+using Luxel.AssetRuntime;
+using Luxel.Assets;
+using Luxel.AssetsGpu;
+using Luxel.Audio;
+using Luxel.Ecs;
+using Luxel.Framework;
+using Luxel.Gltf;
+using Luxel.Input;
+using Luxel.Particles;
+using Luxel.Particles.ThreeD;
+using Luxel.Graphics.RenderGraph;
+using LuxelRange.Core;
+
+namespace LuxelRange;
+
+/// &lt;summary&gt;
+/// 実時間シーン (capstone ②)。&lt;see cref=&quot;RangeGame&quot;/&gt; を固定 dt で駆動し、起伏メッシュ地形 (scene_pbr_lite) と
+/// 的/小物 (cube_forward) を &lt;see cref=&quot;Framebuffer&quot;/&gt; へ描く (提示は Program が &lt;see cref=&quot;GpuSurface.Present&quot;/&gt;)。
+/// この薄い exe 段ではカメラ自動旋回 + 定期発射の attract 動作で描画・物理・publish 経路を通す
+/// (キーボード/マウス操作・Fox skin・パーティクル・Title/Result UI は後続)。
+/// &lt;/summary&gt;
+public sealed class RangeRealtimeScene : GameScene
+{
+    public const int Width = 512, Height = 320;   // 512*4 = 2048B (256B 整列)
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct DrawArgs { public Matrix4x4 ViewProj; public uint VertexBufIndex, InstanceBufIndex, Pad0, Pad1; }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PbrArgs { public Matrix4x4 ViewProj; public uint VertexBufIndex, IndexBufIndex, InstanceBufIndex, InstanceStart; }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SkinnedArgs { public Matrix4x4 ViewProj; public uint VertexBufIndex, IndexBufIndex, InstanceBufIndex, JointBufIndex, InstanceStart, Pad0, Pad1, Pad2; }
+
+    private readonly RangeGame _game;
+    private readonly SceneLoopServices _loop;
+    private readonly IAudioBackend _audioBackend;
+    private RangeAudio? _audio;
+    private OrbitCamera _cam = new(new Vector3(0, 0.8f, -6f), yaw: 0f, pitch: 0.40f, distance: 18f,
+        fovYRadians: MathF.PI / 3.4f, aspect: (float)Width / Height);
+    private float _fireTimer = 0.4f;
+
+    private GpuBuffer? _fb, _vb, _terrainVb, _terrainIb, _terrainInst;
+    private int _terrainIdxCount;
+    private GpuTexture? _target, _depth;
+    private GpuPipeline? _cubePipe, _pbrPipe;
+    private Render3DExtractSystem? _extractor;
+    private bool _init;
+
+    // 動く的 = Fox.glb の skin モデル (別 world、instance World で FoxPosition へ配置)
+    private Luxel.Ecs.World? _foxWorld;
+    private SceneAssets? _foxAssets;
+    private SceneAnimationPlayer? _foxAnim;
+    private float _foxAnimDur, _foxAnimTime;
+    private ScenePrimitiveGpu? _foxPrim;
+    private RenderBuffer&lt;Matrix4x4&gt;? _foxJoints;
+    private GpuBuffer? _foxInst;
+    private GpuPipeline? _skinPipe;
+    private const float FoxModelScale = 0.018f, FoxHalfY = 0.6f;
+
+    // 命中パーティクル (火花バースト)
+    private ParticleSystem? _burstPs;
+    private ParticleBillboards? _hitBurst;
+
+    // 入力アクション (矢印でカメラ旋回、Space 発射、Esc 終了)
+    private Axis1DAction _orbitH = null!, _orbitV = null!;
+    private ButtonAction _fire = null!, _quit = null!;
+    private bool _prevFire;
+
+    public GpuBuffer Framebuffer =&gt; _fb!;
+    public uint StridePixels =&gt; Width;
+    public bool QuitRequested { get; private set; }
+
+    public RangeRealtimeScene(SceneLoopServices loop, RangeGame game, IAudioBackend audioBackend) : base(loop)
+    { _loop = loop; _game = game; _audioBackend = audioBackend; }
+
+    protected override double FixedDeltaSeconds =&gt; RangeSim.FixedDt;
+
+    protected override void OnUpdate(UpdateContext ctx)
+    {
+        if (_init) return;
+        _game.StartRound();   // Play 状態の sim/world を作ってから
+        InitGpu();            // その world から extractor/地形バッファを作る
+
+        _orbitH = new Axis1DAction(&quot;orbitH&quot;);
+        _orbitH.ButtonPairs.Add((KeyCode.Right, KeyCode.Left));
+        _orbitV = new Axis1DAction(&quot;orbitV&quot;);
+        _orbitV.ButtonPairs.Add((KeyCode.Up, KeyCode.Down));
+        _fire = new ButtonAction(&quot;fire&quot;, KeyCode.Space);
+        _quit = new ButtonAction(&quot;quit&quot;, KeyCode.Escape);
+        var inputCtx = new InputContext(&quot;range&quot;);
+        inputCtx.Add(_orbitH); inputCtx.Add(_orbitV); inputCtx.Add(_fire); inputCtx.Add(_quit);
+        _loop.InputStack?.Push(inputCtx);
+
+        // オーディオ (BGM ループ + イベント SE)。Mixer は UseAudio が用意する共有インスタンス。
+        if (_loop.Mixer is { } mixer)
+        {
+            _audio = new RangeAudio(_audioBackend, mixer);
+            _audio.BindSettings(_game.Settings);
+            _audio.PlayBgm();
+        }
+
+        _init = true;
+    }
+
+    protected override void OnFixedUpdate(FixedUpdateContext ctx)
+    {
+        if (!_init) return;
+        float dt = RangeSim.FixedDt;
+
+        if (_quit.Value.Value) QuitRequested = true;
+
+        // カメラ旋回 (矢印) + ゆっくり自動旋回 (無操作でも見栄えする)
+        _cam.Orbit((0.08f + _orbitH.Value.Value * 1.4f) * dt, _orbitV.Value.Value * 1.0f * dt);
+
+        // 発射 (Space の押下エッジ) — 画面中央 (カメラ前方) へ CCD 弾
+        bool fh = _fire.Value.Value, fp = fh &amp;&amp; !_prevFire;
+        _prevFire = fh;
+        if (fp &amp;&amp; _game.State == RangeState.Play)
+        {
+            Vector3 dir = Vector3.Normalize(_cam.Target - _cam.Eye);
+            _game.Fire(_cam.Eye + dir * 0.5f, dir);
+        }
+
+        _game.Step();
+        if (!_game.Sim.FoxFlinching) _foxAnimTime += dt;   // ひるみ中は歩行停止
+        if (_foxPrim is not null) UploadFox();
+        foreach (RangeEvent ev in _game.Sim.Events)
+            if (ev.Kind is RangeEventKind.TargetHit or RangeEventKind.FoxHit)
+                _burstPs!.Emit(ev.Position, 32);
+        _audio?.React(_game.Sim.Events);   // 発射/命中/ボーナスの SE
+        _game.Sim.ClearEvents();
+        _burstPs!.Update(dt);
+    }
+
+    protected override void OnRender(RenderContext ctx)
+    {
+        if (!_init) return;
+        _extractor!.Extract();
+        _hitBurst?.Sync();
+        (Vector3 billRight, Vector3 billUp) = ParticleBillboards.CameraAxes(_cam.Eye, _cam.Target);
+
+        Matrix4x4 viewProj = _cam.ViewProjection;
+        Matrix4x4 vpT = Matrix4x4.Transpose(viewProj);
+        using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);
+        BufferHandle hV = rg.ImportBuffer(_vb!, &quot;verts&quot;);
+        BufferHandle hInst = rg.ImportBuffer(_extractor.InstanceBuffer, &quot;instances&quot;);
+        BufferHandle hTV = rg.ImportBuffer(_terrainVb!, &quot;tv&quot;);
+        BufferHandle hTI = rg.ImportBuffer(_terrainIb!, &quot;ti&quot;);
+        BufferHandle hTInst = rg.ImportBuffer(_terrainInst!, &quot;tinst&quot;);
+        var pass = rg.AddPass(&quot;Range3D&quot;, PassQueue.Graphics)
+          .Read(hV).Read(hInst).Read(hTV).Read(hTI).Read(hTInst).Write(hInst);
+        bool drawFox = _foxPrim is not null;
+        BufferHandle hFV = default, hFI = default, hFInst = default, hFJoint = default;
+        if (drawFox)
+        {
+            hFV = rg.ImportBuffer(_foxPrim!.VertexBuffer, &quot;fv&quot;);
+            hFI = rg.ImportBuffer(_foxPrim.IndexBuffer, &quot;fi&quot;);
+            hFInst = rg.ImportBuffer(_foxInst!, &quot;finst&quot;);
+            hFJoint = rg.ImportBuffer(_foxJoints!.Buffer, &quot;fj&quot;);
+            pass = pass.Read(hFV).Read(hFI).Read(hFInst).Read(hFJoint);
+        }
+        pass.Execute(p =&gt;
+          {
+              p.Cmd.BeginRendering(_target!, _depth!, 0.05f, 0.06f, 0.09f, 1f, 1f)
+                   .SetGraphicsPipeline(_pbrPipe!)
+                   .SetRootArguments(new PbrArgs { ViewProj = vpT, VertexBufIndex = p.BindlessIndex(hTV), IndexBufIndex = p.BindlessIndex(hTI), InstanceBufIndex = p.BindlessIndex(hTInst), InstanceStart = 0 })
+                   .Draw((uint)_terrainIdxCount, 1);
+              p.Cmd.SetGraphicsPipeline(_cubePipe!)
+                   .SetRootArguments(new DrawArgs { ViewProj = vpT, VertexBufIndex = p.BindlessIndex(hV), InstanceBufIndex = p.BindlessIndex(hInst) })
+                   .Draw((uint)Luxel.Assets.CubeMesh.VertexCount, (uint)_extractor.InstanceCount);
+              if (drawFox)
+                  p.Cmd.SetGraphicsPipeline(_skinPipe!)
+                       .SetRootArguments(new SkinnedArgs { ViewProj = vpT, VertexBufIndex = p.BindlessIndex(hFV), IndexBufIndex = p.BindlessIndex(hFI), InstanceBufIndex = p.BindlessIndex(hFInst), JointBufIndex = p.BindlessIndex(hFJoint), InstanceStart = 0 })
+                       .Draw((uint)_foxPrim!.IndexCount, 1);
+              _hitBurst?.Draw(p.Cmd, viewProj, billRight, billUp);   // 命中パーティクル (ビルボード)
+              p.Cmd.EndRendering();
+          });
+
+        using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
+        rg.Execute(cmd);
+        cmd.Barrier(GpuStage.ColorOutput, GpuStage.Copy).CopyTextureToBuffer(_target!, _fb!);
+        cmd.Finish();
+        Device.MainQueue.SubmitAndWait(cmd);
+
+        DrawHud();   // レティクル + 残弾ピップ + スコアバー (CPU で framebuffer へ直接)
+    }
+
+    /// &lt;summary&gt;簡易 HUD を framebuffer (HostMapped RGBA8) へ CPU 描画: 中央レティクル + 残弾ピップ + スコアバー。
+    /// フォント非依存の最小オーバーレイ (Title/Result のテキスト画面は将来)。&lt;/summary&gt;
+    private void DrawHud()
+    {
+        Span&lt;uint&gt; px = _fb!.Span&lt;uint&gt;((int)(Width * Height));
+        int cx = (int)Width / 2, cy = (int)Height / 2;
+        const uint white = 0xFFFFFFFF, green = 0xFF50E050, amber = 0xFF40C0FF;
+
+        for (int d = -6; d &lt;= 6; d++) { Put(px, cx + d, cy, white); Put(px, cx, cy + d, white); }   // 中央レティクル (十字)
+        Put(px, cx, cy, 0xFF3030FF);   // 中心点 (赤)
+
+        for (int i = 0; i &lt; _game.Sim.AmmoLeft; i++) Rect(px, 8 + i * 8, 8, 6, 6, green);   // 残弾ピップ (左上)
+
+        float ratio = Math.Min(1f, _game.Score / 1000f);   // スコアバー (下端、1000 で満タン)
+        Rect(px, 8, (int)Height - 10, (int)((Width - 16) * ratio), 4, amber);
+    }
+
+    private static void Put(Span&lt;uint&gt; px, int x, int y, uint c)
+    { if (x &gt;= 0 &amp;&amp; x &lt; Width &amp;&amp; y &gt;= 0 &amp;&amp; y &lt; Height) px[y * (int)Width + x] = c; }
+
+    private static void Rect(Span&lt;uint&gt; px, int x, int y, int w, int h, uint c)
+    { for (int j = 0; j &lt; h; j++) for (int i = 0; i &lt; w; i++) Put(px, x + i, y + j, c); }
+
+    private void InitGpu()
+    {
+        _vb = Device.Malloc((ulong)(Luxel.Assets.CubeMesh.Vertices.Length * Luxel.Assets.CubeMesh.VertexStride), GpuMemoryKind.HostMapped);
+        Luxel.Assets.CubeMesh.Vertices.CopyTo(_vb.Span&lt;Luxel.Assets.CubeMesh.Vertex&gt;(Luxel.Assets.CubeMesh.Vertices.Length));
+        _target = Device.CreateRenderTarget(Width, Height, GpuFormat.Rgba8Unorm);
+        _depth = Device.CreateDepthTarget(Width, Height);
+        _fb = Device.Malloc((ulong)Width * Height * 4, GpuMemoryKind.HostMapped);
+        var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
+        raster.DepthTest = true; raster.DepthWrite = true;
+        _cubePipe = Device.CreateGraphicsPipeline(GpuShaderCode.Load(&quot;cube_forward&quot;), raster);
+        _pbrPipe = Device.CreateGraphicsPipeline(GpuShaderCode.Load(&quot;scene_pbr_lite&quot;), raster);
+
+        _extractor = new Render3DExtractSystem(_game.Sim.World, Device);
+        TransformPropagateSystem.Run(_game.Sim.World);
+        BuildTerrain();
+        BuildFox();
+
+        var cfg = new ParticleConfig(
+            Life: ParticleValue.Range(0.30f, 0.70f), Speed: ParticleValue.Range(2f, 5f),
+            SpreadRadians: MathF.PI, BaseAngle: 0f, Gravity: -6f, Drag: 0.3f, Size: 0.09f,
+            Color: new ParticleColor(Rgba(255, 220, 120, 255), Rgba(240, 90, 40, 0)), Shape: ParticleShape.Circle, Spherical: true);
+        _burstPs = new ParticleSystem(cfg, capacity: 400, seed: 0x2A11);
+        _hitBurst = new ParticleBillboards(Device, _burstPs);
+    }
+
+    private static uint Rgba(byte r, byte g, byte b, byte a) =&gt; (uint)(r | (g &lt;&lt; 8) | (b &lt;&lt; 16) | (a &lt;&lt; 24));
+
+    /// &lt;summary&gt;Fox.glb (exe 隣の assets/) を別 world で組み、skin 描画資源を用意して初期ポーズを焼く。&lt;/summary&gt;
+    private void BuildFox()
+    {
+        string path = Path.Combine(AppContext.BaseDirectory, &quot;assets&quot;, &quot;Fox.glb&quot;);
+        if (!File.Exists(path)) return;   // アセット無しなら Fox 描画スキップ (物理 proxy は箱)
+
+        AssetDocument doc = new GltfLoader().LoadAsync(path).GetAwaiter().GetResult();
+        for (int i = 0; i &lt; doc.Materials.Count; i++) doc.Materials[i].BaseColorFactor = new Vector4(0.80f, 0.52f, 0.28f, 1f);
+        _foxWorld = new Luxel.Ecs.World();
+        _foxAssets = SceneBuilder.Build(_foxWorld, doc, Device);
+        if (doc.Animations.Count &gt; 0)
+        {
+            int walk = Math.Min(1, doc.Animations.Count - 1);
+            _foxAnim = new SceneAnimationPlayer(_foxWorld, _foxAssets, doc.Animations[walk]);
+            _foxAnimDur = MathF.Max(0.01f, doc.Animations[walk].Duration);
+        }
+        PoseFox(0f, out Matrix4x4[] jointMats);
+        if (_foxPrim is null) { _foxWorld = null; _foxAssets = null; return; }
+
+        var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
+        raster.DepthTest = true; raster.DepthWrite = true;
+        _foxJoints = new RenderBuffer&lt;Matrix4x4&gt;(Device, Math.Max(1, jointMats.Length), &quot;foxJoints&quot;);
+        _foxInst = Device.Malloc((ulong)SceneInstanceData.Stride, GpuMemoryKind.HostMapped);
+        _skinPipe = Device.CreateGraphicsPipeline(GpuShaderCode.Load(&quot;scene_pbr_skinned&quot;), raster);
+        UploadFox();
+    }
+
+    private void PoseFox(float t, out Matrix4x4[] jointMats)
+    {
+        _foxAnim?.Sample(_foxAnimDur &gt; 0 ? t % _foxAnimDur : 0f);
+        TransformPropagateSystem.Run(_foxWorld!);
+        SkinningSystem.Run(_foxWorld!, _foxAssets!);
+        Matrix4x4[] mats = Array.Empty&lt;Matrix4x4&gt;();
+        _foxWorld!.Query&lt;AssetMeshRef, AssetSkinRef, JointMatrices&gt;().ForEachEntity(
+            (ref AssetMeshRef mr, ref AssetSkinRef _, ref JointMatrices jm, Friflo.Engine.ECS.Entity _) =&gt;
+            {
+                AssetPrimitive p = mr.Mesh.Primitives[0];
+                if (_foxAssets!.Primitives.TryGetValue(p, out ScenePrimitiveGpu gpu) &amp;&amp; gpu.HasSkinning) { _foxPrim = gpu; mats = jm.Matrices; }
+            });
+        jointMats = mats;
+    }
+
+    private void UploadFox()
+    {
+        if (_foxPrim is null) return;
+        PoseFox(_foxAnimTime, out Matrix4x4[] mats);
+        for (int i = 0; i &lt; mats.Length &amp;&amp; i &lt; _foxJoints!.Data.Length; i++) _foxJoints.Data[i] = mats[i];
+        _foxJoints!.MarkDirty();
+        _foxJoints.FlushImmediate();
+        Vector3 pos = _game.Sim.FoxPosition;
+        Matrix4x4 world = Matrix4x4.CreateScale(FoxModelScale) * Matrix4x4.CreateRotationY(MathF.PI / 2)
+                        * Matrix4x4.CreateTranslation(pos.X, pos.Y - FoxHalfY, pos.Z);
+        _foxInst!.Span&lt;SceneInstanceData&gt;(1)[0] = new SceneInstanceData { World = world, BaseColor = new Vector4(0.80f, 0.52f, 0.28f, 1f) };
+    }
+
+    private void BuildTerrain()
+    {
+        Vector3[] pos = _game.Sim.TerrainPositions, nrm = _game.Sim.TerrainNormals;
+        int[] idx = _game.Sim.TerrainIndices;
+        _terrainIdxCount = idx.Length;
+        _terrainVb = Device.Malloc((ulong)(pos.Length * SceneBuilder.Vertex.Stride), GpuMemoryKind.HostMapped);
+        var vspan = _terrainVb.Span&lt;SceneBuilder.Vertex&gt;(pos.Length);
+        for (int i = 0; i &lt; pos.Length; i++) vspan[i] = new SceneBuilder.Vertex { Position = pos[i], Normal = nrm[i], TexCoord0 = Vector2.Zero };
+        _terrainIb = Device.Malloc((ulong)(idx.Length * sizeof(uint)), GpuMemoryKind.HostMapped);
+        var ispan = _terrainIb.Span&lt;uint&gt;(idx.Length);
+        for (int i = 0; i &lt; idx.Length; i++) ispan[i] = (uint)idx[i];
+        _terrainInst = Device.Malloc((ulong)SceneInstanceData.Stride, GpuMemoryKind.HostMapped);
+        _terrainInst.Span&lt;SceneInstanceData&gt;(1)[0] = new SceneInstanceData { World = Matrix4x4.Identity, BaseColor = new Vector4(0.34f, 0.42f, 0.32f, 1f) };
+    }
+
+    public override Task OnUnloadAsync()
+    {
+        _extractor?.Dispose();
+        _cubePipe?.Dispose(); _pbrPipe?.Dispose();
+        _depth?.Dispose(); _target?.Dispose();
+        _vb?.Dispose(); _fb?.Dispose();
+        _terrainVb?.Dispose(); _terrainIb?.Dispose(); _terrainInst?.Dispose();
+        _foxAssets?.Dispose(); _foxJoints?.Dispose(); _foxInst?.Dispose(); _skinPipe?.Dispose();
+        _hitBurst?.Dispose();
+        _audio?.Dispose();
+        // RangeGame は DI singleton — 破棄は DI コンテナが行う (ここで Dispose すると二重破棄)。
+        return Task.CompletedTask;
+    }
+}
+</code></pre>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/ECS/Physics/GizmosAndDebugging&quot;, Order = 14, Toc = true)]
+public static StoryResult GizmosAndDebugging(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Gizmo と Physics debugging
+
+    {{EcsCourseCatalog.Meta(&quot;Learn/ECS/Physics/GizmosAndDebugging&quot;, &quot;Intermediate&quot;, &quot;Gallery + DevTools&quot;, &quot;CPU / 2D overlay&quot;, &quot;MeshesAndRaycasts&quot;)}}
+
+    Physics の不具合は「見た目の mesh」と「実際の shape」の差から起きやすいため、`PhysicsGizmos` で collider と接触中 pair を可視化します。
+
+    ## Collider を描く
+
+    ```csharp
+    PhysicsGizmos.DrawColliders(
+        world,
+        dynamicColor: 0x44CCFFFF,
+        staticColor: 0x88FF88FF,
+        ccdColor: 0xFFAA33FF,
+        triggerColor: 0xFF44FFFF);
+    ```
+
+    `gizmo.physics` category が無効なときは ECS query も allocation も行わず終了します。primitive は `Collider.RenderScale` の外接 wire box として描かれます。
+
+    ## Contact marker を描く
+
+    ```csharp
+    step.TrackCurrentContacts = true;
+    step.StepFixedOnce();
+    PhysicsGizmos.ContactMarkers(step.CurrentContacts, 0xFF3333FF);
+    ```
+
+    current contact の収集は既定で無効です。gizmo が必要なときだけ `TrackCurrentContacts = true` にします。現在の marker は詳細な接触点ではなく、2 entity 中心の midpoint に置く接触インジケータです。
+
+    ## 問題を切り分ける
+
+    1. collider 色で dynamic / static / CCD / trigger を確認する。
+    2. `Attached` と handle を確認する。
+    3. `LocalTransform` と Physics pose のどちらが古いか確認する。
+    4. fixed step が0回の frame と複数回の frame を記録する。
+    5. contact event は frame 内、current contacts は opt-in という寿命を確認する。
+
+    {{StoryRef(ctx, &quot;Examples/3D/PhysicsGizmos&quot;)}}
+
+    ECS と Physics、asset、GPU 抽出をまとめた実用構成は Range capstone で確認できます。
+
+    {{SampleBundle(&quot;game.range&quot;)}}
+    &quot;&quot;&quot;;</code></pre></details></article>

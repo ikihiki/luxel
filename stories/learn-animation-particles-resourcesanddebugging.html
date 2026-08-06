@@ -1,0 +1,139 @@
+<article class="story document-page"><h1 id="particle-resources-and-debugging">Particle resources and debugging</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FAnimation%2FParticles%2FResourcesAndDebugging&amp;section=step%E3%82%92%E7%99%BB%E9%8C%B2%E3%81%97%E3%81%A6load%E3%81%99%E3%82%8B">Stepを登録してloadする</a></li>
+<li><a href="#story=Learn%2FAnimation%2FParticles%2FResourcesAndDebugging&amp;section=json%E3%81%AE%E5%88%B6%E9%99%90">JSONの制限</a></li>
+<li><a href="#story=Learn%2FAnimation%2FParticles%2FResourcesAndDebugging&amp;section=reload%E3%81%A8%E8%A8%BA%E6%96%AD">Reloadと診断</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Resources / Tools / Headless test　 <strong>Backend:</strong> CPU resource step + optional render adapters　 <strong>前提知識:</strong> Rendering particles in 3D</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FAnimation%2FParticles%2FRendering3D">Rendering3D</a></p>
+<p><code>ParticleConfigStep</code>はJSON bytesを<code>ParticleConfig</code>へ変換するCPU resource stepです。configをURIで共有・reloadするときは<code>ResourceSystem</code>へ明示登録します。</p>
+<h2 id="stepload">Stepを登録してloadする</h2>
+<pre><code class="language-csharp">resources.AddStep&lt;byte[], ParticleConfig&gt;(new ParticleConfigStep());
+using ResourceHandle&lt;ParticleConfig&gt; handle =
+    resources.Load&lt;ParticleConfig&gt;(&quot;effects/explosion.particle.json&quot;);
+await handle.Ready;
+
+particles.Config = handle.Value;
+</code></pre>
+<pre><code class="language-json">{
+  &quot;life&quot;: { &quot;range&quot;: [0.4, 0.9] },
+  &quot;speed&quot;: { &quot;range&quot;: [60, 160] },
+  &quot;spread&quot;: 3.14159,
+  &quot;angle&quot;: -1.5708,
+  &quot;gravity&quot;: 260,
+  &quot;drag&quot;: 0.6,
+  &quot;size&quot;: { &quot;curve&quot;: [5, 0], &quot;ease&quot;: &quot;easeOut&quot; },
+  &quot;color&quot;: { &quot;start&quot;: &quot;#FFE678FF&quot;, &quot;end&quot;: &quot;#E63C2800&quot; },
+  &quot;shape&quot;: &quot;quad&quot;
+}
+</code></pre>
+<h2 id="json">JSONの制限</h2>
+<table>
+<thead>
+<tr>
+<th>制限</th>
+<th>現在の結果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Spherical</code></td>
+<td>read/writeされない。JSON loadは常にfalse</td>
+</tr>
+<tr>
+<td>未知のease名</td>
+<td>errorではなくnullになりlinear評価</td>
+</tr>
+<tr>
+<td>任意<code>ICurve</code></td>
+<td>built-in preset以外は<code>ease</code>をserializeできずlinearへround-trip</td>
+</tr>
+<tr>
+<td>shape未知値</td>
+<td><code>Quad</code></td>
+</tr>
+<tr>
+<td>range/curve配列</td>
+<td>先頭2値だけ使用、2個未満は不正</td>
+</tr>
+</tbody>
+</table>
+<p><code>#RRGGBB</code>はalpha FF、<code>#RRGGBBAA</code>も利用できます。対応easeは<code>linear</code>、<code>ease</code>、<code>easeIn</code>、<code>easeOut</code>、<code>easeInOut</code>で、hyphenは無視されます。</p>
+<h2 id="reload">Reloadと診断</h2>
+<p>reload時に<code>particles.Config</code>を差し替えても、既存particleのsample済みlife/speed/sizeは作り直されません。次のspawnと、configから毎frame評価するcurve/colorへ新設定が影響します。shape/capacityに依存するrender reservationを変える場合はadapterを再作成します。</p>
+<pre><code class="language-text">診断: Alive/Capacity → emission rate → fixed dt → force → Sync → blend/depth
+</code></pre>
+<p>gizmoでemission position/directionを可視化し、seedと固定<code>dt</code>を記録すると再現しやすくなります。</p>
+<div class="markdown-alert markdown-alert-important">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Important</p>
+<p>JSONへ<code>&quot;spherical&quot;: true</code>を書いても現在は反映されません。3D spherical effectはC#側で<code>Spherical: true</code>を設定してください。</p>
+</div>
+<ul>
+<li>reload後に既存個体まで再sampleされると思う。</li>
+<li>unknown easeをvalidation errorとして扱う。</li>
+<li>arbitrary custom curveがJSON round-tripすると仮定する。</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Animation/Particles/ResourcesAndDebugging&quot;, Order = 15, Toc = true)]
+public static StoryResult ResourcesAndDebugging(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Particle resources and debugging
+
+    {{AnimationCourseCatalog.Meta(&quot;Learn/Animation/Particles/ResourcesAndDebugging&quot;, &quot;Intermediate&quot;, &quot;Resources / Tools / Headless test&quot;, &quot;CPU resource step + optional render adapters&quot;, &quot;Rendering particles in 3D&quot;)}}
+
+    `ParticleConfigStep`はJSON bytesを`ParticleConfig`へ変換するCPU resource stepです。configをURIで共有・reloadするときは`ResourceSystem`へ明示登録します。
+
+    ## Stepを登録してloadする
+
+    ```csharp
+    resources.AddStep&lt;byte[], ParticleConfig&gt;(new ParticleConfigStep());
+    using ResourceHandle&lt;ParticleConfig&gt; handle =
+        resources.Load&lt;ParticleConfig&gt;(&quot;effects/explosion.particle.json&quot;);
+    await handle.Ready;
+
+    particles.Config = handle.Value;
+    ```
+
+    ```json
+    {
+      &quot;life&quot;: { &quot;range&quot;: [0.4, 0.9] },
+      &quot;speed&quot;: { &quot;range&quot;: [60, 160] },
+      &quot;spread&quot;: 3.14159,
+      &quot;angle&quot;: -1.5708,
+      &quot;gravity&quot;: 260,
+      &quot;drag&quot;: 0.6,
+      &quot;size&quot;: { &quot;curve&quot;: [5, 0], &quot;ease&quot;: &quot;easeOut&quot; },
+      &quot;color&quot;: { &quot;start&quot;: &quot;#FFE678FF&quot;, &quot;end&quot;: &quot;#E63C2800&quot; },
+      &quot;shape&quot;: &quot;quad&quot;
+    }
+    ```
+
+    ## JSONの制限
+
+    | 制限 | 現在の結果 |
+    | --- | --- |
+    | `Spherical` | read/writeされない。JSON loadは常にfalse |
+    | 未知のease名 | errorではなくnullになりlinear評価 |
+    | 任意`ICurve` | built-in preset以外は`ease`をserializeできずlinearへround-trip |
+    | shape未知値 | `Quad` |
+    | range/curve配列 | 先頭2値だけ使用、2個未満は不正 |
+
+    `#RRGGBB`はalpha FF、`#RRGGBBAA`も利用できます。対応easeは`linear`、`ease`、`easeIn`、`easeOut`、`easeInOut`で、hyphenは無視されます。
+
+    ## Reloadと診断
+
+    reload時に`particles.Config`を差し替えても、既存particleのsample済みlife/speed/sizeは作り直されません。次のspawnと、configから毎frame評価するcurve/colorへ新設定が影響します。shape/capacityに依存するrender reservationを変える場合はadapterを再作成します。
+
+    ```text
+    診断: Alive/Capacity → emission rate → fixed dt → force → Sync → blend/depth
+    ```
+
+    gizmoでemission position/directionを可視化し、seedと固定`dt`を記録すると再現しやすくなります。
+
+    &gt; [!IMPORTANT]
+    &gt; JSONへ`&quot;spherical&quot;: true`を書いても現在は反映されません。3D spherical effectはC#側で`Spherical: true`を設定してください。
+
+    - reload後に既存個体まで再sampleされると思う。
+    - unknown easeをvalidation errorとして扱う。
+    - arbitrary custom curveがJSON round-tripすると仮定する。
+    &quot;&quot;&quot;;</code></pre></details></article>

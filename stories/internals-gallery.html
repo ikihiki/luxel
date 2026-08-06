@@ -18,7 +18,7 @@
 <li>収集は<strong>ソースジェネレーター</strong> (reflection なし) — <code>[Story]</code> を走査して module initializer で <code>StoryRegistry.Register</code> を焼き込み、<strong>完全なmethod宣言の C# ソース</strong>も <code>StoryInfo.Source</code> に保存します</li>
 </ul>
 <h2 id="source">Sourceビュー</h2>
-<p>通常のstoryは下部Dockの <strong>Source</strong> タブで、属性・signature・本体を含む <code>[Story]</code> method宣言を読み取り専用・行番号・C#ハイライト付きで確認できます。静的Galleryでは各story末尾の折りたたみ <strong>Story source</strong> に同じ内容が入ります。private helper、別file、shaderは含まれないため、完全な実file/regionを教材にするときは <code>SampleSource(path, region)</code> を使います。Reference/Overviewなどproviderが実行時登録するstoryには対応するmethodがなく、Source unavailableになる場合があります。</p>
+<p>通常のstoryは下部Dockの <strong>Source</strong> タブで、属性・signature・本体を含む <code>[Story]</code> method宣言を読み取り専用・行番号・C#ハイライト付きで確認できます。静的Galleryでは各story末尾の折りたたみ <strong>Story source</strong> に同じ内容が入ります。関連helperが必要なstoryは<code>SourceMembers</code>で同じ型のmethod・nested typeを追記できます。別fileやshaderを含む完全な実file/regionを教材にするときは <code>SampleSource(path, region)</code> を使います。Reference/Overviewなどproviderが実行時登録するstoryには対応するmethodがなく、Source unavailableになる場合があります。</p>
 <h2 id="storycontext">StoryContext — ホスト設備の窓口</h2>
 <ul>
 <li><code>ctx.Signal(name, initial, description)</code> — <strong>knob</strong> (右パネルで編集可)。bool / int / float / string / 色 / enum / Length に対応</li>
@@ -74,7 +74,7 @@ public static StoryResult Gallery(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
 
     ## Sourceビュー
 
-    通常のstoryは下部Dockの **Source** タブで、属性・signature・本体を含む `[Story]` method宣言を読み取り専用・行番号・C#ハイライト付きで確認できます。静的Galleryでは各story末尾の折りたたみ **Story source** に同じ内容が入ります。private helper、別file、shaderは含まれないため、完全な実file/regionを教材にするときは `SampleSource(path, region)` を使います。Reference/Overviewなどproviderが実行時登録するstoryには対応するmethodがなく、Source unavailableになる場合があります。
+    通常のstoryは下部Dockの **Source** タブで、属性・signature・本体を含む `[Story]` method宣言を読み取り専用・行番号・C#ハイライト付きで確認できます。静的Galleryでは各story末尾の折りたたみ **Story source** に同じ内容が入ります。関連helperが必要なstoryは`SourceMembers`で同じ型のmethod・nested typeを追記できます。別fileやshaderを含む完全な実file/regionを教材にするときは `SampleSource(path, region)` を使います。Reference/Overviewなどproviderが実行時登録するstoryには対応するmethodがなく、Source unavailableになる場合があります。
 
     ## StoryContext — ホスト設備の窓口
 

@@ -1,0 +1,83 @@
+<article class="story document-page"><h1 id="mesh-collider-raycast">Mesh collider と Raycast</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FMeshesAndRaycasts&amp;section=static-mesh">Static mesh</a></li>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FMeshesAndRaycasts&amp;section=dynamic-convex-hull">Dynamic convex hull</a></li>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FMeshesAndRaycasts&amp;section=closest-raycast">Closest raycast</a></li>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FMeshesAndRaycasts&amp;section=%E5%85%A5%E5%8A%9B%E6%A4%9C%E8%A8%BC">入力検証</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Advanced　 <strong>実行環境:</strong> Headless + Gallery　 <strong>Backend:</strong> CPU / BepuPhysics v2　 <strong>前提知識:</strong> CollisionsAndTriggers</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FECS%2FPhysics%2FCollisionsAndTriggers">CollisionsAndTriggers</a>　 <strong>次:</strong> <a href="#story=Learn%2FECS%2FPhysics%2FGizmosAndDebugging">GizmosAndDebugging</a></p>
+<p>terrain や建物のような凹形状は静的な <code>MeshCollider</code>、動く実アセットは頂点群から作る動的 <code>HullCollider</code> を使います。</p>
+<h2 id="static-mesh">Static mesh</h2>
+<pre><code class="language-csharp">world.CreateEntity(
+    new LocalTransform(Matrix4x4.Identity),
+    MeshCollider.Static(vertices, indices, scale: Vector3.One));
+</code></pre>
+<p><code>MeshCollider</code> は三角形3頂点ごとの index 配列を Bepu <code>Mesh</code> に変換し、static body として attach します。動的な凹 mesh は非対応です。</p>
+<h2 id="dynamic-convex-hull">Dynamic convex hull</h2>
+<pre><code class="language-csharp">world.CreateEntity(
+    new LocalTransform(Matrix4x4.CreateTranslation(0, 3, 0)),
+    HullCollider.Dynamic(points, mass: 1f, ccd: true));
+</code></pre>
+<p>Bepu は hull を重心原点へ recenter します。<code>PhysicsStepSystem</code> は <code>HullCollider.Center</code> を記録し、write-back で回転済み center を引いて元の mesh 原点へ戻します。凹形状は事前に複数の凸 hull へ分解してください。</p>
+<h2 id="closest-raycast">Closest raycast</h2>
+<pre><code class="language-csharp">Vector3 direction = Vector3.Normalize(target - origin);
+if (physics.RayCast(origin, direction, maximumT: 100f, out PhysicsRayHit hit))
+{
+    Vector3 hitPoint = origin + direction * hit.T;
+    Console.WriteLine($&quot;normal={hit.Normal}, static={hit.IsStatic}&quot;);
+}
+</code></pre>
+<p><code>PhysicsRayHit</code> は距離 <code>T</code>、normal、static かどうか、raw handle value を返します。entity が必要なら <code>PhysicsStepSystem</code> と同様の body/static handle 対応表を所有してください。</p>
+<h2 id="section">入力検証</h2>
+<p>index 数は3の倍数、index は vertices 範囲内、scale は有限値にします。mesh data と shape は <code>PhysicsWorld</code> の寿命に属するため、World の reset 時にまとめて再構築するのが安全です。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/ECS/Physics/MeshesAndRaycasts#doc-0" data-luxel-runtime-story="Examples/3D/PhysicsMesh" data-luxel-runtime-instance="examples-3d-physicsmesh-1103056ac5aa" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2F3D%2FPhysicsMesh&amp;args=%7B%7D&amp;instance=examples-3d-physicsmesh-1103056ac5aa" data-luxel-runtime-story="Examples/3D/PhysicsMesh" data-luxel-runtime-instance="examples-3d-physicsmesh-1103056ac5aa" title="Interactive PhysicsMesh" loading="eager" allow="webgpu; autoplay; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-3d-physicsmesh-1103056ac5aa-args-tab" aria-controls="examples-3d-physicsmesh-1103056ac5aa-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-3d-physicsmesh-1103056ac5aa-output-tab" aria-controls="examples-3d-physicsmesh-1103056ac5aa-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-3d-physicsmesh-1103056ac5aa-source-tab" aria-controls="examples-3d-physicsmesh-1103056ac5aa-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-3d-physicsmesh-1103056ac5aa-args-panel" role="tabpanel" aria-labelledby="examples-3d-physicsmesh-1103056ac5aa-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-3d-physicsmesh-1103056ac5aa-output-panel" role="tabpanel" aria-labelledby="examples-3d-physicsmesh-1103056ac5aa-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-3d-physicsmesh-1103056ac5aa-source-panel" role="tabpanel" aria-labelledby="examples-3d-physicsmesh-1103056ac5aa-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/3D/PhysicsMesh&quot;, Width = 520, Height = 360, Order = 131, CapabilityNote = BrowserNote)]&#10;public static Widget PhysicsMeshDemo(StoryContext ctx) =&gt; ctx.Snap(Frame(Canvas2D(&#10;    CanvasWidth, CanvasHeight, draw: scene =&gt;&#10;    {&#10;        scene.FillRect(Color2D.Rgba(20, 24, 30), 0, 0, CanvasWidth, CanvasHeight);&#10;        const int count = 6;&#10;        const float size = 6;&#10;        var vertices = new Vector3[(count + 1) * (count + 1)];&#10;        for (int z = 0; z &lt;= count; z++)&#10;        for (int x = 0; x &lt;= count; x++)&#10;        {&#10;            float wx = x / (float)count * size - size / 2;&#10;            float wz = z / (float)count * size - size / 2;&#10;            vertices[z * (count + 1) + x] = new Vector3(wx, TerrainHeight(wx, wz), wz);&#10;        }&#10;        var indexList = new List&lt;int&gt;();&#10;        for (int z = 0; z &lt; count; z++)&#10;        for (int x = 0; x &lt; count; x++)&#10;        {&#10;            int a = z * (count + 1) + x;&#10;            int b = a + 1;&#10;            int c = a + count + 1;&#10;            int d = c + 1;&#10;            indexList.AddRange([a, b, c, b, d, c]);&#10;        }&#10;&#10;        using var physics = new PhysicsWorld(new PhysicsSettings { ThreadCount = 0 });&#10;        using var world = new World();&#10;        var system = new PhysicsStepSystem(world, physics);&#10;        world.CreateEntity(new LocalTransform(Matrix4x4.Identity),&#10;            MeshCollider.Static(vertices, indexList.ToArray()));&#10;        world.CreateEntity(new LocalTransform(Matrix4x4.CreateTranslation(-1.2f, 4, 0.6f)),&#10;            Collider.Sphere(0.45f), RigidBody.Dynamic());&#10;        Vector3[] tetrahedron =&#10;        [&#10;            new(0.4f, 0.4f, 0.4f), new(0.4f, -0.4f, -0.4f),&#10;            new(-0.4f, 0.4f, -0.4f), new(-0.4f, -0.4f, 0.4f),&#10;        ];&#10;        Entity hull = world.CreateEntity(&#10;            new LocalTransform(Matrix4x4.CreateTranslation(1.3f, 4, -0.5f)),&#10;            HullCollider.Dynamic(tetrahedron));&#10;        for (int i = 0; i &lt; 150; i++) system.StepFixedOnce();&#10;&#10;        ResetDebugDraw(TerrainKind, PhysicsGizmos.Colliders);&#10;        uint terrainColor = Color2D.Rgba(120, 128, 145);&#10;        for (int z = 0; z &lt;= count; z++)&#10;        for (int x = 0; x &lt;= count; x++)&#10;        {&#10;            Vector3 point = vertices[z * (count + 1) + x];&#10;            if (x &lt; count)&#10;                DebugDraw.Line(point, vertices[z * (count + 1) + x + 1], terrainColor, 1, TerrainKind);&#10;            if (z &lt; count)&#10;                DebugDraw.Line(point, vertices[(z + 1) * (count + 1) + x], terrainColor, 1, TerrainKind);&#10;        }&#10;        PhysicsGizmos.DrawColliders(world,&#10;            Color2D.Rgba(110, 220, 130), Color2D.Rgba(150, 156, 170),&#10;            Color2D.Rgba(240, 96, 96), Color2D.Rgba(90, 200, 240), 1.6f);&#10;        Matrix4x4 hullTransform = hull.GetComponent&lt;LocalTransform&gt;().Matrix;&#10;        uint hullColor = Color2D.Rgba(235, 200, 110);&#10;        for (int i = 0; i &lt; tetrahedron.Length; i++)&#10;        for (int j = i + 1; j &lt; tetrahedron.Length; j++)&#10;            DebugDraw.Line(Vector3.Transform(tetrahedron[i], hullTransform),&#10;                Vector3.Transform(tetrahedron[j], hullTransform), hullColor, 1.6f, TerrainKind);&#10;        FlushDebugDraw(scene, IsoMesh);&#10;    })));</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/ECS/Physics/MeshesAndRaycasts&quot;, Order = 13, Toc = true)]
+public static StoryResult MeshesAndRaycasts(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Mesh collider と Raycast
+
+    {{EcsCourseCatalog.Meta(&quot;Learn/ECS/Physics/MeshesAndRaycasts&quot;, &quot;Advanced&quot;, &quot;Headless + Gallery&quot;, &quot;CPU / BepuPhysics v2&quot;, &quot;CollisionsAndTriggers&quot;)}}
+
+    terrain や建物のような凹形状は静的な `MeshCollider`、動く実アセットは頂点群から作る動的 `HullCollider` を使います。
+
+    ## Static mesh
+
+    ```csharp
+    world.CreateEntity(
+        new LocalTransform(Matrix4x4.Identity),
+        MeshCollider.Static(vertices, indices, scale: Vector3.One));
+    ```
+
+    `MeshCollider` は三角形3頂点ごとの index 配列を Bepu `Mesh` に変換し、static body として attach します。動的な凹 mesh は非対応です。
+
+    ## Dynamic convex hull
+
+    ```csharp
+    world.CreateEntity(
+        new LocalTransform(Matrix4x4.CreateTranslation(0, 3, 0)),
+        HullCollider.Dynamic(points, mass: 1f, ccd: true));
+    ```
+
+    Bepu は hull を重心原点へ recenter します。`PhysicsStepSystem` は `HullCollider.Center` を記録し、write-back で回転済み center を引いて元の mesh 原点へ戻します。凹形状は事前に複数の凸 hull へ分解してください。
+
+    ## Closest raycast
+
+    ```csharp
+    Vector3 direction = Vector3.Normalize(target - origin);
+    if (physics.RayCast(origin, direction, maximumT: 100f, out PhysicsRayHit hit))
+    {
+        Vector3 hitPoint = origin + direction * hit.T;
+        Console.WriteLine($&quot;normal={hit.Normal}, static={hit.IsStatic}&quot;);
+    }
+    ```
+
+    `PhysicsRayHit` は距離 `T`、normal、static かどうか、raw handle value を返します。entity が必要なら `PhysicsStepSystem` と同様の body/static handle 対応表を所有してください。
+
+    ## 入力検証
+
+    index 数は3の倍数、index は vertices 範囲内、scale は有限値にします。mesh data と shape は `PhysicsWorld` の寿命に属するため、World の reset 時にまとめて再構築するのが安全です。
+
+    {{StoryRef(ctx, &quot;Examples/3D/PhysicsMesh&quot;)}}
+    &quot;&quot;&quot;;</code></pre></details></article>

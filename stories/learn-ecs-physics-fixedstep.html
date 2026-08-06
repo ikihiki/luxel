@@ -1,0 +1,84 @@
+<article class="story document-page"><h1 id="fixed-step">Fixed step</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FFixedStep&amp;section=accumulator-%E3%82%92-physicsworld-%E3%81%AB%E4%BB%BB%E3%81%9B%E3%82%8B">Accumulator を PhysicsWorld に任せる</a></li>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FFixedStep&amp;section=gamescene-%E5%81%B4%E3%81%AE-fixed-loop-%E3%81%A8%E7%B5%B1%E5%90%88%E3%81%99%E3%82%8B">GameScene 側の fixed loop と統合する</a></li>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FFixedStep&amp;section=%E6%B1%BA%E5%AE%9A%E6%80%A7">決定性</a></li>
+<li><a href="#story=Learn%2FECS%2FPhysics%2FFixedStep&amp;section=%E5%AE%9F%E8%A1%8C%E9%A0%86">実行順</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Headless + Frame loop　 <strong>Backend:</strong> CPU / BepuPhysics v2　 <strong>前提知識:</strong> BodiesAndShapes、Interpolation</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FECS%2FPhysics%2FBodiesAndShapes">BodiesAndShapes</a>　 <strong>次:</strong> <a href="#story=Learn%2FECS%2FPhysics%2FCollisionsAndTriggers">CollisionsAndTriggers</a></p>
+<p>Physics は可変 frame time を直接 simulation へ渡さず、固定時間で進めます。既定は60Hz、1 unit = 1m、単スレッドです。</p>
+<h2 id="accumulator-physicsworld">Accumulator を PhysicsWorld に任せる</h2>
+<pre><code class="language-csharp">var settings = new PhysicsSettings
+{
+    FixedDt = 1f / 60f,
+    ThreadCount = 0,
+};
+using var physics = new PhysicsWorld(settings);
+var step = new PhysicsStepSystem(world, physics);
+
+int simulatedSteps = step.Run(elapsedSeconds);
+</code></pre>
+<p><code>PhysicsWorld.Step</code> は elapsed を accumulator へ積み、<code>FixedDt</code> ごとに0回以上進めます。巨大な elapsed は0.25秒へ clamp され、停止復帰時の spiral of death を抑えます。</p>
+<h2 id="gamescene-fixed-loop">GameScene 側の fixed loop と統合する</h2>
+<pre><code class="language-csharp">while (accumulator &gt;= physics.FixedDt)
+{
+    step.StepFixedOnce();
+    accumulator -= physics.FixedDt;
+}
+float alpha = accumulator / physics.FixedDt;
+TransformInterpolationSystem.Run(world, alpha);
+</code></pre>
+<p>accumulator を外側で持つ場合は <code>StepFixedOnce</code> を使い、二重 accumulator にしません。simulation pose を直接描画するか <code>InterpolatedTransform</code> へ積むかをアプリ側で一貫させます。</p>
+<h2 id="section">決定性</h2>
+<p><code>ThreadCount = 0</code> では、同じ初期状態と同じ固定 step 列から同じ結果を得る設計です。<code>ThreadCount &gt; 0</code> は高速化の opt-in ですが決定性を失い、現在の contact collector も単スレッド前提です。</p>
+<h2 id="section-1">実行順</h2>
+<p>Physics step は <code>Phase.Update</code>、transform 伝搬は <code>Phase.PostUpdate</code>、補間と描画抽出は <code>Phase.PreRender</code> に置きます。同じ frame で write-back より先に抽出しないでください。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/ECS/Physics/FixedStep&quot;, Order = 11, Toc = true)]
+public static StoryResult FixedStep(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Fixed step
+
+    {{EcsCourseCatalog.Meta(&quot;Learn/ECS/Physics/FixedStep&quot;, &quot;Intermediate&quot;, &quot;Headless + Frame loop&quot;, &quot;CPU / BepuPhysics v2&quot;, &quot;BodiesAndShapes、Interpolation&quot;)}}
+
+    Physics は可変 frame time を直接 simulation へ渡さず、固定時間で進めます。既定は60Hz、1 unit = 1m、単スレッドです。
+
+    ## Accumulator を PhysicsWorld に任せる
+
+    ```csharp
+    var settings = new PhysicsSettings
+    {
+        FixedDt = 1f / 60f,
+        ThreadCount = 0,
+    };
+    using var physics = new PhysicsWorld(settings);
+    var step = new PhysicsStepSystem(world, physics);
+
+    int simulatedSteps = step.Run(elapsedSeconds);
+    ```
+
+    `PhysicsWorld.Step` は elapsed を accumulator へ積み、`FixedDt` ごとに0回以上進めます。巨大な elapsed は0.25秒へ clamp され、停止復帰時の spiral of death を抑えます。
+
+    ## GameScene 側の fixed loop と統合する
+
+    ```csharp
+    while (accumulator &gt;= physics.FixedDt)
+    {
+        step.StepFixedOnce();
+        accumulator -= physics.FixedDt;
+    }
+    float alpha = accumulator / physics.FixedDt;
+    TransformInterpolationSystem.Run(world, alpha);
+    ```
+
+    accumulator を外側で持つ場合は `StepFixedOnce` を使い、二重 accumulator にしません。simulation pose を直接描画するか `InterpolatedTransform` へ積むかをアプリ側で一貫させます。
+
+    ## 決定性
+
+    `ThreadCount = 0` では、同じ初期状態と同じ固定 step 列から同じ結果を得る設計です。`ThreadCount &gt; 0` は高速化の opt-in ですが決定性を失い、現在の contact collector も単スレッド前提です。
+
+    ## 実行順
+
+    Physics step は `Phase.Update`、transform 伝搬は `Phase.PostUpdate`、補間と描画抽出は `Phase.PreRender` に置きます。同じ frame で write-back より先に抽出しないでください。
+    &quot;&quot;&quot;;</code></pre></details></article>

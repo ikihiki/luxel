@@ -128,9 +128,10 @@ ResourceHandle&lt;GpuShaderCode&gt; shader =
         new SlangSource(&quot;sample.slang&quot;, slang),
         &quot;graphics&quot;);
 
+var pipelineDesc = new GpuGraphicsPipelineDesc(
+    new GpuAttachmentLayout(GpuFormat.Rgba8Unorm));
 ResourceHandle&lt;GpuPipeline&gt; pipeline = resources.CreateGraphicsPipeline(
-    &quot;sample.pipeline&quot;, shader,
-    GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+    &quot;sample.pipeline&quot;, shader, pipelineDesc);
 </code></pre>
 <p>selectorはgraphics shaderなら<code>&quot;graphics&quot;</code>、compute shaderなら<code>&quot;compute&quot;</code>です。compile中はresourceがLoadingになり、成功後にpipelineを使用できます。sourceの変更をすぐ試せるため、Gallery、editor、開発中のhot reloadに向いています。一方、起動時にcompilerとcompile時間が必要なので、配布物では次のoffline cacheを使えます。</p>
 <h2 id="section-3">オフラインコンパイルとキャッシュ</h2>
@@ -149,7 +150,7 @@ git status --short shaders
 <p><code>shaders/*.slang</code>、<code>shaders/compiled/*</code>、<code>shaders/compiled/inputs.sha256</code>を同じcommitへ含めます。<code>inputs.sha256</code>にはsource hashだけでなくcache schema、Slang/DXC version、target profileも記録されます。取得されたcompilerの<code>tools/</code>はlocal cacheなのでcommitしません。</p>
 <p>runtimeではbase nameを指定するだけで、現在のbackendに対応するartifactを読み込めます。</p>
 <pre><code class="language-csharp">GpuShaderCode shader = GpuShaderCode.Load(&quot;my_effect&quot;);
-using GpuPipeline pipeline = device.CreateGraphicsPipeline(shader, raster);
+using GpuPipeline pipeline = device.CreateGraphicsPipeline(shader, pipelineDesc);
 </code></pre>
 <h2 id="publish">Publishする際の注意</h2>
 <p>executable projectから<code>shaders/Luxel.Shaders.targets</code>をimportすると、compiled shader cacheがbuild/publish先の<code>shaders/</code>へcopyされます。publish時にSlang compilerを実行するのではなく、Git管理された検証済みartifactを同梱します。</p>
@@ -295,9 +296,10 @@ public static StoryResult Shaders(StoryContext ctx)
             new SlangSource(&quot;sample.slang&quot;, slang),
             &quot;graphics&quot;);
 
+    var pipelineDesc = new GpuGraphicsPipelineDesc(
+        new GpuAttachmentLayout(GpuFormat.Rgba8Unorm));
     ResourceHandle&lt;GpuPipeline&gt; pipeline = resources.CreateGraphicsPipeline(
-        &quot;sample.pipeline&quot;, shader,
-        GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+        &quot;sample.pipeline&quot;, shader, pipelineDesc);
     ```
 
     selectorはgraphics shaderなら`&quot;graphics&quot;`、compute shaderなら`&quot;compute&quot;`です。compile中はresourceがLoadingになり、成功後にpipelineを使用できます。sourceの変更をすぐ試せるため、Gallery、editor、開発中のhot reloadに向いています。一方、起動時にcompilerとcompile時間が必要なので、配布物では次のoffline cacheを使えます。
@@ -325,7 +327,7 @@ public static StoryResult Shaders(StoryContext ctx)
 
     ```csharp
     GpuShaderCode shader = GpuShaderCode.Load(&quot;my_effect&quot;);
-    using GpuPipeline pipeline = device.CreateGraphicsPipeline(shader, raster);
+    using GpuPipeline pipeline = device.CreateGraphicsPipeline(shader, pipelineDesc);
     ```
 
     ## Publishする際の注意

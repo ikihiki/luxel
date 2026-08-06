@@ -5979,6 +5979,14 @@
       "componentType": null
     },
     {
+      "path": "Examples/3D/Blend",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Compatibility route backed by the browser-safe pipeline-state demo.",
+      "componentType": null
+    },
+    {
       "path": "Examples/3D/BuffersAndBindings",
       "width": 320,
       "height": 240,
@@ -5990,6 +5998,152 @@
       "path": "Examples/3D/ClearColor",
       "width": 320,
       "height": 240,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/Depth",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Compatibility route backed by the browser-safe pipeline-state demo.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/EcsCubes",
+      "width": 320,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PhysicsFalling",
+      "width": 320,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PhysicsGizmos",
+      "width": 520,
+      "height": 360,
+      "args": [],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PhysicsMesh",
+      "width": 520,
+      "height": 360,
+      "args": [],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PhysicsPlayground",
+      "width": 320,
+      "height": 320,
+      "args": [
+        {
+          "name": "gravity",
+          "type": "float",
+          "defaultValue": 9.8,
+          "description": "\u4E0B\u5411\u304D\u91CD\u529B\u306E\u5F37\u3055 (m/s\u00B2)",
+          "order": 1000,
+          "min": 0,
+          "max": 30,
+          "step": 0.1,
+          "options": null
+        },
+        {
+          "name": "bounciness",
+          "type": "float",
+          "defaultValue": 2,
+          "description": "\u63A5\u89E6\u306E\u53CD\u767A\u4E0A\u9650 (MaximumRecoveryVelocity, m/s)",
+          "order": 1000,
+          "min": 0,
+          "max": 20,
+          "step": 0.1,
+          "options": null
+        },
+        {
+          "name": "reset",
+          "type": "bool",
+          "defaultValue": false,
+          "description": "\u30C8\u30B0\u30EB\u3059\u308B\u3068\u30B7\u30FC\u30F3\u3092\u521D\u671F\u72B6\u614B\u3078\u518D\u69CB\u7BC9",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        }
+      ],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PhysicsTrigger",
+      "width": 520,
+      "height": 360,
+      "args": [],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Blend",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Depth",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Rasterizer",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Separation",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Stencil",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Topology",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/ViewportScissor",
+      "width": 480,
+      "height": 320,
       "args": [],
       "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
       "componentType": null
@@ -6011,9 +6165,97 @@
       "componentType": null
     },
     {
+      "path": "Examples/Animation/CssKeyframes",
+      "width": 480,
+      "height": 300,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/Curves",
+      "width": 480,
+      "height": 720,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/EcsClip",
+      "width": 480,
+      "height": 300,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/Graph",
+      "width": 480,
+      "height": 300,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/StateMachine",
+      "width": 480,
+      "height": 340,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
       "path": "Examples/Animation/Transitions",
       "width": 480,
       "height": 200,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/Tween",
+      "width": 480,
+      "height": 300,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Audio/BackendLifecycle",
+      "width": 700,
+      "height": 300,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Audio/Buses",
+      "width": 700,
+      "height": 360,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Audio/SpatialAttenuation",
+      "width": 700,
+      "height": 380,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Audio/StreamingQueue",
+      "width": 700,
+      "height": 350,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Audio/WaveformAndVoice",
+      "width": 700,
+      "height": 330,
       "args": [],
       "capabilityNote": null,
       "componentType": null
