@@ -1,0 +1,115 @@
+<article class="story document-page"><h1 id="graphs-and-blending">Graphs and blending</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FAnimation%2FGraphsAndBlending&amp;section=node%E3%82%92%E6%A7%8B%E6%88%90%E3%81%99%E3%82%8B">Nodeを構成する</a></li>
+<li><a href="#story=Learn%2FAnimation%2FGraphsAndBlending&amp;section=%E6%99%82%E5%88%BB%E3%81%A8weight">時刻とweight</a></li>
+<li><a href="#story=Learn%2FAnimation%2FGraphsAndBlending&amp;section=blend%E3%81%AE%E5%A2%83%E7%95%8C">Blendの境界</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Advanced　 <strong>実行環境:</strong> Game / Gallery / Headless test　 <strong>Backend:</strong> Backend neutral　 <strong>前提知識:</strong> Targets and bindings</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FAnimation%2FTargetsAndBindings">TargetsAndBindings</a>　 <strong>次:</strong> <a href="#story=Learn%2FAnimation%2FStateMachines">StateMachines</a></p>
+<p><code>AnimationGraph</code>はroot <code>GraphNode</code>を毎frame評価し、<code>GraphEvaluator</code>へ集めたpath/valueを最後にtargetへflushします。これはsetterを独立にscheduleする<code>AnimationPlayer</code>とは別系統です。</p>
+<h2 id="node">Nodeを構成する</h2>
+<table>
+<thead>
+<tr>
+<th>Node</th>
+<th>役割</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ClipNode</code></td>
+<td>clipを時刻でsample</td>
+</tr>
+<tr>
+<td><code>BlendNode</code></td>
+<td>2つの評価結果をweightで補間</td>
+</tr>
+<tr>
+<td><code>AddNode</code></td>
+<td>baseへadditive値をweight付き加算</td>
+</tr>
+<tr>
+<td>custom <code>GraphNode</code></td>
+<td>独自の評価構造</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-csharp">var blend = new BlendNode(
+    new ClipNode(idleClip),
+    new ClipNode(runClip),
+    weight: 0.35f);
+GraphNode root = blend;
+var graph = new AnimationGraph(root, target)
+{
+    StartTime = clock.TimeSec,
+    Loop = true,
+};
+graph.Tick(clock);
+</code></pre>
+<h2 id="weight">時刻とweight</h2>
+<p>graphも絶対時刻を使い、<code>(now - StartTime) * TimeScale</code>をrootへ渡します。non-loopはdurationで終端を評価して<code>Done=true</code>、loopはdurationでmoduloします。<code>Reset(startTimeAbs)</code>で再開します。</p>
+<p>サンプルは上下移動と左右移動の2つの<code>Vector2</code> clipを同じ<code>dot/position</code> pathへ出力し、<code>BlendNode.Weight</code>で混ぜた結果を2Dの丸として描きます。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Animation/GraphsAndBlending#doc-0" data-luxel-runtime-story="Examples/Animation/Graph" data-luxel-runtime-instance="examples-animation-graph-bb7fb04c79bf" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2FAnimation%2FGraph&amp;args=%7B%7D&amp;instance=examples-animation-graph-bb7fb04c79bf" data-luxel-runtime-story="Examples/Animation/Graph" data-luxel-runtime-instance="examples-animation-graph-bb7fb04c79bf" title="Interactive Graph" loading="eager" allow="webgpu; autoplay; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-animation-graph-bb7fb04c79bf-args-tab" aria-controls="examples-animation-graph-bb7fb04c79bf-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-animation-graph-bb7fb04c79bf-output-tab" aria-controls="examples-animation-graph-bb7fb04c79bf-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-animation-graph-bb7fb04c79bf-source-tab" aria-controls="examples-animation-graph-bb7fb04c79bf-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-animation-graph-bb7fb04c79bf-args-panel" role="tabpanel" aria-labelledby="examples-animation-graph-bb7fb04c79bf-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-animation-graph-bb7fb04c79bf-output-panel" role="tabpanel" aria-labelledby="examples-animation-graph-bb7fb04c79bf-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-animation-graph-bb7fb04c79bf-source-panel" role="tabpanel" aria-labelledby="examples-animation-graph-bb7fb04c79bf-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/Animation/Graph&quot;, Height = 300, Order = 145, SourceMembers = &quot;PositionTarget&quot;)]&#10;public static Widget Graph(StoryContext ctx)&#10;{&#10;    Signal&lt;float&gt; weight = ctx.Signal(&quot;weight&quot;, 0.5f, &quot;Blend: 0 = 上下振動, 1 = 左右振動&quot;);&#10;    var target = new PositionTarget();&#10;    var vertical = new AnimationClip(&quot;Vertical&quot;, new TrackBase[]&#10;    {&#10;        Tracks.Vector2(&quot;dot/position&quot;, InterpolationKind.Linear,&#10;        [new(0f, new Vector2(108, 16)), new(0.5f, new Vector2(108, 88)), new(1f, new Vector2(108, 16))]),&#10;    });&#10;    var horizontal = new AnimationClip(&quot;Horizontal&quot;, new TrackBase[]&#10;    {&#10;        Tracks.Vector2(&quot;dot/position&quot;, InterpolationKind.Linear,&#10;        [new(0f, new Vector2(28, 52)), new(0.5f, new Vector2(188, 52)), new(1f, new Vector2(28, 52))]),&#10;    });&#10;    var blend = new BlendNode(new ClipNode(vertical), new ClipNode(horizontal));&#10;    var graph = new AnimationGraph(blend, target) { Loop = true };&#10;&#10;    return Frame(Canvas2D(256, 128, animate: (scene, time) =&gt;&#10;    {&#10;        blend.Weight = Math.Clamp(weight.Peek(), 0f, 1f);&#10;        graph.Tick(time);&#10;        scene.FillRoundedRect(Color2D.Rgba(55, 60, 72, 255), 24, 62, 184, 4, 2);&#10;        scene.FillRoundedRect(Color2D.Rgba(165, 110, 235, 255),&#10;            target.Position.X, target.Position.Y, 24, 24, 12);&#10;    }));&#10;}&#10;&#10;private sealed class PositionTarget : IAnimationTarget&#10;{&#10;    public Vector2 Position { get; private set; }&#10;    public void Apply(string path, object value)&#10;    {&#10;        if (path == &quot;dot/position&quot;) Position = (Vector2)value;&#10;    }&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<h2 id="blend">Blendの境界</h2>
+<p>pathが両側にあればvalue shapeに応じて補間し、片側だけならその値を保持します。意味の異なるpropertyや型を同じpathへ混ぜないでください。</p>
+<div class="markdown-alert markdown-alert-note">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>graphはpose storageそのものではなく、毎tick評価してtargetへ書くDAGです。評価後の値を次frameへ暗黙保持するとは限りません。</p>
+</div>
+<ul>
+<li><code>StartTime</code>を設定せず、大きなabsolute timeを最初から渡す。</li>
+<li>weight sourceを<code>[0,1]</code>へ管理しない。</li>
+<li>additive clipを通常clipと同じ基準値でauthoringする。</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Animation/GraphsAndBlending&quot;, Order = 6, Toc = true)]
+public static StoryResult GraphsAndBlending(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Graphs and blending
+
+    {{AnimationCourseCatalog.Meta(&quot;Learn/Animation/GraphsAndBlending&quot;, &quot;Advanced&quot;, &quot;Game / Gallery / Headless test&quot;, &quot;Backend neutral&quot;, &quot;Targets and bindings&quot;)}}
+
+    `AnimationGraph`はroot `GraphNode`を毎frame評価し、`GraphEvaluator`へ集めたpath/valueを最後にtargetへflushします。これはsetterを独立にscheduleする`AnimationPlayer`とは別系統です。
+
+    ## Nodeを構成する
+
+    | Node | 役割 |
+    | --- | --- |
+    | `ClipNode` | clipを時刻でsample |
+    | `BlendNode` | 2つの評価結果をweightで補間 |
+    | `AddNode` | baseへadditive値をweight付き加算 |
+    | custom `GraphNode` | 独自の評価構造 |
+
+    ```csharp
+    var blend = new BlendNode(
+        new ClipNode(idleClip),
+        new ClipNode(runClip),
+        weight: 0.35f);
+    GraphNode root = blend;
+    var graph = new AnimationGraph(root, target)
+    {
+        StartTime = clock.TimeSec,
+        Loop = true,
+    };
+    graph.Tick(clock);
+    ```
+
+    ## 時刻とweight
+
+    graphも絶対時刻を使い、`(now - StartTime) * TimeScale`をrootへ渡します。non-loopはdurationで終端を評価して`Done=true`、loopはdurationでmoduloします。`Reset(startTimeAbs)`で再開します。
+
+    サンプルは上下移動と左右移動の2つの`Vector2` clipを同じ`dot/position` pathへ出力し、`BlendNode.Weight`で混ぜた結果を2Dの丸として描きます。
+
+    {{StoryRef(ctx, &quot;Examples/Animation/Graph&quot;)}}
+
+    ## Blendの境界
+
+    pathが両側にあればvalue shapeに応じて補間し、片側だけならその値を保持します。意味の異なるpropertyや型を同じpathへ混ぜないでください。
+
+    &gt; [!NOTE]
+    &gt; graphはpose storageそのものではなく、毎tick評価してtargetへ書くDAGです。評価後の値を次frameへ暗黙保持するとは限りません。
+
+    - `StartTime`を設定せず、大きなabsolute timeを最初から渡す。
+    - weight sourceを`[0,1]`へ管理しない。
+    - additive clipを通常clipと同じ基準値でauthoringする。
+    &quot;&quot;&quot;;</code></pre></details></article>

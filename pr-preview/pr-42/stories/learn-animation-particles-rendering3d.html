@@ -1,0 +1,120 @@
+<article class="story document-page"><h1 id="rendering-particles-in-3d">Rendering particles in 3D</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FAnimation%2FParticles%2FRendering3D&amp;section=%E5%90%8C%E6%9C%9F%E3%81%A8draw">同期とdraw</a></li>
+<li><a href="#story=Learn%2FAnimation%2FParticles%2FRendering3D&amp;section=pipeline%E5%A5%91%E7%B4%84">Pipeline契約</a></li>
+<li><a href="#story=Learn%2FAnimation%2FParticles%2FRendering3D&amp;section=camera-axes%E3%81%A8%E9%80%8F%E6%98%8E%E5%BA%A6">Camera axesと透明度</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Advanced　 <strong>実行環境:</strong> Native / Browser GPU　 <strong>Backend:</strong> Graphics.ThreeD particle billboards　 <strong>前提知識:</strong> Rendering particles in 2D and UI</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FAnimation%2FParticles%2FRendering2DAndUI">Rendering2DAndUI</a>　 <strong>次:</strong> <a href="#story=Learn%2FAnimation%2FParticles%2FResourcesAndDebugging">ResourcesAndDebugging</a></p>
+<p><code>ParticleBillboards</code>は全particleをcamera-facing instanced quadとして描画します。simulation後に<code>Sync()</code>し、cameraのright/upとview-projectionを<code>Draw()</code>へ渡します。</p>
+<h2 id="draw">同期とdraw</h2>
+<pre><code class="language-csharp">using var billboards = new ParticleBillboards(device, particles);
+
+particles.Update(dt);
+billboards.Sync();
+(Vector3 right, Vector3 up) =
+    ParticleBillboards.CameraAxes(camera.Eye, camera.Target);
+
+cmd.BeginRendering(...);
+billboards.Draw(cmd, camera.ViewProjection, right, up);
+cmd.EndRendering();
+</code></pre>
+<p><code>Sync()</code>はposition、寿命評価済みsize、color/tintをinstance bufferへ書き、現在の<code>InstanceCount</code>を記録します。<code>Draw()</code>は0 instanceなら何もしません。</p>
+<h2 id="pipeline">Pipeline契約</h2>
+<table>
+<thead>
+<tr>
+<th>項目</th>
+<th>現在の動作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>geometry</td>
+<td>6 vertexのcamera-facing quad</td>
+</tr>
+<tr>
+<td>shape</td>
+<td><code>ParticleShape</code>を参照しない</td>
+</tr>
+<tr>
+<td>depth test</td>
+<td>enabled</td>
+</tr>
+<tr>
+<td>depth write</td>
+<td>disabled</td>
+</tr>
+<tr>
+<td>blend</td>
+<td>alpha blend enabled</td>
+</tr>
+<tr>
+<td>order</td>
+<td>spawn order、未sort</td>
+</tr>
+</tbody>
+</table>
+<figure class="static-capture"><a href="#story=Examples%2F3D%2FParticles"><img src="images/examples-3d-particles.png" alt="Examples/3D/Particles" loading="lazy"></a><figcaption>Static embedded story capture — not interactive</figcaption></figure>
+<h2 id="camera-axes">Camera axesと透明度</h2>
+<p><code>CameraAxes</code>はright-handed look-at basisを作ります。eyeとtargetが同一点、またはviewがworld +Yへ平行な退化ケースのfallbackはありません。透明particleはdepth sortされないため、重なりの正しいalpha合成は保証されません。</p>
+<div class="markdown-alert markdown-alert-note">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
+<p>3D adapterでは<code>Circle</code>もquad billboardです。円形に見せるにはtexture/shader側のalpha shapeが必要です。</p>
+</div>
+<ul>
+<li>simulation後に<code>Sync</code>せず古いinstanceをdrawする。</li>
+<li>camera axesを別のhandednessで渡す。</li>
+<li>unsorted transparencyをopaqueと同じ結果だと期待する。</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Animation/Particles/Rendering3D&quot;, Order = 14, Toc = true)]
+public static StoryResult Rendering3D(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Rendering particles in 3D
+
+    {{AnimationCourseCatalog.Meta(&quot;Learn/Animation/Particles/Rendering3D&quot;, &quot;Advanced&quot;, &quot;Native / Browser GPU&quot;, &quot;Graphics.ThreeD particle billboards&quot;, &quot;Rendering particles in 2D and UI&quot;)}}
+
+    `ParticleBillboards`は全particleをcamera-facing instanced quadとして描画します。simulation後に`Sync()`し、cameraのright/upとview-projectionを`Draw()`へ渡します。
+
+    ## 同期とdraw
+
+    ```csharp
+    using var billboards = new ParticleBillboards(device, particles);
+
+    particles.Update(dt);
+    billboards.Sync();
+    (Vector3 right, Vector3 up) =
+        ParticleBillboards.CameraAxes(camera.Eye, camera.Target);
+
+    cmd.BeginRendering(...);
+    billboards.Draw(cmd, camera.ViewProjection, right, up);
+    cmd.EndRendering();
+    ```
+
+    `Sync()`はposition、寿命評価済みsize、color/tintをinstance bufferへ書き、現在の`InstanceCount`を記録します。`Draw()`は0 instanceなら何もしません。
+
+    ## Pipeline契約
+
+    | 項目 | 現在の動作 |
+    | --- | --- |
+    | geometry | 6 vertexのcamera-facing quad |
+    | shape | `ParticleShape`を参照しない |
+    | depth test | enabled |
+    | depth write | disabled |
+    | blend | alpha blend enabled |
+    | order | spawn order、未sort |
+
+    {{StoryRef(ctx, &quot;Examples/3D/Particles&quot;)}}
+
+    ## Camera axesと透明度
+
+    `CameraAxes`はright-handed look-at basisを作ります。eyeとtargetが同一点、またはviewがworld +Yへ平行な退化ケースのfallbackはありません。透明particleはdepth sortされないため、重なりの正しいalpha合成は保証されません。
+
+    &gt; [!NOTE]
+    &gt; 3D adapterでは`Circle`もquad billboardです。円形に見せるにはtexture/shader側のalpha shapeが必要です。
+
+    - simulation後に`Sync`せず古いinstanceをdrawする。
+    - camera axesを別のhandednessで渡す。
+    - unsorted transparencyをopaqueと同じ結果だと期待する。
+    &quot;&quot;&quot;;</code></pre></details></article>

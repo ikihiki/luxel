@@ -1,0 +1,243 @@
+<article class="story document-page"><h1 id="vulkan-backend-resource">Vulkan backend の resource 実装</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FGraphics%2FInternal%2FVulkan&amp;section=%E5%85%B1%E9%80%9A-api-%E3%81%8B%E3%82%89-backend-%E3%81%B8%E3%81%AE%E5%85%A5%E5%8F%A3">共通 API から backend への入口</a></li>
+<li><a href="#story=Learn%2FGraphics%2FInternal%2FVulkan&amp;section=buffer-%E3%81%A8-memory">Buffer と memory</a></li>
+<li><a href="#story=Learn%2FGraphics%2FInternal%2FVulkan&amp;section=texture%E3%80%81render-target%E3%80%81depth-target">Texture、render target、depth target</a></li>
+<li><a href="#story=Learn%2FGraphics%2FInternal%2FVulkan&amp;section=texture-upload">Texture upload</a></li>
+<li><a href="#story=Learn%2FGraphics%2FInternal%2FVulkan&amp;section=sampler">Sampler</a></li>
+<li><a href="#story=Learn%2FGraphics%2FInternal%2FVulkan&amp;section=shader-%E3%81%A8-pipeline">Shader と pipeline</a></li>
+<li><a href="#story=Learn%2FGraphics%2FInternal%2FVulkan&amp;section=descriptor-%E3%81%A8-push-constants">Descriptor と push constants</a></li>
+<li><a href="#story=Learn%2FGraphics%2FInternal%2FVulkan&amp;section=command-recording-%E3%81%A8-barrier">Command recording と barrier</a></li>
+<li><a href="#story=Learn%2FGraphics%2FInternal%2FVulkan&amp;section=queue-submission-%E3%81%A8%E5%AE%8C%E4%BA%86%E5%BE%85%E3%81%A1">Queue submission と完了待ち</a></li>
+<li><a href="#story=Learn%2FGraphics%2FInternal%2FVulkan&amp;section=surface%E3%80%81swapchain%E3%80%81presentation">Surface、swapchain、presentation</a></li>
+<li><a href="#story=Learn%2FGraphics%2FInternal%2FVulkan&amp;section=lifetime-%E3%81%A8%E5%AE%9F%E8%A3%85%E3%82%92%E8%BF%BD%E3%81%86%E9%A0%86%E5%BA%8F">Lifetime と実装を追う順序</a></li>
+</ul>
+<!-- /luxel-toc -->
+<div class="markdown-alert markdown-alert-warning">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p>このページは <code>Luxel.Graphics.Vulkan</code> の内部実装を説明します。公開 API の利用方法ではなく、共通 resource が Vulkan object と synchronization へ変換される過程が対象です。</p>
+</div>
+<p><strong>難易度:</strong> Advanced　 <strong>実行環境:</strong> Windows / Linux native　 <strong>Backend:</strong> Vulkan　 <strong>前提知識:</strong> Buffers / Textures / Shaders / PipelineState / Synchronization</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FGraphics%2FInternal%2FDirectX12">DirectX12</a>　 <strong>次:</strong> <a href="#story=Learn%2FGraphics%2FInternal%2FWebGPU">WebGPU</a></p>
+<h2 id="api-backend">共通 API から backend への入口</h2>
+<p><code>VulkanBackend</code> は instance、physical device、logical device、queue、descriptor set layout、pipeline layout を初期化し、<code>IGpuBackend</code> の resource factory を実装します。</p>
+<pre><code class="language-text">GpuDevice
+  └─ VulkanBackend
+       ├─ VulkanBuffer / VulkanTexture / VulkanSampler
+       ├─ VulkanPipeline
+       ├─ VulkanCommandBuffer
+       ├─ VulkanQueue
+       └─ VulkanSurface
+</code></pre>
+<p>公開 API に Vulkan の descriptor set は現れません。backend は buffer、sampled image、sampler の配列を持つ bindless descriptor set を作り、各 wrapper の <code>BindlessIndex</code> を配列 index として shader へ渡します。</p>
+<h2 id="buffer-memory">Buffer と memory</h2>
+<p><code>CreateBuffer</code> は storage、transfer、indirect、device address など Luxel が必要とする usage flag を組み合わせて <code>VkBuffer</code> を作ります。その後 memory requirements を取得し、<code>GpuMemoryKind</code> に合う memory type を選び、allocate と bind を行います。</p>
+<p>Host-visible memory は必要に応じて map し、CPU write / readback に使います。Device-local buffer へ初期 data を渡す場合は staging resource と copy command を使います。作成後は storage buffer descriptor array の <code>BindlessIndex</code> 位置を <code>vkUpdateDescriptorSets</code> で更新します。</p>
+<h2 id="texturerender-targetdepth-target">Texture、render target、depth target</h2>
+<p><code>VulkanTexture</code> は <code>VkImage</code>、memory、image view、format、extent、layout を保持します。</p>
+<ul>
+<li>render target: color attachment と transfer 用 usage を持つ image</li>
+<li>depth target: depth/stencil attachment 用 image と aspect mask</li>
+<li>sampled texture: sampled と transfer destination 用 image、および sampled-image descriptor</li>
+<li>presentation: swapchain image は <code>VulkanSurface</code> が所有し、通常の texture wrapper とは lifetime が異なる</li>
+</ul>
+<p>Luxel の rendering は dynamic rendering を使うため、固定 render pass object を page ごとに作りません。<code>BeginRendering</code> が color / depth attachment info を組み立て、現在の image layout を attachment 向けに遷移します。</p>
+<h2 id="texture-upload">Texture upload</h2>
+<p>Sampled texture の upload は staging buffer、image layout transition、buffer-to-image copy の順です。</p>
+<pre><code class="language-text">CPU pixels
+  → mapped staging buffer
+  → TRANSFER_DST_OPTIMAL
+  → vkCmdCopyBufferToImage
+  → SHADER_READ_ONLY_OPTIMAL
+</code></pre>
+<p>row pitch と format から copy region を構築し、one-shot command を queue へ submit します。完了後に staging buffer を破棄し、sampled-image descriptor array を更新します。</p>
+<h2 id="sampler">Sampler</h2>
+<p><code>CreateSampler</code> は filter、mipmap mode、address mode を <code>VkSamplerCreateInfo</code> へ変換して <code>VkSampler</code> を作ります。sampler descriptor array の slot が <code>GpuSampler.BindlessIndex</code> です。Texture と sampler は別配列なので、shader 側でも別 index として扱います。</p>
+<h2 id="shader-pipeline">Shader と pipeline</h2>
+<p>Vulkan backend は <code>GpuShaderCode</code> から SPIR-V を選び、<code>VkShaderModule</code> を作ります。Compute pipeline は shader stage と共通 pipeline layout から作成します。</p>
+<p>Graphics pipeline は shader stage、vertex 入力方針、input assembly、rasterization、multisample、depth/stencil、blend、dynamic state、dynamic-rendering format を <code>vkCreateGraphicsPipelines</code> へ渡します。viewport と scissor など command ごとに変わる値は dynamic state として記録します。</p>
+<h2 id="descriptor-push-constants">Descriptor と push constants</h2>
+<p>Backend が作る共通 pipeline layout は bindless descriptor set layout と push constant range を接続します。</p>
+<table>
+<thead>
+<tr>
+<th>共通 API</th>
+<th>Vulkan 実装</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BindlessIndex</code></td>
+<td>descriptor array element</td>
+</tr>
+<tr>
+<td>root arguments</td>
+<td>push constants</td>
+</tr>
+<tr>
+<td>buffer / texture / sampler bind</td>
+<td>共通 descriptor set の bind</td>
+</tr>
+<tr>
+<td>graphics state</td>
+<td>pipeline object と dynamic state</td>
+</tr>
+</tbody>
+</table>
+<p>Resource を作成・破棄するときは descriptor slot allocator と descriptor write の順序が重要です。GPU が古い descriptor を参照中に slot を再利用しないことが lifetime の前提です。</p>
+<h2 id="command-recording-barrier">Command recording と barrier</h2>
+<p><code>VulkanQueue</code> が command pool と command buffer を用意し、<code>VulkanCommandBuffer</code> が共通 command を Vulkan command へ変換します。</p>
+<ul>
+<li><code>SetRootArguments</code>: <code>vkCmdPushConstants</code></li>
+<li><code>SetPipeline</code>: pipeline と bindless descriptor set を bind</li>
+<li><code>BeginRendering</code> / <code>EndRendering</code>: dynamic rendering を開始・終了</li>
+<li><code>Draw</code> / <code>Dispatch</code>: graphics / compute command</li>
+<li>copy: buffer、image、layout を組み合わせた transfer command</li>
+<li><code>Barrier</code>: <code>GpuStage</code> を synchronization2 の stage/access mask へ変換</li>
+</ul>
+<p>Barrier は <code>VkDependencyInfo</code> と <code>vkCmdPipelineBarrier2</code> を使います。Buffer の producer / consumer 順序に加え、image では old layout、new layout、aspect を tracking して image memory barrier を作ります。考え方は <a href="#story=Learn%2FGraphics%2FSynchronization">GPU synchronization</a> と対応します。</p>
+<h2 id="queue-submission">Queue submission と完了待ち</h2>
+<p>Command buffer を end した後、<code>VulkanQueue</code> は <code>vkQueueSubmit</code> で実行します。同期 helper は <code>vkQueueWaitIdle</code> を使うため理解しやすい一方、frame ごとの hot path では fence や semaphore で必要な依存だけを表現する方が効率的です。</p>
+<h2 id="surfaceswapchainpresentation">Surface、swapchain、presentation</h2>
+<p><code>VulkanPresentationSource</code> は platform が必要とする instance extension と surface 作成 callback を backend へ渡します。<code>VulkanSurface</code> は surface format、present mode、extent を選んで swapchain と image view を作ります。</p>
+<p>Present の流れは次のとおりです。</p>
+<ol>
+<li><code>vkAcquireNextImageKHR</code> で swapchain image を取得する</li>
+<li>semaphore / fence で image 利用可能を待つ</li>
+<li>Luxel の target と swapchain image を transfer layout へ遷移する</li>
+<li>target の内容を swapchain image へ copy する</li>
+<li>swapchain image を present layout へ遷移する</li>
+<li><code>vkQueuePresentKHR</code> で表示する</li>
+</ol>
+<p>Out-of-date または resize が発生した場合は、利用中の resource を待って swapchain を再作成します。</p>
+<h2 id="lifetime">Lifetime と実装を追う順序</h2>
+<p>Vulkan では object 破棄順、device memory の unmap/free、descriptor slot、command pool、swapchain image の所有者を区別する必要があります。</p>
+<ol>
+<li><code>src/Luxel.Graphics/GpuDevice.cs</code></li>
+<li><code>src/Luxel.Graphics.Vulkan/VulkanBackend.cs</code></li>
+<li><code>VulkanBuffer.cs</code> / <code>VulkanTexture.cs</code> / <code>VulkanSampler.cs</code></li>
+<li><code>VulkanPipeline.cs</code> / <code>VulkanCommandBuffer.cs</code></li>
+<li><code>VulkanQueue.cs</code> / <code>VulkanSurface.cs</code> / <code>VulkanPresentationSource.cs</code></li>
+</ol>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/Internal/Vulkan&quot;, Order = 10, Toc = true)]
+public static StoryResult Vulkan() =&gt; $$&quot;&quot;&quot;
+    # Vulkan backend の resource 実装
+
+    &gt; [!WARNING]
+    &gt; このページは `Luxel.Graphics.Vulkan` の内部実装を説明します。公開 API の利用方法ではなく、共通 resource が Vulkan object と synchronization へ変換される過程が対象です。
+
+    {{RenderingCourseCatalog.Meta(&quot;Learn/Graphics/Internal/Vulkan&quot;, &quot;Advanced&quot;, &quot;Windows / Linux native&quot;, &quot;Vulkan&quot;, &quot;Buffers / Textures / Shaders / PipelineState / Synchronization&quot;)}}
+
+    ## 共通 API から backend への入口
+
+    `VulkanBackend` は instance、physical device、logical device、queue、descriptor set layout、pipeline layout を初期化し、`IGpuBackend` の resource factory を実装します。
+
+    ```text
+    GpuDevice
+      └─ VulkanBackend
+           ├─ VulkanBuffer / VulkanTexture / VulkanSampler
+           ├─ VulkanPipeline
+           ├─ VulkanCommandBuffer
+           ├─ VulkanQueue
+           └─ VulkanSurface
+    ```
+
+    公開 API に Vulkan の descriptor set は現れません。backend は buffer、sampled image、sampler の配列を持つ bindless descriptor set を作り、各 wrapper の `BindlessIndex` を配列 index として shader へ渡します。
+
+    ## Buffer と memory
+
+    `CreateBuffer` は storage、transfer、indirect、device address など Luxel が必要とする usage flag を組み合わせて `VkBuffer` を作ります。その後 memory requirements を取得し、`GpuMemoryKind` に合う memory type を選び、allocate と bind を行います。
+
+    Host-visible memory は必要に応じて map し、CPU write / readback に使います。Device-local buffer へ初期 data を渡す場合は staging resource と copy command を使います。作成後は storage buffer descriptor array の `BindlessIndex` 位置を `vkUpdateDescriptorSets` で更新します。
+
+    ## Texture、render target、depth target
+
+    `VulkanTexture` は `VkImage`、memory、image view、format、extent、layout を保持します。
+
+    - render target: color attachment と transfer 用 usage を持つ image
+    - depth target: depth/stencil attachment 用 image と aspect mask
+    - sampled texture: sampled と transfer destination 用 image、および sampled-image descriptor
+    - presentation: swapchain image は `VulkanSurface` が所有し、通常の texture wrapper とは lifetime が異なる
+
+    Luxel の rendering は dynamic rendering を使うため、固定 render pass object を page ごとに作りません。`BeginRendering` が color / depth attachment info を組み立て、現在の image layout を attachment 向けに遷移します。
+
+    ## Texture upload
+
+    Sampled texture の upload は staging buffer、image layout transition、buffer-to-image copy の順です。
+
+    ```text
+    CPU pixels
+      → mapped staging buffer
+      → TRANSFER_DST_OPTIMAL
+      → vkCmdCopyBufferToImage
+      → SHADER_READ_ONLY_OPTIMAL
+    ```
+
+    row pitch と format から copy region を構築し、one-shot command を queue へ submit します。完了後に staging buffer を破棄し、sampled-image descriptor array を更新します。
+
+    ## Sampler
+
+    `CreateSampler` は filter、mipmap mode、address mode を `VkSamplerCreateInfo` へ変換して `VkSampler` を作ります。sampler descriptor array の slot が `GpuSampler.BindlessIndex` です。Texture と sampler は別配列なので、shader 側でも別 index として扱います。
+
+    ## Shader と pipeline
+
+    Vulkan backend は `GpuShaderCode` から SPIR-V を選び、`VkShaderModule` を作ります。Compute pipeline は shader stage と共通 pipeline layout から作成します。
+
+    Graphics pipeline は shader stage、vertex 入力方針、input assembly、rasterization、multisample、depth/stencil、blend、dynamic state、dynamic-rendering format を `vkCreateGraphicsPipelines` へ渡します。viewport と scissor など command ごとに変わる値は dynamic state として記録します。
+
+    ## Descriptor と push constants
+
+    Backend が作る共通 pipeline layout は bindless descriptor set layout と push constant range を接続します。
+
+    | 共通 API | Vulkan 実装 |
+    | --- | --- |
+    | `BindlessIndex` | descriptor array element |
+    | root arguments | push constants |
+    | buffer / texture / sampler bind | 共通 descriptor set の bind |
+    | graphics state | pipeline object と dynamic state |
+
+    Resource を作成・破棄するときは descriptor slot allocator と descriptor write の順序が重要です。GPU が古い descriptor を参照中に slot を再利用しないことが lifetime の前提です。
+
+    ## Command recording と barrier
+
+    `VulkanQueue` が command pool と command buffer を用意し、`VulkanCommandBuffer` が共通 command を Vulkan command へ変換します。
+
+    - `SetRootArguments`: `vkCmdPushConstants`
+    - `SetPipeline`: pipeline と bindless descriptor set を bind
+    - `BeginRendering` / `EndRendering`: dynamic rendering を開始・終了
+    - `Draw` / `Dispatch`: graphics / compute command
+    - copy: buffer、image、layout を組み合わせた transfer command
+    - `Barrier`: `GpuStage` を synchronization2 の stage/access mask へ変換
+
+    Barrier は `VkDependencyInfo` と `vkCmdPipelineBarrier2` を使います。Buffer の producer / consumer 順序に加え、image では old layout、new layout、aspect を tracking して image memory barrier を作ります。考え方は [GPU synchronization](story:Learn/Graphics/Synchronization) と対応します。
+
+    ## Queue submission と完了待ち
+
+    Command buffer を end した後、`VulkanQueue` は `vkQueueSubmit` で実行します。同期 helper は `vkQueueWaitIdle` を使うため理解しやすい一方、frame ごとの hot path では fence や semaphore で必要な依存だけを表現する方が効率的です。
+
+    ## Surface、swapchain、presentation
+
+    `VulkanPresentationSource` は platform が必要とする instance extension と surface 作成 callback を backend へ渡します。`VulkanSurface` は surface format、present mode、extent を選んで swapchain と image view を作ります。
+
+    Present の流れは次のとおりです。
+
+    1. `vkAcquireNextImageKHR` で swapchain image を取得する
+    2. semaphore / fence で image 利用可能を待つ
+    3. Luxel の target と swapchain image を transfer layout へ遷移する
+    4. target の内容を swapchain image へ copy する
+    5. swapchain image を present layout へ遷移する
+    6. `vkQueuePresentKHR` で表示する
+
+    Out-of-date または resize が発生した場合は、利用中の resource を待って swapchain を再作成します。
+
+    ## Lifetime と実装を追う順序
+
+    Vulkan では object 破棄順、device memory の unmap/free、descriptor slot、command pool、swapchain image の所有者を区別する必要があります。
+
+    1. `src/Luxel.Graphics/GpuDevice.cs`
+    2. `src/Luxel.Graphics.Vulkan/VulkanBackend.cs`
+    3. `VulkanBuffer.cs` / `VulkanTexture.cs` / `VulkanSampler.cs`
+    4. `VulkanPipeline.cs` / `VulkanCommandBuffer.cs`
+    5. `VulkanQueue.cs` / `VulkanSurface.cs` / `VulkanPresentationSource.cs`
+    &quot;&quot;&quot;;</code></pre></details></article>
