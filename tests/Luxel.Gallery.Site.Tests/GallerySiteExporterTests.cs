@@ -1314,8 +1314,9 @@ public sealed class GallerySiteExporterTests
             .Select(story => story.Path)
             .ToArray();
         Assert.Equal(RenderingCourseCatalog.Routes, orderedGraphicsRoutes);
-        Assert.Equal("Learn/Graphics/2D/Overview", orderedGraphicsRoutes[9]);
-        Assert.Equal("Learn/Graphics/2D/Internal/Overview", orderedGraphicsRoutes[16]);
+        Assert.Equal("Learn/Graphics/Internal/DirectX12", orderedGraphicsRoutes[9]);
+        Assert.Equal("Learn/Graphics/2D/Overview", orderedGraphicsRoutes[12]);
+        Assert.Equal("Learn/Graphics/2D/Internal/Overview", orderedGraphicsRoutes[19]);
 
         string[] orderedRenderGraphRoutes = Catalog.All
             .Where(story => story.Path.StartsWith("Learn/Graphics/RenderGraph/", StringComparison.Ordinal))
@@ -1342,6 +1343,55 @@ public sealed class GallerySiteExporterTests
             if (i > 0)
                 Assert.Contains("```", document.DocumentSource); // The page remains understandable without opening sample files.
         }
+    }
+
+    [Fact]
+    public void Graphics_backend_internal_pages_are_ordered_linked_and_resource_oriented()
+    {
+        string[] routes =
+        [
+            "Learn/Graphics/Internal/DirectX12",
+            "Learn/Graphics/Internal/Vulkan",
+            "Learn/Graphics/Internal/WebGPU",
+        ];
+        StoryInfo[] stories = routes.Select(path => Catalog.Find(path)
+            ?? throw new InvalidOperationException($"Graphics backend internal route is missing: {path}")).ToArray();
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null, Catalog);
+
+        Assert.Empty(DocsIndex.ValidateLinks(pages, Catalog));
+        foreach (StoryInfo story in stories)
+        {
+            string source = pages[story.Path].Text;
+            foreach (string heading in new[]
+                     {
+                         "## Buffer", "## Texture", "## Sampler", "## Shader", "## Command",
+                         "## Queue", "## Surface", "## Lifetime",
+                     })
+                Assert.Contains(heading, source);
+            Assert.Contains("BindlessIndex", source);
+            Assert.Contains("**難易度:**", source);
+            Assert.Contains("**実行環境:**", source);
+            Assert.Contains("**Backend:**", source);
+            Assert.Contains("**前提知識:**", source);
+        }
+
+        string directX12 = pages[routes[0]].Text;
+        foreach (string term in new[] { "GetCopyableFootprints", "root signature", "ID3D12Fence", "IDXGISwapChain3" })
+            Assert.Contains(term, directX12);
+        Assert.Contains("story:Learn/Graphics/Synchronization", directX12);
+        Assert.Contains("story:Learn/Graphics/Internal/Vulkan", directX12);
+
+        string vulkan = pages[routes[1]].Text;
+        foreach (string term in new[] { "vkUpdateDescriptorSets", "vkCreateGraphicsPipelines", "vkCmdPipelineBarrier2", "vkQueuePresentKHR" })
+            Assert.Contains(term, vulkan);
+        Assert.Contains("story:Learn/Graphics/Internal/DirectX12", vulkan);
+        Assert.Contains("story:Learn/Graphics/Internal/WebGPU", vulkan);
+
+        string webGpu = pages[routes[2]].Text;
+        foreach (string term in new[] { "bind group layout", "QueueWriteTexture", "DevicePoll", "submission serial", "Promise" })
+            Assert.Contains(term, webGpu, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("story:Learn/Graphics/Internal/Vulkan", webGpu);
+        Assert.Contains("story:Learn/Graphics/2D/Overview", webGpu);
     }
 
     [Fact]
@@ -1442,6 +1492,132 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Animation_learn_chain_is_complete_ordered_and_implementation_accurate()
+    {
+        string[] orderedRoutes = Catalog.All
+            .Where(story => story.Path.StartsWith("Learn/Animation/", StringComparison.Ordinal))
+            .Select(story => story.Path)
+            .ToArray();
+        Assert.Equal(AnimationCourseCatalog.Routes, orderedRoutes);
+        Assert.Equal(16, orderedRoutes.Length);
+        Assert.Equal(AnimationCourseCatalog.Routes[9..], AnimationCourseCatalog.ParticleRoutes);
+        Assert.Equal(7, AnimationCourseCatalog.ParticleRoutes.Length);
+        Assert.All(AnimationCourseCatalog.ParticleRoutes,
+            route => Assert.StartsWith("Learn/Animation/Particles/", route, StringComparison.Ordinal));
+
+        StoryInfo[] stories = AnimationCourseCatalog.Routes.Select(path => Catalog.Find(path)
+            ?? throw new InvalidOperationException($"Animation Learn route is missing: {path}")).ToArray();
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null, Catalog);
+
+        Assert.Empty(DocsIndex.ValidateLinks(pages, Catalog));
+        for (int i = 0; i < stories.Length; i++)
+        {
+            StoryInfo story = stories[i];
+            DocsPage page = pages[story.Path];
+            using var context = new StoryContext();
+            StoryResult result = story.BuildResult(context);
+
+            Assert.Equal(StoryResultKind.Markdown, result.Kind);
+            Assert.True(story.Toc);
+            Assert.Contains("<!-- luxel-toc -->", StoryMarkdownRenderer.EffectiveMarkdown(story, result.Markdown));
+            Assert.Contains("**難易度:**", page.Text);
+            Assert.Contains("**実行環境:**", page.Text);
+            Assert.Contains("**Backend:**", page.Text);
+            Assert.Contains("**前提知識:**", page.Text);
+            Assert.True(page.Headings.Count >= 3, $"Animation page needs multiple sections: {page.Path}");
+            Assert.Contains("```", page.Text);
+            if (i > 0) Assert.Contains("story:" + stories[i - 1].Path, page.Text);
+            if (i + 1 < stories.Length) Assert.Contains("story:" + stories[i + 1].Path, page.Text);
+        }
+
+        Assert.Contains("story:Learn/Animation/Particles/Overview",
+            pages["Learn/Animation/ImportAndDebugging"].Text);
+        Assert.Contains("story:Learn/Animation/ImportAndDebugging",
+            pages["Learn/Animation/Particles/Overview"].Text);
+
+        (string Page, string Sample)[] references =
+        [
+            ("Learn/Animation/CurvesAndTweens", "Examples/Animation/Curves"),
+            ("Learn/Animation/SequenceAndParallel", "Examples/Animation/Tween"),
+            ("Learn/Animation/ClipsAndTracks", "Examples/Animation/EcsClip"),
+            ("Learn/Animation/GraphsAndBlending", "Examples/Animation/Graph"),
+            ("Learn/Animation/StateMachines", "Examples/Animation/StateMachine"),
+            ("Learn/Animation/ImportAndDebugging", "Examples/Animation/CssKeyframes"),
+            ("Learn/Animation/Particles/Overview", "Examples/2D/ParticleView"),
+            ("Learn/Animation/Particles/Rendering2DAndUI", "Examples/2D/Particles"),
+            ("Learn/Animation/Particles/Rendering3D", "Examples/3D/Particles"),
+        ];
+        foreach ((string pagePath, string samplePath) in references)
+        {
+            StoryInfo sample = Catalog.Find(samplePath)
+                ?? throw new InvalidOperationException($"Animation sample route is missing: {samplePath}");
+            Assert.NotNull(sample);
+            ISemanticDocument document = BuildSemanticDocument(Catalog.Find(pagePath)!)!;
+            Assert.Contains(document.DocumentEmbeds,
+                embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == samplePath);
+        }
+
+        string overview = pages["Learn/Animation/Overview"].Text;
+        foreach (string term in new[] { "ICurve", "ITween<T>", "AnimationPlayer", "AnimationClip", "AnimationGraph", "StateMachine", "ParticleSystem" })
+            Assert.Contains(term, overview);
+
+        string curves = pages["Learn/Animation/CurvesAndTweens"].Text;
+        foreach (string term in new[] { "JumpStart", "JumpEnd", "JumpBoth", "JumpNone", "underdamped", "critical", "overdamped" })
+            Assert.Contains(term, curves);
+        Assert.Contains(BuildSemanticDocument(Catalog.Find("Learn/Animation/CurvesAndTweens")!)!.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/Animation/Curves");
+
+        (string Path, string Helper)[] sourceHelpers =
+        [
+            ("Examples/Animation/CssKeyframes", "class CssClipScene"),
+            ("Examples/Animation/StateMachine", "class StateMachineScene"),
+            ("Examples/Animation/EcsClip", "new EcsAnimationTarget"),
+            ("Examples/Animation/Graph", "class PositionTarget"),
+        ];
+        foreach ((string path, string helper) in sourceHelpers)
+            Assert.Contains(helper, Catalog.Find(path)!.Source);
+
+        string ecsClipSource = Catalog.Find("Examples/Animation/EcsClip")!.Source!;
+        Assert.Contains("Animate.Clip", ecsClipSource);
+        Assert.Contains("new EcsAnimationTarget", ecsClipSource);
+        Assert.Contains("Matrix4x4.Decompose", ecsClipSource);
+        Assert.DoesNotContain("GpuView", ecsClipSource);
+        Assert.DoesNotContain("RenderGraph", ecsClipSource);
+
+        string graphSource = Catalog.Find("Examples/Animation/Graph")!.Source!;
+        Assert.Contains("new BlendNode", graphSource);
+        Assert.Contains("new AnimationGraph", graphSource);
+        Assert.Contains("class PositionTarget", graphSource);
+        Assert.DoesNotContain("GpuView", graphSource);
+        Assert.DoesNotContain("RenderGraph", graphSource);
+
+        string timing = pages["Learn/Animation/PlayerAndTiming"].Text;
+        foreach (string term in new[] { "絶対時刻", "Play()", "Loop", "TimeScale", "Stop(entry)", "completion" })
+            Assert.Contains(term, timing, StringComparison.OrdinalIgnoreCase);
+
+        string tracks = pages["Learn/Animation/ClipsAndTracks"].Text;
+        foreach (string term in new[] { "CubicSpline", "linearへfallback", "linear search", "path" })
+            Assert.Contains(term, tracks);
+
+        string targets = pages["Learn/Animation/TargetsAndBindings"].Text;
+        foreach (string term in new[] { "SignalAnimationTarget.For", "RetainedCanvasAnimationTarget", "EcsAnimationTarget", "黙って無視" })
+            Assert.Contains(term, targets);
+
+        string simulation = pages["Learn/Animation/Particles/EmissionAndSimulation"].Text;
+        foreach (string term in new[] { "continuous emission", "Forces", "Age >= LifeMax", "stable compaction", "Capacity" })
+            Assert.Contains(term, simulation);
+
+        string resources = pages["Learn/Animation/Particles/ResourcesAndDebugging"].Text;
+        foreach (string term in new[] { "ParticleConfigStep", "Spherical", "未知のease", "任意`ICurve`", "round-trip", "adapterを再作成" })
+            Assert.Contains(term, resources);
+
+        Assert.Null(Catalog.Find("Learn/AnimationParticles/Overview"));
+        Assert.Null(Catalog.Find("Learn/AnimationParticles/GraphsAndEmitters"));
+        Assert.Contains("story:Learn/Animation/Overview", pages["Learn/Animation/Overview"].Text
+            + BuildSemanticDocument(Catalog.Find("Start/Welcome")!)!.DocumentSource);
+    }
+
+    [Fact]
     public void RenderGraph_learn_chain_is_ordered_and_linked()
     {
         string[] routes = RenderingCourseCatalog.Routes[^6..];
@@ -1527,7 +1703,7 @@ public sealed class GallerySiteExporterTests
         Assert.DoesNotContain("## 実sampleのframe loop", clearColor);
         Assert.DoesNotContain("SampleSource(\"samples/LuxelTriangle/Program.cs\", \"standalone-frame-loop\")", clearColor);
 
-        Assert.Contains("story:Learn/Graphics/2D/Overview", pages[stories[^1].Path].Text);
+        Assert.Contains("story:Learn/Graphics/Internal/DirectX12", pages[stories[^1].Path].Text);
 
         string overview = pages[stories[0].Path].Text.ToLowerInvariant();
         foreach (string term in new[] { "triangle", "texture", "shader", "pipeline", "barrier", "submit", "render graph" })
@@ -1955,7 +2131,9 @@ public sealed class GallerySiteExporterTests
             previous = current;
         }
         Assert.True(overview.IndexOf("story:Examples/3D/Triangle", StringComparison.Ordinal) > previous);
-        Assert.Contains("その下のInternal", overview);
+        Assert.Contains("story:Learn/Graphics/Internal/DirectX12", overview);
+        Assert.Contains("story:Learn/Graphics/Internal/Vulkan", overview);
+        Assert.Contains("story:Learn/Graphics/Internal/WebGPU", overview);
 
     }
 
@@ -2071,7 +2249,6 @@ public sealed class GallerySiteExporterTests
             "Learn/Resources/Assets/LoadingAndGpu", "Learn/Resources/Assets/ShaderCalculations",
             "Learn/Resources/Assets/GltfRuntime",
             "Learn/ECSPhysics/Overview", "Learn/ECSPhysics/CollisionsAndGizmos",
-            "Learn/AnimationParticles/Overview", "Learn/AnimationParticles/GraphsAndEmitters",
             "Learn/Scripting/Overview", "Learn/Scripting/ReloadAndIsolation",
             "Learn/Production/StudioToPlayer", "Learn/Production/Workbench", "Learn/Production/ValidateAndShip",
         ];

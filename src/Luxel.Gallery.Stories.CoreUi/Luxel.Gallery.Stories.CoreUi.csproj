@@ -18,6 +18,9 @@
     <ProjectReference Include="..\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
     <ProjectReference Include="..\Luxel.Animation\Luxel.Animation.csproj" />
     <ProjectReference Include="..\Luxel.Animation.UI\Luxel.Animation.UI.csproj" />
+    <ProjectReference Include="..\Luxel.Animation.TwoD\Luxel.Animation.TwoD.csproj" />
+    <ProjectReference Include="..\Luxel.Animation.ThreeD\Luxel.Animation.ThreeD.csproj" />
+    <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj" />
     <ProjectReference Include="..\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
     <ProjectReference Include="..\Luxel.Diagram\Luxel.Diagram.csproj" />
     <ProjectReference Include="..\Luxel.MathText\Luxel.MathText.csproj" />

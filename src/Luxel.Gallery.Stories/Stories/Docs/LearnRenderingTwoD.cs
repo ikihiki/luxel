@@ -31,7 +31,7 @@ public static class LearnRenderingTwoD
         {{sample}}
         """;
 
-    [Story("Learn/Graphics/2D/Paths", Order = 10, Toc = true)]
+    [Story("Learn/Graphics/2D/Paths", Order = 13, Toc = true)]
     public static StoryResult Paths() => Page("Learn/Graphics/2D/Paths", "Path、fill、stroke",
         "contourを開始・確定し、open strokeとclosed fillを意図どおり描き分ける。",
         "`BeginFill`/`BeginStroke`でshapeを開始し、`MoveTo`でcontourを開始します。`MoveTo`は直前のcontourを確定し、`End`がshapeをsceneへ追加します。curveはCPUでline segmentへflattenされます。",
@@ -47,7 +47,7 @@ scene.BeginFill(Color2D.Rgba(59, 130, 246), FillRule.EvenOdd)
         "fillとimage contourはencode時に閉じます。strokeは`Close`を呼んだcontourだけが閉じます。`LineTo`/`QuadTo`/`CubicTo`にはcurrent contourが必要で、2点未満のcontourは破棄されます。`FlattenTolerance`の単位はworld unitです。",
         StoryReference.To("Examples/2D/Rasterizer/InputPathsLive"));
 
-    [Story("Learn/Graphics/2D/Compositing", Order = 11, Toc = true)]
+    [Story("Learn/Graphics/2D/Compositing", Order = 14, Toc = true)]
     public static StoryResult Compositing() => Page("Learn/Graphics/2D/Compositing", "Fill ruleと合成",
         "NonZero/EvenOdd、painter order、premultiplied source-overを説明できる。",
         "NonZeroはwinding count、EvenOddは交差回数の偶奇で内外を決めます。shapeはsceneへ追加した順に描かれ、後のshapeが前の結果へsource-over合成されます。",
@@ -62,7 +62,7 @@ scene.EndFill();
         "`Color2D`はredがlow byteのpacked表現です。`0xAARRGGBB`を想定したliteralは避け、`Color2D.Rgba(r,g,b,a)`を使います。premultiplied colorはRGBにもalphaを掛け、source-overは`out = src + dst × (1-src.a)`です。",
         StoryReference.To("Examples/2D/Rasterizer/CompositeLive"));
 
-    [Story("Learn/Graphics/2D/Images", Order = 12, Toc = true)]
+    [Story("Learn/Graphics/2D/Images", Order = 15, Toc = true)]
     public static StoryResult Images() => Page("Learn/Graphics/2D/Images", "Image、sprite、atlas",
         "画像全体、atlasのsub-rect、名前付きsprite、animation frameを用途に応じて描き分ける。",
         "`ImageRect`は1枚のRGBA画像全体を矩形へ写します。atlasは複数画像を1枚へ詰めたsourceで、`ImageSubRect`がpixel座標の一部だけを選びます。`SpriteAtlas`は名前から`SpriteRect`を引くmetadataで、`DrawSprite`がsub-rect選択・pivot・scaleをまとめます。`SpriteAnimation`は現在のframe名を選び、最終的には同じ`DrawSprite`へ渡されます。",
@@ -93,7 +93,7 @@ scene.DrawSprite(atlas, animation, x: 300, y: 96, scale: 2f);
         "`srcStride`はbyte数ではなくpixel単位の行幅です。source bufferはRGBA8を密に並べ、sessionより長く生存させます。`SpriteAtlas`はpack処理を行わず、外部toolまたはasset metadataが作った矩形を保持します。pivotは指定world座標へ合わせるsprite内の基準点です。RGBAはpremultipliedを前提とし、atlas sub-rectは隣接cellへfilter bleedしないよう範囲内へclampされます。Skia backendはbindless image shapeを支援しないため`Rasterizer2DCapabilities.BindlessImages`を確認します。",
         StoryReference.To("Examples/2D/Sprites"));
 
-    [Story("Learn/Graphics/2D/Camera", Order = 13, Toc = true)]
+    [Story("Learn/Graphics/2D/Camera", Order = 16, Toc = true)]
     public static StoryResult Camera() => Page("Learn/Graphics/2D/Camera", "Camera2Dと描画変換",
         "world-space geometryをCamera2Dでscreenへ変換する。",
         "`Camera2D`はaffine変換です。`screen.x=A×world.x+C×world.y+E`、`screen.y=B×world.x+D×world.y+F`として、同じsceneをpan/zoomした結果へ写します。",
@@ -111,7 +111,7 @@ encoded.Render(camera, target);
         "geometry座標はworld-space、stroke widthはscreen pixelです。rasterizerへcameraを渡す場合、geometryを手動で同じcamera変換してはいけません。resize時はscreen寸法からcameraを作り直し、0×0 targetではrenderしません。input、pointer逆変換、hit testはこのコースの対象外です。",
         StoryReference.To("Examples/2D/CameraRig"));
 
-    [Story("Learn/Graphics/2D/Backends", Order = 14, Toc = true)]
+    [Story("Learn/Graphics/2D/Backends", Order = 17, Toc = true)]
     public static StoryResult Backends() => Page("Learn/Graphics/2D/Backends", "GPUとSkia backend",
         "同じScene2DをGPUとSkiaで描画し、targetとcapabilityの違いを説明する。",
         "描画内容は`Scene2D`、backend選択は`IRasterizer2D`、出力先は`IRasterTarget2D`へ分かれます。GPUはcommandへ記録し、SkiaはCPU RGBAへ同期描画します。サンプルは両方の結果を`GpuView`で並べますが、Skia側の`GpuView`はCPU結果を表示するtransportであり、rasterize自体はSkiaです。",
@@ -132,7 +132,7 @@ skiaScene.Render(Camera2D.Pixels, cpuTarget);
         StoryReference.To("Examples/2D/Backends"),
         environment: "Native Gallery / Standalone / Headless");
 
-    [Story("Learn/Graphics/2D/IncrementalUpdates", Order = 15, Toc = true)]
+    [Story("Learn/Graphics/2D/IncrementalUpdates", Order = 18, Toc = true)]
     public static StoryResult IncrementalUpdates() => Page("Learn/Graphics/2D/IncrementalUpdates", "RetainedCanvasと増分更新",
         "RetainedCanvasを速度改善のために導入し、mutationの種類とGPU upload量の関係を観測する。",
         "`Scene2D`はencode時のsnapshotです。同じcontentを繰り返し描き、一部のtransform/styleだけを変える場合、`RetainedCanvas`はpersistent node、stable slot、dirty rangeを使って再encodeを避けます。transform/style-only updateは小さなin-place writeになり、contentやtree構造の変更はsegment writeまたはfull rebuildになります。",
