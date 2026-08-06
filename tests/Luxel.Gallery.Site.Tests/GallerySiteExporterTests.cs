@@ -698,7 +698,7 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("&amp;instance=", fragment);
             Assert.Contains($"data-luxel-runtime-story=\"{storyPath}\"", fragment);
             Assert.Contains("<article class=\"story runtime-page\">", fragment);
-            Assert.Contains("allow=\"webgpu; clipboard-read; clipboard-write\"", fragment);
+            Assert.Contains("allow=\"webgpu; autoplay; clipboard-read; clipboard-write\"", fragment);
             Assert.Contains("role=\"tablist\"", fragment);
             Assert.Contains("data-runtime-tab=\"args\"", fragment);
             Assert.Contains("data-runtime-tab=\"output\"", fragment);
@@ -1259,14 +1259,21 @@ public sealed class GallerySiteExporterTests
                 $"Audio lesson lacks a concept-sized code example: {path}");
         }
 
-        string examples = string.Join('\n', new[]
+        Assert.DoesNotContain("コピーして動かす — Headless audio tone", pages["Learn/Audio/Overview"].Text, StringComparison.Ordinal);
+
+        StoryCatalog browserCatalog = CoreUiStoryProject.CreateCatalog();
+        foreach (string route in new[]
+                 {
+                     "Examples/Audio/BackendLifecycle", "Examples/Audio/WaveformAndVoice", "Examples/Audio/Buses",
+                     "Examples/Audio/SpatialAttenuation", "Examples/Audio/StreamingQueue",
+                 })
         {
-            BuildSemanticDocument(Catalog.Find("Examples/Audio/Buses")!)!.DocumentSource!,
-            BuildSemanticDocument(Catalog.Find("Examples/Audio/SpatialAttenuation")!)!.DocumentSource!,
-            BuildSemanticDocument(Catalog.Find("Examples/Audio/StreamingQueue")!)!.DocumentSource!,
-        });
-        foreach (string api in new[] { "AudioBus", "EffectiveVolume", "AudioSource3D", "EffectivePan", "WavStream", "StreamingVoice", "Pump()" })
-            Assert.Contains(api, examples, StringComparison.Ordinal);
+            StoryInfo story = browserCatalog.Find(route) ?? throw new InvalidOperationException($"Browser catalog: {route}");
+            Assert.Equal(CoreUiStoryProject.RuntimeBundleId, story.RuntimeBundleId);
+            Assert.Null(story.SampleBundle);
+            using var context = new StoryContext();
+            Assert.Equal(StoryResultKind.Widget, story.BuildResult(context).Kind);
+        }
     }
 
     [Fact]
@@ -2023,7 +2030,6 @@ public sealed class GallerySiteExporterTests
         (string Bundle, string Learn)[] cases =
         [
             ("input.actions", "Learn/Input/Overview"),
-            ("audio.tone", "Learn/Audio/Overview"),
             ("resources.pipeline", "Learn/Resources/Overview"),
         ];
         foreach (var item in cases)
@@ -2097,9 +2103,7 @@ public sealed class GallerySiteExporterTests
     {
         (string Route, string Bundle)[] examples =
         [
-            ("Examples/Audio/WaveformAndVoice", "audio.tone"),
-            ("Examples/Audio/Buses", "audio.tone"), ("Examples/Audio/SpatialAttenuation", "audio.tone"),
-            ("Examples/Audio/StreamingQueue", "audio.tone"), ("Examples/Resources/Pipeline", "resources.pipeline"),
+            ("Examples/Resources/Pipeline", "resources.pipeline"),
             ("Examples/Resources/DependencyDag", "resources.pipeline"), ("Examples/Resources/Reload", "resources.pipeline"),
             ("Examples/Resources/Lifetime", "resources.pipeline"),
         ];

@@ -4,8 +4,10 @@ using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Luxel.AssetsGpu;
+using Luxel.Audio.Browser;
 using Luxel.Controls;
 using Luxel.Gallery;
+using Luxel.Gallery.Stories;
 using Luxel.Graphics;
 using Luxel.Graphics.TwoD;
 using Luxel.Graphics.WebGPU.Browser;
@@ -54,8 +56,14 @@ public static partial class Program
         using WebWindowBackend web = await CreateWindowBackend();
         using var clipboard = new Clipboard(web.CreateClipboardBackend());
         PlatformClipboard.Current = clipboard;
+        BrowserAudioBackend? audio = null;
         try
         {
+            if (path.StartsWith("Examples/Audio/", StringComparison.Ordinal))
+            {
+                audio = await BrowserAudioBackend.CreateAsync();
+                AudioStories.ConfigureRuntime(audio, () => audio.ResumeAsync(), () => audio.SuspendAsync(), () => audio.State.ToString());
+            }
             using var windows = new WindowSystem(web);
             int initialWidth = story.Width > 0 ? story.Width : 640;
             int initialHeight = story.Height > 0 ? story.Height : 360;
@@ -156,6 +164,8 @@ public static partial class Program
         }
         finally
         {
+            AudioStories.ResetRuntime();
+            audio?.Dispose();
             PlatformClipboard.Current = null;
             _activeContext = null;
             _activeStory = null;

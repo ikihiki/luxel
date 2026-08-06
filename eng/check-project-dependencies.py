@@ -65,7 +65,7 @@ forbid_closure("Luxel.Gallery", lambda stem: stem in {
 forbid_closure("Luxel.Gallery.Site", lambda stem: stem == "Luxel.Gallery.Host", "Site/Host")
 
 native_heavy = lambda stem: (
-    stem in {"Luxel.Platform.Windows", "Luxel.Input.XInput", "Luxel.Audio", "Luxel.Audio.Windows", "Luxel.Audio.Silk",
+    stem in {"Luxel.Platform.Windows", "Luxel.Input.XInput", "Luxel.Audio.Windows", "Luxel.Audio.Silk",
              "Luxel.Graphics.Vulkan", "Luxel.Graphics.DirectX12", "Luxel.Graphics.TwoD.Skia",
              "Luxel.Typography.Icu"}
     or stem.startswith("Luxel.Terminal")
