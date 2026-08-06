@@ -17,6 +17,10 @@ const twoDStories = [
   'Examples/2D/Rasterizer/RetainedUpdatesLive'
 ];
 
+const ecsStories = [
+  'Examples/3D/EcsCubes'
+];
+
 const pipelineStateStories = [
   'Examples/3D/PipelineState/Topology',
   'Examples/3D/PipelineState/Rasterizer',
@@ -61,6 +65,19 @@ for (const story of twoDStories) {
     const errors = collectErrors(page);
     await page.goto(`/samples/webgpu-browser/?story=${encodeURIComponent(story)}`);
     await expectRuntimeStory(page, story);
+    expect(errors.consoleErrors).toEqual([]);
+    expect(errors.pageErrors).toEqual([]);
+  });
+}
+
+for (const story of ecsStories) {
+  test(`browser-WASM renders ${story}`, async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto(`/samples/webgpu-browser/?story=${encodeURIComponent(story)}`);
+    await expectRuntimeStory(page, story);
+    await expect.poll(() => page.evaluate(() =>
+      globalThis.luxelBrowserState?.widgets?.find(widget => widget.type?.endsWith('.GpuView'))?.detail || ''),
+      { timeout: 90_000 }).toContain('Ready');
     expect(errors.consoleErrors).toEqual([]);
     expect(errors.pageErrors).toEqual([]);
   });

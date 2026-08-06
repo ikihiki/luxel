@@ -1298,7 +1298,10 @@ public sealed class GallerySiteExporterTests
         foreach (string route in EcsCourseCatalog.Routes)
             Assert.Contains("story:" + route, overview);
 
-        Assert.NotNull(Catalog.Find("Examples/3D/EcsCubes"));
+        StoryCatalog browserCatalog = CoreUiStoryProject.CreateCatalog();
+        StoryInfo ecsCubes = Assert.IsType<StoryInfo>(browserCatalog.Find("Examples/3D/EcsCubes"));
+        Assert.Equal(CoreUiStoryProject.RuntimeBundleId, ecsCubes.RuntimeBundleId);
+        Assert.Equal(CoreUiStoryProject.RuntimeBundleId, Catalog.Find("Examples/3D/EcsCubes")?.RuntimeBundleId);
         Assert.NotNull(SampleBundleRegistry.Find("game.range"));
 
         string physicsOverview = pages["Learn/ECS/Physics/Overview"].Text;

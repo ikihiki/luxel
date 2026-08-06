@@ -70,6 +70,7 @@ public sealed class BrowserStoryCatalogSourceTests
         string[] runtimePaths = manifest.GetProperty("stories").EnumerateArray()
             .Select(story => story.GetProperty("path").GetString()!)
             .ToArray();
+        Assert.Contains("Examples/3D/EcsCubes", runtimePaths);
         Assert.All(pipelineStories, path => Assert.Contains(path, runtimePaths));
         Assert.Equal(320, blur.GetProperty("width").GetInt32());
         Assert.Equal(320, blur.GetProperty("height").GetInt32());

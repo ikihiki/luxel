@@ -64,10 +64,6 @@ public static class Ecs3DStories
         public uint Pad0, Pad1, Pad2;
     }
 
-    /// <summary>5×5 グリッドのキューブ world + カメラ周回。ECS 抽出 → RenderGraph 1 パス。</summary>
-    [Story("Examples/3D/EcsCubes", Height = 320, Order = 122)]
-    public static Widget EcsCubes() => Frame(GpuSceneBase.View(256, 256, new EcsCubesScene()));
-
     /// <summary>world-space UI — Scene2D を bindless バッファへラスタライズし、3D 空間内の
     /// quad がピクセルシェーダでサンプリングする。Compute→PixelShader のバリアは RG が自動挿入。</summary>
     [Story("Examples/3D/WorldSpaceUI", Height = 320, Order = 123)]
@@ -145,65 +141,6 @@ public static class Ecs3DStories
         raster.DepthTest = true;
         raster.DepthWrite = true;
         return raster;
-    }
-
-    /// <summary>ECS キューブ群を graphics 1 パスで描く (カメラは時間で周回)。</summary>
-    private sealed class EcsCubesScene : GpuSceneBase
-    {
-        private GpuBuffer _vb = null!;
-        private Render3DExtractSystem _extractor = null!;
-        private GpuTexture _depth = null!;
-        private GpuPipeline _pipeline = null!;
-
-        protected override bool RenderEveryFrame => true;
-
-        protected override void OnInit()
-        {
-            Luxel.Ecs.World world = CreateCubeGrid(5);
-            _vb = Track(CreateCubeVb(Device));
-            _extractor = Track(new Render3DExtractSystem(world, Device));
-            _extractor.Extract();
-            _depth = Track(Device.CreateDepthTarget(W, H));
-            _pipeline = Track(Device.CreateGraphicsPipeline(GpuShaderCode.Load("cube_forward"),
-                DepthOn(GpuFormat.Rgba8Unorm)));
-        }
-
-        protected override void OnRender(float time)
-        {
-            Matrix4x4 viewProj = OrbitViewProj(time * 0.4f);
-            using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);   // グラフは 1 フレーム使い切り
-            BufferHandle hVerts = rg.ImportBuffer(_vb, "verts");
-            BufferHandle hInsts = rg.ImportBuffer(_extractor.InstanceBuffer, "instances");
-
-            rg.AddPass("Render3D", PassQueue.Graphics)
-              .Read(hVerts).Read(hInsts)
-              .Write(hInsts)   // 「使用」の宣言 — Write が 1 つもないパスはデッドパスカリングされる
-              .Execute(ctx =>
-              {
-                  // Slang/HLSL の既定行列レイアウトは column-major、System.Numerics.Matrix4x4 は
-                  // row-major (各行が連続)。直接アップロードすると shader 側が転置として解釈するので、
-                  // CPU 側で転置を入れて両者を整える。(per-instance 行列は shader 側で Load4 ×4 +
-                  // float4x4(r0..r3) で「各引数=行」として構築するので転置不要。)
-                  var args = new DrawArgs
-                  {
-                      ViewProj = Matrix4x4.Transpose(viewProj),
-                      VertexBufIndex = ctx.BindlessIndex(hVerts),
-                      InstanceBufIndex = ctx.BindlessIndex(hInsts),
-                  };
-                  ctx.Cmd.BeginRendering(Target, _depth, 0.05f, 0.06f, 0.09f, 1f, 1f)
-                         .SetGraphicsPipeline(_pipeline)
-                         .SetRootArguments(args)
-                         .Draw((uint)CubeMesh.VertexCount, (uint)_extractor.InstanceCount)
-                         .EndRendering();
-              });
-
-            using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-            rg.Execute(cmd);
-            cmd.Barrier(GpuStage.ColorOutput, GpuStage.Copy)
-               .CopyTextureToBuffer(Target, OutBuffer);
-            cmd.Finish();
-            Device.MainQueue.SubmitAndWait(cmd);
-        }
     }
 
     /// <summary>3D forward → base バッファへコピー → BlurH/BlurV (transient) → BloomCombine。</summary>

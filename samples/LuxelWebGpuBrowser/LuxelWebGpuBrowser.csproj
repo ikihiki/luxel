@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Luxel.Shaders\Luxel.Shaders.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Shaders.Slang.Browser\Luxel.Shaders.Slang.Browser.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Gallery.Stories.CoreUi\Luxel.Gallery.Stories.CoreUi.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Controls\Luxel.Controls.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
@@ -20,6 +21,11 @@
     <ProjectReference Include="..\..\src\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Platform\Luxel.Platform.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Platform.Web\Luxel.Platform.Web.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Browser stories are source-generated and invoked through catalog delegates. Keep the ECS
+         extraction assembly rooted so the WebAssembly trimmer does not discard its runtime types. -->
+    <TrimmerRootAssembly Include="Luxel.AssetRuntime" />
   </ItemGroup>
   <ItemGroup>
     <!-- Luxel.Typography carries desktop Linux assets for native consumers. The browser root
