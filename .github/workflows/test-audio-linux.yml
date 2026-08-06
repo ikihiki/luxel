@@ -1,0 +1,124 @@
+name: Test Linux Audio
+
+on:
+  pull_request:
+    paths:
+      - 'src/Luxel.Audio/**'
+      - 'src/Luxel.Audio.Linux/**'
+      - 'tests/Luxel.Audio.Linux.Tests/**'
+      - 'eng/desktop/**'
+      - 'src/**/*.csproj'
+      - 'tests/**/*.csproj'
+      - 'Luxel.slnx'
+      - '.github/workflows/test-audio-linux.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  LUXEL_DESKTOP_AUDIO: 'null'
+  LUXEL_AUDIO_SINK: luxel_null
+
+jobs:
+  linux-audio:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Install Linux audio dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pulseaudio pulseaudio-utils libopenal1 libopenal-dev
+      - name: Validate helper scripts
+        run: |
+          bash -n eng/desktop/*.sh
+          python3 eng/desktop/test-wav-analyzer.py
+      - name: Restore targeted projects
+        run: |
+          dotnet restore src/Luxel.Audio.Linux/Luxel.Audio.Linux.csproj
+          dotnet restore tests/Luxel.Audio.Linux.Tests/Luxel.Audio.Linux.Tests.csproj
+      - name: Build Linux audio backend and tests
+        run: |
+          dotnet build src/Luxel.Audio.Linux/Luxel.Audio.Linux.csproj --no-restore --configuration Release
+          dotnet build tests/Luxel.Audio.Linux.Tests/Luxel.Audio.Linux.Tests.csproj --no-restore --configuration Release
+      - name: Start isolated virtual audio
+        env:
+          LUXEL_DESKTOP_STATE_DIR: ${{ runner.temp }}/luxel-audio
+        run: |
+          eng/desktop/audio-start.sh
+          eng/desktop/healthcheck.sh --audio-only
+          # Make the generated runtime environment available to later steps.
+          source "${LUXEL_DESKTOP_STATE_DIR}/environment"
+          printf 'LUXEL_DESKTOP_STATE_DIR=%s\n' "${LUXEL_DESKTOP_STATE_DIR}" >> "$GITHUB_ENV"
+          printf 'PULSE_SERVER=%s\n' "${PULSE_SERVER}" >> "$GITHUB_ENV"
+          printf 'PULSE_SINK=%s\n' "${PULSE_SINK}" >> "$GITHUB_ENV"
+          printf 'ALSOFT_DRIVERS=%s\n' "${ALSOFT_DRIVERS}" >> "$GITHUB_ENV"
+      - name: Test managed, native, and loopback audio paths
+        run: >-
+          dotnet test tests/Luxel.Audio.Linux.Tests/Luxel.Audio.Linux.Tests.csproj
+          --no-restore --no-build --configuration Release
+          --filter 'FullyQualifiedName!~OutputCapture'
+      - name: Detect optional output capture tests
+        id: output-tests
+        shell: bash
+        run: |
+          if dotnet test tests/Luxel.Audio.Linux.Tests/Luxel.Audio.Linux.Tests.csproj \
+              --no-restore --no-build --configuration Release --list-tests | grep -qi 'OutputCapture'; then
+            echo 'present=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'present=false' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run and analyze optional output capture test
+        if: steps.output-tests.outputs.present == 'true'
+        run: |
+          recording="${RUNNER_TEMP}/luxel-output-test.wav"
+          eng/desktop/capture-audio-start.sh "$recording"
+          trap 'eng/desktop/capture-audio-stop.sh || true' EXIT
+          dotnet test tests/Luxel.Audio.Linux.Tests/Luxel.Audio.Linux.Tests.csproj \
+            --no-restore --no-build --configuration Release \
+            --filter 'FullyQualifiedName~OutputCapture'
+          sleep 0.25
+          eng/desktop/capture-audio-stop.sh
+          trap - EXIT
+          python3 eng/desktop/analyze-wav.py "$recording" --min-rms 0.001
+      - name: Verify virtual sink capture and analyzer
+        run: |
+          tone="${RUNNER_TEMP}/tone.wav"
+          recording="${RUNNER_TEMP}/virtual-sink.wav"
+          python3 - "$tone" <<'PY'
+          import math, struct, sys, wave
+          rate = 48000
+          with wave.open(sys.argv[1], 'wb') as wav:
+              wav.setparams((2, 2, rate, 0, 'NONE', 'not compressed'))
+              wav.writeframes(b''.join(
+                  struct.pack('<hh', int(12000 * math.sin(2 * math.pi * 1000 * i / rate)),
+                                     int(12000 * math.sin(2 * math.pi * 1000 * i / rate)))
+                  for i in range(rate)
+              ))
+          PY
+          eng/desktop/capture-audio-start.sh "$recording"
+          trap 'eng/desktop/capture-audio-stop.sh || true' EXIT
+          sleep 0.25
+          paplay "$tone"
+          sleep 0.25
+          eng/desktop/capture-audio-stop.sh
+          trap - EXIT
+          python3 eng/desktop/analyze-wav.py "$recording" \
+            --min-rms 0.01 --expect-frequency 1000 --frequency-tolerance 5 \
+            --expect-pan 0 --pan-tolerance 0.05
+      - name: Stop virtual audio
+        if: always()
+        run: eng/desktop/audio-stop.sh
+      - name: Upload audio diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-audio-diagnostics
+          path: |
+            ${{ runner.temp }}/luxel-audio/logs/
+            ${{ runner.temp }}/*.wav
+          if-no-files-found: ignore

@@ -13,6 +13,7 @@ fi
 # Applications launched by developers are intentionally not killed here. The
 # repository-owned Vulkan smoke is tracked and stopped before desktop services.
 stop_process vkcube vkcube
+"${SCRIPT_DIR}/audio-stop.sh"
 stop_process novnc websockify
 stop_process x11vnc x11vnc
 rm -f "${VNC_SOCKET}"

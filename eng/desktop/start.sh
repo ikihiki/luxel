@@ -29,6 +29,7 @@ cleanup_on_error() {
 }
 trap cleanup_on_error EXIT
 
+"${SCRIPT_DIR}/audio-start.sh"
 write_environment_file
 
 start_process xvfb Xvfb \
