@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Audio\Luxel.Audio.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="wwwroot\luxel-audio-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <InternalsVisibleTo Include="Luxel.Audio.Browser.Tests" />
+  </ItemGroup>
+</Project>

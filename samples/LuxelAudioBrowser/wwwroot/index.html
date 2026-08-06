@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Luxel Web Audio browser sample</title>
+  <style>
+    body{max-width:680px;margin:3rem auto;padding:0 1rem;background:#10151d;color:#e7edf5;font:16px/1.5 system-ui,sans-serif}fieldset{display:grid;gap:1rem;border:1px solid #42506a;border-radius:10px;padding:1.25rem}label{display:grid;grid-template-columns:9rem 1fr 4rem;gap:.75rem;align-items:center}button{padding:.65rem 1rem;margin:.25rem;background:#26344c;color:#fff;border:1px solid #62769a;border-radius:6px}#enable{background:#245b3d}output{font-variant-numeric:tabular-nums}#status{white-space:pre-wrap;background:#182131;padding:1rem;border-radius:8px}
+  </style>
+</head>
+<body>
+  <h1>Luxel Web Audio</h1>
+  <p>This MVP plays in-memory PCM clips. AudioWorklet and SharedArrayBuffer streaming are deferred.</p>
+  <button id="enable">Enable Audio</button>
+  <fieldset>
+    <legend>Procedural tone</legend>
+    <label>Frequency <input id="frequency" type="range" min="80" max="1200" value="440"><output>440</output></label>
+    <label>Volume <input id="volume" type="range" min="0" max="1" step="0.01" value="0.5"><output>0.50</output></label>
+    <label>Pan <input id="pan" type="range" min="-1" max="1" step="0.01" value="0"><output>0.00</output></label>
+    <label>Pitch <input id="pitch" type="range" min="0.5" max="2" step="0.01" value="1"><output>1.00</output></label>
+    <label>Loop <input id="loop" type="checkbox"><span></span></label>
+    <div><button id="play">Play</button><button id="pause">Pause</button><button id="resume">Resume</button><button id="stop">Stop</button></div>
+  </fieldset>
+  <p id="status">Loading .NET…</p>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
