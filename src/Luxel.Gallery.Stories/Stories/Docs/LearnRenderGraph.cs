@@ -2,16 +2,16 @@ using static Luxel.Gallery.Stories.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
-/// <summary>RenderGraphを動くGalleryストーリーから段階的に学ぶ独立コース。</summary>
+/// <summary>Graphicsの2D章に続いて、RenderGraphを動くGalleryストーリーから段階的に学ぶ章。</summary>
 public static class LearnRenderGraph
 {
-    [Story("Learn/RenderGraph/Overview", Order = 0, Toc = true)]
+    [Story("Learn/Graphics/RenderGraph/Overview", Order = 27, Toc = true)]
     public static StoryResult Overview(StoryContext ctx) => $$"""
         # RenderGraph入門
 
-        {{RenderGraphCourseCatalog.Meta("Learn/RenderGraph/Overview", "Beginner+", "Graphics / Synchronization")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/RenderGraph/Overview", "Beginner+", "Standalone + DevTools", "Vulkan / DirectX 12", "Graphics / Synchronization")}}
 
-        RenderGraphは、複数passがどのresourceを読み書きするか宣言し、barrier、不要passのculling、transient resourceの寿命をまとめて扱う仕組みです。このコースは[Graphicsの同期](story:Learn/Graphics/Synchronization)で手書きBarrierとSubmitを理解した後に進めてください。
+        RenderGraphは、複数passがどのresourceを読み書きするか宣言し、barrier、不要passのculling、transient resourceの寿命をまとめて扱う仕組みです。この章は[Graphicsの同期](story:Learn/Graphics/Synchronization)で手書きBarrierとSubmitを理解した後に進めてください。
 
         ## 動くサンプル
 
@@ -37,14 +37,14 @@ public static class LearnRenderGraph
         | Lifecycle | submit、GPU完了、dispose、resize |
         | Debugging | validationとDevToolsによる依存の可視化 |
 
-        RenderGraph本体は`src/Luxel.Graphics.RenderGraph/`にあります。APIだけを一覧したい場合は[RenderGraph Guide](story:Reference/Guides/RenderGraph)を参照してください。
+        RenderGraph本体は`src/Luxel.Graphics.RenderGraph/`にあります。APIだけを一覧したい場合はRenderGraph Guideを参照してください。
         """;
 
-    [Story("Learn/RenderGraph/Resources", Order = 1, Toc = true)]
+    [Story("Learn/Graphics/RenderGraph/Resources", Order = 28, Toc = true)]
     public static StoryResult Resources(StoryContext ctx) => $$"""
         # リソースとハンドル
 
-        {{RenderGraphCourseCatalog.Meta("Learn/RenderGraph/Resources", "Beginner+", "RenderGraph Overview")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/RenderGraph/Resources", "Beginner+", "Standalone + DevTools", "Vulkan / DirectX 12", "RenderGraph Overview")}}
 
         graphへ登録するresourceは**External**と**Transient**に分かれます。違いは作成場所と所有者です。
 
@@ -94,11 +94,11 @@ public static class LearnRenderGraph
         - transientのdescriptorはcompile後に変更せず、次frameで作り直す
         """;
 
-    [Story("Learn/RenderGraph/Passes", Order = 2, Toc = true)]
+    [Story("Learn/Graphics/RenderGraph/Passes", Order = 29, Toc = true)]
     public static StoryResult Passes(StoryContext ctx) => $$"""
         # パスと依存関係
 
-        {{RenderGraphCourseCatalog.Meta("Learn/RenderGraph/Passes", "Intermediate", "Resources")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/RenderGraph/Passes", "Intermediate", "Standalone + DevTools", "Vulkan / DirectX 12", "Resources")}}
 
         passは`AddPass`で作り、`Read` / `Write`でaccessを宣言し、最後の`Execute`でgraphへ登録します。宣言はdocumentationではなく、barrierとlifetime解析の入力です。
 
@@ -141,11 +141,11 @@ public static class LearnRenderGraph
         現在は依存からtopological sortせず、**passの登録順で実行**します。producerをconsumerより先に登録してください。`PassQueue.Graphics`と`PassQueue.Compute`は分類と診断に使われますが、どちらも`device.MainQueue`で実行されます。`AsyncCompute`を並列実行の契約として扱わないでください。
         """;
 
-    [Story("Learn/RenderGraph/Compilation", Order = 3, Toc = true)]
+    [Story("Learn/Graphics/RenderGraph/Compilation", Order = 30, Toc = true)]
     public static StoryResult Compilation(StoryContext ctx) => $$"""
         # Cullingとaliasing
 
-        {{RenderGraphCourseCatalog.Meta("Learn/RenderGraph/Compilation", "Intermediate", "Passes")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/RenderGraph/Compilation", "Intermediate", "Standalone + DevTools", "Vulkan / DirectX 12", "Passes")}}
 
         `Execute(command)`を初めて呼ぶとgraphをcompileします。compileはpassを検証し、resourceの寿命を解析し、不要passをcullして、transientの物理resourceを割り当てます。
 
@@ -176,11 +176,11 @@ public static class LearnRenderGraph
         external resourceへ最後にwriteした場合、graphは後段のcopyやpresentから見えるよう保守的な終端barrierを記録します。ただし、これはCPUから見たGPU完了待ちではありません。submitとresource破棄の関係は次ページで扱います。
         """;
 
-    [Story("Learn/RenderGraph/Lifecycle", Order = 4, Toc = true)]
+    [Story("Learn/Graphics/RenderGraph/Lifecycle", Order = 31, Toc = true)]
     public static StoryResult Lifecycle(StoryContext ctx) => $$"""
         # フレーム寿命とresize
 
-        {{RenderGraphCourseCatalog.Meta("Learn/RenderGraph/Lifecycle", "Intermediate", "Compilation / Synchronization")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/RenderGraph/Lifecycle", "Intermediate", "Standalone + DevTools", "Vulkan / DirectX 12", "Compilation / Synchronization")}}
 
         tutorialは毎frame新しいRenderGraphを作り、現在のsizeとexternal framebufferを登録します。graphはcompile後に変更できないため、frame固有のpassとresourceを素直に表現できます。
 
@@ -219,11 +219,11 @@ public static class LearnRenderGraph
         VulkanとDirectX 12でlogical passと依存宣言は共通です。backend差はbarrier command、SPIR-V/DXIL、D3D12 readback row pitchなど下層へ閉じ込めます。RenderGraphを使ってもsubmit、GPU完了、presentが自動になるわけではありません。
         """;
 
-    [Story("Learn/RenderGraph/Debugging", Order = 5, Toc = true)]
+    [Story("Learn/Graphics/RenderGraph/Debugging", Order = 32, Toc = true)]
     public static StoryResult Debugging(StoryContext ctx) => $$"""
         # ValidationとDevTools
 
-        {{RenderGraphCourseCatalog.Meta("Learn/RenderGraph/Debugging", "Intermediate", "Lifecycle")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/RenderGraph/Debugging", "Intermediate", "Standalone + DevTools", "Vulkan / DirectX 12", "Lifecycle")}}
 
         RenderGraphの不具合は、API validation、passのculling、resource宣言漏れ、GPU lifetimeの順に切り分けます。
 
@@ -256,6 +256,6 @@ public static class LearnRenderGraph
 
         {{StoryRef(ctx, "Examples/RenderGraph/Blur")}}
 
-        次は[Indexed Cube](story:Build/Recipes/IndexedCube)や[3D Camera](story:Build/Recipes/Camera3D)と組み合わせるか、[Bloom3D](story:Examples/RenderGraph/Bloom3D)で複数passの完成例を確認してください。
+        次はIndexed Cubeや3D Cameraと組み合わせるか、[Bloom3D](story:Examples/RenderGraph/Bloom3D)で複数passの完成例を確認してください。
         """;
 }

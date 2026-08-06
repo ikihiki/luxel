@@ -33,14 +33,14 @@ public static class DocsMeta
         StoryResult doc = $$$""""
             # docs ページの書き方
 
-            docs ページは **補完文字列 + markdown** で書きます。リテラル部分は markdown として整形され、hole に `Widget` を置くとその場に**ライブ UI** が埋め込まれます。カラー絵文字 :smile: :rocket: :+1: と "smart quotes" -- SmartyPants も効きます。リンクも張れます: [Reference/Guides/Button を開く](story:Reference/Guides/Button) / [書けるもの へ](#書けるもの) / [No Graphics API (外部)](https://www.sebastianaaltonen.com/blog/no-graphics-api)
+            docs ページは **補完文字列 + markdown** で書きます。リテラル部分は markdown として整形され、hole に `Widget` を置くとその場に**ライブ UI** が埋め込まれます。カラー絵文字 :smile: :rocket: :+1: と "smart quotes" -- SmartyPants も効きます。リンクも張れます: [Button overview を開く](story:Controls/Button/Overview) / [書けるもの へ](#書けるもの) / [No Graphics API (外部)](https://www.sebastianaaltonen.com/blog/no-graphics-api)
 
             ## ページの骨格
 
-            `[Story("Reference/Guides/...")]` + `Kit.Docs` + `WithDocFonts` (日本語/絵文字フォールバック + シンタックスハイライト + mermaid/math widget の配線) が定型です。文字列は `$$"""` (hole = 波かっこ 2 連) にすると、C# コード例の波かっこ 1 連がそのままリテラルになります:
+            `[Story("Internals/...")]` + `Kit.Docs` + `WithDocFonts` (日本語/絵文字フォールバック + シンタックスハイライト + mermaid/math widget の配線) が定型です。文字列は `$$"""` (hole = 波かっこ 2 連) にすると、C# コード例の波かっこ 1 連がそのままリテラルになります:
 
             ```csharp
-            [Story("Reference/Guides/MyPage", Order = 50, Toc = true)]
+            [Story("Internals/MyPage", Order = 50, Toc = true)]
             public static StoryResult MyPage(StoryContext ctx) => $$"""
                 # 見出し
 
@@ -218,6 +218,6 @@ public static class DocsMeta
 
         - **vk / dx ピクセル一致** — 新しい描画機能は両バックエンドで検証してから完了
         - **デッドリンク検証** — 実窓起動時に docs 全ページの `story:` / `#アンカー` を検査し、切れたリンクを stderr に警告します (`[gallery] dead link in ...`)
-        - **実窓 E2E** — DebugServer の `/winframe` + `/cmd` で操作と描画を確認 ([Reference/Guides/DevTools](story:Reference/Guides/DevTools))
+        - **実窓 E2E** — DebugServer の `/winframe` + `/cmd` で操作と描画を確認
         """;
 }

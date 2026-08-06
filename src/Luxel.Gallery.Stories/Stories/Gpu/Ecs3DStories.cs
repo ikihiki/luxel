@@ -13,7 +13,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>
 /// ECS + 3D forward + RenderGraph のデモ — World にキューブ entity を作り、
 /// Render3DExtractSystem (IRenderExtractor) が ECS をクエリして instance バッファへ書き、
-/// graphics パスが bindless で描く。docs の Reference/Guides/ThreeD / Reference/Guides/RenderGraph から参照される。
+/// graphics パスが bindless で描く。
 /// </summary>
 public static class Ecs3DStories
 {

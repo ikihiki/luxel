@@ -1,100 +1,8 @@
-using Luxel.Controls;
-using Luxel.UI;
-using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.DocsKit;
-
 namespace Luxel.Gallery.Stories;
 
-/// <summary>docs — 入門章 (GettingStarted / Architecture)。
-/// ページは $$""" (hole = 波かっこ 2 連) — C# コード例の波かっこ 1 連はリテラル。</summary>
+/// <summary>Luxel のレイヤ構成とプロジェクト全体像。</summary>
 public static class DocsHome
 {
-    [Story("Reference/Guides/GettingStarted", Order = 0, Toc = true)]   // 章立て: Docs を先頭、入門を最初に
-    public static StoryResult GettingStarted(StoryContext ctx)
-    {
-        Signal<int> count = ctx.Signal("count", 0, "カウンタの現在値 (± ボタンと連動)");
-        Widget counter = HStack(8)[
-            Button(_ => { count.Value--; ctx.Log("counter: -1"); }, "-"),
-            Text($" {count} ", 20, vAlign: Align.Center),
-            Button(_ => { count.Value++; ctx.Log("counter: +1"); }, "+")];
-
-        StoryResult doc = $$"""
-            # Luxel を始める
-
-            Luxel は [Sebastian Aaltonen の *No Graphics API*](https://www.sebastianaaltonen.com/blog/no-graphics-api) の原則を C# で実装した薄いグラフィックエンジンです。resource・単一 argument block・明示 pass・producer/consumer dependency を portable semantics とし、descriptor 管理や native synchronization は backend lowering に閉じ込めます。その上に 2D ベクター・宣言的 UI・アニメーション・レンダーグラフを積み上げています。
-
-            - **バックエンド**: Vulkan 1.3 + DirectX 12。native WebGPU は Windows/Linux の明示 opt-in として追加する方針
-            - **シェーダ**: shader package が entry/metadata と SPIR-V (Vulkan) / DXIL (D3D12) / portable WGSL (WebGPU) artifact を束ねる
-            - **核心**: 最大192Bの単一 root argument block + logical resource references。Vulkan/D3D12 は bindless/GPUVA、WebGPU は argument ring/fixed bind groups へ lower する
-
-            ## 必要環境
-
-            - .NET SDK (net10.0)
-            - 選択する backend に対応する GPU/ドライバと native runtime (通常起動は Vulkan または DirectX 12)
-            - WebGPU の対象・選択・required limits は [Reference/Guides/WebGPU](story:Reference/Guides/WebGPU) を参照
-            - 通常ビルドは Git 管理済み shader cache を使用。shader compiler/translator は cache 更新時だけ取得
-
-            ## ビルドと Gallery の起動
-
-            機能の実例・ドキュメント・回帰テストはすべてこの **Gallery** に集約されています:
-
-            ```powershell
-            dotnet build
-            dotnet run --project src/Luxel.Gallery.Host -- vk           # この Gallery (実ウィンドウ)
-            dotnet run --project src/Luxel.Gallery.Host -- vk e2e       # play + golden 回帰 (--update で更新)
-            dotnet run --project src/Luxel.Gallery.Host -- vk bench "Controls/Button/Counter" 300 --type
-            dotnet test                                            # ユニットテスト
-            ```
-
-            `vk` を `dx` に変えると DirectX 12 で動きます。両バックエンドは**ピクセル一致**が開発規律です (golden はバックエンド別に保持)。
-
-            ## 最初の UI
-
-            宣言的 UI はベアファクトリ + indexer の DSL で書きます。下のカウンタは本物です — クリックすると右の Log パネルに出て、値も動きます:
-
-            {{counter}}
-
-            ```csharp
-            Signal<int> count = ctx.Signal("count", 0);   // knob にもなる状態
-            Widget ui = HStack(8)[
-                Button(_ => count.Value--, "-"),
-                Text($" {count} ", 20, vAlign: Align.Center),
-                Button(_ => count.Value++, "+")];
-            ```
-
-            `Signal<T>` が状態、`Button(...)` などのファクトリが widget、子は `[...]` で入れ子にします。Signal を読むテキストは変更時に自動で部分更新されます。
-
-            ## ドキュメントの歩き方
-
-            - 全体像とレイヤ構成 → [Internals/Architecture](story:Internals/Architecture)
-            - GPU 描画の最初の一歩 (standalone) → [Learn/Graphics/Overview](story:Learn/Graphics/Overview)
-            - コントロールの型見本 (Variant/Intent/API 表) → [Reference/Guides/Button](story:Reference/Guides/Button)
-            - Windows/Linux対応の端末エミュレータ → [Controls/Terminal/Overview](story:Controls/Terminal/Overview)
-            - この docs ページ自体の書き方 → [Internals/Authoring](story:Internals/Authoring)
-            - サイドバーの **GPU / 2D / 3D / RenderGraph / Animation** 章に、各サブシステムの動くデモが並んでいます。左上の検索欄は docs 本文の全文検索です
-
-            > [!TIP]
-            > `Ctrl+D` でライト/ダークテーマを切り替えられます。右パネルの Knobs はストーリーが公開している調整パラメータです — このページのカウンタも編集できます。
-            """;
-
-        return doc;
-    }
-
-    [Story("Reference/Guides/FirstTriangle", Order = 2, Toc = true)]
-    public static StoryResult FirstTriangle(StoryContext ctx)
-    {
-        ctx.Play(static d => d.Snap());
-        return $"""
-        # はじめての GPU 描画
-
-        このページは既存リンクとの互換入口です。初心者向けの説明と、Gallery helperに依存しない完全なstandaloneサンプルは次へ移動しました。
-
-        → [Learn/Graphics/Overview](story:Learn/Graphics/Overview)
-
-        最短で三角形まで進む場合は [Learn/Graphics/FirstTriangle](story:Learn/Graphics/FirstTriangle) を開いてください。`Examples/3D/Triangle` はGallery内のoffscreen回帰用で、通常アプリのwindow / surface / present処理は含みません。
-        """;
-    }
-
     [Story("Internals/Architecture", Order = 1, Toc = true)]
     public static StoryResult Architecture(StoryContext ctx)
     {
@@ -128,7 +36,7 @@ public static class DocsHome
 
         ## GPU 土台
 
-        `Luxel.Graphics` が GpuDevice / resource / argument block / pass / dependency の portable semantics を提供し、各 backend が native mechanism へ lower します。Vulkan と DirectX 12 は bindless heap、GPUVA、push/root constants、native barrier を fast path として維持し、native WebGPU は logical refs、fixed bind groups、frame-local argument ring、pass/encoder segmentation を使う明示 opt-in backend として加える方針です。shader package は entry/metadata と SPIR-V / DXIL / portable WGSL artifact を束ねます。詳細は [Reference/Guides/WebGPU](story:Reference/Guides/WebGPU) へ。
+        `Luxel.Graphics` が GpuDevice / resource / argument block / pass / dependency の portable semantics を提供し、各 backend が native mechanism へ lower します。Vulkan と DirectX 12 は bindless heap、GPUVA、push/root constants、native barrier を fast path として維持し、native WebGPU は logical refs、fixed bind groups、frame-local argument ring、pass/encoder segmentation を使う明示 opt-in backend として加える方針です。shader package は entry/metadata と SPIR-V / DXIL / portable WGSL artifact を束ねます。native WebGPU は明示 opt-in backend として扱います。
 
         ## 2D とテキスト
 

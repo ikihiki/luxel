@@ -19,7 +19,6 @@ namespace Luxel.Gallery.Stories;
 /// アニメーションシステムのデモ — Curve × Tween の 2 段分解、コード DSL (Sequence/Parallel)、
 /// AnimationClip (CSS @keyframes 由来含む)、StateMachine、AnimationGraph (BlendNode)。
 /// すべて絶対時刻モデル (FixedFrameClock) — 時間はストーリーの累積秒から決める (snap 決定的)。
-/// docs の Reference/Guides/Animation から参照される。
 /// </summary>
 public static class AnimationStories
 {

@@ -18,7 +18,7 @@ public static partial class DocsAdr
         ## Context
 
         > [!NOTE]
-        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクするLearnページと実装を正とします。
 
 
         Luxel には成熟した**編集コンポーネント**が育ちました — テキスト新スタック ([ADR-0006](story:Internals/ADR/0006-Editor-New-Stack)、`Luxel.Document` + `TextEditorView`) とノード新スタック ([ADR-0009](story:Internals/ADR/0009-Node-Editor-Stack)、`Luxel.NodeGraph` + `NodeGraphView`)。さらにリッチ文書スタック ([ADR-0012](story:Internals/ADR/0012-Rich-Document-Stack)) を新設予定です。

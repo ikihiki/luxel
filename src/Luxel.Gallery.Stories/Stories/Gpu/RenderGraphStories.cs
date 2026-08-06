@@ -10,7 +10,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>
 /// RenderGraph のデモ — Setup/Compile/Execute 三相、transient バッファの aliasing、
 /// デッドパスカリング。グラフ層は scene-agnostic (GpuDeviceRasterizer2D / Scene2D を知らない —
-/// ImportBuffer / CreateBuffer だけ)。docs の Reference/Guides/RenderGraph から参照される。
+/// ImportBuffer / CreateBuffer だけ)。
 /// </summary>
 public static class RenderGraphStories
 {

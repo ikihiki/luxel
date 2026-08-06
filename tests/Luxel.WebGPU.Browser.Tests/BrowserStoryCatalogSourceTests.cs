@@ -76,6 +76,21 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Equal("Runs through the shared Gallery WebAssembly story runner.",
             blur.GetProperty("capabilityNote").GetString());
 
+        string[] inputStories =
+        [
+            "Examples/Input/SourcesAndBus",
+            "Examples/Input/Actions",
+            "Examples/Input/ContextStack",
+            "Examples/Input/Bindings",
+        ];
+        foreach (string path in inputStories)
+        {
+            JsonElement input = manifest.GetProperty("stories").EnumerateArray()
+                .Single(story => story.GetProperty("path").GetString() == path);
+            Assert.Equal(JsonValueKind.Array, input.GetProperty("args").ValueKind);
+            Assert.Null(input.GetProperty("capabilityNote").GetString());
+        }
+
         Assert.Equal(60, production.Length);
         Assert.Equal(60, production.Select(story => story.GetProperty("path").GetString())
             .Distinct(StringComparer.Ordinal).Count());
