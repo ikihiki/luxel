@@ -73,6 +73,28 @@ public sealed class BrowserAudioManagedTests
     }
 
     [Fact]
+    public async Task AudioMixerReusesVoiceAfterBrowserQueueDrains()
+    {
+        var interop = new FakeInterop();
+        using var backend = await BrowserAudioBackend.CreateAsync(interop);
+        using var mixer = new AudioMixer(backend);
+        var clip = new AudioClip(AudioFormat.Pcm16Mono22k, new byte[8], "tick");
+
+        mixer.PlayOneShot(clip);
+        Assert.Equal(1, mixer.ActiveVoiceCount);
+        Assert.Single(interop.Voices);
+
+        interop.Voices.Values.Single().Queued = 0;
+        interop.Voices.Values.Single().Playing = false;
+        mixer.Tick();
+        Assert.Equal(0, mixer.ActiveVoiceCount);
+
+        mixer.PlayOneShot(clip);
+        Assert.Equal(1, mixer.ActiveVoiceCount);
+        Assert.Single(interop.Voices);
+    }
+
+    [Fact]
     public async Task DisposingBackendReleasesOnlyItsOwnedVoices()
     {
         var interop = new FakeInterop();
@@ -116,8 +138,8 @@ public sealed class BrowserAudioManagedTests
         public HashSet<int> DisposedVoices { get; } = [];
 
         public Task<string> InitializeAsync() => Task.FromResult(JsonSerializer.Serialize(new { handle = InvalidHandle ? 0 : ++_next, state = "suspended" }));
-        public Task ResumeAsync(int backend) { ResumeCount++; return Task.CompletedTask; }
-        public Task SuspendAsync(int backend) { SuspendCount++; return Task.CompletedTask; }
+        public Task<string> ResumeAsync(int backend) { ResumeCount++; return Task.FromResult("running"); }
+        public Task<string> SuspendAsync(int backend) { SuspendCount++; return Task.FromResult("suspended"); }
         public void SetMasterVolume(int backend, float volume) => MasterVolumes[backend] = volume;
         public int CreateVoice(int backend, int sampleRate, int channels, int bitsPerSample)
         {
@@ -125,7 +147,7 @@ public sealed class BrowserAudioManagedTests
             Voices.Add(handle, new VoiceState(backend));
             return handle;
         }
-        public void SubmitBuffer(int voice, string pcmBase64, bool loop)
+        public void SubmitBuffer(int voice, byte[] pcm, bool loop)
         {
             VoiceState state = Voices[voice];
             state.Queued++;

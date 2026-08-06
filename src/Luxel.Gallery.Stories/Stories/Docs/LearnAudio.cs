@@ -8,7 +8,7 @@ public static class LearnAudio
     public static StoryResult Overview(StoryContext ctx) => $$"""
         # Audio overview
 
-        {{AudioCourseCatalog.Meta("Learn/Audio/Overview", "Beginner", "Gallery / Headless / Windows device", "Null / XAudio2", "なし")}}
+        {{AudioCourseCatalog.Meta("Learn/Audio/Overview", "Beginner", "Gallery / Headless / Windows / Browser WASM", "Null / XAudio2 / Web Audio", "なし")}}
 
         ## このコースで作るメンタルモデル
 
@@ -33,7 +33,7 @@ public static class LearnAudio
 
         {{SampleSource("samples/LuxelAudio/Program.cs", "audio-tone")}}
 
-        `NullAudioBackend`は音を出さず、initialized、voice数、`BuffersQueued`、`IsPlaying`、volume/pitch/panを決定的に観測できます。Windowsの`XAudio2Backend`は実deviceへ出力します。現在このrepositoryにWeb Audio backendは**実装されていません**。browser対応は後述の制約を満たす将来設計であり、現行サポートとして扱わないでください。
+        `NullAudioBackend`は音を出さず、initialized、voice数、`BuffersQueued`、`IsPlaying`、volume/pitch/panを決定的に観測できます。Windowsの`XAudio2Backend`は実deviceへ出力し、browser WASMでは`Luxel.Audio.Browser.BrowserAudioBackend`がWeb AudioへPCM16 clipとqueueを送ります。browserでは作成後もcontextがsuspendedの場合があるため、click/tapから`ResumeAsync()`を呼んでから可聴状態として扱います。
 
         ## ライフサイクルの原則
 
@@ -55,7 +55,7 @@ public static class LearnAudio
     public static StoryResult Environment(StoryContext ctx) => $$"""
         # Audio environment and backends
 
-        {{AudioCourseCatalog.Meta("Learn/Audio/EnvironmentAndBackends", "Beginner", "Standalone / Framework / CI", "Null / XAudio2", "Audio overview")}}
+        {{AudioCourseCatalog.Meta("Learn/Audio/EnvironmentAndBackends", "Beginner", "Standalone / Framework / CI / Browser WASM", "Null / XAudio2 / Web Audio", "Audio overview")}}
 
         ## 境界と責務
 
@@ -76,19 +76,26 @@ public static class LearnAudio
         | unit test / CI / deviceなし | `NullAudioBackend` | state、queue、parameter、所有権 |
         | Windows実音 | `Luxel.Audio.Windows.XAudio2Backend` | device、speaker、実時間でのqueue drain |
         | Framework app | `new LuxelHostBuilder().UseAudio()` | DIされたbackendと共有`AudioMixer` |
-        | Browser WASM | 現在未実装 | 将来のWeb Audio設計のみ |
+        | Browser WASM | `Luxel.Audio.Browser.BrowserAudioBackend` | Web Audio、autoplay unlock、browser lifecycle |
 
-        `UseAudio()`はFramework側のcomposition rootです。standalone sampleではbackendを明示生成した方が依存とdispose順を読み取りやすくなります。実音の統合確認は [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone) を使います。
+        `UseAudio()`はFramework側のcomposition rootです。standalone sampleではbackendを明示生成した方が依存とdispose順を読み取りやすくなります。Windows実音の統合確認は [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone)、browser実音は`samples/LuxelAudioBrowser`を使います。
 
-        ## Web Audioは「計画」であって現行backendではない
+        ## Web Audioの非同期ライフサイクル
 
-        Web Audioを実装する場合、`AudioContext.resume()`は非同期かつuser gesture/autoplay policyの影響を受けます。`AudioBufferSourceNode`は一度だけstartできるため、pause/resumeにはnode再生成とoffset保存が必要です。完了queueは`onended`等で論理管理し、pan lawもXAudio2と完全一致しません。AudioWorkletはsecure contextが必要で、SharedArrayBuffer高速経路を選ぶ場合はcross-origin isolationも必要です。
+        ```csharp
+        using BrowserAudioBackend backend = await BrowserAudioBackend.CreateAsync();
+        // click / tap のevent handlerから呼ぶ
+        await backend.ResumeAsync();
+        using IAudioVoice voice = backend.CreateVoice(AudioFormat.Pcm16Mono48k);
+        ```
 
-        staged architectureは、(1) scheduled `AudioBufferSourceNode`によるclip/基本stream、(2) AudioWorkletによる長時間stream、(3) optional SharedArrayBuffer ringです。いずれもこのbranchには存在しません。
+        `AudioContext.resume()`は非同期かつuser gesture/autoplay policyの影響を受けます。`CreateAsync()`はcontextを作成しますが、`BrowserAudioState.Running`になるまで可聴準備完了とはみなしません。`AudioBufferSourceNode`は一度だけstartできるため、backendはpause/resume時にnodeを再生成してoffsetを復元します。完了queueは`onended`で論理管理し、Web Audioのequal-power pan lawはXAudio2のlinear matrixと完全一致しません。
+
+        現行browser backendは`AudioBufferSourceNode`によるclipと基本queueを実装しています。AudioWorkletによる長時間・低遅延streamingは未実装です。AudioWorklet自体はsecure contextを必要とし、将来SharedArrayBuffer高速経路を選ぶ場合は追加でcross-origin isolationが必要です。
 
         ## 所有権と失敗
 
-        backendより先にvoiceを破棄します。`Initialize()`忘れ、別formatのPCM投入、backend dispose後のvoice利用、browser計画を実装済みと仮定することが典型的な失敗です。
+        backendより先にvoiceを破棄します。`Initialize()`忘れ、別formatのPCM投入、backend dispose後のvoice利用、browserで`ResumeAsync()`前から音が出ると仮定することが典型的な失敗です。
 
         {{StoryRef(ctx, "Examples/Audio/WaveformAndVoice")}}
         """;
@@ -257,7 +264,7 @@ public static class LearnAudio
     public static StoryResult Testing(StoryContext ctx) => $$"""
         # Audio testing and troubleshooting
 
-        {{AudioCourseCatalog.Meta("Learn/Audio/SpatialStreamingAndTesting", "Intermediate", "CI / Headless / Windows integration", "Null / XAudio2", "Streaming audio")}}
+        {{AudioCourseCatalog.Meta("Learn/Audio/SpatialStreamingAndTesting", "Intermediate", "CI / Headless / Windows / Browser WASM", "Null / XAudio2 / Web Audio", "Streaming audio")}}
 
         このページは既存Story IDを保ちながら、spatial/streamingを含むaudio全体のtesting入口にします。
 
@@ -281,7 +288,7 @@ public static class LearnAudio
 
         ## backend差を分けてtestする
 
-        Null testは時間やspeakerに依存しないlogic contractです。XAudio2 integration testはWindows device、実時間のqueue完了、可聴結果を別層で確認します。Web Audioは現在backendがないためtest対象ではありません。将来実装する場合はuser activation、async context state、one-shot node再生成、`onended` queue accountingをbrowser固有contractとして追加します。
+        Null testは時間やspeakerに依存しないlogic contractです。XAudio2 integration testはWindows device、実時間のqueue完了、可聴結果を別層で確認します。Web Audioはmanaged fake interopでlifecycle、PCM validation、ownershipを、mock `AudioContext`を使うJavaScript contract testで連続schedule、`onended` queue accounting、pause/pitch時のnode再生成を検証します。autoplay unlockと実音はbrowser sampleで手動確認します。AudioWorklet/SABは現行backendのtest対象ではありません。
 
         {{StoryRef(ctx, "Examples/Audio/SpatialAttenuation")}}
 

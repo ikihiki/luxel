@@ -42,13 +42,26 @@ public sealed class BrowserAudioBackend : IAudioBackend
     internal static async Task<BrowserAudioBackend> CreateAsync(IBrowserAudioInterop interop, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(interop);
-        string json = await interop.InitializeAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
-        using JsonDocument document = JsonDocument.Parse(json);
-        JsonElement root = document.RootElement;
-        int handle = root.GetProperty("handle").GetInt32();
-        if (handle <= 0) throw new InvalidOperationException("Web Audio initialization returned an invalid backend handle.");
-        string state = root.TryGetProperty("state", out JsonElement value) ? value.GetString() ?? "suspended" : "suspended";
-        return new BrowserAudioBackend(interop, handle, ParseState(state));
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // Once JavaScript starts creating an AudioContext, do not abandon the operation: an
+        // unobserved completion would leak a browser context and its registered handle.
+        string json = await interop.InitializeAsync().ConfigureAwait(false);
+        int handle = 0;
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(json);
+            JsonElement root = document.RootElement;
+            handle = root.GetProperty("handle").GetInt32();
+            if (handle <= 0) throw new InvalidOperationException("Web Audio initialization returned an invalid backend handle.");
+            string state = root.TryGetProperty("state", out JsonElement value) ? value.GetString() ?? "suspended" : "suspended";
+            return new BrowserAudioBackend(interop, handle, ParseState(state));
+        }
+        catch
+        {
+            if (handle > 0) interop.DisposeBackend(handle);
+            throw;
+        }
     }
 
     /// <summary>The asynchronous factory performs initialization; this method validates that the backend is usable.</summary>
@@ -58,16 +71,18 @@ public sealed class BrowserAudioBackend : IAudioBackend
     public async Task ResumeAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
-        await _interop.ResumeAsync(Handle).WaitAsync(cancellationToken).ConfigureAwait(false);
-        State = BrowserAudioState.Running;
+        cancellationToken.ThrowIfCancellationRequested();
+        string state = await _interop.ResumeAsync(Handle).ConfigureAwait(false);
+        State = ParseState(state);
     }
 
     /// <summary>Suspends the AudioContext without discarding voice queues.</summary>
     public async Task SuspendAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
-        await _interop.SuspendAsync(Handle).WaitAsync(cancellationToken).ConfigureAwait(false);
-        State = BrowserAudioState.Suspended;
+        cancellationToken.ThrowIfCancellationRequested();
+        string state = await _interop.SuspendAsync(Handle).ConfigureAwait(false);
+        State = ParseState(state);
     }
 
     public IAudioVoice CreateVoice(AudioFormat format)
@@ -154,7 +169,7 @@ internal sealed class BrowserAudioVoice : IAudioVoice
         ThrowIfDisposed();
         if (pcm.IsEmpty) throw new ArgumentException("PCM data cannot be empty.", nameof(pcm));
         if (pcm.Length % Format.BytesPerSample != 0) throw new ArgumentException("PCM data must contain complete sample frames.", nameof(pcm));
-        _owner.Interop.SubmitBuffer(Handle, Convert.ToBase64String(pcm.Span), loop);
+        _owner.Interop.SubmitBuffer(Handle, pcm.ToArray(), loop);
     }
 
     public void Play() { ThrowIfDisposed(); _owner.Interop.Play(Handle); }

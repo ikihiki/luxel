@@ -9,13 +9,6 @@ const requireObject = (handle, kind) => {
   if (!value || value.kind !== kind) throw new Error(`invalid ${kind} handle ${handle}`);
   return value;
 };
-const bytes = base64 => {
-  const binary = atob(base64);
-  const result = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) result[i] = binary.charCodeAt(i);
-  return result;
-};
-
 export async function initialize() {
   const AudioContextType = globalThis.AudioContext || globalThis.webkitAudioContext;
   if (!AudioContextType) throw new Error("Web Audio is not available in this browser.");
@@ -28,11 +21,15 @@ export async function initialize() {
 }
 
 export async function resume(handle) {
-  await requireObject(handle, "backend").context.resume();
+  const context = requireObject(handle, "backend").context;
+  await context.resume();
+  return context.state;
 }
 
 export async function suspend(handle) {
-  await requireObject(handle, "backend").context.suspend();
+  const context = requireObject(handle, "backend").context;
+  await context.suspend();
+  return context.state;
 }
 
 export function setMasterVolume(handle, volume) {
@@ -49,7 +46,7 @@ export function createVoice(backendHandle, sampleRate, channels, bitsPerSample) 
   pan.connect(backend.master);
   const voice = {
     kind: "voice", backend, sampleRate, channels, gain, pan,
-    queue: [], source: null, playing: false, offset: 0, startedAt: 0,
+    queue: [], playing: false, nextStartTime: 0,
     pitch: 1, generation: 0,
   };
   const handle = add(voice);
@@ -58,8 +55,8 @@ export function createVoice(backendHandle, sampleRate, channels, bitsPerSample) 
   return handle;
 }
 
-function decodePcm(voice, base64) {
-  const data = bytes(base64);
+function decodePcm(voice, pcm) {
+  const data = pcm instanceof Uint8Array ? pcm : Uint8Array.from(pcm);
   const frames = data.length / (voice.channels * 2);
   const buffer = voice.backend.context.createBuffer(voice.channels, frames, voice.sampleRate);
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
@@ -73,73 +70,103 @@ function decodePcm(voice, base64) {
   return buffer;
 }
 
-export function submitBuffer(handle, pcmBase64, loop) {
+export function submitBuffer(handle, pcm, loop) {
   const voice = requireObject(handle, "voice");
-  voice.queue.push({ buffer: decodePcm(voice, pcmBase64), loop });
-  if (voice.playing && !voice.source) startHead(voice);
+  voice.queue.push({
+    buffer: decodePcm(voice, pcm), loop,
+    source: null, offset: 0, startTime: 0, endTime: 0,
+  });
+  if (voice.playing) scheduleQueue(voice);
 }
 
-function captureOffset(voice) {
-  if (!voice.source || !voice.queue.length) return;
-  const duration = voice.queue[0].buffer.duration;
-  const elapsed = Math.max(0, voice.backend.context.currentTime - voice.startedAt) * voice.pitch;
-  voice.offset += elapsed;
-  voice.offset = voice.queue[0].loop && duration > 0 ? voice.offset % duration : Math.min(voice.offset, duration);
-}
-
-function stopSource(voice) {
-  if (!voice.source) return;
-  voice.generation++;
-  const source = voice.source;
-  voice.source = null;
-  source.onended = null;
-  try { source.stop(); } catch { }
-  source.disconnect();
-}
-
-function startHead(voice) {
-  if (!voice.playing || !voice.queue.length || voice.source) return;
+function captureHeadOffset(voice) {
+  if (!voice.queue.length) return;
   const item = voice.queue[0];
-  const source = voice.backend.context.createBufferSource();
-  source.buffer = item.buffer;
-  source.loop = item.loop;
-  source.playbackRate.value = voice.pitch;
-  source.connect(voice.gain);
-  const generation = ++voice.generation;
-  voice.source = source;
-  voice.startedAt = voice.backend.context.currentTime;
-  source.onended = () => {
-    if (voice.generation !== generation || voice.source !== source) return;
-    voice.source = null;
-    voice.offset = 0;
-    if (!item.loop) voice.queue.shift();
-    if (!voice.queue.length) voice.playing = false;
-    else startHead(voice);
-  };
-  source.start(0, Math.min(voice.offset, Math.max(0, item.buffer.duration - Number.EPSILON)));
+  if (!item.source || voice.backend.context.currentTime <= item.startTime) return;
+  const elapsed = (voice.backend.context.currentTime - item.startTime) * voice.pitch;
+  item.offset += elapsed;
+  item.offset = item.loop && item.buffer.duration > 0
+    ? item.offset % item.buffer.duration
+    : Math.min(item.offset, item.buffer.duration);
+}
+
+function stopScheduledSources(voice) {
+  voice.generation++;
+  for (const item of voice.queue) {
+    if (!item.source) continue;
+    const source = item.source;
+    item.source = null;
+    source.onended = null;
+    try { source.stop(); } catch { }
+    source.disconnect();
+  }
+  voice.nextStartTime = 0;
+}
+
+function scheduleQueue(voice) {
+  if (!voice.playing || !voice.queue.length) return;
+  const context = voice.backend.context;
+  let nextStart = Math.max(voice.nextStartTime, context.currentTime + 0.01);
+  const generation = voice.generation;
+
+  for (const item of voice.queue) {
+    if (item.source) {
+      if (item.loop) break;
+      nextStart = Math.max(nextStart, item.endTime);
+      continue;
+    }
+
+    const source = context.createBufferSource();
+    source.buffer = item.buffer;
+    source.loop = item.loop;
+    source.playbackRate.value = voice.pitch;
+    source.connect(voice.gain);
+    item.source = source;
+    item.startTime = nextStart;
+    const remaining = Math.max(0, item.buffer.duration - item.offset);
+    item.endTime = item.loop ? Number.POSITIVE_INFINITY : nextStart + remaining / voice.pitch;
+    source.onended = () => {
+      if (voice.generation !== generation || item.source !== source) return;
+      item.source = null;
+      item.offset = 0;
+      const index = voice.queue.indexOf(item);
+      if (index >= 0 && !item.loop) voice.queue.splice(index, 1);
+      if (!voice.queue.length) {
+        voice.playing = false;
+        voice.nextStartTime = 0;
+      }
+    };
+    source.start(nextStart, Math.min(item.offset, Math.max(0, item.buffer.duration - Number.EPSILON)));
+    if (item.loop) {
+      voice.nextStartTime = Number.POSITIVE_INFINITY;
+      break;
+    }
+    nextStart = item.endTime;
+    voice.nextStartTime = nextStart;
+  }
 }
 
 export function play(handle) {
   const voice = requireObject(handle, "voice");
   if (!voice.queue.length) return;
   voice.playing = true;
-  startHead(voice);
+  scheduleQueue(voice);
 }
 
 export function pause(handle) {
   const voice = requireObject(handle, "voice");
   if (!voice.playing) return;
-  captureOffset(voice);
+  captureHeadOffset(voice);
   voice.playing = false;
-  stopSource(voice);
+  stopScheduledSources(voice);
+  for (let i = 1; i < voice.queue.length; i++) voice.queue[i].offset = 0;
 }
 
 export function stop(handle) {
   const voice = requireObject(handle, "voice");
   voice.playing = false;
-  stopSource(voice);
+  stopScheduledSources(voice);
   voice.queue.length = 0;
-  voice.offset = 0;
 }
 
 export function setVolume(handle, volume) {
@@ -149,11 +176,11 @@ export function setVolume(handle, volume) {
 
 export function setPitch(handle, pitch) {
   const voice = requireObject(handle, "voice");
-  const restart = voice.playing && !!voice.source;
-  if (restart) captureOffset(voice);
-  if (restart) stopSource(voice);
+  const restart = voice.playing && voice.queue.some(item => item.source);
+  if (restart) captureHeadOffset(voice);
+  if (restart) stopScheduledSources(voice);
   voice.pitch = pitch;
-  if (restart) startHead(voice);
+  if (restart) scheduleQueue(voice);
 }
 
 export function setPan(handle, pan) {
@@ -173,7 +200,7 @@ export function disposeVoice(handle) {
   const voice = objects.get(handle);
   if (!voice || voice.kind !== "voice") return;
   voice.playing = false;
-  stopSource(voice);
+  stopScheduledSources(voice);
   voice.queue.length = 0;
   voice.gain.disconnect();
   voice.pan.disconnect();

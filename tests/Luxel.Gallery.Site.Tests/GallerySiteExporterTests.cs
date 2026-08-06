@@ -1167,9 +1167,11 @@ public sealed class GallerySiteExporterTests
                  })
             Assert.Contains(contract, course, StringComparison.OrdinalIgnoreCase);
 
-        Assert.Contains("現在このrepositoryにWeb Audio backendは**実装されていません**", course, StringComparison.Ordinal);
+        Assert.Contains("Luxel.Audio.Browser.BrowserAudioBackend", course, StringComparison.Ordinal);
         Assert.Contains("AudioContext.resume()", course, StringComparison.Ordinal);
         Assert.Contains("user gesture", course, StringComparison.Ordinal);
+        Assert.Contains("BrowserAudioState.Running", course, StringComparison.Ordinal);
+        Assert.Contains("AudioWorkletによる長時間・低遅延streamingは未実装", course, StringComparison.Ordinal);
         Assert.Contains("SharedArrayBuffer", course, StringComparison.Ordinal);
     }
 
