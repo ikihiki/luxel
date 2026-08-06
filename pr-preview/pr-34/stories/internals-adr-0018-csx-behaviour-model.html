@@ -15,7 +15,7 @@
 <h2 id="context">Context</h2>
 <div class="markdown-alert markdown-alert-note">
 <p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
-<p><code>ToDo/22</code>〜<code>ToDo/27</code> はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする <code>Reference/Guides/*</code> とLearnページを正とします。</p>
+<p><code>ToDo/22</code>〜<code>ToDo/27</code> はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクするLearnページと実装を正とします。</p>
 </div>
 <p>Luxel Studio (<a href="#story=Internals%2FADR%2F0015-Game-Project-Scene-Format">ADR-0015</a>) の北極星は「C# ソリューション無しでゲームを 1 本出す」— エンティティの挙動をプロジェクトデータの一部として書ける仕組みが要ります。エンジンには <code>ScriptHost</code> (Roslyn csx、診断付き) と、capstone で実証した「コンパイル失敗で旧ロジック維持 + 診断公開」の運用があります。制約は: 決定性 (固定 dt・wall-clock 禁止 — golden/リプレイ)、ホットリロード (GE-5)、同じスクリプトを複数エンティティで共有できること。</p>
 <h2 id="decision">Decision</h2>
@@ -52,7 +52,7 @@ public static StoryResult Adr0018(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     ## Context
 
     &gt; [!NOTE]
-    &gt; `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+    &gt; `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクするLearnページと実装を正とします。
 
 
     Luxel Studio ([ADR-0015](story:Internals/ADR/0015-Game-Project-Scene-Format)) の北極星は「C# ソリューション無しでゲームを 1 本出す」— エンティティの挙動をプロジェクトデータの一部として書ける仕組みが要ります。エンジンには `ScriptHost` (Roslyn csx、診断付き) と、capstone で実証した「コンパイル失敗で旧ロジック維持 + 診断公開」の運用があります。制約は: 決定性 (固定 dt・wall-clock 禁止 — golden/リプレイ)、ホットリロード (GE-5)、同じスクリプトを複数エンティティで共有できること。

@@ -1,8 +1,8 @@
 <article class="story document-page"><h1 id="docs">docs ページの書き方</h1>
-<p>docs ページは <strong>補完文字列 + markdown</strong> で書きます。リテラル部分は markdown として整形され、hole に <code>Widget</code> を置くとその場に<strong>ライブ UI</strong> が埋め込まれます。カラー絵文字 :smile: :rocket: :+1: と &quot;smart quotes&quot; -- SmartyPants も効きます。リンクも張れます: <a href="#story=Reference%2FGuides%2FButton">Reference/Guides/Button を開く</a> / <a href="#story=Internals%2FAuthoring&amp;section=%E6%9B%B8%E3%81%91%E3%82%8B%E3%82%82%E3%81%AE">書けるもの へ</a> / <a href="https://www.sebastianaaltonen.com/blog/no-graphics-api">No Graphics API (外部)</a></p>
+<p>docs ページは <strong>補完文字列 + markdown</strong> で書きます。リテラル部分は markdown として整形され、hole に <code>Widget</code> を置くとその場に<strong>ライブ UI</strong> が埋め込まれます。カラー絵文字 :smile: :rocket: :+1: と &quot;smart quotes&quot; -- SmartyPants も効きます。リンクも張れます: <a href="#story=Controls%2FButton%2FOverview">Button overview を開く</a> / <a href="#story=Internals%2FAuthoring&amp;section=%E6%9B%B8%E3%81%91%E3%82%8B%E3%82%82%E3%81%AE">書けるもの へ</a> / <a href="https://www.sebastianaaltonen.com/blog/no-graphics-api">No Graphics API (外部)</a></p>
 <h2 id="section">ページの骨格</h2>
-<p><code>[Story(&quot;Reference/Guides/...&quot;)]</code> + <code>Kit.Docs</code> + <code>WithDocFonts</code> (日本語/絵文字フォールバック + シンタックスハイライト + mermaid/math widget の配線) が定型です。文字列は <code>$$&quot;&quot;&quot;</code> (hole = 波かっこ 2 連) にすると、C# コード例の波かっこ 1 連がそのままリテラルになります:</p>
-<pre><code class="language-csharp">[Story(&quot;Reference/Guides/MyPage&quot;, Order = 50, Toc = true)]
+<p><code>[Story(&quot;Internals/...&quot;)]</code> + <code>Kit.Docs</code> + <code>WithDocFonts</code> (日本語/絵文字フォールバック + シンタックスハイライト + mermaid/math widget の配線) が定型です。文字列は <code>$$&quot;&quot;&quot;</code> (hole = 波かっこ 2 連) にすると、C# コード例の波かっこ 1 連がそのままリテラルになります:</p>
+<pre><code class="language-csharp">[Story(&quot;Internals/MyPage&quot;, Order = 50, Toc = true)]
 public static StoryResult MyPage(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # 見出し
 
@@ -76,14 +76,14 @@ public static StoryResult Authoring(StoryContext ctx)
     StoryResult doc = $$$&quot;&quot;&quot;&quot;
         # docs ページの書き方
 
-        docs ページは **補完文字列 + markdown** で書きます。リテラル部分は markdown として整形され、hole に `Widget` を置くとその場に**ライブ UI** が埋め込まれます。カラー絵文字 :smile: :rocket: :+1: と &quot;smart quotes&quot; -- SmartyPants も効きます。リンクも張れます: [Reference/Guides/Button を開く](story:Reference/Guides/Button) / [書けるもの へ](#書けるもの) / [No Graphics API (外部)](https://www.sebastianaaltonen.com/blog/no-graphics-api)
+        docs ページは **補完文字列 + markdown** で書きます。リテラル部分は markdown として整形され、hole に `Widget` を置くとその場に**ライブ UI** が埋め込まれます。カラー絵文字 :smile: :rocket: :+1: と &quot;smart quotes&quot; -- SmartyPants も効きます。リンクも張れます: [Button overview を開く](story:Controls/Button/Overview) / [書けるもの へ](#書けるもの) / [No Graphics API (外部)](https://www.sebastianaaltonen.com/blog/no-graphics-api)
 
         ## ページの骨格
 
-        `[Story(&quot;Reference/Guides/...&quot;)]` + `Kit.Docs` + `WithDocFonts` (日本語/絵文字フォールバック + シンタックスハイライト + mermaid/math widget の配線) が定型です。文字列は `$$&quot;&quot;&quot;` (hole = 波かっこ 2 連) にすると、C# コード例の波かっこ 1 連がそのままリテラルになります:
+        `[Story(&quot;Internals/...&quot;)]` + `Kit.Docs` + `WithDocFonts` (日本語/絵文字フォールバック + シンタックスハイライト + mermaid/math widget の配線) が定型です。文字列は `$$&quot;&quot;&quot;` (hole = 波かっこ 2 連) にすると、C# コード例の波かっこ 1 連がそのままリテラルになります:
 
         ```csharp
-        [Story(&quot;Reference/Guides/MyPage&quot;, Order = 50, Toc = true)]
+        [Story(&quot;Internals/MyPage&quot;, Order = 50, Toc = true)]
         public static StoryResult MyPage(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
             # 見出し
 

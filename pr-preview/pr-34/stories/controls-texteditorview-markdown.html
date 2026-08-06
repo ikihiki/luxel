@@ -7,7 +7,7 @@ public static Widget Markdown(StoryContext ctx)
     Signal&lt;string&gt; md = ctx.Signal(&quot;md&quot;,
         &quot;# Markdown on the text stack\n&quot; +
         &quot;Rich text via decorations: **bold**, *italic*, `code`.\n&quot; +
-        &quot;See [the docs](story:Reference/Guides/Editor) for links.\n&quot; +
+        &quot;Links are rendered inline with the text.\n&quot; +
         &quot;&gt; A quoted line renders with a left bar.\n&quot; +
         &quot;- first list item\n&quot; +
         &quot;- second list item\n&quot; +
