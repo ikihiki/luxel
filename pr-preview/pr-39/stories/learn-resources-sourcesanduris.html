@@ -1,0 +1,204 @@
+<article class="story document-page"><h1 id="sources-and-resource-uris">Sources and resource URIs</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FResources%2FSourcesAndUris&amp;section=resourceuri%E3%81%AE%E6%A7%8B%E9%80%A0">ResourceUriの構造</a></li>
+<li><a href="#story=Learn%2FResources%2FSourcesAndUris&amp;section=source%E3%81%AE%E5%BD%B9%E5%89%B2">Sourceの役割</a></li>
+<li><a href="#story=Learn%2FResources%2FSourcesAndUris&amp;section=%E7%B5%84%E8%BE%BC%E3%81%BFsource%E3%81%A8vfs">組込みSourceとVFS</a></li>
+<li><a href="#story=Learn%2FResources%2FSourcesAndUris&amp;section=source%E3%82%92%E7%99%BB%E9%8C%B2%E3%81%99%E3%82%8B">Sourceを登録する</a></li>
+<li><a href="#story=Learn%2FResources%2FSourcesAndUris&amp;section=source%E3%81%A8step%E3%81%AE%E8%B2%AC%E5%8B%99%E3%82%92%E5%88%86%E3%81%91%E3%82%8B">SourceとStepの責務を分ける</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone / Headless　 <strong>Backend:</strong> File / HTTP / workspace　 <strong>前提知識:</strong> Loading and handles</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FResources%2FLoadingAndHandles">LoadingAndHandles</a>　 <strong>次:</strong> <a href="#story=Learn%2FResources%2FSteps">Steps</a></p>
+<h2 id="resourceuri">ResourceUriの構造</h2>
+<p><code>ResourceUri</code>は入力文字列をscheme、path、query、extension、fragmentへ分解します。scheme省略時は<code>file</code>として扱われます。</p>
+<table>
+<thead>
+<tr>
+<th>入力</th>
+<th>Scheme</th>
+<th>Path</th>
+<th>Query</th>
+<th>Extension</th>
+<th>Fragment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>textures/panel.tex</code></td>
+<td><code>file</code></td>
+<td><code>textures/panel.tex</code></td>
+<td>—</td>
+<td><code>.tex</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>https://cdn.example/a.bin?v=2</code></td>
+<td><code>https</code></td>
+<td><code>cdn.example/a.bin</code></td>
+<td><code>v=2</code></td>
+<td><code>.bin</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>shader.slang#compute</code></td>
+<td><code>file</code></td>
+<td><code>shader.slang</code></td>
+<td>—</td>
+<td><code>.slang</code></td>
+<td><code>compute</code></td>
+</tr>
+</tbody>
+</table>
+<p>nodeのURI keyにはscheme、path、query、fragmentが含まれます。queryやfragmentが違えば別nodeです。extensionはStep選択の手掛かりになります。</p>
+<h2 id="source">Sourceの役割</h2>
+<p><code>IResourceSource</code>はschemeを担当し、URIから<code>byte[]</code>を供給する入口です。</p>
+<pre><code class="language-csharp">public sealed class PackageSource : IResourceSource
+{
+    public IEnumerable&lt;string&gt; Schemes =&gt; [&quot;package&quot;];
+
+    public Task&lt;byte[]&gt; ReadAsync(ResourceUri uri, LoadContext ctx)
+        =&gt; ReadPackageEntryAsync(uri.Path, ctx.Token);
+
+    public IReloadToken? Watch(ResourceUri uri, Action onChanged)
+        =&gt; null;
+}
+</code></pre>
+<ul>
+<li><code>Schemes</code>: このSourceが処理するscheme。</li>
+<li><code>ReadAsync()</code>: bytesを返す。cancelには<code>ctx.Token</code>を使う。</li>
+<li><code>Watch()</code>: 変更監視できるSourceだけtokenを返す。必須ではありません。</li>
+</ul>
+<p>Sourceは画像decodeやGPU uploadを行いません。それらはtyped Stepの責務です。</p>
+<h2 id="sourcevfs">組込みSourceとVFS</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Scheme</th>
+<th>特徴</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FileSource</code></td>
+<td><code>file</code> / 既定</td>
+<td><code>IVirtualFileSystem</code>経由。変更監視に対応</td>
+</tr>
+<tr>
+<td><code>HttpSource</code></td>
+<td><code>http</code> / <code>https</code></td>
+<td><code>HttpClient</code>で取得</td>
+</tr>
+<tr>
+<td><code>WorkspaceSource</code></td>
+<td><code>workspace</code></td>
+<td>共有<code>WorkspaceFileSystem</code>から取得・監視</td>
+</tr>
+</tbody>
+</table>
+<p><code>FileSource</code>へ渡す<code>IVirtualFileSystem</code>は差し替え可能です。<code>PhysicalFileSystem</code>は実ファイル、<code>MemoryFileSystem</code>はtestや埋め込みデータ、<code>WorkspaceFileSystem</code>は編集可能なworkspaceに向きます。</p>
+<h2 id="source-1">Sourceを登録する</h2>
+<p>通常はResourceSystem構築時に配列へ含めます。実行中に追加する必要がある場合だけ<code>AddSource()</code>を使います。同じschemeへ後から登録すると、そのschemeのSourceは後の登録で置き換わるため、アプリのcomposition rootで一度に構成する方が追跡しやすくなります。</p>
+<h2 id="sourcestep">SourceとStepの責務を分ける</h2>
+<table>
+<thead>
+<tr>
+<th>判断</th>
+<th>Source</th>
+<th>Step</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>URI schemeを処理する</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>bytesを取得する</td>
+<td>Yes</td>
+<td>入力として受け取る</td>
+</tr>
+<tr>
+<td><code>TIn → TOut</code>へ変換する</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>extension / fragmentで候補選択される</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>外部serviceをctorで受け取る</td>
+<td>必要なら</td>
+<td>必要なら</td>
+</tr>
+</tbody>
+</table>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Resources/SourcesAndUris&quot;, Order = 2, Toc = true)]
+public static StoryResult SourcesAndUris(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Sources and resource URIs
+
+    {{ResourceCourseCatalog.Meta(&quot;Learn/Resources/SourcesAndUris&quot;, &quot;Beginner&quot;, &quot;Standalone / Headless&quot;, &quot;File / HTTP / workspace&quot;, &quot;Loading and handles&quot;)}}
+
+    ## ResourceUriの構造
+
+    `ResourceUri`は入力文字列をscheme、path、query、extension、fragmentへ分解します。scheme省略時は`file`として扱われます。
+
+    | 入力 | Scheme | Path | Query | Extension | Fragment |
+    | --- | --- | --- | --- | --- | --- |
+    | `textures/panel.tex` | `file` | `textures/panel.tex` | — | `.tex` | — |
+    | `https://cdn.example/a.bin?v=2` | `https` | `cdn.example/a.bin` | `v=2` | `.bin` | — |
+    | `shader.slang#compute` | `file` | `shader.slang` | — | `.slang` | `compute` |
+
+    nodeのURI keyにはscheme、path、query、fragmentが含まれます。queryやfragmentが違えば別nodeです。extensionはStep選択の手掛かりになります。
+
+    ## Sourceの役割
+
+    `IResourceSource`はschemeを担当し、URIから`byte[]`を供給する入口です。
+
+    ```csharp
+    public sealed class PackageSource : IResourceSource
+    {
+        public IEnumerable&lt;string&gt; Schemes =&gt; [&quot;package&quot;];
+
+        public Task&lt;byte[]&gt; ReadAsync(ResourceUri uri, LoadContext ctx)
+            =&gt; ReadPackageEntryAsync(uri.Path, ctx.Token);
+
+        public IReloadToken? Watch(ResourceUri uri, Action onChanged)
+            =&gt; null;
+    }
+    ```
+
+    - `Schemes`: このSourceが処理するscheme。
+    - `ReadAsync()`: bytesを返す。cancelには`ctx.Token`を使う。
+    - `Watch()`: 変更監視できるSourceだけtokenを返す。必須ではありません。
+
+    Sourceは画像decodeやGPU uploadを行いません。それらはtyped Stepの責務です。
+
+    ## 組込みSourceとVFS
+
+    | Source | Scheme | 特徴 |
+    | --- | --- | --- |
+    | `FileSource` | `file` / 既定 | `IVirtualFileSystem`経由。変更監視に対応 |
+    | `HttpSource` | `http` / `https` | `HttpClient`で取得 |
+    | `WorkspaceSource` | `workspace` | 共有`WorkspaceFileSystem`から取得・監視 |
+
+    `FileSource`へ渡す`IVirtualFileSystem`は差し替え可能です。`PhysicalFileSystem`は実ファイル、`MemoryFileSystem`はtestや埋め込みデータ、`WorkspaceFileSystem`は編集可能なworkspaceに向きます。
+
+    ## Sourceを登録する
+
+    通常はResourceSystem構築時に配列へ含めます。実行中に追加する必要がある場合だけ`AddSource()`を使います。同じschemeへ後から登録すると、そのschemeのSourceは後の登録で置き換わるため、アプリのcomposition rootで一度に構成する方が追跡しやすくなります。
+
+    ## SourceとStepの責務を分ける
+
+    | 判断 | Source | Step |
+    | --- | --- | --- |
+    | URI schemeを処理する | Yes | No |
+    | bytesを取得する | Yes | 入力として受け取る |
+    | `TIn → TOut`へ変換する | No | Yes |
+    | extension / fragmentで候補選択される | No | Yes |
+    | 外部serviceをctorで受け取る | 必要なら | 必要なら |
+    &quot;&quot;&quot;;</code></pre></details></article>
