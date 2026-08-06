@@ -69,7 +69,7 @@ public sealed class StoryGenerator : IIncrementalGenerator
 
                     string path = attr.ConstructorArguments.Length == 1 && attr.ConstructorArguments[0].Value is string p ? p : m.Name;
                     int w = 0, h = 0, order = 1000; string? theme = null; bool realWindowOnly = false, toc = false;
-                    string? sampleBundle = null, runtimeBundleId = null, capabilityNote = null, schemaMethod = null, resultMethod = null;
+                    string? sampleBundle = null, runtimeBundleId = null, capabilityNote = null, schemaMethod = null, resultMethod = null, sourceMembers = null;
                     foreach (KeyValuePair<string, TypedConstant> na in attr.NamedArguments)
                     {
                         if (na.Key == "Width" && na.Value.Value is int wi) w = wi;
@@ -81,6 +81,7 @@ public sealed class StoryGenerator : IIncrementalGenerator
                         if (na.Key == "SampleBundle" && na.Value.Value is string sb) sampleBundle = sb;
                         if (na.Key == "RuntimeBundleId" && na.Value.Value is string rb) runtimeBundleId = rb;
                         if (na.Key == "CapabilityNote" && na.Value.Value is string cn) capabilityNote = cn;
+                        if (na.Key == "SourceMembers" && na.Value.Value is string sm) sourceMembers = sm;
                         if (na.Key == "Result" && na.Value.Value is string rm) resultMethod = rm;
                         if (na.Key == "Args" && na.Value.Value is string am) schemaMethod = am;
                     }
@@ -109,8 +110,11 @@ public sealed class StoryGenerator : IIncrementalGenerator
                     bool valid = m.IsStatic && (returnsWidget || returnsStoryResult) && m.ContainingType is not null;
 
                     string fq = m.ContainingType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + m.Name;
-                    // storysource: メソッド宣言のソースをそのまま焼き込む (先頭の共通インデントは剥がす)
-                    string source = Dedent(((MethodDeclarationSyntax)ctx.Node).ToString());
+                    // storysource: メソッド宣言に加え、必要なら同じ型の関連memberも焼き込む。
+                    var methodDeclaration = (MethodDeclarationSyntax)ctx.Node;
+                    string source = Dedent(methodDeclaration.ToString());
+                    if (!string.IsNullOrWhiteSpace(sourceMembers) && methodDeclaration.Parent is TypeDeclarationSyntax declaringType)
+                        source = AppendSourceMembers(source, declaringType, sourceMembers);
                     string? schemaFq = schemaMethod is null ? null : m.ContainingType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + schemaMethod;
                     string? resultFq = resultMethod is null ? null : m.ContainingType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + resultMethod;
                     return new StoryModel(path, w, h, order, theme, fq, source, paramz, valid, realWindowOnly, toc, sampleBundle, runtimeBundleId, capabilityNote, returnsStoryResult, returnsSemanticDocument, schemaFq, resultFq);
@@ -199,6 +203,26 @@ public sealed class StoryGenerator : IIncrementalGenerator
         sb.AppendLine("    }");
         sb.AppendLine("}");
         spc.AddSource("GalleryStories.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    private static string AppendSourceMembers(string source, TypeDeclarationSyntax declaringType, string memberNames)
+    {
+        var text = new StringBuilder(source);
+        foreach (string requestedName in memberNames.Split(','))
+        {
+            string name = requestedName.Trim();
+            if (name.Length == 0) continue;
+            MemberDeclarationSyntax? member = declaringType.Members.FirstOrDefault(candidate => candidate switch
+            {
+                MethodDeclarationSyntax method => method.Identifier.ValueText == name,
+                TypeDeclarationSyntax type => type.Identifier.ValueText == name,
+                FieldDeclarationSyntax field => field.Declaration.Variables.Any(variable => variable.Identifier.ValueText == name),
+                _ => false,
+            });
+            if (member is null) continue;
+            text.Append("\n\n").Append(Dedent(member.ToString()));
+        }
+        return text.ToString();
     }
 
     private static string Literal(string s) => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(s, true);
