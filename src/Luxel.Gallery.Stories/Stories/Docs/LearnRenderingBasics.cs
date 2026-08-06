@@ -18,9 +18,13 @@ public static partial class DocsRenderingLearn
 
         ## 推奨アプリ構築ルート
 
-        Graphics直下のページはリンク順に並びます。基礎ルートの後に2Dを置き、その下のInternalで2D rasterizerの内部実装を扱います。
+        Graphics直下のページはリンク順に並びます。まず基礎ルートを進み、その後は目的に応じて2D、RenderGraph、backend内部実装へ進みます。
 
         {RenderingCourseCatalog.ApplicationRouteMarkdown()}
+
+        ## Backend内部実装
+
+        共通resourceが各APIへ変換される仕組みは、上級者向けの[DirectX 12](story:Learn/Graphics/Internal/DirectX12)、[Vulkan](story:Learn/Graphics/Internal/Vulkan)、[WebGPU](story:Learn/Graphics/Internal/WebGPU)でresource単位に比較できます。通常のアプリ構築では必須ではありません。
 
         **検索キーワード:** triangle / texture / shader / pipeline / barrier / submit / render graph
 
