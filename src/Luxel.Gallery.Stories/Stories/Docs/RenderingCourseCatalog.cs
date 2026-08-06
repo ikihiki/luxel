@@ -11,6 +11,8 @@ internal static class RenderingCourseCatalog
         "Learn/Graphics/ClearColor", "Learn/Graphics/FirstTriangle",
         "Learn/Graphics/Buffers", "Learn/Graphics/Textures", "Learn/Graphics/Shaders",
         "Learn/Graphics/PipelineState", "Learn/Graphics/Synchronization",
+        "Learn/Graphics/Internal/DirectX12", "Learn/Graphics/Internal/Vulkan",
+        "Learn/Graphics/Internal/WebGPU",
         "Learn/Graphics/2D/Overview", "Learn/Graphics/2D/Paths",
         "Learn/Graphics/2D/Compositing", "Learn/Graphics/2D/Images",
         "Learn/Graphics/2D/Camera", "Learn/Graphics/2D/Backends",
@@ -28,7 +30,8 @@ internal static class RenderingCourseCatalog
 
     internal static readonly string[] ApplicationRoute = Routes
         .Skip(1)
-        .TakeWhile(route => !route.StartsWith("Learn/Graphics/2D/", StringComparison.Ordinal))
+        .TakeWhile(route => !route.StartsWith("Learn/Graphics/Internal/", StringComparison.Ordinal)
+            && !route.StartsWith("Learn/Graphics/2D/", StringComparison.Ordinal))
         .ToArray();
 
     internal static string ApplicationRouteMarkdown()
