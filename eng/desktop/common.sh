@@ -4,6 +4,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+HOST_XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}"
+HOST_PULSE_SERVER="${PULSE_SERVER:-}"
 DESKTOP_DISPLAY="${LUXEL_DESKTOP_DISPLAY:-:99}"
 DESKTOP_NUMBER="${DESKTOP_DISPLAY#:}"
 DESKTOP_GEOMETRY="${LUXEL_DESKTOP_GEOMETRY:-1280x900x24}"
@@ -17,8 +19,44 @@ SCREENSHOT_DIR="${STATE_DIR}/screenshots"
 RUNTIME_DIR="${STATE_DIR}/runtime"
 ENV_FILE="${STATE_DIR}/environment"
 LOCK_FILE="${STATE_DIR}/desktop.lock"
+AUDIO_LOCK_FILE="${STATE_DIR}/audio.lock"
 DESKTOP_RENDERER="${LUXEL_DESKTOP_RENDERER:-lavapipe}"
 LAVAPIPE_ICD="${LUXEL_LAVAPIPE_ICD:-/usr/share/vulkan/icd.d/lvp_icd.json}"
+AUDIO_MODE="${LUXEL_DESKTOP_AUDIO:-off}"
+AUDIO_MODE_FILE="${STATE_DIR}/audio.mode"
+AUDIO_MODULE_FILE="${STATE_DIR}/audio.module"
+AUDIO_SERVER_FILE="${STATE_DIR}/audio.server"
+AUDIO_SINK_FILE="${STATE_DIR}/audio.sink"
+AUDIO_SERVER_SOCKET="${LUXEL_PULSE_SERVER_SOCKET:-${RUNTIME_DIR}/pulse/native}"
+AUDIO_SINK="${LUXEL_AUDIO_SINK:-luxel_null}"
+AUDIO_RATE=48000
+AUDIO_CHANNELS=2
+CAPTURE_DIR="${STATE_DIR}/captures"
+
+case "${AUDIO_MODE}" in
+    off|null|system) ;;
+    *) printf '[luxel-desktop] error: invalid LUXEL_DESKTOP_AUDIO %q (expected off, null, or system)\n' "${AUDIO_MODE}" >&2; exit 1 ;;
+esac
+
+case "${AUDIO_MODE}" in
+    null)
+        AUDIO_PULSE_SERVER="unix:${AUDIO_SERVER_SOCKET}"
+        ;;
+    system)
+        if [[ -n "${LUXEL_SYSTEM_PULSE_SERVER:-}" ]]; then
+            AUDIO_PULSE_SERVER="${LUXEL_SYSTEM_PULSE_SERVER}"
+        elif [[ -n "${HOST_PULSE_SERVER}" ]]; then
+            AUDIO_PULSE_SERVER="${HOST_PULSE_SERVER}"
+        elif [[ -n "${HOST_XDG_RUNTIME_DIR}" ]]; then
+            AUDIO_PULSE_SERVER="unix:${HOST_XDG_RUNTIME_DIR}/pulse/native"
+        else
+            AUDIO_PULSE_SERVER="unix:/run/user/${UID}/pulse/native"
+        fi
+        ;;
+    *)
+        AUDIO_PULSE_SERVER=""
+        ;;
+esac
 
 export DISPLAY="${DESKTOP_DISPLAY}"
 export XDG_RUNTIME_DIR="${RUNTIME_DIR}"
@@ -26,8 +64,8 @@ if [[ "${DESKTOP_RENDERER}" == "lavapipe" && -f "${LAVAPIPE_ICD}" ]]; then
     export VK_ICD_FILENAMES="${VK_ICD_FILENAMES:-${LAVAPIPE_ICD}}"
 fi
 
-mkdir -p "${PID_DIR}" "${LOG_DIR}" "${SCREENSHOT_DIR}" "${RUNTIME_DIR}"
-chmod 700 "${STATE_DIR}" "${PID_DIR}" "${LOG_DIR}" "${SCREENSHOT_DIR}" "${RUNTIME_DIR}"
+mkdir -p "${PID_DIR}" "${LOG_DIR}" "${SCREENSHOT_DIR}" "${RUNTIME_DIR}" "${CAPTURE_DIR}"
+chmod 700 "${STATE_DIR}" "${PID_DIR}" "${LOG_DIR}" "${SCREENSHOT_DIR}" "${RUNTIME_DIR}" "${CAPTURE_DIR}"
 
 log() {
     printf '[luxel-desktop] %s\n' "$*"
@@ -74,7 +112,7 @@ start_process() {
     fi
 
     rm -f "$(pid_file "${name}")"
-    setsid "$@" >>"${LOG_DIR}/${name}.log" 2>&1 < /dev/null 9>&- &
+    setsid "$@" >>"${LOG_DIR}/${name}.log" 2>&1 < /dev/null 8>&- 9>&- &
     local pid=$!
     printf '%s\n' "${pid}" > "$(pid_file "${name}")"
     sleep 0.2
@@ -159,7 +197,41 @@ export LUXEL_DESKTOP_STATE_DIR='${STATE_DIR}'
 export LUXEL_VNC_SOCKET='${VNC_SOCKET}'
 export LUXEL_NOVNC_PORT='${NOVNC_PORT}'
 export LUXEL_DESKTOP_RENDERER='${DESKTOP_RENDERER}'
+export LUXEL_DESKTOP_AUDIO='${AUDIO_MODE}'
+export LUXEL_AUDIO_SINK='${AUDIO_SINK}'
+export LUXEL_AUDIO_RATE='${AUDIO_RATE}'
+export LUXEL_AUDIO_CHANNELS='${AUDIO_CHANNELS}'
+unset PULSE_SERVER PULSE_SINK ALSOFT_DRIVERS
 ${VK_ICD_FILENAMES:+export VK_ICD_FILENAMES='${VK_ICD_FILENAMES}'}
 EOF
+    if [[ "${AUDIO_MODE}" != "off" ]]; then
+        printf "export PULSE_SERVER='%s'\n" "${AUDIO_PULSE_SERVER}" >> "${ENV_FILE}"
+        printf "export ALSOFT_DRIVERS='pulse'\n" >> "${ENV_FILE}"
+    fi
+    if [[ "${AUDIO_MODE}" == "null" ]]; then
+        printf "export PULSE_SINK='%s'\n" "${AUDIO_SINK}" >> "${ENV_FILE}"
+    fi
     chmod 600 "${ENV_FILE}"
+}
+
+audio_pactl() {
+    local server
+    server="$(cat "${AUDIO_SERVER_FILE}" 2>/dev/null || true)"
+    [[ -n "${server}" ]] || server="${AUDIO_PULSE_SERVER}"
+    [[ -n "${server}" ]] || return 1
+    env PULSE_SERVER="${server}" pactl "$@"
+}
+
+audio_server_ready() {
+    audio_pactl info >/dev/null 2>&1
+}
+
+audio_sink_ready() {
+    local sink="${1:-${AUDIO_SINK}}"
+    audio_pactl list short sinks | awk -v sink="${sink}" '$2 == sink { found=1 } END { exit !found }'
+}
+
+openal_library_ready() {
+    ldconfig -p 2>/dev/null | grep -F 'libopenal.so.1' >/dev/null || \
+        find /usr/lib /lib -name 'libopenal.so.1' -print -quit 2>/dev/null | grep -q .
 }

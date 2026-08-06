@@ -1,4 +1,4 @@
-﻿using Luxel.AssetsGpu;
+using Luxel.AssetsGpu;
 using Luxel.Audio;
 using Luxel.Input;
 using Luxel.Resources;
@@ -36,6 +36,7 @@ public sealed class LuxelHostBuilder
     private Type? _startupScene;
     private string? _assetRoot;
     private bool _useAudio;
+    private Func<IAudioBackend>? _audioFactory;
     private Luxel.Settings.IFileStore? _settingsFiles;
     private string _settingsFileName = "settings.json";
     private string? _settingsEnvPrefix;
@@ -77,8 +78,17 @@ public sealed class LuxelHostBuilder
     /// 詳細は <see cref="SceneLoopServices.WaitFrame"/>。</summary>
     public LuxelHostBuilder UseFrameWaiter(Func<CancellationToken, Task> waiter) { _frameWaiter = waiter; return this; }
 
-    /// <summary>Audio (XAudio2Backend) を DI に登録する。未指定なら audio system は起動しない。</summary>
-    public LuxelHostBuilder UseAudio() { _useAudio = true; return this; }
+    /// <summary>現在の OS に対応する audio backend を DI に登録する。Windows は XAudio2、
+    /// Linux/macOS は Silk.NET 経由の OpenAL Soft。未指定なら audio system は起動しない。</summary>
+    public LuxelHostBuilder UseAudio() { _useAudio = true; _audioFactory = null; return this; }
+
+    /// <summary>Audio backend factory を明示注入する。factory が作った backend は初期化され、host の破棄で Dispose される。</summary>
+    public LuxelHostBuilder UseAudio(Func<IAudioBackend> factory)
+    {
+        _audioFactory = factory ?? throw new ArgumentNullException(nameof(factory));
+        _useAudio = true;
+        return this;
+    }
 
     /// <summary>Resources system を DI に登録し、<paramref name="assetRoot"/> を base ディレクトリにする。</summary>
     public LuxelHostBuilder UseResources(string? assetRoot = null) { _assetRoot = assetRoot ?? AppContext.BaseDirectory; return this; }
@@ -122,6 +132,13 @@ public sealed class LuxelHostBuilder
         return this;
     }
 
+    internal static IAudioBackend CreatePlatformAudioBackend()
+    {
+        if (OperatingSystem.IsWindows()) return new Luxel.Audio.Windows.XAudio2Backend();
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) return new Luxel.Audio.Silk.OpenAlAudioBackend();
+        throw new PlatformNotSupportedException("UseAudio() supports Windows (XAudio2) and Linux/macOS (OpenAL Soft via Silk.NET). Use UseAudio(factory) for another platform.");
+    }
+
     public IHost Build()
     {
         if (_deviceFactory is null && _borrowedDevice is null)
@@ -158,11 +175,11 @@ public sealed class LuxelHostBuilder
         // Audio
         if (_useAudio)
         {
-            _inner.Services.AddSingleton<IAudioBackend>(sp =>
+            _inner.Services.AddSingleton<IAudioBackend>(_ =>
             {
-                var xa2 = new Luxel.Audio.Windows.XAudio2Backend();
-                xa2.Initialize();
-                return xa2;
+                IAudioBackend backend = _audioFactory?.Invoke() ?? CreatePlatformAudioBackend();
+                backend.Initialize();
+                return backend;
             });
             _inner.Services.AddSingleton<AudioMixer>();
         }

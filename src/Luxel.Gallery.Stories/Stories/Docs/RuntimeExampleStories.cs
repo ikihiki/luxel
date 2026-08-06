@@ -6,26 +6,6 @@ namespace Luxel.Gallery.Stories;
 /// <summary>Small, source-backed runtime examples that connect Learn concepts to copyable bundles.</summary>
 public static class RuntimeExampleStories
 {
-    [Story("Examples/Audio/WaveformAndVoice", Order = 0, SampleBundle = "audio.tone")]
-    public static StoryResult AudioWaveform(StoryContext ctx) => RuntimeExample(ctx, "Audio: waveform and voice",
-        "procedural PCM16 waveformから`AudioClip`を作り、voiceへqueueしてplaying状態とsubmitted bytesを観測します。",
-        "samples/LuxelAudio/Program.cs", "audio-tone", "audio.tone");
-
-    [Story("Examples/Audio/Buses", Order = 1, SampleBundle = "audio.tone")]
-    public static StoryResult AudioBuses(StoryContext ctx) => RuntimeExample(ctx, "Audio: mixer and buses",
-        "`AudioMixer`を中心にone-shotとvoice lifecycleを構成します。階層音量はLearnのbusページからこの最小bundleへ追加します。",
-        "samples/LuxelAudio/Program.cs", "audio-tone", "audio.tone");
-
-    [Story("Examples/Audio/SpatialAttenuation", Order = 2, SampleBundle = "audio.tone")]
-    public static StoryResult AudioSpatial(StoryContext ctx) => RuntimeExample(ctx, "Audio: spatial attenuation",
-        "headless bundleを基準点に、`AudioSource3D`の距離減衰とpanを追加します。実音ではなく計算値とvoice状態をtestします。",
-        "samples/LuxelAudio/Program.cs", "audio-tone", "audio.tone");
-
-    [Story("Examples/Audio/StreamingQueue", Order = 3, SampleBundle = "audio.tone")]
-    public static StoryResult AudioStreaming(StoryContext ctx) => RuntimeExample(ctx, "Audio: streaming queue",
-        "短いclipのqueue観測を、`WavStream`/`LoopingStream`と`StreamingVoice.Pump()`へ拡張する接続点を示します。",
-        "samples/LuxelAudio/Program.cs", "audio-tone", "audio.tone");
-
     [Story("Examples/Resources/Pipeline", Order = 0, SampleBundle = "resources.pipeline")]
     public static StoryResult ResourcePipeline(StoryContext ctx) => RuntimeExample(ctx, "Resources: typed pipeline",
         "memory sourceから`byte[] → TextAsset` stepを合成し、typed handleがReadyになるまでの最小pipelineです。",

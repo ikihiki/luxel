@@ -16,4 +16,4 @@ mixer.PlayOneShot(clip, volume: 0.5f);
 // docs:end audio-tone
 IAudioVoice voice = backend.Voices.Single();
 Console.WriteLine($"audio: initialized={backend.Initialized}, voices={backend.Voices.Count}, queued={voice.BuffersQueued}, playing={voice.IsPlaying}, bytes={pcm.Length}");
-return backend.Initialized && voice.BuffersQueued == 1 && voice.IsPlaying ? 0 : 1;
+return backend.Initialized && voice.BuffersQueued == 1 && voice.IsPlaying && AudioConceptSamples.RunAll() ? 0 : 1;

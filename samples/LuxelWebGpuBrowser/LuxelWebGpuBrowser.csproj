@@ -8,6 +8,7 @@
     <WasmMainJSPath>wwwroot/main.js</WasmMainJSPath>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Luxel.Audio.Browser\Luxel.Audio.Browser.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Shaders\Luxel.Shaders.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Shaders.Slang.Browser\Luxel.Shaders.Slang.Browser.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Physics\Luxel.Physics.csproj" />
@@ -56,6 +57,8 @@
              Link="wwwroot\slang-worker.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang\**\*"
              Link="wwwroot\slang\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Luxel.Audio.Browser\wwwroot\luxel-audio-browser.js"
+             Link="wwwroot\luxel-audio-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\src\Luxel.Graphics.WebGPU.Browser\wwwroot\luxel-webgpu-browser.js"
              Link="wwwroot\luxel-webgpu-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\src\Luxel.Platform.Web\wwwroot\luxel-platform-web.js"
