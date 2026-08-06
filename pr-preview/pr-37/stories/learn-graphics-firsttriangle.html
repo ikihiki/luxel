@@ -73,9 +73,10 @@ float4 psMain(VertexOut input) : SV_Target
 </code></pre>
 <h2 id="section-4">4. パイプラインの作成</h2>
 <p>render targetのformatに合わせたraster設定を作り、頂点シェーダーとピクセルシェーダーをgraphics pipelineへまとめます。既定のentry pointは<code>vsMain</code>と<code>psMain</code>です。</p>
-<pre><code class="language-csharp">GpuRasterDesc raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
+<pre><code class="language-csharp">var pipelineDesc = new GpuGraphicsPipelineDesc(
+    new GpuAttachmentLayout(GpuFormat.Rgba8Unorm));
 using GpuPipeline pipeline =
-    device.CreateGraphicsPipeline(shader, raster);
+    device.CreateGraphicsPipeline(shader, pipelineDesc);
 </code></pre>
 <h2 id="section-5">5. コマンドの設定</h2>
 <p>main queueからcommand bufferを作り、render pass、pipeline、頂点バッファの<code>BindlessIndex</code>、頂点数の順に設定します。描画後はrender targetをframebufferへコピーします。</p>
@@ -197,9 +198,10 @@ public static StoryResult FirstTriangle(StoryContext ctx)
     render targetのformatに合わせたraster設定を作り、頂点シェーダーとピクセルシェーダーをgraphics pipelineへまとめます。既定のentry pointは`vsMain`と`psMain`です。
 
     ```csharp
-    GpuRasterDesc raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
+    var pipelineDesc = new GpuGraphicsPipelineDesc(
+        new GpuAttachmentLayout(GpuFormat.Rgba8Unorm));
     using GpuPipeline pipeline =
-        device.CreateGraphicsPipeline(shader, raster);
+        device.CreateGraphicsPipeline(shader, pipelineDesc);
     ```
 
     ## 5. コマンドの設定

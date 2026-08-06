@@ -33,7 +33,7 @@
 <li><strong>同期は stage バリアのみ</strong> — <code>Barrier(srcStage, dstStage)</code> の 1 種類。リソース個別の状態遷移管理を持たない</li>
 <li><strong>Slang 統一シェーダ</strong> — 1 ソースを SPIR-V (Vulkan) と DXIL (D3D12) へ併存コンパイル。シェーダはバックエンド非依存</li>
 </ul>
-<p>現在の姿の詳細は <a href="#story=Reference%2FGuides%2FGpuDevice">Reference/Guides/GpuDevice</a> と <a href="#story=Internals%2FArchitecture">Internals/Architecture</a> へ。</p>
+<p>現在の姿の詳細は <a href="#story=Internals%2FArchitecture">Internals/Architecture</a> へ。</p>
 <h2 id="alternatives">Alternatives</h2>
 <ul>
 <li><strong>Vulkan (または D3D12) を素で 1 本</strong> — マルチバックエンド要件を満たさない。また素の API は旧世代互換の概念 (ディスクリプタ管理・render pass・細粒度バリア) を強制し、コードベース全体にその複雑さが漏れる → 却下</li>
@@ -81,7 +81,7 @@ public static StoryResult Adr0002(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     - **同期は stage バリアのみ** — `Barrier(srcStage, dstStage)` の 1 種類。リソース個別の状態遷移管理を持たない
     - **Slang 統一シェーダ** — 1 ソースを SPIR-V (Vulkan) と DXIL (D3D12) へ併存コンパイル。シェーダはバックエンド非依存
 
-    現在の姿の詳細は [Reference/Guides/GpuDevice](story:Reference/Guides/GpuDevice) と [Internals/Architecture](story:Internals/Architecture) へ。
+    現在の姿の詳細は [Internals/Architecture](story:Internals/Architecture) へ。
 
     ## Alternatives
 
