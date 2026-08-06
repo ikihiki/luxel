@@ -3,6 +3,12 @@ name: Test Browser WebGPU
 on:
   pull_request:
     paths:
+      - 'src/Luxel.Physics/**'
+      - 'src/Luxel.Physics.Gizmos/**'
+      - 'src/Luxel.Ecs/**'
+      - 'src/Luxel.Assets/**'
+      - 'src/Luxel.AssetsGpu/**'
+      - 'src/Luxel.AssetRuntime/**'
       - 'src/Luxel.Graphics/**'
       - 'src/Luxel.Graphics.WebGPU.Browser/**'
       - 'src/Luxel.Graphics.TwoD/**'
@@ -20,6 +26,8 @@ on:
       - 'samples/LuxelTriangle/**'
       - 'samples/LuxelPlaygroundBrowser/**'
       - 'samples/LuxelWebGpuBrowser/**'
+      - 'shaders/cube_forward.slang'
+      - 'shaders/compiled/cube_forward.*'
       - 'shaders/tutorial_triangle.slang'
       - 'shaders/compiled/tutorial_triangle.*'
       - 'shaders/raster2d_*.slang'
@@ -113,7 +121,15 @@ jobs:
           production = [story for story in manifest['stories'] if story.get('componentType')]
           assert manifest['bundleId'] == 'webgpu-browser-v1'
           assert manifest['protocolVersion'] == 2
+          physics_paths = {
+              'Examples/3D/PhysicsFalling', 'Examples/3D/PhysicsPlayground',
+              'Examples/3D/PhysicsGizmos', 'Examples/3D/PhysicsTrigger', 'Examples/3D/PhysicsMesh',
+          }
+          assert physics_paths <= {story['path'] for story in manifest['stories']}
+          ecs = next(story for story in manifest['stories'] if story['path'] == 'Examples/3D/EcsCubes')
           blur = next(story for story in manifest['stories'] if story['path'] == 'Examples/RenderGraph/Blur')
+          assert ecs['width'] == ecs['height'] == 320
+          assert ecs['componentType'] is None
           assert blur['width'] == blur['height'] == 320
           assert blur['componentType'] is None
           assert len(production) == len({story['componentType'] for story in production}) == 60

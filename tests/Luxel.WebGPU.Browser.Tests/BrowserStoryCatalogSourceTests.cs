@@ -74,6 +74,12 @@ public sealed class BrowserStoryCatalogSourceTests
         string[] runtimePaths = manifest.GetProperty("stories").EnumerateArray()
             .Select(story => story.GetProperty("path").GetString()!)
             .ToArray();
+        foreach (string path in new[]
+                 {
+                     "Examples/3D/EcsCubes", "Examples/3D/PhysicsFalling", "Examples/3D/PhysicsPlayground",
+                     "Examples/3D/PhysicsGizmos", "Examples/3D/PhysicsTrigger", "Examples/3D/PhysicsMesh",
+                 })
+            Assert.Contains(path, runtimePaths);
         string[] audioStories =
         [
             "Examples/Audio/BackendLifecycle", "Examples/Audio/WaveformAndVoice", "Examples/Audio/Buses",
