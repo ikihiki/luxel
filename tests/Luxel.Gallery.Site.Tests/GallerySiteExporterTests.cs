@@ -1263,6 +1263,57 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Ecs_learn_chain_is_complete_ordered_and_places_physics_in_a_subcategory()
+    {
+        string[] orderedRoutes = Catalog.All
+            .Where(story => story.Path.StartsWith("Learn/ECS/", StringComparison.Ordinal))
+            .Select(story => story.Path)
+            .ToArray();
+        Assert.Equal(EcsCourseCatalog.Routes, orderedRoutes);
+        Assert.Equal("Learn/ECS/Diagnostics", orderedRoutes[8]);
+        Assert.Equal("Learn/ECS/Physics/Overview", orderedRoutes[9]);
+        Assert.All(orderedRoutes[9..], route => Assert.StartsWith("Learn/ECS/Physics/", route, StringComparison.Ordinal));
+        Assert.All(Catalog.All.Where(story => story.Path.StartsWith("Learn/ECS", StringComparison.Ordinal)),
+            story => Assert.StartsWith("Learn/ECS/", story.Path, StringComparison.Ordinal));
+
+        StoryInfo[] stories = EcsCourseCatalog.Routes.Select(path => Catalog.Find(path)
+            ?? throw new InvalidOperationException($"ECS Learn route is missing: {path}")).ToArray();
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null, Catalog);
+
+        Assert.Empty(DocsIndex.ValidateLinks(pages, Catalog));
+        for (int i = 0; i < stories.Length; i++)
+        {
+            DocsPage page = pages[stories[i].Path];
+            Assert.Contains("**難易度:**", page.Text);
+            Assert.Contains("**実行環境:**", page.Text);
+            Assert.Contains("**Backend:**", page.Text);
+            Assert.Contains("**前提知識:**", page.Text);
+            Assert.Contains("```", page.Text);
+            Assert.True(page.Headings.Count >= 3, $"ECS page needs multiple sections: {page.Path}");
+            if (i > 0) Assert.Contains("story:" + stories[i - 1].Path, page.Text);
+            if (i + 1 < stories.Length) Assert.Contains("story:" + stories[i + 1].Path, page.Text);
+        }
+
+        string overview = pages["Learn/ECS/Overview"].Text;
+        foreach (string route in EcsCourseCatalog.Routes)
+            Assert.Contains("story:" + route, overview);
+
+        Assert.NotNull(Catalog.Find("Examples/3D/EcsCubes"));
+        Assert.NotNull(SampleBundleRegistry.Find("game.range"));
+
+        string physicsOverview = pages["Learn/ECS/Physics/Overview"].Text;
+        Assert.Contains("story:Learn/ECS/Diagnostics", physicsOverview);
+        Assert.Contains("story:Learn/ECS/Physics/BodiesAndShapes", physicsOverview);
+        foreach (string example in new[]
+                 {
+                     "Examples/3D/PhysicsFalling", "Examples/3D/PhysicsTrigger",
+                     "Examples/3D/PhysicsMesh", "Examples/3D/PhysicsGizmos",
+                 })
+            Assert.NotNull(Catalog.Find(example));
+    }
+
+
+    [Fact]
     public void Resources_learn_chain_is_complete_ordered_and_implementation_accurate()
     {
         string[] orderedRoutes = Catalog.All
@@ -1989,7 +2040,6 @@ public sealed class GallerySiteExporterTests
             "Learn/Resources/Assets/Overview", "Learn/Resources/Assets/TypesAndRelationships",
             "Learn/Resources/Assets/LoadingAndGpu", "Learn/Resources/Assets/ShaderCalculations",
             "Learn/Resources/Assets/GltfRuntime",
-            "Learn/ECSPhysics/Overview", "Learn/ECSPhysics/CollisionsAndGizmos",
             "Learn/AnimationParticles/Overview", "Learn/AnimationParticles/GraphsAndEmitters",
             "Learn/Scripting/Overview", "Learn/Scripting/ReloadAndIsolation",
             "Learn/Production/StudioToPlayer", "Learn/Production/Workbench", "Learn/Production/ValidateAndShip",

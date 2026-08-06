@@ -5,27 +5,6 @@ namespace Luxel.Gallery.Stories;
 
 public static class LearnDomainSystems
 {
-    [Story("Learn/ECSPhysics/Overview", Order = 0, SampleBundle = "game.range", Toc = true)]
-    public static StoryResult EcsOverview(StoryContext ctx) => $$"""
-        # ECS and physics overview
-
-        `World`はcomponent data、systemはphaseごとの処理です。physics worldとECS entityの対応を一箇所で管理し、固定stepでsimulation、Update/Renderで結果抽出を行います。
-
-        {{StoryRef(ctx, "Examples/3D/PhysicsFalling")}}
-        {{SampleBundle("game.range")}}
-        """;
-
-    [Story("Learn/ECSPhysics/CollisionsAndGizmos", Order = 1, Toc = true)]
-    public static StoryResult Physics(StoryContext ctx) => $$"""
-        # Collisions, triggers, and gizmos
-
-        collision responseとtrigger eventを分離し、mesh colliderは静的geometryへ限定します。まずprimitive falling、次にtrigger、最後にmeshとgizmoでshape/normal/contactを可視化します。
-
-        {{StoryRef(ctx, "Examples/3D/PhysicsTrigger")}}
-        {{StoryRef(ctx, "Examples/3D/PhysicsMesh")}}
-        {{StoryRef(ctx, "Examples/3D/PhysicsGizmos")}}
-        """;
-
     [Story("Learn/AnimationParticles/Overview", Order = 0, SampleBundle = "game.cavern", Toc = true)]
     public static StoryResult AnimationOverview(StoryContext ctx) => $$"""
         # Animation and particles overview
