@@ -5,26 +5,6 @@ namespace Luxel.Gallery.Stories;
 
 public static class LearnDomainSystems
 {
-    [Story("Learn/Assets/Overview", Order = 0, SampleBundle = "game.range", Toc = true)]
-    public static StoryResult AssetsOverview(StoryContext ctx) => $$"""
-        # Assets and glTF overview
-
-        asset pathは`ResourceSystem → GltfLoader → CPU scene → AssetsGpu / AssetRuntime → render extraction`です。まず静的boxを確認し、次にskin、morph、animationへ進みます。
-
-        {{StoryRef(ctx, "Examples/3D/GltfBox")}}
-        {{SampleBundle("game.range")}}
-        """;
-
-    [Story("Learn/Assets/GltfRuntime", Order = 1, Toc = true)]
-    public static StoryResult GltfRuntime(StoryContext ctx) => $$"""
-        # glTF runtime ownership
-
-        glTFのbuffer/image/node/skin/animationはCPU decode結果です。GPU uploadとruntime instanceは別所有者にし、resource handleの寿命より先にbindless bufferやtextureを破棄しません。
-
-        {{StoryRef(ctx, "Examples/3D/GltfSkinned")}}
-        {{StoryRef(ctx, "Examples/3D/GltfMorph")}}
-        """;
-
     [Story("Learn/ECSPhysics/Overview", Order = 0, SampleBundle = "game.range", Toc = true)]
     public static StoryResult EcsOverview(StoryContext ctx) => $$"""
         # ECS and physics overview
