@@ -7,7 +7,7 @@ GUI app -> Xvfb -> openbox -> x11vnc (Unix socket, no password)
         -> websockify/noVNC (loopback HTTP) -> authenticated Coder preview
 ```
 
-The VNC server intentionally has no separate password and exposes no TCP listener; x11vnc and websockify communicate through a mode-`0600` Unix socket. Authentication is provided by the Coder preview for noVNC port 6080.
+The VNC server intentionally has no separate password and exposes no TCP listener; x11vnc and websockify communicate through a mode-`0600` Unix socket. Authentication is provided by the Coder preview for noVNC port 6080. **noVNC transports pixels and input only; it does not transport audio.** The optional audio service is independent of X11 and is intended for application testing and WAV capture inside the workspace.
 
 ## Install
 
@@ -38,6 +38,65 @@ The default Vulkan renderer is Mesa lavapipe for deterministic remote developmen
 LUXEL_DESKTOP_RENDERER=hardware eng/desktop/start.sh
 ```
 
+## Optional Linux audio
+
+Audio defaults to `off` so starting the web desktop never changes the host audio configuration. Select one of these modes with `LUXEL_DESKTOP_AUDIO`:
+
+| Mode | Behavior |
+|---|---|
+| `off` | Default. Do not connect to or start an audio server. |
+| `null` | Start a repository-owned PulseAudio-compatible server and a named 48 kHz stereo `module-null-sink`. This is the deterministic CI/headless mode. |
+| `system` | Connect to the existing PipeWire Pulse compatibility or PulseAudio server. No server or sink is created or stopped. |
+
+Start the complete desktop with a virtual sink:
+
+```bash
+LUXEL_DESKTOP_AUDIO=null eng/desktop/start.sh
+source "${XDG_RUNTIME_DIR:-/tmp}/luxel-desktop-${UID}/environment"
+```
+
+Audio can also run without Xvfb, openbox, or noVNC:
+
+```bash
+LUXEL_DESKTOP_AUDIO=null eng/desktop/audio-start.sh
+LUXEL_DESKTOP_AUDIO=null eng/desktop/healthcheck.sh --audio-only
+source "${XDG_RUNTIME_DIR:-/tmp}/luxel-desktop-${UID}/environment"
+# Run the application or tests here.
+eng/desktop/audio-stop.sh
+```
+
+For an existing desktop audio service, preserve the shell's `PULSE_SERVER` or identify it explicitly:
+
+```bash
+LUXEL_DESKTOP_AUDIO=system \
+LUXEL_SYSTEM_PULSE_SERVER="unix:${XDG_RUNTIME_DIR}/pulse/native" \
+eng/desktop/audio-start.sh
+```
+
+The generated environment sets `ALSOFT_DRIVERS=pulse` in `null` and `system` modes. Null mode also sets `PULSE_SINK=luxel_null`. OpenAL Soft therefore writes to the selected Pulse-compatible server rather than silently choosing another backend.
+
+### Capture and analyze output
+
+Capture the null sink monitor (or `@DEFAULT_MONITOR@` in system mode) to a 48 kHz stereo PCM WAV:
+
+```bash
+eng/desktop/capture-audio-start.sh /tmp/luxel-output.wav
+# Run the application that produces audio.
+eng/desktop/capture-audio-stop.sh
+python3 eng/desktop/analyze-wav.py /tmp/luxel-output.wav \
+  --min-rms 0.01 \
+  --expect-frequency 1000 --frequency-tolerance 10 \
+  --expect-pan 0 --pan-tolerance 0.05
+```
+
+`analyze-wav.py` prints JSON containing duration, per-channel RMS and energy, stereo pan (`-1` left to `+1` right), and dominant frequency. It supports uncompressed 8-, 16-, 24-, and 32-bit integer PCM without third-party Python packages. Run its deterministic fixture test with:
+
+```bash
+python3 eng/desktop/test-wav-analyzer.py
+```
+
+The capture helper has one tracked recorder at a time and uses the same PID ownership checks as the desktop services. Stop scripts unload only the persisted null-sink module ID and terminate only repository-owned process groups; they do not use broad `pkill` calls.
+
 ## Baseline Vulkan smoke
 
 Before testing Luxel's Linux backend, verify the desktop and Vulkan WSI independently:
@@ -65,6 +124,8 @@ ${XDG_RUNTIME_DIR:-/tmp}/luxel-desktop-${UID}/
   pids/
   logs/
   screenshots/
+  captures/
+  audio.mode, audio.server, audio.module, audio.sink
 ```
 
 If startup fails, inspect the per-process logs in that directory.
@@ -91,6 +152,11 @@ The stop script validates PID command lines before terminating processes and doe
 | `LUXEL_LAVAPIPE_ICD` | `/usr/share/vulkan/icd.d/lvp_icd.json` | software Vulkan ICD |
 | `LUXEL_DESKTOP_STATE_DIR` | runtime directory | PID/log/screenshot state |
 | `LUXEL_NOVNC_WEBROOT` | auto-detected | directory containing `vnc.html` |
+| `LUXEL_DESKTOP_AUDIO` | `off` | `off`, `null`, or `system` audio mode |
+| `LUXEL_SYSTEM_PULSE_SERVER` | inherited/auto | Pulse-compatible server address for `system` mode |
+| `LUXEL_PULSE_SERVER_SOCKET` | state runtime `/pulse/native` | private server socket for `null` mode |
+| `LUXEL_AUDIO_SINK` | `luxel_null` | null sink name |
+| `LUXEL_AUDIO_CAPTURE_DEVICE` | mode default | explicit Pulse source passed to `parec` |
 | `LUXEL_DEBUG_SERVER_URL` | unset | optional Luxel DebugServer base URL |
 | `LUXEL_WINDOW_ID` | unset | optional window ID for direct frame capture |
 

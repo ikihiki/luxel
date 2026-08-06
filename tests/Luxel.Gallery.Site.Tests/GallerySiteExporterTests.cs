@@ -698,7 +698,7 @@ public sealed class GallerySiteExporterTests
             Assert.Contains("&amp;instance=", fragment);
             Assert.Contains($"data-luxel-runtime-story=\"{storyPath}\"", fragment);
             Assert.Contains("<article class=\"story runtime-page\">", fragment);
-            Assert.Contains("allow=\"webgpu; clipboard-read; clipboard-write\"", fragment);
+            Assert.Contains("allow=\"webgpu; autoplay; clipboard-read; clipboard-write\"", fragment);
             Assert.Contains("role=\"tablist\"", fragment);
             Assert.Contains("data-runtime-tab=\"args\"", fragment);
             Assert.Contains("data-runtime-tab=\"output\"", fragment);
@@ -1214,6 +1214,88 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("new GpuDeviceRasterizer2D", backendSource, StringComparison.Ordinal);
         Assert.Contains("new SkiaRasterizer2D", backendSource, StringComparison.Ordinal);
         Assert.Contains("GpuView(", backendSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Audio_learn_chain_is_complete_ordered_and_linked()
+    {
+        string[] orderedRoutes = Catalog.All
+            .Where(story => story.Path.StartsWith("Learn/Audio/", StringComparison.Ordinal))
+            .Select(story => story.Path)
+            .ToArray();
+        Assert.Equal(AudioCourseCatalog.Routes, orderedRoutes);
+
+        StoryInfo[] stories = AudioCourseCatalog.Routes.Select(path => Catalog.Find(path)
+            ?? throw new InvalidOperationException($"Audio Learn route is missing: {path}")).ToArray();
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null, Catalog);
+        Assert.Empty(DocsIndex.ValidateLinks(pages, Catalog));
+
+        for (int i = 0; i < stories.Length; i++)
+        {
+            Assert.True(stories[i].Toc);
+            string source = pages[stories[i].Path].Text;
+            Assert.Contains("**難易度:**", source);
+            Assert.Contains("**実行環境:**", source);
+            Assert.Contains("**Backend:**", source);
+            Assert.Contains("**前提知識:**", source);
+            Assert.Contains("## ", source);
+            if (i > 0) Assert.Contains("story:" + stories[i - 1].Path, source);
+            if (i + 1 < stories.Length) Assert.Contains("story:" + stories[i + 1].Path, source);
+        }
+    }
+
+    [Fact]
+    public void Audio_learn_pages_have_concept_sized_examples()
+    {
+        StoryInfo[] stories = AudioCourseCatalog.Routes.Select(path => Catalog.Find(path)!).ToArray();
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null, Catalog);
+
+        foreach (string path in AudioCourseCatalog.Routes.Skip(1))
+        {
+            string source = pages[path].Text;
+            Assert.True(source.Contains("```", StringComparison.Ordinal)
+                || source.Contains("SampleSource", StringComparison.Ordinal)
+                || source.Contains("docs:begin", StringComparison.Ordinal),
+                $"Audio lesson lacks a concept-sized code example: {path}");
+        }
+
+        Assert.DoesNotContain("コピーして動かす — Headless audio tone", pages["Learn/Audio/Overview"].Text, StringComparison.Ordinal);
+
+        StoryCatalog browserCatalog = CoreUiStoryProject.CreateCatalog();
+        foreach (string route in new[]
+                 {
+                     "Examples/Audio/BackendLifecycle", "Examples/Audio/WaveformAndVoice", "Examples/Audio/Buses",
+                     "Examples/Audio/SpatialAttenuation", "Examples/Audio/StreamingQueue",
+                 })
+        {
+            StoryInfo story = browserCatalog.Find(route) ?? throw new InvalidOperationException($"Browser catalog: {route}");
+            Assert.Equal(CoreUiStoryProject.RuntimeBundleId, story.RuntimeBundleId);
+            Assert.Null(story.SampleBundle);
+            using var context = new StoryContext();
+            Assert.Equal(StoryResultKind.Widget, story.BuildResult(context).Kind);
+        }
+    }
+
+    [Fact]
+    public void Audio_docs_cover_backend_lifecycle_and_testing_contracts()
+    {
+        StoryInfo[] stories = AudioCourseCatalog.Routes.Select(path => Catalog.Find(path)!).ToArray();
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null, Catalog);
+        string course = string.Join('\n', AudioCourseCatalog.Routes.Select(path => pages[path].Text));
+
+        foreach (string contract in new[]
+                 {
+                     "NullAudioBackend", "XAudio2", "Initialize()", "Tick()", "Pump()",
+                     "BuffersQueued", "Dispose()", "HRTF", "Doppler", "occlusion", "reverb",
+                 })
+            Assert.Contains(contract, course, StringComparison.OrdinalIgnoreCase);
+
+        Assert.Contains("Luxel.Audio.Browser.BrowserAudioBackend", course, StringComparison.Ordinal);
+        Assert.Contains("AudioContext.resume()", course, StringComparison.Ordinal);
+        Assert.Contains("user gesture", course, StringComparison.Ordinal);
+        Assert.Contains("BrowserAudioState.Running", course, StringComparison.Ordinal);
+        Assert.Contains("AudioWorkletによる長時間・低遅延streamingは未実装", course, StringComparison.Ordinal);
+        Assert.Contains("SharedArrayBuffer", course, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -2126,7 +2208,6 @@ public sealed class GallerySiteExporterTests
         (string Bundle, string Learn)[] cases =
         [
             ("input.actions", "Learn/Input/Overview"),
-            ("audio.tone", "Learn/Audio/Overview"),
             ("resources.pipeline", "Learn/Resources/Overview"),
         ];
         foreach (var item in cases)
@@ -2199,9 +2280,7 @@ public sealed class GallerySiteExporterTests
     {
         (string Route, string Bundle)[] examples =
         [
-            ("Examples/Audio/WaveformAndVoice", "audio.tone"),
-            ("Examples/Audio/Buses", "audio.tone"), ("Examples/Audio/SpatialAttenuation", "audio.tone"),
-            ("Examples/Audio/StreamingQueue", "audio.tone"), ("Examples/Resources/Pipeline", "resources.pipeline"),
+            ("Examples/Resources/Pipeline", "resources.pipeline"),
             ("Examples/Resources/DependencyDag", "resources.pipeline"), ("Examples/Resources/Reload", "resources.pipeline"),
             ("Examples/Resources/Lifetime", "resources.pipeline"),
         ];

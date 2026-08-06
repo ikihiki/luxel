@@ -29,6 +29,8 @@ public sealed class BrowserStoryCatalogSourceTests
             < program.IndexOf("resources.Pump()", StringComparison.Ordinal));
         Assert.True(program.IndexOf("resources.Pump()", StringComparison.Ordinal)
             < program.IndexOf("ui.Tick(1f / 60f)", StringComparison.Ordinal));
+        Assert.Contains("Luxel.Audio.Browser.csproj", project, StringComparison.Ordinal);
+        Assert.Contains("AudioStories.ConfigureRuntime", program, StringComparison.Ordinal);
         Assert.Contains("Luxel.Shaders.Slang.Browser.csproj", project, StringComparison.Ordinal);
         Assert.Contains("wwwroot\\slang-worker.js", project, StringComparison.Ordinal);
         Assert.Contains("BrowserSlangJsonContext.Default.BrowserCompileRequest", compiler, StringComparison.Ordinal);
@@ -44,6 +46,8 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("const protocolVersion = 2", script, StringComparison.Ordinal);
         Assert.Contains("import * as slang from \"./slang-browser.js\"", script, StringComparison.Ordinal);
         Assert.Contains("runtime.setModuleImports(\"luxel-slang\", slang)", script, StringComparison.Ordinal);
+        Assert.Contains("import * as audio from \"./luxel-audio-browser.js\"", script, StringComparison.Ordinal);
+        Assert.Contains("runtime.setModuleImports(\"./luxel-audio-browser.js\", audio)", script, StringComparison.Ordinal);
         Assert.Contains("message.type !== \"set-args\"", script, StringComparison.Ordinal);
         Assert.Contains("event.source !== parent", script, StringComparison.Ordinal);
         Assert.Contains("event.origin !== location.origin", script, StringComparison.Ordinal);
@@ -70,6 +74,12 @@ public sealed class BrowserStoryCatalogSourceTests
         string[] runtimePaths = manifest.GetProperty("stories").EnumerateArray()
             .Select(story => story.GetProperty("path").GetString()!)
             .ToArray();
+        string[] audioStories =
+        [
+            "Examples/Audio/BackendLifecycle", "Examples/Audio/WaveformAndVoice", "Examples/Audio/Buses",
+            "Examples/Audio/SpatialAttenuation", "Examples/Audio/StreamingQueue",
+        ];
+        Assert.All(audioStories, path => Assert.Contains(path, runtimePaths));
         Assert.All(pipelineStories, path => Assert.Contains(path, runtimePaths));
         (string Path, int Height)[] animationStories =
         [

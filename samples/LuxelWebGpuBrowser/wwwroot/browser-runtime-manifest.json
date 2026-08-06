@@ -6139,6 +6139,46 @@
       "componentType": null
     },
     {
+      "path": "Examples/Audio/BackendLifecycle",
+      "width": 700,
+      "height": 300,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Audio/Buses",
+      "width": 700,
+      "height": 360,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Audio/SpatialAttenuation",
+      "width": 700,
+      "height": 380,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Audio/StreamingQueue",
+      "width": 700,
+      "height": 350,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Audio/WaveformAndVoice",
+      "width": 700,
+      "height": 330,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
       "path": "Examples/Embeds/Diagram",
       "width": 480,
       "height": 300,

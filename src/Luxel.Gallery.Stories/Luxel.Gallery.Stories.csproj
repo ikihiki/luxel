@@ -134,6 +134,7 @@
     <EmbeddedResource Include="..\..\samples\LuxelInput\LuxelInput.csproj" LogicalName="Luxel.Sample.samples.LuxelInput.LuxelInput.csproj" />
     <EmbeddedResource Include="..\..\samples\LuxelInput\Program.cs" LogicalName="Luxel.Sample.samples.LuxelInput.Program.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelAudio\LuxelAudio.csproj" LogicalName="Luxel.Sample.samples.LuxelAudio.LuxelAudio.csproj" />
+    <EmbeddedResource Include="..\..\samples\LuxelAudio\AudioConceptSamples.cs" LogicalName="Luxel.Sample.samples.LuxelAudio.AudioConceptSamples.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelAudio\Program.cs" LogicalName="Luxel.Sample.samples.LuxelAudio.Program.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelResources\LuxelResources.csproj" LogicalName="Luxel.Sample.samples.LuxelResources.LuxelResources.csproj" />
     <EmbeddedResource Include="..\..\samples\LuxelResources\Program.cs" LogicalName="Luxel.Sample.samples.LuxelResources.Program.cs" />
