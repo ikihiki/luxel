@@ -130,7 +130,7 @@ jobs:
       - name: Test Playground in Chromium
         working-directory: tests/Luxel.Playground.Browser.E2e
         run: npm test
-      - name: Test 2D browser-WASM stories in Chromium
+      - name: Test Gallery browser-WASM stories in Chromium
         working-directory: tests/Luxel.WebGPU.Browser.E2E
         run: npm test
       - name: Upload Playwright failure artifacts

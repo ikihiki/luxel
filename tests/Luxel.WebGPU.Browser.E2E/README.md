@@ -1,6 +1,6 @@
 # Luxel browser WebGPU E2E
 
-This Playwright suite launches the exported static Gallery in Chromium with SwiftShader WebGPU. It verifies every browser-safe `Learn/Graphics/2D` live Story and the iframes embedded by the 2D Overview page.
+This Playwright suite launches the exported static Gallery in Chromium with SwiftShader WebGPU. It verifies browser-safe Graphics stories and their embedded iframes, plus interactive Audio/Web Audio stories including lifecycle, tone, bus, spatial, and queued-buffer controls.
 
 ## Run locally
 
