@@ -2819,10 +2819,10 @@
     "component": "Examples",
     "fragment": "stories/examples-3d-ecscubes.html",
     "image": null,
-    "status": "unavailable",
-    "error": "Static preview was skipped because this export uses existing golden images only.",
+    "status": "runtime",
+    "error": null,
     "imageSha256": "",
-    "searchText": "Examples/3D/EcsCubes\nEcsCubes\nExamples\n[Story(\u0022Examples/3D/EcsCubes\u0022, Height = 320, Order = 122)]\npublic static Widget EcsCubes() =\u003E Frame(GpuSceneBase.View(256, 256, new EcsCubesScene()));",
+    "searchText": "Examples/3D/EcsCubes\nEcsCubes\nExamples\n[Story(\u0022Examples/3D/EcsCubes\u0022, Width = 320, Height = 320, Order = 122,\n    CapabilityNote = \u0022Runs through the shared Gallery WebAssembly story runner.\u0022)]\npublic static Widget EcsCubes(StoryContext ctx)\n{\n    if (ctx.DeviceOrNull is not { } device)\n        return ctx.Snap(Frame(GpuView(Width, Height,\n            static (_, _, _) =\u003E GpuViewRenderResult.Failed,\n            animated: false)));\n\n    var demo = new EcsCubesDemo(device);\n    return ctx.Snap(Frame(GpuView(\n        Width,\n        Height,\n        demo.Render,\n        animated: true,\n        dispose: demo.Dispose)));\n}",
     "aliases": [],
     "bundle": null,
     "args": []

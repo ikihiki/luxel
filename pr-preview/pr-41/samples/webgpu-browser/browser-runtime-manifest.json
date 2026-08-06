@@ -6011,6 +6011,14 @@
       "componentType": null
     },
     {
+      "path": "Examples/3D/EcsCubes",
+      "width": 320,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
       "path": "Examples/3D/PipelineState/Blend",
       "width": 480,
       "height": 320,
