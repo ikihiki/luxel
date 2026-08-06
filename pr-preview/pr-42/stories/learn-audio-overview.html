@@ -5,13 +5,6 @@
 <li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%E6%9C%80%E5%B0%8F%E3%81%AE%E5%AE%9F%E8%A1%8C%E7%B5%8C%E8%B7%AF">最小の実行経路</a></li>
 <li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%E3%83%A9%E3%82%A4%E3%83%95%E3%82%B5%E3%82%A4%E3%82%AF%E3%83%AB%E3%81%AE%E5%8E%9F%E5%89%87">ライフサイクルの原則</a></li>
 <li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%E5%A4%B1%E6%95%97%E3%81%AE%E5%85%A5%E5%8F%A3">失敗の入口</a></li>
-<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-headless-audio-tone">コピーして動かす — Headless audio tone</a>
-<ul>
-<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%60samples%2Fluxelaudio%2Fluxelaudio.csproj%60-project"><code>samples/LuxelAudio/LuxelAudio.csproj</code> (Project)</a></li>
-<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%60samples%2Fluxelaudio%2Fprogram.cs%60-csharp"><code>samples/LuxelAudio/Program.cs</code> (CSharp)</a></li>
-<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%60samples%2Fluxelaudio%2Faudioconceptsamples.cs%60-csharp"><code>samples/LuxelAudio/AudioConceptSamples.cs</code> (CSharp)</a></li>
-</ul>
-</li>
 </ul>
 <!-- /luxel-toc -->
 <p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Gallery / Headless / Windows / Linux / macOS / Browser WASM　 <strong>Backend:</strong> Null / XAudio2 / Silk OpenAL / Web Audio　 <strong>前提知識:</strong> なし</p>
@@ -68,6 +61,7 @@ backend.Initialize();
 using var mixer = new AudioMixer(backend);
 mixer.PlayOneShot(clip, volume: 0.5f);
 </code></pre>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Audio/Overview#doc-0" data-luxel-runtime-story="Examples/Audio/WaveformAndVoice" data-luxel-runtime-instance="examples-audio-waveformandvoice-6596da51cb68" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2FAudio%2FWaveformAndVoice&amp;args=%7B%7D&amp;instance=examples-audio-waveformandvoice-6596da51cb68" data-luxel-runtime-story="Examples/Audio/WaveformAndVoice" data-luxel-runtime-instance="examples-audio-waveformandvoice-6596da51cb68" title="Interactive WaveformAndVoice" loading="eager" allow="webgpu; autoplay; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-audio-waveformandvoice-6596da51cb68-args-tab" aria-controls="examples-audio-waveformandvoice-6596da51cb68-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-audio-waveformandvoice-6596da51cb68-output-tab" aria-controls="examples-audio-waveformandvoice-6596da51cb68-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-audio-waveformandvoice-6596da51cb68-source-tab" aria-controls="examples-audio-waveformandvoice-6596da51cb68-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-audio-waveformandvoice-6596da51cb68-args-panel" role="tabpanel" aria-labelledby="examples-audio-waveformandvoice-6596da51cb68-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-audio-waveformandvoice-6596da51cb68-output-panel" role="tabpanel" aria-labelledby="examples-audio-waveformandvoice-6596da51cb68-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-audio-waveformandvoice-6596da51cb68-source-panel" role="tabpanel" aria-labelledby="examples-audio-waveformandvoice-6596da51cb68-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/Audio/WaveformAndVoice&quot;, Width = 700, Height = 330, Order = 0)]&#10;public static Widget WaveformAndVoice()&#10;{&#10;    AudioFormat format = AudioFormat.Pcm16Mono44k;&#10;    byte[] pcm = SinePcm16(format, 440f, 0.45f);&#10;    var clip = new AudioClip(format, pcm, &quot;440 Hz tone&quot;);&#10;    var status = new Signal&lt;string&gt;(DescribeClip(clip));&#10;    IAudioVoice? voice = null;&#10;&#10;    async void Play()&#10;    {&#10;        try&#10;        {&#10;            await ResumeAsync();&#10;            voice?.Dispose();&#10;            voice = Backend.CreateVoice(format);&#10;            voice.Volume = 0.35f;&#10;            voice.SubmitBuffer(clip.PcmData);&#10;            voice.Play();&#10;            status.Value = $&quot;再生中: 440 Hz / queued={voice.BuffersQueued} / playing={voice.IsPlaying}&quot;;&#10;        }&#10;        catch (Exception error) { status.Value = $&quot;再生できません: {error.Message}&quot;; }&#10;    }&#10;&#10;    void Stop()&#10;    {&#10;        voice?.Stop();&#10;        status.Value = &quot;停止しました。queueは破棄されます。&quot;;&#10;    }&#10;&#10;    return ExampleFrame(&quot;PCM clip → voice&quot;,&#10;        &quot;生成したPCM16 clipをWeb Audio voiceへsubmitします。Enable/Playはブラウザのuser gestureとしてAudioContextを再開します。&quot;,&#10;        HStack(10)[Button(_ =&gt; Play(), &quot;440 Hzを再生&quot;), Button(_ =&gt; Stop(), &quot;停止&quot;, variant: Variant.Outline)],&#10;        Text((Func&lt;string&gt;)(() =&gt; status.Value), 14, wrap: TextWrap.Word, width: 620),&#10;        Text(DescribeClip(clip), 13, color: Bind.From(() =&gt; UiTheme.T.TextMuted)));&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
 <p><code>NullAudioBackend</code>は音を出さず、initialized、voice数、<code>BuffersQueued</code>、<code>IsPlaying</code>、volume/pitch/panを決定的に観測できます。Windowsの<code>XAudio2Backend</code>、Linux/macOSの<code>Luxel.Audio.Silk.OpenAlAudioBackend</code>は実deviceへ出力し、browser WASMでは<code>Luxel.Audio.Browser.BrowserAudioBackend</code>がWeb AudioへPCM16 clipとqueueを送ります。<code>Luxel.Audio.Silk</code>はSilk.NET経由でOpenAL Softを利用するクロスプラットフォームbackendです。LinuxではOpenAL SoftからPipeWire/PulseAudio/ALSAへ出力できます。browserでは作成後もcontextがsuspendedの場合があるため、click/tapから<code>ResumeAsync()</code>を呼んでから可聴状態として扱います。</p>
 <h2 id="section-2">ライフサイクルの原則</h2>
 <ol>
@@ -78,205 +72,7 @@ mixer.PlayOneShot(clip, volume: 0.5f);
 </ol>
 <h2 id="section-3">失敗の入口</h2>
 <p>無音なら、初期化、format、queue、<code>Play()</code>、volume/bus、frame駆動の順に確認します。実音だけを最初のoracleにせず、まずheadless状態を検証してください。</p>
-<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
-<h2 id="headless-audio-tone">コピーして動かす — Headless audio tone</h2>
-<blockquote>
-<p><strong>Block</strong> · 難易度: Beginner · 依存 bundle: <code>support.source-tree</code></p>
-</blockquote>
-<p>Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.</p>
-<p><strong>必要条件:</strong> .NET 10 / Headless: any supported OS / Audible output: Windows/XAudio2 integration
-<strong>Platform:</strong> Windows / Linux / macOS
-<strong>検証契約:</strong> exit <code>0</code> / timeout <code>300s</code> / stdout <code>audio: initialized=True, voices=1</code>
-<strong>接続点:</strong> <code>AudioMixer</code></p>
-<p><strong>Run</strong></p>
-<pre><code class="language-powershell">dotnet run --project samples/LuxelAudio
-</code></pre>
-<p><strong>Smoke test</strong></p>
-<pre><code class="language-powershell">dotnet run --project samples/LuxelAudio
-</code></pre>
-<h3 id="samplesluxelaudioluxelaudio.csproj-project"><code>samples/LuxelAudio/LuxelAudio.csproj</code> (Project)</h3>
-<pre><code class="language-xml">&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;
-  &lt;PropertyGroup&gt;&lt;OutputType&gt;Exe&lt;/OutputType&gt;&lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;&lt;Nullable&gt;enable&lt;/Nullable&gt;&lt;/PropertyGroup&gt;
-  &lt;ItemGroup&gt;&lt;ProjectReference Include=&quot;..\..\src\Luxel.Audio\Luxel.Audio.csproj&quot; /&gt;&lt;/ItemGroup&gt;
-&lt;/Project&gt;
-</code></pre>
-<h3 id="samplesluxelaudioprogram.cs-csharp"><code>samples/LuxelAudio/Program.cs</code> (CSharp)</h3>
-<pre><code class="language-csharp">using Luxel.Audio;
-
-// docs:begin audio-tone
-var format = new AudioFormat(48_000, 1, 16);
-byte[] pcm = new byte[4_800 * format.BytesPerSample];
-for (int i = 0; i &lt; 4_800; i++)
-{
-    short sample = (short)(Math.Sin(2 * Math.PI * 440 * i / format.SampleRate) * short.MaxValue * 0.2);
-    BitConverter.TryWriteBytes(pcm.AsSpan(i * 2, 2), sample);
-}
-var clip = new AudioClip(format, pcm, &quot;440Hz tone&quot;);
-using var backend = new NullAudioBackend();
-backend.Initialize();
-using var mixer = new AudioMixer(backend);
-mixer.PlayOneShot(clip, volume: 0.5f);
-// docs:end audio-tone
-IAudioVoice voice = backend.Voices.Single();
-Console.WriteLine($&quot;audio: initialized={backend.Initialized}, voices={backend.Voices.Count}, queued={voice.BuffersQueued}, playing={voice.IsPlaying}, bytes={pcm.Length}&quot;);
-return backend.Initialized &amp;&amp; voice.BuffersQueued == 1 &amp;&amp; voice.IsPlaying &amp;&amp; AudioConceptSamples.RunAll() ? 0 : 1;
-</code></pre>
-<h3 id="samplesluxelaudioaudioconceptsamples.cs-csharp"><code>samples/LuxelAudio/AudioConceptSamples.cs</code> (CSharp)</h3>
-<pre><code class="language-csharp">using System.Numerics;
-using System.Text;
-using Luxel.Audio;
-
-internal static class AudioConceptSamples
-{
-    internal static bool RunAll()
-        =&gt; FormatAndClip() &amp;&amp; MixerAndVoice() &amp;&amp; SourceAndBus() &amp;&amp; Spatial() &amp;&amp; Streaming() &amp;&amp; HeadlessTest();
-
-    // docs:begin audio-format-clip
-    internal static bool FormatAndClip()
-    {
-        var format = new AudioFormat(SampleRate: 48_000, Channels: 1, BitsPerSample: 16);
-        int frames = 4_800; // 100 ms
-        byte[] pcm = SinePcm16(format, frames, 440f);
-        var clip = new AudioClip(format, pcm, &quot;procedural 440 Hz&quot;);
-
-        return clip.SampleCount == frames
-            &amp;&amp; clip.Duration == TimeSpan.FromMilliseconds(100)
-            &amp;&amp; clip.PcmData.Length == frames * format.BytesPerSample;
-    }
-    // docs:end audio-format-clip
-
-    // docs:begin audio-mixer-voice
-    internal static bool MixerAndVoice()
-    {
-        var format = AudioFormat.Pcm16Mono48k;
-        var clip = new AudioClip(format, SinePcm16(format, 480, 660f), &quot;one-shot&quot;);
-        using var backend = new NullAudioBackend();
-        backend.Initialize();
-        using var mixer = new AudioMixer(backend);
-
-        mixer.PlayOneShot(clip, volume: 0.5f, pitch: 1.25f, pan: -0.25f);
-        IAudioVoice voice = backend.Voices.Single();
-        bool submitted = mixer.ActiveVoiceCount == 1
-            &amp;&amp; voice.BuffersQueued == 1 &amp;&amp; voice.IsPlaying
-            &amp;&amp; voice.Volume == 0.5f &amp;&amp; voice.Pitch == 1.25f &amp;&amp; voice.Pan == -0.25f;
-
-        // Real backends decrement BuffersQueued as playback completes; then Tick returns the voice to the pool.
-        voice.Stop();
-        mixer.Tick();
-        return submitted &amp;&amp; mixer.ActiveVoiceCount == 0;
-    }
-    // docs:end audio-mixer-voice
-
-    // docs:begin audio-source-bus
-    internal static bool SourceAndBus()
-    {
-        var master = new AudioBus(&quot;Master&quot;);
-        var music = new AudioBus(&quot;Music&quot;, master);
-        var sfx = new AudioBus(&quot;SFX&quot;, master);
-        master.Volume.Value = 0.8f;
-        music.Volume.Value = 0.5f;
-        sfx.Volume.Value = 0.25f;
-
-        using var backend = new NullAudioBackend();
-        backend.Initialize();
-        var clip = new AudioClip(AudioFormat.Pcm16Mono48k, new byte[960], &quot;loop&quot;);
-        using var source = new AudioSource(backend, clip) { Bus = music };
-        source.Volume.Value = 0.5f;
-        source.Play(loop: true);
-        source.Tick(); // copy Signal and bus values to the voice every frame
-
-        IAudioVoice voice = backend.Voices.Single();
-        return Math.Abs(music.EffectiveVolume - 0.4f) &lt; 0.0001f
-            &amp;&amp; Math.Abs(sfx.EffectiveVolume - 0.2f) &lt; 0.0001f
-            &amp;&amp; Math.Abs(voice.Volume - 0.2f) &lt; 0.0001f;
-    }
-    // docs:end audio-source-bus
-
-    // docs:begin audio-spatial
-    internal static bool Spatial()
-    {
-        using var backend = new NullAudioBackend();
-        backend.Initialize();
-        var clip = new AudioClip(AudioFormat.Pcm16Mono48k, new byte[960], &quot;spatial probe&quot;);
-        var listener = new AudioListener { Position = Vector3.Zero };
-        using var source = new AudioSource3D(backend, clip)
-        {
-            Position = new Vector3(5, 0, 0),
-            MinDistance = 1,
-            MaxDistance = 9,
-        };
-
-        source.Play();
-        source.Update(listener); // listener pose first, source position second, spatial update last
-        return Math.Abs(source.EffectiveVolume - 0.5f) &lt; 0.0001f
-            &amp;&amp; Math.Abs(source.EffectivePan - 1f) &lt; 0.0001f;
-    }
-    // docs:end audio-spatial
-
-    // docs:begin audio-streaming
-    internal static bool Streaming()
-    {
-        byte[] wav = CreatePcm16Wav(sampleRate: 1_000, channels: 1, frames: 250);
-        using var backend = new NullAudioBackend();
-        backend.Initialize();
-        using var memory = new MemoryStream(wav, writable: false);
-        using var stream = new WavStream(memory, leaveOpen: true);
-        using var playback = new StreamingVoice(backend, stream, chunkSeconds: 0.1f, queueDepth: 2);
-
-        playback.Pump();
-        bool prebuffered = playback.IsPlaying &amp;&amp; playback.BuffersQueued == 2;
-        playback.Stop();
-        return prebuffered &amp;&amp; playback.Finished &amp;&amp; playback.BuffersQueued == 0;
-    }
-    // docs:end audio-streaming
-
-    // docs:begin audio-headless-test
-    internal static bool HeadlessTest()
-    {
-        using var backend = new NullAudioBackend();
-        backend.Initialize();
-        IAudioVoice voice = backend.CreateVoice(AudioFormat.Pcm16Stereo48k);
-        voice.SubmitBuffer(new byte[480 * AudioFormat.Pcm16Stereo48k.BytesPerSample]);
-        voice.Volume = 0.75f;
-        voice.Pan = 0.25f;
-        voice.Play();
-
-        bool observable = backend.Initialized &amp;&amp; backend.Voices.Count == 1
-            &amp;&amp; voice.BuffersQueued == 1 &amp;&amp; voice.IsPlaying
-            &amp;&amp; voice.Volume == 0.75f &amp;&amp; voice.Pan == 0.25f;
-        voice.Dispose();
-        return observable;
-    }
-    // docs:end audio-headless-test
-
-    private static byte[] SinePcm16(AudioFormat format, int frames, float frequency)
-    {
-        byte[] pcm = new byte[frames * format.BytesPerSample];
-        for (int frame = 0; frame &lt; frames; frame++)
-        {
-            short sample = (short)(Math.Sin(2 * Math.PI * frequency * frame / format.SampleRate) * short.MaxValue * 0.2);
-            for (int channel = 0; channel &lt; format.Channels; channel++)
-                BitConverter.TryWriteBytes(pcm.AsSpan((frame * format.Channels + channel) * 2, 2), sample);
-        }
-        return pcm;
-    }
-
-    private static byte[] CreatePcm16Wav(int sampleRate, short channels, int frames)
-    {
-        int dataBytes = frames * channels * 2;
-        using var stream = new MemoryStream(44 + dataBytes);
-        using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
-        writer.Write(Encoding.ASCII.GetBytes(&quot;RIFF&quot;)); writer.Write(36 + dataBytes);
-        writer.Write(Encoding.ASCII.GetBytes(&quot;WAVEfmt &quot;)); writer.Write(16); writer.Write((short)1);
-        writer.Write(channels); writer.Write(sampleRate); writer.Write(sampleRate * channels * 2);
-        writer.Write((short)(channels * 2)); writer.Write((short)16);
-        writer.Write(Encoding.ASCII.GetBytes(&quot;data&quot;)); writer.Write(dataBytes);
-        writer.Write(new byte[dataBytes]);
-        return stream.ToArray();
-    }
-}
-</code></pre>
-<details class="sample-bundle"><summary>Run this sample — Block</summary><p>Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.</p><p><strong>Requirements:</strong> .NET 10 / Headless: any supported OS / Audible output: Windows/XAudio2 integration</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>audio: initialized=True, voices=1</code></p><ul><li><code>samples/LuxelAudio/LuxelAudio.csproj</code> <span>Project</span></li><li><code>samples/LuxelAudio/Program.cs</code> <span>CSharp</span></li><li><code>samples/LuxelAudio/AudioConceptSamples.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelAudio</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelAudio</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/Overview&quot;, Order = 0, SampleBundle = &quot;audio.tone&quot;, Toc = true)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/Overview&quot;, Order = 0, Toc = true)]
 public static StoryResult Overview(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # Audio overview
 
@@ -305,6 +101,8 @@ public static StoryResult Overview(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
 
     {{SampleSource(&quot;samples/LuxelAudio/Program.cs&quot;, &quot;audio-tone&quot;)}}
 
+    {{StoryRef(ctx, &quot;Examples/Audio/WaveformAndVoice&quot;)}}
+
     `NullAudioBackend`は音を出さず、initialized、voice数、`BuffersQueued`、`IsPlaying`、volume/pitch/panを決定的に観測できます。Windowsの`XAudio2Backend`、Linux/macOSの`Luxel.Audio.Silk.OpenAlAudioBackend`は実deviceへ出力し、browser WASMでは`Luxel.Audio.Browser.BrowserAudioBackend`がWeb AudioへPCM16 clipとqueueを送ります。`Luxel.Audio.Silk`はSilk.NET経由でOpenAL Softを利用するクロスプラットフォームbackendです。LinuxではOpenAL SoftからPipeWire/PulseAudio/ALSAへ出力できます。browserでは作成後もcontextがsuspendedの場合があるため、click/tapから`ResumeAsync()`を呼んでから可聴状態として扱います。
 
     ## ライフサイクルの原則
@@ -318,7 +116,4 @@ public static StoryResult Overview(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
 
     無音なら、初期化、format、queue、`Play()`、volume/bus、frame駆動の順に確認します。実音だけを最初のoracleにせず、まずheadless状態を検証してください。
 
-    {{StoryRef(ctx, &quot;Examples/Audio/WaveformAndVoice&quot;)}}
-
-    {{SampleBundle(&quot;audio.tone&quot;)}}
     &quot;&quot;&quot;;</code></pre></details></article>

@@ -7,7 +7,7 @@
 <li><a href="#story=Learn%2FAudio%2FSpatialAudio&amp;section=%E5%A4%B1%E6%95%97">失敗</a></li>
 </ul>
 <!-- /luxel-toc -->
-<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Game loop / Headless　 <strong>Backend:</strong> C# attenuation + backend pan　 <strong>前提知識:</strong> Clips, sources, and buses</p>
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Game loop / Headless / Browser WASM　 <strong>Backend:</strong> C# attenuation + backend pan　 <strong>前提知識:</strong> Clips, sources, and buses</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FAudio%2FClipsSourcesAndBuses">ClipsSourcesAndBuses</a>　 <strong>次:</strong> <a href="#story=Learn%2FAudio%2FStreaming">Streaming</a></p>
 <h2 id="section">メンタルモデル</h2>
 <p><code>AudioListener</code>はposition/forward/upを持ち、<code>Right = Normalize(Forward × Up)</code>を導出します。<code>AudioSource3D.Update(listener)</code>は距離からlinear attenuation、正規化した方向とRightの内積からpanを計算し、busとsource volumeを掛けてvoiceへ転送します。</p>
@@ -31,6 +31,7 @@
     }
 </code></pre>
 <p>距離が<code>MinDistance</code>以下なら1、<code>MaxDistance</code>以上なら0、その間は線形です。例では距離5、範囲1..9なのでattenuationは0.5、listener右側なのでpanは+1です。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Audio/SpatialAudio#doc-0" data-luxel-runtime-story="Examples/Audio/SpatialAttenuation" data-luxel-runtime-instance="examples-audio-spatialattenuation-54c93465a356" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2FAudio%2FSpatialAttenuation&amp;args=%7B%7D&amp;instance=examples-audio-spatialattenuation-54c93465a356" data-luxel-runtime-story="Examples/Audio/SpatialAttenuation" data-luxel-runtime-instance="examples-audio-spatialattenuation-54c93465a356" title="Interactive SpatialAttenuation" loading="eager" allow="webgpu; autoplay; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-audio-spatialattenuation-54c93465a356-args-tab" aria-controls="examples-audio-spatialattenuation-54c93465a356-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-audio-spatialattenuation-54c93465a356-output-tab" aria-controls="examples-audio-spatialattenuation-54c93465a356-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-audio-spatialattenuation-54c93465a356-source-tab" aria-controls="examples-audio-spatialattenuation-54c93465a356-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-audio-spatialattenuation-54c93465a356-args-panel" role="tabpanel" aria-labelledby="examples-audio-spatialattenuation-54c93465a356-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-audio-spatialattenuation-54c93465a356-output-panel" role="tabpanel" aria-labelledby="examples-audio-spatialattenuation-54c93465a356-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-audio-spatialattenuation-54c93465a356-source-panel" role="tabpanel" aria-labelledby="examples-audio-spatialattenuation-54c93465a356-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/Audio/SpatialAttenuation&quot;, Width = 700, Height = 380, Order = 2)]&#10;public static Widget SpatialAttenuation()&#10;{&#10;    var listener = new AudioListener { Position = Vector3.Zero };&#10;    AudioSource3D? source = null;&#10;    var status = new Signal&lt;string&gt;(&quot;位置を選ぶと、距離減衰とpanを計算して再生します。&quot;);&#10;&#10;    async void PlayAt(float x, float distance)&#10;    {&#10;        try&#10;        {&#10;            await ResumeAsync();&#10;            source?.Dispose();&#10;            var clip = new AudioClip(AudioFormat.Pcm16Mono44k,&#10;                SinePcm16(AudioFormat.Pcm16Mono44k, 550f, 0.55f), &quot;spatial tone&quot;);&#10;            source = new AudioSource3D(Backend, clip)&#10;            {&#10;                Position = new Vector3(x * distance, 0, 0),&#10;                MinDistance = 1f,&#10;                MaxDistance = 9f,&#10;            };&#10;            source.Play();&#10;            source.Update(listener);&#10;            status.Value = $&quot;position=({source.Position.X:0.0}, 0, 0) / gain={source.EffectiveVolume:0.00} / pan={source.EffectivePan:+0.00;-0.00;0.00}&quot;;&#10;        }&#10;        catch (Exception error) { status.Value = $&quot;再生できません: {error.Message}&quot;; }&#10;    }&#10;&#10;    return ExampleFrame(&quot;Listenerと3D source&quot;,&#10;        &quot;listenerを原点に固定し、sourceの位置だけを変えます。左右はpan、遠近はlinear attenuationへ反映されます。&quot;,&#10;        HStack(8)[Button(_ =&gt; PlayAt(-1, 3), &quot;左・近い&quot;), Button(_ =&gt; PlayAt(0, 3), &quot;中央・近い&quot;), Button(_ =&gt; PlayAt(1, 3), &quot;右・近い&quot;)],&#10;        HStack(8)[Button(_ =&gt; PlayAt(-1, 7), &quot;左・遠い&quot;), Button(_ =&gt; PlayAt(1, 7), &quot;右・遠い&quot;), Button(_ =&gt; { source?.Stop(); status.Value = &quot;停止しました。&quot;; }, &quot;停止&quot;, variant: Variant.Outline)],&#10;        Text((Func&lt;string&gt;)(() =&gt; status.Value), 14, wrap: TextWrap.Word, width: 620));&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
 <h2 id="frame">frame更新順</h2>
 <ol>
 <li>camera/playerからlistener poseを更新する。</li>
@@ -42,12 +43,11 @@
 <p>これはHRTF、Doppler、occlusion、room reverbではありません。C#で距離gainとstereo panを計算するportableな基礎です。mono clipでもvoice panを設定できますが、実際のspeaker mappingとpan lawはbackendに依存します。</p>
 <h2 id="section-2">失敗</h2>
 <p>forward/upが平行だとRightを正規化できません。<code>MinDistance &gt;= MaxDistance</code>はstep状の減衰になります。listener更新より前にsourceを更新すると1 frame古い結果になります。</p>
-<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/SpatialAudio&quot;, Order = 5, Toc = true)]
 public static StoryResult Spatial(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # Spatial audio
 
-    {{AudioCourseCatalog.Meta(&quot;Learn/Audio/SpatialAudio&quot;, &quot;Intermediate&quot;, &quot;Game loop / Headless&quot;, &quot;C# attenuation + backend pan&quot;, &quot;Clips, sources, and buses&quot;)}}
+    {{AudioCourseCatalog.Meta(&quot;Learn/Audio/SpatialAudio&quot;, &quot;Intermediate&quot;, &quot;Game loop / Headless / Browser WASM&quot;, &quot;C# attenuation + backend pan&quot;, &quot;Clips, sources, and buses&quot;)}}
 
     ## メンタルモデル
 
@@ -56,6 +56,8 @@ public static StoryResult Spatial(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     {{SampleSource(&quot;samples/LuxelAudio/AudioConceptSamples.cs&quot;, &quot;audio-spatial&quot;)}}
 
     距離が`MinDistance`以下なら1、`MaxDistance`以上なら0、その間は線形です。例では距離5、範囲1..9なのでattenuationは0.5、listener右側なのでpanは+1です。
+
+    {{StoryRef(ctx, &quot;Examples/Audio/SpatialAttenuation&quot;)}}
 
     ## frame更新順
 
@@ -71,6 +73,4 @@ public static StoryResult Spatial(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     ## 失敗
 
     forward/upが平行だとRightを正規化できません。`MinDistance &gt;= MaxDistance`はstep状の減衰になります。listener更新より前にsourceを更新すると1 frame古い結果になります。
-
-    {{StoryRef(ctx, &quot;Examples/Audio/SpatialAttenuation&quot;)}}
     &quot;&quot;&quot;;</code></pre></details></article>

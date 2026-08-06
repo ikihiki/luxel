@@ -69,8 +69,6 @@
 </table>
 <h2 id="backendtest">backend差を分けてtestする</h2>
 <p>Null testは時間やspeakerに依存しないlogic contractです。XAudio2 integration testはWindows device、実時間のqueue完了、可聴結果を別層で確認します。Silk OpenAL backendは全OS共通のfake contractを持ち、OpenAL Soft runtimeのある環境では<code>ALC_SOFT_loopback</code>の決定的な440 Hz/RMS/pitch/pan testを実行できます。Linux CIではさらにPulseAudio null sinkのWAV captureを検証します。Web Audioはmanaged fake interopでlifecycle、PCM validation、ownershipを、mock <code>AudioContext</code>を使うJavaScript contract testで連続schedule、<code>onended</code> queue accounting、pause/pitch時のnode再生成を検証します。autoplay unlockと実音はbrowser sampleで手動確認します。AudioWorklet/SABは現行backendのtest対象ではありません。</p>
-<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
-<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
 <p>実音の最後の確認は <a href="#story=RealWindow%2FAudio%2FTone">RealWindow/Audio/Tone</a> です。</p>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/SpatialStreamingAndTesting&quot;, Order = 7, Toc = true)]
 public static StoryResult Testing(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
@@ -101,10 +99,6 @@ public static StoryResult Testing(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     ## backend差を分けてtestする
 
     Null testは時間やspeakerに依存しないlogic contractです。XAudio2 integration testはWindows device、実時間のqueue完了、可聴結果を別層で確認します。Silk OpenAL backendは全OS共通のfake contractを持ち、OpenAL Soft runtimeのある環境では`ALC_SOFT_loopback`の決定的な440 Hz/RMS/pitch/pan testを実行できます。Linux CIではさらにPulseAudio null sinkのWAV captureを検証します。Web Audioはmanaged fake interopでlifecycle、PCM validation、ownershipを、mock `AudioContext`を使うJavaScript contract testで連続schedule、`onended` queue accounting、pause/pitch時のnode再生成を検証します。autoplay unlockと実音はbrowser sampleで手動確認します。AudioWorklet/SABは現行backendのtest対象ではありません。
-
-    {{StoryRef(ctx, &quot;Examples/Audio/SpatialAttenuation&quot;)}}
-
-    {{StoryRef(ctx, &quot;Examples/Audio/StreamingQueue&quot;)}}
 
     実音の最後の確認は [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone) です。
     &quot;&quot;&quot;;</code></pre></details></article>

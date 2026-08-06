@@ -114,76 +114,9 @@
     "status": "document",
     "error": null,
     "imageSha256": "",
-    "searchText": "Learn/Audio/Overview\nOverview\nLearn\n[Story(\u0022Learn/Audio/Overview\u0022, Order = 0, SampleBundle = \u0022audio.tone\u0022, Toc = true)]\npublic static StoryResult Overview(StoryContext ctx) =\u003E $$\u0022\u0022\u0022\n    # Audio overview\n\n    {{AudioCourseCatalog.Meta(\u0022Learn/Audio/Overview\u0022, \u0022Beginner\u0022, \u0022Gallery / Headless / Windows / Linux / macOS / Browser WASM\u0022, \u0022Null / XAudio2 / Silk OpenAL / Web Audio\u0022, \u0022\u306A\u3057\u0022)}}\n\n    ## \u3053\u306E\u30B3\u30FC\u30B9\u3067\u4F5C\u308B\u30E1\u30F3\u30BF\u30EB\u30E2\u30C7\u30EB\n\n    Luxel\u306Eaudio\u7D4C\u8DEF\u306F\u3001**PCM\u306E\u610F\u5473\u3092\u8A18\u8FF0\u3059\u308Bformat**\u3001**\u5168\u5C55\u958B\u3055\u308C\u305Fclip**\u3001**backend\u304C\u6240\u6709\u3059\u308Bvoice**\u3001**OS\u306Edevice**\u306E4\u6BB5\u3067\u3059\u3002\u0060AudioMixer\u0060\u3001\u0060AudioSource\u0060\u3001\u0060AudioSource3D\u0060\u3001\u0060StreamingVoice\u0060\u306F\u3001\u3053\u306E\u4F4E\u6C34\u6E96\u7D4C\u8DEF\u3092\u7528\u9014\u5225\u306B\u5B89\u5168\u306B\u99C6\u52D5\u3057\u307E\u3059\u3002\n\n    \u0060\u0060\u0060mermaid\n    flowchart LR\n      PCM[PCM bytes] --\u003E Clip[AudioClip \u002B AudioFormat]\n      Clip --\u003E Voice[IAudioVoice]\n      Voice --\u003E Backend[IAudioBackend]\n      Backend --\u003E Device[device / no-op observer]\n    \u0060\u0060\u0060\n\n    | \u7528\u9014 | \u6700\u521D\u306B\u9078\u3076API | \u6240\u6709\u30FB\u6BCEframe\u51E6\u7406 |\n    |---|---|---|\n    | \u77ED\u3044\u52B9\u679C\u97F3 | \u0060AudioMixer.PlayOneShot\u0060 | mixer\u3092\u4FDD\u6301\u3057\u0060Tick()\u0060 |\n    | loop\u3059\u308BBGM\u3084\u6301\u7D9A\u97F3 | \u0060AudioSource\u0060 | source\u3092\u4FDD\u6301\u3057\u0060Tick()\u0060\u3001\u6700\u5F8C\u306B\u0060Dispose()\u0060 |\n    | \u4F4D\u7F6E\u4ED8\u304D\u97F3 | \u0060AudioSource3D\u0060 | listener\u66F4\u65B0\u5F8C\u306B\u0060Update(listener)\u0060 |\n    | \u9577\u5C3AWAV | \u0060WavStream\u0060 \u002B \u0060StreamingVoice\u0060 | \u6BCEframe \u0060Pump()\u0060 |\n\n    ## \u6700\u5C0F\u306E\u5B9F\u884C\u7D4C\u8DEF\n\n    {{SampleSource(\u0022samples/LuxelAudio/Program.cs\u0022, \u0022audio-tone\u0022)}}\n\n    \u0060NullAudioBackend\u0060\u306F\u97F3\u3092\u51FA\u3055\u305A\u3001initialized\u3001voice\u6570\u3001\u0060BuffersQueued\u0060\u3001\u0060IsPlaying\u0060\u3001volume/pitch/pan\u3092\u6C7A\u5B9A\u7684\u306B\u89B3\u6E2C\u3067\u304D\u307E\u3059\u3002Windows\u306E\u0060XAudio2Backend\u0060\u3001Linux/macOS\u306E\u0060Luxel.Audio.Silk.OpenAlAudioBackend\u0060\u306F\u5B9Fdevice\u3078\u51FA\u529B\u3057\u3001browser WASM\u3067\u306F\u0060Luxel.Audio.Browser.BrowserAudioBackend\u0060\u304CWeb Audio\u3078PCM16 clip\u3068queue\u3092\u9001\u308A\u307E\u3059\u3002\u0060Luxel.Audio.Silk\u0060\u306FSilk.NET\u7D4C\u7531\u3067OpenAL Soft\u3092\u5229\u7528\u3059\u308B\u30AF\u30ED\u30B9\u30D7\u30E9\u30C3\u30C8\u30D5\u30A9\u30FC\u30E0backend\u3067\u3059\u3002Linux\u3067\u306FOpenAL Soft\u304B\u3089PipeWire/PulseAudio/ALSA\u3078\u51FA\u529B\u3067\u304D\u307E\u3059\u3002browser\u3067\u306F\u4F5C\u6210\u5F8C\u3082context\u304Csuspended\u306E\u5834\u5408\u304C\u3042\u308B\u305F\u3081\u3001click/tap\u304B\u3089\u0060ResumeAsync()\u0060\u3092\u547C\u3093\u3067\u304B\u3089\u53EF\u8074\u72B6\u614B\u3068\u3057\u3066\u6271\u3044\u307E\u3059\u3002\n\n    ## \u30E9\u30A4\u30D5\u30B5\u30A4\u30AF\u30EB\u306E\u539F\u5247\n\n    1. backend\u3092\u4F5C\u308A\u0060Initialize()\u0060\u3059\u308B\u3002\n    2. backend\u3088\u308A\u77ED\u3044\u5BFF\u547D\u3067mixer/source/streaming voice\u3092\u4F5C\u308B\u3002\n    3. game loop\u3067\u5FC5\u8981\u306A\u0060Tick()\u0060\u3001\u0060Update()\u0060\u3001\u0060Pump()\u0060\u3092\u547C\u3076\u3002\n    4. voice\u6240\u6709\u8005\u3092\u5148\u306B\u3001backend\u3092\u6700\u5F8C\u306B\u0060Dispose()\u0060\u3059\u308B\u3002\n\n    ## \u5931\u6557\u306E\u5165\u53E3\n\n    \u7121\u97F3\u306A\u3089\u3001\u521D\u671F\u5316\u3001format\u3001queue\u3001\u0060Play()\u0060\u3001volume/bus\u3001frame\u99C6\u52D5\u306E\u9806\u306B\u78BA\u8A8D\u3057\u307E\u3059\u3002\u5B9F\u97F3\u3060\u3051\u3092\u6700\u521D\u306Eoracle\u306B\u305B\u305A\u3001\u307E\u305Aheadless\u72B6\u614B\u3092\u691C\u8A3C\u3057\u3066\u304F\u3060\u3055\u3044\u3002\n\n    {{StoryRef(ctx, \u0022Examples/Audio/WaveformAndVoice\u0022)}}\n\n    {{SampleBundle(\u0022audio.tone\u0022)}}\n    \u0022\u0022\u0022;",
+    "searchText": "Learn/Audio/Overview\nOverview\nLearn\n[Story(\u0022Learn/Audio/Overview\u0022, Order = 0, Toc = true)]\npublic static StoryResult Overview(StoryContext ctx) =\u003E $$\u0022\u0022\u0022\n    # Audio overview\n\n    {{AudioCourseCatalog.Meta(\u0022Learn/Audio/Overview\u0022, \u0022Beginner\u0022, \u0022Gallery / Headless / Windows / Linux / macOS / Browser WASM\u0022, \u0022Null / XAudio2 / Silk OpenAL / Web Audio\u0022, \u0022\u306A\u3057\u0022)}}\n\n    ## \u3053\u306E\u30B3\u30FC\u30B9\u3067\u4F5C\u308B\u30E1\u30F3\u30BF\u30EB\u30E2\u30C7\u30EB\n\n    Luxel\u306Eaudio\u7D4C\u8DEF\u306F\u3001**PCM\u306E\u610F\u5473\u3092\u8A18\u8FF0\u3059\u308Bformat**\u3001**\u5168\u5C55\u958B\u3055\u308C\u305Fclip**\u3001**backend\u304C\u6240\u6709\u3059\u308Bvoice**\u3001**OS\u306Edevice**\u306E4\u6BB5\u3067\u3059\u3002\u0060AudioMixer\u0060\u3001\u0060AudioSource\u0060\u3001\u0060AudioSource3D\u0060\u3001\u0060StreamingVoice\u0060\u306F\u3001\u3053\u306E\u4F4E\u6C34\u6E96\u7D4C\u8DEF\u3092\u7528\u9014\u5225\u306B\u5B89\u5168\u306B\u99C6\u52D5\u3057\u307E\u3059\u3002\n\n    \u0060\u0060\u0060mermaid\n    flowchart LR\n      PCM[PCM bytes] --\u003E Clip[AudioClip \u002B AudioFormat]\n      Clip --\u003E Voice[IAudioVoice]\n      Voice --\u003E Backend[IAudioBackend]\n      Backend --\u003E Device[device / no-op observer]\n    \u0060\u0060\u0060\n\n    | \u7528\u9014 | \u6700\u521D\u306B\u9078\u3076API | \u6240\u6709\u30FB\u6BCEframe\u51E6\u7406 |\n    |---|---|---|\n    | \u77ED\u3044\u52B9\u679C\u97F3 | \u0060AudioMixer.PlayOneShot\u0060 | mixer\u3092\u4FDD\u6301\u3057\u0060Tick()\u0060 |\n    | loop\u3059\u308BBGM\u3084\u6301\u7D9A\u97F3 | \u0060AudioSource\u0060 | source\u3092\u4FDD\u6301\u3057\u0060Tick()\u0060\u3001\u6700\u5F8C\u306B\u0060Dispose()\u0060 |\n    | \u4F4D\u7F6E\u4ED8\u304D\u97F3 | \u0060AudioSource3D\u0060 | listener\u66F4\u65B0\u5F8C\u306B\u0060Update(listener)\u0060 |\n    | \u9577\u5C3AWAV | \u0060WavStream\u0060 \u002B \u0060StreamingVoice\u0060 | \u6BCEframe \u0060Pump()\u0060 |\n\n    ## \u6700\u5C0F\u306E\u5B9F\u884C\u7D4C\u8DEF\n\n    {{SampleSource(\u0022samples/LuxelAudio/Program.cs\u0022, \u0022audio-tone\u0022)}}\n\n    {{StoryRef(ctx, \u0022Examples/Audio/WaveformAndVoice\u0022)}}\n\n    \u0060NullAudioBackend\u0060\u306F\u97F3\u3092\u51FA\u3055\u305A\u3001initialized\u3001voice\u6570\u3001\u0060BuffersQueued\u0060\u3001\u0060IsPlaying\u0060\u3001volume/pitch/pan\u3092\u6C7A\u5B9A\u7684\u306B\u89B3\u6E2C\u3067\u304D\u307E\u3059\u3002Windows\u306E\u0060XAudio2Backend\u0060\u3001Linux/macOS\u306E\u0060Luxel.Audio.Silk.OpenAlAudioBackend\u0060\u306F\u5B9Fdevice\u3078\u51FA\u529B\u3057\u3001browser WASM\u3067\u306F\u0060Luxel.Audio.Browser.BrowserAudioBackend\u0060\u304CWeb Audio\u3078PCM16 clip\u3068queue\u3092\u9001\u308A\u307E\u3059\u3002\u0060Luxel.Audio.Silk\u0060\u306FSilk.NET\u7D4C\u7531\u3067OpenAL Soft\u3092\u5229\u7528\u3059\u308B\u30AF\u30ED\u30B9\u30D7\u30E9\u30C3\u30C8\u30D5\u30A9\u30FC\u30E0backend\u3067\u3059\u3002Linux\u3067\u306FOpenAL Soft\u304B\u3089PipeWire/PulseAudio/ALSA\u3078\u51FA\u529B\u3067\u304D\u307E\u3059\u3002browser\u3067\u306F\u4F5C\u6210\u5F8C\u3082context\u304Csuspended\u306E\u5834\u5408\u304C\u3042\u308B\u305F\u3081\u3001click/tap\u304B\u3089\u0060ResumeAsync()\u0060\u3092\u547C\u3093\u3067\u304B\u3089\u53EF\u8074\u72B6\u614B\u3068\u3057\u3066\u6271\u3044\u307E\u3059\u3002\n\n    ## \u30E9\u30A4\u30D5\u30B5\u30A4\u30AF\u30EB\u306E\u539F\u5247\n\n    1. backend\u3092\u4F5C\u308A\u0060Initialize()\u0060\u3059\u308B\u3002\n    2. backend\u3088\u308A\u77ED\u3044\u5BFF\u547D\u3067mixer/source/streaming voice\u3092\u4F5C\u308B\u3002\n    3. game loop\u3067\u5FC5\u8981\u306A\u0060Tick()\u0060\u3001\u0060Update()\u0060\u3001\u0060Pump()\u0060\u3092\u547C\u3076\u3002\n    4. voice\u6240\u6709\u8005\u3092\u5148\u306B\u3001backend\u3092\u6700\u5F8C\u306B\u0060Dispose()\u0060\u3059\u308B\u3002\n\n    ## \u5931\u6557\u306E\u5165\u53E3\n\n    \u7121\u97F3\u306A\u3089\u3001\u521D\u671F\u5316\u3001format\u3001queue\u3001\u0060Play()\u0060\u3001volume/bus\u3001frame\u99C6\u52D5\u306E\u9806\u306B\u78BA\u8A8D\u3057\u307E\u3059\u3002\u5B9F\u97F3\u3060\u3051\u3092\u6700\u521D\u306Eoracle\u306B\u305B\u305A\u3001\u307E\u305Aheadless\u72B6\u614B\u3092\u691C\u8A3C\u3057\u3066\u304F\u3060\u3055\u3044\u3002\n\n    \u0022\u0022\u0022;",
     "aliases": [],
-    "bundle": {
-      "id": "audio.tone",
-      "name": "Headless audio tone",
-      "description": "Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.",
-      "difficulty": "Beginner",
-      "copyLevel": 1,
-      "files": [
-        {
-          "path": "samples/LuxelAudio/LuxelAudio.csproj",
-          "kind": 0,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelAudio/LuxelAudio.csproj",
-          "effectiveMode": 0
-        },
-        {
-          "path": "samples/LuxelAudio/Program.cs",
-          "kind": 1,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelAudio/Program.cs",
-          "effectiveMode": 0
-        },
-        {
-          "path": "samples/LuxelAudio/AudioConceptSamples.cs",
-          "kind": 1,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelAudio/AudioConceptSamples.cs",
-          "effectiveMode": 0
-        }
-      ],
-      "dependencies": [
-        "support.source-tree"
-      ],
-      "requirements": [
-        ".NET 10",
-        "Headless: any supported OS",
-        "Audible output: Windows/XAudio2 integration"
-      ],
-      "exportSymbol": "AudioMixer",
-      "runCommand": "dotnet run --project samples/LuxelAudio",
-      "smokeCommand": "dotnet run --project samples/LuxelAudio",
-      "platforms": [
-        "Windows",
-        "Linux",
-        "macOS"
-      ],
-      "timeoutSeconds": 300,
-      "expectedExitCode": 0,
-      "expectedStdoutMarker": "audio: initialized=True, voices=1",
-      "expectedArtifacts": null
-    },
+    "bundle": null,
     "args": []
   },
   {
@@ -636,7 +569,7 @@
     "status": "document",
     "error": null,
     "imageSha256": "",
-    "searchText": "Learn/Audio/EnvironmentAndBackends\nEnvironmentAndBackends\nLearn\n[Story(\u0022Learn/Audio/EnvironmentAndBackends\u0022, Order = 1, Toc = true)]\npublic static StoryResult Environment(StoryContext ctx) =\u003E $$\u0022\u0022\u0022\n    # Audio environment and backends\n\n    {{AudioCourseCatalog.Meta(\u0022Learn/Audio/EnvironmentAndBackends\u0022, \u0022Beginner\u0022, \u0022Standalone / Framework / CI / Linux / macOS / Browser WASM\u0022, \u0022Null / XAudio2 / Silk OpenAL / Web Audio\u0022, \u0022Audio overview\u0022)}}\n\n    ## \u5883\u754C\u3068\u8CAC\u52D9\n\n    \u0060IAudioBackend\u0060\u306Fdevice/master volume/voice\u751F\u6210\u3092\u3001\u0060IAudioVoice\u0060\u306Fbuffer queue\u3068playback state\u3092\u62BD\u8C61\u5316\u3057\u307E\u3059\u3002format\u3054\u3068\u306Bvoice\u3092\u4F5C\u308A\u3001PCM\u306Edecode\u3084game\u5074\u306Ebus tree\u306Fbackend\u3078\u62BC\u3057\u8FBC\u307F\u307E\u305B\u3093\u3002\n\n    \u0060\u0060\u0060csharp\n    using IAudioBackend backend = new NullAudioBackend();\n    backend.Initialize();\n    using IAudioVoice voice = backend.CreateVoice(AudioFormat.Pcm16Mono48k);\n    voice.SubmitBuffer(pcm);\n    voice.Play();\n    \u0060\u0060\u0060\n\n    ## \u5B9F\u884C\u74B0\u5883\u306E\u9078\u629E\n\n    | \u74B0\u5883 | backend | \u4F55\u3092\u78BA\u8A8D\u3059\u308B\u304B |\n    |---|---|---|\n    | unit test / CI / device\u306A\u3057 | \u0060NullAudioBackend\u0060 | state\u3001queue\u3001parameter\u3001\u6240\u6709\u6A29 |\n    | Windows\u5B9F\u97F3 | \u0060Luxel.Audio.Windows.XAudio2Backend\u0060 | device\u3001speaker\u3001\u5B9F\u6642\u9593\u3067\u306Equeue drain |\n    | Linux/macOS\u5B9F\u97F3 | \u0060Luxel.Audio.Silk.OpenAlAudioBackend\u0060 | OpenAL Soft\u3001voice queue\u3001loopback |\n    | Linux CI | \u540C\u3058Silk backend \u002B Pulse null sink | \u5B9F\u51FA\u529Bcapture\u3068\u6CE2\u5F62\u89E3\u6790 |\n    | Framework app | \u0060new LuxelHostBuilder().UseAudio()\u0060 | Windows=XAudio2\u3001Linux/macOS=Silk OpenAL\u3092OS\u5225\u767B\u9332 |\n    | Browser WASM | \u0060Luxel.Audio.Browser.BrowserAudioBackend\u0060 | Web Audio\u3001autoplay unlock\u3001browser lifecycle |\n\n    \u0060UseAudio()\u0060\u306FFramework\u5074\u306Ecomposition root\u3067\u3059\u3002standalone sample\u3067\u306Fbackend\u3092\u660E\u793A\u751F\u6210\u3057\u305F\u65B9\u304C\u4F9D\u5B58\u3068dispose\u9806\u3092\u8AAD\u307F\u53D6\u308A\u3084\u3059\u304F\u306A\u308A\u307E\u3059\u3002Windows\u5B9F\u97F3\u306E\u7D71\u5408\u78BA\u8A8D\u306F [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone)\u3001browser\u5B9F\u97F3\u306F\u0060samples/LuxelAudioBrowser\u0060\u3092\u4F7F\u3044\u307E\u3059\u3002\n\n    ## Web Audio\u306E\u975E\u540C\u671F\u30E9\u30A4\u30D5\u30B5\u30A4\u30AF\u30EB\n\n    \u0060\u0060\u0060csharp\n    using BrowserAudioBackend backend = await BrowserAudioBackend.CreateAsync();\n    // click / tap \u306Eevent handler\u304B\u3089\u547C\u3076\n    await backend.ResumeAsync();\n    using IAudioVoice voice = backend.CreateVoice(AudioFormat.Pcm16Mono48k);\n    \u0060\u0060\u0060\n\n    \u0060AudioContext.resume()\u0060\u306F\u975E\u540C\u671F\u304B\u3064user gesture/autoplay policy\u306E\u5F71\u97FF\u3092\u53D7\u3051\u307E\u3059\u3002\u0060CreateAsync()\u0060\u306Fcontext\u3092\u4F5C\u6210\u3057\u307E\u3059\u304C\u3001\u0060BrowserAudioState.Running\u0060\u306B\u306A\u308B\u307E\u3067\u53EF\u8074\u6E96\u5099\u5B8C\u4E86\u3068\u306F\u307F\u306A\u3057\u307E\u305B\u3093\u3002\u0060AudioBufferSourceNode\u0060\u306F\u4E00\u5EA6\u3060\u3051start\u3067\u304D\u308B\u305F\u3081\u3001backend\u306Fpause/resume\u6642\u306Bnode\u3092\u518D\u751F\u6210\u3057\u3066offset\u3092\u5FA9\u5143\u3057\u307E\u3059\u3002\u5B8C\u4E86queue\u306F\u0060onended\u0060\u3067\u8AD6\u7406\u7BA1\u7406\u3057\u3001Web Audio\u306Eequal-power pan law\u306FXAudio2\u306Elinear matrix\u3068\u5B8C\u5168\u4E00\u81F4\u3057\u307E\u305B\u3093\u3002\n\n    \u73FE\u884Cbrowser backend\u306F\u0060AudioBufferSourceNode\u0060\u306B\u3088\u308Bclip\u3068\u57FA\u672Cqueue\u3092\u5B9F\u88C5\u3057\u3066\u3044\u307E\u3059\u3002AudioWorklet\u306B\u3088\u308B\u9577\u6642\u9593\u30FB\u4F4E\u9045\u5EF6streaming\u306F\u672A\u5B9F\u88C5\u3067\u3059\u3002AudioWorklet\u81EA\u4F53\u306Fsecure context\u3092\u5FC5\u8981\u3068\u3057\u3001\u5C06\u6765SharedArrayBuffer\u9AD8\u901F\u7D4C\u8DEF\u3092\u9078\u3076\u5834\u5408\u306F\u8FFD\u52A0\u3067cross-origin isolation\u304C\u5FC5\u8981\u3067\u3059\u3002\n\n    ## \u6240\u6709\u6A29\u3068\u5931\u6557\n\n    backend\u3088\u308A\u5148\u306Bvoice\u3092\u7834\u68C4\u3057\u307E\u3059\u3002\u0060Initialize()\u0060\u5FD8\u308C\u3001\u5225format\u306EPCM\u6295\u5165\u3001backend dispose\u5F8C\u306Evoice\u5229\u7528\u3001browser\u3067\u0060ResumeAsync()\u0060\u524D\u304B\u3089\u97F3\u304C\u51FA\u308B\u3068\u4EEE\u5B9A\u3059\u308B\u3053\u3068\u304C\u5178\u578B\u7684\u306A\u5931\u6557\u3067\u3059\u3002OpenAL runtime\u304C\u898B\u3064\u304B\u3089\u306A\u3044\u5834\u5408\u306FOS\u306B\u5BFE\u5FDC\u3059\u308BOpenAL Soft library\u3092\u78BA\u8A8D\u3057\u307E\u3059\u3002Linux CI\u3067\u306F\u0060LUXEL_DESKTOP_AUDIO=null eng/desktop/audio-start.sh\u0060\u306748 kHz stereo\u306E\u4EEE\u60F3sink\u3092\u7528\u610F\u3067\u304D\u307E\u3059\u3002\n\n    {{StoryRef(ctx, \u0022Examples/Audio/WaveformAndVoice\u0022)}}\n    \u0022\u0022\u0022;",
+    "searchText": "Learn/Audio/EnvironmentAndBackends\nEnvironmentAndBackends\nLearn\n[Story(\u0022Learn/Audio/EnvironmentAndBackends\u0022, Order = 1, Toc = true)]\npublic static StoryResult Environment(StoryContext ctx) =\u003E $$\u0022\u0022\u0022\n    # Audio environment and backends\n\n    {{AudioCourseCatalog.Meta(\u0022Learn/Audio/EnvironmentAndBackends\u0022, \u0022Beginner\u0022, \u0022Standalone / Framework / CI / Linux / macOS / Browser WASM\u0022, \u0022Null / XAudio2 / Silk OpenAL / Web Audio\u0022, \u0022Audio overview\u0022)}}\n\n    ## \u5883\u754C\u3068\u8CAC\u52D9\n\n    \u0060IAudioBackend\u0060\u306Fdevice/master volume/voice\u751F\u6210\u3092\u3001\u0060IAudioVoice\u0060\u306Fbuffer queue\u3068playback state\u3092\u62BD\u8C61\u5316\u3057\u307E\u3059\u3002format\u3054\u3068\u306Bvoice\u3092\u4F5C\u308A\u3001PCM\u306Edecode\u3084game\u5074\u306Ebus tree\u306Fbackend\u3078\u62BC\u3057\u8FBC\u307F\u307E\u305B\u3093\u3002\n\n    \u0060\u0060\u0060csharp\n    using IAudioBackend backend = new NullAudioBackend();\n    backend.Initialize();\n    using IAudioVoice voice = backend.CreateVoice(AudioFormat.Pcm16Mono48k);\n    voice.SubmitBuffer(pcm);\n    voice.Play();\n    \u0060\u0060\u0060\n\n    ## \u5B9F\u884C\u74B0\u5883\u306E\u9078\u629E\n\n    | \u74B0\u5883 | backend | \u4F55\u3092\u78BA\u8A8D\u3059\u308B\u304B |\n    |---|---|---|\n    | unit test / CI / device\u306A\u3057 | \u0060NullAudioBackend\u0060 | state\u3001queue\u3001parameter\u3001\u6240\u6709\u6A29 |\n    | Windows\u5B9F\u97F3 | \u0060Luxel.Audio.Windows.XAudio2Backend\u0060 | device\u3001speaker\u3001\u5B9F\u6642\u9593\u3067\u306Equeue drain |\n    | Linux/macOS\u5B9F\u97F3 | \u0060Luxel.Audio.Silk.OpenAlAudioBackend\u0060 | OpenAL Soft\u3001voice queue\u3001loopback |\n    | Linux CI | \u540C\u3058Silk backend \u002B Pulse null sink | \u5B9F\u51FA\u529Bcapture\u3068\u6CE2\u5F62\u89E3\u6790 |\n    | Framework app | \u0060new LuxelHostBuilder().UseAudio()\u0060 | Windows=XAudio2\u3001Linux/macOS=Silk OpenAL\u3092OS\u5225\u767B\u9332 |\n    | Browser WASM | \u0060Luxel.Audio.Browser.BrowserAudioBackend\u0060 | Web Audio\u3001autoplay unlock\u3001browser lifecycle |\n\n    \u0060UseAudio()\u0060\u306FFramework\u5074\u306Ecomposition root\u3067\u3059\u3002standalone sample\u3067\u306Fbackend\u3092\u660E\u793A\u751F\u6210\u3057\u305F\u65B9\u304C\u4F9D\u5B58\u3068dispose\u9806\u3092\u8AAD\u307F\u53D6\u308A\u3084\u3059\u304F\u306A\u308A\u307E\u3059\u3002Windows\u5B9F\u97F3\u306E\u7D71\u5408\u78BA\u8A8D\u306F [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone)\u3001browser\u5B9F\u97F3\u306F\u0060samples/LuxelAudioBrowser\u0060\u3092\u4F7F\u3044\u307E\u3059\u3002\n\n    ## Web Audio\u306E\u975E\u540C\u671F\u30E9\u30A4\u30D5\u30B5\u30A4\u30AF\u30EB\n\n    \u0060\u0060\u0060csharp\n    using BrowserAudioBackend backend = await BrowserAudioBackend.CreateAsync();\n    // click / tap \u306Eevent handler\u304B\u3089\u547C\u3076\n    await backend.ResumeAsync();\n    using IAudioVoice voice = backend.CreateVoice(AudioFormat.Pcm16Mono48k);\n    \u0060\u0060\u0060\n\n    {{StoryRef(ctx, \u0022Examples/Audio/BackendLifecycle\u0022)}}\n\n    \u0060AudioContext.resume()\u0060\u306F\u975E\u540C\u671F\u304B\u3064user gesture/autoplay policy\u306E\u5F71\u97FF\u3092\u53D7\u3051\u307E\u3059\u3002\u0060CreateAsync()\u0060\u306Fcontext\u3092\u4F5C\u6210\u3057\u307E\u3059\u304C\u3001\u0060BrowserAudioState.Running\u0060\u306B\u306A\u308B\u307E\u3067\u53EF\u8074\u6E96\u5099\u5B8C\u4E86\u3068\u306F\u307F\u306A\u3057\u307E\u305B\u3093\u3002\u0060AudioBufferSourceNode\u0060\u306F\u4E00\u5EA6\u3060\u3051start\u3067\u304D\u308B\u305F\u3081\u3001backend\u306Fpause/resume\u6642\u306Bnode\u3092\u518D\u751F\u6210\u3057\u3066offset\u3092\u5FA9\u5143\u3057\u307E\u3059\u3002\u5B8C\u4E86queue\u306F\u0060onended\u0060\u3067\u8AD6\u7406\u7BA1\u7406\u3057\u3001Web Audio\u306Eequal-power pan law\u306FXAudio2\u306Elinear matrix\u3068\u5B8C\u5168\u4E00\u81F4\u3057\u307E\u305B\u3093\u3002\n\n    \u73FE\u884Cbrowser backend\u306F\u0060AudioBufferSourceNode\u0060\u306B\u3088\u308Bclip\u3068\u57FA\u672Cqueue\u3092\u5B9F\u88C5\u3057\u3066\u3044\u307E\u3059\u3002AudioWorklet\u306B\u3088\u308B\u9577\u6642\u9593\u30FB\u4F4E\u9045\u5EF6streaming\u306F\u672A\u5B9F\u88C5\u3067\u3059\u3002AudioWorklet\u81EA\u4F53\u306Fsecure context\u3092\u5FC5\u8981\u3068\u3057\u3001\u5C06\u6765SharedArrayBuffer\u9AD8\u901F\u7D4C\u8DEF\u3092\u9078\u3076\u5834\u5408\u306F\u8FFD\u52A0\u3067cross-origin isolation\u304C\u5FC5\u8981\u3067\u3059\u3002\n\n    ## \u6240\u6709\u6A29\u3068\u5931\u6557\n\n    backend\u3088\u308A\u5148\u306Bvoice\u3092\u7834\u68C4\u3057\u307E\u3059\u3002\u0060Initialize()\u0060\u5FD8\u308C\u3001\u5225format\u306EPCM\u6295\u5165\u3001backend dispose\u5F8C\u306Evoice\u5229\u7528\u3001browser\u3067\u0060ResumeAsync()\u0060\u524D\u304B\u3089\u97F3\u304C\u51FA\u308B\u3068\u4EEE\u5B9A\u3059\u308B\u3053\u3068\u304C\u5178\u578B\u7684\u306A\u5931\u6557\u3067\u3059\u3002OpenAL runtime\u304C\u898B\u3064\u304B\u3089\u306A\u3044\u5834\u5408\u306FOS\u306B\u5BFE\u5FDC\u3059\u308BOpenAL Soft library\u3092\u78BA\u8A8D\u3057\u307E\u3059\u3002Linux CI\u3067\u306F\u0060LUXEL_DESKTOP_AUDIO=null eng/desktop/audio-start.sh\u0060\u306748 kHz stereo\u306E\u4EEE\u60F3sink\u3092\u7528\u610F\u3067\u304D\u307E\u3059\u3002\n\n    \u0022\u0022\u0022;",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -882,7 +815,7 @@
     "status": "document",
     "error": null,
     "imageSha256": "",
-    "searchText": "Learn/Audio/FormatsClipsAndLoading\nFormatsClipsAndLoading\nLearn\n[Story(\u0022Learn/Audio/FormatsClipsAndLoading\u0022, Order = 2, Toc = true)]\npublic static StoryResult Formats(StoryContext ctx) =\u003E $$\u0022\u0022\u0022\n    # Formats, clips, and loading\n\n    {{AudioCourseCatalog.Meta(\u0022Learn/Audio/FormatsClipsAndLoading\u0022, \u0022Beginner\u0022, \u0022Standalone / Resources\u0022, \u0022Backend neutral PCM16\u0022, \u0022Environment and backends\u0022)}}\n\n    ## sample\u3001frame\u3001byte\n\n    \u0060AudioFormat(48_000, 2, 16)\u0060\u3067\u306F\u30011 channel\u306E\u5024\u304Csample\u3001\u540C\u6642\u523B\u306E\u5DE6\u53F32 sample\u304Cframe\u3067\u3059\u30021 sample\u306F2 bytes\u30011 frame\u306F4 bytes\u30011\u79D2\u306F192,000 bytes\u3067\u3059\u3002\u0060AudioFormat.BytesPerSample\u0060\u306F\u540D\u524D\u306B\u53CD\u3057\u3066\u5168channel\u3092\u542B\u30801 frame\u5206\u3067\u3001\u0060AudioClip.SampleCount\u0060\u3082per-channel frame\u6570\u3067\u3059\u3002\n\n    {{SampleSource(\u0022samples/LuxelAudio/AudioConceptSamples.cs\u0022, \u0022audio-format-clip\u0022)}}\n\n    ## clip\u3092\u4F5C\u308B3\u7D4C\u8DEF\n\n    1. procedural PCM\u3092\u4F5C\u308A\u0060new AudioClip(format, bytes, name)\u0060\u3059\u308B\u3002\n    2. \u0060AudioClipLoader.Load(stream, \u0022.wav\u0022 | \u0022.ogg\u0022)\u0060\u306716-bit PCM\u3078\u5168\u5C55\u958B\u3059\u308B\u3002\n    3. Resources\u3078\u0060AudioClipStep\u0060\u3092\u767B\u9332\u3057\u3001\u0060resources.Load\u003CAudioClip\u003E(...)\u0060\u3067typed load\u3059\u308B\u3002\n\n    \u0060\u0060\u0060csharp\n    AudioClip clip = AudioClipLoader.Load(fileBytes, \u0022.wav\u0022, \u0022hit\u0022);\n    // AudioClipStep.RunAsync also delegates to AudioClipLoader using uri.Extension.\n    \u0060\u0060\u0060\n\n    \u0060AudioClipLoader\u0060\u306FWAV/OGG\u3092\u6271\u3044\u307E\u3059\u304C\u3001\u0060WavStream\u0060\u306F\u9577\u5C3A\u5411\u3051\u306E\u5225\u7D4C\u8DEF\u3067\u3001RIFF PCM16\u307E\u305F\u306Ffloat32\u3092\u9010\u6B21decode\u3057\u307E\u3059\u3002clip\u306Fbytes\u3092\u6240\u6709\u3057\u3001loader\u3078\u6E21\u3057\u305Fstream\u306E\u5BFF\u547D\u3068\u306F\u5207\u308A\u96E2\u3055\u308C\u307E\u3059\u3002\n\n    ## \u5F62\u5F0F\u4E0D\u4E00\u81F4\u3068\u5931\u6557\n\n    PCM bytes\u3060\u3051\u3067\u306Fsample rate/channels/bit depth\u3092\u5FA9\u5143\u3067\u304D\u307E\u305B\u3093\u3002channels\u3092\u9593\u9055\u3048\u308B\u3068\u901F\u5EA6\u3084\u5DE6\u53F3\u304C\u5D29\u308C\u3001frame\u5883\u754C\u3067\u306A\u3044byte\u6570\u306F\u4E0D\u6B63\u3067\u3059\u3002core backend\u306E\u5171\u901Aformat\u306FPCM16\u3067\u3059\u3002\u672A\u77E5\u62E1\u5F35\u5B50\u3001\u58CA\u308C\u305FRIFF\u3001\u672A\u5BFE\u5FDCbit depth\u306F\u4F8B\u5916\u3068\u3057\u3066\u6271\u3044\u3001\u9ED9\u3063\u3066\u518D\u751F\u3057\u306A\u3044\u8A2D\u8A08\u306B\u3057\u307E\u3059\u3002\n\n    {{StoryRef(ctx, \u0022Examples/Audio/WaveformAndVoice\u0022)}}\n    \u0022\u0022\u0022;",
+    "searchText": "Learn/Audio/FormatsClipsAndLoading\nFormatsClipsAndLoading\nLearn\n[Story(\u0022Learn/Audio/FormatsClipsAndLoading\u0022, Order = 2, Toc = true)]\npublic static StoryResult Formats(StoryContext ctx) =\u003E $$\u0022\u0022\u0022\n    # Formats, clips, and loading\n\n    {{AudioCourseCatalog.Meta(\u0022Learn/Audio/FormatsClipsAndLoading\u0022, \u0022Beginner\u0022, \u0022Standalone / Resources / Browser WASM\u0022, \u0022Backend neutral PCM16 / Web Audio\u0022, \u0022Environment and backends\u0022)}}\n\n    ## sample\u3001frame\u3001byte\n\n    \u0060AudioFormat(48_000, 2, 16)\u0060\u3067\u306F\u30011 channel\u306E\u5024\u304Csample\u3001\u540C\u6642\u523B\u306E\u5DE6\u53F32 sample\u304Cframe\u3067\u3059\u30021 sample\u306F2 bytes\u30011 frame\u306F4 bytes\u30011\u79D2\u306F192,000 bytes\u3067\u3059\u3002\u0060AudioFormat.BytesPerSample\u0060\u306F\u540D\u524D\u306B\u53CD\u3057\u3066\u5168channel\u3092\u542B\u30801 frame\u5206\u3067\u3001\u0060AudioClip.SampleCount\u0060\u3082per-channel frame\u6570\u3067\u3059\u3002\n\n    {{SampleSource(\u0022samples/LuxelAudio/AudioConceptSamples.cs\u0022, \u0022audio-format-clip\u0022)}}\n\n    {{StoryRef(ctx, \u0022Examples/Audio/WaveformAndVoice\u0022)}}\n\n    ## clip\u3092\u4F5C\u308B3\u7D4C\u8DEF\n\n    1. procedural PCM\u3092\u4F5C\u308A\u0060new AudioClip(format, bytes, name)\u0060\u3059\u308B\u3002\n    2. \u0060AudioClipLoader.Load(stream, \u0022.wav\u0022 | \u0022.ogg\u0022)\u0060\u306716-bit PCM\u3078\u5168\u5C55\u958B\u3059\u308B\u3002\n    3. Resources\u3078\u0060AudioClipStep\u0060\u3092\u767B\u9332\u3057\u3001\u0060resources.Load\u003CAudioClip\u003E(...)\u0060\u3067typed load\u3059\u308B\u3002\n\n    \u0060\u0060\u0060csharp\n    AudioClip clip = AudioClipLoader.Load(fileBytes, \u0022.wav\u0022, \u0022hit\u0022);\n    // AudioClipStep.RunAsync also delegates to AudioClipLoader using uri.Extension.\n    \u0060\u0060\u0060\n\n    \u0060AudioClipLoader\u0060\u306FWAV/OGG\u3092\u6271\u3044\u307E\u3059\u304C\u3001\u0060WavStream\u0060\u306F\u9577\u5C3A\u5411\u3051\u306E\u5225\u7D4C\u8DEF\u3067\u3001RIFF PCM16\u307E\u305F\u306Ffloat32\u3092\u9010\u6B21decode\u3057\u307E\u3059\u3002clip\u306Fbytes\u3092\u6240\u6709\u3057\u3001loader\u3078\u6E21\u3057\u305Fstream\u306E\u5BFF\u547D\u3068\u306F\u5207\u308A\u96E2\u3055\u308C\u307E\u3059\u3002\n\n    ## \u5F62\u5F0F\u4E0D\u4E00\u81F4\u3068\u5931\u6557\n\n    PCM bytes\u3060\u3051\u3067\u306Fsample rate/channels/bit depth\u3092\u5FA9\u5143\u3067\u304D\u307E\u305B\u3093\u3002channels\u3092\u9593\u9055\u3048\u308B\u3068\u901F\u5EA6\u3084\u5DE6\u53F3\u304C\u5D29\u308C\u3001frame\u5883\u754C\u3067\u306A\u3044byte\u6570\u306F\u4E0D\u6B63\u3067\u3059\u3002core backend\u306E\u5171\u901Aformat\u306FPCM16\u3067\u3059\u3002\u672A\u77E5\u62E1\u5F35\u5B50\u3001\u58CA\u308C\u305FRIFF\u3001\u672A\u5BFE\u5FDCbit depth\u306F\u4F8B\u5916\u3068\u3057\u3066\u6271\u3044\u3001\u9ED9\u3063\u3066\u518D\u751F\u3057\u306A\u3044\u8A2D\u8A08\u306B\u3057\u307E\u3059\u3002\n    \u0022\u0022\u0022;",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -980,7 +913,7 @@
     "status": "document",
     "error": null,
     "imageSha256": "",
-    "searchText": "Learn/Audio/VoicesAndMixer\nVoicesAndMixer\nLearn\n[Story(\u0022Learn/Audio/VoicesAndMixer\u0022, Order = 3, Toc = true)]\npublic static StoryResult Voices(StoryContext ctx) =\u003E $$\u0022\u0022\u0022\n    # Voices and the one-shot mixer\n\n    {{AudioCourseCatalog.Meta(\u0022Learn/Audio/VoicesAndMixer\u0022, \u0022Beginner\u0022, \u0022Game loop / Headless\u0022, \u0022Null / XAudio2\u0022, \u0022Formats, clips, and loading\u0022)}}\n\n    ## voice\u306E\u72B6\u614B\u30E2\u30C7\u30EB\n\n    \u0060SubmitBuffer()\u0060\u306Fqueue\u3092\u5897\u3084\u3057\u3001\u0060Play()\u0060\u306F\u518D\u751F\u3092\u958B\u59CB\u3001\u0060Pause()\u0060\u306Fqueue\u3092\u4FDD\u6301\u3057\u305F\u307E\u307E\u505C\u6B62\u3001\u0060Stop()\u0060\u306F\u505C\u6B62\u3057\u3066queue\u3092\u6368\u3066\u307E\u3059\u3002\u0060BuffersQueued == 0\u0060\u306Fone-shot\u5B8C\u4E86\u3068pool\u8FD4\u5374\u306E\u5224\u5B9A\u3067\u3059\u3002\u0060IsPlaying\u0060\u306E\u67AF\u6E07\u6642\u6319\u52D5\u306Fbackend\u4F9D\u5B58\u306A\u306E\u3067\u3001\u5B8C\u4E86\u5224\u5B9A\u306Fqueue\u3092\u4E2D\u5FC3\u306B\u7D44\u307F\u307E\u3059\u3002\n\n    {{SampleSource(\u0022samples/LuxelAudio/AudioConceptSamples.cs\u0022, \u0022audio-mixer-voice\u0022)}}\n\n    ## AudioMixer\u306Epool\n\n    \u0060PlayOneShot\u0060\u306F\u540C\u3058\u0060AudioFormat\u0060\u306Eidle voice\u3092\u501F\u308A\u3001volume\u3001pitch\u3001pan\u3092\u8A2D\u5B9A\u3057\u3066submit/play\u3057\u307E\u3059\u3002\u5B9Fbackend\u304C\u518D\u751F\u3092\u7D42\u3048\u3066\u0060BuffersQueued\u0060\u30920\u306B\u3057\u305F\u5F8C\u3001\u6BCEframe\u306E\u0060AudioMixer.Tick()\u0060\u304Cvoice\u3092\u505C\u6B62\u3057\u3066format\u5225pool\u3078\u8FD4\u3057\u307E\u3059\u3002\n\n    | parameter | \u610F\u5473 | \u6CE8\u610F |\n    |---|---|---|\n    | volume | linear gain\u3001\u901A\u5E380..1 | bus\u306E\u0060EffectiveVolume\u0060\u3082\u4E57\u7B97\u3055\u308C\u308B |\n    | pitch | playback speed ratio | 1\u304C\u539F\u97F3\u3001backend\u7BC4\u56F2\u306B\u4F9D\u5B58 |\n    | pan | -1 left .. \u002B1 right | backend\u306Epan law\u306F\u5B8C\u5168\u4E00\u81F4\u3057\u306A\u3044 |\n\n    ## \u6240\u6709\u6A29\u3068\u5931\u6557\n\n    mixer\u304C\u501F\u308A\u305Fvoice\u3092\u6240\u6709\u3059\u308B\u305F\u3081\u3001\u547C\u3073\u51FA\u3057\u5074\u306Fone-shot voice\u3092dispose\u3057\u307E\u305B\u3093\u3002\u4E00\u65B9mixer\u81EA\u4F53\u306Fbackend\u3088\u308A\u5148\u306Bdispose\u3057\u307E\u3059\u3002\u0060Tick()\u0060\u5FD8\u308C\u306Fpool\u3078\u623B\u3089\u306A\u3044\u539F\u56E0\u3067\u3059\u3002\u0060NullAudioBackend\u0060\u306F\u6642\u9593\u7D4C\u904E\u3067\u81EA\u52D5drain\u3057\u306A\u3044\u305F\u3081\u3001test\u3067\u306F\u0060Stop()\u0060\u7B49\u3067\u5B8C\u4E86\u72B6\u614B\u3092\u6C7A\u5B9A\u7684\u306B\u4F5C\u308A\u307E\u3059\u3002\n\n    {{StoryRef(ctx, \u0022Examples/Audio/WaveformAndVoice\u0022)}}\n    \u0022\u0022\u0022;",
+    "searchText": "Learn/Audio/VoicesAndMixer\nVoicesAndMixer\nLearn\n[Story(\u0022Learn/Audio/VoicesAndMixer\u0022, Order = 3, Toc = true)]\npublic static StoryResult Voices(StoryContext ctx) =\u003E $$\u0022\u0022\u0022\n    # Voices and the one-shot mixer\n\n    {{AudioCourseCatalog.Meta(\u0022Learn/Audio/VoicesAndMixer\u0022, \u0022Beginner\u0022, \u0022Game loop / Headless / Browser WASM\u0022, \u0022Null / XAudio2 / Silk OpenAL / Web Audio\u0022, \u0022Formats, clips, and loading\u0022)}}\n\n    ## voice\u306E\u72B6\u614B\u30E2\u30C7\u30EB\n\n    \u0060SubmitBuffer()\u0060\u306Fqueue\u3092\u5897\u3084\u3057\u3001\u0060Play()\u0060\u306F\u518D\u751F\u3092\u958B\u59CB\u3001\u0060Pause()\u0060\u306Fqueue\u3092\u4FDD\u6301\u3057\u305F\u307E\u307E\u505C\u6B62\u3001\u0060Stop()\u0060\u306F\u505C\u6B62\u3057\u3066queue\u3092\u6368\u3066\u307E\u3059\u3002\u0060BuffersQueued == 0\u0060\u306Fone-shot\u5B8C\u4E86\u3068pool\u8FD4\u5374\u306E\u5224\u5B9A\u3067\u3059\u3002\u0060IsPlaying\u0060\u306E\u67AF\u6E07\u6642\u6319\u52D5\u306Fbackend\u4F9D\u5B58\u306A\u306E\u3067\u3001\u5B8C\u4E86\u5224\u5B9A\u306Fqueue\u3092\u4E2D\u5FC3\u306B\u7D44\u307F\u307E\u3059\u3002\n\n    {{SampleSource(\u0022samples/LuxelAudio/AudioConceptSamples.cs\u0022, \u0022audio-mixer-voice\u0022)}}\n\n    {{StoryRef(ctx, \u0022Examples/Audio/WaveformAndVoice\u0022)}}\n\n    ## AudioMixer\u306Epool\n\n    \u0060PlayOneShot\u0060\u306F\u540C\u3058\u0060AudioFormat\u0060\u306Eidle voice\u3092\u501F\u308A\u3001volume\u3001pitch\u3001pan\u3092\u8A2D\u5B9A\u3057\u3066submit/play\u3057\u307E\u3059\u3002\u5B9Fbackend\u304C\u518D\u751F\u3092\u7D42\u3048\u3066\u0060BuffersQueued\u0060\u30920\u306B\u3057\u305F\u5F8C\u3001\u6BCEframe\u306E\u0060AudioMixer.Tick()\u0060\u304Cvoice\u3092\u505C\u6B62\u3057\u3066format\u5225pool\u3078\u8FD4\u3057\u307E\u3059\u3002\n\n    | parameter | \u610F\u5473 | \u6CE8\u610F |\n    |---|---|---|\n    | volume | linear gain\u3001\u901A\u5E380..1 | bus\u306E\u0060EffectiveVolume\u0060\u3082\u4E57\u7B97\u3055\u308C\u308B |\n    | pitch | playback speed ratio | 1\u304C\u539F\u97F3\u3001backend\u7BC4\u56F2\u306B\u4F9D\u5B58 |\n    | pan | -1 left .. \u002B1 right | backend\u306Epan law\u306F\u5B8C\u5168\u4E00\u81F4\u3057\u306A\u3044 |\n\n    ## \u6240\u6709\u6A29\u3068\u5931\u6557\n\n    mixer\u304C\u501F\u308A\u305Fvoice\u3092\u6240\u6709\u3059\u308B\u305F\u3081\u3001\u547C\u3073\u51FA\u3057\u5074\u306Fone-shot voice\u3092dispose\u3057\u307E\u305B\u3093\u3002\u4E00\u65B9mixer\u81EA\u4F53\u306Fbackend\u3088\u308A\u5148\u306Bdispose\u3057\u307E\u3059\u3002\u0060Tick()\u0060\u5FD8\u308C\u306Fpool\u3078\u623B\u3089\u306A\u3044\u539F\u56E0\u3067\u3059\u3002\u0060NullAudioBackend\u0060\u306F\u6642\u9593\u7D4C\u904E\u3067\u81EA\u52D5drain\u3057\u306A\u3044\u305F\u3081\u3001test\u3067\u306F\u0060Stop()\u0060\u7B49\u3067\u5B8C\u4E86\u72B6\u614B\u3092\u6C7A\u5B9A\u7684\u306B\u4F5C\u308A\u307E\u3059\u3002\n    \u0022\u0022\u0022;",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -1114,7 +1047,7 @@
     "status": "document",
     "error": null,
     "imageSha256": "",
-    "searchText": "Learn/Audio/ClipsSourcesAndBuses\nClipsSourcesAndBuses\nLearn\n[Story(\u0022Learn/Audio/ClipsSourcesAndBuses\u0022, Order = 4, Toc = true)]\npublic static StoryResult Sources(StoryContext ctx) =\u003E $$\u0022\u0022\u0022\n    # Clips, sources, and buses\n\n    {{AudioCourseCatalog.Meta(\u0022Learn/Audio/ClipsSourcesAndBuses\u0022, \u0022Beginner\u0022, \u0022Game loop\u0022, \u0022Backend neutral\u0022, \u0022Voices and mixer\u0022)}}\n\n    ## AudioSource\u3092\u4F7F\u3046\u3068\u304D\n\n    \u0060AudioSource\u0060\u306F1\u3064\u306Eclip\u3068voice\u3092\u6240\u6709\u3057\u3001loop\u3001pause\u3001stop\u3001\u7D99\u7D9A\u7684\u306Avolume/pitch/pan\u66F4\u65B0\u3092\u6271\u3044\u307E\u3059\u3002\u0060Signal\u003Cfloat\u003E\u0060\u3092\u66F8\u304D\u63DB\u3048\u305F\u3060\u3051\u3067\u306Fvoice\u3078\u53CD\u6620\u3055\u308C\u305A\u3001\u6BCEframe \u0060Tick()\u0060\u304C\u5FC5\u8981\u3067\u3059\u3002\n\n    {{SampleSource(\u0022samples/LuxelAudio/AudioConceptSamples.cs\u0022, \u0022audio-source-bus\u0022)}}\n\n    ## bus tree\n\n    \u0060AudioBus\u0060\u306FOS\u306Esubmix voice\u3067\u306F\u306A\u304FC#\u5074\u306E\u8EFD\u91CF\u306A\u968E\u5C64\u3067\u3059\u3002Master=0.8\u3001Music=0.5\u306A\u3089Music\u306E\u0060EffectiveVolume\u0060\u306F0.4\u3067\u3059\u3002source volume=0.5\u306A\u3089voice\u3078\u6E21\u308B\u5024\u306F0.2\u3067\u3059\u3002Master/Music/SFX/Voice\u3092\u5144\u5F1F\u3068\u3057\u3066\u4F5C\u308B\u3068\u8A2D\u5B9A\u753B\u9762\u3068game logic\u3092\u5206\u96E2\u3067\u304D\u307E\u3059\u3002\n\n    \u0060\u0060\u0060csharp\n    while (running)\n    {\n        music.Tick();       // Signal \u00D7 bus -\u003E IAudioVoice\n        mixer.Tick();       // completed one-shots -\u003E pool\n        RunGameFrame();\n    }\n    \u0060\u0060\u0060\n\n    ## lifecycle\n\n    \u0060Play(loop: true)\u0060\u306F\u6700\u521D\u306E\u547C\u3073\u51FA\u3057\u3067submit\u3057\u307E\u3059\u3002\u0060Pause()\u0060\u5F8C\u306E\u0060Play()\u0060\u306F\u540C\u3058queue\u3092\u518D\u958B\u3057\u3001\u0060Stop()\u0060\u306Fqueue\u3092\u6368\u3066\u3066\u6B21\u56DEPlay\u3067\u518Dsubmit\u3057\u307E\u3059\u3002source\u304Cvoice\u3092\u6240\u6709\u3059\u308B\u306E\u3067\u3001source\u3092backend\u3088\u308A\u5148\u306B\u0060Dispose()\u0060\u3057\u307E\u3059\u3002bus\u306Fmanaged\u306A\u5024object\u3067dispose\u4E0D\u8981\u3067\u3059\u3002\n\n    ## \u3088\u304F\u3042\u308B\u5931\u6557\n\n    \u0060Tick()\u0060\u5FD8\u308C\u3001parent bus\u304C0\u3001source\u3068one-shot\u306E\u6240\u6709\u6A29\u6DF7\u540C\u3001dispose\u5F8C\u306E\u518D\u751F\u304C\u4EE3\u8868\u4F8B\u3067\u3059\u3002bus\u5024\u3060\u3051\u3067\u306A\u304F\u6700\u7D42voice volume\u3092headless\u3067\u78BA\u8A8D\u3057\u307E\u3059\u3002\n\n    {{StoryRef(ctx, \u0022Examples/Audio/Buses\u0022)}}\n    \u0022\u0022\u0022;",
+    "searchText": "Learn/Audio/ClipsSourcesAndBuses\nClipsSourcesAndBuses\nLearn\n[Story(\u0022Learn/Audio/ClipsSourcesAndBuses\u0022, Order = 4, Toc = true)]\npublic static StoryResult Sources(StoryContext ctx) =\u003E $$\u0022\u0022\u0022\n    # Clips, sources, and buses\n\n    {{AudioCourseCatalog.Meta(\u0022Learn/Audio/ClipsSourcesAndBuses\u0022, \u0022Beginner\u0022, \u0022Game loop / Browser WASM\u0022, \u0022Backend neutral source \u002B Web Audio voice\u0022, \u0022Voices and mixer\u0022)}}\n\n    ## AudioSource\u3092\u4F7F\u3046\u3068\u304D\n\n    \u0060AudioSource\u0060\u306F1\u3064\u306Eclip\u3068voice\u3092\u6240\u6709\u3057\u3001loop\u3001pause\u3001stop\u3001\u7D99\u7D9A\u7684\u306Avolume/pitch/pan\u66F4\u65B0\u3092\u6271\u3044\u307E\u3059\u3002\u0060Signal\u003Cfloat\u003E\u0060\u3092\u66F8\u304D\u63DB\u3048\u305F\u3060\u3051\u3067\u306Fvoice\u3078\u53CD\u6620\u3055\u308C\u305A\u3001\u6BCEframe \u0060Tick()\u0060\u304C\u5FC5\u8981\u3067\u3059\u3002\n\n    {{SampleSource(\u0022samples/LuxelAudio/AudioConceptSamples.cs\u0022, \u0022audio-source-bus\u0022)}}\n\n    ## bus tree\n\n    \u0060AudioBus\u0060\u306FOS\u306Esubmix voice\u3067\u306F\u306A\u304FC#\u5074\u306E\u8EFD\u91CF\u306A\u968E\u5C64\u3067\u3059\u3002Master=0.8\u3001Music=0.5\u306A\u3089Music\u306E\u0060EffectiveVolume\u0060\u306F0.4\u3067\u3059\u3002source volume=0.5\u306A\u3089voice\u3078\u6E21\u308B\u5024\u306F0.2\u3067\u3059\u3002Master/Music/SFX/Voice\u3092\u5144\u5F1F\u3068\u3057\u3066\u4F5C\u308B\u3068\u8A2D\u5B9A\u753B\u9762\u3068game logic\u3092\u5206\u96E2\u3067\u304D\u307E\u3059\u3002\n\n    {{StoryRef(ctx, \u0022Examples/Audio/Buses\u0022)}}\n\n    \u0060\u0060\u0060csharp\n    while (running)\n    {\n        music.Tick();       // Signal \u00D7 bus -\u003E IAudioVoice\n        mixer.Tick();       // completed one-shots -\u003E pool\n        RunGameFrame();\n    }\n    \u0060\u0060\u0060\n\n    ## lifecycle\n\n    \u0060Play(loop: true)\u0060\u306F\u6700\u521D\u306E\u547C\u3073\u51FA\u3057\u3067submit\u3057\u307E\u3059\u3002\u0060Pause()\u0060\u5F8C\u306E\u0060Play()\u0060\u306F\u540C\u3058queue\u3092\u518D\u958B\u3057\u3001\u0060Stop()\u0060\u306Fqueue\u3092\u6368\u3066\u3066\u6B21\u56DEPlay\u3067\u518Dsubmit\u3057\u307E\u3059\u3002source\u304Cvoice\u3092\u6240\u6709\u3059\u308B\u306E\u3067\u3001source\u3092backend\u3088\u308A\u5148\u306B\u0060Dispose()\u0060\u3057\u307E\u3059\u3002bus\u306Fmanaged\u306A\u5024object\u3067dispose\u4E0D\u8981\u3067\u3059\u3002\n\n    ## \u3088\u304F\u3042\u308B\u5931\u6557\n\n    \u0060Tick()\u0060\u5FD8\u308C\u3001parent bus\u304C0\u3001source\u3068one-shot\u306E\u6240\u6709\u6A29\u6DF7\u540C\u3001dispose\u5F8C\u306E\u518D\u751F\u304C\u4EE3\u8868\u4F8B\u3067\u3059\u3002bus\u5024\u3060\u3051\u3067\u306A\u304F\u6700\u7D42voice volume\u3092headless\u3067\u78BA\u8A8D\u3057\u307E\u3059\u3002\n    \u0022\u0022\u0022;",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -1170,7 +1103,7 @@
     "status": "document",
     "error": null,
     "imageSha256": "",
-    "searchText": "Learn/Audio/SpatialAudio\nSpatialAudio\nLearn\n[Story(\u0022Learn/Audio/SpatialAudio\u0022, Order = 5, Toc = true)]\npublic static StoryResult Spatial(StoryContext ctx) =\u003E $$\u0022\u0022\u0022\n    # Spatial audio\n\n    {{AudioCourseCatalog.Meta(\u0022Learn/Audio/SpatialAudio\u0022, \u0022Intermediate\u0022, \u0022Game loop / Headless\u0022, \u0022C# attenuation \u002B backend pan\u0022, \u0022Clips, sources, and buses\u0022)}}\n\n    ## \u30E1\u30F3\u30BF\u30EB\u30E2\u30C7\u30EB\n\n    \u0060AudioListener\u0060\u306Fposition/forward/up\u3092\u6301\u3061\u3001\u0060Right = Normalize(Forward \u00D7 Up)\u0060\u3092\u5C0E\u51FA\u3057\u307E\u3059\u3002\u0060AudioSource3D.Update(listener)\u0060\u306F\u8DDD\u96E2\u304B\u3089linear attenuation\u3001\u6B63\u898F\u5316\u3057\u305F\u65B9\u5411\u3068Right\u306E\u5185\u7A4D\u304B\u3089pan\u3092\u8A08\u7B97\u3057\u3001bus\u3068source volume\u3092\u639B\u3051\u3066voice\u3078\u8EE2\u9001\u3057\u307E\u3059\u3002\n\n    {{SampleSource(\u0022samples/LuxelAudio/AudioConceptSamples.cs\u0022, \u0022audio-spatial\u0022)}}\n\n    \u8DDD\u96E2\u304C\u0060MinDistance\u0060\u4EE5\u4E0B\u306A\u30891\u3001\u0060MaxDistance\u0060\u4EE5\u4E0A\u306A\u30890\u3001\u305D\u306E\u9593\u306F\u7DDA\u5F62\u3067\u3059\u3002\u4F8B\u3067\u306F\u8DDD\u96E25\u3001\u7BC4\u56F21..9\u306A\u306E\u3067attenuation\u306F0.5\u3001listener\u53F3\u5074\u306A\u306E\u3067pan\u306F\u002B1\u3067\u3059\u3002\n\n    ## frame\u66F4\u65B0\u9806\n\n    1. camera/player\u304B\u3089listener pose\u3092\u66F4\u65B0\u3059\u308B\u3002\n    2. scene transform\u304B\u3089source \u0060Position\u0060\u3092\u66F4\u65B0\u3059\u308B\u3002\n    3. \u0060source.Update(listener)\u0060\u3092\u547C\u3076\u3002\n    4. backend\u304C\u540C\u3058frame\u306Evolume/pan\u3092\u4F7F\u3046\u3002\n\n    ## \u73FE\u5728\u306E\u7BC4\u56F2\n\n    \u3053\u308C\u306FHRTF\u3001Doppler\u3001occlusion\u3001room reverb\u3067\u306F\u3042\u308A\u307E\u305B\u3093\u3002C#\u3067\u8DDD\u96E2gain\u3068stereo pan\u3092\u8A08\u7B97\u3059\u308Bportable\u306A\u57FA\u790E\u3067\u3059\u3002mono clip\u3067\u3082voice pan\u3092\u8A2D\u5B9A\u3067\u304D\u307E\u3059\u304C\u3001\u5B9F\u969B\u306Espeaker mapping\u3068pan law\u306Fbackend\u306B\u4F9D\u5B58\u3057\u307E\u3059\u3002\n\n    ## \u5931\u6557\n\n    forward/up\u304C\u5E73\u884C\u3060\u3068Right\u3092\u6B63\u898F\u5316\u3067\u304D\u307E\u305B\u3093\u3002\u0060MinDistance \u003E= MaxDistance\u0060\u306Fstep\u72B6\u306E\u6E1B\u8870\u306B\u306A\u308A\u307E\u3059\u3002listener\u66F4\u65B0\u3088\u308A\u524D\u306Bsource\u3092\u66F4\u65B0\u3059\u308B\u30681 frame\u53E4\u3044\u7D50\u679C\u306B\u306A\u308A\u307E\u3059\u3002\n\n    {{StoryRef(ctx, \u0022Examples/Audio/SpatialAttenuation\u0022)}}\n    \u0022\u0022\u0022;",
+    "searchText": "Learn/Audio/SpatialAudio\nSpatialAudio\nLearn\n[Story(\u0022Learn/Audio/SpatialAudio\u0022, Order = 5, Toc = true)]\npublic static StoryResult Spatial(StoryContext ctx) =\u003E $$\u0022\u0022\u0022\n    # Spatial audio\n\n    {{AudioCourseCatalog.Meta(\u0022Learn/Audio/SpatialAudio\u0022, \u0022Intermediate\u0022, \u0022Game loop / Headless / Browser WASM\u0022, \u0022C# attenuation \u002B backend pan\u0022, \u0022Clips, sources, and buses\u0022)}}\n\n    ## \u30E1\u30F3\u30BF\u30EB\u30E2\u30C7\u30EB\n\n    \u0060AudioListener\u0060\u306Fposition/forward/up\u3092\u6301\u3061\u3001\u0060Right = Normalize(Forward \u00D7 Up)\u0060\u3092\u5C0E\u51FA\u3057\u307E\u3059\u3002\u0060AudioSource3D.Update(listener)\u0060\u306F\u8DDD\u96E2\u304B\u3089linear attenuation\u3001\u6B63\u898F\u5316\u3057\u305F\u65B9\u5411\u3068Right\u306E\u5185\u7A4D\u304B\u3089pan\u3092\u8A08\u7B97\u3057\u3001bus\u3068source volume\u3092\u639B\u3051\u3066voice\u3078\u8EE2\u9001\u3057\u307E\u3059\u3002\n\n    {{SampleSource(\u0022samples/LuxelAudio/AudioConceptSamples.cs\u0022, \u0022audio-spatial\u0022)}}\n\n    \u8DDD\u96E2\u304C\u0060MinDistance\u0060\u4EE5\u4E0B\u306A\u30891\u3001\u0060MaxDistance\u0060\u4EE5\u4E0A\u306A\u30890\u3001\u305D\u306E\u9593\u306F\u7DDA\u5F62\u3067\u3059\u3002\u4F8B\u3067\u306F\u8DDD\u96E25\u3001\u7BC4\u56F21..9\u306A\u306E\u3067attenuation\u306F0.5\u3001listener\u53F3\u5074\u306A\u306E\u3067pan\u306F\u002B1\u3067\u3059\u3002\n\n    {{StoryRef(ctx, \u0022Examples/Audio/SpatialAttenuation\u0022)}}\n\n    ## frame\u66F4\u65B0\u9806\n\n    1. camera/player\u304B\u3089listener pose\u3092\u66F4\u65B0\u3059\u308B\u3002\n    2. scene transform\u304B\u3089source \u0060Position\u0060\u3092\u66F4\u65B0\u3059\u308B\u3002\n    3. \u0060source.Update(listener)\u0060\u3092\u547C\u3076\u3002\n    4. backend\u304C\u540C\u3058frame\u306Evolume/pan\u3092\u4F7F\u3046\u3002\n\n    ## \u73FE\u5728\u306E\u7BC4\u56F2\n\n    \u3053\u308C\u306FHRTF\u3001Doppler\u3001occlusion\u3001room reverb\u3067\u306F\u3042\u308A\u307E\u305B\u3093\u3002C#\u3067\u8DDD\u96E2gain\u3068stereo pan\u3092\u8A08\u7B97\u3059\u308Bportable\u306A\u57FA\u790E\u3067\u3059\u3002mono clip\u3067\u3082voice pan\u3092\u8A2D\u5B9A\u3067\u304D\u307E\u3059\u304C\u3001\u5B9F\u969B\u306Espeaker mapping\u3068pan law\u306Fbackend\u306B\u4F9D\u5B58\u3057\u307E\u3059\u3002\n\n    ## \u5931\u6557\n\n    forward/up\u304C\u5E73\u884C\u3060\u3068Right\u3092\u6B63\u898F\u5316\u3067\u304D\u307E\u305B\u3093\u3002\u0060MinDistance \u003E= MaxDistance\u0060\u306Fstep\u72B6\u306E\u6E1B\u8870\u306B\u306A\u308A\u307E\u3059\u3002listener\u66F4\u65B0\u3088\u308A\u524D\u306Bsource\u3092\u66F4\u65B0\u3059\u308B\u30681 frame\u53E4\u3044\u7D50\u679C\u306B\u306A\u308A\u307E\u3059\u3002\n    \u0022\u0022\u0022;",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -1212,7 +1145,7 @@
     "status": "document",
     "error": null,
     "imageSha256": "",
-    "searchText": "Learn/Audio/Streaming\nStreaming\nLearn\n[Story(\u0022Learn/Audio/Streaming\u0022, Order = 6, Toc = true)]\npublic static StoryResult Streaming(StoryContext ctx) =\u003E $$\u0022\u0022\u0022\n    # Streaming audio\n\n    {{AudioCourseCatalog.Meta(\u0022Learn/Audio/Streaming\u0022, \u0022Intermediate\u0022, \u0022Game loop / Headless\u0022, \u0022Null / XAudio2 queue\u0022, \u0022Spatial audio\u0022)}}\n\n    ## clip\u304Bstream\u304B\n\n    \u77ED\u3044SFX\u3084\u983B\u7E41\u306B\u518D\u5229\u7528\u3059\u308B\u97F3\u306F\u0060AudioClip\u0060\u3078\u5168\u5C55\u958B\u3057\u307E\u3059\u3002\u9577\u5C3AWAV\u306F\u0060IAudioStream\u0060\u3067float sample\u3092\u9010\u6B21\u4F9B\u7D66\u3057\u3001\u0060StreamingVoice\u0060\u304CPCM16\u3078\u91CF\u5B50\u5316\u3057\u3066voice queue\u3078\u88DC\u5145\u3057\u307E\u3059\u3002\u0060WavStream\u0060\u306Fseek\u53EF\u80FD\u306ARIFF PCM16/float32\u3001\u0060LoopingStream\u0060\u306F\u7D42\u7AEF\u3067\u0060Reset()\u0060\u3059\u308Bdecorator\u3067\u3059\u3002\n\n    {{SampleSource(\u0022samples/LuxelAudio/AudioConceptSamples.cs\u0022, \u0022audio-streaming\u0022)}}\n\n    ## queue\u3068Pump\n\n    constructor\u306E\u0060chunkSeconds\u0060\u306F1 buffer\u306E\u9577\u3055\u3001\u0060QueueDepth\u0060\u306F\u5148\u8AAD\u307F\u6570\u3067\u3059\u3002\u6BCEframe \u0060Pump()\u0060\u306F\u0060BuffersQueued \u003C QueueDepth\u0060\u306E\u9593\u3060\u3051decode/submit\u3057\u3001\u6700\u521D\u306Ebuffer\u3067\u0060Play()\u0060\u3057\u307E\u3059\u3002\u65E2\u5B9A\u306F\u7D04100ms \u00D7 3\u3067\u3059\u3002\n\n    \u0060\u0060\u0060csharp\n    using var stream = WavStream.Open(\u0022music.wav\u0022);\n    using var playback = new StreamingVoice(backend, stream);\n    while (running) playback.Pump();\n    \u0060\u0060\u0060\n\n    \u0060Pump()\u0060\u304C\u9045\u3044\u3068underrun\u3057\u3001queue\u304C\u7A7A\u306B\u306A\u3063\u3066\u7121\u97F3\u306B\u306A\u308A\u307E\u3059\u3002queue\u3092\u6DF1\u304F\u3059\u308B\u3068jitter\u8010\u6027\u3068\u5F15\u304D\u63DB\u3048\u306Blatency/memory\u304C\u5897\u3048\u307E\u3059\u3002\u0060Finished\u0060\u306Fstream\u7D42\u7AEF\u306B\u9054\u3057\u3001\u304B\u3064backend queue\u304C0\u306B\u306A\u3063\u305F\u3068\u304D\u3060\u3051true\u3067\u3059\u3002\n\n    ## \u7D42\u4E86\u3001restart\u3001loop\u3001dispose\n\n    \u0060Stop()\u0060\u306Fvoice queue\u3092\u6368\u3066\u3066\u7D42\u4E86\u6271\u3044\u306B\u3057\u307E\u3059\u3002\u0060Restart()\u0060\u306Fvoice\u3092stop\u3057stream\u3092reset\u3057\u3066\u3001\u6B21\u306E\u0060Pump()\u0060\u304B\u3089\u518D\u958B\u3057\u307E\u3059\u3002loop\u306F\u0060new LoopingStream(inner)\u0060\u3092\u6E21\u3057\u307E\u3059\u3002\u0060StreamingVoice.Dispose()\u0060\u304Cvoice\u3068stream\u3092\u6240\u6709\u30FB\u7834\u68C4\u3059\u308B\u306E\u3067\u3001\u540C\u3058stream\u3092\u5225\u6240\u6709\u8005\u304B\u3089\u4E8C\u91CDdispose\u3057\u306A\u3044\u3067\u304F\u3060\u3055\u3044\u3002\n\n    {{StoryRef(ctx, \u0022Examples/Audio/StreamingQueue\u0022)}}\n    \u0022\u0022\u0022;",
+    "searchText": "Learn/Audio/Streaming\nStreaming\nLearn\n[Story(\u0022Learn/Audio/Streaming\u0022, Order = 6, Toc = true)]\npublic static StoryResult Streaming(StoryContext ctx) =\u003E $$\u0022\u0022\u0022\n    # Streaming audio\n\n    {{AudioCourseCatalog.Meta(\u0022Learn/Audio/Streaming\u0022, \u0022Intermediate\u0022, \u0022Game loop / Headless / Browser WASM\u0022, \u0022Null / XAudio2 / Silk OpenAL / Web Audio queue\u0022, \u0022Spatial audio\u0022)}}\n\n    ## clip\u304Bstream\u304B\n\n    \u77ED\u3044SFX\u3084\u983B\u7E41\u306B\u518D\u5229\u7528\u3059\u308B\u97F3\u306F\u0060AudioClip\u0060\u3078\u5168\u5C55\u958B\u3057\u307E\u3059\u3002\u9577\u5C3AWAV\u306F\u0060IAudioStream\u0060\u3067float sample\u3092\u9010\u6B21\u4F9B\u7D66\u3057\u3001\u0060StreamingVoice\u0060\u304CPCM16\u3078\u91CF\u5B50\u5316\u3057\u3066voice queue\u3078\u88DC\u5145\u3057\u307E\u3059\u3002\u0060WavStream\u0060\u306Fseek\u53EF\u80FD\u306ARIFF PCM16/float32\u3001\u0060LoopingStream\u0060\u306F\u7D42\u7AEF\u3067\u0060Reset()\u0060\u3059\u308Bdecorator\u3067\u3059\u3002\n\n    {{SampleSource(\u0022samples/LuxelAudio/AudioConceptSamples.cs\u0022, \u0022audio-streaming\u0022)}}\n\n    ## queue\u3068Pump\n\n    constructor\u306E\u0060chunkSeconds\u0060\u306F1 buffer\u306E\u9577\u3055\u3001\u0060QueueDepth\u0060\u306F\u5148\u8AAD\u307F\u6570\u3067\u3059\u3002\u6BCEframe \u0060Pump()\u0060\u306F\u0060BuffersQueued \u003C QueueDepth\u0060\u306E\u9593\u3060\u3051decode/submit\u3057\u3001\u6700\u521D\u306Ebuffer\u3067\u0060Play()\u0060\u3057\u307E\u3059\u3002\u65E2\u5B9A\u306F\u7D04100ms \u00D7 3\u3067\u3059\u3002\n\n    \u0060\u0060\u0060csharp\n    using var stream = WavStream.Open(\u0022music.wav\u0022);\n    using var playback = new StreamingVoice(backend, stream);\n    while (running) playback.Pump();\n    \u0060\u0060\u0060\n\n    {{StoryRef(ctx, \u0022Examples/Audio/StreamingQueue\u0022)}}\n\n    \u0060Pump()\u0060\u304C\u9045\u3044\u3068underrun\u3057\u3001queue\u304C\u7A7A\u306B\u306A\u3063\u3066\u7121\u97F3\u306B\u306A\u308A\u307E\u3059\u3002queue\u3092\u6DF1\u304F\u3059\u308B\u3068jitter\u8010\u6027\u3068\u5F15\u304D\u63DB\u3048\u306Blatency/memory\u304C\u5897\u3048\u307E\u3059\u3002\u0060Finished\u0060\u306Fstream\u7D42\u7AEF\u306B\u9054\u3057\u3001\u304B\u3064backend queue\u304C0\u306B\u306A\u3063\u305F\u3068\u304D\u3060\u3051true\u3067\u3059\u3002\n\n    ## \u7D42\u4E86\u3001restart\u3001loop\u3001dispose\n\n    \u0060Stop()\u0060\u306Fvoice queue\u3092\u6368\u3066\u3066\u7D42\u4E86\u6271\u3044\u306B\u3057\u307E\u3059\u3002\u0060Restart()\u0060\u306Fvoice\u3092stop\u3057stream\u3092reset\u3057\u3066\u3001\u6B21\u306E\u0060Pump()\u0060\u304B\u3089\u518D\u958B\u3057\u307E\u3059\u3002loop\u306F\u0060new LoopingStream(inner)\u0060\u3092\u6E21\u3057\u307E\u3059\u3002\u0060StreamingVoice.Dispose()\u0060\u304Cvoice\u3068stream\u3092\u6240\u6709\u30FB\u7834\u68C4\u3059\u308B\u306E\u3067\u3001\u540C\u3058stream\u3092\u5225\u6240\u6709\u8005\u304B\u3089\u4E8C\u91CDdispose\u3057\u306A\u3044\u3067\u304F\u3060\u3055\u3044\u3002\n    \u0022\u0022\u0022;",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -1254,7 +1187,7 @@
     "status": "document",
     "error": null,
     "imageSha256": "",
-    "searchText": "Learn/Audio/SpatialStreamingAndTesting\nSpatialStreamingAndTesting\nLearn\n[Story(\u0022Learn/Audio/SpatialStreamingAndTesting\u0022, Order = 7, Toc = true)]\npublic static StoryResult Testing(StoryContext ctx) =\u003E $$\u0022\u0022\u0022\n    # Audio testing and troubleshooting\n\n    {{AudioCourseCatalog.Meta(\u0022Learn/Audio/SpatialStreamingAndTesting\u0022, \u0022Intermediate\u0022, \u0022CI / Headless / Windows / Linux / macOS / Browser WASM\u0022, \u0022Null / XAudio2 / Silk OpenAL / Web Audio\u0022, \u0022Streaming audio\u0022)}}\n\n    \u3053\u306E\u30DA\u30FC\u30B8\u306F\u65E2\u5B58Story ID\u3092\u4FDD\u3061\u306A\u304C\u3089\u3001spatial/streaming\u3092\u542B\u3080audio\u5168\u4F53\u306Etesting\u5165\u53E3\u306B\u3057\u307E\u3059\u3002\n\n    ## headless\u3067\u89B3\u6E2C\u3059\u308B\u5951\u7D04\n\n    {{SampleSource(\u0022samples/LuxelAudio/AudioConceptSamples.cs\u0022, \u0022audio-headless-test\u0022)}}\n\n    \u0060NullAudioBackend\u0060\u3067\u306F\u3001\u0060Initialized\u0060\u3001\u0060Voices.Count\u0060\u3001\u0060BuffersQueued\u0060\u3001\u0060IsPlaying\u0060\u3001\u6295\u5165\u3057\u305FPCM byte\u6570\u3001volume/pitch/pan\u3092\u78BA\u8A8D\u3057\u307E\u3059\u3002private\u306ANull voice\u306Esubmitted byte counter\u3078\u4F9D\u5B58\u305B\u305A\u3001\u751F\u6210\u3057\u305FPCM length\u3068queue\u6570\u3092test oracle\u306B\u3067\u304D\u307E\u3059\u3002bus\u306F\u0060EffectiveVolume\u0060\u3001spatial\u306F\u0060EffectiveVolume\u0060/\u0060EffectivePan\u0060\u3001stream\u306Fqueue depth\u3068\u0060Finished\u0060\u3092\u76F4\u63A5\u691C\u8A3C\u3057\u307E\u3059\u3002\n\n    ## \u75C7\u72B6\u5225\u30C1\u30A7\u30C3\u30AF\u30EA\u30B9\u30C8\n\n    | \u75C7\u72B6 | \u6700\u521D\u306B\u78BA\u8A8D\u3059\u308B\u3053\u3068 |\n    |---|---|\n    | voice\u304C\u306A\u3044 | backend \u0060Initialize()\u0060\u3068\u751F\u6210\u7D4C\u8DEF |\n    | queued\u3060\u304C\u7121\u97F3 | \u0060Play()\u0060\u3001master/bus/source volume\u3001\u5B9Fdevice |\n    | one-shot\u304C\u5897\u3048\u7D9A\u3051\u308B | \u0060AudioMixer.Tick()\u0060\u3068backend queue drain |\n    | stream\u304C\u9014\u5207\u308C\u308B | \u6BCEframe \u0060Pump()\u0060\u3001chunk\u3001\u0060QueueDepth\u0060\u3001underrun |\n    | stream\u304C\u7D42\u308F\u3089\u306A\u3044 | \u0060LoopingStream\u0060\u306E\u6709\u7121\u3001backend\u306E\u0060BuffersQueued\u0060 |\n    | spatial\u5024\u304C\u53E4\u3044 | listener \u2192 source position \u2192 \u0060Update()\u0060\u306E\u9806\u5E8F |\n    | shutdown\u3067\u4F8B\u5916 | source/mixer/stream\u3092\u5148\u3001backend\u3092\u6700\u5F8C\u306B\u0060Dispose()\u0060 |\n\n    ## backend\u5DEE\u3092\u5206\u3051\u3066test\u3059\u308B\n\n    Null test\u306F\u6642\u9593\u3084speaker\u306B\u4F9D\u5B58\u3057\u306A\u3044logic contract\u3067\u3059\u3002XAudio2 integration test\u306FWindows device\u3001\u5B9F\u6642\u9593\u306Equeue\u5B8C\u4E86\u3001\u53EF\u8074\u7D50\u679C\u3092\u5225\u5C64\u3067\u78BA\u8A8D\u3057\u307E\u3059\u3002Silk OpenAL backend\u306F\u5168OS\u5171\u901A\u306Efake contract\u3092\u6301\u3061\u3001OpenAL Soft runtime\u306E\u3042\u308B\u74B0\u5883\u3067\u306F\u0060ALC_SOFT_loopback\u0060\u306E\u6C7A\u5B9A\u7684\u306A440 Hz/RMS/pitch/pan test\u3092\u5B9F\u884C\u3067\u304D\u307E\u3059\u3002Linux CI\u3067\u306F\u3055\u3089\u306BPulseAudio null sink\u306EWAV capture\u3092\u691C\u8A3C\u3057\u307E\u3059\u3002Web Audio\u306Fmanaged fake interop\u3067lifecycle\u3001PCM validation\u3001ownership\u3092\u3001mock \u0060AudioContext\u0060\u3092\u4F7F\u3046JavaScript contract test\u3067\u9023\u7D9Aschedule\u3001\u0060onended\u0060 queue accounting\u3001pause/pitch\u6642\u306Enode\u518D\u751F\u6210\u3092\u691C\u8A3C\u3057\u307E\u3059\u3002autoplay unlock\u3068\u5B9F\u97F3\u306Fbrowser sample\u3067\u624B\u52D5\u78BA\u8A8D\u3057\u307E\u3059\u3002AudioWorklet/SAB\u306F\u73FE\u884Cbackend\u306Etest\u5BFE\u8C61\u3067\u306F\u3042\u308A\u307E\u305B\u3093\u3002\n\n    {{StoryRef(ctx, \u0022Examples/Audio/SpatialAttenuation\u0022)}}\n\n    {{StoryRef(ctx, \u0022Examples/Audio/StreamingQueue\u0022)}}\n\n    \u5B9F\u97F3\u306E\u6700\u5F8C\u306E\u78BA\u8A8D\u306F [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone) \u3067\u3059\u3002\n    \u0022\u0022\u0022;",
+    "searchText": "Learn/Audio/SpatialStreamingAndTesting\nSpatialStreamingAndTesting\nLearn\n[Story(\u0022Learn/Audio/SpatialStreamingAndTesting\u0022, Order = 7, Toc = true)]\npublic static StoryResult Testing(StoryContext ctx) =\u003E $$\u0022\u0022\u0022\n    # Audio testing and troubleshooting\n\n    {{AudioCourseCatalog.Meta(\u0022Learn/Audio/SpatialStreamingAndTesting\u0022, \u0022Intermediate\u0022, \u0022CI / Headless / Windows / Linux / macOS / Browser WASM\u0022, \u0022Null / XAudio2 / Silk OpenAL / Web Audio\u0022, \u0022Streaming audio\u0022)}}\n\n    \u3053\u306E\u30DA\u30FC\u30B8\u306F\u65E2\u5B58Story ID\u3092\u4FDD\u3061\u306A\u304C\u3089\u3001spatial/streaming\u3092\u542B\u3080audio\u5168\u4F53\u306Etesting\u5165\u53E3\u306B\u3057\u307E\u3059\u3002\n\n    ## headless\u3067\u89B3\u6E2C\u3059\u308B\u5951\u7D04\n\n    {{SampleSource(\u0022samples/LuxelAudio/AudioConceptSamples.cs\u0022, \u0022audio-headless-test\u0022)}}\n\n    \u0060NullAudioBackend\u0060\u3067\u306F\u3001\u0060Initialized\u0060\u3001\u0060Voices.Count\u0060\u3001\u0060BuffersQueued\u0060\u3001\u0060IsPlaying\u0060\u3001\u6295\u5165\u3057\u305FPCM byte\u6570\u3001volume/pitch/pan\u3092\u78BA\u8A8D\u3057\u307E\u3059\u3002private\u306ANull voice\u306Esubmitted byte counter\u3078\u4F9D\u5B58\u305B\u305A\u3001\u751F\u6210\u3057\u305FPCM length\u3068queue\u6570\u3092test oracle\u306B\u3067\u304D\u307E\u3059\u3002bus\u306F\u0060EffectiveVolume\u0060\u3001spatial\u306F\u0060EffectiveVolume\u0060/\u0060EffectivePan\u0060\u3001stream\u306Fqueue depth\u3068\u0060Finished\u0060\u3092\u76F4\u63A5\u691C\u8A3C\u3057\u307E\u3059\u3002\n\n    ## \u75C7\u72B6\u5225\u30C1\u30A7\u30C3\u30AF\u30EA\u30B9\u30C8\n\n    | \u75C7\u72B6 | \u6700\u521D\u306B\u78BA\u8A8D\u3059\u308B\u3053\u3068 |\n    |---|---|\n    | voice\u304C\u306A\u3044 | backend \u0060Initialize()\u0060\u3068\u751F\u6210\u7D4C\u8DEF |\n    | queued\u3060\u304C\u7121\u97F3 | \u0060Play()\u0060\u3001master/bus/source volume\u3001\u5B9Fdevice |\n    | one-shot\u304C\u5897\u3048\u7D9A\u3051\u308B | \u0060AudioMixer.Tick()\u0060\u3068backend queue drain |\n    | stream\u304C\u9014\u5207\u308C\u308B | \u6BCEframe \u0060Pump()\u0060\u3001chunk\u3001\u0060QueueDepth\u0060\u3001underrun |\n    | stream\u304C\u7D42\u308F\u3089\u306A\u3044 | \u0060LoopingStream\u0060\u306E\u6709\u7121\u3001backend\u306E\u0060BuffersQueued\u0060 |\n    | spatial\u5024\u304C\u53E4\u3044 | listener \u2192 source position \u2192 \u0060Update()\u0060\u306E\u9806\u5E8F |\n    | shutdown\u3067\u4F8B\u5916 | source/mixer/stream\u3092\u5148\u3001backend\u3092\u6700\u5F8C\u306B\u0060Dispose()\u0060 |\n\n    ## backend\u5DEE\u3092\u5206\u3051\u3066test\u3059\u308B\n\n    Null test\u306F\u6642\u9593\u3084speaker\u306B\u4F9D\u5B58\u3057\u306A\u3044logic contract\u3067\u3059\u3002XAudio2 integration test\u306FWindows device\u3001\u5B9F\u6642\u9593\u306Equeue\u5B8C\u4E86\u3001\u53EF\u8074\u7D50\u679C\u3092\u5225\u5C64\u3067\u78BA\u8A8D\u3057\u307E\u3059\u3002Silk OpenAL backend\u306F\u5168OS\u5171\u901A\u306Efake contract\u3092\u6301\u3061\u3001OpenAL Soft runtime\u306E\u3042\u308B\u74B0\u5883\u3067\u306F\u0060ALC_SOFT_loopback\u0060\u306E\u6C7A\u5B9A\u7684\u306A440 Hz/RMS/pitch/pan test\u3092\u5B9F\u884C\u3067\u304D\u307E\u3059\u3002Linux CI\u3067\u306F\u3055\u3089\u306BPulseAudio null sink\u306EWAV capture\u3092\u691C\u8A3C\u3057\u307E\u3059\u3002Web Audio\u306Fmanaged fake interop\u3067lifecycle\u3001PCM validation\u3001ownership\u3092\u3001mock \u0060AudioContext\u0060\u3092\u4F7F\u3046JavaScript contract test\u3067\u9023\u7D9Aschedule\u3001\u0060onended\u0060 queue accounting\u3001pause/pitch\u6642\u306Enode\u518D\u751F\u6210\u3092\u691C\u8A3C\u3057\u307E\u3059\u3002autoplay unlock\u3068\u5B9F\u97F3\u306Fbrowser sample\u3067\u624B\u52D5\u78BA\u8A8D\u3057\u307E\u3059\u3002AudioWorklet/SAB\u306F\u73FE\u884Cbackend\u306Etest\u5BFE\u8C61\u3067\u306F\u3042\u308A\u307E\u305B\u3093\u3002\n\n    \u5B9F\u97F3\u306E\u6700\u5F8C\u306E\u78BA\u8A8D\u306F [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone) \u3067\u3059\u3002\n    \u0022\u0022\u0022;",
     "aliases": [],
     "bundle": null,
     "args": []
@@ -1722,84 +1655,31 @@
     "args": []
   },
   {
+    "path": "Examples/Audio/BackendLifecycle",
+    "name": "BackendLifecycle",
+    "component": "Examples",
+    "fragment": "stories/examples-audio-backendlifecycle.html",
+    "image": null,
+    "status": "runtime",
+    "error": null,
+    "imageSha256": "",
+    "searchText": "Examples/Audio/BackendLifecycle\nBackendLifecycle\nExamples\n[Story(\u0022Examples/Audio/BackendLifecycle\u0022, Width = 700, Height = 300, Order = 0)]\npublic static Widget BackendLifecycle()\n{\n    var status = new Signal\u003Cstring\u003E($\u0022\u73FE\u5728\u306E\u72B6\u614B: {State}\u0022);\n\n    async void Resume()\n    {\n        try\n        {\n            await ResumeAsync();\n            status.Value = $\u0022ResumeAsync\u5B8C\u4E86: {State}\u3002\u3053\u306Eclick\u304Cautoplay unlock\u306Euser gesture\u3067\u3059\u3002\u0022;\n        }\n        catch (Exception error) { status.Value = $\u0022resume\u5931\u6557: {error.Message}\u0022; }\n    }\n\n    async void Suspend()\n    {\n        try\n        {\n            await SuspendAsync();\n            status.Value = $\u0022SuspendAsync\u5B8C\u4E86: {State}\u3002voice queue\u306F\u4FDD\u6301\u3055\u308C\u307E\u3059\u3002\u0022;\n        }\n        catch (Exception error) { status.Value = $\u0022suspend\u5931\u6557: {error.Message}\u0022; }\n    }\n\n    return ExampleFrame(\u0022Web Audio lifecycle\u0022,\n        \u0022AudioContext\u306F\u4F5C\u6210\u76F4\u5F8C\u306Bsuspended\u306E\u5834\u5408\u304C\u3042\u308A\u307E\u3059\u3002\u30DC\u30BF\u30F3\u64CD\u4F5C\u304B\u3089\u660E\u793A\u7684\u306Bresume\u3057\u3001\u30DA\u30FC\u30B8\u3092\u96E2\u308C\u308B\u524D\u306B\u306Fsuspend\u3067\u304D\u307E\u3059\u3002\u0022,\n        HStack(10)[Button(_ =\u003E Resume(), \u0022Audio\u3092\u6709\u52B9\u5316\u0022), Button(_ =\u003E Suspend(), \u0022Audio\u3092\u4E00\u6642\u505C\u6B62\u0022, variant: Variant.Outline)],\n        Text((Func\u003Cstring\u003E)(() =\u003E status.Value), 14, wrap: TextWrap.Word, width: 620));\n}",
+    "aliases": [],
+    "bundle": null,
+    "args": []
+  },
+  {
     "path": "Examples/Audio/WaveformAndVoice",
     "name": "WaveformAndVoice",
     "component": "Examples",
     "fragment": "stories/examples-audio-waveformandvoice.html",
     "image": null,
-    "status": "document",
+    "status": "runtime",
     "error": null,
     "imageSha256": "",
-    "searchText": "Examples/Audio/WaveformAndVoice\nWaveformAndVoice\nExamples\n[Story(\u0022Examples/Audio/WaveformAndVoice\u0022, Order = 0, SampleBundle = \u0022audio.tone\u0022, Toc = true)]\npublic static StoryResult AudioWaveform(StoryContext ctx) =\u003E RuntimeExample(ctx, \u0022Audio: waveform and voice\u0022,\n    \u002248 kHz mono PCM16\u3092\u624B\u7D9A\u304D\u751F\u6210\u3057\u3001\u0060AudioClip\u0060\u306Eframe\u6570\u30FBduration\u30FBbyte\u6570\u3092\u6C7A\u5B9A\u7684\u306B\u691C\u8A3C\u3057\u307E\u3059\u3002\u7D9A\u3044\u3066\u0060AudioMixer.PlayOneShot\u0060\u3067submit/play\u3057\u3001\u0060BuffersQueued\u0060\u3068voice parameter\u3092\u89B3\u6E2C\u3057\u307E\u3059\u3002\u0022,\n    \u0022samples/LuxelAudio/AudioConceptSamples.cs\u0022, \u0022audio-mixer-voice\u0022, \u0022audio.tone\u0022);",
+    "searchText": "Examples/Audio/WaveformAndVoice\nWaveformAndVoice\nExamples\n[Story(\u0022Examples/Audio/WaveformAndVoice\u0022, Width = 700, Height = 330, Order = 0)]\npublic static Widget WaveformAndVoice()\n{\n    AudioFormat format = AudioFormat.Pcm16Mono44k;\n    byte[] pcm = SinePcm16(format, 440f, 0.45f);\n    var clip = new AudioClip(format, pcm, \u0022440 Hz tone\u0022);\n    var status = new Signal\u003Cstring\u003E(DescribeClip(clip));\n    IAudioVoice? voice = null;\n\n    async void Play()\n    {\n        try\n        {\n            await ResumeAsync();\n            voice?.Dispose();\n            voice = Backend.CreateVoice(format);\n            voice.Volume = 0.35f;\n            voice.SubmitBuffer(clip.PcmData);\n            voice.Play();\n            status.Value = $\u0022\u518D\u751F\u4E2D: 440 Hz / queued={voice.BuffersQueued} / playing={voice.IsPlaying}\u0022;\n        }\n        catch (Exception error) { status.Value = $\u0022\u518D\u751F\u3067\u304D\u307E\u305B\u3093: {error.Message}\u0022; }\n    }\n\n    void Stop()\n    {\n        voice?.Stop();\n        status.Value = \u0022\u505C\u6B62\u3057\u307E\u3057\u305F\u3002queue\u306F\u7834\u68C4\u3055\u308C\u307E\u3059\u3002\u0022;\n    }\n\n    return ExampleFrame(\u0022PCM clip \u2192 voice\u0022,\n        \u0022\u751F\u6210\u3057\u305FPCM16 clip\u3092Web Audio voice\u3078submit\u3057\u307E\u3059\u3002Enable/Play\u306F\u30D6\u30E9\u30A6\u30B6\u306Euser gesture\u3068\u3057\u3066AudioContext\u3092\u518D\u958B\u3057\u307E\u3059\u3002\u0022,\n        HStack(10)[Button(_ =\u003E Play(), \u0022440 Hz\u3092\u518D\u751F\u0022), Button(_ =\u003E Stop(), \u0022\u505C\u6B62\u0022, variant: Variant.Outline)],\n        Text((Func\u003Cstring\u003E)(() =\u003E status.Value), 14, wrap: TextWrap.Word, width: 620),\n        Text(DescribeClip(clip), 13, color: Bind.From(() =\u003E UiTheme.T.TextMuted)));\n}",
     "aliases": [],
-    "bundle": {
-      "id": "audio.tone",
-      "name": "Headless audio tone",
-      "description": "Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.",
-      "difficulty": "Beginner",
-      "copyLevel": 1,
-      "files": [
-        {
-          "path": "samples/LuxelAudio/LuxelAudio.csproj",
-          "kind": 0,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelAudio/LuxelAudio.csproj",
-          "effectiveMode": 0
-        },
-        {
-          "path": "samples/LuxelAudio/Program.cs",
-          "kind": 1,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelAudio/Program.cs",
-          "effectiveMode": 0
-        },
-        {
-          "path": "samples/LuxelAudio/AudioConceptSamples.cs",
-          "kind": 1,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelAudio/AudioConceptSamples.cs",
-          "effectiveMode": 0
-        }
-      ],
-      "dependencies": [
-        "support.source-tree"
-      ],
-      "requirements": [
-        ".NET 10",
-        "Headless: any supported OS",
-        "Audible output: Windows/XAudio2 integration"
-      ],
-      "exportSymbol": "AudioMixer",
-      "runCommand": "dotnet run --project samples/LuxelAudio",
-      "smokeCommand": "dotnet run --project samples/LuxelAudio",
-      "platforms": [
-        "Windows",
-        "Linux",
-        "macOS"
-      ],
-      "timeoutSeconds": 300,
-      "expectedExitCode": 0,
-      "expectedStdoutMarker": "audio: initialized=True, voices=1",
-      "expectedArtifacts": null
-    },
+    "bundle": null,
     "args": []
   },
   {
@@ -1903,79 +1783,12 @@
     "component": "Examples",
     "fragment": "stories/examples-audio-buses.html",
     "image": null,
-    "status": "document",
+    "status": "runtime",
     "error": null,
     "imageSha256": "",
-    "searchText": "Examples/Audio/Buses\nBuses\nExamples\n[Story(\u0022Examples/Audio/Buses\u0022, Order = 1, SampleBundle = \u0022audio.tone\u0022, Toc = true)]\npublic static StoryResult AudioBuses(StoryContext ctx) =\u003E RuntimeExample(ctx, \u0022Audio: source and buses\u0022,\n    \u0022Master/Music/SFX\u306E\u89AA\u5B50bus\u3092\u4F5C\u308A\u3001\u0060EffectiveVolume\u0060\u306E\u4E57\u7B97\u3068\u0060AudioSource.Tick()\u0060\u304C\u6700\u7D42voice volume\u3078\u53CD\u6620\u3059\u308B\u3053\u3068\u3092\u691C\u8A3C\u3057\u307E\u3059\u3002\u0022,\n    \u0022samples/LuxelAudio/AudioConceptSamples.cs\u0022, \u0022audio-source-bus\u0022, \u0022audio.tone\u0022);",
+    "searchText": "Examples/Audio/Buses\nBuses\nExamples\n[Story(\u0022Examples/Audio/Buses\u0022, Width = 700, Height = 360, Order = 1)]\npublic static Widget Buses()\n{\n    var master = new AudioBus(\u0022Master\u0022);\n    var music = new AudioBus(\u0022Music\u0022, master);\n    AudioSource? source = null;\n    var status = new Signal\u003Cstring\u003E(\u0022Master 100% \u00D7 Music 60% \u00D7 Source 50% = voice 30%\u0022);\n    master.Volume.Value = 1f;\n    music.Volume.Value = 0.6f;\n\n    async void Play()\n    {\n        try\n        {\n            await ResumeAsync();\n            source?.Dispose();\n            var clip = new AudioClip(AudioFormat.Pcm16Mono44k,\n                SinePcm16(AudioFormat.Pcm16Mono44k, 330f, 0.6f), \u0022bus tone\u0022);\n            source = new AudioSource(Backend, clip) { Bus = music };\n            source.Volume.Value = 0.5f;\n            source.Play(loop: true);\n            source.Tick();\n            UpdateStatus();\n        }\n        catch (Exception error) { status.Value = $\u0022\u518D\u751F\u3067\u304D\u307E\u305B\u3093: {error.Message}\u0022; }\n    }\n\n    void SetMaster(float value) { master.Volume.Value = value; source?.Tick(); UpdateStatus(); }\n    void SetMusic(float value) { music.Volume.Value = value; source?.Tick(); UpdateStatus(); }\n    void UpdateStatus() =\u003E status.Value =\n        $\u0022Master {master.Volume.Value:P0} \u00D7 Music {music.Volume.Value:P0} \u00D7 Source 50% = voice {music.EffectiveVolume * 0.5f:P0}\u0022;\n\n    return ExampleFrame(\u0022AudioSource\u3068bus tree\u0022,\n        \u0022\u540C\u3058loop\u97F3\u3092\u9CF4\u3089\u3057\u305F\u307E\u307E\u89AA\u5B50bus\u306Egain\u3092\u5909\u66F4\u3057\u3001EffectiveVolume\u306E\u4E57\u7B97\u3092\u8033\u3068\u6570\u5024\u3067\u78BA\u8A8D\u3057\u307E\u3059\u3002\u0022,\n        HStack(8)[Button(_ =\u003E Play(), \u0022loop\u3092\u518D\u751F\u0022), Button(_ =\u003E SetMaster(1f), \u0022Master 100%\u0022), Button(_ =\u003E SetMaster(0.35f), \u0022Master 35%\u0022)],\n        HStack(8)[Button(_ =\u003E SetMusic(0.6f), \u0022Music 60%\u0022), Button(_ =\u003E SetMusic(0.15f), \u0022Music 15%\u0022), Button(_ =\u003E { source?.Stop(); status.Value = \u0022\u505C\u6B62\u3057\u307E\u3057\u305F\u3002\u0022; }, \u0022\u505C\u6B62\u0022, variant: Variant.Outline)],\n        Text((Func\u003Cstring\u003E)(() =\u003E status.Value), 14, wrap: TextWrap.Word, width: 620));\n}",
     "aliases": [],
-    "bundle": {
-      "id": "audio.tone",
-      "name": "Headless audio tone",
-      "description": "Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.",
-      "difficulty": "Beginner",
-      "copyLevel": 1,
-      "files": [
-        {
-          "path": "samples/LuxelAudio/LuxelAudio.csproj",
-          "kind": 0,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelAudio/LuxelAudio.csproj",
-          "effectiveMode": 0
-        },
-        {
-          "path": "samples/LuxelAudio/Program.cs",
-          "kind": 1,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelAudio/Program.cs",
-          "effectiveMode": 0
-        },
-        {
-          "path": "samples/LuxelAudio/AudioConceptSamples.cs",
-          "kind": 1,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelAudio/AudioConceptSamples.cs",
-          "effectiveMode": 0
-        }
-      ],
-      "dependencies": [
-        "support.source-tree"
-      ],
-      "requirements": [
-        ".NET 10",
-        "Headless: any supported OS",
-        "Audible output: Windows/XAudio2 integration"
-      ],
-      "exportSymbol": "AudioMixer",
-      "runCommand": "dotnet run --project samples/LuxelAudio",
-      "smokeCommand": "dotnet run --project samples/LuxelAudio",
-      "platforms": [
-        "Windows",
-        "Linux",
-        "macOS"
-      ],
-      "timeoutSeconds": 300,
-      "expectedExitCode": 0,
-      "expectedStdoutMarker": "audio: initialized=True, voices=1",
-      "expectedArtifacts": null
-    },
+    "bundle": null,
     "args": []
   },
   {
@@ -2079,79 +1892,12 @@
     "component": "Examples",
     "fragment": "stories/examples-audio-spatialattenuation.html",
     "image": null,
-    "status": "document",
+    "status": "runtime",
     "error": null,
     "imageSha256": "",
-    "searchText": "Examples/Audio/SpatialAttenuation\nSpatialAttenuation\nExamples\n[Story(\u0022Examples/Audio/SpatialAttenuation\u0022, Order = 2, SampleBundle = \u0022audio.tone\u0022, Toc = true)]\npublic static StoryResult AudioSpatial(StoryContext ctx) =\u003E RuntimeExample(ctx, \u0022Audio: spatial attenuation\u0022,\n    \u0022listener\u53F3\u5074\u3001\u8DDD\u96E25\u3001\u6E1B\u8870\u7BC4\u56F21..9\u3068\u3044\u3046\u56FA\u5B9A\u914D\u7F6E\u3067\u3001\u0060AudioSource3D\u0060\u306Elinear attenuation=0.5\u3068pan=\u002B1\u3092\u5B9F\u97F3\u306A\u3057\u3067\u691C\u8A3C\u3057\u307E\u3059\u3002\u0022,\n    \u0022samples/LuxelAudio/AudioConceptSamples.cs\u0022, \u0022audio-spatial\u0022, \u0022audio.tone\u0022);",
+    "searchText": "Examples/Audio/SpatialAttenuation\nSpatialAttenuation\nExamples\n[Story(\u0022Examples/Audio/SpatialAttenuation\u0022, Width = 700, Height = 380, Order = 2)]\npublic static Widget SpatialAttenuation()\n{\n    var listener = new AudioListener { Position = Vector3.Zero };\n    AudioSource3D? source = null;\n    var status = new Signal\u003Cstring\u003E(\u0022\u4F4D\u7F6E\u3092\u9078\u3076\u3068\u3001\u8DDD\u96E2\u6E1B\u8870\u3068pan\u3092\u8A08\u7B97\u3057\u3066\u518D\u751F\u3057\u307E\u3059\u3002\u0022);\n\n    async void PlayAt(float x, float distance)\n    {\n        try\n        {\n            await ResumeAsync();\n            source?.Dispose();\n            var clip = new AudioClip(AudioFormat.Pcm16Mono44k,\n                SinePcm16(AudioFormat.Pcm16Mono44k, 550f, 0.55f), \u0022spatial tone\u0022);\n            source = new AudioSource3D(Backend, clip)\n            {\n                Position = new Vector3(x * distance, 0, 0),\n                MinDistance = 1f,\n                MaxDistance = 9f,\n            };\n            source.Play();\n            source.Update(listener);\n            status.Value = $\u0022position=({source.Position.X:0.0}, 0, 0) / gain={source.EffectiveVolume:0.00} / pan={source.EffectivePan:\u002B0.00;-0.00;0.00}\u0022;\n        }\n        catch (Exception error) { status.Value = $\u0022\u518D\u751F\u3067\u304D\u307E\u305B\u3093: {error.Message}\u0022; }\n    }\n\n    return ExampleFrame(\u0022Listener\u30683D source\u0022,\n        \u0022listener\u3092\u539F\u70B9\u306B\u56FA\u5B9A\u3057\u3001source\u306E\u4F4D\u7F6E\u3060\u3051\u3092\u5909\u3048\u307E\u3059\u3002\u5DE6\u53F3\u306Fpan\u3001\u9060\u8FD1\u306Flinear attenuation\u3078\u53CD\u6620\u3055\u308C\u307E\u3059\u3002\u0022,\n        HStack(8)[Button(_ =\u003E PlayAt(-1, 3), \u0022\u5DE6\u30FB\u8FD1\u3044\u0022), Button(_ =\u003E PlayAt(0, 3), \u0022\u4E2D\u592E\u30FB\u8FD1\u3044\u0022), Button(_ =\u003E PlayAt(1, 3), \u0022\u53F3\u30FB\u8FD1\u3044\u0022)],\n        HStack(8)[Button(_ =\u003E PlayAt(-1, 7), \u0022\u5DE6\u30FB\u9060\u3044\u0022), Button(_ =\u003E PlayAt(1, 7), \u0022\u53F3\u30FB\u9060\u3044\u0022), Button(_ =\u003E { source?.Stop(); status.Value = \u0022\u505C\u6B62\u3057\u307E\u3057\u305F\u3002\u0022; }, \u0022\u505C\u6B62\u0022, variant: Variant.Outline)],\n        Text((Func\u003Cstring\u003E)(() =\u003E status.Value), 14, wrap: TextWrap.Word, width: 620));\n}",
     "aliases": [],
-    "bundle": {
-      "id": "audio.tone",
-      "name": "Headless audio tone",
-      "description": "Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.",
-      "difficulty": "Beginner",
-      "copyLevel": 1,
-      "files": [
-        {
-          "path": "samples/LuxelAudio/LuxelAudio.csproj",
-          "kind": 0,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelAudio/LuxelAudio.csproj",
-          "effectiveMode": 0
-        },
-        {
-          "path": "samples/LuxelAudio/Program.cs",
-          "kind": 1,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelAudio/Program.cs",
-          "effectiveMode": 0
-        },
-        {
-          "path": "samples/LuxelAudio/AudioConceptSamples.cs",
-          "kind": 1,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelAudio/AudioConceptSamples.cs",
-          "effectiveMode": 0
-        }
-      ],
-      "dependencies": [
-        "support.source-tree"
-      ],
-      "requirements": [
-        ".NET 10",
-        "Headless: any supported OS",
-        "Audible output: Windows/XAudio2 integration"
-      ],
-      "exportSymbol": "AudioMixer",
-      "runCommand": "dotnet run --project samples/LuxelAudio",
-      "smokeCommand": "dotnet run --project samples/LuxelAudio",
-      "platforms": [
-        "Windows",
-        "Linux",
-        "macOS"
-      ],
-      "timeoutSeconds": 300,
-      "expectedExitCode": 0,
-      "expectedStdoutMarker": "audio: initialized=True, voices=1",
-      "expectedArtifacts": null
-    },
+    "bundle": null,
     "args": []
   },
   {
@@ -2255,79 +2001,12 @@
     "component": "Examples",
     "fragment": "stories/examples-audio-streamingqueue.html",
     "image": null,
-    "status": "document",
+    "status": "runtime",
     "error": null,
     "imageSha256": "",
-    "searchText": "Examples/Audio/StreamingQueue\nStreamingQueue\nExamples\n[Story(\u0022Examples/Audio/StreamingQueue\u0022, Order = 3, SampleBundle = \u0022audio.tone\u0022, Toc = true)]\npublic static StoryResult AudioStreaming(StoryContext ctx) =\u003E RuntimeExample(ctx, \u0022Audio: streaming queue\u0022,\n    \u0022in-memory PCM16 WAV\u3092\u0060WavStream\u0060\u3078\u6E21\u3057\u3001\u0060StreamingVoice.Pump()\u0060\u304Cqueue depth 2\u307E\u3067prebuffer\u3057\u3001\u0060Stop()\u0060\u3067drain/finished\u306B\u306A\u308B\u5951\u7D04\u3092\u691C\u8A3C\u3057\u307E\u3059\u3002\u0022,\n    \u0022samples/LuxelAudio/AudioConceptSamples.cs\u0022, \u0022audio-streaming\u0022, \u0022audio.tone\u0022);",
+    "searchText": "Examples/Audio/StreamingQueue\nStreamingQueue\nExamples\n[Story(\u0022Examples/Audio/StreamingQueue\u0022, Width = 700, Height = 350, Order = 3)]\npublic static Widget StreamingQueue()\n{\n    IAudioVoice? voice = null;\n    var status = new Signal\u003Cstring\u003E(\u00223\u500B\u306EPCM chunk\u3092queue\u3057\u3001Web Audio\u304C\u5207\u308C\u76EE\u306A\u304Fschedule\u3057\u307E\u3059\u3002\u0022);\n\n    async void PlayQueue()\n    {\n        try\n        {\n            await ResumeAsync();\n            voice?.Dispose();\n            voice = Backend.CreateVoice(AudioFormat.Pcm16Mono44k);\n            foreach (float frequency in new[] { 330f, 440f, 660f })\n                voice.SubmitBuffer(SinePcm16(AudioFormat.Pcm16Mono44k, frequency, 0.22f));\n            voice.Play();\n            status.Value = $\u0022330 \u2192 440 \u2192 660 Hz / queued={voice.BuffersQueued} / playing={voice.IsPlaying}\u0022;\n        }\n        catch (Exception error) { status.Value = $\u0022\u518D\u751F\u3067\u304D\u307E\u305B\u3093: {error.Message}\u0022; }\n    }\n\n    return ExampleFrame(\u0022queued streaming chunks\u0022,\n        \u0022StreamingVoice\u3068\u540C\u3058buffer queue\u5951\u7D04\u3092\u3001\u5468\u6CE2\u6570\u306E\u7570\u306A\u308B3 chunk\u3067\u53EF\u8996\u5316\u3057\u307E\u3059\u3002\u5404chunk\u306F\u524D\u306E\u7D42\u4E86\u6642\u523B\u3078\u9023\u7D9Aschedule\u3055\u308C\u307E\u3059\u3002\u0022,\n        HStack(10)[Button(_ =\u003E PlayQueue(), \u00223 chunk\u3092\u518D\u751F\u0022), Button(_ =\u003E { voice?.Stop(); status.Value = \u0022\u505C\u6B62\u3057\u3066queue\u3092\u7834\u68C4\u3057\u307E\u3057\u305F\u3002\u0022; }, \u0022\u505C\u6B62\u0022, variant: Variant.Outline)],\n        Text((Func\u003Cstring\u003E)(() =\u003E status.Value), 14, wrap: TextWrap.Word, width: 620));\n}",
     "aliases": [],
-    "bundle": {
-      "id": "audio.tone",
-      "name": "Headless audio tone",
-      "description": "Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.",
-      "difficulty": "Beginner",
-      "copyLevel": 1,
-      "files": [
-        {
-          "path": "samples/LuxelAudio/LuxelAudio.csproj",
-          "kind": 0,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelAudio/LuxelAudio.csproj",
-          "effectiveMode": 0
-        },
-        {
-          "path": "samples/LuxelAudio/Program.cs",
-          "kind": 1,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelAudio/Program.cs",
-          "effectiveMode": 0
-        },
-        {
-          "path": "samples/LuxelAudio/AudioConceptSamples.cs",
-          "kind": 1,
-          "region": null,
-          "language": null,
-          "destination": null,
-          "mode": 0,
-          "wrapper": null,
-          "assetGlob": null,
-          "mergeRule": 0,
-          "outputPath": "samples/LuxelAudio/AudioConceptSamples.cs",
-          "effectiveMode": 0
-        }
-      ],
-      "dependencies": [
-        "support.source-tree"
-      ],
-      "requirements": [
-        ".NET 10",
-        "Headless: any supported OS",
-        "Audible output: Windows/XAudio2 integration"
-      ],
-      "exportSymbol": "AudioMixer",
-      "runCommand": "dotnet run --project samples/LuxelAudio",
-      "smokeCommand": "dotnet run --project samples/LuxelAudio",
-      "platforms": [
-        "Windows",
-        "Linux",
-        "macOS"
-      ],
-      "timeoutSeconds": 300,
-      "expectedExitCode": 0,
-      "expectedStdoutMarker": "audio: initialized=True, voices=1",
-      "expectedArtifacts": null
-    },
+    "bundle": null,
     "args": []
   },
   {

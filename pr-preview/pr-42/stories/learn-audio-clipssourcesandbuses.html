@@ -7,7 +7,7 @@
 <li><a href="#story=Learn%2FAudio%2FClipsSourcesAndBuses&amp;section=%E3%82%88%E3%81%8F%E3%81%82%E3%82%8B%E5%A4%B1%E6%95%97">よくある失敗</a></li>
 </ul>
 <!-- /luxel-toc -->
-<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Game loop　 <strong>Backend:</strong> Backend neutral　 <strong>前提知識:</strong> Voices and mixer</p>
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Game loop / Browser WASM　 <strong>Backend:</strong> Backend neutral source + Web Audio voice　 <strong>前提知識:</strong> Voices and mixer</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FAudio%2FVoicesAndMixer">VoicesAndMixer</a>　 <strong>次:</strong> <a href="#story=Learn%2FAudio%2FSpatialAudio">SpatialAudio</a></p>
 <h2 id="audiosource">AudioSourceを使うとき</h2>
 <p><code>AudioSource</code>は1つのclipとvoiceを所有し、loop、pause、stop、継続的なvolume/pitch/pan更新を扱います。<code>Signal&lt;float&gt;</code>を書き換えただけではvoiceへ反映されず、毎frame <code>Tick()</code>が必要です。</p>
@@ -36,6 +36,7 @@
 </code></pre>
 <h2 id="bus-tree">bus tree</h2>
 <p><code>AudioBus</code>はOSのsubmix voiceではなくC#側の軽量な階層です。Master=0.8、Music=0.5ならMusicの<code>EffectiveVolume</code>は0.4です。source volume=0.5ならvoiceへ渡る値は0.2です。Master/Music/SFX/Voiceを兄弟として作ると設定画面とgame logicを分離できます。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Audio/ClipsSourcesAndBuses#doc-0" data-luxel-runtime-story="Examples/Audio/Buses" data-luxel-runtime-instance="examples-audio-buses-facd9d2bfb8e" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2FAudio%2FBuses&amp;args=%7B%7D&amp;instance=examples-audio-buses-facd9d2bfb8e" data-luxel-runtime-story="Examples/Audio/Buses" data-luxel-runtime-instance="examples-audio-buses-facd9d2bfb8e" title="Interactive Buses" loading="eager" allow="webgpu; autoplay; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-audio-buses-facd9d2bfb8e-args-tab" aria-controls="examples-audio-buses-facd9d2bfb8e-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-audio-buses-facd9d2bfb8e-output-tab" aria-controls="examples-audio-buses-facd9d2bfb8e-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-audio-buses-facd9d2bfb8e-source-tab" aria-controls="examples-audio-buses-facd9d2bfb8e-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-audio-buses-facd9d2bfb8e-args-panel" role="tabpanel" aria-labelledby="examples-audio-buses-facd9d2bfb8e-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-audio-buses-facd9d2bfb8e-output-panel" role="tabpanel" aria-labelledby="examples-audio-buses-facd9d2bfb8e-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-audio-buses-facd9d2bfb8e-source-panel" role="tabpanel" aria-labelledby="examples-audio-buses-facd9d2bfb8e-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/Audio/Buses&quot;, Width = 700, Height = 360, Order = 1)]&#10;public static Widget Buses()&#10;{&#10;    var master = new AudioBus(&quot;Master&quot;);&#10;    var music = new AudioBus(&quot;Music&quot;, master);&#10;    AudioSource? source = null;&#10;    var status = new Signal&lt;string&gt;(&quot;Master 100% &#215; Music 60% &#215; Source 50% = voice 30%&quot;);&#10;    master.Volume.Value = 1f;&#10;    music.Volume.Value = 0.6f;&#10;&#10;    async void Play()&#10;    {&#10;        try&#10;        {&#10;            await ResumeAsync();&#10;            source?.Dispose();&#10;            var clip = new AudioClip(AudioFormat.Pcm16Mono44k,&#10;                SinePcm16(AudioFormat.Pcm16Mono44k, 330f, 0.6f), &quot;bus tone&quot;);&#10;            source = new AudioSource(Backend, clip) { Bus = music };&#10;            source.Volume.Value = 0.5f;&#10;            source.Play(loop: true);&#10;            source.Tick();&#10;            UpdateStatus();&#10;        }&#10;        catch (Exception error) { status.Value = $&quot;再生できません: {error.Message}&quot;; }&#10;    }&#10;&#10;    void SetMaster(float value) { master.Volume.Value = value; source?.Tick(); UpdateStatus(); }&#10;    void SetMusic(float value) { music.Volume.Value = value; source?.Tick(); UpdateStatus(); }&#10;    void UpdateStatus() =&gt; status.Value =&#10;        $&quot;Master {master.Volume.Value:P0} &#215; Music {music.Volume.Value:P0} &#215; Source 50% = voice {music.EffectiveVolume * 0.5f:P0}&quot;;&#10;&#10;    return ExampleFrame(&quot;AudioSourceとbus tree&quot;,&#10;        &quot;同じloop音を鳴らしたまま親子busのgainを変更し、EffectiveVolumeの乗算を耳と数値で確認します。&quot;,&#10;        HStack(8)[Button(_ =&gt; Play(), &quot;loopを再生&quot;), Button(_ =&gt; SetMaster(1f), &quot;Master 100%&quot;), Button(_ =&gt; SetMaster(0.35f), &quot;Master 35%&quot;)],&#10;        HStack(8)[Button(_ =&gt; SetMusic(0.6f), &quot;Music 60%&quot;), Button(_ =&gt; SetMusic(0.15f), &quot;Music 15%&quot;), Button(_ =&gt; { source?.Stop(); status.Value = &quot;停止しました。&quot;; }, &quot;停止&quot;, variant: Variant.Outline)],&#10;        Text((Func&lt;string&gt;)(() =&gt; status.Value), 14, wrap: TextWrap.Word, width: 620));&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
 <pre><code class="language-csharp">while (running)
 {
     music.Tick();       // Signal × bus -&gt; IAudioVoice
@@ -47,12 +48,11 @@
 <p><code>Play(loop: true)</code>は最初の呼び出しでsubmitします。<code>Pause()</code>後の<code>Play()</code>は同じqueueを再開し、<code>Stop()</code>はqueueを捨てて次回Playで再submitします。sourceがvoiceを所有するので、sourceをbackendより先に<code>Dispose()</code>します。busはmanagedな値objectでdispose不要です。</p>
 <h2 id="section">よくある失敗</h2>
 <p><code>Tick()</code>忘れ、parent busが0、sourceとone-shotの所有権混同、dispose後の再生が代表例です。bus値だけでなく最終voice volumeをheadlessで確認します。</p>
-<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/ClipsSourcesAndBuses&quot;, Order = 4, Toc = true)]
 public static StoryResult Sources(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # Clips, sources, and buses
 
-    {{AudioCourseCatalog.Meta(&quot;Learn/Audio/ClipsSourcesAndBuses&quot;, &quot;Beginner&quot;, &quot;Game loop&quot;, &quot;Backend neutral&quot;, &quot;Voices and mixer&quot;)}}
+    {{AudioCourseCatalog.Meta(&quot;Learn/Audio/ClipsSourcesAndBuses&quot;, &quot;Beginner&quot;, &quot;Game loop / Browser WASM&quot;, &quot;Backend neutral source + Web Audio voice&quot;, &quot;Voices and mixer&quot;)}}
 
     ## AudioSourceを使うとき
 
@@ -63,6 +63,8 @@ public static StoryResult Sources(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     ## bus tree
 
     `AudioBus`はOSのsubmix voiceではなくC#側の軽量な階層です。Master=0.8、Music=0.5ならMusicの`EffectiveVolume`は0.4です。source volume=0.5ならvoiceへ渡る値は0.2です。Master/Music/SFX/Voiceを兄弟として作ると設定画面とgame logicを分離できます。
+
+    {{StoryRef(ctx, &quot;Examples/Audio/Buses&quot;)}}
 
     ```csharp
     while (running)
@@ -80,6 +82,4 @@ public static StoryResult Sources(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     ## よくある失敗
 
     `Tick()`忘れ、parent busが0、sourceとone-shotの所有権混同、dispose後の再生が代表例です。bus値だけでなく最終voice volumeをheadlessで確認します。
-
-    {{StoryRef(ctx, &quot;Examples/Audio/Buses&quot;)}}
     &quot;&quot;&quot;;</code></pre></details></article>

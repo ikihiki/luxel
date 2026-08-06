@@ -6,7 +6,7 @@
 <li><a href="#story=Learn%2FAudio%2FFormatsClipsAndLoading&amp;section=%E5%BD%A2%E5%BC%8F%E4%B8%8D%E4%B8%80%E8%87%B4%E3%81%A8%E5%A4%B1%E6%95%97">形式不一致と失敗</a></li>
 </ul>
 <!-- /luxel-toc -->
-<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone / Resources　 <strong>Backend:</strong> Backend neutral PCM16　 <strong>前提知識:</strong> Environment and backends</p>
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone / Resources / Browser WASM　 <strong>Backend:</strong> Backend neutral PCM16 / Web Audio　 <strong>前提知識:</strong> Environment and backends</p>
 <p><strong>前へ:</strong> <a href="#story=Learn%2FAudio%2FEnvironmentAndBackends">EnvironmentAndBackends</a>　 <strong>次:</strong> <a href="#story=Learn%2FAudio%2FVoicesAndMixer">VoicesAndMixer</a></p>
 <h2 id="sampleframebyte">sample、frame、byte</h2>
 <p><code>AudioFormat(48_000, 2, 16)</code>では、1 channelの値がsample、同時刻の左右2 sampleがframeです。1 sampleは2 bytes、1 frameは4 bytes、1秒は192,000 bytesです。<code>AudioFormat.BytesPerSample</code>は名前に反して全channelを含む1 frame分で、<code>AudioClip.SampleCount</code>もper-channel frame数です。</p>
@@ -22,6 +22,7 @@
             &amp;&amp; clip.PcmData.Length == frames * format.BytesPerSample;
     }
 </code></pre>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Audio/FormatsClipsAndLoading#doc-0" data-luxel-runtime-story="Examples/Audio/WaveformAndVoice" data-luxel-runtime-instance="examples-audio-waveformandvoice-11c8241dab35" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2FAudio%2FWaveformAndVoice&amp;args=%7B%7D&amp;instance=examples-audio-waveformandvoice-11c8241dab35" data-luxel-runtime-story="Examples/Audio/WaveformAndVoice" data-luxel-runtime-instance="examples-audio-waveformandvoice-11c8241dab35" title="Interactive WaveformAndVoice" loading="eager" allow="webgpu; autoplay; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-audio-waveformandvoice-11c8241dab35-args-tab" aria-controls="examples-audio-waveformandvoice-11c8241dab35-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-audio-waveformandvoice-11c8241dab35-output-tab" aria-controls="examples-audio-waveformandvoice-11c8241dab35-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-audio-waveformandvoice-11c8241dab35-source-tab" aria-controls="examples-audio-waveformandvoice-11c8241dab35-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-audio-waveformandvoice-11c8241dab35-args-panel" role="tabpanel" aria-labelledby="examples-audio-waveformandvoice-11c8241dab35-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-audio-waveformandvoice-11c8241dab35-output-panel" role="tabpanel" aria-labelledby="examples-audio-waveformandvoice-11c8241dab35-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-audio-waveformandvoice-11c8241dab35-source-panel" role="tabpanel" aria-labelledby="examples-audio-waveformandvoice-11c8241dab35-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/Audio/WaveformAndVoice&quot;, Width = 700, Height = 330, Order = 0)]&#10;public static Widget WaveformAndVoice()&#10;{&#10;    AudioFormat format = AudioFormat.Pcm16Mono44k;&#10;    byte[] pcm = SinePcm16(format, 440f, 0.45f);&#10;    var clip = new AudioClip(format, pcm, &quot;440 Hz tone&quot;);&#10;    var status = new Signal&lt;string&gt;(DescribeClip(clip));&#10;    IAudioVoice? voice = null;&#10;&#10;    async void Play()&#10;    {&#10;        try&#10;        {&#10;            await ResumeAsync();&#10;            voice?.Dispose();&#10;            voice = Backend.CreateVoice(format);&#10;            voice.Volume = 0.35f;&#10;            voice.SubmitBuffer(clip.PcmData);&#10;            voice.Play();&#10;            status.Value = $&quot;再生中: 440 Hz / queued={voice.BuffersQueued} / playing={voice.IsPlaying}&quot;;&#10;        }&#10;        catch (Exception error) { status.Value = $&quot;再生できません: {error.Message}&quot;; }&#10;    }&#10;&#10;    void Stop()&#10;    {&#10;        voice?.Stop();&#10;        status.Value = &quot;停止しました。queueは破棄されます。&quot;;&#10;    }&#10;&#10;    return ExampleFrame(&quot;PCM clip → voice&quot;,&#10;        &quot;生成したPCM16 clipをWeb Audio voiceへsubmitします。Enable/Playはブラウザのuser gestureとしてAudioContextを再開します。&quot;,&#10;        HStack(10)[Button(_ =&gt; Play(), &quot;440 Hzを再生&quot;), Button(_ =&gt; Stop(), &quot;停止&quot;, variant: Variant.Outline)],&#10;        Text((Func&lt;string&gt;)(() =&gt; status.Value), 14, wrap: TextWrap.Word, width: 620),&#10;        Text(DescribeClip(clip), 13, color: Bind.From(() =&gt; UiTheme.T.TextMuted)));&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
 <h2 id="clip3">clipを作る3経路</h2>
 <ol>
 <li>procedural PCMを作り<code>new AudioClip(format, bytes, name)</code>する。</li>
@@ -34,18 +35,19 @@
 <p><code>AudioClipLoader</code>はWAV/OGGを扱いますが、<code>WavStream</code>は長尺向けの別経路で、RIFF PCM16またはfloat32を逐次decodeします。clipはbytesを所有し、loaderへ渡したstreamの寿命とは切り離されます。</p>
 <h2 id="section">形式不一致と失敗</h2>
 <p>PCM bytesだけではsample rate/channels/bit depthを復元できません。channelsを間違えると速度や左右が崩れ、frame境界でないbyte数は不正です。core backendの共通formatはPCM16です。未知拡張子、壊れたRIFF、未対応bit depthは例外として扱い、黙って再生しない設計にします。</p>
-<aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
 <p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/FormatsClipsAndLoading&quot;, Order = 2, Toc = true)]
 public static StoryResult Formats(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # Formats, clips, and loading
 
-    {{AudioCourseCatalog.Meta(&quot;Learn/Audio/FormatsClipsAndLoading&quot;, &quot;Beginner&quot;, &quot;Standalone / Resources&quot;, &quot;Backend neutral PCM16&quot;, &quot;Environment and backends&quot;)}}
+    {{AudioCourseCatalog.Meta(&quot;Learn/Audio/FormatsClipsAndLoading&quot;, &quot;Beginner&quot;, &quot;Standalone / Resources / Browser WASM&quot;, &quot;Backend neutral PCM16 / Web Audio&quot;, &quot;Environment and backends&quot;)}}
 
     ## sample、frame、byte
 
     `AudioFormat(48_000, 2, 16)`では、1 channelの値がsample、同時刻の左右2 sampleがframeです。1 sampleは2 bytes、1 frameは4 bytes、1秒は192,000 bytesです。`AudioFormat.BytesPerSample`は名前に反して全channelを含む1 frame分で、`AudioClip.SampleCount`もper-channel frame数です。
 
     {{SampleSource(&quot;samples/LuxelAudio/AudioConceptSamples.cs&quot;, &quot;audio-format-clip&quot;)}}
+
+    {{StoryRef(ctx, &quot;Examples/Audio/WaveformAndVoice&quot;)}}
 
     ## clipを作る3経路
 
@@ -63,6 +65,4 @@ public static StoryResult Formats(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     ## 形式不一致と失敗
 
     PCM bytesだけではsample rate/channels/bit depthを復元できません。channelsを間違えると速度や左右が崩れ、frame境界でないbyte数は不正です。core backendの共通formatはPCM16です。未知拡張子、壊れたRIFF、未対応bit depthは例外として扱い、黙って再生しない設計にします。
-
-    {{StoryRef(ctx, &quot;Examples/Audio/WaveformAndVoice&quot;)}}
     &quot;&quot;&quot;;</code></pre></details></article>
