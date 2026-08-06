@@ -1,0 +1,8 @@
+<article class="story document-page"><h1 id="scenes-and-services">Scenes and services</h1>
+<p>最小契約は<code>IScene.OnLoadAsync / RunAsync / OnUnloadAsync</code>です。<code>SceneManager</code>は現在sceneをcancelし、Unload → Loadの順で切り替えます。通常は<code>GameScene</code>を継承し、<code>SceneLoopServices</code>からGPU、resources、audio、input、commands、UI registryを受け取ります。固定更新では可変dtを読まず、<code>FixedUpdateContext.FixedDeltaSeconds</code>だけを使います。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Framework/ScenesAndServices&quot;, Order = 2, Toc = true)]
+public static StoryResult Scenes(StoryContext ctx) =&gt; $&quot;&quot;&quot;
+    # Scenes and services
+
+    最小契約は`IScene.OnLoadAsync / RunAsync / OnUnloadAsync`です。`SceneManager`は現在sceneをcancelし、Unload → Loadの順で切り替えます。通常は`GameScene`を継承し、`SceneLoopServices`からGPU、resources、audio、input、commands、UI registryを受け取ります。固定更新では可変dtを読まず、`FixedUpdateContext.FixedDeltaSeconds`だけを使います。
+    &quot;&quot;&quot;;</code></pre></details></article>

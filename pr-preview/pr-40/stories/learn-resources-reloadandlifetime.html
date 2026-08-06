@@ -1,0 +1,124 @@
+<article class="story document-page"><h1 id="reload-publish-and-lifetime">Reload, publish, and lifetime</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FResources%2FReloadAndLifetime&amp;section=watch%E3%81%AF%E3%83%AD%E3%83%BC%E3%83%89%E5%89%8D%E3%81%AB%E6%9C%89%E5%8A%B9%E5%8C%96%E3%81%99%E3%82%8B">Watchはロード前に有効化する</a></li>
+<li><a href="#story=Learn%2FResources%2FReloadAndLifetime&amp;section=reload%E3%82%92%E9%96%8B%E5%A7%8B%E3%81%99%E3%82%8B%E7%B5%8C%E8%B7%AF">Reloadを開始する経路</a></li>
+<li><a href="#story=Learn%2FResources%2FReloadAndLifetime&amp;section=generation%E3%81%A8last-good-value">Generationとlast-good-value</a></li>
+<li><a href="#story=Learn%2FResources%2FReloadAndLifetime&amp;section=pump%E5%A2%83%E7%95%8C">Pump境界</a></li>
+<li><a href="#story=Learn%2FResources%2FReloadAndLifetime&amp;section=eviction%E3%81%A8deferred-dispose">Evictionとdeferred dispose</a></li>
+<li><a href="#story=Learn%2FResources%2FReloadAndLifetime&amp;section=%E5%85%B8%E5%9E%8B%E7%9A%84%E3%81%AA%E5%A4%B1%E6%95%97">典型的な失敗</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Game loop / DevTools / CI　 <strong>Backend:</strong> Backend neutral / optional GPU　 <strong>前提知識:</strong> Scopes and ownership</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FResources%2FScopesAndOwnership">ScopesAndOwnership</a>　 <strong>次:</strong> <a href="#story=Learn%2FResources%2FAssets%2FOverview">Overview</a></p>
+<h2 id="watch">Watchはロード前に有効化する</h2>
+<p><code>Watch()</code>は自動reloadを有効にします。node作成時にwatch tokenを登録するため、基本手順は最初の<code>Load&lt;T&gt;()</code>より前です。</p>
+<pre><code class="language-csharp">resources.Watch();
+using ResourceHandle&lt;CpuImage&gt; image = resources.Load&lt;CpuImage&gt;(&quot;panel.tex&quot;);
+</code></pre>
+<p>watch対象はSourceが読む<code>byte[]</code> nodeです。<code>FileSource</code>や<code>WorkspaceSource</code>の変更通知からbytesがreloadされ、依存DAGを通して後段のStepへ伝播します。</p>
+<h2 id="reload">Reloadを開始する経路</h2>
+<ul>
+<li><code>Watch()</code>後のSource変更通知。</li>
+<li><code>Republish(uri, value)</code>によるprogram valueの差し替え。</li>
+<li><code>InvalidateAll()</code>による現在の全cache nodeの無効化。</li>
+<li>dependency更新からdependentへの伝播。</li>
+</ul>
+<p><code>Republish()</code>の差し替えは次の<code>Pump()</code>で適用されます。GPU device lostなど、全nodeを作り直したい場合は<code>InvalidateAll()</code>を使えます。</p>
+<h2 id="generationlast-good-value">Generationとlast-good-value</h2>
+<p>nodeはload generationを持ちます。新しいreloadが始まると前の処理をcancelし、古いgenerationが遅れて完了しても現在値としてpublishしません。重複したreload requestもqueue上でcoalesceされます。</p>
+<p>reloadに失敗した場合、初回から値が無ければ<code>Failed</code>です。以前の正常値があればその値を維持し、<code>Status</code>はReady、<code>LastReloadError</code>に失敗を記録します。次の成功でerrorはclearされます。</p>
+<h2 id="pump">Pump境界</h2>
+<p>game loopやGallery hostから<code>Pump()</code>を継続的に呼びます。</p>
+<pre><code class="language-csharp">while (running)
+{
+    PollEvents();
+    resources.Pump();
+    UpdateAndRender();
+}
+</code></pre>
+<p><code>Pump()</code>では主に次を処理します。</p>
+<ol>
+<li>reload後のvalue swapと<code>Version</code>更新。</li>
+<li><code>Reloaded</code> eventとstate subscription通知。</li>
+<li>dependent reloadの開始。</li>
+<li>replacement / evictionで残した旧Owned値のdeferred dispose。</li>
+</ol>
+<p>初回ロードの値は<code>Ready</code>完了時に利用できます。「すべてのロード結果がPumpまで見えない」わけではありません。</p>
+<h2 id="evictiondeferred-dispose">Evictionとdeferred dispose</h2>
+<p>handleをDisposeしてrefcountが0になり、dependentも無いnodeはevictできます。nodeを消すとdependency edgeを外し、同じ条件を満たした入力nodeへ連鎖evictionします。</p>
+<p>Owned値のreplacement / eviction時のDisposeは<code>Pump()</code>まで遅延されます。GPUなど外部実行環境の値を安全に破棄する前にidle待ちが必要なら<code>SetDeferredDisposeIdleHook()</code>を設定します。</p>
+<h2 id="section">典型的な失敗</h2>
+<ul>
+<li><strong>Pumpを呼ばない</strong>: reload計算が完了してもswap、event、deferred disposeが進みません。</li>
+<li><strong>ロード後に初めてWatchを呼ぶ</strong>: 既存nodeへ遡ってwatchを登録するAPIではありません。</li>
+<li><strong>Ownedの外部値をPublishする</strong>: 既定Ownedなので、外部ownerが破棄する値にはBorrowedを明示します。</li>
+<li><strong>handleを保持しない</strong>: leaseがなくなるとnodeがevict可能になり、利用期間とcache lifetimeが一致しません。</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Resources/ReloadAndLifetime&quot;, Order = 7, Toc = true)]
+public static StoryResult ReloadAndLifetime(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Reload, publish, and lifetime
+
+    {{ResourceCourseCatalog.Meta(&quot;Learn/Resources/ReloadAndLifetime&quot;, &quot;Intermediate&quot;, &quot;Game loop / DevTools / CI&quot;, &quot;Backend neutral / optional GPU&quot;, &quot;Scopes and ownership&quot;)}}
+
+    ## Watchはロード前に有効化する
+
+    `Watch()`は自動reloadを有効にします。node作成時にwatch tokenを登録するため、基本手順は最初の`Load&lt;T&gt;()`より前です。
+
+    ```csharp
+    resources.Watch();
+    using ResourceHandle&lt;CpuImage&gt; image = resources.Load&lt;CpuImage&gt;(&quot;panel.tex&quot;);
+    ```
+
+    watch対象はSourceが読む`byte[]` nodeです。`FileSource`や`WorkspaceSource`の変更通知からbytesがreloadされ、依存DAGを通して後段のStepへ伝播します。
+
+    ## Reloadを開始する経路
+
+    - `Watch()`後のSource変更通知。
+    - `Republish(uri, value)`によるprogram valueの差し替え。
+    - `InvalidateAll()`による現在の全cache nodeの無効化。
+    - dependency更新からdependentへの伝播。
+
+    `Republish()`の差し替えは次の`Pump()`で適用されます。GPU device lostなど、全nodeを作り直したい場合は`InvalidateAll()`を使えます。
+
+    ## Generationとlast-good-value
+
+    nodeはload generationを持ちます。新しいreloadが始まると前の処理をcancelし、古いgenerationが遅れて完了しても現在値としてpublishしません。重複したreload requestもqueue上でcoalesceされます。
+
+    reloadに失敗した場合、初回から値が無ければ`Failed`です。以前の正常値があればその値を維持し、`Status`はReady、`LastReloadError`に失敗を記録します。次の成功でerrorはclearされます。
+
+    ## Pump境界
+
+    game loopやGallery hostから`Pump()`を継続的に呼びます。
+
+    ```csharp
+    while (running)
+    {
+        PollEvents();
+        resources.Pump();
+        UpdateAndRender();
+    }
+    ```
+
+    `Pump()`では主に次を処理します。
+
+    1. reload後のvalue swapと`Version`更新。
+    2. `Reloaded` eventとstate subscription通知。
+    3. dependent reloadの開始。
+    4. replacement / evictionで残した旧Owned値のdeferred dispose。
+
+    初回ロードの値は`Ready`完了時に利用できます。「すべてのロード結果がPumpまで見えない」わけではありません。
+
+    ## Evictionとdeferred dispose
+
+    handleをDisposeしてrefcountが0になり、dependentも無いnodeはevictできます。nodeを消すとdependency edgeを外し、同じ条件を満たした入力nodeへ連鎖evictionします。
+
+    Owned値のreplacement / eviction時のDisposeは`Pump()`まで遅延されます。GPUなど外部実行環境の値を安全に破棄する前にidle待ちが必要なら`SetDeferredDisposeIdleHook()`を設定します。
+
+    ## 典型的な失敗
+
+    - **Pumpを呼ばない**: reload計算が完了してもswap、event、deferred disposeが進みません。
+    - **ロード後に初めてWatchを呼ぶ**: 既存nodeへ遡ってwatchを登録するAPIではありません。
+    - **Ownedの外部値をPublishする**: 既定Ownedなので、外部ownerが破棄する値にはBorrowedを明示します。
+    - **handleを保持しない**: leaseがなくなるとnodeがevict可能になり、利用期間とcache lifetimeが一致しません。
+    &quot;&quot;&quot;;</code></pre></details></article>

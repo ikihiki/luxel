@@ -1,0 +1,166 @@
+<article class="story document-page"><h1 id="section">アクションとコンテキスト</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FInput%2FActionsAndContexts&amp;section=%E3%82%A2%E3%82%AF%E3%82%B7%E3%83%A7%E3%83%B3%E3%82%92%E6%A7%8B%E6%88%90%E3%81%99%E3%82%8B">アクションを構成する</a></li>
+<li><a href="#story=Learn%2FInput%2FActionsAndContexts&amp;section=%E6%8A%BC%E4%B8%8B%E3%81%A8%E8%A7%A3%E6%94%BE%E3%81%AE%E3%82%A8%E3%83%83%E3%82%B8%E3%82%92%E5%87%A6%E7%90%86%E3%81%99%E3%82%8B">押下と解放のエッジを処理する</a></li>
+<li><a href="#story=Learn%2FInput%2FActionsAndContexts&amp;section=%E3%82%B3%E3%83%B3%E3%83%86%E3%82%AD%E3%82%B9%E3%83%88%E3%81%AE%E5%84%AA%E5%85%88%E9%A0%86%E4%BD%8D%E3%81%A8%E5%85%A5%E5%8A%9B%E3%81%AE%E6%B6%88%E8%B2%BB">コンテキストの優先順位と入力の消費</a>
+<ul>
+<li><a href="#story=Learn%2FInput%2FActionsAndContexts&amp;section=%E3%82%B9%E3%82%BF%E3%83%83%E3%82%AF%E3%82%92%E6%A7%8B%E6%88%90%E3%81%99%E3%82%8B">スタックを構成する</a></li>
+<li><a href="#story=Learn%2FInput%2FActionsAndContexts&amp;section=%E4%B8%8A%E4%BD%8D%E3%82%B3%E3%83%B3%E3%83%86%E3%82%AD%E3%82%B9%E3%83%88%E3%81%A7%E5%85%A5%E5%8A%9B%E3%82%92%E6%B6%88%E8%B2%BB%E3%81%99%E3%82%8B">上位コンテキストで入力を消費する</a></li>
+<li><a href="#story=Learn%2FInput%2FActionsAndContexts&amp;section=%E3%82%B3%E3%83%B3%E3%83%86%E3%82%AD%E3%82%B9%E3%83%88%E3%82%92%E4%B8%80%E6%99%82%E5%81%9C%E6%AD%A2%E3%81%99%E3%82%8B">コンテキストを一時停止する</a></li>
+</ul>
+</li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Gallery / Headless　 <strong>Backend:</strong> Backend neutral　 <strong>前提知識:</strong> IInputSourceとInputBus</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FInput%2FSourcesAndBus">SourcesAndBus</a>　 <strong>次:</strong> <a href="#story=Learn%2FInput%2FBindingsAndRebinding">BindingsAndRebinding</a></p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Input/ActionsAndContexts#doc-0" data-luxel-runtime-story="Examples/Input/Actions" data-luxel-runtime-instance="examples-input-actions-a459dc2d0e92" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2FInput%2FActions&amp;args=%7B%7D&amp;instance=examples-input-actions-a459dc2d0e92" data-luxel-runtime-story="Examples/Input/Actions" data-luxel-runtime-instance="examples-input-actions-a459dc2d0e92" title="Interactive Actions" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-input-actions-a459dc2d0e92-args-tab" aria-controls="examples-input-actions-a459dc2d0e92-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-input-actions-a459dc2d0e92-output-tab" aria-controls="examples-input-actions-a459dc2d0e92-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-input-actions-a459dc2d0e92-source-tab" aria-controls="examples-input-actions-a459dc2d0e92-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-input-actions-a459dc2d0e92-args-panel" role="tabpanel" aria-labelledby="examples-input-actions-a459dc2d0e92-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-input-actions-a459dc2d0e92-output-panel" role="tabpanel" aria-labelledby="examples-input-actions-a459dc2d0e92-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-input-actions-a459dc2d0e92-source-panel" role="tabpanel" aria-labelledby="examples-input-actions-a459dc2d0e92-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/Input/Actions&quot;, Width = 680, Height = 430, Order = 1)]&#10;public static Widget Actions()&#10;{&#10;    // docs:begin input-actions-setup&#10;    var source = new FakeInputSource();&#10;    var bus = new InputBus();&#10;    var gameplay = new InputContext(&quot;Gameplay&quot;);&#10;    var jump = gameplay.Add(new ButtonAction(&quot;Jump&quot;, KeyCode.Space));&#10;    var move = gameplay.Add(new Axis2DAction(&quot;Move&quot;));&#10;    move.ButtonQuads.Add((KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D));&#10;    var stack = new InputStack();&#10;    stack.Push(gameplay);&#10;    // docs:end input-actions-setup&#10;&#10;    // docs:begin input-actions-edges&#10;    var jumpTriggered = new Signal&lt;int&gt;(0);&#10;    var jumpReleased = new Signal&lt;int&gt;(0);&#10;    jump.Triggered += () =&gt; jumpTriggered.Value++;&#10;    jump.Released += () =&gt; jumpReleased.Value++;&#10;&#10;    void Tick() { source.Poll(bus); stack.Update(bus); }&#10;    void SetKey(KeyCode key, bool pressed)&#10;    {&#10;        if (pressed) source.PressKey(key); else source.ReleaseKey(key);&#10;        Tick();&#10;    }&#10;    // docs:end input-actions-edges&#10;&#10;    Widget KeyButton(string label, KeyCode key) =&gt; HStack(6)[&#10;        Button(_ =&gt; SetKey(key, true), $&quot;{label} 押下&quot;),&#10;        Button(_ =&gt; SetKey(key, false), $&quot;{label} 解放&quot;)];&#10;&#10;    return Frame(VStack(12, width: 600)[&#10;        Heading(&quot;アクションの値とエッジ&quot;, 2),&#10;        Text(&quot;FakeInputSourceで物理入力を再現し、1回のPollとUpdateを1 tickとして処理します。&quot;, 14,&#10;            color: Bind.From(() =&gt; UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 590),&#10;        HStack(16)[KeyButton(&quot;W&quot;, KeyCode.W), KeyButton(&quot;D&quot;, KeyCode.D)],&#10;        KeyButton(&quot;Space&quot;, KeyCode.Space),&#10;        Card(VStack(6)[&#10;            Text((Func&lt;string&gt;)(() =&gt; $&quot;Move = ({move.Value.Value.X:0.00}, {move.Value.Value.Y:0.00})&quot;), 15),&#10;            Text((Func&lt;string&gt;)(() =&gt; $&quot;Jump = {(jump.IsActive.Value ? &quot;押下中&quot; : &quot;未押下&quot;)}&quot;), 15),&#10;            Text((Func&lt;string&gt;)(() =&gt; $&quot;Triggered = {jumpTriggered.Value} / Released = {jumpReleased.Value}&quot;), 15)]),&#10;        Text(&quot;WとDを両方押すと斜め方向が正規化されます。Spaceは押下tickでTriggered、解放tickでReleasedが1回ずつ発火します。&quot;, 13,&#10;            color: Bind.From(() =&gt; UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 590)]);&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<p>上のStoryは<code>FakeInputSource</code>でW、D、Spaceの押下と解放を1 tickずつ送り、移動ベクトル、Jumpの保持状態、<code>Triggered</code>／<code>Released</code>の回数を表示します。</p>
+<h2 id="section-1">アクションを構成する</h2>
+<table>
+<thead>
+<tr>
+<th>アクション</th>
+<th>値</th>
+<th>主な用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ButtonAction</code></td>
+<td><code>bool</code></td>
+<td>ジャンプ、決定、攻撃</td>
+</tr>
+<tr>
+<td><code>Axis1DAction</code></td>
+<td><code>-1</code>から<code>1</code></td>
+<td>左右移動、アクセル、トリガー</td>
+</tr>
+<tr>
+<td><code>Axis2DAction</code></td>
+<td><code>Vector2</code></td>
+<td>WASD移動、スティック入力</td>
+</tr>
+</tbody>
+</table>
+<p><code>InputContext</code>へアクションを追加し、物理キーや軸を登録します。ここではSpaceをJumpへ、WASDをMoveへ対応付け、Gameplayコンテキストを<code>InputStack</code>へ積みます。</p>
+<pre><code class="language-csharp">        var source = new FakeInputSource();
+        var bus = new InputBus();
+        var gameplay = new InputContext(&quot;Gameplay&quot;);
+        var jump = gameplay.Add(new ButtonAction(&quot;Jump&quot;, KeyCode.Space));
+        var move = gameplay.Add(new Axis2DAction(&quot;Move&quot;));
+        move.ButtonQuads.Add((KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D));
+        var stack = new InputStack();
+        stack.Push(gameplay);
+</code></pre>
+<p><code>Axis2DAction</code>は上下左右を2次元ベクトルへ合成します。WとDを同時に押した斜め入力は、長さが1を超えないよう正規化されます。</p>
+<h2 id="section-2">押下と解放のエッジを処理する</h2>
+<p><code>ButtonAction.Triggered</code>は未押下から押下へ変わったtick、<code>Released</code>は押下から未押下へ変わったtickで1回だけ発火します。押し続けている間は<code>IsActive</code>がtrueですが、<code>Triggered</code>は繰り返し発火しません。</p>
+<pre><code class="language-csharp">        var jumpTriggered = new Signal&lt;int&gt;(0);
+        var jumpReleased = new Signal&lt;int&gt;(0);
+        jump.Triggered += () =&gt; jumpTriggered.Value++;
+        jump.Released += () =&gt; jumpReleased.Value++;
+
+        void Tick() { source.Poll(bus); stack.Update(bus); }
+        void SetKey(KeyCode key, bool pressed)
+        {
+            if (pressed) source.PressKey(key); else source.ReleaseKey(key);
+            Tick();
+        }
+</code></pre>
+<p><code>Tick</code>では最初に<code>source.Poll(bus)</code>で差分イベントを集め、次に<code>stack.Update(bus)</code>で保持状態とアクション値を更新します。エッジを確認するときは押下と解放を別々のtickで処理します。</p>
+<h2 id="section-3">コンテキストの優先順位と入力の消費</h2>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Input/ActionsAndContexts#doc-1" data-luxel-runtime-story="Examples/Input/ContextStack" data-luxel-runtime-instance="examples-input-contextstack-e16e8a1791bf" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2FInput%2FContextStack&amp;args=%7B%7D&amp;instance=examples-input-contextstack-e16e8a1791bf" data-luxel-runtime-story="Examples/Input/ContextStack" data-luxel-runtime-instance="examples-input-contextstack-e16e8a1791bf" title="Interactive ContextStack" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-input-contextstack-e16e8a1791bf-args-tab" aria-controls="examples-input-contextstack-e16e8a1791bf-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-input-contextstack-e16e8a1791bf-output-tab" aria-controls="examples-input-contextstack-e16e8a1791bf-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-input-contextstack-e16e8a1791bf-source-tab" aria-controls="examples-input-contextstack-e16e8a1791bf-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-input-contextstack-e16e8a1791bf-args-panel" role="tabpanel" aria-labelledby="examples-input-contextstack-e16e8a1791bf-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-input-contextstack-e16e8a1791bf-output-panel" role="tabpanel" aria-labelledby="examples-input-contextstack-e16e8a1791bf-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-input-contextstack-e16e8a1791bf-source-panel" role="tabpanel" aria-labelledby="examples-input-contextstack-e16e8a1791bf-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/Input/ContextStack&quot;, Width = 650, Height = 390, Order = 2)]&#10;public static Widget ContextStack()&#10;{&#10;    // docs:begin input-context-setup&#10;    var source = new FakeInputSource();&#10;    var bus = new InputBus();&#10;    var gameplay = new InputContext(&quot;Gameplay&quot;);&#10;    var gameplayConfirm = gameplay.Add(new ButtonAction(&quot;Confirm&quot;, KeyCode.Enter));&#10;    var menu = new InputContext(&quot;Menu&quot;);&#10;    var menuConfirm = menu.Add(new ButtonAction(&quot;Confirm&quot;, KeyCode.Enter));&#10;    var stack = new InputStack();&#10;    stack.Push(gameplay);&#10;    stack.Push(menu);&#10;    // docs:end input-context-setup&#10;&#10;    var menuSuspended = new Signal&lt;bool&gt;(false);&#10;    var result = new Signal&lt;string&gt;(&quot;Enterを送ると、最上位のMenuが先に処理します。&quot;);&#10;&#10;    // docs:begin input-context-routing&#10;    void TapEnter()&#10;    {&#10;        source.PressKey(KeyCode.Enter); source.Poll(bus); stack.Update(bus);&#10;        result.Value = menuConfirm.IsActive.Value&#10;            ? &quot;MenuがEnterを消費しました。Gameplayには届きません。&quot;&#10;            : gameplayConfirm.IsActive.Value&#10;                ? &quot;Menuは停止中なので、GameplayがEnterを受け取りました。&quot;&#10;                : &quot;Enterを受け取ったコンテキストはありません。&quot;;&#10;        source.ReleaseKey(KeyCode.Enter); source.Poll(bus); stack.Update(bus);&#10;    }&#10;    // docs:end input-context-routing&#10;&#10;    // docs:begin input-context-suspension&#10;    void ToggleMenu()&#10;    {&#10;        menuSuspended.Value = !menuSuspended.Value;&#10;        stack.SetSuspended(menu, menuSuspended.Value);&#10;        result.Value = menuSuspended.Value&#10;            ? &quot;Menuを停止しました。次のEnterはGameplayへ届きます。&quot;&#10;            : &quot;Menuを再開しました。再び最優先でEnterを処理します。&quot;;&#10;    }&#10;    // docs:end input-context-suspension&#10;&#10;    return Frame(VStack(14, width: 550)[&#10;        Heading(&quot;コンテキストの優先順位&quot;, 2),&#10;        Text(&quot;InputStackは最後にPushしたコンテキストから評価します。上位のアクションが使用したキーは消費され、下位には渡りません。&quot;, 14,&#10;            wrap: TextWrap.Word, width: 540, color: Bind.From(() =&gt; UiTheme.T.TextMuted)),&#10;        HStack(10)[&#10;            Button(_ =&gt; TapEnter(), &quot;Enterを送る&quot;),&#10;            Button(_ =&gt; ToggleMenu(), (Func&lt;string&gt;)(() =&gt; menuSuspended.Value ? &quot;Menuを再開&quot; : &quot;Menuを停止&quot;))],&#10;        Card(VStack(6)[&#10;            Text((Func&lt;string&gt;)(() =&gt; $&quot;1. Menu: {(menuSuspended.Value ? &quot;停止中&quot; : &quot;有効（最上位）&quot;)}&quot;), 14),&#10;            Text(&quot;2. Gameplay: 有効（下位）&quot;, 14),&#10;            Text($&quot;{result}&quot;, 14, wrap: TextWrap.Word, width: 500)])]);&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<p>上のStoryはGameplayの上にMenuを積み、同じEnterがどちらへ届くかを表示します。</p>
+<h3 id="section-4">スタックを構成する</h3>
+<p><code>InputStack</code>は最後に<code>Push</code>したコンテキストから評価します。Menuを最後に積むことで、MenuがGameplayより上位になります。</p>
+<pre><code class="language-csharp">        var source = new FakeInputSource();
+        var bus = new InputBus();
+        var gameplay = new InputContext(&quot;Gameplay&quot;);
+        var gameplayConfirm = gameplay.Add(new ButtonAction(&quot;Confirm&quot;, KeyCode.Enter));
+        var menu = new InputContext(&quot;Menu&quot;);
+        var menuConfirm = menu.Add(new ButtonAction(&quot;Confirm&quot;, KeyCode.Enter));
+        var stack = new InputStack();
+        stack.Push(gameplay);
+        stack.Push(menu);
+</code></pre>
+<h3 id="section-5">上位コンテキストで入力を消費する</h3>
+<p>上位コンテキストのactive actionが使用したキーや軸は消費され、下位コンテキストには渡りません。押下tickで結果を読み、解放tickで保持状態を戻します。</p>
+<pre><code class="language-csharp">        void TapEnter()
+        {
+            source.PressKey(KeyCode.Enter); source.Poll(bus); stack.Update(bus);
+            result.Value = menuConfirm.IsActive.Value
+                ? &quot;MenuがEnterを消費しました。Gameplayには届きません。&quot;
+                : gameplayConfirm.IsActive.Value
+                    ? &quot;Menuは停止中なので、GameplayがEnterを受け取りました。&quot;
+                    : &quot;Enterを受け取ったコンテキストはありません。&quot;;
+            source.ReleaseKey(KeyCode.Enter); source.Poll(bus); stack.Update(bus);
+        }
+</code></pre>
+<h3 id="section-6">コンテキストを一時停止する</h3>
+<p><code>SetSuspended</code>を使うと、コンテキストをスタックから外さず評価対象から除外できます。Menuを停止すると、同じEnterをGameplayが受け取ります。</p>
+<pre><code class="language-csharp">        void ToggleMenu()
+        {
+            menuSuspended.Value = !menuSuspended.Value;
+            stack.SetSuspended(menu, menuSuspended.Value);
+            result.Value = menuSuspended.Value
+                ? &quot;Menuを停止しました。次のEnterはGameplayへ届きます。&quot;
+                : &quot;Menuを再開しました。再び最優先でEnterを処理します。&quot;;
+        }
+</code></pre>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Input/ActionsAndContexts&quot;, Order = 2, Toc = true)]
+public static StoryResult Actions(StoryContext ctx) =&gt; $&quot;&quot;&quot;
+    # アクションとコンテキスト
+
+    {RuntimeCourseCatalog.Meta(&quot;Learn/Input/ActionsAndContexts&quot;, &quot;Beginner&quot;, &quot;Gallery / Headless&quot;, &quot;Backend neutral&quot;, &quot;IInputSourceとInputBus&quot;)}
+
+    {StoryRef(ctx, &quot;Examples/Input/Actions&quot;)}
+
+    上のStoryは`FakeInputSource`でW、D、Spaceの押下と解放を1 tickずつ送り、移動ベクトル、Jumpの保持状態、`Triggered`／`Released`の回数を表示します。
+
+    ## アクションを構成する
+
+    | アクション | 値 | 主な用途 |
+    |---|---|---|
+    | `ButtonAction` | `bool` | ジャンプ、決定、攻撃 |
+    | `Axis1DAction` | `-1`から`1` | 左右移動、アクセル、トリガー |
+    | `Axis2DAction` | `Vector2` | WASD移動、スティック入力 |
+
+    `InputContext`へアクションを追加し、物理キーや軸を登録します。ここではSpaceをJumpへ、WASDをMoveへ対応付け、Gameplayコンテキストを`InputStack`へ積みます。
+
+    {SampleSource(&quot;src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs&quot;, &quot;input-actions-setup&quot;)}
+
+    `Axis2DAction`は上下左右を2次元ベクトルへ合成します。WとDを同時に押した斜め入力は、長さが1を超えないよう正規化されます。
+
+    ## 押下と解放のエッジを処理する
+
+    `ButtonAction.Triggered`は未押下から押下へ変わったtick、`Released`は押下から未押下へ変わったtickで1回だけ発火します。押し続けている間は`IsActive`がtrueですが、`Triggered`は繰り返し発火しません。
+
+    {SampleSource(&quot;src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs&quot;, &quot;input-actions-edges&quot;)}
+
+    `Tick`では最初に`source.Poll(bus)`で差分イベントを集め、次に`stack.Update(bus)`で保持状態とアクション値を更新します。エッジを確認するときは押下と解放を別々のtickで処理します。
+
+    ## コンテキストの優先順位と入力の消費
+
+    {StoryRef(ctx, &quot;Examples/Input/ContextStack&quot;)}
+
+    上のStoryはGameplayの上にMenuを積み、同じEnterがどちらへ届くかを表示します。
+
+    ### スタックを構成する
+
+    `InputStack`は最後に`Push`したコンテキストから評価します。Menuを最後に積むことで、MenuがGameplayより上位になります。
+
+    {SampleSource(&quot;src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs&quot;, &quot;input-context-setup&quot;)}
+
+    ### 上位コンテキストで入力を消費する
+
+    上位コンテキストのactive actionが使用したキーや軸は消費され、下位コンテキストには渡りません。押下tickで結果を読み、解放tickで保持状態を戻します。
+
+    {SampleSource(&quot;src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs&quot;, &quot;input-context-routing&quot;)}
+
+    ### コンテキストを一時停止する
+
+    `SetSuspended`を使うと、コンテキストをスタックから外さず評価対象から除外できます。Menuを停止すると、同じEnterをGameplayが受け取ります。
+
+    {SampleSource(&quot;src/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs&quot;, &quot;input-context-suspension&quot;)}
+    &quot;&quot;&quot;;</code></pre></details></article>
