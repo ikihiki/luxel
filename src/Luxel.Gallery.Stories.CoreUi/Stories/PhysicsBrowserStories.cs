@@ -48,21 +48,45 @@ public static class PhysicsBrowserStories
 
     /// <summary>A deterministic box tower simulated by BepuPhysics and rendered from ECS extraction.</summary>
     [Story("Examples/3D/PhysicsFalling", Width = 320, Height = 320, Order = 127, CapabilityNote = BrowserNote)]
-    public static Widget PhysicsFalling(StoryContext ctx) => PhysicsGpuView(ctx, null, null, null);
-
-    /// <summary>Interactive gravity, bounciness, and deterministic reset controls.</summary>
-    [Story("Examples/3D/PhysicsPlayground", Width = 320, Height = 320, Order = 128, CapabilityNote = BrowserNote)]
-    public static Widget PhysicsPlayground(StoryContext ctx)
+    public static Widget PhysicsFalling(StoryContext ctx)
     {
-        Luxel.UI.Signal<float> gravity = ctx.Signal("gravity", 9.8f, "下向き重力の強さ (m/s²)");
-        Luxel.UI.Signal<float> bounciness = ctx.Signal("bounciness", 2f, "接触の反発上限 (MaximumRecoveryVelocity, m/s)");
-        Luxel.UI.Signal<bool> reset = ctx.Signal("reset", false, "トグルするとシーンを初期状態へ再構築");
-        return PhysicsGpuView(ctx, gravity, bounciness, reset);
+        if (ctx.DeviceOrNull is not { } device)
+            return ctx.Snap(Frame(GpuView(ViewWidth, ViewHeight,
+                static (_, _, _) => GpuViewRenderResult.Failed,
+                animated: false)));
+
+        var demo = new PhysicsGpuDemo(device, null, null, null);
+        return ctx.Snap(Frame(GpuView(
+            ViewWidth,
+            ViewHeight,
+            demo.Render,
+            animated: true,
+            dispose: demo.Dispose)));
     }
 
-    private static Widget PhysicsGpuView(StoryContext ctx, Luxel.UI.Signal<float>? gravity,
-        Luxel.UI.Signal<float>? bounciness, Luxel.UI.Signal<bool>? reset)
+    public static IReadOnlyList<StoryArgDefinition> PhysicsPlaygroundArgs() =>
+    [
+        StoryArgDefinition.Create("gravity", "float", 9.8f, "下向き重力の強さ (m/s²)", min: 0, max: 30, step: 0.1),
+        StoryArgDefinition.Create("bounciness", "float", 2f,
+            "接触の反発上限 (MaximumRecoveryVelocity, m/s)", min: 0, max: 20, step: 0.1),
+        StoryArgDefinition.Create("reset", "bool", false, "トグルするとシーンを初期状態へ再構築"),
+    ];
+
+    /// <summary>Interactive gravity, bounciness, and deterministic reset controls.</summary>
+    [Story("Examples/3D/PhysicsPlayground", Width = 320, Height = 320, Order = 128,
+        CapabilityNote = BrowserNote, Args = nameof(PhysicsPlaygroundArgs))]
+    public static Widget PhysicsPlayground(StoryContext ctx)
     {
+        Luxel.UI.Signal<float> gravity = ctx.Arg("gravity", 9.8f,
+            new StoryArgOptions<float> { Description = "下向き重力の強さ (m/s²)", Min = 0, Max = 30, Step = 0.1 });
+        Luxel.UI.Signal<float> bounciness = ctx.Arg("bounciness", 2f,
+            new StoryArgOptions<float>
+            {
+                Description = "接触の反発上限 (MaximumRecoveryVelocity, m/s)", Min = 0, Max = 20, Step = 0.1,
+            });
+        Luxel.UI.Signal<bool> reset = ctx.Arg("reset", false,
+            new StoryArgOptions<bool> { Description = "トグルするとシーンを初期状態へ再構築" });
+
         if (ctx.DeviceOrNull is not { } device)
             return ctx.Snap(Frame(GpuView(ViewWidth, ViewHeight,
                 static (_, _, _) => GpuViewRenderResult.Failed,

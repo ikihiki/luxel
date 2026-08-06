@@ -32,6 +32,14 @@ public sealed class BrowserPhysicsStoriesTests
         Assert.Contains("PackageReference Include=\"BepuUtilities\"", browserProject);
         Assert.Contains("TrimmerRootAssembly Include=\"BepuPhysics\"", browserProject);
         Assert.Contains("TrimmerRootAssembly Include=\"BepuUtilities\"", browserProject);
+        Assert.Contains("Args = nameof(PhysicsPlaygroundArgs)", source);
+        Assert.Contains("ctx.Arg(\"gravity\"", source);
+        Assert.Contains("ctx.Arg(\"bounciness\"", source);
+        Assert.Contains("ctx.Arg(\"reset\"", source);
+        Assert.DoesNotContain("ctx.Signal(", source);
+        Assert.DoesNotContain("PhysicsGpuView(", source);
+        Assert.Contains("new PhysicsGpuDemo(device, null, null, null)", source);
+        Assert.Contains("new PhysicsGpuDemo(device, gravity, bounciness, reset)", source);
         Assert.Contains("new PhysicsSettings { ThreadCount = 0 }", source);
         Assert.Contains("new PhysicsStepSystem", source);
         Assert.Contains("MeshCollider.Static", source);
