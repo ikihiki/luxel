@@ -1,0 +1,111 @@
+<article class="story document-page"><h1 id="forces-and-determinism">Forces and determinism</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FAnimation%2FParticles%2FForcesAndDeterminism&amp;section=force-hook">Force hook</a></li>
+<li><a href="#story=Learn%2FAnimation%2FParticles%2FForcesAndDeterminism&amp;section=cpu-euler-v1">CPU Euler v1</a></li>
+<li><a href="#story=Learn%2FAnimation%2FParticles%2FForcesAndDeterminism&amp;section=%E5%86%8D%E7%8F%BE%E5%8F%AF%E8%83%BD%E3%81%AAtest">再現可能なtest</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Headless test / Fixed-step game loop　 <strong>Backend:</strong> CPU SoA　 <strong>前提知識:</strong> Emission and simulation</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FAnimation%2FParticles%2FEmissionAndSimulation">EmissionAndSimulation</a>　 <strong>次:</strong> <a href="#story=Learn%2FAnimation%2FParticles%2FRendering2DAndUI">Rendering2DAndUI</a></p>
+<p><code>ParticleForce</code>はsimulation前にSoA spanを直接変更するhookです。同じseed、同じemit call順、同じ<code>dt</code>列を使えばCPU結果を決定的に再現できます。</p>
+<h2 id="force-hook">Force hook</h2>
+<pre><code class="language-csharp">particles.Forces = (spans, dt) =&gt;
+{
+    for (int i = 0; i &lt; spans.Count; i++)
+    {
+        spans.VelX[i] += windX * dt;
+        spans.VelZ[i] += windZ * dt;
+    }
+};
+</code></pre>
+<p><code>ParticleSpans</code>はposition、velocity、age、lifeの生存rangeを公開します。sizeやtintはこのhookから直接変更できません。</p>
+<h2 id="cpu-euler-v1">CPU Euler v1</h2>
+<pre><code class="language-csharp">age += dt;
+if (age &gt;= lifeMax) removeParticle();
+velY += gravity * dt;
+float dragFactor = MathF.Max(0f, 1f - drag * dt);
+velocity *= dragFactor;
+position += velocity * dt;
+</code></pre>
+<p>dragは指数dampingではなく、stepごとの線形factorです。そのため可変<code>dt</code>では軌跡が変わります。</p>
+<h2 id="test">再現可能なtest</h2>
+<pre><code class="language-csharp">var a = new ParticleSystem(config, 64, seed: 1234);
+var b = new ParticleSystem(config, 64, seed: 1234);
+a.Emit(Vector3.Zero, 8);
+b.Emit(Vector3.Zero, 8);
+for (int i = 0; i &lt; 30; i++)
+{
+    a.Update(1f / 60f);
+    b.Update(1f / 60f);
+}
+</code></pre>
+<p>stable compactionはsurvivorのspawn順を維持するため、2D painter orderと3D instance orderも固定seed/update列で安定します。</p>
+<div class="markdown-alert markdown-alert-important">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Important</p>
+<p><code>Update</code>はnegative/巨大<code>dt</code>をvalidationしません。production loopでpositiveな上限付き固定stepを渡してください。</p>
+</div>
+<ul>
+<li>random seedだけ揃え、emit順や<code>dt</code>列を変える。</li>
+<li>force内でframe wall timeや非決定的randomを読む。</li>
+<li>dragをframerate非依存な指数式だと仮定する。</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Animation/Particles/ForcesAndDeterminism&quot;, Order = 12, Toc = true)]
+public static StoryResult ForcesAndDeterminism(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Forces and determinism
+
+    {{AnimationCourseCatalog.Meta(&quot;Learn/Animation/Particles/ForcesAndDeterminism&quot;, &quot;Intermediate&quot;, &quot;Headless test / Fixed-step game loop&quot;, &quot;CPU SoA&quot;, &quot;Emission and simulation&quot;)}}
+
+    `ParticleForce`はsimulation前にSoA spanを直接変更するhookです。同じseed、同じemit call順、同じ`dt`列を使えばCPU結果を決定的に再現できます。
+
+    ## Force hook
+
+    ```csharp
+    particles.Forces = (spans, dt) =&gt;
+    {
+        for (int i = 0; i &lt; spans.Count; i++)
+        {
+            spans.VelX[i] += windX * dt;
+            spans.VelZ[i] += windZ * dt;
+        }
+    };
+    ```
+
+    `ParticleSpans`はposition、velocity、age、lifeの生存rangeを公開します。sizeやtintはこのhookから直接変更できません。
+
+    ## CPU Euler v1
+
+    ```csharp
+    age += dt;
+    if (age &gt;= lifeMax) removeParticle();
+    velY += gravity * dt;
+    float dragFactor = MathF.Max(0f, 1f - drag * dt);
+    velocity *= dragFactor;
+    position += velocity * dt;
+    ```
+
+    dragは指数dampingではなく、stepごとの線形factorです。そのため可変`dt`では軌跡が変わります。
+
+    ## 再現可能なtest
+
+    ```csharp
+    var a = new ParticleSystem(config, 64, seed: 1234);
+    var b = new ParticleSystem(config, 64, seed: 1234);
+    a.Emit(Vector3.Zero, 8);
+    b.Emit(Vector3.Zero, 8);
+    for (int i = 0; i &lt; 30; i++)
+    {
+        a.Update(1f / 60f);
+        b.Update(1f / 60f);
+    }
+    ```
+
+    stable compactionはsurvivorのspawn順を維持するため、2D painter orderと3D instance orderも固定seed/update列で安定します。
+
+    &gt; [!IMPORTANT]
+    &gt; `Update`はnegative/巨大`dt`をvalidationしません。production loopでpositiveな上限付き固定stepを渡してください。
+
+    - random seedだけ揃え、emit順や`dt`列を変える。
+    - force内でframe wall timeや非決定的randomを読む。
+    - dragをframerate非依存な指数式だと仮定する。
+    &quot;&quot;&quot;;</code></pre></details></article>

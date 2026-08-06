@@ -1,43 +1,54 @@
 <article class="story document-page"><h1 id="audio-overview">Audio overview</h1>
 <!-- luxel-toc -->
 <ul>
-<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%E3%82%B3%E3%83%94%E3%83%BC%E3%81%97%E3%81%A6%E5%8B%95%E3%81%8B%E3%81%99-%E2%80%94-headless-audio-tone">コピーして動かす — Headless audio tone</a>
-<ul>
-<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%60samples%2Fluxelaudio%2Fluxelaudio.csproj%60-project"><code>samples/LuxelAudio/LuxelAudio.csproj</code> (Project)</a></li>
-<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%60samples%2Fluxelaudio%2Fprogram.cs%60-csharp"><code>samples/LuxelAudio/Program.cs</code> (CSharp)</a></li>
-</ul>
-</li>
+<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%E3%81%93%E3%81%AE%E3%82%B3%E3%83%BC%E3%82%B9%E3%81%A7%E4%BD%9C%E3%82%8B%E3%83%A1%E3%83%B3%E3%82%BF%E3%83%AB%E3%83%A2%E3%83%87%E3%83%AB">このコースで作るメンタルモデル</a></li>
+<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%E6%9C%80%E5%B0%8F%E3%81%AE%E5%AE%9F%E8%A1%8C%E7%B5%8C%E8%B7%AF">最小の実行経路</a></li>
+<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%E3%83%A9%E3%82%A4%E3%83%95%E3%82%B5%E3%82%A4%E3%82%AF%E3%83%AB%E3%81%AE%E5%8E%9F%E5%89%87">ライフサイクルの原則</a></li>
+<li><a href="#story=Learn%2FAudio%2FOverview&amp;section=%E5%A4%B1%E6%95%97%E3%81%AE%E5%85%A5%E5%8F%A3">失敗の入口</a></li>
 </ul>
 <!-- /luxel-toc -->
-<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone / Headless / Windows device　 <strong>Backend:</strong> Null / XAudio2　 <strong>前提知識:</strong> Input track</p>
-<p><strong>次:</strong> <a href="#story=Learn%2FAudio%2FClipsSourcesAndBuses">ClipsSourcesAndBuses</a></p>
-<p><code>AudioClip</code>はdecode済みPCM、<code>IAudioVoice</code>は再生slot、<code>AudioMixer</code>はone-shotとvoice poolを管理します。実音出力は現在Windows/XAudio2、CIと非Windowsは<code>NullAudioBackend</code>で状態遷移を検証します。</p>
-<h2 id="headless-audio-tone">コピーして動かす — Headless audio tone</h2>
-<blockquote>
-<p><strong>Block</strong> · 難易度: Beginner · 依存 bundle: <code>support.source-tree</code></p>
-</blockquote>
-<p>Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.</p>
-<p><strong>必要条件:</strong> .NET 10 / Headless: any supported OS / Audible output: Windows/XAudio2 integration
-<strong>Platform:</strong> Windows / Linux / macOS
-<strong>検証契約:</strong> exit <code>0</code> / timeout <code>300s</code> / stdout <code>audio: initialized=True, voices=1</code>
-<strong>接続点:</strong> <code>AudioMixer</code></p>
-<p><strong>Run</strong></p>
-<pre><code class="language-powershell">dotnet run --project samples/LuxelAudio
-</code></pre>
-<p><strong>Smoke test</strong></p>
-<pre><code class="language-powershell">dotnet run --project samples/LuxelAudio
-</code></pre>
-<h3 id="samplesluxelaudioluxelaudio.csproj-project"><code>samples/LuxelAudio/LuxelAudio.csproj</code> (Project)</h3>
-<pre><code class="language-xml">&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;
-  &lt;PropertyGroup&gt;&lt;OutputType&gt;Exe&lt;/OutputType&gt;&lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;&lt;Nullable&gt;enable&lt;/Nullable&gt;&lt;/PropertyGroup&gt;
-  &lt;ItemGroup&gt;&lt;ProjectReference Include=&quot;..\..\src\Luxel.Audio\Luxel.Audio.csproj&quot; /&gt;&lt;/ItemGroup&gt;
-&lt;/Project&gt;
-</code></pre>
-<h3 id="samplesluxelaudioprogram.cs-csharp"><code>samples/LuxelAudio/Program.cs</code> (CSharp)</h3>
-<pre><code class="language-csharp">using Luxel.Audio;
-
-// docs:begin audio-tone
-var format = new AudioFormat(48_000, 1, 16);
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Gallery / Headless / Windows / Linux / macOS / Browser WASM　 <strong>Backend:</strong> Null / XAudio2 / Silk OpenAL / Web Audio　 <strong>前提知識:</strong> なし</p>
+<p><strong>次:</strong> <a href="#story=Learn%2FAudio%2FEnvironmentAndBackends">EnvironmentAndBackends</a></p>
+<h2 id="section">このコースで作るメンタルモデル</h2>
+<p>Luxelのaudio経路は、<strong>PCMの意味を記述するformat</strong>、<strong>全展開されたclip</strong>、<strong>backendが所有するvoice</strong>、<strong>OSのdevice</strong>の4段です。<code>AudioMixer</code>、<code>AudioSource</code>、<code>AudioSource3D</code>、<code>StreamingVoice</code>は、この低水準経路を用途別に安全に駆動します。</p>
+<pre class="mermaid">flowchart LR
+  PCM[PCM bytes] --&gt; Clip[AudioClip + AudioFormat]
+  Clip --&gt; Voice[IAudioVoice]
+  Voice --&gt; Backend[IAudioBackend]
+  Backend --&gt; Device[device / no-op observer]</pre>
+<table>
+<thead>
+<tr>
+<th>用途</th>
+<th>最初に選ぶAPI</th>
+<th>所有・毎frame処理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>短い効果音</td>
+<td><code>AudioMixer.PlayOneShot</code></td>
+<td>mixerを保持し<code>Tick()</code></td>
+</tr>
+<tr>
+<td>loopするBGMや持続音</td>
+<td><code>AudioSource</code></td>
+<td>sourceを保持し<code>Tick()</code>、最後に<code>Dispose()</code></td>
+</tr>
+<tr>
+<td>位置付き音</td>
+<td><code>AudioSource3D</code></td>
+<td>listener更新後に<code>Update(listener)</code></td>
+</tr>
+<tr>
+<td>長尺WAV</td>
+<td><code>WavStream</code> + <code>StreamingVoice</code></td>
+<td>毎frame <code>Pump()</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="section-1">最小の実行経路</h2>
+<pre><code class="language-csharp">var format = new AudioFormat(48_000, 1, 16);
 byte[] pcm = new byte[4_800 * format.BytesPerSample];
 for (int i = 0; i &lt; 4_800; i++)
 {
@@ -49,18 +60,60 @@ using var backend = new NullAudioBackend();
 backend.Initialize();
 using var mixer = new AudioMixer(backend);
 mixer.PlayOneShot(clip, volume: 0.5f);
-// docs:end audio-tone
-IAudioVoice voice = backend.Voices.Single();
-Console.WriteLine($&quot;audio: initialized={backend.Initialized}, voices={backend.Voices.Count}, queued={voice.BuffersQueued}, playing={voice.IsPlaying}, bytes={pcm.Length}&quot;);
-return backend.Initialized &amp;&amp; voice.BuffersQueued == 1 &amp;&amp; voice.IsPlaying ? 0 : 1;
 </code></pre>
-<details class="sample-bundle"><summary>Run this sample — Block</summary><p>Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.</p><p><strong>Requirements:</strong> .NET 10 / Headless: any supported OS / Audible output: Windows/XAudio2 integration</p><p><strong>Platforms:</strong> Windows / Linux / macOS</p><p><strong>Verification:</strong> exit 0, timeout 300s, stdout <code>audio: initialized=True, voices=1</code></p><ul><li><code>samples/LuxelAudio/LuxelAudio.csproj</code> <span>Project</span></li><li><code>samples/LuxelAudio/Program.cs</code> <span>CSharp</span></li></ul><p><strong>Run</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelAudio</code></pre><p><strong>Smoke test</strong></p><pre><code class="language-shell">dotnet run --project samples/LuxelAudio</code></pre></details><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/Overview&quot;, Order = 0, SampleBundle = &quot;audio.tone&quot;, Toc = true)]
-public static StoryResult Overview(StoryContext ctx) =&gt; $&quot;&quot;&quot;
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Audio/Overview#doc-0" data-luxel-runtime-story="Examples/Audio/WaveformAndVoice" data-luxel-runtime-instance="examples-audio-waveformandvoice-6596da51cb68" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2FAudio%2FWaveformAndVoice&amp;args=%7B%7D&amp;instance=examples-audio-waveformandvoice-6596da51cb68" data-luxel-runtime-story="Examples/Audio/WaveformAndVoice" data-luxel-runtime-instance="examples-audio-waveformandvoice-6596da51cb68" title="Interactive WaveformAndVoice" loading="eager" allow="webgpu; autoplay; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-audio-waveformandvoice-6596da51cb68-args-tab" aria-controls="examples-audio-waveformandvoice-6596da51cb68-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-audio-waveformandvoice-6596da51cb68-output-tab" aria-controls="examples-audio-waveformandvoice-6596da51cb68-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-audio-waveformandvoice-6596da51cb68-source-tab" aria-controls="examples-audio-waveformandvoice-6596da51cb68-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-audio-waveformandvoice-6596da51cb68-args-panel" role="tabpanel" aria-labelledby="examples-audio-waveformandvoice-6596da51cb68-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-audio-waveformandvoice-6596da51cb68-output-panel" role="tabpanel" aria-labelledby="examples-audio-waveformandvoice-6596da51cb68-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-audio-waveformandvoice-6596da51cb68-source-panel" role="tabpanel" aria-labelledby="examples-audio-waveformandvoice-6596da51cb68-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/Audio/WaveformAndVoice&quot;, Width = 700, Height = 330, Order = 0)]&#10;public static Widget WaveformAndVoice()&#10;{&#10;    AudioFormat format = AudioFormat.Pcm16Mono44k;&#10;    byte[] pcm = SinePcm16(format, 440f, 0.45f);&#10;    var clip = new AudioClip(format, pcm, &quot;440 Hz tone&quot;);&#10;    var status = new Signal&lt;string&gt;(DescribeClip(clip));&#10;    IAudioVoice? voice = null;&#10;&#10;    async void Play()&#10;    {&#10;        try&#10;        {&#10;            await ResumeAsync();&#10;            voice?.Dispose();&#10;            voice = Backend.CreateVoice(format);&#10;            voice.Volume = 0.35f;&#10;            voice.SubmitBuffer(clip.PcmData);&#10;            voice.Play();&#10;            status.Value = $&quot;再生中: 440 Hz / queued={voice.BuffersQueued} / playing={voice.IsPlaying}&quot;;&#10;        }&#10;        catch (Exception error) { status.Value = $&quot;再生できません: {error.Message}&quot;; }&#10;    }&#10;&#10;    void Stop()&#10;    {&#10;        voice?.Stop();&#10;        status.Value = &quot;停止しました。queueは破棄されます。&quot;;&#10;    }&#10;&#10;    return ExampleFrame(&quot;PCM clip → voice&quot;,&#10;        &quot;生成したPCM16 clipをWeb Audio voiceへsubmitします。Enable/Playはブラウザのuser gestureとしてAudioContextを再開します。&quot;,&#10;        HStack(10)[Button(_ =&gt; Play(), &quot;440 Hzを再生&quot;), Button(_ =&gt; Stop(), &quot;停止&quot;, variant: Variant.Outline)],&#10;        Text((Func&lt;string&gt;)(() =&gt; status.Value), 14, wrap: TextWrap.Word, width: 620),&#10;        Text(DescribeClip(clip), 13, color: Bind.From(() =&gt; UiTheme.T.TextMuted)));&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<p><code>NullAudioBackend</code>は音を出さず、initialized、voice数、<code>BuffersQueued</code>、<code>IsPlaying</code>、volume/pitch/panを決定的に観測できます。Windowsの<code>XAudio2Backend</code>、Linux/macOSの<code>Luxel.Audio.Silk.OpenAlAudioBackend</code>は実deviceへ出力し、browser WASMでは<code>Luxel.Audio.Browser.BrowserAudioBackend</code>がWeb AudioへPCM16 clipとqueueを送ります。<code>Luxel.Audio.Silk</code>はSilk.NET経由でOpenAL Softを利用するクロスプラットフォームbackendです。LinuxではOpenAL SoftからPipeWire/PulseAudio/ALSAへ出力できます。browserでは作成後もcontextがsuspendedの場合があるため、click/tapから<code>ResumeAsync()</code>を呼んでから可聴状態として扱います。</p>
+<h2 id="section-2">ライフサイクルの原則</h2>
+<ol>
+<li>backendを作り<code>Initialize()</code>する。</li>
+<li>backendより短い寿命でmixer/source/streaming voiceを作る。</li>
+<li>game loopで必要な<code>Tick()</code>、<code>Update()</code>、<code>Pump()</code>を呼ぶ。</li>
+<li>voice所有者を先に、backendを最後に<code>Dispose()</code>する。</li>
+</ol>
+<h2 id="section-3">失敗の入口</h2>
+<p>無音なら、初期化、format、queue、<code>Play()</code>、volume/bus、frame駆動の順に確認します。実音だけを最初のoracleにせず、まずheadless状態を検証してください。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/Overview&quot;, Order = 0, Toc = true)]
+public static StoryResult Overview(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # Audio overview
 
-    {RuntimeCourseCatalog.Meta(&quot;Learn/Audio/Overview&quot;, &quot;Beginner&quot;, &quot;Standalone / Headless / Windows device&quot;, &quot;Null / XAudio2&quot;, &quot;Input track&quot;)}
+    {{AudioCourseCatalog.Meta(&quot;Learn/Audio/Overview&quot;, &quot;Beginner&quot;, &quot;Gallery / Headless / Windows / Linux / macOS / Browser WASM&quot;, &quot;Null / XAudio2 / Silk OpenAL / Web Audio&quot;, &quot;なし&quot;)}}
 
-    `AudioClip`はdecode済みPCM、`IAudioVoice`は再生slot、`AudioMixer`はone-shotとvoice poolを管理します。実音出力は現在Windows/XAudio2、CIと非Windowsは`NullAudioBackend`で状態遷移を検証します。
+    ## このコースで作るメンタルモデル
 
-    {SampleBundle(&quot;audio.tone&quot;)}
+    Luxelのaudio経路は、**PCMの意味を記述するformat**、**全展開されたclip**、**backendが所有するvoice**、**OSのdevice**の4段です。`AudioMixer`、`AudioSource`、`AudioSource3D`、`StreamingVoice`は、この低水準経路を用途別に安全に駆動します。
+
+    ```mermaid
+    flowchart LR
+      PCM[PCM bytes] --&gt; Clip[AudioClip + AudioFormat]
+      Clip --&gt; Voice[IAudioVoice]
+      Voice --&gt; Backend[IAudioBackend]
+      Backend --&gt; Device[device / no-op observer]
+    ```
+
+    | 用途 | 最初に選ぶAPI | 所有・毎frame処理 |
+    |---|---|---|
+    | 短い効果音 | `AudioMixer.PlayOneShot` | mixerを保持し`Tick()` |
+    | loopするBGMや持続音 | `AudioSource` | sourceを保持し`Tick()`、最後に`Dispose()` |
+    | 位置付き音 | `AudioSource3D` | listener更新後に`Update(listener)` |
+    | 長尺WAV | `WavStream` + `StreamingVoice` | 毎frame `Pump()` |
+
+    ## 最小の実行経路
+
+    {{SampleSource(&quot;samples/LuxelAudio/Program.cs&quot;, &quot;audio-tone&quot;)}}
+
+    {{StoryRef(ctx, &quot;Examples/Audio/WaveformAndVoice&quot;)}}
+
+    `NullAudioBackend`は音を出さず、initialized、voice数、`BuffersQueued`、`IsPlaying`、volume/pitch/panを決定的に観測できます。Windowsの`XAudio2Backend`、Linux/macOSの`Luxel.Audio.Silk.OpenAlAudioBackend`は実deviceへ出力し、browser WASMでは`Luxel.Audio.Browser.BrowserAudioBackend`がWeb AudioへPCM16 clipとqueueを送ります。`Luxel.Audio.Silk`はSilk.NET経由でOpenAL Softを利用するクロスプラットフォームbackendです。LinuxではOpenAL SoftからPipeWire/PulseAudio/ALSAへ出力できます。browserでは作成後もcontextがsuspendedの場合があるため、click/tapから`ResumeAsync()`を呼んでから可聴状態として扱います。
+
+    ## ライフサイクルの原則
+
+    1. backendを作り`Initialize()`する。
+    2. backendより短い寿命でmixer/source/streaming voiceを作る。
+    3. game loopで必要な`Tick()`、`Update()`、`Pump()`を呼ぶ。
+    4. voice所有者を先に、backendを最後に`Dispose()`する。
+
+    ## 失敗の入口
+
+    無音なら、初期化、format、queue、`Play()`、volume/bus、frame駆動の順に確認します。実音だけを最初のoracleにせず、まずheadless状態を検証してください。
+
     &quot;&quot;&quot;;</code></pre></details></article>

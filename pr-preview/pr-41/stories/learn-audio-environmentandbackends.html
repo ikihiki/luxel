@@ -1,0 +1,124 @@
+<article class="story document-page"><h1 id="audio-environment-and-backends">Audio environment and backends</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FAudio%2FEnvironmentAndBackends&amp;section=%E5%A2%83%E7%95%8C%E3%81%A8%E8%B2%AC%E5%8B%99">境界と責務</a></li>
+<li><a href="#story=Learn%2FAudio%2FEnvironmentAndBackends&amp;section=%E5%AE%9F%E8%A1%8C%E7%92%B0%E5%A2%83%E3%81%AE%E9%81%B8%E6%8A%9E">実行環境の選択</a></li>
+<li><a href="#story=Learn%2FAudio%2FEnvironmentAndBackends&amp;section=web-audio%E3%81%AE%E9%9D%9E%E5%90%8C%E6%9C%9F%E3%83%A9%E3%82%A4%E3%83%95%E3%82%B5%E3%82%A4%E3%82%AF%E3%83%AB">Web Audioの非同期ライフサイクル</a></li>
+<li><a href="#story=Learn%2FAudio%2FEnvironmentAndBackends&amp;section=%E6%89%80%E6%9C%89%E6%A8%A9%E3%81%A8%E5%A4%B1%E6%95%97">所有権と失敗</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Beginner　 <strong>実行環境:</strong> Standalone / Framework / CI / Linux / macOS / Browser WASM　 <strong>Backend:</strong> Null / XAudio2 / Silk OpenAL / Web Audio　 <strong>前提知識:</strong> Audio overview</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FAudio%2FOverview">Overview</a>　 <strong>次:</strong> <a href="#story=Learn%2FAudio%2FFormatsClipsAndLoading">FormatsClipsAndLoading</a></p>
+<h2 id="section">境界と責務</h2>
+<p><code>IAudioBackend</code>はdevice/master volume/voice生成を、<code>IAudioVoice</code>はbuffer queueとplayback stateを抽象化します。formatごとにvoiceを作り、PCMのdecodeやgame側のbus treeはbackendへ押し込みません。</p>
+<pre><code class="language-csharp">using IAudioBackend backend = new NullAudioBackend();
+backend.Initialize();
+using IAudioVoice voice = backend.CreateVoice(AudioFormat.Pcm16Mono48k);
+voice.SubmitBuffer(pcm);
+voice.Play();
+</code></pre>
+<h2 id="section-1">実行環境の選択</h2>
+<table>
+<thead>
+<tr>
+<th>環境</th>
+<th>backend</th>
+<th>何を確認するか</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>unit test / CI / deviceなし</td>
+<td><code>NullAudioBackend</code></td>
+<td>state、queue、parameter、所有権</td>
+</tr>
+<tr>
+<td>Windows実音</td>
+<td><code>Luxel.Audio.Windows.XAudio2Backend</code></td>
+<td>device、speaker、実時間でのqueue drain</td>
+</tr>
+<tr>
+<td>Linux/macOS実音</td>
+<td><code>Luxel.Audio.Silk.OpenAlAudioBackend</code></td>
+<td>OpenAL Soft、voice queue、loopback</td>
+</tr>
+<tr>
+<td>Linux CI</td>
+<td>同じSilk backend + Pulse null sink</td>
+<td>実出力captureと波形解析</td>
+</tr>
+<tr>
+<td>Framework app</td>
+<td><code>new LuxelHostBuilder().UseAudio()</code></td>
+<td>Windows=XAudio2、Linux/macOS=Silk OpenALをOS別登録</td>
+</tr>
+<tr>
+<td>Browser WASM</td>
+<td><code>Luxel.Audio.Browser.BrowserAudioBackend</code></td>
+<td>Web Audio、autoplay unlock、browser lifecycle</td>
+</tr>
+</tbody>
+</table>
+<p><code>UseAudio()</code>はFramework側のcomposition rootです。standalone sampleではbackendを明示生成した方が依存とdispose順を読み取りやすくなります。Windows実音の統合確認は <a href="#story=RealWindow%2FAudio%2FTone">RealWindow/Audio/Tone</a>、browser実音は<code>samples/LuxelAudioBrowser</code>を使います。</p>
+<h2 id="web-audio">Web Audioの非同期ライフサイクル</h2>
+<pre><code class="language-csharp">using BrowserAudioBackend backend = await BrowserAudioBackend.CreateAsync();
+// click / tap のevent handlerから呼ぶ
+await backend.ResumeAsync();
+using IAudioVoice voice = backend.CreateVoice(AudioFormat.Pcm16Mono48k);
+</code></pre>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Audio/EnvironmentAndBackends#doc-0" data-luxel-runtime-story="Examples/Audio/BackendLifecycle" data-luxel-runtime-instance="examples-audio-backendlifecycle-acc953882b88" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2FAudio%2FBackendLifecycle&amp;args=%7B%7D&amp;instance=examples-audio-backendlifecycle-acc953882b88" data-luxel-runtime-story="Examples/Audio/BackendLifecycle" data-luxel-runtime-instance="examples-audio-backendlifecycle-acc953882b88" title="Interactive BackendLifecycle" loading="eager" allow="webgpu; autoplay; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-audio-backendlifecycle-acc953882b88-args-tab" aria-controls="examples-audio-backendlifecycle-acc953882b88-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-audio-backendlifecycle-acc953882b88-output-tab" aria-controls="examples-audio-backendlifecycle-acc953882b88-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-audio-backendlifecycle-acc953882b88-source-tab" aria-controls="examples-audio-backendlifecycle-acc953882b88-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-audio-backendlifecycle-acc953882b88-args-panel" role="tabpanel" aria-labelledby="examples-audio-backendlifecycle-acc953882b88-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-audio-backendlifecycle-acc953882b88-output-panel" role="tabpanel" aria-labelledby="examples-audio-backendlifecycle-acc953882b88-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-audio-backendlifecycle-acc953882b88-source-panel" role="tabpanel" aria-labelledby="examples-audio-backendlifecycle-acc953882b88-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/Audio/BackendLifecycle&quot;, Width = 700, Height = 300, Order = 0)]&#10;public static Widget BackendLifecycle()&#10;{&#10;    var status = new Signal&lt;string&gt;($&quot;現在の状態: {State}&quot;);&#10;&#10;    async void Resume()&#10;    {&#10;        try&#10;        {&#10;            await ResumeAsync();&#10;            status.Value = $&quot;ResumeAsync完了: {State}。このclickがautoplay unlockのuser gestureです。&quot;;&#10;        }&#10;        catch (Exception error) { status.Value = $&quot;resume失敗: {error.Message}&quot;; }&#10;    }&#10;&#10;    async void Suspend()&#10;    {&#10;        try&#10;        {&#10;            await SuspendAsync();&#10;            status.Value = $&quot;SuspendAsync完了: {State}。voice queueは保持されます。&quot;;&#10;        }&#10;        catch (Exception error) { status.Value = $&quot;suspend失敗: {error.Message}&quot;; }&#10;    }&#10;&#10;    return ExampleFrame(&quot;Web Audio lifecycle&quot;,&#10;        &quot;AudioContextは作成直後にsuspendedの場合があります。ボタン操作から明示的にresumeし、ページを離れる前にはsuspendできます。&quot;,&#10;        HStack(10)[Button(_ =&gt; Resume(), &quot;Audioを有効化&quot;), Button(_ =&gt; Suspend(), &quot;Audioを一時停止&quot;, variant: Variant.Outline)],&#10;        Text((Func&lt;string&gt;)(() =&gt; status.Value), 14, wrap: TextWrap.Word, width: 620));&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<p><code>AudioContext.resume()</code>は非同期かつuser gesture/autoplay policyの影響を受けます。<code>CreateAsync()</code>はcontextを作成しますが、<code>BrowserAudioState.Running</code>になるまで可聴準備完了とはみなしません。<code>AudioBufferSourceNode</code>は一度だけstartできるため、backendはpause/resume時にnodeを再生成してoffsetを復元します。完了queueは<code>onended</code>で論理管理し、Web Audioのequal-power pan lawはXAudio2のlinear matrixと完全一致しません。</p>
+<p>現行browser backendは<code>AudioBufferSourceNode</code>によるclipと基本queueを実装しています。AudioWorkletによる長時間・低遅延streamingは未実装です。AudioWorklet自体はsecure contextを必要とし、将来SharedArrayBuffer高速経路を選ぶ場合は追加でcross-origin isolationが必要です。</p>
+<h2 id="section-2">所有権と失敗</h2>
+<p>backendより先にvoiceを破棄します。<code>Initialize()</code>忘れ、別formatのPCM投入、backend dispose後のvoice利用、browserで<code>ResumeAsync()</code>前から音が出ると仮定することが典型的な失敗です。OpenAL runtimeが見つからない場合はOSに対応するOpenAL Soft libraryを確認します。Linux CIでは<code>LUXEL_DESKTOP_AUDIO=null eng/desktop/audio-start.sh</code>で48 kHz stereoの仮想sinkを用意できます。</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Audio/EnvironmentAndBackends&quot;, Order = 1, Toc = true)]
+public static StoryResult Environment(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Audio environment and backends
+
+    {{AudioCourseCatalog.Meta(&quot;Learn/Audio/EnvironmentAndBackends&quot;, &quot;Beginner&quot;, &quot;Standalone / Framework / CI / Linux / macOS / Browser WASM&quot;, &quot;Null / XAudio2 / Silk OpenAL / Web Audio&quot;, &quot;Audio overview&quot;)}}
+
+    ## 境界と責務
+
+    `IAudioBackend`はdevice/master volume/voice生成を、`IAudioVoice`はbuffer queueとplayback stateを抽象化します。formatごとにvoiceを作り、PCMのdecodeやgame側のbus treeはbackendへ押し込みません。
+
+    ```csharp
+    using IAudioBackend backend = new NullAudioBackend();
+    backend.Initialize();
+    using IAudioVoice voice = backend.CreateVoice(AudioFormat.Pcm16Mono48k);
+    voice.SubmitBuffer(pcm);
+    voice.Play();
+    ```
+
+    ## 実行環境の選択
+
+    | 環境 | backend | 何を確認するか |
+    |---|---|---|
+    | unit test / CI / deviceなし | `NullAudioBackend` | state、queue、parameter、所有権 |
+    | Windows実音 | `Luxel.Audio.Windows.XAudio2Backend` | device、speaker、実時間でのqueue drain |
+    | Linux/macOS実音 | `Luxel.Audio.Silk.OpenAlAudioBackend` | OpenAL Soft、voice queue、loopback |
+    | Linux CI | 同じSilk backend + Pulse null sink | 実出力captureと波形解析 |
+    | Framework app | `new LuxelHostBuilder().UseAudio()` | Windows=XAudio2、Linux/macOS=Silk OpenALをOS別登録 |
+    | Browser WASM | `Luxel.Audio.Browser.BrowserAudioBackend` | Web Audio、autoplay unlock、browser lifecycle |
+
+    `UseAudio()`はFramework側のcomposition rootです。standalone sampleではbackendを明示生成した方が依存とdispose順を読み取りやすくなります。Windows実音の統合確認は [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone)、browser実音は`samples/LuxelAudioBrowser`を使います。
+
+    ## Web Audioの非同期ライフサイクル
+
+    ```csharp
+    using BrowserAudioBackend backend = await BrowserAudioBackend.CreateAsync();
+    // click / tap のevent handlerから呼ぶ
+    await backend.ResumeAsync();
+    using IAudioVoice voice = backend.CreateVoice(AudioFormat.Pcm16Mono48k);
+    ```
+
+    {{StoryRef(ctx, &quot;Examples/Audio/BackendLifecycle&quot;)}}
+
+    `AudioContext.resume()`は非同期かつuser gesture/autoplay policyの影響を受けます。`CreateAsync()`はcontextを作成しますが、`BrowserAudioState.Running`になるまで可聴準備完了とはみなしません。`AudioBufferSourceNode`は一度だけstartできるため、backendはpause/resume時にnodeを再生成してoffsetを復元します。完了queueは`onended`で論理管理し、Web Audioのequal-power pan lawはXAudio2のlinear matrixと完全一致しません。
+
+    現行browser backendは`AudioBufferSourceNode`によるclipと基本queueを実装しています。AudioWorkletによる長時間・低遅延streamingは未実装です。AudioWorklet自体はsecure contextを必要とし、将来SharedArrayBuffer高速経路を選ぶ場合は追加でcross-origin isolationが必要です。
+
+    ## 所有権と失敗
+
+    backendより先にvoiceを破棄します。`Initialize()`忘れ、別formatのPCM投入、backend dispose後のvoice利用、browserで`ResumeAsync()`前から音が出ると仮定することが典型的な失敗です。OpenAL runtimeが見つからない場合はOSに対応するOpenAL Soft libraryを確認します。Linux CIでは`LUXEL_DESKTOP_AUDIO=null eng/desktop/audio-start.sh`で48 kHz stereoの仮想sinkを用意できます。
+
+    &quot;&quot;&quot;;</code></pre></details></article>

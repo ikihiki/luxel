@@ -6019,6 +6019,46 @@
       "componentType": null
     },
     {
+      "path": "Examples/3D/PhysicsFalling",
+      "width": 320,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PhysicsGizmos",
+      "width": 520,
+      "height": 360,
+      "args": [],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PhysicsMesh",
+      "width": 520,
+      "height": 360,
+      "args": [],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PhysicsPlayground",
+      "width": 320,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PhysicsTrigger",
+      "width": 520,
+      "height": 360,
+      "args": [],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
       "path": "Examples/3D/PipelineState/Blend",
       "width": 480,
       "height": 320,
@@ -6091,9 +6131,97 @@
       "componentType": null
     },
     {
+      "path": "Examples/Animation/CssKeyframes",
+      "width": 480,
+      "height": 300,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/Curves",
+      "width": 480,
+      "height": 720,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/EcsClip",
+      "width": 480,
+      "height": 300,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/Graph",
+      "width": 480,
+      "height": 300,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/StateMachine",
+      "width": 480,
+      "height": 340,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
       "path": "Examples/Animation/Transitions",
       "width": 480,
       "height": 200,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/Tween",
+      "width": 480,
+      "height": 300,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Audio/BackendLifecycle",
+      "width": 700,
+      "height": 300,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Audio/Buses",
+      "width": 700,
+      "height": 360,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Audio/SpatialAttenuation",
+      "width": 700,
+      "height": 380,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Audio/StreamingQueue",
+      "width": 700,
+      "height": 350,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Audio/WaveformAndVoice",
+      "width": 700,
+      "height": 330,
       "args": [],
       "capabilityNote": null,
       "componentType": null

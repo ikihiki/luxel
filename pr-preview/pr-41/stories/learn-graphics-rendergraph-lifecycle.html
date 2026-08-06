@@ -32,7 +32,7 @@ surface.Present(framebuffer);
 <p>resizeではqueue idle後にexternal framebufferを作り直し、次frameのgraphを新しいvisible width、height、strideから構築します。compile済みgraphのdescriptorだけを書き換えることはできません。最小化中の0×0ではgraphや0-size textureを作らず描画を休止します。</p>
 <h2 id="backend">Backend差</h2>
 <p>VulkanとDirectX 12でlogical passと依存宣言は共通です。backend差はbarrier command、SPIR-V/DXIL、D3D12 readback row pitchなど下層へ閉じ込めます。RenderGraphを使ってもsubmit、GPU完了、presentが自動になるわけではありません。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/RenderGraph/Lifecycle&quot;, Order = 31, Toc = true)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/RenderGraph/Lifecycle&quot;, Order = 34, Toc = true)]
 public static StoryResult Lifecycle(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # フレーム寿命とresize
 

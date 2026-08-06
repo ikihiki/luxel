@@ -1,0 +1,122 @@
+<article class="story document-page"><h1 id="clips-and-tracks">Clips and Tracks</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FAnimation%2FClipsAndTracks&amp;section=clip%E3%82%92%E5%AE%9A%E7%BE%A9%E3%81%99%E3%82%8B">Clipを定義する</a></li>
+<li><a href="#story=Learn%2FAnimation%2FClipsAndTracks&amp;section=sampling%E3%81%A8%E8%A3%9C%E9%96%93">Samplingと補間</a></li>
+<li><a href="#story=Learn%2FAnimation%2FClipsAndTracks&amp;section=target%E3%81%B8%E5%86%8D%E7%94%9F%E3%81%99%E3%82%8B">Targetへ再生する</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Standalone / Gallery / Game　 <strong>Backend:</strong> Backend neutral　 <strong>前提知識:</strong> Sequence and parallel</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FAnimation%2FSequenceAndParallel">SequenceAndParallel</a>　 <strong>次:</strong> <a href="#story=Learn%2FAnimation%2FTargetsAndBindings">TargetsAndBindings</a></p>
+<p><code>AnimationClip</code>はpathごとのtrackをまとめる再利用可能な時間データです。trackは型付きkeyframeをsampleし、<code>IAnimationTarget</code>へpathと値を書きます。</p>
+<h2 id="clip">Clipを定義する</h2>
+<pre><code class="language-csharp">var clip = new AnimationClip(&quot;move&quot;, new TrackBase[]
+{
+    Tracks.Vector3(&quot;marker/translation&quot;, InterpolationKind.Linear,
+    [
+        new Keyframe&lt;Vector3&gt;(0f, new Vector3(20, 48, 0)),
+        new Keyframe&lt;Vector3&gt;(1f, new Vector3(196, 48, 0)),
+    ]),
+    Tracks.Float(&quot;marker/opacity&quot;, InterpolationKind.Linear,
+    [
+        new Keyframe&lt;float&gt;(0f, 0f),
+        new Keyframe&lt;float&gt;(1f, 1f),
+    ]),
+});
+</code></pre>
+<h2 id="sampling">Samplingと補間</h2>
+<p>keyframeは呼び出し側が時刻順に渡し、空配列は使えません。範囲外は先頭/末尾へclampされます。<code>Step</code>は前値を保持し、<code>Linear</code>は隣接値を補間します。現在<code>CubicSpline</code>指定はlinearへfallbackします。区間探索はlinear searchです。</p>
+<table>
+<thead>
+<tr>
+<th>要素</th>
+<th>意味</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AnimationClip</code></td>
+<td>名前、track集合、最大duration</td>
+</tr>
+<tr>
+<td><code>Track&lt;T&gt;</code></td>
+<td>property path、keyframe、interpolation</td>
+</tr>
+<tr>
+<td><code>Keyframe&lt;T&gt;</code></td>
+<td>秒単位の時刻と値</td>
+</tr>
+<tr>
+<td><code>ClipCommand</code> / <code>ClipNode</code></td>
+<td>player DSL / graphでclipを評価</td>
+</tr>
+</tbody>
+</table>
+<h2 id="target">Targetへ再生する</h2>
+<pre><code class="language-csharp">Animate.Clip(clip, target).Play(player, clock);
+</code></pre>
+<p>サンプルはclipを<code>EcsAnimationTarget</code>へ適用し、更新された<code>LocalTransform</code>のtranslationを2D markerとして描くだけに絞っています。3D rendererの準備なしで、clip → path → target → componentという利用手順を確認できます。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Animation/ClipsAndTracks#doc-0" data-luxel-runtime-story="Examples/Animation/EcsClip" data-luxel-runtime-instance="examples-animation-ecsclip-db22371c4b73" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2FAnimation%2FEcsClip&amp;args=%7B%7D&amp;instance=examples-animation-ecsclip-db22371c4b73" data-luxel-runtime-story="Examples/Animation/EcsClip" data-luxel-runtime-instance="examples-animation-ecsclip-db22371c4b73" title="Interactive EcsClip" loading="eager" allow="webgpu; autoplay; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-animation-ecsclip-db22371c4b73-args-tab" aria-controls="examples-animation-ecsclip-db22371c4b73-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-animation-ecsclip-db22371c4b73-output-tab" aria-controls="examples-animation-ecsclip-db22371c4b73-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-animation-ecsclip-db22371c4b73-source-tab" aria-controls="examples-animation-ecsclip-db22371c4b73-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-animation-ecsclip-db22371c4b73-args-panel" role="tabpanel" aria-labelledby="examples-animation-ecsclip-db22371c4b73-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-animation-ecsclip-db22371c4b73-output-panel" role="tabpanel" aria-labelledby="examples-animation-ecsclip-db22371c4b73-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-animation-ecsclip-db22371c4b73-source-panel" role="tabpanel" aria-labelledby="examples-animation-ecsclip-db22371c4b73-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/Animation/EcsClip&quot;, Height = 300, Order = 144)]&#10;public static Widget EcsClip()&#10;{&#10;    var world = new Luxel.Ecs.World();&#10;    var entity = world.Create();&#10;    world.Set(entity, new LocalTransform(Matrix4x4.Identity));&#10;    var target = new EcsAnimationTarget(world).Bind(&quot;marker&quot;, entity);&#10;    var clip = new AnimationClip(&quot;Move&quot;, new TrackBase[]&#10;    {&#10;        Tracks.Vector3(&quot;marker/translation&quot;, InterpolationKind.Linear,&#10;        [&#10;            new Keyframe&lt;Vector3&gt;(0f, new Vector3(20, 48, 0)),&#10;            new Keyframe&lt;Vector3&gt;(1f, new Vector3(196, 48, 0)),&#10;            new Keyframe&lt;Vector3&gt;(2f, new Vector3(20, 48, 0)),&#10;        ]),&#10;    });&#10;    var clock = new ManualClock();&#10;    var player = new AnimationPlayer();&#10;    Animate.Clip(clip, target).WithLoop().Play(player, clock);&#10;&#10;    return Frame(Canvas2D(256, 128, animate: (scene, time) =&gt;&#10;    {&#10;        clock.SetTime(time);&#10;        player.Update(clock);&#10;        Matrix4x4.Decompose(world.Get&lt;LocalTransform&gt;(entity).Matrix,&#10;            out _, out _, out Vector3 position);&#10;        scene.FillRoundedRect(Color2D.Rgba(55, 60, 72, 255), 20, 54, 196, 4, 2);&#10;        scene.FillRoundedRect(Color2D.Rgba(70, 180, 120, 255), position.X, position.Y, 40, 24, 6);&#10;    }));&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<div class="markdown-alert markdown-alert-warning">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p>pathはcompile-timeに検証されません。target側のbindingと文字列が一致しないtrackは見た目上「再生しているのに動かない」原因になります。</p>
+</div>
+<ul>
+<li>keyframeを未sortのまま渡す。</li>
+<li><code>CubicSpline</code>がtangentを評価すると仮定する。</li>
+<li>多数keyframeでlinear searchのcostを無視する。</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Animation/ClipsAndTracks&quot;, Order = 4, Toc = true)]
+public static StoryResult ClipsAndTracks(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Clips and Tracks
+
+    {{AnimationCourseCatalog.Meta(&quot;Learn/Animation/ClipsAndTracks&quot;, &quot;Intermediate&quot;, &quot;Standalone / Gallery / Game&quot;, &quot;Backend neutral&quot;, &quot;Sequence and parallel&quot;)}}
+
+    `AnimationClip`はpathごとのtrackをまとめる再利用可能な時間データです。trackは型付きkeyframeをsampleし、`IAnimationTarget`へpathと値を書きます。
+
+    ## Clipを定義する
+
+    ```csharp
+    var clip = new AnimationClip(&quot;move&quot;, new TrackBase[]
+    {
+        Tracks.Vector3(&quot;marker/translation&quot;, InterpolationKind.Linear,
+        [
+            new Keyframe&lt;Vector3&gt;(0f, new Vector3(20, 48, 0)),
+            new Keyframe&lt;Vector3&gt;(1f, new Vector3(196, 48, 0)),
+        ]),
+        Tracks.Float(&quot;marker/opacity&quot;, InterpolationKind.Linear,
+        [
+            new Keyframe&lt;float&gt;(0f, 0f),
+            new Keyframe&lt;float&gt;(1f, 1f),
+        ]),
+    });
+    ```
+
+    ## Samplingと補間
+
+    keyframeは呼び出し側が時刻順に渡し、空配列は使えません。範囲外は先頭/末尾へclampされます。`Step`は前値を保持し、`Linear`は隣接値を補間します。現在`CubicSpline`指定はlinearへfallbackします。区間探索はlinear searchです。
+
+    | 要素 | 意味 |
+    | --- | --- |
+    | `AnimationClip` | 名前、track集合、最大duration |
+    | `Track&lt;T&gt;` | property path、keyframe、interpolation |
+    | `Keyframe&lt;T&gt;` | 秒単位の時刻と値 |
+    | `ClipCommand` / `ClipNode` | player DSL / graphでclipを評価 |
+
+    ## Targetへ再生する
+
+    ```csharp
+    Animate.Clip(clip, target).Play(player, clock);
+    ```
+
+    サンプルはclipを`EcsAnimationTarget`へ適用し、更新された`LocalTransform`のtranslationを2D markerとして描くだけに絞っています。3D rendererの準備なしで、clip → path → target → componentという利用手順を確認できます。
+
+    {{StoryRef(ctx, &quot;Examples/Animation/EcsClip&quot;)}}
+
+    &gt; [!WARNING]
+    &gt; pathはcompile-timeに検証されません。target側のbindingと文字列が一致しないtrackは見た目上「再生しているのに動かない」原因になります。
+
+    - keyframeを未sortのまま渡す。
+    - `CubicSpline`がtangentを評価すると仮定する。
+    - 多数keyframeでlinear searchのcostを無視する。
+    &quot;&quot;&quot;;</code></pre></details></article>

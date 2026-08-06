@@ -1,0 +1,105 @@
+<article class="story document-page"><h1 id="sequence-and-parallel">Sequence and Parallel</h1>
+<!-- luxel-toc -->
+<ul>
+<li><a href="#story=Learn%2FAnimation%2FSequenceAndParallel&amp;section=command%E3%82%92%E4%BD%9C%E3%82%8B">Commandを作る</a></li>
+<li><a href="#story=Learn%2FAnimation%2FSequenceAndParallel&amp;section=scheduling%E3%81%AE%E5%AE%9F%E8%A3%85%E5%A5%91%E7%B4%84">Schedulingの実装契約</a></li>
+<li><a href="#story=Learn%2FAnimation%2FSequenceAndParallel&amp;section=%E4%BD%BF%E3%81%84%E5%88%86%E3%81%91%E3%81%A8%E5%A4%B1%E6%95%97">使い分けと失敗</a></li>
+</ul>
+<!-- /luxel-toc -->
+<p><strong>難易度:</strong> Intermediate　 <strong>実行環境:</strong> Standalone / Gallery / Browser　 <strong>Backend:</strong> Backend neutral　 <strong>前提知識:</strong> Player and timing</p>
+<p><strong>前へ:</strong> <a href="#story=Learn%2FAnimation%2FPlayerAndTiming">PlayerAndTiming</a>　 <strong>次:</strong> <a href="#story=Learn%2FAnimation%2FClipsAndTracks">ClipsAndTracks</a></p>
+<p>DSLはsetter中心の短いanimationを組み立てます。<code>Animate.Tween</code>は型別tween、<code>Sequence</code>は開始offsetの直列化、<code>Parallel</code>は同時開始を表します。</p>
+<h2 id="command">Commandを作る</h2>
+<pre><code class="language-csharp">using static Luxel.Animation.Animate;
+
+Sequence(
+    Tween(v =&gt; opacity = v, 0f, 1f, 0.20f),
+    Parallel(
+        Tween(v =&gt; x = v, 0f, 120f, 0.35f),
+        Tween(v =&gt; scale = v, 0.8f, 1f, 0.35f)))
+    .Play(player, clock);
+</code></pre>
+<p><code>TweenColor</code>は<code>uint</code> RGBA、generic <code>Tween&lt;T&gt;</code>は独自<code>ITween&lt;T&gt;</code>を受け取ります。各commandにはcurveやcompletionを設定できます。</p>
+<h2 id="scheduling">Schedulingの実装契約</h2>
+<p>sequence/parallelは子commandを再生時にすべてscheduleし、各entryの絶対<code>StartTime</code>をずらします。遅れて始まるsequence childも<code>Play()</code>時に自分の初期値をsetterへ一度書くため、同じpropertyを複数childが共有すると最後にscheduleされた初期値が一時的に見えることがあります。</p>
+<table>
+<thead>
+<tr>
+<th>合成</th>
+<th>StartTime</th>
+<th>Duration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Sequence(a,b)</code></td>
+<td>bはaのduration後</td>
+<td>子durationの合計</td>
+</tr>
+<tr>
+<td><code>Parallel(a,b)</code></td>
+<td>同じstart</td>
+<td>子durationの最大</td>
+</tr>
+<tr>
+<td>delay相当</td>
+<td>setterを変えないcommandまたは開始offset</td>
+<td>指定秒</td>
+</tr>
+</tbody>
+</table>
+<h2 id="section">使い分けと失敗</h2>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Learn/Animation/SequenceAndParallel#doc-0" data-luxel-runtime-story="Examples/Animation/Tween" data-luxel-runtime-instance="examples-animation-tween-2f95ea48e8ea" data-luxel-runtime-args="{}" data-luxel-runtime-schema="[]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Examples%2FAnimation%2FTween&amp;args=%7B%7D&amp;instance=examples-animation-tween-2f95ea48e8ea" data-luxel-runtime-story="Examples/Animation/Tween" data-luxel-runtime-instance="examples-animation-tween-2f95ea48e8ea" title="Interactive Tween" loading="eager" allow="webgpu; autoplay; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="examples-animation-tween-2f95ea48e8ea-args-tab" aria-controls="examples-animation-tween-2f95ea48e8ea-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="examples-animation-tween-2f95ea48e8ea-output-tab" aria-controls="examples-animation-tween-2f95ea48e8ea-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="examples-animation-tween-2f95ea48e8ea-source-tab" aria-controls="examples-animation-tween-2f95ea48e8ea-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="examples-animation-tween-2f95ea48e8ea-args-panel" role="tabpanel" aria-labelledby="examples-animation-tween-2f95ea48e8ea-args-tab"><p class="args-empty">This story has no configurable args.</p><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="examples-animation-tween-2f95ea48e8ea-output-panel" role="tabpanel" aria-labelledby="examples-animation-tween-2f95ea48e8ea-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="examples-animation-tween-2f95ea48e8ea-source-panel" role="tabpanel" aria-labelledby="examples-animation-tween-2f95ea48e8ea-source-tab" hidden><pre><code class="language-csharp">[Story(&quot;Examples/Animation/Tween&quot;, Height = 300, Order = 141)]&#10;public static Widget Tween()&#10;{&#10;    var xA = new Signal&lt;float&gt;(-150f);&#10;    var oA = new Signal&lt;float&gt;(0f);&#10;    var xB = new Signal&lt;float&gt;(300f);&#10;    var oB = new Signal&lt;float&gt;(0f);&#10;    var clock = new FixedFrameClock { FrameRate = 60f };&#10;    AnimationPlayer? player = null;&#10;    int lastFrame = int.MaxValue;&#10;    const float loop = 1.6f;   // 本編 0.8s + 余韻&#10;&#10;    return Frame(Canvas2D(256, 128, animate: (s, t) =&gt;&#10;    {&#10;        int frame = (int)(t % loop * 60);&#10;        if (frame &lt; lastFrame)&#10;        {&#10;            // 周回頭で組み直し (絶対時刻モデル — track は Play 時に開始時刻が固定される)&#10;            player = new AnimationPlayer();&#10;            clock.Frame = 0;&#10;            player.Update(clock);&#10;            Animate.Sequence(&#10;                Animate.Parallel(&#10;                    Animate.Tween(SignalAnimationTarget.For(xA), -150f, 30f, 0.4f)&#10;                           .WithCurve(CubicBezierCurve.EaseOut),&#10;                    Animate.Tween(SignalAnimationTarget.For(oA), 0f, 1f, 0.4f)),&#10;                Animate.Parallel(&#10;                    Animate.Tween(SignalAnimationTarget.For(xB), 300f, 130f, 0.4f)&#10;                           .WithCurve(CubicBezierCurve.EaseOut),&#10;                    Animate.Tween(SignalAnimationTarget.For(oB), 0f, 1f, 0.4f))&#10;            ).Play(player, clock);&#10;        }&#10;        lastFrame = frame;&#10;        clock.Frame = frame;&#10;        player!.Update(clock);&#10;&#10;        byte aA = (byte)(Math.Clamp(oA.Peek(), 0f, 1f) * 255);&#10;        byte aB = (byte)(Math.Clamp(oB.Peek(), 0f, 1f) * 255);&#10;        s.FillRoundedRect(Color2D.Rgba(60, 130, 240, aA), xA.Peek(), 20, 80, 40, 8);&#10;        s.FillRoundedRect(Color2D.Rgba(230, 80, 100, aB), xB.Peek(), 68, 80, 40, 8);&#10;    }));&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<div class="markdown-alert markdown-alert-important">
+<p class="markdown-alert-title"><svg viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Important</p>
+<p>同じpropertyへ重なるcommandを書かないことが最も単純です。複数sourceの意味あるblendが必要なら<code>AnimationGraph</code>を使います。</p>
+</div>
+<ul>
+<li>sequenceを「前のcompletion時に次を生成する仕組み」と誤解する。</li>
+<li>setterが別thread affinityを持つのにplayerをbackground threadで更新する。</li>
+<li>長い再利用データまでDSLへ埋め込み、clipとして共有できなくする。</li>
+</ul>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Animation/SequenceAndParallel&quot;, Order = 3, Toc = true)]
+public static StoryResult SequenceAndParallel(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
+    # Sequence and Parallel
+
+    {{AnimationCourseCatalog.Meta(&quot;Learn/Animation/SequenceAndParallel&quot;, &quot;Intermediate&quot;, &quot;Standalone / Gallery / Browser&quot;, &quot;Backend neutral&quot;, &quot;Player and timing&quot;)}}
+
+    DSLはsetter中心の短いanimationを組み立てます。`Animate.Tween`は型別tween、`Sequence`は開始offsetの直列化、`Parallel`は同時開始を表します。
+
+    ## Commandを作る
+
+    ```csharp
+    using static Luxel.Animation.Animate;
+
+    Sequence(
+        Tween(v =&gt; opacity = v, 0f, 1f, 0.20f),
+        Parallel(
+            Tween(v =&gt; x = v, 0f, 120f, 0.35f),
+            Tween(v =&gt; scale = v, 0.8f, 1f, 0.35f)))
+        .Play(player, clock);
+    ```
+
+    `TweenColor`は`uint` RGBA、generic `Tween&lt;T&gt;`は独自`ITween&lt;T&gt;`を受け取ります。各commandにはcurveやcompletionを設定できます。
+
+    ## Schedulingの実装契約
+
+    sequence/parallelは子commandを再生時にすべてscheduleし、各entryの絶対`StartTime`をずらします。遅れて始まるsequence childも`Play()`時に自分の初期値をsetterへ一度書くため、同じpropertyを複数childが共有すると最後にscheduleされた初期値が一時的に見えることがあります。
+
+    | 合成 | StartTime | Duration |
+    | --- | --- | --- |
+    | `Sequence(a,b)` | bはaのduration後 | 子durationの合計 |
+    | `Parallel(a,b)` | 同じstart | 子durationの最大 |
+    | delay相当 | setterを変えないcommandまたは開始offset | 指定秒 |
+
+    ## 使い分けと失敗
+
+    {{StoryRef(ctx, &quot;Examples/Animation/Tween&quot;)}}
+
+    &gt; [!IMPORTANT]
+    &gt; 同じpropertyへ重なるcommandを書かないことが最も単純です。複数sourceの意味あるblendが必要なら`AnimationGraph`を使います。
+
+    - sequenceを「前のcompletion時に次を生成する仕組み」と誤解する。
+    - setterが別thread affinityを持つのにplayerをbackground threadで更新する。
+    - 長い再利用データまでDSLへ埋め込み、clipとして共有できなくする。
+    &quot;&quot;&quot;;</code></pre></details></article>
