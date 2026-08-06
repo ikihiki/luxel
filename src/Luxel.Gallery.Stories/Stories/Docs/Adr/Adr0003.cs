@@ -33,7 +33,7 @@ public static partial class DocsAdr
         - **単一パスレイアウト** — Flutter 風の `Layout(Constraints, parentUsesSize) → Size` 1 回で、同じ呼び出し内に子 Offset を書く (Measure/Arrange の 2 パスなし)
         - **状態 3 層の規約** — 外部 props は `[UiParam] Bindable<T>`、内部の値状態は `Signal<T>` (細粒度反映)、内部の構造状態は plain フィールド + 明示 `Rebuild()`。値の変化と構造の変化を型で区別する
 
-        現在の姿は [Reference/Guides/UI](story:Reference/Guides/UI) / [Reference/Guides/Controls](story:Reference/Guides/Controls) / [Reference/Guides/Styling](story:Reference/Guides/Styling) へ。
+        現在の実装を正とします。
 
         ## Alternatives
 

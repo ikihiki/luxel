@@ -89,7 +89,7 @@
     <ProjectReference Include="..\Luxel.Workbench\Luxel.Workbench.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.TwoD.Skia\Luxel.Graphics.TwoD.Skia.csproj" />
     <ProjectReference Include="..\Luxel.Typography.Icu\Luxel.Typography.Icu.csproj" />
-    <!-- 型 API リファレンス (Reference/Guides/Api*) の対象 — Gallery はドキュメントハブとして全域を参照する -->
+    <!-- 型 API リファレンス (`Reference/{namespace}`) の対象 — Gallery はドキュメントハブとして全域を参照する -->
     <ProjectReference Include="..\Luxel.Framework\Luxel.Framework.csproj" />
     <ProjectReference Include="..\Luxel.Scene.UI\Luxel.Scene.UI.csproj" />
     <ProjectReference Include="..\Luxel.Ecs.Signal\Luxel.Ecs.Signal.csproj" />

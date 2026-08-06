@@ -37,7 +37,7 @@ public static partial class DocsAdr
         - **同期は stage バリアのみ** — `Barrier(srcStage, dstStage)` の 1 種類。リソース個別の状態遷移管理を持たない
         - **Slang 統一シェーダ** — 1 ソースを SPIR-V (Vulkan) と DXIL (D3D12) へ併存コンパイル。シェーダはバックエンド非依存
 
-        現在の姿の詳細は [Reference/Guides/GpuDevice](story:Reference/Guides/GpuDevice) と [Internals/Architecture](story:Internals/Architecture) へ。
+        現在の姿の詳細は [Internals/Architecture](story:Internals/Architecture) へ。
 
         ## Alternatives
 

@@ -18,7 +18,7 @@ public static partial class DocsAdr
         ## Context
 
         > [!NOTE]
-        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクする `Reference/Guides/*` とLearnページを正とします。
+        > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクするLearnページと実装を正とします。
 
 
         浮遊 UI (ダイアログ・トースト・ドロワー・ドロップダウン・Select・ColorPicker・コンテキストメニュー・補完ポップアップ・ホバーツールチップ・IME 候補) が増え、配置ロジックが散らばっています。
@@ -40,7 +40,7 @@ public static partial class DocsAdr
         - **移行**: ContextMenu・Select/Dropdown/ColorPicker・**CodeEditor 補完ポップアップ + ツールチップ**をこのエンジンへ。ポップアップは Z=1000 のオーバーレイ層へ昇格し、トリガーの WorldPos 矩形または `ITextInput.CaretRect` にアンカーする (エディタのクリップから出て、画面端でフリップする)
         - **IME 候補ウインドウ** ([ADR-0008](story:Internals/ADR/0008-Custom-Ime-Candidates)) も、自前描画する場合はこの Popup として CaretRect にアンカーする — 浮遊 UI の一消費者になる
 
-        実装計画は ToDo/23。現在の姿は [Reference/Guides/UI](story:Reference/Guides/UI) が正。
+        実装計画は ToDo/23。現在の実装を正とします。
 
         ## Alternatives
 

@@ -14,7 +14,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>
 /// アセットパイプラインのデモ — glTF を <see cref="GltfLoader"/> で AssetDocument に読み、
 /// <see cref="SceneBuilder"/> で ECS + GPU バッファへ展開し、<see cref="SceneRenderExtractor"/> が
-/// instance バッファを作って scene_pbr_lite シェーダで描く。docs の Reference/Guides/Assets から参照される。
+/// instance バッファを作って scene_pbr_lite シェーダで描く。
 /// </summary>
 public static class AssetStories
 {

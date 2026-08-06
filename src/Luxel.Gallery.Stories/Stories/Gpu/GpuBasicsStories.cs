@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>
 /// GPU 抽象の基礎デモ — 固定パイプラインレイアウト (最大192Bのルート引数 + bindless heap) の上で
-/// 深度テスト / アルファブレンドがどう書けるかを示す。docs の Reference/Guides/GpuDevice から参照される。
+/// 深度テスト / アルファブレンドがどう書けるかを示す。
 /// </summary>
 public static class GpuBasicsStories
 {

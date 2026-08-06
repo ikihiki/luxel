@@ -33,7 +33,7 @@ public static partial class DocsAdr
         - **保持型ツリー + SoA** — `RetainedCanvas` がフレーム間で保持するノードツリーを提供し、データを Transform / Style / Clip / Order / Segment に分離して持つ。シェーダが per-path 変換を適用するため**移動 = 変換だけ書込、色変更 = スタイルだけ書込** (ジオメトリ不変)
         - **増分更新は「slot 据え置き、レンジは容量付き」** — Content 差し替えは容量内なら in-place、伸びたら末尾追記、空きが閾値を超えたときだけコンパクション。定常フレームのコストは O(変わったノード)
 
-        現在の姿は [Reference/Guides/TwoD](story:Reference/Guides/TwoD) へ。部分更新量は `LastTransformWrites` 等で観測でき、bench が回帰を監視します。
+        現在の実装を正とします。部分更新量は `LastTransformWrites` 等で観測でき、bench が回帰を監視します。
 
         ## Alternatives
 

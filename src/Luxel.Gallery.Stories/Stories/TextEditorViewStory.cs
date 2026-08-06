@@ -230,7 +230,7 @@ public static class TextEditorViewStory
         Signal<string> md = ctx.Signal("md",
             "# Markdown on the text stack\n" +
             "Rich text via decorations: **bold**, *italic*, `code`.\n" +
-            "See [the docs](story:Reference/Guides/Editor) for links.\n" +
+            "Links are rendered inline with the text.\n" +
             "> A quoted line renders with a left bar.\n" +
             "- first list item\n" +
             "- second list item\n" +
@@ -300,7 +300,7 @@ public static class TextEditorViewStory
             "日本語の段落も混在できます（フォールバックフォント）。\n" +
             "## Features\n" +
             "- **bold**, *italic*, `code`\n" +
-            "- links like [the editor docs](story:Reference/Guides/Editor)\n" +
+            "- inline links\n" +
             "> Blockquotes render with a left bar.\n" +
             "```csharp\n" +
             "var answer = 42;  // syntax colored, selectable\n" +

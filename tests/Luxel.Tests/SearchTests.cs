@@ -10,9 +10,9 @@ public class SearchTests
     private static TreeNode[] Tree() =>
     [
         new("g:Docs", "Docs", [
-            new("Reference/Guides/Button", "Button", [new("Reference/Guides/Button#2", "Variant (形)")],
+            new("Controls/Button/Overview", "Button", [new("Controls/Button/Overview#2", "Variant (形)")],
                 Tag: "story", SearchText: "ボタンの使い方 variant intent"),
-            new("Reference/Guides/GettingStarted", "GettingStarted", Tag: "story", SearchText: "MDX 風 docs ページ"),
+            new("Start/Welcome", "GettingStarted", Tag: "story", SearchText: "MDX 風 docs ページ"),
         ]),
         new("g:Icon", "Icon", [new("Icon/Kinds", "Kinds", Tag: "story")]),
     ];
@@ -21,11 +21,11 @@ public class SearchTests
     public void FilterTree_MatchBySearchText_KeepsAncestors()
     {
         var f = TreeView.FilterTree(Tree(), "variant");
-        // "variant" は Reference/Guides/Button の本文と見出しにヒット — Icon グループは消える
+        // "variant" は Controls/Button/Overview の本文と見出しにヒット — Icon グループは消える
         Assert.Single(f);
         Assert.Equal("g:Docs", f[0].Key);
         Assert.Single(f[0].Children!);
-        Assert.Equal("Reference/Guides/Button", f[0].Children![0].Key);
+        Assert.Equal("Controls/Button/Overview", f[0].Children![0].Key);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class SearchTests
     public void FilterTree_HeadingLabelMatch_KeepsChain()
     {
         var f = TreeView.FilterTree(Tree(), "形");
-        Assert.Equal("Reference/Guides/Button#2", f[0].Children![0].Children![0].Key);
+        Assert.Equal("Controls/Button/Overview#2", f[0].Children![0].Children![0].Key);
     }
 
     [Fact]

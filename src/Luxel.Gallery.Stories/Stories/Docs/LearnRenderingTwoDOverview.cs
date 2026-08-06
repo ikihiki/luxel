@@ -58,6 +58,6 @@ public static partial class DocsRenderingLearn
 
         {{StoryReference.To("Examples/2D/Shapes")}}
 
-        次は[Path、fill、stroke](story:Learn/Graphics/2D/Paths)でcontourの組み立て方を学びます。desktop/headlessの完全なprojectは[HeadlessScene2D](story:Build/Recipes/HeadlessScene2D)をsource recipeとして参照できます。
+        次は[Path、fill、stroke](story:Learn/Graphics/2D/Paths)でcontourの組み立て方を学びます。desktop/headlessの完全なprojectはHeadlessScene2Dをsource recipeとして参照できます。
         """;
 }

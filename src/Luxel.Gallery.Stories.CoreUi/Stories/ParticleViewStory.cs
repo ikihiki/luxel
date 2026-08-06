@@ -11,7 +11,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>
 /// <c>ParticleView</c> ([UiComponent]) のデモ — パーティクルを UI ツリーに直接埋め込み、widget の
 /// <c>AddAnimation</c> Tick で駆動する (ゲームの ECS system 呼び出しに対する UI 埋め込み版)。
-/// play は固定シード + 固定 dt で <c>Step</c> → <c>Snap</c> なので golden 決定的。docs の Reference/Guides/TwoD 参照。
+/// play は固定シード + 固定 dt で <c>Step</c> → <c>Snap</c> なので golden 決定的。
 /// </summary>
 public static class ParticleViewStories
 {
