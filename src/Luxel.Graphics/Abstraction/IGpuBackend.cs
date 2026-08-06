@@ -24,9 +24,8 @@ public interface IGpuBackend : IDisposable
 
     /// <summary>graphics パイプラインを生成する (頂点 + ピクセル)。Vulkan は同一 blob を vs/ps に使える。</summary>
     IGpuBackendPipeline CreateGraphicsPipeline(
-        ReadOnlySpan<byte> vsBlob, string vsEntry,
-        ReadOnlySpan<byte> psBlob, string psEntry,
-        GpuRasterDesc raster);
+        ReadOnlySpan<byte> vsBlob, ReadOnlySpan<byte> psBlob,
+        GpuGraphicsPipelineDesc description);
 
     /// <summary>レンダーターゲット (カラー) テクスチャを生成する。</summary>
     IGpuBackendTexture CreateRenderTarget(uint width, uint height, GpuFormat format);
@@ -93,6 +92,9 @@ public interface IGpuBackendBuffer : IDisposable
 public interface IGpuBackendPipeline : IDisposable
 {
     bool IsCompute { get; }
+    GpuGraphicsPipelineDesc? GraphicsDescription { get; }
+    GpuPipelineDiagnostics Diagnostics { get; }
+    IGpuBackendPipeline ResolveGraphicsVariant(GpuRasterizerState rasterizer, GpuDepthStencilState depthStencil, GpuBlendState blend);
 }
 
 /// <summary>バックエンドのキュー。一過性コマンドバッファの記録開始と投入を行う。</summary>
@@ -138,10 +140,16 @@ public interface IGpuBackendCommandBuffer : IDisposable
 
     /// <summary>graphics パイプラインをバインドする。</summary>
     void SetGraphicsPipeline(IGpuBackendPipeline pipeline);
+    void SetRasterizerState(GpuRasterizerState state);
+    void SetDepthStencilState(GpuDepthStencilState state);
+    void SetStencilReference(uint reference);
+    void SetBlendState(GpuBlendState state);
+    void SetViewport(GpuViewport viewport);
+    void SetScissor(GpuScissorRect scissor);
 
     /// <summary>カラー(+任意で深度)ターゲットへの dynamic rendering を開始し、クリアする。</summary>
     void BeginRendering(IGpuBackendTexture color, IGpuBackendTexture? depth,
-        float r, float g, float b, float a, float clearDepth);
+        float r, float g, float b, float a, float clearDepth, uint clearStencil);
 
     /// <summary>dynamic rendering を終了する。</summary>
     void EndRendering();

@@ -11,6 +11,8 @@ public enum GpuFormat
     Bgra8UnormSrgb,
     R8Unorm,
     Rg8Unorm,
+    /// <summary>Portable combined depth-stencil format. Physical depth precision is backend-defined.</summary>
+    Depth24PlusStencil8,
 }
 
 internal static class GpuFormatInfo
@@ -25,12 +27,15 @@ internal static class GpuFormatInfo
         _ => throw new ArgumentOutOfRangeException(nameof(format)),
     };
 
-    internal static bool IsSampledUpload(GpuFormat format) => format != GpuFormat.D32Float && Enum.IsDefined(format);
+    internal static bool IsSampledUpload(GpuFormat format) => IsColor(format);
 
     internal static bool IsPortableSampled(GpuFormat format) => format is
         GpuFormat.R8Unorm or GpuFormat.Rg8Unorm
         or GpuFormat.Rgba8Unorm or GpuFormat.Bgra8Unorm
         or GpuFormat.Rgba8UnormSrgb or GpuFormat.Bgra8UnormSrgb;
 
-    internal static bool IsColor(GpuFormat format) => format != GpuFormat.D32Float && Enum.IsDefined(format);
+    internal static bool HasDepth(GpuFormat format) => format is GpuFormat.D32Float or GpuFormat.Depth24PlusStencil8;
+    internal static bool HasStencil(GpuFormat format) => format == GpuFormat.Depth24PlusStencil8;
+    internal static bool IsDepthStencilAttachment(GpuFormat format) => HasDepth(format) || HasStencil(format);
+    internal static bool IsColor(GpuFormat format) => Enum.IsDefined(format) && !IsDepthStencilAttachment(format);
 }

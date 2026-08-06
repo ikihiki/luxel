@@ -256,9 +256,17 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         finally { _api.ShaderModuleRelease(module); }
     }
 
-    public IGpuBackendPipeline CreateGraphicsPipeline(ReadOnlySpan<byte> vsBlob, string vsEntry,
-        ReadOnlySpan<byte> psBlob, string psEntry, GpuRasterDesc raster)
+    public IGpuBackendPipeline CreateGraphicsPipeline(ReadOnlySpan<byte> vsBlob, ReadOnlySpan<byte> psBlob,
+        GpuGraphicsPipelineDesc description)
     {
+        byte[] vertex = vsBlob.ToArray(); byte[] pixel = psBlob.ToArray();
+        return new WebGpuPipeline(this, description, key => CreateGraphicsPipelineVariant(vertex, pixel, description, key));
+    }
+
+    private RenderPipeline* CreateGraphicsPipelineVariant(byte[] vsBlob, byte[] psBlob,
+        GpuGraphicsPipelineDesc description, GpuGraphicsPipelineVariantKey key)
+    {
+        string vsEntry = description.VertexEntry; string psEntry = description.PixelEntry;
         ThrowIfDisposed();
         DrainValidationErrors();
         var vs = CreateShaderModule(vsBlob);
@@ -268,26 +276,26 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
             fixed (byte* vsName = Utf8(vsEntry))
             fixed (byte* psName = Utf8(psEntry))
             {
-                var blend = CreateBlend(raster.Blend);
+                var blend = CreateBlend(key.Blend.Mode);
                 var target = new ColorTargetState
                 {
-                    Format = MapFormat(raster.ColorFormat),
-                    Blend = raster.Blend == GpuBlendMode.None ? null : &blend,
+                    Format = MapFormat(key.Attachments.ColorFormat),
+                    Blend = key.Blend.Mode == GpuBlendMode.None ? null : &blend,
                     WriteMask = ColorWriteMask.All,
                 };
                 var fragment = new FragmentState { Module = ps, EntryPoint = psName, TargetCount = 1, Targets = &target };
-                var depth = CreateDepthState(raster);
+                DepthStencilState depth = key.Attachments.DepthStencilFormat is not null ? CreateDepthState(key) : default;
                 var descriptor = new RenderPipelineDescriptor
                 {
                     Layout = _graphicsPipelineLayout,
                     Vertex = new VertexState { Module = vs, EntryPoint = vsName },
                     Primitive = new PrimitiveState
                     {
-                        Topology = raster.Topology == GpuPrimitiveTopology.TriangleStrip ? PrimitiveTopology.TriangleStrip : PrimitiveTopology.TriangleList,
-                        FrontFace = raster.FrontFace == GpuFrontFace.Clockwise ? FrontFace.CW : FrontFace.Ccw,
-                        CullMode = raster.CullMode switch { GpuCullMode.Front => CullMode.Front, GpuCullMode.Back => CullMode.Back, _ => CullMode.None },
+                        Topology = key.Topology == GpuPrimitiveTopology.TriangleStrip ? PrimitiveTopology.TriangleStrip : PrimitiveTopology.TriangleList,
+                        FrontFace = key.Rasterizer.FrontFace == GpuFrontFace.Clockwise ? FrontFace.CW : FrontFace.Ccw,
+                        CullMode = key.Rasterizer.CullMode switch { GpuCullMode.Front => CullMode.Front, GpuCullMode.Back => CullMode.Back, _ => CullMode.None },
                     },
-                    DepthStencil = raster.DepthTest || raster.DepthWrite ? &depth : null,
+                    DepthStencil = key.Attachments.DepthStencilFormat is not null ? &depth : null,
                     Multisample = new MultisampleState { Count = 1, Mask = uint.MaxValue },
                     Fragment = &fragment,
                 };
@@ -295,7 +303,7 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
                 try { ProcessEventsAndThrowValidationErrors("graphics pipeline creation"); }
                 catch { if (pipeline != null) _api.RenderPipelineRelease(pipeline); throw; }
                 if (pipeline == null) throw new InvalidOperationException("Failed to create WebGPU render pipeline. Check WGSL and the fixed ABI.");
-                return new WebGpuPipeline(this, pipeline);
+                return pipeline;
             }
         }
         finally
@@ -724,6 +732,7 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         GpuFormat.Bgra8UnormSrgb => TextureFormat.Bgra8UnormSrgb,
         GpuFormat.R32Float => TextureFormat.R32float,
         GpuFormat.D32Float => TextureFormat.Depth32float,
+        GpuFormat.Depth24PlusStencil8 => TextureFormat.Depth24PlusStencil8,
         _ => throw new ArgumentOutOfRangeException(nameof(format)),
     };
 
@@ -735,15 +744,39 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         }
         : default;
 
-    private static DepthStencilState CreateDepthState(GpuRasterDesc raster) => new()
+    private static DepthStencilState CreateDepthState(GpuGraphicsPipelineVariantKey key) => new()
     {
-        Format = MapFormat(raster.DepthFormat),
-        DepthWriteEnabled = raster.DepthWrite,
-        DepthCompare = raster.DepthTest ? CompareFunction.LessEqual : CompareFunction.Always,
-        StencilFront = new StencilFaceState { Compare = CompareFunction.Always },
-        StencilBack = new StencilFaceState { Compare = CompareFunction.Always },
-        StencilReadMask = uint.MaxValue,
-        StencilWriteMask = uint.MaxValue,
+        Format = MapFormat(key.Attachments.DepthStencilFormat!.Value),
+        DepthWriteEnabled = key.DepthStencil.DepthWrite,
+        DepthCompare = key.DepthStencil.DepthTest ? MapCompare(key.DepthStencil.DepthCompare) : CompareFunction.Always,
+        StencilFront = MapStencilFace(key.DepthStencil.StencilFront),
+        StencilBack = MapStencilFace(key.DepthStencil.StencilBack),
+        StencilReadMask = key.DepthStencil.StencilReadMask,
+        StencilWriteMask = key.DepthStencil.StencilWriteMask,
+    };
+
+    private static CompareFunction MapCompare(GpuCompareOp value) => value switch
+    {
+        GpuCompareOp.Never => CompareFunction.Never, GpuCompareOp.Less => CompareFunction.Less,
+        GpuCompareOp.Equal => CompareFunction.Equal, GpuCompareOp.LessEqual => CompareFunction.LessEqual,
+        GpuCompareOp.Greater => CompareFunction.Greater, GpuCompareOp.NotEqual => CompareFunction.NotEqual,
+        GpuCompareOp.GreaterEqual => CompareFunction.GreaterEqual, _ => CompareFunction.Always,
+    };
+    private static Silk.NET.WebGPU.StencilOperation MapStencilOp(GpuStencilOp value) => value switch
+    {
+        GpuStencilOp.Zero => Silk.NET.WebGPU.StencilOperation.Zero,
+        GpuStencilOp.Replace => Silk.NET.WebGPU.StencilOperation.Replace,
+        GpuStencilOp.IncrementClamp => Silk.NET.WebGPU.StencilOperation.IncrementClamp,
+        GpuStencilOp.DecrementClamp => Silk.NET.WebGPU.StencilOperation.DecrementClamp,
+        GpuStencilOp.Invert => Silk.NET.WebGPU.StencilOperation.Invert,
+        GpuStencilOp.IncrementWrap => Silk.NET.WebGPU.StencilOperation.IncrementWrap,
+        GpuStencilOp.DecrementWrap => Silk.NET.WebGPU.StencilOperation.DecrementWrap,
+        _ => Silk.NET.WebGPU.StencilOperation.Keep,
+    };
+    private static StencilFaceState MapStencilFace(GpuStencilFaceState value) => new()
+    {
+        Compare = MapCompare(value.Compare), FailOp = MapStencilOp(value.FailOp),
+        DepthFailOp = MapStencilOp(value.DepthFailOp), PassOp = MapStencilOp(value.PassOp),
     };
 
     public void Dispose()

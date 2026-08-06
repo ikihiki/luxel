@@ -245,18 +245,24 @@ public sealed unsafe class D3D12Backend : IGpuBackend
     }
 
     public IGpuBackendPipeline CreateGraphicsPipeline(
-        ReadOnlySpan<byte> vsBlob, string vsEntry,
-        ReadOnlySpan<byte> psBlob, string psEntry,
-        GpuRasterDesc raster)
+        ReadOnlySpan<byte> vsBlob, ReadOnlySpan<byte> psBlob, GpuGraphicsPipelineDesc description)
+    {
+        byte[] vertex = vsBlob.ToArray();
+        byte[] pixel = psBlob.ToArray();
+        return new D3D12Pipeline(description, key => CreateGraphicsPipelineVariant(vertex, pixel, key));
+    }
+
+    private ID3D12PipelineState CreateGraphicsPipelineVariant(byte[] vsBlob, byte[] psBlob,
+        GpuGraphicsPipelineVariantKey key)
     {
         RasterizerDescription rasterizer = RasterizerDescription.CullNone;
-        rasterizer.CullMode = raster.CullMode switch
+        rasterizer.CullMode = key.Rasterizer.CullMode switch
         {
             GpuCullMode.Front => CullMode.Front,
             GpuCullMode.Back => CullMode.Back,
             _ => CullMode.None,
         };
-        rasterizer.FrontCounterClockwise = raster.FrontFace == GpuFrontFace.CounterClockwise;
+        rasterizer.FrontCounterClockwise = key.Rasterizer.FrontFace == GpuFrontFace.CounterClockwise;
 
         var psoDesc = new GraphicsPipelineStateDescription
         {
@@ -267,20 +273,16 @@ public sealed unsafe class D3D12Backend : IGpuBackend
             PrimitiveTopologyType = PrimitiveTopologyType.Triangle,
             RasterizerState = rasterizer,
             // NonPremultiplied = straight alpha (SrcAlpha, InvSrcAlpha)。Vulkan 側と一致させる。
-            BlendState = raster.Blend == GpuBlendMode.AlphaBlend
+            BlendState = key.Blend.Mode == GpuBlendMode.AlphaBlend
                 ? BlendDescription.NonPremultiplied : BlendDescription.Opaque,
-            DepthStencilState = raster.DepthTest
-                ? new DepthStencilDescription(true,
-                    raster.DepthWrite ? DepthWriteMask.All : DepthWriteMask.Zero,
-                    ComparisonFunction.LessEqual)
-                : DepthStencilDescription.None,
-            RenderTargetFormats = new[] { ToDxgiFormat(raster.ColorFormat) },
-            DepthStencilFormat = raster.DepthTest ? ToDxgiFormat(raster.DepthFormat) : Format.Unknown,
+            DepthStencilState = CreateDepthStencil(key.DepthStencil),
+            RenderTargetFormats = new[] { ToDxgiFormat(key.Attachments.ColorFormat) },
+            DepthStencilFormat = key.Attachments.DepthStencilFormat is { } depthFormat ? ToDxgiFormat(depthFormat) : Format.Unknown,
             SampleMask = uint.MaxValue,
             SampleDescription = new SampleDescription(1, 0),
         };
         ID3D12PipelineState pso = _device.CreateGraphicsPipelineState(psoDesc);
-        return new D3D12Pipeline(pso, isCompute: false);
+        return pso;
     }
 
     public IGpuBackendTexture CreateRenderTarget(uint width, uint height, GpuFormat format)
@@ -460,7 +462,39 @@ public sealed unsafe class D3D12Backend : IGpuBackend
         GpuFormat.Bgra8UnormSrgb => Format.B8G8R8A8_UNorm_SRgb,
         GpuFormat.R32Float => Format.R32_Float,
         GpuFormat.D32Float => Format.D32_Float,
+        GpuFormat.Depth24PlusStencil8 => Format.D24_UNorm_S8_UInt,
         _ => throw new ArgumentOutOfRangeException(nameof(format)),
+    };
+
+    private static DepthStencilDescription CreateDepthStencil(GpuDepthStencilState state) => new()
+    {
+        DepthEnable = state.DepthTest || state.DepthWrite,
+        DepthWriteMask = state.DepthWrite ? DepthWriteMask.All : DepthWriteMask.Zero,
+        DepthFunc = state.DepthTest ? ToComparison(state.DepthCompare) : ComparisonFunction.Always,
+        StencilEnable = state.StencilTest,
+        StencilReadMask = (byte)state.StencilReadMask,
+        StencilWriteMask = (byte)state.StencilWriteMask,
+        FrontFace = ToStencilFace(state.StencilFront),
+        BackFace = ToStencilFace(state.StencilBack),
+    };
+    private static DepthStencilOperationDescription ToStencilFace(GpuStencilFaceState state) => new(
+        ToStencilOp(state.FailOp), ToStencilOp(state.DepthFailOp), ToStencilOp(state.PassOp), ToComparison(state.Compare));
+    private static ComparisonFunction ToComparison(GpuCompareOp value) => value switch
+    {
+        GpuCompareOp.Never => ComparisonFunction.Never, GpuCompareOp.Less => ComparisonFunction.Less,
+        GpuCompareOp.Equal => ComparisonFunction.Equal, GpuCompareOp.LessEqual => ComparisonFunction.LessEqual,
+        GpuCompareOp.Greater => ComparisonFunction.Greater, GpuCompareOp.NotEqual => ComparisonFunction.NotEqual,
+        GpuCompareOp.GreaterEqual => ComparisonFunction.GreaterEqual, _ => ComparisonFunction.Always,
+    };
+    private static StencilOperation ToStencilOp(GpuStencilOp value) => value switch
+    {
+        GpuStencilOp.Zero => StencilOperation.Zero, GpuStencilOp.Replace => StencilOperation.Replace,
+        GpuStencilOp.IncrementClamp => StencilOperation.IncrementSaturate,
+        GpuStencilOp.DecrementClamp => StencilOperation.DecrementSaturate,
+        GpuStencilOp.Invert => StencilOperation.Invert,
+        GpuStencilOp.IncrementWrap => StencilOperation.Increment,
+        GpuStencilOp.DecrementWrap => StencilOperation.Decrement,
+        _ => StencilOperation.Keep,
     };
 
     private void DumpDebugMessages()

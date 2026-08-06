@@ -351,6 +351,8 @@ public static class PlaygroundTemplates
                         using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
                         command.BeginRendering(surface.ColorTarget, _depth, 0.025f, 0.04f, 0.08f, 1f)
                             .SetGraphicsPipeline(_pipeline!)
+                            .SetRasterizerState(new(GpuCullMode.Back, GpuFrontFace.CounterClockwise))
+                            .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
                             .SetRootArguments(args)
                             .Draw(36)
                             .EndRendering();
@@ -368,11 +370,9 @@ public static class PlaygroundTemplates
                         Vertex[] vertices = BuildCube();
                         _vertices = device.Malloc((ulong)vertices.Length * 32u, GpuMemoryKind.HostMapped);
                         vertices.CopyTo(_vertices.Span<Vertex>(vertices.Length));
-                        var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
-                        raster.DepthTest = true;
-                        raster.DepthWrite = true;
-                        raster.CullMode = GpuCullMode.Back;
-                        _pipeline = device.CreateGraphicsPipeline(_shader, raster);
+                        var description = new GpuGraphicsPipelineDesc(
+                            new GpuAttachmentLayout(GpuFormat.Rgba8Unorm, GpuFormat.D32Float));
+                        _pipeline = device.CreateGraphicsPipeline(_shader, description);
                     }
 
                     private static Vertex[] BuildCube()
