@@ -1,6 +1,0 @@
-<article class="story"><header><p class="static-badge">Static capture — not interactive</p><h1>Examples/RenderGraph/Bloom3D</h1></header><aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside><p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Examples/RenderGraph/Bloom3D&quot;, Height = 320, Order = 132)]
-public static Widget Bloom3D(StoryContext ctx)
-{
-    Signal&lt;float&gt; intensity = ctx.Signal(&quot;intensity&quot;, 0.6f, &quot;bloom 合成の強さ (0 = 無効)&quot;);
-    return Frame(GpuSceneBase.View(256, 256, new Bloom3DScene(intensity)));
-}</code></pre></details></article>
