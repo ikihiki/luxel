@@ -77,8 +77,8 @@ public sealed class BrowserStoryCatalogSourceTests
             ("Examples/Animation/Tween", 300),
             ("Examples/Animation/CssKeyframes", 300),
             ("Examples/Animation/StateMachine", 340),
-            ("Examples/Animation/EcsClip", 320),
-            ("Examples/Animation/Graph", 320),
+            ("Examples/Animation/EcsClip", 300),
+            ("Examples/Animation/Graph", 300),
         ];
         Assert.All(animationStories, expected =>
         {

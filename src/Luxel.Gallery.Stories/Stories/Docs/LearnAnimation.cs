@@ -223,12 +223,12 @@ public static class LearnAnimation
         ```csharp
         var clip = new AnimationClip("move", new TrackBase[]
         {
-            Tracks.Vector3("cube/translation", InterpolationKind.Linear,
+            Tracks.Vector3("marker/translation", InterpolationKind.Linear,
             [
-                new Keyframe<Vector3>(0f, new Vector3(0, 0, 0)),
-                new Keyframe<Vector3>(1f, new Vector3(2, 0, 0)),
+                new Keyframe<Vector3>(0f, new Vector3(20, 48, 0)),
+                new Keyframe<Vector3>(1f, new Vector3(196, 48, 0)),
             ]),
-            Tracks.Float("cube/opacity", InterpolationKind.Linear,
+            Tracks.Float("marker/opacity", InterpolationKind.Linear,
             [
                 new Keyframe<float>(0f, 0f),
                 new Keyframe<float>(1f, 1f),
@@ -252,6 +252,8 @@ public static class LearnAnimation
         ```csharp
         Animate.Clip(clip, target).Play(player, clock);
         ```
+
+        サンプルはclipを`EcsAnimationTarget`へ適用し、更新された`LocalTransform`のtranslationを2D markerとして描くだけに絞っています。3D rendererの準備なしで、clip → path → target → componentという利用手順を確認できます。
 
         {{StoryRef(ctx, "Examples/Animation/EcsClip")}}
 
@@ -340,6 +342,8 @@ public static class LearnAnimation
         ## 時刻とweight
 
         graphも絶対時刻を使い、`(now - StartTime) * TimeScale`をrootへ渡します。non-loopはdurationで終端を評価して`Done=true`、loopはdurationでmoduloします。`Reset(startTimeAbs)`で再開します。
+
+        サンプルは上下移動と左右移動の2つの`Vector2` clipを同じ`dot/position` pathへ出力し、`BlendNode.Weight`で混ぜた結果を2Dの丸として描きます。
 
         {{StoryRef(ctx, "Examples/Animation/Graph")}}
 

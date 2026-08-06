@@ -1,15 +1,11 @@
 using System.Numerics;
-using System.Runtime.InteropServices;
 using Luxel.Animation;
 using Luxel.Animation.ThreeD;
 using Luxel.Animation.TwoD;
 using Luxel.Animation.UI;
-using Luxel.AssetRuntime;
-using Luxel.Assets;
 using Luxel.Ecs;
 using Luxel.Controls;
 using Luxel.Graphics;
-using Luxel.Graphics.RenderGraph;
 using Luxel.Graphics.TwoD;
 using Luxel.Mathematics;
 using Luxel.UI;
@@ -25,15 +21,6 @@ namespace Luxel.Gallery.Stories;
 /// </summary>
 public static class AnimationStories
 {
-    [StructLayout(LayoutKind.Sequential)]
-    private struct DrawArgs
-    {
-        public Matrix4x4 ViewProj;
-        public uint VertexBufIndex;
-        public uint InstanceBufIndex;
-        public uint Pad0, Pad1;
-    }
-
     /// <summary>CoreUI-local adapter for stateful scenes rendered through a browser-safe GpuView.</summary>
     private abstract class AnimationSceneBase : IDisposable
     {
@@ -215,18 +202,75 @@ public static class AnimationStories
             AnimationSceneBase.View(256, 128, scene)]);
     }
 
-    /// <summary>AnimationClip (translation + rotation) を EcsAnimationTarget で
-    /// LocalTransform へ書き、毎フレーム propagate → extract → 描画。</summary>
-    [Story("Examples/Animation/EcsClip", Height = 320, Order = 144, SourceMembers = "EcsClipScene,AnimatedCubeScene,AnimationSceneBase,CubeForwardShader,ShaderResource,DrawArgs")]
-    public static Widget EcsClip() => Frame(AnimationSceneBase.View(256, 256, new EcsClipScene()));
+    /// <summary>AnimationClipをEcsAnimationTarget経由でLocalTransformへ書き、
+    /// ECSの結果を読み取って2D markerとして表示する最小例。</summary>
+    [Story("Examples/Animation/EcsClip", Height = 300, Order = 144)]
+    public static Widget EcsClip()
+    {
+        var world = new Luxel.Ecs.World();
+        var entity = world.Create();
+        world.Set(entity, new LocalTransform(Matrix4x4.Identity));
+        var target = new EcsAnimationTarget(world).Bind("marker", entity);
+        var clip = new AnimationClip("Move", new TrackBase[]
+        {
+            Tracks.Vector3("marker/translation", InterpolationKind.Linear,
+            [
+                new Keyframe<Vector3>(0f, new Vector3(20, 48, 0)),
+                new Keyframe<Vector3>(1f, new Vector3(196, 48, 0)),
+                new Keyframe<Vector3>(2f, new Vector3(20, 48, 0)),
+            ]),
+        });
+        var clock = new ManualClock();
+        var player = new AnimationPlayer();
+        Animate.Clip(clip, target).WithLoop().Play(player, clock);
 
-    /// <summary>AnimationGraph: BlendNode(上下振動, 左右振動)。weight は knob —
-    /// 0 で上下のみ、1 で左右のみ、中間で混合。</summary>
-    [Story("Examples/Animation/Graph", Height = 320, Order = 145, SourceMembers = "GraphScene,AnimatedCubeScene,AnimationSceneBase,CubeForwardShader,ShaderResource,DrawArgs")]
+        return Frame(Canvas2D(256, 128, animate: (scene, time) =>
+        {
+            clock.SetTime(time);
+            player.Update(clock);
+            Matrix4x4.Decompose(world.Get<LocalTransform>(entity).Matrix,
+                out _, out _, out Vector3 position);
+            scene.FillRoundedRect(Color2D.Rgba(55, 60, 72, 255), 20, 54, 196, 4, 2);
+            scene.FillRoundedRect(Color2D.Rgba(70, 180, 120, 255), position.X, position.Y, 40, 24, 6);
+        }));
+    }
+
+    /// <summary>AnimationGraphのBlendNodeで上下clipと左右clipを混ぜる最小2D例。</summary>
+    [Story("Examples/Animation/Graph", Height = 300, Order = 145, SourceMembers = "PositionTarget")]
     public static Widget Graph(StoryContext ctx)
     {
         Signal<float> weight = ctx.Signal("weight", 0.5f, "Blend: 0 = 上下振動, 1 = 左右振動");
-        return Frame(AnimationSceneBase.View(256, 256, new GraphScene(weight)));
+        var target = new PositionTarget();
+        var vertical = new AnimationClip("Vertical", new TrackBase[]
+        {
+            Tracks.Vector2("dot/position", InterpolationKind.Linear,
+            [new(0f, new Vector2(108, 16)), new(0.5f, new Vector2(108, 88)), new(1f, new Vector2(108, 16))]),
+        });
+        var horizontal = new AnimationClip("Horizontal", new TrackBase[]
+        {
+            Tracks.Vector2("dot/position", InterpolationKind.Linear,
+            [new(0f, new Vector2(28, 52)), new(0.5f, new Vector2(188, 52)), new(1f, new Vector2(28, 52))]),
+        });
+        var blend = new BlendNode(new ClipNode(vertical), new ClipNode(horizontal));
+        var graph = new AnimationGraph(blend, target) { Loop = true };
+
+        return Frame(Canvas2D(256, 128, animate: (scene, time) =>
+        {
+            blend.Weight = Math.Clamp(weight.Peek(), 0f, 1f);
+            graph.Tick(time);
+            scene.FillRoundedRect(Color2D.Rgba(55, 60, 72, 255), 24, 62, 184, 4, 2);
+            scene.FillRoundedRect(Color2D.Rgba(165, 110, 235, 255),
+                target.Position.X, target.Position.Y, 24, 24, 12);
+        }));
+    }
+
+    private sealed class PositionTarget : IAnimationTarget
+    {
+        public Vector2 Position { get; private set; }
+        public void Apply(string path, object value)
+        {
+            if (path == "dot/position") Position = (Vector2)value;
+        }
     }
 
     // ---- 2D (RetainedCanvas をオフスクリーンで所有する) シーン ----
@@ -368,99 +412,11 @@ public static class AnimationStories
         }
     }
 
-    // ---- 3D (ECS + AnimationGraph) シーン ----
-
-    /// <summary>キューブ entity 1 個 + clip/graph を毎フレーム評価して描く共通下回り。</summary>
-    private abstract class AnimatedCubeScene : AnimationSceneBase
-    {
-        protected Luxel.Ecs.World World = null!;
-        protected EcsAnimationTarget EcsTarget = null!;
-        private GpuBuffer _vb = null!;
-        private Render3DExtractSystem _extractor = null!;
-        private GpuTexture _depth = null!;
-        private GpuPipeline _pipeline = null!;
-
-        protected override bool RenderEveryFrame => true;
-
-        protected override void OnInit()
-        {
-            World = new Luxel.Ecs.World();
-            var cube = World.Create();
-            World.Set(cube, new LocalTransform(Matrix4x4.CreateScale(0.6f)));
-            World.Set(cube, new Color3D(new Vector4(0.4f, 0.85f, 0.55f, 1f)));
-            World.Set(cube, new MeshRef(MeshRef.Cube));
-            TransformPropagateSystem.Run(World);
-            EcsTarget = new EcsAnimationTarget(World).Bind("cube", cube);
-
-            ReadOnlySpan<CubeMesh.Vertex> verts = CubeMesh.Vertices;
-            _vb = Track(Device.Malloc((ulong)(verts.Length * CubeMesh.VertexStride), GpuMemoryKind.HostMapped));
-            verts.CopyTo(_vb.Span<CubeMesh.Vertex>(verts.Length));
-            _extractor = Track(new Render3DExtractSystem(World, Device));
-            _depth = Track(Device.CreateDepthTarget(W, H));
-            var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
-            raster.DepthTest = true;
-            raster.DepthWrite = true;
-            _pipeline = Track(Device.CreateGraphicsPipeline(CubeForwardShader(), raster));
-            OnSceneInit();
-        }
-
-        protected abstract void OnSceneInit();
-
-        /// <summary>アニメを評価して LocalTransform を更新する (派生が graph/clip を Tick)。</summary>
-        protected abstract void Evaluate(float time);
-
-        protected override void OnRender(float time)
-        {
-            Evaluate(time);
-            TransformPropagateSystem.Run(World);
-            _extractor.Extract();
-
-            Matrix4x4 view = Matrix4x4.CreateLookAt(new Vector3(0f, 1.5f, -3.5f), Vector3.Zero, Vector3.UnitY);
-            Matrix4x4 proj = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 3, 1f, 0.1f, 100f);
-            Matrix4x4 viewProj = view * proj;
-
-            using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);
-            BufferHandle hVerts = rg.ImportBuffer(_vb, "verts");
-            BufferHandle hInsts = rg.ImportBuffer(_extractor.InstanceBuffer, "instances");
-            BufferHandle hRead = rg.ImportBuffer(OutBuffer, "readback");
-            rg.AddPass("Render3D", PassQueue.Graphics)
-              .Read(hVerts).Read(hInsts).Write(hRead, ResourceUsage.CopyDest)
-              .Execute(ctx =>
-              {
-                  var args = new DrawArgs
-                  {
-                      ViewProj = Matrix4x4.Transpose(viewProj),
-                      VertexBufIndex = ctx.BindlessIndex(hVerts),
-                      InstanceBufIndex = ctx.BindlessIndex(hInsts),
-                  };
-                  ctx.Cmd.BeginRendering(Target, _depth, 0.05f, 0.06f, 0.09f, 1f, 1f)
-                         .SetGraphicsPipeline(_pipeline)
-                         .SetRootArguments(args)
-                         .Draw((uint)CubeMesh.VertexCount, (uint)_extractor.InstanceCount)
-                         .EndRendering()
-                         .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
-                         .CopyTextureToBuffer(Target, OutBuffer, StridePixels);
-              });
-            using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-            rg.Execute(cmd);
-            cmd.Finish();
-            Device.MainQueue.Submit(cmd);
-        }
-    }
-
     private static GpuShaderCode RasterShader(string name) => new()
     {
         SpirV = ShaderResource(name + ".spv"),
         Dxil = ShaderResource(name + ".dxil"),
         Wgsl = ShaderResource(name + ".wgsl"),
-    };
-
-    private static GpuShaderCode CubeForwardShader() => new()
-    {
-        SpirV = ShaderResource("cube_forward.spv"),
-        DxilVertex = ShaderResource("cube_forward.vs.dxil"),
-        DxilPixel = ShaderResource("cube_forward.ps.dxil"),
-        Wgsl = ShaderResource("cube_forward.wgsl"),
     };
 
     private static byte[] ShaderResource(string fileName)
@@ -475,76 +431,4 @@ public static class AnimationStories
         return memory.ToArray();
     }
 
-    /// <summary>translation (上下) + rotation (Y 一回転) の AnimationClip をループ評価。</summary>
-    private sealed class EcsClipScene : AnimatedCubeScene
-    {
-        private AnimationGraph _graph = null!;
-        private float _duration;
-
-        protected override void OnSceneInit()
-        {
-            var translation = Tracks.Vector3("cube/translation", InterpolationKind.Linear,
-                new Keyframe<Vector3>[]
-                {
-                    new(0.00f, new Vector3(0, -0.5f, 0)),
-                    new(0.75f, new Vector3(0, +0.8f, 0)),
-                    new(1.50f, new Vector3(0, -0.5f, 0)),
-                });
-            var rotation = Tracks.Quaternion("cube/rotation", InterpolationKind.Linear,
-                new Keyframe<Quaternion>[]
-                {
-                    new(0.00f, Quaternion.Identity),
-                    new(0.50f, Quaternion.CreateFromYawPitchRoll(MathF.PI * 0.66f, 0.2f, 0)),
-                    new(1.00f, Quaternion.CreateFromYawPitchRoll(MathF.PI * 1.33f, 0.4f, 0)),
-                    new(1.50f, Quaternion.CreateFromYawPitchRoll(MathF.PI * 2.00f, 0.6f, 0)),
-                });
-            var clip = new AnimationClip("CubeMotion", new TrackBase[] { translation, rotation });
-            _duration = clip.Duration;
-            _graph = new AnimationGraph(new ClipNode(clip), EcsTarget) { Loop = true };
-        }
-
-        protected override void Evaluate(float time)
-        {
-            _graph.Reset(0f);
-            _graph.Tick(time % _duration);
-        }
-    }
-
-    /// <summary>BlendNode(上下, 左右) — weight knob を毎フレーム反映。</summary>
-    private sealed class GraphScene(Signal<float> weight) : AnimatedCubeScene
-    {
-        private AnimationGraph _graph = null!;
-        private BlendNode _blend = null!;
-
-        protected override void OnSceneInit()
-        {
-            var vertical = new AnimationClip("Vertical", new TrackBase[]
-            {
-                Tracks.Vector3("cube/translation", InterpolationKind.Linear, new Keyframe<Vector3>[]
-                {
-                    new(0.00f, new Vector3(0f, -0.8f, 0f)),
-                    new(0.50f, new Vector3(0f, +0.8f, 0f)),
-                    new(1.00f, new Vector3(0f, -0.8f, 0f)),
-                }),
-            });
-            var horizontal = new AnimationClip("Horizontal", new TrackBase[]
-            {
-                Tracks.Vector3("cube/translation", InterpolationKind.Linear, new Keyframe<Vector3>[]
-                {
-                    new(0.00f, new Vector3(-0.8f, 0f, 0f)),
-                    new(0.50f, new Vector3(+0.8f, 0f, 0f)),
-                    new(1.00f, new Vector3(-0.8f, 0f, 0f)),
-                }),
-            });
-            _blend = new BlendNode(new ClipNode(vertical), new ClipNode(horizontal), weight: 0.5f);
-            _graph = new AnimationGraph(_blend, EcsTarget) { Loop = true };
-        }
-
-        protected override void Evaluate(float time)
-        {
-            _blend.Weight = Math.Clamp(weight.Peek(), 0f, 1f);
-            _graph.Reset(0f);
-            _graph.Tick(time % 1.0f);
-        }
-    }
 }

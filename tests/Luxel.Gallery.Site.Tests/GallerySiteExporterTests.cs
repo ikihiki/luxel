@@ -1439,11 +1439,25 @@ public sealed class GallerySiteExporterTests
         [
             ("Examples/Animation/CssKeyframes", "class CssClipScene"),
             ("Examples/Animation/StateMachine", "class StateMachineScene"),
-            ("Examples/Animation/EcsClip", "class EcsClipScene"),
-            ("Examples/Animation/Graph", "class GraphScene"),
+            ("Examples/Animation/EcsClip", "new EcsAnimationTarget"),
+            ("Examples/Animation/Graph", "class PositionTarget"),
         ];
         foreach ((string path, string helper) in sourceHelpers)
             Assert.Contains(helper, Catalog.Find(path)!.Source);
+
+        string ecsClipSource = Catalog.Find("Examples/Animation/EcsClip")!.Source!;
+        Assert.Contains("Animate.Clip", ecsClipSource);
+        Assert.Contains("new EcsAnimationTarget", ecsClipSource);
+        Assert.Contains("Matrix4x4.Decompose", ecsClipSource);
+        Assert.DoesNotContain("GpuView", ecsClipSource);
+        Assert.DoesNotContain("RenderGraph", ecsClipSource);
+
+        string graphSource = Catalog.Find("Examples/Animation/Graph")!.Source!;
+        Assert.Contains("new BlendNode", graphSource);
+        Assert.Contains("new AnimationGraph", graphSource);
+        Assert.Contains("class PositionTarget", graphSource);
+        Assert.DoesNotContain("GpuView", graphSource);
+        Assert.DoesNotContain("RenderGraph", graphSource);
 
         string timing = pages["Learn/Animation/PlayerAndTiming"].Text;
         foreach (string term in new[] { "絶対時刻", "Play()", "Loop", "TimeScale", "Stop(entry)", "completion" })

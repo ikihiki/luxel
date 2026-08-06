@@ -40,9 +40,7 @@ const animationStories = [
 
 const animationGpuStories = new Set([
   'Examples/Animation/CssKeyframes',
-  'Examples/Animation/StateMachine',
-  'Examples/Animation/EcsClip',
-  'Examples/Animation/Graph'
+  'Examples/Animation/StateMachine'
 ]);
 
 const animationMotionStories = new Set(animationStories.filter(story => story !== 'Examples/Animation/StateMachine'));

@@ -6101,7 +6101,7 @@
     {
       "path": "Examples/Animation/EcsClip",
       "width": 480,
-      "height": 320,
+      "height": 300,
       "args": [],
       "capabilityNote": null,
       "componentType": null
@@ -6109,7 +6109,7 @@
     {
       "path": "Examples/Animation/Graph",
       "width": 480,
-      "height": 320,
+      "height": 300,
       "args": [],
       "capabilityNote": null,
       "componentType": null
