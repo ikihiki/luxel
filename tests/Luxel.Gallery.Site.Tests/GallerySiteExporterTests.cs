@@ -1313,6 +1313,103 @@ public sealed class GallerySiteExporterTests
     }
 
     [Fact]
+    public void Resources_learn_chain_is_complete_ordered_and_implementation_accurate()
+    {
+        string[] orderedRoutes = Catalog.All
+            .Where(story => story.Path.StartsWith("Learn/Resources/", StringComparison.Ordinal))
+            .Select(story => story.Path)
+            .ToArray();
+        Assert.Equal(ResourceCourseCatalog.Routes, orderedRoutes);
+
+        StoryInfo[] stories = ResourceCourseCatalog.Routes.Select(path => Catalog.Find(path)
+            ?? throw new InvalidOperationException($"Resources Learn route is missing: {path}")).ToArray();
+        Dictionary<string, DocsPage> pages = DocsIndex.Build(stories, resources: null, Catalog);
+
+        Assert.Empty(DocsIndex.ValidateLinks(pages, Catalog));
+        for (int i = 0; i < stories.Length; i++)
+        {
+            DocsPage page = pages[stories[i].Path];
+            Assert.Contains("**難易度:**", page.Text);
+            Assert.Contains("**実行環境:**", page.Text);
+            Assert.Contains("**Backend:**", page.Text);
+            Assert.Contains("**前提知識:**", page.Text);
+            Assert.True(page.Headings.Count >= 3, $"Resources page needs multiple sections: {page.Path}");
+            Assert.Equal(i == 0 ? "resources.pipeline" : null, stories[i].SampleBundle);
+            if (i > 0) Assert.Contains("story:" + stories[i - 1].Path, page.Text);
+            if (i + 1 < stories.Length) Assert.Contains("story:" + stories[i + 1].Path, page.Text);
+        }
+
+        string overview = pages["Learn/Resources/Overview"].Text;
+        Assert.DoesNotContain("story:Learn/Audio/", overview);
+        foreach (string term in new[] { "ResourceSystem", "ResourceHandle<T>", "IResourceSource", "IResourceStep<TIn,TOut>", "ResourceScope", "RenderGraph" })
+            Assert.Contains(term, overview);
+
+        string loading = pages["Learn/Resources/LoadingAndHandles"].Text;
+        foreach (string term in new[] { "BuiltinSources()", "BuiltinSteps()", "TexDecoder", "Ready", "HasValue", "LastReloadError", "Dispose" })
+            Assert.Contains(term, loading);
+        Assert.Contains("PNG/JPEG", loading);
+        Assert.Contains("追加登録", loading);
+
+        string sources = pages["Learn/Resources/SourcesAndUris"].Text;
+        foreach (string term in new[] { "ResourceUri", "Schemes", "ReadAsync()", "Watch()", "IVirtualFileSystem", "WorkspaceSource" })
+            Assert.Contains(term, sources);
+
+        string steps = pages["Learn/Resources/Steps"].Text;
+        foreach (string term in new[] { "IResourceStep<byte[], TextAsset>", "Executor.Io", "Executor.Cpu", "Executor.External", "Extensions", "FragmentPatterns", "RunAsync()", "LoadContext", "MarkOwned()" })
+            Assert.Contains(term, steps);
+        Assert.DoesNotContain("Executor.Gpu", steps);
+
+        string registration = pages["Learn/Resources/RegistrationAndComposition"].Text;
+        foreach (string term in new[] { "AddSource()", "AddStep()", "AddStep<byte[], TextAsset>", "reflection", "出力型", "最短chain" })
+            Assert.Contains(term, registration);
+
+        string dag = pages["Learn/Resources/PipelinesAndDag"].Text;
+        foreach (string term in new[] { "LoadContext.Load<T>()", "ctx.Require", "dependency edge", "RenderGraph DAG", "連鎖eviction" })
+            Assert.Contains(term, dag);
+
+        string scope = pages["Learn/Resources/ScopesAndOwnership"].Text;
+        foreach (string term in new[] { "ResourceScope", "scope.Create()", "ResourceOwnership", "Owned", "Borrowed", "MarkBorrowed()" })
+            Assert.Contains(term, scope);
+        Assert.Contains("`Publish(uri, value)`の既定は`Owned`", scope);
+
+        string reload = pages["Learn/Resources/ReloadAndLifetime"].Text;
+        foreach (string term in new[] { "Watchはロード前", "Republish", "InvalidateAll", "last-good-value", "Pump()", "SetDeferredDisposeIdleHook()" })
+            Assert.Contains(term, reload);
+
+        Assert.Null(Catalog.Find("Learn/Assets/Overview"));
+        Assert.Null(Catalog.Find("Learn/Assets/GltfRuntime"));
+
+        string assetOverview = pages["Learn/Resources/Assets/Overview"].Text;
+        foreach (string term in new[] { "Luxel.Assets", "AssetDocument", "Luxel.AssetsGpu", "Luxel.AssetRuntime", "2つの利用経路" })
+            Assert.Contains(term, assetOverview);
+
+        string assetTypes = pages["Learn/Resources/Assets/TypesAndRelationships"].Text;
+        foreach (string term in new[] { "AssetMesh", "AssetPrimitive", "AssetMaterial", "AssetTexture", "AssetSkin", "AssetAnimation", "AssetCamera", "AssetLight" })
+            Assert.Contains(term, assetTypes);
+        Assert.Contains("metallic-roughness texture（B=metallic、G=roughness）", assetTypes);
+        Assert.Contains("現在の`scene_pbr_tex`", assetTypes);
+
+        string assetLoading = pages["Learn/Resources/Assets/LoadingAndGpu"].Text;
+        foreach (string term in new[] { "GltfStep", "InstallAssetGpuLifecycle()", "AssetGpuRegistry", "scope.Create<AssetMesh, GpuMesh>", "SceneAssetsStep", "GltfBufferStep", "MaterialTextureStep", "DrawableCollector" })
+            Assert.Contains(term, assetLoading);
+
+        string assetShader = pages["Learn/Resources/Assets/ShaderCalculations"].Text;
+        foreach (string term in new[]
+                 {
+                     "通常vertex | 32B", "skinned vertex | 56B", "instance | 80B", "material | 32B",
+                     "joint matrix | 64B", "morph delta | 24B", "0xFFFFFFFF", "MaterialGpuData.FlagHasTexture",
+                     "full PBRではなく", "inverseBindMatrix[j] * jointWorld[j]", "position += Σ weight[target]",
+                 })
+            Assert.Contains(term, assetShader);
+        Assert.Contains("non-uniform scale", assetShader);
+
+        string assetRuntime = pages["Learn/Resources/Assets/GltfRuntime"].Text;
+        foreach (string term in new[] { "SceneAnimationPlayer.Sample", "TransformPropagateSystem.Run", "SkinningSystem.Run", "MorphWeights", "scene_pbr_skinned", "scene_pbr_morph" })
+            Assert.Contains(term, assetRuntime);
+        Assert.Contains("Weights channelのlinear / step", assetRuntime);
+    }
+
+    [Fact]
     public void RenderGraph_learn_chain_is_ordered_and_linked()
     {
         string[] routes = RenderingCourseCatalog.Routes[^6..];
@@ -1941,7 +2038,9 @@ public sealed class GallerySiteExporterTests
     {
         string[] routes =
         [
-            "Learn/Assets/Overview", "Learn/Assets/GltfRuntime",
+            "Learn/Resources/Assets/Overview", "Learn/Resources/Assets/TypesAndRelationships",
+            "Learn/Resources/Assets/LoadingAndGpu", "Learn/Resources/Assets/ShaderCalculations",
+            "Learn/Resources/Assets/GltfRuntime",
             "Learn/ECSPhysics/Overview", "Learn/ECSPhysics/CollisionsAndGizmos",
             "Learn/AnimationParticles/Overview", "Learn/AnimationParticles/GraphsAndEmitters",
             "Learn/Scripting/Overview", "Learn/Scripting/ReloadAndIsolation",
