@@ -96,9 +96,52 @@ public static class AnimationStories
         }
     }
 
+    /// <summary>すべての組み込みcurveと主要presetを同じ入力時刻で比較する。</summary>
+    [Story("Examples/Animation/Curves", Height = 720, Order = 140)]
+    public static Widget Curves()
+    {
+        (string Name, ICurve Curve, uint Color)[] curves =
+        [
+            ("Linear", LinearCurve.Instance, Color2D.Rgba(70, 150, 245, 255)),
+            ("Bezier Ease", CubicBezierCurve.Ease, Color2D.Rgba(72, 190, 150, 255)),
+            ("Bezier EaseIn", CubicBezierCurve.EaseIn, Color2D.Rgba(245, 170, 55, 255)),
+            ("Bezier EaseOut", CubicBezierCurve.EaseOut, Color2D.Rgba(235, 105, 95, 255)),
+            ("Bezier EaseInOut", CubicBezierCurve.EaseInOut, Color2D.Rgba(165, 110, 235, 255)),
+            ("OutCubic", OutCubicCurve.Instance, Color2D.Rgba(50, 190, 220, 255)),
+            ("InOutCubic", InOutCubicCurve.Instance, Color2D.Rgba(220, 90, 170, 255)),
+            ("Steps JumpStart", new StepsCurve(5, StepPosition.JumpStart), Color2D.Rgba(135, 190, 70, 255)),
+            ("Steps JumpEnd", new StepsCurve(5, StepPosition.JumpEnd), Color2D.Rgba(100, 175, 85, 255)),
+            ("Steps JumpBoth", new StepsCurve(5, StepPosition.JumpBoth), Color2D.Rgba(80, 160, 110, 255)),
+            ("Steps JumpNone", new StepsCurve(5, StepPosition.JumpNone), Color2D.Rgba(65, 145, 135, 255)),
+            ("Spring underdamped", new SpringCurve(damping: 10f), Color2D.Rgba(245, 115, 65, 255)),
+            ("Spring critical", new SpringCurve(damping: 2f * MathF.Sqrt(170f)), Color2D.Rgba(235, 145, 65, 255)),
+            ("Spring overdamped", new SpringCurve(damping: 50f), Color2D.Rgba(210, 175, 70, 255)),
+        ];
+
+        Widget Row(string name, ICurve curve, uint color) => HStack(10)[
+            Text(name, 12),
+            Canvas2D(300, 28, animate: (scene, time) =>
+            {
+                float phase = time % 2.4f / 1.2f;
+                float input = phase <= 1f ? phase : 2f - phase;
+                float output = curve.Eval(input);
+                // -0.2..1.3をtrack全幅へ写し、springのovershootを端でclampせず見せる。
+                float x = 20f + (output + 0.2f) / 1.5f * 250f;
+                scene.FillRoundedRect(Color2D.Rgba(55, 60, 72, 255), 18, 12, 254, 4, 2);
+                scene.FillRoundedRect(color, x - 7, 6, 14, 16, 5);
+            })];
+
+        var rows = new List<Widget>
+        {
+            Text("同じ0→1→0入力に対する位置の変化。Springはovershoot、Stepsはjump位置の差を表示します。", 12),
+        };
+        rows.AddRange(curves.Select(item => Row(item.Name, item.Curve, item.Color)));
+        return Frame(VStack(7)[rows.ToArray()]);
+    }
+
     /// <summary>コード DSL: Sequence(Parallel(slide+fade), Parallel(slide+fade))。
     /// Signal へ SignalAnimationTarget 経由で書き、ループ毎に Play し直す。</summary>
-    [Story("Examples/Animation/Tween", Height = 300, Order = 140)]
+    [Story("Examples/Animation/Tween", Height = 300, Order = 141)]
     public static Widget Tween()
     {
         var xA = new Signal<float>(-150f);
@@ -142,12 +185,12 @@ public static class AnimationStories
     }
 
     /// <summary>CSS @keyframes → AnimationClip → RetainedCanvas ノードへ適用 (ループ再生)。</summary>
-    [Story("Examples/Animation/CssKeyframes", Height = 300, Order = 141)]
+    [Story("Examples/Animation/CssKeyframes", Height = 300, Order = 142, SourceMembers = "CssClipScene,AnimationSceneBase,RasterShader,ShaderResource")]
     public static Widget CssKeyframes(StoryContext ctx) => ctx.Snap(Frame(AnimationSceneBase.View(256, 128, new CssClipScene())));
 
     /// <summary>StateMachine (idle ⇄ jump、crossfade 0.15s)。ボタンで Trigger を送る —
     /// press でジャンプ (黄)、done で idle (青) へ戻る。</summary>
-    [Story("Examples/Animation/StateMachine", Height = 340, Order = 142)]
+    [Story("Examples/Animation/StateMachine", Height = 340, Order = 143, SourceMembers = "StateMachineScene,AnimationSceneBase,RasterShader,ShaderResource")]
     public static Widget StateMachineDemo(StoryContext ctx)
     {
         var scene = new StateMachineScene();
@@ -160,12 +203,12 @@ public static class AnimationStories
 
     /// <summary>AnimationClip (translation + rotation) を EcsAnimationTarget で
     /// LocalTransform へ書き、毎フレーム propagate → extract → 描画。</summary>
-    [Story("Examples/Animation/EcsClip", Height = 320, Order = 143)]
+    [Story("Examples/Animation/EcsClip", Height = 320, Order = 144, SourceMembers = "EcsClipScene,AnimatedCubeScene,AnimationSceneBase,CubeForwardShader,ShaderResource,DrawArgs")]
     public static Widget EcsClip() => Frame(AnimationSceneBase.View(256, 256, new EcsClipScene()));
 
     /// <summary>AnimationGraph: BlendNode(上下振動, 左右振動)。weight は knob —
     /// 0 で上下のみ、1 で左右のみ、中間で混合。</summary>
-    [Story("Examples/Animation/Graph", Height = 320, Order = 144)]
+    [Story("Examples/Animation/Graph", Height = 320, Order = 145, SourceMembers = "GraphScene,AnimatedCubeScene,AnimationSceneBase,CubeForwardShader,ShaderResource,DrawArgs")]
     public static Widget Graph(StoryContext ctx)
     {
         Signal<float> weight = ctx.Signal("weight", 0.5f, "Blend: 0 = 上下振動, 1 = 左右振動");

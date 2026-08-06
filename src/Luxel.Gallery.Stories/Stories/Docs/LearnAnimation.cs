@@ -77,6 +77,12 @@ public static class LearnAnimation
         | `StepsCurve` | 段階的な値 |
         | `SpringCurve` | overshootを含むspring応答 |
 
+        下のサンプルは同じ往復時刻を全curveへ入力します。Bezier presetの加減速、4種類の`StepPosition`のjump位置、springのunderdamped / critical / overdampedを同時に比較できます。
+
+        {{StoryRef(ctx, "Examples/Animation/Curves")}}
+
+        この比較には`StepsCurve`の`JumpStart` / `JumpEnd` / `JumpBoth` / `JumpNone`と、`SpringCurve`のunderdamped / critical / overdamped設定を含みます。
+
         ```csharp
         ICurve curve = CubicBezierCurve.EaseInOut;
         float progress = curve.Eval(0.5f);

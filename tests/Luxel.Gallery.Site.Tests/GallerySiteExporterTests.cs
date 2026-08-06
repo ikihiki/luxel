@@ -1405,6 +1405,7 @@ public sealed class GallerySiteExporterTests
 
         (string Page, string Sample)[] references =
         [
+            ("Learn/Animation/CurvesAndTweens", "Examples/Animation/Curves"),
             ("Learn/Animation/SequenceAndParallel", "Examples/Animation/Tween"),
             ("Learn/Animation/ClipsAndTracks", "Examples/Animation/EcsClip"),
             ("Learn/Animation/GraphsAndBlending", "Examples/Animation/Graph"),
@@ -1427,6 +1428,22 @@ public sealed class GallerySiteExporterTests
         string overview = pages["Learn/Animation/Overview"].Text;
         foreach (string term in new[] { "ICurve", "ITween<T>", "AnimationPlayer", "AnimationClip", "AnimationGraph", "StateMachine", "ParticleSystem" })
             Assert.Contains(term, overview);
+
+        string curves = pages["Learn/Animation/CurvesAndTweens"].Text;
+        foreach (string term in new[] { "JumpStart", "JumpEnd", "JumpBoth", "JumpNone", "underdamped", "critical", "overdamped" })
+            Assert.Contains(term, curves);
+        Assert.Contains(BuildSemanticDocument(Catalog.Find("Learn/Animation/CurvesAndTweens")!)!.DocumentEmbeds,
+            embed => embed.Kind == DocEmbedKind.StoryRef && embed.Reference == "Examples/Animation/Curves");
+
+        (string Path, string Helper)[] sourceHelpers =
+        [
+            ("Examples/Animation/CssKeyframes", "class CssClipScene"),
+            ("Examples/Animation/StateMachine", "class StateMachineScene"),
+            ("Examples/Animation/EcsClip", "class EcsClipScene"),
+            ("Examples/Animation/Graph", "class GraphScene"),
+        ];
+        foreach ((string path, string helper) in sourceHelpers)
+            Assert.Contains(helper, Catalog.Find(path)!.Source);
 
         string timing = pages["Learn/Animation/PlayerAndTiming"].Text;
         foreach (string term in new[] { "絶対時刻", "Play()", "Loop", "TimeScale", "Stop(entry)", "completion" })

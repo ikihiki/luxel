@@ -73,6 +73,7 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.All(pipelineStories, path => Assert.Contains(path, runtimePaths));
         (string Path, int Height)[] animationStories =
         [
+            ("Examples/Animation/Curves", 720),
             ("Examples/Animation/Tween", 300),
             ("Examples/Animation/CssKeyframes", 300),
             ("Examples/Animation/StateMachine", 340),

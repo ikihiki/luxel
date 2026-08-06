@@ -30,6 +30,7 @@ const pipelineStateStories = [
 ];
 
 const animationStories = [
+  'Examples/Animation/Curves',
   'Examples/Animation/Tween',
   'Examples/Animation/CssKeyframes',
   'Examples/Animation/StateMachine',
@@ -37,7 +38,14 @@ const animationStories = [
   'Examples/Animation/Graph'
 ];
 
-const animationGpuStories = new Set(animationStories.filter(story => story !== 'Examples/Animation/Tween'));
+const animationGpuStories = new Set([
+  'Examples/Animation/CssKeyframes',
+  'Examples/Animation/StateMachine',
+  'Examples/Animation/EcsClip',
+  'Examples/Animation/Graph'
+]);
+
+const animationMotionStories = new Set(animationStories.filter(story => story !== 'Examples/Animation/StateMachine'));
 
 function collectErrors(page) {
   const consoleErrors = [];
@@ -99,10 +107,51 @@ for (const story of animationStories) {
         globalThis.luxelBrowserState?.widgets?.find(widget => widget.type?.endsWith('.GpuView'))?.detail || ''),
         { timeout: 90_000 }).toContain('Ready');
     }
+    if (animationMotionStories.has(story)) {
+      const canvas = page.locator('#luxel-canvas');
+      const firstRevision = await page.evaluate(() => globalThis.luxelBrowserState.renderRevision);
+      await expect.poll(() => page.evaluate(() => globalThis.luxelBrowserState.renderRevision),
+        { timeout: 30_000 }).toBeGreaterThan(firstRevision + 2);
+      const before = await canvas.screenshot();
+      const secondRevision = await page.evaluate(() => globalThis.luxelBrowserState.renderRevision);
+      await expect.poll(() => page.evaluate(() => globalThis.luxelBrowserState.renderRevision),
+        { timeout: 30_000 }).toBeGreaterThan(secondRevision + 2);
+      const after = await canvas.screenshot();
+      expect(before.equals(after), `${story} should visibly animate`).toBe(false);
+    }
     expect(errors.consoleErrors).toEqual([]);
     expect(errors.pageErrors).toEqual([]);
   });
 }
+
+test('browser-WASM StateMachine responds to press and done triggers', async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto(`/samples/webgpu-browser/?story=${encodeURIComponent('Examples/Animation/StateMachine')}`);
+  await expectRuntimeStory(page, 'Examples/Animation/StateMachine');
+
+  const canvas = page.locator('#luxel-canvas');
+  const idle = await canvas.screenshot();
+  const press = await page.evaluate(() => globalThis.luxelBrowserState.widgets
+    .find(widget => widget.type?.endsWith('.Button') && widget.detail === 'press'));
+  expect(press).toBeTruthy();
+  await page.mouse.click(press.x + press.width / 2, press.y + press.height / 2);
+  const pressRevision = await page.evaluate(() => globalThis.luxelBrowserState.renderRevision);
+  await expect.poll(() => page.evaluate(() => globalThis.luxelBrowserState.renderRevision),
+    { timeout: 30_000 }).toBeGreaterThan(pressRevision + 2);
+  const jumping = await canvas.screenshot();
+  expect(idle.equals(jumping), 'press should change the StateMachine rendering').toBe(false);
+
+  const done = await page.evaluate(() => globalThis.luxelBrowserState.widgets
+    .find(widget => widget.type?.endsWith('.Button') && widget.detail === 'done'));
+  expect(done).toBeTruthy();
+  await page.mouse.click(done.x + done.width / 2, done.y + done.height / 2);
+  await expect.poll(() => page.evaluate(() => globalThis.luxelBrowserState.events
+    .filter(entry => String(entry.message || entry).includes('done')).length),
+    { timeout: 30_000 }).toBeGreaterThan(0);
+
+  expect(errors.consoleErrors).toEqual([]);
+  expect(errors.pageErrors).toEqual([]);
+});
 
 test('exported 2D overview boots its browser-WASM live samples through iframes', async ({ page }) => {
   const errors = collectErrors(page);
@@ -126,11 +175,11 @@ test('exported 2D overview boots its browser-WASM live samples through iframes',
 
 test('exported Animation lesson boots its browser-WASM live sample through an iframe', async ({ page }) => {
   const errors = collectErrors(page);
-  await page.goto('/index.html#story=Learn%2FAnimation%2FSequenceAndParallel');
+  await page.goto('/index.html#story=Learn%2FAnimation%2FCurvesAndTweens');
 
-  const frame = page.locator('iframe[data-luxel-runtime-story="Examples/Animation/Tween"]');
+  const frame = page.locator('iframe[data-luxel-runtime-story="Examples/Animation/Curves"]');
   await expect(frame).toBeVisible();
-  await expectRuntimeStory(frame.contentFrame(), 'Examples/Animation/Tween');
+  await expectRuntimeStory(frame.contentFrame(), 'Examples/Animation/Curves');
 
   expect(errors.consoleErrors).toEqual([]);
   expect(errors.pageErrors).toEqual([]);
