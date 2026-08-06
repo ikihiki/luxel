@@ -27,7 +27,7 @@ skiaScene.Render(Camera2D.Pixels, cpuTarget);
 <h2 id="api">APIの契約と注意点</h2>
 <p>GPUは<code>GpuCommandRecording</code>、<code>BindlessImages</code>、<code>RetainedIncrementalUpdates</code>を提供し、Skiaは<code>CpuRgbaTarget</code>を提供します。image shapeはSkia非対応なので、backend比較にはvector-only sceneを使います。sessionをrasterizerより先にdisposeし、同じrasterizerを複数threadから同時使用しません。</p>
 <aside class="capture-unavailable" data-capture-status="unavailable"><strong>Static capture unavailable</strong><pre>Static preview was skipped because this export uses existing golden images only.</pre></aside>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Backends&quot;, Order = 14, Toc = true)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Backends&quot;, Order = 17, Toc = true)]
     public static StoryResult Backends() =&gt; Page(&quot;Learn/Graphics/2D/Backends&quot;, &quot;GPUとSkia backend&quot;,
         &quot;同じScene2DをGPUとSkiaで描画し、targetとcapabilityの違いを説明する。&quot;,
         &quot;描画内容は`Scene2D`、backend選択は`IRasterizer2D`、出力先は`IRasterTarget2D`へ分かれます。GPUはcommandへ記録し、SkiaはCPU RGBAへ同期描画します。サンプルは両方の結果を`GpuView`で並べますが、Skia側の`GpuView`はCPU結果を表示するtransportであり、rasterize自体はSkiaです。&quot;,

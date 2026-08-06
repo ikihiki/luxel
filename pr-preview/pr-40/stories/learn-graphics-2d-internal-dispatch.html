@@ -25,7 +25,7 @@
 <p>各passのproducer writeがbarrier後のconsumer readから可視で、scratch rangeがdispatch量を満たす。</p>
 <h2 id="correctness">Correctnessと失敗時の確認</h2>
 <p>bounds/bin/fineの順序、compute barrier、target transition、rasterizerの直列使用を確認します。browserでは同期waitを使いません。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Internal/Dispatch&quot;, Order = 24, Toc = true)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/2D/Internal/Dispatch&quot;, Order = 27, Toc = true)]
 public static StoryResult Dispatch() =&gt; Page(&quot;Learn/Graphics/2D/Internal/Dispatch&quot;, &quot;Dispatchとbarrier&quot;, &quot;bounds → bin → fine&quot;,
     &quot;scene buffers、scratch capacity、target&quot;, &quot;完了したRGBA target&quot;,
     &quot;各passのproducer writeがbarrier後のconsumer readから可視で、scratch rangeがdispatch量を満たす。&quot;,

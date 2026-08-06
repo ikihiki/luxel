@@ -75,7 +75,7 @@ graph.AddPass(&quot;CopyScene&quot;, PassQueue.Graphics)
 <p>callbackで使うresourceを宣言しなければ、graphは依存を認識できません。同じpass内でrender後にcopyするなど複数stageを使う場合、そのpass内部の順序とbarrierはcallback側の責任です。</p>
 <h2 id="queue">現在の実行順とqueue</h2>
 <p>現在は依存からtopological sortせず、<strong>passの登録順で実行</strong>します。producerをconsumerより先に登録してください。<code>PassQueue.Graphics</code>と<code>PassQueue.Compute</code>は分類と診断に使われますが、どちらも<code>device.MainQueue</code>で実行されます。<code>AsyncCompute</code>を並列実行の契約として扱わないでください。</p>
-<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/RenderGraph/Passes&quot;, Order = 29, Toc = true)]
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">[Story(&quot;Learn/Graphics/RenderGraph/Passes&quot;, Order = 32, Toc = true)]
 public static StoryResult Passes(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     # パスと依存関係
 
