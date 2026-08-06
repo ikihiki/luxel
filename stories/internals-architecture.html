@@ -33,7 +33,7 @@ gpu --&gt; vk(Luxel.Graphics.Vulkan)
 gpu --&gt; dx(Luxel.Graphics.DirectX12)
 gpu --&gt; wgpu[Luxel.Graphics.WebGPU — native opt-in target]</pre>
 <h2 id="gpu">GPU 土台</h2>
-<p><code>Luxel.Graphics</code> が GpuDevice / resource / argument block / pass / dependency の portable semantics を提供し、各 backend が native mechanism へ lower します。Vulkan と DirectX 12 は bindless heap、GPUVA、push/root constants、native barrier を fast path として維持し、native WebGPU は logical refs、fixed bind groups、frame-local argument ring、pass/encoder segmentation を使う明示 opt-in backend として加える方針です。shader package は entry/metadata と SPIR-V / DXIL / portable WGSL artifact を束ねます。詳細は <a href="#story=Reference%2FGuides%2FWebGPU">Reference/Guides/WebGPU</a> へ。</p>
+<p><code>Luxel.Graphics</code> が GpuDevice / resource / argument block / pass / dependency の portable semantics を提供し、各 backend が native mechanism へ lower します。Vulkan と DirectX 12 は bindless heap、GPUVA、push/root constants、native barrier を fast path として維持し、native WebGPU は logical refs、fixed bind groups、frame-local argument ring、pass/encoder segmentation を使う明示 opt-in backend として加える方針です。shader package は entry/metadata と SPIR-V / DXIL / portable WGSL artifact を束ねます。native WebGPU は明示 opt-in backend として扱います。</p>
 <h2 id="d">2D とテキスト</h2>
 <p><code>Luxel.Graphics.TwoD</code>はbackend-neutralな2D契約、computeベースのGPUベクターラスタライザ、保持型キャンバスを提供します。<code>Luxel.Typography</code>はGPU非依存のHarfBuzzシェーピング + 自前TextLayout、<code>Luxel.Typography.TwoD</code>はScene2D描画adapter、<code>Luxel.Typography.Icu</code>はICUセグメンタを提供します。</p>
 <h2 id="ui">UI とコントロール</h2>
@@ -160,7 +160,7 @@ public static StoryResult Architecture(StoryContext ctx)
 
     ## GPU 土台
 
-    `Luxel.Graphics` が GpuDevice / resource / argument block / pass / dependency の portable semantics を提供し、各 backend が native mechanism へ lower します。Vulkan と DirectX 12 は bindless heap、GPUVA、push/root constants、native barrier を fast path として維持し、native WebGPU は logical refs、fixed bind groups、frame-local argument ring、pass/encoder segmentation を使う明示 opt-in backend として加える方針です。shader package は entry/metadata と SPIR-V / DXIL / portable WGSL artifact を束ねます。詳細は [Reference/Guides/WebGPU](story:Reference/Guides/WebGPU) へ。
+    `Luxel.Graphics` が GpuDevice / resource / argument block / pass / dependency の portable semantics を提供し、各 backend が native mechanism へ lower します。Vulkan と DirectX 12 は bindless heap、GPUVA、push/root constants、native barrier を fast path として維持し、native WebGPU は logical refs、fixed bind groups、frame-local argument ring、pass/encoder segmentation を使う明示 opt-in backend として加える方針です。shader package は entry/metadata と SPIR-V / DXIL / portable WGSL artifact を束ねます。native WebGPU は明示 opt-in backend として扱います。
 
     ## 2D とテキスト
 

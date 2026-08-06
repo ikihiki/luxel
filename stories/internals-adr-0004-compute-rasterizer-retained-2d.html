@@ -28,7 +28,7 @@
 <li><strong>保持型ツリー + SoA</strong> — <code>RetainedCanvas</code> がフレーム間で保持するノードツリーを提供し、データを Transform / Style / Clip / Order / Segment に分離して持つ。シェーダが per-path 変換を適用するため<strong>移動 = 変換だけ書込、色変更 = スタイルだけ書込</strong> (ジオメトリ不変)</li>
 <li><strong>増分更新は「slot 据え置き、レンジは容量付き」</strong> — Content 差し替えは容量内なら in-place、伸びたら末尾追記、空きが閾値を超えたときだけコンパクション。定常フレームのコストは O(変わったノード)</li>
 </ul>
-<p>現在の姿は <a href="#story=Reference%2FGuides%2FTwoD">Reference/Guides/TwoD</a> へ。部分更新量は <code>LastTransformWrites</code> 等で観測でき、bench が回帰を監視します。</p>
+<p>現在の実装を正とします。部分更新量は <code>LastTransformWrites</code> 等で観測でき、bench が回帰を監視します。</p>
 <h2 id="alternatives">Alternatives</h2>
 <ul>
 <li><strong>Skia を製品描画経路に採用</strong> — 実績は最大だが、レンダラが自前 GPU 抽象の外にあり bindless 経路・vk/dx ピクセル一致・部分更新の観測に載らない → 製品経路としては却下。ただし <strong>CPU リファレンスバックエンド (Luxel.Graphics.TwoD.Skia) として検証用に併用</strong>する</li>
@@ -72,7 +72,7 @@ public static StoryResult Adr0004(StoryContext ctx) =&gt; $$&quot;&quot;&quot;
     - **保持型ツリー + SoA** — `RetainedCanvas` がフレーム間で保持するノードツリーを提供し、データを Transform / Style / Clip / Order / Segment に分離して持つ。シェーダが per-path 変換を適用するため**移動 = 変換だけ書込、色変更 = スタイルだけ書込** (ジオメトリ不変)
     - **増分更新は「slot 据え置き、レンジは容量付き」** — Content 差し替えは容量内なら in-place、伸びたら末尾追記、空きが閾値を超えたときだけコンパクション。定常フレームのコストは O(変わったノード)
 
-    現在の姿は [Reference/Guides/TwoD](story:Reference/Guides/TwoD) へ。部分更新量は `LastTransformWrites` 等で観測でき、bench が回帰を監視します。
+    現在の実装を正とします。部分更新量は `LastTransformWrites` 等で観測でき、bench が回帰を監視します。
 
     ## Alternatives
 
