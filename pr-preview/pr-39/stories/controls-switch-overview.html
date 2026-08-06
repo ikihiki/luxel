@@ -1,0 +1,161 @@
+<article class="story document-page"><h1 id="switch">Switch</h1>
+<p>オン/オフ トグル。状態=signal、つまみは transform スライド (部分更新)。Space/Enter で切替。 スタイルは [UiParam] な Bindable`1 フィールド。Tailwind の checked: は On(WidgetState.Checked, Bg(...))。未設定はテーマ (on ? Primary : SurfaceAlt) にフォールバック。</p>
+<section class="runtime-story runtime-story-embedded" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Controls/Switch/Overview#ref-0" data-luxel-runtime-story="Controls/Switch/Basic" data-luxel-runtime-instance="controls-switch-basic-4facb15ccbff" data-luxel-runtime-args="{&quot;background&quot;:&quot;#feeadb&quot;,&quot;hAlign&quot;:&quot;Start&quot;,&quot;height&quot;:&quot;96&quot;,&quot;knobColor&quot;:&quot;#feeadb&quot;,&quot;opacity&quot;:1,&quot;rotate&quot;:0,&quot;scaleX&quot;:1,&quot;scaleY&quot;:1,&quot;translateX&quot;:0,&quot;translateY&quot;:0,&quot;vAlign&quot;:&quot;Start&quot;,&quot;width&quot;:&quot;240&quot;}" data-luxel-runtime-schema="[
+  {
+    &quot;name&quot;: &quot;background&quot;,
+    &quot;type&quot;: &quot;color&quot;,
+    &quot;defaultValue&quot;: &quot;#feeadb&quot;,
+    &quot;description&quot;: &quot;\u30C8\u30E9\u30C3\u30AF\u8272\u3002\u672A\u8A2D\u5B9A \u2192 on ? Primary : SurfaceAlt\u3002&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;knobColor&quot;,
+    &quot;type&quot;: &quot;color&quot;,
+    &quot;defaultValue&quot;: &quot;#feeadb&quot;,
+    &quot;description&quot;: &quot;\u3064\u307E\u307F\u8272\u3002\u672A\u8A2D\u5B9A \u2192 \u30C6\u30FC\u30DE OnAccent\u3002&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;opacity&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 1,
+    &quot;description&quot;: &quot;Opacity component parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;hAlign&quot;,
+    &quot;type&quot;: &quot;enum:Start|Center|End|Stretch&quot;,
+    &quot;defaultValue&quot;: &quot;Start&quot;,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: [
+      &quot;Start&quot;,
+      &quot;Center&quot;,
+      &quot;End&quot;,
+      &quot;Stretch&quot;
+    ]
+  },
+  {
+    &quot;name&quot;: &quot;vAlign&quot;,
+    &quot;type&quot;: &quot;enum:Start|Center|End|Stretch&quot;,
+    &quot;defaultValue&quot;: &quot;Start&quot;,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: [
+      &quot;Start&quot;,
+      &quot;Center&quot;,
+      &quot;End&quot;,
+      &quot;Stretch&quot;
+    ]
+  },
+  {
+    &quot;name&quot;: &quot;width&quot;,
+    &quot;type&quot;: &quot;length&quot;,
+    &quot;defaultValue&quot;: &quot;240&quot;,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;height&quot;,
+    &quot;type&quot;: &quot;length&quot;,
+    &quot;defaultValue&quot;: &quot;96&quot;,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;translateX&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 0,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;translateY&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 0,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;scaleX&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 1,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;scaleY&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 1,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;rotate&quot;,
+    &quot;type&quot;: &quot;float&quot;,
+    &quot;defaultValue&quot;: 0,
+    &quot;description&quot;: &quot;Inherited layout parameter.&quot;,
+    &quot;order&quot;: 1000,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  }
+]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Controls%2FSwitch%2FBasic&amp;args=%7B%22background%22%3A%22%23feeadb%22%2C%22hAlign%22%3A%22Start%22%2C%22height%22%3A%2296%22%2C%22knobColor%22%3A%22%23feeadb%22%2C%22opacity%22%3A1%2C%22rotate%22%3A0%2C%22scaleX%22%3A1%2C%22scaleY%22%3A1%2C%22translateX%22%3A0%2C%22translateY%22%3A0%2C%22vAlign%22%3A%22Start%22%2C%22width%22%3A%22240%22%7D&amp;instance=controls-switch-basic-4facb15ccbff" data-luxel-runtime-story="Controls/Switch/Basic" data-luxel-runtime-instance="controls-switch-basic-4facb15ccbff" title="Interactive Basic" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="controls-switch-basic-4facb15ccbff-args-tab" aria-controls="controls-switch-basic-4facb15ccbff-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="controls-switch-basic-4facb15ccbff-output-tab" aria-controls="controls-switch-basic-4facb15ccbff-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="controls-switch-basic-4facb15ccbff-source-tab" aria-controls="controls-switch-basic-4facb15ccbff-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="controls-switch-basic-4facb15ccbff-args-panel" role="tabpanel" aria-labelledby="controls-switch-basic-4facb15ccbff-args-tab"><table class="args-table"><thead><tr><th scope="col">Name</th><th scope="col">Control</th><th scope="col">Default</th><th scope="col">Description</th><th scope="col">Constraints</th><th scope="col">Reset</th></tr></thead><tbody><tr data-arg-row="background"><th scope="row"><code>background</code></th><td><div class="arg-color"><label class="visually-hidden" for="controls-switch-basic-4facb15ccbff-arg-background">background</label><input id="controls-switch-basic-4facb15ccbff-arg-background" data-arg-control="background" type="color" value="#feeadb"><label class="visually-hidden" for="controls-switch-basic-4facb15ccbff-arg-background-text">background color text</label><input id="controls-switch-basic-4facb15ccbff-arg-background-text" data-arg-control="background" data-color-text type="text" value="#feeadb" pattern="#[0-9a-fA-F]{6}"></div></td><td><code>#feeadb</code></td><td>トラック色。未設定 → on ? Primary : SurfaceAlt。</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="background">Reset <span class="visually-hidden">background</span></button></td></tr><tr data-arg-row="hAlign"><th scope="row"><code>hAlign</code></th><td><label class="visually-hidden" for="controls-switch-basic-4facb15ccbff-arg-halign">hAlign</label><select id="controls-switch-basic-4facb15ccbff-arg-halign" data-arg-control="hAlign"><option value="Start" selected>Start</option><option value="Center">Center</option><option value="End">End</option><option value="Stretch">Stretch</option></select></td><td><code>Start</code></td><td>Inherited layout parameter.</td><td>Start | Center | End | Stretch</td><td><button type="button" class="arg-reset" data-arg-reset="hAlign">Reset <span class="visually-hidden">hAlign</span></button></td></tr><tr data-arg-row="height"><th scope="row"><code>height</code></th><td><label class="visually-hidden" for="controls-switch-basic-4facb15ccbff-arg-height">height</label><input id="controls-switch-basic-4facb15ccbff-arg-height" data-arg-control="height" type="text" value="96" inputmode="decimal" placeholder="e.g. 120px or 50%"></td><td><code>96</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="height">Reset <span class="visually-hidden">height</span></button></td></tr><tr data-arg-row="knobColor"><th scope="row"><code>knobColor</code></th><td><div class="arg-color"><label class="visually-hidden" for="controls-switch-basic-4facb15ccbff-arg-knobcolor">knobColor</label><input id="controls-switch-basic-4facb15ccbff-arg-knobcolor" data-arg-control="knobColor" type="color" value="#feeadb"><label class="visually-hidden" for="controls-switch-basic-4facb15ccbff-arg-knobcolor-text">knobColor color text</label><input id="controls-switch-basic-4facb15ccbff-arg-knobcolor-text" data-arg-control="knobColor" data-color-text type="text" value="#feeadb" pattern="#[0-9a-fA-F]{6}"></div></td><td><code>#feeadb</code></td><td>つまみ色。未設定 → テーマ OnAccent。</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="knobColor">Reset <span class="visually-hidden">knobColor</span></button></td></tr><tr data-arg-row="opacity"><th scope="row"><code>opacity</code></th><td><label class="visually-hidden" for="controls-switch-basic-4facb15ccbff-arg-opacity">opacity</label><input id="controls-switch-basic-4facb15ccbff-arg-opacity" data-arg-control="opacity" type="number" value="1"></td><td><code>1</code></td><td>Opacity component parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="opacity">Reset <span class="visually-hidden">opacity</span></button></td></tr><tr data-arg-row="rotate"><th scope="row"><code>rotate</code></th><td><label class="visually-hidden" for="controls-switch-basic-4facb15ccbff-arg-rotate">rotate</label><input id="controls-switch-basic-4facb15ccbff-arg-rotate" data-arg-control="rotate" type="number" value="0"></td><td><code>0</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="rotate">Reset <span class="visually-hidden">rotate</span></button></td></tr><tr data-arg-row="scaleX"><th scope="row"><code>scaleX</code></th><td><label class="visually-hidden" for="controls-switch-basic-4facb15ccbff-arg-scalex">scaleX</label><input id="controls-switch-basic-4facb15ccbff-arg-scalex" data-arg-control="scaleX" type="number" value="1"></td><td><code>1</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="scaleX">Reset <span class="visually-hidden">scaleX</span></button></td></tr><tr data-arg-row="scaleY"><th scope="row"><code>scaleY</code></th><td><label class="visually-hidden" for="controls-switch-basic-4facb15ccbff-arg-scaley">scaleY</label><input id="controls-switch-basic-4facb15ccbff-arg-scaley" data-arg-control="scaleY" type="number" value="1"></td><td><code>1</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="scaleY">Reset <span class="visually-hidden">scaleY</span></button></td></tr><tr data-arg-row="translateX"><th scope="row"><code>translateX</code></th><td><label class="visually-hidden" for="controls-switch-basic-4facb15ccbff-arg-translatex">translateX</label><input id="controls-switch-basic-4facb15ccbff-arg-translatex" data-arg-control="translateX" type="number" value="0"></td><td><code>0</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="translateX">Reset <span class="visually-hidden">translateX</span></button></td></tr><tr data-arg-row="translateY"><th scope="row"><code>translateY</code></th><td><label class="visually-hidden" for="controls-switch-basic-4facb15ccbff-arg-translatey">translateY</label><input id="controls-switch-basic-4facb15ccbff-arg-translatey" data-arg-control="translateY" type="number" value="0"></td><td><code>0</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="translateY">Reset <span class="visually-hidden">translateY</span></button></td></tr><tr data-arg-row="vAlign"><th scope="row"><code>vAlign</code></th><td><label class="visually-hidden" for="controls-switch-basic-4facb15ccbff-arg-valign">vAlign</label><select id="controls-switch-basic-4facb15ccbff-arg-valign" data-arg-control="vAlign"><option value="Start" selected>Start</option><option value="Center">Center</option><option value="End">End</option><option value="Stretch">Stretch</option></select></td><td><code>Start</code></td><td>Inherited layout parameter.</td><td>Start | Center | End | Stretch</td><td><button type="button" class="arg-reset" data-arg-reset="vAlign">Reset <span class="visually-hidden">vAlign</span></button></td></tr><tr data-arg-row="width"><th scope="row"><code>width</code></th><td><label class="visually-hidden" for="controls-switch-basic-4facb15ccbff-arg-width">width</label><input id="controls-switch-basic-4facb15ccbff-arg-width" data-arg-control="width" type="text" value="240" inputmode="decimal" placeholder="e.g. 120px or 50%"></td><td><code>240</code></td><td>Inherited layout parameter.</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="width">Reset <span class="visually-hidden">width</span></button></td></tr></tbody></table><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="controls-switch-basic-4facb15ccbff-output-panel" role="tabpanel" aria-labelledby="controls-switch-basic-4facb15ccbff-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="controls-switch-basic-4facb15ccbff-source-panel" role="tabpanel" aria-labelledby="controls-switch-basic-4facb15ccbff-source-tab" hidden><pre><code class="language-csharp">Generated direct typed factory for global::Luxel.Controls.Switch</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section>
+<h2 id="implementation">Implementation</h2>
+<pre><code class="language-csharp">Switch(background: 0xffdbeafeu, knobColor: 0xffdbeafeu, opacity: 1f)
+</code></pre>
+<h2 id="patterns-and-variants">Patterns and variants</h2>
+<ul>
+<li>Basic typed factory usage</li>
+<li>Representative editable scalar args</li>
+<li>Inherited layout args: width, height, alignment and transforms when supported</li>
+<li>Deterministic browser fixture/fallback for capability inputs</li>
+</ul>
+<h2 id="events-parameters-and-api">Events, parameters and API</h2>
+<p><strong>Events:</strong> No declared events</p>
+<p><strong>Component parameters:</strong> <code>On</code>, <code>Background</code>, <code>KnobColor</code>, <code>Opacity</code></p>
+<p>See <code>ControlApiRegistry</code> / the generated API table for the complete inherited API.</p>
+<p class="sample-level gallery-only">GalleryOnly — this Story source requires the Gallery harness.</p><details class="story-source"><summary>Story source</summary><pre><code class="language-csharp">Generated overview for global::Luxel.Controls.Switch</code></pre></details></article>

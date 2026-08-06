@@ -1,0 +1,40 @@
+<article class="story runtime-page"><section class="runtime-story" data-runtime-kind="webgpu-browser-v1" data-luxel-runtime-location="Controls/Button/Playground#top" data-luxel-runtime-story="Controls/Button/Playground" data-luxel-runtime-instance="controls-button-playground-f27444924039" data-luxel-runtime-args="{&quot;disabled&quot;:false,&quot;text&quot;:&quot;Click me&quot;,&quot;variant&quot;:&quot;Filled&quot;}" data-luxel-runtime-schema="[
+  {
+    &quot;name&quot;: &quot;text&quot;,
+    &quot;type&quot;: &quot;string&quot;,
+    &quot;defaultValue&quot;: &quot;Click me&quot;,
+    &quot;description&quot;: &quot;Button label&quot;,
+    &quot;order&quot;: 10,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  },
+  {
+    &quot;name&quot;: &quot;variant&quot;,
+    &quot;type&quot;: &quot;enum:Filled|Tonal|Outline|Ghost&quot;,
+    &quot;defaultValue&quot;: &quot;Filled&quot;,
+    &quot;description&quot;: &quot;Visual variant&quot;,
+    &quot;order&quot;: 20,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: [
+      &quot;Filled&quot;,
+      &quot;Tonal&quot;,
+      &quot;Outline&quot;,
+      &quot;Ghost&quot;
+    ]
+  },
+  {
+    &quot;name&quot;: &quot;disabled&quot;,
+    &quot;type&quot;: &quot;bool&quot;,
+    &quot;defaultValue&quot;: false,
+    &quot;description&quot;: &quot;Disable interaction&quot;,
+    &quot;order&quot;: 30,
+    &quot;min&quot;: null,
+    &quot;max&quot;: null,
+    &quot;step&quot;: null,
+    &quot;options&quot;: null
+  }
+]" data-luxel-runtime-revision="0"><div class="runtime-frame"><iframe src="samples/webgpu-browser/?story=Controls%2FButton%2FPlayground&amp;args=%7B%22disabled%22%3Afalse%2C%22text%22%3A%22Click%20me%22%2C%22variant%22%3A%22Filled%22%7D&amp;instance=controls-button-playground-f27444924039" data-luxel-runtime-story="Controls/Button/Playground" data-luxel-runtime-instance="controls-button-playground-f27444924039" title="Interactive Controls/Button/Playground" loading="eager" allow="webgpu; clipboard-read; clipboard-write"></iframe></div><div class="runtime-panels" style="--runtime-panel-height:180px"><div class="runtime-panel-resizer" role="separator" aria-label="Resize story panels" aria-orientation="horizontal" aria-valuemin="96" aria-valuemax="520" aria-valuenow="180" tabindex="0" data-runtime-panel-resizer></div><div class="runtime-tabs" role="tablist" aria-label="Story controls, output, and source"><button type="button" role="tab" id="controls-button-playground-f27444924039-args-tab" aria-controls="controls-button-playground-f27444924039-args-panel" aria-selected="true" data-runtime-tab="args">Args</button><button type="button" role="tab" id="controls-button-playground-f27444924039-output-tab" aria-controls="controls-button-playground-f27444924039-output-panel" aria-selected="false" tabindex="-1" data-runtime-tab="output">Output <span class="output-count" data-output-count>0</span></button><button type="button" role="tab" id="controls-button-playground-f27444924039-source-tab" aria-controls="controls-button-playground-f27444924039-source-panel" aria-selected="false" tabindex="-1" data-runtime-tab="source">Source</button></div><section class="args-panel" id="controls-button-playground-f27444924039-args-panel" role="tabpanel" aria-labelledby="controls-button-playground-f27444924039-args-tab"><table class="args-table"><thead><tr><th scope="col">Name</th><th scope="col">Control</th><th scope="col">Default</th><th scope="col">Description</th><th scope="col">Constraints</th><th scope="col">Reset</th></tr></thead><tbody><tr data-arg-row="text"><th scope="row"><code>text</code></th><td><label class="visually-hidden" for="controls-button-playground-f27444924039-arg-text">text</label><input id="controls-button-playground-f27444924039-arg-text" data-arg-control="text" type="text" value="Click me"></td><td><code>Click me</code></td><td>Button label</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="text">Reset <span class="visually-hidden">text</span></button></td></tr><tr data-arg-row="variant"><th scope="row"><code>variant</code></th><td><label class="visually-hidden" for="controls-button-playground-f27444924039-arg-variant">variant</label><select id="controls-button-playground-f27444924039-arg-variant" data-arg-control="variant"><option value="Filled" selected>Filled</option><option value="Tonal">Tonal</option><option value="Outline">Outline</option><option value="Ghost">Ghost</option></select></td><td><code>Filled</code></td><td>Visual variant</td><td>Filled | Tonal | Outline | Ghost</td><td><button type="button" class="arg-reset" data-arg-reset="variant">Reset <span class="visually-hidden">variant</span></button></td></tr><tr data-arg-row="disabled"><th scope="row"><code>disabled</code></th><td><label class="visually-hidden" for="controls-button-playground-f27444924039-arg-disabled">disabled</label><input id="controls-button-playground-f27444924039-arg-disabled" data-arg-control="disabled" type="checkbox"></td><td><code>False</code></td><td>Disable interaction</td><td></td><td><button type="button" class="arg-reset" data-arg-reset="disabled">Reset <span class="visually-hidden">disabled</span></button></td></tr></tbody></table><p class="args-status" role="status" aria-live="polite"></p></section><section class="output-panel" id="controls-button-playground-f27444924039-output-panel" role="tabpanel" aria-labelledby="controls-button-playground-f27444924039-output-tab" hidden><ol class="output-list" aria-live="polite"><li class="output-empty">No events have been emitted.</li></ol></section><section class="source-panel" id="controls-button-playground-f27444924039-source-panel" role="tabpanel" aria-labelledby="controls-button-playground-f27444924039-source-tab" hidden><pre><code class="language-csharp">[ComponentStory(typeof(Luxel.Controls.Button), &quot;Controls/Button/Playground&quot;, Factory = typeof(Kit),&#10;    Template = nameof(Template), Height = 160)]&#10;[ComponentArg(nameof(Luxel.Controls.Button.Text), &quot;Click me&quot;, Description = &quot;Button label&quot;, Order = 10)]&#10;[ComponentArg(nameof(Luxel.Controls.Button.Variant), Variant.Filled, Description = &quot;Visual variant&quot;, Order = 20)]&#10;[ComponentArg(&quot;Disabled&quot;, false, Apply = nameof(ApplyDisabled), Description = &quot;Disable interaction&quot;, Order = 30)]&#10;internal static class ButtonPlaygroundStory&#10;{&#10;    internal static void ApplyDisabled(Button button, bool disabled) =&gt; button.Enabled = !disabled;&#10;&#10;    internal static Widget Template(Button button) =&gt; Frame(button);&#10;}</code></pre></section></div><p class="runtime-status" role="status" aria-live="polite">Loading interactive story…</p></section></article>
