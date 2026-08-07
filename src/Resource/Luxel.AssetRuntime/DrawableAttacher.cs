@@ -1,4 +1,4 @@
-﻿using Luxel.Assets;
+using Luxel.Assets;
 using Luxel.Ecs;
 using Luxel.Resources;
 
@@ -13,11 +13,11 @@ public static class DrawableAttacher
 {
     public static void AttachMesh(Luxel.Ecs.World world, SceneAssets assets, ResourceSystem resources, string assetUri)
     {
-        // Primitive → 登場順 index (fragment URI 用) を作る
-        var primIdx = new Dictionary<AssetPrimitive, int>();
-        int idx = 0;
-        foreach (var (_, prims) in assets.MeshPrimitives)
-            foreach (var p in prims) primIdx[p] = idx++;
+        // SceneBuilder/Resource step と同じ authoritative order を使う。
+        // Dictionary の列挙順から別 index 空間を再構築しない。
+        var primIdx = new Dictionary<AssetPrimitive, int>(ReferenceEqualityComparer.Instance);
+        for (int i = 0; i < assets.OrderedPrimitives.Count; i++)
+            primIdx[assets.OrderedPrimitives[i]] = i;
 
         var pending = new List<Task>();
         var queue = new List<(Friflo.Engine.ECS.Entity Entity,

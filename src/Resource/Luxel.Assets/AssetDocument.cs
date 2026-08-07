@@ -1,4 +1,4 @@
-﻿namespace Luxel.Assets;
+namespace Luxel.Assets;
 
 /// <summary>
 /// 一括ロード (glTF/.glb/MMD 等) の結果を保持するコレクション。
@@ -7,6 +7,30 @@
 /// </summary>
 public sealed class AssetDocument
 {
+    private readonly Lazy<AssetDocumentIndexTable> _indices;
+
+    public AssetDocument()
+    {
+        _indices = new Lazy<AssetDocumentIndexTable>(() => new AssetDocumentIndexTable(this));
+    }
+
+    /// <summary>
+    /// direct reference と安定 typed index を相互変換する document 固有テーブル。
+    /// </summary>
+    public AssetDocumentIndexTable Indices => _indices.Value;
+
+    public AssetDocumentHandle<AssetNodeIndex> GetHandle(AssetNode value) => new(this, Indices.GetIndex(value));
+    public AssetDocumentHandle<AssetMeshIndex> GetHandle(AssetMesh value) => new(this, Indices.GetIndex(value));
+    public AssetDocumentHandle<AssetPrimitiveIndex> GetHandle(AssetPrimitive value) => new(this, Indices.GetIndex(value));
+    public AssetDocumentHandle<AssetMaterialIndex> GetHandle(AssetMaterial value) => new(this, Indices.GetIndex(value));
+    public AssetDocumentHandle<AssetTextureIndex> GetHandle(AssetTexture value) => new(this, Indices.GetIndex(value));
+    public AssetDocumentHandle<AssetSamplerIndex> GetHandle(AssetSampler value) => new(this, Indices.GetIndex(value));
+    public AssetDocumentHandle<AssetSkinIndex> GetHandle(AssetSkin value) => new(this, Indices.GetIndex(value));
+    public AssetDocumentHandle<AssetAnimationIndex> GetHandle(AssetAnimation value) => new(this, Indices.GetIndex(value));
+    public AssetDocumentHandle<AssetCameraIndex> GetHandle(AssetCamera value) => new(this, Indices.GetIndex(value));
+    public AssetDocumentHandle<AssetLightIndex> GetHandle(AssetLight value) => new(this, Indices.GetIndex(value));
+    public AssetDocumentHandle<AssetSceneIndex> GetHandle(AssetScene value) => new(this, Indices.GetIndex(value));
+
     /// <summary>ロードされた全 mesh。</summary>
     public List<AssetMesh> Meshes { get; } = new();
     /// <summary>ロードされた全マテリアル。</summary>

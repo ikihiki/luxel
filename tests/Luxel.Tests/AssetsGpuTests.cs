@@ -11,7 +11,7 @@ namespace Luxel.Tests;
 /// <see cref="Luxel.AssetsGpu"/> の型 shape と logic をチェックする軽量テスト。
 /// GPU device を必要としない部分のみ (upload 系は sample で実 GPU 検証)。
 /// </summary>
-public class AssetsGpuTests
+public partial class AssetsGpuTests
 {
     [Fact]
     public void GpuMaterial_EncodesBaseColorFactor()

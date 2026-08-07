@@ -12,7 +12,10 @@ public sealed class AssetTextureToGpuStep(AssetGpuRegistry registry)
 {
     public Executor Executor => Executor.External;
     public Task<GpuTexture> RunAsync(AssetTexture input, ResourceUri uri, LoadContext ctx)
-        => Task.FromResult(registry.Register(input));
+    {
+        ctx.MarkBorrowed();
+        return Task.FromResult(registry.Register(input));
+    }
 }
 
 /// <summary><see cref="AssetSampler"/> → <see cref="GpuSampler"/> (Registry 経由)。</summary>
@@ -21,7 +24,10 @@ public sealed class AssetSamplerToGpuStep(AssetGpuRegistry registry)
 {
     public Executor Executor => Executor.External;
     public Task<GpuSampler> RunAsync(AssetSampler input, ResourceUri uri, LoadContext ctx)
-        => Task.FromResult(registry.Register(input));
+    {
+        ctx.MarkBorrowed();
+        return Task.FromResult(registry.Register(input));
+    }
 }
 
 /// <summary><see cref="AssetMaterial"/> → <see cref="GpuMaterial"/> (Registry 経由、
@@ -31,7 +37,10 @@ public sealed class AssetMaterialToGpuStep(AssetGpuRegistry registry)
 {
     public Executor Executor => Executor.External;
     public Task<GpuMaterial> RunAsync(AssetMaterial input, ResourceUri uri, LoadContext ctx)
-        => Task.FromResult(registry.Register(input));
+    {
+        ctx.MarkBorrowed();
+        return Task.FromResult(registry.Register(input));
+    }
 }
 
 /// <summary><see cref="AssetMesh"/> → <see cref="GpuMesh"/> (Registry 経由、primitive の Material も再帰)。</summary>
@@ -40,7 +49,10 @@ public sealed class AssetMeshToGpuStep(AssetGpuRegistry registry)
 {
     public Executor Executor => Executor.External;
     public Task<GpuMesh> RunAsync(AssetMesh input, ResourceUri uri, LoadContext ctx)
-        => Task.FromResult(registry.Register(input));
+    {
+        ctx.MarkBorrowed();
+        return Task.FromResult(registry.Register(input));
+    }
 }
 
 /// <summary><see cref="AssetSkin"/> → <see cref="GpuSkin"/> (Registry 経由)。</summary>
@@ -49,5 +61,8 @@ public sealed class AssetSkinToGpuStep(AssetGpuRegistry registry)
 {
     public Executor Executor => Executor.External;
     public Task<GpuSkin> RunAsync(AssetSkin input, ResourceUri uri, LoadContext ctx)
-        => Task.FromResult(registry.Register(input));
+    {
+        ctx.MarkBorrowed();
+        return Task.FromResult(registry.Register(input));
+    }
 }
