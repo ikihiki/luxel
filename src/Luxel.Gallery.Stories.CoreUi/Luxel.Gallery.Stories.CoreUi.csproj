@@ -47,5 +47,7 @@
     <EmbeddedResource Include="..\..\shaders\compiled\raster2d_bin.*" Link="Shaders\%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\shaders\compiled\raster2d_fine.*" Link="Shaders\%(Filename)%(Extension)" />
     <InternalsVisibleTo Include="Luxel.Gallery.Site.Tests" />
+    <InternalsVisibleTo Include="Luxel.Gallery.Stories" />
+    <InternalsVisibleTo Include="Luxel.Gallery.Stories.Gltf" />
   </ItemGroup>
 </Project>

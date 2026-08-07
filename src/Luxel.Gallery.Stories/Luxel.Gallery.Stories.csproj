@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Stories.CoreUi\Luxel.Gallery.Stories.CoreUi.csproj" />
+    <ProjectReference Include="..\Luxel.Gallery.Stories.Gltf\Luxel.Gallery.Stories.Gltf.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Playground\Luxel.Gallery.Playground.csproj" />
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
   </ItemGroup>
@@ -104,9 +105,6 @@
     <InternalsVisibleTo Include="Luxel.Gallery.Rendering" />
     <InternalsVisibleTo Include="Luxel.Gallery.Host" />
   </ItemGroup>
-
-  <!-- Static glTF beginner story fixture. Gallery単体buildでも取得・hash検証する。 -->
-  <Import Project="..\..\assets\Luxel.KhronosBox.targets" />
 
   <!-- Learn pages quote these real sample files; LogicalName makes lookup independent of cwd/publish layout. -->
   <ItemGroup>

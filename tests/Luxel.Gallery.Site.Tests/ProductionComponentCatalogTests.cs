@@ -46,6 +46,33 @@ public sealed class ProductionComponentCatalogTests
     }
 
     [Fact]
+    public void Full_catalog_composes_GLTF_routes_without_leaking_them_into_CoreUi_runtime_catalog()
+    {
+        string[] gltfPaths =
+        [
+            "Examples/3D/GltfBox",
+            "Examples/3D/GltfAnimated",
+            "Examples/3D/GltfSkinned",
+            "Examples/3D/GltfMorph",
+        ];
+
+        StoryCatalog gltfCatalog = GltfStoryProject.CreateCatalog();
+        StoryCatalog fullCatalog = GalleryStoryProject.CreateCatalog();
+        StoryCatalog coreUiCatalog = CoreUiStoryProject.CreateCatalog();
+        HashSet<string> runtimePaths = CoreUiStoryProject.RuntimeStories(coreUiCatalog)
+            .Select(story => story.Path)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Equal(gltfPaths.Order(StringComparer.Ordinal), gltfCatalog.All.Select(story => story.Path).Order(StringComparer.Ordinal));
+        Assert.All(gltfPaths, path => Assert.NotNull(fullCatalog.Find(path)));
+        Assert.All(gltfPaths, path => Assert.Null(coreUiCatalog.Find(path)));
+        Assert.All(gltfPaths, path => Assert.DoesNotContain(path, runtimePaths));
+        Assert.DoesNotContain(
+            typeof(CoreUiStoryProject).Assembly.GetReferencedAssemblies(),
+            reference => reference.Name == "Luxel.Gltf");
+    }
+
+    [Fact]
     public void Exact_authored_override_replaces_only_generated_fallback_and_preserves_canonical_metadata()
     {
         StoryInfo generated = Assert.IsType<StoryInfo>(CoreUiStoryProject.CreateCatalog().Find("Controls/Button/Basic"));

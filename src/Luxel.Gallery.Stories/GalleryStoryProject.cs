@@ -10,6 +10,8 @@ public static class GalleryStoryProject
         ArgumentNullException.ThrowIfNull(builder);
         CoreUiStoryProject.Register(builder);
 
+        GltfStoryProject.Register(builder);
+
         var fullBuilder = new StoryCatalogBuilder();
         Luxel.Gallery.Generated.StoryRegistration_Luxel_Gallery_Stories.Register(fullBuilder);
         Stories.DocsApi.RegisterReferenceStories(fullBuilder);

@@ -23,7 +23,7 @@
     <Content Include="Assets\monaco\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <!-- Luxel.Gallery.Stories owns the shared Khronos Box acquisition target. Importing it here as well lets
+  <!-- Luxel.Gallery.Stories.Gltf owns the shared Khronos Box acquisition target. Importing it here as well lets
        parallel solution builds race while downloading the same cache files. -->
   <Import Project="..\..\assets\Luxel.FontAssets.targets" />
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />
