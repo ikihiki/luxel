@@ -115,6 +115,21 @@ test('Blazor Gallery renders generated Markdown overviews as HTML with navigatio
   await search.fill('Accordion');
   await expect(page.locator('.story-link')).toHaveCount(2);
   await expect(page.locator('.story-link')).toContainText(['Overview', 'Basic']);
+
+  await page.locator('.story-link[title="Controls/Accordion/Basic"]').click();
+  await expect(page).toHaveURL(/story=Controls%2FAccordion%2FBasic/);
+  await expect(search).toHaveValue('Accordion');
+  await expect(page.locator('.story-toolbar h1')).toHaveText('Basic');
+  await expect(page.locator('.gallery-sidebar')).toBeVisible();
+  const runtime = page.frameLocator('.story-runtime-frame');
+  await expect(runtime.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
+  await expect(runtime.locator('#status')).toHaveAttribute('data-story', 'Controls/Accordion/Basic');
+
+  await page.goBack();
+  await expect(page).toHaveURL(/story=Controls%2FAccordion%2FOverview/);
+  await expect(search).toHaveValue('Accordion');
+  await expect(page.locator('.markdown-document h1')).toHaveText('Accordion');
+
   await search.fill('no-such-luxel-story');
   await expect(page.locator('.empty-search')).toBeVisible();
 

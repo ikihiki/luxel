@@ -23,6 +23,10 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("BrowserGalleryApplication.RunAsync(Services, story, argsJson)", app, StringComparison.Ordinal);
         Assert.Contains("class=\"gallery-sidebar\"", app, StringComparison.Ordinal);
         Assert.Contains("placeholder=\"Search stories\"", app, StringComparison.Ordinal);
+        Assert.Contains("Navigation.NavigateTo(StoryHref(story.Path), forceLoad: false)", app, StringComparison.Ordinal);
+        Assert.Contains("Navigation.LocationChanged += OnLocationChanged", app, StringComparison.Ordinal);
+        Assert.Contains("class=\"story-runtime-frame\"", app, StringComparison.Ordinal);
+        Assert.Contains("@onclick:preventDefault", File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "StoryTree.razor")), StringComparison.Ordinal);
         Assert.Contains("class=\"markdown-document\"", app, StringComparison.Ordinal);
         Assert.Contains("GalleryMarkdownHtml.Render(story, result)", app, StringComparison.Ordinal);
         Assert.Contains("Markdig", project, StringComparison.Ordinal);
