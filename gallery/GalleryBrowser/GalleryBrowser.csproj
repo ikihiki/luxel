@@ -19,6 +19,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Browser\Luxel.Gallery.Browser.csproj" />
+    <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Resources.Stories\Luxel.Gallery.Resources.Stories.csproj" />
     <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Stories.CoreUi\Luxel.Gallery.Stories.CoreUi.csproj" />
   </ItemGroup>
   <ItemGroup>
@@ -36,5 +37,15 @@
     <Content Include="..\..\src\Luxel.Audio.Browser\wwwroot\luxel-audio-browser.js" Link="wwwroot\luxel-audio-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\src\Luxel.Graphics.WebGPU.Browser\wwwroot\luxel-webgpu-browser.js" Link="wwwroot\luxel-webgpu-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\src\Luxel.Platform.Web\wwwroot\luxel-platform-web.js" Link="wwwroot\luxel-platform-web.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Import Project="..\..\assets\Luxel.KhronosBox.targets" />
+  <ItemGroup>
+    <Content Include="$(KhronosBoxGltfPath)" Link="wwwroot\tools\khronos-samples\Box\Box.gltf" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(KhronosBoxBinPath)" Link="wwwroot\tools\khronos-samples\Box\Box0.bin" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(KhronosBoxLicensePath)" Link="wwwroot\tools\khronos-samples\Box\LICENSE.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(KhronosBoxAnimatedPath)" Link="wwwroot\tools\khronos-samples\BoxAnimated\BoxAnimated.glb" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(KhronosBoxAnimatedLicensePath)" Link="wwwroot\tools\khronos-samples\BoxAnimated\LICENSE.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(KhronosRiggedSimplePath)" Link="wwwroot\tools\khronos-samples\RiggedSimple\RiggedSimple.glb" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(KhronosRiggedSimpleLicensePath)" Link="wwwroot\tools\khronos-samples\RiggedSimple\LICENSE.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

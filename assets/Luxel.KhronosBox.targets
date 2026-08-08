@@ -1,48 +1,76 @@
 <Project>
-  <!-- Shared, hash-verified Khronos glTF Box fixture for Gallery stories and static export. -->
+  <!-- Shared, pinned, hash-verified Khronos glTF fixtures for Gallery stories and tests. -->
   <PropertyGroup>
-    <KhronosBoxCommit>5bad5aaa0bbb5d0f9cdc934e626f27d0df1e79b8</KhronosBoxCommit>
+    <KhronosSampleCommit>5bad5aaa0bbb5d0f9cdc934e626f27d0df1e79b8</KhronosSampleCommit>
+    <KhronosSampleBaseUrl>https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/$(KhronosSampleCommit)/Models</KhronosSampleBaseUrl>
+    <KhronosSampleCacheDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\tools\khronos-samples'))</KhronosSampleCacheDir>
+    <KhronosSampleDownloadDir>$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', '.downloads'))</KhronosSampleDownloadDir>
+
+    <KhronosBoxDir>$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', 'Box'))</KhronosBoxDir>
+    <KhronosBoxDownloadDir>$([System.IO.Path]::Combine('$(KhronosSampleDownloadDir)', 'Box'))</KhronosBoxDownloadDir>
+    <KhronosBoxGltfPath>$([System.IO.Path]::Combine('$(KhronosBoxDir)', 'Box.gltf'))</KhronosBoxGltfPath>
+    <KhronosBoxBinPath>$([System.IO.Path]::Combine('$(KhronosBoxDir)', 'Box0.bin'))</KhronosBoxBinPath>
+    <KhronosBoxLicensePath>$([System.IO.Path]::Combine('$(KhronosBoxDir)', 'LICENSE.md'))</KhronosBoxLicensePath>
     <KhronosBoxGltfSha256>4A0D69EECFCE0672A50B71DC218CBACEC6C53FE2445040C235C6314B1B2C41B9</KhronosBoxGltfSha256>
     <KhronosBoxBinSha256>3266A8E39B9F425B3341CBE5EEC7849F44310256BFA651E6B8B40C85CE0CCAFB</KhronosBoxBinSha256>
     <KhronosBoxLicenseSha256>BEB770A60599C2F99DD27C26355F64CF42309B2F3BA700D9C8D969EDB5939D0B</KhronosBoxLicenseSha256>
-    <KhronosSampleCacheDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\tools\khronos-samples'))</KhronosSampleCacheDir>
-    <KhronosBoxDownloadDir>$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', '.downloads', 'box'))</KhronosBoxDownloadDir>
-    <KhronosBoxBaseUrl>https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/$(KhronosBoxCommit)/Models/Box</KhronosBoxBaseUrl>
-    <KhronosBoxGltfPath>$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', 'Box.gltf'))</KhronosBoxGltfPath>
-    <KhronosBoxBinPath>$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', 'Box0.bin'))</KhronosBoxBinPath>
-    <KhronosBoxLicensePath>$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', 'Box-LICENSE.md'))</KhronosBoxLicensePath>
+
+    <KhronosBoxAnimatedDir>$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', 'BoxAnimated'))</KhronosBoxAnimatedDir>
+    <KhronosBoxAnimatedDownloadDir>$([System.IO.Path]::Combine('$(KhronosSampleDownloadDir)', 'BoxAnimated'))</KhronosBoxAnimatedDownloadDir>
+    <KhronosBoxAnimatedPath>$([System.IO.Path]::Combine('$(KhronosBoxAnimatedDir)', 'BoxAnimated.glb'))</KhronosBoxAnimatedPath>
+    <KhronosBoxAnimatedLicensePath>$([System.IO.Path]::Combine('$(KhronosBoxAnimatedDir)', 'LICENSE.md'))</KhronosBoxAnimatedLicensePath>
+    <KhronosBoxAnimatedSha256>AD0D18D9A21DF0D7C2BD3890E60CE69D60D39A55D9B82BACEA7E77AC9E583839</KhronosBoxAnimatedSha256>
+    <KhronosBoxAnimatedLicenseSha256>446A2B72382A4A64858A7CB2D9F1314D0EB23C878AF4574FC4F393FBB9DA218A</KhronosBoxAnimatedLicenseSha256>
+
+    <KhronosRiggedSimpleDir>$([System.IO.Path]::Combine('$(KhronosSampleCacheDir)', 'RiggedSimple'))</KhronosRiggedSimpleDir>
+    <KhronosRiggedSimpleDownloadDir>$([System.IO.Path]::Combine('$(KhronosSampleDownloadDir)', 'RiggedSimple'))</KhronosRiggedSimpleDownloadDir>
+    <KhronosRiggedSimplePath>$([System.IO.Path]::Combine('$(KhronosRiggedSimpleDir)', 'RiggedSimple.glb'))</KhronosRiggedSimplePath>
+    <KhronosRiggedSimpleLicensePath>$([System.IO.Path]::Combine('$(KhronosRiggedSimpleDir)', 'LICENSE.md'))</KhronosRiggedSimpleLicensePath>
+    <KhronosRiggedSimpleSha256>3A79DABB67BB0CD598A18D08B954D9D357C27C30672F82EF5D3F4E7FE6CA3401</KhronosRiggedSimpleSha256>
+    <KhronosRiggedSimpleLicenseSha256>BCC812577EF948911D0BD3A697BB4EB64DEDBCCC8318383F510CD75F86C782F5</KhronosRiggedSimpleLicenseSha256>
   </PropertyGroup>
 
-  <Target Name="AcquireKhronosBoxAsset" BeforeTargets="PrepareForBuild">
-    <MakeDir Directories="$(KhronosSampleCacheDir);$(KhronosBoxDownloadDir)" />
+  <Target Name="AcquireKhronosSampleAssets" BeforeTargets="PrepareForBuild">
+    <MakeDir Directories="$(KhronosBoxDir);$(KhronosBoxAnimatedDir);$(KhronosRiggedSimpleDir);$(KhronosBoxDownloadDir);$(KhronosBoxAnimatedDownloadDir);$(KhronosRiggedSimpleDownloadDir)" />
+
     <DownloadFile Condition="!Exists('$(KhronosBoxGltfPath)') and !Exists('$(KhronosBoxDownloadDir)/Box.gltf')"
-                  SourceUrl="$(KhronosBoxBaseUrl)/glTF/Box.gltf" DestinationFolder="$(KhronosBoxDownloadDir)"
-                  Retries="3" RetryDelayMilliseconds="1000" />
+                  SourceUrl="$(KhronosSampleBaseUrl)/Box/glTF/Box.gltf" DestinationFolder="$(KhronosBoxDownloadDir)" Retries="3" RetryDelayMilliseconds="1000" />
     <DownloadFile Condition="!Exists('$(KhronosBoxBinPath)') and !Exists('$(KhronosBoxDownloadDir)/Box0.bin')"
-                  SourceUrl="$(KhronosBoxBaseUrl)/glTF/Box0.bin" DestinationFolder="$(KhronosBoxDownloadDir)"
-                  Retries="3" RetryDelayMilliseconds="1000" />
+                  SourceUrl="$(KhronosSampleBaseUrl)/Box/glTF/Box0.bin" DestinationFolder="$(KhronosBoxDownloadDir)" Retries="3" RetryDelayMilliseconds="1000" />
     <DownloadFile Condition="!Exists('$(KhronosBoxLicensePath)') and !Exists('$(KhronosBoxDownloadDir)/LICENSE.md')"
-                  SourceUrl="$(KhronosBoxBaseUrl)/LICENSE.md" DestinationFolder="$(KhronosBoxDownloadDir)"
-                  Retries="3" RetryDelayMilliseconds="1000" />
+                  SourceUrl="$(KhronosSampleBaseUrl)/Box/LICENSE.md" DestinationFolder="$(KhronosBoxDownloadDir)" Retries="3" RetryDelayMilliseconds="1000" />
+    <DownloadFile Condition="!Exists('$(KhronosBoxAnimatedPath)') and !Exists('$(KhronosBoxAnimatedDownloadDir)/BoxAnimated.glb')"
+                  SourceUrl="$(KhronosSampleBaseUrl)/BoxAnimated/glTF-Binary/BoxAnimated.glb" DestinationFolder="$(KhronosBoxAnimatedDownloadDir)" Retries="3" RetryDelayMilliseconds="1000" />
+    <DownloadFile Condition="!Exists('$(KhronosBoxAnimatedLicensePath)') and !Exists('$(KhronosBoxAnimatedDownloadDir)/LICENSE.md')"
+                  SourceUrl="$(KhronosSampleBaseUrl)/BoxAnimated/LICENSE.md" DestinationFolder="$(KhronosBoxAnimatedDownloadDir)" Retries="3" RetryDelayMilliseconds="1000" />
+    <DownloadFile Condition="!Exists('$(KhronosRiggedSimplePath)') and !Exists('$(KhronosRiggedSimpleDownloadDir)/RiggedSimple.glb')"
+                  SourceUrl="$(KhronosSampleBaseUrl)/RiggedSimple/glTF-Binary/RiggedSimple.glb" DestinationFolder="$(KhronosRiggedSimpleDownloadDir)" Retries="3" RetryDelayMilliseconds="1000" />
+    <DownloadFile Condition="!Exists('$(KhronosRiggedSimpleLicensePath)') and !Exists('$(KhronosRiggedSimpleDownloadDir)/LICENSE.md')"
+                  SourceUrl="$(KhronosSampleBaseUrl)/RiggedSimple/LICENSE.md" DestinationFolder="$(KhronosRiggedSimpleDownloadDir)" Retries="3" RetryDelayMilliseconds="1000" />
+
     <Copy Condition="!Exists('$(KhronosBoxGltfPath)')" SourceFiles="$(KhronosBoxDownloadDir)/Box.gltf" DestinationFiles="$(KhronosBoxGltfPath)" />
     <Copy Condition="!Exists('$(KhronosBoxBinPath)')" SourceFiles="$(KhronosBoxDownloadDir)/Box0.bin" DestinationFiles="$(KhronosBoxBinPath)" />
     <Copy Condition="!Exists('$(KhronosBoxLicensePath)')" SourceFiles="$(KhronosBoxDownloadDir)/LICENSE.md" DestinationFiles="$(KhronosBoxLicensePath)" />
-    <Error Condition="!Exists('$(KhronosBoxGltfPath)') or !Exists('$(KhronosBoxBinPath)') or !Exists('$(KhronosBoxLicensePath)')"
-           Text="Khronos Box asset一式を取得できませんでした: $(KhronosBoxBaseUrl)" />
-    <GetFileHash Files="$(KhronosBoxGltfPath)" Algorithm="SHA256">
-      <Output TaskParameter="Items" ItemName="_KhronosBoxGltfHash" />
+    <Copy Condition="!Exists('$(KhronosBoxAnimatedPath)')" SourceFiles="$(KhronosBoxAnimatedDownloadDir)/BoxAnimated.glb" DestinationFiles="$(KhronosBoxAnimatedPath)" />
+    <Copy Condition="!Exists('$(KhronosBoxAnimatedLicensePath)')" SourceFiles="$(KhronosBoxAnimatedDownloadDir)/LICENSE.md" DestinationFiles="$(KhronosBoxAnimatedLicensePath)" />
+    <Copy Condition="!Exists('$(KhronosRiggedSimplePath)')" SourceFiles="$(KhronosRiggedSimpleDownloadDir)/RiggedSimple.glb" DestinationFiles="$(KhronosRiggedSimplePath)" />
+    <Copy Condition="!Exists('$(KhronosRiggedSimpleLicensePath)')" SourceFiles="$(KhronosRiggedSimpleDownloadDir)/LICENSE.md" DestinationFiles="$(KhronosRiggedSimpleLicensePath)" />
+
+    <ItemGroup>
+      <_KhronosSampleAsset Include="$(KhronosBoxGltfPath)" ExpectedHash="$(KhronosBoxGltfSha256)" />
+      <_KhronosSampleAsset Include="$(KhronosBoxBinPath)" ExpectedHash="$(KhronosBoxBinSha256)" />
+      <_KhronosSampleAsset Include="$(KhronosBoxLicensePath)" ExpectedHash="$(KhronosBoxLicenseSha256)" />
+      <_KhronosSampleAsset Include="$(KhronosBoxAnimatedPath)" ExpectedHash="$(KhronosBoxAnimatedSha256)" />
+      <_KhronosSampleAsset Include="$(KhronosBoxAnimatedLicensePath)" ExpectedHash="$(KhronosBoxAnimatedLicenseSha256)" />
+      <_KhronosSampleAsset Include="$(KhronosRiggedSimplePath)" ExpectedHash="$(KhronosRiggedSimpleSha256)" />
+      <_KhronosSampleAsset Include="$(KhronosRiggedSimpleLicensePath)" ExpectedHash="$(KhronosRiggedSimpleLicenseSha256)" />
+    </ItemGroup>
+    <Error Condition="!Exists('%(_KhronosSampleAsset.Identity)')"
+           Text="Khronos glTF fixtureを取得できませんでした: %(_KhronosSampleAsset.Identity)" />
+    <GetFileHash Files="@(_KhronosSampleAsset)" Algorithm="SHA256">
+      <Output TaskParameter="Items" ItemName="_KhronosSampleAssetHash" />
     </GetFileHash>
-    <GetFileHash Files="$(KhronosBoxBinPath)" Algorithm="SHA256">
-      <Output TaskParameter="Items" ItemName="_KhronosBoxBinHash" />
-    </GetFileHash>
-    <GetFileHash Files="$(KhronosBoxLicensePath)" Algorithm="SHA256">
-      <Output TaskParameter="Items" ItemName="_KhronosBoxLicenseHash" />
-    </GetFileHash>
-    <Error Condition="'@(_KhronosBoxGltfHash->'%(FileHash)')' != '$(KhronosBoxGltfSha256)'"
-           Text="Box.gltfのSHA-256が一致しません。$(KhronosBoxGltfPath)を削除して再実行してください。" />
-    <Error Condition="'@(_KhronosBoxBinHash->'%(FileHash)')' != '$(KhronosBoxBinSha256)'"
-           Text="Box0.binのSHA-256が一致しません。$(KhronosBoxBinPath)を削除して再実行してください。" />
-    <Error Condition="'@(_KhronosBoxLicenseHash->'%(FileHash)')' != '$(KhronosBoxLicenseSha256)'"
-           Text="Box-LICENSE.mdのSHA-256が一致しません。$(KhronosBoxLicensePath)を削除して再実行してください。" />
+    <Error Condition="'%(_KhronosSampleAssetHash.FileHash)' != '%(_KhronosSampleAssetHash.ExpectedHash)'"
+           Text="Khronos glTF fixtureのSHA-256が一致しません: %(_KhronosSampleAssetHash.Identity)。tools/khronos-samplesを削除して再実行してください。" />
   </Target>
 </Project>

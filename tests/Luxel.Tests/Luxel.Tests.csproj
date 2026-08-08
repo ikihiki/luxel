@@ -94,6 +94,8 @@
   <!-- Gallery/Cavern と同じ Git 管理フォントをテスト出力へ含める。 -->
   <Import Project="..\..\assets\Luxel.FontAssets.targets" />
 
+  <Import Project="..\..\assets\Luxel.KhronosBox.targets" />
+
   <ItemGroup>
     <Using Include="Luxel.Graphics" />
   </ItemGroup>

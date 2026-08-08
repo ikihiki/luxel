@@ -4,6 +4,8 @@ using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Luxel.Assets;
+using Luxel.Assets.Gltf;
 using Luxel.AssetsGpu;
 using Luxel.Audio.Browser;
 using Luxel.Controls;
@@ -94,7 +96,15 @@ public static partial class BrowserGalleryApplication
             stage = "resources";
             SetStatus("loading", $"browser-webgpu: status=loading, story={path}, stage={stage}");
             await using var slangCompiler = new BrowserSlangCompiler();
-            using var resources = new ResourceSystem();
+            HttpClient http = (_storyServices
+                ?? throw new InvalidOperationException("Browser Gallery story services are not configured."))
+                .GetRequiredService<HttpClient>();
+            var files = new WebPlatformFileSystem(
+                (resourcePath, cancellationToken) => http.GetByteArrayAsync(resourcePath, cancellationToken));
+            using var resources = new ResourceSystem(
+                sources: ResourceSystemDefaults.BuiltinSourcesForWeb(files, http),
+                steps: ResourceSystemDefaults.BuiltinSteps());
+            resources.AddStep<byte[], AssetDocument>(new GltfResourceStep());
             resources.AddStep<SlangSource, GpuShaderCode>(
                 new SlangCompileStep(slangCompiler, GpuBackendKind.WebGpu));
             await using AssetGpuInstallation assetGpu = resources.InstallAssetGpuLifecycle(device);
@@ -175,7 +185,7 @@ public static partial class BrowserGalleryApplication
                         ui.Resize(resizeWidth, resizeHeight);
                         resizePending = false;
                     }
-                    resources.Pump();
+                    await resources.PumpAsync();
                     ui.Tick(1f / 60f);
                     if (canvas.HasPendingChanges) await RenderAsync();
                     await NextFrame();

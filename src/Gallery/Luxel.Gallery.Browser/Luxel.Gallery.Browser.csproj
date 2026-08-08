@@ -10,6 +10,7 @@
     <ProjectReference Include="..\..\Luxel.Shaders.Slang.Browser\Luxel.Shaders.Slang.Browser.csproj" />
     <ProjectReference Include="..\..\Luxel.Physics\Luxel.Physics.csproj" />
     <ProjectReference Include="..\..\Luxel.Physics.Gizmos\Luxel.Physics.Gizmos.csproj" />
+    <ProjectReference Include="..\..\Resource\Luxel.Assets.Gltf\Luxel.Assets.Gltf.csproj" />
     <ProjectReference Include="..\..\Resource\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
     <ProjectReference Include="..\..\Luxel.Controls\Luxel.Controls.csproj" />
     <ProjectReference Include="..\..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />

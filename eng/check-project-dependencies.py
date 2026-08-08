@@ -71,7 +71,7 @@ native_heavy = lambda stem: (
     or stem.startswith("Luxel.Scripting")
 )
 browser_forbidden = lambda stem: native_heavy(stem) or stem in {
-    "Luxel.Gallery.Native", "Luxel.Gallery.Stories", "Luxel.Gallery.Resources.Stories"
+    "Luxel.Gallery.Native", "Luxel.Gallery.Stories"
 }
 forbid_closure("Luxel.Framework.Game", native_heavy, "Game portable closure")
 forbid_closure("Luxel.Framework.Game.Browser", lambda stem: browser_forbidden(stem) or stem in {
