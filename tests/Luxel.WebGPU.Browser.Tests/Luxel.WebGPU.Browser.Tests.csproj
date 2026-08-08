@@ -5,6 +5,7 @@
     <ProjectReference Include="..\..\src\Framework\Luxel.Framework.Game.Browser\Luxel.Framework.Game.Browser.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Graphics.WebGPU.Browser\Luxel.Graphics.WebGPU.Browser.csproj" />
+    <ProjectReference Include="..\..\src\Resource\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5"><PrivateAssets>all</PrivateAssets><IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets></PackageReference>

@@ -266,6 +266,7 @@ public sealed class ResourceSystem : IDisposable
     private volatile bool _disposed;
     private volatile bool _graphDirty;
     private Action? _deferredIdleHook;
+    private Func<CancellationToken, ValueTask>? _deferredIdleHookAsync;
 
     /// <summary>Resource システムを生成。Source/Step はすべて呼び出し側が構築済みインスタンスで渡す。
     /// 組込み (<see cref="FileSource"/>/<see cref="HttpSource"/>/<see cref="TexDecoder"/>) も自動登録しない ─ 必要なら
@@ -420,8 +421,18 @@ public sealed class ResourceSystem : IDisposable
         lock (_lock) _flushRegistrations.Remove(registration);
     }
 
-    /// <summary>Pump 時に <c>_deferredDispose</c> を実際に破棄する前に呼ばれる汎用 hook。</summary>
-    public void SetDeferredDisposeIdleHook(Action hook) => _deferredIdleHook = hook;
+    /// <summary>
+    /// Pump 時に deferred resource を実際に破棄する前に呼ばれる idle hook を設定する。
+    /// <paramref name="asyncHook"/> を指定すると <see cref="PumpAsync"/> は同期 block を避けてそれを await する。
+    /// </summary>
+    public void SetDeferredDisposeIdleHook(
+        Action hook,
+        Func<CancellationToken, ValueTask>? asyncHook = null)
+    {
+        ArgumentNullException.ThrowIfNull(hook);
+        _deferredIdleHook = hook;
+        _deferredIdleHookAsync = asyncHook;
+    }
 
     internal ResourceNode GetPublishedNode<T>(string uri) where T : class
     {
@@ -666,6 +677,24 @@ public sealed class ResourceSystem : IDisposable
 
     public void Pump()
     {
+        PumpCore();
+        FlushDeferredDisposals();
+        EmitGraphIfDirty();
+    }
+
+    /// <summary>
+    /// <see cref="Pump"/> と同じ publication/reload 処理を行い、deferred resource の idle hook を非同期に await する。
+    /// browser など同期的に queue idle を待てない host はこの overload を使う。
+    /// </summary>
+    public async ValueTask PumpAsync(CancellationToken cancellationToken = default)
+    {
+        PumpCore();
+        await FlushDeferredDisposalsAsync(cancellationToken).ConfigureAwait(false);
+        EmitGraphIfDirty();
+    }
+
+    private void PumpCore()
+    {
         lock (_lock)
         {
             foreach (PumpFlushRegistration registration in _flushRegistrations.ToArray())
@@ -686,12 +715,71 @@ public sealed class ResourceSystem : IDisposable
             Interlocked.Exchange(ref n.ReloadQueued, 0);
             if (!n.IsEvicted) StartLoad(n, isReload: true);
         }
-        if (_deferredDispose.Count > 0)
+    }
+
+    private void FlushDeferredDisposals()
+    {
+        object[] deferred = TakeDeferredDisposals();
+        if (deferred.Length == 0) return;
+        try
         {
             _deferredIdleHook?.Invoke();
-            foreach (object o in _deferredDispose) (o as IDisposable)?.Dispose();
-            _deferredDispose.Clear();
+            DisposeAll(deferred);
         }
+        catch
+        {
+            RestoreDeferredDisposals(deferred);
+            throw;
+        }
+    }
+
+    private async ValueTask FlushDeferredDisposalsAsync(CancellationToken cancellationToken)
+    {
+        object[] deferred = TakeDeferredDisposals();
+        if (deferred.Length == 0) return;
+        try
+        {
+            if (_deferredIdleHookAsync is { } asyncHook)
+                await asyncHook(cancellationToken).ConfigureAwait(false);
+            else
+                _deferredIdleHook?.Invoke();
+            DisposeAll(deferred);
+        }
+        catch
+        {
+            RestoreDeferredDisposals(deferred);
+            throw;
+        }
+    }
+
+    private object[] TakeDeferredDisposals()
+    {
+        lock (_lock)
+        {
+            if (_deferredDispose.Count == 0) return [];
+            object[] deferred = _deferredDispose.ToArray();
+            _deferredDispose.Clear();
+            return deferred;
+        }
+    }
+
+    private void QueueDeferredDispose(object value)
+    {
+        lock (_lock) _deferredDispose.Add(value);
+    }
+
+    private void RestoreDeferredDisposals(object[] deferred)
+    {
+        lock (_lock) _deferredDispose.InsertRange(0, deferred);
+    }
+
+    private static void DisposeAll(IEnumerable<object> values)
+    {
+        foreach (object value in values) (value as IDisposable)?.Dispose();
+    }
+
+    private void EmitGraphIfDirty()
+    {
         if (_graphDirty && EngineDiagnostics.IsEnabled(EngineDiagnostics.Resources))
         {
             _graphDirty = false;
@@ -735,7 +823,7 @@ public sealed class ResourceSystem : IDisposable
             node.Version++;
         }
         if (old != null && !ReferenceEquals(old, newValue) && node.Ownership == ResourceOwnership.Owned)
-            _deferredDispose.Add(old);
+            QueueDeferredDispose(old);
         node.FireReloaded();
         FireState(node, Snapshot(node));
         _graphDirty = true;
@@ -793,7 +881,7 @@ public sealed class ResourceSystem : IDisposable
         _graphDirty = true;
         node.WatchToken?.Dispose();
         try { node.Cts?.Cancel(); } catch { }
-        if (value != null && node.Ownership == ResourceOwnership.Owned) _deferredDispose.Add(value);
+        if (value != null && node.Ownership == ResourceOwnership.Owned) QueueDeferredDispose(value);
         foreach (ResourceNode dep in node.Dependencies.ToArray())
         {
             dep.Dependents.Remove(node);

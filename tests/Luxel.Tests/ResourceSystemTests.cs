@@ -378,6 +378,29 @@ public class ResourceSystemTests
     }
 
     [Fact]
+    public async Task PumpAsyncAwaitsAsyncIdleHookBeforeDeferredDispose()
+    {
+        using var sys = new ResourceSystem();
+        var value = new DisposableResource();
+        using ResourceHandle<DisposableResource> handle = sys.Publish("published://async-dispose", value);
+        bool asyncIdleCompleted = false;
+        sys.SetDeferredDisposeIdleHook(
+            () => throw new InvalidOperationException("sync idle hook must not run"),
+            async _ =>
+            {
+                await Task.Yield();
+                Assert.Equal(0, value.DisposeCount);
+                asyncIdleCompleted = true;
+            });
+
+        handle.Dispose();
+        await sys.PumpAsync();
+
+        Assert.True(asyncIdleCompleted);
+        Assert.Equal(1, value.DisposeCount);
+    }
+
+    [Fact]
     public async Task Scope_CreateQualifiesKeysAndDisposesEachLeaseOnce()
     {
         using var sys = new ResourceSystem();

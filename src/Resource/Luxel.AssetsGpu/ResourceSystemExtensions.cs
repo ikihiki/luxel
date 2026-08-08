@@ -43,7 +43,9 @@ public static class ResourceSystemExtensions
         ArgumentNullException.ThrowIfNull(device);
         var registry = new AssetGpuRegistry(device);
         AddAssetGpuSteps(resources, device, registry);
-        resources.SetDeferredDisposeIdleHook(() => device.MainQueue.WaitIdle());
+        resources.SetDeferredDisposeIdleHook(
+            () => device.MainQueue.WaitIdle(),
+            cancellationToken => device.MainQueue.WaitIdleAsync(cancellationToken));
         return registry;
     }
 
@@ -59,7 +61,7 @@ public static class ResourceSystemExtensions
         var registry = new AssetGpuRegistry(device);
         var installation = new AssetGpuInstallation(device, registry);
         AddAssetGpuSteps(resources, device, registry);
-        resources.SetDeferredDisposeIdleHook(installation.WaitIdle);
+        resources.SetDeferredDisposeIdleHook(installation.WaitIdle, installation.WaitIdleAsync);
         return installation;
     }
 

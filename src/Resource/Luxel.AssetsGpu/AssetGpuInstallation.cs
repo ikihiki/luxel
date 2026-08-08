@@ -23,6 +23,11 @@ public sealed class AssetGpuInstallation : IDisposable, IAsyncDisposable
         if (Volatile.Read(ref _disposed) == 0) _device.MainQueue.WaitIdle();
     }
 
+    internal ValueTask WaitIdleAsync(CancellationToken cancellationToken)
+        => Volatile.Read(ref _disposed) == 0
+            ? _device.MainQueue.WaitIdleAsync(cancellationToken)
+            : ValueTask.CompletedTask;
+
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;

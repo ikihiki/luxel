@@ -215,6 +215,30 @@ public partial class AssetsGpuTests
     }
 
     [Fact]
+    public async Task InstallAssetGpuLifecycle_PumpAsyncAvoidsSynchronousQueueWait()
+    {
+        var backend = new FakeGpuBackend();
+        backend.Queue.ThrowOnSyncWait = true;
+        using var device = new GpuDevice(backend);
+        using var resources = new ResourceSystem();
+        AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        var scope = resources.CreateScope("async-lifecycle");
+        ResourceHandle<GpuBuffer> buffer = scope.CreateBuffer("buffer", 32);
+        await buffer.Ready;
+
+        scope.Dispose();
+        await resources.PumpAsync();
+
+        Assert.Equal(0, backend.Queue.WaitIdleCount);
+        Assert.Equal(1, backend.Queue.WaitIdleAsyncCount);
+        Assert.Equal(2, backend.LiveResources);
+
+        await installation.DisposeAsync();
+        Assert.Equal(2, backend.Queue.WaitIdleAsyncCount);
+        Assert.Equal(0, backend.LiveResources);
+    }
+
+    [Fact]
     public void InstallAssetGpuLifecycle_OwnsRegistryAndWaitsForGpuBeforeDispose()
     {
         var backend = new FakeGpuBackend();
@@ -344,9 +368,11 @@ public partial class AssetsGpuTests
         protected override void OnDispose() => Marshal.FreeHGlobal(_memory);
     }
 
-    private sealed class FakeQueue : Luxel.Graphics.Abstraction.IGpuBackendQueue
+    private sealed class FakeQueue : Luxel.Graphics.Abstraction.IAsyncGpuBackendQueue
     {
         public int WaitIdleCount { get; private set; }
+        public int WaitIdleAsyncCount { get; private set; }
+        public bool ThrowOnSyncWait { get; set; }
 
         public Luxel.Graphics.Abstraction.IGpuBackendCommandBuffer StartCommandRecording()
             => throw new NotSupportedException();
@@ -354,6 +380,21 @@ public partial class AssetsGpuTests
         public void Submit(Luxel.Graphics.Abstraction.IGpuBackendCommandBuffer commandBuffer)
             => throw new NotSupportedException();
 
-        public void WaitIdle() => WaitIdleCount++;
+        public ValueTask SubmitAsync(
+            Luxel.Graphics.Abstraction.IGpuBackendCommandBuffer commandBuffer,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public void WaitIdle()
+        {
+            if (ThrowOnSyncWait) throw new PlatformNotSupportedException();
+            WaitIdleCount++;
+        }
+
+        public ValueTask WaitIdleAsync(CancellationToken cancellationToken = default)
+        {
+            WaitIdleAsyncCount++;
+            return ValueTask.CompletedTask;
+        }
     }
 }
