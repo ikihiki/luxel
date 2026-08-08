@@ -41,7 +41,7 @@ jobs:
           MANUAL_VERSION: ${{ inputs.version }}
         run: |
           if [[ "$EVENT_NAME" == "push" ]]; then
-            base_version="$(sed -n 's:.*<Version>\([^<]*\)</Version>.*:\1:p' src/Luxel.UI.App/Luxel.UI.App.csproj | head -n 1)"
+            base_version="$(sed -n 's:.*<Version>\([^<]*\)</Version>.*:\1:p' src/Framework/Luxel.Framework.UI/Luxel.Framework.UI.csproj | head -n 1)"
             version="${base_version}-ci.${GITHUB_RUN_NUMBER}"
           else
             version="${MANUAL_VERSION:-${RELEASE_TAG#v}}"
@@ -51,14 +51,14 @@ jobs:
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Publishing Luxel.UI.App $version" >> "$GITHUB_STEP_SUMMARY"
+          echo "Publishing Luxel.Framework.UI $version" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Restore
-        run: dotnet restore src/Luxel.UI.App/Luxel.UI.App.csproj
+        run: dotnet restore src/Framework/Luxel.Framework.UI/Luxel.Framework.UI.csproj
 
       - name: Pack
         run: >-
-          dotnet pack src/Luxel.UI.App/Luxel.UI.App.csproj
+          dotnet pack src/Framework/Luxel.Framework.UI/Luxel.Framework.UI.csproj
           --configuration Release
           --no-restore
           --output artifacts/packages
@@ -70,10 +70,10 @@ jobs:
         run: |
           consumer="$(mktemp -d)"
           dotnet new console --framework net10.0 --output "$consumer" --no-restore
-          dotnet add "$consumer" package Luxel.UI.App --version "${{ steps.package.outputs.version }}" --no-restore
+          dotnet add "$consumer" package Luxel.Framework.UI --version "${{ steps.package.outputs.version }}" --no-restore
           cat > "$consumer/Program.cs" <<'EOF'
           using Luxel.UI;
-          using Luxel.UI.App;
+          using Luxel.Framework.UI;
           using static Luxel.Controls.Kit;
 
           Widget root = Heading("Hello from GitHub Packages");

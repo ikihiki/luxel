@@ -1,6 +1,6 @@
 using Luxel.Diagnostics;
 using Luxel.Platform;
-using Luxel.UI.App;
+using Luxel.Framework.UI;
 using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;

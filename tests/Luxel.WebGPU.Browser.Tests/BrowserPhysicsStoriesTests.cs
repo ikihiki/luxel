@@ -16,16 +16,18 @@ public sealed class BrowserPhysicsStoriesTests
     {
         string root = FindRepositoryRoot();
         string source = File.ReadAllText(Path.Combine(root,
-            "src", "Luxel.Gallery.Stories.CoreUi", "Stories", "PhysicsBrowserStories.cs"));
+            "src", "Gallery", "Luxel.Gallery.Stories.CoreUi", "Stories", "PhysicsBrowserStories.cs"));
         string coreProject = File.ReadAllText(Path.Combine(root,
-            "src", "Luxel.Gallery.Stories.CoreUi", "Luxel.Gallery.Stories.CoreUi.csproj"));
+            "src", "Gallery", "Luxel.Gallery.Stories.CoreUi", "Luxel.Gallery.Stories.CoreUi.csproj"));
+        string browserLibrary = File.ReadAllText(Path.Combine(root,
+            "src", "Gallery", "Luxel.Gallery.Browser", "Luxel.Gallery.Browser.csproj"));
         string browserProject = File.ReadAllText(Path.Combine(root,
-            "samples", "LuxelWebGpuBrowser", "LuxelWebGpuBrowser.csproj"));
+            "gallery", "GalleryBrowser", "GalleryBrowser.csproj"));
 
         foreach (string path in Paths) Assert.Contains($"[Story(\"{path}\"", source);
         Assert.Contains("Luxel.Physics.csproj", coreProject);
         Assert.Contains("Luxel.Physics.Gizmos.csproj", coreProject);
-        Assert.Contains("Luxel.Physics.csproj", browserProject);
+        Assert.Contains("Luxel.Physics.csproj", browserLibrary);
         Assert.Contains("TrimmerRootAssembly Include=\"Luxel.Physics\"", browserProject);
         Assert.Contains("TrimmerRootAssembly Include=\"Luxel.Physics.Gizmos\"", browserProject);
         Assert.Contains("PackageReference Include=\"BepuPhysics\"", browserProject);
@@ -56,7 +58,7 @@ public sealed class BrowserPhysicsStoriesTests
     public void Native_story_assembly_no_longer_owns_browser_physics_routes()
     {
         string root = FindRepositoryRoot();
-        string storyRoot = Path.Combine(root, "src", "Luxel.Gallery.Stories", "Stories");
+        string storyRoot = Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Stories", "Stories");
         string source = string.Join("\n", Directory.GetFiles(storyRoot, "*.cs", SearchOption.AllDirectories)
             .Select(File.ReadAllText));
         foreach (string path in Paths) Assert.DoesNotContain($"[Story(\"{path}\"", source);

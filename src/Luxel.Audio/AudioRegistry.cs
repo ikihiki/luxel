@@ -7,7 +7,7 @@
 /// <para>Bus と Source は user が明示的に <see cref="RegisterBus"/> / <see cref="RegisterSource"/> で登録する
 /// (自動 discovery はしない)。登録は idempotent、Unregister も安全。</para>
 ///
-/// <c>Luxel.Framework.SceneLoopServices</c> 経由で Scene に注入され、Scene が per-N-frame で
+/// <c>Luxel.Framework.Game.SceneLoopServices</c> 経由で Scene に注入され、Scene が per-N-frame で
 /// <c>Luxel.Audio</c> Diagnostics イベントとして snapshot を emit する。
 /// </summary>
 public sealed class AudioRegistry

@@ -83,16 +83,15 @@ public sealed class StoryGeneratorTests
     }
 
     [Fact]
-    public void Runtime_descriptor_metadata_is_emitted_without_building_the_story()
+    public void Runtime_descriptor_schema_is_emitted_without_building_the_story()
     {
         GeneratorDriverRunResult result = Run("""
-            [Story("Controls/Demo/Basic", RuntimeBundleId = "webgpu-browser-v1", Args = nameof(Args), CapabilityNote = "fixture")]
+            [Story("Controls/Demo/Basic", Args = nameof(Args), CapabilityNote = "fixture")]
             public static Widget Demo() => new Widget();
             public static System.Collections.Generic.IReadOnlyList<StoryArgDefinition> Args() => System.Array.Empty<StoryArgDefinition>();
             """);
 
         string generated = Assert.Single(result.GeneratedTrees).ToString();
-        Assert.Contains("RuntimeBundleId: \"webgpu-browser-v1\"", generated, StringComparison.Ordinal);
         Assert.Contains("ArgDefinitions: global::Demo.Stories.Args()", generated, StringComparison.Ordinal);
         Assert.Contains("CapabilityNote: \"fixture\"", generated, StringComparison.Ordinal);
     }
@@ -176,7 +175,6 @@ public sealed class StoryGeneratorTests
                     public bool RealWindowOnly { get; set; }
                     public bool Toc { get; set; }
                     public string? SampleBundle { get; set; }
-                    public string? RuntimeBundleId { get; set; }
                     public string? Args { get; set; }
                     public string? Result { get; set; }
                     public string? CapabilityNote { get; set; }
@@ -193,7 +191,7 @@ public sealed class StoryGeneratorTests
                 }
                 public sealed record StoryInfo(string Path, int Width, int Height, string? Theme,
                     Func<StoryContext, Widget> Build, int Order = 1000, string? Source = null, bool RealWindowOnly = false, string? SampleBundle = null,
-                    Func<StoryContext, StoryResult>? ResultBuild = null, string? RuntimeBundleId = null,
+                    Func<StoryContext, StoryResult>? ResultBuild = null,
                     System.Collections.Generic.IReadOnlyList<StoryArgDefinition>? ArgDefinitions = null,
                     string? CapabilityNote = null, bool Toc = false);
                 public static class StoryRegistry { public static void Register(StoryInfo story) { } }

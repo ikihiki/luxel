@@ -7,11 +7,11 @@ public sealed class BrowserEcsStoriesTests
     {
         string root = FindRepositoryRoot();
         string source = File.ReadAllText(Path.Combine(root,
-            "src", "Luxel.Gallery.Stories.CoreUi", "Stories", "EcsCubesStories.cs"));
+            "src", "Gallery", "Luxel.Gallery.Stories.CoreUi", "Stories", "EcsCubesStories.cs"));
         string project = File.ReadAllText(Path.Combine(root,
-            "src", "Luxel.Gallery.Stories.CoreUi", "Luxel.Gallery.Stories.CoreUi.csproj"));
+            "src", "Gallery", "Luxel.Gallery.Stories.CoreUi", "Luxel.Gallery.Stories.CoreUi.csproj"));
         string nativeSource = File.ReadAllText(Path.Combine(root,
-            "src", "Luxel.Gallery.Stories", "Stories", "Gpu", "Ecs3DStories.cs"));
+            "src", "Gallery", "Luxel.Gallery.Stories", "Stories", "Gpu", "Ecs3DStories.cs"));
 
         Assert.Contains("[Story(\"Examples/3D/EcsCubes\"", source);
         Assert.Contains("Luxel.Ecs.csproj", project);
@@ -19,7 +19,7 @@ public sealed class BrowserEcsStoriesTests
         Assert.Contains("Luxel.AssetRuntime.csproj", project);
         Assert.Contains("shaders\\compiled\\cube_forward.*", project);
         Assert.Contains("TrimmerRootAssembly Include=\"Luxel.AssetRuntime\"", File.ReadAllText(Path.Combine(root,
-            "samples", "LuxelWebGpuBrowser", "LuxelWebGpuBrowser.csproj")));
+            "gallery", "GalleryBrowser", "GalleryBrowser.csproj")));
         Assert.Contains("new Render3DExtractSystem", source);
         Assert.Contains("TransformPropagateSystem.Run(world)", source);
         Assert.Contains(".Draw((uint)CubeMesh.VertexCount, (uint)_extractor.InstanceCount)", source);

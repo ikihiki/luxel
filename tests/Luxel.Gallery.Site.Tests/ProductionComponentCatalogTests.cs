@@ -1,5 +1,7 @@
+using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using Luxel.Gallery;
+using Luxel.Gallery.Stories;
 using Luxel.UI;
 
 namespace Luxel.Gallery.Site.Tests;
@@ -36,13 +38,61 @@ public sealed class ProductionComponentCatalogTests
             StoryInfo basic = Assert.IsType<StoryInfo>(catalog.Find(descriptor.BasicPath));
             Assert.Equal(descriptor, basic.ProductionComponent);
             Assert.Equal(StoryRegistrationKind.GeneratedComponentFallback, basic.RegistrationKind);
-            Assert.Equal(CoreUiStoryProject.RuntimeBundleId, basic.RuntimeBundleId);
             Assert.NotNull(basic.ArgDefinitions);
             StoryResult basicResult = basic.BuildResult(new StoryContext());
             Assert.Equal(StoryResultKind.Widget, basicResult.Kind);
             Assert.True(basicResult.Widget is GeneratedComponentStoryPreview or StoryCapabilityFallback,
                 $"{descriptor.BasicPath} returned {basicResult.Widget?.GetType().FullName ?? "null"}.");
         }
+    }
+
+    [Fact]
+    public void Full_catalog_composes_resource_routes_without_leaking_them_into_CoreUi_runtime_catalog()
+    {
+        string[] resourcePaths =
+        [
+            .. ResourceCourseCatalog.Routes,
+            "Examples/Resources/Pipeline",
+            "Examples/Resources/DependencyDag",
+            "Examples/Resources/Reload",
+            "Examples/Resources/Lifetime",
+            "Examples/3D/GltfBox",
+            "Examples/3D/GltfAnimated",
+            "Examples/3D/GltfSkinned",
+            "Examples/3D/GltfMorph",
+        ];
+
+        StoryCatalog resourceCatalog = ResourceStoryProject.CreateCatalog();
+        StoryCatalog fullCatalog = GalleryStoryProject.CreateCatalog();
+        StoryCatalog coreUiCatalog = CoreUiStoryProject.CreateCatalog();
+        HashSet<string> browserPaths = coreUiCatalog.All
+            .Select(story => story.Path)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Equal(resourcePaths.Order(StringComparer.Ordinal), resourceCatalog.All.Select(story => story.Path).Order(StringComparer.Ordinal));
+        Assert.All(resourcePaths, path => Assert.NotNull(fullCatalog.Find(path)));
+        Assert.All(resourcePaths, path => Assert.Null(coreUiCatalog.Find(path)));
+        Assert.All(resourcePaths, path => Assert.DoesNotContain(path, browserPaths));
+        Assert.DoesNotContain(
+            typeof(CoreUiStoryProject).Assembly.GetReferencedAssemblies(),
+            reference => reference.Name == "Luxel.Assets.Gltf");
+    }
+
+    [Fact]
+    public void AddResourceStory_registers_the_resource_catalog_in_service_registration_order()
+    {
+        var services = new ServiceCollection();
+        services.AddStoryCatalog(builder => builder.Add(new StoryInfo("Before/Resource", 1, 1, null, _ => null!)));
+        services.AddResourceStory();
+        services.AddStoryCatalog(builder => builder.Add(new StoryInfo("After/Resource", 1, 1, null, _ => null!)));
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        StoryCatalog catalog = provider.GetRequiredService<StoryCatalog>();
+        string[] resourcePaths = ResourceStoryProject.CreateCatalog().All.Select(story => story.Path).ToArray();
+
+        Assert.Equal("Before/Resource", catalog.All[0].Path);
+        Assert.Equal(resourcePaths, catalog.All.Skip(1).Take(resourcePaths.Length).Select(story => story.Path));
+        Assert.Equal("After/Resource", catalog.All[^1].Path);
     }
 
     [Fact]
@@ -60,7 +110,6 @@ public sealed class ProductionComponentCatalogTests
 
         Assert.Equal(StoryRegistrationKind.Authored, actual.RegistrationKind);
         Assert.Equal(generated.ProductionComponent, actual.ProductionComponent);
-        Assert.Equal(generated.RuntimeBundleId, actual.RuntimeBundleId);
         Assert.Same(generated.ArgDefinitions, actual.ArgDefinitions);
         Assert.Equal("authored Button Basic", actual.Source);
 
@@ -71,38 +120,14 @@ public sealed class ProductionComponentCatalogTests
         Assert.Contains("only replace an exact generated component fallback", error.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Protocol_v2_runtime_manifest_matches_the_CoreUi_catalog_and_identifies_60_production_basics()
+    private static string FindRepositoryRoot()
     {
-        string root = GallerySiteExporter.FindRepositoryRoot();
-        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(Path.Combine(
-            root, "samples", "LuxelWebGpuBrowser", "wwwroot", "browser-runtime-manifest.json")));
-        JsonElement manifest = document.RootElement;
-        Assert.Equal(CoreUiStoryProject.RuntimeBundleId, manifest.GetProperty("bundleId").GetString());
-        Assert.Equal(2, manifest.GetProperty("protocolVersion").GetInt32());
-
-        Dictionary<string, JsonElement> runtimeByPath = manifest.GetProperty("stories").EnumerateArray()
-            .ToDictionary(story => story.GetProperty("path").GetString()!, story => story.Clone(), StringComparer.Ordinal);
-        StoryCatalog catalog = CoreUiStoryProject.CreateCatalog();
-        foreach (StoryInfo story in CoreUiStoryProject.RuntimeStories(catalog))
+        DirectoryInfo? current = new(AppContext.BaseDirectory);
+        while (current is not null)
         {
-            JsonElement runtime = runtimeByPath[story.Path];
-            Assert.Equal(story.Width, runtime.GetProperty("width").GetInt32());
-            Assert.Equal(story.Height, runtime.GetProperty("height").GetInt32());
-            Assert.Equal(
-                JsonSerializer.Serialize(story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>(), CamelCase),
-                JsonSerializer.Serialize(runtime.GetProperty("args"), CamelCase));
-            Assert.Equal(story.CapabilityNote, runtime.GetProperty("capabilityNote").ValueKind == JsonValueKind.Null
-                ? null : runtime.GetProperty("capabilityNote").GetString());
-            Assert.Equal(story.ProductionComponent?.ComponentType,
-                runtime.GetProperty("componentType").ValueKind == JsonValueKind.Null
-                    ? null : runtime.GetProperty("componentType").GetString());
+            if (File.Exists(Path.Combine(current.FullName, "Luxel.slnx"))) return current.FullName;
+            current = current.Parent;
         }
-
-        JsonElement[] production = runtimeByPath.Values
-            .Where(story => story.GetProperty("componentType").ValueKind == JsonValueKind.String)
-            .ToArray();
-        Assert.Equal(60, production.Length);
-        Assert.All(production, story => Assert.EndsWith("/Basic", story.GetProperty("path").GetString(), StringComparison.Ordinal));
+        throw new DirectoryNotFoundException("Luxel repository root was not found.");
     }
 }

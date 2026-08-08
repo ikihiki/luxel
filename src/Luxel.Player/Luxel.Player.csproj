@@ -7,7 +7,7 @@
        csx ビヘイビア (ScriptHost) は GE-3 S2、exe (Luxel.Player.App) は S3 で足す。 -->
   <ItemGroup>
     <ProjectReference Include="..\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
-    <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.Resources\Luxel.Resources.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.Typography\Luxel.Typography.csproj" />

@@ -107,6 +107,11 @@ public class DevToolsTests
         // フレーム → 最新のみ (8B ヘッダ + RGBA)
         EngineDiagnostics.Emit(EngineDiagnostics.Frame, new DiagFrame(2, 1, new byte[2 * 1 * 4]));
 
+        // Browser WebGPU の構造化 snapshot は二重 JSON 化せず保持する
+        const string webGpuJson = "{\"stage\":\"device-lost\",\"adapter\":{\"description\":\"fake\"}}";
+        EngineDiagnostics.Emit(EngineDiagnostics.WebGpu, new DiagWebGpu(webGpuJson));
+        Assert.Equal(webGpuJson, listener.GetWebGpu());
+
         using (JsonDocument poll = JsonDocument.Parse(listener.BuildPoll(0)))
         {
             Assert.True(poll.RootElement.GetProperty("frameRev").GetInt64() > 0);

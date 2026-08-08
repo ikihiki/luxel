@@ -1,18 +1,18 @@
 using System.Numerics;
 using Luxel.Ecs;
-using Luxel.Framework;
+using Luxel.Framework.Game;
 using Xunit;
 
 namespace Luxel.Gallery.E2eTests;
 
 /// <summary>FixedUpdate の蓄積器 (<see cref="FixedTimestep"/>) と描画補間 (<see cref="TransformInterpolationSystem"/>) の
-/// 決定的な単体テスト (GPU 不要)。<see cref="FixedTimestep"/> は Luxel.Framework (net10.0) にあるため、
+/// 決定的な単体テスト (GPU 不要)。<see cref="FixedTimestep"/> は Luxel.Framework.Game (net10.0) にあるため、
 /// Gallery E2Eと同じこのテストプロジェクトに置く。</summary>
 public class FixedTimestepTests
 {
     [Fact]
     public void FixedTimestep_IsOwnedByFrameworkAssembly()
-        => Assert.Equal("Luxel.Framework", typeof(FixedTimestep).Assembly.GetName().Name);
+        => Assert.Equal("Luxel.Framework.Game", typeof(FixedTimestep).Assembly.GetName().Name);
 
     [Fact]
     public void Advance_ExactMultiple_RunsExactSteps()

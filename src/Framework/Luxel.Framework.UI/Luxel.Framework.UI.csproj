@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+    <LangVersion>14</LangVersion>
+    <PackageId>Luxel.Framework.UI</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Luxel contributors</Authors>
+    <Description>Cross-platform Luxel UI application facade for .NET 10.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <NuspecFile>Luxel.Framework.UI.nuspec</NuspecFile>
+    <NuspecProperties>Configuration=$(Configuration);Version=$(Version)</NuspecProperties>
+    <RepositoryUrl>https://github.com/ikihiki/luxel</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\..\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\Luxel.Platform.Silk\Luxel.Platform.Silk.csproj" />
+    <ProjectReference Include="..\..\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
+    <ProjectReference Include="..\..\Luxel.Graphics.WebGPU\Luxel.Graphics.WebGPU.csproj" />
+    <ProjectReference Include="..\..\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\..\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
+    <ProjectReference Include="..\..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="..\..\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\..\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\..\Luxel.Terminal\Luxel.Terminal.csproj" />
+    <ProjectReference Include="..\..\Luxel.Terminal.UI\Luxel.Terminal.UI.csproj" />
+    <ProjectReference Include="..\..\Luxel.Terminal.Linux\Luxel.Terminal.Linux.csproj" />
+    <ProjectReference Include="..\..\Luxel.Terminal.Windows\Luxel.Terminal.Windows.csproj" />
+    <ProjectReference Include="..\..\Luxel.Controls\Luxel.Controls.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\..\shaders\compiled\*.spv;..\..\..\shaders\compiled\*.dxil;..\..\..\shaders\compiled\*.wgsl;..\..\..\shaders\compiled\webgpu-shaders.json"
+             Link="shaders\%(Filename)%(Extension)" Pack="false"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\..\assets\fonts\BIZUDGothic-Regular.ttf" Link="assets\fonts\BIZUDGothic-Regular.ttf" Pack="false"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\..\assets\fonts\BIZUDGothic-OFL.txt" Link="assets\fonts\OFL.txt" Pack="false"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The facade is distributed as one Luxel package; third-party runtime dependencies remain normal NuGet dependencies. -->
+    <PackageReference Include="Silk.NET.Windowing" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.Vulkan" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.Vulkan.Extensions.EXT" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.23.0" />
+    <PackageReference Include="HarfBuzzSharp" Version="14.2.0" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.0" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
+  </ItemGroup>
+
+  <Target Name="ValidateLuxelFrameworkUiShaderCache" BeforeTargets="BeforeBuild">
+    <MSBuild Projects="..\..\..\shaders\Luxel.ShaderCache.proj" Targets="ValidateSlangShaderCache" Properties="Configuration=$(Configuration)" />
+  </Target>
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Platform" />
+  </ItemGroup>
+</Project>

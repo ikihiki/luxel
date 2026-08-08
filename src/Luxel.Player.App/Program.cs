@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using Luxel;
-using Luxel.Framework;
+using Luxel.Framework.Game;
 using Luxel.Platform;
 using Luxel.Player;
 using Luxel.Resources;

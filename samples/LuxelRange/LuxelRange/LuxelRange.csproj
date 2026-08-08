@@ -26,12 +26,13 @@
     <ProjectReference Include="..\..\..\src\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
     <!-- 実時間ゲームループ (GameScene/LuxelHostBuilder) + 入力 -->
-    <ProjectReference Include="..\..\..\src\Luxel.Framework\Luxel.Framework.csproj" />
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Framework.Game.Native\Luxel.Framework.Game.Native.csproj" />
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Framework.Game\Luxel.Framework.Game.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Input\Luxel.Input.csproj" />
     <!-- 3D 描画 (ECS→Render3DExtract→cube_forward、地形メッシュ→scene_pbr_lite、Fox skin→scene_pbr_skinned) -->
-    <ProjectReference Include="..\..\..\src\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\..\..\src\Resource\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
     <!-- glTF ロード (動く的 = Fox.glb のスケルタルスキン) -->
-    <ProjectReference Include="..\..\..\src\Luxel.Gltf\Luxel.Gltf.csproj" />
+    <ProjectReference Include="..\..\..\src\Resource\Luxel.Assets.Gltf\Luxel.Assets.Gltf.csproj" />
     <!-- 命中パーティクル (.ThreeD ビルボードバースト) -->
     <ProjectReference Include="..\..\..\src\Luxel.Particles\Luxel.Particles.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Particles.ThreeD\Luxel.Particles.ThreeD.csproj" />

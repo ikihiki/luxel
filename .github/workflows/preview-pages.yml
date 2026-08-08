@@ -49,49 +49,29 @@ jobs:
       - name: Test generators and generated production inventory
         if: github.event.action != 'closed'
         run: dotnet test tests/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj --no-restore --no-build --configuration Release
-      - name: Test exporter and documentation contracts
+      - name: Test Gallery catalog contracts
         if: github.event.action != 'closed'
         run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
 
       - name: Test browser managed and source contracts
         if: github.event.action != 'closed'
         run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release
-      - name: Publish browser runtimes
+      - name: Publish Blazor Gallery
+        if: github.event.action != 'closed'
+        run: dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj --no-restore --configuration Release
+      - name: Validate static Blazor Gallery
         if: github.event.action != 'closed'
         run: |
-          dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj --no-restore --configuration Release
-          dotnet publish samples/LuxelPlaygroundBrowser/LuxelPlaygroundBrowser.csproj --no-restore --configuration Release
-
-      - name: Export static Gallery with browser runtimes
-        if: github.event.action != 'closed'
-        run: >-
-          dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj
-          --no-restore --no-build --configuration Release -- artifacts/gallery-site
-          --browser-webgpu-root samples/LuxelWebGpuBrowser/bin/Release/net10.0/publish/wwwroot
-          --playground-browser-root samples/LuxelPlaygroundBrowser/bin/Release/net10.0/publish/wwwroot
-          --static-capture golden-only
-      - name: Validate subpath-safe browser WebGPU sample
-        if: github.event.action != 'closed'
-        run: |
-          test -f artifacts/gallery-site/samples/webgpu-browser/index.html
-          test -f artifacts/gallery-site/samples/webgpu-browser/browser-runtime-manifest.json
-          python3 - <<'PY'
-          import json
-          manifest = json.load(open('artifacts/gallery-site/samples/webgpu-browser/browser-runtime-manifest.json'))
-          production = [story for story in manifest['stories'] if story.get('componentType')]
-          assert manifest['bundleId'] == 'webgpu-browser-v1'
-          assert manifest['protocolVersion'] == 2
-          assert len(production) == len({story['componentType'] for story in production}) == 60
-          assert all(story['path'].endswith('/Basic') and isinstance(story['args'], list) for story in production)
-          PY
-          test -f artifacts/gallery-site/samples/webgpu-browser/_framework/dotnet.js
-          ! grep -R -E '(src|href)="/' artifacts/gallery-site/samples/webgpu-browser/index.html artifacts/gallery-site/samples/webgpu-browser/main.js
-          test -f artifacts/gallery-site/samples/luxel-playground/playground-runtime-manifest.json
-          test -f artifacts/gallery-site/samples/luxel-playground/_framework/dotnet.js
+          root=gallery/GalleryBrowser/bin/Release/net10.0/publish/wwwroot
+          test -f "$root/index.html"
+          test -f "$root/_framework/blazor.webassembly.js" || find "$root/_framework" -name 'blazor.webassembly*.js' -print -quit | grep -q .
+          test -f "$root/main.js"
+          ! test -f "$root/browser-runtime-manifest.json"
+          ! grep -R -E '(src|href)="/' "$root/index.html" "$root/main.js"
       - name: Deploy PR preview
         uses: rossjrw/pr-preview-action@v1.8.1
         with:
-          source-dir: artifacts/gallery-site
+          source-dir: gallery/GalleryBrowser/bin/Release/net10.0/publish/wwwroot
           preview-branch: gh-pages
           umbrella-dir: pr-preview
           action: auto

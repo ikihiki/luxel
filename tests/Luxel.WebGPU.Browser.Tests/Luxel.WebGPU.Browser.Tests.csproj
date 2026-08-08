@@ -2,6 +2,7 @@
   <PropertyGroup><IsPackable>false</IsPackable></PropertyGroup>
   <ItemGroup><Compile Include="..\..\samples\CanonicalTriangleRecipe.cs" Link="CanonicalTriangleRecipe.cs" /></ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Framework\Luxel.Framework.Game.Browser\Luxel.Framework.Game.Browser.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Graphics.WebGPU.Browser\Luxel.Graphics.WebGPU.Browser.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />

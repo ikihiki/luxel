@@ -1,0 +1,81 @@
+// 型 API リファレンスの対象 (`Reference/{namespace}` が TypeApiRegistry から実行時にページを組み立てる)。
+// 追加したい名前空間はここに並べる — 対象アセンブリは GenerateDocumentationFile=true が必要
+// (Directory.Build.props で全プロジェクト有効)。
+using Luxel.UI;
+
+// Reference は再利用可能な src/Luxel.* ライブラリをすべて列挙する。
+// 実行ホスト (Gallery / Gallery.Site / Player.App) と source generator は対象外。
+// コア / GPU 抽象 + バックエンド
+[assembly: GenerateAssemblyApi("Luxel.Diagnostics")]
+[assembly: GenerateAssemblyApi("Luxel.Graphics")]
+[assembly: GenerateAssemblyApi("Luxel.Graphics.Abstraction")]
+[assembly: GenerateAssemblyApi("Luxel.Graphics.Vulkan")]
+[assembly: GenerateAssemblyApi("Luxel.Graphics.DirectX12")]
+// 2D
+[assembly: GenerateAssemblyApi("Luxel.Graphics.TwoD")]
+// UI
+[assembly: GenerateAssemblyApi("Luxel.UI")]
+[assembly: GenerateAssemblyApi("Luxel.UI.Styling")]
+[assembly: GenerateAssemblyApi("Luxel.UI.Tailwind")]
+[assembly: GenerateAssemblyApi("Luxel.Controls")]
+[assembly: GenerateAssemblyApi("Luxel.Framework.UI")]
+// テキスト / ドキュメント
+[assembly: GenerateAssemblyApi("Luxel.Typography")]
+[assembly: GenerateAssemblyApi("Luxel.Typography.TwoD")]
+[assembly: GenerateAssemblyApi("Luxel.Document")]
+[assembly: GenerateAssemblyApi("Luxel.Highlight")]
+[assembly: GenerateAssemblyApi("Luxel.Diagram")]
+[assembly: GenerateAssemblyApi("Luxel.Mathematics")]
+[assembly: GenerateAssemblyApi("Luxel.MathText")]
+// アニメーション
+[assembly: GenerateAssemblyApi("Luxel.Animation")]
+[assembly: GenerateAssemblyApi("Luxel.Animation.UI")]
+[assembly: GenerateAssemblyApi("Luxel.Animation.TwoD")]
+[assembly: GenerateAssemblyApi("Luxel.Animation.ThreeD")]
+[assembly: GenerateAssemblyApi("Luxel.Particles")]
+[assembly: GenerateAssemblyApi("Luxel.Particles.TwoD")]
+[assembly: GenerateAssemblyApi("Luxel.Particles.ThreeD")]
+[assembly: GenerateAssemblyApi("Luxel.Particles.UI")]
+// 3D / レンダーグラフ / アセット
+[assembly: GenerateAssemblyApi("Luxel.Graphics.RenderGraph")]
+[assembly: GenerateAssemblyApi("Luxel.Ecs")]
+[assembly: GenerateAssemblyApi("Luxel.Ecs.Signal")]
+[assembly: GenerateAssemblyApi("Luxel.Physics")]
+[assembly: GenerateAssemblyApi("Luxel.Assets")]
+[assembly: GenerateAssemblyApi("Luxel.AssetsGpu")]
+[assembly: GenerateAssemblyApi("Luxel.AssetRuntime")]
+[assembly: GenerateAssemblyApi("Luxel.Assets.Gltf")]
+[assembly: GenerateAssemblyApi("Luxel.NodeGraph")]
+[assembly: GenerateAssemblyApi("Luxel.Physics.Gizmos")]
+[assembly: GenerateAssemblyApi("Luxel.SceneEdit")]
+[assembly: GenerateAssemblyApi("Luxel.Workbench")]
+// 端末
+[assembly: GenerateAssemblyApi("Luxel.Terminal.Input")]
+[assembly: GenerateAssemblyApi("Luxel.Terminal.Parsing")]
+[assembly: GenerateAssemblyApi("Luxel.Terminal.Screen")]
+[assembly: GenerateAssemblyApi("Luxel.Terminal.Session")]
+[assembly: GenerateAssemblyApi("Luxel.Terminal.UI")]
+[assembly: GenerateAssemblyApi("Luxel.Terminal.Windows")]
+[assembly: GenerateAssemblyApi("Luxel.Terminal.Linux")]
+// ランタイム
+[assembly: GenerateAssemblyApi("Luxel.Resources")]
+[assembly: GenerateAssemblyApi("Luxel.Imaging")]
+[assembly: GenerateAssemblyApi("Luxel.Input.XInput")]
+[assembly: GenerateAssemblyApi("Luxel.Input")]
+[assembly: GenerateAssemblyApi("Luxel.Audio")]
+[assembly: GenerateAssemblyApi("Luxel.Audio.Windows")]
+[assembly: GenerateAssemblyApi("Luxel.Platform")]
+[assembly: GenerateAssemblyApi("Luxel.Platform.Abstraction")]
+[assembly: GenerateAssemblyApi("Luxel.Platform.Windows")]
+[assembly: GenerateAssemblyApi("Luxel.Platform.Silk")]
+[assembly: GenerateAssemblyApi("Luxel.Player")]
+[assembly: GenerateAssemblyApi("Luxel.Settings")]
+[assembly: GenerateAssemblyApi("Luxel.Scripting")]
+[assembly: GenerateAssemblyApi("Luxel.Scripting.Framework")]
+[assembly: GenerateAssemblyApi("Luxel.Strudel")]
+[assembly: GenerateAssemblyApi("Luxel.Graphics.TwoD.Skia")]
+[assembly: GenerateAssemblyApi("Luxel.Framework.Game.Native")]
+[assembly: GenerateAssemblyApi("Luxel.Framework.Game")]
+[assembly: GenerateAssemblyApi("Luxel.Framework.DevTools")]
+[assembly: GenerateAssemblyApi("Luxel.Scene.UI")]
+[assembly: GenerateAssemblyApi("Luxel.DevTools")]

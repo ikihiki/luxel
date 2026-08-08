@@ -1,4 +1,4 @@
-using Luxel.Framework;
+using Luxel.Framework.Game;
 
 // docs:begin framework-fixed-timestep
 var timestep = new FixedTimestep(fixedDt: 0.125, maxStepsPerFrame: 3);

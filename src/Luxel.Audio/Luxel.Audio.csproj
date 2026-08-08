@@ -2,7 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
-    <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.Resources\Luxel.Resources.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

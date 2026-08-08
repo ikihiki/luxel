@@ -1,109 +1,15 @@
-# Gallery browser runtime protocol v2
+# Gallery browser runtime
 
-The static Gallery renders semantic Markdown in the parent document and runs browser-owned Widget stories in isolated WebAssembly iframes. The implementation is split across:
+`gallery/GalleryBrowser` is a statically hostable Blazor WebAssembly application. `Program.cs` registers the browser story composition root and Blazor injects `StoryCatalog` directly into `App.razor`.
 
-- `src/Luxel.Gallery.Stories.CoreUi`: browser-safe authored stories plus generated production component `Overview` / `Basic` pairs.
-- `src/Luxel.Gallery.RuntimeManifest`: emits the catalog-backed runtime descriptor manifest.
-- `samples/LuxelWebGpuBrowser`: resolves canonical story paths from the CoreUi catalog and hosts Widget results on WebGPU.
-- `src/Luxel.Gallery.Site`: owns HTML args controls, iframe lifecycle, hash state, and protocol validation.
+There is no `browser-runtime-manifest.json` and no Gallery static-site exporter. A story is browser-runnable exactly when it is registered in the Browser Gallery catalog. `App.razor` resolves the `story` and `args` query parameters, then starts `BrowserGalleryApplication` against the same catalog instance.
 
-## Canonical production inventory
+The JavaScript module in `wwwroot/main.js` only supplies the Luxel canvas bridge and parent-frame protocol. The protocol version remains `2` for message compatibility, but it no longer describes catalog membership.
 
-Source generation emits one `GeneratedComponentStoryDescriptor` for every production `[UiComponent]`. Each descriptor has a unique component type, category, exact `Controls/{category}/Overview` path, and exact `Controls/{category}/Basic` path.
-
-The current authoritative inventory is 60 descriptors:
-
-- every Overview returns semantic Markdown and references its matching Basic;
-- every Basic returns a Widget or deterministic `StoryCapabilityFallback`;
-- every Basic is owned by runtime bundle `webgpu-browser-v1`;
-- only an explicit authored exact-path registration may replace a generated fallback;
-- unrelated duplicate paths, cross-project duplicates, and attempts to replace authored stories remain composition errors.
-
-Tests derive coverage from `CoreUiStoryProject.ProductionComponents` and manifest `componentType` identities, not from a naive path count that could include authored extras.
-
-## Runtime manifest
-
-`browser-runtime-manifest.json` is generated before browser publish and uses this shape:
-
-```json
-{
-  "bundleId": "webgpu-browser-v1",
-  "protocolVersion": 2,
-  "entryUrl": "./",
-  "stories": [
-    {
-      "path": "Controls/Button/Basic",
-      "width": 480,
-      "height": 320,
-      "args": [],
-      "capabilityNote": "...",
-      "componentType": "global::Luxel.Controls.Button"
-    }
-  ]
-}
-```
-
-`args` is the complete static `StoryArgDefinition` schema, including canonical default values, type hints, descriptions, range/step constraints, and enum options. `componentType` is non-null only for generated production Basics. The Site exporter rejects protocol mismatches, duplicate paths, absolute entry URLs, and catalog/manifest disagreement in viewport, schema, capability note, or component identity.
-
-Regenerate the checked-in manifest with:
+Publish the static application with:
 
 ```bash
-dotnet run --project src/Luxel.Gallery.RuntimeManifest -- \
-  samples/LuxelWebGpuBrowser/wwwroot/browser-runtime-manifest.json
+dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj -c Release
 ```
 
-`dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release` also runs the generator before publish.
-
-## Iframe URL
-
-The browser entry accepts:
-
-- `story`: canonical catalog path;
-- `args`: canonical JSON object seeded before story build;
-- `instance`: stable iframe instance ID generated from the containing location and referenced story path.
-
-All URLs are relative so the application can be hosted under a Gallery subpath.
-
-## Message envelope
-
-Every parent/child message contains:
-
-```js
-{
-  luxelGallery: true,
-  protocolVersion: 2,
-  type,
-  story,
-  instanceId,
-  revision,
-  args,
-  requestId
-}
-```
-
-Both sides validate same origin, the expected source window, protocol version, canonical story path, instance ID, and monotonic revision. Parent-originated updates also use a request ID so acknowledgements cannot be applied to the wrong edit.
-
-### Parent to child
-
-- `set-args`: replace the canonical args snapshot for an already-running instance. The child applies values through `StoryContext.ApplyArgs` without reloading the iframe.
-
-### Child to parent
-
-- `ready`: Widget runtime is initialized; includes the canonical args snapshot and schema.
-- `args-changed`: a parent edit was accepted or an in-canvas action changed an arg.
-- `arg-error`: one or more arg values were rejected.
-- `event`: a story action/event called `StoryContext.Log`; includes its sequence, timestamp, and message for the parent-owned Output panel.
-- `story-error`: story lookup, build, device setup, or runtime execution failed.
-
-The runtime additionally exposes `globalThis.luxelBrowserState` for manual runtime diagnostics and source-contract observability. This is diagnostic state, not the cross-frame protocol.
-
-## Parent-owned args and hash state
-
-The parent document renders accessible Args and Output tabs. Args contains stable labels, control IDs, defaults, descriptions, constraints, reset buttons, and live status regions; controls remain disabled until the matching iframe reports ready. Output receives the bounded `StoryContext.Log` stream so users can confirm exactly which component events executed.
-
-Non-default state is persisted in the Gallery hash:
-
-- `args`: top-level runtime story args;
-- `embeds`: a JSON object keyed by stable containing-story/embed location.
-
-Parent edits are sent live to the child. Child actions update the parent control and hash without iframe reload. Duplicate references to the same canonical story receive distinct but deterministic instance and args-table IDs.
+Deploy `gallery/GalleryBrowser/bin/Release/net10.0/publish/wwwroot` to a static host. WebGPU requires HTTPS or localhost.

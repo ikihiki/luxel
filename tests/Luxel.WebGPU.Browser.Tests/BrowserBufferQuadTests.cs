@@ -7,7 +7,7 @@ public sealed class BrowserBufferQuadTests
     {
         string root = FindRepositoryRoot();
         string source = File.ReadAllText(Path.Combine(
-            root, "src", "Luxel.Gallery.Stories.CoreUi", "Stories", "GpuViewStories.cs"));
+            root, "src", "Gallery", "Luxel.Gallery.Stories.CoreUi", "Stories", "GpuViewStories.cs"));
 
         Assert.Contains("[Story(\"Examples/3D/BuffersAndBindings\"", source);
         Assert.Contains("float[] vertices", source);

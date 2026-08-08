@@ -3,7 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Animation\Luxel.Animation.csproj" />
     <!-- ParticleConfig JSON のロード (ParticleConfigStep)。Resources は CPU のみ (GPU 非依存)。 -->
-    <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.Resources\Luxel.Resources.csproj" />
   </ItemGroup>
 
   <ItemGroup>

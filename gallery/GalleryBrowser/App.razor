@@ -1,0 +1,206 @@
+@using System.Runtime.InteropServices.JavaScript
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Routing
+@using Luxel.Gallery
+@using Luxel.Gallery.Browser
+@implements IDisposable
+@inject StoryCatalog Catalog
+@inject IServiceProvider Services
+@inject NavigationManager Navigation
+
+@if (_embedded)
+{
+    <main class="gallery-embed">
+        <canvas id="luxel-canvas" tabindex="0" aria-label="Luxel browser WebGPU"></canvas>
+        <div id="status" hidden data-status="loading"></div>
+        <div id="error" role="alert" hidden></div>
+    </main>
+}
+else
+{
+    <div class="gallery-shell">
+        <aside class="gallery-sidebar">
+            <header class="gallery-brand">
+                <span class="gallery-mark">L</span>
+                <span><strong>Luxel</strong><small>Gallery</small></span>
+            </header>
+            <label class="gallery-search">
+                <span aria-hidden="true">⌕</span>
+                <input type="search" placeholder="Search stories" aria-label="Search stories"
+                       @bind="_search" @bind:event="oninput" />
+                @if (!string.IsNullOrWhiteSpace(_search))
+                {
+                    <button type="button" title="Clear search" @onclick="ClearSearch">×</button>
+                }
+            </label>
+            <nav class="story-navigation" aria-label="Story navigation">
+                @{ IReadOnlyList<GalleryStoryTreeNode> tree = FilteredTree(); }
+                @if (tree.Count > 0)
+                {
+                    <StoryTree Nodes="tree" ActivePath="@_story.Path" SearchActive="@(!string.IsNullOrWhiteSpace(_search))"
+                               StorySelected="SelectStory" />
+                }
+                else
+                {
+                    <p class="empty-search">No matching stories</p>
+                }
+            </nav>
+            <footer class="gallery-sidebar-footer">@Catalog.All.Count stories</footer>
+        </aside>
+
+        <main class="gallery-main">
+            <header class="story-toolbar">
+                <div>
+                    <p>@_story.Component</p>
+                    <h1>@_story.Name</h1>
+                </div>
+                <a class="open-alone" href="@EmbeddedStoryHref(_story.Path, _argsJson)" target="_blank" rel="noopener">Open canvas</a>
+            </header>
+            @if (_documentHtml is not null)
+            {
+                <article class="markdown-document">@((MarkupString)_documentHtml)</article>
+            }
+            else
+            {
+                <section class="story-preview">
+                    <iframe @key="_runtimeUrl" class="story-runtime-frame" src="@_runtimeUrl"
+                            title="@_story.Path" allow="autoplay; clipboard-read; clipboard-write"></iframe>
+                </section>
+            }
+        </main>
+    </div>
+}
+
+@code {
+    private bool _started;
+    private bool _embedded;
+    private string _argsJson = "{}";
+    private string _search = "";
+    private string? _documentHtml;
+    private string _runtimeUrl = "";
+    private StoryInfo _story = null!;
+    private JSObject? _browserHostModule;
+    private JSObject? _slangModule;
+    private JSObject? _webGpuModule;
+    private JSObject? _audioModule;
+
+    protected override void OnInitialized()
+    {
+        LoadLocation(Navigation.Uri);
+        if (!_embedded) Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _started || !_embedded) return;
+        _started = true;
+        _browserHostModule = await JSHost.ImportAsync("luxel-browser-host", "../main.js");
+        _slangModule = await JSHost.ImportAsync("luxel-slang", "../slang-browser.js");
+        _webGpuModule = await JSHost.ImportAsync("./luxel-webgpu-browser.js", "../luxel-webgpu-browser.js");
+        _audioModule = await JSHost.ImportAsync("./luxel-audio-browser.js", "../luxel-audio-browser.js");
+        _ = RunStoryAsync(_story.Path, _argsJson);
+    }
+
+    private void LoadLocation(string location)
+    {
+        Uri uri = Navigation.ToAbsoluteUri(location);
+        Dictionary<string, string> query = ParseQuery(uri.Query);
+        _embedded = query.GetValueOrDefault("embed") is "1" or "true";
+        string? requested = query.GetValueOrDefault("story");
+        _story = requested is null ? Catalog.All[0] : Catalog.Find(requested)
+            ?? throw new InvalidOperationException($"Unknown browser story '{requested}'.");
+        _argsJson = query.GetValueOrDefault("args") ?? "{}";
+        _documentHtml = _embedded ? null : TryRenderDocument(_story, _argsJson);
+        _runtimeUrl = _embedded || _documentHtml is not null
+            ? ""
+            : EmbeddedStoryHref(_story.Path, _argsJson);
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        _ = InvokeAsync(() =>
+        {
+            LoadLocation(args.Location);
+            StateHasChanged();
+        });
+    }
+
+    private string? TryRenderDocument(StoryInfo story, string argsJson)
+    {
+        if (story.ResultBuild is null) return null;
+        try
+        {
+            StoryArgs args = StoryArgs.Parse(argsJson).WithDefaults(story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>());
+            using var context = new StoryContext(args: args);
+            context.SetServices(Services);
+            StoryResult result = story.BuildResult(context);
+            return result.Kind == StoryResultKind.Markdown
+                ? GalleryMarkdownHtml.Render(story, result)
+                : null;
+        }
+        catch
+        {
+            // Some semantic providers need the live browser host. Let the runtime build those stories.
+            return null;
+        }
+    }
+
+    private IReadOnlyList<GalleryStoryTreeNode> FilteredTree()
+    {
+        string needle = _search.Trim();
+        IEnumerable<StoryInfo> stories = Catalog.All;
+        if (needle.Length > 0)
+            stories = stories.Where(story => SearchText(story).Contains(needle, StringComparison.OrdinalIgnoreCase));
+        return GalleryStoryTree.Build(stories);
+    }
+
+    private string SearchText(StoryInfo story)
+        => string.Join('\n', story.Path, story.Name, story.Component, story.Source ?? "", story.CapabilityNote ?? "",
+            string.Join('\n', Catalog.AliasesFor(story.Path)));
+
+    private static string StoryHref(string path) => "?story=" + Uri.EscapeDataString(path);
+
+    private static string EmbeddedStoryHref(string path, string argsJson)
+    {
+        string url = StoryHref(path) + "&embed=1";
+        return string.IsNullOrWhiteSpace(argsJson) || argsJson == "{}"
+            ? url
+            : url + "&args=" + Uri.EscapeDataString(argsJson);
+    }
+
+    private void SelectStory(StoryInfo story)
+    {
+        if (story.Path == _story.Path) return;
+        Navigation.NavigateTo(StoryHref(story.Path), forceLoad: false);
+    }
+
+    private void ClearSearch() => _search = "";
+
+    private async Task RunStoryAsync(string story, string argsJson)
+    {
+        try
+        {
+            await BrowserGalleryApplication.RunAsync(Services, story, argsJson);
+        }
+        catch
+        {
+            // BrowserGalleryApplication publishes the full failure to the runtime status surface.
+        }
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+
+    private static Dictionary<string, string> ParseQuery(string query)
+    {
+        var values = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (string item in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            string[] pair = item.Split('=', 2);
+            values[Uri.UnescapeDataString(pair[0])] = pair.Length == 2 ? Uri.UnescapeDataString(pair[1]) : "";
+        }
+        return values;
+    }
+}
