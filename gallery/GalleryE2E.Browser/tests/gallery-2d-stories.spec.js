@@ -60,6 +60,8 @@ const animationGpuStories = new Set([
 
 const animationMotionStories = new Set(animationStories.filter(story => story !== 'Examples/Animation/StateMachine'));
 
+const runtimeUrl = story => `/?story=${encodeURIComponent(story)}&embed=1`;
+
 function collectErrors(page) {
   const consoleErrors = [];
   const pageErrors = [];
@@ -94,14 +96,28 @@ async function expectRuntimeStory(frame, story) {
   expect(webGpu?.lastError).toBeNull();
 }
 
-test('browser-WASM renders generated Markdown component overviews', async ({ page }) => {
+test('Blazor Gallery renders generated Markdown overviews as HTML with navigation and search', async ({ page }) => {
   const story = 'Controls/Accordion/Overview';
   const errors = collectErrors(page);
   await page.goto(`/?story=${encodeURIComponent(story)}`);
-  await expectRuntimeStory(page, story);
-  await expect.poll(() => page.evaluate(() =>
-    globalThis.luxelBrowserState?.widgets?.some(widget => widget.type?.endsWith('.TextEditorView')) || false),
-    { timeout: 30_000 }).toBe(true);
+
+  await expect(page.locator('.gallery-sidebar')).toBeVisible();
+  await expect(page.locator('.story-link.active')).toHaveText(/Overview/);
+  await expect(page.locator('.story-tree summary').filter({ hasText: 'Accordion' })).toBeVisible();
+  await expect(page.locator('.markdown-document h1')).toHaveText('Accordion');
+  await expect(page.locator('.markdown-document')).toContainText('Implementation');
+  await expect(page.locator('.markdown-story-embed iframe')).toHaveCount(1);
+  const embedded = page.frameLocator('.markdown-story-embed iframe');
+  await expect(embedded.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
+  await expect(embedded.locator('#status')).toHaveAttribute('data-story', 'Controls/Accordion/Basic');
+
+  const search = page.getByRole('searchbox', { name: 'Search stories' });
+  await search.fill('Accordion');
+  await expect(page.locator('.story-link')).toHaveCount(2);
+  await expect(page.locator('.story-link')).toContainText(['Overview', 'Basic']);
+  await search.fill('no-such-luxel-story');
+  await expect(page.locator('.empty-search')).toBeVisible();
+
   expect(errors.consoleErrors).toEqual([]);
   expect(errors.pageErrors).toEqual([]);
 });
@@ -109,7 +125,7 @@ test('browser-WASM renders generated Markdown component overviews', async ({ pag
 for (const story of twoDStories) {
   test(`browser-WASM renders ${story}`, async ({ page }) => {
     const errors = collectErrors(page);
-    await page.goto(`/?story=${encodeURIComponent(story)}`);
+    await page.goto(runtimeUrl(story));
     await expectRuntimeStory(page, story);
     expect(errors.consoleErrors).toEqual([]);
     expect(errors.pageErrors).toEqual([]);
@@ -119,7 +135,7 @@ for (const story of twoDStories) {
 for (const story of ecsStories) {
   test(`browser-WASM renders ${story}`, async ({ page }) => {
     const errors = collectErrors(page);
-    await page.goto(`/?story=${encodeURIComponent(story)}`);
+    await page.goto(runtimeUrl(story));
     await expectRuntimeStory(page, story);
     if (ecsGpuViewStories.has(story)) {
       await expect.poll(() => page.evaluate(() =>
@@ -134,7 +150,7 @@ for (const story of ecsStories) {
 for (const story of pipelineStateStories) {
   test(`browser-WASM renders ${story}`, async ({ page }) => {
     const errors = collectErrors(page);
-    await page.goto(`/?story=${encodeURIComponent(story)}`);
+    await page.goto(runtimeUrl(story));
     await expectRuntimeStory(page, story);
     await expect.poll(() => page.evaluate(() =>
       globalThis.luxelBrowserState?.widgets?.find(widget => widget.type?.endsWith('.GpuView'))?.detail || ''),
@@ -147,7 +163,7 @@ for (const story of pipelineStateStories) {
 for (const story of animationStories) {
   test(`browser-WASM renders ${story}`, async ({ page }) => {
     const errors = collectErrors(page);
-    await page.goto(`/?story=${encodeURIComponent(story)}`);
+    await page.goto(runtimeUrl(story));
     await expectRuntimeStory(page, story);
     if (animationGpuStories.has(story)) {
       await expect.poll(() => page.evaluate(() =>
@@ -173,7 +189,7 @@ for (const story of animationStories) {
 
 test('browser-WASM StateMachine responds to press and done triggers', async ({ page }) => {
   const errors = collectErrors(page);
-  await page.goto(`/?story=${encodeURIComponent('Examples/Animation/StateMachine')}`);
+  await page.goto(runtimeUrl('Examples/Animation/StateMachine'));
   await expectRuntimeStory(page, 'Examples/Animation/StateMachine');
 
   const canvas = page.locator('#luxel-canvas');

@@ -12,6 +12,7 @@ public sealed class BrowserCanonicalTriangleTests
         string canonicalTriangle = File.ReadAllText(Path.Combine(root, "samples", "CanonicalTriangleRecipe.cs"));
         string gpuStories = File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Stories.CoreUi", "Stories", "GpuViewStories.cs"));
         string html = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "index.html"));
+        string css = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "gallery.css"));
 
         Assert.Contains("Luxel.Gallery.Stories.CoreUi.csproj", project);
         Assert.DoesNotContain("CanonicalClearColorRecipe.cs", project);
@@ -54,7 +55,9 @@ public sealed class BrowserCanonicalTriangleTests
         Assert.DoesNotContain("checker", program, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("width=\"320\" height=\"240\"", html);
         Assert.DoesNotContain("aspect-ratio", html);
-        Assert.Contains(":root,html,body,#app,#luxel-canvas{width:100%;height:100%;margin:0;padding:0}", html);
+        Assert.Contains("<link rel=\"stylesheet\" href=\"gallery.css\">", html);
+        Assert.Contains("html, body, #app { width: 100%; height: 100%; margin: 0; }", css);
+        Assert.Contains(".gallery-embed, .gallery-embed #luxel-canvas", css);
         Assert.Contains("<div id=\"status\" hidden", html);
         Assert.DoesNotContain("<h1>", html);
         Assert.DoesNotContain("Move/click over", html);
