@@ -26,7 +26,7 @@
     <ProjectReference Include="..\Luxel.Input\Luxel.Input.csproj" />
     <ProjectReference Include="..\Luxel.Input.XInput\Luxel.Input.XInput.csproj" />
     <ProjectReference Include="..\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
-    <ProjectReference Include="..\Luxel.UI.App\Luxel.UI.App.csproj" />
+    <ProjectReference Include="..\Framework\Luxel.Framework.UI\Luxel.Framework.UI.csproj" />
     <ProjectReference Include="..\Luxel.Audio.Windows\Luxel.Audio.Windows.csproj" />
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
@@ -78,21 +78,22 @@
     <ProjectReference Include="..\Luxel.Particles.TwoD\Luxel.Particles.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.Particles.ThreeD\Luxel.Particles.ThreeD.csproj" />
     <ProjectReference Include="..\Luxel.Particles.UI\Luxel.Particles.UI.csproj" />
-    <ProjectReference Include="..\Luxel.Scripting.Framework\Luxel.Scripting.Framework.csproj" />
+    <ProjectReference Include="..\Framework\Luxel.Scripting.Framework\Luxel.Scripting.Framework.csproj" />
     <!-- データ駆動ゲームランタイム (ToDo 27 GE-3) — Apps/Player ストーリーでホスト -->
     <ProjectReference Include="..\Luxel.Player\Luxel.Player.csproj" />
     <!-- capstone ① 「Luxel Cavern」のゲームロジックを Game/Cavern ストーリーでホスト (ToDo 19) -->
     <ProjectReference Include="..\..\samples\LuxelCavern\LuxelCavern.Core\LuxelCavern.Core.csproj" />
     <ProjectReference Include="..\..\samples\LuxelRange\LuxelRange.Core\LuxelRange.Core.csproj" />
     <!-- Reference対象のうち通常ストーリーから到達しないライブラリも明示参照する。 -->
-    <ProjectReference Include="..\Luxel.Framework.DevTools\Luxel.Framework.DevTools.csproj" />
+    <ProjectReference Include="..\Framework\Luxel.Framework.DevTools\Luxel.Framework.DevTools.csproj" />
     <ProjectReference Include="..\Luxel.NodeGraph\Luxel.NodeGraph.csproj" />
     <ProjectReference Include="..\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
     <ProjectReference Include="..\Luxel.Workbench\Luxel.Workbench.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.TwoD.Skia\Luxel.Graphics.TwoD.Skia.csproj" />
     <ProjectReference Include="..\Luxel.Typography.Icu\Luxel.Typography.Icu.csproj" />
     <!-- 型 API リファレンス (`Reference/{namespace}`) の対象 — Gallery はドキュメントハブとして全域を参照する -->
-    <ProjectReference Include="..\Luxel.Framework\Luxel.Framework.csproj" />
+    <ProjectReference Include="..\Framework\Luxel.Framework.Game.Native\Luxel.Framework.Game.Native.csproj" />
+    <ProjectReference Include="..\Framework\Luxel.Framework.Game\Luxel.Framework.Game.csproj" />
     <ProjectReference Include="..\Luxel.Scene.UI\Luxel.Scene.UI.csproj" />
     <ProjectReference Include="..\Luxel.Ecs.Signal\Luxel.Ecs.Signal.csproj" />
     <ProjectReference Include="..\Resource\Luxel.Assets.Gltf\Luxel.Assets.Gltf.csproj" />
@@ -160,7 +161,7 @@
   <!-- Gallery / e2e / publish で共有 BIZ/UDEV フォントを使う。 -->
   <Import Project="..\..\assets\Luxel.FontAssets.targets" />
 
-  <!-- Luxel.UI.App project content supplies and validates the complete compiled shader cache. -->
+  <!-- Luxel.Framework.UI project content supplies and validates the complete compiled shader cache. -->
 
   <ItemGroup>
     <Using Include="Luxel.Graphics" />

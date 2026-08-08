@@ -76,10 +76,10 @@ public static class LearnAudio
         | Windows実音 | `Luxel.Audio.Windows.XAudio2Backend` | device、speaker、実時間でのqueue drain |
         | Linux/macOS実音 | `Luxel.Audio.Silk.OpenAlAudioBackend` | OpenAL Soft、voice queue、loopback |
         | Linux CI | 同じSilk backend + Pulse null sink | 実出力captureと波形解析 |
-        | Framework app | `new LuxelHostBuilder().UseAudio()` | Windows=XAudio2、Linux/macOS=Silk OpenALをOS別登録 |
+        | Framework native | `LuxelHostBuilder.Create().UseAudio()` | `Luxel.Framework.Game.Native`がWindows=XAudio2、Linux/macOS=OpenALを選択 |
         | Browser WASM | `Luxel.Audio.Browser.BrowserAudioBackend` | Web Audio、autoplay unlock、browser lifecycle |
 
-        `UseAudio()`はFramework側のcomposition rootです。standalone sampleではbackendを明示生成した方が依存とdispose順を読み取りやすくなります。Windows実音の統合確認は [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone)、browser実音は`samples/LuxelAudioBrowser`を使います。
+        portableな`Luxel.Framework.Game`では`UseAudio(factory)`でbackendを注入します。desktopでは`Luxel.Framework.Game.Native`を参照するとparameterlessな`UseAudio()`を利用できます。Windows実音の統合確認は [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone)、browser実音は`samples/LuxelAudioBrowser`を使います。
 
         ## Web Audioの非同期ライフサイクル
 

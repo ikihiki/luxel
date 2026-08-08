@@ -5,10 +5,11 @@ on:
     paths:
       - 'src/Luxel.Audio/**'
       - 'src/Luxel.Audio.Silk/**'
-      - 'src/Luxel.Framework/**'
+      - 'src/Framework/Luxel.Framework.Game.Native/**'
+      - 'src/Framework/Luxel.Framework.Game/**'
       - 'src/Luxel.Gallery.Stories/Stories/Docs/LearnAudio.cs'
       - 'tests/Luxel.Audio.Silk.Tests/**'
-      - 'tests/Luxel.Audio.Silk.Tests/FrameworkAudioBackendTests.cs'
+      - 'tests/Luxel.Audio.Silk.Tests/OpenAlBackendTests.cs'
       - 'eng/desktop/**'
       - 'src/**/*.csproj'
       - 'tests/**/*.csproj'
@@ -44,12 +45,14 @@ jobs:
         run: |
           dotnet restore src/Luxel.Audio.Silk/Luxel.Audio.Silk.csproj
           dotnet restore tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj
-          dotnet restore src/Luxel.Framework/Luxel.Framework.csproj
+          dotnet restore src/Framework/Luxel.Framework.Game.Native/Luxel.Framework.Game.Native.csproj
+          dotnet restore src/Framework/Luxel.Framework.Game/Luxel.Framework.Game.csproj
       - name: Build Silk OpenAL backend and tests
         run: |
           dotnet build src/Luxel.Audio.Silk/Luxel.Audio.Silk.csproj --no-restore --configuration Release
           dotnet build tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj --no-restore --configuration Release
-          dotnet build src/Luxel.Framework/Luxel.Framework.csproj --no-restore --configuration Release
+          dotnet build src/Framework/Luxel.Framework.Game.Native/Luxel.Framework.Game.Native.csproj --no-restore --configuration Release
+          dotnet build src/Framework/Luxel.Framework.Game/Luxel.Framework.Game.csproj --no-restore --configuration Release
       - name: Start isolated virtual audio
         env:
           LUXEL_DESKTOP_STATE_DIR: ${{ runner.temp }}/luxel-audio

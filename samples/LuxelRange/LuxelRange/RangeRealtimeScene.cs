@@ -6,7 +6,7 @@ using Luxel.Assets;
 using Luxel.AssetsGpu;
 using Luxel.Audio;
 using Luxel.Ecs;
-using Luxel.Framework;
+using Luxel.Framework.Game;
 using Luxel.Assets.Gltf;
 using Luxel.Resources;
 using Luxel.Input;

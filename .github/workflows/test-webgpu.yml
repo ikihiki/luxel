@@ -67,24 +67,24 @@ jobs:
         run: |
           dotnet restore tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj
           dotnet restore tests/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj
-          dotnet restore tests/Luxel.UI.App.Tests/Luxel.UI.App.Tests.csproj
+          dotnet restore tests/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj
           dotnet restore samples/LuxelTriangle/LuxelTriangle.csproj
       - name: Build WebGPU tests and samples
         run: |
           dotnet build tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-restore
           dotnet build tests/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj -c Release --no-restore
-          dotnet build tests/Luxel.UI.App.Tests/Luxel.UI.App.Tests.csproj -c Release --no-restore
+          dotnet build tests/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj -c Release --no-restore
           dotnet build samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj -c Release
           dotnet build samples/LuxelTriangle/LuxelTriangle.csproj -c Release --no-restore
           test -f tests/Luxel.WebGPU.Tests/bin/Release/net10.0/libwgpu_native.so
           test -f tests/Luxel.WebGPU.Present.Tests/bin/Release/net10.0/libwgpu_native.so
-          test -f tests/Luxel.UI.App.Tests/bin/Release/net10.0/libwgpu_native.so
+          test -f tests/Luxel.Framework.UI.Tests/bin/Release/net10.0/libwgpu_native.so
           test -f samples/LuxelWebGpuHeadless/bin/Release/net10.0/libwgpu_native.so
       - name: Test WebGPU with required software adapter
         run: |
           dotnet test tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-build
           dotnet test tests/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj -c Release --no-build
-          dotnet test tests/Luxel.UI.App.Tests/Luxel.UI.App.Tests.csproj -c Release --no-build
+          dotnet test tests/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj -c Release --no-build
       - name: Run WebGPU samples
         run: |
           dotnet run --project samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj -c Release --no-build

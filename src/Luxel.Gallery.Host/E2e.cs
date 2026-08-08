@@ -148,10 +148,10 @@ public static class E2e
 
     /// <summary>1 play を実行する (dotnet test アダプタ用 — 検証のみ、golden は更新しない)。
     /// golden 差分/欠落/Expect 失敗は <see cref="PlayError"/>。ストーリーは呼び出しごとに作り直される。</summary>
-    public static void RunPlay(GalleryHost host, string path, int playIndex, string backend)
+    public static void RunPlay(GalleryHost host, StoryCatalog catalog, string path, int playIndex, string backend)
     {
         Stories.StrudelStory.HeadlessAudio = true;   // E2E は実 XAudio2 を触らない (上記 Run と同じ理由)
-        StoryInfo story = StoryRegistry.Find(path) ?? throw new PlayError($"ストーリーがありません: {path}");
+        StoryInfo story = catalog.Find(path) ?? throw new PlayError($"ストーリーがありません: {path}");
         string dir = GoldenDir();
         host.SelectForE2e(story);
         Warmup(host);

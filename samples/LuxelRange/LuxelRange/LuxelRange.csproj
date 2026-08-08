@@ -26,7 +26,8 @@
     <ProjectReference Include="..\..\..\src\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
     <!-- 実時間ゲームループ (GameScene/LuxelHostBuilder) + 入力 -->
-    <ProjectReference Include="..\..\..\src\Luxel.Framework\Luxel.Framework.csproj" />
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Framework.Game.Native\Luxel.Framework.Game.Native.csproj" />
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Framework.Game\Luxel.Framework.Game.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Input\Luxel.Input.csproj" />
     <!-- 3D 描画 (ECS→Render3DExtract→cube_forward、地形メッシュ→scene_pbr_lite、Fox skin→scene_pbr_skinned) -->
     <ProjectReference Include="..\..\..\src\Resource\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />

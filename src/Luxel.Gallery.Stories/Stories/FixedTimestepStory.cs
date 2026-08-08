@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using Luxel.Controls;
 using Luxel.Ecs;
-using Luxel.Framework;
+using Luxel.Framework.Game;
 using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Luxel.UI.Tailwind;

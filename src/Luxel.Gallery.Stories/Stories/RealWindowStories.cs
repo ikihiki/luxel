@@ -4,7 +4,7 @@ using Luxel.Input;
 using Luxel.Input.XInput;
 using Luxel.Platform;
 using Luxel.Platform.Windows;
-using Luxel.UI.App;
+using Luxel.Framework.UI;
 using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Luxel.UI.Tailwind;
@@ -123,7 +123,7 @@ public static class RealWindowStories
         void Open()
         {
             if (_secondManager is not null) return;
-            // UI向けウィンドウ管理は Luxel.UI.App が所有し、Win32はバックエンドとして注入する。
+            // UI向けウィンドウ管理は Luxel.Framework.UI が所有し、Win32はバックエンドとして注入する。
             _secondWindows = new WindowSystem(Win32WindowBackend.Create());
             _secondManager = new WindowManager(ctx.Device, ctx.Font, _secondWindows);
             Signal<int> n = new(0);
@@ -133,7 +133,7 @@ public static class RealWindowStories
                 () => Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))
                 [VStack(10)[
                     Heading("独立した OS ウィンドウ", 2),
-                    Label("この窓は Luxel.UI.App の WindowManager が管理する独立した UiHost を持つ"),
+                    Label("この窓は Luxel.Framework.UI の WindowManager が管理する独立した UiHost を持つ"),
                     HStack(8)[
                         Button(_ => n.Value++, "カウント"),
                         Text($" {n} ", 16, vAlign: Align.Center)]]]);

@@ -74,6 +74,10 @@ native_heavy = lambda stem: (
 browser_forbidden = lambda stem: native_heavy(stem) or stem in {
     "Luxel.Gallery.Host", "Luxel.Gallery.Site", "Luxel.Gallery.Stories", "Luxel.Gallery.Resources.Stories"
 }
+forbid_closure("Luxel.Framework.Game", native_heavy, "Game portable closure")
+forbid_closure("Luxel.Framework.Game.Browser", lambda stem: browser_forbidden(stem) or stem in {
+    "Luxel.Framework.UI", "Luxel.Framework.DevTools", "Luxel.Framework.Game.Native"
+}, "Game browser closure")
 forbid_closure("Luxel.Gallery.Stories.CoreUi", browser_forbidden, "CoreUi browser closure")
 forbid_closure("LuxelWebGpuBrowser", browser_forbidden, "browser host closure")
 # The playground host intentionally carries the transport-neutral scripting contracts and the

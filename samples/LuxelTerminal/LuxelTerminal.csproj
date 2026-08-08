@@ -8,7 +8,7 @@
     <DefineConstants>$(DefineConstants);LUXEL_WINDOWS</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Luxel.UI.App\Luxel.UI.App.csproj" />
+    <ProjectReference Include="..\..\src\Framework\Luxel.Framework.UI\Luxel.Framework.UI.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Terminal\Luxel.Terminal.csproj" />
     <ProjectReference Include="..\..\src\Luxel.Terminal.UI\Luxel.Terminal.UI.csproj" />
   </ItemGroup>

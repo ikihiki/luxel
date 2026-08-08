@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;   // Store.CreateEntity の 4 成分以上のオーバーロード
 using Luxel.AssetRuntime;
 using Luxel.Ecs;
-using Luxel.Framework;
+using Luxel.Framework.Game;
 using Luxel.Physics;
 using Luxel.Graphics.RenderGraph;
 using Luxel.UI;

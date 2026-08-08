@@ -1,8 +1,8 @@
-#:package Luxel.UI.App@0.1.0
+#:package Luxel.Framework.UI@0.1.0
 #:property TargetFramework=net10.0
 #:property PublishAot=true
 
-using Luxel.UI.App;
+using Luxel.Framework.UI;
 using static Luxel.Controls.Kit;
 
 var frames = Environment.GetEnvironmentVariable("LUXEL_RUN_FRAMES") is { } value && int.TryParse(value, out var parsed)

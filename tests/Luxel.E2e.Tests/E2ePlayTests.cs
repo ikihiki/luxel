@@ -1,10 +1,32 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using Luxel;
 using Luxel.Gallery;
 using Luxel.Typography;
 using Luxel.UI;
+using Luxel.Platform;
 
 namespace Luxel.Gallery.E2eTests;
+
+internal sealed class E2ePlatformFileSystem(string root) : IPlatformFileSystem
+{
+    private readonly string _root = Path.GetFullPath(root);
+
+    public Task<byte[]> ReadAllBytesAsync(string path, CancellationToken cancellationToken = default)
+        => File.ReadAllBytesAsync(Full(path), cancellationToken);
+
+    public bool Exists(string path) => File.Exists(Full(path));
+
+    private string Full(string path) => Path.GetFullPath(Path.Combine(_root, path));
+}
+
+internal static class E2ePlatformFileSystemRegistration
+{
+#pragma warning disable CA2255
+    [ModuleInitializer]
+    internal static void Register()
+        => PlatformFileSystems.RegisterPhysicalFactory(static root => new E2ePlatformFileSystem(root));
+#pragma warning restore CA2255
+}
 
 /// <summary>リポジトリルート解決 — dotnet test の cwd は bin 配下なので、ストーリーの相対パス資産
 /// (assets/goldens) が解決できるよう cwd をリポジトリルートへ移す。</summary>
@@ -30,6 +52,7 @@ internal static class RepoRoot
 /// 登録された play を列挙する (構築が GPU フリーなのは GpuView callback 規約と DocsIndex で実証済み)。</summary>
 internal static class E2eCatalog
 {
+    public static StoryCatalog Catalog { get; } = GalleryStoryProject.CreateCatalog();
     private static readonly Lazy<IReadOnlyList<(string Path, int Index, string Name)>> Lazy = new(Discover);
 
     public static IReadOnlyList<(string Path, int Index, string Name)> All => Lazy.Value;
@@ -37,14 +60,12 @@ internal static class E2eCatalog
     private static IReadOnlyList<(string, int, string)> Discover()
     {
         RepoRoot.Ensure();
-        // ストーリー登録 (module initializer) を確実に走らせる
-        RuntimeHelpers.RunModuleConstructor(typeof(GalleryHost).Module.ModuleHandle);
         var resources = new Luxel.Resources.ResourceSystem(
             sources: Luxel.Resources.ResourceSystemDefaults.BuiltinSources(assetRoot: Environment.CurrentDirectory),
             steps: [.. Luxel.Resources.ResourceSystemDefaults.BuiltinSteps(), new Luxel.Imaging.ImageSharpDecoder()]);
 
         var list = new List<(string, int, string)>();
-        foreach (StoryInfo s in StoryRegistry.All)
+        foreach (StoryInfo s in Catalog.All)
         {
             if (s.RealWindowOnly) continue;
             var ctx = new StoryContext(resources);
@@ -75,7 +96,7 @@ public sealed class GpuGalleryFixture : IDisposable
         {
             _device = new GpuDevice(Luxel.Graphics.Vulkan.VulkanBackend.Create());
             _font = GalleryFonts.Load(GalleryFonts.Regular);   // 同梱フォント (e2e と実窓で字形一致・マシン非依存)
-            Host = new GalleryHost(_device, _font);
+            Host = new GalleryHost(_device, _font, E2eCatalog.Catalog);
         }
         catch (Exception e)
         {
@@ -117,6 +138,6 @@ public sealed class E2ePlayTests(GpuGalleryFixture fx)
     {
         Skip.If(fx.Host is null, fx.SkipReason);
         _ = name;   // 表示名用 (テストエクスプローラ/--filter で識別する)
-        E2e.RunPlay(fx.Host!, story, index, "vk");
+        E2e.RunPlay(fx.Host!, E2eCatalog.Catalog, story, index, "vk");
     }
 }

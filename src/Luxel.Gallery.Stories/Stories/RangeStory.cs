@@ -5,7 +5,7 @@ using Luxel.AssetRuntime;
 using Luxel.Assets;
 using Luxel.AssetsGpu;
 using Luxel.Ecs;
-using Luxel.Framework;
+using Luxel.Framework.Game;
 using Luxel.Particles;
 using Luxel.Particles.ThreeD;
 using Luxel.Graphics.RenderGraph;

@@ -1,7 +1,7 @@
 using System.Numerics;
 using Friflo.Engine.ECS;
 using Luxel.Ecs;
-using Luxel.Framework;
+using Luxel.Framework.Game;
 using Luxel.Particles;
 using Luxel.Particles.TwoD;
 using Luxel.Graphics.TwoD;
@@ -9,7 +9,7 @@ using Luxel.Typography;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;
 using static Luxel.Controls.Kit;
-using Phase = Luxel.Framework.Phase;
+using Phase = Luxel.Framework.Game.Phase;
 using World = Luxel.Ecs.World;
 
 using Luxel.Typography.TwoD;

@@ -1,4 +1,4 @@
-using Luxel.Framework;
+using Luxel.Framework.Game;
 using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;

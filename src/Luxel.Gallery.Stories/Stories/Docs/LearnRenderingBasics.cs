@@ -47,7 +47,7 @@ public static partial class DocsRenderingLearn
         {{RenderingCourseCatalog.Meta("Learn/Graphics/Environment", "Beginner", "Standalone + Browser", "Vulkan / Direct3D 12 / WebGPU", "Overview")}}
 
         > [!NOTE]
-        > `Luxel.Platform`と各platform実装はwindowの作成、event pump、clipboard、IME、低レベル入力をサポートします。通常のFrameworkアプリでは`Luxel.UI.App`の構成にdeviceとsurfaceの自動管理を任せられます。以下はgraphics APIを直接組み立てる低水準向けの例です。
+        > `Luxel.Platform`と各platform実装はwindowの作成、event pump、clipboard、IME、低レベル入力をサポートします。通常のFrameworkアプリでは`Luxel.Framework.UI`の構成にdeviceとsurfaceの自動管理を任せられます。以下はgraphics APIを直接組み立てる低水準向けの例です。
 
         低水準APIではwindow libraryとgraphics backendを利用者が接続します。例ではwindow system固有の型を持ち込まず、必要なnative handleやcallbackは`handle`などの変数へ事前に用意済みとします。
 

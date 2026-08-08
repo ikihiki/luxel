@@ -18,7 +18,7 @@ using Luxel.UI;
 [assembly: GenerateAssemblyApi("Luxel.UI.Styling")]
 [assembly: GenerateAssemblyApi("Luxel.UI.Tailwind")]
 [assembly: GenerateAssemblyApi("Luxel.Controls")]
-[assembly: GenerateAssemblyApi("Luxel.UI.App")]
+[assembly: GenerateAssemblyApi("Luxel.Framework.UI")]
 // テキスト / ドキュメント
 [assembly: GenerateAssemblyApi("Luxel.Typography")]
 [assembly: GenerateAssemblyApi("Luxel.Typography.TwoD")]
@@ -74,7 +74,8 @@ using Luxel.UI;
 [assembly: GenerateAssemblyApi("Luxel.Scripting.Framework")]
 [assembly: GenerateAssemblyApi("Luxel.Strudel")]
 [assembly: GenerateAssemblyApi("Luxel.Graphics.TwoD.Skia")]
-[assembly: GenerateAssemblyApi("Luxel.Framework")]
+[assembly: GenerateAssemblyApi("Luxel.Framework.Game.Native")]
+[assembly: GenerateAssemblyApi("Luxel.Framework.Game")]
 [assembly: GenerateAssemblyApi("Luxel.Framework.DevTools")]
 [assembly: GenerateAssemblyApi("Luxel.Scene.UI")]
 [assembly: GenerateAssemblyApi("Luxel.DevTools")]

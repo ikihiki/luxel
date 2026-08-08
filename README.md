@@ -149,7 +149,7 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 
 ### Window presentation の責任境界
 
-通常の UI アプリケーションでは `Luxel.UI.App` が実行環境から built-in window backend と graphics backend の組み合わせを選び、surface 接続まで自動構成します。
+通常の UI アプリケーションでは `Luxel.Framework.UI` が実行環境から built-in window backend と graphics backend の組み合わせを選び、surface 接続まで自動構成します。
 
 低水準 API を直接使う場合、利用者が具体的な window 実装と graphics backend を理解して接続します。`Window.RequireBackendWindow<T>()` で実装型を明示的に取得し、`D3D12Backend.CreateSurface`、`VulkanBackend.CreateSurface` / `CreateWin32Surface`、`WebGpuBackend.CreateXlibSurface` / `CreateWin32Surface` などの backend 固有 API に必要値を渡してください。Luxel は window library × graphics backend の全組み合わせに対する adapter package を提供しません。
 
@@ -196,7 +196,7 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 | Luxel.Platform (+ .Windows, .Silk) | ウィンドウ / クリップボード / IME / 低レベル入力 |
 | Luxel.Input (+ .XInput) | アクションマップ / リバインド / Windowsゲームパッド入力 |
 | Luxel.Audio (+ .Windows) | 音声API / ミキサ / XAudio2バックエンド |
-| Luxel.Framework (+ Scene.UI) | アプリ骨格 / シーン遷移 / UiSurface |
+| Luxel.Framework.Game (+ Scene.UI) | アプリ骨格 / シーン遷移 / UiSurface |
 | Luxel.DevTools (+ .App) | デバッガ / HTTP DebugServer / ネイティブ DevTools |
 | Luxel.Gallery | ドキュメント + デモ + e2e/bench (このリポジトリの玄関) |
 

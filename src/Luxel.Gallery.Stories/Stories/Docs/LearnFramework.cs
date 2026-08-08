@@ -9,7 +9,7 @@ public static class LearnFramework
     public static StoryResult Overview(StoryContext ctx) => $"""
         # Framework overview
 
-        `Luxel.Framework`はframe timing、scene lifecycle、7 phase、input/resources/audio、RenderGraphを一つのgame loopへ接続します。最初はGPU不要の`FixedTimestep`から始め、次に`IScene`、最後に`GameScene`へ進みます。
+        `Luxel.Framework.Game`はframe timing、scene lifecycle、7 phase、input/resources/audio、RenderGraphを一つのgame loopへ接続します。GPU/audio backendはplatform別projectから注入し、desktopでは`Luxel.Framework.Game.Native`の`UseVulkan()`、`UseD3D12()`、`UseAudio()`を利用できます。最初はGPU不要の`FixedTimestep`から始め、次に`IScene`、最後に`GameScene`へ進みます。
 
         {SampleBundle("framework.fixed-timestep")}
         """;

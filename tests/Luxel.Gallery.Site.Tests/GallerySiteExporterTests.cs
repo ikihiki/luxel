@@ -928,7 +928,7 @@ public sealed class GallerySiteExporterTests
             || member.Type.Contains("GpuCommandBuffer", StringComparison.Ordinal));
 
         Assert.NotNull(TypeApiRegistry.Find("Luxel.Diagnostics.EngineDiagnostics"));
-        Assert.NotNull(TypeApiRegistry.Find("Luxel.Framework.FixedTimestep"));
+        Assert.NotNull(TypeApiRegistry.Find("Luxel.Framework.Game.FixedTimestep"));
         Assert.Contains("Luxel.Diagnostics", TypeApiRegistry.Namespaces);
         Assert.DoesNotContain("Luxel", TypeApiRegistry.Namespaces);
         Assert.NotNull(TypeApiRegistry.Find("Luxel.Mathematics.OrbitCamera"));
@@ -1041,7 +1041,7 @@ public sealed class GallerySiteExporterTests
             "Luxel.Controls", "Luxel.Framework.DevTools", "Luxel.NodeGraph", "Luxel.Particles",
             "Luxel.Particles.TwoD", "Luxel.Particles.ThreeD", "Luxel.Particles.UI", "Luxel.Physics.Gizmos",
             "Luxel.Player", "Luxel.SceneEdit", "Luxel.Settings", "Luxel.Scripting", "Luxel.Scripting.Framework",
-            "Luxel.Strudel", "Luxel.Graphics.TwoD.Skia", "Luxel.UI.App", "Luxel.Workbench",
+            "Luxel.Strudel", "Luxel.Graphics.TwoD.Skia", "Luxel.Framework.Game.Native", "Luxel.Framework.UI", "Luxel.Workbench",
         ];
         Assert.All(requiredNamespaces, ns => Assert.Contains(ns, TypeApiRegistry.Namespaces));
 
