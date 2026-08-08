@@ -103,11 +103,11 @@ jobs:
         run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release
       - name: Publish Blazor Gallery and Playground browser
         run: |
-          dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj --no-restore --configuration Release
+          dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj --no-restore --configuration Release --output artifacts/gallery-browser
           dotnet publish samples/LuxelPlaygroundBrowser/LuxelPlaygroundBrowser.csproj --no-restore --configuration Release
       - name: Validate static Blazor Gallery
         run: |
-          root=gallery/GalleryBrowser/bin/Release/net10.0/publish/wwwroot
+          root=artifacts/gallery-browser/wwwroot
           test -f "$root/index.html"
           test -f "$root/main.js"
           ! test -f "$root/browser-runtime-manifest.json"
