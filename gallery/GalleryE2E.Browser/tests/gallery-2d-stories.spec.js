@@ -137,6 +137,58 @@ test('Blazor Gallery renders generated Markdown overviews as HTML with navigatio
   expect(errors.pageErrors).toEqual([]);
 });
 
+test('Blazor Gallery exposes Args, Output, Source, and a resizable preview panel for widget stories', async ({ page }) => {
+  const story = 'Controls/Button/Counter';
+  const errors = collectErrors(page);
+  await page.goto(`/?story=${encodeURIComponent(story)}`);
+
+  const runtime = page.frameLocator('.story-runtime-frame');
+  await expect(runtime.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
+  await expect(page.getByRole('tab', { name: 'Args' })).toHaveAttribute('aria-selected', 'true');
+  const count = page.locator('#story-arg-count');
+  await expect(count).toHaveValue('0');
+  await count.fill('7');
+  await count.blur();
+  await expect.poll(() => runtime.locator('html').evaluate(() => globalThis.luxelBrowserState?.count), {
+    timeout: 30_000
+  }).toBe(7);
+
+  await page.getByRole('tab', { name: 'Output' }).click();
+  await expect(page.locator('.output-list')).toContainText('Args changed');
+  await page.getByRole('tab', { name: 'Source' }).click();
+  await expect(page.locator('.story-source')).toContainText('ButtonCounter');
+
+  const splitter = page.getByRole('separator', { name: 'Resize story preview and details' });
+  const panel = page.locator('.story-lower-panel');
+  const before = await panel.boundingBox();
+  const handle = await splitter.boundingBox();
+  expect(before).toBeTruthy();
+  expect(handle).toBeTruthy();
+  await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handle.x + handle.width / 2, handle.y - 70, { steps: 4 });
+  await page.mouse.up();
+  const after = await panel.boundingBox();
+  expect(after.height).toBeGreaterThan(before.height + 40);
+  expect(errors.pageErrors).toEqual([]);
+
+  await page.locator('.story-link[title="Controls/Button/Primary"]').click();
+  await expect(page.locator('.story-toolbar h1')).toHaveText('Primary');
+  await expect(runtime.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
+  await expect(runtime.locator('#status')).toHaveAttribute('data-story', 'Controls/Button/Primary');
+  await expect(page.getByRole('tab', { name: 'Source' })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('tab', { name: 'Output' }).click();
+  await expect(page.locator('.output-list')).toHaveCount(0);
+});
+
+test('embedded widget stories remain canvas-only', async ({ page }) => {
+  await page.goto(runtimeUrl('Controls/Button/Counter'));
+  await expect(page.locator('.gallery-embed')).toBeVisible();
+  await expect(page.locator('.gallery-sidebar')).toHaveCount(0);
+  await expect(page.getByRole('tab')).toHaveCount(0);
+  await expect(page.getByRole('separator')).toHaveCount(0);
+});
+
 for (const story of twoDStories) {
   test(`browser-WASM renders ${story}`, async ({ page }) => {
     const errors = collectErrors(page);

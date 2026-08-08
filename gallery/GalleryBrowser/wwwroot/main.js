@@ -86,7 +86,7 @@ const host = {
     status.dataset.story = story;
     status.textContent = summary;
     errorOverlay.hidden = true;
-    post("ready", { schema });
+    post("ready", { schema, state: "pass", summary });
   },
   setStatus: (state, summary) => {
     Object.assign(runtimeState, { state, summary });
@@ -96,7 +96,7 @@ const host = {
     const failed = state === "fail";
     errorOverlay.hidden = !failed;
     errorOverlay.textContent = failed ? summary : "";
-    post(failed ? "story-error" : "ready", failed ? { error: summary } : { schema: [] });
+    post(failed ? "story-error" : "ready", failed ? { error: summary } : { schema: [], state, summary });
   },
 };
 

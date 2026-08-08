@@ -1,12 +1,18 @@
+@using System.Globalization
 @using System.Runtime.InteropServices.JavaScript
+@using System.Text.Json
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
 @using Luxel.Gallery
 @using Luxel.Gallery.Browser
 @implements IDisposable
+@implements IAsyncDisposable
 @inject StoryCatalog Catalog
 @inject IServiceProvider Services
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 @if (_embedded)
 {
@@ -62,23 +68,142 @@ else
             }
             else
             {
-                <section class="story-preview">
-                    <iframe @key="_runtimeUrl" class="story-runtime-frame" src="@_runtimeUrl"
-                            title="@_story.Path" allow="autoplay; clipboard-read; clipboard-write"></iframe>
-                </section>
+                <div class="story-workspace" @ref="_workspace">
+                    <section class="story-preview" aria-label="Story preview">
+                        <iframe @key="_runtimeUrl" @ref="_runtimeFrame" class="story-runtime-frame" src="@_runtimeUrl"
+                                title="@_story.Path" allow="autoplay; clipboard-read; clipboard-write"></iframe>
+                    </section>
+                    <div class="story-splitter" @ref="_splitter" role="separator" tabindex="0"
+                         aria-label="Resize story preview and details" aria-orientation="horizontal"
+                         aria-valuemin="150" aria-valuemax="800" aria-valuenow="260"></div>
+                    <section class="story-lower-panel" aria-label="Story details">
+                        <div class="story-tabs" role="tablist" aria-label="Story details">
+                            @foreach (string tab in Tabs)
+                            {
+                                <button id="@TabId(tab)" type="button" role="tab"
+                                        aria-selected="@(_activeTab == tab ? "true" : "false")" aria-controls="@PanelId(tab)"
+                                        tabindex="@(_activeTab == tab ? 0 : -1)" class="@TabClass(tab)"
+                                        @onclick="() => SelectTab(tab)" @onkeydown="eventArgs => OnTabKeyDown(eventArgs, tab)">@tab</button>
+                            }
+                        </div>
+                        <div id="@PanelId(_activeTab)" class="story-tab-panel" role="tabpanel"
+                             aria-labelledby="@TabId(_activeTab)" tabindex="0">
+                            @if (_activeTab == "Args")
+                            {
+                                @if (_argDefinitions.Count == 0)
+                                {
+                                    <p class="panel-empty">This story has no editable args.</p>
+                                }
+                                else
+                                {
+                                    <div class="args-table">
+                                        @foreach (StoryArgDefinition definition in _argDefinitions)
+                                        {
+                                            <div class="arg-row">
+                                                <label for="@ArgId(definition)">
+                                                    <strong>@definition.Name</strong>
+                                                    <small>@definition.Type</small>
+                                                    @if (!string.IsNullOrWhiteSpace(definition.Description))
+                                                    {
+                                                        <span>@definition.Description</span>
+                                                    }
+                                                </label>
+                                                @if (definition.Options is { Count: > 0 })
+                                                {
+                                                    <select id="@ArgId(definition)" value="@ArgValue(definition)"
+                                                            @onchange="eventArgs => UpdateArgAsync(definition, eventArgs.Value)">
+                                                        @foreach (string option in definition.Options)
+                                                        {
+                                                            <option value="@option">@option</option>
+                                                        }
+                                                    </select>
+                                                }
+                                                else if (IsBoolean(definition))
+                                                {
+                                                    <input id="@ArgId(definition)" type="checkbox" checked="@ArgBoolValue(definition)"
+                                                           @onchange="eventArgs => UpdateArgAsync(definition, eventArgs.Value)" />
+                                                }
+                                                else
+                                                {
+                                                    <input id="@ArgId(definition)" type="@(IsNumeric(definition) ? "number" : "text")"
+                                                           value="@ArgValue(definition)" min="@definition.Min" max="@definition.Max" step="@ArgStep(definition)"
+                                                           @onchange="eventArgs => UpdateArgAsync(definition, eventArgs.Value)" />
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            }
+                            else if (_activeTab == "Output")
+                            {
+                                <div class="output-status" data-runtime-state="@_runtimeState">
+                                    <span class="runtime-dot" aria-hidden="true"></span>
+                                    <strong>@RuntimeStateLabel()</strong>
+                                    @if (!string.IsNullOrWhiteSpace(_runtimeSummary))
+                                    {
+                                        <span>@_runtimeSummary</span>
+                                    }
+                                </div>
+                                @if (_output.Count == 0)
+                                {
+                                    <p class="panel-empty">Runtime events and errors will appear here.</p>
+                                }
+                                else
+                                {
+                                    <ol class="output-list" aria-live="polite">
+                                        @foreach (OutputEntry entry in _output)
+                                        {
+                                            <li class="output-@entry.Kind"><time>@entry.Time</time><strong>@entry.Kind</strong><pre>@entry.Text</pre></li>
+                                        }
+                                    </ol>
+                                }
+                            }
+                            else
+                            {
+                                @if (_sampleBundle is not null)
+                                {
+                                    <div class="source-context">
+                                        <strong>Run this sample · @_sampleBundle.CopyLevel</strong>
+                                        @if (!string.IsNullOrWhiteSpace(_sampleBundle.RunCommand))
+                                        {
+                                            <code>@_sampleBundle.RunCommand</code>
+                                        }
+                                        <span>@string.Join(" · ", _sampleBundle.Files.Select(file => file.Path))</span>
+                                    </div>
+                                }
+                                <pre class="story-source"><code>@SourceText()</code></pre>
+                            }
+                        </div>
+                    </section>
+                </div>
             }
         </main>
     </div>
 }
 
 @code {
+    private static readonly string[] Tabs = ["Args", "Output", "Source"];
     private bool _started;
     private bool _embedded;
     private string _argsJson = "{}";
     private string _search = "";
     private string? _documentHtml;
     private string _runtimeUrl = "";
+    private string _runtimeInstance = "";
+    private string _activeTab = "Args";
+    private string _runtimeState = "loading";
+    private string _runtimeSummary = "Waiting for the story runtime.";
+    private int _revision;
     private StoryInfo _story = null!;
+    private SampleBundleInfo? _sampleBundle;
+    private IReadOnlyList<StoryArgDefinition> _argDefinitions = Array.Empty<StoryArgDefinition>();
+    private Dictionary<string, JsonElement> _argValues = new(StringComparer.Ordinal);
+    private readonly List<OutputEntry> _output = [];
+    private ElementReference _workspace;
+    private ElementReference _runtimeFrame;
+    private ElementReference _splitter;
+    private IJSObjectReference? _galleryHostModule;
+    private DotNetObjectReference<App>? _galleryHostReceiver;
     private JSObject? _browserHostModule;
     private JSObject? _slangModule;
     private JSObject? _webGpuModule;
@@ -92,13 +217,29 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || _started || !_embedded) return;
-        _started = true;
-        _browserHostModule = await JSHost.ImportAsync("luxel-browser-host", "../main.js");
-        _slangModule = await JSHost.ImportAsync("luxel-slang", "../slang-browser.js");
-        _webGpuModule = await JSHost.ImportAsync("./luxel-webgpu-browser.js", "../luxel-webgpu-browser.js");
-        _audioModule = await JSHost.ImportAsync("./luxel-audio-browser.js", "../luxel-audio-browser.js");
-        _ = RunStoryAsync(_story.Path, _argsJson);
+        if (_embedded)
+        {
+            if (!firstRender || _started) return;
+            _started = true;
+            _browserHostModule = await JSHost.ImportAsync("luxel-browser-host", "../main.js");
+            _slangModule = await JSHost.ImportAsync("luxel-slang", "../slang-browser.js");
+            _webGpuModule = await JSHost.ImportAsync("./luxel-webgpu-browser.js", "../luxel-webgpu-browser.js");
+            _audioModule = await JSHost.ImportAsync("./luxel-audio-browser.js", "../luxel-audio-browser.js");
+            _ = RunStoryAsync(_story.Path, _argsJson);
+            return;
+        }
+
+        _galleryHostModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./gallery-host.js");
+        if (_galleryHostReceiver is null)
+        {
+            _galleryHostReceiver = DotNetObjectReference.Create(this);
+            await _galleryHostModule.InvokeVoidAsync("initialize", _galleryHostReceiver);
+        }
+        if (_documentHtml is null)
+        {
+            await _galleryHostModule.InvokeVoidAsync("configure", _runtimeFrame, _story.Path, _runtimeInstance);
+            await _galleryHostModule.InvokeVoidAsync("wireSplitter", _workspace, _splitter);
+        }
     }
 
     private void LoadLocation(string location)
@@ -111,9 +252,20 @@ else
             ?? throw new InvalidOperationException($"Unknown browser story '{requested}'.");
         _argsJson = query.GetValueOrDefault("args") ?? "{}";
         _documentHtml = _embedded ? null : TryRenderDocument(_story, _argsJson);
+        _argDefinitions = (_story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>())
+            .OrderBy(definition => definition.Order).ThenBy(definition => definition.Name, StringComparer.Ordinal).ToArray();
+        StoryArgs canonicalArgs = StoryArgs.Parse(_argsJson).WithDefaults(_argDefinitions);
+        _argValues = canonicalArgs.Values.ToDictionary(pair => pair.Key, pair => pair.Value.Clone(), StringComparer.Ordinal);
+        _argsJson = canonicalArgs.ToJson();
+        _sampleBundle = SampleBundleRegistry.Find(_story.SampleBundle);
+        _runtimeInstance = Guid.NewGuid().ToString("N");
+        _revision = 0;
+        _runtimeState = "loading";
+        _runtimeSummary = "Waiting for the story runtime.";
+        _output.Clear();
         _runtimeUrl = _embedded || _documentHtml is not null
             ? ""
-            : EmbeddedStoryHref(_story.Path, _argsJson);
+            : EmbeddedStoryHref(_story.Path, _argsJson, _runtimeInstance);
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
@@ -123,6 +275,80 @@ else
             LoadLocation(args.Location);
             StateHasChanged();
         });
+    }
+
+    [JSInvokable]
+    public Task OnRuntimeMessage(JsonElement message)
+    {
+        string type = message.GetProperty("type").GetString() ?? "event";
+        if (message.TryGetProperty("revision", out JsonElement revision) && revision.TryGetInt32(out int runtimeRevision))
+            _revision = Math.Max(_revision, runtimeRevision);
+        if (message.TryGetProperty("args", out JsonElement args) && args.ValueKind == JsonValueKind.Object)
+        {
+            StoryArgs snapshot = new(args.EnumerateObject().Select(property => KeyValuePair.Create(property.Name, property.Value)));
+            _argValues = snapshot.Values.ToDictionary(pair => pair.Key, pair => pair.Value.Clone(), StringComparer.Ordinal);
+            _argsJson = snapshot.ToJson();
+        }
+
+        switch (type)
+        {
+            case "ready":
+                _runtimeState = message.TryGetProperty("state", out JsonElement readyState) ? readyState.GetString() ?? "pass" : "pass";
+                _runtimeSummary = message.TryGetProperty("summary", out JsonElement summary) ? summary.GetString() ?? "Runtime ready." : "Runtime ready.";
+                break;
+            case "args-changed":
+                _runtimeState = "pass";
+                AddOutput("args", message.TryGetProperty("source", out JsonElement source)
+                    ? $"Args changed ({source.GetString()})." : "Args changed.");
+                break;
+            case "arg-error":
+                _runtimeState = "fail";
+                AddOutput("error", MessageErrors(message));
+                _activeTab = "Output";
+                break;
+            case "event":
+                AddOutput("event", message.TryGetProperty("entry", out JsonElement entry) ? entry.GetRawText() : "Event");
+                break;
+            case "story-error":
+                _runtimeState = "fail";
+                _runtimeSummary = message.TryGetProperty("error", out JsonElement error) ? error.GetString() ?? "Story failed." : "Story failed.";
+                AddOutput("error", _runtimeSummary);
+                _activeTab = "Output";
+                break;
+        }
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task UpdateArgAsync(StoryArgDefinition definition, object? rawValue)
+    {
+        try
+        {
+            _argValues[definition.Name] = ParseArgValue(definition, rawValue);
+            _argsJson = new StoryArgs(_argValues).ToJson();
+            int revision = ++_revision;
+            string requestId = $"args-{revision}-{Guid.NewGuid():N}";
+            if (_galleryHostModule is not null)
+                await _galleryHostModule.InvokeVoidAsync("setArgs", _runtimeFrame, _story.Path, _runtimeInstance,
+                    revision, requestId, _argsJson);
+        }
+        catch (Exception error) when (error is FormatException or JsonException or OverflowException)
+        {
+            _runtimeState = "fail";
+            AddOutput("error", $"{definition.Name}: {error.Message}");
+            _activeTab = "Output";
+        }
+    }
+
+    private static JsonElement ParseArgValue(StoryArgDefinition definition, object? rawValue)
+    {
+        if (IsBoolean(definition)) return StoryArgCodec.Serialize(rawValue is bool value ? value : bool.Parse(rawValue?.ToString() ?? "false"));
+        string text = Convert.ToString(rawValue, CultureInfo.InvariantCulture) ?? "";
+        if (!IsNumeric(definition)) return StoryArgCodec.Serialize(text);
+        using JsonDocument document = JsonDocument.Parse(text);
+        if (document.RootElement.ValueKind != JsonValueKind.Number)
+            throw new FormatException($"'{text}' is not a number.");
+        return document.RootElement.Clone();
     }
 
     private string? TryRenderDocument(StoryInfo story, string argsJson)
@@ -160,9 +386,10 @@ else
 
     private static string StoryHref(string path) => "?story=" + Uri.EscapeDataString(path);
 
-    private static string EmbeddedStoryHref(string path, string argsJson)
+    private static string EmbeddedStoryHref(string path, string argsJson, string? instanceId = null)
     {
         string url = StoryHref(path) + "&embed=1";
+        if (!string.IsNullOrWhiteSpace(instanceId)) url += "&instance=" + Uri.EscapeDataString(instanceId);
         return string.IsNullOrWhiteSpace(argsJson) || argsJson == "{}"
             ? url
             : url + "&args=" + Uri.EscapeDataString(argsJson);
@@ -172,6 +399,48 @@ else
     {
         if (story.Path == _story.Path) return;
         Navigation.NavigateTo(StoryHref(story.Path), forceLoad: false);
+    }
+
+    private void SelectTab(string tab) => _activeTab = tab;
+    private void OnTabKeyDown(KeyboardEventArgs eventArgs, string tab)
+    {
+        int index = Array.IndexOf(Tabs, tab);
+        _activeTab = eventArgs.Key switch
+        {
+            "ArrowLeft" or "ArrowUp" => Tabs[(index + Tabs.Length - 1) % Tabs.Length],
+            "ArrowRight" or "ArrowDown" => Tabs[(index + 1) % Tabs.Length],
+            "Home" => Tabs[0],
+            "End" => Tabs[^1],
+            _ => _activeTab,
+        };
+    }
+    private static string TabId(string tab) => "story-tab-" + tab.ToLowerInvariant();
+    private static string PanelId(string tab) => "story-panel-" + tab.ToLowerInvariant();
+    private string TabClass(string tab) => _activeTab == tab ? "active" : "";
+    private static string ArgId(StoryArgDefinition definition) => "story-arg-" + definition.Name;
+    private static bool IsBoolean(StoryArgDefinition definition) => definition.Type is "bool" or "boolean" or "System.Boolean";
+    private static bool IsNumeric(StoryArgDefinition definition) => definition.Type.ToLowerInvariant() is
+        "byte" or "sbyte" or "short" or "ushort" or "int" or "uint" or "long" or "ulong" or
+        "float" or "double" or "decimal" or "system.int32" or "system.int64" or "system.single" or "system.double" or "system.decimal";
+    private string ArgStep(StoryArgDefinition definition) => definition.Step?.ToString(CultureInfo.InvariantCulture)
+        ?? (definition.Type.Contains("float", StringComparison.OrdinalIgnoreCase) || definition.Type.Contains("double", StringComparison.OrdinalIgnoreCase) ? "any" : "1");
+    private string ArgValue(StoryArgDefinition definition) => _argValues.TryGetValue(definition.Name, out JsonElement value)
+        ? value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : value.GetRawText()
+        : "";
+    private bool ArgBoolValue(StoryArgDefinition definition) => _argValues.TryGetValue(definition.Name, out JsonElement value)
+        && value.ValueKind is JsonValueKind.True or JsonValueKind.False && value.GetBoolean();
+    private string RuntimeStateLabel() => _runtimeState switch { "pass" => "Ready", "fail" => "Failed", _ => "Loading" };
+    private string SourceText() => !string.IsNullOrWhiteSpace(_story.Source) ? _story.Source
+        : _sampleBundle is null
+            ? "Source unavailable. Gallery harness required; no standalone sample bundle is registered."
+            : $"Source unavailable. Run this sample ({_sampleBundle.CopyLevel}): {_sampleBundle.RunCommand}";
+    private static string MessageErrors(JsonElement message) => message.TryGetProperty("errors", out JsonElement errors)
+        ? string.Join("\n", errors.EnumerateArray().Select(error => error.GetString() ?? error.GetRawText()))
+        : "Argument update failed.";
+    private void AddOutput(string kind, string text)
+    {
+        _output.Add(new OutputEntry(DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture), kind, text));
+        if (_output.Count > 200) _output.RemoveAt(0);
     }
 
     private void ClearSearch() => _search = "";
@@ -192,6 +461,26 @@ else
     {
         Navigation.LocationChanged -= OnLocationChanged;
     }
+
+    public async ValueTask DisposeAsync()
+    {
+        Dispose();
+        if (_galleryHostModule is not null)
+        {
+            try
+            {
+                await _galleryHostModule.InvokeVoidAsync("dispose");
+                await _galleryHostModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // The browser has already torn down the JS runtime.
+            }
+        }
+        _galleryHostReceiver?.Dispose();
+    }
+
+    private sealed record OutputEntry(string Time, string Kind, string Text);
 
     private static Dictionary<string, string> ParseQuery(string query)
     {
