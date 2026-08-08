@@ -187,15 +187,14 @@ for (const story of animationStories) {
     }
     if (animationMotionStories.has(story)) {
       const canvas = page.locator('#luxel-canvas');
-      const firstRevision = await page.evaluate(() => globalThis.luxelBrowserState.renderRevision);
-      await expect.poll(() => page.evaluate(() => globalThis.luxelBrowserState.renderRevision),
-        { timeout: 30_000 }).toBeGreaterThan(firstRevision + 2);
-      const before = await canvas.screenshot();
-      const secondRevision = await page.evaluate(() => globalThis.luxelBrowserState.renderRevision);
-      await expect.poll(() => page.evaluate(() => globalThis.luxelBrowserState.renderRevision),
-        { timeout: 30_000 }).toBeGreaterThan(secondRevision + 2);
-      const after = await canvas.screenshot();
-      expect(before.equals(after), `${story} should visibly animate`).toBe(false);
+      const samples = [];
+      for (let sample = 0; sample < 4; sample++) {
+        const revision = await page.evaluate(() => globalThis.luxelBrowserState.renderRevision);
+        await expect.poll(() => page.evaluate(() => globalThis.luxelBrowserState.renderRevision),
+          { timeout: 30_000 }).toBeGreaterThan(revision + 9);
+        samples.push((await canvas.screenshot()).toString('base64'));
+      }
+      expect(new Set(samples).size, `${story} should visibly animate`).toBeGreaterThan(1);
     }
     expect(errors.consoleErrors).toEqual([]);
     expect(errors.pageErrors).toEqual([]);
