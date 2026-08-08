@@ -132,8 +132,8 @@ button, input { font: inherit; }
 .open-alone { padding: 7px 11px; border: 1px solid #36557a; border-radius: 6px; color: #bcd6fa; font-size: 12px; text-decoration: none; }
 .open-alone:hover { background: #162a43; }
 
-.story-preview { position: relative; width: 100%; min-height: calc(100vh - 69px); }
-.story-preview #luxel-canvas { display: block; width: 100%; height: calc(100vh - 69px); }
+.story-preview { position: relative; width: 100%; min-height: calc(100vh - 69px); background: #10151d; }
+.story-runtime-frame { display: block; width: 100%; height: calc(100vh - 69px); border: 0; background: #10151d; }
 .gallery-embed, .gallery-embed #luxel-canvas { display: block; width: 100%; height: 100%; margin: 0; }
 
 #error {
@@ -190,5 +190,5 @@ button, input { font: inherit; }
   .gallery-shell { display: block; height: auto; min-height: 100%; }
   .gallery-sidebar { max-height: 42vh; border-right: 0; border-bottom: 1px solid var(--border); }
   .story-toolbar { position: relative; }
-  .story-preview #luxel-canvas { height: 70vh; }
+  .story-runtime-frame { height: 70vh; }
 }
