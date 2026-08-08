@@ -1,0 +1,42 @@
+@using System.Runtime.InteropServices.JavaScript
+@using Luxel.Gallery
+@using Luxel.Gallery.Browser
+@inject StoryCatalog Catalog
+@inject IServiceProvider Services
+@inject NavigationManager Navigation
+
+<canvas id="luxel-canvas" tabindex="0" aria-label="Luxel browser WebGPU"></canvas>
+<div id="status" hidden data-status="loading"></div>
+<div id="error" role="alert" hidden></div>
+
+@code {
+    private bool _started;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _started) return;
+        _started = true;
+
+        Uri uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        Dictionary<string, string> query = ParseQuery(uri.Query);
+        string? requested = query.GetValueOrDefault("story");
+        StoryInfo story = requested is null ? Catalog.All[0] : Catalog.Find(requested)
+            ?? throw new InvalidOperationException($"Unknown browser story '{requested}'.");
+        string argsJson = query.GetValueOrDefault("args") ?? "{}";
+
+        await JSHost.ImportAsync("luxel-browser-host", "./main.js");
+        await JSHost.ImportAsync("luxel-slang", "./slang-browser.js");
+        await BrowserGalleryApplication.RunAsync(Services, story.Path, argsJson);
+    }
+
+    private static Dictionary<string, string> ParseQuery(string query)
+    {
+        var values = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (string item in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            string[] pair = item.Split('=', 2);
+            values[Uri.UnescapeDataString(pair[0])] = pair.Length == 2 ? Uri.UnescapeDataString(pair[1]) : "";
+        }
+        return values;
+    }
+}

@@ -19,18 +19,6 @@
     <Project Path="src/Luxel.Ecs.Signal/Luxel.Ecs.Signal.csproj" />
     <Project Path="src/Luxel.Ecs/Luxel.Ecs.csproj" />
     <Project Path="src/Luxel.Document/Luxel.Document.csproj" />
-    <Project Path="src/Luxel.Gallery.DocKit/Luxel.Gallery.DocKit.csproj" />
-    <Project Path="src/Luxel.Gallery.Generators/Luxel.Gallery.Generators.csproj" />
-    <Project Path="src/Luxel.Gallery.Playground/Luxel.Gallery.Playground.csproj" />
-    <Project Path="src/Luxel.Gallery.RuntimeManifest/Luxel.Gallery.RuntimeManifest.csproj" />
-    <Project Path="src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj" />
-    <Project Path="src/Luxel.Gallery.UI/Luxel.Gallery.UI.csproj" />
-    <Project Path="src/Luxel.Gallery/Luxel.Gallery.csproj" />
-    <Project Path="src/Luxel.Gallery.Host/Luxel.Gallery.Host.csproj" />
-    <Project Path="src/Luxel.Gallery.Rendering/Luxel.Gallery.Rendering.csproj" />
-    <Project Path="src/Luxel.Gallery.Stories.CoreUi/Luxel.Gallery.Stories.CoreUi.csproj" />
-    <Project Path="src/Resources/Luxel.Gallery.Resources.Stories/Luxel.Gallery.Resources.Stories.csproj" />
-    <Project Path="src/Luxel.Gallery.Stories/Luxel.Gallery.Stories.csproj" />
     <Project Path="src/Luxel.Highlight.TextMate/Luxel.Highlight.TextMate.csproj" />
     <Project Path="src/Luxel.Imaging/Luxel.Imaging.csproj" />
     <Project Path="src/Luxel.Input.XInput/Luxel.Input.XInput.csproj" />
@@ -76,6 +64,24 @@
     <Project Path="src/Luxel.Graphics.Vulkan/Luxel.Graphics.Vulkan.csproj" />
     <Project Path="src/Luxel.Diagnostics/Luxel.Diagnostics.csproj" />
   </Folder>
+  <Folder Name="/src/Gallery/">
+    <Project Path="src/Gallery/Luxel.Gallery/Luxel.Gallery.csproj" />
+    <Project Path="src/Gallery/Luxel.Gallery.Browser/Luxel.Gallery.Browser.csproj" />
+    <Project Path="src/Gallery/Luxel.Gallery.DocKit/Luxel.Gallery.DocKit.csproj" />
+    <Project Path="src/Gallery/Luxel.Gallery.Generators/Luxel.Gallery.Generators.csproj" />
+    <Project Path="src/Gallery/Luxel.Gallery.Native/Luxel.Gallery.Native.csproj" />
+    <Project Path="src/Gallery/Luxel.Gallery.Playground/Luxel.Gallery.Playground.csproj" />
+    <Project Path="src/Gallery/Luxel.Gallery.Rendering/Luxel.Gallery.Rendering.csproj" />
+    <Project Path="src/Gallery/Luxel.Gallery.Resources.Stories/Luxel.Gallery.Resources.Stories.csproj" />
+    <Project Path="src/Gallery/Luxel.Gallery.Stories.CoreUi/Luxel.Gallery.Stories.CoreUi.csproj" />
+    <Project Path="src/Gallery/Luxel.Gallery.Stories/Luxel.Gallery.Stories.csproj" />
+    <Project Path="src/Gallery/Luxel.Gallery.UI/Luxel.Gallery.UI.csproj" />
+  </Folder>
+  <Folder Name="/gallery/">
+    <Project Path="gallery/GalleryE2E.Native/GalleryE2E.Native.csproj" />
+    <Project Path="gallery/GalleryNative/GalleryNative.csproj" />
+    <Project Path="gallery/GalleryBrowser/GalleryBrowser.csproj" />
+  </Folder>
   <Folder Name="/src/Framework/">
     <Project Path="src/Framework/Luxel.Framework.DevTools/Luxel.Framework.DevTools.csproj" />
     <Project Path="src/Framework/Luxel.Framework.Game.Browser/Luxel.Framework.Game.Browser.csproj" />
@@ -101,7 +107,6 @@
     <Project Path="samples/LuxelFramework/LuxelFramework.csproj" />
     <Project Path="samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj" />
     <Project Path="samples/LuxelPlaygroundBrowser/LuxelPlaygroundBrowser.csproj" />
-    <Project Path="samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj" />
     <Project Path="samples/LuxelUiHeadless/LuxelUiHeadless.csproj" />
     <Project Path="samples/LuxelInput/LuxelInput.csproj" />
     <Project Path="samples/LuxelAudio/LuxelAudio.csproj" />

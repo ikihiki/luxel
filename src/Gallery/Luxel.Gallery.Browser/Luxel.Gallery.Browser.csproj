@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <SupportedOSPlatformVersion>browser</SupportedOSPlatformVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Gallery.Stories.CoreUi\Luxel.Gallery.Stories.CoreUi.csproj" />
+    <ProjectReference Include="..\..\Luxel.Audio.Browser\Luxel.Audio.Browser.csproj" />
+    <ProjectReference Include="..\..\Luxel.Shaders\Luxel.Shaders.csproj" />
+    <ProjectReference Include="..\..\Luxel.Shaders.Slang.Browser\Luxel.Shaders.Slang.Browser.csproj" />
+    <ProjectReference Include="..\..\Luxel.Physics\Luxel.Physics.csproj" />
+    <ProjectReference Include="..\..\Luxel.Physics.Gizmos\Luxel.Physics.Gizmos.csproj" />
+    <ProjectReference Include="..\..\Resource\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\..\Luxel.Controls\Luxel.Controls.csproj" />
+    <ProjectReference Include="..\..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="..\..\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\Luxel.Graphics.WebGPU.Browser\Luxel.Graphics.WebGPU.Browser.csproj" />
+    <ProjectReference Include="..\..\Luxel.Typography\Luxel.Typography.csproj" AdditionalProperties="LuxelBrowserWasm=true" />
+    <ProjectReference Include="..\..\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\..\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\..\Luxel.Platform.Web\Luxel.Platform.Web.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\..\shaders\compiled\raster2d_bounds.wgsl" Link="Shaders\raster2d_bounds.wgsl" />
+    <EmbeddedResource Include="..\..\..\shaders\compiled\raster2d_bin.wgsl" Link="Shaders\raster2d_bin.wgsl" />
+    <EmbeddedResource Include="..\..\..\shaders\compiled\raster2d_fine.wgsl" Link="Shaders\raster2d_fine.wgsl" />
+    <EmbeddedResource Include="..\..\..\assets\fonts\BIZUDGothic-Regular.ttf" Link="Fonts\BIZUDGothic-Regular.ttf" />
+  </ItemGroup>
+</Project>

@@ -117,7 +117,7 @@ public sealed class E2eGpuCollection : ICollectionFixture<GpuGalleryFixture>;
 
 /// <summary>1 play = 1 テスト。表示名 = (パス, play 番号, play 名)。
 /// `dotnet test --filter` で絞れる (例: DisplayName~Button)。golden は検証のみ —
-/// 更新は Gallery の `-- vk e2e --update` で行う (テストから golden を書かない)。</summary>
+/// 更新は GalleryE2E.Native の `-- vk --update` で行う (テストから golden を書かない)。</summary>
 [Collection("e2e-gpu")]
 public sealed class E2ePlayTests(GpuGalleryFixture fx)
 {

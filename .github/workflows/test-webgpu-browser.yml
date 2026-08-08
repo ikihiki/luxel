@@ -23,7 +23,7 @@ on:
       - 'src/Luxel.Platform.Web/**'
       - 'samples/LuxelTriangle/**'
       - 'samples/LuxelPlaygroundBrowser/**'
-      - 'samples/LuxelWebGpuBrowser/**'
+      - 'gallery/GalleryBrowser/**'
       - 'shaders/cube_forward.slang'
       - 'shaders/compiled/cube_forward.*'
       - 'shaders/tutorial_triangle.slang'
@@ -34,23 +34,22 @@ on:
       - 'tests/Luxel.Playground.Browser.E2e/**'
       - 'tests/Luxel.Gallery.Playground.Tests/**'
       - 'tests/Luxel.Scripting.Roslyn.Web.Tests/**'
-      - 'tests/Luxel.WebGPU.Browser.E2E/**'
+      - 'gallery/GalleryE2E.Browser/**'
       - 'tests/Luxel.WebGPU.Browser.Tests/**'
       - 'tests/Luxel.Gallery.Site.Tests/**'
-      - 'src/Luxel.Gallery.Playground/**'
+      - 'src/Gallery/Luxel.Gallery.Browser/**'
+      - 'src/Gallery/Luxel.Gallery.Playground/**'
       - 'src/Luxel.Scripting/**'
       - 'src/Luxel.Scripting.Roslyn.Web/**'
-      - 'src/Luxel.Gallery.RuntimeManifest/**'
-      - 'src/Resources/Luxel.Gallery.Resources.Stories/**'
-      - 'src/Luxel.Gallery.Stories.CoreUi/**'
+      - 'src/Gallery/Luxel.Gallery.Resources.Stories/**'
+      - 'src/Gallery/Luxel.Gallery.Stories.CoreUi/**'
       - 'src/Luxel.UI.Generators/**'
       - 'eng/check-project-dependencies.py'
-      - 'src/Luxel.Gallery.Site/**'
-      - 'src/Luxel.Gallery.Stories/SampleBundles.cs'
-      - 'src/Luxel.Gallery.Stories/Stories/GpuStories.cs'
-      - 'src/Luxel.Gallery.Stories/Stories/Docs/DocsGpuWebGpu.cs'
-      - 'src/Luxel.Gallery.Stories/Stories/Docs/LearnRenderingBasics.cs'
-      - 'src/Luxel.Gallery.Stories/Stories/Docs/Adr/Adr0019.cs'
+      - 'src/Gallery/Luxel.Gallery.Stories/SampleBundles.cs'
+      - 'src/Gallery/Luxel.Gallery.Stories/Stories/GpuStories.cs'
+      - 'src/Gallery/Luxel.Gallery.Stories/Stories/Docs/DocsGpuWebGpu.cs'
+      - 'src/Gallery/Luxel.Gallery.Stories/Stories/Docs/LearnRenderingBasics.cs'
+      - 'src/Gallery/Luxel.Gallery.Stories/Stories/Docs/Adr/Adr0019.cs'
       - 'Luxel.slnx'
       - '.github/workflows/test-webgpu-browser.yml'
       - '.github/workflows/deploy-pages.yml'
@@ -63,6 +62,9 @@ permissions:
 jobs:
   browser-contracts:
     runs-on: ubuntu-24.04
+    env:
+      # Hosted CI uses a deterministic software adapter. Local runs prefer hardware unless this is set.
+      LUXEL_E2E_SOFTWARE_GPU: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -74,7 +76,7 @@ jobs:
           cache: npm
           cache-dependency-path: |
             tests/Luxel.Playground.Browser.E2e/package-lock.json
-            tests/Luxel.WebGPU.Browser.E2E/package-lock.json
+            gallery/GalleryE2E.Browser/package-lock.json
       - name: Install browser WebAssembly workload
         run: dotnet workload install wasm-tools
       - name: Validate project dependency graph
@@ -91,7 +93,7 @@ jobs:
         run: dotnet build Luxel.slnx --no-restore --configuration Release
       - name: Test generators and generated production inventory
         run: dotnet test tests/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj --no-restore --no-build --configuration Release
-      - name: Test exporter and documentation contracts
+      - name: Test Gallery catalog contracts
         run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test Playground presentation and Roslyn contracts
         run: |
@@ -99,58 +101,28 @@ jobs:
           dotnet test tests/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test browser managed and source contracts
         run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release
-      - name: Publish browser samples
+      - name: Publish Blazor Gallery and Playground browser
         run: |
-          dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj --no-restore --configuration Release
+          dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj --no-restore --configuration Release
           dotnet publish samples/LuxelPlaygroundBrowser/LuxelPlaygroundBrowser.csproj --no-restore --configuration Release
-      - name: Export static Gallery with browser runtimes
-        run: >-
-          dotnet run --project src/Luxel.Gallery.Site/Luxel.Gallery.Site.csproj
-          --no-restore --no-build --configuration Release -- artifacts/gallery-site
-          --browser-webgpu-root samples/LuxelWebGpuBrowser/bin/Release/net10.0/publish/wwwroot
-          --playground-browser-root samples/LuxelPlaygroundBrowser/bin/Release/net10.0/publish/wwwroot
-          --static-capture golden-only
-      - name: Validate subpath-safe browser WebGPU sample
+      - name: Validate static Blazor Gallery
         run: |
-          test -f artifacts/gallery-site/samples/webgpu-browser/index.html
-          test -f artifacts/gallery-site/samples/webgpu-browser/browser-runtime-manifest.json
-          python3 - <<'PY'
-          import json
-          manifest = json.load(open('artifacts/gallery-site/samples/webgpu-browser/browser-runtime-manifest.json'))
-          production = [story for story in manifest['stories'] if story.get('componentType')]
-          assert manifest['bundleId'] == 'webgpu-browser-v1'
-          assert manifest['protocolVersion'] == 2
-          physics_paths = {
-              'Examples/3D/PhysicsFalling', 'Examples/3D/PhysicsPlayground',
-              'Examples/3D/PhysicsGizmos', 'Examples/3D/PhysicsTrigger', 'Examples/3D/PhysicsMesh',
-          }
-          assert physics_paths <= {story['path'] for story in manifest['stories']}
-          ecs = next(story for story in manifest['stories'] if story['path'] == 'Examples/3D/EcsCubes')
-          blur = next(story for story in manifest['stories'] if story['path'] == 'Examples/RenderGraph/Blur')
-          assert ecs['width'] == ecs['height'] == 320
-          assert ecs['componentType'] is None
-          assert blur['width'] == blur['height'] == 320
-          assert blur['componentType'] is None
-          assert len(production) == len({story['componentType'] for story in production}) == 60
-          assert all(story['path'].endswith('/Basic') and isinstance(story['args'], list) for story in production)
-          PY
-          test -f artifacts/gallery-site/samples/webgpu-browser/_framework/dotnet.js
-          ! grep -R -E '(src|href)="/' artifacts/gallery-site/samples/webgpu-browser/index.html artifacts/gallery-site/samples/webgpu-browser/main.js
-          test -f artifacts/gallery-site/samples/luxel-playground/playground-runtime-manifest.json
-          test -f artifacts/gallery-site/samples/luxel-playground/_framework/dotnet.js
-      - name: Install Playwright
+          root=gallery/GalleryBrowser/bin/Release/net10.0/publish/wwwroot
+          test -f "$root/index.html"
+          test -f "$root/main.js"
+          ! test -f "$root/browser-runtime-manifest.json"
+      - name: Test Playground browser runtime smoke contracts
         working-directory: tests/Luxel.Playground.Browser.E2e
         run: |
           npm ci
+          npm run test:slang
+      - name: Install Gallery browser WebGPU E2E dependencies
+        working-directory: gallery/GalleryE2E.Browser
+        run: |
+          npm ci
           npx playwright install --with-deps chromium
-      - name: Install browser WebGPU E2E dependencies
-        working-directory: tests/Luxel.WebGPU.Browser.E2E
-        run: npm ci
-      - name: Test Playground in Chromium
-        working-directory: tests/Luxel.Playground.Browser.E2e
-        run: npm test
       - name: Test Gallery browser-WASM stories in Chromium
-        working-directory: tests/Luxel.WebGPU.Browser.E2E
+        working-directory: gallery/GalleryE2E.Browser
         run: npm test
       - name: Upload Playwright failure artifacts
         if: failure()
@@ -158,8 +130,6 @@ jobs:
         with:
           name: luxel-playground-playwright
           path: |
-            tests/Luxel.Playground.Browser.E2e/test-results
-            tests/Luxel.Playground.Browser.E2e/playwright-report
-            tests/Luxel.WebGPU.Browser.E2E/test-results
-            tests/Luxel.WebGPU.Browser.E2E/playwright-report
+            gallery/GalleryE2E.Browser/test-results
+            gallery/GalleryE2E.Browser/playwright-report
           if-no-files-found: ignore

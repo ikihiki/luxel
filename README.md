@@ -1,57 +1,20 @@
-# Luxel — 「No Graphics API」C# 実装
+# Luxel
+
+## Browser Gallery
+
+The web Gallery is a statically hostable Blazor WebAssembly application. It reads the browser `StoryCatalog` directly; there is no generated runtime manifest or static-site export step.
+
+```bash
+dotnet run --project gallery/GalleryBrowser
+# or publish static files
+dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj -c Release
+```
+
+The publish root is `gallery/GalleryBrowser/bin/Release/net10.0/publish/wwwroot`. Open `?story=Controls%2FButton%2FCounter` to select a registered browser story.
 
 ## 静的Gallery / GitHub Pages
 
-ネイティブGalleryを操作可能な正としつつ、`GalleryStoryProject` が明示構成する immutable `StoryCatalog` からGitHub Pages向けの静的HTML版を生成できる。
-Markdown Overviewは親ページのsemantic HTML、browser-owned Widget Basicはparent-owned args table付きiframe、native-only Widgetはoffscreen captureまたは明示的なunavailable cardとして出力する。production `[UiComponent]` inventoryはsource generatorがexact `Controls/{category}/Overview` / `Basic` pairを生成し、CoreUi browser bundleが60個すべてのBasicを所有する。
-
-```bash
-# Linux/CIではMesa lavapipe（mesa-vulkan-drivers）を用意する
-dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site
-# CPU/Skiaで生成する場合（GPU専用storyは明示的なunavailable/error cardになる）
-dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site --rasterizer skia
-
-# 対象を絞って確認する場合
-dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site --filter Controls/Button
-
-# 高速export: 既存goldenのみ使用し、不足するnative captureは生成しない
-dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site --static-capture golden-only
-
-# semantic HTML / browser runtimeのみ。native hostやGPUを起動しない
-dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site --static-capture none
-
-# 既存出力を保持し、変更されたassetだけ更新するlocal iteration mode
-dotnet run --project src/Luxel.Gallery.Site -- artifacts/gallery-site --static-capture golden-only --incremental
-```
-
-`--static-capture`は`all`（既定、golden不足分をcapture）、`golden-only`（既存goldenのみ）、`none`（static previewなし）を選べる。どのmodeでもsemantic document、browser runtime iframe、Playground、Mermaid、Markdownのlocal imageは維持される。captureを省略したnative-only Widgetは、Story sourceを残した明示的なunavailable cardになる。
-
-生成物は相対URLだけを使い、`.nojekyll`、hash routing、sidebar、全文検索、light/dark themeを含む。
-既存Vulkan goldenを代表previewとして優先し、`all`では不足画像をVulkanで決定的に生成する。`RealWindowOnly`や描画失敗は
-黙って省略せず、明示的な状態cardとして出力する。`luxel-ui` placeholder、local参照切れ、root absolute URLはexport時に検証する。
-
-生成先の`artifacts/`はGitへcommitしない。`.github/workflows/deploy-pages.yml`は`main`へのpushまたは手動実行で
-Ubuntu/lavapipe上のtestとexportを行い、公式GitHub Pages actionsでdeployする。初回のみrepositoryの
-**Settings → Pages → Source**を**GitHub Actions**へ設定する。
-
-### iPadでフィードバックを書く
-
-GitHub Pages版には、ストーリーを見ながら同じページ内で記入できるフィードバックパネルがある。
-iPad横向きでは本文とパネルを左右に表示し、縦向きでは画面下のシートとして開く。左上の
-**ストーリー** ボタンで一覧を隠すと、プレビューと入力欄の幅を広く使える。
-
-1. 右上の **フィードバック** を開く。
-2. ストーリーごとに状態（未確認・確認済み・要修正）とコメントを記録する。
-3. 必要に応じて **前のコメント** / **次のコメント** で、記入済みストーリーだけを移動する。
-4. 終了時に **全件をコピー** または **Markdown保存** でレビューを取り出す。
-5. **JSONバックアップ** も保存しておくと、後から **JSON復元** で下書きを戻せる。
-6. ストーリー単位で提出する場合は **この内容でIssueを開く** を使う。
-
-下書きはSafariの`localStorage`へ自動保存される。保存範囲には配信パスを含むため、本番Galleryと
-`pr-preview/...`ごとの下書きは混ざらない。一方で、下書きは同じブラウザ・同じ端末内だけのデータであり、
-端末間同期されず、Safariのサイトデータを消去すると失われる。長いレビューではMarkdownとJSONを
-定期的に保存すること。GitHub Pagesへ認証情報やGitHub tokenは埋め込んでいないため、最終送信は
-GitHubのIssue画面で確認して行う。
+`GalleryBrowser` のpublish済み `wwwroot` 自体が静的配信物であり、別のsite exporterは使用しない。`.github/workflows/deploy-pages.yml` と `preview-pages.yml` はこのディレクトリを直接GitHub Pagesへ配信する。
 
 [Sebastian Aaltonen の *No Graphics API*](https://www.sebastianaaltonen.com/blog/no-graphics-api)
 の設計を C# で提供する薄いグラフィックエンジン。最新のバインドレス GPU が備える機能
@@ -93,9 +56,9 @@ eng/desktop/url.sh
 
 ```powershell
 dotnet build
-dotnet run --project src/Luxel.Gallery.Host -- vk            # Gallery (実ウィンドウ。dx も可)
-dotnet run --project src/Luxel.Gallery.Host -- vk e2e        # play + golden 回帰 (--update で更新)
-dotnet run --project src/Luxel.Gallery.Host -- vk bench "Controls/Button/Counter" 300 --type
+dotnet run --project gallery/GalleryNative -- vk            # Gallery (実ウィンドウ。dx も可)
+dotnet run --project gallery/GalleryE2E.Native -- vk        # play + golden 回帰 (--update で更新)
+dotnet run --project gallery/GalleryNative -- vk bench "Controls/Button/Counter" 300 --type
 dotnet test                                             # ユニットテスト
 ```
 
@@ -109,13 +72,22 @@ Gallery のサイドバー **Start/Welcome** を唯一の入口とし、そこ�
 
 ```bash
 dotnet workload install wasm-tools
-dotnet publish samples/LuxelWebGpuBrowser/LuxelWebGpuBrowser.csproj -c Release
-python3 -m http.server 8080 -d samples/LuxelWebGpuBrowser/bin/Release/net10.0/publish/wwwroot
+dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj -c Release
+python3 -m http.server 8080 -d gallery/GalleryBrowser/bin/Release/net10.0/publish/wwwroot
 ```
 
-`browser-runtime-manifest.json` はprotocol v2 descriptor（path、viewport、static args schema/defaults、capability note、production component identity）を持つ。親GalleryはHTML args tableを所有し、same-origin `postMessage`でrevision付き`set-args` / `args-changed`を双方向同期してtop-level argsとembed argsをhashへ保存する。詳細は`docs/gallery-runtime-protocol.md`を参照。
+Browser GalleryのE2Eは専用projectから実行する:
 
-WebGPUはsecure contextが必要です。開発時は`http://localhost:8080/`、remote配信はHTTPSを使用してください。Gallery Pagesでは`/samples/webgpu-browser/`相当のsubpathへAppBundleを配置し、sample内部はrelative URLのみを使います。
+```bash
+cd gallery/GalleryE2E.Browser
+npm ci
+npx playwright install --with-deps chromium
+npm run run
+```
+
+Browser GalleryはBlazor DIで構成された`StoryCatalog`を直接参照し、`?story=`と`?args=`からstoryを起動する。runtime manifestや親site shellは使用しない。詳細は`docs/gallery-runtime-protocol.md`を参照。
+
+WebGPUはsecure contextが必要です。開発時は`http://localhost:8080/`、remote配信はHTTPSを使用してください。静的hostではpublish済み`wwwroot`をそのまま配信し、内部URLはrelative pathを使います。
 
 ### Headless WebGPU
 

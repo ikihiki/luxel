@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Native\Luxel.Gallery.Native.csproj" />
+    <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Stories\Luxel.Gallery.Stories.csproj" />
+  </ItemGroup>
+</Project>

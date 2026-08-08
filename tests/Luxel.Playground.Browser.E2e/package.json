@@ -4,13 +4,8 @@
   "private": true,
   "description": "Playwright coverage for the Luxel Gallery scripting playground.",
   "scripts": {
-    "test": "playwright test",
-    "test:slang": "node smoke/slang-runtime.mjs && node smoke/slang-worker-timeout.mjs",
-    "test:headed": "playwright test --headed",
-    "install:browsers": "playwright install --with-deps chromium"
+    "test": "npm run test:slang",
+    "test:slang": "node smoke/slang-runtime.mjs && node smoke/slang-worker-timeout.mjs"
   },
-  "license": "MIT",
-  "devDependencies": {
-    "@playwright/test": "1.62.1"
-  }
+  "license": "MIT"
 }

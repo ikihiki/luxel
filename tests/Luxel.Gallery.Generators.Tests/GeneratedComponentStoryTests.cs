@@ -9,27 +9,6 @@ namespace Luxel.Gallery.Generators.Tests;
 public sealed class GeneratedComponentStoryTests
 {
     [Fact]
-    public void Checked_in_runtime_manifest_identifies_exact_60_generated_production_basics()
-    {
-        string root = FindRepositoryRoot();
-        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(Path.Combine(
-            root, "samples", "LuxelWebGpuBrowser", "wwwroot", "browser-runtime-manifest.json")));
-        JsonElement[] production = document.RootElement.GetProperty("stories").EnumerateArray()
-            .Where(story => story.TryGetProperty("componentType", out JsonElement component)
-                && component.ValueKind == JsonValueKind.String)
-            .ToArray();
-
-        Assert.Equal(2, document.RootElement.GetProperty("protocolVersion").GetInt32());
-        Assert.Equal(60, production.Length);
-        Assert.Equal(60, production.Select(story => story.GetProperty("componentType").GetString())
-            .Distinct(StringComparer.Ordinal).Count());
-        Assert.Equal(60, production.Select(story => story.GetProperty("path").GetString())
-            .Distinct(StringComparer.Ordinal).Count());
-        Assert.All(production, story => Assert.EndsWith("/Basic", story.GetProperty("path").GetString(), StringComparison.Ordinal));
-        Assert.All(production, story => Assert.Equal(JsonValueKind.Array, story.GetProperty("args").ValueKind));
-    }
-
-    [Fact]
     public void Automatic_component_story_generation_emits_static_schema_direct_factory_and_capability_fallback()
     {
         const string source = """

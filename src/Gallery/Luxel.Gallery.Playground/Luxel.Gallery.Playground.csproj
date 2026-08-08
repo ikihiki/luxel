@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\Resource\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
+    <ProjectReference Include="..\..\Luxel.Controls\Luxel.Controls.csproj" />
+    <ProjectReference Include="..\..\Luxel.Imaging\Luxel.Imaging.csproj" />
+    <ProjectReference Include="..\..\Resource\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\..\Luxel.Shaders\Luxel.Shaders.csproj" />
+    <ProjectReference Include="..\..\Luxel.Shaders.Slang.Native\Luxel.Shaders.Slang.Native.csproj" />
+    <ProjectReference Include="..\..\Luxel.Scripting.Roslyn.Web\Luxel.Scripting.Roslyn.Web.csproj" />
+    <ProjectReference Include="..\..\Luxel.Scripting\Luxel.Scripting.csproj" />
+    <ProjectReference Include="..\..\Luxel.Settings\Luxel.Settings.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="wwwroot\luxel-playground.css" />
+    <EmbeddedResource Include="wwwroot\luxel-playground.js" />
+    <None Update="wwwroot\luxel-playground.css" CopyToOutputDirectory="PreserveNewest" Pack="true" PackagePath="wwwroot\luxel-playground.css" />
+    <None Update="wwwroot\luxel-playground.js" CopyToOutputDirectory="PreserveNewest" Pack="true" PackagePath="wwwroot\luxel-playground.js" />
+  </ItemGroup>
+</Project>

@@ -7,7 +7,7 @@ on:
       - 'src/Luxel.Audio.Silk/**'
       - 'src/Framework/Luxel.Framework.Game.Native/**'
       - 'src/Framework/Luxel.Framework.Game/**'
-      - 'src/Luxel.Gallery.Stories/Stories/Docs/LearnAudio.cs'
+      - 'src/Gallery/Luxel.Gallery.Stories/Stories/Docs/LearnAudio.cs'
       - 'tests/Luxel.Audio.Silk.Tests/**'
       - 'tests/Luxel.Audio.Silk.Tests/OpenAlBackendTests.cs'
       - 'eng/desktop/**'
