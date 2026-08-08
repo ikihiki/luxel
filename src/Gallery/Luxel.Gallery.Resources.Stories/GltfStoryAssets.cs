@@ -8,6 +8,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>Gallery host が所有する <see cref="ResourceSystem"/> から glTF story asset を取得する。</summary>
 public static class GltfStoryAssets
 {
+    public const string Fox = "tools/khronos-samples/Fox.glb";
     public const string Box = "tools/khronos-samples/Box/Box.gltf";
     public const string AnimatedBox = "tools/khronos-samples/BoxAnimated/BoxAnimated.glb";
     public const string RiggedSimple = "tools/khronos-samples/RiggedSimple/RiggedSimple.glb";

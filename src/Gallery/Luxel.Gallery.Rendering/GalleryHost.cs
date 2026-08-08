@@ -1,5 +1,7 @@
 using System.Text.Json;
 using Luxel;
+using Luxel.Assets;
+using Luxel.Assets.Gltf;
 using Luxel.AssetsGpu;
 using Luxel.Diagnostics;
 using Luxel.Graphics.TwoD;
@@ -65,6 +67,7 @@ public sealed class GalleryHost : IDisposable
         _publishFrames = publishFrames;
         _raster = rasterizer ?? throw new ArgumentNullException(nameof(rasterizer));
         _gpuRasterizer = rasterizer as GpuDeviceRasterizer2D;
+        _resources.AddStep<byte[], AssetDocument>(new GltfResourceStep());
         if (device is not null)
         {
             _slangCompilation = new GallerySlangCompilation();

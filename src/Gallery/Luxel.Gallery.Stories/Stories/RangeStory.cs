@@ -9,6 +9,7 @@ using Luxel.Framework.Game;
 using Luxel.Particles;
 using Luxel.Particles.ThreeD;
 using Luxel.Graphics.RenderGraph;
+using Luxel.Resources;
 using Luxel.UI;
 using LuxelRange.Core;
 using Microsoft.Extensions.DependencyInjection;
@@ -89,6 +90,8 @@ public static class RangeStories
         private GpuPipeline? _pipeline, _pbrPipeline;
 
         // 動く的 = skin モデル (Fox.glb)。別 world で glTF を組み、FoxPosition へ instance World で置く。
+        private ResourceHandle<AssetDocument>? _foxDocument;
+        private bool _foxLoadObserved;
         private Luxel.Ecs.World? _foxWorld;
         private SceneAssets? _foxAssets;
         private SceneAnimationPlayer? _foxAnim;
@@ -164,6 +167,7 @@ public static class RangeStories
         protected override void OnUpdate(UpdateContext ctx)
         {
             if (_fb is null) InitGpu();
+            TryBuildFox();
             if (_shotQueued is (float sx, float sy)) { _shotQueued = null; Shoot(sx, sy); }
         }
 
@@ -262,6 +266,8 @@ public static class RangeStories
             _terrainVb?.Dispose();
             _terrainIb?.Dispose();
             _terrainInst?.Dispose();
+            _foxDocument?.Dispose();
+            _foxDocument = null;
             _foxAssets?.Dispose();
             _foxJoints?.Dispose();
             _foxInst?.Dispose();
@@ -271,6 +277,7 @@ public static class RangeStories
             _extractor = null; _pipeline = null; _pbrPipeline = null; _depth = null; _target = null; _vb = null; _fb = null;
             _terrainVb = null; _terrainIb = null; _terrainInst = null;
             _foxWorld = null; _foxAssets = null; _foxPrim = null; _foxJoints = null; _foxInst = null; _skinPipeline = null;
+            _foxLoadObserved = false;
             return Task.CompletedTask;
         }
 
@@ -292,7 +299,8 @@ public static class RangeStories
             TransformPropagateSystem.Run(_sim.World);   // 初期 (静止) シーンの GlobalTransform
             _extractor = new Render3DExtractSystem(_sim.World, Device);
             BuildTerrainBuffers();
-            BuildFox();
+            if (Loop.Resources is { } resources)
+                _foxDocument = resources.Load<AssetDocument>(GltfStoryAssets.Fox);
             BuildBurst();
             _fbDirty = true;
         }
@@ -315,18 +323,22 @@ public static class RangeStories
 
         private static uint Rgba(byte r, byte g, byte b, byte a) => (uint)(r | (g << 8) | (b << 16) | (a << 24));
 
-        /// <summary>Fox.glb を別 world で組み、skin 描画資源を用意して初期ポーズを焼く。</summary>
-        private void BuildFox()
+        /// <summary>Fox.glb の非同期 load 完了後、別 world で skin 描画資源を用意して初期ポーズを焼く。</summary>
+        private void TryBuildFox()
         {
-            string[] candidates =
-            [
-                Path.Combine(Environment.CurrentDirectory, "tools", "khronos-samples", "Fox.glb"),
-                Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "tools", "khronos-samples", "Fox.glb"),
-            ];
-            string? path = candidates.FirstOrDefault(File.Exists);
-            if (path is null) return;   // アセットが無ければ Fox 描画はスキップ (的の当たりは箱 proxy が担保)
+            if (_foxLoadObserved || _foxDocument is null) return;
+            if (!_foxDocument.HasValue)
+            {
+                if (_foxDocument.Status == ResourceStatus.Failed)
+                {
+                    _foxLoadObserved = true;
+                    _log($"Fox asset unavailable: {_foxDocument.Error?.Message}");
+                }
+                return;
+            }
 
-            AssetDocument doc = GltfStoryAssets.LoadDocument(path);
+            _foxLoadObserved = true;
+            AssetDocument doc = _foxDocument.Value;
             for (int i = 0; i < doc.Materials.Count; i++)
                 doc.Materials[i].BaseColorFactor = new Vector4(0.80f, 0.52f, 0.28f, 1f);   // キツネ色
 
