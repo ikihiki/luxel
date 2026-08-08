@@ -113,25 +113,86 @@ public sealed class ProductionComponentCatalogTests
     }
 
     [Fact]
-    public void Resource_documentation_scenarios_build_source_backed_markdown()
+    public void Every_canonical_resource_example_builds_a_widget_without_host_resources()
     {
         StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
-        string[] markdownScenarios =
-        [
-            .. ResourceLearnExamples.Routes.Values.SelectMany(routes => routes)
-                .Where(route => route is not "Examples/Resources/Gltf/BoxScene"
-                    and not "Examples/Resources/Gltf/AnimatedBox"
-                    and not "Examples/Resources/Gltf/RiggedSimpleSkinning"
-                    and not "Examples/Resources/Gltf/MorphWeights")
-                .Distinct(StringComparer.Ordinal),
-        ];
+        string[] examples = ResourceLearnExamples.Routes.Values
+            .SelectMany(routes => routes)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
 
-        foreach (string route in markdownScenarios)
+        Assert.Equal(22, examples.Length);
+        foreach (string route in examples)
         {
             StoryInfo story = Assert.IsType<StoryInfo>(catalog.Find(route));
-            StoryResult result = story.BuildResult(new StoryContext());
-            Assert.Equal(StoryResultKind.Markdown, result.Kind);
-            Assert.StartsWith("# ", result.Markdown, StringComparison.Ordinal);
+            using var context = new StoryContext();
+            StoryResult result = story.BuildResult(context);
+            Assert.Equal(StoryResultKind.Widget, result.Kind);
+            Assert.NotNull(result.Widget);
+        }
+    }
+
+    [Fact]
+    public async Task Gpu_resource_examples_construct_private_systems_and_load_embedded_fixtures()
+    {
+        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+        string[] gpuExamples =
+        [
+            "Examples/Resources/Gltf/BoxScene",
+            "Examples/Resources/Gltf/AnimatedBox",
+            "Examples/Resources/Gltf/RiggedSimpleSkinning",
+            "Examples/Resources/Gltf/MorphWeights",
+        ];
+        int before = GltfStoryAssets.CreatedSystemCount;
+
+        foreach (string route in gpuExamples)
+        {
+            using var context = new StoryContext();
+            StoryResult result = Assert.IsType<StoryInfo>(catalog.Find(route)).BuildResult(context);
+            Assert.Equal(StoryResultKind.Widget, result.Kind);
+        }
+
+        Assert.Equal(before + gpuExamples.Length, GltfStoryAssets.CreatedSystemCount);
+        Assert.Single((await GltfStoryAssets.LoadFixtureForTestAsync(GltfStoryAssets.Box)).Meshes);
+        Assert.NotEmpty((await GltfStoryAssets.LoadFixtureForTestAsync(GltfStoryAssets.AnimatedBox)).Animations);
+        Assert.NotEmpty((await GltfStoryAssets.LoadFixtureForTestAsync(GltfStoryAssets.RiggedSimple)).Skins);
+    }
+
+    [Fact]
+    public async Task Cpu_resource_examples_execute_with_isolated_systems_and_deterministic_results()
+    {
+        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+        string[] gpuExamples =
+        [
+            "Examples/Resources/Gltf/BoxScene",
+            "Examples/Resources/Gltf/AnimatedBox",
+            "Examples/Resources/Gltf/RiggedSimpleSkinning",
+            "Examples/Resources/Gltf/MorphWeights",
+        ];
+        string[] cpuExamples = ResourceLearnExamples.Routes.Values
+            .SelectMany(routes => routes)
+            .Distinct(StringComparer.Ordinal)
+            .Except(gpuExamples, StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        var systems = new HashSet<Luxel.Resources.ResourceSystem>(ReferenceEqualityComparer.Instance);
+
+        Assert.Equal(18, cpuExamples.Length);
+        foreach (string route in cpuExamples)
+        {
+            StoryInfo story = Assert.IsType<StoryInfo>(catalog.Find(route));
+            using var context = new StoryContext();
+            StoryResult result = story.BuildResult(context);
+            ResourceScenarioWidget widget = Assert.IsType<ResourceScenarioWidget>(result.Widget);
+            Assert.True(systems.Add(widget.Resources), $"{route} reused another scenario's ResourceSystem.");
+
+            await widget.RunForTestAsync().WaitAsync(TimeSpan.FromSeconds(10));
+
+            Assert.Equal("Ready", widget.Status);
+            Assert.DoesNotContain("unexpectedly imported", widget.Detail, StringComparison.OrdinalIgnoreCase);
+            Assert.False(string.IsNullOrWhiteSpace(widget.Detail));
+            widget.Dispose();
         }
     }
 

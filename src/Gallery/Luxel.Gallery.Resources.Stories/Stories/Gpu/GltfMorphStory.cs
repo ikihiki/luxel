@@ -34,9 +34,65 @@ public static class GltfMorphStories
     }
 
     [Story("Examples/Resources/Gltf/MorphWeights", Height = 320, Order = 128)]
-    public static Widget GltfMorph(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(256, 256, new MorphScene())));
+    public static Widget GltfMorph(StoryContext ctx) => ctx.Snap(Frame(
+        GltfStoryAssets.ViewGenerated(ctx, CreateDocument(), static document => new MorphScene(document), animated: false)));
 
-    private sealed class MorphScene : GpuSceneBase
+    private static AssetDocument CreateDocument()
+    {
+        const int n = 16;
+        const float size = 4f;
+        int vc = (n + 1) * (n + 1);
+        var pos = new Vector3[vc];
+        var nrm = new Vector3[vc];
+        var uv = new Vector2[vc];
+        var dPos = new Vector3[vc];
+        var dNrm = new Vector3[vc];
+        for (int z = 0; z <= n; z++)
+            for (int x = 0; x <= n; x++)
+            {
+                int i = z * (n + 1) + x;
+                float wx = x / (float)n * size - size / 2, wz = z / (float)n * size - size / 2;
+                pos[i] = new Vector3(wx, 0, wz);
+                nrm[i] = Vector3.UnitY;
+                uv[i] = new Vector2(x / (float)n, z / (float)n);
+                const float amp = 1.6f, sigma = 0.9f;
+                float r2 = wx * wx + wz * wz;
+                float h = amp * MathF.Exp(-r2 / (2 * sigma * sigma));
+                dPos[i] = new Vector3(0, h, 0);
+                float dhx = h * (-wx / (sigma * sigma)), dhz = h * (-wz / (sigma * sigma));
+                Vector3 bumpN = Vector3.Normalize(new Vector3(-dhx, 1, -dhz));
+                dNrm[i] = bumpN - Vector3.UnitY;
+            }
+        var idx = new List<uint>();
+        for (int z = 0; z < n; z++)
+            for (int x = 0; x < n; x++)
+            {
+                uint a = (uint)(z * (n + 1) + x), b = a + 1, c = a + (uint)(n + 1), d = c + 1;
+                idx.AddRange([a, c, b, b, c, d]);
+            }
+
+        var material = new AssetMaterial { BaseColorFactor = new Vector4(0.85f, 0.55f, 0.30f, 1f) };
+        var primitive = new AssetPrimitive
+        {
+            Attributes = new AssetVertexBuffer { Positions = pos, Normals = nrm, TexCoord0 = uv },
+            Indices = idx.ToArray(),
+            MorphTargets = [new AssetMorphTarget { DeltaPositions = dPos, DeltaNormals = dNrm }],
+            Material = material,
+        };
+        var mesh = new AssetMesh();
+        mesh.Primitives.Add(primitive);
+        var node = new AssetNode { Mesh = mesh, Weights = [0.85f] };
+        var scene = new AssetScene();
+        scene.Roots.Add(node);
+        var document = new AssetDocument { DefaultScene = scene };
+        document.Materials.Add(material);
+        document.Meshes.Add(mesh);
+        document.Nodes.Add(node);
+        document.Scenes.Add(scene);
+        return document;
+    }
+
+    private sealed class MorphScene(AssetDocument document) : GpuSceneBase
     {
         private GpuTexture _depth = null!;
         private GpuPipeline _pipeline = null!;
@@ -46,63 +102,9 @@ public static class GltfMorphStories
 
         protected override void OnInit()
         {
-            // 平面グリッド + 「中央が盛り上がる」morph target を手続き的に構築
-            const int n = 16;
-            const float size = 4f;
-            int vc = (n + 1) * (n + 1);
-            var pos = new Vector3[vc];
-            var nrm = new Vector3[vc];
-            var uv = new Vector2[vc];
-            var dPos = new Vector3[vc];
-            var dNrm = new Vector3[vc];
-            for (int z = 0; z <= n; z++)
-                for (int x = 0; x <= n; x++)
-                {
-                    int i = z * (n + 1) + x;
-                    float wx = x / (float)n * size - size / 2, wz = z / (float)n * size - size / 2;
-                    pos[i] = new Vector3(wx, 0, wz);
-                    nrm[i] = Vector3.UnitY;
-                    uv[i] = new Vector2(x / (float)n, z / (float)n);
-                    // ガウシアンの隆起 (target で中央が持ち上がる)
-                    const float amp = 1.6f, sigma = 0.9f;
-                    float r2 = wx * wx + wz * wz;
-                    float h = amp * MathF.Exp(-r2 / (2 * sigma * sigma));
-                    dPos[i] = new Vector3(0, h, 0);
-                    float dhx = h * (-wx / (sigma * sigma)), dhz = h * (-wz / (sigma * sigma));
-                    Vector3 bumpN = Vector3.Normalize(new Vector3(-dhx, 1, -dhz));
-                    dNrm[i] = bumpN - Vector3.UnitY;   // base 法線 (0,1,0) からの差分
-                }
-            var idx = new List<uint>();
-            for (int z = 0; z < n; z++)
-                for (int x = 0; x < n; x++)
-                {
-                    uint a = (uint)(z * (n + 1) + x), b = a + 1, c = a + (uint)(n + 1), d = c + 1;
-                    idx.AddRange([a, c, b, b, c, d]);
-                }
-
-            var baseColor = new Vector4(0.85f, 0.55f, 0.30f, 1f);
-            var mesh = new AssetMesh();
-            var prim = new AssetPrimitive
-            {
-                Attributes = new AssetVertexBuffer { Positions = pos, Normals = nrm, TexCoord0 = uv },
-                Indices = idx.ToArray(),
-                MorphTargets = [new AssetMorphTarget { DeltaPositions = dPos, DeltaNormals = dNrm }],
-            };
-            var material = new AssetMaterial { BaseColorFactor = baseColor };
-            prim.Material = material;
-            mesh.Primitives.Add(prim);
-            var node = new AssetNode { Mesh = mesh, Weights = [0.85f] };   // 固定の morph 重み (決定的)
-            var scene = new AssetScene();
-            scene.Roots.Add(node);
-            var doc = new AssetDocument();
-            doc.Materials.Add(material);
-            doc.Meshes.Add(mesh);
-            doc.Nodes.Add(node);
-            doc.Scenes.Add(scene);
-            doc.DefaultScene = scene;
-
+            AssetPrimitive prim = document.Meshes[0].Primitives[0];
             var world = new Luxel.Ecs.World();
-            SceneAssets assets = Track(SceneBuilder.Build(world, doc, Device));
+            SceneAssets assets = Track(SceneBuilder.Build(world, document, Device));
             TransformPropagateSystem.Run(world);
 
             _extractor = Track(new SceneRenderExtractor(world, assets));

@@ -4,6 +4,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!-- Static glTF story fixtures are pinned and acquired by this shared target. -->
+  <Import Project="..\..\..\assets\Luxel.KhronosBox.targets" />
+
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Gallery.DocKit\Luxel.Gallery.DocKit.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Stories.CoreUi\Luxel.Gallery.Stories.CoreUi.csproj" />
@@ -22,6 +25,10 @@
     <InternalsVisibleTo Include="Luxel.Gallery.Site.Tests" />
     <EmbeddedResource Include="..\..\..\samples\LuxelResources\LuxelResources.csproj" LogicalName="Luxel.Sample.samples.LuxelResources.LuxelResources.csproj" />
     <EmbeddedResource Include="..\..\..\samples\LuxelResources\Program.cs" LogicalName="Luxel.Sample.samples.LuxelResources.Program.cs" />
+    <EmbeddedResource Include="$(KhronosBoxGltfPath)" LogicalName="Luxel.Gallery.Resources.Fixtures.Box.gltf" />
+    <EmbeddedResource Include="$(KhronosBoxBinPath)" LogicalName="Luxel.Gallery.Resources.Fixtures.Box0.bin" />
+    <EmbeddedResource Include="$(KhronosBoxAnimatedPath)" LogicalName="Luxel.Gallery.Resources.Fixtures.BoxAnimated.glb" />
+    <EmbeddedResource Include="$(KhronosRiggedSimplePath)" LogicalName="Luxel.Gallery.Resources.Fixtures.RiggedSimple.glb" />
     <EmbeddedResource Include="..\..\..\shaders\compiled\scene_pbr_lite.*" LogicalName="Luxel.Gallery.Resources.Shaders.%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\..\shaders\compiled\scene_pbr_skinned.*" LogicalName="Luxel.Gallery.Resources.Shaders.%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\..\shaders\compiled\scene_pbr_morph.*" LogicalName="Luxel.Gallery.Resources.Shaders.%(Filename)%(Extension)" />
@@ -31,6 +38,4 @@
     <Using Include="Luxel.Graphics" />
   </ItemGroup>
 
-  <!-- Static glTF beginner story fixture belongs to the native/heavy GLTF story boundary. -->
-  <Import Project="..\..\..\assets\Luxel.KhronosBox.targets" />
 </Project>
