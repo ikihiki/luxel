@@ -43,6 +43,7 @@ public static class E2e
 
         foreach (StoryInfo story in stories)
         {
+            if (filter is not null && !story.Path.Contains(filter, StringComparison.OrdinalIgnoreCase)) continue;
             if (story.RealWindowOnly) { skipped++; continue; }
 
             // play の有無はまず 1 回構築して調べる。構築/Tick/描画の失敗は story 単位で

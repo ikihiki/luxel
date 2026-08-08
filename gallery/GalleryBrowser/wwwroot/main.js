@@ -100,6 +100,7 @@ const host = {
 try {
   const runtime = globalThis.getDotnetRuntime?.(0);
   if (runtime) {
+    globalThis.luxelDotnetRuntime = runtime;
     const exports = await runtime.getAssemblyExports("Luxel.Gallery.Browser.dll");
     globalThis.luxelBrowserExports = exports;
     setArgsExport = exports?.Luxel?.Gallery?.Browser?.BrowserGalleryApplication?.SetArgsSnapshot;

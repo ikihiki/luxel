@@ -55,10 +55,15 @@ public static partial class BrowserGalleryApplication
 
     private static async Task RunCatalogStory(string path, string argsJson)
     {
+        string stage = "catalog";
+        try
+        {
         StoryInfo story = Catalog.Find(path) ?? throw new InvalidOperationException($"Unknown browser story '{path}'.");
         IReadOnlyList<StoryArgDefinition> schema = story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>();
         StoryArgs args = StoryArgs.Parse(argsJson).WithDefaults(schema);
 
+        stage = "window";
+        SetStatus("loading", $"browser-webgpu: status=loading, story={path}, stage={stage}");
         using WebWindowBackend web = await CreateWindowBackend();
         using var clipboard = new Clipboard(web.CreateClipboardBackend());
         PlatformClipboard.Current = clipboard;
@@ -76,16 +81,22 @@ public static partial class BrowserGalleryApplication
             Window window = windows.CreateWindow(new WindowDesc("Luxel " + path, initialWidth, initialHeight));
             windows.Pump();
 
+            stage = "device";
+            SetStatus("loading", $"browser-webgpu: status=loading, story={path}, stage={stage}");
             BrowserWebGpuBackend backend = await BrowserWebGpuBackend.CreateAsync();
             using var device = new GpuDevice(backend);
             var browserBackend = (BrowserWebGpuBackend)device.Backend;
             using GpuSurface surface = browserBackend.CreateCanvasSurface(
                 "#luxel-canvas", (uint)window.Width, (uint)window.Height);
+            stage = "resources";
+            SetStatus("loading", $"browser-webgpu: status=loading, story={path}, stage={stage}");
             await using var slangCompiler = new BrowserSlangCompiler();
             using var resources = new ResourceSystem();
             resources.AddStep<SlangSource, GpuShaderCode>(
                 new SlangCompileStep(slangCompiler, GpuBackendKind.WebGpu));
             await using AssetGpuInstallation assetGpu = resources.InstallAssetGpuLifecycle(device);
+            stage = "font";
+            SetStatus("loading", $"browser-webgpu: status=loading, story={path}, stage={stage}");
             using var font = new VectorFont(Resource("BIZUDGothic-Regular.ttf"));
             using var context = new StoryContext(resources, args);
             context.SetGpuHost(device, font);
@@ -175,6 +186,11 @@ public static partial class BrowserGalleryApplication
             PlatformClipboard.Current = null;
             _activeContext = null;
             _activeStory = null;
+        }
+        }
+        catch (Exception error)
+        {
+            throw new InvalidOperationException($"Browser Gallery failed during stage '{stage}'.", error);
         }
     }
 

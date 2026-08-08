@@ -17,7 +17,9 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("builder.Services.AddCoreUiStory()", entryPoint, StringComparison.Ordinal);
         Assert.Contains("@inject StoryCatalog Catalog", app, StringComparison.Ordinal);
         Assert.Contains("Catalog.Find(requested)", app, StringComparison.Ordinal);
-        Assert.Contains("BrowserGalleryApplication.RunAsync(Services, story.Path, argsJson)", app, StringComparison.Ordinal);
+        Assert.Contains("_ = RunStoryAsync(story.Path, argsJson)", app, StringComparison.Ordinal);
+        Assert.Contains("BrowserGalleryApplication.RunAsync(Services, story, argsJson)", app, StringComparison.Ordinal);
+        Assert.Contains("JSHost.ImportAsync(\"luxel-browser-host\", \"../main.js\")", app, StringComparison.Ordinal);
         Assert.Contains("Catalog.Find(path)", runtime, StringComparison.Ordinal);
         Assert.DoesNotContain("RuntimeBundleId", runtime, StringComparison.Ordinal);
         Assert.DoesNotContain("browser-runtime-manifest", script, StringComparison.Ordinal);

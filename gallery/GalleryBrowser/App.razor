@@ -11,6 +11,10 @@
 
 @code {
     private bool _started;
+    private JSObject? _browserHostModule;
+    private JSObject? _slangModule;
+    private JSObject? _webGpuModule;
+    private JSObject? _audioModule;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -24,9 +28,23 @@
             ?? throw new InvalidOperationException($"Unknown browser story '{requested}'.");
         string argsJson = query.GetValueOrDefault("args") ?? "{}";
 
-        await JSHost.ImportAsync("luxel-browser-host", "./main.js");
-        await JSHost.ImportAsync("luxel-slang", "./slang-browser.js");
-        await BrowserGalleryApplication.RunAsync(Services, story.Path, argsJson);
+        _browserHostModule = await JSHost.ImportAsync("luxel-browser-host", "../main.js");
+        _slangModule = await JSHost.ImportAsync("luxel-slang", "../slang-browser.js");
+        _webGpuModule = await JSHost.ImportAsync("./luxel-webgpu-browser.js", "../luxel-webgpu-browser.js");
+        _audioModule = await JSHost.ImportAsync("./luxel-audio-browser.js", "../luxel-audio-browser.js");
+        _ = RunStoryAsync(story.Path, argsJson);
+    }
+
+    private async Task RunStoryAsync(string story, string argsJson)
+    {
+        try
+        {
+            await BrowserGalleryApplication.RunAsync(Services, story, argsJson);
+        }
+        catch
+        {
+            // BrowserGalleryApplication publishes the full failure to the runtime status surface.
+        }
     }
 
     private static Dictionary<string, string> ParseQuery(string query)

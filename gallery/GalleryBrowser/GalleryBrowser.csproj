@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
     <LuxelBrowserWasm>true</LuxelBrowserWasm>
-    <WasmBuildNative Condition="'$(CI)' == 'true'">true</WasmBuildNative>
+    <WasmBuildNative>true</WasmBuildNative>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
