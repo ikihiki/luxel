@@ -6,7 +6,6 @@ using Luxel.Assets;
 using Luxel.AssetsGpu;
 using Luxel.Ecs;
 using Luxel.Framework;
-using Luxel.Gltf;
 using Luxel.Particles;
 using Luxel.Particles.ThreeD;
 using Luxel.Graphics.RenderGraph;
@@ -327,7 +326,7 @@ public static class RangeStories
             string? path = candidates.FirstOrDefault(File.Exists);
             if (path is null) return;   // アセットが無ければ Fox 描画はスキップ (的の当たりは箱 proxy が担保)
 
-            AssetDocument doc = new GltfLoader().LoadAsync(path).GetAwaiter().GetResult();
+            AssetDocument doc = GltfStoryAssets.LoadDocument(path);
             for (int i = 0; i < doc.Materials.Count; i++)
                 doc.Materials[i].BaseColorFactor = new Vector4(0.80f, 0.52f, 0.28f, 1f);   // キツネ色
 

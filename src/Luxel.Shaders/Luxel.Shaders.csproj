@@ -5,6 +5,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
-    <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.Resources\Luxel.Resources.csproj" />
   </ItemGroup>
 </Project>

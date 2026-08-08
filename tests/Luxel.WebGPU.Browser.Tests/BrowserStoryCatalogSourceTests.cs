@@ -12,11 +12,12 @@ public sealed class BrowserStoryCatalogSourceTests
         string script = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "wwwroot", "main.js"));
         string project = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "LuxelWebGpuBrowser.csproj"));
         string compiler = File.ReadAllText(Path.Combine(root, "src", "Luxel.Shaders.Slang.Browser", "BrowserSlangCompiler.cs"));
-        string gpuResources = File.ReadAllText(Path.Combine(root, "src", "Luxel.AssetsGpu", "ResourceSystemExtensions.cs"));
+        string gpuResources = File.ReadAllText(Path.Combine(root, "src", "Resource", "Luxel.AssetsGpu", "ResourceSystemExtensions.cs"));
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(Path.Combine(
             root, "samples", "LuxelWebGpuBrowser", "wwwroot", "browser-runtime-manifest.json")));
 
-        Assert.Contains("CoreUiStoryProject.CreateCatalog()", program, StringComparison.Ordinal);
+        Assert.Contains("services.AddCoreUiStory()", program, StringComparison.Ordinal);
+        Assert.Contains("GetRequiredService<StoryCatalog>()", program, StringComparison.Ordinal);
         Assert.Contains("Catalog.Find(path)", program, StringComparison.Ordinal);
         Assert.Contains("story.RuntimeBundleId != CoreUiStoryProject.RuntimeBundleId", program, StringComparison.Ordinal);
         Assert.Contains("new StoryContext(resources, args)", program, StringComparison.Ordinal);

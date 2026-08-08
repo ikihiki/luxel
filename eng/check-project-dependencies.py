@@ -60,7 +60,7 @@ forbid_closure("Luxel.UI", lambda stem: stem.startswith("Luxel.Gallery"), "UI/Ga
 forbid_closure("Luxel.UI.Generators", lambda stem: stem.startswith("Luxel.Gallery"), "UI generators/Gallery reverse")
 forbid_closure("Luxel.Gallery", lambda stem: stem in {
     "Luxel.Gallery.Generators", "Luxel.Gallery.UI", "Luxel.Gallery.Host", "Luxel.Gallery.Site",
-    "Luxel.Gallery.Stories", "Luxel.Gallery.Stories.CoreUi"
+    "Luxel.Gallery.Stories", "Luxel.Gallery.Stories.CoreUi", "Luxel.Gallery.Resources.Stories"
 }, "Gallery core reverse")
 forbid_closure("Luxel.Gallery.Site", lambda stem: stem == "Luxel.Gallery.Host", "Site/Host")
 
@@ -72,7 +72,7 @@ native_heavy = lambda stem: (
     or stem.startswith("Luxel.Scripting")
 )
 browser_forbidden = lambda stem: native_heavy(stem) or stem in {
-    "Luxel.Gallery.Host", "Luxel.Gallery.Site", "Luxel.Gallery.Stories"
+    "Luxel.Gallery.Host", "Luxel.Gallery.Site", "Luxel.Gallery.Stories", "Luxel.Gallery.Resources.Stories"
 }
 forbid_closure("Luxel.Gallery.Stories.CoreUi", browser_forbidden, "CoreUi browser closure")
 forbid_closure("LuxelWebGpuBrowser", browser_forbidden, "browser host closure")

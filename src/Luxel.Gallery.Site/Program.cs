@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Luxel;
 using Luxel.Gallery;
 using Luxel.Gallery.Site;
@@ -20,7 +22,10 @@ string output = args.Select((value, index) => (value, index))
 string? filter = ReadOption("--filter");
 string? browserWebGpuRoot = ReadOption("--browser-webgpu-root");
 string? playgroundBrowserRoot = ReadOption("--playground-browser-root");
-StoryCatalog catalog = GalleryStoryProject.CreateCatalog();
+HostApplicationBuilder storyHostBuilder = Host.CreateApplicationBuilder(args);
+storyHostBuilder.Services.AddGalleryStory();
+using IHost storyHost = storyHostBuilder.Build();
+StoryCatalog catalog = storyHost.Services.GetRequiredService<StoryCatalog>();
 IReadOnlyList<StoryInfo> stories = filter is null ? catalog.All
     : catalog.All.Where(s => s.Path.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToArray();
 

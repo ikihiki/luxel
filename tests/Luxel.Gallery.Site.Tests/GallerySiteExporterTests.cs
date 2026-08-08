@@ -1528,7 +1528,7 @@ public sealed class GallerySiteExporterTests
         Assert.Contains("現在の`scene_pbr_tex`", assetTypes);
 
         string assetLoading = pages["Learn/Resources/Assets/LoadingAndGpu"].Text;
-        foreach (string term in new[] { "GltfStep", "InstallAssetGpuLifecycle()", "AssetGpuRegistry", "scope.Create<AssetMesh, GpuMesh>", "SceneAssetsStep", "GltfBufferStep", "MaterialTextureStep", "DrawableCollector" })
+        foreach (string term in new[] { "GltfResourceStep", "InstallAssetGpuLifecycle()", "AssetGpuRegistry", "scope.Create<AssetMesh, GpuMesh>", "SceneAssetsResourceStep", "SceneBufferStep", "SceneMaterialTextureStep", "DrawableCollector" })
             Assert.Contains(term, assetLoading);
 
         string assetShader = pages["Learn/Resources/Assets/ShaderCalculations"].Text;

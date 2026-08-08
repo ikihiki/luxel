@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Net;
 using System.Security.Cryptography;
+using Microsoft.Extensions.DependencyInjection;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -36,9 +37,17 @@ public static partial class GallerySiteExporter
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
+    private static StoryCatalog CreateDefaultCatalog()
+    {
+        var services = new ServiceCollection();
+        services.AddGalleryStory();
+        using ServiceProvider provider = services.BuildServiceProvider();
+        return provider.GetRequiredService<StoryCatalog>();
+    }
+
     public static SiteExportReport Export(GalleryHost host, IReadOnlyList<StoryInfo> stories, string output, string repositoryRoot,
         string? browserWebGpuRoot = null, string? playgroundBrowserRoot = null)
-        => Export(() => host, GalleryStoryProject.CreateCatalog(), stories, output, repositoryRoot,
+        => Export(() => host, CreateDefaultCatalog(), stories, output, repositoryRoot,
             browserWebGpuRoot, playgroundBrowserRoot, new SiteExportOptions());
 
     public static SiteExportReport Export(Func<GalleryHost> hostFactory, StoryCatalog catalog,

@@ -1,9 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\Luxel.Gallery.DocKit\Luxel.Gallery.DocKit.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Stories.CoreUi\Luxel.Gallery.Stories.CoreUi.csproj" />
-    <ProjectReference Include="..\Luxel.Gallery.Stories.Gltf\Luxel.Gallery.Stories.Gltf.csproj" />
+    <ProjectReference Include="..\Resources\Luxel.Gallery.Resources.Stories\Luxel.Gallery.Resources.Stories.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Playground\Luxel.Gallery.Playground.csproj" />
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
   </ItemGroup>
@@ -67,8 +68,8 @@
     <ProjectReference Include="..\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
     <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj" />
     <ProjectReference Include="..\Luxel.Settings\Luxel.Settings.csproj" />
-    <ProjectReference Include="..\Luxel.Assets\Luxel.Assets.csproj" />
-    <ProjectReference Include="..\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.Assets\Luxel.Assets.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
     <ProjectReference Include="..\Luxel.Animation.ThreeD\Luxel.Animation.ThreeD.csproj" />
     <ProjectReference Include="..\Luxel.Animation.TwoD\Luxel.Animation.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.Physics\Luxel.Physics.csproj" />
@@ -94,8 +95,8 @@
     <ProjectReference Include="..\Luxel.Framework\Luxel.Framework.csproj" />
     <ProjectReference Include="..\Luxel.Scene.UI\Luxel.Scene.UI.csproj" />
     <ProjectReference Include="..\Luxel.Ecs.Signal\Luxel.Ecs.Signal.csproj" />
-    <ProjectReference Include="..\Luxel.Gltf\Luxel.Gltf.csproj" />
-    <ProjectReference Include="..\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.Assets.Gltf\Luxel.Assets.Gltf.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
     <!-- [Story] 収集 + コントロールの生成ファクトリ/デバッグ焼き込み -->
     <ProjectReference Include="..\Luxel.Gallery.Generators\Luxel.Gallery.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU"
                       GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
@@ -134,8 +135,6 @@
     <EmbeddedResource Include="..\..\samples\LuxelAudio\LuxelAudio.csproj" LogicalName="Luxel.Sample.samples.LuxelAudio.LuxelAudio.csproj" />
     <EmbeddedResource Include="..\..\samples\LuxelAudio\AudioConceptSamples.cs" LogicalName="Luxel.Sample.samples.LuxelAudio.AudioConceptSamples.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelAudio\Program.cs" LogicalName="Luxel.Sample.samples.LuxelAudio.Program.cs" />
-    <EmbeddedResource Include="..\..\samples\LuxelResources\LuxelResources.csproj" LogicalName="Luxel.Sample.samples.LuxelResources.LuxelResources.csproj" />
-    <EmbeddedResource Include="..\..\samples\LuxelResources\Program.cs" LogicalName="Luxel.Sample.samples.LuxelResources.Program.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelTwoD\LuxelTwoD.csproj" LogicalName="Luxel.Sample.samples.LuxelTwoD.LuxelTwoD.csproj" />
     <EmbeddedResource Include="..\..\samples\LuxelTwoD\Program.cs" LogicalName="Luxel.Sample.samples.LuxelTwoD.Program.cs" />
     <EmbeddedResource Include="..\..\samples\LuxelWebGpuBrowser\LuxelWebGpuBrowser.csproj" LogicalName="Luxel.Sample.samples.LuxelWebGpuBrowser.LuxelWebGpuBrowser.csproj" />

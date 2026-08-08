@@ -56,7 +56,7 @@ public static class DocsHome
 
         ## 3D / レンダーグラフ / リソース
 
-        `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、`Luxel.Graphics.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成 ([Examples/RenderGraph/Blur](story:Examples/RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` + `Luxel.Gltf` が (型, uri) キーのリソース DAG を提供します。
+        `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、`Luxel.Graphics.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成 ([Examples/RenderGraph/Blur](story:Examples/RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` + `Luxel.Assets.Gltf` が (型, uri) キーのリソース DAG を提供します。
 
         ## ランタイムとツール
 

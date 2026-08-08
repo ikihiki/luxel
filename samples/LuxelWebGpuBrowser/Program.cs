@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
@@ -25,8 +26,13 @@ namespace LuxelWebGpuBrowser;
 [SupportedOSPlatform("browser")]
 public static partial class Program
 {
-    private static StoryCatalog? _catalog;
-    private static StoryCatalog Catalog => _catalog ??= CoreUiStoryProject.CreateCatalog();
+    private static readonly Lazy<ServiceProvider> StoryServices = new(() =>
+    {
+        var services = new ServiceCollection();
+        services.AddCoreUiStory();
+        return services.BuildServiceProvider();
+    });
+    private static StoryCatalog Catalog => StoryServices.Value.GetRequiredService<StoryCatalog>();
     private static StoryContext? _activeContext;
     private static string? _activeStory;
 

@@ -1,5 +1,7 @@
+using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using Luxel.Gallery;
+using Luxel.Gallery.Stories;
 using Luxel.UI;
 
 namespace Luxel.Gallery.Site.Tests;
@@ -46,30 +48,52 @@ public sealed class ProductionComponentCatalogTests
     }
 
     [Fact]
-    public void Full_catalog_composes_GLTF_routes_without_leaking_them_into_CoreUi_runtime_catalog()
+    public void Full_catalog_composes_resource_routes_without_leaking_them_into_CoreUi_runtime_catalog()
     {
-        string[] gltfPaths =
+        string[] resourcePaths =
         [
+            .. ResourceCourseCatalog.Routes,
+            "Examples/Resources/Pipeline",
+            "Examples/Resources/DependencyDag",
+            "Examples/Resources/Reload",
+            "Examples/Resources/Lifetime",
             "Examples/3D/GltfBox",
             "Examples/3D/GltfAnimated",
             "Examples/3D/GltfSkinned",
             "Examples/3D/GltfMorph",
         ];
 
-        StoryCatalog gltfCatalog = GltfStoryProject.CreateCatalog();
+        StoryCatalog resourceCatalog = ResourceStoryProject.CreateCatalog();
         StoryCatalog fullCatalog = GalleryStoryProject.CreateCatalog();
         StoryCatalog coreUiCatalog = CoreUiStoryProject.CreateCatalog();
         HashSet<string> runtimePaths = CoreUiStoryProject.RuntimeStories(coreUiCatalog)
             .Select(story => story.Path)
             .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(gltfPaths.Order(StringComparer.Ordinal), gltfCatalog.All.Select(story => story.Path).Order(StringComparer.Ordinal));
-        Assert.All(gltfPaths, path => Assert.NotNull(fullCatalog.Find(path)));
-        Assert.All(gltfPaths, path => Assert.Null(coreUiCatalog.Find(path)));
-        Assert.All(gltfPaths, path => Assert.DoesNotContain(path, runtimePaths));
+        Assert.Equal(resourcePaths.Order(StringComparer.Ordinal), resourceCatalog.All.Select(story => story.Path).Order(StringComparer.Ordinal));
+        Assert.All(resourcePaths, path => Assert.NotNull(fullCatalog.Find(path)));
+        Assert.All(resourcePaths, path => Assert.Null(coreUiCatalog.Find(path)));
+        Assert.All(resourcePaths, path => Assert.DoesNotContain(path, runtimePaths));
         Assert.DoesNotContain(
             typeof(CoreUiStoryProject).Assembly.GetReferencedAssemblies(),
-            reference => reference.Name == "Luxel.Gltf");
+            reference => reference.Name == "Luxel.Assets.Gltf");
+    }
+
+    [Fact]
+    public void AddResourceStory_registers_the_resource_catalog_in_service_registration_order()
+    {
+        var services = new ServiceCollection();
+        services.AddStoryCatalog(builder => builder.Add(new StoryInfo("Before/Resource", 1, 1, null, _ => null!)));
+        services.AddResourceStory();
+        services.AddStoryCatalog(builder => builder.Add(new StoryInfo("After/Resource", 1, 1, null, _ => null!)));
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        StoryCatalog catalog = provider.GetRequiredService<StoryCatalog>();
+        string[] resourcePaths = ResourceStoryProject.CreateCatalog().All.Select(story => story.Path).ToArray();
+
+        Assert.Equal("Before/Resource", catalog.All[0].Path);
+        Assert.Equal(resourcePaths, catalog.All.Skip(1).Take(resourcePaths.Length).Select(story => story.Path));
+        Assert.Equal("After/Resource", catalog.All[^1].Path);
     }
 
     [Fact]

@@ -44,7 +44,7 @@ using Luxel.UI;
 [assembly: GenerateAssemblyApi("Luxel.Assets")]
 [assembly: GenerateAssemblyApi("Luxel.AssetsGpu")]
 [assembly: GenerateAssemblyApi("Luxel.AssetRuntime")]
-[assembly: GenerateAssemblyApi("Luxel.Gltf")]
+[assembly: GenerateAssemblyApi("Luxel.Assets.Gltf")]
 [assembly: GenerateAssemblyApi("Luxel.NodeGraph")]
 [assembly: GenerateAssemblyApi("Luxel.Physics.Gizmos")]
 [assembly: GenerateAssemblyApi("Luxel.SceneEdit")]

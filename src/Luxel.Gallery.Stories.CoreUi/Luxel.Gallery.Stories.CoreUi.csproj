@@ -8,8 +8,8 @@
     <Compile Include="..\..\samples\CanonicalTriangleRecipe.cs" Link="CanonicalTriangleRecipe.cs" />
     <ProjectReference Include="..\Luxel.Audio\Luxel.Audio.csproj" />
     <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj" />
-    <ProjectReference Include="..\Luxel.Assets\Luxel.Assets.csproj" />
-    <ProjectReference Include="..\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.Assets\Luxel.Assets.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
     <ProjectReference Include="..\Luxel.Physics\Luxel.Physics.csproj" />
     <ProjectReference Include="..\Luxel.Physics.Gizmos\Luxel.Physics.Gizmos.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
@@ -17,7 +17,7 @@
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
     <ProjectReference Include="..\Luxel.Input\Luxel.Input.csproj" />
     <ProjectReference Include="..\Luxel.Shaders\Luxel.Shaders.csproj" />
-    <ProjectReference Include="..\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />
     <ProjectReference Include="..\Luxel.Controls\Luxel.Controls.csproj" />
     <ProjectReference Include="..\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
@@ -48,6 +48,6 @@
     <EmbeddedResource Include="..\..\shaders\compiled\raster2d_fine.*" Link="Shaders\%(Filename)%(Extension)" />
     <InternalsVisibleTo Include="Luxel.Gallery.Site.Tests" />
     <InternalsVisibleTo Include="Luxel.Gallery.Stories" />
-    <InternalsVisibleTo Include="Luxel.Gallery.Stories.Gltf" />
+    <InternalsVisibleTo Include="Luxel.Gallery.Resources.Stories" />
   </ItemGroup>
 </Project>

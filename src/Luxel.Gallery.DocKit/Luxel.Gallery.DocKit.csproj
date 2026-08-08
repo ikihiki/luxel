@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Controls\Luxel.Controls.csproj" />
+    <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
+  </ItemGroup>
+</Project>

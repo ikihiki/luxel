@@ -166,146 +166,6 @@
       "componentType": "global::Luxel.Controls.Accordion"
     },
     {
-      "path": "Controls/ApiTable/Basic",
-      "width": 480,
-      "height": 320,
-      "args": [
-        {
-          "name": "control",
-          "type": "string",
-          "defaultValue": "Sample",
-          "description": "\u5BFE\u8C61\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u540D (ControlApiRegistry \u306E\u30AD\u30FC)\u3002",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "inherited",
-          "type": "bool",
-          "defaultValue": false,
-          "description": "\u57FA\u5E95 (Widget \u5171\u901A: margin/hAlign/transform...) \u306E\u30E1\u30F3\u30D0\u30FC\u3082\u51FA\u3059\u3002",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "width",
-          "type": "float",
-          "defaultValue": 0,
-          "description": "\u30C6\u30FC\u30D6\u30EB\u5168\u5E45 (px)\u3002\u8AAC\u660E\u5217\u304C\u6B8B\u308A\u5E45\u3092\u53D7\u3051\u308B\u3002",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "hAlign",
-          "type": "enum:Start|Center|End|Stretch",
-          "defaultValue": "Start",
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": [
-            "Start",
-            "Center",
-            "End",
-            "Stretch"
-          ]
-        },
-        {
-          "name": "vAlign",
-          "type": "enum:Start|Center|End|Stretch",
-          "defaultValue": "Start",
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": [
-            "Start",
-            "Center",
-            "End",
-            "Stretch"
-          ]
-        },
-        {
-          "name": "height",
-          "type": "length",
-          "defaultValue": "96",
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "translateX",
-          "type": "float",
-          "defaultValue": 0,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "translateY",
-          "type": "float",
-          "defaultValue": 0,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "scaleX",
-          "type": "float",
-          "defaultValue": 1,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "scaleY",
-          "type": "float",
-          "defaultValue": 1,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "rotate",
-          "type": "float",
-          "defaultValue": 0,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        }
-      ],
-      "capabilityNote": "Direct generated factory with browser-safe scalar args and generated event logging.",
-      "componentType": "global::Luxel.Gallery.UI.ApiTable"
-    },
-    {
       "path": "Controls/AssetBrowser/Basic",
       "width": 480,
       "height": 320,
@@ -485,14 +345,6 @@
       ],
       "capabilityNote": "Direct generated factory with browser-safe scalar args and generated event logging.",
       "componentType": "global::Luxel.Controls.Border"
-    },
-    {
-      "path": "Controls/Border/Card",
-      "width": 480,
-      "height": 220,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
     },
     {
       "path": "Controls/Box/Basic",
@@ -864,105 +716,6 @@
       "componentType": "global::Luxel.Controls.Button"
     },
     {
-      "path": "Controls/Button/Counter",
-      "width": 480,
-      "height": 160,
-      "args": [
-        {
-          "name": "count",
-          "type": "int",
-          "defaultValue": 0,
-          "description": "Current counter value.",
-          "order": 1000,
-          "min": -999,
-          "max": 999,
-          "step": 1,
-          "options": null
-        }
-      ],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/Button/Intents",
-      "width": 480,
-      "height": 160,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/Button/Playground",
-      "width": 480,
-      "height": 160,
-      "args": [
-        {
-          "name": "text",
-          "type": "string",
-          "defaultValue": "Click me",
-          "description": "Button label",
-          "order": 10,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "variant",
-          "type": "enum:Filled|Tonal|Outline|Ghost",
-          "defaultValue": "Filled",
-          "description": "Visual variant",
-          "order": 20,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": [
-            "Filled",
-            "Tonal",
-            "Outline",
-            "Ghost"
-          ]
-        },
-        {
-          "name": "disabled",
-          "type": "bool",
-          "defaultValue": false,
-          "description": "Disable interaction",
-          "order": 30,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        }
-      ],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/Button/Primary",
-      "width": 480,
-      "height": 160,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/Button/Tailwind",
-      "width": 480,
-      "height": 160,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/Button/Variants",
-      "width": 480,
-      "height": 160,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
       "path": "Controls/Canvas2D/Basic",
       "width": 480,
       "height": 320,
@@ -1273,22 +1026,6 @@
       "componentType": "global::Luxel.Controls.CheckBox"
     },
     {
-      "path": "Controls/CheckBox/Basic",
-      "width": 480,
-      "height": 160,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/CheckBox/CheckedStyle",
-      "width": 480,
-      "height": 160,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
       "path": "Controls/ColorPicker/Basic",
       "width": 480,
       "height": 320,
@@ -1405,154 +1142,6 @@
       ],
       "capabilityNote": "Direct generated factory with deterministic in-memory fixtures for complex inputs: Color.",
       "componentType": "global::Luxel.Controls.ColorPicker"
-    },
-    {
-      "path": "Controls/CommandPalette/Basic",
-      "width": 480,
-      "height": 380,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/DiagramBlock/Basic",
-      "width": 480,
-      "height": 320,
-      "args": [
-        {
-          "name": "source",
-          "type": "string",
-          "defaultValue": "Sample",
-          "description": "mermaid \u30D5\u30A7\u30F3\u30B9\u672C\u6587\u3002",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "maxWidth",
-          "type": "float",
-          "defaultValue": 0,
-          "description": "\u4F7F\u3048\u308B\u6700\u5927\u5E45 (0 = \u5236\u7D04\u5E45)\u3002\u8D85\u3048\u308B\u3068\u5168\u4F53\u3092\u7B49\u6BD4\u7E2E\u5C0F\u3002",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "hAlign",
-          "type": "enum:Start|Center|End|Stretch",
-          "defaultValue": "Start",
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": [
-            "Start",
-            "Center",
-            "End",
-            "Stretch"
-          ]
-        },
-        {
-          "name": "vAlign",
-          "type": "enum:Start|Center|End|Stretch",
-          "defaultValue": "Start",
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": [
-            "Start",
-            "Center",
-            "End",
-            "Stretch"
-          ]
-        },
-        {
-          "name": "width",
-          "type": "length",
-          "defaultValue": "240",
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "height",
-          "type": "length",
-          "defaultValue": "96",
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "translateX",
-          "type": "float",
-          "defaultValue": 0,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "translateY",
-          "type": "float",
-          "defaultValue": 0,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "scaleX",
-          "type": "float",
-          "defaultValue": 1,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "scaleY",
-          "type": "float",
-          "defaultValue": 1,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "rotate",
-          "type": "float",
-          "defaultValue": 0,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        }
-      ],
-      "capabilityNote": "Direct generated factory with browser-safe scalar args and generated event logging.",
-      "componentType": "global::Luxel.Diagram.DiagramBlock"
     },
     {
       "path": "Controls/Dialog/Basic",
@@ -1679,14 +1268,6 @@
       "args": [],
       "capabilityNote": "Deterministic explanatory fallback for unsupported capability inputs: Tree, Resolve.",
       "componentType": "global::Luxel.Controls.DockHost"
-    },
-    {
-      "path": "Controls/DockHost/Floating",
-      "width": 480,
-      "height": 420,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
     },
     {
       "path": "Controls/DocumentTabs/Basic",
@@ -1837,14 +1418,6 @@
       "args": [],
       "capabilityNote": "Deterministic explanatory fallback for unsupported capability inputs: Columns, Rows.",
       "componentType": "global::Luxel.Controls.Grid"
-    },
-    {
-      "path": "Controls/Grid/Columns",
-      "width": 480,
-      "height": 240,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
     },
     {
       "path": "Controls/Icon/Basic",
@@ -2021,14 +1594,6 @@
       "componentType": "global::Luxel.Controls.Icon"
     },
     {
-      "path": "Controls/Icon/Kinds",
-      "width": 480,
-      "height": 160,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
       "path": "Controls/ImageBlock/Basic",
       "width": 480,
       "height": 320,
@@ -2153,54 +1718,6 @@
       ],
       "capabilityNote": "Direct generated factory with browser-safe scalar args and generated event logging.",
       "componentType": "global::Luxel.Controls.ImageView"
-    },
-    {
-      "path": "Controls/Kit/Alert",
-      "width": 480,
-      "height": 180,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/Kit/Badges",
-      "width": 480,
-      "height": 160,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/Kit/Typography",
-      "width": 480,
-      "height": 240,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/KnobsTable/Basic",
-      "width": 480,
-      "height": 320,
-      "args": [],
-      "capabilityNote": "Deterministic explanatory fallback for unsupported capability inputs: Knobs.",
-      "componentType": "global::Luxel.Gallery.UI.KnobsTable"
-    },
-    {
-      "path": "Controls/KnobsTable/Kinds",
-      "width": 480,
-      "height": 240,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/Layout/Units",
-      "width": 480,
-      "height": 240,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
     },
     {
       "path": "Controls/LengthField/Basic",
@@ -2502,173 +2019,6 @@
       "componentType": "global::Luxel.Controls.ListView"
     },
     {
-      "path": "Controls/ListView/Huge",
-      "width": 480,
-      "height": 260,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/ListView/Reorder",
-      "width": 480,
-      "height": 260,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/MathBlockView/Basic",
-      "width": 480,
-      "height": 320,
-      "args": [
-        {
-          "name": "source",
-          "type": "string",
-          "defaultValue": "Sample",
-          "description": "TeX \u30BD\u30FC\u30B9 ($$ \u306E\u5185\u5074)\u3002",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "fontSize",
-          "type": "float",
-          "defaultValue": 16,
-          "description": "\u57FA\u6E96\u6587\u5B57\u30B5\u30A4\u30BA (px)\u3002",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "maxWidth",
-          "type": "float",
-          "defaultValue": 0,
-          "description": "\u4F7F\u3048\u308B\u6700\u5927\u5E45 (0 = \u5236\u7D04\u5E45)\u3002\u8D85\u3048\u308B\u3068\u7B49\u6BD4\u7E2E\u5C0F\u3002",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "hAlign",
-          "type": "enum:Start|Center|End|Stretch",
-          "defaultValue": "Start",
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": [
-            "Start",
-            "Center",
-            "End",
-            "Stretch"
-          ]
-        },
-        {
-          "name": "vAlign",
-          "type": "enum:Start|Center|End|Stretch",
-          "defaultValue": "Start",
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": [
-            "Start",
-            "Center",
-            "End",
-            "Stretch"
-          ]
-        },
-        {
-          "name": "width",
-          "type": "length",
-          "defaultValue": "240",
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "height",
-          "type": "length",
-          "defaultValue": "96",
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "translateX",
-          "type": "float",
-          "defaultValue": 0,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "translateY",
-          "type": "float",
-          "defaultValue": 0,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "scaleX",
-          "type": "float",
-          "defaultValue": 1,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "scaleY",
-          "type": "float",
-          "defaultValue": 1,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "rotate",
-          "type": "float",
-          "defaultValue": 0,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        }
-      ],
-      "capabilityNote": "Direct generated factory with browser-safe scalar args and generated event logging.",
-      "componentType": "global::Luxel.MathText.MathBlockView"
-    },
-    {
       "path": "Controls/MenuBar/Basic",
       "width": 480,
       "height": 320,
@@ -2847,52 +2197,12 @@
       "componentType": "global::Luxel.Controls.NavigationView"
     },
     {
-      "path": "Controls/NodeGraphView/AutoLayout",
-      "width": 480,
-      "height": 460,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
       "path": "Controls/NodeGraphView/Basic",
       "width": 480,
       "height": 320,
       "args": [],
       "capabilityNote": "Deterministic explanatory fallback for unsupported capability inputs: Source.",
       "componentType": "global::Luxel.Controls.NodeGraphView"
-    },
-    {
-      "path": "Controls/NodeGraphView/RenderGraph",
-      "width": 480,
-      "height": 460,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/NodeGraphView/Widgets",
-      "width": 480,
-      "height": 470,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/NodeGraphView/Wiring",
-      "width": 480,
-      "height": 460,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/ParticleView/Basic",
-      "width": 480,
-      "height": 320,
-      "args": [],
-      "capabilityNote": "Deterministic explanatory fallback for unsupported capability inputs: Particles.",
-      "componentType": "global::Luxel.Particles.UI.ParticleView"
     },
     {
       "path": "Controls/PropertyGrid/Basic",
@@ -3054,14 +2364,6 @@
       "componentType": "global::Luxel.Controls.RadioGroup"
     },
     {
-      "path": "Controls/RichText/Basic",
-      "width": 480,
-      "height": 280,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
       "path": "Controls/RichTextView/Basic",
       "width": 480,
       "height": 320,
@@ -3070,44 +2372,12 @@
       "componentType": "global::Luxel.Controls.RichTextView"
     },
     {
-      "path": "Controls/SceneEditorView/Assets",
-      "width": 480,
-      "height": 480,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
       "path": "Controls/SceneEditorView/Basic",
       "width": 480,
       "height": 320,
       "args": [],
       "capabilityNote": "Deterministic explanatory fallback for unsupported capability inputs: Source.",
       "componentType": "global::Luxel.Controls.SceneEditorView"
-    },
-    {
-      "path": "Controls/SceneEditorView/Inspector",
-      "width": 480,
-      "height": 480,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/SceneEditorView/ThreeD",
-      "width": 480,
-      "height": 440,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/SceneEditorView/Tiles",
-      "width": 480,
-      "height": 470,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
     },
     {
       "path": "Controls/SceneInspector/Basic",
@@ -3256,22 +2526,6 @@
       ],
       "capabilityNote": "Direct generated factory with browser-safe scalar args and generated event logging.",
       "componentType": "global::Luxel.Controls.ScrollViewer"
-    },
-    {
-      "path": "Controls/ScrollViewer/Basic",
-      "width": 480,
-      "height": 240,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/ScrollViewer/Clickable",
-      "width": 480,
-      "height": 260,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
     },
     {
       "path": "Controls/SearchField/Basic",
@@ -3744,14 +2998,6 @@
       ],
       "capabilityNote": "Direct generated factory with deterministic in-memory fixtures for complex inputs: Value.",
       "componentType": "global::Luxel.Controls.Slider"
-    },
-    {
-      "path": "Controls/Slider/CustomColors",
-      "width": 480,
-      "height": 160,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
     },
     {
       "path": "Controls/Spacer/Basic",
@@ -4747,14 +3993,6 @@
       "componentType": "global::Luxel.Controls.Tabs"
     },
     {
-      "path": "Controls/Tabs/Event",
-      "width": 480,
-      "height": 260,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
       "path": "Controls/Text/Basic",
       "width": 480,
       "height": 320,
@@ -4983,38 +4221,6 @@
       ],
       "capabilityNote": "Direct generated factory with browser-safe scalar args and generated event logging.",
       "componentType": "global::Luxel.Controls.Text"
-    },
-    {
-      "path": "Controls/Text/EllipsisVAlign",
-      "width": 480,
-      "height": 360,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/Text/Japanese",
-      "width": 480,
-      "height": 380,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/Text/Multiline",
-      "width": 480,
-      "height": 480,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Controls/Text/Styles",
-      "width": 480,
-      "height": 220,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
     },
     {
       "path": "Controls/TextEditorView/Basic",
@@ -5582,135 +4788,6 @@
       "componentType": "global::Luxel.Controls.TreeView"
     },
     {
-      "path": "Controls/TypeApiTable/Basic",
-      "width": 480,
-      "height": 320,
-      "args": [
-        {
-          "name": "type",
-          "type": "string",
-          "defaultValue": "Sample",
-          "description": "\u5BFE\u8C61\u306E\u578B\u540D (TypeApiRegistry \u306E\u30AD\u30FC \u2014 \u540D\u524D\u7A7A\u9593\u4ED8\u304D\u3082\u53EF)\u3002",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "width",
-          "type": "float",
-          "defaultValue": 0,
-          "description": "\u30C6\u30FC\u30D6\u30EB\u5168\u5E45 (px)\u3002\u8AAC\u660E\u5217\u304C\u6B8B\u308A\u5E45\u3092\u53D7\u3051\u308B\u3002",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "hAlign",
-          "type": "enum:Start|Center|End|Stretch",
-          "defaultValue": "Start",
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": [
-            "Start",
-            "Center",
-            "End",
-            "Stretch"
-          ]
-        },
-        {
-          "name": "vAlign",
-          "type": "enum:Start|Center|End|Stretch",
-          "defaultValue": "Start",
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": [
-            "Start",
-            "Center",
-            "End",
-            "Stretch"
-          ]
-        },
-        {
-          "name": "height",
-          "type": "length",
-          "defaultValue": "96",
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "translateX",
-          "type": "float",
-          "defaultValue": 0,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "translateY",
-          "type": "float",
-          "defaultValue": 0,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "scaleX",
-          "type": "float",
-          "defaultValue": 1,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "scaleY",
-          "type": "float",
-          "defaultValue": 1,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        },
-        {
-          "name": "rotate",
-          "type": "float",
-          "defaultValue": 0,
-          "description": "Inherited layout parameter.",
-          "order": 1000,
-          "min": null,
-          "max": null,
-          "step": null,
-          "options": null
-        }
-      ],
-      "capabilityNote": "Direct generated factory with browser-safe scalar args and generated event logging.",
-      "componentType": "global::Luxel.Gallery.UI.TypeApiTable"
-    },
-    {
       "path": "Controls/Wrap/Basic",
       "width": 480,
       "height": 320,
@@ -5851,99 +4928,723 @@
       "componentType": "global::Luxel.Controls.WrapPanel"
     },
     {
-      "path": "Controls/WrapPanel/Basic",
+      "path": "Controls/DiagramBlock/Basic",
       "width": 480,
-      "height": 260,
+      "height": 320,
+      "args": [
+        {
+          "name": "source",
+          "type": "string",
+          "defaultValue": "Sample",
+          "description": "mermaid \u30D5\u30A7\u30F3\u30B9\u672C\u6587\u3002",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "maxWidth",
+          "type": "float",
+          "defaultValue": 0,
+          "description": "\u4F7F\u3048\u308B\u6700\u5927\u5E45 (0 = \u5236\u7D04\u5E45)\u3002\u8D85\u3048\u308B\u3068\u5168\u4F53\u3092\u7B49\u6BD4\u7E2E\u5C0F\u3002",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "hAlign",
+          "type": "enum:Start|Center|End|Stretch",
+          "defaultValue": "Start",
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": [
+            "Start",
+            "Center",
+            "End",
+            "Stretch"
+          ]
+        },
+        {
+          "name": "vAlign",
+          "type": "enum:Start|Center|End|Stretch",
+          "defaultValue": "Start",
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": [
+            "Start",
+            "Center",
+            "End",
+            "Stretch"
+          ]
+        },
+        {
+          "name": "width",
+          "type": "length",
+          "defaultValue": "240",
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "height",
+          "type": "length",
+          "defaultValue": "96",
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "translateX",
+          "type": "float",
+          "defaultValue": 0,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "translateY",
+          "type": "float",
+          "defaultValue": 0,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "scaleX",
+          "type": "float",
+          "defaultValue": 1,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "scaleY",
+          "type": "float",
+          "defaultValue": 1,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "rotate",
+          "type": "float",
+          "defaultValue": 0,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        }
+      ],
+      "capabilityNote": "Direct generated factory with browser-safe scalar args and generated event logging.",
+      "componentType": "global::Luxel.Diagram.DiagramBlock"
+    },
+    {
+      "path": "Controls/MathBlockView/Basic",
+      "width": 480,
+      "height": 320,
+      "args": [
+        {
+          "name": "source",
+          "type": "string",
+          "defaultValue": "Sample",
+          "description": "TeX \u30BD\u30FC\u30B9 ($$ \u306E\u5185\u5074)\u3002",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "fontSize",
+          "type": "float",
+          "defaultValue": 16,
+          "description": "\u57FA\u6E96\u6587\u5B57\u30B5\u30A4\u30BA (px)\u3002",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "maxWidth",
+          "type": "float",
+          "defaultValue": 0,
+          "description": "\u4F7F\u3048\u308B\u6700\u5927\u5E45 (0 = \u5236\u7D04\u5E45)\u3002\u8D85\u3048\u308B\u3068\u7B49\u6BD4\u7E2E\u5C0F\u3002",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "hAlign",
+          "type": "enum:Start|Center|End|Stretch",
+          "defaultValue": "Start",
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": [
+            "Start",
+            "Center",
+            "End",
+            "Stretch"
+          ]
+        },
+        {
+          "name": "vAlign",
+          "type": "enum:Start|Center|End|Stretch",
+          "defaultValue": "Start",
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": [
+            "Start",
+            "Center",
+            "End",
+            "Stretch"
+          ]
+        },
+        {
+          "name": "width",
+          "type": "length",
+          "defaultValue": "240",
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "height",
+          "type": "length",
+          "defaultValue": "96",
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "translateX",
+          "type": "float",
+          "defaultValue": 0,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "translateY",
+          "type": "float",
+          "defaultValue": 0,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "scaleX",
+          "type": "float",
+          "defaultValue": 1,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "scaleY",
+          "type": "float",
+          "defaultValue": 1,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "rotate",
+          "type": "float",
+          "defaultValue": 0,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        }
+      ],
+      "capabilityNote": "Direct generated factory with browser-safe scalar args and generated event logging.",
+      "componentType": "global::Luxel.MathText.MathBlockView"
+    },
+    {
+      "path": "Controls/ParticleView/Basic",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Deterministic explanatory fallback for unsupported capability inputs: Particles.",
+      "componentType": "global::Luxel.Particles.UI.ParticleView"
+    },
+    {
+      "path": "Controls/ApiTable/Basic",
+      "width": 480,
+      "height": 320,
+      "args": [
+        {
+          "name": "control",
+          "type": "string",
+          "defaultValue": "Sample",
+          "description": "\u5BFE\u8C61\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u540D (ControlApiRegistry \u306E\u30AD\u30FC)\u3002",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "inherited",
+          "type": "bool",
+          "defaultValue": false,
+          "description": "\u57FA\u5E95 (Widget \u5171\u901A: margin/hAlign/transform...) \u306E\u30E1\u30F3\u30D0\u30FC\u3082\u51FA\u3059\u3002",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "width",
+          "type": "float",
+          "defaultValue": 0,
+          "description": "\u30C6\u30FC\u30D6\u30EB\u5168\u5E45 (px)\u3002\u8AAC\u660E\u5217\u304C\u6B8B\u308A\u5E45\u3092\u53D7\u3051\u308B\u3002",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "hAlign",
+          "type": "enum:Start|Center|End|Stretch",
+          "defaultValue": "Start",
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": [
+            "Start",
+            "Center",
+            "End",
+            "Stretch"
+          ]
+        },
+        {
+          "name": "vAlign",
+          "type": "enum:Start|Center|End|Stretch",
+          "defaultValue": "Start",
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": [
+            "Start",
+            "Center",
+            "End",
+            "Stretch"
+          ]
+        },
+        {
+          "name": "height",
+          "type": "length",
+          "defaultValue": "96",
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "translateX",
+          "type": "float",
+          "defaultValue": 0,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "translateY",
+          "type": "float",
+          "defaultValue": 0,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "scaleX",
+          "type": "float",
+          "defaultValue": 1,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "scaleY",
+          "type": "float",
+          "defaultValue": 1,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "rotate",
+          "type": "float",
+          "defaultValue": 0,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        }
+      ],
+      "capabilityNote": "Direct generated factory with browser-safe scalar args and generated event logging.",
+      "componentType": "global::Luxel.Gallery.UI.ApiTable"
+    },
+    {
+      "path": "Controls/KnobsTable/Basic",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Deterministic explanatory fallback for unsupported capability inputs: Knobs.",
+      "componentType": "global::Luxel.Gallery.UI.KnobsTable"
+    },
+    {
+      "path": "Controls/TypeApiTable/Basic",
+      "width": 480,
+      "height": 320,
+      "args": [
+        {
+          "name": "type",
+          "type": "string",
+          "defaultValue": "Sample",
+          "description": "\u5BFE\u8C61\u306E\u578B\u540D (TypeApiRegistry \u306E\u30AD\u30FC \u2014 \u540D\u524D\u7A7A\u9593\u4ED8\u304D\u3082\u53EF)\u3002",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "width",
+          "type": "float",
+          "defaultValue": 0,
+          "description": "\u30C6\u30FC\u30D6\u30EB\u5168\u5E45 (px)\u3002\u8AAC\u660E\u5217\u304C\u6B8B\u308A\u5E45\u3092\u53D7\u3051\u308B\u3002",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "hAlign",
+          "type": "enum:Start|Center|End|Stretch",
+          "defaultValue": "Start",
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": [
+            "Start",
+            "Center",
+            "End",
+            "Stretch"
+          ]
+        },
+        {
+          "name": "vAlign",
+          "type": "enum:Start|Center|End|Stretch",
+          "defaultValue": "Start",
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": [
+            "Start",
+            "Center",
+            "End",
+            "Stretch"
+          ]
+        },
+        {
+          "name": "height",
+          "type": "length",
+          "defaultValue": "96",
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "translateX",
+          "type": "float",
+          "defaultValue": 0,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "translateY",
+          "type": "float",
+          "defaultValue": 0,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "scaleX",
+          "type": "float",
+          "defaultValue": 1,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "scaleY",
+          "type": "float",
+          "defaultValue": 1,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "rotate",
+          "type": "float",
+          "defaultValue": 0,
+          "description": "Inherited layout parameter.",
+          "order": 1000,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        }
+      ],
+      "capabilityNote": "Direct generated factory with browser-safe scalar args and generated event logging.",
+      "componentType": "global::Luxel.Gallery.UI.TypeApiTable"
+    },
+    {
+      "path": "Examples/Audio/BackendLifecycle",
+      "width": 700,
+      "height": 300,
       "args": [],
       "capabilityNote": null,
       "componentType": null
     },
     {
-      "path": "Examples/2D/CameraRig",
-      "width": 540,
-      "height": 360,
-      "args": [],
-      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/2D/ParticleView",
-      "width": 480,
-      "height": 240,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Examples/2D/Rasterizer/BoundsLive",
-      "width": 520,
-      "height": 300,
-      "args": [],
-      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/2D/Rasterizer/CompositeLive",
-      "width": 520,
-      "height": 300,
-      "args": [],
-      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/2D/Rasterizer/CoverageLive",
-      "width": 520,
-      "height": 300,
-      "args": [],
-      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/2D/Rasterizer/DispatchLive",
-      "width": 520,
-      "height": 300,
-      "args": [],
-      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/2D/Rasterizer/EncodedSceneLive",
-      "width": 520,
-      "height": 300,
-      "args": [],
-      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/2D/Rasterizer/InputPathsLive",
-      "width": 520,
-      "height": 300,
-      "args": [],
-      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/2D/Rasterizer/RetainedUpdatesLive",
-      "width": 520,
+      "path": "Examples/Audio/WaveformAndVoice",
+      "width": 700,
       "height": 330,
       "args": [],
-      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "capabilityNote": null,
       "componentType": null
     },
     {
-      "path": "Examples/2D/Rasterizer/StrokeLive",
-      "width": 520,
-      "height": 300,
+      "path": "Examples/Input/SourcesAndBus",
+      "width": 700,
+      "height": 460,
       "args": [],
-      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "capabilityNote": null,
       "componentType": null
     },
     {
-      "path": "Examples/2D/Rasterizer/TileBinsLive",
-      "width": 520,
-      "height": 300,
+      "path": "Examples/Audio/Buses",
+      "width": 700,
+      "height": 360,
       "args": [],
-      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Input/Actions",
+      "width": 680,
+      "height": 430,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Audio/SpatialAttenuation",
+      "width": 700,
+      "height": 380,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Input/ContextStack",
+      "width": 650,
+      "height": 390,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Audio/StreamingQueue",
+      "width": 700,
+      "height": 350,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Input/Bindings",
+      "width": 680,
+      "height": 440,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Topology",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Rasterizer",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Depth",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Blend",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Stencil",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/ViewportScissor",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PipelineState/Separation",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/Depth",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Compatibility route backed by the browser-safe pipeline-state demo.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/Blend",
+      "width": 480,
+      "height": 320,
+      "args": [],
+      "capabilityNote": "Compatibility route backed by the browser-safe pipeline-state demo.",
       "componentType": null
     },
     {
@@ -5963,14 +5664,6 @@
       "componentType": null
     },
     {
-      "path": "Examples/2D/Sprites",
-      "width": 480,
-      "height": 330,
-      "args": [],
-      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
-      "componentType": null
-    },
-    {
       "path": "Examples/2D/VectorPaths",
       "width": 360,
       "height": 330,
@@ -5979,19 +5672,19 @@
       "componentType": null
     },
     {
-      "path": "Examples/3D/Blend",
-      "width": 480,
-      "height": 320,
+      "path": "Examples/2D/CameraRig",
+      "width": 540,
+      "height": 360,
       "args": [],
-      "capabilityNote": "Compatibility route backed by the browser-safe pipeline-state demo.",
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
       "componentType": null
     },
     {
-      "path": "Examples/3D/BuffersAndBindings",
-      "width": 320,
-      "height": 240,
+      "path": "Examples/2D/Sprites",
+      "width": 480,
+      "height": 330,
       "args": [],
-      "capabilityNote": "Renders an indexed quad from separate position, index, and color buffers.",
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
       "componentType": null
     },
     {
@@ -6003,11 +5696,27 @@
       "componentType": null
     },
     {
-      "path": "Examples/3D/Depth",
-      "width": 480,
-      "height": 320,
+      "path": "Examples/3D/Triangle",
+      "width": 320,
+      "height": 240,
       "args": [],
-      "capabilityNote": "Compatibility route backed by the browser-safe pipeline-state demo.",
+      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/BuffersAndBindings",
+      "width": 320,
+      "height": 240,
+      "args": [],
+      "capabilityNote": "Renders an indexed quad from separate position, index, and color buffers.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/ParticleView",
+      "width": 480,
+      "height": 240,
+      "args": [],
+      "capabilityNote": null,
       "componentType": null
     },
     {
@@ -6019,25 +5728,17 @@
       "componentType": null
     },
     {
+      "path": "Examples/3D/Textures",
+      "width": 680,
+      "height": 430,
+      "args": [],
+      "capabilityNote": "Compares point/linear filtering and clamp/repeat addressing with a generated texture.",
+      "componentType": null
+    },
+    {
       "path": "Examples/3D/PhysicsFalling",
       "width": 320,
       "height": 320,
-      "args": [],
-      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/3D/PhysicsGizmos",
-      "width": 520,
-      "height": 360,
-      "args": [],
-      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/3D/PhysicsMesh",
-      "width": 520,
-      "height": 360,
       "args": [],
       "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
       "componentType": null
@@ -6085,6 +5786,14 @@
       "componentType": null
     },
     {
+      "path": "Examples/3D/PhysicsGizmos",
+      "width": 520,
+      "height": 360,
+      "args": [],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
       "path": "Examples/3D/PhysicsTrigger",
       "width": 520,
       "height": 360,
@@ -6093,75 +5802,35 @@
       "componentType": null
     },
     {
-      "path": "Examples/3D/PipelineState/Blend",
-      "width": 480,
-      "height": 320,
-      "args": [],
-      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/3D/PipelineState/Depth",
-      "width": 480,
-      "height": 320,
-      "args": [],
-      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/3D/PipelineState/Rasterizer",
-      "width": 480,
-      "height": 320,
-      "args": [],
-      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/3D/PipelineState/Separation",
-      "width": 480,
-      "height": 320,
-      "args": [],
-      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/3D/PipelineState/Stencil",
-      "width": 480,
-      "height": 320,
-      "args": [],
-      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/3D/PipelineState/Topology",
-      "width": 480,
-      "height": 320,
-      "args": [],
-      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/3D/PipelineState/ViewportScissor",
-      "width": 480,
-      "height": 320,
-      "args": [],
-      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/3D/Textures",
-      "width": 680,
-      "height": 430,
-      "args": [],
-      "capabilityNote": "Compares point/linear filtering and clamp/repeat addressing with a generated texture.",
-      "componentType": null
-    },
-    {
-      "path": "Examples/3D/Triangle",
+      "path": "Examples/RenderGraph/Blur",
       "width": 320,
-      "height": 240,
+      "height": 320,
       "args": [],
       "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/3D/PhysicsMesh",
+      "width": 520,
+      "height": 360,
+      "args": [],
+      "capabilityNote": "Runs BepuPhysics through the shared Gallery WebAssembly story runner.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/Curves",
+      "width": 480,
+      "height": 720,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Examples/Animation/Tween",
+      "width": 480,
+      "height": 300,
+      "args": [],
+      "capabilityNote": null,
       "componentType": null
     },
     {
@@ -6173,9 +5842,9 @@
       "componentType": null
     },
     {
-      "path": "Examples/Animation/Curves",
+      "path": "Examples/Animation/StateMachine",
       "width": 480,
-      "height": 720,
+      "height": 340,
       "args": [],
       "capabilityNote": null,
       "componentType": null
@@ -6197,11 +5866,75 @@
       "componentType": null
     },
     {
-      "path": "Examples/Animation/StateMachine",
-      "width": 480,
-      "height": 340,
+      "path": "Examples/2D/Rasterizer/InputPathsLive",
+      "width": 520,
+      "height": 300,
       "args": [],
-      "capabilityNote": null,
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/EncodedSceneLive",
+      "width": 520,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/BoundsLive",
+      "width": 520,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/TileBinsLive",
+      "width": 520,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/CoverageLive",
+      "width": 520,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/StrokeLive",
+      "width": 520,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/CompositeLive",
+      "width": 520,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/DispatchLive",
+      "width": 520,
+      "height": 300,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
+      "componentType": null
+    },
+    {
+      "path": "Examples/2D/Rasterizer/RetainedUpdatesLive",
+      "width": 520,
+      "height": 330,
+      "args": [],
+      "capabilityNote": "Runs through the Gallery browser-WASM WebGPU runtime.",
       "componentType": null
     },
     {
@@ -6213,57 +5946,9 @@
       "componentType": null
     },
     {
-      "path": "Examples/Animation/Tween",
-      "width": 480,
-      "height": 300,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Examples/Audio/BackendLifecycle",
-      "width": 700,
-      "height": 300,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Examples/Audio/Buses",
-      "width": 700,
-      "height": 360,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Examples/Audio/SpatialAttenuation",
-      "width": 700,
+      "path": "Examples/UI/Navigation",
+      "width": 680,
       "height": 380,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Examples/Audio/StreamingQueue",
-      "width": 700,
-      "height": 350,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Examples/Audio/WaveformAndVoice",
-      "width": 700,
-      "height": 330,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Examples/Embeds/Diagram",
-      "width": 480,
-      "height": 300,
       "args": [],
       "capabilityNote": null,
       "componentType": null
@@ -6277,50 +5962,365 @@
       "componentType": null
     },
     {
-      "path": "Examples/Input/Actions",
-      "width": 680,
-      "height": 430,
+      "path": "Examples/Embeds/Diagram",
+      "width": 480,
+      "height": 300,
       "args": [],
       "capabilityNote": null,
       "componentType": null
     },
     {
-      "path": "Examples/Input/Bindings",
-      "width": 680,
-      "height": 440,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Examples/Input/ContextStack",
-      "width": 650,
-      "height": 390,
-      "args": [],
-      "capabilityNote": null,
-      "componentType": null
-    },
-    {
-      "path": "Examples/Input/SourcesAndBus",
-      "width": 700,
+      "path": "Controls/NodeGraphView/Wiring",
+      "width": 480,
       "height": 460,
       "args": [],
       "capabilityNote": null,
       "componentType": null
     },
     {
-      "path": "Examples/RenderGraph/Blur",
-      "width": 320,
-      "height": 320,
+      "path": "Controls/SceneEditorView/Tiles",
+      "width": 480,
+      "height": 470,
       "args": [],
-      "capabilityNote": "Runs through the shared Gallery WebAssembly story runner.",
+      "capabilityNote": null,
       "componentType": null
     },
     {
-      "path": "Examples/UI/Navigation",
-      "width": 680,
+      "path": "Controls/NodeGraphView/Widgets",
+      "width": 480,
+      "height": 470,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/SceneEditorView/Inspector",
+      "width": 480,
+      "height": 480,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/NodeGraphView/AutoLayout",
+      "width": 480,
+      "height": 460,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/SceneEditorView/Assets",
+      "width": 480,
+      "height": 480,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/NodeGraphView/RenderGraph",
+      "width": 480,
+      "height": 460,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/SceneEditorView/ThreeD",
+      "width": 480,
+      "height": 440,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Border/Card",
+      "width": 480,
+      "height": 220,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Button/Counter",
+      "width": 480,
+      "height": 160,
+      "args": [
+        {
+          "name": "count",
+          "type": "int",
+          "defaultValue": 0,
+          "description": "Current counter value.",
+          "order": 1000,
+          "min": -999,
+          "max": 999,
+          "step": 1,
+          "options": null
+        }
+      ],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Button/Intents",
+      "width": 480,
+      "height": 160,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Button/Primary",
+      "width": 480,
+      "height": 160,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Button/Tailwind",
+      "width": 480,
+      "height": 160,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Button/Variants",
+      "width": 480,
+      "height": 160,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/CheckBox/Basic",
+      "width": 480,
+      "height": 160,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/CheckBox/CheckedStyle",
+      "width": 480,
+      "height": 160,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/CommandPalette/Basic",
+      "width": 480,
       "height": 380,
       "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/DockHost/Floating",
+      "width": 480,
+      "height": 420,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Grid/Columns",
+      "width": 480,
+      "height": 240,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Icon/Kinds",
+      "width": 480,
+      "height": 160,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Kit/Alert",
+      "width": 480,
+      "height": 180,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Kit/Badges",
+      "width": 480,
+      "height": 160,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Kit/Typography",
+      "width": 480,
+      "height": 240,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Layout/Units",
+      "width": 480,
+      "height": 240,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/ListView/Huge",
+      "width": 480,
+      "height": 260,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/ListView/Reorder",
+      "width": 480,
+      "height": 260,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/RichText/Basic",
+      "width": 480,
+      "height": 280,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/ScrollViewer/Basic",
+      "width": 480,
+      "height": 240,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/ScrollViewer/Clickable",
+      "width": 480,
+      "height": 260,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Slider/CustomColors",
+      "width": 480,
+      "height": 160,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Tabs/Event",
+      "width": 480,
+      "height": 260,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Text/EllipsisVAlign",
+      "width": 480,
+      "height": 360,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Text/Japanese",
+      "width": 480,
+      "height": 380,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Text/Multiline",
+      "width": 480,
+      "height": 480,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Text/Styles",
+      "width": 480,
+      "height": 220,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/WrapPanel/Basic",
+      "width": 480,
+      "height": 260,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/KnobsTable/Kinds",
+      "width": 480,
+      "height": 240,
+      "args": [],
+      "capabilityNote": null,
+      "componentType": null
+    },
+    {
+      "path": "Controls/Button/Playground",
+      "width": 480,
+      "height": 160,
+      "args": [
+        {
+          "name": "text",
+          "type": "string",
+          "defaultValue": "Click me",
+          "description": "Button label",
+          "order": 10,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        },
+        {
+          "name": "variant",
+          "type": "enum:Filled|Tonal|Outline|Ghost",
+          "defaultValue": "Filled",
+          "description": "Visual variant",
+          "order": 20,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": [
+            "Filled",
+            "Tonal",
+            "Outline",
+            "Ghost"
+          ]
+        },
+        {
+          "name": "disabled",
+          "type": "bool",
+          "defaultValue": false,
+          "description": "Disable interaction",
+          "order": 30,
+          "min": null,
+          "max": null,
+          "step": null,
+          "options": null
+        }
+      ],
       "capabilityNote": null,
       "componentType": null
     }

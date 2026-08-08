@@ -7,7 +7,8 @@ using Luxel.AssetsGpu;
 using Luxel.Audio;
 using Luxel.Ecs;
 using Luxel.Framework;
-using Luxel.Gltf;
+using Luxel.Assets.Gltf;
+using Luxel.Resources;
 using Luxel.Input;
 using Luxel.Particles;
 using Luxel.Particles.ThreeD;
@@ -243,7 +244,12 @@ public sealed class RangeRealtimeScene : GameScene
         string path = Path.Combine(AppContext.BaseDirectory, "assets", "Fox.glb");
         if (!File.Exists(path)) return;   // アセット無しなら Fox 描画スキップ (物理 proxy は箱)
 
-        AssetDocument doc = new GltfLoader().LoadAsync(path).GetAwaiter().GetResult();
+        using var resources = new ResourceSystem(
+            sources: ResourceSystemDefaults.BuiltinSources(assetRoot: Path.GetDirectoryName(path)),
+            steps: [new GltfResourceStep()]);
+        using ResourceHandle<AssetDocument> document = resources.Load<AssetDocument>(Path.GetFileName(path));
+        document.Ready.GetAwaiter().GetResult();
+        AssetDocument doc = document.Value;
         for (int i = 0; i < doc.Materials.Count; i++) doc.Materials[i].BaseColorFactor = new Vector4(0.80f, 0.52f, 0.28f, 1f);
         _foxWorld = new Luxel.Ecs.World();
         _foxAssets = SceneBuilder.Build(_foxWorld, doc, Device);

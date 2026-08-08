@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="..\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
     <ProjectReference Include="..\Luxel.Controls\Luxel.Controls.csproj" />
     <ProjectReference Include="..\Luxel.Imaging\Luxel.Imaging.csproj" />
-    <ProjectReference Include="..\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.Resources\Luxel.Resources.csproj" />
     <ProjectReference Include="..\Luxel.Shaders\Luxel.Shaders.csproj" />
     <ProjectReference Include="..\Luxel.Shaders.Slang.Native\Luxel.Shaders.Slang.Native.csproj" />
     <ProjectReference Include="..\Luxel.Scripting.Roslyn.Web\Luxel.Scripting.Roslyn.Web.csproj" />

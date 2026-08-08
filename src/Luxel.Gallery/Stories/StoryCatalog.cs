@@ -40,6 +40,7 @@ public sealed class StoryCatalog
 public sealed class StoryCatalogBuilder
 {
     private readonly Dictionary<string, StoryInfo> _stories = new(StringComparer.Ordinal);
+    private readonly List<string> _registrationOrder = new();
     private readonly Dictionary<string, string> _aliases = new(StringComparer.Ordinal);
     private readonly List<Action<StoryCatalogBuilder>> _providers = new();
     private bool _built;
@@ -54,7 +55,8 @@ public sealed class StoryCatalogBuilder
     {
         ObjectDisposedException.ThrowIf(_built, this);
         ArgumentNullException.ThrowIfNull(story);
-        if (_stories.TryGetValue(story.Path, out StoryInfo? existing))
+        bool replacing = _stories.TryGetValue(story.Path, out StoryInfo? existing);
+        if (replacing)
         {
             if (!replaceGenerated)
                 throw new InvalidOperationException($"Story '{story.Path}' is registered more than once.");
@@ -78,6 +80,7 @@ public sealed class StoryCatalogBuilder
             };
         }
         _stories[story.Path] = story;
+        if (!replacing) _registrationOrder.Add(story.Path);
         return this;
     }
 
@@ -119,21 +122,8 @@ public sealed class StoryCatalogBuilder
                 throw new InvalidOperationException($"Story alias '{alias}' targets unknown story '{current}'.");
         }
 
-        StoryInfo[] stories = _stories.Values
-            .GroupBy(story => story.Component)
-            .OrderBy(group => ComponentRank(group.Key))
-            .ThenBy(group => group.Min(story => story.Order))
-            .ThenBy(group => group.Key, StringComparer.Ordinal)
-            .SelectMany(group => group.OrderBy(story => story.Order).ThenBy(story => story.Path, StringComparer.Ordinal))
-            .ToArray();
+        StoryInfo[] stories = _registrationOrder.Select(path => _stories[path]).ToArray();
         return new StoryCatalog(stories, new Dictionary<string, string>(_aliases, StringComparer.Ordinal));
     }
 
-    private static int ComponentRank(string component) => component switch
-    {
-        "Start" => 0, "Learn" => 10, "Examples" => 30,
-        "Controls" => 40, "Apps" => 50, "Game" => 60, "Reference" => 70,
-        "Internals" => 80, "RealWindow" => 90, "ADR" => 100, "Docs" => 110,
-        _ => 1000,
-    };
 }

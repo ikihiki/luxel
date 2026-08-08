@@ -32,7 +32,7 @@
     <!-- ゲームオーディオ (BGM/SE)。実バックエンド (XAudio2) は exe が UseAudio で注入、テストは Null。 -->
     <ProjectReference Include="..\..\..\src\Luxel.Audio\Luxel.Audio.csproj" />
     <!-- レベル (.tmj) の読み込みを ResourceSystem 経由で管理する (キャッシュ/型付きノード/リロード)。 -->
-    <ProjectReference Include="..\..\..\src\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\..\..\src\Resource\Luxel.Resources\Luxel.Resources.csproj" />
     <!-- DevTools 用オーバーレイ (パーティクル gizmo)。gizmo/DebugDraw/DevStats は TwoD/Luxel 経由。 -->
     <ProjectReference Include="..\..\..\src\Luxel.Particles\Luxel.Particles.csproj" />
     <ProjectReference Include="..\..\..\src\Luxel.Particles.TwoD\Luxel.Particles.TwoD.csproj" />

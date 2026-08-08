@@ -1,5 +1,3 @@
-using System.Text;
-using System.Diagnostics;
 using Luxel.Controls;
 using Luxel.Typography;
 using Luxel.UI;
@@ -65,86 +63,21 @@ internal static class DocsKit
     /// <summary>実sample fileをGallery assemblyから読み、任意regionをcode fenceとして表示する。
     /// source fileが唯一の正で、native/static/publishのcwdに依存しない。</summary>
     internal static DocMarkdown SampleSource(string relativePath, string? region = null, string? language = null)
-    {
-        string resource = "Luxel.Sample." + relativePath.Replace('\\', '.').Replace('/', '.');
-        using Stream stream = typeof(DocsKit).Assembly.GetManifestResourceStream(resource)
-            ?? throw new InvalidOperationException($"Embedded sample source not found: {relativePath} ({resource})");
-        using var reader = new StreamReader(stream);
-        string source = reader.ReadToEnd().Replace("\r\n", "\n", StringComparison.Ordinal);
-        if (region is not null) source = ExtractRegion(source, relativePath, region);
-        language ??= Path.GetExtension(relativePath).ToLowerInvariant() switch
-        {
-            ".cs" => "csharp",
-            ".slang" => "slang",
-            ".csproj" => "xml",
-            ".ps1" => "powershell",
-            _ => "text",
-        };
-        return new DocMarkdown($"```{language}\n{source.TrimEnd()}\n```");
-    }
+        => global::Luxel.Gallery.DocKit.DocsKit.SampleSource(
+            typeof(DocsKit).Assembly, relativePath, region, language, searchLoadedAssemblies: true);
 
     /// <summary>検証済み sample bundle の依存、実行コマンド、実ファイルをまとめて表示する。</summary>
     internal static DocMarkdown SampleBundle(string id)
-    {
-        SampleBundleInfo bundle = SampleBundleRegistry.Find(id)
-            ?? throw new InvalidOperationException($"Unknown sample bundle: {id}");
-        string dependencies = bundle.Dependencies is { Count: > 0 }
-            ? string.Join(", ", bundle.Dependencies.Select(x => $"`{x}`")) : "なし";
-        string requirements = bundle.Requirements is { Count: > 0 }
-            ? string.Join(" / ", bundle.Requirements) : "なし";
-        var text = new StringBuilder();
-        text.AppendLine($"## コピーして動かす — {bundle.Name}");
-        text.AppendLine();
-        text.AppendLine($"> **{bundle.CopyLevel}** · 難易度: {bundle.Difficulty} · 依存 bundle: {dependencies}");
-        text.AppendLine();
-        text.AppendLine(bundle.Description);
-        text.AppendLine();
-        text.AppendLine($"**必要条件:** {requirements}");
-        if (bundle.Platforms is { Count: > 0 }) text.AppendLine($"  **Platform:** {string.Join(" / ", bundle.Platforms)}");
-        text.AppendLine($"  **検証契約:** exit `{bundle.ExpectedExitCode}` / timeout `{bundle.TimeoutSeconds}s`"
-            + (bundle.ExpectedStdoutMarker is null ? "" : $" / stdout `{bundle.ExpectedStdoutMarker}`"));
-        if (bundle.ExpectedArtifacts is { Count: > 0 }) text.AppendLine($"  **生成物:** {string.Join(", ", bundle.ExpectedArtifacts.Select(x => $"`{x}`"))}");
-        if (bundle.ExportSymbol is not null) text.AppendLine($"  **接続点:** `{bundle.ExportSymbol}`");
-        if (bundle.RunCommand is not null) text.AppendLine($"\n**Run**\n```powershell\n{bundle.RunCommand}\n```");
-        if (bundle.SmokeCommand is not null) text.AppendLine($"\n**Smoke test**\n```powershell\n{bundle.SmokeCommand}\n```");
-        foreach (SampleFileInfo file in bundle.Files)
-        {
-            text.AppendLine($"\n### `{file.Path}` ({file.Kind})\n");
-            if (file.Kind == SampleFileKind.Asset) text.AppendLine("Binary asset — bundle materialization preserves the original bytes.");
-            else text.AppendLine(SampleSource(file.Path, file.Region, file.Language).Markdown);
-        }
-        return new DocMarkdown(text.ToString());
-    }
+        => global::Luxel.Gallery.DocKit.DocsKit.SampleBundle(
+            typeof(DocsKit).Assembly, id, searchLoadedAssemblies: true);
 
     internal static string ExtractRegion(string source, string path, string region)
-    {
-        string begin = $"docs:begin {region}";
-        string end = $"docs:end {region}";
-        int beginAt = source.IndexOf(begin, StringComparison.Ordinal);
-        int endAt = source.IndexOf(end, StringComparison.Ordinal);
-        bool duplicateBegin = beginAt >= 0 && source.IndexOf(begin, beginAt + begin.Length, StringComparison.Ordinal) >= 0;
-        bool duplicateEnd = endAt >= 0 && source.IndexOf(end, endAt + end.Length, StringComparison.Ordinal) >= 0;
-        if (beginAt < 0 || endAt < 0 || endAt <= beginAt || duplicateBegin || duplicateEnd)
-            throw new InvalidOperationException($"Sample source region '{region}' is invalid or duplicated in {path}.");
-        int contentStart = source.IndexOf('\n', beginAt);
-        int endLineStart = source.LastIndexOf('\n', endAt);
-        if (contentStart < 0 || endLineStart <= contentStart)
-            throw new InvalidOperationException($"Sample source region '{region}' is empty in {path}.");
-        string content = source[(contentStart + 1)..endLineStart];
-        if (string.IsNullOrWhiteSpace(content))
-            throw new InvalidOperationException($"Sample source region '{region}' is empty in {path}.");
-        return content;
-    }
+        => global::Luxel.Gallery.DocKit.DocsKit.ExtractRegion(source, path, region);
 
     /// <summary>Rendering Learnページの統一metadata。テストが同じ表示を機械検証する。</summary>
     internal static DocMarkdown RenderingMeta(string difficulty, string environment, string backend, string prerequisites,
         string? previous = null, string? next = null)
-    {
-        string navigation = previous is null && next is null ? "" : "\n\n"
-            + (previous is null ? "" : $"**前へ:** [{previous.Split('/')[^1]}](story:{previous})")
-            + (previous is not null && next is not null ? "　 " : "")
-            + (next is null ? "" : $"**次:** [{next.Split('/')[^1]}](story:{next})");
-        return new DocMarkdown($"**難易度:** {difficulty}　 **実行環境:** {environment}　 **Backend:** {backend}　 **前提知識:** {prerequisites}{navigation}");
-    }
+        => global::Luxel.Gallery.DocKit.DocsKit.RenderingMeta(
+            difficulty, environment, backend, prerequisites, previous, next);
 
 }

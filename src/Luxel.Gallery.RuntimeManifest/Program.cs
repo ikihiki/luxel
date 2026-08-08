@@ -1,10 +1,14 @@
+using Microsoft.Extensions.DependencyInjection;
 using System.Text;
 using System.Text.Json;
 using Luxel.Gallery;
 using Luxel.UI;
 
 string output = args.FirstOrDefault() ?? throw new ArgumentException("Output manifest path is required.");
-StoryCatalog catalog = CoreUiStoryProject.CreateCatalog();
+var services = new ServiceCollection();
+services.AddCoreUiStory();
+using ServiceProvider provider = services.BuildServiceProvider();
+StoryCatalog catalog = provider.GetRequiredService<StoryCatalog>();
 RuntimeStoryDescriptor[] stories = CoreUiStoryProject.RuntimeStories(catalog)
     .Select(story => new RuntimeStoryDescriptor(
         story.Path,
@@ -14,7 +18,6 @@ RuntimeStoryDescriptor[] stories = CoreUiStoryProject.RuntimeStories(catalog)
         story.CapabilityNote,
         story.ProductionComponent?.ComponentType))
     .ToArray();
-stories = stories.OrderBy(story => story.Path, StringComparer.Ordinal).ToArray();
 var manifest = new BrowserRuntimeManifest(
     CoreUiStoryProject.RuntimeBundleId,
     ProtocolVersion: 2,

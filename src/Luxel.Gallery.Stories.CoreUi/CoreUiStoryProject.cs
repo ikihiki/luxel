@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Luxel.UI;
 
 namespace Luxel.Gallery;
@@ -33,6 +34,10 @@ public static class CoreUiStoryProject
         .. Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Particles_UI.Descriptors,
         .. Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Gallery_UI.Descriptors,
     ];
+
+    /// <summary>WASM-safeなCoreUi StoryをGeneric Hostのservice collectionへ追加する。</summary>
+    public static IServiceCollection AddCoreUiStory(this IServiceCollection services)
+        => services.AddStoryCatalog(Register);
 
     public static bool IsProductionCanonicalPath(string path)
     {
@@ -78,7 +83,6 @@ public static class CoreUiStoryProject
     public static IReadOnlyList<StoryInfo> RuntimeStories(StoryCatalog? catalog = null)
         => (catalog ?? CreateCatalog()).All
             .Where(story => story.RuntimeBundleId == RuntimeBundleId)
-            .OrderBy(story => story.Path, StringComparer.Ordinal)
             .ToArray();
 
     private static void ValidateProductionDescriptors()

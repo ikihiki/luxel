@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Luxel;
 using Luxel.DevTools;
 using Luxel.Diagnostics;
@@ -15,7 +17,10 @@ using Luxel.UI;
 //   backend: auto (既定) | vk | dx | webgpu
 // リモート検証 (AI): DevTools — GET /windows /winframe?id=1 /trees, POST /cmd
 //   (UI 入力は {op, ui:"gallery"|"story", x, y}、ウィンドウ操作は window.*)
-StoryCatalog catalog = GalleryStoryProject.CreateCatalog();
+HostApplicationBuilder storyHostBuilder = Host.CreateApplicationBuilder(args);
+storyHostBuilder.Services.AddGalleryStory();
+using IHost storyHost = storyHostBuilder.Build();
+StoryCatalog catalog = storyHost.Services.GetRequiredService<StoryCatalog>();
 string backend = (args.Length > 0 ? args[0] : "auto").ToLowerInvariant();
 
 string rasterizerBackend = args.SkipWhile(a => a != "--rasterizer").Skip(1).FirstOrDefault()?.ToLowerInvariant() ?? "gpu";

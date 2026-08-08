@@ -482,19 +482,13 @@ public static class StoryRegistry
     private static readonly List<Action> Providers = new();
     private static readonly HashSet<Action> FailedProviders = new();
     private static readonly Dictionary<string, string> Aliases = new(StringComparer.Ordinal);
-    private static readonly IReadOnlyDictionary<string, int> ComponentOrder = new Dictionary<string, int>(StringComparer.Ordinal)
-    {
-        ["Start"] = 0, ["Learn"] = 10, ["Examples"] = 30,
-        ["Controls"] = 40, ["Apps"] = 50, ["Game"] = 60, ["Reference"] = 70,
-        ["Internals"] = 80, ["RealWindow"] = 90, ["ADR"] = 100, ["Docs"] = 110,
-    };
-
     public static void Register(StoryInfo story)
     {
         lock (Gate)
         {
-            Stories.RemoveAll(s => s.Path == story.Path);   // 同名は上書き (Auto を手書きで置換できる)
-            Stories.Add(story);
+            int existing = Stories.FindIndex(item => item.Path == story.Path);
+            if (existing >= 0) Stories[existing] = story;
+            else Stories.Add(story);
         }
     }
 
@@ -520,21 +514,13 @@ public static class StoryRegistry
         }
     }
 
-    /// <summary>表示順のスナップショット: コンポーネントは「所属ストーリーの最小 Order → 名前」、
-    /// コンポーネント内は「Order → Path」。Order 未指定 (既定 1000) なら従来のアルファベット順。</summary>
+    /// <summary>登録順を維持したStoryのスナップショット。同名置換は元の位置を維持する。</summary>
     public static IReadOnlyList<StoryInfo> All
     {
         get
         {
             EnsureProviders();
-            lock (Gate)
-                return Stories
-                    .GroupBy(s => s.Component)
-                    .OrderBy(g => ComponentOrder.GetValueOrDefault(g.Key, 1000))
-                    .ThenBy(g => g.Min(s => s.Order))
-                    .ThenBy(g => g.Key, StringComparer.Ordinal)
-                    .SelectMany(g => g.OrderBy(s => s.Order).ThenBy(s => s.Path, StringComparer.Ordinal))
-                    .ToArray();
+            lock (Gate) return Stories.ToArray();
         }
     }
 

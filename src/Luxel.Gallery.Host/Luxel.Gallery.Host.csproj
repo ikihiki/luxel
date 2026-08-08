@@ -5,7 +5,7 @@
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Rendering\Luxel.Gallery.Rendering.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Stories\Luxel.Gallery.Stories.csproj" />
-    <ProjectReference Include="..\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.TwoD.Skia\Luxel.Graphics.TwoD.Skia.csproj" />
@@ -14,6 +14,7 @@
     <ProjectReference Include="..\Luxel.UI.App\Luxel.UI.App.csproj" />
     <ProjectReference Include="..\Luxel.DevTools\Luxel.DevTools.csproj" />
     <ProjectReference Include="..\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
     <ProjectReference Include="..\Luxel.Typography\Luxel.Typography.csproj" />
   </ItemGroup>
   <Import Project="..\..\assets\Luxel.FontAssets.targets" />

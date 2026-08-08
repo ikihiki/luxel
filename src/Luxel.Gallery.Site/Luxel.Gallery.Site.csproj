@@ -9,6 +9,7 @@
     <ProjectReference Include="..\Luxel.Gallery.Playground\Luxel.Gallery.Playground.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Rendering\Luxel.Gallery.Rendering.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Stories\Luxel.Gallery.Stories.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
     <PackageReference Include="Markdig" Version="0.41.3" />
     <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.0" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.116.1" />
@@ -23,7 +24,7 @@
     <Content Include="Assets\monaco\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <!-- Luxel.Gallery.Stories.Gltf owns the shared Khronos Box acquisition target. Importing it here as well lets
+  <!-- Luxel.Gallery.Resources.Stories owns the shared Khronos Box acquisition target. Importing it here as well lets
        parallel solution builds race while downloading the same cache files. -->
   <Import Project="..\..\assets\Luxel.FontAssets.targets" />
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />

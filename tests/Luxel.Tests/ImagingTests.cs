@@ -1,4 +1,4 @@
-﻿using Luxel.Imaging;
+using Luxel.Imaging;
 using Luxel.Resources;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -36,11 +36,12 @@ public class ImagingTests
     {
         string dir = Path.Combine(Path.GetTempPath(), "luxel-imaging-test");
         Directory.CreateDirectory(dir);
-        string file = Path.Combine(dir, "t.png");
-        await File.WriteAllBytesAsync(file, MakePng(4, 4, new Rgba32(1, 2, 3, 255)));
+        byte[] png = MakePng(4, 4, new Rgba32(1, 2, 3, 255));
+        var files = new MemoryFileSystem();
+        files.Set("t.png", png);
 
         using var res = new ResourceSystem(
-            sources: ResourceSystemDefaults.BuiltinSources(assetRoot: dir),
+            sources: [new FileSource(files)],
             steps: [new ImageSharpDecoder()]);
 
         using ResourceHandle<CpuImage> h1 = res.Load<CpuImage>("t.png");

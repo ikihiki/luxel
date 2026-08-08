@@ -4,9 +4,6 @@
     <Project Path="src/Luxel.Animation.TwoD/Luxel.Animation.TwoD.csproj" />
     <Project Path="src/Luxel.Animation.UI/Luxel.Animation.UI.csproj" />
     <Project Path="src/Luxel.Animation/Luxel.Animation.csproj" />
-    <Project Path="src/Luxel.AssetRuntime/Luxel.AssetRuntime.csproj" />
-    <Project Path="src/Luxel.Assets/Luxel.Assets.csproj" />
-    <Project Path="src/Luxel.AssetsGpu/Luxel.AssetsGpu.csproj" />
     <Project Path="src/Luxel.Audio/Luxel.Audio.csproj" />
     <Project Path="src/Luxel.Audio.Browser/Luxel.Audio.Browser.csproj" />
     <Project Path="src/Luxel.Audio.Silk/Luxel.Audio.Silk.csproj" />
@@ -24,6 +21,7 @@
     <Project Path="src/Luxel.Document/Luxel.Document.csproj" />
     <Project Path="src/Luxel.Framework.DevTools/Luxel.Framework.DevTools.csproj" />
     <Project Path="src/Luxel.Framework/Luxel.Framework.csproj" />
+    <Project Path="src/Luxel.Gallery.DocKit/Luxel.Gallery.DocKit.csproj" />
     <Project Path="src/Luxel.Gallery.Generators/Luxel.Gallery.Generators.csproj" />
     <Project Path="src/Luxel.Gallery.Playground/Luxel.Gallery.Playground.csproj" />
     <Project Path="src/Luxel.Gallery.RuntimeManifest/Luxel.Gallery.RuntimeManifest.csproj" />
@@ -33,8 +31,8 @@
     <Project Path="src/Luxel.Gallery.Host/Luxel.Gallery.Host.csproj" />
     <Project Path="src/Luxel.Gallery.Rendering/Luxel.Gallery.Rendering.csproj" />
     <Project Path="src/Luxel.Gallery.Stories.CoreUi/Luxel.Gallery.Stories.CoreUi.csproj" />
+    <Project Path="src/Resources/Luxel.Gallery.Resources.Stories/Luxel.Gallery.Resources.Stories.csproj" />
     <Project Path="src/Luxel.Gallery.Stories/Luxel.Gallery.Stories.csproj" />
-    <Project Path="src/Luxel.Gltf/Luxel.Gltf.csproj" />
     <Project Path="src/Luxel.Highlight.TextMate/Luxel.Highlight.TextMate.csproj" />
     <Project Path="src/Luxel.Imaging/Luxel.Imaging.csproj" />
     <Project Path="src/Luxel.Input.XInput/Luxel.Input.XInput.csproj" />
@@ -57,7 +55,6 @@
     <Project Path="src/Luxel.Platform.Web/Luxel.Platform.Web.csproj" />
     <Project Path="src/Luxel.Platform.Windows/Luxel.Platform.Windows.csproj" />
     <Project Path="src/Luxel.Graphics.RenderGraph/Luxel.Graphics.RenderGraph.csproj" />
-    <Project Path="src/Luxel.Resources/Luxel.Resources.csproj" />
     <Project Path="src/Luxel.Shaders/Luxel.Shaders.csproj" />
     <Project Path="src/Luxel.Shaders.Slang.Browser/Luxel.Shaders.Slang.Browser.csproj" />
     <Project Path="src/Luxel.Shaders.Slang.Native/Luxel.Shaders.Slang.Native.csproj" />
@@ -82,6 +79,13 @@
     <Project Path="src/Luxel.UI/Luxel.UI.csproj" />
     <Project Path="src/Luxel.Graphics.Vulkan/Luxel.Graphics.Vulkan.csproj" />
     <Project Path="src/Luxel.Diagnostics/Luxel.Diagnostics.csproj" />
+  </Folder>
+  <Folder Name="/src/Resource/">
+    <Project Path="src/Resource/Luxel.AssetRuntime/Luxel.AssetRuntime.csproj" />
+    <Project Path="src/Resource/Luxel.Assets.Gltf/Luxel.Assets.Gltf.csproj" />
+    <Project Path="src/Resource/Luxel.Assets/Luxel.Assets.csproj" />
+    <Project Path="src/Resource/Luxel.AssetsGpu/Luxel.AssetsGpu.csproj" />
+    <Project Path="src/Resource/Luxel.Resources/Luxel.Resources.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/LuxelCavern/LuxelCavern.Core/LuxelCavern.Core.csproj" />
