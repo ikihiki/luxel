@@ -52,14 +52,28 @@ public sealed class ProductionComponentCatalogTests
         string[] resourcePaths =
         [
             .. ResourceCourseCatalog.Routes,
-            "Examples/Resources/Pipeline",
-            "Examples/Resources/DependencyDag",
-            "Examples/Resources/Reload",
-            "Examples/Resources/Lifetime",
-            "Examples/3D/GltfBox",
-            "Examples/3D/GltfAnimated",
-            "Examples/3D/GltfSkinned",
-            "Examples/3D/GltfMorph",
+            "Examples/Resources/HelloTextAsset",
+            "Examples/Resources/CustomPackageSource",
+            "Examples/Resources/PlayerStatsPipeline",
+            "Examples/Resources/ExtensionSelection",
+            "Examples/Resources/SharedDependencyGraph",
+            "Examples/Resources/ScopedRuntimeValues",
+            "Examples/Resources/HotReloadRecovery",
+            "Examples/Resources/BrowserHttpAssets",
+            "Examples/Resources/Assets/DocumentInspector",
+            "Examples/Resources/Assets/MeshPrimitiveInspector",
+            "Examples/Resources/Assets/MaterialTextureInspector",
+            "Examples/Resources/Assets/AnimatedSceneGraph",
+            "Examples/Resources/Assets/GpuAssetRegistry",
+            "Examples/Resources/Assets/ShaderBufferInspector",
+            "Examples/Resources/Gltf/BoxDocumentLoad",
+            "Examples/Resources/Gltf/ExternalBufferTrace",
+            "Examples/Resources/Gltf/MalformedAccessorDiagnostics",
+            "Examples/Resources/Gltf/BoxScene",
+            "Examples/Resources/Gltf/AnimatedBox",
+            "Examples/Resources/Gltf/RiggedSimpleSkinning",
+            "Examples/Resources/Gltf/MorphWeights",
+            "Examples/Resources/Gltf/ExternalDependencyReload",
         ];
 
         StoryCatalog resourceCatalog = ResourceStoryProject.CreateCatalog();
@@ -76,6 +90,71 @@ public sealed class ProductionComponentCatalogTests
         Assert.DoesNotContain(
             typeof(CoreUiStoryProject).Assembly.GetReferencedAssemblies(),
             reference => reference.Name == "Luxel.Assets.Gltf");
+    }
+
+    [Fact]
+    public void Every_resource_learn_page_embeds_its_explicit_canonical_examples()
+    {
+        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+
+        Assert.Equal(ResourceCourseCatalog.Routes.Order(StringComparer.Ordinal),
+            ResourceLearnExamples.Routes.Keys.Order(StringComparer.Ordinal));
+
+        foreach (string learnRoute in ResourceCourseCatalog.Routes)
+        {
+            StoryInfo page = Assert.IsType<StoryInfo>(catalog.Find(learnRoute));
+            StoryResult result = page.BuildResult(new StoryContext());
+            string[] expected = ResourceLearnExamples.Routes[learnRoute];
+
+            Assert.True(expected.Length >= 2, $"{learnRoute} must embed multiple examples.");
+            Assert.Equal(expected, result.References.Select(reference => reference.Path));
+            Assert.All(expected, example => Assert.NotNull(catalog.Find(example)));
+        }
+    }
+
+    [Fact]
+    public void Resource_documentation_scenarios_build_source_backed_markdown()
+    {
+        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+        string[] markdownScenarios =
+        [
+            .. ResourceLearnExamples.Routes.Values.SelectMany(routes => routes)
+                .Where(route => route is not "Examples/Resources/Gltf/BoxScene"
+                    and not "Examples/Resources/Gltf/AnimatedBox"
+                    and not "Examples/Resources/Gltf/RiggedSimpleSkinning"
+                    and not "Examples/Resources/Gltf/MorphWeights")
+                .Distinct(StringComparer.Ordinal),
+        ];
+
+        foreach (string route in markdownScenarios)
+        {
+            StoryInfo story = Assert.IsType<StoryInfo>(catalog.Find(route));
+            StoryResult result = story.BuildResult(new StoryContext());
+            Assert.Equal(StoryResultKind.Markdown, result.Kind);
+            Assert.StartsWith("# ", result.Markdown, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void Removed_resource_routes_have_no_aliases()
+    {
+        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+        string[] removed =
+        [
+            "Learn/Resources/Assets/TypesAndRelationships",
+            "Learn/Resources/Assets/ShaderCalculations",
+            "Learn/Resources/Assets/GltfRuntime",
+            "Examples/Resources/Pipeline",
+            "Examples/Resources/DependencyDag",
+            "Examples/Resources/Reload",
+            "Examples/Resources/Lifetime",
+            "Examples/3D/GltfBox",
+            "Examples/3D/GltfAnimated",
+            "Examples/3D/GltfSkinned",
+            "Examples/3D/GltfMorph",
+        ];
+
+        Assert.All(removed, route => Assert.Null(catalog.Find(route)));
     }
 
     [Fact]

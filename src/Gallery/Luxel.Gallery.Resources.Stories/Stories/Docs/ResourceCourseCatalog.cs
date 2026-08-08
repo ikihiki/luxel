@@ -16,10 +16,19 @@ internal static class ResourceCourseCatalog
         "Learn/Resources/ScopesAndOwnership",
         "Learn/Resources/ReloadAndLifetime",
         "Learn/Resources/Assets/Overview",
-        "Learn/Resources/Assets/TypesAndRelationships",
+        "Learn/Resources/Assets/DocumentAndSceneGraph",
+        "Learn/Resources/Assets/MeshesAndPrimitives",
+        "Learn/Resources/Assets/MaterialsTexturesAndSamplers",
+        "Learn/Resources/Assets/AnimationSkinCameraAndLight",
         "Learn/Resources/Assets/LoadingAndGpu",
-        "Learn/Resources/Assets/ShaderCalculations",
-        "Learn/Resources/Assets/GltfRuntime",
+        "Learn/Resources/Assets/ShaderAbi",
+        "Learn/Resources/Gltf/Overview",
+        "Learn/Resources/Gltf/RegistrationAndLoading",
+        "Learn/Resources/Gltf/ExternalBuffersImagesAndUris",
+        "Learn/Resources/Gltf/ValidationAndDiagnostics",
+        "Learn/Resources/Gltf/SceneRuntime",
+        "Learn/Resources/Gltf/AnimationSkinningAndMorph",
+        "Learn/Resources/Gltf/ReloadAndLifetime",
     ];
 
     internal static string LearningRouteMarkdown()

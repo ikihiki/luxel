@@ -5,8 +5,8 @@ namespace Luxel.Gallery.Stories;
 /// <summary>Resourcesの取得、変換、依存、所有権、再ロードを順番に学ぶコース。</summary>
 public static class LearnResources
 {
-    [Story("Learn/Resources/Overview", Order = 0, SampleBundle = "resources.pipeline", Toc = true)]
-    public static StoryResult Overview(StoryContext ctx) => $$"""
+    [Story("Learn/Resources/Overview", Order = 0, SampleBundle = "resources.scenarios", Toc = true)]
+    public static StoryResult Overview(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/Overview", $$"""
         # Resources 学習ガイド
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Overview", "Beginner", "Standalone / Gallery / Headless", "Backend neutral / optional external steps", "なし")}}
@@ -47,10 +47,10 @@ public static class LearnResources
 
         > [!IMPORTANT]
         > 利用側は値だけを抜き出して終わりにせず、必要な期間`ResourceHandle<T>`を保持し、不要になったらDisposeします。reload後の値差し替えや通知、deferred disposeには`Pump()`境界があります。
-        """;
+        """);
 
     [Story("Learn/Resources/LoadingAndHandles", Order = 1, Toc = true)]
-    public static StoryResult LoadingAndHandles(StoryContext ctx) => $$"""
+    public static StoryResult LoadingAndHandles(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/LoadingAndHandles", $$"""
         # Loading and ResourceHandle
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/LoadingAndHandles", "Beginner", "Standalone / Gallery / Headless", "Backend neutral", "Resources overview")}}
@@ -115,10 +115,10 @@ public static class LearnResources
         - **Ready前にValueを使う**: `Value`はdefaultの可能性があります。`Ready`または`HasValue`を境界にします。
         - **handleを破棄しない**: refcountが残り、nodeと依存がevictされません。
         - **組込みに一般画像decoderがあると思う**: `BuiltinSteps()`は現在`TexDecoder`だけです。
-        """;
+        """);
 
     [Story("Learn/Resources/SourcesAndUris", Order = 2, Toc = true)]
-    public static StoryResult SourcesAndUris(StoryContext ctx) => $$"""
+    public static StoryResult SourcesAndUris(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/SourcesAndUris", $$"""
         # Sources and resource URIs
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/SourcesAndUris", "Beginner", "Standalone / Headless", "File / HTTP / workspace", "Loading and handles")}}
@@ -181,10 +181,10 @@ public static class LearnResources
         | `TIn → TOut`へ変換する | No | Yes |
         | extension / fragmentで候補選択される | No | Yes |
         | 外部serviceをctorで受け取る | 必要なら | 必要なら |
-        """;
+        """);
 
     [Story("Learn/Resources/Steps", Order = 3, Toc = true)]
-    public static StoryResult Steps(StoryContext ctx) => $$"""
+    public static StoryResult Steps(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/Steps", $$"""
         # Resource Stepを作る
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Steps", "Intermediate", "Standalone / Headless / Browser", "Io / Cpu / External", "Sources and URIs")}}
@@ -264,16 +264,30 @@ public static class LearnResources
 
         `LoadContext`はcancellation token、依存ロード、既存handleの要求、stage hop、`MarkOwned()` / `MarkBorrowed()`を提供します。
 
+        ## 新しいresource typeを追加する手順
+
+        `PlayerStats`のような新しい型は、次の順で追加するとSource、pipeline、lifetimeの境界を保てます。
+
+        1. Resourceの公開値型を定義する。値が`IDisposable`なら所有者も決める。
+        2. 直前の入力型を選ぶ。ファイル形式なら通常は`byte[]`、共通parse結果を再利用するならその中間型にする。
+        3. `IResourceStep<TIn,TOut>`を実装し、lane、extension、fragmentを宣言する。
+        4. 外部serviceはStep constructorへ渡し、`RunAsync`では`ctx.Token`と`ctx.Load` / `Require`を使う。
+        5. composition rootでgeneric `AddStep<TIn,TOut>()`へ登録する。
+        6. `Load<TOut>()`、`Ready`、status/error、Disposeまでを呼び出し側で扱う。
+        7. 同URI共有、誤った入力、reload成功/失敗、Owned値の破棄をheadless testで確認する。
+
+        [PlayerStatsPipeline](story:Examples/Resources/PlayerStatsPipeline)は`byte[] → JsonDocument → PlayerStats`を実際に登録・ロードし、最終値を検証します。`JsonDocument`を中間型にしたため、別のJSON resource typeもparse nodeを共有できます。
+
         ## 典型的な失敗
 
         - StepがSourceの代わりにpathを直接開き、VFSやreloadを迂回する。
         - `External`を`Gpu`という公開enumだと思い込む。
         - assembly scanやDI containerによる自動構築を期待する。
         - 同じ出力型のStepを無計画に複数登録し、選択をextensionやfragmentで区別しない。
-        """;
+        """);
 
     [Story("Learn/Resources/RegistrationAndComposition", Order = 4, Toc = true)]
-    public static StoryResult RegistrationAndComposition(StoryContext ctx) => $$"""
+    public static StoryResult RegistrationAndComposition(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/RegistrationAndComposition", $$"""
         # Stepの登録とpipeline合成
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/RegistrationAndComposition", "Intermediate", "Standalone / Browser / AOT", "Backend neutral", "Resource Step")}}
@@ -342,10 +356,10 @@ public static class LearnResources
         - 同じ出力型の候補をextensionまたはfragmentで区別できるか。
         - Stepの外部依存をconstructorへ渡したか。
         - AOT環境ではgeneric `AddStep<TIn,TOut>()`を使っているか。
-        """;
+        """);
 
     [Story("Learn/Resources/PipelinesAndDag", Order = 5, Toc = true)]
-    public static StoryResult PipelinesAndDag(StoryContext ctx) => $$"""
+    public static StoryResult PipelinesAndDag(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/PipelinesAndDag", $$"""
         # Typed pipelines and dependency DAG
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/PipelinesAndDag", "Intermediate", "Standalone / Headless", "Backend neutral", "Registration and composition")}}
@@ -404,10 +418,10 @@ public static class LearnResources
         | handleがleaseを保持 | graph compile/executeで一時管理 |
 
         Resourcesで得た`GpuTexture`をRenderGraphへexternal resourceとしてimportすることはできますが、2つのDAGを同じものとして扱わないでください。
-        """;
+        """);
 
     [Story("Learn/Resources/ScopesAndOwnership", Order = 6, Toc = true)]
-    public static StoryResult ScopesAndOwnership(StoryContext ctx) => $$"""
+    public static StoryResult ScopesAndOwnership(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/ScopesAndOwnership", $$"""
         # ResourceScope and ownership
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/ScopesAndOwnership", "Intermediate", "Game / Editor / Gallery", "Backend neutral / optional GPU", "Pipeline and DAG")}}
@@ -464,10 +478,10 @@ public static class LearnResources
         - editor documentごとに同名のlocal resourceを持ちたい。
         - program valueを入力として登録済みStepを再利用したい。
         - 個々のhandle Dispose漏れをowner境界で防ぎたい。
-        """;
+        """);
 
     [Story("Learn/Resources/ReloadAndLifetime", Order = 7, Toc = true)]
-    public static StoryResult ReloadAndLifetime(StoryContext ctx) => $$"""
+    public static StoryResult ReloadAndLifetime(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/ReloadAndLifetime", $$"""
         # Reload, publish, and lifetime
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/ReloadAndLifetime", "Intermediate", "Game loop / DevTools / CI", "Backend neutral / optional GPU", "Scopes and ownership")}}
@@ -532,5 +546,5 @@ public static class LearnResources
         - **ロード後に初めてWatchを呼ぶ**: 既存nodeへ遡ってwatchを登録するAPIではありません。
         - **Ownedの外部値をPublishする**: 既定Ownedなので、外部ownerが破棄する値にはBorrowedを明示します。
         - **handleを保持しない**: leaseがなくなるとnodeがevict可能になり、利用期間とcache lifetimeが一致しません。
-        """;
+        """);
 }
