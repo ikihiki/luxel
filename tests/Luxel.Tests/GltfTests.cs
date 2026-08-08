@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Luxel.Assets;
 using Luxel.Assets.Gltf;
+using Luxel.Resources;
 
 namespace Luxel.Tests;
 
@@ -128,13 +129,21 @@ public class GltfTests
 
     private static async Task<AssetDocument> DecodeFileAsync(string path)
     {
-        byte[] input = await File.ReadAllBytesAsync(path);
-        string root = Path.GetDirectoryName(Path.GetFullPath(path))!;
-        return await GltfDecoder.DecodeAsync(input, async (reference, cancellationToken) =>
-        {
-            string dependency = Path.Combine(root, Uri.UnescapeDataString(reference));
-            return await File.ReadAllBytesAsync(dependency, cancellationToken);
-        });
+        string fullPath = Path.GetFullPath(path);
+        string root = Path.GetDirectoryName(fullPath)!;
+        using var resources = new ResourceSystem(sources: [new RootedFileSource(root)]);
+        resources.AddStep<byte[], AssetDocument>(new GltfResourceStep());
+        using ResourceHandle<AssetDocument> handle = resources.Load<AssetDocument>(Path.GetFileName(fullPath));
+        await handle.Ready;
+        return handle.Value;
+    }
+
+    private sealed class RootedFileSource(string root) : IResourceSource
+    {
+        public IEnumerable<string> Schemes => ["file", ""];
+
+        public Task<byte[]> ReadAsync(ResourceUri uri, LoadContext context)
+            => File.ReadAllBytesAsync(Path.Combine(root, Uri.UnescapeDataString(uri.Path)), context.Token);
     }
 
     private static string? FindKhronosSample(string filename)

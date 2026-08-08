@@ -15,9 +15,22 @@ public sealed class GltfResourceStep : IResourceStep<byte[], AssetDocument>
 
         async ValueTask<ReadOnlyMemory<byte>> ResolveExternalAsync(string reference, CancellationToken cancellationToken)
         {
-            using ResourceHandle<byte[]> handle = context.LoadRelative<byte[]>(reference);
-            byte[] bytes = await context.Require(handle).WaitAsync(cancellationToken).ConfigureAwait(false);
-            return bytes;
+            ResourceUri resolved = uri.Resolve(reference);
+            try
+            {
+                using ResourceHandle<byte[]> handle = context.LoadRelative<byte[]>(reference);
+                byte[] bytes = await context.Require(handle).WaitAsync(cancellationToken).ConfigureAwait(false);
+                return bytes;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception error)
+            {
+                throw new InvalidDataException(
+                    $"Failed to load external glTF resource '{reference}' resolved to '{resolved.Url}'.", error);
+            }
         }
     }
 }

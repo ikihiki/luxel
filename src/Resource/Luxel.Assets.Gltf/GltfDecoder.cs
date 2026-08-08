@@ -2,14 +2,18 @@ using Luxel.Assets;
 
 namespace Luxel.Assets.Gltf;
 
-/// <summary>ファイルシステム非依存の glTF 2.0 decoder。入力 bytes と外部参照 resolver だけを使用する。</summary>
+/// <summary>自己完結した bytes から glTF 2.0 asset を decode する。</summary>
 public static class GltfDecoder
 {
     public static GltfIndexDocument ParseIndex(ReadOnlySpan<byte> bytes) => GltfParser.Parse(bytes).Document;
 
-    public static async Task<AssetDocument> DecodeAsync(ReadOnlyMemory<byte> bytes,
-        Func<string, CancellationToken, ValueTask<ReadOnlyMemory<byte>>>? externalResolver = null,
-        CancellationToken cancellationToken = default)
+    /// <summary>GLB、data URI、または外部参照を持たない glTF bytes を decode する。</summary>
+    public static Task<AssetDocument> DecodeAsync(ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken = default)
+        => DecodeAsync(bytes, externalResolver: null, cancellationToken);
+
+    internal static async Task<AssetDocument> DecodeAsync(ReadOnlyMemory<byte> bytes,
+        Func<string, CancellationToken, ValueTask<ReadOnlyMemory<byte>>>? externalResolver,
+        CancellationToken cancellationToken)
     {
         var parsed = GltfParser.Parse(bytes.Span);
         var buffers = new byte[parsed.Document.Buffers.Count][];
