@@ -94,6 +94,18 @@ async function expectRuntimeStory(frame, story) {
   expect(webGpu?.lastError).toBeNull();
 }
 
+test('browser-WASM renders generated Markdown component overviews', async ({ page }) => {
+  const story = 'Controls/Accordion/Overview';
+  const errors = collectErrors(page);
+  await page.goto(`/?story=${encodeURIComponent(story)}`);
+  await expectRuntimeStory(page, story);
+  await expect.poll(() => page.evaluate(() =>
+    globalThis.luxelBrowserState?.widgets?.some(widget => widget.type?.endsWith('.TextEditorView')) || false),
+    { timeout: 30_000 }).toBe(true);
+  expect(errors.consoleErrors).toEqual([]);
+  expect(errors.pageErrors).toEqual([]);
+});
+
 for (const story of twoDStories) {
   test(`browser-WASM renders ${story}`, async ({ page }) => {
     const errors = collectErrors(page);

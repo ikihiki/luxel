@@ -109,15 +109,18 @@ public static partial class BrowserGalleryApplication
             context.Logged += entry => PublishEvent(
                 JsonSerializer.Serialize(entry, BrowserJsonContext.Default.StoryLogEntry));
 
+            stage = "story";
+            SetStatus("loading", $"browser-webgpu: status=loading, story={path}, stage={stage}");
             StoryResult result = story.BuildResult(context);
-            if (result.Kind != StoryResultKind.Widget || result.Widget is null)
-                throw new InvalidOperationException($"Browser runtime story '{path}' did not build a Widget.");
+            Widget storyRoot = BuildStoryWidget(story, context, result, font, window.Width, window.Height);
 
+            stage = "render";
+            SetStatus("loading", $"browser-webgpu: status=loading, story={path}, stage={stage}");
             using var raster = new GpuDeviceRasterizer2D(device, RasterShader);
             using var canvas = new RetainedCanvas();
             using IRasterScene2D scene = raster.CreateScene(canvas);
             using var ui = new UiHost(canvas, font, window.Width, window.Height, gpuRasterizer: raster);
-            ui.SetRoot(result.Widget);
+            ui.SetRoot(storyRoot);
 
             GpuBuffer framebuffer = device.Malloc(
                 checked((ulong)window.Width * (uint)window.Height * 4), GpuMemoryKind.DeviceLocal);
@@ -152,7 +155,7 @@ public static partial class BrowserGalleryApplication
                 PublishWebGpuDiagnostics(browserBackend.CaptureDiagnostics());
                 PublishFrame(++renderRevision);
                 PublishDiagnostics(JsonSerializer.Serialize(
-                    SnapshotWidgets(result.Widget), BrowserJsonContext.Default.BrowserWidgetDiagnosticArray));
+                    SnapshotWidgets(storyRoot), BrowserJsonContext.Default.BrowserWidgetDiagnosticArray));
             }
 
             try
@@ -218,6 +221,47 @@ public static partial class BrowserGalleryApplication
                 _activeContext.Args.Values.ToDictionary(pair => pair.Key, pair => pair.Value.Clone(), StringComparer.Ordinal),
                 errors.ToArray()),
             BrowserJsonContext.Default.SetArgsResponse);
+    }
+
+    private static Widget BuildStoryWidget(StoryInfo story, StoryContext context, StoryResult authored,
+        VectorFont font, int width, int height)
+    {
+        if (authored.Kind == StoryResultKind.Widget)
+            return authored.Widget ?? throw new InvalidOperationException($"Widget story '{story.Path}' returned no Widget.");
+
+        StoryResult result = story.Toc
+            ? authored.WithMarkdown(MarkdownDoc.InsertToc(authored.Markdown))
+            : authored;
+        var fences = new Dictionary<string, Func<string, Widget>>
+        {
+            ["mermaid"] = body => Luxel.Diagram.Factories.DiagramBlock(body, Math.Max(320f, width - 32f)),
+            ["math"] = body => Luxel.MathText.Factories.MathBlockView(body, maxWidth: Math.Max(320f, width - 32f)),
+        };
+        return MarkdownDoc.FromStoryResult(result, () => UiTheme.T,
+            Math.Max(320f, width), Math.Max(240f, height),
+            reference => BuildStoryReference(context, reference, font, width, height),
+            body: font, highlighter: Luxel.Highlight.TextMateHighlighter.Instance,
+            fences: fences, fill: true);
+    }
+
+    private static Widget BuildStoryReference(StoryContext context, StoryReference reference,
+        VectorFont font, int width, int height)
+    {
+        StoryInfo? referenced = Catalog.Find(reference.Path);
+        if (referenced is null)
+            return Kit.Alert($"Story not found: {reference.Path}", Intent.Danger);
+
+        bool suppressed = context.SuppressPlays;
+        context.SuppressPlays = true;
+        try
+        {
+            StoryResult result = referenced.BuildResult(context);
+            return BuildStoryWidget(referenced, context, result, font, width, height);
+        }
+        finally
+        {
+            context.SuppressPlays = suppressed;
+        }
     }
 
     private static BrowserWidgetDiagnostic[] SnapshotWidgets(Widget root)

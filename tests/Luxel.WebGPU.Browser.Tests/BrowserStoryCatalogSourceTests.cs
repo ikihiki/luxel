@@ -28,6 +28,9 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("export const publishWebGpuDiagnostics", script, StringComparison.Ordinal);
         Assert.Contains("BrowserWebGpuBackend.CaptureLatestDiagnostics(ex, \"BrowserGalleryApplication.RunAsync\")", runtime, StringComparison.Ordinal);
         Assert.Contains("browserBackend.CaptureDiagnostics()", runtime, StringComparison.Ordinal);
+        Assert.Contains("BuildStoryWidget(story, context, result, font", runtime, StringComparison.Ordinal);
+        Assert.Contains("MarkdownDoc.FromStoryResult", runtime, StringComparison.Ordinal);
+        Assert.Contains("Catalog.Find(reference.Path)", runtime, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "browser-runtime-manifest.json")));
     }
 
