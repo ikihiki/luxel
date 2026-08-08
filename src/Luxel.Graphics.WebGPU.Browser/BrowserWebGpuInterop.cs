@@ -5,6 +5,8 @@ namespace Luxel.Graphics.WebGPU.Browser;
 internal interface IBrowserWebGpuInterop
 {
     Task<string> InitializeAsync();
+    string GetDiagnostics(int backend);
+    void RecordDiagnosticsError(int backend, string source, string name, string message, string stack);
     int CreateComputePipeline(int backend, string wgslBase64, string entryPoint);
     int CreateGraphicsPipeline(int backend, string vsBase64, string vsEntry, string psBase64, string psEntry, string rasterJson);
     int CreateTexture(int backend, int width, int height, int format, int usage, int bindlessIndex, string dataBase64);
@@ -40,6 +42,8 @@ internal sealed partial class BrowserWebGpuInterop : IBrowserWebGpuInterop
     private const string Module = "./luxel-webgpu-browser.js";
 
     public Task<string> InitializeAsync() => InitializeCoreAsync();
+    public string GetDiagnostics(int backend) => GetDiagnosticsCore(backend);
+    public void RecordDiagnosticsError(int backend, string source, string name, string message, string stack) => RecordDiagnosticsErrorCore(backend, source, name, message, stack);
     public int CreateComputePipeline(int backend, string wgslBase64, string entryPoint) => CreateComputePipelineCore(backend, wgslBase64, entryPoint);
     public int CreateGraphicsPipeline(int backend, string vsBase64, string vsEntry, string psBase64, string psEntry, string rasterJson) => CreateGraphicsPipelineCore(backend, vsBase64, vsEntry, psBase64, psEntry, rasterJson);
     public int CreateTexture(int backend, int width, int height, int format, int usage, int bindlessIndex, string dataBase64) => CreateTextureCore(backend, width, height, format, usage, bindlessIndex, dataBase64);
@@ -70,6 +74,8 @@ internal sealed partial class BrowserWebGpuInterop : IBrowserWebGpuInterop
     public void DisposeBackend(int backend) => DisposeBackendCore(backend);
 
     [JSImport("initialize", Module)] private static partial Task<string> InitializeCoreAsync();
+    [JSImport("getDiagnostics", Module)] private static partial string GetDiagnosticsCore(int backend);
+    [JSImport("recordDiagnosticsError", Module)] private static partial void RecordDiagnosticsErrorCore(int backend, string source, string name, string message, string stack);
     [JSImport("createComputePipeline", Module)] private static partial int CreateComputePipelineCore(int backend, string wgslBase64, string entryPoint);
     [JSImport("createGraphicsPipeline", Module)] private static partial int CreateGraphicsPipelineCore(int backend, string vsBase64, string vsEntry, string psBase64, string psEntry, string rasterJson);
     [JSImport("createTexture", Module)] private static partial int CreateTextureCore(int backend, int width, int height, int format, int usage, int bindlessIndex, string dataBase64);

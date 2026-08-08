@@ -10,7 +10,7 @@ if (!args || Array.isArray(args) || typeof args !== "object") throw new Error("s
 let revision = 0;
 let setArgsExport = null;
 let pendingSetArgs = null;
-const runtimeState = { state: "loading", summary: "", story, instanceId, args, schema: [], revision, renderRevision: 0, lastRequestId: null, events: [], widgets: [], pointerDownCount: 0, pointerUpCount: 0 };
+const runtimeState = { state: "loading", summary: "", story, instanceId, args, schema: [], revision, renderRevision: 0, lastRequestId: null, events: [], widgets: [], webGpu: null, pointerDownCount: 0, pointerUpCount: 0 };
 const updateCountState = () => {
   if (Number.isFinite(Number(args.count))) runtimeState.count = runtimeState.presentedCount = Number(args.count);
 };
@@ -60,6 +60,9 @@ const host = {
     runtimeState.widgets = Array.isArray(widgets) ? widgets : [];
     runtimeState.minusBounds = runtimeState.widgets.find(widget => widget.type?.endsWith(".Button") && widget.detail === "-") || null;
     runtimeState.plusBounds = runtimeState.widgets.find(widget => widget.type?.endsWith(".Button") && widget.detail === "+") || null;
+  },
+  publishWebGpuDiagnostics: diagnosticsJson => {
+    runtimeState.webGpu = parseObject(diagnosticsJson, "WebGPU diagnostics");
   },
   publishArgsChanged: argsJson => {
     args = parseObject(argsJson, "args snapshot");
@@ -118,4 +121,5 @@ export const setReady = host.setReady;
 export const publishArgsChanged = host.publishArgsChanged;
 export const publishEvent = host.publishEvent;
 export const publishDiagnostics = host.publishDiagnostics;
+export const publishWebGpuDiagnostics = host.publishWebGpuDiagnostics;
 export const publishFrame = host.publishFrame;

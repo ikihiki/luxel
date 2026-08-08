@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using Luxel.Diagnostics;
 using Luxel.Graphics.Abstraction;
 
 namespace Luxel.Graphics.WebGPU.Browser;
@@ -50,13 +51,63 @@ public sealed class BrowserWebGpuBackend : IGpuBackend
     internal static async Task<BrowserWebGpuBackend> CreateAsync(IBrowserWebGpuInterop interop, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(interop);
-        string json = await interop.InitializeAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
-        using JsonDocument document = JsonDocument.Parse(json);
-        JsonElement root = document.RootElement;
-        int handle = root.GetProperty("handle").GetInt32();
-        string? name = root.TryGetProperty("name", out JsonElement nameElement) ? nameElement.GetString() : null;
-        if (handle <= 0) throw new InvalidOperationException("WebGPU initialization returned an invalid backend handle.");
-        return new BrowserWebGpuBackend(interop, handle, name ?? "WebGPU / browser");
+        try
+        {
+            string json = await interop.InitializeAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
+            using JsonDocument document = JsonDocument.Parse(json);
+            JsonElement root = document.RootElement;
+            int handle = root.GetProperty("handle").GetInt32();
+            string? name = root.TryGetProperty("name", out JsonElement nameElement) ? nameElement.GetString() : null;
+            if (handle <= 0) throw new InvalidOperationException("WebGPU initialization returned an invalid backend handle.");
+            var backend = new BrowserWebGpuBackend(interop, handle, name ?? "WebGPU / browser");
+            backend.CaptureDiagnostics();
+            return backend;
+        }
+        catch
+        {
+            CaptureDiagnostics(interop, 0);
+            throw;
+        }
+    }
+
+    /// <summary>Returns and emits the latest structured Browser WebGPU diagnostic snapshot.</summary>
+    public string CaptureDiagnostics() => CaptureDiagnostics(_interop, Handle);
+
+    /// <summary>Returns and emits the latest module-global snapshot, including failures before a backend handle exists.</summary>
+    public static string CaptureLatestDiagnostics()
+    {
+        if (!OperatingSystem.IsBrowser()) return "{}";
+        return CaptureDiagnostics(new BrowserWebGpuInterop(), 0);
+    }
+
+    /// <summary>Records a managed/interop failure into the module-global snapshot before returning and emitting it.</summary>
+    public static string CaptureLatestDiagnostics(Exception error, string source)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+        if (!OperatingSystem.IsBrowser()) return "{}";
+        var interop = new BrowserWebGpuInterop();
+        Exception root = error.GetBaseException();
+        try
+        {
+            interop.RecordDiagnosticsError(0, source, root.GetType().FullName ?? root.GetType().Name,
+                root.Message, error.ToString());
+        }
+        catch { }
+        return CaptureDiagnostics(interop, 0);
+    }
+
+    private static string CaptureDiagnostics(IBrowserWebGpuInterop interop, int handle)
+    {
+        try
+        {
+            string json = interop.GetDiagnostics(handle);
+            EngineDiagnostics.Emit(EngineDiagnostics.WebGpu, new DiagWebGpu(json));
+            return json;
+        }
+        catch
+        {
+            return "{}";
+        }
     }
 
     public IGpuBackendBuffer CreateBuffer(ulong size, GpuMemoryKind kind)

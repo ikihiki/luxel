@@ -177,6 +177,8 @@ public sealed class BrowserWebGpuManagedTests
         public List<int> TextureFormats { get; } = [];
         public List<int> TextureDataLengths { get; } = [];
         public Task<string> InitializeAsync() => Task.FromResult(JsonSerializer.Serialize(new { handle = ++_next, name = "WebGPU / fake" }));
+        public string GetDiagnostics(int backend) => JsonSerializer.Serialize(new { sequence = 1, stage = "ready", backendHandle = backend, adapter = new { description = "fake", isFallbackAdapter = false }, device = new { status = "ready" } });
+        public void RecordDiagnosticsError(int backend, string source, string name, string message, string stack) { }
         public int CreateComputePipeline(int backend, string wgslBase64, string entryPoint) => ++_next;
         public int CreateGraphicsPipeline(int backend, string vsBase64, string vsEntry, string psBase64, string psEntry, string rasterJson) => ++_next;
         public int CreateTexture(int backend, int width, int height, int format, int usage, int bindlessIndex, string dataBase64)

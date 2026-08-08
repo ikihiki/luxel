@@ -25,6 +25,9 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.DoesNotContain("browser-runtime-manifest", script, StringComparison.Ordinal);
         Assert.DoesNotContain("dotnet.create", script, StringComparison.Ordinal);
         Assert.Contains("export const setReady", script, StringComparison.Ordinal);
+        Assert.Contains("export const publishWebGpuDiagnostics", script, StringComparison.Ordinal);
+        Assert.Contains("BrowserWebGpuBackend.CaptureLatestDiagnostics(ex, \"BrowserGalleryApplication.RunAsync\")", runtime, StringComparison.Ordinal);
+        Assert.Contains("browserBackend.CaptureDiagnostics()", runtime, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "browser-runtime-manifest.json")));
     }
 

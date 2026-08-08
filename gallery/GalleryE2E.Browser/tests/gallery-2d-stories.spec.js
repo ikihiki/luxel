@@ -85,6 +85,13 @@ async function expectRuntimeStory(frame, story) {
   await expect.poll(() => documentRoot.evaluate(() => globalThis.luxelBrowserState?.widgets?.length || 0), {
     timeout: 30_000
   }).toBeGreaterThan(0);
+  const webGpu = await documentRoot.evaluate(() => globalThis.luxelBrowserState?.webGpu);
+  expect(webGpu?.adapter).toBeTruthy();
+  expect(typeof webGpu.adapter.isFallbackAdapter).toBe('boolean');
+  expect(webGpu?.device?.status).toBe('ready');
+  expect(webGpu?.surface?.configured).toBe(true);
+  expect(webGpu?.surface?.presentCount).toBeGreaterThan(0);
+  expect(webGpu?.lastError).toBeNull();
 }
 
 for (const story of twoDStories) {

@@ -43,6 +43,7 @@ public static partial class BrowserGalleryApplication
         }
         catch (Exception ex)
         {
+            PublishWebGpuDiagnostics(BrowserWebGpuBackend.CaptureLatestDiagnostics(ex, "BrowserGalleryApplication.RunAsync"));
             SetStatus("fail", $"browser-webgpu: status=fail, story={story}, error={ex}");
             Console.Error.WriteLine(ex);
             throw;
@@ -86,8 +87,10 @@ public static partial class BrowserGalleryApplication
             BrowserWebGpuBackend backend = await BrowserWebGpuBackend.CreateAsync();
             using var device = new GpuDevice(backend);
             var browserBackend = (BrowserWebGpuBackend)device.Backend;
+            PublishWebGpuDiagnostics(browserBackend.CaptureDiagnostics());
             using GpuSurface surface = browserBackend.CreateCanvasSurface(
                 "#luxel-canvas", (uint)window.Width, (uint)window.Height);
+            PublishWebGpuDiagnostics(browserBackend.CaptureDiagnostics());
             stage = "resources";
             SetStatus("loading", $"browser-webgpu: status=loading, story={path}, stage={stage}");
             await using var slangCompiler = new BrowserSlangCompiler();
@@ -146,6 +149,7 @@ public static partial class BrowserGalleryApplication
                 command.Finish();
                 await device.MainQueue.SubmitAsync(command);
                 surface.Present(framebuffer, (uint)window.Width, (uint)window.Width, (uint)window.Height);
+                PublishWebGpuDiagnostics(browserBackend.CaptureDiagnostics());
                 PublishFrame(++renderRevision);
                 PublishDiagnostics(JsonSerializer.Serialize(
                     SnapshotWidgets(result.Widget), BrowserJsonContext.Default.BrowserWidgetDiagnosticArray));
@@ -293,5 +297,6 @@ public static partial class BrowserGalleryApplication
     [JSImport("publishArgsChanged", "luxel-browser-host")] private static partial void PublishArgsChanged(string argsJson);
     [JSImport("publishEvent", "luxel-browser-host")] private static partial void PublishEvent(string entryJson);
     [JSImport("publishDiagnostics", "luxel-browser-host")] private static partial void PublishDiagnostics(string widgetsJson);
+    [JSImport("publishWebGpuDiagnostics", "luxel-browser-host")] private static partial void PublishWebGpuDiagnostics(string diagnosticsJson);
     [JSImport("publishFrame", "luxel-browser-host")] private static partial void PublishFrame(int revision);
 }

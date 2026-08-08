@@ -22,6 +22,7 @@ public sealed class DevToolsListener : IObserver<DiagnosticListener>, IObserver<
     private readonly LatestSlot<string> _tree = new();     // JSON
     private readonly LatestSlot<string> _primitives = new(); // JSON (最終 2D SoA, オンデマンド取得)
     private readonly LatestSlot<string> _gpu = new();        // JSON (GPU 発行コマンド, オンデマンド取得)
+    private readonly LatestSlot<string> _webGpu = new();     // JSON (Browser WebGPU adapter/device/surface 状態)
     private readonly LatestSlot<string> _resources = new();  // JSON (リソース ロードグラフ, オンデマンド取得)
     private readonly LatestSlot<string> _renderGraph = new(); // JSON (レンダーグラフ Compile 後, オンデマンド取得)
     private readonly LatestSlot<string> _perf = new();         // JSON (per-frame timing、最新のみ)
@@ -80,6 +81,9 @@ public sealed class DevToolsListener : IObserver<DiagnosticListener>, IObserver<
                 break;
             case EngineDiagnostics.Gpu when kv.Value is DiagGpu gpu:
                 _gpu.Publish(Json.Serialize(gpu));
+                break;
+            case EngineDiagnostics.WebGpu when kv.Value is DiagWebGpu webGpu:
+                _webGpu.Publish(webGpu.Json);
                 break;
             case EngineDiagnostics.Resources when kv.Value is DiagResources res:
                 _resources.Publish(Json.Serialize(res));
@@ -181,6 +185,8 @@ public sealed class DevToolsListener : IObserver<DiagnosticListener>, IObserver<
     public string? GetPrimitives() => _primitives.Read().value;
     /// <summary>最新の GPU 発行コマンド JSON (ボタンでオンデマンド取得)。</summary>
     public string? GetGpu() => _gpu.Read().value;
+    /// <summary>最新の Browser WebGPU adapter/device/surface 診断 JSON。</summary>
+    public string? GetWebGpu() => _webGpu.Read().value;
     /// <summary>最新のリソース ロードグラフ JSON (ボタンでオンデマンド取得)。</summary>
     public string? GetResources() => _resources.Read().value;
     /// <summary>最新のレンダーグラフ DAG JSON (ボタンでオンデマンド取得)。</summary>
