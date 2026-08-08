@@ -22,6 +22,9 @@
     <InternalsVisibleTo Include="Luxel.Gallery.Site.Tests" />
     <EmbeddedResource Include="..\..\..\samples\LuxelResources\LuxelResources.csproj" LogicalName="Luxel.Sample.samples.LuxelResources.LuxelResources.csproj" />
     <EmbeddedResource Include="..\..\..\samples\LuxelResources\Program.cs" LogicalName="Luxel.Sample.samples.LuxelResources.Program.cs" />
+    <EmbeddedResource Include="..\..\..\shaders\compiled\scene_pbr_lite.*" LogicalName="Luxel.Gallery.Resources.Shaders.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\..\shaders\compiled\scene_pbr_skinned.*" LogicalName="Luxel.Gallery.Resources.Shaders.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\..\shaders\compiled\scene_pbr_morph.*" LogicalName="Luxel.Gallery.Resources.Shaders.%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

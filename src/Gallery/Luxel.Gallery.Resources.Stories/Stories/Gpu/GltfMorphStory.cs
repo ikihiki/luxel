@@ -33,7 +33,7 @@ public static class GltfMorphStories
         public uint VertexCount;
     }
 
-    [Story("Examples/3D/GltfMorph", Height = 320, Order = 128)]
+    [Story("Examples/Resources/Gltf/MorphWeights", Height = 320, Order = 128)]
     public static Widget GltfMorph(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(256, 256, new MorphScene())));
 
     private sealed class MorphScene : GpuSceneBase
@@ -121,7 +121,7 @@ public static class GltfMorphStories
             var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
             raster.DepthTest = true;
             raster.DepthWrite = true;
-            _pipeline = Track(Device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_morph"), raster));
+            _pipeline = Track(Device.CreateGraphicsPipeline(ResourceStoryShaders.Load("scene_pbr_morph"), raster));
         }
 
         protected override void OnRender(float time)
@@ -165,7 +165,7 @@ public static class GltfMorphStories
             cmd.Barrier(GpuStage.ColorOutput, GpuStage.Copy)
                .CopyTextureToBuffer(Target, OutBuffer);
             cmd.Finish();
-            Device.MainQueue.SubmitAndWait(cmd);
+            Device.MainQueue.Submit(cmd);
         }
     }
 }

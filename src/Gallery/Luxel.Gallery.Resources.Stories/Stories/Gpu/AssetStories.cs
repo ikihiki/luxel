@@ -29,11 +29,12 @@ public static class AssetStories
     }
 
     /// <summary>Box.gltf → AssetDocument → AssetPrimitive → GPU buffers → 1 draw。ECSなしの静的最小経路。</summary>
-    [Story("Examples/3D/GltfBox", Height = 320, Order = 125)]
-    public static Widget GltfBox() => Frame(GpuSceneBase.View(256, 256, new StaticGltfScene("Box.gltf"), animated: false));
+    [Story("Examples/Resources/Gltf/BoxScene", Height = 320, Order = 125)]
+    public static Widget GltfBox(StoryContext ctx)
+        => Frame(GltfStoryAssets.View(ctx, GltfStoryAssets.Box, static document => new StaticGltfScene(document), animated: false));
 
     /// <summary>静的primitiveを直接uploadし、1件のinstance bufferで描く。ECS/animation/skin/morphは使わない。</summary>
-    private sealed class StaticGltfScene(string file) : GpuSceneBase
+    private sealed class StaticGltfScene(AssetDocument document) : GpuSceneBase
     {
         private GpuPrimitive _primitive = null!;
         private GpuBuffer _instances = null!;
@@ -42,10 +43,8 @@ public static class AssetStories
 
         protected override void OnInit()
         {
-            string path = FindSample(file);
-            AssetDocument doc = GltfStoryAssets.LoadDocument(path);
-            AssetPrimitive source = doc.Meshes.FirstOrDefault()?.Primitives.FirstOrDefault()
-                ?? throw new InvalidDataException($"glTF has no mesh primitive: {path}");
+            AssetPrimitive source = document.Meshes.FirstOrDefault()?.Primitives.FirstOrDefault()
+                ?? throw new InvalidDataException($"glTF has no mesh primitive: {GltfStoryAssets.Box}");
 
             _primitive = Track(GpuAssetFactory.Upload(source, Device));
             Vector4 baseColor = source.Material?.BaseColorFactor ?? new Vector4(0.86f, 0.34f, 0.30f, 1f);
@@ -60,7 +59,7 @@ public static class AssetStories
             GpuRasterDesc raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
             raster.DepthTest = true;
             raster.DepthWrite = true;
-            _pipeline = Track(Device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_lite"), raster));
+            _pipeline = Track(Device.CreateGraphicsPipeline(ResourceStoryShaders.Load("scene_pbr_lite"), raster));
         }
 
         protected override void OnRender(float time)
@@ -85,30 +84,20 @@ public static class AssetStories
                 .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
                 .CopyTextureToBuffer(Target, OutBuffer);
             command.Finish();
-            Device.MainQueue.SubmitAndWait(command);
+            Device.MainQueue.Submit(command);
         }
-    }
-
-    private static string FindSample(string file)
-    {
-        // Khronos samples are repository tools; support both repo-root cwd and bin launches.
-        string[] candidates =
-        [
-            Path.Combine(Environment.CurrentDirectory, "tools", "khronos-samples", file),
-            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "tools", "khronos-samples", file),
-        ];
-        return candidates.FirstOrDefault(File.Exists)
-            ?? throw new FileNotFoundException($"khronos-samples/{file} が見つかりません");
     }
 
     /// <summary>BoxAnimated.glb — ノード TRS アニメーションを SceneAnimationPlayer が毎フレーム
     /// sample → TransformPropagate → 再 Extract して描く (スキニングなしのアニメーション経路)。</summary>
-    [Story("Examples/3D/GltfAnimated", Height = 320, Order = 126)]
-    public static Widget GltfAnimated(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(256, 256, new GltfScene("BoxAnimated.glb", animate: true))));
+    [Story("Examples/Resources/Gltf/AnimatedBox", Height = 320, Order = 126)]
+    public static Widget GltfAnimated(StoryContext ctx)
+        => ctx.Snap(Frame(GltfStoryAssets.View(ctx, GltfStoryAssets.AnimatedBox,
+            static document => new GltfScene(document, animate: true), animated: true)));
 
-    /// <summary>khronos-samples の glTF を読み、SceneBuilder → SceneRenderExtractor → 描画。
+    /// <summary>glTF document を SceneBuilder → SceneRenderExtractor → 描画。
     /// animate 時は毎フレーム anim[0] を周期 sample して instance を書き直す。</summary>
-    private sealed class GltfScene(string file, bool animate = false) : GpuSceneBase
+    private sealed class GltfScene(AssetDocument document, bool animate = false) : GpuSceneBase
     {
         private Luxel.Ecs.World _world = null!;
         private SceneAssets _assets = null!;
@@ -123,21 +112,20 @@ public static class AssetStories
 
         protected override void OnInit()
         {
-            AssetDocument doc = GltfStoryAssets.LoadDocument(FindSample(file));
             // Khronos sample の material は白 — 見やすい色に上書き
-            for (int i = 0; i < doc.Materials.Count; i++)
-                doc.Materials[i].BaseColorFactor = i % 2 == 0
+            for (int i = 0; i < document.Materials.Count; i++)
+                document.Materials[i].BaseColorFactor = i % 2 == 0
                     ? new Vector4(0.86f, 0.34f, 0.30f, 1f)
                     : new Vector4(0.30f, 0.62f, 0.90f, 1f);
 
             _world = new Luxel.Ecs.World();
-            _assets = Track(SceneBuilder.Build(_world, doc, Device));
+            _assets = Track(SceneBuilder.Build(_world, document, Device));
             TransformPropagateSystem.Run(_world);
 
-            if (animate && doc.Animations.Count > 0)
+            if (animate && document.Animations.Count > 0)
             {
-                _player = new SceneAnimationPlayer(_world, _assets, doc.Animations[0]);
-                _duration = MathF.Max(0.01f, doc.Animations[0].Duration);
+                _player = new SceneAnimationPlayer(_world, _assets, document.Animations[0]);
+                _duration = MathF.Max(0.01f, document.Animations[0].Duration);
             }
 
             _extractor = Track(new SceneRenderExtractor(_world, _assets));
@@ -147,7 +135,7 @@ public static class AssetStories
             var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
             raster.DepthTest = true;
             raster.DepthWrite = true;
-            _pipeline = Track(Device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_lite"), raster));
+            _pipeline = Track(Device.CreateGraphicsPipeline(ResourceStoryShaders.Load("scene_pbr_lite"), raster));
         }
 
         protected override void OnRender(float time)
@@ -200,7 +188,7 @@ public static class AssetStories
             cmd.Barrier(GpuStage.ColorOutput, GpuStage.Copy)
                .CopyTextureToBuffer(Target, OutBuffer);
             cmd.Finish();
-            Device.MainQueue.SubmitAndWait(cmd);
+            Device.MainQueue.Submit(cmd);
         }
     }
 }

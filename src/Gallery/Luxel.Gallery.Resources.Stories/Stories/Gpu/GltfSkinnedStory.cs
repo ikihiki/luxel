@@ -32,10 +32,12 @@ public static class GltfSkinnedStories
     }
 
     /// <summary>RiggedSimple.glb (2 ボーンの曲がる棒) を、アニメの途中ポーズで描く。</summary>
-    [Story("Examples/3D/GltfSkinned", Height = 320, Order = 127)]
-    public static Widget GltfSkinned(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(256, 256, new SkinnedScene("RiggedSimple.glb"))));
+    [Story("Examples/Resources/Gltf/RiggedSimpleSkinning", Height = 320, Order = 127)]
+    public static Widget GltfSkinned(StoryContext ctx)
+        => ctx.Snap(Frame(GltfStoryAssets.View(ctx, GltfStoryAssets.RiggedSimple,
+            static document => new SkinnedScene(document), animated: false)));
 
-    private sealed class SkinnedScene(string file) : GpuSceneBase
+    private sealed class SkinnedScene(AssetDocument document) : GpuSceneBase
     {
         private GpuTexture _depth = null!;
         private GpuPipeline _pipeline = null!;
@@ -45,27 +47,18 @@ public static class GltfSkinnedStories
 
         protected override void OnInit()
         {
-            string[] candidates =
-            [
-                Path.Combine(Environment.CurrentDirectory, "tools", "khronos-samples", file),
-                Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "tools", "khronos-samples", file),
-            ];
-            string path = candidates.FirstOrDefault(File.Exists)
-                ?? throw new FileNotFoundException($"khronos-samples/{file} が見つかりません");
-
-            AssetDocument doc = GltfStoryAssets.LoadDocument(path);
             var baseColor = new Vector4(0.85f, 0.55f, 0.30f, 1f);
-            for (int i = 0; i < doc.Materials.Count; i++)
-                doc.Materials[i].BaseColorFactor = baseColor;
+            for (int i = 0; i < document.Materials.Count; i++)
+                document.Materials[i].BaseColorFactor = baseColor;
 
             var world = new Luxel.Ecs.World();
-            SceneAssets assets = Track(SceneBuilder.Build(world, doc, Device));
+            SceneAssets assets = Track(SceneBuilder.Build(world, document, Device));
 
             // アニメを固定時刻で sample (決定的ポーズ) → 伝播 → joint 行列
-            if (doc.Animations.Count > 0)
+            if (document.Animations.Count > 0)
             {
-                var player = new SceneAnimationPlayer(world, assets, doc.Animations[0]);
-                float dur = MathF.Max(0.01f, doc.Animations[0].Duration);
+                var player = new SceneAnimationPlayer(world, assets, document.Animations[0]);
+                float dur = MathF.Max(0.01f, document.Animations[0].Duration);
                 player.Sample(dur * 0.30f);   // 曲がりの見える途中ポーズ
             }
             TransformPropagateSystem.Run(world);
@@ -100,7 +93,7 @@ public static class GltfSkinnedStories
             var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
             raster.DepthTest = true;
             raster.DepthWrite = true;
-            _pipeline = Track(Device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_skinned"), raster));
+            _pipeline = Track(Device.CreateGraphicsPipeline(ResourceStoryShaders.Load("scene_pbr_skinned"), raster));
         }
 
         protected override void OnRender(float time)
@@ -142,7 +135,7 @@ public static class GltfSkinnedStories
             cmd.Barrier(GpuStage.ColorOutput, GpuStage.Copy)
                .CopyTextureToBuffer(Target, OutBuffer);
             cmd.Finish();
-            Device.MainQueue.SubmitAndWait(cmd);
+            Device.MainQueue.Submit(cmd);
         }
     }
 }
