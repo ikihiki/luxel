@@ -277,13 +277,13 @@ public sealed class GalleryApp : IDisposable
     /// 割合は現在のペイン寸法 px から。</summary>
     private DockTree NormalTree()
     {
-        DockTree t = DockTree.Single("preview", "stories", "props", "log", "knobs", "interactions", "console", "source");
+        DockTree t = DockTree.Single("preview", "stories", "props", "knobs", "log", "source", "interactions", "console");
         int pg = t.GroupOf("preview")!.Id;
         t = t.Dock("stories", pg, DockSide.Left);
         t = t.Dock("props", pg, DockSide.Right);
-        t = t.Dock("log", pg, DockSide.Bottom);
-        int bottom = t.GroupOf("log")!.Id;
-        t = t.MoveTab("knobs", bottom).MoveTab("interactions", bottom).MoveTab("console", bottom).MoveTab("source", bottom);
+        t = t.Dock("knobs", pg, DockSide.Bottom);
+        int bottom = t.GroupOf("knobs")!.Id;
+        t = t.MoveTab("log", bottom).MoveTab("source", bottom).MoveTab("interactions", bottom).MoveTab("console", bottom);
         t = t.ActivateTab("knobs");
         // サイズ: 外側 H (sidebar | main | props) と内側 V (preview | bottom)
         float availW = MathF.Max(1, _winW - 12 - Split.Thickness * 2);

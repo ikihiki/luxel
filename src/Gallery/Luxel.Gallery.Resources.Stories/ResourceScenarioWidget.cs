@@ -18,14 +18,16 @@ namespace Luxel.Gallery.Stories;
 internal sealed class ResourceScenarioWidget : CompositeControl, IDisposable
 {
     private readonly Func<ResourceSystem, Task<string>> _run;
+    private readonly Action<string>? _output;
     private readonly Signal<string> _status = new("Loading");
     private readonly Signal<string> _detail = new("Constructing a private ResourceSystem...");
     private int _started;
 
-    internal ResourceScenarioWidget(string title, Func<ResourceSystem, Task<string>> run)
+    internal ResourceScenarioWidget(string title, Func<ResourceSystem, Task<string>> run, Action<string>? output = null)
     {
         Title = title;
         _run = run;
+        _output = output;
         Resources = new ResourceSystem();
     }
 
@@ -34,16 +36,25 @@ internal sealed class ResourceScenarioWidget : CompositeControl, IDisposable
     internal string Status => _status.Value;
     internal string Detail => _detail.Value;
 
+    protected override bool TrackBuild => false;
+
     protected override Widget Build() => Card(VStack(10)[
         Heading(Title),
-        HStack(8)[Badge(_status.Value, _status.Value == "Ready" ? Intent.Success : _status.Value == "Failed" ? Intent.Danger : Intent.Info),
+        HStack(8)[
+            Text((Func<string>)(() => _status.Value), UiTheme.T.FontSm,
+                color: Bind.From(() => _status.Value == "Ready" ? UiTheme.T.Success
+                    : _status.Value == "Failed" ? UiTheme.T.Danger : UiTheme.T.Info)),
             Muted("story-owned ResourceSystem")],
-        Label(_detail.Value)]);
+        Text((Func<string>)(() => _detail.Value), UiTheme.T.Font)]);
 
     protected override void OnRealize(UiBuildContext ctx)
     {
         ctx.Own(this);
-        Start();
+        ctx.AddAnimation(_ =>
+        {
+            Start();
+            return true;
+        });
     }
 
     internal Task RunForTestAsync()
@@ -67,11 +78,14 @@ internal sealed class ResourceScenarioWidget : CompositeControl, IDisposable
             string detail = await _run(Resources).ConfigureAwait(false);
             _detail.Value = detail;
             _status.Value = "Ready";
+            _output?.Invoke($"{Title}: Ready — {detail}");
         }
         catch (Exception error)
         {
-            _detail.Value = $"{error.GetType().Name}: {error.Message}";
+            string detail = $"{error.GetType().Name}: {error.Message}";
+            _detail.Value = detail;
             _status.Value = "Failed";
+            _output?.Invoke($"{Title}: Failed — {detail}");
         }
     }
 
@@ -80,8 +94,8 @@ internal sealed class ResourceScenarioWidget : CompositeControl, IDisposable
 
 internal static class ResourceScenarios
 {
-    internal static ResourceScenarioWidget Create(string title, Func<ResourceSystem, Task<string>> run)
-        => new(title, run);
+    internal static ResourceScenarioWidget Create(StoryContext context, string title, Func<ResourceSystem, Task<string>> run)
+        => new(title, run, context.Log);
 
     internal static async Task<string> Hello(ResourceSystem resources)
     {

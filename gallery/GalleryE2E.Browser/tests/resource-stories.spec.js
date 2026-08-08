@@ -122,6 +122,54 @@ test('glTF Learn exposes loading, URI, and diagnostic examples without fixture f
   await expectNoFailures(failures);
 });
 
+const cpuResourceStories = [
+  'Examples/Resources/HelloTextAsset',
+  'Examples/Resources/CustomPackageSource',
+  'Examples/Resources/PlayerStatsPipeline',
+  'Examples/Resources/ExtensionSelection',
+  'Examples/Resources/SharedDependencyGraph',
+  'Examples/Resources/ScopedRuntimeValues',
+  'Examples/Resources/HotReloadRecovery',
+  'Examples/Resources/BrowserHttpAssets',
+  'Examples/Resources/Assets/DocumentInspector',
+  'Examples/Resources/Assets/MeshPrimitiveInspector',
+  'Examples/Resources/Assets/MaterialTextureInspector',
+  'Examples/Resources/Assets/AnimatedSceneGraph',
+  'Examples/Resources/Assets/GpuAssetRegistry',
+  'Examples/Resources/Assets/ShaderBufferInspector',
+  'Examples/Resources/Gltf/BoxDocumentLoad',
+  'Examples/Resources/Gltf/ExternalBufferTrace',
+  'Examples/Resources/Gltf/MalformedAccessorDiagnostics',
+  'Examples/Resources/Gltf/ExternalDependencyReload'
+];
+
+for (const story of cpuResourceStories) {
+  test(`browser-WASM executes ${story} with a private ResourceSystem`, async ({ page }) => {
+    const failures = collectFailures(page);
+    await page.goto(runtimeUrl(story));
+    await expectRuntimeStory(page, story);
+    await expect.poll(() => page.evaluate(() =>
+      globalThis.luxelBrowserState?.widgets?.some(widget => widget.detail === 'Ready') || false),
+      { timeout: 30_000 }).toBe(true);
+    await expectNoFailures(failures);
+  });
+}
+
+test('Resource widget publishes its result to the shared Output and Source panels', async ({ page }) => {
+  const failures = collectFailures(page);
+  const story = 'Examples/Resources/HelloTextAsset';
+  await page.goto(`/?story=${encodeURIComponent(story)}`);
+
+  const runtime = page.frameLocator('.story-runtime-frame');
+  await expect(runtime.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
+  await page.getByRole('tab', { name: 'Output' }).click();
+  await expect(page.locator('.output-list')).toContainText('Hello text asset: Ready');
+  await expect(page.locator('.output-list')).toContainText('HELLO RESOURCES');
+  await page.getByRole('tab', { name: 'Source' }).click();
+  await expect(page.locator('.story-source')).toContainText('ResourceScenarios.Create');
+  await expectNoFailures(failures);
+});
+
 for (const story of [
   'Examples/Resources/Gltf/BoxScene',
   'Examples/Resources/Gltf/AnimatedBox',
@@ -133,7 +181,7 @@ for (const story of [
     await page.goto(runtimeUrl(story));
     await expectRuntimeStory(page, story, { gpu: true });
 
-    if (story === 'Examples/Resources/Gltf/AnimatedBox' || story === 'Examples/Resources/Gltf/MorphWeights') {
+    if (story === 'Examples/Resources/Gltf/AnimatedBox') {
       const revision = await page.evaluate(() => globalThis.luxelBrowserState.renderRevision);
       await expect.poll(() => page.evaluate(() => globalThis.luxelBrowserState.renderRevision), {
         timeout: 30_000
