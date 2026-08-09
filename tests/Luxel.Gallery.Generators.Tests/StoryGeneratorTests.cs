@@ -49,6 +49,19 @@ public sealed class StoryGeneratorTests
     }
 
     [Fact]
+    public void Source_UsesCuratedAttributeTextWhenProvided()
+    {
+        const string curated = "using var resources = new ResourceSystem();";
+        string source = GeneratedStorySource("""
+            [Story("Examples/Curated", Source = "using var resources = new ResourceSystem();")]
+            public static Widget Curated() => new Widget();
+            """);
+
+        Assert.Equal(curated, source);
+        Assert.DoesNotContain("public static Widget Curated", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SourceMembers_AppendsNamedHelpersFromDeclaringType()
     {
         const string story = """
@@ -178,6 +191,7 @@ public sealed class StoryGeneratorTests
                     public string? Args { get; set; }
                     public string? Result { get; set; }
                     public string? CapabilityNote { get; set; }
+                    public string? Source { get; set; }
                     public string? SourceMembers { get; set; }
                 }
                 public sealed class StoryContext

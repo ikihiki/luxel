@@ -1,10 +1,9 @@
 const { defineConfig } = require('@playwright/test');
 
 const port = Number(process.env.LUXEL_WEBGPU_E2E_PORT || 4193);
-const useSoftwareGpu = ['1', 'true'].includes((process.env.LUXEL_E2E_SOFTWARE_GPU || '').toLowerCase());
-const gpuArgs = useSoftwareGpu
-  ? ['--enable-unsafe-webgpu', '--use-angle=swiftshader', '--enable-features=Vulkan', '--disable-vulkan-surface']
-  : ['--enable-unsafe-webgpu'];
+// Browser E2E is intentionally deterministic and software-only. Hardware WebGPU coverage
+// belongs to device-specific/manual validation rather than this portable Playwright suite.
+const gpuArgs = ['--enable-unsafe-webgpu', '--use-angle=swiftshader', '--enable-features=Vulkan', '--disable-vulkan-surface'];
 
 module.exports = defineConfig({
   testDir: './tests',

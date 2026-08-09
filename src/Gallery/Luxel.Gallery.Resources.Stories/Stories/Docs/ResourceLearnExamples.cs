@@ -37,8 +37,37 @@ internal static class ResourceLearnExamples
         if (!Routes.TryGetValue(learnRoute, out string[]? examples) || examples.Length == 0)
             throw new InvalidOperationException($"Resource Learn examples are not registered: {learnRoute}");
 
-        string markdown = page.Markdown + "\n\n## Related runnable examples\n\n";
-        for (int i = 0; i < examples.Length; i++) markdown += $"```luxel-story\n{i}\n```\n";
+        const string primaryEmbed = "```luxel-story\n0\n```";
+        string markdown = InsertPrimaryExample(page.Markdown, primaryEmbed);
+        if (examples.Length > 1)
+        {
+            markdown += "\n\n## More runnable examples\n\n";
+            for (int i = 1; i < examples.Length; i++) markdown += $"```luxel-story\n{i}\n```\n";
+        }
         return StoryResult.FromMarkdown(markdown, examples.Select(example => StoryReference.To(example)).ToArray());
+    }
+
+    private static string InsertPrimaryExample(string markdown, string embed)
+    {
+        int firstHeading = markdown.IndexOf("\n## ", StringComparison.Ordinal);
+        int insertion = firstHeading < 0 ? -1 : markdown.IndexOf("\n## ", firstHeading + 1, StringComparison.Ordinal);
+        if (insertion < 0)
+        {
+            string[] paragraphs = markdown.Split(["\n\n"], StringSplitOptions.None);
+            int concept = Array.FindIndex(paragraphs, paragraph =>
+            {
+                string text = paragraph.TrimStart();
+                return text.Length > 0 && !text.StartsWith('#') && !text.StartsWith('<')
+                    && !text.StartsWith("| ") && !text.StartsWith("```", StringComparison.Ordinal);
+            });
+            if (concept >= 0)
+            {
+                var result = paragraphs.ToList();
+                result.Insert(concept + 1, embed);
+                return string.Join("\n\n", result);
+            }
+            return markdown + "\n\n" + embed;
+        }
+        return markdown.Insert(insertion, "\n\n" + embed + "\n");
     }
 }

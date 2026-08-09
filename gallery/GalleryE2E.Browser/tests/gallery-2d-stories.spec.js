@@ -108,6 +108,9 @@ test('Blazor Gallery renders generated Markdown overviews as HTML with navigatio
   await expect(page.locator('.markdown-document')).toContainText('Implementation');
   await expect(page.locator('.markdown-story-embed iframe')).toHaveCount(1);
   const embedded = page.frameLocator('.markdown-story-embed iframe');
+  await expect(embedded.getByRole('tab', { name: 'Args' })).toBeVisible();
+  await expect(embedded.getByRole('tab', { name: 'Output' })).toBeVisible();
+  await expect(embedded.getByRole('tab', { name: 'Source' })).toBeVisible();
   await expect(embedded.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
   await expect(embedded.locator('#status')).toHaveAttribute('data-story', 'Controls/Accordion/Basic');
 
@@ -181,6 +184,27 @@ test('Blazor Gallery exposes Args, Output, Source, and a resizable preview panel
   await expect(page.locator('.output-list')).toHaveCount(0);
 });
 
+test('compact embedded stories expose interactive Args, Output, and Source panels', async ({ page }) => {
+  const story = 'Controls/Button/Counter';
+  await page.goto(`/?story=${encodeURIComponent(story)}&compact=1`);
+
+  await expect(page.locator('.gallery-compact')).toBeVisible();
+  await expect(page.locator('.gallery-sidebar')).toHaveCount(0);
+  await expect(page.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
+
+  const count = page.locator('#story-arg-count');
+  await count.fill('4');
+  await count.blur();
+  await expect.poll(() => page.evaluate(() => globalThis.luxelBrowserState?.count), {
+    timeout: 30_000
+  }).toBe(4);
+
+  await page.getByRole('tab', { name: 'Output' }).click();
+  await expect(page.locator('.output-list')).toContainText('Args changed');
+  await page.getByRole('tab', { name: 'Source' }).click();
+  await expect(page.locator('.story-source')).toContainText('ButtonCounter');
+});
+
 test('embedded widget stories remain canvas-only', async ({ page }) => {
   await page.goto(runtimeUrl('Controls/Button/Counter'));
   await expect(page.locator('.gallery-embed')).toBeVisible();
@@ -238,21 +262,13 @@ for (const story of animationStories) {
         { timeout: 90_000 }).toContain('Ready');
     }
     if (animationMotionStories.has(story)) {
-      const samples = [];
       for (let sample = 0; sample < 4; sample++) {
         const revision = await page.evaluate(() => globalThis.luxelBrowserState.renderRevision);
         await expect.poll(() => page.evaluate(() => globalThis.luxelBrowserState.renderRevision),
           { timeout: 30_000 }).toBeGreaterThan(revision + 9);
-        if (!process.env.CI) {
-          samples.push((await page.locator('#luxel-canvas').screenshot()).toString('base64'));
-        }
       }
-      // Hosted SwiftShader runs with --disable-vulkan-surface, where headless screenshots can remain stale
-      // even though the Gallery presents new frames. Render revisions are the CI animation contract;
-      // hardware-capable local runs additionally verify that the canvas pixels visibly change.
-      if (!process.env.CI) {
-        expect(new Set(samples).size, `${story} should visibly animate`).toBeGreaterThan(1);
-      }
+      // SwiftShader with --disable-vulkan-surface can present fresh frames while headless screenshots
+      // remain stale, so render revision progress is the deterministic animation contract.
     }
     expect(errors.consoleErrors).toEqual([]);
     expect(errors.pageErrors).toEqual([]);

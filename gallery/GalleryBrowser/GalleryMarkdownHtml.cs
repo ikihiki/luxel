@@ -36,7 +36,7 @@ internal static partial class GalleryMarkdownHtml
 
         StoryReference reference = result.References[index];
         string path = WebUtility.HtmlEncode(reference.Path);
-        string url = "?story=" + Uri.EscapeDataString(reference.Path) + "&amp;embed=1";
+        string url = "?story=" + Uri.EscapeDataString(reference.Path) + "&amp;compact=1";
         string args = reference.Args.WithoutDefaults(Array.Empty<StoryArgDefinition>()).ToJson();
         if (args != "{}") url += "&amp;args=" + WebUtility.HtmlEncode(Uri.EscapeDataString(args));
         return $"""

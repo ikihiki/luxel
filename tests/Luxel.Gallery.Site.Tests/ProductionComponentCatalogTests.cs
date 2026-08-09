@@ -108,8 +108,35 @@ public sealed class ProductionComponentCatalogTests
 
             Assert.True(expected.Length >= 2, $"{learnRoute} must embed multiple examples.");
             Assert.Equal(expected, result.References.Select(reference => reference.Path));
+            Assert.True(result.Markdown.IndexOf("```luxel-story\n0\n```", StringComparison.Ordinal)
+                < result.Markdown.IndexOf("## More runnable examples", StringComparison.Ordinal),
+                $"{learnRoute} must place its primary example inside the explanation.");
             Assert.All(expected, example => Assert.NotNull(catalog.Find(example)));
         }
+    }
+
+    [Fact]
+    public void Resource_examples_publish_concept_focused_source_for_inline_docs()
+    {
+        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+        StoryInfo hello = Assert.IsType<StoryInfo>(catalog.Find("Examples/Resources/HelloTextAsset"));
+        StoryInfo reload = Assert.IsType<StoryInfo>(catalog.Find("Examples/Resources/HotReloadRecovery"));
+
+        Assert.Contains("ResourceHandle<TextAsset>", hello.Source, StringComparison.Ordinal);
+        Assert.Contains("await text.Ready", hello.Source, StringComparison.Ordinal);
+        Assert.DoesNotContain("ResourceScenarios.Create", hello.Source, StringComparison.Ordinal);
+        Assert.Contains("last good value", reload.Source, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("PumpAsync", reload.Source, StringComparison.Ordinal);
+
+        string[] examples = ResourceLearnExamples.Routes.Values.SelectMany(routes => routes)
+            .Distinct(StringComparer.Ordinal).ToArray();
+        Assert.All(examples, route =>
+        {
+            StoryInfo story = Assert.IsType<StoryInfo>(catalog.Find(route));
+            Assert.False(string.IsNullOrWhiteSpace(story.Source), $"{route} needs concise instructional source.");
+            Assert.DoesNotContain("ResourceScenarios.Create", story.Source, StringComparison.Ordinal);
+            Assert.DoesNotContain("GltfStoryAssets.View", story.Source, StringComparison.Ordinal);
+        });
     }
 
     [Fact]

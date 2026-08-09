@@ -10,6 +10,7 @@ if (!args || Array.isArray(args) || typeof args !== "object") throw new Error("s
 let revision = 0;
 let setArgsExport = null;
 let pendingSetArgs = null;
+let localReceiver = null;
 const runtimeState = { state: "loading", summary: "", story, instanceId, args, schema: [], revision, renderRevision: 0, lastRequestId: null, events: [], widgets: [], webGpu: null, pointerDownCount: 0, pointerUpCount: 0 };
 const updateCountState = () => {
   if (Number.isFinite(Number(args.count))) runtimeState.count = runtimeState.presentedCount = Number(args.count);
@@ -19,7 +20,11 @@ globalThis.luxelBrowserState = runtimeState;
 const canvas = document.getElementById("luxel-canvas");
 canvas?.addEventListener("pointerdown", () => runtimeState.pointerDownCount += 1);
 canvas?.addEventListener("pointerup", () => runtimeState.pointerUpCount += 1);
-const post = (type, payload = {}) => parent !== window && parent.postMessage({ luxelGallery: true, protocolVersion, type, story, instanceId, revision, args, ...payload }, location.origin);
+const post = (type, payload = {}) => {
+  const message = { luxelGallery: true, protocolVersion, type, story, instanceId, revision, args, ...payload };
+  if (parent !== window) parent.postMessage(message, location.origin);
+  localReceiver?.invokeMethodAsync("OnRuntimeMessage", message).catch(error => console.error("Gallery local runtime message failed", error));
+};
 const parseObject = (json, label) => {
   const value = JSON.parse(json || "{}");
   if (!value || Array.isArray(value) || typeof value !== "object") throw new Error(`${label} must be a JSON object`);
@@ -113,6 +118,12 @@ try {
   console.warn("Luxel Gallery JS export discovery failed", error);
 }
 
+export const setLocalReceiver = receiver => { localReceiver = receiver; };
+export const setArgs = (nextRevision, requestId, argsJson) => applySetArgs({
+  revision: nextRevision,
+  requestId,
+  args: parseObject(argsJson, "set-args args")
+});
 export const getArgsJson = host.getArgsJson;
 export const getStory = host.getStory;
 export const nextFrame = host.nextFrame;

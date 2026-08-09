@@ -24,7 +24,9 @@
 }
 else
 {
-    <div class="gallery-shell">
+    <div class="@(_compact ? "gallery-compact" : "gallery-shell")">
+        @if (!_compact)
+        {
         <aside class="gallery-sidebar">
             <header class="gallery-brand">
                 <span class="gallery-mark">L</span>
@@ -53,8 +55,11 @@ else
             </nav>
             <footer class="gallery-sidebar-footer">@Catalog.All.Count stories</footer>
         </aside>
+        }
 
         <main class="gallery-main">
+            @if (!_compact)
+            {
             <header class="story-toolbar">
                 <div>
                     <p>@_story.Component</p>
@@ -62,6 +67,7 @@ else
                 </div>
                 <a class="open-alone" href="@EmbeddedStoryHref(_story.Path, _argsJson)" target="_blank" rel="noopener">Open canvas</a>
             </header>
+            }
             @if (_documentHtml is not null)
             {
                 <article class="markdown-document">@((MarkupString)_documentHtml)</article>
@@ -70,8 +76,17 @@ else
             {
                 <div class="story-workspace" @ref="_workspace">
                     <section class="story-preview" aria-label="Story preview">
-                        <iframe @key="_runtimeUrl" @ref="_runtimeFrame" class="story-runtime-frame" src="@_runtimeUrl"
-                                title="@_story.Path" allow="autoplay; clipboard-read; clipboard-write"></iframe>
+                        @if (_compact)
+                        {
+                            <canvas id="luxel-canvas" tabindex="0" aria-label="Luxel browser WebGPU"></canvas>
+                            <div id="status" hidden data-status="loading"></div>
+                            <div id="error" role="alert" hidden></div>
+                        }
+                        else
+                        {
+                            <iframe @key="_runtimeUrl" @ref="_runtimeFrame" class="story-runtime-frame" src="@_runtimeUrl"
+                                    title="@_story.Path" allow="autoplay; clipboard-read; clipboard-write"></iframe>
+                        }
                     </section>
                     <div class="story-splitter" @ref="_splitter" role="separator" tabindex="0"
                          aria-label="Resize story preview and details" aria-orientation="horizontal"
@@ -185,6 +200,7 @@ else
     private static readonly string[] Tabs = ["Args", "Output", "Source"];
     private bool _started;
     private bool _embedded;
+    private bool _compact;
     private string _argsJson = "{}";
     private string _search = "";
     private string? _documentHtml;
@@ -203,6 +219,7 @@ else
     private ElementReference _runtimeFrame;
     private ElementReference _splitter;
     private IJSObjectReference? _galleryHostModule;
+    private IJSObjectReference? _runtimeModule;
     private DotNetObjectReference<App>? _galleryHostReceiver;
     private JSObject? _browserHostModule;
     private JSObject? _slangModule;
@@ -217,10 +234,18 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_embedded)
+        if (_embedded || _compact)
         {
             if (!firstRender || _started) return;
             _started = true;
+            if (_compact)
+            {
+                _galleryHostReceiver = DotNetObjectReference.Create(this);
+                _runtimeModule = await JS.InvokeAsync<IJSObjectReference>("import", "./main.js");
+                await _runtimeModule.InvokeVoidAsync("setLocalReceiver", _galleryHostReceiver);
+                _galleryHostModule = await JS.InvokeAsync<IJSObjectReference>("import", "./gallery-host.js");
+                await _galleryHostModule.InvokeVoidAsync("wireSplitter", _workspace, _splitter);
+            }
             _browserHostModule = await JSHost.ImportAsync("luxel-browser-host", "../main.js");
             _slangModule = await JSHost.ImportAsync("luxel-slang", "../slang-browser.js");
             _webGpuModule = await JSHost.ImportAsync("./luxel-webgpu-browser.js", "../luxel-webgpu-browser.js");
@@ -247,6 +272,7 @@ else
         Uri uri = Navigation.ToAbsoluteUri(location);
         Dictionary<string, string> query = ParseQuery(uri.Query);
         _embedded = query.GetValueOrDefault("embed") is "1" or "true";
+        _compact = !_embedded && query.GetValueOrDefault("compact") is "1" or "true";
         string? requested = query.GetValueOrDefault("story");
         _story = requested is null ? Catalog.All[0] : Catalog.Find(requested)
             ?? throw new InvalidOperationException($"Unknown browser story '{requested}'.");
@@ -263,7 +289,7 @@ else
         _runtimeState = "loading";
         _runtimeSummary = "Waiting for the story runtime.";
         _output.Clear();
-        _runtimeUrl = _embedded || _documentHtml is not null
+        _runtimeUrl = _embedded || _compact || _documentHtml is not null
             ? ""
             : EmbeddedStoryHref(_story.Path, _argsJson, _runtimeInstance);
     }
@@ -328,7 +354,9 @@ else
             _argsJson = new StoryArgs(_argValues).ToJson();
             int revision = ++_revision;
             string requestId = $"args-{revision}-{Guid.NewGuid():N}";
-            if (_galleryHostModule is not null)
+            if (_compact && _runtimeModule is not null)
+                await _runtimeModule.InvokeVoidAsync("setArgs", revision, requestId, _argsJson);
+            else if (_galleryHostModule is not null)
                 await _galleryHostModule.InvokeVoidAsync("setArgs", _runtimeFrame, _story.Path, _runtimeInstance,
                     revision, requestId, _argsJson);
         }
@@ -465,11 +493,23 @@ else
     public async ValueTask DisposeAsync()
     {
         Dispose();
+        if (_runtimeModule is not null)
+        {
+            try
+            {
+                await _runtimeModule.InvokeVoidAsync("setLocalReceiver", (object?)null);
+                await _runtimeModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // The browser has already torn down the JS runtime.
+            }
+        }
         if (_galleryHostModule is not null)
         {
             try
             {
-                await _galleryHostModule.InvokeVoidAsync("dispose");
+                if (!_compact) await _galleryHostModule.InvokeVoidAsync("dispose");
                 await _galleryHostModule.DisposeAsync();
             }
             catch (JSDisconnectedException)

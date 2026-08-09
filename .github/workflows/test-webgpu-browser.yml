@@ -62,9 +62,6 @@ permissions:
 jobs:
   browser-contracts:
     runs-on: ubuntu-24.04
-    env:
-      # Hosted CI uses a deterministic software adapter. Local runs prefer hardware unless this is set.
-      LUXEL_E2E_SOFTWARE_GPU: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4

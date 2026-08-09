@@ -61,7 +61,12 @@ test('ResourceSystem Learn renders TOC, course navigation, live examples, and Ba
   await expect(embeds.nth(0).locator('header')).toContainText('Examples/Resources/HelloTextAsset');
   await expect(embeds.nth(1).locator('header')).toContainText('Examples/Resources/HotReloadRecovery');
   const embedded = page.frameLocator('.markdown-story-embed iframe').first();
+  await expect(embedded.getByRole('tab', { name: 'Args' })).toBeVisible();
+  await embedded.getByRole('tab', { name: 'Source' }).click();
+  await expect(embedded.locator('.story-source')).toContainText('ResourceHandle<TextAsset>');
   await expect(embedded.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
+  await embedded.getByRole('tab', { name: 'Output' }).click();
+  await expect(embedded.locator('.output-list')).toContainText('Hello text asset: Ready');
 
   await embeds.nth(0).getByRole('link', { name: 'Open story' }).click();
   await expect(page).toHaveURL(/story=Examples%2FResources%2FHelloTextAsset/);
@@ -166,7 +171,8 @@ test('Resource widget publishes its result to the shared Output and Source panel
   await expect(page.locator('.output-list')).toContainText('Hello text asset: Ready');
   await expect(page.locator('.output-list')).toContainText('HELLO RESOURCES');
   await page.getByRole('tab', { name: 'Source' }).click();
-  await expect(page.locator('.story-source')).toContainText('ResourceScenarios.Create');
+  await expect(page.locator('.story-source')).toContainText('ResourceHandle<TextAsset>');
+  await expect(page.locator('.story-source')).not.toContainText('ResourceScenarios.Create');
   await expectNoFailures(failures);
 });
 

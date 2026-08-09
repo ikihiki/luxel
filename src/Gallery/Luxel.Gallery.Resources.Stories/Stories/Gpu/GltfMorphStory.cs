@@ -33,7 +33,7 @@ public static class GltfMorphStories
         public uint VertexCount;
     }
 
-    [Story("Examples/Resources/Gltf/MorphWeights", Height = 320, Order = 128)]
+    [Story("Examples/Resources/Gltf/MorphWeights", Height = 320, Order = 128, Source = ResourceExampleSources.MorphScene)]
     public static Widget GltfMorph(StoryContext ctx) => ctx.Snap(Frame(
         GltfStoryAssets.ViewGenerated(ctx, CreateDocument(), static document => new MorphScene(document), animated: false)));
 
