@@ -72,7 +72,7 @@
     <Project Path="src/Gallery/Luxel.Gallery.Native/Luxel.Gallery.Native.csproj" />
     <Project Path="src/Gallery/Luxel.Gallery.Playground/Luxel.Gallery.Playground.csproj" />
     <Project Path="src/Gallery/Luxel.Gallery.Rendering/Luxel.Gallery.Rendering.csproj" />
-    <Project Path="src/Gallery/Luxel.Gallery.Resources.Stories/Luxel.Gallery.Resources.Stories.csproj" />
+    <Project Path="src/Resource/Luxel.Resources.Gallery/Luxel.Resources.Gallery.csproj" />
     <Project Path="src/Gallery/Luxel.Gallery.Stories.CoreUi/Luxel.Gallery.Stories.CoreUi.csproj" />
     <Project Path="src/Gallery/Luxel.Gallery.Stories/Luxel.Gallery.Stories.csproj" />
     <Project Path="src/Gallery/Luxel.Gallery.UI/Luxel.Gallery.UI.csproj" />

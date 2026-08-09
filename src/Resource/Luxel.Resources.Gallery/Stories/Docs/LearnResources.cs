@@ -1,6 +1,6 @@
 using Luxel.UI;
 
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>Resourcesの取得、変換、依存、所有権、再ロードを順番に学ぶコース。</summary>
 public static class LearnResources

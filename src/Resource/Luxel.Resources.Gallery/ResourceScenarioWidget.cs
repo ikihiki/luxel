@@ -12,7 +12,7 @@ using Luxel.Resources;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>Widgetインスタンス専用のResourceSystemを持つ、ブラウザー対応の実行可能リソースシナリオ。</summary>
 internal sealed class ResourceScenarioWidget : CompositeControl, IDisposable

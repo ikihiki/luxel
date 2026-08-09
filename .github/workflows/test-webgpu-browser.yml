@@ -41,7 +41,7 @@ on:
       - 'src/Gallery/Luxel.Gallery.Playground/**'
       - 'src/Luxel.Scripting/**'
       - 'src/Luxel.Scripting.Roslyn.Web/**'
-      - 'src/Gallery/Luxel.Gallery.Resources.Stories/**'
+      - 'src/Resource/Luxel.Resources.Gallery/**'
       - 'src/Gallery/Luxel.Gallery.Stories.CoreUi/**'
       - 'src/Luxel.UI.Generators/**'
       - 'eng/check-project-dependencies.py'

@@ -1,6 +1,6 @@
 using Luxel.Controls;
 
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>Resources Story assembly内の埋め込みsampleと学習メタデータを扱う専用helper。</summary>
 internal static class ResourceDocsKit

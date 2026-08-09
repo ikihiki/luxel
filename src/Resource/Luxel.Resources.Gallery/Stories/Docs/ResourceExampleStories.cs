@@ -6,9 +6,9 @@ using Luxel.Assets.Gltf;
 using Luxel.AssetsGpu;
 using Luxel.Resources;
 using Luxel.UI;
-using static Luxel.Gallery.Stories.ResourceScenarioSupport;
+using static Luxel.Resources.Gallery.Stories.ResourceScenarioSupport;
 
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>標準の実行可能リソースシナリオ。各Storyに、実演するResourceSystem操作を直接記述する。</summary>
 public static class ResourceExampleStories

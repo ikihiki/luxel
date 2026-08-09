@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using Luxel.Gallery;
 using Luxel.Gallery.Stories;
+using Luxel.Resources.Gallery;
+using Luxel.Resources.Gallery.Stories;
 using Luxel.UI;
 
 namespace Luxel.Gallery.Site.Tests;
@@ -76,7 +78,7 @@ public sealed class ProductionComponentCatalogTests
             "Examples/Resources/Gltf/ExternalDependencyReload",
         ];
 
-        StoryCatalog resourceCatalog = ResourceStoryProject.CreateCatalog();
+        StoryCatalog resourceCatalog = ResourceGalleryProject.CreateCatalog();
         StoryCatalog fullCatalog = GalleryStoryProject.CreateCatalog();
         StoryCatalog coreUiCatalog = CoreUiStoryProject.CreateCatalog();
         HashSet<string> browserPaths = coreUiCatalog.All
@@ -95,7 +97,7 @@ public sealed class ProductionComponentCatalogTests
     [Fact]
     public void Every_resource_learn_page_embeds_one_primary_canonical_example_inline()
     {
-        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+        StoryCatalog catalog = ResourceGalleryProject.CreateCatalog();
 
         Assert.Equal(ResourceCourseCatalog.Routes.Order(StringComparer.Ordinal),
             ResourceLearnExamples.Routes.Keys.Order(StringComparer.Ordinal));
@@ -117,7 +119,7 @@ public sealed class ProductionComponentCatalogTests
     [Fact]
     public void Resource_examples_publish_their_automatically_captured_story_methods()
     {
-        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+        StoryCatalog catalog = ResourceGalleryProject.CreateCatalog();
         StoryInfo hello = Assert.IsType<StoryInfo>(catalog.Find("Examples/Resources/HelloTextAsset"));
         StoryInfo boxScene = Assert.IsType<StoryInfo>(catalog.Find("Examples/Resources/Gltf/BoxScene"));
 
@@ -143,7 +145,7 @@ public sealed class ProductionComponentCatalogTests
     [Fact]
     public void Every_canonical_resource_example_builds_a_widget_without_host_resources()
     {
-        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+        StoryCatalog catalog = ResourceGalleryProject.CreateCatalog();
         string[] examples = ResourceLearnExamples.Routes.Values
             .SelectMany(routes => routes)
             .Distinct(StringComparer.Ordinal)
@@ -164,7 +166,7 @@ public sealed class ProductionComponentCatalogTests
     [Fact]
     public async Task Gpu_resource_examples_construct_private_systems_and_load_embedded_fixtures()
     {
-        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+        StoryCatalog catalog = ResourceGalleryProject.CreateCatalog();
         string[] gpuExamples =
         [
             "Examples/Resources/Gltf/BoxScene",
@@ -190,7 +192,7 @@ public sealed class ProductionComponentCatalogTests
     [Fact]
     public async Task Cpu_resource_examples_execute_with_isolated_systems_and_deterministic_results()
     {
-        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+        StoryCatalog catalog = ResourceGalleryProject.CreateCatalog();
         string[] gpuExamples =
         [
             "Examples/Resources/Gltf/BoxScene",
@@ -227,7 +229,7 @@ public sealed class ProductionComponentCatalogTests
     [Fact]
     public void Removed_resource_routes_have_no_aliases()
     {
-        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+        StoryCatalog catalog = ResourceGalleryProject.CreateCatalog();
         string[] removed =
         [
             "Learn/Resources/Assets/TypesAndRelationships",
@@ -247,20 +249,34 @@ public sealed class ProductionComponentCatalogTests
     }
 
     [Fact]
-    public void AddResourceStory_registers_the_resource_catalog_in_service_registration_order()
+    public void AddResourceGallery_registers_the_resource_catalog_in_service_registration_order()
     {
         var services = new ServiceCollection();
         services.AddStoryCatalog(builder => builder.Add(new StoryInfo("Before/Resource", 1, 1, null, _ => null!)));
-        services.AddResourceStory();
+        services.AddResourceGallery();
         services.AddStoryCatalog(builder => builder.Add(new StoryInfo("After/Resource", 1, 1, null, _ => null!)));
         using ServiceProvider provider = services.BuildServiceProvider();
 
         StoryCatalog catalog = provider.GetRequiredService<StoryCatalog>();
-        string[] resourcePaths = ResourceStoryProject.CreateCatalog().All.Select(story => story.Path).ToArray();
+        string[] resourcePaths = ResourceGalleryProject.CreateCatalog().All.Select(story => story.Path).ToArray();
 
         Assert.Equal("Before/Resource", catalog.All[0].Path);
         Assert.Equal(resourcePaths, catalog.All.Skip(1).Take(resourcePaths.Length).Select(story => story.Path));
         Assert.Equal("After/Resource", catalog.All[^1].Path);
+    }
+
+    [Fact]
+    public void Resource_stories_are_owned_only_by_the_Resource_Gallery_project()
+    {
+        string root = FindRepositoryRoot();
+        string resourceRoot = Path.Combine(root, "src", "Resource");
+        string galleryRoot = Path.Combine(resourceRoot, "Luxel.Resources.Gallery");
+        string[] storyFiles = Directory.EnumerateFiles(resourceRoot, "*.cs", SearchOption.AllDirectories)
+            .Where(path => File.ReadAllText(path).Contains("[Story(", StringComparison.Ordinal))
+            .ToArray();
+
+        Assert.NotEmpty(storyFiles);
+        Assert.All(storyFiles, path => Assert.StartsWith(galleryRoot + Path.DirectorySeparatorChar, path, StringComparison.Ordinal));
     }
 
     [Fact]

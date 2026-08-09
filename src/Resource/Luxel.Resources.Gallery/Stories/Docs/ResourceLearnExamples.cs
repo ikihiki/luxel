@@ -1,4 +1,4 @@
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>Canonical Learn-to-example relationship. Learn pages use this mapping to emit structured story embeds.</summary>
 internal static class ResourceLearnExamples

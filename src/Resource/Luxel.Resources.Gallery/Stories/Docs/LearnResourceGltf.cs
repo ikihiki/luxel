@@ -1,6 +1,6 @@
 using Luxel.UI;
 
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>glTFのインポート、依存、診断、ランタイム、寿命を学ぶコース。</summary>
 public static class LearnResourceGltf

@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Resources.Gallery.Stories;
 
 internal static class ResourceSampleBundles
 {

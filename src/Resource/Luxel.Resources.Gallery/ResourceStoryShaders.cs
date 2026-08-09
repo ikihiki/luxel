@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>Resource GPU stories が native/browser 共通で使用する埋め込み shader blobs。</summary>
 internal static class ResourceStoryShaders

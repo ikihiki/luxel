@@ -1,6 +1,6 @@
 using Luxel.Controls;
 
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>Resources学習コースの順序と前後ナビゲーションを管理する唯一の定義。</summary>
 internal static class ResourceCourseCatalog

@@ -1,6 +1,6 @@
 using Luxel.UI;
 
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>CPUアセットの型体系と、必要に応じて作成するGPU表現を学ぶコース。</summary>
 public static class LearnResourceAssets

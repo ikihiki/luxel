@@ -5,13 +5,11 @@ using Luxel.Controls;
 using Luxel.Resources;
 using Luxel.UI;
 
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>Deterministic embedded glTF fixtures loaded through a ResourceSystem owned by each GPU story.</summary>
 public static class GltfStoryAssets
 {
-    // Retained for the separate Range sample, whose host configures this optional asset.
-    public const string Fox = "tools/khronos-samples/Fox.glb";
     public const string Box = "story://fixtures/Box.gltf";
     public const string AnimatedBox = "story://fixtures/BoxAnimated.glb";
     public const string RiggedSimple = "story://fixtures/RiggedSimple.glb";

@@ -14,18 +14,27 @@ public sealed class BrowserStoryCatalogSourceTests
         string markdown = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "GalleryMarkdownHtml.cs"));
         string project = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "GalleryBrowser.csproj"));
 
+        string solution = File.ReadAllText(Path.Combine(root, "Luxel.slnx"));
+        string resourceProject = File.ReadAllText(Path.Combine(root, "src", "Resource", "Luxel.Resources.Gallery", "ResourceGalleryProject.cs"));
+        string resourceBundles = File.ReadAllText(Path.Combine(root, "src", "Resource", "Luxel.Resources.Gallery", "ResourceSampleBundles.cs"));
+        string fullGalleryBundles = File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Stories", "SampleBundles.cs"));
         string fixtureTargets = File.ReadAllText(Path.Combine(root, "assets", "Luxel.KhronosBox.targets"));
         string dependencyChecker = File.ReadAllText(Path.Combine(root, "eng", "check-project-dependencies.py"));
 
         Assert.Contains("Microsoft.NET.Sdk.BlazorWebAssembly", project, StringComparison.Ordinal);
         Assert.Contains("WebAssemblyHostBuilder.CreateDefault(args)", entryPoint, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddSingleton(new HttpClient", entryPoint, StringComparison.Ordinal);
-        Assert.Contains("builder.Services.AddResourceStory()", entryPoint, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddResourceGallery()", entryPoint, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddCoreUiStory()", entryPoint, StringComparison.Ordinal);
         Assert.True(
-            entryPoint.IndexOf("builder.Services.AddResourceStory()", StringComparison.Ordinal)
+            entryPoint.IndexOf("builder.Services.AddResourceGallery()", StringComparison.Ordinal)
             < entryPoint.IndexOf("builder.Services.AddCoreUiStory()", StringComparison.Ordinal));
-        Assert.Contains("Luxel.Gallery.Resources.Stories.csproj", project, StringComparison.Ordinal);
+        Assert.Contains("Luxel.Resources.Gallery.csproj", project, StringComparison.Ordinal);
+        Assert.Contains("src/Resource/Luxel.Resources.Gallery/Luxel.Resources.Gallery.csproj", solution, StringComparison.Ordinal);
+        Assert.DoesNotContain("Luxel.Gallery.Resources.Stories", solution, StringComparison.Ordinal);
+        Assert.Contains("StoryRegistration_Luxel_Resources_Gallery", resourceProject, StringComparison.Ordinal);
+        Assert.Contains("\"resources.scenarios\", \"Resource scenarios\"", resourceBundles, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"resources.scenarios\", \"Resource scenarios\"", fullGalleryBundles, StringComparison.Ordinal);
         Assert.Contains("wwwroot\\tools\\khronos-samples\\Box\\Box.gltf", project, StringComparison.Ordinal);
         Assert.Contains("wwwroot\\tools\\khronos-samples\\BoxAnimated\\BoxAnimated.glb", project, StringComparison.Ordinal);
         Assert.Contains("wwwroot\\tools\\khronos-samples\\RiggedSimple\\RiggedSimple.glb", project, StringComparison.Ordinal);
@@ -66,7 +75,8 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("BoxAnimated/glTF-Binary/BoxAnimated.glb", fixtureTargets, StringComparison.Ordinal);
         Assert.Contains("RiggedSimple/glTF-Binary/RiggedSimple.glb", fixtureTargets, StringComparison.Ordinal);
         Assert.Contains("GetFileHash Files=\"@(_KhronosSampleAsset)\" Algorithm=\"SHA256\"", fixtureTargets, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"Luxel.Gallery.Stories\", \"Luxel.Gallery.Resources.Stories\"", dependencyChecker, StringComparison.Ordinal);
+        Assert.Contains("stem == \"Luxel.Resources.Gallery\"", dependencyChecker, StringComparison.Ordinal);
+        Assert.Contains("forbid_closure(\"Luxel.Resources.Gallery\", browser_forbidden", dependencyChecker, StringComparison.Ordinal);
         Assert.Contains("Luxel.Graphics.Vulkan", dependencyChecker, StringComparison.Ordinal);
         Assert.Contains("forbid_closure(\"GalleryBrowser\", browser_forbidden", dependencyChecker, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "browser-runtime-manifest.json")));

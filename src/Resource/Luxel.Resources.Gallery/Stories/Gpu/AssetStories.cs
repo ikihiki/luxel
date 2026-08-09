@@ -7,9 +7,9 @@ using Luxel.Assets.Gltf;
 using Luxel.Graphics.RenderGraph;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.StoryKit;
+using static Luxel.Resources.Gallery.Stories.ResourceStoryKit;
 
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>
 /// アセットパイプラインのデモ — glTF を <see cref="GltfResourceStep"/> で AssetDocument に読み、
