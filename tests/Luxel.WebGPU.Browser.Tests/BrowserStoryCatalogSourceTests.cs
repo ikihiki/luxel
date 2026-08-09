@@ -64,6 +64,7 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.DoesNotContain("new ResourceSystem(", runtime, StringComparison.Ordinal);
         Assert.DoesNotContain("InstallAssetGpu", runtime, StringComparison.Ordinal);
         Assert.Contains("await resources.PumpAsync()", runtime, StringComparison.Ordinal);
+        Assert.Contains("await context.PumpObservedResourcesAsync()", runtime, StringComparison.Ordinal);
         Assert.DoesNotContain("resources.Pump();", runtime, StringComparison.Ordinal);
         Assert.DoesNotContain("RuntimeBundleId", runtime, StringComparison.Ordinal);
         Assert.DoesNotContain("browser-runtime-manifest", script, StringComparison.Ordinal);

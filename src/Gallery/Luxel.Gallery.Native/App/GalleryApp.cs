@@ -170,6 +170,7 @@ public sealed class GalleryApp : IDisposable
     public void Update()
     {
         Resources.Pump();
+        _ctx?.PumpObservedResources();
         if (_pendingStoryError is { } storyError)
         {
             _pendingStoryError = null;

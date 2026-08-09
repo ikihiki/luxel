@@ -192,6 +192,7 @@ public static partial class BrowserGalleryApplication
                         resizePending = false;
                     }
                     await resources.PumpAsync();
+                    await context.PumpObservedResourcesAsync();
                     ui.Tick(1f / 60f);
                     if (canvas.HasPendingChanges) await RenderAsync();
                     await NextFrame();

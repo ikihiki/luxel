@@ -166,6 +166,9 @@ public sealed class ProductionComponentCatalogTests
             StoryInfo gpuStory = Assert.IsType<StoryInfo>(catalog.Find(route));
             Assert.Contains("ResourceSystemBuilder", gpuStory.Source, StringComparison.Ordinal);
             Assert.Contains("ResourceHandle<AssetDocument>", gpuStory.Source, StringComparison.Ordinal);
+            Assert.Contains("documentState = ctx.Observe(resources, document)", gpuStory.Source, StringComparison.Ordinal);
+            Assert.Contains("ResourceState snapshot = documentState.Value", gpuStory.Source, StringComparison.Ordinal);
+            Assert.DoesNotContain("ResourceState snapshot = document.State", gpuStory.Source, StringComparison.Ordinal);
             Assert.Contains("GpuView(256, 256", gpuStory.Source, StringComparison.Ordinal);
             Assert.Contains("scene = new", gpuStory.Source, StringComparison.Ordinal);
             Assert.Contains("scene.Render(device, surface, time)", gpuStory.Source, StringComparison.Ordinal);

@@ -45,12 +45,13 @@ public static class AssetStories
             .RunOn(core.CpuDomain).ManagedBy(core.CpuManager).Register();
         ResourceSystem resources = builder.Build();
         ResourceHandle<AssetDocument> document = resources.Load<AssetDocument>(GltfStoryAssets.Box);
+        Signal<ResourceState> documentState = ctx.Observe(resources, document);
         StaticGltfScene? scene = null;
         int sceneVersion = -1;
 
         Widget view = GpuView(256, 256, (device, surface, time) =>
         {
-            ResourceState snapshot = document.State;
+            ResourceState snapshot = documentState.Value;
             if (!snapshot.HasValue)
                 return snapshot.Status == ResourceStatus.Failed
                     ? GpuViewRenderResult.Failed
@@ -143,12 +144,13 @@ public static class AssetStories
             .RunOn(core.CpuDomain).ManagedBy(core.CpuManager).Register();
         ResourceSystem resources = builder.Build();
         ResourceHandle<AssetDocument> document = resources.Load<AssetDocument>(GltfStoryAssets.AnimatedBox);
+        Signal<ResourceState> documentState = ctx.Observe(resources, document);
         GltfScene? scene = null;
         int sceneVersion = -1;
 
         Widget view = GpuView(256, 256, (device, surface, time) =>
         {
-            ResourceState snapshot = document.State;
+            ResourceState snapshot = documentState.Value;
             if (!snapshot.HasValue)
                 return snapshot.Status == ResourceStatus.Failed
                     ? GpuViewRenderResult.Failed

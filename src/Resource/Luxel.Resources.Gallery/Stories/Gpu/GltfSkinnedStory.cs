@@ -48,12 +48,13 @@ public static class GltfSkinnedStories
             .RunOn(core.CpuDomain).ManagedBy(core.CpuManager).Register();
         ResourceSystem resources = builder.Build();
         ResourceHandle<AssetDocument> document = resources.Load<AssetDocument>(GltfStoryAssets.RiggedSimple);
+        Signal<ResourceState> documentState = ctx.Observe(resources, document);
         SkinnedScene? scene = null;
         int sceneVersion = -1;
 
         Widget view = GpuView(256, 256, (device, surface, time) =>
         {
-            ResourceState snapshot = document.State;
+            ResourceState snapshot = documentState.Value;
             if (!snapshot.HasValue)
                 return snapshot.Status == ResourceStatus.Failed
                     ? GpuViewRenderResult.Failed

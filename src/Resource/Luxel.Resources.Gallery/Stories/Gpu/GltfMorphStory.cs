@@ -50,12 +50,13 @@ public static class GltfMorphStories
         ResourceScope scope = resources.CreateScope("gpu-story/generated-document");
         ResourceHandle<AssetDocument> document = scope.Create<AssetDocumentSeed, AssetDocument>(
             "generated.gltf", new AssetDocumentSeed(generated));
+        Luxel.UI.Signal<ResourceState> documentState = ctx.Observe(resources, document);
         MorphScene? scene = null;
         int sceneVersion = -1;
 
         Widget view = GpuView(256, 256, (device, surface, time) =>
         {
-            ResourceState snapshot = document.State;
+            ResourceState snapshot = documentState.Value;
             if (!snapshot.HasValue)
                 return snapshot.Status == ResourceStatus.Failed
                     ? GpuViewRenderResult.Failed

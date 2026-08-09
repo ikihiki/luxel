@@ -265,7 +265,8 @@ public sealed class GalleryHost : IDisposable
     public void Step(float dt)
     {
         Commands.Drain();
-        _resources.Pump();   // リロード/遅延 Dispose の処理 (初回ロードの publish は Pump 不要)
+        _resources.Pump();   // リロード/遅延 Dispose の処理
+        _ctx?.PumpObservedResources();
         _ctx?.PumpKnobEdits();   // Knobs テーブル (docs 埋め込み) の編集適用 (effect 文脈外)
         if (_host is null || _canvas is null || _rasterScene is null) return;
         _host.Tick(dt);
