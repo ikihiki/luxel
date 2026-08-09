@@ -11,7 +11,15 @@ public sealed class BrowserWebGpuSurface : IGpuBackendSurface
     private uint _height;
     private bool _disposed;
     internal BrowserWebGpuSurface(BrowserWebGpuBackend owner, int handle, uint width, uint height)
-    { _owner = owner; _handle = handle > 0 ? handle : throw new InvalidOperationException("JavaScript returned an invalid surface handle."); _width = width; _height = height; }
+    {
+        _owner = owner;
+        _handle = handle > 0 ? handle : throw new InvalidOperationException("JavaScript returned an invalid surface handle.");
+        _width = width;
+        _height = height;
+        _owner.Lifecycle.Surface(SurfaceId, GpuSurfaceLifecycleState.Created, width, height);
+    }
+
+    private string SurfaceId => $"browser:{_handle}";
 
     public void Present(IGpuBackendBuffer source, uint srcStridePixels, uint width, uint height)
     {
@@ -32,13 +40,16 @@ public sealed class BrowserWebGpuSurface : IGpuBackendSurface
         if (_width == width && _height == height) return;
         _owner.Interop.SurfaceResize(_handle, (int)width, (int)height);
         _width = width; _height = height;
+        _owner.Lifecycle.Surface(SurfaceId, GpuSurfaceLifecycleState.Resized, width, height);
     }
 
     public void Dispose()
     {
         if (_disposed) return;
+        _owner.Lifecycle.Surface(SurfaceId, GpuSurfaceLifecycleState.Disposing, _width, _height);
         _disposed = true;
         _owner.ReleaseHandle(BrowserHandleKind.Surface, _handle);
+        _owner.Lifecycle.Surface(SurfaceId, GpuSurfaceLifecycleState.Disposed, _width, _height);
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);

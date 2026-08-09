@@ -6,6 +6,7 @@ internal interface IBrowserWebGpuInterop
 {
     Task<string> InitializeAsync();
     string GetDiagnostics(int backend);
+    string DrainLifecycleEvents(int backend);
     void RecordDiagnosticsError(int backend, string source, string name, string message, string stack);
     int CreateComputePipeline(int backend, string wgslBase64, string entryPoint);
     int CreateGraphicsPipeline(int backend, string vsBase64, string vsEntry, string psBase64, string psEntry, string rasterJson);
@@ -34,7 +35,7 @@ internal interface IBrowserWebGpuInterop
     void SurfacePresent(int surface, int sourceOffset, int stride, int width, int height);
     void SurfaceResize(int surface, int width, int height);
     void Release(int kind, int handle);
-    void DisposeBackend(int backend);
+    string DisposeBackend(int backend);
 }
 
 internal sealed partial class BrowserWebGpuInterop : IBrowserWebGpuInterop
@@ -43,6 +44,7 @@ internal sealed partial class BrowserWebGpuInterop : IBrowserWebGpuInterop
 
     public Task<string> InitializeAsync() => InitializeCoreAsync();
     public string GetDiagnostics(int backend) => GetDiagnosticsCore(backend);
+    public string DrainLifecycleEvents(int backend) => DrainLifecycleEventsCore(backend);
     public void RecordDiagnosticsError(int backend, string source, string name, string message, string stack) => RecordDiagnosticsErrorCore(backend, source, name, message, stack);
     public int CreateComputePipeline(int backend, string wgslBase64, string entryPoint) => CreateComputePipelineCore(backend, wgslBase64, entryPoint);
     public int CreateGraphicsPipeline(int backend, string vsBase64, string vsEntry, string psBase64, string psEntry, string rasterJson) => CreateGraphicsPipelineCore(backend, vsBase64, vsEntry, psBase64, psEntry, rasterJson);
@@ -71,10 +73,11 @@ internal sealed partial class BrowserWebGpuInterop : IBrowserWebGpuInterop
     public void SurfacePresent(int surface, int sourceOffset, int stride, int width, int height) => SurfacePresentCore(surface, sourceOffset, stride, width, height);
     public void SurfaceResize(int surface, int width, int height) => SurfaceResizeCore(surface, width, height);
     public void Release(int kind, int handle) => ReleaseCore(kind, handle);
-    public void DisposeBackend(int backend) => DisposeBackendCore(backend);
+    public string DisposeBackend(int backend) => DisposeBackendCore(backend);
 
     [JSImport("initialize", Module)] private static partial Task<string> InitializeCoreAsync();
     [JSImport("getDiagnostics", Module)] private static partial string GetDiagnosticsCore(int backend);
+    [JSImport("drainLifecycleEvents", Module)] private static partial string DrainLifecycleEventsCore(int backend);
     [JSImport("recordDiagnosticsError", Module)] private static partial void RecordDiagnosticsErrorCore(int backend, string source, string name, string message, string stack);
     [JSImport("createComputePipeline", Module)] private static partial int CreateComputePipelineCore(int backend, string wgslBase64, string entryPoint);
     [JSImport("createGraphicsPipeline", Module)] private static partial int CreateGraphicsPipelineCore(int backend, string vsBase64, string vsEntry, string psBase64, string psEntry, string rasterJson);
@@ -103,5 +106,5 @@ internal sealed partial class BrowserWebGpuInterop : IBrowserWebGpuInterop
     [JSImport("surfacePresent", Module)] private static partial void SurfacePresentCore(int surface, int sourceOffset, int stride, int width, int height);
     [JSImport("surfaceResize", Module)] private static partial void SurfaceResizeCore(int surface, int width, int height);
     [JSImport("release", Module)] private static partial void ReleaseCore(int kind, int handle);
-    [JSImport("disposeBackend", Module)] private static partial void DisposeBackendCore(int backend);
+    [JSImport("disposeBackend", Module)] private static partial string DisposeBackendCore(int backend);
 }

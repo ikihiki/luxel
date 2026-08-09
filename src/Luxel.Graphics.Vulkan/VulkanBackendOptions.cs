@@ -20,6 +20,9 @@ public enum VulkanPresentationMode
 public sealed record VulkanBackendOptions
 {
     public bool EnableValidation { get; init; } = true;
+    public IGpuLifecycleSink? LifecycleSink { get; init; }
+    public string? DeviceId { get; init; }
+    public ulong DeviceGeneration { get; init; } = 1;
     public VulkanPresentationMode Presentation { get; init; } = VulkanPresentationMode.Auto;
 
     /// <summary>Vulkan-specific presentation bootstrap. Required for <see cref="VulkanPresentationMode.Window"/>.</summary>

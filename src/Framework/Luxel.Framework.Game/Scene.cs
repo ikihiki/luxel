@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Luxel.Audio;
@@ -58,7 +58,8 @@ public sealed record SceneLoopServices(
     AudioRegistry? AudioRegistry = null,
     Luxel.UI.UiRegistry? UiRegistry = null,
     int FrameDelayMs = 16,
-    Func<CancellationToken, Task>? WaitFrame = null);
+    Func<CancellationToken, Task>? WaitFrame = null,
+    Func<int>? PumpGraphicsLifecycle = null);
 
 // ==================== GameScene (標準抽象) ====================
 
@@ -171,6 +172,7 @@ public abstract class GameScene : IScene
 
             // pause 中は step 要求が来るまでフレームをスキップしてコマンドを Drain し続ける
             _loop.Commands?.Drain();
+            _loop.PumpGraphicsLifecycle?.Invoke();
             if (_paused && _stepRequests <= 0)
             {
                 // pause でも state emit は続けて DevTools UI を最新に保つ

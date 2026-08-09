@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\Luxel.Graphics.MessagePipe\Luxel.Graphics.MessagePipe.csproj" />
     <ProjectReference Include="..\..\Luxel.Ecs\Luxel.Ecs.csproj" />
     <ProjectReference Include="..\..\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
     <ProjectReference Include="..\..\Resource\Luxel.Resources\Luxel.Resources.csproj" />

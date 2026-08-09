@@ -181,6 +181,42 @@ public sealed class BrowserWebGpuManagedTests
         Assert.Contains("\"stencilFront\"", json);
     }
 
+    [Fact]
+    public async Task Lifecycle_events_are_queued_deduplicated_and_expected_on_dispose()
+    {
+        var interop = new FakeInterop();
+        var queue = new GpuLifecycleEventQueue();
+        var sink = new LifecycleCollector();
+        BrowserWebGpuBackend backend = await BrowserWebGpuBackend.CreateAsync(interop, lifecycleSink: queue,
+            deviceId: "browser-device", generation: 3);
+
+        interop.LifecycleEvents = "[" +
+            "{\"type\":\"validation\",\"reason\":\"GPUValidationError\",\"message\":\"bad binding\"}," +
+            "{\"type\":\"lost\",\"reason\":\"unknown\",\"message\":\"lost\",\"expected\":false}," +
+            "{\"type\":\"lost\",\"reason\":\"unknown\",\"message\":\"lost\",\"expected\":false}]";
+        backend.CaptureDiagnostics();
+        queue.Pump(sink);
+
+        Assert.Single(sink.Validations);
+        Assert.Single(sink.Devices, static message => message.State == GpuDeviceLifecycleState.Lost);
+        Assert.All(sink.Devices, message => Assert.Equal(new GpuDeviceGeneration("browser-device", 3), message.Device));
+
+        backend.Dispose();
+        queue.Pump(sink);
+        GpuDeviceLifecycleEvent expectedLoss = Assert.Single(sink.Devices, static message =>
+            message.State == GpuDeviceLifecycleState.Lost && message.IsExpected);
+        Assert.Equal(GpuLifecycleReason.ExplicitDispose, expectedLoss.Reason);
+    }
+
+    private sealed class LifecycleCollector : IGpuLifecycleSink
+    {
+        public List<GpuDeviceLifecycleEvent> Devices { get; } = [];
+        public List<GpuValidationEvent> Validations { get; } = [];
+        public void Publish(GpuDeviceLifecycleEvent message) => Devices.Add(message);
+        public void Publish(GpuValidationEvent message) => Validations.Add(message);
+        public void Publish(GpuSurfaceLifecycleEvent message) { }
+    }
+
     private static unsafe nint Pointer(IGpuBackendBuffer buffer) => (nint)buffer.MappedPointer;
     private static unsafe void Fill(IGpuBackendBuffer buffer, byte value, int length) => new Span<byte>(buffer.MappedPointer, length).Fill(value);
     private static unsafe byte[] Read(IGpuBackendBuffer buffer, int length) => new ReadOnlySpan<byte>(buffer.MappedPointer, length).ToArray();
@@ -191,6 +227,7 @@ public sealed class BrowserWebGpuManagedTests
         public byte[] Readback { get; set; } = [];
         public List<(int Offset, string Data)> Uploads { get; } = [];
         public string? LastCanvasToken { get; private set; }
+        public string LifecycleEvents { get; set; } = "[]";
         public (int Width, int Height) LastCanvasSize { get; private set; }
         public int WaitIdleCalls { get; private set; }
         public int SurfacePresents { get; private set; }
@@ -199,6 +236,12 @@ public sealed class BrowserWebGpuManagedTests
         public List<int> TextureDataLengths { get; } = [];
         public Task<string> InitializeAsync() => Task.FromResult(JsonSerializer.Serialize(new { handle = ++_next, name = "WebGPU / fake" }));
         public string GetDiagnostics(int backend) => JsonSerializer.Serialize(new { sequence = 1, stage = "ready", backendHandle = backend, adapter = new { description = "fake", isFallbackAdapter = false }, device = new { status = "ready" } });
+        public string DrainLifecycleEvents(int backend)
+        {
+            string events = LifecycleEvents;
+            LifecycleEvents = "[]";
+            return events;
+        }
         public void RecordDiagnosticsError(int backend, string source, string name, string message, string stack) { }
         public int CreateComputePipeline(int backend, string wgslBase64, string entryPoint) => ++_next;
         public int CreateGraphicsPipeline(int backend, string vsBase64, string vsEntry, string psBase64, string psEntry, string rasterJson) => ++_next;
@@ -241,6 +284,6 @@ public sealed class BrowserWebGpuManagedTests
         public void SurfacePresent(int surface, int sourceOffset, int stride, int width, int height) => SurfacePresents++;
         public void SurfaceResize(int surface, int width, int height) => SurfaceResizes.Add((width, height));
         public void Release(int kind, int handle) { }
-        public void DisposeBackend(int backend) { }
+        public string DisposeBackend(int backend) => "[{\"type\":\"lost\",\"reason\":\"destroyed\",\"message\":\"device.destroy()\",\"expected\":true}]";
     }
 }

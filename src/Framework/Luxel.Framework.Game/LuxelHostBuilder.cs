@@ -2,6 +2,7 @@ using Luxel.AssetsGpu;
 using Luxel.Audio;
 using Luxel.Input;
 using Luxel.Resources;
+using Luxel.Graphics.MessagePipe;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -23,6 +24,7 @@ public sealed class LuxelHostBuilder
 {
     private readonly HostApplicationBuilder _inner;
     private Func<GpuDevice>? _deviceFactory;
+    private Func<IGpuLifecycleSink, GpuDevice>? _lifecycleDeviceFactory;
     private GpuDevice? _borrowedDevice;
     private Func<CancellationToken, Task>? _frameWaiter;
     private Type? _startupScene;
@@ -45,7 +47,15 @@ public sealed class LuxelHostBuilder
 
     /// <summary>直接 factory を注入する (テストでモックしたいとき等)。factory が作った device は
     /// host の破棄で Dispose される (所有はコンテナ)。</summary>
-    public LuxelHostBuilder UseGpu(Func<GpuDevice> factory) { _deviceFactory = factory; return this; }
+    public LuxelHostBuilder UseGpu(Func<GpuDevice> factory) { _deviceFactory = factory; _lifecycleDeviceFactory = null; return this; }
+
+    /// <summary>Creates an owned GPU device with the framework's queued lifecycle sink.</summary>
+    public LuxelHostBuilder UseGpu(Func<IGpuLifecycleSink, GpuDevice> factory)
+    {
+        _lifecycleDeviceFactory = factory ?? throw new ArgumentNullException(nameof(factory));
+        _deviceFactory = null;
+        return this;
+    }
 
     /// <summary>**借用** device を使う (Storybook 等、ホストの GPU に相乗りする埋め込み実行用)。
     /// インスタンス登録なのでコンテナは Dispose しない — 所有はホスト側のまま。</summary>
@@ -108,12 +118,17 @@ public sealed class LuxelHostBuilder
 
     public IHost Build()
     {
-        if (_deviceFactory is null && _borrowedDevice is null)
+        if (_deviceFactory is null && _lifecycleDeviceFactory is null && _borrowedDevice is null)
             throw new InvalidOperationException("UseGpu / UseGpuDevice のいずれかを指定してください。");
+
+        // Graphics lifecycle callbacks are queued and published through MessagePipe from the frame thread.
+        _inner.Services.AddGpuLifecycleMessagePipe();
 
         // GPU device (singleton)。借用 (UseGpuDevice) はインスタンス登録 = コンテナが Dispose しない
         if (_borrowedDevice is not null) _inner.Services.AddSingleton(_borrowedDevice);
-        else _inner.Services.AddSingleton(sp => _deviceFactory!());
+        else if (_lifecycleDeviceFactory is not null)
+            _inner.Services.AddSingleton(sp => _lifecycleDeviceFactory(sp.GetRequiredService<IGpuLifecycleSink>()));
+        else _inner.Services.AddSingleton(_ => _deviceFactory!());
 
         // ECS world
         _inner.Services.AddSingleton<Luxel.Ecs.World>();
@@ -180,7 +195,8 @@ public sealed class LuxelHostBuilder
             Commands: sp.GetService<Luxel.Diagnostics.EngineCommands>(),
             AudioRegistry: sp.GetService<AudioRegistry>(),
             UiRegistry: sp.GetService<UiRegistry>(),
-            WaitFrame: _frameWaiter));
+            WaitFrame: _frameWaiter,
+            PumpGraphicsLifecycle: () => sp.GetRequiredService<GpuLifecycleMessagePump>().Pump()));
 
         // SceneManager (singleton)
         _inner.Services.AddSingleton<SceneManager>();

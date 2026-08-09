@@ -30,6 +30,7 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
     private readonly WebGpuTexture?[] _sampledTextures = new WebGpuTexture[MaxSampledTextures];
     private readonly WebGpuSampler?[] _samplers = new WebGpuSampler[MaxSamplers];
     private readonly ConcurrentQueue<string> _validationErrors = new();
+    private GpuLifecycleSource _lifecycle = null!;
     private WebGpuApi _api = null!;
     private Instance* _instance;
     private Adapter* _adapter;
@@ -66,16 +67,25 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
     internal bool CanReleaseNativeResources => _device != null;
     internal bool IsDisposed => _disposed;
 
-    public static WebGpuBackend Create()
+    public static WebGpuBackend Create(IGpuLifecycleSink? lifecycleSink = null,
+        string? deviceId = null, ulong generation = 1)
     {
-        var backend = new WebGpuBackend();
+        var backend = new WebGpuBackend
+        {
+            _lifecycle = new GpuLifecycleSource(GpuBackendKind.WebGpu, "WebGPU", lifecycleSink, deviceId, generation),
+        };
+        backend._lifecycle.DeviceEvent(GpuDeviceLifecycleState.Creating);
         try
         {
             backend.Initialize();
+            backend._lifecycle.SetBackendName(backend.Name);
+            backend._lifecycle.DeviceEvent(GpuDeviceLifecycleState.Ready);
             return backend;
         }
-        catch
+        catch (Exception exception)
         {
+            backend._lifecycle.DeviceEvent(GpuDeviceLifecycleState.Faulted, GpuLifecycleReason.Unknown,
+                message: exception.Message, exception: exception);
             backend.Dispose();
             throw;
         }
@@ -697,7 +707,11 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         try
         {
             if (GCHandle.FromIntPtr((nint)userData).Target is WebGpuBackend backend)
-                backend._validationErrors.Enqueue($"{type}: {Marshal.PtrToStringUTF8((nint)message)}");
+            {
+                string text = Marshal.PtrToStringUTF8((nint)message) ?? type.ToString();
+                backend._validationErrors.Enqueue($"{type}: {text}");
+                backend._lifecycle.Validation(GpuValidationSeverity.Error, text, nativeReason: type.ToString());
+            }
         }
         catch (Exception exception) { Console.Error.WriteLine($"WebGPU error callback failed: {exception}"); }
     }
@@ -782,6 +796,7 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
     public void Dispose()
     {
         if (_disposed) return;
+        _lifecycle?.DeviceEvent(GpuDeviceLifecycleState.Disposing, GpuLifecycleReason.ExplicitDispose, isExpected: true);
         _disposed = true;
         if (_device != null && MainQueue is WebGpuQueue queue) queue.WaitIdleForDispose();
         lock (_sync) _activeCommands = 0;
@@ -805,6 +820,7 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         if (_instance != null) _api.InstanceRelease(_instance);
         _api?.Dispose();
         _instance = null; _adapter = null; _device = null; _queue = null;
+        _lifecycle?.DeviceEvent(GpuDeviceLifecycleState.Disposed, GpuLifecycleReason.ExplicitDispose, isExpected: true);
     }
 
     private readonly record struct ArenaRange(ulong Offset, ulong Size);

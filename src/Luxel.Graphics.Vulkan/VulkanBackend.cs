@@ -22,6 +22,7 @@ public sealed unsafe class VulkanBackend : IGpuBackend
                                                 // Vulkan の spec min は 128B、最新 GPU は 256B 対応 (RTX 4080 SUPER 等で確認済)。
 
     private readonly Vk _vk;
+    private GpuLifecycleSource _lifecycle = null!;
     private Instance _instance;
     private PhysicalDevice _physicalDevice;
     private Device _device;
@@ -60,14 +61,23 @@ public sealed unsafe class VulkanBackend : IGpuBackend
     public static VulkanBackend Create(VulkanBackendOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        var backend = new VulkanBackend(Vk.GetApi());
+        var backend = new VulkanBackend(Vk.GetApi())
+        {
+            _lifecycle = new GpuLifecycleSource(GpuBackendKind.Vulkan, "Vulkan", options.LifecycleSink,
+                options.DeviceId, options.DeviceGeneration),
+        };
+        backend._lifecycle.DeviceEvent(GpuDeviceLifecycleState.Creating);
         try
         {
             backend.Initialize(options);
+            backend._lifecycle.SetBackendName(backend.Name);
+            backend._lifecycle.DeviceEvent(GpuDeviceLifecycleState.Ready);
             return backend;
         }
-        catch
+        catch (Exception exception)
         {
+            backend._lifecycle.DeviceEvent(GpuDeviceLifecycleState.Faulted, GpuLifecycleReason.Unknown,
+                message: exception.Message, exception: exception);
             backend.Dispose();
             throw;
         }
@@ -94,7 +104,7 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         CreateBindlessLayout();
 
         _vk.GetDeviceQueue(_device, _queueFamily, 0, out _queue);
-        MainQueue = new VulkanQueue(_vk, _device, _queue, _queueFamily, _pipelineLayout, _descriptorSet, _queueLock);
+        MainQueue = new VulkanQueue(_vk, _device, _queue, _queueFamily, _pipelineLayout, _descriptorSet, _queueLock, _lifecycle);
     }
 
     // ---- Instance ------------------------------------------------------------
@@ -1160,6 +1170,7 @@ public sealed unsafe class VulkanBackend : IGpuBackend
     public void Dispose()
     {
         if (_disposed) return;
+        _lifecycle?.DeviceEvent(GpuDeviceLifecycleState.Disposing, GpuLifecycleReason.ExplicitDispose, isExpected: true);
         _disposed = true;
         if (_pipelineLayout.Handle != 0) _vk.DestroyPipelineLayout(_device, _pipelineLayout, null);
         if (_descriptorPool.Handle != 0) _vk.DestroyDescriptorPool(_device, _descriptorPool, null);
@@ -1175,5 +1186,6 @@ public sealed unsafe class VulkanBackend : IGpuBackend
         _debugUtils?.Dispose();
         if (_instance.Handle != 0) _vk.DestroyInstance(_instance, null);
         _vk.Dispose();
+        _lifecycle?.DeviceEvent(GpuDeviceLifecycleState.Disposed, GpuLifecycleReason.ExplicitDispose, isExpected: true);
     }
 }
