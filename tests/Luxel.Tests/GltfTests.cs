@@ -1,6 +1,7 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Luxel.Assets;
-using Luxel.Gltf;
+using Luxel.Assets.Gltf;
+using Luxel.Resources;
 
 namespace Luxel.Tests;
 
@@ -21,7 +22,7 @@ public class GltfTests
         await File.WriteAllTextAsync(tmp, json);
         try
         {
-            var doc = await new GltfLoader().LoadAsync(tmp);
+            var doc = await DecodeFileAsync(tmp);
             Assert.Single(doc.Nodes);
             Assert.Equal(new Vector3(1, 2, 3), doc.Nodes[0].Translation);
             Assert.Equal("root", doc.Nodes[0].Name);
@@ -51,7 +52,7 @@ public class GltfTests
         await File.WriteAllTextAsync(tmp, json);
         try
         {
-            var doc = await new GltfLoader().LoadAsync(tmp);
+            var doc = await DecodeFileAsync(tmp);
             Assert.Equal(2, doc.Nodes.Count);
             Assert.Single(doc.Nodes[0].Children);
             Assert.Same(doc.Nodes[1], doc.Nodes[0].Children[0]);
@@ -103,7 +104,7 @@ public class GltfTests
         await File.WriteAllTextAsync(tmp, json);
         try
         {
-            var doc = await new GltfLoader().LoadAsync(tmp);
+            var doc = await DecodeFileAsync(tmp);
             var prim = doc.Meshes[0].Primitives[0];
             Assert.NotNull(prim.MorphTargets);
             Assert.Single(prim.MorphTargets!);
@@ -118,19 +119,47 @@ public class GltfTests
     }
 
     [Fact]
-    public void GltfLoader_RegistersToAssetLoaders()
+    public void GltfResourceStep_DeclaresGltfExtensions()
     {
-        AssetLoaders.Clear();
-        AssetLoaders.Register(new GltfLoader());
-        var loader = new GltfLoader();
-        Assert.True(loader.CanLoad("model.gltf"));
-        Assert.True(loader.CanLoad("model.glb"));
-        Assert.True(loader.CanLoad("MODEL.GLTF"));
-        Assert.False(loader.CanLoad("model.fbx"));
-        AssetLoaders.Clear();
+        var extensions = new GltfResourceStep().Extensions.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(".gltf", extensions);
+        Assert.Contains(".glb", extensions);
+        Assert.DoesNotContain(".fbx", extensions);
     }
 
-    private static string? FindKhronosSample(string filename)
+    private static async Task<AssetDocument> DecodeFileAsync(string path)
+    {
+        string fullPath = Path.GetFullPath(path);
+        string root = Path.GetDirectoryName(fullPath)!;
+        using var resources = new ResourceSystem(sources: [new RootedFileSource(root)]);
+        resources.AddStep<byte[], AssetDocument>(new GltfResourceStep());
+        using ResourceHandle<AssetDocument> handle = resources.Load<AssetDocument>(Path.GetFileName(fullPath));
+        await handle.Ready;
+        return handle.Value;
+    }
+
+    private sealed class RootedFileSource(string root) : IResourceSource
+    {
+        public IEnumerable<string> Schemes => ["file", ""];
+
+        public Task<byte[]> ReadAsync(ResourceUri uri, LoadContext context)
+            => File.ReadAllBytesAsync(Path.Combine(root, Uri.UnescapeDataString(uri.Path)), context.Token);
+    }
+
+    private static string RequireKhronosSample(string sample, string filename)
+    {
+        string relativePath = Path.Combine(sample, filename);
+        var candidates = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "tools", "khronos-samples", relativePath),
+            Path.Combine(Environment.CurrentDirectory, "tools", "khronos-samples", relativePath),
+            Path.Combine(AppContext.BaseDirectory, "tools", "khronos-samples", relativePath),
+        };
+        return candidates.FirstOrDefault(File.Exists)
+            ?? throw new FileNotFoundException($"Pinned Khronos fixture was not acquired: {relativePath}");
+    }
+
+    private static string? FindOptionalKhronosSample(string filename)
     {
         var candidates = new[]
         {
@@ -144,9 +173,8 @@ public class GltfTests
     [Fact]
     public async Task GltfLoader_Box_HasMeshAndIndex()
     {
-        var path = FindKhronosSample("Box.gltf");
-        if (path is null) return;
-        var doc = await new GltfLoader().LoadAsync(path);
+        string path = RequireKhronosSample("Box", "Box.gltf");
+        var doc = await DecodeFileAsync(path);
         Assert.True(doc.Meshes.Count >= 1);
         Assert.True(doc.Meshes[0].Primitives.Count >= 1);
         var prim = doc.Meshes[0].Primitives[0];
@@ -158,9 +186,8 @@ public class GltfTests
     [Fact]
     public async Task GltfLoader_BoxAnimated_HasAnimation()
     {
-        var path = FindKhronosSample("BoxAnimated.glb");
-        if (path is null) return;
-        var doc = await new GltfLoader().LoadAsync(path);
+        string path = RequireKhronosSample("BoxAnimated", "BoxAnimated.glb");
+        var doc = await DecodeFileAsync(path);
         Assert.True(doc.Animations.Count >= 1);
         Assert.True(doc.Animations[0].Channels.Count >= 1);
         Assert.True(doc.Animations[0].Duration > 0);
@@ -169,9 +196,9 @@ public class GltfTests
     [Fact]
     public async Task GltfLoader_Fox_HasSkin()
     {
-        var path = FindKhronosSample("Fox.glb");
+        var path = FindOptionalKhronosSample("Fox.glb");
         if (path is null) return;
-        var doc = await new GltfLoader().LoadAsync(path);
+        var doc = await DecodeFileAsync(path);
         Assert.True(doc.Skins.Count >= 1, "Fox should have skin");
         Assert.True(doc.Skins[0].Joints.Count > 0);
         Assert.True(doc.Animations.Count >= 1);
@@ -180,9 +207,8 @@ public class GltfTests
     [Fact]
     public async Task GltfLoader_RiggedSimple_HasJointWeights()
     {
-        var path = FindKhronosSample("RiggedSimple.glb");
-        if (path is null) return;
-        var doc = await new GltfLoader().LoadAsync(path);
+        string path = RequireKhronosSample("RiggedSimple", "RiggedSimple.glb");
+        var doc = await DecodeFileAsync(path);
         Assert.True(doc.Skins.Count >= 1);
         bool foundSkinned = false;
         foreach (var m in doc.Meshes)
@@ -194,9 +220,9 @@ public class GltfTests
     [Fact]
     public async Task GltfLoader_CesiumMan_LargerScene()
     {
-        var path = FindKhronosSample("CesiumMan.glb");
+        var path = FindOptionalKhronosSample("CesiumMan.glb");
         if (path is null) return;
-        var doc = await new GltfLoader().LoadAsync(path);
+        var doc = await DecodeFileAsync(path);
         Assert.True(doc.Skins.Count >= 1);
         Assert.True(doc.Skins[0].Joints.Count >= 10);
         Assert.True(doc.Animations.Count >= 1);
@@ -205,9 +231,9 @@ public class GltfTests
     [Fact]
     public async Task GltfLoader_BrainStem_LargeMesh()
     {
-        var path = FindKhronosSample("BrainStem.glb");
+        var path = FindOptionalKhronosSample("BrainStem.glb");
         if (path is null) return;
-        var doc = await new GltfLoader().LoadAsync(path);
+        var doc = await DecodeFileAsync(path);
         Assert.True(doc.Nodes.Count > 10, $"BrainStem has multiple nodes, got {doc.Nodes.Count}");
         Assert.True(doc.Skins.Count >= 1);
         Assert.True(doc.Animations.Count >= 1);

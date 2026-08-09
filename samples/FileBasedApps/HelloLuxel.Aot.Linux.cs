@@ -1,10 +1,10 @@
-#:project ../../src/Luxel.UI.App/Luxel.UI.App.csproj
+#:project ../../src/Framework/Luxel.Framework.UI/Luxel.Framework.UI.csproj
 #:property TargetFramework=net10.0
 #:property PublishAot=true
 
 using Luxel.Controls;
 using Luxel.UI;
-using Luxel.UI.App;
+using Luxel.Framework.UI;
 using static Luxel.Controls.Kit;
 
 int? frames = ParseFrames(args)

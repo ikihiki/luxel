@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Framework.Game\Luxel.Framework.Game.csproj" />
+    <ProjectReference Include="..\..\Luxel.Audio.Silk\Luxel.Audio.Silk.csproj" />
+    <ProjectReference Include="..\..\Luxel.Audio.Windows\Luxel.Audio.Windows.csproj" />
+    <ProjectReference Include="..\..\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
+    <ProjectReference Include="..\..\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
+</Project>

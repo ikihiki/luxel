@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Luxel.Assets\Luxel.Assets.csproj" />
-    <ProjectReference Include="..\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.Assets\Luxel.Assets.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
     <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj" />
     <ProjectReference Include="..\Luxel.Ecs.Signal\Luxel.Ecs.Signal.csproj" />
     <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />

@@ -1,3 +1,5 @@
+using Luxel.AssetsGpu;
+using Luxel.Resources;
 using System.Text.Json;
 
 namespace Luxel.WebGPU.Browser.Tests;
@@ -132,6 +134,24 @@ public sealed class BrowserWebGpuManagedTests
     }
 
     [Fact]
+    public async Task AssetGpuDeferredDisposalUsesAsyncBrowserQueueIdle()
+    {
+        var interop = new FakeInterop();
+        using BrowserWebGpuBackend backend = await BrowserWebGpuBackend.CreateAsync(interop);
+        using var device = new GpuDevice(backend);
+        using var resources = new ResourceSystem();
+        await using AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        var scope = resources.CreateScope("browser-assets");
+        ResourceHandle<GpuBuffer> buffer = scope.CreateBuffer("buffer", 32);
+        await buffer.Ready;
+
+        scope.Dispose();
+        await resources.PumpAsync();
+
+        Assert.Equal(1, interop.WaitIdleCalls);
+    }
+
+    [Fact]
     public async Task Surface_rejects_buffer_from_another_backend_instance()
     {
         BrowserWebGpuBackend firstBackend = await BrowserWebGpuBackend.CreateAsync(new FakeInterop());
@@ -172,11 +192,14 @@ public sealed class BrowserWebGpuManagedTests
         public List<(int Offset, string Data)> Uploads { get; } = [];
         public string? LastCanvasToken { get; private set; }
         public (int Width, int Height) LastCanvasSize { get; private set; }
+        public int WaitIdleCalls { get; private set; }
         public int SurfacePresents { get; private set; }
         public List<(int Width, int Height)> SurfaceResizes { get; } = [];
         public List<int> TextureFormats { get; } = [];
         public List<int> TextureDataLengths { get; } = [];
         public Task<string> InitializeAsync() => Task.FromResult(JsonSerializer.Serialize(new { handle = ++_next, name = "WebGPU / fake" }));
+        public string GetDiagnostics(int backend) => JsonSerializer.Serialize(new { sequence = 1, stage = "ready", backendHandle = backend, adapter = new { description = "fake", isFallbackAdapter = false }, device = new { status = "ready" } });
+        public void RecordDiagnosticsError(int backend, string source, string name, string message, string stack) { }
         public int CreateComputePipeline(int backend, string wgslBase64, string entryPoint) => ++_next;
         public int CreateGraphicsPipeline(int backend, string vsBase64, string vsEntry, string psBase64, string psEntry, string rasterJson) => ++_next;
         public int CreateTexture(int backend, int width, int height, int format, int usage, int bindlessIndex, string dataBase64)
@@ -204,7 +227,11 @@ public sealed class BrowserWebGpuManagedTests
         public void UploadArena(int backend, int offset, string dataBase64) => Uploads.Add((offset, dataBase64));
         public int Submit(int backend, int command) => 1;
         public Task<string> CompleteAsync(int backend, int serial, string readbacksJson) => Task.FromResult(Convert.ToBase64String(Readback));
-        public Task<string> WaitIdleAsync(int backend, string readbacksJson) => Task.FromResult(Convert.ToBase64String(Readback));
+        public Task<string> WaitIdleAsync(int backend, string readbacksJson)
+        {
+            WaitIdleCalls++;
+            return Task.FromResult(Convert.ToBase64String(Readback));
+        }
         public int CreateSurface(int backend, string canvasToken, int width, int height)
         {
             LastCanvasToken = canvasToken;

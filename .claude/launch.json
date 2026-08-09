@@ -10,7 +10,7 @@
     {
       "name": "gallery",
       "runtimeExecutable": "dotnet",
-      "runtimeArgs": ["run", "--project", "src/Luxel.Gallery", "--no-build", "--", "vk", "5181"],
+      "runtimeArgs": ["run", "--project", "gallery/GalleryNative", "--no-build", "--", "vk", "5181"],
       "port": 5181
     }
   ]

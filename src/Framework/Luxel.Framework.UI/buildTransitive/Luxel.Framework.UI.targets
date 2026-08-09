@@ -1,0 +1,54 @@
+<Project>
+  <PropertyGroup>
+    <_LuxelFrameworkUiContentRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\contentFiles\any\any'))</_LuxelFrameworkUiContentRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <_LuxelFrameworkUiAsset Include="$(_LuxelFrameworkUiContentRoot)\shaders\*" TargetSubPath="shaders\%(Filename)%(Extension)" />
+    <_LuxelFrameworkUiAsset Include="$([System.IO.Path]::Combine('$(NuGetPackageRoot)', 'silk.net.webgpu.native.wgpu', '2.23.0', 'runtimes', 'linux-x64', 'native', 'libwgpu_native.so'))"
+                      Condition="$([MSBuild]::IsOSPlatform('Linux')) and '$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)' == 'X64'"
+                      TargetSubPath="libwgpu_native.so" />
+    <_LuxelFrameworkUiAsset Include="$([System.IO.Path]::Combine('$(NuGetPackageRoot)', 'silk.net.webgpu.native.wgpu', '2.23.0', 'runtimes', 'linux-arm64', 'native', 'libwgpu_native.so'))"
+                      Condition="$([MSBuild]::IsOSPlatform('Linux')) and '$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)' == 'Arm64'"
+                      TargetSubPath="libwgpu_native.so" />
+    <_LuxelFrameworkUiAsset Include="$([System.IO.Path]::Combine('$(NuGetPackageRoot)', 'silk.net.webgpu.native.wgpu', '2.23.0', 'runtimes', 'win-x64', 'native', 'wgpu_native.dll'))"
+                      Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)' == 'X64'"
+                      TargetSubPath="wgpu_native.dll" />
+    <_LuxelFrameworkUiAsset Include="$([System.IO.Path]::Combine('$(NuGetPackageRoot)', 'silk.net.webgpu.native.wgpu', '2.23.0', 'runtimes', 'win-arm64', 'native', 'wgpu_native.dll'))"
+                      Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)' == 'Arm64'"
+                      TargetSubPath="wgpu_native.dll" />
+    <_LuxelFrameworkUiAsset Include="$(_LuxelFrameworkUiContentRoot)\assets\fonts\*" TargetSubPath="assets\fonts\%(Filename)%(Extension)" />
+    <Content Include="@(_LuxelFrameworkUiAsset)"
+             Link="%(_LuxelFrameworkUiAsset.TargetSubPath)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest"
+             Visible="false" />
+  </ItemGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <_LuxelFrameworkUiRuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">linux-x64</_LuxelFrameworkUiRuntimeIdentifier>
+    <_LuxelFrameworkUiRuntimeIdentifier Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</_LuxelFrameworkUiRuntimeIdentifier>
+  </PropertyGroup>
+  <Target Name="CopyLuxelGlfwCompatibilityAlias" AfterTargets="CopyFilesToOutputDirectory"
+          Condition="$([MSBuild]::IsOSPlatform('Linux')) and '$(_LuxelFrameworkUiRuntimeIdentifier)' == 'linux-x64'">
+    <ItemGroup>
+      <_LuxelGlfwOutputSource Include="$(OutDir)libglfw.so.3" Condition="Exists('$(OutDir)libglfw.so.3')" />
+      <_LuxelGlfwOutputSource Include="$(OutDir)runtimes/$(_LuxelFrameworkUiRuntimeIdentifier)/native/libglfw.so.3"
+                              Condition="'@(_LuxelGlfwOutputSource)' == '' and Exists('$(OutDir)runtimes/$(_LuxelFrameworkUiRuntimeIdentifier)/native/libglfw.so.3')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_LuxelGlfwOutputSource)"
+          DestinationFiles="@(_LuxelGlfwOutputSource->'$(OutDir)libglfw.so.3.3')"
+          SkipUnchangedFiles="true"
+          Condition="'@(_LuxelGlfwOutputSource)' != ''" />
+  </Target>
+  <Target Name="PublishLuxelGlfwCompatibilityAlias" AfterTargets="Publish"
+          Condition="$([MSBuild]::IsOSPlatform('Linux')) and '$(_LuxelFrameworkUiRuntimeIdentifier)' == 'linux-x64'">
+    <ItemGroup>
+      <_LuxelGlfwPublishSource Include="$(PublishDir)libglfw.so.3" Condition="Exists('$(PublishDir)libglfw.so.3')" />
+      <_LuxelGlfwPublishSource Include="$(PublishDir)runtimes/$(_LuxelFrameworkUiRuntimeIdentifier)/native/libglfw.so.3"
+                               Condition="'@(_LuxelGlfwPublishSource)' == '' and Exists('$(PublishDir)runtimes/$(_LuxelFrameworkUiRuntimeIdentifier)/native/libglfw.so.3')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_LuxelGlfwPublishSource)"
+          DestinationFiles="@(_LuxelGlfwPublishSource->'$(PublishDir)libglfw.so.3.3')"
+          SkipUnchangedFiles="true"
+          Condition="'@(_LuxelGlfwPublishSource)' != ''" />
+  </Target>
+</Project>

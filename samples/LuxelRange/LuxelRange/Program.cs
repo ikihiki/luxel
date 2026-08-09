@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Luxel;
-using Luxel.Framework;
+using Luxel.Framework.Game.Native;
+using Luxel.Framework.Game;
 using Luxel.Input;
 using Luxel.Platform;
 using Luxel.Settings;
@@ -73,7 +74,7 @@ static int Run(string backend, int frames)
         var pacer = new FramePacer();
         using IHost host = LuxelHostBuilder.Create()
             .UseGpuDevice(device)
-            .UseAudio()   // XAudio2 + AudioMixer (BGM/SE)。オーディオデバイス不在時は no-op。
+            .UseAudio()   // Native拡張がWindowsではXAudio2 + AudioMixerをDI登録。
             .UseFrameWaiter(pacer.WaitAsync)
             .ConfigureServices(s =>
             {

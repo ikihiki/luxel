@@ -3,7 +3,7 @@ using Luxel.Terminal.Session;
 using Luxel.Terminal.UI;
 using Luxel.Typography;
 using Luxel.UI;
-using Luxel.UI.App;
+using Luxel.Framework.UI;
 #if LUXEL_WINDOWS
 using Luxel.Terminal.Windows;
 #else

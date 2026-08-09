@@ -1,0 +1,48 @@
+@using Luxel.Gallery
+
+<ul class="story-tree">
+    @foreach (GalleryStoryTreeNode node in Nodes)
+    {
+        <li>
+            @if (node.Children.Count > 0)
+            {
+                <details open="@(SearchActive || node.Contains(ActivePath))">
+                    <summary>
+                        <span>@node.Name</span>
+                        @if (node.Story is not null)
+                        {
+                            <a class="folder-story-link @(node.Story.Path == ActivePath ? "active" : null)"
+                               href="@StoryHref(node.Story.Path)" aria-current="@(node.Story.Path == ActivePath ? "page" : null)"
+                               @onclick="() => SelectStory(node.Story)" @onclick:preventDefault @onclick:stopPropagation>概要</a>
+                        }
+                    </summary>
+                    <StoryTree Nodes="node.Children" ActivePath="@ActivePath" SearchActive="SearchActive"
+                               StorySelected="StorySelected" />
+                </details>
+            }
+            else if (node.Story is not null)
+            {
+                <a class="story-link @(node.Story.Path == ActivePath ? "active" : null)"
+                   href="@StoryHref(node.Story.Path)" title="@node.Story.Path"
+                   aria-current="@(node.Story.Path == ActivePath ? "page" : null)"
+                   @onclick="() => SelectStory(node.Story)" @onclick:preventDefault>
+                    <span>@node.Name</span>
+                    @if (node.Story.ResultBuild is not null)
+                    {
+                        <small>文書</small>
+                    }
+                </a>
+            }
+        </li>
+    }
+</ul>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<GalleryStoryTreeNode> Nodes { get; set; } = [];
+    [Parameter, EditorRequired] public string ActivePath { get; set; } = "";
+    [Parameter] public bool SearchActive { get; set; }
+    [Parameter] public EventCallback<StoryInfo> StorySelected { get; set; }
+
+    private Task SelectStory(StoryInfo story) => StorySelected.InvokeAsync(story);
+    private static string StoryHref(string path) => "?story=" + Uri.EscapeDataString(path);
+}

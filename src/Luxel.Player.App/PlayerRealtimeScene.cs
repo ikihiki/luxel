@@ -1,5 +1,5 @@
 using Luxel;
-using Luxel.Framework;
+using Luxel.Framework.Game;
 using Luxel.Player;
 using Luxel.Graphics.TwoD;
 using Luxel.Typography;

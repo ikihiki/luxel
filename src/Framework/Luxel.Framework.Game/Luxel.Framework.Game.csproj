@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\Luxel.Ecs\Luxel.Ecs.csproj" />
+    <ProjectReference Include="..\..\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
+    <ProjectReference Include="..\..\Resource\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\..\Luxel.Input\Luxel.Input.csproj" />
+    <ProjectReference Include="..\..\Luxel.Audio\Luxel.Audio.csproj" />
+    <ProjectReference Include="..\..\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\..\Luxel.Settings\Luxel.Settings.csproj" />
+    <ProjectReference Include="..\..\Resource\Luxel.Assets\Luxel.Assets.csproj" />
+    <ProjectReference Include="..\..\Resource\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
+    <ProjectReference Include="..\..\Resource\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\..\Luxel.Platform\Luxel.Platform.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Luxel.Tests" />
+    <InternalsVisibleTo Include="Luxel.Audio.Silk.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
+</Project>

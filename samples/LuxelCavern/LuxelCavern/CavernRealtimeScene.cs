@@ -1,7 +1,7 @@
 using System.Numerics;
 using Luxel;
 using Luxel.Audio;
-using Luxel.Framework;
+using Luxel.Framework.Game;
 using Luxel.Input;
 using Luxel.Particles;
 using Luxel.Settings;

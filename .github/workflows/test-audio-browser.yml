@@ -7,8 +7,8 @@ on:
       - 'src/Luxel.Audio.Browser/**'
       - 'samples/LuxelAudioBrowser/**'
       - 'tests/Luxel.Audio.Browser.Tests/**'
-      - 'src/Luxel.Gallery.Stories/Stories/Docs/LearnAudio.cs'
-      - 'src/Luxel.Gallery.Stories/Stories/Docs/AudioCourseCatalog.cs'
+      - 'src/Gallery/Luxel.Gallery.Stories/Stories/Docs/LearnAudio.cs'
+      - 'src/Gallery/Luxel.Gallery.Stories/Stories/Docs/AudioCourseCatalog.cs'
       - 'tests/Luxel.Gallery.Site.Tests/**'
       - 'Luxel.slnx'
       - '.github/workflows/test-audio-browser.yml'
@@ -36,7 +36,7 @@ jobs:
         run: dotnet test tests/Luxel.Audio.Browser.Tests/Luxel.Audio.Browser.Tests.csproj --no-restore --configuration Release
       - name: Test Web Audio JavaScript queue contracts
         run: node --test tests/Luxel.Audio.Browser.Tests/luxel-audio-browser.test.mjs
-      - name: Test Audio documentation contracts
+      - name: Test Audio Gallery contracts
         run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --configuration Release
       - name: Publish browser audio sample
         run: dotnet publish samples/LuxelAudioBrowser/LuxelAudioBrowser.csproj --no-restore --configuration Release

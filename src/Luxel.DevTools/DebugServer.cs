@@ -74,6 +74,7 @@ public sealed class DebugServer : IDisposable
             case ("GET", "/tree"): WriteTree(ctx, QueryLong(req, "rev")); break;
             case ("GET", "/primitives"): WriteText(ctx, _listener.GetPrimitives() ?? "{}", "application/json"); break;
             case ("GET", "/gpu"): WriteText(ctx, _listener.GetGpu() ?? "{}", "application/json"); break;
+            case ("GET", "/webgpu"): WriteText(ctx, _listener.GetWebGpu() ?? "{}", "application/json"); break;
             case ("GET", "/resources"): WriteText(ctx, _listener.GetResources() ?? "{}", "application/json"); break;
             case ("GET", "/rendergraph"): WriteText(ctx, _listener.GetRenderGraph() ?? "{}", "application/json"); break;
             case ("GET", "/perf"): WriteText(ctx, _listener.GetPerf() ?? "{}", "application/json"); break;

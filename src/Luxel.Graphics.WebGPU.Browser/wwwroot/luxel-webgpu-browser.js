@@ -1,5 +1,60 @@
 const objects = new Map();
 let nextHandle = 1;
+let diagnosticSequence = 0;
+let latestDiagnostics = null;
+
+const newDiagnostics = () => ({
+  sequence: ++diagnosticSequence,
+  timestamp: new Date().toISOString(),
+  stage: "initialize",
+  lastOperation: "initialize",
+  backendHandle: null,
+  requestAdapterOptions: { powerPreference: "high-performance" },
+  adapter: null,
+  device: { status: "not-requested", lost: null },
+  uncapturedErrors: [],
+  lastError: null,
+  surface: null,
+});
+const touchDiagnostics = (diagnostics, stage, operation) => {
+  diagnostics.sequence = ++diagnosticSequence;
+  diagnostics.timestamp = new Date().toISOString();
+  diagnostics.stage = stage;
+  diagnostics.lastOperation = operation;
+  latestDiagnostics = diagnostics;
+};
+const describeError = (error, source) => ({
+  source,
+  name: error?.name || error?.constructor?.name || "Error",
+  message: error?.message || String(error),
+  stack: error?.stack || null,
+  timestamp: new Date().toISOString(),
+});
+const recordError = (diagnostics, error, source) => {
+  diagnostics.lastError = describeError(error, source);
+  touchDiagnostics(diagnostics, "error", source);
+};
+const adapterSnapshot = adapter => {
+  const info = adapter.info || {};
+  return {
+    vendor: info.vendor || null,
+    architecture: info.architecture || null,
+    device: info.device || null,
+    description: info.description || null,
+    subgroupMinSize: info.subgroupMinSize ?? null,
+    subgroupMaxSize: info.subgroupMaxSize ?? null,
+    isFallbackAdapter: info.isFallbackAdapter ?? null,
+    features: [...adapter.features].sort(),
+    limits: {
+      maxBindGroups: adapter.limits.maxBindGroups,
+      maxBindingsPerBindGroup: adapter.limits.maxBindingsPerBindGroup,
+      maxSampledTexturesPerShaderStage: adapter.limits.maxSampledTexturesPerShaderStage,
+      maxSamplersPerShaderStage: adapter.limits.maxSamplersPerShaderStage,
+      maxBufferSize: adapter.limits.maxBufferSize,
+      maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize,
+    },
+  };
+};
 
 const put = (kind, value) => { const handle = nextHandle++; objects.set(handle, { kind, value }); return handle; };
 const get = (handle, kind) => {
@@ -46,34 +101,89 @@ function createResourceBindGroup(backend) {
 }
 
 export async function initialize() {
-  if (!globalThis.navigator?.gpu) throw new Error("navigator.gpu is unavailable; WebGPU requires a supported secure browser context.");
-  const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
-  if (!adapter) throw new Error("No browser WebGPU adapter is available.");
-  const limits = adapter.limits;
-  if (limits.maxBindGroups < 2 || limits.maxBindingsPerBindGroup < 32 || limits.maxSampledTexturesPerShaderStage < 16 || limits.maxSamplersPerShaderStage < 16 || limits.maxBufferSize < 64 * 1024 * 1024 || limits.maxStorageBufferBindingSize < 64 * 1024 * 1024)
-    throw new Error("The WebGPU adapter does not satisfy Luxel's fixed 64MiB arena, 2-group, 16-texture, 16-sampler ABI.");
-  const device = await adapter.requestDevice();
-  const backend = { adapter, device, queue: device.queue, errors: [], lost: null, serial: 0, completions: new Map(), submissions: new Map(), textures: Array(16), samplers: Array(16) };
-  device.addEventListener("uncapturederror", event => backend.errors.push(event.error?.message ?? String(event.error)));
-  device.lost.then(info => { backend.lost = `${info.reason}: ${info.message}`; }).catch(error => { backend.lost = String(error); });
-  backend.arena = device.createBuffer({ size: 64 * 1024 * 1024, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST });
-  backend.fallbackTexture = device.createTexture({ size: [1, 1, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
-  device.queue.writeTexture({ texture: backend.fallbackTexture }, new Uint8Array([255, 255, 255, 255]), { bytesPerRow: 4 }, [1, 1, 1]);
-  backend.fallbackSampler = device.createSampler({ magFilter: "nearest", minFilter: "nearest", mipmapFilter: "nearest" });
-  backend.resourceLayout = device.createBindGroupLayout({ entries: [
-    ...Array.from({ length: 16 }, (_, binding) => ({ binding, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE, texture: { sampleType: "float", viewDimension: "2d" } })),
-    ...Array.from({ length: 16 }, (_, i) => ({ binding: 16 + i, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE, sampler: { type: "filtering" } }))
-  ] });
-  const makeLayout = (type, visibility) => device.createBindGroupLayout({ entries: [
-    { binding: 0, visibility, buffer: { type, minBindingSize: 4 } },
-    { binding: 1, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE, buffer: { type: "uniform", hasDynamicOffset: true, minBindingSize: 256 } }
-  ] });
-  backend.computeLayout = makeLayout("storage", GPUShaderStage.COMPUTE);
-  backend.graphicsLayout = makeLayout("read-only-storage", GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT);
-  backend.computePipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [backend.computeLayout, backend.resourceLayout] });
-  backend.graphicsPipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [backend.graphicsLayout, backend.resourceLayout] });
-  const handle = put("backend", backend);
-  return JSON.stringify({ handle, name: `WebGPU / ${adapter.info?.description || adapter.info?.device || "browser adapter"}` });
+  const diagnostics = newDiagnostics();
+  latestDiagnostics = diagnostics;
+  try {
+    if (!globalThis.navigator?.gpu) throw new Error("navigator.gpu is unavailable; WebGPU requires a supported secure browser context.");
+    touchDiagnostics(diagnostics, "request-adapter", "navigator.gpu.requestAdapter");
+    const adapter = await navigator.gpu.requestAdapter(diagnostics.requestAdapterOptions);
+    if (!adapter) throw new Error("No browser WebGPU adapter is available.");
+    diagnostics.adapter = adapterSnapshot(adapter);
+    touchDiagnostics(diagnostics, "adapter-ready", "validate-adapter-limits");
+    const limits = adapter.limits;
+    if (limits.maxBindGroups < 2 || limits.maxBindingsPerBindGroup < 32 || limits.maxSampledTexturesPerShaderStage < 16 || limits.maxSamplersPerShaderStage < 16 || limits.maxBufferSize < 64 * 1024 * 1024 || limits.maxStorageBufferBindingSize < 64 * 1024 * 1024)
+      throw new Error("The WebGPU adapter does not satisfy Luxel's fixed 64MiB arena, 2-group, 16-texture, 16-sampler ABI.");
+    diagnostics.device.status = "requesting";
+    touchDiagnostics(diagnostics, "request-device", "adapter.requestDevice");
+    const device = await adapter.requestDevice();
+    diagnostics.device.status = "ready";
+    touchDiagnostics(diagnostics, "device-ready", "create-backend-resources");
+    const backend = { adapter, device, diagnostics, queue: device.queue, errors: [], lost: null, serial: 0, completions: new Map(), submissions: new Map(), textures: Array(16), samplers: Array(16) };
+    device.addEventListener("uncapturederror", event => {
+      const error = describeError(event.error, "device.uncapturederror");
+      backend.errors.push(error.message);
+      diagnostics.uncapturedErrors.push(error);
+      if (diagnostics.uncapturedErrors.length > 32) diagnostics.uncapturedErrors.shift();
+      diagnostics.lastError = error;
+      touchDiagnostics(diagnostics, "device-error", "device.uncapturederror");
+    });
+    device.lost.then(info => {
+      backend.lost = `${info.reason}: ${info.message}`;
+      const disposed = diagnostics.device.status === "disposed";
+      diagnostics.device.status = disposed ? "disposed" : "lost";
+      diagnostics.device.lost = { reason: info.reason, message: info.message, timestamp: new Date().toISOString(), expected: disposed };
+      touchDiagnostics(diagnostics, disposed ? "disposed" : "device-lost", disposed ? "device.destroy" : "device.lost");
+    }).catch(error => {
+      backend.lost = String(error);
+      diagnostics.device.status = "lost";
+      diagnostics.device.lost = describeError(error, "device.lost");
+      recordError(diagnostics, error, "device.lost");
+    });
+    backend.arena = device.createBuffer({ size: 64 * 1024 * 1024, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST });
+    backend.fallbackTexture = device.createTexture({ size: [1, 1, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
+    device.queue.writeTexture({ texture: backend.fallbackTexture }, new Uint8Array([255, 255, 255, 255]), { bytesPerRow: 4 }, [1, 1, 1]);
+    backend.fallbackSampler = device.createSampler({ magFilter: "nearest", minFilter: "nearest", mipmapFilter: "nearest" });
+    backend.resourceLayout = device.createBindGroupLayout({ entries: [
+      ...Array.from({ length: 16 }, (_, binding) => ({ binding, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE, texture: { sampleType: "float", viewDimension: "2d" } })),
+      ...Array.from({ length: 16 }, (_, i) => ({ binding: 16 + i, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE, sampler: { type: "filtering" } }))
+    ] });
+    const makeLayout = (type, visibility) => device.createBindGroupLayout({ entries: [
+      { binding: 0, visibility, buffer: { type, minBindingSize: 4 } },
+      { binding: 1, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE, buffer: { type: "uniform", hasDynamicOffset: true, minBindingSize: 256 } }
+    ] });
+    backend.computeLayout = makeLayout("storage", GPUShaderStage.COMPUTE);
+    backend.graphicsLayout = makeLayout("read-only-storage", GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT);
+    backend.computePipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [backend.computeLayout, backend.resourceLayout] });
+    backend.graphicsPipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [backend.graphicsLayout, backend.resourceLayout] });
+    const handle = put("backend", backend);
+    diagnostics.backendHandle = handle;
+    touchDiagnostics(diagnostics, "ready", "initialize-complete");
+    return JSON.stringify({ handle, name: `WebGPU / ${adapter.info?.description || adapter.info?.device || "browser adapter"}` });
+  } catch (error) {
+    diagnostics.device.status = diagnostics.device.status === "requesting" ? "request-failed" : diagnostics.device.status;
+    recordError(diagnostics, error, diagnostics.lastOperation || "initialize");
+    throw error;
+  }
+}
+
+export function getDiagnostics(backendHandle = 0) {
+  let diagnostics = latestDiagnostics;
+  if (backendHandle > 0) {
+    const entry = objects.get(backendHandle);
+    if (entry?.kind === "backend") diagnostics = entry.value.diagnostics;
+  }
+  return JSON.stringify(diagnostics || newDiagnostics());
+}
+
+export function recordDiagnosticsError(backendHandle, source, name, message, stack) {
+  let diagnostics = latestDiagnostics;
+  if (backendHandle > 0) {
+    const entry = objects.get(backendHandle);
+    if (entry?.kind === "backend") diagnostics = entry.value.diagnostics;
+  }
+  diagnostics ||= newDiagnostics();
+  diagnostics.lastError = { source, name, message, stack: stack || null, timestamp: new Date().toISOString() };
+  touchDiagnostics(diagnostics, "error", source);
 }
 
 export function createComputePipeline(backendHandle, wgslBase64, entryPoint) {
@@ -194,16 +304,54 @@ export async function waitIdle(backendHandle, requestsJson) { const backend = ge
 
 const blitWgsl = `struct Info { stride:u32, width:u32, height:u32, targetWidth:u32, targetHeight:u32, unused0:u32, unused1:u32, unused2:u32 } @group(0) @binding(0) var<storage,read> pixels:array<u32>; @group(0) @binding(1) var<uniform> info:Info; struct Out { @builtin(position) position:vec4f } @vertex fn vsMain(@builtin(vertex_index) i:u32)->Out { var p=array<vec2f,3>(vec2f(-1,-1),vec2f(3,-1),vec2f(-1,3)); var o:Out; o.position=vec4f(p[i],0,1); return o; } @fragment fn fsMain(@builtin(position) p:vec4f)->@location(0) vec4f { let x=min(u32(p.x*f32(info.width)/f32(info.targetWidth)),info.width-1); let y=min(u32(p.y*f32(info.height)/f32(info.targetHeight)),info.height-1); let v=pixels[y*info.stride+x]; return vec4f(f32(v&255u),f32((v>>8u)&255u),f32((v>>16u)&255u),f32((v>>24u)&255u))/255.0; }`;
 export function createSurface(backendHandle, canvasToken, width, height) {
-  const backend = get(backendHandle, "backend"), canvas = document.querySelector(canvasToken); if (!(canvas instanceof HTMLCanvasElement)) throw new Error(`Canvas not found: ${canvasToken}.`);
-  const context = canvas.getContext("webgpu"), format = navigator.gpu.getPreferredCanvasFormat();
-  const layout = backend.device.createBindGroupLayout({ entries: [{ binding:0, visibility:GPUShaderStage.FRAGMENT, buffer:{ type:"read-only-storage" } }, { binding:1, visibility:GPUShaderStage.FRAGMENT, buffer:{ type:"uniform" } }] });
-  const module = backend.device.createShaderModule({ code: blitWgsl }), pipeline = backend.device.createRenderPipeline({ layout:backend.device.createPipelineLayout({bindGroupLayouts:[layout]}), vertex:{module,entryPoint:"vsMain"}, fragment:{module,entryPoint:"fsMain",targets:[{format}]}, primitive:{topology:"triangle-list"} });
-  const info = backend.device.createBuffer({ size:32, usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST });
-  const surface = { backend, canvas, context, format, layout, pipeline, info, width, height }; configureSurface(surface); return put("surface", surface);
+  const backend = get(backendHandle, "backend"), diagnostics = backend.diagnostics;
+  touchDiagnostics(diagnostics, "surface-create", "canvas.getContext(webgpu)");
+  try {
+    const canvas = document.querySelector(canvasToken); if (!(canvas instanceof HTMLCanvasElement)) throw new Error(`Canvas not found: ${canvasToken}.`);
+    const context = canvas.getContext("webgpu"); if (!context) throw new Error("Canvas WebGPU context is unavailable.");
+    const format = navigator.gpu.getPreferredCanvasFormat();
+    const layout = backend.device.createBindGroupLayout({ entries: [{ binding:0, visibility:GPUShaderStage.FRAGMENT, buffer:{ type:"read-only-storage" } }, { binding:1, visibility:GPUShaderStage.FRAGMENT, buffer:{ type:"uniform" } }] });
+    const module = backend.device.createShaderModule({ code: blitWgsl }), pipeline = backend.device.createRenderPipeline({ layout:backend.device.createPipelineLayout({bindGroupLayouts:[layout]}), vertex:{module,entryPoint:"vsMain"}, fragment:{module,entryPoint:"fsMain",targets:[{format}]}, primitive:{topology:"triangle-list"} });
+    const info = backend.device.createBuffer({ size:32, usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST });
+    const surface = { backend, canvas, context, format, layout, pipeline, info, width, height };
+    diagnostics.surface = { canvasToken, format, alphaMode: "premultiplied", width, height, configured: false, presentCount: 0 };
+    configureSurface(surface);
+    touchDiagnostics(diagnostics, "surface-ready", "createSurface");
+    return put("surface", surface);
+  } catch (error) {
+    recordError(diagnostics, error, "createSurface");
+    throw error;
+  }
 }
-function configureSurface(surface) { if (surface.canvas.width !== surface.width) surface.canvas.width = surface.width; if (surface.canvas.height !== surface.height) surface.canvas.height = surface.height; if (surface.width && surface.height) surface.context.configure({ device:surface.backend.device, format:surface.format, alphaMode:"premultiplied" }); else surface.context.unconfigure(); }
+function configureSurface(surface) {
+  const diagnostics = surface.backend.diagnostics;
+  touchDiagnostics(diagnostics, "surface-configure", "GPUCanvasContext.configure");
+  try {
+    if (surface.canvas.width !== surface.width) surface.canvas.width = surface.width;
+    if (surface.canvas.height !== surface.height) surface.canvas.height = surface.height;
+    if (surface.width && surface.height) surface.context.configure({ device:surface.backend.device, format:surface.format, alphaMode:"premultiplied" }); else surface.context.unconfigure();
+    Object.assign(diagnostics.surface, { width: surface.width, height: surface.height, configured: Boolean(surface.width && surface.height) });
+  } catch (error) {
+    recordError(diagnostics, error, "GPUCanvasContext.configure");
+    throw error;
+  }
+}
 export function surfaceResize(surfaceHandle, width, height) { const surface=get(surfaceHandle,"surface"); if (surface.width===width && surface.height===height) return; surface.width=width; surface.height=height; configureSurface(surface); }
-export function surfacePresent(surfaceHandle, sourceOffset, stride, width, height) { const s=get(surfaceHandle,"surface"), b=s.backend; if (!width||!height||!s.width||!s.height) return; b.queue.writeBuffer(s.info,0,new Uint32Array([stride,width,height,s.width,s.height,0,0,0])); const group=b.device.createBindGroup({layout:s.layout,entries:[{binding:0,resource:{buffer:b.arena,offset:sourceOffset,size:Math.max(4,((stride*(height-1)+width)*4+3)&~3)}},{binding:1,resource:{buffer:s.info}}]}); const e=b.device.createCommandEncoder(), p=e.beginRenderPass({colorAttachments:[{view:s.context.getCurrentTexture().createView(),loadOp:"clear",storeOp:"store",clearValue:{r:0,g:0,b:0,a:1}}]}); p.setPipeline(s.pipeline); p.setBindGroup(0,group); p.draw(3); p.end(); b.queue.submit([e.finish()]); }
+export function surfacePresent(surfaceHandle, sourceOffset, stride, width, height) {
+  const s=get(surfaceHandle,"surface"), b=s.backend, diagnostics=b.diagnostics; if (!width||!height||!s.width||!s.height) return;
+  touchDiagnostics(diagnostics, "surface-present", "GPUCanvasContext.getCurrentTexture");
+  try {
+    b.queue.writeBuffer(s.info,0,new Uint32Array([stride,width,height,s.width,s.height,0,0,0]));
+    const group=b.device.createBindGroup({layout:s.layout,entries:[{binding:0,resource:{buffer:b.arena,offset:sourceOffset,size:Math.max(4,((stride*(height-1)+width)*4+3)&~3)}},{binding:1,resource:{buffer:s.info}}]});
+    const e=b.device.createCommandEncoder(), p=e.beginRenderPass({colorAttachments:[{view:s.context.getCurrentTexture().createView(),loadOp:"clear",storeOp:"store",clearValue:{r:0,g:0,b:0,a:1}}]});
+    p.setPipeline(s.pipeline); p.setBindGroup(0,group); p.draw(3); p.end(); b.queue.submit([e.finish()]);
+    diagnostics.surface.presentCount += 1;
+    touchDiagnostics(diagnostics, "surface-presented", "queue.submit(surface)");
+  } catch (error) {
+    recordError(diagnostics, error, "surfacePresent");
+    throw error;
+  }
+}
 
 export function release(kind, handle) {
   const names = [null,"texture","sampler","pipeline","command","surface"], name=names[kind], value=remove(handle,name);
@@ -212,4 +360,4 @@ export function release(kind, handle) {
   else if (name === "command" && !value.submitted) { value.rootBuffer.destroy(); for(const temp of value.temps) temp.destroy(); }
   else if (name === "surface") { value.context.unconfigure(); value.info.destroy(); }
 }
-export function disposeBackend(handle) { const backend=remove(handle,"backend"); for (const [objectHandle,entry] of [...objects]) if (entry.value?.backend===backend) objects.delete(objectHandle); backend.arena.destroy(); backend.fallbackTexture.destroy(); backend.device.destroy(); }
+export function disposeBackend(handle) { const backend=remove(handle,"backend"); for (const [objectHandle,entry] of [...objects]) if (entry.value?.backend===backend) objects.delete(objectHandle); backend.diagnostics.device.status="disposed"; touchDiagnostics(backend.diagnostics,"disposed","disposeBackend"); backend.arena.destroy(); backend.fallbackTexture.destroy(); backend.device.destroy(); }

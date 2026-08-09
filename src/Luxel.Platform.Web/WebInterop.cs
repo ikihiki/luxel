@@ -7,11 +7,12 @@ namespace Luxel.Platform.Web;
 internal static partial class WebInterop
 {
     internal const string ModuleName = "luxel-platform-web";
+    private static JSObject? _module;
 
     internal static async ValueTask ImportAsync(string moduleUrl, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleUrl);
-        _ = await JSHost.ImportAsync(ModuleName, moduleUrl, cancellationToken).ConfigureAwait(false);
+        _module ??= await JSHost.ImportAsync(ModuleName, moduleUrl, cancellationToken).ConfigureAwait(false);
     }
 
     [JSImport("createWindow", ModuleName)]

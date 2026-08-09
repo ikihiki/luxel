@@ -4,9 +4,9 @@ ROOT="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 WORK="${LUXEL_PACKAGE_FIXTURE_DIR:-/tmp/luxel-package-fixture}"
 FEED="$WORK/feed"; PACKAGES="$WORK/packages"; PUBLISH="$WORK/publish"
 rm -rf "$WORK"; mkdir -p "$FEED" "$WORK/app"
-dotnet restore "$ROOT/src/Luxel.UI.App/Luxel.UI.App.csproj"
-dotnet pack "$ROOT/src/Luxel.UI.App/Luxel.UI.App.csproj" -c Debug -o "$FEED" --no-restore
-python3 - "$ROOT/src/Luxel.UI.App/obj/project.assets.json" "$FEED" <<'PY'
+dotnet restore "$ROOT/src/Framework/Luxel.Framework.UI/Luxel.Framework.UI.csproj"
+dotnet pack "$ROOT/src/Framework/Luxel.Framework.UI/Luxel.Framework.UI.csproj" -c Debug -o "$FEED" --no-restore
+python3 - "$ROOT/src/Framework/Luxel.Framework.UI/obj/project.assets.json" "$FEED" <<'PY'
 import json, pathlib, sys, urllib.request
 assets=json.load(open(sys.argv[1])); feed=pathlib.Path(sys.argv[2])
 for key, metadata in assets['libraries'].items():

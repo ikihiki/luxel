@@ -59,10 +59,9 @@ def forbid_closure(source_stem: str, forbidden, label: str):
 forbid_closure("Luxel.UI", lambda stem: stem.startswith("Luxel.Gallery"), "UI/Gallery reverse")
 forbid_closure("Luxel.UI.Generators", lambda stem: stem.startswith("Luxel.Gallery"), "UI generators/Gallery reverse")
 forbid_closure("Luxel.Gallery", lambda stem: stem in {
-    "Luxel.Gallery.Generators", "Luxel.Gallery.UI", "Luxel.Gallery.Host", "Luxel.Gallery.Site",
-    "Luxel.Gallery.Stories", "Luxel.Gallery.Stories.CoreUi"
+    "Luxel.Gallery.Generators", "Luxel.Gallery.UI", "Luxel.Gallery.Native",
+    "Luxel.Gallery.Stories", "Luxel.Gallery.Stories.CoreUi", "Luxel.Gallery.Resources.Stories"
 }, "Gallery core reverse")
-forbid_closure("Luxel.Gallery.Site", lambda stem: stem == "Luxel.Gallery.Host", "Site/Host")
 
 native_heavy = lambda stem: (
     stem in {"Luxel.Platform.Windows", "Luxel.Input.XInput", "Luxel.Audio.Windows", "Luxel.Audio.Silk",
@@ -72,16 +71,21 @@ native_heavy = lambda stem: (
     or stem.startswith("Luxel.Scripting")
 )
 browser_forbidden = lambda stem: native_heavy(stem) or stem in {
-    "Luxel.Gallery.Host", "Luxel.Gallery.Site", "Luxel.Gallery.Stories"
+    "Luxel.Gallery.Native", "Luxel.Gallery.Stories"
 }
+forbid_closure("Luxel.Framework.Game", native_heavy, "Game portable closure")
+forbid_closure("Luxel.Framework.Game.Browser", lambda stem: browser_forbidden(stem) or stem in {
+    "Luxel.Framework.UI", "Luxel.Framework.DevTools", "Luxel.Framework.Game.Native"
+}, "Game browser closure")
 forbid_closure("Luxel.Gallery.Stories.CoreUi", browser_forbidden, "CoreUi browser closure")
-forbid_closure("LuxelWebGpuBrowser", browser_forbidden, "browser host closure")
+forbid_closure("Luxel.Gallery.Browser", browser_forbidden, "browser Gallery closure")
+forbid_closure("GalleryBrowser", browser_forbidden, "browser Gallery executable closure")
+forbid_closure("GalleryE2E.Browser", browser_forbidden, "browser Gallery E2E closure")
 # The playground host intentionally carries the transport-neutral scripting contracts and the
 # browser-specific Roslyn implementation. Keep every other native-heavy dependency forbidden.
 playground_browser_forbidden = lambda stem: (
     native_heavy(stem) and stem not in {"Luxel.Scripting", "Luxel.Scripting.Roslyn.Web"}
-) or stem in {"Luxel.Gallery.Host", "Luxel.Gallery.Site", "Luxel.Gallery.Stories", "Luxel.Scripting.Framework"}
+) or stem in {"Luxel.Gallery.Native", "Luxel.Gallery.Stories", "Luxel.Scripting.Framework"}
 forbid_closure("LuxelPlaygroundBrowser", playground_browser_forbidden, "playground browser host closure")
-forbid_closure("Luxel.Gallery.RuntimeManifest", browser_forbidden, "runtime manifest closure")
 
 print(f"Project dependency graph OK ({len(graph)} projects).")

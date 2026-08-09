@@ -1,5 +1,7 @@
+using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using Luxel.Gallery;
+using Luxel.Gallery.Stories;
 using Luxel.UI;
 
 namespace Luxel.Gallery.Site.Tests;
@@ -36,13 +38,229 @@ public sealed class ProductionComponentCatalogTests
             StoryInfo basic = Assert.IsType<StoryInfo>(catalog.Find(descriptor.BasicPath));
             Assert.Equal(descriptor, basic.ProductionComponent);
             Assert.Equal(StoryRegistrationKind.GeneratedComponentFallback, basic.RegistrationKind);
-            Assert.Equal(CoreUiStoryProject.RuntimeBundleId, basic.RuntimeBundleId);
             Assert.NotNull(basic.ArgDefinitions);
             StoryResult basicResult = basic.BuildResult(new StoryContext());
             Assert.Equal(StoryResultKind.Widget, basicResult.Kind);
             Assert.True(basicResult.Widget is GeneratedComponentStoryPreview or StoryCapabilityFallback,
                 $"{descriptor.BasicPath} returned {basicResult.Widget?.GetType().FullName ?? "null"}.");
         }
+    }
+
+    [Fact]
+    public void Full_catalog_composes_resource_routes_without_leaking_them_into_CoreUi_runtime_catalog()
+    {
+        string[] resourcePaths =
+        [
+            .. ResourceCourseCatalog.Routes,
+            "Examples/Resources/HelloTextAsset",
+            "Examples/Resources/CustomPackageSource",
+            "Examples/Resources/PlayerStatsPipeline",
+            "Examples/Resources/ExtensionSelection",
+            "Examples/Resources/SharedDependencyGraph",
+            "Examples/Resources/ScopedRuntimeValues",
+            "Examples/Resources/HotReloadRecovery",
+            "Examples/Resources/BrowserHttpAssets",
+            "Examples/Resources/Assets/DocumentInspector",
+            "Examples/Resources/Assets/MeshPrimitiveInspector",
+            "Examples/Resources/Assets/MaterialTextureInspector",
+            "Examples/Resources/Assets/AnimatedSceneGraph",
+            "Examples/Resources/Assets/GpuAssetRegistry",
+            "Examples/Resources/Assets/ShaderBufferInspector",
+            "Examples/Resources/Gltf/BoxDocumentLoad",
+            "Examples/Resources/Gltf/ExternalBufferTrace",
+            "Examples/Resources/Gltf/MalformedAccessorDiagnostics",
+            "Examples/Resources/Gltf/BoxScene",
+            "Examples/Resources/Gltf/AnimatedBox",
+            "Examples/Resources/Gltf/RiggedSimpleSkinning",
+            "Examples/Resources/Gltf/MorphWeights",
+            "Examples/Resources/Gltf/ExternalDependencyReload",
+        ];
+
+        StoryCatalog resourceCatalog = ResourceStoryProject.CreateCatalog();
+        StoryCatalog fullCatalog = GalleryStoryProject.CreateCatalog();
+        StoryCatalog coreUiCatalog = CoreUiStoryProject.CreateCatalog();
+        HashSet<string> browserPaths = coreUiCatalog.All
+            .Select(story => story.Path)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Equal(resourcePaths.Order(StringComparer.Ordinal), resourceCatalog.All.Select(story => story.Path).Order(StringComparer.Ordinal));
+        Assert.All(resourcePaths, path => Assert.NotNull(fullCatalog.Find(path)));
+        Assert.All(resourcePaths, path => Assert.Null(coreUiCatalog.Find(path)));
+        Assert.All(resourcePaths, path => Assert.DoesNotContain(path, browserPaths));
+        Assert.DoesNotContain(
+            typeof(CoreUiStoryProject).Assembly.GetReferencedAssemblies(),
+            reference => reference.Name == "Luxel.Assets.Gltf");
+    }
+
+    [Fact]
+    public void Every_resource_learn_page_embeds_one_primary_canonical_example_inline()
+    {
+        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+
+        Assert.Equal(ResourceCourseCatalog.Routes.Order(StringComparer.Ordinal),
+            ResourceLearnExamples.Routes.Keys.Order(StringComparer.Ordinal));
+
+        foreach (string learnRoute in ResourceCourseCatalog.Routes)
+        {
+            StoryInfo page = Assert.IsType<StoryInfo>(catalog.Find(learnRoute));
+            StoryResult result = page.BuildResult(new StoryContext());
+            string[] expected = ResourceLearnExamples.Routes[learnRoute];
+
+            Assert.NotEmpty(expected);
+            Assert.Equal([expected[0]], result.References.Select(reference => reference.Path));
+            Assert.Contains("```luxel-story\n0\n```", result.Markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("More runnable examples", result.Markdown, StringComparison.Ordinal);
+            Assert.All(expected, example => Assert.NotNull(catalog.Find(example)));
+        }
+    }
+
+    [Fact]
+    public void Resource_examples_publish_their_automatically_captured_story_methods()
+    {
+        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+        StoryInfo hello = Assert.IsType<StoryInfo>(catalog.Find("Examples/Resources/HelloTextAsset"));
+        StoryInfo boxScene = Assert.IsType<StoryInfo>(catalog.Find("Examples/Resources/Gltf/BoxScene"));
+
+        Assert.Contains("[Story(\"Examples/Resources/HelloTextAsset\"", hello.Source, StringComparison.Ordinal);
+        Assert.Contains("public static Widget HelloTextAsset", hello.Source, StringComparison.Ordinal);
+        Assert.Contains("new ResourceScenarioWidget", hello.Source, StringComparison.Ordinal);
+        Assert.Contains("resources.AddSource", hello.Source, StringComparison.Ordinal);
+        Assert.Contains("resources.Load<TextAsset>", hello.Source, StringComparison.Ordinal);
+        Assert.DoesNotContain("ResourceScenarios.Create", hello.Source, StringComparison.Ordinal);
+        Assert.Contains("public static Widget GltfBox", boxScene.Source, StringComparison.Ordinal);
+        Assert.Contains("GltfStoryAssets.View", boxScene.Source, StringComparison.Ordinal);
+
+        string[] examples = ResourceLearnExamples.Routes.Values.SelectMany(routes => routes)
+            .Distinct(StringComparer.Ordinal).ToArray();
+        Assert.All(examples, route =>
+        {
+            StoryInfo story = Assert.IsType<StoryInfo>(catalog.Find(route));
+            Assert.False(string.IsNullOrWhiteSpace(story.Source), $"{route} needs automatically captured source.");
+            Assert.Contains("[Story(", story.Source, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public void Every_canonical_resource_example_builds_a_widget_without_host_resources()
+    {
+        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+        string[] examples = ResourceLearnExamples.Routes.Values
+            .SelectMany(routes => routes)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(22, examples.Length);
+        foreach (string route in examples)
+        {
+            StoryInfo story = Assert.IsType<StoryInfo>(catalog.Find(route));
+            using var context = new StoryContext();
+            StoryResult result = story.BuildResult(context);
+            Assert.Equal(StoryResultKind.Widget, result.Kind);
+            Assert.NotNull(result.Widget);
+        }
+    }
+
+    [Fact]
+    public async Task Gpu_resource_examples_construct_private_systems_and_load_embedded_fixtures()
+    {
+        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+        string[] gpuExamples =
+        [
+            "Examples/Resources/Gltf/BoxScene",
+            "Examples/Resources/Gltf/AnimatedBox",
+            "Examples/Resources/Gltf/RiggedSimpleSkinning",
+            "Examples/Resources/Gltf/MorphWeights",
+        ];
+        int before = GltfStoryAssets.CreatedSystemCount;
+
+        foreach (string route in gpuExamples)
+        {
+            using var context = new StoryContext();
+            StoryResult result = Assert.IsType<StoryInfo>(catalog.Find(route)).BuildResult(context);
+            Assert.Equal(StoryResultKind.Widget, result.Kind);
+        }
+
+        Assert.Equal(before + gpuExamples.Length, GltfStoryAssets.CreatedSystemCount);
+        Assert.Single((await GltfStoryAssets.LoadFixtureForTestAsync(GltfStoryAssets.Box)).Meshes);
+        Assert.NotEmpty((await GltfStoryAssets.LoadFixtureForTestAsync(GltfStoryAssets.AnimatedBox)).Animations);
+        Assert.NotEmpty((await GltfStoryAssets.LoadFixtureForTestAsync(GltfStoryAssets.RiggedSimple)).Skins);
+    }
+
+    [Fact]
+    public async Task Cpu_resource_examples_execute_with_isolated_systems_and_deterministic_results()
+    {
+        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+        string[] gpuExamples =
+        [
+            "Examples/Resources/Gltf/BoxScene",
+            "Examples/Resources/Gltf/AnimatedBox",
+            "Examples/Resources/Gltf/RiggedSimpleSkinning",
+            "Examples/Resources/Gltf/MorphWeights",
+        ];
+        string[] cpuExamples = ResourceLearnExamples.Routes.Values
+            .SelectMany(routes => routes)
+            .Distinct(StringComparer.Ordinal)
+            .Except(gpuExamples, StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        var systems = new HashSet<Luxel.Resources.ResourceSystem>(ReferenceEqualityComparer.Instance);
+
+        Assert.Equal(18, cpuExamples.Length);
+        foreach (string route in cpuExamples)
+        {
+            StoryInfo story = Assert.IsType<StoryInfo>(catalog.Find(route));
+            using var context = new StoryContext();
+            StoryResult result = story.BuildResult(context);
+            ResourceScenarioWidget widget = Assert.IsType<ResourceScenarioWidget>(result.Widget);
+            Assert.True(systems.Add(widget.Resources), $"{route} reused another scenario's ResourceSystem.");
+
+            await widget.RunForTestAsync().WaitAsync(TimeSpan.FromSeconds(10));
+
+            Assert.Equal("準備完了", widget.Status);
+            Assert.DoesNotContain("予期せずインポートに成功しました", widget.Detail, StringComparison.Ordinal);
+            Assert.False(string.IsNullOrWhiteSpace(widget.Detail));
+            widget.Dispose();
+        }
+    }
+
+    [Fact]
+    public void Removed_resource_routes_have_no_aliases()
+    {
+        StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
+        string[] removed =
+        [
+            "Learn/Resources/Assets/TypesAndRelationships",
+            "Learn/Resources/Assets/ShaderCalculations",
+            "Learn/Resources/Assets/GltfRuntime",
+            "Examples/Resources/Pipeline",
+            "Examples/Resources/DependencyDag",
+            "Examples/Resources/Reload",
+            "Examples/Resources/Lifetime",
+            "Examples/3D/GltfBox",
+            "Examples/3D/GltfAnimated",
+            "Examples/3D/GltfSkinned",
+            "Examples/3D/GltfMorph",
+        ];
+
+        Assert.All(removed, route => Assert.Null(catalog.Find(route)));
+    }
+
+    [Fact]
+    public void AddResourceStory_registers_the_resource_catalog_in_service_registration_order()
+    {
+        var services = new ServiceCollection();
+        services.AddStoryCatalog(builder => builder.Add(new StoryInfo("Before/Resource", 1, 1, null, _ => null!)));
+        services.AddResourceStory();
+        services.AddStoryCatalog(builder => builder.Add(new StoryInfo("After/Resource", 1, 1, null, _ => null!)));
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        StoryCatalog catalog = provider.GetRequiredService<StoryCatalog>();
+        string[] resourcePaths = ResourceStoryProject.CreateCatalog().All.Select(story => story.Path).ToArray();
+
+        Assert.Equal("Before/Resource", catalog.All[0].Path);
+        Assert.Equal(resourcePaths, catalog.All.Skip(1).Take(resourcePaths.Length).Select(story => story.Path));
+        Assert.Equal("After/Resource", catalog.All[^1].Path);
     }
 
     [Fact]
@@ -60,7 +278,6 @@ public sealed class ProductionComponentCatalogTests
 
         Assert.Equal(StoryRegistrationKind.Authored, actual.RegistrationKind);
         Assert.Equal(generated.ProductionComponent, actual.ProductionComponent);
-        Assert.Equal(generated.RuntimeBundleId, actual.RuntimeBundleId);
         Assert.Same(generated.ArgDefinitions, actual.ArgDefinitions);
         Assert.Equal("authored Button Basic", actual.Source);
 
@@ -71,38 +288,14 @@ public sealed class ProductionComponentCatalogTests
         Assert.Contains("only replace an exact generated component fallback", error.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Protocol_v2_runtime_manifest_matches_the_CoreUi_catalog_and_identifies_60_production_basics()
+    private static string FindRepositoryRoot()
     {
-        string root = GallerySiteExporter.FindRepositoryRoot();
-        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(Path.Combine(
-            root, "samples", "LuxelWebGpuBrowser", "wwwroot", "browser-runtime-manifest.json")));
-        JsonElement manifest = document.RootElement;
-        Assert.Equal(CoreUiStoryProject.RuntimeBundleId, manifest.GetProperty("bundleId").GetString());
-        Assert.Equal(2, manifest.GetProperty("protocolVersion").GetInt32());
-
-        Dictionary<string, JsonElement> runtimeByPath = manifest.GetProperty("stories").EnumerateArray()
-            .ToDictionary(story => story.GetProperty("path").GetString()!, story => story.Clone(), StringComparer.Ordinal);
-        StoryCatalog catalog = CoreUiStoryProject.CreateCatalog();
-        foreach (StoryInfo story in CoreUiStoryProject.RuntimeStories(catalog))
+        DirectoryInfo? current = new(AppContext.BaseDirectory);
+        while (current is not null)
         {
-            JsonElement runtime = runtimeByPath[story.Path];
-            Assert.Equal(story.Width, runtime.GetProperty("width").GetInt32());
-            Assert.Equal(story.Height, runtime.GetProperty("height").GetInt32());
-            Assert.Equal(
-                JsonSerializer.Serialize(story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>(), CamelCase),
-                JsonSerializer.Serialize(runtime.GetProperty("args"), CamelCase));
-            Assert.Equal(story.CapabilityNote, runtime.GetProperty("capabilityNote").ValueKind == JsonValueKind.Null
-                ? null : runtime.GetProperty("capabilityNote").GetString());
-            Assert.Equal(story.ProductionComponent?.ComponentType,
-                runtime.GetProperty("componentType").ValueKind == JsonValueKind.Null
-                    ? null : runtime.GetProperty("componentType").GetString());
+            if (File.Exists(Path.Combine(current.FullName, "Luxel.slnx"))) return current.FullName;
+            current = current.Parent;
         }
-
-        JsonElement[] production = runtimeByPath.Values
-            .Where(story => story.GetProperty("componentType").ValueKind == JsonValueKind.String)
-            .ToArray();
-        Assert.Equal(60, production.Length);
-        Assert.All(production, story => Assert.EndsWith("/Basic", story.GetProperty("path").GetString(), StringComparison.Ordinal));
+        throw new DirectoryNotFoundException("Luxel repository root was not found.");
     }
 }

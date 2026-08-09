@@ -29,6 +29,13 @@ public readonly record struct DiagGpuCommand(string Kind, string Text);
 /// <summary>1 フレームで GPU へ発行されたコマンド列。</summary>
 public sealed record DiagGpu(DiagGpuCommand[] Commands);
 
+/// <summary>
+/// Browser WebGPU の adapter/device/surface 診断スナップショット。
+/// <paramref name="Json"/> は JavaScript WebGPU 境界が収集した構造化 JSON をそのまま保持する。
+/// 初期化失敗では backend handle が存在しないため、module-global snapshot も同じ payload で通知する。
+/// </summary>
+public sealed record DiagWebGpu(string Json);
+
 /// <summary>リソース 1 ノード ((型,uri) 単位)。どのステップ/実行器で生成され、何に依存したか。</summary>
 public readonly record struct DiagResourceNode(
     string Key, string Type, string Uri, string Status, int Version, string Step, string Executor, string[] Inputs);

@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <LuxelBrowserWasm>true</LuxelBrowserWasm>
+    <WasmBuildNative>true</WasmBuildNative>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.10" PrivateAssets="all" />
+    <PackageReference Include="Markdig" Version="0.41.3" />
+    <PackageReference Include="BepuPhysics" Version="2.4.0" />
+    <PackageReference Include="BepuUtilities" Version="2.4.0" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.0" ExcludeAssets="all" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" Version="14.2.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Browser\Luxel.Gallery.Browser.csproj" />
+    <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Resources.Stories\Luxel.Gallery.Resources.Stories.csproj" />
+    <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Stories.CoreUi\Luxel.Gallery.Stories.CoreUi.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <TrimmerRootAssembly Include="Luxel.Physics" />
+    <TrimmerRootAssembly Include="Luxel.Physics.Gizmos" />
+    <TrimmerRootAssembly Include="BepuPhysics" />
+    <TrimmerRootAssembly Include="BepuUtilities" />
+    <TrimmerRootAssembly Include="Luxel.AssetRuntime" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser.js" Link="wwwroot\slang-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser-runtime.js" Link="wwwroot\slang-browser-runtime.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang-worker.js" Link="wwwroot\slang-worker.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang\**\*" Link="wwwroot\slang\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Luxel.Audio.Browser\wwwroot\luxel-audio-browser.js" Link="wwwroot\luxel-audio-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Luxel.Graphics.WebGPU.Browser\wwwroot\luxel-webgpu-browser.js" Link="wwwroot\luxel-webgpu-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Luxel.Platform.Web\wwwroot\luxel-platform-web.js" Link="wwwroot\luxel-platform-web.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Import Project="..\..\assets\Luxel.KhronosBox.targets" />
+  <ItemGroup>
+    <Content Include="$(KhronosBoxGltfPath)" Link="wwwroot\tools\khronos-samples\Box\Box.gltf" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(KhronosBoxBinPath)" Link="wwwroot\tools\khronos-samples\Box\Box0.bin" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(KhronosBoxLicensePath)" Link="wwwroot\tools\khronos-samples\Box\LICENSE.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(KhronosBoxAnimatedPath)" Link="wwwroot\tools\khronos-samples\BoxAnimated\BoxAnimated.glb" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(KhronosBoxAnimatedLicensePath)" Link="wwwroot\tools\khronos-samples\BoxAnimated\LICENSE.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(KhronosRiggedSimplePath)" Link="wwwroot\tools\khronos-samples\RiggedSimple\RiggedSimple.glb" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(KhronosRiggedSimpleLicensePath)" Link="wwwroot\tools\khronos-samples\RiggedSimple\LICENSE.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

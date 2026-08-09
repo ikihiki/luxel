@@ -1,8 +1,10 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Friflo.Engine.ECS;
 using Luxel.AssetRuntime;
 using Luxel.Assets;
+using Luxel.Assets.Gltf;
 using Luxel.Ecs;
+using Luxel.Resources;
 
 namespace Luxel.Tests;
 
@@ -102,24 +104,20 @@ public class SceneTests
     }
 
     [Fact]
-    public async Task AssetCache_DedupsParallelLoads()
+    public async Task ResourceSystem_DedupsParallelGltfLoads()
     {
-        // 最小 .gltf で cache が同一 doc を返すことを確認
         var json = """
         {"asset":{"version":"2.0"},"scene":0,"scenes":[{"nodes":[0]}],"nodes":[{"name":"r"}]}
         """;
-        var tmp = Path.GetTempFileName() + ".gltf";
-        await File.WriteAllTextAsync(tmp, json);
-        try
-        {
-            AssetLoaders.Clear();
-            AssetLoaders.Register(new Luxel.Gltf.GltfLoader());
-            var cache = new AssetCache();
-            var d1 = await cache.GetOrLoadAsync(tmp);
-            var d2 = await cache.GetOrLoadAsync(tmp);
-            Assert.Same(d1, d2);
-            Assert.Equal(1, cache.CacheCount);
-        }
-        finally { AssetLoaders.Clear(); File.Delete(tmp); }
+        var files = new MemoryFileSystem();
+        files.Set("scene.gltf", System.Text.Encoding.UTF8.GetBytes(json));
+        using var resources = new ResourceSystem(sources: [new FileSource(files)]);
+        resources.AddStep<byte[], AssetDocument>(new GltfResourceStep());
+
+        using ResourceHandle<AssetDocument> first = resources.Load<AssetDocument>("scene.gltf");
+        using ResourceHandle<AssetDocument> second = resources.Load<AssetDocument>("scene.gltf");
+        await Task.WhenAll(first.Ready, second.Ready);
+
+        Assert.Same(first.Value, second.Value);
     }
 }

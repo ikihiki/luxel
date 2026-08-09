@@ -1,134 +1,75 @@
-using System.Text.Json;
-
 namespace Luxel.WebGPU.Browser.Tests;
 
 public sealed class BrowserStoryCatalogSourceTests
 {
     [Fact]
-    public void Browser_host_uses_the_CoreUi_catalog_and_protocol_v2_descriptor_manifest()
+    public void Blazor_host_composes_resource_and_CoreUi_catalogs_without_a_runtime_manifest()
     {
         string root = FindRepositoryRoot();
-        string program = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "Program.cs"));
-        string script = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "wwwroot", "main.js"));
-        string project = File.ReadAllText(Path.Combine(root, "samples", "LuxelWebGpuBrowser", "LuxelWebGpuBrowser.csproj"));
-        string compiler = File.ReadAllText(Path.Combine(root, "src", "Luxel.Shaders.Slang.Browser", "BrowserSlangCompiler.cs"));
-        string gpuResources = File.ReadAllText(Path.Combine(root, "src", "Luxel.AssetsGpu", "ResourceSystemExtensions.cs"));
-        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(Path.Combine(
-            root, "samples", "LuxelWebGpuBrowser", "wwwroot", "browser-runtime-manifest.json")));
+        string entryPoint = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "Program.cs"));
+        string app = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "App.razor"));
+        string runtime = File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Browser", "BrowserGalleryApplication.cs"));
+        string script = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "main.js"));
+        string styles = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "gallery.css"));
+        string markdown = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "GalleryMarkdownHtml.cs"));
+        string project = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "GalleryBrowser.csproj"));
 
-        Assert.Contains("CoreUiStoryProject.CreateCatalog()", program, StringComparison.Ordinal);
-        Assert.Contains("Catalog.Find(path)", program, StringComparison.Ordinal);
-        Assert.Contains("story.RuntimeBundleId != CoreUiStoryProject.RuntimeBundleId", program, StringComparison.Ordinal);
-        Assert.Contains("new StoryContext(resources, args)", program, StringComparison.Ordinal);
-        Assert.Contains("context.SetGpuHost(device, font)", program, StringComparison.Ordinal);
-        Assert.Contains("resources.InstallAssetGpuLifecycle(device)", program, StringComparison.Ordinal);
-        Assert.Contains("new BrowserSlangCompiler()", program, StringComparison.Ordinal);
-        Assert.Contains("AddStep<SlangSource, GpuShaderCode>", program, StringComparison.Ordinal);
-        Assert.DoesNotContain("context.Ready", program, StringComparison.Ordinal);
-        Assert.True(program.IndexOf("ui.SetRoot(result.Widget)", StringComparison.Ordinal)
-            < program.IndexOf("resources.Pump()", StringComparison.Ordinal));
-        Assert.True(program.IndexOf("resources.Pump()", StringComparison.Ordinal)
-            < program.IndexOf("ui.Tick(1f / 60f)", StringComparison.Ordinal));
-        Assert.Contains("Luxel.Audio.Browser.csproj", project, StringComparison.Ordinal);
-        Assert.Contains("AudioStories.ConfigureRuntime", program, StringComparison.Ordinal);
-        Assert.Contains("Luxel.Shaders.Slang.Browser.csproj", project, StringComparison.Ordinal);
-        Assert.Contains("wwwroot\\slang-worker.js", project, StringComparison.Ordinal);
-        Assert.Contains("BrowserSlangJsonContext.Default.BrowserCompileRequest", compiler, StringComparison.Ordinal);
-        Assert.Contains("BrowserSlangJsonContext.Default.BrowserCompileResponse", compiler, StringComparison.Ordinal);
-        Assert.Contains("AddStep<CpuImage, GpuTexture>", gpuResources, StringComparison.Ordinal);
-        Assert.Contains("AddStep<GpuBufferRequest, GpuBuffer>", gpuResources, StringComparison.Ordinal);
-        Assert.Contains("AddStep<float[], GpuBuffer>", gpuResources, StringComparison.Ordinal);
-        Assert.Contains("SnapshotWidgets(result.Widget)", program, StringComparison.Ordinal);
-        Assert.DoesNotContain("path switch", program, StringComparison.Ordinal);
-        Assert.DoesNotContain("RunClearColor", program, StringComparison.Ordinal);
-        Assert.DoesNotContain("RunTriangle", program, StringComparison.Ordinal);
+        string fixtureTargets = File.ReadAllText(Path.Combine(root, "assets", "Luxel.KhronosBox.targets"));
+        string dependencyChecker = File.ReadAllText(Path.Combine(root, "eng", "check-project-dependencies.py"));
 
-        Assert.Contains("const protocolVersion = 2", script, StringComparison.Ordinal);
-        Assert.Contains("import * as slang from \"./slang-browser.js\"", script, StringComparison.Ordinal);
-        Assert.Contains("runtime.setModuleImports(\"luxel-slang\", slang)", script, StringComparison.Ordinal);
-        Assert.Contains("import * as audio from \"./luxel-audio-browser.js\"", script, StringComparison.Ordinal);
-        Assert.Contains("runtime.setModuleImports(\"./luxel-audio-browser.js\", audio)", script, StringComparison.Ordinal);
-        Assert.Contains("message.type !== \"set-args\"", script, StringComparison.Ordinal);
-        Assert.Contains("event.source !== parent", script, StringComparison.Ordinal);
-        Assert.Contains("event.origin !== location.origin", script, StringComparison.Ordinal);
-        Assert.Contains("publishArgsChanged", script, StringComparison.Ordinal);
-        Assert.Contains("publishEvent", program, StringComparison.Ordinal);
-        Assert.Contains("publishEvent", script, StringComparison.Ordinal);
-        Assert.Contains("post(\"event\", { entry })", script, StringComparison.Ordinal);
-        Assert.Contains("publishDiagnostics", script, StringComparison.Ordinal);
-
-        JsonElement manifest = document.RootElement;
-        Assert.Equal(2, manifest.GetProperty("protocolVersion").GetInt32());
-        JsonElement[] production = manifest.GetProperty("stories").EnumerateArray()
-            .Where(story => story.GetProperty("componentType").ValueKind == JsonValueKind.String)
-            .ToArray();
-        JsonElement blur = manifest.GetProperty("stories").EnumerateArray()
-            .Single(story => story.GetProperty("path").GetString() == "Examples/RenderGraph/Blur");
-        string[] pipelineStories =
-        [
-            "Examples/3D/PipelineState/Topology", "Examples/3D/PipelineState/Rasterizer",
-            "Examples/3D/PipelineState/Depth", "Examples/3D/PipelineState/Blend",
-            "Examples/3D/PipelineState/Stencil", "Examples/3D/PipelineState/ViewportScissor",
-            "Examples/3D/PipelineState/Separation", "Examples/3D/Depth", "Examples/3D/Blend",
-        ];
-        string[] runtimePaths = manifest.GetProperty("stories").EnumerateArray()
-            .Select(story => story.GetProperty("path").GetString()!)
-            .ToArray();
-        foreach (string path in new[]
-                 {
-                     "Examples/3D/EcsCubes", "Examples/3D/PhysicsFalling", "Examples/3D/PhysicsPlayground",
-                     "Examples/3D/PhysicsGizmos", "Examples/3D/PhysicsTrigger", "Examples/3D/PhysicsMesh",
-                 })
-            Assert.Contains(path, runtimePaths);
-        string[] audioStories =
-        [
-            "Examples/Audio/BackendLifecycle", "Examples/Audio/WaveformAndVoice", "Examples/Audio/Buses",
-            "Examples/Audio/SpatialAttenuation", "Examples/Audio/StreamingQueue",
-        ];
-        Assert.All(audioStories, path => Assert.Contains(path, runtimePaths));
-        Assert.All(pipelineStories, path => Assert.Contains(path, runtimePaths));
-        (string Path, int Height)[] animationStories =
-        [
-            ("Examples/Animation/Curves", 720),
-            ("Examples/Animation/Tween", 300),
-            ("Examples/Animation/CssKeyframes", 300),
-            ("Examples/Animation/StateMachine", 340),
-            ("Examples/Animation/EcsClip", 300),
-            ("Examples/Animation/Graph", 300),
-        ];
-        Assert.All(animationStories, expected =>
-        {
-            JsonElement story = manifest.GetProperty("stories").EnumerateArray()
-                .Single(candidate => candidate.GetProperty("path").GetString() == expected.Path);
-            Assert.Equal(480, story.GetProperty("width").GetInt32());
-            Assert.Equal(expected.Height, story.GetProperty("height").GetInt32());
-            Assert.Null(story.GetProperty("componentType").GetString());
-        });
-        Assert.Equal(320, blur.GetProperty("width").GetInt32());
-        Assert.Equal(320, blur.GetProperty("height").GetInt32());
-        Assert.Equal("Runs through the shared Gallery WebAssembly story runner.",
-            blur.GetProperty("capabilityNote").GetString());
-
-        string[] inputStories =
-        [
-            "Examples/Input/SourcesAndBus",
-            "Examples/Input/Actions",
-            "Examples/Input/ContextStack",
-            "Examples/Input/Bindings",
-        ];
-        foreach (string path in inputStories)
-        {
-            JsonElement input = manifest.GetProperty("stories").EnumerateArray()
-                .Single(story => story.GetProperty("path").GetString() == path);
-            Assert.Equal(JsonValueKind.Array, input.GetProperty("args").ValueKind);
-            Assert.Null(input.GetProperty("capabilityNote").GetString());
-        }
-
-        Assert.Equal(60, production.Length);
-        Assert.Equal(60, production.Select(story => story.GetProperty("path").GetString())
-            .Distinct(StringComparer.Ordinal).Count());
-        Assert.All(production, story => Assert.EndsWith("/Basic", story.GetProperty("path").GetString(), StringComparison.Ordinal));
-        Assert.All(production, story => Assert.Equal(JsonValueKind.Array, story.GetProperty("args").ValueKind));
+        Assert.Contains("Microsoft.NET.Sdk.BlazorWebAssembly", project, StringComparison.Ordinal);
+        Assert.Contains("WebAssemblyHostBuilder.CreateDefault(args)", entryPoint, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddSingleton(new HttpClient", entryPoint, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddResourceStory()", entryPoint, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddCoreUiStory()", entryPoint, StringComparison.Ordinal);
+        Assert.True(
+            entryPoint.IndexOf("builder.Services.AddResourceStory()", StringComparison.Ordinal)
+            < entryPoint.IndexOf("builder.Services.AddCoreUiStory()", StringComparison.Ordinal));
+        Assert.Contains("Luxel.Gallery.Resources.Stories.csproj", project, StringComparison.Ordinal);
+        Assert.Contains("wwwroot\\tools\\khronos-samples\\Box\\Box.gltf", project, StringComparison.Ordinal);
+        Assert.Contains("wwwroot\\tools\\khronos-samples\\BoxAnimated\\BoxAnimated.glb", project, StringComparison.Ordinal);
+        Assert.Contains("wwwroot\\tools\\khronos-samples\\RiggedSimple\\RiggedSimple.glb", project, StringComparison.Ordinal);
+        Assert.Contains("@inject StoryCatalog Catalog", app, StringComparison.Ordinal);
+        Assert.Contains("Catalog.Find(requested)", app, StringComparison.Ordinal);
+        Assert.Contains("_ = RunStoryAsync(_story.Path, _argsJson)", app, StringComparison.Ordinal);
+        Assert.Contains("BrowserGalleryApplication.RunAsync(Services, story, argsJson)", app, StringComparison.Ordinal);
+        Assert.Contains("class=\"gallery-sidebar\"", app, StringComparison.Ordinal);
+        Assert.Contains("placeholder=\"Storyを検索\"", app, StringComparison.Ordinal);
+        Assert.Contains("Navigation.NavigateTo(StoryHref(story.Path), forceLoad: false)", app, StringComparison.Ordinal);
+        Assert.Contains("Navigation.LocationChanged += OnLocationChanged", app, StringComparison.Ordinal);
+        Assert.Contains("class=\"story-runtime-frame\"", app, StringComparison.Ordinal);
+        Assert.Contains("@onclick:preventDefault", File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "StoryTree.razor")), StringComparison.Ordinal);
+        Assert.Contains("class=\"markdown-document\"", app, StringComparison.Ordinal);
+        Assert.Contains("GalleryMarkdownHtml.Render(story, result)", app, StringComparison.Ordinal);
+        Assert.Contains("Markdig", project, StringComparison.Ordinal);
+        Assert.Contains("Markdown.ToHtml", markdown, StringComparison.Ordinal);
+        Assert.Contains("markdown-story-embed", markdown, StringComparison.Ordinal);
+        Assert.Contains(".gallery-sidebar", styles, StringComparison.Ordinal);
+        Assert.Contains("JSHost.ImportAsync(\"luxel-browser-host\", \"../main.js\")", app, StringComparison.Ordinal);
+        Assert.Contains("Catalog.Find(path)", runtime, StringComparison.Ordinal);
+        Assert.Contains("new WebPlatformFileSystem(", runtime, StringComparison.Ordinal);
+        Assert.Contains("ResourceSystemDefaults.BuiltinSourcesForWeb(files, http)", runtime, StringComparison.Ordinal);
+        Assert.Contains("resources.AddStep<byte[], AssetDocument>(new GltfResourceStep())", runtime, StringComparison.Ordinal);
+        Assert.Contains("await resources.PumpAsync()", runtime, StringComparison.Ordinal);
+        Assert.DoesNotContain("resources.Pump();", runtime, StringComparison.Ordinal);
+        Assert.DoesNotContain("RuntimeBundleId", runtime, StringComparison.Ordinal);
+        Assert.DoesNotContain("browser-runtime-manifest", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("dotnet.create", script, StringComparison.Ordinal);
+        Assert.Contains("export const setReady", script, StringComparison.Ordinal);
+        Assert.Contains("export const publishWebGpuDiagnostics", script, StringComparison.Ordinal);
+        Assert.Contains("BrowserWebGpuBackend.CaptureLatestDiagnostics(ex, \"BrowserGalleryApplication.RunAsync\")", runtime, StringComparison.Ordinal);
+        Assert.Contains("browserBackend.CaptureDiagnostics()", runtime, StringComparison.Ordinal);
+        Assert.Contains("BuildStoryWidget(story, context, result, font", runtime, StringComparison.Ordinal);
+        Assert.Contains("MarkdownDoc.FromStoryResult", runtime, StringComparison.Ordinal);
+        Assert.Contains("Catalog.Find(reference.Path)", runtime, StringComparison.Ordinal);
+        Assert.Contains("5bad5aaa0bbb5d0f9cdc934e626f27d0df1e79b8", fixtureTargets, StringComparison.Ordinal);
+        Assert.Contains("BoxAnimated/glTF-Binary/BoxAnimated.glb", fixtureTargets, StringComparison.Ordinal);
+        Assert.Contains("RiggedSimple/glTF-Binary/RiggedSimple.glb", fixtureTargets, StringComparison.Ordinal);
+        Assert.Contains("GetFileHash Files=\"@(_KhronosSampleAsset)\" Algorithm=\"SHA256\"", fixtureTargets, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Luxel.Gallery.Stories\", \"Luxel.Gallery.Resources.Stories\"", dependencyChecker, StringComparison.Ordinal);
+        Assert.Contains("Luxel.Graphics.Vulkan", dependencyChecker, StringComparison.Ordinal);
+        Assert.Contains("forbid_closure(\"GalleryBrowser\", browser_forbidden", dependencyChecker, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "browser-runtime-manifest.json")));
     }
 
     private static string FindRepositoryRoot()
