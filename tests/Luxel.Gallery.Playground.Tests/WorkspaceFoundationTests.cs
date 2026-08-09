@@ -179,7 +179,10 @@ public sealed class WorkspaceFoundationTests
         var source = new WorkspaceSource(vfs);
 
         Assert.Equal(["workspace"], source.Schemes);
-        using var system = new ResourceSystem(sources: [source]);
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaultHandles core = ResourceSystemDefaults.AddCore(builder);
+        builder.Sources.Add(source).RunOn(core.IoDomain).ManagedBy(core.IoManager).Register();
+        using ResourceSystem system = builder.Build();
         using ResourceHandle<byte[]> handle = system.Load<byte[]>("workspace://Main.csx");
         await handle.Ready;
         Assert.Equal("return 1;", Encoding.UTF8.GetString(handle.Value));

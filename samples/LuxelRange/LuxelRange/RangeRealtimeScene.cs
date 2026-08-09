@@ -244,9 +244,12 @@ public sealed class RangeRealtimeScene : GameScene
         string path = Path.Combine(AppContext.BaseDirectory, "assets", "Fox.glb");
         if (!File.Exists(path)) return;   // アセット無しなら Fox 描画スキップ (物理 proxy は箱)
 
-        using var resources = new ResourceSystem(
-            sources: ResourceSystemDefaults.BuiltinSources(assetRoot: Path.GetDirectoryName(path)),
-            steps: [new GltfResourceStep()]);
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaultHandles core = ResourceSystemDefaults.AddCore(builder);
+        ResourceSystemDefaults.AddBuiltinSources(builder, core, assetRoot: Path.GetDirectoryName(path));
+        builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep())
+            .RunOn(core.CpuDomain).ManagedBy(core.CpuManager).Register();
+        using ResourceSystem resources = builder.Build();
         using ResourceHandle<AssetDocument> document = resources.Load<AssetDocument>(Path.GetFileName(path));
         document.Ready.GetAwaiter().GetResult();
         AssetDocument doc = document.Value;

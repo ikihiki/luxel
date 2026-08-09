@@ -41,9 +41,14 @@ public sealed class SharedShaderTests
         var fileSystem = new MemoryFileSystem();
         fileSystem.Set("shaders/main.slang", Encoding.UTF8.GetBytes("[shader] void vsMain() {}"));
         var compiler = new RecordingCompiler();
-        using var resources = new ResourceSystem(
-            [new FileSource(fileSystem)],
-            [new SlangSourceStep(), new SlangCompileStep(compiler, GpuBackendKind.WebGpu)]);
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaultHandles core = ResourceSystemDefaults.AddCore(builder);
+        builder.Sources.Add(new FileSource(fileSystem)).RunOn(core.IoDomain).ManagedBy(core.IoManager).Register();
+        builder.Steps.Add<byte[], SlangSource>(new SlangSourceStep())
+            .RunOn(core.CpuDomain).ManagedBy(core.CpuManager).Register();
+        builder.Steps.Add<SlangSource, GpuShaderCode>(new SlangCompileStep(compiler, GpuBackendKind.WebGpu))
+            .RunOn(core.CpuDomain).ManagedBy(core.CpuManager).Register();
+        using ResourceSystem resources = builder.Build();
 
         using ResourceHandle<GpuShaderCode> handle = resources.Load<GpuShaderCode>("shaders/main.slang#graphics");
         await handle.Ready;
