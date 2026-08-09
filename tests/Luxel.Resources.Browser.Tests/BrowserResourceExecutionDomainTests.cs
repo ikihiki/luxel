@@ -71,6 +71,27 @@ public sealed class BrowserResourceExecutionDomainTests
         Assert.True(context.PostCount >= 2, "Each FIFO item should be scheduled through a separate owner-context post.");
     }
 
+    [System.Runtime.Versioning.SupportedOSPlatform("browser")]
+    [Fact]
+    public void BrowserCoreCanBeConfiguredWithoutAnAmbientSynchronizationContext()
+    {
+        SynchronizationContext? previous = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(null);
+        try
+        {
+            var builder = new ResourceSystemBuilder();
+            ResourceSystemDefaultHandles handles = builder.AddBrowserCore();
+
+            Assert.Equal("resource.io", handles.IoDomain.Id.Value);
+            Assert.Equal("resource.cpu", handles.CpuDomain.Id.Value);
+            using ResourceSystem resources = builder.Build();
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
+    }
+
     [Fact]
     public void BrowserCompositionRootsUseBuilderDomainsWithoutLegacyMutation()
     {

@@ -119,6 +119,7 @@ test('glTF Learn exposes loading, URI, and diagnostic examples without fixture f
 });
 
 const cpuResourceStories = [
+  'Examples/Resources/ReadyBuilder',
   'Examples/Resources/HelloTextAsset',
   'Examples/Resources/CustomPackageSource',
   'Examples/Resources/PlayerStatsPipeline',

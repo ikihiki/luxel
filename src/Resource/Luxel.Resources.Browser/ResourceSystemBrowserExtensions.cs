@@ -5,13 +5,12 @@ namespace Luxel.Resources.Browser;
 [SupportedOSPlatform("browser")]
 public static class ResourceSystemBrowserExtensions
 {
-    /// <summary>Runs this domain cooperatively on the synchronization context that builds the resource system.</summary>
+    /// <summary>Runs this domain cooperatively on the browser event loop that owns the resource system.</summary>
     public static ResourceDomainRegistrationBuilder UseBrowserOwnerContext(this ResourceDomainRegistrationBuilder registration)
     {
         ArgumentNullException.ThrowIfNull(registration);
-        SynchronizationContext? ownerContext = SynchronizationContext.Current;
-        if (ownerContext is null)
-            throw new InvalidOperationException("A browser resource domain must be configured from its owner SynchronizationContext.");
+        SynchronizationContext ownerContext = SynchronizationContext.Current
+            ?? BrowserEventLoopSynchronizationContext.Instance;
         var capabilities = new ResourceExecutionDomainCapabilities(
             1, ResourceThreadAffinity.HostThread, ResourceProgressModel.Cooperative);
         return registration.UseFactory(
