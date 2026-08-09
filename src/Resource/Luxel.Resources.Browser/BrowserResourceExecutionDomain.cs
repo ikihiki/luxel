@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace Luxel.Resources.Browser;
 
-/// <summary>Serializes resource work onto the synchronization context that owns a browser-WASM runtime.</summary>
+/// <summary>Serializes resource work cooperatively on the browser-WASM runtime event loop.</summary>
 public sealed class BrowserResourceExecutionDomain : IResourceExecutionDomain
 {
     private sealed record WorkItem(
@@ -13,7 +13,6 @@ public sealed class BrowserResourceExecutionDomain : IResourceExecutionDomain
 
     private readonly object _gate = new();
     private readonly Queue<WorkItem> _queue = new();
-    private readonly SynchronizationContext _ownerContext;
     private readonly TaskCompletionSource _drained = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _started;
     private bool _scheduled;
@@ -23,10 +22,9 @@ public sealed class BrowserResourceExecutionDomain : IResourceExecutionDomain
     private long _queueTicks;
     private long _runTicks;
 
-    public BrowserResourceExecutionDomain(ResourceExecutionDomainId id, SynchronizationContext ownerContext, TimeSpan? operationBudget = null)
+    public BrowserResourceExecutionDomain(ResourceExecutionDomainId id, TimeSpan? operationBudget = null)
     {
         Id = id;
-        _ownerContext = ownerContext ?? throw new ArgumentNullException(nameof(ownerContext));
         Capabilities = new(1, ResourceThreadAffinity.HostThread, ResourceProgressModel.Cooperative, false, operationBudget);
     }
 
@@ -64,7 +62,15 @@ public sealed class BrowserResourceExecutionDomain : IResourceExecutionDomain
     {
         if (_scheduled || !_started || _stopped || _active != 0 || _queue.Count == 0) return;
         _scheduled = true;
-        _ownerContext.Post(static state => ((BrowserResourceExecutionDomain)state!).RunNext(), this);
+        _ = RunScheduledAsync();
+    }
+
+    private async Task RunScheduledAsync()
+    {
+        // Do not capture ambient dispatch state. The timer continuation creates an
+        // independent cooperative event-loop turn before this FIFO item starts.
+        await Task.Delay(1).ConfigureAwait(false);
+        RunNext();
     }
 
     private async void RunNext()
@@ -106,7 +112,7 @@ public sealed class BrowserResourceExecutionDomain : IResourceExecutionDomain
             {
                 _active = 0;
                 CompleteDrainLocked();
-                // Posting, rather than directly looping, gives the browser event loop a fairness point.
+                // Rescheduling, rather than directly looping, gives the browser event loop a fairness point.
                 ScheduleLocked();
             }
         }

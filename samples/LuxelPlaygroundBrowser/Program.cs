@@ -530,7 +530,7 @@ public static partial class Program
             builder.Steps.Add<byte[], SlangSource>(new WorkspaceSlangSourceStep(Workspace)).RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
             builder.Steps.Add<SlangSource, GpuShaderCode>(new SlangCompileStep(slangCompiler, GpuBackendKind.WebGpu))
                 .RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
-            builder.AddAssetGpu(device, options => options.ConfigureDomain = domain => domain.UseBrowserOwnerContext());
+            builder.AddAssetGpu(device, options => options.ConfigureDomain = domain => domain.UseBrowserCooperative());
             Resources = builder.Build();
             Resources.Watch();
             Resources.Pump();

@@ -112,7 +112,7 @@ public static partial class BrowserGalleryApplication
                     new SlangCompileStep(slangCompiler, GpuBackendKind.WebGpu))
                 .RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
             resourceBuilder.AddAssetGpu(device, options =>
-                options.ConfigureDomain = domain => domain.UseBrowserOwnerContext());
+                options.ConfigureDomain = domain => domain.UseBrowserCooperative());
             await using ResourceSystem resources = await resourceBuilder.BuildAsync();
             stage = "font";
             SetStatus("loading", $"browser-webgpu: status=loading, story={path}, stage={stage}");

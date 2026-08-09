@@ -97,7 +97,7 @@ public sealed class BrowserGamePlatform : IDisposable
             .UseFrameWaiter(_waitFrame)
             .UseResourceCore(resourceBuilder => resourceBuilder.AddBrowserCore())
             .ConfigureGpuResources(options =>
-                options.ConfigureDomain = domain => domain.UseBrowserOwnerContext());
+                options.ConfigureDomain = domain => domain.UseBrowserCooperative());
         if (Audio is not null)
         {
             if (_audioTransferred)

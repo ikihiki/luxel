@@ -60,7 +60,7 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("ResourceSystemDefaultHandles defaults = resourceBuilder.AddBrowserCore()", runtime, StringComparison.Ordinal);
         Assert.Contains("ResourceSystemDefaults.AddBuiltinSourcesForWeb(resourceBuilder, defaults, files, http)", runtime, StringComparison.Ordinal);
         Assert.Contains("resourceBuilder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep())", runtime, StringComparison.Ordinal);
-        Assert.Contains("options.ConfigureDomain = domain => domain.UseBrowserOwnerContext()", runtime, StringComparison.Ordinal);
+        Assert.Contains("options.ConfigureDomain = domain => domain.UseBrowserCooperative()", runtime, StringComparison.Ordinal);
         Assert.DoesNotContain("new ResourceSystem(", runtime, StringComparison.Ordinal);
         Assert.DoesNotContain("InstallAssetGpu", runtime, StringComparison.Ordinal);
         Assert.Contains("await resources.PumpAsync()", runtime, StringComparison.Ordinal);

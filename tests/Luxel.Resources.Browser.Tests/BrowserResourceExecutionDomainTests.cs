@@ -10,8 +10,7 @@ public sealed class BrowserResourceExecutionDomainTests
     [Fact]
     public async Task DispatchIsFifoSerializedAndReportsMetrics()
     {
-        using var context = new PumpSynchronizationContext();
-        await using var domain = new BrowserResourceExecutionDomain(new("owner"), context);
+        await using var domain = new BrowserResourceExecutionDomain(new("owner"));
         await domain.StartAsync();
         var order = new ConcurrentQueue<int>();
         int active = 0, maximum = 0;
@@ -40,8 +39,7 @@ public sealed class BrowserResourceExecutionDomainTests
     [Fact]
     public async Task QueuedCancellationDoesNotRunWorkOrBlockFollowingItem()
     {
-        using var context = new PumpSynchronizationContext();
-        await using var domain = new BrowserResourceExecutionDomain(new("owner"), context);
+        await using var domain = new BrowserResourceExecutionDomain(new("owner"));
         await domain.StartAsync();
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         ValueTask<object> first = domain.DispatchAsync(async _ => { await release.Task; return 1; });
@@ -58,38 +56,33 @@ public sealed class BrowserResourceExecutionDomainTests
     }
 
     [Fact]
-    public async Task EachCompletionPostsTheNextItemForFairness()
+    public async Task DispatchUsesAnIndependentAsynchronousTurn()
     {
-        using var context = new PumpSynchronizationContext();
-        await using var domain = new BrowserResourceExecutionDomain(new("owner"), context);
+        await using var domain = new BrowserResourceExecutionDomain(new("owner"));
         await domain.StartAsync();
-        ValueTask<object> first = domain.DispatchAsync(_ => ValueTask.FromResult<object>(1));
-        ValueTask<object> second = domain.DispatchAsync(_ => ValueTask.FromResult<object>(2));
+        bool ran = false;
 
-        Assert.Equal(1, await first);
-        Assert.Equal(2, await second);
-        Assert.True(context.PostCount >= 2, "Each FIFO item should be scheduled through a separate owner-context post.");
+        ValueTask<object> dispatched = domain.DispatchAsync(_ =>
+        {
+            ran = true;
+            return ValueTask.FromResult<object>(1);
+        });
+
+        Assert.False(ran, "Browser work must never run inline with DispatchAsync.");
+        Assert.Equal(1, await dispatched);
+        Assert.True(ran);
     }
 
     [System.Runtime.Versioning.SupportedOSPlatform("browser")]
     [Fact]
-    public void BrowserCoreCanBeConfiguredWithoutAnAmbientSynchronizationContext()
+    public void BrowserCoreBuildsWithItsIndependentScheduler()
     {
-        SynchronizationContext? previous = SynchronizationContext.Current;
-        SynchronizationContext.SetSynchronizationContext(null);
-        try
-        {
-            var builder = new ResourceSystemBuilder();
-            ResourceSystemDefaultHandles handles = builder.AddBrowserCore();
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaultHandles handles = builder.AddBrowserCore();
 
-            Assert.Equal("resource.io", handles.IoDomain.Id.Value);
-            Assert.Equal("resource.cpu", handles.CpuDomain.Id.Value);
-            using ResourceSystem resources = builder.Build();
-        }
-        finally
-        {
-            SynchronizationContext.SetSynchronizationContext(previous);
-        }
+        Assert.Equal("resource.io", handles.IoDomain.Id.Value);
+        Assert.Equal("resource.cpu", handles.CpuDomain.Id.Value);
+        using ResourceSystem resources = builder.Build();
     }
 
     [Fact]
@@ -102,12 +95,16 @@ public sealed class BrowserResourceExecutionDomainTests
         string coreProject = File.ReadAllText(Path.Combine(root, "src", "Resource", "Luxel.Resources", "Luxel.Resources.csproj"));
 
         Assert.Contains("AddBrowserCore", gallery, StringComparison.Ordinal);
-        Assert.Contains("UseBrowserOwnerContext", gallery, StringComparison.Ordinal);
+        Assert.Contains("UseBrowserCooperative", gallery, StringComparison.Ordinal);
         Assert.Contains("UseResourceCore(resourceBuilder => resourceBuilder.AddBrowserCore())", framework, StringComparison.Ordinal);
         Assert.Contains("AddBrowserCore", sample, StringComparison.Ordinal);
         Assert.DoesNotContain("InstallAssetGpu", gallery + sample, StringComparison.Ordinal);
         Assert.DoesNotContain("new ResourceSystem(", gallery + sample, StringComparison.Ordinal);
         Assert.DoesNotContain("Luxel.Resources.Browser", coreProject, StringComparison.Ordinal);
+        string browserResourceSources = string.Join('\n', Directory.GetFiles(
+            Path.Combine(root, "src", "Resource", "Luxel.Resources.Browser"), "*.cs")
+            .Select(File.ReadAllText));
+        Assert.DoesNotContain("SynchronizationContext", browserResourceSources, StringComparison.Ordinal);
     }
 
     private static string FindRepositoryRoot()
@@ -119,29 +116,5 @@ public sealed class BrowserResourceExecutionDomainTests
             current = current.Parent;
         }
         throw new DirectoryNotFoundException("Could not locate Luxel.slnx.");
-    }
-
-    private sealed class PumpSynchronizationContext : SynchronizationContext, IDisposable
-    {
-        private readonly BlockingCollection<(SendOrPostCallback Callback, object? State)> _queue = new();
-        private readonly Thread _thread;
-        public PumpSynchronizationContext()
-        {
-            _thread = new Thread(Run) { IsBackground = true, Name = "browser-owner-test" };
-            _thread.Start();
-        }
-        private int _postCount;
-        public int PostCount => Volatile.Read(ref _postCount);
-        public override void Post(SendOrPostCallback d, object? state)
-        {
-            Interlocked.Increment(ref _postCount);
-            _queue.Add((d, state));
-        }
-        private void Run()
-        {
-            SetSynchronizationContext(this);
-            foreach ((SendOrPostCallback callback, object? state) in _queue.GetConsumingEnumerable()) callback(state);
-        }
-        public void Dispose() { _queue.CompleteAdding(); _thread.Join(); _queue.Dispose(); }
     }
 }
