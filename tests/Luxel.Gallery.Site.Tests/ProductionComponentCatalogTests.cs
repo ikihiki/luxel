@@ -125,6 +125,23 @@ public sealed class ProductionComponentCatalogTests
     }
 
     [Fact]
+    public void Every_resource_learn_story_source_inlines_its_page_and_primary_example()
+    {
+        StoryCatalog catalog = ResourceGalleryProject.CreateCatalog();
+
+        foreach (string route in ResourceCourseCatalog.Routes)
+        {
+            StoryInfo story = Assert.IsType<StoryInfo>(catalog.Find(route));
+            Assert.False(string.IsNullOrWhiteSpace(story.Source), $"{route} needs automatically captured source.");
+            Assert.Contains("StoryResult.FromMarkdown", story.Source, StringComparison.Ordinal);
+            Assert.Contains("```luxel-story", story.Source, StringComparison.Ordinal);
+            Assert.Contains("StoryReference.To(ResourceLearnExamples.Routes[", story.Source, StringComparison.Ordinal);
+            Assert.DoesNotContain("ResourceLearnExamples.Attach", story.Source, StringComparison.Ordinal);
+            Assert.DoesNotContain("=> Page(", story.Source, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void Resource_examples_publish_their_automatically_captured_story_methods()
     {
         StoryCatalog catalog = ResourceGalleryProject.CreateCatalog();
