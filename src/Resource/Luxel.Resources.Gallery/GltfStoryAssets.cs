@@ -3,6 +3,7 @@ using Luxel.Assets;
 using Luxel.Assets.Gltf;
 using Luxel.Controls;
 using Luxel.Resources;
+using Luxel.Resources.Browser;
 using Luxel.UI;
 
 namespace Luxel.Resources.Gallery.Stories;
@@ -36,9 +37,9 @@ public static class GltfStoryAssets
     {
         Interlocked.Increment(ref _createdSystemCount);
         var builder = new ResourceSystemBuilder();
-        ResourceSystemDefaultHandles core = ResourceSystemDefaults.AddCore(builder);
+        ResourceSystemDefaultHandles defaults = AddPlatformCore(builder);
         builder.Steps.Add<AssetDocumentSeed, AssetDocument>(new DocumentIdentityStep())
-            .RunOn(core.CpuDomain).ManagedBy(core.CpuManager).Register();
+            .RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
         ResourceSystem resources = builder.Build();
         ResourceScope scope = resources.CreateScope("gpu-story/generated-document");
         ResourceHandle<AssetDocument> handle = scope.Create<AssetDocumentSeed, AssetDocument>("generated.gltf", new AssetDocumentSeed(document));
@@ -57,12 +58,15 @@ public static class GltfStoryAssets
     {
         Interlocked.Increment(ref _createdSystemCount);
         var builder = new ResourceSystemBuilder();
-        ResourceSystemDefaultHandles core = ResourceSystemDefaults.AddCore(builder);
-        builder.Sources.Add(new EmbeddedFixtureSource()).RunOn(core.IoDomain).ManagedBy(core.IoManager).Register();
+        ResourceSystemDefaultHandles defaults = AddPlatformCore(builder);
+        builder.Sources.Add(new EmbeddedFixtureSource()).RunOn(defaults.IoDomain).ManagedBy(defaults.IoManager).Register();
         builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep())
-            .RunOn(core.CpuDomain).ManagedBy(core.CpuManager).Register();
+            .RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
         return builder.Build();
     }
+
+    private static ResourceSystemDefaultHandles AddPlatformCore(ResourceSystemBuilder builder)
+        => OperatingSystem.IsBrowser() ? builder.AddBrowserCore() : ResourceSystemDefaults.AddCore(builder);
 
     private static Widget ViewOwned(
         ResourceSystem resources,

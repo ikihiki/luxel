@@ -15,11 +15,15 @@ internal sealed class GallerySlangCompilation : ISlangCompiler, IDisposable
     private NativeSlangCompiler? _compiler;
     private bool _disposed;
 
-    public void Install(ResourceSystem resources, GpuBackendKind backend)
+    public void Register(
+        ResourceSystemBuilder builder,
+        ResourceSystemDefaultHandles defaults,
+        GpuBackendKind backend)
     {
-        ArgumentNullException.ThrowIfNull(resources);
+        ArgumentNullException.ThrowIfNull(builder);
         ObjectDisposedException.ThrowIf(_disposed, this);
-        resources.AddStep<SlangSource, GpuShaderCode>(new SlangCompileStep(this, backend));
+        builder.Steps.Add<SlangSource, GpuShaderCode>(new SlangCompileStep(this, backend))
+            .RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
     }
 
     public Task<SlangCompilation> CompileAsync(

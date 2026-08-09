@@ -139,8 +139,9 @@ public sealed class BrowserWebGpuManagedTests
         var interop = new FakeInterop();
         using BrowserWebGpuBackend backend = await BrowserWebGpuBackend.CreateAsync(interop);
         using var device = new GpuDevice(backend);
-        using var resources = new ResourceSystem();
-        await using AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        var builder = ResourceSystemDefaults.CreateBuilder();
+        builder.AddAssetGpu(device);
+        await using ResourceSystem resources = await builder.BuildAsync();
         var scope = resources.CreateScope("browser-assets");
         ResourceHandle<GpuBuffer> buffer = scope.CreateBuffer("buffer", 32);
         await buffer.Ready;

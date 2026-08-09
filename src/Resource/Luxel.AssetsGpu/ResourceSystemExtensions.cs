@@ -11,6 +11,7 @@ public sealed class GpuResourceInstallationOptions
     public ulong DeviceGeneration { get; set; } = 1;
     public long SoftBudgetBytes { get; set; } = long.MaxValue;
     public long HardBudgetBytes { get; set; } = long.MaxValue;
+    public Action<ResourceDomainRegistrationBuilder>? ConfigureDomain { get; set; }
 }
 
 public readonly record struct AssetGpuResourceSystemRegistration(GpuResourceManagerHandle Gpu)
@@ -43,13 +44,24 @@ public static class ResourceSystemExtensions
         };
 
         GpuResourceManagerHandle? installation = null;
-        ResourceExecutionDomainHandle domain = builder.Domains.Add(options.DomainId)
-            .UseFactory(context =>
+        ResourceDomainRegistrationBuilder domainBuilder = builder.Domains.Add(options.DomainId);
+        if (options.ConfigureDomain is null)
+        {
+            domainBuilder.UseFactory(
+                context => new SerialResourceExecutionDomain(context.Id),
+                new(1, ResourceThreadAffinity.DeviceThread, ResourceProgressModel.Serialized));
+        }
+        else
+        {
+            options.ConfigureDomain(domainBuilder);
+        }
+        ResourceExecutionDomainHandle domain = domainBuilder
+            .Decorate((context, inner) =>
             {
-                var value = new GpuResourceExecutionDomain(context.Id);
+                var value = new GpuResourceExecutionDomain(inner, context.Capabilities);
                 installation!.Attach(value);
                 return value;
-            }, new(1, ResourceThreadAffinity.DeviceThread, ResourceProgressModel.Serialized))
+            })
             .Register();
         ResourceManagerHandle manager = builder.Managers.Add(options.ManagerId)
             .RunOn(domain)

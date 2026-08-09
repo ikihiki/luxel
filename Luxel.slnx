@@ -96,6 +96,7 @@
     <Project Path="src/Resource/Luxel.Assets.Gltf/Luxel.Assets.Gltf.csproj" />
     <Project Path="src/Resource/Luxel.Assets/Luxel.Assets.csproj" />
     <Project Path="src/Resource/Luxel.AssetsGpu/Luxel.AssetsGpu.csproj" />
+    <Project Path="src/Resource/Luxel.Resources.Browser/Luxel.Resources.Browser.csproj" />
     <Project Path="src/Resource/Luxel.Resources/Luxel.Resources.csproj" />
   </Folder>
   <Folder Name="/samples/">
@@ -132,6 +133,7 @@
     <Project Path="tests/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj" />
     <Project Path="tests/Luxel.Platform.Web.Tests/Luxel.Platform.Web.Tests.csproj" />
     <Project Path="tests/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj" />
+    <Project Path="tests/Luxel.Resources.Browser.Tests/Luxel.Resources.Browser.Tests.csproj" />
     <Project Path="tests/Luxel.Shaders.Tests/Luxel.Shaders.Tests.csproj" />
     <Project Path="tests/Luxel.Terminal.Linux.Tests/Luxel.Terminal.Linux.Tests.csproj" />
     <Project Path="tests/Luxel.Terminal.Windows.Tests/Luxel.Terminal.Windows.Tests.csproj" />

@@ -9,6 +9,7 @@ using Luxel.Assets;
 using Luxel.Assets.Gltf;
 using Luxel.AssetsGpu;
 using Luxel.Resources;
+using Luxel.Resources.Browser;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 
@@ -33,7 +34,9 @@ internal sealed class ResourceScenarioWidget : CompositeControl, IDisposable
         _run = run;
         _output = output;
         var builder = new ResourceSystemBuilder();
-        ResourceSystemDefaultHandles handles = ResourceSystemDefaults.AddCore(builder);
+        ResourceSystemDefaultHandles handles = OperatingSystem.IsBrowser()
+            ? builder.AddBrowserCore()
+            : ResourceSystemDefaults.AddCore(builder);
         configure?.Invoke(builder, handles);
         Resources = builder.Build();
     }

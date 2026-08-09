@@ -57,11 +57,12 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("JSHost.ImportAsync(\"luxel-browser-host\", \"../main.js\")", app, StringComparison.Ordinal);
         Assert.Contains("Catalog.Find(path)", runtime, StringComparison.Ordinal);
         Assert.Contains("new WebPlatformFileSystem(", runtime, StringComparison.Ordinal);
-        Assert.Contains("new ResourceSystemBuilder()", runtime, StringComparison.Ordinal);
-        Assert.Contains("ResourceSystemDefaults.AddCore(builder)", runtime, StringComparison.Ordinal);
-        Assert.Contains("ResourceSystemDefaults.AddBuiltinSourcesForWeb(builder, handles, files, http)", runtime, StringComparison.Ordinal);
-        Assert.Contains("builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep())", runtime, StringComparison.Ordinal);
-        Assert.Contains("await builder.BuildAsync()", runtime, StringComparison.Ordinal);
+        Assert.Contains("ResourceSystemDefaultHandles defaults = resourceBuilder.AddBrowserCore()", runtime, StringComparison.Ordinal);
+        Assert.Contains("ResourceSystemDefaults.AddBuiltinSourcesForWeb(resourceBuilder, defaults, files, http)", runtime, StringComparison.Ordinal);
+        Assert.Contains("resourceBuilder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep())", runtime, StringComparison.Ordinal);
+        Assert.Contains("options.ConfigureDomain = domain => domain.UseBrowserOwnerContext()", runtime, StringComparison.Ordinal);
+        Assert.DoesNotContain("new ResourceSystem(", runtime, StringComparison.Ordinal);
+        Assert.DoesNotContain("InstallAssetGpu", runtime, StringComparison.Ordinal);
         Assert.Contains("await resources.PumpAsync()", runtime, StringComparison.Ordinal);
         Assert.DoesNotContain("resources.Pump();", runtime, StringComparison.Ordinal);
         Assert.DoesNotContain("RuntimeBundleId", runtime, StringComparison.Ordinal);
@@ -78,6 +79,8 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("BoxAnimated/glTF-Binary/BoxAnimated.glb", fixtureTargets, StringComparison.Ordinal);
         Assert.Contains("RiggedSimple/glTF-Binary/RiggedSimple.glb", fixtureTargets, StringComparison.Ordinal);
         Assert.Contains("GetFileHash Files=\"@(_KhronosSampleAsset)\" Algorithm=\"SHA256\"", fixtureTargets, StringComparison.Ordinal);
+        Assert.Contains("src/Resource/Luxel.Resources.Browser/Luxel.Resources.Browser.csproj", solution, StringComparison.Ordinal);
+        Assert.Contains("forbid_closure(\"Luxel.Resources\"", dependencyChecker, StringComparison.Ordinal);
         Assert.Contains("stem == \"Luxel.Resources.Gallery\"", dependencyChecker, StringComparison.Ordinal);
         Assert.Contains("forbid_closure(\"Luxel.Resources.Gallery\", browser_forbidden", dependencyChecker, StringComparison.Ordinal);
         Assert.Contains("Luxel.Graphics.Vulkan", dependencyChecker, StringComparison.Ordinal);

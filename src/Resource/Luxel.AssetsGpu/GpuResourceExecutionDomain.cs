@@ -5,14 +5,26 @@ namespace Luxel.AssetsGpu;
 /// <summary>Serialized GPU execution domain that can stop admission at a device-generation boundary.</summary>
 public sealed class GpuResourceExecutionDomain : IResourceExecutionDomain
 {
-    private readonly SerialResourceExecutionDomain _inner;
+    private readonly IResourceExecutionDomain _inner;
+    private readonly ResourceExecutionDomainCapabilities _capabilities;
     private readonly object _gate = new();
     private TaskCompletionSource _resumed = Completed();
     private bool _paused;
 
-    public GpuResourceExecutionDomain(ResourceExecutionDomainId id) => _inner = new(id);
+    public GpuResourceExecutionDomain(ResourceExecutionDomainId id)
+        : this(new SerialResourceExecutionDomain(id),
+            new(1, ResourceThreadAffinity.DeviceThread, ResourceProgressModel.Serialized)) { }
+
+    public GpuResourceExecutionDomain(
+        IResourceExecutionDomain inner,
+        ResourceExecutionDomainCapabilities capabilities)
+    {
+        _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        _capabilities = capabilities;
+    }
+
     public ResourceExecutionDomainId Id => _inner.Id;
-    public ResourceExecutionDomainCapabilities Capabilities => new(1, ResourceThreadAffinity.DeviceThread, ResourceProgressModel.Serialized);
+    public ResourceExecutionDomainCapabilities Capabilities => _capabilities;
     public ValueTask StartAsync(CancellationToken cancellationToken = default) => _inner.StartAsync(cancellationToken);
 
     public async ValueTask<object> DispatchAsync(Func<CancellationToken, ValueTask<object>> work, CancellationToken cancellationToken = default)

@@ -267,6 +267,24 @@ public partial class AssetsGpuTests
     }
 
     [Fact]
+    public async Task GpuManager_PreservesConfiguredSchedulerInsideRecoveryDomain()
+    {
+        var backend = new FakeGpuBackend();
+        using var device = new GpuDevice(backend);
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaults.AddCore(builder);
+        GpuResourceManagerHandle gpu = builder.InstallGpuResources(device, options =>
+            options.ConfigureDomain = domain => domain.UseFactory(
+                context => new SerialResourceExecutionDomain(context.Id),
+                new(1, ResourceThreadAffinity.HostThread, ResourceProgressModel.Cooperative)));
+
+        await using ResourceSystem resources = await builder.BuildAsync();
+
+        Assert.Equal(ResourceThreadAffinity.HostThread, gpu.DomainInstance.Capabilities.Affinity);
+        Assert.Equal(ResourceProgressModel.Cooperative, gpu.DomainInstance.Capabilities.ProgressModel);
+    }
+
+    [Fact]
     public async Task GpuManager_CustomStructTracksBudgetIndexesAndFenceRetirement()
     {
         var backend = new FakeGpuBackend();

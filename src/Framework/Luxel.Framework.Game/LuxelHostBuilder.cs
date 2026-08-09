@@ -29,6 +29,9 @@ public sealed class LuxelHostBuilder
     private Func<CancellationToken, Task>? _frameWaiter;
     private Type? _startupScene;
     private string? _assetRoot;
+    private Func<ResourceSystemBuilder, ResourceSystemDefaultHandles> _resourceCore =
+        builder => ResourceSystemDefaults.AddCore(builder);
+    private Action<GpuResourceInstallationOptions>? _configureGpuResources;
     private bool _useAudio;
     private Func<IAudioBackend>? _audioFactory;
     private Luxel.Settings.IFileStore? _settingsFiles;
@@ -76,6 +79,20 @@ public sealed class LuxelHostBuilder
 
     /// <summary>Resources system を DI に登録し、<paramref name="assetRoot"/> を base ディレクトリにする。</summary>
     public LuxelHostBuilder UseResources(string? assetRoot = null) { _assetRoot = assetRoot ?? AppContext.BaseDirectory; return this; }
+
+    /// <summary>Overrides the domain/manager foundation used when building the ResourceSystem.</summary>
+    public LuxelHostBuilder UseResourceCore(Func<ResourceSystemBuilder, ResourceSystemDefaultHandles> configure)
+    {
+        _resourceCore = configure ?? throw new ArgumentNullException(nameof(configure));
+        return this;
+    }
+
+    /// <summary>Configures the GPU resource manager and its execution domain.</summary>
+    public LuxelHostBuilder ConfigureGpuResources(Action<GpuResourceInstallationOptions> configure)
+    {
+        _configureGpuResources = configure ?? throw new ArgumentNullException(nameof(configure));
+        return this;
+    }
 
     /// <summary>設定ストア (<see cref="Luxel.Settings.SettingsStore"/>) を DI に登録する。保存先は
     /// <c>%APPDATA%/<paramref name="appName"/></c> (実ファイル)。**読み込みは .NET 標準 config** —
@@ -146,10 +163,11 @@ public sealed class LuxelHostBuilder
             _inner.Services.AddSingleton(sp =>
             {
                 var builder = new ResourceSystemBuilder();
-                ResourceSystemDefaultHandles core = ResourceSystemDefaults.AddCore(builder);
+                ResourceSystemDefaultHandles core = _resourceCore(builder);
                 ResourceSystemDefaults.AddBuiltinSources(builder, core, assetRoot: _assetRoot);
                 ResourceSystemDefaults.AddBuiltinSteps(builder, core);
-                AssetGpuResourceSystemRegistration gpu = builder.AddAssetGpu(sp.GetRequiredService<GpuDevice>());
+                AssetGpuResourceSystemRegistration gpu = builder.AddAssetGpu(
+                    sp.GetRequiredService<GpuDevice>(), _configureGpuResources);
                 return new FrameworkGpuResources(builder.Build(), gpu.Gpu);
             });
             _inner.Services.AddSingleton(sp => sp.GetRequiredService<FrameworkGpuResources>().Resources);

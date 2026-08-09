@@ -4,6 +4,7 @@
     <ProjectReference Include="..\..\Luxel.Audio.Browser\Luxel.Audio.Browser.csproj" />
     <ProjectReference Include="..\..\Luxel.Graphics.WebGPU.Browser\Luxel.Graphics.WebGPU.Browser.csproj" />
     <ProjectReference Include="..\..\Luxel.Platform.Web\Luxel.Platform.Web.csproj" />
+    <ProjectReference Include="..\..\Resource\Luxel.Resources.Browser\Luxel.Resources.Browser.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Luxel.Graphics" />

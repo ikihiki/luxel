@@ -84,11 +84,14 @@ public sealed class NativePlaygroundResourceSession : IWebScriptResourceProvider
         if (_compiler is not null && backendKind is not null)
             steps.Add(new SlangCompileStep(_compiler, backendKind.Value));
 
-        Resources = new ResourceSystem(
-            sources: [new WorkspaceSource(Workspace), new HttpSource(_http)],
-            steps: steps);
-        if (options.GpuDevice is not null)
-            Resources.InstallAssetGpu(options.GpuDevice);
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaultHandles defaults = ResourceSystemDefaults.AddCore(builder);
+        builder.Sources.Add(new WorkspaceSource(Workspace)).RunOn(defaults.IoDomain).ManagedBy(defaults.IoManager).Register();
+        builder.Sources.Add(new HttpSource(_http)).RunOn(defaults.IoDomain).ManagedBy(defaults.IoManager).Register();
+        foreach (IResourceStep step in steps)
+            builder.Steps.Add(step).RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
+        if (options.GpuDevice is not null) builder.AddAssetGpu(options.GpuDevice);
+        Resources = builder.Build();
         Resources.Watch();
 
         SlangCompilationAvailable = _compiler is not null && backendKind is not null;

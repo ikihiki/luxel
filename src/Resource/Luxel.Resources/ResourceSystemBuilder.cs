@@ -186,6 +186,16 @@ public sealed class ResourceDomainRegistrationBuilder
         return this;
     }
 
+    public ResourceDomainRegistrationBuilder Decorate(
+        Func<ResourceExecutionDomainBuildContext, IResourceExecutionDomain, IResourceExecutionDomain> decorator)
+    {
+        ArgumentNullException.ThrowIfNull(decorator);
+        Func<ResourceExecutionDomainBuildContext, IResourceExecutionDomain> innerFactory =
+            _factory ?? (context => new ThreadPoolResourceExecutionDomain(context.Id, context.Capabilities.MaxConcurrency));
+        _factory = context => decorator(context, innerFactory(context));
+        return this;
+    }
+
     public ResourceDomainRegistrationBuilder WithMetrics(string name) { _metricsName = name; return this; }
     public ResourceDomainRegistrationBuilder WithOperationBudget(TimeSpan budget) { _capabilities = _capabilities with { OperationBudget = budget }; return this; }
 

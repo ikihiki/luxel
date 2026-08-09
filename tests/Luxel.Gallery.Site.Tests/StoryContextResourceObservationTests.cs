@@ -9,7 +9,7 @@ public sealed class StoryContextResourceObservationTests
     [Fact]
     public void ObserveUpdatesSignalFromResourcePumpAndDetachesOnDispose()
     {
-        using var resources = new ResourceSystem();
+        using ResourceSystem resources = ResourceSystemDefaults.CreateBuilder().Build();
         using ResourceHandle<object> handle = resources.Publish(
             "published://story-resource", new object(), ResourceOwnership.Borrowed);
         var context = new StoryContext(resources);

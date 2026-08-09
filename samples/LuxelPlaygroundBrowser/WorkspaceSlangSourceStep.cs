@@ -9,7 +9,6 @@ internal sealed class WorkspaceSlangSourceStep(WorkspaceFileSystem workspace) : 
 {
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
-    public Executor Executor => Executor.Cpu;
     public IEnumerable<string> Extensions => [".slang", ".slangh"];
 
     private static bool IsSlangPath(string path)

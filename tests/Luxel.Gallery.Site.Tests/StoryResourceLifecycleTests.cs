@@ -19,7 +19,7 @@ public sealed class StoryResourceLifecycleTests
     [Fact]
     public async Task StoryContext_owns_and_idempotently_disposes_scoped_resources()
     {
-        using var resources = new ResourceSystem();
+        using ResourceSystem resources = ResourceSystemDefaults.CreateBuilder().Build();
         var context = new StoryContext(resources);
         var value = new TrackedResource();
         ResourceHandle<TrackedResource> handle = context.ScopedResources.Create(
