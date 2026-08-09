@@ -7,29 +7,29 @@ public static class LearnResources
 {
     [Story("Learn/Resources/Overview", Order = 0, SampleBundle = "resources.scenarios", Toc = true)]
     public static StoryResult Overview(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/Overview", $$"""
-        # Resources 学習ガイド
+        # Resources学習ガイド
 
-        {{ResourceCourseCatalog.Meta("Learn/Resources/Overview", "Beginner", "Standalone / Gallery / Headless", "Backend neutral / optional external steps", "なし")}}
+        {{ResourceCourseCatalog.Meta("Learn/Resources/Overview", "初級", "スタンドアロン / Gallery / ヘッドレス", "バックエンド非依存 / 外部Stepは任意", "なし")}}
 
-        `ResourceSystem`はURIから値を読むだけのloaderではありません。要求した型とURIを単位にcache nodeを共有し、Sourceとtyped Stepをつないで目的の型を作り、依存関係・再ロード・破棄まで管理します。
+        `ResourceSystem`はURIから値を読むだけのローダーではありません。要求した型とURIを単位にキャッシュノードを共有し、Sourceと型付きStepをつないで目的の型を作り、依存関係・再ロード・破棄まで管理します。
 
         ```text
-        URI ── IResourceSource ──> byte[] ── Step ──> CPU value ── Step ──> runtime / GPU value
+        URI ── IResourceSource ──> byte[] ── Step ──> CPU値 ── Step ──> ランタイム / GPU値
                                                           │
                                                           └── ResourceHandle<T>
         ```
 
         ## このシステムが提供するもの
 
-        cache keyは概念上 **`(requested type, normalized URI)`** です。同じ型・URIを複数箇所からロードすると同じnodeを共有し、各`ResourceHandle<T>`がleaseを1つ持ちます。Stepの途中で作られる中間型もnodeなので、変換結果の共有、dependency reload、evictionを同じ仕組みで扱えます。
+        キャッシュキーは概念上 **`(要求型, 正規化URI)`** です。同じ型・URIを複数箇所からロードすると同じノードを共有し、各`ResourceHandle<T>`が参照権を1つ持ちます。Stepの途中で作られる中間型もノードなので、変換結果の共有、依存先の再読み込み、退避を同じ仕組みで扱えます。
 
         | 機能 | 担当 |
         | --- | --- |
-        | URIからbytesを取得 | `IResourceSource` |
+        | URIからバイト列を取得 | `IResourceSource` |
         | 1つの型を別の型へ変換 | `IResourceStep<TIn,TOut>` |
-        | cache、pipeline合成、DAG、reload | `ResourceSystem` |
-        | 安定参照とlease | `ResourceHandle<T>` |
-        | owner単位の一括解放 | `ResourceScope` |
+        | キャッシュ、パイプライン合成、DAG、再読み込み | `ResourceSystem` |
+        | 安定参照と参照権 | `ResourceHandle<T>` |
+        | 所有者単位の一括解放 | `ResourceScope` |
 
         ## 推奨学習ルート
 
@@ -39,21 +39,21 @@ public static class LearnResources
 
         - **Luxel.Resources**: 多フレームにまたがる値の取得、変換、共有、再ロード、寿命管理。
         - **Luxel.Assets**: `AssetDocument`など、読み込み後に扱うアセット型。詳細は[Assetsサブカテゴリ](story:Learn/Resources/Assets/Overview)で扱います。
-        - **Luxel.AssetsGpu**: CPU側の値からGPUリソースを作るStepと、その登録ヘルパ。
-        - **RenderGraph**: 1フレーム内のpass/resource依存。ResourcesのDAGとは寿命と目的が異なります。
+        - **Luxel.AssetsGpu**: CPU側の値からGPUリソースを作るStepと、その登録ヘルパー。
+        - **RenderGraph**: 1フレーム内のパス / リソース依存。ResourcesのDAGとは寿命と目的が異なります。
 
         > [!IMPORTANT]
-        > SourceとStepはassembly scanで自動発見されません。組込みのSource/Stepも、`ResourceSystem`の構築時または`AddSource` / `AddStep`で明示登録します。
+        > SourceとStepはアセンブリ走査で自動発見されません。組込みのSource/Stepも、`ResourceSystem`の構築時または`AddSource` / `AddStep`で明示登録します。
 
         > [!IMPORTANT]
-        > 利用側は値だけを抜き出して終わりにせず、必要な期間`ResourceHandle<T>`を保持し、不要になったらDisposeします。reload後の値差し替えや通知、deferred disposeには`Pump()`境界があります。
+        > 利用側は値だけを抜き出して終わりにせず、必要な期間`ResourceHandle<T>`を保持し、不要になったらDisposeします。再読み込み後の値差し替えや通知、遅延破棄には`Pump()`境界があります。
         """);
 
     [Story("Learn/Resources/LoadingAndHandles", Order = 1, Toc = true)]
     public static StoryResult LoadingAndHandles(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/LoadingAndHandles", $$"""
-        # Loading and ResourceHandle
+        # 読み込みとResourceHandle
 
-        {{ResourceCourseCatalog.Meta("Learn/Resources/LoadingAndHandles", "Beginner", "Standalone / Gallery / Headless", "Backend neutral", "Resources overview")}}
+        {{ResourceCourseCatalog.Meta("Learn/Resources/LoadingAndHandles", "初級", "スタンドアロン / Gallery / ヘッドレス", "バックエンド非依存", "Resourcesの概要")}}
 
         ## ResourceSystemを構築する
 
@@ -67,7 +67,7 @@ public static class LearnResources
 
         `BuiltinSources()`は`FileSource`と`HttpSource`、`BuiltinSteps()`は`.tex`用の`TexDecoder`だけを返します。PNG/JPEG、glTF、shader、GPU uploadなどは、それぞれのパッケージが提供するStepを追加登録してください。
 
-        ## LoadからValueまで
+        ## LoadからValueを得るまで
 
         `Load<T>()`は`T`を直接返さず、安定参照である`ResourceHandle<T>`を返します。
 
@@ -83,61 +83,61 @@ public static class LearnResources
 
         取得時は次の順に考えます。
 
-        1. `Load<T>(uri)`でleaseを得る。
-        2. `Ready`で現在generationの完了を待つ。
+        1. `Load<T>(uri)`で参照権を得る。
+        2. `Ready`で現在の世代の完了を待つ。
         3. `Status`、`IsReady`、`HasValue`、`Error`を確認する。
         4. 正常値を`Value`から使う。
-        5. 利用期間が終わったらhandleをDisposeする。
+        5. 利用期間が終わったらハンドルをDisposeする。
 
-        ## Handleが公開する状態
+        ## ハンドルが公開する状態
 
         | API | 意味 |
         | --- | --- |
-        | `Ready` | 現在generationのロード完了Task |
+        | `Ready` | 現在の世代のロード完了タスク |
         | `Status` | `Loading` / `Ready` / `Failed` |
         | `IsReady` | `Status == Ready` |
         | `HasValue` | 利用できる正常値を保持しているか |
-        | `Value` | 現在の値。確認前は型のdefaultになり得る |
+        | `Value` | 現在の値。確認前は型の既定値になり得る |
         | `Error` / `LastReloadError` | 直近のロード失敗 |
-        | `Version` | reload / republishで値が更新された回数 |
+        | `Version` | 再読み込み / 再公開で値が更新された回数 |
         | `Reloaded` | `Pump()`上で値の差し替え後に発火 |
-        | `SubscribeState()` | `Pump()` thread上で状態遷移を購読 |
+        | `SubscribeState()` | `Pump()`スレッド上で状態遷移を購読 |
 
-        reloadに失敗しても以前の正常値があれば`HasValue`はtrueのまま、`Status`はReadyを維持し、失敗は`LastReloadError`に残ります。表示中のassetを一時的な編集ミスで消さないためのlast-good-value設計です。
+        再読み込みに失敗しても以前の正常値があれば`HasValue`はtrueのまま、`Status`は`Ready`を維持し、失敗は`LastReloadError`に残ります。表示中のassetを一時的な編集ミスで消さないための直近の正常値を維持する設計です。
 
-        ## 初回ロードとPump
+        ## 初回読み込みとPump
 
-        初回ロード成功時の`Value`はloader完了時に設定されるため、`await handle.Ready`の後に利用できます。一方、reload後のvalue swap、`Reloaded`、state通知、旧値の遅延破棄は`Pump()`で適用されます。
+        初回ロード成功時の`Value`はローダー完了時に設定されるため、`await handle.Ready`の後に利用できます。一方、再読み込み後の値の差し替え、`Reloaded`、状態通知、旧値の遅延破棄は`Pump()`で適用されます。
 
         ## 典型的な失敗
 
-        - **型を作るStepが未登録**: `Load<T>()`時に「型Tを生成するステップ未登録」になります。
-        - **Ready前にValueを使う**: `Value`はdefaultの可能性があります。`Ready`または`HasValue`を境界にします。
-        - **handleを破棄しない**: refcountが残り、nodeと依存がevictされません。
-        - **組込みに一般画像decoderがあると思う**: `BuiltinSteps()`は現在`TexDecoder`だけです。
+        - **型を生成するStepが未登録**: `Load<T>()`時に「型Tを生成するステップ未登録」になります。
+        - **Readyになる前にValueを使う**: `Value`はdefaultの可能性があります。`Ready`または`HasValue`を境界にします。
+        - **ハンドルを破棄しない**: 参照カウントが残り、ノードと依存先が退避されません。
+        - **組込みに一般画像デコーダーがあると思う**: `BuiltinSteps()`は現在`TexDecoder`だけです。
         """);
 
     [Story("Learn/Resources/SourcesAndUris", Order = 2, Toc = true)]
     public static StoryResult SourcesAndUris(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/SourcesAndUris", $$"""
-        # Sources and resource URIs
+        # SourceとリソースURI
 
-        {{ResourceCourseCatalog.Meta("Learn/Resources/SourcesAndUris", "Beginner", "Standalone / Headless", "File / HTTP / workspace", "Loading and handles")}}
+        {{ResourceCourseCatalog.Meta("Learn/Resources/SourcesAndUris", "初級", "スタンドアロン / ヘッドレス", "ファイル / HTTP / ワークスペース", "読み込みとハンドル")}}
 
         ## ResourceUriの構造
 
-        `ResourceUri`は入力文字列をscheme、path、query、extension、fragmentへ分解します。scheme省略時は`file`として扱われます。
+        `ResourceUri`は入力文字列をスキーム、パス、クエリ、拡張子、フラグメントへ分解します。スキーム省略時は`file`として扱われます。
 
-        | 入力 | Scheme | Path | Query | Extension | Fragment |
+        | 入力 | スキーム | パス | クエリ | 拡張子 | フラグメント |
         | --- | --- | --- | --- | --- | --- |
         | `textures/panel.tex` | `file` | `textures/panel.tex` | — | `.tex` | — |
         | `https://cdn.example/a.bin?v=2` | `https` | `cdn.example/a.bin` | `v=2` | `.bin` | — |
         | `shader.slang#compute` | `file` | `shader.slang` | — | `.slang` | `compute` |
 
-        nodeのURI keyにはscheme、path、query、fragmentが含まれます。queryやfragmentが違えば別nodeです。extensionはStep選択の手掛かりになります。
+        ノードのURIキーにはスキーム、パス、クエリ、フラグメントが含まれます。クエリやフラグメントが違えば別ノードです。拡張子はStep選択の手掛かりになります。
 
         ## Sourceの役割
 
-        `IResourceSource`はschemeを担当し、URIから`byte[]`を供給する入口です。
+        `IResourceSource`はスキームを担当し、URIから`byte[]`を供給する入口です。
 
         ```csharp
         public sealed class PackageSource : IResourceSource
@@ -152,44 +152,44 @@ public static class LearnResources
         }
         ```
 
-        - `Schemes`: このSourceが処理するscheme。
-        - `ReadAsync()`: bytesを返す。cancelには`ctx.Token`を使う。
-        - `Watch()`: 変更監視できるSourceだけtokenを返す。必須ではありません。
+        - `Schemes`: このSourceが処理するスキーム。
+        - `ReadAsync()`: バイト列を返す。キャンセルには`ctx.Token`を使う。
+        - `Watch()`: 変更監視できるSourceだけトークンを返す。必須ではありません。
 
-        Sourceは画像decodeやGPU uploadを行いません。それらはtyped Stepの責務です。
+        Sourceは画像のデコードやGPUへのアップロードを行いません。それらは型付きStepの責務です。
 
-        ## 組込みSourceとVFS
+        ## 組込みSourceと仮想ファイルシステム
 
-        | Source | Scheme | 特徴 |
+        | Source | スキーム | 特徴 |
         | --- | --- | --- |
         | `FileSource` | `file` / 既定 | `IVirtualFileSystem`経由。変更監視に対応 |
         | `HttpSource` | `http` / `https` | `HttpClient`で取得 |
         | `WorkspaceSource` | `workspace` | 共有`WorkspaceFileSystem`から取得・監視 |
 
-        `FileSource`へ渡す`IVirtualFileSystem`は差し替え可能です。`PhysicalFileSystem`は実ファイル、`MemoryFileSystem`はtestや埋め込みデータ、`WorkspaceFileSystem`は編集可能なworkspaceに向きます。
+        `FileSource`へ渡す`IVirtualFileSystem`は差し替え可能です。`PhysicalFileSystem`は実ファイル、`MemoryFileSystem`はテストや埋め込みデータ、`WorkspaceFileSystem`は編集可能なワークスペースに向きます。
 
         ## Sourceを登録する
 
-        通常はResourceSystem構築時に配列へ含めます。実行中に追加する必要がある場合だけ`AddSource()`を使います。同じschemeへ後から登録すると、そのschemeのSourceは後の登録で置き換わるため、アプリのcomposition rootで一度に構成する方が追跡しやすくなります。
+        通常はResourceSystem構築時に配列へ含めます。実行中に追加する必要がある場合だけ`AddSource()`を使います。同じスキームへ後から登録すると、そのスキームのSourceは後の登録で置き換わるため、アプリの構成ルートで一度に構成する方が追跡しやすくなります。
 
         ## SourceとStepの責務を分ける
 
         | 判断 | Source | Step |
         | --- | --- | --- |
-        | URI schemeを処理する | Yes | No |
-        | bytesを取得する | Yes | 入力として受け取る |
-        | `TIn → TOut`へ変換する | No | Yes |
-        | extension / fragmentで候補選択される | No | Yes |
-        | 外部serviceをctorで受け取る | 必要なら | 必要なら |
+        | URIスキームを処理する | はい | いいえ |
+        | バイト列を取得する | はい | 入力として受け取る |
+        | `TIn → TOut`へ変換する | いいえ | はい |
+        | 拡張子 / フラグメントで候補選択される | いいえ | はい |
+        | 外部サービスをコンストラクターで受け取る | 必要なら | 必要なら |
         """);
 
     [Story("Learn/Resources/Steps", Order = 3, Toc = true)]
     public static StoryResult Steps(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/Steps", $$"""
-        # Resource Stepを作る
+        # Resource Stepを作成する
 
-        {{ResourceCourseCatalog.Meta("Learn/Resources/Steps", "Intermediate", "Standalone / Headless / Browser", "Io / Cpu / External", "Sources and URIs")}}
+        {{ResourceCourseCatalog.Meta("Learn/Resources/Steps", "中級", "スタンドアロン / ヘッドレス / ブラウザー", "I/O / CPU / 外部", "SourceとURI")}}
 
-        Stepはloader全体ではなく、**1つの入力型から1つの出力型への変換**です。小さなtyped edgeへ分けることで、中間結果の共有と依存reloadが可能になります。
+        Stepはローダー全体ではなく、**1つの入力型から1つの出力型への変換**です。小さな型付きの辺へ分けることで、中間結果の共有と依存先の再読み込みが可能になります。
 
         ```text
         byte[] → CpuImage → GpuTexture
@@ -213,38 +213,38 @@ public static class LearnResources
         }
         ```
 
-        | Member | 役割 |
+        | メンバー | 役割 |
         | --- | --- |
-        | `Executor` | Stepを実行するlane |
-        | `Extensions` | 同じ出力型を作る複数Stepから候補を選ぶ情報。省略可能 |
-        | `FragmentPatterns` | fragment付きURIを担当するpattern。省略時はfragmentなしを担当 |
+        | `Executor` | Stepを実行するレーン |
+        | `Extensions` | 同じ出力型を作る複数のStepから候補を選ぶ情報。省略可能 |
+        | `FragmentPatterns` | フラグメント付きURIを担当するパターン。省略時はフラグメントなしを担当 |
         | `RunAsync()` | `TIn`を`TOut`へ変換する本体 |
 
-        ## Executor
+        ## 実行レーン
 
-        公開されているlaneは`Executor.Io`、`Executor.Cpu`、`Executor.External`です。ResourceSystemは`RunAsync()`を呼ぶ前に宣言されたlaneへ移動します。
+        公開されているレーンは`Executor.Io`、`Executor.Cpu`、`Executor.External`です。ResourceSystemは`RunAsync()`を呼ぶ前に宣言されたレーンへ移動します。
 
-        - `Io`: SourceやI/O待ち中心の処理。
-        - `Cpu`: decode、parse、変換。
-        - `External`: GPU、compiler、native serviceなど外部実行環境との境界。GPU専用ではありません。
+        - `Io`: SourceやI/O待機中心の処理。
+        - `Cpu`: デコード、解析、変換。
+        - `External`: GPU、コンパイラー、ネイティブサービスなど外部実行環境との境界。GPU専用ではありません。
 
-        `LoadContext`の`Io` / `Cpu` / `External` awaitableは、Step内でさらに明示的なstage hopが必要な場合に使います。すべてのStepが冒頭でhopを書く必要はありません。
+        `LoadContext`の`Io` / `Cpu` / `External` 待機可能オブジェクトは、Step内でさらに明示的な実行段階の移動が必要な場合に使います。すべてのStepが冒頭で移動処理を書く必要はありません。
 
-        ## Extensionとfragment
+        ## 拡張子とフラグメント
 
-        fragmentなしURIでは`FragmentPatterns == null`のStepが候補です。fragmentがある場合は一致するpatternを持つStepだけが候補になり、`mesh/*`の末尾`*`はprefix matchです。
+        フラグメントなしURIでは`FragmentPatterns == null`のStepが候補です。フラグメントがある場合は一致するパターンを持つStepだけが候補になり、`mesh/*`の末尾`*`は前方一致です。
 
         ```csharp
         public IEnumerable<string> FragmentPatterns => ["graphics", "compute"];
         ```
 
-        `shader.slang#compute`をロードすると、出力Stepにはfragment付きURIが渡りますが、入力nodeはfragmentを外した`shader.slang`を使います。元データを共有しながらselectorごとの出力nodeを持てます。
+        `shader.slang#compute`をロードすると、出力Stepにはフラグメント付きURIが渡りますが、入力ノードはフラグメントを外した`shader.slang`を使います。元データを共有しながらセレクターごとの出力ノードを持てます。
 
         `Extensions`は同じ出力型の候補が複数ある場合の選択情報です。ファイル内容を検証する仕組みではないため、`RunAsync()`側でも入力の妥当性を扱ってください。
 
         ## 依存サービスとLoadContext
 
-        GPU deviceやcompilerなどのserviceは、ResourceSystemからservice locatorとして取得せず、Stepのconstructorへ渡します。
+        GPUデバイスやコンパイラーなどのサービスは、ResourceSystemからサービスロケーターとして取得せず、Stepのコンストラクターへ渡します。
 
         ```csharp
         public sealed class UploadStep(GpuDevice device)
@@ -262,39 +262,39 @@ public static class LearnResources
         }
         ```
 
-        `LoadContext`はcancellation token、依存ロード、既存handleの要求、stage hop、`MarkOwned()` / `MarkBorrowed()`を提供します。
+        `LoadContext`はキャンセルトークン、依存ロード、既存ハンドルの要求、実行段階の移動、`MarkOwned()` / `MarkBorrowed()`を提供します。
 
-        ## 新しいresource typeを追加する手順
+        ## 新しいリソース型を追加する手順
 
-        `PlayerStats`のような新しい型は、次の順で追加するとSource、pipeline、lifetimeの境界を保てます。
+        `PlayerStats`のような新しい型は、次の順で追加するとSource、パイプライン、寿命の境界を保てます。
 
-        1. Resourceの公開値型を定義する。値が`IDisposable`なら所有者も決める。
-        2. 直前の入力型を選ぶ。ファイル形式なら通常は`byte[]`、共通parse結果を再利用するならその中間型にする。
-        3. `IResourceStep<TIn,TOut>`を実装し、lane、extension、fragmentを宣言する。
-        4. 外部serviceはStep constructorへ渡し、`RunAsync`では`ctx.Token`と`ctx.Load` / `Require`を使う。
-        5. composition rootでgeneric `AddStep<TIn,TOut>()`へ登録する。
-        6. `Load<TOut>()`、`Ready`、status/error、Disposeまでを呼び出し側で扱う。
-        7. 同URI共有、誤った入力、reload成功/失敗、Owned値の破棄をheadless testで確認する。
+        1. リソースの公開値型を定義する。値が`IDisposable`なら所有者も決める。
+        2. 直前の入力型を選ぶ。ファイル形式なら通常は`byte[]`、共通の解析結果を再利用するならその中間型にする。
+        3. `IResourceStep<TIn,TOut>`を実装し、レーン、拡張子、フラグメントを宣言する。
+        4. 外部サービスはStepのコンストラクターへ渡し、`RunAsync`では`ctx.Token`と`ctx.Load` / `Require`を使う。
+        5. 構成ルートでジェネリックな`AddStep<TIn,TOut>()`へ登録する。
+        6. `Load<TOut>()`、`Ready`、状態 / エラー、Disposeまでを呼び出し側で扱う。
+        7. 同URI共有、誤った入力、再読み込みの成功 / 失敗、Owned値の破棄をヘッドレステストで確認する。
 
-        [PlayerStatsPipeline](story:Examples/Resources/PlayerStatsPipeline)は`byte[] → JsonDocument → PlayerStats`を実際に登録・ロードし、最終値を検証します。`JsonDocument`を中間型にしたため、別のJSON resource typeもparse nodeを共有できます。
+        [PlayerStatsPipeline](story:Examples/Resources/PlayerStatsPipeline)は`byte[] → JsonDocument → PlayerStats`を実際に登録・ロードし、最終値を検証します。`JsonDocument`を中間型にしたため、別のJSONリソース型も解析ノードを共有できます。
 
         ## 典型的な失敗
 
-        - StepがSourceの代わりにpathを直接開き、VFSやreloadを迂回する。
+        - StepがSourceの代わりにパスを直接開き、VFSや再読み込みを迂回する。
         - `External`を`Gpu`という公開enumだと思い込む。
-        - assembly scanやDI containerによる自動構築を期待する。
-        - 同じ出力型のStepを無計画に複数登録し、選択をextensionやfragmentで区別しない。
+        - アセンブリ走査やDI containerによる自動構築を期待する。
+        - 同じ出力型のStepを無計画に複数登録し、選択を拡張子やフラグメントで区別しない。
         """);
 
     [Story("Learn/Resources/RegistrationAndComposition", Order = 4, Toc = true)]
     public static StoryResult RegistrationAndComposition(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/RegistrationAndComposition", $$"""
-        # Stepの登録とpipeline合成
+        # Stepの登録とパイプライン合成
 
-        {{ResourceCourseCatalog.Meta("Learn/Resources/RegistrationAndComposition", "Intermediate", "Standalone / Browser / AOT", "Backend neutral", "Resource Step")}}
+        {{ResourceCourseCatalog.Meta("Learn/Resources/RegistrationAndComposition", "中級", "スタンドアロン / ブラウザー / AOT", "バックエンド非依存", "Resource Step")}}
 
         ## 構築時に登録する
 
-        アプリのcomposition rootで、必要なSourceとStepを構築してResourceSystemへ渡すのが基本です。Stepが外部serviceを必要とする場合もここでconstructor injectionします。
+        アプリの構成ルートで、必要なSourceとStepを構築してResourceSystemへ渡すのが基本です。Stepが外部サービスを必要とする場合もここでコンストラクター注入します。
 
         ```csharp
         var decoder = new ImageSharpDecoder();
@@ -314,25 +314,25 @@ public static class LearnResources
 
         ## 実行中に追加する
 
-        `AddSource()`と`AddStep()`でも追加できます。ただし既に作られたnodeのpipelineを組み直すAPIではないため、通常は最初の`Load<T>()`より前に登録を完了させます。
+        `AddSource()`と`AddStep()`でも追加できます。ただし既に作られたノードのパイプラインを組み直すAPIではないため、通常は最初の`Load<T>()`より前に登録を完了させます。
 
         ```csharp
         resources.AddSource(new WorkspaceSource(workspace));
         resources.AddStep(new TextAssetStep());
         ```
 
-        trimmed / AOT / browserでは、reflectionを使わずdefault interface memberも到達可能にするgeneric overloadを優先します。
+        トリミング / AOT / ブラウザーでは、リフレクションを使わず既定インターフェイスメンバーも到達可能にするジェネリックオーバーロードを優先します。
 
         ```csharp
         resources.AddStep<byte[], TextAsset>(new TextAssetStep());
         ```
 
-        ## Pipelineは出力型から逆向きに作られる
+        ## パイプラインは出力型から逆向きに作られる
 
-        `Load<GpuTexture>(uri)`を呼ぶと、ResourceSystemは`GpuTexture`を出力するStepを選び、その入力型`CpuImage`を同じURIで再帰ロードします。さらに`CpuImage`を出力するStepを選び、最後に`byte[]`へ到達するとscheme対応Sourceを使います。
+        `Load<GpuTexture>(uri)`を呼ぶと、ResourceSystemは`GpuTexture`を出力するStepを選び、その入力型`CpuImage`を同じURIで再帰ロードします。さらに`CpuImage`を出力するStepを選び、最後に`byte[]`へ到達するとスキーム対応Sourceを使います。
 
         ```text
-        requested GpuTexture
+        要求されたGpuTexture
           ← UploadStep(CpuImage → GpuTexture)
           ← ImageDecoder(byte[] → CpuImage)
           ← FileSource(uri → byte[])
@@ -340,46 +340,46 @@ public static class LearnResources
 
         ## Stepの選択規則
 
-        1. requested output typeで候補を探す。
-        2. fragmentの有無と`FragmentPatterns`で候補を絞る。
-        3. 候補が複数ならURI extension一致を優先する。
-        4. extension指定のないgeneric Stepをfallbackにする。
-        5. scope-local変換ではrequested input typeでも絞る。
+        1. 要求された出力型で候補を探す。
+        2. フラグメントの有無と`FragmentPatterns`で候補を絞る。
+        3. 候補が複数ならURIの拡張子一致を優先する。
+        4. 拡張子指定のない汎用Stepを代替候補にする。
+        5. スコープ内変換では要求された入力型でも絞る。
 
         > [!NOTE]
-        > 自動合成は登録済みStepの全経路を探索して「最短chain」を選ぶ仕組みではありません。各出力型で選ばれたStepの入力型を再帰的に解決します。同じ出力型の候補はextension、fragment、入力型で意図が明確になるよう設計してください。
+        > 自動合成は登録済みStepの全経路を探索して「最短チェーン」を選ぶ仕組みではありません。各出力型で選ばれたStepの入力型を再帰的に解決します。同じ出力型の候補は拡張子、フラグメント、入力型で意図が明確になるよう設計してください。
 
         ## 登録チェックリスト
 
-        - 対象schemeのSourceがあるか。
+        - 対象スキームのSourceがあるか。
         - 最終型から`byte[]`まで各出力型のStepがあるか。
-        - 同じ出力型の候補をextensionまたはfragmentで区別できるか。
-        - Stepの外部依存をconstructorへ渡したか。
-        - AOT環境ではgeneric `AddStep<TIn,TOut>()`を使っているか。
+        - 同じ出力型の候補を拡張子またはフラグメントで区別できるか。
+        - Stepの外部依存をコンストラクターへ渡したか。
+        - AOT環境ではジェネリックな`AddStep<TIn,TOut>()`を使っているか。
         """);
 
     [Story("Learn/Resources/PipelinesAndDag", Order = 5, Toc = true)]
     public static StoryResult PipelinesAndDag(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/PipelinesAndDag", $$"""
-        # Typed pipelines and dependency DAG
+        # 型付きパイプラインと依存関係DAG
 
-        {{ResourceCourseCatalog.Meta("Learn/Resources/PipelinesAndDag", "Intermediate", "Standalone / Headless", "Backend neutral", "Registration and composition")}}
+        {{ResourceCourseCatalog.Meta("Learn/Resources/PipelinesAndDag", "中級", "スタンドアロン / ヘッドレス", "バックエンド非依存", "登録と合成")}}
 
-        pipelineの各段は独立したcache nodeです。`byte[]`やdecode済みCPU値も同じ型・URIなら共有されるため、複数の最終リソースが同じ中間結果を再利用できます。
+        パイプラインの各段は独立したキャッシュノードです。`byte[]`やデコード済みCPU値も同じ型・URIなら共有されるため、複数の最終リソースが同じ中間結果を再利用できます。
 
-        ## Chainが作る依存
+        ## チェーンが作る依存関係
 
         ```text
         GpuTexture panel.tex
-          └─ depends on CpuImage panel.tex
-               └─ depends on byte[] panel.tex
+          └─ 依存 CpuImage panel.tex
+               └─ 依存 byte[] panel.tex
                     └─ FileSource
         ```
 
-        依存edgeは単なる可視化情報ではありません。dependencyが差し替わったときのdependent reload、nodeを残すべきかの判定、連鎖evictionに使われます。
+        依存関係の辺は単なる可視化情報ではありません。依存先が差し替わったときの依存元の再読み込み、ノードを残すべきかの判定、連鎖退避に使われます。
 
         ## 別URIをロードする
 
-        StepがmanifestやglTFのように別URIを参照する場合は`LoadContext.Load<T>()`を使います。返されたhandleは現在nodeのdependencyとして接続されます。
+        StepがマニフェストやglTFのように別URIを参照する場合は`LoadContext.Load<T>()`を使います。返されたハンドルは現在のノードの依存先として接続されます。
 
         ```csharp
         using ResourceHandle<byte[]> buffer = ctx.Load<byte[]>(bufferUri);
@@ -389,57 +389,57 @@ public static class LearnResources
 
         `LoadContext.Load()`は「このStepがURIを知っていて、その場で依存を取得する」場合に使います。
 
-        ## 既存handleを依存にする
+        ## 既存ハンドルを依存にする
 
-        呼び出し側などが既に持っているhandleを現在nodeの依存として使う場合は`Require()`です。
+        呼び出し側などが既に持っているhandleを現在のノードの依存として使う場合は`Require()`です。
 
         ```csharp
         CpuImage image = await ctx.Require(imageHandle);
         ```
 
-        `Require()`は同じ`ResourceSystem`のhandleだけを受け付け、dependency edgeを追加して現在generationの値を待ちます。
+        `Require()`は同じ`ResourceSystem`のhandleだけを受け付け、依存関係の辺を追加して現在の世代の値を待ちます。
 
         | API | 使いどころ |
         | --- | --- |
         | `ctx.Load<T>(uri)` | Step自身が別URIを解決する |
         | `ctx.Require(handle)` | 注入済み・公開済みのhandleをDAGへ接続する |
 
-        ## Reloadの伝播
+        ## 再読み込みの伝播
 
-        Sourceのfile changeや`Republish()`でdependencyが更新されると、直接のdependentがreload queueへ入り、その出力更新がさらに後段へ伝播します。中間nodeを共有している場合も、同じnodeから各dependentへ伝播します。
+        Sourceのファイル変更や`Republish()`でdependencyが更新されると、直接の依存元が再読み込みキューへ入り、その出力更新がさらに後段へ伝播します。中間ノードを共有している場合も、同じノードから各依存元へ伝播します。
 
         ## RenderGraphのDAGとの違い
 
         | Resources DAG | RenderGraph DAG |
         | --- | --- |
-        | 型とURIのnode | passとframe resource |
+        | 型とURIのノード | パスとフレームリソース |
         | 多フレーム寿命 | 1フレーム内 |
-        | reloadとeviction | pass順序とbarrier |
-        | handleがleaseを保持 | graph compile/executeで一時管理 |
+        | 再読み込みと退避 | パス順序とバリア |
+        | ハンドルが参照権を保持 | グラフのコンパイル / 実行で一時管理 |
 
-        Resourcesで得た`GpuTexture`をRenderGraphへexternal resourceとしてimportすることはできますが、2つのDAGを同じものとして扱わないでください。
+        Resourcesで得た`GpuTexture`をRenderGraphへ外部リソースとしてインポートすることはできますが、2つのDAGを同じものとして扱わないでください。
         """);
 
     [Story("Learn/Resources/ScopesAndOwnership", Order = 6, Toc = true)]
     public static StoryResult ScopesAndOwnership(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/ScopesAndOwnership", $$"""
-        # ResourceScope and ownership
+        # ResourceScopeと所有権
 
-        {{ResourceCourseCatalog.Meta("Learn/Resources/ScopesAndOwnership", "Intermediate", "Game / Editor / Gallery", "Backend neutral / optional GPU", "Pipeline and DAG")}}
+        {{ResourceCourseCatalog.Meta("Learn/Resources/ScopesAndOwnership", "中級", "ゲーム / エディター / Gallery", "バックエンド非依存 / GPUは任意", "パイプラインとDAG")}}
 
         ## ResourceScopeの役割
 
-        `ResourceScope`はscene、document、widgetなどの論理ownerが持つ複数のleaseをまとめます。scope経由で取得・作成したhandleは追跡され、scopeのDisposeで一括解放されます。
+        `ResourceScope`はシーン、ドキュメント、Widgetなどの論理所有者が持つ複数の参照権をまとめます。スコープ経由で取得・作成したhandleは追跡され、スコープのDisposeで一括解放されます。
 
         ```csharp
         using ResourceScope scope = resources.CreateScope("scene/main");
         ResourceHandle<CpuImage> image = scope.Load<CpuImage>("panel.tex");
         ```
 
-        `scope.Load()`は通常の共有URIをロードします。同じ型・URIはscope外のhandleとも同じnodeを共有します。
+        `scope.Load()`は通常の共有URIをロードします。同じ型・URIはスコープ外のハンドルとも同じノードを共有します。
 
-        ## Scope-local resourceを作る
+        ## スコープ内リソースを作る
 
-        `scope.Create()`はowner内のlocal keyを`scope://{owner}/{localKey}`へqualifyし、明示loaderで値を作ります。異なるownerが同じlocal keyを使っても別nodeになります。
+        `scope.Create()`は所有者内のローカルキーを`scope://{owner}/{localKey}`へ修飾し、明示的なローダーで値を作ります。異なる所有者が同じローカルキーを使っても別ノードになります。
 
         ```csharp
         ResourceHandle<Descriptor> descriptor = scope.Create(
@@ -447,16 +447,16 @@ public static class LearnResources
             _ => Task.FromResult(CreateDescriptor()));
         ```
 
-        `Create<TInput,TOutput>()`ではscope-local inputをBorrowed nodeとして登録し、登録済みStepを通してoutputを作れます。program valueやdescriptorからGPU/runtime objectを生成する用途に向きます。
+        `Create<TInput,TOutput>()`ではスコープ内入力をBorrowedノードとして登録し、登録済みStepを通してoutputを作れます。プログラム上の値やdescriptorからGPU/ランタイムオブジェクトを生成する用途に向きます。
 
         ## OwnedとBorrowed
 
-        `ResourceOwnership`はcache値の破棄責任を表します。
+        `ResourceOwnership`はキャッシュ値の破棄責任を表します。
 
-        | Ownership | replacement / eviction時のDispose |
+        | 所有権 | 置換 / 退避時のDispose |
         | --- | --- |
         | `Owned` | `ResourceSystem`が行う |
-        | `Borrowed` | 外部ownerが行う。ResourceSystemは破棄しない |
+        | `Borrowed` | 外部所有者が行う。ResourceSystemは破棄しない |
 
         `Publish(uri, value)`の既定は`Owned`です。外部所有値を登録する場合は必ず明示します。
 
@@ -470,51 +470,51 @@ public static class LearnResources
         Stepの結果については`ctx.MarkOwned()` / `ctx.MarkBorrowed()`で指定できます。所有する`IDisposable`を返すStepは、誰が破棄するかを実装時に決めてください。
 
         > [!NOTE]
-        > fragment付きpipeline nodeは元URIの値を切り出すselectorとして扱われ、現在の自動合成ではBorrowedに設定されます。fragment出力が独立した`IDisposable`を所有する設計にする場合は、この挙動を前提にStepとownerの責任を決めてください。
+        > フラグメント付きパイプラインノードは元URIの値を切り出すセレクターとして扱われ、現在の自動合成ではBorrowedに設定されます。フラグメント出力が独立した`IDisposable`を所有する設計にする場合は、この挙動を前提にStepと所有者の責任を決めてください。
 
         ## Scopeを使う目安
 
-        - scene unloadで関連leaseをまとめて解放したい。
-        - editor documentごとに同名のlocal resourceを持ちたい。
-        - program valueを入力として登録済みStepを再利用したい。
-        - 個々のhandle Dispose漏れをowner境界で防ぎたい。
+        - シーンのアンロードで関連する参照権をまとめて解放したい。
+        - エディタードキュメントごとに同名のローカルリソースを持ちたい。
+        - プログラム上の値を入力として登録済みStepを再利用したい。
+        - 個々のハンドル Dispose漏れを所有者境界で防ぎたい。
         """);
 
     [Story("Learn/Resources/ReloadAndLifetime", Order = 7, Toc = true)]
     public static StoryResult ReloadAndLifetime(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/ReloadAndLifetime", $$"""
-        # Reload, publish, and lifetime
+        # 再読み込み、公開、寿命
 
-        {{ResourceCourseCatalog.Meta("Learn/Resources/ReloadAndLifetime", "Intermediate", "Game loop / DevTools / CI", "Backend neutral / optional GPU", "Scopes and ownership")}}
+        {{ResourceCourseCatalog.Meta("Learn/Resources/ReloadAndLifetime", "中級", "ゲームループ / 開発ツール / CI", "バックエンド非依存 / GPUは任意", "スコープと所有権")}}
 
-        ## Watchはロード前に有効化する
+        ## 変更監視は読み込み前に有効化する
 
-        `Watch()`は自動reloadを有効にします。node作成時にwatch tokenを登録するため、基本手順は最初の`Load<T>()`より前です。
+        `Watch()`は自動再読み込みを有効にします。ノード作成時に監視トークンを登録するため、基本手順は最初の`Load<T>()`より前です。
 
         ```csharp
         resources.Watch();
         using ResourceHandle<CpuImage> image = resources.Load<CpuImage>("panel.tex");
         ```
 
-        watch対象はSourceが読む`byte[]` nodeです。`FileSource`や`WorkspaceSource`の変更通知からbytesがreloadされ、依存DAGを通して後段のStepへ伝播します。
+        監視対象はSourceが読む`byte[]`ノードです。`FileSource`や`WorkspaceSource`の変更通知からバイト列が再読み込みされ、依存DAGを通して後段のStepへ伝播します。
 
-        ## Reloadを開始する経路
+        ## 再読み込みを開始する経路
 
-        - `Watch()`後のSource変更通知。
-        - `Republish(uri, value)`によるprogram valueの差し替え。
-        - `InvalidateAll()`による現在の全cache nodeの無効化。
-        - dependency更新からdependentへの伝播。
+        - `Watch()`後のSourceの変更通知。
+        - `Republish(uri, value)`によるプログラム上の値の差し替え。
+        - `InvalidateAll()`による現在の全キャッシュノードの無効化。
+        - 依存先の更新から依存元への伝播。
 
-        `Republish()`の差し替えは次の`Pump()`で適用されます。GPU device lostなど、全nodeを作り直したい場合は`InvalidateAll()`を使えます。
+        `Republish()`の差し替えは次の`Pump()`で適用されます。GPUデバイス消失など、全ノードを作り直したい場合は`InvalidateAll()`を使えます。
 
-        ## Generationとlast-good-value
+        ## 世代と直近の正常値
 
-        nodeはload generationを持ちます。新しいreloadが始まると前の処理をcancelし、古いgenerationが遅れて完了しても現在値としてpublishしません。重複したreload requestもqueue上でcoalesceされます。
+        ノードは読み込み世代を持ちます。新しい再読み込みが始まると前の処理をキャンセルし、古い世代が遅れて完了しても現在値として公開しません。重複した再読み込み要求もキュー上で集約されます。
 
-        reloadに失敗した場合、初回から値が無ければ`Failed`です。以前の正常値があればその値を維持し、`Status`はReady、`LastReloadError`に失敗を記録します。次の成功でerrorはclearされます。
+        再読み込みに失敗した場合、初回から値がなければ`Failed`です。以前の正常値があればその値を維持し、`Status`は`Ready`、`LastReloadError`に失敗を記録します。次の成功でエラーは消去されます。
 
         ## Pump境界
 
-        game loopやGallery hostから`Pump()`を継続的に呼びます。
+        ゲームループやGalleryホストから`Pump()`を継続的に呼びます。
 
         ```csharp
         while (running)
@@ -527,24 +527,24 @@ public static class LearnResources
 
         `Pump()`では主に次を処理します。
 
-        1. reload後のvalue swapと`Version`更新。
-        2. `Reloaded` eventとstate subscription通知。
-        3. dependent reloadの開始。
-        4. replacement / evictionで残した旧Owned値のdeferred dispose。
+        1. 再読み込み後の値の差し替えと`Version`更新。
+        2. `Reloaded`イベントと状態購読通知。
+        3. 依存元の再読み込みの開始。
+        4. 置換 / 退避で残した古いOwned値の遅延破棄。
 
         初回ロードの値は`Ready`完了時に利用できます。「すべてのロード結果がPumpまで見えない」わけではありません。
 
-        ## Evictionとdeferred dispose
+        ## 退避と遅延破棄
 
-        handleをDisposeしてrefcountが0になり、dependentも無いnodeはevictできます。nodeを消すとdependency edgeを外し、同じ条件を満たした入力nodeへ連鎖evictionします。
+        ハンドルをDisposeして参照カウントが0になり、依存元もないノードは退避できます。ノードを消すと依存関係の辺を外し、同じ条件を満たした入力ノードへ連鎖退避します。
 
-        Owned値のreplacement / eviction時のDisposeは`Pump()`まで遅延されます。GPUなど外部実行環境の値を安全に破棄する前にidle待ちが必要なら`SetDeferredDisposeIdleHook()`を設定します。
+        Owned値の置換 / 退避時のDisposeは`Pump()`まで遅延されます。GPUなど外部実行環境の値を安全に破棄する前にアイドル待機が必要なら`SetDeferredDisposeIdleHook()`を設定します。
 
         ## 典型的な失敗
 
-        - **Pumpを呼ばない**: reload計算が完了してもswap、event、deferred disposeが進みません。
-        - **ロード後に初めてWatchを呼ぶ**: 既存nodeへ遡ってwatchを登録するAPIではありません。
-        - **Ownedの外部値をPublishする**: 既定Ownedなので、外部ownerが破棄する値にはBorrowedを明示します。
-        - **handleを保持しない**: leaseがなくなるとnodeがevict可能になり、利用期間とcache lifetimeが一致しません。
+        - **Pumpを呼ばない**: 再読み込み処理が完了しても差し替え、イベント、遅延破棄が進みません。
+        - **ロード後に初めてWatchを呼ぶ**: 既存ノードへ遡って監視を登録するAPIではありません。
+        - **Ownedの外部値をPublishする**: 既定Ownedなので、外部所有者が破棄する値にはBorrowedを明示します。
+        - **handleを保持しない**: 参照権がなくなるとノードを退避可能になり、利用期間とキャッシュの寿命が一致しません。
         """);
 }

@@ -34,14 +34,14 @@ else
             </header>
             <label class="gallery-search">
                 <span aria-hidden="true">⌕</span>
-                <input type="search" placeholder="Search stories" aria-label="Search stories"
+                <input type="search" placeholder="Storyを検索" aria-label="Storyを検索"
                        @bind="_search" @bind:event="oninput" />
                 @if (!string.IsNullOrWhiteSpace(_search))
                 {
-                    <button type="button" title="Clear search" @onclick="ClearSearch">×</button>
+                    <button type="button" title="検索をクリア" @onclick="ClearSearch">×</button>
                 }
             </label>
-            <nav class="story-navigation" aria-label="Story navigation">
+            <nav class="story-navigation" aria-label="Storyナビゲーション">
                 @{ IReadOnlyList<GalleryStoryTreeNode> tree = FilteredTree(); }
                 @if (tree.Count > 0)
                 {
@@ -50,10 +50,10 @@ else
                 }
                 else
                 {
-                    <p class="empty-search">No matching stories</p>
+                    <p class="empty-search">一致するStoryはありません</p>
                 }
             </nav>
-            <footer class="gallery-sidebar-footer">@Catalog.All.Count stories</footer>
+            <footer class="gallery-sidebar-footer">@Catalog.All.Count 件のStory</footer>
         </aside>
         }
 
@@ -65,7 +65,7 @@ else
                     <p>@_story.Component</p>
                     <h1>@_story.Name</h1>
                 </div>
-                <a class="open-alone" href="@EmbeddedStoryHref(_story.Path, _argsJson)" target="_blank" rel="noopener">Open canvas</a>
+                <a class="open-alone" href="@EmbeddedStoryHref(_story.Path, _argsJson)" target="_blank" rel="noopener">キャンバスを開く</a>
             </header>
             }
             @if (_documentHtml is not null)
@@ -75,7 +75,7 @@ else
             else
             {
                 <div class="story-workspace" @ref="_workspace">
-                    <section class="story-preview" aria-label="Story preview">
+                    <section class="story-preview" aria-label="Storyプレビュー">
                         @if (_compact)
                         {
                             <canvas id="luxel-canvas" tabindex="0" aria-label="Luxel browser WebGPU"></canvas>
@@ -89,16 +89,16 @@ else
                         }
                     </section>
                     <div class="story-splitter" @ref="_splitter" role="separator" tabindex="0"
-                         aria-label="Resize story preview and details" aria-orientation="horizontal"
+                         aria-label="Storyプレビューと詳細の大きさを変更" aria-orientation="horizontal"
                          aria-valuemin="150" aria-valuemax="800" aria-valuenow="260"></div>
-                    <section class="story-lower-panel" aria-label="Story details">
-                        <div class="story-tabs" role="tablist" aria-label="Story details">
+                    <section class="story-lower-panel" aria-label="Storyの詳細">
+                        <div class="story-tabs" role="tablist" aria-label="Storyの詳細">
                             @foreach (string tab in Tabs)
                             {
                                 <button id="@TabId(tab)" type="button" role="tab"
                                         aria-selected="@(_activeTab == tab ? "true" : "false")" aria-controls="@PanelId(tab)"
                                         tabindex="@(_activeTab == tab ? 0 : -1)" class="@TabClass(tab)"
-                                        @onclick="() => SelectTab(tab)" @onkeydown="eventArgs => OnTabKeyDown(eventArgs, tab)">@tab</button>
+                                        @onclick="() => SelectTab(tab)" @onkeydown="eventArgs => OnTabKeyDown(eventArgs, tab)">@TabLabel(tab)</button>
                             }
                         </div>
                         <div id="@PanelId(_activeTab)" class="story-tab-panel" role="tabpanel"
@@ -107,7 +107,7 @@ else
                             {
                                 @if (_argDefinitions.Count == 0)
                                 {
-                                    <p class="panel-empty">This story has no editable args.</p>
+                                    <p class="panel-empty">このStoryには編集可能な引数がありません。</p>
                                 }
                                 else
                                 {
@@ -161,14 +161,14 @@ else
                                 </div>
                                 @if (_output.Count == 0)
                                 {
-                                    <p class="panel-empty">Runtime events and errors will appear here.</p>
+                                    <p class="panel-empty">ランタイムのイベントとエラーがここに表示されます。</p>
                                 }
                                 else
                                 {
                                     <ol class="output-list" aria-live="polite">
                                         @foreach (OutputEntry entry in _output)
                                         {
-                                            <li class="output-@entry.Kind"><time>@entry.Time</time><strong>@entry.Kind</strong><pre>@entry.Text</pre></li>
+                                            <li class="output-@entry.Kind"><time>@entry.Time</time><strong>@OutputKindLabel(entry.Kind)</strong><pre>@entry.Text</pre></li>
                                         }
                                     </ol>
                                 }
@@ -178,7 +178,7 @@ else
                                 @if (_sampleBundle is not null)
                                 {
                                     <div class="source-context">
-                                        <strong>Run this sample · @_sampleBundle.CopyLevel</strong>
+                                        <strong>このサンプルを実行 · @_sampleBundle.CopyLevel</strong>
                                         @if (!string.IsNullOrWhiteSpace(_sampleBundle.RunCommand))
                                         {
                                             <code>@_sampleBundle.RunCommand</code>
@@ -208,7 +208,7 @@ else
     private string _runtimeInstance = "";
     private string _activeTab = "Args";
     private string _runtimeState = "loading";
-    private string _runtimeSummary = "Waiting for the story runtime.";
+    private string _runtimeSummary = "Storyランタイムを待機しています。";
     private int _revision;
     private StoryInfo _story = null!;
     private SampleBundleInfo? _sampleBundle;
@@ -287,7 +287,7 @@ else
         _runtimeInstance = Guid.NewGuid().ToString("N");
         _revision = 0;
         _runtimeState = "loading";
-        _runtimeSummary = "Waiting for the story runtime.";
+        _runtimeSummary = "Storyランタイムを待機しています。";
         _output.Clear();
         _runtimeUrl = _embedded || _compact || _documentHtml is not null
             ? ""
@@ -320,12 +320,12 @@ else
         {
             case "ready":
                 _runtimeState = message.TryGetProperty("state", out JsonElement readyState) ? readyState.GetString() ?? "pass" : "pass";
-                _runtimeSummary = message.TryGetProperty("summary", out JsonElement summary) ? summary.GetString() ?? "Runtime ready." : "Runtime ready.";
+                _runtimeSummary = message.TryGetProperty("summary", out JsonElement summary) ? summary.GetString() ?? "ランタイムの準備が完了しました。" : "ランタイムの準備が完了しました。";
                 break;
             case "args-changed":
                 _runtimeState = "pass";
                 AddOutput("args", message.TryGetProperty("source", out JsonElement source)
-                    ? $"Args changed ({source.GetString()})." : "Args changed.");
+                    ? $"引数を変更しました（{source.GetString()}）。" : "引数を変更しました。");
                 break;
             case "arg-error":
                 _runtimeState = "fail";
@@ -333,11 +333,11 @@ else
                 _activeTab = "Output";
                 break;
             case "event":
-                AddOutput("event", message.TryGetProperty("entry", out JsonElement entry) ? entry.GetRawText() : "Event");
+                AddOutput("event", message.TryGetProperty("entry", out JsonElement entry) ? entry.GetRawText() : "イベント");
                 break;
             case "story-error":
                 _runtimeState = "fail";
-                _runtimeSummary = message.TryGetProperty("error", out JsonElement error) ? error.GetString() ?? "Story failed." : "Story failed.";
+                _runtimeSummary = message.TryGetProperty("error", out JsonElement error) ? error.GetString() ?? "Storyの実行に失敗しました。" : "Storyの実行に失敗しました。";
                 AddOutput("error", _runtimeSummary);
                 _activeTab = "Output";
                 break;
@@ -375,7 +375,7 @@ else
         if (!IsNumeric(definition)) return StoryArgCodec.Serialize(text);
         using JsonDocument document = JsonDocument.Parse(text);
         if (document.RootElement.ValueKind != JsonValueKind.Number)
-            throw new FormatException($"'{text}' is not a number.");
+            throw new FormatException($"'{text}'は数値ではありません。");
         return document.RootElement.Clone();
     }
 
@@ -394,7 +394,7 @@ else
         }
         catch
         {
-            // Some semantic providers need the live browser host. Let the runtime build those stories.
+            // 一部のセマンティックプロバイダーには実行中のブラウザーホストが必要なため、ランタイム側でStoryを構築する。
             return null;
         }
     }
@@ -442,6 +442,13 @@ else
             _ => _activeTab,
         };
     }
+    private static string TabLabel(string tab) => tab switch
+    {
+        "Args" => "引数",
+        "Output" => "出力",
+        "Source" => "ソース",
+        _ => tab,
+    };
     private static string TabId(string tab) => "story-tab-" + tab.ToLowerInvariant();
     private static string PanelId(string tab) => "story-panel-" + tab.ToLowerInvariant();
     private string TabClass(string tab) => _activeTab == tab ? "active" : "";
@@ -457,14 +464,21 @@ else
         : "";
     private bool ArgBoolValue(StoryArgDefinition definition) => _argValues.TryGetValue(definition.Name, out JsonElement value)
         && value.ValueKind is JsonValueKind.True or JsonValueKind.False && value.GetBoolean();
-    private string RuntimeStateLabel() => _runtimeState switch { "pass" => "Ready", "fail" => "Failed", _ => "Loading" };
+    private static string OutputKindLabel(string kind) => kind switch
+    {
+        "args" => "引数",
+        "event" => "イベント",
+        "error" => "エラー",
+        _ => kind,
+    };
+    private string RuntimeStateLabel() => _runtimeState switch { "pass" => "準備完了", "fail" => "失敗", _ => "読み込み中" };
     private string SourceText() => !string.IsNullOrWhiteSpace(_story.Source) ? _story.Source
         : _sampleBundle is null
-            ? "Source unavailable. Gallery harness required; no standalone sample bundle is registered."
-            : $"Source unavailable. Run this sample ({_sampleBundle.CopyLevel}): {_sampleBundle.RunCommand}";
+            ? "ソースを表示できません。Galleryハーネスが必要で、単独実行用のサンプルバンドルは登録されていません。"
+            : $"ソースを表示できません。このサンプルを実行してください（{_sampleBundle.CopyLevel}）：{_sampleBundle.RunCommand}";
     private static string MessageErrors(JsonElement message) => message.TryGetProperty("errors", out JsonElement errors)
         ? string.Join("\n", errors.EnumerateArray().Select(error => error.GetString() ?? error.GetRawText()))
-        : "Argument update failed.";
+        : "引数の更新に失敗しました。";
     private void AddOutput(string kind, string text)
     {
         _output.Add(new OutputEntry(DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture), kind, text));
@@ -481,7 +495,7 @@ else
         }
         catch
         {
-            // BrowserGalleryApplication publishes the full failure to the runtime status surface.
+            // BrowserGalleryApplicationが完全な失敗情報をランタイム状態表示へ通知する。
         }
     }
 

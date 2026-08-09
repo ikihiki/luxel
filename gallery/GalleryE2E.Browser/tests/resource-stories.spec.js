@@ -51,29 +51,29 @@ test('ResourceSystem Learn renders TOC, course navigation, live examples, and Ba
   const story = 'Learn/Resources/LoadingAndHandles';
   await page.goto(`/?story=${encodeURIComponent(story)}`);
 
-  await expect(page.locator('.markdown-document h1')).toHaveText('Loading and ResourceHandle');
+  await expect(page.locator('.markdown-document h1')).toHaveText('読み込みとResourceHandle');
   await expect(page.locator('.markdown-document a[href^="#"]').filter({ hasText: 'ResourceSystemを構築する' })).toBeVisible();
-  await expect(page.locator('.markdown-document a[href*="Learn%2FResources%2FOverview"]')).toContainText('Overview');
-  await expect(page.locator('.markdown-document a[href*="Learn%2FResources%2FSourcesAndUris"]')).toContainText('SourcesAndUris');
+  await expect(page.locator('.markdown-document a[href*="Learn%2FResources%2FOverview"]')).toContainText('Resources学習ガイド');
+  await expect(page.locator('.markdown-document a[href*="Learn%2FResources%2FSourcesAndUris"]')).toContainText('SourceとリソースURI');
 
   const embeds = page.locator('.markdown-story-embed');
   await expect(embeds).toHaveCount(1);
   await expect(embeds.locator('header')).toContainText('Examples/Resources/HelloTextAsset');
   const embedded = page.frameLocator('.markdown-story-embed iframe').first();
-  await expect(embedded.getByRole('tab', { name: 'Args' })).toBeVisible();
-  await embedded.getByRole('tab', { name: 'Source' }).click();
+  await expect(embedded.getByRole('tab', { name: '引数' })).toBeVisible();
+  await embedded.getByRole('tab', { name: 'ソース' }).click();
   await expect(embedded.locator('.story-source')).toContainText('resources.Load<TextAsset>');
   await expect(embedded.locator('.story-source')).not.toContainText('ResourceScenarios.Create');
   await expect(embedded.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
-  await embedded.getByRole('tab', { name: 'Output' }).click();
-  await expect(embedded.locator('.output-list')).toContainText('Hello text asset: Ready');
+  await embedded.getByRole('tab', { name: '出力' }).click();
+  await expect(embedded.locator('.output-list')).toContainText('テキストアセットの読み込み: 準備完了');
 
-  await embeds.nth(0).getByRole('link', { name: 'Open story' }).click();
+  await embeds.nth(0).getByRole('link', { name: 'Storyを開く' }).click();
   await expect(page).toHaveURL(/story=Examples%2FResources%2FHelloTextAsset/);
   await expect(page.locator('.story-toolbar h1')).toHaveText('HelloTextAsset');
   await page.goBack();
   await expect(page).toHaveURL(/story=Learn%2FResources%2FLoadingAndHandles/);
-  await expect(page.locator('.markdown-document h1')).toHaveText('Loading and ResourceHandle');
+  await expect(page.locator('.markdown-document h1')).toHaveText('読み込みとResourceHandle');
 
   await expectNoFailures(failures);
 });
@@ -83,17 +83,17 @@ test('Assets Learn embeds one concept-focused CPU example', async ({ page }) => 
   const story = 'Learn/Resources/Assets/Overview';
   await page.goto(`/?story=${encodeURIComponent(story)}`);
 
-  await expect(page.locator('.markdown-document h1')).toHaveText('Assets overview');
+  await expect(page.locator('.markdown-document h1')).toHaveText('アセットの概要');
   const embeds = page.locator('.markdown-story-embed');
   await expect(embeds).toHaveCount(1);
   await expect(embeds.locator('header')).toContainText('Examples/Resources/Assets/DocumentInspector');
 
-  await embeds.getByRole('link', { name: 'Open story' }).click();
+  await embeds.getByRole('link', { name: 'Storyを開く' }).click();
   await expect(page).toHaveURL(/story=Examples%2FResources%2FAssets%2FDocumentInspector/);
   const runtime = page.frameLocator('.story-runtime-frame');
   await expect(runtime.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
   await page.goBack();
-  await expect(page.locator('.markdown-document h1')).toHaveText('Assets overview');
+  await expect(page.locator('.markdown-document h1')).toHaveText('アセットの概要');
 
   await expectNoFailures(failures);
 });
@@ -102,17 +102,17 @@ test('glTF Learn exposes loading, URI, and diagnostic examples without fixture f
   const failures = collectFailures(page);
 
   await page.goto(`/?story=${encodeURIComponent('Learn/Resources/Gltf/RegistrationAndLoading')}`);
-  await expect(page.locator('.markdown-document h1')).toHaveText('Register and load glTF');
+  await expect(page.locator('.markdown-document h1')).toHaveText('glTFの登録と読み込み');
   await expect(page.locator('.markdown-story-embed')).toHaveCount(1);
   await expect(page.locator('.markdown-story-embed header')).toContainText('Examples/Resources/Gltf/BoxDocumentLoad');
 
   await page.goto(`/?story=${encodeURIComponent('Learn/Resources/Gltf/ExternalBuffersImagesAndUris')}`);
-  await expect(page.locator('.markdown-document h1')).toHaveText('External buffers, images, and URIs');
+  await expect(page.locator('.markdown-document h1')).toHaveText('外部バッファ、画像、URI');
   await expect(page.locator('.markdown-story-embed')).toHaveCount(1);
   await expect(page.locator('.markdown-story-embed header')).toContainText('Examples/Resources/Gltf/ExternalBufferTrace');
 
   await page.goto(`/?story=${encodeURIComponent('Learn/Resources/Gltf/ValidationAndDiagnostics')}`);
-  await expect(page.locator('.markdown-document h1')).toHaveText('Validation and diagnostics');
+  await expect(page.locator('.markdown-document h1')).toHaveText('検証と診断');
   await expect(page.locator('.markdown-story-embed header').first()).toContainText('Examples/Resources/Gltf/MalformedAccessorDiagnostics');
 
   await expectNoFailures(failures);
@@ -145,7 +145,7 @@ for (const story of cpuResourceStories) {
     await page.goto(runtimeUrl(story));
     await expectRuntimeStory(page, story);
     await expect.poll(() => page.evaluate(() =>
-      globalThis.luxelBrowserState?.widgets?.some(widget => widget.detail === 'Ready') || false),
+      globalThis.luxelBrowserState?.widgets?.some(widget => widget.detail === '準備完了') || false),
       { timeout: 30_000 }).toBe(true);
     await expectNoFailures(failures);
   });
@@ -158,10 +158,10 @@ test('Resource widget publishes its result to the shared Output and Source panel
 
   const runtime = page.frameLocator('.story-runtime-frame');
   await expect(runtime.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
-  await page.getByRole('tab', { name: 'Output' }).click();
-  await expect(page.locator('.output-list')).toContainText('Hello text asset: Ready');
-  await expect(page.locator('.output-list')).toContainText('HELLO RESOURCES');
-  await page.getByRole('tab', { name: 'Source' }).click();
+  await page.getByRole('tab', { name: '出力' }).click();
+  await expect(page.locator('.output-list')).toContainText('テキストアセットの読み込み: 準備完了');
+  await expect(page.locator('.output-list')).toContainText('こんにちは、RESOURCES');
+  await page.getByRole('tab', { name: 'ソース' }).click();
   await expect(page.locator('.story-source')).toContainText('public static Widget HelloTextAsset');
   await expect(page.locator('.story-source')).toContainText('resources.AddStep<byte[], TextAsset>');
   await expect(page.locator('.story-source')).not.toContainText('ResourceScenarios.Create');

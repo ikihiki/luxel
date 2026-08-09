@@ -19,7 +19,7 @@ internal static partial class GalleryMarkdownHtml
             : authored;
         string markdown = StoryFence().Replace(result.Markdown, match => StoryEmbed(result, match));
         markdown = WidgetFence().Replace(markdown,
-            "<aside class=\"markdown-embed-unavailable\">Interactive widget embed — open the referenced story from the navigation.</aside>");
+            "<aside class=\"markdown-embed-unavailable\">対話型Widgetを埋め込めません。ナビゲーションから参照先のStoryを開いてください。</aside>");
         string html = Markdown.ToHtml(markdown, Pipeline);
         return StoryLink().Replace(html, match =>
         {
@@ -32,7 +32,7 @@ internal static partial class GalleryMarkdownHtml
     {
         if (!int.TryParse(match.Groups[1].Value, out int index)
             || index < 0 || index >= result.References.Count)
-            return "<aside class=\"markdown-embed-unavailable\">Invalid embedded story reference.</aside>";
+            return "<aside class=\"markdown-embed-unavailable\">埋め込みStoryの参照が正しくありません。</aside>";
 
         StoryReference reference = result.References[index];
         string path = WebUtility.HtmlEncode(reference.Path);
@@ -41,7 +41,7 @@ internal static partial class GalleryMarkdownHtml
         if (args != "{}") url += "&amp;args=" + WebUtility.HtmlEncode(Uri.EscapeDataString(args));
         return $"""
             <section class="markdown-story-embed">
-              <header><strong>{path}</strong><a href="?story={WebUtility.HtmlEncode(Uri.EscapeDataString(reference.Path))}">Open story</a></header>
+              <header><strong>{path}</strong><a href="?story={WebUtility.HtmlEncode(Uri.EscapeDataString(reference.Path))}">Storyを開く</a></header>
               <iframe src="{url}" title="{path}" loading="lazy"></iframe>
             </section>
             """;

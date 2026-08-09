@@ -108,13 +108,13 @@ test('Blazor Gallery renders generated Markdown overviews as HTML with navigatio
   await expect(page.locator('.markdown-document')).toContainText('Implementation');
   await expect(page.locator('.markdown-story-embed iframe')).toHaveCount(1);
   const embedded = page.frameLocator('.markdown-story-embed iframe');
-  await expect(embedded.getByRole('tab', { name: 'Args' })).toBeVisible();
-  await expect(embedded.getByRole('tab', { name: 'Output' })).toBeVisible();
-  await expect(embedded.getByRole('tab', { name: 'Source' })).toBeVisible();
+  await expect(embedded.getByRole('tab', { name: '引数' })).toBeVisible();
+  await expect(embedded.getByRole('tab', { name: '出力' })).toBeVisible();
+  await expect(embedded.getByRole('tab', { name: 'ソース' })).toBeVisible();
   await expect(embedded.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
   await expect(embedded.locator('#status')).toHaveAttribute('data-story', 'Controls/Accordion/Basic');
 
-  const search = page.getByRole('searchbox', { name: 'Search stories' });
+  const search = page.getByRole('searchbox', { name: 'Storyを検索' });
   await search.fill('Accordion');
   await expect(page.locator('.story-link')).toHaveCount(2);
   await expect(page.locator('.story-link')).toContainText(['Overview', 'Basic']);
@@ -147,7 +147,7 @@ test('Blazor Gallery exposes Args, Output, Source, and a resizable preview panel
 
   const runtime = page.frameLocator('.story-runtime-frame');
   await expect(runtime.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
-  await expect(page.getByRole('tab', { name: 'Args' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: '引数' })).toHaveAttribute('aria-selected', 'true');
   const count = page.locator('#story-arg-count');
   await expect(count).toHaveValue('0');
   await count.fill('7');
@@ -156,12 +156,12 @@ test('Blazor Gallery exposes Args, Output, Source, and a resizable preview panel
     timeout: 30_000
   }).toBe(7);
 
-  await page.getByRole('tab', { name: 'Output' }).click();
-  await expect(page.locator('.output-list')).toContainText('Args changed');
-  await page.getByRole('tab', { name: 'Source' }).click();
+  await page.getByRole('tab', { name: '出力' }).click();
+  await expect(page.locator('.output-list')).toContainText('引数を変更しました');
+  await page.getByRole('tab', { name: 'ソース' }).click();
   await expect(page.locator('.story-source')).toContainText('ButtonCounter');
 
-  const splitter = page.getByRole('separator', { name: 'Resize story preview and details' });
+  const splitter = page.getByRole('separator', { name: 'Storyプレビューと詳細の大きさを変更' });
   const panel = page.locator('.story-lower-panel');
   const before = await panel.boundingBox();
   const handle = await splitter.boundingBox();
@@ -179,8 +179,8 @@ test('Blazor Gallery exposes Args, Output, Source, and a resizable preview panel
   await expect(page.locator('.story-toolbar h1')).toHaveText('Primary');
   await expect(runtime.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
   await expect(runtime.locator('#status')).toHaveAttribute('data-story', 'Controls/Button/Primary');
-  await expect(page.getByRole('tab', { name: 'Source' })).toHaveAttribute('aria-selected', 'true');
-  await page.getByRole('tab', { name: 'Output' }).click();
+  await expect(page.getByRole('tab', { name: 'ソース' })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('tab', { name: '出力' }).click();
   await expect(page.locator('.output-list')).toHaveCount(0);
 });
 
@@ -199,9 +199,9 @@ test('compact embedded stories expose interactive Args, Output, and Source panel
     timeout: 30_000
   }).toBe(4);
 
-  await page.getByRole('tab', { name: 'Output' }).click();
-  await expect(page.locator('.output-list')).toContainText('Args changed');
-  await page.getByRole('tab', { name: 'Source' }).click();
+  await page.getByRole('tab', { name: '出力' }).click();
+  await expect(page.locator('.output-list')).toContainText('引数を変更しました');
+  await page.getByRole('tab', { name: 'ソース' }).click();
   await expect(page.locator('.story-source')).toContainText('ButtonCounter');
 });
 

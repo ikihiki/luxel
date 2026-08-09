@@ -14,13 +14,13 @@ using static Luxel.Controls.Kit;
 
 namespace Luxel.Gallery.Stories;
 
-/// <summary>An executable, browser-safe resource scenario with a ResourceSystem owned by this widget instance.</summary>
+/// <summary>Widgetインスタンス専用のResourceSystemを持つ、ブラウザー対応の実行可能リソースシナリオ。</summary>
 internal sealed class ResourceScenarioWidget : CompositeControl, IDisposable
 {
     private readonly Func<ResourceSystem, Task<string>> _run;
     private readonly Action<string>? _output;
-    private readonly Signal<string> _status = new("Loading");
-    private readonly Signal<string> _detail = new("Constructing a private ResourceSystem...");
+    private readonly Signal<string> _status = new("読み込み中");
+    private readonly Signal<string> _detail = new("専用ResourceSystemを構築しています…");
     private int _started;
 
     internal ResourceScenarioWidget(string title, Func<ResourceSystem, Task<string>> run, Action<string>? output = null)
@@ -42,9 +42,9 @@ internal sealed class ResourceScenarioWidget : CompositeControl, IDisposable
         Heading(Title),
         HStack(8)[
             Text((Func<string>)(() => _status.Value), UiTheme.T.FontSm,
-                color: Bind.From(() => _status.Value == "Ready" ? UiTheme.T.Success
-                    : _status.Value == "Failed" ? UiTheme.T.Danger : UiTheme.T.Info)),
-            Muted("story-owned ResourceSystem")],
+                color: Bind.From(() => _status.Value == "準備完了" ? UiTheme.T.Success
+                    : _status.Value == "失敗" ? UiTheme.T.Danger : UiTheme.T.Info)),
+            Muted("Story所有のResourceSystem")],
         Text((Func<string>)(() => _detail.Value), UiTheme.T.Font)]);
 
     protected override void OnRealize(UiBuildContext ctx)
@@ -77,15 +77,15 @@ internal sealed class ResourceScenarioWidget : CompositeControl, IDisposable
         {
             string detail = await _run(Resources).ConfigureAwait(false);
             _detail.Value = detail;
-            _status.Value = "Ready";
-            _output?.Invoke($"{Title}: Ready — {detail}");
+            _status.Value = "準備完了";
+            _output?.Invoke($"{Title}: 準備完了 — {detail}");
         }
         catch (Exception error)
         {
             string detail = $"{error.GetType().Name}: {error.Message}";
             _detail.Value = detail;
-            _status.Value = "Failed";
-            _output?.Invoke($"{Title}: Failed — {detail}");
+            _status.Value = "失敗";
+            _output?.Invoke($"{Title}: 失敗 — {detail}");
         }
     }
 
@@ -144,7 +144,7 @@ internal static class ResourceScenarioSupport
             await Task.Delay(5);
         }
         resources.Pump();
-        if (!condition()) throw new TimeoutException("resource reload did not complete");
+        if (!condition()) throw new TimeoutException("リソースの再読み込みが完了しませんでした");
     }
 
     internal const string TriangleGltf = """
@@ -174,7 +174,7 @@ internal static class ResourceScenarioSupport
     internal sealed class CaptionMessageStep : IResourceStep<byte[], MessageAsset> { public Executor Executor => Executor.Cpu; public IEnumerable<string> Extensions => [".caption"]; public Task<MessageAsset> RunAsync(byte[] input, ResourceUri uri, LoadContext context) => Task.FromResult(new MessageAsset($"[{Encoding.UTF8.GetString(input)}]")); }
     internal sealed class CountingTextStep : IResourceStep<byte[], TextAsset> { public int Runs; public Executor Executor => Executor.Cpu; public IEnumerable<string> Extensions => [".txt"]; public Task<TextAsset> RunAsync(byte[] input, ResourceUri uri, LoadContext context) { Interlocked.Increment(ref Runs); return Task.FromResult(new TextAsset(Encoding.UTF8.GetString(input))); } }
     internal sealed class WordCountStep : IResourceStep<TextAsset, WordCount> { public Executor Executor => Executor.Cpu; public Task<WordCount> RunAsync(TextAsset input, ResourceUri uri, LoadContext context) => Task.FromResult(new WordCount(input.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length)); }
-    internal sealed class RuntimeLabelStep : IResourceStep<RuntimeSeed, RuntimeLabel> { public Executor Executor => Executor.Cpu; public Task<RuntimeLabel> RunAsync(RuntimeSeed input, ResourceUri uri, LoadContext context) => Task.FromResult(new RuntimeLabel($"Level {input.Level}")); }
+    internal sealed class RuntimeLabelStep : IResourceStep<RuntimeSeed, RuntimeLabel> { public Executor Executor => Executor.Cpu; public Task<RuntimeLabel> RunAsync(RuntimeSeed input, ResourceUri uri, LoadContext context) => Task.FromResult(new RuntimeLabel($"レベル {input.Level}")); }
     internal sealed class DiagnosticStep(Func<AssetDocument, string> inspect) : IResourceStep<AssetDocument, DiagnosticResult> { public Executor Executor => Executor.Cpu; public Task<DiagnosticResult> RunAsync(AssetDocument input, ResourceUri uri, LoadContext context) => Task.FromResult(new DiagnosticResult(inspect(input))); }
     internal sealed class DiagnosticSeedStep : IResourceStep<DiagnosticSeed, DiagnosticResult> { public Executor Executor => Executor.Cpu; public Task<DiagnosticResult> RunAsync(DiagnosticSeed input, ResourceUri uri, LoadContext context) => Task.FromResult(new DiagnosticResult(input.Text)); }
     internal sealed class StaticHttpHandler(string content) : HttpMessageHandler { protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(Bytes(content)) }); }

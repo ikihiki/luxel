@@ -217,8 +217,8 @@ public sealed class ProductionComponentCatalogTests
 
             await widget.RunForTestAsync().WaitAsync(TimeSpan.FromSeconds(10));
 
-            Assert.Equal("Ready", widget.Status);
-            Assert.DoesNotContain("unexpectedly imported", widget.Detail, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("準備完了", widget.Status);
+            Assert.DoesNotContain("予期せずインポートに成功しました", widget.Detail, StringComparison.Ordinal);
             Assert.False(string.IsNullOrWhiteSpace(widget.Detail));
             widget.Dispose();
         }

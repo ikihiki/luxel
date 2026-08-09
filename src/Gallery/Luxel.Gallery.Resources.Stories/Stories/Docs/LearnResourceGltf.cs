@@ -2,34 +2,34 @@ using Luxel.UI;
 
 namespace Luxel.Gallery.Stories;
 
-/// <summary>glTF import, dependency, diagnostics, runtime, and lifetime course.</summary>
+/// <summary>glTFのインポート、依存、診断、ランタイム、寿命を学ぶコース。</summary>
 public static class LearnResourceGltf
 {
     [Story("Learn/Resources/Gltf/Overview", Order = 15, Toc = true)]
     public static StoryResult Overview(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/Gltf/Overview", $$"""
-        # glTF overview
+        # glTFの概要
 
-        {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/Overview", "Beginner", "Tools / Headless / Runtime", "Luxel.Assets.Gltf", "Assets shader ABI")}}
+        {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/Overview", "初級", "ツール / ヘッドレス / ランタイム", "Luxel.Assets.Gltf", "アセットのシェーダーABI")}}
 
-        `Luxel.Assets.Gltf` parses `.gltf` JSON and `.glb` containers into the format-neutral `AssetDocument`. The importer resolves buffers, images, accessors, node relationships, skins, and animation; it does not create a GPU device or render a scene.
+        `Luxel.Assets.Gltf`は`.gltf`のJSONと`.glb`コンテナーを解析し、形式非依存の`AssetDocument`へ変換します。インポーターはバッファ、画像、アクセサー、ノード関係、スキン、アニメーションを解決しますが、GPUデバイスの作成やシーンの描画は行いません。
 
         ```text
-        .gltf/.glb + external buffers/images
+        .gltf/.glb + 外部バッファ / 画像
           → GltfResourceStep
           → AssetDocument
-          → inspect, validate, upload individual assets, or build an ECS scene
+          → 検査、検証、個別アセットのGPU転送、ECSシーン構築
         ```
 
-        This branch separates registration/loading, external dependency resolution, diagnostics, runtime expansion, deformation, and reload lifetime. Start with CPU document loading before adding `SceneAssets` or a renderer.
+        このコースでは、登録と読み込み、外部依存の解決、診断、ランタイム展開、変形、再読み込み時の寿命を分けて説明します。`SceneAssets`や描画処理を追加する前に、まずCPUドキュメントの読み込みから始めてください。
         """);
 
     [Story("Learn/Resources/Gltf/RegistrationAndLoading", Order = 16, Toc = true)]
     public static StoryResult RegistrationAndLoading(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/Gltf/RegistrationAndLoading", $$"""
-        # Register and load glTF
+        # glTFの登録と読み込み
 
-        {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/RegistrationAndLoading", "Beginner", "Tools / Headless / Runtime", "Resources + Assets.Gltf", "glTF overview")}}
+        {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/RegistrationAndLoading", "初級", "ツール / ヘッドレス / ランタイム", "Resources + Assets.Gltf", "glTFの概要")}}
 
-        Register the importer explicitly; ResourceSystem does not scan assemblies. The generic overload is the reflection-free path for browser and trimmed hosts.
+        インポーターは明示的に登録します。`ResourceSystem`はアセンブリを自動走査しません。ジェネリックオーバーロードはリフレクションを使わないため、ブラウザーやトリミングされたホストでも利用できます。
 
         ```csharp
         resources.AddStep<byte[], AssetDocument>(new GltfResourceStep());
@@ -39,94 +39,94 @@ public static class LearnResourceGltf
         if (!document.HasValue) throw document.Error!;
         ```
 
-        `.gltf` and `.glb` are selected by the step's extensions. A successful handle contains CPU objects only. Inspect `Scenes`, `Nodes`, and `Meshes` before deciding whether to upload one primitive or build a complete runtime scene.
+        `.gltf`と`.glb`はStepが宣言する拡張子で選択されます。読み込みに成功したハンドルが保持するのはCPUオブジェクトだけです。1つのプリミティブをGPUへ転送するか、完全なランタイムシーンを構築するかを決める前に、`Scenes`、`Nodes`、`Meshes`を調べてください。
 
-        For direct non-Resource tooling, `GltfParser`, decoder, validator, and converter form the lower-level import path. Prefer `GltfResourceStep` when URI dependencies, caching, reload, and ownership matter.
+        Resourceを使わない直接的なツール処理では、`GltfParser`、デコーダー、バリデーター、コンバーターを組み合わせた低水準経路も利用できます。URI依存、キャッシュ、再読み込み、所有権が必要な場合は`GltfResourceStep`を優先してください。
         """);
 
     [Story("Learn/Resources/Gltf/ExternalBuffersImagesAndUris", Order = 17, Toc = true)]
     public static StoryResult ExternalBuffersImagesAndUris(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/Gltf/ExternalBuffersImagesAndUris", $$"""
-        # External buffers, images, and URIs
+        # 外部バッファ、画像、URI
 
-        {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/ExternalBuffersImagesAndUris", "Intermediate", "File / HTTP / workspace", "Resources dependency DAG", "Registration and loading")}}
+        {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/ExternalBuffersImagesAndUris", "中級", "ファイル / HTTP / ワークスペース", "Resourcesの依存DAG", "glTFの登録と読み込み")}}
 
-        JSON glTF may reference sibling `.bin` and image files. Resolve each reference against the document URI with `ResourceUri.Resolve`; do not combine raw filesystem paths inside the importer. This preserves `file`, `http`, `https`, and `workspace` schemes plus normalized relative segments.
+        JSON形式のglTFは、隣接する`.bin`や画像ファイルを参照できます。各参照は`ResourceUri.Resolve`でドキュメントURIから解決し、インポーター内で生のファイルシステムパスを連結しないでください。これにより`file`、`http`、`https`、`workspace`の各スキームと、正規化された相対パスを同じ規則で扱えます。
 
-        `GltfResourceStep` loads external bytes through `LoadContext.Load<byte[]>()`. Each returned handle becomes a dependency edge, so the same external buffer is shared and its update can reload the document. Data URIs and GLB buffer chunks are decoded from the container and need no external Source.
+        `GltfResourceStep`は`LoadContext.Load<byte[]>()`で外部バイト列を読み込みます。返された各ハンドルは依存辺になるため、同じ外部バッファは共有され、その更新からドキュメントを再読み込みできます。データURIとGLB内のバッファチャンクはコンテナーから直接復号されるため、外部Sourceは不要です。
 
         ```text
-        scene.gltf node
-          ├─ depends on geometry.bin byte[] node
-          └─ depends on albedo.png byte[] node
+        scene.gltfのノード
+          ├─ geometry.binのbyte[]ノードに依存
+          └─ albedo.pngのbyte[]ノードに依存
         ```
 
-        The Source for every referenced scheme must be registered before the load. HTTP relative references retain the authority of the base document URI.
+        参照される各スキームのSourceは読み込み前に登録してください。HTTPの相対参照では、基準ドキュメントURIのホスト情報が維持されます。
         """);
 
     [Story("Learn/Resources/Gltf/ValidationAndDiagnostics", Order = 18, Toc = true)]
     public static StoryResult ValidationAndDiagnostics(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/Gltf/ValidationAndDiagnostics", $$"""
-        # Validation and diagnostics
+        # 検証と診断
 
-        {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/ValidationAndDiagnostics", "Intermediate", "Import tools / CI", "GltfValidator + decoder", "External buffers and images")}}
+        {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/ValidationAndDiagnostics", "中級", "インポートツール / CI", "GltfValidator + デコーダー", "外部バッファ、画像、URI")}}
 
-        Validation happens before unsafe accessor reads become asset arrays. Check buffer-view ranges, accessor component and element types, byte offsets/strides, sparse data, index ranges, image payloads, and referenced indices. Diagnostics should include the failing semantic or index rather than only a generic parse failure.
+        安全でないアクセサー読み取りがアセット配列になる前に検証を行います。バッファビューの範囲、アクセサーの成分型と要素型、バイトオフセットとストライド、スパースデータ、インデックス範囲、画像データ、参照先インデックスを確認してください。診断には一般的な解析失敗だけでなく、失敗したセマンティクスやインデックスも含めます。
 
-        Treat importer failure as a resource failure: the initial handle becomes `Failed`; a reload failure keeps the previous good `AssetDocument` and records `LastReloadError`. Callers should display diagnostics without discarding a scene that is still valid.
+        インポーターの失敗はResourceの失敗として扱います。初回読み込みの失敗ではハンドルが`Failed`になり、再読み込みの失敗では直前の正常な`AssetDocument`を保持したまま`LastReloadError`を記録します。呼び出し側は、まだ有効なシーンを破棄せずに診断を表示できます。
 
-        For CI, load representative `.gltf` and `.glb` fixtures headlessly and assert document counts plus malformed-accessor errors. Rendering tests are complementary; they should not be the first place malformed binary layout is detected.
+        CIでは代表的な`.gltf`と`.glb`をヘッドレスで読み込み、ドキュメント内の要素数と不正アクセサーのエラーを検証します。描画テストも必要ですが、不正なバイナリ配置を最初に検出する場所にはしないでください。
         """);
 
     [Story("Learn/Resources/Gltf/SceneRuntime", Order = 19, Toc = true)]
     public static StoryResult SceneRuntime(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/Gltf/SceneRuntime", $$"""
-        # glTF scene runtime
+        # glTFシーンのランタイム
 
-        {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/SceneRuntime", "Intermediate", "ECS / GPU runtime", "AssetRuntime", "Validation and diagnostics")}}
+        {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/SceneRuntime", "中級", "ECS / GPUランタイム", "AssetRuntime", "検証と診断")}}
 
-        `SceneBuilder.Build(world, document, device)` expands document nodes into ECS entities and creates `SceneAssets` GPU state. The Resources equivalent registers `SceneAssetsResourceStep` for `AssetDocument → SceneAssets`. This is separate from uploading an individual `AssetMesh` through `AssetGpuRegistry`.
+        `SceneBuilder.Build(world, document, device)`はドキュメントのノードをECSエンティティへ展開し、GPU状態を持つ`SceneAssets`を作ります。Resources経由では、`AssetDocument → SceneAssets`の`SceneAssetsResourceStep`を登録します。これは`AssetGpuRegistry`で個別の`AssetMesh`をGPUへ転送する処理とは別です。
 
-        `SceneAssets.NodeEntities` maps CPU nodes to entities. Run `TransformPropagateSystem` after local transforms change. `SceneRenderExtractor` or `DrawableCollector` then writes instance data and supplies imported GPU buffers to the RenderGraph.
+        `SceneAssets.NodeEntities`はCPUノードとエンティティの対応を保持します。ローカル変換を変更した後は`TransformPropagateSystem`を実行します。その後、`SceneRenderExtractor`または`DrawableCollector`がインスタンスデータを書き込み、インポート済みGPUバッファをRenderGraphへ渡します。
 
         ```text
-        AssetDocument → SceneBuilder → entity hierarchy + SceneAssets
-                                      → transform propagation
-                                      → instance/material/primitive extraction
-                                      → draw pass
+        AssetDocument → SceneBuilder → エンティティ階層 + SceneAssets
+                                      → 変換の伝播
+                                      → インスタンス / マテリアル / プリミティブの抽出
+                                      → 描画パス
         ```
 
-        Keep `SceneAssets` alive through extraction and draw submission. It owns GPU state and mappings used by runtime systems.
+        `SceneAssets`は、ランタイム処理が使うGPU状態と対応表を所有します。描画データの抽出と描画送信が終わるまで生存させてください。
         """);
 
     [Story("Learn/Resources/Gltf/AnimationSkinningAndMorph", Order = 20, Toc = true)]
     public static StoryResult AnimationSkinningAndMorph(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/Gltf/AnimationSkinningAndMorph", $$"""
-        # Animation, skinning, and morph targets
+        # アニメーション、スキニング、モーフターゲット
 
-        {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/AnimationSkinningAndMorph", "Intermediate", "Game loop / ECS / GPU", "AssetRuntime scene shaders", "Scene runtime")}}
+        {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/AnimationSkinningAndMorph", "中級", "ゲームループ / ECS / GPU", "AssetRuntimeのシーンシェーダー", "glTFシーンのランタイム")}}
 
-        Per frame, sample animation channels, propagate transforms, calculate skin joints, update morph/instance buffers, and only then extract draw data.
+        各フレームでは、アニメーションチャンネルのサンプリング、変換の伝播、スキンのジョイント計算、モーフ・インスタンスバッファの更新を行ってから、描画データを抽出します。
 
         ```text
         1. SceneAnimationPlayer.Sample(time)
         2. TransformPropagateSystem.Run(world)
         3. SkinningSystem.Run(world, sceneAssets)
-        4. flush joint, morph-weight, and instance RenderBuffers
-        5. extract and render
+        4. ジョイント、モーフウェイト、インスタンスのRenderBufferを反映
+        5. 描画データを抽出して描画
         ```
 
-        Translation and scale use linear or step interpolation; rotation uses quaternion interpolation or step. Weight channels update morph weights. The current sampler does not perform full glTF cubic-spline tangent evaluation.
+        移動と拡大縮小は線形補間またはステップ補間を使い、回転はクォータニオン補間またはステップ補間を使います。ウェイトチャンネルはモーフウェイトを更新します。現在のサンプラーはglTFの3次スプライン接線を完全には評価しません。
 
-        Joint order matches inverse-bind-matrix order, and vertex `Joints0` values index that list. Morph buffers store targets by target then vertex; shaders add weighted deltas. Select the 56-byte skinned vertex shader for skin data and the morph variant for morph buffers—there is no assumption that one universal shader combines every feature.
+        ジョイントの順序は逆バインド行列の順序と一致し、頂点の`Joints0`はその一覧を参照します。モーフバッファはターゲット単位、次に頂点単位で差分を保持し、シェーダーが重み付き差分を加算します。スキンデータには56バイトのスキニング頂点シェーダーを、モーフバッファにはモーフ用の形式を選びます。1つの汎用シェーダーがすべての機能を組み合わせる前提ではありません。
         """);
 
     [Story("Learn/Resources/Gltf/ReloadAndLifetime", Order = 21, Toc = true)]
     public static StoryResult ReloadAndLifetime(StoryContext ctx) => ResourceLearnExamples.Attach("Learn/Resources/Gltf/ReloadAndLifetime", $$"""
-        # glTF reload and lifetime
+        # glTFの再読み込みと寿命
 
-        {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/ReloadAndLifetime", "Intermediate", "Editor / Game loop", "Resources + AssetRuntime", "Animation, skinning, and morph")}}
+        {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/ReloadAndLifetime", "中級", "エディター / ゲームループ", "Resources + AssetRuntime", "アニメーション、スキニング、モーフターゲット")}}
 
-        Enable `Watch()` before loading. Changes to the root document or any external buffer/image byte node reload the dependent `AssetDocument`; a `SceneAssets` resource built from it is then re-created through the dependency DAG.
+        読み込み前に`Watch()`を有効にします。ルートドキュメント、または外部バッファ・画像のbyte[]ノードが変わると、依存する`AssetDocument`が再読み込みされます。そのドキュメントから作られた`SceneAssets`も依存DAGを通じて再作成されます。
 
-        Replacement is published at `ResourceSystem.Pump()`. Keep using the last good scene when import fails, expose `LastReloadError`, and swap only after a complete new document/runtime value succeeds. Owned old values are deferred for disposal; GPU-backed values require the installed idle hook before destruction.
+        値の差し替えは`ResourceSystem.Pump()`で公開されます。インポートに失敗した場合は直前の正常なシーンを使い続け、`LastReloadError`を公開し、完全な新しいドキュメントとランタイム値が成功してから交換します。所有されている旧値は遅延破棄され、GPUを使う値は破棄前に登録済みのアイドル待機処理が必要です。
 
-        Safe teardown order is: stop extraction/draw use, dispose runtime handles/scopes, pump deferred disposal, dispose GPU asset installation/runtime owners, then dispose the device. Holding the CPU document does not keep `SceneAssets` alive, and holding `SceneAssets` does not replace an explicit application owner for the device.
+        安全な終了順序は、描画データの抽出と描画使用を止め、ランタイムのハンドルとスコープを破棄し、遅延破棄を反映し、GPUアセットのインストールとランタイム所有者を破棄し、最後にデバイスを破棄する順です。CPUドキュメントの保持だけでは`SceneAssets`の寿命は延びず、`SceneAssets`の保持だけでもデバイスの明示的な所有者にはなりません。
         """);
 }

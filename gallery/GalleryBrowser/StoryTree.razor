@@ -13,7 +13,7 @@
                         {
                             <a class="folder-story-link @(node.Story.Path == ActivePath ? "active" : null)"
                                href="@StoryHref(node.Story.Path)" aria-current="@(node.Story.Path == ActivePath ? "page" : null)"
-                               @onclick="() => SelectStory(node.Story)" @onclick:preventDefault @onclick:stopPropagation>overview</a>
+                               @onclick="() => SelectStory(node.Story)" @onclick:preventDefault @onclick:stopPropagation>概要</a>
                         }
                     </summary>
                     <StoryTree Nodes="node.Children" ActivePath="@ActivePath" SearchActive="SearchActive"
@@ -29,7 +29,7 @@
                     <span>@node.Name</span>
                     @if (node.Story.ResultBuild is not null)
                     {
-                        <small>doc</small>
+                        <small>文書</small>
                     }
                 </a>
             }
