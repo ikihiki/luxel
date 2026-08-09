@@ -98,7 +98,6 @@ public static class InputBindingsApplier
 /// <summary>byte[] JSON → InputBindings の Resources ステップ (fragment 不要、拡張子 .keys/.json)。</summary>
 public sealed class InputBindingsStep : IResourceStep<byte[], InputBindings>
 {
-    public Executor Executor => Executor.Cpu;
     public IEnumerable<string> Extensions => new[] { ".keys", ".json" };
 
     private static readonly JsonSerializerOptions _opts = new()

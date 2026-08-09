@@ -10,8 +10,6 @@ namespace Luxel.Particles;
 /// </summary>
 public sealed class ParticleConfigStep : IResourceStep<byte[], ParticleConfig>
 {
-    public Executor Executor => Executor.Cpu;
-
     public Task<ParticleConfig> RunAsync(byte[] input, ResourceUri uri, LoadContext ctx)
         => Task.FromResult(ParticleConfigJson.FromJson(Encoding.UTF8.GetString(input)));
 }

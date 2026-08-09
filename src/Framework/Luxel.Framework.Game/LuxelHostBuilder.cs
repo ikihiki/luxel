@@ -2,6 +2,7 @@ using Luxel.AssetsGpu;
 using Luxel.Audio;
 using Luxel.Input;
 using Luxel.Resources;
+using Luxel.Graphics.MessagePipe;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -23,10 +24,14 @@ public sealed class LuxelHostBuilder
 {
     private readonly HostApplicationBuilder _inner;
     private Func<GpuDevice>? _deviceFactory;
+    private Func<IGpuLifecycleSink, GpuDevice>? _lifecycleDeviceFactory;
     private GpuDevice? _borrowedDevice;
     private Func<CancellationToken, Task>? _frameWaiter;
     private Type? _startupScene;
     private string? _assetRoot;
+    private Func<ResourceSystemBuilder, ResourceSystemDefaultHandles> _resourceCore =
+        builder => ResourceSystemDefaults.AddCore(builder);
+    private Action<GpuResourceInstallationOptions>? _configureGpuResources;
     private bool _useAudio;
     private Func<IAudioBackend>? _audioFactory;
     private Luxel.Settings.IFileStore? _settingsFiles;
@@ -45,7 +50,15 @@ public sealed class LuxelHostBuilder
 
     /// <summary>直接 factory を注入する (テストでモックしたいとき等)。factory が作った device は
     /// host の破棄で Dispose される (所有はコンテナ)。</summary>
-    public LuxelHostBuilder UseGpu(Func<GpuDevice> factory) { _deviceFactory = factory; return this; }
+    public LuxelHostBuilder UseGpu(Func<GpuDevice> factory) { _deviceFactory = factory; _lifecycleDeviceFactory = null; return this; }
+
+    /// <summary>Creates an owned GPU device with the framework's queued lifecycle sink.</summary>
+    public LuxelHostBuilder UseGpu(Func<IGpuLifecycleSink, GpuDevice> factory)
+    {
+        _lifecycleDeviceFactory = factory ?? throw new ArgumentNullException(nameof(factory));
+        _deviceFactory = null;
+        return this;
+    }
 
     /// <summary>**借用** device を使う (Storybook 等、ホストの GPU に相乗りする埋め込み実行用)。
     /// インスタンス登録なのでコンテナは Dispose しない — 所有はホスト側のまま。</summary>
@@ -66,6 +79,20 @@ public sealed class LuxelHostBuilder
 
     /// <summary>Resources system を DI に登録し、<paramref name="assetRoot"/> を base ディレクトリにする。</summary>
     public LuxelHostBuilder UseResources(string? assetRoot = null) { _assetRoot = assetRoot ?? AppContext.BaseDirectory; return this; }
+
+    /// <summary>Overrides the domain/manager foundation used when building the ResourceSystem.</summary>
+    public LuxelHostBuilder UseResourceCore(Func<ResourceSystemBuilder, ResourceSystemDefaultHandles> configure)
+    {
+        _resourceCore = configure ?? throw new ArgumentNullException(nameof(configure));
+        return this;
+    }
+
+    /// <summary>Configures the GPU resource manager and its execution domain.</summary>
+    public LuxelHostBuilder ConfigureGpuResources(Action<GpuResourceInstallationOptions> configure)
+    {
+        _configureGpuResources = configure ?? throw new ArgumentNullException(nameof(configure));
+        return this;
+    }
 
     /// <summary>設定ストア (<see cref="Luxel.Settings.SettingsStore"/>) を DI に登録する。保存先は
     /// <c>%APPDATA%/<paramref name="appName"/></c> (実ファイル)。**読み込みは .NET 標準 config** —
@@ -108,12 +135,17 @@ public sealed class LuxelHostBuilder
 
     public IHost Build()
     {
-        if (_deviceFactory is null && _borrowedDevice is null)
+        if (_deviceFactory is null && _lifecycleDeviceFactory is null && _borrowedDevice is null)
             throw new InvalidOperationException("UseGpu / UseGpuDevice のいずれかを指定してください。");
+
+        // Graphics lifecycle callbacks are queued and published through MessagePipe from the frame thread.
+        _inner.Services.AddGpuLifecycleMessagePipe();
 
         // GPU device (singleton)。借用 (UseGpuDevice) はインスタンス登録 = コンテナが Dispose しない
         if (_borrowedDevice is not null) _inner.Services.AddSingleton(_borrowedDevice);
-        else _inner.Services.AddSingleton(sp => _deviceFactory!());
+        else if (_lifecycleDeviceFactory is not null)
+            _inner.Services.AddSingleton(sp => _lifecycleDeviceFactory(sp.GetRequiredService<IGpuLifecycleSink>()));
+        else _inner.Services.AddSingleton(_ => _deviceFactory!());
 
         // ECS world
         _inner.Services.AddSingleton<Luxel.Ecs.World>();
@@ -130,13 +162,28 @@ public sealed class LuxelHostBuilder
         {
             _inner.Services.AddSingleton(sp =>
             {
-                var device = sp.GetRequiredService<GpuDevice>();
-                var res = new ResourceSystem(
-                    sources: ResourceSystemDefaults.BuiltinSources(assetRoot: _assetRoot),
-                    steps: ResourceSystemDefaults.BuiltinSteps());
-                res.InstallAssetGpu(device);  // GPU Step 一式を追加登録
-                return res;
+                var builder = new ResourceSystemBuilder();
+                ResourceSystemDefaultHandles core = _resourceCore(builder);
+                ResourceSystemDefaults.AddBuiltinSources(builder, core, assetRoot: _assetRoot);
+                ResourceSystemDefaults.AddBuiltinSteps(builder, core);
+                AssetGpuResourceSystemRegistration gpu = builder.AddAssetGpu(
+                    sp.GetRequiredService<GpuDevice>(), _configureGpuResources);
+                return new FrameworkGpuResources(builder.Build(), gpu.Gpu);
             });
+            _inner.Services.AddSingleton(sp => sp.GetRequiredService<FrameworkGpuResources>().Resources);
+            _inner.Services.AddSingleton(sp => sp.GetRequiredService<FrameworkGpuResources>().Gpu);
+            _inner.Services.AddSingleton(sp => new GpuDeviceLifecycleCoordinator(
+                sp.GetRequiredService<ResourceSystem>(),
+                sp.GetRequiredService<GpuResourceManagerHandle>(),
+                new GpuDeviceLifecycleCoordinatorOptions
+                {
+                    Ownership = _borrowedDevice is null ? GpuDeviceOwnership.Owned : GpuDeviceOwnership.Borrowed,
+                    OwnedDeviceFactory = _borrowedDevice is null
+                        ? (_, sink, _) => ValueTask.FromResult(_lifecycleDeviceFactory is not null
+                            ? _lifecycleDeviceFactory(sink)
+                            : _deviceFactory!())
+                        : null,
+                }));
         }
 
         // Audio
@@ -180,7 +227,17 @@ public sealed class LuxelHostBuilder
             Commands: sp.GetService<Luxel.Diagnostics.EngineCommands>(),
             AudioRegistry: sp.GetService<AudioRegistry>(),
             UiRegistry: sp.GetService<UiRegistry>(),
-            WaitFrame: _frameWaiter));
+            WaitFrame: _frameWaiter,
+            PumpGraphicsLifecycle: () =>
+            {
+                if (sp.GetService<GpuDeviceLifecycleCoordinator>() is not { } coordinator)
+                    return sp.GetRequiredService<GpuLifecycleMessagePump>().Pump();
+                var destination = new FrameworkGpuLifecycleSink(
+                    sp.GetRequiredService<MessagePipeGpuLifecycleSink>(), coordinator);
+                int count = sp.GetRequiredService<GpuLifecycleEventQueue>().Pump(destination);
+                coordinator.PumpAsync().AsTask().GetAwaiter().GetResult();
+                return count;
+            }));
 
         // SceneManager (singleton)
         _inner.Services.AddSingleton<SceneManager>();
@@ -193,6 +250,16 @@ public sealed class LuxelHostBuilder
         _inner.Services.AddHostedService<GameLoop>();
 
         return _inner.Build();
+    }
+    private sealed record FrameworkGpuResources(ResourceSystem Resources, GpuResourceManagerHandle Gpu);
+
+    private sealed class FrameworkGpuLifecycleSink(
+        MessagePipeGpuLifecycleSink messages,
+        GpuDeviceLifecycleCoordinator coordinator) : IGpuLifecycleSink
+    {
+        public void Publish(GpuDeviceLifecycleEvent message) { messages.Publish(message); coordinator.Publish(message); }
+        public void Publish(GpuValidationEvent message) { messages.Publish(message); coordinator.Publish(message); }
+        public void Publish(GpuSurfaceLifecycleEvent message) { messages.Publish(message); coordinator.Publish(message); }
     }
 }
 

@@ -12,7 +12,15 @@ public static class CavernResources
 {
     /// <summary>埋め込みアセットを読む ResourceSystem を新規に組む (呼び出し側が Dispose する)。</summary>
     public static ResourceSystem CreateEmbedded()
-        => new(sources: [new EmbeddedResourceSource(typeof(CavernResources).Assembly)]);
+    {
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaultHandles handles = ResourceSystemDefaults.AddCore(builder);
+        builder.Sources.Add(new EmbeddedResourceSource(typeof(CavernResources).Assembly))
+            .RunOn(handles.IoDomain)
+            .ManagedBy(handles.IoManager)
+            .Register();
+        return builder.Build();
+    }
 
     /// <summary>Core が埋め込みアセットを持つアセンブリ。</summary>
     public static Assembly AssetAssembly => typeof(CavernResources).Assembly;

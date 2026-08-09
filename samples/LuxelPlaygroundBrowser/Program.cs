@@ -13,6 +13,7 @@ using Luxel.Platform;
 using Luxel.Platform.Abstraction;
 using Luxel.Platform.Web;
 using Luxel.Resources;
+using Luxel.Resources.Browser;
 using Luxel.Scripting.Roslyn.Web;
 using Luxel.Shaders;
 using Luxel.Shaders.Slang.Browser;
@@ -520,16 +521,17 @@ public static partial class Program
             Workspace = new WorkspaceFileSystem();
             Workspace.ApplyBatch(snapshot.Files.Select(file => (WorkspaceFileOperation)new WorkspaceSetOperation(
                 file.Path, Encoding.UTF8.GetBytes(file.Source))).ToArray());
-            Resources = new ResourceSystem(
-                sources: [new WorkspaceSource(Workspace), new HttpSource(http)],
-                steps:
-                [
-                    new TexDecoder(),
-                    new ImageSharpDecoder(),
-                    new WorkspaceSlangSourceStep(Workspace),
-                    new SlangCompileStep(slangCompiler, GpuBackendKind.WebGpu),
-                ]);
-            Resources.InstallAssetGpu(device);
+            var builder = new ResourceSystemBuilder();
+            ResourceSystemDefaultHandles defaults = builder.AddBrowserCore();
+            builder.Sources.Add(new WorkspaceSource(Workspace)).RunOn(defaults.IoDomain).ManagedBy(defaults.IoManager).Register();
+            builder.Sources.Add(new HttpSource(http)).RunOn(defaults.IoDomain).ManagedBy(defaults.IoManager).Register();
+            builder.Steps.Add<byte[], CpuImage>(new TexDecoder()).RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
+            builder.Steps.Add<byte[], CpuImage>(new ImageSharpDecoder()).RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
+            builder.Steps.Add<byte[], SlangSource>(new WorkspaceSlangSourceStep(Workspace)).RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
+            builder.Steps.Add<SlangSource, GpuShaderCode>(new SlangCompileStep(slangCompiler, GpuBackendKind.WebGpu))
+                .RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
+            builder.AddAssetGpu(device, options => options.ConfigureDomain = domain => domain.UseBrowserCooperative());
+            Resources = builder.Build();
             Resources.Watch();
             Resources.Pump();
         }

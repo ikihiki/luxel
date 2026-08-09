@@ -3,6 +3,7 @@ using Luxel.Audio.Browser;
 using Luxel.Graphics.WebGPU.Browser;
 using Luxel.Platform.Abstraction;
 using Luxel.Platform.Web;
+using Luxel.Resources.Browser;
 
 namespace Luxel.Framework.Game.Browser;
 
@@ -92,7 +93,11 @@ public sealed class BrowserGamePlatform : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(builder);
-        builder.UseGpuDevice(Device).UseFrameWaiter(_waitFrame);
+        builder.UseGpuDevice(Device)
+            .UseFrameWaiter(_waitFrame)
+            .UseResourceCore(resourceBuilder => resourceBuilder.AddBrowserCore())
+            .ConfigureGpuResources(options =>
+                options.ConfigureDomain = domain => domain.UseBrowserCooperative());
         if (Audio is not null)
         {
             if (_audioTransferred)

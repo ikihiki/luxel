@@ -12,7 +12,6 @@ public sealed class SceneBufferStep(GpuDevice device) : IResourceStep<SceneAsset
 {
     private readonly GpuDevice _device = device;
     /// <summary>GPU executor で実行 (buffer 確保のため)。</summary>
-    public Executor Executor => Executor.External;
     /// <summary>処理対象の fragment パターン。</summary>
     public IEnumerable<string> FragmentPatterns => new[] { "primitive/*", "materials" };
 
@@ -67,7 +66,6 @@ public sealed class SceneBufferStep(GpuDevice device) : IResourceStep<SceneAsset
             }
             var buf = _device.Malloc((ulong)(n * MaterialGpuData.Stride), GpuMemoryKind.HostMapped);
             data.AsSpan().CopyTo(buf.Span<MaterialGpuData>(n));
-            ctx.MarkOwned();
             return Task.FromResult(buf);
         }
 
@@ -82,7 +80,6 @@ public sealed class SceneBufferStep(GpuDevice device) : IResourceStep<SceneAsset
 public sealed class SceneMaterialTextureStep : IResourceStep<SceneAssets, GpuTexture>
 {
     /// <summary>CPU executor で実行 (参照を返すだけで GPU 操作なし)。</summary>
-    public Executor Executor => Executor.Cpu;
     /// <summary>処理対象の fragment パターン。</summary>
     public IEnumerable<string> FragmentPatterns => new[] { "material/*" };
 

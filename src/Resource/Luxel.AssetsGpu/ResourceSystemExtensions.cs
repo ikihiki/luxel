@@ -3,105 +3,141 @@ using Luxel.Resources;
 
 namespace Luxel.AssetsGpu;
 
-/// <summary>
-/// <see cref="ResourceSystem"/> に AssetsGpu の Step 一式を追加登録するヘルパ + GPU リソース publish 用の extension methods。
-/// GPU Step は device-bound <see cref="AssetGpuRegistry"/> をコンストラクタで受け取る。
-/// </summary>
+public sealed class GpuResourceInstallationOptions
+{
+    public string DomainId { get; set; } = "gpu.device-0.create";
+    public string ManagerId { get; set; } = "gpu.device-0";
+    public string DeviceId { get; set; } = Guid.NewGuid().ToString("N");
+    public ulong DeviceGeneration { get; set; } = 1;
+    public long SoftBudgetBytes { get; set; } = long.MaxValue;
+    public long HardBudgetBytes { get; set; } = long.MaxValue;
+    public Action<ResourceDomainRegistrationBuilder>? ConfigureDomain { get; set; }
+}
+
+public readonly record struct AssetGpuResourceSystemRegistration(GpuResourceManagerHandle Gpu)
+{
+    public ResourceExecutionDomainHandle Domain => Gpu.CreateDomain;
+    public ResourceManagerHandle Manager => Gpu.Manager;
+    public AssetGpuRegistry Registry => Gpu.Registry;
+}
+
+/// <summary>Build-time GPU manager and Asset GPU capability composition.</summary>
 public static class ResourceSystemExtensions
 {
-    /// <summary>AssetsGpu 系 Step 一式 + <see cref="TextureUploaderStep"/> を構築して返す。
-    /// <c>new ResourceSystem(steps: CreateAssetGpuSteps(device, out var registry))</c> のように
-    /// ResourceSystem のコンストラクタに直接渡せる。</summary>
-    public static IResourceStep[] CreateAssetGpuSteps(GpuDevice device, out AssetGpuRegistry registry)
+    public static GpuResourceManagerHandle InstallGpuResources(this ResourceSystemBuilder builder, GpuDevice device,
+        Action<GpuResourceInstallationOptions>? configure = null)
     {
-        registry = new AssetGpuRegistry(device);
-        return new IResourceStep[]
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(device);
+        var options = new GpuResourceInstallationOptions();
+        configure?.Invoke(options);
+        if (options.DeviceGeneration == 0) throw new InvalidOperationException("GPU device generation must be greater than zero.");
+        if (options.SoftBudgetBytes < 0 || options.HardBudgetBytes < options.SoftBudgetBytes)
+            throw new InvalidOperationException("GPU budgets must satisfy 0 <= soft <= hard.");
+
+        var generation = new GpuResourceGeneration(device, new(options.DeviceId, options.DeviceGeneration));
+        var registry = new AssetGpuRegistry(device, generation.Identity);
+        var managerOptions = new GpuResourceManagerOptions
         {
-            new TextureUploaderStep(device),
-            new AssetTextureToGpuStep(registry),
-            new AssetSamplerToGpuStep(registry),
-            new AssetMaterialToGpuStep(registry),
-            new AssetMeshToGpuStep(registry),
-            new AssetSkinToGpuStep(registry),
-            new GpuPipelineCreationStep(registry),
-            new GpuTextureCreationStep(registry),
-            new GpuSamplerCreationStep(registry),
-            new GpuBufferCreationStep(registry),
-            new Float32ArrayToGpuBufferStep(registry),
+            SoftBudgetBytes = options.SoftBudgetBytes,
+            HardBudgetBytes = options.HardBudgetBytes,
         };
-    }
 
-    /// <summary>既存 <see cref="ResourceSystem"/> に AssetsGpu 系 Step 一式を <see cref="ResourceSystem.AddStep"/> で追加。
-    /// GPU deferred dispose 用 hook もあわせて設定する。</summary>
-    /// <remarks>
-    /// Compatibility API: the caller owns the returned registry and must dispose it before the device.
-    /// New code can use <see cref="InstallAssetGpuLifecycle"/> to make that ownership explicit.
-    /// </remarks>
-    public static AssetGpuRegistry InstallAssetGpu(this ResourceSystem resources, GpuDevice device)
-    {
-        ArgumentNullException.ThrowIfNull(resources);
-        ArgumentNullException.ThrowIfNull(device);
-        var registry = new AssetGpuRegistry(device);
-        AddAssetGpuSteps(resources, device, registry);
-        resources.SetDeferredDisposeIdleHook(
-            () => device.MainQueue.WaitIdle(),
-            cancellationToken => device.MainQueue.WaitIdleAsync(cancellationToken));
-        return registry;
-    }
-
-    /// <summary>
-    /// Installs AssetsGpu steps and returns an explicit lifecycle token that owns the
-    /// <see cref="AssetGpuRegistry"/> and supplies the deferred-dispose queue-idle hook.
-    /// Dispose the token before disposing <paramref name="device"/>.
-    /// </summary>
-    public static AssetGpuInstallation InstallAssetGpuLifecycle(this ResourceSystem resources, GpuDevice device)
-    {
-        ArgumentNullException.ThrowIfNull(resources);
-        ArgumentNullException.ThrowIfNull(device);
-        var registry = new AssetGpuRegistry(device);
-        var installation = new AssetGpuInstallation(device, registry);
-        AddAssetGpuSteps(resources, device, registry);
-        resources.SetDeferredDisposeIdleHook(installation.WaitIdle, installation.WaitIdleAsync);
+        GpuResourceManagerHandle? installation = null;
+        ResourceDomainRegistrationBuilder domainBuilder = builder.Domains.Add(options.DomainId);
+        if (options.ConfigureDomain is null)
+        {
+            domainBuilder.UseFactory(
+                context => new SerialResourceExecutionDomain(context.Id),
+                new(1, ResourceThreadAffinity.DeviceThread, ResourceProgressModel.Serialized));
+        }
+        else
+        {
+            options.ConfigureDomain(domainBuilder);
+        }
+        ResourceExecutionDomainHandle domain = domainBuilder
+            .Decorate((context, inner) =>
+            {
+                var value = new GpuResourceExecutionDomain(inner, context.Capabilities);
+                installation!.Attach(value);
+                return value;
+            })
+            .Register();
+        ResourceManagerHandle manager = builder.Managers.Add(options.ManagerId)
+            .RunOn(domain)
+            .Use(context =>
+            {
+                var value = new GpuResourceManager(context.Id, generation, installation!.Policies, managerOptions, registry);
+                installation.Attach(value);
+                return value;
+            })
+            .ValidateManagedTypes(type => installation!.Validate(type))
+            .Register();
+        installation = new(domain, manager, registry, generation, managerOptions);
         return installation;
     }
 
-    private static void AddAssetGpuSteps(ResourceSystem resources, GpuDevice device, AssetGpuRegistry registry)
+    public static AssetGpuResourceSystemRegistration AddAssetGpu(this ResourceSystemBuilder builder, GpuDevice device,
+        Action<GpuResourceInstallationOptions>? configure = null)
     {
-        // Use the generic registration path so browser-WASM trimming does not remove interface
-        // property metadata required by the legacy reflection-based adapter.
-        resources.AddStep<CpuImage, GpuTexture>(new TextureUploaderStep(device));
-        resources.AddStep<AssetTexture, GpuTexture>(new AssetTextureToGpuStep(registry));
-        resources.AddStep<AssetSampler, GpuSampler>(new AssetSamplerToGpuStep(registry));
-        resources.AddStep<AssetMaterial, GpuMaterial>(new AssetMaterialToGpuStep(registry));
-        resources.AddStep<AssetMesh, GpuMesh>(new AssetMeshToGpuStep(registry));
-        resources.AddStep<AssetSkin, GpuSkin>(new AssetSkinToGpuStep(registry));
-        resources.AddStep<GpuPipelineRequest, GpuPipeline>(new GpuPipelineCreationStep(registry));
-        resources.AddStep<GpuTextureRequest, GpuTexture>(new GpuTextureCreationStep(registry));
-        resources.AddStep<GpuSamplerRequest, GpuSampler>(new GpuSamplerCreationStep(registry));
-        resources.AddStep<GpuBufferRequest, GpuBuffer>(new GpuBufferCreationStep(registry));
-        resources.AddStep<float[], GpuBuffer>(new Float32ArrayToGpuBufferStep(registry));
+        GpuResourceManagerHandle gpu = builder.InstallGpuResources(device, configure);
+        RegisterBuiltInPolicies(builder, gpu);
+        RegisterSteps(builder, gpu);
+        return new(gpu);
     }
 
-    // ==================== Publish 系 GPU リソース ====================
+    public static void RegisterBuiltInGpuPolicies(this ResourceSystemBuilder builder, GpuResourceManagerHandle gpu)
+        => RegisterBuiltInPolicies(builder, gpu);
 
-    /// <summary>差替可能 GPU バッファを uri で publish。</summary>
-    public static ResourceHandle<RenderBuffer<T>> PublishRenderBuffer<T>(
-        this ResourceSystem resources, GpuDevice device, string uri, int count) where T : unmanaged
+    private static void RegisterBuiltInPolicies(ResourceSystemBuilder builder, GpuResourceManagerHandle gpu)
     {
-        var rb = new RenderBuffer<T>(device, count, uri);
-        var handle = resources.Publish(uri, rb);
-        resources.RegisterPumpFlush(handle, rb.Flush);
-        return handle;
+        gpu.Manage<GpuTexture>(builder)
+            .DescribeAllocation(texture =>
+            {
+                long bytes = checked((long)texture.Width * texture.Height * 4);
+                return new("", bytes, bytes, bytes, "device-local", Pinned: true);
+            })
+            .WithIndexSpace("sampled-texture")
+            .RetireAsync((value, _) => { value.Dispose(); return ValueTask.CompletedTask; })
+            .Register();
+        gpu.Manage<GpuSampler>(builder)
+            .WithIndexSpace("sampler")
+            .RetireAsync((value, _) => { value.Dispose(); return ValueTask.CompletedTask; })
+            .Register();
+        gpu.Manage<GpuPipeline>(builder)
+            .RetireAsync((value, _) => { value.Dispose(); return ValueTask.CompletedTask; })
+            .Register();
+        gpu.Manage<GpuBuffer>(builder)
+            .DescribeAllocation(buffer => new("", checked((long)buffer.Size), checked((long)buffer.Size),
+                checked((long)buffer.Size), buffer.IsMapped ? "upload" : "device-local", Pinned: true))
+            .WithIndexSpace("storage-buffer")
+            .RetireAsync((value, _) => { value.Dispose(); return ValueTask.CompletedTask; })
+            .Register();
+        gpu.Manage<GpuMesh>(builder)
+            .RetireAsync((value, _) => { value.Dispose(); return ValueTask.CompletedTask; })
+            .Register();
+        gpu.Manage<GpuSkin>(builder)
+            .RetireAsync((value, _) => { value.Dispose(); return ValueTask.CompletedTask; })
+            .FlushAsync((value, _) => { value.JointMatrices?.FlushImmediate(); return ValueTask.CompletedTask; })
+            .Register();
+        gpu.Manage<GpuMaterial>(builder).Register();
     }
 
-    /// <summary>差替可能 GPU テクスチャを uri で publish。</summary>
-    public static ResourceHandle<RenderTarget> PublishRenderTarget(
-        this ResourceSystem resources, GpuDevice device, string uri, uint width, uint height,
-        GpuFormat format = GpuFormat.Rgba8Unorm)
+    private static void RegisterSteps(ResourceSystemBuilder builder, GpuResourceManagerHandle gpu)
     {
-        var rt = new RenderTarget(device, width, height, format);
-        var handle = resources.Publish(uri, rt);
-        resources.RegisterPumpFlush(handle, rt.Flush);
-        return handle;
+        AssetGpuRegistry registry = gpu.Registry;
+        ResourceExecutionDomainHandle domain = gpu.CreateDomain;
+        ResourceManagerHandle manager = gpu.Manager;
+        builder.Steps.Add<CpuImage, GpuTexture>(new TextureUploaderStep(registry)).RunOn(domain).ManagedBy(manager).Register();
+        builder.Steps.Add<AssetTexture, GpuTexture>(new AssetTextureToGpuStep(registry)).RunOn(domain).ManagedBy(manager).Borrowed().Register();
+        builder.Steps.Add<AssetSampler, GpuSampler>(new AssetSamplerToGpuStep(registry)).RunOn(domain).ManagedBy(manager).Borrowed().Register();
+        builder.Steps.Add<AssetMaterial, GpuMaterial>(new AssetMaterialToGpuStep(registry)).RunOn(domain).ManagedBy(manager).Borrowed().Register();
+        builder.Steps.Add<AssetMesh, GpuMesh>(new AssetMeshToGpuStep(registry)).RunOn(domain).ManagedBy(manager).Borrowed().Register();
+        builder.Steps.Add<AssetSkin, GpuSkin>(new AssetSkinToGpuStep(registry)).RunOn(domain).ManagedBy(manager).Borrowed().Register();
+        builder.Steps.Add<GpuPipelineRequest, GpuPipeline>(new GpuPipelineCreationStep(registry)).RunOn(domain).ManagedBy(manager).Register();
+        builder.Steps.Add<GpuTextureRequest, GpuTexture>(new GpuTextureCreationStep(registry)).RunOn(domain).ManagedBy(manager).Register();
+        builder.Steps.Add<GpuSamplerRequest, GpuSampler>(new GpuSamplerCreationStep(registry)).RunOn(domain).ManagedBy(manager).Register();
+        builder.Steps.Add<GpuBufferRequest, GpuBuffer>(new GpuBufferCreationStep(registry)).RunOn(domain).ManagedBy(manager).Register();
+        builder.Steps.Add<float[], GpuBuffer>(new Float32ArrayToGpuBufferStep(registry)).RunOn(domain).ManagedBy(manager).Register();
     }
 }

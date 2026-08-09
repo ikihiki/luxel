@@ -22,6 +22,7 @@ public sealed unsafe class D3D12Backend : IGpuBackend
     private const uint PushConstantDwords = 48; // 192 バイト (shadow map で mat4×2 を渡すため拡張)。
                                                 // D3D12 root signature 上限は 64 DWord = 256B、48 DWord で余裕あり。
 
+    private GpuLifecycleSource _lifecycle = null!;
     private IDXGIFactory4 _factory = null!;
     private ID3D12Device _device = null!;
     private ID3D12CommandQueue _queue = null!;
@@ -55,13 +56,30 @@ public sealed unsafe class D3D12Backend : IGpuBackend
     public GpuBackendKind Kind => GpuBackendKind.D3D12;
     public IGpuBackendQueue MainQueue { get; private set; } = null!;
 
-    public static D3D12Backend Create(bool enableDebug = true)
+    public static D3D12Backend Create(bool enableDebug = true, IGpuLifecycleSink? lifecycleSink = null,
+        string? deviceId = null, ulong generation = 1)
     {
         if (!OperatingSystem.IsWindows())
             throw new PlatformNotSupportedException("Direct3D 12 is available only on Windows.");
-        var backend = new D3D12Backend();
-        backend.Initialize(enableDebug);
-        return backend;
+        var backend = new D3D12Backend
+        {
+            _lifecycle = new GpuLifecycleSource(GpuBackendKind.D3D12, "Direct3D12", lifecycleSink, deviceId, generation),
+        };
+        backend._lifecycle.DeviceEvent(GpuDeviceLifecycleState.Creating);
+        try
+        {
+            backend.Initialize(enableDebug);
+            backend._lifecycle.SetBackendName(backend.Name);
+            backend._lifecycle.DeviceEvent(GpuDeviceLifecycleState.Ready);
+            return backend;
+        }
+        catch (Exception exception)
+        {
+            backend._lifecycle.DeviceEvent(GpuDeviceLifecycleState.Faulted, GpuLifecycleReason.Unknown,
+                message: exception.Message, exception: exception);
+            backend.Dispose();
+            throw;
+        }
     }
 
     private void Initialize(bool enableDebug)
@@ -125,7 +143,7 @@ public sealed unsafe class D3D12Backend : IGpuBackend
 
         CreateRootSignature();
 
-        MainQueue = new D3D12Queue(_device, _queue, _rootSignature, _resourceHeap, _samplerHeap, _queueLock);
+        MainQueue = new D3D12Queue(_device, _queue, _rootSignature, _resourceHeap, _samplerHeap, _queueLock, _lifecycle);
     }
 
     /// <summary>Creates a DXGI presentation surface for a Win32 HWND.</summary>
@@ -514,6 +532,7 @@ public sealed unsafe class D3D12Backend : IGpuBackend
     public void Dispose()
     {
         if (_disposed) return;
+        _lifecycle?.DeviceEvent(GpuDeviceLifecycleState.Disposing, GpuLifecycleReason.ExplicitDispose, isExpected: true);
         _disposed = true;
         _rootSignature?.Dispose();
         _rtvHeap?.Dispose();
@@ -523,5 +542,6 @@ public sealed unsafe class D3D12Backend : IGpuBackend
         _queue?.Dispose();
         _device?.Dispose();
         _factory?.Dispose();
+        _lifecycle?.DeviceEvent(GpuDeviceLifecycleState.Disposed, GpuLifecycleReason.ExplicitDispose, isExpected: true);
     }
 }

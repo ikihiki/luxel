@@ -26,6 +26,7 @@ namespace Luxel.Gallery.Stories;
 /// </summary>
 public static class RangeStories
 {
+    private const string FoxAssetUri = "tools/khronos-samples/Fox.glb";
     [Story("Apps/Game/Range", Width = 520, Height = 420, Order = 149)]
     public static Widget Range(StoryContext ctx)
         => ctx.Snap(VStack(8)[
@@ -300,7 +301,7 @@ public static class RangeStories
             _extractor = new Render3DExtractSystem(_sim.World, Device);
             BuildTerrainBuffers();
             if (Loop.Resources is { } resources)
-                _foxDocument = resources.Load<AssetDocument>(GltfStoryAssets.Fox);
+                _foxDocument = resources.Load<AssetDocument>(FoxAssetUri);
             BuildBurst();
             _fbDirty = true;
         }

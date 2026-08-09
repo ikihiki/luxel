@@ -111,8 +111,10 @@ public class SceneTests
         """;
         var files = new MemoryFileSystem();
         files.Set("scene.gltf", System.Text.Encoding.UTF8.GetBytes(json));
-        using var resources = new ResourceSystem(sources: [new FileSource(files)]);
-        resources.AddStep<byte[], AssetDocument>(new GltfResourceStep());
+        using var resources = ResourceTestSystem.Create(
+            sources: [new FileSource(files)],
+            configure: (builder, handles) => builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep())
+                .RunOn(handles.CpuDomain).ManagedBy(handles.CpuManager).Register());
 
         using ResourceHandle<AssetDocument> first = resources.Load<AssetDocument>("scene.gltf");
         using ResourceHandle<AssetDocument> second = resources.Load<AssetDocument>("scene.gltf");

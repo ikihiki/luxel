@@ -27,34 +27,29 @@ public class ResourceSystemTests
     // ---- fake ステップ (byte[]→Doc→Upper→Final、Bundle は byte[]→Bundle) ----
     private sealed class DocStep(ITag tag) : IResourceStep<byte[], Doc>   // DI: ITag 注入
     {
-        public Executor Executor => Executor.Cpu;
         public IEnumerable<string> Extensions => [".doc", ".bundle"];
         public Task<Doc> RunAsync(byte[] b, ResourceUri u, LoadContext c)
         { Interlocked.Increment(ref _docRuns); return Task.FromResult(new Doc(Encoding.UTF8.GetString(b) + tag.Tag)); }
     }
     private sealed class UpperStep : IResourceStep<Doc, Upper>
     {
-        public Executor Executor => Executor.Cpu;
         public Task<Upper> RunAsync(Doc d, ResourceUri u, LoadContext c)
         { Interlocked.Increment(ref _upperRuns); return Task.FromResult(new Upper(d.Text.ToUpperInvariant())); }
     }
     private sealed class FinalStep : IResourceStep<Upper, Final>
     {
-        public Executor Executor => Executor.External;   // Gpu レーン (テストではデバイス不要)
         public Task<Final> RunAsync(Upper up, ResourceUri u, LoadContext c)
         { Interlocked.Increment(ref _finalRuns); return Task.FromResult(new Final(up.Text + "!")); }
     }
     private sealed record DependencyRequest(ResourceHandle<Doc> Dependency);
     private sealed class DependencyStep : IResourceStep<DependencyRequest, Final>
     {
-        public Executor Executor => Executor.Cpu;
         public async Task<Final> RunAsync(DependencyRequest input, ResourceUri uri, LoadContext ctx)
             => new((await ctx.Require(input.Dependency)).Text + "!");
     }
 
     private sealed class FragmentStep : IResourceStep<Doc, Final>
     {
-        public Executor Executor => Executor.Cpu;
         public IEnumerable<string> Extensions => [".slang"];
         public IEnumerable<string> FragmentPatterns => ["graphics"];
         public Task<Final> RunAsync(Doc input, ResourceUri uri, LoadContext ctx)
@@ -63,7 +58,6 @@ public class ResourceSystemTests
 
     private sealed class BundleStep : IResourceStep<byte[], Bundle>
     {
-        public Executor Executor => Executor.Cpu;
         public IEnumerable<string> Extensions => [".bundle"];
         public async Task<Bundle> RunAsync(byte[] b, ResourceUri u, LoadContext c)
         {
@@ -80,7 +74,7 @@ public class ResourceSystemTests
         Reset();
         vfs = new MemoryFileSystem();
         // Source/Step 全てをコンストラクタで注入 (DI コンテナは無し)
-        return new ResourceSystem(
+        return ResourceTestSystem.Create(
             sources: new IResourceSource[] { new FileSource(vfs) },
             steps: new IResourceStep[]
             {
@@ -137,7 +131,7 @@ public class ResourceSystemTests
         // ユーザーが ITag 実装を Step ctor に渡して注入 (DI コンテナ非経由)
         Reset();
         var vfs = new MemoryFileSystem();
-        var sys = new ResourceSystem(
+        var sys = ResourceTestSystem.Create(
             sources: new IResourceSource[] { new FileSource(vfs) },
             steps: new IResourceStep[] { new DocStep(new TagImpl("#")) });
         vfs.Set("a.doc", Encoding.UTF8.GetBytes("x"));
@@ -150,8 +144,10 @@ public class ResourceSystemTests
     public async Task GenericAddStep_RegistersWithoutReflection()
     {
         var vfs = new MemoryFileSystem();
-        using var sys = new ResourceSystem(sources: new IResourceSource[] { new FileSource(vfs) });
-        sys.AddStep<byte[], Doc>(new DocStep(new TagImpl("#generic")));
+        using var sys = ResourceTestSystem.Create(
+            sources: new IResourceSource[] { new FileSource(vfs) },
+            configure: (builder, handles) => builder.Steps.Add<byte[], Doc>(new DocStep(new TagImpl("#generic")))
+                .RunOn(handles.CpuDomain).ManagedBy(handles.CpuManager).Register());
         vfs.Set("generic.doc", Encoding.UTF8.GetBytes("value"));
 
         using ResourceHandle<Doc> handle = sys.Load<Doc>("generic.doc");
@@ -163,8 +159,9 @@ public class ResourceSystemTests
     [Fact]
     public async Task ExistingHandleDependencyWaitsAndReloadsDependent()
     {
-        using var sys = new ResourceSystem();
-        sys.AddStep<DependencyRequest, Final>(new DependencyStep());
+        using var sys = ResourceTestSystem.Create(configure: (builder, handles) =>
+            builder.Steps.Add<DependencyRequest, Final>(new DependencyStep())
+                .RunOn(handles.CpuDomain).ManagedBy(handles.CpuManager).Register());
         using ResourceHandle<Doc> shader = sys.Publish(
             "published://shader", new Doc("one"), ResourceOwnership.Borrowed);
         using ResourceScope scope = sys.CreateScope("pipeline");
@@ -186,11 +183,12 @@ public class ResourceSystemTests
     [Fact]
     public async Task ExistingHandleDependencyRejectsAnotherResourceSystem()
     {
-        using var first = new ResourceSystem();
+        using var first = ResourceTestSystem.Create();
         using ResourceHandle<Doc> foreign = first.Publish(
             "published://foreign", new Doc("x"), ResourceOwnership.Borrowed);
-        using var second = new ResourceSystem();
-        second.AddStep<DependencyRequest, Final>(new DependencyStep());
+        using var second = ResourceTestSystem.Create(configure: (builder, handles) =>
+            builder.Steps.Add<DependencyRequest, Final>(new DependencyStep())
+                .RunOn(handles.CpuDomain).ManagedBy(handles.CpuManager).Register());
         using ResourceScope scope = second.CreateScope("pipeline");
         using ResourceHandle<Final> pipeline = scope.Create<DependencyRequest, Final>(
             "main", new DependencyRequest(foreign));
@@ -203,7 +201,7 @@ public class ResourceSystemTests
     [Fact]
     public async Task StateNotificationsAreDeliveredByPumpForSuccessFailureAndRecovery()
     {
-        using var sys = new ResourceSystem();
+        using var sys = ResourceTestSystem.Create();
         var loads = new List<TaskCompletionSource<Final>>();
         using ResourceHandle<Final> handle = sys.Load("controlled://state", _ =>
         {
@@ -277,7 +275,7 @@ public class ResourceSystemTests
     [Fact]
     public async Task SupersededReload_CannotPublishAfterNewerGeneration()
     {
-        var sys = new ResourceSystem();
+        var sys = ResourceTestSystem.Create();
         var loads = new List<TaskCompletionSource<Final>>();
         var tokens = new List<CancellationToken>();
         Loader<Final> loader = ctx =>
@@ -321,7 +319,7 @@ public class ResourceSystemTests
     [Fact]
     public async Task FailedReload_RetainsLastGoodValue_AndLaterSuccessClearsError()
     {
-        var sys = new ResourceSystem();
+        var sys = ResourceTestSystem.Create();
         var loads = new List<TaskCompletionSource<Final>>();
         Loader<Final> loader = _ =>
         {
@@ -377,33 +375,59 @@ public class ResourceSystemTests
         public void Dispose() => DisposeCount++;
     }
 
-    [Fact]
-    public async Task PumpAsyncAwaitsAsyncIdleHookBeforeDeferredDispose()
+    private sealed class TestResourceManager(
+        ResourceManagerId id,
+        Func<object, ValueTask>? retire = null,
+        Func<ValueTask>? pump = null) : IResourceManager
     {
-        using var sys = new ResourceSystem();
+        public ResourceManagerId Id { get; } = id;
+        public ResourceManagerCapabilities Capabilities => ResourceManagerCapabilities.AsyncRetirement | ResourceManagerCapabilities.Pump;
+        public ValueTask<ResourceManagementRecord> AdoptAsync(object value, ResourceAdoptionContext context)
+            => ValueTask.FromResult(new ResourceManagementRecord(Id, context.Ownership, Context: context.ManagementContext));
+        public async ValueTask RetireAsync(object value, ResourceManagementRecord record, ResourceRetireReason reason,
+            CancellationToken cancellationToken = default)
+        {
+            if (retire is not null) await retire(value);
+            else if (record.Ownership == ResourceOwnership.Owned && value is IDisposable disposable) disposable.Dispose();
+        }
+        public ValueTask PumpAsync(ResourceManagerPumpContext context) => pump?.Invoke() ?? ValueTask.CompletedTask;
+        public ResourceManagerSnapshot CaptureSnapshot() => new(Id, 0, 0, 0, 0);
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    [Fact]
+    public async Task PumpAsyncAwaitsManagerRetirement()
+    {
         var value = new DisposableResource();
-        using ResourceHandle<DisposableResource> handle = sys.Publish("published://async-dispose", value);
-        bool asyncIdleCompleted = false;
-        sys.SetDeferredDisposeIdleHook(
-            () => throw new InvalidOperationException("sync idle hook must not run"),
-            async _ =>
-            {
-                await Task.Yield();
-                Assert.Equal(0, value.DisposeCount);
-                asyncIdleCompleted = true;
-            });
+        bool asyncRetireCompleted = false;
+        using var sys = ResourceTestSystem.Create(configure: (builder, handles) =>
+        {
+            ResourceManagerHandle manager = builder.Managers.Add("test.async-retire")
+                .RunOn(handles.CpuDomain)
+                .Use(context => new TestResourceManager(context.Id, async retired =>
+                {
+                    await Task.Yield();
+                    Assert.Same(value, retired);
+                    Assert.Equal(0, value.DisposeCount);
+                    ((DisposableResource)retired).Dispose();
+                    asyncRetireCompleted = true;
+                }))
+                .Register();
+            builder.Managers.Manage<DisposableResource>().With(manager).Register();
+        });
+        ResourceHandle<DisposableResource> handle = sys.Publish("published://async-dispose", value);
 
         handle.Dispose();
         await sys.PumpAsync();
 
-        Assert.True(asyncIdleCompleted);
+        Assert.True(asyncRetireCompleted);
         Assert.Equal(1, value.DisposeCount);
     }
 
     [Fact]
     public async Task Scope_CreateQualifiesKeysAndDisposesEachLeaseOnce()
     {
-        using var sys = new ResourceSystem();
+        using var sys = ResourceTestSystem.Create();
         var firstScope = sys.CreateScope("panel/a");
         var first = new DisposableResource();
         ResourceHandle<DisposableResource> firstHandle = firstScope.Create(
@@ -428,8 +452,9 @@ public class ResourceSystemTests
     [Fact]
     public async Task Scope_CreateUsesFragmentToSelectOutputStep()
     {
-        using var sys = new ResourceSystem();
-        sys.AddStep<Doc, Final>(new FragmentStep());
+        using var sys = ResourceTestSystem.Create(configure: (builder, handles) =>
+            builder.Steps.Add<Doc, Final>(new FragmentStep())
+                .RunOn(handles.CpuDomain).ManagedBy(handles.CpuManager).Register());
         using ResourceScope scope = sys.CreateScope("shader-story");
 
         using ResourceHandle<Final> handle = scope.Create<Doc, Final>(
@@ -474,7 +499,7 @@ public class ResourceSystemTests
     [Fact]
     public async Task LateOwnedLoaderCompletionAfterEvictionIsDisposed()
     {
-        using var sys = new ResourceSystem();
+        using var sys = ResourceTestSystem.Create();
         var completion = new TaskCompletionSource<DisposableResource>(TaskCreationOptions.RunContinuationsAsynchronously);
         ResourceHandle<DisposableResource> handle = sys.Load(
             "controlled://late", _ => completion.Task, ResourceOwnership.Owned);
@@ -491,7 +516,7 @@ public class ResourceSystemTests
     [Fact]
     public async Task LateOwnedLoaderCompletionAfterSystemDisposeIsDisposed()
     {
-        var sys = new ResourceSystem();
+        var sys = ResourceTestSystem.Create();
         var completion = new TaskCompletionSource<DisposableResource>(TaskCreationOptions.RunContinuationsAsynchronously);
         ResourceHandle<DisposableResource> handle = sys.Load(
             "controlled://late-dispose", _ => completion.Task, ResourceOwnership.Owned);
@@ -509,7 +534,7 @@ public class ResourceSystemTests
     [Fact]
     public void BorrowedValuesAreNotDisposedOnEviction()
     {
-        using var sys = new ResourceSystem();
+        using var sys = ResourceTestSystem.Create();
         var value = new DisposableResource();
         ResourceHandle<DisposableResource> handle = sys.Publish(
             "published://borrowed", value, ResourceOwnership.Borrowed);
@@ -521,23 +546,28 @@ public class ResourceSystemTests
     }
 
     [Fact]
-    public void PumpFlushRegistrationStopsAtNodeEviction()
+    public void PumpInvokesManagerParticipants()
     {
-        using var sys = new ResourceSystem();
-        ResourceHandle<object> handle = sys.Publish("published://flush", new object());
         int calls = 0;
-        using IDisposable registration = sys.RegisterPumpFlushLease(handle, () => { calls++; return false; });
+        using var sys = ResourceTestSystem.Create(configure: (builder, handles) =>
+            builder.Managers.Add("test.pump")
+                .RunOn(handles.CpuDomain)
+                .Use(context => new TestResourceManager(context.Id, pump: () =>
+                {
+                    calls++;
+                    return ValueTask.CompletedTask;
+                }))
+                .Register());
 
-        handle.Dispose();
         sys.Pump();
 
-        Assert.Equal(0, calls);
+        Assert.Equal(1, calls);
     }
 
     [Fact]
     public async Task InvalidateAllReloadsExplicitLoaders()
     {
-        using var sys = new ResourceSystem();
+        using var sys = ResourceTestSystem.Create();
         int loads = 0;
         using ResourceHandle<Final> handle = sys.Load(
             "controlled://generic-invalidation",

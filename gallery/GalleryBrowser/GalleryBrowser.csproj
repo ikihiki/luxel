@@ -19,7 +19,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Browser\Luxel.Gallery.Browser.csproj" />
-    <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Resources.Stories\Luxel.Gallery.Resources.Stories.csproj" />
+    <ProjectReference Include="..\..\src\Resource\Luxel.Resources.Gallery\Luxel.Resources.Gallery.csproj" />
     <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Stories.CoreUi\Luxel.Gallery.Stories.CoreUi.csproj" />
   </ItemGroup>
   <ItemGroup>

@@ -11,7 +11,6 @@ namespace Luxel.Imaging;
 public sealed class ImageSharpDecoder : IResourceStep<byte[], CpuImage>
 {
     /// <summary>CPU executor で実行 (デコードのみ)。</summary>
-    public Executor Executor => Executor.Cpu;
     /// <summary>処理対象の拡張子。</summary>
     public IEnumerable<string> Extensions => [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tga"];
 

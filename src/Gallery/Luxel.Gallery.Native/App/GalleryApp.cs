@@ -32,10 +32,9 @@ public sealed class GalleryApp : IDisposable
     private readonly SurfaceView _preview = SurfaceView(SurfW, SurfH);
     private Exception? _pendingStoryError;
     // ストーリーへ StoryContext.Resources として配布 (キャッシュ共有、Pump は Update が叩く)
-    private readonly Luxel.Resources.ResourceSystem _resources = new(
-        sources: Luxel.Resources.ResourceSystemDefaults.BuiltinSources(assetRoot: Environment.CurrentDirectory),
-        steps: [.. Luxel.Resources.ResourceSystemDefaults.BuiltinSteps(), new Luxel.Imaging.ImageSharpDecoder()]);
-    private AssetGpuInstallation? _assetGpuInstallation;
+    private Luxel.Resources.ResourceSystem? _resources;
+    private Luxel.Resources.ResourceSystem Resources => _resources
+        ?? throw new InvalidOperationException("Gallery GPU resources have not been configured.");
     private GallerySlangCompilation? _slangCompilation;
     private (GpuDevice Device, Luxel.Typography.VectorFont Font)? _hostGpu;
     private readonly Signal<string> _title = new("(ストーリーを選択)");
@@ -170,7 +169,8 @@ public sealed class GalleryApp : IDisposable
     /// <summary>毎フレームの軽い同期: 状態強制の適用 (effect 文脈の外で signal を書く) + 検索適用 + Log の反映 (15f 毎)。</summary>
     public void Update()
     {
-        _resources.Pump();
+        Resources.Pump();
+        _ctx?.PumpObservedResources();
         if (_pendingStoryError is { } storyError)
         {
             _pendingStoryError = null;
@@ -216,7 +216,7 @@ public sealed class GalleryApp : IDisposable
     /// メインは行 [ツールバー | プレビュー(Star) | Splitter | Log]。Splitter のドラッグ確定で寸法を更新して再構築する。</summary>
     public Widget BuildRoot()
     {
-        _docsIndex ??= DocsIndex.Build(_catalog.All, _resources, _catalog);
+        _docsIndex ??= DocsIndex.Build(_catalog.All, Resources, _catalog);
         EnsureDock();
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(6))[_dockHost!];
     }
@@ -354,7 +354,7 @@ public sealed class GalleryApp : IDisposable
         // 展開状態 (_treeExpanded) は GalleryApp が所有 — chrome 再構築をまたいで保持。
         // 初回は全 Component を展開 (従来の全件表示と同じ見え方から始める)。
         // 見出し (TOC) は DocsIndex から全ページ分を常設 (Tag = (StoryInfo, ブロック index))
-        _docsIndex ??= DocsIndex.Build(_catalog.All, _resources, _catalog);
+        _docsIndex ??= DocsIndex.Build(_catalog.All, Resources, _catalog);
         // 本家 Storybook と同じく、**パスのスラッシュ区切りがそのまま階層** (title 相当)。
         // 末尾セグメント = ストーリー、手前 = フォルダ (章/コンポーネント/…、深さ任意)。
         // 表示層のマップは持たない — 章替え/整理はパス改名 (+ golden の git mv) で行う。
@@ -760,23 +760,30 @@ public sealed class GalleryApp : IDisposable
             if (_disposed) throw new ObjectDisposedException(nameof(GalleryApp));
             if (value is null)
             {
-                if (_assetGpuInstallation is not null)
-                    throw new InvalidOperationException("Gallery GPU resources are already installed.");
+                if (_resources is not null)
+                    throw new InvalidOperationException("Gallery GPU resources are already configured.");
                 _hostGpu = null;
                 return;
             }
 
-            if (_assetGpuInstallation is not null)
+            if (_resources is not null)
             {
                 if (!ReferenceEquals(_hostGpu?.Device, value.Value.Device))
-                    throw new InvalidOperationException("Gallery GPU resources are already installed for another device.");
+                    throw new InvalidOperationException("Gallery GPU resources are already configured for another device.");
                 _hostGpu = value;
                 return;
             }
 
+            var builder = new Luxel.Resources.ResourceSystemBuilder();
+            Luxel.Resources.ResourceSystemDefaultHandles defaults = Luxel.Resources.ResourceSystemDefaults.AddCore(builder);
+            Luxel.Resources.ResourceSystemDefaults.AddBuiltinSources(builder, defaults, Environment.CurrentDirectory);
+            Luxel.Resources.ResourceSystemDefaults.AddBuiltinSteps(builder, defaults);
+            builder.Steps.Add<byte[], Luxel.Resources.CpuImage>(new Luxel.Imaging.ImageSharpDecoder())
+                .RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
             _slangCompilation = new GallerySlangCompilation();
-            _slangCompilation.Install(_resources, value.Value.Device.BackendKind);
-            _assetGpuInstallation = _resources.InstallAssetGpuLifecycle(value.Value.Device);
+            _slangCompilation.Register(builder, defaults, value.Value.Device.BackendKind);
+            builder.AddAssetGpu(value.Value.Device);
+            _resources = builder.Build();
             _hostGpu = value;
         }
     }
@@ -784,7 +791,7 @@ public sealed class GalleryApp : IDisposable
     public void Select(StoryInfo story)
     {
         StoryContext? oldContext = _ctx;
-        var newContext = new StoryContext(_resources);
+        var newContext = new StoryContext(Resources);
         newContext.SetServices(_storyServices);   // DI: shared scripting services + native Playground persistence
         // 遷移は次フレームへキュー — 子ホストの入力ディスパッチ中に SetContent (旧ルート破棄) しない
         newContext.SetNavigator(p => _pendingNav = p);
@@ -916,10 +923,8 @@ public sealed class GalleryApp : IDisposable
         _preview.Dispose();
         _ctx?.Dispose();
         _ctx = null;
-        // GalleryApp owns the AssetsGpu installation, while the runtime owns the device.
-        // Wait for the queue before ResourceSystem releases story-scoped GPU values.
-        _assetGpuInstallation?.Dispose();
-        _resources.Dispose();
+        // ResourceSystem owns GPU manager retirement, while the runtime owns the device.
+        _resources?.Dispose();
         _slangCompilation?.Dispose();
     }
 }

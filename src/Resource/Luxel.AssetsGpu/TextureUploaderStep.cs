@@ -1,15 +1,14 @@
-﻿using Luxel.Resources;
+using Luxel.Resources;
 
 namespace Luxel.AssetsGpu;
 
 /// <summary>
 /// <see cref="CpuImage"/> → <see cref="GpuTexture"/> (GPU アップロード)。
-/// GpuDevice はコンストラクタ DI で受け取る。AssetsGpu を Install したときに一緒に登録される。
+/// The generation-aware registry resolves the current device when work begins.
 /// </summary>
-public sealed class TextureUploaderStep(GpuDevice device) : IResourceStep<CpuImage, GpuTexture>
+public sealed class TextureUploaderStep(AssetGpuRegistry registry) : IResourceStep<CpuImage, GpuTexture>
 {
-    private readonly GpuDevice _device = device;
-    public Executor Executor => Executor.External;
     public Task<GpuTexture> RunAsync(CpuImage img, ResourceUri uri, LoadContext ctx)
-        => Task.FromResult(_device.CreateTexture((uint)img.Width, (uint)img.Height, img.Pixels));
+        => Task.FromResult(registry.Create(new GpuTextureRequest(GpuTextureRequestKind.Sampled,
+            (uint)img.Width, (uint)img.Height, GpuFormat.Rgba8Unorm, img.Pixels)));
 }

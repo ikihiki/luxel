@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Luxel.UI;
+using Luxel.Resources.Gallery;
 
 namespace Luxel.Gallery;
 
@@ -10,14 +11,14 @@ public static class GalleryStoryProject
     public static IServiceCollection AddGalleryStory(this IServiceCollection services)
         => services
             .AddStoryCatalog(RegisterGalleryOnly)
-            .AddResourceStory()
+            .AddResourceGallery()
             .AddCoreUiStory();
 
     public static void Register(StoryCatalogBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
         RegisterGalleryOnly(builder);
-        ResourceStoryProject.Register(builder);
+        ResourceGalleryProject.Register(builder);
         CoreUiStoryProject.Register(builder);
     }
 

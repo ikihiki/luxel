@@ -56,12 +56,21 @@ def forbid_closure(source_stem: str, forbidden, label: str):
         print(f"Forbidden {label} dependency:\n  " + "\n  -> ".join(map(display, path)), file=sys.stderr)
         sys.exit(1)
 
-forbid_closure("Luxel.UI", lambda stem: stem.startswith("Luxel.Gallery"), "UI/Gallery reverse")
-forbid_closure("Luxel.UI.Generators", lambda stem: stem.startswith("Luxel.Gallery"), "UI generators/Gallery reverse")
+gallery_leaf = lambda stem: stem.startswith("Luxel.Gallery") or stem == "Luxel.Resources.Gallery"
+forbid_closure("Luxel.UI", gallery_leaf, "UI/Gallery reverse")
+forbid_closure("Luxel.UI.Generators", gallery_leaf, "UI generators/Gallery reverse")
 forbid_closure("Luxel.Gallery", lambda stem: stem in {
     "Luxel.Gallery.Generators", "Luxel.Gallery.UI", "Luxel.Gallery.Native",
-    "Luxel.Gallery.Stories", "Luxel.Gallery.Stories.CoreUi", "Luxel.Gallery.Resources.Stories"
+    "Luxel.Gallery.Stories", "Luxel.Gallery.Stories.CoreUi", "Luxel.Resources.Gallery"
 }, "Gallery core reverse")
+
+resource_root = (root / "src" / "Resource").resolve()
+for source in graph:
+    if resource_root not in source.parents or source.stem == "Luxel.Resources.Gallery": continue
+    path = find_path(source, lambda p: gallery_leaf(p.stem))
+    if path:
+        print("Forbidden production Resource/Gallery reverse dependency:\n  " + "\n  -> ".join(map(display, path)), file=sys.stderr)
+        sys.exit(1)
 
 native_heavy = lambda stem: (
     stem in {"Luxel.Platform.Windows", "Luxel.Input.XInput", "Luxel.Audio.Windows", "Luxel.Audio.Silk",
@@ -73,10 +82,12 @@ native_heavy = lambda stem: (
 browser_forbidden = lambda stem: native_heavy(stem) or stem in {
     "Luxel.Gallery.Native", "Luxel.Gallery.Stories"
 }
+forbid_closure("Luxel.Resources", lambda stem: stem.endswith(".Browser"), "Resources core/browser reverse")
 forbid_closure("Luxel.Framework.Game", native_heavy, "Game portable closure")
 forbid_closure("Luxel.Framework.Game.Browser", lambda stem: browser_forbidden(stem) or stem in {
     "Luxel.Framework.UI", "Luxel.Framework.DevTools", "Luxel.Framework.Game.Native"
 }, "Game browser closure")
+forbid_closure("Luxel.Resources.Gallery", browser_forbidden, "Resource Gallery browser closure")
 forbid_closure("Luxel.Gallery.Stories.CoreUi", browser_forbidden, "CoreUi browser closure")
 forbid_closure("Luxel.Gallery.Browser", browser_forbidden, "browser Gallery closure")
 forbid_closure("GalleryBrowser", browser_forbidden, "browser Gallery executable closure")

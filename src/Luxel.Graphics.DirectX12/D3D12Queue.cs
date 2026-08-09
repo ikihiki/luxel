@@ -1,4 +1,4 @@
-﻿using Luxel.Graphics.Abstraction;
+using Luxel.Graphics.Abstraction;
 using Vortice.Direct3D12;
 
 namespace Luxel.Graphics.DirectX12;
@@ -13,10 +13,11 @@ internal sealed class D3D12Queue : IGpuBackendQueue
     private readonly ID3D12Fence _fence;
     private ulong _fenceValue;
     private readonly object _queueLock;   // OneShotSubmit と共有 (同一 ID3D12CommandQueue の外部同期)
+    private readonly GpuLifecycleSource _lifecycle;
 
     public D3D12Queue(ID3D12Device device, ID3D12CommandQueue queue,
                       ID3D12RootSignature rootSignature, ID3D12DescriptorHeap resourceHeap,
-                      ID3D12DescriptorHeap samplerHeap, object queueLock)
+                      ID3D12DescriptorHeap samplerHeap, object queueLock, GpuLifecycleSource lifecycle)
     {
         _device = device;
         _queue = queue;
@@ -24,6 +25,7 @@ internal sealed class D3D12Queue : IGpuBackendQueue
         _resourceHeap = resourceHeap;
         _samplerHeap = samplerHeap;
         _queueLock = queueLock;
+        _lifecycle = lifecycle;
         _fence = device.CreateFence(0, FenceFlags.None);
     }
 
@@ -33,17 +35,58 @@ internal sealed class D3D12Queue : IGpuBackendQueue
     public void Submit(IGpuBackendCommandBuffer commandBuffer)
     {
         var list = ((D3D12CommandList)commandBuffer).Handle;
-        lock (_queueLock) _queue.ExecuteCommandList(list);
+        try
+        {
+            lock (_queueLock) _queue.ExecuteCommandList(list);
+        }
+        catch (Exception exception)
+        {
+            PublishDeviceRemoved("ExecuteCommandList", exception);
+            throw;
+        }
     }
 
     public void WaitIdle()
     {
         ulong target;
-        lock (_queueLock)   // ++ と Signal を直列化しキュー上の順序を保証、完了待ちはロック外
+        try
         {
-            target = ++_fenceValue;
-            _queue.Signal(_fence, target);
+            lock (_queueLock)   // ++ と Signal を直列化しキュー上の順序を保証、完了待ちはロック外
+            {
+                target = ++_fenceValue;
+                _queue.Signal(_fence, target);
+            }
         }
-        while (_fence.CompletedValue < target) Thread.Yield();
+        catch (Exception exception)
+        {
+            PublishDeviceRemoved("Signal", exception);
+            throw;
+        }
+
+        while (_fence.CompletedValue < target)
+        {
+            var removed = _device.DeviceRemovedReason;
+            if (removed.Failure)
+            {
+                PublishDeviceRemoved("WaitIdle", null);
+                throw new InvalidOperationException($"Direct3D 12 device was removed while waiting for fence {target}: {removed}.");
+            }
+            Thread.Yield();
+        }
+    }
+
+    private void PublishDeviceRemoved(string operation, Exception? exception)
+    {
+        var result = _device.DeviceRemovedReason;
+        int code = result.Code;
+        GpuLifecycleReason reason = code switch
+        {
+            unchecked((int)0x887A0006) => GpuLifecycleReason.DeviceHung,
+            unchecked((int)0x887A0007) => GpuLifecycleReason.DeviceReset,
+            unchecked((int)0x887A0005) => GpuLifecycleReason.DeviceRemoved,
+            _ => GpuLifecycleReason.Unknown,
+        };
+        _lifecycle.DeviceEvent(GpuDeviceLifecycleState.Lost, reason, code, result.ToString(),
+            $"Direct3D 12 {operation} failed: {result}.", exception);
     }
 }

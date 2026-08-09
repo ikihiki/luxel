@@ -2,55 +2,62 @@ using Luxel.Platform;
 
 namespace Luxel.Resources;
 
-/// <summary>
-/// <see cref="ResourceSystem"/> のコンストラクタに渡す組込み Source/Step の defaults を提供するヘルパ。
-///
-/// <para><b>設計</b>: 組込みも DI 経由 (ctor 配列渡し)。ResourceSystem 本体は Source/Step を自動生成しない。
-/// 呼び出し側が「何を入れるか」を明示的に組み立てる。</para>
-///
-/// <code>
-/// var res = new ResourceSystem(
-///     sources: ResourceSystemDefaults.BuiltinSources(assetRoot: "./assets"),
-///     steps:   ResourceSystemDefaults.BuiltinSteps());
-///
-/// // または追加 Source/Step とスプレッド:
-/// var res = new ResourceSystem(
-///     sources: [..ResourceSystemDefaults.BuiltinSources(vfs: myVfs), new MyCustomSource()],
-///     steps:   [..ResourceSystemDefaults.BuiltinSteps(), new MyStep()]);
-/// </code>
-/// </summary>
+public sealed class ResourceSystemDefaultOptions
+{
+    public string IoDomainId { get; set; } = "resource.io";
+    public string CpuDomainId { get; set; } = "resource.cpu";
+    public string IoManagerId { get; set; } = "resource.io-manager";
+    public string CpuManagerId { get; set; } = "resource.cpu-manager";
+    public int IoConcurrency { get; set; } = Math.Max(4, Environment.ProcessorCount);
+    public int CpuConcurrency { get; set; } = Math.Max(1, Environment.ProcessorCount);
+}
+
+public readonly record struct ResourceSystemDefaultHandles(
+    ResourceExecutionDomainHandle IoDomain,
+    ResourceExecutionDomainHandle CpuDomain,
+    ResourceManagerHandle IoManager,
+    ResourceManagerHandle CpuManager);
+
 public static class ResourceSystemDefaults
 {
-    /// <summary>組込み Source (<see cref="FileSource"/> + <see cref="HttpSource"/>) の配列を返す。
-    /// VFS 未指定なら <see cref="PhysicalFileSystem"/> を <paramref name="assetRoot"/> ルートで生成。</summary>
-    public static IResourceSource[] BuiltinSources(string? assetRoot = null, IVirtualFileSystem? vfs = null, HttpClient? http = null)
+    public static ResourceSystemDefaultHandles AddCore(ResourceSystemBuilder builder, Action<ResourceSystemDefaultOptions>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        var options = new ResourceSystemDefaultOptions();
+        configure?.Invoke(options);
+        ResourceExecutionDomainHandle ioDomain = builder.Domains.Add(options.IoDomainId).UseThreadPool(options.IoConcurrency).Register();
+        ResourceExecutionDomainHandle cpuDomain = builder.Domains.Add(options.CpuDomainId).UseThreadPool(options.CpuConcurrency).Register();
+        ResourceManagerHandle ioManager = builder.Managers.Add(options.IoManagerId).RunOn(ioDomain).UseIo().Register();
+        ResourceManagerHandle cpuManager = builder.Managers.Add(options.CpuManagerId).RunOn(cpuDomain).UseCpu().AsDefault().Register();
+        builder.Managers.Manage<byte[]>().With(ioManager).Register();
+        return new(ioDomain, cpuDomain, ioManager, cpuManager);
+    }
+
+    public static void AddBuiltinSources(ResourceSystemBuilder builder, ResourceSystemDefaultHandles handles,
+        string? assetRoot = null, IVirtualFileSystem? vfs = null, HttpClient? http = null)
     {
         vfs ??= new PhysicalFileSystem(assetRoot ?? AppContext.BaseDirectory);
         http ??= new HttpClient();
-        return new IResourceSource[]
-        {
-            new FileSource(vfs),
-            new HttpSource(http),
-        };
+        builder.Sources.Add(new FileSource(vfs)).RunOn(handles.IoDomain).ManagedBy(handles.IoManager).Register();
+        builder.Sources.Add(new HttpSource(http)).RunOn(handles.IoDomain).ManagedBy(handles.IoManager).Register();
     }
 
-    /// <summary>
-    /// Web/WASM 向けの明示構築。physical file system は生成せず、ホスト提供 reader を file source に使う。
-    /// </summary>
-    public static IResourceSource[] BuiltinSourcesForWeb(IPlatformFileReader files, HttpClient? http = null)
+    public static void AddBuiltinSourcesForWeb(ResourceSystemBuilder builder, ResourceSystemDefaultHandles handles,
+        IPlatformFileReader files, HttpClient? http = null)
     {
         ArgumentNullException.ThrowIfNull(files);
         http ??= new HttpClient();
-        return
-        [
-            new PlatformFileSource(files),
-            new HttpSource(http),
-        ];
+        builder.Sources.Add(new PlatformFileSource(files)).RunOn(handles.IoDomain).ManagedBy(handles.IoManager).Register();
+        builder.Sources.Add(new HttpSource(http)).RunOn(handles.IoDomain).ManagedBy(handles.IoManager).Register();
     }
 
-    /// <summary>組込み Step (<see cref="TexDecoder"/>) の配列を返す。</summary>
-    public static IResourceStep[] BuiltinSteps() => new IResourceStep[]
+    public static void AddBuiltinSteps(ResourceSystemBuilder builder, ResourceSystemDefaultHandles handles)
+        => builder.Steps.Add<byte[], CpuImage>(new TexDecoder()).RunOn(handles.CpuDomain).ManagedBy(handles.CpuManager).ForExtensions(".tex").Register();
+
+    public static ResourceSystemBuilder CreateBuilder(Action<ResourceSystemDefaultOptions>? configure = null)
     {
-        new TexDecoder(),
-    };
+        var builder = new ResourceSystemBuilder();
+        AddCore(builder, configure);
+        return builder;
+    }
 }

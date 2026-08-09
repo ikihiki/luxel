@@ -1,4 +1,4 @@
-﻿using Luxel.Graphics.Abstraction;
+using Luxel.Graphics.Abstraction;
 using Luxel.Graphics.Vulkan.Interop;
 using Silk.NET.Vulkan;
 
@@ -13,9 +13,11 @@ internal sealed unsafe class VulkanQueue : IGpuBackendQueue
     private readonly PipelineLayout _layout;
     private readonly DescriptorSet _descriptorSet;
     private readonly object _queueLock;   // OneShotSubmit と共有 (同一 VkQueue の外部同期)
+    private readonly GpuLifecycleSource _lifecycle;
 
     public VulkanQueue(Vk vk, Device device, Queue queue, uint familyIndex,
-                       PipelineLayout layout, DescriptorSet descriptorSet, object queueLock)
+                       PipelineLayout layout, DescriptorSet descriptorSet, object queueLock,
+                       GpuLifecycleSource lifecycle)
     {
         _vk = vk;
         _device = device;
@@ -24,6 +26,7 @@ internal sealed unsafe class VulkanQueue : IGpuBackendQueue
         _layout = layout;
         _descriptorSet = descriptorSet;
         _queueLock = queueLock;
+        _lifecycle = lifecycle;
     }
 
     public IGpuBackendCommandBuffer StartCommandRecording()
@@ -40,11 +43,11 @@ internal sealed unsafe class VulkanQueue : IGpuBackendQueue
             PCommandBuffers = &handle,
         };
         lock (_queueLock)
-            VkCheck.Ok(_vk.QueueSubmit(_queue, 1, in submit, default), "vkQueueSubmit");
+            VkCheck.Ok(_vk.QueueSubmit(_queue, 1, in submit, default), "vkQueueSubmit", _lifecycle);
     }
 
     public void WaitIdle()
     {
-        lock (_queueLock) VkCheck.Ok(_vk.QueueWaitIdle(_queue), "vkQueueWaitIdle");
+        lock (_queueLock) VkCheck.Ok(_vk.QueueWaitIdle(_queue), "vkQueueWaitIdle", _lifecycle);
     }
 }

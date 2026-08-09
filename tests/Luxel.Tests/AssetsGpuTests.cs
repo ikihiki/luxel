@@ -69,8 +69,7 @@ public partial class AssetsGpuTests
     {
         var backend = new FakeGpuBackend();
         using var device = new GpuDevice(backend);
-        using var resources = new Luxel.Resources.ResourceSystem();
-        AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        using var resources = ResourceTestSystem.CreateGpu(device, out AssetGpuResourceSystemRegistration registration);
         var scope = resources.CreateScope("viewport/main");
         var code = new GpuShaderCode { SpirV = [1, 2, 3, 4] };
 
@@ -103,7 +102,7 @@ public partial class AssetsGpuTests
         resources.Pump();
 
         Assert.Equal(2, backend.LiveResources);
-        installation.Dispose();
+        resources.Dispose();
         Assert.Equal(0, backend.LiveResources);
     }
 
@@ -112,8 +111,7 @@ public partial class AssetsGpuTests
     {
         var backend = new FakeGpuBackend();
         using var device = new GpuDevice(backend);
-        using var resources = new ResourceSystem();
-        using AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        using var resources = ResourceTestSystem.CreateGpu(device, out AssetGpuResourceSystemRegistration registration);
         using ResourceScope scope = resources.CreateScope("vertex-upload");
         float[] vertices = [1.25f, -2.5f, 3.75f, 4f];
 
@@ -131,8 +129,7 @@ public partial class AssetsGpuTests
     {
         var backend = new FakeGpuBackend();
         using var device = new GpuDevice(backend);
-        using var resources = new ResourceSystem();
-        using AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        using var resources = ResourceTestSystem.CreateGpu(device, out AssetGpuResourceSystemRegistration registration);
         using ResourceScope scope = resources.CreateScope("pending-shader");
         var completion = new TaskCompletionSource<GpuShaderCode>(TaskCreationOptions.RunContinuationsAsynchronously);
         using ResourceHandle<GpuShaderCode> shader = resources.Load(
@@ -154,8 +151,7 @@ public partial class AssetsGpuTests
     {
         var backend = new FakeGpuBackend();
         using var device = new GpuDevice(backend);
-        using var resources = new ResourceSystem();
-        using AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        using var resources = ResourceTestSystem.CreateGpu(device, out AssetGpuResourceSystemRegistration registration);
         using ResourceScope scope = resources.CreateScope("reload-shader");
         using ResourceHandle<GpuShaderCode> shader = resources.Publish(
             "published://shader", new GpuShaderCode { SpirV = [1, 2, 3, 4] }, ResourceOwnership.Borrowed);
@@ -174,17 +170,15 @@ public partial class AssetsGpuTests
         Assert.NotSame(first, pipeline.Value);
         Assert.True(pipeline.Version >= 1);
         Assert.Equal(2, backend.PipelineCreations);
-        Assert.True(backend.Queue.WaitIdleCount >= 1);
+        Assert.True(backend.Queue.WaitIdleAsyncCount >= 1);
     }
 
     [Fact]
-    public async Task CreateAssetGpuSteps_GlobalRegistrationUsesReturnedRegistry()
+    public async Task BuilderRegistrationUsesReturnedRegistry()
     {
         var backend = new FakeGpuBackend();
         using var device = new GpuDevice(backend);
-        IResourceStep[] steps = ResourceSystemExtensions.CreateAssetGpuSteps(device, out AssetGpuRegistry registry);
-        using var resources = new Luxel.Resources.ResourceSystem(steps: steps);
-        resources.SetDeferredDisposeIdleHook(() => device.MainQueue.WaitIdle());
+        using var resources = ResourceTestSystem.CreateGpu(device, out AssetGpuResourceSystemRegistration registration);
         using ResourceScope scope = resources.CreateScope("global/steps");
 
         ResourceHandle<GpuSampler> sampler = scope.CreateSampler("sampler");
@@ -197,31 +191,30 @@ public partial class AssetsGpuTests
         resources.Pump();
         Assert.Equal(2, backend.LiveResources);
 
-        registry.Dispose();
+        await resources.DisposeAsync();
         Assert.Equal(0, backend.LiveResources);
     }
 
     [Fact]
     public void ResourceScopeGpuFactories_RequireRegisteredCreationStep()
     {
-        using var resources = new Luxel.Resources.ResourceSystem();
+        using var resources = ResourceTestSystem.Create();
         using var scope = resources.CreateScope("viewport/uninstalled");
 
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(
             () => scope.CreateBuffer("buffer", 16));
 
         Assert.Contains("GpuBufferRequest", error.Message, StringComparison.Ordinal);
-        Assert.Contains("ステップ未登録", error.Message, StringComparison.Ordinal);
+        Assert.Contains("No step registered", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task InstallAssetGpuLifecycle_PumpAsyncAvoidsSynchronousQueueWait()
+    public async Task GpuManager_PumpAsyncAvoidsSynchronousQueueWait()
     {
         var backend = new FakeGpuBackend();
         backend.Queue.ThrowOnSyncWait = true;
         using var device = new GpuDevice(backend);
-        using var resources = new ResourceSystem();
-        AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        using var resources = ResourceTestSystem.CreateGpu(device, out AssetGpuResourceSystemRegistration registration);
         var scope = resources.CreateScope("async-lifecycle");
         ResourceHandle<GpuBuffer> buffer = scope.CreateBuffer("buffer", 32);
         await buffer.Ready;
@@ -233,28 +226,216 @@ public partial class AssetsGpuTests
         Assert.Equal(1, backend.Queue.WaitIdleAsyncCount);
         Assert.Equal(2, backend.LiveResources);
 
-        await installation.DisposeAsync();
+        await resources.DisposeAsync();
         Assert.Equal(2, backend.Queue.WaitIdleAsyncCount);
         Assert.Equal(0, backend.LiveResources);
     }
 
     [Fact]
-    public void InstallAssetGpuLifecycle_OwnsRegistryAndWaitsForGpuBeforeDispose()
+    public void GpuManager_OwnsRegistryAndWaitsForGpuBeforeDispose()
     {
         var backend = new FakeGpuBackend();
         using var device = new GpuDevice(backend);
-        using var resources = new Luxel.Resources.ResourceSystem();
+        using var resources = ResourceTestSystem.CreateGpu(device, out AssetGpuResourceSystemRegistration registration);
 
-        AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
-
-        Assert.NotNull(installation.Registry);
+        Assert.NotNull(registration.Registry);
         Assert.Equal(2, backend.LiveResources); // default sampler + material buffer
 
-        installation.Dispose();
-        installation.Dispose();
+        resources.Dispose();
+        resources.Dispose();
 
-        Assert.Equal(1, backend.Queue.WaitIdleCount);
+        Assert.Equal(0, backend.Queue.WaitIdleCount);
+        Assert.Equal(1, backend.Queue.WaitIdleAsyncCount);
         Assert.Equal(0, backend.LiveResources);
+    }
+
+    [Fact]
+    public void GpuManager_RequiresTypedPolicyForExplicitManagedBy()
+    {
+        var backend = new FakeGpuBackend();
+        using var device = new GpuDevice(backend);
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaultHandles core = ResourceSystemDefaults.AddCore(builder);
+        GpuResourceManagerHandle gpu = builder.InstallGpuResources(device);
+        builder.Steps.Add<byte[], CustomGpuValue>(new CustomGpuStep())
+            .RunOn(gpu.CreateDomain).ManagedBy(gpu.Manager).Register();
+
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => builder.Build());
+
+        Assert.Contains("typed GPU resource policy", error.Message, StringComparison.Ordinal);
+        Assert.Contains(nameof(CustomGpuValue), error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GpuManager_PreservesConfiguredSchedulerInsideRecoveryDomain()
+    {
+        var backend = new FakeGpuBackend();
+        using var device = new GpuDevice(backend);
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaults.AddCore(builder);
+        GpuResourceManagerHandle gpu = builder.InstallGpuResources(device, options =>
+            options.ConfigureDomain = domain => domain.UseFactory(
+                context => new SerialResourceExecutionDomain(context.Id),
+                new(1, ResourceThreadAffinity.HostThread, ResourceProgressModel.Cooperative)));
+
+        await using ResourceSystem resources = await builder.BuildAsync();
+
+        Assert.Equal(ResourceThreadAffinity.HostThread, gpu.DomainInstance.Capabilities.Affinity);
+        Assert.Equal(ResourceProgressModel.Cooperative, gpu.DomainInstance.Capabilities.ProgressModel);
+    }
+
+    [Fact]
+    public async Task GpuManager_CustomStructTracksBudgetIndexesAndFenceRetirement()
+    {
+        var backend = new FakeGpuBackend();
+        using var device = new GpuDevice(backend);
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaults.AddCore(builder);
+        GpuResourceManagerHandle gpu = builder.InstallGpuResources(device, options =>
+        {
+            options.DeviceId = "custom-device";
+            options.SoftBudgetBytes = 4;
+            options.HardBudgetBytes = 16;
+        });
+        int retirements = 0;
+        gpu.Manage<CustomGpuValue>(builder)
+            .DescribeAllocation(value => new("", value.Bytes, value.Bytes, value.Bytes, "device-local"))
+            .WithIndexSpace("custom-table")
+            .RetireAsync((_, _) => { Interlocked.Increment(ref retirements); return ValueTask.CompletedTask; })
+            .Register();
+        await using ResourceSystem resources = builder.Build();
+        GpuResourceManager manager = gpu.ManagerInstance;
+        var value = new CustomGpuValue(8);
+
+        ResourceManagementRecord first = await manager.AdoptAsync(value,
+            new(typeof(CustomGpuValue), new ResourceUri("custom://one"), 1, ResourceOwnership.Owned, default, default));
+        int firstIndex = Assert.Single(first.Indexes!.Value.Values).Index;
+        Assert.Equal(1, manager.CaptureGpuSnapshot().SoftBudgetExceededCount);
+
+        await manager.RetireAsync(value, first, ResourceRetireReason.Evicted);
+        Assert.Equal(0, retirements);
+        Assert.Equal(1, manager.CaptureGpuSnapshot().IndexPendingRecycle);
+        await manager.PumpAsync(new(default));
+        Assert.Equal(1, retirements);
+        Assert.Equal(1, backend.Queue.WaitIdleAsyncCount);
+
+        ResourceManagementRecord second = await manager.AdoptAsync(new CustomGpuValue(4),
+            new(typeof(CustomGpuValue), new ResourceUri("custom://two"), 2, ResourceOwnership.Owned, default, default));
+        Assert.Equal(firstIndex, Assert.Single(second.Indexes!.Value.Values).Index);
+    }
+
+    [Fact]
+    public async Task GpuManager_CustomClassParticipatesInCompactionWithoutBaseType()
+    {
+        var backend = new FakeGpuBackend();
+        using var device = new GpuDevice(backend);
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaults.AddCore(builder);
+        GpuResourceManagerHandle gpu = builder.InstallGpuResources(device);
+        var value = new CustomGpuClass();
+        gpu.Manage<CustomGpuClass>(builder)
+            .RelocateAsync((resource, _) =>
+            {
+                resource.Relocations++;
+                return ValueTask.FromResult(new GpuResourceRelocationResult(32, 8, true));
+            })
+            .Register();
+        await using ResourceSystem resources = builder.Build();
+        await gpu.ManagerInstance.AdoptAsync(value,
+            new(typeof(CustomGpuClass), new ResourceUri("custom://class"), 1, ResourceOwnership.Borrowed, default, default));
+
+        GpuResourceRelocationResult result = await gpu.ManagerInstance.CompactAsync();
+
+        Assert.True(result.Relocated);
+        Assert.Equal(32, result.MovedBytes);
+        Assert.Equal(8, result.ReclaimedBytes);
+        Assert.Equal(1, value.Relocations);
+        Assert.Equal(1, gpu.ManagerInstance.CaptureGpuSnapshot().CompactionCount);
+    }
+
+    [Fact]
+    public async Task GpuLifecycleCoordinator_BorrowedDeviceWaitsForReplacementAndSwitchesGeneration()
+    {
+        var oldBackend = new FakeGpuBackend();
+        using var oldDevice = new GpuDevice(oldBackend);
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaults.AddCore(builder);
+        AssetGpuResourceSystemRegistration registration = builder.AddAssetGpu(oldDevice, options =>
+        {
+            options.DeviceId = "borrowed-device";
+            options.DeviceGeneration = 1;
+        });
+        await using ResourceSystem resources = builder.Build();
+        var coordinator = new GpuDeviceLifecycleCoordinator(resources, registration.Gpu,
+            new() { Ownership = GpuDeviceOwnership.Borrowed, RecoveryPumpIterations = 1 });
+        coordinator.Publish(new GpuDeviceLifecycleEvent(new("borrowed-device", 1), GpuBackendKind.Vulkan, "fake", 1,
+            DateTimeOffset.UtcNow, GpuDeviceLifecycleState.Lost, GpuLifecycleReason.DeviceReset));
+
+        await coordinator.PumpAsync();
+        Assert.Equal(GpuDeviceLifecycleState.Lost, coordinator.Snapshot.State);
+        Assert.True(registration.Gpu.ManagerInstance.IsPaused);
+
+        var replacementBackend = new FakeGpuBackend();
+        using var replacement = new GpuDevice(replacementBackend);
+        coordinator.ProvideBorrowedReplacement(replacement, 2);
+        await coordinator.PumpAsync();
+
+        Assert.Equal((ulong)2, registration.Gpu.ManagerInstance.CurrentGeneration.Identity.Generation);
+        Assert.False(registration.Gpu.ManagerInstance.IsPaused);
+        Assert.Equal(GpuDeviceLifecycleState.Ready, coordinator.Snapshot.State);
+        Assert.Equal(0, oldBackend.LiveResources);
+        Assert.Equal(2, replacementBackend.LiveResources);
+    }
+
+    [Fact]
+    public async Task GpuLifecycleCoordinator_OwnedDeviceRecreatesAndTargetsGpuManager()
+    {
+        var oldBackend = new FakeGpuBackend();
+        using var oldDevice = new GpuDevice(oldBackend);
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaults.AddCore(builder);
+        AssetGpuResourceSystemRegistration registration = builder.AddAssetGpu(oldDevice, options =>
+        {
+            options.DeviceId = "owned-device";
+            options.DeviceGeneration = 4;
+        });
+        await using ResourceSystem resources = builder.Build();
+        var replacementBackend = new FakeGpuBackend();
+        ulong requestedGeneration = 0;
+        var coordinator = new GpuDeviceLifecycleCoordinator(resources, registration.Gpu, new()
+        {
+            Ownership = GpuDeviceOwnership.Owned,
+            RecoveryPumpIterations = 1,
+            OwnedDeviceFactory = (generation, _, _) =>
+            {
+                requestedGeneration = generation;
+                return ValueTask.FromResult(new GpuDevice(replacementBackend));
+            },
+        });
+        coordinator.Publish(new GpuDeviceLifecycleEvent(new("owned-device", 4), GpuBackendKind.Vulkan,
+            "fake", 1, DateTimeOffset.UtcNow, GpuDeviceLifecycleState.Lost, GpuLifecycleReason.DeviceRemoved));
+
+        await coordinator.PumpAsync();
+
+        Assert.Equal((ulong)5, requestedGeneration);
+        Assert.Equal((ulong)5, registration.Gpu.ManagerInstance.CurrentGeneration.Identity.Generation);
+        Assert.Equal(GpuDeviceLifecycleState.Ready, coordinator.Snapshot.State);
+        Assert.Equal(1, coordinator.Snapshot.RecoveryCount);
+        Assert.Equal(0, oldBackend.LiveResources);
+        Assert.Equal(2, replacementBackend.LiveResources);
+    }
+
+    private sealed class CustomGpuClass
+    {
+        public int Relocations { get; set; }
+    }
+
+    private readonly record struct CustomGpuValue(long Bytes);
+
+    private sealed class CustomGpuStep : IResourceStep<byte[], CustomGpuValue>
+    {
+        public Task<CustomGpuValue> RunAsync(byte[] input, ResourceUri uri, LoadContext ctx)
+            => Task.FromResult(new CustomGpuValue(input.LongLength));
     }
 
     private sealed class FakeGpuBackend : Luxel.Graphics.Abstraction.IGpuBackend

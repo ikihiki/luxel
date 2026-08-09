@@ -10,14 +10,15 @@ public static class LuxelHostBuilderNativeExtensions
     public static LuxelHostBuilder UseVulkan(this LuxelHostBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        return builder.UseGpu(static () => new GpuDevice(Luxel.Graphics.Vulkan.VulkanBackend.Create()));
+        return builder.UseGpu(static sink => new GpuDevice(Luxel.Graphics.Vulkan.VulkanBackend.Create(
+            new Luxel.Graphics.Vulkan.VulkanBackendOptions { LifecycleSink = sink })));
     }
 
     /// <summary>Creates and owns a Direct3D 12 GPU device through the host container.</summary>
     public static LuxelHostBuilder UseD3D12(this LuxelHostBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        return builder.UseGpu(static () => new GpuDevice(Luxel.Graphics.DirectX12.D3D12Backend.Create()));
+        return builder.UseGpu(static sink => new GpuDevice(Luxel.Graphics.DirectX12.D3D12Backend.Create(lifecycleSink: sink)));
     }
 
     /// <summary>

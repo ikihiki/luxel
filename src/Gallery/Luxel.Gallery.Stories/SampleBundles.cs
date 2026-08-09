@@ -83,14 +83,6 @@ internal static class SampleBundles
             RunCommand: "dotnet run --project samples/LuxelAudio", SmokeCommand: "dotnet run --project samples/LuxelAudio",
             Platforms: ["Windows", "Linux", "macOS"], ExpectedStdoutMarker: "audio: initialized=True, voices=1"));
         SampleBundleRegistry.Register(new SampleBundleInfo(
-            "resources.scenarios", "Resource scenarios",
-            "Eight focused, headless scenarios cover custom sources, typed pipelines, selection, DAG sharing, scopes, reload recovery, and HTTP composition.", "Beginner",
-            SampleCopyLevel.Block,
-            [new("samples/LuxelResources/LuxelResources.csproj", SampleFileKind.Project), new("samples/LuxelResources/Program.cs", SampleFileKind.CSharp)],
-            Dependencies: ["support.source-tree"], Requirements: [".NET 10", "Headless on all supported .NET OS"], ExportSymbol: "ResourceSystem",
-            RunCommand: "dotnet run --project samples/LuxelResources", SmokeCommand: "dotnet run --project samples/LuxelResources",
-            Platforms: ["Windows", "Linux", "macOS"], ExpectedStdoutMarker: "resources: status=Ready, value=HELLO RESOURCES, scenarios=8"));
-        SampleBundleRegistry.Register(new SampleBundleInfo(
             "rendering.webgpu-headless", "Headless WebGPU compute and triangle",
             "Public GpuDevice API recipe covering inline WGSL compute, offscreen rendering and HostCached readback validation.", "Beginner",
             SampleCopyLevel.StandaloneProject,

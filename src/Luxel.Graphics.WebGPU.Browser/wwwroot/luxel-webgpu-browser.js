@@ -118,10 +118,11 @@ export async function initialize() {
     const device = await adapter.requestDevice();
     diagnostics.device.status = "ready";
     touchDiagnostics(diagnostics, "device-ready", "create-backend-resources");
-    const backend = { adapter, device, diagnostics, queue: device.queue, errors: [], lost: null, serial: 0, completions: new Map(), submissions: new Map(), textures: Array(16), samplers: Array(16) };
+    const backend = { adapter, device, diagnostics, queue: device.queue, errors: [], lifecycleEvents: [], lost: null, serial: 0, completions: new Map(), submissions: new Map(), textures: Array(16), samplers: Array(16) };
     device.addEventListener("uncapturederror", event => {
       const error = describeError(event.error, "device.uncapturederror");
       backend.errors.push(error.message);
+      backend.lifecycleEvents.push({ type: "validation", severity: "error", reason: error.name, message: error.message });
       diagnostics.uncapturedErrors.push(error);
       if (diagnostics.uncapturedErrors.length > 32) diagnostics.uncapturedErrors.shift();
       diagnostics.lastError = error;
@@ -132,6 +133,7 @@ export async function initialize() {
       const disposed = diagnostics.device.status === "disposed";
       diagnostics.device.status = disposed ? "disposed" : "lost";
       diagnostics.device.lost = { reason: info.reason, message: info.message, timestamp: new Date().toISOString(), expected: disposed };
+      backend.lifecycleEvents.push({ type: "lost", reason: info.reason, message: info.message, expected: disposed });
       touchDiagnostics(diagnostics, disposed ? "disposed" : "device-lost", disposed ? "device.destroy" : "device.lost");
     }).catch(error => {
       backend.lost = String(error);
@@ -173,6 +175,12 @@ export function getDiagnostics(backendHandle = 0) {
     if (entry?.kind === "backend") diagnostics = entry.value.diagnostics;
   }
   return JSON.stringify(diagnostics || newDiagnostics());
+}
+
+export function drainLifecycleEvents(backendHandle) {
+  const backend = get(backendHandle, "backend");
+  const events = backend.lifecycleEvents.splice(0);
+  return JSON.stringify(events);
 }
 
 export function recordDiagnosticsError(backendHandle, source, name, message, stack) {
@@ -360,4 +368,4 @@ export function release(kind, handle) {
   else if (name === "command" && !value.submitted) { value.rootBuffer.destroy(); for(const temp of value.temps) temp.destroy(); }
   else if (name === "surface") { value.context.unconfigure(); value.info.destroy(); }
 }
-export function disposeBackend(handle) { const backend=remove(handle,"backend"); for (const [objectHandle,entry] of [...objects]) if (entry.value?.backend===backend) objects.delete(objectHandle); backend.diagnostics.device.status="disposed"; touchDiagnostics(backend.diagnostics,"disposed","disposeBackend"); backend.arena.destroy(); backend.fallbackTexture.destroy(); backend.device.destroy(); }
+export function disposeBackend(handle) { const backend=remove(handle,"backend"); for (const [objectHandle,entry] of [...objects]) if (entry.value?.backend===backend) objects.delete(objectHandle); backend.lifecycleEvents.push({ type: "lost", reason: "destroyed", message: "device.destroy()", expected: true }); backend.diagnostics.device.status="disposed"; touchDiagnostics(backend.diagnostics,"disposed","disposeBackend"); backend.arena.destroy(); backend.fallbackTexture.destroy(); backend.device.destroy(); return JSON.stringify(backend.lifecycleEvents.splice(0)); }

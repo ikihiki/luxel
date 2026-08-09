@@ -6,7 +6,6 @@ namespace Luxel.Assets.Gltf;
 /// <summary>ResourceSystem 用 adapter。外部参照を元 ResourceUri から相対解決し、依存 load として登録する。</summary>
 public sealed class GltfResourceStep : IResourceStep<byte[], AssetDocument>
 {
-    public Executor Executor => Executor.Cpu;
     public IEnumerable<string> Extensions => [".gltf", ".glb"];
 
     public async Task<AssetDocument> RunAsync(byte[] input, ResourceUri uri, LoadContext context)

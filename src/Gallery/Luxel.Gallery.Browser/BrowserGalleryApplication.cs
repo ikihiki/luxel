@@ -18,6 +18,7 @@ using Luxel.Platform;
 using Luxel.Platform.Abstraction;
 using Luxel.Platform.Web;
 using Luxel.Resources;
+using Luxel.Resources.Browser;
 using Luxel.Shaders;
 using Luxel.Shaders.Slang.Browser;
 using Luxel.Typography;
@@ -101,13 +102,18 @@ public static partial class BrowserGalleryApplication
                 .GetRequiredService<HttpClient>();
             var files = new WebPlatformFileSystem(
                 (resourcePath, cancellationToken) => http.GetByteArrayAsync(resourcePath, cancellationToken));
-            using var resources = new ResourceSystem(
-                sources: ResourceSystemDefaults.BuiltinSourcesForWeb(files, http),
-                steps: ResourceSystemDefaults.BuiltinSteps());
-            resources.AddStep<byte[], AssetDocument>(new GltfResourceStep());
-            resources.AddStep<SlangSource, GpuShaderCode>(
-                new SlangCompileStep(slangCompiler, GpuBackendKind.WebGpu));
-            await using AssetGpuInstallation assetGpu = resources.InstallAssetGpuLifecycle(device);
+            var resourceBuilder = new ResourceSystemBuilder();
+            ResourceSystemDefaultHandles defaults = resourceBuilder.AddBrowserCore();
+            ResourceSystemDefaults.AddBuiltinSourcesForWeb(resourceBuilder, defaults, files, http);
+            ResourceSystemDefaults.AddBuiltinSteps(resourceBuilder, defaults);
+            resourceBuilder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep())
+                .RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
+            resourceBuilder.Steps.Add<SlangSource, GpuShaderCode>(
+                    new SlangCompileStep(slangCompiler, GpuBackendKind.WebGpu))
+                .RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
+            resourceBuilder.AddAssetGpu(device, options =>
+                options.ConfigureDomain = domain => domain.UseBrowserCooperative());
+            await using ResourceSystem resources = await resourceBuilder.BuildAsync();
             stage = "font";
             SetStatus("loading", $"browser-webgpu: status=loading, story={path}, stage={stage}");
             using var font = new VectorFont(Resource("BIZUDGothic-Regular.ttf"));
@@ -186,6 +192,7 @@ public static partial class BrowserGalleryApplication
                         resizePending = false;
                     }
                     await resources.PumpAsync();
+                    await context.PumpObservedResourcesAsync();
                     ui.Tick(1f / 60f);
                     if (canvas.HasPendingChanges) await RenderAsync();
                     await NextFrame();

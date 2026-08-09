@@ -60,9 +60,13 @@ internal static class E2eCatalog
     private static IReadOnlyList<(string, int, string)> Discover()
     {
         RepoRoot.Ensure();
-        var resources = new Luxel.Resources.ResourceSystem(
-            sources: Luxel.Resources.ResourceSystemDefaults.BuiltinSources(assetRoot: Environment.CurrentDirectory),
-            steps: [.. Luxel.Resources.ResourceSystemDefaults.BuiltinSteps(), new Luxel.Imaging.ImageSharpDecoder()]);
+        var builder = new Luxel.Resources.ResourceSystemBuilder();
+        Luxel.Resources.ResourceSystemDefaultHandles core = Luxel.Resources.ResourceSystemDefaults.AddCore(builder);
+        Luxel.Resources.ResourceSystemDefaults.AddBuiltinSources(builder, core, assetRoot: Environment.CurrentDirectory);
+        Luxel.Resources.ResourceSystemDefaults.AddBuiltinSteps(builder, core);
+        builder.Steps.Add<byte[], Luxel.Resources.CpuImage>(new Luxel.Imaging.ImageSharpDecoder())
+            .RunOn(core.CpuDomain).ManagedBy(core.CpuManager).Register();
+        Luxel.Resources.ResourceSystem resources = builder.Build();
 
         var list = new List<(string, int, string)>();
         foreach (StoryInfo s in Catalog.All)

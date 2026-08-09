@@ -18,17 +18,21 @@ public sealed class BrowserWebGpuBackend : IGpuBackend
 
     private readonly object _sync = new();
     private readonly IBrowserWebGpuInterop _interop;
+    private readonly GpuLifecycleSource _lifecycle;
+    private readonly HashSet<string> _publishedLifecycleKeys = new(StringComparer.Ordinal);
     private readonly List<ArenaRange> _freeRanges = [new(0, ArenaSize)];
     private readonly List<BrowserWebGpuBuffer> _buffers = [];
     private readonly bool[] _textureSlots = new bool[MaxSampledTextures];
     private readonly bool[] _samplerSlots = new bool[MaxSamplers];
     private bool _disposed;
 
-    private BrowserWebGpuBackend(IBrowserWebGpuInterop interop, int handle, string name)
+    private BrowserWebGpuBackend(IBrowserWebGpuInterop interop, int handle, string name,
+        IGpuLifecycleSink? lifecycleSink, string? deviceId, ulong generation)
     {
         _interop = interop;
         Handle = handle;
         Name = name;
+        _lifecycle = new(GpuBackendKind.WebGpu, name, lifecycleSink, deviceId, generation);
         MainQueue = new BrowserWebGpuQueue(this);
     }
 
@@ -41,14 +45,17 @@ public sealed class BrowserWebGpuBackend : IGpuBackend
     internal bool IsDisposed => _disposed;
 
     /// <summary>Requests navigator.gpu adapter/device without synchronously blocking a JavaScript Promise.</summary>
-    public static async Task<BrowserWebGpuBackend> CreateAsync(CancellationToken cancellationToken = default)
+    public static async Task<BrowserWebGpuBackend> CreateAsync(CancellationToken cancellationToken = default,
+        IGpuLifecycleSink? lifecycleSink = null, string? deviceId = null, ulong generation = 1)
     {
         if (!OperatingSystem.IsBrowser())
             throw new PlatformNotSupportedException("BrowserWebGpuBackend requires a browser WebAssembly runtime with WebGPU.");
-        return await CreateAsync(new BrowserWebGpuInterop(), cancellationToken).ConfigureAwait(false);
+        return await CreateAsync(new BrowserWebGpuInterop(), cancellationToken, lifecycleSink, deviceId, generation).ConfigureAwait(false);
     }
 
-    internal static async Task<BrowserWebGpuBackend> CreateAsync(IBrowserWebGpuInterop interop, CancellationToken cancellationToken = default)
+    internal static async Task<BrowserWebGpuBackend> CreateAsync(IBrowserWebGpuInterop interop,
+        CancellationToken cancellationToken = default, IGpuLifecycleSink? lifecycleSink = null,
+        string? deviceId = null, ulong generation = 1)
     {
         ArgumentNullException.ThrowIfNull(interop);
         try
@@ -59,7 +66,8 @@ public sealed class BrowserWebGpuBackend : IGpuBackend
             int handle = root.GetProperty("handle").GetInt32();
             string? name = root.TryGetProperty("name", out JsonElement nameElement) ? nameElement.GetString() : null;
             if (handle <= 0) throw new InvalidOperationException("WebGPU initialization returned an invalid backend handle.");
-            var backend = new BrowserWebGpuBackend(interop, handle, name ?? "WebGPU / browser");
+            var backend = new BrowserWebGpuBackend(interop, handle, name ?? "WebGPU / browser", lifecycleSink, deviceId, generation);
+            backend._lifecycle.DeviceEvent(GpuDeviceLifecycleState.Ready);
             backend.CaptureDiagnostics();
             return backend;
         }
@@ -71,7 +79,11 @@ public sealed class BrowserWebGpuBackend : IGpuBackend
     }
 
     /// <summary>Returns and emits the latest structured Browser WebGPU diagnostic snapshot.</summary>
-    public string CaptureDiagnostics() => CaptureDiagnostics(_interop, Handle);
+    public string CaptureDiagnostics()
+    {
+        DrainLifecycleEvents(_interop.DrainLifecycleEvents(Handle));
+        return CaptureDiagnostics(_interop, Handle);
+    }
 
     /// <summary>Returns and emits the latest module-global snapshot, including failures before a backend handle exists.</summary>
     public static string CaptureLatestDiagnostics()
@@ -288,14 +300,54 @@ public sealed class BrowserWebGpuBackend : IGpuBackend
         if (!_disposed) _interop.Release((int)kind, handle);
     }
 
-    internal void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
+    internal GpuLifecycleSource Lifecycle => _lifecycle;
+
+    internal void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        DrainLifecycleEvents(_interop.DrainLifecycleEvents(Handle));
+    }
+
+    internal void DrainLifecycleEvents(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return;
+        using JsonDocument document = JsonDocument.Parse(json);
+        foreach (JsonElement item in document.RootElement.EnumerateArray())
+        {
+            string type = item.GetProperty("type").GetString() ?? string.Empty;
+            string reason = item.TryGetProperty("reason", out JsonElement reasonElement) ? reasonElement.GetString() ?? string.Empty : string.Empty;
+            string message = item.TryGetProperty("message", out JsonElement messageElement) ? messageElement.GetString() ?? string.Empty : string.Empty;
+            bool expected = item.TryGetProperty("expected", out JsonElement expectedElement) && expectedElement.GetBoolean();
+            if (type == "lost")
+            {
+                string key = $"{reason}|{message}|{expected}";
+                lock (_sync)
+                {
+                    if (!_publishedLifecycleKeys.Add(key)) continue;
+                }
+                _lifecycle.DeviceEvent(GpuDeviceLifecycleState.Lost, ClassifyBrowserReason(reason),
+                    nativeReason: reason, message: message, isExpected: expected);
+            }
+            else if (type == "validation")
+                _lifecycle.Validation(GpuValidationSeverity.Error, message, nativeReason: reason);
+        }
+    }
+
+    private static GpuLifecycleReason ClassifyBrowserReason(string reason) => reason switch
+    {
+        "destroyed" => GpuLifecycleReason.ExplicitDispose,
+        "out-of-memory" => GpuLifecycleReason.OutOfMemory,
+        _ => GpuLifecycleReason.Unknown,
+    };
 
     public void Dispose()
     {
         if (_disposed) return;
-        _disposed = true;
+        _lifecycle.DeviceEvent(GpuDeviceLifecycleState.Disposing, GpuLifecycleReason.ExplicitDispose, isExpected: true);
         foreach (var buffer in SnapshotBuffers()) buffer.Dispose();
-        _interop.DisposeBackend(Handle);
+        DrainLifecycleEvents(_interop.DisposeBackend(Handle));
+        _disposed = true;
+        _lifecycle.DeviceEvent(GpuDeviceLifecycleState.Disposed, GpuLifecycleReason.ExplicitDispose, isExpected: true);
     }
 
     internal static ulong AlignUp(ulong value, ulong alignment) => checked((value + alignment - 1) & ~(alignment - 1));

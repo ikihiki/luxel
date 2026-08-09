@@ -4,7 +4,7 @@
     <ProjectReference Include="..\Luxel.Gallery.DocKit\Luxel.Gallery.DocKit.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Stories.CoreUi\Luxel.Gallery.Stories.CoreUi.csproj" />
-    <ProjectReference Include="..\Luxel.Gallery.Resources.Stories\Luxel.Gallery.Resources.Stories.csproj" />
+    <ProjectReference Include="..\..\Resource\Luxel.Resources.Gallery\Luxel.Resources.Gallery.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Playground\Luxel.Gallery.Playground.csproj" />
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
   </ItemGroup>

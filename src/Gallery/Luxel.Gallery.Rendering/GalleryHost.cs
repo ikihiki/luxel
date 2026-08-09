@@ -23,12 +23,9 @@ public sealed class GalleryHost : IDisposable
     private readonly VectorFont _font;
     private readonly IRasterizer2D _raster;
     private readonly GpuDeviceRasterizer2D? _gpuRasterizer;
-    private readonly AssetGpuInstallation? _assetGpuInstallation;
     private readonly GallerySlangCompilation? _slangCompilation;
     // ストーリーへ StoryContext.Resources として配布 (キャッシュはストーリー横断で共有、Pump は Step が叩く)
-    private readonly Luxel.Resources.ResourceSystem _resources = new(
-        sources: Luxel.Resources.ResourceSystemDefaults.BuiltinSources(assetRoot: Environment.CurrentDirectory),
-        steps: [.. Luxel.Resources.ResourceSystemDefaults.BuiltinSteps(), new Luxel.Imaging.ImageSharpDecoder()]);
+    private readonly Luxel.Resources.ResourceSystem _resources;
     public EngineCommands Commands { get; } = new();
 
     // 選択中ストーリーの実体 (Select で作り直す)
@@ -67,13 +64,21 @@ public sealed class GalleryHost : IDisposable
         _publishFrames = publishFrames;
         _raster = rasterizer ?? throw new ArgumentNullException(nameof(rasterizer));
         _gpuRasterizer = rasterizer as GpuDeviceRasterizer2D;
-        _resources.AddStep<byte[], AssetDocument>(new GltfResourceStep());
+        var resourceBuilder = new Luxel.Resources.ResourceSystemBuilder();
+        Luxel.Resources.ResourceSystemDefaultHandles defaults = Luxel.Resources.ResourceSystemDefaults.AddCore(resourceBuilder);
+        Luxel.Resources.ResourceSystemDefaults.AddBuiltinSources(resourceBuilder, defaults, Environment.CurrentDirectory);
+        Luxel.Resources.ResourceSystemDefaults.AddBuiltinSteps(resourceBuilder, defaults);
+        resourceBuilder.Steps.Add<byte[], Luxel.Resources.CpuImage>(new Luxel.Imaging.ImageSharpDecoder())
+            .RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
+        resourceBuilder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep())
+            .RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
         if (device is not null)
         {
             _slangCompilation = new GallerySlangCompilation();
-            _slangCompilation.Install(_resources, device.BackendKind);
-            _assetGpuInstallation = _resources.InstallAssetGpuLifecycle(device);
+            _slangCompilation.Register(resourceBuilder, defaults, device.BackendKind);
+            resourceBuilder.AddAssetGpu(device);
         }
+        _resources = resourceBuilder.Build();
         Commands.Register("story.select", a => { if (a is JsonElement el && el.TryGetProperty("id", out JsonElement id)) Select(id.GetString() ?? ""); });
         Commands.Register("story.theme", a => { _dark = a is JsonElement el && el.TryGetProperty("dark", out JsonElement d) && d.ValueKind == JsonValueKind.True; ApplyTheme(); });
         Commands.Register("story.state", a => SetState(a));
@@ -260,7 +265,8 @@ public sealed class GalleryHost : IDisposable
     public void Step(float dt)
     {
         Commands.Drain();
-        _resources.Pump();   // リロード/遅延 Dispose の処理 (初回ロードの publish は Pump 不要)
+        _resources.Pump();   // リロード/遅延 Dispose の処理
+        _ctx?.PumpObservedResources();
         _ctx?.PumpKnobEdits();   // Knobs テーブル (docs 埋め込み) の編集適用 (effect 文脈外)
         if (_host is null || _canvas is null || _rasterScene is null) return;
         _host.Tick(dt);
@@ -423,9 +429,7 @@ public sealed class GalleryHost : IDisposable
         if (_disposed) return;
         _disposed = true;
         TearDown();
-        // The host owns the AssetsGpu installation, but only borrows the device.
-        // Wait for its queue before ResourceSystem disposes scoped GPU values.
-        _assetGpuInstallation?.Dispose();
+        // ResourceSystem owns GPU manager retirement but only borrows the device.
         _resources.Dispose();
         _slangCompilation?.Dispose();
         _raster.Dispose();

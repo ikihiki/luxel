@@ -60,6 +60,8 @@ public sealed class StoryContext : IDisposable
     private readonly HashSet<string> _argNames = new(StringComparer.Ordinal);
     private readonly Dictionary<string, StoryKnob> _argKnobs = new(StringComparer.Ordinal);
     private readonly List<IDisposable> _resourceSubscriptions = [];
+    private readonly HashSet<Luxel.Resources.ResourceSystem> _observedResourceSystems =
+        new(ReferenceEqualityComparer.Instance);
 
     /// <summary>Raised with the full canonical snapshot whenever a declared arg changes.</summary>
     public event Action<StoryArgs>? ArgsChanged;
@@ -144,11 +146,46 @@ public sealed class StoryContext : IDisposable
         return signal;
     }
 
+    /// <summary>
+    /// storyが所有する別のResourceSystem上のhandleをUI signalへ変換する。
+    /// 登録したsystemはhostのframe/Pump threadで進行し、同じsystemは1フレームに1回だけPumpされる。
+    /// </summary>
+    public Signal<Luxel.Resources.ResourceState> Observe<T>(
+        Luxel.Resources.ResourceSystem resources,
+        Luxel.Resources.ResourceHandle<T> handle)
+    {
+        ArgumentNullException.ThrowIfNull(resources);
+        Signal<Luxel.Resources.ResourceState> signal = Observe(handle);
+        if (!ReferenceEquals(resources, _resources)) _observedResourceSystems.Add(resources);
+        return signal;
+    }
+
+    /// <summary>story所有ResourceSystemの通知、reload、retirementをhost threadで進行する。</summary>
+    public void PumpObservedResources()
+    {
+        foreach (Luxel.Resources.ResourceSystem resources in _observedResourceSystems.ToArray())
+        {
+            try { resources.Pump(); }
+            catch (ObjectDisposedException) { _observedResourceSystems.Remove(resources); }
+        }
+    }
+
+    /// <summary>story所有ResourceSystemを非同期host loopから進行する。</summary>
+    public async ValueTask PumpObservedResourcesAsync(CancellationToken cancellationToken = default)
+    {
+        foreach (Luxel.Resources.ResourceSystem resources in _observedResourceSystems.ToArray())
+        {
+            try { await resources.PumpAsync(cancellationToken).ConfigureAwait(false); }
+            catch (ObjectDisposedException) { _observedResourceSystems.Remove(resources); }
+        }
+    }
+
     /// <summary>この story instance が subscription と scoped resource lease を解放する。複数回呼び出しても安全。</summary>
     public void Dispose()
     {
         foreach (IDisposable subscription in _resourceSubscriptions) subscription.Dispose();
         _resourceSubscriptions.Clear();
+        _observedResourceSystems.Clear();
         _scopedResources?.Dispose();
     }
 

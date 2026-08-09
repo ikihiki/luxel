@@ -9,10 +9,11 @@ using Luxel.Assets;
 using Luxel.Assets.Gltf;
 using Luxel.AssetsGpu;
 using Luxel.Resources;
+using Luxel.Resources.Browser;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>Widgetインスタンス専用のResourceSystemを持つ、ブラウザー対応の実行可能リソースシナリオ。</summary>
 internal sealed class ResourceScenarioWidget : CompositeControl, IDisposable
@@ -23,12 +24,21 @@ internal sealed class ResourceScenarioWidget : CompositeControl, IDisposable
     private readonly Signal<string> _detail = new("専用ResourceSystemを構築しています…");
     private int _started;
 
-    internal ResourceScenarioWidget(string title, Func<ResourceSystem, Task<string>> run, Action<string>? output = null)
+    internal ResourceScenarioWidget(
+        string title,
+        Action<ResourceSystemBuilder, ResourceSystemDefaultHandles>? configure,
+        Func<ResourceSystem, Task<string>> run,
+        Action<string>? output = null)
     {
         Title = title;
         _run = run;
         _output = output;
-        Resources = new ResourceSystem();
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaultHandles handles = OperatingSystem.IsBrowser()
+            ? builder.AddBrowserCore()
+            : ResourceSystemDefaults.AddCore(builder);
+        configure?.Invoke(builder, handles);
+        Resources = builder.Build();
     }
 
     internal string Title { get; }
@@ -166,16 +176,16 @@ internal static class ResourceScenarioSupport
     internal sealed record DiagnosticSeed(string Text);
     internal sealed record DiagnosticResult(string Text);
 
-    internal sealed class UpperTextStep : IResourceStep<byte[], TextAsset> { public Executor Executor => Executor.Cpu; public IEnumerable<string> Extensions => [".txt"]; public Task<TextAsset> RunAsync(byte[] input, ResourceUri uri, LoadContext context) => Task.FromResult(new TextAsset(Encoding.UTF8.GetString(input).ToUpperInvariant())); }
+    internal sealed class UpperTextStep : IResourceStep<byte[], TextAsset> { public IEnumerable<string> Extensions => [".txt"]; public Task<TextAsset> RunAsync(byte[] input, ResourceUri uri, LoadContext context) => Task.FromResult(new TextAsset(Encoding.UTF8.GetString(input).ToUpperInvariant())); }
     internal sealed class PackageSource(IReadOnlyDictionary<string, byte[]> entries) : IResourceSource { public IEnumerable<string> Schemes => ["package"]; public Task<byte[]> ReadAsync(ResourceUri uri, LoadContext context) => entries.TryGetValue(uri.Path, out byte[]? data) ? Task.FromResult((byte[])data.Clone()) : Task.FromException<byte[]>(new FileNotFoundException(uri.Path)); }
-    internal sealed class JsonStep : IResourceStep<byte[], JsonDocument> { public Executor Executor => Executor.Cpu; public IEnumerable<string> Extensions => [".json"]; public Task<JsonDocument> RunAsync(byte[] input, ResourceUri uri, LoadContext context) => Task.FromResult(JsonDocument.Parse(input)); }
-    internal sealed class PlayerStatsStep : IResourceStep<JsonDocument, PlayerStats> { public Executor Executor => Executor.Cpu; public Task<PlayerStats> RunAsync(JsonDocument input, ResourceUri uri, LoadContext context) => Task.FromResult(new PlayerStats(input.RootElement.GetProperty("name").GetString()!, input.RootElement.GetProperty("level").GetInt32())); }
-    internal sealed class PlainMessageStep : IResourceStep<byte[], MessageAsset> { public Executor Executor => Executor.Cpu; public IEnumerable<string> Extensions => [".txt"]; public Task<MessageAsset> RunAsync(byte[] input, ResourceUri uri, LoadContext context) => Task.FromResult(new MessageAsset(Encoding.UTF8.GetString(input))); }
-    internal sealed class CaptionMessageStep : IResourceStep<byte[], MessageAsset> { public Executor Executor => Executor.Cpu; public IEnumerable<string> Extensions => [".caption"]; public Task<MessageAsset> RunAsync(byte[] input, ResourceUri uri, LoadContext context) => Task.FromResult(new MessageAsset($"[{Encoding.UTF8.GetString(input)}]")); }
-    internal sealed class CountingTextStep : IResourceStep<byte[], TextAsset> { public int Runs; public Executor Executor => Executor.Cpu; public IEnumerable<string> Extensions => [".txt"]; public Task<TextAsset> RunAsync(byte[] input, ResourceUri uri, LoadContext context) { Interlocked.Increment(ref Runs); return Task.FromResult(new TextAsset(Encoding.UTF8.GetString(input))); } }
-    internal sealed class WordCountStep : IResourceStep<TextAsset, WordCount> { public Executor Executor => Executor.Cpu; public Task<WordCount> RunAsync(TextAsset input, ResourceUri uri, LoadContext context) => Task.FromResult(new WordCount(input.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length)); }
-    internal sealed class RuntimeLabelStep : IResourceStep<RuntimeSeed, RuntimeLabel> { public Executor Executor => Executor.Cpu; public Task<RuntimeLabel> RunAsync(RuntimeSeed input, ResourceUri uri, LoadContext context) => Task.FromResult(new RuntimeLabel($"レベル {input.Level}")); }
-    internal sealed class DiagnosticStep(Func<AssetDocument, string> inspect) : IResourceStep<AssetDocument, DiagnosticResult> { public Executor Executor => Executor.Cpu; public Task<DiagnosticResult> RunAsync(AssetDocument input, ResourceUri uri, LoadContext context) => Task.FromResult(new DiagnosticResult(inspect(input))); }
-    internal sealed class DiagnosticSeedStep : IResourceStep<DiagnosticSeed, DiagnosticResult> { public Executor Executor => Executor.Cpu; public Task<DiagnosticResult> RunAsync(DiagnosticSeed input, ResourceUri uri, LoadContext context) => Task.FromResult(new DiagnosticResult(input.Text)); }
+    internal sealed class JsonStep : IResourceStep<byte[], JsonDocument> { public IEnumerable<string> Extensions => [".json"]; public Task<JsonDocument> RunAsync(byte[] input, ResourceUri uri, LoadContext context) => Task.FromResult(JsonDocument.Parse(input)); }
+    internal sealed class PlayerStatsStep : IResourceStep<JsonDocument, PlayerStats> { public Task<PlayerStats> RunAsync(JsonDocument input, ResourceUri uri, LoadContext context) => Task.FromResult(new PlayerStats(input.RootElement.GetProperty("name").GetString()!, input.RootElement.GetProperty("level").GetInt32())); }
+    internal sealed class PlainMessageStep : IResourceStep<byte[], MessageAsset> { public IEnumerable<string> Extensions => [".txt"]; public Task<MessageAsset> RunAsync(byte[] input, ResourceUri uri, LoadContext context) => Task.FromResult(new MessageAsset(Encoding.UTF8.GetString(input))); }
+    internal sealed class CaptionMessageStep : IResourceStep<byte[], MessageAsset> { public IEnumerable<string> Extensions => [".caption"]; public Task<MessageAsset> RunAsync(byte[] input, ResourceUri uri, LoadContext context) => Task.FromResult(new MessageAsset($"[{Encoding.UTF8.GetString(input)}]")); }
+    internal sealed class CountingTextStep : IResourceStep<byte[], TextAsset> { public int Runs; public IEnumerable<string> Extensions => [".txt"]; public Task<TextAsset> RunAsync(byte[] input, ResourceUri uri, LoadContext context) { Interlocked.Increment(ref Runs); return Task.FromResult(new TextAsset(Encoding.UTF8.GetString(input))); } }
+    internal sealed class WordCountStep : IResourceStep<TextAsset, WordCount> { public Task<WordCount> RunAsync(TextAsset input, ResourceUri uri, LoadContext context) => Task.FromResult(new WordCount(input.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length)); }
+    internal sealed class RuntimeLabelStep : IResourceStep<RuntimeSeed, RuntimeLabel> { public Task<RuntimeLabel> RunAsync(RuntimeSeed input, ResourceUri uri, LoadContext context) => Task.FromResult(new RuntimeLabel($"レベル {input.Level}")); }
+    internal sealed class DiagnosticStep(Func<AssetDocument, string> inspect) : IResourceStep<AssetDocument, DiagnosticResult> { public Task<DiagnosticResult> RunAsync(AssetDocument input, ResourceUri uri, LoadContext context) => Task.FromResult(new DiagnosticResult(inspect(input))); }
+    internal sealed class DiagnosticSeedStep : IResourceStep<DiagnosticSeed, DiagnosticResult> { public Task<DiagnosticResult> RunAsync(DiagnosticSeed input, ResourceUri uri, LoadContext context) => Task.FromResult(new DiagnosticResult(input.Text)); }
     internal sealed class StaticHttpHandler(string content) : HttpMessageHandler { protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(Bytes(content)) }); }
 }

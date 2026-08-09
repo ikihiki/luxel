@@ -8,7 +8,6 @@ namespace Luxel.Audio;
 /// </summary>
 public sealed class AudioClipStep : IResourceStep<byte[], AudioClip>
 {
-    public Executor Executor => Executor.Cpu;
     public IEnumerable<string> Extensions => new[] { ".wav", ".ogg" };
 
     public Task<AudioClip> RunAsync(byte[] input, ResourceUri uri, LoadContext ctx)
