@@ -74,7 +74,7 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("BrowserWebGpuBackend.CaptureLatestDiagnostics(ex, \"BrowserGalleryApplication.RunAsync\")", runtime, StringComparison.Ordinal);
         Assert.Contains("browserBackend.CaptureDiagnostics()", runtime, StringComparison.Ordinal);
         Assert.Contains("BuildStoryWidget(story, context, result, font", runtime, StringComparison.Ordinal);
-        Assert.Contains("MarkdownDoc.FromStoryResult", runtime, StringComparison.Ordinal);
+        Assert.Contains("StoryMarkdownDocumentAdapter.FromStoryResult", runtime, StringComparison.Ordinal);
         Assert.Contains("Catalog.Find(reference.Path)", runtime, StringComparison.Ordinal);
         Assert.Contains("5bad5aaa0bbb5d0f9cdc934e626f27d0df1e79b8", fixtureTargets, StringComparison.Ordinal);
         Assert.Contains("BoxAnimated/glTF-Binary/BoxAnimated.glb", fixtureTargets, StringComparison.Ordinal);

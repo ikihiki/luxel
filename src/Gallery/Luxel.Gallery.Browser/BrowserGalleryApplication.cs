@@ -255,7 +255,7 @@ public static partial class BrowserGalleryApplication
             ["mermaid"] = body => Luxel.Diagram.Factories.DiagramBlock(body, Math.Max(320f, width - 32f)),
             ["math"] = body => Luxel.MathText.Factories.MathBlockView(body, maxWidth: Math.Max(320f, width - 32f)),
         };
-        return MarkdownDoc.FromStoryResult(result, () => UiTheme.T,
+        return StoryMarkdownDocumentAdapter.FromStoryResult(result, () => UiTheme.T,
             Math.Max(320f, width), Math.Max(240f, height),
             reference => BuildStoryReference(context, reference, font, width, height),
             body: font, highlighter: Luxel.Highlight.TextMateHighlighter.Instance,

@@ -24,7 +24,7 @@ public static class StoryMarkdownRenderer
             ["mermaid"] = body => Luxel.Diagram.Factories.DiagramBlock(body, 640f),
             ["math"] = body => Luxel.MathText.Factories.MathBlockView(body, maxWidth: 640f),
         };
-        TextEditorView editor = MarkdownDoc.FromStoryResult(result, () => UiTheme.T, width: 640f, height: 480f,
+        TextEditorView editor = StoryMarkdownDocumentAdapter.FromStoryResult(result, () => UiTheme.T, width: 640f, height: 480f,
             reference => BuildReference(context, reference), bold: bold, mono: mono,
             highlighter: Luxel.Highlight.TextMateHighlighter.Instance, fences: fences,
             fonts: StoryKit.JpFallback.Value, fill: true);

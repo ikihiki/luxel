@@ -50,8 +50,8 @@ public static class CoreUiStoryProject
         ArgumentNullException.ThrowIfNull(builder);
         ValidateProductionDescriptors();
 
-        // Auto-generated canonical ownership. These registrars live with the component assemblies,
-        // invoke direct typed factories, and expose static schemas without executing a story.
+        // Auto-generated canonical ownership. These registrars are emitted into this Gallery leaf from
+        // Gallery-neutral component metadata and invoke direct typed factories without reflection.
         Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Controls.Register(builder);
         Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Diagram.Register(builder);
         Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_MathText.Register(builder);

@@ -1,12 +1,11 @@
 using System.Runtime.CompilerServices;
 using System.Text;
-using Luxel.Gallery;
 using Luxel.UI;
 
 namespace Luxel.Controls;
 
 /// <summary>
-/// MDX 風 docs ページの補完文字列。direct <see cref="StoryResult"/> への移行前のstructured documentにも使用する。
+/// MDX 風 docs ページの補完文字列。structured document renderingにも使用する。
 /// **リテラル部分 = markdown、hole = ライブ UI / テキスト補完**。
 ///
 /// <code>
@@ -32,15 +31,15 @@ namespace Luxel.Controls;
 /// </summary>
 /// <summary>DocString の hole に置ける「生 markdown の断片」。テキスト補完 (ToString 焼き込み) と
 /// 違い行境界を保証し、ページ本体の markdown として整形される — storysource のコードフェンス等。</summary>
-public readonly record struct DocMarkdown(string Markdown) : IStoryMarkdownFragment;
+public readonly record struct DocMarkdown(string Markdown) : IMarkdownFragment;
 
 /// <summary>Structured description of a live widget embedded in a <see cref="DocString"/>.
 /// Static exporters use this metadata to replace the live widget with an equivalent capture.
 /// <paramref name="Reference"/> is the referenced story path for <see cref="DocEmbedKind.StoryRef"/>.</summary>
 public sealed record DocEmbed(Widget? Widget, DocEmbedKind Kind = DocEmbedKind.Widget, string? Reference = null,
-    bool Inline = false, bool IncludeInherited = false, Func<Widget>? WidgetFactory = null) : IStoryMarkdownEmbed
+    bool Inline = false, bool IncludeInherited = false, Func<Widget>? WidgetFactory = null) : IMarkdownEmbed
 {
-    string IStoryMarkdownEmbed.Kind => Kind.ToString();
+    string IMarkdownEmbed.Kind => Kind.ToString();
 
     /// <summary>Resolves the native live widget only when an interactive document is realized.</summary>
     public Widget ResolveWidget() => Widget ?? WidgetFactory?.Invoke()

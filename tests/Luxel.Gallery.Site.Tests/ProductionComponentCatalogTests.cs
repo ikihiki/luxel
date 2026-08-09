@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using Luxel.Gallery;
@@ -46,6 +47,30 @@ public sealed class ProductionComponentCatalogTests
             Assert.True(basicResult.Widget is GeneratedComponentStoryPreview or StoryCapabilityFallback,
                 $"{descriptor.BasicPath} returned {basicResult.Widget?.GetType().FullName ?? "null"}.");
         }
+    }
+
+    [Fact]
+    public void Production_component_assemblies_publish_neutral_metadata_without_Gallery_dependencies()
+    {
+        Assembly[] productionAssemblies =
+        [
+            typeof(Luxel.Controls.Kit).Assembly,
+            typeof(Luxel.Diagram.Factories).Assembly,
+            typeof(Luxel.MathText.Factories).Assembly,
+            typeof(Luxel.Particles.UI.ParticleView).Assembly,
+        ];
+
+        foreach (Assembly assembly in productionAssemblies)
+        {
+            Assert.DoesNotContain(assembly.GetReferencedAssemblies(),
+                reference => reference.Name?.StartsWith("Luxel.Gallery", StringComparison.Ordinal) == true);
+            Assert.NotEmpty(assembly.GetCustomAttributes<GeneratedComponentMetadataAttribute>());
+        }
+
+        int metadataCount = productionAssemblies
+            .Append(typeof(Luxel.Gallery.UI.Kit).Assembly)
+            .Sum(assembly => assembly.GetCustomAttributes<GeneratedComponentMetadataAttribute>().Count());
+        Assert.Equal(CoreUiStoryProject.ProductionComponentCount, metadataCount);
     }
 
     [Fact]

@@ -12,23 +12,6 @@ public enum StoryResultKind
     Widget,
 }
 
-/// <summary>Markdown Story に直接補間できる生 Markdown 断片。</summary>
-public interface IStoryMarkdownFragment
-{
-    string Markdown { get; }
-}
-
-/// <summary>Markdown Story に直接補間できる構造化 Widget 埋め込み。</summary>
-public interface IStoryMarkdownEmbed
-{
-    Widget? Widget { get; }
-    string Kind { get; }
-    string? Reference { get; }
-    bool Inline { get; }
-    bool IncludeInherited { get; }
-    Func<Widget>? WidgetFactory { get; }
-}
-
 /// <summary>StoryResult 内の構造化 Widget 埋め込み。</summary>
 public sealed record StoryMarkdownEmbed(Widget? Widget, string Kind = "Widget", string? Reference = null,
     bool Inline = false, bool IncludeInherited = false, Func<Widget>? WidgetFactory = null)
@@ -256,7 +239,7 @@ public sealed class StoryResult
         => new(markdown, references ?? Array.Empty<StoryReference>());
 
     /// <summary>既存の構造化文書からMarkdownとWidget埋め込みを移行する。</summary>
-    public static StoryResult FromDocument(string markdown, IEnumerable<IStoryMarkdownEmbed> embeds)
+    public static StoryResult FromDocument(string markdown, IEnumerable<IMarkdownEmbed> embeds)
         => new(markdown, Array.Empty<StoryReference>(), embeds.Select(embed => new StoryMarkdownEmbed(
             embed.Widget, embed.Kind, embed.Reference, embed.Inline, embed.IncludeInherited, embed.WidgetFactory)).ToArray());
 
@@ -306,12 +289,12 @@ public sealed class StoryResult
             case Widget widget:
                 AppendFormatted(widget);
                 return;
-            case IStoryMarkdownFragment fragment:
+            case IMarkdownFragment fragment:
                 EnsureLineBoundary();
                 _markdown!.Append(fragment.Markdown);
                 _afterEmbed = true;
                 return;
-            case IStoryMarkdownEmbed embed:
+            case IMarkdownEmbed embed:
                 AppendEmbed(new StoryMarkdownEmbed(embed.Widget, embed.Kind, embed.Reference,
                     embed.Inline, embed.IncludeInherited, embed.WidgetFactory));
                 return;

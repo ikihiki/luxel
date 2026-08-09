@@ -421,6 +421,10 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         // 派生が基底と同名のパラメータ (_height 等) を再宣言した場合、生成プロパティが基底を隠す — 意図的
         sb.AppendLine("#pragma warning disable CS0108, CS0114");
 
+        // Gallery-neutral component metadata is emitted into production assemblies. Gallery-side
+        // generators consume these assembly attributes from referenced production assemblies.
+        EmitComponentMetadata(sb, list, factoryDefault);
+
         // ---- (1) SetProp + デバッグ焼き込み (partial override) ----
         foreach (WidgetModel w in list)
         {
@@ -454,6 +458,35 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         EmitControlApi(sb, list, assemblyName);
 
         spc.AddSource("LuxelUiComponents.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    private static void EmitComponentMetadata(StringBuilder sb, List<WidgetModel> list, string factoryDefault)
+    {
+        foreach (WidgetModel w in list.Where(static value => value.IsComponent).OrderBy(static value => value.FactoryName, StringComparer.Ordinal))
+        {
+            string factoryClass = w.FactoryClass ?? factoryDefault;
+            sb.Append("[assembly: global::Luxel.UI.GeneratedComponentMetadata(typeof(").Append(w.TypeFq).Append("), ")
+              .Append(Lit(w.FactoryName)).Append(", ").Append(Lit(w.Namespace)).Append(", ")
+              .Append(Lit(factoryClass)).Append(", ").Append(Lit(w.FactoryName)).Append(", ")
+              .Append(Lit(w.DocSummary)).AppendLine(")] ");
+            foreach (FieldModel f in w.Fields)
+            {
+                sb.Append("[assembly: global::Luxel.UI.GeneratedComponentParameterMetadata(typeof(").Append(w.TypeFq)
+                  .Append("), ").Append(Lit(f.Name)).Append(", typeof(").Append(f.TypeFq).Append("), ")
+                  .Append(Lit(f.Kind.ToString())).Append(", ").Append(Lit(f.EnumHint)).Append(", ")
+                  .Append(f.Own ? "true" : "false").Append(", ").Append(Lit(f.Summary)).Append(", ")
+                  .Append(f.Seq).AppendLine(")] ");
+            }
+            foreach (EventModel e in w.Events)
+            {
+                sb.Append("[assembly: global::Luxel.UI.GeneratedComponentEventMetadata(typeof(").Append(w.TypeFq)
+                  .Append("), ").Append(Lit(e.Name)).Append(", new global::System.Type[] { ")
+                  .Append(string.Join(", ", e.ArgTypesFq.Select(static type => "typeof(" + type + ")")))
+                  .Append(" }, ").Append(e.Own ? "true" : "false").Append(", ").Append(Lit(e.Summary))
+                  .Append(", ").Append(e.Seq).AppendLine(")] ");
+            }
+        }
+        sb.AppendLine();
     }
 
     private static void EmitControlApi(StringBuilder sb, List<WidgetModel> list, string assemblyName)
