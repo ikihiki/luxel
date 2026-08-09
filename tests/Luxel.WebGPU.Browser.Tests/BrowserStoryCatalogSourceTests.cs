@@ -34,7 +34,7 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("_ = RunStoryAsync(_story.Path, _argsJson)", app, StringComparison.Ordinal);
         Assert.Contains("BrowserGalleryApplication.RunAsync(Services, story, argsJson)", app, StringComparison.Ordinal);
         Assert.Contains("class=\"gallery-sidebar\"", app, StringComparison.Ordinal);
-        Assert.Contains("placeholder=\"Search stories\"", app, StringComparison.Ordinal);
+        Assert.Contains("placeholder=\"Storyを検索\"", app, StringComparison.Ordinal);
         Assert.Contains("Navigation.NavigateTo(StoryHref(story.Path), forceLoad: false)", app, StringComparison.Ordinal);
         Assert.Contains("Navigation.LocationChanged += OnLocationChanged", app, StringComparison.Ordinal);
         Assert.Contains("class=\"story-runtime-frame\"", app, StringComparison.Ordinal);
