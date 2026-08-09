@@ -18,7 +18,7 @@ public static class WorkbenchShellStory
     {
         TextEditorView v = TextEditorView(text, editorHeight: 240f, editorWidth: 400f);
         v.Fill = true;
-        v.EditorFont = StoryKit.EditorFaces.Value.Mono;
+        v.EditorFont = Luxel.Editor.Gallery.StoryKit.EditorFaces.Value.Mono;
         v.Providers.Add(new SyntaxHighlightProvider(Luxel.Highlight.TextMateHighlighter.Instance, "csharp", () => UiTheme.T));
         v.Providers.Add(new CurrentLineProvider(() => UiTheme.T));
         return v;
@@ -28,14 +28,14 @@ public static class WorkbenchShellStory
     {
         TextEditorView v = TextEditorView(text, editorHeight: 240f, editorWidth: 400f);
         v.Fill = true;
-        v.EditorFont = StoryKit.EditorFaces.Value.Mono;
+        v.EditorFont = Luxel.Editor.Gallery.StoryKit.EditorFaces.Value.Mono;
         v.Providers.Add(new CurrentLineProvider(() => UiTheme.T));
         return v;
     }
 
     private static TextEditorView MarkdownView(Signal<string> text)
     {
-        (VectorFont? bold, _, _, VectorFont? mono) = StoryKit.EditorFaces.Value;
+        (VectorFont? bold, _, _, VectorFont? mono) = Luxel.Editor.Gallery.StoryKit.EditorFaces.Value;
         return MarkdownDoc.Create(text, () => UiTheme.T, 400, 240,
             bold: bold, mono: mono, fill: true, editable: true);
     }

@@ -4,7 +4,7 @@ using Luxel.Strudel;
 using Luxel.Typography;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.StoryKit;
+using static Luxel.Editor.Gallery.StoryKit;
 
 namespace Luxel.Gallery.Stories;
 

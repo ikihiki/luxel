@@ -2,7 +2,7 @@
 using Luxel.UI;
 using Luxel.UI.Tailwind;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.StoryKit;
+using static Luxel.Controls.Gallery.StoryKit;
 
 namespace Luxel.Gallery.Stories;
 

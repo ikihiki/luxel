@@ -21,7 +21,7 @@ public static class WorkbenchFilesStory
     {
         TextEditorView v = TextEditorView(text, editorHeight: 240f, editorWidth: 400f);
         v.Fill = true;
-        v.EditorFont = StoryKit.EditorFaces.Value.Mono;
+        v.EditorFont = Luxel.Editor.Gallery.StoryKit.EditorFaces.Value.Mono;
         v.Providers.Add(new SyntaxHighlightProvider(Luxel.Highlight.TextMateHighlighter.Instance, "csharp", () => UiTheme.T));
         v.Providers.Add(new CurrentLineProvider(() => UiTheme.T));
         return v;
@@ -31,7 +31,7 @@ public static class WorkbenchFilesStory
     {
         TextEditorView v = TextEditorView(text, editorHeight: 240f, editorWidth: 400f);
         v.Fill = true;
-        v.EditorFont = StoryKit.EditorFaces.Value.Mono;
+        v.EditorFont = Luxel.Editor.Gallery.StoryKit.EditorFaces.Value.Mono;
         v.Providers.Add(new CurrentLineProvider(() => UiTheme.T));
         return v;
     }
