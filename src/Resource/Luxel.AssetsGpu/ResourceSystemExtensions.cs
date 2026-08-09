@@ -3,61 +3,120 @@ using Luxel.Resources;
 
 namespace Luxel.AssetsGpu;
 
-public sealed class AssetGpuResourceSystemOptions
+public sealed class GpuResourceInstallationOptions
 {
-    public string DomainId { get; set; } = "asset.gpu";
-    public string ManagerId { get; set; } = "asset.gpu-manager";
+    public string DomainId { get; set; } = "gpu.device-0.create";
+    public string ManagerId { get; set; } = "gpu.device-0";
+    public string DeviceId { get; set; } = Guid.NewGuid().ToString("N");
+    public ulong DeviceGeneration { get; set; } = 1;
+    public long SoftBudgetBytes { get; set; } = long.MaxValue;
+    public long HardBudgetBytes { get; set; } = long.MaxValue;
 }
 
-public readonly record struct AssetGpuResourceSystemRegistration(
-    ResourceExecutionDomainHandle Domain,
-    ResourceManagerHandle Manager,
-    AssetGpuRegistry Registry);
+public readonly record struct AssetGpuResourceSystemRegistration(GpuResourceManagerHandle Gpu)
+{
+    public ResourceExecutionDomainHandle Domain => Gpu.CreateDomain;
+    public ResourceManagerHandle Manager => Gpu.Manager;
+    public AssetGpuRegistry Registry => Gpu.Registry;
+}
 
-/// <summary>Registers the AssetsGpu domain, manager, type bindings, and steps before ResourceSystem build.</summary>
+/// <summary>Build-time GPU manager and Asset GPU capability composition.</summary>
 public static class ResourceSystemExtensions
 {
-    public static AssetGpuResourceSystemRegistration AddAssetGpu(
-        this ResourceSystemBuilder builder,
-        GpuDevice device,
-        Action<AssetGpuResourceSystemOptions>? configure = null)
+    public static GpuResourceManagerHandle InstallGpuResources(this ResourceSystemBuilder builder, GpuDevice device,
+        Action<GpuResourceInstallationOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(device);
-        var options = new AssetGpuResourceSystemOptions();
+        var options = new GpuResourceInstallationOptions();
         configure?.Invoke(options);
+        if (options.DeviceGeneration == 0) throw new InvalidOperationException("GPU device generation must be greater than zero.");
+        if (options.SoftBudgetBytes < 0 || options.HardBudgetBytes < options.SoftBudgetBytes)
+            throw new InvalidOperationException("GPU budgets must satisfy 0 <= soft <= hard.");
 
-        ResourceExecutionDomainHandle domain = builder.Domains.Add(options.DomainId).UseSerial().Register();
-        var registry = new AssetGpuRegistry(device);
+        var generation = new GpuResourceGeneration(device, new(options.DeviceId, options.DeviceGeneration));
+        var registry = new AssetGpuRegistry(device, generation.Identity);
+        var managerOptions = new GpuResourceManagerOptions
+        {
+            SoftBudgetBytes = options.SoftBudgetBytes,
+            HardBudgetBytes = options.HardBudgetBytes,
+        };
+
+        GpuResourceManagerHandle? installation = null;
+        ResourceExecutionDomainHandle domain = builder.Domains.Add(options.DomainId)
+            .UseFactory(context =>
+            {
+                var value = new GpuResourceExecutionDomain(context.Id);
+                installation!.Attach(value);
+                return value;
+            }, new(1, ResourceThreadAffinity.DeviceThread, ResourceProgressModel.Serialized))
+            .Register();
         ResourceManagerHandle manager = builder.Managers.Add(options.ManagerId)
             .RunOn(domain)
-            .Use(context => new AssetGpuResourceManager(context.Id, device, registry))
+            .Use(context =>
+            {
+                var value = new GpuResourceManager(context.Id, generation, installation!.Policies, managerOptions, registry);
+                installation.Attach(value);
+                return value;
+            })
+            .ValidateManagedTypes(type => installation!.Validate(type))
             .Register();
-
-        BindTypes(builder, manager);
-        RegisterSteps(builder, device, registry, domain, manager);
-        return new(domain, manager, registry);
+        installation = new(domain, manager, registry, generation, managerOptions);
+        return installation;
     }
 
-    private static void BindTypes(ResourceSystemBuilder builder, ResourceManagerHandle manager)
+    public static AssetGpuResourceSystemRegistration AddAssetGpu(this ResourceSystemBuilder builder, GpuDevice device,
+        Action<GpuResourceInstallationOptions>? configure = null)
     {
-        builder.Managers.Manage<GpuTexture>().With(manager).Register();
-        builder.Managers.Manage<GpuSampler>().With(manager).Register();
-        builder.Managers.Manage<GpuMaterial>().With(manager).Register();
-        builder.Managers.Manage<GpuMesh>().With(manager).Register();
-        builder.Managers.Manage<GpuSkin>().With(manager).Register();
-        builder.Managers.Manage<GpuPipeline>().With(manager).Register();
-        builder.Managers.Manage<GpuBuffer>().With(manager).Register();
+        GpuResourceManagerHandle gpu = builder.InstallGpuResources(device, configure);
+        RegisterBuiltInPolicies(builder, gpu);
+        RegisterSteps(builder, gpu);
+        return new(gpu);
     }
 
-    private static void RegisterSteps(
-        ResourceSystemBuilder builder,
-        GpuDevice device,
-        AssetGpuRegistry registry,
-        ResourceExecutionDomainHandle domain,
-        ResourceManagerHandle manager)
+    public static void RegisterBuiltInGpuPolicies(this ResourceSystemBuilder builder, GpuResourceManagerHandle gpu)
+        => RegisterBuiltInPolicies(builder, gpu);
+
+    private static void RegisterBuiltInPolicies(ResourceSystemBuilder builder, GpuResourceManagerHandle gpu)
     {
-        builder.Steps.Add<CpuImage, GpuTexture>(new TextureUploaderStep(device)).RunOn(domain).ManagedBy(manager).Register();
+        gpu.Manage<GpuTexture>(builder)
+            .DescribeAllocation(texture =>
+            {
+                long bytes = checked((long)texture.Width * texture.Height * 4);
+                return new("", bytes, bytes, bytes, "device-local", Pinned: true);
+            })
+            .WithIndexSpace("sampled-texture")
+            .RetireAsync((value, _) => { value.Dispose(); return ValueTask.CompletedTask; })
+            .Register();
+        gpu.Manage<GpuSampler>(builder)
+            .WithIndexSpace("sampler")
+            .RetireAsync((value, _) => { value.Dispose(); return ValueTask.CompletedTask; })
+            .Register();
+        gpu.Manage<GpuPipeline>(builder)
+            .RetireAsync((value, _) => { value.Dispose(); return ValueTask.CompletedTask; })
+            .Register();
+        gpu.Manage<GpuBuffer>(builder)
+            .DescribeAllocation(buffer => new("", checked((long)buffer.Size), checked((long)buffer.Size),
+                checked((long)buffer.Size), buffer.IsMapped ? "upload" : "device-local", Pinned: true))
+            .WithIndexSpace("storage-buffer")
+            .RetireAsync((value, _) => { value.Dispose(); return ValueTask.CompletedTask; })
+            .Register();
+        gpu.Manage<GpuMesh>(builder)
+            .RetireAsync((value, _) => { value.Dispose(); return ValueTask.CompletedTask; })
+            .Register();
+        gpu.Manage<GpuSkin>(builder)
+            .RetireAsync((value, _) => { value.Dispose(); return ValueTask.CompletedTask; })
+            .FlushAsync((value, _) => { value.JointMatrices?.FlushImmediate(); return ValueTask.CompletedTask; })
+            .Register();
+        gpu.Manage<GpuMaterial>(builder).Register();
+    }
+
+    private static void RegisterSteps(ResourceSystemBuilder builder, GpuResourceManagerHandle gpu)
+    {
+        AssetGpuRegistry registry = gpu.Registry;
+        ResourceExecutionDomainHandle domain = gpu.CreateDomain;
+        ResourceManagerHandle manager = gpu.Manager;
+        builder.Steps.Add<CpuImage, GpuTexture>(new TextureUploaderStep(registry)).RunOn(domain).ManagedBy(manager).Register();
         builder.Steps.Add<AssetTexture, GpuTexture>(new AssetTextureToGpuStep(registry)).RunOn(domain).ManagedBy(manager).Borrowed().Register();
         builder.Steps.Add<AssetSampler, GpuSampler>(new AssetSamplerToGpuStep(registry)).RunOn(domain).ManagedBy(manager).Borrowed().Register();
         builder.Steps.Add<AssetMaterial, GpuMaterial>(new AssetMaterialToGpuStep(registry)).RunOn(domain).ManagedBy(manager).Borrowed().Register();
@@ -68,49 +127,5 @@ public static class ResourceSystemExtensions
         builder.Steps.Add<GpuSamplerRequest, GpuSampler>(new GpuSamplerCreationStep(registry)).RunOn(domain).ManagedBy(manager).Register();
         builder.Steps.Add<GpuBufferRequest, GpuBuffer>(new GpuBufferCreationStep(registry)).RunOn(domain).ManagedBy(manager).Register();
         builder.Steps.Add<float[], GpuBuffer>(new Float32ArrayToGpuBufferStep(registry)).RunOn(domain).ManagedBy(manager).Register();
-    }
-}
-
-internal sealed class AssetGpuResourceManager : IResourceManager
-{
-    private readonly GpuDevice _device;
-    private readonly AssetGpuRegistry _registry;
-    private long _adopted;
-    private long _retired;
-
-    public AssetGpuResourceManager(ResourceManagerId id, GpuDevice device, AssetGpuRegistry registry)
-    {
-        Id = id;
-        _device = device;
-        _registry = registry;
-    }
-
-    public ResourceManagerId Id { get; }
-    public ResourceManagerCapabilities Capabilities => ResourceManagerCapabilities.AsyncRetirement;
-
-    public ValueTask<ResourceManagementRecord> AdoptAsync(object value, ResourceAdoptionContext context)
-    {
-        Interlocked.Increment(ref _adopted);
-        return ValueTask.FromResult(new ResourceManagementRecord(Id, context.Ownership, Context: context.ManagementContext));
-    }
-
-    public async ValueTask RetireAsync(object value, ResourceManagementRecord record, ResourceRetireReason reason,
-        CancellationToken cancellationToken = default)
-    {
-        if (record.Ownership == ResourceOwnership.Owned)
-        {
-            await _device.MainQueue.WaitIdleAsync(cancellationToken).ConfigureAwait(false);
-            if (value is IAsyncDisposable asyncDisposable) await asyncDisposable.DisposeAsync().ConfigureAwait(false);
-            else if (value is IDisposable disposable) disposable.Dispose();
-        }
-        Interlocked.Increment(ref _retired);
-    }
-
-    public ResourceManagerSnapshot CaptureSnapshot() => new(Id, Interlocked.Read(ref _adopted), Interlocked.Read(ref _retired), 0, 0);
-    public ValueTask ShutdownAsync(CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
-    public async ValueTask DisposeAsync()
-    {
-        await _device.MainQueue.WaitIdleAsync().ConfigureAwait(false);
-        _registry.Dispose();
     }
 }

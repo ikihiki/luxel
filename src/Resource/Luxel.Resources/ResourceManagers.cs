@@ -13,7 +13,18 @@ public readonly record struct ResourceManagerId
 
 public readonly record struct ResourceManagerHandle(ResourceManagerId Id);
 public readonly record struct ResourceManagementContext(string? Qualifier = null);
-public readonly record struct ResourceAllocationInfo(string AllocationId, long LogicalSize, long CommittedSize, long ResidentSize, string MemoryClass = "managed");
+public readonly record struct ResourceAllocationInfo(
+    string AllocationId,
+    long LogicalSize,
+    long CommittedSize,
+    long ResidentSize,
+    string MemoryClass = "managed",
+    string? ArenaId = null,
+    long Alignment = 0,
+    bool Relocatable = false,
+    bool Pinned = false,
+    double FragmentationContribution = 0,
+    long DeviceGeneration = 0);
 public readonly record struct ResourceIndexToken(string IndexSpaceId, int Index, ResourceManagerId ManagerId, long DeviceGeneration = 0);
 public readonly record struct ResourceIndexSet(IReadOnlyList<ResourceIndexToken> Values)
 {

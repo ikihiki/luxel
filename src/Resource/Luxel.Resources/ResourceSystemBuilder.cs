@@ -31,7 +31,8 @@ internal sealed record ResourceManagerDescriptor(
     ResourceExecutionDomainHandle DefaultDomain,
     Func<ResourceManagerBuildContext, IResourceManager> Factory,
     bool IsDefault,
-    bool AsyncOnly);
+    bool AsyncOnly,
+    Func<Type, string?>? ValidateManagedType);
 
 internal sealed class ResourceSystemDefinition
 {
@@ -346,17 +347,24 @@ public sealed class ResourceManagerRegistrationBuilder
     private readonly ResourceManagerId _id;
     private ResourceExecutionDomainHandle _domain;
     private Func<ResourceManagerBuildContext, IResourceManager>? _factory;
+    private Func<Type, string?>? _validateManagedType;
     private bool _default, _asyncOnly;
     internal ResourceManagerRegistrationBuilder(ResourceSystemBuilder owner, ResourceManagerId id) { _owner = owner; _id = id; }
     public ResourceManagerRegistrationBuilder RunOn(ResourceExecutionDomainHandle domain) { _domain = domain; return this; }
     public ResourceManagerRegistrationBuilder Use(Func<ResourceManagerBuildContext, IResourceManager> factory, bool asyncOnly = false) { _factory = factory; _asyncOnly = asyncOnly; return this; }
     public ResourceManagerRegistrationBuilder UseCpu() { _factory = context => new CpuResourceManager(context.Id); return this; }
     public ResourceManagerRegistrationBuilder UseIo() { _factory = context => new IoResourceManager(context.Id); return this; }
+    /// <summary>Adds manager-specific build validation for explicitly managed output types.</summary>
+    public ResourceManagerRegistrationBuilder ValidateManagedTypes(Func<Type, string?> validator)
+    {
+        _validateManagedType = validator ?? throw new ArgumentNullException(nameof(validator));
+        return this;
+    }
     public ResourceManagerRegistrationBuilder AsDefault() { _default = true; return this; }
     public ResourceManagerHandle Register()
     {
         _owner.EnsureMutable();
-        _owner.Definition.Managers.Add(new(_id, _domain, _factory ?? (context => new CpuResourceManager(context.Id)), _default, _asyncOnly));
+        _owner.Definition.Managers.Add(new(_id, _domain, _factory ?? (context => new CpuResourceManager(context.Id)), _default, _asyncOnly, _validateManagedType));
         return new(_id);
     }
 }
@@ -396,12 +404,19 @@ internal static class ResourceBuildValidator
         foreach (ResourceStepDescriptor step in definition.Steps)
         {
             if (!domainIds.Contains(step.Domain.Id)) errors.Add($"Step '{step.Name}' references unregistered domain '{step.Domain.Id}'.");
-            if (step.Manager is { } manager && !managerIds.Contains(manager.Id)) errors.Add($"Step '{step.Name}' references unregistered manager '{manager.Id}'.");
+            if (step.Manager is { } manager)
+            {
+                if (!managerIds.Contains(manager.Id)) errors.Add($"Step '{step.Name}' references unregistered manager '{manager.Id}'.");
+                else ValidateManagedType(definition, manager.Id, step.Output, $"Step '{step.Name}'", errors);
+            }
             if (step.Manager is null && !definition.ManagerBindings.ContainsKey(step.Output) && !definition.Managers.Any(m => m.IsDefault))
                 errors.Add($"Step '{step.Name}' output type '{step.Output}' has no resource manager binding.");
         }
         foreach ((Type type, ResourceManagerHandle handle) in definition.ManagerBindings)
+        {
             if (!managerIds.Contains(handle.Id)) errors.Add($"Type '{type}' references unregistered manager '{handle.Id}'.");
+            else ValidateManagedType(definition, handle.Id, type, $"Type '{type}'", errors);
+        }
 
         var schemes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (ResourceSourceDescriptor source in definition.Sources)
@@ -421,6 +436,14 @@ internal static class ResourceBuildValidator
 
         DetectCycles(definition.Steps, errors);
         if (errors.Count > 0) throw new InvalidOperationException("ResourceSystem build validation failed:\n - " + string.Join("\n - ", errors.Distinct()));
+    }
+
+    private static void ValidateManagedType(ResourceSystemDefinition definition, ResourceManagerId managerId,
+        Type type, string owner, List<string> errors)
+    {
+        ResourceManagerDescriptor descriptor = definition.Managers.Single(manager => manager.Id == managerId);
+        string? error = descriptor.ValidateManagedType?.Invoke(type);
+        if (!string.IsNullOrWhiteSpace(error)) errors.Add($"{owner} cannot be managed by '{managerId}': {error}");
     }
 
     private static void ValidateDuplicates<T>(IEnumerable<T> values, string kind, List<string> errors) where T : notnull

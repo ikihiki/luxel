@@ -145,13 +145,27 @@ public sealed class LuxelHostBuilder
         {
             _inner.Services.AddSingleton(sp =>
             {
-                var device = sp.GetRequiredService<GpuDevice>();
-                var res = new ResourceSystem(
-                    sources: ResourceSystemDefaults.BuiltinSources(assetRoot: _assetRoot),
-                    steps: ResourceSystemDefaults.BuiltinSteps());
-                res.InstallAssetGpu(device);  // GPU Step 一式を追加登録
-                return res;
+                var builder = new ResourceSystemBuilder();
+                ResourceSystemDefaultHandles core = ResourceSystemDefaults.AddCore(builder);
+                ResourceSystemDefaults.AddBuiltinSources(builder, core, assetRoot: _assetRoot);
+                ResourceSystemDefaults.AddBuiltinSteps(builder, core);
+                AssetGpuResourceSystemRegistration gpu = builder.AddAssetGpu(sp.GetRequiredService<GpuDevice>());
+                return new FrameworkGpuResources(builder.Build(), gpu.Gpu);
             });
+            _inner.Services.AddSingleton(sp => sp.GetRequiredService<FrameworkGpuResources>().Resources);
+            _inner.Services.AddSingleton(sp => sp.GetRequiredService<FrameworkGpuResources>().Gpu);
+            _inner.Services.AddSingleton(sp => new GpuDeviceLifecycleCoordinator(
+                sp.GetRequiredService<ResourceSystem>(),
+                sp.GetRequiredService<GpuResourceManagerHandle>(),
+                new GpuDeviceLifecycleCoordinatorOptions
+                {
+                    Ownership = _borrowedDevice is null ? GpuDeviceOwnership.Owned : GpuDeviceOwnership.Borrowed,
+                    OwnedDeviceFactory = _borrowedDevice is null
+                        ? (_, sink, _) => ValueTask.FromResult(_lifecycleDeviceFactory is not null
+                            ? _lifecycleDeviceFactory(sink)
+                            : _deviceFactory!())
+                        : null,
+                }));
         }
 
         // Audio
@@ -196,7 +210,16 @@ public sealed class LuxelHostBuilder
             AudioRegistry: sp.GetService<AudioRegistry>(),
             UiRegistry: sp.GetService<UiRegistry>(),
             WaitFrame: _frameWaiter,
-            PumpGraphicsLifecycle: () => sp.GetRequiredService<GpuLifecycleMessagePump>().Pump()));
+            PumpGraphicsLifecycle: () =>
+            {
+                if (sp.GetService<GpuDeviceLifecycleCoordinator>() is not { } coordinator)
+                    return sp.GetRequiredService<GpuLifecycleMessagePump>().Pump();
+                var destination = new FrameworkGpuLifecycleSink(
+                    sp.GetRequiredService<MessagePipeGpuLifecycleSink>(), coordinator);
+                int count = sp.GetRequiredService<GpuLifecycleEventQueue>().Pump(destination);
+                coordinator.PumpAsync().AsTask().GetAwaiter().GetResult();
+                return count;
+            }));
 
         // SceneManager (singleton)
         _inner.Services.AddSingleton<SceneManager>();
@@ -209,6 +232,16 @@ public sealed class LuxelHostBuilder
         _inner.Services.AddHostedService<GameLoop>();
 
         return _inner.Build();
+    }
+    private sealed record FrameworkGpuResources(ResourceSystem Resources, GpuResourceManagerHandle Gpu);
+
+    private sealed class FrameworkGpuLifecycleSink(
+        MessagePipeGpuLifecycleSink messages,
+        GpuDeviceLifecycleCoordinator coordinator) : IGpuLifecycleSink
+    {
+        public void Publish(GpuDeviceLifecycleEvent message) { messages.Publish(message); coordinator.Publish(message); }
+        public void Publish(GpuValidationEvent message) { messages.Publish(message); coordinator.Publish(message); }
+        public void Publish(GpuSurfaceLifecycleEvent message) { messages.Publish(message); coordinator.Publish(message); }
     }
 }
 

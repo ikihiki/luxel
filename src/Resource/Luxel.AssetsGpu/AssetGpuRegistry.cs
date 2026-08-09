@@ -9,7 +9,9 @@ namespace Luxel.AssetsGpu;
 /// </summary>
 public sealed class AssetGpuRegistry : IDisposable
 {
-    private readonly GpuDevice _device;
+    private GpuDevice _device;
+    private GpuDeviceGeneration _generation;
+    private bool _disposed;
     private readonly Dictionary<AssetMesh, GpuMesh> _meshes = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<AssetMaterial, GpuMaterial> _materials = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<AssetTexture, GpuTexture> _textures = new(ReferenceEqualityComparer.Instance);
@@ -17,12 +19,25 @@ public sealed class AssetGpuRegistry : IDisposable
     private readonly Dictionary<AssetSkin, GpuSkin> _skins = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<AssetDocument, AssetGpuDocumentState> _documents = new(ReferenceEqualityComparer.Instance);
 
-    public GpuMaterialArray MaterialArray { get; }
-    public GpuSampler DefaultSampler { get; }
+    public GpuMaterialArray MaterialArray { get; private set; }
+    public GpuSampler DefaultSampler { get; private set; }
+    public GpuDeviceGeneration DeviceGeneration => _generation;
 
-    public AssetGpuRegistry(GpuDevice device)
+    public AssetGpuRegistry(GpuDevice device, GpuDeviceGeneration? generation = null)
     {
         _device = device;
+        _generation = generation ?? new GpuDeviceGeneration(Guid.NewGuid().ToString("N"), 1);
+        DefaultSampler = _device.CreateSampler(GpuSamplerFilter.Linear, GpuSamplerAddress.Repeat);
+        MaterialArray = new GpuMaterialArray(_device);
+    }
+
+    internal void ActivateGeneration(GpuDevice device, GpuDeviceGeneration generation)
+    {
+        ArgumentNullException.ThrowIfNull(device);
+        if (_disposed) throw new ObjectDisposedException(nameof(AssetGpuRegistry));
+        DisposeResources();
+        _device = device;
+        _generation = generation;
         DefaultSampler = _device.CreateSampler(GpuSamplerFilter.Linear, GpuSamplerAddress.Repeat);
         MaterialArray = new GpuMaterialArray(_device);
     }
@@ -300,6 +315,13 @@ public sealed class AssetGpuRegistry : IDisposable
     }
 
     public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        DisposeResources();
+    }
+
+    private void DisposeResources()
     {
         var disposed = new HashSet<IDisposable>(ReferenceEqualityComparer.Instance);
         void DisposeOnce(IDisposable value)
