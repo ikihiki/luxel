@@ -4,7 +4,10 @@ using Luxel.AssetRuntime;
 using Luxel.Assets;
 using Luxel.AssetsGpu;
 using Luxel.Assets.Gltf;
+using Luxel.Controls;
 using Luxel.Graphics.RenderGraph;
+using Luxel.Resources;
+using Luxel.Resources.Browser;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Resources.Gallery.Stories.ResourceStoryKit;
@@ -31,7 +34,44 @@ public static class AssetStories
     /// <summary>Box.gltf → AssetDocument → AssetPrimitive → GPU buffers → 1 draw。ECSなしの静的最小経路。</summary>
     [Story("Examples/Resources/Gltf/BoxScene", Height = 320, Order = 125)]
     public static Widget GltfBox(StoryContext ctx)
-        => Frame(GltfStoryAssets.View(ctx, GltfStoryAssets.Box, static document => new StaticGltfScene(document), animated: false));
+    {
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaultHandles core = OperatingSystem.IsBrowser()
+            ? builder.AddBrowserCore()
+            : ResourceSystemDefaults.AddCore(builder);
+        builder.Sources.Add(new GltfStoryAssets.EmbeddedFixtureSource())
+            .RunOn(core.IoDomain).ManagedBy(core.IoManager).Register();
+        builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep())
+            .RunOn(core.CpuDomain).ManagedBy(core.CpuManager).Register();
+        ResourceSystem resources = builder.Build();
+        ResourceHandle<AssetDocument> document = resources.Load<AssetDocument>(GltfStoryAssets.Box);
+        StaticGltfScene? scene = null;
+        int sceneVersion = -1;
+
+        Widget view = GpuView(256, 256, (device, surface, time) =>
+        {
+            ResourceState snapshot = document.State;
+            if (!snapshot.HasValue)
+                return snapshot.Status == ResourceStatus.Failed
+                    ? GpuViewRenderResult.Failed
+                    : GpuViewRenderResult.Loading;
+
+            if (scene is null || sceneVersion != snapshot.Version)
+            {
+                scene?.Dispose();
+                scene = new StaticGltfScene(document.Value);
+                sceneVersion = snapshot.Version;
+            }
+
+            return scene.Render(device, surface, time);
+        }, animated: false, dispose: () =>
+        {
+            scene?.Dispose();
+            document.Dispose();
+            resources.Dispose();
+        });
+        return Frame(view);
+    }
 
     /// <summary>静的primitiveを直接uploadし、1件のinstance bufferで描く。ECS/animation/skin/morphは使わない。</summary>
     private sealed class StaticGltfScene(AssetDocument document) : GpuSceneBase
@@ -92,8 +132,44 @@ public static class AssetStories
     /// sample → TransformPropagate → 再 Extract して描く (スキニングなしのアニメーション経路)。</summary>
     [Story("Examples/Resources/Gltf/AnimatedBox", Height = 320, Order = 126)]
     public static Widget GltfAnimated(StoryContext ctx)
-        => ctx.Snap(Frame(GltfStoryAssets.View(ctx, GltfStoryAssets.AnimatedBox,
-            static document => new GltfScene(document, animate: true), animated: true)));
+    {
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaultHandles core = OperatingSystem.IsBrowser()
+            ? builder.AddBrowserCore()
+            : ResourceSystemDefaults.AddCore(builder);
+        builder.Sources.Add(new GltfStoryAssets.EmbeddedFixtureSource())
+            .RunOn(core.IoDomain).ManagedBy(core.IoManager).Register();
+        builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep())
+            .RunOn(core.CpuDomain).ManagedBy(core.CpuManager).Register();
+        ResourceSystem resources = builder.Build();
+        ResourceHandle<AssetDocument> document = resources.Load<AssetDocument>(GltfStoryAssets.AnimatedBox);
+        GltfScene? scene = null;
+        int sceneVersion = -1;
+
+        Widget view = GpuView(256, 256, (device, surface, time) =>
+        {
+            ResourceState snapshot = document.State;
+            if (!snapshot.HasValue)
+                return snapshot.Status == ResourceStatus.Failed
+                    ? GpuViewRenderResult.Failed
+                    : GpuViewRenderResult.Loading;
+
+            if (scene is null || sceneVersion != snapshot.Version)
+            {
+                scene?.Dispose();
+                scene = new GltfScene(document.Value, animate: true);
+                sceneVersion = snapshot.Version;
+            }
+
+            return scene.Render(device, surface, time);
+        }, animated: true, dispose: () =>
+        {
+            scene?.Dispose();
+            document.Dispose();
+            resources.Dispose();
+        });
+        return ctx.Snap(Frame(view));
+    }
 
     /// <summary>glTF document を SceneBuilder → SceneRenderExtractor → 描画。
     /// animate 時は毎フレーム anim[0] を周期 sample して instance を書き直す。</summary>

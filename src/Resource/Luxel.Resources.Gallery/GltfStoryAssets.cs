@@ -1,10 +1,8 @@
 using System.Reflection;
 using Luxel.Assets;
 using Luxel.Assets.Gltf;
-using Luxel.Controls;
 using Luxel.Resources;
 using Luxel.Resources.Browser;
-using Luxel.UI;
 
 namespace Luxel.Resources.Gallery.Stories;
 
@@ -14,38 +12,6 @@ public static class GltfStoryAssets
     public const string Box = "story://fixtures/Box.gltf";
     public const string AnimatedBox = "story://fixtures/BoxAnimated.glb";
     public const string RiggedSimple = "story://fixtures/RiggedSimple.glb";
-    private static int _createdSystemCount;
-
-    internal static int CreatedSystemCount => Volatile.Read(ref _createdSystemCount);
-
-    internal static Widget View(
-        StoryContext context,
-        string uri,
-        Func<AssetDocument, GpuSceneBase> createScene,
-        bool animated)
-    {
-        ResourceSystem resources = CreateFixtureSystem();
-        ResourceHandle<AssetDocument> document = resources.Load<AssetDocument>(uri);
-        return ViewOwned(resources, document, createScene, animated);
-    }
-
-    internal static Widget ViewGenerated(
-        StoryContext context,
-        AssetDocument document,
-        Func<AssetDocument, GpuSceneBase> createScene,
-        bool animated)
-    {
-        Interlocked.Increment(ref _createdSystemCount);
-        var builder = new ResourceSystemBuilder();
-        ResourceSystemDefaultHandles defaults = AddPlatformCore(builder);
-        builder.Steps.Add<AssetDocumentSeed, AssetDocument>(new DocumentIdentityStep())
-            .RunOn(defaults.CpuDomain).ManagedBy(defaults.CpuManager).Register();
-        ResourceSystem resources = builder.Build();
-        ResourceScope scope = resources.CreateScope("gpu-story/generated-document");
-        ResourceHandle<AssetDocument> handle = scope.Create<AssetDocumentSeed, AssetDocument>("generated.gltf", new AssetDocumentSeed(document));
-        return ViewOwned(resources, handle, createScene, animated, scope);
-    }
-
     internal static async Task<AssetDocument> LoadFixtureForTestAsync(string uri)
     {
         using ResourceSystem resources = CreateFixtureSystem();
@@ -56,7 +22,6 @@ public static class GltfStoryAssets
 
     private static ResourceSystem CreateFixtureSystem()
     {
-        Interlocked.Increment(ref _createdSystemCount);
         var builder = new ResourceSystemBuilder();
         ResourceSystemDefaultHandles defaults = AddPlatformCore(builder);
         builder.Sources.Add(new EmbeddedFixtureSource()).RunOn(defaults.IoDomain).ManagedBy(defaults.IoManager).Register();
@@ -68,53 +33,7 @@ public static class GltfStoryAssets
     private static ResourceSystemDefaultHandles AddPlatformCore(ResourceSystemBuilder builder)
         => OperatingSystem.IsBrowser() ? builder.AddBrowserCore() : ResourceSystemDefaults.AddCore(builder);
 
-    private static Widget ViewOwned(
-        ResourceSystem resources,
-        ResourceHandle<AssetDocument> document,
-        Func<AssetDocument, GpuSceneBase> createScene,
-        bool animated,
-        IDisposable? additionalOwner = null)
-    {
-        GpuSceneBase? scene = null;
-        int sceneVersion = -1;
-
-        return Luxel.Controls.Kit.GpuView(256, 256,
-            (device, surface, time) =>
-            {
-                ResourceState snapshot = document.State;
-                if (!snapshot.HasValue)
-                    return snapshot.Status == ResourceStatus.Failed
-                        ? GpuViewRenderResult.Failed
-                        : GpuViewRenderResult.Loading;
-
-                if (scene is null || sceneVersion != snapshot.Version)
-                {
-                    scene?.Dispose();
-                    scene = createScene(document.Value);
-                    sceneVersion = snapshot.Version;
-                }
-
-                return scene.Render(device, surface, time);
-            },
-            animated: animated,
-            dispose: () =>
-            {
-                scene?.Dispose();
-                document.Dispose();
-                additionalOwner?.Dispose();
-                resources.Dispose();
-            });
-    }
-
-    private sealed record AssetDocumentSeed(AssetDocument Document);
-
-    private sealed class DocumentIdentityStep : IResourceStep<AssetDocumentSeed, AssetDocument>
-    {
-        public Task<AssetDocument> RunAsync(AssetDocumentSeed input, ResourceUri uri, LoadContext context)
-            => Task.FromResult(input.Document);
-    }
-
-    private sealed class EmbeddedFixtureSource : IResourceSource
+    internal sealed class EmbeddedFixtureSource : IResourceSource
     {
         private static readonly Assembly Assembly = typeof(GltfStoryAssets).Assembly;
         private static readonly IReadOnlyDictionary<string, string> Names = new Dictionary<string, string>(StringComparer.Ordinal)

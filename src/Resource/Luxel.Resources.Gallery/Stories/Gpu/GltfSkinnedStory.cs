@@ -4,7 +4,10 @@ using Luxel.AssetRuntime;
 using Luxel.Assets;
 using Luxel.AssetsGpu;
 using Luxel.Assets.Gltf;
+using Luxel.Controls;
 using Luxel.Graphics.RenderGraph;
+using Luxel.Resources;
+using Luxel.Resources.Browser;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Resources.Gallery.Stories.ResourceStoryKit;
@@ -34,8 +37,44 @@ public static class GltfSkinnedStories
     /// <summary>RiggedSimple.glb (2 ボーンの曲がる棒) を、アニメの途中ポーズで描く。</summary>
     [Story("Examples/Resources/Gltf/RiggedSimpleSkinning", Height = 320, Order = 127)]
     public static Widget GltfSkinned(StoryContext ctx)
-        => ctx.Snap(Frame(GltfStoryAssets.View(ctx, GltfStoryAssets.RiggedSimple,
-            static document => new SkinnedScene(document), animated: false)));
+    {
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaultHandles core = OperatingSystem.IsBrowser()
+            ? builder.AddBrowserCore()
+            : ResourceSystemDefaults.AddCore(builder);
+        builder.Sources.Add(new GltfStoryAssets.EmbeddedFixtureSource())
+            .RunOn(core.IoDomain).ManagedBy(core.IoManager).Register();
+        builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep())
+            .RunOn(core.CpuDomain).ManagedBy(core.CpuManager).Register();
+        ResourceSystem resources = builder.Build();
+        ResourceHandle<AssetDocument> document = resources.Load<AssetDocument>(GltfStoryAssets.RiggedSimple);
+        SkinnedScene? scene = null;
+        int sceneVersion = -1;
+
+        Widget view = GpuView(256, 256, (device, surface, time) =>
+        {
+            ResourceState snapshot = document.State;
+            if (!snapshot.HasValue)
+                return snapshot.Status == ResourceStatus.Failed
+                    ? GpuViewRenderResult.Failed
+                    : GpuViewRenderResult.Loading;
+
+            if (scene is null || sceneVersion != snapshot.Version)
+            {
+                scene?.Dispose();
+                scene = new SkinnedScene(document.Value);
+                sceneVersion = snapshot.Version;
+            }
+
+            return scene.Render(device, surface, time);
+        }, animated: false, dispose: () =>
+        {
+            scene?.Dispose();
+            document.Dispose();
+            resources.Dispose();
+        });
+        return ctx.Snap(Frame(view));
+    }
 
     private sealed class SkinnedScene(AssetDocument document) : GpuSceneBase
     {

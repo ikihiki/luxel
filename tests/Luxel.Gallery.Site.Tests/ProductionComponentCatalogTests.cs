@@ -129,7 +129,6 @@ public sealed class ProductionComponentCatalogTests
     {
         StoryCatalog catalog = ResourceGalleryProject.CreateCatalog();
         StoryInfo ready = Assert.IsType<StoryInfo>(catalog.Find("Examples/Resources/ReadyBuilder"));
-        StoryInfo boxScene = Assert.IsType<StoryInfo>(catalog.Find("Examples/Resources/Gltf/BoxScene"));
 
         Assert.Contains("[Story(\"Examples/Resources/ReadyBuilder\"", ready.Source, StringComparison.Ordinal);
         Assert.Contains("public static Widget ReadyBuilder", ready.Source, StringComparison.Ordinal);
@@ -137,8 +136,26 @@ public sealed class ProductionComponentCatalogTests
         Assert.Contains("builder.Steps.Add", ready.Source, StringComparison.Ordinal);
         Assert.Contains("resources.Load<TextAsset>", ready.Source, StringComparison.Ordinal);
         Assert.DoesNotContain("resources.AddSource", ready.Source, StringComparison.Ordinal);
-        Assert.Contains("public static Widget GltfBox", boxScene.Source, StringComparison.Ordinal);
-        Assert.Contains("GltfStoryAssets.View", boxScene.Source, StringComparison.Ordinal);
+
+        string[] gpuRoutes =
+        [
+            "Examples/Resources/Gltf/BoxScene",
+            "Examples/Resources/Gltf/AnimatedBox",
+            "Examples/Resources/Gltf/RiggedSimpleSkinning",
+            "Examples/Resources/Gltf/MorphWeights",
+        ];
+        foreach (string route in gpuRoutes)
+        {
+            StoryInfo gpuStory = Assert.IsType<StoryInfo>(catalog.Find(route));
+            Assert.Contains("ResourceSystemBuilder", gpuStory.Source, StringComparison.Ordinal);
+            Assert.Contains("ResourceHandle<AssetDocument>", gpuStory.Source, StringComparison.Ordinal);
+            Assert.Contains("GpuView(256, 256", gpuStory.Source, StringComparison.Ordinal);
+            Assert.Contains("scene = new", gpuStory.Source, StringComparison.Ordinal);
+            Assert.Contains("scene.Render(device, surface, time)", gpuStory.Source, StringComparison.Ordinal);
+            Assert.Contains("scene?.Dispose()", gpuStory.Source, StringComparison.Ordinal);
+            Assert.Contains("resources.Dispose()", gpuStory.Source, StringComparison.Ordinal);
+            Assert.DoesNotContain("GltfStoryAssets.View", gpuStory.Source, StringComparison.Ordinal);
+        }
 
         string[] examples = ResourceLearnExamples.Routes.Values.SelectMany(routes => routes)
             .Distinct(StringComparer.Ordinal).ToArray();
@@ -216,7 +233,6 @@ public sealed class ProductionComponentCatalogTests
             "Examples/Resources/Gltf/RiggedSimpleSkinning",
             "Examples/Resources/Gltf/MorphWeights",
         ];
-        int before = GltfStoryAssets.CreatedSystemCount;
 
         foreach (string route in gpuExamples)
         {
@@ -225,7 +241,6 @@ public sealed class ProductionComponentCatalogTests
             Assert.Equal(StoryResultKind.Widget, result.Kind);
         }
 
-        Assert.Equal(before + gpuExamples.Length, GltfStoryAssets.CreatedSystemCount);
         Assert.Single((await GltfStoryAssets.LoadFixtureForTestAsync(GltfStoryAssets.Box)).Meshes);
         Assert.NotEmpty((await GltfStoryAssets.LoadFixtureForTestAsync(GltfStoryAssets.AnimatedBox)).Animations);
         Assert.NotEmpty((await GltfStoryAssets.LoadFixtureForTestAsync(GltfStoryAssets.RiggedSimple)).Skins);

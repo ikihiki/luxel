@@ -4,7 +4,10 @@ using Friflo.Engine.ECS;
 using Luxel.AssetRuntime;
 using Luxel.Assets;
 using Luxel.AssetsGpu;
+using Luxel.Controls;
 using Luxel.Graphics.RenderGraph;
+using Luxel.Resources;
+using Luxel.Resources.Browser;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Resources.Gallery.Stories.ResourceStoryKit;
@@ -34,8 +37,55 @@ public static class GltfMorphStories
     }
 
     [Story("Examples/Resources/Gltf/MorphWeights", Height = 320, Order = 128)]
-    public static Widget GltfMorph(StoryContext ctx) => ctx.Snap(Frame(
-        GltfStoryAssets.ViewGenerated(ctx, CreateDocument(), static document => new MorphScene(document), animated: false)));
+    public static Widget GltfMorph(StoryContext ctx)
+    {
+        AssetDocument generated = CreateDocument();
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaultHandles core = OperatingSystem.IsBrowser()
+            ? builder.AddBrowserCore()
+            : ResourceSystemDefaults.AddCore(builder);
+        builder.Steps.Add<AssetDocumentSeed, AssetDocument>(new DocumentIdentityStep())
+            .RunOn(core.CpuDomain).ManagedBy(core.CpuManager).Register();
+        ResourceSystem resources = builder.Build();
+        ResourceScope scope = resources.CreateScope("gpu-story/generated-document");
+        ResourceHandle<AssetDocument> document = scope.Create<AssetDocumentSeed, AssetDocument>(
+            "generated.gltf", new AssetDocumentSeed(generated));
+        MorphScene? scene = null;
+        int sceneVersion = -1;
+
+        Widget view = GpuView(256, 256, (device, surface, time) =>
+        {
+            ResourceState snapshot = document.State;
+            if (!snapshot.HasValue)
+                return snapshot.Status == ResourceStatus.Failed
+                    ? GpuViewRenderResult.Failed
+                    : GpuViewRenderResult.Loading;
+
+            if (scene is null || sceneVersion != snapshot.Version)
+            {
+                scene?.Dispose();
+                scene = new MorphScene(document.Value);
+                sceneVersion = snapshot.Version;
+            }
+
+            return scene.Render(device, surface, time);
+        }, animated: false, dispose: () =>
+        {
+            scene?.Dispose();
+            document.Dispose();
+            scope.Dispose();
+            resources.Dispose();
+        });
+        return ctx.Snap(Frame(view));
+    }
+
+    private sealed record AssetDocumentSeed(AssetDocument Document);
+
+    private sealed class DocumentIdentityStep : IResourceStep<AssetDocumentSeed, AssetDocument>
+    {
+        public Task<AssetDocument> RunAsync(AssetDocumentSeed input, ResourceUri uri, LoadContext context)
+            => Task.FromResult(input.Document);
+    }
 
     private static AssetDocument CreateDocument()
     {
