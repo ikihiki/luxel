@@ -1,11 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <LuxelProjectRole>GalleryLeaf</LuxelProjectRole>
-    <LuxelCategory>Audio</LuxelCategory>
-    <LuxelSubsystem>Audio.Gallery</LuxelSubsystem>
-    <LuxelGalleryTier>BrowserSafe</LuxelGalleryTier>
+    <LuxelProjectRole>GalleryCategory</LuxelProjectRole>
+    <LuxelGalleryCategory>Audio</LuxelGalleryCategory>
+    <LuxelSubsystem>Audio</LuxelSubsystem>
+    <LuxelPlatform>Browser</LuxelPlatform>
+    <LuxelArchitectureTier>Base</LuxelArchitectureTier>
     <LuxelGalleryCompatibility>Browser;Native</LuxelGalleryCompatibility>
     <IsPackable>false</IsPackable>
+    <LuxelGalleryRegistrationIdentity>Audio.Base</LuxelGalleryRegistrationIdentity>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery\Luxel.Gallery.csproj" />
