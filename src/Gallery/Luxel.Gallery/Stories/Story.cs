@@ -35,11 +35,6 @@ public sealed class StoryAttribute(string path) : Attribute
     public string? CapabilityNote { get; set; }
     /// <summary>true のとき Markdown 文書へ H2/H3 の目次を生成する。</summary>
     public bool Toc { get; set; }
-    /// <summary>Optional curated source shown by Gallery hosts instead of the generated method declaration.</summary>
-    public string? Source { get; set; }
-    /// <summary>Comma-separated member names from the declaring type to append to Story source.
-    /// Use this when the public Story method delegates the behavior being demonstrated to private helpers.</summary>
-    public string? SourceMembers { get; set; }
     /// <summary>Optional static semantic result provider used by host-free exporters.</summary>
     public string? Result { get; set; }
     /// <summary>Optional static schema provider method on the declaring story type.</summary>

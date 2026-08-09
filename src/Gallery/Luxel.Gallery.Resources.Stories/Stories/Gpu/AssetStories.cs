@@ -29,7 +29,7 @@ public static class AssetStories
     }
 
     /// <summary>Box.gltf → AssetDocument → AssetPrimitive → GPU buffers → 1 draw。ECSなしの静的最小経路。</summary>
-    [Story("Examples/Resources/Gltf/BoxScene", Height = 320, Order = 125, Source = ResourceExampleSources.BoxScene)]
+    [Story("Examples/Resources/Gltf/BoxScene", Height = 320, Order = 125)]
     public static Widget GltfBox(StoryContext ctx)
         => Frame(GltfStoryAssets.View(ctx, GltfStoryAssets.Box, static document => new StaticGltfScene(document), animated: false));
 
@@ -90,7 +90,7 @@ public static class AssetStories
 
     /// <summary>BoxAnimated.glb — ノード TRS アニメーションを SceneAnimationPlayer が毎フレーム
     /// sample → TransformPropagate → 再 Extract して描く (スキニングなしのアニメーション経路)。</summary>
-    [Story("Examples/Resources/Gltf/AnimatedBox", Height = 320, Order = 126, Source = ResourceExampleSources.AnimatedScene)]
+    [Story("Examples/Resources/Gltf/AnimatedBox", Height = 320, Order = 126)]
     public static Widget GltfAnimated(StoryContext ctx)
         => ctx.Snap(Frame(GltfStoryAssets.View(ctx, GltfStoryAssets.AnimatedBox,
             static document => new GltfScene(document, animate: true), animated: true)));

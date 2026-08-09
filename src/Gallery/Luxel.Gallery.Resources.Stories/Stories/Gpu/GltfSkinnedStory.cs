@@ -32,7 +32,7 @@ public static class GltfSkinnedStories
     }
 
     /// <summary>RiggedSimple.glb (2 ボーンの曲がる棒) を、アニメの途中ポーズで描く。</summary>
-    [Story("Examples/Resources/Gltf/RiggedSimpleSkinning", Height = 320, Order = 127, Source = ResourceExampleSources.SkinnedScene)]
+    [Story("Examples/Resources/Gltf/RiggedSimpleSkinning", Height = 320, Order = 127)]
     public static Widget GltfSkinned(StoryContext ctx)
         => ctx.Snap(Frame(GltfStoryAssets.View(ctx, GltfStoryAssets.RiggedSimple,
             static document => new SkinnedScene(document), animated: false)));

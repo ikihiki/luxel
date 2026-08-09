@@ -20,14 +20,14 @@ public sealed class StoryGeneratorTests
 
         string source = GeneratedStorySource(story);
 
-        Assert.Equal(story, source);
+        Assert.Equal(CapturedMethodSyntax(story), source);
         Assert.Contains("[Story(\"Controls/Button/Basic\", Height = 160)]", source);
         Assert.Contains("public static Widget Basic(StoryContext ctx)", source);
         Assert.Contains("=> new Widget(\"quoted <tag> & value\");", source);
     }
 
     [Fact]
-    public void Source_DedentsBlockBodyAndPreservesParametersAndComments()
+    public void Source_PreservesCapturedBlockBodyWhitespaceParametersAndComments()
     {
         const string story = """
             [Story("Examples/Block")]
@@ -41,47 +41,11 @@ public sealed class StoryGeneratorTests
 
         string source = GeneratedStorySource(story);
 
-        Assert.Equal(story, source);
+        Assert.Equal(CapturedMethodSyntax(story), source);
         Assert.Contains("StoryContext ctx, DemoService service", source);
         Assert.Contains("// source contract", source);
         Assert.Contains("line 1", source);
         Assert.Contains("line 2", source);
-    }
-
-    [Fact]
-    public void Source_UsesCuratedAttributeTextWhenProvided()
-    {
-        const string curated = "using var resources = new ResourceSystem();";
-        string source = GeneratedStorySource("""
-            [Story("Examples/Curated", Source = "using var resources = new ResourceSystem();")]
-            public static Widget Curated() => new Widget();
-            """);
-
-        Assert.Equal(curated, source);
-        Assert.DoesNotContain("public static Widget Curated", source, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void SourceMembers_AppendsNamedHelpersFromDeclaringType()
-    {
-        const string story = """
-            [Story("Examples/Delegated", SourceMembers = "BuildScene, Scene")]
-            public static Widget Delegated() => BuildScene();
-
-            private static Widget BuildScene() => new Widget("helper");
-
-            private sealed class Scene
-            {
-                public Widget Build() => new Widget("scene");
-            }
-            """;
-
-        string source = GeneratedStorySource(story);
-
-        Assert.Contains("public static Widget Delegated()", source);
-        Assert.Contains("private static Widget BuildScene()", source);
-        Assert.Contains("private sealed class Scene", source);
-        Assert.DoesNotContain("SourceMembers_AppendsNamedHelpers", source);
     }
 
     [Fact]
@@ -148,6 +112,12 @@ public sealed class StoryGeneratorTests
         Assert.Contains("Invalid", diagnostic.GetMessage(), StringComparison.Ordinal);
     }
 
+    private static string CapturedMethodSyntax(string storyMethod)
+    {
+        string[] lines = storyMethod.Replace("\r", "").Split('\n');
+        return string.Join("\n", lines.Select((line, index) => index == 0 ? line : "        " + line));
+    }
+
     private static string GeneratedStorySource(string storyMethod)
     {
         GeneratorDriverRunResult result = Run(storyMethod);
@@ -191,8 +161,6 @@ public sealed class StoryGeneratorTests
                     public string? Args { get; set; }
                     public string? Result { get; set; }
                     public string? CapabilityNote { get; set; }
-                    public string? Source { get; set; }
-                    public string? SourceMembers { get; set; }
                 }
                 public sealed class StoryContext
                 {

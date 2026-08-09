@@ -93,7 +93,7 @@ public sealed class ProductionComponentCatalogTests
     }
 
     [Fact]
-    public void Every_resource_learn_page_embeds_its_explicit_canonical_examples()
+    public void Every_resource_learn_page_embeds_one_primary_canonical_example_inline()
     {
         StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
 
@@ -106,36 +106,37 @@ public sealed class ProductionComponentCatalogTests
             StoryResult result = page.BuildResult(new StoryContext());
             string[] expected = ResourceLearnExamples.Routes[learnRoute];
 
-            Assert.True(expected.Length >= 2, $"{learnRoute} must embed multiple examples.");
-            Assert.Equal(expected, result.References.Select(reference => reference.Path));
-            Assert.True(result.Markdown.IndexOf("```luxel-story\n0\n```", StringComparison.Ordinal)
-                < result.Markdown.IndexOf("## More runnable examples", StringComparison.Ordinal),
-                $"{learnRoute} must place its primary example inside the explanation.");
+            Assert.NotEmpty(expected);
+            Assert.Equal([expected[0]], result.References.Select(reference => reference.Path));
+            Assert.Contains("```luxel-story\n0\n```", result.Markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("More runnable examples", result.Markdown, StringComparison.Ordinal);
             Assert.All(expected, example => Assert.NotNull(catalog.Find(example)));
         }
     }
 
     [Fact]
-    public void Resource_examples_publish_concept_focused_source_for_inline_docs()
+    public void Resource_examples_publish_their_automatically_captured_story_methods()
     {
         StoryCatalog catalog = ResourceStoryProject.CreateCatalog();
         StoryInfo hello = Assert.IsType<StoryInfo>(catalog.Find("Examples/Resources/HelloTextAsset"));
-        StoryInfo reload = Assert.IsType<StoryInfo>(catalog.Find("Examples/Resources/HotReloadRecovery"));
+        StoryInfo boxScene = Assert.IsType<StoryInfo>(catalog.Find("Examples/Resources/Gltf/BoxScene"));
 
-        Assert.Contains("ResourceHandle<TextAsset>", hello.Source, StringComparison.Ordinal);
-        Assert.Contains("await text.Ready", hello.Source, StringComparison.Ordinal);
+        Assert.Contains("[Story(\"Examples/Resources/HelloTextAsset\"", hello.Source, StringComparison.Ordinal);
+        Assert.Contains("public static Widget HelloTextAsset", hello.Source, StringComparison.Ordinal);
+        Assert.Contains("new ResourceScenarioWidget", hello.Source, StringComparison.Ordinal);
+        Assert.Contains("resources.AddSource", hello.Source, StringComparison.Ordinal);
+        Assert.Contains("resources.Load<TextAsset>", hello.Source, StringComparison.Ordinal);
         Assert.DoesNotContain("ResourceScenarios.Create", hello.Source, StringComparison.Ordinal);
-        Assert.Contains("last good value", reload.Source, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("PumpAsync", reload.Source, StringComparison.Ordinal);
+        Assert.Contains("public static Widget GltfBox", boxScene.Source, StringComparison.Ordinal);
+        Assert.Contains("GltfStoryAssets.View", boxScene.Source, StringComparison.Ordinal);
 
         string[] examples = ResourceLearnExamples.Routes.Values.SelectMany(routes => routes)
             .Distinct(StringComparer.Ordinal).ToArray();
         Assert.All(examples, route =>
         {
             StoryInfo story = Assert.IsType<StoryInfo>(catalog.Find(route));
-            Assert.False(string.IsNullOrWhiteSpace(story.Source), $"{route} needs concise instructional source.");
-            Assert.DoesNotContain("ResourceScenarios.Create", story.Source, StringComparison.Ordinal);
-            Assert.DoesNotContain("GltfStoryAssets.View", story.Source, StringComparison.Ordinal);
+            Assert.False(string.IsNullOrWhiteSpace(story.Source), $"{route} needs automatically captured source.");
+            Assert.Contains("[Story(", story.Source, StringComparison.Ordinal);
         });
     }
 

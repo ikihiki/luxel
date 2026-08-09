@@ -57,13 +57,13 @@ test('ResourceSystem Learn renders TOC, course navigation, live examples, and Ba
   await expect(page.locator('.markdown-document a[href*="Learn%2FResources%2FSourcesAndUris"]')).toContainText('SourcesAndUris');
 
   const embeds = page.locator('.markdown-story-embed');
-  await expect(embeds).toHaveCount(2);
-  await expect(embeds.nth(0).locator('header')).toContainText('Examples/Resources/HelloTextAsset');
-  await expect(embeds.nth(1).locator('header')).toContainText('Examples/Resources/HotReloadRecovery');
+  await expect(embeds).toHaveCount(1);
+  await expect(embeds.locator('header')).toContainText('Examples/Resources/HelloTextAsset');
   const embedded = page.frameLocator('.markdown-story-embed iframe').first();
   await expect(embedded.getByRole('tab', { name: 'Args' })).toBeVisible();
   await embedded.getByRole('tab', { name: 'Source' }).click();
-  await expect(embedded.locator('.story-source')).toContainText('ResourceHandle<TextAsset>');
+  await expect(embedded.locator('.story-source')).toContainText('resources.Load<TextAsset>');
+  await expect(embedded.locator('.story-source')).not.toContainText('ResourceScenarios.Create');
   await expect(embedded.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
   await embedded.getByRole('tab', { name: 'Output' }).click();
   await expect(embedded.locator('.output-list')).toContainText('Hello text asset: Ready');
@@ -78,25 +78,20 @@ test('ResourceSystem Learn renders TOC, course navigation, live examples, and Ba
   await expectNoFailures(failures);
 });
 
-test('Assets Learn embeds independent CPU, GPU, and rendered-scene examples', async ({ page }) => {
+test('Assets Learn embeds one concept-focused CPU example', async ({ page }) => {
   const failures = collectFailures(page);
   const story = 'Learn/Resources/Assets/Overview';
   await page.goto(`/?story=${encodeURIComponent(story)}`);
 
   await expect(page.locator('.markdown-document h1')).toHaveText('Assets overview');
   const embeds = page.locator('.markdown-story-embed');
-  await expect(embeds).toHaveCount(3);
-  await expect(embeds.nth(0).locator('header')).toContainText('Examples/Resources/Assets/DocumentInspector');
-  await expect(embeds.nth(1).locator('header')).toContainText('Examples/Resources/Assets/GpuAssetRegistry');
-  await expect(embeds.nth(2).locator('header')).toContainText('Examples/Resources/Gltf/BoxScene');
+  await expect(embeds).toHaveCount(1);
+  await expect(embeds.locator('header')).toContainText('Examples/Resources/Assets/DocumentInspector');
 
-  await embeds.nth(2).getByRole('link', { name: 'Open story' }).click();
-  await expect(page).toHaveURL(/story=Examples%2FResources%2FGltf%2FBoxScene/);
+  await embeds.getByRole('link', { name: 'Open story' }).click();
+  await expect(page).toHaveURL(/story=Examples%2FResources%2FAssets%2FDocumentInspector/);
   const runtime = page.frameLocator('.story-runtime-frame');
   await expect(runtime.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
-  await expect.poll(() => runtime.locator('html').evaluate(() =>
-    globalThis.luxelBrowserState?.widgets?.find(widget => widget.type?.endsWith('.GpuView'))?.detail || ''),
-    { timeout: 90_000 }).toContain('Ready');
   await page.goBack();
   await expect(page.locator('.markdown-document h1')).toHaveText('Assets overview');
 
@@ -108,17 +103,13 @@ test('glTF Learn exposes loading, URI, and diagnostic examples without fixture f
 
   await page.goto(`/?story=${encodeURIComponent('Learn/Resources/Gltf/RegistrationAndLoading')}`);
   await expect(page.locator('.markdown-document h1')).toHaveText('Register and load glTF');
-  await expect(page.locator('.markdown-story-embed header')).toContainText([
-    'Examples/Resources/Gltf/BoxDocumentLoad',
-    'Examples/Resources/BrowserHttpAssets'
-  ]);
+  await expect(page.locator('.markdown-story-embed')).toHaveCount(1);
+  await expect(page.locator('.markdown-story-embed header')).toContainText('Examples/Resources/Gltf/BoxDocumentLoad');
 
   await page.goto(`/?story=${encodeURIComponent('Learn/Resources/Gltf/ExternalBuffersImagesAndUris')}`);
   await expect(page.locator('.markdown-document h1')).toHaveText('External buffers, images, and URIs');
-  await expect(page.locator('.markdown-story-embed header')).toContainText([
-    'Examples/Resources/Gltf/ExternalBufferTrace',
-    'Examples/Resources/Gltf/ExternalDependencyReload'
-  ]);
+  await expect(page.locator('.markdown-story-embed')).toHaveCount(1);
+  await expect(page.locator('.markdown-story-embed header')).toContainText('Examples/Resources/Gltf/ExternalBufferTrace');
 
   await page.goto(`/?story=${encodeURIComponent('Learn/Resources/Gltf/ValidationAndDiagnostics')}`);
   await expect(page.locator('.markdown-document h1')).toHaveText('Validation and diagnostics');
@@ -171,7 +162,8 @@ test('Resource widget publishes its result to the shared Output and Source panel
   await expect(page.locator('.output-list')).toContainText('Hello text asset: Ready');
   await expect(page.locator('.output-list')).toContainText('HELLO RESOURCES');
   await page.getByRole('tab', { name: 'Source' }).click();
-  await expect(page.locator('.story-source')).toContainText('ResourceHandle<TextAsset>');
+  await expect(page.locator('.story-source')).toContainText('public static Widget HelloTextAsset');
+  await expect(page.locator('.story-source')).toContainText('resources.AddStep<byte[], TextAsset>');
   await expect(page.locator('.story-source')).not.toContainText('ResourceScenarios.Create');
   await expectNoFailures(failures);
 });

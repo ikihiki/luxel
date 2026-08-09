@@ -186,12 +186,12 @@ public static class AnimationStories
     }
 
     /// <summary>CSS @keyframes → AnimationClip → RetainedCanvas ノードへ適用 (ループ再生)。</summary>
-    [Story("Examples/Animation/CssKeyframes", Height = 300, Order = 142, SourceMembers = "CssClipScene,AnimationSceneBase,RasterShader,ShaderResource")]
+    [Story("Examples/Animation/CssKeyframes", Height = 300, Order = 142)]
     public static Widget CssKeyframes(StoryContext ctx) => ctx.Snap(Frame(AnimationSceneBase.View(256, 128, new CssClipScene())));
 
     /// <summary>StateMachine (idle ⇄ jump、crossfade 0.15s)。ボタンで Trigger を送る —
     /// press でジャンプ (黄)、done で idle (青) へ戻る。</summary>
-    [Story("Examples/Animation/StateMachine", Height = 340, Order = 143, SourceMembers = "StateMachineScene,AnimationSceneBase,RasterShader,ShaderResource")]
+    [Story("Examples/Animation/StateMachine", Height = 340, Order = 143)]
     public static Widget StateMachineDemo(StoryContext ctx)
     {
         var scene = new StateMachineScene();
@@ -236,7 +236,7 @@ public static class AnimationStories
     }
 
     /// <summary>AnimationGraphのBlendNodeで上下clipと左右clipを混ぜる最小2D例。</summary>
-    [Story("Examples/Animation/Graph", Height = 300, Order = 145, SourceMembers = "PositionTarget")]
+    [Story("Examples/Animation/Graph", Height = 300, Order = 145)]
     public static Widget Graph(StoryContext ctx)
     {
         Signal<float> weight = ctx.Signal("weight", 0.5f, "Blend: 0 = 上下振動, 1 = 左右振動");

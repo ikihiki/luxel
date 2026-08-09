@@ -39,12 +39,7 @@ internal static class ResourceLearnExamples
 
         const string primaryEmbed = "```luxel-story\n0\n```";
         string markdown = InsertPrimaryExample(page.Markdown, primaryEmbed);
-        if (examples.Length > 1)
-        {
-            markdown += "\n\n## More runnable examples\n\n";
-            for (int i = 1; i < examples.Length; i++) markdown += $"```luxel-story\n{i}\n```\n";
-        }
-        return StoryResult.FromMarkdown(markdown, examples.Select(example => StoryReference.To(example)).ToArray());
+        return StoryResult.FromMarkdown(markdown, StoryReference.To(examples[0]));
     }
 
     private static string InsertPrimaryExample(string markdown, string embed)
