@@ -57,8 +57,11 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("JSHost.ImportAsync(\"luxel-browser-host\", \"../main.js\")", app, StringComparison.Ordinal);
         Assert.Contains("Catalog.Find(path)", runtime, StringComparison.Ordinal);
         Assert.Contains("new WebPlatformFileSystem(", runtime, StringComparison.Ordinal);
-        Assert.Contains("ResourceSystemDefaults.BuiltinSourcesForWeb(files, http)", runtime, StringComparison.Ordinal);
-        Assert.Contains("resources.AddStep<byte[], AssetDocument>(new GltfResourceStep())", runtime, StringComparison.Ordinal);
+        Assert.Contains("new ResourceSystemBuilder()", runtime, StringComparison.Ordinal);
+        Assert.Contains("ResourceSystemDefaults.AddCore(builder)", runtime, StringComparison.Ordinal);
+        Assert.Contains("ResourceSystemDefaults.AddBuiltinSourcesForWeb(builder, handles, files, http)", runtime, StringComparison.Ordinal);
+        Assert.Contains("builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep())", runtime, StringComparison.Ordinal);
+        Assert.Contains("await builder.BuildAsync()", runtime, StringComparison.Ordinal);
         Assert.Contains("await resources.PumpAsync()", runtime, StringComparison.Ordinal);
         Assert.DoesNotContain("resources.Pump();", runtime, StringComparison.Ordinal);
         Assert.DoesNotContain("RuntimeBundleId", runtime, StringComparison.Ordinal);

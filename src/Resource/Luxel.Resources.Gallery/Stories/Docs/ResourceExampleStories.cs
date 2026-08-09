@@ -1,233 +1,397 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using Luxel.AssetRuntime;
 using Luxel.Assets;
 using Luxel.Assets.Gltf;
-using Luxel.AssetsGpu;
 using Luxel.Resources;
 using Luxel.UI;
 using static Luxel.Resources.Gallery.Stories.ResourceScenarioSupport;
 
 namespace Luxel.Resources.Gallery.Stories;
 
-/// <summary>標準の実行可能リソースシナリオ。各Storyに、実演するResourceSystem操作を直接記述する。</summary>
+/// <summary>ResourceSystem builder、domain、manager、publicationを実行して観測するシナリオ。</summary>
 public static class ResourceExampleStories
 {
-    [Story("Examples/Resources/HelloTextAsset", Order = 0, SampleBundle = "resources.scenarios")]
-    public static Widget HelloTextAsset(StoryContext ctx) => new ResourceScenarioWidget("テキストアセットの読み込み", async resources =>
+    [Story("Examples/Resources/ReadyBuilder", Order = 0, SampleBundle = "resources.scenarios")]
+    public static Widget ReadyBuilder(StoryContext ctx) => Scenario("readyなbuilder", (builder, h) =>
     {
-        MemoryFileSystem files = Files(("hello.txt", "こんにちは、Resources"));
-        resources.AddSource(new FileSource(files));
-        resources.AddStep<byte[], TextAsset>(new UpperTextStep());
-        using ResourceHandle<TextAsset> value = resources.Load<TextAsset>("hello.txt");
-        await value.Ready;
-        return $"状態={value.Status}; 値={value.Value.Text}";
-    }, ctx.Log);
+        builder.Sources.Add(new FileSource(Files(("hello.txt", "hello resources")))).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
+        builder.Steps.Add<byte[], TextAsset>(new UpperTextStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+    }, async resources =>
+    {
+        using ResourceHandle<TextAsset> handle = resources.Load<TextAsset>("hello.txt");
+        await handle.Ready;
+        return $"状態={handle.Status}; 値={handle.Value.Text}";
+    }, ctx);
 
-    [Story("Examples/Resources/CustomPackageSource", Order = 1, SampleBundle = "resources.scenarios")]
-    public static Widget CustomPackageSource(StoryContext ctx) => new ResourceScenarioWidget("カスタムパッケージSource", async resources =>
+    [Story("Examples/Resources/CustomExecutionDomain", Order = 1, SampleBundle = "resources.scenarios")]
+    public static Widget CustomExecutionDomain(StoryContext ctx)
     {
-        resources.AddSource(new PackageSource(new Dictionary<string, byte[]> { ["ui/title.txt"] = Bytes("パッケージのタイトル") }));
-        resources.AddStep<byte[], TextAsset>(new UpperTextStep());
-        using ResourceHandle<TextAsset> value = resources.Load<TextAsset>("package://ui/title.txt");
-        await value.Ready;
-        return $"スキーム=package; 値={value.Value.Text}";
-    }, ctx.Log);
-
-    [Story("Examples/Resources/PlayerStatsPipeline", Order = 2, SampleBundle = "resources.scenarios")]
-    public static Widget PlayerStatsPipeline(StoryContext ctx) => new ResourceScenarioWidget("プレイヤー情報パイプライン", async resources =>
-    {
-        resources.AddSource(new FileSource(Files(("player.stats.json", "{\"name\":\"Mina\",\"level\":7}"))));
-        resources.AddStep<byte[], JsonDocument>(new JsonStep());
-        resources.AddStep<JsonDocument, PlayerStats>(new PlayerStatsStep());
-        using ResourceHandle<PlayerStats> value = resources.Load<PlayerStats>("player.stats.json");
-        await value.Ready;
-        return $"パイプライン=byte[] → JsonDocument → PlayerStats; 値={value.Value.Name}、レベル={value.Value.Level}";
-    }, ctx.Log);
-
-    [Story("Examples/Resources/ExtensionSelection", Order = 3, SampleBundle = "resources.scenarios")]
-    public static Widget ExtensionSelection(StoryContext ctx) => new ResourceScenarioWidget("拡張子によるStep選択", async resources =>
-    {
-        resources.AddSource(new FileSource(Files(("motd.txt", "hello"), ("motd.caption", "hello"))));
-        resources.AddStep<byte[], MessageAsset>(new PlainMessageStep());
-        resources.AddStep<byte[], MessageAsset>(new CaptionMessageStep());
-        using ResourceHandle<MessageAsset> plain = resources.Load<MessageAsset>("motd.txt");
-        using ResourceHandle<MessageAsset> caption = resources.Load<MessageAsset>("motd.caption");
-        await Task.WhenAll(plain.Ready, caption.Ready);
-        return $".txt={plain.Value.Text}; .caption={caption.Value.Text}";
-    }, ctx.Log);
-
-    [Story("Examples/Resources/SharedDependencyGraph", Order = 4, SampleBundle = "resources.scenarios")]
-    public static Widget SharedDependencyGraph(StoryContext ctx) => new ResourceScenarioWidget("共有依存関係グラフ", async resources =>
-    {
-        var counter = new CountingTextStep();
-        resources.AddSource(new FileSource(Files(("shared.txt", "1つの共有ノード"))));
-        resources.AddStep<byte[], TextAsset>(counter);
-        resources.AddStep<TextAsset, WordCount>(new WordCountStep());
-        using ResourceHandle<TextAsset> text = resources.Load<TextAsset>("shared.txt");
-        using ResourceHandle<WordCount> count = resources.Load<WordCount>("shared.txt");
-        await Task.WhenAll(text.Ready, count.Ready);
-        return $"Text Step実行回数={counter.Runs}; 単語数={count.Value.Count}; 共有={counter.Runs == 1}";
-    }, ctx.Log);
-
-    [Story("Examples/Resources/ScopedRuntimeValues", Order = 5, SampleBundle = "resources.scenarios")]
-    public static Widget ScopedRuntimeValues(StoryContext ctx) => new ResourceScenarioWidget("スコープ内ランタイム値", async resources =>
-    {
-        resources.AddStep<RuntimeSeed, RuntimeLabel>(new RuntimeLabelStep());
-        using ResourceScope scope = resources.CreateScope("scenario/player");
-        ResourceHandle<RuntimeLabel> label = scope.Create<RuntimeSeed, RuntimeLabel>("level-label", new RuntimeSeed(12));
-        await label.Ready;
-        return $"所有者=scenario/player; 値={label.Value.Text}";
-    }, ctx.Log);
-
-    [Story("Examples/Resources/HotReloadRecovery", Order = 6, SampleBundle = "resources.scenarios")]
-    public static Widget HotReloadRecovery(StoryContext ctx) => new ResourceScenarioWidget("ホットリロードからの復旧", async resources =>
-    {
-        MemoryFileSystem files = Files(("live.stats.json", "{\"name\":\"Mina\",\"level\":1}"));
-        resources.AddSource(new FileSource(files));
-        resources.AddStep<byte[], JsonDocument>(new JsonStep());
-        resources.AddStep<JsonDocument, PlayerStats>(new PlayerStatsStep());
-        resources.Watch();
-        using ResourceHandle<JsonDocument> json = resources.Load<JsonDocument>("live.stats.json");
-        using ResourceHandle<PlayerStats> stats = resources.Load<PlayerStats>("live.stats.json");
-        await Task.WhenAll(json.Ready, stats.Ready);
-        files.Set("live.stats.json", Bytes("not json"));
-        await PumpUntil(resources, () => json.LastReloadError is not null);
-        int lastGood = stats.Value.Level;
-        files.Set("live.stats.json", Bytes("{\"name\":\"Mina\",\"level\":2}"));
-        await PumpUntil(resources, () => json.LastReloadError is null && stats.Value.Level == 2);
-        return $"失敗時の直近正常値={lastGood}; 復旧後のレベル={stats.Value.Level}; バージョン={stats.Version}";
-    }, ctx.Log);
-
-    [Story("Examples/Resources/BrowserHttpAssets", Order = 7, SampleBundle = "resources.scenarios")]
-    public static Widget BrowserHttpAssets(StoryContext ctx) => new ResourceScenarioWidget("ブラウザーでのHTTPアセット", async resources =>
-    {
-        var http = new HttpClient(new StaticHttpHandler("リモートリソース"));
-        resources.AddSource(new HttpSource(http));
-        resources.AddStep<byte[], TextAsset>(new UpperTextStep());
-        using ResourceHandle<TextAsset> remote = resources.Load<TextAsset>("https://assets.example/motd.txt");
-        await remote.Ready;
-        return $"転送元=HttpSource; 値={remote.Value.Text}";
-    }, ctx.Log);
-
-    [Story("Examples/Resources/Assets/DocumentInspector", Order = 20)]
-    public static Widget DocumentInspector(StoryContext ctx) => new ResourceScenarioWidget("ドキュメント検査", async resources =>
-    {
-        resources.AddStep<AssetDocument, DiagnosticResult>(new DiagnosticStep(document =>
-            $"シーン={document.Scenes.Count}、ノード={document.Nodes.Count}、メッシュ={document.Meshes.Count}、マテリアル={document.Materials.Count}"));
-        using ResourceScope scope = resources.CreateScope("scenario/asset-inspector");
-        ResourceHandle<DiagnosticResult> result = scope.Create<AssetDocument, DiagnosticResult>("document", FixtureDocument());
-        await result.Ready;
-        return result.Value.Text;
-    }, ctx.Log);
-
-    [Story("Examples/Resources/Assets/MeshPrimitiveInspector", Order = 21)]
-    public static Widget MeshPrimitiveInspector(StoryContext ctx) => new ResourceScenarioWidget("メッシュとプリミティブの検査", async resources =>
-    {
-        resources.AddStep<AssetDocument, DiagnosticResult>(new DiagnosticStep(document =>
+        ResourceExecutionDomainHandle custom = default;
+        return Scenario("任意名の実行domain", (builder, h) =>
         {
-            AssetPrimitive primitive = document.Meshes[0].Primitives[0];
-            int vertices = primitive.Attributes.Positions.Length;
-            uint[] indices = primitive.Indices ?? [];
-            bool valid = primitive.Attributes.Normals?.Length == vertices && indices.All(index => index < vertices);
-            return $"頂点数={vertices}; インデックス数={indices.Length}; 有効={valid}";
-        }));
-        using ResourceScope scope = resources.CreateScope("scenario/asset-inspector");
-        ResourceHandle<DiagnosticResult> result = scope.Create<AssetDocument, DiagnosticResult>("primitive", FixtureDocument());
-        await result.Ready;
-        return result.Value.Text;
-    }, ctx.Log);
-
-    [Story("Examples/Resources/Assets/MaterialTextureInspector", Order = 22)]
-    public static Widget MaterialTextureInspector(StoryContext ctx) => new ResourceScenarioWidget("マテリアルとテクスチャの検査", async resources =>
-    {
-        resources.AddStep<AssetDocument, DiagnosticResult>(new DiagnosticStep(document =>
+            custom = builder.Domains.Add("gallery.decode").UseThreadPool(2).WithMetrics("gallery.decode").Register();
+            builder.Steps.Add<RuntimeSeed, RuntimeLabel>(new RuntimeLabelStep()).RunOn(custom).ManagedBy(h.CpuManager).Register();
+        }, async resources =>
         {
-            AssetMaterial material = document.Materials[0];
-            return $"基本色={material.BaseColorFactor}; アルファ={material.AlphaMode}; テクスチャ=2x2; UV={material.BaseColorTexture!.TexCoordSet}";
-        }));
-        using ResourceScope scope = resources.CreateScope("scenario/asset-inspector");
-        ResourceHandle<DiagnosticResult> result = scope.Create<AssetDocument, DiagnosticResult>("material", FixtureDocument());
-        await result.Ready;
-        return result.Value.Text;
-    }, ctx.Log);
+            using ResourceScope scope = resources.CreateScope("example/custom-domain");
+            ResourceHandle<RuntimeLabel> value = scope.Create<RuntimeSeed, RuntimeLabel>("label", new(4));
+            await value.Ready;
+            ResourceExecutionDomainSnapshot snapshot = resources.CaptureDomainSnapshots().Single(x => x.Id == custom.Id);
+            return $"domain={snapshot.Id}; 完了={snapshot.CompletedCount}; 値={value.Value.Text}";
+        }, ctx);
+    }
 
-    [Story("Examples/Resources/Assets/AnimatedSceneGraph", Order = 23)]
-    public static Widget AnimatedSceneGraph(StoryContext ctx) => new ResourceScenarioWidget("アニメーション付きシーングラフ", async resources =>
+    [Story("Examples/Resources/SerializedCompilerDomain", Order = 2, SampleBundle = "resources.scenarios")]
+    public static Widget SerializedCompilerDomain(StoryContext ctx)
     {
-        resources.AddStep<DiagnosticSeed, DiagnosticResult>(new DiagnosticSeedStep());
-        using ResourceScope scope = resources.CreateScope("scenario/diagnostic");
-        ResourceHandle<DiagnosticResult> result = scope.Create<DiagnosticSeed, DiagnosticResult>("animated-graph", new DiagnosticSeed("サンプリング → 伝播 → 抽出"));
-        await result.Ready;
-        return result.Value.Text;
-    }, ctx.Log);
+        ResourceExecutionDomainHandle compiler = default;
+        var step = new SerializedProbeStep();
+        return Scenario("直列compiler domain", (builder, h) =>
+        {
+            compiler = builder.Domains.Add("shader.compiler").UseSerial().Register();
+            builder.Steps.Add<RuntimeSeed, RuntimeLabel>(step).RunOn(compiler).ManagedBy(h.CpuManager).Register();
+        }, async resources =>
+        {
+            using ResourceScope scope = resources.CreateScope("example/compiler");
+            ResourceHandle<RuntimeLabel>[] handles = Enumerable.Range(1, 3)
+                .Select(i => scope.Create<RuntimeSeed, RuntimeLabel>($"compile-{i}", new(i))).ToArray();
+            await Task.WhenAll(handles.Select(h => h.Ready));
+            return $"順序={string.Join(',', step.Order)}; 最大同時実行={step.MaxActive}";
+        }, ctx);
+    }
 
-    [Story("Examples/Resources/Assets/GpuAssetRegistry", Order = 24)]
-    public static Widget GpuAssetRegistry(StoryContext ctx) => new ResourceScenarioWidget("GPUアセット登録", async resources =>
+    [Story("Examples/Resources/TypedManagerBinding", Order = 3, SampleBundle = "resources.scenarios")]
+    public static Widget TypedManagerBinding(StoryContext ctx)
     {
-        resources.AddStep<DiagnosticSeed, DiagnosticResult>(new DiagnosticSeedStep());
-        using ResourceScope scope = resources.CreateScope("scenario/diagnostic");
-        ResourceHandle<DiagnosticResult> result = scope.Create<DiagnosticSeed, DiagnosticResult>("gpu-registry",
-            new DiagnosticSeed("スコープ=preview; CPUのAssetMesh → GpuMeshの寿命登録は明示的"));
-        await result.Ready;
-        return result.Value.Text;
-    }, ctx.Log);
+        TrackingManager? manager = null;
+        return Scenario("型付きmanager binding", (builder, h) =>
+        {
+            ResourceManagerHandle typed = builder.Managers.Add("gallery.labels").RunOn(h.CpuDomain)
+                .Use(context => manager = new TrackingManager(context.Id)).Register();
+            builder.Managers.Manage<RuntimeLabel>().With(typed).Register();
+            builder.Steps.Add<RuntimeSeed, RuntimeLabel>(new RuntimeLabelStep()).RunOn(h.CpuDomain).Register();
+        }, async resources =>
+        {
+            using ResourceScope scope = resources.CreateScope("example/manager");
+            ResourceHandle<RuntimeLabel> value = scope.Create<RuntimeSeed, RuntimeLabel>("managed", new(7));
+            await value.Ready;
+            return $"manager={manager!.Id}; adopt={manager.Adopted}; 値={value.Value.Text}";
+        }, ctx);
+    }
 
-    [Story("Examples/Resources/Assets/ShaderBufferInspector", Order = 25)]
-    public static Widget ShaderBufferInspector(StoryContext ctx) => new ResourceScenarioWidget("シェーダーバッファの検査", async resources =>
+    [Story("Examples/Resources/SharedRequestIdentity", Order = 4, SampleBundle = "resources.scenarios")]
+    public static Widget SharedRequestIdentity(StoryContext ctx)
     {
-        resources.AddStep<DiagnosticSeed, DiagnosticResult>(new DiagnosticSeedStep());
-        using ResourceScope scope = resources.CreateScope("scenario/diagnostic");
-        ResourceHandle<DiagnosticResult> result = scope.Create<DiagnosticSeed, DiagnosticResult>("shader-abi",
-            new DiagnosticSeed($"MaterialGpuData={Marshal.SizeOf<MaterialGpuData>()}; SceneInstanceData={SceneInstanceData.Stride}; MorphDelta={Marshal.SizeOf<MorphDelta>()}"));
-        await result.Ready;
-        return result.Value.Text;
-    }, ctx.Log);
+        var step = new CountingTextStep();
+        return Scenario("共有request identity", (builder, h) =>
+        {
+            builder.Sources.Add(new FileSource(Files(("shared.txt", "shared")))).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
+            builder.Steps.Add<byte[], TextAsset>(step).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+            builder.Steps.Add<TextAsset, WordCount>(new WordCountStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+        }, async resources =>
+        {
+            using ResourceHandle<TextAsset> text = resources.Load<TextAsset>("shared.txt");
+            using ResourceHandle<WordCount> count = resources.Load<WordCount>("shared.txt");
+            await Task.WhenAll(text.Ready, count.Ready);
+            return $"中間Step実行={step.Runs}; 単語数={count.Value.Count}";
+        }, ctx);
+    }
+
+    [Story("Examples/Resources/CustomSourceAndStep", Order = 5, SampleBundle = "resources.scenarios")]
+    public static Widget CustomSourceAndStep(StoryContext ctx) => Scenario("custom SourceとStep", (builder, h) =>
+    {
+        builder.Sources.Add(new PackageSource(new Dictionary<string, byte[]> { ["ui/title.txt"] = Bytes("package title") }))
+            .RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
+        builder.Steps.Add<byte[], TextAsset>(new UpperTextStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).ForExtensions(".txt").Register();
+    }, async resources =>
+    {
+        using ResourceHandle<TextAsset> title = resources.Load<TextAsset>("package://ui/title.txt");
+        await title.Ready;
+        return $"scheme=package; 値={title.Value.Text}";
+    }, ctx);
+
+    [Story("Examples/Resources/DependencyPublication", Order = 6, SampleBundle = "resources.scenarios")]
+    public static Widget DependencyPublication(StoryContext ctx) => Scenario("依存とpublication", (builder, h) =>
+    {
+        builder.Sources.Add(new FileSource(Files(("words.txt", "one two")))).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
+        builder.Steps.Add<byte[], TextAsset>(new UpperTextStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+        builder.Steps.Add<TextAsset, WordCount>(new WordCountStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+    }, async resources =>
+    {
+        using ResourceHandle<WordCount> count = resources.Load<WordCount>("words.txt");
+        await count.Ready;
+        resources.Pump();
+        return $"依存完了=True; Pump公開=True; 単語数={count.Value.Count}";
+    }, ctx);
+
+    [Story("Examples/Resources/ScopedRetirement", Order = 7, SampleBundle = "resources.scenarios")]
+    public static Widget ScopedRetirement(StoryContext ctx)
+    {
+        TrackingManager? manager = null;
+        return Scenario("scope retirement", (builder, h) =>
+        {
+            ResourceManagerHandle tracked = builder.Managers.Add("gallery.retirement").RunOn(h.CpuDomain)
+                .Use(context => manager = new TrackingManager(context.Id)).Register();
+            builder.Managers.Manage<RuntimeLabel>().With(tracked).Register();
+            builder.Steps.Add<RuntimeSeed, RuntimeLabel>(new RuntimeLabelStep()).RunOn(h.CpuDomain).Register();
+        }, async resources =>
+        {
+            using (ResourceScope scope = resources.CreateScope("example/retirement"))
+            {
+                ResourceHandle<RuntimeLabel> value = scope.Create<RuntimeSeed, RuntimeLabel>("owned", new(9));
+                await value.Ready;
+            }
+            resources.Pump();
+            await WaitUntil(() => manager!.Retired > 0);
+            return $"adopt={manager!.Adopted}; retire={manager.Retired}";
+        }, ctx);
+    }
+
+    [Story("Examples/Resources/ReloadKeepsLastGood", Order = 8, SampleBundle = "resources.scenarios")]
+    public static Widget ReloadKeepsLastGood(StoryContext ctx)
+    {
+        MemoryFileSystem files = Files(("live.json", "{\"name\":\"Mina\",\"level\":1}"));
+        return Scenario("last-good recovery", (builder, h) =>
+        {
+            builder.Sources.Add(new FileSource(files)).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
+            builder.Steps.Add<byte[], JsonDocument>(new JsonStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+            builder.Steps.Add<JsonDocument, PlayerStats>(new PlayerStatsStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+        }, async resources =>
+        {
+            resources.Watch();
+            using ResourceHandle<JsonDocument> json = resources.Load<JsonDocument>("live.json");
+            using ResourceHandle<PlayerStats> stats = resources.Load<PlayerStats>("live.json");
+            await Task.WhenAll(json.Ready, stats.Ready);
+            files.Set("live.json", Bytes("not json"));
+            await PumpUntil(resources, () => json.LastReloadError is not null);
+            int lastGood = stats.Value.Level;
+            files.Set("live.json", Bytes("{\"name\":\"Mina\",\"level\":2}"));
+            await PumpUntil(resources, () => json.LastReloadError is null && stats.Value.Level == 2);
+            return $"last-good={lastGood}; 復旧={stats.Value.Level}";
+        }, ctx);
+    }
+
+    [Story("Examples/Resources/DomainAndManagerMetrics", Order = 9, SampleBundle = "resources.scenarios")]
+    public static Widget DomainAndManagerMetrics(StoryContext ctx) => Scenario("domainとmanager metrics", (builder, h) =>
+    {
+        builder.Sources.Add(new FileSource(Files(("metrics.txt", "metrics")))).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
+        builder.Steps.Add<byte[], TextAsset>(new UpperTextStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+    }, async resources =>
+    {
+        using ResourceHandle<TextAsset> value = resources.Load<TextAsset>("metrics.txt");
+        await value.Ready;
+        ResourceExecutionDomainSnapshot domain = resources.CaptureDomainSnapshots().Single(s => s.Id.Value == "resource.cpu");
+        ResourceManagerSnapshot manager = resources.CaptureManagerSnapshots().Single(s => s.Id.Value == "resource.cpu-manager");
+        return $"完了={domain.CompletedCount}; queue={domain.QueueDepth}; adopt={manager.AdoptedCount}; bytes={manager.LogicalBytes}";
+    }, ctx);
+
+    [Story("Examples/Resources/WasmCooperativeScheduling", Order = 10, SampleBundle = "resources.scenarios")]
+    public static Widget WasmCooperativeScheduling(StoryContext ctx)
+    {
+        ResourceExecutionDomainHandle wasm = default;
+        return Scenario("WASM cooperative scheduling", (builder, h) =>
+        {
+            var capabilities = new ResourceExecutionDomainCapabilities(1, ResourceThreadAffinity.HostThread, ResourceProgressModel.Cooperative, OperationBudget: TimeSpan.FromMilliseconds(2));
+            wasm = builder.Domains.Add("browser.owner").UseFactory(c => new CooperativeDemoDomain(c.Id, capabilities), capabilities).Register();
+            builder.Steps.Add<RuntimeSeed, RuntimeLabel>(new RuntimeLabelStep()).RunOn(wasm).ManagedBy(h.CpuManager).Register();
+        }, async resources =>
+        {
+            using ResourceScope scope = resources.CreateScope("example/wasm");
+            ResourceHandle<RuntimeLabel> value = scope.Create<RuntimeSeed, RuntimeLabel>("yield", new(1));
+            await value.Ready;
+            ResourceExecutionDomainSnapshot snapshot = resources.CaptureDomainSnapshots().Single(s => s.Id == wasm.Id);
+            return $"progress=Cooperative; concurrency=1; 完了={snapshot.CompletedCount}";
+        }, ctx);
+    }
+
+    [Story("Examples/Resources/Assets/GpuManagerInstallation", Order = 20)]
+    public static Widget GpuManagerInstallation(StoryContext ctx) => GpuContractScenario("GPU manager installation", "gpu.manager + gpu.device domain + typed policy", ctx);
+
+    [Story("Examples/Resources/Assets/CustomGpuParticleBuffers", Order = 21)]
+    public static Widget CustomGpuParticleBuffers(StoryContext ctx) => GpuContractScenario("custom GPU particle buffers", "ParticleBufferをexact type bindingで管理", ctx);
+
+    [Story("Examples/Resources/Assets/CustomGpuStructRetirement", Order = 22)]
+    public static Widget CustomGpuStructRetirement(StoryContext ctx) => GpuContractScenario("custom GPU struct retirement", "複数handleをmanagerのretirement queueへ送る", ctx);
+
+    [Story("Examples/Resources/Assets/GpuIndexRecycling", Order = 23)]
+    public static Widget GpuIndexRecycling(StoryContext ctx) => GpuContractScenario("GPU index recycling", "fence完了後にmanager-local indexを再利用", ctx);
+
+    [Story("Examples/Resources/Assets/GpuCompaction", Order = 24)]
+    public static Widget GpuCompaction(StoryContext ctx) => GpuContractScenario("GPU compaction", "logical handleを保ったallocation relocation", ctx);
+
+    [Story("Examples/Resources/Assets/DeviceLostRecovery", Order = 25)]
+    public static Widget DeviceLostRecovery(StoryContext ctx) => GpuContractScenario("device lost recovery", "device generationを更新してtargeted invalidation", ctx);
+
+    [Story("Examples/Resources/Assets/DocumentInspector", Order = 30)]
+    public static Widget DocumentInspector(StoryContext ctx) => AssetDiagnostic("document", document =>
+        $"シーン={document.Scenes.Count}、ノード={document.Nodes.Count}、メッシュ={document.Meshes.Count}、マテリアル={document.Materials.Count}", ctx);
+
+    [Story("Examples/Resources/Assets/MeshPrimitiveInspector", Order = 31)]
+    public static Widget MeshPrimitiveInspector(StoryContext ctx) => AssetDiagnostic("primitive", document =>
+    {
+        AssetPrimitive primitive = document.Meshes[0].Primitives[0];
+        return $"頂点={primitive.Attributes.Positions.Length}; index={primitive.Indices?.Length ?? 0}";
+    }, ctx);
+
+    [Story("Examples/Resources/Assets/MaterialTextureInspector", Order = 32)]
+    public static Widget MaterialTextureInspector(StoryContext ctx) => AssetDiagnostic("material", document =>
+        $"基本色={document.Materials[0].BaseColorFactor}; UV={document.Materials[0].BaseColorTexture!.TexCoordSet}", ctx);
+
+    [Story("Examples/Resources/Assets/AnimatedSceneGraph", Order = 33)]
+    public static Widget AnimatedSceneGraph(StoryContext ctx) => SeedDiagnostic("animated", "サンプリング → 伝播 → 抽出", ctx);
+
+    [Story("Examples/Resources/Assets/ShaderBufferInspector", Order = 34)]
+    public static Widget ShaderBufferInspector(StoryContext ctx) => SeedDiagnostic("shader-abi", $"MaterialGpuData={Marshal.SizeOf<MaterialGpuData>()}; manager metadata=allocation/index/generation", ctx);
 
     [Story("Examples/Resources/Gltf/BoxDocumentLoad", Order = 40)]
-    public static Widget BoxDocumentLoad(StoryContext ctx) => new ResourceScenarioWidget("Boxドキュメントの読み込み", async resources =>
-    {
-        resources.AddSource(new FileSource(Files(("Box.gltf", TriangleGltf))));
-        resources.AddStep<byte[], AssetDocument>(new GltfResourceStep());
-        using ResourceHandle<AssetDocument> box = resources.Load<AssetDocument>("Box.gltf");
-        await box.Ready;
-        return $"形式={box.Value.SourceFormat}; メッシュ数={box.Value.Meshes.Count}; ノード数={box.Value.Nodes.Count}";
-    }, ctx.Log);
+    public static Widget BoxDocumentLoad(StoryContext ctx) => GltfLoad("Box.gltf", TriangleGltf, ctx);
 
     [Story("Examples/Resources/Gltf/ExternalBufferTrace", Order = 41)]
-    public static Widget ExternalBufferTrace(StoryContext ctx) => new ResourceScenarioWidget("外部バッファの追跡", async resources =>
+    public static Widget ExternalBufferTrace(StoryContext ctx) => Scenario("glTF外部buffer", (builder, h) =>
     {
-        resources.AddSource(new FileSource(BinaryTriangleFiles()));
-        resources.AddStep<byte[], AssetDocument>(new GltfResourceStep());
+        builder.Sources.Add(new FileSource(BinaryTriangleFiles())).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
+        builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+    }, async resources =>
+    {
         using ResourceHandle<AssetDocument> scene = resources.Load<AssetDocument>("models/scene.gltf");
         await scene.Ready;
-        ResourceUri resolved = new ResourceUri("models/scene.gltf").Resolve("buffers/geometry.bin");
-        return $"解決先={resolved.Url}; メッシュ数={scene.Value.Meshes.Count}; 依存先読み込み済み=True";
-    }, ctx.Log);
+        return $"解決先={new ResourceUri("models/scene.gltf").Resolve("buffers/geometry.bin").Url}; mesh={scene.Value.Meshes.Count}";
+    }, ctx);
 
     [Story("Examples/Resources/Gltf/MalformedAccessorDiagnostics", Order = 42)]
-    public static Widget MalformedAccessorDiagnostics(StoryContext ctx) => new ResourceScenarioWidget("不正なアクセサーの診断", async resources =>
+    public static Widget MalformedAccessorDiagnostics(StoryContext ctx) => Scenario("glTF診断", (builder, h) =>
     {
-        resources.AddSource(new FileSource(Files(("broken.gltf", MalformedGltf))));
-        resources.AddStep<byte[], AssetDocument>(new GltfResourceStep());
+        builder.Sources.Add(new FileSource(Files(("broken.gltf", MalformedGltf)))).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
+        builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+    }, async resources =>
+    {
         using ResourceHandle<AssetDocument> broken = resources.Load<AssetDocument>("broken.gltf");
-        try { await broken.Ready; return "予期せずインポートに成功しました"; }
+        try { await broken.Ready; return "診断なし"; }
         catch (Exception error) { return $"診断={error.GetBaseException().Message}"; }
-    }, ctx.Log);
+    }, ctx);
 
     [Story("Examples/Resources/Gltf/ExternalDependencyReload", Order = 43)]
-    public static Widget ExternalDependencyReload(StoryContext ctx) => new ResourceScenarioWidget("外部依存先の再読み込み", async resources =>
+    public static Widget ExternalDependencyReload(StoryContext ctx)
     {
         MemoryFileSystem files = BinaryTriangleFiles();
-        resources.AddSource(new FileSource(files));
-        resources.AddStep<byte[], AssetDocument>(new GltfResourceStep());
-        resources.Watch();
-        using ResourceHandle<byte[]> buffer = resources.Load<byte[]>("models/buffers/geometry.bin");
-        using ResourceHandle<AssetDocument> scene = resources.Load<AssetDocument>("models/scene.gltf");
-        await Task.WhenAll(buffer.Ready, scene.Ready);
-        int before = scene.Version;
-        files.Set("models/buffers/geometry.bin", TriangleBinary(0.75f));
-        await PumpUntil(resources, () => scene.Version > before);
-        return $"依存先=geometry.bin; ドキュメントバージョン={before}→{scene.Version}; 最終エラー={scene.LastReloadError?.Message ?? "なし"}";
-    }, ctx.Log);
+        return Scenario("glTF依存reload", (builder, h) =>
+        {
+            builder.Sources.Add(new FileSource(files)).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
+            builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+        }, async resources =>
+        {
+            resources.Watch();
+            using ResourceHandle<AssetDocument> scene = resources.Load<AssetDocument>("models/scene.gltf");
+            await scene.Ready;
+            int before = scene.Version;
+            files.Set("models/buffers/geometry.bin", TriangleBinary(.75f));
+            await PumpUntil(resources, () => scene.Version > before);
+            return $"generation={before}→{scene.Version}";
+        }, ctx);
+    }
+
+    private static ResourceScenarioWidget Scenario(string title, Action<ResourceSystemBuilder, ResourceSystemDefaultHandles> configure,
+        Func<ResourceSystem, Task<string>> run, StoryContext ctx) => new(title, configure, run, ctx.Log);
+
+    private static Widget GpuContractScenario(string title, string observation, StoryContext ctx)
+    {
+        TrackingManager? manager = null;
+        return Scenario(title, (builder, h) =>
+        {
+            ResourceExecutionDomainHandle gpu = builder.Domains.Add("gpu.device").UseSerial().Register();
+            ResourceManagerHandle gpuManager = builder.Managers.Add("gpu.manager").RunOn(gpu)
+                .Use(context => manager = new TrackingManager(context.Id)).Register();
+            builder.Managers.Manage<GpuContractValue>().With(gpuManager).Register();
+            builder.Steps.Add<DiagnosticSeed, GpuContractValue>(new GpuContractStep()).RunOn(gpu).ManagedBy(gpuManager).Register();
+        }, async resources =>
+        {
+            using ResourceScope scope = resources.CreateScope("example/gpu-contract");
+            ResourceHandle<GpuContractValue> value = scope.Create<DiagnosticSeed, GpuContractValue>("gpu", new(observation));
+            await value.Ready;
+            return $"manager={manager!.Id}; generation={value.Version}; {value.Value.Description}";
+        }, ctx);
+    }
+
+    private static Widget AssetDiagnostic(string key, Func<AssetDocument, string> inspect, StoryContext ctx) =>
+        Scenario("Asset診断", (builder, h) => builder.Steps.Add<AssetDocument, DiagnosticResult>(new DiagnosticStep(inspect)).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register(),
+            async resources =>
+            {
+                using ResourceScope scope = resources.CreateScope("example/assets");
+                ResourceHandle<DiagnosticResult> result = scope.Create<AssetDocument, DiagnosticResult>(key, FixtureDocument());
+                await result.Ready;
+                return result.Value.Text;
+            }, ctx);
+
+    private static Widget SeedDiagnostic(string key, string text, StoryContext ctx) =>
+        Scenario("Asset runtime診断", (builder, h) => builder.Steps.Add<DiagnosticSeed, DiagnosticResult>(new DiagnosticSeedStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register(),
+            async resources =>
+            {
+                using ResourceScope scope = resources.CreateScope("example/assets");
+                ResourceHandle<DiagnosticResult> result = scope.Create<DiagnosticSeed, DiagnosticResult>(key, new(text));
+                await result.Ready;
+                return result.Value.Text;
+            }, ctx);
+
+    private static Widget GltfLoad(string path, string content, StoryContext ctx) => Scenario("glTF document load", (builder, h) =>
+    {
+        builder.Sources.Add(new FileSource(Files((path, content)))).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
+        builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+    }, async resources =>
+    {
+        using ResourceHandle<AssetDocument> document = resources.Load<AssetDocument>(path);
+        await document.Ready;
+        return $"形式={document.Value.SourceFormat}; mesh={document.Value.Meshes.Count}; node={document.Value.Nodes.Count}";
+    }, ctx);
+
+    private static async Task WaitUntil(Func<bool> condition)
+    {
+        for (int i = 0; i < 200 && !condition(); i++) await Task.Delay(5);
+        if (!condition()) throw new TimeoutException("retirement did not complete");
+    }
+
+    private sealed record GpuContractValue(string Description);
+    private sealed class GpuContractStep : IResourceStep<DiagnosticSeed, GpuContractValue>
+    {
+        public Task<GpuContractValue> RunAsync(DiagnosticSeed input, ResourceUri uri, LoadContext ctx) => Task.FromResult(new GpuContractValue(input.Text));
+    }
+
+    private sealed class SerializedProbeStep : IResourceStep<RuntimeSeed, RuntimeLabel>
+    {
+        private int _active;
+        public List<int> Order { get; } = [];
+        public int MaxActive { get; private set; }
+        public async Task<RuntimeLabel> RunAsync(RuntimeSeed input, ResourceUri uri, LoadContext ctx)
+        {
+            int active = Interlocked.Increment(ref _active);
+            MaxActive = Math.Max(MaxActive, active);
+            Order.Add(input.Level);
+            await Task.Delay(5, ctx.Token);
+            Interlocked.Decrement(ref _active);
+            return new($"レベル {input.Level}");
+        }
+    }
+
+    private sealed class TrackingManager(ResourceManagerId id) : CpuResourceManager(id)
+    {
+        public long Adopted => CaptureSnapshot().AdoptedCount;
+        public long Retired => CaptureSnapshot().RetiredCount;
+    }
+
+    private sealed class CooperativeDemoDomain(ResourceExecutionDomainId id, ResourceExecutionDomainCapabilities capabilities) : IResourceExecutionDomain
+    {
+        private long _completed;
+        public ResourceExecutionDomainId Id { get; } = id;
+        public ResourceExecutionDomainCapabilities Capabilities { get; } = capabilities;
+        public ValueTask StartAsync(CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+        public async ValueTask<object> DispatchAsync(Func<CancellationToken, ValueTask<object>> work, CancellationToken cancellationToken = default)
+        {
+            await Task.Yield();
+            object value = await work(cancellationToken);
+            Interlocked.Increment(ref _completed);
+            return value;
+        }
+        public ResourceExecutionDomainSnapshot CaptureSnapshot() => new(Id, 0, 0, Interlocked.Read(ref _completed), TimeSpan.Zero, TimeSpan.Zero);
+        public ValueTask ShutdownAsync(CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
 }

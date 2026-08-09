@@ -29,14 +29,16 @@ public static class LearnResourceGltf
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/RegistrationAndLoading", "初級", "ツール / ヘッドレス / ランタイム", "Resources + Assets.Gltf", "glTFの概要")}}
 
-        インポーターは明示的に登録します。`ResourceSystem`はアセンブリを自動走査しません。ジェネリックオーバーロードはリフレクションを使わないため、ブラウザーやトリミングされたホストでも利用できます。
+        インポーターはcomposition rootでStep builderへ登録します。output managerとexecution domainを明示し、`BuildAsync()`のready barrierを通過したsystemから読み込みます。
 
         ```csharp
-        resources.AddStep<byte[], AssetDocument>(new GltfResourceStep());
-        using ResourceHandle<AssetDocument> document =
-            resources.Load<AssetDocument>("models/Box.glb");
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaultHandles core = ResourceSystemDefaults.AddCore(builder);
+        builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep())
+            .RunOn(core.CpuDomain).ManagedBy(core.CpuManager).ForExtensions(".gltf", ".glb").Register();
+        await using ResourceSystem resources = await builder.BuildAsync();
+        using ResourceHandle<AssetDocument> document = resources.Load<AssetDocument>("models/Box.glb");
         await document.Ready;
-        if (!document.HasValue) throw document.Error!;
         ```
 
         `.gltf`と`.glb`はStepが宣言する拡張子で選択されます。読み込みに成功したハンドルが保持するのはCPUオブジェクトだけです。1つのプリミティブをGPUへ転送するか、完全なランタイムシーンを構築するかを決める前に、`Scenes`、`Nodes`、`Meshes`を調べてください。

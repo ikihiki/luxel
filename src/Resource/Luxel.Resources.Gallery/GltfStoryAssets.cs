@@ -35,7 +35,11 @@ public static class GltfStoryAssets
         bool animated)
     {
         Interlocked.Increment(ref _createdSystemCount);
-        var resources = new ResourceSystem(steps: [new DocumentIdentityStep()]);
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaultHandles core = ResourceSystemDefaults.AddCore(builder);
+        builder.Steps.Add<AssetDocumentSeed, AssetDocument>(new DocumentIdentityStep())
+            .RunOn(core.CpuDomain).ManagedBy(core.CpuManager).Register();
+        ResourceSystem resources = builder.Build();
         ResourceScope scope = resources.CreateScope("gpu-story/generated-document");
         ResourceHandle<AssetDocument> handle = scope.Create<AssetDocumentSeed, AssetDocument>("generated.gltf", new AssetDocumentSeed(document));
         return ViewOwned(resources, handle, createScene, animated, scope);
@@ -52,9 +56,12 @@ public static class GltfStoryAssets
     private static ResourceSystem CreateFixtureSystem()
     {
         Interlocked.Increment(ref _createdSystemCount);
-        return new ResourceSystem(
-            sources: [new EmbeddedFixtureSource()],
-            steps: [new GltfResourceStep()]);
+        var builder = new ResourceSystemBuilder();
+        ResourceSystemDefaultHandles core = ResourceSystemDefaults.AddCore(builder);
+        builder.Sources.Add(new EmbeddedFixtureSource()).RunOn(core.IoDomain).ManagedBy(core.IoManager).Register();
+        builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep())
+            .RunOn(core.CpuDomain).ManagedBy(core.CpuManager).Register();
+        return builder.Build();
     }
 
     private static Widget ViewOwned(

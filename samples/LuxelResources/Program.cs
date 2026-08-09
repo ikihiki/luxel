@@ -1,148 +1,211 @@
 using System.Diagnostics;
-using System.Net;
 using System.Text;
 using System.Text.Json;
 using Luxel.Resources;
 
-await HelloTextAsset();
-await CustomPackageSource();
-await PlayerStatsPipeline();
-await ExtensionSelection();
-await SharedDependencyGraph();
-await ScopedRuntimeValues();
-await HotReloadRecovery();
-await BrowserHttpAssets();
-Console.WriteLine("resources: status=Ready, value=HELLO RESOURCES, scenarios=8");
+await ReadyBuilder();
+await CustomExecutionDomain();
+await SerializedDomain();
+await TypedManagerBinding();
+await SharedRequestIdentity();
+await CustomSourceAndStep();
+await DependencyPublication();
+await ScopedRetirement();
+await ReloadKeepsLastGood();
+await DomainAndManagerMetrics();
+Console.WriteLine("resources: status=Ready, architecture=builder-domain-manager, scenarios=10");
 
-// docs:begin hello-text-asset
-static async Task HelloTextAsset()
+// docs:begin ready-builder
+static async Task ReadyBuilder()
 {
-    var files = new MemoryFileSystem();
-    files.Set("hello.txt", Encoding.UTF8.GetBytes("hello resources"));
-    using var resources = new ResourceSystem(
-        sources: [new FileSource(files)],
-        steps: [new Utf8TextStep()]);
-    using ResourceHandle<TextAsset> handle = resources.Load<TextAsset>("hello.txt");
-    await handle.Ready;
-    Ensure(handle.Value.Text == "HELLO RESOURCES", "typed text load");
+    MemoryFileSystem files = Files(("hello.txt", "hello resources"));
+    using ResourceSystem resources = Build((builder, h) =>
+    {
+        builder.Sources.Add(new FileSource(files)).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
+        builder.Steps.Add<byte[], TextAsset>(new TextStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+    });
+    using ResourceHandle<TextAsset> value = resources.Load<TextAsset>("hello.txt");
+    await value.Ready;
+    Ensure(value.Value.Text == "HELLO RESOURCES", "ready builder");
 }
-// docs:end hello-text-asset
+// docs:end ready-builder
 
-// docs:begin custom-package-source
-static async Task CustomPackageSource()
+// docs:begin custom-execution-domain
+static async Task CustomExecutionDomain()
 {
-    using var resources = new ResourceSystem(
-        sources: [new PackageSource(new Dictionary<string, byte[]> { ["ui/title.txt"] = Encoding.UTF8.GetBytes("package title") })],
-        steps: [new Utf8TextStep()]);
-    using ResourceHandle<TextAsset> title = resources.Load<TextAsset>("package://ui/title.txt");
-    await title.Ready;
-    Ensure(title.Value.Text == "PACKAGE TITLE", "custom package source");
+    ResourceExecutionDomainHandle decode = default;
+    using ResourceSystem resources = Build((builder, h) =>
+    {
+        decode = builder.Domains.Add("sample.decode").UseThreadPool(2).Register();
+        builder.Steps.Add<Seed, Label>(new LabelStep()).RunOn(decode).ManagedBy(h.CpuManager).Register();
+    });
+    using ResourceScope scope = resources.CreateScope("sample/domain");
+    ResourceHandle<Label> value = scope.Create<Seed, Label>("label", new(2));
+    await value.Ready;
+    Ensure(resources.CaptureDomainSnapshots().Any(x => x.Id == decode.Id), "custom domain");
 }
-// docs:end custom-package-source
+// docs:end custom-execution-domain
 
-// docs:begin player-stats-pipeline
-static async Task PlayerStatsPipeline()
+// docs:begin serialized-domain
+static async Task SerializedDomain()
 {
-    var files = new MemoryFileSystem();
-    files.Set("player.stats.json", Encoding.UTF8.GetBytes("{\"name\":\"Mina\",\"level\":7}"));
-    using var resources = new ResourceSystem(
-        sources: [new FileSource(files)],
-        steps: [new JsonDocumentStep(), new PlayerStatsStep()]);
-    using ResourceHandle<PlayerStats> stats = resources.Load<PlayerStats>("player.stats.json");
-    await stats.Ready;
-    Ensure(stats.Value is { Name: "Mina", Level: 7 }, "multi-step player stats pipeline");
+    var step = new SerialProbeStep();
+    using ResourceSystem resources = Build((builder, h) =>
+    {
+        ResourceExecutionDomainHandle serial = builder.Domains.Add("sample.compiler").UseSerial().Register();
+        builder.Steps.Add<Seed, Label>(step).RunOn(serial).ManagedBy(h.CpuManager).Register();
+    });
+    using ResourceScope scope = resources.CreateScope("sample/compiler");
+    ResourceHandle<Label>[] values = Enumerable.Range(1, 3).Select(i => scope.Create<Seed, Label>($"job-{i}", new(i))).ToArray();
+    await Task.WhenAll(values.Select(x => x.Ready));
+    Ensure(step.MaxActive == 1 && step.Order.SequenceEqual([1, 2, 3]), "serialized domain");
 }
-// docs:end player-stats-pipeline
+// docs:end serialized-domain
 
-// docs:begin extension-selection
-static async Task ExtensionSelection()
+// docs:begin typed-manager-binding
+static async Task TypedManagerBinding()
 {
-    var files = new MemoryFileSystem();
-    files.Set("motd.txt", Encoding.UTF8.GetBytes("hello"));
-    files.Set("motd.caption", Encoding.UTF8.GetBytes("hello"));
-    using var resources = new ResourceSystem(
-        sources: [new FileSource(files)],
-        steps: [new PlainMessageStep(), new CaptionMessageStep()]);
-    using ResourceHandle<MessageAsset> plain = resources.Load<MessageAsset>("motd.txt");
-    using ResourceHandle<MessageAsset> caption = resources.Load<MessageAsset>("motd.caption");
-    await Task.WhenAll(plain.Ready, caption.Ready);
-    Ensure(plain.Value.Text == "hello" && caption.Value.Text == "[hello]", "extension-selected steps");
+    TrackingManager? manager = null;
+    using ResourceSystem resources = Build((builder, h) =>
+    {
+        ResourceManagerHandle labels = builder.Managers.Add("sample.labels").RunOn(h.CpuDomain)
+            .Use(ctx => manager = new TrackingManager(ctx.Id)).Register();
+        builder.Managers.Manage<Label>().With(labels).Register();
+        builder.Steps.Add<Seed, Label>(new LabelStep()).RunOn(h.CpuDomain).Register();
+    });
+    using ResourceScope scope = resources.CreateScope("sample/manager");
+    ResourceHandle<Label> value = scope.Create<Seed, Label>("managed", new(3));
+    await value.Ready;
+    Ensure(manager!.Adopted == 1, "typed manager binding");
 }
-// docs:end extension-selection
+// docs:end typed-manager-binding
 
-// docs:begin shared-dependency-graph
-static async Task SharedDependencyGraph()
+// docs:begin shared-request-identity
+static async Task SharedRequestIdentity()
 {
-    CountingTextStep.Runs = 0;
-    var files = new MemoryFileSystem();
-    files.Set("shared.txt", Encoding.UTF8.GetBytes("shared"));
-    using var resources = new ResourceSystem(
-        sources: [new FileSource(files)],
-        steps: [new CountingTextStep(), new WordCountStep()]);
+    var step = new CountingTextStep();
+    using ResourceSystem resources = Build((builder, h) =>
+    {
+        builder.Sources.Add(new FileSource(Files(("shared.txt", "one two")))).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
+        builder.Steps.Add<byte[], TextAsset>(step).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+        builder.Steps.Add<TextAsset, WordCount>(new WordCountStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+    });
     using ResourceHandle<TextAsset> text = resources.Load<TextAsset>("shared.txt");
     using ResourceHandle<WordCount> count = resources.Load<WordCount>("shared.txt");
     await Task.WhenAll(text.Ready, count.Ready);
-    Ensure(CountingTextStep.Runs == 1 && count.Value.Count == 1, "shared intermediate cache node");
+    Ensure(step.Runs == 1 && count.Value.Count == 2, "shared request identity");
 }
-// docs:end shared-dependency-graph
+// docs:end shared-request-identity
 
-// docs:begin scoped-runtime-values
-static async Task ScopedRuntimeValues()
+// docs:begin custom-source-and-step
+static async Task CustomSourceAndStep()
 {
-    using var resources = new ResourceSystem(steps: [new RuntimeLabelStep()]);
-    using ResourceScope scene = resources.CreateScope("scene/player");
-    ResourceHandle<RuntimeLabel> label = scene.Create<RuntimeSeed, RuntimeLabel>("level-label", new RuntimeSeed(12));
-    await label.Ready;
-    Ensure(label.Value.Text == "Level 12", "scope-local runtime value");
+    using ResourceSystem resources = Build((builder, h) =>
+    {
+        builder.Sources.Add(new PackageSource(new Dictionary<string, byte[]> { ["ui/title.txt"] = Encoding.UTF8.GetBytes("package") }))
+            .RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
+        builder.Steps.Add<byte[], TextAsset>(new TextStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).ForExtensions(".txt").Register();
+    });
+    using ResourceHandle<TextAsset> value = resources.Load<TextAsset>("package://ui/title.txt");
+    await value.Ready;
+    Ensure(value.Value.Text == "PACKAGE", "custom source and step");
 }
-// docs:end scoped-runtime-values
+// docs:end custom-source-and-step
 
-// docs:begin hot-reload-recovery
-static async Task HotReloadRecovery()
+static async Task DependencyPublication()
+{
+    using ResourceSystem resources = Build((builder, h) =>
+    {
+        builder.Sources.Add(new FileSource(Files(("words.txt", "one two three")))).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
+        builder.Steps.Add<byte[], TextAsset>(new TextStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+        builder.Steps.Add<TextAsset, WordCount>(new WordCountStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+    });
+    using ResourceHandle<WordCount> count = resources.Load<WordCount>("words.txt");
+    await count.Ready;
+    resources.Pump();
+    Ensure(count.Value.Count == 3, "dependency publication");
+}
+
+static async Task ScopedRetirement()
+{
+    TrackingManager? manager = null;
+    using ResourceSystem resources = Build((builder, h) =>
+    {
+        ResourceManagerHandle tracked = builder.Managers.Add("sample.retirement").RunOn(h.CpuDomain)
+            .Use(ctx => manager = new TrackingManager(ctx.Id)).Register();
+        builder.Managers.Manage<Label>().With(tracked).Register();
+        builder.Steps.Add<Seed, Label>(new LabelStep()).RunOn(h.CpuDomain).Register();
+    });
+    using (ResourceScope scope = resources.CreateScope("sample/retirement"))
+    {
+        ResourceHandle<Label> value = scope.Create<Seed, Label>("owned", new(4));
+        await value.Ready;
+    }
+    resources.Pump();
+    await WaitUntil(() => manager!.Retired > 0);
+    Ensure(manager!.Retired == 1, "scoped retirement");
+}
+
+static async Task ReloadKeepsLastGood()
+{
+    MemoryFileSystem files = Files(("live.json", "{\"level\":1}"));
+    using ResourceSystem resources = Build((builder, h) =>
+    {
+        builder.Sources.Add(new FileSource(files)).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
+        builder.Steps.Add<byte[], JsonDocument>(new JsonStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+        builder.Steps.Add<JsonDocument, Stats>(new StatsStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+    });
+    resources.Watch();
+    using ResourceHandle<JsonDocument> json = resources.Load<JsonDocument>("live.json");
+    using ResourceHandle<Stats> stats = resources.Load<Stats>("live.json");
+    await Task.WhenAll(json.Ready, stats.Ready);
+    files.Set("live.json", Encoding.UTF8.GetBytes("bad"));
+    await PumpUntil(resources, () => json.LastReloadError is not null);
+    Ensure(stats.Value.Level == 1, "last-good value");
+    files.Set("live.json", Encoding.UTF8.GetBytes("{\"level\":2}"));
+    await PumpUntil(resources, () => json.LastReloadError is null && stats.Value.Level == 2);
+}
+
+static async Task DomainAndManagerMetrics()
+{
+    using ResourceSystem resources = Build((builder, h) =>
+    {
+        builder.Sources.Add(new FileSource(Files(("metrics.txt", "metrics")))).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
+        builder.Steps.Add<byte[], TextAsset>(new TextStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
+    });
+    using ResourceHandle<TextAsset> value = resources.Load<TextAsset>("metrics.txt");
+    await value.Ready;
+    Ensure(resources.CaptureDomainSnapshots().Any(x => x.CompletedCount > 0), "domain metrics");
+    Ensure(resources.CaptureManagerSnapshots().Any(x => x.AdoptedCount > 0), "manager metrics");
+}
+
+static ResourceSystem Build(Action<ResourceSystemBuilder, ResourceSystemDefaultHandles> configure)
+{
+    var builder = new ResourceSystemBuilder();
+    ResourceSystemDefaultHandles handles = ResourceSystemDefaults.AddCore(builder);
+    configure(builder, handles);
+    return builder.Build();
+}
+
+static MemoryFileSystem Files(params (string Path, string Text)[] entries)
 {
     var files = new MemoryFileSystem();
-    files.Set("live.stats.json", Encoding.UTF8.GetBytes("{\"name\":\"Mina\",\"level\":1}"));
-    using var resources = new ResourceSystem(
-        sources: [new FileSource(files)],
-        steps: [new JsonDocumentStep(), new PlayerStatsStep()]);
-    resources.Watch();
-    using ResourceHandle<JsonDocument> json = resources.Load<JsonDocument>("live.stats.json");
-    using ResourceHandle<PlayerStats> stats = resources.Load<PlayerStats>("live.stats.json");
-    await Task.WhenAll(json.Ready, stats.Ready);
-
-    files.Set("live.stats.json", Encoding.UTF8.GetBytes("not json"));
-    await PumpUntil(resources, () => json.LastReloadError is not null);
-    Ensure(json.HasValue && stats.HasValue && stats.Value.Level == 1, "last-good value after failed reload");
-
-    files.Set("live.stats.json", Encoding.UTF8.GetBytes("{\"name\":\"Mina\",\"level\":2}"));
-    await PumpUntil(resources, () => json.LastReloadError is null && stats.Value.Level == 2);
-    Ensure(stats.Version >= 1, "successful hot reload recovery");
+    foreach ((string path, string text) in entries) files.Set(path, Encoding.UTF8.GetBytes(text));
+    return files;
 }
-// docs:end hot-reload-recovery
-
-// docs:begin browser-http-assets
-static async Task BrowserHttpAssets()
-{
-    using var http = new HttpClient(new StaticHttpHandler("remote resource"));
-    using var resources = new ResourceSystem(
-        sources: [new HttpSource(http)],
-        steps: [new Utf8TextStep()]);
-    using ResourceHandle<TextAsset> remote = resources.Load<TextAsset>("https://assets.example/motd.txt");
-    await remote.Ready;
-    Ensure(remote.Value.Text == "REMOTE RESOURCE", "HTTP source composition used by browser hosts");
-}
-// docs:end browser-http-assets
 
 static async Task PumpUntil(ResourceSystem resources, Func<bool> condition)
 {
     var timeout = Stopwatch.StartNew();
-    while (!condition() && timeout.Elapsed < TimeSpan.FromSeconds(3))
-    {
-        resources.Pump();
-        await Task.Delay(5);
-    }
+    while (!condition() && timeout.Elapsed < TimeSpan.FromSeconds(3)) { resources.Pump(); await Task.Delay(5); }
     resources.Pump();
-    Ensure(condition(), "reload completed before timeout");
+    Ensure(condition(), "pump timeout");
+}
+
+static async Task WaitUntil(Func<bool> condition)
+{
+    for (int i = 0; i < 200 && !condition(); i++) await Task.Delay(5);
+    Ensure(condition(), "retirement timeout");
 }
 
 static void Ensure(bool condition, string scenario)
@@ -151,94 +214,70 @@ static void Ensure(bool condition, string scenario)
 }
 
 sealed record TextAsset(string Text);
-sealed record MessageAsset(string Text);
-sealed record PlayerStats(string Name, int Level);
 sealed record WordCount(int Count);
-sealed record RuntimeSeed(int Level);
-sealed record RuntimeLabel(string Text);
+sealed record Seed(int Level);
+sealed record Label(string Text);
+sealed record Stats(int Level);
 
-sealed class Utf8TextStep : IResourceStep<byte[], TextAsset>
+sealed class TextStep : IResourceStep<byte[], TextAsset>
 {
-    public Executor Executor => Executor.Cpu;
     public IEnumerable<string> Extensions => [".txt"];
-    public Task<TextAsset> RunAsync(byte[] input, ResourceUri uri, LoadContext context)
-        => Task.FromResult(new TextAsset(Encoding.UTF8.GetString(input).ToUpperInvariant()));
+    public Task<TextAsset> RunAsync(byte[] input, ResourceUri uri, LoadContext ctx) => Task.FromResult(new TextAsset(Encoding.UTF8.GetString(input).ToUpperInvariant()));
+}
+
+sealed class CountingTextStep : IResourceStep<byte[], TextAsset>
+{
+    public int Runs;
+    public IEnumerable<string> Extensions => [".txt"];
+    public Task<TextAsset> RunAsync(byte[] input, ResourceUri uri, LoadContext ctx) { Interlocked.Increment(ref Runs); return Task.FromResult(new TextAsset(Encoding.UTF8.GetString(input))); }
+}
+
+sealed class WordCountStep : IResourceStep<TextAsset, WordCount>
+{
+    public Task<WordCount> RunAsync(TextAsset input, ResourceUri uri, LoadContext ctx) => Task.FromResult(new WordCount(input.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length));
+}
+
+sealed class LabelStep : IResourceStep<Seed, Label>
+{
+    public Task<Label> RunAsync(Seed input, ResourceUri uri, LoadContext ctx) => Task.FromResult(new Label($"Level {input.Level}"));
+}
+
+sealed class SerialProbeStep : IResourceStep<Seed, Label>
+{
+    private int _active;
+    public List<int> Order { get; } = [];
+    public int MaxActive { get; private set; }
+    public async Task<Label> RunAsync(Seed input, ResourceUri uri, LoadContext ctx)
+    {
+        int active = Interlocked.Increment(ref _active);
+        MaxActive = Math.Max(MaxActive, active);
+        Order.Add(input.Level);
+        await Task.Delay(5, ctx.Token);
+        Interlocked.Decrement(ref _active);
+        return new($"Level {input.Level}");
+    }
 }
 
 sealed class PackageSource(IReadOnlyDictionary<string, byte[]> entries) : IResourceSource
 {
     public IEnumerable<string> Schemes => ["package"];
-    public Task<byte[]> ReadAsync(ResourceUri uri, LoadContext context)
-        => entries.TryGetValue(uri.Path, out byte[]? data)
-            ? Task.FromResult((byte[])data.Clone())
-            : Task.FromException<byte[]>(new FileNotFoundException(uri.Path));
+    public Task<byte[]> ReadAsync(ResourceUri uri, LoadContext ctx) => entries.TryGetValue(uri.Path, out byte[]? data)
+        ? Task.FromResult((byte[])data.Clone()) : Task.FromException<byte[]>(new FileNotFoundException(uri.Path));
 }
 
-sealed class JsonDocumentStep : IResourceStep<byte[], JsonDocument>
+sealed class JsonStep : IResourceStep<byte[], JsonDocument>
 {
-    public Executor Executor => Executor.Cpu;
     public IEnumerable<string> Extensions => [".json"];
-    public Task<JsonDocument> RunAsync(byte[] input, ResourceUri uri, LoadContext context)
-        => Task.FromResult(JsonDocument.Parse(input));
+    public Task<JsonDocument> RunAsync(byte[] input, ResourceUri uri, LoadContext ctx) => Task.FromResult(JsonDocument.Parse(input));
 }
 
-sealed class PlayerStatsStep : IResourceStep<JsonDocument, PlayerStats>
+sealed class StatsStep : IResourceStep<JsonDocument, Stats>
 {
-    public Executor Executor => Executor.Cpu;
-    public Task<PlayerStats> RunAsync(JsonDocument input, ResourceUri uri, LoadContext context)
-    {
-        JsonElement root = input.RootElement;
-        return Task.FromResult(new PlayerStats(root.GetProperty("name").GetString()!, root.GetProperty("level").GetInt32()));
-    }
+    public Task<Stats> RunAsync(JsonDocument input, ResourceUri uri, LoadContext ctx) => Task.FromResult(new Stats(input.RootElement.GetProperty("level").GetInt32()));
 }
 
-sealed class PlainMessageStep : IResourceStep<byte[], MessageAsset>
+sealed class TrackingManager(ResourceManagerId id) : CpuResourceManager(id)
 {
-    public Executor Executor => Executor.Cpu;
-    public IEnumerable<string> Extensions => [".txt"];
-    public Task<MessageAsset> RunAsync(byte[] input, ResourceUri uri, LoadContext context)
-        => Task.FromResult(new MessageAsset(Encoding.UTF8.GetString(input)));
-}
-
-sealed class CaptionMessageStep : IResourceStep<byte[], MessageAsset>
-{
-    public Executor Executor => Executor.Cpu;
-    public IEnumerable<string> Extensions => [".caption"];
-    public Task<MessageAsset> RunAsync(byte[] input, ResourceUri uri, LoadContext context)
-        => Task.FromResult(new MessageAsset($"[{Encoding.UTF8.GetString(input)}]"));
-}
-
-sealed class CountingTextStep : IResourceStep<byte[], TextAsset>
-{
-    public static int Runs;
-    public Executor Executor => Executor.Cpu;
-    public IEnumerable<string> Extensions => [".txt"];
-    public Task<TextAsset> RunAsync(byte[] input, ResourceUri uri, LoadContext context)
-    {
-        Interlocked.Increment(ref Runs);
-        return Task.FromResult(new TextAsset(Encoding.UTF8.GetString(input)));
-    }
-}
-
-sealed class WordCountStep : IResourceStep<TextAsset, WordCount>
-{
-    public Executor Executor => Executor.Cpu;
-    public Task<WordCount> RunAsync(TextAsset input, ResourceUri uri, LoadContext context)
-        => Task.FromResult(new WordCount(input.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length));
-}
-
-sealed class RuntimeLabelStep : IResourceStep<RuntimeSeed, RuntimeLabel>
-{
-    public Executor Executor => Executor.Cpu;
-    public Task<RuntimeLabel> RunAsync(RuntimeSeed input, ResourceUri uri, LoadContext context)
-        => Task.FromResult(new RuntimeLabel($"Level {input.Level}"));
-}
-
-sealed class StaticHttpHandler(string content) : HttpMessageHandler
-{
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new ByteArrayContent(Encoding.UTF8.GetBytes(content)),
-        });
+    public long Adopted => CaptureSnapshot().AdoptedCount;
+    public long Retired => CaptureSnapshot().RetiredCount;
 }
