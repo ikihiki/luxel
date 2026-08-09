@@ -32,7 +32,7 @@ public sealed class PlatformResourceIoTests
     {
         var files = new FakePlatformFileSystem();
         files.Set("assets/value.bin", [1, 2, 3]);
-        using var resources = new ResourceSystem(sources: [new PlatformFileSource(files)]);
+        using var resources = ResourceTestSystem.Create(sources: [new PlatformFileSource(files)]);
 
         using ResourceHandle<byte[]> handle = resources.Load<byte[]>("assets/value.bin");
         await handle.Ready;
@@ -47,7 +47,7 @@ public sealed class PlatformResourceIoTests
         var workspace = new WorkspaceFileSystem();
         workspace.Set("project/models/scene.bundle", Encoding.UTF8.GetBytes("../buffers/mesh.bin"));
         workspace.Set("project/buffers/mesh.bin", Encoding.UTF8.GetBytes("mesh-data"));
-        using var resources = new ResourceSystem(
+        using var resources = ResourceTestSystem.Create(
             sources: [new WorkspaceSource(workspace)],
             steps: [new RelativeBundleStep()]);
 
@@ -64,7 +64,6 @@ public sealed class PlatformResourceIoTests
 
     private sealed class RelativeBundleStep : IResourceStep<byte[], RelativeBundle>
     {
-        public Executor Executor => Executor.Io;
         public IEnumerable<string> Extensions => [".bundle"];
 
         public async Task<RelativeBundle> RunAsync(byte[] input, ResourceUri uri, LoadContext context)

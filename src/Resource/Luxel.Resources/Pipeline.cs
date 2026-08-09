@@ -1,8 +1,5 @@
-using System.Reflection;
-
 namespace Luxel.Resources;
 
-/// <summary>uri → byte[] のソース (スキーム別)。ユーザーが実装インスタンスを構築して登録。</summary>
 public interface IResourceSource
 {
     IEnumerable<string> Schemes { get; }
@@ -10,125 +7,44 @@ public interface IResourceSource
     IReloadToken? Watch(ResourceUri uri, Action onChanged) => null;
 }
 
-/// <summary>すべての <see cref="IResourceStep{TIn,TOut}"/> の非ジェネリック marker。
-/// 異なる (TIn,TOut) を持つ Step を型安全に 1 つの配列で受け渡すために存在する (メンバなし)。</summary>
 public interface IResourceStep { }
 
-/// <summary>TIn → TOut の 1 変換ステップ。ユーザーが実装インスタンスを構築 (必要な依存は ctor 引数で受け取る) して登録。</summary>
 public interface IResourceStep<TIn, TOut> : IResourceStep
 {
-    Executor Executor { get; }
     IEnumerable<string>? Extensions => null;
-    /// <summary>fragment 依存の step が担当する fragment パターン (<c>"mesh/*"</c> の様に末尾 <c>*</c> で前方一致)。
-    /// null なら fragment 無し URI のみを担当。</summary>
     IEnumerable<string>? FragmentPatterns => null;
     Task<TOut> RunAsync(TIn input, ResourceUri uri, LoadContext ctx);
 }
 
-/// <summary>明示フルローダ (一回限りのエスケープハッチ)。</summary>
 public delegate Task<T> Loader<T>(LoadContext ctx);
 
-/// <summary>非ジェネリックに正規化したステップ。</summary>
-internal sealed class StepAdapter(string name, Type input, Type output, Executor exec, string[]? ext, string[]? fragmentPatterns,
-    Func<object, ResourceUri, LoadContext, Task<object>> run)
+internal sealed class ResourceStepTable
 {
-    public string Name { get; } = name;
-    public Type Input { get; } = input;
-    public Type Output { get; } = output;
-    public Executor Executor { get; } = exec;
-    public string[]? Extensions { get; } = ext;
-    public string[]? FragmentPatterns { get; } = fragmentPatterns;
-    public Func<object, ResourceUri, LoadContext, Task<object>> Run { get; } = run;
-}
+    private readonly IReadOnlyDictionary<string, ResourceSourceDescriptor> _sources;
+    private readonly IReadOnlyDictionary<Type, ResourceStepDescriptor[]> _steps;
 
-/// <summary>ソース/ステップのレジストリ + 出力型逆引き選択。ユーザーは構築済みインスタンスを渡す。</summary>
-internal sealed class Pipeline
-{
-    private readonly Dictionary<string, IResourceSource> _sources = new();
-    private readonly Dictionary<Type, List<StepAdapter>> _byOutput = new();
-
-    public void AddSource(IResourceSource src)
+    public ResourceStepTable(ResourceSourceDescriptor[] sources, ResourceStepDescriptor[] steps)
     {
-        foreach (string s in src.Schemes) _sources[s.ToLowerInvariant()] = src;
+        _sources = sources.SelectMany(source => source.Source.Schemes.Select(scheme => (scheme: scheme.ToLowerInvariant(), source)))
+            .ToDictionary(pair => pair.scheme, pair => pair.source, StringComparer.OrdinalIgnoreCase);
+        _steps = steps.GroupBy(step => step.Output).ToDictionary(group => group.Key,
+            group => group.OrderByDescending(step => step.Priority).ToArray());
     }
 
-    public void AddStep(IResourceStep step)
-    {
-        Type stepType = step.GetType();
-        Type itf = stepType.GetInterfaces().FirstOrDefault(i =>
-            i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IResourceStep<,>))
-            ?? throw new InvalidOperationException($"{stepType.Name} は IResourceStep<TIn,TOut> を実装していません。");
-        Type inT = itf.GetGenericArguments()[0], outT = itf.GetGenericArguments()[1];
-        var exec = (Executor)itf.GetProperty("Executor")!.GetValue(step)!;
-        var extEnum = (IEnumerable<string>?)itf.GetProperty("Extensions")!.GetValue(step);
-        string[]? ext = extEnum?.Select(e => e.ToLowerInvariant()).ToArray();
-        var fragEnum = (IEnumerable<string>?)itf.GetProperty("FragmentPatterns")!.GetValue(step);
-        string[]? fragPatterns = fragEnum?.ToArray();
+    public ResourceSourceDescriptor? Source(string scheme) => _sources.TryGetValue(scheme.ToLowerInvariant(), out var source) ? source : null;
 
-        var run = (Func<object, ResourceUri, LoadContext, Task<object>>)typeof(Pipeline)
-            .GetMethod(nameof(MakeRun), BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(inT, outT).Invoke(null, [step])!;
-        AddAdapter(stepType.Name, inT, outT, exec, ext, fragPatterns, run);
+    public ResourceStepDescriptor? Select(Type output, string extension, string fragment, Type? input = null)
+    {
+        if (!_steps.TryGetValue(output, out ResourceStepDescriptor[]? registered)) return null;
+        IEnumerable<ResourceStepDescriptor> candidates = input is null ? registered : registered.Where(step => step.Input == input);
+        candidates = fragment.Length == 0
+            ? candidates.Where(step => step.FragmentPatterns is null)
+            : candidates.Where(step => step.FragmentPatterns is { } patterns && patterns.Any(pattern => FragmentMatch(pattern, fragment)));
+        ResourceStepDescriptor[] matches = candidates.Where(step => step.Extensions is null || step.Extensions.Contains(extension)).ToArray();
+        return matches.FirstOrDefault();
     }
 
-    /// <summary>
-    /// Reflection-free registration path for trimmed/AOT runtimes. Callers that know the step's
-    /// input/output types should prefer this overload so default interface members remain reachable.
-    /// </summary>
-    public void AddStep<TIn, TOut>(IResourceStep<TIn, TOut> step)
-    {
-        ArgumentNullException.ThrowIfNull(step);
-        string[]? extensions = step.Extensions?.Select(extension => extension.ToLowerInvariant()).ToArray();
-        string[]? fragmentPatterns = step.FragmentPatterns?.ToArray();
-        AddAdapter(step.GetType().Name, typeof(TIn), typeof(TOut), step.Executor, extensions, fragmentPatterns,
-            async (input, uri, ctx) => (object)(await step.RunAsync((TIn)input, uri, ctx))!);
-    }
-
-    private void AddAdapter(string name, Type input, Type output, Executor executor, string[]? extensions,
-        string[]? fragmentPatterns, Func<object, ResourceUri, LoadContext, Task<object>> run)
-    {
-        var adapter = new StepAdapter(name, input, output, executor, extensions, fragmentPatterns, run);
-        if (!_byOutput.TryGetValue(output, out var list)) _byOutput[output] = list = new();
-        list.Add(adapter);
-    }
-
-    private static Func<object, ResourceUri, LoadContext, Task<object>> MakeRun<TIn, TOut>(IResourceStep step)
-    {
-        var s = (IResourceStep<TIn, TOut>)step;
-        return async (input, uri, ctx) => (object)(await s.RunAsync((TIn)input, uri, ctx))!;
-    }
-
-    public IResourceSource? Source(string scheme)
-        => _sources.TryGetValue(scheme.ToLowerInvariant(), out var s) ? s : null;
-
-    /// <summary>出力型 + 拡張子 + fragment で 1 ステップ選択。</summary>
-    public StepAdapter? Select(Type output, string ext, string fragment, Type? input = null)
-    {
-        if (!_byOutput.TryGetValue(output, out var list) || list.Count == 0) return null;
-        IEnumerable<StepAdapter> matchingInput = input is null ? list : list.Where(s => s.Input == input);
-        List<StepAdapter> candidates;
-        if (fragment.Length > 0)
-        {
-            candidates = matchingInput.Where(s => s.FragmentPatterns is { } fp && fp.Any(p => FragmentMatch(p, fragment))).ToList();
-        }
-        else
-        {
-            candidates = matchingInput.Where(s => s.FragmentPatterns is null).ToList();
-        }
-        if (candidates.Count == 0) return null;
-        if (candidates.Count == 1) return candidates[0];
-        StepAdapter? generic = null;
-        foreach (var s in candidates)
-        {
-            if (s.Extensions == null) { generic ??= s; continue; }
-            if (Array.IndexOf(s.Extensions, ext) >= 0) return s;
-        }
-        return generic ?? candidates[0];
-    }
-
-    private static bool FragmentMatch(string pattern, string fragment)
-    {
-        if (pattern.EndsWith("/*", StringComparison.Ordinal)) return fragment.StartsWith(pattern[..^1], StringComparison.Ordinal);
-        return string.Equals(pattern, fragment, StringComparison.Ordinal);
-    }
+    private static bool FragmentMatch(string pattern, string fragment) => pattern.EndsWith("/*", StringComparison.Ordinal)
+        ? fragment.StartsWith(pattern[..^1], StringComparison.Ordinal)
+        : string.Equals(pattern, fragment, StringComparison.Ordinal);
 }

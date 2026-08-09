@@ -9,7 +9,6 @@ namespace Luxel.AssetsGpu;
 public sealed class TextureUploaderStep(GpuDevice device) : IResourceStep<CpuImage, GpuTexture>
 {
     private readonly GpuDevice _device = device;
-    public Executor Executor => Executor.External;
     public Task<GpuTexture> RunAsync(CpuImage img, ResourceUri uri, LoadContext ctx)
         => Task.FromResult(_device.CreateTexture((uint)img.Width, (uint)img.Height, img.Pixels));
 }

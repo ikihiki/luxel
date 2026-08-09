@@ -129,9 +129,10 @@ public sealed class GltfAssetDecoderTests
 
     private static ResourceSystem CreateResources(IResourceSource source)
     {
-        var resources = new ResourceSystem(sources: [source]);
-        resources.AddStep<byte[], AssetDocument>(new GltfResourceStep());
-        return resources;
+        return ResourceTestSystem.Create(
+            sources: [source],
+            configure: (builder, handles) => builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep())
+                .RunOn(handles.CpuDomain).ManagedBy(handles.CpuManager).Register());
     }
 
     private sealed class GatedSource(

@@ -99,7 +99,6 @@ public static class GltfStoryAssets
 
     private sealed class DocumentIdentityStep : IResourceStep<AssetDocumentSeed, AssetDocument>
     {
-        public Executor Executor => Executor.Cpu;
         public Task<AssetDocument> RunAsync(AssetDocumentSeed input, ResourceUri uri, LoadContext context)
             => Task.FromResult(input.Document);
     }

@@ -7,8 +7,6 @@ namespace Luxel.AssetRuntime;
 public sealed class SceneAssetsResourceStep(GpuDevice device, Luxel.Ecs.World world)
     : IResourceStep<AssetDocument, SceneAssets>
 {
-    public Executor Executor => Executor.External;
-
     public Task<SceneAssets> RunAsync(AssetDocument input, ResourceUri uri, LoadContext context)
         => Task.FromResult(SceneBuilder.Build(world, input, device));
 }

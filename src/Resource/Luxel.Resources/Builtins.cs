@@ -72,13 +72,10 @@ public sealed class HttpSource(HttpClient http) : IResourceSource
 /// <summary>byte[] → CpuImage (.tex デコード、CPU ステージ)。</summary>
 public sealed class TexDecoder : IResourceStep<byte[], CpuImage>
 {
-    public Executor Executor => Executor.Cpu;
     public IEnumerable<string> Extensions => [".tex"];
     public Task<CpuImage> RunAsync(byte[] input, ResourceUri uri, LoadContext ctx)
         => Task.FromResult(ImageCodec.DecodeTex(input));
 }
-
-// 組込み Source/Step は呼び出し側が ResourceSystem のコンストラクタまたは AddSource/AddStep で登録する。
 
 /// <summary>Reads only workspace:// resources from a shared mutable workspace VFS.</summary>
 public sealed class WorkspaceSource(WorkspaceFileSystem workspace) : IResourceSource

@@ -12,8 +12,6 @@ namespace Luxel.Graphics.TwoD;
 /// </summary>
 public sealed class SpriteAtlasStep : IResourceStep<byte[], SpriteAtlas>
 {
-    public Executor Executor => Executor.Cpu;
-
     public Task<SpriteAtlas> RunAsync(byte[] input, ResourceUri uri, LoadContext ctx)
         => Task.FromResult(SpriteAtlas.FromJson(Encoding.UTF8.GetString(input)));
 }

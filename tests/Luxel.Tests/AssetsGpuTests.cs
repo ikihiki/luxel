@@ -69,8 +69,7 @@ public partial class AssetsGpuTests
     {
         var backend = new FakeGpuBackend();
         using var device = new GpuDevice(backend);
-        using var resources = new Luxel.Resources.ResourceSystem();
-        AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        using var resources = ResourceTestSystem.CreateGpu(device, out AssetGpuResourceSystemRegistration registration);
         var scope = resources.CreateScope("viewport/main");
         var code = new GpuShaderCode { SpirV = [1, 2, 3, 4] };
 
@@ -103,7 +102,7 @@ public partial class AssetsGpuTests
         resources.Pump();
 
         Assert.Equal(2, backend.LiveResources);
-        installation.Dispose();
+        resources.Dispose();
         Assert.Equal(0, backend.LiveResources);
     }
 
@@ -112,8 +111,7 @@ public partial class AssetsGpuTests
     {
         var backend = new FakeGpuBackend();
         using var device = new GpuDevice(backend);
-        using var resources = new ResourceSystem();
-        using AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        using var resources = ResourceTestSystem.CreateGpu(device, out AssetGpuResourceSystemRegistration registration);
         using ResourceScope scope = resources.CreateScope("vertex-upload");
         float[] vertices = [1.25f, -2.5f, 3.75f, 4f];
 
@@ -131,8 +129,7 @@ public partial class AssetsGpuTests
     {
         var backend = new FakeGpuBackend();
         using var device = new GpuDevice(backend);
-        using var resources = new ResourceSystem();
-        using AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        using var resources = ResourceTestSystem.CreateGpu(device, out AssetGpuResourceSystemRegistration registration);
         using ResourceScope scope = resources.CreateScope("pending-shader");
         var completion = new TaskCompletionSource<GpuShaderCode>(TaskCreationOptions.RunContinuationsAsynchronously);
         using ResourceHandle<GpuShaderCode> shader = resources.Load(
@@ -154,8 +151,7 @@ public partial class AssetsGpuTests
     {
         var backend = new FakeGpuBackend();
         using var device = new GpuDevice(backend);
-        using var resources = new ResourceSystem();
-        using AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        using var resources = ResourceTestSystem.CreateGpu(device, out AssetGpuResourceSystemRegistration registration);
         using ResourceScope scope = resources.CreateScope("reload-shader");
         using ResourceHandle<GpuShaderCode> shader = resources.Publish(
             "published://shader", new GpuShaderCode { SpirV = [1, 2, 3, 4] }, ResourceOwnership.Borrowed);
@@ -174,17 +170,15 @@ public partial class AssetsGpuTests
         Assert.NotSame(first, pipeline.Value);
         Assert.True(pipeline.Version >= 1);
         Assert.Equal(2, backend.PipelineCreations);
-        Assert.True(backend.Queue.WaitIdleCount >= 1);
+        Assert.True(backend.Queue.WaitIdleAsyncCount >= 1);
     }
 
     [Fact]
-    public async Task CreateAssetGpuSteps_GlobalRegistrationUsesReturnedRegistry()
+    public async Task BuilderRegistrationUsesReturnedRegistry()
     {
         var backend = new FakeGpuBackend();
         using var device = new GpuDevice(backend);
-        IResourceStep[] steps = ResourceSystemExtensions.CreateAssetGpuSteps(device, out AssetGpuRegistry registry);
-        using var resources = new Luxel.Resources.ResourceSystem(steps: steps);
-        resources.SetDeferredDisposeIdleHook(() => device.MainQueue.WaitIdle());
+        using var resources = ResourceTestSystem.CreateGpu(device, out AssetGpuResourceSystemRegistration registration);
         using ResourceScope scope = resources.CreateScope("global/steps");
 
         ResourceHandle<GpuSampler> sampler = scope.CreateSampler("sampler");
@@ -197,31 +191,30 @@ public partial class AssetsGpuTests
         resources.Pump();
         Assert.Equal(2, backend.LiveResources);
 
-        registry.Dispose();
+        await resources.DisposeAsync();
         Assert.Equal(0, backend.LiveResources);
     }
 
     [Fact]
     public void ResourceScopeGpuFactories_RequireRegisteredCreationStep()
     {
-        using var resources = new Luxel.Resources.ResourceSystem();
+        using var resources = ResourceTestSystem.Create();
         using var scope = resources.CreateScope("viewport/uninstalled");
 
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(
             () => scope.CreateBuffer("buffer", 16));
 
         Assert.Contains("GpuBufferRequest", error.Message, StringComparison.Ordinal);
-        Assert.Contains("ステップ未登録", error.Message, StringComparison.Ordinal);
+        Assert.Contains("No step registered", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task InstallAssetGpuLifecycle_PumpAsyncAvoidsSynchronousQueueWait()
+    public async Task GpuManager_PumpAsyncAvoidsSynchronousQueueWait()
     {
         var backend = new FakeGpuBackend();
         backend.Queue.ThrowOnSyncWait = true;
         using var device = new GpuDevice(backend);
-        using var resources = new ResourceSystem();
-        AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
+        using var resources = ResourceTestSystem.CreateGpu(device, out AssetGpuResourceSystemRegistration registration);
         var scope = resources.CreateScope("async-lifecycle");
         ResourceHandle<GpuBuffer> buffer = scope.CreateBuffer("buffer", 32);
         await buffer.Ready;
@@ -233,27 +226,26 @@ public partial class AssetsGpuTests
         Assert.Equal(1, backend.Queue.WaitIdleAsyncCount);
         Assert.Equal(2, backend.LiveResources);
 
-        await installation.DisposeAsync();
+        await resources.DisposeAsync();
         Assert.Equal(2, backend.Queue.WaitIdleAsyncCount);
         Assert.Equal(0, backend.LiveResources);
     }
 
     [Fact]
-    public void InstallAssetGpuLifecycle_OwnsRegistryAndWaitsForGpuBeforeDispose()
+    public void GpuManager_OwnsRegistryAndWaitsForGpuBeforeDispose()
     {
         var backend = new FakeGpuBackend();
         using var device = new GpuDevice(backend);
-        using var resources = new Luxel.Resources.ResourceSystem();
+        using var resources = ResourceTestSystem.CreateGpu(device, out AssetGpuResourceSystemRegistration registration);
 
-        AssetGpuInstallation installation = resources.InstallAssetGpuLifecycle(device);
-
-        Assert.NotNull(installation.Registry);
+        Assert.NotNull(registration.Registry);
         Assert.Equal(2, backend.LiveResources); // default sampler + material buffer
 
-        installation.Dispose();
-        installation.Dispose();
+        resources.Dispose();
+        resources.Dispose();
 
-        Assert.Equal(1, backend.Queue.WaitIdleCount);
+        Assert.Equal(0, backend.Queue.WaitIdleCount);
+        Assert.Equal(1, backend.Queue.WaitIdleAsyncCount);
         Assert.Equal(0, backend.LiveResources);
     }
 

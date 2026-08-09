@@ -26,14 +26,13 @@ public sealed class CavernLevelLoader : IDisposable
     /// <summary>レベル読み込みに使う ResourceSystem。</summary>
     public ResourceSystem Resources => _res;
 
-    /// <param name="resources">共有 ResourceSystem (指定時は <see cref="EmbeddedResourceSource"/> を追加登録して相乗り)。
+    /// <param name="resources">必要な <see cref="EmbeddedResourceSource"/> がbuild時に登録済みの共有 ResourceSystem。
     /// 未指定なら埋め込み専用の ResourceSystem を自前で生成し所有する。</param>
     public CavernLevelLoader(ResourceSystem? resources = null)
     {
         if (resources is not null)
         {
             _res = resources;
-            _res.AddSource(new EmbeddedResourceSource(typeof(CavernLevelLoader).Assembly));
             _ownsResources = false;
         }
         else

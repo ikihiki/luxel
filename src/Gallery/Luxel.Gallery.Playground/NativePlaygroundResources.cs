@@ -240,7 +240,6 @@ public sealed class NativePlaygroundResourceSession : IWebScriptResourceProvider
 internal sealed class WorkspaceSlangSourceStep(WorkspaceFileSystem workspace) : IResourceStep<byte[], SlangSource>
 {
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
-    public Executor Executor => Executor.Cpu;
     public IEnumerable<string> Extensions => [".slang", ".slangh"];
 
     public Task<SlangSource> RunAsync(byte[] input, ResourceUri uri, LoadContext ctx)

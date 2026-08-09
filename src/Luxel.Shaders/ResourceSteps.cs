@@ -7,8 +7,6 @@ namespace Luxel.Shaders;
 public sealed class SlangSourceStep : IResourceStep<byte[], SlangSource>
 {
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
-
-    public Executor Executor => Executor.Cpu;
     public IEnumerable<string> Extensions => [".slang", ".slangh"];
 
     public Task<SlangSource> RunAsync(byte[] input, ResourceUri uri, LoadContext ctx)
@@ -29,7 +27,6 @@ public sealed class SlangSourceStep : IResourceStep<byte[], SlangSource>
 
 public sealed class SlangCompileStep(ISlangCompiler compiler, GpuBackendKind backend) : IResourceStep<SlangSource, GpuShaderCode>
 {
-    public Executor Executor => Executor.Cpu;
     public IEnumerable<string> Extensions => [".slang"];
     public IEnumerable<string> FragmentPatterns => ["compute", "graphics"];
 

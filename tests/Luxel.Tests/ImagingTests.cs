@@ -40,7 +40,7 @@ public class ImagingTests
         var files = new MemoryFileSystem();
         files.Set("t.png", png);
 
-        using var res = new ResourceSystem(
+        using var res = ResourceTestSystem.Create(
             sources: [new FileSource(files)],
             steps: [new ImageSharpDecoder()]);
 

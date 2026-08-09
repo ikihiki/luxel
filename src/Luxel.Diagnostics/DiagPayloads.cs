@@ -1,4 +1,4 @@
-﻿namespace Luxel.Diagnostics;
+namespace Luxel.Diagnostics;
 
 /// <summary>入力/操作イベント (離散ログ用)。<paramref name="Op"/>=click/keydown/char/compose/commit/focus/resize 等。</summary>
 public readonly record struct DiagInput(string Op, string Info);
@@ -36,9 +36,9 @@ public sealed record DiagGpu(DiagGpuCommand[] Commands);
 /// </summary>
 public sealed record DiagWebGpu(string Json);
 
-/// <summary>リソース 1 ノード ((型,uri) 単位)。どのステップ/実行器で生成され、何に依存したか。</summary>
+/// <summary>リソース 1 ノード ((型,uri) 単位)。どのステップ/実行ドメインで生成され、何に依存したか。</summary>
 public readonly record struct DiagResourceNode(
-    string Key, string Type, string Uri, string Status, int Version, string Step, string Executor, string[] Inputs);
+    string Key, string Type, string Uri, string Status, int Version, string Step, string ExecutionDomainId, string[] Inputs);
 
 /// <summary>ロード済みリソースのグラフ (何が・どのステップでロードされたか)。</summary>
 public sealed record DiagResources(DiagResourceNode[] Nodes);

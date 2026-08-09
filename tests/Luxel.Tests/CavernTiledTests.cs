@@ -73,7 +73,7 @@ public class CavernTiledTests
     [Fact]
     public void MissingEmbeddedResource_SurfacesErrorThroughResourceSystem()
     {
-        using var res = new ResourceSystem(sources: [new EmbeddedResourceSource(typeof(CavernTiled).Assembly)]);
+        using var res = ResourceTestSystem.Create(sources: [new EmbeddedResourceSource(typeof(CavernTiled).Assembly)]);
         using ResourceHandle<byte[]> h = res.Load<byte[]>("res://levels/does-not-exist.tmj");
         Assert.ThrowsAny<Exception>(() => h.Ready.GetAwaiter().GetResult());   // FileNotFound がロードエラーとして伝播
     }

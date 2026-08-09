@@ -131,8 +131,10 @@ public class GltfTests
     {
         string fullPath = Path.GetFullPath(path);
         string root = Path.GetDirectoryName(fullPath)!;
-        using var resources = new ResourceSystem(sources: [new RootedFileSource(root)]);
-        resources.AddStep<byte[], AssetDocument>(new GltfResourceStep());
+        using var resources = ResourceTestSystem.Create(
+            sources: [new RootedFileSource(root)],
+            configure: (builder, handles) => builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep())
+                .RunOn(handles.CpuDomain).ManagedBy(handles.CpuManager).Register());
         using ResourceHandle<AssetDocument> handle = resources.Load<AssetDocument>(Path.GetFileName(fullPath));
         await handle.Ready;
         return handle.Value;
