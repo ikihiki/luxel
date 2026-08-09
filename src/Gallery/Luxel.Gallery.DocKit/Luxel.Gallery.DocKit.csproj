@@ -2,5 +2,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Luxel.Controls\Luxel.Controls.csproj" />
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
+    <ProjectReference Include="..\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <LuxelProjectRole>GalleryLeaf</LuxelProjectRole>
+    <LuxelCategory>Audio</LuxelCategory>
+    <LuxelSubsystem>Audio.Gallery</LuxelSubsystem>
+    <LuxelGalleryTier>BrowserSafe</LuxelGalleryTier>
+    <LuxelGalleryCompatibility>Browser;Native</LuxelGalleryCompatibility>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Gallery\Luxel.Gallery\Luxel.Gallery.csproj" />
+    <ProjectReference Include="..\..\Gallery\Luxel.Gallery.DocKit\Luxel.Gallery.DocKit.csproj" />
+    <ProjectReference Include="..\..\Luxel.Audio\Luxel.Audio.csproj" />
+    <ProjectReference Include="..\..\Luxel.Controls\Luxel.Controls.csproj" />
+    <ProjectReference Include="..\..\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\..\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\..\Gallery\Luxel.Gallery.Generators\Luxel.Gallery.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU"
+                      GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Gallery" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\..\samples\LuxelAudio\LuxelAudio.csproj" LogicalName="Luxel.Sample.samples.LuxelAudio.LuxelAudio.csproj" />
+    <EmbeddedResource Include="..\..\..\samples\LuxelAudio\AudioConceptSamples.cs" LogicalName="Luxel.Sample.samples.LuxelAudio.AudioConceptSamples.cs" />
+    <EmbeddedResource Include="..\..\..\samples\LuxelAudio\Program.cs" LogicalName="Luxel.Sample.samples.LuxelAudio.Program.cs" />
+  </ItemGroup>
+</Project>

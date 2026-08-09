@@ -6,7 +6,6 @@
   <ItemGroup>
     <Compile Include="..\..\..\samples\CanonicalClearColorRecipe.cs" Link="CanonicalClearColorRecipe.cs" />
     <Compile Include="..\..\..\samples\CanonicalTriangleRecipe.cs" Link="CanonicalTriangleRecipe.cs" />
-    <ProjectReference Include="..\..\Luxel.Audio\Luxel.Audio.csproj" />
     <ProjectReference Include="..\..\Luxel.Ecs\Luxel.Ecs.csproj" />
     <ProjectReference Include="..\..\Resource\Luxel.Assets\Luxel.Assets.csproj" />
     <ProjectReference Include="..\..\Resource\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />

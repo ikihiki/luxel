@@ -8,6 +8,47 @@ namespace Luxel.Gallery.DocKit;
 /// <summary>Gallery documentation Markdown generated from embedded samples and story metadata.</summary>
 public static class DocsKit
 {
+    /// <summary>Embeds another registered story in a documentation page.</summary>
+    public static DocEmbed StoryRef(StoryContext context, string path, bool knobs = false)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        StoryInfo? story = StoryRegistry.Find(path);
+        if (story is null)
+            return new DocEmbed(
+                Luxel.Controls.Kit.VStack(6)[
+                    Luxel.Controls.Kit.Text(path, 12, color: Luxel.UI.Bind.From(() => Luxel.UI.UiTheme.T.TextMuted)),
+                    Luxel.Controls.Kit.Alert($"ストーリーが見つかりません: {path}", Luxel.UI.Intent.Danger)],
+                DocEmbedKind.StoryRef,
+                path);
+
+        Luxel.UI.Widget BuildNativeEmbed()
+        {
+            int before = context.Knobs.Count;
+            bool suppressed = context.SuppressPlays;
+            context.SuppressPlays = true;
+            Luxel.UI.Widget body;
+            try { body = story.Build(context); }
+            finally { context.SuppressPlays = suppressed; }
+
+            var parts = new List<Luxel.UI.Widget>
+            {
+                Luxel.Controls.Kit.Text(path, 12, color: Luxel.UI.Bind.From(() => Luxel.UI.UiTheme.T.TextMuted)),
+                body,
+            };
+            if (knobs)
+            {
+                StoryKnob[] owned = context.Knobs.Skip(before).ToArray();
+                parts.Add(Luxel.Controls.Kit.Divider());
+                parts.Add(global::Luxel.Gallery.UI.Kit.KnobsTable(owned, width: 640,
+                    onEdit: (_, knob, value) => context.QueueKnobEdit(knob, value)));
+            }
+            return Luxel.Controls.Kit.VStack(6)[parts.ToArray()];
+        }
+
+        return new DocEmbed(null, DocEmbedKind.StoryRef, path, WidgetFactory: BuildNativeEmbed);
+    }
+
     /// <summary>Reads an embedded sample file and formats it as a Markdown code fence.</summary>
     public static DocMarkdown SampleSource(
         Assembly resourceAssembly,

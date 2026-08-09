@@ -13,6 +13,7 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5"><PrivateAssets>all</PrivateAssets><IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets></PackageReference>
     <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Rendering\Luxel.Gallery.Rendering.csproj" />
     <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Stories\Luxel.Gallery.Stories.csproj" />
+    <ProjectReference Include="..\..\src\Audio\Luxel.Audio.Gallery\Luxel.Audio.Gallery.csproj" />
   </ItemGroup>
   <ItemGroup><Using Include="Xunit" /></ItemGroup>
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />

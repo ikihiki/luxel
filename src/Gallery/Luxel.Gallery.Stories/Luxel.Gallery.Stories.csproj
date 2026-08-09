@@ -5,6 +5,7 @@
     <ProjectReference Include="..\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Stories.CoreUi\Luxel.Gallery.Stories.CoreUi.csproj" />
     <ProjectReference Include="..\..\Resource\Luxel.Resources.Gallery\Luxel.Resources.Gallery.csproj" />
+    <ProjectReference Include="..\..\Audio\Luxel.Audio.Gallery\Luxel.Audio.Gallery.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Playground\Luxel.Gallery.Playground.csproj" />
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
   </ItemGroup>
@@ -133,9 +134,6 @@
     <EmbeddedResource Include="..\..\..\samples\LuxelUiHeadless\Program.cs" LogicalName="Luxel.Sample.samples.LuxelUiHeadless.Program.cs" />
     <EmbeddedResource Include="..\..\..\samples\LuxelInput\LuxelInput.csproj" LogicalName="Luxel.Sample.samples.LuxelInput.LuxelInput.csproj" />
     <EmbeddedResource Include="..\..\..\samples\LuxelInput\Program.cs" LogicalName="Luxel.Sample.samples.LuxelInput.Program.cs" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelAudio\LuxelAudio.csproj" LogicalName="Luxel.Sample.samples.LuxelAudio.LuxelAudio.csproj" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelAudio\AudioConceptSamples.cs" LogicalName="Luxel.Sample.samples.LuxelAudio.AudioConceptSamples.cs" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelAudio\Program.cs" LogicalName="Luxel.Sample.samples.LuxelAudio.Program.cs" />
     <EmbeddedResource Include="..\..\..\samples\LuxelTwoD\LuxelTwoD.csproj" LogicalName="Luxel.Sample.samples.LuxelTwoD.LuxelTwoD.csproj" />
     <EmbeddedResource Include="..\..\..\samples\LuxelTwoD\Program.cs" LogicalName="Luxel.Sample.samples.LuxelTwoD.Program.cs" />
     <EmbeddedResource Include="..\..\..\gallery\GalleryBrowser\GalleryBrowser.csproj" LogicalName="Luxel.Sample.gallery.GalleryBrowser.GalleryBrowser.csproj" />

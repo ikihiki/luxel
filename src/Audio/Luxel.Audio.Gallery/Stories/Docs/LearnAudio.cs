@@ -1,6 +1,6 @@
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Audio.Gallery.AudioDocsKit;
 
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Audio.Gallery;
 
 public static class LearnAudio
 {

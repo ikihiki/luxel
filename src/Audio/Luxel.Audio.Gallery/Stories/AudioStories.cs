@@ -4,9 +4,9 @@ using Luxel.Controls;
 using Luxel.Typography;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.StoryKit;
+using static Luxel.Controls.Kit;
 
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Audio.Gallery;
 
 /// <summary>Browser-runnable audio examples embedded at the point where each concept is introduced.</summary>
 public static class AudioStories
@@ -222,7 +222,8 @@ public static class AudioStories
             Text(description, 14, color: Bind.From(() => UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 630),
             .. content,
         ];
-        return Frame(VStack(12, width: 650)[children]);
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(24))
+            [Center()[VStack(12, width: 650)[children]]];
     }
 
     private static string DescribeClip(AudioClip clip)

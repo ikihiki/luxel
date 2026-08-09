@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Luxel.UI;
 using Luxel.Resources.Gallery;
+using Luxel.Audio.Gallery;
 
 namespace Luxel.Gallery;
 
@@ -12,6 +13,7 @@ public static class GalleryStoryProject
         => services
             .AddStoryCatalog(RegisterGalleryOnly)
             .AddResourceGallery()
+            .AddAudioGallery()
             .AddCoreUiStory();
 
     public static void Register(StoryCatalogBuilder builder)
@@ -19,6 +21,7 @@ public static class GalleryStoryProject
         ArgumentNullException.ThrowIfNull(builder);
         RegisterGalleryOnly(builder);
         ResourceGalleryProject.Register(builder);
+        AudioGalleryProject.Register(builder);
         CoreUiStoryProject.Register(builder);
     }
 

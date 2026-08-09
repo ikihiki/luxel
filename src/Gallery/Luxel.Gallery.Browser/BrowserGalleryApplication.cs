@@ -8,6 +8,7 @@ using Luxel.Assets;
 using Luxel.Assets.Gltf;
 using Luxel.AssetsGpu;
 using Luxel.Audio.Browser;
+using Luxel.Audio.Gallery;
 using Luxel.Controls;
 using Luxel.Gallery;
 using Luxel.Gallery.Stories;

@@ -1,6 +1,6 @@
 using Luxel.Controls;
 
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Audio.Gallery;
 
 /// <summary>Single source of truth for the ordered Audio course and strict previous/next navigation.</summary>
 internal static class AudioCourseCatalog
@@ -27,6 +27,7 @@ internal static class AudioCourseCatalog
     internal static DocMarkdown Meta(string path, string difficulty, string environment, string backend, string prerequisites)
     {
         (string? previous, string? next) = Navigation(path);
-        return DocsKit.RenderingMeta(difficulty, environment, backend, prerequisites, previous, next);
+        return global::Luxel.Gallery.DocKit.DocsKit.RenderingMeta(
+            difficulty, environment, backend, prerequisites, previous, next);
     }
 }
