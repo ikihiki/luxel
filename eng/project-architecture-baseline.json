@@ -1,0 +1,31 @@
+{
+  "required_gallery_categories": [
+    "Platform",
+    "Resources",
+    "CoreUi",
+    "Controls",
+    "Diagram",
+    "MathText",
+    "Particles"
+  ],
+  "missing_gallery_categories": [
+    "Controls",
+    "Diagram",
+    "MathText",
+    "Particles"
+  ],
+  "legacy_production_gallery_references": [
+    "src/Luxel.Controls/Luxel.Controls.csproj -> src/Gallery/Luxel.Gallery/Luxel.Gallery.csproj [Compile]",
+    "src/Luxel.Controls/Luxel.Controls.csproj -> src/Gallery/Luxel.Gallery.Generators/Luxel.Gallery.Generators.csproj [Analyzer]",
+    "src/Luxel.Diagram/Luxel.Diagram.csproj -> src/Gallery/Luxel.Gallery/Luxel.Gallery.csproj [Compile]",
+    "src/Luxel.Diagram/Luxel.Diagram.csproj -> src/Gallery/Luxel.Gallery.Generators/Luxel.Gallery.Generators.csproj [Analyzer]",
+    "src/Luxel.MathText/Luxel.MathText.csproj -> src/Gallery/Luxel.Gallery/Luxel.Gallery.csproj [Compile]",
+    "src/Luxel.MathText/Luxel.MathText.csproj -> src/Gallery/Luxel.Gallery.Generators/Luxel.Gallery.Generators.csproj [Analyzer]",
+    "src/Luxel.Particles.UI/Luxel.Particles.UI.csproj -> src/Gallery/Luxel.Gallery/Luxel.Gallery.csproj [Compile]",
+    "src/Luxel.Particles.UI/Luxel.Particles.UI.csproj -> src/Gallery/Luxel.Gallery.Generators/Luxel.Gallery.Generators.csproj [Analyzer]"
+  ],
+  "legacy_cross_category_native_base_references": [
+    "src/Gallery/Luxel.Gallery.Stories/Luxel.Gallery.Stories.csproj -> src/Gallery/Luxel.Gallery.Stories.CoreUi/Luxel.Gallery.Stories.CoreUi.csproj [Compile]",
+    "src/Gallery/Luxel.Gallery.Stories/Luxel.Gallery.Stories.csproj -> src/Resource/Luxel.Resources.Gallery/Luxel.Resources.Gallery.csproj [Compile]"
+  ]
+}

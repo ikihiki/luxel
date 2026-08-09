@@ -1,5 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <LuxelProjectRole>GalleryHost</LuxelProjectRole>
+    <LuxelGalleryCategory>Shared</LuxelGalleryCategory>
+    <LuxelSubsystem>Gallery</LuxelSubsystem>
+    <LuxelPlatform>Browser</LuxelPlatform>
+    <LuxelArchitectureTier>Host</LuxelArchitectureTier>
+    <IsPackable>false</IsPackable>
+    <LuxelGalleryRegistrationIdentity>Gallery.Browser</LuxelGalleryRegistrationIdentity>
+  </PropertyGroup>
+  <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <SupportedOSPlatformVersion>browser</SupportedOSPlatformVersion>
   </PropertyGroup>

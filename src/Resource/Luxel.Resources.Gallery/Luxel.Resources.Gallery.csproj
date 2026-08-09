@@ -1,5 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <LuxelProjectRole>GalleryCategory</LuxelProjectRole>
+    <LuxelGalleryCategory>Resources</LuxelGalleryCategory>
+    <LuxelSubsystem>Resources</LuxelSubsystem>
+    <LuxelPlatform>Browser</LuxelPlatform>
+    <LuxelArchitectureTier>Base</LuxelArchitectureTier>
+    <IsPackable>false</IsPackable>
+    <LuxelGalleryRegistrationIdentity>Resources.Base</LuxelGalleryRegistrationIdentity>
+  </PropertyGroup>
+  <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>

@@ -1,4 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <LuxelProjectRole>GalleryInfrastructure</LuxelProjectRole>
+    <LuxelGalleryCategory>Shared</LuxelGalleryCategory>
+    <LuxelSubsystem>Gallery</LuxelSubsystem>
+    <LuxelPlatform>Portable</LuxelPlatform>
+    <LuxelArchitectureTier>Foundation</LuxelArchitectureTier>
+    <IsPackable>false</IsPackable>
+    <LuxelGalleryRegistrationIdentity>Gallery.Core</LuxelGalleryRegistrationIdentity>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Luxel.Mathematics\Luxel.Mathematics.csproj" />
     <Using Include="Luxel.Mathematics" />

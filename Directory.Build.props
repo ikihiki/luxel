@@ -9,6 +9,15 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
+  <!-- Architecture metadata defaults. Gallery projects override every value explicitly. -->
+  <PropertyGroup>
+    <LuxelProjectRole Condition="'$(LuxelProjectRole)' == ''">Production</LuxelProjectRole>
+    <LuxelGalleryCategory Condition="'$(LuxelGalleryCategory)' == ''">External</LuxelGalleryCategory>
+    <LuxelSubsystem Condition="'$(LuxelSubsystem)' == ''">$(MSBuildProjectName)</LuxelSubsystem>
+    <LuxelPlatform Condition="'$(LuxelPlatform)' == ''">Portable</LuxelPlatform>
+    <LuxelArchitectureTier Condition="'$(LuxelArchitectureTier)' == ''">Product</LuxelArchitectureTier>
+  </PropertyGroup>
+
   <!-- コマンドライン csc は参照アセンブリに DocumentationProvider を付けないため、ソースジェネレーターから
        GetDocumentationCommentXml で参照先の /// は読めない。代わりに ProjectReference の XML doc ファイルを
        AdditionalFiles として渡し、AssemblyApiGenerator が doc-comment ID で直接引く。 -->

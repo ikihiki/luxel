@@ -1,5 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <LuxelProjectRole>GalleryCategory</LuxelProjectRole>
+    <LuxelGalleryCategory>Platform</LuxelGalleryCategory>
+    <LuxelSubsystem>Platform</LuxelSubsystem>
+    <LuxelPlatform>Native</LuxelPlatform>
+    <LuxelArchitectureTier>Native</LuxelArchitectureTier>
+    <IsPackable>false</IsPackable>
+    <LuxelGalleryRegistrationIdentity>Platform.Native.Stories</LuxelGalleryRegistrationIdentity>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Gallery.DocKit\Luxel.Gallery.DocKit.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />

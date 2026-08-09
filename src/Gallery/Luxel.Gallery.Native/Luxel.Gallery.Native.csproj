@@ -1,4 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <LuxelProjectRole>GalleryHost</LuxelProjectRole>
+    <LuxelGalleryCategory>Platform</LuxelGalleryCategory>
+    <LuxelSubsystem>Platform</LuxelSubsystem>
+    <LuxelPlatform>Native</LuxelPlatform>
+    <LuxelArchitectureTier>Host</LuxelArchitectureTier>
+    <IsPackable>false</IsPackable>
+    <LuxelGalleryRegistrationIdentity>Gallery.Native</LuxelGalleryRegistrationIdentity>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />

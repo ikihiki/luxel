@@ -1,5 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
   <PropertyGroup>
+    <LuxelProjectRole>GalleryHost</LuxelProjectRole>
+    <LuxelGalleryCategory>Shared</LuxelGalleryCategory>
+    <LuxelSubsystem>Gallery</LuxelSubsystem>
+    <LuxelPlatform>Browser</LuxelPlatform>
+    <LuxelArchitectureTier>Host</LuxelArchitectureTier>
+    <IsPackable>false</IsPackable>
+    <LuxelGalleryRegistrationIdentity>Host.Browser</LuxelGalleryRegistrationIdentity>
+  </PropertyGroup>
+  <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
     <LuxelBrowserWasm>true</LuxelBrowserWasm>

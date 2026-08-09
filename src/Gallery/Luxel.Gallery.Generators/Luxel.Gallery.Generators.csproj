@@ -1,5 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <LuxelProjectRole>GalleryInfrastructure</LuxelProjectRole>
+    <LuxelGalleryCategory>Shared</LuxelGalleryCategory>
+    <LuxelSubsystem>Gallery</LuxelSubsystem>
+    <LuxelPlatform>Portable</LuxelPlatform>
+    <LuxelArchitectureTier>Foundation</LuxelArchitectureTier>
+    <IsPackable>false</IsPackable>
+    <LuxelGalleryRegistrationIdentity>Gallery.Generators</LuxelGalleryRegistrationIdentity>
+  </PropertyGroup>
+  <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <Platforms>AnyCPU;x64</Platforms>
     <PlatformTarget>AnyCPU</PlatformTarget>
