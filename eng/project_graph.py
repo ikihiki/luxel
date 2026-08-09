@@ -12,7 +12,7 @@ ROLE_VALUES = {
     "Test", "Sample", "Tool", "Analyzer",
 }
 CATEGORY_VALUES = {
-    "External", "Shared", "Platform", "Resources", "Audio", "CoreUi",
+    "External", "Shared", "Platform", "Resources", "Audio", "Graphics", "Editor", "CoreUi",
     "Controls", "Diagram", "MathText", "Particles",
 }
 PLATFORM_VALUES = {"Portable", "Browser", "Native"}

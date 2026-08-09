@@ -1,6 +1,5 @@
 using Luxel.Controls;
 using Luxel.Graphics.TwoD;
-using Luxel.Graphics.TwoD.Skia;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 using static Luxel.Gallery.Stories.StoryKit;
@@ -47,29 +46,25 @@ public static class TwoDBackendStories
             gpuRasterizer.Dispose();
         });
 
-        byte[] skiaPixels;
-        using (var skiaRasterizer = new SkiaRasterizer2D())
-        using (IRasterScene2D skiaScene = skiaRasterizer.CreateScene(Scene()))
-        {
-            var target = new SkiaRasterTarget2D(Width, Height);
-            skiaScene.Render(Camera2D.Pixels, target);
-            skiaPixels = target.ToArray();
-        }
-
-        GpuBuffer skiaUpload = device.Malloc((ulong)skiaPixels.Length, GpuMemoryKind.HostMapped);
-        skiaPixels.CopyTo(skiaUpload.Span<byte>());
-        Widget skia = GpuView(Width, Height, (_, surface, _) =>
-        {
-            using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
-            command.CopyBuffer(skiaUpload, surface.Framebuffer, (ulong)skiaPixels.Length);
-            command.Finish();
-            device.MainQueue.Submit(command);
-            return GpuViewRenderResult.Ready;
-        }, animated: false, dispose: skiaUpload.Dispose);
+        Widget cpuContract = Border(
+            background: Bind.From(() => UiTheme.T.Surface),
+            borderColor: Bind.From(() => UiTheme.T.Border),
+            borderWidth: 1,
+            cornerRadius: 8,
+            padding: new Thickness(16),
+            width: Width,
+            height: Height)
+        [VStack(8)[
+            Heading("CPU backend contract", 3),
+            Text("SkiaRasterizer2D consumes the same Scene2D and writes a synchronous RGBA target.", 13,
+                wrap: TextWrap.Word, width: Width - 32),
+            Text("The browser-safe Gallery documents that native backend without loading Skia. Native pixel parity is validated in backend tests.", 12,
+                color: Bind.From(() => UiTheme.T.TextMuted), wrap: TextWrap.Word, width: Width - 32)
+        ]];
 
         return ctx.Snap(HStack(12)[
-            VStack(4)[Muted("GPU — GpuDeviceRasterizer2D"), Frame(gpu)],
-            VStack(4)[Muted("Skia — CPU RGBA → GpuView"), Frame(skia)]
+            VStack(4)[Muted("GPU — live browser-safe rasterizer"), Frame(gpu)],
+            VStack(4)[Muted("Skia — documented native contract"), Frame(cpuContract)]
         ]);
     }
 }

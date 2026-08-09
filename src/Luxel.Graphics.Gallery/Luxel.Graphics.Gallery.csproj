@@ -19,7 +19,6 @@
     <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
     <ProjectReference Include="..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
-    <ProjectReference Include="..\Luxel.Graphics.TwoD.Skia\Luxel.Graphics.TwoD.Skia.csproj" />
     <ProjectReference Include="..\Luxel.Mathematics\Luxel.Mathematics.csproj" />
     <ProjectReference Include="..\Luxel.Particles\Luxel.Particles.csproj" />
     <ProjectReference Include="..\Luxel.Particles.TwoD\Luxel.Particles.TwoD.csproj" />

@@ -75,6 +75,9 @@
     <Project Path="src/Gallery/Luxel.Gallery.Rendering/Luxel.Gallery.Rendering.csproj" />
     <Project Path="src/Resource/Luxel.Resources.Gallery/Luxel.Resources.Gallery.csproj" />
     <Project Path="src/Audio/Luxel.Audio.Gallery/Luxel.Audio.Gallery.csproj" />
+    <Project Path="src/Luxel.Graphics.Gallery/Luxel.Graphics.Gallery.csproj" />
+    <Project Path="src/UI/Luxel.Controls.Gallery/Luxel.Controls.Gallery.csproj" />
+    <Project Path="src/Editor/Luxel.Editor.Gallery/Luxel.Editor.Gallery.csproj" />
     <Project Path="src/Gallery/Luxel.Gallery.Stories.CoreUi/Luxel.Gallery.Stories.CoreUi.csproj" />
     <Project Path="src/Gallery/Luxel.Gallery.Stories/Luxel.Gallery.Stories.csproj" />
     <Project Path="src/Gallery/Luxel.Gallery.UI/Luxel.Gallery.UI.csproj" />

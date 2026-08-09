@@ -63,7 +63,6 @@ public static class CoreUiStoryProject
         // root explicitly calls StoryCatalogBuilder.Add(story, replaceGenerated: true).
         var authoredBuilder = new StoryCatalogBuilder();
         Luxel.Gallery.Generated.StoryRegistration_Luxel_Gallery_Stories_CoreUi.Register(authoredBuilder);
-        Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Gallery_Stories_CoreUi.Register(authoredBuilder);
         foreach (StoryInfo story in authoredBuilder.Build().All)
         {
             if (ProductionCanonicalPaths.Contains(story.Path)) continue;
