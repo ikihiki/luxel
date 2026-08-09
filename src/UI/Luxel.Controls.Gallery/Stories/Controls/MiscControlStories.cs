@@ -1,5 +1,3 @@
-﻿using Luxel.Animation;
-using Luxel.Animation.UI;
 using Luxel.Controls;
 using Luxel.UI;
 using Luxel.UI.Tailwind;
@@ -11,24 +9,6 @@ namespace Luxel.Gallery.Stories;
 /// <summary>Kit 複合/表示系コントロールとトランジションのストーリー。</summary>
 public static class MiscControlStories
 {
-    [Story("Examples/Animation/Transitions", Height = 200)]
-    public static Widget TransitionStates(StoryContext ctx) => ctx.Snap(Frame(
-        // 状態レイヤは生成された When (引数はファクトリと同名 — Stateable のみ)、
-        // トランジションは fluent Transition 系で「どのプロパティ群を」独立に宣言する (GN):
-        //   Background は 400ms 既定 / hover へは 80ms で入り / 押下・解放 (pressed→hover) は即時。
-        //   Scale は無指定 = 瞬時。
-        Button(_ => ctx.Log("click"), "Hover / Press",
-                background: Tw.Blue500, foreground: Tw.White, rounded: 10, width: 200, height: 64)
-            // transform 成分 (TF): squash & stretch — X と Y で別カーブ/別 duration
-            .When(WidgetState.Hover, background: Tw.Red500, scaleX: 1.12f, scaleY: 0.94f, rotate: 0.03f)
-            .When(WidgetState.Pressed, background: Tw.Green500)
-            .Transition(0.4f, CubicBezierCurve.EaseInOut, ButtonProps.Background)
-            .Transition(0.12f, Transform.ScaleX)
-            .Transition(0.30f, CubicBezierCurve.EaseInOut, Transform.ScaleY)
-            .TransitionTo(WidgetState.Hover, 0.08f, ButtonProps.Background)
-            .TransitionTo(WidgetState.Pressed, 0f)
-            .TransitionBetween(WidgetState.Pressed, WidgetState.Hover, 0f)));
-
     [Story("Controls/Kit/Badges", Height = 160)]
     public static Widget Badges() => Frame(HStack(8)[
         Badge("Primary"), Badge("OK", Intent.Success), Badge("Error", Intent.Danger), Chip("Chip")]);
