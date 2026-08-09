@@ -14,7 +14,7 @@ namespace Luxel.Gallery.Stories;
 /// Strudel REPL — パターン言語 (Luxel.Strudel) + 汎用シーケンシング層 (Luxel.Audio.Sequencing) の実演。
 /// 文書はパターン行主体の独自フォーマット: `--` 行 = コメント、それ以外の行で Enter → ライブブロック化。
 /// 各ブロックが独立スロット (d1/d2… 相当) を持ち、Run = 評価 + ホットスワップ (クロックは止まらない)。
-/// 音は初回 Run で XAudio2 を遅延初期化 (失敗時 NullBackend) — 初期表示は無音で snap 決定的。
+/// 音は初回 Run で利用可能な native XAudio2 を遅延初期化し、browser/headlessでは NullBackendへfallbackする。
 /// </summary>
 public static class StrudelStory
 {
@@ -76,10 +76,25 @@ public static class StrudelStory
         {
             if (_mixer is not null) return;
             IAudioBackend backend;
-            if (HeadlessAudio) backend = new NullAudioBackend();   // E2E: 実 XAudio2 を触らない (決定的 + Vortice callback GC レースを避ける)
+            if (HeadlessAudio)
+            {
+                backend = new NullAudioBackend();
+            }
             else
-                try { var x = new XAudio2Backend(); x.Initialize(); backend = x; }
-                catch { backend = new NullAudioBackend(); }        // 実デバイス無し (CI 等) も無音で動く
+            {
+                try
+                {
+                    Type? backendType = Type.GetType("Luxel.Audio.Windows.XAudio2Backend, Luxel.Audio.Windows", throwOnError: false);
+                    backend = backendType is null
+                        ? throw new PlatformNotSupportedException("XAudio2 backend is not available.")
+                        : (IAudioBackend)Activator.CreateInstance(backendType)!;
+                    backend.Initialize();
+                }
+                catch
+                {
+                    backend = new NullAudioBackend();
+                }
+            }
             _mixer = new StreamMixerSink(StrudelKit.CreateBank(), backend);
             Sched.AddSink(_mixer);
         }

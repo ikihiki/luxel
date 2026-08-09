@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <LuxelProjectRole>GalleryCategory</LuxelProjectRole>
+    <LuxelGalleryCategory>Platform</LuxelGalleryCategory>
+    <LuxelSubsystem>Platform.Native</LuxelSubsystem>
+    <LuxelPlatform>Native</LuxelPlatform>
+    <LuxelArchitectureTier>Extension</LuxelArchitectureTier>
+    <LuxelGalleryCompatibility>Native</LuxelGalleryCompatibility>
+    <IsPackable>false</IsPackable>
+    <LuxelGalleryRegistrationIdentity>Platform.Native</LuxelGalleryRegistrationIdentity>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Gallery/Luxel.Gallery/Luxel.Gallery.csproj" />
+    <ProjectReference Include="../Luxel.Platform.Gallery/Luxel.Platform.Gallery.csproj" />
+    <ProjectReference Include="../Luxel.Platform/Luxel.Platform.csproj" />
+    <ProjectReference Include="../Luxel.Platform.Windows/Luxel.Platform.Windows.csproj" />
+    <ProjectReference Include="../Luxel.Input/Luxel.Input.csproj" />
+    <ProjectReference Include="../Luxel.Input.XInput/Luxel.Input.XInput.csproj" />
+    <ProjectReference Include="../Luxel.Audio/Luxel.Audio.csproj" />
+    <ProjectReference Include="../Luxel.Audio.Windows/Luxel.Audio.Windows.csproj" />
+    <ProjectReference Include="../Framework/Luxel.Framework.UI/Luxel.Framework.UI.csproj" />
+    <ProjectReference Include="../Luxel.Graphics.TwoD/Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="../Luxel.Controls/Luxel.Controls.csproj" />
+    <ProjectReference Include="../Luxel.Typography/Luxel.Typography.csproj" />
+    <ProjectReference Include="../Luxel.UI/Luxel.UI.csproj" />
+    <ProjectReference Include="../Luxel.UI.Tailwind/Luxel.UI.Tailwind.csproj" />
+    <ProjectReference Include="../Gallery/Luxel.Gallery.Generators/Luxel.Gallery.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU"
+                      GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Gallery" />
+    <Using Include="Luxel.Audio.Windows" />
+  </ItemGroup>
+</Project>

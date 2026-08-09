@@ -1,6 +1,6 @@
 using Luxel.Controls;
 using Luxel.UI;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.Stories.InputDocsKit;
 
 namespace Luxel.Gallery.Stories;
 
