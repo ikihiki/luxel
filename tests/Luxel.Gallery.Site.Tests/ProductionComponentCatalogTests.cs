@@ -151,6 +151,40 @@ public sealed class ProductionComponentCatalogTests
     }
 
     [Fact]
+    public void Executable_resource_example_sources_inline_their_complete_scenario_orchestration()
+    {
+        StoryCatalog catalog = ResourceGalleryProject.CreateCatalog();
+        string[] gpuExamples =
+        [
+            "Examples/Resources/Gltf/BoxScene",
+            "Examples/Resources/Gltf/AnimatedBox",
+            "Examples/Resources/Gltf/RiggedSimpleSkinning",
+            "Examples/Resources/Gltf/MorphWeights",
+        ];
+        string[] executableExamples = ResourceLearnExamples.Routes.Values
+            .SelectMany(routes => routes)
+            .Distinct(StringComparer.Ordinal)
+            .Except(gpuExamples, StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(26, executableExamples.Length);
+        foreach (string route in executableExamples)
+        {
+            StoryInfo story = Assert.IsType<StoryInfo>(catalog.Find(route));
+            Assert.Contains("new ResourceScenarioWidget", story.Source, StringComparison.Ordinal);
+            Assert.Contains("(builder, h) =>", story.Source, StringComparison.Ordinal);
+            Assert.Contains("async resources =>", story.Source, StringComparison.Ordinal);
+            Assert.Contains("return ", story.Source, StringComparison.Ordinal);
+
+            string[] removedOrchestrationHelpers =
+                ["Scenario(", "GpuContractScenario(", "AssetDiagnostic(", "SeedDiagnostic(", "GltfLoad("];
+            Assert.All(removedOrchestrationHelpers, helper =>
+                Assert.DoesNotContain(helper, story.Source, StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
     public void Every_canonical_resource_example_builds_a_widget_without_host_resources()
     {
         StoryCatalog catalog = ResourceGalleryProject.CreateCatalog();
