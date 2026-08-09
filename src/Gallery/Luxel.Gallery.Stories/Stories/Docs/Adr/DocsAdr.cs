@@ -65,6 +65,7 @@ public static partial class DocsAdr
         - [ADR-0017 — プレイインエディタは「都度コンパイル + 停止で破棄」の別インスタンスで動かす](story:Internals/ADR/0017-Play-In-Editor) — **Accepted** (2026-07-11)
         - [ADR-0018 — ゲームの挙動は csx ビヘイビア (状態レス Update) で書く](story:Internals/ADR/0018-Csx-Behaviour-Model) — **Accepted** (2026-07-11)
         - [ADR-0019 — portable GPU semantics として WebGPU backend を追加する](story:Internals/ADR/0019-Portable-Gpu-Semantics-WebGPU-Backend) — **Accepted** (2026-07-28)、Amends ADR-0002
+        - [ADR-0020 — ResourceSystemをBuilder・実行Domain・型別Managerで構成する](story:Internals/ADR/0020-Resource-System-Builder-Domains-And-Managers) — **Accepted** (2026-08-09)
 
         ## 参考
 
