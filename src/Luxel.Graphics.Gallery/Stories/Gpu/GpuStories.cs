@@ -30,18 +30,6 @@ public static class GpuStories
 
     // ---- 2D: Scene2D 直描き ----
 
-    [Story("Examples/2D/Shapes", Height = 300, Order = 110)]
-    public static Widget Shapes(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(384, 220, draw: s =>
-    {
-        s.FillRoundedRect(Tw.Blue500, 16, 16, 140, 90, 14);
-        s.FillCircle(Tw.Amber500, 230, 60, 44);
-        s.StrokeRoundedRect(Tw.Green500, 3, 290, 20, 80, 80, 10);
-        s.BeginFill(Tw.Red500).MoveTo(60, 130).LineTo(150, 200).LineTo(20, 200).Close().End();
-        s.StrokePolyline(Tw.Slate500, 2,
-            new System.Numerics.Vector2(180, 200), new System.Numerics.Vector2(230, 140),
-            new System.Numerics.Vector2(280, 190), new System.Numerics.Vector2(370, 130));
-    })));
-
     [Story("Examples/2D/Orbit", Height = 300, Order = 111)]
     public static Widget Orbit(StoryContext ctx)
     {

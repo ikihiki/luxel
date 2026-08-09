@@ -10,7 +10,7 @@ public sealed class BrowserCanonicalTriangleTests
         string program = File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Browser", "BrowserGalleryApplication.cs"));
         string storiesProject = File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Stories.CoreUi", "Luxel.Gallery.Stories.CoreUi.csproj"));
         string canonicalTriangle = File.ReadAllText(Path.Combine(root, "samples", "CanonicalTriangleRecipe.cs"));
-        string gpuStories = File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Stories.CoreUi", "Stories", "GpuViewStories.cs"));
+        string gpuStories = File.ReadAllText(Path.Combine(root, "src", "Luxel.Graphics.Gallery", "Stories", "Gpu", "GpuViewStories.cs"));
         string html = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "index.html"));
         string css = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "gallery.css"));
 

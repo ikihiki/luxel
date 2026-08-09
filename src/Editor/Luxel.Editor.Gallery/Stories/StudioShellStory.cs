@@ -1,3 +1,4 @@
+using Luxel.Editor.Gallery;
 using System.Numerics;
 using System.Text;
 using Luxel.Controls;
@@ -9,7 +10,7 @@ using Luxel.Typography;
 using Luxel.UI;
 using Luxel.Workbench;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.StoryKit;
+using static Luxel.Editor.Gallery.StoryKit;
 
 using Luxel.Typography.TwoD;
 namespace Luxel.Gallery.Stories;

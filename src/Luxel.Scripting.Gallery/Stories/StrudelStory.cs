@@ -20,7 +20,7 @@ public static class StrudelStory
 {
     /// <summary>E2E/headless では実 XAudio2 を避けて <see cref="NullAudioBackend"/> を使う
     /// (golden は音を snap しない + Vortice のエンジンコールバック GC レースを踏まない)。E2e ランナーが設定。</summary>
-    internal static bool HeadlessAudio { get; set; }
+    public static bool HeadlessAudio { get; set; }
 
     // ---- セッション (プロセスで 1 個 — XAudio2 マスタリングボイスと同じ寿命) ----
     private static class Session
@@ -125,7 +125,7 @@ public static class StrudelStory
         }
     }
 
-    internal static void ResetForE2e() => Session.ResetForE2e();
+    public static void ResetForE2e() => Session.ResetForE2e();
 
     // ---- ライブブロック: TextEditorView (新スタック。診断波線 + 補完 + 再生囲み + Ctrl+Enter 評価) + Run/Stop ----
     private sealed class StrudelBlock : CompositeControl, IDisposable

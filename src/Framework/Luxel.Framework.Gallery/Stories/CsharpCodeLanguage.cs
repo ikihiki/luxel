@@ -1,7 +1,7 @@
 ﻿using Luxel.Controls;
 using Luxel.Scripting;
 
-namespace Luxel.Gallery.Stories;
+namespace Luxel.Framework.Gallery;
 
 /// <summary>
 /// <see cref="ICodeLanguage"/> の C# 実装 — <see cref="ScriptWorkspace"/> (in-proc Roslyn) を

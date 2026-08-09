@@ -10,6 +10,11 @@
     <LuxelGalleryRegistrationIdentity>Editor.Base</LuxelGalleryRegistrationIdentity>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Gallery\Luxel.Gallery.DocKit\Luxel.Gallery.DocKit.csproj" />
+    <ProjectReference Include="..\..\Gallery\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />
+    <ProjectReference Include="..\..\Luxel.Player\Luxel.Player.csproj" />
+    <ProjectReference Include="..\..\Luxel.Scripting\Luxel.Scripting.csproj" />
+    <ProjectReference Include="..\..\Resource\Luxel.Resources\Luxel.Resources.csproj" />
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery\Luxel.Gallery.csproj" />
     <ProjectReference Include="..\..\Luxel.Controls\Luxel.Controls.csproj" />
     <ProjectReference Include="..\..\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />

@@ -12,11 +12,11 @@ ROLE_VALUES = {
     "Test", "Sample", "Tool", "Analyzer",
 }
 CATEGORY_VALUES = {
-    "External", "Shared", "Platform", "Resources", "Audio", "Graphics", "Editor", "CoreUi",
-    "Controls", "Diagram", "MathText", "Particles",
+    "External", "Shared", "Platform", "Resources", "Audio", "UI", "Graphics", "Input",
+    "Framework", "Animation", "Particles", "Scripting", "Editor", "DevTools", "GamesSamples", "GalleryDocs", "CoreUi",
 }
 PLATFORM_VALUES = {"Portable", "Browser", "Native"}
-TIER_VALUES = {"Product", "Foundation", "Base", "Native", "Host"}
+TIER_VALUES = {"Product", "Foundation", "Base", "Native", "Extension", "Host"}
 REFERENCE_KINDS = {"Compile", "Analyzer"}
 
 @dataclass(frozen=True)
@@ -170,8 +170,7 @@ def native_heavy(project: Project) -> bool:
             "Luxel.Audio.Silk", "Luxel.Graphics.Vulkan", "Luxel.Graphics.DirectX12",
             "Luxel.Graphics.TwoD.Skia", "Luxel.Typography.Icu",
         }
-        or stem.startswith("Luxel.Terminal")
-        or stem.startswith("Luxel.Scripting")
+        or stem in {"Luxel.Terminal.Linux", "Luxel.Terminal.Windows"}
     )
 
 

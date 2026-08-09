@@ -17,22 +17,6 @@ public static class Vector2DStories
     private static readonly Lazy<VectorFont> EnFont = new(() => GalleryFonts.Load(GalleryFonts.Regular));
     private static readonly Lazy<VectorFont> JpFont = new(() => GalleryFonts.Load(GalleryFonts.Regular));
 
-    /// <summary>EvenOdd の穴あきリング + 塗り/ストローク/ベクターテキスト。
-    /// パスは三角形分割されず、GPU compute がそのまま塗る。</summary>
-    [Story("Examples/2D/VectorPaths", Height = 320, Order = 112)]
-    public static Widget VectorPaths(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(256, 256, draw: s =>
-    {
-        s.FillRect(Color2D.Rgba(245, 245, 248), 0, 0, 256, 256);   // 背景
-        s.FillRect(Color2D.Green, 40, 40, 120, 80);                // 緑の矩形
-        // 青のリング (ドーナツ): EvenOdd で 2 重円 → 中心が穴になる
-        s.BeginFill(Color2D.Blue, FillRule.EvenOdd);
-        AddCircle(s, 170, 160, 60);                                // 外円
-        AddCircle(s, 170, 160, 30);                                // 内円 (穴)
-        s.EndFill();
-        s.StrokeLine(Color2D.Rgba(240, 140, 30), 8, 20, 230, 110, 150);   // オレンジの線
-        EnFont.Value.AppendText(s, "Luxel 2D", 12, 30, 26, Color2D.Rgba(20, 20, 40));
-    })));
-
     /// <summary>地図風シーン (日本語ラベル) + ズーム knob。ベクターなので拡大しても
     /// エッジが崩れない (実アプリでは Camera2D — 再エンコードなしのスムーズズーム)。</summary>
     [Story("Examples/2D/Map", Width = 560, Height = 460, Order = 113)]

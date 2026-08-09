@@ -3,7 +3,7 @@ using Luxel.Typography;
 using Luxel.UI;
 using Luxel.UI.Tailwind;
 using static Luxel.Controls.Kit;
-using static Luxel.Controls.Gallery.StoryKit;
+using static Luxel.UI.Gallery.StoryKit;
 
 namespace Luxel.Gallery.Stories;
 

@@ -1,5 +1,5 @@
 ﻿using Luxel.Controls;
-using Luxel.Gallery.Stories;
+using Luxel.Gallery.RenderingSupport;
 using Luxel.Scripting;
 using Luxel.Settings;
 using Luxel.Graphics.TwoD;
@@ -27,7 +27,7 @@ public static class GalleryServices
         typeof(object).Assembly, typeof(Enumerable).Assembly,
         typeof(GpuDevice).Assembly, typeof(Scene2D).Assembly,
         typeof(Widget).Assembly, typeof(Kit).Assembly,
-        typeof(Luxel.UI.Tailwind.Tw).Assembly, typeof(ScriptGlobals).Assembly,
+        typeof(Luxel.UI.Tailwind.Tw).Assembly, typeof(RenderingScriptGlobals).Assembly,
     ];
     private static readonly string[] Usings =
     [
@@ -41,7 +41,7 @@ public static class GalleryServices
     public const string UiProfile = "ui";
 
     /// <summary>UI スクリプトのプロファイル (docs/Gallery のライブブロック用)。</summary>
-    private static ScriptProfile UiScriptProfile => new(UiProfile, Refs, Usings, typeof(ScriptGlobals));
+    private static ScriptProfile UiScriptProfile => new(UiProfile, Refs, Usings, typeof(RenderingScriptGlobals));
 
     private static readonly Lazy<IServiceProvider> Lazy = new(Build);
 
@@ -62,7 +62,7 @@ public static class GalleryServices
         // 既存ストーリー互換: ScriptHost/ScriptWorkspace/ICodeLanguage は UI プロファイルへ解決
         services.AddSingleton(sp => sp.GetRequiredService<ScriptHostRegistry>().Host(UiProfile));
         services.AddSingleton(sp => sp.GetRequiredService<ScriptHostRegistry>().Workspace(UiProfile));
-        services.AddSingleton<ICodeLanguage>(sp => new Luxel.Gallery.Stories.CsharpCodeLanguage(sp.GetRequiredService<ScriptWorkspace>()));
+        services.AddSingleton<ICodeLanguage>(sp => new RenderingCsharpCodeLanguage(sp.GetRequiredService<ScriptWorkspace>()));
         services.AddSingleton<IFileStore, InMemoryFileStore>();
         return services.BuildServiceProvider();
     }

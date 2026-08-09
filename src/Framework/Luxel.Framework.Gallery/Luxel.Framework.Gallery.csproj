@@ -10,6 +10,17 @@
     <LuxelGalleryRegistrationIdentity>Framework.Base</LuxelGalleryRegistrationIdentity>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Luxel.Physics\Luxel.Physics.csproj" />
+    <ProjectReference Include="..\..\Luxel.Physics.Gizmos\Luxel.Physics.Gizmos.csproj" />
+    <ProjectReference Include="..\..\Luxel.Player\Luxel.Player.csproj" />
+    <ProjectReference Include="..\..\Luxel.Scripting\Luxel.Scripting.csproj" />
+    <ProjectReference Include="..\..\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
+    <ProjectReference Include="..\..\Resource\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\..\Resource\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\..\Resource\Luxel.Assets\Luxel.Assets.csproj" />
+    <ProjectReference Include="..\..\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
+    <ProjectReference Include="..\..\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery\Luxel.Gallery.csproj"/>
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery.DocKit\Luxel.Gallery.DocKit.csproj"/>
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj"/>
@@ -28,6 +39,9 @@
   <ItemGroup>
     <Using Include="Luxel.Gallery"/>
     <Using Include="Luxel.Graphics"/>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\..\shaders\compiled\cube_forward.*" Link="Shaders\%(Filename)%(Extension)" WithCulture="false" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\..\..\samples\LuxelFramework\LuxelFramework.csproj" LogicalName="Luxel.Sample.samples.LuxelFramework.LuxelFramework.csproj"/>

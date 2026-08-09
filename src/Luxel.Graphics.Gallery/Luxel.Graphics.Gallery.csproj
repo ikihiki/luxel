@@ -27,6 +27,8 @@
     <ProjectReference Include="..\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
     <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\Resource\Luxel.Assets\Luxel.Assets.csproj" />
     <ProjectReference Include="..\Resource\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
     <ProjectReference Include="..\Resource\Luxel.Resources\Luxel.Resources.csproj" />
     <ProjectReference Include="..\Gallery\Luxel.Gallery.Generators\Luxel.Gallery.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU"

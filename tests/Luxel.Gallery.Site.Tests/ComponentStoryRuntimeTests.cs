@@ -2,6 +2,7 @@ using Luxel.Controls;
 using Luxel.Gallery;
 using Luxel.Typography;
 using Luxel.UI;
+using Luxel.UI.Gallery;
 
 namespace Luxel.Gallery.Site.Tests;
 
@@ -34,7 +35,7 @@ public sealed class ComponentStoryRuntimeTests
     [Fact]
     public void ButtonPlaygroundDeclaresTypedArgsAndAppliesChanges()
     {
-        StoryInfo story = Assert.IsType<StoryInfo>(CoreUiStoryProject.CreateCatalog().Find("Controls/Button/Playground"));
+        StoryInfo story = Assert.IsType<StoryInfo>(UiGalleryProject.CreateCatalog().Find("Controls/Button/Playground"));
         var context = new StoryContext();
         var preview = Assert.IsType<ComponentStoryPreview>(story.Build(context));
         Assert.Collection(context.ArgDefinitions,

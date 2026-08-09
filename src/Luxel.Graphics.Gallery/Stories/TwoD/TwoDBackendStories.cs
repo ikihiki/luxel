@@ -48,18 +48,15 @@ public static class TwoDBackendStories
 
         Widget cpuContract = Border(
             background: Bind.From(() => UiTheme.T.Surface),
-            borderColor: Bind.From(() => UiTheme.T.Border),
-            borderWidth: 1,
-            cornerRadius: 8,
             padding: new Thickness(16),
             width: Width,
             height: Height)
         [VStack(8)[
             Heading("CPU backend contract", 3),
             Text("SkiaRasterizer2D consumes the same Scene2D and writes a synchronous RGBA target.", 13,
-                wrap: TextWrap.Word, width: Width - 32),
+                width: Width - 32),
             Text("The browser-safe Gallery documents that native backend without loading Skia. Native pixel parity is validated in backend tests.", 12,
-                color: Bind.From(() => UiTheme.T.TextMuted), wrap: TextWrap.Word, width: Width - 32)
+                color: Bind.From(() => UiTheme.T.TextMuted), width: Width - 32)
         ]];
 
         return ctx.Snap(HStack(12)[

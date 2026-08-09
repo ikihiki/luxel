@@ -1,15 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <LuxelProjectRole>GalleryCategory</LuxelProjectRole>
-    <LuxelGalleryCategory>Controls</LuxelGalleryCategory>
-    <LuxelSubsystem>Controls</LuxelSubsystem>
+    <LuxelGalleryCategory>UI</LuxelGalleryCategory>
+    <LuxelSubsystem>UI</LuxelSubsystem>
     <LuxelPlatform>Browser</LuxelPlatform>
     <LuxelArchitectureTier>Base</LuxelArchitectureTier>
     <LuxelGalleryCompatibility>Browser;Native</LuxelGalleryCompatibility>
     <IsPackable>false</IsPackable>
-    <LuxelGalleryRegistrationIdentity>Controls.Base</LuxelGalleryRegistrationIdentity>
+    <LuxelGalleryRegistrationIdentity>UI.Base</LuxelGalleryRegistrationIdentity>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Luxel.Diagram\Luxel.Diagram.csproj" />
+    <ProjectReference Include="..\..\Luxel.MathText\Luxel.MathText.csproj" />
+    <ProjectReference Include="..\..\Gallery\Luxel.Gallery.DocKit\Luxel.Gallery.DocKit.csproj" />
+    <ProjectReference Include="..\..\Gallery\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery\Luxel.Gallery.csproj" />
     <ProjectReference Include="..\..\Luxel.Controls\Luxel.Controls.csproj" />
     <ProjectReference Include="..\..\Luxel.UI\Luxel.UI.csproj" />

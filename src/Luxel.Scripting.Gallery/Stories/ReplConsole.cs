@@ -10,7 +10,7 @@ namespace Luxel.Gallery.Stories;
 /// スクリプトコンソール相当。1 行 = 1 Submit で、状態は <see cref="ScriptSession"/> が保つ。
 /// <para>ストーリー (Examples/Scripting/Repl) と Gallery 下ペインの「Console」タブの両方が使う共有部品。
 /// <see cref="ScriptGlobals"/> を差し替えて Log の宛先 (現在のストーリー) を注入する。</para></summary>
-internal sealed class ReplConsole : CompositeControl
+public sealed class ReplConsole : CompositeControl
 {
     private readonly Signal<string> _input;
     private readonly Signal<int> _ver = new(0);
@@ -26,7 +26,7 @@ internal sealed class ReplConsole : CompositeControl
     /// <param name="globals">スクリプトから裸で見える API 面 (Log の宛先など)。セッションはこの
     /// インスタンスで開かれ、Gallery 起動中ずっと生きる (タブ/ストーリー切替で失わない)。</param>
     /// <param name="initial">エディタの初期テキスト。</param>
-    internal ReplConsole(float maxWidth, ScriptHost host, ScriptGlobals globals, string initial = "var greeting = \"Luxel\";")
+    public ReplConsole(float maxWidth, ScriptHost host, ScriptGlobals globals, string initial = "var greeting = \"Luxel\";")
     {
         _maxW = MathF.Max(240, maxWidth);
         _input = new Signal<string>(initial);

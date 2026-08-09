@@ -4,7 +4,7 @@
     <LuxelGalleryCategory>Platform</LuxelGalleryCategory>
     <LuxelSubsystem>Platform.Native</LuxelSubsystem>
     <LuxelPlatform>Native</LuxelPlatform>
-    <LuxelArchitectureTier>Extension</LuxelArchitectureTier>
+    <LuxelArchitectureTier>Native</LuxelArchitectureTier>
     <LuxelGalleryCompatibility>Native</LuxelGalleryCompatibility>
     <IsPackable>false</IsPackable>
     <LuxelGalleryRegistrationIdentity>Platform.Native</LuxelGalleryRegistrationIdentity>

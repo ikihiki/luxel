@@ -183,7 +183,10 @@ public sealed class GalleryHost : IDisposable
         if (e2e) _dark = string.Equals(story.Theme, "dark", StringComparison.OrdinalIgnoreCase);
         else if (story.Theme is not null) _dark = story.Theme == "dark";
         ApplyTheme();
-        if (e2e) Stories.StrudelStory.ResetForE2e();
+        if (e2e)
+            Type.GetType("Luxel.Gallery.Stories.StrudelStory, Luxel.Scripting.Gallery", throwOnError: false)
+                ?.GetMethod("ResetForE2e", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                ?.Invoke(null, null);
         try
         {
             BuildCurrent();

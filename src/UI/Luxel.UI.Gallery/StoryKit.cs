@@ -3,7 +3,7 @@ using Luxel.Typography;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 
-namespace Luxel.Controls.Gallery;
+namespace Luxel.UI.Gallery;
 
 /// <summary>ストーリー共通の下回り (背景フレーム、フォントフォールバック、エディタ書体)。</summary>
 public static class StoryKit

@@ -3,7 +3,7 @@ namespace Luxel.WebGPU.Browser.Tests;
 public sealed class BrowserStoryCatalogSourceTests
 {
     [Fact]
-    public void Blazor_host_composes_resource_and_CoreUi_catalogs_without_a_runtime_manifest()
+    public void Blazor_host_composes_explicit_category_catalogs_without_a_runtime_manifest()
     {
         string root = FindRepositoryRoot();
         string entryPoint = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "Program.cs"));
@@ -26,9 +26,12 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("builder.Services.AddSingleton(new HttpClient", entryPoint, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddResourceGallery()", entryPoint, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddCoreUiStory()", entryPoint, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddUiGallery()", entryPoint, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddGraphicsGallery()", entryPoint, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddFrameworkGallery()", entryPoint, StringComparison.Ordinal);
         Assert.True(
-            entryPoint.IndexOf("builder.Services.AddResourceGallery()", StringComparison.Ordinal)
-            < entryPoint.IndexOf("builder.Services.AddCoreUiStory()", StringComparison.Ordinal));
+            entryPoint.IndexOf("builder.Services.AddCoreUiStory()", StringComparison.Ordinal)
+            < entryPoint.IndexOf("builder.Services.AddUiGallery()", StringComparison.Ordinal));
         Assert.Contains("Luxel.Resources.Gallery.csproj", project, StringComparison.Ordinal);
         Assert.Contains("src/Resource/Luxel.Resources.Gallery/Luxel.Resources.Gallery.csproj", solution, StringComparison.Ordinal);
         Assert.DoesNotContain("Luxel.Gallery.Resources.Stories", solution, StringComparison.Ordinal);
@@ -83,9 +86,9 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("src/Resource/Luxel.Resources.Browser/Luxel.Resources.Browser.csproj", solution, StringComparison.Ordinal);
         Assert.Contains("forbid_closure(\"Luxel.Resources\"", dependencyChecker, StringComparison.Ordinal);
         Assert.Contains("stem == \"Luxel.Resources.Gallery\"", dependencyChecker, StringComparison.Ordinal);
-        Assert.Contains("forbid_closure(\"Luxel.Resources.Gallery\", browser_forbidden", dependencyChecker, StringComparison.Ordinal);
-        Assert.Contains("Luxel.Graphics.Vulkan", dependencyChecker, StringComparison.Ordinal);
-        Assert.Contains("forbid_closure(\"GalleryBrowser\", browser_forbidden", dependencyChecker, StringComparison.Ordinal);
+        Assert.Contains("project.platform != \"Browser\"", dependencyChecker, StringComparison.Ordinal);
+        Assert.Contains("Browser project reaches a Native dependency", dependencyChecker, StringComparison.Ordinal);
+        Assert.Contains("Luxel.Graphics.Vulkan", File.ReadAllText(Path.Combine(root, "eng", "project_graph.py")), StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "browser-runtime-manifest.json")));
     }
 

@@ -7,9 +7,9 @@ public sealed class BrowserRenderGraphTests
     {
         string root = FindRepositoryRoot();
         string source = File.ReadAllText(Path.Combine(root,
-            "src", "Gallery", "Luxel.Gallery.Stories.CoreUi", "Stories", "RenderGraphStories.cs"));
+            "src", "Luxel.Graphics.Gallery", "Stories", "RenderGraph", "BrowserRenderGraphStories.cs"));
         string project = File.ReadAllText(Path.Combine(root,
-            "src", "Gallery", "Luxel.Gallery.Stories.CoreUi", "Luxel.Gallery.Stories.CoreUi.csproj"));
+            "src", "Luxel.Graphics.Gallery", "Luxel.Graphics.Gallery.csproj"));
 
         Assert.Contains("[Story(\"Examples/RenderGraph/Blur\"", source);
         Assert.Contains("Luxel.Graphics.RenderGraph.csproj", project);

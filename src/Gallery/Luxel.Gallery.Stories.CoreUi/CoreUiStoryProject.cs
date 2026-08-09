@@ -58,17 +58,6 @@ public static class CoreUiStoryProject
         Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Particles_UI.Register(builder);
         Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Gallery_UI.Register(builder);
 
-        // Handwritten browser-safe implementation/pattern stories and authored component playgrounds.
-        // Generated canonical Overview/Basic paths remain the production fallback unless the composition
-        // root explicitly calls StoryCatalogBuilder.Add(story, replaceGenerated: true).
-        var authoredBuilder = new StoryCatalogBuilder();
-        Luxel.Gallery.Generated.StoryRegistration_Luxel_Gallery_Stories_CoreUi.Register(authoredBuilder);
-        foreach (StoryInfo story in authoredBuilder.Build().All)
-        {
-            if (ProductionCanonicalPaths.Contains(story.Path)) continue;
-            // Membership in this catalog is the only browser-execution boundary.
-            builder.Add(story);
-        }
     }
 
     public static StoryCatalog CreateCatalog()

@@ -16,7 +16,7 @@ public sealed class BrowserPhysicsStoriesTests
     {
         string root = FindRepositoryRoot();
         string source = File.ReadAllText(Path.Combine(root,
-            "src", "Gallery", "Luxel.Gallery.Stories.CoreUi", "Stories", "PhysicsBrowserStories.cs"));
+            "src", "Framework", "Luxel.Framework.Gallery", "Stories", "PhysicsBrowserStories.cs"));
         string coreProject = File.ReadAllText(Path.Combine(root,
             "src", "Gallery", "Luxel.Gallery.Stories.CoreUi", "Luxel.Gallery.Stories.CoreUi.csproj"));
         string browserLibrary = File.ReadAllText(Path.Combine(root,

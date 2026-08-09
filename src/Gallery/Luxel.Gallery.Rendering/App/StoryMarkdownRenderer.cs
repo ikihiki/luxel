@@ -18,7 +18,7 @@ public static class StoryMarkdownRenderer
         if (authored.Kind == StoryResultKind.Widget && authored.Widget is not null) return authored.Widget;
         StoryResult result = authored.WithMarkdown(EffectiveMarkdown(story, authored.Markdown));
 
-        (VectorFont? bold, _, _, VectorFont? mono) = StoryKit.EditorFaces.Value;
+        (VectorFont? bold, _, _, VectorFont? mono) = RenderingStoryKit.EditorFaces.Value;
         var fences = new Dictionary<string, Func<string, Widget>>
         {
             ["mermaid"] = body => Luxel.Diagram.Factories.DiagramBlock(body, 640f),
@@ -27,7 +27,7 @@ public static class StoryMarkdownRenderer
         TextEditorView editor = StoryMarkdownDocumentAdapter.FromStoryResult(result, () => UiTheme.T, width: 640f, height: 480f,
             reference => BuildReference(context, reference), bold: bold, mono: mono,
             highlighter: Luxel.Highlight.TextMateHighlighter.Instance, fences: fences,
-            fonts: StoryKit.JpFallback.Value, fill: true);
+            fonts: RenderingStoryKit.JpFallback.Value, fill: true);
         string source = editor.DocSource!;
         IReadOnlyList<MarkdownLink> links = MarkdownDecorations.Links(source);
         editor.OnClickOffset = offset =>
