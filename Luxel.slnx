@@ -91,12 +91,14 @@
   </Folder>
   <Folder Name="/src/Scripting/">
     <Project Path="src/Scripting/Luxel.Scripting.Framework/Luxel.Scripting.Framework.csproj" />
+    <Project Path="src/Scripting/Luxel.Scripting.Gallery.Native/Luxel.Scripting.Gallery.Native.csproj" />
     <Project Path="src/Scripting/Luxel.Scripting.Gallery/Luxel.Scripting.Gallery.csproj" />
     <Project Path="src/Scripting/Luxel.Scripting.Roslyn.Web/Luxel.Scripting.Roslyn.Web.csproj" />
     <Project Path="src/Scripting/Luxel.Scripting/Luxel.Scripting.csproj" />
     <Project Path="src/Scripting/Luxel.Strudel/Luxel.Strudel.csproj" />
   </Folder>
   <Folder Name="/src/Editor/">
+    <Project Path="src/Editor/Luxel.Editor.Gallery.Native/Luxel.Editor.Gallery.Native.csproj" />
     <Project Path="src/Editor/Luxel.Editor.Gallery/Luxel.Editor.Gallery.csproj" />
     <Project Path="src/Editor/Luxel.SceneEdit/Luxel.SceneEdit.csproj" />
     <Project Path="src/Editor/Luxel.Terminal.UI/Luxel.Terminal.UI.csproj" />

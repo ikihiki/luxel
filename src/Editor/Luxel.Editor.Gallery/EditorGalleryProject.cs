@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Luxel.Editor.Gallery;
 
-/// <summary>Owns the browser-safe authored editor, workbench, and Studio stories.</summary>
+/// <summary>Owns the browser-safe authored editor and workbench stories.</summary>
 public static class EditorGalleryProject
 {
     public static StoryOwnership Ownership { get; } = StoryOwnership.BrowserSafe("Editor", "Editor.Base");

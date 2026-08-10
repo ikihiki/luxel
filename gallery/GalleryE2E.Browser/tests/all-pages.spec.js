@@ -1,14 +1,16 @@
 const { test, expect } = require('@playwright/test');
 
-const workerCount = 6;
-const approvedFallbacks = new Set([
-  // Desktop/Roslyn integration pages with an explicit browser capability explanation.
+const nativeOnlyRoutes = [
   'Apps/Studio/Shell',
   'Learn/Production/StudioToPlayer',
   'Learn/Production/ValidateAndShip',
   'Learn/Production/Workbench',
   'Learn/Scripting/Overview',
-  'Learn/Scripting/ReloadAndIsolation',
+  'Learn/Scripting/ReloadAndIsolation'
+];
+
+const workerCount = 6;
+const approvedFallbacks = new Set([
   // Browser-incompatible authored demos isolated by the runtime error boundary.
   'Apps/Player/Basic',
   'Apps/Player/ScriptEditor',
@@ -62,7 +64,9 @@ test('every Blazor Gallery page renders or reaches a browser-safe runtime fallba
   const routes = [...new Set(await discovery.locator('.story-link').evaluateAll(links => links.map(link => link.title)))].sort();
   await discovery.close();
 
-  expect(routes).toHaveLength(510);
+  expect(routes).toHaveLength(504);
+  for (const nativeOnlyRoute of nativeOnlyRoutes)
+    expect(routes, `${nativeOnlyRoute} must only be registered by Gallery.Native`).not.toContain(nativeOnlyRoute);
   const failures = [];
   let next = 0;
 

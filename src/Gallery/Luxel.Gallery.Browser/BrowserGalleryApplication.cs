@@ -30,17 +30,6 @@ namespace Luxel.Gallery.Browser;
 [SupportedOSPlatform("browser")]
 public static partial class BrowserGalleryApplication
 {
-    private static readonly IReadOnlyDictionary<string, string> BrowserFallbackNotes =
-        new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["Apps/Studio/Shell"] = "Studio shellは同期スレッド待機を使うため、browser-wasmでは概要のみ表示します。",
-            ["Learn/Production/StudioToPlayer"] = "Studio/Player統合デモはdesktop runtimeを必要とするため、browser-wasmでは概要のみ表示します。",
-            ["Learn/Production/ValidateAndShip"] = "ship検証デモはdesktopのRoslyn hostとprocess実行を必要とするため、browser-wasmでは概要のみ表示します。",
-            ["Learn/Production/Workbench"] = "Workbench統合デモはdesktop runtimeを必要とするため、browser-wasmでは概要のみ表示します。",
-            ["Learn/Scripting/Overview"] = "in-process Roslyn scriptingはbrowser-wasmで利用できないため、概要のみ表示します。",
-            ["Learn/Scripting/ReloadAndIsolation"] = "AssemblyLoadContextを使うreload/isolationデモはbrowser-wasmで利用できないため、概要のみ表示します。",
-        };
-
     private static IServiceProvider? _storyServices;
     private static StoryCatalog Catalog => (_storyServices
         ?? throw new InvalidOperationException("Browser Gallery story services are not configured."))
@@ -141,22 +130,15 @@ public static partial class BrowserGalleryApplication
             stage = "story";
             SetStatus("loading", $"browser-webgpu: status=loading, story={path}, stage={stage}");
             Widget storyRoot;
-            if (BrowserFallbackNotes.TryGetValue(path, out string? fallbackNote))
+            try
             {
-                storyRoot = new StoryCapabilityFallback(story.Name, fallbackNote);
+                StoryResult result = story.BuildResult(context);
+                storyRoot = BuildStoryWidget(story, context, result, font, window.Width, window.Height);
             }
-            else
+            catch (Exception error)
             {
-                try
-                {
-                    StoryResult result = story.BuildResult(context);
-                    storyRoot = BuildStoryWidget(story, context, result, font, window.Width, window.Height);
-                }
-                catch (Exception error)
-                {
-                    context.Log($"Browser capability fallback: {error.GetType().Name}: {error.Message}");
-                    storyRoot = BrowserCapabilityFallback(story, error);
-                }
+                context.Log($"Browser capability fallback: {error.GetType().Name}: {error.Message}");
+                storyRoot = BrowserCapabilityFallback(story, error);
             }
 
             stage = "render";

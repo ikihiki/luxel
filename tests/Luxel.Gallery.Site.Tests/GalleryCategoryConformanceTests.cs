@@ -2,6 +2,7 @@ using Luxel.Animation.Gallery;
 using Luxel.Audio.Gallery;
 using Luxel.DevTools.Gallery;
 using Luxel.Editor.Gallery;
+using Luxel.Editor.Gallery.Native;
 using Luxel.Framework.Gallery;
 using Luxel.Gallery.Docs;
 using Luxel.GamesSamples.Gallery;
@@ -12,6 +13,7 @@ using Luxel.Platform.Gallery;
 using Luxel.Platform.Gallery.Native;
 using Luxel.Resources.Gallery;
 using Luxel.Scripting.Gallery;
+using Luxel.Scripting.Gallery.Native;
 using Luxel.UI.Gallery;
 
 using System.Text.RegularExpressions;
@@ -35,6 +37,13 @@ public sealed class GalleryCategoryConformanceTests
         ("GamesSamples", GamesSamplesGalleryProject.Ownership, GamesSamplesGalleryProject.CreateCatalog),
         ("GalleryDocs", GalleryDocsProject.Ownership, GalleryDocsProject.CreateCatalog),
         ("Platform", PlatformGalleryProject.Ownership, PlatformGalleryProject.CreateCatalog),
+    ];
+
+    private static readonly (string Category, Func<StoryCatalog> CreateBase, Func<StoryCatalog> CreateNative)[] NativeCategories =
+    [
+        ("Editor", EditorGalleryProject.CreateCatalog, EditorNativeGalleryProject.CreateCatalog),
+        ("Platform", PlatformGalleryProject.CreateCatalog, PlatformNativeGalleryProject.CreateCatalog),
+        ("Scripting", ScriptingGalleryProject.CreateCatalog, ScriptingNativeGalleryProject.CreateCatalog),
     ];
 
     [Fact]
@@ -68,10 +77,11 @@ public sealed class GalleryCategoryConformanceTests
     public void Compatibility_aggregate_contains_the_standalone_category_union()
     {
         StoryCatalog aggregate = GalleryStoryProject.CreateCatalog();
+        var nativeCategoryNames = NativeCategories.Select(category => category.Category).ToHashSet(StringComparer.Ordinal);
         string[] expectedRoutes = BrowserSafeCategories
-            .Where(category => category.Category != "Platform")
+            .Where(category => !nativeCategoryNames.Contains(category.Category))
             .SelectMany(category => category.CreateCatalog().All.Select(story => story.Path))
-            .Concat(PlatformNativeGalleryProject.CreateCatalog().All.Select(story => story.Path))
+            .Concat(NativeCategories.SelectMany(category => category.CreateNative().All.Select(story => story.Path)))
             .Distinct(StringComparer.Ordinal)
             .Order(StringComparer.Ordinal)
             .ToArray();
@@ -118,17 +128,49 @@ public sealed class GalleryCategoryConformanceTests
     }
 
     [Fact]
-    public void Platform_native_catalog_is_a_strict_extension_of_the_platform_base_catalog()
+    public void Native_catalogs_are_strict_extensions_of_their_browser_bases()
     {
-        StoryCatalog browser = PlatformGalleryProject.CreateCatalog();
-        StoryCatalog native = PlatformNativeGalleryProject.CreateCatalog();
-        string[] browserRoutes = browser.All.Select(story => story.Path).Order(StringComparer.Ordinal).ToArray();
-        string[] nativeRoutes = native.All.Select(story => story.Path).Order(StringComparer.Ordinal).ToArray();
-        string[] nativeOnlyRoutes = nativeRoutes.Except(browserRoutes, StringComparer.Ordinal).ToArray();
+        foreach ((string category, Func<StoryCatalog> createBase, Func<StoryCatalog> createNative) in NativeCategories)
+        {
+            StoryCatalog browser = createBase();
+            StoryCatalog native = createNative();
+            string[] browserRoutes = browser.All.Select(story => story.Path).Order(StringComparer.Ordinal).ToArray();
+            string[] nativeRoutes = native.All.Select(story => story.Path).Order(StringComparer.Ordinal).ToArray();
+            string[] nativeOnlyRoutes = nativeRoutes.Except(browserRoutes, StringComparer.Ordinal).ToArray();
 
-        Assert.NotEmpty(nativeOnlyRoutes);
-        Assert.All(browserRoutes, route => Assert.Contains(route, nativeRoutes));
-        Assert.Equal(nativeRoutes.Length, nativeRoutes.Distinct(StringComparer.Ordinal).Count());
-        Assert.All(nativeOnlyRoutes, route => Assert.Null(browser.Find(route)));
+            Assert.NotEmpty(nativeOnlyRoutes);
+            Assert.All(browserRoutes, route => Assert.Contains(route, nativeRoutes));
+            Assert.Equal(nativeRoutes.Length, nativeRoutes.Distinct(StringComparer.Ordinal).Count());
+            Assert.All(nativeOnlyRoutes, route =>
+            {
+                Assert.Null(browser.Find(route));
+                StoryInfo story = Assert.IsType<StoryInfo>(native.Find(route));
+                Assert.Equal(category, story.Ownership?.Category);
+                Assert.Equal(GalleryCompatibility.NativeOnly, story.Ownership?.Compatibility);
+            });
+        }
+    }
+
+    [Fact]
+    public void Desktop_only_routes_are_absent_from_browser_catalogs_and_owned_by_native_extensions()
+    {
+        AssertNativeOnly(EditorGalleryProject.CreateCatalog(), EditorNativeGalleryProject.CreateCatalog(),
+            "Apps/Studio/Shell");
+        AssertNativeOnly(ScriptingGalleryProject.CreateCatalog(), ScriptingNativeGalleryProject.CreateCatalog(),
+            "Learn/Production/StudioToPlayer",
+            "Learn/Production/ValidateAndShip",
+            "Learn/Production/Workbench",
+            "Learn/Scripting/Overview",
+            "Learn/Scripting/ReloadAndIsolation");
+
+        static void AssertNativeOnly(StoryCatalog browser, StoryCatalog native, params string[] routes)
+        {
+            foreach (string route in routes)
+            {
+                Assert.Null(browser.Find(route));
+                StoryInfo story = Assert.IsType<StoryInfo>(native.Find(route));
+                Assert.Equal(GalleryCompatibility.NativeOnly, story.Ownership?.Compatibility);
+            }
+        }
     }
 }

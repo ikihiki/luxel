@@ -18,8 +18,8 @@
     <ProjectReference Include="../../Framework/Luxel.Framework.Gallery/Luxel.Framework.Gallery.csproj" />
     <ProjectReference Include="../../Animation/Luxel.Animation.Gallery/Luxel.Animation.Gallery.csproj" />
     <ProjectReference Include="../../Particles/Luxel.Particles.Gallery/Luxel.Particles.Gallery.csproj" />
-    <ProjectReference Include="../../Scripting/Luxel.Scripting.Gallery/Luxel.Scripting.Gallery.csproj" />
-    <ProjectReference Include="../../Editor/Luxel.Editor.Gallery/Luxel.Editor.Gallery.csproj" />
+    <ProjectReference Include="../../Scripting/Luxel.Scripting.Gallery.Native/Luxel.Scripting.Gallery.Native.csproj" />
+    <ProjectReference Include="../../Editor/Luxel.Editor.Gallery.Native/Luxel.Editor.Gallery.Native.csproj" />
     <ProjectReference Include="../../DevTools/Luxel.DevTools.Gallery/Luxel.DevTools.Gallery.csproj" />
     <ProjectReference Include="../../GamesSamples/Luxel.GamesSamples.Gallery/Luxel.GamesSamples.Gallery.csproj" />
     <ProjectReference Include="../Luxel.Gallery.Docs/Luxel.Gallery.Docs.csproj" />

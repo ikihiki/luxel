@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <LuxelProjectRole>GalleryCategory</LuxelProjectRole>
+    <LuxelGalleryCategory>Scripting</LuxelGalleryCategory>
+    <LuxelSubsystem>Scripting.Native</LuxelSubsystem>
+    <LuxelPlatform>Native</LuxelPlatform>
+    <LuxelArchitectureTier>Native</LuxelArchitectureTier>
+    <LuxelGalleryCompatibility>Native</LuxelGalleryCompatibility>
+    <IsPackable>false</IsPackable>
+    <LuxelGalleryRegistrationIdentity>Scripting.Native</LuxelGalleryRegistrationIdentity>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Luxel.Scripting.Gallery/Luxel.Scripting.Gallery.csproj" />
+    <ProjectReference Include="../../Gallery/Luxel.Gallery/Luxel.Gallery.csproj" />
+    <ProjectReference Include="../../Gallery/Luxel.Gallery.Generators/Luxel.Gallery.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU"
+                      GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Gallery" />
+  </ItemGroup>
+</Project>
