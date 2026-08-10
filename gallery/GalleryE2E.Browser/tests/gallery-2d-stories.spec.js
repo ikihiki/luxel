@@ -96,6 +96,18 @@ async function expectRuntimeStory(frame, story) {
   expect(webGpu?.lastError).toBeNull();
 }
 
+test('Blazor Gallery shows loading progress before the WebAssembly app starts', async ({ page }) => {
+  await page.route('**/_framework/blazor.webassembly*.js', route => route.abort());
+  await page.goto('/');
+
+  const loading = page.locator('.loading-progress');
+  await expect(loading).toBeVisible();
+  await expect(loading).toHaveAttribute('role', 'status');
+  await expect(loading).toContainText('Galleryを読み込んでいます');
+  await expect(loading.locator('svg')).toBeVisible();
+  await expect(loading.locator('.loading-progress-text')).toBeVisible();
+});
+
 test('Blazor Gallery renders generated Markdown overviews as HTML with navigation and search', async ({ page }) => {
   const story = 'Controls/Accordion/Overview';
   const errors = collectErrors(page);
@@ -107,6 +119,18 @@ test('Blazor Gallery renders generated Markdown overviews as HTML with navigatio
   await expect(page.locator('.markdown-document h1')).toHaveText('Accordion');
   await expect(page.locator('.markdown-document')).toContainText('Implementation');
   await expect(page.locator('.markdown-story-embed iframe')).toHaveCount(1);
+
+  const main = page.locator('.gallery-main-document');
+  const article = page.locator('.markdown-document');
+  await expect.poll(() => main.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
+  await expect(article).toHaveCSS('overflow', 'visible');
+  const toolbarTop = await page.locator('.story-toolbar').evaluate(element => element.getBoundingClientRect().top);
+  await main.evaluate(element => { element.scrollTop = 320; });
+  await expect.poll(() => main.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+  await expect.poll(() => page.locator('.story-toolbar').evaluate(element => element.getBoundingClientRect().top))
+    .toBeCloseTo(toolbarTop, 0);
+  await expect(article).toHaveJSProperty('scrollTop', 0);
+
   const embedded = page.frameLocator('.markdown-story-embed iframe');
   await expect(embedded.getByRole('tab', { name: '引数' })).toBeVisible();
   await expect(embedded.getByRole('tab', { name: '出力' })).toBeVisible();

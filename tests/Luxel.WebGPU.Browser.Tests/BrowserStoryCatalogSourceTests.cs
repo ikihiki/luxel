@@ -11,6 +11,7 @@ public sealed class BrowserStoryCatalogSourceTests
         string runtime = File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Browser", "BrowserGalleryApplication.cs"));
         string script = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "main.js"));
         string styles = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "gallery.css"));
+        string html = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "index.html"));
         string markdown = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "GalleryMarkdownHtml.cs"));
         string project = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "GalleryBrowser.csproj"));
 
@@ -51,7 +52,15 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("Navigation.LocationChanged += OnLocationChanged", app, StringComparison.Ordinal);
         Assert.Contains("class=\"story-runtime-frame\"", app, StringComparison.Ordinal);
         Assert.Contains("@onclick:preventDefault", File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "StoryTree.razor")), StringComparison.Ordinal);
+        Assert.Contains("gallery-main gallery-main-document", app, StringComparison.Ordinal);
         Assert.Contains("class=\"markdown-document\"", app, StringComparison.Ordinal);
+        Assert.Contains(".gallery-main-document { overflow: auto; }", styles, StringComparison.Ordinal);
+        Assert.Contains("flex: 0 0 auto;", styles, StringComparison.Ordinal);
+        Assert.Contains("overflow: visible;", styles, StringComparison.Ordinal);
+        Assert.Contains("class=\"loading-progress\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"loading-progress-text\"", html, StringComparison.Ordinal);
+        Assert.Contains("--blazor-load-percentage", styles, StringComparison.Ordinal);
+        Assert.Contains("--blazor-load-percentage-text", styles, StringComparison.Ordinal);
         Assert.Contains("GalleryMarkdownHtml.Render(story, result)", app, StringComparison.Ordinal);
         Assert.Contains("Markdig", project, StringComparison.Ordinal);
         Assert.Contains("Markdown.ToHtml", markdown, StringComparison.Ordinal);
