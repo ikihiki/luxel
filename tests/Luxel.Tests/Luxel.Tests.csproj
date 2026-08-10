@@ -86,6 +86,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery\Luxel.Gallery.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Tutorial rendererと同じABI sourceをcompileし、テスト専用の複製を作らない。 -->
     <Compile Include="..\..\samples\CanonicalTriangleRecipe.cs" Link="CanonicalTriangleRecipe.cs" />
     <Compile Include="..\..\samples\LuxelTriangle\TutorialAbi.cs" Link="TutorialAbi.cs" />
