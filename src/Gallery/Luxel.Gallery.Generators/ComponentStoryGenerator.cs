@@ -360,19 +360,15 @@ public sealed class ComponentStoryGenerator : IIncrementalGenerator
         source.AppendLine("{");
         source.Append("    public static class ComponentStoryRegistration_").AppendLine(Sanitize(assemblyName));
         source.AppendLine("    {");
-        // CoreUi uses explicit catalog composition; do not eagerly construct schemas in browser-WASM.
-        if (assemblyName != "Luxel.Gallery.Stories.CoreUi")
-        {
-            source.AppendLine("        [global::System.Runtime.CompilerServices.ModuleInitializer]");
-            source.AppendLine("        internal static void Init()");
-            source.AppendLine("        {");
-            source.AppendLine("            var builder = new global::Luxel.Gallery.StoryCatalogBuilder();");
-            source.AppendLine("            Register(builder);");
-            source.AppendLine("            foreach (global::Luxel.Gallery.StoryInfo story in builder.Build().All)");
-            source.AppendLine("                global::Luxel.Gallery.StoryRegistry.Register(story);");
-            source.AppendLine("        }");
-            source.AppendLine();
-        }
+        source.AppendLine("        [global::System.Runtime.CompilerServices.ModuleInitializer]");
+        source.AppendLine("        internal static void Init()");
+        source.AppendLine("        {");
+        source.AppendLine("            var builder = new global::Luxel.Gallery.StoryCatalogBuilder();");
+        source.AppendLine("            Register(builder);");
+        source.AppendLine("            foreach (global::Luxel.Gallery.StoryInfo story in builder.Build().All)");
+        source.AppendLine("                global::Luxel.Gallery.StoryRegistry.Register(story);");
+        source.AppendLine("        }");
+        source.AppendLine();
         source.AppendLine("        public static void Register(global::Luxel.Gallery.StoryCatalogBuilder builder)");
         source.AppendLine("        {");
         source.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(builder);");

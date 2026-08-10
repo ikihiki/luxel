@@ -24,7 +24,6 @@
     <ProjectReference Include="..\..\..\src\\Luxel.Platform.Gallery.Native\\Luxel.Platform.Gallery.Native.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.DocKit\Luxel.Gallery.DocKit.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />
-    <ProjectReference Include="..\Luxel.Gallery.Stories.CoreUi\Luxel.Gallery.Stories.CoreUi.csproj" />
     <ProjectReference Include="..\..\Resource\Luxel.Resources.Gallery\Luxel.Resources.Gallery.csproj" />
     <ProjectReference Include="..\..\Audio\Luxel.Audio.Gallery\Luxel.Audio.Gallery.csproj" />
     <ProjectReference Include="..\Luxel.Gallery.Playground\Luxel.Gallery.Playground.csproj" />

@@ -80,7 +80,7 @@ public static class LearnInput
 
         複数のsourceも同じ配列へまとめられます。各sourceは内部にpending eventを保持し、`Poll`が呼ばれたときだけbusへ移します。
 
-        {SampleSource("src/Gallery/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-sources-bus-setup")}
+        {SampleSource("src/Luxel.Input.Gallery/Stories/InputActionStories.cs", "input-sources-bus-setup")}
 
         ## InputEventの共通形式
 
@@ -95,7 +95,7 @@ public static class LearnInput
 
         `AxisChanged.Value`の範囲は入力によって異なります。stickは通常`-1`から`1`、triggerは`0`から`1`、wheelはスクロール量です。`PointerMoved`はアクション用の軸ではなく、raw pointer positionとして保持されます。
 
-        {SampleSource("src/Gallery/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-sources-bus-events")}
+        {SampleSource("src/Luxel.Input.Gallery/Stories/InputActionStories.cs", "input-sources-bus-events")}
 
         ## 1 tickの収集順序
 
@@ -104,7 +104,7 @@ public static class LearnInput
         3. raw eventを診断表示や記録に使う場合は、この時点で`bus.Events`を読みます。
         4. action layerを使う場合は`stack.Update(bus)`を呼びます。`InputStack.Update`はイベントを保持状態へ反映した後、busをクリアします。
 
-        {SampleSource("src/Gallery/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-sources-bus-poll")}
+        {SampleSource("src/Luxel.Input.Gallery/Stories/InputActionStories.cs", "input-sources-bus-poll")}
 
         sourceごとに`bus.Clear()`してはいけません。途中でクリアすると、それ以前のsourceが追加したイベントが失われます。`InputBus`はキーボードやgamepadの保持状態を持つ場所ではなく、そのtickに発生した差分イベントを一時的に集めるqueueです。保持中のキーと軸値は`InputStack`がtickをまたいで管理します。
 
@@ -133,7 +133,7 @@ public static class LearnInput
 
         `InputContext`へアクションを追加し、物理キーや軸を登録します。ここではSpaceをJumpへ、WASDをMoveへ対応付け、Gameplayコンテキストを`InputStack`へ積みます。
 
-        {SampleSource("src/Gallery/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-actions-setup")}
+        {SampleSource("src/Luxel.Input.Gallery/Stories/InputActionStories.cs", "input-actions-setup")}
 
         `Axis2DAction`は上下左右を2次元ベクトルへ合成します。WとDを同時に押した斜め入力は、長さが1を超えないよう正規化されます。
 
@@ -141,7 +141,7 @@ public static class LearnInput
 
         `ButtonAction.Triggered`は未押下から押下へ変わったtick、`Released`は押下から未押下へ変わったtickで1回だけ発火します。押し続けている間は`IsActive`がtrueですが、`Triggered`は繰り返し発火しません。
 
-        {SampleSource("src/Gallery/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-actions-edges")}
+        {SampleSource("src/Luxel.Input.Gallery/Stories/InputActionStories.cs", "input-actions-edges")}
 
         `Tick`では最初に`source.Poll(bus)`で差分イベントを集め、次に`stack.Update(bus)`で保持状態とアクション値を更新します。エッジを確認するときは押下と解放を別々のtickで処理します。
 
@@ -155,19 +155,19 @@ public static class LearnInput
 
         `InputStack`は最後に`Push`したコンテキストから評価します。Menuを最後に積むことで、MenuがGameplayより上位になります。
 
-        {SampleSource("src/Gallery/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-context-setup")}
+        {SampleSource("src/Luxel.Input.Gallery/Stories/InputActionStories.cs", "input-context-setup")}
 
         ### 上位コンテキストで入力を消費する
 
         上位コンテキストのactive actionが使用したキーや軸は消費され、下位コンテキストには渡りません。押下tickで結果を読み、解放tickで保持状態を戻します。
 
-        {SampleSource("src/Gallery/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-context-routing")}
+        {SampleSource("src/Luxel.Input.Gallery/Stories/InputActionStories.cs", "input-context-routing")}
 
         ### コンテキストを一時停止する
 
         `SetSuspended`を使うと、コンテキストをスタックから外さず評価対象から除外できます。Menuを停止すると、同じEnterをGameplayが受け取ります。
 
-        {SampleSource("src/Gallery/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-context-suspension")}
+        {SampleSource("src/Luxel.Input.Gallery/Stories/InputActionStories.cs", "input-context-suspension")}
         """;
 
     [Story("Learn/Input/BindingsAndRebinding", Order = 3, Toc = true)]
@@ -184,7 +184,7 @@ public static class LearnInput
 
         ゲームロジックには「Spaceが押されたか」ではなく「Jumpが有効か」を問い合わせます。`Jump`というアクション名を契約として固定し、物理キーとの対応だけを変更します。
 
-        {SampleSource("src/Gallery/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-bindings-setup")}
+        {SampleSource("src/Luxel.Input.Gallery/Stories/InputActionStories.cs", "input-bindings-setup")}
 
         この分離により、ユーザーごとのキー設定、初期設定へのリセット、設定ファイルへの保存と読み込み、キーボードとゲームパッドの複数バインドを、ゲームロジックを変更せず実装できます。
 
@@ -192,7 +192,7 @@ public static class LearnInput
 
         `InputBindings.Actions`のキーは論理アクション名です。`InputBindingEntry.Kind`でbutton／axisの種類を示し、`Keys`、`Pairs`、`Quads`、`Axes`へ物理入力名を保存します。
 
-        {SampleSource("src/Gallery/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-bindings-json")}
+        {SampleSource("src/Luxel.Input.Gallery/Stories/InputActionStories.cs", "input-bindings-json")}
 
         JSONには`Jump`と`Space`または`Enter`の対応だけが含まれます。ゲーム側はこの物理キー名を直接参照しません。
 
@@ -203,13 +203,13 @@ public static class LearnInput
         3. Applierがアクション名を照合し、`ButtonAction.Keys`などを更新します。
         4. 以降のtickから、新しい物理キーで同じJumpアクションが有効になります。
 
-        {SampleSource("src/Gallery/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-bindings-apply")}
+        {SampleSource("src/Luxel.Input.Gallery/Stories/InputActionStories.cs", "input-bindings-apply")}
 
         ## 反映したバインディングを確認する
 
         新しいキーを押して1 tick進め、Jumpのactive状態を読みます。その後、キーを解放して次のtickへ進めます。保存・読み込みとアクション評価を同じStory内で確認できます。
 
-        {SampleSource("src/Gallery/Luxel.Gallery.Stories.CoreUi/Stories/InputActionStories.cs", "input-bindings-simulate")}
+        {SampleSource("src/Luxel.Input.Gallery/Stories/InputActionStories.cs", "input-bindings-simulate")}
 
         ## 再設定UIの責務
 

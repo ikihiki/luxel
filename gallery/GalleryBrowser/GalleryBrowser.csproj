@@ -43,7 +43,6 @@
     <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Browser\Luxel.Gallery.Browser.csproj" />
     <ProjectReference Include="..\..\src\Resource\Luxel.Resources.Gallery\Luxel.Resources.Gallery.csproj" />
     <ProjectReference Include="..\..\src\Audio\Luxel.Audio.Gallery\Luxel.Audio.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Stories.CoreUi\Luxel.Gallery.Stories.CoreUi.csproj" />
   </ItemGroup>
   <ItemGroup>
     <TrimmerRootAssembly Include="Luxel.Physics" />

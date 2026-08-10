@@ -6,6 +6,8 @@ using Luxel.Gallery.Stories;
 using Luxel.Resources.Gallery;
 using Luxel.Resources.Gallery.Stories;
 using Luxel.UI;
+using Luxel.UI.Gallery;
+using Luxel.Particles.Gallery;
 
 namespace Luxel.Gallery.Site.Tests;
 
@@ -16,10 +18,10 @@ public sealed class ProductionComponentCatalogTests
     [Fact]
     public void Production_inventory_has_exact_semantic_overview_and_runtime_basic_pairs()
     {
-        StoryCatalog catalog = CoreUiStoryProject.CreateCatalog();
-        IReadOnlyList<GeneratedComponentStoryDescriptor> descriptors = CoreUiStoryProject.ProductionComponents;
+        StoryCatalog catalog = CreateProductionComponentCatalog();
+        IReadOnlyList<GeneratedComponentStoryDescriptor> descriptors = ProductionComponents();
 
-        Assert.Equal(60, CoreUiStoryProject.ProductionComponentCount);
+        Assert.Equal(60, UiGalleryProject.ProductionComponentCount + ParticlesGalleryProject.ProductionComponentCount);
         Assert.Equal(60, descriptors.Count);
         Assert.Equal(60, descriptors.Select(descriptor => descriptor.ComponentType).Distinct(StringComparer.Ordinal).Count());
         Assert.Equal(60, descriptors.Select(descriptor => descriptor.Category).Distinct(StringComparer.Ordinal).Count());
@@ -70,11 +72,11 @@ public sealed class ProductionComponentCatalogTests
         int metadataCount = productionAssemblies
             .Append(typeof(Luxel.Gallery.UI.Kit).Assembly)
             .Sum(assembly => assembly.GetCustomAttributes<GeneratedComponentMetadataAttribute>().Count());
-        Assert.Equal(CoreUiStoryProject.ProductionComponentCount, metadataCount);
+        Assert.Equal(UiGalleryProject.ProductionComponentCount + ParticlesGalleryProject.ProductionComponentCount, metadataCount);
     }
 
     [Fact]
-    public void Full_catalog_composes_resource_routes_without_leaking_them_into_CoreUi_runtime_catalog()
+    public void Full_catalog_composes_resource_routes_without_leaking_them_into_component_fallback_catalogs()
     {
         string[] resourcePaths =
         [
@@ -113,17 +115,17 @@ public sealed class ProductionComponentCatalogTests
 
         StoryCatalog resourceCatalog = ResourceGalleryProject.CreateCatalog();
         StoryCatalog fullCatalog = GalleryStoryProject.CreateCatalog();
-        StoryCatalog coreUiCatalog = CoreUiStoryProject.CreateCatalog();
-        HashSet<string> browserPaths = coreUiCatalog.All
+        StoryCatalog componentCatalog = CreateProductionComponentCatalog();
+        HashSet<string> componentPaths = componentCatalog.All
             .Select(story => story.Path)
             .ToHashSet(StringComparer.Ordinal);
 
         Assert.Equal(resourcePaths.Order(StringComparer.Ordinal), resourceCatalog.All.Select(story => story.Path).Order(StringComparer.Ordinal));
         Assert.All(resourcePaths, path => Assert.NotNull(fullCatalog.Find(path)));
-        Assert.All(resourcePaths, path => Assert.Null(coreUiCatalog.Find(path)));
-        Assert.All(resourcePaths, path => Assert.DoesNotContain(path, browserPaths));
+        Assert.All(resourcePaths, path => Assert.Null(componentCatalog.Find(path)));
+        Assert.All(resourcePaths, path => Assert.DoesNotContain(path, componentPaths));
         Assert.DoesNotContain(
-            typeof(CoreUiStoryProject).Assembly.GetReferencedAssemblies(),
+            typeof(UiGalleryProject).Assembly.GetReferencedAssemblies(),
             reference => reference.Name == "Luxel.Assets.Gltf");
     }
 
@@ -418,7 +420,7 @@ public sealed class ProductionComponentCatalogTests
     [Fact]
     public void Exact_authored_override_replaces_only_generated_fallback_and_preserves_canonical_metadata()
     {
-        StoryInfo generated = Assert.IsType<StoryInfo>(CoreUiStoryProject.CreateCatalog().Find("Controls/Button/Basic"));
+        StoryInfo generated = Assert.IsType<StoryInfo>(UiGalleryProject.CreateProductionCatalog().Find("Controls/Button/Basic"));
         var builder = new StoryCatalogBuilder();
         builder.Add(generated);
         var authored = new StoryInfo(generated.Path, generated.Width, generated.Height, generated.Theme,
@@ -438,6 +440,20 @@ public sealed class ProductionComponentCatalogTests
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(
             () => duplicateBuilder.Add(authored with { Source = "another project" }, replaceGenerated: true));
         Assert.Contains("only replace an exact generated component fallback", error.Message, StringComparison.Ordinal);
+    }
+
+    private static IReadOnlyList<GeneratedComponentStoryDescriptor> ProductionComponents() =>
+    [
+        .. UiGalleryProject.ProductionComponents,
+        .. ParticlesGalleryProject.ProductionComponents,
+    ];
+
+    private static StoryCatalog CreateProductionComponentCatalog()
+    {
+        var builder = new StoryCatalogBuilder();
+        foreach (StoryInfo story in UiGalleryProject.CreateProductionCatalog().All) builder.Add(story);
+        foreach (StoryInfo story in ParticlesGalleryProject.CreateProductionCatalog().All) builder.Add(story);
+        return builder.Build();
     }
 
     private static string FindRepositoryRoot()

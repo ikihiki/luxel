@@ -8,19 +8,19 @@ public sealed class BrowserCanonicalTriangleTests
         string root = FindRepositoryRoot();
         string project = File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Browser", "Luxel.Gallery.Browser.csproj"));
         string program = File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Browser", "BrowserGalleryApplication.cs"));
-        string storiesProject = File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Stories.CoreUi", "Luxel.Gallery.Stories.CoreUi.csproj"));
+        string graphicsGalleryProject = File.ReadAllText(Path.Combine(root, "src", "Luxel.Graphics.Gallery", "Luxel.Graphics.Gallery.csproj"));
         string canonicalTriangle = File.ReadAllText(Path.Combine(root, "samples", "CanonicalTriangleRecipe.cs"));
         string gpuStories = File.ReadAllText(Path.Combine(root, "src", "Luxel.Graphics.Gallery", "Stories", "Gpu", "GpuViewStories.cs"));
         string html = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "index.html"));
         string css = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "gallery.css"));
 
-        Assert.Contains("Luxel.Gallery.Stories.CoreUi.csproj", project);
+        Assert.DoesNotContain("Luxel.Gallery.Stories.CoreUi.csproj", project);
         Assert.DoesNotContain("CanonicalClearColorRecipe.cs", project);
         Assert.DoesNotContain("CanonicalTriangleRecipe.cs", project);
         Assert.DoesNotContain("struct Vertex", canonicalTriangle);
         Assert.DoesNotContain("CreateVertices", canonicalTriangle);
-        Assert.Contains("CanonicalClearColorRecipe.cs", storiesProject);
-        Assert.Contains("CanonicalTriangleRecipe.cs", storiesProject);
+        Assert.Contains("CanonicalClearColorRecipe.cs", graphicsGalleryProject);
+        Assert.Contains("CanonicalTriangleRecipe.cs", graphicsGalleryProject);
         Assert.Contains("await RunCatalogStory(story, argsJson)", program);
         Assert.DoesNotContain("RunClearColor", program);
         Assert.DoesNotContain("RunTriangle", program);

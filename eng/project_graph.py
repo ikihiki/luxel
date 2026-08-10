@@ -13,7 +13,7 @@ ROLE_VALUES = {
 }
 CATEGORY_VALUES = {
     "External", "Shared", "Platform", "Resources", "Audio", "UI", "Graphics", "Input",
-    "Framework", "Animation", "Particles", "Scripting", "Editor", "DevTools", "GamesSamples", "GalleryDocs", "CoreUi",
+    "Framework", "Animation", "Particles", "Scripting", "Editor", "DevTools", "GamesSamples", "GalleryDocs",
 }
 PLATFORM_VALUES = {"Portable", "Browser", "Native"}
 TIER_VALUES = {"Product", "Foundation", "Base", "Native", "Extension", "Host"}

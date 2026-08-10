@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Luxel.Resources.Gallery;
 
-/// <summary>Resources、Assets、glTFのStoryをCoreUi WebAssembly-safe catalog境界の外側で集約する。</summary>
+/// <summary>Resources、Assets、glTFのbrowser-safe Storyをカテゴリ所有のcatalogへ集約する。</summary>
 public static class ResourceGalleryProject
 {
     /// <summary>Resources、Assets、glTFのStoryをGeneric Hostのservice collectionへ追加する。</summary>
