@@ -41,7 +41,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\..\..\shaders\compiled\webgpu-shaders.json"
+    <Content Include="..\..\..\shaders\compiled\*.spv;..\..\..\shaders\compiled\*.dxil;..\..\..\shaders\compiled\*.wgsl;..\..\..\shaders\compiled\webgpu-shaders.json"
              Link="shaders\%(Filename)%(Extension)" Pack="false"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\..\assets\fonts\BIZUDGothic-Regular.ttf" Link="assets\fonts\BIZUDGothic-Regular.ttf" Pack="false"
