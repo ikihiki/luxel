@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <LuxelProjectRole>GalleryCategory</LuxelProjectRole>
-    <LuxelGalleryCategory>Platform</LuxelGalleryCategory>
-    <LuxelSubsystem>Platform</LuxelSubsystem>
+    <LuxelProjectRole>GalleryInfrastructure</LuxelProjectRole>
+    <LuxelGalleryCategory>Shared</LuxelGalleryCategory>
+    <LuxelSubsystem>Gallery.Rendering</LuxelSubsystem>
     <LuxelPlatform>Native</LuxelPlatform>
-    <LuxelArchitectureTier>Native</LuxelArchitectureTier>
+    <LuxelArchitectureTier>Extension</LuxelArchitectureTier>
     <IsPackable>false</IsPackable>
-    <LuxelGalleryRegistrationIdentity>Platform.Native.Rendering</LuxelGalleryRegistrationIdentity>
+    <LuxelGalleryRegistrationIdentity>Shared.Native.Rendering</LuxelGalleryRegistrationIdentity>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />

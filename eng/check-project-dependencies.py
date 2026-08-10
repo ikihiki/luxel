@@ -52,7 +52,8 @@ def validate(root: Path, solution: str, baseline_path: Path) -> list[str]:
     if stale_cross:
         errors.append("Stale cross-category Gallery baseline entries:\n  " + "\n  ".join(stale_cross))
 
-    categories = {p.category for p in projects.values() if p.role == "GalleryCategory"}
+    category_projects = [p for p in projects.values() if p.role == "GalleryCategory"]
+    categories = {p.category for p in category_projects}
     required = set(baseline.get("required_gallery_categories", []))
     missing_allowed = set(baseline.get("missing_gallery_categories", []))
     unexpected_missing = required - categories - missing_allowed
@@ -61,11 +62,66 @@ def validate(root: Path, solution: str, baseline_path: Path) -> list[str]:
     stale_missing = missing_allowed & categories
     if stale_missing:
         errors.append("Stale missing Gallery category baseline entries: " + ", ".join(sorted(stale_missing)))
+    unexpected_categories = categories - required if required else set()
+    if unexpected_categories:
+        errors.append("Gallery categories are missing from the required-category manifest: " + ", ".join(sorted(unexpected_categories)))
 
-    native_categories = {p.category for p in projects.values() if p.role == "GalleryCategory" and p.platform == "Native"}
-    forbidden_native = native_categories - {"Platform"}
-    if forbidden_native:
-        errors.append("Only Platform is approved for Native Gallery projects: " + ", ".join(sorted(forbidden_native)))
+    approved_native = set(baseline.get("approved_native_gallery_categories", []))
+    for category in sorted(categories | required):
+        base_projects = [
+            p for p in category_projects
+            if p.category == category and p.platform == "Browser" and p.tier == "Base"
+        ]
+        if len(base_projects) != 1 and category not in missing_allowed:
+            errors.append(
+                f"Gallery category '{category}' must have exactly one Browser/Base project; found {len(base_projects)}: "
+                + ", ".join(relative(root, p.path) for p in base_projects)
+            )
+
+        native_projects = [
+            p for p in category_projects
+            if p.category == category and p.platform == "Native" and p.tier == "Native"
+        ]
+        if len(native_projects) > 1:
+            errors.append(
+                f"Gallery category '{category}' may have at most one Native project; found {len(native_projects)}: "
+                + ", ".join(relative(root, p.path) for p in native_projects)
+            )
+        if native_projects and category not in approved_native:
+            errors.append(f"Gallery category '{category}' has an unapproved Native project.")
+        if category in approved_native and len(native_projects) != 1:
+            errors.append(f"Approved Native Gallery category '{category}' must have exactly one Native project; found {len(native_projects)}.")
+
+        for native in native_projects:
+            own_base_references = [
+                reference for reference in native.references
+                if reference.kind == "Compile"
+                and (target := projects.get(reference.target)) is not None
+                and target.role == "GalleryCategory"
+                and target.category == category
+                and target.platform == "Browser"
+                and target.tier == "Base"
+            ]
+            if len(own_base_references) != 1:
+                errors.append(
+                    f"Native Gallery '{relative(root, native.path)}' must reference exactly one same-category Browser/Base Gallery; "
+                    f"found {len(own_base_references)}."
+                )
+
+    for project in category_projects:
+        for reference in project.references:
+            if reference.kind != "Compile":
+                continue
+            target = projects.get(reference.target)
+            if target is None or target.role != "GalleryCategory":
+                continue
+            allowed = (
+                project.platform == "Native" and project.tier == "Native"
+                and target.platform == "Browser" and target.tier == "Base"
+                and project.category == target.category
+            )
+            if not allowed:
+                errors.append(f"Forbidden Gallery category reference: {reference_key(root, reference)}")
 
     for project in projects.values():
         if project.platform != "Browser":
