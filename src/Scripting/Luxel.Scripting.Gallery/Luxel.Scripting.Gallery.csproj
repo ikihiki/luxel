@@ -40,6 +40,6 @@
     <Using Include="Luxel.Graphics" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Stories/ScriptingStory.cs" LogicalName="Luxel.Sample.src.Gallery.Luxel.Gallery.Stories.Stories.ScriptingStory.cs" />
+    <EmbeddedResource Include="Stories/ScriptingStory.cs" LogicalName="Luxel.Sample.src.Scripting.Luxel.Scripting.Gallery.Stories.ScriptingStory.cs" />
   </ItemGroup>
 </Project>

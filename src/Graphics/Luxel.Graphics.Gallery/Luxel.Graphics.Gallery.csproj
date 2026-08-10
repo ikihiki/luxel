@@ -52,12 +52,12 @@
   </ItemGroup>
   <!-- Graphics Learn pages own their embedded sample sources. -->
   <ItemGroup>
-    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\Scene2D.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.Scene2D.cs" />
-    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\PathEncoder.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.PathEncoder.cs" />
-    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\Primitives.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.Primitives.cs" />
-    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\IRasterizer2D.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.IRasterizer2D.cs" />
-    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\Retained\RetainedCanvas.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.Retained.RetainedCanvas.cs" />
-    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\GpuDeviceRasterizer2D.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.GpuDeviceRasterizer2D.cs" />
+    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\Scene2D.cs" LogicalName="Luxel.Sample.src.Graphics.Luxel.Graphics.TwoD.Scene2D.cs" />
+    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\PathEncoder.cs" LogicalName="Luxel.Sample.src.Graphics.Luxel.Graphics.TwoD.PathEncoder.cs" />
+    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\Primitives.cs" LogicalName="Luxel.Sample.src.Graphics.Luxel.Graphics.TwoD.Primitives.cs" />
+    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\IRasterizer2D.cs" LogicalName="Luxel.Sample.src.Graphics.Luxel.Graphics.TwoD.IRasterizer2D.cs" />
+    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\Retained\RetainedCanvas.cs" LogicalName="Luxel.Sample.src.Graphics.Luxel.Graphics.TwoD.Retained.RetainedCanvas.cs" />
+    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\GpuDeviceRasterizer2D.cs" LogicalName="Luxel.Sample.src.Graphics.Luxel.Graphics.TwoD.GpuDeviceRasterizer2D.cs" />
     <EmbeddedResource Include="..\..\..\shaders\raster2d_bounds.slang" LogicalName="Luxel.Sample.shaders.raster2d_bounds.slang" />
     <EmbeddedResource Include="..\..\..\shaders\raster2d_bin.slang" LogicalName="Luxel.Sample.shaders.raster2d_bin.slang" />
     <EmbeddedResource Include="..\..\..\shaders\raster2d_fine.slang" LogicalName="Luxel.Sample.shaders.raster2d_fine.slang" />

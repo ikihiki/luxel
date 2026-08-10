@@ -28,7 +28,7 @@
     <Using Include="Luxel.Gallery" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Stories/InputActionStories.cs" LogicalName="Luxel.Sample.src.Luxel.Input.Gallery.Stories.InputActionStories.cs" />
+    <EmbeddedResource Include="Stories/InputActionStories.cs" LogicalName="Luxel.Sample.src.Input.Luxel.Input.Gallery.Stories.InputActionStories.cs" />
     <EmbeddedResource Include="../../../samples/LuxelInput/LuxelInput.csproj" LogicalName="Luxel.Sample.samples.LuxelInput.LuxelInput.csproj" />
     <EmbeddedResource Include="../../../samples/LuxelInput/Program.cs" LogicalName="Luxel.Sample.samples.LuxelInput.Program.cs" />
   </ItemGroup>

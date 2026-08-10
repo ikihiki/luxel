@@ -40,5 +40,7 @@
     <EmbeddedResource Include="..\..\..\shaders\compiled\raster2d_bin.wgsl" Link="Shaders\raster2d_bin.wgsl" />
     <EmbeddedResource Include="..\..\..\shaders\compiled\raster2d_fine.wgsl" Link="Shaders\raster2d_fine.wgsl" />
     <EmbeddedResource Include="..\..\..\assets\fonts\BIZUDGothic-Regular.ttf" Link="Fonts\BIZUDGothic-Regular.ttf" />
+    <EmbeddedResource Include="..\..\..\assets\fonts\BIZUDGothic-Bold.ttf" Link="Fonts\BIZUDGothic-Bold.ttf" />
+    <EmbeddedResource Include="..\..\..\assets\fonts\UDEVGothic-Regular.ttf" Link="Fonts\UDEVGothic-Regular.ttf" />
   </ItemGroup>
 </Project>
