@@ -4,6 +4,6 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
-    <ProjectReference Include="..\..\src\Resource\Luxel.Resources.Browser\Luxel.Resources.Browser.csproj" />
+    <ProjectReference Include="..\..\src\Resources\Luxel.Resources.Browser\Luxel.Resources.Browser.csproj" />
   </ItemGroup>
 </Project>

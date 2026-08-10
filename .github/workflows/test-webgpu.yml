@@ -3,10 +3,10 @@ name: Test WebGPU
 on:
   pull_request:
     paths:
-      - 'src/Luxel.Graphics/**'
-      - 'src/Luxel.Graphics.WebGPU/**'
-      - 'src/Luxel.Graphics.WebGPU.Browser/**'
-      - 'src/Luxel.Platform.Web/**'
+      - 'src/Graphics/Luxel.Graphics/**'
+      - 'src/Graphics/Luxel.Graphics.WebGPU/**'
+      - 'src/Graphics/Luxel.Graphics.WebGPU.Browser/**'
+      - 'src/Platform/Luxel.Platform.Web/**'
       - 'src/Gallery/Luxel.Gallery.Browser/**'
       - 'src/Gallery/Luxel.Gallery.Stories/SampleBundles.cs'
       - 'src/Gallery/Luxel.Gallery.Stories/Stories/Docs/DocsGpuWebGpu.cs'

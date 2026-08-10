@@ -10,7 +10,7 @@ Serve the publish `wwwroot` directory over HTTP(S), open it in a Web Audio capab
 
 ## Using the backend from another browser-WASM app
 
-Reference `src/Luxel.Audio.Browser`, copy its `wwwroot/luxel-audio-browser.js` into the host's published `wwwroot`, and register the ES module before starting .NET:
+Reference `src/Audio/Luxel.Audio.Browser`, copy its `wwwroot/luxel-audio-browser.js` into the host's published `wwwroot`, and register the ES module before starting .NET:
 
 ```js
 import * as audio from "./luxel-audio-browser.js";

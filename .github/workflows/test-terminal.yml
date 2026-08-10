@@ -3,7 +3,7 @@ name: Test Terminal
 on:
   pull_request:
     paths:
-      - 'src/Luxel.Terminal*/**'
+      - 'src/Editor/Luxel.Terminal*/**'
       - 'tests/Luxel.Terminal*/**'
       - 'samples/LuxelTerminal/**'
       - 'src/**/*.csproj'

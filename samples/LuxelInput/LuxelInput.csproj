@@ -1,4 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
-  <ItemGroup><ProjectReference Include="..\..\src\Luxel.Input\Luxel.Input.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="..\..\src\Input\Luxel.Input\Luxel.Input.csproj" /></ItemGroup>
 </Project>

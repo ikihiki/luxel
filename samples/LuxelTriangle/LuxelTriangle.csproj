@@ -15,20 +15,20 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Luxel.Graphics\Luxel.Graphics.csproj" />
-    <ProjectReference Include="..\..\src\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
-    <ProjectReference Include="..\..\src\Luxel.Graphics.WebGPU\Luxel.Graphics.WebGPU.csproj" />
-    <ProjectReference Include="..\..\src\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\..\src\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\src\Graphics\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
+    <ProjectReference Include="..\..\src\Graphics\Luxel.Graphics.WebGPU\Luxel.Graphics.WebGPU.csproj" />
+    <ProjectReference Include="..\..\src\Graphics\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
-    <ProjectReference Include="..\..\src\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
-    <ProjectReference Include="..\..\src\Luxel.Platform\Luxel.Platform.csproj" />
-    <ProjectReference Include="..\..\src\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
+    <ProjectReference Include="..\..\src\Platform\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
+    <ProjectReference Include="..\..\src\Platform\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\..\src\Graphics\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
-    <ProjectReference Include="..\..\src\Luxel.Platform.Silk\Luxel.Platform.Silk.csproj" />
+    <ProjectReference Include="..\..\src\Platform\Luxel.Platform.Silk\Luxel.Platform.Silk.csproj" />
   </ItemGroup>
 
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />

@@ -3,8 +3,8 @@ name: Test Browser Audio
 on:
   pull_request:
     paths:
-      - 'src/Luxel.Audio/**'
-      - 'src/Luxel.Audio.Browser/**'
+      - 'src/Audio/Luxel.Audio/**'
+      - 'src/Audio/Luxel.Audio.Browser/**'
       - 'samples/LuxelAudioBrowser/**'
       - 'tests/Luxel.Audio.Browser.Tests/**'
       - 'src/Gallery/Luxel.Gallery.Stories/Stories/Docs/LearnAudio.cs'

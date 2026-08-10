@@ -58,7 +58,7 @@ public sealed class BrowserPhysicsStoriesTests
     public void Native_story_assembly_no_longer_owns_browser_physics_routes()
     {
         string root = FindRepositoryRoot();
-        string storyRoot = Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Stories", "Stories");
+        string storyRoot = Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Stories");
         string source = string.Join("\n", Directory.GetFiles(storyRoot, "*.cs", SearchOption.AllDirectories)
             .Select(File.ReadAllText));
         foreach (string path in Paths) Assert.DoesNotContain($"[Story(\"{path}\"", source);

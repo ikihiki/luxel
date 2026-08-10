@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><IsPackable>false</IsPackable></PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Luxel.Terminal.Linux\Luxel.Terminal.Linux.csproj" />
+    <ProjectReference Include="..\..\src\Platform\Luxel.Terminal.Linux\Luxel.Terminal.Linux.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Controls-independent terminal widget and font fallback for Luxel.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Terminal\Luxel.Terminal.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
+    <ProjectReference Include="..\..\Platform\Luxel.Platform\Luxel.Platform.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <LuxelProjectRole>GalleryCategory</LuxelProjectRole>
+    <LuxelGalleryCategory>Platform</LuxelGalleryCategory>
+    <LuxelSubsystem>Platform</LuxelSubsystem>
+    <LuxelPlatform>Browser</LuxelPlatform>
+    <LuxelArchitectureTier>Base</LuxelArchitectureTier>
+    <LuxelGalleryCompatibility>Browser;Native</LuxelGalleryCompatibility>
+    <IsPackable>false</IsPackable>
+    <LuxelGalleryRegistrationIdentity>Platform.Base</LuxelGalleryRegistrationIdentity>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Gallery/Luxel.Gallery/Luxel.Gallery.csproj" />
+    <ProjectReference Include="../Luxel.Platform/Luxel.Platform.csproj" />
+    <ProjectReference Include="../Luxel.Platform.Web/Luxel.Platform.Web.csproj" />
+    <ProjectReference Include="../../Gallery/Luxel.Gallery.Generators/Luxel.Gallery.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU"
+                      GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Gallery" />
+  </ItemGroup>
+</Project>

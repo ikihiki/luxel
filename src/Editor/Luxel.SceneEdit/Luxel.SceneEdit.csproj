@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ゲームエディタ (Luxel Studio) の canvas 非依存コア (ADR-0015 / ToDo 27 GE-0)。
+       ゲームプロジェクト (project.luxel) とシーン (SceneDoc) の不変データモデル +
+       決定的 JSON 往復 + コンポーネントスキーマ (IComponentSchema)。
+       テキスト (Luxel.Document) / ノード (Luxel.NodeGraph) に続く第 3 の編集スタックの
+       土台で、依存ゼロ (ベクトルは BCL の System.Numerics)。空間 (2D/3D) 非依存 —
+       space はシーンヘッダの宣言であり、座標はコンポーネント側の関心事。
+       変更モデル (SceneChange/History) は GE-1 で足す。 -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Luxel.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Shared\Luxel.Mathematics\Luxel.Mathematics.csproj" />
+    <Using Include="Luxel.Mathematics" />
+  </ItemGroup>
+
+  <PropertyGroup>
+
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

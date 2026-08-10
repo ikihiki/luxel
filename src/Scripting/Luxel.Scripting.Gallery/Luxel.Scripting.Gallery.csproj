@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <LuxelProjectRole>GalleryCategory</LuxelProjectRole>
+    <LuxelGalleryCategory>Scripting</LuxelGalleryCategory>
+    <LuxelSubsystem>Scripting</LuxelSubsystem>
+    <LuxelPlatform>Browser</LuxelPlatform>
+    <LuxelArchitectureTier>Base</LuxelArchitectureTier>
+    <LuxelGalleryCompatibility>Browser;Native</LuxelGalleryCompatibility>
+    <IsPackable>false</IsPackable>
+    <LuxelGalleryRegistrationIdentity>Scripting.Base</LuxelGalleryRegistrationIdentity>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Gallery/Luxel.Gallery.DocKit/Luxel.Gallery.DocKit.csproj" />
+    <ProjectReference Include="../../Gallery/Luxel.Gallery.UI/Luxel.Gallery.UI.csproj" />
+    <ProjectReference Include="../../Gallery/Luxel.Gallery/Luxel.Gallery.csproj" />
+    <ProjectReference Include="../../Gallery/Luxel.Gallery.Playground/Luxel.Gallery.Playground.csproj" />
+    <ProjectReference Include="../Luxel.Scripting/Luxel.Scripting.csproj" />
+    <ProjectReference Include="../Luxel.Strudel/Luxel.Strudel.csproj" />
+    <ProjectReference Include="../Luxel.Scripting.Framework/Luxel.Scripting.Framework.csproj" />
+    <ProjectReference Include="../../UI/Luxel.Controls/Luxel.Controls.csproj" />
+    <ProjectReference Include="../../Graphics/Luxel.Typography/Luxel.Typography.csproj" />
+    <ProjectReference Include="../../UI/Luxel.UI/Luxel.UI.csproj" />
+    <ProjectReference Include="../../UI/Luxel.UI.Tailwind/Luxel.UI.Tailwind.csproj" />
+    <ProjectReference Include="../../Graphics/Luxel.Graphics/Luxel.Graphics.csproj" />
+    <ProjectReference Include="../../Graphics/Luxel.Graphics.TwoD/Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="../../UI/Luxel.Highlight.TextMate/Luxel.Highlight.TextMate.csproj" />
+    <ProjectReference Include="../../Framework/Luxel.Settings/Luxel.Settings.csproj" />
+    <ProjectReference Include="../Luxel.Scripting.Roslyn.Web/Luxel.Scripting.Roslyn.Web.csproj" />
+    <ProjectReference Include="../../Editor/Luxel.Workbench/Luxel.Workbench.csproj" />
+    <ProjectReference Include="../../UI/Luxel.Document/Luxel.Document.csproj" />
+    <ProjectReference Include="../../Audio/Luxel.Audio/Luxel.Audio.csproj" />
+    <ProjectReference Include="../../Gallery/Luxel.Gallery.Generators/Luxel.Gallery.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU"
+                      GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Gallery" />
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Stories/ScriptingStory.cs" LogicalName="Luxel.Sample.src.Gallery.Luxel.Gallery.Stories.Stories.ScriptingStory.cs" />
+  </ItemGroup>
+</Project>

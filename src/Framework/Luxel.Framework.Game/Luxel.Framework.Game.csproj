@@ -1,19 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Luxel.Graphics\Luxel.Graphics.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics.MessagePipe\Luxel.Graphics.MessagePipe.csproj" />
-    <ProjectReference Include="..\..\Luxel.Ecs\Luxel.Ecs.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.Resources\Luxel.Resources.csproj" />
-    <ProjectReference Include="..\..\Luxel.Input\Luxel.Input.csproj" />
-    <ProjectReference Include="..\..\Luxel.Audio\Luxel.Audio.csproj" />
-    <ProjectReference Include="..\..\Luxel.UI\Luxel.UI.csproj" />
-    <ProjectReference Include="..\..\Luxel.Settings\Luxel.Settings.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.Assets\Luxel.Assets.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
-    <ProjectReference Include="..\..\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.MessagePipe\Luxel.Graphics.MessagePipe.csproj" />
+    <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\..\Input\Luxel.Input\Luxel.Input.csproj" />
+    <ProjectReference Include="..\..\Audio\Luxel.Audio\Luxel.Audio.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\Luxel.Settings\Luxel.Settings.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.Assets\Luxel.Assets.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\..\Platform\Luxel.Platform\Luxel.Platform.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+    <ProjectReference Include="..\..\DevTools\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

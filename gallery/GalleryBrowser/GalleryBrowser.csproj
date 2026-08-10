@@ -18,19 +18,19 @@
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\\Resource\\Luxel.Resources.Gallery\\Luxel.Resources.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Audio\\Luxel.Audio.Gallery\\Luxel.Audio.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\UI\\Luxel.UI.Gallery\\Luxel.UI.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Luxel.Graphics.Gallery\\Luxel.Graphics.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Luxel.Input.Gallery\\Luxel.Input.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Framework\\Luxel.Framework.Gallery\\Luxel.Framework.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Luxel.Animation.Gallery\\Luxel.Animation.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Luxel.Particles.Gallery\\Luxel.Particles.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Luxel.Scripting.Gallery\\Luxel.Scripting.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Editor\\Luxel.Editor.Gallery\\Luxel.Editor.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Luxel.DevTools.Gallery\\Luxel.DevTools.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\GamesSamples\\Luxel.GamesSamples.Gallery\\Luxel.GamesSamples.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Gallery\\Luxel.Gallery.Docs\\Luxel.Gallery.Docs.csproj" />
+    <ProjectReference Include="..\..\src\Resources\Luxel.Resources.Gallery\Luxel.Resources.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Audio\Luxel.Audio.Gallery\Luxel.Audio.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\UI\Luxel.UI.Gallery\Luxel.UI.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Graphics\Luxel.Graphics.Gallery\Luxel.Graphics.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Input\Luxel.Input.Gallery\Luxel.Input.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Framework\Luxel.Framework.Gallery\Luxel.Framework.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Animation\Luxel.Animation.Gallery\Luxel.Animation.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Particles\Luxel.Particles.Gallery\Luxel.Particles.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Scripting\Luxel.Scripting.Gallery\Luxel.Scripting.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Editor\Luxel.Editor.Gallery\Luxel.Editor.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\DevTools\Luxel.DevTools.Gallery\Luxel.DevTools.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\GamesSamples\Luxel.GamesSamples.Gallery\Luxel.GamesSamples.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Docs\Luxel.Gallery.Docs.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.10" PrivateAssets="all" />
     <PackageReference Include="Markdig" Version="0.41.3" />
@@ -41,7 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Browser\Luxel.Gallery.Browser.csproj" />
-    <ProjectReference Include="..\..\src\Resource\Luxel.Resources.Gallery\Luxel.Resources.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Resources\Luxel.Resources.Gallery\Luxel.Resources.Gallery.csproj" />
     <ProjectReference Include="..\..\src\Audio\Luxel.Audio.Gallery\Luxel.Audio.Gallery.csproj" />
   </ItemGroup>
   <ItemGroup>
@@ -52,13 +52,13 @@
     <TrimmerRootAssembly Include="Luxel.AssetRuntime" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser.js" Link="wwwroot\slang-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser-runtime.js" Link="wwwroot\slang-browser-runtime.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang-worker.js" Link="wwwroot\slang-worker.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang\**\*" Link="wwwroot\slang\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Luxel.Audio.Browser\wwwroot\luxel-audio-browser.js" Link="wwwroot\luxel-audio-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Luxel.Graphics.WebGPU.Browser\wwwroot\luxel-webgpu-browser.js" Link="wwwroot\luxel-webgpu-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Luxel.Platform.Web\wwwroot\luxel-platform-web.js" Link="wwwroot\luxel-platform-web.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser.js" Link="wwwroot\slang-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser-runtime.js" Link="wwwroot\slang-browser-runtime.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang-worker.js" Link="wwwroot\slang-worker.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang\**\*" Link="wwwroot\slang\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Audio\Luxel.Audio.Browser\wwwroot\luxel-audio-browser.js" Link="wwwroot\luxel-audio-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Graphics\Luxel.Graphics.WebGPU.Browser\wwwroot\luxel-webgpu-browser.js" Link="wwwroot\luxel-webgpu-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Platform\Luxel.Platform.Web\wwwroot\luxel-platform-web.js" Link="wwwroot\luxel-platform-web.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <Import Project="..\..\assets\Luxel.KhronosBox.targets" />
   <ItemGroup>

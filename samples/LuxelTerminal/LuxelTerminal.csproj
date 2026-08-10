@@ -9,13 +9,13 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Framework\Luxel.Framework.UI\Luxel.Framework.UI.csproj" />
-    <ProjectReference Include="..\..\src\Luxel.Terminal\Luxel.Terminal.csproj" />
-    <ProjectReference Include="..\..\src\Luxel.Terminal.UI\Luxel.Terminal.UI.csproj" />
+    <ProjectReference Include="..\..\src\Editor\Luxel.Terminal\Luxel.Terminal.csproj" />
+    <ProjectReference Include="..\..\src\Editor\Luxel.Terminal.UI\Luxel.Terminal.UI.csproj" />
   </ItemGroup>
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
-    <ProjectReference Include="..\..\src\Luxel.Terminal.Windows\Luxel.Terminal.Windows.csproj" />
+    <ProjectReference Include="..\..\src\Platform\Luxel.Terminal.Windows\Luxel.Terminal.Windows.csproj" />
   </ItemGroup>
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
-    <ProjectReference Include="..\..\src\Luxel.Terminal.Linux\Luxel.Terminal.Linux.csproj" />
+    <ProjectReference Include="..\..\src\Platform\Luxel.Terminal.Linux\Luxel.Terminal.Linux.csproj" />
   </ItemGroup>
 </Project>

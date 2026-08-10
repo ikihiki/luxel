@@ -9,14 +9,14 @@
     <LuxelGalleryRegistrationIdentity>Gallery.Core</LuxelGalleryRegistrationIdentity>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Luxel.Mathematics\Luxel.Mathematics.csproj" />
+    <ProjectReference Include="..\..\Shared\Luxel.Mathematics\Luxel.Mathematics.csproj" />
     <Using Include="Luxel.Mathematics" />
-    <ProjectReference Include="..\..\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.Resources\Luxel.Resources.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics\Luxel.Graphics.csproj" />
-    <ProjectReference Include="..\..\Luxel.Typography\Luxel.Typography.csproj" />
-    <ProjectReference Include="..\..\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.UI\Luxel.UI.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
   </ItemGroup>
   <Import Project="..\..\..\assets\Luxel.FontAssets.targets" />

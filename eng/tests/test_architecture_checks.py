@@ -157,8 +157,8 @@ class ArchitectureFixtureTests(unittest.TestCase):
     def test_rejects_unapproved_native_gallery_category(self) -> None:
         native = GALLERY_METADATA.replace("Browser", "Native").replace("Base", "Native")
         fixture = self.fixture({
-            "src/ResourceBase/ResourceBase.csproj": project(GALLERY_METADATA),
-            "src/ResourceNative/ResourceNative.csproj": project(
+            "src/ResourcesBase/ResourceBase.csproj": project(GALLERY_METADATA),
+            "src/ResourcesNative/ResourceNative.csproj": project(
                 native, '<ProjectReference Include="../ResourceBase/ResourceBase.csproj" />'),
         }, {"required_gallery_categories": ["Resources"]})
         result = fixture.run("check-project-dependencies.py")
@@ -186,7 +186,7 @@ class ArchitectureFixtureTests(unittest.TestCase):
     def test_rejects_base_to_base_gallery_category_reference(self) -> None:
         audio = GALLERY_METADATA.replace("Resources", "Audio")
         fixture = self.fixture({
-            "src/ResourceBase/ResourceBase.csproj": project(
+            "src/ResourcesBase/ResourceBase.csproj": project(
                 GALLERY_METADATA, '<ProjectReference Include="../AudioBase/AudioBase.csproj" />'),
             "src/AudioBase/AudioBase.csproj": project(audio),
         }, {"required_gallery_categories": ["Resources", "Audio"]})
@@ -212,8 +212,8 @@ class ArchitectureFixtureTests(unittest.TestCase):
         fixture = self.fixture({
             "src/App/App.csproj": project(),
             "src/App/Stories.cs": '[Story("Bad/Owner")] static object Build() => new();',
-            "src/Luxel.Mathematics/Luxel.Mathematics.csproj": project(),
-            "src/Luxel.Mathematics/Register.cs": "StoryRegistry.Register(value);",
+            "src/Shared/Luxel.Mathematics/Luxel.Mathematics.csproj": project(),
+            "src/Shared/Luxel.Mathematics/Register.cs": "StoryRegistry.Register(value);",
         })
         result = fixture.run("check-gallery-ownership.py")
         self.assertNotEqual(0, result.returncode)

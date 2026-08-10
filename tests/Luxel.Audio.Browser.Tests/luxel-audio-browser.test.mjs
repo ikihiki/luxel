@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import * as audio from "../../src/Luxel.Audio.Browser/wwwroot/luxel-audio-browser.js";
+import * as audio from "../../src/Audio/Luxel.Audio.Browser/wwwroot/luxel-audio-browser.js";
 
 class MockAudioParam {
   constructor(value = 0) { this.value = value; }

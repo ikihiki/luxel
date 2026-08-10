@@ -11,7 +11,7 @@ public sealed class BrowserEcsStoriesTests
         string project = File.ReadAllText(Path.Combine(root,
             "src", "Framework", "Luxel.Framework.Gallery", "Luxel.Framework.Gallery.csproj"));
         string nativeSource = File.ReadAllText(Path.Combine(root,
-            "src", "Luxel.Graphics.Gallery", "Stories", "Gpu", "Ecs3DStories.cs"));
+            "src", "Graphics", "Luxel.Graphics.Gallery", "Stories", "Gpu", "Ecs3DStories.cs"));
 
         Assert.Contains("[Story(\"Examples/3D/EcsCubes\"", source);
         Assert.Contains("Luxel.Ecs.csproj", project);

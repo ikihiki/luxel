@@ -14,25 +14,25 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Audio\Luxel.Audio.Gallery\Luxel.Audio.Gallery.csproj" />
-    <ProjectReference Include="..\..\Luxel.Audio.Browser\Luxel.Audio.Browser.csproj" />
-    <ProjectReference Include="..\..\Luxel.Shaders\Luxel.Shaders.csproj" />
-    <ProjectReference Include="..\..\Luxel.Shaders.Slang.Browser\Luxel.Shaders.Slang.Browser.csproj" />
-    <ProjectReference Include="..\..\Luxel.Physics\Luxel.Physics.csproj" />
-    <ProjectReference Include="..\..\Luxel.Physics.Gizmos\Luxel.Physics.Gizmos.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.Assets.Gltf\Luxel.Assets.Gltf.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.Resources.Browser\Luxel.Resources.Browser.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
-    <ProjectReference Include="..\..\Luxel.Controls\Luxel.Controls.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics\Luxel.Graphics.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics.WebGPU.Browser\Luxel.Graphics.WebGPU.Browser.csproj" />
-    <ProjectReference Include="..\..\Luxel.Typography\Luxel.Typography.csproj" AdditionalProperties="LuxelBrowserWasm=true" />
-    <ProjectReference Include="..\..\Luxel.UI\Luxel.UI.csproj" />
-    <ProjectReference Include="..\..\Luxel.Platform\Luxel.Platform.csproj" />
-    <ProjectReference Include="..\..\Luxel.Platform.Web\Luxel.Platform.Web.csproj" />
-    <ProjectReference Include="..\..\Luxel.Diagram\Luxel.Diagram.csproj" />
-    <ProjectReference Include="..\..\Luxel.MathText\Luxel.MathText.csproj" />
-    <ProjectReference Include="..\..\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
+    <ProjectReference Include="..\..\Audio\Luxel.Audio.Browser\Luxel.Audio.Browser.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Shaders\Luxel.Shaders.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Shaders.Slang.Browser\Luxel.Shaders.Slang.Browser.csproj" />
+    <ProjectReference Include="..\..\Framework\Luxel.Physics\Luxel.Physics.csproj" />
+    <ProjectReference Include="..\..\Framework\Luxel.Physics.Gizmos\Luxel.Physics.Gizmos.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.Assets.Gltf\Luxel.Assets.Gltf.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.Resources.Browser\Luxel.Resources.Browser.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.Controls\Luxel.Controls.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.WebGPU.Browser\Luxel.Graphics.WebGPU.Browser.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Typography\Luxel.Typography.csproj" AdditionalProperties="LuxelBrowserWasm=true" />
+    <ProjectReference Include="..\..\UI\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\..\Platform\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\..\Platform\Luxel.Platform.Web\Luxel.Platform.Web.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.Diagram\Luxel.Diagram.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.MathText\Luxel.MathText.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup>

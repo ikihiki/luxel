@@ -7,7 +7,7 @@ public sealed class BrowserTextureSampleTests
     {
         string root = FindRepositoryRoot();
         string source = File.ReadAllText(Path.Combine(
-            root, "src", "Luxel.Graphics.Gallery", "Stories", "Gpu", "GpuViewStories.cs"));
+            root, "src", "Graphics", "Luxel.Graphics.Gallery", "Stories", "Gpu", "GpuViewStories.cs"));
 
         Assert.Contains("[Story(\"Examples/3D/Textures\"", source);
         Assert.Contains("byte[] pixels = CreateCheckerboard(textureWidth, textureHeight)", source);
@@ -37,7 +37,7 @@ public sealed class BrowserTextureSampleTests
     {
         string root = FindRepositoryRoot();
         string source = File.ReadAllText(Path.Combine(
-            root, "src", "Luxel.Graphics.WebGPU.Browser", "wwwroot", "luxel-webgpu-browser.js"));
+            root, "src", "Graphics", "Luxel.Graphics.WebGPU.Browser", "wwwroot", "luxel-webgpu-browser.js"));
 
         Assert.Contains("\"rgba8unorm-srgb\", \"bgra8unorm-srgb\", \"r8unorm\", \"rg8unorm\"", source);
         Assert.Contains("[4, 4, 4, 4, 4, 4, 1, 2]", source);

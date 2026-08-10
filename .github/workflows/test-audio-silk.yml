@@ -3,8 +3,8 @@ name: Test Silk OpenAL Audio
 on:
   pull_request:
     paths:
-      - 'src/Luxel.Audio/**'
-      - 'src/Luxel.Audio.Silk/**'
+      - 'src/Audio/Luxel.Audio/**'
+      - 'src/Audio/Luxel.Audio.Silk/**'
       - 'src/Framework/Luxel.Framework.Game.Native/**'
       - 'src/Framework/Luxel.Framework.Game/**'
       - 'src/Gallery/Luxel.Gallery.Stories/Stories/Docs/LearnAudio.cs'
@@ -43,13 +43,13 @@ jobs:
           python3 eng/desktop/test-wav-analyzer.py
       - name: Restore targeted projects
         run: |
-          dotnet restore src/Luxel.Audio.Silk/Luxel.Audio.Silk.csproj
+          dotnet restore src/Audio/Luxel.Audio.Silk/Luxel.Audio.Silk.csproj
           dotnet restore tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj
           dotnet restore src/Framework/Luxel.Framework.Game.Native/Luxel.Framework.Game.Native.csproj
           dotnet restore src/Framework/Luxel.Framework.Game/Luxel.Framework.Game.csproj
       - name: Build Silk OpenAL backend and tests
         run: |
-          dotnet build src/Luxel.Audio.Silk/Luxel.Audio.Silk.csproj --no-restore --configuration Release
+          dotnet build src/Audio/Luxel.Audio.Silk/Luxel.Audio.Silk.csproj --no-restore --configuration Release
           dotnet build tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj --no-restore --configuration Release
           dotnet build src/Framework/Luxel.Framework.Game.Native/Luxel.Framework.Game.Native.csproj --no-restore --configuration Release
           dotnet build src/Framework/Luxel.Framework.Game/Luxel.Framework.Game.csproj --no-restore --configuration Release

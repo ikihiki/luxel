@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Windows ConPTY backend for Luxel.Terminal.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Editor\Luxel.Terminal\Luxel.Terminal.csproj" />
+  </ItemGroup>
+</Project>

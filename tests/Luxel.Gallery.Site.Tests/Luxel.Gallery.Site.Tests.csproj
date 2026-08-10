@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Luxel.Mathematics\Luxel.Mathematics.csproj" />
+    <ProjectReference Include="..\..\src\Shared\Luxel.Mathematics\Luxel.Mathematics.csproj" />
     <Using Include="Luxel.Mathematics" />
   </ItemGroup>
 
   <PropertyGroup><IsPackable>false</IsPackable></PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\src\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
@@ -15,7 +15,7 @@
     <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Stories\Luxel.Gallery.Stories.csproj" />
     <ProjectReference Include="..\..\src\Audio\Luxel.Audio.Gallery\Luxel.Audio.Gallery.csproj" />
     <ProjectReference Include="..\..\src\UI\Luxel.UI.Gallery\Luxel.UI.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\Luxel.Particles.Gallery\Luxel.Particles.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Particles\Luxel.Particles.Gallery\Luxel.Particles.Gallery.csproj" />
   </ItemGroup>
   <ItemGroup><Using Include="Xunit" /></ItemGroup>
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />

@@ -388,7 +388,7 @@ public sealed class ProductionComponentCatalogTests
     public void Resource_stories_are_owned_only_by_the_Resource_Gallery_project()
     {
         string root = FindRepositoryRoot();
-        string resourceRoot = Path.Combine(root, "src", "Resource");
+        string resourceRoot = Path.Combine(root, "src", "Resources");
         string galleryRoot = Path.Combine(resourceRoot, "Luxel.Resources.Gallery");
         string[] storyFiles = Directory.EnumerateFiles(resourceRoot, "*.cs", SearchOption.AllDirectories)
             .Where(path => File.ReadAllText(path).Contains("[Story(", StringComparison.Ordinal))
@@ -402,7 +402,7 @@ public sealed class ProductionComponentCatalogTests
     public void Resource_learning_sources_use_only_the_builder_architecture_and_match_the_sample_bundle()
     {
         string root = FindRepositoryRoot();
-        string galleryRoot = Path.Combine(root, "src", "Resource", "Luxel.Resources.Gallery");
+        string galleryRoot = Path.Combine(root, "src", "Resources", "Luxel.Resources.Gallery");
         string docsRoot = Path.Combine(galleryRoot, "Stories", "Docs");
         string sources = string.Join("\n", Directory.EnumerateFiles(docsRoot, "*.cs", SearchOption.AllDirectories)
             .Select(File.ReadAllText));

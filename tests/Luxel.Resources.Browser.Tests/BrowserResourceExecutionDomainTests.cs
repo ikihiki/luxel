@@ -92,7 +92,7 @@ public sealed class BrowserResourceExecutionDomainTests
         string gallery = File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Browser", "BrowserGalleryApplication.cs"));
         string framework = File.ReadAllText(Path.Combine(root, "src", "Framework", "Luxel.Framework.Game.Browser", "BrowserGamePlatform.cs"));
         string sample = File.ReadAllText(Path.Combine(root, "samples", "LuxelPlaygroundBrowser", "Program.cs"));
-        string coreProject = File.ReadAllText(Path.Combine(root, "src", "Resource", "Luxel.Resources", "Luxel.Resources.csproj"));
+        string coreProject = File.ReadAllText(Path.Combine(root, "src", "Resources", "Luxel.Resources", "Luxel.Resources.csproj"));
 
         Assert.Contains("AddBrowserCore", gallery, StringComparison.Ordinal);
         Assert.Contains("UseBrowserCooperative", gallery, StringComparison.Ordinal);
@@ -102,7 +102,7 @@ public sealed class BrowserResourceExecutionDomainTests
         Assert.DoesNotContain("new ResourceSystem(", gallery + sample, StringComparison.Ordinal);
         Assert.DoesNotContain("Luxel.Resources.Browser", coreProject, StringComparison.Ordinal);
         string browserResourceSources = string.Join('\n', Directory.GetFiles(
-            Path.Combine(root, "src", "Resource", "Luxel.Resources.Browser"), "*.cs")
+            Path.Combine(root, "src", "Resources", "Luxel.Resources.Browser"), "*.cs")
             .Select(File.ReadAllText));
         Assert.DoesNotContain("SynchronizationContext", browserResourceSources, StringComparison.Ordinal);
     }

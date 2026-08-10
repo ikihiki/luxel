@@ -6,6 +6,6 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Luxel.Shaders\Luxel.Shaders.csproj" />
+    <ProjectReference Include="..\..\src\Graphics\Luxel.Shaders\Luxel.Shaders.csproj" />
   </ItemGroup>
 </Project>

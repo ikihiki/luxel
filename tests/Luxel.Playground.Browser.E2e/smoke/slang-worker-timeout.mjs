@@ -16,7 +16,7 @@ class FakeWorker {
 }
 globalThis.Worker = FakeWorker;
 
-const slang = await import(`../../../src/Luxel.Shaders.Slang.Browser/wwwroot/slang-browser.js?timeout-test=${Date.now()}`);
+const slang = await import(`../../../src/Graphics/Luxel.Shaders.Slang.Browser/wwwroot/slang-browser.js?timeout-test=${Date.now()}`);
 await assert.rejects(
   slang.compile(JSON.stringify({ requestId: 1, timeoutMs: 10 })),
   /timed out after 10 ms; the compiler worker was restarted/);

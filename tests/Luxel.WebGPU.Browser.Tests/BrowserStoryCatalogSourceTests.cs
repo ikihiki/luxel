@@ -16,9 +16,9 @@ public sealed class BrowserStoryCatalogSourceTests
         string project = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "GalleryBrowser.csproj"));
 
         string solution = File.ReadAllText(Path.Combine(root, "Luxel.slnx"));
-        string resourceProject = File.ReadAllText(Path.Combine(root, "src", "Resource", "Luxel.Resources.Gallery", "ResourceGalleryProject.cs"));
-        string resourceBundles = File.ReadAllText(Path.Combine(root, "src", "Resource", "Luxel.Resources.Gallery", "ResourceSampleBundles.cs"));
-        string fullGalleryBundles = File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Stories", "SampleBundles.cs"));
+        string resourceProject = File.ReadAllText(Path.Combine(root, "src", "Resources", "Luxel.Resources.Gallery", "ResourceGalleryProject.cs"));
+        string resourceBundles = File.ReadAllText(Path.Combine(root, "src", "Resources", "Luxel.Resources.Gallery", "ResourceSampleBundles.cs"));
+        string compatibilityProject = File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Stories", "Luxel.Gallery.Stories.csproj"));
         string fixtureTargets = File.ReadAllText(Path.Combine(root, "assets", "Luxel.KhronosBox.targets"));
         string dependencyChecker = File.ReadAllText(Path.Combine(root, "eng", "check-project-dependencies.py"));
 
@@ -34,11 +34,11 @@ public sealed class BrowserStoryCatalogSourceTests
             entryPoint.IndexOf("builder.Services.AddUiGallery()", StringComparison.Ordinal)
             < entryPoint.IndexOf("builder.Services.AddParticlesGallery()", StringComparison.Ordinal));
         Assert.Contains("Luxel.Resources.Gallery.csproj", project, StringComparison.Ordinal);
-        Assert.Contains("src/Resource/Luxel.Resources.Gallery/Luxel.Resources.Gallery.csproj", solution, StringComparison.Ordinal);
+        Assert.Contains("src/Resources/Luxel.Resources.Gallery/Luxel.Resources.Gallery.csproj", solution, StringComparison.Ordinal);
         Assert.DoesNotContain("Luxel.Gallery.Resources.Stories", solution, StringComparison.Ordinal);
         Assert.Contains("StoryRegistration_Luxel_Resources_Gallery", resourceProject, StringComparison.Ordinal);
         Assert.Contains("\"resources.scenarios\", \"Resource scenarios\"", resourceBundles, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"resources.scenarios\", \"Resource scenarios\"", fullGalleryBundles, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"resources.scenarios\", \"Resource scenarios\"", compatibilityProject, StringComparison.Ordinal);
         Assert.Contains("wwwroot\\tools\\khronos-samples\\Box\\Box.gltf", project, StringComparison.Ordinal);
         Assert.Contains("wwwroot\\tools\\khronos-samples\\BoxAnimated\\BoxAnimated.glb", project, StringComparison.Ordinal);
         Assert.Contains("wwwroot\\tools\\khronos-samples\\RiggedSimple\\RiggedSimple.glb", project, StringComparison.Ordinal);
@@ -92,7 +92,7 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("BoxAnimated/glTF-Binary/BoxAnimated.glb", fixtureTargets, StringComparison.Ordinal);
         Assert.Contains("RiggedSimple/glTF-Binary/RiggedSimple.glb", fixtureTargets, StringComparison.Ordinal);
         Assert.Contains("GetFileHash Files=\"@(_KhronosSampleAsset)\" Algorithm=\"SHA256\"", fixtureTargets, StringComparison.Ordinal);
-        Assert.Contains("src/Resource/Luxel.Resources.Browser/Luxel.Resources.Browser.csproj", solution, StringComparison.Ordinal);
+        Assert.Contains("src/Resources/Luxel.Resources.Browser/Luxel.Resources.Browser.csproj", solution, StringComparison.Ordinal);
         Assert.Contains("forbid_closure(\"Luxel.Resources\"", dependencyChecker, StringComparison.Ordinal);
         Assert.Contains("stem == \"Luxel.Resources.Gallery\"", dependencyChecker, StringComparison.Ordinal);
         Assert.Contains("project.platform != \"Browser\"", dependencyChecker, StringComparison.Ordinal);

@@ -8,9 +8,9 @@ public sealed class BrowserCanonicalTriangleTests
         string root = FindRepositoryRoot();
         string project = File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Browser", "Luxel.Gallery.Browser.csproj"));
         string program = File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Browser", "BrowserGalleryApplication.cs"));
-        string graphicsGalleryProject = File.ReadAllText(Path.Combine(root, "src", "Luxel.Graphics.Gallery", "Luxel.Graphics.Gallery.csproj"));
+        string graphicsGalleryProject = File.ReadAllText(Path.Combine(root, "src", "Graphics", "Luxel.Graphics.Gallery", "Luxel.Graphics.Gallery.csproj"));
         string canonicalTriangle = File.ReadAllText(Path.Combine(root, "samples", "CanonicalTriangleRecipe.cs"));
-        string gpuStories = File.ReadAllText(Path.Combine(root, "src", "Luxel.Graphics.Gallery", "Stories", "Gpu", "GpuViewStories.cs"));
+        string gpuStories = File.ReadAllText(Path.Combine(root, "src", "Graphics", "Luxel.Graphics.Gallery", "Stories", "Gpu", "GpuViewStories.cs"));
         string html = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "index.html"));
         string css = File.ReadAllText(Path.Combine(root, "gallery", "GalleryBrowser", "wwwroot", "gallery.css"));
 

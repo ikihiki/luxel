@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import * as slang from '../../../src/Luxel.Shaders.Slang.Browser/wwwroot/slang-browser-runtime.js';
+import * as slang from '../../../src/Graphics/Luxel.Shaders.Slang.Browser/wwwroot/slang-browser-runtime.js';
 
 const source = `[shader("compute")]
 [numthreads(1, 1, 1)]
@@ -67,9 +67,9 @@ const diagnosticsFile = { id: 'diagnostics', path: 'diagnostics.slang', language
 const analysis = await slang.analyzeWorkspace({ revision: 3, files: [diagnosticsFile] }, diagnosticsFile);
 assert.ok(analysis.diagnostics.length > 0, 'Expected malformed Slang to produce diagnostics.');
 
-const manifest = JSON.parse(await readFile(new URL('../../../src/Luxel.Shaders.Slang.Browser/wwwroot/slang/manifest.json', import.meta.url)));
+const manifest = JSON.parse(await readFile(new URL('../../../src/Graphics/Luxel.Shaders.Slang.Browser/wwwroot/slang/manifest.json', import.meta.url)));
 for (const [file, expected] of Object.entries(manifest.files)) {
-  const bytes = await readFile(new URL(`../../../src/Luxel.Shaders.Slang.Browser/wwwroot/slang/${file}`, import.meta.url));
+  const bytes = await readFile(new URL(`../../../src/Graphics/Luxel.Shaders.Slang.Browser/wwwroot/slang/${file}`, import.meta.url));
   assert.equal(`sha256-${createHash('sha256').update(bytes).digest('hex')}`, expected);
 }
 

@@ -10,20 +10,20 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Luxel.Gallery/Luxel.Gallery.csproj" />
-    <ProjectReference Include="../../Resource/Luxel.Resources.Gallery/Luxel.Resources.Gallery.csproj" />
+    <ProjectReference Include="../../Resources/Luxel.Resources.Gallery/Luxel.Resources.Gallery.csproj" />
     <ProjectReference Include="../../Audio/Luxel.Audio.Gallery/Luxel.Audio.Gallery.csproj" />
     <ProjectReference Include="../../UI/Luxel.UI.Gallery/Luxel.UI.Gallery.csproj" />
-    <ProjectReference Include="../../Luxel.Graphics.Gallery/Luxel.Graphics.Gallery.csproj" />
-    <ProjectReference Include="../../Luxel.Input.Gallery/Luxel.Input.Gallery.csproj" />
+    <ProjectReference Include="../../Graphics/Luxel.Graphics.Gallery/Luxel.Graphics.Gallery.csproj" />
+    <ProjectReference Include="../../Input/Luxel.Input.Gallery/Luxel.Input.Gallery.csproj" />
     <ProjectReference Include="../../Framework/Luxel.Framework.Gallery/Luxel.Framework.Gallery.csproj" />
-    <ProjectReference Include="../../Luxel.Animation.Gallery/Luxel.Animation.Gallery.csproj" />
-    <ProjectReference Include="../../Luxel.Particles.Gallery/Luxel.Particles.Gallery.csproj" />
-    <ProjectReference Include="../../Luxel.Scripting.Gallery/Luxel.Scripting.Gallery.csproj" />
+    <ProjectReference Include="../../Animation/Luxel.Animation.Gallery/Luxel.Animation.Gallery.csproj" />
+    <ProjectReference Include="../../Particles/Luxel.Particles.Gallery/Luxel.Particles.Gallery.csproj" />
+    <ProjectReference Include="../../Scripting/Luxel.Scripting.Gallery/Luxel.Scripting.Gallery.csproj" />
     <ProjectReference Include="../../Editor/Luxel.Editor.Gallery/Luxel.Editor.Gallery.csproj" />
-    <ProjectReference Include="../../Luxel.DevTools.Gallery/Luxel.DevTools.Gallery.csproj" />
+    <ProjectReference Include="../../DevTools/Luxel.DevTools.Gallery/Luxel.DevTools.Gallery.csproj" />
     <ProjectReference Include="../../GamesSamples/Luxel.GamesSamples.Gallery/Luxel.GamesSamples.Gallery.csproj" />
     <ProjectReference Include="../Luxel.Gallery.Docs/Luxel.Gallery.Docs.csproj" />
-    <ProjectReference Include="../../Luxel.Platform.Gallery.Native/Luxel.Platform.Gallery.Native.csproj" />
+    <ProjectReference Include="../../Platform/Luxel.Platform.Gallery.Native/Luxel.Platform.Gallery.Native.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
