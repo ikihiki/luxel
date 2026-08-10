@@ -15,6 +15,33 @@
 * { box-sizing: border-box; }
 html, body, #app { width: 100%; height: 100%; margin: 0; }
 body { overflow: hidden; background: #0b1017; }
+.loading-progress {
+  display: grid;
+  width: min(280px, calc(100% - 48px));
+  height: 100%;
+  margin: 0 auto;
+  place-content: center;
+  justify-items: center;
+  color: var(--muted);
+  text-align: center;
+}
+.loading-progress svg { width: 92px; height: 92px; }
+.loading-progress circle {
+  fill: none;
+  stroke: #263242;
+  stroke-width: 8;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+.loading-progress circle:last-child {
+  stroke: var(--accent);
+  stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * .84), 500%;
+  transition: stroke-dasharray .08s ease-out;
+}
+.loading-progress p { margin: 16px 0 5px; color: #d7e5f7; font-size: 14px; font-weight: 650; }
+.loading-progress-text { min-height: 18px; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.loading-progress-text::after { content: var(--blazor-load-percentage-text, "0%"); }
+
 a { color: inherit; }
 button, input { font: inherit; }
 
@@ -114,6 +141,7 @@ button, input { font: inherit; }
 .gallery-sidebar-footer { padding: 10px 16px; border-top: 1px solid var(--border); color: #65778e; font-size: 11px; }
 
 .gallery-main { display: flex; min-width: 0; min-height: 0; flex-direction: column; overflow: hidden; background: #0d141d; }
+.gallery-main-document { overflow: auto; }
 .gallery-compact { width: 100%; height: 100%; overflow: hidden; background: #0d141d; }
 .gallery-compact .gallery-main { width: 100%; height: 100%; }
 .gallery-compact .story-workspace { --story-panel-height: 250px; }
@@ -214,10 +242,10 @@ body.resizing-story-panel iframe { pointer-events: none; }
 
 .markdown-document {
   width: min(960px, calc(100% - 64px));
-  min-height: 0;
+  flex: 0 0 auto;
   margin: 0 auto;
   padding: 44px 0 100px;
-  overflow: auto;
+  overflow: visible;
   color: #cbd6e4;
   font-size: 15px;
   line-height: 1.7;
