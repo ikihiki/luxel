@@ -47,7 +47,7 @@ public static class GpuStories
         }));
     }
 
-    // ---- 3D: browser-safe GpuView stories live in Luxel.Gallery.Stories.CoreUi ----
+    // ---- 3D: browser-safe GpuView stories are owned by this Graphics Gallery. ----
 
     [Story("Examples/3D/TexturedQuad", Height = 320, Order = 121)]
     public static Widget TexturedQuad(StoryContext ctx)

@@ -25,7 +25,6 @@ public static class GalleryStoryProject
     public static void Register(StoryCatalogBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        CoreUiStoryProject.Register(builder);
         Merge(ResourceGalleryProject.Register);
         Merge(AudioGalleryProject.Register);
         Merge(UiGalleryProject.Register);

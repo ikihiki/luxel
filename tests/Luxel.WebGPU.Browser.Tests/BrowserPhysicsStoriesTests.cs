@@ -17,16 +17,16 @@ public sealed class BrowserPhysicsStoriesTests
         string root = FindRepositoryRoot();
         string source = File.ReadAllText(Path.Combine(root,
             "src", "Framework", "Luxel.Framework.Gallery", "Stories", "PhysicsBrowserStories.cs"));
-        string coreProject = File.ReadAllText(Path.Combine(root,
-            "src", "Gallery", "Luxel.Gallery.Stories.CoreUi", "Luxel.Gallery.Stories.CoreUi.csproj"));
+        string frameworkGalleryProject = File.ReadAllText(Path.Combine(root,
+            "src", "Framework", "Luxel.Framework.Gallery", "Luxel.Framework.Gallery.csproj"));
         string browserLibrary = File.ReadAllText(Path.Combine(root,
             "src", "Gallery", "Luxel.Gallery.Browser", "Luxel.Gallery.Browser.csproj"));
         string browserProject = File.ReadAllText(Path.Combine(root,
             "gallery", "GalleryBrowser", "GalleryBrowser.csproj"));
 
         foreach (string path in Paths) Assert.Contains($"[Story(\"{path}\"", source);
-        Assert.Contains("Luxel.Physics.csproj", coreProject);
-        Assert.Contains("Luxel.Physics.Gizmos.csproj", coreProject);
+        Assert.Contains("Luxel.Physics.csproj", frameworkGalleryProject);
+        Assert.Contains("Luxel.Physics.Gizmos.csproj", frameworkGalleryProject);
         Assert.Contains("Luxel.Physics.csproj", browserLibrary);
         Assert.Contains("TrimmerRootAssembly Include=\"Luxel.Physics\"", browserProject);
         Assert.Contains("TrimmerRootAssembly Include=\"Luxel.Physics.Gizmos\"", browserProject);

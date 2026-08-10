@@ -26,13 +26,13 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("WebAssemblyHostBuilder.CreateDefault(args)", entryPoint, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddSingleton(new HttpClient", entryPoint, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddResourceGallery()", entryPoint, StringComparison.Ordinal);
-        Assert.Contains("builder.Services.AddCoreUiStory()", entryPoint, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddCoreUiStory", entryPoint, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddUiGallery()", entryPoint, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddGraphicsGallery()", entryPoint, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddFrameworkGallery()", entryPoint, StringComparison.Ordinal);
         Assert.True(
-            entryPoint.IndexOf("builder.Services.AddCoreUiStory()", StringComparison.Ordinal)
-            < entryPoint.IndexOf("builder.Services.AddUiGallery()", StringComparison.Ordinal));
+            entryPoint.IndexOf("builder.Services.AddUiGallery()", StringComparison.Ordinal)
+            < entryPoint.IndexOf("builder.Services.AddParticlesGallery()", StringComparison.Ordinal));
         Assert.Contains("Luxel.Resources.Gallery.csproj", project, StringComparison.Ordinal);
         Assert.Contains("src/Resource/Luxel.Resources.Gallery/Luxel.Resources.Gallery.csproj", solution, StringComparison.Ordinal);
         Assert.DoesNotContain("Luxel.Gallery.Resources.Stories", solution, StringComparison.Ordinal);

@@ -15,6 +15,7 @@
     <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Stories\Luxel.Gallery.Stories.csproj" />
     <ProjectReference Include="..\..\src\Audio\Luxel.Audio.Gallery\Luxel.Audio.Gallery.csproj" />
     <ProjectReference Include="..\..\src\UI\Luxel.UI.Gallery\Luxel.UI.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Luxel.Particles.Gallery\Luxel.Particles.Gallery.csproj" />
   </ItemGroup>
   <ItemGroup><Using Include="Xunit" /></ItemGroup>
   <Import Project="..\..\shaders\Luxel.Shaders.targets" />

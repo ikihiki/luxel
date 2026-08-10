@@ -172,20 +172,15 @@ public sealed class StoryGenerator : IIncrementalGenerator
         sb.AppendLine("{");
         sb.Append("    public static class StoryRegistration_").AppendLine(Sanitize(assemblyName));
         sb.AppendLine("    {");
-        // CoreUi is composed explicitly by native, Site and browser hosts. Avoid eager module
-        // initialization in browser-WASM, where static arg schema creation must stay behind the catalog root.
-        if (assemblyName != "Luxel.Gallery.Stories.CoreUi")
-        {
-            sb.AppendLine("        [global::System.Runtime.CompilerServices.ModuleInitializer]");
-            sb.AppendLine("        internal static void Init()");
-            sb.AppendLine("        {");
-            sb.AppendLine("            var builder = new global::Luxel.Gallery.StoryCatalogBuilder();");
-            sb.AppendLine("            Register(builder);");
-            sb.AppendLine("            foreach (global::Luxel.Gallery.StoryInfo story in builder.Build().All)");
-            sb.AppendLine("                global::Luxel.Gallery.StoryRegistry.Register(story);");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-        }
+        sb.AppendLine("        [global::System.Runtime.CompilerServices.ModuleInitializer]");
+        sb.AppendLine("        internal static void Init()");
+        sb.AppendLine("        {");
+        sb.AppendLine("            var builder = new global::Luxel.Gallery.StoryCatalogBuilder();");
+        sb.AppendLine("            Register(builder);");
+        sb.AppendLine("            foreach (global::Luxel.Gallery.StoryInfo story in builder.Build().All)");
+        sb.AppendLine("                global::Luxel.Gallery.StoryRegistry.Register(story);");
+        sb.AppendLine("        }");
+        sb.AppendLine();
         sb.AppendLine("        public static void Register(global::Luxel.Gallery.StoryCatalogBuilder builder)");
         sb.AppendLine("        {");
         sb.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(builder);");

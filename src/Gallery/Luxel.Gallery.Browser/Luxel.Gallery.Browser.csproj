@@ -13,7 +13,6 @@
     <SupportedOSPlatformVersion>browser</SupportedOSPlatformVersion>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Luxel.Gallery.Stories.CoreUi\Luxel.Gallery.Stories.CoreUi.csproj" />
     <ProjectReference Include="..\..\Audio\Luxel.Audio.Gallery\Luxel.Audio.Gallery.csproj" />
     <ProjectReference Include="..\..\Luxel.Audio.Browser\Luxel.Audio.Browser.csproj" />
     <ProjectReference Include="..\..\Luxel.Shaders\Luxel.Shaders.csproj" />
@@ -31,6 +30,9 @@
     <ProjectReference Include="..\..\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\..\Luxel.Platform\Luxel.Platform.csproj" />
     <ProjectReference Include="..\..\Luxel.Platform.Web\Luxel.Platform.Web.csproj" />
+    <ProjectReference Include="..\..\Luxel.Diagram\Luxel.Diagram.csproj" />
+    <ProjectReference Include="..\..\Luxel.MathText\Luxel.MathText.csproj" />
+    <ProjectReference Include="..\..\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup>

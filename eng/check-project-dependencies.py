@@ -95,7 +95,7 @@ def validate(root: Path, solution: str, baseline_path: Path) -> list[str]:
     forbid_closure("Luxel.UI.Generators", gallery_project, "UI generators/Gallery reverse")
     forbid_closure("Luxel.Gallery", lambda p: p.path.stem in {
         "Luxel.Gallery.Generators", "Luxel.Gallery.UI", "Luxel.Gallery.Native",
-        "Luxel.Gallery.Stories", "Luxel.Gallery.Stories.CoreUi", "Luxel.Resources.Gallery",
+        "Luxel.Gallery.Stories", "Luxel.Resources.Gallery",
     }, "Gallery core reverse")
     forbid_closure("Luxel.Resources", lambda p: p.path.stem.endswith(".Browser"), "Resources core/browser reverse")
     forbid_closure("Luxel.Framework.Game", native_heavy, "Game portable closure")

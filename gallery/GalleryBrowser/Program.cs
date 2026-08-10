@@ -18,7 +18,6 @@ using GalleryBrowser;
 WebAssemblyHostBuilder builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.Services.AddSingleton(new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-builder.Services.AddCoreUiStory();
 builder.Services.AddResourceGallery();
 builder.Services.AddAudioGallery();
 builder.Services.AddUiGallery();
