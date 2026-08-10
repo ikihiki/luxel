@@ -1,0 +1,24 @@
+name: Architecture
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  project-graph:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check project dependencies
+        run: python3 eng/check-project-dependencies.py
+      - name: Check Gallery ownership
+        run: python3 eng/check-gallery-ownership.py
+      - name: Run architecture fixtures
+        run: python3 -m unittest discover -s eng/tests -p 'test_*.py' -v

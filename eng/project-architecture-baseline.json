@@ -1,0 +1,22 @@
+{
+  "required_gallery_categories": [
+    "Platform",
+    "Resources",
+    "Audio",
+    "UI",
+    "Graphics",
+    "Input",
+    "Framework",
+    "Animation",
+    "Particles",
+    "Scripting",
+    "Editor",
+    "DevTools",
+    "GamesSamples",
+    "GalleryDocs",
+    "CoreUi"
+  ],
+  "missing_gallery_categories": [],
+  "legacy_production_gallery_references": [],
+  "legacy_cross_category_native_base_references": []
+}

@@ -23,7 +23,7 @@ public static class GalleryStorySourcePane
         editor.ReadOnly = true;
         editor.Fill = true;
         editor.ShowLineNumbers = true;
-        editor.EditorFont = Stories.StoryKit.EditorFaces.Value.Mono;
+        editor.EditorFont = RenderingStoryKit.EditorFaces.Value.Mono;
         editor.Providers.Add(new SyntaxHighlightProvider(
             Luxel.Highlight.TextMateHighlighter.Instance, "csharp", () => UiTheme.T));
         if (bundle is null) return editor;

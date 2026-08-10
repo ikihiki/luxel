@@ -57,7 +57,7 @@ else
         </aside>
         }
 
-        <main class="gallery-main">
+        <main class="@(_documentHtml is not null ? "gallery-main gallery-main-document" : "gallery-main")">
             @if (!_compact)
             {
             <header class="story-toolbar">

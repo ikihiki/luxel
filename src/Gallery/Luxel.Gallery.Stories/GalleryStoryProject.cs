@@ -1,42 +1,53 @@
 using Microsoft.Extensions.DependencyInjection;
-using Luxel.UI;
 using Luxel.Resources.Gallery;
+using Luxel.Audio.Gallery;
+using Luxel.UI.Gallery;
+using Luxel.Graphics.Gallery;
+using Luxel.Input.Gallery;
+using Luxel.Framework.Gallery;
+using Luxel.Animation.Gallery;
+using Luxel.Particles.Gallery;
+using Luxel.Scripting.Gallery;
+using Luxel.Editor.Gallery;
+using Luxel.DevTools.Gallery;
+using Luxel.GamesSamples.Gallery;
+using Luxel.Gallery.Docs;
+using Luxel.Platform.Gallery.Native;
 
 namespace Luxel.Gallery;
 
-/// <summary>現在の Gallery story assembly を明示的に composition root へ登録する entry point。</summary>
+/// <summary>Compatibility aggregate for the explicit category-owned Gallery catalogs.</summary>
 public static class GalleryStoryProject
 {
-    /// <summary>Native Galleryの全StoryをGeneric Hostへ登録する。</summary>
     public static IServiceCollection AddGalleryStory(this IServiceCollection services)
-        => services
-            .AddStoryCatalog(RegisterGalleryOnly)
-            .AddResourceGallery()
-            .AddCoreUiStory();
+        => services.AddStoryCatalog(Register);
 
     public static void Register(StoryCatalogBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        RegisterGalleryOnly(builder);
-        ResourceGalleryProject.Register(builder);
         CoreUiStoryProject.Register(builder);
-    }
+        Merge(ResourceGalleryProject.Register);
+        Merge(AudioGalleryProject.Register);
+        Merge(UiGalleryProject.Register);
+        Merge(GraphicsGalleryProject.Register);
+        Merge(InputGalleryProject.Register);
+        Merge(FrameworkGalleryProject.Register);
+        Merge(AnimationGalleryProject.Register);
+        Merge(ParticlesGalleryProject.Register);
+        Merge(ScriptingGalleryProject.Register);
+        Merge(EditorGalleryProject.Register);
+        Merge(DevToolsGalleryProject.Register);
+        Merge(GamesSamplesGalleryProject.Register);
+        Merge(GalleryDocsProject.Register);
+        // Native is an extension catalog and already includes PlatformGalleryProject.
+        Merge(PlatformNativeGalleryProject.Register);
 
-    private static void RegisterGalleryOnly(StoryCatalogBuilder builder)
-    {
-        var fullBuilder = new StoryCatalogBuilder();
-        Luxel.Gallery.Generated.StoryRegistration_Luxel_Gallery_Stories.Register(fullBuilder);
-        Stories.DocsApi.RegisterReferenceStories(fullBuilder);
-        StoryCatalog fullCatalog = fullBuilder.Build();
-        HashSet<string> coreUiPaths = CoreUiStoryProject.CreateCatalog().All
-            .Select(story => story.Path)
-            .ToHashSet(StringComparer.Ordinal);
-        foreach (StoryInfo story in fullCatalog.All)
+        void Merge(Action<StoryCatalogBuilder> register)
         {
-            // CoreUi owns browser-safe routes. Native-only registration is emitted first for display order,
-            // but overlapping routes are deferred to the later AddCoreUiStory registration.
-            if (coreUiPaths.Contains(story.Path) || builder.ContainsPath(story.Path)) continue;
-            builder.Add(story);
+            var category = new StoryCatalogBuilder();
+            register(category);
+            foreach (StoryInfo story in category.Build().All)
+                builder.Add(story, replaceGenerated: true);
         }
     }
 

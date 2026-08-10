@@ -17,44 +17,6 @@ internal static class SampleBundles
              new("shaders", SampleFileKind.Asset, Destination: "shaders", AssetGlob: "*", Mode: SampleFileMode.Glob),
              new("eng/Luxel.ShaderWgslGen", SampleFileKind.Asset, Destination: "eng/Luxel.ShaderWgslGen", AssetGlob: "*", Mode: SampleFileMode.Glob)]));
         SampleBundleRegistry.Register(new SampleBundleInfo(
-            "game.cavern", "Luxel Cavern capstone",
-            "Repository recipe integrating Framework, UI, 2D, input, audio, resources, particles and settings.", "Advanced",
-            SampleCopyLevel.Recipe,
-            [new("samples/LuxelCavern/LuxelCavern/LuxelCavern.csproj", SampleFileKind.Project),
-             new("samples/LuxelCavern/LuxelCavern/CavernRealtimeScene.cs", SampleFileKind.CSharp)],
-            Requirements: ["Repository checkout", ".NET 10", "Windows real-window host"], ExportSymbol: "CavernRealtimeScene",
-            RunCommand: "dotnet run --project samples/LuxelCavern/LuxelCavern",
-            SmokeCommand: "dotnet build samples/LuxelCavern/LuxelCavern/LuxelCavern.csproj --configuration Release --no-restore",
-            Platforms: ["Windows"], TimeoutSeconds: 180));
-        SampleBundleRegistry.Register(new SampleBundleInfo(
-            "game.range", "Luxel Range capstone",
-            "Repository recipe integrating ECS, physics, glTF, GPU asset extraction and 3D particles.", "Advanced",
-            SampleCopyLevel.Recipe,
-            [new("samples/LuxelRange/LuxelRange/LuxelRange.csproj", SampleFileKind.Project),
-             new("samples/LuxelRange/LuxelRange/RangeRealtimeScene.cs", SampleFileKind.CSharp)],
-            Requirements: ["Repository checkout", ".NET 10", "Windows real-window host", "Khronos Fox asset"], ExportSymbol: "RangeRealtimeScene",
-            RunCommand: "dotnet run --project samples/LuxelRange/LuxelRange",
-            SmokeCommand: "dotnet build samples/LuxelRange/LuxelRange/LuxelRange.csproj --configuration Release --no-restore",
-            Platforms: ["Windows"], TimeoutSeconds: 240));
-        SampleBundleRegistry.Register(new SampleBundleInfo(
-            "scripting.gallery", "Gallery script hot reload",
-            "Gallery-hosted ScriptHost recipe covering compilation, diagnostics, cancellation and successful-swap reload.", "Intermediate",
-            SampleCopyLevel.Block,
-            [new("src/Gallery/Luxel.Gallery.Stories/Stories/ScriptingStory.cs", SampleFileKind.CSharp)],
-            Requirements: ["Luxel.Scripting", "Gallery service provider"], ExportSymbol: "ScriptHost",
-            RunCommand: "dotnet run --project gallery/GalleryNative -- vk --story Examples/Scripting/HotReload",
-            SmokeCommand: "dotnet test tests/Luxel.Tests/Luxel.Tests.csproj --filter Scripting",
-            Platforms: ["Windows", "Linux", "macOS"], TimeoutSeconds: 180));
-        SampleBundleRegistry.Register(new SampleBundleInfo(
-            "framework.fixed-timestep", "Deterministic framework timing",
-            "A headless FixedTimestep consumer that demonstrates bounded fixed updates, dropped-step diagnostics and interpolation alpha.", "Beginner",
-            SampleCopyLevel.Block,
-            [new("samples/LuxelFramework/LuxelFramework.csproj", SampleFileKind.Project),
-             new("samples/LuxelFramework/Program.cs", SampleFileKind.CSharp)],
-            Dependencies: ["support.source-tree"], Requirements: [".NET 10", "Headless on all supported .NET OS"], ExportSymbol: "FixedTimestep",
-            RunCommand: "dotnet run --project samples/LuxelFramework", SmokeCommand: "dotnet run --project samples/LuxelFramework",
-            Platforms: ["Windows", "Linux", "macOS"], ExpectedStdoutMarker: "framework: updates=5, total=5, dropped=2, alpha=0.00"));
-        SampleBundleRegistry.Register(new SampleBundleInfo(
             "ui.headless-tree", "Headless reactive widget tree",
             "CompositeControl tracks a Signal read during Build, invalidates its root, and rebuilds a declarative StackPanel on the next layout.", "Beginner",
             SampleCopyLevel.Block,
@@ -64,24 +26,6 @@ internal static class SampleBundles
             Dependencies: ["support.source-tree"], Requirements: [".NET 10", "Bundled font", "Headless on all supported .NET OS"], ExportSymbol: "CompositeControl",
             RunCommand: "dotnet run --project samples/LuxelUiHeadless", SmokeCommand: "dotnet run --project samples/LuxelUiHeadless",
             Platforms: ["Windows", "Linux", "macOS"], ExpectedStdoutMarker: "ui: builds=2, children=1->3, invalidated=True"));
-        SampleBundleRegistry.Register(new SampleBundleInfo(
-            "input.actions", "Deterministic input actions",
-            "FakeInputSource drives InputBus, InputStack, ButtonAction and Axis2DAction without a window.", "Beginner",
-            SampleCopyLevel.Block,
-            [new("samples/LuxelInput/LuxelInput.csproj", SampleFileKind.Project), new("samples/LuxelInput/Program.cs", SampleFileKind.CSharp)],
-            Dependencies: ["support.source-tree"], Requirements: [".NET 10", "Headless on all supported .NET OS"], ExportSymbol: "InputStack",
-            RunCommand: "dotnet run --project samples/LuxelInput", SmokeCommand: "dotnet run --project samples/LuxelInput",
-            Platforms: ["Windows", "Linux", "macOS"], ExpectedStdoutMarker: "input: jump=True, triggered=1"));
-        SampleBundleRegistry.Register(new SampleBundleInfo(
-            "audio.tone", "Headless audio tone",
-            "Procedural PCM16, AudioClip, AudioMixer and NullAudioBackend with observable voice state.", "Beginner",
-            SampleCopyLevel.Block,
-            [new("samples/LuxelAudio/LuxelAudio.csproj", SampleFileKind.Project),
-             new("samples/LuxelAudio/Program.cs", SampleFileKind.CSharp),
-             new("samples/LuxelAudio/AudioConceptSamples.cs", SampleFileKind.CSharp)],
-            Dependencies: ["support.source-tree"], Requirements: [".NET 10", "Headless: any supported OS", "Audible output: Windows/XAudio2 integration"], ExportSymbol: "AudioMixer",
-            RunCommand: "dotnet run --project samples/LuxelAudio", SmokeCommand: "dotnet run --project samples/LuxelAudio",
-            Platforms: ["Windows", "Linux", "macOS"], ExpectedStdoutMarker: "audio: initialized=True, voices=1"));
         SampleBundleRegistry.Register(new SampleBundleInfo(
             "rendering.webgpu-headless", "Headless WebGPU compute and triangle",
             "Public GpuDevice API recipe covering inline WGSL compute, offscreen rendering and HostCached readback validation.", "Beginner",
@@ -118,18 +62,6 @@ internal static class SampleBundles
             Dependencies: ["support.source-tree"], Requirements: [".NET 10", "Vulkan 1.3 or DirectX 12"], ExportSymbol: "Program",
             RunCommand: "dotnet run --project samples/LuxelTriangle -- vk --stage triangle",
             SmokeCommand: "dotnet run --project samples/LuxelTriangle -- vk --stage triangle --frames 1"));
-        SampleBundleRegistry.Register(new SampleBundleInfo(
-            "rendering.triangle", "Triangle renderer",
-            "A complete triangle recipe: standalone app host plus the compiled C#/Slang renderer.", "Beginner",
-            SampleCopyLevel.Recipe,
-            [new("samples/CanonicalTriangleRecipe.cs", SampleFileKind.CSharp),
-             new("samples/LuxelTriangle/TutorialAbi.cs", SampleFileKind.CSharp, "triangle-abi"),
-             new("samples/LuxelTriangle/TriangleRenderer.cs", SampleFileKind.CSharp),
-             new("shaders/tutorial_triangle.slang", SampleFileKind.Shader)],
-            Dependencies: ["rendering.app-host"], Requirements: ["Luxel.Graphics", "Luxel.Platform"],
-            ExportSymbol: "TriangleRenderer", RunCommand: "dotnet run --project samples/LuxelTriangle -- vk --stage triangle",
-            SmokeCommand: "dotnet run --project samples/LuxelTriangle -- vk --stage triangle --frames 1",
-            Platforms: ["Windows", "Linux"], TimeoutSeconds: 180, ExpectedStdoutMarker: "tutorial-3d: 1 frame(s), stage=Triangle"));
         SampleBundleRegistry.Register(new SampleBundleInfo(
             "rendering.2d", "Standalone 2D canvas",
             "A backend-neutral Scene2D rendered by the Skia CPU rasterizer with deterministic output.", "Beginner",

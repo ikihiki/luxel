@@ -1,0 +1,147 @@
+#!/usr/bin/env python3
+"""Fixture tests for the project graph and Gallery ownership checks."""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+
+ENG = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ENG))
+from project_graph import load_graph  # noqa: E402
+
+
+def project(metadata: str = "", references: str = "") -> str:
+    return f"""<Project Sdk=\"Microsoft.NET.Sdk\">
+  <PropertyGroup>{metadata}</PropertyGroup>
+  <ItemGroup>{references}</ItemGroup>
+</Project>
+"""
+
+
+GALLERY_METADATA = """
+    <LuxelProjectRole>GalleryCategory</LuxelProjectRole>
+    <LuxelGalleryCategory>Resources</LuxelGalleryCategory>
+    <LuxelSubsystem>Resources</LuxelSubsystem>
+    <LuxelPlatform>Browser</LuxelPlatform>
+    <LuxelArchitectureTier>Base</LuxelArchitectureTier>
+    <IsPackable>false</IsPackable>
+    <LuxelGalleryRegistrationIdentity>Resources.Base</LuxelGalleryRegistrationIdentity>
+"""
+
+
+class RepoFixture:
+    def __init__(self, files: dict[str, str], baseline: dict | None = None):
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        for name, content in files.items():
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+        projects = sorted(name for name in files if name.endswith(".csproj"))
+        solution = "<Solution>\n" + "".join(f'  <Project Path="{name}" />\n' for name in projects) + "</Solution>\n"
+        (self.root / "Luxel.slnx").write_text(solution, encoding="utf-8")
+        baseline_path = self.root / "eng" / "project-architecture-baseline.json"
+        baseline_path.parent.mkdir(parents=True, exist_ok=True)
+        baseline_path.write_text(json.dumps(baseline or {}), encoding="utf-8")
+
+    def run(self, script: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [sys.executable, str(ENG / script), "--root", str(self.root)],
+            text=True, capture_output=True, check=False,
+        )
+
+    def close(self) -> None:
+        self.temp.cleanup()
+
+
+class ArchitectureFixtureTests(unittest.TestCase):
+    def fixture(self, files: dict[str, str], baseline: dict | None = None) -> RepoFixture:
+        fixture = RepoFixture(files, baseline)
+        self.addCleanup(fixture.close)
+        return fixture
+
+    def test_valid_fixture_and_analyzer_reference_classification(self) -> None:
+        fixture = self.fixture({
+            "src/App/App.csproj": project(references='''
+    <ProjectReference Include="../../tools/Generator/Generator.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />'''),
+            "src/ResourceGallery/ResourceGallery.csproj": project(GALLERY_METADATA),
+            "tools/Generator/Generator.csproj": project(),
+        })
+        result = fixture.run("check-project-dependencies.py")
+        self.assertEqual(0, result.returncode, result.stderr)
+        graph, errors = load_graph(fixture.root)
+        self.assertFalse(errors)
+        app = graph[(fixture.root / "src/App/App.csproj").resolve()]
+        self.assertEqual("Analyzer", app.references[0].kind)
+
+    def test_rejects_unbaselined_production_gallery_reference(self) -> None:
+        fixture = self.fixture({
+            "src/App/App.csproj": project(references='<ProjectReference Include="../ResourceGallery/ResourceGallery.csproj" />'),
+            "src/ResourceGallery/ResourceGallery.csproj": project(GALLERY_METADATA),
+        })
+        result = fixture.run("check-project-dependencies.py")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("Production project references Gallery", result.stderr)
+
+    def test_ratcheted_baseline_allows_only_named_legacy_edge(self) -> None:
+        edge = "src/App/App.csproj -> src/ResourceGallery/ResourceGallery.csproj [Compile]"
+        fixture = self.fixture({
+            "src/App/App.csproj": project(references='<ProjectReference Include="../ResourceGallery/ResourceGallery.csproj" />'),
+            "src/ResourceGallery/ResourceGallery.csproj": project(GALLERY_METADATA),
+        }, {"legacy_production_gallery_references": [edge]})
+        result = fixture.run("check-project-dependencies.py")
+        self.assertEqual(0, result.returncode, result.stderr)
+
+    def test_rejects_cross_category_native_to_base_reference(self) -> None:
+        native = GALLERY_METADATA.replace("Resources", "Platform").replace("Browser", "Native").replace("Base", "Native")
+        fixture = self.fixture({
+            "src/Native/Native.csproj": project(native, '<ProjectReference Include="../ResourceGallery/ResourceGallery.csproj" />'),
+            "src/ResourceGallery/ResourceGallery.csproj": project(GALLERY_METADATA),
+        })
+        result = fixture.run("check-project-dependencies.py")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("another category's base Gallery", result.stderr)
+
+    def test_rejects_missing_reference_and_duplicate_identities(self) -> None:
+        second = GALLERY_METADATA.replace("Resources.Base", "Resources.Base")
+        fixture = self.fixture({
+            "src/One/One.csproj": project(GALLERY_METADATA + "<AssemblyName>Duplicate</AssemblyName>"),
+            "src/Two/Two.csproj": project(second + "<AssemblyName>Duplicate</AssemblyName>", '<ProjectReference Include="../Missing/Missing.csproj" />'),
+        })
+        result = fixture.run("check-project-dependencies.py")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("Missing Compile ProjectReference", result.stderr)
+        self.assertIn("Duplicate assembly name", result.stderr)
+        self.assertIn("Duplicate Gallery registration identity", result.stderr)
+
+    def test_rejects_browser_to_native_closure(self) -> None:
+        browser = GALLERY_METADATA.replace("Resources.Base", "Resources.Browser")
+        native = GALLERY_METADATA.replace("Resources", "Platform").replace("Browser", "Native").replace("Base", "Native")
+        fixture = self.fixture({
+            "src/Browser/Browser.csproj": project(browser, '<ProjectReference Include="../Native/Native.csproj" />'),
+            "src/Native/Native.csproj": project(native),
+        })
+        result = fixture.run("check-project-dependencies.py")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("Browser project reaches a Native dependency", result.stderr)
+
+    def test_rejects_production_story_ownership_and_mathematics_registrar(self) -> None:
+        fixture = self.fixture({
+            "src/App/App.csproj": project(),
+            "src/App/Stories.cs": '[Story("Bad/Owner")] static object Build() => new();',
+            "src/Luxel.Mathematics/Luxel.Mathematics.csproj": project(),
+            "src/Luxel.Mathematics/Register.cs": "StoryRegistry.Register(value);",
+        })
+        result = fixture.run("check-gallery-ownership.py")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("Production project owns Gallery stories/registrar", result.stderr)
+        self.assertIn("Luxel.Mathematics must not contain stories", result.stderr)
+
+
+if __name__ == "__main__":
+    unittest.main()

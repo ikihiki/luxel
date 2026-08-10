@@ -46,19 +46,18 @@ async function expectNoFailures(failures) {
   expect(failures.failedResponses).toEqual([]);
 }
 
-test('ResourceSystem Learn renders TOC, course navigation, live examples, and Back navigation', async ({ page }) => {
+test('ResourceSystem Learn renders course navigation, live examples, and Back navigation', async ({ page }) => {
   const failures = collectFailures(page);
-  const story = 'Learn/Resources/LoadingAndHandles';
+  const story = 'Learn/Resources/IdentityAndHandles';
   await page.goto(`/?story=${encodeURIComponent(story)}`);
 
-  await expect(page.locator('.markdown-document h1')).toHaveText('読み込みとResourceHandle');
-  await expect(page.locator('.markdown-document a[href^="#"]').filter({ hasText: 'ResourceSystemを構築する' })).toBeVisible();
-  await expect(page.locator('.markdown-document a[href*="Learn%2FResources%2FOverview"]')).toContainText('Resources学習ガイド');
-  await expect(page.locator('.markdown-document a[href*="Learn%2FResources%2FSourcesAndUris"]')).toContainText('SourceとリソースURI');
+  await expect(page.locator('.markdown-document h1')).toHaveText('Identityとhandle');
+  await expect(page.locator('.markdown-document a[href*="Learn%2FResources%2FResourceManagers"]')).toContainText('Resource manager');
+  await expect(page.locator('.markdown-document a[href*="Learn%2FResources%2FSourcesAndSteps"]')).toContainText('SourceとStep');
 
   const embeds = page.locator('.markdown-story-embed');
   await expect(embeds).toHaveCount(1);
-  await expect(embeds.locator('header')).toContainText('Examples/Resources/HelloTextAsset');
+  await expect(embeds.locator('header')).toContainText('Examples/Resources/SharedRequestIdentity');
   const embedded = page.frameLocator('.markdown-story-embed iframe').first();
   await expect(embedded.getByRole('tab', { name: '引数' })).toBeVisible();
   await embedded.getByRole('tab', { name: 'ソース' }).click();
@@ -66,14 +65,15 @@ test('ResourceSystem Learn renders TOC, course navigation, live examples, and Ba
   await expect(embedded.locator('.story-source')).not.toContainText('ResourceScenarios.Create');
   await expect(embedded.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
   await embedded.getByRole('tab', { name: '出力' }).click();
-  await expect(embedded.locator('.output-list')).toContainText('テキストアセットの読み込み: 準備完了');
+  await expect(embedded.locator('.output-list')).toContainText('共有request identity: 準備完了');
+  await expect(embedded.locator('.output-list')).toContainText('中間Step実行=1; 単語数=1');
 
   await embeds.nth(0).getByRole('link', { name: 'Storyを開く' }).click();
-  await expect(page).toHaveURL(/story=Examples%2FResources%2FHelloTextAsset/);
-  await expect(page.locator('.story-toolbar h1')).toHaveText('HelloTextAsset');
+  await expect(page).toHaveURL(/story=Examples%2FResources%2FSharedRequestIdentity/);
+  await expect(page.locator('.story-toolbar h1')).toHaveText('SharedRequestIdentity');
   await page.goBack();
-  await expect(page).toHaveURL(/story=Learn%2FResources%2FLoadingAndHandles/);
-  await expect(page.locator('.markdown-document h1')).toHaveText('読み込みとResourceHandle');
+  await expect(page).toHaveURL(/story=Learn%2FResources%2FIdentityAndHandles/);
+  await expect(page.locator('.markdown-document h1')).toHaveText('Identityとhandle');
 
   await expectNoFailures(failures);
 });
@@ -120,19 +120,26 @@ test('glTF Learn exposes loading, URI, and diagnostic examples without fixture f
 
 const cpuResourceStories = [
   'Examples/Resources/ReadyBuilder',
-  'Examples/Resources/HelloTextAsset',
-  'Examples/Resources/CustomPackageSource',
-  'Examples/Resources/PlayerStatsPipeline',
-  'Examples/Resources/ExtensionSelection',
-  'Examples/Resources/SharedDependencyGraph',
-  'Examples/Resources/ScopedRuntimeValues',
-  'Examples/Resources/HotReloadRecovery',
-  'Examples/Resources/BrowserHttpAssets',
+  'Examples/Resources/CustomExecutionDomain',
+  'Examples/Resources/SerializedCompilerDomain',
+  'Examples/Resources/TypedManagerBinding',
+  'Examples/Resources/SharedRequestIdentity',
+  'Examples/Resources/CustomSourceAndStep',
+  'Examples/Resources/DependencyPublication',
+  'Examples/Resources/ScopedRetirement',
+  'Examples/Resources/ReloadKeepsLastGood',
+  'Examples/Resources/DomainAndManagerMetrics',
+  'Examples/Resources/WasmCooperativeScheduling',
+  'Examples/Resources/Assets/GpuManagerInstallation',
+  'Examples/Resources/Assets/CustomGpuParticleBuffers',
+  'Examples/Resources/Assets/CustomGpuStructRetirement',
+  'Examples/Resources/Assets/GpuIndexRecycling',
+  'Examples/Resources/Assets/GpuCompaction',
+  'Examples/Resources/Assets/DeviceLostRecovery',
   'Examples/Resources/Assets/DocumentInspector',
   'Examples/Resources/Assets/MeshPrimitiveInspector',
   'Examples/Resources/Assets/MaterialTextureInspector',
   'Examples/Resources/Assets/AnimatedSceneGraph',
-  'Examples/Resources/Assets/GpuAssetRegistry',
   'Examples/Resources/Assets/ShaderBufferInspector',
   'Examples/Resources/Gltf/BoxDocumentLoad',
   'Examples/Resources/Gltf/ExternalBufferTrace',
@@ -154,17 +161,17 @@ for (const story of cpuResourceStories) {
 
 test('Resource widget publishes its result to the shared Output and Source panels', async ({ page }) => {
   const failures = collectFailures(page);
-  const story = 'Examples/Resources/HelloTextAsset';
+  const story = 'Examples/Resources/ReadyBuilder';
   await page.goto(`/?story=${encodeURIComponent(story)}`);
 
   const runtime = page.frameLocator('.story-runtime-frame');
   await expect(runtime.locator('#status')).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
   await page.getByRole('tab', { name: '出力' }).click();
-  await expect(page.locator('.output-list')).toContainText('テキストアセットの読み込み: 準備完了');
-  await expect(page.locator('.output-list')).toContainText('こんにちは、RESOURCES');
+  await expect(page.locator('.output-list')).toContainText('readyなbuilder: 準備完了');
+  await expect(page.locator('.output-list')).toContainText('状態=Ready; 値=HELLO RESOURCES');
   await page.getByRole('tab', { name: 'ソース' }).click();
-  await expect(page.locator('.story-source')).toContainText('public static Widget HelloTextAsset');
-  await expect(page.locator('.story-source')).toContainText('resources.AddStep<byte[], TextAsset>');
+  await expect(page.locator('.story-source')).toContainText('public static Widget ReadyBuilder');
+  await expect(page.locator('.story-source')).toContainText('builder.Steps.Add<byte[], TextAsset>');
   await expect(page.locator('.story-source')).not.toContainText('ResourceScenarios.Create');
   await expectNoFailures(failures);
 });

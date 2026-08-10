@@ -7,11 +7,11 @@ public sealed class BrowserEcsStoriesTests
     {
         string root = FindRepositoryRoot();
         string source = File.ReadAllText(Path.Combine(root,
-            "src", "Gallery", "Luxel.Gallery.Stories.CoreUi", "Stories", "EcsCubesStories.cs"));
+            "src", "Framework", "Luxel.Framework.Gallery", "Stories", "EcsCubesStories.cs"));
         string project = File.ReadAllText(Path.Combine(root,
-            "src", "Gallery", "Luxel.Gallery.Stories.CoreUi", "Luxel.Gallery.Stories.CoreUi.csproj"));
+            "src", "Framework", "Luxel.Framework.Gallery", "Luxel.Framework.Gallery.csproj"));
         string nativeSource = File.ReadAllText(Path.Combine(root,
-            "src", "Gallery", "Luxel.Gallery.Stories", "Stories", "Gpu", "Ecs3DStories.cs"));
+            "src", "Luxel.Graphics.Gallery", "Stories", "Gpu", "Ecs3DStories.cs"));
 
         Assert.Contains("[Story(\"Examples/3D/EcsCubes\"", source);
         Assert.Contains("Luxel.Ecs.csproj", project);
