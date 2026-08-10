@@ -155,13 +155,21 @@ public sealed class GalleryCategoryConformanceTests
     public void Desktop_only_routes_are_absent_from_browser_catalogs_and_owned_by_native_extensions()
     {
         AssertNativeOnly(EditorGalleryProject.CreateCatalog(), EditorNativeGalleryProject.CreateCatalog(),
-            "Apps/Studio/Shell");
-        AssertNativeOnly(ScriptingGalleryProject.CreateCatalog(), ScriptingNativeGalleryProject.CreateCatalog(),
+            "Apps/Studio/Shell",
             "Learn/Production/StudioToPlayer",
             "Learn/Production/ValidateAndShip",
-            "Learn/Production/Workbench",
-            "Learn/Scripting/Overview",
-            "Learn/Scripting/ReloadAndIsolation");
+            "Learn/Production/Workbench");
+        AssertNativeOnly(ScriptingGalleryProject.CreateCatalog(), ScriptingNativeGalleryProject.CreateCatalog(),
+            "Examples/Scripting/NativeHotReload",
+            "Examples/Scripting/Repl");
+
+        StoryCatalog scriptingBrowser = ScriptingGalleryProject.CreateCatalog();
+        Assert.NotNull(scriptingBrowser.Find("Learn/Scripting/Overview"));
+        Assert.NotNull(scriptingBrowser.Find("Learn/Scripting/ReloadAndIsolation"));
+        Assert.NotNull(scriptingBrowser.Find("Examples/Scripting/LiveCsx"));
+        Assert.NotNull(scriptingBrowser.Find("Examples/Scripting/HotReload"));
+        Assert.NotNull(scriptingBrowser.Find("Examples/Scripting/Notebook"));
+        Assert.NotNull(scriptingBrowser.Find("Examples/Scripting/Playground"));
 
         static void AssertNativeOnly(StoryCatalog browser, StoryCatalog native, params string[] routes)
         {

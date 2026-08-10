@@ -24,7 +24,12 @@ public sealed class BrowserStoryCatalogSourceTests
 
         Assert.Contains("Microsoft.NET.Sdk.BlazorWebAssembly", project, StringComparison.Ordinal);
         Assert.Contains("WebAssemblyHostBuilder.CreateDefault(args)", entryPoint, StringComparison.Ordinal);
-        Assert.Contains("builder.Services.AddSingleton(new HttpClient", entryPoint, StringComparison.Ordinal);
+        Assert.Contains("var http = new HttpClient", entryPoint, StringComparison.Ordinal);
+        Assert.Contains("BrowserRoslynGalleryRuntime.LoadReferencesAsync(http)", entryPoint, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddSingleton<ICodeLanguage>(scripting.Language)", entryPoint, StringComparison.Ordinal);
+        Assert.Contains("builder.Services.AddSingleton<INativePlaygroundRunner>(scripting.Playground)", entryPoint, StringComparison.Ordinal);
+        Assert.Contains("wwwroot\\references\\manifest.json", project, StringComparison.Ordinal);
+        Assert.Contains("CopyGalleryRoslynMetadataReferencesToPublish", project, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddResourceGallery()", entryPoint, StringComparison.Ordinal);
         Assert.DoesNotContain("AddCoreUiStory", entryPoint, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddUiGallery()", entryPoint, StringComparison.Ordinal);

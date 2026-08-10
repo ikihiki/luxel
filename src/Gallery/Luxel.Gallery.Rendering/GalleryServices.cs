@@ -1,5 +1,6 @@
-﻿using Luxel.Controls;
+using Luxel.Controls;
 using Luxel.Gallery.RenderingSupport;
+using Luxel.Gallery.Playground;
 using Luxel.Scripting;
 using Luxel.Settings;
 using Luxel.Graphics.TwoD;
@@ -63,6 +64,7 @@ public static class GalleryServices
         services.AddSingleton(sp => sp.GetRequiredService<ScriptHostRegistry>().Host(UiProfile));
         services.AddSingleton(sp => sp.GetRequiredService<ScriptHostRegistry>().Workspace(UiProfile));
         services.AddSingleton<ICodeLanguage>(sp => new RenderingCsharpCodeLanguage(sp.GetRequiredService<ScriptWorkspace>()));
+        services.AddSingleton<INativePlaygroundRunner, NativePlaygroundRunner>();
         services.AddSingleton<IFileStore, InMemoryFileStore>();
         return services.BuildServiceProvider();
     }

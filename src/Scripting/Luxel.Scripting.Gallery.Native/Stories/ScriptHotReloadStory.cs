@@ -129,8 +129,8 @@ public static class ScriptHotReloadStory
         public override string? DebugDetail => $"hot reload (box x={BoxX:0})";
     }
 
-    [Story("Examples/Scripting/HotReload", Height = 420, Order = 2035)]
-    public static Widget HotReload(StoryContext ctx, ScriptHostRegistry scripts)
+    [Story("Examples/Scripting/NativeHotReload", Height = 420, Order = 2035)]
+    public static Widget NativeHotReload(StoryContext ctx, ScriptHostRegistry scripts)
     {
         var block = new HotReloadBlock(460, scripts);
 

@@ -5,8 +5,8 @@ const nativeOnlyRoutes = [
   'Learn/Production/StudioToPlayer',
   'Learn/Production/ValidateAndShip',
   'Learn/Production/Workbench',
-  'Learn/Scripting/Overview',
-  'Learn/Scripting/ReloadAndIsolation'
+  'Examples/Scripting/NativeHotReload',
+  'Examples/Scripting/Repl'
 ];
 
 const workerCount = 6;
@@ -19,10 +19,6 @@ const approvedFallbacks = new Set([
   'Controls/TextEditorView/Completion',
   'Examples/2D/Backends',
   'Examples/3D/TexturedQuad',
-  'Examples/Scripting/LiveCsx',
-  'Examples/Scripting/HotReload',
-  'Examples/Scripting/Playground',
-  'Examples/Scripting/Repl',
   'Game/Cavern',
   'Internals/Authoring',
   'Learn/Graphics/2D/Backends',
@@ -64,7 +60,7 @@ test('every Blazor Gallery page renders or reaches a browser-safe runtime fallba
   const routes = [...new Set(await discovery.locator('.story-link').evaluateAll(links => links.map(link => link.title)))].sort();
   await discovery.close();
 
-  expect(routes).toHaveLength(504);
+  expect(routes).toHaveLength(505);
   for (const nativeOnlyRoute of nativeOnlyRoutes)
     expect(routes, `${nativeOnlyRoute} must only be registered by Gallery.Native`).not.toContain(nativeOnlyRoute);
   const failures = [];

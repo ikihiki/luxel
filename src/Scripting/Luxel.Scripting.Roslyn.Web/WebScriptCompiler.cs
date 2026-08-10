@@ -79,6 +79,7 @@ public sealed class WebScriptCompiler
 
     public static string Wrap(string body, string fileName) => $$"""
         using System;
+        using System.Linq;
         using Luxel.Graphics;
         using Luxel.UI;
         using Luxel.Controls;
