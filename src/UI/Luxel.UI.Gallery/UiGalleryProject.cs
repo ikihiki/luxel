@@ -5,6 +5,8 @@ namespace Luxel.UI.Gallery;
 /// <summary>Owns browser-safe UI stories and generated production component fallbacks.</summary>
 public static class UiGalleryProject
 {
+    public static StoryOwnership Ownership { get; } = StoryOwnership.BrowserSafe("UI", "UI.Base");
+
     private static readonly Lazy<GeneratedComponentStoryDescriptor[]> ProductionLazy = new(CreateProduction);
 
     public static int ProductionComponentCount => ProductionComponents.Count;
@@ -16,8 +18,10 @@ public static class UiGalleryProject
     public static void Register(StoryCatalogBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        using IDisposable ownership = builder.BeginOwnership(Ownership);
         var categoryBuilder = new StoryCatalogBuilder();
         RegisterProductionComponents(categoryBuilder);
+        global::Luxel.Gallery.Stories.ControlDocsApi.RegisterControlStories(categoryBuilder);
         Merge(Luxel.Gallery.Generated.StoryRegistration_Luxel_UI_Gallery.Register);
         Merge(Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_UI_Gallery.Register);
 

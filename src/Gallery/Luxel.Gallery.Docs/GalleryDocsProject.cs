@@ -4,12 +4,16 @@ namespace Luxel.Gallery.Docs;
 
 public static class GalleryDocsProject
 {
+    public static StoryOwnership Ownership { get; } = StoryOwnership.BrowserSafe("GalleryDocs", "GalleryDocs.Base");
+
     public static IServiceCollection AddGalleryDocs(this IServiceCollection services)
         => services.AddStoryCatalog(Register);
 
     public static void Register(StoryCatalogBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        using IDisposable ownership = builder.BeginOwnership(Ownership);
+        global::Luxel.Gallery.Stories.ReferenceDocsApi.Register(builder);
         var docsBuilder = new StoryCatalogBuilder();
         Luxel.Gallery.Generated.StoryRegistration_Luxel_Gallery_Docs.Register(docsBuilder);
         foreach (StoryInfo story in docsBuilder.Build().All)

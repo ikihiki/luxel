@@ -11,7 +11,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />
     <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
-    <ProjectReference Include="..\Luxel.Gallery.Stories\Luxel.Gallery.Stories.csproj" />
     <ProjectReference Include="..\..\Resource\Luxel.Assets.Gltf\Luxel.Assets.Gltf.csproj" />
     <ProjectReference Include="..\..\Resource\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
     <ProjectReference Include="..\..\Luxel.Controls\Luxel.Controls.csproj" />
@@ -27,6 +26,24 @@
     <ProjectReference Include="..\..\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\..\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
     <ProjectReference Include="..\..\Luxel.Workbench\Luxel.Workbench.csproj" />
+    <ProjectReference Include="..\..\Luxel.Diagram\Luxel.Diagram.csproj" />
+    <ProjectReference Include="..\..\Luxel.MathText\Luxel.MathText.csproj" />
+    <ProjectReference Include="..\..\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
+    <ProjectReference Include="..\..\Luxel.Imaging\Luxel.Imaging.csproj" />
+    <ProjectReference Include="..\..\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\..\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
+    <ProjectReference Include="..\..\Luxel.Typography.Icu\Luxel.Typography.Icu.csproj" />
+    <ProjectReference Include="..\..\Luxel.Input.XInput\Luxel.Input.XInput.csproj" />
+    <ProjectReference Include="..\..\Luxel.Audio.Windows\Luxel.Audio.Windows.csproj" />
+    <ProjectReference Include="..\..\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
+    <ProjectReference Include="..\..\Luxel.Platform.Silk\Luxel.Platform.Silk.csproj" />
+    <ProjectReference Include="..\..\Luxel.Terminal.Windows\Luxel.Terminal.Windows.csproj" />
+    <ProjectReference Include="..\..\Luxel.Terminal.Linux\Luxel.Terminal.Linux.csproj" />
+    <ProjectReference Include="..\..\Framework\Luxel.Framework.Game.Native\Luxel.Framework.Game.Native.csproj" />
+    <ProjectReference Include="..\..\Framework\Luxel.Framework.DevTools\Luxel.Framework.DevTools.csproj" />
+    <ProjectReference Include="..\Luxel.Gallery.Generators\Luxel.Gallery.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU"
+                      GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
+    <ProjectReference Include="..\..\Framework\Luxel.Framework.UI\Luxel.Framework.UI.csproj" />
   </ItemGroup>
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">

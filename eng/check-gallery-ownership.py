@@ -40,6 +40,33 @@ def validate(root: Path, solution: str, baseline_path: Path) -> list[str]:
             if owns_gallery_source:
                 errors.append("Luxel.Mathematics must not contain stories or a Gallery registrar")
 
+    compatibility = next((project for project in projects.values() if project.path.stem == "Luxel.Gallery.Stories"), None)
+    if compatibility is not None:
+        source_names = {
+            source.relative_to(compatibility.path.parent).as_posix()
+            for source in project_sources(compatibility.path)
+        }
+        allowed_sources = {"GalleryStoryProject.cs"}
+        if source_names != allowed_sources:
+            errors.append(
+                "Luxel.Gallery.Stories must remain composition-only; expected source files "
+                f"{sorted(allowed_sources)}, found {sorted(source_names)}"
+            )
+        project_text = compatibility.path.read_text(encoding="utf-8-sig", errors="replace")
+        if "<EmbeddedResource" in project_text or "OutputItemType=\"Analyzer\"" in project_text:
+            errors.append("Luxel.Gallery.Stories must not own embedded resources or source generators")
+        for reference in compatibility.references:
+            target = projects.get(reference.target)
+            if target is None:
+                continue
+            if reference.kind != "Compile" or not (
+                target.role == "GalleryCategory" or target.path.stem == "Luxel.Gallery"
+            ):
+                errors.append(
+                    "Luxel.Gallery.Stories may reference only Gallery core and category composition roots: "
+                    f"{relative(root, reference.target)} [{reference.kind}]"
+                )
+
     return errors
 
 

@@ -4,12 +4,15 @@ namespace Luxel.Scripting.Gallery;
 
 public static class ScriptingGalleryProject
 {
+    public static StoryOwnership Ownership { get; } = StoryOwnership.BrowserSafe("Scripting", "Scripting.Base");
+
     public static IServiceCollection AddScriptingGallery(this IServiceCollection services)
         => services.AddStoryCatalog(Register);
 
     public static void Register(StoryCatalogBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        using IDisposable ownership = builder.BeginOwnership(Ownership);
         Luxel.Gallery.Generated.StoryRegistration_Luxel_Scripting_Gallery.Register(builder);
     }
 

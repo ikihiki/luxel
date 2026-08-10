@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <LuxelProjectRole>GalleryInfrastructure</LuxelProjectRole>
     <LuxelGalleryCategory>Shared</LuxelGalleryCategory>
@@ -7,177 +6,26 @@
     <LuxelPlatform>Portable</LuxelPlatform>
     <LuxelArchitectureTier>Host</LuxelArchitectureTier>
     <IsPackable>false</IsPackable>
-    <LuxelGalleryRegistrationIdentity>Platform.Native.Stories</LuxelGalleryRegistrationIdentity>
+    <LuxelGalleryRegistrationIdentity>Gallery.Stories.Compatibility</LuxelGalleryRegistrationIdentity>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\\UI\\Luxel.UI.Gallery\\Luxel.UI.Gallery.csproj" />
-    <ProjectReference Include="..\..\..\src\\Luxel.Graphics.Gallery\\Luxel.Graphics.Gallery.csproj" />
-    <ProjectReference Include="..\..\..\src\\Luxel.Input.Gallery\\Luxel.Input.Gallery.csproj" />
-    <ProjectReference Include="..\..\..\src\\Framework\\Luxel.Framework.Gallery\\Luxel.Framework.Gallery.csproj" />
-    <ProjectReference Include="..\..\..\src\\Luxel.Animation.Gallery\\Luxel.Animation.Gallery.csproj" />
-    <ProjectReference Include="..\..\..\src\\Luxel.Particles.Gallery\\Luxel.Particles.Gallery.csproj" />
-    <ProjectReference Include="..\..\..\src\\Luxel.Scripting.Gallery\\Luxel.Scripting.Gallery.csproj" />
-    <ProjectReference Include="..\..\..\src\\Editor\\Luxel.Editor.Gallery\\Luxel.Editor.Gallery.csproj" />
-    <ProjectReference Include="..\..\..\src\\Luxel.DevTools.Gallery\\Luxel.DevTools.Gallery.csproj" />
-    <ProjectReference Include="..\..\..\src\\GamesSamples\\Luxel.GamesSamples.Gallery\\Luxel.GamesSamples.Gallery.csproj" />
-    <ProjectReference Include="..\Luxel.Gallery.Docs\Luxel.Gallery.Docs.csproj" />
-    <ProjectReference Include="..\..\..\src\\Luxel.Platform.Gallery.Native\\Luxel.Platform.Gallery.Native.csproj" />
-    <ProjectReference Include="..\Luxel.Gallery.DocKit\Luxel.Gallery.DocKit.csproj" />
-    <ProjectReference Include="..\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.Resources.Gallery\Luxel.Resources.Gallery.csproj" />
-    <ProjectReference Include="..\..\Audio\Luxel.Audio.Gallery\Luxel.Audio.Gallery.csproj" />
-    <ProjectReference Include="..\Luxel.Gallery.Playground\Luxel.Gallery.Playground.csproj" />
-    <ProjectReference Include="..\Luxel.Gallery\Luxel.Gallery.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\Luxel.Mathematics\Luxel.Mathematics.csproj" />
-    <Using Include="Luxel.Mathematics" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
-  </ItemGroup>
-
-  <PropertyGroup>
-
-  </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\Luxel.Input\Luxel.Input.csproj" />
-    <ProjectReference Include="..\..\Luxel.Input.XInput\Luxel.Input.XInput.csproj" />
-    <ProjectReference Include="..\..\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
-    <ProjectReference Include="..\..\Framework\Luxel.Framework.UI\Luxel.Framework.UI.csproj" />
-    <ProjectReference Include="..\..\Luxel.Audio.Windows\Luxel.Audio.Windows.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics\Luxel.Graphics.csproj" />
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Luxel.Gallery.Site.Tests</_Parameter1>
-    </AssemblyAttribute>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="wwwroot\**" />
-    <EmbeddedResource Remove="wwwroot\**" />
-    <None Remove="wwwroot\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\Luxel.Terminal\Luxel.Terminal.csproj" />
-    <ProjectReference Include="..\..\Luxel.Terminal.UI\Luxel.Terminal.UI.csproj" />
-    <ProjectReference Include="..\..\Luxel.Terminal.Windows\Luxel.Terminal.Windows.csproj" />
-    <ProjectReference Include="..\..\Luxel.Terminal.Linux\Luxel.Terminal.Linux.csproj" />
-    <ProjectReference Include="..\..\Luxel.DevTools\Luxel.DevTools.csproj" />
-    <ProjectReference Include="..\..\Luxel.Document\Luxel.Document.csproj" />
-    <ProjectReference Include="..\..\Luxel.Platform\Luxel.Platform.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
-    <ProjectReference Include="..\..\Luxel.Typography\Luxel.Typography.csproj" />
-    <ProjectReference Include="..\..\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
-    <ProjectReference Include="..\..\Luxel.UI\Luxel.UI.csproj" />
-    <ProjectReference Include="..\..\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
-    <ProjectReference Include="..\..\Luxel.Controls\Luxel.Controls.csproj" />
-    <ProjectReference Include="..\..\Luxel.Imaging\Luxel.Imaging.csproj" />
-    <ProjectReference Include="..\..\Luxel.Animation\Luxel.Animation.csproj" />
-    <ProjectReference Include="..\..\Luxel.Animation.UI\Luxel.Animation.UI.csproj" />
-    <ProjectReference Include="..\..\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
-    <ProjectReference Include="..\..\Luxel.Diagram\Luxel.Diagram.csproj" />
-    <ProjectReference Include="..\..\Luxel.MathText\Luxel.MathText.csproj" />
-    <ProjectReference Include="..\..\Luxel.Scripting\Luxel.Scripting.csproj" />
-    <ProjectReference Include="..\..\Luxel.Strudel\Luxel.Strudel.csproj" />
-    <!-- デモストーリー (RenderGraph/ECS 3D/Animation) の下回り -->
-    <ProjectReference Include="..\..\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
-    <ProjectReference Include="..\..\Luxel.Ecs\Luxel.Ecs.csproj" />
-    <ProjectReference Include="..\..\Luxel.Settings\Luxel.Settings.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.Assets\Luxel.Assets.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
-    <ProjectReference Include="..\..\Luxel.Animation.ThreeD\Luxel.Animation.ThreeD.csproj" />
-    <ProjectReference Include="..\..\Luxel.Animation.TwoD\Luxel.Animation.TwoD.csproj" />
-    <ProjectReference Include="..\..\Luxel.Physics\Luxel.Physics.csproj" />
-    <ProjectReference Include="..\..\Luxel.Physics.Gizmos\Luxel.Physics.Gizmos.csproj" />
-    <ProjectReference Include="..\..\Luxel.Particles\Luxel.Particles.csproj" />
-    <ProjectReference Include="..\..\Luxel.Particles.TwoD\Luxel.Particles.TwoD.csproj" />
-    <ProjectReference Include="..\..\Luxel.Particles.ThreeD\Luxel.Particles.ThreeD.csproj" />
-    <ProjectReference Include="..\..\Luxel.Particles.UI\Luxel.Particles.UI.csproj" />
-    <ProjectReference Include="..\..\Framework\Luxel.Scripting.Framework\Luxel.Scripting.Framework.csproj" />
-    <!-- データ駆動ゲームランタイム (ToDo 27 GE-3) — Apps/Player ストーリーでホスト -->
-    <ProjectReference Include="..\..\Luxel.Player\Luxel.Player.csproj" />
-    <!-- capstone ① 「Luxel Cavern」のゲームロジックを Game/Cavern ストーリーでホスト (ToDo 19) -->
-    <!-- Reference対象のうち通常ストーリーから到達しないライブラリも明示参照する。 -->
-    <ProjectReference Include="..\..\Framework\Luxel.Framework.DevTools\Luxel.Framework.DevTools.csproj" />
-    <ProjectReference Include="..\..\Luxel.NodeGraph\Luxel.NodeGraph.csproj" />
-    <ProjectReference Include="..\..\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
-    <ProjectReference Include="..\..\Luxel.Workbench\Luxel.Workbench.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics.TwoD.Skia\Luxel.Graphics.TwoD.Skia.csproj" />
-    <ProjectReference Include="..\..\Luxel.Typography.Icu\Luxel.Typography.Icu.csproj" />
-    <!-- 型 API リファレンス (`Reference/{namespace}`) の対象 — Gallery はドキュメントハブとして全域を参照する -->
-    <ProjectReference Include="..\..\Framework\Luxel.Framework.Game.Native\Luxel.Framework.Game.Native.csproj" />
-    <ProjectReference Include="..\..\Framework\Luxel.Framework.Game\Luxel.Framework.Game.csproj" />
-    <ProjectReference Include="..\..\Luxel.Scene.UI\Luxel.Scene.UI.csproj" />
-    <ProjectReference Include="..\..\Luxel.Ecs.Signal\Luxel.Ecs.Signal.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.Assets.Gltf\Luxel.Assets.Gltf.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
-    <!-- [Story] 収集 + コントロールの生成ファクトリ/デバッグ焼き込み -->
-    <ProjectReference Include="..\Luxel.Gallery.Generators\Luxel.Gallery.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU"
-                      GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="Luxel.Gallery.Rendering" />
-    <InternalsVisibleTo Include="Luxel.Gallery.Native" />
-  </ItemGroup>
-
-  <!-- Learn pages quote these real sample files; LogicalName makes lookup independent of cwd/publish layout. -->
-  <ItemGroup>
-    <EmbeddedResource Include="..\..\..\src\Luxel.Graphics.TwoD\Scene2D.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.Scene2D.cs" />
-    <EmbeddedResource Include="..\..\..\src\Luxel.Graphics.TwoD\PathEncoder.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.PathEncoder.cs" />
-    <EmbeddedResource Include="..\..\..\src\Luxel.Graphics.TwoD\Primitives.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.Primitives.cs" />
-    <EmbeddedResource Include="..\..\..\src\Luxel.Graphics.TwoD\IRasterizer2D.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.IRasterizer2D.cs" />
-    <EmbeddedResource Include="..\..\..\src\Luxel.Graphics.TwoD\Retained\RetainedCanvas.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.Retained.RetainedCanvas.cs" />
-    <EmbeddedResource Include="..\..\..\src\Luxel.Graphics.TwoD\GpuDeviceRasterizer2D.cs" LogicalName="Luxel.Sample.src.Luxel.Graphics.TwoD.GpuDeviceRasterizer2D.cs" />
-    <EmbeddedResource Include="..\..\..\shaders\raster2d_bounds.slang" LogicalName="Luxel.Sample.shaders.raster2d_bounds.slang" />
-    <EmbeddedResource Include="..\..\..\shaders\raster2d_bin.slang" LogicalName="Luxel.Sample.shaders.raster2d_bin.slang" />
-    <EmbeddedResource Include="..\..\..\shaders\raster2d_fine.slang" LogicalName="Luxel.Sample.shaders.raster2d_fine.slang" />
-    <EmbeddedResource Include="..\..\..\tests\Luxel.Tests\TwoDTests.cs" LogicalName="Luxel.Sample.tests.Luxel.Tests.TwoDTests.cs" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelUiHeadless\LuxelUiHeadless.csproj" LogicalName="Luxel.Sample.samples.LuxelUiHeadless.LuxelUiHeadless.csproj" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelUiHeadless\Program.cs" LogicalName="Luxel.Sample.samples.LuxelUiHeadless.Program.cs" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelTwoD\LuxelTwoD.csproj" LogicalName="Luxel.Sample.samples.LuxelTwoD.LuxelTwoD.csproj" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelTwoD\Program.cs" LogicalName="Luxel.Sample.samples.LuxelTwoD.Program.cs" />
-    <EmbeddedResource Include="..\..\..\gallery\GalleryBrowser\GalleryBrowser.csproj" LogicalName="Luxel.Sample.gallery.GalleryBrowser.GalleryBrowser.csproj" />
-    <EmbeddedResource Include="..\..\..\gallery\GalleryBrowser\Program.cs" LogicalName="Luxel.Sample.gallery.GalleryBrowser.Program.cs" />
-    <EmbeddedResource Include="..\..\..\gallery\GalleryBrowser\README.md" LogicalName="Luxel.Sample.gallery.GalleryBrowser.README.md" />
-    <EmbeddedResource Include="..\..\..\gallery\GalleryBrowser\wwwroot\index.html" LogicalName="Luxel.Sample.gallery.GalleryBrowser.wwwroot.index.html" />
-    <EmbeddedResource Include="..\..\..\gallery\GalleryBrowser\wwwroot\main.js" LogicalName="Luxel.Sample.gallery.GalleryBrowser.wwwroot.main.js" />
-    <EmbeddedResource Include="..\..\..\gallery\GalleryBrowser\Shaders\compute.wgsl" LogicalName="Luxel.Sample.gallery.GalleryBrowser.Shaders.compute.wgsl" />
-    <EmbeddedResource Include="..\..\..\shaders\compiled\tutorial_triangle.wgsl" LogicalName="Luxel.Sample.shaders.compiled.tutorial_triangle.wgsl" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelWebGpuHeadless\LuxelWebGpuHeadless.csproj" LogicalName="Luxel.Sample.samples.LuxelWebGpuHeadless.LuxelWebGpuHeadless.csproj" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelWebGpuHeadless\Program.cs" LogicalName="Luxel.Sample.samples.LuxelWebGpuHeadless.Program.cs" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelWebGpuHeadless\HeadlessWebGpuSample.cs" LogicalName="Luxel.Sample.samples.LuxelWebGpuHeadless.HeadlessWebGpuSample.cs" />
-    <EmbeddedResource Include="..\..\..\samples\CanonicalTriangleRecipe.cs" LogicalName="Luxel.Sample.samples.CanonicalTriangleRecipe.cs" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelTriangle\LuxelTriangle.csproj" LogicalName="Luxel.Sample.samples.LuxelTriangle.LuxelTriangle.csproj" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelTriangle\Program.cs" LogicalName="Luxel.Sample.samples.LuxelTriangle.Program.cs" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelTriangle\TriangleRenderer.cs" LogicalName="Luxel.Sample.samples.LuxelTriangle.TriangleRenderer.cs" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelTriangle\TutorialAbi.cs" LogicalName="Luxel.Sample.samples.LuxelTriangle.TutorialAbi.cs" />
-    <EmbeddedResource Include="..\..\..\shaders\tutorial_triangle.slang" LogicalName="Luxel.Sample.shaders.tutorial_triangle.slang" />
-    <EmbeddedResource Include="..\..\..\shaders\tutorial_3d.slang" LogicalName="Luxel.Sample.shaders.tutorial_3d.slang" />
-    <EmbeddedResource Include="..\..\..\shaders\compute_tutorial_postprocess.slang" LogicalName="Luxel.Sample.shaders.compute_tutorial_postprocess.slang" />
-  </ItemGroup>
-
-  <!-- Gallery / e2e / publish で共有 BIZ/UDEV フォントを使う。 -->
-  <Import Project="..\..\..\assets\Luxel.FontAssets.targets" />
-
-  <!-- Luxel.Framework.UI project content supplies and validates the complete compiled shader cache. -->
-
-  <ItemGroup>
-    <Using Include="Luxel.Graphics" />
+    <ProjectReference Include="../Luxel.Gallery/Luxel.Gallery.csproj" />
+    <ProjectReference Include="../../Resource/Luxel.Resources.Gallery/Luxel.Resources.Gallery.csproj" />
+    <ProjectReference Include="../../Audio/Luxel.Audio.Gallery/Luxel.Audio.Gallery.csproj" />
+    <ProjectReference Include="../../UI/Luxel.UI.Gallery/Luxel.UI.Gallery.csproj" />
+    <ProjectReference Include="../../Luxel.Graphics.Gallery/Luxel.Graphics.Gallery.csproj" />
+    <ProjectReference Include="../../Luxel.Input.Gallery/Luxel.Input.Gallery.csproj" />
+    <ProjectReference Include="../../Framework/Luxel.Framework.Gallery/Luxel.Framework.Gallery.csproj" />
+    <ProjectReference Include="../../Luxel.Animation.Gallery/Luxel.Animation.Gallery.csproj" />
+    <ProjectReference Include="../../Luxel.Particles.Gallery/Luxel.Particles.Gallery.csproj" />
+    <ProjectReference Include="../../Luxel.Scripting.Gallery/Luxel.Scripting.Gallery.csproj" />
+    <ProjectReference Include="../../Editor/Luxel.Editor.Gallery/Luxel.Editor.Gallery.csproj" />
+    <ProjectReference Include="../../Luxel.DevTools.Gallery/Luxel.DevTools.Gallery.csproj" />
+    <ProjectReference Include="../../GamesSamples/Luxel.GamesSamples.Gallery/Luxel.GamesSamples.Gallery.csproj" />
+    <ProjectReference Include="../Luxel.Gallery.Docs/Luxel.Gallery.Docs.csproj" />
+    <ProjectReference Include="../../Luxel.Platform.Gallery.Native/Luxel.Platform.Gallery.Native.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Using Include="Luxel.Audio.Windows" />
-  </ItemGroup>
-  <ItemGroup>
-    <Using Include="Luxel.Platform" />
-  </ItemGroup>
-  <ItemGroup>
-    <Using Include="Luxel.Platform.Windows" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
   </ItemGroup>
 </Project>

@@ -7,26 +7,21 @@ using static Luxel.Gallery.Stories.DocsKit;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>API reference pages generated from the control/type registries.</summary>
-public static class DocsApi
+internal static class ControlDocsApi
 {
     private static readonly object RegistrationGate = new();
     private static readonly HashSet<string> RegisteredNamespaces = new(StringComparer.Ordinal);
     private static readonly HashSet<string> RegisteredControlCategories = new(StringComparer.Ordinal);
 
-    internal static void RegisterReferenceProvider()
-        => StoryRegistry.RegisterProvider(RegisterReferenceStories);
+    internal static void RegisterControlProvider()
+        => StoryRegistry.RegisterProvider(RegisterControlStories);
 
     /// <summary>明示 StoryCatalog 用の API/reference story 登録。</summary>
-    internal static void RegisterReferenceStories(StoryCatalogBuilder builder)
+    internal static void RegisterControlStories(StoryCatalogBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
         RuntimeHelpers.RunModuleConstructor(typeof(Luxel.Controls.Kit).Module.ModuleHandle);
         var categories = new HashSet<string>(StringComparer.Ordinal);
-
-        foreach (string ns in TypeApiRegistry.Namespaces)
-            builder.Add(new StoryInfo($"Reference/{ns}", 0, 0, null,
-                static _ => Spacer(), Order: 60,
-                ResultBuild: ctx => NamespacePage(ctx, ns), Toc: true), replaceGenerated: true);
 
         foreach (ControlApi api in ControlApiRegistry.All)
         {
@@ -35,10 +30,10 @@ public static class DocsApi
             if (category is null || !categories.Add(category)) continue;
             builder.Add(api.Name == "Button"
                 ? new StoryInfo("Controls/Button/Overview", 0, 0, null,
-                    static _ => Spacer(), Order: 0,
+                    static _ => Spacer(), Order: 0, Source: "Generated control API overview.",
                     ResultBuild: static _ => ButtonOverview())
                 : new StoryInfo($"Controls/{category}/Overview", 0, 0, null,
-                    static _ => Spacer(), Order: 0,
+                    static _ => Spacer(), Order: 0, Source: "Generated control API overview.",
                     ResultBuild: ctx => ControlPage(ctx, api)), replaceGenerated: true);
         }
 
@@ -51,23 +46,15 @@ public static class DocsApi
         string category, Func<StoryContext, StoryResult> build)
     {
         if (!categories.Add(category)) return;
-        builder.Add(new StoryInfo($"Controls/{category}/Overview", 0, 0, null, static _ => Spacer(), Order: 0,
+        builder.Add(new StoryInfo($"Controls/{category}/Overview", 0, 0, null, static _ => Spacer(), Order: 0, Source: "Generated control API overview.",
             ResultBuild: build), replaceGenerated: true);
     }
 
-    private static void RegisterReferenceStories()
+    private static void RegisterControlStories()
     {
         RuntimeHelpers.RunModuleConstructor(typeof(Luxel.Controls.Kit).Module.ModuleHandle);
         lock (RegistrationGate)
         {
-            foreach (string value in TypeApiRegistry.Namespaces)
-            {
-                string ns = value;
-                if (!RegisteredNamespaces.Add(ns)) continue;
-                StoryRegistry.Register(new StoryInfo($"Reference/{ns}", 0, 0, null,
-                    static _ => Spacer(), Order: 60,
-                    ResultBuild: ctx => NamespacePage(ctx, ns), Toc: true));
-            }
 
             foreach (ControlApi value in ControlApiRegistry.All)
             {
@@ -76,7 +63,7 @@ public static class DocsApi
                 string? category = ExistingControlCategory(api.Name);
                 if (category is null || !RegisteredControlCategories.Add(category)) continue;
                 StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview", 0, 0, null,
-                    static _ => Spacer(), Order: 0,
+                    static _ => Spacer(), Order: 0, Source: "Generated control API overview.",
                     ResultBuild: ctx => ControlPage(ctx, api)));
             }
 
@@ -89,7 +76,7 @@ public static class DocsApi
     private static void RegisterSpecialControlPage(string category, Func<StoryContext, StoryResult> build)
     {
         if (!RegisteredControlCategories.Add(category)) return;
-        StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview", 0, 0, null, static _ => Spacer(), Order: 0,
+        StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview", 0, 0, null, static _ => Spacer(), Order: 0, Source: "Generated control API overview.",
             ResultBuild: build));
     }
 

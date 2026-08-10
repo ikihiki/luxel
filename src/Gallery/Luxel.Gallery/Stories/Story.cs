@@ -450,6 +450,22 @@ public sealed record GeneratedComponentStoryDescriptor(
     string OverviewPath,
     string BasicPath);
 
+/// <summary>Declares the category project that owns a compiled story route.</summary>
+public sealed record StoryOwnership(string Category, string RegistrationIdentity, GalleryCompatibility Compatibility)
+{
+    public static StoryOwnership BrowserSafe(string category, string registrationIdentity)
+        => new(category, registrationIdentity, GalleryCompatibility.BrowserSafe);
+
+    public static StoryOwnership NativeOnly(string category, string registrationIdentity)
+        => new(category, registrationIdentity, GalleryCompatibility.NativeOnly);
+}
+
+public enum GalleryCompatibility
+{
+    BrowserSafe,
+    NativeOnly,
+}
+
 /// <summary>Controls exact-path composition. Only authored stories may explicitly replace generated component fallbacks.</summary>
 public enum StoryRegistrationKind
 {
@@ -469,7 +485,8 @@ public sealed record StoryInfo(string Path, int Width, int Height, string? Theme
                                IReadOnlyList<StoryArgDefinition>? ArgDefinitions = null, string? CapabilityNote = null,
                                bool Toc = false,
                                StoryRegistrationKind RegistrationKind = StoryRegistrationKind.Authored,
-                               GeneratedComponentStoryDescriptor? ProductionComponent = null)
+                               GeneratedComponentStoryDescriptor? ProductionComponent = null,
+                               StoryOwnership? Ownership = null)
 {
     /// <summary>Widget/Markdown を区別した semantic build。既存 Widget Story は暗黙変換で統一される。</summary>
     public StoryResult BuildResult(StoryContext context) => ResultBuild?.Invoke(context) ?? Build(context);

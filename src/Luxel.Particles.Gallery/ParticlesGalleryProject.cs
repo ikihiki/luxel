@@ -4,6 +4,8 @@ namespace Luxel.Particles.Gallery;
 
 public static class ParticlesGalleryProject
 {
+    public static StoryOwnership Ownership { get; } = StoryOwnership.BrowserSafe("Particles", "Particles.Base");
+
     public static int ProductionComponentCount => ProductionComponents.Count;
     public static IReadOnlyList<GeneratedComponentStoryDescriptor> ProductionComponents
         => Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Particles_UI.Descriptors;
@@ -13,6 +15,7 @@ public static class ParticlesGalleryProject
     public static void Register(StoryCatalogBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        using IDisposable ownership = builder.BeginOwnership(Ownership);
         var categoryBuilder = new StoryCatalogBuilder();
         Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Particles_UI.Register(categoryBuilder);
 

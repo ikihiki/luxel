@@ -43,7 +43,17 @@ public sealed class StoryCatalogBuilder
     private readonly List<string> _registrationOrder = new();
     private readonly Dictionary<string, string> _aliases = new(StringComparer.Ordinal);
     private readonly List<Action<StoryCatalogBuilder>> _providers = new();
+    private StoryOwnership? _ownership;
     private bool _built;
+
+    public IDisposable BeginOwnership(StoryOwnership ownership)
+    {
+        ObjectDisposedException.ThrowIf(_built, this);
+        ArgumentNullException.ThrowIfNull(ownership);
+        StoryOwnership? previous = _ownership;
+        _ownership = ownership;
+        return new OwnershipScope(this, previous);
+    }
 
     public bool ContainsPath(string path)
     {
@@ -55,6 +65,8 @@ public sealed class StoryCatalogBuilder
     {
         ObjectDisposedException.ThrowIf(_built, this);
         ArgumentNullException.ThrowIfNull(story);
+        if (story.Ownership is null && _ownership is not null)
+            story = story with { Ownership = _ownership };
         bool replacing = _stories.TryGetValue(story.Path, out StoryInfo? existing);
         if (replacing)
         {
@@ -68,7 +80,6 @@ public sealed class StoryCatalogBuilder
             if (story.ProductionComponent is not null && story.ProductionComponent != existing.ProductionComponent)
                 throw new InvalidOperationException(
                     $"Story '{story.Path}' attempted to replace a fallback for another production component.");
-
             // The authored implementation replaces only the renderer/source. Canonical production identity
             // and the generated static schema remain authoritative for URLs/manifests.
             story = story with
@@ -76,6 +87,7 @@ public sealed class StoryCatalogBuilder
                 ArgDefinitions = story.ArgDefinitions ?? existing.ArgDefinitions,
                 CapabilityNote = story.CapabilityNote ?? existing.CapabilityNote,
                 ProductionComponent = existing.ProductionComponent,
+                Ownership = existing.Ownership,
             };
         }
         _stories[story.Path] = story;
@@ -123,6 +135,17 @@ public sealed class StoryCatalogBuilder
 
         StoryInfo[] stories = _registrationOrder.Select(path => _stories[path]).ToArray();
         return new StoryCatalog(stories, new Dictionary<string, string>(_aliases, StringComparer.Ordinal));
+    }
+
+    private sealed class OwnershipScope(StoryCatalogBuilder builder, StoryOwnership? previous) : IDisposable
+    {
+        private StoryCatalogBuilder? _builder = builder;
+
+        public void Dispose()
+        {
+            StoryCatalogBuilder? current = Interlocked.Exchange(ref _builder, null);
+            if (current is not null) current._ownership = previous;
+        }
     }
 
 }
