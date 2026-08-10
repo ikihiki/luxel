@@ -52,6 +52,28 @@ public sealed class ProductionComponentCatalogTests
     }
 
     [Fact]
+    public void Browser_safe_control_overviews_keep_runnable_embedded_samples()
+    {
+        StoryCatalog catalog = UiGalleryProject.CreateCatalog();
+
+        foreach (GeneratedComponentStoryDescriptor descriptor in UiGalleryProject.ProductionComponents)
+        {
+            StoryInfo overview = Assert.IsType<StoryInfo>(catalog.Find(descriptor.OverviewPath));
+            StoryResult result = overview.BuildResult(new StoryContext());
+
+            Assert.Equal(StoryResultKind.Markdown, result.Kind);
+            Assert.Empty(result.Embeds);
+            Assert.NotEmpty(result.References);
+            Assert.All(result.References, reference => Assert.NotNull(catalog.Find(reference.Path)));
+        }
+
+        StoryInfo accordion = Assert.IsType<StoryInfo>(catalog.Find("Controls/Accordion/Overview"));
+        StoryResult accordionResult = accordion.BuildResult(new StoryContext());
+        Assert.Contains("Implementation", accordionResult.Markdown, StringComparison.Ordinal);
+        Assert.Equal("Controls/Accordion/Basic", Assert.Single(accordionResult.References).Path);
+    }
+
+    [Fact]
     public void Production_component_assemblies_publish_neutral_metadata_without_Gallery_dependencies()
     {
         Assembly[] productionAssemblies =

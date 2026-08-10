@@ -21,7 +21,6 @@ public static class UiGalleryProject
         using IDisposable ownership = builder.BeginOwnership(Ownership);
         var categoryBuilder = new StoryCatalogBuilder();
         RegisterProductionComponents(categoryBuilder);
-        global::Luxel.Gallery.Stories.ControlDocsApi.RegisterControlStories(categoryBuilder);
         Merge(Luxel.Gallery.Generated.StoryRegistration_Luxel_UI_Gallery.Register);
         Merge(Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_UI_Gallery.Register);
 
