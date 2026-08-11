@@ -1,4 +1,9 @@
 const { test, expect } = require('@playwright/test');
+const {
+  galleryStoryPath,
+  collectPageFailures,
+  expectRuntimeStory: expectGalleryRuntimeStory
+} = require('@luxel/browser-e2e-support/gallery').createGalleryHelpers(expect);
 
 const twoDStories = [
   'Examples/2D/SceneRender',
@@ -60,41 +65,10 @@ const animationGpuStories = new Set([
 
 const animationMotionStories = new Set(animationStories.filter(story => story !== 'Examples/Animation/StateMachine'));
 
-const runtimeUrl = story => `/?story=${encodeURIComponent(story)}&embed=1`;
-
-function collectErrors(page) {
-  const consoleErrors = [];
-  const pageErrors = [];
-  page.on('console', message => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
-  });
-  page.on('pageerror', error => pageErrors.push(String(error?.stack || error)));
-  return { consoleErrors, pageErrors };
-}
-
-async function expectRuntimeStory(frame, story) {
-  const status = frame.locator('#status');
-  await expect(status).toHaveAttribute('data-story', story, { timeout: 90_000 });
-  await expect(status).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
-  await expect(status).toContainText(`story=${story}`);
-  await expect(frame.locator('#error')).toBeHidden();
-  await expect(frame.locator('#luxel-canvas')).toBeVisible();
-
-  const documentRoot = frame.locator('html');
-  await expect.poll(() => documentRoot.evaluate(() => globalThis.luxelBrowserState?.renderRevision || 0), {
-    timeout: 30_000
-  }).toBeGreaterThan(0);
-  await expect.poll(() => documentRoot.evaluate(() => globalThis.luxelBrowserState?.widgets?.length || 0), {
-    timeout: 30_000
-  }).toBeGreaterThan(0);
-  const webGpu = await documentRoot.evaluate(() => globalThis.luxelBrowserState?.webGpu);
-  expect(webGpu?.adapter).toBeTruthy();
-  expect(typeof webGpu.adapter.isFallbackAdapter).toBe('boolean');
-  expect(webGpu?.device?.status).toBe('ready');
-  expect(webGpu?.surface?.configured).toBe(true);
-  expect(webGpu?.surface?.presentCount).toBeGreaterThan(0);
-  expect(webGpu?.lastError).toBeNull();
-}
+const runtimeUrl = galleryStoryPath;
+const collectErrors = collectPageFailures;
+const expectRuntimeStory = (target, story) =>
+  expectGalleryRuntimeStory(target, story, { webGpu: true, statusText: true });
 
 test('Blazor Gallery shows loading progress before the WebAssembly app starts', async ({ page }) => {
   await page.route('**/_framework/blazor.webassembly*.js', route => route.abort());

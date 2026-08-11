@@ -1,4 +1,11 @@
 const { test, expect } = require('@playwright/test');
+const {
+  galleryStoryPath,
+  collectPageFailures,
+  expectRuntimeStory,
+  clickCanvasWidget,
+  expectWidgetDetail
+} = require('@luxel/browser-e2e-support/gallery').createGalleryHelpers(expect);
 
 const audioStories = [
   'Examples/Audio/BackendLifecycle',
@@ -8,45 +15,9 @@ const audioStories = [
   'Examples/Audio/StreamingQueue'
 ];
 
-const runtimeUrl = story => `/?story=${encodeURIComponent(story)}&embed=1`;
-
-function collectErrors(page) {
-  const consoleErrors = [];
-  const pageErrors = [];
-  page.on('console', message => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
-  });
-  page.on('pageerror', error => pageErrors.push(String(error?.stack || error)));
-  return { consoleErrors, pageErrors };
-}
-
-async function expectRuntimeStory(page, story) {
-  const status = page.locator('#status');
-  await expect(status).toHaveAttribute('data-story', story, { timeout: 90_000 });
-  await expect(status).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
-  await expect.poll(() => page.evaluate(() => globalThis.luxelBrowserState?.widgets?.length || 0), {
-    timeout: 30_000
-  }).toBeGreaterThan(0);
-}
-
-async function clickWidget(page, detail) {
-  await expect.poll(() => page.evaluate(label =>
-    globalThis.luxelBrowserState?.widgets?.find(value =>
-      value.type?.endsWith('.Button') && value.detail === label) || null, detail), {
-    timeout: 30_000
-  }).not.toBeNull();
-  const match = await page.evaluate(label => globalThis.luxelBrowserState.widgets.find(value =>
-    value.type?.endsWith('.Button') && value.detail === label), detail);
-  const canvas = page.locator('#luxel-canvas');
-  await canvas.click({ position: { x: match.x + match.width / 2, y: match.y + match.height / 2 } });
-}
-
-async function expectWidgetDetail(page, expected) {
-  await expect.poll(() => page.evaluate(text =>
-    globalThis.luxelBrowserState?.widgets?.some(widget => widget.detail?.includes(text)) || false, expected), {
-    timeout: 30_000
-  }).toBe(true);
-}
+const runtimeUrl = galleryStoryPath;
+const collectErrors = collectPageFailures;
+const clickWidget = (page, detail) => clickCanvasWidget(page, { detail });
 
 for (const story of audioStories) {
   test(`browser-WASM boots ${story}`, async ({ page }) => {

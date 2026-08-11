@@ -1,0 +1,13 @@
+{
+  "name": "@luxel/browser-e2e-support",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "exports": {
+    "./config": "./config.js",
+    "./gallery": "./gallery.js"
+  },
+  "peerDependencies": {
+    "@playwright/test": "1.62.1"
+  }
+}

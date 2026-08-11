@@ -12,6 +12,7 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@playwright/test": "1.62.1"
+    "@playwright/test": "1.62.1",
+    "@luxel/browser-e2e-support": "file:../../eng/browser-e2e-support"
   }
 }

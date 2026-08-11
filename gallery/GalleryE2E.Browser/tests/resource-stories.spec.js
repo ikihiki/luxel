@@ -1,50 +1,14 @@
 const { test, expect } = require('@playwright/test');
+const {
+  collectPageFailures,
+  expectRuntimeStory: expectGalleryRuntimeStory,
+  expectNoPageFailures
+} = require('@luxel/browser-e2e-support/gallery').createGalleryHelpers(expect);
 
-const runtimeUrl = story => `/?story=${encodeURIComponent(story)}&embed=1`;
-
-function collectFailures(page) {
-  const consoleErrors = [];
-  const pageErrors = [];
-  const failedResponses = [];
-  page.on('console', message => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
-  });
-  page.on('pageerror', error => pageErrors.push(String(error?.stack || error)));
-  page.on('response', response => {
-    if (response.status() >= 400) failedResponses.push(`${response.status()} ${response.url()}`);
-  });
-  return { consoleErrors, pageErrors, failedResponses };
-}
-
-async function expectRuntimeStory(page, story, { gpu = false } = {}) {
-  const status = page.locator('#status');
-  await expect(status).toHaveAttribute('data-story', story, { timeout: 90_000 });
-  await expect(status).toHaveAttribute('data-status', 'pass', { timeout: 90_000 });
-  await expect(page.locator('#error')).toBeHidden();
-  await expect(page.locator('#luxel-canvas')).toBeVisible();
-  await expect.poll(() => page.evaluate(() => globalThis.luxelBrowserState?.renderRevision || 0), {
-    timeout: 30_000
-  }).toBeGreaterThan(0);
-  await expect.poll(() => page.evaluate(() => globalThis.luxelBrowserState?.widgets?.length || 0), {
-    timeout: 30_000
-  }).toBeGreaterThan(0);
-  if (gpu) {
-    await expect.poll(() => page.evaluate(() =>
-      globalThis.luxelBrowserState?.widgets?.find(widget => widget.type?.endsWith('.GpuView'))?.detail || ''),
-      { timeout: 90_000 }).toContain('Ready');
-    const webGpu = await page.evaluate(() => globalThis.luxelBrowserState?.webGpu);
-    expect(webGpu?.adapter).toBeTruthy();
-    expect(webGpu?.device?.status).toBe('ready');
-    expect(webGpu?.surface?.presentCount).toBeGreaterThan(0);
-    expect(webGpu?.lastError).toBeNull();
-  }
-}
-
-async function expectNoFailures(failures) {
-  expect(failures.consoleErrors).toEqual([]);
-  expect(failures.pageErrors).toEqual([]);
-  expect(failures.failedResponses).toEqual([]);
-}
+const collectFailures = page => collectPageFailures(page, { responses: true });
+const expectRuntimeStory = (page, story, { gpu = false } = {}) =>
+  expectGalleryRuntimeStory(page, story, { webGpu: gpu, gpuView: gpu });
+const expectNoFailures = expectNoPageFailures;
 
 test('ResourceSystem Learn renders course navigation, live examples, and Back navigation', async ({ page }) => {
   const failures = collectFailures(page);
