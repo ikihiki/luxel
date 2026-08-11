@@ -1,9 +1,25 @@
-using Microsoft.Playwright;
+﻿using Microsoft.Playwright;
 
 namespace Luxel.Gallery.Browser.E2E.Tests;
 
-public sealed class ScriptingStoryTests(BrowserFixture fixture) : GalleryBrowserTest(fixture)
+public sealed class ScriptingStoryTests : Microsoft.Playwright.Xunit.PageTest
 {
+    public override BrowserNewContextOptions ContextOptions() => GalleryTestHost.ContextOptions();
+
+    public override async Task InitializeAsync()
+    {
+        await GalleryTestHost.EnsureStartedAsync();
+        await base.InitializeAsync();
+        await Context.StartGalleryTracingAsync();
+    }
+
+    public override async Task DisposeAsync()
+    {
+        if (Context is not null)
+            await Context.FinishGalleryTracingAsync(Page, TestOk, GetType().Name);
+        await base.DisposeAsync();
+    }
+
     [Fact]
     public Task LiveCsxCompilesAndRendersWithRoslynWeb() => VerifyInteractionAsync(
         "Examples/Scripting/LiveCsx", "Run", "こんにちは Luxel + Roslyn + csx");
@@ -17,23 +33,23 @@ public sealed class ScriptingStoryTests(BrowserFixture fixture) : GalleryBrowser
         "Examples/Scripting/Playground", "Run", "Workspace ready");
 
     [Fact]
-    public Task NotebookCodeCellsExecuteThroughRoslynWeb() => RunAsync(nameof(NotebookCodeCellsExecuteThroughRoslynWeb), async page =>
+    public async Task NotebookCodeCellsExecuteThroughRoslynWeb()
     {
-        await BootAsync(page, "Examples/Scripting/Notebook");
-        await ClickCanvasWidgetAsync(page, index: 0);
-        await ExpectWidgetDetailAsync(page, "sum = 385");
-    });
+        await BootAsync(Page, "Examples/Scripting/Notebook");
+        await Page.ClickCanvasWidgetAsync(index: 0);
+        await Page.ExpectWidgetDetailAsync("sum = 385");
+    }
 
-    private Task VerifyInteractionAsync(string story, string button, string expected) => RunAsync(story, async page =>
+    private async Task VerifyInteractionAsync(string story, string button, string expected)
     {
-        await BootAsync(page, story);
-        await ClickCanvasWidgetAsync(page, button);
-        await ExpectWidgetDetailAsync(page, expected);
-    });
+        await BootAsync(Page, story);
+        await Page.ClickCanvasWidgetAsync(button);
+        await Page.ExpectWidgetDetailAsync(expected);
+    }
 
     private static async Task BootAsync(IPage page, string story)
     {
-        await page.GotoAsync(StoryPath(story));
-        await ExpectRuntimeStoryAsync(page, story, noCapabilityFallback: true);
+        await page.GotoAsync(story.StoryPath());
+        await page.ExpectRuntimeStoryAsync(story, noCapabilityFallback: true);
     }
 }

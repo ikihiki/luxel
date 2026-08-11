@@ -4,8 +4,14 @@ using static Microsoft.Playwright.Assertions;
 
 namespace Luxel.Gallery.Browser.E2E.Tests;
 
-public sealed class AllPagesTests(BrowserFixture fixture) : GalleryBrowserTest(fixture)
+public sealed class AllPagesTests : Microsoft.Playwright.Xunit.BrowserTest
 {
+    public override async Task InitializeAsync()
+    {
+        await GalleryTestHost.EnsureStartedAsync();
+        await base.InitializeAsync();
+    }
+
     private static readonly string[] NativeOnlyRoutes =
     [
         "Apps/Studio/Shell",
@@ -50,10 +56,10 @@ public sealed class AllPagesTests(BrowserFixture fixture) : GalleryBrowserTest(f
     [Fact(Timeout = 20 * 60_000)]
     public async Task EveryBlazorGalleryPageRendersOrReachesBrowserSafeFallback()
     {
-        await using var discoveryContext = await Fixture.Browser.NewContextAsync(new() { BaseURL = Fixture.BaseUrl });
+        await using var discoveryContext = await NewContext(GalleryTestHost.ContextOptions());
         var discovery = await discoveryContext.NewPageAsync();
         await discovery.GotoAsync("/");
-        await EventuallyAsync(async () => await discovery.Locator(".story-link").CountAsync() > 0, 90_000);
+        await GalleryPolling.EventuallyAsync(async () => await discovery.Locator(".story-link").CountAsync() > 0, 90_000);
         var routes = (await discovery.Locator(".story-link").EvaluateAllAsync<string[]>(
                 "links => links.map(link => link.title)"))
             .Distinct(StringComparer.Ordinal)
@@ -66,9 +72,12 @@ public sealed class AllPagesTests(BrowserFixture fixture) : GalleryBrowserTest(f
 
         var failures = new ConcurrentQueue<string>();
         var next = -1;
-        async Task AuditPagesAsync()
+        var auditContexts = new IBrowserContext[6];
+        for (var index = 0; index < auditContexts.Length; index++)
+            auditContexts[index] = await NewContext(GalleryTestHost.ContextOptions());
+
+        async Task AuditPagesAsync(IBrowserContext context)
         {
-            await using var context = await Fixture.Browser.NewContextAsync(new() { BaseURL = Fixture.BaseUrl });
             context.SetDefaultTimeout(90_000);
             context.SetDefaultNavigationTimeout(90_000);
             while (true)
@@ -96,7 +105,7 @@ public sealed class AllPagesTests(BrowserFixture fixture) : GalleryBrowserTest(f
                         for (var frameIndex = 0; frameIndex < frameCount; frameIndex++)
                         {
                             var source = await frames.Nth(frameIndex).GetAttributeAsync("src");
-                            var embeddedStory = GetQueryValue(new Uri(new Uri(Fixture.BaseUrl), source), "story") ?? string.Empty;
+                            var embeddedStory = GetQueryValue(new Uri(new Uri(GalleryTestHost.BaseUrl), source), "story") ?? string.Empty;
                             var status = frames.Nth(frameIndex).ContentFrame.Locator("#status");
                             try
                             {
@@ -131,11 +140,18 @@ public sealed class AllPagesTests(BrowserFixture fixture) : GalleryBrowserTest(f
             }
         }
 
-        await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => AuditPagesAsync()));
-        Assert.True(failures.IsEmpty, string.Join(Environment.NewLine, failures));
+        try
+        {
+            await Task.WhenAll(auditContexts.Select(AuditPagesAsync));
+            Assert.True(failures.IsEmpty, string.Join(Environment.NewLine, failures));
+        }
+        finally
+        {
+            await Task.WhenAll(auditContexts.Select(context => context.DisposeAsync().AsTask()));
+        }
     }
 
-    private static async Task WaitForRuntimeAsync(ILocator status, string story)
+    private async Task WaitForRuntimeAsync(ILocator status, string story)
     {
         await Expect(status).ToHaveAttributeAsync("data-story", story, new() { Timeout = 90_000 });
         await Expect(status).ToHaveAttributeAsync("data-status", "pass", new() { Timeout = 90_000 });

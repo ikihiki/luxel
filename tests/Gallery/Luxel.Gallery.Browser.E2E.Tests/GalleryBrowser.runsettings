@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <Playwright>
+    <BrowserName>chromium</BrowserName>
+    <ExpectTimeout>90000</ExpectTimeout>
+    <LaunchOptions>
+      <Headless>true</Headless>
+      <Args>['--enable-unsafe-webgpu','--use-angle=swiftshader','--enable-features=Vulkan','--disable-vulkan-surface']</Args>
+    </LaunchOptions>
+  </Playwright>
+  <xUnit>
+    <MaxParallelThreads>2</MaxParallelThreads>
+  </xUnit>
+</RunSettings>

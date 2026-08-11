@@ -1,9 +1,25 @@
-using Microsoft.Playwright;
+﻿using Microsoft.Playwright;
 
 namespace Luxel.Gallery.Browser.E2E.Tests;
 
-public sealed class AudioStoryTests(BrowserFixture fixture) : GalleryBrowserTest(fixture)
+public sealed class AudioStoryTests : Microsoft.Playwright.Xunit.PageTest
 {
+    public override BrowserNewContextOptions ContextOptions() => GalleryTestHost.ContextOptions();
+
+    public override async Task InitializeAsync()
+    {
+        await GalleryTestHost.EnsureStartedAsync();
+        await base.InitializeAsync();
+        await Context.StartGalleryTracingAsync();
+    }
+
+    public override async Task DisposeAsync()
+    {
+        if (Context is not null)
+            await Context.FinishGalleryTracingAsync(Page, TestOk, GetType().Name);
+        await base.DisposeAsync();
+    }
+
     public static TheoryData<string> AudioStories => new()
     {
         "Examples/Audio/BackendLifecycle",
@@ -15,71 +31,71 @@ public sealed class AudioStoryTests(BrowserFixture fixture) : GalleryBrowserTest
 
     [Theory]
     [MemberData(nameof(AudioStories))]
-    public Task BrowserWasmBootsAudioStory(string story) => RunAsync(story, async page =>
+    public async Task BrowserWasmBootsAudioStory(string story)
     {
-        var failures = CollectFailures(page);
-        await page.GotoAsync(StoryPath(story));
-        await ExpectRuntimeStoryAsync(page, story);
+        var failures = Page.CollectFailures();
+        await Page.GotoAsync(story.StoryPath());
+        await Page.ExpectRuntimeStoryAsync(story);
         Assert.Empty(failures.ConsoleErrors);
         Assert.Empty(failures.PageErrors);
-    });
+    }
 
     [Fact]
-    public Task WebAudioLifecycleResumesAndSuspendsFromGalleryButtons() => RunAsync(nameof(WebAudioLifecycleResumesAndSuspendsFromGalleryButtons), async page =>
+    public async Task WebAudioLifecycleResumesAndSuspendsFromGalleryButtons()
     {
-        var failures = CollectFailures(page);
+        var failures = Page.CollectFailures();
         const string story = "Examples/Audio/BackendLifecycle";
-        await page.GotoAsync(StoryPath(story));
-        await ExpectRuntimeStoryAsync(page, story);
-        await ClickCanvasWidgetAsync(page, "Audioを有効化");
-        await ExpectWidgetDetailAsync(page, "ResumeAsync完了: Running");
-        await ClickCanvasWidgetAsync(page, "Audioを一時停止");
-        await ExpectWidgetDetailAsync(page, "SuspendAsync完了: Suspended");
+        await Page.GotoAsync(story.StoryPath());
+        await Page.ExpectRuntimeStoryAsync(story);
+        await Page.ClickCanvasWidgetAsync("Audioを有効化");
+        await Page.ExpectWidgetDetailAsync("ResumeAsync完了: Running");
+        await Page.ClickCanvasWidgetAsync("Audioを一時停止");
+        await Page.ExpectWidgetDetailAsync("SuspendAsync完了: Suspended");
         Assert.Empty(failures.ConsoleErrors);
         Assert.Empty(failures.PageErrors);
-    });
+    }
 
     [Fact]
-    public Task WebAudioToneSubmitsPlaysAndClearsQueue() => RunAsync(nameof(WebAudioToneSubmitsPlaysAndClearsQueue), async page =>
+    public async Task WebAudioToneSubmitsPlaysAndClearsQueue()
     {
-        var failures = CollectFailures(page);
+        var failures = Page.CollectFailures();
         const string story = "Examples/Audio/WaveformAndVoice";
-        await page.GotoAsync(StoryPath(story));
-        await ExpectRuntimeStoryAsync(page, story);
-        await ClickCanvasWidgetAsync(page, "440 Hzを再生");
-        await ExpectWidgetDetailAsync(page, "再生中: 440 Hz / queued=1 / playing=True");
-        await ClickCanvasWidgetAsync(page, "停止");
-        await ExpectWidgetDetailAsync(page, "停止しました。queueは破棄されます。");
+        await Page.GotoAsync(story.StoryPath());
+        await Page.ExpectRuntimeStoryAsync(story);
+        await Page.ClickCanvasWidgetAsync("440 Hzを再生");
+        await Page.ExpectWidgetDetailAsync("再生中: 440 Hz / queued=1 / playing=True");
+        await Page.ClickCanvasWidgetAsync("停止");
+        await Page.ExpectWidgetDetailAsync("停止しました。queueは破棄されます。");
         Assert.Empty(failures.ConsoleErrors);
         Assert.Empty(failures.PageErrors);
-    });
+    }
 
     [Fact]
-    public Task WebAudioControlsUpdateObservableState() => RunAsync(nameof(WebAudioControlsUpdateObservableState), async page =>
+    public async Task WebAudioControlsUpdateObservableState()
     {
-        var failures = CollectFailures(page);
-        await BootAsync(page, "Examples/Audio/Buses");
-        await ClickCanvasWidgetAsync(page, "loopを再生");
-        await ExpectWidgetDetailAsync(page, "voice 30%");
-        await ClickCanvasWidgetAsync(page, "Music 15%");
-        await ExpectWidgetDetailAsync(page, "voice 8%");
+        var failures = Page.CollectFailures();
+        await BootAsync(Page, "Examples/Audio/Buses");
+        await Page.ClickCanvasWidgetAsync("loopを再生");
+        await Page.ExpectWidgetDetailAsync("voice 30%");
+        await Page.ClickCanvasWidgetAsync("Music 15%");
+        await Page.ExpectWidgetDetailAsync("voice 8%");
 
-        await BootAsync(page, "Examples/Audio/SpatialAttenuation");
-        await ClickCanvasWidgetAsync(page, "右・遠い");
-        await ExpectWidgetDetailAsync(page, "gain=0.25 / pan=+1.00");
+        await BootAsync(Page, "Examples/Audio/SpatialAttenuation");
+        await Page.ClickCanvasWidgetAsync("右・遠い");
+        await Page.ExpectWidgetDetailAsync("gain=0.25 / pan=+1.00");
 
-        await BootAsync(page, "Examples/Audio/StreamingQueue");
-        await ClickCanvasWidgetAsync(page, "3 chunkを再生");
-        await ExpectWidgetDetailAsync(page, "330 → 440 → 660 Hz / queued=3 / playing=True");
-        await ClickCanvasWidgetAsync(page, "停止");
-        await ExpectWidgetDetailAsync(page, "停止してqueueを破棄しました。");
+        await BootAsync(Page, "Examples/Audio/StreamingQueue");
+        await Page.ClickCanvasWidgetAsync("3 chunkを再生");
+        await Page.ExpectWidgetDetailAsync("330 → 440 → 660 Hz / queued=3 / playing=True");
+        await Page.ClickCanvasWidgetAsync("停止");
+        await Page.ExpectWidgetDetailAsync("停止してqueueを破棄しました。");
         Assert.Empty(failures.ConsoleErrors);
         Assert.Empty(failures.PageErrors);
-    });
+    }
 
     private static async Task BootAsync(IPage page, string story)
     {
-        await page.GotoAsync(StoryPath(story));
-        await ExpectRuntimeStoryAsync(page, story);
+        await page.GotoAsync(story.StoryPath());
+        await page.ExpectRuntimeStoryAsync(story);
     }
 }
