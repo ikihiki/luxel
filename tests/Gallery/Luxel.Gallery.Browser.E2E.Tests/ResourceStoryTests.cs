@@ -90,13 +90,19 @@ public sealed class ResourceStoryTests : Microsoft.Playwright.Xunit.PageTest
         await Expect(Page.Locator(".markdown-document h1")).ToHaveTextAsync("glTFの登録と読み込み");
         await Expect(Page.Locator(".markdown-story-embed")).ToHaveCountAsync(1);
         await Expect(Page.Locator(".markdown-story-embed header")).ToContainTextAsync("Examples/Resources/Gltf/BoxDocumentLoad");
+        await Expect(Page.Locator(".markdown-story-embed iframe").First.ContentFrame.Locator("#status"))
+            .ToHaveAttributeAsync("data-status", "pass", new() { Timeout = 90_000 });
         await Page.GotoAsync($"/?story={Uri.EscapeDataString("Learn/Resources/Gltf/ExternalBuffersImagesAndUris")}");
         await Expect(Page.Locator(".markdown-document h1")).ToHaveTextAsync("外部バッファ、画像、URI");
         await Expect(Page.Locator(".markdown-story-embed")).ToHaveCountAsync(1);
         await Expect(Page.Locator(".markdown-story-embed header")).ToContainTextAsync("Examples/Resources/Gltf/ExternalBufferTrace");
+        await Expect(Page.Locator(".markdown-story-embed iframe").First.ContentFrame.Locator("#status"))
+            .ToHaveAttributeAsync("data-status", "pass", new() { Timeout = 90_000 });
         await Page.GotoAsync($"/?story={Uri.EscapeDataString("Learn/Resources/Gltf/ValidationAndDiagnostics")}");
         await Expect(Page.Locator(".markdown-document h1")).ToHaveTextAsync("検証と診断");
         await Expect(Page.Locator(".markdown-story-embed header").First).ToContainTextAsync("Examples/Resources/Gltf/MalformedAccessorDiagnostics");
+        await Expect(Page.Locator(".markdown-story-embed iframe").First.ContentFrame.Locator("#status"))
+            .ToHaveAttributeAsync("data-status", "pass", new() { Timeout = 90_000 });
         failures.AssertEmpty();
     }
 
