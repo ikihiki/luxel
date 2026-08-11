@@ -97,7 +97,7 @@ public sealed class AllPagesTests(BrowserFixture fixture) : GalleryBrowserTest(f
                         {
                             var source = await frames.Nth(frameIndex).GetAttributeAsync("src");
                             var embeddedStory = GetQueryValue(new Uri(new Uri(Fixture.BaseUrl), source), "story") ?? string.Empty;
-                            var status = page.FrameLocator(".markdown-story-embed iframe").Nth(frameIndex).Locator("#status");
+                            var status = frames.Nth(frameIndex).ContentFrame.Locator("#status");
                             try
                             {
                                 await WaitForRuntimeAsync(status, embeddedStory);

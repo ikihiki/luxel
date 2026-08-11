@@ -36,7 +36,7 @@ public sealed class ResourceStoryTests(BrowserFixture fixture) : GalleryBrowserT
         var embeds = page.Locator(".markdown-story-embed");
         await Expect(embeds).ToHaveCountAsync(1);
         await Expect(embeds.Locator("header")).ToContainTextAsync("Examples/Resources/SharedRequestIdentity");
-        var embedded = page.FrameLocator(".markdown-story-embed iframe").First;
+        var embedded = page.Locator(".markdown-story-embed iframe").First.ContentFrame;
         await Expect(embedded.GetByRole(AriaRole.Tab, new() { Name = "引数" })).ToBeVisibleAsync();
         await embedded.GetByRole(AriaRole.Tab, new() { Name = "ソース" }).ClickAsync();
         await Expect(embedded.Locator(".story-source")).ToContainTextAsync("resources.Load<TextAsset>");
