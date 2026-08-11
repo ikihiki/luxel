@@ -85,8 +85,14 @@ jobs:
           echo "LIBGL_ALWAYS_SOFTWARE=true" >> "$GITHUB_ENV"
       - name: Restore
         run: dotnet restore Luxel.slnx
-      - name: Build solution and browser contracts
-        run: dotnet build Luxel.slnx --no-restore --configuration Release
+      - name: Build browser contract projects
+        run: |
+          dotnet build tests/Gallery/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj --no-restore --configuration Release
+          dotnet build tests/Gallery/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --configuration Release
+          dotnet build tests/Gallery/Luxel.Gallery.Playground.Tests/Luxel.Gallery.Playground.Tests.csproj --no-restore --configuration Release
+          dotnet build tests/Scripting/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj --no-restore --configuration Release
+          dotnet build tests/Graphics/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --configuration Release
+          dotnet build tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj --no-restore --configuration Release
       - name: Test generators and generated production inventory
         run: dotnet test tests/Gallery/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test Gallery catalog contracts
