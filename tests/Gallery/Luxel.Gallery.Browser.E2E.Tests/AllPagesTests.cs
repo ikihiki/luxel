@@ -72,7 +72,9 @@ public sealed class AllPagesTests : Microsoft.Playwright.Xunit.BrowserTest
 
         var failures = new ConcurrentQueue<string>();
         var next = -1;
-        var auditContexts = new IBrowserContext[6];
+        // Leave capacity for the focused PageTest class running alongside this audit.
+        // Four software-WebGPU contexts keep CI stable without serializing the suite.
+        var auditContexts = new IBrowserContext[4];
         for (var index = 0; index < auditContexts.Length; index++)
             auditContexts[index] = await NewContext(GalleryTestHost.ContextOptions());
 
@@ -155,10 +157,10 @@ public sealed class AllPagesTests : Microsoft.Playwright.Xunit.BrowserTest
     {
         await Expect(status).ToHaveAttributeAsync("data-story", story, new() { Timeout = 90_000 });
         await Expect(status).ToHaveAttributeAsync("data-status", "pass", new() { Timeout = 90_000 });
-        var fallback = await status.EvaluateAsync<bool>(
-            "() => globalThis.luxelBrowserState?.widgets?.some(widget => widget.type?.endsWith('.StoryCapabilityFallback')) || false");
-        if (fallback && !ApprovedFallbacks.Contains(story))
-            throw new Xunit.Sdk.XunitException("unexpected StoryCapabilityFallback");
+        var fallback = await status.EvaluateAsync<string?>(
+            "() => { const widget = globalThis.luxelBrowserState?.widgets?.find(widget => widget.type?.endsWith('.StoryCapabilityFallback')); return widget ? JSON.stringify(widget) : null; }");
+        if (fallback is not null && !ApprovedFallbacks.Contains(story))
+            throw new Xunit.Sdk.XunitException($"unexpected StoryCapabilityFallback: {fallback}");
     }
 
     private static string? GetQueryValue(Uri uri, string name)

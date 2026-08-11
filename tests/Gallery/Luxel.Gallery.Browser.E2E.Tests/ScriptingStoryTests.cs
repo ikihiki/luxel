@@ -1,4 +1,4 @@
-﻿using Microsoft.Playwright;
+using Microsoft.Playwright;
 
 namespace Luxel.Gallery.Browser.E2E.Tests;
 
@@ -13,8 +13,15 @@ public sealed class ScriptingStoryTests : Microsoft.Playwright.Xunit.PageTest
     }
 
     [Fact]
-    public Task LiveCsxCompilesAndRendersWithRoslynWeb() => VerifyInteractionAsync(
-        "Examples/Scripting/LiveCsx", "Run", "こんにちは Luxel + Roslyn + csx");
+    public async Task LiveCsxCompilesAndRendersWithRoslynWeb()
+    {
+        const string story = "Examples/Scripting/LiveCsx";
+        await Page.GotoAsync($"/?story={Uri.EscapeDataString("Learn/Scripting/Overview")}");
+        await Page.FrameLocator(".story-runtime-frame")
+            .ExpectRuntimeStoryAsync("Learn/Scripting/Overview", noCapabilityFallback: true);
+
+        await VerifyInteractionAsync(story, "Run", "こんにちは Luxel + Roslyn + csx");
+    }
 
     [Fact]
     public Task BrowserHotReloadPublishesSuccessfulPreview() => VerifyInteractionAsync(

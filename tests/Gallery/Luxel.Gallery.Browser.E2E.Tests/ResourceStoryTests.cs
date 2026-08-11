@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 
@@ -72,6 +72,8 @@ public sealed class ResourceStoryTests : Microsoft.Playwright.Xunit.PageTest
         var embeds = Page.Locator(".markdown-story-embed");
         await Expect(embeds).ToHaveCountAsync(1);
         await Expect(embeds.Locator("header")).ToContainTextAsync("Examples/Resources/Assets/DocumentInspector");
+        await Expect(Page.Locator(".markdown-story-embed iframe").First.ContentFrame.Locator("#status"))
+            .ToHaveAttributeAsync("data-status", "pass", new() { Timeout = 90_000 });
         await embeds.GetByRole(AriaRole.Link, new() { Name = "Storyを開く" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex("story=Examples%2FResources%2FAssets%2FDocumentInspector"));
         await Expect(Page.FrameLocator(".story-runtime-frame").Locator("#status")).ToHaveAttributeAsync("data-status", "pass", new() { Timeout = 90_000 });

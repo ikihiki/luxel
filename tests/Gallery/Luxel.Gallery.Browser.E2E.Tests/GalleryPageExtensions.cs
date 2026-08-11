@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 
@@ -153,14 +153,23 @@ internal sealed class PageFailures
 
     public void AssertEmpty()
     {
-        Assert.Empty(ConsoleErrors);
-        Assert.Empty(PageErrors);
-        Assert.Empty(FailedResponses);
+        Assert.True(ConsoleErrors.Count == 0, $"Console errors:{Environment.NewLine}{string.Join(Environment.NewLine, ConsoleErrors)}");
+        Assert.True(PageErrors.Count == 0, $"Page errors:{Environment.NewLine}{string.Join(Environment.NewLine, PageErrors)}");
+        Assert.True(FailedResponses.Count == 0, $"Failed responses:{Environment.NewLine}{string.Join(Environment.NewLine, FailedResponses)}");
     }
 }
 
-internal sealed record CanvasWidget(
-    [property: System.Text.Json.Serialization.JsonPropertyName("x")] float X,
-    [property: System.Text.Json.Serialization.JsonPropertyName("y")] float Y,
-    [property: System.Text.Json.Serialization.JsonPropertyName("width")] float Width,
-    [property: System.Text.Json.Serialization.JsonPropertyName("height")] float Height);
+internal sealed class CanvasWidget
+{
+    [System.Text.Json.Serialization.JsonPropertyName("x")]
+    public float X { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("y")]
+    public float Y { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("width")]
+    public float Width { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("height")]
+    public float Height { get; set; }
+}

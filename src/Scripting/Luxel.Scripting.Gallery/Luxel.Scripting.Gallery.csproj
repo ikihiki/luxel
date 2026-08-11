@@ -43,6 +43,7 @@
     <InternalsVisibleTo Include="Luxel.Scripting.Gallery.Native" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="BrowserRoslynGalleryRuntime.cs" LogicalName="Luxel.Sample.src.Scripting.Luxel.Scripting.Gallery.BrowserRoslynGalleryRuntime.cs" />
     <EmbeddedResource Include="Stories/ScriptingStory.cs" LogicalName="Luxel.Sample.src.Scripting.Luxel.Scripting.Gallery.Stories.ScriptingStory.cs" />
   </ItemGroup>
 </Project>
