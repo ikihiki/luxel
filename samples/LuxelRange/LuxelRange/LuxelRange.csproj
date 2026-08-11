@@ -6,7 +6,7 @@
     RID は publish 時に -r win-x64 で指定する (csproj には固定しない)。
   -->
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Luxel.Mathematics\Luxel.Mathematics.csproj" />
+    <ProjectReference Include="..\..\..\src\Shared\Luxel.Mathematics\Luxel.Mathematics.csproj" />
     <Using Include="Luxel.Mathematics" />
   </ItemGroup>
 
@@ -19,25 +19,25 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
-    <ProjectReference Include="..\..\..\src\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\..\src\Platform\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
+    <ProjectReference Include="..\..\..\src\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\LuxelRange.Core\LuxelRange.Core.csproj" />
-    <ProjectReference Include="..\..\..\src\Luxel.Platform\Luxel.Platform.csproj" />
-    <ProjectReference Include="..\..\..\src\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
-    <ProjectReference Include="..\..\..\src\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
+    <ProjectReference Include="..\..\..\src\Platform\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\..\..\src\Graphics\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\..\..\src\Graphics\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
     <!-- 実時間ゲームループ (GameScene/LuxelHostBuilder) + 入力 -->
     <ProjectReference Include="..\..\..\src\Framework\Luxel.Framework.Game.Native\Luxel.Framework.Game.Native.csproj" />
     <ProjectReference Include="..\..\..\src\Framework\Luxel.Framework.Game\Luxel.Framework.Game.csproj" />
-    <ProjectReference Include="..\..\..\src\Luxel.Input\Luxel.Input.csproj" />
+    <ProjectReference Include="..\..\..\src\Input\Luxel.Input\Luxel.Input.csproj" />
     <!-- 3D 描画 (ECS→Render3DExtract→cube_forward、地形メッシュ→scene_pbr_lite、Fox skin→scene_pbr_skinned) -->
-    <ProjectReference Include="..\..\..\src\Resource\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\..\..\src\Resources\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
     <!-- glTF ロード (動く的 = Fox.glb のスケルタルスキン) -->
-    <ProjectReference Include="..\..\..\src\Resource\Luxel.Assets.Gltf\Luxel.Assets.Gltf.csproj" />
+    <ProjectReference Include="..\..\..\src\Resources\Luxel.Assets.Gltf\Luxel.Assets.Gltf.csproj" />
     <!-- 命中パーティクル (.ThreeD ビルボードバースト) -->
-    <ProjectReference Include="..\..\..\src\Luxel.Particles\Luxel.Particles.csproj" />
-    <ProjectReference Include="..\..\..\src\Luxel.Particles.ThreeD\Luxel.Particles.ThreeD.csproj" />
+    <ProjectReference Include="..\..\..\src\Particles\Luxel.Particles\Luxel.Particles.csproj" />
+    <ProjectReference Include="..\..\..\src\Particles\Luxel.Particles.ThreeD\Luxel.Particles.ThreeD.csproj" />
     <!-- セーブの実 IO (PhysicalFileStore を %APPDATA% に向ける) -->
-    <ProjectReference Include="..\..\..\src\Luxel.Settings\Luxel.Settings.csproj" />
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Settings\Luxel.Settings.csproj" />
   </ItemGroup>
 
   <!--

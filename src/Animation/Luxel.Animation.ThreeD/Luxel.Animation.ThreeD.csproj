@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Animation\Luxel.Animation.csproj" />
+    <ProjectReference Include="..\..\Framework\Luxel.Ecs\Luxel.Ecs.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

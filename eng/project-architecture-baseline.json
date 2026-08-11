@@ -16,6 +16,11 @@
     "GalleryDocs"
   ],
   "missing_gallery_categories": [],
+  "approved_native_gallery_categories": [
+    "Editor",
+    "Platform",
+    "Scripting"
+  ],
   "legacy_production_gallery_references": [],
   "legacy_cross_category_native_base_references": []
 }

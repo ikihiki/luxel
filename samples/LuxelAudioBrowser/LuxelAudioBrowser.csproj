@@ -8,11 +8,11 @@
     <WasmMainJSPath>wwwroot/main.js</WasmMainJSPath>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Luxel.Audio\Luxel.Audio.csproj" />
-    <ProjectReference Include="..\..\src\Luxel.Audio.Browser\Luxel.Audio.Browser.csproj" />
+    <ProjectReference Include="..\..\src\Audio\Luxel.Audio\Luxel.Audio.csproj" />
+    <ProjectReference Include="..\..\src\Audio\Luxel.Audio.Browser\Luxel.Audio.Browser.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\..\src\Luxel.Audio.Browser\wwwroot\luxel-audio-browser.js"
+    <Content Include="..\..\src\Audio\Luxel.Audio.Browser\wwwroot\luxel-audio-browser.js"
              Link="wwwroot\luxel-audio-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

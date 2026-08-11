@@ -18,19 +18,19 @@
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\\Resource\\Luxel.Resources.Gallery\\Luxel.Resources.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Audio\\Luxel.Audio.Gallery\\Luxel.Audio.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\UI\\Luxel.UI.Gallery\\Luxel.UI.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Luxel.Graphics.Gallery\\Luxel.Graphics.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Luxel.Input.Gallery\\Luxel.Input.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Framework\\Luxel.Framework.Gallery\\Luxel.Framework.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Luxel.Animation.Gallery\\Luxel.Animation.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Luxel.Particles.Gallery\\Luxel.Particles.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Luxel.Scripting.Gallery\\Luxel.Scripting.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Editor\\Luxel.Editor.Gallery\\Luxel.Editor.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Luxel.DevTools.Gallery\\Luxel.DevTools.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\GamesSamples\\Luxel.GamesSamples.Gallery\\Luxel.GamesSamples.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\\Gallery\\Luxel.Gallery.Docs\\Luxel.Gallery.Docs.csproj" />
+    <ProjectReference Include="..\..\src\Resources\Luxel.Resources.Gallery\Luxel.Resources.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Audio\Luxel.Audio.Gallery\Luxel.Audio.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\UI\Luxel.UI.Gallery\Luxel.UI.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Graphics\Luxel.Graphics.Gallery\Luxel.Graphics.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Input\Luxel.Input.Gallery\Luxel.Input.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Framework\Luxel.Framework.Gallery\Luxel.Framework.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Animation\Luxel.Animation.Gallery\Luxel.Animation.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Particles\Luxel.Particles.Gallery\Luxel.Particles.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Scripting\Luxel.Scripting.Gallery\Luxel.Scripting.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Editor\Luxel.Editor.Gallery\Luxel.Editor.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\DevTools\Luxel.DevTools.Gallery\Luxel.DevTools.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\GamesSamples\Luxel.GamesSamples.Gallery\Luxel.GamesSamples.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Docs\Luxel.Gallery.Docs.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.10" PrivateAssets="all" />
     <PackageReference Include="Markdig" Version="0.41.3" />
@@ -41,9 +41,26 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Browser\Luxel.Gallery.Browser.csproj" />
-    <ProjectReference Include="..\..\src\Resource\Luxel.Resources.Gallery\Luxel.Resources.Gallery.csproj" />
+    <ProjectReference Include="..\..\src\Resources\Luxel.Resources.Gallery\Luxel.Resources.Gallery.csproj" />
     <ProjectReference Include="..\..\src\Audio\Luxel.Audio.Gallery\Luxel.Audio.Gallery.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\samples\LuxelPlaygroundBrowser\wwwroot\references\manifest.json" Link="wwwroot\references\manifest.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="CollectGalleryRoslynMetadataReferences" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <_GalleryRoslynMetadataReference Include="@(ReferencePath)"
+        Condition="'%(Filename)' == 'mscorlib' Or '%(Filename)' == 'netstandard' Or '%(Filename)' == 'System.Runtime' Or '%(Filename)' == 'System.Console' Or '%(Filename)' == 'System.Collections' Or '%(Filename)' == 'System.Linq' Or '%(Filename)' == 'System.Memory' Or '%(Filename)' == 'System.Numerics.Vectors' Or '%(Filename)' == 'Luxel.Scripting.Roslyn.Web' Or '%(Filename)' == 'Luxel.Scripting' Or '%(Filename)' == 'Luxel.UI' Or '%(Filename)' == 'Luxel.Controls' Or '%(Filename)' == 'Luxel.Graphics' Or '%(Filename)' == 'Luxel.Graphics.TwoD'" />
+    </ItemGroup>
+  </Target>
+  <Target Name="CopyGalleryRoslynMetadataReferencesToOutput" AfterTargets="Build" DependsOnTargets="CollectGalleryRoslynMetadataReferences">
+    <MakeDir Directories="$(OutDir)wwwroot/references" />
+    <Copy SourceFiles="@(_GalleryRoslynMetadataReference)" DestinationFolder="$(OutDir)wwwroot/references" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyGalleryRoslynMetadataReferencesToPublish" AfterTargets="Publish" DependsOnTargets="CollectGalleryRoslynMetadataReferences">
+    <MakeDir Directories="$(PublishDir)wwwroot/references" />
+    <Copy SourceFiles="@(_GalleryRoslynMetadataReference)" DestinationFolder="$(PublishDir)wwwroot/references" SkipUnchangedFiles="true" />
+  </Target>
   <ItemGroup>
     <TrimmerRootAssembly Include="Luxel.Physics" />
     <TrimmerRootAssembly Include="Luxel.Physics.Gizmos" />
@@ -52,13 +69,13 @@
     <TrimmerRootAssembly Include="Luxel.AssetRuntime" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser.js" Link="wwwroot\slang-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser-runtime.js" Link="wwwroot\slang-browser-runtime.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang-worker.js" Link="wwwroot\slang-worker.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Luxel.Shaders.Slang.Browser\wwwroot\slang\**\*" Link="wwwroot\slang\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Luxel.Audio.Browser\wwwroot\luxel-audio-browser.js" Link="wwwroot\luxel-audio-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Luxel.Graphics.WebGPU.Browser\wwwroot\luxel-webgpu-browser.js" Link="wwwroot\luxel-webgpu-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Luxel.Platform.Web\wwwroot\luxel-platform-web.js" Link="wwwroot\luxel-platform-web.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser.js" Link="wwwroot\slang-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser-runtime.js" Link="wwwroot\slang-browser-runtime.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang-worker.js" Link="wwwroot\slang-worker.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang\**\*" Link="wwwroot\slang\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Audio\Luxel.Audio.Browser\wwwroot\luxel-audio-browser.js" Link="wwwroot\luxel-audio-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Graphics\Luxel.Graphics.WebGPU.Browser\wwwroot\luxel-webgpu-browser.js" Link="wwwroot\luxel-webgpu-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Platform\Luxel.Platform.Web\wwwroot\luxel-platform-web.js" Link="wwwroot\luxel-platform-web.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <Import Project="..\..\assets\Luxel.KhronosBox.targets" />
   <ItemGroup>

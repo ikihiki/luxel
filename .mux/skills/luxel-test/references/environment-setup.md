@@ -79,42 +79,23 @@ Do not uninstall a pre-existing workload during normal cleanup.
 
 Needed by `gallery-browser-e2e` and `playground-browser-e2e`.
 
-### Detect
-
-Run from the selected suite directory:
+The Gallery suite uses Microsoft.Playwright from its C# test project. Build it before invoking the generated installer:
 
 ```bash
-npm ls @playwright/test
-npx playwright --version
+dotnet build tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj -c Release
+pwsh tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/bin/Release/net10.0/playwright.ps1 --version
+pwsh tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/bin/Release/net10.0/playwright.ps1 install chromium
 ```
 
-### Prepare project packages
+For CI-equivalent Ubuntu installation, include system libraries:
 
 ```bash
-npm ci
+pwsh tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
 ```
 
-### Prepare Chromium
-
-Portable browser-only installation without OS packages:
-
-```bash
-npx playwright install chromium
-```
-
-CI-equivalent Ubuntu installation, including required system libraries:
-
-```bash
-npx playwright install --with-deps chromium
-```
+The Playground smoke suite remains Node-based. From `tests/Gallery/Luxel.Playground.Browser.E2e` use `npm ci`, `npx playwright --version`, and `npm run install:browsers`.
 
 `--with-deps` may invoke the OS package manager and require elevated privileges. Ask for approval before running it.
-
-The repository package aliases are:
-
-```bash
-npm run install:browsers
-```
 
 ### Artifacts and cleanup
 
@@ -336,7 +317,7 @@ Remove-Item Env:WGPU_ADAPTER_NAME -ErrorAction SilentlyContinue
 $env:LUXEL_WEBGPU_REQUIRE_ADAPTER = '1'
 $env:WGPU_BACKEND = 'dx12'
 $env:WGPU_DX12_COMPILER = 'fxc'
-dotnet test tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release
+dotnet test tests/Graphics/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release
 ```
 
 Use `$env:LUXEL_WEBGPU_FORCE_FALLBACK_ADAPTER = '1'` only for an explicit fallback-adapter test or when no compatible hardware adapter is accessible.

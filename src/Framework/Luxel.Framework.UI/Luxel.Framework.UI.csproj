@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="..\..\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+    <ProjectReference Include="..\..\DevTools\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -23,21 +23,21 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Luxel.Platform\Luxel.Platform.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics\Luxel.Graphics.csproj" />
-    <ProjectReference Include="..\..\Luxel.Platform.Silk\Luxel.Platform.Silk.csproj" />
-    <ProjectReference Include="..\..\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics.WebGPU\Luxel.Graphics.WebGPU.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
-    <ProjectReference Include="..\..\Luxel.Typography\Luxel.Typography.csproj" />
-    <ProjectReference Include="..\..\Luxel.UI\Luxel.UI.csproj" />
-    <ProjectReference Include="..\..\Luxel.Terminal\Luxel.Terminal.csproj" />
-    <ProjectReference Include="..\..\Luxel.Terminal.UI\Luxel.Terminal.UI.csproj" />
-    <ProjectReference Include="..\..\Luxel.Terminal.Linux\Luxel.Terminal.Linux.csproj" />
-    <ProjectReference Include="..\..\Luxel.Terminal.Windows\Luxel.Terminal.Windows.csproj" />
-    <ProjectReference Include="..\..\Luxel.Controls\Luxel.Controls.csproj" />
+    <ProjectReference Include="..\..\Platform\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\Platform\Luxel.Platform.Silk\Luxel.Platform.Silk.csproj" />
+    <ProjectReference Include="..\..\Platform\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.WebGPU\Luxel.Graphics.WebGPU.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\..\Editor\Luxel.Terminal\Luxel.Terminal.csproj" />
+    <ProjectReference Include="..\..\Editor\Luxel.Terminal.UI\Luxel.Terminal.UI.csproj" />
+    <ProjectReference Include="..\..\Platform\Luxel.Terminal.Linux\Luxel.Terminal.Linux.csproj" />
+    <ProjectReference Include="..\..\Platform\Luxel.Terminal.Windows\Luxel.Terminal.Windows.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.Controls\Luxel.Controls.csproj" />
   </ItemGroup>
 
   <ItemGroup>

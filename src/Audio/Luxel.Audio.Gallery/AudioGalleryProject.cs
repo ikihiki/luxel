@@ -5,12 +5,15 @@ namespace Luxel.Audio.Gallery;
 /// <summary>Owns the browser-safe Audio learning pages and executable stories.</summary>
 public static class AudioGalleryProject
 {
+    public static StoryOwnership Ownership { get; } = StoryOwnership.BrowserSafe("Audio", "Audio.Base");
+
     public static IServiceCollection AddAudioGallery(this IServiceCollection services)
         => services.AddStoryCatalog(Register);
 
     public static void Register(StoryCatalogBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        using IDisposable ownership = builder.BeginOwnership(Ownership);
         Luxel.Gallery.Generated.StoryRegistration_Luxel_Audio_Gallery.Register(builder);
     }
 

@@ -10,29 +10,29 @@
     <LuxelGalleryRegistrationIdentity>Framework.Base</LuxelGalleryRegistrationIdentity>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Luxel.Physics\Luxel.Physics.csproj" />
-    <ProjectReference Include="..\..\Luxel.Physics.Gizmos\Luxel.Physics.Gizmos.csproj" />
-    <ProjectReference Include="..\..\Luxel.Player\Luxel.Player.csproj" />
-    <ProjectReference Include="..\..\Luxel.Scripting\Luxel.Scripting.csproj" />
-    <ProjectReference Include="..\..\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.Resources\Luxel.Resources.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.Assets\Luxel.Assets.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics\Luxel.Graphics.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
-    <ProjectReference Include="..\..\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
+    <ProjectReference Include="..\Luxel.Physics\Luxel.Physics.csproj" />
+    <ProjectReference Include="..\Luxel.Physics.Gizmos\Luxel.Physics.Gizmos.csproj" />
+    <ProjectReference Include="..\Luxel.Player\Luxel.Player.csproj" />
+    <ProjectReference Include="..\..\Scripting\Luxel.Scripting\Luxel.Scripting.csproj" />
+    <ProjectReference Include="..\..\Editor\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.Assets\Luxel.Assets.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery\Luxel.Gallery.csproj"/>
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery.DocKit\Luxel.Gallery.DocKit.csproj"/>
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj"/>
     <ProjectReference Include="..\Luxel.Framework.Game\Luxel.Framework.Game.csproj"/>
-    <ProjectReference Include="..\..\Luxel.Controls\Luxel.Controls.csproj"/>
-    <ProjectReference Include="..\..\Luxel.Ecs\Luxel.Ecs.csproj"/>
-    <ProjectReference Include="..\..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj"/>
-    <ProjectReference Include="..\..\Luxel.Settings\Luxel.Settings.csproj"/>
-    <ProjectReference Include="..\..\Luxel.Typography\Luxel.Typography.csproj"/>
-    <ProjectReference Include="..\..\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj"/>
-    <ProjectReference Include="..\..\Luxel.UI\Luxel.UI.csproj"/>
-    <ProjectReference Include="..\..\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj"/>
+    <ProjectReference Include="..\..\UI\Luxel.Controls\Luxel.Controls.csproj"/>
+    <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj"/>
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj"/>
+    <ProjectReference Include="..\Luxel.Settings\Luxel.Settings.csproj"/>
+    <ProjectReference Include="..\..\Graphics\Luxel.Typography\Luxel.Typography.csproj"/>
+    <ProjectReference Include="..\..\Graphics\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj"/>
+    <ProjectReference Include="..\..\UI\Luxel.UI\Luxel.UI.csproj"/>
+    <ProjectReference Include="..\..\UI\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0"/>
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery.Generators\Luxel.Gallery.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer"/>
   </ItemGroup>

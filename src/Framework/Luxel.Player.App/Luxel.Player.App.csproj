@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Luxel.Player.App — Studio プロジェクトフォルダを実行する汎用プレイヤー exe (ToDo 27 GE-3 S3)。
+      Luxel.Player.App[.exe] <プロジェクトフォルダ> [vk|dx] [-frames N]
+    実窓・提示・入力の結線だけの薄い層 (LuxelCavern exe と同型)。ランタイムは Luxel.Player。
+    出荷 (publish + コンテンツコピー) は GE-6。
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+
+    <AssemblyName>Luxel.Player.App</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Platform\Luxel.Platform.Windows\Luxel.Platform.Windows.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\Luxel.Player\Luxel.Player.csproj" />
+    <ProjectReference Include="..\..\Platform\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.WebGPU\Luxel.Graphics.WebGPU.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
+    <ProjectReference Include="..\Luxel.Framework.Game\Luxel.Framework.Game.csproj" />
+  </ItemGroup>
+
+  <!-- Slang シェーダ (GpuDeviceRasterizer2D 用) を出力/publish の shaders/ へ -->
+  <Import Project="..\..\..\shaders\Luxel.Shaders.targets" />
+
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Platform" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Platform.Windows" />
+  </ItemGroup>
+</Project>

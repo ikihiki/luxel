@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.UI\Luxel.UI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="wwwroot\index.html" />
+    <!-- format=png 配信と Gallery snap の PNG エンコード (Png.cs) -->
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
+</Project>

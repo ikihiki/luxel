@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Animation\Luxel.Animation\Luxel.Animation.csproj" />
+    <!-- ParticleConfig JSON のロード (ParticleConfigStep)。Resources は CPU のみ (GPU 非依存)。 -->
+    <ProjectReference Include="..\..\Resources\Luxel.Resources\Luxel.Resources.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Shared\Luxel.Mathematics\Luxel.Mathematics.csproj" />
+    <Using Include="Luxel.Mathematics" />
+  </ItemGroup>
+
+  <PropertyGroup>
+
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Luxel.Animation.Tests" />
+    <InternalsVisibleTo Include="Luxel.Audio.Tests" />
+    <InternalsVisibleTo Include="Luxel.DevTools.Tests" />
+    <InternalsVisibleTo Include="Luxel.Editor.Tests" />
+    <InternalsVisibleTo Include="Luxel.Framework.Tests" />
+    <InternalsVisibleTo Include="Luxel.Gallery.Tests" />
+    <InternalsVisibleTo Include="Luxel.GamesSamples.Tests" />
+    <InternalsVisibleTo Include="Luxel.Graphics.Tests" />
+    <InternalsVisibleTo Include="Luxel.Input.Tests" />
+    <InternalsVisibleTo Include="Luxel.Particles.Tests" />
+    <InternalsVisibleTo Include="Luxel.Platform.Tests" />
+    <InternalsVisibleTo Include="Luxel.Resources.Tests" />
+    <InternalsVisibleTo Include="Luxel.Scripting.Tests" />
+    <InternalsVisibleTo Include="Luxel.Shared.Tests" />
+    <InternalsVisibleTo Include="Luxel.UI.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Friflo.Engine.ECS" Version="3.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 診断 DTO (DiagEcs/DiagEcsSummary 等) は core にあるため参照 (core は Ecs を参照しないので循環なし) -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\DevTools\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Luxel.Animation.Tests" />
+    <InternalsVisibleTo Include="Luxel.Audio.Tests" />
+    <InternalsVisibleTo Include="Luxel.DevTools.Tests" />
+    <InternalsVisibleTo Include="Luxel.Editor.Tests" />
+    <InternalsVisibleTo Include="Luxel.Framework.Tests" />
+    <InternalsVisibleTo Include="Luxel.Gallery.Tests" />
+    <InternalsVisibleTo Include="Luxel.GamesSamples.Tests" />
+    <InternalsVisibleTo Include="Luxel.Graphics.Tests" />
+    <InternalsVisibleTo Include="Luxel.Input.Tests" />
+    <InternalsVisibleTo Include="Luxel.Particles.Tests" />
+    <InternalsVisibleTo Include="Luxel.Platform.Tests" />
+    <InternalsVisibleTo Include="Luxel.Resources.Tests" />
+    <InternalsVisibleTo Include="Luxel.Scripting.Tests" />
+    <InternalsVisibleTo Include="Luxel.Shared.Tests" />
+    <InternalsVisibleTo Include="Luxel.UI.Tests" />
+  </ItemGroup>
+
+</Project>

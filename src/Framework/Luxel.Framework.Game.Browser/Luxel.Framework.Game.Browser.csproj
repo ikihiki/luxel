@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\Luxel.Framework.Game\Luxel.Framework.Game.csproj" />
-    <ProjectReference Include="..\..\Luxel.Audio.Browser\Luxel.Audio.Browser.csproj" />
-    <ProjectReference Include="..\..\Luxel.Graphics.WebGPU.Browser\Luxel.Graphics.WebGPU.Browser.csproj" />
-    <ProjectReference Include="..\..\Luxel.Platform.Web\Luxel.Platform.Web.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.Resources.Browser\Luxel.Resources.Browser.csproj" />
+    <ProjectReference Include="..\..\Audio\Luxel.Audio.Browser\Luxel.Audio.Browser.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.WebGPU.Browser\Luxel.Graphics.WebGPU.Browser.csproj" />
+    <ProjectReference Include="..\..\Platform\Luxel.Platform.Web\Luxel.Platform.Web.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.Resources.Browser\Luxel.Resources.Browser.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Luxel.Graphics" />

@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- データ駆動ゲームランタイム (ADR-0015/0018 / ToDo 27 GE-3)。Luxel Studio の
+       プロジェクトフォルダ (project.luxel + scenes + assets) を IVirtualFileSystem から
+       読み、SceneCompiler がランタイム world へ一方向に構築して駆動する。
+       コンパイラはコア + space 別バックエンド (M11 = 2D のみ、3D は M12/GE-9)。
+       csx ビヘイビア (ScriptHost) は GE-3 S2、exe (Luxel.Player.App) は S3 で足す。 -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\Editor\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Typography\Luxel.Typography.csproj" />
+    <!-- csx ビヘイビア (ADR-0018): ScriptHost (Roslyn) でコンパイル・毎ステップ実行 -->
+    <ProjectReference Include="..\..\Scripting\Luxel.Scripting\Luxel.Scripting.csproj" />
+    <InternalsVisibleTo Include="Luxel.Animation.Tests" />
+    <InternalsVisibleTo Include="Luxel.Audio.Tests" />
+    <InternalsVisibleTo Include="Luxel.DevTools.Tests" />
+    <InternalsVisibleTo Include="Luxel.Editor.Tests" />
+    <InternalsVisibleTo Include="Luxel.Framework.Tests" />
+    <InternalsVisibleTo Include="Luxel.Gallery.Tests" />
+    <InternalsVisibleTo Include="Luxel.GamesSamples.Tests" />
+    <InternalsVisibleTo Include="Luxel.Graphics.Tests" />
+    <InternalsVisibleTo Include="Luxel.Input.Tests" />
+    <InternalsVisibleTo Include="Luxel.Particles.Tests" />
+    <InternalsVisibleTo Include="Luxel.Platform.Tests" />
+    <InternalsVisibleTo Include="Luxel.Resources.Tests" />
+    <InternalsVisibleTo Include="Luxel.Scripting.Tests" />
+    <InternalsVisibleTo Include="Luxel.Shared.Tests" />
+    <InternalsVisibleTo Include="Luxel.UI.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Shared\Luxel.Mathematics\Luxel.Mathematics.csproj" />
+    <Using Include="Luxel.Mathematics" />
+  </ItemGroup>
+
+  <PropertyGroup>
+
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

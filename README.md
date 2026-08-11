@@ -76,13 +76,13 @@ dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj -c Release
 python3 -m http.server 8080 -d gallery/GalleryBrowser/bin/Release/net10.0/publish/wwwroot
 ```
 
-Browser GalleryのE2Eは専用projectから実行する:
+Browser GalleryのE2Eは専用C# xUnit projectから実行する:
 
 ```bash
-cd gallery/GalleryE2E.Browser
-npm ci
-npx playwright install --with-deps chromium
-npm run run
+dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj -c Release -o artifacts/gallery-browser
+dotnet build tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj -c Release
+pwsh tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+dotnet test tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj -c Release --no-build
 ```
 
 Browser GalleryはBlazor DIで構成された`StoryCatalog`を直接参照し、`?story=`と`?args=`からstoryを起動する。runtime manifestや親site shellは使用しない。詳細は`docs/gallery-runtime-protocol.md`を参照。
@@ -116,7 +116,7 @@ lavapipe を使った最小回帰テスト:
 
 ```bash
 VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
-  dotnet test tests/Luxel.Vulkan.Tests/Luxel.Vulkan.Tests.csproj
+  dotnet test tests/Graphics/Luxel.Vulkan.Tests/Luxel.Vulkan.Tests.csproj
 ```
 
 ### Window presentation の責任境界

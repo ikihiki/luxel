@@ -40,6 +40,7 @@ public static partial class BrowserGalleryApplication
     public static async Task RunAsync(IServiceProvider storyServices, string story, string argsJson)
     {
         _storyServices = storyServices;
+        GalleryFonts.ConfigureHostLoader(fileName => new VectorFont(Resource(fileName)));
         try
         {
             await RunCatalogStory(story, argsJson);
@@ -118,6 +119,7 @@ public static partial class BrowserGalleryApplication
             SetStatus("loading", $"browser-webgpu: status=loading, story={path}, stage={stage}");
             using var font = new VectorFont(Resource("BIZUDGothic-Regular.ttf"));
             using var context = new StoryContext(resources, args);
+            context.SetServices(_storyServices);
             context.SetGpuHost(device, font);
             _activeContext = context;
             _activeStory = path;
@@ -127,8 +129,17 @@ public static partial class BrowserGalleryApplication
 
             stage = "story";
             SetStatus("loading", $"browser-webgpu: status=loading, story={path}, stage={stage}");
-            StoryResult result = story.BuildResult(context);
-            Widget storyRoot = BuildStoryWidget(story, context, result, font, window.Width, window.Height);
+            Widget storyRoot;
+            try
+            {
+                StoryResult result = story.BuildResult(context);
+                storyRoot = BuildStoryWidget(story, context, result, font, window.Width, window.Height);
+            }
+            catch (Exception error)
+            {
+                context.Log($"Browser capability fallback: {error.GetType().Name}: {error.Message}");
+                storyRoot = BrowserCapabilityFallback(story, error);
+            }
 
             stage = "render";
             SetStatus("loading", $"browser-webgpu: status=loading, story={path}, stage={stage}");
@@ -176,25 +187,47 @@ public static partial class BrowserGalleryApplication
 
             try
             {
-                await RenderAsync();
+                try
+                {
+                    await RenderAsync();
+                }
+                catch (Exception error)
+                {
+                    context.Log($"Browser render fallback: {error.GetType().Name}: {error.Message}");
+                    storyRoot = BrowserCapabilityFallback(story, error);
+                    ui.SetRoot(storyRoot);
+                    await RenderAsync();
+                }
                 SetReady($"browser-webgpu: status=pass\nstory={path}\ndevice={device.Name}", context.Args.ToJson(),
                     JsonSerializer.Serialize(schema.ToArray(), BrowserJsonContext.Default.StoryArgDefinitionArray));
+                bool capabilityFallbackActive = storyRoot is StoryCapabilityFallback;
                 while (windows.Pump())
                 {
-                    if (resizePending)
+                    try
                     {
-                        await device.MainQueue.WaitIdleAsync();
-                        framebuffer.Dispose();
-                        framebuffer = device.Malloc(
-                            checked((ulong)resizeWidth * (uint)resizeHeight * 4), GpuMemoryKind.DeviceLocal);
-                        surface.Resize((uint)resizeWidth, (uint)resizeHeight);
-                        ui.Resize(resizeWidth, resizeHeight);
-                        resizePending = false;
+                        if (resizePending)
+                        {
+                            await device.MainQueue.WaitIdleAsync();
+                            framebuffer.Dispose();
+                            framebuffer = device.Malloc(
+                                checked((ulong)resizeWidth * (uint)resizeHeight * 4), GpuMemoryKind.DeviceLocal);
+                            surface.Resize((uint)resizeWidth, (uint)resizeHeight);
+                            ui.Resize(resizeWidth, resizeHeight);
+                            resizePending = false;
+                        }
+                        await resources.PumpAsync();
+                        await context.PumpObservedResourcesAsync();
+                        ui.Tick(1f / 60f);
+                        if (canvas.HasPendingChanges) await RenderAsync();
                     }
-                    await resources.PumpAsync();
-                    await context.PumpObservedResourcesAsync();
-                    ui.Tick(1f / 60f);
-                    if (canvas.HasPendingChanges) await RenderAsync();
+                    catch (Exception error) when (!capabilityFallbackActive)
+                    {
+                        context.Log($"Browser frame fallback: {error.GetType().Name}: {error.Message}");
+                        storyRoot = BrowserCapabilityFallback(story, error);
+                        ui.SetRoot(storyRoot);
+                        capabilityFallbackActive = true;
+                        await RenderAsync();
+                    }
                     await NextFrame();
                 }
             }
@@ -280,6 +313,11 @@ public static partial class BrowserGalleryApplication
             context.SuppressPlays = suppressed;
         }
     }
+
+    private static Widget BrowserCapabilityFallback(StoryInfo story, Exception error)
+        => new StoryCapabilityFallback(
+            story.Name,
+            $"このStoryはBlazor Galleryで完全には実行できないため、安全な説明表示へ切り替えました。{error.GetType().Name}: {error.Message}");
 
     private static BrowserWidgetDiagnostic[] SnapshotWidgets(Widget root)
     {

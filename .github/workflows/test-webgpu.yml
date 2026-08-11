@@ -3,19 +3,19 @@ name: Test WebGPU
 on:
   pull_request:
     paths:
-      - 'src/Luxel.Graphics/**'
-      - 'src/Luxel.Graphics.WebGPU/**'
-      - 'src/Luxel.Graphics.WebGPU.Browser/**'
-      - 'src/Luxel.Platform.Web/**'
+      - 'src/Graphics/Luxel.Graphics/**'
+      - 'src/Graphics/Luxel.Graphics.WebGPU/**'
+      - 'src/Graphics/Luxel.Graphics.WebGPU.Browser/**'
+      - 'src/Platform/Luxel.Platform.Web/**'
       - 'src/Gallery/Luxel.Gallery.Browser/**'
       - 'src/Gallery/Luxel.Gallery.Stories/SampleBundles.cs'
       - 'src/Gallery/Luxel.Gallery.Stories/Stories/Docs/DocsGpuWebGpu.cs'
       - 'samples/LuxelWebGpuHeadless/**'
       - 'gallery/GalleryBrowser/**'
       - 'samples/LuxelTriangle/**'
-      - 'tests/Luxel.WebGPU.Tests/**'
-      - 'tests/Luxel.WebGPU.Browser.Tests/**'
-      - 'tests/Luxel.WebGPU.Present.Tests/**'
+      - 'tests/Graphics/Luxel.WebGPU.Tests/**'
+      - 'tests/Graphics/Luxel.WebGPU.Browser.Tests/**'
+      - 'tests/Graphics/Luxel.WebGPU.Present.Tests/**'
       - 'shaders/**'
       - 'src/**/*.csproj'
       - 'tests/**/*.csproj'
@@ -66,26 +66,26 @@ jobs:
         run: dotnet msbuild shaders/Luxel.ShaderCache.proj -t:ValidateSlangShaderCache
       - name: Restore WebGPU projects and wgpu-native runtime
         run: |
-          dotnet restore tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj
-          dotnet restore tests/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj
-          dotnet restore tests/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj
+          dotnet restore tests/Graphics/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj
+          dotnet restore tests/Graphics/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj
+          dotnet restore tests/Framework/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj
           dotnet restore samples/LuxelTriangle/LuxelTriangle.csproj
       - name: Build WebGPU tests and samples
         run: |
-          dotnet build tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-restore
-          dotnet build tests/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj -c Release --no-restore
-          dotnet build tests/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj -c Release --no-restore
+          dotnet build tests/Graphics/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-restore
+          dotnet build tests/Graphics/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj -c Release --no-restore
+          dotnet build tests/Framework/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj -c Release --no-restore
           dotnet build samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj -c Release
           dotnet build samples/LuxelTriangle/LuxelTriangle.csproj -c Release --no-restore
-          test -f tests/Luxel.WebGPU.Tests/bin/Release/net10.0/libwgpu_native.so
-          test -f tests/Luxel.WebGPU.Present.Tests/bin/Release/net10.0/libwgpu_native.so
-          test -f tests/Luxel.Framework.UI.Tests/bin/Release/net10.0/libwgpu_native.so
+          test -f tests/Graphics/Luxel.WebGPU.Tests/bin/Release/net10.0/libwgpu_native.so
+          test -f tests/Graphics/Luxel.WebGPU.Present.Tests/bin/Release/net10.0/libwgpu_native.so
+          test -f tests/Framework/Luxel.Framework.UI.Tests/bin/Release/net10.0/libwgpu_native.so
           test -f samples/LuxelWebGpuHeadless/bin/Release/net10.0/libwgpu_native.so
       - name: Test WebGPU with required software adapter
         run: |
-          dotnet test tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-build
-          dotnet test tests/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj -c Release --no-build
-          dotnet test tests/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj -c Release --no-build
+          dotnet test tests/Graphics/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-build
+          dotnet test tests/Graphics/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj -c Release --no-build
+          dotnet test tests/Framework/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj -c Release --no-build
       - name: Run WebGPU samples
         run: |
           dotnet run --project samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj -c Release --no-build
@@ -104,10 +104,10 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - name: Restore
-        run: dotnet restore tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj
+        run: dotnet restore tests/Graphics/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj
       - name: Build
-        run: dotnet build tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-restore
+        run: dotnet build tests/Graphics/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-restore
       - name: Test Windows native runtime and device creation
         run: >-
-          dotnet test tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-build
+          dotnet test tests/Graphics/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release --no-build
           --filter FullyQualifiedName=Luxel.WebGPU.Tests.WebGpuHeadlessTests.DeviceCreation_ProvidesHeadlessBackend

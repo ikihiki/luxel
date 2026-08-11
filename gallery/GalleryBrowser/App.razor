@@ -388,7 +388,7 @@ else
             using var context = new StoryContext(args: args);
             context.SetServices(Services);
             StoryResult result = story.BuildResult(context);
-            return result.Kind == StoryResultKind.Markdown
+            return result.Kind == StoryResultKind.Markdown && result.Embeds.Count == 0
                 ? GalleryMarkdownHtml.Render(story, result)
                 : null;
         }

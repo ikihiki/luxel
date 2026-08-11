@@ -1,0 +1,86 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <LuxelProjectRole>GalleryCategory</LuxelProjectRole>
+    <LuxelGalleryCategory>Graphics</LuxelGalleryCategory>
+    <LuxelSubsystem>Graphics</LuxelSubsystem>
+    <LuxelPlatform>Browser</LuxelPlatform>
+    <LuxelArchitectureTier>Base</LuxelArchitectureTier>
+    <LuxelGalleryCompatibility>Browser;Native</LuxelGalleryCompatibility>
+    <IsPackable>false</IsPackable>
+    <LuxelGalleryRegistrationIdentity>Graphics.Base</LuxelGalleryRegistrationIdentity>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\..\samples\CanonicalClearColorRecipe.cs" Link="CanonicalClearColorRecipe.cs" />
+    <Compile Include="..\..\..\samples\CanonicalTriangleRecipe.cs" Link="CanonicalTriangleRecipe.cs" />
+    <ProjectReference Include="..\..\Gallery\Luxel.Gallery\Luxel.Gallery.csproj" />
+    <ProjectReference Include="..\..\Gallery\Luxel.Gallery.DocKit\Luxel.Gallery.DocKit.csproj" />
+    <ProjectReference Include="..\..\Gallery\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.Controls\Luxel.Controls.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
+    <ProjectReference Include="..\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="..\..\Shared\Luxel.Mathematics\Luxel.Mathematics.csproj" />
+    <ProjectReference Include="..\..\Particles\Luxel.Particles\Luxel.Particles.csproj" />
+    <ProjectReference Include="..\..\Particles\Luxel.Particles.TwoD\Luxel.Particles.TwoD.csproj" />
+    <ProjectReference Include="..\Luxel.Shaders\Luxel.Shaders.csproj" />
+    <ProjectReference Include="..\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.Assets\Luxel.Assets.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\..\Gallery\Luxel.Gallery.Generators\Luxel.Gallery.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU"
+                      GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Gallery" />
+    <Using Include="Luxel.Graphics" />
+    <Using Include="Luxel.Mathematics" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\..\shaders\compiled\triangle.spv" LogicalName="Luxel.Graphics.Gallery.Shaders.triangle.spv" WithCulture="false" />
+    <EmbeddedResource Include="..\..\..\shaders\compiled\triangle.vs.dxil" LogicalName="Luxel.Graphics.Gallery.Shaders.triangle.vs.dxil" WithCulture="false" />
+    <EmbeddedResource Include="..\..\..\shaders\compiled\triangle.ps.dxil" LogicalName="Luxel.Graphics.Gallery.Shaders.triangle.ps.dxil" WithCulture="false" />
+    <EmbeddedResource Include="..\..\..\shaders\compiled\triangle.wgsl" LogicalName="Luxel.Graphics.Gallery.Shaders.triangle.wgsl" WithCulture="false" />
+    <EmbeddedResource Include="..\..\..\shaders\compiled\cube_forward.*" Link="Shaders\%(Filename)%(Extension)" WithCulture="false" />
+    <EmbeddedResource Include="..\..\..\shaders\compiled\raster2d_bounds.*" Link="Shaders\%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\..\shaders\compiled\raster2d_bin.*" Link="Shaders\%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\..\shaders\compiled\raster2d_fine.*" Link="Shaders\%(Filename)%(Extension)" />
+  </ItemGroup>
+  <!-- Graphics Learn pages own their embedded sample sources. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\Scene2D.cs" LogicalName="Luxel.Sample.src.Graphics.Luxel.Graphics.TwoD.Scene2D.cs" />
+    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\PathEncoder.cs" LogicalName="Luxel.Sample.src.Graphics.Luxel.Graphics.TwoD.PathEncoder.cs" />
+    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\Primitives.cs" LogicalName="Luxel.Sample.src.Graphics.Luxel.Graphics.TwoD.Primitives.cs" />
+    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\IRasterizer2D.cs" LogicalName="Luxel.Sample.src.Graphics.Luxel.Graphics.TwoD.IRasterizer2D.cs" />
+    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\Retained\RetainedCanvas.cs" LogicalName="Luxel.Sample.src.Graphics.Luxel.Graphics.TwoD.Retained.RetainedCanvas.cs" />
+    <EmbeddedResource Include="..\Luxel.Graphics.TwoD\GpuDeviceRasterizer2D.cs" LogicalName="Luxel.Sample.src.Graphics.Luxel.Graphics.TwoD.GpuDeviceRasterizer2D.cs" />
+    <EmbeddedResource Include="..\..\..\shaders\raster2d_bounds.slang" LogicalName="Luxel.Sample.shaders.raster2d_bounds.slang" />
+    <EmbeddedResource Include="..\..\..\shaders\raster2d_bin.slang" LogicalName="Luxel.Sample.shaders.raster2d_bin.slang" />
+    <EmbeddedResource Include="..\..\..\shaders\raster2d_fine.slang" LogicalName="Luxel.Sample.shaders.raster2d_fine.slang" />
+    <EmbeddedResource Include="..\..\..\tests\Graphics\Luxel.Graphics.Tests\TwoDTests.cs" LogicalName="Luxel.Sample.tests.Graphics.Luxel.Graphics.Tests.TwoDTests.cs" />
+    <EmbeddedResource Include="..\..\..\samples\LuxelTwoD\LuxelTwoD.csproj" LogicalName="Luxel.Sample.samples.LuxelTwoD.LuxelTwoD.csproj" />
+    <EmbeddedResource Include="..\..\..\samples\LuxelTwoD\Program.cs" LogicalName="Luxel.Sample.samples.LuxelTwoD.Program.cs" />
+    <EmbeddedResource Include="..\..\..\gallery\GalleryBrowser\GalleryBrowser.csproj" LogicalName="Luxel.Sample.gallery.GalleryBrowser.GalleryBrowser.csproj" />
+    <EmbeddedResource Include="..\..\..\gallery\GalleryBrowser\Program.cs" LogicalName="Luxel.Sample.gallery.GalleryBrowser.Program.cs" />
+    <EmbeddedResource Include="..\..\..\gallery\GalleryBrowser\README.md" LogicalName="Luxel.Sample.gallery.GalleryBrowser.README.md" />
+    <EmbeddedResource Include="..\..\..\gallery\GalleryBrowser\wwwroot\index.html" LogicalName="Luxel.Sample.gallery.GalleryBrowser.wwwroot.index.html" />
+    <EmbeddedResource Include="..\..\..\gallery\GalleryBrowser\wwwroot\main.js" LogicalName="Luxel.Sample.gallery.GalleryBrowser.wwwroot.main.js" />
+    <EmbeddedResource Include="..\..\..\gallery\GalleryBrowser\Shaders\compute.wgsl" LogicalName="Luxel.Sample.gallery.GalleryBrowser.Shaders.compute.wgsl" />
+    <EmbeddedResource Include="..\..\..\shaders\compiled\tutorial_triangle.wgsl" LogicalName="Luxel.Sample.shaders.compiled.tutorial_triangle.wgsl" />
+    <EmbeddedResource Include="..\..\..\samples\LuxelWebGpuHeadless\LuxelWebGpuHeadless.csproj" LogicalName="Luxel.Sample.samples.LuxelWebGpuHeadless.LuxelWebGpuHeadless.csproj" />
+    <EmbeddedResource Include="..\..\..\samples\LuxelWebGpuHeadless\Program.cs" LogicalName="Luxel.Sample.samples.LuxelWebGpuHeadless.Program.cs" />
+    <EmbeddedResource Include="..\..\..\samples\LuxelWebGpuHeadless\HeadlessWebGpuSample.cs" LogicalName="Luxel.Sample.samples.LuxelWebGpuHeadless.HeadlessWebGpuSample.cs" />
+    <EmbeddedResource Include="..\..\..\samples\CanonicalTriangleRecipe.cs" LogicalName="Luxel.Sample.samples.CanonicalTriangleRecipe.cs" />
+    <EmbeddedResource Include="..\..\..\samples\LuxelTriangle\LuxelTriangle.csproj" LogicalName="Luxel.Sample.samples.LuxelTriangle.LuxelTriangle.csproj" />
+    <EmbeddedResource Include="..\..\..\samples\LuxelTriangle\Program.cs" LogicalName="Luxel.Sample.samples.LuxelTriangle.Program.cs" />
+    <EmbeddedResource Include="..\..\..\samples\LuxelTriangle\TriangleRenderer.cs" LogicalName="Luxel.Sample.samples.LuxelTriangle.TriangleRenderer.cs" />
+    <EmbeddedResource Include="..\..\..\samples\LuxelTriangle\TutorialAbi.cs" LogicalName="Luxel.Sample.samples.LuxelTriangle.TutorialAbi.cs" />
+    <EmbeddedResource Include="..\..\..\shaders\tutorial_triangle.slang" LogicalName="Luxel.Sample.shaders.tutorial_triangle.slang" />
+    <EmbeddedResource Include="..\..\..\shaders\tutorial_3d.slang" LogicalName="Luxel.Sample.shaders.tutorial_3d.slang" />
+    <EmbeddedResource Include="..\..\..\shaders\compute_tutorial_postprocess.slang" LogicalName="Luxel.Sample.shaders.compute_tutorial_postprocess.slang" />
+  </ItemGroup>
+</Project>

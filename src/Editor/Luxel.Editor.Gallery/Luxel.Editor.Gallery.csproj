@@ -12,22 +12,22 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery.DocKit\Luxel.Gallery.DocKit.csproj" />
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery.UI\Luxel.Gallery.UI.csproj" />
-    <ProjectReference Include="..\..\Luxel.Player\Luxel.Player.csproj" />
-    <ProjectReference Include="..\..\Luxel.Scripting\Luxel.Scripting.csproj" />
-    <ProjectReference Include="..\..\Resource\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\..\Framework\Luxel.Player\Luxel.Player.csproj" />
+    <ProjectReference Include="..\..\Scripting\Luxel.Scripting\Luxel.Scripting.csproj" />
+    <ProjectReference Include="..\..\Resources\Luxel.Resources\Luxel.Resources.csproj" />
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery\Luxel.Gallery.csproj" />
-    <ProjectReference Include="..\..\Luxel.Controls\Luxel.Controls.csproj" />
-    <ProjectReference Include="..\..\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
-    <ProjectReference Include="..\..\Luxel.Document\Luxel.Document.csproj" />
-    <ProjectReference Include="..\..\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
-    <ProjectReference Include="..\..\Luxel.Diagram\Luxel.Diagram.csproj" />
-    <ProjectReference Include="..\..\Luxel.MathText\Luxel.MathText.csproj" />
-    <ProjectReference Include="..\..\Luxel.NodeGraph\Luxel.NodeGraph.csproj" />
-    <ProjectReference Include="..\..\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
-    <ProjectReference Include="..\..\Luxel.Strudel\Luxel.Strudel.csproj" />
-    <ProjectReference Include="..\..\Luxel.Typography\Luxel.Typography.csproj" />
-    <ProjectReference Include="..\..\Luxel.UI\Luxel.UI.csproj" />
-    <ProjectReference Include="..\..\Luxel.Workbench\Luxel.Workbench.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.Controls\Luxel.Controls.csproj" />
+    <ProjectReference Include="..\..\DevTools\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.Document\Luxel.Document.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.Diagram\Luxel.Diagram.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.MathText\Luxel.MathText.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.NodeGraph\Luxel.NodeGraph.csproj" />
+    <ProjectReference Include="..\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
+    <ProjectReference Include="..\..\Scripting\Luxel.Strudel\Luxel.Strudel.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\Luxel.Workbench\Luxel.Workbench.csproj" />
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery.Generators\Luxel.Gallery.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU"
                       GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <LuxelProjectRole>Test</LuxelProjectRole>
+    <LuxelGalleryCategory>Platform</LuxelGalleryCategory>
+    <LuxelSubsystem>Terminal.Linux</LuxelSubsystem>
+    <LuxelPlatform>Native</LuxelPlatform>
+    <LuxelArchitectureTier>Extension</LuxelArchitectureTier>
+  </PropertyGroup>
+  <PropertyGroup><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Platform\Luxel.Terminal.Linux\Luxel.Terminal.Linux.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5"><PrivateAssets>all</PrivateAssets></PackageReference>
+  </ItemGroup>
+  <ItemGroup><Using Include="Xunit" /></ItemGroup>
+</Project>

@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Luxel.Animation.Tests" />
+    <InternalsVisibleTo Include="Luxel.Audio.Tests" />
+    <InternalsVisibleTo Include="Luxel.DevTools.Tests" />
+    <InternalsVisibleTo Include="Luxel.Editor.Tests" />
+    <InternalsVisibleTo Include="Luxel.Framework.Tests" />
+    <InternalsVisibleTo Include="Luxel.Gallery.Tests" />
+    <InternalsVisibleTo Include="Luxel.GamesSamples.Tests" />
+    <InternalsVisibleTo Include="Luxel.Graphics.Tests" />
+    <InternalsVisibleTo Include="Luxel.Input.Tests" />
+    <InternalsVisibleTo Include="Luxel.Particles.Tests" />
+    <InternalsVisibleTo Include="Luxel.Platform.Tests" />
+    <InternalsVisibleTo Include="Luxel.Resources.Tests" />
+    <InternalsVisibleTo Include="Luxel.Scripting.Tests" />
+    <InternalsVisibleTo Include="Luxel.Shared.Tests" />
+    <InternalsVisibleTo Include="Luxel.UI.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Platform\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\..\DevTools\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+</Project>

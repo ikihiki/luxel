@@ -2,15 +2,18 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Luxel.Editor.Gallery;
 
-/// <summary>Owns the browser-safe authored editor, workbench, and Studio stories.</summary>
+/// <summary>Owns the browser-safe authored editor and workbench stories.</summary>
 public static class EditorGalleryProject
 {
+    public static StoryOwnership Ownership { get; } = StoryOwnership.BrowserSafe("Editor", "Editor.Base");
+
     public static IServiceCollection AddEditorGallery(this IServiceCollection services)
         => services.AddStoryCatalog(Register);
 
     public static void Register(StoryCatalogBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        using IDisposable ownership = builder.BeginOwnership(Ownership);
         var categoryBuilder = new StoryCatalogBuilder();
         Luxel.Gallery.Generated.StoryRegistration_Luxel_Editor_Gallery.Register(categoryBuilder);
         foreach (StoryInfo story in categoryBuilder.Build().All)

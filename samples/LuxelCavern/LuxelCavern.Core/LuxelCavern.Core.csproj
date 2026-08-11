@@ -6,14 +6,14 @@
     Gallery が本アセンブリを参照して Game/Cavern ストーリーとして play/golden を維持する予定 (ToDo 19)。
   -->
   <!-- 純ロジック (依存は UI/Controls/TwoD/Typography = すべて net10.0)。net10.0 にして
-       テスト (Luxel.Tests) と Gallery/exe の両方から参照可能にする。 -->
+       テスト (Luxel.GamesSamples.Tests) と Gallery/exe の両方から参照可能にする。 -->
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Luxel.Mathematics\Luxel.Mathematics.csproj" />
+    <ProjectReference Include="..\..\..\src\Shared\Luxel.Mathematics\Luxel.Mathematics.csproj" />
     <Using Include="Luxel.Mathematics" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+    <ProjectReference Include="..\..\..\src\DevTools\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -23,21 +23,21 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Luxel.UI\Luxel.UI.csproj" />
-    <ProjectReference Include="..\..\..\src\Luxel.Controls\Luxel.Controls.csproj" />
-    <ProjectReference Include="..\..\..\src\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
-    <ProjectReference Include="..\..\..\src\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\..\..\src\UI\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\..\..\src\UI\Luxel.Controls\Luxel.Controls.csproj" />
+    <ProjectReference Include="..\..\..\src\Graphics\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="..\..\..\src\Graphics\Luxel.Typography\Luxel.Typography.csproj" />
     <!-- セーブの読み書き抽象 (IFileStore)。%APPDATA% への実 IO は exe が PhysicalFileStore で渡す。 -->
-    <ProjectReference Include="..\..\..\src\Luxel.Settings\Luxel.Settings.csproj" />
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Settings\Luxel.Settings.csproj" />
     <!-- ゲームオーディオ (BGM/SE)。実バックエンド (XAudio2) は exe が UseAudio で注入、テストは Null。 -->
-    <ProjectReference Include="..\..\..\src\Luxel.Audio\Luxel.Audio.csproj" />
+    <ProjectReference Include="..\..\..\src\Audio\Luxel.Audio\Luxel.Audio.csproj" />
     <!-- レベル (.tmj) の読み込みを ResourceSystem 経由で管理する (キャッシュ/型付きノード/リロード)。 -->
-    <ProjectReference Include="..\..\..\src\Resource\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\..\..\src\Resources\Luxel.Resources\Luxel.Resources.csproj" />
     <!-- DevTools 用オーバーレイ (パーティクル gizmo)。gizmo/DebugDraw/DevStats は TwoD/Luxel 経由。 -->
-    <ProjectReference Include="..\..\..\src\Luxel.Particles\Luxel.Particles.csproj" />
-    <ProjectReference Include="..\..\..\src\Luxel.Particles.TwoD\Luxel.Particles.TwoD.csproj" />
+    <ProjectReference Include="..\..\..\src\Particles\Luxel.Particles\Luxel.Particles.csproj" />
+    <ProjectReference Include="..\..\..\src\Particles\Luxel.Particles.TwoD\Luxel.Particles.TwoD.csproj" />
     <!-- キーバインド設定 (KeyCode / InputAction の再割当ロジック)。 -->
-    <ProjectReference Include="..\..\..\src\Luxel.Input\Luxel.Input.csproj" />
+    <ProjectReference Include="..\..\..\src\Input\Luxel.Input\Luxel.Input.csproj" />
   </ItemGroup>
 
   <!-- ゲームアセットを Core.dll へ埋め込む (ResourceSystem 経由でロード)。レベル (.tmj) + 本文フォント (.ttf)。

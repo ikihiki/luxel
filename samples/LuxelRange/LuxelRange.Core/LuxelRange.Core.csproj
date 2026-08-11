@@ -12,12 +12,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Luxel.Ecs\Luxel.Ecs.csproj" />
-    <ProjectReference Include="..\..\..\src\Luxel.Physics\Luxel.Physics.csproj" />
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Ecs\Luxel.Ecs.csproj" />
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Physics\Luxel.Physics.csproj" />
     <!-- ハイスコア/音量の永続化 (SettingsStore + IFileStore、Signal は Luxel.UI から transitively)。 -->
-    <ProjectReference Include="..\..\..\src\Luxel.Settings\Luxel.Settings.csproj" />
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Settings\Luxel.Settings.csproj" />
     <!-- ゲームオーディオ (BGM/SE)。実バックエンド (XAudio2) は exe が UseAudio で注入。 -->
-    <ProjectReference Include="..\..\..\src\Luxel.Audio\Luxel.Audio.csproj" />
+    <ProjectReference Include="..\..\..\src\Audio\Luxel.Audio\Luxel.Audio.csproj" />
   </ItemGroup>
 
 </Project>

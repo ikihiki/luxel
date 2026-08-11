@@ -12,6 +12,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Native\Luxel.Gallery.Native.csproj" />
     <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Stories\Luxel.Gallery.Stories.csproj" />
-    <ProjectReference Include="..\..\src\Luxel.Platform.Silk\Luxel.Platform.Silk.csproj" />
+    <ProjectReference Include="..\..\src\Platform\Luxel.Platform.Silk\Luxel.Platform.Silk.csproj" />
   </ItemGroup>
 </Project>

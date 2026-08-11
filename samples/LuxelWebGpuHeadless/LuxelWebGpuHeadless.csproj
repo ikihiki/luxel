@@ -5,8 +5,8 @@
     <PlatformTarget Condition="$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture) == 'Arm64'">arm64</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Luxel.Graphics\Luxel.Graphics.csproj" />
-    <ProjectReference Include="..\..\src\Luxel.Graphics.WebGPU\Luxel.Graphics.WebGPU.csproj" />
+    <ProjectReference Include="..\..\src\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\src\Graphics\Luxel.Graphics.WebGPU\Luxel.Graphics.WebGPU.csproj" />
     <PackageReference Include="Silk.NET.WebGPU.Native.WGPU" Version="2.23.0" />
   </ItemGroup>
   <ItemGroup>

@@ -1,0 +1,67 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Platform\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\..\Animation\Luxel.Animation\Luxel.Animation.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
+    <ProjectReference Include="..\Luxel.Document\Luxel.Document.csproj" />
+    <!-- 汎用ノードエディタのコア (ADR-0009)。NodeGraphView が投影して描く (canvas 非依存の純データ/幾何) -->
+    <ProjectReference Include="..\Luxel.NodeGraph\Luxel.NodeGraph.csproj" />
+    <!-- シーンエディタのコア (ADR-0015/0016)。SceneEditorView が空間アダプタ経由で投影して描く -->
+    <ProjectReference Include="..\..\Editor\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
+    <!-- Workbench コア (ADR-0010)。DockHost が DockTree を投影して描く (canvas 非依存の純モデル) -->
+    <ProjectReference Include="..\..\Editor\Luxel.Workbench\Luxel.Workbench.csproj" />
+    <!-- 画像 embed (ImageBlock) が ResourceHandle<CpuImage> を扱う。GPU API は含まれない (Diagnostics のみ依存) -->
+    <ProjectReference Include="..\..\Resources\Luxel.Resources\Luxel.Resources.csproj" />
+    <!-- Widget の DebugProps を reflection なしで焼き込むソースジェネレーター -->
+    <ProjectReference Include="..\..\Shared\Luxel.UI.Generators\Luxel.UI.Generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetPlatform="Platform=AnyCPU"
+                      GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;RuntimeIdentifier;SelfContained;PublishSelfContained;IsAotCompatible;EnableAotAnalyzer;EnableTrimAnalyzer;EnableSingleFileAnalyzer" />
+    <InternalsVisibleTo Include="Luxel.Animation.Tests" />
+    <InternalsVisibleTo Include="Luxel.Audio.Tests" />
+    <InternalsVisibleTo Include="Luxel.DevTools.Tests" />
+    <InternalsVisibleTo Include="Luxel.Editor.Tests" />
+    <InternalsVisibleTo Include="Luxel.Framework.Tests" />
+    <InternalsVisibleTo Include="Luxel.Gallery.Tests" />
+    <InternalsVisibleTo Include="Luxel.GamesSamples.Tests" />
+    <InternalsVisibleTo Include="Luxel.Graphics.Tests" />
+    <InternalsVisibleTo Include="Luxel.Input.Tests" />
+    <InternalsVisibleTo Include="Luxel.Particles.Tests" />
+    <InternalsVisibleTo Include="Luxel.Platform.Tests" />
+    <InternalsVisibleTo Include="Luxel.Resources.Tests" />
+    <InternalsVisibleTo Include="Luxel.Scripting.Tests" />
+    <InternalsVisibleTo Include="Luxel.Shared.Tests" />
+    <InternalsVisibleTo Include="Luxel.UI.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Shared\Luxel.Mathematics\Luxel.Mathematics.csproj" />
+    <Using Include="Luxel.Mathematics" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\DevTools\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>14</LangVersion>   <!-- C# 14 拡張メンバー (テーマ/添付の P 拡張用) -->
+    <!-- /// コメントを CLI ビルドでもジェネレーターへ届かせる (ControlApi の説明列)。
+         DocumentationMode.None だと GetDocumentationCommentXml が空になる -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Platform" />
+  </ItemGroup>
+</Project>

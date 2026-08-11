@@ -33,6 +33,15 @@ GALLERY_METADATA = """
 """
 
 
+TEST_METADATA = """
+    <LuxelProjectRole>Test</LuxelProjectRole>
+    <LuxelGalleryCategory>Audio</LuxelGalleryCategory>
+    <LuxelSubsystem>Audio</LuxelSubsystem>
+    <LuxelPlatform>Portable</LuxelPlatform>
+    <LuxelArchitectureTier>Extension</LuxelArchitectureTier>
+"""
+
+
 class RepoFixture:
     def __init__(self, files: dict[str, str], baseline: dict | None = None):
         self.temp = tempfile.TemporaryDirectory()
@@ -78,6 +87,23 @@ class ArchitectureFixtureTests(unittest.TestCase):
         self.assertFalse(errors)
         app = graph[(fixture.root / "src/App/App.csproj").resolve()]
         self.assertEqual("Analyzer", app.references[0].kind)
+
+    def test_accepts_nested_managed_test_with_explicit_metadata(self) -> None:
+        fixture = self.fixture({
+            "tests/Audio/Luxel.Audio.Tests/Luxel.Audio.Tests.csproj": project(TEST_METADATA),
+        })
+        result = fixture.run("check-project-dependencies.py")
+        self.assertEqual(0, result.returncode, result.stderr)
+
+    def test_rejects_flat_or_unlisted_managed_test_project(self) -> None:
+        fixture = self.fixture({
+            "tests/Luxel.Audio.Tests/Luxel.Audio.Tests.csproj": project(TEST_METADATA),
+        })
+        (fixture.root / "Luxel.slnx").write_text("<Solution />\n", encoding="utf-8")
+        result = fixture.run("check-project-dependencies.py")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("tests/<Category>/<Project>/<Project>.csproj", result.stderr)
+        self.assertIn("Managed test project missing from solution", result.stderr)
 
     def test_rejects_unbaselined_production_gallery_reference(self) -> None:
         fixture = self.fixture({
@@ -130,12 +156,90 @@ class ArchitectureFixtureTests(unittest.TestCase):
         self.assertNotEqual(0, result.returncode)
         self.assertIn("Browser project reaches a Native dependency", result.stderr)
 
+    def test_requires_exactly_one_browser_base_project_per_category(self) -> None:
+        duplicate = GALLERY_METADATA.replace("Resources.Base", "Resources.Other")
+        fixture = self.fixture({
+            "src/One/One.csproj": project(GALLERY_METADATA),
+            "src/Two/Two.csproj": project(duplicate),
+        }, {"required_gallery_categories": ["Resources"]})
+        result = fixture.run("check-project-dependencies.py")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("exactly one Browser/Base project; found 2", result.stderr)
+
+    def test_requires_approved_native_project_to_reference_its_base_once(self) -> None:
+        native = GALLERY_METADATA.replace("Resources", "Platform").replace("Browser", "Native").replace("Base", "Native")
+        platform_base = GALLERY_METADATA.replace("Resources", "Platform")
+        fixture = self.fixture({
+            "src/PlatformBase/PlatformBase.csproj": project(platform_base),
+            "src/PlatformNative/PlatformNative.csproj": project(native),
+        }, {
+            "required_gallery_categories": ["Platform"],
+            "approved_native_gallery_categories": ["Platform"],
+        })
+        result = fixture.run("check-project-dependencies.py")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("must reference exactly one same-category Browser/Base Gallery; found 0", result.stderr)
+
+    def test_rejects_unapproved_native_gallery_category(self) -> None:
+        native = GALLERY_METADATA.replace("Browser", "Native").replace("Base", "Native")
+        fixture = self.fixture({
+            "src/ResourcesBase/ResourceBase.csproj": project(GALLERY_METADATA),
+            "src/ResourcesNative/ResourceNative.csproj": project(
+                native, '<ProjectReference Include="../ResourceBase/ResourceBase.csproj" />'),
+        }, {"required_gallery_categories": ["Resources"]})
+        result = fixture.run("check-project-dependencies.py")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("has an unapproved Native project", result.stderr)
+
+    def test_rejects_duplicate_native_gallery_projects(self) -> None:
+        native = GALLERY_METADATA.replace("Resources", "Platform").replace("Browser", "Native").replace("Base", "Native")
+        second_native = native.replace("Platform.Native", "Platform.Native.Other")
+        platform_base = GALLERY_METADATA.replace("Resources", "Platform")
+        fixture = self.fixture({
+            "src/PlatformBase/PlatformBase.csproj": project(platform_base),
+            "src/NativeOne/NativeOne.csproj": project(
+                native, '<ProjectReference Include="../PlatformBase/PlatformBase.csproj" />'),
+            "src/NativeTwo/NativeTwo.csproj": project(
+                second_native, '<ProjectReference Include="../PlatformBase/PlatformBase.csproj" />'),
+        }, {
+            "required_gallery_categories": ["Platform"],
+            "approved_native_gallery_categories": ["Platform"],
+        })
+        result = fixture.run("check-project-dependencies.py")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("may have at most one Native project; found 2", result.stderr)
+
+    def test_rejects_base_to_base_gallery_category_reference(self) -> None:
+        audio = GALLERY_METADATA.replace("Resources", "Audio")
+        fixture = self.fixture({
+            "src/ResourcesBase/ResourceBase.csproj": project(
+                GALLERY_METADATA, '<ProjectReference Include="../AudioBase/AudioBase.csproj" />'),
+            "src/AudioBase/AudioBase.csproj": project(audio),
+        }, {"required_gallery_categories": ["Resources", "Audio"]})
+        result = fixture.run("check-project-dependencies.py")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("Forbidden Gallery category reference", result.stderr)
+
+    def test_accepts_one_approved_native_extension_over_its_base(self) -> None:
+        native = GALLERY_METADATA.replace("Resources", "Platform").replace("Browser", "Native").replace("Base", "Native")
+        platform_base = GALLERY_METADATA.replace("Resources", "Platform")
+        fixture = self.fixture({
+            "src/PlatformBase/PlatformBase.csproj": project(platform_base),
+            "src/PlatformNative/PlatformNative.csproj": project(
+                native, '<ProjectReference Include="../PlatformBase/PlatformBase.csproj" />'),
+        }, {
+            "required_gallery_categories": ["Platform"],
+            "approved_native_gallery_categories": ["Platform"],
+        })
+        result = fixture.run("check-project-dependencies.py")
+        self.assertEqual(0, result.returncode, result.stderr)
+
     def test_rejects_production_story_ownership_and_mathematics_registrar(self) -> None:
         fixture = self.fixture({
             "src/App/App.csproj": project(),
             "src/App/Stories.cs": '[Story("Bad/Owner")] static object Build() => new();',
-            "src/Luxel.Mathematics/Luxel.Mathematics.csproj": project(),
-            "src/Luxel.Mathematics/Register.cs": "StoryRegistry.Register(value);",
+            "src/Shared/Luxel.Mathematics/Luxel.Mathematics.csproj": project(),
+            "src/Shared/Luxel.Mathematics/Register.cs": "StoryRegistry.Register(value);",
         })
         result = fixture.run("check-gallery-ownership.py")
         self.assertNotEqual(0, result.returncode)

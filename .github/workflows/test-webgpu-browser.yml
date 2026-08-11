@@ -3,24 +3,24 @@ name: Test Browser WebGPU
 on:
   pull_request:
     paths:
-      - 'src/Luxel.Physics/**'
-      - 'src/Luxel.Physics.Gizmos/**'
-      - 'src/Luxel.Ecs/**'
-      - 'src/Resource/**'
-      - 'src/Luxel.Graphics/**'
-      - 'src/Luxel.Graphics.WebGPU.Browser/**'
-      - 'src/Luxel.Graphics.TwoD/**'
-      - 'src/Luxel.UI/**'
-      - 'src/Luxel.Controls/**'
-      - 'src/Luxel.Typography/**'
-      - 'src/Luxel.Typography.TwoD/**'
-      - 'src/Luxel.Animation/**'
-      - 'src/Luxel.Animation.UI/**'
-      - 'src/Luxel.Animation.TwoD/**'
-      - 'src/Luxel.Animation.ThreeD/**'
-      - 'src/Luxel.Ecs/**'
-      - 'src/Luxel.Platform/**'
-      - 'src/Luxel.Platform.Web/**'
+      - 'src/Framework/Luxel.Physics/**'
+      - 'src/Framework/Luxel.Physics.Gizmos/**'
+      - 'src/Framework/Luxel.Ecs/**'
+      - 'src/Resources/**'
+      - 'src/Graphics/Luxel.Graphics/**'
+      - 'src/Graphics/Luxel.Graphics.WebGPU.Browser/**'
+      - 'src/Graphics/Luxel.Graphics.TwoD/**'
+      - 'src/UI/Luxel.UI/**'
+      - 'src/UI/Luxel.Controls/**'
+      - 'src/Graphics/Luxel.Typography/**'
+      - 'src/Graphics/Luxel.Typography.TwoD/**'
+      - 'src/Animation/Luxel.Animation/**'
+      - 'src/Animation/Luxel.Animation.UI/**'
+      - 'src/Animation/Luxel.Animation.TwoD/**'
+      - 'src/Animation/Luxel.Animation.ThreeD/**'
+      - 'src/Framework/Luxel.Ecs/**'
+      - 'src/Platform/Luxel.Platform/**'
+      - 'src/Platform/Luxel.Platform.Web/**'
       - 'samples/LuxelTriangle/**'
       - 'samples/LuxelPlaygroundBrowser/**'
       - 'gallery/GalleryBrowser/**'
@@ -31,20 +31,20 @@ on:
       - 'shaders/raster2d_*.slang'
       - 'shaders/compiled/raster2d_*.wgsl'
       - 'assets/fonts/**'
-      - 'tests/Luxel.Playground.Browser.E2e/**'
-      - 'tests/Luxel.Gallery.Playground.Tests/**'
-      - 'tests/Luxel.Scripting.Roslyn.Web.Tests/**'
-      - 'gallery/GalleryE2E.Browser/**'
-      - 'tests/Luxel.WebGPU.Browser.Tests/**'
-      - 'tests/Luxel.Gallery.Site.Tests/**'
+      - 'tests/Gallery/Luxel.Playground.Browser.E2e/**'
+      - 'tests/Gallery/Luxel.Gallery.Playground.Tests/**'
+      - 'tests/Scripting/Luxel.Scripting.Roslyn.Web.Tests/**'
+      - 'tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/**'
+      - 'tests/Graphics/Luxel.WebGPU.Browser.Tests/**'
+      - 'tests/Gallery/Luxel.Gallery.Site.Tests/**'
       - 'src/Gallery/Luxel.Gallery.Browser/**'
       - 'src/Gallery/Luxel.Gallery.Playground/**'
-      - 'src/Luxel.Scripting/**'
-      - 'src/Luxel.Scripting.Roslyn.Web/**'
-      - 'src/Resource/Luxel.Resources.Gallery/**'
+      - 'src/Scripting/Luxel.Scripting/**'
+      - 'src/Scripting/Luxel.Scripting.Roslyn.Web/**'
+      - 'src/Resources/Luxel.Resources.Gallery/**'
       - 'src/UI/Luxel.UI.Gallery/**'
-      - 'src/Luxel.Particles.Gallery/**'
-      - 'src/Luxel.UI.Generators/**'
+      - 'src/Particles/Luxel.Particles.Gallery/**'
+      - 'src/Shared/Luxel.UI.Generators/**'
       - 'eng/check-project-dependencies.py'
       - 'src/Gallery/Luxel.Gallery.Stories/SampleBundles.cs'
       - 'src/Gallery/Luxel.Gallery.Stories/Stories/GpuStories.cs'
@@ -72,9 +72,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: |
-            tests/Luxel.Playground.Browser.E2e/package-lock.json
-            gallery/GalleryE2E.Browser/package-lock.json
+          cache-dependency-path: tests/Gallery/Luxel.Playground.Browser.E2e/package-lock.json
       - name: Install browser WebAssembly workload
         run: dotnet workload install wasm-tools
       - name: Validate project dependency graph
@@ -87,18 +85,24 @@ jobs:
           echo "LIBGL_ALWAYS_SOFTWARE=true" >> "$GITHUB_ENV"
       - name: Restore
         run: dotnet restore Luxel.slnx
-      - name: Build solution and browser contracts
-        run: dotnet build Luxel.slnx --no-restore --configuration Release
+      - name: Build browser contract projects
+        run: |
+          dotnet build tests/Gallery/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj --no-restore --configuration Release
+          dotnet build tests/Gallery/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --configuration Release
+          dotnet build tests/Gallery/Luxel.Gallery.Playground.Tests/Luxel.Gallery.Playground.Tests.csproj --no-restore --configuration Release
+          dotnet build tests/Scripting/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj --no-restore --configuration Release
+          dotnet build tests/Graphics/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --configuration Release
+          dotnet build tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj --no-restore --configuration Release
       - name: Test generators and generated production inventory
-        run: dotnet test tests/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj --no-restore --no-build --configuration Release
+        run: dotnet test tests/Gallery/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test Gallery catalog contracts
-        run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
+        run: dotnet test tests/Gallery/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test Playground presentation and Roslyn contracts
         run: |
-          dotnet test tests/Luxel.Gallery.Playground.Tests/Luxel.Gallery.Playground.Tests.csproj --no-restore --no-build --configuration Release
-          dotnet test tests/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj --no-restore --no-build --configuration Release
+          dotnet test tests/Gallery/Luxel.Gallery.Playground.Tests/Luxel.Gallery.Playground.Tests.csproj --no-restore --no-build --configuration Release
+          dotnet test tests/Scripting/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test browser managed and source contracts
-        run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release
+        run: dotnet test tests/Graphics/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release
       - name: Publish Blazor Gallery and Playground browser
         run: |
           dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj --no-restore --configuration Release --output artifacts/gallery-browser
@@ -110,24 +114,21 @@ jobs:
           test -f "$root/main.js"
           ! test -f "$root/browser-runtime-manifest.json"
       - name: Test Playground browser runtime smoke contracts
-        working-directory: tests/Luxel.Playground.Browser.E2e
+        working-directory: tests/Gallery/Luxel.Playground.Browser.E2e
         run: |
           npm ci
           npm run test:slang
-      - name: Install Gallery browser WebGPU E2E dependencies
-        working-directory: gallery/GalleryE2E.Browser
-        run: |
-          npm ci
-          npx playwright install --with-deps chromium
+      - name: Install Gallery browser WebGPU E2E Chromium
+        run: pwsh tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
       - name: Test Gallery browser-WASM stories in Chromium
-        working-directory: gallery/GalleryE2E.Browser
-        run: npm test
+        run: >-
+          dotnet test tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj
+          --no-restore --no-build --configuration Release
+          --settings tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/GalleryBrowser.runsettings
       - name: Upload Playwright failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: luxel-playground-playwright
-          path: |
-            gallery/GalleryE2E.Browser/test-results
-            gallery/GalleryE2E.Browser/playwright-report
+          name: luxel-gallery-browser-playwright
+          path: artifacts/gallery-browser-e2e
           if-no-files-found: ignore

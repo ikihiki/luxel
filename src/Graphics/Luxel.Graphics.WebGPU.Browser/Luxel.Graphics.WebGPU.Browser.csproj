@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\DevTools\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="wwwroot\luxel-webgpu-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Luxel.WebGPU.Browser.Tests" />
+  </ItemGroup>
+</Project>

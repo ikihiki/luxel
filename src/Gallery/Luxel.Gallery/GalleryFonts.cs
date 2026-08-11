@@ -23,8 +23,15 @@ public static class GalleryFonts
 
     private const string RelDir = "assets/fonts";
 
+    private static Func<string, VectorFont>? _hostLoader;
+
+    /// <summary>ファイルシステムを持たないホスト向けにフォントローダを設定する。</summary>
+    public static void ConfigureHostLoader(Func<string, VectorFont>? loader)
+        => _hostLoader = loader;
+
     /// <summary>同梱フォントを VectorFont として読む。</summary>
-    public static VectorFont Load(string fileName) => VectorFont.Load(Resolve(fileName));
+    public static VectorFont Load(string fileName)
+        => _hostLoader?.Invoke(fileName) ?? VectorFont.Load(Resolve(fileName));
 
     /// <summary>同梱フォントの実パスを解決する。見つからなければ FileNotFoundException。</summary>
     public static string Resolve(string fileName)

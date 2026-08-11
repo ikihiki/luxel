@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Luxel.Framework.DevTools — LuxelHostBuilder に DevTools をオプトインで結線する橋渡し層 (Q05 E)。
+    Framework を DevTools/DevTools.App に依存させないため、拡張メソッドはこの別アセンブリに置く
+    (ゲームだけが両方を参照する)。ブラウザ版 (DebugServer) と内蔵版 (DevToolsApp) を選択・併用できる。
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <ProjectReference Include="..\..\Framework\Luxel.Framework.Game\Luxel.Framework.Game.csproj" />
+    <ProjectReference Include="..\Luxel.DevTools\Luxel.DevTools.csproj" />
+    <ProjectReference Include="..\Luxel.DevTools.App\Luxel.DevTools.App.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Luxel.Animation.Tests" />
+    <InternalsVisibleTo Include="Luxel.Audio.Tests" />
+    <InternalsVisibleTo Include="Luxel.DevTools.Tests" />
+    <InternalsVisibleTo Include="Luxel.Editor.Tests" />
+    <InternalsVisibleTo Include="Luxel.Framework.Tests" />
+    <InternalsVisibleTo Include="Luxel.Gallery.Tests" />
+    <InternalsVisibleTo Include="Luxel.GamesSamples.Tests" />
+    <InternalsVisibleTo Include="Luxel.Graphics.Tests" />
+    <InternalsVisibleTo Include="Luxel.Input.Tests" />
+    <InternalsVisibleTo Include="Luxel.Particles.Tests" />
+    <InternalsVisibleTo Include="Luxel.Platform.Tests" />
+    <InternalsVisibleTo Include="Luxel.Resources.Tests" />
+    <InternalsVisibleTo Include="Luxel.Scripting.Tests" />
+    <InternalsVisibleTo Include="Luxel.Shared.Tests" />
+    <InternalsVisibleTo Include="Luxel.UI.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
+</Project>

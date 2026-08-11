@@ -10,7 +10,7 @@ if (Test-Path $out) { Remove-Item $out -Recurse -Force }
 
 Write-Host "== ship: $Project -> $out"
 Push-Location $repo
-try { dotnet run --project src/Luxel.Player.App -- --ship $Project $out; if ($LASTEXITCODE -ne 0) { throw "ship 失敗 ($LASTEXITCODE)" } }
+try { dotnet run --project src/Framework/Luxel.Player.App -- --ship $Project $out; if ($LASTEXITCODE -ne 0) { throw "ship 失敗 ($LASTEXITCODE)" } }
 finally { Pop-Location }
 
 foreach ($backend in @("vk", "dx")) {

@@ -7,8 +7,8 @@ using Luxel.Input.Gallery;
 using Luxel.Framework.Gallery;
 using Luxel.Animation.Gallery;
 using Luxel.Particles.Gallery;
-using Luxel.Scripting.Gallery;
-using Luxel.Editor.Gallery;
+using Luxel.Scripting.Gallery.Native;
+using Luxel.Editor.Gallery.Native;
 using Luxel.DevTools.Gallery;
 using Luxel.GamesSamples.Gallery;
 using Luxel.Gallery.Docs;
@@ -33,8 +33,9 @@ public static class GalleryStoryProject
         Merge(FrameworkGalleryProject.Register);
         Merge(AnimationGalleryProject.Register);
         Merge(ParticlesGalleryProject.Register);
-        Merge(ScriptingGalleryProject.Register);
-        Merge(EditorGalleryProject.Register);
+        // Native extension catalogs include their same-category browser base.
+        Merge(ScriptingNativeGalleryProject.Register);
+        Merge(EditorNativeGalleryProject.Register);
         Merge(DevToolsGalleryProject.Register);
         Merge(GamesSamplesGalleryProject.Register);
         Merge(GalleryDocsProject.Register);
