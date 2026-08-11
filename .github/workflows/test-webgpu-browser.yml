@@ -45,6 +45,7 @@ on:
       - 'src/UI/Luxel.UI.Gallery/**'
       - 'src/Particles/Luxel.Particles.Gallery/**'
       - 'src/Shared/Luxel.UI.Generators/**'
+      - 'eng/browser-e2e-support/**'
       - 'eng/check-project-dependencies.py'
       - 'src/Gallery/Luxel.Gallery.Stories/SampleBundles.cs'
       - 'src/Gallery/Luxel.Gallery.Stories/Stories/GpuStories.cs'
