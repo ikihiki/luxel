@@ -48,22 +48,22 @@ State these exclusions in the final report.
 Run all of `audio-browser` and `audio-silk`. Also run core audio tests from the main project:
 
 ```bash
-dotnet test tests/Luxel.Tests/Luxel.Tests.csproj -c Release \
+dotnet test Luxel.slnx -c Release \
   --filter 'FullyQualifiedName~Audio' --logger 'console;verbosity=minimal'
 ```
 
 ### `audio-browser`
 
 ```bash
-dotnet test tests/Luxel.Audio.Browser.Tests/Luxel.Audio.Browser.Tests.csproj \
+dotnet test tests/Audio/Luxel.Audio.Browser.Tests/Luxel.Audio.Browser.Tests.csproj \
   -c Release --logger 'console;verbosity=minimal'
-node --test tests/Luxel.Audio.Browser.Tests/luxel-audio-browser.test.mjs
+node --test tests/Audio/Luxel.Audio.Browser.Tests/luxel-audio-browser.test.mjs
 ```
 
 For the complete CI contract, also run Gallery documentation tests and publish the browser sample. Publishing requires the `wasm-tools` workload:
 
 ```bash
-dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj \
+dotnet test tests/Gallery/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj \
   -c Release --logger 'console;verbosity=minimal'
 dotnet publish samples/LuxelAudioBrowser/LuxelAudioBrowser.csproj -c Release
 ```
@@ -88,7 +88,7 @@ export LUXEL_DESKTOP_STATE_DIR="${TMPDIR:-/tmp}/luxel-audio-skill"
 eng/desktop/audio-start.sh
 source "$LUXEL_DESKTOP_STATE_DIR/environment"
 eng/desktop/healthcheck.sh --audio-only
-dotnet test tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj \
+dotnet test tests/Audio/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj \
   -c Release --filter 'FullyQualifiedName!~OutputCapture' \
   --logger 'console;verbosity=minimal'
 eng/desktop/audio-stop.sh
@@ -101,10 +101,10 @@ Use a shell trap so `audio-stop.sh` also runs after a failure. Run `OutputCaptur
 Run:
 
 ```text
-tests/Luxel.Gallery.Generators.Tests
-tests/Luxel.Gallery.Playground.Tests
-tests/Luxel.Gallery.Site.Tests
-tests/Luxel.WebGPU.Browser.Tests
+tests/Gallery/Luxel.Gallery.Generators.Tests
+tests/Gallery/Luxel.Gallery.Playground.Tests
+tests/Gallery/Luxel.Gallery.Site.Tests
+tests/Graphics/Luxel.WebGPU.Browser.Tests
 ```
 
 These are managed contract tests and normally require no browser workload.
@@ -114,9 +114,9 @@ These are managed contract tests and normally require no browser workload.
 Run:
 
 ```text
-tests/Luxel.WebGPU.Tests
-tests/Luxel.WebGPU.Present.Tests
-tests/Luxel.Framework.UI.Tests
+tests/Graphics/Luxel.WebGPU.Tests
+tests/Graphics/Luxel.WebGPU.Present.Tests
+tests/Framework/Luxel.Framework.UI.Tests
 ```
 
 Detect available GPU adapters first. Prefer a usable hardware Vulkan adapter on Linux or hardware DX12 adapter on Windows. Provide an X11 display for presentation tests when needed. Use the lavapipe/fallback environment from `.github/workflows/test-webgpu.yml` only when no compatible hardware GPU is accessible, the user explicitly requests software rendering, or fallback behavior is the subject of the test. If prerequisites are absent, run only explicitly requested managed/source-contract tests and report the reduced scope.
@@ -126,11 +126,11 @@ Detect available GPU adapters first. Prefer a usable hardware Vulkan adapter on 
 Managed/source contracts:
 
 ```text
-tests/Luxel.WebGPU.Browser.Tests
-tests/Luxel.Gallery.Generators.Tests
-tests/Luxel.Gallery.Site.Tests
-tests/Luxel.Gallery.Playground.Tests
-tests/Luxel.Scripting.Roslyn.Web.Tests
+tests/Graphics/Luxel.WebGPU.Browser.Tests
+tests/Gallery/Luxel.Gallery.Generators.Tests
+tests/Gallery/Luxel.Gallery.Site.Tests
+tests/Gallery/Luxel.Gallery.Playground.Tests
+tests/Scripting/Luxel.Scripting.Roslyn.Web.Tests
 ```
 
 The full CI suite additionally requires `wasm-tools`, Chromium/Playwright, static Blazor Gallery publication, Playground publication, and both browser E2E aliases. Prefer Chromium's accessible hardware GPU/WebGPU adapter. Use SwiftShader or lavapipe only when hardware WebGPU is unavailable, explicitly requested, or the test targets fallback behavior. `.github/workflows/test-webgpu-browser.yml` documents the deterministic software-GPU CI fallback, not the preferred local adapter.
@@ -140,11 +140,11 @@ The full CI suite additionally requires `wasm-tools`, Chromium/Playwright, stati
 Run:
 
 ```text
-tests/Luxel.Terminal.Tests
-tests/Luxel.Terminal.UI.Tests
+tests/Editor/Luxel.Terminal.Tests
+tests/Editor/Luxel.Terminal.UI.Tests
 ```
 
-Also run `tests/Luxel.Terminal.Linux.Tests` on Linux. Run `tests/Luxel.Terminal.Windows.Tests` only on Windows unless the user explicitly requests a cross-platform build-only check. Validate the dependency graph with:
+Also run `tests/Platform/Luxel.Terminal.Linux.Tests` on Linux. Run `tests/Platform/Luxel.Terminal.Windows.Tests` only on Windows unless the user explicitly requests a cross-platform build-only check. Validate the dependency graph with:
 
 ```bash
 python3 eng/check-project-dependencies.py
@@ -155,8 +155,8 @@ python3 eng/check-project-dependencies.py
 Run:
 
 ```text
-tests/Luxel.Platform.Web.Tests
-tests/Luxel.Platform.Silk.Tests
+tests/Platform/Luxel.Platform.Web.Tests
+tests/Platform/Luxel.Platform.Silk.Tests
 ```
 
 The Silk project may require a native display/window environment.
@@ -166,7 +166,7 @@ The Silk project may require a native display/window environment.
 Run:
 
 ```bash
-dotnet test tests/Luxel.Shaders.Tests/Luxel.Shaders.Tests.csproj \
+dotnet test tests/Graphics/Luxel.Shaders.Tests/Luxel.Shaders.Tests.csproj \
   -c Release --logger 'console;verbosity=minimal'
 dotnet msbuild shaders/Luxel.ShaderCache.proj -t:ValidateSlangShaderCache
 ```
@@ -176,7 +176,7 @@ dotnet msbuild shaders/Luxel.ShaderCache.proj -t:ValidateSlangShaderCache
 Run the xUnit integration project when the requested GPU backend is available. Detect and prefer a real hardware GPU; use a software Vulkan/DX fallback only when hardware is unavailable or explicitly requested:
 
 ```bash
-dotnet test tests/Luxel.E2e.Tests/Luxel.E2e.Tests.csproj \
+dotnet test tests/Gallery/Luxel.E2e.Tests/Luxel.E2e.Tests.csproj \
   -c Release --logger 'console;verbosity=minimal'
 ```
 
@@ -209,7 +209,7 @@ Publish the standalone Playground browser from the repository root:
 dotnet publish samples/LuxelPlaygroundBrowser/LuxelPlaygroundBrowser.csproj -c Release
 ```
 
-Then from `tests/Luxel.Playground.Browser.E2e`:
+Then from `tests/Gallery/Luxel.Playground.Browser.E2e`:
 
 ```bash
 npm ci
@@ -221,24 +221,24 @@ Use `npm run test:slang` when only the Slang runtime smoke contracts are request
 
 ## Current managed project inventory
 
-- `tests/Luxel.Audio.Browser.Tests/Luxel.Audio.Browser.Tests.csproj`
-- `tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj`
-- `tests/Luxel.E2e.Tests/Luxel.E2e.Tests.csproj`
-- `tests/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj`
-- `tests/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj`
-- `tests/Luxel.Gallery.Playground.Tests/Luxel.Gallery.Playground.Tests.csproj`
-- `tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj`
-- `tests/Luxel.Platform.Silk.Tests/Luxel.Platform.Silk.Tests.csproj`
-- `tests/Luxel.Platform.Web.Tests/Luxel.Platform.Web.Tests.csproj`
-- `tests/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj`
-- `tests/Luxel.Shaders.Tests/Luxel.Shaders.Tests.csproj`
-- `tests/Luxel.Terminal.Linux.Tests/Luxel.Terminal.Linux.Tests.csproj`
-- `tests/Luxel.Terminal.Tests/Luxel.Terminal.Tests.csproj`
-- `tests/Luxel.Terminal.UI.Tests/Luxel.Terminal.UI.Tests.csproj`
-- `tests/Luxel.Terminal.Windows.Tests/Luxel.Terminal.Windows.Tests.csproj`
-- `tests/Luxel.Tests/Luxel.Tests.csproj`
-- `tests/Luxel.Vulkan.Present.Tests/Luxel.Vulkan.Present.Tests.csproj`
-- `tests/Luxel.Vulkan.Tests/Luxel.Vulkan.Tests.csproj`
-- `tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj`
-- `tests/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj`
-- `tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj`
+- `tests/Audio/Luxel.Audio.Browser.Tests/Luxel.Audio.Browser.Tests.csproj`
+- `tests/Audio/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj`
+- `tests/Gallery/Luxel.E2e.Tests/Luxel.E2e.Tests.csproj`
+- `tests/Framework/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj`
+- `tests/Gallery/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj`
+- `tests/Gallery/Luxel.Gallery.Playground.Tests/Luxel.Gallery.Playground.Tests.csproj`
+- `tests/Gallery/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj`
+- `tests/Platform/Luxel.Platform.Silk.Tests/Luxel.Platform.Silk.Tests.csproj`
+- `tests/Platform/Luxel.Platform.Web.Tests/Luxel.Platform.Web.Tests.csproj`
+- `tests/Scripting/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj`
+- `tests/Graphics/Luxel.Shaders.Tests/Luxel.Shaders.Tests.csproj`
+- `tests/Platform/Luxel.Terminal.Linux.Tests/Luxel.Terminal.Linux.Tests.csproj`
+- `tests/Editor/Luxel.Terminal.Tests/Luxel.Terminal.Tests.csproj`
+- `tests/Editor/Luxel.Terminal.UI.Tests/Luxel.Terminal.UI.Tests.csproj`
+- `tests/Platform/Luxel.Terminal.Windows.Tests/Luxel.Terminal.Windows.Tests.csproj`
+- `Luxel.slnx`
+- `tests/Graphics/Luxel.Vulkan.Present.Tests/Luxel.Vulkan.Present.Tests.csproj`
+- `tests/Graphics/Luxel.Vulkan.Tests/Luxel.Vulkan.Tests.csproj`
+- `tests/Graphics/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj`
+- `tests/Graphics/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj`
+- `tests/Graphics/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj`

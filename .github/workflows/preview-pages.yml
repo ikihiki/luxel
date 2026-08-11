@@ -48,14 +48,14 @@ jobs:
 
       - name: Test generators and generated production inventory
         if: github.event.action != 'closed'
-        run: dotnet test tests/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj --no-restore --no-build --configuration Release
+        run: dotnet test tests/Gallery/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test Gallery catalog contracts
         if: github.event.action != 'closed'
-        run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
+        run: dotnet test tests/Gallery/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
 
       - name: Test browser managed and source contracts
         if: github.event.action != 'closed'
-        run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release
+        run: dotnet test tests/Graphics/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release
       - name: Publish Blazor Gallery
         if: github.event.action != 'closed'
         run: dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj --no-restore --configuration Release

@@ -6,10 +6,10 @@ on:
       - 'src/Audio/Luxel.Audio/**'
       - 'src/Audio/Luxel.Audio.Browser/**'
       - 'samples/LuxelAudioBrowser/**'
-      - 'tests/Luxel.Audio.Browser.Tests/**'
+      - 'tests/Audio/Luxel.Audio.Browser.Tests/**'
       - 'src/Gallery/Luxel.Gallery.Stories/Stories/Docs/LearnAudio.cs'
       - 'src/Gallery/Luxel.Gallery.Stories/Stories/Docs/AudioCourseCatalog.cs'
-      - 'tests/Luxel.Gallery.Site.Tests/**'
+      - 'tests/Gallery/Luxel.Gallery.Site.Tests/**'
       - 'Luxel.slnx'
       - '.github/workflows/test-audio-browser.yml'
   workflow_dispatch:
@@ -33,11 +33,11 @@ jobs:
       - name: Restore
         run: dotnet restore Luxel.slnx
       - name: Test managed browser audio contracts
-        run: dotnet test tests/Luxel.Audio.Browser.Tests/Luxel.Audio.Browser.Tests.csproj --no-restore --configuration Release
+        run: dotnet test tests/Audio/Luxel.Audio.Browser.Tests/Luxel.Audio.Browser.Tests.csproj --no-restore --configuration Release
       - name: Test Web Audio JavaScript queue contracts
-        run: node --test tests/Luxel.Audio.Browser.Tests/luxel-audio-browser.test.mjs
+        run: node --test tests/Audio/Luxel.Audio.Browser.Tests/luxel-audio-browser.test.mjs
       - name: Test Audio Gallery contracts
-        run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --configuration Release
+        run: dotnet test tests/Gallery/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --configuration Release
       - name: Publish browser audio sample
         run: dotnet publish samples/LuxelAudioBrowser/LuxelAudioBrowser.csproj --no-restore --configuration Release
       - name: Validate browser sample assets

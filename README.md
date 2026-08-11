@@ -116,7 +116,7 @@ lavapipe を使った最小回帰テスト:
 
 ```bash
 VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
-  dotnet test tests/Luxel.Vulkan.Tests/Luxel.Vulkan.Tests.csproj
+  dotnet test tests/Graphics/Luxel.Vulkan.Tests/Luxel.Vulkan.Tests.csproj
 ```
 
 ### Window presentation の責任境界

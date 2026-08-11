@@ -225,6 +225,11 @@ def validate_metadata(root: Path, projects: dict[Path, Project]) -> list[str]:
         "LuxelPlatform", "LuxelArchitectureTier", "IsPackable",
         "LuxelGalleryRegistrationIdentity",
     }
+    required_test = {
+        "LuxelProjectRole", "LuxelGalleryCategory", "LuxelSubsystem",
+        "LuxelPlatform", "LuxelArchitectureTier",
+    }
+    shared_test_categories = {"Gallery", "GamesSamples"}
     for path, project in projects.items():
         rel = relative(root, path)
         if project.role not in ROLE_VALUES:
@@ -237,6 +242,27 @@ def validate_metadata(root: Path, projects: dict[Path, Project]) -> list[str]:
             errors.append(f"Invalid LuxelArchitectureTier '{project.tier}': {rel}")
         if project.path.parts and "src" in project.path.parts and not project.in_solution:
             errors.append(f"Source project missing from solution: {rel}")
+        relative_parts = Path(rel).parts
+        if relative_parts and relative_parts[0] == "tests":
+            if len(relative_parts) != 4 or relative_parts[2] != path.stem:
+                errors.append(f"Managed test project must use tests/<Category>/<Project>/<Project>.csproj: {rel}")
+            if project.role != "Test":
+                errors.append(f"Managed test project must use LuxelProjectRole Test: {rel}")
+            missing = sorted(required_test - project.explicit_metadata)
+            if missing:
+                errors.append(f"Managed test project lacks explicit metadata ({', '.join(missing)}): {rel}")
+            if len(relative_parts) >= 2:
+                folder_category = relative_parts[1]
+                expected_category = "Shared" if folder_category in shared_test_categories else folder_category
+                if project.category != expected_category:
+                    errors.append(
+                        f"Managed test project category '{project.category}' does not match "
+                        f"tests/{folder_category} ownership ('{expected_category}'): {rel}"
+                    )
+            if project.tier != "Extension":
+                errors.append(f"Managed test project must use LuxelArchitectureTier Extension: {rel}")
+            if not project.in_solution:
+                errors.append(f"Managed test project missing from solution: {rel}")
         previous = assemblies.get(project.assembly_name)
         if previous is not None:
             errors.append(f"Duplicate assembly name '{project.assembly_name}': {relative(root, previous)}, {rel}")

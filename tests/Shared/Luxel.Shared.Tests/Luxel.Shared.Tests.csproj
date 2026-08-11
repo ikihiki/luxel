@@ -1,0 +1,107 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <LuxelProjectRole>Test</LuxelProjectRole>
+    <LuxelGalleryCategory>Shared</LuxelGalleryCategory>
+    <LuxelSubsystem>Shared</LuxelSubsystem>
+    <LuxelPlatform>Portable</LuxelPlatform>
+    <LuxelArchitectureTier>Extension</LuxelArchitectureTier>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Shared\Luxel.Mathematics\Luxel.Mathematics.csproj" />
+    <Using Include="Luxel.Mathematics" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\DevTools\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Platform\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\..\..\src\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
+    <PackageReference Include="coverlet.collector" Version="10.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Graphics\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
+    <ProjectReference Include="..\..\..\src\Graphics\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\..\..\src\Graphics\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
+    <ProjectReference Include="..\..\..\src\UI\Luxel.UI\Luxel.UI.csproj" />
+    <ProjectReference Include="..\..\..\src\UI\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
+    <ProjectReference Include="..\..\..\src\UI\Luxel.Controls\Luxel.Controls.csproj" />
+    <ProjectReference Include="..\..\..\src\DevTools\Luxel.DevTools\Luxel.DevTools.csproj" />
+    <ProjectReference Include="..\..\..\src\Resources\Luxel.Resources\Luxel.Resources.csproj" />
+    <ProjectReference Include="..\..\..\src\Resources\Luxel.Imaging\Luxel.Imaging.csproj" />
+    <ProjectReference Include="..\..\..\src\Animation\Luxel.Animation\Luxel.Animation.csproj" />
+    <ProjectReference Include="..\..\..\src\Animation\Luxel.Animation.UI\Luxel.Animation.UI.csproj" />
+    <ProjectReference Include="..\..\..\src\Animation\Luxel.Animation.ThreeD\Luxel.Animation.ThreeD.csproj" />
+    <ProjectReference Include="..\..\..\src\Animation\Luxel.Animation.TwoD\Luxel.Animation.TwoD.csproj" />
+    <ProjectReference Include="..\..\..\src\UI\Luxel.Highlight.TextMate\Luxel.Highlight.TextMate.csproj" />
+    <ProjectReference Include="..\..\..\src\UI\Luxel.Diagram\Luxel.Diagram.csproj" />
+    <ProjectReference Include="..\..\..\src\UI\Luxel.MathText\Luxel.MathText.csproj" />
+    <ProjectReference Include="..\..\..\src\Graphics\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Ecs\Luxel.Ecs.csproj" />
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Ecs.Signal\Luxel.Ecs.Signal.csproj" />
+    <ProjectReference Include="..\..\..\src\Resources\Luxel.Assets\Luxel.Assets.csproj" />
+    <ProjectReference Include="..\..\..\src\Resources\Luxel.AssetsGpu\Luxel.AssetsGpu.csproj" />
+    <ProjectReference Include="..\..\..\src\Resources\Luxel.AssetRuntime\Luxel.AssetRuntime.csproj" />
+    <ProjectReference Include="..\..\..\src\Resources\Luxel.Assets.Gltf\Luxel.Assets.Gltf.csproj" />
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Scene.UI\Luxel.Scene.UI.csproj" />
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Settings\Luxel.Settings.csproj" />
+    <ProjectReference Include="..\..\..\src\Input\Luxel.Input\Luxel.Input.csproj" />
+    <ProjectReference Include="..\..\..\src\Audio\Luxel.Audio\Luxel.Audio.csproj" />
+    <ProjectReference Include="..\..\..\src\Scripting\Luxel.Scripting\Luxel.Scripting.csproj" />
+    <ProjectReference Include="..\..\..\src\Scripting\Luxel.Scripting.Framework\Luxel.Scripting.Framework.csproj" />
+    <ProjectReference Include="..\..\..\src\Scripting\Luxel.Strudel\Luxel.Strudel.csproj" />
+    <ProjectReference Include="..\..\..\src\Graphics\Luxel.Typography.Icu\Luxel.Typography.Icu.csproj" />
+    <ProjectReference Include="..\..\..\src\UI\Luxel.Document\Luxel.Document.csproj" />
+    <ProjectReference Include="..\..\..\src\UI\Luxel.NodeGraph\Luxel.NodeGraph.csproj" />
+    <ProjectReference Include="..\..\..\src\Editor\Luxel.SceneEdit\Luxel.SceneEdit.csproj" />
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Player\Luxel.Player.csproj" />
+    <ProjectReference Include="..\..\..\src\Editor\Luxel.Workbench\Luxel.Workbench.csproj" />
+    <!-- テスト用コンポーネント (TestBadge) にファクトリ/デバッグコードを焼き込む -->
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Physics\Luxel.Physics.csproj" />
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Physics.Gizmos\Luxel.Physics.Gizmos.csproj" />
+    <ProjectReference Include="..\..\..\src\Particles\Luxel.Particles\Luxel.Particles.csproj" />
+    <ProjectReference Include="..\..\..\src\Particles\Luxel.Particles.TwoD\Luxel.Particles.TwoD.csproj" />
+    <ProjectReference Include="..\..\..\src\Particles\Luxel.Particles.ThreeD\Luxel.Particles.ThreeD.csproj" />
+    <ProjectReference Include="..\..\..\src\Graphics\Luxel.Graphics.TwoD.Skia\Luxel.Graphics.TwoD.Skia.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Gallery\Luxel.Gallery\Luxel.Gallery.csproj" />
+  </ItemGroup>
+
+
+  <!-- Gallery/Cavern と同じ Git 管理フォントをテスト出力へ含める。 -->
+
+
+  <ItemGroup>
+    <Using Include="Luxel.Graphics" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Luxel.Platform" />
+  </ItemGroup>
+</Project>

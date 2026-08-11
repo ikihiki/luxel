@@ -16,6 +16,6 @@ internal static class ScriptingSampleBundles
             ],
             Requirements: ["Luxel.Scripting.Roslyn.Web", "browser metadata reference manifest"], ExportSymbol: "BrowserRoslynGalleryRuntime",
             RunCommand: "dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj -c Release",
-            SmokeCommand: "dotnet test tests/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj -c Release",
+            SmokeCommand: "dotnet test tests/Scripting/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj -c Release",
             Platforms: ["Browser", "Windows", "Linux", "macOS"], TimeoutSeconds: 180));
 }

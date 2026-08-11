@@ -31,12 +31,12 @@ on:
       - 'shaders/raster2d_*.slang'
       - 'shaders/compiled/raster2d_*.wgsl'
       - 'assets/fonts/**'
-      - 'tests/Luxel.Playground.Browser.E2e/**'
-      - 'tests/Luxel.Gallery.Playground.Tests/**'
-      - 'tests/Luxel.Scripting.Roslyn.Web.Tests/**'
+      - 'tests/Gallery/Luxel.Playground.Browser.E2e/**'
+      - 'tests/Gallery/Luxel.Gallery.Playground.Tests/**'
+      - 'tests/Scripting/Luxel.Scripting.Roslyn.Web.Tests/**'
       - 'gallery/GalleryE2E.Browser/**'
-      - 'tests/Luxel.WebGPU.Browser.Tests/**'
-      - 'tests/Luxel.Gallery.Site.Tests/**'
+      - 'tests/Graphics/Luxel.WebGPU.Browser.Tests/**'
+      - 'tests/Gallery/Luxel.Gallery.Site.Tests/**'
       - 'src/Gallery/Luxel.Gallery.Browser/**'
       - 'src/Gallery/Luxel.Gallery.Playground/**'
       - 'src/Scripting/Luxel.Scripting/**'
@@ -73,7 +73,7 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: |
-            tests/Luxel.Playground.Browser.E2e/package-lock.json
+            tests/Gallery/Luxel.Playground.Browser.E2e/package-lock.json
             gallery/GalleryE2E.Browser/package-lock.json
       - name: Install browser WebAssembly workload
         run: dotnet workload install wasm-tools
@@ -90,15 +90,15 @@ jobs:
       - name: Build solution and browser contracts
         run: dotnet build Luxel.slnx --no-restore --configuration Release
       - name: Test generators and generated production inventory
-        run: dotnet test tests/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj --no-restore --no-build --configuration Release
+        run: dotnet test tests/Gallery/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test Gallery catalog contracts
-        run: dotnet test tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
+        run: dotnet test tests/Gallery/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test Playground presentation and Roslyn contracts
         run: |
-          dotnet test tests/Luxel.Gallery.Playground.Tests/Luxel.Gallery.Playground.Tests.csproj --no-restore --no-build --configuration Release
-          dotnet test tests/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj --no-restore --no-build --configuration Release
+          dotnet test tests/Gallery/Luxel.Gallery.Playground.Tests/Luxel.Gallery.Playground.Tests.csproj --no-restore --no-build --configuration Release
+          dotnet test tests/Scripting/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj --no-restore --no-build --configuration Release
       - name: Test browser managed and source contracts
-        run: dotnet test tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release
+        run: dotnet test tests/Graphics/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release
       - name: Publish Blazor Gallery and Playground browser
         run: |
           dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj --no-restore --configuration Release --output artifacts/gallery-browser
@@ -110,7 +110,7 @@ jobs:
           test -f "$root/main.js"
           ! test -f "$root/browser-runtime-manifest.json"
       - name: Test Playground browser runtime smoke contracts
-        working-directory: tests/Luxel.Playground.Browser.E2e
+        working-directory: tests/Gallery/Luxel.Playground.Browser.E2e
         run: |
           npm ci
           npm run test:slang

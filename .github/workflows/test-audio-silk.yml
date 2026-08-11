@@ -8,8 +8,8 @@ on:
       - 'src/Framework/Luxel.Framework.Game.Native/**'
       - 'src/Framework/Luxel.Framework.Game/**'
       - 'src/Gallery/Luxel.Gallery.Stories/Stories/Docs/LearnAudio.cs'
-      - 'tests/Luxel.Audio.Silk.Tests/**'
-      - 'tests/Luxel.Audio.Silk.Tests/OpenAlBackendTests.cs'
+      - 'tests/Audio/Luxel.Audio.Silk.Tests/**'
+      - 'tests/Audio/Luxel.Audio.Silk.Tests/OpenAlBackendTests.cs'
       - 'eng/desktop/**'
       - 'src/**/*.csproj'
       - 'tests/**/*.csproj'
@@ -44,13 +44,13 @@ jobs:
       - name: Restore targeted projects
         run: |
           dotnet restore src/Audio/Luxel.Audio.Silk/Luxel.Audio.Silk.csproj
-          dotnet restore tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj
+          dotnet restore tests/Audio/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj
           dotnet restore src/Framework/Luxel.Framework.Game.Native/Luxel.Framework.Game.Native.csproj
           dotnet restore src/Framework/Luxel.Framework.Game/Luxel.Framework.Game.csproj
       - name: Build Silk OpenAL backend and tests
         run: |
           dotnet build src/Audio/Luxel.Audio.Silk/Luxel.Audio.Silk.csproj --no-restore --configuration Release
-          dotnet build tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj --no-restore --configuration Release
+          dotnet build tests/Audio/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj --no-restore --configuration Release
           dotnet build src/Framework/Luxel.Framework.Game.Native/Luxel.Framework.Game.Native.csproj --no-restore --configuration Release
           dotnet build src/Framework/Luxel.Framework.Game/Luxel.Framework.Game.csproj --no-restore --configuration Release
       - name: Start isolated virtual audio
@@ -67,14 +67,14 @@ jobs:
           printf 'ALSOFT_DRIVERS=%s\n' "${ALSOFT_DRIVERS}" >> "$GITHUB_ENV"
       - name: Test managed, native, and loopback audio paths
         run: >-
-          dotnet test tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj
+          dotnet test tests/Audio/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj
           --no-restore --no-build --configuration Release
           --filter 'FullyQualifiedName!~OutputCapture'
       - name: Detect optional output capture tests
         id: output-tests
         shell: bash
         run: |
-          if dotnet test tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj \
+          if dotnet test tests/Audio/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj \
               --no-restore --no-build --configuration Release --list-tests | grep -qi 'OutputCapture'; then
             echo 'present=true' >> "$GITHUB_OUTPUT"
           else
@@ -86,7 +86,7 @@ jobs:
           recording="${RUNNER_TEMP}/luxel-output-test.wav"
           eng/desktop/capture-audio-start.sh "$recording"
           trap 'eng/desktop/capture-audio-stop.sh || true' EXIT
-          LUXEL_AUDIO_OUTPUT_CAPTURE=1 dotnet test tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj \
+          LUXEL_AUDIO_OUTPUT_CAPTURE=1 dotnet test tests/Audio/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj \
             --no-restore --no-build --configuration Release \
             --filter 'FullyQualifiedName~OutputCapture'
           sleep 0.25

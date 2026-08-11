@@ -153,29 +153,71 @@
     <Project Path="samples/LuxelUiHeadless/LuxelUiHeadless.csproj" />
     <Project Path="samples/LuxelWebGpuHeadless/LuxelWebGpuHeadless.csproj" />
   </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/Luxel.Audio.Browser.Tests/Luxel.Audio.Browser.Tests.csproj" />
-    <Project Path="tests/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj" />
-    <Project Path="tests/Luxel.E2e.Tests/Luxel.E2e.Tests.csproj" />
-    <Project Path="tests/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj" />
-    <Project Path="tests/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj" />
-    <Project Path="tests/Luxel.Gallery.Playground.Tests/Luxel.Gallery.Playground.Tests.csproj" />
-    <Project Path="tests/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj" />
-    <Project Path="tests/Luxel.Graphics.MessagePipe.Tests/Luxel.Graphics.MessagePipe.Tests.csproj" />
-    <Project Path="tests/Luxel.Platform.Silk.Tests/Luxel.Platform.Silk.Tests.csproj" />
-    <Project Path="tests/Luxel.Platform.Web.Tests/Luxel.Platform.Web.Tests.csproj" />
-    <Project Path="tests/Luxel.Resources.Browser.Tests/Luxel.Resources.Browser.Tests.csproj" />
-    <Project Path="tests/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj" />
-    <Project Path="tests/Luxel.Shaders.Tests/Luxel.Shaders.Tests.csproj" />
-    <Project Path="tests/Luxel.Terminal.Linux.Tests/Luxel.Terminal.Linux.Tests.csproj" />
-    <Project Path="tests/Luxel.Terminal.Tests/Luxel.Terminal.Tests.csproj" />
-    <Project Path="tests/Luxel.Terminal.UI.Tests/Luxel.Terminal.UI.Tests.csproj" />
-    <Project Path="tests/Luxel.Terminal.Windows.Tests/Luxel.Terminal.Windows.Tests.csproj" />
-    <Project Path="tests/Luxel.Tests/Luxel.Tests.csproj" />
-    <Project Path="tests/Luxel.Vulkan.Present.Tests/Luxel.Vulkan.Present.Tests.csproj" />
-    <Project Path="tests/Luxel.Vulkan.Tests/Luxel.Vulkan.Tests.csproj" />
-    <Project Path="tests/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj" />
-    <Project Path="tests/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj" />
-    <Project Path="tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj" />
+  <Folder Name="/tests/Animation/">
+    <Project Path="tests/Animation/Luxel.Animation.Tests/Luxel.Animation.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Audio/">
+    <Project Path="tests/Audio/Luxel.Audio.Browser.Tests/Luxel.Audio.Browser.Tests.csproj" />
+    <Project Path="tests/Audio/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj" />
+    <Project Path="tests/Audio/Luxel.Audio.Tests/Luxel.Audio.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/DevTools/">
+    <Project Path="tests/DevTools/Luxel.DevTools.Tests/Luxel.DevTools.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Editor/">
+    <Project Path="tests/Editor/Luxel.Editor.Tests/Luxel.Editor.Tests.csproj" />
+    <Project Path="tests/Editor/Luxel.Terminal.Tests/Luxel.Terminal.Tests.csproj" />
+    <Project Path="tests/Editor/Luxel.Terminal.UI.Tests/Luxel.Terminal.UI.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Framework/">
+    <Project Path="tests/Framework/Luxel.Framework.Tests/Luxel.Framework.Tests.csproj" />
+    <Project Path="tests/Framework/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Gallery/">
+    <Project Path="tests/Gallery/Luxel.E2e.Tests/Luxel.E2e.Tests.csproj" />
+    <Project Path="tests/Gallery/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj" />
+    <Project Path="tests/Gallery/Luxel.Gallery.Playground.Tests/Luxel.Gallery.Playground.Tests.csproj" />
+    <Project Path="tests/Gallery/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj" />
+    <Project Path="tests/Gallery/Luxel.Gallery.Tests/Luxel.Gallery.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/GamesSamples/">
+    <Project Path="tests/GamesSamples/Luxel.GamesSamples.Tests/Luxel.GamesSamples.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Graphics/">
+    <Project Path="tests/Graphics/Luxel.Graphics.MessagePipe.Tests/Luxel.Graphics.MessagePipe.Tests.csproj" />
+    <Project Path="tests/Graphics/Luxel.Graphics.Tests/Luxel.Graphics.Tests.csproj" />
+    <Project Path="tests/Graphics/Luxel.Shaders.Tests/Luxel.Shaders.Tests.csproj" />
+    <Project Path="tests/Graphics/Luxel.Vulkan.Present.Tests/Luxel.Vulkan.Present.Tests.csproj" />
+    <Project Path="tests/Graphics/Luxel.Vulkan.Tests/Luxel.Vulkan.Tests.csproj" />
+    <Project Path="tests/Graphics/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj" />
+    <Project Path="tests/Graphics/Luxel.WebGPU.Present.Tests/Luxel.WebGPU.Present.Tests.csproj" />
+    <Project Path="tests/Graphics/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Input/">
+    <Project Path="tests/Input/Luxel.Input.Tests/Luxel.Input.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Particles/">
+    <Project Path="tests/Particles/Luxel.Particles.Tests/Luxel.Particles.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Platform/">
+    <Project Path="tests/Platform/Luxel.Platform.Silk.Tests/Luxel.Platform.Silk.Tests.csproj" />
+    <Project Path="tests/Platform/Luxel.Platform.Tests/Luxel.Platform.Tests.csproj" />
+    <Project Path="tests/Platform/Luxel.Platform.Web.Tests/Luxel.Platform.Web.Tests.csproj" />
+    <Project Path="tests/Platform/Luxel.Terminal.Linux.Tests/Luxel.Terminal.Linux.Tests.csproj" />
+    <Project Path="tests/Platform/Luxel.Terminal.Windows.Tests/Luxel.Terminal.Windows.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Resources/">
+    <Project Path="tests/Resources/Luxel.Resources.Browser.Tests/Luxel.Resources.Browser.Tests.csproj" />
+    <Project Path="tests/Resources/Luxel.Resources.Tests/Luxel.Resources.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Scripting/">
+    <Project Path="tests/Scripting/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj" />
+    <Project Path="tests/Scripting/Luxel.Scripting.Tests/Luxel.Scripting.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Shared/">
+    <Project Path="tests/Shared/Luxel.Shared.Tests/Luxel.Shared.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/UI/">
+    <Project Path="tests/UI/Luxel.UI.Tests/Luxel.UI.Tests.csproj" />
   </Folder>
 </Solution>

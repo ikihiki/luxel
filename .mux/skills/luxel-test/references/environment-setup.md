@@ -336,7 +336,7 @@ Remove-Item Env:WGPU_ADAPTER_NAME -ErrorAction SilentlyContinue
 $env:LUXEL_WEBGPU_REQUIRE_ADAPTER = '1'
 $env:WGPU_BACKEND = 'dx12'
 $env:WGPU_DX12_COMPILER = 'fxc'
-dotnet test tests/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release
+dotnet test tests/Graphics/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj -c Release
 ```
 
 Use `$env:LUXEL_WEBGPU_FORCE_FALLBACK_ADAPTER = '1'` only for an explicit fallback-adapter test or when no compatible hardware adapter is accessible.
