@@ -191,15 +191,16 @@ Never use `--update` unless the user explicitly asks to update goldens.
 
 ### `gallery-browser-e2e`
 
-From `gallery/GalleryE2E.Browser`:
+From the repository root:
 
 ```bash
-npm ci
-npm run install:browsers
-npm run run
+dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj -c Release -o artifacts/gallery-browser
+dotnet build tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj -c Release
+pwsh tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+dotnet test tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj -c Release --no-build
 ```
 
-`npm run run` publishes the Blazor `GalleryBrowser` directly and executes Playwright against its static `wwwroot`. It requires `wasm-tools` and Chromium. If artifacts are already prepared, use `npm test` instead.
+The xUnit suite drives the published static `wwwroot` with Microsoft Playwright and deterministic Chromium SwiftShader arguments. It requires `wasm-tools`, PowerShell, and Chromium. If artifacts and the project are already built, run only the final `dotnet test` command.
 
 ### `playground-browser-e2e`
 

@@ -34,7 +34,7 @@ on:
       - 'tests/Gallery/Luxel.Playground.Browser.E2e/**'
       - 'tests/Gallery/Luxel.Gallery.Playground.Tests/**'
       - 'tests/Scripting/Luxel.Scripting.Roslyn.Web.Tests/**'
-      - 'gallery/GalleryE2E.Browser/**'
+      - 'tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/**'
       - 'tests/Graphics/Luxel.WebGPU.Browser.Tests/**'
       - 'tests/Gallery/Luxel.Gallery.Site.Tests/**'
       - 'src/Gallery/Luxel.Gallery.Browser/**'
@@ -45,7 +45,6 @@ on:
       - 'src/UI/Luxel.UI.Gallery/**'
       - 'src/Particles/Luxel.Particles.Gallery/**'
       - 'src/Shared/Luxel.UI.Generators/**'
-      - 'eng/browser-e2e-support/**'
       - 'eng/check-project-dependencies.py'
       - 'src/Gallery/Luxel.Gallery.Stories/SampleBundles.cs'
       - 'src/Gallery/Luxel.Gallery.Stories/Stories/GpuStories.cs'
@@ -73,9 +72,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: |
-            tests/Gallery/Luxel.Playground.Browser.E2e/package-lock.json
-            gallery/GalleryE2E.Browser/package-lock.json
+          cache-dependency-path: tests/Gallery/Luxel.Playground.Browser.E2e/package-lock.json
       - name: Install browser WebAssembly workload
         run: dotnet workload install wasm-tools
       - name: Validate project dependency graph
@@ -115,20 +112,14 @@ jobs:
         run: |
           npm ci
           npm run test:slang
-      - name: Install Gallery browser WebGPU E2E dependencies
-        working-directory: gallery/GalleryE2E.Browser
-        run: |
-          npm ci
-          npx playwright install --with-deps chromium
+      - name: Install Gallery browser WebGPU E2E Chromium
+        run: pwsh tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
       - name: Test Gallery browser-WASM stories in Chromium
-        working-directory: gallery/GalleryE2E.Browser
-        run: npm test
+        run: dotnet test tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj --no-restore --no-build --configuration Release
       - name: Upload Playwright failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: luxel-playground-playwright
-          path: |
-            gallery/GalleryE2E.Browser/test-results
-            gallery/GalleryE2E.Browser/playwright-report
+          name: luxel-gallery-browser-playwright
+          path: artifacts/gallery-browser-e2e
           if-no-files-found: ignore
