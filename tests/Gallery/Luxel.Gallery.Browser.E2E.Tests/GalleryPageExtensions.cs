@@ -56,59 +56,6 @@ internal static class GalleryPageExtensions
             "expected => globalThis.luxelBrowserState?.widgets?.some(widget => widget.detail?.includes(expected)) || false", text),
             timeoutMilliseconds);
 
-    public static async Task StartGalleryTracingAsync(this IBrowserContext context)
-    {
-        context.SetDefaultTimeout(90_000);
-        context.SetDefaultNavigationTimeout(90_000);
-        await context.Tracing.StartAsync(new TracingStartOptions
-        {
-            Screenshots = true,
-            Snapshots = true,
-            Sources = true
-        });
-    }
-
-    public static async Task FinishGalleryTracingAsync(
-        this IBrowserContext context,
-        IPage? page,
-        bool testOk,
-        string testClass)
-    {
-        if (testOk)
-        {
-            await context.Tracing.StopAsync();
-            return;
-        }
-
-        var artifactDirectory = Path.Combine(
-            GalleryTestHost.RepositoryRoot,
-            "artifacts",
-            "gallery-browser-e2e",
-            Sanitize(testClass),
-            DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff"));
-        Directory.CreateDirectory(artifactDirectory);
-        if (page is not null)
-        {
-            try
-            {
-                await page.ScreenshotAsync(new PageScreenshotOptions
-                {
-                    FullPage = true,
-                    Path = Path.Combine(artifactDirectory, "failure.png")
-                });
-            }
-            catch (PlaywrightException) { }
-        }
-        try
-        {
-            await context.Tracing.StopAsync(new TracingStopOptions
-            {
-                Path = Path.Combine(artifactDirectory, "trace.zip")
-            });
-        }
-        catch (PlaywrightException) { }
-    }
-
     private static async Task ExpectRuntimeStoryAsync(
         ITarget target,
         string story,
@@ -148,8 +95,6 @@ internal static class GalleryPageExtensions
         }
     }
 
-    private static string Sanitize(string value) => string.Concat(value.Select(character =>
-        Path.GetInvalidFileNameChars().Contains(character) || character is '/' or '\\' or ':' ? '_' : character));
 
     private interface ITarget
     {
@@ -172,21 +117,13 @@ internal static class GalleryPolling
     public static async Task EventuallyAsync(Func<Task<bool>> condition, int timeoutMilliseconds = 30_000, string? message = null)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMilliseconds);
-        Exception? lastError = null;
         while (DateTime.UtcNow < deadline)
         {
-            try
-            {
-                if (await condition())
-                    return;
-            }
-            catch (Exception exception)
-            {
-                lastError = exception;
-            }
+            if (await condition())
+                return;
             await Task.Delay(100);
         }
-        throw new Xunit.Sdk.XunitException(message ?? $"Condition was not satisfied within {timeoutMilliseconds} ms.{(lastError is null ? string.Empty : $" Last error: {lastError.Message}")}");
+        throw new Xunit.Sdk.XunitException(message ?? $"Condition was not satisfied within {timeoutMilliseconds} ms.");
     }
 }
 

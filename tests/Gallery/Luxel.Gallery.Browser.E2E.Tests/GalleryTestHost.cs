@@ -9,7 +9,6 @@ internal static class GalleryTestHost
 {
     private static readonly Lazy<Task<HostState>> Host = new(StartAsync, LazyThreadSafetyMode.ExecutionAndPublication);
 
-    public static string RepositoryRoot => GetState().RepositoryRoot;
     public static string BaseUrl => GetState().BaseUrl;
 
     public static async Task EnsureStartedAsync() => _ = await Host.Value.ConfigureAwait(false);
@@ -73,7 +72,7 @@ internal static class GalleryTestHost
 
         if (server is not null)
             AppDomain.CurrentDomain.ProcessExit += (_, _) => StopServer(server);
-        return new HostState(repositoryRoot, baseUrl);
+        return new HostState(baseUrl);
     }
 
     private static Process StartStaticServer(string artifactRoot, int port)
@@ -169,5 +168,5 @@ internal static class GalleryTestHost
         throw new DirectoryNotFoundException("Could not locate the Luxel repository root from the test output directory.");
     }
 
-    private sealed record HostState(string RepositoryRoot, string BaseUrl);
+    private sealed record HostState(string BaseUrl);
 }

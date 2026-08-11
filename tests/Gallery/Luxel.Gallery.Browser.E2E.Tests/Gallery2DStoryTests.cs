@@ -12,14 +12,6 @@ public sealed class Gallery2DStoryTests : Microsoft.Playwright.Xunit.PageTest
     {
         await GalleryTestHost.EnsureStartedAsync();
         await base.InitializeAsync();
-        await Context.StartGalleryTracingAsync();
-    }
-
-    public override async Task DisposeAsync()
-    {
-        if (Context is not null)
-            await Context.FinishGalleryTracingAsync(Page, TestOk, GetType().Name);
-        await base.DisposeAsync();
     }
 
     public static TheoryData<string> TwoDStories => Data(

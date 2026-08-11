@@ -15,4 +15,4 @@ dotnet test tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.
 
 `GalleryBrowser.runsettings` is selected automatically by the project. It configures Chromium with deterministic SwiftShader WebGPU arguments, a 90-second Playwright assertion timeout, and two xUnit class workers to limit software-GPU oversubscription.
 
-`GalleryTestHost` starts one process-wide Python static server lazily and safely when test classes initialize concurrently. The static root defaults to `artifacts/gallery-browser/wwwroot`; override it with `LUXEL_GALLERY_BROWSER_ROOT`. `LUXEL_WEBGPU_E2E_PORT` selects the static-server port, and `LUXEL_WEBGPU_E2E_REUSE_SERVER=1` reuses a server already listening there. Failure screenshots and traces are written under `artifacts/gallery-browser-e2e`.
+`GalleryTestHost` starts one process-wide Python static server lazily and safely when test classes initialize concurrently. The static root defaults to `artifacts/gallery-browser/wwwroot`; override it with `LUXEL_GALLERY_BROWSER_ROOT`. `LUXEL_WEBGPU_E2E_PORT` selects the static-server port, and `LUXEL_WEBGPU_E2E_REUSE_SERVER=1` reuses a server already listening there.
