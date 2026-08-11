@@ -1,8 +1,8 @@
 # Luxel Gallery Browser E2E
 
-This xUnit project follows the Playwright .NET xUnit runner pattern. Focused story classes derive from `PageTest`, which reuses Playwright/browser workers while giving every test a fresh browser context and page. `AllPagesTests` derives from `BrowserTest` because its route audit creates a discovery context plus six audit contexts. xUnit classes run concurrently; methods within a class remain sequential.
+This xUnit project follows the Playwright .NET xUnit runner pattern. Focused story classes derive from `PageTest`, which reuses Playwright/browser workers while giving every test a fresh browser context and page. xUnit classes run concurrently; methods within a class remain sequential.
 
-The 88 discoverable tests cover the complete Gallery route audit, category stories, Markdown iframes, WebGPU diagnostics, canvas interactions, shared Args/Output/Source panels, Audio, Resources, and browser scripting.
+The 87 discoverable tests cover representative category stories, Markdown iframes, WebGPU diagnostics, canvas interactions, shared Args/Output/Source panels, Audio, Resources, and browser scripting.
 
 From the repository root:
 
