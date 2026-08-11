@@ -53,7 +53,8 @@ public sealed class AllPagesTests : Microsoft.Playwright.Xunit.BrowserTest
         "Controls/SceneInspector/Overview"
     ];
 
-    [Fact(Timeout = 20 * 60_000)]
+    // GitHub's software-WebGPU runner is roughly twice as slow as local validation.
+    [Fact(Timeout = 35 * 60_000)]
     public async Task EveryBlazorGalleryPageRendersOrReachesBrowserSafeFallback()
     {
         await using var discoveryContext = await NewContext(GalleryTestHost.ContextOptions());
