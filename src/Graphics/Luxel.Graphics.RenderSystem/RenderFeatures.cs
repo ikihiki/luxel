@@ -14,6 +14,12 @@ public interface IRenderFeature
     void AddPasses(RenderFeatureContext context);
 }
 
+/// <summary>batch submit/present completion notification for features with success-only publication.</summary>
+public interface IRenderFeatureBatchObserver
+{
+    void CompleteBatch(bool succeeded);
+}
+
 public sealed class RenderFeatureContext
 {
     public RenderFeatureContext(

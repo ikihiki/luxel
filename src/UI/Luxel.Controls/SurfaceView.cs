@@ -25,12 +25,17 @@ public sealed partial class SurfaceView : Widget, IDisposable
     private IRasterScene2D? _rasterScene;
     private RetainedCanvas? _childCanvas;
     private GpuDevice? _device;
-    private GpuBuffer? _fb;
     private Widget? _pendingRoot;
     private Exception? _contentError;
-    private bool _rendered;
+    private UiRendererState? _rendererState;
+    private UiSurfaceState? _surfaceState;
+    private PersistentUiOutput<GpuBuffer>? _output;
+    private GpuBuffer? _recycled;
+    private UiNode? _imageNode;
+    private readonly string _surfaceKey = $"surface-view-{Interlocked.Increment(ref s_nextSurfaceId)}";
+    private static long s_nextSurfaceId;
     private float _scale = 1f;            // 親 UI の DPI スケール — 子 fb は物理解像度 (_pw×_ph) で持つ
-    private uint _pw, _ph;
+    private uint _pw, _ph, _publishedPw, _publishedPh;
 
     /// <summary>子 UiHost (実体化後に有効)。状態強制やツリー検査はこれ経由で行う。</summary>
     public UiHost? Child { get; private set; }
@@ -61,7 +66,7 @@ public sealed partial class SurfaceView : Widget, IDisposable
     {
         ArgumentNullException.ThrowIfNull(root);
         _contentError = null;
-        _rendered = false;
+        _surfaceState?.ForceRedraw();
         _pendingRoot = root;
         if (logicalWidth is float lw) _pendingW = MathF.Min(lw, W1);
         if (logicalHeight is float lh) _pendingH = MathF.Min(lh, H1);
@@ -80,26 +85,50 @@ public sealed partial class SurfaceView : Widget, IDisposable
         // 子環境は初回のみ生成 (親の再実体化を跨いで生存 — 子の状態は保持される)
         if (Child is null)
         {
+            _rendererState = ctx.RendererState
+                ?? throw new NotSupportedException("SurfaceView requires a UiRendererState-backed composition host.");
             _rasterizer = ctx.RequireGpuRasterizer();
             _device = _rasterizer.Device;
             _childCanvas = new RetainedCanvas();
             _rasterScene = _rasterizer.CreateScene(_childCanvas);
-            Child = new UiHost(_childCanvas, ctx.Font, PendW, PendH, ctx.Theme, _rasterizer);   // 親島とテーマ共有 (同一スレッド)
+            Child = new UiHost(_childCanvas, ctx.Font, PendW, PendH, ctx.Theme, _rasterizer, _rendererState);
+            _output = new PersistentUiOutput<GpuBuffer>(RecycleOutput);
+            _surfaceState = new UiSurfaceState(
+                _surfaceKey,
+                UiSurfaceRole.Content,
+                _childCanvas,
+                _output,
+                _rendererState.CreateInvalidationSource(UiSurfaceRole.Content),
+                TickChild,
+                AddRasterPass,
+                CreateOutput);
+            _surfaceState.Published += PublishOutput;
+            _rendererState.Add(_surfaceState);
             if (_pendingRoot is not null) Child.SetRoot(_pendingRoot);
         }
-        // fb は親のラスタライズ解像度 (論理 × RenderScale) で持つ — 150% でも子のテキストが鮮明
-        if (_fb is null || _scale != ctx.RenderScale)
+        // output は親のラスタライズ解像度 (論理 × RenderScale) で持つ — 150% でも子のテキストが鮮明
+        uint physicalWidth = (uint)MathF.Ceiling(W1 * ctx.RenderScale);
+        uint physicalHeight = (uint)MathF.Ceiling(H1 * ctx.RenderScale);
+        if (_pw != physicalWidth || _ph != physicalHeight)
         {
             _scale = ctx.RenderScale;
-            _pw = (uint)MathF.Ceiling(W1 * _scale);
-            _ph = (uint)MathF.Ceiling(H1 * _scale);
-            _fb?.Dispose();
-            _fb = _device!.Malloc((ulong)((long)_pw * _ph * 4), GpuMemoryKind.DeviceLocal);   // GPU 内で完結
-            _rendered = false;
+            _pw = physicalWidth;
+            _ph = physicalHeight;
+            _recycled?.Dispose();
+            _recycled = null;
+            _surfaceState!.ForceRedraw();
         }
 
-        UiNode node = CreateRoot(ctx, parent, worldOrigin);
-        node.Content = new Scene2D().ImageRect(_fb!.BindlessIndex, _pw, _pw, _ph, 0, 0, W1, H1);
+        if (_output!.Current is null)
+        {
+            GpuBuffer initial = CreateOutput();
+            _output.SetCurrent(initial);
+            _publishedPw = _pw;
+            _publishedPh = _ph;
+        }
+
+        UiNode node = _imageNode = CreateRoot(ctx, parent, worldOrigin);
+        UpdateImageNode();
         node.Clip = new RectClip(0, 0, Size.Width, Size.Height);   // レイアウトサイズが surface より小さい場合にはみ出さない
 
         // ---- 入力ブリッジ (ローカル座標 = 子のクライアント座標) ----
@@ -124,51 +153,71 @@ public sealed partial class SurfaceView : Widget, IDisposable
             onContext: e => Child!.ContextClick(e.X, e.Y));               // 右クリックも子へ (メニューは子 canvas 内)
         ctx.AddScroll(node, new Rect(0, 0, Size.Width, Size.Height), onScrollPos: (lx, ly, d) => Child!.Wheel(lx, ly, d));
 
-        // ---- 子の駆動: 親 UiHost の Tick で子を進め、変更があれば fb へ再ラスタライズ ----
-        ctx.AddAnimation(dt =>
-        {
-            // Paused 中は dt=0 で子を刻む (アニメを凍結、入力/描画は生きる)。
-            // StepFrame 要求があればその 1 回だけ固定 dt を通す (決定的フレームステップデバッグ)。
-            float childDt = dt;
-            if (Paused)
-            {
-                childDt = _pendingStep;
-                _pendingStep = 0;
-            }
-            if (_contentError is not null) return false;
-            try
-            {
-                Child!.Tick(childDt);
-                if (!_rendered || _childCanvas!.HasPendingChanges)
-                {
-                    RenderChild();
-                    node.Touch();   // 親 image ノードを dirty に (親の再合成を促す)
-                }
-            }
-            catch (Exception error)
-            {
-                // この infrastructure animation を throw させると親 UiHost が削除し、次の story も永久に
-                // Tick/描画されなくなる。現在の子だけを fault 状態にして SetContent による復旧を待つ。
-                _contentError = error;
-                Console.Error.WriteLine($"[surface] child content error: {error}");
-                try { ContentError?.Invoke(error); }
-                catch (Exception callbackError)
-                {
-                    Console.Error.WriteLine($"[surface] content error callback failed: {callbackError}");
-                }
-            }
-            return false;   // 常駐
-        });
     }
 
-    private void RenderChild()
+    private void TickChild(float dt)
     {
-        using GpuCommandBuffer cmd = _device!.MainQueue.StartCommandRecording();
-        _rasterScene!.Render(new Camera2D { A = _scale, D = _scale },
-            new GpuRasterTarget2D(cmd, _fb!, _pw, _ph), transparent: true);
-        cmd.Finish();
-        _device.MainQueue.SubmitAndWait(cmd);
-        _rendered = true;
+        float childDt = Paused ? _pendingStep : dt;
+        if (Paused) _pendingStep = 0;
+        if (_contentError is not null) return;
+        try
+        {
+            Child!.Tick(childDt);
+        }
+        catch (Exception error)
+        {
+            _contentError = error;
+            Console.Error.WriteLine($"[surface] child content error: {error}");
+            try { ContentError?.Invoke(error); }
+            catch (Exception callbackError)
+            {
+                Console.Error.WriteLine($"[surface] content error callback failed: {callbackError}");
+            }
+        }
+    }
+
+    private GpuBuffer CreateOutput()
+    {
+        ulong size = (ulong)((long)_pw * _ph * 4);
+        if (_recycled is { } recycled && recycled.Size == size)
+        {
+            _recycled = null;
+            return recycled;
+        }
+        _recycled?.Dispose();
+        _recycled = null;
+        return _device!.Malloc(size, GpuMemoryKind.DeviceLocal);
+    }
+
+    private void RecycleOutput(GpuBuffer output)
+    {
+        if (_recycled is not null && !ReferenceEquals(_recycled, output)) _recycled.Dispose();
+        _recycled = output;
+    }
+
+    private void AddRasterPass(Luxel.Graphics.RenderGraph.RenderGraph graph, GpuBuffer output)
+    {
+        var handle = graph.ImportBuffer(output, $"{_surfaceKey}-pending");
+        graph.AddPass($"Raster {_surfaceKey}")
+            .Write(handle)
+            .SideEffect()
+            .Execute(pass => _rasterScene!.Render(new Camera2D { A = _scale, D = _scale },
+                new GpuRasterTarget2D(pass.Cmd, pass.Buffer(handle), _pw, _ph), transparent: true));
+    }
+
+    private void PublishOutput(GpuBuffer output)
+    {
+        _publishedPw = _pw;
+        _publishedPh = _ph;
+        UpdateImageNode();
+        _imageNode?.Touch();
+    }
+
+    private void UpdateImageNode()
+    {
+        if (_imageNode is null || _output?.Current is not { } output) return;
+        _imageNode.Content = new Scene2D().ImageRect(
+            output.BindlessIndex, _publishedPw, _publishedPw, _publishedPh, 0, 0, W1, H1);
     }
 
     /// <summary>TSF/IME → 子 UiHost のフォーカス中テキスト入力へ委譲する面。
@@ -200,11 +249,17 @@ public sealed partial class SurfaceView : Widget, IDisposable
 
     public void Dispose()
     {
+        if (_surfaceState is not null)
+        {
+            _surfaceState.Published -= PublishOutput;
+            _rendererState?.Remove(_surfaceKey);
+        }
         Child?.Dispose();
         _rasterScene?.Dispose();
         _childCanvas?.Dispose();
-        _fb?.Dispose();
-        Child = null; _rasterScene = null; _childCanvas = null; _fb = null; _rasterizer = null;
+        _recycled?.Dispose();
+        Child = null; _rasterScene = null; _childCanvas = null; _rasterizer = null;
+        _surfaceState = null; _output = null; _rendererState = null; _recycled = null; _imageNode = null;
         _contentError = null;
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace Luxel.Graphics.TwoD;
+namespace Luxel.Graphics.TwoD;
 
 /// <summary>クリップ矩形 (ワールド座標)。</summary>
 public readonly record struct RectClip(float X, float Y, float W, float H);
@@ -86,15 +86,22 @@ public sealed class UiNode
     /// (Canvas2D 等の 2D 直描き用)。制約: このノードの <see cref="Color"/>/<see cref="Opacity"/> の
     /// 実行時変更は content の色に反映されない (エンコード時の実効 opacity で焼き込み)。
     /// 実体化前 (最初の Rebuild 前) に設定すること。</summary>
-    public bool ContentColors { get; set; }
+    private bool _contentColors;
+    public bool ContentColors
+    {
+        get => _contentColors;
+        set { if (_contentColors == value) return; _contentColors = value; _canvas.MarkStructureDirty(); }
+    }
 
     /// <summary>Content 差し替えの最低予約 (仮想化リスト等、ワーストケースが分かる場合)。
     /// 次の Rebuild からこのノードの線分/パス容量が指定値以上確保され、以内の差し替えは
     /// in-place (フル再構築なし) で受けられる。サイズは <see cref="Scene2D.CountEncoded"/> で見積もる。</summary>
     public void ReserveContent(int segments, int paths)
     {
+        if (ReserveSegs == segments && ReservePaths == paths) return;
         ReserveSegs = segments;
         ReservePaths = paths;
+        _canvas.MarkStructureDirty();
     }
 
     /// <summary>祖先を辿った「現在の」ワールド変換 (Flush のキャッシュでなく都度計算)。

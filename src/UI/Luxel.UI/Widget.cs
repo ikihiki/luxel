@@ -147,7 +147,10 @@ public sealed class UiBuildContext
         => GpuRasterizer ?? throw new NotSupportedException(
             "This widget requires the GPU 2D rasterizer and cannot run with the selected CPU rasterizer.");
 
-    /// <summary>この build を所有する UiHost (D&D の <see cref="UiHost.BeginDrag"/> 等、
+    /// <summary>この host に属する keyed raster surfaces の登録先。GPU composition host だけが設定する。</summary>
+    public UiRendererState? RendererState { get; init; }
+
+    /// <summary>この build を所有する UiHost (D&amp;D の <see cref="UiHost.BeginDrag"/> 等、
     /// host サービスへのアクセス用)。SetRoot が設定する。</summary>
     public UiHost? Host { get; internal set; }
 

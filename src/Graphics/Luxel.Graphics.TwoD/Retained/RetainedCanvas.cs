@@ -26,6 +26,7 @@ public sealed class RetainedCanvas : IDisposable
     private bool _dirtyStructure = true;
     private bool _dirtyOrder;
     private bool _disposed;
+    private ulong _changeGeneration = 1;
 
     /// <summary>直近 Flush の部分更新量 (検証用)。</summary>
     public int LastTransformWrites { get; private set; }
@@ -64,26 +65,28 @@ public sealed class RetainedCanvas : IDisposable
 
     public UiNode Root { get; }
 
+    /// <summary>保持内容の変更ごとに単調増加する世代。Flush は世代を戻さない。</summary>
+    public ulong ChangeGeneration => _changeGeneration;
+
     /// <summary>親の下に子ノードを作る。</summary>
     public UiNode AddChild(UiNode parent)
     {
         var n = new UiNode(this) { Parent = parent };
         parent.Children.Add(n);
-        _dirtyStructure = true;
+        MarkStructureDirty();
         return n;
     }
 
     /// <summary>ノードを削除する。</summary>
     public void Remove(UiNode node)
     {
-        node.Parent?.Children.Remove(node);
-        _dirtyStructure = true;
+        if (node.Parent?.Children.Remove(node) == true) MarkStructureDirty();
     }
 
     /// <summary>明示的な全再構築要求。Content 差し替え/ノード増減は setter/AddChild が自動で
     /// dirty をマークするため通常は不要 — 呼ぶとフル再構築を強制する (増分更新が効かなくなる) ので、
     /// slot 管理の外で何かを変えた場合の脱出口としてのみ使うこと。</summary>
-    public void Invalidate() => _dirtyStructure = true;
+    public void Invalidate() => MarkStructureDirty();
 
     /// <summary>未反映の変更があるか。false なら再描画しても前回と同じ絵になる
     /// (呼び出し側は Render 自体をスキップできる)。</summary>
@@ -91,12 +94,14 @@ public sealed class RetainedCanvas : IDisposable
         => _dirtyStructure || _dirtyOrder || _dirtyContent.Count > 0
         || _dirtyTransform.Count > 0 || _dirtyStyle.Count > 0 || _dirtyClip.Count > 0;
 
-    internal void MarkTransformDirty(UiNode n) => _dirtyTransform.Add(n);
-    internal void MarkStyleDirty(UiNode n) => _dirtyStyle.Add(n);
-    internal void MarkClipDirty(UiNode n) { _dirtyClip.Add(n); _dirtyTransform.Add(n); }
-    internal void MarkContentDirty(UiNode n) => _dirtyContent.Add(n);
-    internal void MarkStructureDirty() => _dirtyStructure = true;
-    internal void MarkOrderDirty() => _dirtyOrder = true;
+    internal void MarkTransformDirty(UiNode n) { _dirtyTransform.Add(n); Changed(); }
+    internal void MarkStyleDirty(UiNode n) { _dirtyStyle.Add(n); Changed(); }
+    internal void MarkClipDirty(UiNode n) { _dirtyClip.Add(n); _dirtyTransform.Add(n); Changed(); }
+    internal void MarkContentDirty(UiNode n) { _dirtyContent.Add(n); Changed(); }
+    internal void MarkStructureDirty() { _dirtyStructure = true; Changed(); }
+    internal void MarkOrderDirty() { _dirtyOrder = true; Changed(); }
+
+    private void Changed() => _changeGeneration = checked(_changeGeneration + 1);
 
     /// <summary>最終 2D プリミティブ (SoA) のスナップショットを DevTools へ配信する。</summary>
     private void EmitPrimitives()

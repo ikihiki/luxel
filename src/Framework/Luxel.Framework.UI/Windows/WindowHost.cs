@@ -162,12 +162,19 @@ public sealed class WindowHost : IDisposable
     private void Render()
     {
         long t0 = System.Diagnostics.Stopwatch.GetTimestamp(), t1, t2;
-        using (GpuCommandBuffer cmd = _device.MainQueue.StartCommandRecording())
+        try
         {
+            using GpuCommandBuffer cmd = _device.MainQueue.StartCommandRecording();
             Content.Render(cmd, (uint)_paddedW, (uint)_w, (uint)_h, _fb, S);
             cmd.Finish();
             t1 = System.Diagnostics.Stopwatch.GetTimestamp();
             _device.MainQueue.SubmitAndWait(cmd);
+            Content.CompleteRender(succeeded: true);
+        }
+        catch
+        {
+            Content.CompleteRender(succeeded: false);
+            throw;
         }
         t2 = System.Diagnostics.Stopwatch.GetTimestamp();
         _surface.Present(_fb, (uint)_paddedW, (uint)_w, (uint)_h);

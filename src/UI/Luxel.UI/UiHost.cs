@@ -19,6 +19,7 @@ public sealed class UiHost : IDisposable, ITextInputClient
     private readonly VectorFont _font;
     private readonly LayoutContext _layoutCtx;
     private readonly GpuDeviceRasterizer2D? _gpuRasterizer;
+    private readonly UiRendererState? _rendererState;
     private float _width, _height;
 
     private Widget? _root;
@@ -40,11 +41,12 @@ public sealed class UiHost : IDisposable, ITextInputClient
     public Signal<Theme> Theme { get; }
 
     public UiHost(RetainedCanvas canvas, VectorFont font, float width, float height, Signal<Theme>? theme = null,
-                  GpuDeviceRasterizer2D? gpuRasterizer = null)
+                  GpuDeviceRasterizer2D? gpuRasterizer = null, UiRendererState? rendererState = null)
     {
         _canvas = canvas;
         _font = font;
         _gpuRasterizer = gpuRasterizer;
+        _rendererState = rendererState;
         _width = width;
         _height = height;
         Theme = theme ?? UiTheme.Current;
@@ -241,7 +243,7 @@ public sealed class UiHost : IDisposable, ITextInputClient
         _build = new UiBuildContext
         {
             Canvas = _canvas, Font = _font, Theme = Theme, RenderScale = _renderScale, Host = this,
-            GpuRasterizer = _gpuRasterizer,
+            GpuRasterizer = _gpuRasterizer, RendererState = _rendererState,
         };
         root.Realize(_build, _canvas.Root, new Point(0, 0));
         RealizeOverlays();

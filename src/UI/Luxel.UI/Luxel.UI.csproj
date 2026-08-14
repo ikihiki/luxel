@@ -29,6 +29,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.RenderSystem\Luxel.Graphics.RenderSystem.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\Shared\Luxel.Mathematics\Luxel.Mathematics.csproj" />
     <Using Include="Luxel.Mathematics" />
   </ItemGroup>

@@ -30,6 +30,7 @@
     <ProjectReference Include="..\..\Graphics\Luxel.Graphics.WebGPU\Luxel.Graphics.WebGPU.csproj" />
     <ProjectReference Include="..\..\Graphics\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
     <ProjectReference Include="..\..\Graphics\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.RenderSystem\Luxel.Graphics.RenderSystem.csproj" />
     <ProjectReference Include="..\..\Graphics\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\..\Graphics\Luxel.Typography\Luxel.Typography.csproj" />
     <ProjectReference Include="..\..\UI\Luxel.UI\Luxel.UI.csproj" />

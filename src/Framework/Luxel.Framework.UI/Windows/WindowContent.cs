@@ -31,6 +31,9 @@ public interface IWindowContent : IDisposable
     /// <paramref name="scale"/> は DPI スケール — UI は論理座標のままカメラで物理解像度へ拡大される。</summary>
     void Render(GpuCommandBuffer cmd, uint paddedWidth, uint width, uint height, GpuBuffer target, float scale);
 
+    /// <summary>共通 graph batch の submit 結果。persistent output は成功時だけ公開する。</summary>
+    void CompleteRender(bool succeeded) { }
+
     // ---- ウィンドウ入力 (論理 px — WindowHost が物理→論理へ変換して渡す) ----
     // button/mods はイベント発生時点の値 (WindowHost が GetKeyState で拾って渡す)。既定引数で旧呼び出しも互換。
     void PointerMove(WindowPointerEvent input);
@@ -54,6 +57,13 @@ public sealed class UiContent : IWindowContent
 {
     private readonly RetainedCanvas _canvas;
     private readonly IRasterScene2D _rasterScene;
+    private readonly GpuDevice _device;
+    private readonly UiRendererState _rendererState = new();
+    private readonly PersistentUiOutput<GpuBuffer> _output = new();
+    private readonly UiContentRenderFeature _feature;
+    private readonly UiSurfaceState _surface;
+    private uint _paddedWidth, _height;
+    private float _scale = 1f;
 
     public string Name { get; }
     public UiHost Host { get; }
@@ -63,8 +73,19 @@ public sealed class UiContent : IWindowContent
     {
         Name = name;
         _canvas = new RetainedCanvas();
+        _device = raster.Device;
         _rasterScene = raster.CreateScene(_canvas);
-        Host = new UiHost(_canvas, font, Math.Max(1, width), Math.Max(1, height), theme, raster);
+        Host = new UiHost(_canvas, font, Math.Max(1, width), Math.Max(1, height), theme, raster, _rendererState);
+        _surface = new UiSurfaceState(
+            $"window-ui:{name}",
+            UiSurfaceRole.Content,
+            _canvas,
+            _output,
+            _rendererState.CreateInvalidationSource(UiSurfaceRole.Content),
+            Host.Tick,
+            AddRasterPass);
+        _rendererState.Add(_surface);
+        _feature = new UiContentRenderFeature(_rendererState);
         Host.SetRoot(root);
     }
 
@@ -76,12 +97,31 @@ public sealed class UiContent : IWindowContent
         Host.RenderScale = scale;
         Host.Resize(width, height);
     }
-    public void Tick(float dt) => Host.Tick(dt);
-    public bool NeedsRender => _canvas.HasPendingChanges;
+    public void Tick(float dt) => _rendererState.Tick(dt);
+    public bool NeedsRender => _rendererState.Surfaces.Any(surface => surface.IsDirty);
 
     public void Render(GpuCommandBuffer cmd, uint paddedWidth, uint width, uint height, GpuBuffer target, float scale)
-        => _rasterScene.Render(new Camera2D { A = scale, D = scale },
-            new GpuRasterTarget2D(cmd, target, paddedWidth, height));
+    {
+        _paddedWidth = paddedWidth;
+        _height = height;
+        _scale = scale;
+        _surface.StagePending(target);
+        using var graph = new Luxel.Graphics.RenderGraph.RenderGraph(_device);
+        _feature.AddPasses(new Luxel.Graphics.RenderSystem.RenderFeatureContext(graph));
+        graph.Execute(cmd);
+    }
+
+    public void CompleteRender(bool succeeded) => _feature.CompleteBatch(succeeded);
+
+    private void AddRasterPass(Luxel.Graphics.RenderGraph.RenderGraph graph, GpuBuffer output)
+    {
+        var handle = graph.ImportBuffer(output, $"window-ui:{Name}");
+        graph.AddPass($"Raster window UI {Name}")
+            .Write(handle)
+            .SideEffect()
+            .Execute(pass => _rasterScene.Render(new Camera2D { A = _scale, D = _scale },
+                new GpuRasterTarget2D(pass.Cmd, pass.Buffer(handle), _paddedWidth, _height)));
+    }
 
     public void PointerMove(WindowPointerEvent input) => Host.PointerMove(input.X, input.Y, LuxelInput.MapModifiers(input.Modifiers));
     public void PointerDown(WindowPointerEvent input)
@@ -104,6 +144,7 @@ public sealed class UiContent : IWindowContent
     public void Dispose()
     {
         Host.Dispose();
+        _rendererState.Dispose();
         _rasterScene.Dispose();
         _canvas.Dispose();
     }

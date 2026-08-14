@@ -38,6 +38,9 @@ public sealed class PresentationRunner(
         ArgumentNullException.ThrowIfNull(featureSets);
         if (featureSets.Count == 0) return RenderCadenceExecutionResult.Succeeded;
 
+        IRenderFeature[] features = new HashSet<IRenderFeature>(
+            featureSets.SelectMany(set => set.FeatureSet.Features),
+            ReferenceEqualityComparer.Instance).ToArray();
         try
         {
             await using IPresentationTargetLease lease = await scheduler.AcquireAsync(token);
@@ -48,9 +51,7 @@ public sealed class PresentationRunner(
 
             using var graph = new RenderGraph.RenderGraph(device);
             var context = new RenderFeatureContext(graph, opportunity, presentationFrame);
-            foreach (DueRenderFeatureSet set in featureSets)
-                foreach (IRenderFeature feature in set.FeatureSet.Features)
-                    feature.AddPasses(context);
+            foreach (IRenderFeature feature in features) feature.AddPasses(context);
 
             if (graph.PassCount > 0)
             {
@@ -61,16 +62,25 @@ public sealed class PresentationRunner(
             }
 
             await scheduler.PresentAsync(lease, token);
+            Complete(features, succeeded: true);
             return RenderCadenceExecutionResult.Succeeded;
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
+            Complete(features, succeeded: false);
             throw;
         }
         catch
         {
+            Complete(features, succeeded: false);
             return RenderCadenceExecutionResult.Failed;
         }
+    }
+
+    private static void Complete(IEnumerable<IRenderFeature> features, bool succeeded)
+    {
+        foreach (IRenderFeatureBatchObserver observer in features.OfType<IRenderFeatureBatchObserver>())
+            observer.CompleteBatch(succeeded);
     }
 
     public async ValueTask DrainAsync(CancellationToken token)
