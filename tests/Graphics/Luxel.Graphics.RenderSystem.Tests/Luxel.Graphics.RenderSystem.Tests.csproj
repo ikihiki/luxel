@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <LuxelProjectRole>Test</LuxelProjectRole>
+    <LuxelGalleryCategory>Graphics</LuxelGalleryCategory>
+    <LuxelSubsystem>Graphics.RenderSystem</LuxelSubsystem>
+    <LuxelPlatform>Portable</LuxelPlatform>
+    <LuxelArchitectureTier>Extension</LuxelArchitectureTier>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
