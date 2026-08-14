@@ -11,7 +11,7 @@ using Microsoft.Extensions.Hosting;
 // Luxel.Player.App — Studio プロジェクトフォルダを実行する汎用プレイヤー (ToDo 27 GE-3 S3)。
 //   Luxel.Player.App[.exe] <プロジェクトフォルダ> [vk|dx] [--frames N]
 //     --frames N : N フレーム回して自動終了 (スモーク・CI 用)。Esc で終了。
-// LuxelCavern exe と同型: LuxelHostBuilder + GameScene を FramePacer で同期駆動し、
+// LuxelCavern exe と同型: LuxelHostBuilder + GameLoop を FramePacer で同期駆動し、
 // フレームバッファをスワップチェーンへ Present する。実窓 (Win32) は STA スレッド必須。
 
 // --ship <プロジェクト> <出力> [--csproj path] = 出荷 (publish + project/ コピー、GE-6)。窓は開かない
@@ -107,8 +107,10 @@ static int Run(string folder, string backend, int frames)
                 s.AddSingleton(game);
                 s.AddSingleton<Func<ISet<string>>>(() => { lock (keys) return new HashSet<string>(keys, StringComparer.OrdinalIgnoreCase); });
                 s.AddSingleton<PlayerRealtimeScene>();
+                s.AddSingleton<IGameSceneBootstrap, PlayerGameSceneBootstrap>();
             })
-            .AddScene<PlayerRealtimeScene>()
+            .UseStandardCadences()
+            .AddGameLoop<GameLoop>()
             .Build();
 
         host.Start();
