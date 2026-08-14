@@ -7,7 +7,7 @@ using Microsoft.Extensions.Hosting;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>
-/// Storybook 専用 Platform (共通部)。実アプリ (LuxelHostBuilder + GameLoop + GameScene) を
+/// Storybook 専用 Platform (共通部)。実アプリ (LuxelHostBuilder + GameLoop + IGameScene) を
 /// ストーリー内で動かすための 3 点セット:
 /// - ペーシング: <see cref="StoryFramePacer"/> — ギャラリーの描画ティックに同期。TCS の**同期継続**で
 ///   アプリの 1 フレーム (GPU Submit 込み) がギャラリースレッド上で実行される (GPU キュー共有が安全)
@@ -56,10 +56,10 @@ internal sealed class StoryFramePacer
 }
 
 /// <summary>アプリを所有し、framebuffer を合成表示して入力を転送する widget。
-/// ストーリー破棄で <see cref="Dispose"/> → host.StopAsync → Scene の OnUnload が GPU 資源を返す。
+/// ストーリー破棄で <see cref="Dispose"/> → host.StopAsync → Scene の UnloadAsync が GPU 資源を返す。
 /// TScene は GPU 資源を**最初のフレーム内で遅延生成**すること (起動スレッドからホスト GPU に触らない)。</summary>
 internal sealed class StoryAppView<TScene> : Widget, IDisposable
-    where TScene : GameScene, IStoryApp
+    where TScene : class, IGameScene, IStoryApp
 {
     private readonly float _w, _h;
     private readonly Action<IServiceCollection, UiBuildContext>? _services;
@@ -90,12 +90,15 @@ internal sealed class StoryAppView<TScene> : Widget, IDisposable
             _host = LuxelHostBuilder.Create()
                 .UseGpuDevice(device)
                 .UseFrameWaiter(_pacer.WaitAsync)
+                .UseStandardCadences()
                 .ConfigureServices(s =>
                 {
-                    s.AddSingleton<TScene>();   // 表示側が同一インスタンスへアクセスする
+                    s.AddSingleton<TScene>();   // 表示側と scene system が同一インスタンスへアクセスする
+                    s.AddSingleton<IGameSceneBootstrap>(sp =>
+                        new StorySceneBootstrap(sp.GetRequiredService<TScene>()));
                     _services?.Invoke(s, ctx);
                 })
-                .AddScene<TScene>()
+                .AddGameLoop<GameLoop>()
                 .Build();
             _scene = _host.Services.GetRequiredService<TScene>();
             _host.Start();   // GameLoop は最初のフレームを pacer 待ちで開始 — GPU には触らない
@@ -127,6 +130,16 @@ internal sealed class StoryAppView<TScene> : Widget, IDisposable
             if (_scene!.ConsumeRendered()) n.Touch();   // fb が変わった = image ノードを再合成
             return false;   // 常駐
         });
+    }
+
+    private sealed class StorySceneBootstrap(TScene scene) : IGameSceneBootstrap
+    {
+        public ValueTask BootstrapAsync(IGameSceneSystem scenes, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            scenes.Enqueue(new GameSceneCommand.Push(GameSceneId.New(), scene));
+            return ValueTask.CompletedTask;
+        }
     }
 
     public void Dispose()
