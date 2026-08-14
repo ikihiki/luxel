@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Luxel;
 using Luxel.Framework.Game.Native;
 using Luxel.Framework.Game;
+using Luxel.Graphics.RenderSystem;
 using Luxel.Input;
 using Luxel.Platform;
 using Luxel.Settings;
@@ -15,7 +16,7 @@ using Microsoft.Extensions.Hosting;
 //     vk (既定) / dx : GPU バックエンド
 //     --frames N      : N フレーム回して自動終了 (publish スモーク・CI 用)
 //
-// LuxelHostBuilder + GameLoop (RangeRealtimeScene) でゲームループを駆動し、Win32Window + GpuSurface へ提示する。
+// LuxelHostBuilder + GameLoop (RangeRealtimeScene)を駆動し、PresentationRunnerがWin32Window/GpuSurfaceへ提示する。
 // この段は attract 動作 (カメラ自動旋回 + 定期発射) で 3D 描画/物理/publish 経路を通す薄い層。
 
 string backend = "vk";
@@ -81,6 +82,20 @@ static int Run(string backend, int frames)
                 s.AddSingleton<IFileStore>(fileStore);
                 s.AddSingleton<IInputSource>(input);
                 s.AddSingleton(sp => new RangeGame(sp.GetRequiredService<IFileStore>()));
+                s.AddSingleton<IPresentationScheduler>(sp =>
+                    new DirectGpuSurfacePresentationScheduler(surface, token =>
+                    {
+                        token.ThrowIfCancellationRequested();
+                        RangeRealtimeScene scene = sp.GetRequiredService<RangeRealtimeScene>();
+                        GpuBuffer framebuffer = scene.Framebuffer
+                            ?? throw new InvalidOperationException("Range framebuffer is not ready.");
+                        scene.DrawHud();
+                        return ValueTask.FromResult(new PresentationTarget(
+                            framebuffer,
+                            scene.StridePixels,
+                            (uint)w,
+                            (uint)h));
+                    }));
                 s.AddSingleton<RangeRealtimeScene>();
                 s.AddSingleton<IGameSceneBootstrap>(sp =>
                     new RangeSceneBootstrap(sp.GetRequiredService<RangeRealtimeScene>()));
@@ -98,11 +113,6 @@ static int Run(string backend, int frames)
         {
             long t0 = sw.ElapsedMilliseconds;
             pacer.Tick();
-            if (scene.Framebuffer is { } fb)
-            {
-                scene.DrawHud();
-                surface.Present(fb, scene.StridePixels, (uint)w, (uint)h);
-            }
 
             if (scene.QuitRequested) { win.Close(); windows.Pump(); break; }
             if (frames > 0 && ++drawn >= frames) { win.Close(); windows.Pump(); break; }

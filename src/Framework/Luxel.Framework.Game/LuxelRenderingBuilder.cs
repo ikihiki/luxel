@@ -16,6 +16,13 @@ public sealed class LuxelRenderingBuilder
     }
 }
 
+internal sealed class DirectPresentationFeature : IRenderFeature
+{
+    public static DirectPresentationFeature Instance { get; } = new();
+    private DirectPresentationFeature() { }
+    public void AddPasses(RenderFeatureContext context) { }
+}
+
 public sealed class StandardCadenceOptions;
 
 public static class StandardRenderingExtensions
@@ -30,6 +37,9 @@ public static class StandardRenderingExtensions
         return builder.ConfigureRendering(rendering =>
         {
             AddStandardFeatureSets(rendering.FeatureSets);
+            rendering.Assignments.Register(
+                RenderFeatureSets.PresentOutput,
+                DirectPresentationFeature.Instance);
             rendering.Cadences
                 .Add(new RenderCadenceConfiguration(
                     RenderCadences.SurfaceContent,
