@@ -6,7 +6,7 @@ namespace Luxel.Ecs;
 ///
 /// <para>PreRender で 1 回呼ぶ (物理などの <see cref="Luxel.Ecs.Phase.PreRender"/> 相当)。
 /// FixedUpdate 側は <see cref="InterpolatedTransform.Push"/> で毎ステップの位置を積むだけでよい。
-/// alpha はapplicationが所有する<see cref="Luxel.Framework.Game.FixedTimestep"/>の<see cref="Luxel.Framework.Game.FixedTimestep.Alpha"/>を渡す。</para>
+/// alpha はapplicationが所有する<c>FixedTimestep.Alpha</c>を渡す。</para>
 ///
 /// <para>GPU 非依存 — 単体テスト可能。<see cref="LocalTransform"/> を持たない entity には
 /// component を足して書き込む。</para>
