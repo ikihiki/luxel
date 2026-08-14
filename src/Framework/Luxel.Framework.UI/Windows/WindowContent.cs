@@ -106,14 +106,14 @@ public sealed class UiContent : IWindowContent
         _height = height;
         _scale = scale;
         _surface.StagePending(target);
-        using var graph = new Luxel.Graphics.RenderGraph.RenderGraph(_device);
+        using var graph = new global::Luxel.Graphics.RenderGraph.RenderGraph(_device);
         _feature.AddPasses(new Luxel.Graphics.RenderSystem.RenderFeatureContext(graph));
         graph.Execute(cmd);
     }
 
     public void CompleteRender(bool succeeded) => _feature.CompleteBatch(succeeded);
 
-    private void AddRasterPass(Luxel.Graphics.RenderGraph.RenderGraph graph, GpuBuffer output)
+    private void AddRasterPass(global::Luxel.Graphics.RenderGraph.RenderGraph graph, GpuBuffer output)
     {
         var handle = graph.ImportBuffer(output, $"window-ui:{Name}");
         graph.AddPass($"Raster window UI {Name}")

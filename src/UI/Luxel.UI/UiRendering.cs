@@ -74,7 +74,7 @@ public sealed class UiSurfaceState : IDisposable
 {
     private readonly Action<float> _logicalTick;
     private readonly Func<GpuBuffer>? _createPending;
-    private readonly Action<Graphics.RenderGraph.RenderGraph, GpuBuffer> _addRasterPass;
+    private readonly Action<global::Luxel.Graphics.RenderGraph.RenderGraph, GpuBuffer> _addRasterPass;
     private readonly RenderFeatureSetInvalidationSource _invalidation;
     private ulong _observedCanvasGeneration;
     private ulong _publishedCanvasGeneration;
@@ -90,7 +90,7 @@ public sealed class UiSurfaceState : IDisposable
         PersistentUiOutput<GpuBuffer> output,
         RenderFeatureSetInvalidationSource invalidation,
         Action<float> logicalTick,
-        Action<Graphics.RenderGraph.RenderGraph, GpuBuffer> addRasterPass,
+        Action<global::Luxel.Graphics.RenderGraph.RenderGraph, GpuBuffer> addRasterPass,
         Func<GpuBuffer>? createPending = null)
     {
         if (string.IsNullOrWhiteSpace(key)) throw new ArgumentException("Surface key cannot be empty.", nameof(key));
@@ -146,7 +146,7 @@ public sealed class UiSurfaceState : IDisposable
         _invalidation.Invalidate();
     }
 
-    internal bool AddPasses(Graphics.RenderGraph.RenderGraph graph)
+    internal bool AddPasses(global::Luxel.Graphics.RenderGraph.RenderGraph graph)
     {
         ObserveChanges();
         if (_batchPending || !IsDirty) return false;

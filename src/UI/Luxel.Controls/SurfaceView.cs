@@ -195,7 +195,7 @@ public sealed partial class SurfaceView : Widget, IDisposable
         _recycled = output;
     }
 
-    private void AddRasterPass(Luxel.Graphics.RenderGraph.RenderGraph graph, GpuBuffer output)
+    private void AddRasterPass(global::Luxel.Graphics.RenderGraph.RenderGraph graph, GpuBuffer output)
     {
         var handle = graph.ImportBuffer(output, $"{_surfaceKey}-pending");
         graph.AddPass($"Raster {_surfaceKey}")

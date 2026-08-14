@@ -5,6 +5,8 @@
     <ProjectReference Include="..\..\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\..\Animation\Luxel.Animation\Luxel.Animation.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.RenderSystem\Luxel.Graphics.RenderSystem.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
     <ProjectReference Include="..\..\Graphics\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\..\Graphics\Luxel.Typography\Luxel.Typography.csproj" />
     <ProjectReference Include="..\..\Graphics\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
