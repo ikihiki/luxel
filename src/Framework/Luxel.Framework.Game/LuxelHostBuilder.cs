@@ -3,6 +3,7 @@ using Luxel.Audio;
 using Luxel.Input;
 using Luxel.Resources;
 using Luxel.Graphics.MessagePipe;
+using Luxel.Graphics.RenderSystem;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -28,6 +29,9 @@ public sealed class LuxelHostBuilder
     private GpuDevice? _borrowedDevice;
     private Func<CancellationToken, Task>? _frameWaiter;
     private Type? _startupScene;
+    private Type? _gameLoop;
+    private LuxelRenderingBuilder? _rendering;
+    private bool _standardCadences;
     private string? _assetRoot;
     private Func<ResourceSystemBuilder, ResourceSystemDefaultHandles> _resourceCore =
         builder => ResourceSystemDefaults.AddCore(builder);
@@ -123,6 +127,30 @@ public sealed class LuxelHostBuilder
     {
         _startupScene = typeof(TScene);
         _inner.Services.TryAddTransient<TScene>();
+        RegisterGameLoop(typeof(LegacySceneGameLoop));
+        return this;
+    }
+
+    /// <summary>Registers the single application game loop.</summary>
+    public LuxelHostBuilder AddGameLoop<TLoop>() where TLoop : class, IGameLoop
+    {
+        RegisterGameLoop(typeof(TLoop));
+        return this;
+    }
+
+    public LuxelHostBuilder ConfigureRendering(Action<LuxelRenderingBuilder> configure)
+        => ConfigureRendering(configure, standardCadences: false);
+
+    internal LuxelHostBuilder ConfigureRendering(
+        Action<LuxelRenderingBuilder> configure,
+        bool standardCadences)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        if (standardCadences && _standardCadences)
+            throw new InvalidOperationException("UseStandardCadences() can only be called once.");
+        _rendering ??= new LuxelRenderingBuilder();
+        configure(_rendering);
+        if (standardCadences) _standardCadences = true;
         return this;
     }
 
@@ -137,6 +165,8 @@ public sealed class LuxelHostBuilder
     {
         if (_deviceFactory is null && _lifecycleDeviceFactory is null && _borrowedDevice is null)
             throw new InvalidOperationException("UseGpu / UseGpuDevice のいずれかを指定してください。");
+        if (_gameLoop is null)
+            throw new InvalidOperationException("AddGameLoop<TLoop>() を一度だけ指定してください。");
 
         // Graphics lifecycle callbacks are queued and published through MessagePipe from the frame thread.
         _inner.Services.AddGpuLifecycleMessagePipe();
@@ -246,11 +276,49 @@ public sealed class LuxelHostBuilder
         if (_startupScene is not null)
             _inner.Services.AddSingleton(new StartupScene(_startupScene));
 
-        // GameLoop 本体 (BackgroundService として登録、Host.RunAsync で自動起動)
-        _inner.Services.AddHostedService<GameLoop>();
+        RenderSystemConfiguration rendering = (_rendering ?? new LuxelRenderingBuilder()).Build();
+        _inner.Services.AddSingleton(rendering);
+        _inner.Services.TryAddSingleton<RenderFeatureSetStateRegistry>();
+        _inner.Services.TryAddSingleton<RenderManualTriggerRegistry>();
+        _inner.Services.TryAddSingleton<IRenderFrameScheduler>(
+            _ => new DelegateRenderFrameScheduler(_frameWaiter));
+        _inner.Services.TryAddSingleton<IGameSceneBootstrap, EmptyGameSceneBootstrap>();
+        _inner.Services.TryAddSingleton<IGameSceneSystem>(sp =>
+            new GameSceneSystem(sp, sp.GetRequiredService<RenderSystemConfiguration>()));
+        _inner.Services.TryAddSingleton<RenderGraphCadenceRunner>();
+        _inner.Services.TryAddSingleton<ICadenceExecutionCoordinator>(sp =>
+        {
+            var runners = new Dictionary<RenderCadenceRunnerId, IRenderCadenceRunner>
+            {
+                [RenderCadenceRunners.RenderGraph] = sp.GetRequiredService<RenderGraphCadenceRunner>(),
+            };
+            if (sp.GetService<IPresentationScheduler>() is { } scheduler)
+                runners[RenderCadenceRunners.Presentation] = new PresentationRunner(
+                    sp.GetRequiredService<GpuDevice>(), scheduler);
+            return new CadenceExecutionCoordinator(
+                rendering.Cadences.Items,
+                rendering.FeatureSets.Order.ToArray(),
+                runners,
+                sp.GetRequiredService<RenderFeatureSetStateRegistry>(),
+                sp.GetRequiredService<RenderManualTriggerRegistry>());
+        });
+
+        // Bind the concrete loop and IGameLoop to the same singleton instance.
+        _inner.Services.AddSingleton(_gameLoop!);
+        _inner.Services.AddSingleton(typeof(IGameLoop), sp => sp.GetRequiredService(_gameLoop!));
+        _inner.Services.AddHostedService<GameLoopHostedService>();
 
         return _inner.Build();
     }
+
+    private void RegisterGameLoop(Type gameLoop)
+    {
+        ArgumentNullException.ThrowIfNull(gameLoop);
+        if (_gameLoop is not null)
+            throw new InvalidOperationException("Game loop は一つだけ登録できます。");
+        _gameLoop = gameLoop;
+    }
+
     private sealed record FrameworkGpuResources(ResourceSystem Resources, GpuResourceManagerHandle Gpu);
 
     private sealed class FrameworkGpuLifecycleSink(

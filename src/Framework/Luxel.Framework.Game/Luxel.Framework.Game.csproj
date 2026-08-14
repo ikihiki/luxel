@@ -4,6 +4,7 @@
     <ProjectReference Include="..\..\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\..\Graphics\Luxel.Graphics.MessagePipe\Luxel.Graphics.MessagePipe.csproj" />
     <ProjectReference Include="..\Luxel.Ecs\Luxel.Ecs.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Graphics.RenderSystem\Luxel.Graphics.RenderSystem.csproj" />
     <ProjectReference Include="..\..\Graphics\Luxel.Graphics.RenderGraph\Luxel.Graphics.RenderGraph.csproj" />
     <ProjectReference Include="..\..\Resources\Luxel.Resources\Luxel.Resources.csproj" />
     <ProjectReference Include="..\..\Input\Luxel.Input\Luxel.Input.csproj" />
