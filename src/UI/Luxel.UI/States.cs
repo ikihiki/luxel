@@ -1,4 +1,4 @@
-﻿using Luxel.Animation;
+using Luxel.Animation;
 
 namespace Luxel.UI;
 
@@ -27,7 +27,9 @@ public sealed class UiStates
     {
         _m = new PropertyStateMachine(table);
         _clock = ctx.Host?.Clock ?? new ManualClock();
-        ctx.AddAnimation(dt => { _m.Tick(_clock); return false; });
+        ctx.AddAnimation(
+            dt => { _m.Tick(_clock); return false; },
+            () => _m.IsTransitioning);
     }
 
     /// <summary>中の機械 (検査/高度な用途)。</summary>

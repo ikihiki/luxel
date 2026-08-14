@@ -227,13 +227,16 @@ internal sealed class EnvironmentLuxelApp
         while (true)
         {
             double now = stopwatch.Elapsed.TotalSeconds;
-            float dt = _options.RunFrames.HasValue ? 1f / 60f : (float)Math.Min(0.1, now - previous);
+            float dt = (float)Math.Min(0.1, now - previous);
             previous = now;
             if (!runtime.WindowManager.RunFrame(dt)) break;
             _lifecycle.Frame?.Invoke(runtime, dt);
             frames++;
             if (_options.RunFrames is int limit && frames >= limit) break;
             if (_options.RunDuration is { } duration && stopwatch.Elapsed >= duration) break;
+
+            // Window backends currently expose a nonblocking Pump only. Keep a lightweight event-pump poll,
+            // but RenderSystem creates graph/submit/present work solely for invalidated UI Sets.
             if (!runtime.WindowManager.AnyRendered) Thread.Sleep(8);
         }
         _options.Diagnostic?.Invoke($"Luxel UI loop stopped after {frames} rendered frame(s).");

@@ -25,6 +25,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Framework\Luxel.Framework.Game\Luxel.Framework.Game.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\src\Platform\Luxel.Platform\Luxel.Platform.csproj" />
     <ProjectReference Include="..\..\..\src\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
     <PackageReference Include="coverlet.collector" Version="10.0.1">

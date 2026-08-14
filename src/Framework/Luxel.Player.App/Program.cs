@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Luxel;
 using Luxel.Framework.Game;
+using Luxel.Graphics.RenderSystem;
 using Luxel.Platform;
 using Luxel.Player;
 using Luxel.Resources;
@@ -11,8 +12,8 @@ using Microsoft.Extensions.Hosting;
 // Luxel.Player.App — Studio プロジェクトフォルダを実行する汎用プレイヤー (ToDo 27 GE-3 S3)。
 //   Luxel.Player.App[.exe] <プロジェクトフォルダ> [vk|dx] [--frames N]
 //     --frames N : N フレーム回して自動終了 (スモーク・CI 用)。Esc で終了。
-// LuxelCavern exe と同型: LuxelHostBuilder + GameScene を FramePacer で同期駆動し、
-// フレームバッファをスワップチェーンへ Present する。実窓 (Win32) は STA スレッド必須。
+// LuxelCavern exe と同型: LuxelHostBuilder + GameLoop を FramePacer で同期駆動し、
+// PresentationRunnerがフレームバッファをスワップチェーンへ提示する。実窓 (Win32) は STA スレッド必須。
 
 // --ship <プロジェクト> <出力> [--csproj path] = 出荷 (publish + project/ コピー、GE-6)。窓は開かない
 if (args.Length >= 1 && args[0] == "--ship")
@@ -106,9 +107,24 @@ static int Run(string folder, string backend, int frames)
                 s.AddSingleton(font);
                 s.AddSingleton(game);
                 s.AddSingleton<Func<ISet<string>>>(() => { lock (keys) return new HashSet<string>(keys, StringComparer.OrdinalIgnoreCase); });
+                s.AddSingleton<IPresentationScheduler>(sp =>
+                    new DirectGpuSurfacePresentationScheduler(surface, token =>
+                    {
+                        token.ThrowIfCancellationRequested();
+                        PlayerRealtimeScene scene = sp.GetRequiredService<PlayerRealtimeScene>();
+                        GpuBuffer framebuffer = scene.Framebuffer
+                            ?? throw new InvalidOperationException("Player framebuffer is not ready.");
+                        return ValueTask.FromResult(new PresentationTarget(
+                            framebuffer,
+                            scene.StridePixels,
+                            (uint)w,
+                            (uint)h));
+                    }));
                 s.AddSingleton<PlayerRealtimeScene>();
+                s.AddSingleton<IGameSceneBootstrap, PlayerGameSceneBootstrap>();
             })
-            .AddScene<PlayerRealtimeScene>()
+            .UseStandardCadences()
+            .AddGameLoop<GameLoop>()
             .Build();
 
         host.Start();
@@ -120,8 +136,6 @@ static int Run(string folder, string backend, int frames)
         {
             long t0 = sw.ElapsedMilliseconds;
             pacer.Tick();
-            if (scene.Framebuffer is { } fb)
-                surface.Present(fb, scene.StridePixels, (uint)w, (uint)h);
             if (esc || (frames > 0 && ++drawn >= frames)) { win.Close(); windows.Pump(); break; }
             int elapsed = (int)(sw.ElapsedMilliseconds - t0);
             if (elapsed < 16) Thread.Sleep(16 - elapsed);

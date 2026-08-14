@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using BepuPhysics;
 using BepuPhysics.Collidables;
 using Friflo.Engine.ECS;
@@ -61,7 +61,7 @@ public sealed class PhysicsStepSystem : BaseSystem
     }
 
     /// <summary>FixedUpdate フェーズから駆動する用: 固定 dt で**必ず 1 ステップ**進める
-    /// (蓄積は GameScene 側に一本化されている前提)。</summary>
+    /// (蓄積は application GameLoop 側に一本化されている前提)。</summary>
     public void StepFixedOnce()
     {
         AttachNewBodies();

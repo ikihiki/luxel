@@ -11,11 +11,17 @@ namespace Luxel.Graphics.RenderGraph;
 /// </summary>
 public sealed class RenderGraph : IDisposable
 {
+    private static long s_nextGraphId;
+
+    private readonly long _graphId = Interlocked.Increment(ref s_nextGraphId);
     private readonly GpuDevice? _device;
     private readonly List<GpuBuffer> _ownedTransientBuffers = new();
     private readonly List<GpuTexture> _ownedTransientTextures = new();
     private readonly List<ResourceRecord> _resources = new() { null! };   // index 0 = invalid sentinel
     private readonly List<PassRecord> _passes = new();
+    private readonly Dictionary<RenderResourceSlotId, SymbolicSlotBinding> _symbolicSlots = new();
+    private readonly HashSet<RenderResourceVersionId> _exports = new();
+    private int _nextPassKey;
     private bool _compiled;
     private CompiledGraph? _compiled_;
     private bool _disposed;
@@ -48,7 +54,7 @@ public sealed class RenderGraph : IDisposable
             ExternalBuffer = buffer ?? throw new ArgumentNullException(nameof(buffer)),
         };
         _resources.Add(rec);
-        return new BufferHandle(rec.Id);
+        return new BufferHandle(rec.Id, _graphId);
     }
 
     /// <summary>Transient バッファを宣言する。物理メモリは Compile 相で割り当てる。</summary>
@@ -64,7 +70,7 @@ public sealed class RenderGraph : IDisposable
             TransientBufferDesc = desc,
         };
         _resources.Add(rec);
-        return new BufferHandle(rec.Id);
+        return new BufferHandle(rec.Id, _graphId);
     }
 
     /// <summary>External な既存 <see cref="GpuTexture"/> をグラフに取り込む。寿命/解放はユーザー責任。</summary>
@@ -79,7 +85,7 @@ public sealed class RenderGraph : IDisposable
             ExternalTexture = texture ?? throw new ArgumentNullException(nameof(texture)),
         };
         _resources.Add(rec);
-        return new TextureHandle(rec.Id);
+        return new TextureHandle(rec.Id, _graphId);
     }
 
     /// <summary>Transient テクスチャを宣言する。物理リソースは Compile 相で割り当て、同形なら aliasing。</summary>
@@ -95,23 +101,60 @@ public sealed class RenderGraph : IDisposable
             TransientTextureDesc = desc,
         };
         _resources.Add(rec);
-        return new TextureHandle(rec.Id);
+        return new TextureHandle(rec.Id, _graphId);
+    }
+
+    /// <summary>stable symbolic slot を buffer handle に束縛する。</summary>
+    public void DeclareBuffer(RenderResourceSlotId slot, BufferHandle handle)
+    {
+        ThrowIfCompiled();
+        ValidateSlot(slot, nameof(slot));
+        ValidateBufferHandle(handle, nameof(handle));
+        AddSymbolicSlot(slot, new SymbolicSlotBinding(handle.Id, IsTexture: false));
+    }
+
+    /// <summary>stable symbolic slot を texture handle に束縛する。</summary>
+    public void DeclareTexture(RenderResourceSlotId slot, TextureHandle handle)
+    {
+        ThrowIfCompiled();
+        ValidateSlot(slot, nameof(slot));
+        ValidateTextureHandle(handle, nameof(handle));
+        AddSymbolicSlot(slot, new SymbolicSlotBinding(handle.Id, IsTexture: true));
+    }
+
+    /// <summary>symbolic resource version を graph output として保持する。</summary>
+    public void Export(RenderResourceVersionId version)
+    {
+        ThrowIfCompiled();
+        ValidateSymbolicVersion(version, nameof(version));
+        _exports.Add(version);
     }
 
     /// <summary>新しいパスを追加する。返り値の builder で Read/Write/Execute を宣言する。</summary>
     public PassBuilder AddPass(string name, PassQueue queue = PassQueue.Graphics)
+        => AddPass(new RenderPassKey($"__graph_{_graphId}_pass_{_nextPassKey++}"), name, queue);
+
+    /// <summary>stable key を持つ新しいパスを追加する。</summary>
+    public PassBuilder AddPass(RenderPassKey key, string name, PassQueue queue = PassQueue.Graphics)
     {
         ThrowIfCompiled();
+        ValidatePassKey(key, nameof(key));
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("pass name は空にできません。", nameof(name));
         var rec = new PassRecord
         {
             Name = name,
             Queue = queue,
-            Index = _passes.Count,
+            Index = -1,
+            Key = key,
         };
         return new PassBuilder(this, rec);
     }
 
-    internal void AddPassInternal(PassRecord record) => _passes.Add(record);
+    internal void AddPassInternal(PassRecord record)
+    {
+        record.Index = _passes.Count;
+        _passes.Add(record);
+    }
 
     // === Compile + Execute ===================================================
 
@@ -271,74 +314,49 @@ public sealed class RenderGraph : IDisposable
     }
 
     /// <summary>
-    /// Compile 相: (1) 寿命解析、(2) デッドパスカリング (backward reachability)、
-    /// (3) Transient aliasing (同形リソース×寿命非重複の物理バッファ/テクスチャ共有, interval scheduling)、
-    /// (4) 物理リソース割当 (テストモードではスキップ)、(5) 実行順は登録順そのまま。
+    /// Compile 相: symbolic dependency の解決、stable topological sort、culling、寿命解析、aliasing、物理割当。
     /// </summary>
     private CompiledGraph Compile()
     {
-        // 1. 寿命解析: 各リソースの first-write-pass / last-read-pass を計算 (全パスを対象)。
-        for (int p = 0; p < _passes.Count; p++)
-        {
-            var pass = _passes[p];
-            foreach (var w in pass.Writes)
-            {
-                var res = _resources[w.ResourceId];
-                if (res.FirstWritePass < 0) res.FirstWritePass = p;
-            }
-            foreach (var r in pass.Reads)
-            {
-                var res = _resources[r.ResourceId];
-                if (res.LastReadPass < p) res.LastReadPass = p;
-            }
-        }
+        var dependencies = BuildDependencyGraph();
+        var order = StableTopologicalSort(dependencies);
 
-        // 2. デッドパスカリング: External リソースを「必要」とし、それを書き込むパスを Required にし、
-        //    そのパスの Reads を「必要」に伝播。pass を逆順に走査して 1 パスで決定。
-        var needed = new HashSet<int>();
-        foreach (var r in _resources)
-        {
-            if (r == null) continue;
-            if (r.Kind == ResourceKind.ExternalBuffer || r.Kind == ResourceKind.ExternalTexture) needed.Add(r.Id);
-        }
-        for (int p = _passes.Count - 1; p >= 0; p--)
-        {
-            var pass = _passes[p];
-            bool required = false;
-            foreach (var w in pass.Writes)
-            {
-                if (needed.Contains(w.ResourceId)) { required = true; break; }
-            }
-            pass.Culled = !required;
-            if (required)
-            {
-                foreach (var rd in pass.Reads) needed.Add(rd.ResourceId);
-            }
-        }
+        var required = FindRequiredPasses(dependencies);
+        foreach (var pass in _passes) pass.Culled = !required.Contains(pass.Index);
 
-        // 3. 非 culled パスから見た有効寿命を再計算 (aliasing に使う)。
         for (int i = 1; i < _resources.Count; i++)
         {
             var res = _resources[i];
+            res.FirstWritePass = -1;
+            res.LastReadPass = -1;
             res.PhysicalSlot = -1;
             res.IsAliased = false;
         }
+
         var aliveFirstWrite = new int[_resources.Count];
         var aliveLastUse = new int[_resources.Count];
-        for (int i = 0; i < aliveFirstWrite.Length; i++) { aliveFirstWrite[i] = -1; aliveLastUse[i] = -1; }
-        for (int p = 0; p < _passes.Count; p++)
+        Array.Fill(aliveFirstWrite, -1);
+        Array.Fill(aliveLastUse, -1);
+
+        for (int p = 0; p < order.Count; p++)
         {
-            if (_passes[p].Culled) continue;
-            foreach (var w in _passes[p].Writes)
+            var pass = order[p];
+            foreach (var write in pass.Writes)
             {
-                int id = w.ResourceId;
-                if (aliveFirstWrite[id] < 0) aliveFirstWrite[id] = p;
-                if (aliveLastUse[id] < p) aliveLastUse[id] = p;
+                var resource = _resources[write.ResourceId];
+                if (resource.FirstWritePass < 0) resource.FirstWritePass = p;
+                if (!pass.Culled)
+                {
+                    if (aliveFirstWrite[write.ResourceId] < 0) aliveFirstWrite[write.ResourceId] = p;
+                    aliveLastUse[write.ResourceId] = Math.Max(aliveLastUse[write.ResourceId], p);
+                }
             }
-            foreach (var rd in _passes[p].Reads)
+            foreach (var read in pass.Reads)
             {
-                int id = rd.ResourceId;
-                if (aliveLastUse[id] < p) aliveLastUse[id] = p;
+                var resource = _resources[read.ResourceId];
+                resource.LastReadPass = Math.Max(resource.LastReadPass, p);
+                if (!pass.Culled)
+                    aliveLastUse[read.ResourceId] = Math.Max(aliveLastUse[read.ResourceId], p);
             }
         }
 
@@ -451,17 +469,213 @@ public sealed class RenderGraph : IDisposable
             }
         }
 
-        // 5. 実行順: 登録順そのまま (culled は Execute 側でスキップ)。
-        var order = new List<PassRecord>(_passes);
         return new CompiledGraph(order);
     }
+
+    private DependencyGraph BuildDependencyGraph()
+    {
+        var byKey = new Dictionary<RenderPassKey, PassRecord>();
+        foreach (var pass in _passes)
+        {
+            if (!byKey.TryAdd(pass.Key, pass))
+                throw new InvalidOperationException($"RenderGraph pass key '{pass.Key.Value}' has multiple declarations.");
+        }
+
+        var graph = new DependencyGraph(_passes.Count);
+        AddLegacyResourceEdges(graph);
+        var producers = new Dictionary<RenderResourceVersionId, PassRecord>();
+
+        foreach (var pass in _passes)
+        {
+            foreach (var write in pass.SymbolicWrites)
+            {
+                var binding = GetSymbolicBinding(write.Version);
+                ValidateSymbolicUsage(binding, write.BufferUsage, write.TextureUsage, write.Version);
+                if (!producers.TryAdd(write.Version, pass))
+                    throw new InvalidOperationException($"RenderGraph resource version '{Format(write.Version)}' has multiple producers.");
+                pass.Writes.Add(ToResourceAccess(binding, write.BufferUsage, write.TextureUsage));
+            }
+        }
+
+        foreach (var pass in _passes)
+        {
+            foreach (var read in pass.SymbolicReads)
+            {
+                var binding = GetSymbolicBinding(read.Version);
+                ValidateSymbolicUsage(binding, read.BufferUsage, read.TextureUsage, read.Version);
+                if (!producers.TryGetValue(read.Version, out var producer))
+                    throw new InvalidOperationException($"RenderGraph resource version '{Format(read.Version)}' has no producer.");
+                graph.AddEdge(producer.Index, pass.Index);
+                pass.Reads.Add(ToResourceAccess(binding, read.BufferUsage, read.TextureUsage));
+            }
+
+            foreach (var write in pass.SymbolicWrites)
+            {
+                if (write.Predecessor is not { } predecessor) continue;
+                if (predecessor.Slot != write.Version.Slot)
+                    throw new InvalidOperationException($"RenderGraph predecessor '{Format(predecessor)}' belongs to a different slot than '{Format(write.Version)}'.");
+                if (!producers.TryGetValue(predecessor, out var producer))
+                    throw new InvalidOperationException($"RenderGraph predecessor '{Format(predecessor)}' is unknown.");
+                graph.AddEdge(producer.Index, pass.Index);
+            }
+
+            foreach (var target in pass.ControlDependencies)
+            {
+                if (!byKey.TryGetValue(target, out var predecessor))
+                    throw new InvalidOperationException($"RenderGraph control dependency target '{target.Value}' is unknown.");
+                graph.AddEdge(predecessor.Index, pass.Index);
+            }
+        }
+
+        foreach (var version in _exports)
+        {
+            _ = GetSymbolicBinding(version);
+            if (!producers.TryGetValue(version, out var producer))
+                throw new InvalidOperationException($"Exported RenderGraph resource version '{Format(version)}' has no producer.");
+            graph.ExportProducers.Add(producer.Index);
+        }
+
+        return graph;
+    }
+
+    private void AddLegacyResourceEdges(DependencyGraph graph)
+    {
+        for (int resourceId = 1; resourceId < _resources.Count; resourceId++)
+        {
+            var writers = _passes.Where(p => p.Writes.Any(a => a.ResourceId == resourceId)).ToList();
+            var readers = _passes.Where(p => p.Reads.Any(a => a.ResourceId == resourceId)).ToList();
+            if (writers.Count == 1)
+            {
+                foreach (var reader in readers)
+                    if (writers[0].Index != reader.Index) graph.AddEdge(writers[0].Index, reader.Index);
+                continue;
+            }
+
+            if (writers.Count <= 1) continue;
+            PassRecord? previous = null;
+            foreach (var pass in _passes)
+            {
+                bool accesses = pass.Reads.Any(a => a.ResourceId == resourceId)
+                    || pass.Writes.Any(a => a.ResourceId == resourceId);
+                if (!accesses) continue;
+                if (previous != null) graph.AddEdge(previous.Index, pass.Index);
+                if (pass.Writes.Any(a => a.ResourceId == resourceId)) previous = pass;
+            }
+        }
+    }
+
+    private List<PassRecord> StableTopologicalSort(DependencyGraph graph)
+    {
+        var indegree = graph.Incoming.Select(edges => edges.Count).ToArray();
+        var ready = new PriorityQueue<int, int>();
+        for (int i = 0; i < indegree.Length; i++)
+            if (indegree[i] == 0) ready.Enqueue(i, _passes[i].Index);
+
+        var order = new List<PassRecord>(_passes.Count);
+        while (ready.TryDequeue(out int index, out _))
+        {
+            order.Add(_passes[index]);
+            foreach (int next in graph.Outgoing[index])
+            {
+                if (--indegree[next] == 0) ready.Enqueue(next, _passes[next].Index);
+            }
+        }
+
+        if (order.Count != _passes.Count)
+        {
+            string passes = string.Join(", ", _passes.Where((_, i) => indegree[i] > 0).Select(p => p.Name));
+            throw new InvalidOperationException($"RenderGraph dependency cycle detected among: {passes}.");
+        }
+        return order;
+    }
+
+    private HashSet<int> FindRequiredPasses(DependencyGraph graph)
+    {
+        var required = new HashSet<int>(graph.ExportProducers);
+        foreach (var pass in _passes)
+        {
+            if (pass.HasSideEffect || pass.Writes.Any(write =>
+                    _resources[write.ResourceId].Kind is ResourceKind.ExternalBuffer or ResourceKind.ExternalTexture))
+                required.Add(pass.Index);
+        }
+
+        var pending = new Stack<int>(required);
+        while (pending.TryPop(out int pass))
+        {
+            foreach (int dependency in graph.Incoming[pass])
+                if (required.Add(dependency)) pending.Push(dependency);
+        }
+        return required;
+    }
+
+    private SymbolicSlotBinding GetSymbolicBinding(RenderResourceVersionId version)
+    {
+        if (!_symbolicSlots.TryGetValue(version.Slot, out var binding))
+            throw new InvalidOperationException($"RenderGraph resource slot '{version.Slot.Value}' is not declared.");
+        return binding;
+    }
+
+    private static ResourceAccess ToResourceAccess(
+        SymbolicSlotBinding binding,
+        ResourceUsage bufferUsage,
+        TextureUsage textureUsage)
+        => new(binding.ResourceId, bufferUsage, textureUsage, binding.IsTexture);
+
+    private static void ValidateSymbolicUsage(
+        SymbolicSlotBinding binding,
+        ResourceUsage bufferUsage,
+        TextureUsage textureUsage,
+        RenderResourceVersionId version)
+    {
+        bool textureAccess = bufferUsage == ResourceUsage.None;
+        if (binding.IsTexture != textureAccess)
+            throw new InvalidOperationException($"RenderGraph resource version '{Format(version)}' access type does not match its slot.");
+    }
+
+    private void AddSymbolicSlot(RenderResourceSlotId slot, SymbolicSlotBinding binding)
+    {
+        if (!_symbolicSlots.TryAdd(slot, binding))
+            throw new InvalidOperationException($"RenderGraph resource slot '{slot.Value}' is already declared.");
+    }
+
+    internal void ValidateBufferHandle(BufferHandle handle, string parameterName)
+    {
+        if (handle.Id <= 0 || handle.GraphId != _graphId || handle.Id >= _resources.Count || !_resources[handle.Id].IsBuffer)
+            throw new ArgumentException($"BufferHandle {handle.Id} does not belong to this RenderGraph.", parameterName);
+    }
+
+    internal void ValidateTextureHandle(TextureHandle handle, string parameterName)
+    {
+        if (handle.Id <= 0 || handle.GraphId != _graphId || handle.Id >= _resources.Count || !_resources[handle.Id].IsTexture)
+            throw new ArgumentException($"TextureHandle {handle.Id} does not belong to this RenderGraph.", parameterName);
+    }
+
+    internal void ValidateSymbolicVersion(RenderResourceVersionId version, string parameterName)
+    {
+        ValidateSlot(version.Slot, parameterName);
+        if (string.IsNullOrWhiteSpace(version.Value))
+            throw new ArgumentException("resource version value は空にできません。", parameterName);
+    }
+
+    internal void ValidatePassKey(RenderPassKey key, string parameterName)
+    {
+        if (string.IsNullOrWhiteSpace(key.Value))
+            throw new ArgumentException("pass key は空にできません。", parameterName);
+    }
+
+    private static void ValidateSlot(RenderResourceSlotId slot, string parameterName)
+    {
+        if (string.IsNullOrWhiteSpace(slot.Value))
+            throw new ArgumentException("resource slot value は空にできません。", parameterName);
+    }
+
+    private static string Format(RenderResourceVersionId version) => $"{version.Slot.Value}:{version.Value}";
 
     // === 内部 ===============================================================
 
     internal GpuBuffer ResolveBuffer(BufferHandle handle)
     {
-        if (!handle.IsValid || handle.Id >= _resources.Count)
-            throw new ArgumentException($"無効なハンドル: {handle.Id}", nameof(handle));
+        ValidateBufferHandle(handle, nameof(handle));
         var rec = _resources[handle.Id];
         if (!rec.IsBuffer) throw new InvalidOperationException($"'{rec.Name}' は Texture です。 Texture() を使ってください。");
         if (rec.PhysicalBuffer == null)
@@ -471,8 +685,7 @@ public sealed class RenderGraph : IDisposable
 
     internal GpuTexture ResolveTexture(TextureHandle handle)
     {
-        if (!handle.IsValid || handle.Id >= _resources.Count)
-            throw new ArgumentException($"無効なハンドル: {handle.Id}", nameof(handle));
+        ValidateTextureHandle(handle, nameof(handle));
         var rec = _resources[handle.Id];
         if (!rec.IsTexture) throw new InvalidOperationException($"'{rec.Name}' は Buffer です。 Buffer() を使ってください。");
         if (rec.PhysicalTexture == null)
@@ -494,6 +707,7 @@ public sealed class RenderGraph : IDisposable
     /// <summary>テスト用: 寿命解析結果を引く。</summary>
     internal (int first, int last) GetLifetime(BufferHandle handle)
     {
+        ValidateBufferHandle(handle, nameof(handle));
         var r = _resources[handle.Id];
         return (r.FirstWritePass, r.LastReadPass);
     }
@@ -501,16 +715,24 @@ public sealed class RenderGraph : IDisposable
     /// <summary>テスト用: テクスチャの寿命解析結果を引く。</summary>
     internal (int first, int last) GetLifetime(TextureHandle handle)
     {
+        ValidateTextureHandle(handle, nameof(handle));
         var r = _resources[handle.Id];
         return (r.FirstWritePass, r.LastReadPass);
     }
 
-    /// <summary>テスト用: テクスチャの aliasing slot 番号。</summary>
     /// <summary>テクスチャの同形グループ内 slot 番号 (aliasing 確認用、未割当なら -1)。</summary>
-    public int GetPhysicalSlot(TextureHandle handle) => _resources[handle.Id].PhysicalSlot;
+    public int GetPhysicalSlot(TextureHandle handle)
+    {
+        ValidateTextureHandle(handle, nameof(handle));
+        return _resources[handle.Id].PhysicalSlot;
+    }
 
     /// <summary>テスト用: テクスチャが aliasing で物理共有しているか。</summary>
-    public bool IsAliased(TextureHandle handle) => _resources[handle.Id].IsAliased;
+    public bool IsAliased(TextureHandle handle)
+    {
+        ValidateTextureHandle(handle, nameof(handle));
+        return _resources[handle.Id].IsAliased;
+    }
 
     /// <summary>Compile/Execute 後に確保された物理 Transient テクスチャ数。</summary>
     public int PhysicalTransientTextureCount => _ownedTransientTextures.Count;
@@ -522,10 +744,18 @@ public sealed class RenderGraph : IDisposable
     public int PhysicalTransientBufferCount => _ownedTransientBuffers.Count;
 
     /// <summary>リソースの同形グループ内 slot 番号 (aliasing 確認用、未割当なら -1)。</summary>
-    public int GetPhysicalSlot(BufferHandle handle) => _resources[handle.Id].PhysicalSlot;
+    public int GetPhysicalSlot(BufferHandle handle)
+    {
+        ValidateBufferHandle(handle, nameof(handle));
+        return _resources[handle.Id].PhysicalSlot;
+    }
 
     /// <summary>リソースが aliasing で物理バッファを他リソースと共有しているか。</summary>
-    public bool IsAliased(BufferHandle handle) => _resources[handle.Id].IsAliased;
+    public bool IsAliased(BufferHandle handle)
+    {
+        ValidateBufferHandle(handle, nameof(handle));
+        return _resources[handle.Id].IsAliased;
+    }
 
     /// <summary>Compile 相のデッドパスカリングで除外されたか。</summary>
     public bool IsPassCulled(int passIndex) => _passes[passIndex].Culled;
@@ -543,7 +773,7 @@ public sealed class RenderGraph : IDisposable
             TransientBufferDesc = desc,
         };
         _resources.Add(rec);
-        return new BufferHandle(rec.Id);
+        return new BufferHandle(rec.Id, _graphId);
     }
 
     /// <summary>テスト用: Transient テクスチャのダミー登録 (物理割当なし)。</summary>
@@ -558,7 +788,7 @@ public sealed class RenderGraph : IDisposable
             TransientTextureDesc = desc,
         };
         _resources.Add(rec);
-        return new TextureHandle(rec.Id);
+        return new TextureHandle(rec.Id, _graphId);
     }
 
     /// <summary>テスト用: External テクスチャの dummy 登録。</summary>
@@ -573,7 +803,7 @@ public sealed class RenderGraph : IDisposable
             ExternalTexture = null,
         };
         _resources.Add(rec);
-        return new TextureHandle(rec.Id);
+        return new TextureHandle(rec.Id, _graphId);
     }
 
     /// <summary>テスト用: External の論理ハンドルを物理参照なしで登録 (バリア計算検証用)。</summary>
@@ -588,7 +818,7 @@ public sealed class RenderGraph : IDisposable
             ExternalBuffer = null,
         };
         _resources.Add(rec);
-        return new BufferHandle(rec.Id);
+        return new BufferHandle(rec.Id, _graphId);
     }
 
     public void Dispose()
@@ -599,6 +829,26 @@ public sealed class RenderGraph : IDisposable
         _ownedTransientBuffers.Clear();
         foreach (var t in _ownedTransientTextures) t.Dispose();
         _ownedTransientTextures.Clear();
+    }
+}
+
+internal readonly record struct SymbolicSlotBinding(int ResourceId, bool IsTexture);
+
+internal sealed class DependencyGraph
+{
+    public DependencyGraph(int passCount)
+    {
+        Incoming = Enumerable.Range(0, passCount).Select(_ => new HashSet<int>()).ToArray();
+        Outgoing = Enumerable.Range(0, passCount).Select(_ => new HashSet<int>()).ToArray();
+    }
+
+    public HashSet<int>[] Incoming { get; }
+    public HashSet<int>[] Outgoing { get; }
+    public HashSet<int> ExportProducers { get; } = new();
+
+    public void AddEdge(int predecessor, int successor)
+    {
+        if (Outgoing[predecessor].Add(successor)) Incoming[successor].Add(predecessor);
     }
 }
 

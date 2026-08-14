@@ -4,6 +4,10 @@ using Luxel.Particles;
 using Luxel.Particles.TwoD;
 using Luxel.Scripting;
 using Luxel.Graphics.TwoD;
+using Luxel.Framework.Game;
+using Luxel.Graphics.RenderGraph;
+using Luxel.Graphics.RenderSystem;
+using Microsoft.Extensions.DependencyInjection;
 using Luxel.Typography;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
@@ -43,27 +47,46 @@ public static class CavernStories
         // 敵 AI を .csx からコンパイル (ScriptSystem のドッグフーディング — 実ゲームの敵ロジックを csx で書く)
         ScriptResult r = scripts.GetOrAdd(AiProfile).Run(PatrolAiCsx, new object());
         var ai = r.ReturnValue as Action<Walker, CavernSim, float>;
-        return ctx.Snap(Frame(GpuSceneBase.View(384, 256, new CavernScene(ai), animated: false)));
+        return ctx.Snap(Frame(new StoryAppView<CavernScene>(CavernScene.W, CavernScene.H,
+            (services, _) => services.AddSingleton(new CavernAi(ai)))));
     }
 
     private static readonly Lazy<VectorFont> Font = new(() => Luxel.Gallery.GalleryFonts.Load(Luxel.Gallery.GalleryFonts.Regular));
 
-    private sealed class CavernScene(Action<Walker, CavernSim, float>? ai) : GpuSceneBase
+    private sealed record CavernAi(Action<Walker, CavernSim, float>? Callback);
+
+    private sealed class CavernScene(GpuDevice device, CavernAi ai) : StorySceneBase(device)
     {
+        public const uint W = 384, H = 256;
         private const int Tile = CavernLevel.Tile;
-        private readonly Action<Walker, CavernSim, float>? _ai = ai;
+        private readonly Action<Walker, CavernSim, float>? _ai = ai.Callback;
         private GpuDeviceRasterizer2D _raster = null!;
         private GpuBuffer _atlasBuf = null!;
         private RetainedCanvas _canvas = null!;
         private IRasterScene2D _rasterScene = null!;
         private Vector2 _cameraCenter;
+        private GpuBuffer? _fb;
+        private bool _initialized;
 
-        protected override void OnInit()
+        public override uint FbIndex => _fb?.BindlessIndex ?? 0;
+        public override void PointerMove(float x, float y) { }
+        public override void PointerDown(float x, float y) { }
+        public override void PointerUp(float x, float y) { }
+        public override void Wheel(float x, float y, float delta) { }
+
+        public override void Update(in UpdateContext context)
         {
-            _raster = Track(new GpuDeviceRasterizer2D(Device));
+            if (_initialized) return;
+            _initialized = true;
+            InitializeGpu();
+        }
+
+        private void InitializeGpu()
+        {
+            _raster = new GpuDeviceRasterizer2D(Device);
 
             const int aw = 32, ah = 32;
-            _atlasBuf = Track(Device.Malloc(aw * ah * 4, GpuMemoryKind.HostMapped));
+            _atlasBuf = Device.Malloc(aw * ah * 4, GpuMemoryKind.HostMapped);
             Span<byte> px = _atlasBuf.Span<byte>(aw * ah * 4);
             (int Ox, int Oy, byte R, byte G, byte B)[] cells =
             [
@@ -111,8 +134,9 @@ public static class CavernStories
             }
             _cameraCenter = sim.PlayerCenter;
 
-            _canvas = Track(new RetainedCanvas());
-            _rasterScene = Track(_raster.CreateScene(_canvas));
+            _canvas = new RetainedCanvas();
+            _rasterScene = _raster.CreateScene(_canvas);
+            _fb = Device.Malloc((ulong)W * H * 4, GpuMemoryKind.DeviceLocal);
 
             UiNode sky = _canvas.AddChild(_canvas.Root);
             sky.Content = new Scene2D().FillRect(Color2D.White, 0, 0, CavernLevel.Width * Tile, CavernLevel.Height * Tile);
@@ -157,13 +181,29 @@ public static class CavernStories
             hud.Content = hs;
         }
 
-        protected override void OnRender(float time)
+        protected override void AddRenderPasses(RenderFeatureContext context)
         {
-            Camera2D cam = Camera2D.Create(2f, _cameraCenter, W, H);
-            using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-            _rasterScene.Render(cam, new GpuRasterTarget2D(cmd, OutBuffer, W, H));
-            cmd.Finish();
-            Device.MainQueue.SubmitAndWait(cmd);
+            if (_fb is null || FbReady) return;
+            BufferHandle output = context.Graph.ImportBuffer(_fb, "cavern-framebuffer");
+            context.Graph.AddPass("Cavern2D", PassQueue.Graphics)
+                .Write(output)
+                .Execute(pctx =>
+                {
+                    Camera2D cam = Camera2D.Create(2f, _cameraCenter, W, H);
+                    _rasterScene.Render(cam, new GpuRasterTarget2D(pctx.Cmd, _fb, W, H));
+                    MarkRendered();
+                });
+        }
+
+        protected override ValueTask DisposeAsync()
+        {
+            _rasterScene?.Dispose();
+            _canvas?.Dispose();
+            _atlasBuf?.Dispose();
+            _raster?.Dispose();
+            _fb?.Dispose();
+            _fb = null;
+            return ValueTask.CompletedTask;
         }
     }
 }

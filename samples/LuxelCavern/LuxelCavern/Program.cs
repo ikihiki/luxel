@@ -4,6 +4,7 @@ using Luxel.DevTools;
 using Luxel.Framework.Game.Native;
 using Luxel.Framework.Game;
 using Luxel.Framework.DevTools;
+using Luxel.Graphics.RenderSystem;
 using Luxel.Input;
 using Luxel.Platform;
 using Luxel.Settings;
@@ -18,8 +19,8 @@ using Microsoft.Extensions.Hosting;
 //     vk (既定) / dx : GPU バックエンド
 //     --frames N      : N フレーム回して自動終了 (publish スモーク・CI 用)
 //
-// LuxelHostBuilder + GameScene (CavernRealtimeScene) でゲームループを駆動し、Win32Window + GpuSurface へ
-// 提示する (Framework は窓/提示を持たないので、フレーム待ちを pacer で同期し scene のフレームバッファを Present)。
+// LuxelHostBuilder + GameLoop/IGameScene (CavernRealtimeScene) でゲームループを駆動し、
+// PresentationRunner + IPresentationSchedulerがWin32Window/GpuSurfaceへdirect 1:1提示する。
 // 実窓 (Win32) は STA スレッド必須。操作: A/D or ←→ 移動、Space/W/↑ ジャンプ、Esc ポーズ、Enter リトライ。
 
 string backend = "vk";
@@ -94,6 +95,7 @@ static int Run(string backend, int frames, string[] args)
             .UseGpuDevice(device)
             .UseAudio()   // Native拡張がWindowsではXAudio2 + AudioMixerをDI登録。
             .UseFrameWaiter(pacer.WaitAsync)
+            .UseStandardCadences()
             .WithDevTools(devOptions)   // listener + DebugServer/DevToolsApp + IFramePublisher を host に載せる
             .ConfigureServices(s =>
             {
@@ -101,14 +103,32 @@ static int Run(string backend, int frames, string[] args)
                 s.AddSingleton<IInputSource>(input);
                 s.AddSingleton<IKeyCapture>(keyCapture);
                 s.AddSingleton<IFileStore>(fileStore);
+                s.AddSingleton<IPresentationScheduler>(sp =>
+                    new DirectGpuSurfacePresentationScheduler(surface, token =>
+                    {
+                        token.ThrowIfCancellationRequested();
+                        CavernRealtimeScene scene = sp.GetRequiredService<CavernRealtimeScene>();
+                        GpuBuffer framebuffer = scene.Framebuffer
+                            ?? throw new InvalidOperationException("Cavern framebuffer is not ready.");
+                        sp.GetService<IFramePublisher>()?.Publish(
+                            framebuffer,
+                            (int)scene.StridePixels,
+                            w,
+                            h);
+                        return ValueTask.FromResult(new PresentationTarget(
+                            framebuffer,
+                            scene.StridePixels,
+                            (uint)w,
+                            (uint)h));
+                    }));
                 s.AddSingleton<CavernRealtimeScene>();
+                s.AddSingleton<IGameSceneBootstrap, CavernSceneBootstrap>();
             })
-            .AddScene<CavernRealtimeScene>()
+            .AddGameLoop<GameLoop>()
             .Build();
 
         host.Start();   // GameLoop + DevToolsRuntime 開始 (最初のフレーム待ちで停止)
         var scene = host.Services.GetRequiredService<CavernRealtimeScene>();
-        var framePublisher = host.Services.GetService<IFramePublisher>();   // 提示ループが呼ぶフレーム配信口
         if (host.Services.GetService<DevToolsRuntime>()?.BrowserUrl is { } url)
             Console.WriteLine($"DevTools: {url} (ブラウザで開くとゲームの統計/画面を確認できます)");
 
@@ -117,12 +137,7 @@ static int Run(string backend, int frames, string[] args)
         while (windows.Pump())
         {
             long t0 = sw.ElapsedMilliseconds;
-            pacer.Tick();   // 1 フレーム分のゲームループを同期実行 (入力→固定更新→描画)
-            if (scene.Framebuffer is { } fb)
-            {
-                surface.Present(fb, scene.StridePixels, (uint)w, (uint)h);
-                framePublisher?.Publish(fb, (int)scene.StridePixels, w, h);   // DevTools へ配信 (購読者が居るときだけ)
-            }
+            pacer.Tick();   // 1 フレーム分のゲームループを同期実行 (入力→固定更新→描画→提示)
 
             if (scene.QuitRequested) { win.Close(); windows.Pump(); break; }        // タイトルの「おわる」
             if (frames > 0 && ++drawn >= frames) { win.Close(); windows.Pump(); break; }
@@ -141,6 +156,15 @@ static int Run(string backend, int frames, string[] args)
         try { File.WriteAllText(log, ex.ToString()); } catch { /* ログ失敗は無視 */ }
         Console.Error.WriteLine(ex);
         return 1;
+    }
+}
+
+sealed class CavernSceneBootstrap(CavernRealtimeScene scene) : IGameSceneBootstrap
+{
+    public ValueTask BootstrapAsync(IGameSceneSystem scenes, CancellationToken token)
+    {
+        scenes.Enqueue(new GameSceneCommand.Push(GameSceneId.New(), scene));
+        return ValueTask.CompletedTask;
     }
 }
 

@@ -119,7 +119,7 @@ public static class LearnEcsPhysics
 
         `PhysicsWorld.Step` は elapsed を accumulator へ積み、`FixedDt` ごとに0回以上進めます。巨大な elapsed は0.25秒へ clamp され、停止復帰時の spiral of death を抑えます。
 
-        ## GameScene 側の fixed loop と統合する
+        ## IGameScene の fixed loop と統合する
 
         ```csharp
         while (accumulator >= physics.FixedDt)

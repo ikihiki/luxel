@@ -135,8 +135,8 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
   深度/ブレンド/テクスチャ
 - **2D ベクター** — backend-neutralな`IRasterizer2D`からGPU computeまたはSkia CPU RGBAを選択。
   EvenOdd/ストローク/日本語ベクターテキスト、Camera2D、保持型キャンバスのGPU増分更新
-- **レンダーグラフ** — Setup/Compile/Execute 三相、transient aliasing、デッドパスカリング、
-  自動バリア。scene-agnostic
+- **レンダーグラフ** — resource/control dependency DAG、stable topological sort、transient aliasing、
+  デッドパスカリング、自動バリア。scene-agnostic
 - **3D + ECS** — Friflo ECS + Transform 伝播 + IRenderExtractor、forward/bloom/shadow map/
   world-space UI
 - **宣言的 UI** — ベアファクトリ + indexer の DSL、signals 細粒度更新、単一パスレイアウト、
@@ -147,7 +147,7 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 - **アニメーション** — 3 層 IR (Clip/Track/Player) + UI/2D/3D アダプタ、コード DSL、
   CSS @keyframes、Graph/StateMachine、CSS transition 相当の暗黙補間
 - **ランタイム** — (型,uri) リソース DAG、Win32 窓 + TSF IME、XAudio2、
-  LuxelHostBuilder + 7 フェーズループ + UiSurface、ネイティブ DevTools + HTTP DebugServer
+  IGameLoop + GameSceneSystem + 設定駆動Cadence/RenderSystem、ネイティブ DevTools + HTTP DebugServer
 
 ## プロジェクト構成
 
@@ -163,12 +163,12 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
 | Luxel.Document (+ Highlight.TextMate, Diagram, MathText) | 文書モデル / ハイライト / 図 / 数式 |
 | Luxel.Animation (+ .UI, .TwoD, .ThreeD) | アニメーション IR + ターゲットアダプタ |
 | Luxel.Ecs (+ .Signal) | ECS (Friflo) + signal 連携 |
-| Luxel.Graphics.RenderGraph | パス合成 / transient aliasing / 自動バリア |
+| Luxel.Graphics.RenderGraph / Luxel.Graphics.RenderSystem | dependency DAGによるパス合成 / Set・Cadence・runner / direct presentation |
 | Luxel.Resources (+ Imaging, Assets, AssetsGpu, AssetRuntime, Gltf) | リソース DAG / 画像 / glTF / 3D 抽出 |
 | Luxel.Platform (+ .Windows, .Silk) | ウィンドウ / クリップボード / IME / 低レベル入力 |
 | Luxel.Input (+ .XInput) | アクションマップ / リバインド / Windowsゲームパッド入力 |
 | Luxel.Audio (+ .Windows) | 音声API / ミキサ / XAudio2バックエンド |
-| Luxel.Framework.Game (+ Scene.UI) | アプリ骨格 / シーン遷移 / UiSurface |
+| Luxel.Framework.Game (+ Scene.UI) | IGameLoop / GameSceneSystem / frame-boundary lifecycle |
 | Luxel.DevTools (+ .App) | デバッガ / HTTP DebugServer / ネイティブ DevTools |
 | Luxel.Gallery | ドキュメント + デモ + e2e/bench (このリポジトリの玄関) |
 

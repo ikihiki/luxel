@@ -1,4 +1,4 @@
-﻿namespace Luxel.Ecs;
+namespace Luxel.Ecs;
 
 /// <summary>
 /// 描画補間: <see cref="InterpolatedTransform"/> を持つ entity の前/現ステップ TRS を
@@ -6,7 +6,7 @@
 ///
 /// <para>PreRender で 1 回呼ぶ (物理などの <see cref="Luxel.Ecs.Phase.PreRender"/> 相当)。
 /// FixedUpdate 側は <see cref="InterpolatedTransform.Push"/> で毎ステップの位置を積むだけでよい。
-/// alpha は <c>GameScene.Alpha</c> (蓄積器の余り / FixedDt) を渡す。</para>
+/// alpha はapplicationが所有する<c>FixedTimestep.Alpha</c>を渡す。</para>
 ///
 /// <para>GPU 非依存 — 単体テスト可能。<see cref="LocalTransform"/> を持たない entity には
 /// component を足して書き込む。</para>

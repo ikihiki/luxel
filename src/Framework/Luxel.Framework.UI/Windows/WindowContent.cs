@@ -1,3 +1,4 @@
+using Luxel.Graphics.RenderSystem;
 using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
@@ -22,14 +23,21 @@ public interface IWindowContent : IDisposable
     /// <summary>論理サイズの変更 (物理クライアント px ÷ DPI スケール)。<paramref name="scale"/> は
     /// DPI スケール — content 側 (UiHost) の RenderScale へ伝える (SurfaceView 等の物理解像度確保用)。</summary>
     void Resize(float width, float height, float scale = 1f);
-    void Tick(float dt);
 
-    /// <summary>描画が必要か (false なら描画/present をスキップ = 静止シーン)。</summary>
-    bool NeedsRender { get; }
+    /// <summary>この content が共有する RenderSystem の Set 世代。</summary>
+    RenderFeatureSetStateRegistry FeatureSetStates { get; }
 
-    /// <summary>framebuffer (行幅 <paramref name="paddedWidth"/> px, 可視域 <paramref name="width"/>×<paramref name="height"/> = 物理 px) へ描画する。
-    /// <paramref name="scale"/> は DPI スケール — UI は論理座標のままカメラで物理解像度へ拡大される。</summary>
-    void Render(GpuCommandBuffer cmd, uint paddedWidth, uint width, uint height, GpuBuffer target, float scale);
+    /// <summary>window presentation Cadence に割り当てる Feature。</summary>
+    IRenderFeature RenderFeature { get; }
+
+    /// <summary>active animation 等により、静止中も継続的な opportunity が必要か。</summary>
+    bool RequiresContinuousUpdate { get; }
+
+    /// <summary>必要な logical work だけを進め、retained changes を Set invalidation へ反映する。</summary>
+    void PrepareFrame(float dt);
+
+    /// <summary>次の presentation target を persistent output として stage する。</summary>
+    void SetPresentationTarget(PresentationTarget target, float scale);
 
     // ---- ウィンドウ入力 (論理 px — WindowHost が物理→論理へ変換して渡す) ----
     // button/mods はイベント発生時点の値 (WindowHost が GetKeyState で拾って渡す)。既定引数で旧呼び出しも互換。
@@ -54,6 +62,13 @@ public sealed class UiContent : IWindowContent
 {
     private readonly RetainedCanvas _canvas;
     private readonly IRasterScene2D _rasterScene;
+    private readonly GpuDevice _device;
+    private readonly UiRendererState _rendererState = new();
+    private readonly PersistentUiOutput<GpuBuffer> _output = new();
+    private readonly PresentUiRenderFeature _feature;
+    private readonly UiSurfaceState _surface;
+    private uint _paddedWidth, _height;
+    private float _scale = 1f;
 
     public string Name { get; }
     public UiHost Host { get; }
@@ -63,8 +78,19 @@ public sealed class UiContent : IWindowContent
     {
         Name = name;
         _canvas = new RetainedCanvas();
+        _device = raster.Device;
         _rasterScene = raster.CreateScene(_canvas);
-        Host = new UiHost(_canvas, font, Math.Max(1, width), Math.Max(1, height), theme, raster);
+        Host = new UiHost(_canvas, font, Math.Max(1, width), Math.Max(1, height), theme, raster, _rendererState);
+        _surface = new UiSurfaceState(
+            $"window-ui:{name}",
+            UiSurfaceRole.Present,
+            _canvas,
+            _output,
+            _rendererState.CreateInvalidationSource(UiSurfaceRole.Present),
+            Host.Tick,
+            AddRasterPass);
+        _rendererState.Add(_surface);
+        _feature = new PresentUiRenderFeature(_rendererState);
         Host.SetRoot(root);
     }
 
@@ -76,12 +102,34 @@ public sealed class UiContent : IWindowContent
         Host.RenderScale = scale;
         Host.Resize(width, height);
     }
-    public void Tick(float dt) => Host.Tick(dt);
-    public bool NeedsRender => _canvas.HasPendingChanges;
+    public RenderFeatureSetStateRegistry FeatureSetStates => _rendererState.FeatureSetStates;
+    public IRenderFeature RenderFeature => _feature;
+    public bool RequiresContinuousUpdate => Host.RequiresContinuousUpdate;
 
-    public void Render(GpuCommandBuffer cmd, uint paddedWidth, uint width, uint height, GpuBuffer target, float scale)
-        => _rasterScene.Render(new Camera2D { A = scale, D = scale },
-            new GpuRasterTarget2D(cmd, target, paddedWidth, height));
+    public void PrepareFrame(float dt)
+    {
+        if (Host.NeedsLogicalTick) _rendererState.Tick(dt);
+        else _rendererState.ObserveChanges();
+    }
+
+    public void SetPresentationTarget(PresentationTarget target, float scale)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        _paddedWidth = target.StridePixels;
+        _height = target.Height;
+        _scale = scale;
+        _surface.StagePending(target.Buffer);
+    }
+
+    private void AddRasterPass(global::Luxel.Graphics.RenderGraph.RenderGraph graph, GpuBuffer output)
+    {
+        var handle = graph.ImportBuffer(output, $"window-ui:{Name}");
+        graph.AddPass($"Raster window UI {Name}")
+            .Write(handle)
+            .SideEffect()
+            .Execute(pass => _rasterScene.Render(new Camera2D { A = _scale, D = _scale },
+                new GpuRasterTarget2D(pass.Cmd, pass.Buffer(handle), _paddedWidth, _height)));
+    }
 
     public void PointerMove(WindowPointerEvent input) => Host.PointerMove(input.X, input.Y, LuxelInput.MapModifiers(input.Modifiers));
     public void PointerDown(WindowPointerEvent input)
@@ -104,6 +152,7 @@ public sealed class UiContent : IWindowContent
     public void Dispose()
     {
         Host.Dispose();
+        _rendererState.Dispose();
         _rasterScene.Dispose();
         _canvas.Dispose();
     }

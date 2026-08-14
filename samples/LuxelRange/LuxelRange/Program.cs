@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Luxel;
 using Luxel.Framework.Game.Native;
 using Luxel.Framework.Game;
+using Luxel.Graphics.RenderSystem;
 using Luxel.Input;
 using Luxel.Platform;
 using Luxel.Settings;
@@ -15,7 +16,7 @@ using Microsoft.Extensions.Hosting;
 //     vk (既定) / dx : GPU バックエンド
 //     --frames N      : N フレーム回して自動終了 (publish スモーク・CI 用)
 //
-// LuxelHostBuilder + GameScene (RangeRealtimeScene) でゲームループを駆動し、Win32Window + GpuSurface へ提示する。
+// LuxelHostBuilder + GameLoop (RangeRealtimeScene)を駆動し、PresentationRunnerがWin32Window/GpuSurfaceへ提示する。
 // この段は attract 動作 (カメラ自動旋回 + 定期発射) で 3D 描画/物理/publish 経路を通す薄い層。
 
 string backend = "vk";
@@ -81,9 +82,26 @@ static int Run(string backend, int frames)
                 s.AddSingleton<IFileStore>(fileStore);
                 s.AddSingleton<IInputSource>(input);
                 s.AddSingleton(sp => new RangeGame(sp.GetRequiredService<IFileStore>()));
+                s.AddSingleton<IPresentationScheduler>(sp =>
+                    new DirectGpuSurfacePresentationScheduler(surface, token =>
+                    {
+                        token.ThrowIfCancellationRequested();
+                        RangeRealtimeScene scene = sp.GetRequiredService<RangeRealtimeScene>();
+                        GpuBuffer framebuffer = scene.Framebuffer
+                            ?? throw new InvalidOperationException("Range framebuffer is not ready.");
+                        scene.DrawHud();
+                        return ValueTask.FromResult(new PresentationTarget(
+                            framebuffer,
+                            scene.StridePixels,
+                            (uint)w,
+                            (uint)h));
+                    }));
                 s.AddSingleton<RangeRealtimeScene>();
+                s.AddSingleton<IGameSceneBootstrap>(sp =>
+                    new RangeSceneBootstrap(sp.GetRequiredService<RangeRealtimeScene>()));
             })
-            .AddScene<RangeRealtimeScene>()
+            .UseStandardCadences()
+            .AddGameLoop<GameLoop>()
             .Build();
 
         host.Start();
@@ -95,8 +113,6 @@ static int Run(string backend, int frames)
         {
             long t0 = sw.ElapsedMilliseconds;
             pacer.Tick();
-            if (scene.Framebuffer is { } fb)
-                surface.Present(fb, scene.StridePixels, (uint)w, (uint)h);
 
             if (scene.QuitRequested) { win.Close(); windows.Pump(); break; }
             if (frames > 0 && ++drawn >= frames) { win.Close(); windows.Pump(); break; }
@@ -117,24 +133,71 @@ static int Run(string backend, int frames)
     }
 }
 
+sealed class RangeSceneBootstrap(RangeRealtimeScene scene) : IGameSceneBootstrap
+{
+    public ValueTask BootstrapAsync(IGameSceneSystem scenes, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        scenes.Enqueue(new GameSceneCommand.Push(GameSceneId.New(), scene));
+        return ValueTask.CompletedTask;
+    }
+}
+
 /// <summary>メインスレッドの <see cref="Tick"/> で GameLoop の 1 フレームを同期的に進めるペーサ (Cavern と同型)。</summary>
 sealed class FramePacer
 {
-    private TaskCompletionSource? _tcs;
+    private readonly object _gate = new();
+    private TaskCompletionSource? _tick;
+    private TaskCompletionSource? _frameComplete;
     private bool _cancelHooked;
 
     public Task WaitAsync(CancellationToken token)
     {
-        if (!_cancelHooked)
+        TaskCompletionSource tick;
+        TaskCompletionSource? frameComplete;
+        lock (_gate)
         {
-            _cancelHooked = true;
-            token.Register(() => Interlocked.Exchange(ref _tcs, null)?.TrySetCanceled(token));
+            if (!_cancelHooked)
+            {
+                _cancelHooked = true;
+                token.Register(() => Cancel(token));
+            }
+            frameComplete = _frameComplete;
+            _frameComplete = null;
+            tick = _tick = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         }
-        var tcs = new TaskCompletionSource();
-        Volatile.Write(ref _tcs, tcs);
-        if (token.IsCancellationRequested) tcs.TrySetCanceled(token);
-        return tcs.Task;
+        frameComplete?.TrySetResult();
+        if (token.IsCancellationRequested) tick.TrySetCanceled(token);
+        return tick.Task;
     }
 
-    public void Tick() => Interlocked.Exchange(ref _tcs, null)?.TrySetResult();
+    public void Tick()
+    {
+        TaskCompletionSource? tick;
+        TaskCompletionSource frameComplete;
+        lock (_gate)
+        {
+            tick = _tick;
+            _tick = null;
+            if (tick is null) return;
+            frameComplete = _frameComplete = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+        tick.TrySetResult();
+        frameComplete.Task.GetAwaiter().GetResult();
+    }
+
+    private void Cancel(CancellationToken token)
+    {
+        TaskCompletionSource? tick;
+        TaskCompletionSource? frameComplete;
+        lock (_gate)
+        {
+            tick = _tick;
+            frameComplete = _frameComplete;
+            _tick = null;
+            _frameComplete = null;
+        }
+        tick?.TrySetCanceled(token);
+        frameComplete?.TrySetCanceled(token);
+    }
 }

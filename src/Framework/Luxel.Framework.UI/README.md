@@ -12,6 +12,8 @@ using static Luxel.Controls.Kit;
 LuxelApp.Run(() => Heading("Hello Luxel"));
 ```
 
+Real-window UI rendering is driven by `Luxel.Graphics.RenderSystem`. Each window owns an invalidated `PresentUi` Cadence: retained-canvas changes, deferred realization, active animations, and resize requests advance the Set generation, while a static UI creates no RenderGraph, GPU submission, or presentation work. `PresentationRunner` owns command submission and `GpuSurface` presentation; `UiContent` only contributes render passes. Window messages are still polled because the current platform abstraction exposes a nonblocking `Pump()` rather than a wakeable event wait, but that poll no longer implies a 60 Hz UI update or redraw.
+
 For multiple fixed-path screens, use the Minimal-API-style builder. Navigation state and the content host are provided by `Luxel.UI`; `MapScreen` registration and startup integration live in this package.
 
 ```csharp

@@ -150,6 +150,25 @@ public sealed class LuxelAppTests
     }
 
     [Fact]
+    public void LinuxX11_StaticUiPresentsOnlyTheInvalidatedFrame()
+    {
+        RequireLinuxDisplay();
+        var presented = new List<bool>();
+        LuxelAppBuilder builder = LuxelApp.CreateBuilder();
+        builder.Options.Title = "Luxel.Framework.UI invalidation smoke";
+        builder.Options.Width = 200;
+        builder.Options.Height = 120;
+        builder.Options.RunFrames = 3;
+        builder.Options.EnableValidation = true;
+        builder.OnFrame((runtime, _) => presented.Add(runtime.MainWindow.RenderedThisFrame));
+        builder.Build()
+            .MapScreen("/", () => Center()[Card(Text("static"))])
+            .Run();
+
+        Assert.Equal([true, false, false], presented);
+    }
+
+    [Fact]
     public void LinuxX11_WebGpuRendersOneActualUiFrame()
     {
         RequireLinuxDisplay();

@@ -127,7 +127,11 @@ public sealed class RealizeScope : IDisposable
         Focusables.Clear();
         foreach (ScrollTarget s in Scrollables) _ctx.Scrollables.Remove(s);
         Scrollables.Clear();
-        foreach (Func<float, bool> a in Animations) _ctx.Animations.Remove(a);
+        foreach (Func<float, bool> animation in Animations)
+        {
+            _ctx.Animations.Remove(animation);
+            _ctx.AnimationActivity.Remove(animation);
+        }
         Animations.Clear();
         foreach (UiNode n in Nodes) _ctx.Canvas.Remove(n);
         Nodes.Clear();
@@ -147,7 +151,10 @@ public sealed class UiBuildContext
         => GpuRasterizer ?? throw new NotSupportedException(
             "This widget requires the GPU 2D rasterizer and cannot run with the selected CPU rasterizer.");
 
-    /// <summary>この build を所有する UiHost (D&D の <see cref="UiHost.BeginDrag"/> 等、
+    /// <summary>この host に属する keyed raster surfaces の登録先。GPU composition host だけが設定する。</summary>
+    public UiRendererState? RendererState { get; init; }
+
+    /// <summary>この build を所有する UiHost (D&amp;D の <see cref="UiHost.BeginDrag"/> 等、
     /// host サービスへのアクセス用)。SetRoot が設定する。</summary>
     public UiHost? Host { get; internal set; }
 
@@ -205,8 +212,9 @@ public sealed class UiBuildContext
     public List<ScrollTarget> Scrollables { get; } = new();
     /// <summary>オーバーレイ (Dialog/Menu/Tooltip/Toast/Drawer)。最前面レイヤへ実体化される。</summary>
     public List<OverlayEntry> Overlays { get; } = new();
-    /// <summary>アニメーション (毎 Tick 呼ばれ、true で完了・除去)。</summary>
+    /// <summary>アニメーション (step(dt)→true で完了・除去)。直接追加した登録は常に active とみなす。</summary>
     public List<Func<float, bool>> Animations { get; } = new();
+    internal Dictionary<Func<float, bool>, Func<bool>> AnimationActivity { get; } = new();
 
     /// <summary>再実体化待ちの dirty widget (<see cref="Widget.MarkNeedsRealize"/> の集積先)。
     /// UiHost が Tick 頭でまとめて処理する (バッチ = 1 フレーム内の多重変更を 1 回の部分 Realize に)。</summary>
@@ -220,10 +228,19 @@ public sealed class UiBuildContext
 
     /// <summary>オーバーレイを登録する (実体化は UiHost が最前面で行う)。</summary>
     public void RegisterOverlay(OverlayEntry e) => Overlays.Add(e);
-    /// <summary>アニメーションを登録する (step(dt)→true で完了)。</summary>
-    public void AddAnimation(Func<float, bool> step)
+    /// <summary>継続的に active なアニメーションを登録する (step(dt)→true で完了)。</summary>
+    public void AddAnimation(Func<float, bool> step) => AddAnimation(step, static () => true);
+
+    /// <summary>
+    /// 必要な間だけ frame tick を要求するアニメーションを登録する。
+    /// <paramref name="isActive"/> が false の間は step を呼ばず、静止 UI の render opportunity も要求しない。
+    /// </summary>
+    public void AddAnimation(Func<float, bool> step, Func<bool> isActive)
     {
+        ArgumentNullException.ThrowIfNull(step);
+        ArgumentNullException.ThrowIfNull(isActive);
         Animations.Add(step);
+        AnimationActivity[step] = isActive;
         CurrentScope.Animations.Add(step);
     }
 

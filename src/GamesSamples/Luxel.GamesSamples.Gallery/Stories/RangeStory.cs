@@ -9,6 +9,7 @@ using Luxel.Framework.Game;
 using Luxel.Particles;
 using Luxel.Particles.ThreeD;
 using Luxel.Graphics.RenderGraph;
+using Luxel.Graphics.RenderSystem;
 using Luxel.Resources;
 using Luxel.UI;
 using LuxelRange.Core;
@@ -66,7 +67,7 @@ public static class RangeStories
         public uint Pad0, Pad1, Pad2;
     }
 
-    public sealed class RangeScene : GameScene, IStoryApp
+    public sealed class RangeScene : StorySceneBase
     {
         public const uint W = 512, H = 320;   // 512*4 = 2048B 行 (256B 整列) — D3D12 CopyTextureToBuffer 要件
 
@@ -106,24 +107,23 @@ public static class RangeStories
         // 命中パーティクル (.ThreeD バースト)。命中イベント位置で放出、カメラ向きビルボードで描く。
         private ParticleSystem? _burstPs;
         private ParticleBillboards? _hitBurst;
-        private long _version, _seen;
         private bool _fbDirty = true;
+        private ResourceSystem? _resources;
 
-        public RangeScene(SceneLoopServices loop, Action<string> log) : base(loop) => _log = log;
+        public RangeScene(GpuDevice device, Action<string> log) : base(device) => _log = log;
 
         // ---- IStoryApp ----
-        public uint FbIndex => _fb?.BindlessIndex ?? 0;
-        public bool FbReady => _version > 0;
-        public bool ConsumeRendered()
+        public override uint FbIndex => _fb?.BindlessIndex ?? 0;
+
+        public override ValueTask LoadAsync(GameSceneContext context, CancellationToken token)
         {
-            if (_seen == _version) return false;
-            _seen = _version;
-            return true;
+            _resources = context.Services.GetService<ResourceSystem>();
+            return ValueTask.CompletedTask;
         }
 
-        public void PointerDown(float x, float y) { _dragging = true; _dragX = x; _dragY = y; _dragTotal = 0; }
+        public override void PointerDown(float x, float y) { _dragging = true; _dragX = x; _dragY = y; _dragTotal = 0; }
 
-        public void PointerMove(float x, float y)
+        public override void PointerMove(float x, float y)
         {
             if (!_dragging) return;
             float dx = x - _dragX, dy = y - _dragY;
@@ -133,18 +133,16 @@ public static class RangeStories
             _fbDirty = true;
         }
 
-        public void PointerUp(float x, float y)
+        public override void PointerUp(float x, float y)
         {
             if (_dragging && _dragTotal < 4) _shotQueued = (x, y);   // ほぼ動かない = クリック = 発射
             _dragging = false;
         }
 
-        public void Wheel(float x, float y, float d) { _cam.Dolly(1f - d * 0.001f, 5f, 20f); _fbDirty = true; }
+        public override void Wheel(float x, float y, float d) { _cam.Dolly(1f - d * 0.001f, 5f, 20f); _fbDirty = true; }
 
         // ---- フレーム ----
-        protected override double FixedDeltaSeconds => RangeSim.FixedDt;
-
-        protected override void OnFixedUpdate(FixedUpdateContext ctx)
+        public override void FixedUpdate(in FixedUpdateContext ctx)
         {
             if (_sim is null || !_sim.Started) return;   // InitGpu (OnUpdate) 前は _sim 未生成
             _sim.StepOnce();
@@ -165,14 +163,14 @@ public static class RangeStories
             }
         }
 
-        protected override void OnUpdate(UpdateContext ctx)
+        public override void Update(in UpdateContext ctx)
         {
             if (_fb is null) InitGpu();
             TryBuildFox();
             if (_shotQueued is (float sx, float sy)) { _shotQueued = null; Shoot(sx, sy); }
         }
 
-        protected override void OnRender(RenderContext ctx)
+        protected override void AddRenderPasses(RenderFeatureContext context)
         {
             if (_fb is null || _extractor is null || !_fbDirty) return;
             _fbDirty = false;
@@ -182,14 +180,18 @@ public static class RangeStories
             Matrix4x4 viewProj = _cam.ViewProjection;
             Matrix4x4 vpT = Matrix4x4.Transpose(viewProj);
             (Vector3 billRight, Vector3 billUp) = ParticleBillboards.CameraAxes(_cam.Eye, _cam.Target);
-            using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);
+            Luxel.Graphics.RenderGraph.RenderGraph rg = context.Graph;
             BufferHandle hVerts = rg.ImportBuffer(_vb!, "verts");
             BufferHandle hInsts = rg.ImportBuffer(_extractor.InstanceBuffer, "instances");
             BufferHandle hTV = rg.ImportBuffer(_terrainVb!, "terrainVerts");
             BufferHandle hTI = rg.ImportBuffer(_terrainIb!, "terrainIdx");
             BufferHandle hTInst = rg.ImportBuffer(_terrainInst!, "terrainInst");
+            BufferHandle output = rg.ImportBuffer(_fb, "range-framebuffer");
+            TextureHandle color = rg.ImportTexture(_target!, "range-color");
+            TextureHandle depth = rg.ImportTexture(_depth!, "range-depth");
             var pass = rg.AddPass("Range3D", PassQueue.Graphics)
-              .Read(hVerts).Read(hInsts).Read(hTV).Read(hTI).Read(hTInst).Write(hInsts);   // Write 無しパスはデッドパスカリング
+              .Read(hVerts).Read(hInsts).Read(hTV).Read(hTI).Read(hTInst)
+              .Write(color).Write(depth).Write(output);   // Write 無しパスはデッドパスカリング
 
             bool drawFox = _foxPrim is not null;
             BufferHandle hFV = default, hFI = default, hFInst = default, hFJoint = default;
@@ -242,19 +244,14 @@ public static class RangeStories
                   }
                   // 4) 命中パーティクル (カメラ向きビルボード、深度テストあり + アルファブレンド)
                   _hitBurst?.Draw(pctx.Cmd, viewProj, billRight, billUp);
-                  pctx.Cmd.EndRendering();
+                  pctx.Cmd.EndRendering()
+                      .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+                      .CopyTextureToBuffer(_target!, _fb!);
+                  MarkRendered();
               });
-
-            using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-            rg.Execute(cmd);
-            cmd.Barrier(GpuStage.ColorOutput, GpuStage.Copy)
-               .CopyTextureToBuffer(_target!, _fb!);
-            cmd.Finish();
-            Device.MainQueue.SubmitAndWait(cmd);
-            _version++;
         }
 
-        public override Task OnUnloadAsync()
+        protected override ValueTask DisposeAsync()
         {
             _extractor?.Dispose();
             _sim?.Dispose();
@@ -279,7 +276,7 @@ public static class RangeStories
             _terrainVb = null; _terrainIb = null; _terrainInst = null;
             _foxWorld = null; _foxAssets = null; _foxPrim = null; _foxJoints = null; _foxInst = null; _skinPipeline = null;
             _foxLoadObserved = false;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
 
         private void InitGpu()
@@ -300,7 +297,7 @@ public static class RangeStories
             TransformPropagateSystem.Run(_sim.World);   // 初期 (静止) シーンの GlobalTransform
             _extractor = new Render3DExtractSystem(_sim.World, Device);
             BuildTerrainBuffers();
-            if (Loop.Resources is { } resources)
+            if (_resources is { } resources)
                 _foxDocument = resources.Load<AssetDocument>(FoxAssetUri);
             BuildBurst();
             _fbDirty = true;

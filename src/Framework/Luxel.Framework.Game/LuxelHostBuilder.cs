@@ -3,6 +3,7 @@ using Luxel.Audio;
 using Luxel.Input;
 using Luxel.Resources;
 using Luxel.Graphics.MessagePipe;
+using Luxel.Graphics.RenderSystem;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -12,13 +13,8 @@ namespace Luxel.Framework.Game;
 
 /// <summary>
 /// Luxel フレームワークの汎用ホストビルダ。<see cref="Microsoft.Extensions.Hosting"/> をベースに、
-/// <c>UseGpu / UseAudio / UseResources / AddScene</c> といったチェーン API で
-/// engine のサブシステムを DI に登録し、<see cref="Build"/> で <see cref="IHost"/> を返す。
-/// GPU・audio backendはplatform側からfactoryまたはinstanceとして注入する。
-/// Desktopの既定構成は<c>Luxel.Framework.Game.Native</c>が拡張メソッドとして提供する。
-///
-/// <see cref="AddScene{T}"/> は初期 scene を指定 (StartupScene として singleton 登録)。
-/// 実行時の scene 切替は <see cref="SceneManager"/> を DI 経由で取得して <c>SwitchAsync&lt;NextScene&gt;()</c>。
+/// GPU、audio、resources、renderingと一つの<see cref="IGameLoop"/>をDIへ登録し、
+/// <see cref="Build"/>で<see cref="IHost"/>を返す。GPU・audio backendはplatform別projectから注入する。
 /// </summary>
 public sealed class LuxelHostBuilder
 {
@@ -27,7 +23,9 @@ public sealed class LuxelHostBuilder
     private Func<IGpuLifecycleSink, GpuDevice>? _lifecycleDeviceFactory;
     private GpuDevice? _borrowedDevice;
     private Func<CancellationToken, Task>? _frameWaiter;
-    private Type? _startupScene;
+    private Type? _gameLoop;
+    private LuxelRenderingBuilder? _rendering;
+    private bool _standardCadences;
     private string? _assetRoot;
     private Func<ResourceSystemBuilder, ResourceSystemDefaultHandles> _resourceCore =
         builder => ResourceSystemDefaults.AddCore(builder);
@@ -64,9 +62,7 @@ public sealed class LuxelHostBuilder
     /// インスタンス登録なのでコンテナは Dispose しない — 所有はホスト側のまま。</summary>
     public LuxelHostBuilder UseGpuDevice(GpuDevice device) { _borrowedDevice = device; return this; }
 
-    /// <summary>フレームペーシングを差し替える (Platform 部分の抽象 — 既定は固定ディレイ)。
-    /// Storybook 等の埋め込みホストが自分の描画ティックに同期させるのに使う。
-    /// 詳細は <see cref="SceneLoopServices.WaitFrame"/>。</summary>
+    /// <summary>フレームペーシングを差し替える。埋め込みホストが自分の描画ティックに同期させる場合に使う。</summary>
     public LuxelHostBuilder UseFrameWaiter(Func<CancellationToken, Task> waiter) { _frameWaiter = waiter; return this; }
 
     /// <summary>Audio backend factory を明示注入する。factory が作った backend は初期化され、host の破棄で Dispose される。</summary>
@@ -118,11 +114,26 @@ public sealed class LuxelHostBuilder
         return this;
     }
 
-    /// <summary>起動時に自動 Load する scene 型。SceneManager が最初に SwitchAsync{T}() する。</summary>
-    public LuxelHostBuilder AddScene<TScene>() where TScene : GameScene
+    /// <summary>Registers the single application game loop.</summary>
+    public LuxelHostBuilder AddGameLoop<TLoop>() where TLoop : class, IGameLoop
     {
-        _startupScene = typeof(TScene);
-        _inner.Services.TryAddTransient<TScene>();
+        RegisterGameLoop(typeof(TLoop));
+        return this;
+    }
+
+    public LuxelHostBuilder ConfigureRendering(Action<LuxelRenderingBuilder> configure)
+        => ConfigureRendering(configure, standardCadences: false);
+
+    internal LuxelHostBuilder ConfigureRendering(
+        Action<LuxelRenderingBuilder> configure,
+        bool standardCadences)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        if (standardCadences && _standardCadences)
+            throw new InvalidOperationException("UseStandardCadences() can only be called once.");
+        _rendering ??= new LuxelRenderingBuilder();
+        configure(_rendering);
+        if (standardCadences) _standardCadences = true;
         return this;
     }
 
@@ -137,6 +148,8 @@ public sealed class LuxelHostBuilder
     {
         if (_deviceFactory is null && _lifecycleDeviceFactory is null && _borrowedDevice is null)
             throw new InvalidOperationException("UseGpu / UseGpuDevice のいずれかを指定してください。");
+        if (_gameLoop is null)
+            throw new InvalidOperationException("AddGameLoop<TLoop>() を一度だけ指定してください。");
 
         // Graphics lifecycle callbacks are queued and published through MessagePipe from the frame thread.
         _inner.Services.AddGpuLifecycleMessagePipe();
@@ -216,52 +229,51 @@ public sealed class LuxelHostBuilder
                 _inner.Services, settingsConfig, _settingsFiles, _settingsFileName);
         }
 
-        // SceneLoopServices — Scene の ctor に渡す (device / resources / audio / input の束)
-        _inner.Services.AddSingleton(sp => new SceneLoopServices(
-            Device: sp.GetRequiredService<GpuDevice>(),
-            Resources: sp.GetService<ResourceSystem>(),
-            Mixer: sp.GetService<AudioMixer>(),
-            InputBus: sp.GetService<InputBus>(),
-            InputStack: sp.GetService<InputStack>(),
-            InputSources: sp.GetServices<IInputSource>().ToArray(),
-            Commands: sp.GetService<Luxel.Diagnostics.EngineCommands>(),
-            AudioRegistry: sp.GetService<AudioRegistry>(),
-            UiRegistry: sp.GetService<UiRegistry>(),
-            WaitFrame: _frameWaiter,
-            PumpGraphicsLifecycle: () =>
+        _inner.Services.AddSingleton<IGameLoopIterationPump, EngineCommandIterationPump>();
+        _inner.Services.AddSingleton<IGameLoopIterationPump, GpuLifecycleIterationPump>();
+
+        RenderSystemConfiguration rendering = (_rendering ?? new LuxelRenderingBuilder()).Build();
+        _inner.Services.AddSingleton(rendering);
+        _inner.Services.TryAddSingleton<RenderFeatureSetStateRegistry>();
+        _inner.Services.TryAddSingleton<RenderManualTriggerRegistry>();
+        _inner.Services.TryAddSingleton<IRenderFrameScheduler>(
+            _ => new DelegateRenderFrameScheduler(_frameWaiter));
+        _inner.Services.TryAddSingleton<IGameSceneBootstrap, EmptyGameSceneBootstrap>();
+        _inner.Services.TryAddSingleton<IGameSceneSystem>(sp =>
+            new GameSceneSystem(sp, sp.GetRequiredService<RenderSystemConfiguration>()));
+        _inner.Services.TryAddSingleton<RenderGraphCadenceRunner>();
+        _inner.Services.TryAddSingleton<ICadenceExecutionCoordinator>(sp =>
+        {
+            var runners = new Dictionary<RenderCadenceRunnerId, IRenderCadenceRunner>
             {
-                if (sp.GetService<GpuDeviceLifecycleCoordinator>() is not { } coordinator)
-                    return sp.GetRequiredService<GpuLifecycleMessagePump>().Pump();
-                var destination = new FrameworkGpuLifecycleSink(
-                    sp.GetRequiredService<MessagePipeGpuLifecycleSink>(), coordinator);
-                int count = sp.GetRequiredService<GpuLifecycleEventQueue>().Pump(destination);
-                coordinator.PumpAsync().AsTask().GetAwaiter().GetResult();
-                return count;
-            }));
+                [RenderCadenceRunners.RenderGraph] = sp.GetRequiredService<RenderGraphCadenceRunner>(),
+            };
+            if (sp.GetService<IPresentationScheduler>() is { } scheduler)
+                runners[RenderCadenceRunners.Presentation] = new PresentationRunner(
+                    sp.GetRequiredService<GpuDevice>(), scheduler);
+            return new CadenceExecutionCoordinator(
+                rendering.Cadences.Items,
+                rendering.FeatureSets.Order.ToArray(),
+                runners,
+                sp.GetRequiredService<RenderFeatureSetStateRegistry>(),
+                sp.GetRequiredService<RenderManualTriggerRegistry>());
+        });
 
-        // SceneManager (singleton)
-        _inner.Services.AddSingleton<SceneManager>();
-
-        // Startup scene 情報を DI に (GameLoop が読む)
-        if (_startupScene is not null)
-            _inner.Services.AddSingleton(new StartupScene(_startupScene));
-
-        // GameLoop 本体 (BackgroundService として登録、Host.RunAsync で自動起動)
-        _inner.Services.AddHostedService<GameLoop>();
+        // Bind the concrete loop and IGameLoop to the same singleton instance.
+        _inner.Services.AddSingleton(_gameLoop!);
+        _inner.Services.AddSingleton(typeof(IGameLoop), sp => sp.GetRequiredService(_gameLoop!));
+        _inner.Services.AddHostedService<GameLoopHostedService>();
 
         return _inner.Build();
     }
-    private sealed record FrameworkGpuResources(ResourceSystem Resources, GpuResourceManagerHandle Gpu);
 
-    private sealed class FrameworkGpuLifecycleSink(
-        MessagePipeGpuLifecycleSink messages,
-        GpuDeviceLifecycleCoordinator coordinator) : IGpuLifecycleSink
+    private void RegisterGameLoop(Type gameLoop)
     {
-        public void Publish(GpuDeviceLifecycleEvent message) { messages.Publish(message); coordinator.Publish(message); }
-        public void Publish(GpuValidationEvent message) { messages.Publish(message); coordinator.Publish(message); }
-        public void Publish(GpuSurfaceLifecycleEvent message) { messages.Publish(message); coordinator.Publish(message); }
+        ArgumentNullException.ThrowIfNull(gameLoop);
+        if (_gameLoop is not null)
+            throw new InvalidOperationException("Game loop は一つだけ登録できます。");
+        _gameLoop = gameLoop;
     }
-}
 
-/// <summary>DI 経由で GameLoop に渡す起動 scene の型情報。</summary>
-public sealed record StartupScene(Type SceneType);
+    private sealed record FrameworkGpuResources(ResourceSystem Resources, GpuResourceManagerHandle Gpu);
+}

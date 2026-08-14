@@ -5,6 +5,8 @@ using Luxel.Framework.Game;
 using Luxel.Particles;
 using Luxel.Particles.TwoD;
 using Luxel.Graphics.TwoD;
+using Luxel.Graphics.RenderGraph;
+using Luxel.Graphics.RenderSystem;
 using Luxel.Typography;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,7 +19,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>
 /// **ショーケースゲーム: BREAKOUT** — エンジンの主要サブシステムを 1 つの実アプリで使う:
-/// - <b>Framework</b>: LuxelHostBuilder + DI + GameLoop + GameScene (フェーズ駆動の実ゲームループ)
+/// - <b>Framework</b>: LuxelHostBuilder + DI + GameLoop + IGameScene (フェーズ駆動の実ゲームループ)
 /// - <b>ECS</b>: ボール/ブロックはエンティティ。ロジックはフェーズ別の delegate system
 ///   (Update = 移動/衝突、LateUpdate = ノード同期/パーティクル) — <see cref="World.AddSystem(string, Action)"/>
 /// - <b>保持型 2D</b>: 移動 = transform 書込のみ、ブロック破壊 = Visible=false (order 再構成のみ)、
@@ -46,7 +48,7 @@ public static class BreakoutStories
     /// <summary>ブロック。Node = 対応する保持ノードの index (破壊 = Visible=false)。</summary>
     public struct Brick : IComponent { public float X, Y; public int Row, Node; public bool Alive; }
 
-    public sealed class BreakoutScene : GameScene, IStoryApp
+    public sealed class BreakoutScene : StorySceneBase
     {
         public const float FieldW = 480, FieldH = 340;
         private const float PadW = 70, PadH = 10, PadY = FieldH - 26;
@@ -81,7 +83,6 @@ public static class BreakoutStories
         private GpuBuffer? _fb;
         private UiNode? _ballNode, _paddleNode, _scoreNode, _livesNode, _msgNode;
         private readonly List<UiNode> _brickNodes = new();
-        private long _version, _seen;
         private int _shownScore = -1, _shownLives = -1;
 
         // パーティクル (破壊エフェクト — 標準 ParticleSystem + ParticleNode。色はブロック色を tint で per-particle 指定)
@@ -89,11 +90,10 @@ public static class BreakoutStories
         private ParticleNode? _pnode;
         private bool _hadParticles;
 
-        public BreakoutScene(SceneLoopServices loop, VectorFont font, Action<string> log) : base(loop)
+        public BreakoutScene(GpuDevice device, VectorFont font, Action<string> log) : base(device)
         {
             _font = font;
             _log = log;
-            AddWorld(_world);
             // フェーズ別 system (delegate)。dt は OnUpdate が先に立てる (GameScene のフェーズ順)
             _world.AddSystem(Phase.Update.Name, StepBall);
             _world.AddSystem(Phase.Update.Name, CollideBricks);
@@ -103,24 +103,17 @@ public static class BreakoutStories
 
         // ---- IStoryApp (Storybook Platform との接点) ----
 
-        public uint FbIndex => _fb?.BindlessIndex ?? 0;
-        public bool FbReady => _version > 0;
-        public bool ConsumeRendered()
-        {
-            if (_seen == _version) return false;
-            _seen = _version;
-            return true;
-        }
+        public override uint FbIndex => _fb?.BindlessIndex ?? 0;
 
-        public void PointerMove(float x, float y)
+        public override void PointerMove(float x, float y)
             => _paddleX = Math.Clamp(x, PadW / 2, FieldW - PadW / 2);
-        public void PointerDown(float x, float y) => _clickQueued = true;
-        public void PointerUp(float x, float y) { }
-        public void Wheel(float x, float y, float d) { }
+        public override void PointerDown(float x, float y) => _clickQueued = true;
+        public override void PointerUp(float x, float y) { }
+        public override void Wheel(float x, float y, float d) { }
 
         // ---- フレーム (GameScene のフェーズフック) ----
 
-        protected override void OnUpdate(UpdateContext ctx)
+        public override void Update(in UpdateContext ctx)
         {
             if (_canvas is null) InitGpu();
             _dt = MathF.Min(ctx.Time.DeltaSeconds, 1f / 30f);   // タブ切替等の巨大 dt でトンネリングしない
@@ -138,28 +131,35 @@ public static class BreakoutStories
                         break;
                 }
             }
+
+            var tick = new UpdateTick(ctx.Time.DeltaSeconds, (float)ctx.Time.TotalSeconds);
+            _world.RunPhase(Phase.Update.Name, tick);
+            _world.RunPhase(Phase.LateUpdate.Name, tick);
         }
 
-        protected override void OnRender(RenderContext ctx)
+        protected override void AddRenderPasses(RenderFeatureContext context)
         {
             if (_canvas is null || _fb is null) return;
-            if (_version > 0 && !_canvas.HasPendingChanges) return;
-            using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-            _rasterScene!.Render(Camera2D.Pixels,
-                new GpuRasterTarget2D(cmd, _fb, (uint)FieldW, (uint)FieldH));
-            cmd.Finish();
-            Device.MainQueue.SubmitAndWait(cmd);
-            _version++;
+            if (FbReady && !_canvas.HasPendingChanges) return;
+            BufferHandle output = context.Graph.ImportBuffer(_fb, "breakout-framebuffer");
+            context.Graph.AddPass("Breakout2D", PassQueue.Graphics)
+                .Write(output)
+                .Execute(pctx =>
+                {
+                    _rasterScene!.Render(Camera2D.Pixels,
+                        new GpuRasterTarget2D(pctx.Cmd, _fb, (uint)FieldW, (uint)FieldH));
+                    MarkRendered();
+                });
         }
 
-        public override Task OnUnloadAsync()
+        protected override ValueTask DisposeAsync()
         {
             _rasterScene?.Dispose();
             _canvas?.Dispose();
             _raster?.Dispose();
             _fb?.Dispose();
             _rasterScene = null; _canvas = null; _raster = null; _fb = null;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
 
         // ---- 初期化 (GPU 資源は最初のフレーム内で — 起動スレッドから触らない) ----

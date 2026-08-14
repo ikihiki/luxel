@@ -32,6 +32,7 @@
     <Project Path="src/Graphics/Luxel.Graphics.Gallery/Luxel.Graphics.Gallery.csproj" />
     <Project Path="src/Graphics/Luxel.Graphics.MessagePipe/Luxel.Graphics.MessagePipe.csproj" />
     <Project Path="src/Graphics/Luxel.Graphics.RenderGraph/Luxel.Graphics.RenderGraph.csproj" />
+    <Project Path="src/Graphics/Luxel.Graphics.RenderSystem/Luxel.Graphics.RenderSystem.csproj" />
     <Project Path="src/Graphics/Luxel.Graphics.TwoD.Skia/Luxel.Graphics.TwoD.Skia.csproj" />
     <Project Path="src/Graphics/Luxel.Graphics.TwoD/Luxel.Graphics.TwoD.csproj" />
     <Project Path="src/Graphics/Luxel.Graphics.Vulkan/Luxel.Graphics.Vulkan.csproj" />
@@ -186,6 +187,7 @@
   </Folder>
   <Folder Name="/tests/Graphics/">
     <Project Path="tests/Graphics/Luxel.Graphics.MessagePipe.Tests/Luxel.Graphics.MessagePipe.Tests.csproj" />
+    <Project Path="tests/Graphics/Luxel.Graphics.RenderSystem.Tests/Luxel.Graphics.RenderSystem.Tests.csproj" />
     <Project Path="tests/Graphics/Luxel.Graphics.Tests/Luxel.Graphics.Tests.csproj" />
     <Project Path="tests/Graphics/Luxel.Shaders.Tests/Luxel.Shaders.Tests.csproj" />
     <Project Path="tests/Graphics/Luxel.Vulkan.Present.Tests/Luxel.Vulkan.Present.Tests.csproj" />
