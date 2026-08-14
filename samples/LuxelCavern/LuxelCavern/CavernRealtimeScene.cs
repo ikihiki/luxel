@@ -5,6 +5,8 @@ using Luxel.Framework.Game;
 using Luxel.Input;
 using Luxel.Particles;
 using Luxel.Settings;
+using Luxel.Graphics.RenderGraph;
+using Luxel.Graphics.RenderSystem;
 using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using LuxelCavern.Core;
@@ -14,21 +16,25 @@ namespace LuxelCavern;
 
 /// <summary>
 /// 「Luxel Cavern」の実時間ゲームシーン — <see cref="LuxelHostBuilder"/> の <see cref="GameLoop"/> が駆動する。
-/// <see cref="OnFixedUpdate"/> で入力を読み <see cref="GameFlow"/>/<see cref="CavernSim"/> を固定 dt で進め、
-/// <see cref="OnRender"/> で毎フレーム即時モードのシーンを組んで <see cref="Framebuffer"/> へ描く
+/// <see cref="FixedUpdate"/> で入力を読み <see cref="GameFlow"/>/<see cref="CavernSim"/> を固定 dt で進め、
+/// scene-owned <see cref="IRenderFeature"/> が毎フレーム即時モードのシーンを <see cref="Framebuffer"/> へ描くパスを追加する
 /// (提示は Program 側が <see cref="GpuSurface.Present"/> で行う)。カメラは <see cref="CameraRig2D"/> で追従 + 被弾シェイク。
 /// </summary>
-public sealed class CavernRealtimeScene : GameScene
+public sealed class CavernRealtimeScene : IGameScene
 {
     public const int Width = 960, Height = 540;
     private static int Align(int v, int a) => (v + a - 1) / a * a;
     private const int AtlasW = 32, AtlasH = 32;
 
-    private readonly SceneLoopServices _loop;
+    private readonly GpuDevice _device;
+    private readonly InputStack _inputStack;
+    private readonly AudioMixer _mixer;
     private readonly VectorFont _font;
     private readonly IFileStore _store;
     private readonly IAudioBackend _audioBackend;
     private readonly IKeyCapture _capture;
+    private readonly CavernRenderFeature _renderFeature;
+    private InputContext? _inputContext;
     private bool _rebinding;
     private CavernAudio? _audio;
     private CavernSave? _save;
@@ -67,13 +73,23 @@ public sealed class CavernRealtimeScene : GameScene
     public GpuBuffer Framebuffer => _fb;
     public uint StridePixels => (uint)_paddedW;
 
-    public CavernRealtimeScene(SceneLoopServices loop, VectorFont font, IFileStore store, IAudioBackend audioBackend, IKeyCapture keyCapture) : base(loop)
+    public CavernRealtimeScene(
+        GpuDevice device,
+        InputStack inputStack,
+        AudioMixer mixer,
+        VectorFont font,
+        IFileStore store,
+        IAudioBackend audioBackend,
+        IKeyCapture keyCapture)
     {
-        _loop = loop;
+        _device = device;
+        _inputStack = inputStack;
+        _mixer = mixer;
         _font = font;
         _store = store;
         _audioBackend = audioBackend;
         _capture = keyCapture;
+        _renderFeature = new CavernRenderFeature(this);
     }
 
     private void Init()
@@ -83,8 +99,8 @@ public sealed class CavernRealtimeScene : GameScene
         _flow = new GameFlow(_levels);
 
         _paddedW = Align(Width, 64);
-        _raster = new GpuDeviceRasterizer2D(Device);
-        _fb = Device.Malloc((ulong)(_paddedW * Height * 4), GpuMemoryKind.HostMapped);
+        _raster = new GpuDeviceRasterizer2D(_device);
+        _fb = _device.Malloc((ulong)(_paddedW * Height * 4), GpuMemoryKind.HostMapped);
         BakeAtlas();
 
         _move = new Axis1DAction("move");     // バインドは CavernBindings.Apply が設定 (プライマリ + 矢印セカンダリ)
@@ -96,10 +112,10 @@ public sealed class CavernRealtimeScene : GameScene
         _devToggle = new ButtonAction("dev", KeyCode.F1);
         _navV = new Axis1DAction("navV");
         _navV.ButtonPairs.Add((KeyCode.Down, KeyCode.Up));   // Down=+1 (下へ), Up=-1 (上へ)
-        var ctx = new InputContext("gameplay");
-        ctx.Add(_move); ctx.Add(_jump); ctx.Add(_pause); ctx.Add(_confirm); ctx.Add(_continue);
-        ctx.Add(_settingsBtn); ctx.Add(_navV); ctx.Add(_devToggle);
-        _loop.InputStack?.Push(ctx);
+        _inputContext = new InputContext("gameplay");
+        _inputContext.Add(_move); _inputContext.Add(_jump); _inputContext.Add(_pause); _inputContext.Add(_confirm); _inputContext.Add(_continue);
+        _inputContext.Add(_settingsBtn); _inputContext.Add(_navV); _inputContext.Add(_devToggle);
+        _inputStack.Push(_inputContext);
 
         _fx = new ParticleSystem(new ParticleConfig(
             Life: ParticleValue.Range(0.4f, 0.8f), Speed: ParticleValue.Range(20, 60),
@@ -112,11 +128,8 @@ public sealed class CavernRealtimeScene : GameScene
         CavernBindings.Apply(_move, _jump, _settings);
 
         // オーディオ配線 (BGM + イベント SE)。Mixer は Framework の UseAudio が用意する共有インスタンス。
-        if (_loop.Mixer is { } mixer)
-        {
-            _audio = new CavernAudio(_audioBackend, mixer);
-            _audio.BindSettings(_settings);
-        }
+        _audio = new CavernAudio(_audioBackend, _mixer);
+        _audio.BindSettings(_settings);
 
         // タイトルで起動 — セーブがあれば「つづきから」を出す (%APPDATA% は Program が PhysicalFileStore で渡す)。
         _save = CavernPersistence.TryLoad(_store);
@@ -125,7 +138,7 @@ public sealed class CavernRealtimeScene : GameScene
 
     private void BakeAtlas()
     {
-        _atlas = Device.Malloc(AtlasW * AtlasH * 4, GpuMemoryKind.HostMapped);
+        _atlas = _device.Malloc(AtlasW * AtlasH * 4, GpuMemoryKind.HostMapped);
         Span<byte> px = _atlas.Span<byte>(AtlasW * AtlasH * 4);
         (int Ox, int Oy, byte R, byte G, byte B)[] cells =
             [(0, 0, 70, 175, 85), (16, 0, 140, 92, 52), (0, 16, 120, 122, 135), (16, 16, 210, 70, 70)];
@@ -177,9 +190,20 @@ public sealed class CavernRealtimeScene : GameScene
         _audio?.PlayBgm();
     }
 
-    protected override void OnUpdate(UpdateContext ctx)
+    public ValueTask LoadAsync(GameSceneContext context, CancellationToken token)
     {
-        if (!_init) { Init(); _init = true; }
+        Init();
+        _init = true;
+        return ValueTask.CompletedTask;
+    }
+
+    public void ConfigureRendering(
+        RenderFeatureSetCatalog featureSets,
+        RenderFeatureAssignmentBuilder assignments)
+        => assignments.Register(RenderFeatureSets.RenderOutput, _renderFeature);
+
+    public void Update(in UpdateContext ctx)
+    {
 
         // DevTools オーバーレイ (F1): gizmo + 統計。状態に依らず切り替え可能。
         float dt = ctx.Time.DeltaSeconds;
@@ -240,7 +264,7 @@ public sealed class CavernRealtimeScene : GameScene
         _audio?.Tick();   // BGM の音量 Signal を voice へ反映 (SE 側の Tick は Framework)
     }
 
-    protected override void OnFixedUpdate(FixedUpdateContext ctx)
+    public void FixedUpdate(in FixedUpdateContext ctx)
     {
         if (!_init) return;
         float dt = ctx.FixedDeltaSeconds;
@@ -288,44 +312,39 @@ public sealed class CavernRealtimeScene : GameScene
         _fx.Update(dt);
     }
 
-    protected override void OnRender(RenderContext ctx)
+    private (Scene2D Scene, Camera2D Camera) BuildRenderScene()
     {
-        if (!_init) return;
-        var s = new Scene2D();
-        Camera2D cam;
+        var scene = new Scene2D();
+        Camera2D camera;
         if (_flow.State == GameState.Settings)
         {
-            cam = Camera2D.Pixels;
-            DrawSettings(s);
+            camera = Camera2D.Pixels;
+            DrawSettings(scene);
         }
         else if (_flow.State == GameState.Title || _flow.Sim is not { } sim)
         {
-            cam = Camera2D.Pixels;   // スクリーン空間 (world == px) でタイトルを描く
-            DrawTitle(s);
+            camera = Camera2D.Pixels;   // スクリーン空間 (world == px) でタイトルを描く
+            DrawTitle(scene);
         }
         else
         {
-            cam = _rig.Camera(Width, Height);
-            DrawWorld(s, sim, cam);
-            CavernHud.Draw(s, (sc, t, x, y, h, c) => _font.AppendText(sc, t, x, y, h, c), sim, CameraCenter(cam), _rig.EffectiveZoom, Width, Height);
-            DrawOverlay(s, cam);
+            camera = _rig.Camera(Width, Height);
+            DrawWorld(scene, sim, camera);
+            CavernHud.Draw(scene, (sc, t, x, y, h, c) => _font.AppendText(sc, t, x, y, h, c), sim, CameraCenter(camera), _rig.EffectiveZoom, Width, Height);
+            DrawOverlay(scene, camera);
 
             if (_dev.Enabled)   // DevTools: gizmo をワールド空間で溜めて最前面へ Flush + 統計パネル
             {
-                Vector2 c = CameraCenter(cam);
+                Vector2 c = CameraCenter(camera);
                 float zoom = _rig.EffectiveZoom, vw = Width / zoom, vh = Height / zoom;
                 _dev.EmitGizmos(sim, _rig, new RectF(c.X - vw * 0.5f, c.Y - vh * 0.5f, vw, vh), _fx, _levels.Torches);
-                DebugDraw.Flush(s, w => new Vector2(w.X, w.Y), (sc, t, x, y, h, cc) => _font.AppendText(sc, t, x, y, h, cc));
-                _dev.DrawStatsPanel(s, (sc, t, x, y, h, cc) => _font.AppendText(sc, t, x, y, h, cc),
+                DebugDraw.Flush(scene, w => new Vector2(w.X, w.Y), (sc, t, x, y, h, cc) => _font.AppendText(sc, t, x, y, h, cc));
+                _dev.DrawStatsPanel(scene, (sc, t, x, y, h, cc) => _font.AppendText(sc, t, x, y, h, cc),
                     c, zoom, Width, Height, sim, _flow.State, _fx.Alive, _fps);
             }
         }
 
-        using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-        using GpuEncodedScene2D encoded = _raster.Encode(s);
-        _raster.Render(cmd, encoded, cam, (uint)_paddedW, (uint)Height, _fb);
-        cmd.Finish();
-        Device.MainQueue.SubmitAndWait(cmd);
+        return (scene, camera);
     }
 
     private void DrawWorld(Scene2D s, CavernSim sim, Camera2D cam)
@@ -457,13 +476,50 @@ public sealed class CavernRealtimeScene : GameScene
     private static Vector2 CameraCenter(Camera2D cam)
         => new((Width * 0.5f - cam.E) / cam.A, (Height * 0.5f - cam.F) / cam.D);
 
-    public override Task OnUnloadAsync()
+    public ValueTask UnloadAsync(GameSceneContext context, CancellationToken token)
     {
+        if (_inputContext is not null &&
+            _inputStack.Contexts.Count > 0 &&
+            ReferenceEquals(_inputStack.Contexts[^1], _inputContext))
+            _inputStack.Pop();
         _audio?.Dispose();
         _levels?.Dispose();
+        _renderFeature.Dispose();
         _fb?.Dispose();
         _atlas?.Dispose();
         _raster?.Dispose();
-        return Task.CompletedTask;
+        _init = false;
+        return ValueTask.CompletedTask;
+    }
+
+    private sealed class CavernRenderFeature(CavernRealtimeScene owner) : IRenderFeature, IDisposable
+    {
+        private GpuEncodedScene2D? _encoded;
+
+        public void AddPasses(RenderFeatureContext context)
+        {
+            if (!owner._init) return;
+
+            _encoded?.Dispose();
+            (Scene2D scene, Camera2D camera) = owner.BuildRenderScene();
+            _encoded = owner._raster.Encode(scene);
+            GpuEncodedScene2D encoded = _encoded;
+            BufferHandle framebuffer = context.Graph.ImportBuffer(owner._fb, "cavern-framebuffer");
+            context.Graph.AddPass("Cavern 2D", PassQueue.Graphics)
+                .Write(framebuffer, ResourceUsage.StorageBufferWrite)
+                .Execute(pass => owner._raster.Render(
+                    pass.Cmd,
+                    encoded,
+                    camera,
+                    (uint)owner._paddedW,
+                    Height,
+                    pass.Buffer(framebuffer)));
+        }
+
+        public void Dispose()
+        {
+            _encoded?.Dispose();
+            _encoded = null;
+        }
     }
 }

@@ -18,7 +18,7 @@ using Microsoft.Extensions.Hosting;
 //     vk (既定) / dx : GPU バックエンド
 //     --frames N      : N フレーム回して自動終了 (publish スモーク・CI 用)
 //
-// LuxelHostBuilder + GameScene (CavernRealtimeScene) でゲームループを駆動し、Win32Window + GpuSurface へ
+// LuxelHostBuilder + GameLoop/IGameScene (CavernRealtimeScene) でゲームループを駆動し、Win32Window + GpuSurface へ
 // 提示する (Framework は窓/提示を持たないので、フレーム待ちを pacer で同期し scene のフレームバッファを Present)。
 // 実窓 (Win32) は STA スレッド必須。操作: A/D or ←→ 移動、Space/W/↑ ジャンプ、Esc ポーズ、Enter リトライ。
 
@@ -94,6 +94,7 @@ static int Run(string backend, int frames, string[] args)
             .UseGpuDevice(device)
             .UseAudio()   // Native拡張がWindowsではXAudio2 + AudioMixerをDI登録。
             .UseFrameWaiter(pacer.WaitAsync)
+            .UseStandardCadences()
             .WithDevTools(devOptions)   // listener + DebugServer/DevToolsApp + IFramePublisher を host に載せる
             .ConfigureServices(s =>
             {
@@ -102,8 +103,9 @@ static int Run(string backend, int frames, string[] args)
                 s.AddSingleton<IKeyCapture>(keyCapture);
                 s.AddSingleton<IFileStore>(fileStore);
                 s.AddSingleton<CavernRealtimeScene>();
+                s.AddSingleton<IGameSceneBootstrap, CavernSceneBootstrap>();
             })
-            .AddScene<CavernRealtimeScene>()
+            .AddGameLoop<GameLoop>()
             .Build();
 
         host.Start();   // GameLoop + DevToolsRuntime 開始 (最初のフレーム待ちで停止)
@@ -141,6 +143,15 @@ static int Run(string backend, int frames, string[] args)
         try { File.WriteAllText(log, ex.ToString()); } catch { /* ログ失敗は無視 */ }
         Console.Error.WriteLine(ex);
         return 1;
+    }
+}
+
+sealed class CavernSceneBootstrap(CavernRealtimeScene scene) : IGameSceneBootstrap
+{
+    public ValueTask BootstrapAsync(IGameSceneSystem scenes, CancellationToken token)
+    {
+        scenes.Enqueue(new GameSceneCommand.Push(GameSceneId.New(), scene));
+        return ValueTask.CompletedTask;
     }
 }
 
