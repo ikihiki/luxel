@@ -141,6 +141,9 @@ public sealed class UiSurfaceState : IDisposable
     public void StagePending(GpuBuffer output)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(output);
+        if (Output.Pending is null && ReferenceEquals(Output.Current, output)) return;
+        if (ReferenceEquals(Output.Pending, output)) return;
         Output.Stage(output);
         _forcedDirty = true;
         _invalidation.Invalidate();
@@ -225,6 +228,13 @@ public sealed class UiRendererState : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         foreach (UiSurfaceState surface in _surfaces.Values.ToArray()) surface.Tick(dt);
+    }
+
+    /// <summary>logical tick を進めず、retained canvas の変更だけを Set invalidation へ伝播する。</summary>
+    public void ObserveChanges()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        foreach (UiSurfaceState surface in _surfaces.Values.ToArray()) surface.ObserveChanges();
     }
 
     public void Dispose()

@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Text.Json;
+using Luxel.Graphics.RenderSystem;
 using Luxel.Platform.Abstraction;
 using Luxel.Diagnostics;
 using Luxel.Graphics.TwoD;
@@ -9,11 +11,11 @@ namespace Luxel.Framework.UI;
 
 /// <summary>
 /// マルチウィンドウの駆動役: <see cref="WindowSystem"/> + ウィンドウ毎の <see cref="WindowHost"/> + オフスクリーン UI。
-/// ループは <see cref="RunFrame"/> を毎フレーム呼ぶだけ (Drain → Pump → 各窓 Frame → 閉窓の掃除)。
+/// ホストは <see cref="RunFrame"/> で event pump と render opportunity を渡し、各窓は invalidated Set だけを実行する。
 ///
 /// リモート制御は既存 DevTools に統合する:
 ///  - ウィンドウ一覧/ピクセル = <see cref="IWindowRemoteHost"/> 実装 → DebugServer の /windows, /winframe
-///  - UI (ウィンドウと 1:1 ではない) = <see cref="UiRegistry"/> に登録 → /trees (Luxel.Trees を 30f 毎に emit)
+///  - UI (ウィンドウと 1:1 ではない) = <see cref="UiRegistry"/> に登録 → /trees (Luxel.Trees を時間ベースで emit)
 ///  - 操作 = 共有 <see cref="EngineCommands"/>: window.* (ここで登録) + UI 入力/ui.set
 ///    (<see cref="UiHostCommands.RegisterDefaults(EngineCommands, UiRegistry)"/>, "ui" index/名前でルーティング)
 /// </summary>
@@ -30,7 +32,9 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
     private readonly Dictionary<string, Func<Widget>> _contents = new();
     private string? _defaultContent;
     private int _nextId = 1;
-    private long _frameCount;
+    private TimeSpan _nextTreeEmission;
+    private readonly Stopwatch _opportunityClock = Stopwatch.StartNew();
+    private ulong _opportunitySequence;
 
     public EngineCommands Commands { get; }
     /// <summary>全 UI の登録簿 (ウィンドウ付き/オフスクリーンを問わない)。Framework と共有可。</summary>
@@ -107,8 +111,18 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
     /// (スリープを足すと入力レイテンシに直列加算される)。</summary>
     public bool AnyRendered { get; private set; }
 
-    /// <summary>1 フレーム: コマンド適用 → メッセージポンプ → 各窓描画 (+オフスクリーン Tick) → 閉じた窓の破棄。
-    /// ウィンドウが残っていれば true。</summary>
+    /// <summary>active animation 等により継続的な logical opportunity が必要か。</summary>
+    public bool RequiresContinuousUpdate
+    {
+        get
+        {
+            lock (_gate)
+                return _hosts.Any(host => host.Content.RequiresContinuousUpdate)
+                    || _offscreen.Any(content => content.RequiresContinuousUpdate);
+        }
+    }
+
+    /// <summary>1 opportunity: command/window pump → 各窓の invalidated Cadence → offscreen logical work。</summary>
     public bool RunFrame(float dt)
     {
         Commands.Drain();
@@ -116,6 +130,11 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
         WindowHost[] hosts;
         IWindowContent[] offscreen;
         lock (_gate) { hosts = _hosts.ToArray(); offscreen = _offscreen.ToArray(); }
+        TimeSpan timestamp = _opportunityClock.Elapsed;
+        var opportunity = new RenderOpportunity(
+            ++_opportunitySequence,
+            timestamp,
+            TimeSpan.FromSeconds(Math.Max(0, dt)));
         AnyRendered = false;
         foreach (WindowHost h in hosts)
         {
@@ -126,14 +145,17 @@ public sealed class WindowManager : IWindowRemoteHost, IDisposable
                 h.Dispose();
                 continue;
             }
-            h.Frame(dt);
+            h.Frame(opportunity);
             AnyRendered |= h.RenderedThisFrame;
         }
-        foreach (IWindowContent c in offscreen) c.Tick(dt);
+        foreach (IWindowContent content in offscreen) content.PrepareFrame(dt);
 
-        // UI tree bundle を 30f に 1 回 emit (Framework の Scene と同じ cadence / 経路 → DevTools の /trees)
-        if (++_frameCount % 30 == 0 && EngineDiagnostics.IsEnabled(EngineDiagnostics.Trees))
+        // Diagnostics は event-pump 回数ではなく時間で律速し、静止 UI の描画 cadence を作らない。
+        if (timestamp >= _nextTreeEmission && EngineDiagnostics.IsEnabled(EngineDiagnostics.Trees))
+        {
             EmitTrees();
+            _nextTreeEmission = timestamp + TimeSpan.FromMilliseconds(500);
+        }
         return alive;
     }
 

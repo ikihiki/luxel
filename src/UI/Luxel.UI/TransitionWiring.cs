@@ -1,4 +1,4 @@
-﻿using Luxel.Animation;
+using Luxel.Animation;
 using Luxel.UI.Styling;
 
 namespace Luxel.UI;
@@ -48,7 +48,9 @@ public static class TransitionWiring
             var m = new PropertyStateMachine(table);
             IClock clock = ctx.Host?.Clock ?? new ManualClock();
             m.Bind(prop, raw);
-            ctx.AddAnimation(dt => { m.Tick(clock); return false; });
+            ctx.AddAnimation(
+                dt => { m.Tick(clock); return false; },
+                () => m.IsTransitioning);
             // 初回は Start 縮退 (瞬時 — Realize 直後は静止値)。以後は支配状態を from/to に遷移。
             return v => m.Goto(DominantState(w), clock, prop, v!);
         }

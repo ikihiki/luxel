@@ -1,4 +1,4 @@
-﻿using Luxel.UI;
+using Luxel.UI;
 using Xunit;
 
 namespace Luxel.Tests;
@@ -33,6 +33,19 @@ public class RealizeScopeTests
         Assert.Single(ctx.Animations);
         ctx.Root.Dispose();
         Assert.Empty(ctx.Animations);
+    }
+
+    [Fact]
+    public void AnimationActivityCanBeDemandDriven()
+    {
+        var ctx = Ctx();
+        bool active = false;
+        ctx.AddAnimation(_ => false, () => active);
+
+        Func<float, bool> animation = ctx.Animations[0];
+        Assert.False(ctx.AnimationActivity[animation]());
+        active = true;
+        Assert.True(ctx.AnimationActivity[animation]());
     }
 
     [Fact]

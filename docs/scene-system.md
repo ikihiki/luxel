@@ -99,6 +99,12 @@ normal render completion
 
 Normal output publication is not rolled back when presentation fails. Presentation Set generations and the downstream `AfterSuccess` generation commit only after `PresentAsync` succeeds.
 
+## Framework UI
+
+`Luxel.Framework.UI` uses the same RenderSystem execution model for real windows. Each `WindowHost` owns a per-window `CadenceExecutionCoordinator` because each surface has an independent presentation target. Its `PresentUi` Set is scheduled with `CadenceSchedule.Invalidated()` and executed by `PresentationRunner`; `UiContent` contributes retained 2D passes but does not create a graph, record commands, submit, or present directly.
+
+Static UI state therefore produces no GPU work. Deferred widget realization and active animations request logical updates, retained-canvas generation changes invalidate `PresentUi`, and successful presentation commits the observed generation. Idle transition state machines do not keep the UI active. Platform window events are still polled until `IWindowBackend` gains a wakeable wait API, but event polling is independent from rendering and is not a 60 Hz UI cadence.
+
 ## Host configuration
 
 ```csharp

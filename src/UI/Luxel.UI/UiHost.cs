@@ -662,8 +662,22 @@ public sealed class UiHost : IDisposable, ITextInputClient
     /// PropertyStateMachine 等の絶対時刻ベースのアニメがホスト内で共有する時刻源。</summary>
     public ManualClock Clock { get; } = new();
 
-    /// <summary>アニメーションを 1 ステップ進め (dt 秒)、溜まった dirty widget を部分 Realize する。
-    /// throw したアニメーションは報告して除去する (エラー境界 — 他のアニメと UI は生かす)。</summary>
+    /// <summary>dirty widget、active animation、frame observer のいずれかが logical tick を必要としているか。</summary>
+    public bool NeedsLogicalTick
+        => _build is { } build && (build.Dirty.Count > 0 || build.Animations.Any(IsAnimationActive))
+            || Ticked is not null;
+
+    /// <summary>active animation または frame observer が継続的な opportunity を必要としているか。</summary>
+    public bool RequiresContinuousUpdate
+        => _build is { } build && build.Animations.Any(IsAnimationActive)
+            || Ticked is not null;
+
+    private bool IsAnimationActive(Func<float, bool> animation)
+        => _build is null
+            || !_build.AnimationActivity.TryGetValue(animation, out Func<bool>? isActive)
+            || isActive();
+
+    /// <summary>必要な logical work を 1 ステップ進め、溜まった dirty widget を部分 Realize する。</summary>
     public void Tick(float dt)
     {
         Clock.Advance(dt);
@@ -671,12 +685,16 @@ public sealed class UiHost : IDisposable, ITextInputClient
         if (_build != null)
             for (int i = _build.Animations.Count - 1; i >= 0; i--)
             {
+                Func<float, bool> animation = _build.Animations[i];
+                if (!IsAnimationActive(animation)) continue;
                 bool done;
-                try { done = _build.Animations[i](dt); }
+                try { done = animation(dt); }
                 catch (Exception ex) { UiError.Report(ex, "Animation"); done = true; }
-                if (done) _build.Animations.RemoveAt(i);
+                if (!done) continue;
+                _build.Animations.RemoveAt(i);
+                _build.AnimationActivity.Remove(animation);
             }
-        Ticked?.Invoke();   // フレーム前進 — InputRecorder のフレーム採番に使う
+        Ticked?.Invoke();
     }
 
     /// <summary>ユーザーハンドラの例外を握って報告する (エラー境界 — 入力 1 回の失敗でアプリを落とさない)。</summary>

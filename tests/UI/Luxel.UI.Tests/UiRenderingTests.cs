@@ -81,6 +81,29 @@ public sealed class UiRenderingTests
     }
 
     [Fact]
+    public void RestagingPublishedPresentationTargetDoesNotInvalidateUiAgain()
+    {
+        using var canvas = new RetainedCanvas();
+        var registry = new RenderFeatureSetStateRegistry();
+        using var source = new RenderFeatureSetInvalidationSource(RenderFeatureSets.PresentUi, registry);
+        using var output = new PersistentUiOutput<GpuBuffer>();
+        GpuBuffer target = (GpuBuffer)RuntimeHelpers.GetUninitializedObject(typeof(GpuBuffer));
+        using var surface = new UiSurfaceState(
+            "present", UiSurfaceRole.Present, canvas, output, source,
+            _ => { }, (graph, _) => graph.AddPass("present-ui").SideEffect().Execute(_ => { }));
+
+        surface.StagePending(target);
+        using (var graph = new RenderGraph()) Assert.True(surface.AddPasses(graph));
+        surface.CompleteBatch(succeeded: true);
+        ulong generation = registry.Read(RenderFeatureSets.PresentUi).CurrentGeneration;
+
+        surface.StagePending(target);
+
+        Assert.Equal(generation, registry.Read(RenderFeatureSets.PresentUi).CurrentGeneration);
+        Assert.False(surface.IsDirty);
+    }
+
+    [Fact]
     public void LogicalTickContinuesWhileSurfaceIsCleanAndRasterIsThrottled()
     {
         using var canvas = new RetainedCanvas();

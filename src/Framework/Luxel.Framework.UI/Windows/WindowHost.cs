@@ -1,3 +1,4 @@
+using Luxel.Graphics.RenderSystem;
 using Luxel.UI;
 
 namespace Luxel.Framework.UI;
@@ -17,6 +18,9 @@ public sealed class WindowHost : IDisposable
 {
     private readonly GpuDevice _device;
     private readonly GpuSurface _surface;
+    private readonly DirectGpuSurfacePresentationScheduler _presentationScheduler;
+    private readonly ICadenceExecutionCoordinator _renderCoordinator;
+    private readonly CompiledRenderFeatureSetRegistry _featureSets;
     private readonly IWindowTextInputContext _textInput;
 
     private GpuBuffer _fb = null!;
@@ -66,6 +70,34 @@ public sealed class WindowHost : IDisposable
         RemoteInfo = CaptureRemoteInfo();
         Alloc();
         _surface = surface ?? throw new ArgumentNullException(nameof(surface));
+        _presentationScheduler = new DirectGpuSurfacePresentationScheduler(
+            _surface,
+            _ => ValueTask.FromResult(CurrentPresentationTarget()));
+        var presentationRunner = new PresentationRunner(_device, _presentationScheduler);
+        _renderCoordinator = new CadenceExecutionCoordinator(
+        [
+            new RenderCadenceConfiguration(
+                RenderCadences.Presentation,
+                "Window UI Presentation",
+                RenderCadenceRunners.Presentation,
+                CadenceSchedule.Invalidated(),
+                new HashSet<RenderFeatureSetId> { RenderFeatureSets.PresentUi },
+                FrameIdentityPolicy.RenderOpportunity),
+        ],
+        [RenderFeatureSets.PresentUi],
+        new Dictionary<RenderCadenceRunnerId, IRenderCadenceRunner>
+        {
+            [RenderCadenceRunners.Presentation] = presentationRunner,
+        },
+        Content.FeatureSetStates,
+        new RenderManualTriggerRegistry());
+        _featureSets = new CompiledRenderFeatureSetRegistry(
+            new Dictionary<RenderFeatureSetId, CompiledRenderFeatureSet>
+            {
+                [RenderFeatureSets.PresentUi] = new(
+                    RenderFeatureSets.PresentUi,
+                    new HashSet<IRenderFeature>(ReferenceEqualityComparer.Instance) { Content.RenderFeature }),
+            });
         _textInput = window.CreateTextInputContext(() => Content.ImeTarget, () => S)
             ?? NoWindowTextInputContext.Instance;
         Wire();
@@ -108,46 +140,51 @@ public sealed class WindowHost : IDisposable
         Window.TextInput += text => { if (_textInput.ShouldDispatchTextInput) Content.TextInput(text); };
     }
 
-    /// <summary>1 フレーム: リサイズ反映 → Tick → (変更があれば) 描画+present。
-    /// フレーム捕獲は要求駆動 — リモート (/winframe) が最近ポーリングした間だけ行う。</summary>
-    public void Frame(float dt)
+    /// <summary>
+    /// 1 opportunity: リサイズ反映 → 必要な logical work → invalidated presentation Cadence。
+    /// 静止 UI では RenderGraph、submit、present のいずれも生成しない。
+    /// </summary>
+    public void Frame(RenderOpportunity opportunity)
     {
         RenderedThisFrame = false;
         if (Window.IsClosed) return;
         RemoteInfo = CaptureRemoteInfo();
+        RenderSystemChangeFlags changes = RenderSystemChangeFlags.None;
         if (_resizePending)
         {
             _device.MainQueue.WaitIdle();
             _w = Math.Max(1, _rw); _h = Math.Max(1, _rh);
             Alloc();
             _surface.Resize((uint)_w, (uint)_h);
-            Content.Resize(_w / S, _h / S, S);   // 論理サイズ (DPI 変更時は新 Scale で再計算される)
+            Content.Resize(_w / S, _h / S, S);
             _resizePending = false;
-            _rendered = false;   // 新サイズで必ず 1 回描く
+            _rendered = false;
+            changes |= RenderSystemChangeFlags.Resize;
         }
-        long p0 = System.Diagnostics.Stopwatch.GetTimestamp();
-        Content.Tick(dt);
-        long p1 = System.Diagnostics.Stopwatch.GetTimestamp();
-        if (!_rendered || Content.NeedsRender)
+
+        PresentationTarget target = CurrentPresentationTarget();
+        Content.SetPresentationTarget(target, S);
+        Content.PrepareFrame((float)Math.Min(0.1, opportunity.Delta.TotalSeconds));
+
+        RenderFeatureSetGeneration before = Content.FeatureSetStates.Read(RenderFeatureSets.PresentUi);
+        var snapshot = new RenderSystemFrameSnapshot(
+            new RenderSystemFrameContext(
+                opportunity.Timestamp,
+                opportunity.Delta,
+                changes,
+                AssignmentGeneration: 1),
+            _featureSets,
+            new RenderFrameResourceRegistry());
+        _renderCoordinator.ExecuteAsync(opportunity, snapshot, CancellationToken.None)
+            .AsTask().GetAwaiter().GetResult();
+        RenderFeatureSetGeneration after = Content.FeatureSetStates.Read(RenderFeatureSets.PresentUi);
+        RenderedThisFrame = after.CommittedGeneration > before.CommittedGeneration;
+        if (RenderedThisFrame)
         {
-            Render();
-            RenderedThisFrame = true;
+            _rendered = true;
+            _fbDirtySinceCapture = true;
         }
-        if (RenderedThisFrame && Environment.GetEnvironmentVariable("NOGFX_FRAME_PROFILE") == "1")
-        {
-            double ms(long a, long b) => (b - a) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-            _profN++;
-            _profTick += ms(p0, p1); _profRec += _lastRec; _profGpu += _lastGpu; _profPresent += _lastPresent;
-            if (_profN == 60)
-            {
-                long nowTs = System.Diagnostics.Stopwatch.GetTimestamp();
-                double span = (_profT0 == 0 ? 0 : (nowTs - _profT0) * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
-                _profT0 = nowTs;
-                Console.WriteLine($"[prof] avg/frame: tick={_profTick / 60:0.##}ms rec+flush={_profRec / 60:0.##}ms gpuWait={_profGpu / 60:0.##}ms present={_profPresent / 60:0.##}ms | 60f span={span:0}ms ({(span > 0 ? 60000.0 / span : 0):0.#} fps)");
-                _profN = 0; _profTick = _profRec = _profGpu = _profPresent = 0;
-            }
-        }
-        // 捕獲 (armed かつ未捕獲の絵があるときだけ)。静止シーンで初回要求が来たケースもここが拾う
+
         if (CaptureArmed && _fbDirtySinceCapture && _rendered)
         {
             CaptureFrame();
@@ -155,35 +192,8 @@ public sealed class WindowHost : IDisposable
         }
     }
 
-    private int _profN;
-    private long _profT0;
-    private double _profTick, _profRec, _profGpu, _profPresent, _lastRec, _lastGpu, _lastPresent;
-
-    private void Render()
-    {
-        long t0 = System.Diagnostics.Stopwatch.GetTimestamp(), t1, t2;
-        try
-        {
-            using GpuCommandBuffer cmd = _device.MainQueue.StartCommandRecording();
-            Content.Render(cmd, (uint)_paddedW, (uint)_w, (uint)_h, _fb, S);
-            cmd.Finish();
-            t1 = System.Diagnostics.Stopwatch.GetTimestamp();
-            _device.MainQueue.SubmitAndWait(cmd);
-            Content.CompleteRender(succeeded: true);
-        }
-        catch
-        {
-            Content.CompleteRender(succeeded: false);
-            throw;
-        }
-        t2 = System.Diagnostics.Stopwatch.GetTimestamp();
-        _surface.Present(_fb, (uint)_paddedW, (uint)_w, (uint)_h);
-        long t3 = System.Diagnostics.Stopwatch.GetTimestamp();
-        double f = System.Diagnostics.Stopwatch.Frequency;
-        _lastRec = (t1 - t0) * 1000.0 / f; _lastGpu = (t2 - t1) * 1000.0 / f; _lastPresent = (t3 - t2) * 1000.0 / f;
-        _rendered = true;
-        _fbDirtySinceCapture = true;
-    }
+    private PresentationTarget CurrentPresentationTarget()
+        => new(_fb, (uint)_paddedW, (uint)_w, (uint)_h);
 
     private WindowRemoteInfo CaptureRemoteInfo()
         => new(Window.Title, Window.X, Window.Y, Window.Width, Window.Height,
@@ -245,6 +255,8 @@ public sealed class WindowHost : IDisposable
     public void Dispose()
     {
         _textInput.Dispose();
+        _renderCoordinator.DrainAsync(CancellationToken.None).AsTask().GetAwaiter().GetResult();
+        _presentationScheduler.DisposeAsync().AsTask().GetAwaiter().GetResult();
         _staging?.Dispose(); _staging = null;
         _fb?.Dispose();
         Content.Dispose();
