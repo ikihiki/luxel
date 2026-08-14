@@ -50,6 +50,34 @@ public sealed class GameSceneSystemTests
     }
 
     [Fact]
+    public async Task Replace_PublishesCandidateBeforeUnloadingPrevious()
+    {
+        using ServiceProvider services = new ServiceCollection().BuildServiceProvider();
+        var system = new GameSceneSystem(services);
+        var previous = new RecordingScene(new StubFeature());
+        var replacement = new RecordingScene(new StubFeature());
+        GameSceneId previousId = GameSceneId.New();
+        GameSceneId replacementId = GameSceneId.New();
+
+        system.Enqueue(new GameSceneCommand.Push(previousId, previous));
+        await system.CommitCommandsAsync(CancellationToken.None);
+        GameSceneCommandHandle handle = system.Enqueue(new GameSceneCommand.Replace(
+            previousId,
+            replacementId,
+            replacement));
+
+        await system.CommitCommandsAsync(CancellationToken.None);
+        await handle.Completion;
+        system.Update(new UpdateContext(new FrameTime(1, 1f / 60, 1)));
+
+        Assert.Equal(1, previous.UnloadCount);
+        Assert.Equal(0, previous.UpdateCount);
+        Assert.Equal(1, replacement.LoadCount);
+        Assert.Equal(1, replacement.UpdateCount);
+        Assert.Single(system.CreateRenderSnapshot(default).FeatureSets.Sets[RecordingScene.Set].Features);
+    }
+
+    [Fact]
     public async Task ConfigureFailure_UnloadsCandidate_AndDoesNotPublishIt()
     {
         using ServiceProvider services = new ServiceCollection().BuildServiceProvider();

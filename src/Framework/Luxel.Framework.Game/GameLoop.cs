@@ -1,8 +1,9 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 using System.Diagnostics;
+using Luxel.AssetsGpu;
 using Luxel.Audio;
+using Luxel.Graphics.MessagePipe;
 using Luxel.Input;
 using Luxel.Resources;
 using Luxel.Graphics.RenderSystem;
@@ -22,26 +23,6 @@ public interface IGameLoop
 public sealed class GameLoopHostedService(IGameLoop gameLoop) : BackgroundService
 {
     protected override Task ExecuteAsync(CancellationToken stoppingToken) => gameLoop.RunAsync(stoppingToken);
-}
-
-/// <summary>
-/// Transitional implementation used while repository scenes are migrated to <see cref="GameSceneSystem"/>.
-/// It preserves the old scene loop without making the hosted adapter aware of scenes.
-/// </summary>
-internal sealed class LegacySceneGameLoop(
-    IServiceProvider services,
-    SceneManager sceneManager,
-    StartupScene? startup = null) : IGameLoop
-{
-    public async Task RunAsync(CancellationToken token)
-    {
-        if (startup is null) return;
-
-        var scene = (IScene?)services.GetService(startup.SceneType)
-                    ?? (IScene)ActivatorUtilities.CreateInstance(services, startup.SceneType);
-
-        await sceneManager.RunLoopAsync(scene, token);
-    }
 }
 
 public interface IRenderFrameScheduler
@@ -79,6 +60,45 @@ public sealed class DelegateRenderFrameScheduler : IRenderFrameScheduler
     }
 }
 
+public interface IGameLoopIterationPump
+{
+    void Pump();
+}
+
+internal sealed class EngineCommandIterationPump(Luxel.Diagnostics.EngineCommands commands)
+    : IGameLoopIterationPump
+{
+    public void Pump() => commands.Drain();
+}
+
+internal sealed class GpuLifecycleIterationPump(
+    GpuLifecycleEventQueue events,
+    GpuLifecycleMessagePump messages,
+    MessagePipeGpuLifecycleSink messageSink,
+    GpuDeviceLifecycleCoordinator? coordinator = null) : IGameLoopIterationPump
+{
+    public void Pump()
+    {
+        if (coordinator is null)
+        {
+            messages.Pump();
+            return;
+        }
+
+        events.Pump(new LifecycleSink(messageSink, coordinator));
+        coordinator.PumpAsync().AsTask().GetAwaiter().GetResult();
+    }
+
+    private sealed class LifecycleSink(
+        MessagePipeGpuLifecycleSink messages,
+        GpuDeviceLifecycleCoordinator coordinator) : IGpuLifecycleSink
+    {
+        public void Publish(GpuDeviceLifecycleEvent message) { messages.Publish(message); coordinator.Publish(message); }
+        public void Publish(GpuValidationEvent message) { messages.Publish(message); coordinator.Publish(message); }
+        public void Publish(GpuSurfaceLifecycleEvent message) { messages.Publish(message); coordinator.Publish(message); }
+    }
+}
+
 /// <summary>Standard application loop. Rendering decisions are delegated to the cadence coordinator.</summary>
 public sealed class GameLoop(
     IRenderFrameScheduler frameScheduler,
@@ -88,6 +108,7 @@ public sealed class GameLoop(
     InputBus inputBus,
     InputStack inputStack,
     IEnumerable<IInputSource> inputSources,
+    IEnumerable<IGameLoopIterationPump> iterationPumps,
     ResourceSystem? resources = null,
     AudioMixer? mixer = null) : IGameLoop
 {
@@ -104,6 +125,8 @@ public sealed class GameLoop(
             while (!token.IsCancellationRequested)
             {
                 RenderOpportunity opportunity = await frameScheduler.WaitAsync(token);
+                foreach (IGameLoopIterationPump pump in iterationPumps) pump.Pump();
+
                 float deltaSeconds = FixedTimestep.ScaleDt(opportunity.Delta.TotalSeconds, 1);
                 var time = new FrameTime(++frameNumber, deltaSeconds, opportunity.Timestamp.TotalSeconds);
 
