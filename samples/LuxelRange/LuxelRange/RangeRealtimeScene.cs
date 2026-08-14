@@ -13,6 +13,7 @@ using Luxel.Input;
 using Luxel.Particles;
 using Luxel.Particles.ThreeD;
 using Luxel.Graphics.RenderGraph;
+using Luxel.Graphics.RenderSystem;
 using LuxelRange.Core;
 
 namespace LuxelRange;
@@ -23,7 +24,7 @@ namespace LuxelRange;
 /// この薄い exe 段ではカメラ自動旋回 + 定期発射の attract 動作で描画・物理・publish 経路を通す
 /// (キーボード/マウス操作・Fox skin・パーティクル・Title/Result UI は後続)。
 /// </summary>
-public sealed class RangeRealtimeScene : GameScene
+public sealed class RangeRealtimeScene : IGameScene
 {
     public const int Width = 512, Height = 320;   // 512*4 = 2048B (256B 整列)
 
@@ -34,9 +35,13 @@ public sealed class RangeRealtimeScene : GameScene
     [StructLayout(LayoutKind.Sequential)]
     private struct SkinnedArgs { public Matrix4x4 ViewProj; public uint VertexBufIndex, IndexBufIndex, InstanceBufIndex, JointBufIndex, InstanceStart, Pad0, Pad1, Pad2; }
 
+    private readonly GpuDevice _device;
     private readonly RangeGame _game;
-    private readonly SceneLoopServices _loop;
+    private readonly InputStack _inputStack;
     private readonly IAudioBackend _audioBackend;
+    private readonly AudioMixer _mixer;
+    private readonly IRenderFeature _renderFeature;
+    private InputContext? _inputContext;
     private RangeAudio? _audio;
     private OrbitCamera _cam = new(new Vector3(0, 0.8f, -6f), yaw: 0f, pitch: 0.40f, distance: 18f,
         fovYRadians: MathF.PI / 3.4f, aspect: (float)Width / Height);
@@ -73,14 +78,24 @@ public sealed class RangeRealtimeScene : GameScene
     public uint StridePixels => Width;
     public bool QuitRequested { get; private set; }
 
-    public RangeRealtimeScene(SceneLoopServices loop, RangeGame game, IAudioBackend audioBackend) : base(loop)
-    { _loop = loop; _game = game; _audioBackend = audioBackend; }
-
-    protected override double FixedDeltaSeconds => RangeSim.FixedDt;
-
-    protected override void OnUpdate(UpdateContext ctx)
+    public RangeRealtimeScene(
+        GpuDevice device,
+        RangeGame game,
+        InputStack inputStack,
+        IAudioBackend audioBackend,
+        AudioMixer mixer)
     {
-        if (_init) return;
+        _device = device;
+        _game = game;
+        _inputStack = inputStack;
+        _audioBackend = audioBackend;
+        _mixer = mixer;
+        _renderFeature = new RangeRenderFeature(this);
+    }
+
+    public ValueTask LoadAsync(GameSceneContext context, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
         _game.StartRound();   // Play 状態の sim/world を作ってから
         InitGpu();            // その world から extractor/地形バッファを作る
 
@@ -90,22 +105,27 @@ public sealed class RangeRealtimeScene : GameScene
         _orbitV.ButtonPairs.Add((KeyCode.Up, KeyCode.Down));
         _fire = new ButtonAction("fire", KeyCode.Space);
         _quit = new ButtonAction("quit", KeyCode.Escape);
-        var inputCtx = new InputContext("range");
-        inputCtx.Add(_orbitH); inputCtx.Add(_orbitV); inputCtx.Add(_fire); inputCtx.Add(_quit);
-        _loop.InputStack?.Push(inputCtx);
+        _inputContext = new InputContext("range");
+        _inputContext.Add(_orbitH); _inputContext.Add(_orbitV); _inputContext.Add(_fire); _inputContext.Add(_quit);
+        _inputStack.Push(_inputContext);
 
         // オーディオ (BGM ループ + イベント SE)。Mixer は UseAudio が用意する共有インスタンス。
-        if (_loop.Mixer is { } mixer)
-        {
-            _audio = new RangeAudio(_audioBackend, mixer);
-            _audio.BindSettings(_game.Settings);
-            _audio.PlayBgm();
-        }
+        _audio = new RangeAudio(_audioBackend, _mixer);
+        _audio.BindSettings(_game.Settings);
+        _audio.PlayBgm();
 
         _init = true;
+        return ValueTask.CompletedTask;
     }
 
-    protected override void OnFixedUpdate(FixedUpdateContext ctx)
+    public void ConfigureRendering(
+        RenderFeatureSetCatalog featureSets,
+        RenderFeatureAssignmentBuilder assignments)
+        => assignments.Register(RenderFeatureSets.Opaque, _renderFeature);
+
+    public void Update(in UpdateContext context) { }
+
+    public void FixedUpdate(in FixedUpdateContext ctx)
     {
         if (!_init) return;
         float dt = RangeSim.FixedDt;
@@ -135,7 +155,7 @@ public sealed class RangeRealtimeScene : GameScene
         _burstPs!.Update(dt);
     }
 
-    protected override void OnRender(RenderContext ctx)
+    private void AddRenderPasses(RenderFeatureContext context)
     {
         if (!_init) return;
         _extractor!.Extract();
@@ -144,14 +164,18 @@ public sealed class RangeRealtimeScene : GameScene
 
         Matrix4x4 viewProj = _cam.ViewProjection;
         Matrix4x4 vpT = Matrix4x4.Transpose(viewProj);
-        using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);
+        var rg = context.Graph;
         BufferHandle hV = rg.ImportBuffer(_vb!, "verts");
         BufferHandle hInst = rg.ImportBuffer(_extractor.InstanceBuffer, "instances");
         BufferHandle hTV = rg.ImportBuffer(_terrainVb!, "tv");
         BufferHandle hTI = rg.ImportBuffer(_terrainIb!, "ti");
         BufferHandle hTInst = rg.ImportBuffer(_terrainInst!, "tinst");
+        BufferHandle hFramebuffer = rg.ImportBuffer(_fb!, "framebuffer");
+        TextureHandle hTarget = rg.ImportTexture(_target!, "range-color");
+        TextureHandle hDepth = rg.ImportTexture(_depth!, "range-depth");
         var pass = rg.AddPass("Range3D", PassQueue.Graphics)
-          .Read(hV).Read(hInst).Read(hTV).Read(hTI).Read(hTInst).Write(hInst);
+          .Read(hV).Read(hInst).Read(hTV).Read(hTI).Read(hTInst)
+          .Write(hTarget).Write(hDepth, TextureUsage.DepthAttachment).Write(hFramebuffer, ResourceUsage.CopyDest);
         bool drawFox = _foxPrim is not null;
         BufferHandle hFV = default, hFI = default, hFInst = default, hFJoint = default;
         if (drawFox)
@@ -176,21 +200,20 @@ public sealed class RangeRealtimeScene : GameScene
                        .SetRootArguments(new SkinnedArgs { ViewProj = vpT, VertexBufIndex = p.BindlessIndex(hFV), IndexBufIndex = p.BindlessIndex(hFI), InstanceBufIndex = p.BindlessIndex(hFInst), JointBufIndex = p.BindlessIndex(hFJoint), InstanceStart = 0 })
                        .Draw((uint)_foxPrim!.IndexCount, 1);
               _hitBurst?.Draw(p.Cmd, viewProj, billRight, billUp);   // 命中パーティクル (ビルボード)
-              p.Cmd.EndRendering();
+              p.Cmd.EndRendering()
+                   .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+                   .CopyTextureToBuffer(_target!, _fb!);
           });
+    }
 
-        using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-        rg.Execute(cmd);
-        cmd.Barrier(GpuStage.ColorOutput, GpuStage.Copy).CopyTextureToBuffer(_target!, _fb!);
-        cmd.Finish();
-        Device.MainQueue.SubmitAndWait(cmd);
-
-        DrawHud();   // レティクル + 残弾ピップ + スコアバー (CPU で framebuffer へ直接)
+    private sealed class RangeRenderFeature(RangeRealtimeScene scene) : IRenderFeature
+    {
+        public void AddPasses(RenderFeatureContext context) => scene.AddRenderPasses(context);
     }
 
     /// <summary>簡易 HUD を framebuffer (HostMapped RGBA8) へ CPU 描画: 中央レティクル + 残弾ピップ + スコアバー。
     /// フォント非依存の最小オーバーレイ (Title/Result のテキスト画面は将来)。</summary>
-    private void DrawHud()
+    public void DrawHud()
     {
         Span<uint> px = _fb!.Span<uint>((int)(Width * Height));
         int cx = (int)Width / 2, cy = (int)Height / 2;
@@ -213,17 +236,17 @@ public sealed class RangeRealtimeScene : GameScene
 
     private void InitGpu()
     {
-        _vb = Device.Malloc((ulong)(Luxel.Assets.CubeMesh.Vertices.Length * Luxel.Assets.CubeMesh.VertexStride), GpuMemoryKind.HostMapped);
+        _vb = _device.Malloc((ulong)(Luxel.Assets.CubeMesh.Vertices.Length * Luxel.Assets.CubeMesh.VertexStride), GpuMemoryKind.HostMapped);
         Luxel.Assets.CubeMesh.Vertices.CopyTo(_vb.Span<Luxel.Assets.CubeMesh.Vertex>(Luxel.Assets.CubeMesh.Vertices.Length));
-        _target = Device.CreateRenderTarget(Width, Height, GpuFormat.Rgba8Unorm);
-        _depth = Device.CreateDepthTarget(Width, Height);
-        _fb = Device.Malloc((ulong)Width * Height * 4, GpuMemoryKind.HostMapped);
+        _target = _device.CreateRenderTarget(Width, Height, GpuFormat.Rgba8Unorm);
+        _depth = _device.CreateDepthTarget(Width, Height);
+        _fb = _device.Malloc((ulong)Width * Height * 4, GpuMemoryKind.HostMapped);
         var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
         raster.DepthTest = true; raster.DepthWrite = true;
-        _cubePipe = Device.CreateGraphicsPipeline(GpuShaderCode.Load("cube_forward"), raster);
-        _pbrPipe = Device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_lite"), raster);
+        _cubePipe = _device.CreateGraphicsPipeline(GpuShaderCode.Load("cube_forward"), raster);
+        _pbrPipe = _device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_lite"), raster);
 
-        _extractor = new Render3DExtractSystem(_game.Sim.World, Device);
+        _extractor = new Render3DExtractSystem(_game.Sim.World, _device);
         TransformPropagateSystem.Run(_game.Sim.World);
         BuildTerrain();
         BuildFox();
@@ -233,7 +256,7 @@ public sealed class RangeRealtimeScene : GameScene
             SpreadRadians: MathF.PI, BaseAngle: 0f, Gravity: -6f, Drag: 0.3f, Size: 0.09f,
             Color: new ParticleColor(Rgba(255, 220, 120, 255), Rgba(240, 90, 40, 0)), Shape: ParticleShape.Circle, Spherical: true);
         _burstPs = new ParticleSystem(cfg, capacity: 400, seed: 0x2A11);
-        _hitBurst = new ParticleBillboards(Device, _burstPs);
+        _hitBurst = new ParticleBillboards(_device, _burstPs);
     }
 
     private static uint Rgba(byte r, byte g, byte b, byte a) => (uint)(r | (g << 8) | (b << 16) | (a << 24));
@@ -255,7 +278,7 @@ public sealed class RangeRealtimeScene : GameScene
         AssetDocument doc = document.Value;
         for (int i = 0; i < doc.Materials.Count; i++) doc.Materials[i].BaseColorFactor = new Vector4(0.80f, 0.52f, 0.28f, 1f);
         _foxWorld = new Luxel.Ecs.World();
-        _foxAssets = SceneBuilder.Build(_foxWorld, doc, Device);
+        _foxAssets = SceneBuilder.Build(_foxWorld, doc, _device);
         if (doc.Animations.Count > 0)
         {
             int walk = Math.Min(1, doc.Animations.Count - 1);
@@ -267,9 +290,9 @@ public sealed class RangeRealtimeScene : GameScene
 
         var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
         raster.DepthTest = true; raster.DepthWrite = true;
-        _foxJoints = new RenderBuffer<Matrix4x4>(Device, Math.Max(1, jointMats.Length), "foxJoints");
-        _foxInst = Device.Malloc((ulong)SceneInstanceData.Stride, GpuMemoryKind.HostMapped);
-        _skinPipe = Device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_skinned"), raster);
+        _foxJoints = new RenderBuffer<Matrix4x4>(_device, Math.Max(1, jointMats.Length), "foxJoints");
+        _foxInst = _device.Malloc((ulong)SceneInstanceData.Stride, GpuMemoryKind.HostMapped);
+        _skinPipe = _device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_skinned"), raster);
         UploadFox();
     }
 
@@ -306,18 +329,21 @@ public sealed class RangeRealtimeScene : GameScene
         Vector3[] pos = _game.Sim.TerrainPositions, nrm = _game.Sim.TerrainNormals;
         int[] idx = _game.Sim.TerrainIndices;
         _terrainIdxCount = idx.Length;
-        _terrainVb = Device.Malloc((ulong)(pos.Length * SceneBuilder.Vertex.Stride), GpuMemoryKind.HostMapped);
+        _terrainVb = _device.Malloc((ulong)(pos.Length * SceneBuilder.Vertex.Stride), GpuMemoryKind.HostMapped);
         var vspan = _terrainVb.Span<SceneBuilder.Vertex>(pos.Length);
         for (int i = 0; i < pos.Length; i++) vspan[i] = new SceneBuilder.Vertex { Position = pos[i], Normal = nrm[i], TexCoord0 = Vector2.Zero };
-        _terrainIb = Device.Malloc((ulong)(idx.Length * sizeof(uint)), GpuMemoryKind.HostMapped);
+        _terrainIb = _device.Malloc((ulong)(idx.Length * sizeof(uint)), GpuMemoryKind.HostMapped);
         var ispan = _terrainIb.Span<uint>(idx.Length);
         for (int i = 0; i < idx.Length; i++) ispan[i] = (uint)idx[i];
-        _terrainInst = Device.Malloc((ulong)SceneInstanceData.Stride, GpuMemoryKind.HostMapped);
+        _terrainInst = _device.Malloc((ulong)SceneInstanceData.Stride, GpuMemoryKind.HostMapped);
         _terrainInst.Span<SceneInstanceData>(1)[0] = new SceneInstanceData { World = Matrix4x4.Identity, BaseColor = new Vector4(0.34f, 0.42f, 0.32f, 1f) };
     }
 
-    public override Task OnUnloadAsync()
+    public ValueTask UnloadAsync(GameSceneContext context, CancellationToken token)
     {
+        if (_inputContext is not null && ReferenceEquals(_inputStack.Contexts.LastOrDefault(), _inputContext))
+            _inputStack.Pop();
+        _inputContext = null;
         _extractor?.Dispose();
         _cubePipe?.Dispose(); _pbrPipe?.Dispose();
         _depth?.Dispose(); _target?.Dispose();
@@ -326,7 +352,8 @@ public sealed class RangeRealtimeScene : GameScene
         _foxAssets?.Dispose(); _foxJoints?.Dispose(); _foxInst?.Dispose(); _skinPipe?.Dispose();
         _hitBurst?.Dispose();
         _audio?.Dispose();
+        _init = false;
         // RangeGame は DI singleton — 破棄は DI コンテナが行う (ここで Dispose すると二重破棄)。
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

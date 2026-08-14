@@ -25,7 +25,7 @@
     <ProjectReference Include="..\..\..\src\Platform\Luxel.Platform\Luxel.Platform.csproj" />
     <ProjectReference Include="..\..\..\src\Graphics\Luxel.Graphics.Vulkan\Luxel.Graphics.Vulkan.csproj" />
     <ProjectReference Include="..\..\..\src\Graphics\Luxel.Graphics.DirectX12\Luxel.Graphics.DirectX12.csproj" />
-    <!-- 実時間ゲームループ (GameScene/LuxelHostBuilder) + 入力 -->
+    <!-- 実時間ゲームループ (GameLoop/LuxelHostBuilder) + 入力 -->
     <ProjectReference Include="..\..\..\src\Framework\Luxel.Framework.Game.Native\Luxel.Framework.Game.Native.csproj" />
     <ProjectReference Include="..\..\..\src\Framework\Luxel.Framework.Game\Luxel.Framework.Game.csproj" />
     <ProjectReference Include="..\..\..\src\Input\Luxel.Input\Luxel.Input.csproj" />
