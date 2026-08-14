@@ -1,70 +1,58 @@
-using Luxel.Graphics;
-using Luxel.UI;
-using Luxel.Controls;
+using Luxel.Framework.Game;
+using Luxel.Graphics.RenderSystem;
 
 namespace Luxel.Gallery.Stories;
 
-/// <summary>
-/// 既存の stateful Gallery renderer を GpuView の lambda callback へ接続する内部 helper。
-/// GpuView が color target / framebuffer を所有し、この型は scene 固有 resource だけを追跡する。
-/// </summary>
-internal abstract class GpuSceneBase : IDisposable
+/// <summary>Common scene lifecycle and render-feature wiring for embedded gallery applications.</summary>
+public abstract class StorySceneBase : IGameScene, IStoryApp
 {
-    protected GpuDevice Device { get; private set; } = null!;
-    protected GpuTexture Target => Surface.ColorTarget;
-    protected GpuBuffer OutBuffer => Surface.Framebuffer;
-    protected uint W => Surface.Width;
-    protected uint H => Surface.Height;
-    protected uint StridePixels => Surface.StridePixels;
-    protected GpuViewSurface Surface { get; private set; } = null!;
+    private readonly IRenderFeature _renderFeature;
+    private long _version;
+    private long _seen;
 
-    private readonly List<IDisposable> _resources = [];
-    private GpuViewSurface? _generation;
-    private bool _rendered;
-
-    internal static Widget View(float width, float height, GpuSceneBase scene, bool animated = true)
-        => Luxel.Controls.Kit.GpuView(width, height,
-            (device, surface, time) => scene.Render(device, surface, time),
-            animated: animated, dispose: scene.Dispose);
-
-    protected T Track<T>(T resource) where T : IDisposable
+    protected StorySceneBase(GpuDevice device)
     {
-        _resources.Add(resource);
-        return resource;
+        Device = device;
+        _renderFeature = new SceneRenderFeature(this);
     }
 
-    internal GpuViewRenderResult Render(GpuDevice device, GpuViewSurface surface, float time)
+    protected GpuDevice Device { get; }
+    protected void MarkRendered() => _version++;
+
+    public abstract uint FbIndex { get; }
+    public bool FbReady => _version > 0;
+
+    public bool ConsumeRendered()
     {
-        if (!ReferenceEquals(_generation, surface))
-        {
-            DisposeResources();
-            Device = device;
-            Surface = surface;
-            _generation = surface;
-            _rendered = false;
-            OnInit();
-        }
-        if (RenderEveryFrame || !_rendered)
-        {
-            _rendered = true;
-            OnRender(time);
-        }
-        return GpuViewRenderResult.Ready;
+        if (_seen == _version) return false;
+        _seen = _version;
+        return true;
     }
 
-    protected abstract void OnInit();
-    protected abstract void OnRender(float time);
-    protected virtual bool RenderEveryFrame => false;
+    public virtual ValueTask LoadAsync(GameSceneContext context, CancellationToken token)
+        => ValueTask.CompletedTask;
 
-    public void Dispose()
-    {
-        DisposeResources();
-        _generation = null;
-    }
+    public void ConfigureRendering(
+        RenderFeatureSetCatalog featureSets,
+        RenderFeatureAssignmentBuilder assignments)
+        => assignments.Register(RenderFeatureSets.RenderOutput, _renderFeature);
 
-    private void DisposeResources()
+    public virtual void FixedUpdate(in FixedUpdateContext context) { }
+    public abstract void Update(in UpdateContext context);
+
+    public ValueTask UnloadAsync(GameSceneContext context, CancellationToken token)
+        => DisposeAsync();
+
+    protected abstract void AddRenderPasses(RenderFeatureContext context);
+    protected abstract ValueTask DisposeAsync();
+
+    public abstract void PointerMove(float x, float y);
+    public abstract void PointerDown(float x, float y);
+    public abstract void PointerUp(float x, float y);
+    public abstract void Wheel(float x, float y, float delta);
+
+    private sealed class SceneRenderFeature(StorySceneBase owner) : IRenderFeature
     {
-        for (int i = _resources.Count - 1; i >= 0; i--) _resources[i].Dispose();
-        _resources.Clear();
+        public void AddPasses(RenderFeatureContext context) => owner.AddRenderPasses(context);
     }
 }

@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;   // Store.CreateEntity の 4 成分以上のオーバーロード
 using Luxel.AssetRuntime;
@@ -6,6 +6,7 @@ using Luxel.Ecs;
 using Luxel.Framework.Game;
 using Luxel.Physics;
 using Luxel.Graphics.RenderGraph;
+using Luxel.Graphics.RenderSystem;
 using Luxel.UI;
 using Microsoft.Extensions.DependencyInjection;
 using static Luxel.Controls.Kit;
@@ -17,7 +18,7 @@ namespace Luxel.Gallery.Stories;
 /// - <b>物理</b>: Luxel.Physics (BepuPhysics v2)。箱タワー + 発射体、GameScene の FixedUpdate 固定刻み
 /// - <b>3D 描画</b>: ECS (LocalTransform/Color3D/MeshRef) → TransformPropagate → Render3DExtract →
 ///   RenderGraph の cube_forward パス → Target texture → framebuffer へコピー (シェーダ変更ゼロ)
-/// - <b>Framework</b>: GameScene のフェーズでシミュレーション/描画。GPU 資源は最初のフレームで遅延生成
+/// - <b>Framework</b>: IGameScene のフェーズでシミュレーション、IRenderFeature で描画。GPU 資源は最初のフレームで遅延生成
 /// - <b>Storybook Platform</b>: <see cref="StoryAppView{TScene}"/> — GPU ホスト借用、入力転送
 /// 操作: ドラッグ = カメラ軌道、クリック = 弾を発射 (最初のクリックでシミュレーション開始)。
 /// 初期状態は物理を止めた静止タワー = snap 決定的。
@@ -50,7 +51,7 @@ public static class KnockdownStories
         new(0.90f, 0.55f, 1.00f, 1f),
     ];
 
-    public sealed class KnockdownScene : GameScene, IStoryApp
+    public sealed class KnockdownScene : StorySceneBase
     {
         public const uint W = 512, H = 320;   // 幅 512 = 行 2048B (256B 整列) — D3D12 の CopyTextureToBuffer 要件
         private const int TowerCols = 3, TowerRows = 5;
@@ -79,29 +80,21 @@ public static class KnockdownStories
         private GpuBuffer? _vb, _fb;
         private GpuTexture? _target, _depth;
         private GpuPipeline? _pipeline;
-        private long _version, _seen;
         private bool _fbDirty = true;
 
-        public KnockdownScene(SceneLoopServices loop, Action<string> log) : base(loop) => _log = log;
+        public KnockdownScene(GpuDevice device, Action<string> log) : base(device) => _log = log;
 
         // ---- IStoryApp ----
 
-        public uint FbIndex => _fb?.BindlessIndex ?? 0;
-        public bool FbReady => _version > 0;
-        public bool ConsumeRendered()
-        {
-            if (_seen == _version) return false;
-            _seen = _version;
-            return true;
-        }
+        public override uint FbIndex => _fb?.BindlessIndex ?? 0;
 
-        public void PointerDown(float x, float y)
+        public override void PointerDown(float x, float y)
         {
             _dragging = true;
             _dragX = x; _dragY = y; _dragTotal = 0;
         }
 
-        public void PointerMove(float x, float y)
+        public override void PointerMove(float x, float y)
         {
             if (!_dragging) return;
             float dx = x - _dragX, dy = y - _dragY;
@@ -112,13 +105,13 @@ public static class KnockdownStories
             _fbDirty = true;
         }
 
-        public void PointerUp(float x, float y)
+        public override void PointerUp(float x, float y)
         {
             if (_dragging && _dragTotal < 4) _shotQueued = (x, y);   // ほぼ動いていない = クリック = 発射
             _dragging = false;
         }
 
-        public void Wheel(float x, float y, float d)
+        public override void Wheel(float x, float y, float d)
         {
             _camDist = Math.Clamp(_camDist - d * 0.01f, 4f, 14f);
             _fbDirty = true;
@@ -127,9 +120,7 @@ public static class KnockdownStories
         // ---- フレーム ----
 
         // FixedUpdate = 物理刻み。GameScene の蓄積器に一本化 (手書き accumulator を廃止)。
-        protected override double FixedDeltaSeconds => 1.0 / 60;
-
-        protected override void OnFixedUpdate(FixedUpdateContext ctx)
+        public override void FixedUpdate(in FixedUpdateContext ctx)
         {
             if (!_running || _physics is null) return;   // 最初の発射まで静止 (初期絵が決定的)
             _step.StepFixedOnce();
@@ -138,7 +129,7 @@ public static class KnockdownStories
             CountKnocked();
         }
 
-        protected override void OnUpdate(UpdateContext ctx)
+        public override void Update(in UpdateContext ctx)
         {
             if (_fb is null) InitGpu();
 
@@ -149,7 +140,7 @@ public static class KnockdownStories
             }
         }
 
-        protected override void OnRender(RenderContext ctx)
+        protected override void AddRenderPasses(RenderFeatureContext context)
         {
             if (_fb is null || _extractor is null || !_fbDirty) return;
             _fbDirty = false;
@@ -163,37 +154,34 @@ public static class KnockdownStories
             Matrix4x4 proj = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 3.4f, (float)W / H, 0.1f, 100f);
             Matrix4x4 viewProj = view * proj;
 
-            using var rg = new Luxel.Graphics.RenderGraph.RenderGraph(Device);
-            BufferHandle hVerts = rg.ImportBuffer(_vb!, "verts");
-            BufferHandle hInsts = rg.ImportBuffer(_extractor.InstanceBuffer, "instances");
-            rg.AddPass("Knockdown3D", PassQueue.Graphics)
-              .Read(hVerts).Read(hInsts)
-              .Write(hInsts)   // 「使用」の宣言 — Write が無いパスはデッドパスカリングされる
-              .Execute(pctx =>
-              {
-                  var args = new DrawArgs
-                  {
-                      ViewProj = Matrix4x4.Transpose(viewProj),
-                      VertexBufIndex = pctx.BindlessIndex(hVerts),
-                      InstanceBufIndex = pctx.BindlessIndex(hInsts),
-                  };
-                  pctx.Cmd.BeginRendering(_target!, _depth!, 0.05f, 0.06f, 0.09f, 1f, 1f)
-                          .SetGraphicsPipeline(_pipeline!)
-                          .SetRootArguments(args)
-                          .Draw((uint)Luxel.Assets.CubeMesh.VertexCount, (uint)_extractor.InstanceCount)
-                          .EndRendering();
-              });
-
-            using GpuCommandBuffer cmd = Device.MainQueue.StartCommandRecording();
-            rg.Execute(cmd);
-            cmd.Barrier(GpuStage.ColorOutput, GpuStage.Copy)
-               .CopyTextureToBuffer(_target!, _fb!);
-            cmd.Finish();
-            Device.MainQueue.SubmitAndWait(cmd);
-            _version++;
+            BufferHandle hVerts = context.Graph.ImportBuffer(_vb!, "verts");
+            BufferHandle hInsts = context.Graph.ImportBuffer(_extractor.InstanceBuffer, "instances");
+            BufferHandle output = context.Graph.ImportBuffer(_fb, "knockdown-framebuffer");
+            TextureHandle color = context.Graph.ImportTexture(_target!, "knockdown-color");
+            TextureHandle depth = context.Graph.ImportTexture(_depth!, "knockdown-depth");
+            context.Graph.AddPass("Knockdown3D", PassQueue.Graphics)
+                .Read(hVerts).Read(hInsts)
+                .Write(color).Write(depth).Write(output)
+                .Execute(pctx =>
+                {
+                    var args = new DrawArgs
+                    {
+                        ViewProj = Matrix4x4.Transpose(viewProj),
+                        VertexBufIndex = pctx.BindlessIndex(hVerts),
+                        InstanceBufIndex = pctx.BindlessIndex(hInsts),
+                    };
+                    pctx.Cmd.BeginRendering(_target!, _depth!, 0.05f, 0.06f, 0.09f, 1f, 1f)
+                        .SetGraphicsPipeline(_pipeline!)
+                        .SetRootArguments(args)
+                        .Draw((uint)Luxel.Assets.CubeMesh.VertexCount, (uint)_extractor.InstanceCount)
+                        .EndRendering()
+                        .Barrier(GpuStage.ColorOutput, GpuStage.Copy)
+                        .CopyTextureToBuffer(_target!, _fb!);
+                    MarkRendered();
+                });
         }
 
-        public override Task OnUnloadAsync()
+        protected override ValueTask DisposeAsync()
         {
             _extractor?.Dispose();
             _physics?.Dispose();
@@ -204,7 +192,7 @@ public static class KnockdownStories
             _fb?.Dispose();
             _extractor = null; _physics = null; _pipeline = null;
             _depth = null; _target = null; _vb = null; _fb = null;
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
 
         // ---- 初期化 / 再構築 ----
