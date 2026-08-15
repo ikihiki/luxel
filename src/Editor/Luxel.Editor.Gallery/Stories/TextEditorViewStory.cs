@@ -291,6 +291,79 @@ public static class TextEditorViewStory
     }
 
     [Story]
+    public static Widget MilkdownStyleEditor(StoryContext ctx)
+    {
+        Signal<string> md = ctx.Signal("milkdown-md",
+            "# Milkdown-style editor\n\n" +
+            "Select text and use the toolbar to apply **formatting**.\n\n" +
+            "- [ ] Add a task\n" +
+            "- Lists, quotes, code, links and tables come from Markdown\n\n" +
+            "> The editor owns interaction; Markdown supplies blocks and actions.\n\n" +
+            "---\n\n" +
+            "Use the + menu to insert another block.");
+
+        Theme theme = UiTheme.T;
+        var appearance = new TextEditorAppearance(fontSize: 15f, lineHeight: 1.55f, wrapLineHeight: 1.35f)
+            .WithBlock(MarkdownBlockKinds.Heading(1), new TextEditorBlockAppearance(
+                FontSize: 30f, FontVariant: FontVariant.Bold, Foreground: theme.Text))
+            .WithBlock(MarkdownBlockKinds.Heading(2), new TextEditorBlockAppearance(
+                FontSize: 23f, FontVariant: FontVariant.Bold, Foreground: theme.Text))
+            .WithBlock(MarkdownBlockKinds.Quote, new TextEditorBlockAppearance(
+                Foreground: theme.TextMuted, Accent: theme.Primary, Indent: 14f, BarWidth: 3f))
+            .WithBlock(MarkdownBlockKinds.CodeBlock, new TextEditorBlockAppearance(
+                FontVariant: FontVariant.Mono, Background: Styles.WithAlpha(theme.Text, 18)))
+            .WithBlock(MarkdownBlockKinds.TaskList, new TextEditorBlockAppearance(Accent: theme.Primary))
+            .WithBlock(MarkdownBlockKinds.HorizontalRule, new TextEditorBlockAppearance(Accent: theme.TextMuted));
+
+        (VectorFont? bold, VectorFont? italic, VectorFont? boldItalic, VectorFont? mono) = EditorFaces.Value;
+        TextEditorView ed = MarkdownDoc.Create(md, () => UiTheme.T, width: 620f, height: 390f,
+            bold: bold, italic: italic, boldItalic: boldItalic, mono: mono,
+            highlighter: Luxel.Highlight.TextMateHighlighter.Instance,
+            fonts: JpFallback.Value, editable: true, appearance: appearance);
+
+        (string label, Action onClick)[] insertItems = ed.InsertItems
+            .Select(item => (item.Label, (Action)(() => ed.Execute(item))))
+            .ToArray();
+        var toolbarItems = new List<Widget>
+        {
+            Dropdown("＋ Add block", insertItems),
+        };
+        toolbarItems.AddRange(ed.SelectionActions.Select(action =>
+            (Widget)Button(_ => ed.Execute(action), action.Label,
+                variant: Variant.Ghost, fontSize: 12f, height: 30f)));
+
+        ctx.Play("format-selection", async d =>
+        {
+            int from = ed.Text.IndexOf("Select text", StringComparison.Ordinal);
+            ((ITextInput)ed).Select(from, from + "Select text".Length);
+            ed.Execute(ed.SelectionActions.Single(x => x.Id == "bold"));
+            await d.Step(1);
+            await d.Expect(() => ed.Text.Contains("**Select text**", StringComparison.Ordinal),
+                "選択ツールバーの操作が Markdown 記法として反映される");
+            await d.Snap("formatted");
+        });
+        ctx.Play("insert-block", async d =>
+        {
+            ((ITextInput)ed).Select(ed.Text.Length, ed.Text.Length);
+            ed.Execute(ed.InsertItems.Single(x => x.Id == "task-list"));
+            await d.Step(1);
+            await d.Expect(() => ed.Text.EndsWith("- [ ] ", StringComparison.Ordinal),
+                "追加メニューの候補が現在位置へ挿入される");
+            await d.Snap("inserted");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("Markdown editor — Milkdown style"),
+                Muted("Live Preview + 文書形式が供給するブロック追加候補と選択ツールバー。操作UIは TextEditorView 側の汎用機能です。"),
+                Border(background: Bind.From(() => UiTheme.T.Surface), rounded: UiTheme.T.Radius,
+                    padding: new Thickness(6))[
+                    HStack(4)[toolbarItems.ToArray()]],
+                Border(background: Bind.From(() => UiTheme.T.Surface), rounded: UiTheme.T.Radius,
+                    padding: new Thickness(8))[ed]]];
+    }
+
+    [Story]
     public static Widget MarkdownDocStory(StoryContext ctx)
     {
         // 文書レンダラを 1 ファクトリで (WS-A / ADR-0012、Kit.Docs() 差し替えの部品):
