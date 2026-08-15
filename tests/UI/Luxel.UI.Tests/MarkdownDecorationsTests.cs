@@ -19,7 +19,7 @@ public class MarkdownDecorationsTests
         var set = Build("# Title");                     // '#'=0 ' '=1 "Title"=[2,7)
         MarkDecoration head = At(set, 2, 7);
         Assert.Equal(FontVariant.Bold, head.Variant);
-        Assert.Equal(1.9f, head.FontScale!.Value, 3);   // h1 = 1.9x
+        Assert.Equal(2f, head.FontScale!.Value, 3);   // h1 = browser default 2em
         Assert.Equal(T.Text, head.Foreground);
         Assert.Equal(T.TextMuted, At(set, 0, 2).Foreground);   // "# " マーカは淡色
     }
@@ -65,6 +65,16 @@ public class MarkdownDecorationsTests
         Assert.Empty(set.OfKind<LinePrefixDecoration>());
         Assert.Equal(T.TextMuted, At(set, 0, 2).Foreground);
     }
+
+    [Theory]
+    [InlineData(1, 2f)]
+    [InlineData(2, 1.5f)]
+    [InlineData(3, 1.17f)]
+    [InlineData(4, 1f)]
+    [InlineData(5, 0.83f)]
+    [InlineData(6, 0.67f)]
+    public void HeadingScale_MatchesBrowserDefaults(int level, float scale)
+        => Assert.Equal(scale, MarkdownDecorations.HeadingScale(level));
 
     [Fact]
     public void ReadOnlyTaskList_ShowsCheckboxPrefix()
@@ -138,7 +148,7 @@ public class MarkdownDecorationsTests
         var provider = new MarkdownProvider(() => T, appearance: () => appearance);
         EditorState state = EditorState.Create("# Title");
 
-        Assert.Equal(1.9f, At(provider.Provide(state), 2, 7).FontScale);
+        Assert.Equal(2f, At(provider.Provide(state), 2, 7).FontScale);
 
         appearance = appearance.WithBlock(MarkdownBlockKinds.Heading(1),
             new TextEditorBlockAppearance(FontScale: 2.2f));

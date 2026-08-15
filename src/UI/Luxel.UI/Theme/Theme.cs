@@ -19,7 +19,8 @@ public sealed class Theme
 
     // 寸法
     public float Radius = 6, RadiusLg = 12, Space = 8;
-    public float Font = 16, FontSm = 13, FontLg = 20, FontHeading = 28;
+    // Web typography baseline: body 16px, supporting text 14px, h2 24px, h1 32px.
+    public float Font = 16, FontSm = 14, FontLg = 24, FontHeading = 32;
 
     // コントロール密度 (既定 = 従来のハードコード値。Compact() で詰まる)
     public float ControlH = 38;              // TextField/Select の高さ
@@ -31,7 +32,8 @@ public sealed class Theme
     public Theme Compact()
     {
         var t = (Theme)MemberwiseClone();
-        t.Font = 13; t.FontSm = 11; t.FontLg = 15; t.FontHeading = 17;
+        // Compact changes density, not legibility. Typography stays on the web baseline.
+        t.Font = 16; t.FontSm = 14; t.FontLg = 24; t.FontHeading = 32;
         t.Space = 4; t.Radius = 4; t.RadiusLg = 8;
         t.ControlH = 24; t.BtnPadX = 10; t.BtnPadY = 3; t.PadIn = 6;
         t.CheckBox = 14; t.CheckGap = 6;

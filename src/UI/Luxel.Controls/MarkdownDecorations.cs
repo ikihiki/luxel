@@ -206,7 +206,7 @@ public static class MarkdownDecorations
     /// <summary>見出しレベル (1..6) → 基準サイズへの倍率。</summary>
     public static float HeadingScale(int level) => level switch
     {
-        1 => 1.9f, 2 => 1.6f, 3 => 1.35f, 4 => 1.2f, 5 => 1.1f, _ => 1.05f,
+        1 => 2f, 2 => 1.5f, 3 => 1.17f, 4 => 1f, 5 => 0.83f, _ => 0.67f,
     };
 
     /// <summary>Markdown 全文 → 装飾集合 (純関数、フォント非依存 = GPU 不要でテスト可)。

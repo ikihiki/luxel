@@ -401,9 +401,9 @@ public sealed class GalleryApp : IDisposable
         Func<string> matchLabel = () => _matchTotal.Value > 0 ? $"{_matchCur.Value}/{_matchTotal.Value}" : "-";
         Widget searchBar = HStack(2)[
             TextField(_search, "検索", width: _sidebarW - 62),
-            Button(_ => MoveSearch(-1), "‹", fontSize: 12f, padding: new Thickness(6, 2)),
+            Button(_ => MoveSearch(-1), "‹", fontSize: UiTheme.T.FontSm, padding: new Thickness(6, 2)),
             Text(matchLabel, 10, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(0, 5, 0, 0)),
-            Button(_ => MoveSearch(+1), "›", fontSize: 12f, padding: new Thickness(6, 2))];
+            Button(_ => MoveSearch(+1), "›", fontSize: UiTheme.T.FontSm, padding: new Thickness(6, 2))];
         // スクロールは永続インスタンス — chrome 再構築 (ストーリー選択/リサイズ) をまたいで位置を保つ
         _sidebarScroll ??= Scroll(winH - 58, width: _sidebarW);
         _sidebarScroll.SetViewportHeight(winH - 58);
@@ -424,8 +424,8 @@ public sealed class GalleryApp : IDisposable
             Button(_ => ToggleTheme(), "theme"),
             Button(_ => ToggleZen(), _zen ? "元に戻す" : "全画面"),
             Button(_ => { _preview.Paused = !_preview.Paused; _dirty = true; }, pauseLabel,
-                   variant: _preview.Paused ? Luxel.UI.Variant.Tonal : Luxel.UI.Variant.Ghost, fontSize: 12f),
-            Button(_ => _preview.StepFrame(), "⏭", variant: Luxel.UI.Variant.Ghost, fontSize: 12f),
+                   variant: _preview.Paused ? Luxel.UI.Variant.Tonal : Luxel.UI.Variant.Ghost, fontSize: UiTheme.T.FontSm),
+            Button(_ => _preview.StepFrame(), "⏭", variant: Luxel.UI.Variant.Ghost, fontSize: UiTheme.T.FontSm),
             Check(_fHover, "hover"),
             Check(_fPressed, "pressed"),
             Check(_fFocused, "focused"),
@@ -482,7 +482,7 @@ public sealed class GalleryApp : IDisposable
                 int idx = i;
                 string label = storyPlays[i].Name.Length > 0 ? storyPlays[i].Name : "default";
                 rows.Add(Button(_ => StartPlay(idx), $"▶ {label}",
-                    variant: Luxel.UI.Variant.Ghost, fontSize: 12f, width: 180f));
+                    variant: Luxel.UI.Variant.Ghost, fontSize: UiTheme.T.FontSm, width: 180f));
             }
             Func<string> playLog = () =>
             {

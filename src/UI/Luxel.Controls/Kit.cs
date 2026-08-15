@@ -52,7 +52,12 @@ public static partial class Kit
     // ---- タイポグラフィ ----
     public static Text Heading(string text, int level = 1)
     {
-        float size = level switch { 1 => UiTheme.T.FontHeading, 2 => UiTheme.T.FontLg + 2, _ => UiTheme.T.FontLg };
+        float size = level switch
+        {
+            1 => UiTheme.T.FontHeading,
+            2 => UiTheme.T.FontLg,
+            _ => UiTheme.T.Font * 1.17f,
+        };
         return Text(text, size, color: Bind.From(() => UiTheme.T.Text));
     }
 

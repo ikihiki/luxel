@@ -8,7 +8,7 @@ public sealed class EditorConfig
     /// <summary>フォント (フォールバック対応)。</summary>
     public required FontCollection Fonts { get; init; }
     /// <summary>基準文字サイズ px。</summary>
-    public float FontSize { get; init; } = 14f;
+    public float FontSize { get; init; } = 16f;
     /// <summary>折返し (コードは既定 None)。</summary>
     public TextWrap Wrap { get; init; } = TextWrap.None;
     /// <summary>折返し幅 px (Wrap!=None のとき有効)。</summary>

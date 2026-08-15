@@ -20,16 +20,16 @@ public sealed partial class CheckBox : Widget
     /// <summary>ラベル文字列。</summary>
     [UiParam] private readonly Bindable<string> _label = "";
 
-    private float _box = 20, _gap = 9, _fs = 15;   // レイアウト時にテーマから確定
+    private float _box = 20, _gap = 9, _fs = 16;   // レイアウト時にテーマから確定
 
-    /// <summary>文字サイズ。未設定 → テーマ Font - 1。</summary>
+    /// <summary>文字サイズ。未設定 → テーマ Font。</summary>
     [UiParam] private readonly Bindable<float> _fontSize = new();
 
     private void CacheMetrics(Theme t)
     {
         _box = t.CheckBox;
         _gap = t.CheckGap;
-        _fs = FontSize.Or(t.Font - 1);
+        _fs = FontSize.Or(t.Font);
     }
     /// <summary>箱の色。未設定 → checked ? Primary : SurfaceAlt。</summary>
     [UiParam(Stateable = true)] private readonly Bindable<uint> _background = new();
@@ -52,7 +52,7 @@ public sealed partial class CheckBox : Widget
     }
 
     public override float MaxIntrinsicWidth(float height, LayoutContext ctx)
-        => _box + _gap + ctx.Font.Measure(Label.Get(), FontSize.Or(ctx.Theme.Font - 1)).width;
+        => _box + _gap + ctx.Font.Measure(Label.Get(), FontSize.Or(ctx.Theme.Font)).width;
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {

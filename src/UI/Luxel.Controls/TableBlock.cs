@@ -63,7 +63,7 @@ public sealed partial class TableBlock : Widget, ITextInput
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
-        _fs = ctx.Theme.FontSm + 1;
+        _fs = ctx.Theme.Font;
         _rowH = _fs * 1.9f;
         _colW = new float[Cols];
         for (int col = 0; col < Cols; col++)

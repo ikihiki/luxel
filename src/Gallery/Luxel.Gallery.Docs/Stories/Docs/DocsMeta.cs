@@ -70,7 +70,7 @@ public static class DocsMeta
 
             {{{counter}}}
 
-            文中への差し込みもできます: 状態 {{{Badge("Ready", Intent.Success):inline}}} やボタン {{{Button(_ => ctx.Log("inline click"), "押す", fontSize: 12f):inline}}} が行内に混ざります。
+            文中への差し込みもできます: 状態 {{{Badge("Ready", Intent.Success):inline}}} やボタン {{{Button(_ => ctx.Log("inline click"), "押す", fontSize: UiTheme.T.FontSm):inline}}} が行内に混ざります。
 
             ## 埋め込み + Knobs
 

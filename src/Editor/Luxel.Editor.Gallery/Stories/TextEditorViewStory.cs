@@ -313,9 +313,9 @@ public static class TextEditorViewStory
 
         var appearance = new TextEditorAppearance(fontSize: 16f, lineHeight: 1.55f, wrapLineHeight: 1.35f)
             .WithBlock(MarkdownBlockKinds.Heading(1), new TextEditorBlockAppearance(
-                FontSize: 30f, FontVariant: FontVariant.Bold))
+                FontSize: 32f, FontVariant: FontVariant.Bold))
             .WithBlock(MarkdownBlockKinds.Heading(2), new TextEditorBlockAppearance(
-                FontSize: 23f, FontVariant: FontVariant.Bold))
+                FontSize: 24f, FontVariant: FontVariant.Bold))
             .WithBlock(MarkdownBlockKinds.Quote, new TextEditorBlockAppearance(
                 Indent: 14f, BarWidth: 3f))
             .WithBlock(MarkdownBlockKinds.CodeBlock, new TextEditorBlockAppearance(
