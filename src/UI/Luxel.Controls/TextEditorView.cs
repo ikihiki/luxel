@@ -35,6 +35,21 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
     public VectorFont? ItalicFont { get; set; }
     public VectorFont? BoldItalicFont { get; set; }
     public VectorFont? MonoFont { get; set; }
+    private TextEditorAppearance _appearance = TextEditorAppearance.Default;
+    /// <summary>Editor 全体と文書ブロック種別ごとの外観をまとめて指定する。</summary>
+    public TextEditorAppearance Appearance
+    {
+        get => _appearance;
+        set
+        {
+            value ??= TextEditorAppearance.Default;
+            if (ReferenceEquals(_appearance, value)) return;
+            _appearance = value;
+            _fs = Appearance.FontSize ?? FontSize.Or(_theme.Peek().FontSm);
+            _geo?.Configure(BuildConfig());
+            Refresh();
+        }
+    }
     /// <summary>折返し (既定 false = コード)。</summary>
     public bool WrapText { get; set; }
     /// <summary>折返し段落内の行送り倍率 (null = ブロック行送りと同じ)。文書は段落内を詰めると読みやすい (例 1.3)。</summary>
@@ -419,7 +434,7 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
         EnsureInit();
-        _fs = FontSize.Or(ctx.Theme.FontSm);
+        _fs = Appearance.FontSize ?? FontSize.Or(ctx.Theme.FontSm);
         if (Fill)
         {
             // 制約サイズを採用。変わったら次フレームで config (折返し幅) を作り直す (再入回避)。
@@ -442,8 +457,8 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
             FontSize = _fs,
             Wrap = WrapText ? TextWrap.Word : TextWrap.None,
             MaxWidth = WrapText ? W - Pad * 2 : float.PositiveInfinity,
-            LineHeight = 1.5f,
-            WrapLineHeight = WrapLineHeight,
+            LineHeight = Appearance.LineHeight ?? 1.5f,
+            WrapLineHeight = Appearance.WrapLineHeight ?? WrapLineHeight,
             DefaultColor = _theme.Peek().Text,
             BoldFont = BoldFont,
             ItalicFont = ItalicFont,
@@ -475,7 +490,7 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
         EnsureInit();
         _ctx = ctx;
         _theme = ctx.Theme;
-        _fs = FontSize.Or(_theme.Peek().FontSm);
+        _fs = Appearance.FontSize ?? FontSize.Or(_theme.Peek().FontSm);
         EditorConfig cfg = BuildConfig();
         _primaryFont = cfg.Fonts.Primary;
         _charW = MathF.Max(1, cfg.Fonts.Primary.Measure("0", _fs).width);
