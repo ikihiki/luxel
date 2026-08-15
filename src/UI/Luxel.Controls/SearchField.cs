@@ -4,7 +4,7 @@ namespace Luxel.Controls;
 
 /// <summary>
 /// 検索フィールド — **CompositeControl の見本**。
-/// TextField + クリアボタン + 絞り込み候補リストを Build() で宣言的に組み合わせる。
+/// 前後 slot 付き TextField + 絞り込み候補リストを Build() で宣言的に組み合わせる。
 /// 状態 3 層の実演:
 /// - 値状態: query signal (呼び出し側と共有、TextField と双方向) — 細粒度反映
 /// - **構造状態: 絞り込んだ候補リスト** — Build 本体で query を読むだけで、
@@ -23,7 +23,6 @@ public sealed partial class SearchField : CompositeControl
     [UiParam] private readonly Bindable<int> _maxSuggestions = 5;
 
     private TextField? _field;            // 状態を保つ子はフィールド保持 (Rebuild を跨いで生存) — 初回 Build で構築
-    private Button? _clear;
     private string[] _matches = [];       // 構造状態 — 変わったら Rebuild
 
     public override string? DebugDetail => $"\"{Value.Get().Value}\" ({_matches.Length} 候補)";
@@ -39,14 +38,17 @@ public sealed partial class SearchField : CompositeControl
     {
         Signal<string> query = Value.Get();
         // 状態を保つ子は初回 Build で一度だけ構築 (旧 ctor から遅延 — Rebuild を跨いで生存)
-        _field ??= Kit.TextField(query, placeholder: "Search...", width: 220);
-        _clear ??= Kit.Button(_ => query.Value = "", "×", variant: Variant.Ghost);
+        _field ??= Kit.TextField(query, placeholder: "Search...", width: 220)[
+            TextFieldSlot.Leading(() => Kit.Icon(IconKind.Search, iconSize: 16,
+                color: Bind.From(() => UiTheme.T.TextMuted))),
+            TextFieldSlot.Trailing(() => Kit.Icon(IconKind.Close, iconSize: 14,
+                color: Bind.From(() => UiTheme.T.TextMuted), onClick: _ => query.Value = ""))];
 
         // Build 本体での signal 読み取り = TrackedBuild の依存 — query が変わると自動 Rebuild される
         // (明示的な購読/Rebuild 呼び出しは不要)。MaxSuggestions が knobs で束縛されていれば同様に追跡。
         _matches = Filter(query.Value);
         var rows = new Widget[1 + _matches.Length];
-        rows[0] = Kit.HStack(spacing: 4)[_field, _clear];
+        rows[0] = _field;
         for (int i = 0; i < _matches.Length; i++)
         {
             string m = _matches[i];

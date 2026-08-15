@@ -382,15 +382,12 @@ public sealed class GalleryApp : IDisposable
             },
             selected: _currentPath ?? "", filter: _search);
         // Blazor 版と同じ検索 chrome。
-        Widget searchInput = Border(background: GalleryChromeTheme.Search, rounded: 8,
-            padding: new Thickness(8, 0), width: _sidebarW - 28)[HStack(8)[
-            Icon(IconKind.Search, iconSize: 16, stroke: 1.5f,
-                color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(0, 11, 0, 0)),
-            TextField(_search, "Storyを検索", width: _sidebarW - 112,
-                background: GalleryChromeTheme.Search, fontSize: 13),
-            Icon(IconKind.Close, iconSize: 14, stroke: 1.5f,
-                color: Bind.From(() => UiTheme.T.TextMuted), onClick: _ => _search.Value = "",
-                margin: new Thickness(0, 12, 0, 0))]];
+        Widget searchInput = TextField(_search, "Storyを検索", width: _sidebarW - 28,
+            background: GalleryChromeTheme.Search, fontSize: 13)[
+            TextFieldSlot.Leading(() => Icon(IconKind.Search, iconSize: 16, stroke: 1.5f,
+                color: Bind.From(() => UiTheme.T.TextMuted))),
+            TextFieldSlot.Trailing(() => Icon(IconKind.Close, iconSize: 14, stroke: 1.5f,
+                color: Bind.From(() => UiTheme.T.TextMuted), onClick: _ => _search.Value = ""))];
         Widget searchBar = Border(padding: new Thickness(14, 0, 14, 12))[searchInput];
 
         Widget mark = Border(background: Bind.From(() => UiTheme.T.Primary), rounded: 9,

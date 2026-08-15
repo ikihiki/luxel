@@ -32,6 +32,24 @@ public class UiLayoutTests
     }
 
     [Fact]
+    public void TextField_LeadingAndTrailingSlots_AreLaidOutInsideControl()
+    {
+        LayoutContext ctx = Ctx();
+        TextField field = TextField(new Signal<string>("query"), width: 200)[
+            TextFieldSlot.Leading(() => Icon(IconKind.Search, iconSize: 16)),
+            TextFieldSlot.Trailing(() => Icon(IconKind.Close, iconSize: 14))];
+
+        field.Layout(new Constraints(0, 300, 0, 100), ctx);
+        Widget[] slots = field.DebugChildren().ToArray();
+
+        Close(200, field.Size.Width);
+        Assert.Equal(2, slots.Length);
+        Assert.True(slots[0].Offset.X < slots[1].Offset.X);
+        Assert.True(slots[0].Offset.Y >= 0);
+        Assert.True(slots[1].Offset.X + slots[1].Size.Width < field.Size.Width);
+    }
+
+    [Fact]
     public void GridLength_IntImplicitlyStar()
     {
         GridLength g = 2;                       // [1,2] の各要素はこの暗黙変換で star になる

@@ -13,7 +13,7 @@ namespace Luxel.Controls;
 /// IME 変換中は preedit に下線、変換対象節を強調下線。caret 点滅。<see cref="ITextInput"/> 実装 (TSF 連携)。
 /// </summary>
 [UiComponent]
-public sealed partial class TextField : Widget, ITextInput
+public sealed partial class TextField : Widget, ITextInput, ISlotted<TextFieldSlotKey>
 {
     /// <summary>値の signal (編集で書き戻す)。</summary>
     [UiParam] private readonly Bindable<Signal<string>> _value = new();
@@ -36,6 +36,24 @@ public sealed partial class TextField : Widget, ITextInput
     private const float DefaultWidth = 240f;
     private float _padX = 10, _h = 38, _fs = 16;   // Realize/Layout 時にテーマから確定 (キャッシュ)
     private float EffectiveWidth = DefaultWidth;   // PerformLayout で解決 (% / em / vw 対応)
+    private const float SlotGap = 6f;
+    private Widget? _leading, _trailing;
+    private float _textX;
+
+    /// <summary>文字入力領域の前後へ widget を置く slot。</summary>
+    public void SetSlot(TextFieldSlotKey key, Func<Widget> template)
+    {
+        if (key == TextFieldSlotKey.Leading) _leading = template();
+        else _trailing = template();
+    }
+
+    public TextField this[params ISlotPart[] slots]
+    {
+        get { foreach (ISlotPart slot in slots) slot.ApplyTo(this); return this; }
+    }
+
+    public override IEnumerable<Widget> DebugChildren()
+        => new[] { _leading, _trailing }.OfType<Widget>();
 
     /// <summary>文字サイズ。未設定 → テーマ Font。</summary>
     [UiParam] private readonly Bindable<float> _fontSize = new();
@@ -65,6 +83,19 @@ public sealed partial class TextField : Widget, ITextInput
         EffectiveWidth = ResolveW(c, ctx, DefaultWidth);
         float w = HAlign.Get() == Align.Stretch && !float.IsInfinity(c.MaxW) ? c.MaxW : EffectiveWidth;
         Size = c.Constrain(new Size(w, _h));
+        float leadingW = LayoutSlot(_leading, ctx);
+        float trailingW = LayoutSlot(_trailing, ctx);
+        _textX = _padX + (leadingW > 0 ? leadingW + SlotGap : 0);
+        if (_leading is not null)
+            _leading.Offset = new Point(_padX, (_h - _leading.Size.Height) / 2);
+        if (_trailing is not null)
+            _trailing.Offset = new Point(Size.Width - _padX - trailingW, (_h - _trailing.Size.Height) / 2);
+    }
+
+    private float LayoutSlot(Widget? slot, LayoutContext ctx)
+    {
+        if (slot is null) return 0;
+        return slot.Layout(new Constraints(0, _h, 0, _h), ctx, parentUsesSize: true).Width;
     }
     public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => ResolveWIntrinsic(ctx, DefaultWidth);
 
@@ -87,16 +118,23 @@ public sealed partial class TextField : Widget, ITextInput
         _fontH = ctx.Font.Measure("Mg", _fs).height;
         _ascent = ctx.Font.Ascent(_fs);
         _topY = (_h - _fontH) / 2;
+        float trailingInset = _trailing is null ? _padX : Size.Width - _trailing.Offset.X + SlotGap;
+        var textClip = new RectClip(_textX, 0, MathF.Max(0, Size.Width - _textX - trailingInset), _h);
 
         _selNode = ctx.Canvas.AddChild(node); _selNode.Z = 1;
+        _selNode.Clip = textClip;
         ctx.Effect(() => _selNode.Color = Styles.WithAlpha(_theme.Value.Primary, 70));
         _targetNode = ctx.Canvas.AddChild(node); _targetNode.Z = 1;     // 変換対象節の地色
+        _targetNode.Clip = textClip;
         ctx.Effect(() => _targetNode.Color = Styles.WithAlpha(_theme.Value.Primary, 55));
         _underlineNode = ctx.Canvas.AddChild(node); _underlineNode.Z = 1; // preedit 下線
+        _underlineNode.Clip = textClip;
         ctx.Effect(() => _underlineNode.Color = _theme.Value.TextMuted);
 
         _textNode = ctx.Canvas.AddChild(node); _textNode.Z = 2;
+        _textNode.Clip = textClip;
         _caretNode = ctx.Canvas.AddChild(node); _caretNode.Z = 3;
+        _caretNode.Clip = textClip;
         var caret = new Scene2D(); caret.FillRect(Color2D.White, 0, _topY, 2, _fontH); _caretNode.Content = caret;
         ctx.Effect(() => _caretNode.Color = _theme.Value.Primary);
         ctx.Effect(() => _caretNode.Opacity = Focused.Value && _caretOn.Value ? 1f : 0f);
@@ -129,7 +167,7 @@ public sealed partial class TextField : Widget, ITextInput
         void PlaceFromX(float lx, bool extend)
         {
             if (_disp is null || _ed.CompositionDisplayRange.len > 0) return;
-            int i = Math.Clamp(_disp.HitTest(lx - _padX, 0), 0, _ed.Text.Length);
+            int i = Math.Clamp(_disp.HitTest(lx - _textX, 0), 0, _ed.Text.Length);
             _ed.Select(extend ? _ed.Anchor : i, i);
             _caretOn.Value = true;
             Refresh();
@@ -159,6 +197,10 @@ public sealed partial class TextField : Widget, ITextInput
             onDrag: e => PlaceFromX(e.X, extend: true),
             cursor: CursorKind.IBeam,
             onContext: e => ContextMenu.OpenForEditor(ctx, node, e.X, e.Y, f));
+
+        // 親の入力ヒットより後で登録し、slot 自身のクリックを優先する。
+        _leading?.Realize(ctx, node, world);
+        _trailing?.Realize(ctx, node, world);
     }
 
     private bool OnKey(KeyEvent ev)
@@ -213,7 +255,7 @@ public sealed partial class TextField : Widget, ITextInput
     }
 
     /// <summary>表示 index → キャレット x。レイアウトのクラスタ対応 API (描画と同一結果) を使う。</summary>
-    private float X(string disp, int idx) => _padX + (_disp?.CaretRect(idx).X ?? 0);
+    private float X(string disp, int idx) => _textX + (_disp?.CaretRect(idx).X ?? 0);
 
     private void Refresh()
     {
@@ -221,8 +263,8 @@ public sealed partial class TextField : Widget, ITextInput
         bool empty = disp.Length == 0;
         _disp = new TextLayout(_ctx.Font, disp, _fs, new TextLayoutOptions { Wrap = TextWrap.None });
         var ts = new Scene2D();
-        if (empty) _ctx.Font.AppendText(ts, Placeholder.Get(), _padX, _topY + _ascent, _fs, Color2D.White);
-        else _disp.Draw(ts, _padX, _topY, Color2D.White);
+        if (empty) _ctx.Font.AppendText(ts, Placeholder.Get(), _textX, _topY + _ascent, _fs, Color2D.White);
+        else _disp.Draw(ts, _textX, _topY, Color2D.White);
         _textNode.Content = ts;
         _textNode.Color = empty ? _theme.Value.TextMuted : _theme.Value.Text;
 
