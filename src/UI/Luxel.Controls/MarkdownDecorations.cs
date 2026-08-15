@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Luxel.Document;
 using Luxel.Typography;
 using Luxel.UI;
+using Luxel.Resources;
 
 namespace Luxel.Controls;
 
@@ -41,7 +42,7 @@ public static class MarkdownDoc
         VectorFont? body = null, VectorFont? bold = null, VectorFont? italic = null,
         VectorFont? boldItalic = null, VectorFont? mono = null, bool wrap = true, ISyntaxHighlighter? highlighter = null,
         IReadOnlyCollection<string>? embedKinds = null, FontCollection? fonts = null, bool fill = false, bool editable = false,
-        TextEditorAppearance? appearance = null)
+        TextEditorAppearance? appearance = null, ResourceSystem? resources = null)
     {
         TextEditorView ed = Kit.TextEditorView(markdown, editorHeight: height, editorWidth: width);
         if (body is not null) ed.EditorFont = body;
@@ -55,10 +56,12 @@ public static class MarkdownDoc
         ed.WrapText = wrap;
         ed.WrapLineHeight = 1.3f;   // 段落内はブロック間 (1.5) より詰める
         ed.ReadOnly = !editable;    // editable=true は Live Preview 編集モード (キャレット行のみマーカを見せる)
+        ed.ShowBlockControls = editable;
         ed.DocSource = markdown.Peek();   // docs 索引用 (realize 不要で本文/見出し/リンクを取れる)
         ed.BlockProvider = MarkdownEditorFeatures.BlockProvider;
         ed.InsertItems = MarkdownEditorFeatures.InsertItems;
         ed.SelectionActions = MarkdownEditorFeatures.SelectionActions;
+        ed.WidgetResolver = key => MarkdownBlockEmbeds.Resolve(ed, key, resources, MathF.Max(80, width - 64));
         // 文書レンダラ: マーカ非表示 + コード色分け + 埋め込み。editable なら live-preview (キャレット行だけ raw)。
         ed.Providers.Add(new MarkdownProvider(theme, hideMarkers: true, highlighter, embedKinds, livePreview: editable,
             appearance: () => ed.Appearance));
@@ -82,12 +85,13 @@ public static class MarkdownDoc
         TextEditorView ed = Create(new Signal<string>(md), theme, width, height,
             body: body, bold: bold, mono: mono, highlighter: highlighter, embedKinds: kinds, fonts: fonts, fill: fill);
         ed.DocEmbeds = content.Embeds;
+        Func<object, Widget?>? standardResolver = ed.WidgetResolver;
         ed.WidgetResolver = key =>
         {
-            if (key is not EmbedRef r) return null;
+            if (key is not EmbedRef r) return standardResolver?.Invoke(key);
             if (r.Key == DocString.UiTypeId)
                 return int.TryParse(r.Body.Trim(), out int i) && i >= 0 && i < holes.Count ? holes[i] : null;
-            return fences is not null && fences.TryGetValue(r.Key, out Func<string, Widget>? f) ? f(r.Body) : null;
+            return fences is not null && fences.TryGetValue(r.Key, out Func<string, Widget>? f) ? f(r.Body) : standardResolver?.Invoke(key);
         };
         return ed;
     }
@@ -255,6 +259,28 @@ public static class MarkdownDecorations
             return false;
         }
 
+        // GFM table は非アクティブ時に標準 TableBlock へ置換する。キャレットが表内なら raw source に戻す。
+        foreach (MarkdownTableSpan table in MarkdownBlockEmbeds.Tables(text))
+        {
+            bool revealed = false;
+            if (reveal is not null)
+            {
+                int at = table.From;
+                while (at <= table.To)
+                {
+                    if (reveal(at)) { revealed = true; break; }
+                    int newline = text.IndexOf('\n', at);
+                    if (newline < 0 || newline >= table.To) break;
+                    at = newline + 1;
+                }
+            }
+            if (hideMarkers && !revealed)
+            {
+                marks.Add(new BlockWidgetDecoration(table.From, table.To, table.Ref, 0f));
+                Consume(consumed, table.From, table.To);
+            }
+        }
+
         // --- 行単位: 埋め込み / 見出し / コードフェンス / 引用 / 箇条書き ---
         int lineStart = 0;
         bool inFence = false;
@@ -268,6 +294,12 @@ public static class MarkdownDecorations
             int end = lineStart + line.Length;
             string trimmed = line.TrimStart();
             int indent = line.Length - trimmed.Length;
+
+            if (end > lineStart && Overlaps(consumed, lineStart, end))
+            {
+                lineStart = end + 1;
+                continue;
+            }
 
             // 埋め込みフェンス ```embed <key> <本文> ``` = 自動高さ block widget (view が key/本文で live UI を解決)
             if (inEmbed)
@@ -367,6 +399,15 @@ public static class MarkdownDecorations
                     marks.Add(new LinePrefixDecoration(lineStart, "────────────────", ruleStyle.Accent ?? muted));
                 }
                 else marks.Add(Marker(lineStart, end));
+                Consume(consumed, lineStart, end);
+                lineStart = end + 1;
+                continue;
+            }
+
+            // 単独画像行は非アクティブ時に ImageBlock へ置換。編集行では raw Markdown を見せる。
+            if (MarkdownBlockEmbeds.TryImage(line, out MarkdownImageRef image) && Hide(lineStart))
+            {
+                marks.Add(new BlockWidgetDecoration(lineStart, end, image, 0f));
                 Consume(consumed, lineStart, end);
                 lineStart = end + 1;
                 continue;

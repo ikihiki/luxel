@@ -147,6 +147,72 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void DefaultAppearance_UsesSixteenPixelBaseline()
+        => Assert.Equal(16f, TextEditorAppearance.Default.FontSize);
+
+    [Fact]
+    public void HeadingColor_FollowsTheme_WhenAppearanceOnlyChangesSize()
+    {
+        Theme theme = Theme.Light;
+        var appearance = new TextEditorAppearance().WithBlock(MarkdownBlockKinds.Heading(1),
+            new TextEditorBlockAppearance(FontSize: 30f));
+        var provider = new MarkdownProvider(() => theme, appearance: () => appearance);
+        EditorState state = EditorState.Create("# Title");
+
+        Assert.Equal(Theme.Light.Text, At(provider.Provide(state), 2, 7).Foreground);
+        theme = Theme.Dark;
+        Assert.Equal(Theme.Dark.Text, At(provider.Provide(state), 2, 7).Foreground);
+    }
+
+    [Fact]
+    public void ReadOnlyTable_BecomesEditableTableBlockReference()
+    {
+        const string markdown = "| Name | Value |\n| :--- | ---: |\n| alpha | 1 |";
+        DecorationSet set = MarkdownDecorations.Build(markdown, T, hideMarkers: true);
+        BlockWidgetDecoration widget = set.OfKind<BlockWidgetDecoration>().Single();
+        MarkdownTableRef reference = Assert.IsType<MarkdownTableRef>(widget.Key);
+        TablePayload payload = MarkdownBlockEmbeds.ParseTable(reference.Source);
+
+        Assert.Equal(2, payload.Rows.Count);
+        Assert.Equal(TableAlign.Left, payload.Aligns[0]);
+        Assert.Equal(TableAlign.Right, payload.Aligns[1]);
+        Assert.Contains("| alpha | 1 |", MarkdownBlockEmbeds.SerializeTable(payload));
+    }
+
+    [Fact]
+    public void TableReference_ResolvesToStandardEditableTableBlock()
+    {
+        const string markdown = "| Name | Value |\n| --- | --- |\n| alpha | 1 |";
+        var reference = new MarkdownTableRef(0, markdown.Length, markdown);
+
+        Widget? widget = MarkdownBlockEmbeds.Resolve(new TextEditorView(), reference, resources: null, maxWidth: 480f);
+
+        TableBlock table = Assert.IsType<TableBlock>(widget);
+        Assert.Equal("2x2", table.DebugDetail);
+    }
+
+    [Fact]
+    public void LivePreview_RevealsTableSource_WhenCaretIsInsideTable()
+    {
+        const string markdown = "before\n| A | B |\n| --- | --- |\n| 1 | 2 |\nafter";
+        int caret = markdown.IndexOf("1 | 2", StringComparison.Ordinal);
+        DecorationSet set = MarkdownDecorations.Build(markdown, T, hideMarkers: true,
+            reveal: pos => pos <= caret && caret <= markdown.IndexOf('\n', caret));
+
+        Assert.Empty(set.OfKind<BlockWidgetDecoration>());
+    }
+
+    [Fact]
+    public void ReadOnlyImageLine_BecomesImageBlockReference()
+    {
+        DecorationSet set = MarkdownDecorations.Build("![sample](assets/sample.png)", T, hideMarkers: true);
+        MarkdownImageRef image = Assert.IsType<MarkdownImageRef>(set.OfKind<BlockWidgetDecoration>().Single().Key);
+
+        Assert.Equal("assets/sample.png", image.Src);
+        Assert.Equal("sample", image.Alt);
+    }
+
+    [Fact]
     public void Bold_StylesInner_NotDelimiters()
     {
         var set = Build("a **b** c");                   // '*'=2,3 'b'=4 '*'=5,6

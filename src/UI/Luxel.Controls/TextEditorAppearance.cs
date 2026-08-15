@@ -23,7 +23,7 @@ public sealed class TextEditorAppearance
 
     private readonly IReadOnlyDictionary<string, TextEditorBlockAppearance> _blocks;
 
-    public TextEditorAppearance(float? fontSize = null, float? lineHeight = null, float? wrapLineHeight = null,
+    public TextEditorAppearance(float? fontSize = 16f, float? lineHeight = null, float? wrapLineHeight = null,
         IEnumerable<KeyValuePair<string, TextEditorBlockAppearance>>? blocks = null)
     {
         FontSize = fontSize;

@@ -467,7 +467,10 @@ public sealed class EditorGeometry
                 case LineDecoration ld:
                 {
                     int line = _state.Doc.LineOf(ld.At);
-                    outp.Add(new OverlayRect(new TextRect(0, _tops[line], _indents[line] + _lines[line].Layout.Width, _lines[line].Height), OverlayKind.LineBackground, ld.Background));
+                    float width = float.IsFinite(_cfg.MaxWidth)
+                        ? _cfg.MaxWidth
+                        : _indents[line] + _lines[line].Layout.Width;
+                    outp.Add(new OverlayRect(new TextRect(0, _tops[line], width, _lines[line].Height), OverlayKind.LineBackground, ld.Background));
                     break;
                 }
                 case BlockDecoration bd:

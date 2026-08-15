@@ -75,6 +75,8 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
 
     /// <summary>行番号ガターを左に出す (コードエディタ用)。本文はガター幅ぶん右へ寄る。</summary>
     public bool ShowLineNumbers { get; set; }
+    /// <summary>ブロック左側の操作メニューを表示する。文書形式は <see cref="BlockProvider"/> と候補だけを供給する。</summary>
+    public bool ShowBlockControls { get; set; }
 
     /// <summary>キー横取りフック — true を返すと既定処理をしない (上位のカスタム、例: Strudel の Ctrl+Enter)。</summary>
     public Func<KeyEvent, bool>? OnKeyIntercept { get; set; }
@@ -119,15 +121,17 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
     private Signal<Theme> _theme = UiTheme.Current;
     private UiNode _root = null!, _content = null!, _selNode = null!, _caretNode = null!;
     private UiNode _textLayer = null!, _overlayBg = null!, _overlayFg = null!;
-    private UiNode? _gutter, _gutterText;
+    private UiNode? _gutter, _gutterText, _blockRail;
+    private EditorBlock? _hoverBlock;
     private readonly List<UiNode> _colorNodes = new();
     private FocusTarget? _focus;
     private Rect _caretLocal;
 
     private const float GutterPadR = 8f;
+    private const float BlockRailWidth = 38f;
     private float _gutterW, _charW = 8f;
     private VectorFont? _primaryFont;
-    private float ContentX => ShowLineNumbers ? _gutterW : Pad;
+    private float ContentX => (ShowLineNumbers ? _gutterW : Pad) + (ShowBlockControls ? BlockRailWidth : 0f);
 
     private sealed class Hosted { public required object Key; public required Widget Widget; public required UiNode Container; public TextRect Rect; }
     private readonly Dictionary<object, Hosted> _widgets = new();
@@ -162,6 +166,14 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
 
     /// <summary>Editor の汎用 UI から選択操作を実行する。</summary>
     public void Execute(EditorSelectionAction action) => Apply(EditorContributionCommands.Apply(_state, action));
+
+    /// <summary>外部 block widget などからソース範囲を1トランザクションで置換する。</summary>
+    public void Replace(int from, int to, string text)
+    {
+        from = Math.Clamp(from, 0, _state.Doc.Length);
+        to = Math.Clamp(to, from, _state.Doc.Length);
+        Apply(_state.Replace(from, to, text ?? "", EditorSelection.Cursor(from + (text?.Length ?? 0))));
+    }
 
     /// <summary>owner の装飾を外部から差し替える (毎フレーム更新も可 — 再生囲みのような
     /// レイアウト非依存装飾は行キャッシュに触れず 60fps で回せる)。プロバイダを使わない push 型。</summary>
@@ -471,7 +483,7 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
             Fonts = fonts,
             FontSize = _fs,
             Wrap = WrapText ? TextWrap.Word : TextWrap.None,
-            MaxWidth = WrapText ? W - Pad * 2 : float.PositiveInfinity,
+            MaxWidth = WrapText ? MathF.Max(40, W - ContentX - Pad) : float.PositiveInfinity,
             LineHeight = Appearance.LineHeight ?? 1.5f,
             WrapLineHeight = Appearance.WrapLineHeight ?? WrapLineHeight,
             DefaultColor = _theme.Peek().Text,
@@ -537,6 +549,14 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
             _gutterText.Z = 1;
             _gutterText.ContentColors = true;
             ctx.Effect(() => _gutterText!.Transform = Affine2D.Translate(0, Pad - _scroll.Clamped));
+        }
+
+        _blockRail = null;
+        if (ShowBlockControls)
+        {
+            _blockRail = ctx.Canvas.AddChild(_root);
+            _blockRail.Z = 20;
+            _blockRail.ContentColors = true;
         }
 
         UiNode clip = ctx.Canvas.AddChild(_root);
@@ -625,7 +645,14 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
                     cb(_geo.HitTest(e.X - ContentX, e.Y - Pad + _scroll.Clamped));
             },
             onDrag: e => Place(e.X, e.Y, extend: true),
-            onMovePos: e => OnHoverMove(e.X, e.Y));
+            onMovePos: e => { OnHoverMove(e.X, e.Y); UpdateHoverBlock(e.Y); },
+            onContext: e => OpenEditorContextMenu(e, Place));
+        if (ShowBlockControls)
+            ctx.AddHit(_root, new Rect(ShowLineNumbers ? _gutterW : Pad, 0, BlockRailWidth, H),
+                cursor: CursorKind.Arrow,
+                onClickPos: e => OpenBlockMenu(e, BlockAtY(e.Y)),
+                onMovePos: e => UpdateHoverBlock(e.Y),
+                onHover: inside => { if (!inside) { _hoverBlock = null; DrawBlockRail(); } });
         ctx.AddScroll(_root, new Rect(0, 0, W, H), d => _scroll.ScrollBy(-d));
         ScrollBars.AttachVertical(ctx, _root, _scroll, W, H, minThumb: 24);
 
@@ -825,6 +852,7 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
         BuildCaret(eff);
         HostWidgets();
         BuildGutter();
+        DrawBlockRail();
         DrawCompletion();
         DrawTip();
     }
@@ -843,6 +871,123 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
             _primaryFont.AppendText(scene, num, x, baseline, _fs, muted);
         }
         _gutterText.Content = scene;
+    }
+
+    private EditorBlock? BlockAtOffset(int offset)
+    {
+        IReadOnlyList<EditorBlock> blocks = Blocks;
+        if (blocks.Count == 0) return null;
+        offset = Math.Clamp(offset, 0, _state.Doc.Length);
+        foreach (EditorBlock block in blocks)
+            if (offset >= block.From && offset <= block.To) return block;
+        return blocks.OrderBy(block => Math.Abs(block.From - offset)).FirstOrDefault();
+    }
+
+    private EditorBlock? BlockAtY(float y)
+    {
+        if (_geo is null) return null;
+        int offset = _geo.HitTest(0, y - Pad + _scroll.Clamped);
+        return BlockAtOffset(offset);
+    }
+
+    private void UpdateHoverBlock(float y)
+    {
+        if (!ShowBlockControls) return;
+        EditorBlock? block = BlockAtY(y);
+        if (_hoverBlock == block) return;
+        _hoverBlock = block;
+        DrawBlockRail();
+    }
+
+    private void DrawBlockRail()
+    {
+        if (_blockRail is null || _geo is null || _primaryFont is null) return;
+        EditorBlock? block = _hoverBlock ?? BlockAtOffset(_state.Selection.Main.Head);
+        var scene = new Scene2D();
+        if (block is { } value)
+        {
+            TextRect caret = _geo.CaretRect(value.From);
+            float y = Pad + caret.Y - _scroll.Clamped;
+            if (y > -caret.Height && y < H)
+            {
+                float x = (ShowLineNumbers ? _gutterW : Pad) + 4;
+                _primaryFont.AppendText(scene, "+  ⋮", x, y + caret.Height * 0.78f,
+                    MathF.Max(12, _fs - 2), _theme.Peek().TextMuted);
+            }
+        }
+        _blockRail.Content = scene;
+    }
+
+    private void OpenEditorContextMenu(PointerEvent e, Action<float, float, bool, bool> place)
+    {
+        if (_geo is null) return;
+        int offset = _geo.HitTest(e.X - ContentX, e.Y - Pad + _scroll.Clamped);
+        SelectionRange selection = _state.Selection.Main;
+        if (selection.Empty || offset < selection.From || offset > selection.To)
+            place(e.X, e.Y, false, false);
+
+        var items = new List<(string Label, Action Action)>();
+        if (!_state.Selection.Main.Empty)
+        {
+            foreach (EditorSelectionAction action in SelectionActions)
+            {
+                EditorSelectionAction captured = action;
+                items.Add((captured.Label, () => Execute(captured)));
+            }
+            items.Add(("Copy", () => CopySelection()));
+            if (!ReadOnly) items.Add(("Cut", () => { if (CopySelection()) Apply(EditCommands.DeleteBackward(_state)); }));
+        }
+        if (!ReadOnly && PlatformClipboard.Current is not null)
+            items.Add(("Paste", () =>
+            {
+                if (PlatformClipboard.Current?.GetText() is { Length: > 0 } paste)
+                    Apply(EditCommands.InsertText(_state, paste));
+            }));
+        if (!ReadOnly)
+            foreach (EditorInsertItem item in ContextInsertItems())
+            {
+                EditorInsertItem captured = item;
+                items.Add(($"Insert {captured.Label}", () => Execute(captured)));
+            }
+        if (items.Count > 0) ContextMenu.Open(_ctx, e.ScreenX, e.ScreenY, items.ToArray());
+    }
+
+    private void OpenBlockMenu(PointerEvent e, EditorBlock? block)
+    {
+        if (ReadOnly || block is not { } value) return;
+        var items = new List<(string Label, Action Action)>();
+        foreach (EditorInsertItem item in ContextInsertItems())
+        {
+            EditorInsertItem captured = item;
+            items.Add(($"Add {captured.Label}", () => InsertAfter(value, captured)));
+        }
+        if (value.CanDelete) items.Add(("Delete block", () => DeleteBlock(value)));
+        ContextMenu.Open(_ctx, e.ScreenX, e.ScreenY, items.ToArray());
+    }
+
+    private IEnumerable<EditorInsertItem> ContextInsertItems()
+    {
+        string[] ids = ["paragraph", "heading-1", "heading-2", "bullet-list", "task-list", "quote", "code-block", "table", "image"];
+        foreach (string id in ids)
+            if (InsertItems.FirstOrDefault(item => item.Id == id) is { } item) yield return item;
+    }
+
+    private void InsertAfter(EditorBlock block, EditorInsertItem item)
+    {
+        int at = block.To;
+        if (at < _state.Doc.Length && _state.Doc.Text[at] == '\n') at++;
+        string prefix = at > 0 && _state.Doc.Text[at - 1] != '\n' ? "\n" : "";
+        var placed = item with { InsertText = prefix + item.InsertText };
+        Apply(EditCommands.SetSelection(_state, EditorSelection.Cursor(at)));
+        Execute(placed);
+    }
+
+    private void DeleteBlock(EditorBlock block)
+    {
+        int from = block.From, to = block.To;
+        if (to < _state.Doc.Length && _state.Doc.Text[to] == '\n') to++;
+        else if (from > 0 && _state.Doc.Text[from - 1] == '\n') from--;
+        Replace(from, to, "");
     }
 
     // 装飾プロバイダを走らせて結果を _state へ (文書は変えないので履歴に積まない・純関数なので冪等)

@@ -300,37 +300,32 @@ public static class TextEditorViewStory
             "- Lists, quotes, code, links and tables come from Markdown\n\n" +
             "> The editor owns interaction; Markdown supplies blocks and actions.\n\n" +
             "---\n\n" +
-            "Use the + menu to insert another block.");
+            "```csharp\n" +
+            "var answer = 42;\n" +
+            "Console.WriteLine(answer);\n" +
+            "```\n\n" +
+            "| Feature | Status |\n" +
+            "| :--- | ---: |\n" +
+            "| Table block | Working |\n" +
+            "| Inline edit | Ready |\n\n" +
+            "![Luxel sample](src/Gallery/Luxel.Gallery/assets/sample-sparkline.png)\n\n" +
+            "Use the block menu on the left or right-click to insert another block.");
 
-        Theme theme = UiTheme.T;
-        var appearance = new TextEditorAppearance(fontSize: 15f, lineHeight: 1.55f, wrapLineHeight: 1.35f)
+        var appearance = new TextEditorAppearance(fontSize: 16f, lineHeight: 1.55f, wrapLineHeight: 1.35f)
             .WithBlock(MarkdownBlockKinds.Heading(1), new TextEditorBlockAppearance(
-                FontSize: 30f, FontVariant: FontVariant.Bold, Foreground: theme.Text))
+                FontSize: 30f, FontVariant: FontVariant.Bold))
             .WithBlock(MarkdownBlockKinds.Heading(2), new TextEditorBlockAppearance(
-                FontSize: 23f, FontVariant: FontVariant.Bold, Foreground: theme.Text))
+                FontSize: 23f, FontVariant: FontVariant.Bold))
             .WithBlock(MarkdownBlockKinds.Quote, new TextEditorBlockAppearance(
-                Foreground: theme.TextMuted, Accent: theme.Primary, Indent: 14f, BarWidth: 3f))
+                Indent: 14f, BarWidth: 3f))
             .WithBlock(MarkdownBlockKinds.CodeBlock, new TextEditorBlockAppearance(
-                FontVariant: FontVariant.Mono, Background: Styles.WithAlpha(theme.Text, 18)))
-            .WithBlock(MarkdownBlockKinds.TaskList, new TextEditorBlockAppearance(Accent: theme.Primary))
-            .WithBlock(MarkdownBlockKinds.HorizontalRule, new TextEditorBlockAppearance(Accent: theme.TextMuted));
+                FontVariant: FontVariant.Mono));
 
         (VectorFont? bold, VectorFont? italic, VectorFont? boldItalic, VectorFont? mono) = EditorFaces.Value;
-        TextEditorView ed = MarkdownDoc.Create(md, () => UiTheme.T, width: 620f, height: 390f,
+        TextEditorView ed = MarkdownDoc.Create(md, () => UiTheme.T, width: 800f, height: 600f,
             bold: bold, italic: italic, boldItalic: boldItalic, mono: mono,
             highlighter: Luxel.Highlight.TextMateHighlighter.Instance,
-            fonts: JpFallback.Value, editable: true, appearance: appearance);
-
-        (string label, Action onClick)[] insertItems = ed.InsertItems
-            .Select(item => (item.Label, (Action)(() => ed.Execute(item))))
-            .ToArray();
-        var toolbarItems = new List<Widget>
-        {
-            Dropdown("＋ Add block", insertItems),
-        };
-        toolbarItems.AddRange(ed.SelectionActions.Select(action =>
-            (Widget)Button(_ => ed.Execute(action), action.Label,
-                variant: Variant.Ghost, fontSize: 12f, height: 30f)));
+            fonts: JpFallback.Value, fill: true, editable: true, appearance: appearance, resources: ctx.Resources);
 
         ctx.Play("format-selection", async d =>
         {
@@ -352,15 +347,7 @@ public static class TextEditorViewStory
             await d.Snap("inserted");
         });
 
-        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
-            VStack(10)[
-                Heading("Markdown editor — Milkdown style"),
-                Muted("Live Preview + 文書形式が供給するブロック追加候補と選択ツールバー。操作UIは TextEditorView 側の汎用機能です。"),
-                Border(background: Bind.From(() => UiTheme.T.Surface), rounded: UiTheme.T.Radius,
-                    padding: new Thickness(6))[
-                    HStack(4)[toolbarItems.ToArray()]],
-                Border(background: Bind.From(() => UiTheme.T.Surface), rounded: UiTheme.T.Radius,
-                    padding: new Thickness(8))[ed]]];
+        return ed;
     }
 
     [Story]
