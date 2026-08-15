@@ -104,22 +104,24 @@ public sealed partial class MenuRow : Widget
     /// <summary>行クリック (EV: 第一引数は発火元の MenuRow 自身)。</summary>
     [UiEvent] public UiEvent<MenuRow> OnClick;
 
-    [UiParam] private readonly Bindable<float> _fontSize = 15f;
+    [UiParam] private readonly Bindable<float> _fontSize = new();
     /// <summary>行の地色。未設定 → hover ? SurfaceAlt : Surface。</summary>
     [UiParam(Stateable = true)] private readonly Bindable<uint> _background = new();
     /// <summary>ラベル色。未設定 → テーマ Text。</summary>
     [UiParam(Stateable = true)] private readonly Bindable<uint> _foreground = new();
 
+    private float Fs(Theme theme) => FontSize.Or(theme.Font);
+
     public override string? DebugDetail => Label.Get();
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
-        (float tw, float th) = ctx.Font.Measure(Label.Get(), FontSize.Get());
+        (float tw, float th) = ctx.Font.Measure(Label.Get(), Fs(ctx.Theme));
         float w = float.IsInfinity(c.MaxW) ? tw + 24 : MathF.Max(c.MaxW, tw + 24);
         Size = new Size(w, th + 12);
     }
 
-    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => ctx.Font.Measure(Label.Get(), FontSize.Get()).width + 24;
+    public override float MaxIntrinsicWidth(float height, LayoutContext ctx) => ctx.Font.Measure(Label.Get(), Fs(ctx.Theme)).width + 24;
 
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
     {
@@ -127,7 +129,7 @@ public sealed partial class MenuRow : Widget
         Point world = WorldPos;
 
         string label = Label.Get();
-        float fontSize = FontSize.Get();
+        float fontSize = Fs(ctx.Theme.Peek());
         var bg = new Scene2D(); bg.FillRoundedRect(Color2D.White, 0, 0, Size.Width, Size.Height, 5);
         node.Content = bg;
         // hover 80ms フェードの状態遷移 (AS-M3)

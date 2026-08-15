@@ -156,6 +156,25 @@ public class EditorGeometryTests
     }
 
     [Fact]
+    public void LineBackground_ExtendsToConfiguredRightEdge()
+    {
+        VectorFont font = F();
+        var config = new EditorConfig
+        {
+            Fonts = new FontCollection(font),
+            FontSize = 14,
+            Wrap = TextWrap.Word,
+            MaxWidth = 320,
+        };
+        EditorState state = EditorState.Create("short")
+            .WithDecorations("line", new DecorationSet([new LineDecoration(0, Yellow)])).State;
+        var geometry = new EditorGeometry(config, state);
+
+        OverlayRect background = geometry.OverlayRects().Single(x => x.Kind == OverlayKind.LineBackground);
+        Assert.Equal(320f, background.Rect.Width);
+    }
+
+    [Fact]
     public void OverlayRects_DoNotRebuildLayout()
     {
         // オーバーレイ (背景/囲み) だけ変えても行 TextLayout は同一インスタンスのまま (キャッシュ再利用)

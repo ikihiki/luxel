@@ -145,7 +145,8 @@ public sealed record LinePrefixDecoration(int At, string Text, uint Color) : Dec
 /// <summary>行グループ <c>[From, To)</c> への装飾 — 背景や左縦バー (引用/コードブロック)。
 /// <see cref="Indent"/> はブロック内の行を右へずらす左余白 px (縦バー/マーカーの場所を確保し、
 /// 行頭 prefix やテキストと重ならないようにする)。背景/バーはインデント前の左端に描かれる。</summary>
-public sealed record BlockDecoration(int From, int To, uint? Background = null, uint? BarColor = null, float BarWidth = 3f, float Indent = 0f) : Decoration
+public sealed record BlockDecoration(int From, int To, uint? Background = null, uint? BarColor = null,
+    float BarWidth = 3f, float Indent = 0f, float Radius = 0f) : Decoration
 {
     /// <inheritdoc/>
     public override int SortFrom => From;

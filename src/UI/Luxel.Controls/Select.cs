@@ -17,16 +17,16 @@ public sealed partial class Select : Widget
 
     private readonly Signal<bool> _open = new(false);
     private const float ChevW = 26;
-    private float _w, _h = 38, _padX = 12, _fs = 15;   // レイアウト時にテーマから確定
+    private float _w, _h = 38, _padX = 12, _fs = 16;   // レイアウト時にテーマから確定
 
-    /// <summary>文字サイズ。未設定 → テーマ Font - 1。</summary>
+    /// <summary>文字サイズ。未設定 → テーマ Font。</summary>
     [UiParam] private readonly Bindable<float> _fontSize = new();
 
     private void CacheMetrics(Theme t)
     {
         _h = t.ControlH;
         _padX = t.PadIn + 2;
-        _fs = FontSize.Or(t.Font - 1);
+        _fs = FontSize.Or(t.Font);
     }
     /// <summary>背景色。未設定 → テーマ SurfaceAlt。</summary>
     [UiParam] private readonly Bindable<uint> _background = new();

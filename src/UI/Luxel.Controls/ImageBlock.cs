@@ -28,6 +28,9 @@ public sealed partial class ImageBlock : Widget, IDisposable
     private Signal<ResourceState>? _state;
     private IDisposable? _stateSubscription;
     private GpuBuffer? _buf;
+    private float _displayWidth, _imageHeight, _captionHeight, _resizeStartWidth;
+    private UiNode? _outline, _caption, _resizeHandle;
+    private FocusTarget? _focus;
 
     // ハンドルは初回参照で取得 (パラメータは構築後に確定するため遅延)
     private ResourceHandle<CpuImage> Handle
@@ -51,11 +54,17 @@ public sealed partial class ImageBlock : Widget, IDisposable
     {
         if (State.HasValue && Handle.Value is CpuImage img && img.Width > 0)
         {
-            float w = MathF.Min(MaxW, img.Width);
-            Size = c.Constrain(new Size(w, w * img.Height / img.Width));   // 等比
+            float natural = MathF.Min(MaxW, img.Width);
+            if (_displayWidth <= 0) _displayWidth = natural;
+            float w = Math.Clamp(_displayWidth, MathF.Min(120, natural), MaxW);
+            _imageHeight = w * img.Height / img.Width;
+            _captionHeight = Pl.Alt.Length > 0 ? ctx.Theme.FontSm + 12 : 0;
+            Size = c.Constrain(new Size(w, _imageHeight + _captionHeight));
         }
         else
         {
+            _imageHeight = 56;
+            _captionHeight = 0;
             Size = c.Constrain(new Size(MaxW, 56));   // プレースホルダ帯
         }
     }
@@ -79,7 +88,43 @@ public sealed partial class ImageBlock : Widget, IDisposable
             _buf = device.Malloc((ulong)(img.Width * img.Height * 4), GpuMemoryKind.HostMapped);
             img.Pixels.AsSpan(0, img.Width * img.Height * 4).CopyTo(_buf.Span<byte>(img.Width * img.Height * 4));
             node.Content = new Scene2D().ImageRect(
-                _buf.BindlessIndex, (uint)img.Width, (uint)img.Width, (uint)img.Height, 0, 0, Size.Width, Size.Height);
+                _buf.BindlessIndex, (uint)img.Width, (uint)img.Width, (uint)img.Height, 0, 0, Size.Width, _imageHeight);
+
+            _outline = ctx.Canvas.AddChild(node); _outline.Z = 2;
+            var outline = new Scene2D();
+            outline.StrokeRoundedRect(Color2D.White, 2, 1, 1, Size.Width - 2, _imageHeight - 2, 5);
+            _outline.Content = outline;
+            ctx.Effect(() => { _outline.Color = ctx.Theme.Value.Primary; _outline.Opacity = Focused.Value ? 1f : 0f; });
+
+            _resizeHandle = ctx.Canvas.AddChild(node); _resizeHandle.Z = 3;
+            var handle = new Scene2D();
+            handle.FillRoundedRect(Color2D.White, Size.Width - 13, _imageHeight - 13, 10, 10, 3);
+            _resizeHandle.Content = handle;
+            ctx.Effect(() => { _resizeHandle.Color = ctx.Theme.Value.Primary; _resizeHandle.Opacity = Focused.Value ? 1f : 0f; });
+
+            if (_captionHeight > 0)
+            {
+                _caption = ctx.Canvas.AddChild(node); _caption.Z = 1;
+                var caption = new Scene2D();
+                float fs = ctx.Theme.Peek().FontSm;
+                float tw = ctx.Font.Measure(Pl.Alt, fs).width;
+                ctx.Font.AppendText(caption, Pl.Alt, MathF.Max(0, (Size.Width - tw) / 2),
+                    _imageHeight + 6 + ctx.Font.Ascent(fs), fs, Color2D.White);
+                _caption.Content = caption;
+                ctx.Effect(() => _caption.Color = ctx.Theme.Value.TextMuted);
+            }
+
+            _focus ??= new FocusTarget { OnFocus = on => Focused.Value = on };
+            FocusTarget focus = ctx.AddFocusable(_focus);
+            ctx.AddHit(node, new Rect(0, 0, Size.Width, Size.Height), focus: focus, cursor: CursorKind.Arrow);
+            ctx.AddHit(node, new Rect(MathF.Max(0, Size.Width - 20), MathF.Max(0, _imageHeight - 20), 20, 20),
+                focus: focus, cursor: CursorKind.ResizeH,
+                onDragStart: _ => _resizeStartWidth = Size.Width,
+                onDrag: e =>
+                {
+                    _displayWidth = Math.Clamp(_resizeStartWidth + e.DeltaX, 120, MaxW);
+                    MarkNeedsRealize();
+                });
             return;
         }
 

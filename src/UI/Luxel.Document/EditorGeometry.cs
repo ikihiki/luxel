@@ -8,7 +8,7 @@ public sealed class EditorConfig
     /// <summary>フォント (フォールバック対応)。</summary>
     public required FontCollection Fonts { get; init; }
     /// <summary>基準文字サイズ px。</summary>
-    public float FontSize { get; init; } = 14f;
+    public float FontSize { get; init; } = 16f;
     /// <summary>折返し (コードは既定 None)。</summary>
     public TextWrap Wrap { get; init; } = TextWrap.None;
     /// <summary>折返し幅 px (Wrap!=None のとき有効)。</summary>
@@ -467,14 +467,18 @@ public sealed class EditorGeometry
                 case LineDecoration ld:
                 {
                     int line = _state.Doc.LineOf(ld.At);
-                    outp.Add(new OverlayRect(new TextRect(0, _tops[line], _indents[line] + _lines[line].Layout.Width, _lines[line].Height), OverlayKind.LineBackground, ld.Background));
+                    float width = float.IsFinite(_cfg.MaxWidth)
+                        ? _cfg.MaxWidth
+                        : _indents[line] + _lines[line].Layout.Width;
+                    outp.Add(new OverlayRect(new TextRect(0, _tops[line], width, _lines[line].Height), OverlayKind.LineBackground, ld.Background));
                     break;
                 }
                 case BlockDecoration bd:
                 {
                     int l0 = _state.Doc.LineOf(bd.From), l1 = _state.Doc.LineOf(bd.To);
                     float y0 = _tops[l0], y1 = _tops[l1] + _lines[l1].Height;
-                    if (bd.Background is { } b) outp.Add(new OverlayRect(new TextRect(0, y0, _cfg.MaxWidth, y1 - y0), OverlayKind.BlockBackground, b));
+                    if (bd.Background is { } b) outp.Add(new OverlayRect(
+                        new TextRect(0, y0, _cfg.MaxWidth, y1 - y0), OverlayKind.BlockBackground, b, Radius: bd.Radius));
                     if (bd.BarColor is { } bar) outp.Add(new OverlayRect(new TextRect(0, y0, bd.BarWidth, y1 - y0), OverlayKind.BlockBar, bar));
                     break;
                 }

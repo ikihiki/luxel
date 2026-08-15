@@ -63,8 +63,9 @@ public sealed partial class TableBlock : Widget, ITextInput
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
-        _fs = ctx.Theme.FontSm + 1;
+        _fs = ctx.Theme.Font;
         _rowH = _fs * 1.9f;
+        float available = float.IsFinite(c.MaxW) ? MathF.Min(MaxW, c.MaxW) : MaxW;
         _colW = new float[Cols];
         for (int col = 0; col < Cols; col++)
         {
@@ -75,11 +76,17 @@ public sealed partial class TableBlock : Widget, ITextInput
             _colW[col] = w;
         }
         float total = _colW.Sum() + 1;
-        if (total > MaxW)   // 収まらないときは比例縮小
+        if (total > available)   // 収まらないときは比例縮小
         {
-            float k = (MaxW - 1) / (total - 1);
+            float k = (available - 1) / (total - 1);
             for (int i = 0; i < _colW.Length; i++) _colW[i] *= k;
-            total = MaxW;
+            total = available;
+        }
+        else if (total < available && _colW.Length > 0)
+        {
+            float extra = (available - total) / _colW.Length;
+            for (int i = 0; i < _colW.Length; i++) _colW[i] += extra;
+            total = available;
         }
         Size = c.Constrain(new Size(total, _rows.Count * _rowH + 1));
     }
@@ -150,7 +157,8 @@ public sealed partial class TableBlock : Widget, ITextInput
                 CommitCell();
                 SelectCell(r, c2);
                 PlaceCaret(e.X);
-            });
+            },
+            onContext: OpenTableMenu);
 
         Refresh();
     }
@@ -210,13 +218,21 @@ public sealed partial class TableBlock : Widget, ITextInput
 
     private void CommitIfDirty()
     {
-        bool dirty = _rows.Count != Pl.Rows.Count;
-        if (!dirty)
-            for (int r = 0; r < _rows.Count && !dirty; r++)
-                for (int c = 0; c < Cols && !dirty; c++)
-                    dirty = Cell(r, c) != Pl.Cell(r, c);
-        if (!dirty) return;
+        if (!HasChanges(Pl, _rows, _aligns)) return;
         Commit.Get()?.Invoke(new TablePayload(_rows.Select(r => (string[])r.Clone()).ToList(), (TableAlign[])_aligns.Clone()));
+    }
+
+    internal static bool HasChanges(TablePayload original, IReadOnlyList<string[]> rows, TableAlign[] aligns)
+    {
+        if (rows.Count != original.Rows.Count || aligns.Length != original.Columns
+            || !aligns.SequenceEqual(original.Aligns)) return true;
+        for (int r = 0; r < rows.Count; r++)
+            for (int c = 0; c < aligns.Length; c++)
+            {
+                string cell = c < rows[r].Length ? rows[r][c] : "";
+                if (cell != original.Cell(r, c)) return true;
+            }
+        return false;
     }
 
     private bool OnKey(KeyEvent ev)
@@ -277,6 +293,61 @@ public sealed partial class TableBlock : Widget, ITextInput
         var row = new string[Cols];
         Array.Fill(row, "");
         _rows.Add(row);
+    }
+
+    private void OpenTableMenu(PointerEvent e)
+    {
+        var items = new List<(string Label, Action Action)>
+        {
+            ("Add row below", () => ChangeStructure(() => _rows.Insert(Math.Clamp(_selR + 1, 1, _rows.Count), new string[Cols]))),
+            ("Add column right", () => ChangeStructure(AddColumnRight)),
+        };
+        if (_rows.Count > 1 && _selR > 0)
+            items.Add(("Delete row", () => ChangeStructure(() => _rows.RemoveAt(_selR))));
+        if (Cols > 1 && _selC >= 0)
+            items.Add(("Delete column", () => ChangeStructure(DeleteSelectedColumn)));
+        ContextMenu.Open(_ctx, e.ScreenX, e.ScreenY, items.ToArray());
+    }
+
+    private void ChangeStructure(Action change)
+    {
+        CommitCell();
+        change();
+        _selR = Math.Clamp(_selR, 0, _rows.Count - 1);
+        _selC = Math.Clamp(_selC, 0, Cols - 1);
+        SelectCell(_selR, _selC);
+        CommitIfDirty();
+        MarkNeedsRealize();
+    }
+
+    private void AddColumnRight()
+    {
+        int at = Math.Clamp(_selC + 1, 0, Cols);
+        for (int r = 0; r < _rows.Count; r++)
+        {
+            var cells = _rows[r].ToList();
+            cells.Insert(at, "");
+            _rows[r] = cells.ToArray();
+        }
+        var aligns = _aligns.ToList();
+        aligns.Insert(at, TableAlign.None);
+        _alignsData = aligns.ToArray();
+        _selC = at;
+    }
+
+    private void DeleteSelectedColumn()
+    {
+        int at = Math.Clamp(_selC, 0, Cols - 1);
+        for (int r = 0; r < _rows.Count; r++)
+        {
+            var cells = _rows[r].ToList();
+            cells.RemoveAt(at);
+            _rows[r] = cells.ToArray();
+        }
+        var aligns = _aligns.ToList();
+        aligns.RemoveAt(at);
+        _alignsData = aligns.ToArray();
+        _selC = Math.Min(at, Cols - 1);
     }
 
     // ---- 描画 ----

@@ -18,16 +18,18 @@ public sealed partial class SegmentedControl : Widget
     [UiParam] private readonly Bindable<string[]> _options = new([]);
     /// <summary>選択 index の signal (クリック/←→ で書き戻す)。</summary>
     [UiParam] private readonly Bindable<Signal<int>> _selected = new();
-    [UiParam] private readonly Bindable<float> _fontSize = 15f;
+    [UiParam] private readonly Bindable<float> _fontSize = new();
     /// <summary>トラック色。未設定 → テーマ SurfaceAlt。</summary>
     [UiParam(Stateable = true)] private readonly Bindable<uint> _background = new();
     /// <summary>選択ハイライト色。未設定 → テーマ Primary。</summary>
     [UiParam(Stateable = true)] private readonly Bindable<uint> _foreground = new();
 
+    private float Fs(Theme theme) => FontSize.Or(theme.Font);
+
     private float SegW(LayoutContext ctx)
     {
         float m = 0;
-        foreach (string o in Options.Get()) m = MathF.Max(m, ctx.Font.Measure(o, FontSize.Get()).width);
+        foreach (string o in Options.Get()) m = MathF.Max(m, ctx.Font.Measure(o, Fs(ctx.Theme)).width);
         return m + Pad * 2;
     }
 
@@ -63,7 +65,7 @@ public sealed partial class SegmentedControl : Widget
         ctx.Effect(() => { int s = sel.Value; st.Goto($"s{s}", ("x", s * _segW)); });
         ctx.Effect(() => hl.Transform = Affine2D.Translate(st.Float("x"), 0));
 
-        float fontSize = FontSize.Get();
+        float fontSize = Fs(ctx.Theme.Peek());
         for (int i = 0; i < opts.Length; i++)
         {
             int idx = i;
@@ -96,19 +98,22 @@ public sealed partial class RadioGroup : Widget
     [UiParam] private readonly Bindable<string[]> _options = new([]);
     /// <summary>選択 index の signal (クリック/↑↓ で書き戻す)。</summary>
     [UiParam] private readonly Bindable<Signal<int>> _selected = new();
-    [UiParam] private readonly Bindable<float> _fontSize = 15f;
+    [UiParam] private readonly Bindable<float> _fontSize = new();
     /// <summary>非選択リング色。未設定 → テーマ SurfaceAlt。</summary>
     [UiParam(Stateable = true)] private readonly Bindable<uint> _background = new();
     /// <summary>選択リング色。未設定 → テーマ Primary。</summary>
     [UiParam(Stateable = true)] private readonly Bindable<uint> _foreground = new();
 
+    private float Fs(Theme theme) => FontSize.Or(theme.Font);
+
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
         string[] opts = Options.Get();
-        (float _, float th) = ctx.Font.Measure("Mg", FontSize.Get());
+        float fontSize = Fs(ctx.Theme);
+        (float _, float th) = ctx.Font.Measure("Mg", fontSize);
         _rowH = MathF.Max(Dot, th);
         float maxW = 0;
-        foreach (string o in opts) maxW = MathF.Max(maxW, ctx.Font.Measure(o, FontSize.Get()).width);
+        foreach (string o in opts) maxW = MathF.Max(maxW, ctx.Font.Measure(o, fontSize).width);
         Size = c.Constrain(new Size(Dot + Gap + maxW, opts.Length * _rowH + (opts.Length - 1) * RowGap));
     }
 
@@ -121,7 +126,7 @@ public sealed partial class RadioGroup : Widget
         Signal<int> sel = Selected.Get();
         FocusRing.Add(ctx, node, -4, -4, Size.Width + 8, Size.Height + 8, 8, Focused);
 
-        float fontSize = FontSize.Get();
+        float fontSize = Fs(ctx.Theme.Peek());
         for (int i = 0; i < opts.Length; i++)
         {
             int idx = i;
@@ -179,17 +184,20 @@ public sealed partial class Tabs : Widget
     [UiParam] private readonly Bindable<Widget[]> _contents = new([]);
     /// <summary>選択 index の signal (クリック/←→ で書き戻す)。</summary>
     [UiParam] private readonly Bindable<Signal<int>> _selected = new();
-    [UiParam] private readonly Bindable<float> _fontSize = 15f;
+    [UiParam] private readonly Bindable<float> _fontSize = new();
     /// <summary>選択タブ下線色。未設定 → テーマ Primary。</summary>
     [UiParam(Stateable = true)] private readonly Bindable<uint> _foreground = new();
+
+    private float Fs(Theme theme) => FontSize.Or(theme.Font);
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
     {
         string[] labels = Labels.Get();
         _tabX = new float[labels.Length + 1];
         float x = 0;
+        float fontSize = Fs(ctx.Theme);
         for (int i = 0; i < labels.Length; i++)
-        { _tabX[i] = x; x += ctx.Font.Measure(labels[i], FontSize.Get()).width + TabPad * 2; }
+        { _tabX[i] = x; x += ctx.Font.Measure(labels[i], fontSize).width + TabPad * 2; }
         _tabX[labels.Length] = x;
         _stripW = x;
 
@@ -231,7 +239,7 @@ public sealed partial class Tabs : Widget
         });
         ctx.Effect(() => underline.Transform = Affine2D.Mul(Affine2D.Translate(st.Float("x"), 0), Affine2D.Scale(st.Float("w"), 1)));
 
-        float fontSize = FontSize.Get();
+        float fontSize = Fs(ctx.Theme.Peek());
         for (int i = 0; i < labels.Length; i++)
         {
             int idx = i;

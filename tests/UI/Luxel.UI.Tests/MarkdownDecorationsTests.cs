@@ -19,7 +19,7 @@ public class MarkdownDecorationsTests
         var set = Build("# Title");                     // '#'=0 ' '=1 "Title"=[2,7)
         MarkDecoration head = At(set, 2, 7);
         Assert.Equal(FontVariant.Bold, head.Variant);
-        Assert.Equal(1.9f, head.FontScale!.Value, 3);   // h1 = 1.9x
+        Assert.Equal(2f, head.FontScale!.Value, 3);   // h1 = browser default 2em
         Assert.Equal(T.Text, head.Foreground);
         Assert.Equal(T.TextMuted, At(set, 0, 2).Foreground);   // "# " マーカは淡色
     }
@@ -66,10 +66,194 @@ public class MarkdownDecorationsTests
         Assert.Equal(T.TextMuted, At(set, 0, 2).Foreground);
     }
 
+    [Theory]
+    [InlineData(1, 2f)]
+    [InlineData(2, 1.5f)]
+    [InlineData(3, 1.17f)]
+    [InlineData(4, 1f)]
+    [InlineData(5, 0.83f)]
+    [InlineData(6, 0.67f)]
+    public void HeadingScale_MatchesBrowserDefaults(int level, float scale)
+        => Assert.Equal(scale, MarkdownDecorations.HeadingScale(level));
+
+    [Fact]
+    public void ReadOnlyTaskList_ShowsCheckboxPrefix()
+    {
+        DecorationSet set = MarkdownDecorations.Build("- [ ] todo\n- [x] done", T, hideMarkers: true);
+        LinePrefixDecoration[] prefixes = set.OfKind<LinePrefixDecoration>().ToArray();
+
+        Assert.Equal(["☐ ", "☑ "], prefixes.Select(x => x.Text));
+        Assert.Contains(set.OfKind<MarkDecoration>(), x => x is { From: 0, To: 6, Hidden: true });
+        Assert.Contains(set.OfKind<MarkDecoration>(), x => x is { From: 11, To: 17, Hidden: true });
+    }
+
+    [Fact]
+    public void ReadOnlyHorizontalRule_HidesSourceAndShowsRule()
+    {
+        DecorationSet set = MarkdownDecorations.Build("---", T, hideMarkers: true);
+
+        Assert.True(At(set, 0, 3).Hidden);
+        Assert.StartsWith("──", set.OfKind<LinePrefixDecoration>().Single().Text);
+    }
+
+    [Fact]
+    public void EditorFeatures_ExposeMarkdownMenusAndBlockBoundaries()
+    {
+        Assert.Contains(MarkdownEditorFeatures.InsertItems, x => x.Id == "table");
+        Assert.Contains(MarkdownEditorFeatures.InsertItems, x => x.Id == "task-list");
+        Assert.Contains(MarkdownEditorFeatures.SelectionActions, x => x.Id == "bold");
+        Assert.Contains(MarkdownEditorFeatures.SelectionActions, x => x.Id == "link");
+
+        TextDoc doc = TextDoc.Of("# Title\n\nparagraph\ncontinued\n\n- [ ] todo\n\n```csharp\ncode\n```");
+        IReadOnlyList<EditorBlock> blocks = MarkdownEditorFeatures.BlockProvider.GetBlocks(doc);
+
+        Assert.Equal(4, blocks.Count);
+        Assert.Equal(MarkdownBlockKinds.Heading(1), blocks[0].Kind);
+        Assert.Equal(MarkdownBlockKinds.Paragraph, blocks[1].Kind);
+        Assert.Equal(MarkdownBlockKinds.TaskList, blocks[2].Kind);
+        Assert.Equal(MarkdownBlockKinds.CodeBlock, blocks[3].Kind);
+        Assert.Equal("paragraph\ncontinued", doc.Slice(blocks[1].From, blocks[1].To));
+        Assert.Equal("```csharp\ncode\n```", doc.Slice(blocks[3].From, blocks[3].To));
+    }
+
+    [Fact]
+    public void BlockDrag_ReordersParagraphsWithoutJoiningTheirMarkdown()
+    {
+        const string markdown = "alpha\n\nbeta\n\ngamma";
+        IReadOnlyList<EditorBlock> blocks = MarkdownEditorFeatures.BlockProvider.GetBlocks(TextDoc.Of(markdown));
+
+        (string moved, int caret) = TextEditorView.MoveBlockText(markdown, blocks[0], blocks[2], after: true);
+
+        Assert.Equal("beta\n\ngamma\n\nalpha", moved);
+        Assert.Equal(moved.IndexOf("alpha", StringComparison.Ordinal), caret);
+    }
+
+    [Fact]
+    public void BlockDrag_KeepsAdjacentListItemsTight()
+    {
+        const string markdown = "- one\n- two\n- three";
+        IReadOnlyList<EditorBlock> blocks = MarkdownEditorFeatures.BlockProvider.GetBlocks(TextDoc.Of(markdown));
+
+        (string moved, _) = TextEditorView.MoveBlockText(markdown, blocks[2], blocks[0], after: false);
+
+        Assert.Equal("- three\n- one\n- two", moved);
+    }
+
     [Fact]
     public void Heading_Level_ScalesDown()
     {
         Assert.Equal(MarkdownDecorations.HeadingScale(2), At(Build("## Sub"), 3, 6).FontScale!.Value, 3);
+    }
+
+    [Fact]
+    public void Appearance_Overrides_Block_Style_From_One_View_Setting()
+    {
+        var appearance = new TextEditorAppearance(fontSize: 16, lineHeight: 1.7f)
+            .WithBlock(MarkdownBlockKinds.Heading(1), new TextEditorBlockAppearance(
+                FontSize: 34f,
+                FontVariant: FontVariant.Italic,
+                Foreground: 0xff3366ff,
+                Background: 0x101820ff));
+
+        DecorationSet set = MarkdownDecorations.Build("# Title", T, appearance: appearance);
+        MarkDecoration heading = At(set, 2, 7);
+
+        Assert.Equal(34f / 16f, heading.FontScale);
+        Assert.Equal(FontVariant.Italic, heading.Variant);
+        Assert.Equal(0xff3366ffu, heading.Foreground);
+        Assert.Contains(set.OfKind<LineDecoration>(), line => line.At == 0 && line.Background == 0x101820ffu);
+    }
+
+    [Fact]
+    public void Provider_Rebuilds_When_View_Appearance_Is_Replaced()
+    {
+        TextEditorAppearance appearance = TextEditorAppearance.Default;
+        var provider = new MarkdownProvider(() => T, appearance: () => appearance);
+        EditorState state = EditorState.Create("# Title");
+
+        Assert.Equal(2f, At(provider.Provide(state), 2, 7).FontScale);
+
+        appearance = appearance.WithBlock(MarkdownBlockKinds.Heading(1),
+            new TextEditorBlockAppearance(FontScale: 2.2f));
+
+        Assert.Equal(2.2f, At(provider.Provide(state), 2, 7).FontScale);
+    }
+
+    [Fact]
+    public void DefaultAppearance_UsesSixteenPixelBaseline()
+        => Assert.Equal(16f, TextEditorAppearance.Default.FontSize);
+
+    [Fact]
+    public void HeadingColor_FollowsTheme_WhenAppearanceOnlyChangesSize()
+    {
+        Theme theme = Theme.Light;
+        var appearance = new TextEditorAppearance().WithBlock(MarkdownBlockKinds.Heading(1),
+            new TextEditorBlockAppearance(FontSize: 30f));
+        var provider = new MarkdownProvider(() => theme, appearance: () => appearance);
+        EditorState state = EditorState.Create("# Title");
+
+        Assert.Equal(Theme.Light.Text, At(provider.Provide(state), 2, 7).Foreground);
+        theme = Theme.Dark;
+        Assert.Equal(Theme.Dark.Text, At(provider.Provide(state), 2, 7).Foreground);
+    }
+
+    [Fact]
+    public void ReadOnlyTable_BecomesEditableTableBlockReference()
+    {
+        const string markdown = "| Name | Value |\n| :--- | ---: |\n| alpha | 1 |";
+        DecorationSet set = MarkdownDecorations.Build(markdown, T, hideMarkers: true);
+        BlockWidgetDecoration widget = set.OfKind<BlockWidgetDecoration>().Single();
+        MarkdownTableRef reference = Assert.IsType<MarkdownTableRef>(widget.Key);
+        TablePayload payload = MarkdownBlockEmbeds.ParseTable(reference.Source);
+
+        Assert.Equal(2, payload.Rows.Count);
+        Assert.Equal(TableAlign.Left, payload.Aligns[0]);
+        Assert.Equal(TableAlign.Right, payload.Aligns[1]);
+        Assert.Contains("| alpha | 1 |", MarkdownBlockEmbeds.SerializeTable(payload));
+    }
+
+    [Fact]
+    public void TableReference_ResolvesToStandardEditableTableBlock()
+    {
+        const string markdown = "| Name | Value |\n| --- | --- |\n| alpha | 1 |";
+        var reference = new MarkdownTableRef(0, markdown.Length, markdown);
+
+        Widget? widget = MarkdownBlockEmbeds.Resolve(new TextEditorView(), reference, resources: null, maxWidth: 480f);
+
+        TableBlock table = Assert.IsType<TableBlock>(widget);
+        Assert.Equal("2x2", table.DebugDetail);
+    }
+
+    [Fact]
+    public void TableChangeDetection_CommitsAnEmptyAddedColumn()
+    {
+        var original = new TablePayload([new[] { "Name", "Value" }, new[] { "alpha", "1" }],
+            [TableAlign.Left, TableAlign.Right]);
+        string[][] rows = [new[] { "Name", "Value", "" }, new[] { "alpha", "1", "" }];
+
+        Assert.True(TableBlock.HasChanges(original, rows,
+            [TableAlign.Left, TableAlign.Right, TableAlign.None]));
+    }
+
+    [Fact]
+    public void LivePreview_RevealsTableSource_WhenCaretIsInsideTable()
+    {
+        const string markdown = "before\n| A | B |\n| --- | --- |\n| 1 | 2 |\nafter";
+        int caret = markdown.IndexOf("1 | 2", StringComparison.Ordinal);
+        DecorationSet set = MarkdownDecorations.Build(markdown, T, hideMarkers: true,
+            reveal: pos => pos <= caret && caret <= markdown.IndexOf('\n', caret));
+
+        Assert.Empty(set.OfKind<BlockWidgetDecoration>());
+    }
+
+    [Fact]
+    public void ReadOnlyImageLine_BecomesImageBlockReference()
+    {
+        DecorationSet set = MarkdownDecorations.Build("![sample](assets/sample.png)", T, hideMarkers: true);
+        MarkdownImageRef image = Assert.IsType<MarkdownImageRef>(set.OfKind<BlockWidgetDecoration>().Single().Key);
+
+        Assert.Equal("assets/sample.png", image.Src);
+        Assert.Equal("sample", image.Alt);
     }
 
     [Fact]
@@ -112,11 +296,16 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
-    public void FencedCode_LinesGetBackgroundAndMono()
+    public void FencedCode_GetsFullWidthRoundedBackgroundAndMonoText()
     {
         var set = Build("```\ncode\n```");                    // ```=[0,3) \n=3 code=[4,8) \n=8 ```=[9,12)
-        Assert.Contains(set.OfKind<LineDecoration>(), l => l.At == 4);          // コード行の背景
-        Assert.Equal(FontVariant.Mono, At(set, 4, 8).Variant);                  // コード本文は等幅
+        BlockDecoration block = Assert.Single(set.OfKind<BlockDecoration>());
+        Assert.Equal((4, 8), (block.From, block.To));
+        Assert.Equal(12f, block.Indent);
+        Assert.Equal(4f, block.Radius);
+        MarkDecoration code = At(set, 4, 8);
+        Assert.Equal(FontVariant.Mono, code.Variant);                            // コード本文は等幅
+        Assert.Equal(14f / 16f, code.FontScale);                                 // Web 標準相当の 14px
     }
 
     [Fact]

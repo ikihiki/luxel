@@ -21,6 +21,28 @@ public class UiThemeTests
     }
 
     [Fact]
+    public void Theme_UsesWebTypographyScale()
+    {
+        Theme theme = Theme.Light;
+
+        Assert.Equal(16f, theme.Font);
+        Assert.Equal(14f, theme.FontSm);
+        Assert.Equal(24f, theme.FontLg);
+        Assert.Equal(32f, theme.FontHeading);
+    }
+
+    [Fact]
+    public void CompactTheme_PreservesReadableTypography()
+    {
+        Theme compact = Theme.Light.Compact();
+
+        Assert.Equal(Theme.Light.Font, compact.Font);
+        Assert.Equal(Theme.Light.FontSm, compact.FontSm);
+        Assert.Equal(Theme.Light.FontLg, compact.FontLg);
+        Assert.Equal(Theme.Light.FontHeading, compact.FontHeading);
+    }
+
+    [Fact]
     public void Styles_FilledPrimary_UsesAccentBg()
     {
         VisualStyle vs = Styles.Resolve(Theme.Light, Variant.Filled, Intent.Primary, ControlState.Normal);

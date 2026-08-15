@@ -291,6 +291,66 @@ public static class TextEditorViewStory
     }
 
     [Story]
+    public static Widget MilkdownStyleEditor(StoryContext ctx)
+    {
+        Signal<string> md = ctx.Signal("milkdown-md",
+            "# Milkdown-style editor\n\n" +
+            "Select text and use the toolbar to apply **formatting**.\n\n" +
+            "- [ ] Add a task\n" +
+            "- Lists, quotes, code, links and tables come from Markdown\n\n" +
+            "> The editor owns interaction; Markdown supplies blocks and actions.\n\n" +
+            "---\n\n" +
+            "```csharp\n" +
+            "var answer = 42;\n" +
+            "Console.WriteLine(answer);\n" +
+            "```\n\n" +
+            "| Feature | Status |\n" +
+            "| :--- | ---: |\n" +
+            "| Table block | Working |\n" +
+            "| Inline edit | Ready |\n\n" +
+            "![Luxel sample](src/Gallery/Luxel.Gallery/assets/sample-sparkline.png)\n\n" +
+            "Use the block menu on the left or right-click to insert another block.");
+
+        var appearance = new TextEditorAppearance(fontSize: 16f, lineHeight: 1.55f, wrapLineHeight: 1.35f)
+            .WithBlock(MarkdownBlockKinds.Heading(1), new TextEditorBlockAppearance(
+                FontSize: 32f, FontVariant: FontVariant.Bold))
+            .WithBlock(MarkdownBlockKinds.Heading(2), new TextEditorBlockAppearance(
+                FontSize: 24f, FontVariant: FontVariant.Bold))
+            .WithBlock(MarkdownBlockKinds.Quote, new TextEditorBlockAppearance(
+                Indent: 14f, BarWidth: 3f))
+            .WithBlock(MarkdownBlockKinds.CodeBlock, new TextEditorBlockAppearance(
+                FontVariant: FontVariant.Mono));
+
+        (VectorFont? bold, VectorFont? italic, VectorFont? boldItalic, VectorFont? mono) = EditorFaces.Value;
+        TextEditorView ed = MarkdownDoc.Create(md, () => UiTheme.T, width: 800f, height: 600f,
+            bold: bold, italic: italic, boldItalic: boldItalic, mono: mono,
+            highlighter: Luxel.Highlight.TextMateHighlighter.Instance,
+            fonts: JpFallback.Value, fill: true, editable: true, appearance: appearance, resources: ctx.Resources);
+
+        ctx.Play("format-selection", async d =>
+        {
+            int from = ed.Text.IndexOf("Select text", StringComparison.Ordinal);
+            ((ITextInput)ed).Select(from, from + "Select text".Length);
+            ed.Execute(ed.SelectionActions.Single(x => x.Id == "bold"));
+            await d.Step(1);
+            await d.Expect(() => ed.Text.Contains("**Select text**", StringComparison.Ordinal),
+                "選択ツールバーの操作が Markdown 記法として反映される");
+            await d.Snap("formatted");
+        });
+        ctx.Play("insert-block", async d =>
+        {
+            ((ITextInput)ed).Select(ed.Text.Length, ed.Text.Length);
+            ed.Execute(ed.InsertItems.Single(x => x.Id == "task-list"));
+            await d.Step(1);
+            await d.Expect(() => ed.Text.EndsWith("- [ ] ", StringComparison.Ordinal),
+                "追加メニューの候補が現在位置へ挿入される");
+            await d.Snap("inserted");
+        });
+
+        return ed;
+    }
+
+    [Story]
     public static Widget MarkdownDocStory(StoryContext ctx)
     {
         // 文書レンダラを 1 ファクトリで (WS-A / ADR-0012、Kit.Docs() 差し替えの部品):

@@ -193,7 +193,7 @@ public sealed partial class Toolbar : CompositeControl
         {
             Command c = cmd;
             buttons.Add(c.IsEnabled
-                ? Button(_ => c.Run(), c.Title, variant: Variant.Ghost, fontSize: 12f)
+                ? Button(_ => c.Run(), c.Title, variant: Variant.Ghost, fontSize: UiTheme.T.FontSm)
                 : Text(c.Title, 12, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8, 6, 8, 0)));
         }
         return HStack(2)[buttons.ToArray()];
