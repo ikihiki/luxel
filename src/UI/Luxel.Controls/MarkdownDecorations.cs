@@ -237,7 +237,7 @@ public static class MarkdownDecorations
         {
             if (to <= from) return;
             float? scale = style.FontSize is { } size
-                ? size / (appearance?.FontSize ?? t.FontSm)
+                ? size / (appearance?.FontSize ?? TextEditorAppearance.Default.FontSize ?? t.FontSm)
                 : style.FontScale;
             if (scale is null && style.FontVariant is null && style.Foreground is null) return;
             target.Add(new MarkDecoration(from, to, Foreground: style.Foreground,
@@ -285,6 +285,8 @@ public static class MarkdownDecorations
         int lineStart = 0;
         bool inFence = false;
         string fenceLang = "";
+        int codeStart = 0, codeLastEnd = 0;
+        TextEditorBlockAppearance? activeCodeStyle = null;
         bool inEmbed = false;
         int embedStart = 0;
         string embedKey = "";
@@ -333,18 +335,32 @@ public static class MarkdownDecorations
                     lineStart = end + 1;
                     continue;
                 }
+                if (inFence && activeCodeStyle is { } closingStyle && codeLastEnd >= codeStart
+                    && closingStyle.Background is { } blockBackground)
+                    marks.Add(new BlockDecoration(codeStart, codeLastEnd, Background: blockBackground,
+                        Indent: closingStyle.Indent ?? 12f, Radius: 4f));
                 marks.Add(Marker(lineStart, end));
                 Consume(consumed, lineStart, end);
-                fenceLang = inFence ? "" : info;   // 開き = info を言語に / 閉じ = クリア
+                if (!inFence)
+                {
+                    fenceLang = info;
+                    codeStart = end + 1;
+                    codeLastEnd = codeStart;
+                    activeCodeStyle = Resolve(MarkdownBlockKinds.CodeBlock,
+                        new TextEditorBlockAppearance(FontSize: 14f, FontVariant: FontVariant.Mono,
+                            Background: codeBg, Indent: 12f));
+                }
+                else { fenceLang = ""; activeCodeStyle = null; }
                 inFence = !inFence;
                 lineStart = end + 1;
                 continue;
             }
             if (inFence)
             {
-                TextEditorBlockAppearance codeStyle = Resolve(MarkdownBlockKinds.CodeBlock,
-                    new TextEditorBlockAppearance(FontVariant: FontVariant.Mono, Background: codeBg));
-                if (codeStyle.Background is { } codeBackground) marks.Add(new LineDecoration(lineStart, codeBackground));
+                TextEditorBlockAppearance codeStyle = activeCodeStyle ?? Resolve(MarkdownBlockKinds.CodeBlock,
+                    new TextEditorBlockAppearance(FontSize: 14f, FontVariant: FontVariant.Mono,
+                        Background: codeBg, Indent: 12f));
+                codeLastEnd = end;
                 AddTextStyle(marks, lineStart, end, codeStyle);
                 // シンタックスハイライトを装飾で (実テキストのまま = 選択可能・widget 化しない)
                 if (highlighter is { } hl && fenceLang.Length > 0 && hl.Supports(fenceLang))
@@ -461,6 +477,11 @@ public static class MarkdownDecorations
             }
             lineStart = end + 1;   // +1 = '\n'
         }
+
+        if (inFence && activeCodeStyle is { } unfinishedStyle && codeLastEnd >= codeStart
+            && unfinishedStyle.Background is { } unfinishedBackground)
+            marks.Add(new BlockDecoration(codeStart, codeLastEnd, Background: unfinishedBackground,
+                Indent: unfinishedStyle.Indent ?? 12f, Radius: 4f));
 
         // --- 行内: リンク [text](url) → text をアクセント色+下線、括弧/URL は淡色 ---
         // ただし url が `<kind>:<body>` で kind が埋め込み種別なら**行内 widget** (WidgetDecoration) に置換

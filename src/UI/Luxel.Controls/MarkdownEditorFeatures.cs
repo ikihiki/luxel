@@ -12,19 +12,19 @@ public static class MarkdownEditorFeatures
 
     public static IReadOnlyList<EditorInsertItem> InsertItems { get; } =
     [
-        new("paragraph", "Text", ""),
-        new("heading-1", "Heading 1", "# "),
-        new("heading-2", "Heading 2", "## "),
-        new("heading-3", "Heading 3", "### "),
-        new("bullet-list", "Bullet list", "- "),
-        new("ordered-list", "Numbered list", "1. "),
-        new("task-list", "Task list", "- [ ] "),
-        new("quote", "Quote", "> "),
-        new("code-block", "Code block", "```\n\n```", CaretBack: 4),
-        new("horizontal-rule", "Divider", "---\n"),
-        new("link", "Link", "[text](url)", CaretBack: 1),
-        new("image", "Image", "![alt](url)", CaretBack: 1),
-        new("table", "Table", "| Column | Column |\n| --- | --- |\n| Value | Value |"),
+        new("paragraph", "Text", "", Detail: "Paragraph"),
+        new("heading-1", "Heading 1", "# ", Detail: "Large title"),
+        new("heading-2", "Heading 2", "## ", Detail: "Section title"),
+        new("heading-3", "Heading 3", "### ", Detail: "Subsection"),
+        new("bullet-list", "Bullet list", "- ", Detail: "Unordered list"),
+        new("ordered-list", "Numbered list", "1. ", Detail: "Ordered list"),
+        new("task-list", "Task list", "- [ ] ", Detail: "Checklist"),
+        new("quote", "Quote", "> ", Detail: "Block quote"),
+        new("code-block", "Code block", "```\n\n```", CaretBack: 4, Detail: "Fenced code"),
+        new("horizontal-rule", "Divider", "---\n", Detail: "Horizontal rule"),
+        new("link", "Link", "[text](url)", CaretBack: 1, Detail: "Inline link"),
+        new("image", "Image", "![alt](url)", CaretBack: 1, Detail: "Image URL"),
+        new("table", "Table", "| Column | Column |\n| --- | --- |\n| Value | Value |", Detail: "Editable table"),
     ];
 
     public static IReadOnlyList<EditorSelectionAction> SelectionActions { get; } =

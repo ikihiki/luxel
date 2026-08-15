@@ -477,7 +477,8 @@ public sealed class EditorGeometry
                 {
                     int l0 = _state.Doc.LineOf(bd.From), l1 = _state.Doc.LineOf(bd.To);
                     float y0 = _tops[l0], y1 = _tops[l1] + _lines[l1].Height;
-                    if (bd.Background is { } b) outp.Add(new OverlayRect(new TextRect(0, y0, _cfg.MaxWidth, y1 - y0), OverlayKind.BlockBackground, b));
+                    if (bd.Background is { } b) outp.Add(new OverlayRect(
+                        new TextRect(0, y0, _cfg.MaxWidth, y1 - y0), OverlayKind.BlockBackground, b, Radius: bd.Radius));
                     if (bd.BarColor is { } bar) outp.Add(new OverlayRect(new TextRect(0, y0, bd.BarWidth, y1 - y0), OverlayKind.BlockBar, bar));
                     break;
                 }

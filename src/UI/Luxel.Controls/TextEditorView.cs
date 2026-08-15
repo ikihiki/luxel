@@ -121,8 +121,10 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
     private Signal<Theme> _theme = UiTheme.Current;
     private UiNode _root = null!, _content = null!, _selNode = null!, _caretNode = null!;
     private UiNode _textLayer = null!, _overlayBg = null!, _overlayFg = null!;
-    private UiNode? _gutter, _gutterText, _blockRail;
+    private UiNode? _gutter, _gutterText, _blockRail, _dropIndicator;
     private EditorBlock? _hoverBlock;
+    private EditorBlock? _dragBlock, _dropBlock;
+    private bool _dropAfter;
     private readonly List<UiNode> _colorNodes = new();
     private FocusTarget? _focus;
     private Rect _caretLocal;
@@ -162,7 +164,9 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
     public int CursorCount => _state.Selection.Ranges.Count;
 
     /// <summary>Editor の汎用 UI から挿入候補を実行する。</summary>
-    public void Execute(EditorInsertItem item) => Apply(EditorContributionCommands.Insert(_state, item));
+    public void Execute(EditorInsertItem item)
+        => Apply(EditorContributionCommands.Insert(_state,
+            item.InsertText.Length == 0 ? item with { InsertText = "\n" } : item));
 
     /// <summary>Editor の汎用 UI から選択操作を実行する。</summary>
     public void Execute(EditorSelectionAction action) => Apply(EditorContributionCommands.Apply(_state, action));
@@ -267,6 +271,11 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
     /// <summary>ホバーツールチップの文字列。</summary>
     public string HoverTipText => _tipText;
 
+    /// <summary>文書形式のスラッシュメニューが開いているか。</summary>
+    public bool SlashMenuOpen => _slashOpen;
+    /// <summary>現在表示中のスラッシュメニュー候補数。</summary>
+    public int SlashMenuCount => _slashItems.Count;
+
     private bool _compOpen;
     private IReadOnlyList<CodeCompletion> _compAll = [];
     private IReadOnlyList<CodeCompletion> _comp = [];
@@ -274,6 +283,14 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
     private UiNode? _popupBg, _popupSel, _popupText;
     private const int MaxCompRows = 8;
     private const float PopupHitW = 320f;
+
+    private bool _slashOpen;
+    private IReadOnlyList<EditorInsertItem> _slashItems = [];
+    private int _slashSel, _slashTop, _slashTrigger;
+
+    private UiNode? _selectionBar, _selectionBarText;
+    private const float SelectionActionW = 68f;
+    private const float SelectionBarH = 32f;
 
     private float _hoverX = -1, _hoverY = -1;
     private int _dwellFrames;
@@ -312,6 +329,60 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
         Refresh();
     }
 
+    private void OpenSlashMenu()
+    {
+        if (InsertItems.Count == 0) return;
+        int caret = _state.Selection.Main.Head;
+        int slash = caret - 1;
+        if (slash < 0 || _state.Doc.Text[slash] != '/') return;
+        int lineStart = _state.Doc.Text.LastIndexOf('\n', Math.Max(0, slash - 1)) + 1;
+        if (_state.Doc.Text[lineStart..slash].Any(c => !char.IsWhiteSpace(c))) return;
+        _compOpen = false;
+        _slashTrigger = slash;
+        _slashItems = InsertItems;
+        _slashSel = 0;
+        _slashOpen = true;
+        Refresh();
+    }
+
+    private void CloseSlashMenu()
+    {
+        if (!_slashOpen) return;
+        _slashOpen = false;
+        Refresh();
+    }
+
+    private void RefilterSlashMenu()
+    {
+        if (!_slashOpen) return;
+        int caret = _state.Selection.Main.Head;
+        if (caret <= _slashTrigger || _slashTrigger >= _state.Doc.Length || _state.Doc.Text[_slashTrigger] != '/')
+        { _slashOpen = false; return; }
+        string query = _state.Doc.Text[(_slashTrigger + 1)..caret];
+        _slashItems = query.Length == 0
+            ? InsertItems
+            : InsertItems.Where(item => item.Label.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || item.Id.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
+        _slashSel = Math.Clamp(_slashSel, 0, Math.Max(0, _slashItems.Count - 1));
+        if (_slashItems.Count == 0) _slashOpen = false;
+    }
+
+    private void ConfirmSlashMenu()
+    {
+        if (!_slashOpen || _slashItems.Count == 0) { CloseSlashMenu(); return; }
+        EditorInsertItem item = _slashItems[Math.Clamp(_slashSel, 0, _slashItems.Count - 1)];
+        if (item.InsertText.Length == 0) item = item with { InsertText = "\n" };
+        int caret = _state.Selection.Main.Head;
+        _slashOpen = false;
+        int caretInInsert = Math.Clamp(item.InsertText.Length - item.CaretBack, 0, item.InsertText.Length);
+        Apply(_state.Update(new TransactionSpec
+        {
+            Changes = [new ChangeSpec(_slashTrigger, caret, item.InsertText)],
+            Selection = EditorSelection.Cursor(_slashTrigger + caretInInsert),
+            ScrollIntoView = true,
+        }));
+    }
+
     // トリガーからキャレットまでの断片で候補を絞る (prefix 優先 → 大小無視の包含)
     private void RefilterCompletion()
     {
@@ -346,6 +417,14 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
 
     private void PopupRowClick(int row)
     {
+        if (_slashOpen)
+        {
+            int slashIndex = _slashTop + row;
+            if (slashIndex >= _slashItems.Count) return;
+            _slashSel = slashIndex;
+            ConfirmSlashMenu();
+            return;
+        }
         if (!_compOpen) return;
         int idx = _compTop + row;
         if (idx < 0 || idx >= _comp.Count) return;
@@ -385,7 +464,9 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
     private void DrawCompletion()
     {
         if (_popupBg is null) return;
-        if (!_compOpen || _comp.Count == 0 || _primaryFont is null)
+        bool slash = _slashOpen && _slashItems.Count > 0;
+        bool code = _compOpen && _comp.Count > 0;
+        if ((!slash && !code) || _primaryFont is null)
         {
             _popupBg.Visible = _popupSel!.Visible = _popupText!.Visible = false;
             _popupBg.Content = null; _popupSel.Content = null; _popupText.Content = null;
@@ -393,14 +474,22 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
         }
         _popupBg.Visible = _popupSel!.Visible = _popupText!.Visible = true;
         VectorFont font = _primaryFont;
-        float rowH = _fs + 8;
-        int n = Math.Min(MaxCompRows, _comp.Count);
+        float rowH = _fs + 16;
+        int total = slash ? _slashItems.Count : _comp.Count;
+        int selected = slash ? _slashSel : _compSel;
+        int n = Math.Min(MaxCompRows, total);
         float wpx = 0;
-        foreach (CodeCompletion it in _comp.Take(MaxCompRows))
-            wpx = MathF.Max(wpx, font.Measure($"{it.Label}  {it.Kind}", _fs).width);
-        wpx += 16;
+        if (slash)
+            foreach (EditorInsertItem item in _slashItems.Take(MaxCompRows))
+                wpx = MathF.Max(wpx, font.Measure(item.Label, _fs).width
+                    + font.Measure(item.Detail ?? item.Id, _theme.Peek().FontSm).width + 36);
+        else
+            foreach (CodeCompletion it in _comp.Take(MaxCompRows))
+                wpx = MathF.Max(wpx, font.Measure($"{it.Label}  {it.Kind}", _fs).width + 16);
+        wpx = Math.Clamp(wpx, 220, PopupHitW);
         float ph = n * rowH + 4;
-        _compTop = Math.Clamp(_compSel - MaxCompRows + 1, 0, Math.Max(0, _comp.Count - MaxCompRows));
+        int top = Math.Clamp(selected - MaxCompRows + 1, 0, Math.Max(0, total - MaxCompRows));
+        if (slash) _slashTop = top; else _compTop = top;
 
         PopupSolve sol = PopupPlacer.Solve(CaretLocalRect(), new Size(wpx, ph), LocalViewport(),
             new AnchoredPlacement { Side = PopupSide.Below, Align = PopupAlign.Start, Gap = 2, Margin = 4 });
@@ -411,18 +500,30 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
         _popupBg.Content = bg;
 
         var sel = new Scene2D();
-        sel.FillRect(Color2D.White, 2, 2 + (_compSel - _compTop) * rowH, wpx - 4, rowH);
+        sel.FillRoundedRect(Color2D.White, 2, 2 + (selected - top) * rowH, wpx - 4, rowH, 4);
         _popupSel.Content = sel;
 
         Theme t = _theme.Peek();
         var txt = new Scene2D();
         for (int i = 0; i < n; i++)
         {
-            CodeCompletion it = _comp[_compTop + i];
             float y = 2 + i * rowH + (rowH - _fs) / 2 + font.Ascent(_fs);
-            font.AppendText(txt, it.Label, 6, y, _fs, t.Text);
-            float kx = wpx - 8 - font.Measure(it.Kind, _fs).width;
-            font.AppendText(txt, it.Kind, kx, y, _fs, t.TextMuted);
+            if (slash)
+            {
+                EditorInsertItem item = _slashItems[top + i];
+                font.AppendText(txt, item.Label, 12, y, _fs, t.Text);
+                string detail = item.Detail ?? item.Id;
+                float ds = t.FontSm;
+                float dx = wpx - 12 - font.Measure(detail, ds).width;
+                font.AppendText(txt, detail, dx, y - (_fs - ds) / 2, ds, t.TextMuted);
+            }
+            else
+            {
+                CodeCompletion it = _comp[top + i];
+                font.AppendText(txt, it.Label, 6, y, _fs, t.Text);
+                float kx = wpx - 8 - font.Measure(it.Kind, _fs).width;
+                font.AppendText(txt, it.Kind, kx, y, _fs, t.TextMuted);
+            }
         }
         _popupText.Content = txt;
     }
@@ -449,6 +550,44 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
         var txt = new Scene2D();
         _primaryFont.AppendText(txt, _tipText, 6, (h - _fs) / 2 + font.Ascent(_fs), _fs, _theme.Peek().Text);
         _tipTxt.Content = txt;
+    }
+
+    private void DrawSelectionToolbar()
+    {
+        if (_selectionBar is null || _selectionBarText is null || _geo is null || _primaryFont is null) return;
+        SelectionRange selection = _state.Selection.Main;
+        if (selection.Empty || SelectionActions.Count == 0)
+        {
+            _selectionBar.Visible = _selectionBarText.Visible = false;
+            _selectionBar.Content = null;
+            _selectionBarText.Content = null;
+            return;
+        }
+
+        IReadOnlyList<TextRect> rects = _geo.SelectionRects(selection.From, selection.To);
+        if (rects.Count == 0) return;
+        _selectionBar.Visible = _selectionBarText.Visible = true;
+        float width = SelectionActions.Count * SelectionActionW;
+        TextRect first = rects[0];
+        var anchor = new Rect(ContentX + first.X, Pad + first.Y - _scroll.Clamped,
+            MathF.Max(2, first.Width), first.Height);
+        PopupSolve sol = PopupPlacer.Solve(anchor, new Size(width, SelectionBarH), LocalViewport(),
+            new AnchoredPlacement { Side = PopupSide.Above, Align = PopupAlign.Start, Gap = 6, Margin = 4 });
+        _selectionBar.Transform = Affine2D.Translate(sol.Rect.X, sol.Rect.Y);
+
+        var bg = new Scene2D();
+        bg.FillRoundedRect(Color2D.White, 0, 0, width, SelectionBarH, 7);
+        _selectionBar.Content = bg;
+        Theme theme = _theme.Peek();
+        var text = new Scene2D();
+        for (int i = 0; i < SelectionActions.Count; i++)
+        {
+            string label = SelectionActions[i].Label;
+            float tw = _primaryFont.Measure(label, theme.FontSm).width;
+            _primaryFont.AppendText(text, label, i * SelectionActionW + (SelectionActionW - tw) / 2,
+                (SelectionBarH - theme.FontSm) / 2 + _primaryFont.Ascent(theme.FontSm), theme.FontSm, theme.Text);
+        }
+        _selectionBarText.Content = text;
     }
 
     private void EnsureInit()
@@ -552,11 +691,15 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
         }
 
         _blockRail = null;
+        _dropIndicator = null;
         if (ShowBlockControls)
         {
             _blockRail = ctx.Canvas.AddChild(_root);
             _blockRail.Z = 20;
             _blockRail.ContentColors = true;
+            _dropIndicator = ctx.Canvas.AddChild(_root);
+            _dropIndicator.Z = 19;
+            _dropIndicator.ContentColors = true;
         }
 
         UiNode clip = ctx.Canvas.AddChild(_root);
@@ -611,7 +754,7 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
         {
             OnFocus = on => { Focused.Value = on; if (on) _caretOn.Value = true; },
             OnKey = OnKey,
-            OnText = s => { _compText = ""; Apply(EditCommands.InsertText(_state, s)); },
+            OnText = HandleTextInput,
             OnComposeEx = c =>
             {
                 if (_state.Selection.Ranges.Count > 1) _state = EditCommands.ClearSecondaryCursors(_state).State;   // IME は主のみ
@@ -648,11 +791,20 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
             onMovePos: e => { OnHoverMove(e.X, e.Y); UpdateHoverBlock(e.Y); },
             onContext: e => OpenEditorContextMenu(e, Place));
         if (ShowBlockControls)
-            ctx.AddHit(_root, new Rect(ShowLineNumbers ? _gutterW : Pad, 0, BlockRailWidth, H),
-                cursor: CursorKind.Arrow,
+        {
+            float railX = ShowLineNumbers ? _gutterW : Pad;
+            ctx.AddHit(_root, new Rect(railX, 0, BlockRailWidth / 2, H),
+                cursor: CursorKind.Hand,
                 onClickPos: e => OpenBlockMenu(e, BlockAtY(e.Y)),
+                onMovePos: e => UpdateHoverBlock(e.Y));
+            ctx.AddHit(_root, new Rect(railX + BlockRailWidth / 2, 0, BlockRailWidth / 2, H),
+                cursor: CursorKind.Hand,
+                onDragStart: e => { _dragBlock = BlockAtY(e.Y); _dropBlock = _dragBlock; _dropAfter = false; DrawBlockRail(); DrawDropIndicator(); },
+                onDrag: e => UpdateBlockDrop(e.Y),
+                onDragEnd: _ => FinishBlockDrop(),
                 onMovePos: e => UpdateHoverBlock(e.Y),
-                onHover: inside => { if (!inside) { _hoverBlock = null; DrawBlockRail(); } });
+                onHover: inside => { if (!inside && _dragBlock is null) { _hoverBlock = null; DrawBlockRail(); } });
+        }
         ctx.AddScroll(_root, new Rect(0, 0, W, H), d => _scroll.ScrollBy(-d));
         ScrollBars.AttachVertical(ctx, _root, _scroll, W, H, minThumb: 24);
 
@@ -666,13 +818,25 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
         ctx.Effect(() => _tipBg.Color = _theme.Value.Surface);
         _tipTxt = ctx.Canvas.AddChild(_tipBg); _tipTxt.Z = 1; _tipTxt.ContentColors = true;
 
-        float rh0 = _fs + 8;
+        _selectionBar = ctx.Canvas.AddChild(_root); _selectionBar.Z = 2100;
+        ctx.Effect(() => _selectionBar!.Color = _theme.Value.Surface);
+        _selectionBarText = ctx.Canvas.AddChild(_selectionBar); _selectionBarText.Z = 1; _selectionBarText.ContentColors = true;
+        for (int i = 0; i < SelectionActions.Count; i++)
+        {
+            int actionIndex = i;
+            ctx.AddHit(_selectionBar, new Rect(i * SelectionActionW, 0, SelectionActionW, SelectionBarH),
+                onClick: () => Execute(SelectionActions[actionIndex]), cursor: CursorKind.Hand)
+                .Active = () => !_state.Selection.Main.Empty && actionIndex < SelectionActions.Count;
+        }
+
+        float rh0 = _fs + 16;
         for (int i = 0; i < MaxCompRows; i++)
         {
             int row = i;
             ctx.AddHit(_popupBg, new Rect(0, 2 + row * rh0, PopupHitW, rh0),
                 onClick: () => PopupRowClick(row))
-                .Active = () => _compOpen && row < Math.Min(MaxCompRows, _comp.Count);
+                .Active = () => (_compOpen && row < Math.Min(MaxCompRows, _comp.Count))
+                    || (_slashOpen && row < Math.Min(MaxCompRows, _slashItems.Count));
         }
 
         // dwell ホバー: 同一位置に DwellFrames 留まったらツールチップ (フレーム基準 = 決定的)
@@ -698,6 +862,19 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
     private bool OnKey(KeyEvent ev)
     {
         if (OnKeyIntercept is { } hook && hook(ev)) return true;   // 上位カスタムが横取り
+
+        if (_slashOpen)
+        {
+            switch (ev.Key)
+            {
+                case Key.Up: _slashSel = (_slashSel - 1 + _slashItems.Count) % _slashItems.Count; DrawCompletion(); return true;
+                case Key.Down: _slashSel = (_slashSel + 1) % _slashItems.Count; DrawCompletion(); return true;
+                case Key.Enter or Key.Tab: ConfirmSlashMenu(); return true;
+                case Key.Escape: CloseSlashMenu(); return true;
+                case Key.Left or Key.Right or Key.Home or Key.End: CloseSlashMenu(); break;
+                default: break;
+            }
+        }
 
         // 補完ポップアップが開いている間はナビゲーションを奪う
         if (_compOpen)
@@ -816,6 +993,7 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
         Value.Get().Value = _state.Doc.Text;
         _caretOn.Value = true;
         if (_compOpen) RefilterCompletion();   // タイプ/削除で候補を絞り直す (0 件で閉じる)
+        if (_slashOpen) RefilterSlashMenu();
         Refresh();
         EnsureCaretVisible();
     }
@@ -853,7 +1031,9 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
         HostWidgets();
         BuildGutter();
         DrawBlockRail();
+        DrawDropIndicator();
         DrawCompletion();
+        DrawSelectionToolbar();
         DrawTip();
     }
 
@@ -871,6 +1051,13 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
             _primaryFont.AppendText(scene, num, x, baseline, _fs, muted);
         }
         _gutterText.Content = scene;
+    }
+
+    private void HandleTextInput(string text)
+    {
+        _compText = "";
+        Apply(EditCommands.InsertText(_state, text));
+        if (text == "/") OpenSlashMenu();
     }
 
     private EditorBlock? BlockAtOffset(int offset)
@@ -902,7 +1089,7 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
     private void DrawBlockRail()
     {
         if (_blockRail is null || _geo is null || _primaryFont is null) return;
-        EditorBlock? block = _hoverBlock ?? BlockAtOffset(_state.Selection.Main.Head);
+        EditorBlock? block = _dragBlock ?? _hoverBlock ?? BlockAtOffset(_state.Selection.Main.Head);
         var scene = new Scene2D();
         if (block is { } value)
         {
@@ -910,12 +1097,98 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
             float y = Pad + caret.Y - _scroll.Clamped;
             if (y > -caret.Height && y < H)
             {
-                float x = (ShowLineNumbers ? _gutterW : Pad) + 4;
-                _primaryFont.AppendText(scene, "+  ⋮", x, y + caret.Height * 0.78f,
-                    MathF.Max(12, _fs - 2), _theme.Peek().TextMuted);
+                Theme theme = _theme.Peek();
+                float x = ShowLineNumbers ? _gutterW : Pad;
+                float cy = y + MathF.Max(12, caret.Height) / 2;
+                scene.FillRoundedRect(Styles.WithAlpha(theme.SurfaceAlt, 235), x, cy - 11, BlockRailWidth - 2, 22, 7);
+                scene.StrokeRoundedRect(theme.BorderColor, 1, x + 1, cy - 10, 18, 20, 6);
+                scene.FillRect(theme.TextMuted, x + 6, cy - 0.75f, 8, 1.5f);
+                scene.FillRect(theme.TextMuted, x + 9.25f, cy - 4, 1.5f, 8);
+                for (int row = -1; row <= 1; row++)
+                    for (int col = 0; col < 2; col++)
+                        scene.FillCircle(theme.TextMuted, x + 25 + col * 5, cy + row * 5, 1.25f, 12);
             }
         }
         _blockRail.Content = scene;
+    }
+
+    private void UpdateBlockDrop(float y)
+    {
+        if (_dragBlock is null || _geo is null) return;
+        _dropBlock = BlockAtY(y);
+        if (_dropBlock is { } target)
+        {
+            TextRect top = _geo.CaretRect(target.From);
+            TextRect bottom = _geo.CaretRect(target.To);
+            float mid = Pad + (top.Y + bottom.Y + bottom.Height) / 2 - _scroll.Clamped;
+            _dropAfter = y >= mid;
+        }
+        DrawDropIndicator();
+    }
+
+    private void DrawDropIndicator()
+    {
+        if (_dropIndicator is null || _geo is null) return;
+        var scene = new Scene2D();
+        if (_dragBlock is not null && _dropBlock is { } target)
+        {
+            TextRect caret = _geo.CaretRect(_dropAfter ? target.To : target.From);
+            float y = Pad + caret.Y - _scroll.Clamped + (_dropAfter ? caret.Height : 0);
+            scene.FillRoundedRect(_theme.Peek().Primary, ContentX, y - 1.5f,
+                MathF.Max(20, W - ContentX - Pad), 3, 1.5f);
+        }
+        _dropIndicator.Content = scene;
+    }
+
+    private void FinishBlockDrop()
+    {
+        EditorBlock? source = _dragBlock;
+        EditorBlock? target = _dropBlock;
+        _dragBlock = _dropBlock = null;
+        DrawDropIndicator();
+        DrawBlockRail();
+        if (ReadOnly || source is not { } from || target is not { } to || from == to || !from.CanMove) return;
+        MoveBlock(from, to, _dropAfter);
+    }
+
+    private void MoveBlock(EditorBlock source, EditorBlock target, bool after)
+    {
+        string text = _state.Doc.Text;
+        (string moved, int caret) = MoveBlockText(text, source, target, after);
+        if (moved == text) return;
+        Apply(_state.Replace(0, text.Length, moved, EditorSelection.Cursor(caret)));
+    }
+
+    internal static (string Text, int Caret) MoveBlockText(
+        string text, EditorBlock source, EditorBlock target, bool after)
+    {
+        if (source == target) return (text, source.From);
+        int from = source.From, to = source.To;
+        int removeFrom = from, removeTo = to;
+        if (removeTo < text.Length && text[removeTo] == '\n')
+            while (removeTo < text.Length && text[removeTo] == '\n') removeTo++;
+        else
+            while (removeFrom > 0 && text[removeFrom - 1] == '\n') removeFrom--;
+
+        int at = after ? target.To : target.From;
+        if (after && at < text.Length && text[at] == '\n') at++;
+        if (at >= removeFrom && at <= removeTo) return (text, source.From);
+
+        string block = text[from..to];
+        string remaining = text.Remove(removeFrom, removeTo - removeFrom);
+        if (at > removeTo) at -= removeTo - removeFrom;
+        at = Math.Clamp(at, 0, remaining.Length);
+
+        bool tightList = source.Kind == target.Kind
+            && source.Kind is MarkdownBlockKinds.BulletList or MarkdownBlockKinds.OrderedList or MarkdownBlockKinds.TaskList;
+        int separation = tightList ? 1 : 2;
+        int before = 0, afterCount = 0;
+        for (int i = at - 1; i >= 0 && remaining[i] == '\n'; i--) before++;
+        for (int i = at; i < remaining.Length && remaining[i] == '\n'; i++) afterCount++;
+        string prefix = at == 0 ? "" : new string('\n', Math.Max(0, separation - before));
+        string suffix = at == remaining.Length ? "" : new string('\n', Math.Max(0, separation - afterCount));
+        string insertion = prefix + block + suffix;
+        return (remaining.Insert(at, insertion), at + prefix.Length);
     }
 
     private void OpenEditorContextMenu(PointerEvent e, Action<float, float, bool, bool> place)
@@ -1186,7 +1459,8 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
                 case OverlayKind.Background:
                 case OverlayKind.LineBackground:
                 case OverlayKind.BlockBackground:
-                    bg.FillRect(o.Color, r.X, r.Y, r.Width, r.Height);
+                    if (o.Radius > 0) bg.FillRoundedRect(o.Color, r.X, r.Y, r.Width, r.Height, o.Radius);
+                    else bg.FillRect(o.Color, r.X, r.Y, r.Width, r.Height);
                     break;
                 case OverlayKind.BlockBar:
                     bg.FillRect(o.Color, r.X, r.Y, r.Width, r.Height);

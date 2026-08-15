@@ -117,6 +117,29 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void BlockDrag_ReordersParagraphsWithoutJoiningTheirMarkdown()
+    {
+        const string markdown = "alpha\n\nbeta\n\ngamma";
+        IReadOnlyList<EditorBlock> blocks = MarkdownEditorFeatures.BlockProvider.GetBlocks(TextDoc.Of(markdown));
+
+        (string moved, int caret) = TextEditorView.MoveBlockText(markdown, blocks[0], blocks[2], after: true);
+
+        Assert.Equal("beta\n\ngamma\n\nalpha", moved);
+        Assert.Equal(moved.IndexOf("alpha", StringComparison.Ordinal), caret);
+    }
+
+    [Fact]
+    public void BlockDrag_KeepsAdjacentListItemsTight()
+    {
+        const string markdown = "- one\n- two\n- three";
+        IReadOnlyList<EditorBlock> blocks = MarkdownEditorFeatures.BlockProvider.GetBlocks(TextDoc.Of(markdown));
+
+        (string moved, _) = TextEditorView.MoveBlockText(markdown, blocks[2], blocks[0], after: false);
+
+        Assert.Equal("- three\n- one\n- two", moved);
+    }
+
+    [Fact]
     public void Heading_Level_ScalesDown()
     {
         Assert.Equal(MarkdownDecorations.HeadingScale(2), At(Build("## Sub"), 3, 6).FontScale!.Value, 3);
@@ -202,6 +225,17 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void TableChangeDetection_CommitsAnEmptyAddedColumn()
+    {
+        var original = new TablePayload([new[] { "Name", "Value" }, new[] { "alpha", "1" }],
+            [TableAlign.Left, TableAlign.Right]);
+        string[][] rows = [new[] { "Name", "Value", "" }, new[] { "alpha", "1", "" }];
+
+        Assert.True(TableBlock.HasChanges(original, rows,
+            [TableAlign.Left, TableAlign.Right, TableAlign.None]));
+    }
+
+    [Fact]
     public void LivePreview_RevealsTableSource_WhenCaretIsInsideTable()
     {
         const string markdown = "before\n| A | B |\n| --- | --- |\n| 1 | 2 |\nafter";
@@ -262,11 +296,16 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
-    public void FencedCode_LinesGetBackgroundAndMono()
+    public void FencedCode_GetsFullWidthRoundedBackgroundAndMonoText()
     {
         var set = Build("```\ncode\n```");                    // ```=[0,3) \n=3 code=[4,8) \n=8 ```=[9,12)
-        Assert.Contains(set.OfKind<LineDecoration>(), l => l.At == 4);          // コード行の背景
-        Assert.Equal(FontVariant.Mono, At(set, 4, 8).Variant);                  // コード本文は等幅
+        BlockDecoration block = Assert.Single(set.OfKind<BlockDecoration>());
+        Assert.Equal((4, 8), (block.From, block.To));
+        Assert.Equal(12f, block.Indent);
+        Assert.Equal(4f, block.Radius);
+        MarkDecoration code = At(set, 4, 8);
+        Assert.Equal(FontVariant.Mono, code.Variant);                            // コード本文は等幅
+        Assert.Equal(14f / 16f, code.FontScale);                                 // Web 標準相当の 14px
     }
 
     [Fact]
