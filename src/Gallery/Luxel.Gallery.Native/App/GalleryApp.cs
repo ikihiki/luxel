@@ -6,7 +6,6 @@ using Luxel.Settings;
 using Luxel.UI;
 using Luxel.Workbench;
 using static Luxel.Controls.Kit;
-using CP = Luxel.Controls.ColorPicker;   // using static Kit とファクトリ名が衝突するため (CS0119)
 using Split = Luxel.Controls.Splitter;   // 同上 (静的メンバ Thickness 参照用)
 
 namespace Luxel.Gallery;
@@ -30,6 +29,7 @@ public sealed class GalleryApp : IDisposable
     private readonly StoryCatalog _catalog;
     private readonly IServiceProvider _storyServices;
     private readonly SurfaceView _preview = SurfaceView(SurfW, SurfH);
+    private readonly Signal<Theme> _storyTheme = new(Theme.Light.Compact());
     private Exception? _pendingStoryError;
     // ストーリーへ StoryContext.Resources として配布 (キャッシュ共有、Pump は Update が叩く)
     private Luxel.Resources.ResourceSystem? _resources;
@@ -37,26 +37,23 @@ public sealed class GalleryApp : IDisposable
         ?? throw new InvalidOperationException("Gallery GPU resources have not been configured.");
     private GallerySlangCompilation? _slangCompilation;
     private (GpuDevice Device, Luxel.Typography.VectorFont Font)? _hostGpu;
-    private readonly Signal<string> _title = new("(ストーリーを選択)");
     // Log は ListView — 追記時は items signal へ流す (行ノードの差し替えのみ、chrome の SetRoot 不要)
     private readonly Signal<IReadOnlyList<string>> _logItems = new([]);
     private readonly Signal<int> _logCountSig = new(0);
     private int _logCount = -1;
 
     // ペイン寸法 (Splitter ドラッグで変更 → chrome 再構築)
-    private float _sidebarW = 170, _rightW = 360, _logH = 240;   // 右パネルは Knobs テーブル (4 列) が収まる幅
+    private float _sidebarW = 290, _logH = 260;
     // ウィンドウの論理クライアントサイズ (ホストが毎フレーム SetWindowSize で同期 — リサイズで chrome 再構築)
     private float _winW = 1280, _winH = 801;
     private ScrollViewer? _sidebarScroll;   // サイドバーのスクロールは chrome 再構築をまたいで位置を保つ
-    private readonly Signal<bool> _fHover = new(false), _fPressed = new(false), _fFocused = new(false), _fDisabled = new(false);
     private bool _dark;
     private StoryContext? _ctx;
     private Widget? _storyRoot;
     private StoryInfo? _currentStory;
     private string? _currentPath;
-    private bool _zen;   // 全画面 (docs 読み書き用): 右パネル/Log を隠しプレビューをメイン全面に
+    private bool _zen;   // 全画面 (docs 読み書き用): 下ペインを隠しプレビューをメイン全面に
     private bool _dirty;
-    private bool _statesDirty;
     private string? _pendingNav;   // docs リンク等からの遷移要求 (Update で消費)
     private readonly HashSet<string> _treeExpanded = new();   // サイドバーツリーの展開状態 (chrome 再構築をまたぐ)
     private bool _treeInit = true;
@@ -70,9 +67,6 @@ public sealed class GalleryApp : IDisposable
     private Dictionary<string, DocsPage>? _docsIndex;   // 初回 BuildRoot で構築 (path → 本文+TOC)
     private long _frame;
     private bool _disposed;
-    private Widget? _selected;                                   // Props インスペクタの選択ノード
-    private readonly object _editGate = new();
-    private readonly List<(Widget W, string Name, string Type, string Value)> _propEdits = new();
 
     public GalleryApp(StoryCatalog catalog, IFileStore? playgroundFiles = null)
     {
@@ -80,8 +74,8 @@ public sealed class GalleryApp : IDisposable
         playgroundFiles ??= new PhysicalFileStore(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Luxel", "Gallery"));
         _storyServices = GalleryServices.WithFileStore(playgroundFiles);
+        _preview.ChildTheme = _storyTheme;
         _preview.ContentError = error => _pendingStoryError ??= error;
-        WireStateForcing();   // Effect は生涯 1 組 (BuildRoot 毎に張ると累積する)
     }
 
 
@@ -166,7 +160,7 @@ public sealed class GalleryApp : IDisposable
         }
     }
 
-    /// <summary>毎フレームの軽い同期: 状態強制の適用 (effect 文脈の外で signal を書く) + 検索適用 + Log の反映 (15f 毎)。</summary>
+    /// <summary>毎フレームの軽い同期: 検索適用 + Log の反映。</summary>
     public void Update()
     {
         Resources.Pump();
@@ -185,12 +179,6 @@ public sealed class GalleryApp : IDisposable
         _ctx?.PumpKnobEdits();   // Knobs テーブルの編集適用 (effect 文脈外)
         if (_pendingNav is string nav) { _pendingNav = null; SelectByPath(nav); }
         SyncSearch();
-        if (_statesDirty)
-        {
-            _statesDirty = false;
-            ApplyStates();
-        }
-        ApplyPropEdits();
         if (++_frame % 5 != 0) return;
         int count = _ctx?.LogSnapshot().Length ?? 0;
         if (count != _logCount)
@@ -211,18 +199,16 @@ public sealed class GalleryApp : IDisposable
         return lines;
     }
 
-    /// <summary>ギャラリー chrome のルート widget を構築する (初回 + ストーリー選択/ペインリサイズ時)。
-    /// 骨格は Grid — 列 [サイドバー | Splitter | メイン | Splitter | 右パネル]、
-    /// メインは行 [ツールバー | プレビュー(Star) | Splitter | Log]。Splitter のドラッグ確定で寸法を更新して再構築する。</summary>
+    /// <summary>ギャラリー chrome のルート widget を構築する (初回 + ストーリー選択/ペインリサイズ時)。</summary>
     public Widget BuildRoot()
     {
         _docsIndex ??= DocsIndex.Build(_catalog.All, Resources, _catalog);
         EnsureDock();
-        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(6))[_dockHost!];
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(0))[_dockHost!];
     }
 
     // ---- Workbench 化した chrome (ToDo 26 WS-D ドッグフード): レイアウトの真実 = DockTree。
-    //      サイドバー/プレビュー/下ペイン (Log/Knobs/Interactions/Console/Source のタブ)/Props が
+    //      サイドバー/プレビュー/下ペイン (Args/Output/Source/Tools のタブ) が
     //      「ドックされたパネル」になり、下ペインのタブは D&D で動かせる。単一タブのペインは
     //      タブ帯を隠して従来 chrome と同じ見え方 (golden 中立)。ペイン内容は SetRoot ごとに
     //      Build し直す Pane (CompositeControl) — 従来の「_dirty → 全再構築」の意味論を保つ。----
@@ -231,6 +217,7 @@ public sealed class GalleryApp : IDisposable
     private DockTree? _normalTree;     // zen 中に退避する通常レイアウト
     private DockHost? _dockHost;
     private readonly Dictionary<string, Pane> _panes = new();
+    private readonly Signal<int> _toolsTab = new(0);
 
     private sealed class Pane : CompositeControl
     {
@@ -241,7 +228,7 @@ public sealed class GalleryApp : IDisposable
     private static readonly (string Id, string Title)[] PaneDefs =
     [
         ("stories", "Stories"), ("preview", "プレビュー"), ("log", "Output"), ("knobs", "Args"),
-        ("interactions", "Interactions"), ("console", "Console"), ("source", "Source"), ("props", "Props"),
+        ("source", "Source"), ("tools", "Tools"),
     ];
 
     private void EnsureDock()
@@ -265,42 +252,39 @@ public sealed class GalleryApp : IDisposable
                 "preview" => BuildPreviewPane,
                 "log" => BuildLogPane,
                 "knobs" => BuildKnobsPane,
-                "interactions" => BuildInteractionsPane,
-                "console" => BuildConsolePane,
                 "source" => BuildSourcePane,
-                "props" => BuildPropsPane,
+                "tools" => BuildToolsPane,
                 _ => () => Spacer(),
             } });
     }
 
-    /// <summary>通常レイアウト: H[stories | V[preview | 下ペイン(5 タブ)] | props]。
+    /// <summary>通常レイアウト: H[stories | V[preview | 下ペイン]]。
     /// 割合は現在のペイン寸法 px から。</summary>
     private DockTree NormalTree()
     {
-        DockTree t = DockTree.Single("preview", "stories", "props", "knobs", "log", "source", "interactions", "console");
+        DockTree t = DockTree.Single("preview", "stories", "knobs", "log", "source", "tools");
         int pg = t.GroupOf("preview")!.Id;
         t = t.Dock("stories", pg, DockSide.Left);
-        t = t.Dock("props", pg, DockSide.Right);
         t = t.Dock("knobs", pg, DockSide.Bottom);
         int bottom = t.GroupOf("knobs")!.Id;
-        t = t.MoveTab("log", bottom).MoveTab("source", bottom).MoveTab("interactions", bottom).MoveTab("console", bottom);
+        t = t.MoveTab("log", bottom).MoveTab("source", bottom).MoveTab("tools", bottom);
         t = t.ActivateTab("knobs");
-        // サイズ: 外側 H (sidebar | main | props) と内側 V (preview | bottom)
-        float availW = MathF.Max(1, _winW - 12 - Split.Thickness * 2);
+        // サイズ: 外側 H (sidebar | main) と内側 V (preview | bottom)
+        float availW = MathF.Max(1, _winW - Split.Thickness);
         var h = (DockSplit)t.Root;
-        t = t.WithSizes(h.Id, [_sidebarW / availW, MathF.Max(0.05f, 1 - (_sidebarW + _rightW) / availW), _rightW / availW]);
-        float availH = MathF.Max(1, _winH - 12 - Split.Thickness);
+        t = t.WithSizes(h.Id, [_sidebarW / availW, MathF.Max(0.05f, 1 - _sidebarW / availW)]);
+        float availH = MathF.Max(1, _winH - Split.Thickness);
         var v = (DockSplit)((DockSplit)t.Root).Children[1];
         t = t.WithSizes(v.Id, [MathF.Max(0.05f, 1 - _logH / availH), _logH / availH]);
         return t;
     }
 
-    /// <summary>zen レイアウト: H[stories | preview] (Log/右パネルを隠して docs をメイン全面に)。</summary>
+    /// <summary>zen レイアウト: H[stories | preview] (下ペインを隠して docs をメイン全面に)。</summary>
     private DockTree ZenTree()
     {
         DockTree t = DockTree.Single("preview", "stories");
         t = t.Dock("stories", t.GroupOf("preview")!.Id, DockSide.Left);
-        float availW = MathF.Max(1, _winW - 12 - Split.Thickness);
+        float availW = MathF.Max(1, _winW - Split.Thickness);
         var h = (DockSplit)t.Root;
         return t.WithSizes(h.Id, [_sidebarW / availW, MathF.Max(0.05f, 1 - _sidebarW / availW)]);
     }
@@ -310,22 +294,21 @@ public sealed class GalleryApp : IDisposable
     private void SyncPaneSizes()
     {
         if (_dock?.Peek() is not { } t || t.Root is not DockSplit h || !h.Horizontal) return;
-        float availW = MathF.Max(1, _winW - 12 - Split.Thickness * (h.Children.Count - 1));
+        float availW = MathF.Max(1, _winW - Split.Thickness * (h.Children.Count - 1));
         bool changed = false;
         void Set(ref float field, float v, float min, float max)
         {
             v = Math.Clamp(v, min, max);
             if (MathF.Abs(field - v) > 0.5f) { field = v; changed = true; }
         }
-        // 外側 H: stories を含む子 = サイドバー幅、props を含む子 = 右パネル幅
+        // 外側 H: stories を含む子 = サイドバー幅
         for (int i = 0; i < h.Children.Count; i++)
         {
             float px = (i < h.Sizes.Count ? h.Sizes[i] : 1f / h.Children.Count) * availW;
-            if (ContainsTab(h.Children[i], "stories")) Set(ref _sidebarW, px, 120, 420);
-            else if (ContainsTab(h.Children[i], "props")) Set(ref _rightW, px, 200, 460);
+            if (ContainsTab(h.Children[i], "stories")) Set(ref _sidebarW, px, 220, 420);
             else if (h.Children[i] is DockSplit { Horizontal: false } v)
             {
-                float availH = MathF.Max(1, _winH - 12 - Split.Thickness * (v.Children.Count - 1));
+                float availH = MathF.Max(1, _winH - Split.Thickness * (v.Children.Count - 1));
                 for (int j = 0; j < v.Children.Count; j++)
                     if (ContainsTab(v.Children[j], "log"))
                         Set(ref _logH, (j < v.Sizes.Count ? v.Sizes[j] : 1f / v.Children.Count) * availH, 60, 440);
@@ -349,7 +332,7 @@ public sealed class GalleryApp : IDisposable
 
     private Widget BuildSidebarPane()
     {
-        float winH = _winH - 12;
+        float winH = _winH;
         // ---- サイドバー: Component > Story > 見出し の 3 階層ツリー + 検索 ----
         // 展開状態 (_treeExpanded) は GalleryApp が所有 — chrome 再構築をまたいで保持。
         // 初回は全 Component を展開 (従来の全件表示と同じ見え方から始める)。
@@ -399,46 +382,57 @@ public sealed class GalleryApp : IDisposable
             selected: _currentPath ?? "", filter: _search);
         // 検索バー: 前へ/次へは開いている docs ページ内のマッチ移動、n/m は現在/総数
         Func<string> matchLabel = () => _matchTotal.Value > 0 ? $"{_matchCur.Value}/{_matchTotal.Value}" : "-";
-        Widget searchBar = HStack(2)[
-            TextField(_search, "検索", width: _sidebarW - 62),
+        Widget searchBar = Border(padding: new Thickness(14, 0, 14, 12))[HStack(2)[
+            TextField(_search, "Storyを検索", width: _sidebarW - 100),
             Button(_ => MoveSearch(-1), "‹", fontSize: UiTheme.T.FontSm, padding: new Thickness(6, 2)),
             Text(matchLabel, 10, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(0, 5, 0, 0)),
-            Button(_ => MoveSearch(+1), "›", fontSize: UiTheme.T.FontSm, padding: new Thickness(6, 2))];
+            Button(_ => MoveSearch(+1), "›", fontSize: UiTheme.T.FontSm, padding: new Thickness(6, 2))]];
+
+        Widget mark = Border(background: Bind.From(() => UiTheme.T.Primary), rounded: 9,
+            width: 34, height: 34)[Center()[Text("L", 17, color: Bind.From(() => UiTheme.T.Background))]];
+        Widget brand = Border(padding: new Thickness(18, 14, 18, 10), height: 68)[HStack(12)[
+            mark,
+            VStack(2)[
+                Text("Luxel", 17, color: Bind.From(() => UiTheme.T.Text)),
+                Text("GALLERY", 11, color: Bind.From(() => UiTheme.T.TextMuted))]]];
+
         // スクロールは永続インスタンス — chrome 再構築 (ストーリー選択/リサイズ) をまたいで位置を保つ
-        _sidebarScroll ??= Scroll(winH - 58, width: _sidebarW);
-        _sidebarScroll.SetViewportHeight(winH - 58);
-        _sidebarScroll.Width.SetOverride(_sidebarW);
-        return VStack(2)[
-            Heading("Stories"),
+        float treeH = MathF.Max(80, winH - 68 - 48 - 34);
+        _sidebarScroll ??= Scroll(treeH, width: _sidebarW - 18);
+        _sidebarScroll.SetViewportHeight(treeH);
+        _sidebarScroll.Width.SetOverride(_sidebarW - 18);
+        Widget treeViewport = Border(padding: new Thickness(9, 0))[_sidebarScroll[tree]];
+        Widget footer = Text($"{_catalog.All.Count} 件のStory", 11,
+            color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(16, 10));
+        return Border(background: Bind.From(() => UiTheme.T.SurfaceAlt))[
+            VStack(0)[
+            brand,
             searchBar,
-            _sidebarScroll[tree]];
+            treeViewport,
+            footer]];
     }
 
     private Widget BuildPreviewPane()
     {
         // ---- ツールバー + プレビュー ----
-        // フレームステップデバッグ: ⏸ で子のアニメ時間を凍結、⏭ で 1 フレームだけ進める
-        Func<string> pauseLabel = () => _preview.Paused ? "▶ 再生" : "⏸ 停止";
-        Widget toolbar = HStack(8)[
-            Text($"{_title}", 14, color: Bind.From(() => UiTheme.T.Text), width: 300),
-            Button(_ => ToggleTheme(), "theme"),
-            Button(_ => ToggleZen(), _zen ? "元に戻す" : "全画面"),
-            Button(_ => { _preview.Paused = !_preview.Paused; _dirty = true; }, pauseLabel,
-                   variant: _preview.Paused ? Luxel.UI.Variant.Tonal : Luxel.UI.Variant.Ghost, fontSize: UiTheme.T.FontSm),
-            Button(_ => _preview.StepFrame(), "⏭", variant: Luxel.UI.Variant.Ghost, fontSize: UiTheme.T.FontSm),
-            Check(_fHover, "hover"),
-            Check(_fPressed, "pressed"),
-            Check(_fFocused, "focused"),
-            Check(_fDisabled, "disabled")];
+        string component = _currentStory?.Component ?? "Story";
+        string name = _currentStory?.Name ?? "ストーリーを選択";
+        Widget title = Border(padding: new Thickness(22, 10, 0, 8))[VStack(2)[
+            Text(component.ToUpperInvariant(), 11, color: Bind.From(() => UiTheme.T.TextMuted)),
+            Text(name, 19, color: Bind.From(() => UiTheme.T.Text))]];
+        Widget actions = Border(padding: new Thickness(0, 12, 14, 10))[HStack(8)[
+            Button(_ => ToggleTheme(), _dark ? "Light" : "Dark", variant: Luxel.UI.Variant.Ghost),
+            Button(_ => ToggleZen(), _zen ? "元に戻す" : "キャンバスを開く")]];
+        actions.GridColumn(1);
+        Widget toolbar = Border(background: Bind.From(() => UiTheme.T.Background))[
+            Grid(columns: [GridLength.Star(1), GridLength.Auto])[title, actions]];
         toolbar.GridRow(0);
         _preview.GridRow(1);
-        return Grid(rows: [GridLength.Px(28), GridLength.Star(1)])[toolbar, _preview];
+        return Grid(rows: [GridLength.Px(68), GridLength.Star(1)])[toolbar, _preview];
     }
 
     /// <summary>メインペイン (プレビュー/下ペイン) の実幅 px。</summary>
-    private float MainW() => _zen
-        ? _winW - 12 - _sidebarW - Split.Thickness
-        : _winW - 12 - _sidebarW - Split.Thickness * 2 - _rightW;
+    private float MainW() => _winW - _sidebarW - Split.Thickness;
 
     /// <summary>下ペイン内容の高さ (タブ帯 32 とパディングを引いた内寸)。</summary>
     private float BottomInnerH() => MathF.Max(24, _logH - 56);
@@ -510,38 +504,22 @@ public sealed class GalleryApp : IDisposable
         return _console;
     }
 
+    private Widget BuildToolsPane()
+    {
+        float width = MathF.Max(140, MainW()) - 32;
+        return Tabs(
+            ["Interactions", "Console"],
+            [BuildInteractionsPane(), BuildConsolePane()],
+            _toolsTab,
+            width: width,
+            height: BottomInnerH());
+    }
+
     private Widget BuildSourcePane()
         => BuildStorySourcePane(_currentStory, MathF.Max(140, MainW()) - 32, BottomInnerH());
 
     private static Widget BuildStorySourcePane(StoryInfo? story, float width = 640f, float height = 240f)
         => GalleryStorySourcePane.Build(story, width, height);
-
-    private Widget BuildPropsPane()
-    {
-        // ---- 右パネル: Props (ツリー + 選択ノードのプロパティ編集) ----
-        float winH = _winH - 12;
-        var props = new List<Widget>();
-        if (_storyRoot is not null)
-        {
-            void AddRows(Widget w, int depth)
-            {
-                string label = $"{w.DebugType}{(string.IsNullOrEmpty(w.DebugDetail) ? "" : $" {Trim(w.DebugDetail!, 14)}")}";
-                Widget captured = w;
-                props.Add(Button(_ => { _selected = captured; _dirty = true; }, label,
-                    variant: _selected == w ? Luxel.UI.Variant.Tonal : Luxel.UI.Variant.Ghost,
-                    hAlign: Align.Stretch, margin: new Thickness(4 + depth * 8, 0, 0, 0)));
-                foreach (Widget c in w.DebugChildren()) AddRows(c, depth + 1);
-            }
-            AddRows(_storyRoot, 0);
-            if (_selected is { } sel)
-                foreach (DebugProp p in sel.DebugProps())
-                    props.Add(PropEditor(sel, p));
-        }
-
-        return VStack(2)[
-            Heading("Props"),
-            Scroll(MathF.Max(80, winH - 70), width: _rightW)[VStack(3)[props.ToArray()]]];
-    }
 
     /// <summary>全画面 (zen) の切替: DockTree を組み替え (通常レイアウトは退避して復元)、
     /// プレビュー内容もメイン全面サイズで再実体化する。</summary>
@@ -561,132 +539,12 @@ public sealed class GalleryApp : IDisposable
         _dirty = true;
     }
 
-    // ---- 型 → エディタ (knob / DebugProps 共通)。bool=Check / enum=Select / color=ColorPicker /
-    //      int,float=正規表現規制付き TextField / string=TextField。commit は effect からキュー経由。----
-    private const string FloatPattern = @"^-?[0-9]*\.?[0-9]*$";
-    private const string IntPattern = "^-?[0-9]*$";
-
-    private static Widget ValueEditor(string name, string type, string value, Action<string> commit)
-    {
-        Widget Label() => Text($"{name}", 11, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(4, 3, 0, 0));
-
-        if (type == "bool")
-        {
-            var b = new Signal<bool>(value == "true");
-            bool first = true;
-            Reactive.Effect(() => { bool v = b.Value; if (first) { first = false; return; } commit(v ? "true" : "false"); });
-            return Check(b, name, margin: new Thickness(4, 0, 0, 0));
-        }
-        if (type == "color")
-        {
-            var col = new Signal<uint>(CP.TryParseHex(value, out uint c) ? c : 0xFF000000u);
-            bool first = true;
-            Reactive.Effect(() => { uint v = col.Value; if (first) { first = false; return; } commit(CP.ToHex(v)); });
-            CP picker = ColorPicker(col, margin: new Thickness(4, 0, 0, 0));
-            return VStack(1)[Label(), picker];
-        }
-        if (type == "length")
-        {
-            // Length は数値 + 単位 (px/%/em/vw/vh) のコンボ 1 コントロール
-            var len = new Signal<Length>(Length.TryParse(value, null, out Length l) ? l : default);
-            bool firstL = true;
-            Reactive.Effect(() => { Length v = len.Value; if (firstL) { firstL = false; return; } commit(v.ToString()); });
-            LengthField lf = LengthField(len, margin: new Thickness(4, 0, 0, 0));
-            return VStack(1)[Label(), lf];
-        }
-        if (type.StartsWith("enum:"))
-        {
-            string[] opts = type[5..].Split('|');
-            var sel = new Signal<int>(Math.Max(0, Array.IndexOf(opts, value)));
-            bool first = true;
-            Reactive.Effect(() => { int i = sel.Value; if (first) { first = false; return; } commit(opts[Math.Clamp(i, 0, opts.Length - 1)]); });
-            // GalleryApp.Select(StoryInfo) がメンバー解決で Kit.Select を隠すため修飾が必要
-            Select dd = Kit.Select(opts, sel, margin: new Thickness(4, 0, 0, 0));
-            return VStack(1)[Label(), dd];
-        }
-        var txt = new Signal<string>(value);
-        bool firstT = true;
-        Reactive.Effect(() => { string v = txt.Value; if (firstT) { firstT = false; return; } commit(v); });
-        TextField tf = TextField(txt, width: 200, margin: new Thickness(4, 0, 0, 0));
-        tf.Pattern = type switch { "int" => IntPattern, "float" => FloatPattern, _ => null };
-        return VStack(1)[Label(), tf];
-    }
-
-    private static string Trim(string s, int max) => s.Length <= max ? s : s[..max] + "…";
-
-    /// <summary>DebugProp 1 つのエディタ。編集は Effect からキューに積み、適用は <see cref="Update"/>
-    /// (effect 文脈外) で SetDebugProp + 再実体化する (ui.set と同じ理由 — override signal は遅延生成)。</summary>
-    private Widget PropEditor(Widget target, DebugProp p)
-        => ValueEditor(p.Name, p.Type, p.Value,
-            v => { lock (_editGate) _propEdits.Add((target, p.Name, p.Type, v)); });
-
-    /// <summary>キューされた prop 編集を適用する (フレームループから、effect 文脈外)。prop は子を再実体化。
-    /// knob 編集は StoryContext のキュー (PumpKnobEdits) へ移行済み。</summary>
-    private void ApplyPropEdits()
-    {
-        (Widget W, string Name, string Type, string Value)[] edits;
-        lock (_editGate)
-        {
-            if (_propEdits.Count == 0) return;
-            edits = _propEdits.ToArray(); _propEdits.Clear();
-        }
-        if (edits.Length == 0) return;
-        bool any = false;
-        foreach ((Widget w, string name, string type, string value) in edits)
-        {
-            try
-            {
-                w.SetDebugProp(name, type, ToElement(type, value));
-                any = true;
-            }
-            catch { /* 不正値は無視 */ }
-        }
-        if (any && _storyRoot is not null) StoryHost?.SetRoot(_storyRoot);   // override signal を Effect に読ませる
-    }
-
-    private static JsonElement ToElement(string type, string v)
-        => type == "bool" && bool.TryParse(v, out bool b)
-            ? JsonSerializer.SerializeToElement(b)
-            : JsonSerializer.SerializeToElement(v);
-
-    /// <summary>テーマ切替 (ツールバーの "theme" ボタンと Ctrl+D ショートカットの両方から)。</summary>
+    /// <summary>ストーリープレビューのテーマ切替。Gallery chrome の暗色テーマには影響しない。</summary>
     public void ToggleTheme()
     {
         _dark = !_dark;
-        UiTheme.Current.Value = (_dark ? Theme.Dark : Theme.Light).Compact();   // global (chrome も切替わる — 既知の制限)
-    }
-
-    /// <summary>状態強制: Effect はフラグを立てるだけにし、signal の書き込みは <see cref="Update"/>
-    /// (effect 文脈の外) で行う。**Effect 内から他 widget の状態 signal を書くと、依存追跡や
-    /// 子ホストの effect 連鎖と干渉する**ため (自己依存の無限ループ/反映漏れ)。</summary>
-    private void WireStateForcing()
-    {
-        Reactive.Effect(() => { _ = _fHover.Value; _ = _fPressed.Value; _ = _fFocused.Value; _ = _fDisabled.Value; _statesDirty = true; });
-    }
-
-    /// <summary>ストーリー部分木へ状態を適用する (フレームループから、effect 文脈外)。chrome には波及しない。</summary>
-    private void ApplyStates()
-    {
-        bool hover = _fHover.Value, pressed = _fPressed.Value, focused = _fFocused.Value, disabled = _fDisabled.Value;
-        ForEachStory(w =>
-        {
-            w.Enabled = !disabled;
-            // Enabled は plain bool (非 signal) のため、hover を揺らして色解決 Effect を再評価させる
-            w.Hovered.Value = !hover; w.Hovered.Value = hover;
-            w.Pressed.Value = pressed;
-            w.Focused.Value = focused;
-        });
-    }
-
-    private void ForEachStory(Action<Widget> f)
-    {
-        if (_storyRoot is null) return;
-        static void Walk(Widget w, Action<Widget> f)
-        {
-            f(w);
-            foreach (Widget c in w.DebugChildren()) Walk(c, f);
-        }
-        Walk(_storyRoot, f);
+        _storyTheme.Value = (_dark ? Theme.Dark : Theme.Light).Compact();
+        _dirty = true;   // toolbar label (Dark / Light) is rebuilt with the chrome
     }
 
     /// <summary>検索状態の同期 (Update 毎): クエリ/ページが変わったら開いている docs へハイライトを
@@ -730,11 +588,11 @@ public sealed class GalleryApp : IDisposable
     private (int W, int H) PreviewSize(StoryInfo story)
     {
         if (_zen)
-            return ((int)MathF.Min(SurfW, _winW - 12 - _sidebarW - Split.Thickness),
-                    (int)MathF.Min(SurfH, _winH - 12 - 28));
-        // 通常モードのメイン領域 (サイドバー/右パネル/Log を除いた実寸)
-        float w = _winW - 12 - _sidebarW - Split.Thickness * 2 - _rightW;
-        float h = _winH - 12 - 28 - Split.Thickness - _logH;
+            return ((int)MathF.Min(SurfW, _winW - _sidebarW - Split.Thickness),
+                    (int)MathF.Min(SurfH, _winH - 68));
+        // 通常モードのメイン領域 (サイドバー/Log を除いた実寸)
+        float w = _winW - _sidebarW - Split.Thickness;
+        float h = _winH - 68 - Split.Thickness - _logH;
         return ((int)MathF.Min(SurfW, w), (int)MathF.Min(SurfH, h));
     }
 
@@ -895,15 +753,12 @@ public sealed class GalleryApp : IDisposable
             _treeExpanded.Add($"g:{prefix}");
         }
         _treeExpanded.Add(story.Path);   // docs story自身も開いてTOCを見せる
-        _title.Value = story.Path;
     }
 
     private void StorySelectionChanged()
     {
         _logCount = -1;       // 新 StoryContext → Log リストを作り直させる
-        _selected = null;     // Props 選択は旧ストーリーの widget なのでクリア
-        _dirty = true;        // knobs/props パネルが変わるので chrome を再構築 (SurfaceView は再利用)
-        _statesDirty = true;  // 強制中の状態を新ストーリーへ再適用
+        _dirty = true;        // knobs パネルが変わるので chrome を再構築 (SurfaceView は再利用)
     }
 
     public void SelectByPath(string path)

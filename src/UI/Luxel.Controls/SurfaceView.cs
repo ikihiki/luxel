@@ -37,22 +37,20 @@ public sealed partial class SurfaceView : Widget, IDisposable
     private float _scale = 1f;            // 親 UI の DPI スケール — 子 fb は物理解像度 (_pw×_ph) で持つ
     private uint _pw, _ph, _publishedPw, _publishedPh;
 
-    /// <summary>子 UiHost (実体化後に有効)。状態強制やツリー検査はこれ経由で行う。</summary>
+    /// <summary>子 UiHost (実体化後に有効)。ツリー検査はこれ経由で行う。</summary>
     public UiHost? Child { get; private set; }
+
+    /// <summary>子 UiHost 専用テーマ。null の場合は親テーマを共有する。</summary>
+    public Signal<Theme>? ChildTheme { get; set; }
+
+    internal Signal<Theme> ResolveChildTheme(Signal<Theme> parentTheme)
+        => ChildTheme ?? parentTheme;
 
     /// <summary>子の Tick/描画が失敗したときに一度だけ通知する。次の <see cref="SetContent"/> で復旧する。</summary>
     public Action<Exception>? ContentError { get; set; }
 
     /// <summary>現在の子コンテンツで最後に発生したエラー。新しいコンテンツ設定時にクリアされる。</summary>
     public Exception? LastContentError => _contentError;
-
-    /// <summary>true の間、子はアニメ時間を進めない (dt=0 で Tick) — フレームステップデバッグ用。
-    /// 入力と描画は生きたまま、アニメ/物理/Tick 駆動だけが凍る。</summary>
-    public bool Paused { get; set; }
-    private float _pendingStep;   // Paused 中に 1 回だけ子へ通す dt (StepFrame が積む)
-
-    /// <summary>Paused 中に 1 フレームだけ進める (既定 1/60 秒 — 決定的に状態を観察する)。</summary>
-    public void StepFrame(float dt = 1f / 60f) => _pendingStep = dt;
 
     private float W1 => MathF.Max(1, SurfaceWidth.Get());
     private float H1 => MathF.Max(1, SurfaceHeight.Get());
@@ -91,7 +89,7 @@ public sealed partial class SurfaceView : Widget, IDisposable
             _device = _rasterizer.Device;
             _childCanvas = new RetainedCanvas();
             _rasterScene = _rasterizer.CreateScene(_childCanvas);
-            Child = new UiHost(_childCanvas, ctx.Font, PendW, PendH, ctx.Theme, _rasterizer, _rendererState);
+            Child = new UiHost(_childCanvas, ctx.Font, PendW, PendH, ResolveChildTheme(ctx.Theme), _rasterizer, _rendererState);
             _output = new PersistentUiOutput<GpuBuffer>(RecycleOutput);
             _surfaceState = new UiSurfaceState(
                 _surfaceKey,
@@ -160,12 +158,10 @@ public sealed partial class SurfaceView : Widget, IDisposable
 
     private void TickChild(float dt)
     {
-        float childDt = Paused ? _pendingStep : dt;
-        if (Paused) _pendingStep = 0;
         if (_contentError is not null) return;
         try
         {
-            Child!.Tick(childDt);
+            Child!.Tick(dt);
         }
         catch (Exception error)
         {
