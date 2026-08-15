@@ -8,7 +8,6 @@
     <LuxelArchitectureTier>Extension</LuxelArchitectureTier>
   </PropertyGroup>
   <PropertyGroup><IsPackable>false</IsPackable></PropertyGroup>
-  <ItemGroup><Compile Include="..\..\..\samples\CanonicalTriangleRecipe.cs" Link="CanonicalTriangleRecipe.cs" /></ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Framework\Luxel.Framework.Game.Browser\Luxel.Framework.Game.Browser.csproj" />
     <ProjectReference Include="..\..\..\src\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />

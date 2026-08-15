@@ -1,8 +1,8 @@
 # Luxel Gallery Browser E2E
 
-This xUnit project follows the Playwright .NET xUnit runner pattern. Focused story classes derive from `PageTest`, which reuses Playwright/browser workers while giving every test a fresh browser context and page. xUnit classes run concurrently; methods within a class remain sequential.
+This project keeps the Playwright host and browser configuration available for gallery-level smoke tests that do not depend on authored stories.
 
-The 87 discoverable tests cover representative category stories, Markdown iframes, WebGPU diagnostics, canvas interactions, shared Args/Output/Source panels, Audio, Resources, and browser scripting.
+Do not add tests for fixed story routes, story text, story counts, source panels, or the implementation of a production story. Authored stories are intentionally free to change without requiring test updates. Story framework behavior belongs in focused unit tests that build synthetic `StoryInfo` values.
 
 From the repository root:
 

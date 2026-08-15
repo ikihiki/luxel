@@ -4,6 +4,24 @@ using Xunit;
 
 namespace Luxel.Gallery.E2eTests;
 
+internal static class RepoRoot
+{
+    private static bool _done;
+
+    public static void Ensure()
+    {
+        if (_done) return;
+        _done = true;
+        foreach (string start in new[] { Environment.CurrentDirectory, AppContext.BaseDirectory })
+            for (string? directory = start; directory is not null; directory = Path.GetDirectoryName(directory))
+                if (File.Exists(Path.Combine(directory, "Luxel.slnx")))
+                {
+                    Environment.CurrentDirectory = directory;
+                    return;
+                }
+    }
+}
+
 /// <summary>同梱フォント (<see cref="GalleryFonts"/>) が実際に読めて日本語・ラテン両方の
 /// グリフを収載していることの回帰テスト (GPU 不要)。golden 全再生成の前提を担保する —
 /// フォントが glyf アウトライン (VectorFont は CFF/OTF 非対応) で読めることをここで確認する。</summary>
