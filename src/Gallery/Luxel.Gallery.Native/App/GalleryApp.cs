@@ -422,7 +422,7 @@ public sealed class GalleryApp : IDisposable
             Text(name, 19, color: Bind.From(() => UiTheme.T.Text))]];
         Widget actions = Border(padding: new Thickness(0, 12, 14, 10))[HStack(8)[
             Button(_ => ToggleTheme(), _dark ? "Light" : "Dark", variant: Luxel.UI.Variant.Ghost),
-            Button(_ => ToggleZen(), _zen ? "元に戻す" : "キャンバスを開く")]];
+            Button(_ => ToggleZen(), _zen ? "キャンバスを閉じる" : "キャンバスを開く")]];
         actions.GridColumn(1);
         Widget toolbar = Border(background: Bind.From(() => UiTheme.T.Background))[
             Grid(columns: [GridLength.Star(1), GridLength.Auto])[title, actions]];

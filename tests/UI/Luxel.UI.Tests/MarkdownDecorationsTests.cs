@@ -198,6 +198,21 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void LinkColor_Rebuilds_WhenOnlyThemePrimaryChanges()
+    {
+        Theme theme = Theme.Light;
+        var provider = new MarkdownProvider(() => theme);
+        EditorState state = EditorState.Create("[Link](https://example.test)");
+
+        Assert.Equal(theme.Primary, At(provider.Provide(state), 1, 5).Foreground);
+
+        theme = Theme.Light;
+        theme.Primary = 0xff33aaff;
+
+        Assert.Equal(0xff33aaffu, At(provider.Provide(state), 1, 5).Foreground);
+    }
+
+    [Fact]
     public void ReadOnlyTable_BecomesEditableTableBlockReference()
     {
         const string markdown = "| Name | Value |\n| :--- | ---: |\n| alpha | 1 |";

@@ -26,6 +26,7 @@ public sealed partial class SurfaceView : Widget, IDisposable
     private RetainedCanvas? _childCanvas;
     private GpuDevice? _device;
     private Widget? _pendingRoot;
+    private Widget? _installedRoot;
     private Exception? _contentError;
     private UiRendererState? _rendererState;
     private UiSurfaceState? _surfaceState;
@@ -70,8 +71,11 @@ public sealed partial class SurfaceView : Widget, IDisposable
         if (logicalHeight is float lh) _pendingH = MathF.Min(lh, H1);
         if (Child is not null)
         {
-            Child.Resize(PendW, PendH);   // 旧 root の再レイアウトは無害 (直後に差し替え)
-            Child.SetRoot(root);
+            bool resized = MathF.Abs(Child.Width - PendW) > 0.5f || MathF.Abs(Child.Height - PendH) > 0.5f;
+            bool changed = !ReferenceEquals(_installedRoot, root);
+            if (resized) Child.Resize(PendW, PendH);
+            if (changed) Child.SetRoot(root);
+            _installedRoot = root;
         }
     }
 
@@ -102,7 +106,11 @@ public sealed partial class SurfaceView : Widget, IDisposable
                 CreateOutput);
             _surfaceState.Published += PublishOutput;
             _rendererState.Add(_surfaceState);
-            if (_pendingRoot is not null) Child.SetRoot(_pendingRoot);
+            if (_pendingRoot is not null)
+            {
+                Child.SetRoot(_pendingRoot);
+                _installedRoot = _pendingRoot;
+            }
         }
         // output は親のラスタライズ解像度 (論理 × RenderScale) で持つ — 150% でも子のテキストが鮮明
         uint physicalWidth = (uint)MathF.Ceiling(W1 * ctx.RenderScale);
