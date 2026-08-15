@@ -76,7 +76,7 @@ public sealed class NativeGalleryApplication : IDisposable
         builder.Options.UiName = "gallery";
         builder.Options.Width = 1280;
         builder.Options.Height = 840;
-        builder.Options.Theme = Theme.Light.Compact();
+        builder.Options.Theme = GalleryChromeTheme.Create();
         builder.Options.FontFactory = () => GalleryFonts.Load(GalleryFonts.Regular);
         builder.Options.RunDuration = seconds > 0 ? TimeSpan.FromSeconds(seconds) : null;
         builder.Options.GraphicsBackend = ParseGraphicsBackend(backend);

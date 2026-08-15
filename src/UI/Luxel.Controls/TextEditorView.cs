@@ -163,6 +163,13 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
     /// <summary>カーソル (選択レンジ) の本数 — マルチカーソルの観測用。</summary>
     public int CursorCount => _state.Selection.Ranges.Count;
 
+    /// <summary>Markdown などの文書 provider が、実体化後は所属 UiHost のテーマを使うための解決。</summary>
+    internal Theme ResolveDocumentTheme(Func<Theme> fallback)
+        => _ctx is null ? fallback() : _theme.Peek();
+
+    internal bool CanShowSelectionToolbar(bool hasSelection)
+        => !ReadOnly && hasSelection && SelectionActions.Count > 0;
+
     /// <summary>Editor の汎用 UI から挿入候補を実行する。</summary>
     public void Execute(EditorInsertItem item)
         => Apply(EditorContributionCommands.Insert(_state,
@@ -556,7 +563,7 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
     {
         if (_selectionBar is null || _selectionBarText is null || _geo is null || _primaryFont is null) return;
         SelectionRange selection = _state.Selection.Main;
-        if (selection.Empty || SelectionActions.Count == 0)
+        if (!CanShowSelectionToolbar(!selection.Empty))
         {
             _selectionBar.Visible = _selectionBarText.Visible = false;
             _selectionBar.Content = null;
@@ -826,7 +833,7 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
             int actionIndex = i;
             ctx.AddHit(_selectionBar, new Rect(i * SelectionActionW, 0, SelectionActionW, SelectionBarH),
                 onClick: () => Execute(SelectionActions[actionIndex]), cursor: CursorKind.Hand)
-                .Active = () => !_state.Selection.Main.Empty && actionIndex < SelectionActions.Count;
+                .Active = () => !ReadOnly && !_state.Selection.Main.Empty && actionIndex < SelectionActions.Count;
         }
 
         float rh0 = _fs + 16;

@@ -63,7 +63,7 @@ public static class MarkdownDoc
         ed.SelectionActions = MarkdownEditorFeatures.SelectionActions;
         ed.WidgetResolver = key => MarkdownBlockEmbeds.Resolve(ed, key, resources, MathF.Max(80, width - 64));
         // 文書レンダラ: マーカ非表示 + コード色分け + 埋め込み。editable なら live-preview (キャレット行だけ raw)。
-        ed.Providers.Add(new MarkdownProvider(theme, hideMarkers: true, highlighter, embedKinds, livePreview: editable,
+        ed.Providers.Add(new MarkdownProvider(() => ed.ResolveDocumentTheme(theme), hideMarkers: true, highlighter, embedKinds, livePreview: editable,
             appearance: () => ed.Appearance));
         return ed;
     }
@@ -562,7 +562,7 @@ public sealed class MarkdownProvider(Func<Theme> theme, bool hideMarkers = false
     Func<TextEditorAppearance>? appearance = null) : IDecorationProvider
 {
     private string? _lastText;
-    private uint _lastDisc;
+    private int _lastDisc;
     private string _lastReveal = "";
     private TextEditorAppearance? _lastAppearance;
     private DecorationSet _cache = DecorationSet.Empty;
@@ -575,7 +575,7 @@ public sealed class MarkdownProvider(Func<Theme> theme, bool hideMarkers = false
     {
         Theme t = theme();
         TextEditorAppearance currentAppearance = appearance?.Invoke() ?? TextEditorAppearance.Default;
-        uint disc = t.Text ^ (t.TextMuted << 1) ^ CodeDecorations.TokenColor(t, TokenKind.Keyword);   // テーマ変化の検出子
+        int disc = ThemeDiscriminator(t);
         string text = state.Doc.Text;
         // live-preview: キャレット/選択のある行を reveal (マーカを畳まず淡色で見せる = Typora 風の編集モード)
         HashSet<int>? revealLines = null;
@@ -593,5 +593,28 @@ public sealed class MarkdownProvider(Func<Theme> theme, bool hideMarkers = false
         Func<int, bool>? reveal = revealLines is null ? null : pos => revealLines.Contains(state.Doc.LineOf(pos));
         _cache = MarkdownDecorations.Build(text, t, hideMarkers, highlighter, embedKinds, reveal, currentAppearance);
         return _cache;
+    }
+
+    private static int ThemeDiscriminator(Theme t)
+    {
+        var hash = new HashCode();
+        hash.Add(t.Text);
+        hash.Add(t.TextMuted);
+        hash.Add(t.Primary);
+        hash.Add(t.TokComment);
+        hash.Add(t.TokString);
+        hash.Add(t.TokEscape);
+        hash.Add(t.TokRegexp);
+        hash.Add(t.TokNumber);
+        hash.Add(t.TokConstant);
+        hash.Add(t.TokKeyword);
+        hash.Add(t.TokKeywordControl);
+        hash.Add(t.TokOperator);
+        hash.Add(t.TokFunction);
+        hash.Add(t.TokType);
+        hash.Add(t.TokVariable);
+        hash.Add(t.TokTag);
+        hash.Add(t.TokAttribute);
+        return hash.ToHashCode();
     }
 }
